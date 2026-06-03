@@ -32,10 +32,10 @@ namespace mc {
 /**
  * @brief 鱼类实体基类
  *
- * 对齐 1.16.5 的 AbstractFishEntity，只保留所有鱼共享的游泳、
- * 离水扑腾与基础空气供应语义。群游逻辑由 AbstractGroupFishEntity 承载。
+ * 只保留所有鱼共享的游泳、离水扑腾与基础空气供应语义。
+ * 群游逻辑由 AbstractGroupFishEntity 承载。
  *
- * AI 目标（MC 1.16.5）:
+ * AI 目标:
  * - 优先级 0: PanicGoal(1.25) - 恐慌逃跑
  * - 优先级 2: AvoidEntityGoal(Player, 8.0F, 1.6, 1.4) - 避开玩家
  * - 优先级 4: SwimGoal(1.0, 40) - 随机游泳
@@ -51,8 +51,8 @@ public:
 
     AbstractFishEntity(const AbstractFishEntity&) = delete;
     AbstractFishEntity& operator=(const AbstractFishEntity&) = delete;
-    AbstractFishEntity(AbstractFishEntity&&) = delete;
-    AbstractFishEntity& operator=(AbstractFishEntity&&) = delete;
+    AbstractFishEntity(AbstractFishEntity&&) noexcept = delete;
+    AbstractFishEntity& operator=(AbstractFishEntity&&) noexcept = delete;
 
     /**
      * @brief 鱼默认只能在水中生成
@@ -100,7 +100,6 @@ public:
      * @brief 检查是否来自桶
      *
      * 从桶放出的鱼不会消失。
-     * 参考 MC 1.16.5 AbstractFishEntity.isFromBucket()
      *
      * @return 如果是从桶放出的鱼返回 true
      */
@@ -110,7 +109,6 @@ public:
      * @brief 设置是否来自桶
      *
      * 当从鱼桶放出鱼时调用此方法设置为 true。
-     * 参考 MC 1.16.5 AbstractFishEntity.setFromBucket()
      *
      * @param fromBucket 是否来自桶
      */
@@ -120,7 +118,6 @@ public:
      * @brief 检查是否应阻止消失
      *
      * 从桶放出的鱼永远不会消失。
-     * 参考 MC 1.16.5 AbstractFishEntity.preventDespawn()
      *
      * @return 如果来自桶或正在被骑乘返回 true
      */
@@ -130,7 +127,6 @@ public:
      * @brief 检查是否可以消失
      *
      * 从桶放出的鱼或有自定义名称的鱼不会消失。
-     * 参考 MC 1.16.5 AbstractFishEntity.canDespawn()
      *
      * @param distanceToClosestPlayer 到最近玩家的距离
      * @return 如果可以消失返回 true
@@ -150,7 +146,6 @@ public:
     /**
      * @brief 是否可以随机游泳
      *
-     * MC 1.16.5 AbstractFishEntity.func_212800_dy()
      * 用于 SwimGoal 的 shouldExecute 检查。
      * 基类默认返回 true，群游鱼类重写为 !hasGroupLeader()
      *
@@ -161,7 +156,6 @@ public:
     /**
      * @brief 获取扑腾声音
      *
-     * MC 1.16.5 AbstractFishEntity.getFlopSound()
      * 子类应重写此方法返回对应的扑腾声音事件。
      *
      * @return 扑腾声音事件，默认返回空
@@ -182,10 +176,9 @@ protected:
     /**
      * @brief 更新离水扑腾状态
      *
-     * MC 1.16.5 AbstractFishEntity.livingTick() 中的扑腾逻辑：
-     * - 触发条件：不在水中 && 在地面 && 垂直碰撞
-     * - 行为：添加随机水平速度 + 向上速度 0.4
-     * - 音效：播放扑腾声音
+     * 触发条件：不在水中 && 在地面 && 垂直碰撞
+     * 行为：添加随机水平速度 + 向上速度 0.4
+     * 音效：播放扑腾声音
      */
     void updateFlopping();
 

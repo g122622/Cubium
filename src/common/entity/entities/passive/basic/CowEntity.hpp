@@ -37,8 +37,6 @@ class DamageSource;
  * @brief 牛实体
  *
  * 可被挤奶的被动动物，用小麦繁殖。
- *
- * 参考 MC 1.16.5 CowEntity
  */
 class CowEntity : public AnimalEntity {
 public:

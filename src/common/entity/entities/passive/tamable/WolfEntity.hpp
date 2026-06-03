@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
 #include "TameableEntity.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 
 namespace mc {
@@ -46,8 +46,6 @@ class ItemStack;
  * - 攻击目标：保护主人
  * - 尾巴角度：表示生命值和心情
  * - 颈圈颜色：驯服后可染色
- *
- * 参考 MC 1.16.5 WolfEntity
  */
 class WolfEntity : public TameableEntity {
 public:

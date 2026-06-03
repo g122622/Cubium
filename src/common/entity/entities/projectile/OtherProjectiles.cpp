@@ -72,10 +72,10 @@ math::Random createRandomFromEntity(const Entity& entity)
 // ============================================================================
 
 namespace {
-// 羊驼口水伤害常量 (MC 1.16.5)
+// 羊驼口水伤害常量
 constexpr f32 LLAMA_SPIT_DAMAGE = 1.0f; // 0.5 颗心
 
-// 钓鱼时间常量（MC 1.16.5）
+// 钓鱼时间常量
 constexpr i32 MIN_WAIT_TICKS = 100;     // 最小等待时间 (5秒)
 constexpr i32 MAX_WAIT_TICKS = 600;     // 最大等待时间 (30秒)
 constexpr i32 LURE_REDUCTION = 100;     // 饵钓每级减少的时间 (5秒)
@@ -98,7 +98,6 @@ void LlamaSpitEntity::onEntityHit(const RayTraceResult& result)
         return;
     }
 
-    // MC 1.16.5: LlamaSpitEntity.onEntityHit()
     // 造成 1.0 点伤害（0.5 颗心）
     mc::Entity* shooter = getShooter();
     std::unique_ptr<DamageSource> damageSource;
@@ -148,11 +147,8 @@ void FishingBobberEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pit
     setShooter(&shooter);
 
     // 计算发射方向
-    // MC 1.16.5: ProjectileHelper.func_234618_a_
-    constexpr f32 DEG_TO_RAD = 0.017453292f; // PI / 180
-
-    f32 radPitch = (pitch + pitchOffset) * DEG_TO_RAD;
-    f32 radYaw = -yaw * DEG_TO_RAD;
+    f32 radPitch = (pitch + pitchOffset) * math::DEG_TO_RAD;
+    f32 radYaw = -yaw * math::DEG_TO_RAD;
 
     f32 x = -std::sin(radYaw) * std::cos(radPitch);
     f32 y = -std::sin(radPitch);
@@ -168,7 +164,7 @@ void FishingBobberEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pit
 
     // 添加不准确性
     if (inaccuracy > 0.0f) {
-        // MC 1.16.5: 使用世界的随机数生成器添加高斯偏移
+        // 使用世界的随机数生成器添加高斯偏移
         math::Random& random = shooter.world()->getRandom();
         f32 offsetX = random.nextGaussian() * inaccuracy * 0.0075f;
         f32 offsetY = random.nextGaussian() * inaccuracy * 0.0075f;
@@ -209,7 +205,6 @@ void FishingBobberEntity::tick()
     switch (m_state) {
         case State::Flying: {
             // 浮标在飞行中，执行射线检测
-            // 参考 MC 1.16.5 FishingBobberEntity.tick() 第169-195行
             if (m_world != nullptr) {
                 RayTraceResult hitResult = performRayTrace();
                 if (hitResult.type == RayTraceResultType::Entity) {
@@ -267,7 +262,6 @@ void FishingBobberEntity::tick()
 
         case State::Hooked:
             // 钩住实体
-            // 参考 MC 1.16.5 FishingBobberEntity.tick() 第181-195行
             if (m_caughtEntity != nullptr) {
                 if (m_caughtEntity->isRemoved() || !m_caughtEntity->isAlive()) {
                     // 实体被移除或死亡，恢复飞行状态
@@ -275,8 +269,7 @@ void FishingBobberEntity::tick()
                     m_caughtEntityId = 0;
                     m_state = State::Flying;
                 } else {
-                    // 浮标跟随实体位置
-                    // MC 1.16.5: 设置位置到实体高度的 80% 处
+                    // 浮标跟随实体位置（设置位置到实体高度的 80% 处）
                     setPosition(
                         m_caughtEntity->x(), m_caughtEntity->y() + m_caughtEntity->height() * 0.8, m_caughtEntity->z());
                 }
@@ -301,7 +294,7 @@ bool FishingBobberEntity::isInWater() const
 
 bool FishingBobberEntity::checkOpenWater()
 {
-    // MC 1.16.5: 检查浮标位置周围是否满足开放水域条件
+    // 检查浮标位置周围是否满足开放水域条件
     // 需要检查 Y-1 到 Y+2 四层，每层 5x5 范围
     if (m_world == nullptr) {
         return false;
@@ -337,7 +330,6 @@ void FishingBobberEntity::catchingFish()
         m_ticksCaughtDelay--;
 
         // 接近咬钩时产生水花
-        // MC 1.16.5 FishingBobberEntity.catchingFish() 第334-354行
         if (m_ticksCaughtDelay < 100 && m_ticksCaughtDelay % 10 == 0 && m_world) {
             // 生成水花粒子
             math::Random rng;
@@ -360,7 +352,6 @@ void FishingBobberEntity::catchingFish()
         m_ticksCatchableDelay--;
 
         // 产生气泡和钓鱼粒子
-        // MC 1.16.5 FishingBobberEntity.catchingFish() 第306-324行
         if (m_ticksCatchableDelay % 5 == 0 && m_world) {
             math::Random rng;
             f32 angle = m_fishAngle * math::DEG_TO_RAD;
@@ -393,7 +384,7 @@ void FishingBobberEntity::catchingFish()
         if (m_ticksCatchableDelay <= 0) {
             m_ticksCatchable = math::Random().nextInt(MIN_CATCHABLE_TICKS, MAX_CATCHABLE_TICKS);
             m_state = State::Fishing;
-            // MC 1.16.5: 播放水溅音效
+            // 播放水溅音效
             playSound(SoundEvents::ENTITY_FISHING_BOBBER_SPLASH,
                 0.25f,
                 1.0f + (math::Random().nextFloat() - math::Random().nextFloat()) * 0.4f);
@@ -410,7 +401,6 @@ void FishingBobberEntity::catchingFish()
 
 void FishingBobberEntity::spawnFishingParticles()
 {
-    // MC 1.16.5: 钓鱼粒子效果
     // 浮标在水面时的涟漪效果
     if (isInWater() && m_world) {
         math::Random rng;
@@ -423,7 +413,7 @@ void FishingBobberEntity::spawnFishingParticles()
 
 void FishingBobberEntity::setWaitTime()
 {
-    // MC 1.16.5: 设置咬钩等待时间
+    // 设置咬钩等待时间
     // 基础时间: 100-600 ticks
     // 饵钓附魔: 每级减少 100 ticks
     math::Random rng;
@@ -438,9 +428,7 @@ void FishingBobberEntity::setWaitTime()
 
 i32 FishingBobberEntity::spawnCatchItems()
 {
-    // MC 1.16.5: 使用钓鱼掉落表生成物品
-    // 参考 FishingBobberEntity.handleHookRetraction()
-
+    // 使用钓鱼掉落表生成物品
     if (!m_world || !m_angler) {
         return 0;
     }
@@ -454,7 +442,6 @@ i32 FishingBobberEntity::spawnCatchItems()
     }
 
     // 计算幸运值 = 海之眷顾附魔等级 + 玩家基础幸运
-    // MC 1.16.5: .withLuck((float)this.luck + playerentity.getLuck())
     f32 totalLuck = static_cast<f32>(m_luckBonus);
     totalLuck += static_cast<f32>(m_angler->getAttributeValue(entity::attribute::Attributes::LUCK, 0.0));
 
@@ -512,7 +499,7 @@ i32 FishingBobberEntity::spawnCatchItems()
         );
     }
 
-    // 生成经验球 (1-6 经验，参考 MC 1.16.5)
+    // 生成经验球 (1-6 经验)
     i32 experience = random.nextInt(1, 6);
     spawnExperienceOrbs(experience);
 
@@ -522,9 +509,7 @@ i32 FishingBobberEntity::spawnCatchItems()
 
 void FishingBobberEntity::spawnExperienceOrbs(i32 totalXp)
 {
-    // MC 1.16.5: 生成经验球
-    // 参考 ExperienceOrbEntity.split()
-
+    // 生成经验球
     if (totalXp <= 0 || !m_world) {
         return;
     }
@@ -532,7 +517,7 @@ void FishingBobberEntity::spawnExperienceOrbs(i32 totalXp)
     math::Random& random = m_world->getRandom();
 
     // 分割经验值为多个经验球
-    // MC 1.16.5 经验分割值: 2477, 1237, 617, 307, 149, 73, 37, 17, 7, 3, 1
+    // 经验分割值: 2477, 1237, 617, 307, 149, 73, 37, 17, 7, 3, 1
     static constexpr i32 XP_SPLIT_VALUES[] = {2477, 1237, 617, 307, 149, 73, 37, 17, 7, 3, 1};
 
     while (totalXp > 0) {
@@ -566,7 +551,6 @@ void FishingBobberEntity::spawnExperienceOrbs(i32 totalXp)
 i32 FishingBobberEntity::reelIn()
 {
     // 收杆
-    // 参考 MC 1.16.5 FishingBobberEntity.handleHookRetraction()
     i32 damage = 0; // 钓鱼竿耐久消耗
 
     if (m_state == State::Fishing && m_ticksCatchable > 0) {
@@ -577,8 +561,7 @@ i32 FishingBobberEntity::reelIn()
         // 钩住实体，拉过来
         if (m_caughtEntity != nullptr && m_caughtEntity->isAlive()) {
             bringInHookedEntity();
-            // MC 1.16.5: 耐久消耗取决于实体类型
-            // 物品实体: 3, 其他实体: 5
+            // 耐久消耗取决于实体类型：物品实体 3，其他实体 5
             if (dynamic_cast<ItemEntity*>(m_caughtEntity) != nullptr) {
                 damage = 3;
             } else {
@@ -600,9 +583,7 @@ i32 FishingBobberEntity::reelIn()
 
 RayTraceResult FishingBobberEntity::performRayTrace()
 {
-    // 参考 MC 1.16.5 FishingBobberEntity.checkCollision()
     // 使用 ProjectileHelper 进行射线检测
-
     if (m_world == nullptr) {
         return RayTraceResult::miss();
     }
@@ -647,9 +628,7 @@ RayTraceResult FishingBobberEntity::performRayTrace()
 
 bool FishingBobberEntity::canHitEntity(const Entity& target) const
 {
-    // 参考 MC 1.16.5 FishingBobberEntity.func_230298_a_()
     // 钓鱼浮标可以命中：普通可命中实体 + 物品实体
-
     // 不能命中已死亡或已移除的实体
     if (!target.isAlive() || target.isRemoved()) {
         return false;
@@ -671,13 +650,11 @@ bool FishingBobberEntity::canHitEntity(const Entity& target) const
     }
 
     // 其他实体需要满足基本碰撞条件
-    // 参考 ProjectileEntity::canHitEntity()
     return target.canBeCollidedWith();
 }
 
 void FishingBobberEntity::onEntityHit(const RayTraceResult& result)
 {
-    // 参考 MC 1.16.5 FishingBobberEntity.onEntityHit()
     if (result.type != RayTraceResultType::Entity || result.hitEntity == nullptr) {
         return;
     }
@@ -698,7 +675,6 @@ void FishingBobberEntity::onEntityHit(const RayTraceResult& result)
 void FishingBobberEntity::onBlockHit(const RayTraceResult& result)
 {
     // 命中方块时停止移动，进入漂浮状态
-    // 参考 MC 1.16.5: 命中方块后进入 BOBBING 状态
     m_velocity = Vector3(0.0, 0.0, 0.0);
 
     // 如果在水上方块，设置 BOBBING 状态
@@ -711,27 +687,21 @@ void FishingBobberEntity::onBlockHit(const RayTraceResult& result)
 
 void FishingBobberEntity::bringInHookedEntity()
 {
-    // 参考 MC 1.16.5 FishingBobberEntity.bringInHookedEntity()
     if (m_caughtEntity == nullptr || m_angler == nullptr) {
         return;
     }
 
-    // 计算从浮标指向钓鱼者的方向向量
+    // 计算从浮标指向钓鱼者的方向向量，缩放到 10% 的力
     Vector3d direction(m_angler->x() - x(), m_angler->y() - y(), m_angler->z() - z());
-
-    // 缩放到 10% 的力
-    // MC 1.16.5: direction.scale(0.1D)
     direction = direction * 0.1;
 
     // 叠加到被钩实体的速度上
-    // MC 1.16.5: caughtEntity.setMotion(caughtEntity.getMotion().add(vector3d))
     m_caughtEntity->addVelocity(
         static_cast<f32>(direction.x), static_cast<f32>(direction.y), static_cast<f32>(direction.z));
 }
 
 void FishingBobberEntity::syncCaughtEntityId()
 {
-    // 参考 MC 1.16.5 FishingBobberEntity.setHookedEntity()
     // 存储时 +1，因为 0 表示"无实体"
     if (m_caughtEntity != nullptr) {
         m_caughtEntityId = m_caughtEntity->id() + 1;
@@ -797,8 +767,6 @@ void ShulkerBulletEntity::setDirection(Direction dir)
 
 void ShulkerBulletEntity::tick()
 {
-    // MC 1.16.5 ShulkerBulletEntity.tick()
-
     // 服务端逻辑
     if (m_world != nullptr) {
         // 检查目标是否有效
@@ -892,7 +860,6 @@ void ShulkerBulletEntity::tick()
 
 void ShulkerBulletEntity::selectNextMoveDirection(Axis excludedAxis)
 {
-    // MC 1.16.5 ShulkerBulletEntity.selectNextMoveDirection()
     f64 targetOffsetY = 0.5;
     BlockPos targetPos;
 
@@ -1034,7 +1001,6 @@ void ShulkerBulletEntity::selectNextMoveDirection(Axis excludedAxis)
 
 void ShulkerBulletEntity::onEntityHit(const RayTraceResult& result)
 {
-    // MC 1.16.5 ShulkerBulletEntity.onEntityHit()
     if (!result.hitEntity) {
         return;
     }
@@ -1055,13 +1021,10 @@ void ShulkerBulletEntity::onEntityHit(const RayTraceResult& result)
     bool damaged = target->hurt(*damageSource, DAMAGE);
 
     if (damaged) {
-        // MC 1.16.5: Entity.applyEnchantments(livingShooter, target)
-        // 参考 Entity.java 第 2791-2797 行
-
-        // 1. 如果目标是 LivingEntity，目标的荆棘附魔会对发射者反伤
+        // 如果目标是 LivingEntity，目标的荆棘附魔会对发射者反伤
         // 注意：荆棘附魔已在 LivingEntity::actuallyHurt() 中自动触发，无需在此重复调用
 
-        // 2. 发射者的攻击型附魔（节肢杀手等）对目标生效
+        // 发射者的攻击型附魔（节肢杀手等）对目标生效
         if (livingShooter != nullptr) {
             item::enchant::EnchantmentHelper::applyArthropodEnchantments(*livingShooter, *target);
         }
@@ -1069,7 +1032,7 @@ void ShulkerBulletEntity::onEntityHit(const RayTraceResult& result)
         // 对 LivingEntity 施加漂浮效果
         LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
         if (livingTarget != nullptr) {
-            // MC 1.16.5: 200 ticks = 10秒漂浮
+            // 200 ticks = 10秒漂浮
             livingTarget->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Levitation,
                 static_cast<i32>(LEVITATION_DURATION),
                 0, // amplifier = 0 (I级效果)
@@ -1082,10 +1045,7 @@ void ShulkerBulletEntity::onEntityHit(const RayTraceResult& result)
 
 void ShulkerBulletEntity::onBlockHit(const RayTraceResult& /*result*/)
 {
-    // MC 1.16.5: 命中方块时生成爆炸粒子
-    // 参考 ShulkerBulletEntity.func_230299_a_()
-    // ((ServerWorld)this.world).spawnParticle(ParticleTypes.EXPLOSION, this.getPosX(), this.getPosY(), this.getPosZ(),
-    // 2, 0.2D, 0.2D, 0.2D, 0.0D);
+    // 命中方块时生成爆炸粒子
     if (m_world != nullptr) {
         m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Explosion,
             m_position,
@@ -1124,7 +1084,6 @@ void EvokerFangsEntity::tick()
 {
     Entity::tick();
 
-    // MC 1.16.5 EvokerFangsEntity.tick()
     // 服务端逻辑
     if (m_warmupDelay > 0) {
         m_warmupDelay--;
@@ -1132,13 +1091,11 @@ void EvokerFangsEntity::tick()
         // warmupDelayTicks < 0 后开始攻击逻辑
         if (m_warmupDelay == -8) {
             // 在 -8 tick 时对范围内实体造成伤害
-            // 参考 MC 1.16.5: 第98-103行
             damageEntities();
         }
 
         if (!m_sentAttackEvent) {
             // 发送攻击事件给客户端（用于播放音效和粒子）
-            // MC 1.16.5: world.setEntityState(this, (byte)4)
             m_sentAttackEvent = true;
         }
 
@@ -1151,7 +1108,6 @@ void EvokerFangsEntity::tick()
 
 f32 EvokerFangsEntity::getAnimationProgress(f32 partialTicks) const
 {
-    // MC 1.16.5 EvokerFangsEntity.getAnimationProgress()
     if (!m_clientSideAttackStarted) {
         return 0.0f;
     } else {
@@ -1162,7 +1118,6 @@ f32 EvokerFangsEntity::getAnimationProgress(f32 partialTicks) const
 
 void EvokerFangsEntity::damageEntities()
 {
-    // MC 1.16.5 EvokerFangsEntity.damage()
     // 对碰撞箱扩展范围内的 LivingEntity 造成伤害
     if (m_world == nullptr) {
         return;
@@ -1184,13 +1139,11 @@ void EvokerFangsEntity::damageEntities()
         }
 
         // 检查队伍关系：不伤害唤魔者及其队友
-        // MC 1.16.5: if (livingentity.isOnSameTeam(this.caster)) return;
         if (m_owner != nullptr && m_owner->isOnSameTeam(*living)) {
             continue;
         }
 
         // 造成魔法伤害
-        // MC 1.16.5: attackEntityFrom(DamageSource.causeIndirectMagicDamage(this, caster), 6.0F)
         if (m_owner != nullptr) {
             auto damageSource = DamageSources::indirectMagic(this, m_owner);
             living->hurt(damageSource, 6.0f);
@@ -1280,7 +1233,6 @@ void FireworkRocketEntity::setFireworkItem(const ItemStack& item)
     m_fireworkItem = item;
 
     // 从物品 NBT 读取飞行时间
-    // 参考 MC 1.16.5 FireworkRocketEntity 构造函数
     const nlohmann::json* tag = item.getTag();
     if (tag != nullptr) {
         auto fireworksIt = tag->find("Fireworks");
@@ -1295,7 +1247,6 @@ void FireworkRocketEntity::setFireworkItem(const ItemStack& item)
 
 i32 FireworkRocketEntity::getExplosionCount() const
 {
-    // 参考 MC 1.16.5 FireworkRocketEntity.dealExplosionDamage()
     // 从物品 NBT 读取爆炸效果数量
     const nlohmann::json* tag = m_fireworkItem.getTag();
     if (tag == nullptr) {
@@ -1321,8 +1272,7 @@ void FireworkRocketEntity::tick()
 
     m_lifetime++;
 
-    // 生成飞行粒子 - 参考 MC 1.16.5 FireworkRocketEntity.tick() 第76-83行
-    // 每 2 tick 生成一次粒子，仅在客户端执行
+    // 生成飞行粒子（每 2 tick 生成一次粒子，仅在客户端执行）
     if (m_world != nullptr && m_world->isClientSide() && m_lifetime % 2 == 0) {
         // 粒子位置在火箭下方 0.3 格
         Vector3 particlePos(x(), y() - 0.3, z());
@@ -1337,9 +1287,7 @@ void FireworkRocketEntity::tick()
             client::renderer::trident::particle::ParticleTypeId::Firework, particlePos, Vector3(vx, vy, vz));
     }
 
-    // 检查是否爆炸
-    // 参考 MC 1.16.5: lifetime = flightTime * 10 + random(6) + random(7)
-    // 我们简化为 flightTime * 10
+    // 检查是否爆炸（lifetime = flightTime * 10 + random(6) + random(7)，简化为 flightTime * 10）
     if (m_lifetime >= m_flightTime * 10 + 6) {
         explode();
     }
@@ -1352,7 +1300,7 @@ void FireworkRocketEntity::explode()
         dealExplosionDamage();
     }
 
-    // 生成爆炸粒子 - 参考 MC 1.16.5 FireworkRocketEntity.explode()
+    // 生成爆炸粒子
     if (m_world != nullptr && m_world->isClientSide()) {
         mc::math::Random rng = createRandomFromEntity(*this);
 
@@ -1360,8 +1308,7 @@ void FireworkRocketEntity::explode()
         i32 explosionCount = getExplosionCount();
 
         if (explosionCount <= 0) {
-            // 无爆炸效果时，生成简单的消散粒子
-            // 参考 MC 1.16.5: 生成 2-4 个 POOF 粒子
+            // 无爆炸效果时，生成简单的消散粒子（2-4 个 POOF 粒子）
             i32 poofCount = 2 + rng.nextInt(3);
             for (i32 i = 0; i < poofCount; ++i) {
                 f32 ox = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
@@ -1374,20 +1321,17 @@ void FireworkRocketEntity::explode()
             }
         } else {
             // 有爆炸效果时，生成烟花粒子
-            // 参考 MC 1.16.5 FireworkParticle.Starter
-
             // 生成爆炸闪光
             m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Flash,
                 Vector3(x(), y(), z()),
                 Vector3(0.0f, 0.0f, 0.0f));
 
             // 生成主要爆炸粒子云
-            // 使用 Firework 粒子类型
             i32 particleCount = 20 + rng.nextInt(20);
             for (i32 i = 0; i < particleCount; ++i) {
                 // 球形分布
-                f32 theta = rng.nextFloat() * 6.28318530718f; // 2 * PI
-                f32 phi = rng.nextFloat() * 3.14159265359f;   // PI
+                f32 theta = rng.nextFloat() * math::TWO_PI;
+                f32 phi = rng.nextFloat() * math::PI;
                 f32 speed = 0.1f + rng.nextFloat() * 0.3f;
 
                 f32 vx = std::sin(phi) * std::cos(theta) * speed;
@@ -1421,13 +1365,11 @@ void FireworkRocketEntity::explode()
 
 void FireworkRocketEntity::dealExplosionDamage()
 {
-    // 参考 MC 1.16.5 FireworkRocketEntity.dealExplosionDamage()
     if (m_world == nullptr) {
         return;
     }
 
-    // 获取爆炸效果数量
-    // MC 1.16.5: 无爆炸效果时不造成伤害
+    // 获取爆炸效果数量（无爆炸效果时不造成伤害）
     i32 explosionCount = getExplosionCount();
     if (explosionCount <= 0) {
         return;
@@ -1472,7 +1414,6 @@ void FireworkRocketEntity::dealExplosionDamage()
 
         if (damage > 0.0f) {
             // 创建烟花伤害源
-            // 参考 MC 1.16.5 DamageSource.func_233548_a_(this, this.func_234616_v_())
             auto damageSource = DamageSources::fireworks();
 
             // 对目标造成伤害

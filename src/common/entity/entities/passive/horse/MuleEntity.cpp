@@ -40,7 +40,6 @@ std::unique_ptr<Entity> MuleEntity::create(IWorld* /*world*/)
 
 void MuleEntity::registerGoals()
 {
-    // MC 1.16.5: MuleEntity 没有重写 registerGoals()
     // 骡完全使用 AbstractHorseEntity 的 AI 目标
     // 注意：骡不育，但 BreedGoal 和 FollowParentGoal 会通过 canBreed() 和 isChild() 检查自动跳过
     AbstractChestedHorseEntity::registerGoals();

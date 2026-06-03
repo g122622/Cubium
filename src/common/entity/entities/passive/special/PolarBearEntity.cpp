@@ -246,13 +246,11 @@ void PolarBearEntity::tick()
 {
     AnimalEntity::tick();
 
-    // 参考 MC 1.16.5 PolarBearEntity.tick() 第174-196行
     // 客户端动画更新
     if (world() != nullptr && world()->isClientSide()) {
         // 检查动画值是否变化（需要重新计算碰撞箱）
         if (m_clientSideStandAnimation != m_clientSideStandAnimation0) {
-            // MC 1.16.5: this.recalculateSize();
-            // TODO: 当实现 EntitySize 动态计算时添加
+            // TODO: 当实现 EntitySize 动态计算时添加 recalculateSize
         }
 
         // 保存上一帧动画值
@@ -287,8 +285,6 @@ void PolarBearEntity::tick()
 
 f32 PolarBearEntity::getStandingAnimationScale(f32 partialTick) const
 {
-    // 参考 MC 1.16.5 PolarBearEntity.getStandingAnimationScale
-    // return MathHelper.lerp(partialTick, clientSideStandAnimation0, clientSideStandAnimation) / 6.0F;
     // 注意：MC 的 lerp 签名是 lerp(t, a, b)，我们的签名是 lerp(a, b, t)
     return math::lerp(m_clientSideStandAnimation0, m_clientSideStandAnimation, partialTick) / 6.0f;
 }
@@ -359,7 +355,7 @@ void PolarBearEntity::registerAttributes()
 {
     AnimalEntity::registerAttributes();
 
-    // MC 1.16.5 北极熊属性
+    // 北极熊属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 20.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
@@ -411,7 +407,7 @@ PolarBearPanicGoal::PolarBearPanicGoal(PolarBearEntity* bear)
 
 bool PolarBearPanicGoal::shouldExecute()
 {
-    // MC 1.16.5: 只有幼熊或着火的北极熊才会恐慌
+    // 只有幼熊或着火的北极熊才会恐慌
     if (!m_bear->isChild() && !m_bear->isOnFire()) {
         return false;
     }
@@ -427,7 +423,7 @@ PolarBearHurtByTargetGoal::PolarBearHurtByTargetGoal(PolarBearEntity* bear)
 
 void PolarBearHurtByTargetGoal::startExecuting()
 {
-    // MC 1.16.5: 幼熊被攻击时会呼唤成年熊
+    // 幼熊被攻击时会呼唤成年熊
     if (m_bear->isChild()) {
         IWorld* world = m_bear->world();
         if (world != nullptr) {
@@ -457,7 +453,7 @@ PolarBearAttackPlayerGoal::PolarBearAttackPlayerGoal(PolarBearEntity* bear)
 
 bool PolarBearAttackPlayerGoal::shouldExecute()
 {
-    // MC 1.16.5: 只有成年熊在附近有幼熊时才会攻击玩家
+    // 只有成年熊在附近有幼熊时才会攻击玩家
     if (m_bear->isChild()) {
         return false;
     }

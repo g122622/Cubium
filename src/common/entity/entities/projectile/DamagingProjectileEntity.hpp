@@ -44,8 +44,7 @@ namespace entity {
 /**
  * @brief 带加速度的投掷物基类
  *
- * 当前实现对齐 1.16.5 `DamagingProjectileEntity` 的运动语义，
- * 同时把火球类基础伤害合并到这一层，便于现有 C++ 分层复用。
+ * 火球类实体的基类，包含加速度和伤害属性。
  *
  * 子类粒子效果：
  * - FireballEntity: 使用默认 SMOKE 粒子
@@ -96,7 +95,6 @@ protected:
      * @brief 生成拖尾粒子
      *
      * 在实体飞行时生成拖尾粒子效果。
-     * MC 1.16.5: 在 tick() 末尾调用，位置 Y+0.5 偏移，速度 (0,0,0)
      *
      * @param position 粒子生成位置
      */
@@ -106,7 +104,6 @@ protected:
      * @brief 生成水下气泡粒子
      *
      * 当实体在水中时生成气泡粒子尾迹。
-     * MC 1.16.5: 每 tick 生成 4 个 BUBBLE 粒子
      */
     void spawnWaterParticles();
 

@@ -50,8 +50,6 @@ class TurtleEggBlock;
  * - 游泳：擅长游泳，陆地上缓慢
  * - 婴儿：小海龟受到攻击会害怕
  * - 天敌：僵尸、劫掠者等会攻击海龟蛋
- *
- * 参考 MC 1.16.5 TurtleEntity
  */
 class TurtleEntity : public AnimalEntity {
 public:
@@ -174,8 +172,7 @@ public:
     /**
      * @brief 检查是否可以繁殖
      *
-     * MC 1.16.5: 海龟只有在没有蛋的情况下才能繁殖
-     * 参考: net.minecraft.entity.passive.TurtleEntity.canBreed()
+     * 海龟只有在没有蛋的情况下才能繁殖
      */
     [[nodiscard]] bool canBreed() const override;
 
@@ -202,8 +199,6 @@ public:
      * - 水中：正常速度 0.25，并给予轻微上升动力
      * - 陆地：速度减半，最低 0.06
      * - 幼体在水中：速度再降低
-     *
-     * 参考 MC 1.16.5: TurtleEntity.travel() 和 MoveHelperController.updateSpeed()
      */
     void travel(const Vector3& travelVec) override;
 
@@ -220,9 +215,8 @@ private:
      *
      * 在当前位置下方放置海龟蛋方块。
      * 需要满足条件：下方是沙子类方块，当前位置为空气。
-     * 参考 MC 1.16.5: TurtleEntity.LayEggGoal.tick()
      */
-    void layEgg();
+    void _layEgg();
     // 出生位置
     BlockPos m_homePos;
     bool m_hasHomePos = false;

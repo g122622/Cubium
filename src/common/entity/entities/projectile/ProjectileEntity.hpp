@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../util/math/Vector3.hpp"
-#include "../../../world/block/BlockPos.hpp"
-#include "../../core/Entity.hpp"
-#include "../../damage/DamageSource.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
 
 namespace mc {
@@ -81,8 +81,6 @@ struct RayTraceResult {
  *
  * 所有投掷物（箭矢、雪球、火球等）的基类。
  * 提供发射、飞行、碰撞检测等通用功能。
- *
- * 参考 MC 1.16.5 ProjectileEntity
  */
 class ProjectileEntity : public Entity {
 public:

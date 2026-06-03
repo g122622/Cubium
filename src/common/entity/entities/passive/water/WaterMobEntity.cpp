@@ -22,11 +22,11 @@
  */
 
 #include "WaterMobEntity.hpp"
-#include "../../../../physics/PhysicsConstants.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/block/VanillaBlocks.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../damage/DamageSource.hpp"
+#include "common/physics/PhysicsConstants.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "entity/attribute/Attributes.hpp"
+#include "entity/damage/DamageSource.hpp"
 #include <cmath>
 
 namespace mc {
@@ -75,16 +75,7 @@ void WaterMobEntity::tick()
 {
     CreatureEntity::tick();
 
-    // 检测水状态变化并触发回调
-    bool inWater = isInWater();
-    if (inWater && !m_wasInWater) {
-        onEnterWater();
-    } else if (!inWater && m_wasInWater) {
-        onLeaveWater();
-    }
-    m_wasInWater = inWater;
-
-    // 更新空气供应
+    // 更新空气供应（水状态检测和回调在 updateAirSupply 中处理）
     updateAirSupply();
 }
 
@@ -94,13 +85,12 @@ void WaterMobEntity::registerAttributes()
     CreatureEntity::registerAttributes();
 
     // 水生生物的基础属性
-    // 参考 MC 1.16.5 水生生物属性
 }
 
 void WaterMobEntity::updateAirSupply()
 {
-    // MC 1.16.5: WaterMobEntity 在水中恢复空气，在陆地/岩浆中消耗空气
-    // 与普通生物相反！
+    // 水生生物在水中恢复空气，在陆地/岩浆中消耗空气
+    // 与普通生物相反
     if (!isAlive()) {
         return;
     }
@@ -116,8 +106,7 @@ void WaterMobEntity::updateAirSupply()
     m_wasInWater = inWater;
 
     if (inWater) {
-        // 在水中，恢复空气
-        // MC 1.16.5: 水生生物在水中立即恢复空气
+        // 在水中，恢复空气（水生生物在水中立即恢复空气）
         setAir(maxAir());
     } else {
         // 不在水中，消耗空气（水生生物在陆地窒息）
@@ -128,7 +117,7 @@ void WaterMobEntity::updateAirSupply()
         if (air() <= -20) {
             setAir(0);
 
-            // 室息伤害
+            // 窒息伤害
             EnvironmentalDamage drownSource = DamageSources::drown();
             hurt(drownSource, DROWN_DAMAGE_AMOUNT);
         }

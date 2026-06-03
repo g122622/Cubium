@@ -39,8 +39,6 @@ namespace mc {
  * - 游泳：在水中优雅地游动
  * - 挣扎：离开水会扑腾
  * - 掉落：墨囊
- *
- * 参考 MC 1.16.5 SquidEntity
  */
 class SquidEntity : public WaterMobEntity {
 public:
@@ -139,7 +137,7 @@ protected:
     void registerAttributes() override;
 
 private:
-    // 移动向量（MC 1.16.5 randomMotionVecX/Y/Z）
+    // 移动向量
     f32 m_randomMotionVecX = 0.0f;
     f32 m_randomMotionVecY = 0.0f;
     f32 m_randomMotionVecZ = 0.0f;

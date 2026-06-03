@@ -23,11 +23,11 @@
 
 #include "ProjectileEntity.hpp"
 
-#include "../../../util/math/MathUtils.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../util/math/ray/Raycast.hpp"
-#include "../../../world/IWorld.hpp"
 #include "ProjectileHelper.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/math/ray/Raycast.hpp"
+#include "common/world/IWorld.hpp"
 
 #include <cmath>
 
@@ -118,11 +118,9 @@ void ProjectileEntity::shoot(f32 x, f32 y, f32 z, f32 velocity, f32 inaccuracy)
         z /= length;
     }
 
-    // 参考 MC 1.16.5 ProjectileEntity.shoot() 第97行
     // 高斯随机散布
     if (inaccuracy > 0.0f) {
         math::Random rng = createRandomFromEntity(*this);
-        // MC 1.16.5: this.rand.nextGaussian() * (double)0.0075F * (double)inaccuracy
         f32 gaussianX = static_cast<f32>(rng.nextGaussian()) * 0.0075f * inaccuracy;
         f32 gaussianY = static_cast<f32>(rng.nextGaussian()) * 0.0075f * inaccuracy;
         f32 gaussianZ = static_cast<f32>(rng.nextGaussian()) * 0.0075f * inaccuracy;
@@ -142,7 +140,6 @@ void ProjectileEntity::shoot(f32 x, f32 y, f32 z, f32 velocity, f32 inaccuracy)
 
 void ProjectileEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchOffset, f32 velocity, f32 inaccuracy)
 {
-    // 参考 MC 1.16.5 ProjectileEntity.func_234612_a_() 第106-113行
     const f32 radPitch = pitch * math::DEG_TO_RAD;
     const f32 radYaw = yaw * math::DEG_TO_RAD;
     const f32 radOffset = pitchOffset * math::DEG_TO_RAD;
@@ -153,14 +150,14 @@ void ProjectileEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchO
     const f32 sinPitch = std::sin(radPitch);
     const f32 sinOffset = std::sin(radOffset);
 
-    // MC 1.16.5 计算方向向量
+    // 计算方向向量
     const f32 x = -sinYaw * cosPitch;
     const f32 y = -sinPitch - sinOffset;
     const f32 z = cosYaw * cosPitch;
 
     shoot(x, y, z, velocity, inaccuracy);
 
-    // MC 1.16.5: 添加发射者速度
+    // 添加发射者速度
     const Vector3 shooterVelocity = shooter.velocity();
     if (!shooter.onGround()) {
         m_velocity.y += shooterVelocity.y;
@@ -181,11 +178,7 @@ bool ProjectileEntity::canHitEntity(const mc::Entity& target) const
 
     const Entity* shooter = getShooter();
     if (!m_leftShooter && shooter != nullptr) {
-        // 参考 MC 1.16.5 ProjectileEntity.func_230298_a_() 第158-159行
         // 检查是否骑乘同一实体
-        // if (entity.isRidingSameEntity(shooter)) {
-        //     return false;
-        // }
         // 简化检查：直接比较
         if (shooter == &target) {
             return false;
@@ -233,7 +226,6 @@ bool ProjectileEntity::checkLeftShooter()
         return true;
     }
 
-    // 参考 MC 1.16.5 ProjectileEntity.func_234615_h_()
     // 检查投掷物是否已离开发射者的碰撞箱
     return !boundingBox().intersects(shooter->boundingBox());
 }
@@ -279,7 +271,7 @@ RayTraceResult ProjectileEntity::rayTraceBlocks(const Vector3& start, const Vect
         return RayTraceResult::miss();
     }
 
-    // 参考 MC 1.16.5: 使用 COLLIDER 模式进行射线追踪
+    // 使用 COLLIDER 模式进行射线追踪
     const RaycastContext context(Ray(start, delta.normalized()), delta.length());
     const BlockRaycastResult blockResult = raycastBlocks(context, *m_world);
     if (blockResult.isMiss()) {

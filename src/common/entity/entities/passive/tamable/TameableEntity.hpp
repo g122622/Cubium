@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../util/assert/AssertMacros.hpp"
-#include "../../../interfaces/IAngerable.hpp"
-#include "../basic/AnimalEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/entity/interfaces/IAngerable.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <optional>
 
 namespace mc {
@@ -47,8 +47,6 @@ class ItemStack;
  * - 坐下/站起
  * - 愤怒系统（攻击目标追踪）
  * - 跟随主人行为
- *
- * 参考 MC 1.16.5 TameableEntity
  */
 class TameableEntity : public AnimalEntity, public entity::IAngerable {
 public:
@@ -128,7 +126,6 @@ public:
     /**
      * @brief 获取主人实体
      *
-     * MC 1.16.5: TameableEntity.getOwner()
      * 通过主人ID在世界中查找玩家实体。
      * @return 主人实体指针，如果未找到或无主人返回nullptr
      */

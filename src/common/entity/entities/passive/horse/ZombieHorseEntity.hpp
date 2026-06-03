@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
 #include "AbstractHorseEntity.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 
 namespace mc {
@@ -40,8 +40,6 @@ namespace mc {
  * - 不燃烧：僵尸马不会在阳光下燃烧
  * - 不繁殖：无法繁殖
  * - 稀有：只能通过命令生成
- *
- * 参考 MC 1.16.5 ZombieHorseEntity
  */
 class ZombieHorseEntity : public AbstractHorseEntity {
 public:

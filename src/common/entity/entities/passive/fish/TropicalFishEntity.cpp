@@ -23,10 +23,10 @@
 
 #include "TropicalFishEntity.hpp"
 
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../attribute/Attributes.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -76,25 +76,21 @@ void TropicalFishEntity::registerAttributes()
 
 std::optional<ResourceLocation> TropicalFishEntity::getFlopSound() const
 {
-    // MC 1.16.5: SoundEvents.ENTITY_TROPICAL_FISH_FLOP
     return SoundEvents::ENTITY_TROPICAL_FISH_FLOP;
 }
 
 std::optional<ResourceLocation> TropicalFishEntity::getAmbientSound() const
 {
-    // MC 1.16.5: SoundEvents.ENTITY_TROPICAL_FISH_AMBIENT
     return SoundEvents::ENTITY_TROPICAL_FISH_AMBIENT;
 }
 
 std::optional<ResourceLocation> TropicalFishEntity::getDeathSound() const
 {
-    // MC 1.16.5: SoundEvents.ENTITY_TROPICAL_FISH_DEATH
     return SoundEvents::ENTITY_TROPICAL_FISH_DEATH;
 }
 
 std::optional<ResourceLocation> TropicalFishEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: SoundEvents.ENTITY_TROPICAL_FISH_HURT
     return SoundEvents::ENTITY_TROPICAL_FISH_HURT;
 }
 

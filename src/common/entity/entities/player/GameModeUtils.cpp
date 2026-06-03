@@ -22,8 +22,10 @@
  */
 
 #include "GameModeUtils.hpp"
-#include "../../../physics/PhysicsConstants.hpp"
-#include "Player.hpp"
+
+#include "common/core/Types.hpp"
+#include "common/physics/PhysicsConstants.hpp"
+#include "entity/entities/player/Player.hpp"
 
 namespace mc {
 namespace entity {

@@ -62,11 +62,11 @@ namespace mc {
 namespace {
 
 /// 获取玩家指定姿态的宽度
-/// MC 1.16.5: Sleeping 姿态宽度为 0.2，其他姿态为 0.6
+/// Sleeping 姿态宽度为 0.2，其他姿态为 0.6
 [[nodiscard]] f32 getPlayerPoseWidth(EntityPose pose)
 {
     if (pose == EntityPose::Sleeping) {
-        return 0.2f; // MC 1.16.5: EntitySize.fixed(0.2F, 0.2F)
+        return 0.2f;
     }
     return Player::PLAYER_WIDTH;
 }
@@ -225,7 +225,6 @@ void Player::sendStatusMessage(const std::string& message, bool actionBar)
 void Player::dropExperience()
 {
     // 玩家死亡时掉落经验
-    // 参考 MC 1.16.5: min(level * 7, 100)
     if (m_world && m_experienceManager->getLevel() > 0) {
         i32 xpToDrop = m_experienceManager->calculateDeathDropXp();
         if (xpToDrop > 0) {
@@ -238,7 +237,6 @@ void Player::dropExperience()
 
 ItemEntity* Player::dropItem(ItemStack& stack, bool dropAround, bool traceItem)
 {
-    // MC 1.16.5: PlayerEntity.dropItem(ItemStack, boolean, boolean)
     if (stack.isEmpty() || m_world == nullptr) {
         return nullptr;
     }
@@ -267,8 +265,6 @@ ItemEntity* Player::dropItem(ItemStack& stack, bool dropAround, bool traceItem)
 
     if (itemEntity != nullptr) {
         // 挥手动画（客户端）
-        // MC 1.16.5: this.swingArm(Hand.MAIN_HAND);
-
         // 清空物品堆
         stack = ItemStack::EMPTY;
     }
@@ -278,15 +274,13 @@ ItemEntity* Player::dropItem(ItemStack& stack, bool dropAround, bool traceItem)
 
 ItemEntity* Player::dropItem(ItemStack& stack, bool unused)
 {
-    (void)unused;
-    // MC 1.16.5: dropItem(ItemStack, boolean) -> ForgeHooks.onPlayerTossEvent
+    MC_UNUSED(unused);
     // 简化实现：直接调用完整版本
     return dropItem(stack, false, true);
 }
 
 void Player::damageArmor(DamageSource& source, f32 amount)
 {
-    // MC 1.16.5: PlayerEntity.damageArmor() -> PlayerInventory.damageArmor()
     m_inventory.damageArmor(source, amount);
 }
 
@@ -311,7 +305,7 @@ void Player::setSneaking(bool sneaking)
         return;
     }
 
-    if (canFitPose(EntityPose::Standing)) {
+    if (_canFitPose(EntityPose::Standing)) {
         m_isSneaking = false;
         removeFlag(EntityFlags::Crouching);
         setPose(EntityPose::Standing);
@@ -334,7 +328,7 @@ void Player::setSwimming(bool swimming)
 
     removeFlag(EntityFlags::Swimming);
 
-    if (canFitPose(EntityPose::Standing)) {
+    if (_canFitPose(EntityPose::Standing)) {
         m_isSneaking = false;
         removeFlag(EntityFlags::Crouching);
         setPose(EntityPose::Standing);
@@ -360,7 +354,7 @@ void Player::setSleeping(bool sleeping)
         return;
     }
 
-    if (canFitPose(EntityPose::Standing)) {
+    if (_canFitPose(EntityPose::Standing)) {
         m_isSneaking = false;
         removeFlag(EntityFlags::Crouching);
         setPose(EntityPose::Standing);
@@ -379,7 +373,7 @@ void Player::startSleeping(const BlockPos& pos)
     setSleeping(true);
 
     // 重置睡眠计时器
-    sleepTimer = 0;
+    m_sleepTimer = 0;
 
     // 清除速度
     setVelocity(Vector3(0.0f, 0.0f, 0.0f));
@@ -418,7 +412,7 @@ void Player::stopSleeping()
     }
 
     // 注意：睡眠计时器在 tick() 中会处理唤醒后的渐变
-    // 唤醒后 sleepTimer 会继续增加到 110 然后重置
+    // 唤醒后 m_sleepTimer 会继续增加到 110 然后重置
 }
 
 void Player::setSpawnPoint(DimensionId dimension, const BlockPos& pos, bool forced)
@@ -439,11 +433,11 @@ f32 Player::eyeHeight() const
 
 entity::EntitySize Player::getDimensions(EntityPose pose) const
 {
-    // MC 1.16.5: Sleeping 姿态使用固定宽度 0.2
+    // Sleeping 姿态使用固定宽度 0.2
     return entity::EntitySize(getPlayerPoseWidth(pose), getPlayerPoseHeight(pose), getPlayerPoseEyeHeight(pose), false);
 }
 
-bool Player::canFitPose(EntityPose pose) const
+bool Player::_canFitPose(EntityPose pose) const
 {
     if (pose == m_pose || m_world == nullptr) {
         return true;
@@ -467,12 +461,10 @@ void Player::tick()
     m_ticksSinceLastAttack++;
 
     // 更新物品冷却追踪器
-    // 参考 MC 1.16.5 PlayerEntity.tick() -> cooldownTracker.tick()
     m_cooldownTracker.tick();
 
     // 世界边界伤害检测
-    // 参考 MC 1.16.5 LivingEntity.baseTick() 第306-318行
-    // 只有玩家会受到边界伤害（flag = this instanceof PlayerEntity）
+    // 只有玩家会受到边界伤害
     if (m_world != nullptr && !isSpectator() && !m_abilities.invulnerable) {
         const auto& border = m_world->worldBorder();
 
@@ -495,18 +487,17 @@ void Player::tick()
     }
 
     // 睡眠计时器逻辑
-    // 参考 MC 1.16.5 PlayerEntity.tick()
     // 睡眠时：每 tick 递增，上限 100
     // 唤醒后：计时器继续增加到 110 后才重置为 0（用于唤醒动画）
     if (m_isSleeping) {
-        sleepTimer++;
-        if (sleepTimer > 100) {
-            sleepTimer = 100;
+        m_sleepTimer++;
+        if (m_sleepTimer > 100) {
+            m_sleepTimer = 100;
         }
-    } else if (sleepTimer > 0) {
-        sleepTimer++;
-        if (sleepTimer >= 110) {
-            sleepTimer = 0;
+    } else if (m_sleepTimer > 0) {
+        m_sleepTimer++;
+        if (m_sleepTimer >= 110) {
+            m_sleepTimer = 0;
         }
     }
 
@@ -524,7 +515,7 @@ void Player::tick()
     // 更新游泳状态和动画
     updateSwimming();
 
-    // 更新姿态（MC 1.16.5: PlayerEntity.tick() 中调用 updatePose()）
+    // 更新姿态
     updatePose();
 
     // 更新空气供应和溺水
@@ -534,13 +525,11 @@ void Player::tick()
     updateMoveDistance();
 
     // 检测与附近实体的碰撞（拾取物品、箭矢等）
-    // 参考 MC 1.16.5 PlayerEntity.tick() 第531-547行
     checkEntityCollisions();
 }
 
 void Player::checkEntityCollisions()
 {
-    // 参考 MC 1.16.5 PlayerEntity.tick() 第531-547行
     // 只在存活且非观察者模式时检测碰撞
     if (!isAlive() || isSpectator()) {
         return;
@@ -551,7 +540,6 @@ void Player::checkEntityCollisions()
     }
 
     // 创建搜索盒：玩家碰撞箱扩展1格（水平和垂直）
-    // MC 1.16.5: this.getBoundingBox().grow(1.0D, 0.5D, 1.0D)
     AxisAlignedBB searchBox = boundingBox().expand(1.0f, 0.5f, 1.0f);
 
     // 获取搜索盒内的所有实体
@@ -570,8 +558,6 @@ bool Player::tickPortal()
 {
     // 玩家需要 80 tick (4秒) 在传送门中才能传送
     // 创造模式（无敌状态）只需要 1 tick
-    // 参考 MC 1.16.5 PlayerEntity.tick()
-
     if (!m_inPortal) {
         if (m_portalTime > 0) {
             m_portalTime = std::max(0, m_portalTime - 4);
@@ -606,24 +592,17 @@ void Player::update()
 /**
  * @brief 处理移动输入
  *
- * 参考MC Java版 Entity.getAbsoluteMotion() 和 LivingEntity.travel() 的逻辑：
- * - MC坐标系: yaw=0 看向 -Z, yaw=90 看向 +X
+ * MC坐标系: yaw=0 看向 -Z, yaw=90 看向 +X
  * - forward: 正值向前走, 负值向后走
  * - strafe: 正值向右走, 负值向左走
  *
- * MC公式 (Entity.getAbsoluteMotion):
+ * MC公式:
  *   sinYaw = sin(yaw * PI/180)
  *   cosYaw = cos(yaw * PI/180)
  *   moveX = strafe * cosYaw - forward * sinYaw
  *   moveZ = forward * cosYaw + strafe * sinYaw
  *
  * 重要：MC中 moveRelative 是将速度**添加**到当前速度，而不是替换！
- * 参考 Entity.moveRelative() line 1166-1169:
- *   Vector3d vector3d = getAbsoluteMotion(relative, p_213309_1_, this.rotationYaw);
- *   this.setMotion(this.getMotion().add(vector3d));
- *
- * 参考源码: Entity.java:1166-1181, LivingEntity.java:2148-2167
- * 飞行上升/下降: ClientPlayerEntity.java:788-801 - 使用 flySpeed * 3.0F
  */
 void Player::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sneaking)
 {
@@ -634,7 +613,7 @@ void Player::handleMovementInput(f32 forward, f32 strafe, bool jumping, bool sne
     m_isJumping = jumping;
 }
 
-void Player::applyCachedMovementInput(f32 groundSlipperiness)
+void Player::_applyCachedMovementInput(f32 groundSlipperiness)
 {
     const f32 forward = m_inputForward;
     const f32 strafe = m_inputStrafe;
@@ -649,21 +628,18 @@ void Player::applyCachedMovementInput(f32 groundSlipperiness)
     }
 
     // 水中移动使用特殊物理
-    // 参考 MC LivingEntity.travel() 水中分支
     if (isInWater() && !m_abilities.flying) {
-        handleWaterMovement(forward, strafe, jumping, sneaking);
+        _handleWaterMovement(forward, strafe, jumping, sneaking);
         return;
     }
 
     // 岩浆中移动
     if (isInLava() && !m_abilities.flying) {
-        handleLavaMovement(forward, strafe, jumping, sneaking);
+        _handleLavaMovement(forward, strafe, jumping, sneaking);
         return;
     }
 
     // 计算移动速度因子
-    // 参考MC: LivingEntity.getRelevantMoveFactor() - 在空中时使用jumpMovementFactor
-    // 参考MC: PlayerEntity.travel() line 1448 - 飞行时jumpMovementFactor = flySpeed * (sprinting ? 2 : 1)
     f32 speedFactor = m_abilities.walkSpeed;
     if (!m_abilities.flying) {
         if (m_onGround) {
@@ -723,9 +699,9 @@ void Player::applyCachedMovementInput(f32 groundSlipperiness)
     }
 }
 
-void Player::handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sneaking)
+void Player::_handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sneaking)
 {
-    // 参考 MC 1.16.5 LivingEntity.travel() 水中分支
+    // 水中物理处理
     // 关键逻辑：
     // 1. 水中重力减弱（浮力）
     // 2. 水中阻力
@@ -742,7 +718,6 @@ void Player::handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sne
     }
 
     // 深度守卫附魔加成
-    // MC 1.16.5: float f7 = (float)EnchantmentHelper.getDepthStriderModifier(this);
     i32 depthStriderLevel = getDepthStriderLevel();
     if (depthStriderLevel > 0) {
         // 深度守卫效果：
@@ -753,20 +728,17 @@ void Player::handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sne
     }
 
     // 海豚的恩惠药水效果
-    // MC 1.16.5: if (this.isPotionActive(Effects.DOLPHINS_GRACE))
     bool hasDolphinsGrace = hasEffect(entity::effect::EffectType::DolphinsGrace);
 
     // 水中阻力
     f32 waterDrag = m_isSprinting ? physics::WATER_DRAG_SPRINT : physics::WATER_DRAG;
 
     // 深度守卫对阻力的影响
-    // MC: f5 += (0.54600006F - f5) * f7 / 3.0F
     if (depthStriderLevel > 0) {
         waterDrag += (physics::DEPTH_STRIDER_MAX_DRAG - waterDrag) * static_cast<f32>(depthStriderLevel) / 3.0f;
     }
 
     // 海豚的恩惠大幅减少水中阻力
-    // MC: if (this.isPotionActive(Effects.DOLPHINS_GRACE)) { f5 = 0.96F; }
     if (hasDolphinsGrace) {
         waterDrag = physics::DOLPHINS_GRACE_WATER_DRAG;
     }
@@ -831,10 +803,10 @@ void Player::handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sne
     }
 
     // 重置过小的速度
-    clampMotion();
+    _clampMotion();
 }
 
-void Player::handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool sneaking)
+void Player::_handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool sneaking)
 {
     // 参考 MC 1.16.5 LivingEntity.travel() 岩浆分支
     // 岩浆中移动比水中更慢
@@ -880,7 +852,7 @@ void Player::handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool snea
         }
     }
 
-    clampMotion();
+    _clampMotion();
 }
 
 void Player::jump()
@@ -900,22 +872,14 @@ void Player::jump()
     }
 }
 
-/**
- * @brief 重置过小的速度为零
- *
- * 参考MC: LivingEntity.aiStep()
- * if (Math.abs(motion.x) < 0.003) motion.x = 0;
- * if (Math.abs(motion.y) < 0.003) motion.y = 0;
- * if (Math.abs(motion.z) < 0.003) motion.z = 0;
- */
-void Player::clampMotion()
+void Player::_clampMotion()
 {
     if (std::abs(m_velocity.x) < physics::MOTION_THRESHOLD) m_velocity.x = 0.0f;
     if (std::abs(m_velocity.y) < physics::MOTION_THRESHOLD) m_velocity.y = 0.0f;
     if (std::abs(m_velocity.z) < physics::MOTION_THRESHOLD) m_velocity.z = 0.0f;
 }
 
-f32 Player::groundSlipperiness() const
+f32 Player::_groundSlipperiness() const
 {
     if (!m_onGround || m_world == nullptr) {
         return physics::SLIPPERINESS_DEFAULT;
@@ -999,14 +963,14 @@ void Player::updatePhysics()
     m_autoJump.tick();
 
     // 1. 重置过小的速度（MC: LivingEntity.aiStep）
-    clampMotion();
+    _clampMotion();
 
     // 刷新环境状态，确保后续判断使用当前位置。
     updateEnvironmentState();
     checkOnGround();
 
-    const f32 tickGroundSlipperiness = groundSlipperiness();
-    applyCachedMovementInput(tickGroundSlipperiness);
+    const f32 tickGroundSlipperiness = _groundSlipperiness();
+    _applyCachedMovementInput(tickGroundSlipperiness);
 
     // 水中和岩浆中的物理在 handleWaterMovement/handleLavaMovement 中已处理
     // 这里只处理地面和空中的物理
@@ -1102,10 +1066,10 @@ void Player::updatePhysics()
     updateMoveDistance();
 
     // 10. 再次重置过小的速度
-    clampMotion();
+    _clampMotion();
 }
 
-void Player::applyMovementSpeed(f32& speed, bool sneaking) const
+void Player::_applyMovementSpeed(f32& speed, bool sneaking) const
 {
     if (m_abilities.flying) {
         speed = m_abilities.flySpeed;
@@ -1633,7 +1597,7 @@ void Player::updatePose()
 
     // 检查是否有足够的游泳空间（用于姿态切换的后备检查）
     // isPoseClear 在 MC 中检查指定姿态的碰撞箱是否与方块冲突
-    auto isPoseClear = [this](EntityPose pose) -> bool { return canFitPose(pose); };
+    auto isPoseClear = [this](EntityPose pose) -> bool { return _canFitPose(pose); };
 
     // 如果姿态被禁止，不进行自动更新
     // MC: if (this.forcedPose != null) { this.setPose(this.forcedPose); return; }
@@ -1794,7 +1758,7 @@ void Player::updateMoveDistance()
     }
 
     m_moveDistanceSamplePosition = m_position;
-    updateCameraYaw();
+    _updateCameraYaw();
 
     // 饥饿消耗（基于移动距离）
     // 只有生存模式和冒险模式才消耗饥饿
@@ -1815,7 +1779,7 @@ void Player::updateMoveDistance()
     }
 }
 
-void Player::updateCameraYaw()
+void Player::_updateCameraYaw()
 {
     m_prevCameraYaw = m_cameraYaw;
 

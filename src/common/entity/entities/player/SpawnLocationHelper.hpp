@@ -39,9 +39,7 @@ namespace mc {
 /**
  * @brief 玩家出生点辅助工具
  *
- * 对齐 MC 1.16.5 `SpawnLocationHelper` 的主世界列扫描语义。
- * 当前公共层先基于 `IWorld + ChunkData + BiomeRegistry` 实现无天花板维度可复用版本，
- * 后续接入更完整的服务端世界层后，再补齐基于维度生成器的天花板维度地面高度路径。
+ * 基于区块高度图扫描实现无天花板维度的出生点查找。
  */
 class SpawnLocationHelper {
 public:
@@ -57,15 +55,15 @@ public:
     [[nodiscard]] static std::optional<BlockPos> findSpawnLocation(
         const IWorld& world, i32 x, i32 z, bool requireValidSpawnBlock)
     {
-        const ChunkCoord chunkX = x >> 4;
-        const ChunkCoord chunkZ = z >> 4;
+        const ChunkCoord chunkX = x >> world::CHUNK_SHIFT;
+        const ChunkCoord chunkZ = z >> world::CHUNK_SHIFT;
         const ChunkData* chunk = world.getChunk(chunkX, chunkZ);
         if (chunk == nullptr) {
             return std::nullopt;
         }
 
-        const i32 localX = x & 15;
-        const i32 localZ = z & 15;
+        const i32 localX = x & world::CHUNK_MASK;
+        const i32 localZ = z & world::CHUNK_MASK;
         const BiomeId biomeId = chunk->getBiomeAtBlock(localX, 0, localZ);
         const Biome& biome = BiomeRegistry::instance().get(biomeId);
         const BlockState* surfaceState = biome.surfaceBlock();
@@ -73,17 +71,17 @@ public:
             return std::nullopt;
         }
 
-        if (requireValidSpawnBlock && !isValidSpawnSurface(*surfaceState)) {
+        if (requireValidSpawnBlock && !_isValidSpawnSurface(*surfaceState)) {
             return std::nullopt;
         }
 
-        const i32 motionBlockingY = getTopBlockY(*chunk, localX, localZ, HeightmapType::MotionBlocking);
+        const i32 motionBlockingY = _getTopBlockY(*chunk, localX, localZ, HeightmapType::MotionBlocking);
         if (motionBlockingY < 0) {
             return std::nullopt;
         }
 
-        const i32 worldSurfaceY = getTopBlockY(*chunk, localX, localZ, HeightmapType::WorldSurface);
-        const i32 oceanFloorY = getTopBlockY(*chunk, localX, localZ, HeightmapType::OceanFloor);
+        const i32 worldSurfaceY = _getTopBlockY(*chunk, localX, localZ, HeightmapType::WorldSurface);
+        const i32 oceanFloorY = _getTopBlockY(*chunk, localX, localZ, HeightmapType::OceanFloor);
         if (worldSurfaceY <= motionBlockingY && worldSurfaceY > oceanFloorY) {
             return std::nullopt;
         }
@@ -114,8 +112,8 @@ public:
     [[nodiscard]] static std::optional<BlockPos> findSpawnLocationInChunk(
         const IWorld& world, const ChunkPos& chunkPos, bool requireValidSpawnBlock)
     {
-        for (i32 x = chunkPos.worldX(); x < chunkPos.worldX() + 16; ++x) {
-            for (i32 z = chunkPos.worldZ(); z < chunkPos.worldZ() + 16; ++z) {
+        for (i32 x = chunkPos.worldX(); x < chunkPos.worldX() + world::CHUNK_WIDTH; ++x) {
+            for (i32 z = chunkPos.worldZ(); z < chunkPos.worldZ() + world::CHUNK_WIDTH; ++z) {
                 const auto spawnPos = findSpawnLocation(world, x, z, requireValidSpawnBlock);
                 if (spawnPos.has_value()) {
                     return spawnPos;
@@ -130,10 +128,10 @@ private:
     /**
      * @brief 判定方块是否可作为原版出生表面
      *
-     * 当前仓库还没有完整的 `BlockTags::VALID_SPAWN`，这里先按 1.16.5 需要的语义
+     * 当前仓库还没有完整的 `BlockTags::VALID_SPAWN`，这里先按需要的语义
      * 约束到"非流体、非树叶/植物、可阻挡移动"的表层方块。
      */
-    [[nodiscard]] static bool isValidSpawnSurface(const BlockState& state)
+    [[nodiscard]] static bool _isValidSpawnSurface(const BlockState& state)
     {
         if (!state.blocksMovement() || state.isLiquid()) {
             return false;
@@ -149,11 +147,11 @@ private:
      * 这里不直接依赖区块缓存的高度图，避免未初始化高度图时出现 `y` / `y+1`
      * 语义不一致的问题。
      */
-    [[nodiscard]] static i32 getTopBlockY(const ChunkData& chunk, i32 localX, i32 localZ, HeightmapType type)
+    [[nodiscard]] static i32 _getTopBlockY(const ChunkData& chunk, i32 localX, i32 localZ, HeightmapType type)
     {
         for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
             const BlockState* state = chunk.getBlockState(localX, y, localZ);
-            if (matchesHeightmap(type, state)) {
+            if (_matchesHeightmap(type, state)) {
                 return y + 1;
             }
         }
@@ -164,7 +162,7 @@ private:
     /**
      * @brief 按原版高度图语义匹配当前方块
      */
-    [[nodiscard]] static bool matchesHeightmap(HeightmapType type, const BlockState* state)
+    [[nodiscard]] static bool _matchesHeightmap(HeightmapType type, const BlockState* state)
     {
         if (state == nullptr) {
             return false;

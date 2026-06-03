@@ -25,8 +25,8 @@
 
 #include <memory>
 
-#include "common/core/Types.hpp"
 #include "AnimalEntity.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 
@@ -75,7 +75,6 @@ public:
 
     /**
      * @brief 获取声音音量
-     * MC 1.16.5: 鸡的音量为 1.0
      */
     [[nodiscard]] f32 getSoundVolume() const override { return 1.0f; }
 
@@ -117,7 +116,7 @@ public:
 
     /**
      * @brief 是否是鸡骑士
-     * MC 1.16.5: 鸡骑士模式下不下蛋
+     * 鸡骑士模式下不下蛋
      */
     [[nodiscard]] bool isChickenJockey() const { return m_chickenJockey; }
 

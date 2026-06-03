@@ -21,14 +21,14 @@
  *
  */
 
-#include "SkeletonHorseEntity.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../ai/goal/goals/special/SpecialGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../core/LivingEntity.hpp"
+#include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp"
+#include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include <memory>
 
 namespace mc {
@@ -58,7 +58,7 @@ bool SkeletonHorseEntity::canBeRiddenBy(Player* player) const
 
 void SkeletonHorseEntity::setTrap(bool trap)
 {
-    // MC 1.16.5: 设置陷阱状态时，添加/移除 TriggerSkeletonTrapGoal
+    // 设置陷阱状态时，添加/移除 TriggerSkeletonTrapGoal
     if (trap != m_trap) {
         m_trap = trap;
         if (trap) {
@@ -78,9 +78,6 @@ void SkeletonHorseEntity::setTrap(bool trap)
 
 void SkeletonHorseEntity::triggerTrap()
 {
-    // MC 1.16.5: TriggerSkeletonTrapGoal.tick()
-    // 参考: net.minecraft.entity.ai.goal.TriggerSkeletonTrapGoal
-
     if (!m_trap) {
         return;
     }
@@ -97,7 +94,7 @@ void SkeletonHorseEntity::triggerTrap()
     setTame(true);
 
     // 3. 获取难度决定生成骷髅数量
-    // MC 1.16.5: 困难模式下额外生成 3 只骷髅马+骑手（共 4 只）
+    // 困难模式下额外生成 3 只骷髅马+骑手（共 4 只）
     // 普通和简单模式只生成 1 只骷髅骑手骑这匹马
     Difficulty difficulty = world->difficulty();
     i32 extraHorses = (difficulty == Difficulty::Hard) ? 3 : 0;
@@ -143,7 +140,7 @@ void SkeletonHorseEntity::triggerTrap()
         ItemStack bow(Items::BOW, 1);
         skeletonEntity->setMainHandItem(bow);
 
-        // 设置无敌帧（MC 1.16.5: hurtResistantTime = 60）
+        // 设置无敌帧
         skeletonEntity->setHurtResistantTime(60);
 
         // 生成骷髅到世界
@@ -252,7 +249,7 @@ void SkeletonHorseEntity::triggerTrap()
 
 void SkeletonHorseEntity::onStruckByLightning()
 {
-    // MC 1.16.5: 陷阱马被闪电击中时触发陷阱
+    // 陷阱马被闪电击中时触发陷阱
     if (m_trap) {
         triggerTrap();
     }
@@ -262,8 +259,7 @@ void SkeletonHorseEntity::tick()
 {
     AbstractHorseEntity::tick();
 
-    // MC 1.16.5: 陷阱马超时逻辑
-    // 如果陷阱马存在超过 18000 ticks (15分钟)，自动消失
+    // 陷阱马超时逻辑：如果存在超过 18000 ticks (15分钟)，自动消失
     if (m_trap) {
         m_trapTime++;
         if (m_trapTime >= TRAP_MAX_TIME) {
@@ -272,12 +268,11 @@ void SkeletonHorseEntity::tick()
         }
     }
 
-    // MC 1.16.5: 骷髅马阳光燃烧逻辑
-    // 参考: AbstractSkeletonEntity.livingTick()
+    // 骷髅马阳光燃烧逻辑
     // 注意：骷髅马不是 MonsterEntity 的子类，所以需要手动实现阳光燃烧
     if (isAlive() && shouldBurnInDaylight() && isInDaylight()) {
         // 检查头盔保护
-        // MC 1.16.5: 如果戴着头盔，头盔会受损而不是燃烧
+        // 如果戴着头盔，头盔会受损而不是燃烧
         // 骷髅马通常不戴头盔，但为完整性保留此逻辑
         const ItemStack& helmet = getEquipment(EquipmentSlot::Head);
         if (helmet.isEmpty()) {

@@ -26,12 +26,12 @@
 #include "DonkeyEntity.hpp"
 #include "MuleEntity.hpp"
 
-#include "../../../../item/Items.hpp"
-#include "../../../../item/items/armor/HorseArmorItem.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../damage/DamageSource.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/items/armor/HorseArmorItem.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -80,7 +80,6 @@ bool HorseEntity::isTameItem(const ItemStack& /*itemStack*/) const
 
 bool HorseEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // MC 1.16.5: HorseEntity.isBreedingItem() 返回 isFoodItem()
     // 用于 TemptGoal AI 目标（玩家手持食物时会被诱惑）
     // 注意：只有金苹果和金胡萝卜会触发繁殖（在 handleEating 中处理）
     return isFoodItem(itemStack);
@@ -88,7 +87,6 @@ bool HorseEntity::isBreedingItem(const ItemStack& itemStack) const
 
 bool HorseEntity::canMateWith(const AnimalEntity& other) const
 {
-    // MC 1.16.5: HorseEntity.canMateWith(AnimalEntity otherAnimal)
     // 马可以与马或驴交配
     if (this == &other) {
         return false;
@@ -108,7 +106,6 @@ bool HorseEntity::canMateWith(const AnimalEntity& other) const
 
 std::unique_ptr<AnimalEntity> HorseEntity::spawnBaby(AnimalEntity& partner)
 {
-    // MC 1.16.5: HorseEntity.func_241840_a(ServerWorld, AgeableEntity)
     math::Random rng(ticksExisted());
 
     // 检查配偶是否是驴（产生骡）
@@ -133,8 +130,7 @@ std::unique_ptr<AnimalEntity> HorseEntity::spawnBaby(AnimalEntity& partner)
     // 遗传属性
     setOffspringAttributes(partner, *baby);
 
-    // 遗传毛色和花纹
-    // MC 1.16.5: 4/9 继承父本，4/9 继承母本，1/9 随机
+    // 遗传毛色和花纹：4/9 继承父本，4/9 继承母本，1/9 随机
     const HorseEntity* partnerHorse = dynamic_cast<const HorseEntity*>(&partner);
     if (partnerHorse != nullptr) {
         i32 colorRoll = rng.nextInt(9);
@@ -191,7 +187,6 @@ void HorseEntity::tick()
 
 void HorseEntity::registerGoals()
 {
-    // MC 1.16.5: HorseEntity 没有重写 registerGoals()
     // 马完全使用 AbstractHorseEntity 的 AI 目标
     AbstractHorseEntity::registerGoals();
 }
@@ -220,8 +215,7 @@ std::optional<ResourceLocation> HorseEntity::getDeathSound() const
 
 std::optional<ResourceLocation> HorseEntity::getAngrySound() const
 {
-    // MC 1.16.5: HorseEntity.getAngrySound() 返回 ENTITY_HORSE_ANGRY
-    // 注意：基类 makeMad() 会先调用 makeHorseRear() 然后调用此方法获取音效并播放
+    // 基类 makeMad() 会先调用 makeHorseRear() 然后调用此方法获取音效并播放
     return SoundEvents::ENTITY_HORSE_ANGRY;
 }
 
@@ -242,7 +236,6 @@ void HorseEntity::playAngrySound()
 
 bool HorseEntity::isValidArmorForSlot(const ItemStack& item) const
 {
-    // MC 1.16.5: HorseEntity.isArmor(ItemStack)
     // 检查物品是否为 HorseArmorItem 实例
     const Item* itemPtr = item.getItem();
     if (itemPtr == nullptr) {

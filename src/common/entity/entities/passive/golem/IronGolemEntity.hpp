@@ -46,8 +46,6 @@ class VillagerEntity;
  * - 生成：村民足够多时自然生成
  * - 掉落：铁锭、罂粟
  * - 送花：偶尔给村民展示罂粟花
- *
- * 参考 MC 1.16.5 IronGolemEntity
  */
 class IronGolemEntity : public GolemEntity {
 public:
@@ -187,9 +185,13 @@ private:
 
     // 常量
     static constexpr i32 ATTACK_DURATION = 10; // 攻击动画持续时间
-    static constexpr i32 ATTACK_COOLDOWN = 20; // 攻击冷却
     static constexpr f32 ATTACK_DAMAGE = 7.0f; // 攻击伤害
-    static constexpr f32 KNOCKBACK = 1.5f;     // 击退力度
+
+    // TODO: 攻击冷却机制待实现
+    static constexpr i32 ATTACK_COOLDOWN = 20; // 攻击冷却
+
+    // TODO: 水平击退机制待实现
+    static constexpr f32 KNOCKBACK = 1.5f; // 击退力度
 };
 
 } // namespace mc

@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../world/block/Block.hpp"
-#include "../../damage/DamageSource.hpp"
-#include "../../effect/EffectInstance.hpp"
-#include "ProjectileEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/world/block/Block.hpp"
 #include <memory>
 #include <optional>
 #include <unordered_set>
@@ -51,8 +51,6 @@ enum class PickupStatus : u8 {
  *
  * 所有箭矢类型（普通箭、光灵箭、三叉戟等）的基类。
  * 提供穿透、暴击、伤害计算等通用功能。
- *
- * 参考 MC 1.16.5 AbstractArrowEntity
  */
 class AbstractArrowEntity : public ProjectileEntity {
 public:
@@ -165,7 +163,6 @@ public:
     /**
      * @brief 当玩家与此箭矢碰撞时调用
      *
-     * 参考 MC 1.16.5 AbstractArrowEntity.onCollideWithPlayer()
      * 检查拾取条件并调用 onPlayerPickup。
      *
      * @param player 与此箭矢碰撞的玩家
@@ -226,15 +223,11 @@ protected:
     /**
      * @brief 检查方块变更导致箭矢脱落
      * @return 如果箭矢应该脱落返回true
-     *
-     * 参考 MC 1.16.5 AbstractArrowEntity.func_234593_u_()
      */
     bool checkInBlockEmpty();
 
     /**
      * @brief 箭矢脱落时的弹射处理
-     *
-     * 参考 MC 1.16.5 AbstractArrowEntity.func_234594_z_()
      */
     void detachFromBlock();
 
@@ -261,7 +254,7 @@ protected:
     bool m_shotFromCrossbow = false;
     bool m_dealtDamage = false; // 是否已造成伤害（三叉戟用）
 
-    // 穿透追踪（使用 unordered_set 实现 O(1) 查找，对齐 MC 1.16.5 IntOpenHashSet）
+    // 穿透追踪（使用 unordered_set 实现 O(1) 查找）
     std::unordered_set<EntityId> m_piercedEntities;
 
     // 命中的方块状态
@@ -273,8 +266,6 @@ protected:
  *
  * 弓和弩射出的标准箭矢。
  * 也用于药水箭（Tipped Arrow），存储药水效果。
- *
- * 参考 MC 1.16.5 ArrowEntity
  */
 class ArrowEntity : public AbstractArrowEntity {
 public:
@@ -304,7 +295,6 @@ protected:
      * @brief 箭矢命中实体时的处理
      *
      * 药水箭命中时会给目标施加药水效果。
-     * 参考 MC 1.16.5 ArrowEntity.arrowHit()
      */
     void onEntityHit(const RayTraceResult& result) override;
 
@@ -374,8 +364,6 @@ private:
  * @brief 光灵箭实体
  *
  * 光灵箭会让被命中的实体发光。
- *
- * 参考 MC 1.16.5 SpectralArrowEntity
  */
 class SpectralArrowEntity : public AbstractArrowEntity {
 public:
@@ -398,7 +386,6 @@ protected:
      * @brief 箭矢命中实体时的处理
      *
      * 光灵箭命中时会给目标施加发光效果。
-     * 参考 MC 1.16.5 SpectralArrowEntity.arrowHit()
      */
     void onEntityHit(const RayTraceResult& result) override;
 

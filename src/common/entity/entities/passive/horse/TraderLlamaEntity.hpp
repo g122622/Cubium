@@ -32,9 +32,7 @@ namespace mc {
 /**
  * @brief 商队羊驼实体
  *
- * 对齐 1.16.5 `TraderLlamaEntity` 的最小支撑层。
- * 当前先补消失倒计时与类型层次，后续再接拴绳、流浪商人仇恨联动
- * 和生成逻辑。
+ * TODO: 当前实现了消失倒计时与类型层次，后续需要补充拴绳、流浪商人仇恨联动和生成逻辑。
  */
 class TraderLlamaEntity : public LlamaEntity {
 public:
@@ -81,8 +79,7 @@ public:
     /**
      * @brief 当前是否允许自然消失
      *
-     * 先补最小语义：被驯服或被骑乘时不消失。
-     * 拴绳和 trader 关联逻辑后续补齐。
+     * TODO: 当前仅实现最小语义（被驯服或被骑乘时不消失），后续需要补充拴绳和流浪商人关联逻辑。
      */
     [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const override
     {

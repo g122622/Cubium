@@ -54,7 +54,7 @@ class ItemEntity;
  * - 幼体：小狐狸
  * - 信任玩家：幼狐信任喂养者
  *
- * 状态标志位（MC 1.16.5 foxStateManager）：
+ * 状态标志位：
  * - bit 1 (0x01): 坐下 (sitting)
  * - bit 2 (0x04): 蹲伏 (crouching)
  * - bit 3 (0x08): 感兴趣 (interested) - 盯着目标
@@ -62,8 +62,6 @@ class ItemEntity;
  * - bit 5 (0x20): 睡眠 (sleeping)
  * - bit 6 (0x40): 卡住 (stuck) - 卡在雪中
  * - bit 7 (0x80): 激怒 (foxAggroed) - 攻击状态
- *
- * 参考 MC 1.16.5 FoxEntity
  */
 class FoxEntity : public AnimalEntity {
 public:
@@ -80,7 +78,7 @@ public:
      * @param id 实体ID
      */
     FoxEntity(EntityId id);
-    ~FoxEntity() override = default;
+    ~FoxEntity() noexcept override = default;
 
     // 禁止拷贝
     FoxEntity(const FoxEntity&) = delete;
@@ -166,7 +164,6 @@ public:
 
     /**
      * @brief 获取蹲伏进度量 (0.0 - 3.0)
-     * MC 1.16.5: crouchAmount 字段
      */
     [[nodiscard]] f32 crouchAmount() const { return m_crouchAmount; }
 
@@ -177,7 +174,6 @@ public:
 
     /**
      * @brief 是否完全蹲伏 (crouchAmount >= 3.0)
-     * MC 1.16.5: func_213490_ee
      */
     [[nodiscard]] bool isFullyCrouched() const { return m_crouchAmount >= 3.0f; }
 
@@ -193,13 +189,11 @@ public:
 
     /**
      * @brief 是否处于扑击准备状态
-     * MC 1.16.5: func_213480_dY
      */
     [[nodiscard]] bool isPounceReady() const;
 
     /**
      * @brief 设置扑击准备状态
-     * MC 1.16.5: func_213461_s
      */
     void setPounceReady(bool ready);
 
@@ -225,7 +219,6 @@ public:
 
     /**
      * @brief 是否激怒状态
-     * MC 1.16.5: isFoxAggroed
      */
     [[nodiscard]] bool isFoxAggroed() const;
 
@@ -274,20 +267,17 @@ public:
 
     /**
      * @brief 是否可以行动
-     * MC 1.16.5: func_213478_eo
      * 条件：非坐下、非蹲伏、非睡眠、非卡住、非激怒
      */
     [[nodiscard]] bool canAct() const;
 
     /**
      * @brief 重置所有状态
-     * MC 1.16.5: func_213499_en
      */
     void resetAllStates();
 
     /**
      * @brief 唤醒（停止睡眠、坐下等）
-     * MC 1.16.5: func_213454_em
      */
     void wakeUp();
 
@@ -370,7 +360,7 @@ protected:
 
 private:
     // ========== 状态更新 ==========
-    void updateCrouchAmount();
+    void _updateCrouchAmount();
 
     // ========== 数据成员 ==========
 

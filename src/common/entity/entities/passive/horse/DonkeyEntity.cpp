@@ -45,7 +45,6 @@ std::unique_ptr<Entity> DonkeyEntity::create(IWorld* /*world*/)
 
 bool DonkeyEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // MC 1.16.5: DonkeyEntity.isBreedingItem() 返回 isFoodItem()
     // 用于 TemptGoal AI 目标（玩家手持食物时会被诱惑）
     // 注意：只有金苹果和金胡萝卜会触发繁殖（在 handleEating 中处理）
     return isFoodItem(itemStack);
@@ -53,7 +52,6 @@ bool DonkeyEntity::isBreedingItem(const ItemStack& itemStack) const
 
 bool DonkeyEntity::canMateWith(const AnimalEntity& other) const
 {
-    // MC 1.16.5: DonkeyEntity.canMateWith(AnimalEntity otherAnimal)
     // 驴可以与驴或马交配
     if (this == &other) {
         return false;
@@ -73,7 +71,6 @@ bool DonkeyEntity::canMateWith(const AnimalEntity& other) const
 
 std::unique_ptr<AnimalEntity> DonkeyEntity::spawnBaby(AnimalEntity& partner)
 {
-    // MC 1.16.5: DonkeyEntity.func_241840_a(ServerWorld, AgeableEntity)
     // 驴 + 驴 = 驴，驴 + 马 = 骡
 
     // 检查配偶是否是马（产生骡）
@@ -102,7 +99,6 @@ std::unique_ptr<AnimalEntity> DonkeyEntity::spawnBaby(AnimalEntity& partner)
 
 void DonkeyEntity::registerGoals()
 {
-    // MC 1.16.5: DonkeyEntity 没有重写 registerGoals()
     // 驴完全使用 AbstractHorseEntity 的 AI 目标
     AbstractChestedHorseEntity::registerGoals();
 }

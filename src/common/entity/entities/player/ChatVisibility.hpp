@@ -23,14 +23,12 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 
 /**
  * @brief 玩家聊天可见性设置
- *
- * 对齐 MC 1.16.5 `net.minecraft.entity.player.ChatVisibility`。
  */
 enum class ChatVisibility : i32 {
     Full = 0,

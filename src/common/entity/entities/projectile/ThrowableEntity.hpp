@@ -34,8 +34,6 @@ namespace entity {
  *
  * 用于雪球、鸡蛋、末影珍珠等可投掷物品。
  * 提供重力、碰撞检测和基本的投掷物理。
- *
- * 参考 MC 1.16.5 ThrowableEntity
  */
 class ThrowableEntity : public ProjectileEntity {
 public:

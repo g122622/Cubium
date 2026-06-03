@@ -22,23 +22,23 @@
  */
 
 #include "BeeEntity.hpp"
-#include "../../../../core/Types.hpp"
-#include "../../../../item/core/Item.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../item/tag/ItemTags.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../ai/goal/goals/special/BeeGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../damage/DamageSource.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/BreedGoal.hpp"
+#include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/PanicGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/entity/ai/goal/goals/special/BeeGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/tag/ItemTags.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/world/IWorld.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -47,7 +47,6 @@ namespace mc {
 // 静态数据参数定义
 // ============================================================================
 
-// MC 1.16.5 BeeEntity 数据参数
 entity::DataParameter<i8> BeeEntity::DATA_FLAGS_PARAM{0};
 entity::DataParameter<i32> BeeEntity::ANGER_TIME_PARAM{1};
 
@@ -74,7 +73,6 @@ void BeeEntity::registerData()
 {
     AnimalEntity::registerData();
 
-    // MC 1.16.5 BeeEntity.registerData()
     m_dataManager.registerParam(DATA_FLAGS_PARAM, static_cast<i8>(0));
     m_dataManager.registerParam(ANGER_TIME_PARAM, static_cast<i32>(0));
 }
@@ -83,12 +81,12 @@ void BeeEntity::registerData()
 // 数据参数辅助方法
 // ============================================================================
 
-bool BeeEntity::getBeeFlag(i8 flag) const
+bool BeeEntity::_getBeeFlag(i8 flag) const
 {
     return (m_dataManager.get(DATA_FLAGS_PARAM) & flag) != 0;
 }
 
-void BeeEntity::setBeeFlag(i8 flag, bool value)
+void BeeEntity::_setBeeFlag(i8 flag, bool value)
 {
     i8 flags = m_dataManager.get(DATA_FLAGS_PARAM);
     if (value) {
@@ -104,27 +102,27 @@ void BeeEntity::setBeeFlag(i8 flag, bool value)
 
 bool BeeEntity::hasNectar() const
 {
-    return getBeeFlag(FLAG_HAS_NECTAR);
+    return _getBeeFlag(FLAG_HAS_NECTAR);
 }
 
 void BeeEntity::setHasNectar(bool nectar)
 {
     if (nectar != m_hasNectar) {
         m_hasNectar = nectar;
-        setBeeFlag(FLAG_HAS_NECTAR, nectar);
+        _setBeeFlag(FLAG_HAS_NECTAR, nectar);
     }
 }
 
 bool BeeEntity::hasStung() const
 {
-    return getBeeFlag(FLAG_HAS_STUNG);
+    return _getBeeFlag(FLAG_HAS_STUNG);
 }
 
 void BeeEntity::setHasStung(bool stung)
 {
     if (stung != m_hasStung) {
         m_hasStung = stung;
-        setBeeFlag(FLAG_HAS_STUNG, stung);
+        _setBeeFlag(FLAG_HAS_STUNG, stung);
     }
 }
 
@@ -146,8 +144,7 @@ void BeeEntity::setAngerTime(i32 time)
 void BeeEntity::setAngry(bool angry)
 {
     if (angry) {
-        // MC 1.16.5: 设置随机愤怒时间 (20-39 ticks)
-        // 这里简化为设置最大愤怒时间
+        // 设置随机愤怒时间 (20-39 ticks)
         setAngerTime(MAX_ANGER_TIME);
     } else {
         setAngerTime(0);
@@ -221,9 +218,7 @@ void BeeEntity::setFlowerPos(const BlockPos& pos)
 
 bool BeeEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // MC 1.16.5: 检查物品是否在花朵标签中
-    // 参考: BeeEntity.isBreedingItem(ItemStack stack)
-    // return stack.getItem().isIn(ItemTags.FLOWERS);
+    // 检查物品是否在花朵标签中
     const Item* item = itemStack.getItem();
     if (item == nullptr) {
         return false;
@@ -233,8 +228,6 @@ bool BeeEntity::isBreedingItem(const ItemStack& itemStack) const
 
 std::unique_ptr<AnimalEntity> BeeEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
-    // MC 1.16.5: 创建小蜜蜂
-    // 参考: BeeEntity.createChild(ServerWorld, AgeableEntity)
     auto baby = std::make_unique<BeeEntity>(0);
 
     // 设置为幼体
@@ -254,24 +247,16 @@ void BeeEntity::tick()
 {
     AnimalEntity::tick();
 
-    // MC 1.16.5: 更新愤怒计时器
+    // 更新愤怒计时器
     updateAnger();
 
-    // MC 1.16.5: 螫刺后逐渐死亡
-    // 参考 BeeEntity.updateAITasks() 中的逻辑:
-    // if (flag) {
-    //     ++this.timeSinceSting;
-    //     if (this.timeSinceSting % 5 == 0 && this.rand.nextInt(MathHelper.clamp(1200 - this.timeSinceSting, 1, 1200))
-    //     == 0) {
-    //         this.attackEntityFrom(DamageSource.GENERIC, this.getHealth());
-    //     }
-    // }
+    // 螫刺后逐渐死亡
+    // 越久越容易死亡，最长存活 1200 tick = 60 秒
     if (m_hasStung) {
         ++m_timeSinceSting;
         // 每 5 tick 检查一次死亡概率
         if (m_timeSinceSting % 5 == 0 && m_world != nullptr) {
             // 概率随时间增加：MathHelper.clamp(1200 - timeSinceSting, 1, 1200)
-            // 越久越容易死亡，最长存活 1200 tick = 60 秒
             i32 deathChance = math::clamp(1200 - m_timeSinceSting, 1, 1200);
 
             // 获取随机数生成器
@@ -286,16 +271,7 @@ void BeeEntity::tick()
         }
     }
 
-    // MC 1.16.5: 水下溺水逻辑
-    // 参考: BeeEntity.livingTick() 第311-319行
-    // if (this.isInWaterOrBubbleColumn()) {
-    //     ++this.underWaterTicks;
-    // } else {
-    //     this.underWaterTicks = 0;
-    // }
-    // if (this.underWaterTicks > 20) {
-    //     this.attackEntityFrom(DamageSource.DROWN, 1.0F);
-    // }
+    // 水下溺水逻辑
     if (isInWater()) {
         ++m_underWaterTimer;
         if (m_underWaterTimer > 20 && m_world != nullptr) {
@@ -313,7 +289,6 @@ void BeeEntity::registerGoals()
     // 调用父类方法注册基础动物 AI
     AnimalEntity::registerGoals();
 
-    // MC 1.16.5 BeeEntity.registerGoals()
     // 优先级越小越高
 
     // ========== Goal Selector (行为目标) ==========
@@ -379,8 +354,6 @@ void BeeEntity::registerAttributes()
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
-    // MC 1.16.5 BeeEntity.registerAttributes()
-    // 参考: BeeEntity.java 第489行
     // MAX_HEALTH: 10.0, FLYING_SPEED: 0.6, MOVEMENT_SPEED: 0.3,
     // ATTACK_DAMAGE: 2.0, FOLLOW_RANGE: 48.0
 

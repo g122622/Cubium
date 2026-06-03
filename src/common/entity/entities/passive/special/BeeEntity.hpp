@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../world/block/BlockPos.hpp"
-#include "../../../core/DataParameter.hpp"
-#include "../../../interfaces/IAngerable.hpp"
-#include "../../../interfaces/IFlyingAnimal.hpp"
-#include "../basic/AnimalEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/entity/interfaces/IAngerable.hpp"
+#include "common/entity/interfaces/IFlyingAnimal.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
 
 namespace mc {
@@ -53,8 +53,6 @@ class BeeFindFlowerGoal;
  * - 攻击：被攻击后会群起攻击，螫刺后死亡
  * - 飞行：可以飞行
  * - 群体：会召唤其他蜜蜂一起攻击
- *
- * 参考 MC 1.16.5 BeeEntity
  */
 class BeeEntity : public AnimalEntity, public entity::IFlyingAnimal, public entity::IAngerable {
 public:
@@ -84,16 +82,12 @@ public:
 
     /**
      * @brief 是否携带花粉
-     *
-     * MC 1.16.5: return this.getBeeFlag(8)
      * 从 DataParameter 读取，支持网络同步
      */
     [[nodiscard]] bool hasNectar() const;
 
     /**
      * @brief 设置花粉状态
-     *
-     * MC 1.16.5: setBeeFlag(8, nectar)
      * 通过 DataParameter 同步到客户端
      */
     void setHasNectar(bool nectar);
@@ -101,16 +95,12 @@ public:
     /**
      * @brief 是否有螫刺
      * 蜜蜂失去螫刺后无法攻击
-     *
-     * MC 1.16.5: return this.getBeeFlag(4)
      * 从 DataParameter 读取，支持网络同步
      */
     [[nodiscard]] bool hasStung() const;
 
     /**
      * @brief 设置螫刺状态
-     *
-     * MC 1.16.5: setBeeFlag(4, stung)
      * 通过 DataParameter 同步到客户端
      */
     void setHasStung(bool stung);
@@ -212,8 +202,6 @@ public:
 
     /**
      * @brief 注册同步数据参数
-     *
-     * MC 1.16.5: BeeEntity.registerData()
      * 注册 DATA_FLAGS 和 ANGER_TIME 数据参数
      */
     void registerData() override;
@@ -232,8 +220,7 @@ public:
 
     /**
      * @brief 设置复仇目标 (IAngerable)
-     *
-     * MC 1.16.5: 设置愤怒目标和愤怒时间
+     * 设置愤怒目标和愤怒时间
      */
     void setRevengeTarget(LivingEntity* target) override;
 
@@ -249,29 +236,24 @@ public:
 
     /**
      * @brief 是否愤怒 (IAngerable)
-     *
-     * MC 1.16.5: return this.getAngerTime() > 0
      */
     [[nodiscard]] bool isAngry() const override { return getAngerTime() > 0; }
 
     /**
      * @brief 设置愤怒状态 (IAngerable)
-     *
-     * MC 1.16.5: 设置愤怒时间为默认值
+     * 设置愤怒时间为默认值
      */
     void setAngry(bool angry) override;
 
     /**
      * @brief 获取愤怒时间 (IAngerable)
-     *
-     * MC 1.16.5: return this.dataManager.get(ANGER_TIME)
+     * 从 DataParameter 读取
      */
     [[nodiscard]] i32 getAngerTime() const override;
 
     /**
      * @brief 设置愤怒时间 (IAngerable)
-     *
-     * MC 1.16.5: this.dataManager.set(ANGER_TIME, time)
+     * 通过 DataParameter 同步
      */
     void setAngerTime(i32 time) override;
 
@@ -307,7 +289,7 @@ public:
 
     /**
      * @brief 获取水下计时器
-     * MC 1.16.5: 用于追踪蜜蜂在水中的时间
+     * 用于追踪蜜蜂在水中的时间
      */
     [[nodiscard]] i32 getUnderWaterTimer() const { return m_underWaterTimer; }
 
@@ -417,14 +399,14 @@ private:
      * @param flag 标志位掩码
      * @return 标志位是否设置
      */
-    [[nodiscard]] bool getBeeFlag(i8 flag) const;
+    [[nodiscard]] bool _getBeeFlag(i8 flag) const;
 
     /**
      * @brief 设置数据参数标志位
      * @param flag 标志位掩码
      * @param value 是否设置
      */
-    void setBeeFlag(i8 flag, bool value);
+    void _setBeeFlag(i8 flag, bool value);
 };
 
 } // namespace mc

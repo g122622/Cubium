@@ -23,23 +23,23 @@
 
 #include "LlamaEntity.hpp"
 
-#include "../../../../item/Items.hpp"
-#include "../../../../item/core/Item.hpp"
-#include "../../../../item/tag/ItemTags.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../ai/goal/GoalFlag.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/attack/RangedAttackGoals.hpp"
-#include "../../../ai/goal/goals/special/SpecialGoals.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/AgeableEntity.hpp"
-#include "../../../core/EntityUtils.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../entities/player/Player.hpp"
-#include "../../../entities/projectile/OtherProjectiles.hpp"
-#include "world/IWorld.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
+#include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/OtherProjectiles.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/tag/ItemTags.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -51,7 +51,8 @@ namespace mc {
 // ============================================================================
 
 namespace {
-// 商队系统常量 (MC 1.16.5)
+
+// 商队系统常量
 constexpr f64 CARAVAN_SEARCH_RADIUS = 9.0;            // 搜索半径
 constexpr f64 CARAVAN_SEARCH_HEIGHT = 4.0;            // 搜索高度
 constexpr f64 CARAVAN_MIN_JOIN_DISTANCE_SQ = 4.0;     // 最小加入距离平方 (2格)
@@ -59,7 +60,7 @@ constexpr f64 CARAVAN_MAX_FOLLOW_DISTANCE_SQ = 676.0; // 最大跟随距离平�
 constexpr f64 CARAVAN_FOLLOW_DISTANCE = 2.0;          // 跟随间距
 constexpr i32 CARAVAN_MAX_LENGTH = 8;                 // 商队最大长度
 
-// 远程攻击常量 (MC 1.16.5)
+// 远程攻击常量
 constexpr f32 LLAMA_SPIT_SPEED = 1.5f;       // 口水速度
 constexpr f32 LLAMA_SPIT_INACCURACY = 10.0f; // 口水散布
 constexpr f32 LLAMA_SPIT_DAMAGE = 1.0f;      // 口水伤害
@@ -69,6 +70,7 @@ constexpr f64 LLAMA_CARAVAN_SPEED = 2.1;          // 商队跟随速度
 constexpr f64 LLAMA_RANGED_ATTACK_SPEED = 1.25;   // 远程攻击移动速度
 constexpr f32 LLAMA_RANGED_ATTACK_RADIUS = 20.0f; // 远程攻击半径
 constexpr i32 LLAMA_ATTACK_INTERVAL = 40;         // 攻击间隔 ticks
+
 } // namespace
 
 // ============================================================================
@@ -118,7 +120,6 @@ void LlamaEntity::setStrength(i32 strength)
 
 void LlamaEntity::joinCaravan(LlamaEntity* head)
 {
-    // MC 1.16.5: LlamaEntity.joinCaravan()
     if (head == nullptr) {
         return;
     }
@@ -134,7 +135,6 @@ void LlamaEntity::joinCaravan(LlamaEntity* head)
 
 void LlamaEntity::leaveCaravan()
 {
-    // MC 1.16.5: LlamaEntity.leaveCaravan()
     if (m_caravanHead != nullptr) {
         // 清除头领的尾部引用
         m_caravanHead->m_caravanTail = nullptr;
@@ -149,7 +149,6 @@ void LlamaEntity::leaveCaravan()
 
 bool LlamaEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // MC 1.16.5: LlamaEntity.isBreedingItem() 返回 isFoodItem()
     // 用于 TemptGoal AI 目标（玩家手持食物时会被诱惑）
     // 注意：只有干草块会触发繁殖（在 handleEating 中处理）
     return isFoodItem(itemStack);
@@ -162,7 +161,6 @@ bool LlamaEntity::isTameItem(const ItemStack& /*itemStack*/) const
 
 bool LlamaEntity::canMateWith(const AnimalEntity& other) const
 {
-    // MC 1.16.5: LlamaEntity.canMateWith(AnimalEntity otherAnimal)
     // 羊驼只能与羊驼交配
     if (this == &other) {
         return false;
@@ -179,7 +177,6 @@ bool LlamaEntity::canMateWith(const AnimalEntity& other) const
 
 std::unique_ptr<AnimalEntity> LlamaEntity::spawnBaby(AnimalEntity& partner)
 {
-    // MC 1.16.5: LlamaEntity.func_241840_a(ServerWorld, AgeableEntity)
     math::Random rng(ticksExisted());
 
     auto baby = std::make_unique<LlamaEntity>(0);
@@ -192,7 +189,7 @@ std::unique_ptr<AnimalEntity> LlamaEntity::spawnBaby(AnimalEntity& partner)
     // 遗传强度和颜色
     const LlamaEntity* partnerLlama = dynamic_cast<const LlamaEntity*>(&partner);
     if (partnerLlama != nullptr) {
-        // 强度遗传：MC 1.16.5 取父母强度的最大值，然后随机 +1/+0
+        // 强度遗传：取父母强度的最大值，然后随机 +1/+0
         i32 parentStrength = std::max(getStrength(), partnerLlama->getStrength());
         i32 babyStrength = parentStrength + rng.nextInt(2); // +0 或 +1
         baby->setStrength(babyStrength);
@@ -210,7 +207,6 @@ std::unique_ptr<AnimalEntity> LlamaEntity::spawnBaby(AnimalEntity& partner)
 
 bool LlamaEntity::handleEating(Player* player, ItemStack& itemStack)
 {
-    // MC 1.16.5: LlamaEntity.handleEating()
     // 羊驼的食物效果与马不同：
     // - 小麦：治疗 2，成长 10 ticks，驯服 +3
     // - 干草块：治疗 10，成长 90 ticks，驯服 +6，可触发繁殖
@@ -232,12 +228,12 @@ bool LlamaEntity::handleEating(Player* player, ItemStack& itemStack)
     i32 temperIncrease = 0;
 
     if (isWheat) {
-        // MC 1.16.5: 小麦效果
+        // 小麦效果
         healAmount = 2;
         growthTime = 10;
         temperIncrease = 3;
     } else { // isHayBlock
-        // MC 1.16.5: 干草块效果
+        // 干草块效果
         healAmount = 10;
         growthTime = 90;
         temperIncrease = 6;
@@ -285,7 +281,6 @@ bool LlamaEntity::handleEating(Player* player, ItemStack& itemStack)
 
 bool LlamaEntity::isFoodItem(const ItemStack& itemStack) const
 {
-    // MC 1.16.5: LlamaEntity.field_234243_bC_
     // 羊驼食物：小麦、干草块
     const Item* item = itemStack.getItem();
     if (item == nullptr) {
@@ -311,13 +306,11 @@ std::optional<ResourceLocation> LlamaEntity::getAngrySound() const
 
 void LlamaEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charge*/)
 {
-    // MC 1.16.5: LlamaEntity.attackEntityWithRangedAttack()
-    spit(target);
+    _spit(target);
 }
 
-void LlamaEntity::spit(LivingEntity* target)
+void LlamaEntity::_spit(LivingEntity* target)
 {
-    // MC 1.16.5: LlamaEntity.spit(LivingEntity target)
     if (target == nullptr || m_world == nullptr) {
         return;
     }
@@ -328,8 +321,7 @@ void LlamaEntity::spit(LivingEntity* target)
     // 设置发射者
     spitEntity->setShooter(this);
 
-    // MC 1.16.5: 计算发射位置
-    // 从羊驼眼睛高度发射，稍微偏向前方
+    // 计算发射位置：从羊驼眼睛高度发射，稍微偏向前方
     f32 renderYawOffset = yaw(); // 使用 yaw 作为渲染偏移
     f32 sinYaw = std::sin(renderYawOffset * math::DEG_TO_RAD);
     f32 cosYaw = std::cos(renderYawOffset * math::DEG_TO_RAD);
@@ -340,8 +332,7 @@ void LlamaEntity::spit(LivingEntity* target)
 
     spitEntity->setPosition(spawnX, spawnY, spawnZ);
 
-    // MC 1.16.5: 计算射击向量
-    // 瞄准目标 1/3 高度
+    // 计算射击向量：瞄准目标 1/3 高度
     f64 targetX = target->x() - x();
     f64 targetY = target->y() + target->height() / 3.0 - spawnY;
     f64 targetZ = target->z() - z();
@@ -395,7 +386,6 @@ void LlamaEntity::registerGoals()
 {
     AbstractChestedHorseEntity::registerGoals();
 
-    // MC 1.16.5: LlamaEntity.registerGoals()
     // 优先级 2: 商队跟随目标
     m_goalSelector.addGoal(
         2, std::make_unique<entity::ai::goal::LlamaFollowCaravanGoal>(this, static_cast<f32>(LLAMA_CARAVAN_SPEED)));
@@ -416,16 +406,15 @@ void LlamaEntity::registerGoals()
 void LlamaEntity::registerAttributes()
 {
     AbstractChestedHorseEntity::registerAttributes();
-    // MC 1.16.5: 羊驼生命值 = 15 + strength * 5
+    // 羊驼生命值 = 15 + strength * 5
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 15.0f + static_cast<f32>(m_strength) * 5.0f);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.175f);
-    // MC 1.16.5: 羊驼的跟随范围是 40 格
+    // 羊驼的跟随范围是 40 格
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0f);
 }
 
 bool LlamaEntity::isValidArmorForSlot(const ItemStack& item) const
 {
-    // MC 1.16.5: LlamaEntity.isArmor(ItemStack)
     // 检查物品是否在 ItemTags.CARPETS 中
     const Item* itemPtr = item.getItem();
     if (itemPtr == nullptr) {

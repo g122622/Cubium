@@ -22,12 +22,12 @@
  */
 
 #include "TameableEntity.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/Entity.hpp"
-#include "../../../core/EntityUtils.hpp"
-#include "../../../entities/player/Player.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 
@@ -136,13 +136,11 @@ void TameableEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 驯服动物的基础属性（子类可以覆盖）
-    // 参考 MC 1.16.5 TameableEntity
     // 大多数驯服动物的属性由子类设置
 }
 
 Player* TameableEntity::getOwner() const
 {
-    // MC 1.16.5: TameableEntity.getOwner()
     // 通过主人ID在世界中查找玩家实体
     if (!m_ownerId.has_value()) {
         return nullptr;

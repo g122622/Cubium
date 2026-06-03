@@ -23,14 +23,12 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 
 /**
  * @brief 马的基础毛色
- *
- * 对齐 1.16.5 `CoatColors`。
  */
 enum class CoatColors : u8 { White = 0, Creamy = 1, Chestnut = 2, Brown = 3, Black = 4, Gray = 5, DarkBrown = 6 };
 

@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../../world/blockentity/core/SimpleInventory.hpp"
-#include "../../../core/DataParameter.hpp"
-#include "../../../interfaces/IEquipable.hpp"
-#include "../../../interfaces/IJumpingMount.hpp"
-#include "../basic/AnimalEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/entity/interfaces/IEquipable.hpp"
+#include "common/entity/interfaces/IJumpingMount.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/blockentity/core/SimpleInventory.hpp"
 #include <memory>
 #include <optional>
 

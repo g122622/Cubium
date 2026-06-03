@@ -22,21 +22,22 @@
  */
 
 #include "AbstractArrowEntity.hpp"
-#include "../../../item/Items.hpp"
-#include "../../../item/core/ItemStack.hpp"
-#include "../../../item/potion/PotionUtils.hpp"
-#include "../../../physics/collision/CollisionShape.hpp"
-#include "../../../sound/SoundCategory.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../util/math/MathUtils.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../core/LivingEntity.hpp"
-#include "../../entities/player/Player.hpp"
-#include "../../inventory/PlayerInventory.hpp"
-#include "ProjectileHelper.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+
+#include "common/client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileHelper.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/potion/PotionUtils.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -85,7 +86,6 @@ void AbstractArrowEntity::tick()
     // 如果在水中，灭火并生成气泡粒子
     if (isInWater()) {
         setFire(0);
-        // MC 1.16.5 AbstractArrowEntity.tick() 第239-244行
         // 水中生成气泡粒子尾迹
         if (m_world) {
             for (int j = 0; j < 4; ++j) {
@@ -96,8 +96,7 @@ void AbstractArrowEntity::tick()
         }
     }
 
-    // ========== MC 1.16.5: 检查是否在方块内 ==========
-    // 参考 AbstractArrowEntity.tick() 第146-160行
+    // ========== 检查是否在方块内 ==========
     BlockPos currentPos = BlockPos(static_cast<BlockCoord>(std::floor(m_position.x)),
         static_cast<BlockCoord>(std::floor(m_position.y)),
         static_cast<BlockCoord>(std::floor(m_position.z)));
@@ -129,7 +128,7 @@ void AbstractArrowEntity::tick()
     // 调用父类tick进行射线追踪和移动
     ProjectileEntity::tick();
 
-    // MC 1.16.5: 暴击粒子效果
+    // 暴击粒子效果
     if (m_critical && !m_inGround && m_world) {
         math::Random rng = createRandomFromEntity(*this);
         // 每tick有概率生成暴击粒子
@@ -155,7 +154,7 @@ void AbstractArrowEntity::tickInGround()
             static_cast<BlockCoord>(std::floor(m_position.y)),
             static_cast<BlockCoord>(std::floor(m_position.z)));
 
-        // 参考 MC 1.16.5: 检查方块变更导致箭矢脱落
+        // 检查方块变更导致箭矢脱落
         if (currentBlock != nullptr && m_inBlockState.has_value() && *currentBlock != *m_inBlockState &&
             checkInBlockEmpty()) {
             detachFromBlock();
@@ -166,7 +165,7 @@ void AbstractArrowEntity::tickInGround()
     ++m_ticksInGround;
     ++m_timeInGround;
 
-    // 超时移除（MC 1.16.5: 1200 ticks = 60秒）
+    // 超时移除（1200 ticks = 60秒）
     if (m_ticksInGround >= 1200) {
         remove();
     }
@@ -174,7 +173,6 @@ void AbstractArrowEntity::tickInGround()
 
 bool AbstractArrowEntity::checkInBlockEmpty()
 {
-    // 参考 MC 1.16.5 AbstractArrowEntity.func_234593_u_()
     // 检查箭矢周围是否有碰撞箱
     // 创建一个很小的检测盒（0.06）
     AxisAlignedBB testBox(m_position.x - 0.06f,
@@ -192,7 +190,6 @@ bool AbstractArrowEntity::checkInBlockEmpty()
 
 void AbstractArrowEntity::detachFromBlock()
 {
-    // 参考 MC 1.16.5 AbstractArrowEntity.func_234594_z_()
     m_inGround = false;
 
     // 随机弹射
@@ -254,18 +251,18 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
 
     mc::Entity* target = result.hitEntity;
 
-    // 计算伤害 - 参考 MC 1.16.5 AbstractArrowEntity.onEntityHit() 第303-304行
+    // 计算伤害
     f32 speed = std::sqrt(m_velocity.x * m_velocity.x + m_velocity.y * m_velocity.y + m_velocity.z * m_velocity.z);
     i32 damage = static_cast<i32>(std::clamp(static_cast<f64>(speed * m_damage), 0.0, 2147483647.0));
 
-    // 暴击伤害加成 - MC 1.16.5: i += rand.nextInt(i / 2 + 2)
+    // 暴击伤害加成
     if (m_critical) {
         mc::math::Random rng = createRandomFromEntity(*this);
         i32 bonus = rng.nextInt(damage / 2 + 2);
         damage = static_cast<i32>(std::min(static_cast<i64>(damage) + bonus, static_cast<i64>(2147483647)));
     }
 
-    // 穿透检查 - 参考 MC 1.16.5 第305-320行
+    // 穿透检查
     if (m_pierceLevel > 0) {
         if (static_cast<i32>(m_piercedEntities.size()) >= m_pierceLevel + 1) {
             // 达到穿透上限，移除箭矢
@@ -288,7 +285,6 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
     }
 
     // 应用伤害并增加箭矢计数
-    // 参考 MC 1.16.5 AbstractArrowEntity.onEntityHit() 第351-352行
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
     if (livingTarget != nullptr) {
         bool hurt = livingTarget->hurt(*damageSource, static_cast<f32>(damage));
@@ -298,7 +294,7 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
         }
     }
 
-    // 击退效果 - 参考 MC 1.16.5 第355-360行
+    // 击退效果
     if (m_knockbackStrength > 0) {
         f32 ratio = 0.6f * static_cast<f32>(m_knockbackStrength);
         Vector3 horizontalVel(m_velocity.x, 0.0f, m_velocity.z);
@@ -326,7 +322,6 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
 
 void AbstractArrowEntity::onBlockHit(const RayTraceResult& result)
 {
-    // 参考 MC 1.16.5 AbstractArrowEntity.func_230299_a_() 第406-421行
     m_inGround = true;
 
     // 保存命中的方块状态
@@ -358,26 +353,24 @@ void AbstractArrowEntity::onBlockHit(const RayTraceResult& result)
 
 void AbstractArrowEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity)
 {
-    // 参考 MC 1.16.5 AbstractArrowEntity.setEnchantmentEffectsFromEntity() 第596-612行
-
     // 设置基础伤害
     math::Random rng = createRandomFromEntity(*this);
     f32 difficultyBonus = m_world ? static_cast<f32>(static_cast<u8>(m_world->difficulty())) * 0.11f : 0.0f;
     m_damage = static_cast<f32>(baseVelocity * 2.0 + rng.nextGaussian() * 0.25 + difficultyBonus);
 
-    // 力量附魔增加伤害
+    // TODO: 力量附魔增加伤害（需要附魔系统支持）
     // i32 power = EnchantmentHelper::getEnchantmentLevel(shooter.getMainHandItem(), "minecraft:power");
     // if (power > 0) {
     //     m_damage += power * 0.5 + 0.5;
     // }
 
-    // 冲击附魔增加击退
+    // TODO: 冲击附魔增加击退（需要附魔系统支持）
     // i32 punch = EnchantmentHelper::getEnchantmentLevel(shooter.getMainHandItem(), "minecraft:punch");
     // if (punch > 0) {
     //     m_knockbackStrength = punch;
     // }
 
-    // 火焰附魔
+    // TODO: 火焰附魔（需要附魔系统支持）
     // if (EnchantmentHelper::hasEnchantment(shooter.getMainHandItem(), "minecraft:flame")) {
     //     setFire(100);
     // }
@@ -387,7 +380,6 @@ void AbstractArrowEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 b
 
 void AbstractArrowEntity::onCollideWithPlayer(Player& player)
 {
-    // 参考 MC 1.16.5 AbstractArrowEntity.onCollideWithPlayer() 第508-521行
     // 只在服务端执行，检查拾取条件
     if (m_world && m_world->isClientSide()) {
         return;
@@ -404,8 +396,6 @@ void AbstractArrowEntity::onCollideWithPlayer(Player& player)
 
 bool AbstractArrowEntity::onPlayerPickup(Player& player)
 {
-    // 参考 MC 1.16.5 AbstractArrowEntity.onCollideWithPlayer() 第508-521行
-
     // 必须在服务端执行
     if (m_world && m_world->isClientSide()) {
         return false;
@@ -452,8 +442,6 @@ bool AbstractArrowEntity::onPlayerPickup(Player& player)
     }
 
     // 播放拾取音效
-    // 参考 MC 1.16.5 AbstractArrowEntity.onCollideWithPlayer() 第517行
-    // entityIn.onItemPickup(this, 1); 会播放音效
     if (m_world) {
         math::Random rng = createRandomFromEntity(*this);
         m_world->playSound(SoundEvents::ENTITY_ITEM_PICKUP,
@@ -491,7 +479,7 @@ std::unique_ptr<ArrowEntity> ArrowEntity::createFromShooter(LivingEntity& shoote
     arrow->setPosition(shooter.x(), shooter.y() + shooter.eyeHeight() - 0.1f, shooter.z());
     arrow->setShooter(&shooter);
 
-    // 玩家射出的箭可以被拾取
+    // TODO: 玩家射出的箭可以被拾取（需要 isPlayer() 方法）
     // if (shooter.isPlayer()) {
     //     arrow->setPickupStatus(PickupStatus::Allowed);
     // }
@@ -503,17 +491,15 @@ void ArrowEntity::tick()
 {
     AbstractArrowEntity::tick();
 
-    // MC 1.16.5 ArrowEntity.tick() 第195-206行
     // 药水箭的粒子效果处理
     if (m_color != 0xFFFFFFFF && !m_inGround && m_world && m_world->isClientSide()) {
         // 将 ARGB 颜色转换为 RGB 分量 (0.0-1.0 范围)
-        // MC 使用 EntityEffect 粒子，速度参数作为颜色传递
+        // 使用 EntityEffect 粒子，速度参数作为颜色传递
         f32 r = static_cast<f32>((m_color >> 16) & 0xFF) / 255.0f;
         f32 g = static_cast<f32>((m_color >> 8) & 0xFF) / 255.0f;
         f32 b = static_cast<f32>(m_color & 0xFF) / 255.0f;
 
         // 飞行中每 tick 生成 2 个粒子
-        // MC 1.16.5: this.spawnPotionParticles(2);
         math::Random rng = createRandomFromEntity(*this);
         for (int i = 0; i < 2; ++i) {
             // 粒子位置在箭矢周围随机偏移
@@ -534,7 +520,6 @@ void ArrowEntity::onEntityHit(const RayTraceResult& result)
     // 先调用父类处理伤害
     AbstractArrowEntity::onEntityHit(result);
 
-    // MC 1.16.5 ArrowEntity.arrowHit() 第210-215行
     // 应用药水效果到被命中的生物
     if (!result.hitEntity || m_effects.empty()) {
         return;
@@ -551,17 +536,14 @@ void ArrowEntity::onEntityHit(const RayTraceResult& result)
 
 ItemStack ArrowEntity::getArrowStack() const
 {
-    // 参考 MC 1.16.5 ArrowEntity.getArrowStack() 第195-208行
     // 如果有药水效果，返回药水箭；否则返回普通箭矢
     if (hasEffects()) {
         // 创建药水箭物品堆
         ItemStack tippedArrow(*Items::TIPPED_ARROW, 1);
 
         // 设置药水效果到物品堆的 NBT 标签
-        // MC 1.16.5: PotionUtils.addPotionToItemStack(itemstack, this.potion);
-        //           PotionUtils.appendEffects(itemstack, this.customPotionEffects);
         // 注意：ArrowEntity 没有存储 Potion 类型，只有效果列表
-        // 所以我们只设置自定义效果和颜色
+        // 所以只设置自定义效果和颜色
         potion::PotionUtils::setCustomEffects(tippedArrow, m_effects);
 
         // 设置自定义颜色（如果有）
@@ -595,10 +577,9 @@ void SpectralArrowEntity::tick()
 {
     AbstractArrowEntity::tick();
 
-    // MC 1.16.5 SpectralArrowEntity.tick() 第31-36行
     // 光灵箭粒子效果 - 仅客户端执行
     if (!m_inGround && m_world && m_world->isClientSide()) {
-        // 使用 INSTANT_EFFECT 粒子（对应 ParticleTypes.INSTANT_EFFECT）
+        // 使用 INSTANT_EFFECT 粒子
         // 粒子位置：箭矢当前位置，速度为零
         m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::InstantSpell,
             Vector3(x(), y(), z()),
@@ -611,7 +592,6 @@ void SpectralArrowEntity::onEntityHit(const RayTraceResult& result)
     // 先调用父类处理伤害
     AbstractArrowEntity::onEntityHit(result);
 
-    // MC 1.16.5 SpectralArrowEntity.arrowHit() 第43-46行
     // 命中生物时施加发光效果
     if (!result.hitEntity) {
         return;
@@ -626,7 +606,6 @@ void SpectralArrowEntity::onEntityHit(const RayTraceResult& result)
 
 ItemStack SpectralArrowEntity::getArrowStack() const
 {
-    // 参考 MC 1.16.5 SpectralArrowEntity.getArrowStack() 第39-41行
     // 光灵箭总是返回光灵箭物品
     return ItemStack(*Items::SPECTRAL_ARROW, 1);
 }

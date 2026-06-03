@@ -37,8 +37,7 @@ class ResourceLocation;
 /**
  * @brief 鳕鱼实体
  *
- * 对齐 1.16.5 CodEntity。鳕鱼属于群游鱼类，沿用
- * AbstractGroupFishEntity 的默认群体大小语义。
+ * 鳕鱼属于群游鱼类，沿用 AbstractGroupFishEntity 的默认群体大小语义。
  */
 class CodEntity : public AbstractGroupFishEntity {
 public:
@@ -66,25 +65,21 @@ public:
 
     /**
      * @brief 获取扑腾声音
-     * MC 1.16.5: SoundEvents.ENTITY_COD_FLOP
      */
     [[nodiscard]] std::optional<ResourceLocation> getFlopSound() const override;
 
     /**
      * @brief 获取环境声音
-     * MC 1.16.5: SoundEvents.ENTITY_COD_AMBIENT
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
     /**
      * @brief 获取死亡声音
-     * MC 1.16.5: SoundEvents.ENTITY_COD_DEATH
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
     /**
      * @brief 获取受伤声音
-     * MC 1.16.5: SoundEvents.ENTITY_COD_HURT
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 

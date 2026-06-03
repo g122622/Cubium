@@ -47,25 +47,21 @@ void SalmonEntity::registerAttributes()
 
 std::optional<ResourceLocation> SalmonEntity::getFlopSound() const
 {
-    // MC 1.16.5: SoundEvents.ENTITY_SALMON_FLOP
     return SoundEvents::ENTITY_SALMON_FLOP;
 }
 
 std::optional<ResourceLocation> SalmonEntity::getAmbientSound() const
 {
-    // MC 1.16.5: SoundEvents.ENTITY_SALMON_AMBIENT
     return SoundEvents::ENTITY_SALMON_AMBIENT;
 }
 
 std::optional<ResourceLocation> SalmonEntity::getDeathSound() const
 {
-    // MC 1.16.5: SoundEvents.ENTITY_SALMON_DEATH
     return SoundEvents::ENTITY_SALMON_DEATH;
 }
 
 std::optional<ResourceLocation> SalmonEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: SoundEvents.ENTITY_SALMON_HURT
     return SoundEvents::ENTITY_SALMON_HURT;
 }
 

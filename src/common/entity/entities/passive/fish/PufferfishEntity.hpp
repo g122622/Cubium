@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../core/DataParameter.hpp"
-#include "../../../core/EntityDataManager.hpp"
-#include "../../../core/EntitySize.hpp"
 #include "AbstractFishEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include <memory>
 
 namespace mc {
@@ -56,8 +56,6 @@ class PuffGoal;
  * - ENTITY_PUFFER_FISH_FLOP: 陆地扑腾音效
  * - ENTITY_PUFFER_FISH_HURT: 受伤音效
  * - ENTITY_PUFFER_FISH_STING: 刺击音效
- *
- * 参考 MC 1.16.5 PufferfishEntity
  */
 class PufferfishEntity : public AbstractFishEntity {
 public:
@@ -117,7 +115,6 @@ public:
     /**
      * @brief 获取膨胀尺寸缩放因子
      *
-     * MC 1.16.5: getPuffSize(puffState)
      * - Deflated: 0.5 (碰撞箱 0.35 x 0.35)
      * - SemiPuffed: 0.7 (碰撞箱 0.49 x 0.49)
      * - FullyPuffed: 1.0 (碰撞箱 0.7 x 0.7)
@@ -136,7 +133,7 @@ public:
     /**
      * @brief 是否会使接触者中毒
      *
-     * MC 1.16.5: 在膨胀状态（非 Deflated）时会使接触者中毒。
+     * 在膨胀状态（非 Deflated）时会使接触者中毒。
      */
     [[nodiscard]] bool canPoison() const { return m_puffState != PuffState::Deflated; }
 
@@ -176,7 +173,7 @@ public:
     /**
      * @brief 获取动态尺寸
      *
-     * MC 1.16.5: 根据膨胀状态动态计算碰撞箱尺寸。
+     * 根据膨胀状态动态计算碰撞箱尺寸。
      * 基础尺寸 0.7 x 0.7，乘以 getPuffSize() 缩放因子。
      */
     [[nodiscard]] entity::EntitySize getDimensions(EntityPose pose) const override;
@@ -185,7 +182,6 @@ public:
 
     /**
      * @brief 获取扑腾声音
-     * MC 1.16.5: SoundEvents.ENTITY_PUFFER_FISH_FLOP
      */
     [[nodiscard]] std::optional<ResourceLocation> getFlopSound() const override;
 
@@ -197,13 +193,11 @@ public:
 
     /**
      * @brief 获取死亡声音
-     * MC 1.16.5: SoundEvents.ENTITY_PUFFER_FISH_DEATH
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
     /**
      * @brief 获取受伤声音
-     * MC 1.16.5: SoundEvents.ENTITY_PUFFER_FISH_HURT
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
@@ -228,23 +222,20 @@ private:
 
     /**
      * @brief 膨胀状态 DataParameter（客户端同步）
-     *
-     * MC 1.16.5: PUFF_STATE = EntityDataManager.createKey(PufferfishEntity.class, DataSerializers.VARINT)
      */
     static entity::DataParameter<i32> DATA_PUFF_STATE_PARAM;
 
-    // MC 1.16.5 常量
-    static constexpr i32 PUFF_SEMI_THRESHOLD = 40;      // 膨胀到半膨胀的阈值 (ticks)
+    // 膨胀状态切换阈值（单位：ticks）
+    static constexpr i32 PUFF_SEMI_THRESHOLD = 40;      // 膨胀到半膨胀的阈值
     static constexpr i32 DEFLATE_SEMI_TO_DEFLATE = 100; // 半膨胀到未膨胀的延迟
     static constexpr i32 DEFLATE_FULL_TO_SEMI = 60;     // 完全膨胀到半膨胀的延迟
 
     /**
      * @brief 检测并攻击附近敌人
      *
-     * MC 1.16.5 livingTick() 中的攻击逻辑：
      * 在膨胀状态时检测碰撞箱扩展 0.3 格范围内的 MobEntity。
      */
-    void attackNearbyEnemies();
+    void _attackNearbyEnemies();
 
     // PuffGoal 需要访问私有成员
     friend class entity::ai::goal::PuffGoal;

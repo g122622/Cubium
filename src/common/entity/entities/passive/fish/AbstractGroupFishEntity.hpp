@@ -30,8 +30,8 @@ namespace mc {
 /**
  * @brief 群游鱼类实体中间层
  *
- * 对齐 1.16.5 的 AbstractGroupFishEntity，负责保存群首引用、
- * 群体大小和跟随范围。群游 AI 由 FollowSchoolLeaderGoal 实现。
+ * 负责保存群首引用、群体大小和跟随范围。
+ * 群游 AI 由 FollowSchoolLeaderGoal 实现。
  *
  * AI 目标（继承 AbstractFishEntity 并添加）:
  * - 优先级 5: FollowSchoolLeaderGoal - 跟随群首
@@ -58,7 +58,6 @@ public:
     /**
      * @brief 是否可以随机游泳
      *
-     * MC 1.16.5 AbstractGroupFishEntity.func_212800_dy()
      * 群游鱼类只有在没有群首时才能自主游泳。
      * 这样有群首的鱼会跟随群首而不是随机游动。
      *
@@ -135,7 +134,7 @@ public:
 
         leaveGroup();
         m_groupLeader = &leader;
-        leader.increaseGroupSize();
+        leader._increaseGroupSize();
         return leader;
     }
 
@@ -148,7 +147,7 @@ public:
             return;
         }
 
-        m_groupLeader->decreaseGroupSize();
+        m_groupLeader->_decreaseGroupSize();
         m_groupLeader = nullptr;
     }
 
@@ -168,7 +167,6 @@ public:
     /**
      * @brief 招募无首领鱼加入群体
      *
-     * MC 1.16.5: func_212810_a
      * 遍历无首领鱼列表，将它们加入当前群体（直到群体满员）
      *
      * @param followers 无首领鱼列表（自己不应该在列表中）
@@ -184,8 +182,6 @@ public:
 
     /**
      * @brief 导航到群首位置
-     *
-     * MC 1.16.5: moveToGroupLeader
      */
     void moveToGroupLeader();
 
@@ -201,9 +197,9 @@ protected:
     void registerGoals() override;
 
 private:
-    void increaseGroupSize() { ++m_groupSize; }
+    void _increaseGroupSize() { ++m_groupSize; }
 
-    void decreaseGroupSize()
+    void _decreaseGroupSize()
     {
         if (m_groupSize > 1) {
             --m_groupSize;

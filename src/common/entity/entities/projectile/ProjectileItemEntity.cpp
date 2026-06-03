@@ -22,17 +22,17 @@
  */
 
 #include "ProjectileItemEntity.hpp"
-#include "../../../item/Items.hpp"
-#include "../../../item/potion/PotionUtils.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../core/LivingEntity.hpp"
-#include "../../damage/DamageSource.hpp"
-#include "../effect/EffectEntities.hpp"
-#include "../monster/nether/BlazeEntity.hpp"
-#include "../orb/ExperienceOrbEntity.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/effect/EffectEntities.hpp"
+#include "common/entity/entities/monster/nether/BlazeEntity.hpp"
+#include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/potion/PotionUtils.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include <cmath>
 
 namespace mc {
@@ -151,7 +151,7 @@ void EggEntity::onEntityHit(const RayTraceResult& result)
 void EggEntity::onImpact(const RayTraceResult& /*result*/)
 {
     // 12.5% (1/8) 概率孵化小鸡
-    if (tryHatchChicken()) {
+    if (_tryHatchChicken()) {
         // 孵化成功
         if (m_world) {
             m_world->addParticle(
@@ -171,7 +171,7 @@ void EggEntity::onImpact(const RayTraceResult& /*result*/)
     remove();
 }
 
-bool EggEntity::tryHatchChicken()
+bool EggEntity::_tryHatchChicken()
 {
     // 12.5% (1/8) 概率孵化
     if (m_world) {
@@ -262,8 +262,7 @@ void PotionEntity::onImpact(const RayTraceResult& result)
     // 获取药水效果
     auto effects = potion::PotionUtils::getEffects(m_itemStack);
 
-    // MC 1.16.5: 喷溅药水影响范围为 4.0 格
-    // 滞留药水影响范围稍大，但初始效果范围相同
+    // 喷溅药水影响范围为 4.0 格
     constexpr f32 SPLASH_RADIUS = 4.0f;
 
     if (m_world) {
@@ -333,7 +332,6 @@ void PotionEntity::onImpact(const RayTraceResult& result)
         }
 
         // 如果是滞留型药水，创建区域效果云
-        // MC 1.16.5: PotionEntity.makeAreaOfEffectCloud()
         if (m_lingering) {
             // 创建区域效果云实体
             auto cloud = std::make_unique<AreaEffectCloudEntity>();
@@ -349,18 +347,16 @@ void PotionEntity::onImpact(const RayTraceResult& result)
                 }
             }
 
-            // MC 1.16.5 参数
+            // 设置区域效果云参数
             cloud->setRadius(3.0f);
             cloud->setRadiusOnUse(-0.5f);
             cloud->setWaitTime(10);
-            // radiusPerTick = -radius / duration = -3.0 / 600 = -0.005
             cloud->setRadiusPerTick(-cloud->getRadius() / static_cast<f32>(cloud->getDuration()));
 
-            // 添加药水效果到效果云
-            // MC 1.16.5: 效果持续时间在区域效果云中为原持续时间的 1/4
+            // 添加药水效果到效果云（效果持续时间在区域效果云中为原持续时间的 1/4）
             for (const auto& effect : effects) {
                 entity::effect::EffectInstance cloudEffect(effect.type(),
-                    effect.duration() / 4, // MC 1.16.5: 持续时间除以4
+                    effect.duration() / 4,
                     effect.amplifier(),
                     effect.isAmbient(),
                     effect.isVisible(),

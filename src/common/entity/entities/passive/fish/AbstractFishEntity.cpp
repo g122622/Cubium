@@ -54,15 +54,10 @@ void AbstractFishEntity::tick()
 
 void AbstractFishEntity::registerGoals()
 {
-    // MC 1.16.5 AbstractFishEntity.registerGoals()
-    // 参考: net.minecraft.entity.passive.fish.AbstractFishEntity
-
     // 优先级 0: 恐慌逃跑（受到伤害或着火时）
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::PanicGoal>(this, 1.25));
 
     // 优先级 2: 避开玩家
-    // MC 1.16.5: this.goalSelector.addGoal(2, new AvoidEntityGoal<>(this, PlayerEntity.class, 8.0F, 1.6D, 1.4D,
-    // EntityPredicates.NOT_SPECTATING::test));
     m_goalSelector.addGoal(2,
         std::make_unique<entity::ai::goal::AvoidEntityGoal>(this,
             8.0f, // 避开距离：8格
@@ -84,10 +79,7 @@ void AbstractFishEntity::registerGoals()
                 return true;
             }));
 
-    // 优先级 4: 鱼类游泳目标（继承自 RandomSwimmingGoal，检查 canRandomSwim()）
-    // MC 1.16.5 AbstractFishEntity.SwimGoal 继承自 RandomSwimmingGoal(1.0D, 40)
-    // shouldExecute() 检查 func_212800_dy() && super.shouldExecute()
-    // 对于群游鱼类，只有没有群首时才会自主游泳
+    // 优先级 4: 鱼类游泳目标
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::FishSwimGoal>(this, 1.0, 40));
 }
 
@@ -120,19 +112,12 @@ void AbstractFishEntity::updateFlopping()
 
     ++m_flopTimer;
 
-    // MC 1.16.5: 每 100 tick 执行一次扑腾（跳跃和声音）
-    // 条件：不在水中 && 在地面 && 垂直碰撞
-    // 参考: AbstractFishEntity.livingTick()
+    // 每 100 tick 执行一次扑腾（跳跃和声音）
     if (m_flopTimer >= 100 && onGround()) {
         // 重置计时器
         m_flopTimer = 0;
 
-        // MC 1.16.5: 计算随机跳跃速度
-        // this.setMotion(this.getMotion().add(
-        //     (double)((this.rand.nextFloat() * 2.0F - 1.0F) * 0.05F),  // X: -0.05 ~ +0.05
-        //     (double)0.4F,                                               // Y: 0.4（向上）
-        //     (double)((this.rand.nextFloat() * 2.0F - 1.0F) * 0.05F)    // Z: -0.05 ~ +0.05
-        // ));
+        // 计算随机跳跃速度
         math::Random rng = getRandom();
         f32 dx = (rng.nextFloat() * 2.0f - 1.0f) * 0.05f;
         f32 dy = 0.4f;
@@ -143,8 +128,7 @@ void AbstractFishEntity::updateFlopping()
         // 设置不在地面
         setOnGround(false);
 
-        // MC 1.16.5: 播放扑腾声音
-        // this.playSound(this.getFlopSound(), this.getSoundVolume(), this.getSoundPitch());
+        // 播放扑腾声音
         auto flopSound = getFlopSound();
         if (flopSound.has_value()) {
             playSound(*flopSound, getSoundVolume(), getSoundPitch());

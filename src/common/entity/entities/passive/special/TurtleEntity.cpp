@@ -50,7 +50,6 @@ namespace mc {
 TurtleEntity::TurtleEntity(EntityId id)
     : AnimalEntity(id)
 {
-    // MC 1.16.5: TurtleEntity 构造函数中设置 stepHeight = 1.0F
     // 海龟可以走上1格高的方块
     setStepHeight(1.0f);
 
@@ -74,14 +73,12 @@ void TurtleEntity::setHomePos(const BlockPos& pos)
 
 bool TurtleEntity::isInWater() const
 {
-    // MC 1.16.5: 海龟在水中
     return Entity::isInWater();
 }
 
 bool TurtleEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // MC 1.16.5: 海龟仅接受海草作为繁殖物品
-    // 参考: net.minecraft.entity.passive.TurtleEntity.isBreedingItem()
+    // 海龟仅接受海草作为繁殖物品
     const Item* item = itemStack.getItem();
     if (item == nullptr) return false;
     return item == Items::SEAGRASS;
@@ -89,24 +86,19 @@ bool TurtleEntity::isBreedingItem(const ItemStack& itemStack) const
 
 bool TurtleEntity::canBreed() const
 {
-    // MC 1.16.5: 海龟只有在没有蛋的情况下才能繁殖
-    // 参考: net.minecraft.entity.passive.TurtleEntity.canBreed()
-    // return super.canBreed() && !this.hasEgg();
+    // 海龟只有在没有蛋的情况下才能繁殖
     return AnimalEntity::canBreed() && !m_hasEgg;
 }
 
 std::unique_ptr<AnimalEntity> TurtleEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
-    // MC 1.16.5: TurtleEntity.createChild()
     // 创建小海龟，继承出生地记忆
     auto baby = std::make_unique<TurtleEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);
 
-    // 关键：小海龟继承父母的出生地
-    // 这样小海龟长大后也会回到这里产卵
-    // 参考 MC 1.16.5: TurtleEggBlock 孵化时调用 onInitialSpawn 设置出生地为蛋的位置
+    // 小海龟继承父母的出生地，长大后也会回到这里产卵
     if (hasHomePos()) {
         baby->setHomePos(m_homePos);
     }
@@ -130,16 +122,13 @@ void TurtleEntity::tick()
             m_hasEgg = false;
 
             // 在脚下生成海龟蛋方块
-            layEgg();
+            _layEgg();
         }
     }
 }
 
-void TurtleEntity::layEgg()
+void TurtleEntity::_layEgg()
 {
-    // MC 1.16.5: TurtleEntity.layEgg()
-    // 参考: net.minecraft.entity.passive.TurtleEntity.LayEggGoal.tick()
-
     if (world() == nullptr) {
         return;
     }
@@ -181,8 +170,6 @@ void TurtleEntity::layEgg()
     world()->setBlockState(footPos, &eggState, 3);
 
     // 播放下蛋音效
-    // MC 1.16.5: worldIn.playSound((PlayerEntity)null, blockpos, SoundEvents.ENTITY_TURTLE_LAY_EGG,
-    //          SoundCategory.BLOCKS, 0.3F, 0.9F + worldIn.rand.nextFloat() * 0.2F);
     f32 pitch = 0.9f + getRandom().nextFloat() * 0.2f;
     world()->playSound(SoundEvents::ENTITY_TURTLE_LAY_EGG,
         sound::SoundCategory::Blocks,
@@ -194,9 +181,6 @@ void TurtleEntity::layEgg()
 
 void TurtleEntity::registerGoals()
 {
-    // MC 1.16.5: TurtleEntity.registerGoals()
-    // 参考: net.minecraft.entity.passive.TurtleEntity.registerGoals()
-
     // 优先级 0: 恐慌逃跑（最高优先级）
     // 海龟恐慌时优先寻找水源
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::TurtlePanicGoal>(this, 1.2));
@@ -221,7 +205,6 @@ void TurtleEntity::registerGoals()
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::TurtleTravelGoal>(this, 1.0));
 
     // 优先级 8: 看向玩家
-    // MC 1.16.5: LookAtGoal(this, PlayerEntity.class, 8.0F)
     m_goalSelector.addGoal(
         8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // 只看向玩家
@@ -241,27 +224,19 @@ void TurtleEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 海龟的属性
-    // 参考 MC 1.16.5 海龟属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
-    // MC 1.16.5: 海龟在陆地上移动较慢，通过 travel() 方法实现
+    // 海龟在陆地上移动较慢，通过 travel() 方法实现
     // 陆地速度 = max(AIMoveSpeed / 2.0, 0.06F)，约为水中速度的 24%
 }
 
 void TurtleEntity::travel(const Vector3& travelVec)
 {
-    // MC 1.16.5: TurtleEntity.travel() 参考
-    // 原版在 MoveHelperController.updateSpeed() 中处理速度调整
-    // 我们在 travel() 中根据环境调整速度
-
     // 获取基础移动速度
     f32 baseSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25));
 
     if (isInWater()) {
-        // MC 1.16.5: 水中移动
-        // 参考 TurtleEntity.travel() 和 MoveHelperController.updateSpeed()
-
-        // 计算实际速度
+        // 水中移动
         f32 swimSpeed = baseSpeed;
 
         // 检查是否远离出生地超过 16 格
@@ -278,27 +253,22 @@ void TurtleEntity::travel(const Vector3& travelVec)
 
         // 幼体在水中速度更低
         if (isChild()) {
-            // MC 1.16.5: 幼体速度 = max(speed / 3.0, 0.06F)
+            // 幼体速度 = max(speed / 3.0, 0.06F)
             swimSpeed = std::max(swimSpeed / 3.0f, 0.06f);
         }
 
         setAIMoveSpeed(swimSpeed);
 
-        // MC 1.16.5: 水中给予轻微上升动力
-        // 参考 MoveHelperController.updateSpeed():
-        // this.turtle.setMotion(this.turtle.getMotion().add(0.0D, 0.005D, 0.0D));
+        // 水中给予轻微上升动力
         Vector3 vel = velocity();
         vel.y += 0.005;
         setVelocity(vel);
     } else if (onGround()) {
-        // MC 1.16.5: 陆地移动
-        // 参考 MoveHelperController.updateSpeed():
-        // this.turtle.setAIMoveSpeed(Math.max(f / 2.0F, 0.06F));
+        // 陆地移动
         f32 landSpeed = std::max(baseSpeed * 0.5f, 0.06f);
         setAIMoveSpeed(landSpeed);
     } else {
-        // 空中（跳跃或下落）：保持当前 AI 速度
-        // 不做额外调整
+        // 空中（跳跃或下落）：保持当前 AI 速度，不做额外调整
     }
 
     // 调用父类处理实际移动

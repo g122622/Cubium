@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
 #include "AbstractHorseEntity.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 
 namespace mc {
@@ -46,8 +46,6 @@ class TriggerSkeletonTrapGoal;
  * - 不繁殖：无法繁殖
  * - 陷阱触发：玩家接近时触发陷阱，生成骷髅骑手
  * - 捕获：击败骷髅骑手后可以骑乘
- *
- * 参考 MC 1.16.5 SkeletonHorseEntity
  */
 class SkeletonHorseEntity : public AbstractHorseEntity {
 public:
@@ -128,7 +126,7 @@ public:
     /**
      * @brief 是否为陷阱马
      *
-     * MC 1.16.5: 陷阱马在雷暴时生成，当玩家接近时会触发：
+     * 陷阱马在雷暴时生成，当玩家接近时会触发：
      * - 生成一只骷髅骑手
      * - 变成普通骷髅马
      */
@@ -137,7 +135,7 @@ public:
     /**
      * @brief 设置陷阱马状态
      *
-     * MC 1.16.5: 设置为陷阱马时，需要添加 TriggerSkeletonTrapGoal 到目标选择器
+     * 设置为陷阱马时，需要添加 TriggerSkeletonTrapGoal 到目标选择器
      * 取消陷阱马时，需要移除 TriggerSkeletonTrapGoal
      */
     void setTrap(bool trap);
@@ -154,7 +152,7 @@ public:
     /**
      * @brief 当被闪电击中时调用
      *
-     * MC 1.16.5: 陷阱马被闪电击中时触发陷阱
+     * 陷阱马被闪电击中时触发陷阱
      */
     void onStruckByLightning() override;
 

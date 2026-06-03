@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../core/CreatureEntity.hpp"
-#include "../../../interfaces/IAngerable.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/interfaces/IAngerable.hpp"
 #include <memory>
 
 namespace mc {
@@ -39,8 +39,6 @@ namespace mc {
  * - 保护：保护村民或玩家
  * - 中立：通常对玩家中立
  * - 强壮：高生命值和攻击力
- *
- * 参考 MC 1.16.5 GolemEntity
  *
  * 继承链：Entity -> LivingEntity -> MobEntity -> CreatureEntity -> GolemEntity
  */

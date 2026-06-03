@@ -22,8 +22,8 @@
  */
 
 #include "GolemEntity.hpp"
-#include "entity/attribute/Attributes.hpp"
-#include "world/IWorld.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 

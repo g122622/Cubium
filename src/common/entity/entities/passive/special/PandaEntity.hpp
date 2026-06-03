@@ -23,9 +23,10 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../basic/AnimalEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+
 #include <memory>
 #include <optional>
 #include <random>
@@ -52,8 +53,6 @@ class DamageSource;
  * - 忧愁：忧愁熊猫下雨时吃竹子
  * - 棕色：稀有棕色变种
  * - 虚弱：虚弱熊猫生病且生命值低
- *
- * 参考 MC 1.16.5 PandaEntity
  */
 class PandaEntity : public AnimalEntity {
 public:
@@ -83,8 +82,8 @@ public:
     PandaEntity& operator=(const PandaEntity&) = delete;
 
     // 允许移动
-    PandaEntity(PandaEntity&&) = delete;
-    PandaEntity& operator=(PandaEntity&&) = delete;
+    PandaEntity(PandaEntity&&) noexcept = delete;
+    PandaEntity& operator=(PandaEntity&&) noexcept = delete;
 
     /**
      * @brief 创建熊猫实体
@@ -164,19 +163,16 @@ public:
 
     /**
      * @brief 根据主基因和隐藏基因计算表达的性格
-     * MC 1.16.5: Gene.func_221101_b()
      */
     [[nodiscard]] Personality calculateExpressedPersonality() const;
 
     /**
      * @brief 随机获取主基因或隐藏基因中的一个
-     * MC 1.16.5: getOneOfGenesRandomly()
      */
     [[nodiscard]] u8 getOneOfGenesRandomly(math::Random& rng) const;
 
     /**
      * @brief 从父母遗传基因
-     * MC 1.16.5: getGenesForChildFromParents()
      * @param father 父本
      * @param mother 母本（可能为 nullptr）
      */
@@ -213,7 +209,6 @@ public:
     /**
      * @brief 检查是否可以执行动作
      *
-     * MC 1.16.5: canPerformAction()
      * 检查熊猫是否不在任何阻止动作的状态
      */
     [[nodiscard]] bool canPerformAction() const { return !isSneezing() && !isEating() && !isLying() && !isRolling(); }
@@ -333,10 +328,8 @@ protected:
      * - 生成喷嚏粒子
      * - 让周围成年熊猫跳跃
      * - 1/700 概率掉落粘液球（需 doMobLoot 游戏规则）
-     *
-     * 参考 MC 1.16.5: PandaEntity.onSneeze()
      */
-    void onSneezeComplete();
+    void _onSneezeComplete();
 
     /**
      * @brief 更新打滚物理
@@ -345,10 +338,8 @@ protected:
      * - 第1帧：初始化速度向量
      * - 第7、15、23帧：执行小跳
      * - 其他帧：维持水平移动
-     *
-     * 参考 MC 1.16.5: PandaEntity.func_213535_ey()
      */
-    void updateRoll();
+    void _updateRoll();
 
 private:
     // 性格

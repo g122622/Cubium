@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../basic/AnimalEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
+#include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -53,16 +53,13 @@ class OcelotAttackGoal;
  * - 繁殖：使用生鳕鱼和生鲑鱼
  * - 狩猎：会攻击小鸡和小海龟
  * - 免疫摔落伤害
- *
- * 参考 MC 1.16.5 OcelotEntity
  */
 class OcelotEntity : public AnimalEntity {
 public:
     /**
      * @brief 豹猫类型
      *
-     * 注意：在 MC 1.16.5 中，豹猫只有一种野生皮肤
-     * 这里的类型是为了兼容性保留的
+     * 在当前版本中，豹猫只有一种野生皮肤，其他类型为兼容性保留
      */
     enum class OcelotType : u8 {
         Wild = 0,    // 野生豹猫
@@ -183,25 +180,24 @@ public:
 
     /**
      * @brief 更新 AI 任务（姿态和奔跑状态）
-     * MC 1.16.5: 根据移动速度设置潜行/奔跑姿态
+     * 根据移动速度设置潜行/奔跑姿态
      */
     void updateAITasks() override;
 
     /**
      * @brief 检查是否可以消失
-     * MC 1.16.5: 未信任的豹猫存在超过 2400 tick (2分钟) 后可以消失
+     * 未信任的豹猫存在超过 2400 tick (2分钟) 后可以消失
      */
     [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const override;
 
     /**
      * @brief 摔落伤害处理
-     * MC 1.16.5: 豹猫免疫摔落伤害
+     * 豹猫免疫摔落伤害
      */
     [[nodiscard]] bool canTakeFallDamage() const { return false; }
 
     /**
      * @brief 作为生物攻击目标
-     * MC 1.16.5: 豹猫攻击伤害
      */
     [[nodiscard]] bool attackEntityAsMob(LivingEntity& target) override;
 
@@ -209,7 +205,6 @@ public:
 
     /**
      * @brief 处理玩家交互
-     * MC 1.16.5: OcelotEntity.func_230254_b_()
      * 喂食生鱼建立信任
      */
     [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
@@ -239,7 +234,7 @@ private:
     entity::ai::goal::OcelotAvoidPlayerGoal* m_avoidPlayerGoal = nullptr;
     entity::ai::goal::OcelotTemptGoal* m_temptGoal = nullptr;
 
-    // 常量 - 参考 MC 1.16.5 OcelotEntity
+    // 常量
     static constexpr f64 TEMPT_SPEED = 0.6;       // 诱惑速度
     static constexpr f64 AVOID_FAR_SPEED = 0.8;   // 远距离逃避速度
     static constexpr f64 AVOID_NEAR_SPEED = 1.33; // 近距离逃避速度
@@ -249,15 +244,14 @@ private:
 
     /**
      * @brief 根据信任状态动态调整 AI 目标
-     * MC 1.16.5: func_213529_dV()
      */
-    void setupTrustingAI();
+    void _setupTrustingAI();
 
     /**
      * @brief 生成信任粒子效果
      * @param success 是否成功建立信任
      */
-    void spawnTrustingParticles(bool success);
+    void _spawnTrustingParticles(bool success);
 
     // 内部类声明
     friend class entity::ai::goal::OcelotAvoidPlayerGoal;
@@ -271,8 +265,6 @@ namespace entity::ai::goal {
  * @brief 豹猫躲避玩家目标
  *
  * 未信任时躲避玩家，信任后停止躲避。
- *
- * 参考 MC 1.16.5 OcelotEntity.AvoidEntityGoal
  */
 class OcelotAvoidPlayerGoal : public AvoidEntityGoal {
 public:
@@ -298,8 +290,6 @@ private:
  * @brief 豹猫诱惑目标
  *
  * 被生鱼诱惑，但会对玩家移动敏感（未信任时）。
- *
- * 参考 MC 1.16.5 OcelotEntity.TemptGoal
  */
 class OcelotTemptGoal : public TemptGoal {
 public:
@@ -317,7 +307,7 @@ public:
 protected:
     /**
      * @brief 检查是否被玩家移动吓跑
-     * MC 1.16.5: 只有未信任时才会被移动吓跑
+     * 只有未信任时才会被移动吓跑
      */
     [[nodiscard]] bool isScaredByPlayerMovement() const override;
 
@@ -330,8 +320,6 @@ private:
  *
  * 使豹猫攻击目标实体（小鸡、小海龟）。
  * 与 MeleeAttackGoal 类似，但有特殊的攻击范围和距离检查。
- *
- * 参考 MC 1.16.5 OcelotAttackGoal
  */
 class OcelotAttackGoal : public Goal {
 public:

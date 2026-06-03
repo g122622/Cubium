@@ -34,7 +34,6 @@ namespace mc {
 /**
  * @brief 鹦鹉实体
  *
- * 对齐 1.16.5 `ParrotEntity` 的基础层次。
  * 肩膀停驻语义由 `ShoulderRidingEntity` 承载。
  */
 class ParrotEntity : public ShoulderRidingEntity, public entity::IFlyingAnimal {
@@ -54,8 +53,8 @@ public:
 
     ParrotEntity(const ParrotEntity&) = delete;
     ParrotEntity& operator=(const ParrotEntity&) = delete;
-    ParrotEntity(ParrotEntity&&) = delete;
-    ParrotEntity& operator=(ParrotEntity&&) = delete;
+    ParrotEntity(ParrotEntity&&) noexcept = delete;
+    ParrotEntity& operator=(ParrotEntity&&) noexcept = delete;
 
     /**
      * @brief 创建鹦鹉实体
@@ -149,9 +148,7 @@ public:
     /**
      * @brief 处理玩家交互
      *
-     * MC 1.16.5: ParrotEntity.func_230254_b_()
-     * - 用种子驯服鹦鹉（1/10 概率）
-     * - 已驯服的鹦鹉可以切换坐下状态
+     * 用种子驯服鹦鹉（1/10 概率），已驯服的鹦鹉可以切换坐下状态。
      */
     [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
 

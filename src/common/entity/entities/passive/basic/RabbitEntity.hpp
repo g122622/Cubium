@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "AnimalEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include <memory>
 #include <random>
 
@@ -46,8 +46,6 @@ class ItemStack;
  * - 幼体：小兔子
  * - 杀手兔：敌对变种（彩蛋）
  * - 吐司兔：特殊命名彩蛋
- *
- * 参考 MC 1.16.5 RabbitEntity
  */
 class RabbitEntity : public AnimalEntity {
 public:

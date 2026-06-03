@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../resource/ResourceLocation.hpp"
 #include "AbstractHorseEntity.hpp"
 #include "CoatColors.hpp"
 #include "CoatTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <optional>
 
@@ -40,7 +40,6 @@ class DamageSource;
 /**
  * @brief 马实体
  *
- * 对齐 1.16.5 `HorseEntity` 的基础外观与骑乘语义。
  * 花色与花纹由独立的 `CoatColors` / `CoatTypes` 支撑类型承载。
  */
 class HorseEntity : public AbstractHorseEntity {
@@ -107,8 +106,7 @@ public:
     /**
      * @brief 马使用金苹果或金胡萝卜繁殖
      *
-     * MC 1.16.5: HorseEntity.isBreedingItem() 使用基类的食物列表，
-     * 但只有金胡萝卜和金苹果可以触发繁殖（在 handleEating 中处理）。
+     * 使用基类的食物列表，但只有金胡萝卜和金苹果可以触发繁殖（在 handleEating 中处理）。
      * 这里返回 isFoodItem() 以支持 TemptGoal AI 目标。
      */
     [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override;
@@ -116,7 +114,6 @@ public:
     /**
      * @brief 检查是否可以与另一动物交配
      *
-     * MC 1.16.5: HorseEntity.canMateWith()
      * 马可以与马或驴交配。
      */
     [[nodiscard]] bool canMateWith(const AnimalEntity& other) const override;
@@ -124,7 +121,6 @@ public:
     /**
      * @brief 生成幼体
      *
-     * MC 1.16.5: HorseEntity.func_241840_a()
      * 马 + 马 = 马，马 + 驴 = 骡。
      * 后代会遗传父母的属性（速度、跳跃力、生命值）和外观（毛色、花纹）。
      */
@@ -137,16 +133,13 @@ public:
 
     /**
      * @brief 马支持马铠槽位
-     *
-     * MC 1.16.5: HorseEntity.func_230276_fq_() 返回 true
      */
     [[nodiscard]] bool hasArmorSlot() const override { return true; }
 
     /**
      * @brief 检查物品是否是有效的马铠
      *
-     * MC 1.16.5: HorseEntity.isArmor(ItemStack)
-     * 检查物品是否为 HorseArmorItem 实例
+     * 检查物品是否为 HorseArmorItem 实例。
      *
      * @param item 要检查的物品
      * @return 如果是有效的马铠返回 true
@@ -178,8 +171,7 @@ public:
     /**
      * @brief 获取愤怒音效
      *
-     * MC 1.16.5: HorseEntity.getAngrySound()
-     * 返回马的愤怒音效，扬蹄时播放
+     * 返回马的愤怒音效，扬蹄时播放。
      */
     [[nodiscard]] std::optional<ResourceLocation> getAngrySound() const override;
 

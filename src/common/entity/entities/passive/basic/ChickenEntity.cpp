@@ -22,22 +22,24 @@
  */
 
 #include "ChickenEntity.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/block/Block.hpp"
-#include "../../../../world/block/BlockPos.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp" // 包含 LookRandomlyGoal
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../item/ItemEntity.hpp"
+
+#include "common/entity/ai/goal/goals/BreedGoal.hpp"
+#include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/LookRandomlyGoal.hpp"
+#include "common/entity/ai/goal/goals/PanicGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 #include <memory>
 
@@ -64,37 +66,32 @@ ChickenEntity::ChickenEntity(EntityId id)
 void ChickenEntity::resetEggTimer()
 {
     math::Random rng(ticksExisted());
-    // MC 1.16.5: 6000-12000 ticks = 5-10 分钟
+    // 下蛋时间：6000-12000 ticks = 5-10 分钟
     m_eggTimer = EGG_TIME_MIN + rng.nextInt(EGG_TIME_MAX - EGG_TIME_MIN);
 }
 
 std::optional<ResourceLocation> ChickenEntity::getAmbientSound() const
 {
-    // MC 1.16.5: entity.chicken.ambient
     return makeSoundEventId("ambient");
 }
 
 std::optional<ResourceLocation> ChickenEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: entity.chicken.hurt
     return makeSoundEventId("hurt");
 }
 
 std::optional<ResourceLocation> ChickenEntity::getDeathSound() const
 {
-    // MC 1.16.5: entity.chicken.death
     return makeSoundEventId("death");
 }
 
 std::optional<ResourceLocation> ChickenEntity::getStepSound() const
 {
-    // MC 1.16.5: entity.chicken.step
     return makeSoundEventId("step");
 }
 
 void ChickenEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/)
 {
-    // MC 1.16.5: ChickenEntity.playStepSound()
     // 鸡播放固定的脚步声，忽略脚下方块类型
     auto sound = getStepSound();
     if (sound) {
@@ -104,7 +101,7 @@ void ChickenEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*b
 
 bool ChickenEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // MC 1.16.5: 鸡用种子繁殖
+    // 鸡用种子繁殖
     const Item* item = itemStack.getItem();
     if (item == nullptr) return false;
     return item == Items::WHEAT_SEEDS || item == Items::PUMPKIN_SEEDS || item == Items::MELON_SEEDS ||
@@ -135,7 +132,6 @@ void ChickenEntity::registerGoals()
     // 调用父类方法（AgeableEntity 会调用 AnimalEntity，现在 AnimalEntity 不注册任何目标）
     AgeableEntity::registerGoals();
 
-    // MC 1.16.5 ChickenEntity.registerGoals()
     // 注意：AnimalEntity 基类不注册任何 goal，所以这里需要注册完整的 AI 目标列表
 
     // 优先级 0: 游泳（最高优先级）
@@ -178,7 +174,7 @@ void ChickenEntity::registerAttributes()
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
-    // MC 1.16.5 鸡的属性
+    // 鸡的属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 4.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
 }
@@ -191,7 +187,6 @@ void ChickenEntity::tick()
     AnimalEntity::tick();
 
     // 翅膀动画
-    // MC 1.16.5: 翅膀拍打动画
     constexpr f32 WING_FLAP_SPEED = 1.0f;
     constexpr f32 WING_DAMPING = 0.9f;
     m_wingRotDelta += WING_FLAP_SPEED;
@@ -203,7 +198,7 @@ void ChickenEntity::tick()
         --m_eggTimer;
 
         if (m_eggTimer <= 0 && world() != nullptr) {
-            // MC 1.16.5: 下蛋
+            // 下蛋
             auto egg = std::make_unique<ItemEntity>(0, ItemStack(Items::EGG, 1), x(), y() + 0.2f, z());
 
             // 播放下蛋音效

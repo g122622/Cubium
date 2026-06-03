@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../interfaces/IRangedAttackMob.hpp"
-#include "../../../interfaces/IShearable.hpp"
-#include "GolemEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/passive/golem/GolemEntity.hpp"
+#include "common/entity/interfaces/IRangedAttackMob.hpp"
+#include "common/entity/interfaces/IShearable.hpp"
 #include <memory>
 
 namespace mc {
@@ -45,8 +45,6 @@ class SnowballEntity;
  * - 融化：在高温生物群系（温度 > 1.0）或水中会融化（受到伤害）
  * - 掉落：雪球（0-15个）
  * - 南瓜头：可以用剪刀取下南瓜
- *
- * 参考 MC 1.16.5 SnowGolemEntity
  */
 class SnowGolemEntity : public GolemEntity, public entity::IShearable, public entity::IRangedAttackMob {
 public:
@@ -111,7 +109,6 @@ public:
 
     /**
      * @brief 雪傀儡对水敏感
-     * MC 1.16.5: isWaterSensitive() -> true
      */
     [[nodiscard]] bool isWaterSensitive() const { return true; }
 
@@ -151,19 +148,16 @@ public:
 
     /**
      * @brief 获取环境音效
-     * MC 1.16.5: entity.snow_golem.ambient
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
     /**
      * @brief 获取受伤声音
-     * MC 1.16.5: entity.snow_golem.hurt
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     /**
      * @brief 获取死亡声音
-     * MC 1.16.5: entity.snow_golem.death
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
@@ -183,15 +177,13 @@ private:
 
     /**
      * @brief 检查是否可以放置雪层
-     * MC 1.16.5: 用于 livingTick 中的雪层放置逻辑
      */
-    [[nodiscard]] bool canPlaceSnow() const;
+    [[nodiscard]] bool _canPlaceSnow() const;
 
     /**
      * @brief 在脚下放置雪层
-     * MC 1.16.5: 在 4 个位置尝试放置雪
      */
-    void placeSnowLayer();
+    void _placeSnowLayer();
 
 private:
     // 南瓜头状态
@@ -200,13 +192,13 @@ private:
     // 融化计时器
     i32 m_meltTimer = 0;
 
-    // 常量 - MC 1.16.5 数值
-    static constexpr i32 ATTACK_COOLDOWN = 20;        // 雪球攻击冷却（1秒）
+    // 常量
+    static constexpr i32 ATTACK_COOLDOWN = 20;        // 雪球攻击冷却（ticks）
     static constexpr f32 SNOWBALL_VELOCITY = 1.6f;    // 雪球速度
     static constexpr f32 SNOWBALL_INACCURACY = 12.0f; // 雪球散布
     static constexpr f32 MELT_TEMPERATURE = 1.0f;     // 融化温度阈值
     static constexpr f32 SNOW_TEMPERATURE = 0.8f;     // 放置雪的温度阈值
-    static constexpr i32 MELT_DAMAGE_INTERVAL = 20;   // 融化伤害间隔（1秒）
+    static constexpr i32 MELT_DAMAGE_INTERVAL = 20;   // 融化伤害间隔（ticks）
     static constexpr f32 MELT_DAMAGE = 1.0f;          // 融化伤害量
 };
 

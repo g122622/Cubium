@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../item/core/ItemStack.hpp"
-#include "ThrowableEntity.hpp"
+#include "common/entity/entities/projectile/ThrowableEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include <memory>
 
 namespace mc {
@@ -35,12 +35,10 @@ namespace entity {
  *
  * 用于雪球、鸡蛋、末影珍珠等可投掷物品。
  * 子类只需要实现 getDefaultItem() 和 onImpact()。
- *
- * 参考 MC 1.16.5 ProjectileItemEntity
  */
 class ProjectileItemEntity : public ThrowableEntity {
 public:
-    ~ProjectileItemEntity() override = default;
+    ~ProjectileItemEntity() noexcept override = default;
 
     // ========== Entity 接口重写 ==========
 
@@ -80,8 +78,6 @@ protected:
  * @brief 雪球实体
  *
  * 雪球对烈焰人造成3点伤害，对其他实体无伤害。
- *
- * 参考 MC 1.16.5 SnowballEntity
  */
 class SnowballEntity : public ProjectileItemEntity {
 public:
@@ -106,8 +102,6 @@ protected:
  * @brief 鸡蛋实体
  *
  * 鸡蛋有概率孵化出小鸡。
- *
- * 参考 MC 1.16.5 EggEntity
  */
 class EggEntity : public ProjectileItemEntity {
 public:
@@ -132,15 +126,13 @@ private:
      * @brief 尝试孵化小鸡
      * @return 是否成功孵化
      */
-    bool tryHatchChicken();
+    bool _tryHatchChicken();
 };
 
 /**
  * @brief 末影珍珠实体
  *
  * 末影珍珠会将玩家传送至落点。
- *
- * 参考 MC 1.16.5 EnderPearlEntity
  */
 class EnderPearlEntity : public ProjectileItemEntity {
 public:
@@ -165,8 +157,6 @@ protected:
  * @brief 药水实体
  *
  * 投掷型药水和滞留型药水。
- *
- * 参考 MC 1.16.5 PotionEntity
  */
 class PotionEntity : public ProjectileItemEntity {
 public:
@@ -203,8 +193,6 @@ private:
  * @brief 经验瓶实体
  *
  * 投掷后破裂并释放经验球。
- *
- * 参考 MC 1.16.5 ExperienceBottleEntity
  */
 class ExperienceBottleEntity : public ProjectileItemEntity {
 public:

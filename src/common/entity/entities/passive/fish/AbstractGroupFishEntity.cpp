@@ -22,9 +22,10 @@
  */
 
 #include "AbstractGroupFishEntity.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/movement/FollowSchoolLeaderGoal.hpp"
-#include "../../../ai/pathfinding/PathNavigator.hpp"
+
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/movement/FollowSchoolLeaderGoal.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
 
 namespace mc {
 
@@ -34,14 +35,13 @@ void AbstractGroupFishEntity::registerGoals()
     // 父类注册了：PanicGoal(0), AvoidEntityGoal(2), RandomSwimmingGoal(4)
     AbstractFishEntity::registerGoals();
 
-    // MC 1.16.5 AbstractGroupFishEntity.registerGoals():
     // 优先级 5: FollowSchoolLeaderGoal - 跟随群首
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::FollowSchoolLeaderGoal>(this));
 }
 
 void AbstractGroupFishEntity::moveToGroupLeader()
 {
-    // MC 1.16.5: 如果已经有群首，导航到群首位置
+    // 如果已经有群首，导航到群首位置
     if (hasGroupLeader() && navigator() != nullptr) {
         static_cast<void>(navigator()->moveTo(m_groupLeader->x(),
             m_groupLeader->y(),

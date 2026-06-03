@@ -29,8 +29,6 @@ namespace mc {
 
 /**
  * @brief 玩家皮肤可切换部件
- *
- * 对齐 MC 1.16.5 `net.minecraft.entity.player.PlayerModelPart`。
  */
 enum class PlayerModelPart : u8 {
     Cape = 0,

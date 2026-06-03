@@ -36,8 +36,7 @@ class MuleEntity;
 /**
  * @brief 驴实体
  *
- * 对齐 1.16.5 `DonkeyEntity`。驴属于可装备箱子的马类，
- * 和骡共享 `AbstractChestedHorseEntity` 层。
+ * 驴属于可装备箱子的马类，和骡共享 AbstractChestedHorseEntity 层。
  */
 class DonkeyEntity : public AbstractChestedHorseEntity {
 public:
@@ -61,15 +60,13 @@ public:
     /**
      * @brief 检查物品是否可用于繁殖
      *
-     * MC 1.16.5: DonkeyEntity.isBreedingItem() 使用基类的食物列表
-     * 只有金苹果和金胡萝卜可以触发繁殖（在 handleEating 中处理）。
+     * 使用基类的食物列表，只有金苹果和金胡萝卜可以触发繁殖。
      */
     [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override;
 
     /**
      * @brief 检查是否可以与另一动物交配
      *
-     * MC 1.16.5: DonkeyEntity.canMateWith()
      * 驴可以与驴或马交配。
      */
     [[nodiscard]] bool canMateWith(const AnimalEntity& other) const override;
@@ -77,7 +74,6 @@ public:
     /**
      * @brief 生成幼体
      *
-     * MC 1.16.5: DonkeyEntity.func_241840_a()
      * 驴 + 驴 = 驴，驴 + 马 = 骡。
      */
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;

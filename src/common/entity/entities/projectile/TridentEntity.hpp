@@ -106,7 +106,6 @@ public:
 
     /**
      * @brief 获取水中阻力
-     * 参考 MC 1.16.5: 三叉戟水中阻力为 0.99
      */
     [[nodiscard]] f32 getWaterDrag() const override;
 
@@ -126,7 +125,6 @@ protected:
 
     /**
      * @brief 三叉戟在方块中的tick处理
-     * 参考 MC 1.16.5: 如果有忠诚附魔，不超时移除
      */
     void tickInGroundTrident();
 
@@ -134,13 +132,12 @@ private:
     /**
      * @brief 处理返回逻辑
      */
-    void tickReturning();
+    void _tickReturning();
 
     /**
      * @brief 检查是否应该返回到射手
-     * 参考 MC 1.16.5 TridentEntity.shouldReturnToThrower()
      */
-    bool shouldReturnToThrower();
+    bool _shouldReturnToThrower();
 
     ItemStack m_tridentStack; // 三叉戟物品
     bool m_hitBlock = false;  // 是否击中方块

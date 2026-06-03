@@ -32,8 +32,7 @@ namespace mc {
 /**
  * @brief 骡实体
  *
- * 对齐 1.16.5 `MuleEntity`。骡和驴共用箱子马类中间层，
- * 但保留自身"不育"的后代语义。
+ * 骡和驴共用箱子马类中间层，但保留自身"不育"的后代语义。
  */
 class MuleEntity : public AbstractChestedHorseEntity {
 public:

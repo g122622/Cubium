@@ -30,7 +30,6 @@ namespace mc {
 /**
  * @brief 可装备箱子的马类中间层
  *
- * 对齐 1.16.5 `AbstractChestedHorseEntity` 的层次职责，
  * 负责承载驴、骡和羊驼共享的箱子状态与基础库存规模计算。
  */
 class AbstractChestedHorseEntity : public AbstractHorseEntity {
@@ -70,7 +69,7 @@ public:
     /**
      * @brief 计算库存大小
      *
-     * 对齐 vanilla：未装备箱子时回落到 `AbstractHorseEntity` 的基础槽位，
+     * 未装备箱子时回落到 AbstractHorseEntity 的基础槽位，
      * 装备箱子后为 2 + 3 * 列数。
      */
     [[nodiscard]] i32 getInventorySize() const override

@@ -22,25 +22,26 @@
  */
 
 #include "RabbitEntity.hpp"
-#include "../../../../core/Types.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../item/items/block/BlockItemRegistry.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/block/VanillaBlocks.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp" // 包含 LookRandomlyGoal
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../entities/monster/MonsterEntity.hpp"
-#include "../../player/Player.hpp"
+
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
+#include "common/entity/ai/goal/goals/BreedGoal.hpp"
+#include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/PanicGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/passive/basic/player/Player.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc {
 
@@ -78,7 +79,6 @@ void RabbitEntity::setRandomRabbitType()
 
 bool RabbitEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // MC 1.16.5: RabbitEntity.isBreedingItem()
     // 兔子用胡萝卜、金胡萝卜、蒲公英繁殖
     const Item* item = itemStack.getItem();
     if (item == nullptr) return false;
@@ -100,19 +100,18 @@ bool RabbitEntity::isBreedingItem(const ItemStack& itemStack) const
 
 std::unique_ptr<AnimalEntity> RabbitEntity::spawnBaby(AnimalEntity& partner)
 {
-    // MC 1.16.5: RabbitEntity.createChild()
     auto baby = std::make_unique<RabbitEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);
 
-    // MC 1.16.5: 类型继承逻辑
-    // 5% 概率随机生成类型（根据群系），95% 从父母继承
+    // 类型继承逻辑：5% 概率随机生成类型（根据群系），95% 从父母继承
     math::Random rng = getRandom();
     RabbitType babyType;
 
     if (rng.nextInt(20) == 0) {
-        // 5% 概率：随机类型（实际应该根据群系决定，这里简化处理）
+        // 5% 概率：随机类型
+        // TODO: 应该根据群系决定兔子类型，而非完全随机
         baby->setRandomRabbitType();
         babyType = baby->getRabbitType();
     } else {
@@ -177,12 +176,11 @@ void RabbitEntity::playAttackSound(LivingEntity& /*target*/)
 
 void RabbitEntity::registerGoals()
 {
-    // 调用父类方法（AgeableEntity 会调用 AnimalEntity，现在 AnimalEntity 不注册任何目标）
+    // 调用父类方法
     AgeableEntity::registerGoals();
 
-    // MC 1.16.5 RabbitEntity.registerGoals()
-    // 注意：AnimalEntity 基类不注册任何 goal，所以这里需要注册完整的 AI 目标列表
     // 兔子有特殊的 AI 行为（逃跑更快）
+    // 注意：AnimalEntity 基类不注册任何 goal，所以这里需要注册完整的 AI 目标列表
 
     // 优先级 0: 游泳
     m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
@@ -190,8 +188,7 @@ void RabbitEntity::registerGoals()
     // 优先级 1: 恐慌逃跑（兔子逃跑速度更快）
     m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 2.2));
 
-    // MC 1.16.5: 兔子逃离玩家、狼和怪物（杀手兔不逃离）
-    // 优先级 2: 逃离玩家（8格，速度2.2）
+    // 优先级 2: 逃离玩家（8格，速度2.2）- 杀手兔不逃离
     m_goalSelector.addGoal(2,
         new entity::ai::goal::AvoidEntityGoal(this,
             8.0f, // avoidDistance - 检测玩家的距离
@@ -204,8 +201,7 @@ void RabbitEntity::registerGoals()
                 return dynamic_cast<const Player*>(entity) != nullptr;
             }));
 
-    // 优先级 2: 逃离狼（10格，速度2.2）
-    // 注意：狼是 WolfEntity，需要检查 typeId() == EntityTypeIdNumber::WOLF
+    // 优先级 2: 逃离狼（10格，速度2.2）- 杀手兔不逃离
     m_goalSelector.addGoal(2,
         new entity::ai::goal::AvoidEntityGoal(this,
             10.0f, // avoidDistance - 检测狼的距离
@@ -216,7 +212,7 @@ void RabbitEntity::registerGoals()
                 return entity->typeId() == entity::EntityTypeIdNumber::WOLF;
             }));
 
-    // 优先级 2: 逃离怪物（4格，速度2.2）
+    // 优先级 2: 逃离怪物（4格，速度2.2）- 杀手兔不逃离
     m_goalSelector.addGoal(2,
         new entity::ai::goal::AvoidEntityGoal(this,
             4.0f, // avoidDistance - 检测怪物的距离
@@ -224,8 +220,7 @@ void RabbitEntity::registerGoals()
             2.2,  // nearSpeed
             [this](const LivingEntity* entity) -> bool {
                 if (isKillerRabbit()) return false;
-                // 检查是否是敌对生物（MonsterEntity 的子类）
-                // MC 1.16.5: MonsterEntity.class
+                // 检查是否是敌对生物
                 return dynamic_cast<const MonsterEntity*>(entity) != nullptr;
             }));
 
@@ -233,8 +228,6 @@ void RabbitEntity::registerGoals()
     m_goalSelector.addGoal(3, new entity::ai::goal::BreedGoal(this, 1.0));
 
     // 优先级 4: 食物诱惑（胡萝卜、金胡萝卜、蒲公英）
-    // MC 1.16.5: TemptGoal 使用 TemptGoal(this, 1.0D, Ingredient.fromItems(Items.CARROT, Items.GOLDEN_CARROT,
-    // Blocks.DANDELION), false)
     m_goalSelector.addGoal(4,
         std::make_unique<::mc::entity::ai::goal::TemptGoal>(
             this,
@@ -277,7 +270,6 @@ void RabbitEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 兔子的属性
-    // 参考 MC 1.16.5 兔子属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
 }

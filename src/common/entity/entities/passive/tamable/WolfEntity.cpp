@@ -22,32 +22,34 @@
  */
 
 #include "WolfEntity.hpp"
-#include "../../../../core/Types.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../ai/goal/goals/interact/TameableGoals.hpp"
-#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../player/Player.hpp"
-#include "../basic/RabbitEntity.hpp"
-#include "../basic/SheepEntity.hpp"
-#include "../horse/LlamaEntity.hpp"
-#include "../special/FoxEntity.hpp"
-#include "../special/TurtleEntity.hpp"
+
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
+#include "common/entity/ai/goal/goals/BreedGoal.hpp"
+#include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/PanicGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/entity/ai/goal/goals/interact/TameableGoals.hpp"
+#include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/passive/basic/RabbitEntity.hpp"
+#include "common/entity/entities/passive/basic/SheepEntity.hpp"
+#include "common/entity/entities/passive/horse/LlamaEntity.hpp"
+#include "common/entity/entities/passive/special/FoxEntity.hpp"
+#include "common/entity/entities/passive/special/TurtleEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/world/IWorld.hpp"
+
 #include <cmath>
 
 namespace mc {
@@ -78,7 +80,7 @@ bool WolfEntity::isTameItem(const ItemStack& itemStack) const
 
 bool WolfEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // 驯服后用肉类繁殖（MC 1.16.5: item.isFood() && item.getFood().isMeat()）
+    // 驯服后用肉类繁殖
     const Item* item = itemStack.getItem();
     if (item == nullptr) return false;
     return item == Items::PORKCHOP || item == Items::COOKED_PORKCHOP || item == Items::BEEF ||
@@ -199,7 +201,6 @@ void WolfEntity::playShakingSound()
 f32 WolfEntity::getTailAngle() const
 {
     // 根据生命值计算尾巴角度
-    // 参考 MC 1.16.5 WolfEntity.getTailAngle()
     if (isAngry()) {
         // 愤怒时尾巴竖起
         return 1.539f; // 约88度
@@ -230,7 +231,6 @@ void WolfEntity::registerGoals()
     m_goalSelector.addGoal(1, new entity::ai::goal::SitGoal(this));
 
     // 优先级 3: 未驯服时避开羊驼
-    // MC 1.16.5: new WolfEntity.AvoidEntityGoal(this, LlamaEntity.class, 24.0F, 1.5D, 1.5D)
     // 羊驼有强度属性，强度高的羊驼可以吓跑狼
     m_goalSelector.addGoal(3,
         std::make_unique<entity::ai::goal::AvoidEntityGoal>(
@@ -251,46 +251,44 @@ void WolfEntity::registerGoals()
                 return llama->getStrength() >= rng.nextInt(5);
             }));
 
-    // 优先级 4: 跳跃攻击 - MC 1.16.5 优先级为 4
+    // 优先级 4: 跳跃攻击
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::LeapAtTargetGoal>(this, 0.4f));
 
-    // 优先级 5: 近战攻击 - MC 1.16.5 优先级为 5
+    // 优先级 5: 近战攻击
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.0, true));
 
-    // 优先级 6: 跟随主人（驯服后）- MC 1.16.5 优先级为 6
+    // 优先级 6: 跟随主人（驯服后）
     m_goalSelector.addGoal(6, new entity::ai::goal::FollowOwnerGoal(this, 1.0, 3.0f, 10.0f, 32.0f));
 
     // 优先级 9: 乞求目标（看向手持骨头或肉类的玩家）
-    // 参考 MC 1.16.5 WolfEntity.registerGoals() - BegGoal 优先级为 9
-    // 注意：狼使用 BegGoal（乞求，只看不动），而非 TemptGoal（诱惑，会跟随玩家）
+    // 狼使用 BegGoal（乞求，只看不动），而非 TemptGoal（诱惑，会跟随玩家）
     // 这是因为未驯服的狼不会主动接近玩家，驯服后的狼已跟随主人，不需要 TemptGoal
     // [COMPLETED] 2026-05-15 - 骨头乞求行为已通过 BegGoal 实现
     m_goalSelector.addGoal(9, new entity::ai::goal::BegGoal(this, 8.0f));
 
     // ========================================================================
     // 目标选择器 (targetSelector)
-    // 参考 MC 1.16.5 WolfEntity.registerGoals() 目标选择器
     // ========================================================================
 
-    // 优先级 1: 主人被攻击时反击 - MC 1.16.5 优先级为 1
+    // 优先级 1: 主人被攻击时反击
     // 当主人被攻击时，狼会攻击攻击者
     m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::OwnerHurtByTargetGoal>(this));
 
-    // 优先级 2: 攻击主人正在攻击的目标 - MC 1.16.5 优先级为 2
+    // 优先级 2: 攻击主人正在攻击的目标
     // 当主人攻击某实体时，狼会协助攻击
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::OwnerHurtTargetGoal>(this));
 
-    // 优先级 3: 被攻击后反击，并呼叫同伴 - MC 1.16.5 优先级为 3
+    // 优先级 3: 被攻击后反击，并呼叫同伴
     // setCallsForHelp = true，召唤附近的狼一起攻击
     m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
 
-    // 优先级 4: 愤怒时攻击玩家 - MC 1.16.5 优先级为 4
+    // 优先级 4: 愤怒时攻击玩家
     // 需要配合 IAngerable 接口，当玩家攻击狼后，狼会记住玩家并攻击
     // 当前简化实现：不注册此目标，因为狼默认不会主动攻击玩家
     // m_targetSelector.addGoal(4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
     //     this, true, 10, /* angerPredicate */));
 
-    // 优先级 5: 未驯服时攻击羊、兔子、狐狸 - MC 1.16.5 优先级为 5
+    // 优先级 5: 未驯服时攻击羊、兔子、狐狸
     // TARGET_ENTITIES 谓词：羊、兔子、狐狸
     m_targetSelector.addGoal(5,
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
@@ -304,7 +302,7 @@ void WolfEntity::registerGoals()
                     type == entity::EntityTypeIdNumber::FOX;
             }));
 
-    // 优先级 6: 未驯服时攻击幼海龟（不在水中） - MC 1.16.5 优先级为 6
+    // 优先级 6: 未驯服时攻击幼海龟（不在水中）
     // 使用 NonTamedTargetGoal，只在未驯服时执行
     // TurtleEntity.TARGET_DRY_BABY 谓词：幼体且不在水中
     m_targetSelector.addGoal(6,
@@ -317,7 +315,7 @@ void WolfEntity::registerGoals()
                 return turtle->isChild() && !turtle->isInWater();
             }));
 
-    // 优先级 7: 攻击骷髅类怪物 - MC 1.16.5 优先级为 7
+    // 优先级 7: 攻击骷髅类怪物
     // 无论是否驯服，狼都会攻击骷髅类怪物
     m_targetSelector.addGoal(7,
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
@@ -341,19 +339,17 @@ void WolfEntity::registerAttributes()
     TameableEntity::registerAttributes();
 
     // 狼的属性
-    // 参考 MC 1.16.5 狼属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0); // 驯服前8血
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0); // 2点攻击力
 
-    // 驯服后会增加到20血，这里由 onTamed 处理
+    // 驯服后会增加到20血，由 onTamed 处理
 }
 
 void WolfEntity::onTamed(bool tamed)
 {
     if (tamed) {
-        // 驯服后增加生命值上限
-        // 参考 MC 1.16.5 狼驯服后从8血变为20血
+        // 驯服后增加生命值上限（从8血变为20血）
         m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
         setHealth(20.0f);
 

@@ -48,8 +48,6 @@ class ItemStack;
  * - 冷却：离开熔岩后会发抖，需要回到熔岩
  * - 繁殖：使用诡异菌繁殖
  * - 乘骑：小炽足兽会骑在成年炽足兽头上
- *
- * 参考 MC 1.16.5 StriderEntity
  */
 class StriderEntity : public AnimalEntity, public entity::IRideable, public entity::IEquipable {
 public:
@@ -83,7 +81,6 @@ public:
 
     /**
      * @brief 是否在熔岩中
-     * MC 1.16.5: 重写以支持站在熔岩表面
      */
     [[nodiscard]] bool isInLava() const override;
 
@@ -141,19 +138,16 @@ public:
 
     /**
      * @brief 是否可以在水中骑乘
-     * MC 1.16.5: 炽足兽不能在水中骑乘（但可以在熔岩中）
      */
     [[nodiscard]] bool canBeRiddenInWater() const override;
 
     /**
      * @brief 是否可以被控制方向
-     * MC 1.16.5: 需要玩家手持诡异菌钓竿
      */
     [[nodiscard]] bool canBeSteered() const override;
 
     /**
      * @brief 执行骑乘移动逻辑
-     * MC 1.16.5: StriderEntity.travelTowards()
      */
     void travelTowards(const Vector3& travelVec) override;
 
@@ -161,7 +155,6 @@ public:
 
     /**
      * @brief 处理移动
-     * MC 1.16.5: StriderEntity.travel()
      * 重写以使用 IRideable::ride()
      */
     void travel(const Vector3& travelVec) override;
@@ -210,24 +203,18 @@ public:
 
     /**
      * @brief 获取乘客骑乘偏移
-     * MC 1.16.5: StriderEntity.getMountedYOffset()
      *
-     * 参考: net.minecraft.entity.passive.StriderEntity.getMountedYOffset()
-     * float f = Math.min(0.25F, this.limbSwingAmount);
-     * float f1 = this.limbSwing;
-     * return (double)this.getHeight() - 0.19D + (double)(0.12F * MathHelper.cos(f1 * 1.5F) * 2.0F * f);
-     *
-     * 这个方法产生一个基于步态动画的上下波动效果，模拟炽足兽行走时的起伏。
+     * 产生一个基于步态动画的上下波动效果，模拟炽足兽行走时的起伏。
      */
     [[nodiscard]] f64 getMountedYOffset() const override
     {
-        // MC 1.16.5: 计算步态动画参数
+        // 计算步态动画参数
         // f = min(0.25, limbSwingAmount) - 限制最大波动幅度
         // f1 = limbSwing - 步态周期计数器
         f32 limbSwingAmountClamped = std::min(0.25f, limbSwingAmount());
         f32 limbSwingValue = limbSwing();
 
-        // MC 1.16.5: 基础高度偏移 = height - 0.19
+        // 基础高度偏移 = height - 0.19
         // 加上动态波动 = 0.12 * cos(limbSwing * 1.5) * 2.0 * limbSwingAmountClamped
         // 这产生一个基于步态的上下波动效果
         return static_cast<f64>(height()) - 0.19 +
@@ -240,7 +227,6 @@ public:
 
     /**
      * @brief 死亡时掉落鞍
-     * MC 1.16.5 StriderEntity.dropInventory()
      */
     void die(DamageSource& cause) override;
 
@@ -248,7 +234,7 @@ public:
 
     /**
      * @brief 获取装备槽数量
-     * MC 1.16.5: 炽足兽只有一个鞍槽
+     * 炽足兽只有一个鞍槽
      */
     [[nodiscard]] i32 getEquipmentSlotCount() const override { return 1; }
 
@@ -266,7 +252,7 @@ public:
 
     /**
      * @brief 检查是否可以装备指定物品
-     * MC 1.16.5: 炽足兽只能装备鞍
+     * 炽足兽只能装备鞍
      */
     [[nodiscard]] bool canEquip(const ItemStack& item, i32 slot) const override;
 
@@ -277,19 +263,19 @@ protected:
     // ========== 属性注册 ==========
     void registerAttributes() override;
 
+private:
     // ========== 内部方法 ==========
 
     /**
      * @brief 更新寒冷状态
-     * MC 1.16.5: 检查是否在温暖环境中
+     * 检查是否在温暖环境中
      */
-    void updateColdStatus();
+    void _updateColdStatus();
 
     /**
      * @brief 更新熔岩行走物理
-     * MC 1.16.5: func_234318_eL_()
      */
-    void updateLavaWalking();
+    void _updateLavaWalking();
 
 private:
     // 熔岩状态
@@ -300,7 +286,7 @@ private:
     bool m_saddled = false;
     bool m_isBeingRidden = false;
 
-    // 加速状态（MC 1.16.5: field_234313_bz_）
+    // 加速状态
     BoostHelper m_boostHelper;
 };
 

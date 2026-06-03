@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include <memory>
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../util/color/DyeColor.hpp"
 #include "AnimalEntity.hpp"
 #include "common/entity/interfaces/IShearable.hpp"
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -45,8 +45,6 @@ class Block;
  *
  * 可剪羊毛的被动动物，用小麦繁殖。
  * 实现 IShearable 接口以支持剪羊毛功能。
- *
- * 参考 MC 1.16.5 SheepEntity
  */
 class SheepEntity : public AnimalEntity, public entity::IShearable {
 public:
@@ -66,19 +64,16 @@ public:
 
     /**
      * @brief 获取环境音效
-     * 参考 MC 1.16.5 SheepEntity.getAmbientSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
     /**
      * @brief 获取受伤声音
-     * 参考 MC 1.16.5 SheepEntity.getHurtSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     /**
      * @brief 获取死亡声音
-     * 参考 MC 1.16.5 SheepEntity.getDeathSound()
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
@@ -92,19 +87,16 @@ public:
 
     /**
      * @brief 设置羊毛颜色
-     * 参考 MC 1.16.5 SheepEntity.setFleeceColor()
      */
     void setFleeceColor(DyeColor color) { m_fleeceColor = color; }
 
     /**
      * @brief 是否被剪过（没有羊毛）
-     * 参考 MC 1.16.5 SheepEntity.getSheared()
      */
     [[nodiscard]] bool isSheared() const { return m_sheared; }
 
     /**
      * @brief 设置剪毛状态
-     * 参考 MC 1.16.5 SheepEntity.setSheared()
      */
     void setSheared(bool sheared) { m_sheared = sheared; }
 
@@ -112,13 +104,11 @@ public:
 
     /**
      * @brief 是否可以被剪毛
-     * 参考 MC 1.16.5 SheepEntity.isShearable()
      */
     [[nodiscard]] bool isShearable() const override;
 
     /**
      * @brief 剪毛
-     * 参考 MC 1.16.5 SheepEntity.shear()
      */
     std::vector<ItemStack> shear(Player* player = nullptr) override;
 
@@ -136,7 +126,6 @@ public:
 
     /**
      * @brief 吃草奖励
-     * 参考 MC 1.16.5 SheepEntity.eatGrassBonus()
      *
      * 当羊吃草时调用：
      * - 如果被剪过，重新长出羊毛
@@ -148,7 +137,6 @@ public:
 
     /**
      * @brief 从父母颜色获取混合后的幼羊颜色
-     * 参考 MC 1.16.5 SheepEntity.getDyeColorMixFromParents()
      *
      * @param parent1Color 父母1的颜色
      * @param parent2Color 父母2的颜色
@@ -172,7 +160,6 @@ public:
 
     /**
      * @brief 获取随机羊毛颜色
-     * 参考 MC 1.16.5 SheepEntity.getRandomSheepColor()
      *
      * 概率分布：
      * - 5% 黑色
@@ -206,7 +193,6 @@ protected:
 
     /**
      * @brief 获取站立时眼睛高度
-     * 参考 MC 1.16.5 SheepEntity.getStandingEyeHeight()
      */
     [[nodiscard]] f32 eyeHeight() const override { return 0.95f * height(); }
 

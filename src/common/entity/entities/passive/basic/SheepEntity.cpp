@@ -62,25 +62,22 @@ SheepEntity::SheepEntity(EntityId id)
 
 std::optional<ResourceLocation> SheepEntity::getAmbientSound() const
 {
-    // MC 1.16.5: entity.sheep.ambient
     return makeSoundEventId("ambient");
 }
 
 std::optional<ResourceLocation> SheepEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: entity.sheep.hurt
     return makeSoundEventId("hurt");
 }
 
 std::optional<ResourceLocation> SheepEntity::getDeathSound() const
 {
-    // MC 1.16.5: entity.sheep.death
     return makeSoundEventId("death");
 }
 
 bool SheepEntity::isShearable() const
 {
-    // MC 1.16.5: 只有活着、有羊毛、非幼羊的羊才能被剪
+    // 只有活着、有羊毛、非幼羊的羊才能被剪
     return isAlive() && !m_sheared && !isChild();
 }
 
@@ -92,13 +89,13 @@ std::vector<ItemStack> SheepEntity::shear(Player* /*player*/)
         return drops;
     }
 
-    // MC 1.16.5: 设置剪毛状态
+    // 设置剪毛状态
     m_sheared = true;
 
-    // MC 1.16.5: 播放剪毛音效
+    // 播放剪毛音效
     playSound(*makeSoundEventId("shear"), 1.0f, 1.0f);
 
-    // MC 1.16.5: 掉落 1-3 个对应颜色的羊毛
+    // 掉落 1-3 个对应颜色的羊毛
     math::Random rng(ticksExisted());
     i32 woolCount = 1 + rng.nextInt(3);
 
@@ -118,7 +115,7 @@ std::vector<ItemStack> SheepEntity::shear(Player* /*player*/)
 
 bool SheepEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // MC 1.16.5: 羊用小麦繁殖
+    // 羊用小麦繁殖
     const Item* item = itemStack.getItem();
     if (item == nullptr) return false;
     return item == Items::WHEAT;
@@ -131,13 +128,13 @@ bool SheepEntity::canMateWith(const AnimalEntity& other) const
 
 std::unique_ptr<AnimalEntity> SheepEntity::spawnBaby(AnimalEntity& partner)
 {
-    // MC 1.16.5: 创建小羊
+    // 创建小羊
     auto baby = std::make_unique<SheepEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);
 
-    // MC 1.16.5: 颜色继承逻辑
+    // 颜色继承逻辑
     SheepEntity* partnerSheep = dynamic_cast<SheepEntity*>(&partner);
     if (partnerSheep != nullptr) {
         // 使用颜色混合逻辑
@@ -156,7 +153,7 @@ std::unique_ptr<AnimalEntity> SheepEntity::spawnBaby(AnimalEntity& partner)
 
 void SheepEntity::eatGrassBonus()
 {
-    // MC 1.16.5: 吃草奖励
+    // 吃草奖励
     // 如果被剪过，重新长出羊毛
     if (m_sheared) {
         m_sheared = false;
@@ -170,7 +167,6 @@ void SheepEntity::eatGrassBonus()
 
 DyeColor SheepEntity::getRandomSheepColor(math::Random& random)
 {
-    // MC 1.16.5 SheepEntity.getRandomSheepColor()
     i32 i = random.nextInt(100);
 
     if (i < 5) {
@@ -192,7 +188,7 @@ DyeColor SheepEntity::getRandomSheepColor(math::Random& random)
 
 const Block* SheepEntity::getWoolBlockByColor(DyeColor color)
 {
-    // MC 1.16.5: 根据颜色返回对应的羊毛方块
+    // 根据颜色返回对应的羊毛方块
     switch (color) {
         case DyeColor::White:
             return VanillaBlocks::WHITE_WOOL;
@@ -236,7 +232,6 @@ void SheepEntity::registerGoals()
     // 调用父类方法（AgeableEntity 会调用 AnimalEntity，现在 AnimalEntity 不注册任何目标）
     AgeableEntity::registerGoals();
 
-    // MC 1.16.5 SheepEntity.registerGoals()
     // 注意：AnimalEntity 基类不注册任何 goal，所以这里需要注册完整的 AI 目标列表
 
     // 优先级 0: 游泳（最高优先级）
@@ -262,7 +257,7 @@ void SheepEntity::registerGoals()
     // 优先级 4: 跟随父母
     m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.1));
 
-    // 优先级 5: 吃草 - MC 1.16.5: 在 RandomWalkingGoal 之前
+    // 优先级 5: 吃草 - 在 RandomWalkingGoal 之前
     m_goalSelector.addGoal(5,
         std::make_unique<entity::ai::goal::EatGrassGoal>(
             this, [this]() { this->eatGrassBonus(); }, [this]() { return this->isChild(); }));
@@ -282,14 +277,14 @@ void SheepEntity::registerAttributes()
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
-    // MC 1.16.5 SheepEntity 属性
+    // 羊的属性设置
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
 }
 
 void SheepEntity::tick()
 {
-    // MC 1.16.5: 吃草动画计时器递减
+    // 吃草动画计时器递减
     // 只在客户端递减
     if (m_eatAnimationTimer > 0) {
         --m_eatAnimationTimer;
@@ -307,7 +302,7 @@ namespace {
 /**
  * @brief 染料颜色混合表
  *
- * MC 1.16.5 中的颜色混合基于合成配方：
+ * 颜色混合基于合成配方：
  * - 白色 + 红色 = 粉红色
  * - 红色 + 黄色 = 橙色
  * - 白色 + 黑色 = 灰色
@@ -369,7 +364,6 @@ std::optional<DyeColor> findMixingResult(DyeColor c1, DyeColor c2)
 
 DyeColor SheepEntity::getDyeColorMixFromParents(DyeColor parent1Color, DyeColor parent2Color, math::Random& random)
 {
-    // MC 1.16.5: 尝试通过混合表查找
     // 如果两个颜色相同，直接返回该颜色
     if (parent1Color == parent2Color) {
         return parent1Color;
@@ -381,8 +375,7 @@ DyeColor SheepEntity::getDyeColorMixFromParents(DyeColor parent1Color, DyeColor 
         return mixedColor.value();
     }
 
-    // MC 1.16.5: 如果没有配方，随机选择父母颜色
-    // 原版使用 world.rand.nextBoolean()
+    // 如果没有配方，随机选择父母颜色
     return random.nextBoolean() ? parent1Color : parent2Color;
 }
 

@@ -22,34 +22,34 @@
  */
 
 #include "OcelotEntity.hpp"
-#include "../../../../core/Types.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../ai/controller/LookController.hpp"
-#include "../../../ai/controller/MovementController.hpp"
-#include "../../../ai/goal/GoalConstants.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../ai/pathfinding/PathNavigator.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityPose.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../core/EntityUtils.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../entities/passive/basic/ChickenEntity.hpp"
-#include "../../../entities/passive/special/TurtleEntity.hpp"
-#include "../../../entities/player/Player.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/controller/LookController.hpp"
+#include "common/entity/ai/controller/MovementController.hpp"
+#include "common/entity/ai/goal/GoalConstants.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/BreedGoal.hpp"
+#include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/PanicGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityPose.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/passive/basic/ChickenEntity.hpp"
+#include "common/entity/entities/passive/special/TurtleEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include <cmath>
 #include <unordered_set>
 
@@ -83,7 +83,7 @@ void OcelotEntity::setPlayerTrust(u64 playerId, bool trust)
         m_trusting = true;
         m_trustingPlayerId = playerId;
         // 触发 AI 更新
-        setupTrustingAI();
+        _setupTrustingAI();
     }
 }
 
@@ -92,14 +92,13 @@ void OcelotEntity::setTrusting(bool trusting)
     if (m_trusting != trusting) {
         m_trusting = trusting;
         // 触发 AI 更新
-        setupTrustingAI();
+        _setupTrustingAI();
     }
 }
 
 bool OcelotEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // MC 1.16.5: 豹猫使用生鳕鱼和生鲑鱼繁殖
-    // BREEDING_ITEMS = Ingredient.fromItems(Items.COD, Items.SALMON)
+    // 豹猫使用生鳕鱼和生鲑鱼繁殖
     const Item* item = itemStack.getItem();
     if (item == nullptr) {
         return false;
@@ -109,7 +108,6 @@ bool OcelotEntity::isBreedingItem(const ItemStack& itemStack) const
 
 std::unique_ptr<AnimalEntity> OcelotEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
-    // MC 1.16.5: OcelotEntity.func_241840_a (createChild)
     // 创建一个新的豹猫实体，不需要继承父母特征
     auto baby = std::make_unique<OcelotEntity>(0);
 
@@ -134,7 +132,6 @@ void OcelotEntity::tick()
 
 void OcelotEntity::updateAITasks()
 {
-    // MC 1.16.5: OcelotEntity.updateAITasks()
     // 根据移动速度设置潜行/奔跑姿态
     auto* moveController = this->moveController();
     if (moveController && moveController->isUpdating()) {
@@ -155,21 +152,19 @@ void OcelotEntity::updateAITasks()
 
 bool OcelotEntity::canDespawn(double distanceToClosestPlayer) const
 {
-    // MC 1.16.5: 未信任的豹猫存在超过 2400 tick (2分钟) 后可以消失
+    // 未信任的豹猫存在超过 2400 tick (2分钟) 后可以消失
     MC_UNUSED(distanceToClosestPlayer);
     return !m_trusting && ticksExisted() > DESPAWN_TICKS;
 }
 
 bool OcelotEntity::attackEntityAsMob(LivingEntity& target)
 {
-    // MC 1.16.5: 豹猫攻击伤害
     EntityDamageSource damageSource = DamageSources::mobAttack(this);
     return target.hurt(damageSource, ATTACK_DAMAGE);
 }
 
 ActionResultType OcelotEntity::interactMob(Player& player, Hand hand)
 {
-    // MC 1.16.5: OcelotEntity.func_230254_b_()
     ItemStack itemStack = player.getHeldItem(hand);
     const Item* item = itemStack.getItem();
 
@@ -188,15 +183,15 @@ ActionResultType OcelotEntity::interactMob(Player& player, Hand hand)
 
         // 服务端处理
         if (m_world && !m_world->isClientSide()) {
-            // MC 1.16.5: 1/3 概率建立信任
+            // 1/3 概率建立信任
             math::Random rng = getRandom();
             if (rng.nextInt(3) == 0) {
                 // 建立信任
                 setPlayerTrust(player.playerId(), true);
-                spawnTrustingParticles(true);
+                _spawnTrustingParticles(true);
             } else {
                 // 失败，显示烟雾粒子
-                spawnTrustingParticles(false);
+                _spawnTrustingParticles(false);
             }
         }
 
@@ -209,15 +204,13 @@ ActionResultType OcelotEntity::interactMob(Player& player, Hand hand)
 
 void OcelotEntity::registerGoals()
 {
-    // MC 1.16.5 OcelotEntity.registerGoals() 完整目标列表：
-    // 注意：AnimalEntity 基类不注册任何 goal，所以这里需要注册完整的 AI 目标列表
+    // AnimalEntity 基类不注册任何 goal，所以这里需要注册完整的 AI 目标列表
 
     // 优先级 1: 游泳（最高优先级）
     m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
     // 优先级 3: 食物诱惑（生鱼）
-    // MC 1.16.5: this.aiTempt = new OcelotEntity.TemptGoal(this, 0.6D, BREEDING_ITEMS, true);
-    // 注意：scaredByMovement = true，玩家快速移动会吓跑豹猫
+    // scaredByMovement = true，玩家快速移动会吓跑豹猫
     m_temptGoal = new entity::ai::goal::OcelotTemptGoal(
         this,
         TEMPT_SPEED,
@@ -228,11 +221,10 @@ void OcelotEntity::registerGoals()
         true); // scaredByMovement = true
     m_goalSelector.addGoal(3, m_temptGoal);
 
-    // 优先级 4: 躲避玩家（未信任时）- 在 setupTrustingAI() 中动态添加
-    setupTrustingAI();
+    // 优先级 4: 躲避玩家（未信任时）- 在 _setupTrustingAI() 中动态添加
+    _setupTrustingAI();
 
     // 优先级 7: 跳跃攻击
-    // MC 1.16.5: new LeapAtTargetGoal(this, 0.3F)
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::LeapAtTargetGoal>(this, 0.3f));
 
     // 优先级 8: 豹猫近战攻击
@@ -242,7 +234,6 @@ void OcelotEntity::registerGoals()
     m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::BreedGoal>(this, 0.8));
 
     // 优先级 10: 避水随机漫步
-    // MC 1.16.5: new WaterAvoidingRandomWalkingGoal(this, 0.8D, 1.0000001E-5F)
     m_goalSelector.addGoal(
         10, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 0.8, 1.0000001E-5f));
 
@@ -250,13 +241,9 @@ void OcelotEntity::registerGoals()
     m_goalSelector.addGoal(11, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f));
 
     // 目标选择器：攻击小鸡和小海龟
-    // MC 1.16.5:
-    // this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, ChickenEntity.class, false));
-    // this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, TurtleEntity.class, 10, false, false,
-    // TurtleEntity.TARGET_DRY_BABY));
     m_targetSelector.addGoal(
         1, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<ChickenEntity>>(this, false, 0));
-    // 注意：TurtleEntity.TARGET_DRY_BABY 是一个谓词，用于筛选干燥的小海龟
+    // 注意：攻击海龟时，完整实现应该只攻击干燥的小海龟
     // 当前简化实现：攻击所有海龟
     m_targetSelector.addGoal(
         1, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<TurtleEntity>>(this, false, 10));
@@ -267,7 +254,6 @@ void OcelotEntity::registerAttributes()
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
-    // MC 1.16.5: OcelotEntity.func_234201_eI_()
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
@@ -278,12 +264,11 @@ void OcelotEntity::registerData()
     AnimalEntity::registerData();
 
     // 注册信任状态数据参数
-    // 注意：当前简化实现使用成员变量，未来可以添加网络同步
+    // TODO: 当前简化实现使用成员变量，未来可以添加网络同步
 }
 
-void OcelotEntity::setupTrustingAI()
+void OcelotEntity::_setupTrustingAI()
 {
-    // MC 1.16.5: OcelotEntity.func_213529_dV()
     // 动态添加/移除 AvoidPlayerGoal
 
     if (m_avoidPlayerGoal == nullptr) {
@@ -296,15 +281,13 @@ void OcelotEntity::setupTrustingAI()
     m_goalSelector.removeGoal(m_avoidPlayerGoal);
 
     // 如果未信任，添加躲避玩家目标
-    // MC 1.16.5: if (!this.isTrusting()) { this.goalSelector.addGoal(4, this.avoidPlayerGoal); }
     if (!m_trusting) {
         m_goalSelector.addGoal(4, m_avoidPlayerGoal);
     }
 }
 
-void OcelotEntity::spawnTrustingParticles(bool success)
+void OcelotEntity::_spawnTrustingParticles(bool success)
 {
-    // MC 1.16.5: OcelotEntity.func_213527_s()
     // 生成 7 个粒子
     if (!m_world) return;
 
@@ -322,7 +305,6 @@ OcelotAvoidPlayerGoal::OcelotAvoidPlayerGoal(OcelotEntity* ocelot, f32 avoidDist
           avoidDistance,
           farSpeed,
           nearSpeed,
-          // MC 1.16.5: EntityPredicates.CAN_AI_TARGET
           // 只避开可以作为 AI 目标的玩家
           [](const LivingEntity* entity) -> bool {
               if (entity == nullptr) {
@@ -333,20 +315,17 @@ OcelotAvoidPlayerGoal::OcelotAvoidPlayerGoal(OcelotEntity* ocelot, f32 avoidDist
               if (player == nullptr) {
                   return false;
               }
-              // MC 1.16.5: EntityPredicates.CAN_AI_TARGET
               // !isSpectator() && isAlive()
               return !player->isSpectator() && player->isAlive();
           })
     , m_ocelot(ocelot)
 {
-    // MC 1.16.5: OcelotEntity.AvoidEntityGoal 继承自 AvoidEntityGoal
     // 重写 shouldExecute() 和 shouldContinueExecuting() 使其只在未信任时执行
 }
 
 bool OcelotAvoidPlayerGoal::shouldExecute()
 {
-    // MC 1.16.5: 只有未信任的豹猫才会避开玩家
-    // return !this.ocelot.isTrusting() && super.shouldExecute();
+    // 只有未信任的豹猫才会避开玩家
     if (m_ocelot == nullptr || m_ocelot->isTrusting()) {
         return false;
     }
@@ -355,8 +334,7 @@ bool OcelotAvoidPlayerGoal::shouldExecute()
 
 bool OcelotAvoidPlayerGoal::shouldContinueExecuting()
 {
-    // MC 1.16.5: 只有未信任的豹猫才会继续避开玩家
-    // return !this.ocelot.isTrusting() && super.shouldContinueExecuting();
+    // 只有未信任的豹猫才会继续避开玩家
     if (m_ocelot == nullptr || m_ocelot->isTrusting()) {
         return false;
     }
@@ -369,13 +347,11 @@ OcelotTemptGoal::OcelotTemptGoal(OcelotEntity* ocelot, f64 speed, ItemPredicate 
     : TemptGoal(ocelot, speed, std::move(itemPredicate), scaredByMovement)
     , m_ocelot(ocelot)
 {
-    // MC 1.16.5: OcelotEntity.TemptGoal 继承自 TemptGoal
     // 重写 isScaredByPlayerMovement() 使其根据信任状态变化
 }
 
 bool OcelotTemptGoal::isScaredByPlayerMovement() const
 {
-    // MC 1.16.5: return super.isScaredByPlayerMovement() && !this.ocelot.isTrusting();
     // 只有未信任的豹猫才会被玩家移动吓跑
     // 已信任的豹猫仍然会被诱惑，但不会被移动吓跑
     return TemptGoal::isScaredByPlayerMovement() && !m_ocelot->isTrusting();
@@ -386,13 +362,10 @@ bool OcelotTemptGoal::isScaredByPlayerMovement() const
 OcelotAttackGoal::OcelotAttackGoal(OcelotEntity* ocelot)
     : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look})
     , m_ocelot(ocelot)
-{
-    // MC 1.16.5: this.setMutexFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));
-}
+{}
 
 bool OcelotAttackGoal::shouldExecute()
 {
-    // MC 1.16.5: OcelotAttackGoal.shouldExecute()
     LivingEntity* target = m_ocelot->attackTarget();
     if (target == nullptr) {
         return false;
@@ -404,7 +377,6 @@ bool OcelotAttackGoal::shouldExecute()
 
 bool OcelotAttackGoal::shouldContinueExecuting()
 {
-    // MC 1.16.5: OcelotAttackGoal.shouldContinueExecuting()
     if (!m_target || !m_target->isAlive()) {
         return false;
     }

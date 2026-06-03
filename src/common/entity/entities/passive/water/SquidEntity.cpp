@@ -22,11 +22,12 @@
  */
 
 #include "SquidEntity.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../ai/goal/goals/special/SquidGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
+
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/entity/ai/goal/goals/special/SquidGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 
@@ -51,8 +52,7 @@ void SquidEntity::sprayInk()
         m_sprayingInk = true;
         m_sprayTimer = SPRAY_INK_DURATION;
 
-        // MC 1.16.5: 在鱿鱼位置生成墨汁粒子
-        // 参考: SquidEntity.squirtInk() - world.addParticle(ParticleTypes.SQUID_INK, ...)
+        // 在鱿鱼位置生成墨汁粒子
         if (world() != nullptr && world()->isClientSide()) {
             using namespace mc::client::renderer::trident::particle;
             math::Random& random = world()->getRandom();
@@ -132,7 +132,6 @@ bool SquidEntity::hasMovementVector() const
 
 void SquidEntity::registerGoals()
 {
-    // 参考 MC 1.16.5 SquidEntity.registerGoals()
     // 优先级 0: 随机游泳（最高优先级）
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SquidMoveRandomGoal>(this));
 
@@ -146,7 +145,6 @@ void SquidEntity::registerAttributes()
     WaterMobEntity::registerAttributes();
 
     // 鱿鱼的属性
-    // 参考 MC 1.16.5 鱿鱼属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
 }

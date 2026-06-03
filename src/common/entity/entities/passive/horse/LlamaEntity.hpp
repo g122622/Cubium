@@ -37,8 +37,7 @@ class LivingEntity;
 /**
  * @brief 羊驼实体
  *
- * 对齐 1.16.5 `LlamaEntity` 的基础层次。当前先把箱子马类层抽出来，
- * 并保留强度、地毯颜色、商队和吐口水相关状态。
+ * 羊驼实体实现，包含强度、地毯颜色、商队系统和吐口水相关状态。
  *
  * 商队系统：
  * - 羊驼可以形成商队链表结构（最多 8 只）
@@ -96,22 +95,17 @@ public:
 
     /**
      * @brief 羊驼不能装备鞍
-     *
-     * MC 1.16.5: LlamaEntity.func_230264_L_() 返回 false
      */
     [[nodiscard]] bool canEquipSaddle() const override { return false; }
 
     /**
      * @brief 羊驼支持装饰槽位（地毯）
-     *
-     * MC 1.16.5: LlamaEntity.func_230276_fq_() 返回 true
      */
     [[nodiscard]] bool hasArmorSlot() const override { return true; }
 
     /**
      * @brief 检查物品是否是有效的装饰（地毯）
      *
-     * MC 1.16.5: LlamaEntity.isArmor(ItemStack)
      * 检查物品是否在 ItemTags.CARPETS 中
      *
      * @param item 要检查的物品
@@ -122,7 +116,7 @@ public:
     /**
      * @brief 返回背包列数
      *
-     * 对齐 vanilla，等于 strength。
+     * 等于 strength。
      */
     [[nodiscard]] i32 getInventoryColumns() const override;
 
@@ -151,7 +145,6 @@ public:
     /**
      * @brief 检查是否在商队中（有商队头领）
      *
-     * MC 1.16.5: LlamaEntity.inCaravan()
      * @return 如果有商队头领返回 true
      */
     [[nodiscard]] bool isInCaravan() const { return m_caravanHead != nullptr; }
@@ -159,7 +152,6 @@ public:
     /**
      * @brief 检查是否有商队跟随者
      *
-     * MC 1.16.5: LlamaEntity.hasCaravanTrail()
      * @return 如果有跟随的羊驼返回 true
      */
     [[nodiscard]] bool hasCaravanTail() const { return m_caravanTail != nullptr; }
@@ -167,7 +159,6 @@ public:
     /**
      * @brief 获取商队头领
      *
-     * MC 1.16.5: LlamaEntity.getCaravanHead()
      * @return 商队头领指针，如果没有返回 nullptr
      */
     [[nodiscard]] LlamaEntity* getCaravanHead() const { return m_caravanHead; }
@@ -175,7 +166,6 @@ public:
     /**
      * @brief 获取商队跟随者
      *
-     * MC 1.16.5: LlamaEntity.getCaravanTail()
      * @return 跟随者的指针，如果没有返回 nullptr
      */
     [[nodiscard]] LlamaEntity* getCaravanTail() const { return m_caravanTail; }
@@ -183,7 +173,6 @@ public:
     /**
      * @brief 加入商队
      *
-     * MC 1.16.5: LlamaEntity.joinCaravan(LlamaEntity)
      * 设置当前羊驼跟随指定的头领羊驼
      *
      * @param head 要跟随的商队头领
@@ -193,7 +182,6 @@ public:
     /**
      * @brief 离开商队
      *
-     * MC 1.16.5: LlamaEntity.leaveCaravan()
      * 清除商队关系，同时更新前后羊驼的引用
      */
     void leaveCaravan();
@@ -213,14 +201,13 @@ public:
     /**
      * @brief 羊驼最大驯服进度为 30
      *
-     * MC 1.16.5: LlamaEntity.getMaxTemper() 返回 30
+     * @return 30
      */
-    [[nodiscard]] i32 getMaxTemper() const { return 30; }
+    [[nodiscard]] i32 getMaxTemper() const noexcept { return 30; }
 
     /**
      * @brief 羊驼使用干草块繁殖
      *
-     * MC 1.16.5: LlamaEntity.isBreedingItem()
      * 检查是否为小麦或干草块。
      */
     [[nodiscard]] bool isBreedingItem(const ItemStack& itemStack) const override;
@@ -233,7 +220,6 @@ public:
     /**
      * @brief 检查是否可以与另一动物交配
      *
-     * MC 1.16.5: LlamaEntity.canMateWith()
      * 羊驼只能与羊驼交配。
      */
     [[nodiscard]] bool canMateWith(const AnimalEntity& other) const override;
@@ -241,7 +227,6 @@ public:
     /**
      * @brief 生成幼体
      *
-     * MC 1.16.5: LlamaEntity.func_241840_a()
      * 羊驼后代遗传强度和颜色。
      */
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
@@ -249,7 +234,6 @@ public:
     /**
      * @brief 处理喂食
      *
-     * MC 1.16.5: LlamaEntity.handleEating()
      * 羊驼的食物效果与马不同：
      * - 小麦：治疗 2，成长 10 ticks，驯服 +3
      * - 干草块：治疗 10，成长 90 ticks，驯服 +6，可触发繁殖
@@ -259,7 +243,6 @@ public:
     /**
      * @brief 检查物品是否为羊驼的食物
      *
-     * MC 1.16.5: LlamaEntity.field_234243_bC_
      * 羊驼食物：小麦、干草块
      */
     [[nodiscard]] bool isFoodItem(const ItemStack& itemStack) const override;
@@ -267,19 +250,15 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 1.77f; }
+    [[nodiscard]] f32 eyeHeight() const noexcept override { return 1.77f; }
 
     /**
      * @brief 获取进食音效
-     *
-     * MC 1.16.5: 羊驼进食音效
      */
     [[nodiscard]] std::optional<ResourceLocation> getEatSound() const override;
 
     /**
      * @brief 获取愤怒音效
-     *
-     * MC 1.16.5: 羊驼愤怒音效
      */
     [[nodiscard]] std::optional<ResourceLocation> getAngrySound() const override;
 
@@ -288,7 +267,6 @@ public:
     /**
      * @brief 对目标进行远程攻击
      *
-     * MC 1.16.5: LlamaEntity.attackEntityWithRangedAttack()
      * 发射羊驼口水攻击目标
      *
      * @param target 攻击目标
@@ -300,13 +278,13 @@ public:
      * @brief 获取攻击间隔时间
      * @return 40 ticks
      */
-    [[nodiscard]] i32 getAttackInterval() const override { return 40; }
+    [[nodiscard]] i32 getAttackInterval() const noexcept { return 40; }
 
     /**
      * @brief 检查是否可以进行远程攻击
      * @return 吐口水冷却已结束返回 true
      */
-    [[nodiscard]] bool canRangedAttack() const override { return m_spitCooldown <= 0; }
+    [[nodiscard]] bool canRangedAttack() const { return m_spitCooldown <= 0; }
 
     void tick() override;
 
@@ -318,12 +296,11 @@ private:
     /**
      * @brief 吐口水攻击目标
      *
-     * MC 1.16.5: LlamaEntity.spit(LivingEntity)
      * 创建并发射羊驼口水实体
      *
      * @param target 攻击目标
      */
-    void spit(LivingEntity* target);
+    void _spit(LivingEntity* target);
 
     LlamaColor m_color = LlamaColor::Creamy;
     i32 m_strength = 1;

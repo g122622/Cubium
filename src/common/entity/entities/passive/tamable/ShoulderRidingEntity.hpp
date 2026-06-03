@@ -30,7 +30,6 @@ namespace mc {
 /**
  * @brief 可停在玩家肩膀上的可驯服实体
  *
- * 对齐 1.16.5 `ShoulderRidingEntity` 的最小职责，
  * 负责肩膀乘坐冷却和肩膀挂靠状态。
  */
 class ShoulderRidingEntity : public TameableEntity {
@@ -53,22 +52,22 @@ public:
     /**
      * @brief 当前是否挂在玩家肩膀上
      */
-    [[nodiscard]] bool isOnShoulder() const { return m_onShoulder; }
+    [[nodiscard]] bool isOnShoulder() const noexcept { return m_onShoulder; }
 
     /**
      * @brief 获取肩膀所属玩家 ID
      */
-    [[nodiscard]] u64 getShoulderPlayerId() const { return m_shoulderPlayerId; }
+    [[nodiscard]] u64 getShoulderPlayerId() const noexcept { return m_shoulderPlayerId; }
 
     /**
      * @brief 当前是否满足停到肩膀上的冷却条件
      */
-    [[nodiscard]] bool canSitOnShoulder() const { return m_rideCooldownCounter > 100; }
+    [[nodiscard]] bool canSitOnShoulder() const noexcept { return m_rideCooldownCounter > 100; }
 
     /**
      * @brief 挂到玩家肩膀上
      */
-    bool mountShoulder(u64 playerId)
+    bool mountShoulder(u64 playerId) noexcept
     {
         if (!isTamed() || isSitting() || !canSitOnShoulder()) {
             return false;
@@ -82,7 +81,7 @@ public:
     /**
      * @brief 从肩膀上离开
      */
-    void dismountShoulder()
+    void dismountShoulder() noexcept
     {
         m_onShoulder = false;
         m_shoulderPlayerId = 0;

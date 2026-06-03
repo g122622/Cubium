@@ -142,6 +142,7 @@ public:
             // 简化实现：温度随高度线性降低
             // MC原版使用 TEMPERATURE_NOISE.noiseAt() 添加噪声变化
             // 这里使用简化版本，效果接近
+            // TODO 和原版保持一致需要引入噪声函数，增加温度变化的随机性
             f32 heightFactor = static_cast<f32>(y - 64) * 0.05f / 30.0f;
             temp = std::max(0.0f, temp - heightFactor);
         }

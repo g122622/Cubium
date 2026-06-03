@@ -49,8 +49,6 @@ ThrowableEntity::ThrowableEntity(EntityId id)
 
 void ThrowableEntity::tick()
 {
-    // 参考 MC 1.16.5 ThrowableEntity.tick() 第52-101行
-
     // 先执行射线追踪和碰撞检测
     if (!m_leftShooter) {
         m_leftShooter = checkLeftShooter();
@@ -60,7 +58,6 @@ void ThrowableEntity::tick()
     const RayTraceResult result = performRayTrace();
 
     // 处理传送门和末地传送门
-    // MC 1.16.5: 投射物可以进入下界传送门和末地折跃门
     bool handledPortal = false;
     if (result.type == RayTraceResultType::Block && m_world != nullptr) {
         const BlockState* blockState = m_world->getBlockState(result.blockPos);
@@ -70,7 +67,7 @@ void ThrowableEntity::tick()
 
             // 检查是否是下界传送门方块
             if (block == VanillaBlocks::NETHER_PORTAL) {
-                // MC 1.16.5: 投射物进入下界传送门，设置传送门状态
+                // 投射物进入下界传送门，设置传送门状态
                 // 投射物不需要等待时间，直接设置传送门状态
                 setInPortal(true);
                 setPortalPos(result.blockPos);
@@ -78,7 +75,7 @@ void ThrowableEntity::tick()
             }
             // 检查是否是末地折跃门方块
             else if (block == VanillaBlocks::END_GATEWAY) {
-                // MC 1.16.5: 投射物进入末地折跃门，获取方块实体并传送
+                // 投射物进入末地折跃门，获取方块实体并传送
                 BlockEntity* blockEntity = m_world->getBlockEntity(result.blockPos);
                 if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::EndGateway) {
                     auto* endGateway = static_cast<blockentity::EndGatewayEntity*>(blockEntity);

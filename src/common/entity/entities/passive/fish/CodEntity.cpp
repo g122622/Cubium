@@ -23,7 +23,7 @@
 
 #include "CodEntity.hpp"
 
-#include "../../../attribute/Attributes.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 
@@ -47,25 +47,21 @@ void CodEntity::registerAttributes()
 
 std::optional<ResourceLocation> CodEntity::getFlopSound() const
 {
-    // MC 1.16.5: SoundEvents.ENTITY_COD_FLOP
     return SoundEvents::ENTITY_COD_FLOP;
 }
 
 std::optional<ResourceLocation> CodEntity::getAmbientSound() const
 {
-    // MC 1.16.5: SoundEvents.ENTITY_COD_AMBIENT
     return SoundEvents::ENTITY_COD_AMBIENT;
 }
 
 std::optional<ResourceLocation> CodEntity::getDeathSound() const
 {
-    // MC 1.16.5: SoundEvents.ENTITY_COD_DEATH
     return SoundEvents::ENTITY_COD_DEATH;
 }
 
 std::optional<ResourceLocation> CodEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: SoundEvents.ENTITY_COD_HURT
     return SoundEvents::ENTITY_COD_HURT;
 }
 

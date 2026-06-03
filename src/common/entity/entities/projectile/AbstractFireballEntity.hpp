@@ -46,8 +46,7 @@ namespace entity {
 /**
  * @brief 抽象火球实体基类
  *
- * 对齐 1.16.5 `AbstractFireballEntity` 的层次位置，
- * 当前只保留火球族共用的最小公共语义。
+ * 火球族共用的最小公共语义基类。
  */
 class AbstractFireballEntity : public DamagingProjectileEntity {
 public:
@@ -107,18 +106,17 @@ protected:
     void onEntityHit(const RayTraceResult& result) override;
     void onBlockHit(const RayTraceResult& result) override;
 
-    // MC 1.16.5: 龙息火球使用 DRAGON_BREATH 粒子
+    // 龙息火球使用 DRAGON_BREATH 粒子
     [[nodiscard]] client::renderer::trident::particle::ParticleTypeId getParticleType() const override;
 
-    // MC 1.16.5: 龙息火球不燃烧
+    // 龙息火球不燃烧
     [[nodiscard]] bool isFiery() const override { return false; }
 
 private:
     /**
      * @brief 创建龙息区域效果云
-     * MC 1.16.5: DragonFireballEntity 创建 AreaEffectCloudEntity
      */
-    void createDragonBreathCloud();
+    void _createDragonBreathCloud();
 };
 
 class WitherSkullEntity : public AbstractFireballEntity {
@@ -137,9 +135,9 @@ protected:
     void onEntityHit(const RayTraceResult& result) override;
     void onBlockHit(const RayTraceResult& result) override;
 
-    // MC 1.16.5: 蓝色凋灵之首运动因子为 0.73，普通为 0.95
+    // 蓝色凋灵之首运动因子为 0.73，普通为 0.95
     [[nodiscard]] f32 getMotionFactor() const override;
-    // MC 1.16.5: 凋灵之首不燃烧
+    // 凋灵之首不燃烧
     [[nodiscard]] bool isFiery() const override;
 
 private:

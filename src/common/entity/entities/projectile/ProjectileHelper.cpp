@@ -23,8 +23,8 @@
 
 #include "ProjectileHelper.hpp"
 
-#include "../../../util/math/MathUtils.hpp"
-#include "../../../world/IWorld.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/world/IWorld.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -36,11 +36,19 @@ namespace entity {
 
 namespace {
 
+// 线段与AABB相交检测结果
 struct SegmentAabbHit {
-    f32 t = 0.0f;
-    Vector3 position;
+    f32 t = 0.0f;     // 相交点在线段上的参数 (0-1)
+    Vector3 position; // 相交点的世界坐标
 };
 
+/**
+ * @brief 计算线段与轴对齐包围盒的交点
+ * @param start 线段起点
+ * @param end 线段终点
+ * @param box 轴对齐包围盒
+ * @return 如果相交，返回交点信息；否则返回空
+ */
 [[nodiscard]] std::optional<SegmentAabbHit> intersectSegmentAabb(
     const Vector3& start, const Vector3& end, const AxisAlignedBB& box)
 {
@@ -50,11 +58,14 @@ struct SegmentAabbHit {
     f32 tMin = 0.0f;
     f32 tMax = 1.0f;
 
+    // 使用滑动平面算法计算各轴的相交区间
     const auto updateAxis = [&](f32 origin, f32 axisDelta, f32 axisMin, f32 axisMax) -> bool {
         if (std::abs(axisDelta) < EPSILON) {
+            // 线段与该轴平行，检查起点是否在包围盒范围内
             return origin >= axisMin && origin <= axisMax;
         }
 
+        // 计算进入和离开包围盒的参数值
         f32 t1 = (axisMin - origin) / axisDelta;
         f32 t2 = (axisMax - origin) / axisDelta;
         if (t1 > t2) {
@@ -66,6 +77,7 @@ struct SegmentAabbHit {
         return tMin <= tMax;
     };
 
+    // 依次检测三个轴
     if (!updateAxis(start.x, delta.x, box.minX, box.maxX)) {
         return std::nullopt;
     }
@@ -76,10 +88,12 @@ struct SegmentAabbHit {
         return std::nullopt;
     }
 
+    // 检查交点是否在线段范围内
     if (tMax < 0.0f || tMin > 1.0f) {
         return std::nullopt;
     }
 
+    // 计算交点位置
     const f32 hitT = std::clamp(tMin, 0.0f, 1.0f);
     return SegmentAabbHit{hitT, Vector3(start.x + delta.x * hitT, start.y + delta.y * hitT, start.z + delta.z * hitT)};
 }
@@ -88,18 +102,22 @@ struct SegmentAabbHit {
 
 void ProjectileHelper::rotateTowardsMovement(Entity& projectile, f32 rotationSpeed)
 {
+    // 获取当前速度，如果速度太小则不进行旋转
     const Vector3 velocity = projectile.velocity();
     if (velocity.lengthSquared() <= 1.0e-6f) {
         return;
     }
 
+    // 计算当前朝向和目标朝向
     const f32 horizontal = std::sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
     f32 currentYaw = projectile.yaw();
     f32 currentPitch = projectile.pitch();
 
+    // 根据速度方向计算目标偏航角和俯仰角
     const f32 targetYaw = std::atan2(velocity.z, velocity.x) * math::RAD_TO_DEG + 90.0f;
     const f32 targetPitch = std::atan2(horizontal, velocity.y) * math::RAD_TO_DEG - 90.0f;
 
+    // 将角度差归一化到 [-180, 180) 范围，避免绕远路旋转
     while (targetPitch - currentPitch < -180.0f) {
         currentPitch -= 360.0f;
     }
@@ -113,12 +131,14 @@ void ProjectileHelper::rotateTowardsMovement(Entity& projectile, f32 rotationSpe
         currentYaw += 360.0f;
     }
 
+    // 插值旋转，使投掷物平滑地朝向运动方向
     projectile.setRotation(currentYaw + (targetYaw - currentYaw) * rotationSpeed,
         currentPitch + (targetPitch - currentPitch) * rotationSpeed);
 }
 
 AxisAlignedBB ProjectileHelper::createMovementSearchBox(const Entity& projectile, const Vector3& movement, f32 margin)
 {
+    // 获取实体当前包围盒，根据位移方向构建搜索范围
     const AxisAlignedBB box = projectile.boundingBox();
     return AxisAlignedBB(std::min(box.minX, box.minX + movement.x) - margin,
         std::min(box.minY, box.minY + movement.y) - margin,
@@ -140,14 +160,17 @@ RayTraceResult ProjectileHelper::rayTraceEntities(const IWorld& world,
     Vector3 nearestHitPosition;
     f32 nearestDistanceSq = std::numeric_limits<f32>::max();
 
+    // 遍历搜索范围内的所有实体
     for (mc::Entity* candidate : world.getEntitiesInAABB(searchBox, &projectile)) {
         if (candidate == nullptr || !filter(*candidate)) {
             continue;
         }
 
+        // 扩展实体的碰撞箱以检测"擦边"命中
         const AxisAlignedBB candidateBox =
             candidate->boundingBox().grow(candidate->getCollisionBorderSize() + collisionExpansion);
 
+        // 特殊情况：起点在碰撞箱内部，直接命中
         if (candidateBox.contains(start)) {
             nearestEntity = candidate;
             nearestHitPosition = start;
@@ -155,11 +178,13 @@ RayTraceResult ProjectileHelper::rayTraceEntities(const IWorld& world,
             continue;
         }
 
+        // 计算线段与碰撞箱的交点
         const auto hit = intersectSegmentAabb(start, end, candidateBox);
         if (!hit.has_value()) {
             continue;
         }
 
+        // 更新最近的命中实体
         const f32 distanceSq = start.distanceSquared(hit->position);
         if (distanceSq < nearestDistanceSq) {
             nearestEntity = candidate;
@@ -168,6 +193,7 @@ RayTraceResult ProjectileHelper::rayTraceEntities(const IWorld& world,
         }
     }
 
+    // 未命中任何实体
     if (nearestEntity == nullptr) {
         return RayTraceResult::miss();
     }

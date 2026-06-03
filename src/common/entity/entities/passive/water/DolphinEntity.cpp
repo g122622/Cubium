@@ -22,31 +22,33 @@
  */
 
 #include "DolphinEntity.hpp"
-#include "../../../../core/Types.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/MathConstants.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/block/Block.hpp"
-#include "../../../../world/block/BlockPos.hpp"
-#include "../../../ai/goal/GoalFlag.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
-#include "../../../ai/goal/goals/FindWaterGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
-#include "../../../ai/goal/goals/RandomSwimmingGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/special/DolphinGoals.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../ai/pathfinding/Path.hpp"
-#include "../../../ai/pathfinding/PathNavigator.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../entities/player/Player.hpp"
+
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
+#include "common/entity/ai/goal/goals/FindWaterGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomSwimmingGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/special/DolphinGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/ai/pathfinding/Path.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+
 #include <cmath>
 
 namespace mc {
@@ -54,7 +56,7 @@ namespace mc {
 DolphinEntity::DolphinEntity(EntityId id)
     : WaterMobEntity(id)
 {
-    // 设置空气值（MC 1.16.5: 4800 tick = 4分钟）
+    // 设置空气值（4800 tick = 4分钟）
     setAir(MAX_AIR);
 
     // 注册 AI 目标
@@ -71,7 +73,7 @@ std::unique_ptr<Entity> DolphinEntity::create(IWorld* /*world*/)
 
 bool DolphinEntity::canJumpOutOfWater() const
 {
-    // MC 1.16.5: 海豚可以跳出水面当且仅当:
+    // 海豚可以跳出水面当且仅当:
     // 1. 当前在水中
     // 2. 上方有空气（接近水面）
 
@@ -118,14 +120,14 @@ void DolphinEntity::setGuidingPlayer(bool guiding, u64 playerId)
 
 bool DolphinEntity::isFoodItem(const ItemStack& itemStack) const
 {
-    // MC 1.16.5: 海豚食物 - 鳕鱼、鲑鱼、河豚、热带鱼
+    // 海豚食物 - 鳕鱼、鲑鱼、河豚、热带鱼
     const Item* item = itemStack.getItem();
     return item == Items::COD || item == Items::SALMON || item == Items::PUFFERFISH || item == Items::TROPICAL_FISH;
 }
 
 bool DolphinEntity::closeToTarget() const
 {
-    // MC 1.16.5: closeToTarget() - 检查是否接近导航目标
+    // 检查是否接近导航目标
     auto* nav = navigator();
     if (nav == nullptr) {
         return false;
@@ -141,12 +143,12 @@ bool DolphinEntity::closeToTarget() const
         return false;
     }
 
-    // 检查是否在 12 格范围内
+    // 检查是否在指定距离范围内
     Vector3 targetCenter(
         static_cast<f64>(targetPos.x) + 0.5, static_cast<f64>(targetPos.y), static_cast<f64>(targetPos.z) + 0.5);
 
     f64 distSq = (position() - targetCenter).lengthSquared();
-    constexpr f64 CLOSE_DISTANCE_SQ = 12.0 * 12.0;
+    constexpr f64 CLOSE_DISTANCE_SQ = CLOSE_DISTANCE * CLOSE_DISTANCE;
 
     return distSq < CLOSE_DISTANCE_SQ;
 }
@@ -207,9 +209,9 @@ void DolphinEntity::tick()
         m_swimTimer++;
 
         // 随机跳跃
-        if (m_swimTimer >= 200 && canJumpOutOfWater()) {
+        if (m_swimTimer >= SWIM_JUMP_INTERVAL && canJumpOutOfWater()) {
             math::Random rng = getRandom();
-            if (rng.nextInt(1, 100) == 1) {
+            if (rng.nextInt(1, JUMP_CHANCE_DENOMINATOR) == 1) {
                 m_jumping = true;
                 m_swimTimer = 0;
             }
@@ -221,8 +223,7 @@ void DolphinEntity::tick()
 
 void DolphinEntity::registerGoals()
 {
-    // MC 1.16.5: 海豚 AI 目标优先级
-    // 参考: net.minecraft.entity.passive.DolphinEntity.registerGoals()
+    // 海豚 AI 目标优先级
 
     // 优先级 0: 呼吸空气和寻找水源
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
@@ -266,9 +267,9 @@ void DolphinEntity::registerAttributes()
     // 调用父类方法
     WaterMobEntity::registerAttributes();
 
-    // MC 1.16.5: 海豚属性
+    // 海豚属性
     // 最大生命值: 10.0
-    // 移动速度: 1.2 (MC 中使用 1.2F 作为基础移动速度乘数)
+    // 移动速度: 1.2
     // 攻击伤害: 3.0
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.2);

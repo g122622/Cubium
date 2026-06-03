@@ -23,18 +23,18 @@
 
 #include "PufferfishEntity.hpp"
 
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/special/SpecialGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../effect/EffectInstance.hpp"
-#include "../../../effect/EffectType.hpp"
-#include "../../../entities/player/Player.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -53,7 +53,6 @@ std::unique_ptr<Entity> PufferfishEntity::create(IWorld* /*world*/)
 
 f32 PufferfishEntity::getPuffSize() const
 {
-    // MC 1.16.5: getPuffSize(puffState)
     // 返回碰撞箱缩放因子，基础尺寸为 0.7 x 0.7
     switch (m_puffState) {
         case PuffState::Deflated:
@@ -69,8 +68,7 @@ f32 PufferfishEntity::getPuffSize() const
 
 entity::EntitySize PufferfishEntity::getDimensions(EntityPose /*pose*/) const
 {
-    // MC 1.16.5: 根据膨胀状态动态计算尺寸
-    // 基础尺寸 0.7 x 0.7，乘以 getPuffSize() 缩放因子
+    // 根据膨胀状态动态计算尺寸，基础尺寸 0.7 x 0.7
     f32 scale = getPuffSize();
     return entity::EntitySize::flexible(0.7f * scale, 0.7f * scale);
 }
@@ -79,8 +77,7 @@ void PufferfishEntity::registerGoals()
 {
     AbstractFishEntity::registerGoals();
 
-    // MC 1.16.5: 注册 PuffGoal
-    // 优先级 1，检测附近敌人并触发膨胀
+    // 注册 PuffGoal，优先级 1，检测附近敌人并触发膨胀
     m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::PuffGoal>(this));
 }
 
@@ -88,21 +85,9 @@ void PufferfishEntity::tick()
 {
     AbstractFishEntity::tick();
 
-    // MC 1.16.5: 只有在服务端世界且存活时才处理膨胀逻辑
-    // 由于我们没有 isRemote 检查，直接在 tick 中处理
-
-    // MC 1.16.5 PufferfishEntity.livingTick():
-    // if (!this.world.isRemote && this.isAlive() && this.isServerWorld()) {
-    //     if (this.puffTimer > 0) {
-    //         // 膨胀逻辑
-    //     } else if (this.getPuffState() != 0) {
-    //         // 收缩逻辑
-    //     }
-    // }
-
+    // 处理膨胀和收缩逻辑
     if (m_puffTimer > 0) {
-        // MC 1.16.5: 膨胀逻辑
-        // 当 puffTimer == 1 时，从状态 0 变为状态 1
+        // 膨胀逻辑：当 puffTimer == 1 时，从状态 0 变为状态 1
         if (m_puffState == PuffState::Deflated && m_puffTimer == 1) {
             setPuffState(PuffState::SemiPuffed);
         }
@@ -113,7 +98,7 @@ void PufferfishEntity::tick()
 
         ++m_puffTimer;
     } else if (m_puffState != PuffState::Deflated) {
-        // MC 1.16.5: 收缩逻辑
+        // 收缩逻辑
         ++m_deflateTimer;
 
         if (m_deflateTimer > DEFLATE_FULL_TO_SEMI && m_puffState == PuffState::FullyPuffed) {
@@ -125,40 +110,28 @@ void PufferfishEntity::tick()
         }
     }
 
-    // MC 1.16.5: 在膨胀状态时攻击附近敌人
+    // 在膨胀状态时攻击附近敌人
     if (m_puffState != PuffState::Deflated) {
-        attackNearbyEnemies();
+        _attackNearbyEnemies();
     }
 }
 
 void PufferfishEntity::startPuffTimer()
 {
-    // MC 1.16.5 PuffGoal.startExecuting():
-    // this.fish.puffTimer = 1;
-    // this.fish.deflateTimer = 0;
+    // 设置 puffTimer = 1 并重置 deflateTimer = 0
     m_puffTimer = 1;
     m_deflateTimer = 0;
 }
 
 void PufferfishEntity::resetPuffTimer()
 {
-    // MC 1.16.5 PuffGoal.resetTask():
-    // this.fish.puffTimer = 0;
+    // 重置膨胀计时器
     m_puffTimer = 0;
 }
 
-void PufferfishEntity::attackNearbyEnemies()
+void PufferfishEntity::_attackNearbyEnemies()
 {
-    // MC 1.16.5 PufferfishEntity.livingTick():
-    // if (this.isAlive() && this.getPuffState() > 0) {
-    //     for(MobEntity mobentity : this.world.getEntitiesWithinAABB(
-    //             MobEntity.class, this.getBoundingBox().grow(0.3D), ENEMY_MATCHER)) {
-    //         if (mobentity.isAlive()) {
-    //             this.attack(mobentity);
-    //         }
-    //     }
-    // }
-
+    // 在膨胀状态时攻击碰撞箱扩展 0.3 格范围内的敌人
     if (!isAlive() || !world()) return;
 
     // 检测碰撞箱扩展 0.3 格范围内的敌人
@@ -174,21 +147,15 @@ void PufferfishEntity::attackNearbyEnemies()
         if (!mob) continue;
 
         // 检查是否为敌人（非水生生物）
-        // MC 1.16.5: ENEMY_MATCHER 检查 getCreatureAttribute() != WATER
         // 对于玩家，PuffGoal 已经在检测时处理，这里主要处理怪物
 
-        // 攻击敌人
-        // MC 1.16.5: attack(MobEntity)
-        // 伤害 = 1 + puffState
+        // 攻击敌人，伤害 = 1 + puffState
         // 中毒持续时间 = 60 * puffState ticks
-
-        // 创建伤害来源
         EntityDamageSource damageSource = DamageSources::mobAttack(this);
         i32 damage = 1 + static_cast<i32>(m_puffState);
 
         if (mob->hurt(damageSource, static_cast<f32>(damage))) {
-            // MC 1.16.5: 添加中毒效果
-            // mobentity.addPotionEffect(new EffectInstance(Effects.POISON, 60 * i, 0));
+            // 添加中毒效果
             i32 poisonDuration = 60 * static_cast<i32>(m_puffState);
             mob->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison,
                 poisonDuration,
@@ -213,29 +180,24 @@ std::optional<ResourceLocation> PufferfishEntity::getAmbientSound() const
 
 std::optional<ResourceLocation> PufferfishEntity::getFlopSound() const
 {
-    // MC 1.16.5: SoundEvents.ENTITY_PUFFER_FISH_FLOP
     return SoundEvents::ENTITY_PUFFER_FISH_FLOP;
 }
 
 std::optional<ResourceLocation> PufferfishEntity::getDeathSound() const
 {
-    // MC 1.16.5: SoundEvents.ENTITY_PUFFER_FISH_DEATH
     return SoundEvents::ENTITY_PUFFER_FISH_DEATH;
 }
 
 std::optional<ResourceLocation> PufferfishEntity::getHurtSound(DamageSource& /*source*/) const
 {
-    // MC 1.16.5: SoundEvents.ENTITY_PUFFER_FISH_HURT
     return SoundEvents::ENTITY_PUFFER_FISH_HURT;
 }
 
 void PufferfishEntity::registerAttributes()
 {
-    // 调用父类方法
     AbstractFishEntity::registerAttributes();
 
-    // 河豚的属性
-    // 参考 MC 1.16.5 河豚属性
+    // 河豚属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
 }
@@ -244,7 +206,7 @@ void PufferfishEntity::registerData()
 {
     AbstractFishEntity::registerData();
 
-    // MC 1.16.5: this.dataManager.register(PUFF_STATE, 0)
+    // 注册膨胀状态同步参数
     m_dataManager.registerParam(DATA_PUFF_STATE_PARAM, 0);
 }
 
@@ -268,19 +230,17 @@ void PufferfishEntity::setPuffState(PuffState state)
     PuffState oldState = m_puffState;
     m_puffState = state;
 
-    // MC 1.16.5: 通过 DataParameter 同步
+    // 通过 DataParameter 同步到客户端
     m_dataManager.set(DATA_PUFF_STATE_PARAM, static_cast<i32>(state));
 
-    // MC 1.16.5: 膨胀时播放 BLOW_UP 音效
+    // 膨胀时播放 BLOW_UP 音效，收缩时播放 BLOW_OUT 音效
     if (static_cast<i32>(state) > static_cast<i32>(oldState)) {
         playSound(SoundEvents::ENTITY_PUFFER_FISH_BLOW_UP, 1.0f, 1.0f);
-    }
-    // MC 1.16.5: 收缩时播放 BLOW_OUT 音效
-    else {
+    } else {
         playSound(SoundEvents::ENTITY_PUFFER_FISH_BLOW_OUT, 1.0f, 1.0f);
     }
 
-    // MC 1.16.5: 刷新碰撞箱尺寸
+    // 刷新碰撞箱尺寸
     refreshDimensions();
 }
 

@@ -131,7 +131,7 @@ public:
 
     /**
      * @brief 获取装备槽数量
-     * MC 1.16.5: 猪只有一个鞍槽
+     * 猪只有一个鞍槽
      */
     [[nodiscard]] i32 getEquipmentSlotCount() const override { return 1; }
 
@@ -149,7 +149,7 @@ public:
 
     /**
      * @brief 检查是否可以装备指定物品
-     * MC 1.16.5: 猪只能装备鞍
+     * 猪只能装备鞍
      */
     [[nodiscard]] bool canEquip(const ItemStack& item, i32 slot) const override;
 
@@ -161,7 +161,6 @@ protected:
 
     /**
      * @brief 死亡时掉落鞍
-     * MC 1.16.5 PigEntity.dropInventory()
      */
     void die(DamageSource& cause) override;
 
@@ -176,9 +175,9 @@ protected:
     [[nodiscard]] f32 eyeHeight() const override { return 0.4f * height(); }
 
 private:
-    BoostHelper m_boostHelper; ///< 加速辅助器（MC 1.16.5: field_234214_bx_）
+    BoostHelper m_boostHelper; ///< 加速辅助器
 
-    // MC 1.16.5 常量
+    // 常量
     static constexpr f32 PIG_SPEED = 0.25f;           // 基础移动速度
     static constexpr f32 MOUNTED_SPEED_MULT = 0.225f; // 骑乘速度乘数
 };

@@ -36,7 +36,6 @@ namespace entity {
  * @brief 游戏模式工具函数
  *
  * 提供游戏模式相关的能力计算工具。
- * 参考 MC 1.16.5 PlayerList#setGameMode
  */
 namespace GameModeUtils {
 

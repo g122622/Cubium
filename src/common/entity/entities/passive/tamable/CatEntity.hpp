@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "TameableEntity.hpp"
+#include "core/Types.hpp"
+#include "entity/ai/goal/goals/AvoidEntityGoal.hpp"
+#include "entity/ai/goal/goals/TemptGoal.hpp"
+#include "entity/entities/passive/tamable/TameableEntity.hpp"
+
 #include <memory>
-#include <random>
 
 namespace mc {
 
@@ -62,8 +62,6 @@ class ItemStack;
  * - ENTITY_CAT_HISS: 嘶嘶声（恐惧时）
  * - ENTITY_CAT_EAT: 进食音效
  * - ENTITY_CAT_BEG_FOR_FOOD: 乞食音效
- *
- * 参考 MC 1.16.5 CatEntity
  */
 class CatEntity : public TameableEntity {
 public:
@@ -229,7 +227,6 @@ private:
      * @brief 猫的食物诱惑目标
      *
      * 继承自 TemptGoal，重写 shouldExecute() 使其只在未驯服时执行。
-     * 参考 MC 1.16.5 CatEntity.TemptGoal
      */
     class CatTemptGoal : public entity::ai::goal::TemptGoal {
     public:
@@ -245,7 +242,6 @@ private:
      * @brief 猫的避开玩家目标
      *
      * 继承自 AvoidEntityGoal，重写使其只在未驯服时避开玩家。
-     * 参考 MC 1.16.5 CatEntity.AvoidPlayerGoal
      */
     class CatAvoidPlayerGoal : public entity::ai::goal::AvoidEntityGoal {
     public:
@@ -261,10 +257,9 @@ private:
     /**
      * @brief 设置驯服后的 AI
      *
-     * MC 1.16.5: setupTamedAI()
      * 动态添加/移除 AvoidPlayerGoal
      */
-    void setupTamedAI();
+    void _setupTamedAI();
 
     // 皮肤类型
     CatType m_catType = CatType::Tabby;
@@ -285,7 +280,7 @@ private:
     // 常量
     static constexpr i32 GIFT_INTERVAL = 24000; // 礼物间隔（1200秒 = 20分钟）
 
-    // 猫的移动速度常量（MC 1.16.5）
+    // 猫的移动速度常量
     static constexpr f64 TEMPT_SPEED = 0.6;       // 诱惑速度
     static constexpr f64 AVOID_FAR_SPEED = 0.8;   // 远距离逃避速度
     static constexpr f64 AVOID_NEAR_SPEED = 1.33; // 近距离逃避速度

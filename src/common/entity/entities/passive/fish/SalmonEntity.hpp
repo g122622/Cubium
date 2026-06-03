@@ -37,8 +37,7 @@ class ResourceLocation;
 /**
  * @brief 鲑鱼实体
  *
- * 对齐 1.16.5 SalmonEntity。鲑鱼属于群游鱼类，但最大群体大小
- * 与鳕鱼不同，vanilla 固定为 5。
+ * 鲑鱼属于群游鱼类，最大群体大小固定为 5。
  */
 class SalmonEntity : public AbstractGroupFishEntity {
 public:
@@ -51,8 +50,8 @@ public:
 
     SalmonEntity(const SalmonEntity&) = delete;
     SalmonEntity& operator=(const SalmonEntity&) = delete;
-    SalmonEntity(SalmonEntity&&) = delete;
-    SalmonEntity& operator=(SalmonEntity&&) = delete;
+    SalmonEntity(SalmonEntity&&) noexcept = delete;
+    SalmonEntity& operator=(SalmonEntity&&) noexcept = delete;
 
     /**
      * @brief 创建鲑鱼实体
@@ -71,25 +70,21 @@ public:
 
     /**
      * @brief 获取扑腾声音
-     * MC 1.16.5: SoundEvents.ENTITY_SALMON_FLOP
      */
     [[nodiscard]] std::optional<ResourceLocation> getFlopSound() const override;
 
     /**
      * @brief 获取环境声音
-     * MC 1.16.5: SoundEvents.ENTITY_SALMON_AMBIENT
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
     /**
      * @brief 获取死亡声音
-     * MC 1.16.5: SoundEvents.ENTITY_SALMON_DEATH
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
     /**
      * @brief 获取受伤声音
-     * MC 1.16.5: SoundEvents.ENTITY_SALMON_HURT
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 

@@ -37,8 +37,7 @@ class ResourceLocation;
 /**
  * @brief 热带鱼实体
  *
- * 对齐 1.16.5 TropicalFishEntity。当前先保留变种编码和群游层次，
- * 预定义花纹、桶数据和更完整的刷怪语义留到后续任务继续补。
+ * 支持变种编码和群游行为，包含预定义花纹、颜色等属性。
  */
 class TropicalFishEntity : public AbstractGroupFishEntity {
 public:
@@ -69,8 +68,8 @@ public:
 
     TropicalFishEntity(const TropicalFishEntity&) = delete;
     TropicalFishEntity& operator=(const TropicalFishEntity&) = delete;
-    TropicalFishEntity(TropicalFishEntity&&) = delete;
-    TropicalFishEntity& operator=(TropicalFishEntity&&) = delete;
+    TropicalFishEntity(TropicalFishEntity&&) noexcept = delete;
+    TropicalFishEntity& operator=(TropicalFishEntity&&) noexcept = delete;
 
     /**
      * @brief 创建热带鱼实体
@@ -114,25 +113,21 @@ public:
 
     /**
      * @brief 获取扑腾声音
-     * MC 1.16.5: SoundEvents.ENTITY_TROPICAL_FISH_FLOP
      */
     [[nodiscard]] std::optional<ResourceLocation> getFlopSound() const override;
 
     /**
      * @brief 获取环境声音
-     * MC 1.16.5: SoundEvents.ENTITY_TROPICAL_FISH_AMBIENT
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
     /**
      * @brief 获取死亡声音
-     * MC 1.16.5: SoundEvents.ENTITY_TROPICAL_FISH_DEATH
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
 
     /**
      * @brief 获取受伤声音
-     * MC 1.16.5: SoundEvents.ENTITY_TROPICAL_FISH_HURT
      */
     [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 

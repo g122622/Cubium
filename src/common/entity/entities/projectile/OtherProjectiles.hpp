@@ -36,8 +36,6 @@ namespace entity {
  * @brief 羊驼唾液实体
  *
  * 羊驼发射的唾液，对狼造成伤害。
- *
- * 参考 MC 1.16.5 LlamaSpitEntity
  */
 class LlamaSpitEntity : public ThrowableEntity {
 public:
@@ -67,8 +65,6 @@ protected:
  * @brief 钓鱼浮标实体
  *
  * 钓鱼竿的浮标，用于钓鱼机制。
- *
- * 参考 MC 1.16.5 FishingBobberEntity
  */
 class FishingBobberEntity : public Entity {
 public:
@@ -218,8 +214,6 @@ private:
     /**
      * @brief 执行射线检测
      * @return 射线检测结果
-     *
-     * 参考 MC 1.16.5 FishingBobberEntity.checkCollision()
      */
     [[nodiscard]] RayTraceResult performRayTrace();
 
@@ -227,31 +221,23 @@ private:
      * @brief 检查是否可以命中指定实体
      * @param target 目标实体
      * @return 是否可以命中
-     *
-     * 钓鱼浮标可以命中：普通可命中实体 + 物品实体
      */
     [[nodiscard]] bool canHitEntity(const Entity& target) const;
 
     /**
      * @brief 命中实体时的回调
      * @param result 射线检测结果
-     *
-     * 参考 MC 1.16.5 FishingBobberEntity.onEntityHit()
      */
     void onEntityHit(const RayTraceResult& result);
 
     /**
      * @brief 命中方块时的回调
      * @param result 射线检测结果
-     *
-     * 参考 MC 1.16.5: 命中方块后停止移动
      */
     void onBlockHit(const RayTraceResult& result);
 
     /**
      * @brief 拉动被钩住的实体
-     *
-     * 参考 MC 1.16.5 FishingBobberEntity.bringInHookedEntity()
      */
     void bringInHookedEntity();
 
@@ -284,8 +270,6 @@ private:
  * - 沿轴向移动，追踪目标
  * - 命中后造成4点伤害和10秒漂浮效果
  * - 被击中时会消失并产生爆炸粒子
- *
- * 参考 MC 1.16.5 ShulkerBulletEntity
  */
 class ShulkerBulletEntity : public ProjectileEntity {
 public:
@@ -390,8 +374,6 @@ private:
  * - 范围伤害：对碰撞箱内的生物造成魔法伤害
  * - 队伍判断：不伤害唤魔者及其队友
  * - 有限生命：攻击后自动消失
- *
- * 参考 MC 1.16.5 EvokerFangsEntity
  */
 class EvokerFangsEntity : public Entity {
 public:
@@ -441,23 +423,19 @@ public:
      * @brief 获取动画进度
      * @param partialTicks 部分tick时间
      * @return 动画进度（0.0-1.0）
-     *
-     * 参考 MC 1.16.5 EvokerFangsEntity.getAnimationProgress()
      */
     [[nodiscard]] f32 getAnimationProgress(f32 partialTicks) const;
 
 private:
     /**
      * @brief 对范围内实体造成伤害
-     *
-     * 参考 MC 1.16.5 EvokerFangsEntity.damage()
      */
     void damageEntities();
 
     LivingEntity* m_owner = nullptr;        ///< 所有者（唤魔者）
     i32 m_warmupDelay = 0;                  ///< 预热延迟（ticks）
     bool m_sentAttackEvent = false;         ///< 是否已发送攻击事件
-    i32 m_lifeTicks = 22;                   ///< 生命时长（ticks），MC 1.16.5 默认22
+    i32 m_lifeTicks = 22;                   ///< 生命时长（ticks），默认22
     bool m_clientSideAttackStarted = false; ///< 客户端攻击开始标志
 };
 
@@ -465,8 +443,6 @@ private:
  * @brief 末影之眼实体
  *
  * 末影之眼会飞向要塞。
- *
- * 参考 MC 1.16.5 EyeOfEnderEntity
  */
 class EyeOfEnderEntity : public Entity {
 public:
@@ -522,14 +498,12 @@ private:
  * 烟花火箭可以发射、爆炸并产生各种效果。
  * 从弩发射的烟花火箭会对周围实体造成伤害。
  *
- * 伤害机制（MC 1.16.5）：
+ * 伤害机制：
  * - 爆炸半径：5 格
  * - 基础伤害：5 点
  * - 每个爆炸效果增加：+2 点伤害
  * - 距离衰减：damage * sqrt((5 - distance) / 5)
  * - 视线检测：两条射线（脚部和腰部），任一未被方块阻挡即可造成伤害
- *
- * 参考 MC 1.16.5 FireworkRocketEntity
  */
 class FireworkRocketEntity : public ProjectileEntity {
 public:

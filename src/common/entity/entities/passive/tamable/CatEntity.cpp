@@ -22,25 +22,26 @@
  */
 
 #include "CatEntity.hpp"
-#include "../../../../core/Types.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/interact/TameableGoals.hpp"
-#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../entities/player/Player.hpp"
+
+#include "core/Types.hpp"
+#include "entity/ai/goal/GoalSelector.hpp"
+#include "entity/ai/goal/goals/BreedGoal.hpp"
+#include "entity/ai/goal/goals/FollowParentGoal.hpp"
+#include "entity/ai/goal/goals/LookAtGoal.hpp"
+#include "entity/ai/goal/goals/PanicGoal.hpp"
+#include "entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "entity/ai/goal/goals/SwimGoal.hpp"
+#include "entity/ai/goal/goals/interact/TameableGoals.hpp"
+#include "entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "entity/attribute/Attributes.hpp"
+#include "entity/core/EntityRegistry.hpp"
+#include "entity/core/LivingEntity.hpp"
+#include "entity/core/MobEntity.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "item/Items.hpp"
+#include "item/core/ItemStack.hpp"
+#include "sound/SoundEvents.hpp"
+#include "util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -52,14 +53,12 @@ CatEntity::CatTemptGoal::CatTemptGoal(CatEntity* cat, f64 speed, ItemPredicate i
     : TemptGoal(cat, speed, std::move(itemPredicate), scaredByMovement)
     , m_cat(cat)
 {
-    // MC 1.16.5: CatEntity.TemptGoal 继承自 TemptGoal
-    // 重写 shouldExecute() 使其只在未驯服时执行
+    // 继承自 TemptGoal，重写 shouldExecute() 使其只在未驯服时执行
 }
 
 bool CatEntity::CatTemptGoal::shouldExecute()
 {
-    // MC 1.16.5: 只有未驯服的猫才会被诱惑
-    // return super.shouldExecute() && !this.cat.isTamed();
+    // 只有未驯服的猫才会被诱惑
     if (m_cat == nullptr || m_cat->isTamed()) {
         return false;
     }
@@ -75,7 +74,6 @@ CatEntity::CatAvoidPlayerGoal::CatAvoidPlayerGoal(CatEntity* cat, f32 avoidDista
           avoidDistance,
           farSpeed,
           nearSpeed,
-          // MC 1.16.5: EntityPredicates.CAN_AI_TARGET
           // 只避开可以作为 AI 目标的玩家
           [](const LivingEntity* entity) -> bool {
               if (entity == nullptr) {
@@ -86,21 +84,17 @@ CatEntity::CatAvoidPlayerGoal::CatAvoidPlayerGoal(CatEntity* cat, f32 avoidDista
               if (player == nullptr) {
                   return false;
               }
-              // MC 1.16.5: EntityPredicates.CAN_AI_TARGET
-              // !isSpectator() && isAlive()
-              // 注意：创造模式玩家也应该被避开
+              // 创造模式玩家也应该被避开
               return !player->isSpectator() && player->isAlive();
           })
     , m_cat(cat)
 {
-    // MC 1.16.5: CatEntity.AvoidPlayerGoal 继承自 AvoidEntityGoal
-    // 重写 shouldExecute() 和 shouldContinueExecuting() 使其只在未驯服时执行
+    // 继承自 AvoidEntityGoal，重写 shouldExecute() 和 shouldContinueExecuting() 使其只在未驯服时执行
 }
 
 bool CatEntity::CatAvoidPlayerGoal::shouldExecute()
 {
-    // MC 1.16.5: 只有未驯服的猫才会避开玩家
-    // return !this.cat.isTamed() && super.shouldExecute();
+    // 只有未驯服的猫才会避开玩家
     if (m_cat == nullptr || m_cat->isTamed()) {
         return false;
     }
@@ -109,8 +103,7 @@ bool CatEntity::CatAvoidPlayerGoal::shouldExecute()
 
 bool CatEntity::CatAvoidPlayerGoal::shouldContinueExecuting()
 {
-    // MC 1.16.5: 只有未驯服的猫才会继续避开玩家
-    // return !this.cat.isTamed() && super.shouldContinueExecuting();
+    // 只有未驯服的猫才会继续避开玩家
     if (m_cat == nullptr || m_cat->isTamed()) {
         return false;
     }
@@ -181,7 +174,6 @@ std::unique_ptr<AnimalEntity> CatEntity::spawnBaby(AnimalEntity& /*partner*/)
 
 void CatEntity::registerGoals()
 {
-    // MC 1.16.5 CatEntity.registerGoals() 完整目标列表：
     // 注意：AnimalEntity 基类不注册任何 goal，所以这里需要注册完整的 AI 目标列表
 
     // 优先级 0: 游泳（最高优先级）
@@ -197,7 +189,6 @@ void CatEntity::registerGoals()
     m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 0.8));
 
     // 优先级 3: 食物诱惑（生鱼用于驯服）
-    // MC 1.16.5: this.temptGoal = new CatEntity.TemptGoal(this, 0.6D, BREEDING_ITEMS, true);
     // 注意：scaredByMovement = true，猫会被玩家快速移动吓跑
     m_temptGoal = new CatTemptGoal(
         this,
@@ -209,19 +200,17 @@ void CatEntity::registerGoals()
         true); // scaredByMovement = true
     m_goalSelector.addGoal(3, m_temptGoal);
 
-    // 优先级 4: 避开玩家（未驯服时）- 在 setupTamedAI() 中动态添加
+    // 优先级 4: 避开玩家（未驯服时）- 在 _setupTamedAI() 中动态添加
     // 初始时根据驯服状态添加
-    setupTamedAI();
+    _setupTamedAI();
 
     // 优先级 5: 跟随父母（幼体行为）
     m_goalSelector.addGoal(5, new entity::ai::goal::FollowParentGoal(this, 1.0));
 
     // 优先级 6: 跟随主人（驯服后）
-    // MC 1.16.5: new FollowOwnerGoal(this, 1.0D, 10.0F, 5.0F, false)
     m_goalSelector.addGoal(6, new entity::ai::goal::FollowOwnerGoal(this, 1.0, 5.0f, 10.0f, 32.0f));
 
     // 优先级 10: 避水随机漫步
-    // MC 1.16.5: new WaterAvoidingRandomWalkingGoal(this, 0.8D, 1.0000001E-5F)
     m_goalSelector.addGoal(10, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 0.8, 1.0000001E-5f));
 
     // 优先级 12: 看向玩家
@@ -231,15 +220,12 @@ void CatEntity::registerGoals()
     m_goalSelector.addGoal(13, new entity::ai::goal::LookRandomlyGoal(this));
 }
 
-void CatEntity::setupTamedAI()
+void CatEntity::_setupTamedAI()
 {
-    // MC 1.16.5: CatEntity.setupTamedAI()
     // 动态添加/移除 AvoidPlayerGoal
 
     if (m_avoidPlayerGoal == nullptr) {
         // 创建避开玩家目标
-        // MC 1.16.5: this.avoidPlayerGoal = new CatEntity.AvoidPlayerGoal<>(this, PlayerEntity.class,
-        // 16.0F, 0.8D, 1.33D);
         m_avoidPlayerGoal = new CatAvoidPlayerGoal(this, AVOID_DISTANCE, AVOID_FAR_SPEED, AVOID_NEAR_SPEED);
     }
 
@@ -247,7 +233,6 @@ void CatEntity::setupTamedAI()
     m_goalSelector.removeGoal(m_avoidPlayerGoal);
 
     // 如果未驯服，添加避开玩家目标
-    // MC 1.16.5: if (!this.isTamed()) { this.goalSelector.addGoal(4, this.avoidPlayerGoal); }
     if (!isTamed()) {
         m_goalSelector.addGoal(4, m_avoidPlayerGoal);
     }
@@ -259,7 +244,6 @@ void CatEntity::registerAttributes()
     TameableEntity::registerAttributes();
 
     // 猫的属性
-    // 参考 MC 1.16.5 猫属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
 }
@@ -278,8 +262,7 @@ void CatEntity::onTamed(bool tamed)
     }
 
     // 更新 AI（添加/移除 AvoidPlayerGoal）
-    // MC 1.16.5: setupTamedAI() 在驯服状态改变时调用
-    setupTamedAI();
+    _setupTamedAI();
 }
 
 std::optional<ResourceLocation> CatEntity::getAmbientSound() const

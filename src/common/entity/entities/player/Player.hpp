@@ -64,15 +64,13 @@ class Scoreboard;
 // ============================================================================
 
 struct PlayerAbilities {
-    bool invulnerable = false; // 无敌
-    bool flying = false;       // 正在飞行
-    bool canFly = false;       // 允许飞行
-    bool creativeMode = false; // 创造模式
-    bool allowEdit = true;     // 允许编辑方块
-    // MC 1.16.5 PlayerAbilities.java:13-14 默认值
-    // 注意：这些值会在 GameModeUtils.cpp 中根据游戏模式设置正确的值
-    f32 flySpeed = 0.05f; // 飞行速度 (MC 默认值)
-    f32 walkSpeed = 0.1f; // 行走速度 (MC 默认值)
+    bool invulnerable = false;   // 无敌
+    bool flying = false;         // 正在飞行
+    bool canFly = false;         // 允许飞行
+    bool creativeMode = false;   // 创造模式
+    bool allowEdit = true;       // 允许编辑方块
+    f32 flySpeed = 0.05f;        // 飞行速度
+    f32 walkSpeed = 0.1f;        // 行走速度
 
     void serialize(network::PacketSerializer& ser) const
     {
@@ -134,11 +132,6 @@ struct PlayerAbilities {
  * - 经验系统
  * - 能力标志（飞行、无敌等）
  * - 物理移动支持（步进、跳跃）
- *
- * 物理系统参考MC Java版实现：
- * - LivingEntity.aiStep() - 主tick循环
- * - LivingEntity.travel() - 物理更新
- * - Entity.move() - 碰撞检测
  */
 class Player : public LivingEntity {
 public:
@@ -149,7 +142,7 @@ public:
     static constexpr f32 PLAYER_CROUCH_HEIGHT = 1.5f;
     static constexpr f32 PLAYER_SWIM_HEIGHT = 0.6f;
 
-    // MC物理常量
+    // 物理常量
     // 注意：PLAYER_STEP_HEIGHT 已移至 physics::STEP_HEIGHT (PhysicsConstants.hpp)
     // 注意：MOTION_THRESHOLD 已移至 physics::MOTION_THRESHOLD (PhysicsConstants.hpp)
     static constexpr i32 JUMP_COOLDOWN = 10;          // 跳跃冷却(ticks)
@@ -230,7 +223,6 @@ public:
      *
      * 玩家需要 80 tick (4秒) 在传送门中才能传送。
      * 创造模式（无敌状态）只需要 1 tick。
-     * 参考 MC 1.16.5 PlayerEntity.getMaxInPortalTime()
      *
      * @return 创造模式返回 1，其他返回 80
      */
@@ -240,7 +232,6 @@ public:
      * @brief 获取传送冷却时间
      *
      * 玩家的传送冷却时间为 10 tick，而非默认的 300 tick。
-     * 参考 MC 1.16.5 PlayerEntity.getPortalCooldown()
      *
      * @return 10 tick
      */
@@ -262,7 +253,6 @@ public:
     /**
      * @brief 检查玩家是否可以进食
      *
-     * MC 1.16.5: PlayerEntity.canEat(boolean ignoreHunger)
      * - 创造模式或观察者模式: 返回 false
      * - ignoreHunger 为 true: 返回 true（如金苹果等特殊食物）
      * - 否则: 返回 hunger < 20
@@ -274,10 +264,6 @@ public:
 
     // ========== 饥饿消耗 ==========
 
-    /**
-     * @brief 饥饿消耗常量
-     * 参考 MC 1.16.5 PlayerEntity 和 FoodStats
-     */
     /// 疾跑每米消耗
     static constexpr f32 EXHAUSTION_SPRINT_PER_METER = 0.1f;
     /// 普通跳跃消耗
@@ -375,8 +361,6 @@ public:
      * ServerPlayer 重写此方法以通过网络发送消息到客户端。
      * 客户端 Player 可以直接显示在聊天界面。
      *
-     * 参考 MC 1.16.5 PlayerEntity.sendStatusMessage(ITextComponent, boolean)
-     *
      * @param message 消息内容（通常是翻译键或格式化文本）
      * @param actionBar 是否显示在 Action Bar（物品栏上方的提示区域）
      *                  当前实现中此参数可能被忽略，消息始终发送到聊天区域
@@ -405,8 +389,8 @@ public:
      */
     virtual void awardCraftedStat(const ResourceLocation& itemId, i32 count)
     {
-        (void)itemId;
-        (void)count;
+        MC_UNUSED(itemId);
+        MC_UNUSED(count);
         // 基类默认空实现
     }
 
@@ -421,8 +405,8 @@ public:
      */
     virtual void onItemCrafted(ItemStack& stack, i32 amount)
     {
-        (void)stack;
-        (void)amount;
+        MC_UNUSED(stack);
+        MC_UNUSED(amount);
         // 基类默认空实现
     }
 
@@ -436,7 +420,7 @@ public:
      */
     virtual void unlockRecipe(const ResourceLocation& recipeId)
     {
-        (void)recipeId;
+        MC_UNUSED(recipeId);
         // 基类默认空实现
     }
 
@@ -475,7 +459,6 @@ public:
      * @brief 丢弃物品
      *
      * 在玩家位置生成物品实体。
-     * 参考: MC 1.16.5 PlayerEntity.dropItem(ItemStack, boolean, boolean)
      *
      * @param stack 要丢弃的物品堆
      * @param dropAround 是否向四周散射（Q键丢弃 vs Ctrl+Q丢弃）
@@ -499,7 +482,6 @@ public:
      * @brief 受伤时损坏护甲
      *
      * 重写 LivingEntity::damageArmor()，委托给 PlayerInventory::damageArmor()。
-     * 参考 MC 1.16.5 PlayerEntity.damageArmor()
      *
      * @param source 伤害来源
      * @param amount 伤害量
@@ -539,14 +521,12 @@ public:
     /**
      * @brief 获取玩家前进移动输入
      * @return 前进移动值 (-1到1，负为后退)
-     * 参考 MC 1.16.5 PlayerEntity.moveForward
      */
     [[nodiscard]] f32 moveForward() const { return m_inputForward; }
 
     /**
      * @brief 获取玩家横向移动输入
      * @return 横向移动值 (-1到1，负为左)
-     * 参考 MC 1.16.5 PlayerEntity.moveStrafing
      */
     [[nodiscard]] f32 moveStrafing() const { return m_inputStrafe; }
 
@@ -582,19 +562,19 @@ public:
      *
      * @return true 如果睡眠计时器 >= 100
      */
-    [[nodiscard]] bool isPlayerFullyAsleep() const { return m_isSleeping && sleepTimer >= 100; }
+    [[nodiscard]] bool isPlayerFullyAsleep() const { return m_isSleeping && m_sleepTimer >= 100; }
 
     /**
      * @brief 获取睡眠计时器
      * @return 睡眠计时器值 (0-100 完全入睡后保持)
      */
-    [[nodiscard]] i32 getSleepTimer() const { return sleepTimer; }
+    [[nodiscard]] i32 getSleepTimer() const { return m_sleepTimer; }
 
     /**
      * @brief 设置睡眠计时器
      * @param value 计时器值
      */
-    void setSleepTimer(i32 value) { sleepTimer = value; }
+    void setSleepTimer(i32 value) { m_sleepTimer = value; }
 
     /**
      * @brief 开始睡眠（基础状态管理）
@@ -615,8 +595,6 @@ public:
      * 执行完整的睡眠验证流程，包括距离检查、阻挡检查、时间检查、怪物检查等。
      * 基类实现为简单成功（直接调用 startSleeping）。
      * ServerPlayer 重写此方法进行完整验证。
-     *
-     * 参考 MC 1.16.5: ServerPlayerEntity.trySleep()
      *
      * @param bedPos 床头位置
      * @return 睡眠结果
@@ -670,8 +648,6 @@ public:
      * 用于 nether_travel 进度触发器。
      * 当玩家从主世界进入下界时记录，从下界返回主世界时清除。
      *
-     * 参考 MC 1.16.5 ServerPlayerEntity.enteredNetherPosition
-     *
      * @return 进入下界时的位置，如果未记录则返回空
      */
     [[nodiscard]] std::optional<Vector3d> getEnteredNetherPosition() const { return m_enteredNetherPosition; }
@@ -710,7 +686,7 @@ public:
 
     /**
      * @brief 获取乘客Y偏移
-     * @return -0.35 (MC 1.16.5 PlayerEntity.getYOffset())
+     * @return -0.35
      *
      * 当玩家作为乘客时，相对于载具骑乘点的 Y 偏移。
      * 这个负值使玩家稍微下沉到载具上，使骑乘动画看起来更自然。
@@ -721,7 +697,6 @@ public:
      * @brief 检查是否是本地玩家
      * @return 如果是本地玩家返回true
      *
-     * MC 1.16.5: PlayerEntity.isUser()
      * 客户端：返回 true 表示这是本地玩家控制的实体
      * 服务端：总是返回 false
      *
@@ -748,7 +723,6 @@ public:
     /**
      * @brief 自动更新姿态
      *
-     * 参考 MC 1.16.5 PlayerEntity.updatePose()
      * 每帧根据当前状态自动判断正确姿态：
      * - 鞘翅飞行 -> FALL_FLYING
      * - 睡眠 -> SLEEPING
@@ -778,7 +752,6 @@ public:
      * @return 深度守卫等级 (0-3)
      *
      * 检查玩家靴子上的深度守卫附魔等级。
-     * 参考 MC 1.16.5 EnchantmentHelper.getDepthStriderModifier()
      */
     [[nodiscard]] i32 getDepthStriderLevel() const;
 
@@ -796,7 +769,6 @@ public:
     /**
      * @brief 检测与附近实体的碰撞
      *
-     * 参考 MC 1.16.5 PlayerEntity.tick() 第531-547行
      * 检测玩家碰撞箱扩展范围内的实体，并调用它们的 onCollideWithPlayer 方法。
      * 用于处理物品拾取、箭矢拾取、经验球吸收等。
      */
@@ -863,7 +835,6 @@ public:
      * @brief 处理摔落伤害
      *
      * 覆盖 LivingEntity::handleFallDamage()，添加玩家特有摔落音效。
-     * 参考 MC 1.16.5: PlayerEntity.func_225503_b_()
      */
     void handleFallDamage(f32 distance, f32 damageMultiplier) override;
 
@@ -890,7 +861,6 @@ protected:
     /**
      * @brief 获取摔落声音
      *
-     * 参考 MC 1.16.5: PlayerEntity.getFallSound()
      * @param fallHeight 摔落高度（格数）
      * @return 摔落音效，高空摔落返回 ENTITY_PLAYER_BIG_FALL，否则 ENTITY_PLAYER_SMALL_FALL
      */
@@ -902,7 +872,6 @@ public:
     /**
      * @brief 获取溅水声音
      *
-     * 参考 MC 1.16.5: PlayerEntity.getSplashSound()
      * 玩家使用特定的溅水声音。
      *
      * @return ENTITY_PLAYER_SPLASH 声音事件
@@ -912,7 +881,6 @@ public:
     /**
      * @brief 获取高速溅水声音
      *
-     * 参考 MC 1.16.5: PlayerEntity.getHighspeedSplashSound()
      * 玩家高速入水时使用特定的声音。
      *
      * @return ENTITY_PLAYER_SPLASH_HIGH_SPEED 声音事件
@@ -922,7 +890,6 @@ public:
     /**
      * @brief 执行水花溅射效果
      *
-     * 参考 MC 1.16.5: PlayerEntity.doWaterSplashEffect()
      * 覆盖以检查观察者模式（观察者不产生水花效果）。
      */
     void doWaterSplashEffect() override;
@@ -1139,7 +1106,6 @@ public:
      * @brief 获取玩家视线方向向量
      *
      * 根据玩家的 yaw 和 pitch 计算视线方向。
-     * 参考 MC 1.16.5: Entity.getLook()
      *
      * @return 归一化的视线方向向量
      */
@@ -1160,8 +1126,6 @@ public:
      * 戴着南瓜头的玩家不会激怒末影人。
      * 南瓜头包括：雕刻南瓜（carved_pumpkin）和南瓜灯（jack_o_lantern）。
      *
-     * 参考 MC 1.16.5: ItemStack.isEnderMask()
-     *
      * @return 如果玩家戴着南瓜头返回 true
      */
     [[nodiscard]] bool isWearingPumpkin() const;
@@ -1171,8 +1135,6 @@ public:
      *
      * 计算玩家视线方向与玩家到目标向量的点积，
      * 判断玩家是否正在看向目标。
-     *
-     * 参考 MC 1.16.5: EndermanEntity.shouldAttackPlayer()
      *
      * @param target 目标实体
      * @return 如果玩家正在注视目标返回 true
@@ -1184,8 +1146,6 @@ public:
      *
      * 猪灵会对未穿戴金装备的玩家产生敌意。
      * 检查玩家的四个盔甲槽位是否有金制盔甲。
-     *
-     * 参考 MC 1.16.5: PiglinTasks.func_234460_a_() (wearsGoldArmor)
      *
      * @return 如果玩家穿戴任何金装备返回 true
      */
@@ -1202,7 +1162,6 @@ public:
     /**
      * @brief 获取攻击冷却进度
      *
-     * MC 1.16.5: getCooledAttackStrength()
      * 计算当前攻击冷却进度（0-1）。
      * 冷却进度 = min(ticksSinceLastAttack + adjustTicks, cooldownPeriod) / cooldownPeriod
      *
@@ -1214,7 +1173,6 @@ public:
     /**
      * @brief 重置攻击冷却
      *
-     * MC 1.16.5: resetCooldown()
      * 在攻击后调用，重置攻击冷却计时器。
      */
     void resetCooldown();
@@ -1287,7 +1245,6 @@ public:
     /**
      * @brief 获取玩家挖掘速度
      *
-     * MC 1.16.5: PlayerEntity.getDigSpeed(BlockState, BlockPos)
      * 计算玩家对指定方块的挖掘速度，考虑以下因素：
      * 1. 工具基础挖掘速度
      * 2. 效率附魔加成（仅当工具有效时）
@@ -1305,7 +1262,6 @@ public:
     /**
      * @brief 检查玩家是否能采集方块
      *
-     * MC 1.16.5: PlayerEntity.canHarvestBlock(BlockState)
      * 判断玩家使用当前手持工具是否能采集指定方块。
      *
      * 采集条件：
@@ -1321,7 +1277,6 @@ public:
     /**
      * @brief 攻击目标实体
      *
-     * MC 1.16.5: attackTargetEntityWithCurrentItem()
      * 玩家使用当前手持物品攻击目标实体。
      *
      * 包含完整的攻击逻辑：
@@ -1339,7 +1294,6 @@ public:
     /**
      * @brief 与实体交互
      *
-     * MC 1.16.5: PlayerEntity.interactOn()
      * 玩家右键点击实体时调用，处理实体交互和物品交互。
      *
      * 交互流程：
@@ -1405,52 +1359,49 @@ private:
     /**
      * @brief 更新原版视野晃动强度
      */
-    void updateCameraYaw();
+    void _updateCameraYaw();
 
     /**
      * @brief 按当前缓存输入向速度添加玩家加速度
      *
      * 该方法只应由固定 20TPS 的物理更新调用，避免渲染帧率影响玩家速度。
      */
-    void applyCachedMovementInput(f32 groundSlipperiness);
+    void _applyCachedMovementInput(f32 groundSlipperiness);
 
     /**
      * @brief 处理水中移动
-     *
-     * 参考MC LivingEntity.travel() 水中分支
      */
-    void handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sneaking);
+    void _handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sneaking);
 
     /**
      * @brief 处理岩浆中移动
      */
-    void handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool sneaking);
+    void _handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool sneaking);
 
     /**
      * @brief 应用移动速度修正
      */
-    void applyMovementSpeed(f32& speed, bool sneaking) const;
+    void _applyMovementSpeed(f32& speed, bool sneaking) const;
 
     /**
      * @brief 获取当前脚下方块的滑度
      *
-     * 用于复刻 MC 1.16.5 的地面摩擦公式：脚下方块滑度乘以 0.91。
+     * 用于复刻地面摩擦公式：脚下方块滑度乘以 0.91。
      * @return 脚下方块滑度；没有世界或方块数据时返回默认滑度 0.6
      */
-    [[nodiscard]] f32 groundSlipperiness() const;
+    [[nodiscard]] f32 _groundSlipperiness() const;
 
     /**
      * @brief 重置过小的速度为零
-     * 参考MC: if (Math.abs(motion) < 0.003) motion = 0
      */
-    void clampMotion();
+    void _clampMotion();
 
     /**
      * @brief 检查玩家是否能以指定姿态容纳在当前位置
      * @param pose 目标姿态
      * @return 如果当前位置没有阻挡则返回 true
      */
-    [[nodiscard]] bool canFitPose(EntityPose pose) const;
+    [[nodiscard]] bool _canFitPose(EntityPose pose) const;
 
     std::string m_username;
     PlayerId m_playerId = 0;
@@ -1482,7 +1433,7 @@ private:
     bool m_inputJumping = false;
     bool m_inputSneaking = false;
 
-    i32 sleepTimer = 0;
+    i32 m_sleepTimer = 0;
 
     // 睡眠位置（当前睡眠的床位）
     std::optional<BlockPos> m_sleepingPosition;
@@ -1492,7 +1443,6 @@ private:
     bool m_spawnForced = false; // 是否强制重生点
 
     // 进入下界时的位置（用于进度触发器 nether_travel）
-    // 参考 MC 1.16.5 ServerPlayerEntity.enteredNetherPosition
     std::optional<Vector3d> m_enteredNetherPosition;
 
     // 自动跳跃系统

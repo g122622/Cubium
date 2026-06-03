@@ -23,10 +23,11 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../world/block/BlockPos.hpp"
-#include "../water/WaterMobEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/passive/water/WaterMobEntity.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/world/block/BlockPos.hpp"
+
 #include <memory>
 
 namespace mc {
@@ -71,8 +72,6 @@ class LivingEntity;
  * - ENTITY_DOLPHIN_PLAY: 玩耍物品音效
  * - ENTITY_DOLPHIN_SPLASH: 溅水音效
  * - ENTITY_DOLPHIN_SWIM: 游泳音效
- *
- * 参考 MC 1.16.5 DolphinEntity
  */
 class DolphinEntity : public WaterMobEntity {
 public:
@@ -103,12 +102,12 @@ public:
     /**
      * @brief 是否正在跳跃
      */
-    [[nodiscard]] bool isJumping() const { return m_jumping; }
+    [[nodiscard]] bool isJumping() const noexcept { return m_jumping; }
 
     /**
      * @brief 设置跳跃状态
      */
-    void setJumping(bool jumping) override { m_jumping = jumping; }
+    void setJumping(bool jumping) noexcept override { m_jumping = jumping; }
 
     /**
      * @brief 是否可以跳出水
@@ -120,7 +119,7 @@ public:
     /**
      * @brief 获取宝藏位置
      */
-    [[nodiscard]] const BlockPos& getTreasurePos() const { return m_treasurePos; }
+    [[nodiscard]] const BlockPos& getTreasurePos() const noexcept { return m_treasurePos; }
 
     /**
      * @brief 设置宝藏位置
@@ -130,7 +129,7 @@ public:
     /**
      * @brief 是否有宝藏目标
      */
-    [[nodiscard]] bool hasTreasureTarget() const { return m_hasTreasure; }
+    [[nodiscard]] bool hasTreasureTarget() const noexcept { return m_hasTreasure; }
 
     /**
      * @brief 清除宝藏目标
@@ -140,7 +139,7 @@ public:
     /**
      * @brief 是否正在引导玩家
      */
-    [[nodiscard]] bool isGuidingPlayer() const { return m_guidingPlayer; }
+    [[nodiscard]] bool isGuidingPlayer() const noexcept { return m_guidingPlayer; }
 
     /**
      * @brief 设置引导玩家状态
@@ -150,23 +149,21 @@ public:
     /**
      * @brief 获取被引导的玩家ID
      */
-    [[nodiscard]] u64 getGuidedPlayerId() const { return m_guidedPlayerId; }
+    [[nodiscard]] u64 getGuidedPlayerId() const noexcept { return m_guidedPlayerId; }
 
     // ========== 鱼标记 ==========
 
     /**
      * @brief 是否得到了鱼
-     * MC 1.16.5: hasGotFish()
      *
      * 当玩家喂食鱼后设置为 true，海豚会引导玩家到宝藏。
      */
-    [[nodiscard]] bool hasGotFish() const { return m_gotFish; }
+    [[nodiscard]] bool hasGotFish() const noexcept { return m_gotFish; }
 
     /**
      * @brief 设置得到鱼标记
-     * MC 1.16.5: setGotFish()
      */
-    void setGotFish(bool gotFish) { m_gotFish = gotFish; }
+    void setGotFish(bool gotFish) noexcept { m_gotFish = gotFish; }
 
     // ========== 食物 ==========
 
@@ -180,7 +177,6 @@ public:
 
     /**
      * @brief 检查是否接近导航目标
-     * MC 1.16.5: closeToTarget()
      */
     [[nodiscard]] bool closeToTarget() const;
 
@@ -207,23 +203,23 @@ public:
     /**
      * @brief 获取眼睛高度
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.3f; }
+    [[nodiscard]] f32 eyeHeight() const noexcept override { return 0.3f; }
 
     /**
      * @brief 获取实体宽度
      */
-    [[nodiscard]] f32 width() const override { return 0.9f; }
+    [[nodiscard]] f32 width() const noexcept override { return 0.9f; }
 
     /**
      * @brief 获取实体高度
      */
-    [[nodiscard]] f32 height() const override { return 0.6f; }
+    [[nodiscard]] f32 height() const noexcept override { return 0.6f; }
 
     /**
      * @brief 获取最大空气供应量
-     * MC 1.16.5: 海豚有 4800 tick (4分钟) 的空气储备
+     * 海豚有 4800 tick (4分钟) 的空气储备
      */
-    [[nodiscard]] i32 maxAir() const override { return MAX_AIR; }
+    [[nodiscard]] i32 maxAir() const noexcept override { return MAX_AIR; }
 
     // ========== 音效 ==========
 
@@ -263,17 +259,20 @@ private:
     u64 m_guidedPlayerId = 0;
     i32 m_guideTimer = 0;
 
-    // 鱼标记（MC 1.16.5: GOT_FISH 数据参数）
+    // 鱼标记
     bool m_gotFish = false;
 
     // 游泳计时器
     i32 m_swimTimer = 0;
 
     // 常量
-    static constexpr i32 GUIDE_DURATION = 1200; // 60秒引导时间
-    static constexpr f32 SWIM_SPEED = 0.6f;
-    static constexpr f32 JUMP_VELOCITY = 0.7f;
-    static constexpr i32 MAX_AIR = 4800; // 4分钟空气储备
+    static constexpr i32 GUIDE_DURATION = 1200;         // 60秒引导时间 (ticks)
+    static constexpr f32 SWIM_SPEED = 0.6f;             // 游泳速度
+    static constexpr f32 JUMP_VELOCITY = 0.7f;          // 跳跃速度
+    static constexpr i32 MAX_AIR = 4800;                // 4分钟空气储备 (ticks)
+    static constexpr i32 SWIM_JUMP_INTERVAL = 200;      // 游泳跳跃检查间隔 (ticks)
+    static constexpr i32 JUMP_CHANCE_DENOMINATOR = 100; // 跳跃概率分母
+    static constexpr f64 CLOSE_DISTANCE = 12.0;         // 接近目标的距离阈值（方块）
 };
 
 } // namespace mc

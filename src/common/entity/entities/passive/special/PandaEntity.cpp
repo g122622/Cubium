@@ -22,28 +22,23 @@
  */
 
 #include "PandaEntity.hpp"
-#include "../../../../core/Types.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/gamerule/GameRules.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../ai/goal/goals/special/PandaGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../utils/ItemDropHelper.hpp"
+
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/special/PandaGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/gamerule/GameRules.hpp"
+
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 
 namespace mc {
@@ -110,7 +105,7 @@ void PandaEntity::randomizePersonality()
 
 bool PandaEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // MC 1.16.5: 检查物品是否为竹子
+    // 检查物品是否为竹子
     const Item* item = itemStack.getItem();
     if (item == nullptr) {
         return false;
@@ -126,16 +121,13 @@ bool PandaEntity::isBreedingItem(const ItemStack& itemStack) const
 
 PandaEntity::Personality PandaEntity::calculateExpressedPersonality() const
 {
-    // MC 1.16.5: Gene.func_221101_b()
     // 根据主基因和隐藏基因计算表达的性格
-    //
-    // MC 1.16.5 基因表达规则：
+    // 基因表达规则：
     // 1. 如果主基因是显性的（Aggressive），直接返回主基因
     // 2. 如果主基因是隐性的（Lazy、Worried、Playful、Weak、Brown、Normal）：
     //    a. 如果主基因是 Lazy 且隐藏基因是 Aggressive，返回 Aggressive
     //    b. 否则返回主基因
-    //
-    // 注意：AggressiveLazy 性格实际上在 MC 1.16.5 中未被使用
+    // 注意：AggressiveLazy 性格实际上未被使用
 
     u8 mainGene = m_mainGene;
     u8 hiddenGene = m_hiddenGene;
@@ -149,7 +141,7 @@ PandaEntity::Personality PandaEntity::calculateExpressedPersonality() const
         return Personality::Aggressive;
     }
 
-    // 如果隐藏基因是好斗且主基因是懒惰，返回好斗（MC 1.16.5 特殊规则）
+    // 如果隐藏基因是好斗且主基因是懒惰，返回好斗（特殊规则）
     if (mainGene == LAZY && hiddenGene == AGGRESSIVE) {
         return Personality::Aggressive;
     }
@@ -160,7 +152,6 @@ PandaEntity::Personality PandaEntity::calculateExpressedPersonality() const
 
 u8 PandaEntity::getOneOfGenesRandomly(math::Random& rng) const
 {
-    // MC 1.16.5: return this.rand.nextBoolean() ? this.getMainGene() : this.getHiddenGene();
     return rng.nextBoolean() ? m_mainGene : m_hiddenGene;
 }
 
@@ -192,7 +183,7 @@ void PandaEntity::inheritGenesFromParents(PandaEntity* father, PandaEntity* moth
         }
     }
 
-    // MC 1.16.5: 1/32 概率发生变异
+    // 1/32 概率发生变异
     if (rng.nextInt(32) == 0) {
         m_mainGene = static_cast<u8>(rng.nextInt(0, 5));
     }
@@ -212,7 +203,6 @@ void PandaEntity::updatePersonalityFromGenes()
 
 std::unique_ptr<AnimalEntity> PandaEntity::spawnBaby(AnimalEntity& partner)
 {
-    // MC 1.16.5: PandaEntity.func_241840_a()
     auto baby = std::make_unique<PandaEntity>(0);
 
     // 设置为幼体
@@ -234,7 +224,7 @@ void PandaEntity::tick()
 
     // 更新打滚物理
     if (m_rolling) {
-        updateRoll();
+        _updateRoll();
     } else {
         m_rollTimer = 0;
     }
@@ -243,7 +233,7 @@ void PandaEntity::tick()
     if (m_sneezing && m_sneezeTimer > 0) {
         m_sneezeTimer--;
 
-        // MC 1.16.5: 第1 tick播放预喷嚏音效
+        // 第1 tick播放预喷嚏音效
         if (m_sneezeTimer == 19) {
             playPreSneezeSound();
         }
@@ -251,7 +241,7 @@ void PandaEntity::tick()
         if (m_sneezeTimer <= 0) {
             m_sneezing = false;
             // 打喷嚏完成，执行效果
-            onSneezeComplete();
+            _onSneezeComplete();
         }
     }
 
@@ -283,7 +273,6 @@ void PandaEntity::registerGoals()
     // m_goalSelector.addGoal(3, new entity::ai::goal::TemptGoal(this, 1.0, isBambooPredicate));
 
     // 优先级 12: 打滚目标（顽皮熊猫或幼年熊猫）
-    // MC 1.16.5: this.goalSelector.addGoal(12, new PandaEntity.RollGoal(this));
     m_goalSelector.addGoal(12, std::make_unique<entity::ai::goal::PandaRollGoal>(this));
 }
 
@@ -293,7 +282,6 @@ void PandaEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 熊猫的基础属性
-    // 参考 MC 1.16.5 熊猫属性
     f32 maxHealth = 20.0f;
 
     // 虚弱熊猫生命值只有10
@@ -312,7 +300,7 @@ void PandaEntity::registerAttributes()
 
 std::optional<ResourceLocation> PandaEntity::getAmbientSound() const
 {
-    // MC 1.16.5: 根据性格返回不同音效
+    // 根据性格返回不同音效
     if (isAggressive()) {
         return SoundEvents::ENTITY_PANDA_AGGRESSIVE_AMBIENT;
     }
@@ -352,10 +340,8 @@ void PandaEntity::playBiteSound()
     playSound(SoundEvents::ENTITY_PANDA_BITE, 1.0f, 1.0f);
 }
 
-void PandaEntity::onSneezeComplete()
+void PandaEntity::_onSneezeComplete()
 {
-    // MC 1.16.5: PandaEntity.onSneeze()
-
     if (m_world == nullptr) {
         return;
     }
@@ -364,8 +350,7 @@ void PandaEntity::onSneezeComplete()
     playSneezeSound();
 
     // 2. 生成喷嚏粒子
-    // MC 1.16.5: 粒子位置在熊猫头部前方
-    // 位置计算：根据朝向偏移
+    // 粒子位置在熊猫头部前方
     f32 renderYawOffset = m_yaw; // 使用yaw作为朝向
     f32 yawRad = math::toRadians(renderYawOffset);
     f32 sinYaw = std::sin(yawRad);
@@ -383,7 +368,6 @@ void PandaEntity::onSneezeComplete()
         Vector3(vel.x, 0.0f, vel.z));
 
     // 3. 让周围10格内的成年熊猫跳跃
-    // MC 1.16.5: 获取周围10格内的熊猫
     AxisAlignedBB searchBox = boundingBox().expand(10.0f, 10.0f, 10.0f);
     std::vector<Entity*> nearbyEntities = m_world->getEntitiesInAABB(searchBox, this);
 
@@ -397,8 +381,6 @@ void PandaEntity::onSneezeComplete()
     }
 
     // 4. 1/700概率掉落粘液球（需要游戏规则 doMobLoot）
-    // MC 1.16.5: if (!this.world.isRemote && this.rand.nextInt(700) == 0 &&
-    // this.world.getGameRules().getBoolean(GameRules.DO_MOB_LOOT))
     if (!m_world->isClientSide()) {
         const auto& gameRules = m_world->getGameRules();
         if (gameRules.getBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT)) {
@@ -412,11 +394,9 @@ void PandaEntity::onSneezeComplete()
     }
 }
 
-void PandaEntity::updateRoll()
+void PandaEntity::_updateRoll()
 {
-    // MC 1.16.5: PandaEntity.func_213535_ey()
     // 处理打滚物理
-
     m_rollTimer++;
 
     if (m_rollTimer > ROLL_DURATION) {
@@ -431,12 +411,6 @@ void PandaEntity::updateRoll()
 
         if (m_rollTimer == 1) {
             // 第1帧：初始化打滚方向和初速度
-            // MC 1.16.5:
-            // float f = this.rotationYaw * ((float)Math.PI / 180F);
-            // float f1 = this.isChild() ? 0.1F : 0.2F;
-            // this.rollDelta = new Vector3d(vec3d.x + (double)(-MathHelper.sin(f) * f1), 0.0D, vec3d.z +
-            // (double)(MathHelper.cos(f) * f1)); this.setMotion(this.rollDelta.add(0.0D, 0.27D, 0.0D));
-
             f32 yawRad = math::toRadians(yaw());
             f32 speed = isChild() ? ROLL_SPEED_CHILD : ROLL_SPEED_ADULT;
             f32 sinYaw = std::sin(yawRad);
@@ -448,14 +422,10 @@ void PandaEntity::updateRoll()
             setVelocity(m_rollVelocity.x, ROLL_JUMP_VELOCITY, m_rollVelocity.z);
         } else if (m_rollTimer == 7 || m_rollTimer == 15 || m_rollTimer == 23) {
             // 第7、15、23帧：执行小跳
-            // MC 1.16.5:
-            // this.setMotion(0.0D, this.onGround ? 0.27D : vec3d.y, 0.0D);
             f32 jumpVel = onGround() ? ROLL_JUMP_VELOCITY : static_cast<f32>(vel.y);
             setVelocity(0.0, jumpVel, 0.0);
         } else {
             // 其他帧：维持水平移动
-            // MC 1.16.5:
-            // this.setMotion(this.rollDelta.x, vec3d.y, this.rollDelta.z);
             setVelocity(m_rollVelocity.x, vel.y, m_rollVelocity.z);
         }
     }

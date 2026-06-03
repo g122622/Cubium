@@ -26,7 +26,7 @@
 #include "../../../../core/Types.hpp"
 #include "../../../core/DataParameter.hpp"
 #include "../../../interfaces/IAngerable.hpp"
-#include "../basic/AnimalEntity.hpp"
+#include "entity/entities/passive/basic/AnimalEntity.hpp"
 #include <memory>
 #include <optional>
 #include <string>
@@ -59,8 +59,6 @@ class NearestAttackableTargetGoal;
  * - 攻击：被攻击后会反击
  * - 幼崽：小北极熊
  * - 愤怒：实现 IAngerable 接口，被攻击后会记住攻击者
- *
- * 参考 MC 1.16.5 PolarBearEntity
  */
 class PolarBearEntity : public AnimalEntity, public entity::IAngerable {
 public:
@@ -132,7 +130,6 @@ public:
     /**
      * @brief 获取站立动画缩放值
      *
-     * 参考 MC 1.16.5 PolarBearEntity.getStandingAnimationScale
      * 用于模型渲染时计算站立姿态的插值。
      *
      * @param partialTick 部分 Tick 值
@@ -239,7 +236,6 @@ public:
 
     /**
      * @brief 作为生物攻击目标
-     * MC 1.16.5: attackEntityAsMob
      */
     bool attackEntityAsMob(LivingEntity& target) override;
 
@@ -267,7 +263,6 @@ private:
     i32 m_warningSoundTicks = 0;
 
     // ========== 客户端站立动画 ==========
-    // 参考 MC 1.16.5 PolarBearEntity.clientSideStandAnimation0/clientSideStandAnimation
     // 这些字段仅在客户端使用，用于平滑站立动画
     mutable f32 m_clientSideStandAnimation0 = 0.0f;
     mutable f32 m_clientSideStandAnimation = 0.0f;

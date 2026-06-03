@@ -53,7 +53,6 @@ std::unique_ptr<Entity> MooshroomEntity::create(IWorld* /*world*/)
 
 std::vector<ItemStack> MooshroomEntity::shear(Player* player)
 {
-    // MC 1.16.5: MooshroomEntity.shear()
     // 剪毛后变成普通牛，掉落5个蘑菇
     MC_UNUSED(player);
 
@@ -85,7 +84,7 @@ std::vector<ItemStack> MooshroomEntity::shear(Player* player)
 
     const BlockItem* mushroomItem = BlockItemRegistry::instance().getBlockItem(*mushroomBlock);
     if (mushroomItem != nullptr) {
-        // MC 1.16.5: 掉落5个蘑菇
+        // 掉落5个蘑菇
         drops.emplace_back(static_cast<const Item*>(mushroomItem), 5);
     }
 
@@ -127,18 +126,18 @@ std::vector<ItemStack> MooshroomEntity::shear(Player* player)
 
 bool MooshroomEntity::canBeStewed(const ItemStack& itemStack) const
 {
-    // MC 1.16.5: 检查是否是空碗且成年
+    // 检查是否是空碗且成年
     if (isChild()) {
         return false; // 幼年哞菇不能被取汤
     }
     const Item* item = itemStack.getItem();
-    return item != nullptr && item == Items::BOWL;
+    return item == Items::BOWL;
 }
 
 ItemStack MooshroomEntity::getStew()
 {
-    // MC 1.16.5: 返回蘑菇汤
-    // 注意：棕色哞菇可以返回迷之炖菜（如果有效果），这里暂时只返回普通蘑菇汤
+    // 返回蘑菇汤
+    // TODO: 棕色哞菇可以返回迷之炖菜（需要效果系统支持）
     if (Items::MUSHROOM_STEW != nullptr) {
         return ItemStack(*Items::MUSHROOM_STEW, 1);
     }
@@ -147,13 +146,13 @@ ItemStack MooshroomEntity::getStew()
 
 std::unique_ptr<AnimalEntity> MooshroomEntity::spawnBaby(AnimalEntity& partner)
 {
-    // MC 1.16.5: MooshroomEntity.createChild()
+    // 创建幼年哞菇
     auto baby = std::make_unique<MooshroomEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);
 
-    // MC 1.16.5: 遗传皮肤类型
+    // 遗传皮肤类型
     // 如果双亲类型相同，有 1/1024 概率变异为另一种类型
     // 否则，随机继承双亲之一的类型
     math::Random rng = getRandom();
@@ -185,7 +184,6 @@ std::unique_ptr<AnimalEntity> MooshroomEntity::spawnBaby(AnimalEntity& partner)
 
 void MooshroomEntity::onStruckByLightning()
 {
-    // MC 1.16.5: MooshroomEntity.func_241841_a() (onStruckByLightning)
     // 红色哞菇 -> 棕色哞菇
     // 棕色哞菇 -> 红色哞菇
     // 播放转换音效并生成粒子效果
@@ -197,14 +195,13 @@ void MooshroomEntity::onStruckByLightning()
     // 播放转换音效
     playSound(SoundEvents::ENTITY_MOOSHROOM_CONVERT, 2.0f, 1.0f);
 
-    // MC 1.16.5: 生成爆炸粒子效果
-    // 在客户端生成粒子
+    // 生成爆炸粒子效果（客户端）
     if (world() != nullptr && world()->isClientSide()) {
         using namespace mc::client::renderer::trident::particle;
         math::Random& random = world()->getRandom();
 
         // 生成多个爆炸粒子
-        i32 particleCount = 20;
+        constexpr i32 particleCount = 20;
         for (i32 i = 0; i < particleCount; ++i) {
             f32 offsetX = (random.nextFloat() - 0.5f) * width();
             f32 offsetY = random.nextFloat() * height();

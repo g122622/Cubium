@@ -23,14 +23,12 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 
 /**
  * @brief 马的花纹类型
- *
- * 对齐 1.16.5 `CoatTypes`。
  */
 enum class CoatTypes : u8 { None = 0, White = 1, WhiteField = 2, WhiteDots = 3, BlackDots = 4 };
 

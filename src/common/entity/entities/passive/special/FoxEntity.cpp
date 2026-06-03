@@ -235,8 +235,7 @@ void FoxEntity::setHeldItem(Hand hand, ItemStack stack)
 
 void FoxEntity::dropHeldItem()
 {
-    // [已完成] 在世界生成掉落物 - 2026/05/16
-    // 参考 MC 1.16.5 FoxEntity.entityDropItem()
+    // 在世界生成掉落物
     if (m_heldItem == nullptr || m_heldItem->isEmpty()) {
         return;
     }
@@ -258,14 +257,12 @@ void FoxEntity::dropHeldItem()
 
 bool FoxEntity::canAct() const
 {
-    // MC 1.16.5 func_213478_eo
     // 可以行动的条件：非坐下、非蹲伏、非睡眠、非卡住、非激怒
     return !isSitting() && !isCrouching() && !isSleeping() && !isStuck() && !isFoxAggroed();
 }
 
 void FoxEntity::resetAllStates()
 {
-    // MC 1.16.5 func_213499_en
     // 重置所有状态：坐下、蹲伏、睡眠等
     setSitting(false);
     setCrouching(false);
@@ -278,7 +275,6 @@ void FoxEntity::resetAllStates()
 
 void FoxEntity::wakeUp()
 {
-    // MC 1.16.5 func_213454_em
     // 唤醒（停止睡眠、坐下等）
     setSleeping(false);
     setSitting(false);
@@ -288,9 +284,8 @@ void FoxEntity::wakeUp()
 
 bool FoxEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // MC 1.16.5: FoxEntity.isBreedingItem()
     // 只有甜浆果可以用来繁殖狐狸
-    // 注意：发光浆果是 MC 1.17 添加的，MC 1.16.5 只有甜浆果
+    // 注意：发光浆果是后续版本添加的，本项目只支持甜浆果
     const Item* item = itemStack.getItem();
     if (item == nullptr) {
         return false;
@@ -300,15 +295,12 @@ bool FoxEntity::isBreedingItem(const ItemStack& itemStack) const
 
 std::unique_ptr<AnimalEntity> FoxEntity::spawnBaby(AnimalEntity& partner)
 {
-    // MC 1.16.5: FoxEntity.func_241840_a() (createChild)
     auto baby = std::make_unique<FoxEntity>(0);
 
     // 设置为幼体
     baby->setChild(true);
 
-    // MC 1.16.5: 遗传皮肤类型
-    // foxentity.setVariantType(this.rand.nextBoolean() ? this.getVariantType() :
-    // ((FoxEntity)p_241840_2_).getVariantType()); 50% 概率从任一父母继承皮肤类型
+    // 遗传皮肤类型：50% 概率从任一父母继承皮肤类型
     FoxEntity* partnerFox = dynamic_cast<FoxEntity*>(&partner);
     math::Random rng = getRandom();
     if (rng.nextBoolean()) {
@@ -320,10 +312,7 @@ std::unique_ptr<AnimalEntity> FoxEntity::spawnBaby(AnimalEntity& partner)
         baby->setFoxType(m_foxType);
     }
 
-    // MC 1.16.5: 幼狐继承父母的信任玩家
-    // 参考 onChildSpawnFromEgg(): ((FoxEntity)child).addTrustedUUID(playerIn.getUniqueID());
-    // 在 BreedGoal 中，繁殖时幼狐应该信任喂食者
-    // 这里我们从父母继承信任玩家
+    // 幼狐继承父母的信任玩家
     for (u64 playerId : m_trustedPlayers) {
         baby->addTrustedPlayer(playerId);
     }
@@ -341,9 +330,9 @@ std::unique_ptr<AnimalEntity> FoxEntity::spawnBaby(AnimalEntity& partner)
 
 // ========== 状态更新 ==========
 
-void FoxEntity::updateCrouchAmount()
+void FoxEntity::_updateCrouchAmount()
 {
-    // MC 1.16.5: FoxEntity.livingTick() 中蹲伏量的更新
+    // 蹲伏量更新逻辑
     m_prevCrouchAmount = m_crouchAmount;
 
     if (isCrouching()) {
@@ -362,7 +351,7 @@ void FoxEntity::tick()
     AnimalEntity::tick();
 
     // 更新蹲伏量
-    updateCrouchAmount();
+    _updateCrouchAmount();
 
     // 睡眠计时器
     if (isSleeping()) {
@@ -372,8 +361,8 @@ void FoxEntity::tick()
         }
     }
 
-    // MC 1.16.5: 如果卡在雪中，减少卡住计时器
-    // 这里简化处理，实际需要检测是否脱离雪
+    // 如果卡在雪中，减少卡住计时器
+    // TODO: 实现卡住状态检测和脱离雪块的逻辑
 }
 
 // ========== AI 目标注册 ==========
@@ -381,18 +370,15 @@ void FoxEntity::tick()
 void FoxEntity::registerGoals()
 {
     // 调用父类方法注册基础动物 AI
-    // AnimalEntity 已经注册了基础目标
     AnimalEntity::registerGoals();
 
-    // MC 1.16.5: 狐狸特有目标注册顺序
+    // 狐狸特有目标注册顺序
     // 注意：优先级数值越小，优先级越高
 
     // 优先级 0: 游泳（最高优先级）
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
-    // 优先级 1: 卡住时跳跃（用于从雪中逃脱）
-    // MC 1.16.5: new FoxEntity.JumpGoal()
-    // 这个在 isStuck() 时触发跳跃
+    // TODO: 优先级 1: 卡住时跳跃目标（用于从雪中逃脱）
 
     // 优先级 2: 恐慌逃跑
     m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::PanicGoal>(this, 2.2));
@@ -401,12 +387,6 @@ void FoxEntity::registerGoals()
     m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::BreedGoal>(this, 1.0));
 
     // 优先级 4: 躲避玩家（未信任的玩家）
-    // MC 1.16.5: new AvoidEntityGoal<>(this, PlayerEntity.class, 16.0F, 1.6D, 1.4D,
-    //     (p_213497_1_) -> SHOULD_AVOID.test(p_213497_1_) && !this.isTrustedUUID(p_213497_1_.getUniqueID())
-    //         && !this.isFoxAggroed());
-    // SHOULD_AVOID = !isDiscrete() && CAN_AI_TARGET.test(this)
-    // isDiscrete() 检查玩家是否隐形/旁观者等，CAN_AI_TARGET 检查是否可作为AI目标
-    // [已完成] 实现 AvoidEntityGoal 躲避未信任的玩家 - 2026/05/16
     m_goalSelector.addGoal(4,
         std::make_unique<entity::ai::goal::AvoidEntityGoal>(this,
             16.0f, // 检测距离：16格
@@ -417,19 +397,15 @@ void FoxEntity::registerGoals()
                 // 只躲避玩家
                 const Player* player = dynamic_cast<const Player*>(entity);
                 if (player == nullptr) return false;
-                // MC 1.16.5: SHOULD_AVOID 检查
-                // isDiscrete() = isSpectator() || isInvisible() || ...
-                // CAN_AI_TARGET = !isCreative() && !isSpectator() && isAlive()
+                // 不躲避旁观者或创造模式玩家
                 if (player->isSpectator() || player->isCreative()) return false;
                 // 不躲避信任的玩家
                 if (trusts(player->id())) return false;
-                // 不躲避当狐狸处于攻击状态时（即 isFoxAggroed 为 false）
-                // 当前简化实现：没有 isFoxAggroed 状态，始终躲避
+                // 不躲避当狐狸处于攻击状态时
                 return !isFoxAggroed();
             }));
 
     // 优先级 4: 躲避狼和北极熊
-    // MC 1.16.5: 狐狸会躲避野生狼和北极熊
     m_goalSelector.addGoal(4,
         std::make_unique<entity::ai::goal::AvoidEntityGoal>(this,
             8.0f, // 检测距离
@@ -442,51 +418,40 @@ void FoxEntity::registerGoals()
             }));
 
     // 优先级 5: 跟踪猎物（扑击的前置阶段）
-    // [已完成] 实现 FoxFollowTargetGoal - 2026/05/16
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::FoxFollowTargetGoal>(this));
 
     // 优先级 6: 扑击攻击
-    // [已完成] 实现 FoxPounceGoal - 2026/05/16
     m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::FoxPounceGoal>(this));
 
     // 优先级 6: 寻找庇护所（白天躲避阳光）
-    // [已完成] 实现 FoxFindShelterGoal - 2026/05/16
     m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::FoxFindShelterGoal>(this, 1.25));
 
     // 优先级 7: 咬击攻击（近战攻击）
-    // [已完成] 实现 FoxBiteGoal - 2026/05/16
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::FoxBiteGoal>(this, 1.2, true));
 
     // 优先级 7: 睡眠
-    // [已完成] 实现 FoxSleepGoal - 2026/05/16
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::FoxSleepGoal>(this));
 
     // 优先级 8: 跟随父母（幼体）
     m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 1.25));
 
     // 优先级 9: 村庄漫步
-    // MC 1.16.5: new FoxEntity.StrollGoal(32, 200)
     // 简化实现：使用随机行走
     m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 1.0, 32));
 
     // 优先级 10: 吃浆果
-    // [已完成] 实现 FoxEatBerriesGoal - 2026/05/16
     m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::FoxEatBerriesGoal>(this, 1.2, 12, 2));
 
     // 优先级 10: 跳跃攻击（备用）
-    // MC 1.16.5: new LeapAtTargetGoal(this, 0.4F)
     m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::LeapAtTargetGoal>(this, 0.4f));
 
     // 优先级 11: 避水随机行走
     m_goalSelector.addGoal(11, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0));
 
     // 优先级 11: 寻找物品
-    // [已完成] 实现 FoxFindItemsGoal - 2026/05/16
     m_goalSelector.addGoal(11, std::make_unique<entity::ai::goal::FoxFindItemsGoal>(this));
 
     // 优先级 3: 食物诱惑（甜浆果）
-    // MC 1.16.5: new TemptGoal(this, 1.0D, Ingredient.fromItems(Items.SWEET_BERRIES), false)
-    // [已完成] 实现 TemptGoal 甜浆果诱惑 - 2026/05/16
     m_goalSelector.addGoal(3,
         std::make_unique<entity::ai::goal::TemptGoal>(
             this,
@@ -504,25 +469,11 @@ void FoxEntity::registerGoals()
             this, 24.0f, entity::ai::goal::LookAtGoal::DEFAULT_LOOK_CHANCE, entity::ai::goal::TypeFilter<Player>{}));
 
     // 优先级 13: 坐下观察
-    // [已完成] 实现 FoxSitAndLookGoal - 2026/05/16
     m_goalSelector.addGoal(13, std::make_unique<entity::ai::goal::FoxSitAndLookGoal>(this));
 
     // 目标选择器
-    // 优先级 3: 复仇目标
-    // [已完成] 实现 FoxRevengeGoal - 2026/05/16
+    // TODO: 实现复仇目标 - 当信任玩家被攻击时触发
     // m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::FoxRevengeGoal>(this));
-
-    // [已完成] 狐狸特有目标 - 2026/05/16
-    // 已实现所有 MC 1.16.5 FoxEntity 内部类：
-    // - FoxFollowTargetGoal: 跟踪猎物（扑击前置）
-    // - FoxPounceGoal: 扑击攻击
-    // - FoxBiteGoal: 咬击攻击
-    // - FoxFindShelterGoal: 寻找庇护所
-    // - FoxSleepGoal: 睡眠
-    // - FoxEatBerriesGoal: 吃浆果
-    // - FoxFindItemsGoal: 寻找物品
-    // - FoxSitAndLookGoal: 坐下观察
-    // - FoxRevengeGoal: 复仇（信任玩家被攻击）
 }
 
 // ========== 属性注册 ==========
@@ -533,7 +484,6 @@ void FoxEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 狐狸的属性
-    // 参考 MC 1.16.5 狐狸属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
 }
@@ -542,7 +492,7 @@ void FoxEntity::registerAttributes()
 
 std::optional<ResourceLocation> FoxEntity::getAmbientSound() const
 {
-    // MC 1.16.5: 白狐使用 screech 音效
+    // 白狐使用 screech 音效
     if (m_foxType == FoxType::Snow) {
         return SoundEvents::ENTITY_FOX_SCREECH;
     }

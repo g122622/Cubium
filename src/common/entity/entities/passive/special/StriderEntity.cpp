@@ -51,7 +51,8 @@
 namespace mc {
 
 namespace {
-// MC 1.16.5 StriderEntity 常量
+
+// 炽足兽常量
 constexpr f32 STRIDER_SPEED = 0.175f;       // 基础移动速度
 constexpr f32 STRIDER_FOLLOW_RANGE = 16.0f; // 跟随范围
 constexpr f32 MOUNTED_SPEED_NORMAL = 0.55f; // 正常骑乘速度
@@ -62,12 +63,12 @@ constexpr i32 COLD_TIMER_MAX = 100;         // 寒冷持续时间 (5秒)
 constexpr i32 BOOST_DURATION_MIN = 140;     // 最小加速时间
 constexpr i32 BOOST_DURATION_MAX = 700;     // 最大加速时间
 constexpr f32 LAVA_BUOYANCY = 0.05f;        // 熔岩浮力
+
 } // namespace
 
 StriderEntity::StriderEntity(EntityId id)
     : AnimalEntity(id)
 {
-    // MC 1.16.5: preventEntitySpawning = true
     // 设置 AI 导航优先级
     // this.setPathPriority(PathNodeType.WATER, -1.0F);
     // this.setPathPriority(PathNodeType.LAVA, 0.0F);
@@ -85,7 +86,6 @@ std::unique_ptr<Entity> StriderEntity::create(IWorld* /*world*/)
 
 bool StriderEntity::isInLava() const
 {
-    // MC 1.16.5: 重写 isInLava 检查
     // 炽足兽可以站在熔岩表面
     return Entity::isInLava() || m_onLavaSurface;
 }
@@ -95,7 +95,7 @@ bool StriderEntity::isInLava() const
 void StriderEntity::setSaddle(bool saddle)
 {
     m_saddled = saddle;
-    // MC 1.16.5: 播放鞍音效
+    // TODO: 播放鞍音效（需要音效系统支持）
     // if (saddle && world != null && !world.isRemote) {
     //     world.playMovingSound(null, this, SoundEvents.ENTITY_STRIDER_SADDLE, SoundCategory.NEUTRAL, 0.5F, 1.0F);
     // }
@@ -103,31 +103,23 @@ void StriderEntity::setSaddle(bool saddle)
 
 f32 StriderEntity::getSteeringSpeed() const
 {
-    // MC 1.16.5: StriderEntity.getMountedSpeed()
-    // return (float)this.getAttributeValue(Attributes.MOVEMENT_SPEED) * (this.func_234315_eI_() ? 0.23F : 0.55F);
     f32 baseSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED));
     return baseSpeed * (isCold() ? MOUNTED_SPEED_COLD : MOUNTED_SPEED_NORMAL);
 }
 
 bool StriderEntity::boost()
 {
-    // MC 1.16.5: 使用 BoostHelper 进行加速
     math::Random rng = getRandom();
     return m_boostHelper.boost(rng);
 }
 
 void StriderEntity::travelTowards(const Vector3& travelVec)
 {
-    // MC 1.16.5: StriderEntity.travelTowards() -> super.travel(travelVec)
     AnimalEntity::travel(travelVec);
 }
 
 void StriderEntity::travel(const Vector3& travelVec)
 {
-    // MC 1.16.5: StriderEntity.travel()
-    // this.setAIMoveSpeed(this.func_234316_eJ_());
-    // this.ride(this, this.field_234313_bz_, travelVec);
-
     // 设置 AI 移动速度（考虑寒冷状态）
     const f32 moveSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED)) *
         (isCold() ? STRIDE_SPEED_COLD : STRIDE_SPEED_NORMAL);
@@ -141,8 +133,7 @@ void StriderEntity::travel(const Vector3& travelVec)
 
 bool StriderEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // MC 1.16.5: 炽足兽使用诡异菌繁殖
-    // field_234308_bu_ = Ingredient.fromItems(Items.WARPED_FUNGUS)
+    // 炽足兽使用诡异菌繁殖
     const Item* item = itemStack.getItem();
     if (item == nullptr) {
         return false;
@@ -156,7 +147,7 @@ bool StriderEntity::isBreedingItem(const ItemStack& itemStack) const
 
 std::unique_ptr<AnimalEntity> StriderEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
-    // MC 1.16.5: 创建小炽足兽
+    // 创建小炽足兽
     auto baby = std::make_unique<StriderEntity>(0);
     baby->setChild(true);
     baby->setPosition(x(), y(), z());
@@ -167,13 +158,11 @@ std::unique_ptr<AnimalEntity> StriderEntity::spawnBaby(AnimalEntity& /*partner*/
 
 void StriderEntity::tick()
 {
-    // MC 1.16.5 StriderEntity.tick()
-
-    // 检查是否在恐慌或诱惑状态（用于音效）
+    // TODO: 检查是否在恐慌或诱惑状态（用于音效）
     // bool isTempted = m_temptGoal != nullptr && m_temptGoal->isRunning();
     // bool isPanicked = m_panicGoal != nullptr && m_panicGoal->isRunning();
 
-    // 播放随机音效
+    // TODO: 播放随机音效
     // if (isTempted && m_random.nextInt(140) == 0) {
     //     playSound(SoundEvents::ENTITY_STRIDER_HAPPY, 1.0f, getSoundPitch());
     // } else if (isPanicked && m_random.nextInt(60) == 0) {
@@ -181,18 +170,18 @@ void StriderEntity::tick()
     // }
 
     // 更新寒冷状态
-    updateColdStatus();
+    _updateColdStatus();
 
     // 调用父类 tick
     AnimalEntity::tick();
 
     // 处理熔岩行走物理
-    updateLavaWalking();
+    _updateLavaWalking();
 
-    // 执行方块碰撞
+    // TODO: 执行方块碰撞
     // doBlockCollisions();
 
-    // 更新加速计时（MC 1.16.5: 使用 BoostHelper）
+    // 更新加速计时
     m_boostHelper.tick();
 
     // 更新寒冷计时器
@@ -201,11 +190,9 @@ void StriderEntity::tick()
     }
 }
 
-void StriderEntity::updateColdStatus()
+void StriderEntity::_updateColdStatus()
 {
-    // MC 1.16.5: 检查是否处于寒冷状态
-    // func_234319_t_(!flag) 其中 flag = blockstate.isIn(BlockTags.STRIDER_WARM_BLOCKS) ||
-    // blockstate1.isIn(BlockTags.STRIDER_WARM_BLOCKS) || this.func_233571_b_(FluidTags.LAVA) > 0.0D
+    // 检查是否处于寒冷状态
     if (m_world == nullptr) {
         return;
     }
@@ -227,7 +214,6 @@ void StriderEntity::updateColdStatus()
 
     // 检查 BlockTags::STRIDER_WARM_BLOCKS
     // 当前方块或下方方块是否为温暖方块（熔岩方块）
-    // 参考 MC 1.16.5 StriderEntity.func_234319_t_
     const BlockState* currentState = m_world->getBlockState(currentPos);
     const BlockState* belowState = m_world->getBlockState(belowPos);
     if (currentState != nullptr && BlockTags::STRIDER_WARM_BLOCKS().contains(*currentState)) {
@@ -249,23 +235,13 @@ void StriderEntity::updateColdStatus()
     }
 }
 
-void StriderEntity::updateLavaWalking()
+void StriderEntity::_updateLavaWalking()
 {
-    // MC 1.16.5: func_234318_eL_()
     // 处理炽足兽在熔岩上的行走物理
     if (!isInLava()) {
         m_onLavaSurface = false;
         return;
     }
-
-    // 检查是否站在熔岩表面
-    // ISelectionContext iselectioncontext = ISelectionContext.forEntity(this);
-    // if (iselectioncontext.func_216378_a(FlowingFluidBlock.field_235510_c_, this.getPosition(), true)
-    //     && !this.world.getFluidState(this.getPosition().up()).isTagged(FluidTags.LAVA)) {
-    //     this.onGround = true;
-    // } else {
-    //     this.setMotion(this.getMotion().scale(0.5D).add(0.0D, 0.05D, 0.0D));
-    // }
 
     if (m_world == nullptr) {
         return;
@@ -310,16 +286,7 @@ void StriderEntity::updateLavaWalking()
 
 bool StriderEntity::canBeSteered() const
 {
-    // MC 1.16.5: 炽足兽需要玩家手持诡异菌钓竿才能控制
-    // Entity entity = this.getControllingPassenger();
-    // if (!(entity instanceof PlayerEntity)) {
-    //     return false;
-    // } else {
-    //     PlayerEntity playerentity = (PlayerEntity)entity;
-    //     return playerentity.getHeldItemMainhand().getItem() == Items.WARPED_FUNGUS_ON_A_STICK
-    //         || playerentity.getHeldItemOffhand().getItem() == Items.WARPED_FUNGUS_ON_A_STICK;
-    // }
-
+    // 炽足兽需要玩家手持诡异菌钓竿才能控制
     if (!hasSaddle()) {
         return false;
     }
@@ -345,7 +312,7 @@ bool StriderEntity::canBeSteered() const
         return false;
     }
 
-    // MC 1.16.5: 检查玩家主手或副手是否持有诡异菌钓竿
+    // 检查玩家主手或副手是否持有诡异菌钓竿
     const ItemStack& mainHand = player->getHeldItem(Hand::MainHand);
     const ItemStack& offHand = player->getHeldItem(Hand::OffHand);
 
@@ -369,7 +336,7 @@ void StriderEntity::registerGoals()
     // 调用父类方法
     AnimalEntity::registerGoals();
 
-    // MC 1.16.5 StriderEntity.registerGoals()
+    // 炽足兽 AI 目标优先级：
     // 优先级 0: 游泳 - 但炽足兽不需要游泳 AI，它们在熔岩上行走
     // m_goalSelector.addGoal(0, new SwimGoal(this));
 
@@ -380,7 +347,6 @@ void StriderEntity::registerGoals()
     m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
 
     // 优先级 3: 食物诱惑（诡异菌、诡异菌钓竿）
-    // MC 1.16.5: field_234309_bv_ = Ingredient.fromItems(Items.WARPED_FUNGUS, Items.WARPED_FUNGUS_ON_A_STICK)
     m_goalSelector.addGoal(3,
         std::make_unique<::mc::entity::ai::goal::TemptGoal>(
             this,
@@ -401,15 +367,12 @@ void StriderEntity::registerGoals()
             false));
 
     // 优先级 4: 寻找熔岩目标
-    // MC 1.16.5: new StriderEntity.MoveToLavaGoal(this, 1.5D)
-    // [已完成] 当炽足兽离开熔岩时，自动寻找并移动到附近的熔岩 - 2026/05/16
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::MoveToLavaGoal>(this, 1.5));
 
     // 优先级 5: 跟随父母
     m_goalSelector.addGoal(5, new entity::ai::goal::FollowParentGoal(this, 1.1));
 
     // 优先级 7: 随机漫步
-    // MC 1.16.5: 使用 RandomWalkingGoal，间隔 60 tick
     m_goalSelector.addGoal(7, new entity::ai::goal::RandomWalkingGoal(this, 1.0, 60));
 
     // 优先级 8: 看向玩家
@@ -419,8 +382,6 @@ void StriderEntity::registerGoals()
     m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
 
     // 优先级 9: 看向其他炽足兽
-    // MC 1.16.5: new LookAtGoal(this, StriderEntity.class, 8.0F)
-    // [已完成] 使用 TypeFilter<StriderEntity> 实现看向特定实体类型 - 2026/05/16
     m_goalSelector.addGoal(9,
         std::make_unique<entity::ai::goal::LookAtGoal>(this,
             8.0f,
@@ -435,17 +396,13 @@ void StriderEntity::registerAttributes()
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
-    // MC 1.16.5 StriderEntity.func_234317_eK_()
-    // return MobEntity.func_233666_p_()
-    //     .createMutableAttribute(Attributes.MOVEMENT_SPEED, 0.175D)
-    //     .createMutableAttribute(Attributes.FOLLOW_RANGE, 16.0D);
+    // 设置炽足兽特定属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, STRIDER_SPEED);
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, STRIDER_FOLLOW_RANGE);
 }
 
 void StriderEntity::die(DamageSource& cause)
 {
-    // MC 1.16.5 StriderEntity.dropInventory()
     // 先调用父类 die()
     AnimalEntity::die(cause);
 
@@ -462,21 +419,20 @@ void StriderEntity::die(DamageSource& cause)
 
 bool StriderEntity::canBeRiddenInWater() const
 {
-    // MC 1.16.5: 炽足兽可以在熔岩中被骑乘
-    // 但不能在水中被骑乘
-    return false; // 水中不能骑乘
+    // 炽足兽可以在熔岩中被骑乘，但不能在水中被骑乘
+    return false;
 }
 
 // ========== IEquipable 接口实现 ==========
 
 ItemStack StriderEntity::getEquipment(i32 slot) const
 {
-    // MC 1.16.5: 炽足兽只有一个鞍槽
+    // 炽足兽只有一个鞍槽
     if (slot != 0) {
         return ItemStack::EMPTY;
     }
 
-    // MC 1.16.5 StriderEntity 不存储实际的鞍 ItemStack，只存储布尔值
+    // 炽足兽不存储实际的鞍 ItemStack，只存储布尔值
     // 当有鞍时返回一个鞍物品堆
     if (hasSaddle()) {
         return ItemStack(Items::SADDLE, 1);
@@ -487,12 +443,12 @@ ItemStack StriderEntity::getEquipment(i32 slot) const
 
 void StriderEntity::setEquipment(i32 slot, const ItemStack& item)
 {
-    // MC 1.16.5: 炽足兽只有一个鞍槽
+    // 炽足兽只有一个鞍槽
     if (slot != 0) {
         return;
     }
 
-    // MC 1.16.5: 设置鞍状态
+    // 设置鞍状态
     // 注意：炽足兽不存储实际的物品，只存储布尔值
     bool isSaddle = !item.isEmpty() && item.getItem() == Items::SADDLE;
     setSaddle(isSaddle);
@@ -504,7 +460,7 @@ bool StriderEntity::canEquip(const ItemStack& item, i32 slot) const
         return true; // 可以清空槽位
     }
 
-    // MC 1.16.5: 炽足兽只能装备鞍，且只有槽位0
+    // 炽足兽只能装备鞍，且只有槽位0
     if (slot != 0) {
         return false;
     }
