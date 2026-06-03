@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../core/Item.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 #include <functional>
 
 namespace mc {
@@ -51,8 +51,6 @@ namespace item {
  * - 右键投掷
  * - 飞行轨迹受重力影响
  * - 命中后触发特定效果
- *
- * 参考 MC 1.16.5 SnowballItem
  */
 class ThrowableItem : public Item {
 public:
@@ -69,7 +67,7 @@ public:
     /**
      * @brief 获取最大使用时间
      *
-     * MC 1.16.5: 返回 0（即时使用）
+     * 返回 0（即时使用）
      */
     [[nodiscard]] i32 getUseDuration(const ItemStack& stack) const override;
 

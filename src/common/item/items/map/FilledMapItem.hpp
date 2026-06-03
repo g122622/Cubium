@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "AbstractMapItem.hpp"
-#include "item/core/ActionResult.hpp"
-#include "item/core/UseAction.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/map/MapDecoration.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/UseAction.hpp"
+#include "common/item/items/map/AbstractMapItem.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/map/MapDecoration.hpp"
 #include <string>
 
 namespace mc::world::map {
@@ -46,7 +46,6 @@ namespace item::items {
  * @brief 已填充地图物品
  *
  * 包含地图ID，显示地形和玩家位置。支持缩放、锁定和复制。
- * 参考: net.minecraft.item.FilledMapItem
  */
 class FilledMapItem : public AbstractMapItem {
 public:
@@ -139,13 +138,12 @@ private:
      * @brief 更新地图地形数据
      *
      * 扫描玩家可见区域的方块颜色，填充MapData的颜色数组。
-     * 参考: net.minecraft.item.FilledMapItem.updateMapData()
      *
      * @param world 世界
      * @param viewer 查看者实体
      * @param data 地图数据
      */
-    static void updateMapData(IWorld& world, Entity& viewer, world::map::MapData& data);
+    static void _updateMapData(IWorld& world, Entity& viewer, world::map::MapData& data);
 
     /**
      * @brief 获取指定位置最高方块的地图颜色
@@ -159,7 +157,7 @@ private:
      * @param outHeight 输出高度（用于阴影计算）
      * @return 地图颜色索引字节
      */
-    [[nodiscard]] static u8 getTopBlockColor(
+    [[nodiscard]] static u8 _getTopBlockColor(
         IWorld& world, i32 x, i32 z, i32 scale, i32 centerX, i32 centerZ, f64& outHeight);
 };
 

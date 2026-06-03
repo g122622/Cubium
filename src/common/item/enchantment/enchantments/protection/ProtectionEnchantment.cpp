@@ -22,7 +22,7 @@
  */
 
 #include "ProtectionEnchantment.hpp"
-#include "../../../../entity/damage/DamageSource.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 
 namespace mc {
 namespace item {
@@ -34,12 +34,7 @@ ProtectionEnchantment::ProtectionEnchantment(Type protectionType)
 
 i32 ProtectionEnchantment::getMinCost(i32 level) const
 {
-    // 参考 MC 1.16.5 ProtectionEnchantment.Type 枚举值
-    // ALL("all", 1, 11)       - minEnchantability=1,  levelCost=11
-    // FIRE("fire", 10, 8)     - minEnchantability=10, levelCost=8
-    // FALL("fall", 5, 6)      - minEnchantability=5,  levelCost=6
-    // EXPLOSION("explosion", 5, 8)   - minEnchantability=5,  levelCost=8
-    // PROJECTILE("projectile", 3, 6) - minEnchantability=3,  levelCost=6
+    // 各保护类型的附魔花费系数
     switch (m_protectionType) {
         case Type::All:
             return 1 + (level - 1) * 11;
@@ -58,8 +53,7 @@ i32 ProtectionEnchantment::getMinCost(i32 level) const
 
 i32 ProtectionEnchantment::getMaxCost(i32 level) const
 {
-    // 参考 MC 1.16.5 ProtectionEnchantment.Type 枚举值
-    // getMaxEnchantability = getMinEnchantability + levelCost
+    // 最大附魔花费 = 最小花费 + 级差系数
     switch (m_protectionType) {
         case Type::All:
             return getMinCost(level) + 11;
@@ -78,8 +72,7 @@ i32 ProtectionEnchantment::getMaxCost(i32 level) const
 
 i32 ProtectionEnchantment::getDamageProtection(i32 level, u32 damageType) const
 {
-    // MC 1.16.5 calcModifierDamage 逻辑:
-    // - 如果伤害源可以无视创造模式保护 (canHarmInCreative/bypassesInvulnerability)，返回 0
+    // 计算保护附魔对特定伤害类型的EPF（Enchantment Protection Factor）值
     // - 全保护对所有伤害有效，每级 EPF = level
     // - 火焰保护只对火焰伤害有效，每级 EPF = level * 2
     // - 摔落保护只对摔落伤害有效，每级 EPF = level * 3

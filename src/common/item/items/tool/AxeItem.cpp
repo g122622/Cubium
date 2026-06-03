@@ -22,28 +22,29 @@
  */
 
 #include "AxeItem.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../item/context/ItemUseContext.hpp"
-#include "../../../item/core/ItemStack.hpp"
-#include "../../../sound/SoundCategory.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
+
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/context/ItemUseContext.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc {
 namespace item {
 namespace tool {
 
 AxeItem::AxeItem(const tier::IItemTier& tier, f32 attackDamage, f32 attackSpeed, ItemProperties properties)
-    : ToolItem(attackDamage, attackSpeed, tier, initializeEffectiveBlocks(), ToolType::Axe, properties)
+    : ToolItem(attackDamage, attackSpeed, tier, _initializeEffectiveBlocks(), ToolType::Axe, properties)
 {
     // 映射表使用"construct on first use"模式，无需在此初始化
 }
 
 ActionResultType AxeItem::onItemUse(ItemUseContext& context)
 {
-    // MC 1.16.5: 斧头去皮逻辑
+    // 斧头去皮逻辑
     IWorld& world = context.world();
     const BlockPos& pos = context.blockPos();
     const BlockState* state = world.getBlockState(pos);
@@ -65,7 +66,7 @@ ActionResultType AxeItem::onItemUse(ItemUseContext& context)
         context.getPlayer()->playSound(SoundEvents::ITEM_AXE_STRIP, 1.0f, 1.0f);
     }
 
-    // 设置新方块状态（MC 1.16.5 flags: 11 = 同步到客户端+更新邻居）
+    // 设置新方块状态（flags: 11 = 同步到客户端+更新邻居）
     world.setBlockState(pos, &newState, 11);
 
     // 消耗耐久度
@@ -80,7 +81,7 @@ const Block* AxeItem::getStrippedBlock(const Block* original)
     if (original == nullptr) {
         return nullptr;
     }
-    auto& map = getStrippingMap();
+    auto& map = _getStrippingMap();
     auto it = map.find(original);
     if (it != map.end()) {
         return it->second;
@@ -105,13 +106,13 @@ f32 AxeItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) co
 
 bool AxeItem::isEffectiveMaterial(const Material& material) const
 {
-    // MC 1.16.5: 斧对木材、下界木材、植物、高植物、葫芦、竹子材质有高效率
+    // 斧对木材、下界木材、植物、高植物、葫芦、竹子材质有高效率
     return material == Material::WOOD || material == Material::NETHER_WOOD || material == Material::PLANT ||
         material == Material::REPLACEABLE_PLANT || material == Material::TALL_PLANTS || material == Material::GOURD ||
         material == Material::BAMBOO;
 }
 
-std::unordered_set<const Block*> AxeItem::initializeEffectiveBlocks()
+std::unordered_set<const Block*> AxeItem::_initializeEffectiveBlocks()
 {
     std::unordered_set<const Block*> blocks;
 
@@ -201,11 +202,11 @@ std::unordered_set<const Block*> AxeItem::initializeEffectiveBlocks()
     if (VanillaBlocks::STRIPPED_CRIMSON_HYPHAE) blocks.insert(VanillaBlocks::STRIPPED_CRIMSON_HYPHAE);
     if (VanillaBlocks::STRIPPED_WARPED_HYPHAE) blocks.insert(VanillaBlocks::STRIPPED_WARPED_HYPHAE);
 
-    // MC 1.16.5: 梯子和脚手架（斧可以有效挖掘）
+    // 梯子和脚手架（斧可以有效挖掘）
     if (VanillaBlocks::LADDER) blocks.insert(VanillaBlocks::LADDER);
     if (VanillaBlocks::SCAFFOLDING) blocks.insert(VanillaBlocks::SCAFFOLDING);
 
-    // MC 1.16.5: 木质按钮（斧可以有效挖掘）
+    // 木质按钮（斧可以有效挖掘）
     if (VanillaBlocks::OAK_BUTTON) blocks.insert(VanillaBlocks::OAK_BUTTON);
     if (VanillaBlocks::SPRUCE_BUTTON) blocks.insert(VanillaBlocks::SPRUCE_BUTTON);
     if (VanillaBlocks::BIRCH_BUTTON) blocks.insert(VanillaBlocks::BIRCH_BUTTON);
@@ -218,13 +219,13 @@ std::unordered_set<const Block*> AxeItem::initializeEffectiveBlocks()
     return blocks;
 }
 
-std::unordered_map<const Block*, const Block*>& AxeItem::getStrippingMap()
+std::unordered_map<const Block*, const Block*>& AxeItem::_getStrippingMap()
 {
     // "construct on first use" 模式：函数局部静态变量在第一次调用时初始化
     static std::unordered_map<const Block*, const Block*> map = []() {
         std::unordered_map<const Block*, const Block*> m;
 
-        // MC 1.16.5: 原木去皮映射
+        // 原木去皮映射
         // 橡木
         if (VanillaBlocks::OAK_LOG && VanillaBlocks::STRIPPED_OAK_LOG)
             m[VanillaBlocks::OAK_LOG] = VanillaBlocks::STRIPPED_OAK_LOG;
@@ -261,13 +262,13 @@ std::unordered_map<const Block*, const Block*>& AxeItem::getStrippingMap()
         if (VanillaBlocks::DARK_OAK_WOOD && VanillaBlocks::STRIPPED_DARK_OAK_WOOD)
             m[VanillaBlocks::DARK_OAK_WOOD] = VanillaBlocks::STRIPPED_DARK_OAK_WOOD;
 
-        // 绯红菌柄（MC 1.16.5）
+        // 绯红菌柄
         if (VanillaBlocks::CRIMSON_STEM && VanillaBlocks::STRIPPED_CRIMSON_STEM)
             m[VanillaBlocks::CRIMSON_STEM] = VanillaBlocks::STRIPPED_CRIMSON_STEM;
         if (VanillaBlocks::CRIMSON_HYPHAE && VanillaBlocks::STRIPPED_CRIMSON_HYPHAE)
             m[VanillaBlocks::CRIMSON_HYPHAE] = VanillaBlocks::STRIPPED_CRIMSON_HYPHAE;
 
-        // 诡异菌柄（MC 1.16.5）
+        // 诡异菌柄
         if (VanillaBlocks::WARPED_STEM && VanillaBlocks::STRIPPED_WARPED_STEM)
             m[VanillaBlocks::WARPED_STEM] = VanillaBlocks::STRIPPED_WARPED_STEM;
         if (VanillaBlocks::WARPED_HYPHAE && VanillaBlocks::STRIPPED_WARPED_HYPHAE)

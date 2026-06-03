@@ -22,13 +22,13 @@
  */
 
 #include "ElytraItem.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/inventory/PlayerInventory.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../armor/ArmorMaterial.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../core/ItemStack.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/item/armor/ArmorMaterial.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace item::items {
@@ -71,7 +71,7 @@ void ElytraItem::inventoryTick(ItemStack& stack, IWorld& world, Entity& entity, 
 
 bool ElytraItem::isUsable(const ItemStack& stack)
 {
-    // MC 1.16.5: 差1点耐久时还能使用
+    // 差1点耐久时还能使用
     return !stack.isEmpty() && stack.isDamageable() && stack.getDamage() < stack.getMaxDamage() - 1;
 }
 

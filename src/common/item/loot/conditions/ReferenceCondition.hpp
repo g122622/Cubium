@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "common/item/loot/conditions/LootCondition.hpp"
+#include <memory>
 #include <string>
 
 namespace mc {
@@ -35,11 +35,10 @@ namespace loot {
  *
  * 引用另一个已注册的条件谓词（predicate），实现条件复用。
  * 目前谓词系统尚未完整实现，此条件作为占位。
- * 参考: net.minecraft.loot.conditions.Reference
  */
 class ReferenceCondition : public LootCondition {
 public:
-    ReferenceCondition() = default;
+    ReferenceCondition() noexcept = default;
 
     /**
      * @brief 构造引用条件
@@ -51,7 +50,7 @@ public:
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
     [[nodiscard]] std::string getType() const override { return "reference"; }
 
-    [[nodiscard]] const std::string& getName() const { return m_name; }
+    [[nodiscard]] const std::string& getName() const noexcept { return m_name; }
 
 private:
     std::string m_name;

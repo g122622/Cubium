@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "common/item/loot/conditions/LootCondition.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -33,8 +33,6 @@ namespace loot {
  * @brief 精准采集条件
  *
  * 当工具具有精准采集附魔时满足条件。
- * 参考: net.minecraft.loot.conditions.SilkTouch
- *
  * 用于控制矿石等方块是否掉落原矿或普通物品:
  * - 有精准采集时: 掉落原矿
  * - 无精准采集时: 掉落普通物品（受时运影响）

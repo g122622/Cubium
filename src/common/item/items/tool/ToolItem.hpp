@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../world/block/Material.hpp"
-#include "../../attribute/ItemAttributeModifiers.hpp"
 #include "TieredItem.hpp"
 #include "ToolType.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
+#include "common/world/block/Material.hpp"
 #include <unordered_set>
 
 namespace mc {
@@ -52,8 +52,6 @@ namespace tool {
  * - canHarvestBlock(): 判断是否能采集特定方块
  * - hitEntity(): 攻击实体时消耗耐久（2点）
  * - onBlockDestroyed(): 破坏方块时消耗耐久（1点）
- *
- * 参考: net.minecraft.item.ToolItem
  */
 class ToolItem : public TieredItem {
 public:
@@ -133,7 +131,7 @@ public:
     /**
      * @brief 获取工具类型
      */
-    [[nodiscard]] ToolType getToolType() const { return m_toolType; }
+    [[nodiscard]] ToolType getToolType() const noexcept { return m_toolType; }
 
     /**
      * @brief 获取总攻击伤害
@@ -142,25 +140,26 @@ public:
      *
      * @return 攻击伤害值
      */
-    [[nodiscard]] f32 getAttackDamage() const { return m_attackDamage; }
+    [[nodiscard]] f32 getAttackDamage() const noexcept { return m_attackDamage; }
 
     /**
      * @brief 获取攻击速度修正
      * @return 攻击速度修正值
      */
-    [[nodiscard]] f32 getAttackSpeed() const { return m_attackSpeed; }
+    [[nodiscard]] f32 getAttackSpeed() const noexcept { return m_attackSpeed; }
 
     /**
      * @brief 获取有效方块集合
      */
-    [[nodiscard]] const std::unordered_set<const Block*>& getEffectiveBlocks() const { return m_effectiveBlocks; }
+    [[nodiscard]] const std::unordered_set<const Block*>& getEffectiveBlocks() const noexcept
+    {
+        return m_effectiveBlocks;
+    }
 
     /**
      * @brief 获取属性修饰符
      *
      * 工具在主手时提供攻击伤害和攻击速度修饰符。
-     *
-     * 参考: net.minecraft.item.ToolItem#getAttributeModifiers
      *
      * @param equipmentSlot 装备槽位
      * @return 属性修饰符

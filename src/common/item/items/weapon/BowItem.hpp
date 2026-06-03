@@ -57,8 +57,6 @@ namespace item {
  * - 冲击 (Punch): 每级 +1 击退等级
  * - 火矢 (Flame): 箭矢点燃目标 5 秒
  * - 无限 (Infinity): 不消耗普通箭矢
- *
- * 参考 MC 1.16.5 BowItem
  */
 class BowItem : public Item {
 public:
@@ -74,8 +72,6 @@ public:
 
     /**
      * @brief 获取最大使用时间
-     *
-     * MC 1.16.5: 返回 72000 tick（几乎无限制）
      */
     [[nodiscard]] i32 getUseDuration(const ItemStack& stack) const override;
 
@@ -120,9 +116,9 @@ public:
     /**
      * @brief 计算箭矢速度因子
      *
-     * MC 1.16.5 公式: f = charge / 20.0
-     *                 f = (f * f + f * 2.0) / 3.0
-     *                 最大 1.0
+     * 公式: f = charge / 20.0
+     *       f = (f * f + f * 2.0) / 3.0
+     *       最大 1.0
      *
      * @param chargeTicks 蓄力 tick 数
      * @return 速度因子 (0.0 - 1.0)
@@ -144,7 +140,7 @@ private:
      * @param bowStack 弓物品堆
      * @return 箭矢物品堆（如果没有则返回空）
      */
-    [[nodiscard]] ItemStack findAmmo(Player& player, const ItemStack& bowStack) const;
+    [[nodiscard]] ItemStack _findAmmo(Player& player, const ItemStack& bowStack) const;
 
     /**
      * @brief 检查箭矢是否无限
@@ -153,7 +149,7 @@ private:
      * @param player 玩家
      * @return 是否无限（不消耗）
      */
-    [[nodiscard]] bool isInfiniteArrow(const ItemStack& arrowStack, const ItemStack& bowStack, Player& player) const;
+    [[nodiscard]] bool _isInfiniteArrow(const ItemStack& arrowStack, const ItemStack& bowStack, Player& player) const;
 };
 
 } // namespace item

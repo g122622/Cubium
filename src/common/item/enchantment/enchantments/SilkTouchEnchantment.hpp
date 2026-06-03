@@ -32,19 +32,22 @@ namespace enchant {
 /**
  * @brief 精准采集附魔
  *
- * 允许采集方块本身而不是其掉落物。
- * 参考 MC 1.16.5 SilkTouchEnchantment
+ * 允许采集方块本身而不是其掉落物。这是一个单级附魔，只能附魔到 I 级。
  *
- * 效果:
+ * 效果：
  * - 采集矿石时掉落矿石本身而非矿物
  * - 采集玻璃时掉落玻璃而非无
  * - 采集草方块时掉落草方块而非泥土
  * - 采集树叶时掉落树叶
+ * - 采集书架时掉落书架而非书
+ * - 采集萤石时掉落萤石而非萤石粉
  *
- * 适用物品:
+ * 适用物品：
  * - 镐、铲、斧、锄、剪刀
  *
- * 不兼容: 时运
+ * 不兼容附魔：时运（Fortune）
+ *
+ * 稀有度：非常稀有（VeryRare）
  */
 class SilkTouchEnchantment : public Enchantment {
 public:
@@ -76,17 +79,11 @@ public:
 
     [[nodiscard]] i32 getMinCost(i32 level) const override
     {
-        // 参考 MC 1.16.5: 15
         (void)level;
         return 15;
     }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override
-    {
-        // 参考 MC 1.16.5: super.getMinEnchantability(level) + 50
-        // = 1 + level * 10 + 50 = 61 (等级1)
-        return 1 + level * 10 + 50;
-    }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override { return 1 + level * 10 + 50; }
 };
 
 } // namespace enchant

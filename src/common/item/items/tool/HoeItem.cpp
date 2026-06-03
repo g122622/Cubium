@@ -37,18 +37,18 @@ namespace tool {
 
 HoeItem::HoeItem(const tier::IItemTier& tier, i32 attackDamage, f32 attackSpeed, ItemProperties properties)
     : ToolItem(
-          static_cast<f32>(attackDamage), attackSpeed, tier, initializeEffectiveBlocks(), ToolType::Hoe, properties)
+          static_cast<f32>(attackDamage), attackSpeed, tier, _initializeEffectiveBlocks(), ToolType::Hoe, properties)
 {
     // 映射表使用"construct on first use"模式，无需在此初始化
 }
 
 ActionResultType HoeItem::onItemUse(ItemUseContext& context)
 {
-    // MC 1.16.5: 锄耕地逻辑
+    // 锄耕地逻辑
     IWorld& world = context.world();
     const BlockPos& pos = context.blockPos();
 
-    // 检查点击的面是否为底面（MC 1.16.5: 不能从下方耕地）
+    // 检查点击的面是否为底面（不能从下方耕地）
     if (context.getClickedFace() == Direction::Down) {
         return ActionResultType::Pass;
     }
@@ -64,7 +64,7 @@ ActionResultType HoeItem::onItemUse(ItemUseContext& context)
         return ActionResultType::Pass;
     }
 
-    // MC 1.16.5: 上方必须是空气
+    // 上方必须是空气
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
     if (aboveState != nullptr && !aboveState->isAir()) {
@@ -89,12 +89,12 @@ ActionResultType HoeItem::onItemUse(ItemUseContext& context)
     return ActionResultType::Success;
 }
 
-const Block* HoeItem::getTilledBlock(const Block* original)
+const Block* HoeItem::getTilledBlock(const Block* original) noexcept
 {
     if (original == nullptr) {
         return nullptr;
     }
-    auto& map = getTillingMap();
+    auto& map = _getTillingMap();
     auto it = map.find(original);
     if (it != map.end()) {
         return it->second;
@@ -123,18 +123,18 @@ bool HoeItem::isEffectiveMaterial(const Material& material) const
     return material == Material::LEAVES;
 }
 
-std::unordered_set<const Block*> HoeItem::initializeEffectiveBlocks()
+std::unordered_set<const Block*> HoeItem::_initializeEffectiveBlocks()
 {
     std::unordered_set<const Block*> blocks;
 
-    // MC 1.16.5: 干草块
+    // 干草块
     if (VanillaBlocks::HAY_BLOCK) blocks.insert(VanillaBlocks::HAY_BLOCK);
 
-    // MC 1.16.5: 海绵
+    // 海绵
     if (VanillaBlocks::SPONGE) blocks.insert(VanillaBlocks::SPONGE);
     if (VanillaBlocks::WET_SPONGE) blocks.insert(VanillaBlocks::WET_SPONGE);
 
-    // MC 1.16.5: 树叶
+    // 树叶
     if (VanillaBlocks::OAK_LEAVES) blocks.insert(VanillaBlocks::OAK_LEAVES);
     if (VanillaBlocks::SPRUCE_LEAVES) blocks.insert(VanillaBlocks::SPRUCE_LEAVES);
     if (VanillaBlocks::BIRCH_LEAVES) blocks.insert(VanillaBlocks::BIRCH_LEAVES);
@@ -142,31 +142,31 @@ std::unordered_set<const Block*> HoeItem::initializeEffectiveBlocks()
     if (VanillaBlocks::ACACIA_LEAVES) blocks.insert(VanillaBlocks::ACACIA_LEAVES);
     if (VanillaBlocks::DARK_OAK_LEAVES) blocks.insert(VanillaBlocks::DARK_OAK_LEAVES);
 
-    // MC 1.16.5: 地狱疣块
+    // 地狱疣块
     if (VanillaBlocks::NETHER_WART_BLOCK) blocks.insert(VanillaBlocks::NETHER_WART_BLOCK);
 
-    // MC 1.16.5: 诡异疣块
+    // 诡异疣块
     if (VanillaBlocks::WARPED_WART_BLOCK) blocks.insert(VanillaBlocks::WARPED_WART_BLOCK);
 
-    // MC 1.16.5: 干海带块
+    // 干海带块
     if (VanillaBlocks::DRIED_KELP_BLOCK) blocks.insert(VanillaBlocks::DRIED_KELP_BLOCK);
 
-    // MC 1.16.5: 标靶方块
+    // 标靶方块
     if (VanillaBlocks::TARGET) blocks.insert(VanillaBlocks::TARGET);
 
-    // MC 1.16.5: 菌光体
+    // 菌光体
     if (VanillaBlocks::SHROOMLIGHT) blocks.insert(VanillaBlocks::SHROOMLIGHT);
 
     return blocks;
 }
 
-std::unordered_map<const Block*, const Block*>& HoeItem::getTillingMap()
+std::unordered_map<const Block*, const Block*>& HoeItem::_getTillingMap()
 {
     // "construct on first use" 模式：函数局部静态变量在第一次调用时初始化
     static std::unordered_map<const Block*, const Block*> map = []() {
         std::unordered_map<const Block*, const Block*> m;
 
-        // MC 1.16.5: 泥土/草地 -> 耕地
+        // 泥土/草地 -> 耕地
         if (VanillaBlocks::GRASS_BLOCK && VanillaBlocks::FARMLAND) {
             m[VanillaBlocks::GRASS_BLOCK] = VanillaBlocks::FARMLAND;
         }
@@ -176,7 +176,7 @@ std::unordered_map<const Block*, const Block*>& HoeItem::getTillingMap()
         if (VanillaBlocks::DIRT && VanillaBlocks::FARMLAND) {
             m[VanillaBlocks::DIRT] = VanillaBlocks::FARMLAND;
         }
-        // 注意：MC 1.16.5 中砂土(COARSE_DIRT)锄后变成泥土，不是耕地
+        // 注意：砂土(COARSE_DIRT)锄后变成泥土，不是耕地
         // 需要再锄一次才能变成耕地
         if (VanillaBlocks::COARSE_DIRT && VanillaBlocks::DIRT) {
             m[VanillaBlocks::COARSE_DIRT] = VanillaBlocks::DIRT;

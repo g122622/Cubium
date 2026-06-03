@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -46,9 +46,9 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
-    [[nodiscard]] std::string getType() const override { return "match_tool"; }
+    [[nodiscard]] std::string getType() const noexcept override { return "match_tool"; }
 
-    [[nodiscard]] u8 getToolType() const { return m_toolType; }
+    [[nodiscard]] u8 getToolType() const noexcept { return m_toolType; }
 
 private:
     u8 m_toolType;

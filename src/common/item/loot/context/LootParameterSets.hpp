@@ -32,7 +32,6 @@ namespace loot {
  * @brief 预定义参数集合工厂
  *
  * 提供每种掉落表类型对应的参数集合，包含正确的必需和可选参数。
- * 参考: net.minecraft.loot.LootParameterSets
  */
 namespace LootParameterSets {
 extern LootParameterSet empty();

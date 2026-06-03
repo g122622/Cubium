@@ -22,31 +22,31 @@
  */
 
 #include "ShovelItem.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../item/context/ItemUseContext.hpp"
-#include "../../../item/core/ItemStack.hpp"
-#include "../../../sound/SoundCategory.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../../world/block/blocks/decorative/CampfireBlock.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/context/ItemUseContext.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 
 namespace mc {
 namespace item {
 namespace tool {
 
 ShovelItem::ShovelItem(const tier::IItemTier& tier, f32 attackDamage, f32 attackSpeed, ItemProperties properties)
-    : ToolItem(attackDamage, attackSpeed, tier, initializeEffectiveBlocks(), ToolType::Shovel, properties)
+    : ToolItem(attackDamage, attackSpeed, tier, _initializeEffectiveBlocks(), ToolType::Shovel, properties)
 {
     // 映射表使用"construct on first use"模式，无需在此初始化
 }
 
 ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
 {
-    // MC 1.16.5: 锹功能 - 熄灭营火 + 创建土径
+    // 锹功能 - 熄灭营火 + 创建土径
     IWorld& world = context.world();
     const BlockPos& pos = context.blockPos();
 
@@ -57,7 +57,7 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
 
     const Block& block = state->owner();
 
-    // MC 1.16.5: 熄灭营火功能（优先于土径创建）
+    // 熄灭营火功能（优先于土径创建）
     // 锹可以熄灭点燃的营火和灵魂营火
     if (VanillaBlocks::CAMPFIRE && &block == VanillaBlocks::CAMPFIRE) {
         if (blocks::CampfireBlock::isLit(*state)) {
@@ -99,8 +99,8 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
         return ActionResultType::Pass;
     }
 
-    // MC 1.16.5: 锹创建土径逻辑
-    // 检查点击的面是否为底面（MC 1.16.5: 不能从下方创建土径）
+    // 锹创建土径逻辑
+    // 检查点击的面是否为底面（不能从下方创建土径）
     if (context.getClickedFace() == Direction::Down) {
         return ActionResultType::Pass;
     }
@@ -111,7 +111,7 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
         return ActionResultType::Pass;
     }
 
-    // MC 1.16.5: 上方必须是空气
+    // 上方必须是空气
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
     if (aboveState != nullptr && !aboveState->isAir()) {
@@ -141,7 +141,7 @@ const Block* ShovelItem::getPathBlock(const Block* original)
     if (original == nullptr) {
         return nullptr;
     }
-    auto& map = getPathMap();
+    auto& map = _getPathMap();
     auto it = map.find(original);
     if (it != map.end()) {
         return it->second;
@@ -151,12 +151,12 @@ const Block* ShovelItem::getPathBlock(const Block* original)
 
 bool ShovelItem::canHarvestBlock(const BlockState& state) const
 {
-    // 1. 如果方块需要锹，检查挖掘等级
+    // 如果方块需要锹，检查挖掘等级
     if (state.getHarvestTool() == TOOL_TYPE_SHOVEL) {
         return m_tier.getHarvestLevel() >= state.getHarvestLevel();
     }
 
-    // MC 1.16.5: 锹对雪层(SNOW)和雪块(SNOW_BLOCK)总是可以采集
+    // 锹对雪层(SNOW)和雪块(SNOW_BLOCK)总是可以采集
     const Block& block = state.owner();
     if (VanillaBlocks::SNOW && &block == VanillaBlocks::SNOW) {
         return true;
@@ -188,7 +188,7 @@ bool ShovelItem::isEffectiveMaterial(const Material& material) const
     return material == Material::EARTH || material == Material::SAND || material == Material::SNOW;
 }
 
-std::unordered_set<const Block*> ShovelItem::initializeEffectiveBlocks()
+std::unordered_set<const Block*> ShovelItem::_initializeEffectiveBlocks()
 {
     std::unordered_set<const Block*> blocks;
 
@@ -238,13 +238,13 @@ std::unordered_set<const Block*> ShovelItem::initializeEffectiveBlocks()
     return blocks;
 }
 
-std::unordered_map<const Block*, const Block*>& ShovelItem::getPathMap()
+std::unordered_map<const Block*, const Block*>& ShovelItem::_getPathMap()
 {
     // "construct on first use" 模式：函数局部静态变量在第一次调用时初始化
     static std::unordered_map<const Block*, const Block*> map = []() {
         std::unordered_map<const Block*, const Block*> m;
 
-        // MC 1.16.5: 草方块 -> 土径
+        // 草方块 -> 土径
         if (VanillaBlocks::GRASS_BLOCK && VanillaBlocks::GRASS_PATH) {
             m[VanillaBlocks::GRASS_BLOCK] = VanillaBlocks::GRASS_PATH;
         }

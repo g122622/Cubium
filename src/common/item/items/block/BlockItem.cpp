@@ -22,14 +22,15 @@
  */
 
 #include "BlockItem.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../physics/collision/CollisionShape.hpp"
-#include "../../../sound/SoundCategory.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/BlockSoundType.hpp"
-#include "../../../world/block/Material.hpp"
-#include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
+
+#include "common/entity/entities/player/Player.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
+#include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockSoundType.hpp"
+#include "common/world/block/Material.hpp"
 
 namespace mc {
 
@@ -40,7 +41,6 @@ BlockItem::BlockItem(const Block& block, ItemProperties properties)
 
 ActionResultType BlockItem::onItemUse(ItemUseContext& context)
 {
-    // 参考 MC 1.16.5: BlockItem.onItemUse
     // 创建 BlockItemUseContext 并尝试放置
     BlockItemUseContext blockContext(context.getWorld(),
         context.getPlayer(),
@@ -63,7 +63,6 @@ ActionResultType BlockItem::onItemUse(ItemUseContext& context)
 
 ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const
 {
-    // 参考 MC 1.16.5: BlockItem.tryPlace
     if (!context.canPlace()) {
         return ActionResultType::Fail;
     }
@@ -92,7 +91,8 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const
         event.blockY = blockContext.placementPos().y;
         event.blockZ = blockContext.placementPos().z;
         event.dimensionId = blockContext.getWorld().dimension();
-        event.playerId = blockContext.getPlayer() ? static_cast<PlayerId>(blockContext.getPlayer()->id()) : std::optional<PlayerId>();
+        event.playerId = blockContext.getPlayer() ? static_cast<PlayerId>(blockContext.getPlayer()->id())
+                                                  : std::optional<PlayerId>();
         event.permutationToPlaceTypeId = state->getBlock().blockLocation().toString();
         event.face = static_cast<i32>(blockContext.getFace());
         if (blockCompReg.dispatchPlayerPlaceBefore(blockTypeId, event)) {
@@ -144,15 +144,12 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const
         }
 
         // 触发进度触发器
-        // 参考 MC 1.16.5: BlockItem.onItemUse() 中的 CriteriaTriggers.PLACED_BLOCK.trigger()
         if (player != nullptr) {
             static_cast<void>(world.onBlockPlaced(static_cast<PlayerId>(player->id()), pos, actualState, &stack));
         }
     }
 
     // 播放放置音效
-    // 参考 MC 1.16.5: world.playSound(player, pos, soundType.getSound(SoundType.PLACE), SoundCategory.BLOCKS, (volume
-    // + 1.0F) / 2.0F, pitch * 0.8F)
     const BlockSoundType& soundType = m_block->getSoundType();
     world.playSound(soundType.getPlaceSound(),
         sound::SoundCategory::Blocks,
@@ -166,7 +163,6 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const
     }
 
     // 返回成功（客户端返回 Success，服务端返回 Consume）
-    // 参考 MC 1.16.5: ActionResultType.func_233537_a_(world.isClientSide)
     return ActionResultType::Success;
 }
 
@@ -185,7 +181,6 @@ const BlockState* BlockItem::getStateForPlacement(const BlockItemUseContext& /* 
 
 bool BlockItem::canPlace(const BlockItemUseContext& context, const BlockState& state) const
 {
-    // 参考 MC 1.16.5: BlockItem.canPlace
     Player* player = context.getPlayer();
 
     // 检查方块位置有效性
@@ -220,7 +215,6 @@ bool BlockItem::canPlace(const BlockItemUseContext& context, const BlockState& s
     }
 
     // 实体碰撞检查
-    // 参考 MC 1.16.5: world.func_226663_a_(state, pos, ISelectionContext.dummy())
     // 检查要放置的方块是否会与实体发生碰撞
     const BlockPos& pos = context.placementPos();
     const CollisionShape& collisionShape = state.getCollisionShape();
@@ -261,7 +255,6 @@ bool BlockItem::placeBlock(BlockItemUseContext& context, const BlockState* state
         return false;
     }
 
-    // 参考 MC 1.16.5: BlockItem.placeBlock
     // 在世界中设置方块状态
     // 参数 11 = 1 (通知邻居) | 2 (通知观察者) | 8 (同步到客户端)
     return context.getWorld().setBlockState(context.placementPos(), state, 11);
@@ -270,7 +263,6 @@ bool BlockItem::placeBlock(BlockItemUseContext& context, const BlockState* state
 bool BlockItem::onBlockPlaced(
     const BlockPos& pos, IWorld& world, Player* player, const ItemStack& stack, const BlockState& state) const
 {
-    // 参考 MC 1.16.5: BlockItem.onBlockPlaced
     // 默认处理方块实体 NBT 数据
     (void)pos;
     (void)world;
@@ -286,7 +278,6 @@ bool BlockItem::onBlockPlaced(
 const BlockState* BlockItem::applyBlockStateFromNBT(
     const BlockPos& pos, IWorld& world, const ItemStack& stack, const BlockState& state) const
 {
-    // 参考 MC 1.16.5: BlockItem.func_219985_a
     // 从物品堆的 BlockStateTag NBT 数据应用方块状态
     (void)pos;
     (void)world;

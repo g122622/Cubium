@@ -102,6 +102,8 @@ std::unique_ptr<LootContext> LootContextBuilder::build(const LootParameterSet& p
         context->setLootTableResolver(std::move(m_lootTableResolver));
     }
 
+    // TODO: 使用 paramSet 验证必需参数是否已设置
+    // 目前 paramSet 参数未被使用，后续需要实现参数验证逻辑
     MC_UNUSED(paramSet);
 
     return context;

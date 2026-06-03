@@ -22,15 +22,16 @@
  */
 
 #include "MilkBucketItem.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../Items.hpp"
-#include "../../core/ItemStack.hpp"
-#include "../../core/UseAction.hpp"
+
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/core/UseAction.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace item {
@@ -43,14 +44,14 @@ MilkBucketItem::MilkBucketItem(ItemProperties properties)
 i32 MilkBucketItem::getUseDuration(const ItemStack& stack) const
 {
     (void)stack;
-    // MC 1.16.5: 牛奶桶饮用时间为 32 ticks
+    // 牛奶桶饮用时间为 32 ticks
     return 32;
 }
 
 UseAction MilkBucketItem::getUseAction(const ItemStack& stack) const
 {
     (void)stack;
-    // MC 1.16.5: 牛奶桶返回 Drink 动作
+    // 牛奶桶返回 Drink 动作
     return UseAction::Drink;
 }
 
@@ -58,8 +59,7 @@ ItemActionResult MilkBucketItem::onItemRightClick(IWorld& world, Player& player,
 {
     (void)world;
 
-    // MC 1.16.5: 牛奶桶可以在任何时候饮用
-    // 与食物不同，不需要检查饥饿值
+    // 牛奶桶可以在任何时候饮用，与食物不同，不需要检查饥饿值
     ItemStack stack = player.getHeldItem(hand);
     if (canEat(stack, player)) {
         // 设置活跃手，开始饮用
@@ -74,7 +74,7 @@ ItemStack MilkBucketItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entit
 {
     (void)world;
 
-    // MC 1.16.5: 清除所有药水效果
+    // 清除所有药水效果
     LivingEntity* livingEntity = dynamic_cast<LivingEntity*>(&entity);
     if (livingEntity != nullptr) {
         livingEntity->removeAllEffects();
@@ -119,8 +119,7 @@ bool MilkBucketItem::canEat(const ItemStack& stack, const Player& player) const
     (void)stack;
     (void)player;
 
-    // MC 1.16.5: 牛奶桶可以在任何时候饮用
-    // 即使没有药水效果也可以饮用（创造模式可以用来测试）
+    // 牛奶桶可以在任何时候饮用，即使没有药水效果也可以饮用
     return true;
 }
 

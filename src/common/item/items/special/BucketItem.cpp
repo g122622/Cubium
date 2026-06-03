@@ -22,28 +22,29 @@
  */
 
 #include "BucketItem.hpp"
-#include "../../../core/Constants.hpp"
-#include "../../../entity/core/AgeableEntity.hpp"
-#include "../../../entity/entities/passive/basic/CowEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../sound/SoundCategory.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../util/math/ray/Raycast.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/IBucketPickupHandler.hpp"
-#include "../../../world/block/ILiquidContainer.hpp"
-#include "../../../world/block/IWaterLoggable.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../../world/block/blocks/LiquidBlock.hpp"
-#include "../../../world/fluid/Fluid.hpp"
-#include "../../../world/fluid/FluidRegistry.hpp"
-#include "../../../world/fluid/FluidTags.hpp"
-#include "../../Items.hpp"
-#include "../../context/BlockItemUseContext.hpp"
-#include "../../core/ItemRegistry.hpp"
-#include "../../core/ItemStack.hpp"
+
+#include "common/core/Constants.hpp"
+#include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/entities/passive/basic/CowEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/ray/Raycast.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/IBucketPickupHandler.hpp"
+#include "common/world/block/ILiquidContainer.hpp"
+#include "common/world/block/IWaterLoggable.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/blocks/LiquidBlock.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 
 namespace mc {
 
@@ -102,7 +103,6 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context)
                 } else if (player != nullptr) {
                     // 创造模式下仍需触发事件，但不需要给物品
                     // 触发填充桶事件（进度系统）
-                    // 参考 MC 1.16.5: CriteriaTriggers.FILLED_BUCKET
                     BucketItem* filledBucket = getFilledBucket(*pickedFluid);
                     if (filledBucket != nullptr) {
                         ItemStack filledStack = filledBucket->getDefaultInstance();
@@ -284,7 +284,6 @@ bool BucketItem::canBlockContainFluid(IWorld& world, const BlockPos& pos, const 
 
 BucketItem* BucketItem::getFilledBucket(fluid::Fluid& fluid)
 {
-    // 参考 MC 1.16.5: fluid.getFilledBucket()
     // 使用 FluidTags 判断流体类型，返回对应的桶物品
     if (fluid::FluidTags::WATER().contains(fluid)) {
         MC_ASSERT_RELEASE(Items::WATER_BUCKET != nullptr);
@@ -305,7 +304,6 @@ BucketItem* BucketItem::getEmptyBucket()
 
 bool BucketItem::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand)
 {
-    // MC 1.16.5: BucketItem.itemInteractionForEntity()
     // 只有空桶可以挤奶
     if (m_containedFluid != nullptr) {
         return false;
@@ -326,7 +324,6 @@ bool BucketItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
     cow->playSound(SoundEvents::ENTITY_COW_MILK, 1.0f, 1.0f);
 
     // 处理物品转换
-    // MC 1.16.5: DrinkHelper.func_242398_a (fill(), filledItem)
     // 非创造模式：减少空桶，添加牛奶桶
     if (!player.isCreative()) {
         stack.shrink(1);

@@ -49,7 +49,7 @@ bool TimeCheckCondition::test(LootContext& context) const
     return floatTime >= m_value.getMin() && floatTime <= m_value.getMax();
 }
 
-std::unique_ptr<LootCondition> TimeCheckCondition::clone() const
+std::unique_ptr<LootCondition> TimeCheckCondition::clone() const noexcept
 {
     return std::make_unique<TimeCheckCondition>(m_period, m_value);
 }

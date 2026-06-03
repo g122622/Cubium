@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 锋利附魔
  *
  * 增加对所有生物的伤害。
- * 参考 MC 1.16.5 SharpnessEnchantment
  *
  * 效果:
  * - 每级增加 0.5-1.0 点伤害（平均 0.75 * level）

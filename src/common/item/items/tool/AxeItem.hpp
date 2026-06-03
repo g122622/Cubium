@@ -44,8 +44,6 @@ namespace tool {
  *
  * 攻击伤害：比同层级其他工具高
  * 攻击速度：比其他工具慢（约 -3.0）
- *
- * 参考: net.minecraft.item.AxeItem
  */
 class AxeItem : public ToolItem {
 public:
@@ -107,7 +105,7 @@ private:
      * @brief 初始化斧的有效方块集合
      * @return 有效方块集合
      */
-    static std::unordered_set<const Block*> initializeEffectiveBlocks();
+    static std::unordered_set<const Block*> _initializeEffectiveBlocks();
 
     /**
      * @brief 获取去皮映射表（延迟初始化）
@@ -116,7 +114,7 @@ private:
      *
      * @return 原木 -> 去皮原木 映射的引用
      */
-    static std::unordered_map<const Block*, const Block*>& getStrippingMap();
+    static std::unordered_map<const Block*, const Block*>& _getStrippingMap();
 };
 
 } // namespace tool

@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 弹射物保护附魔
  *
  * 减少弹射物伤害。
- * 参考 MC 1.16.5 ProjectileProtectionEnchantment
  *
  * 效果:
  * - 对弹射物伤害（箭、恶魂火球等）有双倍保护效果

@@ -31,7 +31,6 @@ namespace mc {
  * @brief 掉落参数
  *
  * 用于 LootContext 中标识不同类型的参数。
- * 参考: net.minecraft.loot.LootParameter
  *
  * @tparam T 参数类型
  */
@@ -42,9 +41,9 @@ public:
         : m_id(id)
     {}
 
-    [[nodiscard]] const std::string& getId() const { return m_id; }
+    [[nodiscard]] const std::string& getId() const noexcept { return m_id; }
 
-    bool operator==(const LootParameter& other) const { return m_id == other.m_id; }
+    bool operator==(const LootParameter& other) const noexcept { return m_id == other.m_id; }
 
 private:
     std::string m_id;

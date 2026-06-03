@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../world/block/Block.hpp"
 #include "BlockItem.hpp"
+#include "common/world/block/Block.hpp"
 #include <functional>
 #include <unordered_map>
 
@@ -60,7 +60,7 @@ public:
     /**
      * @brief 获取单例实例
      */
-    static BlockItemRegistry& instance();
+    static BlockItemRegistry& instance() noexcept;
 
     // 禁止拷贝
     BlockItemRegistry(const BlockItemRegistry&) = delete;
@@ -81,42 +81,42 @@ public:
      * @param blockId 方块ID
      * @return 方块物品指针，不存在返回 nullptr
      */
-    [[nodiscard]] const BlockItem* getBlockItem(u32 blockId) const;
+    [[nodiscard]] const BlockItem* getBlockItem(u32 blockId) const noexcept;
 
     /**
      * @brief 根据物品ID获取方块物品
      * @param itemId 物品ID
      * @return 方块物品指针，不存在返回 nullptr
      */
-    [[nodiscard]] const BlockItem* getBlockItemByItemId(ItemId itemId) const;
+    [[nodiscard]] const BlockItem* getBlockItemByItemId(ItemId itemId) const noexcept;
 
     /**
      * @brief 根据方块获取方块物品
      * @param block 方块引用
      * @return 方块物品指针，不存在返回 nullptr
      */
-    [[nodiscard]] const BlockItem* getBlockItem(const Block& block) const;
+    [[nodiscard]] const BlockItem* getBlockItem(const Block& block) const noexcept;
 
     /**
      * @brief 根据物品获取对应方块
      * @param itemId 物品ID
      * @return 方块指针，如果不是方块物品返回 nullptr
      */
-    [[nodiscard]] const Block* getBlock(ItemId itemId) const;
+    [[nodiscard]] const Block* getBlock(ItemId itemId) const noexcept;
 
     /**
      * @brief 检查物品是否为方块物品
      * @param item 物品指针
      * @return 是否为方块物品
      */
-    [[nodiscard]] bool isBlockItem(const Item* item) const;
+    [[nodiscard]] bool isBlockItem(const Item* item) const noexcept;
 
     /**
      * @brief 检查物品ID是否为方块物品
      * @param itemId 物品ID
      * @return 是否为方块物品
      */
-    [[nodiscard]] bool isBlockItem(ItemId itemId) const;
+    [[nodiscard]] bool isBlockItem(ItemId itemId) const noexcept;
 
     /**
      * @brief 遍历所有方块物品
@@ -127,14 +127,14 @@ public:
     /**
      * @brief 获取方块物品数量
      */
-    [[nodiscard]] size_t size() const { return m_blockToItem.size(); }
+    [[nodiscard]] size_t size() const noexcept { return m_blockToItem.size(); }
 
     /**
      * @brief 清空注册表
      *
      * 注意：这不会从 ItemRegistry 中移除物品。
      */
-    void clear();
+    void clear() noexcept;
 
     /**
      * @brief 初始化原版方块物品

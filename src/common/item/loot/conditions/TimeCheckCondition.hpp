@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <memory>
+#include "common/core/Types.hpp"
 #include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
-#include "common/core/Types.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -35,7 +35,6 @@ namespace loot {
  * @brief 时间检查条件
  *
  * 检查当前游戏时间是否在指定范围内，可选取模。
- * 参考: net.minecraft.loot.conditions.TimeCheck
  *
  * JSON 格式示例:
  * @code
@@ -58,11 +57,11 @@ public:
     TimeCheckCondition(i64 period, RandomValueRange value);
 
     [[nodiscard]] bool test(LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
-    [[nodiscard]] std::string getType() const override { return "time_check"; }
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
+    [[nodiscard]] std::string getType() const noexcept override { return "time_check"; }
 
-    [[nodiscard]] i64 getPeriod() const { return m_period; }
-    [[nodiscard]] const RandomValueRange& getValue() const { return m_value; }
+    [[nodiscard]] i64 getPeriod() const noexcept { return m_period; }
+    [[nodiscard]] const RandomValueRange& getValue() const noexcept { return m_value; }
 
 private:
     i64 m_period = 0;         // 0 表示不取模

@@ -23,25 +23,27 @@
 
 #pragma once
 
-// Convenience header that includes all loot condition classes
-#include "common/item/loot/conditions/LootCondition.hpp"
-#include "common/item/loot/conditions/SilkTouchCondition.hpp"
-#include "common/item/loot/conditions/FortuneCondition.hpp"
-#include "common/item/loot/conditions/RandomChanceCondition.hpp"
-#include "common/item/loot/conditions/RandomChanceWithLuckCondition.hpp"
-#include "common/item/loot/conditions/NotCondition.hpp"
+// 便利头文件：包含所有战利品条件类
+// 使用此头文件可一次性引入所有 loot condition 实现
+
 #include "common/item/loot/conditions/AndCondition.hpp"
-#include "common/item/loot/conditions/OrCondition.hpp"
 #include "common/item/loot/conditions/BlockStateCondition.hpp"
-#include "common/item/loot/conditions/ToolTypeCondition.hpp"
-#include "common/item/loot/conditions/SurvivesExplosionCondition.hpp"
-#include "common/item/loot/conditions/KilledByPlayerCondition.hpp"
+#include "common/item/loot/conditions/DamageSourcePropertiesCondition.hpp"
 #include "common/item/loot/conditions/EntityPropertiesCondition.hpp"
 #include "common/item/loot/conditions/EntityScoresCondition.hpp"
-#include "common/item/loot/conditions/LocationCheckCondition.hpp"
-#include "common/item/loot/conditions/WeatherCheckCondition.hpp"
-#include "common/item/loot/conditions/TimeCheckCondition.hpp"
-#include "common/item/loot/conditions/DamageSourcePropertiesCondition.hpp"
-#include "common/item/loot/conditions/ReferenceCondition.hpp"
 #include "common/item/loot/conditions/FishingOpenWaterCondition.hpp"
+#include "common/item/loot/conditions/FortuneCondition.hpp"
+#include "common/item/loot/conditions/KilledByPlayerCondition.hpp"
+#include "common/item/loot/conditions/LocationCheckCondition.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/item/loot/conditions/LootConditionBuilder.hpp"
+#include "common/item/loot/conditions/NotCondition.hpp"
+#include "common/item/loot/conditions/OrCondition.hpp"
+#include "common/item/loot/conditions/RandomChanceCondition.hpp"
+#include "common/item/loot/conditions/RandomChanceWithLuckCondition.hpp"
+#include "common/item/loot/conditions/ReferenceCondition.hpp"
+#include "common/item/loot/conditions/SilkTouchCondition.hpp"
+#include "common/item/loot/conditions/SurvivesExplosionCondition.hpp"
+#include "common/item/loot/conditions/TimeCheckCondition.hpp"
+#include "common/item/loot/conditions/ToolTypeCondition.hpp"
+#include "common/item/loot/conditions/WeatherCheckCondition.hpp"

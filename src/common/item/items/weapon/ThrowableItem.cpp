@@ -22,12 +22,12 @@
  */
 
 #include "ThrowableItem.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/entities/projectile/ProjectileItemEntity.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../core/ItemStack.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/world/IWorld.hpp"
 #include <cmath>
 
 namespace mc {
@@ -61,7 +61,6 @@ ItemActionResult ThrowableItem::onItemRightClick(IWorld& world, Player& player, 
     }
 
     // 设置投掷参数
-    // 参考 MC 1.16.5 ProjectileItemEntity.shoot()
     projectile->shootFrom(player,
         player.pitch(),
         player.yaw(),

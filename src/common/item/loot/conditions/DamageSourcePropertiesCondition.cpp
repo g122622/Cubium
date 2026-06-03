@@ -33,15 +33,18 @@ DamageSourcePropertiesCondition::DamageSourcePropertiesCondition(advancement::Da
 
 bool DamageSourcePropertiesCondition::test(LootContext& context) const
 {
+    // 从上下文获取伤害源
     auto* damageSource = context.get<DamageSource>(LootParams::DAMAGE_SOURCE);
     if (!damageSource) {
         return false;
     }
 
+    // 如果谓词匹配任何伤害源，直接返回 true
     if (m_isAny) {
         return true;
     }
 
+    // 使用谓词检查伤害源属性
     return m_predicate.test(*damageSource);
 }
 

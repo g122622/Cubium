@@ -22,18 +22,20 @@
  */
 
 #include "FilledMapItem.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../util/assert/AssertMacros.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/BlockState.hpp"
-#include "../../../world/dimension/MapDimensionId.hpp"
-#include "../../../world/map/MapData.hpp"
-#include "../../../world/map/MapDataManager.hpp"
-#include "../../../world/map/MaterialColor.hpp"
-#include "../../context/ItemUseContext.hpp"
-#include "../../core/ItemRegistry.hpp"
-#include "../../core/ItemStack.hpp"
+
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/context/ItemUseContext.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/dimension/MapDimensionId.hpp"
+#include "common/world/map/MapData.hpp"
+#include "common/world/map/MapDataManager.hpp"
+#include "common/world/map/MaterialColor.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -68,7 +70,7 @@ void FilledMapItem::inventoryTick(ItemStack& stack, IWorld& world, Entity& entit
 
     // 如果地图未锁定且被选中，更新地形
     if (!mapData->locked() && isSelected) {
-        updateMapData(world, entity, *mapData);
+        _updateMapData(world, entity, *mapData);
     }
 }
 
@@ -78,7 +80,6 @@ ItemActionResult FilledMapItem::onItemRightClick(IWorld& world, Player& player, 
     if (mapData != nullptr) {
         // 服务端：更新玩家追踪装饰后返回成功
         // 客户端在收到成功后打开MapScreen
-        (void)world;
     }
     return ItemActionResult::success(player.getHeldItem(hand));
 }
@@ -290,7 +291,7 @@ void FilledMapItem::addInformation(
     }
 }
 
-void FilledMapItem::updateMapData(IWorld& world, Entity& viewer, world::map::MapData& data)
+void FilledMapItem::_updateMapData(IWorld& world, Entity& viewer, world::map::MapData& data)
 {
     const i32 scale = data.scale();
     const i32 centerX = data.xCenter();
@@ -328,7 +329,7 @@ void FilledMapItem::updateMapData(IWorld& world, Entity& viewer, world::map::Map
             const i32 worldZ = worldOriginZ + z * pixelSize;
 
             f64 height = 0.0;
-            u8 colorIndex = getTopBlockColor(world, worldX, worldZ, scale, centerX, centerZ, height);
+            u8 colorIndex = _getTopBlockColor(world, worldX, worldZ, scale, centerX, centerZ, height);
 
             // 计算阴影（基于高度差）
             u8 shadeIndex = 0;
@@ -356,21 +357,21 @@ void FilledMapItem::updateMapData(IWorld& world, Entity& viewer, world::map::Map
     }
 }
 
-u8 FilledMapItem::getTopBlockColor(IWorld& world, i32 x, i32 z, i32 scale, i32 centerX, i32 centerZ, f64& outHeight)
+u8 FilledMapItem::_getTopBlockColor(IWorld& world, i32 x, i32 z, i32 scale, i32 centerX, i32 centerZ, f64& outHeight)
 {
-    (void)scale;
-    (void)centerX;
-    (void)centerZ;
+    MC_UNUSED(scale);
+    MC_UNUSED(centerX);
+    MC_UNUSED(centerZ);
 
     // 获取最高非空气方块
     const i32 topY = world.getHeight(x, z);
-    if (topY <= 0) {
+    if (topY <= world::MIN_BUILD_HEIGHT) {
         outHeight = 0.0;
         return static_cast<u8>(world::map::MaterialColorId::AIR);
     }
 
     // 从顶部向下查找第一个非空气方块
-    for (i32 y = topY; y >= 0; --y) {
+    for (i32 y = topY; y >= world::MIN_BUILD_HEIGHT; --y) {
         const BlockState* blockState = world.getBlockState(x, y, z);
         if (blockState != nullptr && !blockState->isAir()) {
             outHeight = static_cast<f64>(y);

@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../core/Item.hpp"
-#include "../../core/UseAction.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/UseAction.hpp"
 #include <functional>
 
 namespace mc {
@@ -53,8 +53,6 @@ namespace item {
  * 附魔支持:
  * - 耐久 (Unbreaking): 减少耐久消耗
  * - 经验修补 (Mending): 用经验修复
- *
- * 参考 MC 1.16.5 ShieldItem
  */
 class ShieldItem : public Item {
 public:
@@ -71,7 +69,7 @@ public:
     /**
      * @brief 获取最大使用时间
      *
-     * MC 1.16.5: 返回 72000 tick（几乎无限制）
+     * 返回 72000 tick（几乎无限制）
      */
     [[nodiscard]] i32 getUseDuration(const ItemStack& stack) const override;
 

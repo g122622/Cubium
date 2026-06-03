@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../entity/entities/vehicle/MinecartEntity.hpp"
-#include "../../core/Item.hpp"
+#include "common/entity/entities/vehicle/MinecartEntity.hpp"
+#include "common/item/core/Item.hpp"
 
 namespace mc {
 namespace item {
@@ -33,8 +33,6 @@ namespace item {
  * @brief 矿车物品
  *
  * 用于放置各种类型的矿车。
- *
- * 参考 MC 1.16.5 MinecartItem
  */
 class MinecartItem : public Item {
 public:
@@ -50,7 +48,7 @@ public:
     /**
      * @brief 在方块上使用物品
      *
-     * MC 1.16.5: 在铁轨上放置矿车
+     * 在铁轨上放置矿车
      */
     [[nodiscard]] ActionResultType onItemUse(ItemUseContext& context) override;
 

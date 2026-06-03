@@ -22,11 +22,11 @@
  */
 
 #include "ShieldItem.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../core/ItemStack.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace item {

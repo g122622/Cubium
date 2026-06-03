@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 时运附魔
  *
  * 增加方块掉落物的数量。
- * 参考 MC 1.16.5 LootBonusEnchantment (Fortune 类型)
  *
  * 效果:
  * - 时运效果由战利品表的 ApplyBonusFunction 处理
@@ -75,19 +74,9 @@ public:
         return Enchantment::isCompatibleWith(other);
     }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override
-    {
-        // 参考 MC 1.16.5: 15 + (level - 1) * 9
-        return 15 + (level - 1) * 9;
-    }
+    [[nodiscard]] i32 getMinCost(i32 level) const override { return 15 + (level - 1) * 9; }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override
-    {
-        // MC 1.16.5: super.getMinEnchantability(level) + 50
-        // 基类默认实现是 1 + (level - 1) * 10
-        // 所以: 1 + (level - 1) * 10 + 50 = 51 + (level - 1) * 10
-        return Enchantment::getMinCost(level) + 50;
-    }
+    [[nodiscard]] i32 getMaxCost(i32 level) const override { return Enchantment::getMinCost(level) + 50; }
 };
 
 } // namespace enchant

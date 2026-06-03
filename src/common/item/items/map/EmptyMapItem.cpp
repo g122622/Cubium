@@ -22,14 +22,14 @@
  */
 
 #include "EmptyMapItem.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../util/assert/AssertMacros.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/map/MapData.hpp"
-#include "../../../world/map/MapDataManager.hpp"
-#include "../../core/ItemRegistry.hpp"
-#include "../../core/ItemStack.hpp"
 #include "FilledMapItem.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/map/MapData.hpp"
+#include "common/world/map/MapDataManager.hpp"
 
 namespace mc::item::items {
 

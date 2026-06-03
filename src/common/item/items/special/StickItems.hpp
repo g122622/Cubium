@@ -39,8 +39,6 @@ namespace item {
  * - 目标实体：猪 (minecraft:pig)
  * - 耐久度耗尽后转换为钓鱼竿
  *
- * 参考 MC 1.16.5: net.minecraft.item.CarrotOnAStickItem
- *
  * 用法：
  * 1. 给猪装备鞍
  * 2. 右键骑上猪
@@ -54,7 +52,7 @@ public:
      */
     explicit CarrotOnAStickItem(const ItemProperties& properties);
 
-    ~CarrotOnAStickItem() override = default;
+    ~CarrotOnAStickItem() noexcept override = default;
 
     // MC 常量
     static constexpr i32 MAX_DAMAGE = 25;     ///< 最大耐久度
@@ -72,8 +70,6 @@ public:
  * - 目标实体：炽足兽 (minecraft:strider)
  * - 耐久度耗尽后转换为钓鱼竿
  *
- * 参考 MC 1.16.5: net.minecraft.item.WarpedFungusOnAStickItem
- *
  * 用法：
  * 1. 给炽足兽装备鞍
  * 2. 右键骑上炽足兽
@@ -87,7 +83,7 @@ public:
      */
     explicit WarpedFungusOnAStickItem(const ItemProperties& properties);
 
-    ~WarpedFungusOnAStickItem() override = default;
+    ~WarpedFungusOnAStickItem() noexcept override = default;
 
     // MC 常量
     static constexpr i32 MAX_DAMAGE = 100;    ///< 最大耐久度

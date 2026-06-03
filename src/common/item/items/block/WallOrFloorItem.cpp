@@ -22,9 +22,12 @@
  */
 
 #include "WallOrFloorItem.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
+
+#include <vector>
+
+#include "common/util/Direction.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 
@@ -44,7 +47,6 @@ const BlockState* WallOrFloorItem::getStateForPlacement(const BlockItemUseContex
     const BlockState* resultState = nullptr;
 
     // 遍历方向，寻找可放置的方向
-    // 参考 MC 1.16.5: WallOrFloorItem.getStateForPlacement
     for (Direction direction : nearestDirections) {
         // 跳过 UP 方向（墙上的物品不能放在天花板上）
         if (direction == Direction::Up) {

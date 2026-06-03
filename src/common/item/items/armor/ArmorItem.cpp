@@ -22,15 +22,16 @@
  */
 
 #include "ArmorItem.hpp"
-#include "../../../entity/attribute/AttributeModifierUUIDs.hpp"
-#include "../../../entity/attribute/Attributes.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../attribute/ItemAttributeModifiers.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../core/ItemStack.hpp"
+
+#include "common/entity/attribute/AttributeModifierUUIDs.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 namespace item::items {
@@ -42,7 +43,7 @@ namespace {
  *
  * ArmorSlot (Head/Chest/Legs/Feet) 映射到 EquipmentSlot (Head/Chest/Legs/Feet)
  */
-[[nodiscard]] i32 armorSlotToEquipmentSlot(armor::ArmorSlot slot)
+[[nodiscard]] i32 armorSlotToEquipmentSlot(armor::ArmorSlot slot) noexcept
 {
     switch (slot) {
         case armor::ArmorSlot::Feet:
@@ -60,10 +61,8 @@ namespace {
 
 /**
  * @brief 获取盔甲槽位对应的UUID
- *
- * 参考: net.minecraft.item.ArmorItem.ARMOR_MODIFIERS
  */
-[[nodiscard]] const char* getArmorModifierUUID(armor::ArmorSlot slot)
+[[nodiscard]] const char* getArmorModifierUUID(armor::ArmorSlot slot) noexcept
 {
     switch (slot) {
         case armor::ArmorSlot::Feet:
@@ -79,7 +78,7 @@ namespace {
     }
 }
 
-[[nodiscard]] const ItemStack& getArmorEquipment(const LivingEntity& entity, armor::ArmorSlot slot)
+[[nodiscard]] const ItemStack& getArmorEquipment(const LivingEntity& entity, armor::ArmorSlot slot) noexcept
 {
     switch (slot) {
         case armor::ArmorSlot::Feet:
@@ -102,15 +101,11 @@ ArmorItem::ArmorItem(const armor::ArmorMaterial& material, armor::ArmorSlot slot
     , m_material(material)
     , m_slot(slot)
 {
-    // MC 1.16.5: 构造函数中构建属性修饰符
-    buildAttributeModifiers();
+    _buildAttributeModifiers();
 }
 
-void ArmorItem::buildAttributeModifiers()
+void ArmorItem::_buildAttributeModifiers()
 {
-    // 参考: net.minecraft.item.ArmorItem 构造函数
-    // 在构造函数中创建属性修饰符的多重映射
-
     i32 equipmentSlot = armorSlotToEquipmentSlot(m_slot);
     std::string uuid = entity::attribute::uuids::fromString(getArmorModifierUUID(m_slot));
 
@@ -126,7 +121,7 @@ void ArmorItem::buildAttributeModifiers()
         uuid, "Armor toughness", static_cast<f64>(getToughness()), entity::attribute::Operation::Addition);
     m_attributeModifiers.add(toughnessAttr.get(), toughnessModifier, equipmentSlot);
 
-    // 3. 击退抗性修饰符 (generic.knockback_resistance) - 仅当下界合金有击退抗性时
+    // 3. 击退抗性修饰符 (generic.knockback_resistance) - 仅当有击退抗性时
     f32 knockbackRes = getKnockbackResistance();
     if (knockbackRes > 0.0f) {
         auto knockbackAttr = entity::attribute::Attributes::knockbackResistance();
@@ -136,7 +131,7 @@ void ArmorItem::buildAttributeModifiers()
     }
 }
 
-f32 ArmorItem::getDestroySpeed(const ItemStack& /*stack*/, const BlockState& /*state*/) const
+f32 ArmorItem::getDestroySpeed(const ItemStack& /*stack*/, const BlockState& /*state*/) const noexcept
 {
     // 盔甲不是工具，返回默认速度
     return 1.0f;
@@ -231,11 +226,9 @@ f32 ArmorItem::getTotalKnockbackResistance(const LivingEntity& entity)
     return std::min(total, 1.0f); // 上限为1.0
 }
 
-bool ArmorItem::getIsRepairable(const ItemStack& toRepair, const ItemStack& repair) const
+bool ArmorItem::getIsRepairable(const ItemStack& /*toRepair*/, const ItemStack& repair) const
 {
-    // MC 1.16.5: 使用材质的修复材料检查
-    // 参考: net.minecraft.item.ArmorItem#getIsRepairable
-    (void)toRepair; // 盔甲修复不依赖于待修复物品的状态
+    // 盔甲修复不依赖于待修复物品的状态
     return m_material.getRepairMaterial().test(repair);
 }
 

@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <memory>
-#include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -60,12 +60,12 @@ public:
      * @param context 掉落上下文
      * @return 时运等级（0-3）
      */
-    [[nodiscard]] static i32 getFortuneLevel(LootContext& context);
+    [[nodiscard]] static i32 getFortuneLevel(LootContext& context) noexcept;
 
     /**
      * @brief 计算时运加成后的掉落数量
      *
-     * 参考 MC 1.16.5: Fortune对矿石的影响：
+     * 时运对矿石的影响：
      * - Fortune I: 33%概率掉落+1
      * - Fortune II: 25%概率掉落+1, 25%概率掉落+2
      * - Fortune III: 20%概率掉落+1, 20%概率掉落+2, 20%概率掉落+3
@@ -75,7 +75,7 @@ public:
      * @param random 随机数生成器
      * @return 加成后的掉落数量
      */
-    [[nodiscard]] static i32 applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::Random& random);
+    [[nodiscard]] static i32 applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::Random& random) noexcept;
 
 private:
     i32 m_minLevel;

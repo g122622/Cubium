@@ -34,7 +34,6 @@ namespace loot {
  * @brief 掉落条件基类
  *
  * 定义掉落表条件接口。条件用于控制掉落条目是否生效。
- * 参考: net.minecraft.loot.conditions.ILootCondition
  *
  * 示例用法:
  * @code

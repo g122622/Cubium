@@ -21,16 +21,16 @@
  *
  */
 
-#include "MinecartItem.hpp"
-#include "../../../entity/entities/vehicle/MinecartEntity.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/BlockPos.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../../world/block/blocks/redstone/AbstractRailBlock.hpp"
-#include "../../context/ItemUseContext.hpp"
-#include "../../core/ItemStack.hpp"
+#include "common/item/items/vehicle/MinecartItem.hpp"
+#include "common/entity/entities/vehicle/MinecartEntity.hpp"
+#include "common/item/context/ItemUseContext.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
 #include <cmath>
 
 namespace mc {
@@ -43,7 +43,6 @@ MinecartItem::MinecartItem(entity::AbstractMinecartEntity::Type minecartType, co
 
 ActionResultType MinecartItem::onItemUse(ItemUseContext& context)
 {
-    // MC 1.16.5 MinecartItem.onItemUse
     IWorld* world = &context.world();
     if (!world) {
         return ActionResultType::Fail;
@@ -70,9 +69,6 @@ ActionResultType MinecartItem::onItemUse(ItemUseContext& context)
             if (railBlock != nullptr) {
                 isRail = true;
                 state = belowState;
-                // 注意：此时 pos 需要更新为下方位置
-                // 但 MC 源码中矿车放置在点击位置，不是下方位置
-                // 这里保持 pos 不变，只是使用下方铁轨的状态来获取形状
             }
         }
     }
@@ -87,13 +83,12 @@ ActionResultType MinecartItem::onItemUse(ItemUseContext& context)
     }
 
     // 计算矿车位置
-    // MC 1.16.5: X 和 Z 为方块中心，Y 为方块底部 + 0.0625 (1/16)
+    // X 和 Z 为方块中心，Y 为方块底部 + 0.0625 (1/16)
     f64 x = static_cast<f64>(pos.x) + 0.5;
     f64 y = static_cast<f64>(pos.y) + 0.0625;
     f64 z = static_cast<f64>(pos.z) + 0.5;
 
-    // MC 1.16.5: 如果是斜坡铁轨，额外增加 Y 偏移 0.5
-    // 注意：此时 state 已确保非空（在前面检查过）
+    // 如果是斜坡铁轨，额外增加 Y 偏移 0.5
     if (railBlock != nullptr) {
         blocks::RailShape shape = railBlock->getRailShape(*state);
         if (blocks::isAscending(shape)) {
@@ -124,7 +119,7 @@ ActionResultType MinecartItem::onItemUse(ItemUseContext& context)
             minecart = std::make_unique<entity::CommandBlockMinecartEntity>(EntityId(0));
             break;
         case entity::AbstractMinecartEntity::Type::Spawner:
-            // Spawner minecart not implemented yet
+            // TODO: Spawner minecart 尚未实现，暂时使用普通矿车替代
             minecart = std::make_unique<entity::RideableMinecartEntity>(EntityId(0));
             break;
         default:

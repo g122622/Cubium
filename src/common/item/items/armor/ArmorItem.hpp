@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../armor/ArmorMaterial.hpp"
-#include "../../attribute/ItemAttributeModifiers.hpp"
-#include "../../core/Item.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/item/armor/ArmorMaterial.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
+#include "common/item/core/Item.hpp"
 
 namespace mc {
 
@@ -97,7 +97,7 @@ public:
      *
      * 盔甲不是工具，返回默认速度1.0。
      */
-    [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack, const BlockState& state) const override;
+    [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack, const BlockState& state) const noexcept override;
 
     /**
      * @brief 右键使用物品
@@ -116,27 +116,27 @@ public:
     /**
      * @brief 获取盔甲材质
      */
-    [[nodiscard]] const armor::ArmorMaterial& getMaterial() const { return m_material; }
+    [[nodiscard]] const armor::ArmorMaterial& getMaterial() const noexcept { return m_material; }
 
     /**
      * @brief 获取盔甲槽位
      */
-    [[nodiscard]] armor::ArmorSlot getSlot() const { return m_slot; }
+    [[nodiscard]] armor::ArmorSlot getSlot() const noexcept { return m_slot; }
 
     /**
      * @brief 获取防御值
      */
-    [[nodiscard]] i32 getDefense() const { return m_material.getDefense(m_slot); }
+    [[nodiscard]] i32 getDefense() const noexcept { return m_material.getDefense(m_slot); }
 
     /**
      * @brief 获取韧性
      */
-    [[nodiscard]] f32 getToughness() const { return m_material.getToughness(); }
+    [[nodiscard]] f32 getToughness() const noexcept { return m_material.getToughness(); }
 
     /**
      * @brief 获取击退抗性
      */
-    [[nodiscard]] f32 getKnockbackResistance() const { return m_material.getKnockbackResistance(); }
+    [[nodiscard]] f32 getKnockbackResistance() const noexcept { return m_material.getKnockbackResistance(); }
 
     /**
      * @brief 获取属性修饰符
@@ -148,27 +148,27 @@ public:
      *
      * @return 属性修饰符管理器
      */
-    [[nodiscard]] const ItemAttributeModifiers& getAttributeModifiers() const { return m_attributeModifiers; }
+    [[nodiscard]] const ItemAttributeModifiers& getAttributeModifiers() const noexcept { return m_attributeModifiers; }
 
     /**
      * @brief 检查是否为头盔
      */
-    [[nodiscard]] bool isHelmet() const { return m_slot == armor::ArmorSlot::Head; }
+    [[nodiscard]] bool isHelmet() const noexcept { return m_slot == armor::ArmorSlot::Head; }
 
     /**
      * @brief 检查是否为胸甲
      */
-    [[nodiscard]] bool isChestplate() const { return m_slot == armor::ArmorSlot::Chest; }
+    [[nodiscard]] bool isChestplate() const noexcept { return m_slot == armor::ArmorSlot::Chest; }
 
     /**
      * @brief 检查是否为护腿
      */
-    [[nodiscard]] bool isLeggings() const { return m_slot == armor::ArmorSlot::Legs; }
+    [[nodiscard]] bool isLeggings() const noexcept { return m_slot == armor::ArmorSlot::Legs; }
 
     /**
      * @brief 检查是否为靴子
      */
-    [[nodiscard]] bool isBoots() const { return m_slot == armor::ArmorSlot::Feet; }
+    [[nodiscard]] bool isBoots() const noexcept { return m_slot == armor::ArmorSlot::Feet; }
 
     // ========== 静态辅助方法 ==========
 
@@ -203,9 +203,8 @@ private:
      * @brief 构建属性修饰符
      *
      * 在构造函数中调用，根据盔甲材质和槽位构建护甲值、韧性和击退抗性修饰符。
-     * 参考: net.minecraft.item.ArmorItem 构造函数
      */
-    void buildAttributeModifiers();
+    void _buildAttributeModifiers();
 };
 
 } // namespace item::items

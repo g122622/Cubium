@@ -23,13 +23,13 @@
 
 #include "OnAStickItem.hpp"
 
-#include "../../../core/Types.hpp"
-#include "../../../entity/core/Entity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/interfaces/IRideable.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../Items.hpp"
-#include "../../core/ItemStack.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/interfaces/IRideable.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace item {
@@ -42,14 +42,6 @@ OnAStickItem::OnAStickItem(const ItemProperties& properties, const std::string& 
 
 ItemActionResult OnAStickItem::onItemRightClick(IWorld& world, Player& player, Hand hand)
 {
-    // MC 1.16.5: OnAStickItem.onItemRightClick()
-    // 1. 检查玩家是否正在骑乘
-    // 2. 检查骑乘的实体是否是目标类型
-    // 3. 检查实体是否实现了 IRideable 接口
-    // 4. 触发加速效果
-    // 5. 消耗耐久度
-    // 6. 如果耐久度耗尽，返回钓鱼竿
-
     // 获取玩家当前手持物品
     ItemStack heldItem = player.getHeldItem(hand);
 
@@ -67,8 +59,6 @@ ItemActionResult OnAStickItem::onItemRightClick(IWorld& world, Player& player, H
     }
 
     // 检查实体类型是否匹配
-    // MC 1.16.5: entity.getType() == this.field_234680_a_
-    // 使用实体类型ID进行比较
     if (vehicleEntity->getTypeId() != m_entityId) {
         return ItemActionResult::pass(heldItem);
     }
@@ -87,13 +77,11 @@ ItemActionResult OnAStickItem::onItemRightClick(IWorld& world, Player& player, H
     }
 
     // 消耗耐久度
-    // MC 1.16.5: itemstack.damageItem(this.field_234681_b_, player, ...)
     bool damaged = heldItem.attemptDamageItem(m_durabilityCost, &player);
     MC_UNUSED(damaged);
 
     // 检查物品是否损坏
     if (heldItem.isEmpty()) {
-        // MC 1.16.5: 返回钓鱼竿
         // 如果物品耐久度耗尽，转换为钓鱼竿
         if (Items::FISHING_ROD != nullptr) {
             ItemStack fishingRod(*Items::FISHING_ROD, 1);

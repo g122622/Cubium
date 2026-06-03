@@ -41,7 +41,7 @@ std::unique_ptr<LootCondition> FortuneCondition::clone() const
     return std::make_unique<FortuneCondition>(m_minLevel);
 }
 
-i32 FortuneCondition::getFortuneLevel(LootContext& context)
+i32 FortuneCondition::getFortuneLevel(LootContext& context) noexcept
 {
     // 从上下文获取时运附魔等级
     auto* fortuneLevel = context.get<i32>(LootParams::FORTUNE_LEVEL);
@@ -51,13 +51,13 @@ i32 FortuneCondition::getFortuneLevel(LootContext& context)
     return 0;
 }
 
-i32 FortuneCondition::applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::Random& random)
+i32 FortuneCondition::applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::Random& random) noexcept
 {
     if (fortuneLevel <= 0) {
         return baseCount;
     }
 
-    // MC 1.16.5 OreDropsFormula (乘法式):
+    // OreDropsFormula (乘法式):
     // int i = random.nextInt(fortune + 2) - 1;
     // if (i < 0) i = 0;
     // return baseCount * (i + 1);

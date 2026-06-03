@@ -51,7 +51,6 @@ class LootTable;
  * @brief 掉落上下文
  *
  * 包含生成掉落物所需的所有上下文信息。
- * 参考: net.minecraft.loot.LootContext
  */
 class LootContext {
 public:
@@ -74,7 +73,7 @@ public:
      * @brief 检查是否有指定参数
      */
     template <typename T>
-    [[nodiscard]] bool has(const LootParameter<T>& param) const
+    [[nodiscard]] bool has(const LootParameter<T>& param) const noexcept
     {
         return m_params.find(param.getId()) != m_params.end();
     }
@@ -99,7 +98,7 @@ public:
      * @return 参数值指针，不存在返回nullptr
      */
     template <typename T>
-    [[nodiscard]] T* get(const LootParameter<T>& param) const
+    [[nodiscard]] T* get(const LootParameter<T>& param) const noexcept
     {
         auto it = m_params.find(param.getId());
         if (it != m_params.end()) {
@@ -147,44 +146,44 @@ public:
     /**
      * @brief 获取世界
      */
-    [[nodiscard]] IWorld& getWorld() const { return m_world; }
+    [[nodiscard]] IWorld& getWorld() const noexcept { return m_world; }
 
     /**
      * @brief 获取随机数生成器
      */
-    [[nodiscard]] math::Random& getRandom() const { return m_random; }
+    [[nodiscard]] math::Random& getRandom() const noexcept { return m_random; }
 
     /**
      * @brief 获取幸运值
      */
-    [[nodiscard]] f32 getLuck() const { return m_luck; }
+    [[nodiscard]] f32 getLuck() const noexcept { return m_luck; }
 
     /**
      * @brief 设置幸运值
      */
-    void setLuck(f32 luck) { m_luck = luck; }
+    void setLuck(f32 luck) noexcept { m_luck = luck; }
 
     /**
      * @brief 获取掠夺附魔等级
      */
-    [[nodiscard]] i32 getLootingModifier() const { return m_lootingModifier; }
+    [[nodiscard]] i32 getLootingModifier() const noexcept { return m_lootingModifier; }
 
     /**
      * @brief 设置掠夺附魔等级
      */
-    void setLootingModifier(i32 level) { m_lootingModifier = level; }
+    void setLootingModifier(i32 level) noexcept { m_lootingModifier = level; }
 
     // ========== 掉落表访问 ==========
 
     /**
      * @brief 设置掉落表解析器
      */
-    void setLootTableResolver(LootTableResolver resolver) { m_lootTableResolver = std::move(resolver); }
+    void setLootTableResolver(LootTableResolver resolver) noexcept { m_lootTableResolver = std::move(resolver); }
 
     /**
      * @brief 获取掉落表
      */
-    [[nodiscard]] const LootTable* getLootTable(const std::string& id) const;
+    [[nodiscard]] const LootTable* getLootTable(const std::string& id) const noexcept;
 
     // ========== 循环检测 ==========
 
@@ -192,12 +191,12 @@ public:
      * @brief 添加掉落表到访问栈（用于检测循环引用）
      * @return 如果已经访问过此表，返回false
      */
-    bool pushLootTable(const LootTable* table);
+    bool pushLootTable(const LootTable* table) noexcept;
 
     /**
      * @brief 从访问栈移除掉落表
      */
-    void popLootTable(const LootTable* table);
+    void popLootTable(const LootTable* table) noexcept;
 
     friend class LootContextBuilder;
 

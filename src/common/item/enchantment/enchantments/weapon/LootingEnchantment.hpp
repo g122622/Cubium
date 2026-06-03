@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Enchantment.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 
 namespace mc {
 namespace item {
@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 抢夺附魔
  *
  * 增加怪物掉落物的数量和稀有度。
- * 参考 MC 1.16.5 LootBonusEnchantment (Looting 类型)
  *
  * 效果:
  * - 抢夺效果由战利品表的 LootingEnchantBonusFunction 处理
@@ -70,9 +69,7 @@ public:
 
     [[nodiscard]] i32 getMaxCost(i32 level) const override
     {
-        // MC 1.16.5: super.getMinEnchantability(level) + 50
-        // 基类默认实现是 1 + (level - 1) * 10
-        // 所以: 1 + (level - 1) * 10 + 50 = 51 + (level - 1) * 10
+        // 最大成本 = 最小成本 + 50
         return Enchantment::getMinCost(level) + 50;
     }
 };

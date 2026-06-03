@@ -54,27 +54,27 @@ public:
      * @param stack 物品堆
      * @return 颜色值（ARGB格式），无颜色时返回默认颜色
      */
-    [[nodiscard]] u32 getColor(const ItemStack& stack) const;
+    [[nodiscard]] u32 getColor(const ItemStack& stack) const noexcept;
 
     /**
      * @brief 设置物品颜色
      * @param stack 物品堆
      * @param color 颜色值（ARGB格式）
      */
-    static void setColor(ItemStack& stack, u32 color);
+    static void setColor(ItemStack& stack, u32 color) noexcept;
 
     /**
      * @brief 清除物品颜色
      * @param stack 物品堆
      */
-    static void clearColor(ItemStack& stack);
+    static void clearColor(ItemStack& stack) noexcept;
 
     /**
      * @brief 检查物品是否有颜色
      * @param stack 物品堆
      * @return 是否有颜色
      */
-    [[nodiscard]] static bool hasColor(const ItemStack& stack);
+    [[nodiscard]] static bool hasColor(const ItemStack& stack) noexcept;
 
     /**
      * @brief 获取默认颜色

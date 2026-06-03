@@ -22,18 +22,17 @@
  */
 
 #include "TridentItem.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/entities/projectile/TridentEntity.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../util/math/MathUtils.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../core/ItemStack.hpp"
-#include "../../enchantment/EnchantmentHelper.hpp"
-#include "../../enchantment/enchantments/AllEnchantments.hpp"
+
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/TridentEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/enchantment/enchantments/AllEnchantments.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include <cmath>
 
 namespace mc {
@@ -41,7 +40,7 @@ namespace item {
 
 // ========== 常量 ==========
 namespace {
-constexpr i32 MAX_USE_DURATION = 72000; // MC 1.16.5: 几乎无限制
+constexpr i32 MAX_USE_DURATION = 72000; // 几乎无限制
 constexpr i32 MIN_CHARGE_TICKS = 10;    // 最小投掷蓄力时间
 constexpr f32 THROW_VELOCITY = 2.5f;    // 基础投掷速度
 } // namespace
@@ -79,8 +78,8 @@ ItemActionResult TridentItem::onItemRightClick(IWorld& world, Player& player, Ha
     }
 
     // 激流附魔检查：如果不在水中/雨中且没有激流，则不能使用
-    i32 riptideLevel = getRiptideLevel(tridentStack);
-    if (riptideLevel > 0 && !isWet(player)) {
+    i32 riptideLevel = _getRiptideLevel(tridentStack);
+    if (riptideLevel > 0 && !_isWet(player)) {
         return ItemActionResult::fail(tridentStack);
     }
 
@@ -104,10 +103,10 @@ void TridentItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEn
     }
 
     // 获取激流附魔等级
-    i32 riptideLevel = getRiptideLevel(stack);
+    i32 riptideLevel = _getRiptideLevel(stack);
 
     // 激流附魔：需要潮湿才能使用
-    if (riptideLevel > 0 && !isWet(*player)) {
+    if (riptideLevel > 0 && !_isWet(*player)) {
         return;
     }
 
@@ -136,7 +135,6 @@ void TridentItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEn
         player->addVelocity(f2, f3, f4);
 
         // 开始旋转攻击
-        // MC 1.16.5: 玩家以 SpinAttack 姿态冲刺 20 ticks
         player->startSpinAttack(20);
 
         // 如果在地面，额外提升
@@ -144,24 +142,20 @@ void TridentItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEn
             player->addVelocity(0.0, 1.1999999, 0.0);
         }
 
-        // 播放激流音效
-        // MC 1.16.5: 根据激流等级播放不同音效
-        math::Random rng;
-        if (player != nullptr) {
-            const ResourceLocation* soundEvent = nullptr;
-            switch (riptideLevel) {
-                case 1:
-                    soundEvent = &SoundEvents::ITEM_TRIDENT_RIPTIDE_1;
-                    break;
-                case 2:
-                    soundEvent = &SoundEvents::ITEM_TRIDENT_RIPTIDE_2;
-                    break;
-                default:
-                    soundEvent = &SoundEvents::ITEM_TRIDENT_RIPTIDE_3;
-                    break;
-            }
-            player->playSound(*soundEvent, 1.0f, 1.0f);
+        // 播放激流音效，根据激流等级播放不同音效
+        const ResourceLocation* soundEvent = nullptr;
+        switch (riptideLevel) {
+            case 1:
+                soundEvent = &SoundEvents::ITEM_TRIDENT_RIPTIDE_1;
+                break;
+            case 2:
+                soundEvent = &SoundEvents::ITEM_TRIDENT_RIPTIDE_2;
+                break;
+            default:
+                soundEvent = &SoundEvents::ITEM_TRIDENT_RIPTIDE_3;
+                break;
         }
+        player->playSound(*soundEvent, 1.0f, 1.0f);
 
         // 激流模式下不投掷三叉戟
         return;
@@ -218,8 +212,7 @@ bool TridentItem::onBlockDestroyed(
     (void)pos;
     (void)breaker;
 
-    // 如果方块硬度不为0，消耗耐久度
-    // MC 1.16.5: 三叉戟作为工具破坏方块消耗2点耐久
+    // 如果方块硬度不为0，消耗耐久度（三叉戟作为工具破坏方块消耗2点耐久）
     if (state.hardness() > 0.0f) {
         stack.attemptDamageItem(2);
     }
@@ -228,14 +221,12 @@ bool TridentItem::onBlockDestroyed(
 
 // ========== 私有方法 ==========
 
-bool TridentItem::isWet(const Player& player)
+bool TridentItem::_isWet(const Player& player) noexcept
 {
-    // MC 1.16.5: isWet() = isInWater() || isInRain()
-    // Entity 基类已实现 isWet() 方法
     return player.isWet();
 }
 
-i32 TridentItem::getRiptideLevel(const ItemStack& stack)
+i32 TridentItem::_getRiptideLevel(const ItemStack& stack) noexcept
 {
     return enchant::EnchantmentHelper::getEnchantmentLevel(stack, &enchant::AllEnchantments::RIPTIDE);
 }

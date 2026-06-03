@@ -38,7 +38,6 @@ namespace item::items {
  * @brief 空地图物品
  *
  * 右键使用时创建一张新的已填充地图（FilledMapItem）。
- * 参考: net.minecraft.item.MapItem（MC中空地图叫MapItem）
  */
 class EmptyMapItem : public AbstractMapItem {
 public:

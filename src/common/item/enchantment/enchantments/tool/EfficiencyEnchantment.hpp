@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 效率附魔
  *
  * 增加挖掘速度。
- * 参考 MC 1.16.5 EfficiencyEnchantment
  *
  * 效果:
  * - 每级增加挖掘速度

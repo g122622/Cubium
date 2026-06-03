@@ -104,7 +104,7 @@ private:
      * @param world 世界
      * @param pos 方块位置
      */
-    static void spawnBonemealParticles(IWorld& world, const BlockPos& pos);
+    static void _spawnBonemealParticles(IWorld& world, const BlockPos& pos);
 };
 
 } // namespace item::items

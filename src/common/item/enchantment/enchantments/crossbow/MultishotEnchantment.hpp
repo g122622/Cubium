@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 多重射击附魔
  *
  * 一次射出三支箭。
- * 参考 MC 1.16.5 MultishotEnchantment
  *
  * 效果:
  * - 一次射出三支箭（中间一支正常，左右各一支偏移）

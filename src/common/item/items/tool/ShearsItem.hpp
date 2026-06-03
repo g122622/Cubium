@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../world/block/Material.hpp"
-#include "../../core/Item.hpp"
-#include "../../core/ItemStack.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/world/block/Material.hpp"
 #include <unordered_set>
 
 namespace mc {
@@ -49,8 +49,6 @@ namespace tool {
  * - 剪羊毛（对羊使用）
  * - 高效破坏蜘蛛网、树叶、羊毛
  * - 采集蜘蛛网、红石线、绊线
- *
- * 参考: net.minecraft.item.ShearsItem
  */
 class ShearsItem : public Item {
 public:
@@ -88,7 +86,7 @@ public:
     /**
      * @brief 破坏方块时调用
      *
-     * MC 1.16.5: 以下方块不消耗耐久：
+     * 以下方块不消耗耐久：
      * - 树叶 (BlockTags::LEAVES)
      * - 羊毛 (BlockTags::WOOL)
      * - 蛛网、草、蕨、枯萎灌木、藤蔓、绊线

@@ -33,7 +33,6 @@ namespace loot {
  * @brief 取反条件
  *
  * 对内部条件取反。
- * 参考: net.minecraft.loot.conditions.Inverted
  *
  * 用于创建"不满足某条件"的情况，如:
  * - 无精准采集时才掉落普通矿石
@@ -50,7 +49,7 @@ public:
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
     [[nodiscard]] std::string getType() const override { return "inverted"; }
 
-    [[nodiscard]] const LootCondition* getInnerCondition() const { return m_condition.get(); }
+    [[nodiscard]] const LootCondition* getInnerCondition() const noexcept { return m_condition.get(); }
 
 private:
     std::unique_ptr<LootCondition> m_condition;

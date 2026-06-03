@@ -22,18 +22,18 @@
  */
 
 #include "ShearsItem.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/item/ItemEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/interfaces/IShearable.hpp"
-#include "../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/BlockTags.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../core/ActionResult.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/interfaces/IShearable.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc {
 namespace item {
@@ -47,7 +47,7 @@ f32 ShearsItem::getDestroySpeed(const ItemStack& stack, const BlockState& state)
 {
     (void)stack;
 
-    // MC 1.16.5: 对蜘蛛网和树叶返回 15.0
+    // 对蜘蛛网返回 15.0（高效率）
     if (VanillaBlocks::COBWEB && &state.owner() == VanillaBlocks::COBWEB) {
         return 15.0f;
     }
@@ -57,7 +57,7 @@ f32 ShearsItem::getDestroySpeed(const ItemStack& stack, const BlockState& state)
         return 15.0f;
     }
 
-    // MC 1.16.5: 对羊毛返回 5.0
+    // 对羊毛返回 5.0
     if (BlockTags::WOOL().contains(state)) {
         return 5.0f;
     }
@@ -68,7 +68,7 @@ f32 ShearsItem::getDestroySpeed(const ItemStack& stack, const BlockState& state)
 
 bool ShearsItem::canHarvestBlock(const BlockState& state) const
 {
-    // MC 1.16.5: 剪刀可以采集蜘蛛网、红石线、绊线
+    // 剪刀可以采集蜘蛛网、红石线、绊线
     if (VanillaBlocks::COBWEB && &state.owner() == VanillaBlocks::COBWEB) {
         return true;
     }
@@ -90,8 +90,7 @@ bool ShearsItem::onBlockDestroyed(
     (void)pos;
     (void)entity;
 
-    // MC 1.16.5: 以下方块不消耗耐久（参考 ShearsItem.java:26）
-    // 树叶、蛛网、草、蕨、枯萎灌木、藤蔓、绊线、羊毛
+    // 以下方块不消耗耐久：树叶、羊毛、蛛网、草、蕨、枯萎灌木、藤蔓、绊线、火
     if (BlockTags::LEAVES().contains(state)) {
         return true; // 树叶不消耗耐久
     }
@@ -120,7 +119,7 @@ bool ShearsItem::onBlockDestroyed(
         return true; // 绊线不消耗耐久
     }
 
-    // MC 1.16.5: 火方块不消耗耐久（参考 ShearsItem.java:20）
+    // 火方块不消耗耐久
     if (BlockTags::FIRE().contains(state)) {
         return true;
     }
@@ -136,7 +135,6 @@ bool ShearsItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
 {
     MC_UNUSED(hand);
 
-    // MC 1.16.5: ShearsItem.itemInteractionForEntity()
     // 剪刀可以剪羊毛、雪傀儡的南瓜、哞菇的蘑菇
 
     // 检查实体是否实现 IShearable 接口
@@ -161,7 +159,6 @@ bool ShearsItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
         for (auto& drop : drops) {
             if (!drop.isEmpty()) {
                 // 使用 ItemDropHelper 统一生成物品实体
-                // 参考 MC 1.16.5 ShearsItem.itemInteractionForEntity()
                 ItemDropHelper::spawnItemEntity(world,
                     drop,
                     target.x(),

@@ -32,7 +32,6 @@ namespace item::items {
  * @brief 紫颂果物品
  *
  * 紫颂果是一种特殊食物，食用后随机传送到附近位置。
- * 参考: net.minecraft.item.ChorusFruitItem
  *
  * 特性：
  * 1. 食用后随机传送（最大16次尝试）

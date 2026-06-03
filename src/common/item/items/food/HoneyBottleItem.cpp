@@ -22,12 +22,13 @@
  */
 
 #include "HoneyBottleItem.hpp"
-#include "../../../entity/core/Entity.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../Items.hpp"
-#include "../../core/ItemStack.hpp"
+
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace item::items {
@@ -41,18 +42,14 @@ ItemStack HoneyBottleItem::onItemUseFinish(ItemStack& stack, IWorld& world, Enti
     // 调用父类方法处理基本的食用逻辑（恢复饥饿值、饱和度、效果等）
     ItemStack result = FoodItem::onItemUseFinish(stack, world, entity);
 
-    // MC 1.16.5: 清除中毒效果
-    // 参考: net.minecraft.item.HoneyBottleItem#onItemUseFinish
+    // 清除中毒效果
     if (auto* livingEntity = dynamic_cast<LivingEntity*>(&entity)) {
         livingEntity->removeEffect(entity::effect::EffectType::Poison);
     }
 
     // 如果物品堆为空，返回玻璃瓶
     if (result.isEmpty()) {
-        if (Items::GLASS_BOTTLE != nullptr) {
-            return ItemStack(Items::GLASS_BOTTLE, 1);
-        }
-        return ItemStack();
+        return ItemStack(Items::GLASS_BOTTLE, 1);
     }
 
     // 如果玩家不是创造模式，尝试添加玻璃瓶到背包
@@ -62,14 +59,14 @@ ItemStack HoneyBottleItem::onItemUseFinish(ItemStack& stack, IWorld& world, Enti
 
 i32 HoneyBottleItem::getUseDuration(const ItemStack& stack) const
 {
-    // MC 1.16.5: 蜂蜜瓶使用时间为40 ticks（2秒）
+    // 蜂蜜瓶使用时间为40 ticks（2秒）
     (void)stack;
     return 40;
 }
 
 UseAction HoneyBottleItem::getUseAction(const ItemStack& stack) const
 {
-    // MC 1.16.5: 蜂蜜瓶使用 Drink 动作
+    // 蜂蜜瓶使用 Drink 动作
     (void)stack;
     return UseAction::Drink;
 }

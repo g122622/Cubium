@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Enchantment.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 
 namespace mc {
 namespace item {
@@ -33,11 +33,7 @@ namespace enchant {
  * @brief 火焰附加附魔
  *
  * 使被击中的目标燃烧。
- * 参考 MC 1.16.5 FireAspectEnchantment
- *
- * 效果:
- * - 每级增加 4 秒燃烧时间
- * - 最大 II 级
+ * 每级增加 4 秒燃烧时间，最大 II 级。
  */
 class FireAspectEnchantment : public Enchantment {
 public:
@@ -68,7 +64,7 @@ public:
      * @param level 附魔等级
      * @return 燃烧时间（tick）
      */
-    [[nodiscard]] static i32 getFireDuration(i32 level)
+    [[nodiscard]] static i32 getFireDuration(i32 level) noexcept
     {
         // 每级 4 秒 = 80 tick
         return level * 80;

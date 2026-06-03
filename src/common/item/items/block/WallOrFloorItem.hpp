@@ -23,9 +23,8 @@
 
 #pragma once
 
-#include "../../../world/block/Block.hpp"
 #include "BlockItem.hpp"
-#include <vector>
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 

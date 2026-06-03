@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Enchantment.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 
 namespace mc {
 namespace item {
@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 保护类附魔基类
  *
  * 所有保护类附魔的抽象基类。
- * 参考 MC 1.16.5 ProtectionEnchantment
  *
  * 保护类型:
  * - 全保护: 减少所有伤害
@@ -59,11 +58,11 @@ public:
 
     // ========== Enchantment 接口实现 ==========
 
-    [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Armor; }
+    [[nodiscard]] EnchantmentType type() const noexcept override { return EnchantmentType::Armor; }
 
-    [[nodiscard]] i32 minLevel() const override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override { return 4; }
+    [[nodiscard]] i32 maxLevel() const noexcept override { return 4; }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override;
 
@@ -78,12 +77,12 @@ public:
     /**
      * @brief 获取保护类型
      */
-    [[nodiscard]] Type getProtectionType() const { return m_protectionType; }
+    [[nodiscard]] Type getProtectionType() const noexcept { return m_protectionType; }
 
     /**
      * @brief 检查是否减少火焰伤害
      */
-    [[nodiscard]] bool reducesFireDamage() const
+    [[nodiscard]] bool reducesFireDamage() const noexcept
     {
         return m_protectionType == Type::Fire || m_protectionType == Type::All;
     }
@@ -91,7 +90,7 @@ public:
     /**
      * @brief 检查是否减少摔落伤害
      */
-    [[nodiscard]] bool reducesFallDamage() const
+    [[nodiscard]] bool reducesFallDamage() const noexcept
     {
         return m_protectionType == Type::Fall || m_protectionType == Type::All;
     }
@@ -99,7 +98,7 @@ public:
     /**
      * @brief 检查是否减少爆炸伤害
      */
-    [[nodiscard]] bool reducesExplosionDamage() const
+    [[nodiscard]] bool reducesExplosionDamage() const noexcept
     {
         return m_protectionType == Type::Explosion || m_protectionType == Type::All;
     }
@@ -107,7 +106,7 @@ public:
     /**
      * @brief 检查是否减少弹射物伤害
      */
-    [[nodiscard]] bool reducesProjectileDamage() const
+    [[nodiscard]] bool reducesProjectileDamage() const noexcept
     {
         return m_protectionType == Type::Projectile || m_protectionType == Type::All;
     }

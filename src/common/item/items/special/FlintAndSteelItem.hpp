@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../world/block/BlockPos.hpp"
-#include "../../core/Item.hpp"
-#include "../../core/ItemStack.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 
@@ -89,7 +89,6 @@ public:
      * @brief 获取应该放置的火焰方块
      *
      * 根据位置返回普通火或灵魂火。
-     * MC 1.16.5: AbstractFireBlock.getFireForPlacement
      * - 如果下方是灵魂沙/灵魂土，返回灵魂火
      * - 否则返回普通火
      *

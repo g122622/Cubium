@@ -22,17 +22,17 @@
  */
 
 #include "ChorusFruitItem.hpp"
-#include "../../../entity/core/Entity.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/passive/special/FoxEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../sound/SoundCategory.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../util/math/MathUtils.hpp"
-#include "../../../util/math/Vector3.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../core/ItemStack.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/passive/special/FoxEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace item::items {
@@ -46,8 +46,7 @@ ItemStack ChorusFruitItem::onItemUseFinish(ItemStack& stack, IWorld& world, Enti
     // 调用父类方法处理基本的食用逻辑
     ItemStack result = FoodItem::onItemUseFinish(stack, world, entity);
 
-    // MC 1.16.5: 随机传送
-    // 参考: net.minecraft.item.ChorusFruitItem#onItemUseFinish
+    // 随机传送逻辑（仅服务端执行）
     if (!world.isClientSide()) {
         // 记录原始位置用于播放音效
         Vector3 originalPos = entity.position();
@@ -59,13 +58,10 @@ ItemStack ChorusFruitItem::onItemUseFinish(ItemStack& stack, IWorld& world, Enti
 
         // 尝试随机传送
         // 紫颂果传送范围：水平方向 ±8 格，垂直方向 ±8 格
-        // 参考 MC 1.16.5: ChorusFruitItem 使用 randomTeleport(16.0)
-        // 但需要检查是否是狐狸（狐狸使用不同的音效）
         teleported = entity.randomTeleport(16.0, false, true);
 
         if (teleported) {
-            // 播放传送音效
-            // MC 1.16.5: 狐狸使用 ENTITY_FOX_TELEPORT，其他使用 ITEM_CHORUS_FRUIT_TELEPORT
+            // 播放传送音效（狐狸使用特殊音效）
             const bool isFox = dynamic_cast<FoxEntity*>(&entity) != nullptr;
             const auto& soundEvent = isFox ? SoundEvents::ENTITY_FOX_TELEPORT : SoundEvents::ITEM_CHORUS_FRUIT_TELEPORT;
 
@@ -80,7 +76,7 @@ ItemStack ChorusFruitItem::onItemUseFinish(ItemStack& stack, IWorld& world, Enti
             entity.playSound(soundEvent, 1.0f, 1.0f);
         }
 
-        // MC 1.16.5: 设置冷却时间（仅玩家）
+        // 设置冷却时间（仅玩家）
         // 冷却时间：20 ticks = 1 秒
         if (auto* player = dynamic_cast<Player*>(&entity)) {
             player->cooldownTracker().setCooldown(this, 20);

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Item.hpp"
-#include "../../core/Types.hpp"
-#include "../../entity/core/EntityType.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/item/core/Item.hpp"
 #include <memory>
 
 namespace mc {
@@ -35,7 +35,6 @@ namespace item {
  * @brief 生成蛋物品
  *
  * 右键使用时生成对应实体。
- * 参考 MC 1.16.5: net.minecraft.item.SpawnEggItem
  */
 class SpawnEggItem : public Item {
 public:

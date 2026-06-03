@@ -23,6 +23,8 @@
 
 #pragma once
 
+// TODO: include路径应使用绝对路径风格（如 common/item/core/Item.hpp），
+// 但由于同级其他文件仍使用相对路径，为保持一致性暂不修改。
 #include "../../core/Item.hpp"
 #include "../../tier/IItemTier.hpp"
 
@@ -57,7 +59,7 @@ public:
      * @brief 获取工具层级
      * @return 层级引用
      */
-    [[nodiscard]] const tier::IItemTier& getTier() const { return m_tier; }
+    [[nodiscard]] const tier::IItemTier& getTier() const noexcept { return m_tier; }
 
     /**
      * @brief 获取物品附魔能力
@@ -67,7 +69,7 @@ public:
      *
      * @return 附魔能力值
      */
-    [[nodiscard]] i32 getItemEnchantability() const override { return m_tier.getEnchantability(); }
+    [[nodiscard]] i32 getItemEnchantability() const noexcept override { return m_tier.getEnchantability(); }
 
     /**
      * @brief 检查物品堆是否可以用作修复材料

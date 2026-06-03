@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 饵钓附魔
  *
  * 减少鱼上钩的等待时间。
- * 参考 MC 1.16.5 LureEnchantment
  *
  * 效果:
  * - 每级减少 5 秒等待时间

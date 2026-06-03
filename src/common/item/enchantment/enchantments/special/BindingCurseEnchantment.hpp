@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 绑定诅咒附魔
  *
  * 防止物品被取下。
- * 参考 MC 1.16.5 BindingCurseEnchantment
  *
  * 效果:
  * - 装备后无法取下（除非物品损坏或死亡）

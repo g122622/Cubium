@@ -34,7 +34,6 @@ namespace enchant {
  * @brief 荆棘附魔
  *
  * 攻击者会受到反伤。
- * 参考 MC 1.16.5 ThornsEnchantment
  *
  * 效果:
  * - 每级增加触发概率和伤害
@@ -98,7 +97,6 @@ public:
      * @brief 当持有者受到伤害时调用
      *
      * 对攻击者造成反伤。
-     * 参考 MC 1.16.5 ThornsEnchantment.onUserHurt()
      *
      * @param user 受伤者（持有荆棘附魔装备的实体）
      * @param attacker 攻击者

@@ -22,11 +22,11 @@
  */
 
 #include "NameTagItem.hpp"
-#include "../../../entity/core/MobEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../util/text/ITextComponent.hpp"
-#include "../../core/ItemStack.hpp"
-#include <spdlog/spdlog.h>
+
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/text/ITextComponent.hpp"
 
 namespace mc {
 namespace item::items {
@@ -37,8 +37,6 @@ NameTagItem::NameTagItem(ItemProperties properties)
 
 bool NameTagItem::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand)
 {
-    // MC 1.16.5: NameTagItem.itemInteractionForEntity()
-
     // 检查物品是否有自定义名称
     if (!stack.hasCustomName()) {
         return false;
@@ -69,15 +67,13 @@ bool NameTagItem::itemInteractionForEntity(ItemStack& stack, Player& player, Liv
     // 设置实体的自定义名称
     mob->setCustomNameComponent(customName->deepCopy());
 
-    // MC 1.16.5: 命名牌命名后，实体变为持久化（不会消失）
+    // 命名牌命名后，实体变为持久化（不会消失）
     mob->enablePersistence();
 
     // 消耗一个物品（非创造模式）
     if (!player.isCreative()) {
         stack.shrink(1);
     }
-
-    spdlog::debug("NameTagItem: Named mob {} with '{}', persistence enabled", mob->id(), mob->customNameText());
 
     return true;
 }

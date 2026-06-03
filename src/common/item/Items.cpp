@@ -23,52 +23,52 @@
 
 #include "Items.hpp"
 
-#include "../entity/core/EntityRegistry.hpp"
-#include "../world/block/VanillaBlocks.hpp"
-#include "../world/fluid/FluidRegistry.hpp"
-#include "armor/ArmorMaterial.hpp"
-#include "food/Foods.hpp"
-#include "items/armor/ArmorItem.hpp"
-#include "items/armor/DyeableArmorItem.hpp"
-#include "items/armor/HorseArmorItem.hpp"
-#include "items/block/BlockItem.hpp"
-#include "items/block/WallOrFloorItem.hpp"
-#include "items/food/ChorusFruitItem.hpp"
-#include "items/food/FoodItem.hpp"
-#include "items/food/GoldenAppleItem.hpp"
-#include "items/food/HoneyBottleItem.hpp"
-#include "items/map/EmptyMapItem.hpp"
-#include "items/map/FilledMapItem.hpp"
-#include "items/potion/LingeringPotionItem.hpp"
-#include "items/potion/PotionItem.hpp"
-#include "items/potion/SplashPotionItem.hpp"
-#include "items/special/BoneMealItem.hpp"
-#include "items/special/BucketItem.hpp"
-#include "items/special/EnchantedBookItem.hpp"
-#include "items/special/FishBucketItem.hpp"
-#include "items/special/FlintAndSteelItem.hpp"
-#include "items/special/MilkBucketItem.hpp"
-#include "items/special/NameTagItem.hpp"
-#include "items/special/SaddleItem.hpp"
-#include "items/special/StickItems.hpp"
-#include "items/tool/AxeItem.hpp"
-#include "items/tool/HoeItem.hpp"
-#include "items/tool/PickaxeItem.hpp"
-#include "items/tool/ShearsItem.hpp"
-#include "items/tool/ShovelItem.hpp"
-#include "items/tool/SwordItem.hpp"
-#include "items/vehicle/BoatItem.hpp"
-#include "items/vehicle/MinecartItem.hpp"
-#include "items/weapon/ArrowItem.hpp"
-#include "items/weapon/BowItem.hpp"
-#include "items/weapon/CrossbowItem.hpp"
-#include "items/weapon/FishingRodItem.hpp"
-#include "items/weapon/ShieldItem.hpp"
-#include "items/weapon/ThrowableItem.hpp"
-#include "items/weapon/ThrowableItems.hpp"
-#include "items/weapon/TippedArrowItem.hpp"
-#include "items/weapon/TridentItem.hpp"
-#include "tier/ItemTiers.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/item/armor/ArmorMaterial.hpp"
+#include "common/item/food/Foods.hpp"
+#include "common/item/items/armor/ArmorItem.hpp"
+#include "common/item/items/armor/DyeableArmorItem.hpp"
+#include "common/item/items/armor/HorseArmorItem.hpp"
+#include "common/item/items/block/BlockItem.hpp"
+#include "common/item/items/block/WallOrFloorItem.hpp"
+#include "common/item/items/food/ChorusFruitItem.hpp"
+#include "common/item/items/food/FoodItem.hpp"
+#include "common/item/items/food/GoldenAppleItem.hpp"
+#include "common/item/items/food/HoneyBottleItem.hpp"
+#include "common/item/items/map/EmptyMapItem.hpp"
+#include "common/item/items/map/FilledMapItem.hpp"
+#include "common/item/items/potion/LingeringPotionItem.hpp"
+#include "common/item/items/potion/PotionItem.hpp"
+#include "common/item/items/potion/SplashPotionItem.hpp"
+#include "common/item/items/special/BoneMealItem.hpp"
+#include "common/item/items/special/BucketItem.hpp"
+#include "common/item/items/special/EnchantedBookItem.hpp"
+#include "common/item/items/special/FishBucketItem.hpp"
+#include "common/item/items/special/FlintAndSteelItem.hpp"
+#include "common/item/items/special/MilkBucketItem.hpp"
+#include "common/item/items/special/NameTagItem.hpp"
+#include "common/item/items/special/SaddleItem.hpp"
+#include "common/item/items/special/StickItems.hpp"
+#include "common/item/items/tool/AxeItem.hpp"
+#include "common/item/items/tool/HoeItem.hpp"
+#include "common/item/items/tool/PickaxeItem.hpp"
+#include "common/item/items/tool/ShearsItem.hpp"
+#include "common/item/items/tool/ShovelItem.hpp"
+#include "common/item/items/tool/SwordItem.hpp"
+#include "common/item/items/vehicle/BoatItem.hpp"
+#include "common/item/items/vehicle/MinecartItem.hpp"
+#include "common/item/items/weapon/ArrowItem.hpp"
+#include "common/item/items/weapon/BowItem.hpp"
+#include "common/item/items/weapon/CrossbowItem.hpp"
+#include "common/item/items/weapon/FishingRodItem.hpp"
+#include "common/item/items/weapon/ShieldItem.hpp"
+#include "common/item/items/weapon/ThrowableItem.hpp"
+#include "common/item/items/weapon/ThrowableItems.hpp"
+#include "common/item/items/weapon/TippedArrowItem.hpp"
+#include "common/item/items/weapon/TridentItem.hpp"
+#include "common/item/tier/ItemTiers.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
 
 namespace {
 
@@ -916,45 +916,45 @@ void Items::initialize()
     // 空气物品（ID 0）
     AIR = &registry.registerItem(ResourceLocation("minecraft:air"), ItemProperties().maxStackSize(64));
 
-    registerMaterials();
-    registerMisc(); // 提前注册，因为工具层级需要木板等作为修复材料
+    _registerMaterials();
+    _registerMisc(); // 提前注册，因为工具层级需要木板等作为修复材料
 
     // 初始化工具层级（需要在材料物品注册后）
     item::tier::ItemTiers::initialize();
 
-    registerTools();
-    registerArmor();
-    registerFood();
-    registerDyes();
-    registerSeeds();
-    registerCrops();
-    registerAquaticMaterials();
-    registerBrewingIngredients();
-    registerPotions();
-    registerWeapons();      // 武器和弹药
-    registerThrowables();   // 投掷物品
-    registerBuckets();      // 桶类物品（需要 BUCKET 在 WATER_BUCKET/LAVA_BUCKET 之前注册）
-    registerBooks();        // 书本类物品
-    registerSponges();      // 海绵物品
-    registerMinecarts();    // 矿车物品
-    registerBoats();        // 船物品
-    registerHangingItems(); // 悬挂实体物品
-    registerSigns();        // 告示牌物品
-    registerBuildingBlocks();
-    registerWool();
-    registerCarpets();
-    registerStainedGlass();
-    registerConcrete();
-    registerTerracotta();
-    registerVegetation();
-    registerRedstone();
-    registerCoral();
-    registerDoorsFencesStairs();
+    _registerTools();
+    _registerArmor();
+    _registerFood();
+    _registerDyes();
+    _registerSeeds();
+    _registerCrops();
+    _registerAquaticMaterials();
+    _registerBrewingIngredients();
+    _registerPotions();
+    _registerWeapons();      // 武器和弹药
+    _registerThrowables();   // 投掷物品
+    _registerBuckets();      // 桶类物品（需要 BUCKET 在 WATER_BUCKET/LAVA_BUCKET 之前注册）
+    _registerBooks();        // 书本类物品
+    _registerSponges();      // 海绵物品
+    _registerMinecarts();    // 矿车物品
+    _registerBoats();        // 船物品
+    _registerHangingItems(); // 悬挂实体物品
+    _registerSigns();        // 告示牌物品
+    _registerBuildingBlocks();
+    _registerWool();
+    _registerCarpets();
+    _registerStainedGlass();
+    _registerConcrete();
+    _registerTerracotta();
+    _registerVegetation();
+    _registerRedstone();
+    _registerCoral();
+    _registerDoorsFencesStairs();
 
     s_initialized = true;
 }
 
-void Items::registerMaterials()
+void Items::_registerMaterials()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -1011,14 +1011,12 @@ void Items::registerMaterials()
         registry, VanillaBlocks::REDSTONE_ORE, "redstone_ore", ItemProperties().maxStackSize(64));
 }
 
-void Items::registerTools()
+void Items::_registerTools()
 {
     auto& registry = ItemRegistry::instance();
 
     // ========================================================================
     // 钻石工具
-    // MC 1.16.5: 斧基础伤害7.0 + tier(3.0) = 总伤害10.0
-    //            锄基础伤害0，攻击速度-3.0
     // ========================================================================
     DIAMOND_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(ResourceLocation("minecraft:diamond_pickaxe"),
         item::tier::ItemTiers::DIAMOND(), // tier
@@ -1028,7 +1026,7 @@ void Items::registerTools()
 
     DIAMOND_AXE = &registry.registerItem<item::tool::AxeItem>(ResourceLocation("minecraft:diamond_axe"),
         item::tier::ItemTiers::DIAMOND(), // tier
-        7.0f,                             // attackDamage (MC 1.16.5: 7.0, 总伤害=7.0+3.0=10.0)
+        7.0f,                             // attackDamage
         -3.0f,                            // attackSpeed
         ItemProperties().rarity(ItemRarity::Common));
 
@@ -1040,8 +1038,8 @@ void Items::registerTools()
 
     DIAMOND_HOE = &registry.registerItem<item::tool::HoeItem>(ResourceLocation("minecraft:diamond_hoe"),
         item::tier::ItemTiers::DIAMOND(), // tier
-        0,                                // attackDamage (MC 1.16.5: 0)
-        -3.0f,                            // attackSpeed (MC 1.16.5: -3.0)
+        0,                                // attackDamage
+        -3.0f,                            // attackSpeed
         ItemProperties().rarity(ItemRarity::Common));
 
     DIAMOND_SWORD = &registry.registerItem<item::tool::SwordItem>(ResourceLocation("minecraft:diamond_sword"),
@@ -1052,8 +1050,6 @@ void Items::registerTools()
 
     // ========================================================================
     // 铁工具
-    // MC 1.16.5: 斧基础伤害7.0 + tier(2.0) = 总伤害9.0，攻击速度-3.1
-    //            锄基础伤害0，攻击速度-2.0
     // ========================================================================
     IRON_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(ResourceLocation("minecraft:iron_pickaxe"),
         item::tier::ItemTiers::IRON(), // tier
@@ -1063,8 +1059,8 @@ void Items::registerTools()
 
     IRON_AXE = &registry.registerItem<item::tool::AxeItem>(ResourceLocation("minecraft:iron_axe"),
         item::tier::ItemTiers::IRON(), // tier
-        7.0f,                          // attackDamage (MC 1.16.5: 7.0, 总伤害=7.0+2.0=9.0)
-        -3.1f,                         // attackSpeed (MC 1.16.5: -3.1)
+        7.0f,                          // attackDamage
+        -3.1f,                         // attackSpeed
         ItemProperties());
 
     IRON_SHOVEL = &registry.registerItem<item::tool::ShovelItem>(ResourceLocation("minecraft:iron_shovel"),
@@ -1075,8 +1071,8 @@ void Items::registerTools()
 
     IRON_HOE = &registry.registerItem<item::tool::HoeItem>(ResourceLocation("minecraft:iron_hoe"),
         item::tier::ItemTiers::IRON(), // tier
-        0,                             // attackDamage (MC 1.16.5: 0)
-        -2.0f,                         // attackSpeed (MC 1.16.5: -2.0)
+        0,                             // attackDamage
+        -2.0f,                         // attackSpeed
         ItemProperties());
 
     IRON_SWORD = &registry.registerItem<item::tool::SwordItem>(ResourceLocation("minecraft:iron_sword"),
@@ -1087,8 +1083,6 @@ void Items::registerTools()
 
     // ========================================================================
     // 石工具
-    // MC 1.16.5: 斧基础伤害8.0 + tier(1.0) = 总伤害9.0，攻击速度-3.2
-    //            锄基础伤害0，攻击速度-1.0
     // ========================================================================
     STONE_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(ResourceLocation("minecraft:stone_pickaxe"),
         item::tier::ItemTiers::STONE(), // tier
@@ -1098,8 +1092,8 @@ void Items::registerTools()
 
     STONE_AXE = &registry.registerItem<item::tool::AxeItem>(ResourceLocation("minecraft:stone_axe"),
         item::tier::ItemTiers::STONE(), // tier
-        8.0f,                           // attackDamage (MC 1.16.5: 8.0, 总伤害=8.0+1.0=9.0)
-        -3.2f,                          // attackSpeed (MC 1.16.5: -3.2)
+        8.0f,                           // attackDamage
+        -3.2f,                          // attackSpeed
         ItemProperties());
 
     STONE_SHOVEL = &registry.registerItem<item::tool::ShovelItem>(ResourceLocation("minecraft:stone_shovel"),
@@ -1110,8 +1104,8 @@ void Items::registerTools()
 
     STONE_HOE = &registry.registerItem<item::tool::HoeItem>(ResourceLocation("minecraft:stone_hoe"),
         item::tier::ItemTiers::STONE(), // tier
-        0,                              // attackDamage (MC 1.16.5: 0)
-        -1.0f,                          // attackSpeed (MC 1.16.5: -1.0)
+        0,                              // attackDamage
+        -1.0f,                          // attackSpeed
         ItemProperties());
 
     STONE_SWORD = &registry.registerItem<item::tool::SwordItem>(ResourceLocation("minecraft:stone_sword"),
@@ -1122,8 +1116,6 @@ void Items::registerTools()
 
     // ========================================================================
     // 木工具
-    // MC 1.16.5: 斧基础伤害7.0 + tier(0.0) = 总伤害7.0，攻击速度-3.2
-    //            锄基础伤害0，攻击速度0.0
     // ========================================================================
     WOODEN_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(ResourceLocation("minecraft:wooden_pickaxe"),
         item::tier::ItemTiers::WOOD(), // tier
@@ -1133,20 +1125,20 @@ void Items::registerTools()
 
     WOODEN_AXE = &registry.registerItem<item::tool::AxeItem>(ResourceLocation("minecraft:wooden_axe"),
         item::tier::ItemTiers::WOOD(), // tier
-        7.0f,                          // attackDamage (MC 1.16.5: 7.0, 总伤害=7.0+0.0=7.0)
-        -3.2f,                         // attackSpeed (MC 1.16.5: -3.2)
+        7.0f,                          // attackDamage
+        -3.2f,                         // attackSpeed
         ItemProperties());
 
     WOODEN_SHOVEL = &registry.registerItem<item::tool::ShovelItem>(ResourceLocation("minecraft:wooden_shovel"),
         item::tier::ItemTiers::WOOD(), // tier
-        1.5f,                          // attackDamage (MC 1.16.5: 1.5)
+        1.5f,                          // attackDamage
         -3.0f,                         // attackSpeed
         ItemProperties());
 
     WOODEN_HOE = &registry.registerItem<item::tool::HoeItem>(ResourceLocation("minecraft:wooden_hoe"),
         item::tier::ItemTiers::WOOD(), // tier
-        0,                             // attackDamage (MC 1.16.5: 0)
-        0.0f,                          // attackSpeed (MC 1.16.5: 0.0)
+        0,                             // attackDamage
+        0.0f,                          // attackSpeed
         ItemProperties());
 
     WOODEN_SWORD = &registry.registerItem<item::tool::SwordItem>(ResourceLocation("minecraft:wooden_sword"),
@@ -1157,8 +1149,6 @@ void Items::registerTools()
 
     // ========================================================================
     // 金工具
-    // MC 1.16.5: 斧基础伤害7.0 + tier(0.0) = 总伤害7.0
-    //            锄基础伤害0，攻击速度0.0
     // ========================================================================
     GOLDEN_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(ResourceLocation("minecraft:golden_pickaxe"),
         item::tier::ItemTiers::GOLD(), // tier
@@ -1168,20 +1158,20 @@ void Items::registerTools()
 
     GOLDEN_AXE = &registry.registerItem<item::tool::AxeItem>(ResourceLocation("minecraft:golden_axe"),
         item::tier::ItemTiers::GOLD(), // tier
-        7.0f,                          // attackDamage (MC 1.16.5: 7.0, 总伤害=7.0+0.0=7.0)
+        7.0f,                          // attackDamage
         -3.0f,                         // attackSpeed
         ItemProperties());
 
     GOLDEN_SHOVEL = &registry.registerItem<item::tool::ShovelItem>(ResourceLocation("minecraft:golden_shovel"),
         item::tier::ItemTiers::GOLD(), // tier
-        1.5f,                          // attackDamage (MC 1.16.5: 1.5)
+        1.5f,                          // attackDamage
         -3.0f,                         // attackSpeed
         ItemProperties());
 
     GOLDEN_HOE = &registry.registerItem<item::tool::HoeItem>(ResourceLocation("minecraft:golden_hoe"),
         item::tier::ItemTiers::GOLD(), // tier
-        0,                             // attackDamage (MC 1.16.5: 0)
-        0.0f,                          // attackSpeed (MC 1.16.5: 0.0)
+        0,                             // attackDamage
+        0.0f,                          // attackSpeed
         ItemProperties());
 
     GOLDEN_SWORD = &registry.registerItem<item::tool::SwordItem>(ResourceLocation("minecraft:golden_sword"),
@@ -1192,8 +1182,6 @@ void Items::registerTools()
 
     // ========================================================================
     // 下界合金工具
-    // MC 1.16.5: 斧基础伤害6.0 + tier(4.0) = 总伤害10.0
-    //            锄基础伤害0，攻击速度-4.0
     // ========================================================================
     NETHERITE_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(ResourceLocation("minecraft:netherite_pickaxe"),
         item::tier::ItemTiers::NETHERITE(), // tier
@@ -1203,7 +1191,7 @@ void Items::registerTools()
 
     NETHERITE_AXE = &registry.registerItem<item::tool::AxeItem>(ResourceLocation("minecraft:netherite_axe"),
         item::tier::ItemTiers::NETHERITE(), // tier
-        6.0f,                               // attackDamage (MC 1.16.5: 6.0, 总伤害=6.0+4.0=10.0)
+        6.0f,                               // attackDamage
         -3.0f,                              // attackSpeed
         ItemProperties().rarity(ItemRarity::Rare));
 
@@ -1215,8 +1203,8 @@ void Items::registerTools()
 
     NETHERITE_HOE = &registry.registerItem<item::tool::HoeItem>(ResourceLocation("minecraft:netherite_hoe"),
         item::tier::ItemTiers::NETHERITE(), // tier
-        0,                                  // attackDamage (MC 1.16.5: 0)
-        -4.0f,                              // attackSpeed (MC 1.16.5: -4.0)
+        0,                                  // attackDamage
+        -4.0f,                              // attackSpeed
         ItemProperties().rarity(ItemRarity::Rare));
 
     NETHERITE_SWORD = &registry.registerItem<item::tool::SwordItem>(ResourceLocation("minecraft:netherite_sword"),
@@ -1226,7 +1214,7 @@ void Items::registerTools()
         ItemProperties().rarity(ItemRarity::Rare));
 }
 
-void Items::registerArmor()
+void Items::_registerArmor()
 {
     auto& registry = ItemRegistry::instance();
     using namespace item::armor;
@@ -1422,7 +1410,7 @@ void Items::registerArmor()
             ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_diamond.png"));
 }
 
-void Items::registerFood()
+void Items::_registerFood()
 {
     auto& registry = ItemRegistry::instance();
     using namespace item::food;
@@ -1542,7 +1530,6 @@ void Items::registerFood()
         ResourceLocation("minecraft:pumpkin_pie"), ItemProperties().maxStackSize(64).food(&Foods::PUMPKIN_PIE));
 
     // 蛋糕 - BlockItem，最大堆叠数为1
-    // 参考 MC 1.16.5: Items.CAKE = new BlockItem(Blocks.CAKE, maxStackSize(1))
     CAKE = &registerBlockBackedItem(registry, VanillaBlocks::CAKE, "cake", ItemProperties().maxStackSize(1));
 
     RABBIT_STEW = &registry.registerItem<item::items::FoodItem>(ResourceLocation("minecraft:rabbit_stew"),
@@ -1566,7 +1553,7 @@ void Items::registerFood()
         ResourceLocation("minecraft:tropical_fish"), ItemProperties().maxStackSize(64).food(&Foods::TROPICAL_FISH));
 }
 
-void Items::registerMisc()
+void Items::_registerMisc()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -1618,7 +1605,7 @@ void Items::registerMisc()
     FLINT_AND_STEEL = &registry.registerItem<item::tool::FlintAndSteelItem>(
         ResourceLocation("minecraft:flint_and_steel"), ItemProperties().maxDamage(64));
 
-    // 剪刀 - MC 1.16.5: 耐久度 238
+    // 剪刀 - 耐久度 238
     SHEARS = &registry.registerItem<item::tool::ShearsItem>(
         ResourceLocation("minecraft:shears"), ItemProperties().maxDamage(238));
 
@@ -1679,7 +1666,7 @@ void Items::registerMisc()
         &registry.registerItem(ResourceLocation("minecraft:firework_rocket"), ItemProperties().maxStackSize(64));
 }
 
-void Items::registerDyes()
+void Items::_registerDyes()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -1719,7 +1706,7 @@ void Items::registerDyes()
     WHITE_DYE = &registry.registerItem(ResourceLocation("minecraft:white_dye"), ItemProperties().maxStackSize(64));
 }
 
-void Items::registerSeeds()
+void Items::_registerSeeds()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -1734,7 +1721,7 @@ void Items::registerSeeds()
         &registry.registerItem(ResourceLocation("minecraft:beetroot_seeds"), ItemProperties().maxStackSize(64));
 }
 
-void Items::registerCrops()
+void Items::_registerCrops()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -1767,7 +1754,7 @@ void Items::registerCrops()
     BAMBOO = &registerBlockBackedItem(registry, VanillaBlocks::BAMBOO, "bamboo", ItemProperties().maxStackSize(64));
 }
 
-void Items::registerAquaticMaterials()
+void Items::_registerAquaticMaterials()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -1822,7 +1809,7 @@ void Items::registerAquaticMaterials()
         registry, VanillaBlocks::WARPED_FUNGUS, "warped_fungus", ItemProperties().maxStackSize(64));
 }
 
-void Items::registerBrewingIngredients()
+void Items::_registerBrewingIngredients()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -1863,7 +1850,7 @@ void Items::registerBrewingIngredients()
         &registry.registerItem(ResourceLocation("minecraft:glistering_melon_slice"), ItemProperties().maxStackSize(64));
 }
 
-void Items::registerPotions()
+void Items::_registerPotions()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -1888,7 +1875,7 @@ void Items::registerPotions()
         ResourceLocation("minecraft:lingering_potion"), ItemProperties().maxStackSize(1));
 }
 
-void Items::registerWeapons()
+void Items::_registerWeapons()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -1936,21 +1923,19 @@ void Items::registerWeapons()
     // ========================================================================
 
     // 胡萝卜钓竿 - 控制猪
-    // 参考: new CarrotOnAStickItem(new Item.Properties().maxDamage(25).group(ItemGroup.TRANSPORTATION))
-    // MC 1.16.5: 耐久度25，每次加速消耗7耐久
+    // 耐久度25，每次加速消耗7耐久
     CARROT_ON_A_STICK =
         &registry.registerItem<item::CarrotOnAStickItem>(ResourceLocation("minecraft:carrot_on_a_stick"),
             ItemProperties().maxDamage(item::CarrotOnAStickItem::MAX_DAMAGE));
 
     // 诡异菌钓竿 - 控制炽足兽
-    // 参考: new WarpedFungusOnAStickItem(new Item.Properties().maxDamage(100).group(ItemGroup.TRANSPORTATION))
-    // MC 1.16.5: 耐久度100，每次加速消耗1耐久
+    // 耐久度100，每次加速消耗1耐久
     WARPED_FUNGUS_ON_A_STICK =
         &registry.registerItem<item::WarpedFungusOnAStickItem>(ResourceLocation("minecraft:warped_fungus_on_a_stick"),
             ItemProperties().maxDamage(item::WarpedFungusOnAStickItem::MAX_DAMAGE));
 }
 
-void Items::registerThrowables()
+void Items::_registerThrowables()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -1974,7 +1959,7 @@ void Items::registerThrowables()
         ResourceLocation("minecraft:experience_bottle"), ItemProperties().maxStackSize(64));
 }
 
-void Items::registerBuckets()
+void Items::_registerBuckets()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -1998,7 +1983,7 @@ void Items::registerBuckets()
         fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::LAVA_ID),
         ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
-    // 鱼桶 - MC 1.16.5
+    // 鱼桶
     // 鳕鱼桶 - 可以装鳕鱼的水桶，使用后返回空桶
     COD_BUCKET = &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:cod_bucket"),
         mc::entity::EntityTypes::COD,
@@ -2026,7 +2011,7 @@ void Items::registerBuckets()
         ResourceLocation("minecraft:milk_bucket"), ItemProperties().maxStackSize(1).containerItem(BUCKET));
 }
 
-void Items::registerBooks()
+void Items::_registerBooks()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -2046,7 +2031,7 @@ void Items::registerBooks()
         &registry.registerItem(ResourceLocation("minecraft:written_book"), ItemProperties().maxStackSize(16));
 }
 
-void Items::registerSponges()
+void Items::_registerSponges()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -2058,11 +2043,11 @@ void Items::registerSponges()
         &registerBlockBackedItem(registry, VanillaBlocks::WET_SPONGE, "wet_sponge", ItemProperties().maxStackSize(64));
 }
 
-void Items::registerMinecarts()
+void Items::_registerMinecarts()
 {
     auto& registry = ItemRegistry::instance();
 
-    // 普通矿车 - MC 1.16.5: maxStackSize = 1
+    // 普通矿车
     MINECART = &registry.registerItem<item::MinecartItem>(ResourceLocation("minecraft:minecart"),
         entity::AbstractMinecartEntity::Type::Rideable,
         ItemProperties().maxStackSize(1));
@@ -2094,13 +2079,12 @@ void Items::registerMinecarts()
             ItemProperties().maxStackSize(1));
 }
 
-void Items::registerBoats()
+void Items::_registerBoats()
 {
     auto& registry = ItemRegistry::instance();
 
     // ========================================================================
-    // 船物品 - MC 1.16.5: maxStackSize = 1
-    // 参考: net.minecraft.item.Items 第 765-770 行
+    // 船物品
     // ========================================================================
 
     // 橡木船
@@ -2129,28 +2113,26 @@ void Items::registerBoats()
         ItemProperties().maxStackSize(1));
 }
 
-void Items::registerHangingItems()
+void Items::_registerHangingItems()
 {
     auto& registry = ItemRegistry::instance();
 
-    // 画作 - MC 1.16.5: maxStackSize = 16
+    // 画作
     PAINTING = &registry.registerItem(ResourceLocation("minecraft:painting"), ItemProperties().maxStackSize(16));
 
-    // 物品展示框 - MC 1.16.5: maxStackSize = 16
+    // 物品展示框
     ITEM_FRAME = &registry.registerItem(ResourceLocation("minecraft:item_frame"), ItemProperties().maxStackSize(16));
 
-    // 拴绳 - MC 1.16.5: maxStackSize = 16
+    // 拴绳
     LEAD = &registry.registerItem(ResourceLocation("minecraft:lead"), ItemProperties().maxStackSize(16));
 }
 
-void Items::registerSigns()
+void Items::_registerSigns()
 {
     auto& registry = ItemRegistry::instance();
 
     // ========================================================================
     // 告示牌物品 - 使用 WallOrFloorItem 注册
-    // MC 1.16.5: maxStackSize = 16
-    // 参考: net.minecraft.item.Items 第 669-676 行
     // ========================================================================
 
     // 橡木告示牌
@@ -2202,7 +2184,7 @@ void Items::registerSigns()
         ItemProperties().maxStackSize(16));
 }
 
-void Items::registerBuildingBlocks()
+void Items::_registerBuildingBlocks()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -2546,7 +2528,7 @@ void Items::registerBuildingBlocks()
         registry, VanillaBlocks::QUARTZ_PILLAR, "quartz_pillar", ItemProperties().maxStackSize(64));
 }
 
-void Items::registerWool()
+void Items::_registerWool()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -2584,7 +2566,7 @@ void Items::registerWool()
         &registerBlockBackedItem(registry, VanillaBlocks::BLACK_WOOL, "black_wool", ItemProperties().maxStackSize(64));
 }
 
-void Items::registerCarpets()
+void Items::_registerCarpets()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -2622,7 +2604,7 @@ void Items::registerCarpets()
         registry, VanillaBlocks::BLACK_CARPET, "black_carpet", ItemProperties().maxStackSize(64));
 }
 
-void Items::registerStainedGlass()
+void Items::_registerStainedGlass()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -2664,7 +2646,7 @@ void Items::registerStainedGlass()
         registry, VanillaBlocks::BLACK_STAINED_GLASS, "black_stained_glass", ItemProperties().maxStackSize(64));
 }
 
-void Items::registerConcrete()
+void Items::_registerConcrete()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -2741,7 +2723,7 @@ void Items::registerConcrete()
         registry, VanillaBlocks::BLACK_CONCRETE_POWDER, "black_concrete_powder", ItemProperties().maxStackSize(64));
 }
 
-void Items::registerTerracotta()
+void Items::_registerTerracotta()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -2779,7 +2761,7 @@ void Items::registerTerracotta()
         registry, VanillaBlocks::BLACK_TERRACOTTA, "black_terracotta", ItemProperties().maxStackSize(64));
 }
 
-void Items::registerVegetation()
+void Items::_registerVegetation()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -2833,7 +2815,7 @@ void Items::registerVegetation()
         registry, VanillaBlocks::MUSHROOM_STEM, "mushroom_stem", ItemProperties().maxStackSize(64));
 }
 
-void Items::registerRedstone()
+void Items::_registerRedstone()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -2907,7 +2889,7 @@ void Items::registerRedstone()
         registry, VanillaBlocks::ACTIVATOR_RAIL, "activator_rail", ItemProperties().maxStackSize(64));
 }
 
-void Items::registerCoral()
+void Items::_registerCoral()
 {
     auto& registry = ItemRegistry::instance();
 
@@ -2960,7 +2942,7 @@ void Items::registerCoral()
         registry, VanillaBlocks::DEAD_HORN_CORAL_FAN, "dead_horn_coral_fan", ItemProperties().maxStackSize(64));
 }
 
-void Items::registerDoorsFencesStairs()
+void Items::_registerDoorsFencesStairs()
 {
     auto& registry = ItemRegistry::instance();
 

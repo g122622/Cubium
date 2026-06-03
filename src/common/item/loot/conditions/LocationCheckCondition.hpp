@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <memory>
-#include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/advancement/trigger/conditions/LocationPredicate.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -35,7 +35,6 @@ namespace loot {
  * @brief 位置检查条件
  *
  * 检查指定偏移位置是否满足位置谓词（生物群系、维度等）。
- * 参考: net.minecraft.loot.conditions.LocationCheck
  *
  * JSON 格式示例:
  * @code
@@ -61,12 +60,12 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
-    [[nodiscard]] std::string getType() const override { return "location_check"; }
+    [[nodiscard]] std::string getType() const noexcept override { return "location_check"; }
 
-    [[nodiscard]] const advancement::LocationPredicate& getPredicate() const { return m_predicate; }
-    [[nodiscard]] i32 getOffsetX() const { return m_offsetX; }
-    [[nodiscard]] i32 getOffsetY() const { return m_offsetY; }
-    [[nodiscard]] i32 getOffsetZ() const { return m_offsetZ; }
+    [[nodiscard]] const advancement::LocationPredicate& getPredicate() const noexcept { return m_predicate; }
+    [[nodiscard]] i32 getOffsetX() const noexcept { return m_offsetX; }
+    [[nodiscard]] i32 getOffsetY() const noexcept { return m_offsetY; }
+    [[nodiscard]] i32 getOffsetZ() const noexcept { return m_offsetZ; }
 
 private:
     advancement::LocationPredicate m_predicate;

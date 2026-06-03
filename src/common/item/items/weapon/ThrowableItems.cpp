@@ -22,12 +22,12 @@
  */
 
 #include "ThrowableItems.hpp"
-#include "../../../entity/core/Entity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/entities/projectile/ProjectileItemEntity.hpp"
-#include "../../../item/Items.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../core/ItemStack.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/world/IWorld.hpp"
 #include <memory>
 
 namespace mc {

@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 爆炸保护附魔
  *
  * 减少爆炸伤害。
- * 参考 MC 1.16.5 BlastProtectionEnchantment
  *
  * 效果:
  * - 对爆炸伤害有双倍保护效果
@@ -54,7 +53,7 @@ public:
         return "enchantment.minecraft.blast_protection";
     }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
 };
 
 } // namespace enchant

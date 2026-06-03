@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "common/item/loot/conditions/LootCondition.hpp"
-#include "common/item/loot/conditions/EntityPropertiesCondition.hpp"
-#include "common/item/loot/StatePropertiesPredicate.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include "common/advancement/trigger/conditions/LocationPredicate.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/loot/StatePropertiesPredicate.hpp"
+#include "common/item/loot/conditions/EntityPropertiesCondition.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
 #include <memory>
 #include <optional>

@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Enchantment.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 #include "common/util/math/random/Random.hpp"
 
 namespace mc {
@@ -34,7 +34,6 @@ namespace enchant {
  * @brief 耐久附魔
  *
  * 减少物品耐久度消耗的概率。
- * 参考 MC 1.16.5 UnbreakingEnchantment
  *
  * 效果:
  * - 每级有 level / (level + 1) 的概率不消耗耐久
@@ -42,15 +41,10 @@ namespace enchant {
  * - 对于盔甲，有60%概率忽略耐久保护，实际保护概率为 0.4 * level / (level + 1)
  *   I: 20%, II: 27%, III: 30%
  * - 最大 III 级
- *
- * 对应 MC 1.16.5 方法: negateDamage()
- * - MC: negateDamage() 返回 true = 抵消伤害 = 不消耗耐久
- * - 本类: shouldConsumeDurability() 返回 true = 消耗耐久
- * - 两者语义相反，逻辑互补
  */
 class UnbreakingEnchantment : public Enchantment {
 public:
-    UnbreakingEnchantment() = default;
+    UnbreakingEnchantment() noexcept = default;
 
     [[nodiscard]] std::string id() const override { return "minecraft:unbreaking"; }
 
@@ -95,7 +89,6 @@ public:
      */
     [[nodiscard]] static f32 getDurabilityProtectionChance(i32 level)
     {
-        // MC 1.16.5: 公式为 level / (level + 1)
         // I: 1/2 = 50%, II: 2/3 = 67%, III: 3/4 = 75%
         return static_cast<f32>(level) / static_cast<f32>(level + 1);
     }
@@ -107,8 +100,7 @@ public:
      */
     [[nodiscard]] static f32 getArmorDurabilityProtectionChance(i32 level)
     {
-        // MC 1.16.5: 盔甲有 60% 概率忽略耐久保护
-        // 所以实际保护概率 = 0.4 * (level / (level + 1))
+        // 盔甲有 60% 概率忽略耐久保护
         // I: 0.4 * 50% = 20%, II: 0.4 * 67% = 27%, III: 0.4 * 75% = 30%
         return 0.4f * static_cast<f32>(level) / static_cast<f32>(level + 1);
     }

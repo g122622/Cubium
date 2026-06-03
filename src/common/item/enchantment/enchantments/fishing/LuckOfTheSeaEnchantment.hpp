@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Enchantment.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 
 namespace mc {
 namespace item {
@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 海之眷顾附魔
  *
  * 增加钓鱼获得宝藏的概率。
- * 参考 MC 1.16.5 LuckOfTheSeaEnchantment
  *
  * 效果:
  * - 每级增加宝藏概率，减少垃圾概率
@@ -41,7 +40,7 @@ namespace enchant {
  */
 class LuckOfTheSeaEnchantment : public Enchantment {
 public:
-    LuckOfTheSeaEnchantment() = default;
+    LuckOfTheSeaEnchantment() noexcept = default;
 
     [[nodiscard]] std::string id() const override { return "minecraft:luck_of_the_sea"; }
 

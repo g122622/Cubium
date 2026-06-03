@@ -78,7 +78,7 @@ private:
     /**
      * @brief 将药水效果应用到实体
      */
-    void applyEffects(const potion::Potion* potion, Entity& entity, IWorld& world);
+    void _applyEffects(const potion::Potion* potion, Entity& entity, IWorld& world);
 };
 
 } // namespace item

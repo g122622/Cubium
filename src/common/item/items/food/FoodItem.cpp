@@ -63,7 +63,7 @@ i32 FoodItem::getUseDuration(const ItemStack& /*stack*/) const
 /**
  * @brief 获取使用动作
  *
- * MC 1.16.5 中所有食物都返回 EAT 动作，
+ * 所有食物都返回 EAT 动作，
  * isMeat() 标记仅用于狼是否能食用，不影响使用动作。
  */
 UseAction FoodItem::getUseAction(const ItemStack& /*stack*/) const
@@ -154,7 +154,6 @@ ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& ent
         }
 
         // 播放进食音效
-        // MC 1.16.5: 所有食物使用通用进食音效
         // 音调在 0.8-1.2 范围内随机变化
         f32 pitch = 0.8f + (rng.nextFloat() * 0.4f);
         f32 volume = 0.5f + (rng.nextFloat() * 0.5f);
@@ -170,7 +169,6 @@ ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& ent
     }
 
     // 触发消耗物品事件（进度系统）
-    // 参考 MC 1.16.5: CriteriaTriggers.CONSUME_ITEM
     if (player != nullptr) {
         world.onConsumeItem(player->id(), consumedItem);
     }

@@ -44,8 +44,6 @@ class LootTable;
 
 /**
  * @brief 掉落上下文构建器
- *
- * 参考: net.minecraft.loot.LootContext.Builder
  */
 class LootContextBuilder {
 public:

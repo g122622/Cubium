@@ -22,9 +22,11 @@
  */
 
 #include "LingeringPotionItem.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/entities/projectile/ProjectileItemEntity.hpp"
-#include "../../../world/IWorld.hpp"
+
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "common/world/IWorld.hpp"
+
 #include <memory>
 
 namespace mc {

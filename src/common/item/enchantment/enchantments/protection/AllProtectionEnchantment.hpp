@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 全保护附魔
  *
  * 减少所有类型的伤害。
- * 参考 MC 1.16.5 ProtectionEnchantment (ALL type)
  *
  * 效果:
  * - 每级提供 4% 的伤害减免（EPF = level）

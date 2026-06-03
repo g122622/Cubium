@@ -23,8 +23,9 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../core/Item.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+
 #include <memory>
 
 namespace mc {
@@ -38,7 +39,6 @@ namespace item {
  * @brief 鱼桶物品
  *
  * 右键使用时放置水并生成鱼实体。
- * 参考 MC 1.16.5: net.minecraft.item.FishBucketItem
  */
 class FishBucketItem : public Item {
 public:
@@ -49,7 +49,12 @@ public:
      */
     FishBucketItem(const char* fishTypeName, const ItemProperties& properties);
 
-    ~FishBucketItem() override = default;
+    ~FishBucketItem() noexcept override = default;
+
+    FishBucketItem(const FishBucketItem&) = default;
+    FishBucketItem(FishBucketItem&&) noexcept = default;
+    FishBucketItem& operator=(const FishBucketItem&) = default;
+    FishBucketItem& operator=(FishBucketItem&&) noexcept = default;
 
     /**
      * @brief 获取鱼类型名称
@@ -73,19 +78,18 @@ private:
      * @param pos 位置
      * @return 是否成功生成
      */
-    bool spawnFish(IWorld& world, const BlockPos& pos) const;
+    bool _spawnFish(IWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 返回空桶给玩家
      *
-     * 参考 MC 1.16.5 BucketItem.emptyBucket()
-     * - 如果当前物品堆已空，直接替换为空桶
-     * - 否则尝试添加到背包，背包满则掉落
+     * 如果当前物品堆已空，直接替换为空桶；
+     * 否则尝试添加到背包，背包满则掉落。
      *
      * @param player 玩家
      * @param stack 当前物品堆（可能被修改）
      */
-    void returnEmptyBucket(Player& player, ItemStack& stack) const;
+    void _returnEmptyBucket(Player& player, ItemStack& stack) const;
 
     std::string m_fishTypeName;
 };

@@ -41,8 +41,6 @@ namespace item::items {
  * 金苹果是特殊的食物，具有以下功能：
  * 1. 食用：恢复饥饿值并给予药水效果
  * 2. 对僵尸村民使用：如果僵尸村民有虚弱效果，开始治愈过程
- *
- * 参考 MC 1.16.5: net.minecraft.item.GoldenAppleItem (实际上在 Item 类中处理)
  */
 class GoldenAppleItem : public Item {
 public:

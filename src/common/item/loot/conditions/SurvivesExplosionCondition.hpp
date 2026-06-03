@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "common/item/loot/conditions/LootCondition.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -36,8 +36,6 @@ namespace loot {
  * 若上下文中没有爆炸半径参数，则总是返回 true（非爆炸破坏）。
  * 若有爆炸半径，则以 1/radius 的概率存活。
  *
- * 参考: net.minecraft.loot.conditions.SurvivesExplosion
- *
  * 这是方块掉落表中最常用的条件，几乎所有方块都使用。
  */
 class SurvivesExplosionCondition : public LootCondition {
@@ -45,7 +43,7 @@ public:
     SurvivesExplosionCondition() = default;
 
     [[nodiscard]] bool test(LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "survives_explosion"; }
 };
 

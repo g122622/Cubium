@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../world/block/Material.hpp"
-#include "../../attribute/ItemAttributeModifiers.hpp"
-#include "TieredItem.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
+#include "common/item/items/tool/TieredItem.hpp"
+#include "common/world/block/Material.hpp"
 
 namespace mc {
 
@@ -49,8 +49,6 @@ namespace tool {
  *
  * 攻击伤害 = 基础值 + 层级加成
  * 攻击速度 = 基础值（通常为 -2.4）
- *
- * 参考: net.minecraft.item.SwordItem
  */
 class SwordItem : public TieredItem {
 public:
@@ -132,8 +130,6 @@ public:
      * @brief 获取属性修饰符
      *
      * 剑在主手时提供攻击伤害和攻击速度修饰符。
-     *
-     * 参考: net.minecraft.item.SwordItem#getAttributeModifiers
      *
      * @param equipmentSlot 装备槽位
      * @return 属性修饰符

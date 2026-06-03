@@ -21,13 +21,13 @@
  *
  */
 
-#include "SwordItem.hpp"
-#include "../../../entity/attribute/AttributeModifierUUIDs.hpp"
-#include "../../../entity/attribute/Attributes.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../core/ItemStack.hpp"
+#include "common/item/items/tool/SwordItem.hpp"
+#include "common/entity/attribute/AttributeModifierUUIDs.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc {
 namespace item {
@@ -94,8 +94,7 @@ bool SwordItem::onBlockDestroyed(
 
 item::ItemAttributeModifiers SwordItem::getAttributeModifiers(i32 equipmentSlot) const
 {
-    // MC 1.16.5: 剑在主手时提供攻击伤害和攻击速度修饰符
-    // 参考: net.minecraft.item.SwordItem#getAttributeModifiers
+    // 剑在主手时提供攻击伤害和攻击速度修饰符
     if (equipmentSlot == static_cast<i32>(EquipmentSlot::MainHand)) {
         item::ItemAttributeModifiers modifiers;
         std::string uuid = entity::attribute::uuids::fromString(entity::attribute::uuids::ATTACK_DAMAGE_MODIFIER_UUID);

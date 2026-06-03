@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 亡灵杀手附魔
  *
  * 增加对亡灵生物的伤害。
- * 参考 MC 1.16.5 SmiteEnchantment
  *
  * 效果:
  * - 对亡灵生物每级增加 2.5 点伤害

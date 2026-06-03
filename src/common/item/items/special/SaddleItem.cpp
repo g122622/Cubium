@@ -22,15 +22,15 @@
  */
 
 #include "SaddleItem.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/interfaces/IEquipable.hpp"
-#include "../../../entity/interfaces/IRideable.hpp"
-#include "../../../sound/SoundCategory.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../core/ItemStack.hpp"
-#include <spdlog/spdlog.h>
+
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/interfaces/IEquipable.hpp"
+#include "common/entity/interfaces/IRideable.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace item::items {
@@ -43,7 +43,6 @@ bool SaddleItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
 {
     MC_UNUSED(hand);
 
-    // MC 1.16.5: SaddleItem.itemInteractionForEntity()
     // 检查目标实体是否实现了 IEquipable 接口
     auto* equipable = dynamic_cast<entity::IEquipable*>(&target);
     if (equipable == nullptr) {
@@ -68,10 +67,9 @@ bool SaddleItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
     }
 
     // 检查是否可以装备鞍
-    // MC 1.16.5: func_230264_L__() - 检查是否可以装备鞍
     // 对于马类，需要驯服后才能装备鞍
     // 对于猪和炽足兽，可以直接装备鞍
-    // 目前简化实现：检查实体是否有鞍槽（装备槽数量 > 0）
+    // TODO: 目前简化实现：检查实体是否有鞍槽（装备槽数量 > 0），后续需要根据实体类型检查驯服状态
     if (equipable->getEquipmentSlotCount() <= 0) {
         return false;
     }
@@ -92,7 +90,7 @@ bool SaddleItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
     equipable->setEquipment(0, saddleStack);
 
     // 播放鞍音效
-    // MC 1.16.5: 根据实体类型播放不同音效
+    // TODO: 根据实体类型播放不同音效：
     // - 猪: ENTITY_PIG_SADDLE
     // - 马: ENTITY_HORSE_SADDLE
     // - 炽足兽: ENTITY_STRIDER_SADDLE
@@ -111,8 +109,6 @@ bool SaddleItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
     if (!player.isCreative()) {
         stack.shrink(1);
     }
-
-    spdlog::debug("SaddleItem: Equipped saddle on entity (id={})", target.id());
 
     return true;
 }

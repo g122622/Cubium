@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Item.hpp"
+#include "common/item/core/Item.hpp"
 
 namespace mc {
 namespace item::items {

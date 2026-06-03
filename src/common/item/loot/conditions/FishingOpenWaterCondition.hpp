@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "common/item/loot/conditions/LootCondition.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -34,8 +34,6 @@ namespace loot {
  *
  * 检查钓鱼是否在开放水域进行。
  * 用于钓鱼掉落表中宝藏条目的条件判断。
- *
- * 参考: net.minecraft.loot.conditions.EntityProperties + FishingPredicate
  *
  * MC 1.16.5 中，宝藏只有在开放水域才能钓到。
  * 开放水域定义：浮标周围 5x4x5 区域（X-2到X+2，Y-1到Y+2，Z-2到Z+2）

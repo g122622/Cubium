@@ -43,8 +43,6 @@ namespace tool {
  * - 铁 (2): 钻石矿、金矿、红石矿
  * - 钻石 (3): 黑曜石、远古残骸（部分）
  * - 下界合金 (4): 所有可采集方块
- *
- * 参考: net.minecraft.item.PickaxeItem
  */
 class PickaxeItem : public ToolItem {
 public:
@@ -100,7 +98,7 @@ private:
      *
      * 包含：石头、圆石、矿石、铁砧、熔炉等
      */
-    static std::unordered_set<const Block*> initializeEffectiveBlocks();
+    static std::unordered_set<const Block*> _initializeEffectiveBlocks();
 };
 
 } // namespace tool

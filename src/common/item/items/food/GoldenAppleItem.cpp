@@ -44,7 +44,7 @@ GoldenAppleItem::GoldenAppleItem(const food::Food* food, ItemProperties properti
 
 i32 GoldenAppleItem::getUseDuration(const ItemStack& /*stack*/) const
 {
-    // MC 1.16.5: 金苹果食用时间为 32 ticks
+    // 金苹果食用时间为 32 ticks
     return 32;
 }
 
@@ -55,7 +55,7 @@ UseAction GoldenAppleItem::getUseAction(const ItemStack& /*stack*/) const
 
 ItemActionResult GoldenAppleItem::onItemRightClick(IWorld& /*world*/, Player& player, Hand hand)
 {
-    // MC 1.16.5: 金苹果可以在任何时候食用
+    // 金苹果可以在任何时候食用
     ItemStack stack = player.getHeldItem(hand);
     if (stack.isEmpty()) {
         return ItemActionResult::pass(stack);
@@ -71,9 +71,7 @@ ItemActionResult GoldenAppleItem::onItemRightClick(IWorld& /*world*/, Player& pl
 
 ItemStack GoldenAppleItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, Entity& entity)
 {
-    // MC 1.16.5: 金苹果食用完成
-    // 1. 恢复饥饿值和饱和度
-    // 2. 应用药水效果
+    // 金苹果食用完成：恢复饥饿值和饱和度，应用药水效果
 
     // 尝试转换为玩家
     Player* player = dynamic_cast<Player*>(&entity);
@@ -115,8 +113,7 @@ ItemStack GoldenAppleItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, 
 
 bool GoldenAppleItem::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand /*hand*/)
 {
-    // MC 1.16.5: 金苹果对僵尸村民使用
-    // 参考 ZombieVillagerEntity.func_230254_b_ (interact)
+    // 金苹果对僵尸村民使用
 
     // 检查目标是否为僵尸村民
     auto* zombieVillager = dynamic_cast<ZombieVillagerEntity*>(&target);
@@ -135,9 +132,7 @@ bool GoldenAppleItem::itemInteractionForEntity(ItemStack& stack, Player& player,
         return false;
     }
 
-    // 开始治愈过程
-    // MC 1.16.5: 治愈时间 = random.nextInt(2401) + 3600
-    // 即 3600-6000 ticks (3-5 分钟)
+    // 开始治愈过程，治愈时间为 3600-6000 ticks (3-5 分钟)
     math::Random rng(static_cast<u64>(player.ticksExisted()));
     i32 conversionTime = 3600 + rng.nextInt(2401);
     zombieVillager->startConverting(player.uuid(), conversionTime);
@@ -148,7 +143,7 @@ bool GoldenAppleItem::itemInteractionForEntity(ItemStack& stack, Player& player,
     }
 
     spdlog::info("GoldenAppleItem: Started curing zombie villager at ({}, {}, {}), "
-                  "conversion time: {} ticks, starter: {}",
+                 "conversion time: {} ticks, starter: {}",
         zombieVillager->x(),
         zombieVillager->y(),
         zombieVillager->z(),
@@ -160,8 +155,7 @@ bool GoldenAppleItem::itemInteractionForEntity(ItemStack& stack, Player& player,
 
 bool GoldenAppleItem::canEat(const ItemStack& /*stack*/, const Player& player) const
 {
-    // MC 1.16.5: 金苹果可以在任何时候食用（不要求饥饿）
-    // 但不能在旁观模式食用
+    // 金苹果可以在任何时候食用（不要求饥饿），但旁观模式除外
     if (player.isSpectator()) {
         return false;
     }

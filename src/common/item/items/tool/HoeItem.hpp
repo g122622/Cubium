@@ -63,7 +63,7 @@ public:
     /**
      * @brief 方块交互（耕地创建）
      *
-     * MC 1.16.5: 右键泥土/草地可创建耕地
+     * 右键泥土/草地可创建耕地：
      * - 播放音效
      * - 消耗耐久
      * - 转换方块
@@ -89,7 +89,7 @@ public:
      * @param original 原始方块
      * @return 转换后的方块，如果不可转换则返回 nullptr
      */
-    [[nodiscard]] static const Block* getTilledBlock(const Block* original);
+    [[nodiscard]] static const Block* getTilledBlock(const Block* original) noexcept;
 
 protected:
     /**
@@ -107,7 +107,7 @@ private:
      * @brief 初始化锄的有效方块集合
      * @return 有效方块集合
      */
-    static std::unordered_set<const Block*> initializeEffectiveBlocks();
+    static std::unordered_set<const Block*> _initializeEffectiveBlocks();
 
     /**
      * @brief 获取耕地映射表（延迟初始化）
@@ -116,7 +116,7 @@ private:
      *
      * @return 泥土/草地 -> 耕地 映射的引用
      */
-    static std::unordered_map<const Block*, const Block*>& getTillingMap();
+    static std::unordered_map<const Block*, const Block*>& _getTillingMap();
 };
 
 } // namespace tool

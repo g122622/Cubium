@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {

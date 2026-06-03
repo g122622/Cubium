@@ -29,12 +29,8 @@ namespace loot {
 bool SilkTouchCondition::test(LootContext& context) const
 {
     // 检查是否有精准采集附魔
-    // 使用 SILK_TOUCH_LEVEL 参数
     auto* silkTouchLevel = context.get<i32>(LootParams::SILK_TOUCH_LEVEL);
-    if (silkTouchLevel && *silkTouchLevel > 0) {
-        return true;
-    }
-    return false;
+    return silkTouchLevel != nullptr && *silkTouchLevel > 0;
 }
 
 std::unique_ptr<LootCondition> SilkTouchCondition::clone() const

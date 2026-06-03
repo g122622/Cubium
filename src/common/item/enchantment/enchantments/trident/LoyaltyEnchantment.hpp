@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Enchantment.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 
 namespace mc {
 namespace item {
@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 忠诚附魔
  *
  * 三叉戟投掷后自动返回。
- * 参考 MC 1.16.5 LoyaltyEnchantment
  *
  * 效果:
  * - 每级减少返回时间
@@ -60,11 +59,9 @@ public:
 
     [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Uncommon; }
 
-    // MC 1.16.5: getMinEnchantability = 5 + enchantmentLevel * 7
     // 等级1: 12, 等级2: 19, 等级3: 26
     [[nodiscard]] i32 getMinCost(i32 level) const override { return 5 + level * 7; }
 
-    // MC 1.16.5: getMaxEnchantability = 50 (固定值)
     [[nodiscard]] i32 getMaxCost(i32 level) const override
     {
         (void)level;

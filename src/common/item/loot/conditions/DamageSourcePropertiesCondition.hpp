@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -34,7 +34,6 @@ namespace loot {
  * @brief 伤害源属性条件
  *
  * 检查伤害源是否满足指定属性谓词。
- * 参考: net.minecraft.loot.conditions.DamageSourceProperties
  *
  * JSON 格式示例:
  * @code
@@ -56,9 +55,9 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
-    [[nodiscard]] std::string getType() const override { return "damage_source_properties"; }
+    [[nodiscard]] std::string getType() const noexcept override { return "damage_source_properties"; }
 
-    [[nodiscard]] const advancement::DamageSourcePredicate& getPredicate() const { return m_predicate; }
+    [[nodiscard]] const advancement::DamageSourcePredicate& getPredicate() const noexcept { return m_predicate; }
 
 private:
     advancement::DamageSourcePredicate m_predicate;

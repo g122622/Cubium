@@ -23,14 +23,14 @@
 
 #include "GlassBottleItem.hpp"
 
-#include "../../../core/BlockRaycastResult.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../util/math/ray/Raycast.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../../world/block/blocks/CauldronBlock.hpp"
-#include "../../../world/fluid/Fluid.hpp"
-#include "../../potion/PotionUtils.hpp"
-#include "../../potion/Potions.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/potion/PotionUtils.hpp"
+#include "common/item/potion/Potions.hpp"
+#include "common/util/math/ray/Raycast.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/blocks/CauldronBlock.hpp"
+#include "common/world/fluid/Fluid.hpp"
 
 namespace {
 
@@ -69,7 +69,7 @@ namespace item {
 
 // ========== GlassBottleItem 实现 ==========
 
-GlassBottleItem::GlassBottleItem(const ItemProperties& properties)
+GlassBottleItem::GlassBottleItem(const ItemProperties& properties) noexcept
     : Item(properties)
 {}
 

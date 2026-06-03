@@ -22,19 +22,19 @@
  */
 
 #include "CrossbowItem.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
-#include "../../../entity/entities/projectile/OtherProjectiles.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../Items.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../core/ItemStack.hpp"
-#include "../../enchantment/EnchantmentHelper.hpp"
-#include "../../enchantment/enchantments/AllEnchantments.hpp"
-#include "ArrowItem.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "common/entity/entities/projectile/OtherProjectiles.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/enchantment/enchantments/AllEnchantments.hpp"
+#include "common/item/items/weapon/ArrowItem.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include <cmath>
 
 namespace mc {
@@ -78,13 +78,13 @@ ItemActionResult CrossbowItem::onItemRightClick(IWorld& world, Player& player, H
         if (hasChargedProjectile(crossbowStack, Items::FIREWORK_ROCKET)) {
             velocity = FIREWORK_VELOCITY;
         }
-        fireProjectiles(world, player, crossbowStack, velocity, 1.0f);
+        _fireProjectiles(world, player, crossbowStack, velocity, 1.0f);
         setCharged(crossbowStack, false);
         return ItemActionResult::success(crossbowStack);
     }
 
     // 检查是否有弹药
-    ItemStack ammo = findAmmo(player);
+    ItemStack ammo = _findAmmo(player);
     if (ammo.isEmpty() && !player.isCreative()) {
         return ItemActionResult::fail(crossbowStack);
     }
@@ -113,7 +113,7 @@ void CrossbowItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingE
     // 检查是否完全装填
     if (chargeProgress >= 1.0f && !isCharged(stack)) {
         // 装填弹丸
-        if (loadProjectiles(*player, stack)) {
+        if (_loadProjectiles(*player, stack)) {
             setCharged(stack, true);
             // 播放装填完成音效
             player->playSound(SoundEvents::ITEM_CROSSBOW_LOADING_END, 1.0f, 1.0f);
@@ -180,7 +180,7 @@ std::function<bool(const ItemStack&)> CrossbowItem::getInventoryAmmoPredicate() 
 
 // ========== 私有方法 ==========
 
-bool CrossbowItem::isAmmo(const ItemStack& stack)
+bool CrossbowItem::_isAmmo(const ItemStack& stack)
 {
     if (stack.isEmpty()) {
         return false;
@@ -194,17 +194,17 @@ bool CrossbowItem::isAmmo(const ItemStack& stack)
     return item == Items::FIREWORK_ROCKET;
 }
 
-ItemStack CrossbowItem::findAmmo(Player& player)
+ItemStack CrossbowItem::_findAmmo(Player& player)
 {
     // 先检查副手
     ItemStack offhand = player.getHeldItem(Hand::OffHand);
-    if (isAmmo(offhand)) {
+    if (_isAmmo(offhand)) {
         return offhand;
     }
 
     // 再检查主手（弩本身在主手时跳过）
     ItemStack mainhand = player.getHeldItem(Hand::MainHand);
-    if (isAmmo(mainhand)) {
+    if (_isAmmo(mainhand)) {
         return mainhand;
     }
 
@@ -212,7 +212,7 @@ ItemStack CrossbowItem::findAmmo(Player& player)
     PlayerInventory& inventory = player.inventory();
     for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
         ItemStack slot = inventory.getItem(i);
-        if (isAmmo(slot)) {
+        if (_isAmmo(slot)) {
             return slot;
         }
     }
@@ -220,13 +220,13 @@ ItemStack CrossbowItem::findAmmo(Player& player)
     return ItemStack::EMPTY;
 }
 
-bool CrossbowItem::loadProjectiles(Player& player, ItemStack& crossbow)
+bool CrossbowItem::_loadProjectiles(Player& player, ItemStack& crossbow)
 {
-    i32 multishotLevel = getMultishotLevel(crossbow);
+    i32 multishotLevel = _getMultishotLevel(crossbow);
     i32 projectileCount = multishotLevel > 0 ? 3 : 1;
     bool isCreative = player.isCreative();
 
-    ItemStack ammo = findAmmo(player);
+    ItemStack ammo = _findAmmo(player);
 
     for (i32 i = 0; i < projectileCount; ++i) {
         ItemStack projectileToLoad;
@@ -245,7 +245,7 @@ bool CrossbowItem::loadProjectiles(Player& player, ItemStack& crossbow)
                         projectileToLoad = ammo.split(1);
                     } else {
                         // 弹药不足，尝试找更多
-                        ItemStack moreAmmo = findAmmo(player);
+                        ItemStack moreAmmo = _findAmmo(player);
                         if (!moreAmmo.isEmpty()) {
                             projectileToLoad = moreAmmo.split(1);
                             ammo = moreAmmo;
@@ -259,7 +259,7 @@ bool CrossbowItem::loadProjectiles(Player& player, ItemStack& crossbow)
         }
 
         if (!projectileToLoad.isEmpty()) {
-            addChargedProjectile(crossbow, projectileToLoad);
+            _addChargedProjectile(crossbow, projectileToLoad);
         } else {
             // 弹药不足
             return false;
@@ -269,10 +269,10 @@ bool CrossbowItem::loadProjectiles(Player& player, ItemStack& crossbow)
     return true;
 }
 
-void CrossbowItem::fireProjectiles(
+void CrossbowItem::_fireProjectiles(
     IWorld& world, LivingEntity& shooter, ItemStack& crossbow, f32 velocity, f32 inaccuracy)
 {
-    std::vector<ItemStack> projectiles = getChargedProjectiles(crossbow);
+    std::vector<ItemStack> projectiles = _getChargedProjectiles(crossbow);
 
     if (projectiles.empty()) {
         // 如果没有存储弹丸，创建默认箭矢
@@ -293,7 +293,7 @@ void CrossbowItem::fireProjectiles(
         isCreative = player->isCreative();
     }
 
-    i32 piercingLevel = getPiercingLevel(crossbow);
+    i32 piercingLevel = _getPiercingLevel(crossbow);
 
     // 播放发射音效
     bool hasFirework = false;
@@ -376,7 +376,7 @@ void CrossbowItem::fireProjectiles(
     clearProjectiles(crossbow);
 }
 
-std::vector<ItemStack> CrossbowItem::getChargedProjectiles(const ItemStack& stack)
+std::vector<ItemStack> CrossbowItem::_getChargedProjectiles(const ItemStack& stack)
 {
     std::vector<ItemStack> projectiles;
     const nlohmann::json* tag = stack.getTag();
@@ -401,7 +401,7 @@ std::vector<ItemStack> CrossbowItem::getChargedProjectiles(const ItemStack& stac
     return projectiles;
 }
 
-void CrossbowItem::addChargedProjectile(ItemStack& crossbow, const ItemStack& projectile)
+void CrossbowItem::_addChargedProjectile(ItemStack& crossbow, const ItemStack& projectile)
 {
     nlohmann::json& tag = crossbow.getOrCreateTag();
 
@@ -446,12 +446,12 @@ bool CrossbowItem::hasChargedProjectile(const ItemStack& stack, const Item* item
     return false;
 }
 
-i32 CrossbowItem::getMultishotLevel(const ItemStack& stack)
+i32 CrossbowItem::_getMultishotLevel(const ItemStack& stack)
 {
     return enchant::EnchantmentHelper::getEnchantmentLevel(stack, &enchant::AllEnchantments::MULTISHOT);
 }
 
-i32 CrossbowItem::getPiercingLevel(const ItemStack& stack)
+i32 CrossbowItem::_getPiercingLevel(const ItemStack& stack)
 {
     return enchant::EnchantmentHelper::getEnchantmentLevel(stack, &enchant::AllEnchantments::PIERCING);
 }

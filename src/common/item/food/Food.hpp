@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../entity/effect/EffectType.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include <memory>
 #include <vector>
 
@@ -53,7 +53,6 @@ struct FoodEffect {
  * @brief 食物属性类
  *
  * 定义食物的属性，如饥饿值、饱和度、是否可以快速食用等。
- * 参考: net.minecraft.item.Food
  *
  * 用法示例:
  * @code
@@ -81,7 +80,7 @@ public:
      * @param isMeat 是否为肉类
      * @note 肉类食物可以喂给狼
      */
-    Food& setMeat(bool isMeat = true)
+    Food& setMeat(bool isMeat = true) noexcept
     {
         m_isMeat = isMeat;
         return *this;
@@ -92,7 +91,7 @@ public:
      * @param fastEat 是否快速食用
      * @note 快速食用时间为16ticks，普通为32ticks
      */
-    Food& setFastEat(bool fastEat = true)
+    Food& setFastEat(bool fastEat = true) noexcept
     {
         m_fastEat = fastEat;
         return *this;
@@ -103,7 +102,7 @@ public:
      * @param alwaysEdible 是否总是可食用
      * @note 金苹果等特殊食物需要此属性
      */
-    Food& setAlwaysEdible(bool alwaysEdible = true)
+    Food& setAlwaysEdible(bool alwaysEdible = true) noexcept
     {
         m_alwaysEdible = alwaysEdible;
         return *this;
@@ -139,38 +138,38 @@ public:
     /**
      * @brief 获取恢复的饥饿值
      */
-    [[nodiscard]] i32 getHunger() const { return m_hunger; }
+    [[nodiscard]] i32 getHunger() const noexcept { return m_hunger; }
 
     /**
      * @brief 获取饱和度修正值
      * @note 实际饱和度 = food * saturationModifier * 2.0
      */
-    [[nodiscard]] f32 getSaturationModifier() const { return m_saturationModifier; }
+    [[nodiscard]] f32 getSaturationModifier() const noexcept { return m_saturationModifier; }
 
     /**
      * @brief 是否为肉类
      */
-    [[nodiscard]] bool isMeat() const { return m_isMeat; }
+    [[nodiscard]] bool isMeat() const noexcept { return m_isMeat; }
 
     /**
      * @brief 是否可以快速食用
      */
-    [[nodiscard]] bool isFastEat() const { return m_fastEat; }
+    [[nodiscard]] bool isFastEat() const noexcept { return m_fastEat; }
 
     /**
      * @brief 是否可以在饱食时食用
      */
-    [[nodiscard]] bool canAlwaysEat() const { return m_alwaysEdible; }
+    [[nodiscard]] bool canAlwaysEat() const noexcept { return m_alwaysEdible; }
 
     /**
      * @brief 获取所有药水效果
      */
-    [[nodiscard]] const std::vector<FoodEffect>& getEffects() const { return m_effects; }
+    [[nodiscard]] const std::vector<FoodEffect>& getEffects() const noexcept { return m_effects; }
 
     /**
      * @brief 是否有药水效果
      */
-    [[nodiscard]] bool hasEffects() const { return !m_effects.empty(); }
+    [[nodiscard]] bool hasEffects() const noexcept { return !m_effects.empty(); }
 
 private:
     i32 m_hunger;                      ///< 恢复的饥饿值

@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../world/block/Block.hpp"
-#include "../../context/BlockItemUseContext.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../core/Item.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 

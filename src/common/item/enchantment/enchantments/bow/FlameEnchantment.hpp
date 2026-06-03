@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 火矢附魔
  *
  * 箭矢点燃目标。
- * 参考 MC 1.16.5 FlameEnchantment
  *
  * 效果:
  * - 箭矢点燃目标 5 秒（100 tick）

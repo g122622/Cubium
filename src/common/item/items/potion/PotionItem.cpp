@@ -47,7 +47,7 @@ PotionItem::PotionItem(const ItemProperties& properties)
  */
 i32 PotionItem::getUseDuration(const ItemStack& /*stack*/) const
 {
-    // MC 1.16.5: 32 ticks
+    // 药水饮用需要 32 ticks
     return 32;
 }
 
@@ -62,10 +62,7 @@ UseAction PotionItem::getUseAction(const ItemStack& /*stack*/) const
 /**
  * @brief 使用完成
  *
- * MC 1.16.5 对齐:
- * 1. 应用药水效果（瞬间效果直接应用，非瞬间效果添加到实体）
- * 2. 消耗物品（非创造模式）
- * 3. 返回玻璃瓶
+ * 应用药水效果，消耗物品，返回玻璃瓶
  */
 ItemStack PotionItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& entity)
 {
@@ -73,7 +70,7 @@ ItemStack PotionItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& e
 
     // 应用效果
     if (potion != nullptr) {
-        applyEffects(potion, entity, world);
+        _applyEffects(potion, entity, world);
     }
 
     // 检查是否是玩家
@@ -88,7 +85,7 @@ ItemStack PotionItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& e
     }
 
     // 返回玻璃瓶
-    // MC 1.16.5: 如果物品堆为空，返回玻璃瓶；否则将玻璃瓶添加到背包
+    // 如果物品堆为空，返回玻璃瓶；否则将玻璃瓶添加到背包
     if (player != nullptr && !player->isCreative()) {
         if (stack.isEmpty()) {
             return ItemStack(Items::GLASS_BOTTLE, 1);
@@ -110,12 +107,11 @@ ItemStack PotionItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& e
 
 /**
  * @brief 右键使用物品
+ *
+ * 药水可以随时饮用，不像食物需要饥饿
  */
-ItemActionResult PotionItem::onItemRightClick(IWorld& world, Player& player, Hand hand)
+ItemActionResult PotionItem::onItemRightClick(IWorld& /*world*/, Player& player, Hand hand)
 {
-    // MC 1.16.5: 使用 DrinkHelper.startDrinking()
-    // 药水可以随时饮用，不像食物需要饥饿
-    // 检查玩家是否可以饮用（不是正在使用其他物品）
     player.setActiveHand(hand);
     return ItemActionResult(ActionResultType::Success, player.getHeldItem(hand));
 }
@@ -144,11 +140,9 @@ std::string PotionItem::getTranslationKey(const ItemStack& stack) const
 /**
  * @brief 将药水效果应用到实体
  *
- * MC 1.16.5 对齐:
- * - 瞬间效果：直接应用（治疗/伤害根据目标是否亡灵）
- * - 非瞬间效果：添加到实体
+ * 瞬间效果直接应用（治疗/伤害根据目标是否亡灵），非瞬间效果添加到实体
  */
-void PotionItem::applyEffects(const potion::Potion* potion, Entity& entity, IWorld& /*world*/)
+void PotionItem::_applyEffects(const potion::Potion* potion, Entity& entity, IWorld& /*world*/)
 {
     if (potion == nullptr) {
         return;
@@ -160,24 +154,19 @@ void PotionItem::applyEffects(const potion::Potion* potion, Entity& entity, IWor
     }
 
     for (const auto& effect : potion->effects()) {
-        // MC 1.16.5: 瞬间效果直接应用
-        // 参考 net.minecraft.potion.EffectInstant.affectEntity()
+        // 瞬间效果直接应用
         if (effect.type() == entity::effect::EffectType::InstantHealth ||
             effect.type() == entity::effect::EffectType::InstantDamage) {
-            // 计算效果等级对应的治疗/伤害量
-            // MC 1.16.5: 基础值 4.0，每级增加 2.0
+            // 计算效果等级对应的治疗/伤害量（基础值 4.0，每级增加 2.0）
             f32 amount = 4.0f + (effect.amplifier() * 2.0f);
 
             // 亡灵生物对瞬间治疗/伤害效果反转
-            // 参考 MC 1.16.5: MobEntity.isEntityUndead()
             bool isUndead = livingEntity->getCreatureAttribute() == CreatureAttribute::Undead;
 
             if (effect.type() == entity::effect::EffectType::InstantHealth) {
                 if (isUndead) {
                     // 亡灵生物受到伤害
-                    // 参考 MC 1.16.5: DamageSources.MAGIC
-                    // 暂时使用普通伤害（没有 Magic 伤害源）
-                    livingEntity->heal(-amount); // 负数治疗 = 伤害
+                    livingEntity->heal(-amount);
                 } else {
                     // 普通生物治疗
                     livingEntity->heal(amount);

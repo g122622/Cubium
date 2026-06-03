@@ -34,7 +34,6 @@ namespace enchant {
  * @brief 穿刺附魔
  *
  * 增加三叉戟对水生生物的伤害。
- * 参考 MC 1.16.5 ImpalingEnchantment
  *
  * 效果:
  * - 每级增加 2.5 点伤害对水生生物
@@ -69,8 +68,6 @@ public:
      * @param level 附魔等级
      * @param entityType 生物属性类型 (转换为 CreatureAttribute)
      * @return 额外伤害
-     *
-     * MC 1.16.5: 对水生生物 (CreatureAttribute::Water) 造成额外伤害
      */
     [[nodiscard]] f32 getDamageBonus(i32 level, u32 entityType) const override
     {

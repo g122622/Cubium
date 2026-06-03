@@ -23,11 +23,10 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../core/Item.hpp"
-#include "../../core/UseAction.hpp"
-#include <functional>
+#include "common/core/Types.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/UseAction.hpp"
 
 namespace mc {
 
@@ -61,8 +60,6 @@ namespace item {
  * - 忠诚 (Loyalty): 投掷后自动返回，等级越高返回越快
  * - 激流 (Riptide): 在雨中或水中投掷时冲刺，不在水中则不能投掷
  * - 引雷 (Channeling): 雷暴天气投掷时召唤闪电
- *
- * 参考 MC 1.16.5 TridentItem
  */
 class TridentItem : public Item {
 public:
@@ -79,7 +76,7 @@ public:
     /**
      * @brief 获取最大使用时间
      *
-     * MC 1.16.5: 返回 72000 tick（几乎无限制）
+     * 返回 72000 tick（几乎无限制）
      */
     [[nodiscard]] i32 getUseDuration(const ItemStack& stack) const override;
 
@@ -128,12 +125,12 @@ private:
     /**
      * @brief 检查玩家是否潮湿（在水中或雨中）
      */
-    static bool isWet(const Player& player);
+    static bool _isWet(const Player& player) noexcept;
 
     /**
      * @brief 获取激流附魔等级
      */
-    static i32 getRiptideLevel(const ItemStack& stack);
+    static i32 _getRiptideLevel(const ItemStack& stack) noexcept;
 };
 
 } // namespace item

@@ -22,11 +22,11 @@
  */
 
 #include "ArrowItem.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../enchantment/EnchantmentHelper.hpp"
-#include "../../enchantment/enchantments/AllEnchantments.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/enchantment/enchantments/AllEnchantments.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace item {
@@ -62,10 +62,8 @@ bool ArrowItem::isInfinite(const ItemStack& arrowStack, const ItemStack& bowStac
         return false;
     }
 
-    // MC 1.16.5: 只有普通箭（ArrowItem类）受益于无限附魔
+    // 只有普通箭（ArrowItem类）受益于无限附魔
     // 光灵箭和药水箭需要子类重写此方法返回false
-    // 注意：光灵箭物品应该是 SpectralArrowItem，药水箭应该是 TippedArrowItem
-    // 它们会重写此方法返回 false
     (void)arrowStack; // 普通箭不检查物品堆类型
     return true;
 }

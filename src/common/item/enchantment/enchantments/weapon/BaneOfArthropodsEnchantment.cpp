@@ -33,8 +33,7 @@ namespace enchant {
 
 void BaneOfArthropodsEnchantment::onEntityDamaged(LivingEntity& user, Entity& target, i32 level) const
 {
-    // MC 1.16.5: DamageEnchantment.onEntityDamaged()
-    // 只有节肢杀手（damageType == 2）会应用缓慢效果
+    // 只有节肢杀手会应用缓慢效果
     if (level <= 0) {
         return;
     }
@@ -46,14 +45,11 @@ void BaneOfArthropodsEnchantment::onEntityDamaged(LivingEntity& user, Entity& ta
     }
 
     // 检查目标是否为节肢生物
-    // 参考 MC 1.16.5: CreatureAttribute.ARTHROPOD
     if (livingTarget->getCreatureAttribute() != CreatureAttribute::Arthropod) {
         return;
     }
 
     // 计算缓慢效果持续时间
-    // MC 1.16.5: 20 + random.nextInt(10 * level)
-    // Level I: 20-29 tick, Level V: 20-69 tick
     math::Random rng(static_cast<u64>(user.id()) ^ static_cast<u64>(user.ticksExisted()));
     i32 duration = getSlownessDuration(level, rng);
 

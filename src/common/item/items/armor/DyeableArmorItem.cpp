@@ -31,7 +31,7 @@ DyeableArmorItem::DyeableArmorItem(
     : ArmorItem(material, slot, std::move(properties))
 {}
 
-u32 DyeableArmorItem::getColor(const ItemStack& stack) const
+u32 DyeableArmorItem::getColor(const ItemStack& stack) const noexcept
 {
     const auto* displayTag = stack.getChildTag(TAG_DISPLAY);
     if (displayTag != nullptr) {
@@ -44,12 +44,12 @@ u32 DyeableArmorItem::getColor(const ItemStack& stack) const
     return DEFAULT_COLOR;
 }
 
-void DyeableArmorItem::setColor(ItemStack& stack, u32 color)
+void DyeableArmorItem::setColor(ItemStack& stack, u32 color) noexcept
 {
     stack.getOrCreateChildTag(TAG_DISPLAY)[TAG_COLOR] = static_cast<u32>(color & 0x00FFFFFFu);
 }
 
-void DyeableArmorItem::clearColor(ItemStack& stack)
+void DyeableArmorItem::clearColor(ItemStack& stack) noexcept
 {
     auto* tag = stack.getTag();
     if (tag == nullptr || !tag->is_object()) {
@@ -67,7 +67,7 @@ void DyeableArmorItem::clearColor(ItemStack& stack)
     }
 }
 
-bool DyeableArmorItem::hasColor(const ItemStack& stack)
+bool DyeableArmorItem::hasColor(const ItemStack& stack) noexcept
 {
     const auto* displayTag = stack.getChildTag(TAG_DISPLAY);
     return displayTag != nullptr && displayTag->contains(TAG_COLOR) && (*displayTag)[TAG_COLOR].is_number();

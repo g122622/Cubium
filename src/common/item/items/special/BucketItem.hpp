@@ -40,8 +40,6 @@ class FluidState;
  * 实现水桶、岩浆桶、空桶的功能。
  * - 空桶：从水源方块或含水方块中取出流体
  * - 装满的桶：放置流体方块或向含水方块注入流体
- *
- * 参考 MC 1.16.5: net.minecraft.item.BucketItem
  */
 class BucketItem : public Item {
 public:
@@ -84,7 +82,6 @@ public:
      * @brief 与实体交互
      *
      * 空桶与牛/哞菇交互时挤奶。
-     * 参考 MC 1.16.5: BucketItem.itemInteractionForEntity
      *
      * @param stack 物品堆
      * @param player 玩家

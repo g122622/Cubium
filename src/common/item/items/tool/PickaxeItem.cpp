@@ -22,16 +22,20 @@
  */
 
 #include "PickaxeItem.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc {
 namespace item {
 namespace tool {
 
 PickaxeItem::PickaxeItem(const tier::IItemTier& tier, i32 attackDamage, f32 attackSpeed, ItemProperties properties)
-    : ToolItem(
-          static_cast<f32>(attackDamage), attackSpeed, tier, initializeEffectiveBlocks(), ToolType::Pickaxe, properties)
+    : ToolItem(static_cast<f32>(attackDamage),
+          attackSpeed,
+          tier,
+          _initializeEffectiveBlocks(),
+          ToolType::Pickaxe,
+          properties)
 {}
 
 bool PickaxeItem::canHarvestBlock(const BlockState& state) const
@@ -72,7 +76,7 @@ bool PickaxeItem::isEffectiveMaterial(const Material& material) const
     return material == Material::ROCK || material == Material::IRON || material == Material::ANVIL;
 }
 
-std::unordered_set<const Block*> PickaxeItem::initializeEffectiveBlocks()
+std::unordered_set<const Block*> PickaxeItem::_initializeEffectiveBlocks()
 {
     std::unordered_set<const Block*> blocks;
 
@@ -169,27 +173,27 @@ std::unordered_set<const Block*> PickaxeItem::initializeEffectiveBlocks()
     if (VanillaBlocks::BEACON) blocks.insert(VanillaBlocks::BEACON);
     if (VanillaBlocks::CONDUIT) blocks.insert(VanillaBlocks::CONDUIT);
 
-    // MC 1.16.5: 铁轨（镐可以有效挖掘）
+    // 铁轨
     if (VanillaBlocks::RAIL) blocks.insert(VanillaBlocks::RAIL);
     if (VanillaBlocks::POWERED_RAIL) blocks.insert(VanillaBlocks::POWERED_RAIL);
     if (VanillaBlocks::DETECTOR_RAIL) blocks.insert(VanillaBlocks::DETECTOR_RAIL);
     if (VanillaBlocks::ACTIVATOR_RAIL) blocks.insert(VanillaBlocks::ACTIVATOR_RAIL);
 
-    // MC 1.16.5: 铁制品
+    // 铁制品
     if (VanillaBlocks::IRON_DOOR) blocks.insert(VanillaBlocks::IRON_DOOR);
     if (VanillaBlocks::IRON_TRAPDOOR) blocks.insert(VanillaBlocks::IRON_TRAPDOOR);
     if (VanillaBlocks::IRON_BARS) blocks.insert(VanillaBlocks::IRON_BARS);
 
-    // MC 1.16.5: 光照方块（灯笼、锁链）
+    // 光照方块（灯笼、锁链）
     if (VanillaBlocks::LANTERN) blocks.insert(VanillaBlocks::LANTERN);
     if (VanillaBlocks::SOUL_LANTERN) blocks.insert(VanillaBlocks::SOUL_LANTERN);
     if (VanillaBlocks::CHAIN) blocks.insert(VanillaBlocks::CHAIN);
 
-    // MC 1.16.5: 按钮/压力板
+    // 按钮/压力板
     if (VanillaBlocks::STONE_BUTTON) blocks.insert(VanillaBlocks::STONE_BUTTON);
     if (VanillaBlocks::STONE_PRESSURE_PLATE) blocks.insert(VanillaBlocks::STONE_PRESSURE_PLATE);
 
-    // MC 1.16.5: 功能方块
+    // 功能方块
     if (VanillaBlocks::DISPENSER) blocks.insert(VanillaBlocks::DISPENSER);
     if (VanillaBlocks::DROPPER) blocks.insert(VanillaBlocks::DROPPER);
     if (VanillaBlocks::PISTON) blocks.insert(VanillaBlocks::PISTON);
@@ -197,7 +201,7 @@ std::unordered_set<const Block*> PickaxeItem::initializeEffectiveBlocks()
     if (VanillaBlocks::ENDER_CHEST) blocks.insert(VanillaBlocks::ENDER_CHEST);
     if (VanillaBlocks::BREWING_STAND) blocks.insert(VanillaBlocks::BREWING_STAND);
 
-    // MC 1.16.5: 台阶（石制）
+    // 台阶（石制）
     if (VanillaBlocks::STONE_SLAB) blocks.insert(VanillaBlocks::STONE_SLAB);
     if (VanillaBlocks::COBBLESTONE_SLAB) blocks.insert(VanillaBlocks::COBBLESTONE_SLAB);
     if (VanillaBlocks::STONE_BRICK_SLAB) blocks.insert(VanillaBlocks::STONE_BRICK_SLAB);
@@ -206,11 +210,11 @@ std::unordered_set<const Block*> PickaxeItem::initializeEffectiveBlocks()
     if (VanillaBlocks::PRISMARINE_BRICK_SLAB) blocks.insert(VanillaBlocks::PRISMARINE_BRICK_SLAB);
     if (VanillaBlocks::DARK_PRISMARINE_SLAB) blocks.insert(VanillaBlocks::DARK_PRISMARINE_SLAB);
 
-    // MC 1.16.5: 脚手架和梯子
+    // 脚手架和梯子
     if (VanillaBlocks::LADDER) blocks.insert(VanillaBlocks::LADDER);
     if (VanillaBlocks::SCAFFOLDING) blocks.insert(VanillaBlocks::SCAFFOLDING);
 
-    // MC 1.16.5: 活塞头（镐可以有效挖掘）
+    // 活塞头
     if (VanillaBlocks::PISTON_HEAD) blocks.insert(VanillaBlocks::PISTON_HEAD);
 
     return blocks;

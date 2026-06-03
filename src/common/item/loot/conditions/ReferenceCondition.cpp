@@ -22,8 +22,8 @@
  */
 
 #include "common/item/loot/conditions/ReferenceCondition.hpp"
-#include "common/util/assert/AssertMacros.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 
 namespace mc {
 namespace loot {
@@ -35,6 +35,7 @@ ReferenceCondition::ReferenceCondition(const std::string& name)
 bool ReferenceCondition::test(LootContext& context) const
 {
     MC_UNUSED(context);
+    // TODO: 实现谓词查找和条件测试，当前总是返回 true
     return true;
 }
 

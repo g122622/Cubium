@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../entity/effect/EffectType.hpp"
-#include "FoodItem.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/item/items/food/FoodItem.hpp"
 
 namespace mc {
 namespace item::items {
@@ -36,8 +36,6 @@ namespace item::items {
  * 1. 食用后清除中毒效果
  * 2. 返回玻璃瓶
  * 3. 使用时间40 ticks（比普通食物慢）
- *
- * 参考: net.minecraft.item.HoneyBottleItem
  */
 class HoneyBottleItem : public FoodItem {
 public:

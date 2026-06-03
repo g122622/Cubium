@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Enchantment.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 
 namespace mc {
 namespace item {
@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 快速装填附魔
  *
  * 减少弩的装填时间。
- * 参考 MC 1.16.5 QuickChargeEnchantment
  *
  * 效果:
  * - 每级减少 0.25 秒装填时间
@@ -66,7 +65,7 @@ public:
     [[nodiscard]] i32 getMaxCost(i32 level) const override
     {
         (void)level;
-        return 50; // MC 1.16.5: 固定 50
+        return 50;
     }
 
     /**

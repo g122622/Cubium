@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Enchantment.hpp"
+#include "item/enchantment/Enchantment.hpp"
 
 namespace mc {
 namespace item {
@@ -33,9 +33,10 @@ namespace enchant {
  * @brief 伤害加成附魔基类
  *
  * 锋利、亡灵杀手、节肢杀手的共同基类。
- * 参考 MC 1.16.5 DamageEnchantment
- *
  * 这三类附魔互斥，不能同时存在于同一物品上。
+ *
+ * @note 锋利对所有生物造成额外伤害，亡灵杀手对亡灵生物有效，
+ *       节肢杀手对节肢生物有效。
  */
 class DamageEnchantment : public Enchantment {
 public:
@@ -48,7 +49,7 @@ public:
         Arthropods ///< 节肢杀手 - 对节肢生物有效
     };
 
-    explicit DamageEnchantment(Type damageType);
+    explicit DamageEnchantment(Type damageType) noexcept;
 
     // ========== Enchantment 接口实现 ==========
 

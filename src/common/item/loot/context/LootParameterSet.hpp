@@ -24,7 +24,10 @@
 #pragma once
 
 #include "LootParameter.hpp"
+
+#include <algorithm>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace mc {

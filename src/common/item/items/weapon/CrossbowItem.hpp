@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../entity/inventory/PlayerInventory.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../core/Item.hpp"
-#include "../../core/ItemStack.hpp"
-#include "../../core/UseAction.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/core/UseAction.hpp"
 #include <functional>
 #include <vector>
 
@@ -65,8 +65,6 @@ namespace item {
  * - 多重射击 (Multishot): 同时发射 3 支箭矢
  * - 穿透 (Piercing): 箭矢可穿透实体
  * - 快速装填 (Quick Charge): 减少装填时间
- *
- * 参考 MC 1.16.5 CrossbowItem
  */
 class CrossbowItem : public Item {
 public:
@@ -83,7 +81,7 @@ public:
     /**
      * @brief 获取最大使用时间
      *
-     * MC 1.16.5: 装填时间 + 3 tick
+     * 装填时间 + 3 tick
      */
     [[nodiscard]] i32 getUseDuration(const ItemStack& stack) const override;
 
@@ -160,44 +158,44 @@ private:
      *
      * 接受箭矢和烟花火箭。
      */
-    [[nodiscard]] static bool isAmmo(const ItemStack& stack);
+    [[nodiscard]] static bool _isAmmo(const ItemStack& stack);
 
     /**
      * @brief 查找玩家身上的弹药
      * @return 弹药物品堆，如果没有则返回空
      */
-    static ItemStack findAmmo(Player& player);
+    static ItemStack _findAmmo(Player& player);
 
     /**
      * @brief 检查是否有足够的弹药并装填
      */
-    static bool loadProjectiles(Player& player, ItemStack& crossbow);
+    static bool _loadProjectiles(Player& player, ItemStack& crossbow);
 
     /**
      * @brief 发射弹丸
      */
-    static void fireProjectiles(
+    static void _fireProjectiles(
         IWorld& world, LivingEntity& shooter, ItemStack& crossbow, f32 velocity, f32 inaccuracy);
 
     /**
      * @brief 获取已装填的弹丸列表
      */
-    static std::vector<ItemStack> getChargedProjectiles(const ItemStack& stack);
+    static std::vector<ItemStack> _getChargedProjectiles(const ItemStack& stack);
 
     /**
      * @brief 添加弹丸到弩
      */
-    static void addChargedProjectile(ItemStack& crossbow, const ItemStack& projectile);
+    static void _addChargedProjectile(ItemStack& crossbow, const ItemStack& projectile);
 
     /**
      * @brief 获取多重射击等级
      */
-    static i32 getMultishotLevel(const ItemStack& stack);
+    static i32 _getMultishotLevel(const ItemStack& stack);
 
     /**
      * @brief 获取穿透等级
      */
-    static i32 getPiercingLevel(const ItemStack& stack);
+    static i32 _getPiercingLevel(const ItemStack& stack);
 };
 
 } // namespace item

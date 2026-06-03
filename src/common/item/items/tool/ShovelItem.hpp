@@ -44,8 +44,6 @@ namespace tool {
  *
  * 攻击伤害：比其他工具低
  * 攻击速度：正常（约 -2.9）
- *
- * 参考: net.minecraft.item.ShovelItem
  */
 class ShovelItem : public ToolItem {
 public:
@@ -63,7 +61,7 @@ public:
     /**
      * @brief 方块交互（土径创建）
      *
-     * MC 1.16.5: 右键草地可创建土径
+     * 右键草地可创建土径：
      * - 播放音效
      * - 消耗耐久
      * - 转换方块
@@ -117,7 +115,7 @@ private:
      * @brief 初始化锹的有效方块集合
      * @return 有效方块集合
      */
-    static std::unordered_set<const Block*> initializeEffectiveBlocks();
+    static std::unordered_set<const Block*> _initializeEffectiveBlocks();
 
     /**
      * @brief 获取土径映射表（延迟初始化）
@@ -126,7 +124,7 @@ private:
      *
      * @return 草方块 -> 土径 映射的引用
      */
-    static std::unordered_map<const Block*, const Block*>& getPathMap();
+    static std::unordered_map<const Block*, const Block*>& _getPathMap();
 };
 
 } // namespace tool

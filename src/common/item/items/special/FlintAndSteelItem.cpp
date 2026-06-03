@@ -21,17 +21,17 @@
  *
  */
 
-#include "FlintAndSteelItem.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/BlockTags.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../../world/block/blocks/decorative/CampfireBlock.hpp"
-#include "../../../world/block/blocks/nether/FireBlock.hpp"
-#include "../../context/ItemUseContext.hpp"
+#include "common/item/items/special/FlintAndSteelItem.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/context/ItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/blocks/decorative/CampfireBlock.hpp"
+#include "common/world/block/blocks/nether/FireBlock.hpp"
 
 namespace mc {
 namespace item {
@@ -43,7 +43,6 @@ FlintAndSteelItem::FlintAndSteelItem(ItemProperties properties)
 
 ActionResultType FlintAndSteelItem::onItemUse(ItemUseContext& context)
 {
-    // MC 1.16.5: FlintAndSteelItem.onItemUse
     Player* player = context.getPlayer();
     IWorld& world = context.getWorld();
     const BlockPos& blockPos = context.getBlockPos();
@@ -96,7 +95,6 @@ ActionResultType FlintAndSteelItem::onItemUse(ItemUseContext& context)
 
 bool FlintAndSteelItem::canLightBlock(IWorld& world, const BlockPos& pos)
 {
-    // MC 1.16.5: AbstractFireBlock.canLightBlock
     const BlockState* statePtr = world.getBlockState(pos);
     if (statePtr == nullptr) {
         return false;
@@ -123,7 +121,6 @@ bool FlintAndSteelItem::canLightBlock(IWorld& world, const BlockPos& pos)
 
 Block* FlintAndSteelItem::getFireForPlacement(IWorld& world, const BlockPos& pos)
 {
-    // MC 1.16.5: AbstractFireBlock.getFireForPlacement
     // 检查下方是否是灵魂沙/灵魂土，如果是则返回灵魂火
     const BlockState* belowStatePtr = world.getBlockState(pos.down());
 

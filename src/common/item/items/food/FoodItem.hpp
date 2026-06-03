@@ -38,7 +38,6 @@ namespace item::items {
  * @brief 食物物品基类
  *
  * 负责处理可食用物品的基础行为。
- * 参考 MC 1.16.5: net.minecraft.item.FoodItem
  */
 class FoodItem : public Item {
 public:
@@ -70,7 +69,7 @@ public:
     /**
      * @brief 获取使用动作
      *
-     * MC 1.16.5 中所有食物都返回 Eat 动作，
+     * 所有食物都返回 Eat 动作，
      * isMeat() 标记仅用于狼是否能食用。
      */
     [[nodiscard]] UseAction getUseAction(const ItemStack& stack) const override;

@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 摔落保护附魔（羽毛落地）
  *
  * 减少摔落伤害。
- * 参考 MC 1.16.5 FeatherFallingEnchantment
  *
  * 效果:
  * - 对摔落伤害有三倍保护效果

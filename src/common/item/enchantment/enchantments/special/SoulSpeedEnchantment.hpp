@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Enchantment.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 
 namespace mc {
 namespace item {
@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 灵魂疾行附魔
  *
  * 在灵魂沙和灵魂土上增加移动速度。
- * 参考 MC 1.16.5 SoulSpeedEnchantment
  *
  * 效果:
  * - 每级增加灵魂沙/土上的移动速度
@@ -68,12 +67,12 @@ public:
 
     [[nodiscard]] bool canVillagerTrade() const override
     {
-        return false; // MC 1.16.5: 不能通过村民交易获得
+        return false; // 不能通过村民交易获得
     }
 
     [[nodiscard]] bool canGenerateInLoot() const override
     {
-        return false; // MC 1.16.5: 不能在战利品表中生成
+        return false; // 不能在战利品表中生成
     }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override { return 10 + (level - 1) * 10; }
@@ -95,16 +94,10 @@ public:
      * @brief 获取耐久消耗概率
      * @param level 附魔等级（未使用，概率固定）
      * @return 每tick消耗耐久的概率（固定4%）
-     *
-     * MC 1.16.5: 耐久消耗概率是固定的4%，与附魔等级无关
-     * 参考: net.minecraft.entity.LivingEntity.func_233642_cO_()
-     * if (this.getRNG().nextFloat() < 0.04F) {
-     *     itemstack.damageItem(1, this, ...);
-     * }
      */
     [[nodiscard]] static f32 getDurabilityConsumeChance(i32 level)
     {
-        (void)level;  // MC 1.16.5: 概率固定为4%，与等级无关
+        (void)level;  // 概率固定为4%，与等级无关
         return 0.04f; // 固定4%概率
     }
 };

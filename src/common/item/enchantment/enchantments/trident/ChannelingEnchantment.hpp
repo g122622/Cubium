@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Enchantment.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 
 namespace mc {
 namespace item {
@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 引雷附魔
  *
  * 在雷暴天气中召唤闪电。
- * 参考 MC 1.16.5 ChannelingEnchantment
  *
  * 效果:
  * - 在雷暴天气中击中目标时召唤闪电

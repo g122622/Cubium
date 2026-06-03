@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/item/loot/StatePropertiesPredicate.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include <memory>
 #include <string>
 
 namespace mc {

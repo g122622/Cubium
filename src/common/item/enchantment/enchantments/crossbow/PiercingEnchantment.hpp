@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Enchantment.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 
 namespace mc {
 namespace item {
@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 穿透附魔
  *
  * 箭矢可以穿透实体。
- * 参考 MC 1.16.5 PiercingEnchantment
  *
  * 效果:
  * - 每级增加一个穿透目标数

@@ -35,7 +35,7 @@ LootContext::LootContext(IWorld& world, math::Random& random)
     , m_random(random)
 {}
 
-const LootTable* LootContext::getLootTable(const std::string& id) const
+const LootTable* LootContext::getLootTable(const std::string& id) const noexcept
 {
     if (m_lootTableResolver) {
         return m_lootTableResolver(id);
@@ -43,7 +43,7 @@ const LootTable* LootContext::getLootTable(const std::string& id) const
     return nullptr;
 }
 
-bool LootContext::pushLootTable(const LootTable* table)
+bool LootContext::pushLootTable(const LootTable* table) noexcept
 {
     // 检查是否已经在访问栈中（循环引用）
     for (const auto* visited : m_visitedTables) {
@@ -55,7 +55,7 @@ bool LootContext::pushLootTable(const LootTable* table)
     return true;
 }
 
-void LootContext::popLootTable(const LootTable* table)
+void LootContext::popLootTable(const LootTable* table) noexcept
 {
     if (!m_visitedTables.empty() && m_visitedTables.back() == table) {
         m_visitedTables.pop_back();

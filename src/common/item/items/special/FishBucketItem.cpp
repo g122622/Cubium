@@ -22,23 +22,24 @@
  */
 
 #include "FishBucketItem.hpp"
-#include "../../../entity/core/Entity.hpp"
-#include "../../../entity/core/EntityRegistry.hpp"
-#include "../../../entity/core/EntityType.hpp"
-#include "../../../entity/entities/passive/fish/AbstractFishEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/BlockPos.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../../world/fluid/Fluid.hpp"
-#include "../../../world/fluid/FluidRegistry.hpp"
-#include "../../../world/tick/manager/TickManager.hpp"
-#include "../../Items.hpp"
-#include "../../context/BlockItemUseContext.hpp"
-#include "../../core/ItemStack.hpp"
+
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/entities/passive/fish/AbstractFishEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace item {
@@ -61,33 +62,23 @@ ActionResultType FishBucketItem::onItemUse(ItemUseContext& context)
     // 计算放置位置
     BlockPos placePos = pos.offset(face);
 
-    // 检查是否可以放置水
-    const BlockState* currentState = world.getBlockState(placePos);
-    if (currentState == nullptr) {
-        return ActionResultType::Fail;
-    }
-
     // 放置水方块
     const BlockState* waterState = VanillaBlocks::getState(VanillaBlocks::WATER);
-    if (waterState != nullptr) {
-        world.setBlockState(placePos, waterState, 3);
+    world.setBlockState(placePos, waterState, 3);
 
-        // 调度流体 tick
-        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
-        if (waterFluid != nullptr) {
-            world.tickManager().scheduleFluidTick(placePos, *waterFluid, waterFluid->getTickDelay(world));
-        }
-    }
+    // 调度流体 tick
+    fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+    world.tickManager().scheduleFluidTick(placePos, *waterFluid, waterFluid->getTickDelay(world));
 
     // 在水中生成鱼
-    if (spawnFish(world, placePos)) {
+    if (_spawnFish(world, placePos)) {
         // 返回空桶（非创造模式）
         Player* player = context.getPlayer();
         if (player != nullptr && !player->isCreative()) {
             // 减少鱼桶数量
             context.getItemStackMut().shrink(1);
             // 返回空桶
-            returnEmptyBucket(*player, context.getItemStackMut());
+            _returnEmptyBucket(*player, context.getItemStackMut());
         }
         return ActionResultType::Success;
     }
@@ -105,11 +96,11 @@ ItemActionResult FishBucketItem::onItemRightClick(IWorld& world, Player& player,
     if (player.isInWater()) {
         BlockPos spawnPos(static_cast<i32>(player.x()), static_cast<i32>(player.y()), static_cast<i32>(player.z()));
 
-        if (spawnFish(world, spawnPos)) {
+        if (_spawnFish(world, spawnPos)) {
             if (!player.isCreative()) {
                 player.getHeldItem(hand).shrink(1);
                 // 返回空桶
-                returnEmptyBucket(player, player.getHeldItem(hand));
+                _returnEmptyBucket(player, player.getHeldItem(hand));
             }
             return ItemActionResult::success(player.getHeldItem(hand));
         }
@@ -118,7 +109,7 @@ ItemActionResult FishBucketItem::onItemRightClick(IWorld& world, Player& player,
     return ItemActionResult::pass(player.getHeldItem(hand));
 }
 
-bool FishBucketItem::spawnFish(IWorld& world, const BlockPos& pos) const
+bool FishBucketItem::_spawnFish(IWorld& world, const BlockPos& pos) const
 {
     // 获取实体类型
     const entity::EntityType* fishType = entity::EntityRegistry::instance().getType(m_fishTypeName);
@@ -132,14 +123,13 @@ bool FishBucketItem::spawnFish(IWorld& world, const BlockPos& pos) const
         return false;
     }
 
-    // 设置位置 (方块中心)
+    // 设置位置（方块中心）
     f32 x = static_cast<f32>(pos.x) + 0.5f;
     f32 y = static_cast<f32>(pos.y) + 0.5f;
     f32 z = static_cast<f32>(pos.z) + 0.5f;
     fish->setPosition(x, y, z);
 
     // 设置 FromBucket 标签，防止消失
-    // 参考 MC 1.16.5 FishBucketItem.placeFish()
     auto* abstractFish = dynamic_cast<AbstractFishEntity*>(fish.get());
     if (abstractFish != nullptr) {
         abstractFish->setFromBucket(true);
@@ -150,9 +140,8 @@ bool FishBucketItem::spawnFish(IWorld& world, const BlockPos& pos) const
     return true;
 }
 
-void FishBucketItem::returnEmptyBucket(Player& player, ItemStack& stack) const
+void FishBucketItem::_returnEmptyBucket(Player& player, ItemStack& stack) const
 {
-    // 参考 MC 1.16.5 BucketItem.emptyBucket()
     // 如果物品堆已空，直接返回空桶
     if (stack.isEmpty() && Items::BUCKET != nullptr) {
         stack = ItemStack(Items::BUCKET, 1);

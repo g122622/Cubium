@@ -56,7 +56,7 @@ bool SurvivesExplosionCondition::test(LootContext& context) const
     return survives;
 }
 
-std::unique_ptr<LootCondition> SurvivesExplosionCondition::clone() const
+std::unique_ptr<LootCondition> SurvivesExplosionCondition::clone() const noexcept
 {
     return std::make_unique<SurvivesExplosionCondition>();
 }

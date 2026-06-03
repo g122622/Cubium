@@ -22,14 +22,16 @@
  */
 
 #include "BlockItemRegistry.hpp"
-#include "../../../resource/ResourceLocation.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
-#include "../../core/ItemRegistry.hpp"
+
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+
 #include <spdlog/spdlog.h>
 
 namespace mc {
 
-BlockItemRegistry& BlockItemRegistry::instance()
+BlockItemRegistry& BlockItemRegistry::instance() noexcept
 {
     static BlockItemRegistry instance;
     return instance;
@@ -46,30 +48,30 @@ void BlockItemRegistry::registerBlockItem(const Block& block, BlockItem& item)
     m_itemIdToBlockItem[itemId] = itemPtr;
 }
 
-const BlockItem* BlockItemRegistry::getBlockItem(u32 blockId) const
+const BlockItem* BlockItemRegistry::getBlockItem(u32 blockId) const noexcept
 {
     auto it = m_blockToItem.find(blockId);
     return it != m_blockToItem.end() ? it->second : nullptr;
 }
 
-const BlockItem* BlockItemRegistry::getBlockItemByItemId(ItemId itemId) const
+const BlockItem* BlockItemRegistry::getBlockItemByItemId(ItemId itemId) const noexcept
 {
     auto it = m_itemIdToBlockItem.find(itemId);
     return it != m_itemIdToBlockItem.end() ? it->second : nullptr;
 }
 
-const BlockItem* BlockItemRegistry::getBlockItem(const Block& block) const
+const BlockItem* BlockItemRegistry::getBlockItem(const Block& block) const noexcept
 {
     return getBlockItem(block.blockId());
 }
 
-const Block* BlockItemRegistry::getBlock(ItemId itemId) const
+const Block* BlockItemRegistry::getBlock(ItemId itemId) const noexcept
 {
     auto it = m_itemToBlock.find(itemId);
     return it != m_itemToBlock.end() ? it->second : nullptr;
 }
 
-bool BlockItemRegistry::isBlockItem(const Item* item) const
+bool BlockItemRegistry::isBlockItem(const Item* item) const noexcept
 {
     if (item == nullptr) {
         return false;
@@ -77,7 +79,7 @@ bool BlockItemRegistry::isBlockItem(const Item* item) const
     return isBlockItem(item->itemId());
 }
 
-bool BlockItemRegistry::isBlockItem(ItemId itemId) const
+bool BlockItemRegistry::isBlockItem(ItemId itemId) const noexcept
 {
     return m_itemToBlock.find(itemId) != m_itemToBlock.end();
 }
@@ -91,7 +93,7 @@ void BlockItemRegistry::forEachBlockItem(std::function<void(const BlockItem&)> c
     }
 }
 
-void BlockItemRegistry::clear()
+void BlockItemRegistry::clear() noexcept
 {
     m_blockToItem.clear();
     m_itemToBlock.clear();
@@ -138,8 +140,6 @@ void BlockItemRegistry::initializeVanillaBlockItems()
         m_blockToItem[blockId] = registeredItem;
         m_itemToBlock[itemId] = block;
         m_itemIdToBlockItem[itemId] = registeredItem;
-
-        spdlog::debug("Registered block item: {} -> blockId={}, itemId={}", name, blockId, itemId);
     };
 
     // 基础方块

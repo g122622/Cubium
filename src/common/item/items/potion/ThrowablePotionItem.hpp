@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../weapon/ThrowableItem.hpp"
+#include "common/item/items/weapon/ThrowableItem.hpp"
 
 namespace mc {
 
@@ -38,8 +38,6 @@ namespace item {
  *
  * 喷溅药水和滞留药水的共同基类。
  * 提供药水效果检测、翻译键生成、投掷音效等共享功能。
- *
- * 参考: net.minecraft.item.ThrowablePotionItem (概念类)
  */
 class ThrowablePotionItem : public ThrowableItem {
 public:
@@ -71,19 +69,18 @@ public:
 
     /**
      * @brief 播放投掷音效
-     * MC 1.16.5: 所有药水使用相同的投掷音效
      */
     void playThrowSound(Player& player) const override;
 
     /**
      * @brief 获取投掷速度
-     * MC 1.16.5: 药水投掷速度为 0.5
+     * @return 投掷速度
      */
     [[nodiscard]] f32 getThrowVelocity() const override { return 0.5f; }
 
     /**
      * @brief 获取投掷偏移
-     * MC 1.16.5: 药水投掷偏移为 0.0f
+     * @return 投掷偏移
      */
     [[nodiscard]] f32 getThrowInaccuracy() const override { return 0.0f; }
 

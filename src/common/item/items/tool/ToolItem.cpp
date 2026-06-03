@@ -22,13 +22,13 @@
  */
 
 #include "ToolItem.hpp"
-#include "../../../entity/attribute/AttributeModifierUUIDs.hpp"
-#include "../../../entity/attribute/Attributes.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../core/ItemStack.hpp"
-#include "../../enchantment/EnchantmentHelper.hpp"
-#include "../../enchantment/enchantments/tool/EfficiencyEnchantment.hpp"
+#include "common/entity/attribute/AttributeModifierUUIDs.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/enchantment/enchantments/tool/EfficiencyEnchantment.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 namespace item {
@@ -59,7 +59,7 @@ f32 ToolItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) c
         speed = m_efficiency;
     }
 
-    // 3. 应用效率附魔加成（MC 1.16.5: level^2 + 1）
+    // 3. 应用效率附魔加成
     if (speed > 1.0f) {
         i32 efficiencyLevel = enchant::EnchantmentHelper::getEfficiencyLevel(stack);
         if (efficiencyLevel > 0) {
@@ -126,8 +126,7 @@ bool ToolItem::isEffectiveMaterial(const Material& material) const
 
 item::ItemAttributeModifiers ToolItem::getAttributeModifiers(i32 equipmentSlot) const
 {
-    // MC 1.16.5: 工具在主手时提供攻击伤害和攻击速度修饰符
-    // 参考: net.minecraft.item.ToolItem#getAttributeModifiers
+    // 工具在主手时提供攻击伤害和攻击速度修饰符
     if (equipmentSlot == static_cast<i32>(EquipmentSlot::MainHand)) {
         item::ItemAttributeModifiers modifiers;
         std::string uuid = entity::attribute::uuids::fromString(entity::attribute::uuids::ATTACK_DAMAGE_MODIFIER_UUID);

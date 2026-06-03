@@ -34,8 +34,6 @@ namespace item::items {
  * 用于装备可骑乘实体（猪、炽足兽、马等）。
  * 玩家对实体使用鞍时，如果实体支持装备鞍且未装备，
  * 则装备鞍并消耗一个鞍物品。
- *
- * 参考: net.minecraft.item.SaddleItem
  */
 class SaddleItem : public Item {
 public:

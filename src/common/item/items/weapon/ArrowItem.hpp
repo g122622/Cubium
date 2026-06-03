@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../core/Item.hpp"
-#include "../../core/ItemStack.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 
 namespace mc {
 
@@ -45,12 +45,10 @@ namespace item {
  *
  * 用于弓和弩的弹药物品。可以堆叠（最大64个）。
  *
- * MC 1.16.5 箭矢类型:
+ * 箭矢类型:
  * - 普通箭 (Arrow): 标准箭矢
  * - 药水箭 (Tipped Arrow): 带药水效果的箭矢
  * - 光灵箭 (Spectral Arrow): 带发光效果的箭矢（仅创造模式可获得）
- *
- * 参考 MC 1.16.5 ArrowItem
  */
 class ArrowItem : public Item {
 public:
@@ -61,6 +59,12 @@ public:
     explicit ArrowItem(const ItemProperties& properties);
 
     ~ArrowItem() override = default;
+
+    // 禁止拷贝和移动
+    ArrowItem(const ArrowItem&) = delete;
+    ArrowItem& operator=(const ArrowItem&) = delete;
+    ArrowItem(ArrowItem&&) = delete;
+    ArrowItem& operator=(ArrowItem&&) = delete;
 
     /**
      * @brief 创建箭矢实体
@@ -79,7 +83,7 @@ public:
     /**
      * @brief 检查箭矢是否无限
      *
-     * MC 1.16.5: 只有普通箭受益于无限附魔。
+     * 只有普通箭受益于无限附魔。
      * 光灵箭和药水箭不受益。
      *
      * @param arrowStack 箭矢物品堆

@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 经验修补附魔
  *
  * 用经验球修复物品耐久。
- * 参考 MC 1.16.5 MendingEnchantment
  *
  * 效果:
  * - 拾取经验球时修复物品（每2点经验修复1点耐久）

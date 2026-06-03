@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Item.hpp"
-#include "../../core/UseAction.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/UseAction.hpp"
 
 namespace mc {
 
@@ -54,7 +54,12 @@ public:
      */
     explicit MilkBucketItem(ItemProperties properties);
 
-    ~MilkBucketItem() override = default;
+    ~MilkBucketItem() noexcept override = default;
+
+    MilkBucketItem(const MilkBucketItem&) = default;
+    MilkBucketItem(MilkBucketItem&&) noexcept = default;
+    MilkBucketItem& operator=(const MilkBucketItem&) = default;
+    MilkBucketItem& operator=(MilkBucketItem&&) noexcept = default;
 
     /**
      * @brief 获取使用时长

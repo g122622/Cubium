@@ -33,7 +33,6 @@ namespace enchant {
  * @brief 深海探索者附魔
  *
  * 增加水下移动速度。
- * 参考 MC 1.16.5 DepthStriderEnchantment
  *
  * 效果:
  * - 每级减少水下移动惩罚
@@ -58,24 +57,18 @@ public:
 
     [[nodiscard]] i32 maxLevel() const override { return 3; }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override
-    {
-        return EnchantmentRarity::Rare; // MC 1.16.5: RARE
-    }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
 
-    [[nodiscard]] i32 getMinCost(i32 level) const override { return 10 + (level - 1) * 10; }
+    [[nodiscard]] i32 getMinCost(i32 level) const noexcept override { return 10 + (level - 1) * 10; }
 
-    [[nodiscard]] i32 getMaxCost(i32 level) const override
-    {
-        return getMinCost(level) + 15; // MC 1.16.5: getMinEnchantability + 15
-    }
+    [[nodiscard]] i32 getMaxCost(i32 level) const noexcept override { return getMinCost(level) + 15; }
 
     /**
      * @brief 获取水下移动速度乘数
      * @param level 附魔等级
      * @return 速度乘数 (0.0-1.0)
      */
-    [[nodiscard]] static f32 getWaterSpeedMultiplier(i32 level)
+    [[nodiscard]] static f32 getWaterSpeedMultiplier(i32 level) noexcept
     {
         // 每级减少 1/3 的水下移动惩罚
         return static_cast<f32>(level) / 3.0f;

@@ -43,7 +43,7 @@ namespace item {
 
 // ========== 常量 ==========
 namespace {
-constexpr i32 MAX_USE_DURATION = 72000; // MC 1.16.5: 几乎无限制
+constexpr i32 MAX_USE_DURATION = 72000; // 几乎无限制
 constexpr f32 MIN_VELOCITY = 0.1f;      // 最小发射速度
 constexpr i32 FULL_CHARGE_TICKS = 20;   // 满蓄力 tick 数
 } // namespace
@@ -76,7 +76,7 @@ ItemActionResult BowItem::onItemRightClick(IWorld& /*world*/, Player& player, Ha
                            bowStack, &item::enchant::AllEnchantments::INFINITY_ARROW) > 0;
     bool isCreative = player.isCreative();
 
-    ItemStack ammoStack = findAmmo(player, bowStack);
+    ItemStack ammoStack = _findAmmo(player, bowStack);
     bool hasAmmo = !ammoStack.isEmpty();
 
     // 创造模式或有箭矢或无限附魔时才能使用
@@ -115,7 +115,7 @@ void BowItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity
     bool isCreative = player->isCreative();
 
     // 查找箭矢
-    ItemStack ammoStack = findAmmo(*player, stack);
+    ItemStack ammoStack = _findAmmo(*player, stack);
     bool hasAmmo = !ammoStack.isEmpty();
 
     // 无箭矢时，无限附魔使用普通箭
@@ -129,7 +129,7 @@ void BowItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity
     }
 
     // 检查箭矢是否无限（不消耗）
-    bool infiniteArrow = isInfiniteArrow(ammoStack, stack, *player);
+    bool infiniteArrow = _isInfiniteArrow(ammoStack, stack, *player);
 
     // 创建箭矢实体
     const ArrowItem* arrowItem = dynamic_cast<const ArrowItem*>(ammoStack.getItem());
@@ -140,7 +140,6 @@ void BowItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity
             arrow = customArrow(arrow);
 
             // 设置发射参数
-            // MC 1.16.5: func_234612_a_ = shoot()
             f32 actualVelocity = velocity * 3.0f; // 最大速度 3.0
             arrow->shootFrom(*player, player->pitch(), player->yaw(), 0.0f, actualVelocity, 1.0f);
 
@@ -187,7 +186,6 @@ void BowItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity
             world.spawnEntity(std::unique_ptr<Entity>(arrow));
 
             // 播放音效
-            // MC 1.16.5: ENTITY_ARROW_SHOOT 音效，音调基于蓄力
             math::Random rng;
             f32 pitch = 1.0f / (rng.nextFloat() * 0.4f + 1.2f) + velocity * 0.5f;
             player->playSound(SoundEvents::ENTITY_ARROW_SHOOT, 1.0f, pitch);
@@ -197,7 +195,7 @@ void BowItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity
     // 消耗箭矢（非无限、非创造）
     if (!infiniteArrow && !isCreative && !ammoStack.isEmpty()) {
         ammoStack.shrink(1);
-        // 如果箭矢堆为空，从背包删除
+        // TODO: 如果箭矢堆为空，需要从背包删除空堆
         // player->inventory().deleteStack(ammoStack);
     }
 }
@@ -222,10 +220,9 @@ std::function<bool(const ItemStack&)> BowItem::getInventoryAmmoPredicate() const
 
 f32 BowItem::getArrowVelocity(i32 chargeTicks)
 {
-    // MC 1.16.5 BowItem.getArrowVelocity()
-    // f = charge / 20.0
-    // f = (f * f + f * 2.0) / 3.0
-    // 最大 1.0
+    // 公式: f = charge / 20.0
+    //       f = (f * f + f * 2.0) / 3.0
+    //       最大 1.0
     if (chargeTicks <= 0) {
         return 0.0f;
     }
@@ -243,7 +240,7 @@ entity::AbstractArrowEntity* BowItem::customArrow(entity::AbstractArrowEntity* a
 
 // ========== 私有方法 ==========
 
-ItemStack BowItem::findAmmo(Player& player, const ItemStack& /*bowStack*/) const
+ItemStack BowItem::_findAmmo(Player& player, const ItemStack& /*bowStack*/) const
 {
 
     // 检查副手
@@ -270,7 +267,7 @@ ItemStack BowItem::findAmmo(Player& player, const ItemStack& /*bowStack*/) const
     return ItemStack();
 }
 
-bool BowItem::isInfiniteArrow(const ItemStack& arrowStack, const ItemStack& bowStack, Player& player) const
+bool BowItem::_isInfiniteArrow(const ItemStack& arrowStack, const ItemStack& bowStack, Player& player) const
 {
     // 创造模式总是无限
     if (player.isCreative()) {
@@ -285,8 +282,7 @@ bool BowItem::isInfiniteArrow(const ItemStack& arrowStack, const ItemStack& bowS
         return false;
     }
 
-    // MC 1.16.5: 只有普通箭矢受益于无限附魔
-    // 光灵箭和药水箭不受无限影响
+    // 只有普通箭矢受益于无限附魔，光灵箭和药水箭不受无限影响
     const ArrowItem* arrowItem = dynamic_cast<const ArrowItem*>(arrowStack.getItem());
     if (arrowItem != nullptr) {
         return arrowItem->isInfinite(arrowStack, bowStack, player);

@@ -22,15 +22,16 @@
  */
 
 #include "SpawnEggItem.hpp"
-#include "../../../core/Direction.hpp"
-#include "../../../entity/core/Entity.hpp"
-#include "../../../entity/core/EntityRegistry.hpp"
-#include "../../../entity/core/EntityType.hpp"
-#include "../../../item/context/BlockItemUseContext.hpp"
-#include "../../../player/Player.hpp"
-#include "../../../util/math/Vector3.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/block/BlockPos.hpp"
+
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 namespace item {

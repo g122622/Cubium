@@ -22,6 +22,7 @@
  */
 
 #include "common/item/loot/conditions/EntityPropertiesCondition.hpp"
+
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include "common/entity/entities/player/Player.hpp"
 

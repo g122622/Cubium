@@ -27,15 +27,14 @@ namespace mc {
 namespace item {
 namespace enchant {
 
-DamageEnchantment::DamageEnchantment(Type damageType)
+DamageEnchantment::DamageEnchantment(Type damageType) noexcept
     : m_damageType(damageType)
 {}
 
 i32 DamageEnchantment::getMinCost(i32 level) const
 {
-    // 参考 MC 1.16.5 伤害附魔成本
-    // 锋利: 1 + (level - 1) * 11
-    // 亡灵杀手/节肢杀手: 5 + (level - 1) * 8
+    // 锋石：1 + (level - 1) * 11
+    // 亡灵杀手/节肢杀手：5 + (level - 1) * 8
     if (m_damageType == Type::All) {
         return 1 + (level - 1) * 11;
     } else {

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Item.hpp"
-#include "../../core/ItemStack.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 
 namespace mc {
 namespace item {
@@ -43,7 +43,7 @@ public:
      * @brief 构造函数
      * @param properties 物品属性
      */
-    explicit GlassBottleItem(const ItemProperties& properties);
+    explicit GlassBottleItem(const ItemProperties& properties) noexcept;
 
     /**
      * @brief 右键使用

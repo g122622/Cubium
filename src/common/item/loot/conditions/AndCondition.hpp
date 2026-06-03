@@ -33,19 +33,47 @@ namespace loot {
 /**
  * @brief 与条件
  *
- * 所有子条件都满足时才满足。
- * 参考: net.minecraft.loot.conditions.Alternative
+ * 所有子条件都满足时才满足。用于组合多个条件形成逻辑与关系。
  */
 class AndCondition : public LootCondition {
 public:
     AndCondition() = default;
+
+    /**
+     * @brief 构造函数
+     * @param conditions 子条件列表
+     */
     explicit AndCondition(std::vector<std::unique_ptr<LootCondition>> conditions);
 
+    /**
+     * @brief 测试所有子条件是否都满足
+     * @param context 掉落上下文
+     * @return 所有子条件都满足返回true，否则返回false
+     */
     [[nodiscard]] bool test(LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
-    [[nodiscard]] std::string getType() const override { return "alternative"; }
 
+    /**
+     * @brief 创建条件副本
+     * @return 当前条件的深拷贝
+     */
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+
+    /**
+     * @brief 获取条件类型标识
+     * @return 类型标识字符串 "and"
+     */
+    [[nodiscard]] std::string getType() const override { return "and"; }
+
+    /**
+     * @brief 添加子条件
+     * @param condition 要添加的条件
+     */
     void addCondition(std::unique_ptr<LootCondition> condition);
+
+    /**
+     * @brief 获取所有子条件
+     * @return 子条件列表的常量引用
+     */
     [[nodiscard]] const std::vector<std::unique_ptr<LootCondition>>& getConditions() const { return m_conditions; }
 
 private:

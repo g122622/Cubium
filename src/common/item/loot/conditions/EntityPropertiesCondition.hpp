@@ -24,9 +24,10 @@
 #pragma once
 
 #include <memory>
-#include "common/item/loot/conditions/LootCondition.hpp"
-#include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include <string>
+
+#include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
 
 namespace mc {
 namespace loot {
@@ -75,8 +76,8 @@ public:
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
     [[nodiscard]] std::string getType() const override { return "entity_properties"; }
 
-    [[nodiscard]] EntityTarget getTarget() const { return m_target; }
-    [[nodiscard]] const advancement::EntityPredicate& getPredicate() const { return m_predicate; }
+    [[nodiscard]] EntityTarget getTarget() const noexcept { return m_target; }
+    [[nodiscard]] const advancement::EntityPredicate& getPredicate() const noexcept { return m_predicate; }
 
     /**
      * @brief 将字符串转换为 EntityTarget
@@ -89,9 +90,9 @@ public:
     [[nodiscard]] static std::string entityTargetToString(EntityTarget target);
 
 private:
-    EntityTarget m_target = EntityTarget::This;
-    advancement::EntityPredicate m_predicate;
-    bool m_isAny = true; // 空谓词，只检查实体是否存在
+    EntityTarget m_target = EntityTarget::This; ///< 实体目标类型
+    advancement::EntityPredicate m_predicate;   ///< 实体谓词
+    bool m_isAny = true;                        ///< 是否为空谓词（只检查实体是否存在）
 };
 
 } // namespace loot

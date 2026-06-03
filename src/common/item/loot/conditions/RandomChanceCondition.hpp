@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
-#include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -34,8 +34,6 @@ namespace loot {
  * @brief 随机概率条件
  *
  * 以指定概率满足条件。
- * 参考: net.minecraft.loot.conditions.RandomChance
- *
  * 用于控制掉落的随机性，如:
  * - 50%概率掉落某物品
  * - 受幸运值影响的概率
