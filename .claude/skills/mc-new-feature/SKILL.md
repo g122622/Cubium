@@ -1,5 +1,5 @@
 ---
-name: new-feature
+name: mc-new-feature
 description: 参照mc源码，列出高质量计划，为项目实现新功能
 ---
 
