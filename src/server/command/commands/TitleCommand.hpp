@@ -53,12 +53,12 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 clearTitle(CommandContext<ServerCommandSource>& context);
-    static i32 resetTitle(CommandContext<ServerCommandSource>& context);
-    static i32 setTitle(CommandContext<ServerCommandSource>& context);
-    static i32 setSubtitle(CommandContext<ServerCommandSource>& context);
-    static i32 setActionbar(CommandContext<ServerCommandSource>& context);
-    static i32 setTimes(CommandContext<ServerCommandSource>& context);
+    static i32 _clearTitle(CommandContext<ServerCommandSource>& context);
+    static i32 _resetTitle(CommandContext<ServerCommandSource>& context);
+    static i32 _setTitle(CommandContext<ServerCommandSource>& context);
+    static i32 _setSubtitle(CommandContext<ServerCommandSource>& context);
+    static i32 _setActionbar(CommandContext<ServerCommandSource>& context);
+    static i32 _setTimes(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

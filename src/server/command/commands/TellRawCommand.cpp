@@ -54,14 +54,14 @@ void TellRawCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     auto jsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "json", StringArgumentType::greedyString());
-    jsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return sendRawMessage(ctx); });
+    jsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _sendRawMessage(ctx); });
 
     playerNode->addChild(jsonNode);
     tellrawNode->addChild(playerNode);
     dispatcher.registerCommand(tellrawNode);
 }
 
-i32 TellRawCommand::sendRawMessage(CommandContext<ServerCommandSource>& context)
+i32 TellRawCommand::_sendRawMessage(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 

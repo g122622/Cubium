@@ -43,18 +43,20 @@ namespace command {
  *
  * duration 单位为 ticks (20 ticks = 1秒)
  * 如果不指定 duration，默认为 6000 ticks (5分钟)
- *
- * 参考 MC 1.16.5 WeatherCommand
  */
 class WeatherCommand {
 public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 setClear(CommandContext<ServerCommandSource>& context);
-    static i32 setRain(CommandContext<ServerCommandSource>& context);
-    static i32 setThunder(CommandContext<ServerCommandSource>& context);
-    static i32 query(CommandContext<ServerCommandSource>& context);
+    /// 设置晴天
+    static i32 _setClear(CommandContext<ServerCommandSource>& context);
+    /// 设置降雨
+    static i32 _setRain(CommandContext<ServerCommandSource>& context);
+    /// 设置雷暴
+    static i32 _setThunder(CommandContext<ServerCommandSource>& context);
+    /// 查询当前天气
+    static i32 _query(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

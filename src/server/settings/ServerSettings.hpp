@@ -60,8 +60,8 @@ public:
     ServerSettings& operator=(const ServerSettings&) = delete;
 
     // 允许移动
-    ServerSettings(ServerSettings&&) = default;
-    ServerSettings& operator=(ServerSettings&&) = default;
+    ServerSettings(ServerSettings&&) noexcept = default;
+    ServerSettings& operator=(ServerSettings&&) noexcept = default;
 
     // ========================================================================
     // 网络设置

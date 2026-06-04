@@ -75,7 +75,7 @@ void ItemPickupManager::tick(ServerWorld& world, IServer& server)
 void ItemPickupManager::checkPlayerPickup(ServerWorld& world, IServer& server, Entity& player)
 {
     // 计算拾取范围
-    f32 range = calculatePickupRange(player);
+    f32 range = _calculatePickupRange(player);
     Vector3 playerPos = player.position();
 
     // 查找附近的物品实体
@@ -101,7 +101,7 @@ void ItemPickupManager::checkPlayerPickup(ServerWorld& world, IServer& server, E
         ItemEntity* itemEntity = static_cast<ItemEntity*>(entity);
 
         // 检查是否可以拾取
-        if (!canPickup(player, *itemEntity)) {
+        if (!_canPickup(player, *itemEntity)) {
             continue;
         }
 
@@ -153,14 +153,14 @@ bool ItemPickupManager::tryPickupItem(ServerWorld& world, IServer& server, Entit
     }
 
     player.playSound(SoundEvents::ENTITY_ITEM_PICKUP, 0.2f, 1.0f);
-    sendInventoryUpdate(server, *playerEntity);
+    _sendInventoryUpdate(server, *playerEntity);
 
     if (fullyPickedUp || itemEntity.getItemStack().isEmpty()) {
-        sendCollectItem(server, itemEntity.id(), player.id(), pickedUpCount);
+        _sendCollectItem(server, itemEntity.id(), player.id(), pickedUpCount);
         return fullyPickedUp;
     }
 
-    sendItemEntityUpdate(world, server, itemEntity);
+    _sendItemEntityUpdate(world, server, itemEntity);
     return false;
 }
 
@@ -246,7 +246,7 @@ void ItemPickupManager::processItemMerging(ServerWorld& world, IServer& server)
                 if (distSq <= MERGE_RANGE_SQ) {
                     // 尝试合并
                     if (item1->tryMergeWith(*item2)) {
-                        sendItemEntityUpdate(world, server, *item1);
+                        _sendItemEntityUpdate(world, server, *item1);
                     }
                 }
             }
@@ -255,10 +255,10 @@ void ItemPickupManager::processItemMerging(ServerWorld& world, IServer& server)
 }
 
 // ============================================================================
-// calculatePickupRange
+// _calculatePickupRange
 // ============================================================================
 
-f32 ItemPickupManager::calculatePickupRange(const Entity& player) const
+f32 ItemPickupManager::_calculatePickupRange(const Entity& player) const
 {
     f32 range = PICKUP_RANGE;
 
@@ -274,10 +274,10 @@ f32 ItemPickupManager::calculatePickupRange(const Entity& player) const
 }
 
 // ============================================================================
-// canPickup
+// _canPickup
 // ============================================================================
 
-bool ItemPickupManager::canPickup(const Entity& player, const ItemEntity& itemEntity) const
+bool ItemPickupManager::_canPickup(const Entity& player, const ItemEntity& itemEntity) const
 {
     // 检查是否可拾取
     if (!itemEntity.canBePickedUp()) {
@@ -291,10 +291,10 @@ bool ItemPickupManager::canPickup(const Entity& player, const ItemEntity& itemEn
 }
 
 // ============================================================================
-// sendInventoryUpdate
+// _sendInventoryUpdate
 // ============================================================================
 
-void ItemPickupManager::sendInventoryUpdate(IServer& server, Player& player)
+void ItemPickupManager::_sendInventoryUpdate(IServer& server, Player& player)
 {
     // 获取玩家ID
     PlayerId playerId = player.playerId();
@@ -327,10 +327,10 @@ void ItemPickupManager::sendInventoryUpdate(IServer& server, Player& player)
 }
 
 // ============================================================================
-// sendItemEntityUpdate
+// _sendItemEntityUpdate
 // ============================================================================
 
-void ItemPickupManager::sendItemEntityUpdate(ServerWorld& world, IServer& server, const ItemEntity& itemEntity)
+void ItemPickupManager::_sendItemEntityUpdate(ServerWorld& world, IServer& server, const ItemEntity& itemEntity)
 {
     const Entity* entity = world.entityManager().getEntity(itemEntity.id());
     if (entity == nullptr) {
@@ -375,10 +375,10 @@ void ItemPickupManager::sendItemEntityUpdate(ServerWorld& world, IServer& server
 }
 
 // ============================================================================
-// sendCollectItem
+// _sendCollectItem
 // ============================================================================
 
-void ItemPickupManager::sendCollectItem(IServer& server, EntityId entityId, EntityId collectorId, i32 pickupItemCount)
+void ItemPickupManager::_sendCollectItem(IServer& server, EntityId entityId, EntityId collectorId, i32 pickupItemCount)
 {
     network::CollectItemPacket collectPacket;
     collectPacket.setCollectedEntityId(static_cast<u32>(entityId));

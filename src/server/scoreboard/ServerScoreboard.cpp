@@ -22,15 +22,15 @@
  */
 
 #include "ServerScoreboard.hpp"
-#include "../../common/network/packet/PacketSerializer.hpp"
-#include "../../common/scoreboard/storage/ScoreboardDataManager.hpp"
-#include "../../common/util/text/ITextComponent.hpp"
-#include "../../common/util/text/StringTextComponent.hpp"
-#include "../application/IServer.hpp"
-#include "../core/ConnectionManager.hpp"
-#include "../core/PlayerManager.hpp"
-#include "../core/ServerPlayerData.hpp"
-#include "../player/ServerPlayer.hpp"
+#include "common/network/packet/PacketSerializer.hpp"
+#include "common/scoreboard/storage/ScoreboardDataManager.hpp"
+#include "common/util/text/ITextComponent.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include "server/application/IServer.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -48,7 +48,7 @@ ServerScoreboard::ServerScoreboard(IServer& server)
     : m_server(server)
 {}
 
-ServerScoreboard::~ServerScoreboard() {}
+ServerScoreboard::~ServerScoreboard() noexcept {}
 
 void ServerScoreboard::onPlayerJoin(mc::ServerPlayer& player)
 {
@@ -104,7 +104,7 @@ void ServerScoreboard::sendToPlayer(PlayerId playerId, network::PacketType type,
 
 void ServerScoreboard::sendObjectiveToPlayer(ScoreObjective& objective, PlayerId playerId)
 {
-    auto packet = createObjectivePacket(objective, network::ObjectiveAction::Add);
+    auto packet = _createObjectivePacket(objective, network::ObjectiveAction::Add);
 
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -113,7 +113,7 @@ void ServerScoreboard::sendObjectiveToPlayer(ScoreObjective& objective, PlayerId
 
 void ServerScoreboard::sendRemoveObjectiveToPlayer(ScoreObjective& objective, PlayerId playerId)
 {
-    auto packet = createObjectivePacket(objective, network::ObjectiveAction::Remove);
+    auto packet = _createObjectivePacket(objective, network::ObjectiveAction::Remove);
 
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -122,7 +122,7 @@ void ServerScoreboard::sendRemoveObjectiveToPlayer(ScoreObjective& objective, Pl
 
 void ServerScoreboard::sendScoreToPlayer(Score& score, PlayerId playerId)
 {
-    auto packet = createScorePacket(score, network::ScoreAction::Change);
+    auto packet = _createScorePacket(score, network::ScoreAction::Change);
 
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -155,7 +155,7 @@ void ServerScoreboard::sendDisplayObjectiveToPlayer(DisplaySlot slot, ScoreObjec
 
 void ServerScoreboard::sendTeamToPlayer(ScorePlayerTeam& team, PlayerId playerId)
 {
-    auto packet = createTeamPacket(team, network::TeamAction::Create);
+    auto packet = _createTeamPacket(team, network::TeamAction::Create);
 
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -164,7 +164,7 @@ void ServerScoreboard::sendTeamToPlayer(ScorePlayerTeam& team, PlayerId playerId
 
 void ServerScoreboard::sendRemoveTeamToPlayer(ScorePlayerTeam& team, PlayerId playerId)
 {
-    auto packet = createTeamPacket(team, network::TeamAction::Remove);
+    auto packet = _createTeamPacket(team, network::TeamAction::Remove);
 
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -205,7 +205,7 @@ void ServerScoreboard::onObjectiveAdded(ScoreObjective& objective)
     m_addedObjectives.insert(&objective);
 
     // 广播给所有玩家
-    auto packet = createObjectivePacket(objective, network::ObjectiveAction::Add);
+    auto packet = _createObjectivePacket(objective, network::ObjectiveAction::Add);
 
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -219,7 +219,7 @@ void ServerScoreboard::onObjectiveRemoved(ScoreObjective& objective)
     m_addedObjectives.erase(&objective);
 
     // 广播给所有玩家
-    auto packet = createObjectivePacket(objective, network::ObjectiveAction::Remove);
+    auto packet = _createObjectivePacket(objective, network::ObjectiveAction::Remove);
 
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -231,7 +231,7 @@ void ServerScoreboard::onObjectiveRemoved(ScoreObjective& objective)
 void ServerScoreboard::onObjectiveChanged(ScoreObjective& objective)
 {
     // 广播给所有玩家
-    auto packet = createObjectivePacket(objective, network::ObjectiveAction::Update);
+    auto packet = _createObjectivePacket(objective, network::ObjectiveAction::Update);
 
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -243,7 +243,7 @@ void ServerScoreboard::onObjectiveChanged(ScoreObjective& objective)
 void ServerScoreboard::onScoreChanged(Score& score)
 {
     // 广播给所有玩家
-    auto packet = createScorePacket(score, network::ScoreAction::Change);
+    auto packet = _createScorePacket(score, network::ScoreAction::Change);
 
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -255,7 +255,7 @@ void ServerScoreboard::onScoreChanged(Score& score)
 void ServerScoreboard::onScoreRemoved(Score& score)
 {
     // 广播给所有玩家
-    auto packet = createScorePacket(score, network::ScoreAction::Remove);
+    auto packet = _createScorePacket(score, network::ScoreAction::Remove);
 
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -300,7 +300,7 @@ void ServerScoreboard::onPlayerScoreRemoved(const std::string& playerName, Score
 void ServerScoreboard::onTeamAdded(ScorePlayerTeam& team)
 {
     // 广播给所有玩家
-    auto packet = createTeamPacket(team, network::TeamAction::Create);
+    auto packet = _createTeamPacket(team, network::TeamAction::Create);
 
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -312,7 +312,7 @@ void ServerScoreboard::onTeamAdded(ScorePlayerTeam& team)
 void ServerScoreboard::onTeamChanged(ScorePlayerTeam& team)
 {
     // 广播给所有玩家
-    auto packet = createTeamPacket(team, network::TeamAction::Update);
+    auto packet = _createTeamPacket(team, network::TeamAction::Update);
 
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -324,7 +324,7 @@ void ServerScoreboard::onTeamChanged(ScorePlayerTeam& team)
 void ServerScoreboard::onTeamRemoved(ScorePlayerTeam& team)
 {
     // 广播给所有玩家
-    auto packet = createTeamPacket(team, network::TeamAction::Remove);
+    auto packet = _createTeamPacket(team, network::TeamAction::Remove);
 
     network::PacketSerializer ser;
     packet.serialize(ser);
@@ -347,7 +347,7 @@ void ServerScoreboard::onDisplaySlotChanged(DisplaySlot slot, ScoreObjective* ob
     markDirty();
 }
 
-network::ScoreboardObjectivePacket ServerScoreboard::createObjectivePacket(
+network::ScoreboardObjectivePacket ServerScoreboard::_createObjectivePacket(
     ScoreObjective& objective, network::ObjectiveAction action)
 {
     network::ScoreboardObjectivePacket packet;
@@ -370,7 +370,7 @@ network::ScoreboardObjectivePacket ServerScoreboard::createObjectivePacket(
     return packet;
 }
 
-network::UpdateScorePacket ServerScoreboard::createScorePacket(Score& score, network::ScoreAction action)
+network::UpdateScorePacket ServerScoreboard::_createScorePacket(Score& score, network::ScoreAction action)
 {
     network::UpdateScorePacket packet;
 
@@ -385,7 +385,7 @@ network::UpdateScorePacket ServerScoreboard::createScorePacket(Score& score, net
     return packet;
 }
 
-network::DisplayObjectivePacket ServerScoreboard::createDisplayObjectivePacket(
+network::DisplayObjectivePacket ServerScoreboard::_createDisplayObjectivePacket(
     DisplaySlot slot, ScoreObjective* objective)
 {
     network::DisplayObjectivePacket packet;
@@ -396,7 +396,7 @@ network::DisplayObjectivePacket ServerScoreboard::createDisplayObjectivePacket(
     return packet;
 }
 
-network::TeamsPacket ServerScoreboard::createTeamPacket(ScorePlayerTeam& team, network::TeamAction action)
+network::TeamsPacket ServerScoreboard::_createTeamPacket(ScorePlayerTeam& team, network::TeamAction action)
 {
     network::TeamsPacket packet;
 

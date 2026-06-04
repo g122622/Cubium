@@ -52,16 +52,15 @@ const PlayerInventory* InventoryManager::getInventory(PlayerId playerId) const
 
 void InventoryManager::setSelectedSlot(PlayerId playerId, i32 slot)
 {
-    // 验证槽位范围 (0-8)
-    if (slot < 0 || slot > 8) {
-        spdlog::warn("Invalid slot {} for player {}, must be 0-8", slot, playerId);
+    // 验证槽位范围
+    if (slot < 0 || slot >= PlayerInventory::HOTBAR_SIZE) {
+        spdlog::warn("Invalid slot {} for player {}, must be 0-{}", slot, playerId, PlayerInventory::HOTBAR_SIZE - 1);
         return;
     }
 
     auto it = m_inventories.find(playerId);
     if (it != m_inventories.end()) {
         it->second.setSelectedSlot(slot);
-        spdlog::debug("Player {} selected slot {}", playerId, slot);
     }
 }
 
@@ -85,9 +84,10 @@ ItemStack InventoryManager::getHeldItem(PlayerId playerId) const
 
 void InventoryManager::setItem(PlayerId playerId, i32 slot, const ItemStack& item)
 {
-    // 验证槽位范围 (0-35 for main inventory + hotbar)
-    if (slot < 0 || slot >= 36) {
-        spdlog::warn("Invalid slot {} for player {}, must be 0-35", slot, playerId);
+    // 验证槽位范围（快捷栏 + 主背包）
+    constexpr i32 MAIN_INVENTORY_SIZE = PlayerInventory::HOTBAR_SIZE + PlayerInventory::MAIN_SIZE;
+    if (slot < 0 || slot >= MAIN_INVENTORY_SIZE) {
+        spdlog::warn("Invalid slot {} for player {}, must be 0-{}", slot, playerId, MAIN_INVENTORY_SIZE - 1);
         return;
     }
 

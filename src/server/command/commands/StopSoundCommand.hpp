@@ -50,9 +50,11 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 stopAllSounds(CommandContext<ServerCommandSource>& context);
-    static i32 stopSourceSounds(CommandContext<ServerCommandSource>& context);
-    static i32 stopSpecificSound(CommandContext<ServerCommandSource>& context);
+    // TODO: 这些方法目前未使用，命令逻辑已在 registerTo 中内联实现。
+    // 未来如果需要复用或重构，可以考虑提取到这些方法中。
+    static i32 _stopAllSounds(CommandContext<ServerCommandSource>& context);
+    static i32 _stopSourceSounds(CommandContext<ServerCommandSource>& context);
+    static i32 _stopSpecificSound(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

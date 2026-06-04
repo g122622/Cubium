@@ -39,8 +39,6 @@ namespace server {
 
 bool SignCommandHelper::executeSignCommands(blockentity::SignEntity& signEntity, mc::ServerPlayer& player)
 {
-
-    // MC 1.16.5: 参考 SignTileEntity.executeCommand()
     // 遍历所有行文本，检查并执行点击事件
     bool executedAny = false;
 
@@ -61,32 +59,19 @@ bool SignCommandHelper::executeSignCommands(blockentity::SignEntity& signEntity,
         if (clickEvent && clickEvent->isValid()) {
             switch (clickEvent->getAction()) {
                 case text::ClickAction::RunCommand: {
-                    // MC 1.16.5: 服务端执行命令
+                    // 服务端执行命令
                     std::string command = clickEvent->getValue();
-                    if (executeCommand(command, player, signPos)) {
+                    if (_executeCommand(command, player, signPos)) {
                         executedAny = true;
                     }
                     break;
                 }
-                case text::ClickAction::SuggestCommand: {
-                    // MC 1.16.5: 客户端功能 - 将命令填入聊天输入框
-                    // 服务端不处理，由客户端实现
+                case text::ClickAction::SuggestCommand:
+                case text::ClickAction::OpenUrl:
+                case text::ClickAction::CopyToClipboard:
+                case text::ClickAction::OpenFile:
+                    // 客户端功能，服务端不处理
                     break;
-                }
-                case text::ClickAction::OpenUrl: {
-                    // MC 1.16.5: 客户端功能 - 打开 URL
-                    // 服务端不处理，由客户端实现
-                    break;
-                }
-                case text::ClickAction::CopyToClipboard: {
-                    // MC 1.16.5: 客户端功能 - 复制到剪贴板
-                    // 服务端不处理，由客户端实现
-                    break;
-                }
-                case text::ClickAction::OpenFile: {
-                    // MC 1.16.5: 出于安全原因，不自动执行 OpenFile
-                    break;
-                }
             }
         }
 
@@ -99,7 +84,7 @@ bool SignCommandHelper::executeSignCommands(blockentity::SignEntity& signEntity,
                     siblingClick->getAction() == text::ClickAction::RunCommand) {
                     // 执行子组件中的命令
                     std::string command = siblingClick->getValue();
-                    if (executeCommand(command, player, signPos)) {
+                    if (_executeCommand(command, player, signPos)) {
                         executedAny = true;
                     }
                 }
@@ -110,9 +95,8 @@ bool SignCommandHelper::executeSignCommands(blockentity::SignEntity& signEntity,
     return executedAny;
 }
 
-bool SignCommandHelper::executeCommand(const std::string& command, mc::ServerPlayer& player, const BlockPos& signPos)
+bool SignCommandHelper::_executeCommand(const std::string& command, mc::ServerPlayer& player, const BlockPos& signPos)
 {
-
     // 检查服务器引用
     if (player.getServer() == nullptr) {
         spdlog::warn("SignCommandHelper: player {} has no server reference", player.username());
@@ -125,8 +109,7 @@ bool SignCommandHelper::executeCommand(const std::string& command, mc::ServerPla
         cmd = "/" + cmd;
     }
 
-    // 创建命令源
-    // MC 1.16.5: 告示牌命令源的权限级别为 2，位置为告示牌位置
+    // 创建命令源（权限级别为 2，位置为告示牌位置）
     command::ServerCommandSource source(player.getServer(),
         &player,
         player.dimension(),

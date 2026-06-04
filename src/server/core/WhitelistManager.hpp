@@ -25,12 +25,12 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include <algorithm>
 #include <filesystem>
 #include <mutex>
 #include <optional>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 namespace mc::server::core {
@@ -242,9 +242,24 @@ public:
      * @brief 获取白名单文件路径
      * @return 文件路径
      */
-    [[nodiscard]] const std::filesystem::path& filePath() const { return m_filePath; }
+    [[nodiscard]] std::filesystem::path filePath() const
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_filePath;
+    }
 
 private:
+    /**
+     * @brief 将字符串转换为小写
+     * @param str 输入字符串
+     * @return 小写字符串
+     */
+    static std::string _toLower(std::string str)
+    {
+        std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+        return str;
+    }
+
     mutable std::mutex m_mutex;
     std::unordered_map<std::string, WhitelistEntry> m_entriesByUuid; ///< UUID -> 条目
     std::unordered_map<std::string, std::string> m_nameToUuid;       ///< 名称（小写）-> UUID

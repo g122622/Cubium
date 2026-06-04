@@ -22,6 +22,7 @@
  */
 
 #include "BlockDropHandler.hpp"
+
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -42,6 +43,7 @@
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/world/ServerWorld.hpp"
+
 #include <cmath>
 
 namespace mc {
@@ -287,16 +289,8 @@ i32 BlockDropHandler::applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::R
         return baseCount;
     }
 
-    // MC 1.16.5 OreDropsFormula (乘法式):
-    // int i = random.nextInt(fortune + 2) - 1;
-    // if (i < 0) i = 0;
-    // return baseCount * (i + 1);
-    //
-    // Fortune I: random.nextInt(3) - 1 -> -1,0,1 (修正后 0,0,1) -> multiplier: 1,1,2
-    // Fortune II: random.nextInt(4) - 1 -> -1,0,1,2 (修正后 0,0,1,2) -> multiplier: 1,1,2,3
-    // Fortune III: random.nextInt(5) - 1 -> -1,0,1,2,3 (修正后 0,0,1,2,3) -> multiplier: 1,1,2,3,4
-    //
     // 注意：此方法已弃用，请使用 ApplyBonusFunction::calculateOreDrops()
+    // TODO: 移除此方法，改用 LootTable 系统的 ApplyBonusFunction
     i32 i = random.nextInt(fortuneLevel + 2) - 1;
     if (i < 0) {
         i = 0;
@@ -470,7 +464,6 @@ i32 BlockDropHandler::handleBlockBreakExperience(EntityManager& entityManager,
     }
 
     // 检查是否使用正确工具
-    // 参考 MC: 只有使用正确工具才能获得经验
     // 如果方块需要工具才能采集，检查工具是否有效
     if (state.requiresTool()) {
         if (!tool || tool->isEmpty()) {

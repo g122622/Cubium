@@ -23,7 +23,6 @@
 
 #include "KeepAliveManager.hpp"
 #include "PlayerManager.hpp"
-#include <spdlog/spdlog.h>
 
 namespace mc::server::core {
 
@@ -62,7 +61,6 @@ void KeepAliveManager::recordKeepAliveSent(PlayerId playerId, u64 timestamp, u64
 
     player->lastKeepAliveSent = timestamp;
     player->lastKeepAliveSentTick = tick;
-    spdlog::trace("KeepAliveManager: Sent keepalive to player {} at {}", playerId, timestamp);
 }
 
 void KeepAliveManager::handleKeepAliveResponse(PlayerId playerId, u64 timestamp, u64 currentTimeMs)
@@ -72,7 +70,6 @@ void KeepAliveManager::handleKeepAliveResponse(PlayerId playerId, u64 timestamp,
 
     // 验证时间戳是否匹配
     if (player->lastKeepAliveSent != timestamp) {
-        spdlog::debug("KeepAliveManager: Player {} keepalive timestamp mismatch", playerId);
         return;
     }
 
@@ -81,8 +78,6 @@ void KeepAliveManager::handleKeepAliveResponse(PlayerId playerId, u64 timestamp,
     // 计算 ping
     u32 ping = static_cast<u32>(currentTimeMs - timestamp);
     player->ping = ping;
-
-    spdlog::trace("KeepAliveManager: Player {} keepalive response, ping={}ms", playerId, ping);
 }
 
 void KeepAliveManager::updateKeepAlive(PlayerId playerId, u64 timestamp)

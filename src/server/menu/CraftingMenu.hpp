@@ -77,15 +77,15 @@ public:
      * @brief 获取合成网格
      * @return 合成网格引用
      */
-    [[nodiscard]] CraftingInventory& getCraftingGrid() { return m_craftingGrid; }
-    [[nodiscard]] const CraftingInventory& getCraftingGrid() const { return m_craftingGrid; }
+    [[nodiscard]] CraftingInventory& getCraftingGrid() noexcept { return m_craftingGrid; }
+    [[nodiscard]] const CraftingInventory& getCraftingGrid() const noexcept { return m_craftingGrid; }
 
     /**
      * @brief 获取结果槽位
      * @return 结果背包引用
      */
-    [[nodiscard]] CraftResultInventory& getResultInventory() { return m_result; }
-    [[nodiscard]] const CraftResultInventory& getResultInventory() const { return m_result; }
+    [[nodiscard]] CraftResultInventory& getResultInventory() noexcept { return m_result; }
+    [[nodiscard]] const CraftResultInventory& getResultInventory() const noexcept { return m_result; }
 
     /**
      * @brief 容器内容变化时调用
@@ -127,15 +127,15 @@ public:
      * @brief 获取屏幕类型
      * @return 屏幕类型
      */
-    [[nodiscard]] ScreenType getScreenType() const { return m_screenType; }
+    [[nodiscard]] ScreenType getScreenType() const noexcept { return m_screenType; }
 
-    [[nodiscard]] i32 getResultSlotIndex() const override { return RESULT_SLOT; }
+    [[nodiscard]] i32 getResultSlotIndex() const noexcept override { return RESULT_SLOT; }
 
     /**
      * @brief 获取当前匹配的配方ID
      * @return 当前配方的资源位置ID，如果没有匹配配方则返回空
      */
-    [[nodiscard]] ResourceLocation getCurrentRecipeId() const override
+    [[nodiscard]] ResourceLocation getCurrentRecipeId() const noexcept override
     {
         return m_currentRecipe != nullptr ? m_currentRecipe->getId() : ResourceLocation();
     }
@@ -151,7 +151,7 @@ public:
     /**
      * @brief 检查是否是合成网格槽位
      */
-    [[nodiscard]] bool isGridSlot(i32 slotIndex) const
+    [[nodiscard]] bool isGridSlot(i32 slotIndex) const noexcept
     {
         return slotIndex >= GRID_SLOT_START && slotIndex < GRID_SLOT_START + GRID_SLOT_COUNT;
     }
@@ -176,13 +176,13 @@ private:
      * @brief 处理结果槽位点击
      * @return 如果成功处理返回配方指针，否则返回nullptr
      */
-    const crafting::CraftingRecipe* handleResultSlotClick();
+    const crafting::CraftingRecipe* _handleResultSlotClick();
 
     /**
      * @brief 消耗合成原料
      * @param recipe 已查找的配方指针（避免重复查找）
      */
-    void consumeIngredients(const crafting::CraftingRecipe* recipe);
+    void _consumeIngredients(const crafting::CraftingRecipe* recipe);
 
     CraftingInventory m_craftingGrid;
     CraftResultInventory m_result;
@@ -196,7 +196,7 @@ private:
  *
  * 管理玩家背包中的2x2合成网格、护甲槽、副手槽。
  *
- * 槽位布局（参考 MC 1.16.5 PlayerContainer）：
+ * 槽位布局：
  * - 槽位 0: 合成结果 (154, 28)
  * - 槽位 1-4: 合成网格 (2x2) (98, 18) 到 (116, 36)
  * - 槽位 5: 头盔 (8, 8)
@@ -222,15 +222,15 @@ public:
      * @brief 获取合成网格
      * @return 合成网格引用
      */
-    [[nodiscard]] CraftingInventory& getCraftingGrid() { return m_craftingGrid; }
-    [[nodiscard]] const CraftingInventory& getCraftingGrid() const { return m_craftingGrid; }
+    [[nodiscard]] CraftingInventory& getCraftingGrid() noexcept { return m_craftingGrid; }
+    [[nodiscard]] const CraftingInventory& getCraftingGrid() const noexcept { return m_craftingGrid; }
 
     /**
      * @brief 获取结果槽位
      * @return 结果背包引用
      */
-    [[nodiscard]] CraftResultInventory& getResultInventory() { return m_result; }
-    [[nodiscard]] const CraftResultInventory& getResultInventory() const { return m_result; }
+    [[nodiscard]] CraftResultInventory& getResultInventory() noexcept { return m_result; }
+    [[nodiscard]] const CraftResultInventory& getResultInventory() const noexcept { return m_result; }
 
     /**
      * @brief 容器内容变化时调用
@@ -260,13 +260,13 @@ public:
      */
     void updateResult();
 
-    [[nodiscard]] i32 getResultSlotIndex() const override { return RESULT_SLOT; }
+    [[nodiscard]] i32 getResultSlotIndex() const noexcept override { return RESULT_SLOT; }
 
     /**
      * @brief 获取当前匹配的配方ID
      * @return 当前配方的资源位置ID，如果没有匹配配方则返回空
      */
-    [[nodiscard]] ResourceLocation getCurrentRecipeId() const override
+    [[nodiscard]] ResourceLocation getCurrentRecipeId() const noexcept override
     {
         return m_currentRecipe != nullptr ? m_currentRecipe->getId() : ResourceLocation();
     }
@@ -274,7 +274,7 @@ public:
     /**
      * @brief 槽位索引常量
      *
-     * 布局顺序（参考 MC 1.16.5 PlayerContainer）：
+     * 布局顺序：
      * - 0: 合成结果
      * - 1-4: 合成网格 (2x2)
      * - 5-8: 护甲 (头盔、胸甲、护腿、靴子)
@@ -306,13 +306,13 @@ private:
      * @brief 处理结果槽位点击
      * @return 如果成功处理返回配方指针，否则返回nullptr
      */
-    const crafting::CraftingRecipe* handleResultSlotClick();
+    const crafting::CraftingRecipe* _handleResultSlotClick();
 
     /**
      * @brief 消耗合成原料
      * @param recipe 已查找的配方指针（避免重复查找）
      */
-    void consumeIngredients(const crafting::CraftingRecipe* recipe);
+    void _consumeIngredients(const crafting::CraftingRecipe* recipe);
 
     CraftingInventory m_craftingGrid;
     CraftResultInventory m_result;

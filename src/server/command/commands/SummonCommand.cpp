@@ -48,11 +48,11 @@ void SummonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     // /summon <entity> - 在执行者位置生成
     auto entityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
         "entity", ResourceLocationArgumentType::resourceLocation());
-    entityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return summonEntity(ctx); });
+    entityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _summonEntity(ctx); });
 
     // /summon <entity> <pos> - 在指定位置生成
     auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
-    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return summonEntityAtPosition(ctx); });
+    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _summonEntityAtPosition(ctx); });
 
     entityArg->addChild(posArg);
     summonNode->addChild(entityArg);
@@ -60,7 +60,7 @@ void SummonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     dispatcher.registerCommand(summonNode);
 }
 
-i32 SummonCommand::summonEntity(CommandContext<ServerCommandSource>& context)
+i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     ResourceLocation entityId = context.getArgument<ResourceLocation>("entity");
@@ -119,7 +119,7 @@ i32 SummonCommand::summonEntity(CommandContext<ServerCommandSource>& context)
     return 1;
 }
 
-i32 SummonCommand::summonEntityAtPosition(CommandContext<ServerCommandSource>& context)
+i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     ResourceLocation entityId = context.getArgument<ResourceLocation>("entity");

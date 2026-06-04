@@ -53,7 +53,7 @@ void TagCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto tagArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("tag", StringArgumentType::string());
-    tagArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addTag(ctx); });
+    tagArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addTag(ctx); });
     addNode->addChild(tagArg);
     targetsArg->addChild(addNode);
 
@@ -61,13 +61,13 @@ void TagCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
     auto removeTagArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("tag", StringArgumentType::string());
-    removeTagArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeTag(ctx); });
+    removeTagArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeTag(ctx); });
     removeNode->addChild(removeTagArg);
     targetsArg->addChild(removeNode);
 
     // /tag <targets> list
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
-    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listTags(ctx); });
+    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listTags(ctx); });
     targetsArg->addChild(listNode);
 
     tagNode->addChild(targetsArg);
@@ -96,7 +96,7 @@ static Entity* getEntityFromPlayerId(const ServerCommandSource& source, PlayerId
     return player; // Player 继承自 Entity
 }
 
-i32 TagCommand::addTag(CommandContext<ServerCommandSource>& context)
+i32 TagCommand::_addTag(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
@@ -130,7 +130,7 @@ i32 TagCommand::addTag(CommandContext<ServerCommandSource>& context)
     return successCount;
 }
 
-i32 TagCommand::removeTag(CommandContext<ServerCommandSource>& context)
+i32 TagCommand::_removeTag(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
@@ -164,7 +164,7 @@ i32 TagCommand::removeTag(CommandContext<ServerCommandSource>& context)
     return successCount;
 }
 
-i32 TagCommand::listTags(CommandContext<ServerCommandSource>& context)
+i32 TagCommand::_listTags(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");

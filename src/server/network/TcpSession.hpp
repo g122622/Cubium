@@ -110,7 +110,7 @@ public:
     [[nodiscard]] std::vector<u8> takeNextSendBuffer();
 
 private:
-    void closeLocally();
+    void _closeLocally();
 
     SessionId m_id;
     SessionState m_state = SessionState::Connecting;
@@ -134,7 +134,7 @@ private:
     DisconnectCallback m_onDisconnect;
 
     // 处理完整数据包
-    void processPacket(const u8* data, size_t size);
+    void _processPacket(const u8* data, size_t size);
 };
 
 } // namespace mc::server

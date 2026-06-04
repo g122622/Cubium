@@ -45,18 +45,18 @@ void SetWorldSpawnCommand::registerTo(CommandDispatcher<ServerCommandSource>& di
         setWorldSpawnNode, support::makeMetadata("Sets the world spawn point.", "/setworldspawn [<pos>]", 2, {}, true));
 
     // /setworldspawn - 设置当前位置为世界出生点
-    setWorldSpawnNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setCurrentPosition(ctx); });
+    setWorldSpawnNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setCurrentPosition(ctx); });
 
     // /setworldspawn <pos>
     auto posNode =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
-    posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setPosition(ctx); });
+    posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPosition(ctx); });
 
     setWorldSpawnNode->addChild(posNode);
     dispatcher.registerCommand(setWorldSpawnNode);
 }
 
-i32 SetWorldSpawnCommand::setCurrentPosition(CommandContext<ServerCommandSource>& context)
+i32 SetWorldSpawnCommand::_setCurrentPosition(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
@@ -83,7 +83,7 @@ i32 SetWorldSpawnCommand::setCurrentPosition(CommandContext<ServerCommandSource>
     }
 
     // 广播新的出生点到所有玩家
-    broadcastSpawnPosition(server, pos);
+    _broadcastSpawnPosition(server, pos);
 
     std::ostringstream ss;
     ss << "Set world spawn point to " << static_cast<BlockCoord>(pos.x) << ", " << static_cast<BlockCoord>(pos.y)
@@ -93,7 +93,7 @@ i32 SetWorldSpawnCommand::setCurrentPosition(CommandContext<ServerCommandSource>
     return 1;
 }
 
-i32 SetWorldSpawnCommand::setPosition(CommandContext<ServerCommandSource>& context)
+i32 SetWorldSpawnCommand::_setPosition(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
@@ -116,7 +116,7 @@ i32 SetWorldSpawnCommand::setPosition(CommandContext<ServerCommandSource>& conte
     }
 
     // 广播新的出生点到所有玩家
-    broadcastSpawnPosition(server, pos);
+    _broadcastSpawnPosition(server, pos);
 
     std::ostringstream ss;
     ss << "Set world spawn point to " << static_cast<BlockCoord>(pos.x) << ", " << static_cast<BlockCoord>(pos.y)
@@ -126,7 +126,7 @@ i32 SetWorldSpawnCommand::setPosition(CommandContext<ServerCommandSource>& conte
     return 1;
 }
 
-void SetWorldSpawnCommand::broadcastSpawnPosition(server::IServer* server, const Vector3d& pos)
+void SetWorldSpawnCommand::_broadcastSpawnPosition(server::IServer* server, const Vector3d& pos)
 {
     // 创建出生点数据包
     network::SpawnPositionPacket spawnPosPacket(

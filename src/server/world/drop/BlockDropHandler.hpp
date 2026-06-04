@@ -24,8 +24,8 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/item/loot/context/LootContext.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
 #include <vector>
@@ -72,7 +72,6 @@ enum class OreType : i32 {
  * @brief 方块掉落处理器
  *
  * 处理方块破坏时的掉落物生成。
- * 参考 MC 1.16.5 PlayerInteractionManager.tryHarvestBlock
  *
  * 使用 LootTable 系统 (src/common/entity/loot/) 生成掉落。
  *
@@ -141,7 +140,6 @@ public:
     /**
      * @brief 检查玩家是否能采集方块
      *
-     * 参考 MC 1.16.5 PlayerInteractionManager.canHarvestBlock
      * 条件:
      * - 方块硬度 >= 0（不是基岩等不可破坏方块）
      * - 使用正确工具 或 方块不需要工具
@@ -263,8 +261,6 @@ private:
 
     /**
      * @brief 应用时运加成到掉落数量
-     *
-     * 参考 MC 1.16.5 Fortune 逻辑。
      *
      * @param baseCount 基础数量
      * @param fortuneLevel 时运等级

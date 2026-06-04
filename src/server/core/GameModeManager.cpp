@@ -63,11 +63,11 @@ bool GameModeManager::setGameMode(PlayerId playerId, GameMode mode)
     // 注意：飞行状态等能力会在客户端收到 PlayerAbilitiesPacket 后更新
 
     // 发送网络包
-    if (!sendGameModeChangePacket(playerId, mode)) {
+    if (!_sendGameModeChangePacket(playerId, mode)) {
         spdlog::warn("GameModeManager: Failed to send game mode change packet to player {}", playerId);
     }
 
-    if (!sendAbilitiesPacket(playerId, mode)) {
+    if (!_sendAbilitiesPacket(playerId, mode)) {
         spdlog::warn("GameModeManager: Failed to send abilities packet to player {}", playerId);
     }
 
@@ -95,7 +95,7 @@ bool GameModeManager::setGameModeLocal(PlayerId playerId, GameMode mode)
     return true;
 }
 
-GameMode GameModeManager::getGameMode(PlayerId playerId) const
+GameMode GameModeManager::getGameMode(PlayerId playerId) const noexcept
 {
     const auto* player = m_playerManager.getPlayer(playerId);
     if (!player) {
@@ -115,10 +115,10 @@ bool GameModeManager::syncAbilities(PlayerId playerId)
         return false;
     }
 
-    return sendAbilitiesPacket(playerId, player->gameMode);
+    return _sendAbilitiesPacket(playerId, player->gameMode);
 }
 
-u8 GameModeManager::getAbilitiesForGameMode(GameMode mode)
+u8 GameModeManager::getAbilitiesForGameMode(GameMode mode) noexcept
 {
     // 使用 GameModeUtils 计算能力
     PlayerAbilities abilities = entity::GameModeUtils::getAbilitiesForGameMode(mode);
@@ -144,7 +144,7 @@ u8 GameModeManager::getAbilitiesForGameMode(GameMode mode)
 // 私有方法
 // ============================================================================
 
-bool GameModeManager::sendGameModeChangePacket(PlayerId playerId, GameMode mode)
+bool GameModeManager::_sendGameModeChangePacket(PlayerId playerId, GameMode mode)
 {
     network::GameStateChangePacket packet = network::GameStateChangePacket::gameModeChange(mode);
 
@@ -157,7 +157,7 @@ bool GameModeManager::sendGameModeChangePacket(PlayerId playerId, GameMode mode)
     return m_connectionManager.sendPacketToPlayer(playerId, network::PacketType::GameStateChange, result.value());
 }
 
-bool GameModeManager::sendAbilitiesPacket(PlayerId playerId, GameMode mode)
+bool GameModeManager::_sendAbilitiesPacket(PlayerId playerId, GameMode mode)
 {
     network::PlayerAbilitiesPacket packet = network::PlayerAbilitiesPacket::fromGameMode(mode);
 

@@ -38,16 +38,14 @@ namespace command {
  * - /summon <entity> <pos> - 在指定位置生成实体
  *
  * 权限等级：2
- *
- * 参考 MC 1.16.5 的 SummonCommand
  */
 class SummonCommand {
 public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 summonEntity(CommandContext<ServerCommandSource>& context);
-    static i32 summonEntityAtPosition(CommandContext<ServerCommandSource>& context);
+    static i32 _summonEntity(CommandContext<ServerCommandSource>& context);
+    static i32 _summonEntityAtPosition(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

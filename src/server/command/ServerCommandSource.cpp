@@ -104,17 +104,17 @@ void ServerCommandSource::sendError(const std::string& message)
     sendMessage(formattedMessage);
 }
 
-bool ServerCommandSource::shouldReceiveFeedback() const
+bool ServerCommandSource::shouldReceiveFeedback() const noexcept
 {
     return !m_feedbackDisabled;
 }
 
-bool ServerCommandSource::shouldReceiveErrors() const
+bool ServerCommandSource::shouldReceiveErrors() const noexcept
 {
     return true;
 }
 
-bool ServerCommandSource::allowLogging() const
+bool ServerCommandSource::allowLogging() const noexcept
 {
     return true;
 }

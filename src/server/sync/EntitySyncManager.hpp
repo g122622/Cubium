@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include <memory>
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include <functional>
+#include <memory>
 #include <unordered_map>
 
 namespace mc::server {
@@ -108,22 +108,22 @@ private:
     /**
      * @brief 检查实体是否需要同步
      */
-    [[nodiscard]] bool needsSync(EntityId entityId) const;
+    [[nodiscard]] bool _needsSync(EntityId entityId) const;
 
     /**
      * @brief 广播实体移动
      */
-    void broadcastEntityMove(EntityId entityId, const Vector3& pos, f32 yaw, f32 pitch);
+    void _broadcastEntityMove(EntityId entityId, const Vector3& pos, f32 yaw, f32 pitch);
 
     /**
      * @brief 广播实体生成
      */
-    void broadcastEntitySpawn(EntityId entityId, const Entity& entity);
+    void _broadcastEntitySpawn(EntityId entityId, const Entity& entity);
 
     /**
      * @brief 广播实体移除
      */
-    void broadcastEntityRemove(EntityId entityId);
+    void _broadcastEntityRemove(EntityId entityId);
 
 private:
     /**

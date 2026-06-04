@@ -65,9 +65,7 @@ bool WhitelistManager::addEntry(const WhitelistEntry& entry)
     m_entriesByUuid[entry.uuid] = entry;
 
     // 添加名称映射（小写）
-    std::string lowerName = entry.name;
-    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-    m_nameToUuid[lowerName] = entry.uuid;
+    m_nameToUuid[_toLower(entry.name)] = entry.uuid;
 
     return true;
 }
@@ -82,9 +80,7 @@ bool WhitelistManager::removeEntry(const std::string& uuid)
     }
 
     // 移除名称映射
-    std::string lowerName = it->second.name;
-    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-    m_nameToUuid.erase(lowerName);
+    m_nameToUuid.erase(_toLower(it->second.name));
 
     // 移除条目
     m_entriesByUuid.erase(it);
@@ -97,10 +93,7 @@ bool WhitelistManager::removeEntryByName(const std::string& name)
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // 查找名称映射
-    std::string lowerName = name;
-    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-
-    auto nameIt = m_nameToUuid.find(lowerName);
+    auto nameIt = m_nameToUuid.find(_toLower(name));
     if (nameIt == m_nameToUuid.end()) {
         return false;
     }
@@ -123,11 +116,7 @@ bool WhitelistManager::isWhitelisted(const std::string& uuid) const
 bool WhitelistManager::isNameWhitelisted(const std::string& name) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-
-    std::string lowerName = name;
-    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-
-    return m_nameToUuid.contains(lowerName);
+    return m_nameToUuid.contains(_toLower(name));
 }
 
 std::optional<WhitelistEntry> WhitelistManager::getEntry(const std::string& uuid) const
@@ -146,10 +135,7 @@ std::optional<WhitelistEntry> WhitelistManager::getEntryByName(const std::string
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    std::string lowerName = name;
-    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-
-    auto nameIt = m_nameToUuid.find(lowerName);
+    auto nameIt = m_nameToUuid.find(_toLower(name));
     if (nameIt == m_nameToUuid.end()) {
         return std::nullopt;
     }
@@ -289,9 +275,7 @@ Result<void> WhitelistManager::load(const std::filesystem::path& path)
             m_entriesByUuid[entry.uuid] = entry;
 
             // 添加名称映射
-            std::string lowerName = entry.name;
-            std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-            m_nameToUuid[lowerName] = entry.uuid;
+            m_nameToUuid[_toLower(entry.name)] = entry.uuid;
         }
 
         spdlog::info("Loaded {} whitelist entries from {}", m_entriesByUuid.size(), path.string());
@@ -355,11 +339,15 @@ Result<void> WhitelistManager::save(const std::filesystem::path& path)
 
 Result<void> WhitelistManager::reload()
 {
-    if (m_filePath.empty()) {
-        return Error(ErrorCode::InvalidArgument, "No file path to reload whitelist from");
+    std::filesystem::path path;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_filePath.empty()) {
+            return Error(ErrorCode::InvalidArgument, "No file path to reload whitelist from");
+        }
+        path = m_filePath;
     }
-
-    return load(m_filePath);
+    return load(path);
 }
 
 } // namespace mc::server::core

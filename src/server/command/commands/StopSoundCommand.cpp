@@ -192,21 +192,27 @@ void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     dispatcher.registerCommand(stopsoundNode);
 }
 
-i32 StopSoundCommand::stopAllSounds(CommandContext<ServerCommandSource>& context)
+i32 StopSoundCommand::_stopAllSounds(CommandContext<ServerCommandSource>& context)
 {
-    // 已在 registerTo 中内联实现，此方法不再使用
+    // TODO: 当前未使用，命令逻辑已在 registerTo 中内联实现。
+    // 如果需要复用此方法，请将 registerTo 中的相关逻辑提取到这里。
+    MC_UNUSED(context);
     return 0;
 }
 
-i32 StopSoundCommand::stopSourceSounds(CommandContext<ServerCommandSource>& context)
+i32 StopSoundCommand::_stopSourceSounds(CommandContext<ServerCommandSource>& context)
 {
-    // 已在 registerTo 中内联实现，此方法不再使用
+    // TODO: 当前未使用，命令逻辑已在 registerTo 中内联实现。
+    // 如果需要复用此方法，请将 registerTo 中的相关逻辑提取到这里。
+    MC_UNUSED(context);
     return 0;
 }
 
-i32 StopSoundCommand::stopSpecificSound(CommandContext<ServerCommandSource>& context)
+i32 StopSoundCommand::_stopSpecificSound(CommandContext<ServerCommandSource>& context)
 {
-    // 已在 registerTo 中内联实现，此方法不再使用
+    // TODO: 当前未使用，命令逻辑已在 registerTo 中内联实现。
+    // 如果需要复用此方法，请将 registerTo 中的相关逻辑提取到这里。
+    MC_UNUSED(context);
     return 0;
 }
 

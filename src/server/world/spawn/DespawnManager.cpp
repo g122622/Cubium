@@ -22,6 +22,7 @@
  */
 
 #include "DespawnManager.hpp"
+
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -31,9 +32,10 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/world/ServerWorld.hpp"
+
 #include <cmath>
 #include <limits>
-#include <spdlog/spdlog.h>
+#include <vector>
 
 namespace mc::world::spawn {
 
@@ -66,7 +68,7 @@ void DespawnManager::tick(::mc::server::ServerWorld& world)
             break;
         }
 
-        if (shouldDespawn(*mob, world)) {
+        if (_shouldDespawn(*mob, world)) {
             mob->remove();
         }
 
@@ -74,27 +76,25 @@ void DespawnManager::tick(::mc::server::ServerWorld& world)
     }
 }
 
-bool DespawnManager::shouldDespawn(MobEntity& mob, ::mc::server::ServerWorld& world) const
+bool DespawnManager::_shouldDespawn(MobEntity& mob, ::mc::server::ServerWorld& world) const
 {
     // 已移除的实体不需要检查
     if (mob.isRemoved()) {
         return false;
     }
 
-    // MC 1.16.5: checkDespawn() 第一步 - 和平模式下特定生物消失
-    // MonsterEntity.isDespawnPeaceful() 返回 true
+    // 和平模式下特定生物消失
     if (world.difficulty() == Difficulty::Peaceful && mob.isDespawnPeaceful()) {
         return true;
     }
 
-    // MC 1.16.5: 持久化实体或正在骑乘的实体不会消失
-    // isNoDespawnRequired() || preventDespawn() 时，重置空闲时间并返回
+    // 持久化实体或正在骑乘的实体不会消失
     if (mob.isNoDespawnRequired() || mob.preventDespawn()) {
         mob.setIdleTime(0);
         return false;
     }
 
-    // MC 1.16.5: 获取实体类型信息
+    // 获取实体类型信息
     auto& registry = entity::EntityRegistry::instance();
     const std::string& typeId = mob.getTypeId();
     const entity::EntityType* type = registry.getType(typeId);
@@ -109,27 +109,26 @@ bool DespawnManager::shouldDespawn(MobEntity& mob, ::mc::server::ServerWorld& wo
     f64 instantDespawnDistSq = static_cast<f64>(info.despawnDistance) * info.despawnDistance;
     f64 randomDespawnDistSq = static_cast<f64>(info.randomDespawnDistance) * info.randomDespawnDistance;
 
-    // 获取最近玩家距离 - 使用 IWorld 接口方法
+    // 获取最近玩家距离
     f64 playerDistSq = world.getClosestPlayerDistanceSq(mob.position());
 
-    // MC 1.16.5: 如果没有玩家，立即消失
+    // 如果没有玩家，立即消失
     if (playerDistSq == std::numeric_limits<f64>::max()) {
         return mob.canDespawn(std::numeric_limits<f64>::max());
     }
 
     f64 playerDist = std::sqrt(playerDistSq);
 
-    // MC 1.16.5: 立即消失距离检查
+    // 立即消失距离检查
     if (playerDistSq > instantDespawnDistSq && mob.canDespawn(playerDist)) {
         return true;
     }
 
-    // MC 1.16.5: 随机消失距离检查
+    // 随机消失距离检查
     if (playerDistSq > randomDespawnDistSq) {
         i32 idleTime = mob.idleTime();
         if (idleTime > MIN_IDLE_TIME) {
             // 1/800 的概率消失
-            // MC 1.16.5 使用实体ID和tick作为随机种子
             math::Random random(static_cast<u64>(mob.id()) + static_cast<u64>(world.currentTick()));
             i32 chance = random.nextInt(DESPAWN_CHANCE_DENOMINATOR);
             if (chance == 0 && mob.canDespawn(playerDist)) {
@@ -137,7 +136,7 @@ bool DespawnManager::shouldDespawn(MobEntity& mob, ::mc::server::ServerWorld& wo
             }
         }
     } else {
-        // MC 1.16.5: 玩家在随机消失距离内时，重置空闲时间
+        // 玩家在随机消失距离内时，重置空闲时间
         mob.setIdleTime(0);
     }
 

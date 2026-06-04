@@ -69,8 +69,6 @@ using WeatherChangeCallback = std::function<void(WeatherType, WeatherType)>;
  * - 闪电生成
  * - 天气同步通知
  *
- * 参考 MC 1.16.5 ServerWorld.tickWeather()
- *
  * 使用示例：
  * @code
  * WeatherManager weather(world);
@@ -247,7 +245,6 @@ public:
      * @brief 尝试生成闪电
      *
      * 雷暴时每tick调用，有概率生成闪电。
-     * 参考 MC 1.16.5 ServerWorld.tickEnvironment()
      *
      * @return 闪电生成位置，如果没有生成则返回无效位置
      */
@@ -293,42 +290,40 @@ private:
     /**
      * @brief 在指定位置周围寻找闪电目标
      *
-     * 参考 MC 1.16.5 ServerWorld.adjustPosToNearbyEntity()
      * 查找附近的生物实体，如果找到则返回其位置，否则返回原始位置。
      *
      * @param pos 原始位置
      * @return 调整后的位置
      */
-    [[nodiscard]] BlockPos findLightningTargetAround(const BlockPos& pos) const;
+    [[nodiscard]] BlockPos _findLightningTargetAround(const BlockPos& pos) const;
 
     /**
      * @brief 获取随机方块位置
      *
      * 在区块内生成随机位置。
-     * 参考 MC 1.16.5 World.getBlockRandomPos()
      *
      * @param chunkX 区块 X 起点（方块坐标）
      * @param sectionY 区块段 Y 起点（方块坐标）
      * @param chunkZ 区块 Z 起点（方块坐标）
      * @return 随机方块位置
      */
-    [[nodiscard]] BlockPos getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ);
+    [[nodiscard]] BlockPos _getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ);
 
     // ========== 内部方法 ==========
     /**
      * @brief 更新天气强度渐变
      */
-    void updateStrength();
+    void _updateStrength();
 
     /**
      * @brief 处理天气周期逻辑
      */
-    void tickWeatherCycle();
+    void _tickWeatherCycle();
 
     /**
      * @brief 检查天气变化并触发回调
      */
-    void checkWeatherChange();
+    void _checkWeatherChange();
 
 private:
     WeatherState m_state;                        ///< 天气状态

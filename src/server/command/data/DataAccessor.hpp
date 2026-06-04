@@ -47,8 +47,6 @@ namespace command {
  *
  * 为 /data 命令提供统一的数据访问接口。
  * 支持方块实体、实体和命令存储三种数据源。
- *
- * 参考 MC 1.16.5: net.minecraft.command.impl.data.IDataAccessor
  */
 class IDataAccessor {
 public:
@@ -101,8 +99,6 @@ public:
  * @brief 方块实体数据访问器
  *
  * 访问方块实体的 NBT 数据。
- *
- * 参考 MC 1.16.5: net.minecraft.command.impl.data.BlockDataAccessor
  */
 class BlockDataAccessor : public IDataAccessor {
 public:
@@ -141,8 +137,6 @@ private:
  * @brief 实体数据访问器
  *
  * 访问实体的 NBT 数据。
- *
- * 参考 MC 1.16.5: net.minecraft.command.impl.data.EntityDataAccessor
  */
 class EntityDataAccessor : public IDataAccessor {
 public:
@@ -179,8 +173,6 @@ private:
  *
  * 访问命令存储（/data storage）的 NBT 数据。
  * 数据存储在世界的维度数据中。
- *
- * 参考 MC 1.16.5: net.minecraft.command.impl.data.StorageAccessor
  */
 class StorageDataAccessor : public IDataAccessor {
 public:
@@ -208,8 +200,6 @@ private:
  *
  * 管理 /data storage 命令的数据存储。
  * 数据存储在世界的维度数据中，持久化保存。
- *
- * 参考 MC 1.16.5: net.minecraft.world.storage.CommandStorage
  */
 class CommandStorage {
 public:

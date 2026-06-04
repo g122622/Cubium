@@ -67,8 +67,6 @@ class MinecraftServer;
  * - 运行时世界引用
  * - 玩家追踪
  * - 传送门位置记录
- *
- * 参考 MC 1.16.5 ServerWorld 的维度相关功能。
  */
 class ServerDimension : public Dimension {
 public:
@@ -280,7 +278,7 @@ private:
     /**
      * @brief 计算 BlockPos 的哈希值
      */
-    [[nodiscard]] static u64 hashBlockPos(const BlockPos& pos);
+    [[nodiscard]] static u64 _hashBlockPos(const BlockPos& pos);
 };
 
 } // namespace mc

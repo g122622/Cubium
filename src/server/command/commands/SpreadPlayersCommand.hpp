@@ -41,7 +41,7 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 spreadPlayers(CommandContext<ServerCommandSource>& context);
+    static i32 _spreadPlayers(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

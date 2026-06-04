@@ -32,6 +32,7 @@
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <algorithm>
+#include <cmath>
 #include <memory>
 #include <unordered_set>
 #include <vector>
@@ -137,7 +138,7 @@ struct ServerPlayerData {
      * @brief 获取连接（如果有效）
      * @return 连接共享指针，如果已断开则返回 nullptr
      */
-    [[nodiscard]] network::ConnectionPtr getConnection() const { return connection.lock(); }
+    [[nodiscard]] network::ConnectionPtr getConnection() const noexcept { return connection.lock(); }
 
     /**
      * @brief 检查连接是否有效
@@ -168,7 +169,7 @@ struct ServerPlayerData {
     /**
      * @brief 获取区块坐标 X
      */
-    [[nodiscard]] ChunkCoord chunkX() const
+    [[nodiscard]] ChunkCoord chunkX() const noexcept
     {
         return static_cast<ChunkCoord>(std::floor(x / static_cast<f32>(mc::world::CHUNK_WIDTH)));
     }
@@ -176,7 +177,7 @@ struct ServerPlayerData {
     /**
      * @brief 获取区块坐标 Z
      */
-    [[nodiscard]] ChunkCoord chunkZ() const
+    [[nodiscard]] ChunkCoord chunkZ() const noexcept
     {
         return static_cast<ChunkCoord>(std::floor(z / static_cast<f32>(mc::world::CHUNK_WIDTH)));
     }
@@ -184,12 +185,12 @@ struct ServerPlayerData {
     /**
      * @brief 获取位置向量
      */
-    [[nodiscard]] Vector3f position() const { return Vector3f(x, y, z); }
+    [[nodiscard]] Vector3f position() const noexcept { return Vector3f(x, y, z); }
 
     /**
      * @brief 获取旋转向量
      */
-    [[nodiscard]] Vector2f rotation() const { return Vector2f(yaw, pitch); }
+    [[nodiscard]] Vector2f rotation() const noexcept { return Vector2f(yaw, pitch); }
 
     // ========== 效果系统 ==========
 
@@ -228,7 +229,7 @@ struct ServerPlayerData {
     /**
      * @brief 移除所有效果
      */
-    void removeAllEffects() { effects.clear(); }
+    void removeAllEffects() noexcept { effects.clear(); }
 
     /**
      * @brief 检查是否有指定效果
@@ -263,7 +264,7 @@ struct ServerPlayerData {
     /**
      * @brief 获取所有效果
      */
-    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& getAllEffects() const { return effects; }
+    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& getAllEffects() const noexcept { return effects; }
 };
 
 } // namespace mc::server

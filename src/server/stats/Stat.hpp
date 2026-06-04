@@ -38,8 +38,6 @@ namespace stats {
  *
  * 表示一个具体的统计条目，包含统计ID和当前值。
  * 统计值可以是整数（如击杀次数）或距离/时间等。
- *
- * 参考 MC 1.16.5: net.minecraft.stats.Stat
  */
 class Stat {
 public:

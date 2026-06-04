@@ -36,6 +36,8 @@
 #include "common/entity/entities/player/SpawnLocationHelper.hpp"
 #include "common/entity/inventory/INamedContainerProvider.hpp"
 #include "common/entity/serialization/EntityDeserializer.hpp"
+#include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
+#include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/NibbleArray.hpp"
@@ -55,8 +57,6 @@
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/storage/entity/EntityStorageManager.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
-#include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
-#include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "server/core/TimeManager.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
@@ -233,7 +233,7 @@ Result<size_t> ServerWorld::saveAll()
     // 先保存所有已加载运行时实体，避免只在区块卸载时才落盘。
     auto* entityStorage = m_storage->entityStorage();
     if (entityStorage) {
-        auto entitiesToSave = collectLoadedEntitiesForSave();
+        auto entitiesToSave = _collectLoadedEntitiesForSave();
         auto saveResult = entityStorage->saveAllEntities(entitiesToSave, m_config.dimension);
         if (saveResult.failed()) {
             return saveResult.error();
@@ -243,7 +243,7 @@ Result<size_t> ServerWorld::saveAll()
     // 再保存所有已加载方块实体，保证 /save-all 与关服路径覆盖运行时修改。
     auto* blockEntityStorage = m_storage->blockEntityStorage();
     if (blockEntityStorage) {
-        auto blockEntitiesToSave = collectLoadedBlockEntitiesForSave();
+        auto blockEntitiesToSave = _collectLoadedBlockEntitiesForSave();
         auto saveResult = blockEntityStorage->saveAllBlockEntities(blockEntitiesToSave, m_config.dimension);
         if (saveResult.failed()) {
             return saveResult.error();
@@ -276,7 +276,6 @@ void ServerWorld::setConfig(const ServerWorldConfig& config)
 bool ServerWorld::isDebugWorld() const
 {
     // 通过检查区块生成器类型来判断是否为调试世界
-    // 参考 MC 1.16.5: DimensionGeneratorSettings.func_236227_h_()
     if (!m_chunkManager) {
         return false;
     }
@@ -420,8 +419,8 @@ const BlockState* ServerWorld::getBlockState(i32 x, i32 y, i32 z) const
     const ChunkData* chunk = getChunk(chunkX, chunkZ);
     if (!chunk) return nullptr;
 
-    i32 localX = x - chunkX * 16;
-    i32 localZ = z - chunkZ * 16;
+    i32 localX = x - chunkX * world::CHUNK_WIDTH;
+    i32 localZ = z - chunkZ * world::CHUNK_WIDTH;
 
     return chunk->getBlockState(localX, y, localZ);
 }
@@ -489,8 +488,8 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         return inputState;
     };
 
-    i32 localX = x - chunkX * 16;
-    i32 localZ = z - chunkZ * 16;
+    i32 localX = x - chunkX * world::CHUNK_WIDTH;
+    i32 localZ = z - chunkZ * world::CHUNK_WIDTH;
 
     const BlockState* oldState = nullptr;
     const BlockState* newState = nullptr;
@@ -572,8 +571,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
             newBlock.onBlockAdded(*this, changedPos, *newState);
         }
 
-        // MC 1.16.5: 新方块有方块实体时创建
-        // 参考: net.minecraft.world.chunk.Chunk.setBlockState
+        // 新方块有方块实体时创建
         if (!newIsAir && newState->getBlock().hasBlockEntity()) {
             Block& newBlock = const_cast<Block&>(newState->getBlock());
             auto blockEntity = newBlock.createBlockEntity(changedPos);
@@ -786,8 +784,7 @@ void ServerWorld::setBlockEntity(const BlockPos& pos, BlockEntity* entity)
     ChunkData* chunk = m_chunkManager->getChunkSync(chunkX, chunkZ);
     if (!chunk) {
         // 区块未加载，无法设置方块实体
-        // 注意：在 MC 1.16.5 中，如果区块未加载，方块实体会丢失
-        // 这里我们直接释放实体以避免内存泄漏
+        // 注意：如果区块未加载，方块实体会丢失
         delete entity;
         return;
     }
@@ -968,13 +965,12 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed)
     MC_TRACE_EVENT("server.tick", "ServerWorld::tickEnvironment", "randomTickSpeed", randomTickSpeed);
 
     // 遍历所有已加载区块
-    // 参考: MC 1.16.5 ServerWorld.tickEnvironment()
     m_chunkManager->forEachLoadedChunk([this, randomTickSpeed](ChunkData& chunk) {
         MC_TRACE_EVENT("server.tick", "tickChunk", "x", chunk.x(), "z", chunk.z());
 
         // 获取区块起始坐标（方块坐标）
-        i32 chunkX = chunk.x() * 16;
-        i32 chunkZ = chunk.z() * 16;
+        i32 chunkX = chunk.x() * world::CHUNK_WIDTH;
+        i32 chunkZ = chunk.z() * world::CHUNK_WIDTH;
 
         // 遍历区块中的每个段
         for (i32 sectionIndex = 0; sectionIndex < world::CHUNK_SECTIONS; ++sectionIndex) {
@@ -984,7 +980,7 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed)
             }
 
             // 区块段的 Y 起始坐标
-            i32 sectionY = sectionIndex * 16 + world::MIN_BUILD_HEIGHT;
+            i32 sectionY = sectionIndex * world::CHUNK_SECTION_HEIGHT + world::MIN_BUILD_HEIGHT;
 
             // 对每个 randomTickSpeed，选择一个随机位置执行 tick
             for (i32 i = 0; i < randomTickSpeed; ++i) {
@@ -1029,9 +1025,7 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed)
 
 BlockPos ServerWorld::getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ)
 {
-    // MC 1.16.5 风格的随机位置生成
     // 使用 LCG (Linear Congruential Generator) 确保分布均匀
-    // 参考: net.minecraft.world.World.getBlockRandomPos
     m_updateLCG = m_updateLCG * 3 + 1013904223;
     i32 i = static_cast<i32>(m_updateLCG >> 2);
 
@@ -1039,8 +1033,10 @@ BlockPos ServerWorld::getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ)
     // x = chunkX + (i & 15)          -> 范围 [0, 15]
     // y = sectionY + ((i >> 16) & 15) -> 范围 [0, 15]
     // z = chunkZ + ((i >> 8) & 15)   -> 范围 [0, 15]
+    constexpr i32 SECTION_MASK = world::CHUNK_SECTION_HEIGHT - 1;
 
-    return BlockPos(chunkX + (i & 15), sectionY + ((i >> 16) & 15), chunkZ + ((i >> 8) & 15));
+    return BlockPos(
+        chunkX + (i & SECTION_MASK), sectionY + ((i >> 16) & SECTION_MASK), chunkZ + ((i >> 8) & SECTION_MASK));
 }
 
 size_t ServerWorld::chunkCount() const
@@ -1193,10 +1189,10 @@ bool ServerWorld::hasBlockCollision(const AxisAlignedBB& box) const
             i32 maxY = std::min(world::MAX_BUILD_HEIGHT - 1, static_cast<i32>(std::ceil(box.maxY)));
 
             for (i32 y = minY; y <= maxY; ++y) {
-                for (i32 z = 0; z < 16; ++z) {
-                    for (i32 x = 0; x < 16; ++x) {
-                        i32 wx = cx * 16 + x;
-                        i32 wz = cz * 16 + z;
+                for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+                    for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
+                        i32 wx = cx * world::CHUNK_WIDTH + x;
+                        i32 wz = cz * world::CHUNK_WIDTH + z;
 
                         if (wx + 1 < box.minX || wx > box.maxX || wz + 1 < box.minZ || wz > box.maxZ) {
                             continue;
@@ -1238,10 +1234,10 @@ std::vector<AxisAlignedBB> ServerWorld::getBlockCollisions(const AxisAlignedBB& 
             i32 maxY = std::min(world::MAX_BUILD_HEIGHT - 1, static_cast<i32>(std::ceil(box.maxY)));
 
             for (i32 y = minY; y <= maxY; ++y) {
-                for (i32 z = 0; z < 16; ++z) {
-                    for (i32 x = 0; x < 16; ++x) {
-                        i32 wx = cx * 16 + x;
-                        i32 wz = cz * 16 + z;
+                for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+                    for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
+                        i32 wx = cx * world::CHUNK_WIDTH + x;
+                        i32 wz = cz * world::CHUNK_WIDTH + z;
 
                         if (wx + 1 < box.minX || wx > box.maxX || wz + 1 < box.minZ || wz > box.maxZ) {
                             continue;
@@ -1346,7 +1342,7 @@ const Player* ServerWorld::getClosestPlayer(const Vector3& pos, f32 maxDistance,
             continue;
         }
 
-        // MC 1.16.5: 观察者模式的玩家不计入
+        // 观察者模式的玩家不计入
         if (player->isSpectator()) {
             continue;
         }
@@ -1376,7 +1372,7 @@ f64 ServerWorld::getClosestPlayerDistanceSq(const Vector3& pos) const
             continue;
         }
 
-        // MC 1.16.5: 观察者模式的玩家不计入距离检查
+        // 观察者模式的玩家不计入距离检查
         if (const Player* player = dynamic_cast<const Player*>(entity)) {
             if (player->isSpectator()) {
                 continue;
@@ -1658,7 +1654,7 @@ void ServerWorld::markLightChanged(LightType type, const SectionPos& pos)
         }
     }
 
-    syncLightDataToChunk(type, pos);
+    _syncLightDataToChunk(type, pos);
 
     if (m_onLightChanged) {
         m_onLightChanged(type, pos);
@@ -1672,7 +1668,7 @@ bool ServerWorld::hasSkyLight() const
 
 DimensionType ServerWorld::getDimensionType() const
 {
-    // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
+    // 标准维度：主世界=0，下界=-1，末地=1
     switch (m_config.dimension) {
         case 0:
             return DimensionType::overworld();
@@ -1710,7 +1706,7 @@ i32 ServerWorld::getSectionCount() const
     return world::CHUNK_SECTIONS;
 }
 
-void ServerWorld::syncLightDataToChunk(LightType type, const SectionPos& pos)
+void ServerWorld::_syncLightDataToChunk(LightType type, const SectionPos& pos)
 {
     if (!m_lightManager || !m_chunkManager) {
         return;
@@ -1745,7 +1741,7 @@ void ServerWorld::syncLightDataToChunk(LightType type, const SectionPos& pos)
     targetArray.data() = std::move(data);
 }
 
-std::vector<std::reference_wrapper<Entity>> ServerWorld::collectLoadedEntitiesForSave()
+std::vector<std::reference_wrapper<Entity>> ServerWorld::_collectLoadedEntitiesForSave()
 {
     std::vector<std::reference_wrapper<Entity>> entities;
     m_entityManager.forEachEntity([&entities](Entity* entity) {
@@ -1757,7 +1753,7 @@ std::vector<std::reference_wrapper<Entity>> ServerWorld::collectLoadedEntitiesFo
     return entities;
 }
 
-std::vector<std::reference_wrapper<const BlockEntity>> ServerWorld::collectLoadedBlockEntitiesForSave() const
+std::vector<std::reference_wrapper<const BlockEntity>> ServerWorld::_collectLoadedBlockEntitiesForSave() const
 {
     std::vector<std::reference_wrapper<const BlockEntity>> blockEntities;
     if (!m_chunkManager) {
@@ -1837,8 +1833,7 @@ void ServerWorld::createExplosion(
     // 执行爆炸
     explosion->explode();
 
-    // 广播爆炸包给客户端
-    // 参考 MC 1.16.5: 发送给爆炸点 64 格范围内的玩家
+    // 广播爆炸包给客户端（发送给爆炸点 64 格范围内的玩家）
     if (m_onBroadcastExplosion) {
         m_onBroadcastExplosion(position, radius, explosion->affectedBlocks(), explosion->playerKnockback());
     }
@@ -1972,7 +1967,6 @@ void ServerWorld::wakeUpAllPlayers()
 void ServerWorld::onBlockPlaced(PlayerId playerId, const BlockPos& pos, const BlockState* state, const ItemStack* item)
 {
     // 发布 BlockPlaceEvent 用于进度触发
-    // 参考 MC 1.16.5: CriteriaTriggers.PLACED_BLOCK.trigger()
     event::BlockPlaceEvent event{currentTick(), playerId, pos, state, item};
     event::ServerEventBus::instance().publish(event);
 }
@@ -1980,7 +1974,6 @@ void ServerWorld::onBlockPlaced(PlayerId playerId, const BlockPos& pos, const Bl
 void ServerWorld::onZombieVillagerCured(const std::string& starterUuid, Entity* zombie, Entity* villager)
 {
     // 发布 CuredZombieVillagerEvent 用于进度触发
-    // 参考 MC 1.16.5: CriteriaTriggers.CURED_ZOMBIE_VILLAGER.trigger()
     event::CuredZombieVillagerEvent event{currentTick(), starterUuid, zombie, villager};
     event::ServerEventBus::instance().publish(event);
 }
@@ -1988,7 +1981,6 @@ void ServerWorld::onZombieVillagerCured(const std::string& starterUuid, Entity* 
 void ServerWorld::onChanneledLightning(PlayerId casterId, const std::vector<Entity*>& victims)
 {
     // 发布 ChanneledLightningEvent 用于进度触发
-    // 参考 MC 1.16.5: CriteriaTriggers.CHANNELED_LIGHTNING.trigger()
     event::ChanneledLightningEvent event{currentTick(), casterId, victims};
     event::ServerEventBus::instance().publish(event);
 }
@@ -1996,7 +1988,6 @@ void ServerWorld::onChanneledLightning(PlayerId casterId, const std::vector<Enti
 void ServerWorld::onBredAnimals(PlayerId playerId, Entity* child, Entity* parent1, Entity* parent2)
 {
     // 发布 BredAnimalsEvent 用于进度触发
-    // 参考 MC 1.16.5: CriteriaTriggers.BRED_ANIMALS.trigger()
     event::BredAnimalsEvent event{currentTick(), playerId, child, parent1, parent2};
     event::ServerEventBus::instance().publish(event);
 }
@@ -2004,8 +1995,6 @@ void ServerWorld::onBredAnimals(PlayerId playerId, Entity* child, Entity* parent
 void ServerWorld::onPlayerDestroyItem(PlayerId playerId, const ItemStack& item, i32 slot, Hand hand)
 {
     // 发布 PlayerDestroyItemEvent 用于进度触发
-    // 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
-    // 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED
     event::PlayerDestroyItemEvent event{currentTick(), playerId, item, slot, hand};
     event::ServerEventBus::instance().publish(event);
 }
@@ -2013,7 +2002,6 @@ void ServerWorld::onPlayerDestroyItem(PlayerId playerId, const ItemStack& item, 
 void ServerWorld::onConsumeItem(PlayerId playerId, const ItemStack& item)
 {
     // 发布 ConsumeItemEvent 用于进度触发
-    // 参考 MC 1.16.5: CriteriaTriggers.CONSUME_ITEM.trigger()
     event::ConsumeItemEvent consumeEvent{currentTick(), playerId, item};
     event::ServerEventBus::instance().publish(consumeEvent);
 }
@@ -2021,7 +2009,6 @@ void ServerWorld::onConsumeItem(PlayerId playerId, const ItemStack& item)
 void ServerWorld::onItemDurabilityChange(PlayerId playerId, const ItemStack& item, i32 oldDurability, i32 newDurability)
 {
     // 发布 ItemDurabilityEvent 用于进度触发
-    // 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED.trigger()
     event::ItemDurabilityEvent durabilityEvent{currentTick(), playerId, item, oldDurability, newDurability};
     event::ServerEventBus::instance().publish(durabilityEvent);
 }
@@ -2029,7 +2016,6 @@ void ServerWorld::onItemDurabilityChange(PlayerId playerId, const ItemStack& ite
 void ServerWorld::onEnchantItem(PlayerId playerId, const ItemStack& item, i32 levels)
 {
     // 发布 EnchantItemEvent 用于进度触发
-    // 参考 MC 1.16.5: CriteriaTriggers.ENCHANTED_ITEM.trigger()
     event::EnchantItemEvent enchantEvent{currentTick(), playerId, item, levels, levels};
     event::ServerEventBus::instance().publish(enchantEvent);
 }
@@ -2037,7 +2023,6 @@ void ServerWorld::onEnchantItem(PlayerId playerId, const ItemStack& item, i32 le
 void ServerWorld::onFilledBucket(PlayerId playerId, const ItemStack& bucket)
 {
     // 发布 FilledBucketEvent 用于进度触发
-    // 参考 MC 1.16.5: CriteriaTriggers.FILLED_BUCKET.trigger()
     event::FilledBucketEvent bucketEvent{currentTick(), playerId, bucket};
     event::ServerEventBus::instance().publish(bucketEvent);
 }
@@ -2045,7 +2030,6 @@ void ServerWorld::onFilledBucket(PlayerId playerId, const ItemStack& bucket)
 void ServerWorld::onEnterBlock(PlayerId playerId, const BlockPos& pos, const BlockState* state)
 {
     // 发布 EnterBlockEvent 用于进度触发
-    // 参考 MC 1.16.5: CriteriaTriggers.ENTER_BLOCK.trigger()
     if (state == nullptr) {
         return;
     }
@@ -2056,7 +2040,6 @@ void ServerWorld::onEnterBlock(PlayerId playerId, const BlockPos& pos, const Blo
 void ServerWorld::onSlideDownBlock(PlayerId playerId, const BlockPos& pos, const BlockState* state)
 {
     // 发布 SlideDownBlockEvent 用于进度触发
-    // 参考 MC 1.16.5: CriteriaTriggers.SLIDE_DOWN_BLOCK.trigger()
     if (state == nullptr) {
         return;
     }
@@ -2068,7 +2051,6 @@ void ServerWorld::onBeeNestDestroyed(
     PlayerId playerId, const BlockPos& pos, const BlockState* state, const ItemStack& tool, i32 numBeesInside)
 {
     // 发布 BeeNestDestroyedEvent 用于进度触发
-    // 参考 MC 1.16.5: CriteriaTriggers.BEE_NEST_DESTROYED.trigger()
     if (state == nullptr) {
         return;
     }
@@ -2084,8 +2066,6 @@ namespace {
 
 /**
  * @brief 将 StructureType 转换为结构名称
- *
- * 参考 MC 1.16.5 Structure 注册表
  */
 const char* structureTypeToName(world::gen::structure::StructureType type)
 {
@@ -2154,10 +2134,8 @@ std::optional<BlockPos> ServerWorld::findNearestStructure(
     i32 centerChunkZ = center.z >> 4;
 
     // 将最大距离转换为区块范围
-    // MC 1.16.5: maxDistance 是区块数的平方根
     i32 chunkRadius = (maxDistance + 15) >> 4; // 向上取整到区块
 
-    // 参考 MC 1.16.5 Structure.func_236388_a_
     // 螺旋搜索：从中心向外扩展
     i32 spacing = settings.spacing;
     i64 worldSeed = static_cast<i64>(m_config.seed);

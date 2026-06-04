@@ -33,6 +33,15 @@ namespace mc::server::core {
 
 OpListManager::OpListManager() = default;
 
+// ========== 私有方法 ==========
+
+std::string OpListManager::_toLowerName(const std::string& name)
+{
+    std::string lowerName = name;
+    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+    return lowerName;
+}
+
 // ========== 条目管理 ==========
 
 bool OpListManager::setEntry(const OpEntry& entry)
@@ -47,9 +56,7 @@ bool OpListManager::setEntry(const OpEntry& entry)
     m_entriesByUuid[entry.uuid] = entry;
 
     // 更新名称映射（小写）
-    std::string lowerName = entry.name;
-    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-    m_nameToUuid[lowerName] = entry.uuid;
+    m_nameToUuid[_toLowerName(entry.name)] = entry.uuid;
 
     return true;
 }
@@ -64,9 +71,7 @@ bool OpListManager::removeEntry(const std::string& uuid)
     }
 
     // 移除名称映射
-    std::string lowerName = it->second.name;
-    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-    m_nameToUuid.erase(lowerName);
+    m_nameToUuid.erase(_toLowerName(it->second.name));
 
     // 移除条目
     m_entriesByUuid.erase(it);
@@ -79,10 +84,7 @@ bool OpListManager::removeEntryByName(const std::string& name)
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // 查找名称映射
-    std::string lowerName = name;
-    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-
-    auto nameIt = m_nameToUuid.find(lowerName);
+    auto nameIt = m_nameToUuid.find(_toLowerName(name));
     if (nameIt == m_nameToUuid.end()) {
         return false;
     }
@@ -105,11 +107,7 @@ bool OpListManager::isOp(const std::string& uuid) const
 bool OpListManager::isNameOp(const std::string& name) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-
-    std::string lowerName = name;
-    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-
-    return m_nameToUuid.contains(lowerName);
+    return m_nameToUuid.contains(_toLowerName(name));
 }
 
 OpLevel OpListManager::getLevel(const std::string& uuid) const
@@ -128,10 +126,7 @@ OpLevel OpListManager::getLevelByName(const std::string& name) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    std::string lowerName = name;
-    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-
-    auto nameIt = m_nameToUuid.find(lowerName);
+    auto nameIt = m_nameToUuid.find(_toLowerName(name));
     if (nameIt == m_nameToUuid.end()) {
         return OpLevel::Normal;
     }
@@ -172,10 +167,7 @@ std::optional<OpEntry> OpListManager::getEntryByName(const std::string& name) co
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    std::string lowerName = name;
-    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-
-    auto nameIt = m_nameToUuid.find(lowerName);
+    auto nameIt = m_nameToUuid.find(_toLowerName(name));
     if (nameIt == m_nameToUuid.end()) {
         return std::nullopt;
     }
@@ -228,7 +220,7 @@ bool OpListManager::empty() const
     return m_entriesByUuid.empty();
 }
 
-void OpListManager::clear()
+void OpListManager::clear() noexcept
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_entriesByUuid.clear();
@@ -336,9 +328,7 @@ Result<void> OpListManager::load(const std::filesystem::path& path)
             m_entriesByUuid[entry.uuid] = entry;
 
             // 添加名称映射
-            std::string lowerName = entry.name;
-            std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-            m_nameToUuid[lowerName] = entry.uuid;
+            m_nameToUuid[_toLowerName(entry.name)] = entry.uuid;
         }
 
         spdlog::info("Loaded {} op entries from {}", m_entriesByUuid.size(), path.string());

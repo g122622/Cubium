@@ -41,9 +41,9 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 triggerAdd(CommandContext<ServerCommandSource>& context);
-    static i32 triggerSet(CommandContext<ServerCommandSource>& context);
-    static i32 trigger(CommandContext<ServerCommandSource>& context);
+    static i32 _triggerAdd(CommandContext<ServerCommandSource>& context);
+    static i32 _triggerSet(CommandContext<ServerCommandSource>& context);
+    static i32 _trigger(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

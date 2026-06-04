@@ -35,7 +35,6 @@ bool ConnectionManager::sendToPlayer(PlayerId playerId, const u8* data, size_t s
 {
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) {
-        spdlog::trace("ConnectionManager: Player {} not found", playerId);
         return false;
     }
     return player->send(data, size);

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "common/command/CommandNode.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include <memory>
 
 namespace mc::command::support {
 
@@ -57,11 +57,14 @@ namespace mc::command::support {
 /**
  * @brief 将命令元数据应用到字面量节点。
  *
+ * 此函数将元数据信息应用到指定的命令节点上。
+ * 该函数不会抛出异常。
+ *
  * @param node 目标命令节点
  * @param metadata 命令元数据
  */
 inline void applyMetadata(const std::shared_ptr<LiteralCommandNode<ServerCommandSource>>& node,
-    const CommandNode<ServerCommandSource>::Metadata& metadata)
+    const CommandNode<ServerCommandSource>::Metadata& metadata) noexcept
 {
     node->setMetadataInfo(metadata);
 }

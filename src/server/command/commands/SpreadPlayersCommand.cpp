@@ -26,16 +26,16 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
-#include "common/command/arguments/GameModeArgument.hpp"
-#include "common/util/math/Vector3.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include "server/core/TeleportManager.hpp"
 #include "server/world/ServerWorld.hpp"
-#include <chrono>
+
 #include <sstream>
 
 namespace mc {
@@ -66,7 +66,7 @@ void SpreadPlayersCommand::registerTo(CommandDispatcher<ServerCommandSource>& di
 
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::players());
-    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return spreadPlayers(ctx); });
+    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _spreadPlayers(ctx); });
 
     respectTeamsArg->addChild(targetsArg);
     maxRangeArg->addChild(respectTeamsArg);
@@ -77,14 +77,23 @@ void SpreadPlayersCommand::registerTo(CommandDispatcher<ServerCommandSource>& di
     dispatcher.registerCommand(spreadNode);
 }
 
-i32 SpreadPlayersCommand::spreadPlayers(CommandContext<ServerCommandSource>& context)
+i32 SpreadPlayersCommand::_spreadPlayers(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
+    auto* server = source.server();
+    MC_ASSERT_RELEASE(server != nullptr);
+
+    // 解析命令参数
     const Vector3d& center = context.getArgument<Vector3d>("center");
     const f32 spreadDistance = context.getArgument<f32>("spreadDistance");
     const f32 maxRange = context.getArgument<f32>("maxRange");
     const bool respectTeams = context.getArgument<bool>("respectTeams");
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
+
+    // TODO: 实现 spreadDistance 参数 - 确保玩家之间的最小距离
+    // TODO: 实现 respectTeams 参数 - 同队玩家应分散到相近位置
+    MC_UNUSED(spreadDistance);
+    MC_UNUSED(respectTeams);
 
     // 解析目标玩家
     auto playerIds = support::resolvePlayerIds(source, selector);
@@ -100,42 +109,40 @@ i32 SpreadPlayersCommand::spreadPlayers(CommandContext<ServerCommandSource>& con
         return 0;
     }
 
-    // 计算分散区域
-    f32 minX = static_cast<f32>(center.x) - maxRange;
-    f32 maxX = static_cast<f32>(center.x) + maxRange;
-    f32 minZ = static_cast<f32>(center.z) - maxRange;
-    f32 maxZ = static_cast<f32>(center.z) + maxRange;
+    // 计算分散区域边界
+    const f32 minX = static_cast<f32>(center.x) - maxRange;
+    const f32 maxX = static_cast<f32>(center.x) + maxRange;
+    const f32 minZ = static_cast<f32>(center.z) - maxRange;
+    const f32 maxZ = static_cast<f32>(center.z) + maxRange;
 
-    // 随机分散玩家
+    // 使用当前时间戳作为随机种子
     math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
 
     i32 successCount = 0;
-    auto server = source.server();
-    for (PlayerId playerId : playerIds) {
-        auto player = server->playerManager().getPlayer(playerId);
-        if (!player) continue;
+    for (const PlayerId playerId : playerIds) {
+        auto* player = server->playerManager().getPlayer(playerId);
+        if (player == nullptr) {
+            continue;
+        }
 
-        // 随机选择位置
-        f32 x = rng.nextFloat(minX, maxX);
-        f32 z = rng.nextFloat(minZ, maxZ);
+        // 随机选择目标位置
+        const f32 x = rng.nextFloat(minX, maxX);
+        const f32 z = rng.nextFloat(minZ, maxZ);
 
         // 使用世界高度查找获取地面高度
-        i32 y = world->getHeight(static_cast<BlockCoord>(x), static_cast<BlockCoord>(z));
+        const i32 y = world->getHeight(static_cast<BlockCoord>(x), static_cast<BlockCoord>(z));
 
-        // 传送玩家
-        player->x = x;
-        player->y = static_cast<f32>(y);
-        player->z = z;
-        successCount++;
+        // 通过传送管理器请求传送（会通知客户端）
+        if (server->teleportManager().requestTeleport(playerId, x, static_cast<f64>(y), z) != 0) {
+            ++successCount;
+        }
     }
 
+    // 构建反馈消息
     std::ostringstream ss;
     ss << "Spread " << successCount << " player(s) around (" << static_cast<i32>(center.x) << ", "
        << static_cast<i32>(center.z) << ")"
-       << " with spread distance " << spreadDistance << " and max range " << maxRange;
-    if (respectTeams) {
-        ss << " (respecting teams)";
-    }
+       << " with max range " << maxRange;
     source.sendMessage(ss.str());
 
     return successCount;

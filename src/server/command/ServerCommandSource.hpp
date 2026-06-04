@@ -50,8 +50,6 @@ namespace command {
  * - 玩家在线检查
  * - 世界访问
  * - 服务器实例访问
- *
- * 参考 MC 的 ServerCommandSource 类
  */
 class ServerCommandSource : public ICommandSource {
 public:
@@ -83,11 +81,11 @@ public:
      *
      * 错误消息会以红色显示（对于支持的客户端）
      */
-    void sendError(const std::string& message);
+    void sendError(const std::string& message) override;
 
-    bool shouldReceiveFeedback() const override;
-    bool shouldReceiveErrors() const override;
-    bool allowLogging() const override;
+    bool shouldReceiveFeedback() const noexcept override;
+    bool shouldReceiveErrors() const noexcept override;
+    bool allowLogging() const noexcept override;
 
     // ========== 服务器访问 ==========
 
@@ -198,7 +196,7 @@ public:
     // ========== 反馈控制 ==========
 
     [[nodiscard]] bool isFeedbackDisabled() const noexcept { return m_feedbackDisabled; }
-    void setFeedbackDisabled(bool disabled) { m_feedbackDisabled = disabled; }
+    void setFeedbackDisabled(bool disabled) noexcept { m_feedbackDisabled = disabled; }
 
     // ========== 静态工厂方法 ==========
 

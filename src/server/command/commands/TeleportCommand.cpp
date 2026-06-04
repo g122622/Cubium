@@ -128,12 +128,12 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     auto selfDestinationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "target", EntityArgumentType::player());
-    selfDestinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return teleportToEntity(ctx); });
+    selfDestinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _teleportToEntity(ctx); });
 
     auto selfXArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("x", FloatArgumentType::floatArg());
     auto selfYArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("y", FloatArgumentType::floatArg());
     auto selfZArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("z", FloatArgumentType::floatArg());
-    selfZArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return teleportToPosition(ctx); });
+    selfZArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _teleportToPosition(ctx); });
     selfYArg->addChild(selfZArg);
     selfXArg->addChild(selfYArg);
 
@@ -142,7 +142,7 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     auto destinationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "destination", EntityArgumentType::player());
-    destinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return teleportTargetToEntity(ctx); });
+    destinationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _teleportTargetToEntity(ctx); });
 
     auto targetXArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("x", FloatArgumentType::floatArg());
@@ -150,7 +150,7 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("y", FloatArgumentType::floatArg());
     auto targetZArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("z", FloatArgumentType::floatArg());
-    targetZArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return teleportTargetToPosition(ctx); });
+    targetZArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _teleportTargetToPosition(ctx); });
     targetYArg->addChild(targetZArg);
     targetXArg->addChild(targetYArg);
 
@@ -171,7 +171,7 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
  * @param context 命令上下文。
  * @return 成功时返回 `1`，失败时返回 `0`。
  */
-i32 TeleportCommand::teleportToEntity(CommandContext<ServerCommandSource>& context)
+i32 TeleportCommand::_teleportToEntity(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
@@ -210,7 +210,7 @@ i32 TeleportCommand::teleportToEntity(CommandContext<ServerCommandSource>& conte
  * @param context 命令上下文。
  * @return 成功时返回 `1`，失败时返回 `0`。
  */
-i32 TeleportCommand::teleportToPosition(CommandContext<ServerCommandSource>& context)
+i32 TeleportCommand::_teleportToPosition(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
@@ -240,7 +240,7 @@ i32 TeleportCommand::teleportToPosition(CommandContext<ServerCommandSource>& con
  * @param context 命令上下文。
  * @return 成功传送的玩家数量。
  */
-i32 TeleportCommand::teleportTargetToEntity(CommandContext<ServerCommandSource>& context)
+i32 TeleportCommand::_teleportTargetToEntity(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
@@ -277,7 +277,7 @@ i32 TeleportCommand::teleportTargetToEntity(CommandContext<ServerCommandSource>&
  * @param context 命令上下文。
  * @return 成功传送的玩家数量。
  */
-i32 TeleportCommand::teleportTargetToPosition(CommandContext<ServerCommandSource>& context)
+i32 TeleportCommand::_teleportTargetToPosition(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const EntitySelector targets = context.getArgument<EntitySelector>("targets");

@@ -37,8 +37,6 @@ namespace world::spawn {
  * @brief 生成条件检查
  *
  * 提供生成位置的条件检查工具函数。
- *
- * 参考 MC 1.16.5 EntitySpawnPlacementRegistry
  */
 namespace SpawnConditions {
 

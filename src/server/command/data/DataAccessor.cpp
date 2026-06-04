@@ -278,7 +278,7 @@ void EntityDataAccessor::mergeData(const nbt::tags::compound_tag& data)
         auto* list = dynamic_cast<const nbt::tags::list_tag*>(it->second.get());
         if (list != nullptr && list->element_id() == nbt::TagId::String) {
             m_entity->clearTags();
-            for (size_t i = 0; i < list->size(); ++i) {
+            for (u64 i = 0; i < list->size(); ++i) {
                 auto tag = (*list)[i];
                 if (tag && tag->id() == nbt::TagId::String) {
                     m_entity->addTag(dynamic_cast<const nbt::tags::string_tag&>(*tag).value);

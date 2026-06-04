@@ -48,7 +48,7 @@ namespace server::spawn {
 /**
  * @brief 村庄围攻（僵尸围村）系统
  *
- * 实现 Minecraft 1.16.5 的僵尸围村机制。
+ * 实现僵尸围村机制。
  * 在午夜时刻，如果满足条件，有10%概率触发僵尸围村事件。
  *
  * 触发条件：
@@ -63,8 +63,6 @@ namespace server::spawn {
  * - 每 2 tick 生成 1 个僵尸
  * - 僵尸在玩家周围 32 格圆周上生成
  * - 生成位置必须在村庄内且满足光照条件
- *
- * 参考 MC 1.16.5 VillageSiege
  */
 class VillageSiege {
 public:
@@ -104,7 +102,6 @@ public:
      * @brief 每tick更新
      *
      * 检查围攻条件，执行围攻逻辑。
-     * 参考 MC 1.16.5 VillageSiege.func_230253_a_
      *
      * @param world 服务端世界
      * @param spawnHostiles 是否允许生成敌对生物
@@ -193,7 +190,7 @@ private:
      * @param world 服务端世界
      * @return 是否成功设置
      */
-    bool trySetupSiege(server::ServerWorld& world);
+    bool _trySetupSiege(server::ServerWorld& world);
 
     /**
      * @brief 生成一个僵尸
@@ -201,7 +198,7 @@ private:
      * @param world 服务端世界
      * @return 是否成功生成
      */
-    bool spawnZombie(server::ServerWorld& world);
+    bool _spawnZombie(server::ServerWorld& world);
 
     /**
      * @brief 查找随机生成位置
@@ -212,7 +209,7 @@ private:
      * @param searchCenter 搜索中心
      * @return 有效生成位置，如果找不到返回空
      */
-    [[nodiscard]] std::optional<BlockPos> findRandomSpawnPos(IWorld& world, const BlockPos& searchCenter);
+    [[nodiscard]] std::optional<BlockPos> _findRandomSpawnPos(IWorld& world, const BlockPos& searchCenter);
 
     /**
      * @brief 检查位置是否可以生成怪物
@@ -221,7 +218,7 @@ private:
      * @param pos 位置
      * @return 是否可以生成
      */
-    [[nodiscard]] bool canMonsterSpawnAt(IWorld& world, const BlockPos& pos);
+    [[nodiscard]] bool _canMonsterSpawnAt(IWorld& world, const BlockPos& pos);
 
     /**
      * @brief 检查是否为午夜时刻
@@ -229,7 +226,7 @@ private:
      * @param world 世界
      * @return 是否为午夜
      */
-    [[nodiscard]] bool isMidnight(server::ServerWorld& world) const;
+    [[nodiscard]] bool _isMidnight(server::ServerWorld& world) const;
 
     /**
      * @brief 检查玩家是否在有效的村庄内
@@ -238,19 +235,18 @@ private:
      * @param playerPos 玩家位置
      * @return 是否在有效村庄内
      */
-    [[nodiscard]] bool isInValidVillage(server::ServerWorld& world, const BlockPos& playerPos);
+    [[nodiscard]] bool _isInValidVillage(server::ServerWorld& world, const BlockPos& playerPos);
 
     /**
      * @brief 检查位置是否在蘑菇岛生物群系
      *
      * 蘑菇岛是安全区域，不会发生僵尸围攻。
-     * MC 1.16.5: getBiome(blockpos).getCategory() != Biome.Category.MUSHROOM
      *
      * @param world 世界
      * @param pos 位置
      * @return 是否为蘑菇岛生物群系
      */
-    [[nodiscard]] bool isMushroomBiome(server::ServerWorld& world, const BlockPos& pos);
+    [[nodiscard]] bool _isMushroomBiome(server::ServerWorld& world, const BlockPos& pos);
 };
 
 } // namespace server::spawn

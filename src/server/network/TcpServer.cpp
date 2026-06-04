@@ -51,6 +51,8 @@
 
 namespace mc::server {
 
+namespace {
+
 // Winsock初始化辅助类
 class WinsockInitializer {
 public:
@@ -65,7 +67,7 @@ public:
 #endif
     }
 
-    ~WinsockInitializer()
+    ~WinsockInitializer() noexcept
     {
 #ifdef _WIN32
         if (m_initialized) {
@@ -74,26 +76,29 @@ public:
 #endif
     }
 
-    bool isInitialized() const { return m_initialized; }
+    bool isInitialized() const noexcept { return m_initialized; }
 
 private:
     bool m_initialized = false;
 };
 
 // 全局Winsock初始化
-static WinsockInitializer s_winsock;
+WinsockInitializer s_winsock;
+
 #ifdef _WIN32
-static bool isWouldBlockError()
+bool isWouldBlockError() noexcept
 {
     const int err = WSAGetLastError();
     return err == WSAEWOULDBLOCK;
 }
 #else
-static bool isWouldBlockError()
+bool isWouldBlockError() noexcept
 {
     return errno == EAGAIN || errno == EWOULDBLOCK;
 }
 #endif
+
+} // namespace
 
 TcpServer::TcpServer()
 {
@@ -122,7 +127,7 @@ Result<void> TcpServer::start(const TcpServerConfig& config)
     m_config = config;
 
     // 创建监听socket
-    if (!createListenSocket()) {
+    if (!_createListenSocket()) {
         return Error(ErrorCode::Unknown, "Failed to create listen socket");
     }
 
@@ -149,11 +154,11 @@ void TcpServer::stop()
         m_sessions.clear();
     }
 
-    closeListenSocket();
+    _closeListenSocket();
     spdlog::info("TCP server stopped");
 }
 
-bool TcpServer::createListenSocket()
+bool TcpServer::_createListenSocket()
 {
     // 创建socket
     m_listenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -193,14 +198,14 @@ bool TcpServer::createListenSocket()
     if (bind(static_cast<int>(m_listenSocket), reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) ==
         SOCKET_ERROR_VALUE) {
         spdlog::error("Failed to bind socket to port {}", m_config.port);
-        closeListenSocket();
+        _closeListenSocket();
         return false;
     }
 
     // 开始监听
     if (listen(static_cast<int>(m_listenSocket), static_cast<int>(m_config.backlog)) == SOCKET_ERROR_VALUE) {
         spdlog::error("Failed to listen on socket");
-        closeListenSocket();
+        _closeListenSocket();
         return false;
     }
 
@@ -216,7 +221,7 @@ bool TcpServer::createListenSocket()
     return true;
 }
 
-void TcpServer::closeListenSocket()
+void TcpServer::_closeListenSocket()
 {
     if (m_listenSocket != INVALID_SOCKET_VALUE) {
         CLOSE_SOCKET(static_cast<int>(m_listenSocket));
@@ -231,7 +236,7 @@ void TcpServer::poll()
     }
 
     // 接受新连接
-    acceptNewConnection();
+    _acceptNewConnection();
 
     // 处理现有会话的数据
     std::vector<std::shared_ptr<TcpSession>> sessionsCopy;
@@ -244,8 +249,8 @@ void TcpServer::poll()
 
     for (auto& session : sessionsCopy) {
         if (session->state() != SessionState::Disconnected) {
-            handleSessionData(session.get());
-            sendSessionData(session.get());
+            _handleSessionData(session.get());
+            _sendSessionData(session.get());
         }
     }
 
@@ -260,11 +265,11 @@ void TcpServer::poll()
         }
     }
     for (SessionId id : toRemove) {
-        removeSession(id);
+        _removeSession(id);
     }
 }
 
-void TcpServer::acceptNewConnection()
+void TcpServer::_acceptNewConnection()
 {
     sockaddr_in clientAddr{};
     socklen_t clientAddrLen = static_cast<socklen_t>(sizeof(clientAddr));
@@ -327,7 +332,7 @@ void TcpServer::acceptNewConnection()
  * @param session 会话对象
  * @note 非阻塞模式下，WSAEWOULDBLOCK/EAGAIN 视为正常状态。
  */
-void TcpServer::handleSessionData(TcpSession* session)
+void TcpServer::_handleSessionData(TcpSession* session)
 {
     if (session == nullptr || session->state() == SessionState::Disconnected) {
         return;
@@ -371,7 +376,7 @@ void TcpServer::handleSessionData(TcpSession* session)
  * @param session 会话对象
  * @note 当前实现按"整包发送"处理，若遇到部分发送会将剩余部分回退到队首。
  */
-void TcpServer::sendSessionData(TcpSession* session)
+void TcpServer::_sendSessionData(TcpSession* session)
 {
     if (session == nullptr || session->state() == SessionState::Disconnected) {
         return;
@@ -432,7 +437,7 @@ size_t TcpServer::getSessionCount() const
     return m_sessions.size();
 }
 
-void TcpServer::removeSession(SessionId id)
+void TcpServer::_removeSession(SessionId id)
 {
     std::lock_guard<std::mutex> lock(m_sessionsMutex);
     m_sessions.erase(id);

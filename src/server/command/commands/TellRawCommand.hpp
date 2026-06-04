@@ -51,9 +51,9 @@ private:
     /**
      * @brief 发送原始消息
      * @param context 命令上下文
-     * @return 命令结果
+     * @return 成功发送消息的玩家数量
      */
-    static i32 sendRawMessage(CommandContext<ServerCommandSource>& context);
+    static i32 _sendRawMessage(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

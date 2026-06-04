@@ -75,7 +75,7 @@ bool BannedIpList::removeEntry(const std::string& ip)
 bool BannedIpList::isBanned(const std::string& ip) const
 {
     // 先清理过期条目
-    removeExpired();
+    _removeExpired();
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -90,7 +90,7 @@ bool BannedIpList::isBanned(const std::string& ip) const
 std::optional<BannedIpEntry> BannedIpList::getEntry(const std::string& ip) const
 {
     // 先清理过期条目
-    removeExpired();
+    _removeExpired();
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -110,7 +110,7 @@ std::optional<BannedIpEntry> BannedIpList::getEntry(const std::string& ip) const
 std::vector<BannedIpEntry> BannedIpList::getAllEntries() const
 {
     // 先清理过期条目
-    removeExpired();
+    _removeExpired();
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -129,7 +129,7 @@ std::vector<BannedIpEntry> BannedIpList::getAllEntries() const
 std::vector<std::string> BannedIpList::getAllBannedIps() const
 {
     // 先清理过期条目
-    removeExpired();
+    _removeExpired();
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -148,7 +148,7 @@ std::vector<std::string> BannedIpList::getAllBannedIps() const
 size_t BannedIpList::size() const
 {
     // 先清理过期条目
-    removeExpired();
+    _removeExpired();
 
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_entries.size();
@@ -157,7 +157,7 @@ size_t BannedIpList::size() const
 bool BannedIpList::empty() const
 {
     // 先清理过期条目
-    removeExpired();
+    _removeExpired();
 
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_entries.empty();
@@ -228,7 +228,7 @@ Result<void> BannedIpList::load(const std::filesystem::path& path)
             if (item.contains("created")) {
                 entry.created = item["created"].get<std::string>();
             } else {
-                entry.created = getCurrentTimeString();
+                entry.created = _getCurrentTimeString();
             }
 
             // 解析封禁来源
@@ -266,7 +266,6 @@ Result<void> BannedIpList::load(const std::filesystem::path& path)
 
             // 跳过已过期的条目
             if (entry.hasExpired()) {
-                spdlog::debug("Skipping expired IP ban entry: ip={}", entry.ip);
                 continue;
             }
 
@@ -352,7 +351,7 @@ Result<void> BannedIpList::reload()
 
 // ========== 私有方法 ==========
 
-void BannedIpList::removeExpired() const
+void BannedIpList::_removeExpired() const
 {
     // 注意：此方法在持锁状态下由其他公共方法调用
     // 所以这里不需要再加锁
@@ -370,7 +369,7 @@ void BannedIpList::removeExpired() const
     }
 }
 
-std::string BannedIpList::getCurrentTimeString()
+std::string BannedIpList::_getCurrentTimeString()
 {
     auto now = std::chrono::system_clock::now();
     auto now_time = std::chrono::system_clock::to_time_t(now);

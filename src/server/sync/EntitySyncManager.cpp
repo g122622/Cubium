@@ -75,7 +75,7 @@ void EntitySyncManager::tick()
         }
 
         if (positionChanged || rotationChanged) {
-            broadcastEntityMove(entityId, pos, yaw, pitch);
+            _broadcastEntityMove(entityId, pos, yaw, pitch);
 
             trackData.lastPosition = pos;
             trackData.lastYaw = yaw;
@@ -109,7 +109,7 @@ EntityId EntitySyncManager::spawnEntity(std::unique_ptr<Entity> entity)
     // 广播生成
     Entity* spawnedEntity = m_entityManager.getEntity(entityId);
     if (spawnedEntity) {
-        broadcastEntitySpawn(entityId, *spawnedEntity);
+        _broadcastEntitySpawn(entityId, *spawnedEntity);
 
         if (m_onEntitySpawn) {
             m_onEntitySpawn(entityId, *spawnedEntity);
@@ -124,7 +124,7 @@ std::unique_ptr<Entity> EntitySyncManager::removeEntity(EntityId entityId)
     Entity* entity = m_entityManager.getEntity(entityId);
 
     // 广播移除
-    broadcastEntityRemove(entityId);
+    _broadcastEntityRemove(entityId);
 
     // 移除追踪数据
     m_entityTrackData.erase(entityId);
@@ -147,7 +147,7 @@ void EntitySyncManager::forceFullUpdate(EntityId entityId)
     }
 }
 
-bool EntitySyncManager::needsSync(EntityId entityId) const
+bool EntitySyncManager::_needsSync(EntityId entityId) const
 {
     auto it = m_entityTrackData.find(entityId);
     if (it != m_entityTrackData.end()) {
@@ -156,33 +156,27 @@ bool EntitySyncManager::needsSync(EntityId entityId) const
     return false;
 }
 
-void EntitySyncManager::broadcastEntityMove(EntityId entityId, const Vector3& pos, f32 yaw, f32 pitch)
+void EntitySyncManager::_broadcastEntityMove(EntityId entityId, const Vector3& pos, f32 yaw, f32 pitch)
 {
     if (m_onEntityMove) {
         m_onEntityMove(entityId, pos, yaw, pitch);
     }
 }
 
-void EntitySyncManager::broadcastEntitySpawn(EntityId entityId, const Entity& entity)
+void EntitySyncManager::_broadcastEntitySpawn(EntityId entityId, const Entity& entity)
 {
     // 通过回调发送实体生成包（由 MinecraftServer 设置）
     if (m_onEntitySpawn) {
         m_onEntitySpawn(entityId, entity);
     }
-    // spdlog::trace("Broadcast entity spawn: {} at ({}, {}, {})",
-    //     entityId,
-    //     entity.position().x,
-    //     entity.position().y,
-    //     entity.position().z);
 }
 
-void EntitySyncManager::broadcastEntityRemove(EntityId entityId)
+void EntitySyncManager::_broadcastEntityRemove(EntityId entityId)
 {
     // 通过回调发送实体移除包（由 MinecraftServer 设置）
     if (m_onEntityRemove) {
         m_onEntityRemove(entityId);
     }
-    // spdlog::trace("Broadcast entity remove: {}", entityId);
 }
 
 void EntitySyncManager::setOnEntitySpawn(std::function<void(EntityId, const Entity&)> callback)
@@ -210,7 +204,6 @@ void EntitySyncManager::broadcastEntityStatus(EntityId entityId, u8 status)
     if (m_onEntityStatus) {
         m_onEntityStatus(entityId, status);
     }
-    // spdlog::trace("Broadcast entity status: {} status={}", entityId, static_cast<int>(status));
 }
 
 } // namespace mc::server::sync

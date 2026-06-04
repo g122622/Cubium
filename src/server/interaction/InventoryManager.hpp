@@ -57,6 +57,17 @@ public:
      */
     explicit InventoryManager(core::PlayerManager& playerManager);
 
+    /// 析构函数
+    ~InventoryManager() = default;
+
+    // 禁止拷贝
+    InventoryManager(const InventoryManager&) = delete;
+    InventoryManager& operator=(const InventoryManager&) = delete;
+
+    // 允许移动
+    InventoryManager(InventoryManager&&) noexcept = default;
+    InventoryManager& operator=(InventoryManager&&) noexcept = default;
+
     /**
      * @brief 获取玩家物品栏
      * @param playerId 玩家ID

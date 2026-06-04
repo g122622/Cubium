@@ -8,7 +8,7 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall included in all
+ * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -44,9 +44,8 @@ namespace command {
 // ============================================================================
 
 namespace {
-// 参考 MC 1.16.5: commands.trigger.failed.unprimed
+// 错误消息键
 constexpr const char* ERROR_NOT_PRIMED = "commands.trigger.failed.unprimed";
-// 参考 MC 1.16.5: commands.trigger.failed.invalid
 constexpr const char* ERROR_NOT_A_TRIGGER = "commands.trigger.failed.invalid";
 } // namespace
 
@@ -58,8 +57,6 @@ namespace {
 
 /**
  * @brief 检查目标是否为有效的触发器
- *
- * 参考 MC 1.16.5: TriggerCommand.checkValidTrigger
  *
  * @param source 命令源
  * @param playerName 玩家名称
@@ -110,7 +107,6 @@ namespace {
  * @brief 锁定触发器分数
  *
  * 触发器使用后需要锁定，管理员需要使用 /scoreboard players enable 重新启用。
- * 参考 MC 1.16.5: TriggerCommand.checkValidTrigger 中 score.setLocked(true)
  *
  * @param score 分数对象
  */
@@ -139,13 +135,13 @@ void TriggerCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // /trigger <objective>
     auto objectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", StringArgumentType::string());
-    objectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return trigger(ctx); });
+    objectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _trigger(ctx); });
 
     // /trigger <objective> add <value>
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto addValueArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", IntegerArgumentType::integer());
-    addValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return triggerAdd(ctx); });
+    addValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _triggerAdd(ctx); });
     addNode->addChild(addValueArg);
     objectiveArg->addChild(addNode);
 
@@ -153,7 +149,7 @@ void TriggerCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     auto setValueArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", IntegerArgumentType::integer());
-    setValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return triggerSet(ctx); });
+    setValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _triggerSet(ctx); });
     setNode->addChild(setValueArg);
     objectiveArg->addChild(setNode);
 
@@ -165,7 +161,7 @@ void TriggerCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 // 命令处理
 // ============================================================================
 
-i32 TriggerCommand::triggerAdd(CommandContext<ServerCommandSource>& context)
+i32 TriggerCommand::_triggerAdd(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string objectiveName = context.getArgument<std::string>("objective");
@@ -210,7 +206,7 @@ i32 TriggerCommand::triggerAdd(CommandContext<ServerCommandSource>& context)
     return score->getScorePoints();
 }
 
-i32 TriggerCommand::triggerSet(CommandContext<ServerCommandSource>& context)
+i32 TriggerCommand::_triggerSet(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string objectiveName = context.getArgument<std::string>("objective");
@@ -255,7 +251,7 @@ i32 TriggerCommand::triggerSet(CommandContext<ServerCommandSource>& context)
     return value;
 }
 
-i32 TriggerCommand::trigger(CommandContext<ServerCommandSource>& context)
+i32 TriggerCommand::_trigger(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string objectiveName = context.getArgument<std::string>("objective");

@@ -68,7 +68,6 @@ ServerPlayerData* PlayerManager::addPlayer(
     (void)m_chunkSyncManager.getTracker(playerId);
     m_chunkSyncManager.updatePlayerPosition(playerId, player.x, player.z);
 
-    spdlog::debug("PlayerManager: Player {} ({}, UUID: {}) added", username, playerId, uuid);
     return &player;
 }
 
@@ -111,8 +110,6 @@ void PlayerManager::removePlayerBySessionId(u32 sessionId)
     // 移除玩家
     m_players.erase(playerIt);
     m_chunkSyncManager.removeTracker(playerId);
-
-    spdlog::debug("PlayerManager: Player {} ({}) removed by session {}", username, playerId, sessionId);
 }
 
 ServerPlayerData* PlayerManager::findBySessionId(u32 sessionId)

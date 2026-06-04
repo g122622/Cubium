@@ -41,14 +41,14 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 setBorder(CommandContext<ServerCommandSource>& context);
-    static i32 getBorder(CommandContext<ServerCommandSource>& context);
-    static i32 setCenter(CommandContext<ServerCommandSource>& context);
-    static i32 setDamageAmount(CommandContext<ServerCommandSource>& context);
-    static i32 setDamageBuffer(CommandContext<ServerCommandSource>& context);
-    static i32 setWarningTime(CommandContext<ServerCommandSource>& context);
-    static i32 setWarningDistance(CommandContext<ServerCommandSource>& context);
-    static i32 addBorder(CommandContext<ServerCommandSource>& context);
+    static i32 _setBorder(CommandContext<ServerCommandSource>& context);
+    static i32 _getBorder(CommandContext<ServerCommandSource>& context);
+    static i32 _setCenter(CommandContext<ServerCommandSource>& context);
+    static i32 _setDamageAmount(CommandContext<ServerCommandSource>& context);
+    static i32 _setDamageBuffer(CommandContext<ServerCommandSource>& context);
+    static i32 _setWarningTime(CommandContext<ServerCommandSource>& context);
+    static i32 _setWarningDistance(CommandContext<ServerCommandSource>& context);
+    static i32 _addBorder(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

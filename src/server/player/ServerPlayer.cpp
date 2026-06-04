@@ -23,16 +23,6 @@
 
 #include "ServerPlayer.hpp"
 
-#include "../advancement/PlayerAdvancements.hpp"
-#include "../advancement/TriggerInstantiation.hpp"
-#include "../application/IServer.hpp"
-#include "../application/MinecraftServer.hpp"
-#include "../core/ConnectionManager.hpp"
-#include "../dimension/ServerDimension.hpp"
-#include "../dimension/ServerDimensionManager.hpp"
-#include "../event/ServerEventBus.hpp"
-#include "../event/events/ServerEvents.hpp"
-#include "../world/ServerWorld.hpp"
 #include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/EffectTriggers.hpp"
@@ -55,7 +45,17 @@
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
+#include "server/advancement/PlayerAdvancements.hpp"
+#include "server/advancement/TriggerInstantiation.hpp"
+#include "server/application/IServer.hpp"
+#include "server/application/MinecraftServer.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "server/dimension/ServerDimension.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
+#include "server/event/ServerEventBus.hpp"
+#include "server/event/events/ServerEvents.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
+#include "server/world/ServerWorld.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -106,14 +106,13 @@ void ServerPlayer::sendSystemMessage(const std::string& message)
     const auto fullPacket =
         server::core::ConnectionManager::encapsulatePacket(network::PacketType::ChatBroadcast, payload.buffer());
 
-    if (!sendFullPacket(fullPacket)) {
+    if (!_sendFullPacket(fullPacket)) {
         spdlog::warn("ServerPlayer: system message not sent (player={}, no connection)", username());
     }
 }
 
 void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar)
 {
-    // 参考 MC 1.16.5 PlayerEntity.sendStatusMessage(ITextComponent, boolean)
     // actionBar 参数用于控制消息显示位置：
     // - actionBar = true: 显示在物品栏上方的 Action Bar 区域
     // - actionBar = false: 显示在聊天区域
@@ -124,8 +123,6 @@ void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar)
 
     if (actionBar) {
         // 使用 TitlePacket 的 Actionbar 类型显示在 Action Bar 区域
-        // 参考 MC 1.16.5: SChatPacket(message, ChatType.GAME_INFO, UUID)
-        // 本项目使用 TitlePacket::Actionbar 实现相同效果
         network::TitlePacket packet = network::TitlePacket::createActionbar(message);
         auto payloadResult = packet.serialize();
         if (payloadResult.failed()) {
@@ -136,7 +133,7 @@ void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar)
         const auto fullPacket =
             server::core::ConnectionManager::encapsulatePacket(network::PacketType::Title, payloadResult.value());
 
-        if (!sendFullPacket(fullPacket)) {}
+        if (!_sendFullPacket(fullPacket)) {}
     } else {
         // 发送到聊天区域
         sendSystemMessage(message);
@@ -154,7 +151,7 @@ void ServerPlayer::syncExperience()
     const auto fullPacket =
         server::core::ConnectionManager::encapsulatePacket(network::PacketType::SetExperience, payloadResult.value());
 
-    if (!sendFullPacket(fullPacket)) {
+    if (!_sendFullPacket(fullPacket)) {
         spdlog::warn("ServerPlayer: experience sync skipped (player={}, no connection)", username());
     }
 }
@@ -210,14 +207,14 @@ void ServerPlayer::awardCraftedStat(const ResourceLocation& itemId, i32 count)
 
 void ServerPlayer::onItemCrafted(ItemStack& stack, i32 amount)
 {
-    // MC 1.16.5: 更新合成统计
+    // 更新合成统计
     if (!stack.isEmpty() && stack.getItem() != nullptr) {
         // 获取物品的资源位置
         const ResourceLocation& itemId = stack.getItem()->itemLocation();
         awardCraftedStat(itemId, amount);
 
-        // MC 1.16.5: 调用 Item.onCreated（地图等物品的特殊初始化）
-        // 注意：Item::onCreated 方法在当前项目中尚未实现
+        // TODO: 调用 Item::onCreated（地图等物品的特殊初始化）
+        // Item::onCreated 方法在当前项目中尚未实现
         // 如果需要，可以在 Item 类中添加虚方法 onCreated(ItemStack, IWorld, Player)
         // stack.getItem()->onCreated(stack, getWorld(), *this);
     }
@@ -225,8 +222,7 @@ void ServerPlayer::onItemCrafted(ItemStack& stack, i32 amount)
 
 void ServerPlayer::unlockRecipe(const ResourceLocation& recipeId)
 {
-    // MC 1.16.5: 触发配方解锁成就
-    // 参考: net.minecraft.advancements.CriteriaTriggers.RECIPE_UNLOCKED.trigger(player, recipe)
+    // 触发配方解锁成就
     if (m_advancements != nullptr) {
         auto* trigger = advancement::CriterionTriggers::instance().getTrigger<advancement::RecipeUnlockedTrigger>();
         if (trigger != nullptr) {
@@ -238,8 +234,7 @@ void ServerPlayer::unlockRecipe(const ResourceLocation& recipeId)
         }
     }
 
-    // MC 1.16.5: 更新配方书
-    // 参考: net.minecraft.item.crafting.ServerRecipeBook.add()
+    // 更新配方书
     m_recipeBook.unlock(recipeId);
     m_recipeBook.markNew(recipeId);
 }
@@ -269,8 +264,6 @@ size_t ServerPlayer::lockRecipes(const std::vector<ResourceLocation>& recipes)
 
 entity::SleepResult ServerPlayer::trySleep(const BlockPos& bedPos)
 {
-    // 参考 MC 1.16.5 ServerPlayerEntity.trySleep()
-
     // 1. 检查是否已经在睡眠
     if (isSleeping()) {
         return entity::SleepResult::OTHER_PROBLEM;
@@ -335,7 +328,7 @@ entity::SleepResult ServerPlayer::trySleep(const BlockPos& bedPos)
     startSleeping(bedPos);
 
     // 9. 发送睡眠包给客户端
-    sendSleepPacket(bedPos);
+    _sendSleepPacket(bedPos);
 
     // 10. 更新世界睡眠标志
     if (m_world != nullptr) {
@@ -366,8 +359,8 @@ void ServerPlayer::stopSleepInBed(bool resetTimer, bool updateSleepingFlag)
         setSleepTimer(100); // 用于唤醒动画
     }
 
-    // [网络同步] 发送唤醒包给客户端
-    sendWakeUpPacket();
+    // 发送唤醒包给客户端
+    _sendWakeUpPacket();
 
     // 同步玩家位置
     if (bedPos.has_value() && m_world != nullptr) {
@@ -400,7 +393,6 @@ void ServerPlayer::wakeUp()
 
 Vector3d ServerPlayer::determineRespawnPosition() const
 {
-    // 参考 MC 1.16.5 PlayerList.func_232644_a_ (respawnPlayer)
     // 1. 检查玩家个人重生点
     auto spawnPoint = getSpawnPoint();
     if (spawnPoint.has_value()) {
@@ -420,7 +412,6 @@ Vector3d ServerPlayer::determineRespawnPosition() const
 
         if (spawnWorld != nullptr) {
             // 验证重生点是否有效
-            // 参考 MC 1.16.5 PlayerEntity.func_242374_a_
             SpawnPointValidationResult validationResult =
                 SpawnPointValidator::validate(*spawnWorld, spawnPoint.value(), spawnForced, true);
 
@@ -436,7 +427,6 @@ Vector3d ServerPlayer::determineRespawnPosition() const
             }
 
             // 重生点无效，清除它并发送消息
-            // 参考 MC 1.16.5: 发送 SChangeGameStatePacket.field_241764_a_
             spdlog::info("ServerPlayer: spawn point invalid for player {} (reason: {}), falling back to world spawn",
                 username(),
                 static_cast<i32>(validationResult));
@@ -459,7 +449,6 @@ Vector3d ServerPlayer::determineRespawnPosition() const
 
 DimensionId ServerPlayer::determineRespawnDimension() const
 {
-    // 参考 MC 1.16.5 PlayerList.func_232644_a_ (respawnPlayer)
     // 1. 检查玩家个人重生点的维度
     auto spawnPoint = getSpawnPoint();
     if (spawnPoint.has_value()) {
@@ -486,14 +475,13 @@ DimensionId ServerPlayer::determineRespawnDimension() const
         }
 
         // 重生点无效，返回主世界
-        // 注意：MC 1.16.5 中，如果重生点无效，玩家会在主世界重生
     }
 
     // 2. 默认返回主世界
     return DimensionId(0);
 }
 
-void ServerPlayer::sendSleepPacket(const BlockPos& bedPos)
+void ServerPlayer::_sendSleepPacket(const BlockPos& bedPos)
 {
     if (!hasConnection()) {
         return;
@@ -509,10 +497,10 @@ void ServerPlayer::sendSleepPacket(const BlockPos& bedPos)
     const auto fullPacket =
         server::core::ConnectionManager::encapsulatePacket(network::PacketType::Sleep, payloadResult.value());
 
-    static_cast<void>(sendFullPacket(fullPacket));
+    static_cast<void>(_sendFullPacket(fullPacket));
 }
 
-void ServerPlayer::sendWakeUpPacket()
+void ServerPlayer::_sendWakeUpPacket()
 {
     if (!hasConnection()) {
         return;
@@ -528,10 +516,10 @@ void ServerPlayer::sendWakeUpPacket()
     const auto fullPacket =
         server::core::ConnectionManager::encapsulatePacket(network::PacketType::Sleep, payloadResult.value());
 
-    static_cast<void>(sendFullPacket(fullPacket));
+    static_cast<void>(_sendFullPacket(fullPacket));
 }
 
-bool ServerPlayer::sendFullPacket(const std::vector<u8>& packet) const
+bool ServerPlayer::_sendFullPacket(const std::vector<u8>& packet) const
 {
     if (!hasConnection()) {
         return false;
@@ -545,9 +533,7 @@ bool ServerPlayer::sendFullPacket(const std::vector<u8>& packet) const
 
 bool ServerPlayer::onPortalTriggered()
 {
-    // 参考 MC 1.16.5 ServerPlayerEntity.tickPortal()
     // 当传送门触发时，确定目标维度并传送
-
     // 获取当前维度
     DimensionId currentDim = dimension();
 
@@ -576,9 +562,7 @@ bool ServerPlayer::onPortalTriggered()
 
 void ServerPlayer::onInsideBlock(const BlockState& blockState)
 {
-    // 参考 MC 1.16.5 ServerPlayerEntity.onInsideBlock()
     // 触发 EnterBlockTrigger 成就
-
     if (m_world == nullptr) {
         return;
     }
@@ -599,8 +583,6 @@ void ServerPlayer::onInsideBlock(const BlockState& blockState)
 
 bool ServerPlayer::changeDimension(DimensionId targetDim)
 {
-    // 参考 MC 1.16.5 ServerPlayerEntity.changeDimension()
-
     if (m_server == nullptr) {
         spdlog::warn("ServerPlayer: cannot change dimension, no server reference");
         return false;
@@ -629,7 +611,6 @@ bool ServerPlayer::changeDimension(DimensionId targetDim)
     Vector3d targetPos =
         Teleporter::transformPosition(currentPos, DimensionType::fromId(currentDim), DimensionType::fromId(targetDim));
 
-    // 根据 MC 1.16.5 逻辑：
     // 下界传送：搜索已存在的传送门，找不到则创建
     // 末地传送：固定位置
     if (targetDim == DimensionManager::THE_END) {
@@ -710,7 +691,6 @@ bool ServerPlayer::changeDimension(DimensionId targetDim)
 
 scoreboard::Team* ServerPlayer::getTeam()
 {
-    // 参考 MC 1.16.5 Entity.getTeam()
     // 通过服务器的记分板获取玩家所在队伍
     if (m_server == nullptr) {
         return nullptr;
@@ -724,7 +704,6 @@ scoreboard::Team* ServerPlayer::getTeam()
 
 const scoreboard::Team* ServerPlayer::getTeam() const
 {
-    // 参考 MC 1.16.5 Entity.getTeam()
     // 通过服务器的记分板获取玩家所在队伍
     if (m_server == nullptr) {
         return nullptr;

@@ -45,8 +45,6 @@ class ConnectionManager;
  * - 发送 PlayerAbilitiesPacket 到客户端
  * - 广播游戏模式变化给其他玩家（多人模式）
  *
- * 参考 MC 1.16.5 PlayerList / PlayerInteractionManager
- *
  * 使用示例：
  * @code
  * GameModeManager gmMgr(playerManager, connectionManager);
@@ -106,7 +104,7 @@ public:
      * @param playerId 玩家ID
      * @return 游戏模式，如果玩家不存在返回 NotSet
      */
-    [[nodiscard]] GameMode getGameMode(PlayerId playerId) const;
+    [[nodiscard]] GameMode getGameMode(PlayerId playerId) const noexcept;
 
     // ========== 能力同步 ==========
 
@@ -126,7 +124,7 @@ public:
      * @param mode 游戏模式
      * @return 能力标志位
      */
-    [[nodiscard]] static u8 getAbilitiesForGameMode(GameMode mode);
+    [[nodiscard]] static u8 getAbilitiesForGameMode(GameMode mode) noexcept;
 
     // ========== 回调 ==========
 
@@ -134,7 +132,7 @@ public:
      * @brief 设置游戏模式变化回调
      * @param callback 回调函数
      */
-    void setOnGameModeChange(GameModeChangeCallback callback) { m_onGameModeChange = std::move(callback); }
+    void setOnGameModeChange(GameModeChangeCallback callback) noexcept { m_onGameModeChange = std::move(callback); }
 
 private:
     /**
@@ -143,7 +141,7 @@ private:
      * @param mode 新游戏模式
      * @return true 如果发送成功
      */
-    bool sendGameModeChangePacket(PlayerId playerId, GameMode mode);
+    bool _sendGameModeChangePacket(PlayerId playerId, GameMode mode);
 
     /**
      * @brief 发送玩家能力包
@@ -151,7 +149,7 @@ private:
      * @param mode 游戏模式（用于确定能力）
      * @return true 如果发送成功
      */
-    bool sendAbilitiesPacket(PlayerId playerId, GameMode mode);
+    bool _sendAbilitiesPacket(PlayerId playerId, GameMode mode);
 
     PlayerManager& m_playerManager;
     ConnectionManager& m_connectionManager;

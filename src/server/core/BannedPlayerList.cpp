@@ -34,7 +34,7 @@
 namespace mc::server::core {
 
 // 日期格式：yyyy-MM-dd HH:mm:ss Z
-static const char* DATE_FORMAT = "%Y-%m-%d %H:%M:%S %z";
+inline constexpr char DATE_FORMAT[] = "%Y-%m-%d %H:%M:%S %z";
 
 BannedPlayerList::BannedPlayerList() = default;
 
@@ -109,7 +109,7 @@ bool BannedPlayerList::removeEntryByName(const std::string& name)
 bool BannedPlayerList::isBanned(const std::string& uuid) const
 {
     // 先清理过期条目
-    removeExpired();
+    _removeExpired();
 
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_entriesByUuid.contains(uuid);
@@ -118,7 +118,7 @@ bool BannedPlayerList::isBanned(const std::string& uuid) const
 bool BannedPlayerList::isNameBanned(const std::string& name) const
 {
     // 先清理过期条目
-    removeExpired();
+    _removeExpired();
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -142,7 +142,7 @@ bool BannedPlayerList::isNameBanned(const std::string& name) const
 std::optional<BannedPlayerEntry> BannedPlayerList::getEntry(const std::string& uuid) const
 {
     // 先清理过期条目
-    removeExpired();
+    _removeExpired();
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -162,7 +162,7 @@ std::optional<BannedPlayerEntry> BannedPlayerList::getEntry(const std::string& u
 std::optional<BannedPlayerEntry> BannedPlayerList::getEntryByName(const std::string& name) const
 {
     // 先清理过期条目
-    removeExpired();
+    _removeExpired();
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -190,7 +190,7 @@ std::optional<BannedPlayerEntry> BannedPlayerList::getEntryByName(const std::str
 std::vector<BannedPlayerEntry> BannedPlayerList::getAllEntries() const
 {
     // 先清理过期条目
-    removeExpired();
+    _removeExpired();
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -209,7 +209,7 @@ std::vector<BannedPlayerEntry> BannedPlayerList::getAllEntries() const
 std::vector<std::string> BannedPlayerList::getAllBannedNames() const
 {
     // 先清理过期条目
-    removeExpired();
+    _removeExpired();
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -228,7 +228,7 @@ std::vector<std::string> BannedPlayerList::getAllBannedNames() const
 size_t BannedPlayerList::size() const
 {
     // 先清理过期条目
-    removeExpired();
+    _removeExpired();
 
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_entriesByUuid.size();
@@ -237,7 +237,7 @@ size_t BannedPlayerList::size() const
 bool BannedPlayerList::empty() const
 {
     // 先清理过期条目
-    removeExpired();
+    _removeExpired();
 
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_entriesByUuid.empty();
@@ -319,7 +319,7 @@ Result<void> BannedPlayerList::load(const std::filesystem::path& path)
             if (item.contains("created")) {
                 entry.created = item["created"].get<std::string>();
             } else {
-                entry.created = getCurrentTimeString();
+                entry.created = _getCurrentTimeString();
             }
 
             // 解析封禁来源
@@ -448,7 +448,7 @@ Result<void> BannedPlayerList::reload()
 
 // ========== 私有方法 ==========
 
-void BannedPlayerList::removeExpired() const
+void BannedPlayerList::_removeExpired() const
 {
     // 注意：此方法在持锁状态下由其他公共方法调用
     // 所以这里不需要再加锁
@@ -473,7 +473,7 @@ void BannedPlayerList::removeExpired() const
     }
 }
 
-std::string BannedPlayerList::getCurrentTimeString()
+std::string BannedPlayerList::_getCurrentTimeString()
 {
     auto now = std::chrono::system_clock::now();
     auto now_time = std::chrono::system_clock::to_time_t(now);

@@ -481,7 +481,7 @@ private:
      * @param z 区块 Z 坐标
      * @return 对应区块的生命周期管理器
      */
-    [[nodiscard]] SingleChunkLifecycleManager& getOrCreateLifecycleManager(ChunkCoord x, ChunkCoord z);
+    [[nodiscard]] SingleChunkLifecycleManager& _getOrCreateLifecycleManager(ChunkCoord x, ChunkCoord z);
 
     /**
      * @brief 查询现有单区块生命周期管理器
@@ -490,7 +490,7 @@ private:
      * @param z 区块 Z 坐标
      * @return 若存在则返回指针，否则返回 nullptr
      */
-    [[nodiscard]] SingleChunkLifecycleManager* findLifecycleManager(ChunkCoord x, ChunkCoord z);
+    [[nodiscard]] SingleChunkLifecycleManager* _findLifecycleManager(ChunkCoord x, ChunkCoord z);
 
     /**
      * @brief 查询现有单区块生命周期管理器（const 版本）
@@ -499,7 +499,7 @@ private:
      * @param z 区块 Z 坐标
      * @return 若存在则返回指针，否则返回 nullptr
      */
-    [[nodiscard]] const SingleChunkLifecycleManager* findLifecycleManager(ChunkCoord x, ChunkCoord z) const;
+    [[nodiscard]] const SingleChunkLifecycleManager* _findLifecycleManager(ChunkCoord x, ChunkCoord z) const;
 
     /**
      * @brief 查询现有单区块生命周期管理器的共享实现
@@ -508,7 +508,7 @@ private:
      * @param z 区块 Z 坐标
      * @return 若存在则返回指针，否则返回 nullptr
      */
-    [[nodiscard]] SingleChunkLifecycleManager* doFindLifecycleManager(ChunkCoord x, ChunkCoord z) const;
+    [[nodiscard]] SingleChunkLifecycleManager* _doFindLifecycleManager(ChunkCoord x, ChunkCoord z) const;
 
     /**
      * @brief 统一提交区块请求
@@ -521,7 +521,7 @@ private:
      * @param callback 异步回调，可为空
      * @param promise future 对应的 promise，可为空
      */
-    void submitChunkRequest(ChunkCoord x,
+    void _submitChunkRequest(ChunkCoord x,
         ChunkCoord z,
         const ChunkStatus& targetStatus,
         ChunkCallback callback,
@@ -536,7 +536,7 @@ private:
      * @param lifecycleManager 要推进的单区块状态机
      * @param decision 生命周期管理器产出的动作决策
      */
-    void advanceChunkState(
+    void _advanceChunkState(
         SingleChunkLifecycleManager& lifecycleManager, const SingleChunkLifecycleManager::EnqueueDecision& decision);
 
     /**
@@ -544,7 +544,7 @@ private:
      *
      * @param lifecycleManager 目标区块的生命周期管理器
      */
-    void resolveChunkSourceSync(SingleChunkLifecycleManager& lifecycleManager);
+    void _resolveChunkSourceSync(SingleChunkLifecycleManager& lifecycleManager);
 
     /**
      * @brief 尝试排队一个异步区块生成任务
@@ -552,7 +552,7 @@ private:
      * @param lifecycleManager 目标区块的生命周期管理器
      * @param decision 当前调度决策
      */
-    void enqueueChunkGenerationAsync(
+    void _enqueueChunkGenerationAsync(
         SingleChunkLifecycleManager& lifecycleManager, const SingleChunkLifecycleManager::EnqueueDecision& decision);
 
     /**
@@ -560,14 +560,14 @@ private:
      *
      * @param lifecycleManager 目标区块的生命周期管理器
      */
-    void completeReadyWaiters(SingleChunkLifecycleManager& lifecycleManager);
+    void _completeReadyWaiters(SingleChunkLifecycleManager& lifecycleManager);
 
     /**
      * @brief 以失败方式完成指定等待者集合
      *
      * @param waiters 等待者集合
      */
-    void failWaiters(std::vector<SingleChunkLifecycleManager::Waiter> waiters);
+    void _failWaiters(std::vector<SingleChunkLifecycleManager::Waiter> waiters);
 
     /**
      * @brief 计算给定区块当前调度优先级
@@ -578,7 +578,7 @@ private:
      * @param ticketLevel 当前票据级别
      * @return 优先级，数值越小越优先
      */
-    [[nodiscard]] i32 computeSchedulePriority(
+    [[nodiscard]] i32 _computeSchedulePriority(
         ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus, i32 ticketLevel) const;
 
     /**
@@ -587,7 +587,7 @@ private:
      * @param targetStatus 请求目标阶段
      * @return 邻居必须达到的前置阶段；若无邻居依赖则返回 nullptr
      */
-    [[nodiscard]] const ChunkStatus* getNeighborPrerequisiteStatus(const ChunkStatus& targetStatus) const;
+    [[nodiscard]] const ChunkStatus* _getNeighborPrerequisiteStatus(const ChunkStatus& targetStatus) const;
 
     /**
      * @brief 检查给定区块的邻居依赖是否满足
@@ -597,7 +597,7 @@ private:
      * @param prerequisiteStatus 邻居必须达到的前置阶段
      * @return 若所有依赖邻居均已满足则返回 true
      */
-    [[nodiscard]] bool areNeighborsReady(ChunkCoord x, ChunkCoord z, const ChunkStatus& prerequisiteStatus) const;
+    [[nodiscard]] bool _areNeighborsReady(ChunkCoord x, ChunkCoord z, const ChunkStatus& prerequisiteStatus) const;
 
     /**
      * @brief 在区块完成推进后，唤醒其影响范围内阻塞的邻居请求
@@ -605,7 +605,7 @@ private:
      * @param x 已推进区块的 X 坐标
      * @param z 已推进区块的 Z 坐标
      */
-    void wakeBlockedNeighborsAsync(ChunkCoord x, ChunkCoord z);
+    void _wakeBlockedNeighborsAsync(ChunkCoord x, ChunkCoord z);
 
     /**
      * @brief 处理票据级别变化
@@ -615,7 +615,7 @@ private:
      * @param oldLevel 旧级别
      * @param newLevel 新级别
      */
-    void onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel);
+    void _onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel);
 
     /**
      * @brief 获取某阶段生成所需的邻居区块窗口
@@ -628,7 +628,7 @@ private:
      * @param loadedNeighbors 已加载邻居区块的共享持有容器
      * @param missingNeighbors 缺失邻居区块的临时占位容器
      */
-    void collectNeighborChunks(ChunkCoord x,
+    void _collectNeighborChunks(ChunkCoord x,
         ChunkCoord z,
         i32 radius,
         IChunk* centerChunk,
@@ -653,7 +653,7 @@ private:
      * @param radius 邻域半径
      * @return 邻居窗口上下文
      */
-    [[nodiscard]] NeighborRegionContext doCreateWorldGenRegion(IChunk& centerChunk, i32 radius);
+    [[nodiscard]] NeighborRegionContext _doCreateWorldGenRegion(IChunk& centerChunk, i32 radius);
 
     /**
      * @brief 在给定 Primer 上推进到目标生成阶段
@@ -661,14 +661,14 @@ private:
      * @param chunk 目标区块 Primer
      * @param targetStatus 目标生成阶段
      */
-    void doGenerateChunkToTargetStatus(ChunkPrimer& chunk, const ChunkStatus& targetStatus);
+    void _doGenerateChunkToTargetStatus(ChunkPrimer& chunk, const ChunkStatus& targetStatus);
 
     /**
      * @brief 在 HEIGHTMAPS 完成后执行初始生物生成
      *
      * @param chunk 目标区块 Primer
      */
-    void doSpawnInitialMobs(ChunkPrimer& chunk);
+    void _doSpawnInitialMobs(ChunkPrimer& chunk);
 
     /**
      * @brief 执行同步区块生成
@@ -678,7 +678,7 @@ private:
      * @param lifecycleManager 目标区块的生命周期管理器
      * @param targetStatus 目标生成阶段
      */
-    void executeGenerationSync(SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus);
+    void _executeGenerationSync(SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus);
 
     /**
      * @brief 完成一次异步生成结果并写入内存缓存
@@ -688,7 +688,7 @@ private:
      * @param primer 生成完成的 ChunkPrimer
      * @return 成功发布后的缓存区块指针；失败时返回 nullptr
      */
-    [[nodiscard]] ChunkData* finalizeGeneratedChunkSync(ChunkCoord x, ChunkCoord z, ChunkPrimer& primer);
+    [[nodiscard]] ChunkData* _finalizeGeneratedChunkSync(ChunkCoord x, ChunkCoord z, ChunkPrimer& primer);
 
     /**
      * @brief 把已生成区块放入内存缓存
@@ -698,14 +698,14 @@ private:
      * @param data 区块数据所有权
      * @return 缓存中的区块指针
      */
-    [[nodiscard]] ChunkData* storeChunkInMemorySync(ChunkCoord x, ChunkCoord z, std::unique_ptr<ChunkData> data);
+    [[nodiscard]] ChunkData* _storeChunkInMemorySync(ChunkCoord x, ChunkCoord z, std::unique_ptr<ChunkData> data);
 
     /**
      * @brief 保存一个脏区块的所有 section
      *
      * @param chunk 要保存的区块
      */
-    void saveChunkSectionsSync(const ChunkData& chunk);
+    void _saveChunkSectionsSync(const ChunkData& chunk);
 
     /**
      * @brief 从存档同步加载一个区块
@@ -714,12 +714,12 @@ private:
      * @param z 区块 Z 坐标
      * @return 若存在则返回区块数据，否则返回 nullptr
      */
-    [[nodiscard]] std::unique_ptr<ChunkData> tryToLoadChunkFromStorageSync(ChunkCoord x, ChunkCoord z);
+    [[nodiscard]] std::unique_ptr<ChunkData> _tryToLoadChunkFromStorageSync(ChunkCoord x, ChunkCoord z);
 
     /**
      * @brief 检查并卸载无需求区块
      */
-    void checkChunkUnloading();
+    void _checkChunkUnloading();
 
     /**
      * @brief 将坐标转换为内部哈希键

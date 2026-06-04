@@ -58,7 +58,7 @@ namespace mc::server::interaction {
  * - 广播破坏动画阶段
  * - 处理挖掘中止
  *
- * 挖掘速度计算公式（MC 1.16.5）：
+ * 挖掘速度计算公式：
  * 最终挖掘速度 = (基础工具速度 + 效率附魔加成)
  *                × 急迫效果乘数
  *                × 挖掘疲劳乘数
@@ -157,20 +157,17 @@ private:
      * @param playerId 玩家ID
      * @return 每tick的挖掘进度增量
      */
-    [[nodiscard]] f32 calculateMiningSpeed(ServerWorld& world, const BlockPos& pos, PlayerId playerId) const;
+    [[nodiscard]] f32 _calculateMiningSpeed(ServerWorld& world, const BlockPos& pos, PlayerId playerId) const;
 
     /**
      * @brief 计算玩家的挖掘速度倍率
-     *
-     * 参考 MC 1.16.5 PlayerEntity.getDigSpeed()
-     *
      * @param world 世界引用（用于检测眼睛是否在水中）
      * @param heldItem 手持物品
      * @param blockState 目标方块状态
      * @param playerData 玩家数据（用于获取效果和状态）
      * @return 挖掘速度倍率
      */
-    [[nodiscard]] f32 calculateDigSpeedMultiplier(ServerWorld& world,
+    [[nodiscard]] f32 _calculateDigSpeedMultiplier(ServerWorld& world,
         const ItemStack& heldItem,
         const BlockState& blockState,
         const ServerPlayerData& playerData) const;
@@ -180,38 +177,37 @@ private:
      * @param playerData 玩家数据
      * @return 乘数（默认 1.0）
      */
-    [[nodiscard]] f32 calculateHasteMultiplier(const ServerPlayerData& playerData) const;
+    [[nodiscard]] f32 _calculateHasteMultiplier(const ServerPlayerData& playerData) const;
 
     /**
      * @brief 计算挖掘疲劳乘数
      * @param playerData 玩家数据
      * @return 乘数（默认 1.0）
      */
-    [[nodiscard]] f32 calculateMiningFatigueMultiplier(const ServerPlayerData& playerData) const;
+    [[nodiscard]] f32 _calculateMiningFatigueMultiplier(const ServerPlayerData& playerData) const;
 
     /**
      * @brief 检查玩家是否有水下速掘附魔
      * @param playerData 玩家数据
      * @return 如果头盔有水下速掘返回 true
      */
-    [[nodiscard]] bool hasAquaAffinity(const ServerPlayerData& playerData) const;
+    [[nodiscard]] bool _hasAquaAffinity(const ServerPlayerData& playerData) const;
 
     /**
      * @brief 检查玩家眼睛是否在水中
      *
-     * 参考 MC 1.16.5 Entity.updateEyesInWater()
      * 眼睛检测点向下偏移约 0.11 格以避免边界精度问题
      *
      * @param world 世界引用（用于查询流体状态）
      * @param playerData 玩家数据（用于获取位置）
      * @return 如果眼睛在水中返回 true
      */
-    [[nodiscard]] bool areEyesInWater(ServerWorld& world, const ServerPlayerData& playerData) const;
+    [[nodiscard]] bool _areEyesInWater(ServerWorld& world, const ServerPlayerData& playerData) const;
 
     /**
      * @brief 广播破坏动画
      */
-    void broadcastBreakAnim(PlayerId playerId, const BlockPos& pos, i8 stage);
+    void _broadcastBreakAnim(PlayerId playerId, const BlockPos& pos, i8 stage);
 
 private:
     /**

@@ -49,8 +49,6 @@ class ServerWorld;
  * - 处理拾取延迟和所有者限制
  * - 合并相同物品
  * - 发送背包更新和实体销毁包
- *
- * 参考 MC 1.16.5 EntityItem.onCollideWithPlayer
  */
 class ItemPickupManager {
 public:
@@ -85,6 +83,10 @@ public:
     // 禁止拷贝
     ItemPickupManager(const ItemPickupManager&) = delete;
     ItemPickupManager& operator=(const ItemPickupManager&) = delete;
+
+    // 允许移动
+    ItemPickupManager(ItemPickupManager&&) noexcept = default;
+    ItemPickupManager& operator=(ItemPickupManager&&) noexcept = default;
 
     // ========== 拾取处理 ==========
 
@@ -137,7 +139,7 @@ private:
      * @param player 玩家实体
      * @return 拾取范围
      */
-    [[nodiscard]] f32 calculatePickupRange(const Entity& player) const;
+    [[nodiscard]] f32 _calculatePickupRange(const Entity& player) const;
 
     /**
      * @brief 检查玩家是否可以拾取物品
@@ -151,7 +153,7 @@ private:
      * @param itemEntity 物品实体
      * @return true 如果可以拾取
      */
-    [[nodiscard]] bool canPickup(const Entity& player, const ItemEntity& itemEntity) const;
+    [[nodiscard]] bool _canPickup(const Entity& player, const ItemEntity& itemEntity) const;
 
     /**
      * @brief 发送背包更新给客户端
@@ -159,7 +161,7 @@ private:
      * @param server 服务器接口
      * @param player 玩家实体
      */
-    void sendInventoryUpdate(IServer& server, Player& player);
+    void _sendInventoryUpdate(IServer& server, Player& player);
 
     /**
      * @brief 通过 EntityTracker 的统一重同步路径刷新物品实体状态。
@@ -167,7 +169,7 @@ private:
      * @param world 物品所在维度的 ServerWorld
      * @param server 服务器接口
      */
-    void sendItemEntityUpdate(ServerWorld& world, IServer& server, const ItemEntity& itemEntity);
+    void _sendItemEntityUpdate(ServerWorld& world, IServer& server, const ItemEntity& itemEntity);
 
     /**
      * @brief 发送物品拾取动画包
@@ -176,7 +178,7 @@ private:
      * @param entityId 实体ID
      * @param collectorId 拾取者实体ID
      */
-    void sendCollectItem(IServer& server, EntityId entityId, EntityId collectorId, i32 pickupItemCount);
+    void _sendCollectItem(IServer& server, EntityId entityId, EntityId collectorId, i32 pickupItemCount);
 };
 
 } // namespace server

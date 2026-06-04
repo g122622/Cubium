@@ -32,7 +32,6 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/menu/CraftingMenu.hpp"
-#include <spdlog/spdlog.h>
 
 namespace mc::server::interaction {
 
@@ -143,8 +142,6 @@ void ContainerManager::closeContainer(PlayerId playerId)
     }
 
     m_openContainers.erase(it);
-
-    spdlog::debug("Player {} closed container", playerId);
 }
 
 Result<ContainerClickResult> ContainerManager::handleClick(

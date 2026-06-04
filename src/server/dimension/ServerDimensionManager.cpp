@@ -26,6 +26,7 @@
 #include "../sync/ChunkSendManager.hpp"
 #include "../world/ServerChunkManager.hpp"
 #include "../world/ServerWorld.hpp"
+#include "common/core/Constants.hpp"
 #include "common/core/Result.hpp"
 #include "common/network/packet/DimensionPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
@@ -78,7 +79,7 @@ Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance, Worl
     m_dimensions.clear();
 
     // 创建主世界
-    auto overworld = createServerDimension(OVERWORLD, seed);
+    auto overworld = _createServerDimension(OVERWORLD, seed);
     MC_ASSERT_RELEASE(overworld != nullptr);
     MC_ASSERT_RELEASE(overworld->id() == OVERWORLD);
     const bool overworldRegistered = registerDimension(std::move(overworld));
@@ -89,7 +90,7 @@ Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance, Worl
     MC_ASSERT_RELEASE_MSG(overworldInitResult.success(), "Failed to initialize overworld");
 
     // 创建下界
-    auto nether = createServerDimension(NETHER, seed);
+    auto nether = _createServerDimension(NETHER, seed);
     MC_ASSERT_RELEASE(nether != nullptr);
     MC_ASSERT_RELEASE(nether->id() == NETHER);
     const bool netherRegistered = registerDimension(std::move(nether));
@@ -100,7 +101,7 @@ Result<void> ServerDimensionManager::initialize(u64 seed, i32 viewDistance, Worl
     MC_ASSERT_RELEASE_MSG(netherInitResult.success(), "Failed to initialize nether");
 
     // 创建末地
-    auto theEnd = createServerDimension(THE_END, seed);
+    auto theEnd = _createServerDimension(THE_END, seed);
     MC_ASSERT_RELEASE(theEnd != nullptr);
     MC_ASSERT_RELEASE(theEnd->id() == THE_END);
     const bool endRegistered = registerDimension(std::move(theEnd));
@@ -272,7 +273,7 @@ bool ServerDimensionManager::transferPlayerToDimension(
     Vector3d targetPos = position.value_or(targetDimension->spawnPoint());
 
     // 卸载当前维度的区块
-    unloadPlayerChunks(playerId);
+    _unloadPlayerChunks(playerId);
 
     // 从旧维度移除
     playerLeaveDimension(playerId);
@@ -281,10 +282,10 @@ bool ServerDimensionManager::transferPlayerToDimension(
     playerJoinDimension(playerId, targetDim);
 
     // 发送维度切换包
-    sendDimensionChangePacket(playerId, targetDim, targetPos);
+    _sendDimensionChangePacket(playerId, targetDim, targetPos);
 
     // 加载新维度的区块
-    loadPlayerChunks(playerId, targetDimension);
+    _loadPlayerChunks(playerId, targetDimension);
 
     // 触发回调
     if (m_dimensionChangeCallback) {
@@ -313,7 +314,7 @@ ServerDimension* ServerDimensionManager::loadDimension(DimensionId id)
         return getDimension(id);
     }
 
-    auto dim = createServerDimension(id, m_seed);
+    auto dim = _createServerDimension(id, m_seed);
     if (!dim) {
         return nullptr;
     }
@@ -356,7 +357,7 @@ bool ServerDimensionManager::isDimensionLoaded(DimensionId id) const
 // 内部方法
 // ============================================================================
 
-std::unique_ptr<ServerDimension> ServerDimensionManager::createServerDimension(DimensionId id, u64 seed)
+std::unique_ptr<ServerDimension> ServerDimensionManager::_createServerDimension(DimensionId id, u64 seed)
 {
     // 创建维度类型
     DimensionType type = DimensionType::overworld(); // 默认值
@@ -420,13 +421,13 @@ std::unique_ptr<ServerDimension> ServerDimensionManager::createServerDimension(D
             return nullptr;
     }
 
-    auto world = createServerWorld(id, seed, std::move(generator));
+    auto world = _createServerWorld(id, seed, std::move(generator));
     auto dimension = std::make_unique<ServerDimension>(id, std::move(type), nullptr, seed, m_viewDistance);
     dimension->setWorld(std::move(world));
     return dimension;
 }
 
-std::unique_ptr<server::ServerWorld> ServerDimensionManager::createServerWorld(
+std::unique_ptr<server::ServerWorld> ServerDimensionManager::_createServerWorld(
     DimensionId id, u64 seed, std::unique_ptr<IChunkGenerator> generator) const
 {
     MC_ASSERT_RELEASE(m_server != nullptr);
@@ -449,7 +450,7 @@ std::unique_ptr<server::ServerWorld> ServerDimensionManager::createServerWorld(
     return world;
 }
 
-void ServerDimensionManager::sendDimensionChangePacket(PlayerId playerId, DimensionId newDim, const Vector3d& pos)
+void ServerDimensionManager::_sendDimensionChangePacket(PlayerId playerId, DimensionId newDim, const Vector3d& pos)
 {
     // 获取维度类型
     auto* targetDim = getDimension(newDim);
@@ -457,11 +458,10 @@ void ServerDimensionManager::sendDimensionChangePacket(PlayerId playerId, Dimens
         return;
     }
 
-    // 参考 MC 1.16.5 ServerPlayerEntity.changeDimension():
-    // 使用 SRespawnPacket 进行维度切换
+    // 使用 RespawnPacket 进行维度切换
     network::RespawnPacket packet;
 
-    // 设置维度类型 (MC 1.16.5 维度类型 ID)
+    // 设置维度类型
     // 0 = minecraft:overworld
     // 1 = minecraft:the_nether
     // 2 = minecraft:the_end
@@ -484,8 +484,6 @@ void ServerDimensionManager::sendDimensionChangePacket(PlayerId playerId, Dimens
     packet.setDimension(newDim);
 
     // 计算世界种子的哈希值（SHA-256 前 8 字节）
-    // 参考 MC 1.16.5 BiomeManager.func_235200_a_:
-    // Hashing.sha256().hashLong(seed).asLong()
     packet.setHashedSeed(util::crypto::Sha256::hashWorldSeed(m_seed));
 
     // 设置游戏模式（从玩家数据获取）
@@ -508,7 +506,7 @@ void ServerDimensionManager::sendDimensionChangePacket(PlayerId playerId, Dimens
     m_server->sendPacketToPlayer(playerId, result.value().data(), result.value().size());
 }
 
-void ServerDimensionManager::unloadPlayerChunks(PlayerId playerId)
+void ServerDimensionManager::_unloadPlayerChunks(PlayerId playerId)
 {
     // 获取玩家当前维度
     DimensionId dimId = getPlayerDimension(playerId);
@@ -528,8 +526,8 @@ void ServerDimensionManager::unloadPlayerChunks(PlayerId playerId)
     }
 
     // 计算玩家视野范围内的区块并发送卸载通知
-    ChunkCoord playerChunkX = static_cast<ChunkCoord>(std::floor(playerData->x / 16.0f));
-    ChunkCoord playerChunkZ = static_cast<ChunkCoord>(std::floor(playerData->z / 16.0f));
+    ChunkCoord playerChunkX = static_cast<ChunkCoord>(std::floor(playerData->x / static_cast<f32>(world::CHUNK_WIDTH)));
+    ChunkCoord playerChunkZ = static_cast<ChunkCoord>(std::floor(playerData->z / static_cast<f32>(world::CHUNK_WIDTH)));
 
     // 通过维度的 ChunkSendManager 卸载区块
     auto* chunkSendMgr = dim->chunkSendManager();
@@ -549,7 +547,7 @@ void ServerDimensionManager::unloadPlayerChunks(PlayerId playerId)
     }
 }
 
-void ServerDimensionManager::loadPlayerChunks(PlayerId playerId, ServerDimension* dim)
+void ServerDimensionManager::_loadPlayerChunks(PlayerId playerId, ServerDimension* dim)
 {
     if (!dim || !dim->world()) {
         return;
@@ -562,8 +560,8 @@ void ServerDimensionManager::loadPlayerChunks(PlayerId playerId, ServerDimension
     }
 
     // 计算玩家区块位置
-    ChunkCoord playerChunkX = static_cast<ChunkCoord>(std::floor(playerData->x / 16.0f));
-    ChunkCoord playerChunkZ = static_cast<ChunkCoord>(std::floor(playerData->z / 16.0f));
+    ChunkCoord playerChunkX = static_cast<ChunkCoord>(std::floor(playerData->x / static_cast<f32>(world::CHUNK_WIDTH)));
+    ChunkCoord playerChunkZ = static_cast<ChunkCoord>(std::floor(playerData->z / static_cast<f32>(world::CHUNK_WIDTH)));
 
     // 通过维度的 ChunkSendManager 加载区块
     auto* chunkSendMgr = dim->chunkSendManager();

@@ -41,7 +41,7 @@
 
 namespace mc::server::sync {
 
-LightSyncManager::LightSyncManager(WorldLightManager& lightManager, ServerChunkManager& chunkManager)
+LightSyncManager::LightSyncManager(WorldLightManager& lightManager, ServerChunkManager& chunkManager) noexcept
     : m_lightManager(lightManager)
     , m_chunkManager(chunkManager)
 {}
@@ -146,9 +146,6 @@ void LightSyncManager::markLightChanged(LightType type, const SectionPos& pos)
 
     // 同步光照数据到 ChunkSection
     syncLightDataToChunk(type, pos);
-
-    const char* typeName = (type == LightType::SKY) ? "SKY" : "BLOCK";
-    spdlog::trace("[LightSync] {} light changed at section ({}, {}, {})", typeName, pos.x, pos.y, pos.z);
 }
 
 void LightSyncManager::syncLightDataToChunk(LightType type, const SectionPos& pos)

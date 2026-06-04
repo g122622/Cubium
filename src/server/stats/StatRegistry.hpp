@@ -41,9 +41,6 @@ namespace stats {
  * @brief 统计注册表
  *
  * 管理所有已注册的统计项模板。玩家统计值存储在 StatisticsManager 中。
- *
- * 参考 MC 1.16.5: net.minecraft.stats.StatType (注册表概念)
- * 以及 Stats 类（内置统计常量）
  */
 class StatRegistry {
 public:
@@ -198,10 +195,10 @@ private:
     StatRegistry(const StatRegistry&) = delete;
     StatRegistry& operator=(const StatRegistry&) = delete;
 
-    void registerAllBlocks();
-    void registerAllItems();
-    void registerAllEntities();
-    void registerAllCustomStats();
+    void _registerAllBlocks();
+    void _registerAllItems();
+    void _registerAllEntities();
+    void _registerAllCustomStats();
 
     // 使用完整统计ID作为键
     std::unordered_map<ResourceLocation, std::pair<StatType, ResourceLocation>> m_stats;

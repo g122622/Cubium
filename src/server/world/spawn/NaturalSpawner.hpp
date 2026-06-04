@@ -53,7 +53,6 @@ namespace world::spawn {
  * @brief 实体密度追踪器
  *
  * 追踪区域内的实体密度，用于 SpawnCosts 系统。
- * 参考 MC 1.16.5 MobDensityTracker
  */
 class MobDensityTracker {
 public:
@@ -67,7 +66,6 @@ public:
     /**
      * @brief 获取指定位置的总密度
      *
-     * 参考 MC 1.16.5 MobDensityTracker.func_234999_b_
      * 计算公式：sum(charge / sqrt(distance))
      *
      * @param pos 目标位置
@@ -99,7 +97,6 @@ private:
  * @brief 实体密度管理器
  *
  * 管理各类实体的数量和密度限制。
- * 参考 MC 1.16.5 WorldEntitySpawner.EntityDensityManager
  */
 class EntityDensityManager {
 public:
@@ -133,15 +130,15 @@ public:
     /**
      * @brief 记录实体生成后的密度变化
      *
-     * 参考 MC 1.16.5 WorldEntitySpawner.func_234990_a_
-     *
      * @param entityTypeId 实体类型ID
      * @param classification 实体分类
      * @param pos 生成位置
      * @param spawnCosts 生成成本
      */
-    void onSpawn(const std::string& entityTypeId, entity::EntityClassification classification,
-        const Vector3& pos, const SpawnCosts& spawnCosts);
+    void onSpawn(const std::string& entityTypeId,
+        entity::EntityClassification classification,
+        const Vector3& pos,
+        const SpawnCosts& spawnCosts);
 
     /**
      * @brief 获取指定分类的当前实体数量
@@ -164,8 +161,6 @@ private:
  *
  * 负责在世界中进行自然实体生成。
  * 每tick检查玩家周围区域，根据生物群系配置和光照条件生成实体。
- *
- * 参考 MC 1.16.5 WorldEntitySpawner (NaturalSpawner)
  *
  * 生成规则：
  * 1. 怪物：黑暗环境（光照 <= 7），距离玩家 24-128 格
@@ -281,7 +276,7 @@ private:
     /// 上次动物生成检查时间（游戏刻）
     u64 m_lastCreatureSpawnTime = 0;
 
-    /// 动物生成间隔（游戏刻）- MC 默认 400 tick
+    /// 动物生成间隔（游戏刻）
     static constexpr u64 CREATURE_SPAWN_INTERVAL = 400;
 
     // ========== 内部方法 ==========
@@ -289,7 +284,7 @@ private:
     /**
      * @brief 在指定区块中为指定分类执行生成
      */
-    void spawnForClassificationInChunk(entity::EntityClassification classification,
+    void _spawnForClassificationInChunk(entity::EntityClassification classification,
         mc::server::ServerWorld& world,
         const ChunkData* chunk,
         const Vector3& playerPos,
@@ -300,32 +295,32 @@ private:
      * @brief 在指定位置尝试生成实体
      * @return 生成的实体数量
      */
-    i32 trySpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry, math::Random& random);
+    i32 _trySpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry, math::Random& random);
 
     /**
      * @brief 随机选择生成条目
      */
-    [[nodiscard]] const SpawnEntry* selectEntry(const std::vector<SpawnEntry>& entries, math::Random& random) const;
+    [[nodiscard]] const SpawnEntry* _selectEntry(const std::vector<SpawnEntry>& entries, math::Random& random) const;
 
     /**
      * @brief 检查位置是否可以生成
      */
-    [[nodiscard]] bool canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry) const;
+    [[nodiscard]] bool _canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry) const;
 
     /**
      * @brief 检查光照条件
      */
-    [[nodiscard]] bool checkLightLevel(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, bool isMonster) const;
+    [[nodiscard]] bool _checkLightLevel(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, bool isMonster) const;
 
     /**
      * @brief 获取生成高度
      */
-    [[nodiscard]] i32 getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z, HeightmapType heightmapType) const;
+    [[nodiscard]] i32 _getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z, HeightmapType heightmapType) const;
 
     /**
      * @brief 获取区块内的随机高度位置
      */
-    [[nodiscard]] Vector3i getRandomSpawnPosition(mc::server::ServerWorld& world,
+    [[nodiscard]] Vector3i _getRandomSpawnPosition(mc::server::ServerWorld& world,
         const ChunkData* chunk,
         HeightmapType heightmapType,
         math::Random& random) const;
@@ -337,15 +332,13 @@ private:
      * @param playerDistanceSq 玩家距离的平方
      * @return 是否可以生成
      */
-    [[nodiscard]] bool isValidSpawnPosition(
+    [[nodiscard]] bool _isValidSpawnPosition(
         mc::server::ServerWorld& world, const Vector3i& pos, f64 playerDistanceSq) const;
 
     /**
      * @brief 选择指定分类的生成条目
-     *
-     * 参考 MC 1.16.5 WorldEntitySpawner.getRandomSpawnEntry
      */
-    [[nodiscard]] const SpawnEntry* getRandomSpawnEntry(mc::server::ServerWorld& world,
+    [[nodiscard]] const SpawnEntry* _getRandomSpawnEntry(mc::server::ServerWorld& world,
         const ChunkData* chunk,
         entity::EntityClassification classification,
         const Vector3i& pos,
@@ -354,7 +347,7 @@ private:
     /**
      * @brief 创建实体密度管理器
      */
-    EntityDensityManager createDensityManager(mc::server::ServerWorld& world);
+    EntityDensityManager _createDensityManager(mc::server::ServerWorld& world);
 
     /**
      * @brief 获取可生成区块列表
@@ -366,19 +359,17 @@ private:
      * @param random 随机数生成器
      * @return 可生成区块的坐标列表
      */
-    [[nodiscard]] std::vector<ChunkPos> getSpawnableChunks(
+    [[nodiscard]] std::vector<ChunkPos> _getSpawnableChunks(
         mc::server::ServerWorld& world, i32 maxChunks, math::Random& random) const;
 
     /**
      * @brief 检查实体类型是否应该在当前条件下生成
      *
-     * 参考 MC 1.16.5 NaturalSpawner.isSpawnCategoryReady
-     *
      * @param classification 实体分类
      * @param worldTime 世界时间（游戏刻）
      * @return 是否可以生成该分类
      */
-    [[nodiscard]] bool isSpawnCategoryReady(entity::EntityClassification classification, u64 worldTime) const;
+    [[nodiscard]] bool _isSpawnCategoryReady(entity::EntityClassification classification, u64 worldTime) const;
 };
 
 } // namespace world::spawn

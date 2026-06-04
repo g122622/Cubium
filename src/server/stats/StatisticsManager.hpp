@@ -50,8 +50,6 @@ namespace stats {
  *
  * 管理单个玩家的所有统计数据。统计数据存储在内存中，
  * 并支持 NBT 序列化以便持久化。
- *
- * 参考 MC 1.16.5: net.minecraft.stats.StatisticsManager
  */
 class StatisticsManager {
 public:
@@ -64,6 +62,20 @@ public:
      * @brief 默认构造函数
      */
     StatisticsManager() = default;
+
+    /**
+     * @brief 移动构造函数
+     */
+    StatisticsManager(StatisticsManager&& other) noexcept = default;
+
+    /**
+     * @brief 移动赋值运算符
+     */
+    StatisticsManager& operator=(StatisticsManager&& other) noexcept = default;
+
+    // 禁用拷贝（统计数据不应被拷贝）
+    StatisticsManager(const StatisticsManager&) = delete;
+    StatisticsManager& operator=(const StatisticsManager&) = delete;
 
     /**
      * @brief 从 NBT 加载统计数据

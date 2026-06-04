@@ -86,7 +86,7 @@ public:
      *
      * @return 区块中间态，如果生成失败返回 nullptr
      */
-    std::unique_ptr<ChunkPrimer> takeResult() { return std::move(m_result); }
+    [[nodiscard]] std::unique_ptr<ChunkPrimer> takeResult() noexcept { return std::move(m_result); }
 
     /**
      * @brief 获取目标生成阶段

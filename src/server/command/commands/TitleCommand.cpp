@@ -102,31 +102,31 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
 
     // clear 子命令
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
-    clearNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return clearTitle(ctx); });
+    clearNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearTitle(ctx); });
 
     // reset 子命令
     auto resetNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("reset");
-    resetNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return resetTitle(ctx); });
+    resetNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _resetTitle(ctx); });
 
     // title <json> 子命令
     auto titleTextNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("title");
     auto titleJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "json", StringArgumentType::greedyString());
-    titleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setTitle(ctx); });
+    titleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setTitle(ctx); });
     titleTextNode->addChild(titleJsonNode);
 
     // subtitle <json> 子命令
     auto subtitleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("subtitle");
     auto subtitleJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "json", StringArgumentType::greedyString());
-    subtitleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setSubtitle(ctx); });
+    subtitleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setSubtitle(ctx); });
     subtitleNode->addChild(subtitleJsonNode);
 
     // actionbar <json> 子命令
     auto actionbarNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("actionbar");
     auto actionbarJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "json", StringArgumentType::greedyString());
-    actionbarJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setActionbar(ctx); });
+    actionbarJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setActionbar(ctx); });
     actionbarNode->addChild(actionbarJsonNode);
 
     // times <fadeIn> <stay> <fadeOut> 子命令
@@ -137,7 +137,7 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("stay", IntegerArgumentType::integer(0));
     auto fadeOutNode =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("fadeOut", IntegerArgumentType::integer(0));
-    fadeOutNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setTimes(ctx); });
+    fadeOutNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setTimes(ctx); });
 
     fadeInNode->addChild(stayNode);
     stayNode->addChild(fadeOutNode);
@@ -154,7 +154,7 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     dispatcher.registerCommand(titleNode);
 }
 
-i32 TitleCommand::clearTitle(CommandContext<ServerCommandSource>& context)
+i32 TitleCommand::_clearTitle(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const auto& selector = context.getArgument<EntitySelector>("player");
@@ -170,7 +170,7 @@ i32 TitleCommand::clearTitle(CommandContext<ServerCommandSource>& context)
     return broadcastTitlePacket(source, playerIds, packet);
 }
 
-i32 TitleCommand::resetTitle(CommandContext<ServerCommandSource>& context)
+i32 TitleCommand::_resetTitle(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const auto& selector = context.getArgument<EntitySelector>("player");
@@ -186,7 +186,7 @@ i32 TitleCommand::resetTitle(CommandContext<ServerCommandSource>& context)
     return broadcastTitlePacket(source, playerIds, packet);
 }
 
-i32 TitleCommand::setTitle(CommandContext<ServerCommandSource>& context)
+i32 TitleCommand::_setTitle(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const auto& selector = context.getArgument<EntitySelector>("player");
@@ -205,7 +205,7 @@ i32 TitleCommand::setTitle(CommandContext<ServerCommandSource>& context)
     return broadcastTitlePacket(source, playerIds, packet);
 }
 
-i32 TitleCommand::setSubtitle(CommandContext<ServerCommandSource>& context)
+i32 TitleCommand::_setSubtitle(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const auto& selector = context.getArgument<EntitySelector>("player");
@@ -224,7 +224,7 @@ i32 TitleCommand::setSubtitle(CommandContext<ServerCommandSource>& context)
     return broadcastTitlePacket(source, playerIds, packet);
 }
 
-i32 TitleCommand::setActionbar(CommandContext<ServerCommandSource>& context)
+i32 TitleCommand::_setActionbar(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const auto& selector = context.getArgument<EntitySelector>("player");
@@ -243,7 +243,7 @@ i32 TitleCommand::setActionbar(CommandContext<ServerCommandSource>& context)
     return broadcastTitlePacket(source, playerIds, packet);
 }
 
-i32 TitleCommand::setTimes(CommandContext<ServerCommandSource>& context)
+i32 TitleCommand::_setTimes(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const auto& selector = context.getArgument<EntitySelector>("player");

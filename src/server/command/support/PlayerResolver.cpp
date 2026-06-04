@@ -116,7 +116,6 @@ namespace {
     }
 
     // 检查俯仰角范围（x_rotation，-90 到 90 度）
-    // 参考 MC 1.16.5 EntitySelector 过滤逻辑
     if (!selector.xRotation().isUnbounded()) {
         // 优先使用实体实时角度，如果没有实体则使用存储的角度
         f32 pitch = playerData.pitch;
@@ -132,7 +131,6 @@ namespace {
     }
 
     // 检查偏航角范围（y_rotation，-180 到 180 度）
-    // 参考 MC 1.16.5 EntitySelector 过滤逻辑
     if (!selector.yRotation().isUnbounded()) {
         // 优先使用实体实时角度，如果没有实体则使用存储的角度
         f32 yaw = playerData.yaw;
@@ -176,7 +174,6 @@ namespace {
     }
 
     // 检查记分板分数条件
-    // 参考 MC 1.16.5 EntityOptions.scores 过滤器
     if (selector.hasScoreConditions()) {
         if (server == nullptr) {
             return false;
@@ -206,7 +203,6 @@ namespace {
     }
 
     // 检查进度条件
-    // 参考 MC 1.16.5 EntityOptions.advancements 过滤器
     if (selector.hasAdvancementConditions()) {
         if (playerData.advancements == nullptr) {
             return false;
@@ -252,7 +248,6 @@ namespace {
     // ========== 待完善功能：NBT 条件过滤 ==========
     // 当前状态：参数解析已实现，过滤逻辑待完善
     // 依赖：Entity 类需要实现 serializeNBT() 方法以获取实体的 NBT 数据
-    // 参考：MC 1.16.5 EntityOptions.nbt 过滤器
     if (selector.hasNbtCondition()) {
         // TODO(待完善): 实现完整 NBT 条件过滤逻辑
         // 步骤:
@@ -266,7 +261,6 @@ namespace {
     // ========== 待完善功能：谓词条件过滤 ==========
     // 当前状态：参数解析已实现，过滤逻辑待完善
     // 依赖：需要 LootConditionManager 和 LootContext 支持战利品表谓词评估
-    // 参考：MC 1.16.5 EntityOptions.predicate 过滤器
     if (selector.hasPredicateCondition()) {
         // TODO(待完善): 实现完整谓词条件过滤逻辑
         // 步骤:

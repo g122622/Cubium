@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include <memory>
 #include "ServerDimension.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/WorldConfig.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <functional>
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -45,8 +45,6 @@ class MinecraftServer;
  *
  * 管理 ServerDimension 实例，处理玩家维度切换，
  * 协调多维度 tick 更新。
- *
- * 参考 MC 1.16.5 MinecraftServer 的维度管理。
  */
 class ServerDimensionManager : public DimensionManager {
 public:
@@ -249,6 +247,7 @@ public:
 protected:
     server::MinecraftServer* m_server;
 
+private:
     // 玩家 -> 维度映射
     std::unordered_map<PlayerId, DimensionId> m_playerDimensions;
 
@@ -273,8 +272,8 @@ protected:
      * @param seed 世界种子
      * @return 维度实例
      */
-    [[nodiscard]] std::unique_ptr<ServerDimension> createServerDimension(DimensionId id, u64 seed);
-    [[nodiscard]] std::unique_ptr<server::ServerWorld> createServerWorld(
+    [[nodiscard]] std::unique_ptr<ServerDimension> _createServerDimension(DimensionId id, u64 seed);
+    [[nodiscard]] std::unique_ptr<server::ServerWorld> _createServerWorld(
         DimensionId id, u64 seed, std::unique_ptr<IChunkGenerator> generator) const;
 
     /**
@@ -284,14 +283,14 @@ protected:
      * @param newDim 新维度ID
      * @param pos 目标位置
      */
-    void sendDimensionChangePacket(PlayerId playerId, DimensionId newDim, const Vector3d& pos);
+    void _sendDimensionChangePacket(PlayerId playerId, DimensionId newDim, const Vector3d& pos);
 
     /**
      * @brief 卸载玩家当前维度的区块
      *
      * @param playerId 玩家ID
      */
-    void unloadPlayerChunks(PlayerId playerId);
+    void _unloadPlayerChunks(PlayerId playerId);
 
     /**
      * @brief 加载新维度的区块给玩家
@@ -299,7 +298,7 @@ protected:
      * @param playerId 玩家ID
      * @param dim 目标维度
      */
-    void loadPlayerChunks(PlayerId playerId, ServerDimension* dim);
+    void _loadPlayerChunks(PlayerId playerId, ServerDimension* dim);
 };
 
 } // namespace mc

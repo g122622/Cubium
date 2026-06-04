@@ -40,7 +40,7 @@ TcpSession::TcpSession(SessionId id, TcpServer* server)
 TcpSession::~TcpSession()
 {
     if (m_state != SessionState::Disconnected) {
-        closeLocally();
+        _closeLocally();
     }
 }
 
@@ -91,7 +91,7 @@ void TcpSession::disconnect(const std::string& reason)
     }
 }
 
-void TcpSession::closeLocally()
+void TcpSession::_closeLocally()
 {
     m_state = SessionState::Disconnected;
     {
@@ -144,7 +144,7 @@ void TcpSession::handleReceivedData(const u8* data, size_t size)
         }
 
         // 处理完整的数据包
-        processPacket(m_receiveBuffer.data(), m_expectedSize);
+        _processPacket(m_receiveBuffer.data(), m_expectedSize);
 
         // 移除已处理的数据
         m_receiveBuffer.erase(m_receiveBuffer.begin(), m_receiveBuffer.begin() + m_expectedSize);
@@ -153,7 +153,7 @@ void TcpSession::handleReceivedData(const u8* data, size_t size)
     }
 }
 
-void TcpSession::processPacket(const u8* data, size_t size)
+void TcpSession::_processPacket(const u8* data, size_t size)
 {
     if (m_onPacket) {
         m_onPacket(this, data, size);

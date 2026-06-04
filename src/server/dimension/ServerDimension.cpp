@@ -22,17 +22,17 @@
  */
 
 #include "ServerDimension.hpp"
-#include "../sync/BlockUpdateSyncManager.hpp"
-#include "../sync/ChunkSendManager.hpp"
-#include "../sync/EntitySyncManager.hpp"
-#include "../sync/LightSyncManager.hpp"
-#include "../world/ServerWorld.hpp"
-#include "../world/spawn/DespawnManager.hpp"
-#include "../world/spawn/NaturalSpawner.hpp"
 #include "common/core/Result.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
+#include "server/sync/BlockUpdateSyncManager.hpp"
+#include "server/sync/ChunkSendManager.hpp"
+#include "server/sync/EntitySyncManager.hpp"
+#include "server/sync/LightSyncManager.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/spawn/DespawnManager.hpp"
+#include "server/world/spawn/NaturalSpawner.hpp"
 #include <limits>
 
 namespace mc {
@@ -128,31 +128,21 @@ void ServerDimension::tick()
         m_world->tick();
 
         // 实体同步
-        if (m_entitySyncManager) {
-            m_entitySyncManager->tick();
-        }
+        m_entitySyncManager->tick();
 
         // 区块发送处理
-        if (m_chunkSendManager) {
-            m_chunkSendManager->processPendingSends();
-        }
+        m_chunkSendManager->processPendingSends();
 
         // 方块更新同步刷新
-        if (m_blockUpdateSyncManager) {
-            m_blockUpdateSyncManager->flushPendingUpdates();
-        }
+        m_blockUpdateSyncManager->flushPendingUpdates();
 
         // 自然刷怪（仅主世界和下界有 hostile 刷怪）
-        if (m_naturalSpawner) {
-            bool hostile = (id() == DimensionManager::OVERWORLD || id() == DimensionManager::NETHER);
-            bool passive = (id() == DimensionManager::OVERWORLD);
-            m_naturalSpawner->tick(*m_world, hostile, passive);
-        }
+        bool hostile = (id() == DimensionManager::OVERWORLD || id() == DimensionManager::NETHER);
+        bool passive = (id() == DimensionManager::OVERWORLD);
+        m_naturalSpawner->tick(*m_world, hostile, passive);
 
         // 生物消失检查
-        if (m_despawnManager) {
-            m_despawnManager->tick(*m_world);
-        }
+        m_despawnManager->tick(*m_world);
     }
 }
 
@@ -212,17 +202,17 @@ bool ServerDimension::hasPlayer(PlayerId playerId) const
 
 void ServerDimension::recordPortalPosition(const BlockPos& pos)
 {
-    m_portalPositions.insert(hashBlockPos(pos));
+    m_portalPositions.insert(_hashBlockPos(pos));
 }
 
 void ServerDimension::forgetPortalPosition(const BlockPos& pos)
 {
-    m_portalPositions.erase(hashBlockPos(pos));
+    m_portalPositions.erase(_hashBlockPos(pos));
 }
 
 bool ServerDimension::hasPortalAt(const BlockPos& pos) const
 {
-    return m_portalPositions.find(hashBlockPos(pos)) != m_portalPositions.end();
+    return m_portalPositions.find(_hashBlockPos(pos)) != m_portalPositions.end();
 }
 
 std::optional<BlockPos> ServerDimension::findNearestPortal(const BlockPos& pos, i32 radius) const
@@ -258,7 +248,7 @@ std::optional<BlockPos> ServerDimension::findNearestPortal(const BlockPos& pos, 
 // 工具方法
 // ============================================================================
 
-u64 ServerDimension::hashBlockPos(const BlockPos& pos)
+u64 ServerDimension::_hashBlockPos(const BlockPos& pos)
 {
     // 使用简单的哈希组合
     u64 hx = static_cast<u64>(static_cast<i64>(pos.x) & 0xFFFFFFFFLL);

@@ -41,13 +41,13 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 addTeam(CommandContext<ServerCommandSource>& context);
-    static i32 removeTeam(CommandContext<ServerCommandSource>& context);
-    static i32 listTeams(CommandContext<ServerCommandSource>& context);
-    static i32 emptyTeam(CommandContext<ServerCommandSource>& context);
-    static i32 joinTeam(CommandContext<ServerCommandSource>& context);
-    static i32 leaveTeam(CommandContext<ServerCommandSource>& context);
-    static i32 modifyTeam(CommandContext<ServerCommandSource>& context);
+    static i32 _addTeam(CommandContext<ServerCommandSource>& context);
+    static i32 _removeTeam(CommandContext<ServerCommandSource>& context);
+    static i32 _listTeams(CommandContext<ServerCommandSource>& context);
+    static i32 _emptyTeam(CommandContext<ServerCommandSource>& context);
+    static i32 _joinTeam(CommandContext<ServerCommandSource>& context);
+    static i32 _leaveTeam(CommandContext<ServerCommandSource>& context);
+    static i32 _modifyTeam(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

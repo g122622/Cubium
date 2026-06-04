@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../common/core/Types.hpp"
-#include "../../common/network/packet/Packet.hpp"
-#include "../../common/scoreboard/core/Scoreboard.hpp"
-#include "../../common/scoreboard/network/ScoreboardPackets.hpp"
+#include "common/core/Types.hpp"
+#include "common/network/packet/Packet.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
+#include "common/scoreboard/network/ScoreboardPackets.hpp"
 #include <memory>
 #include <set>
 
@@ -53,7 +53,6 @@ namespace server {
  * @brief 服务端记分板
  *
  * 扩展 Scoreboard 基类，添加网络同步和持久化功能。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ServerScoreboard
  */
 class ServerScoreboard : public mc::scoreboard::Scoreboard {
 public:
@@ -70,7 +69,7 @@ public:
      * 不在析构中隐式保存。
      * 记分板持久化由服务器关闭流程统一触发。
      */
-    ~ServerScoreboard() override;
+    ~ServerScoreboard() noexcept override;
 
     // 禁止拷贝
     ServerScoreboard(const ServerScoreboard&) = delete;
@@ -231,25 +230,25 @@ private:
     /**
      * @brief 创建目标数据包
      */
-    [[nodiscard]] mc::network::ScoreboardObjectivePacket createObjectivePacket(
+    [[nodiscard]] mc::network::ScoreboardObjectivePacket _createObjectivePacket(
         mc::scoreboard::ScoreObjective& objective, mc::network::ObjectiveAction action);
 
     /**
      * @brief 创建分数数据包
      */
-    [[nodiscard]] mc::network::UpdateScorePacket createScorePacket(
+    [[nodiscard]] mc::network::UpdateScorePacket _createScorePacket(
         mc::scoreboard::Score& score, mc::network::ScoreAction action);
 
     /**
      * @brief 创建显示目标数据包
      */
-    [[nodiscard]] mc::network::DisplayObjectivePacket createDisplayObjectivePacket(
+    [[nodiscard]] mc::network::DisplayObjectivePacket _createDisplayObjectivePacket(
         mc::scoreboard::DisplaySlot slot, mc::scoreboard::ScoreObjective* objective);
 
     /**
      * @brief 创建队伍数据包
      */
-    [[nodiscard]] mc::network::TeamsPacket createTeamPacket(
+    [[nodiscard]] mc::network::TeamsPacket _createTeamPacket(
         mc::scoreboard::ScorePlayerTeam& team, mc::network::TeamAction action);
 
     mc::server::IServer& m_server;

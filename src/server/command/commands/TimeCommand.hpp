@@ -56,7 +56,7 @@ private:
      * @param context 命令上下文。
      * @return 设置后的昼夜时间。
      */
-    static i32 setTime(CommandContext<ServerCommandSource>& context);
+    static i32 _setTime(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 在当前昼夜时间基础上增加 tick。
@@ -64,7 +64,7 @@ private:
      * @param context 命令上下文。
      * @return 增加后的昼夜时间。
      */
-    static i32 addTime(CommandContext<ServerCommandSource>& context);
+    static i32 _addTime(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 查询当前时间信息。
@@ -72,7 +72,7 @@ private:
      * @param context 命令上下文。
      * @return 查询值。
      */
-    static i32 queryTime(CommandContext<ServerCommandSource>& context);
+    static i32 _queryTime(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

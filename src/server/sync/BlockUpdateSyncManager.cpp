@@ -61,8 +61,8 @@ void BlockUpdateSyncManager::flushPendingUpdates()
     std::sort(pendingUpdates.begin(),
         pendingUpdates.end(),
         [](const PendingBlockUpdate& left, const PendingBlockUpdate& right) {
-            const u64 leftChunkKey = chunkKey(left.pos.chunkX(), left.pos.chunkZ());
-            const u64 rightChunkKey = chunkKey(right.pos.chunkX(), right.pos.chunkZ());
+            const u64 leftChunkKey = _chunkKey(left.pos.chunkX(), left.pos.chunkZ());
+            const u64 rightChunkKey = _chunkKey(right.pos.chunkX(), right.pos.chunkZ());
             if (leftChunkKey != rightChunkKey) {
                 return leftChunkKey < rightChunkKey;
             }
@@ -74,12 +74,12 @@ void BlockUpdateSyncManager::flushPendingUpdates()
         const PendingBlockUpdate& firstUpdate = pendingUpdates[index];
         const ChunkCoord chunkX = firstUpdate.pos.chunkX();
         const ChunkCoord chunkZ = firstUpdate.pos.chunkZ();
-        const u64 currentChunkKey = chunkKey(chunkX, chunkZ);
+        const u64 currentChunkKey = _chunkKey(chunkX, chunkZ);
 
         size_t groupEnd = index + 1;
         while (groupEnd < pendingUpdates.size()) {
             const PendingBlockUpdate& nextUpdate = pendingUpdates[groupEnd];
-            if (chunkKey(nextUpdate.pos.chunkX(), nextUpdate.pos.chunkZ()) != currentChunkKey) {
+            if (_chunkKey(nextUpdate.pos.chunkX(), nextUpdate.pos.chunkZ()) != currentChunkKey) {
                 break;
             }
             ++groupEnd;
@@ -110,7 +110,7 @@ void BlockUpdateSyncManager::setOnBlockUpdate(std::function<void(PlayerId, i32, 
     m_onBlockUpdate = std::move(callback);
 }
 
-u64 BlockUpdateSyncManager::chunkKey(ChunkCoord x, ChunkCoord z)
+u64 BlockUpdateSyncManager::_chunkKey(ChunkCoord x, ChunkCoord z)
 {
     return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u32>(z);
 }

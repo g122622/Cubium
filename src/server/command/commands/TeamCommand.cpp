@@ -82,9 +82,9 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", StringArgumentType::string());
     auto displayNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "displayName", StringArgumentType::greedyString());
-    displayNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addTeam(ctx); });
+    displayNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addTeam(ctx); });
     teamNameArg->addChild(displayNameArg);
-    teamNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addTeam(ctx); });
+    teamNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addTeam(ctx); });
     addNode->addChild(teamNameArg);
     teamNode->addChild(addNode);
 
@@ -92,7 +92,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
     auto removeTeamArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", StringArgumentType::string());
-    removeTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeTeam(ctx); });
+    removeTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeTeam(ctx); });
     removeNode->addChild(removeTeamArg);
     teamNode->addChild(removeNode);
 
@@ -100,16 +100,16 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
     auto listTeamArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", StringArgumentType::string());
-    listTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listTeams(ctx); });
+    listTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listTeams(ctx); });
     listNode->addChild(listTeamArg);
-    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listTeams(ctx); });
+    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listTeams(ctx); });
     teamNode->addChild(listNode);
 
     // /team empty <team>
     auto emptyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("empty");
     auto emptyTeamArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", StringArgumentType::string());
-    emptyTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return emptyTeam(ctx); });
+    emptyTeamArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _emptyTeam(ctx); });
     emptyNode->addChild(emptyTeamArg);
     teamNode->addChild(emptyNode);
 
@@ -119,7 +119,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", StringArgumentType::string());
     auto membersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "members", EntityArgumentType::entities());
-    membersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return joinTeam(ctx); });
+    membersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _joinTeam(ctx); });
     joinTeamArg->addChild(membersArg);
     joinNode->addChild(joinTeamArg);
     teamNode->addChild(joinNode);
@@ -128,7 +128,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto leaveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("leave");
     auto leaveMembersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "members", EntityArgumentType::entities());
-    leaveMembersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return leaveTeam(ctx); });
+    leaveMembersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _leaveTeam(ctx); });
     leaveNode->addChild(leaveMembersArg);
     teamNode->addChild(leaveNode);
 
@@ -141,7 +141,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto colorNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("color");
     auto colorValueArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("value", StringArgumentType::string());
-    colorValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return modifyTeam(ctx); });
+    colorValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     colorNode->addChild(colorValueArg);
     modifyTeamArg->addChild(colorNode);
 
@@ -149,7 +149,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto friendlyFireNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("friendlyFire");
     auto friendlyFireArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("value", BoolArgumentType::boolArg());
-    friendlyFireArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return modifyTeam(ctx); });
+    friendlyFireArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     friendlyFireNode->addChild(friendlyFireArg);
     modifyTeamArg->addChild(friendlyFireNode);
 
@@ -157,7 +157,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto seeInvisNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("seeFriendlyInvisibles");
     auto seeInvisArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("value", BoolArgumentType::boolArg());
-    seeInvisArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return modifyTeam(ctx); });
+    seeInvisArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     seeInvisNode->addChild(seeInvisArg);
     modifyTeamArg->addChild(seeInvisNode);
 
@@ -165,7 +165,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto prefixNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("prefix");
     auto prefixArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "value", StringArgumentType::greedyString());
-    prefixArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return modifyTeam(ctx); });
+    prefixArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     prefixNode->addChild(prefixArg);
     modifyTeamArg->addChild(prefixNode);
 
@@ -173,7 +173,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto suffixNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("suffix");
     auto suffixArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "value", StringArgumentType::greedyString());
-    suffixArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return modifyTeam(ctx); });
+    suffixArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     suffixNode->addChild(suffixArg);
     modifyTeamArg->addChild(suffixNode);
 
@@ -181,7 +181,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto displayNameNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("displayName");
     auto displayNameValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "value", StringArgumentType::greedyString());
-    displayNameValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return modifyTeam(ctx); });
+    displayNameValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     displayNameNode->addChild(displayNameValueArg);
     modifyTeamArg->addChild(displayNameNode);
 
@@ -189,7 +189,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto nametagVisNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("nametagVisibility");
     auto nametagVisArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("value", StringArgumentType::string());
-    nametagVisArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return modifyTeam(ctx); });
+    nametagVisArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     nametagVisNode->addChild(nametagVisArg);
     modifyTeamArg->addChild(nametagVisNode);
 
@@ -197,7 +197,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto deathMsgVisNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("deathMessageVisibility");
     auto deathMsgVisArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("value", StringArgumentType::string());
-    deathMsgVisArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return modifyTeam(ctx); });
+    deathMsgVisArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     deathMsgVisNode->addChild(deathMsgVisArg);
     modifyTeamArg->addChild(deathMsgVisNode);
 
@@ -205,7 +205,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto collisionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("collisionRule");
     auto collisionArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("value", StringArgumentType::string());
-    collisionArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return modifyTeam(ctx); });
+    collisionArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     collisionNode->addChild(collisionArg);
     modifyTeamArg->addChild(collisionNode);
 
@@ -215,7 +215,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     dispatcher.registerCommand(teamNode);
 }
 
-i32 TeamCommand::addTeam(CommandContext<ServerCommandSource>& context)
+i32 TeamCommand::_addTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* scoreboard = getScoreboard(source);
@@ -263,7 +263,7 @@ i32 TeamCommand::addTeam(CommandContext<ServerCommandSource>& context)
     return 1;
 }
 
-i32 TeamCommand::removeTeam(CommandContext<ServerCommandSource>& context)
+i32 TeamCommand::_removeTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* scoreboard = getScoreboard(source);
@@ -293,7 +293,7 @@ i32 TeamCommand::removeTeam(CommandContext<ServerCommandSource>& context)
     return static_cast<i32>(scoreboard->getTeams().size());
 }
 
-i32 TeamCommand::listTeams(CommandContext<ServerCommandSource>& context)
+i32 TeamCommand::_listTeams(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* scoreboard = getScoreboard(source);
@@ -356,7 +356,7 @@ i32 TeamCommand::listTeams(CommandContext<ServerCommandSource>& context)
     }
 }
 
-i32 TeamCommand::emptyTeam(CommandContext<ServerCommandSource>& context)
+i32 TeamCommand::_emptyTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* scoreboard = getScoreboard(source);
@@ -399,7 +399,7 @@ i32 TeamCommand::emptyTeam(CommandContext<ServerCommandSource>& context)
     return static_cast<i32>(membersCopy.size());
 }
 
-i32 TeamCommand::joinTeam(CommandContext<ServerCommandSource>& context)
+i32 TeamCommand::_joinTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* scoreboard = getScoreboard(source);
@@ -430,7 +430,7 @@ i32 TeamCommand::joinTeam(CommandContext<ServerCommandSource>& context)
     // 添加成员
     i32 successCount = 0;
     for (PlayerId playerId : playerIds) {
-        // 获取玩家名称（使用 PlayerId 作为名称，实际项目中应该查找玩家名称）
+        // TODO: 应该通过 PlayerManager 获取真实的玩家名称
         std::string playerName = "player_" + std::to_string(playerId);
         if (scoreboard->addPlayerToTeam(playerName, *team)) {
             successCount++;
@@ -450,7 +450,7 @@ i32 TeamCommand::joinTeam(CommandContext<ServerCommandSource>& context)
     return successCount;
 }
 
-i32 TeamCommand::leaveTeam(CommandContext<ServerCommandSource>& context)
+i32 TeamCommand::_leaveTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* scoreboard = getScoreboard(source);
@@ -471,6 +471,7 @@ i32 TeamCommand::leaveTeam(CommandContext<ServerCommandSource>& context)
     // 移除成员（从所有队伍移除）
     i32 successCount = 0;
     for (PlayerId playerId : playerIds) {
+        // TODO: 应该通过 PlayerManager 获取真实的玩家名称
         std::string playerName = "player_" + std::to_string(playerId);
         auto* currentTeam = scoreboard->getPlayersTeam(playerName);
         if (currentTeam) {
@@ -492,7 +493,7 @@ i32 TeamCommand::leaveTeam(CommandContext<ServerCommandSource>& context)
     return successCount;
 }
 
-i32 TeamCommand::modifyTeam(CommandContext<ServerCommandSource>& context)
+i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* scoreboard = getScoreboard(source);

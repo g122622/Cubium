@@ -49,10 +49,10 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
         "size", FloatArgumentType::floatArg(1.0f, static_cast<f32>(world::border::WorldBorder::MAX_SIZE)));
     auto setTimeArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", IntegerArgumentType::integer(0));
-    setTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setBorder(ctx); });
+    setTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBorder(ctx); });
     setSizeArg->addChild(setTimeArg);
     // 默认时间为 0（立即）
-    setSizeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setBorder(ctx); });
+    setSizeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBorder(ctx); });
     setNode->addChild(setSizeArg);
     borderNode->addChild(setNode);
 
@@ -60,7 +60,7 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto centerNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("center");
     auto xArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("x", FloatArgumentType::floatArg());
     auto zArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("z", FloatArgumentType::floatArg());
-    zArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setCenter(ctx); });
+    zArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setCenter(ctx); });
     xArg->addChild(zArg);
     centerNode->addChild(xArg);
     borderNode->addChild(centerNode);
@@ -70,14 +70,14 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto amountNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("amount");
     auto amountArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
         "damagePerBlock", FloatArgumentType::floatArg(0.0f));
-    amountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setDamageAmount(ctx); });
+    amountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setDamageAmount(ctx); });
     amountNode->addChild(amountArg);
     damageNode->addChild(amountNode);
 
     auto bufferNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("buffer");
     auto bufferArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("distance", FloatArgumentType::floatArg(0.0f));
-    bufferArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setDamageBuffer(ctx); });
+    bufferArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setDamageBuffer(ctx); });
     bufferNode->addChild(bufferArg);
     damageNode->addChild(bufferNode);
     borderNode->addChild(damageNode);
@@ -87,21 +87,21 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto timeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("time");
     auto warnTimeArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("seconds", IntegerArgumentType::integer(0));
-    warnTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setWarningTime(ctx); });
+    warnTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setWarningTime(ctx); });
     timeNode->addChild(warnTimeArg);
     warningNode->addChild(timeNode);
 
     auto distanceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("distance");
     auto warnDistArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("blocks", IntegerArgumentType::integer(0));
-    warnDistArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setWarningDistance(ctx); });
+    warnDistArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setWarningDistance(ctx); });
     distanceNode->addChild(warnDistArg);
     warningNode->addChild(distanceNode);
     borderNode->addChild(warningNode);
 
     // /worldborder get
     auto getNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
-    getNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getBorder(ctx); });
+    getNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getBorder(ctx); });
     borderNode->addChild(getNode);
 
     // /worldborder add <distance> [time]
@@ -110,17 +110,17 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("distance", FloatArgumentType::floatArg());
     auto addTimeArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", IntegerArgumentType::integer(0));
-    addTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addBorder(ctx); });
+    addTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addBorder(ctx); });
     addDistArg->addChild(addTimeArg);
     // 默认时间为 0（立即）
-    addDistArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addBorder(ctx); });
+    addDistArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addBorder(ctx); });
     addNode->addChild(addDistArg);
     borderNode->addChild(addNode);
 
     dispatcher.registerCommand(borderNode);
 }
 
-i32 WorldBorderCommand::setBorder(CommandContext<ServerCommandSource>& context)
+i32 WorldBorderCommand::_setBorder(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* world = source.world();
@@ -154,7 +154,7 @@ i32 WorldBorderCommand::setBorder(CommandContext<ServerCommandSource>& context)
     return 1;
 }
 
-i32 WorldBorderCommand::getBorder(CommandContext<ServerCommandSource>& context)
+i32 WorldBorderCommand::_getBorder(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* world = source.world();
@@ -174,7 +174,7 @@ i32 WorldBorderCommand::getBorder(CommandContext<ServerCommandSource>& context)
     return 1;
 }
 
-i32 WorldBorderCommand::setCenter(CommandContext<ServerCommandSource>& context)
+i32 WorldBorderCommand::_setCenter(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* world = source.world();
@@ -197,7 +197,7 @@ i32 WorldBorderCommand::setCenter(CommandContext<ServerCommandSource>& context)
     return 1;
 }
 
-i32 WorldBorderCommand::setDamageAmount(CommandContext<ServerCommandSource>& context)
+i32 WorldBorderCommand::_setDamageAmount(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* world = source.world();
@@ -219,7 +219,7 @@ i32 WorldBorderCommand::setDamageAmount(CommandContext<ServerCommandSource>& con
     return 1;
 }
 
-i32 WorldBorderCommand::setDamageBuffer(CommandContext<ServerCommandSource>& context)
+i32 WorldBorderCommand::_setDamageBuffer(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* world = source.world();
@@ -241,7 +241,7 @@ i32 WorldBorderCommand::setDamageBuffer(CommandContext<ServerCommandSource>& con
     return 1;
 }
 
-i32 WorldBorderCommand::setWarningTime(CommandContext<ServerCommandSource>& context)
+i32 WorldBorderCommand::_setWarningTime(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* world = source.world();
@@ -263,7 +263,7 @@ i32 WorldBorderCommand::setWarningTime(CommandContext<ServerCommandSource>& cont
     return 1;
 }
 
-i32 WorldBorderCommand::setWarningDistance(CommandContext<ServerCommandSource>& context)
+i32 WorldBorderCommand::_setWarningDistance(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* world = source.world();
@@ -285,7 +285,7 @@ i32 WorldBorderCommand::setWarningDistance(CommandContext<ServerCommandSource>& 
     return 1;
 }
 
-i32 WorldBorderCommand::addBorder(CommandContext<ServerCommandSource>& context)
+i32 WorldBorderCommand::_addBorder(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* world = source.world();

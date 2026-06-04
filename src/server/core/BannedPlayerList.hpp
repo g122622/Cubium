@@ -40,7 +40,6 @@ namespace mc::server::core {
  * @brief 封禁玩家条目
  *
  * 存储单个被封禁玩家的信息。
- * 参考 MC 1.16.5 ProfileBanEntry。
  */
 struct BannedPlayerEntry {
     std::string uuid;    ///< 玩家 UUID（格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
@@ -271,13 +270,13 @@ private:
     /**
      * @brief 清理过期的封禁条目
      */
-    void removeExpired() const;
+    void _removeExpired() const;
 
     /**
      * @brief 获取当前时间的格式化字符串
      * @return 格式化的时间字符串
      */
-    static std::string getCurrentTimeString();
+    static std::string _getCurrentTimeString();
 
     mutable std::mutex m_mutex;
     mutable std::unordered_map<std::string, BannedPlayerEntry> m_entriesByUuid; ///< UUID -> 条目

@@ -75,6 +75,10 @@ public:
     ServerPlayerEntityManager(const ServerPlayerEntityManager&) = delete;
     ServerPlayerEntityManager& operator=(const ServerPlayerEntityManager&) = delete;
 
+    // 允许移动
+    ServerPlayerEntityManager(ServerPlayerEntityManager&&) noexcept = default;
+    ServerPlayerEntityManager& operator=(ServerPlayerEntityManager&&) noexcept = default;
+
     // ========== 玩家实体生命周期 ==========
 
     /**

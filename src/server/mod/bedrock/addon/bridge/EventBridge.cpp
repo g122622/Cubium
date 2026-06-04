@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
 #include "server/mod/bedrock/addon/bridge/EventBridge.hpp"
 
 #include "common/mod/bedrock/addon/event/ScriptEventBus.hpp"
@@ -16,6 +39,24 @@ EventBridge::~EventBridge()
     shutdown();
 }
 
+EventBridge::EventBridge(EventBridge&& other) noexcept
+    : m_subscriptionIds(std::move(other.m_subscriptionIds))
+    , m_initialized(other.m_initialized)
+{
+    other.m_initialized = false;
+}
+
+EventBridge& EventBridge::operator=(EventBridge&& other) noexcept
+{
+    if (this != &other) {
+        shutdown();
+        m_subscriptionIds = std::move(other.m_subscriptionIds);
+        m_initialized = other.m_initialized;
+        other.m_initialized = false;
+    }
+    return *this;
+}
+
 void EventBridge::initialize(
     event::ServerEventBus& serverEventBus, mc::mod::bedrock::addon::ScriptEventBus& scriptEventBus)
 {
@@ -25,8 +66,8 @@ void EventBridge::initialize(
 
     spdlog::info("[EventBridge] Initializing event bridge...");
 
-    subscribeBeforeEvents(serverEventBus, scriptEventBus);
-    subscribeAfterEvents(serverEventBus, scriptEventBus);
+    _subscribeBeforeEvents(serverEventBus, scriptEventBus);
+    _subscribeAfterEvents(serverEventBus, scriptEventBus);
 
     m_initialized = true;
     spdlog::info("[EventBridge] Event bridge initialized ({} subscriptions)", m_subscriptionIds.size());
@@ -53,7 +94,7 @@ bool EventBridge::isInitialized() const
     return m_initialized;
 }
 
-void EventBridge::subscribeBeforeEvents(event::ServerEventBus& bus, mc::mod::bedrock::addon::ScriptEventBus& scriptBus)
+void EventBridge::_subscribeBeforeEvents(event::ServerEventBus& bus, mc::mod::bedrock::addon::ScriptEventBus& scriptBus)
 {
     // BlockBreakEvent — beforeEvent: scripts can cancel block breaking
     m_subscriptionIds.push_back(bus.subscribe<event::BlockBreakEvent>([&scriptBus](const event::BlockBreakEvent& e) {
@@ -129,7 +170,7 @@ void EventBridge::subscribeBeforeEvents(event::ServerEventBus& bus, mc::mod::bed
     }));
 }
 
-void EventBridge::subscribeAfterEvents(event::ServerEventBus& bus, mc::mod::bedrock::addon::ScriptEventBus& scriptBus)
+void EventBridge::_subscribeAfterEvents(event::ServerEventBus& bus, mc::mod::bedrock::addon::ScriptEventBus& scriptBus)
 {
     // === Player afterEvents ===
     m_subscriptionIds.push_back(bus.subscribe<event::PlayerLoginEvent>([&scriptBus](const event::PlayerLoginEvent& e) {

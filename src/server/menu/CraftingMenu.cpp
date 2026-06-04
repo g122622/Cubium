@@ -58,7 +58,7 @@ void processCraftingGrid(CraftingInventory& grid, const crafting::CraftingRecipe
         return;
     }
 
-    // MC 1.16.5: 使用 getRemainingItems() 获取剩余物品
+    // 使用 getRemainingItems() 获取剩余物品
     // 剩余物品包括：水桶->空桶、玻璃瓶->玻璃瓶、碗->碗等
     std::vector<ItemStack> remaining = recipe->getRemainingItems(grid);
 
@@ -147,7 +147,7 @@ void CraftingMenu::addCraftingGridSlots(i32 startX, i32 startY)
 void CraftingMenu::addResultSlot(i32 x, i32 y)
 {
     // 结果槽位：不能放入物品，只能取出
-    // MC 1.16.5: 传入玩家指针用于触发配方解锁和成就
+    // 传入玩家指针用于触发配方解锁和成就
     Player* player = m_playerInventory != nullptr ? m_playerInventory->getPlayer() : nullptr;
     addSlot(std::make_unique<ResultSlot>(&m_result, 0, x, y, &m_craftingGrid, player));
 }
@@ -163,7 +163,7 @@ void CraftingMenu::slotsChanged(IInventory* inventory)
 ItemStack CraftingMenu::clicked(i32 slotIndex, i32 button, ClickType clickType, Player& player)
 {
     if (slotIndex == RESULT_SLOT && clickType != ClickType::QuickMove) {
-        if (handleResultSlotClick() != nullptr) {
+        if (_handleResultSlotClick() != nullptr) {
             broadcastChanges();
         }
         return getCarriedItem();
@@ -208,7 +208,7 @@ ItemStack CraftingMenu::quickMoveStack(i32 slotIndex, Player& player)
             return ItemStack();
         }
 
-        consumeIngredients(recipe);
+        _consumeIngredients(recipe);
         updateResult();
         return crafted;
     }
@@ -263,7 +263,7 @@ void CraftingMenu::updateResult()
 
     if (m_currentRecipe != nullptr) {
         m_result.setResultItem(m_currentRecipe->assemble(m_craftingGrid));
-        // MC 1.16.5: 设置当前使用的配方，用于配方解锁
+        // 设置当前使用的配方，用于配方解锁
         m_result.setCraftingRecipeUsed(m_currentRecipe);
     } else {
         m_result.clear();
@@ -273,7 +273,7 @@ void CraftingMenu::updateResult()
     broadcastChanges();
 }
 
-const crafting::CraftingRecipe* CraftingMenu::handleResultSlotClick()
+const crafting::CraftingRecipe* CraftingMenu::_handleResultSlotClick()
 {
     const crafting::CraftingRecipe* recipe = crafting::RecipeManager::instance().findMatchingRecipe(m_craftingGrid);
     if (recipe == nullptr) {
@@ -291,14 +291,14 @@ const crafting::CraftingRecipe* CraftingMenu::handleResultSlotClick()
         m_carried.grow(result.getCount());
     }
 
-    consumeIngredients(recipe);
+    _consumeIngredients(recipe);
 
     // 更新结果（需要重新查找配方，因为原料已变化）
     updateResult();
     return recipe;
 }
 
-void CraftingMenu::consumeIngredients(const crafting::CraftingRecipe* recipe)
+void CraftingMenu::_consumeIngredients(const crafting::CraftingRecipe* recipe)
 {
     shrinkCraftingGrid(m_craftingGrid, recipe);
 }
@@ -310,7 +310,7 @@ InventoryCraftingMenu::InventoryCraftingMenu(ContainerId id, PlayerInventory* pl
     , m_craftingGrid(2, 2)
 {
 
-    // 槽位布局（参考 MC 1.16.5 PlayerContainer）：
+    // 槽位布局：
     // 槽位 0: 合成结果 (154, 28)
     // 槽位 1-4: 合成网格 (2x2) (98, 18) 到 (116, 36)
     // 槽位 5-8: 护甲 (8, 8), (8, 26), (8, 44), (8, 62)
@@ -319,7 +319,7 @@ InventoryCraftingMenu::InventoryCraftingMenu(ContainerId id, PlayerInventory* pl
     // 槽位 45: 副手 (77, 62)
 
     // 添加结果槽位 (槽位 0)
-    // MC 1.16.5: 传入玩家指针用于触发配方解锁和成就
+    // 传入玩家指针用于触发配方解锁和成就
     Player* player = m_playerInventory != nullptr ? m_playerInventory->getPlayer() : nullptr;
     addSlot(std::make_unique<ResultSlot>(&m_result, 0, 154, 28, &m_craftingGrid, player));
 
@@ -360,7 +360,7 @@ void InventoryCraftingMenu::slotsChanged(IInventory* inventory)
 ItemStack InventoryCraftingMenu::clicked(i32 slotIndex, i32 button, ClickType clickType, Player& player)
 {
     if (slotIndex == RESULT_SLOT && clickType != ClickType::QuickMove) {
-        if (handleResultSlotClick() != nullptr) {
+        if (_handleResultSlotClick() != nullptr) {
             broadcastChanges();
         }
         return getCarriedItem();
@@ -406,7 +406,7 @@ ItemStack InventoryCraftingMenu::quickMoveStack(i32 slotIndex, Player& player)
             }
         }
 
-        consumeIngredients(recipe);
+        _consumeIngredients(recipe);
         updateResult();
         return crafted;
     }
@@ -474,7 +474,7 @@ void InventoryCraftingMenu::updateResult()
 
     if (m_currentRecipe != nullptr) {
         m_result.setResultItem(m_currentRecipe->assemble(m_craftingGrid));
-        // MC 1.16.5: 设置当前使用的配方，用于配方解锁
+        // 设置当前使用的配方，用于配方解锁
         m_result.setCraftingRecipeUsed(m_currentRecipe);
     } else {
         m_result.clear();
@@ -484,7 +484,7 @@ void InventoryCraftingMenu::updateResult()
     broadcastChanges();
 }
 
-const crafting::CraftingRecipe* InventoryCraftingMenu::handleResultSlotClick()
+const crafting::CraftingRecipe* InventoryCraftingMenu::_handleResultSlotClick()
 {
     const crafting::CraftingRecipe* recipe = crafting::RecipeManager::instance().findMatchingRecipe(m_craftingGrid);
     if (recipe == nullptr) {
@@ -502,12 +502,12 @@ const crafting::CraftingRecipe* InventoryCraftingMenu::handleResultSlotClick()
         m_carried.grow(result.getCount());
     }
 
-    consumeIngredients(recipe);
+    _consumeIngredients(recipe);
     updateResult();
     return recipe;
 }
 
-void InventoryCraftingMenu::consumeIngredients(const crafting::CraftingRecipe* recipe)
+void InventoryCraftingMenu::_consumeIngredients(const crafting::CraftingRecipe* recipe)
 {
     shrinkCraftingGrid(m_craftingGrid, recipe);
 }

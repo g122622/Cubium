@@ -47,7 +47,6 @@
 #include <chrono>
 #include <utility>
 #include <fmt/format.h>
-#include <spdlog/spdlog.h>
 
 namespace mc::world::spawn {
 
@@ -61,8 +60,8 @@ static constexpr i32 SPAWN_CHUNK_DIVISOR = 17;
 /// 每区块最大生成尝试次数
 static constexpr i32 MAX_SPAWN_ATTEMPTS_PER_CHUNK = 3;
 
-/// MC 原版生成区块计算常量
-static constexpr i32 MAGIC_NUMBER = 289; // 17^2
+/// 生成区块计算常量 (17^2)
+static constexpr i32 MAGIC_NUMBER = 289;
 
 // ============================================================================
 // MobDensityTracker 实现
@@ -75,7 +74,6 @@ void MobDensityTracker::addCharge(const Vector3& pos, f64 charge)
 
 f64 MobDensityTracker::getTotalCharge(const Vector3& pos, f64 multiplier) const
 {
-    // 参考 MC 1.16.5 MobDensityTracker.func_234999_b_
     // 计算公式：sum(charge * multiplier / sqrt(distance))
     if (multiplier == 0.0) {
         return 0.0;
@@ -90,10 +88,10 @@ f64 MobDensityTracker::getTotalCharge(const Vector3& pos, f64 multiplier) const
         f64 distSq = dx * dx + dy * dy + dz * dz;
 
         if (distSq < 0.0001) {
-            // MC 原版：距离为 0 时直接累加 multiplier
+            // 距离为 0 时直接累加 multiplier
             totalCharge += multiplier;
         } else {
-            // MC 原版：charge * multiplier / sqrt(distance)
+            // charge * multiplier / sqrt(distance)
             f64 distance = std::sqrt(distSq);
             totalCharge += entry.charge * multiplier / distance;
         }
@@ -129,7 +127,7 @@ bool EntityDensityManager::canSpawn(entity::EntityClassification classification)
     i32 maxInstances = getMaxCount(classification);
 
     // 计算刷怪区块数量
-    // MC 原版: maxCount * chunkCount / 289
+    // maxCount * chunkCount / 289
     i32 chunkCount = (2 * m_viewDistance + 1) * (2 * m_viewDistance + 1);
     i32 adjustedMax = maxInstances * chunkCount / MAGIC_NUMBER;
 
@@ -146,21 +144,23 @@ bool EntityDensityManager::canSpawnWithDensity(
         return true; // 无成本限制
     }
 
-    // MC 1.16.5: 检查当前密度是否超过能量预算
+    // 检查当前密度是否超过能量预算
     // 原版逻辑：getTotalCharge(pos, charge) <= energyBudget
     f64 currentDensity = m_densityTracker.getTotalCharge(pos, spawnCosts.charge);
     return currentDensity <= spawnCosts.energyBudget;
 }
 
-void EntityDensityManager::onSpawn(const std::string& entityTypeId, entity::EntityClassification classification,
-    const Vector3& pos, const SpawnCosts& spawnCosts)
+void EntityDensityManager::onSpawn(const std::string& entityTypeId,
+    entity::EntityClassification classification,
+    const Vector3& pos,
+    const SpawnCosts& spawnCosts)
 {
-    // MC 1.16.5: 更新密度追踪器
+    // 更新密度追踪器
     if (spawnCosts.isValid()) {
         m_densityTracker.addCharge(pos, spawnCosts.charge);
     }
 
-    // MC 1.16.5: 更新实体分类计数
+    // 更新实体分类计数
     auto it = m_entityCounts.find(classification);
     if (it != m_entityCounts.end()) {
         ++it->second;
@@ -191,7 +191,6 @@ void NaturalSpawner::spawnInChunk(
     i32 minX = world::toWorldCoord(chunkX);
     i32 minZ = world::toWorldCoord(chunkZ);
 
-    // 参考 MC 1.16.5 performWorldGenSpawning
     // 仅生成 Creature 分类的实体（被动动物）
     const auto& creatures = spawnInfo.getCreatureSpawns();
     if (creatures.empty()) {
@@ -203,7 +202,7 @@ void NaturalSpawner::spawnInChunk(
 
     while (random.nextFloat() < spawnProbability) {
         // 选择生成条目
-        const SpawnEntry* entry = selectEntry(creatures, random);
+        const SpawnEntry* entry = _selectEntry(creatures, random);
         if (!entry) {
             break;
         }
@@ -222,8 +221,8 @@ void NaturalSpawner::spawnInChunk(
         }
 
         // 选择初始位置
-        i32 baseX = minX + random.nextInt(16);
-        i32 baseZ = minZ + random.nextInt(16);
+        i32 baseX = minX + random.nextInt(world::CHUNK_WIDTH);
+        i32 baseZ = minZ + random.nextInt(world::CHUNK_WIDTH);
 
         // 生成群体
         for (i32 i = 0; i < count; ++i) {
@@ -233,18 +232,18 @@ void NaturalSpawner::spawnInChunk(
 
             // 获取生成高度
             HeightmapType heightmapType = EntitySpawnPlacementRegistry::getHeightmapType(entry->entityTypeId);
-            i32 y = getSpawnHeight(world, x, z, heightmapType);
+            i32 y = _getSpawnHeight(world, x, z, heightmapType);
             if (y < world::MIN_BUILD_HEIGHT) {
                 continue;
             }
 
             // 检查是否可以生成
-            if (!canSpawnAt(world, x, y, z, *entry)) {
+            if (!_canSpawnAt(world, x, y, z, *entry)) {
                 continue;
             }
 
             // 尝试生成
-            trySpawnAt(world, x, y, z, *entry, random);
+            _trySpawnAt(world, x, y, z, *entry, random);
         }
 
         // 每次成功选择后降低概率
@@ -255,7 +254,6 @@ void NaturalSpawner::spawnInChunk(
 void NaturalSpawner::tick(mc::server::ServerWorld& world, bool hostile, bool passive)
 {
     MC_TRACE_EVENT("server.entity", "NaturalSpawner::tick", "hostile", hostile, "passive", passive);
-    // 参考 MC 1.16.5 WorldEntitySpawner.func_234979_a_
 
     // 和平模式下不生成敌对生物
     if (!entity::combat::DifficultyHelper::allowsMobSpawning(world.difficulty())) {
@@ -282,7 +280,7 @@ void NaturalSpawner::tick(mc::server::ServerWorld& world, bool hostile, bool pas
     }
 
     // 创建实体密度管理器
-    EntityDensityManager densityManager = createDensityManager(world);
+    EntityDensityManager densityManager = _createDensityManager(world);
 
     // 遍历每个玩家周围的区块
     for (Entity* player : players) {
@@ -291,8 +289,8 @@ void NaturalSpawner::tick(mc::server::ServerWorld& world, bool hostile, bool pas
         }
 
         Vector3 playerPos = player->position();
-        ChunkCoord playerChunkX = static_cast<ChunkCoord>(playerPos.x) >> 4;
-        ChunkCoord playerChunkZ = static_cast<ChunkCoord>(playerPos.z) >> 4;
+        ChunkCoord playerChunkX = world::toChunkCoord(static_cast<i32>(playerPos.x));
+        ChunkCoord playerChunkZ = world::toChunkCoord(static_cast<i32>(playerPos.z));
 
         // 遍历玩家周围的区块
         for (i32 dx = -viewDistance; dx <= viewDistance; ++dx) {
@@ -330,7 +328,7 @@ void NaturalSpawner::tick(mc::server::ServerWorld& world, bool hostile, bool pas
 
                     // 动物生成检查 - 每 400 tick 检查一次
                     if (classification == entity::EntityClassification::Creature) {
-                        if (!isSpawnCategoryReady(classification, worldTime)) {
+                        if (!_isSpawnCategoryReady(classification, worldTime)) {
                             continue;
                         }
                     }
@@ -341,7 +339,7 @@ void NaturalSpawner::tick(mc::server::ServerWorld& world, bool hostile, bool pas
                     }
 
                     // 执行生成
-                    spawnForClassificationInChunk(classification, world, chunk, playerPos, densityManager, random);
+                    _spawnForClassificationInChunk(classification, world, chunk, playerPos, densityManager, random);
                 }
             }
         }
@@ -353,7 +351,7 @@ void NaturalSpawner::tick(mc::server::ServerWorld& world, bool hostile, bool pas
     }
 }
 
-void NaturalSpawner::spawnForClassificationInChunk(entity::EntityClassification classification,
+void NaturalSpawner::_spawnForClassificationInChunk(entity::EntityClassification classification,
     mc::server::ServerWorld& world,
     const ChunkData* chunk,
     const Vector3& playerPos,
@@ -361,7 +359,7 @@ void NaturalSpawner::spawnForClassificationInChunk(entity::EntityClassification 
     math::Random& random)
 {
     MC_TRACE_EVENT("server.entity",
-        "NaturalSpawner::spawnForClassificationInChunk",
+        "NaturalSpawner::_spawnForClassificationInChunk",
         "classification",
         static_cast<i32>(classification));
     if (!chunk) {
@@ -372,15 +370,15 @@ void NaturalSpawner::spawnForClassificationInChunk(entity::EntityClassification 
     HeightmapType heightmapType = HeightmapType::MotionBlockingNoLeaves;
 
     // 获取区块的世界坐标
-    i32 chunkMinX = chunk->x() << 4;
-    i32 chunkMinZ = chunk->z() << 4;
+    i32 chunkMinX = chunk->x() << world::CHUNK_SHIFT;
+    i32 chunkMinZ = chunk->z() << world::CHUNK_SHIFT;
 
     // 随机选择区块内位置
-    i32 spawnX = chunkMinX + random.nextInt(16);
-    i32 spawnZ = chunkMinZ + random.nextInt(16);
+    i32 spawnX = chunkMinX + random.nextInt(world::CHUNK_WIDTH);
+    i32 spawnZ = chunkMinZ + random.nextInt(world::CHUNK_WIDTH);
 
     // 获取高度
-    i32 spawnY = getSpawnHeight(world, spawnX, spawnZ, heightmapType);
+    i32 spawnY = _getSpawnHeight(world, spawnX, spawnZ, heightmapType);
     if (spawnY < 0) {
         return;
     }
@@ -402,7 +400,7 @@ void NaturalSpawner::spawnForClassificationInChunk(entity::EntityClassification 
 
     // 选择生成条目
     Vector3i pos(spawnX, spawnY, spawnZ);
-    const SpawnEntry* entry = getRandomSpawnEntry(world, chunk, classification, pos, random);
+    const SpawnEntry* entry = _getRandomSpawnEntry(world, chunk, classification, pos, random);
     if (!entry) {
         return;
     }
@@ -410,8 +408,8 @@ void NaturalSpawner::spawnForClassificationInChunk(entity::EntityClassification 
     // 从 ChunkData 获取生物群系，再从生物群系获取 SpawnCosts
     const SpawnCosts* spawnCosts = nullptr;
     if (chunk) {
-        i32 localX = spawnX & 15;
-        i32 localZ = spawnZ & 15;
+        i32 localX = world::toLocalCoord(spawnX);
+        i32 localZ = world::toLocalCoord(spawnZ);
         BiomeId biomeId = chunk->getBiomeAtBlock(localX, spawnY, localZ);
 
         if (BiomeRegistry::instance().hasBiome(biomeId)) {
@@ -452,7 +450,7 @@ void NaturalSpawner::spawnForClassificationInChunk(entity::EntityClassification 
         i32 z = spawnZ + random.nextInt(6) - random.nextInt(6);
 
         // 获取高度
-        i32 y = getSpawnHeight(world, x, z, heightmapType);
+        i32 y = _getSpawnHeight(world, x, z, heightmapType);
         if (y < world::MIN_BUILD_HEIGHT) {
             continue;
         }
@@ -467,18 +465,18 @@ void NaturalSpawner::spawnForClassificationInChunk(entity::EntityClassification 
         }
 
         // 检查是否可以生成
-        if (!canSpawnAt(world, x, y, z, *entry)) {
+        if (!_canSpawnAt(world, x, y, z, *entry)) {
             continue;
         }
 
         // 尝试生成
-        i32 result = trySpawnAt(world, x, y, z, *entry, random);
+        i32 result = _trySpawnAt(world, x, y, z, *entry, random);
         if (result > 0) {
             spawned += result;
 
             // 更新密度和分类计数
-            // MC 1.16.5: onSpawn 时同时更新密度追踪器和分类计数
-            densityManager.onSpawn(entry->entityTypeId, classification,
+            densityManager.onSpawn(entry->entityTypeId,
+                classification,
                 Vector3(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)),
                 spawnCosts ? *spawnCosts : SpawnCosts());
 
@@ -490,11 +488,11 @@ void NaturalSpawner::spawnForClassificationInChunk(entity::EntityClassification 
     }
 }
 
-i32 NaturalSpawner::trySpawnAt(
+i32 NaturalSpawner::_trySpawnAt(
     mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry, math::Random& random)
 {
     MC_TRACE_EVENT("server.entity",
-        "NaturalSpawner::trySpawnAt",
+        "NaturalSpawner::_trySpawnAt",
         "pos",
         fmt::format("({}, {}, {})", x, y, z),
         "entityType",
@@ -503,7 +501,6 @@ i32 NaturalSpawner::trySpawnAt(
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* entityType = registry.getType(entry.entityTypeId);
     if (!entityType) {
-        spdlog::debug("Unknown entity type for spawning: {}", entry.entityTypeId);
         return 0;
     }
 
@@ -513,7 +510,7 @@ i32 NaturalSpawner::trySpawnAt(
     }
 
     // 检查生成位置
-    if (!canSpawnAt(world, x, y, z, entry)) {
+    if (!_canSpawnAt(world, x, y, z, entry)) {
         return 0;
     }
 
@@ -567,7 +564,7 @@ i32 NaturalSpawner::trySpawnAt(
     return spawned;
 }
 
-const SpawnEntry* NaturalSpawner::selectEntry(const std::vector<SpawnEntry>& entries, math::Random& random) const
+const SpawnEntry* NaturalSpawner::_selectEntry(const std::vector<SpawnEntry>& entries, math::Random& random) const
 {
     if (entries.empty()) {
         return nullptr;
@@ -597,7 +594,7 @@ const SpawnEntry* NaturalSpawner::selectEntry(const std::vector<SpawnEntry>& ent
     return nullptr;
 }
 
-bool NaturalSpawner::canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry) const
+bool NaturalSpawner::_canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry) const
 {
     // 获取实体类型
     auto& registry = entity::EntityRegistry::instance();
@@ -633,27 +630,27 @@ bool NaturalSpawner::canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i3
 
         [[nodiscard]] i32 getHeight(HeightmapType type, i32 bx, i32 bz) const override
         {
-            ChunkCoord chunkX = static_cast<ChunkCoord>(bx >> 4);
-            ChunkCoord chunkZ = static_cast<ChunkCoord>(bz >> 4);
+            ChunkCoord chunkX = world::toChunkCoord(bx);
+            ChunkCoord chunkZ = world::toChunkCoord(bz);
             const ChunkData* chunk = m_world.getChunk(chunkX, chunkZ);
             if (!chunk) {
                 return m_world.getHeight(bx, bz);
             }
-            i32 localX = bx & 15;
-            i32 localZ = bz & 15;
+            i32 localX = world::toLocalCoord(bx);
+            i32 localZ = world::toLocalCoord(bz);
             return chunk->getTopBlockY(type, localX, localZ);
         }
 
         [[nodiscard]] BiomeId getBiome(i32 bx, i32 by, i32 bz) const override
         {
-            ChunkCoord chunkX = static_cast<ChunkCoord>(bx >> 4);
-            ChunkCoord chunkZ = static_cast<ChunkCoord>(bz >> 4);
+            ChunkCoord chunkX = world::toChunkCoord(bx);
+            ChunkCoord chunkZ = world::toChunkCoord(bz);
             const ChunkData* chunk = m_world.getChunk(chunkX, chunkZ);
             if (!chunk) {
                 return Biomes::Plains;
             }
-            i32 localX = bx & 15;
-            i32 localZ = bz & 15;
+            i32 localX = world::toLocalCoord(bx);
+            i32 localZ = world::toLocalCoord(bz);
             return chunk->getBiomeAtBlock(localX, by, localZ);
         }
 
@@ -675,15 +672,15 @@ bool NaturalSpawner::canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i3
     switch (classification) {
         case entity::EntityClassification::Monster:
             // 怪物需要低光照
-            return checkLightLevel(world, x, y, z, true);
+            return _checkLightLevel(world, x, y, z, true);
 
         case entity::EntityClassification::Creature:
             // 动物需要足够光照
-            return checkLightLevel(world, x, y, z, false);
+            return _checkLightLevel(world, x, y, z, false);
 
         case entity::EntityClassification::Ambient:
             // 环境生物（蝙蝠）需要低光照
-            return checkLightLevel(world, x, y, z, true);
+            return _checkLightLevel(world, x, y, z, true);
 
         case entity::EntityClassification::WaterCreature:
         case entity::EntityClassification::WaterAmbient:
@@ -698,7 +695,7 @@ bool NaturalSpawner::canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i3
     return true;
 }
 
-bool NaturalSpawner::checkLightLevel(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, bool isMonster) const
+bool NaturalSpawner::_checkLightLevel(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, bool isMonster) const
 {
     // 获取天空光照和方块光照
     u8 skyLight = world.getSkyLight(x, y, z);
@@ -708,11 +705,11 @@ bool NaturalSpawner::checkLightLevel(mc::server::ServerWorld& world, i32 x, i32 
     return SpawnConditions::checkLightLevel(static_cast<i32>(skyLight), static_cast<i32>(blockLight), isMonster);
 }
 
-i32 NaturalSpawner::getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z, HeightmapType heightmapType) const
+i32 NaturalSpawner::_getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z, HeightmapType heightmapType) const
 {
     // 获取区块
-    ChunkCoord chunkX = static_cast<ChunkCoord>(x >> 4);
-    ChunkCoord chunkZ = static_cast<ChunkCoord>(z >> 4);
+    ChunkCoord chunkX = world::toChunkCoord(x);
+    ChunkCoord chunkZ = world::toChunkCoord(z);
 
     const ChunkData* chunk = world.getChunk(chunkX, chunkZ);
     if (!chunk) {
@@ -720,14 +717,14 @@ i32 NaturalSpawner::getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z,
     }
 
     // 获取局部坐标
-    i32 localX = x & 15;
-    i32 localZ = z & 15;
+    i32 localX = world::toLocalCoord(x);
+    i32 localZ = world::toLocalCoord(z);
 
     // 使用指定类型的高度图获取高度
     return chunk->getTopBlockY(heightmapType, localX, localZ);
 }
 
-Vector3i NaturalSpawner::getRandomSpawnPosition(
+Vector3i NaturalSpawner::_getRandomSpawnPosition(
     mc::server::ServerWorld& world, const ChunkData* chunk, HeightmapType heightmapType, math::Random& random) const
 {
     if (!chunk) {
@@ -735,24 +732,24 @@ Vector3i NaturalSpawner::getRandomSpawnPosition(
     }
 
     // 获取区块坐标范围
-    i32 minX = chunk->x() << 4;
-    i32 minZ = chunk->z() << 4;
+    i32 minX = chunk->x() << world::CHUNK_SHIFT;
+    i32 minZ = chunk->z() << world::CHUNK_SHIFT;
 
     // 随机选择区块内位置
-    i32 x = minX + random.nextInt(16);
-    i32 z = minZ + random.nextInt(16);
+    i32 x = minX + random.nextInt(world::CHUNK_WIDTH);
+    i32 z = minZ + random.nextInt(world::CHUNK_WIDTH);
 
     // 获取高度
-    i32 y = getSpawnHeight(world, x, z, heightmapType);
+    i32 y = _getSpawnHeight(world, x, z, heightmapType);
 
     return Vector3i(x, y, z);
 }
 
-bool NaturalSpawner::isValidSpawnPosition(
+bool NaturalSpawner::_isValidSpawnPosition(
     mc::server::ServerWorld& world, const Vector3i& pos, f64 playerDistanceSq) const
 {
     // 检查距离限制
-    // 参考 MC 1.16.5: 玩家必须在 24-128 格范围内
+    // 玩家必须在 24-128 格范围内
     if (playerDistanceSq < MIN_SPAWN_DISTANCE_SQ) {
         return false;
     }
@@ -770,7 +767,7 @@ bool NaturalSpawner::isValidSpawnPosition(
     return true;
 }
 
-const SpawnEntry* NaturalSpawner::getRandomSpawnEntry(mc::server::ServerWorld& world,
+const SpawnEntry* NaturalSpawner::_getRandomSpawnEntry(mc::server::ServerWorld& world,
     const ChunkData* chunk,
     entity::EntityClassification classification,
     const Vector3i& pos,
@@ -779,8 +776,8 @@ const SpawnEntry* NaturalSpawner::getRandomSpawnEntry(mc::server::ServerWorld& w
     // 从 ChunkData 获取生物群系
     BiomeId biomeId = Biomes::Plains;
     if (chunk) {
-        i32 localX = pos.x & 15;
-        i32 localZ = pos.z & 15;
+        i32 localX = world::toLocalCoord(pos.x);
+        i32 localZ = world::toLocalCoord(pos.z);
         biomeId = chunk->getBiomeAtBlock(localX, pos.y, localZ);
     }
 
@@ -809,7 +806,7 @@ const SpawnEntry* NaturalSpawner::getRandomSpawnEntry(mc::server::ServerWorld& w
             default:
                 return nullptr;
         }
-        return selectEntry(*entries, random);
+        return _selectEntry(*entries, random);
     }
 
     // 获取生物群系信息
@@ -823,10 +820,10 @@ const SpawnEntry* NaturalSpawner::getRandomSpawnEntry(mc::server::ServerWorld& w
         return nullptr;
     }
 
-    return selectEntry(entries, random);
+    return _selectEntry(entries, random);
 }
 
-EntityDensityManager NaturalSpawner::createDensityManager(mc::server::ServerWorld& world)
+EntityDensityManager NaturalSpawner::_createDensityManager(mc::server::ServerWorld& world)
 {
     // 统计当前实体数量快照
     std::unordered_map<entity::EntityClassification, i32> entityCounts =
@@ -842,7 +839,7 @@ EntityDensityManager NaturalSpawner::createDensityManager(mc::server::ServerWorl
     return EntityDensityManager(viewDistance, std::move(entityCounts), m_densityTracker);
 }
 
-std::vector<ChunkPos> NaturalSpawner::getSpawnableChunks(
+std::vector<ChunkPos> NaturalSpawner::_getSpawnableChunks(
     mc::server::ServerWorld& world, i32 maxChunks, math::Random& random) const
 {
     std::vector<ChunkPos> result;
@@ -864,8 +861,8 @@ std::vector<ChunkPos> NaturalSpawner::getSpawnableChunks(
         }
 
         Vector3 pos = player->position();
-        ChunkCoord playerChunkX = static_cast<ChunkCoord>(pos.x) >> 4;
-        ChunkCoord playerChunkZ = static_cast<ChunkCoord>(pos.z) >> 4;
+        ChunkCoord playerChunkX = world::toChunkCoord(static_cast<i32>(pos.x));
+        ChunkCoord playerChunkZ = world::toChunkCoord(static_cast<i32>(pos.z));
 
         // 遍历玩家周围的区块
         for (i32 dx = -viewDistance; dx <= viewDistance; ++dx) {
@@ -894,7 +891,7 @@ std::vector<ChunkPos> NaturalSpawner::getSpawnableChunks(
     return allChunks;
 }
 
-bool NaturalSpawner::isSpawnCategoryReady(entity::EntityClassification classification, u64 worldTime) const
+bool NaturalSpawner::_isSpawnCategoryReady(entity::EntityClassification classification, u64 worldTime) const
 {
     // 动物生成检查 - 每 400 tick 检查一次
     if (classification == entity::EntityClassification::Creature) {

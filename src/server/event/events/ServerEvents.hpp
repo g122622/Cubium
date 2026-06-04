@@ -73,7 +73,6 @@ struct BlockBreakEvent : ServerEvent {
  * @brief 方块放置事件
  *
  * 当玩家成功放置方块时触发。
- * 参考 MC 1.16.5: CriteriaTriggers.PLACED_BLOCK
  */
 struct BlockPlaceEvent : ServerEvent {
     PlayerId playerId;       ///< 放置者ID（可能为0表示非玩家放置）
@@ -419,7 +418,6 @@ struct ItemDurabilityEvent : ServerEvent {
  * @brief 物品销毁事件
  *
  * 当物品因使用而损坏或消耗完毕时触发。
- * 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
  * 触发场景：
  * - 武器攻击损坏
  * - 工具使用损坏
@@ -569,7 +567,6 @@ struct VillagerTradeEvent : ServerEvent {
  * @brief 治愈僵尸村民事件
  *
  * 当玩家治愈僵尸村民时触发。
- * 参考 MC 1.16.5: CriteriaTriggers.CURED_ZOMBIE_VILLAGER
  */
 struct CuredZombieVillagerEvent : ServerEvent {
     std::string starterUuid; ///< 治愈发起者玩家UUID（可能为空）
@@ -803,7 +800,6 @@ struct EnterBlockEvent : ServerEvent {
  * @brief 引雷附魔触发事件
  *
  * 当玩家使用引雷附魔的三叉戟召唤闪电击中实体时触发。
- * 参考 MC 1.16.5: CriteriaTriggers.CHANNELED_LIGHTNING
  */
 struct ChanneledLightningEvent : ServerEvent {
     PlayerId casterId;            ///< 施法者ID（引雷附魔的玩家）
@@ -827,8 +823,8 @@ struct ChanneledLightningEvent : ServerEvent {
  * 脚本系统可在此事件中执行初始化逻辑。
  */
 struct WorldInitializeEvent : ServerEvent {
-    std::string levelName;     ///< 世界名称
-    DimensionId overworldId;   ///< 主世界维度ID
+    std::string levelName;   ///< 世界名称
+    DimensionId overworldId; ///< 主世界维度ID
 
     WorldInitializeEvent(u64 tick, const std::string& name, DimensionId dim)
         : ServerEvent(tick)
@@ -856,7 +852,6 @@ struct ServerTickEvent : ServerEvent {
  * @brief 天气变化事件
  *
  * 当天气状态发生变化时触发（可取消，beforeEvent可阻止天气变化）。
- * 参考 MC 1.16.5: WeatherChangeEvent
  */
 struct WeatherChangeEvent : ServerEvent {
     DimensionId dimension; ///< 维度
@@ -879,7 +874,6 @@ struct WeatherChangeEvent : ServerEvent {
  * @brief 聊天消息事件
  *
  * 当玩家发送聊天消息时触发。可取消（beforeEvent可阻止消息发送）。
- * 参考 MC 1.16.5: ServerChatEvent
  */
 struct ChatEvent : ServerEvent {
     PlayerId playerId;    ///< 发送者ID
@@ -902,23 +896,17 @@ struct ChatEvent : ServerEvent {
  * @brief 爆炸事件
  *
  * 当爆炸发生时触发。可取消（beforeEvent可阻止爆炸）。
- * 参考 MC 1.16.5: ExplosionEvent
  */
 struct ExplosionEvent : ServerEvent {
-    DimensionId dimension;    ///< 维度
-    Vector3d position;        ///< 爆炸位置
-    f32 power;                ///< 爆炸威力
-    Entity* source;           ///< 爆炸源实体（可能为null，如床爆炸）
-    bool flaming;             ///< 是否产生火焰（如火球爆炸）
+    DimensionId dimension;                ///< 维度
+    Vector3d position;                    ///< 爆炸位置
+    f32 power;                            ///< 爆炸威力
+    Entity* source;                       ///< 爆炸源实体（可能为null，如床爆炸）
+    bool flaming;                         ///< 是否产生火焰（如火球爆炸）
     std::vector<BlockPos> affectedBlocks; ///< 受影响的方块位置
 
-    ExplosionEvent(u64 tick,
-        DimensionId dim,
-        const Vector3d& pos,
-        f32 pow,
-        Entity* src,
-        bool flame,
-        std::vector<BlockPos> blocks)
+    ExplosionEvent(
+        u64 tick, DimensionId dim, const Vector3d& pos, f32 pow, Entity* src, bool flame, std::vector<BlockPos> blocks)
         : ServerEvent(tick)
         , dimension(dim)
         , position(pos)
@@ -938,21 +926,20 @@ struct ExplosionEvent : ServerEvent {
  *
  * 当实体在世界中生成时触发（自然生成、刷怪笼等，不含玩家登录）。
  * 与SummonedEntityEvent不同，后者仅限玩家主动召唤。
- * 参考 MC 1.16.5: EntityJoinWorldEvent
  */
 struct EntitySpawnEvent : ServerEvent {
-    Entity* entity;           ///< 生成的实体
-    DimensionId dimension;    ///< 生成维度
-    Vector3d position;        ///< 生成位置
+    Entity* entity;        ///< 生成的实体
+    DimensionId dimension; ///< 生成维度
+    Vector3d position;     ///< 生成位置
     enum class SpawnReason : u8 {
-        Natural,              ///< 自然生成
-        Spawner,              ///< 刷怪笼
-        SpawnEgg,             ///< 刷怪蛋
-        Command,              ///< 命令生成
-        Dispenser,            ///< 发射器
-        Other                 ///< 其他原因
+        Natural,   ///< 自然生成
+        Spawner,   ///< 刷怪笼
+        SpawnEgg,  ///< 刷怪蛋
+        Command,   ///< 命令生成
+        Dispenser, ///< 发射器
+        Other      ///< 其他原因
     };
-    SpawnReason reason;       ///< 生成原因
+    SpawnReason reason; ///< 生成原因
 
     EntitySpawnEvent(u64 tick, Entity* e, DimensionId dim, const Vector3d& pos, SpawnReason r)
         : ServerEvent(tick)

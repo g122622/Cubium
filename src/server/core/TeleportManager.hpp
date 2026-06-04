@@ -97,12 +97,6 @@ public:
 private:
     PlayerManager& m_playerManager;
     std::atomic<u32> m_nextTeleportId{1};
-
-    /**
-     * @brief 获取下一个传送ID（线程安全）
-     * @return 新的传送ID
-     */
-    [[nodiscard]] u32 nextTeleportId() { return m_nextTeleportId.fetch_add(1); }
 };
 
 } // namespace mc::server::core

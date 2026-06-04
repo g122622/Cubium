@@ -88,7 +88,7 @@ struct OpEntry {
      * @brief 检查条目是否有效
      * @return true 如果 UUID 和名称都不为空
      */
-    [[nodiscard]] bool isValid() const { return !uuid.empty() && !name.empty(); }
+    [[nodiscard]] bool isValid() const noexcept { return !uuid.empty() && !name.empty(); }
 
     /**
      * @brief 获取显示名称
@@ -100,7 +100,7 @@ struct OpEntry {
      * @brief 获取权限等级数值
      * @return 权限等级 (0-4)
      */
-    [[nodiscard]] i32 getLevelValue() const { return static_cast<i32>(level); }
+    [[nodiscard]] i32 getLevelValue() const noexcept { return static_cast<i32>(level); }
 };
 
 /**
@@ -264,7 +264,7 @@ public:
     /**
      * @brief 清空 OP 列表
      */
-    void clear();
+    void clear() noexcept;
 
     // ========== 文件操作 ==========
 
@@ -300,6 +300,13 @@ private:
     std::unordered_map<std::string, OpEntry> m_entriesByUuid;  ///< UUID -> 条目
     std::unordered_map<std::string, std::string> m_nameToUuid; ///< 名称（小写）-> UUID
     std::filesystem::path m_filePath;
+
+    /**
+     * @brief 将名称转换为小写（用于名称映射）
+     * @param name 原始名称
+     * @return 小写名称
+     */
+    static std::string _toLowerName(const std::string& name);
 };
 
 } // namespace mc::server::core

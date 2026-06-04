@@ -61,9 +61,6 @@ u32 TeleportManager::requestTeleport(PlayerId playerId, f64 x, f64 y, f64 z, f32
     auto packet = ConnectionManager::encapsulatePacket(network::PacketType::Teleport, ser.buffer());
     player->send(packet.data(), packet.size());
 
-    spdlog::debug(
-        "TeleportManager: Player {} teleporting to ({}, {}, {}), teleportId={}", playerId, x, y, z, teleportId);
-
     return teleportId;
 }
 
@@ -76,7 +73,6 @@ bool TeleportManager::confirmTeleport(PlayerId playerId, u32 teleportId)
     }
 
     if (!player->waitingTeleportConfirm) {
-        spdlog::debug("TeleportManager: Player {} not waiting for teleport confirm", playerId);
         return false;
     }
 
@@ -89,7 +85,6 @@ bool TeleportManager::confirmTeleport(PlayerId playerId, u32 teleportId)
     }
 
     player->waitingTeleportConfirm = false;
-    spdlog::debug("TeleportManager: Player {} confirmed teleport {}", playerId, teleportId);
     return true;
 }
 

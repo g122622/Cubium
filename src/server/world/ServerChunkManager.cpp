@@ -22,12 +22,12 @@
  */
 
 #include "ServerChunkManager.hpp"
-#include "../sync/ChunkSendManager.hpp"
 #include "ServerWorld.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
+#include "server/sync/ChunkSendManager.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -67,7 +67,7 @@ ServerChunkManager::ServerChunkManager(ServerWorld& world, std::unique_ptr<IChun
     , m_generator(std::move(generator))
 {
     m_ticketManager.setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
-        onTicketLevelChanged(x, z, oldLevel, newLevel);
+        _onTicketLevelChanged(x, z, oldLevel, newLevel);
     });
 }
 
@@ -76,7 +76,7 @@ ServerChunkManager::ServerChunkManager(std::unique_ptr<IChunkGenerator> generato
     , m_generator(std::move(generator))
 {
     m_ticketManager.setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
-        onTicketLevelChanged(x, z, oldLevel, newLevel);
+        _onTicketLevelChanged(x, z, oldLevel, newLevel);
     });
 }
 
@@ -113,7 +113,7 @@ void ServerChunkManager::shutdown()
 
     for (auto& lifecycleManager : lifecycleManagers) {
         if (lifecycleManager) {
-            failWaiters(lifecycleManager->takeAllWaiters());
+            _failWaiters(lifecycleManager->takeAllWaiters());
         }
     }
 
@@ -173,17 +173,17 @@ ChunkData* ServerChunkManager::requestChunkSync(ChunkCoord x, ChunkCoord z, cons
     }
 
     if (m_world && m_world->isStorageOpen()) {
-        if (auto loadedChunk = tryToLoadChunkFromStorageSync(x, z)) {
-            SingleChunkLifecycleManager& lifecycleManager = getOrCreateLifecycleManager(x, z);
+        if (auto loadedChunk = _tryToLoadChunkFromStorageSync(x, z)) {
+            SingleChunkLifecycleManager& lifecycleManager = _getOrCreateLifecycleManager(x, z);
             lifecycleManager.markLoadedFromStorageReady();
-            return storeChunkInMemorySync(x, z, std::move(loadedChunk));
+            return _storeChunkInMemorySync(x, z, std::move(loadedChunk));
         }
     }
 
-    SingleChunkLifecycleManager& lifecycleManager = getOrCreateLifecycleManager(x, z);
-    const i32 priority = computeSchedulePriority(x, z, targetStatus, m_ticketManager.getChunkLevel(x, z));
+    SingleChunkLifecycleManager& lifecycleManager = _getOrCreateLifecycleManager(x, z);
+    const i32 priority = _computeSchedulePriority(x, z, targetStatus, m_ticketManager.getChunkLevel(x, z));
     MC_UNUSED(priority);
-    executeGenerationSync(lifecycleManager, targetStatus);
+    _executeGenerationSync(lifecycleManager, targetStatus);
     return tryToGetChunkInMem(x, z);
 }
 
@@ -197,17 +197,17 @@ std::future<ChunkData*> ServerChunkManager::requestChunkAsync(
 {
     auto promise = std::make_shared<std::promise<ChunkData*>>();
     auto future = promise->get_future();
-    submitChunkRequest(x, z, targetStatus, {}, promise);
+    _submitChunkRequest(x, z, targetStatus, {}, promise);
     return future;
 }
 
 void ServerChunkManager::requestChunkAsync(
     ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus, ChunkCallback callback)
 {
-    submitChunkRequest(x, z, targetStatus, std::move(callback), {});
+    _submitChunkRequest(x, z, targetStatus, std::move(callback), {});
 }
 
-void ServerChunkManager::submitChunkRequest(ChunkCoord x,
+void ServerChunkManager::_submitChunkRequest(ChunkCoord x,
     ChunkCoord z,
     const ChunkStatus& targetStatus,
     ChunkCallback callback,
@@ -223,64 +223,64 @@ void ServerChunkManager::submitChunkRequest(ChunkCoord x,
         return;
     }
 
-    SingleChunkLifecycleManager& lifecycleManager = getOrCreateLifecycleManager(x, z);
-    const i32 priority = computeSchedulePriority(x, z, targetStatus, m_ticketManager.getChunkLevel(x, z));
+    SingleChunkLifecycleManager& lifecycleManager = _getOrCreateLifecycleManager(x, z);
+    const i32 priority = _computeSchedulePriority(x, z, targetStatus, m_ticketManager.getChunkLevel(x, z));
     auto decision = lifecycleManager.submitRequest(targetStatus, priority, std::move(callback), std::move(promise));
-    advanceChunkState(lifecycleManager, decision);
+    _advanceChunkState(lifecycleManager, decision);
 }
 
 // ============================================================================
 // 状态机推进
 // ============================================================================
 
-void ServerChunkManager::advanceChunkState(
+void ServerChunkManager::_advanceChunkState(
     SingleChunkLifecycleManager& lifecycleManager, const SingleChunkLifecycleManager::EnqueueDecision& decision)
 {
     if (decision.shouldWakeReadyWaiters) {
-        completeReadyWaiters(lifecycleManager);
+        _completeReadyWaiters(lifecycleManager);
         return;
     }
 
     if (decision.shouldResolveStorage) {
-        resolveChunkSourceSync(lifecycleManager);
+        _resolveChunkSourceSync(lifecycleManager);
         return;
     }
 
     if (decision.shouldQueueGeneration) {
-        enqueueChunkGenerationAsync(lifecycleManager, decision);
+        _enqueueChunkGenerationAsync(lifecycleManager, decision);
     }
 }
 
-void ServerChunkManager::resolveChunkSourceSync(SingleChunkLifecycleManager& lifecycleManager)
+void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& lifecycleManager)
 {
     const ChunkCoord x = lifecycleManager.x();
     const ChunkCoord z = lifecycleManager.z();
 
     std::unique_ptr<ChunkData> loadedChunk;
     if (m_world && m_world->isStorageOpen()) {
-        loadedChunk = tryToLoadChunkFromStorageSync(x, z);
+        loadedChunk = _tryToLoadChunkFromStorageSync(x, z);
     }
 
     auto decision = lifecycleManager.noteStorageResolved(loadedChunk != nullptr);
     if (loadedChunk) {
         lifecycleManager.markLoadedFromStorageReady();
-        ChunkData* stored = storeChunkInMemorySync(x, z, std::move(loadedChunk));
+        ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(loadedChunk));
         MC_UNUSED(stored);
-        completeReadyWaiters(lifecycleManager);
-        wakeBlockedNeighborsAsync(x, z);
+        _completeReadyWaiters(lifecycleManager);
+        _wakeBlockedNeighborsAsync(x, z);
         return;
     }
 
-    if (const ChunkStatus* prerequisiteStatus = getNeighborPrerequisiteStatus(lifecycleManager.requestedStatus())) {
-        decision = lifecycleManager.noteNeighborProgress(areNeighborsReady(x, z, *prerequisiteStatus));
+    if (const ChunkStatus* prerequisiteStatus = _getNeighborPrerequisiteStatus(lifecycleManager.requestedStatus())) {
+        decision = lifecycleManager.noteNeighborProgress(_areNeighborsReady(x, z, *prerequisiteStatus));
     } else {
         decision = lifecycleManager.noteNeighborProgress(true);
     }
 
-    advanceChunkState(lifecycleManager, decision);
+    _advanceChunkState(lifecycleManager, decision);
 }
 
-void ServerChunkManager::enqueueChunkGenerationAsync(
+void ServerChunkManager::_enqueueChunkGenerationAsync(
     SingleChunkLifecycleManager& lifecycleManager, const SingleChunkLifecycleManager::EnqueueDecision& decision)
 {
     const ChunkCoord x = lifecycleManager.x();
@@ -290,12 +290,12 @@ void ServerChunkManager::enqueueChunkGenerationAsync(
     if (m_workerPool == nullptr || !m_workerPool->isRunning()) {
         std::lock_guard<std::mutex> generationLock(m_syncGenerationMutex);
         lifecycleManager.noteGenerationStarted(decision.generation);
-        executeGenerationSync(lifecycleManager, *decision.targetStatus);
+        _executeGenerationSync(lifecycleManager, *decision.targetStatus);
         auto completionDecision = lifecycleManager.noteGenerationFinished(
             decision.generation, SingleChunkLifecycleManager::CompletionState::Succeeded);
         MC_UNUSED(completionDecision);
-        completeReadyWaiters(lifecycleManager);
-        wakeBlockedNeighborsAsync(x, z);
+        _completeReadyWaiters(lifecycleManager);
+        _wakeBlockedNeighborsAsync(x, z);
         return;
     }
 
@@ -305,16 +305,16 @@ void ServerChunkManager::enqueueChunkGenerationAsync(
         z,
         *decision.targetStatus,
         [this](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
-            doGenerateChunkToTargetStatus(chunk, targetStatus);
+            _doGenerateChunkToTargetStatus(chunk, targetStatus);
             if (!cancelSignal.load(std::memory_order_acquire)) {
-                doSpawnInitialMobs(chunk);
+                _doSpawnInitialMobs(chunk);
             }
         });
 
     m_workerPool->submit(
         std::move(task),
         [this, x, z, generation = decision.generation](bool success, util::ITask* task) {
-            SingleChunkLifecycleManager* lifecycleManager = findLifecycleManager(x, z);
+            SingleChunkLifecycleManager* lifecycleManager = _findLifecycleManager(x, z);
             if (!lifecycleManager || !lifecycleManager->isGenerationCurrent(generation)) {
                 return;
             }
@@ -328,7 +328,7 @@ void ServerChunkManager::enqueueChunkGenerationAsync(
                 auto* generationTask = static_cast<ChunkGenerateTask*>(task);
                 auto result = generationTask->takeResult();
                 if (result) {
-                    storedChunk = finalizeGeneratedChunkSync(x, z, *result);
+                    storedChunk = _finalizeGeneratedChunkSync(x, z, *result);
                     if (storedChunk != nullptr) {
                         completionState = SingleChunkLifecycleManager::CompletionState::Succeeded;
                     }
@@ -337,8 +337,8 @@ void ServerChunkManager::enqueueChunkGenerationAsync(
 
             auto completionDecision = lifecycleManager->noteGenerationFinished(generation, completionState);
             if (completionState == SingleChunkLifecycleManager::CompletionState::Succeeded) {
-                completeReadyWaiters(*lifecycleManager);
-                wakeBlockedNeighborsAsync(x, z);
+                _completeReadyWaiters(*lifecycleManager);
+                _wakeBlockedNeighborsAsync(x, z);
             } else {
                 MC_UNUSED(completionDecision);
             }
@@ -347,7 +347,7 @@ void ServerChunkManager::enqueueChunkGenerationAsync(
         decision.cancelToken);
 }
 
-void ServerChunkManager::completeReadyWaiters(SingleChunkLifecycleManager& lifecycleManager)
+void ServerChunkManager::_completeReadyWaiters(SingleChunkLifecycleManager& lifecycleManager)
 {
     ChunkData* chunk = tryToGetChunkInMem(lifecycleManager.x(), lifecycleManager.z());
     if (!chunk) {
@@ -356,7 +356,7 @@ void ServerChunkManager::completeReadyWaiters(SingleChunkLifecycleManager& lifec
     fulfillWaiters(lifecycleManager.takeReadyWaiters(), chunk != nullptr, chunk);
 }
 
-void ServerChunkManager::failWaiters(std::vector<SingleChunkLifecycleManager::Waiter> waiters)
+void ServerChunkManager::_failWaiters(std::vector<SingleChunkLifecycleManager::Waiter> waiters)
 {
     fulfillWaiters(std::move(waiters), false, nullptr);
 }
@@ -365,7 +365,7 @@ void ServerChunkManager::failWaiters(std::vector<SingleChunkLifecycleManager::Wa
 // 生命周期管理器访问
 // ============================================================================
 
-SingleChunkLifecycleManager& ServerChunkManager::getOrCreateLifecycleManager(ChunkCoord x, ChunkCoord z)
+SingleChunkLifecycleManager& ServerChunkManager::_getOrCreateLifecycleManager(ChunkCoord x, ChunkCoord z)
 {
     const u64 key = posToKey(x, z);
     std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
@@ -380,17 +380,17 @@ SingleChunkLifecycleManager& ServerChunkManager::getOrCreateLifecycleManager(Chu
     return *ptr;
 }
 
-SingleChunkLifecycleManager* ServerChunkManager::findLifecycleManager(ChunkCoord x, ChunkCoord z)
+SingleChunkLifecycleManager* ServerChunkManager::_findLifecycleManager(ChunkCoord x, ChunkCoord z)
 {
-    return doFindLifecycleManager(x, z);
+    return _doFindLifecycleManager(x, z);
 }
 
-const SingleChunkLifecycleManager* ServerChunkManager::findLifecycleManager(ChunkCoord x, ChunkCoord z) const
+const SingleChunkLifecycleManager* ServerChunkManager::_findLifecycleManager(ChunkCoord x, ChunkCoord z) const
 {
-    return doFindLifecycleManager(x, z);
+    return _doFindLifecycleManager(x, z);
 }
 
-SingleChunkLifecycleManager* ServerChunkManager::doFindLifecycleManager(ChunkCoord x, ChunkCoord z) const
+SingleChunkLifecycleManager* ServerChunkManager::_doFindLifecycleManager(ChunkCoord x, ChunkCoord z) const
 {
     const u64 key = posToKey(x, z);
     std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
@@ -402,7 +402,7 @@ SingleChunkLifecycleManager* ServerChunkManager::doFindLifecycleManager(ChunkCoo
 // 票据与唤醒
 // ============================================================================
 
-void ServerChunkManager::onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel)
+void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel)
 {
     MC_UNUSED(oldLevel);
     MC_TRACE_EVENT("server.chunk",
@@ -416,22 +416,22 @@ void ServerChunkManager::onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 ol
         "newLevel",
         newLevel);
 
-    SingleChunkLifecycleManager& lifecycleManager = getOrCreateLifecycleManager(x, z);
+    SingleChunkLifecycleManager& lifecycleManager = _getOrCreateLifecycleManager(x, z);
     lifecycleManager.setLevel(newLevel);
 
     if (newLevel <= world::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
         const ChunkStatus& targetStatus = lifecycleManager.requestedStatus().ordinal() > ChunkStatuses::EMPTY.ordinal()
             ? lifecycleManager.requestedStatus()
             : ChunkStatuses::FULL;
-        submitChunkRequest(x, z, targetStatus, {}, {});
+        _submitChunkRequest(x, z, targetStatus, {}, {});
         return;
     }
 
     lifecycleManager.cancelActiveWork();
-    failWaiters(lifecycleManager.takeAllWaiters());
+    _failWaiters(lifecycleManager.takeAllWaiters());
 }
 
-void ServerChunkManager::wakeBlockedNeighborsAsync(ChunkCoord x, ChunkCoord z)
+void ServerChunkManager::_wakeBlockedNeighborsAsync(ChunkCoord x, ChunkCoord z)
 {
     MC_TRACE_EVENT("server.chunk", "ServerChunkManager::wakeBlockedNeighborsAsync");
 
@@ -459,10 +459,11 @@ void ServerChunkManager::wakeBlockedNeighborsAsync(ChunkCoord x, ChunkCoord z)
             continue;
         }
 
-        const ChunkStatus* prerequisiteStatus = getNeighborPrerequisiteStatus(neighbor->requestedStatus());
-        const bool neighborsReady =
-            prerequisiteStatus == nullptr ? true : areNeighborsReady(neighbor->x(), neighbor->z(), *prerequisiteStatus);
-        advanceChunkState(*neighbor, neighbor->noteNeighborProgress(neighborsReady));
+        const ChunkStatus* prerequisiteStatus = _getNeighborPrerequisiteStatus(neighbor->requestedStatus());
+        const bool neighborsReady = prerequisiteStatus == nullptr
+            ? true
+            : _areNeighborsReady(neighbor->x(), neighbor->z(), *prerequisiteStatus);
+        _advanceChunkState(*neighbor, neighbor->noteNeighborProgress(neighborsReady));
     }
 }
 
@@ -470,21 +471,21 @@ void ServerChunkManager::wakeBlockedNeighborsAsync(ChunkCoord x, ChunkCoord z)
 // 同步生成与邻居依赖
 // ============================================================================
 
-void ServerChunkManager::executeGenerationSync(
+void ServerChunkManager::_executeGenerationSync(
     SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus)
 {
     ChunkPrimer* primer = lifecycleManager.createGeneratingChunk();
     MC_ASSERT_RELEASE(primer != nullptr);
-    doGenerateChunkToTargetStatus(*primer, targetStatus);
-    doSpawnInitialMobs(*primer);
+    _doGenerateChunkToTargetStatus(*primer, targetStatus);
+    _doSpawnInitialMobs(*primer);
 
     auto data = lifecycleManager.completeGeneration();
     MC_ASSERT_RELEASE(data != nullptr);
-    ChunkData* stored = storeChunkInMemorySync(lifecycleManager.x(), lifecycleManager.z(), std::move(data));
+    ChunkData* stored = _storeChunkInMemorySync(lifecycleManager.x(), lifecycleManager.z(), std::move(data));
     MC_ASSERT_RELEASE(stored != nullptr);
 }
 
-void ServerChunkManager::doGenerateChunkToTargetStatus(ChunkPrimer& chunk, const ChunkStatus& targetStatus)
+void ServerChunkManager::_doGenerateChunkToTargetStatus(ChunkPrimer& chunk, const ChunkStatus& targetStatus)
 {
     const auto& allStatuses = ChunkStatus::getAll();
     for (const auto& status : allStatuses) {
@@ -495,7 +496,7 @@ void ServerChunkManager::doGenerateChunkToTargetStatus(ChunkPrimer& chunk, const
             continue;
         }
 
-        auto context = doCreateWorldGenRegion(chunk, std::max(0, status.taskRange()));
+        auto context = _doCreateWorldGenRegion(chunk, std::max(0, status.taskRange()));
 
         if (status == ChunkStatuses::STRUCTURE_STARTS) {
             m_generator->generateStructureStarts(*context.region, chunk);
@@ -521,14 +522,14 @@ void ServerChunkManager::doGenerateChunkToTargetStatus(ChunkPrimer& chunk, const
     }
 }
 
-void ServerChunkManager::doSpawnInitialMobs(ChunkPrimer& chunk)
+void ServerChunkManager::_doSpawnInitialMobs(ChunkPrimer& chunk)
 {
     if (!chunk.hasCompletedStatus(ChunkStatuses::HEIGHTMAPS)) {
         return;
     }
 
     std::vector<SpawnedEntityData> entities;
-    auto context = doCreateWorldGenRegion(chunk, 1);
+    auto context = _doCreateWorldGenRegion(chunk, 1);
     m_generator->spawnInitialMobs(*context.region, chunk, entities);
 
     for (auto& entityData : entities) {
@@ -536,7 +537,7 @@ void ServerChunkManager::doSpawnInitialMobs(ChunkPrimer& chunk)
     }
 }
 
-bool ServerChunkManager::areNeighborsReady(ChunkCoord x, ChunkCoord z, const ChunkStatus& prerequisiteStatus) const
+bool ServerChunkManager::_areNeighborsReady(ChunkCoord x, ChunkCoord z, const ChunkStatus& prerequisiteStatus) const
 {
     if (prerequisiteStatus.taskRange() <= 0) {
         return true;
@@ -554,7 +555,7 @@ bool ServerChunkManager::areNeighborsReady(ChunkCoord x, ChunkCoord z, const Chu
                 continue;
             }
 
-            const SingleChunkLifecycleManager* neighbor = findLifecycleManager(x + dx, z + dz);
+            const SingleChunkLifecycleManager* neighbor = _findLifecycleManager(x + dx, z + dz);
             if (!neighbor || !neighbor->hasCompletedStatus(*requiredStatus)) {
                 return false;
             }
@@ -564,7 +565,7 @@ bool ServerChunkManager::areNeighborsReady(ChunkCoord x, ChunkCoord z, const Chu
     return true;
 }
 
-const ChunkStatus* ServerChunkManager::getNeighborPrerequisiteStatus(const ChunkStatus& targetStatus) const
+const ChunkStatus* ServerChunkManager::_getNeighborPrerequisiteStatus(const ChunkStatus& targetStatus) const
 {
     const auto& allStatuses = ChunkStatus::getAll();
     const ChunkStatus* prerequisiteStage = nullptr;
@@ -592,7 +593,7 @@ const ChunkStatus* ServerChunkManager::getNeighborPrerequisiteStatus(const Chunk
     return prerequisiteStatus ? prerequisiteStatus : prerequisiteStage;
 }
 
-i32 ServerChunkManager::computeSchedulePriority(
+i32 ServerChunkManager::_computeSchedulePriority(
     ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus, i32 ticketLevel) const
 {
     const i32 normalizedLevel = std::clamp(ticketLevel, 0, world::ChunkDistanceGraph::MAX_LEVEL);
@@ -605,7 +606,7 @@ i32 ServerChunkManager::computeSchedulePriority(
 // 邻居窗口
 // ============================================================================
 
-void ServerChunkManager::collectNeighborChunks(ChunkCoord x,
+void ServerChunkManager::_collectNeighborChunks(ChunkCoord x,
     ChunkCoord z,
     i32 radius,
     IChunk* centerChunk,
@@ -640,7 +641,7 @@ void ServerChunkManager::collectNeighborChunks(ChunkCoord x,
     }
 }
 
-ServerChunkManager::NeighborRegionContext ServerChunkManager::doCreateWorldGenRegion(IChunk& centerChunk, i32 radius)
+ServerChunkManager::NeighborRegionContext ServerChunkManager::_doCreateWorldGenRegion(IChunk& centerChunk, i32 radius)
 {
     const size_t chunkCount = static_cast<size_t>((radius * 2 + 1) * (radius * 2 + 1));
 
@@ -648,7 +649,7 @@ ServerChunkManager::NeighborRegionContext ServerChunkManager::doCreateWorldGenRe
         std::vector<std::shared_ptr<ChunkData>>(chunkCount),
         std::vector<std::unique_ptr<ChunkPrimer>>(chunkCount),
         nullptr};
-    collectNeighborChunks(centerChunk.x(),
+    _collectNeighborChunks(centerChunk.x(),
         centerChunk.z(),
         radius,
         &centerChunk,
@@ -664,7 +665,7 @@ ServerChunkManager::NeighborRegionContext ServerChunkManager::doCreateWorldGenRe
 // 存储与发布
 // ============================================================================
 
-ChunkData* ServerChunkManager::storeChunkInMemorySync(ChunkCoord x, ChunkCoord z, std::unique_ptr<ChunkData> data)
+ChunkData* ServerChunkManager::_storeChunkInMemorySync(ChunkCoord x, ChunkCoord z, std::unique_ptr<ChunkData> data)
 {
     MC_ASSERT_RELEASE(data != nullptr);
     std::shared_ptr<ChunkData> sharedChunk(std::move(data));
@@ -682,7 +683,7 @@ ChunkData* ServerChunkManager::storeChunkInMemorySync(ChunkCoord x, ChunkCoord z
         }
     }
 
-    if (SingleChunkLifecycleManager* lifecycleManager = findLifecycleManager(x, z)) {
+    if (SingleChunkLifecycleManager* lifecycleManager = _findLifecycleManager(x, z)) {
         lifecycleManager->setStatus(ChunkStatuses::FULL);
     }
 
@@ -697,7 +698,7 @@ ChunkData* ServerChunkManager::storeChunkInMemorySync(ChunkCoord x, ChunkCoord z
     return stored;
 }
 
-ChunkData* ServerChunkManager::finalizeGeneratedChunkSync(ChunkCoord x, ChunkCoord z, ChunkPrimer& primer)
+ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(ChunkCoord x, ChunkCoord z, ChunkPrimer& primer)
 {
     std::vector<SpawnedEntityData> spawnedEntities;
     if (primer.spawnedEntityCount() > 0) {
@@ -709,11 +710,11 @@ ChunkData* ServerChunkManager::finalizeGeneratedChunkSync(ChunkCoord x, ChunkCoo
         return nullptr;
     }
 
-    if (SingleChunkLifecycleManager* lifecycleManager = findLifecycleManager(x, z)) {
+    if (SingleChunkLifecycleManager* lifecycleManager = _findLifecycleManager(x, z)) {
         lifecycleManager->markGenerationReady();
     }
 
-    ChunkData* stored = storeChunkInMemorySync(x, z, std::move(data));
+    ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(data));
     if (stored && !spawnedEntities.empty()) {
         if (m_world) {
             m_world->spawnEntitiesFromChunkGeneration(spawnedEntities);
@@ -725,7 +726,7 @@ ChunkData* ServerChunkManager::finalizeGeneratedChunkSync(ChunkCoord x, ChunkCoo
     return stored;
 }
 
-void ServerChunkManager::saveChunkSectionsSync(const ChunkData& chunk)
+void ServerChunkManager::_saveChunkSectionsSync(const ChunkData& chunk)
 {
     if (!m_world || !m_world->isStorageOpen()) {
         return;
@@ -737,7 +738,7 @@ void ServerChunkManager::saveChunkSectionsSync(const ChunkData& chunk)
     }
 }
 
-std::unique_ptr<ChunkData> ServerChunkManager::tryToLoadChunkFromStorageSync(ChunkCoord x, ChunkCoord z)
+std::unique_ptr<ChunkData> ServerChunkManager::_tryToLoadChunkFromStorageSync(ChunkCoord x, ChunkCoord z)
 {
     MC_TRACE_EVENT("server.chunk", "ServerChunkManager::tryToLoadChunkFromStorageSync");
 
@@ -775,7 +776,7 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
         }
 
         if (chunkToSave) {
-            saveChunkSectionsSync(*chunkToSave);
+            _saveChunkSectionsSync(*chunkToSave);
             chunkToSave->setDirty(false);
         }
     }
@@ -803,7 +804,7 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
 
     if (lifecycleManager) {
         lifecycleManager->cancelActiveWork();
-        failWaiters(lifecycleManager->takeAllWaiters());
+        _failWaiters(lifecycleManager->takeAllWaiters());
     }
 
     {
@@ -812,7 +813,7 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
     }
 }
 
-void ServerChunkManager::checkChunkUnloading()
+void ServerChunkManager::_checkChunkUnloading()
 {
     std::vector<u64> toUnload;
 
@@ -870,7 +871,7 @@ void ServerChunkManager::tick()
     processTicketUpdatesSync();
 
     if (m_currentTick - m_lastUnloadCheckTick >= UNLOAD_CHECK_INTERVAL_TICKS) {
-        checkChunkUnloading();
+        _checkChunkUnloading();
         m_lastUnloadCheckTick = m_currentTick;
     }
 }

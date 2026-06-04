@@ -36,11 +36,11 @@ namespace mc {
 namespace command {
 namespace {
 
-inline constexpr i32 DAY_TIME = 1000;
-inline constexpr i32 NOON_TIME = 6000;
-inline constexpr i32 NIGHT_TIME = 13000;
-inline constexpr i32 MIDNIGHT_TIME = 18000;
-inline constexpr i64 DAY_LENGTH = 24000;
+// 时间预设常量
+inline constexpr i32 DAY_TIME = 1000;       // 日出后不久
+inline constexpr i32 NOON_TIME = 6000;      // 正午
+inline constexpr i32 NIGHT_TIME = 13000;    // 日落后不久
+inline constexpr i32 MIDNIGHT_TIME = 18000; // 午夜
 
 /**
  * @brief 读取并归一化当前昼夜时间。
@@ -48,7 +48,7 @@ inline constexpr i64 DAY_LENGTH = 24000;
  * @param timeManager 时间管理器。
  * @return 归一化到 `[0, 23999]` 区间的昼夜时间。
  */
-[[nodiscard]] i32 normalizedDayTime(const server::core::TimeManager& timeManager)
+[[nodiscard]] i32 normalizedDayTime(const server::core::TimeManager& timeManager) noexcept
 {
     return static_cast<i32>(timeManager.dayTimeOfDay());
 }
@@ -85,30 +85,30 @@ void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto dayNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("day");
     dayNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         ctx.setArgument("value", DAY_TIME);
-        return setTime(ctx);
+        return _setTime(ctx);
     });
 
     auto noonNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("noon");
     noonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         ctx.setArgument("value", NOON_TIME);
-        return setTime(ctx);
+        return _setTime(ctx);
     });
 
     auto nightNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("night");
     nightNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         ctx.setArgument("value", NIGHT_TIME);
-        return setTime(ctx);
+        return _setTime(ctx);
     });
 
     auto midnightNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("midnight");
     midnightNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         ctx.setArgument("value", MIDNIGHT_TIME);
-        return setTime(ctx);
+        return _setTime(ctx);
     });
 
     auto setArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", IntegerArgumentType::integer(0));
-    setArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setTime(ctx); });
+    setArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setTime(ctx); });
 
     setValueNode->addChild(dayNode);
     setValueNode->addChild(noonNode);
@@ -119,13 +119,13 @@ void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto addValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto addArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", IntegerArgumentType::integer(0));
-    addArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addTime(ctx); });
+    addArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addTime(ctx); });
     addValueNode->addChild(addArg);
 
     auto queryNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("query");
     auto queryArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("type", StringArgumentType::word());
-    queryArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return queryTime(ctx); });
+    queryArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _queryTime(ctx); });
     queryNode->addChild(queryArg);
 
     auto timeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("time");
@@ -139,39 +139,21 @@ void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     dispatcher.registerCommand(timeNode);
 }
 
-/**
- * @brief 设置世界昼夜时间。
- *
- * @param context 命令上下文。
- * @return 设置后的昼夜时间。
- */
-i32 TimeCommand::setTime(CommandContext<ServerCommandSource>& context)
+i32 TimeCommand::_setTime(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
-    if (server == nullptr) {
-        source.sendMessage("Server not available");
-        return 0;
-    }
+    MC_ASSERT_RELEASE(server != nullptr);
 
     const i32 value = context.getArgument<i32>("value");
     return setTimeValue(source, value);
 }
 
-/**
- * @brief 在当前昼夜时间基础上增加 tick。
- *
- * @param context 命令上下文。
- * @return 增加后的昼夜时间。
- */
-i32 TimeCommand::addTime(CommandContext<ServerCommandSource>& context)
+i32 TimeCommand::_addTime(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
-    if (server == nullptr) {
-        source.sendMessage("Server not available");
-        return 0;
-    }
+    MC_ASSERT_RELEASE(server != nullptr);
 
     const i32 value = context.getArgument<i32>("value");
     server->timeManager().addDayTime(value);
@@ -183,20 +165,11 @@ i32 TimeCommand::addTime(CommandContext<ServerCommandSource>& context)
     return updatedDayTime;
 }
 
-/**
- * @brief 查询当前时间信息。
- *
- * @param context 命令上下文。
- * @return 查询值。
- */
-i32 TimeCommand::queryTime(CommandContext<ServerCommandSource>& context)
+i32 TimeCommand::_queryTime(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
-    if (server == nullptr) {
-        source.sendMessage("Server not available");
-        return 0;
-    }
+    MC_ASSERT_RELEASE(server != nullptr);
 
     const std::string type = context.getArgument<std::string>("type");
     const auto& timeManager = server->timeManager();

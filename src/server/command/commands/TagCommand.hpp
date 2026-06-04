@@ -41,9 +41,9 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 addTag(CommandContext<ServerCommandSource>& context);
-    static i32 removeTag(CommandContext<ServerCommandSource>& context);
-    static i32 listTags(CommandContext<ServerCommandSource>& context);
+    static i32 _addTag(CommandContext<ServerCommandSource>& context);
+    static i32 _removeTag(CommandContext<ServerCommandSource>& context);
+    static i32 _listTags(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

@@ -38,7 +38,6 @@ namespace mc::server::core {
  * @brief 封禁 IP 条目
  *
  * 存储单个被封禁 IP 地址的信息。
- * 参考 MC 1.16.5 IPBanEntry。
  */
 struct BannedIpEntry {
     std::string ip;      ///< IP 地址
@@ -242,13 +241,13 @@ private:
     /**
      * @brief 清理过期的封禁条目
      */
-    void removeExpired() const;
+    void _removeExpired() const;
 
     /**
      * @brief 获取当前时间的格式化字符串
      * @return 格式化的时间字符串
      */
-    static std::string getCurrentTimeString();
+    static std::string _getCurrentTimeString();
 
     mutable std::mutex m_mutex;
     mutable std::unordered_map<std::string, BannedIpEntry> m_entries; ///< IP -> 条目

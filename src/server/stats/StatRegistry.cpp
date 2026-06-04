@@ -47,10 +47,10 @@ void StatRegistry::registerBuiltinStats()
     // 注册自定义统计
     // 注意：方块和物品的统计在相应的方块/物品注册时自动注册
     // 这里只注册自定义统计
-    registerAllCustomStats();
+    _registerAllCustomStats();
 }
 
-void StatRegistry::registerAllBlocks()
+void StatRegistry::_registerAllBlocks()
 {
     // 注册所有方块的挖掘统计
     // minecraft.mined:{block_id}
@@ -58,14 +58,14 @@ void StatRegistry::registerAllBlocks()
     // 当前版本跳过，由游戏在方块注册时调用 registerMinedStat
 }
 
-void StatRegistry::registerAllItems()
+void StatRegistry::_registerAllItems()
 {
     // 注册所有物品的统计
     // 注意：需要在 ItemRegistry 有 forEach 方法后实现
     // 当前版本跳过，由游戏在物品注册时调用相应方法
 }
 
-void StatRegistry::registerAllEntities()
+void StatRegistry::_registerAllEntities()
 {
     // 注册所有实体的击杀/被击杀统计
     // minecraft.killed:{entity_id}
@@ -74,10 +74,9 @@ void StatRegistry::registerAllEntities()
     // 当前版本跳过，由游戏在实体注册时调用相应方法
 }
 
-void StatRegistry::registerAllCustomStats()
+void StatRegistry::_registerAllCustomStats()
 {
     // 注册所有自定义统计
-    // 参考 MC 1.16.5: net.minecraft.stats.Stats
 
     // ========== 时间相关 ==========
     registerCustomStat(ResourceLocation("minecraft:play_one_minute"));

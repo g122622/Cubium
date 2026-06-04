@@ -34,15 +34,22 @@
 
 namespace mc::server {
 
-// TCP服务器配置
+/**
+ * @brief TCP服务器配置
+ */
 struct TcpServerConfig {
-    u16 port = 25565;         // 监听端口
-    u32 maxConnections = 100; // 最大连接数
-    u32 backlog = 10;         // 连接队列长度
-    bool noDelay = true;      // TCP_NODELAY选项
+    u16 port = 25565;         ///< 监听端口
+    u32 maxConnections = 100; ///< 最大连接数
+    u32 backlog = 10;         ///< 连接队列长度
+    bool noDelay = true;      ///< TCP_NODELAY选项
 };
 
-// TCP服务器
+/**
+ * @brief TCP服务器
+ *
+ * 负责接受客户端连接、管理会话、处理数据收发。
+ * 使用非阻塞I/O实现单线程事件循环模式。
+ */
 class TcpServer {
 public:
     TcpServer();
@@ -52,27 +59,87 @@ public:
     TcpServer(const TcpServer&) = delete;
     TcpServer& operator=(const TcpServer&) = delete;
 
-    // 生命周期
-    [[nodiscard]] Result<void> start(const TcpServerConfig& config);
-    void stop();
-    bool isRunning() const { return m_running; }
+    // 禁止移动（因为包含平台相关的socket句柄）
+    TcpServer(TcpServer&&) = delete;
+    TcpServer& operator=(TcpServer&&) = delete;
 
-    // 会话管理
+    /**
+     * @brief 启动服务器
+     * @param config 服务器配置
+     * @return 成功或错误
+     */
+    [[nodiscard]] Result<void> start(const TcpServerConfig& config);
+
+    /**
+     * @brief 停止服务器
+     */
+    void stop();
+
+    /**
+     * @brief 检查服务器是否正在运行
+     */
+    bool isRunning() const noexcept { return m_running; }
+
+    /**
+     * @brief 获取指定会话
+     * @param id 会话ID
+     * @return 会话指针，不存在则返回nullptr
+     */
     std::shared_ptr<TcpSession> getSession(SessionId id);
+
+    /**
+     * @brief 获取当前会话数量
+     */
     size_t getSessionCount() const;
+
+    /**
+     * @brief 向所有会话广播数据
+     * @param data 数据指针
+     * @param size 数据大小
+     */
     void broadcast(const u8* data, size_t size);
+
+    /**
+     * @brief 向所有会话广播数据包
+     * @param packet 数据包
+     */
     void broadcastPacket(const network::Packet& packet);
+
+    /**
+     * @brief 向除指定会话外的所有会话广播数据
+     * @param excludeId 排除的会话ID
+     * @param data 数据指针
+     * @param size 数据大小
+     */
     void broadcastExcept(SessionId excludeId, const u8* data, size_t size);
 
-    // 回调设置
+    /**
+     * @brief 设置连接回调
+     * @param callback 连接回调函数
+     */
     void setOnConnect(ConnectCallback callback) { m_onConnect = std::move(callback); }
+
+    /**
+     * @brief 设置断开连接回调
+     * @param callback 断开连接回调函数
+     */
     void setOnDisconnect(DisconnectCallback callback) { m_onDisconnect = std::move(callback); }
+
+    /**
+     * @brief 设置数据包回调
+     * @param callback 数据包回调函数
+     */
     void setOnPacket(PacketCallback callback) { m_onPacket = std::move(callback); }
 
-    // 服务器信息
-    u16 port() const { return m_config.port; }
+    /**
+     * @brief 获取监听端口
+     */
+    u16 port() const noexcept { return m_config.port; }
 
-    // 处理待处理的连接和事件 (需要在主循环中调用)
+    /**
+     * @brief 处理待处理的连接和事件
+     * @note 需要在主循环中周期性调用
+     */
     void poll();
 
 private:
@@ -97,12 +164,12 @@ private:
 #endif
 
     // 内部方法
-    bool createListenSocket();
-    void closeListenSocket();
-    void acceptNewConnection();
-    void removeSession(SessionId id);
-    void handleSessionData(TcpSession* session);
-    void sendSessionData(TcpSession* session);
+    bool _createListenSocket();
+    void _closeListenSocket();
+    void _acceptNewConnection();
+    void _removeSession(SessionId id);
+    void _handleSessionData(TcpSession* session);
+    void _sendSessionData(TcpSession* session);
 };
 
 } // namespace mc::server

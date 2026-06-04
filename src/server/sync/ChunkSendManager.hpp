@@ -170,7 +170,7 @@ private:
     /**
      * @brief 生成区块键
      */
-    [[nodiscard]] static u64 chunkKey(ChunkCoord x, ChunkCoord z)
+    [[nodiscard]] static u64 _chunkKey(ChunkCoord x, ChunkCoord z)
     {
         return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u32>(z);
     }

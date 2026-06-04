@@ -66,15 +66,14 @@ i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles)
     }
 
     // 条件2: 检查游戏难度（非和平模式才能发生僵尸围攻）
-    // MC 1.16.5: MonsterEntity.canMonsterSpawnInLight() 中检查难度
     if (!entity::combat::DifficultyHelper::allowsMobSpawning(world.difficulty())) {
         return 0;
     }
 
     // 条件3: 检查是否为夜晚（不是白天）
-    // MC 1.16.5: !world.isDaytime()
     const i64 worldDayTime = world.dayTimeOfDay();
-    const bool isDaytime = worldDayTime < 12000; // 0-12000 是白天
+    constexpr i64 DAYTIME_END = 12000; // 白天结束时间（ticks）
+    const bool isDaytime = worldDayTime < DAYTIME_END;
 
     if (isDaytime) {
         // 白天重置状态
@@ -84,12 +83,10 @@ i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles)
     }
 
     // 条件4: 检查是否为午夜时刻（天体角度 0.5）
-    // MC 1.16.5: celestialAngle == 0.5
-    if (isMidnight(world)) {
+    if (_isMidnight(world)) {
         // 10% 概率触发今晚围攻
         if (m_random.nextInt(Config::TRIGGER_CHANCE) == 0) {
             m_state = State::Tonight;
-            spdlog::debug("VillageSiege: Siege triggered for tonight");
         } else {
             m_state = State::Done;
         }
@@ -102,7 +99,7 @@ i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles)
 
     // 条件5: 尚未设置围攻
     if (!m_hasSetup) {
-        if (!trySetupSiege(world)) {
+        if (!_trySetupSiege(world)) {
             return 0;
         }
         m_hasSetup = true;
@@ -119,7 +116,7 @@ i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles)
 
     // 生成僵尸
     if (m_siegeCount > 0) {
-        if (spawnZombie(world)) {
+        if (_spawnZombie(world)) {
             --m_siegeCount;
             return 1;
         }
@@ -128,7 +125,6 @@ i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles)
     // 围攻结束
     if (m_siegeCount <= 0) {
         m_state = State::Done;
-        spdlog::debug("VillageSiege: Siege completed");
     }
 
     return 0;
@@ -138,7 +134,7 @@ i32 VillageSiege::tick(server::ServerWorld& world, bool spawnHostiles)
 // 内部方法
 // ============================================================================
 
-bool VillageSiege::trySetupSiege(server::ServerWorld& world)
+bool VillageSiege::_trySetupSiege(server::ServerWorld& world)
 {
     // 更新随机种子 - 使用累积的 dayTime 作为种子
     m_random.setSeed(world.dayTime());
@@ -162,14 +158,13 @@ bool VillageSiege::trySetupSiege(server::ServerWorld& world)
             static_cast<i32>(player->position().z));
 
         // 条件: 玩家必须在村庄内
-        if (!isInValidVillage(world, playerPos)) {
+        if (!_isInValidVillage(world, playerPos)) {
             continue;
         }
 
         // 条件: 生物群系不能是蘑菇岛
-        // MC 1.16.5: getBiome(blockpos).getCategory() != Biome.Category.MUSHROOM
         // 蘑菇岛是安全区域，不会发生僵尸围攻
-        if (isMushroomBiome(world, playerPos)) {
+        if (_isMushroomBiome(world, playerPos)) {
             continue;
         }
 
@@ -182,7 +177,7 @@ bool VillageSiege::trySetupSiege(server::ServerWorld& world)
             const i32 spawnZ = playerPos.z + static_cast<i32>(std::sin(angle) * Config::SPAWN_DISTANCE);
 
             const BlockPos searchCenter(spawnX, spawnY, spawnZ);
-            auto spawnPos = findRandomSpawnPos(world, searchCenter);
+            auto spawnPos = _findRandomSpawnPos(world, searchCenter);
 
             if (spawnPos.has_value()) {
                 m_spawnCenter = spawnPos.value();
@@ -195,24 +190,22 @@ bool VillageSiege::trySetupSiege(server::ServerWorld& world)
                     m_spawnCenter.z,
                     m_siegeCount);
 
-                // MC 1.16.5: 找到有效位置后返回 true
                 return true;
             }
         }
 
-        // MC 1.16.5: 找到符合条件的玩家（在村庄内且不在蘑菇岛），即使未找到生成位置也返回 true
+        // 找到符合条件的玩家（在村庄内且不在蘑菇岛），即使未找到生成位置也返回 true
         // 这样围攻状态会被设置为 hasSetupSiege = true，但 siegeCount = 0（因为未找到位置）
         // 实际效果是围攻立即结束（因为 siegeCount <= 0）
-        spdlog::debug("VillageSiege: Found valid player but no spawn position");
         return true;
     }
 
     return false;
 }
 
-bool VillageSiege::spawnZombie(server::ServerWorld& world)
+bool VillageSiege::_spawnZombie(server::ServerWorld& world)
 {
-    auto spawnPos = findRandomSpawnPos(world, m_spawnCenter);
+    auto spawnPos = _findRandomSpawnPos(world, m_spawnCenter);
 
     if (!spawnPos.has_value()) {
         return false;
@@ -242,34 +235,21 @@ bool VillageSiege::spawnZombie(server::ServerWorld& world)
     entity->setPosition(posX, posY, posZ);
     entity->setRotation(yaw, 0.0f);
 
-    // MC 1.16.5 VillageSiege.spawnZombie() 调用 onInitialSpawn 进行初始化
-    // 由于项目目前没有实现 onInitialSpawn 方法，这里手动初始化僵尸
-    // 参考 MC 1.16.5 ZombieEntity.onInitialSpawn()
+    // 初始化僵尸属性
     auto* zombie = dynamic_cast<ZombieEntity*>(entity.get());
     if (zombie != nullptr) {
         // 获取区域难度
-        // MC 1.16.5: DifficultyInstance difficulty = world.getDifficultyForLocation(pos)
         const f32 regionalDifficulty = entity::combat::DifficultyHelper::getRegionalDifficultyBase(world.difficulty());
 
-        // MC 1.16.5: 设置是否可以拾取战利品
-        // 概率 = 0.55 * regionalDifficulty
-        // zombie.setCanPickUpLoot(random.nextFloat() < 0.55F * regionalDifficulty);
-        // TODO: 需要实现 setCanPickUpLoot 方法
-
-        // MC 1.16.5: 僵尸围攻有概率生成小僵尸（在 GroupData 中设置）
-        // 这里不做婴儿设置，因为围攻僵尸默认是成年僵尸
-        // GroupData 中 isChild = false
-
-        // MC 1.16.5: 设置破门能力
+        // 设置破门能力
         // 概率 = regionalDifficulty * 0.1
         if (m_random.nextFloat() < regionalDifficulty * 0.1f) {
             zombie->setBreakDoorsAbility(true);
         }
 
-        // MC 1.16.5: 设置基于难度的装备
+        // TODO: 需要实现装备设置方法
         // setEquipmentBasedOnDifficulty(difficulty)
         // setEnchantmentBasedOnDifficulty(difficulty)
-        // TODO: 需要实现装备设置方法
     }
 
     // 生成实体到世界
@@ -280,29 +260,19 @@ bool VillageSiege::spawnZombie(server::ServerWorld& world)
         return false;
     }
 
-    spdlog::debug("VillageSiege: Spawned zombie {} at ({}, {}, {})", entityId, spawnPos->x, spawnPos->y, spawnPos->z);
-
     return true;
 }
 
-std::optional<BlockPos> VillageSiege::findRandomSpawnPos(IWorld& world, const BlockPos& searchCenter)
+std::optional<BlockPos> VillageSiege::_findRandomSpawnPos(IWorld& world, const BlockPos& searchCenter)
 {
-
     for (i32 attempt = 0; attempt < Config::MAX_SPAWN_ATTEMPTS; ++attempt) {
         // 在搜索中心附近随机偏移
         const i32 x = searchCenter.x + m_random.nextInt(Config::SPAWN_OFFSET_RANGE * 2) - Config::SPAWN_OFFSET_RANGE;
         const i32 z = searchCenter.z + m_random.nextInt(Config::SPAWN_OFFSET_RANGE * 2) - Config::SPAWN_OFFSET_RANGE;
 
         // 获取地表高度（使用 WorldSurface 高度图）
-        // IWorld::getHeight 返回最高非空气方块高度
         const i32 y = world.getHeight(x, z);
         const BlockPos pos(x, y, z);
-
-        // MC 1.16.5 VillageSiege.findRandomSpawnPos() 要求：
-        // 1. 生成位置必须在村庄内 (world.isVillage(blockpos))
-        // 2. 满足怪物生成光照条件 (MonsterEntity.canMonsterSpawnInLight)
-        //
-        // 项目的 VillageManager::getVillageAt() 等价于 isVillage 检查
 
         // 检查是否在村庄内
         auto* villageManager = world.villageManager();
@@ -311,7 +281,7 @@ std::optional<BlockPos> VillageSiege::findRandomSpawnPos(IWorld& world, const Bl
         }
 
         // 检查生成位置是否满足怪物生成条件
-        if (canMonsterSpawnAt(world, pos)) {
+        if (_canMonsterSpawnAt(world, pos)) {
             return pos;
         }
     }
@@ -319,7 +289,7 @@ std::optional<BlockPos> VillageSiege::findRandomSpawnPos(IWorld& world, const Bl
     return std::nullopt;
 }
 
-bool VillageSiege::canMonsterSpawnAt(IWorld& world, const BlockPos& pos)
+bool VillageSiege::_canMonsterSpawnAt(IWorld& world, const BlockPos& pos)
 {
     // 检查位置是否有固体方块作为地面
     const BlockState* groundState = world.getBlockState(pos.x, pos.y - 1, pos.z);
@@ -338,33 +308,26 @@ bool VillageSiege::canMonsterSpawnAt(IWorld& world, const BlockPos& pos)
         return false;
     }
 
-    // MC 1.16.5: 使用 MonsterEntity.isValidLightLevel() 检查光照条件
-    // 这是完整的实现，包括天空光照和方块光照的随机阈值检查
+    // 检查光照条件
     return MonsterEntity::isValidLightLevel(world, pos, m_random);
 }
 
-bool VillageSiege::isMidnight(server::ServerWorld& world) const
+bool VillageSiege::_isMidnight(server::ServerWorld& world) const
 {
-    // MC 1.16.5: celestialAngle == 0.5 表示午夜
-    // 参考: VillageSiege.func_230253_a_ 第 33-34 行:
-    //   float f = world.func_242415_f(0.0F);  // getCelestialAngle
-    //   if ((double)f == 0.5D) { ... }
-    //
-    // 天体角度计算公式来自 DimensionType.func_236032_b_():
-    // 当 dayTime = 18000 时，精确得到 celestialAngle = 0.5
-    //
-    // 数学推导：
-    // d0 = frac(18000/24000 - 0.25) = frac(0.75 - 0.25) = frac(0.5) = 0.5
-    // d1 = 0.5 - cos(0.5 * PI) / 2 = 0.5 - cos(90°) / 2 = 0.5 - 0 = 0.5
-    // result = (0.5 * 2 + 0.5) / 3 = 1.5 / 3 = 0.5
+    // 午夜时刻：天体角度 0.5 对应 dayTime == 18000
+    // 天体角度计算公式：
+    // d0 = frac(dayTime/24000 - 0.25) = frac(18000/24000 - 0.25) = frac(0.5) = 0.5
+    // d1 = 0.5 - cos(0.5 * PI) / 2 = 0.5
+    // result = (0.5 * 2 + 0.5) / 3 = 0.5
     //
     // 由于浮点精度问题，直接比较 celestialAngle == 0.5 可能不够稳定，
     // 而 dayTime 是整数，精确检查 dayTime == 18000 更可靠。
+    constexpr i64 MIDNIGHT_DAYTIME = 18000;
     const i64 worldDayTime = world.dayTimeOfDay();
-    return worldDayTime == 18000;
+    return worldDayTime == MIDNIGHT_DAYTIME;
 }
 
-bool VillageSiege::isInValidVillage(server::ServerWorld& world, const BlockPos& playerPos)
+bool VillageSiege::_isInValidVillage(server::ServerWorld& world, const BlockPos& playerPos)
 {
     // 获取村庄管理器
     auto* villageManager = world.villageManager();
@@ -378,25 +341,12 @@ bool VillageSiege::isInValidVillage(server::ServerWorld& world, const BlockPos& 
         return false;
     }
 
-    // MC 1.16.5: VillageSiege.trySetupSiege() 中使用 isVillage() 方法检查
-    // 项目的 isVillage() 等价于 VillageManager::getVillageAt() 返回非空
-    //
-    // 但 MC 原版的村庄定义要求：
-    // - 至少有床位（POI 系统 sectionsToVillage 返回距离 <= 6）
-    // - 村庄围攻会生成僵尸攻击村民，所以应该有村民存在
-    //
-    // 项目中使用 Village 类的床位和村民数量来近似判断有效村庄
-    // 参考 MC 1.16.5 中村民繁殖的阈值：至少 2 张床才能开始繁殖
-    // 村庄围攻需要有意义的村庄目标，这里要求至少 1 张床和至少 1 个村民
-
     // 检查村庄是否有床位和村民
-    // 注意：MC 原版没有这个检查，但这是合理的补充
     // 空村庄不应该触发僵尸围攻
     const i32 bedCount = village->getBedCount();
     const i32 population = village->getPopulation();
 
     // 至少需要 1 张床和 1 个村民才算是有效村庄
-    // 这与项目的 POI 系统和村庄定义一致
     if (bedCount <= 0 || population <= 0) {
         return false;
     }
@@ -404,14 +354,13 @@ bool VillageSiege::isInValidVillage(server::ServerWorld& world, const BlockPos& 
     return true;
 }
 
-bool VillageSiege::isMushroomBiome(server::ServerWorld& world, const BlockPos& pos)
+bool VillageSiege::_isMushroomBiome(server::ServerWorld& world, const BlockPos& pos)
 {
-    // MC 1.16.5: world.getBiome(blockpos).getCategory() != Biome.Category.MUSHROOM
     // 蘑菇岛生物群系不会发生僵尸围攻
 
     // 获取玩家所在区块
-    const ChunkCoord chunkX = pos.x >> 4;
-    const ChunkCoord chunkZ = pos.z >> 4;
+    const ChunkCoord chunkX = pos.x >> world::CHUNK_SHIFT;
+    const ChunkCoord chunkZ = pos.z >> world::CHUNK_SHIFT;
     const ChunkData* chunk = world.getChunk(chunkX, chunkZ);
 
     if (!chunk) {

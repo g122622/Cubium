@@ -44,8 +44,6 @@ namespace server {
  * 提供服务端告示牌命令执行功能。
  * 由于 SignEntity 位于 mc_common 库中，无法直接访问服务端的命令系统，
  * 因此实际的命令执行逻辑放在此服务端辅助类中。
- *
- * 参考 MC 1.16.5 SignTileEntity.executeCommand()
  */
 class SignCommandHelper {
 public:
@@ -69,7 +67,7 @@ private:
      * @param signPos 告示牌位置（用于命令源位置）
      * @return 如果命令执行成功返回 true
      */
-    static bool executeCommand(const std::string& command, mc::ServerPlayer& player, const BlockPos& signPos);
+    static bool _executeCommand(const std::string& command, mc::ServerPlayer& player, const BlockPos& signPos);
 };
 
 } // namespace server

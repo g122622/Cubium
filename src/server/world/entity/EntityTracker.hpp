@@ -62,8 +62,6 @@ struct TrackedEntity {
  * - 确定哪些玩家应该看到哪些实体
  * - 发送实体生成/销毁/更新包
  * - 基于距离和视距进行追踪范围计算
- *
- * 参考 MC 1.16.5 EntityTracker
  */
 class EntityTracker {
 public:
@@ -167,7 +165,7 @@ private:
      * @param trackingRange 实体的追踪范围（区块）
      * @return 是否应该追踪
      */
-    [[nodiscard]] bool shouldTrack(const Vector3& playerPos, const Vector3& entityPos, i32 trackingRange) const;
+    [[nodiscard]] bool _shouldTrack(const Vector3& playerPos, const Vector3& entityPos, i32 trackingRange) const;
 
     /**
      * @brief 发送实体生成包给玩家
@@ -175,7 +173,7 @@ private:
      * @param playerId 玩家ID
      * @param entity 实体
      */
-    void sendSpawnPacket(IServer& server, PlayerId playerId, Entity* entity);
+    void _sendSpawnPacket(IServer& server, PlayerId playerId, Entity* entity);
 
     /**
      * @brief 发送实体销毁包给玩家
@@ -183,8 +181,8 @@ private:
      * @param playerId 玩家ID
      * @param entityId 实体ID
      */
-    void sendDestroyPacket(IServer& server, PlayerId playerId, EntityId entityId);
-    void sendDestroyPacket(IServer& server, const std::vector<PlayerId>& playerIds, EntityId entityId);
+    void _sendDestroyPacket(IServer& server, PlayerId playerId, EntityId entityId);
+    void _sendDestroyPacket(IServer& server, const std::vector<PlayerId>& playerIds, EntityId entityId);
 
     /**
      * @brief 发送实体移动包给玩家
@@ -192,13 +190,13 @@ private:
      * @param playerId 玩家ID
      * @param entity 实体
      */
-    void sendMovePacket(IServer& server, PlayerId playerId, Entity* entity);
+    void _sendMovePacket(IServer& server, PlayerId playerId, Entity* entity);
 
     /**
      * @brief 发送实体元数据包给玩家
      */
-    void sendMetadataPacket(IServer& server, PlayerId playerId, Entity* entity, const std::vector<u8>& metadata);
-    void sendItemEntityResyncPacket(IServer& server, PlayerId playerId, const Entity& entity);
+    void _sendMetadataPacket(IServer& server, PlayerId playerId, Entity* entity, const std::vector<u8>& metadata);
+    void _sendItemEntityResyncPacket(IServer& server, PlayerId playerId, const Entity& entity);
 
 public:
     /**

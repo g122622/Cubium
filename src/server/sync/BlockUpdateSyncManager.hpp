@@ -82,7 +82,7 @@ private:
         u32 blockStateId = 0;
     };
 
-    [[nodiscard]] static u64 chunkKey(ChunkCoord x, ChunkCoord z);
+    [[nodiscard]] static u64 _chunkKey(ChunkCoord x, ChunkCoord z);
 
 private:
     world::ChunkLoadTicketManager& m_ticketManager;

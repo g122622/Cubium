@@ -54,6 +54,8 @@ public:
      * @param name 玩家名称。
      */
     ServerPlayer(EntityId id, const std::string& name);
+    ServerPlayer(ServerPlayer&& other) noexcept = default;
+    ServerPlayer& operator=(ServerPlayer&& other) noexcept = default;
     ~ServerPlayer() override = default;
 
     // ========== 网络相关 ==========
@@ -185,7 +187,6 @@ public:
     /**
      * @brief 获取玩家所属队伍（重写 Entity 基类）
      *
-     * 参考 MC 1.16.5: Entity.getTeam()
      * 通过服务器的记分板系统获取玩家所在队伍。
      *
      * @return 队伍指针，如果玩家不在任何队伍返回 nullptr
@@ -370,7 +371,6 @@ public:
      * @brief 当传送门触发时调用
      *
      * 实现 ServerPlayer 的维度切换逻辑。
-     * 参考 MC 1.16.5 ServerPlayerEntity.tickPortal()
      *
      * @return true 如果传送成功
      */
@@ -380,7 +380,6 @@ public:
      * @brief 当玩家进入方块碰撞箱时调用
      *
      * 触发 EnterBlockTrigger 成就。
-     * 参考 MC 1.16.5: ServerPlayerEntity.onInsideBlock()
      *
      * @param blockState 方块状态
      */
@@ -399,12 +398,12 @@ private:
      * @brief 发送睡眠包给客户端
      * @param bedPos 床位位置
      */
-    void sendSleepPacket(const BlockPos& bedPos);
+    void _sendSleepPacket(const BlockPos& bedPos);
 
     /**
      * @brief 发送唤醒包给客户端
      */
-    void sendWakeUpPacket();
+    void _sendWakeUpPacket();
 
     /**
      * @brief 发送完整封包到当前玩家连接。
@@ -412,7 +411,7 @@ private:
      * @return true 表示已成功投递到底层连接。
      * @note 当玩家连接不存在或已断开时返回 false，不抛出异常。
      */
-    [[nodiscard]] bool sendFullPacket(const std::vector<u8>& packet) const;
+    [[nodiscard]] bool _sendFullPacket(const std::vector<u8>& packet) const;
 
 private:
     network::ConnectionPtr m_connection;

@@ -43,26 +43,24 @@ namespace command {
  * - /whitelist reload - 重新加载白名单
  *
  * 权限等级：3（需要管理员权限）
- *
- * 参考 MC 1.16.5 的 WhitelistCommand
  */
 class WhitelistCommand {
 public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 whitelistOn(CommandContext<ServerCommandSource>& context);
-    static i32 whitelistOff(CommandContext<ServerCommandSource>& context);
-    static i32 whitelistList(CommandContext<ServerCommandSource>& context);
-    static i32 whitelistAdd(CommandContext<ServerCommandSource>& context);
-    static i32 whitelistRemove(CommandContext<ServerCommandSource>& context);
-    static i32 whitelistReload(CommandContext<ServerCommandSource>& context);
+    static i32 _whitelistOn(CommandContext<ServerCommandSource>& context);
+    static i32 _whitelistOff(CommandContext<ServerCommandSource>& context);
+    static i32 _whitelistList(CommandContext<ServerCommandSource>& context);
+    static i32 _whitelistAdd(CommandContext<ServerCommandSource>& context);
+    static i32 _whitelistRemove(CommandContext<ServerCommandSource>& context);
+    static i32 _whitelistReload(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 踢出不在白名单的玩家
      * @param source 命令源
      */
-    static void kickNonWhitelistedPlayers(ServerCommandSource& source);
+    static void _kickNonWhitelistedPlayers(ServerCommandSource& source);
 
     /**
      * @brief 从玩家名生成临时 UUID
@@ -70,7 +68,7 @@ private:
      * @return 临时 UUID
      * @note 实际服务器应从 Mojang API 获取真实 UUID
      */
-    static std::string generateUuidFromName(const std::string& name);
+    static std::string _generateUuidFromName(const std::string& name);
 };
 
 } // namespace command

@@ -22,6 +22,7 @@
  */
 
 #include "EntityTracker.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -127,7 +128,7 @@ void EntityTracker::untrackEntity(IServer& server, EntityId entityId)
     }
 
     for (PlayerId playerId : playersToNotify) {
-        sendDestroyPacket(server, playerId, entityId);
+        _sendDestroyPacket(server, playerId, entityId);
     }
 }
 
@@ -151,7 +152,7 @@ void EntityTracker::broadcastDestroyToTrackingPlayers(IServer& server, EntityId 
         m_trackedEntities.erase(it);
     }
 
-    sendDestroyPacket(server, trackingPlayers, entityId);
+    _sendDestroyPacket(server, trackingPlayers, entityId);
 }
 
 void EntityTracker::broadcastItemEntityResync(IServer& server, const Entity& entity)
@@ -172,7 +173,7 @@ void EntityTracker::broadcastItemEntityResync(IServer& server, const Entity& ent
     }
 
     for (PlayerId playerId : trackingPlayers) {
-        sendItemEntityResyncPacket(server, playerId, entity);
+        _sendItemEntityResyncPacket(server, playerId, entity);
     }
 }
 
@@ -208,7 +209,7 @@ void EntityTracker::updatePlayerTracking(
         // 获取实体追踪范围
         i32 trackingRange = m_trackingDistance; // 默认使用全局追踪距离
 
-        bool shouldTrackEntity = shouldTrack(playerPos, entity->position(), trackingRange);
+        bool shouldTrackEntity = _shouldTrack(playerPos, entity->position(), trackingRange);
         bool isTracking = trackedSet.find(entityId) != trackedSet.end();
 
         if (shouldTrackEntity && !isTracking) {
@@ -222,7 +223,7 @@ void EntityTracker::updatePlayerTracking(
     for (EntityId entityId : toStartTracking) {
         Entity* entity = world.entityManager().getEntity(entityId);
         if (entity) {
-            sendSpawnPacket(server, playerId, entity);
+            _sendSpawnPacket(server, playerId, entity);
             trackedSet.insert(entityId);
             m_trackedEntities[entityId].trackingPlayers.insert(playerId);
         }
@@ -230,7 +231,7 @@ void EntityTracker::updatePlayerTracking(
 
     // 停止追踪实体
     for (EntityId entityId : toStopTracking) {
-        sendDestroyPacket(server, playerId, entityId);
+        _sendDestroyPacket(server, playerId, entityId);
         trackedSet.erase(entityId);
         m_trackedEntities[entityId].trackingPlayers.erase(playerId);
     }
@@ -303,7 +304,7 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
 
             if (tracked.needsFullUpdate || positionChanged || rotationChanged) {
                 for (PlayerId playerId : tracked.trackingPlayers) {
-                    sendMovePacket(server, playerId, entity);
+                    _sendMovePacket(server, playerId, entity);
                 }
 
                 if (entity->dataManager().hasDirtyData() && !tracked.trackingPlayers.empty()) {
@@ -311,7 +312,7 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
                         network::EntityMetadataSerializer::serialize(entity->dataManager(), true);
                     if (metadata.size() > 1) {
                         for (PlayerId playerId : tracked.trackingPlayers) {
-                            sendMetadataPacket(server, playerId, entity, metadata);
+                            _sendMetadataPacket(server, playerId, entity, metadata);
                         }
                         entity->dataManager().clearDirty();
                     }
@@ -334,22 +335,22 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
 
     for (const auto& [entityId, players] : removedEntities) {
         for (PlayerId playerId : players) {
-            sendDestroyPacket(server, playerId, entityId);
+            _sendDestroyPacket(server, playerId, entityId);
         }
     }
 }
 
-bool EntityTracker::shouldTrack(const Vector3& playerPos, const Vector3& entityPos, i32 trackingRange) const
+bool EntityTracker::_shouldTrack(const Vector3& playerPos, const Vector3& entityPos, i32 trackingRange) const
 {
     f32 dx = playerPos.x - entityPos.x;
     f32 dz = playerPos.z - entityPos.z;
     f32 distanceSq = dx * dx + dz * dz;
 
-    f32 rangeBlocks = static_cast<f32>(trackingRange * 16);
+    f32 rangeBlocks = static_cast<f32>(trackingRange * mc::world::CHUNK_WIDTH);
     return distanceSq <= rangeBlocks * rangeBlocks;
 }
 
-void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* entity)
+void EntityTracker::_sendSpawnPacket(IServer& server, PlayerId playerId, Entity* entity)
 {
     if (!entity) return;
 
@@ -444,7 +445,6 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
             ItemEntity* itemEntity = dynamic_cast<ItemEntity*>(entity);
             if (itemEntity != nullptr) {
                 packet.setItemStack(itemEntity->getItemStack());
-                const auto& stack = itemEntity->getItemStack();
             }
 
             auto result = packet.serialize();
@@ -464,7 +464,7 @@ void EntityTracker::sendSpawnPacket(IServer& server, PlayerId playerId, Entity* 
     }
 }
 
-void EntityTracker::sendMetadataPacket(
+void EntityTracker::_sendMetadataPacket(
     IServer& server, PlayerId playerId, Entity* entity, const std::vector<u8>& metadata)
 {
     if (!entity || metadata.empty()) return;
@@ -490,7 +490,7 @@ void EntityTracker::sendMetadataPacket(
     }
 }
 
-void EntityTracker::sendDestroyPacket(IServer& server, PlayerId playerId, EntityId entityId)
+void EntityTracker::_sendDestroyPacket(IServer& server, PlayerId playerId, EntityId entityId)
 {
     ServerPlayerData* player = server.playerManager().getPlayer(playerId);
     if (!player || !player->hasConnection()) return;
@@ -512,14 +512,14 @@ void EntityTracker::sendDestroyPacket(IServer& server, PlayerId playerId, Entity
     }
 }
 
-void EntityTracker::sendDestroyPacket(IServer& server, const std::vector<PlayerId>& playerIds, EntityId entityId)
+void EntityTracker::_sendDestroyPacket(IServer& server, const std::vector<PlayerId>& playerIds, EntityId entityId)
 {
     for (PlayerId playerId : playerIds) {
-        sendDestroyPacket(server, playerId, entityId);
+        _sendDestroyPacket(server, playerId, entityId);
     }
 }
 
-void EntityTracker::sendMovePacket(IServer& server, PlayerId playerId, Entity* entity)
+void EntityTracker::_sendMovePacket(IServer& server, PlayerId playerId, Entity* entity)
 {
     if (!entity) return;
 
@@ -547,7 +547,7 @@ void EntityTracker::sendMovePacket(IServer& server, PlayerId playerId, Entity* e
     }
 }
 
-void EntityTracker::sendItemEntityResyncPacket(IServer& server, PlayerId playerId, const Entity& entity)
+void EntityTracker::_sendItemEntityResyncPacket(IServer& server, PlayerId playerId, const Entity& entity)
 {
     auto* itemEntity = dynamic_cast<const ItemEntity*>(&entity);
     if (itemEntity == nullptr) {

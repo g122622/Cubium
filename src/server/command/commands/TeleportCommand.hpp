@@ -63,7 +63,7 @@ private:
      * @param context 命令上下文。
      * @return 成功时返回 `1`，失败时返回 `0`。
      */
-    static i32 teleportToEntity(CommandContext<ServerCommandSource>& context);
+    static i32 _teleportToEntity(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 将命令源传送到目标坐标。
@@ -71,7 +71,7 @@ private:
      * @param context 命令上下文。
      * @return 成功时返回 `1`，失败时返回 `0`。
      */
-    static i32 teleportToPosition(CommandContext<ServerCommandSource>& context);
+    static i32 _teleportToPosition(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 将目标玩家集合传送到目标玩家位置。
@@ -79,7 +79,7 @@ private:
      * @param context 命令上下文。
      * @return 成功传送的玩家数量。
      */
-    static i32 teleportTargetToEntity(CommandContext<ServerCommandSource>& context);
+    static i32 _teleportTargetToEntity(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 将目标玩家集合传送到指定坐标。
@@ -87,7 +87,7 @@ private:
      * @param context 命令上下文。
      * @return 成功传送的玩家数量。
      */
-    static i32 teleportTargetToPosition(CommandContext<ServerCommandSource>& context);
+    static i32 _teleportTargetToPosition(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

@@ -233,8 +233,6 @@ private:
      * 对每个已加载区块，随机选择位置执行方块和流体的随机刻。
      * 这是农作物生长、冰融化、火焰蔓延等机制的核心。
      *
-     * 参考: MC 1.16.5 ServerWorld.tickEnvironment()
-     *
      * @param randomTickSpeed 随机刻速度（默认为3，可在游戏规则中设置）
      */
     void tickEnvironment(i32 randomTickSpeed);
@@ -242,7 +240,7 @@ private:
     /**
      * @brief 生成随机方块位置
      *
-     * 使用 MC 风格的 LCG 生成随机位置，确保同一 tick 内位置分布均匀。
+     * 使用 LCG 生成随机位置，确保同一 tick 内位置分布均匀。
      *
      * @param chunkX 区块 X 坐标（方块坐标）
      * @param sectionY 区块段 Y 坐标（方块坐标）
@@ -302,41 +300,39 @@ public:
         const Vector3& pos, f32 maxDistance, const Entity* exclude) const override;
     [[nodiscard]] f64 getClosestPlayerDistanceSq(const Vector3& pos) const override;
 
-    [[nodiscard]] DimensionId dimension() const override { return m_config.dimension; }
-    [[nodiscard]] bool isUltraWarm() const override { return getDimensionType().ultraWarm(); }
+    [[nodiscard]] DimensionId dimension() const noexcept override { return m_config.dimension; }
+    [[nodiscard]] bool isUltraWarm() const noexcept override { return getDimensionType().ultraWarm(); }
     [[nodiscard]] DimensionType getDimensionType() const;
-    [[nodiscard]] u64 seed() const override { return m_config.seed; }
-    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] u64 seed() const noexcept override { return m_config.seed; }
+    [[nodiscard]] bool isHardcore() const noexcept override { return false; }
     [[nodiscard]] Difficulty difficulty() const override;
-    [[nodiscard]] bool isClientSide() override { return false; }
+    [[nodiscard]] bool isClientSide() noexcept override { return false; }
 
     // ========== 随机数生成器 ==========
 
-    [[nodiscard]] math::Random& getRandom() override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+    [[nodiscard]] math::Random& getRandom() noexcept override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const noexcept override { return m_random; }
 
     // ========== 游戏规则 ==========
 
     /**
      * @brief 获取游戏规则管理器（只读）
      *
-     * 参考 MC 1.16.5: World.getGameRules()
-     *
      * @return GameRules 常引用
      */
-    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const noexcept override { return m_gameRules; }
 
     /**
      * @brief 获取游戏规则管理器（可变）
      *
      * @return GameRules 引用
      */
-    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() noexcept override { return m_gameRules; }
 
     // ========== 类型转换 ==========
 
-    [[nodiscard]] ServerWorld* asServerWorld() override { return this; }
-    [[nodiscard]] const ServerWorld* asServerWorld() const override { return this; }
+    [[nodiscard]] ServerWorld* asServerWorld() noexcept override { return this; }
+    [[nodiscard]] const ServerWorld* asServerWorld() const noexcept override { return this; }
 
     // ========== 天气接口 (IWorld) ==========
 
@@ -478,8 +474,6 @@ public:
      * 当实体需要执行命令时调用（如命令方块矿车）。
      * 参数：命令字符串、执行位置、权限级别
      * 返回：命令执行结果码（成功返回正整数，失败返回0）
-     *
-     * 参考 MC 1.16.5: CommandBlockLogic.trigger() -> Commands.handleCommand()
      */
     using CommandExecuteCallback =
         std::function<i32(const std::string& command, const Vector3d& position, i32 permissionLevel)>;
@@ -542,16 +536,17 @@ public:
      * 只有 ServerWorld 会返回有效的指针。
      * 用于方块实体填充战利品表。
      *
-     * 参考 MC 1.16.5: World.getLootTableManager()
-     *
      * @return LootTableManager指针，如果不存在返回nullptr
      */
-    [[nodiscard]] const loot::LootTableManager* lootTableManager() const override { return m_lootTableManager; }
+    [[nodiscard]] const loot::LootTableManager* lootTableManager() const noexcept override
+    {
+        return m_lootTableManager;
+    }
 
     // ========== 物理引擎 ==========
 
-    [[nodiscard]] PhysicsEngine* physicsEngine() override { return m_physicsEngine.get(); }
-    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return m_physicsEngine.get(); }
+    [[nodiscard]] PhysicsEngine* physicsEngine() noexcept override { return m_physicsEngine.get(); }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const noexcept override { return m_physicsEngine.get(); }
 
     // ========== 碰撞缓存 ==========
 
@@ -560,12 +555,15 @@ public:
      *
      * 提供直接访问碰撞缓存的接口，用于需要手动操作碰撞缓存的场景。
      */
-    [[nodiscard]] physics::CollisionCache* collisionCache() { return m_collisionCache.get(); }
-    [[nodiscard]] const physics::CollisionCache* collisionCache() const { return m_collisionCache.get(); }
+    [[nodiscard]] physics::CollisionCache* collisionCache() noexcept { return m_collisionCache.get(); }
+    [[nodiscard]] const physics::CollisionCache* collisionCache() const noexcept { return m_collisionCache.get(); }
 
     // ========== ICollisionWorld 接口实现 ==========
 
-    [[nodiscard]] const ChunkData* getChunkAt(ChunkCoord x, ChunkCoord z) const override { return getChunk(x, z); }
+    [[nodiscard]] const ChunkData* getChunkAt(ChunkCoord x, ChunkCoord z) const noexcept override
+    {
+        return getChunk(x, z);
+    }
 
     // ========== 实体管理 ==========
 
@@ -584,14 +582,14 @@ public:
     [[nodiscard]] Entity* getEntity(EntityId id) override;
     [[nodiscard]] const Entity* getEntity(EntityId id) const override;
 
-    [[nodiscard]] EntityManager& entityManager() { return m_entityManager; }
-    [[nodiscard]] const EntityManager& entityManager() const { return m_entityManager; }
+    [[nodiscard]] EntityManager& entityManager() noexcept { return m_entityManager; }
+    [[nodiscard]] const EntityManager& entityManager() const noexcept { return m_entityManager; }
 
-    [[nodiscard]] EntityTracker& entityTracker() { return m_entityTracker; }
-    [[nodiscard]] const EntityTracker& entityTracker() const { return m_entityTracker; }
+    [[nodiscard]] EntityTracker& entityTracker() noexcept { return m_entityTracker; }
+    [[nodiscard]] const EntityTracker& entityTracker() const noexcept { return m_entityTracker; }
 
-    [[nodiscard]] server::ItemPickupManager& itemPickupManager() { return m_itemPickupManager; }
-    [[nodiscard]] const server::ItemPickupManager& itemPickupManager() const { return m_itemPickupManager; }
+    [[nodiscard]] server::ItemPickupManager& itemPickupManager() noexcept { return m_itemPickupManager; }
+    [[nodiscard]] const server::ItemPickupManager& itemPickupManager() const noexcept { return m_itemPickupManager; }
 
     // ========== 区块生成实体 ==========
 
@@ -624,31 +622,31 @@ public:
     /**
      * @brief 获取实体区块跟踪器
      */
-    [[nodiscard]] EntityChunkTracker& entityChunkTracker() { return m_entityChunkTracker; }
-    [[nodiscard]] const EntityChunkTracker& entityChunkTracker() const { return m_entityChunkTracker; }
+    [[nodiscard]] EntityChunkTracker& entityChunkTracker() noexcept { return m_entityChunkTracker; }
+    [[nodiscard]] const EntityChunkTracker& entityChunkTracker() const noexcept { return m_entityChunkTracker; }
 
     // ========== Tick管理 ==========
 
-    [[nodiscard]] world::tick::TickManager& tickManager() override { return *m_tickManager; }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return *m_tickManager; }
+    [[nodiscard]] world::tick::TickManager& tickManager() noexcept override { return *m_tickManager; }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const noexcept override { return *m_tickManager; }
 
     // ========== StarLightLightingProvider 接口实现 ==========
 
     [[nodiscard]] IChunk* getChunkForLight(ChunkCoord x, ChunkCoord z) override;
     [[nodiscard]] const IChunk* getChunkForLight(ChunkCoord x, ChunkCoord z) const override;
     [[nodiscard]] const BlockState* getBlockStateForLight(const BlockPos& pos) const override;
-    [[nodiscard]] IWorld* getWorld() override;
-    [[nodiscard]] const IWorld* getWorld() const override;
+    [[nodiscard]] IWorld* getWorld() noexcept override;
+    [[nodiscard]] const IWorld* getWorld() const noexcept override;
     void markLightChanged(LightType type, const SectionPos& pos) override;
     [[nodiscard]] bool hasSkyLight() const override;
-    [[nodiscard]] i32 getMinBuildHeight() const override;
-    [[nodiscard]] i32 getMaxBuildHeight() const override;
-    [[nodiscard]] i32 getSectionCount() const override;
+    [[nodiscard]] i32 getMinBuildHeight() const noexcept override;
+    [[nodiscard]] i32 getMaxBuildHeight() const noexcept override;
+    [[nodiscard]] i32 getSectionCount() const noexcept override;
 
     // ========== 光照管理 ==========
 
-    [[nodiscard]] WorldLightManager* lightManager() { return m_lightManager.get(); }
-    [[nodiscard]] const WorldLightManager* lightManager() const { return m_lightManager.get(); }
+    [[nodiscard]] WorldLightManager* lightManager() noexcept { return m_lightManager.get(); }
+    [[nodiscard]] const WorldLightManager* lightManager() const noexcept { return m_lightManager.get(); }
     void setLightManager(std::unique_ptr<WorldLightManager> manager) { m_lightManager = std::move(manager); }
 
     // ========== 区块管理器设置 ==========
@@ -690,14 +688,14 @@ public:
      *
      * @return 世界出生点坐标
      */
-    [[nodiscard]] Vector3d worldSpawnPoint() const { return m_worldSpawnPoint; }
+    [[nodiscard]] Vector3d worldSpawnPoint() const noexcept { return m_worldSpawnPoint; }
 
     /**
      * @brief 设置世界出生点
      *
      * @param pos 新的出生点位置
      */
-    void setWorldSpawnPoint(const Vector3d& pos) { m_worldSpawnPoint = pos; }
+    void setWorldSpawnPoint(const Vector3d& pos) noexcept { m_worldSpawnPoint = pos; }
 
     /**
      * @brief 应用 level.dat 读取到的运行时世界状态
@@ -717,9 +715,6 @@ public:
      * - 计划刻不会执行
      * - 方块状态由调试生成器决定
      *
-     * 参考 MC 1.16.5: DimensionGeneratorSettings.func_236227_h_()
-     * （检查 chunkGenerator 是否为 DebugChunkGenerator 实例）
-     *
      * @return true 如果使用调试区块生成器
      */
     [[nodiscard]] bool isDebugWorld() const;
@@ -731,26 +726,35 @@ public:
      *
      * @return 世界边界对象
      */
-    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
-    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+    [[nodiscard]] world::border::WorldBorder& worldBorder() noexcept override { return m_worldBorder; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const noexcept override { return m_worldBorder; }
 
     // ========== 村庄管理 ==========
 
-    [[nodiscard]] ::mc::world::village::VillageManager* villageManager() override { return m_villageManager.get(); }
-    [[nodiscard]] const ::mc::world::village::VillageManager* villageManager() const override
+    [[nodiscard]] ::mc::world::village::VillageManager* villageManager() noexcept override
+    {
+        return m_villageManager.get();
+    }
+    [[nodiscard]] const ::mc::world::village::VillageManager* villageManager() const noexcept override
     {
         return m_villageManager.get();
     }
 
     // ========== 地图数据管理 ==========
 
-    [[nodiscard]] world::map::MapDataManager* mapDataManager() override { return m_mapDataManager.get(); }
-    [[nodiscard]] const world::map::MapDataManager* mapDataManager() const override { return m_mapDataManager.get(); }
+    [[nodiscard]] world::map::MapDataManager* mapDataManager() noexcept override { return m_mapDataManager.get(); }
+    [[nodiscard]] const world::map::MapDataManager* mapDataManager() const noexcept override
+    {
+        return m_mapDataManager.get();
+    }
 
     // ========== 袭击管理 ==========
 
-    [[nodiscard]] ::mc::world::village::raid::RaidManager* raidManager() { return m_raidManager.get(); }
-    [[nodiscard]] const ::mc::world::village::raid::RaidManager* raidManager() const { return m_raidManager.get(); }
+    [[nodiscard]] ::mc::world::village::raid::RaidManager* raidManager() noexcept { return m_raidManager.get(); }
+    [[nodiscard]] const ::mc::world::village::raid::RaidManager* raidManager() const noexcept
+    {
+        return m_raidManager.get();
+    }
 
     // ========== 睡眠管理 ==========
 
@@ -784,7 +788,7 @@ public:
      * @brief 检查是否所有玩家都在睡眠
      * @return true 如果所有非观察者玩家都在睡眠
      */
-    [[nodiscard]] bool allPlayersSleeping() const { return m_allPlayersSleeping; }
+    [[nodiscard]] bool allPlayersSleeping() const noexcept { return m_allPlayersSleeping; }
 
     /**
      * @brief 更新全员睡眠标志
@@ -804,7 +808,6 @@ public:
      * @brief 通知世界方块被放置
      *
      * 重写 IWorld::onBlockPlaced()，发布 BlockPlaceEvent 用于进度触发。
-     * 参考 MC 1.16.5: CriteriaTriggers.PLACED_BLOCK.trigger()
      */
     void onBlockPlaced(PlayerId playerId, const BlockPos& pos, const BlockState* state, const ItemStack* item) override;
 
@@ -812,7 +815,6 @@ public:
      * @brief 通知世界僵尸村民被治愈
      *
      * 重写 IWorld::onZombieVillagerCured()，发布 CuredZombieVillagerEvent 用于进度触发。
-     * 参考 MC 1.16.5: CriteriaTriggers.CURED_ZOMBIE_VILLAGER.trigger()
      *
      * @param starterUuid 治愈发起者玩家UUID（可能为空）
      * @param zombie 治愈前的僵尸村民实体
@@ -824,7 +826,6 @@ public:
      * @brief 通知世界引雷附魔触发
      *
      * 重写 IWorld::onChanneledLightning()，发布 ChanneledLightningEvent 用于进度触发。
-     * 参考 MC 1.16.5: CriteriaTriggers.CHANNELED_LIGHTNING.trigger()
      *
      * @param casterId 施法者ID（引雷附魔的玩家）
      * @param victims 被闪电击中的实体列表
@@ -835,7 +836,6 @@ public:
      * @brief 通知世界动物繁殖
      *
      * 重写 IWorld::onBredAnimals()，发布 BredAnimalsEvent 用于进度触发。
-     * 参考 MC 1.16.5: CriteriaTriggers.BRED_ANIMALS.trigger()
      *
      * @param playerId 繁殖发起者玩家ID（喂食动物的玩家）
      * @param child 幼体实体
@@ -848,8 +848,6 @@ public:
      * @brief 通知世界玩家物品销毁
      *
      * 重写 IWorld::onPlayerDestroyItem()，发布 PlayerDestroyItemEvent 用于进度触发。
-     * 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
-     * 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED
      *
      * @param playerId 玩家ID
      * @param item 销毁前的物品副本
@@ -862,7 +860,6 @@ public:
      * @brief 通知世界玩家消耗物品
      *
      * 重写 IWorld::onConsumeItem()，发布 ConsumeItemEvent 用于进度触发。
-     * 参考 MC 1.16.5: CriteriaTriggers.CONSUME_ITEM
      *
      * @param playerId 玩家ID
      * @param item 消耗的物品
@@ -873,7 +870,6 @@ public:
      * @brief 通知世界物品耐久度变化
      *
      * 重写 IWorld::onItemDurabilityChange()，发布 ItemDurabilityEvent 用于进度触发。
-     * 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED
      *
      * @param playerId 玩家ID
      * @param item 物品
@@ -887,7 +883,6 @@ public:
      * @brief 通知世界附魔完成
      *
      * 重写 IWorld::onEnchantItem()，发布 EnchantItemEvent 用于进度触发。
-     * 参考 MC 1.16.5: CriteriaTriggers.ENCHANTED_ITEM
      *
      * @param playerId 玩家ID
      * @param item 附魔的物品
@@ -899,7 +894,6 @@ public:
      * @brief 通知世界桶填充完成
      *
      * 重写 IWorld::onFilledBucket()，发布 FilledBucketEvent 用于进度触发。
-     * 参考 MC 1.16.5: CriteriaTriggers.FILLED_BUCKET
      *
      * @param playerId 玩家ID
      * @param bucket 填充后的桶物品
@@ -910,7 +904,6 @@ public:
      * @brief 通知世界玩家进入方块
      *
      * 重写 IWorld::onEnterBlock()，发布 EnterBlockEvent 用于进度触发。
-     * 参考 MC 1.16.5: Entity.onInsideBlock() -> CriteriaTriggers.ENTER_BLOCK
      *
      * @param playerId 玩家ID
      * @param pos 方块位置
@@ -922,7 +915,6 @@ public:
      * @brief 通知世界玩家在方块上滑落
      *
      * 重写 IWorld::onSlideDownBlock()，发布 SlideDownBlockEvent 用于进度触发。
-     * 参考 MC 1.16.5: HoneyBlock.triggerSlideDownBlock()
      *
      * @param playerId 玩家ID
      * @param pos 方块位置
@@ -934,7 +926,6 @@ public:
      * @brief 通知世界蜂巢被破坏
      *
      * 重写 IWorld::onBeeNestDestroyed()，发布 BeeNestDestroyedEvent 用于进度触发。
-     * 参考 MC 1.16.5: BeehiveBlock.harvestBlock() -> CriteriaTriggers.BEE_NEST_DESTROYED
      *
      * @param playerId 玩家ID
      * @param pos 方块位置
@@ -955,9 +946,6 @@ public:
      *
      * 在指定范围内搜索指定类型结构的最近位置。
      * 使用螺旋搜索算法，从中心向外扩展搜索。
-     *
-     * 参考 MC 1.16.5: ServerWorld.func_241117_a_
-     * 参考 MC 1.16.5: Structure.func_236388_a_ (螺旋搜索算法)
      *
      * @param center 搜索中心位置
      * @param structureType 结构类型
@@ -986,9 +974,9 @@ public:
     void wakeUpAllPlayers();
 
 private:
-    void syncLightDataToChunk(LightType type, const SectionPos& pos);
-    [[nodiscard]] std::vector<std::reference_wrapper<Entity>> collectLoadedEntitiesForSave();
-    [[nodiscard]] std::vector<std::reference_wrapper<const BlockEntity>> collectLoadedBlockEntitiesForSave() const;
+    void _syncLightDataToChunk(LightType type, const SectionPos& pos);
+    [[nodiscard]] std::vector<std::reference_wrapper<Entity>> _collectLoadedEntitiesForSave();
+    [[nodiscard]] std::vector<std::reference_wrapper<const BlockEntity>> _collectLoadedBlockEntitiesForSave() const;
 
 private:
     ServerWorldConfig m_config;
