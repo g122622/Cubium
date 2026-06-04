@@ -36,7 +36,9 @@
 namespace mc {
 
 // 前向声明
-class BiomeProvider;
+namespace world::biome {
+class BiomeSource;
+}
 class Random;
 
 /**
@@ -136,7 +138,7 @@ public:
      * @brief 在区块中执行雕刻
      *
      * @param chunk 要雕刻的区块
-     * @param biomeProvider 生物群系提供者
+     * @param biomeSource 生物群系源
      * @param seaLevel 海平面高度
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标
@@ -145,7 +147,7 @@ public:
      * @return 是否雕刻了任何方块
      */
     virtual bool carve(ChunkPrimer& chunk,
-        const BiomeProvider& biomeProvider,
+        const world::biome::BiomeSource& biomeSource,
         i32 seaLevel,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
@@ -215,7 +217,7 @@ protected:
      * @brief 雕刻一个椭球区域
      *
      * @param chunk 区块数据
-     * @param biomeProvider 生物群系提供者
+     * @param biomeSource 生物群系源
      * @param seaLevel 海平面高度
      * @param chunkX 区块X坐标
      * @param chunkZ 区块Z坐标
@@ -229,7 +231,7 @@ protected:
      * @return 是否雕刻了任何方块
      */
     bool carveEllipsoid(ChunkPrimer& chunk,
-        const BiomeProvider& biomeProvider,
+        const world::biome::BiomeSource& biomeSource,
         i32 seaLevel,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
@@ -310,13 +312,13 @@ public:
      * @brief 在区块中执行雕刻
      */
     bool carve(ChunkPrimer& chunk,
-        const BiomeProvider& biomeProvider,
+        const world::biome::BiomeSource& biomeSource,
         i32 seaLevel,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
         CarvingMask& carvingMask)
     {
-        return m_carver->carve(chunk, biomeProvider, seaLevel, chunkX, chunkZ, carvingMask, m_config);
+        return m_carver->carve(chunk, biomeSource, seaLevel, chunkX, chunkZ, carvingMask, m_config);
     }
 
     /**

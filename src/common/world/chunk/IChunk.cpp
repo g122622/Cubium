@@ -33,37 +33,56 @@ namespace mc {
 // BiomeContainer 实现
 // ============================================================================
 
-void BiomeContainer::setBiome(i32 x, i32 y, i32 z, BiomeId biome)
+void BiomeContainer::setBiome(i32 sectionIndex, i32 x, i32 y, i32 z, BiomeId biome)
 {
-    if (x >= 0 && x < BIOME_WIDTH && y >= 0 && y < BIOME_HEIGHT && z >= 0 && z < BIOME_DEPTH) {
-        const i32 index = y * BIOME_WIDTH * BIOME_DEPTH + z * BIOME_WIDTH + x;
+    MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < SECTION_COUNT);
+    if (x >= 0 && x < HORIZ_SIZE && y >= 0 && y < VERT_SIZE && z >= 0 && z < HORIZ_SIZE) {
+        const i32 index = sectionIndex * SECTION_BIOME_SIZE
+            + y * HORIZ_SIZE * HORIZ_SIZE
+            + z * HORIZ_SIZE
+            + x;
         m_biomes[static_cast<size_t>(index)] = biome;
     }
 }
 
-BiomeId BiomeContainer::getBiome(i32 x, i32 y, i32 z) const
+BiomeId BiomeContainer::getBiome(i32 sectionIndex, i32 x, i32 y, i32 z) const
 {
-    if (x >= 0 && x < BIOME_WIDTH && y >= 0 && y < BIOME_HEIGHT && z >= 0 && z < BIOME_DEPTH) {
-        const i32 index = y * BIOME_WIDTH * BIOME_DEPTH + z * BIOME_WIDTH + x;
+    MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < SECTION_COUNT);
+    if (x >= 0 && x < HORIZ_SIZE && y >= 0 && y < VERT_SIZE && z >= 0 && z < HORIZ_SIZE) {
+        const i32 index = sectionIndex * SECTION_BIOME_SIZE
+            + y * HORIZ_SIZE * HORIZ_SIZE
+            + z * HORIZ_SIZE
+            + x;
         return m_biomes[static_cast<size_t>(index)];
     }
-    return 0; // 默认生物群系
+    return 0;
 }
 
-BiomeId BiomeContainer::getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const
+BiomeId BiomeContainer::getBiomeAtBlock(i32 x, i32 y, i32 z) const
 {
     // 将方块坐标映射到生物群系采样点
-    // 16 个方块对应 4 个采样点，所以每 4 个方块对应一个采样点
-    const i32 biomeX = std::clamp(x >> 2, 0, BIOME_WIDTH - 1);
-    const i32 biomeY = std::clamp(y >> 4, 0, BIOME_HEIGHT - 1); // Y 轴每段 16 方块
-    const i32 biomeZ = std::clamp(z >> 2, 0, BIOME_DEPTH - 1);
-    return getBiome(biomeX, biomeY, biomeZ);
+    // X 和 Z：每 4 个方块对应一个采样点
+    const i32 biomeX = std::clamp(x >> 2, 0, HORIZ_SIZE - 1);
+    const i32 biomeZ = std::clamp(z >> 2, 0, HORIZ_SIZE - 1);
+
+    // Y：需要计算正确的 section 索引和 biome Y 索引
+    // section 索引 = (y - MIN_BUILD_HEIGHT) / CHUNK_SECTION_HEIGHT
+    // biome Y 索引 = ((y - MIN_BUILD_HEIGHT) % CHUNK_SECTION_HEIGHT) / 4
+    const i32 yOffset = y - world::MIN_BUILD_HEIGHT;
+    if (yOffset < 0 || yOffset >= world::CHUNK_HEIGHT) {
+        return 0;
+    }
+
+    const i32 sectionIndex = yOffset / world::CHUNK_SECTION_HEIGHT;
+    const i32 biomeY = (yOffset % world::CHUNK_SECTION_HEIGHT) >> 2;
+
+    return getBiome(sectionIndex, biomeX, biomeY, biomeZ);
 }
 
 std::vector<u8> BiomeContainer::serialize() const
 {
     std::vector<u8> data;
-    data.reserve(BIOME_SIZE * sizeof(BiomeId));
+    data.reserve(TOTAL_SIZE * sizeof(BiomeId));
     for (BiomeId biome : m_biomes) {
         data.push_back(static_cast<u8>(biome & 0xFF));
         data.push_back(static_cast<u8>((biome >> 8) & 0xFF));
@@ -73,13 +92,13 @@ std::vector<u8> BiomeContainer::serialize() const
 
 Result<BiomeContainer> BiomeContainer::deserialize(const u8* data, size_t size)
 {
-    const size_t expectedSize = BIOME_SIZE * sizeof(BiomeId);
+    const size_t expectedSize = TOTAL_SIZE * sizeof(BiomeId);
     if (size < expectedSize) {
         return Error(ErrorCode::InvalidArgument, "BiomeContainer deserialize: data too small");
     }
 
     BiomeContainer container;
-    for (size_t i = 0; i < BIOME_SIZE; ++i) {
+    for (size_t i = 0; i < TOTAL_SIZE; ++i) {
         const u16 low = data[i * 2];
         const u16 high = data[i * 2 + 1];
         container.m_biomes[i] = static_cast<BiomeId>(low | (high << 8));

@@ -39,7 +39,7 @@ namespace mc {
  * CaveCarver carver;
  * CarvingMask mask(chunkX, chunkZ);
  * ProbabilityConfig config(0.14285715f);
- * carver.carve(chunk, biomeProvider, seaLevel, chunkX, chunkZ, mask, config);
+ * carver.carve(chunk, biomeSource, seaLevel, chunkX, chunkZ, mask, config);
  * @endcode
  *
  * @note 洞穴雕刻应在 NOISE 阶段之后、SURFACE 阶段之前进行
@@ -58,7 +58,7 @@ public:
      * @brief 在区块中雕刻洞穴
      *
      * @param chunk 要雕刻的区块
-     * @param biomeProvider 生物群系提供者（用于获取地表方块）
+     * @param biomeSource 生物群系源（用于获取地表方块）
      * @param seaLevel 海平面高度
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标
@@ -67,7 +67,7 @@ public:
      * @return 是否雕刻了任何方块
      */
     bool carve(ChunkPrimer& chunk,
-        const BiomeProvider& biomeProvider,
+        const world::biome::BiomeSource& biomeSource,
         i32 seaLevel,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
@@ -77,8 +77,10 @@ public:
     /**
      * @brief 检查是否应该在这个区块生成洞穴
      */
-    [[nodiscard]] bool shouldCarve(
-        math::IRandom& rng, ChunkCoord chunkX, ChunkCoord chunkZ, const ProbabilityConfig& config) const noexcept override;
+    [[nodiscard]] bool shouldCarve(math::IRandom& rng,
+        ChunkCoord chunkX,
+        ChunkCoord chunkZ,
+        const ProbabilityConfig& config) const noexcept override;
 
 protected:
     /**
@@ -117,7 +119,7 @@ private:
      * @brief 生成单个洞穴隧道
      *
      * @param chunk 区块数据
-     * @param biomeProvider 生物群系提供者
+     * @param biomeSource 生物群系源
      * @param seaLevel 海平面高度
      * @param chunkX 区块X坐标
      * @param chunkZ 区块Z坐标
@@ -134,7 +136,7 @@ private:
      * @param carvingMask 雕刻掩码
      */
     void _carveTunnel(ChunkPrimer& chunk,
-        const BiomeProvider& biomeProvider,
+        const world::biome::BiomeSource& biomeSource,
         i32 seaLevel,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
@@ -154,7 +156,7 @@ private:
      * @brief 生成圆形洞穴房间
      *
      * @param chunk 区块数据
-     * @param biomeProvider 生物群系提供者
+     * @param biomeSource 生物群系源
      * @param seaLevel 海平面高度
      * @param chunkX 区块X坐标
      * @param chunkZ 区块Z坐标
@@ -167,7 +169,7 @@ private:
      * @param carvingMask 雕刻掩码
      */
     void _carveRoom(ChunkPrimer& chunk,
-        const BiomeProvider& biomeProvider,
+        const world::biome::BiomeSource& biomeSource,
         i32 seaLevel,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,

@@ -73,8 +73,8 @@ NetherChunkGenerator::NetherChunkGenerator(u64 seed)
     // 确保生物群系注册表已初始化
     BiomeRegistry::instance().initialize();
 
-    // 创建下界生物群系提供者
-    m_biomeProvider = std::make_unique<biome::nether::NetherBiomeProvider>(seed);
+    // 创建下界生物群系源（使用 MultiNoiseBiomeSource）
+    m_biomeSource = world::biome::source::MultiNoiseBiomeSource::createNether(seed);
 
     // 初始化结构管理器（下界堡垒等）
     world::gen::structure::StructureRegistry::initialize();
@@ -93,8 +93,8 @@ NetherChunkGenerator::NetherChunkGenerator(u64 seed, DimensionSettings settings)
     // 确保生物群系注册表已初始化
     BiomeRegistry::instance().initialize();
 
-    // 创建下界生物群系提供者
-    m_biomeProvider = std::make_unique<biome::nether::NetherBiomeProvider>(seed);
+    // 创建下界生物群系源（使用 MultiNoiseBiomeSource）
+    m_biomeSource = world::biome::source::MultiNoiseBiomeSource::createNether(seed);
 
     // 初始化结构管理器
     world::gen::structure::StructureRegistry::initialize();
@@ -173,9 +173,9 @@ void NetherChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& c
 {
     MC_TRACE_EVENT("world.gen.nether", "GenerateBiomes");
 
-    // 使用 NetherBiomeProvider 填充生物群系
-    if (m_biomeProvider) {
-        m_biomeProvider->fillBiomeContainer(chunk.getBiomes(), chunk.x(), chunk.z());
+    // 使用 BiomeSource 填充生物群系
+    if (m_biomeSource) {
+        m_biomeSource->fillBiomeContainer(chunk.getBiomes(), chunk.x(), chunk.z());
     }
 
     chunk.setChunkStatus(ChunkStatuses::BIOMES);
@@ -320,7 +320,7 @@ void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chu
 
     // 下界只使用洞穴雕刻器（不使用峡谷和水下雕刻器）
     if (!isLiquid && m_caveCarver) {
-        m_caveCarver->carve(chunk, *m_biomeProvider, m_lavaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
+        m_caveCarver->carve(chunk, *m_biomeSource, m_lavaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
     }
 
     chunk.setChunkStatus(isLiquid ? ChunkStatuses::LIQUID_CARVERS : ChunkStatuses::CARVERS);
@@ -335,7 +335,7 @@ void NetherChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& ch
     std::call_once(s_featureRegistryInitFlag, []() { FeatureRegistry::instance().initialize(); });
 
     const BiomeId biomeId = chunk.getBiomeAtBlock(8, 64, 8);
-    const Biome& biome = m_biomeProvider->getBiomeDefinition(biomeId);
+    const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
     const BiomeGenerationSettings& settings = biome.generationSettings();
 
     // 使用统一的阶段管线放置下界生物群系配置的特征
@@ -363,16 +363,16 @@ i32 NetherChunkGenerator::spawnInitialMobs(
 
 BiomeId NetherChunkGenerator::getBiome(i32 x, i32 y, i32 z) const
 {
-    if (m_biomeProvider) {
-        return m_biomeProvider->getBiome(x, y, z);
+    if (m_biomeSource) {
+        return m_biomeSource->getNoiseBiome(x >> 2, y >> 2, z >> 2);
     }
     return m_defaultBiome;
 }
 
 BiomeId NetherChunkGenerator::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const
 {
-    if (m_biomeProvider) {
-        return m_biomeProvider->getNoiseBiome(noiseX, noiseY, noiseZ);
+    if (m_biomeSource) {
+        return m_biomeSource->getNoiseBiome(noiseX, noiseY, noiseZ);
     }
     return m_defaultBiome;
 }

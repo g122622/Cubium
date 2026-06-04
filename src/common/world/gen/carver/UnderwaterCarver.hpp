@@ -52,7 +52,7 @@ public:
      * 重写以实现MC原版的填充逻辑
      */
     bool carve(ChunkPrimer& chunk,
-        const BiomeProvider& biomeProvider,
+        const world::biome::BiomeSource& biomeSource,
         i32 seaLevel,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
@@ -77,7 +77,7 @@ protected:
      * 实现MC原版的Y==10特殊逻辑
      */
     bool carveEllipsoidUnderwater(ChunkPrimer& chunk,
-        const BiomeProvider& biomeProvider,
+        const world::biome::BiomeSource& biomeSource,
         i32 seaLevel,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,

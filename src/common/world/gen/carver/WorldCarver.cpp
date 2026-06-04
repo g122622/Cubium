@@ -139,7 +139,7 @@ bool WorldCarver<Config>::canCarveBlock(const BlockState* state, const BlockStat
 
 template <typename Config>
 bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
-    const BiomeProvider& /*biomeProvider*/,
+    const world::biome::BiomeSource& /*biomeSource*/,
     i32 /*seaLevel*/,
     ChunkCoord chunkX,
     ChunkCoord chunkZ,

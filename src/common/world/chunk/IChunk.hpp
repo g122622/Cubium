@@ -186,32 +186,40 @@ public:
 class BiomeContainer {
 public:
     // 生物群系采样尺寸（每个区块段的生物群系采样点数量）
-    static constexpr i32 BIOME_WIDTH = 4;
-    static constexpr i32 BIOME_HEIGHT = 4;
-    static constexpr i32 BIOME_DEPTH = 4;
-    static constexpr i32 BIOME_SIZE = BIOME_WIDTH * BIOME_HEIGHT * BIOME_DEPTH;
+    static constexpr i32 HORIZ_SIZE = 4;                                      // 水平方向采样点
+    static constexpr i32 VERT_SIZE = 4;                                       // 每段垂直采样点
+    static constexpr i32 SECTION_BIOME_SIZE = HORIZ_SIZE * VERT_SIZE * HORIZ_SIZE; // 64
+    static constexpr i32 SECTION_COUNT = 24;                                  // -64~320, 384/16=24
+    static constexpr i32 TOTAL_SIZE = SECTION_BIOME_SIZE * SECTION_COUNT;      // 1536
 
     BiomeContainer() = default;
 
     /**
-     * @brief 设置生物群系
+     * @brief 设置指定区块段的生物群系
+     * @param sectionIndex 区块段索引 (0-23)
      * @param x X 采样位置 (0-3)
-     * @param y Y 采样位置 (0-3 对应 16 段区块中的某一段)
+     * @param y Y 采样位置 (0-3)
      * @param z Z 采样位置 (0-3)
      * @param biome 生物群系 ID
      */
-    void setBiome(i32 x, i32 y, i32 z, BiomeId biome);
+    void setBiome(i32 sectionIndex, i32 x, i32 y, i32 z, BiomeId biome);
 
     /**
-     * @brief 获取生物群系
+     * @brief 获取指定区块段的生物群系
+     * @param sectionIndex 区块段索引 (0-23)
+     * @param x X 采样位置 (0-3)
+     * @param y Y 采样位置 (0-3)
+     * @param z Z 采样位置 (0-3)
      */
-    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const;
+    [[nodiscard]] BiomeId getBiome(i32 sectionIndex, i32 x, i32 y, i32 z) const;
 
     /**
-     * @brief 获取方块位置的生物群系（插值）
-     * @param x 方块 X 坐标 (0-15)
-     * @param y 方块 Y 坐标
-     * @param z 方块 Z 坐标 (0-15)
+     * @brief 获取方块位置的生物群系（3D 插值）
+     * @param x 方块 X 坐标（世界坐标，相对区块 0-15）
+     * @param y 方块 Y 坐标（世界坐标）
+     * @param z 方块 Z 坐标（世界坐标，相对区块 0-15）
+     *
+     * 自动将世界 Y 坐标映射到正确的 section 和 biome Y 索引。
      */
     [[nodiscard]] BiomeId getBiomeAtBlock(i32 x, i32 y, i32 z) const;
 
@@ -222,8 +230,8 @@ public:
     static Result<BiomeContainer> deserialize(const u8* data, size_t size);
 
 private:
-    // 存储生物群系 ID，初始化为 0 (void/placeholder)
-    std::array<BiomeId, BIOME_SIZE> m_biomes{};
+    // 存储所有 section 的生物群系 ID，初始化为 0
+    std::array<BiomeId, TOTAL_SIZE> m_biomes{};
 };
 
 // ============================================================================

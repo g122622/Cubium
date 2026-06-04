@@ -204,17 +204,19 @@ Result<void> BedrockChunkReader::readData2D(const std::vector<u8>& data, ChunkDa
     BiomeContainer biomeContainer;
     // 旧版生物群系：16x16 = 256 个字节，每个代表一列的生物群系
     // 映射到 4x4x4 = 64 的 BiomeContainer：取每 4x4 区域的第一个值
-    for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
-        for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
+    for (i32 bz = 0; bz < BiomeContainer::HORIZ_SIZE; ++bz) {
+        for (i32 bx = 0; bx < BiomeContainer::HORIZ_SIZE; ++bx) {
             // 取 4x4 区域中心值
             i32 srcZ = bz * 4 + 2;
             i32 srcX = bx * 4 + 2;
             i32 srcIdx = srcZ * 16 + srcX;
             u8 biomeByte = data[256 + srcIdx];
             BiomeId biomeId = m_biomeMapper.mapBiome(static_cast<i32>(biomeByte));
-            // 所有 Y 层使用相同的生物群系
-            for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
-                biomeContainer.setBiome(bx, by, bz, biomeId);
+            // 所有 section 和 Y 层使用相同的生物群系
+            for (i32 sectionIndex = 0; sectionIndex < BiomeContainer::SECTION_COUNT; ++sectionIndex) {
+                for (i32 by = 0; by < BiomeContainer::VERT_SIZE; ++by) {
+                    biomeContainer.setBiome(sectionIndex, bx, by, bz, biomeId);
+                }
             }
         }
     }
@@ -265,7 +267,7 @@ Result<BedrockChunkReader::BiomeSectionData> BedrockChunkReader::_readBiomeSecti
     const bool runtimeEncoding = (paletteHeader & 0x1) != 0;
     MC_UNUSED(runtimeEncoding);
 
-    auto indicesResult = palette::readPackedIndices(data, pos, bitsPerEntry, BiomeContainer::BIOME_SIZE, 32);
+    auto indicesResult = palette::readPackedIndices(data, pos, bitsPerEntry, BiomeContainer::SECTION_BIOME_SIZE, 32);
     if (indicesResult.failed()) {
         return indicesResult.error();
     }
@@ -291,7 +293,7 @@ Result<BedrockChunkReader::BiomeSectionData> BedrockChunkReader::_readBiomeSecti
 
     BiomeSectionData section;
     section.sectionY = sectionY;
-    for (i32 i = 0; i < BiomeContainer::BIOME_SIZE; ++i) {
+    for (i32 i = 0; i < BiomeContainer::SECTION_BIOME_SIZE; ++i) {
         const u32 paletteIndex = indicesResult.value()[static_cast<size_t>(i)];
         section.biomes[static_cast<size_t>(i)] = paletteIndex < palette.size() ? palette[paletteIndex] : Biomes::Ocean;
     }
@@ -308,26 +310,18 @@ void BedrockChunkReader::_applyBiomeSectionsToChunk(
     BiomeContainer biomeContainer;
     const i32 baseSectionY = world::MIN_BUILD_HEIGHT >> 4;
     for (const auto& section : sections) {
-        if (section.sectionY != baseSectionY) {
+        const i32 sectionIndex = section.sectionY - baseSectionY;
+        if (sectionIndex < 0 || sectionIndex >= BiomeContainer::SECTION_COUNT) {
             continue;
         }
-        for (i32 idx = 0; idx < BiomeContainer::BIOME_SIZE; ++idx) {
+        for (i32 idx = 0; idx < BiomeContainer::SECTION_BIOME_SIZE; ++idx) {
             const i32 bx = idx & 0x3;
             const i32 bz = (idx >> 2) & 0x3;
             const i32 by = (idx >> 4) & 0x3;
-            biomeContainer.setBiome(bx, by, bz, section.biomes[static_cast<size_t>(idx)]);
+            biomeContainer.setBiome(sectionIndex, bx, by, bz, section.biomes[static_cast<size_t>(idx)]);
         }
-        chunk.setBiomes(std::move(biomeContainer));
-        return;
     }
 
-    const auto& selected = sections.front();
-    for (i32 idx = 0; idx < BiomeContainer::BIOME_SIZE; ++idx) {
-        const i32 bx = idx & 0x3;
-        const i32 bz = (idx >> 2) & 0x3;
-        const i32 by = (idx >> 4) & 0x3;
-        biomeContainer.setBiome(bx, by, bz, selected.biomes[static_cast<size_t>(idx)]);
-    }
     chunk.setBiomes(std::move(biomeContainer));
 }
 

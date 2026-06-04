@@ -24,18 +24,11 @@
 #include <array>
 
 #include "common/world/biome/Biome.hpp"
-#include "common/world/biome/BiomeProvider.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/biome/layer/Layer.hpp"
-#include "common/world/biome/layer/LayerContext.hpp"
-#include "common/world/biome/layer/LayerUtil.hpp"
-#include "common/world/biome/layer/transformers/BiomeLayers.hpp"
-#include "common/world/biome/layer/transformers/ClimateLayers.hpp"
-#include "common/world/biome/layer/transformers/SourceLayers.hpp"
-#include "common/world/biome/layer/transformers/TransformerTraits.hpp"
-#include "common/world/biome/layer/transformers/ZoomLayers.hpp"
-#include "common/world/biome/provider/end/EndBiomeProvider.hpp"
-#include "common/world/biome/provider/nether/NetherBiomeProvider.hpp"
+#include "common/world/biome/BiomeSource.hpp"
+#include "common/world/biome/source/EndBiomeSource.hpp"
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "common/world/biome/source/NetherBiomeSource.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/gen/feature/FeatureIds.hpp"
 #include <gtest/gtest.h>
@@ -79,7 +72,7 @@ TEST_F(BiomeTest, SettersAndGetters)
     EXPECT_EQ(biome.category(), Biome::Category::Desert);
 
     // 设置气候
-    BiomeClimate climate(BiomeClimate::Precipitation::None, 2.0f, 0.0f, 0.0f);
+    BiomeClimate climate(BiomeClimate::Precipitation::None, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f);
     biome.setClimate(climate);
     EXPECT_FLOAT_EQ(biome.temperature(), 2.0f);
     EXPECT_EQ(biome.climate().precipitation, BiomeClimate::Precipitation::None);
@@ -613,10 +606,10 @@ TEST_F(BiomeRegistryTest, CreateShatteredSavannaPlateau)
 }
 
 // ============================================================================
-// Layer 系统测试
+// MultiNoiseBiomeSource 测试
 // ============================================================================
 
-class LayerTest : public ::testing::Test {
+class MultiNoiseBiomeSourceTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
@@ -625,495 +618,213 @@ protected:
     }
 };
 
-TEST_F(LayerTest, LayerContext_PositionSeed)
+TEST_F(MultiNoiseBiomeSourceTest, CreateOverworldReturnsValidSource)
 {
-    LayerContext ctx(1024, 12345, 1);
+    auto source = world::biome::source::MultiNoiseBiomeSource::createOverworld(12345, false);
+    ASSERT_NE(source, nullptr);
+    EXPECT_NE(source->seed(), 0u);
 
-    ctx.setPosition(0, 0);
-    i32 val1 = ctx.nextInt(100);
-
-    ctx.setPosition(0, 0);
-    i32 val2 = ctx.nextInt(100);
-
-    // 相同位置应该产生相同的结果
-    EXPECT_EQ(val1, val2);
+    const auto& biomes = source->possibleBiomes();
+    EXPECT_FALSE(biomes.empty());
 }
 
-TEST_F(LayerTest, LayerContext_DifferentPositions)
+TEST_F(MultiNoiseBiomeSourceTest, CreateOverworldLargeBiomes)
 {
-    LayerContext ctx(1024, 12345, 1);
+    auto source = world::biome::source::MultiNoiseBiomeSource::createOverworld(54321, true);
+    ASSERT_NE(source, nullptr);
 
-    ctx.setPosition(0, 0);
-    i32 val1 = ctx.nextInt(100);
-
-    ctx.setPosition(100, 200);
-    i32 val2 = ctx.nextInt(100);
-
-    // 不同位置通常产生不同结果（概率很高）
-    // 注意：这不是绝对的，但对于大多数种子来说是正确的
+    const auto& biomes = source->possibleBiomes();
+    EXPECT_FALSE(biomes.empty());
 }
 
-TEST_F(LayerTest, IslandLayer_SpawnPointIsLand)
+TEST_F(MultiNoiseBiomeSourceTest, GetNoiseBiomeReturnsValidBiomeId)
 {
-    auto ctx = std::make_shared<LayerContext>(1024, 12345, 1);
-    layer::IslandLayer islandLayer;
+    auto source = world::biome::source::MultiNoiseBiomeSource::createOverworld(12345, false);
+    ASSERT_NE(source, nullptr);
 
-    auto factory = islandLayer.apply(*ctx);
-    auto area = factory->create();
-
-    // 原点 (0, 0) 应该是陆地
-    i32 val = area->getValue(0, 0);
-    EXPECT_EQ(val, 1); // 1 = 陆地
-}
-
-TEST_F(LayerTest, ZoomLayer_Scaling)
-{
-    auto ctx = std::make_shared<LayerContext>(1024, 12345, 1);
-    layer::ZoomLayer zoom(layer::ZoomLayer::Mode::Normal);
-
-    // 创建源层
-    layer::IslandLayer islandLayer;
-    auto sourceFactory = islandLayer.apply(*ctx);
-    auto zoomedFactory = zoom.apply(*ctx, std::move(sourceFactory));
-    auto area = zoomedFactory->create();
-
-    // 采样应该有效
-    i32 val = area->getValue(0, 0);
-    EXPECT_TRUE(val == 0 || val == 1);
-}
-
-TEST_F(LayerTest, SimpleLayerChain)
-{
-    // 测试简单的层链
-    auto ctx = std::make_shared<LayerContext>(1024, 12345, 1);
-
-    static layer::IslandLayer islandLayer;
-    auto factory = islandLayer.apply(*ctx);
-
-    // 创建第一个缩放
-    static layer::ZoomLayer zoom1(layer::ZoomLayer::Mode::Fuzzy);
-    factory = zoom1.apply(*ctx, std::move(factory));
-
-    // 创建第二个缩放
-    static layer::ZoomLayer zoom2(layer::ZoomLayer::Mode::Normal);
-    factory = zoom2.apply(*ctx, std::move(factory));
-
-    // 创建区域并采样
-    auto area = factory->create();
-    i32 val = area->getValue(0, 0);
-    EXPECT_TRUE(val == 0 || val == 1);
-}
-
-TEST_F(LayerTest, AddIslandLayer)
-{
-    // 测试 AddIslandLayer
-    auto ctx = std::make_shared<LayerContext>(1024, 12345, 1);
-
-    static layer::IslandLayer islandLayer;
-    auto factory = islandLayer.apply(*ctx);
-
-    static layer::ZoomLayer fuzzyZoom(layer::ZoomLayer::Mode::Fuzzy);
-    factory = fuzzyZoom.apply(*ctx, std::move(factory));
-
-    static layer::AddIslandLayer addIslandLayer;
-    factory = addIslandLayer.apply(*ctx, std::move(factory));
-
-    auto area = factory->create();
-    i32 val = area->getValue(0, 0);
-    EXPECT_TRUE(val == 0 || val == 1);
-}
-
-TEST_F(LayerTest, AddSnowLayer)
-{
-    // 测试 AddSnowLayer
-    auto ctx = std::make_shared<LayerContext>(1024, 12345, 1);
-
-    static layer::IslandLayer islandLayer;
-    auto factory = islandLayer.apply(*ctx);
-
-    static layer::ZoomLayer fuzzyZoom(layer::ZoomLayer::Mode::Fuzzy);
-    factory = fuzzyZoom.apply(*ctx, std::move(factory));
-
-    static layer::AddIslandLayer addIslandLayer;
-    factory = addIslandLayer.apply(*ctx, std::move(factory));
-
-    static layer::ZoomLayer normalZoom(layer::ZoomLayer::Mode::Normal);
-    factory = normalZoom.apply(*ctx, std::move(factory));
-
-    static layer::AddSnowLayer addSnowLayer;
-    factory = addSnowLayer.apply(*ctx, std::move(factory));
-
-    auto area = factory->create();
-    i32 val = area->getValue(0, 0);
-    // 应该是 0-4 之间的值
-    EXPECT_GE(val, 0);
-    EXPECT_LE(val, 4);
-}
-
-TEST_F(LayerTest, MultipleContexts)
-{
-    // 测试使用不同上下文的层链 - 模拟 buildOverworldLayers 的行为
-    u64 seed = 12345;
-
-    auto createContext = [seed](u64 modifier) -> std::shared_ptr<LayerContext> {
-        return std::make_shared<LayerContext>(1024, seed, modifier);
-    };
-
-    // 创建源层 - 使用 context 1
-    auto ctx = createContext(1);
-    static layer::IslandLayer islandLayer;
-    auto factory = islandLayer.apply(*ctx);
-
-    // 使用 context 2000 进行模糊缩放
-    static layer::ZoomLayer fuzzyZoom(layer::ZoomLayer::Mode::Fuzzy);
-    ctx = createContext(2000);
-    factory = fuzzyZoom.apply(*ctx, std::move(factory));
-
-    // 使用 context 1 进行 AddIsland
-    static layer::AddIslandLayer addIslandLayer;
-    ctx = createContext(1);
-    factory = addIslandLayer.apply(*ctx, std::move(factory));
-
-    // 使用 context 2001 进行普通缩放
-    static layer::ZoomLayer normalZoom(layer::ZoomLayer::Mode::Normal);
-    ctx = createContext(2001);
-    factory = normalZoom.apply(*ctx, std::move(factory));
-
-    // 使用 context 2 进行 AddSnow
-    static layer::AddSnowLayer addSnowLayer;
-    ctx = createContext(2);
-    factory = addSnowLayer.apply(*ctx, std::move(factory));
-
-    // 创建区域并采样
-    auto area = factory->create();
-    i32 val = area->getValue(0, 0);
-    EXPECT_GE(val, 0);
-    EXPECT_LE(val, 4);
-}
-
-TEST_F(LayerTest, BiomeLayerTest)
-{
-    // 测试完整的层链直到 BiomeLayer
-    u64 seed = 12345;
-
-    auto createContext = [seed](u64 modifier) -> std::shared_ptr<LayerContext> {
-        return std::make_shared<LayerContext>(1024, seed, modifier);
-    };
-
-    auto ctx = createContext(1);
-    static layer::IslandLayer islandLayer;
-    auto factory = islandLayer.apply(*ctx);
-
-    static layer::ZoomLayer fuzzyZoom(layer::ZoomLayer::Mode::Fuzzy);
-    ctx = createContext(2000);
-    factory = fuzzyZoom.apply(*ctx, std::move(factory));
-
-    static layer::AddIslandLayer addIslandLayer;
-    ctx = createContext(1);
-    factory = addIslandLayer.apply(*ctx, std::move(factory));
-
-    static layer::ZoomLayer normalZoom(layer::ZoomLayer::Mode::Normal);
-    ctx = createContext(2001);
-    factory = normalZoom.apply(*ctx, std::move(factory));
-
-    static layer::AddSnowLayer addSnowLayer;
-    ctx = createContext(2);
-    factory = addSnowLayer.apply(*ctx, std::move(factory));
-
-    // 缩放几次
-    for (int i = 0; i < 4; ++i) {
-        ctx = createContext(static_cast<u64>(2002 + i));
-        factory = normalZoom.apply(*ctx, std::move(factory));
-    }
-
-    // BiomeLayer
-    static layer::BiomeLayer biomeLayer(layer::BiomeLayer::Config{false});
-    ctx = createContext(200);
-    factory = biomeLayer.apply(*ctx, std::move(factory));
-
-    auto area = factory->create();
-    i32 val = area->getValue(0, 0);
-    // 应该是一个有效的生物群系 ID
-    EXPECT_GE(val, 0);
-}
-
-TEST_F(LayerTest, FullLayerChain)
-{
-    // 测试完整的层链
-    u64 seed = 12345;
-
-    auto createContext = [seed](u64 modifier) -> std::shared_ptr<LayerContext> {
-        return std::make_shared<LayerContext>(1024, seed, modifier);
-    };
-
-    auto ctx = createContext(1);
-    static layer::IslandLayer islandLayer;
-    auto factory = islandLayer.apply(*ctx);
-
-    static layer::ZoomLayer fuzzyZoom(layer::ZoomLayer::Mode::Fuzzy);
-    ctx = createContext(2000);
-    factory = fuzzyZoom.apply(*ctx, std::move(factory));
-
-    static layer::AddIslandLayer addIslandLayer;
-    ctx = createContext(1);
-    factory = addIslandLayer.apply(*ctx, std::move(factory));
-
-    static layer::ZoomLayer normalZoom(layer::ZoomLayer::Mode::Normal);
-    ctx = createContext(2001);
-    factory = normalZoom.apply(*ctx, std::move(factory));
-
-    static layer::AddSnowLayer addSnowLayer;
-    ctx = createContext(2);
-    factory = addSnowLayer.apply(*ctx, std::move(factory));
-
-    // 缩放几次 (biomeSize = 4, 所以 4+4=8 次)
-    for (int i = 0; i < 8; ++i) {
-        ctx = createContext(static_cast<u64>(2002 + i));
-        factory = normalZoom.apply(*ctx, std::move(factory));
-    }
-
-    // BiomeLayer
-    static layer::BiomeLayer biomeLayer(layer::BiomeLayer::Config{false});
-    ctx = createContext(200);
-    factory = biomeLayer.apply(*ctx, std::move(factory));
-
-    // 最终缩放
-    for (int i = 0; i < 4; ++i) {
-        ctx = createContext(static_cast<u64>(3000 + i));
-        factory = normalZoom.apply(*ctx, std::move(factory));
-    }
-
-    // SmoothLayer
-    static layer::SmoothLayer smoothLayer;
-    ctx = createContext(1000);
-    factory = smoothLayer.apply(*ctx, std::move(factory));
-
-    auto area = factory->create();
-    i32 val = area->getValue(0, 0);
-    // 应该是一个有效的生物群系 ID
-    EXPECT_GE(val, 0);
-}
-
-TEST_F(LayerTest, LayerUtilBuildOverworldLayers)
-{
-    // 直接测试 buildOverworldLayers
-    auto factory = LayerUtil::buildOverworldLayers(12345, false, false, 4, 4);
-    ASSERT_NE(factory, nullptr);
-
-    auto area = factory->create();
-    ASSERT_NE(area, nullptr);
-
-    i32 val = area->getValue(0, 0);
-    EXPECT_GE(val, 0);
-}
-
-TEST_F(LayerTest, CreateOverworldLayers)
-{
-    // 直接测试 createOverworldLayers
-    auto stack = LayerUtil::createOverworldLayers(12345, false);
-    ASSERT_NE(stack, nullptr);
-
-    BiomeId biome = stack->sample(0, 0);
+    BiomeId biome = source->getNoiseBiome(0, 0, 0);
     EXPECT_LT(biome, Biomes::Count);
+
+    // Sample at different positions
+    BiomeId biome1 = source->getNoiseBiome(100, 64, 200);
+    BiomeId biome2 = source->getNoiseBiome(-50, 32, -75);
+    EXPECT_LT(biome1, Biomes::Count);
+    EXPECT_LT(biome2, Biomes::Count);
+}
+
+TEST_F(MultiNoiseBiomeSourceTest, CreateNetherReturnsValidSource)
+{
+    auto source = world::biome::source::MultiNoiseBiomeSource::createNether(12345);
+    ASSERT_NE(source, nullptr);
+
+    const auto& biomes = source->possibleBiomes();
+    EXPECT_FALSE(biomes.empty());
+
+    // Nether should have nether biomes
+    bool hasNetherBiome = false;
+    for (BiomeId id : biomes) {
+        if (id == Biomes::NetherWastes || id == Biomes::SoulSandValley || id == Biomes::CrimsonForest ||
+            id == Biomes::WarpedForest || id == Biomes::BasaltDeltas) {
+            hasNetherBiome = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(hasNetherBiome);
+}
+
+TEST_F(MultiNoiseBiomeSourceTest, NetherGetNoiseBiomeReturnsValidBiomeId)
+{
+    auto source = world::biome::source::MultiNoiseBiomeSource::createNether(12345);
+    ASSERT_NE(source, nullptr);
+
+    BiomeId biome = source->getNoiseBiome(0, 0, 0);
+    EXPECT_LT(biome, Biomes::Count);
+
+    // Sample at different positions
+    BiomeId biome1 = source->getNoiseBiome(100, 64, 200);
+    BiomeId biome2 = source->getNoiseBiome(-50, 32, -75);
+    EXPECT_LT(biome1, Biomes::Count);
+    EXPECT_LT(biome2, Biomes::Count);
 }
 
 // ============================================================================
-// LayerStack 测试
+// NetherBiomeSource 测试
 // ============================================================================
 
-class LayerStackTest : public ::testing::Test {
+class NetherBiomeSourceTest : public ::testing::Test {
 protected:
-    void SetUp() override { BiomeRegistry::instance().initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        BiomeRegistry::instance().initialize();
+    }
 };
 
-TEST_F(LayerStackTest, CreateOverworldLayers)
+TEST_F(NetherBiomeSourceTest, BuildParameterListReturnsNetherBiomes)
 {
-    auto stack = LayerUtil::createOverworldLayers(12345, false);
-    ASSERT_NE(stack, nullptr);
+    auto params = world::biome::source::NetherBiomeSource::buildParameterList();
 
-    BiomeId biome = stack->sample(0, 0);
-    EXPECT_LT(biome, Biomes::Count);
+    // Should have entries for all nether biomes
+    EXPECT_FALSE(params.empty());
+
+    // Check that nether biomes are present in the parameter list
+    bool hasNetherWastes = false;
+    bool hasSoulSandValley = false;
+    bool hasCrimsonForest = false;
+    bool hasWarpedForest = false;
+    bool hasBasaltDeltas = false;
+
+    for (const auto& [param, biomeId] : params) {
+        if (biomeId == Biomes::NetherWastes) hasNetherWastes = true;
+        if (biomeId == Biomes::SoulSandValley) hasSoulSandValley = true;
+        if (biomeId == Biomes::CrimsonForest) hasCrimsonForest = true;
+        if (biomeId == Biomes::WarpedForest) hasWarpedForest = true;
+        if (biomeId == Biomes::BasaltDeltas) hasBasaltDeltas = true;
+    }
+
+    EXPECT_TRUE(hasNetherWastes);
+    EXPECT_TRUE(hasSoulSandValley);
+    EXPECT_TRUE(hasCrimsonForest);
+    EXPECT_TRUE(hasWarpedForest);
+    EXPECT_TRUE(hasBasaltDeltas);
 }
 
-TEST_F(LayerStackTest, CreateOverworldLayers_LargeBiomes)
-{
-    auto stack = LayerUtil::createOverworldLayers(12345, true);
-    ASSERT_NE(stack, nullptr);
+// ============================================================================
+// EndBiomeSource 测试
+// ============================================================================
 
-    BiomeId biome = stack->sample(0, 0);
-    EXPECT_LT(biome, Biomes::Count);
+class EndBiomeSourceTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        BiomeRegistry::instance().initialize();
+    }
+};
+
+TEST_F(EndBiomeSourceTest, ConstructionAndSeed)
+{
+    world::biome::source::EndBiomeSource source(12345);
+    EXPECT_EQ(source.seed(), 12345u);
 }
 
-TEST_F(LayerStackTest, SampleMultiplePositions)
+TEST_F(EndBiomeSourceTest, PossibleBiomesReturnsEndBiomes)
 {
-    auto stack = LayerUtil::createOverworldLayers(12345, false);
-    ASSERT_NE(stack, nullptr);
+    world::biome::source::EndBiomeSource source(12345);
+    const auto& biomes = source.possibleBiomes();
 
-    // 采样多个位置
-    BiomeId biome1 = stack->sample(0, 0);
-    BiomeId biome2 = stack->sample(100, 100);
-    BiomeId biome3 = stack->sample(-50, -50);
+    EXPECT_FALSE(biomes.empty());
+
+    // Check that end biomes are present
+    bool hasTheEnd = false;
+    bool hasEndHighlands = false;
+    bool hasEndMidlands = false;
+    bool hasSmallEndIslands = false;
+    bool hasEndBarrens = false;
+
+    for (BiomeId id : biomes) {
+        if (id == Biomes::TheEnd) hasTheEnd = true;
+        if (id == Biomes::EndHighlands) hasEndHighlands = true;
+        if (id == Biomes::EndMidlands) hasEndMidlands = true;
+        if (id == Biomes::SmallEndIslands) hasSmallEndIslands = true;
+        if (id == Biomes::EndBarrens) hasEndBarrens = true;
+    }
+
+    EXPECT_TRUE(hasTheEnd);
+    EXPECT_TRUE(hasEndHighlands);
+    EXPECT_TRUE(hasEndMidlands);
+    EXPECT_TRUE(hasSmallEndIslands);
+    EXPECT_TRUE(hasEndBarrens);
+}
+
+TEST_F(EndBiomeSourceTest, GetNoiseBiomeCentralIsland)
+{
+    world::biome::source::EndBiomeSource source(12345);
+
+    // Near origin should be TheEnd biome (central island is within 64 blocks of origin)
+    BiomeId biome = source.getNoiseBiome(0, 0, 0);
+    EXPECT_EQ(biome, Biomes::TheEnd);
+
+    // Quart (0, 0) is at block (0, 0), which is central island
+    biome = source.getNoiseBiome(10, 0, 10);
+    // 10 * 4 = 40 blocks from origin, still within 64 block radius
+    EXPECT_EQ(biome, Biomes::TheEnd);
+}
+
+TEST_F(EndBiomeSourceTest, GetNoiseBiomeReturnsValidBiomeId)
+{
+    world::biome::source::EndBiomeSource source(12345);
+
+    // Sample at various positions
+    BiomeId biome1 = source.getNoiseBiome(0, 0, 0);
+    BiomeId biome2 = source.getNoiseBiome(100, 0, 100);
+    BiomeId biome3 = source.getNoiseBiome(-50, 0, -75);
 
     EXPECT_LT(biome1, Biomes::Count);
     EXPECT_LT(biome2, Biomes::Count);
     EXPECT_LT(biome3, Biomes::Count);
 }
 
-TEST_F(LayerStackTest, SampleArea)
+TEST_F(EndBiomeSourceTest, FillBiomeContainer)
 {
-    auto stack = LayerUtil::createOverworldLayers(12345, false);
-    ASSERT_NE(stack, nullptr);
-
-    auto biomes = stack->sampleArea(0, 0, 16, 16);
-
-    EXPECT_EQ(biomes.size(), 256u);
-    for (BiomeId biome : biomes) {
-        EXPECT_LT(biome, Biomes::Count);
-    }
-}
-
-TEST_F(LayerStackTest, Consistency)
-{
-    auto stack = LayerUtil::createOverworldLayers(12345, false);
-    ASSERT_NE(stack, nullptr);
-
-    BiomeId biome1 = stack->sample(100, 200);
-    BiomeId biome2 = stack->sample(100, 200);
-
-    EXPECT_EQ(biome1, biome2);
-}
-
-// ============================================================================
-// LayerBiomeProvider 测试
-// ============================================================================
-
-class LayerBiomeProviderTest : public ::testing::Test {
-protected:
-    void SetUp() override
-    {
-        VanillaBlocks::initialize();
-        BiomeRegistry::instance().initialize();
-        provider = std::make_unique<LayerBiomeProvider>(12345);
-    }
-
-    std::unique_ptr<LayerBiomeProvider> provider;
-};
-
-TEST_F(LayerBiomeProviderTest, GetBiome)
-{
-    BiomeId biome = provider->getBiome(0, 64, 0);
-    EXPECT_LT(biome, Biomes::Count);
-}
-
-TEST_F(LayerBiomeProviderTest, GetNoiseBiome)
-{
-    BiomeId biome = provider->getNoiseBiome(0, 0, 0);
-    EXPECT_LT(biome, Biomes::Count);
-}
-
-TEST_F(LayerBiomeProviderTest, GetDepthAndScale)
-{
-    f32 depth = provider->getDepth(0, 0);
-    f32 scale = provider->getScale(0, 0);
-
-    EXPECT_GE(depth, -2.0f); // 深海可能为负
-    EXPECT_GE(scale, 0.0f);
-}
-
-TEST_F(LayerBiomeProviderTest, GetBiomeDefinition)
-{
-    const Biome& biome = provider->getBiomeDefinition(Biomes::Plains);
-    EXPECT_EQ(biome.id(), Biomes::Plains);
-}
-
-TEST_F(LayerBiomeProviderTest, BiomeDistribution)
-{
-    // 统计生物群系分布
-    std::map<BiomeId, int> distribution;
-
-    for (int x = 0; x < 100; ++x) {
-        for (int z = 0; z < 100; ++z) {
-            BiomeId biome = provider->getBiome(x * 10, 64, z * 10);
-            distribution[biome]++;
-        }
-    }
-
-    // 应该有多种生物群系
-    EXPECT_GT(distribution.size(), 1u);
-}
-
-// ============================================================================
-// NetherBiomeProvider / EndBiomeProvider 测试
-// ============================================================================
-
-class NetherBiomeProviderTest : public ::testing::Test {
-protected:
-    void SetUp() override
-    {
-        VanillaBlocks::initialize();
-        BiomeRegistry::instance().initialize();
-    }
-};
-
-TEST_F(NetherBiomeProviderTest, FillBiomeContainerUsesVerticalNoiseSamples)
-{
-    biome::nether::NetherBiomeProvider provider(12345);
-    BiomeContainer container;
-
-    constexpr ChunkCoord chunkX = 0;
-    constexpr ChunkCoord chunkZ = 0;
-    provider.fillBiomeContainer(container, chunkX, chunkZ);
-
-    const i32 startNoiseX = chunkX << 2;
-    const i32 startNoiseZ = chunkZ << 2;
-
-    for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
-        for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
-            const i32 noiseX = startNoiseX + bx;
-            const i32 noiseZ = startNoiseZ + bz;
-
-            for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
-                const i32 sampleBlockY = (by << 4) + 8;
-                const i32 noiseY = sampleBlockY >> 2;
-
-                const BiomeId expected = provider.getNoiseBiome(noiseX, noiseY, noiseZ);
-                const BiomeId actual = container.getBiome(bx, by, bz);
-                EXPECT_EQ(actual, expected)
-                    << "Nether biome container mismatch at (" << bx << ", " << by << ", " << bz << ")";
-            }
-        }
-    }
-}
-
-class EndBiomeProviderTest : public ::testing::Test {
-protected:
-    void SetUp() override
-    {
-        VanillaBlocks::initialize();
-        BiomeRegistry::instance().initialize();
-    }
-};
-
-TEST_F(EndBiomeProviderTest, FillBiomeContainerMatchesHorizontalSamplingGrid)
-{
-    biome::end::EndBiomeProvider provider(98765);
+    world::biome::source::EndBiomeSource source(98765);
     BiomeContainer container;
 
     constexpr ChunkCoord chunkX = 3;
     constexpr ChunkCoord chunkZ = -2;
-    provider.fillBiomeContainer(container, chunkX, chunkZ);
+    source.fillBiomeContainer(container, chunkX, chunkZ);
 
     const i32 startNoiseX = chunkX << 2;
     const i32 startNoiseZ = chunkZ << 2;
 
-    for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
-        for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
+    for (i32 bz = 0; bz < BiomeContainer::HORIZ_SIZE; ++bz) {
+        for (i32 bx = 0; bx < BiomeContainer::HORIZ_SIZE; ++bx) {
             const i32 noiseX = startNoiseX + bx;
             const i32 noiseZ = startNoiseZ + bz;
-            const BiomeId expected = provider.getNoiseBiome(noiseX, 0, noiseZ);
+            const BiomeId expected = source.getNoiseBiome(noiseX, 0, noiseZ);
 
-            for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
-                const BiomeId actual = container.getBiome(bx, by, bz);
+            for (i32 by = 0; by < BiomeContainer::VERT_SIZE; ++by) {
+                const BiomeId actual = container.getBiome(0, bx, by, bz);
                 EXPECT_EQ(actual, expected)
                     << "End biome container mismatch at (" << bx << ", " << by << ", " << bz << ")";
             }
@@ -1122,10 +833,10 @@ TEST_F(EndBiomeProviderTest, FillBiomeContainerMatchesHorizontalSamplingGrid)
 }
 
 // ============================================================================
-// BiomeProvider::findBiome 测试
+// BiomeSource::findBiome 测试
 // ============================================================================
 
-class BiomeProviderFindBiomeTest : public ::testing::Test {
+class BiomeSourceFindBiomeTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
@@ -1135,40 +846,38 @@ protected:
 };
 
 /**
- * @brief 测试用的生物群系提供者
+ * @brief 测试用的生物群系源
  *
  * 返回固定的生物群系，用于测试 findBiome 的搜索逻辑
  */
-class MockBiomeProvider final : public BiomeProvider {
+class MockBiomeSource final : public world::biome::BiomeSource {
 public:
-    explicit MockBiomeProvider(u64 seed)
-        : BiomeProvider(seed)
+    explicit MockBiomeSource(u64 seed)
+        : BiomeSource(seed)
     {}
 
-    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override { return getBiomeAtPosition(x, z); }
+    [[nodiscard]] BiomeId getNoiseBiome(i32 x, i32 y, i32 z) const override { return getBiomeAtPosition(x * 4, z * 4); }
 
-    [[nodiscard]] BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const override
-    {
-        return getBiomeAtPosition(noiseX * 4, noiseZ * 4);
-    }
-
-    [[nodiscard]] f32 getDepth(i32 x, i32 z) const override { return 0.0f; }
-    [[nodiscard]] f32 getScale(i32 x, i32 z) const override { return 0.0f; }
+    [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override { return m_biomes; }
 
     void fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ) override
     {
-        for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
-            for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
-                for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
-                    const i32 worldX = (chunkX << 4) + (bx << 2);
-                    const i32 worldZ = (chunkZ << 4) + (bz << 2);
-                    container.setBiome(bx, by, bz, getBiomeAtPosition(worldX, worldZ));
+        for (i32 section = 0; section < BiomeContainer::SECTION_COUNT; ++section) {
+            for (i32 bz = 0; bz < BiomeContainer::HORIZ_SIZE; ++bz) {
+                for (i32 by = 0; by < BiomeContainer::VERT_SIZE; ++by) {
+                    for (i32 bx = 0; bx < BiomeContainer::HORIZ_SIZE; ++bx) {
+                        const i32 worldX = (chunkX << 4) + (bx << 2);
+                        const i32 worldZ = (chunkZ << 4) + (bz << 2);
+                        container.setBiome(section, bx, by, bz, getBiomeAtPosition(worldX, worldZ));
+                    }
                 }
             }
         }
     }
 
 private:
+    std::vector<BiomeId> m_biomes = {Biomes::Plains, Biomes::Forest, Biomes::Desert};
+
     /**
      * @brief 根据位置返回生物群系
      *
@@ -1189,77 +898,77 @@ private:
     }
 };
 
-TEST_F(BiomeProviderFindBiomeTest, FindBiomeNearCenter)
+TEST_F(BiomeSourceFindBiomeTest, FindBiomeNearCenter)
 {
-    MockBiomeProvider provider(12345);
+    MockBiomeSource source(12345);
     math::Random random(12345);
 
     // 在原点附近搜索平原
     auto predicate = [](BiomeId biome) { return biome == Biomes::Plains; };
 
-    auto result = provider.findBiome(0, 64, 0, 50, 8, predicate, random, true);
+    auto result = source.findBiome(0, 64, 0, 50, 8, predicate, random, true);
     EXPECT_TRUE(result.has_value());
     // 平原在原点附近，应该能找到
     EXPECT_NEAR(result->x, 0, 50);
     EXPECT_NEAR(result->z, 0, 50);
 }
 
-TEST_F(BiomeProviderFindBiomeTest, FindDesertBiome)
+TEST_F(BiomeSourceFindBiomeTest, FindDesertBiome)
 {
-    MockBiomeProvider provider(12345);
+    MockBiomeSource source(12345);
     math::Random random(12345);
 
     auto predicate = [](BiomeId biome) { return biome == Biomes::Desert; };
 
     // 从原点开始搜索，沙漠在 X > 100, Z > 100 区域
-    auto result = provider.findBiome(0, 64, 0, 500, 16, predicate, random, true);
+    auto result = source.findBiome(0, 64, 0, 500, 16, predicate, random, true);
     EXPECT_TRUE(result.has_value());
     // 沙漠应该在 (100, 100) 以外的区域
     EXPECT_GT(result->x, 100);
     EXPECT_GT(result->z, 100);
 }
 
-TEST_F(BiomeProviderFindBiomeTest, FindTaigaBiome)
+TEST_F(BiomeSourceFindBiomeTest, FindTaigaBiome)
 {
-    MockBiomeProvider provider(12345);
+    MockBiomeSource source(12345);
     math::Random random(12345);
 
     auto predicate = [](BiomeId biome) { return biome == Biomes::Taiga; };
 
     // 从原点开始搜索，针叶林在 X < -100, Z < -100 区域
-    auto result = provider.findBiome(0, 64, 0, 500, 16, predicate, random, true);
+    auto result = source.findBiome(0, 64, 0, 500, 16, predicate, random, true);
     EXPECT_TRUE(result.has_value());
     // 针叶林应该在 (-100, -100) 以外的区域
     EXPECT_LT(result->x, -100);
     EXPECT_LT(result->z, -100);
 }
 
-TEST_F(BiomeProviderFindBiomeTest, FindBiomeNotFound)
+TEST_F(BiomeSourceFindBiomeTest, FindBiomeNotFound)
 {
-    MockBiomeProvider provider(12345);
+    MockBiomeSource source(12345);
     math::Random random(12345);
 
     // 搜索一个不存在的生物群系
     auto predicate = [](BiomeId biome) {
-        return biome == Biomes::NetherWastes; // MockBiomeProvider 不会返回下界生物群系
+        return biome == Biomes::NetherWastes; // MockBiomeSource 不会返回下界生物群系
     };
 
-    auto result = provider.findBiome(0, 64, 0, 100, 8, predicate, random, true);
+    auto result = source.findBiome(0, 64, 0, 100, 8, predicate, random, true);
     EXPECT_FALSE(result.has_value());
 }
 
-TEST_F(BiomeProviderFindBiomeTest, StopOnFirstVsRandomSelection)
+TEST_F(BiomeSourceFindBiomeTest, StopOnFirstVsRandomSelection)
 {
-    MockBiomeProvider provider(12345);
+    MockBiomeSource source(12345);
 
     auto predicate = [](BiomeId biome) { return biome == Biomes::Plains; };
 
     // stopOnFirst = true: 总是返回第一个找到的
     math::Random random1(12345);
-    auto result1 = provider.findBiome(0, 64, 0, 100, 8, predicate, random1, true);
+    auto result1 = source.findBiome(0, 64, 0, 100, 8, predicate, random1, true);
 
     math::Random random2(54321);
-    auto result2 = provider.findBiome(0, 64, 0, 100, 8, predicate, random2, true);
+    auto result2 = source.findBiome(0, 64, 0, 100, 8, predicate, random2, true);
 
     // 两个不同种子的随机数生成器，stopOnFirst 模式应该返回相同位置
     EXPECT_TRUE(result1.has_value());
@@ -1268,68 +977,60 @@ TEST_F(BiomeProviderFindBiomeTest, StopOnFirstVsRandomSelection)
     EXPECT_EQ(result1->z, result2->z);
 }
 
-TEST_F(BiomeProviderFindBiomeTest, SearchFromDifferentCenters)
+TEST_F(BiomeSourceFindBiomeTest, SearchFromDifferentCenters)
 {
-    MockBiomeProvider provider(12345);
+    MockBiomeSource source(12345);
     math::Random random(12345);
 
     auto predicate = [](BiomeId biome) { return biome == Biomes::Desert; };
 
     // 从沙漠中心开始搜索，应该立即找到
-    auto result = provider.findBiome(200, 64, 200, 50, 8, predicate, random, true);
+    auto result = source.findBiome(200, 64, 200, 50, 8, predicate, random, true);
     EXPECT_TRUE(result.has_value());
     // 应该在中心附近
     EXPECT_NEAR(result->x, 200, 50);
     EXPECT_NEAR(result->z, 200, 50);
 }
 
-TEST_F(BiomeProviderFindBiomeTest, SearchRadiusLimit)
+TEST_F(BiomeSourceFindBiomeTest, SearchRadiusLimit)
 {
-    MockBiomeProvider provider(12345);
+    MockBiomeSource source(12345);
     math::Random random(12345);
 
     auto predicate = [](BiomeId biome) { return biome == Biomes::Desert; };
 
     // 使用非常小的搜索半径，从远点开始搜索
     // 针叶林在 X < -100, Z < -100，从 (1000, 1000) 开始用半径 50 搜索
-    auto result = provider.findBiome(1000, 64, 1000, 50, 8, predicate, random, true);
+    auto result = source.findBiome(1000, 64, 1000, 50, 8, predicate, random, true);
     // 半径太小，无法到达沙漠区域（需要到 X > 100, Z > 100，但中心在 1000,1000）
     // 实际上 1000 + 50 > 100，所以能找到
     EXPECT_TRUE(result.has_value());
 }
 
-// 使用真实的 LayerBiomeProvider 测试
-#include "common/world/biome/layer/LayerUtil.hpp"
-
-class LayerBiomeProviderFindBiomeTest : public ::testing::Test {
-protected:
-    void SetUp() override
-    {
-        VanillaBlocks::initialize();
-        BiomeRegistry::instance().initialize();
-    }
-};
-
-TEST_F(LayerBiomeProviderFindBiomeTest, FindPlainsBiome)
+TEST_F(BiomeSourceFindBiomeTest, FindBiomeWithRealOverworldSource)
 {
-    LayerBiomeProvider provider(12345);
+    auto source = world::biome::source::MultiNoiseBiomeSource::createOverworld(12345, false);
+    ASSERT_NE(source, nullptr);
+
     math::Random random(12345);
 
     auto predicate = [](BiomeId biome) { return biome == Biomes::Plains; };
 
     // 平原是常见生物群系，应该容易找到
-    auto result = provider.findBiome(0, 64, 0, 1000, 64, predicate, random, true);
+    auto result = source->findBiome(0, 64, 0, 1000, 64, predicate, random, true);
     EXPECT_TRUE(result.has_value());
 }
 
-TEST_F(LayerBiomeProviderFindBiomeTest, FindAnyBiome)
+TEST_F(BiomeSourceFindBiomeTest, FindAnyBiomeWithRealOverworldSource)
 {
-    LayerBiomeProvider provider(54321);
+    auto source = world::biome::source::MultiNoiseBiomeSource::createOverworld(54321, false);
+    ASSERT_NE(source, nullptr);
+
     math::Random random(54321);
 
     // 搜索任意有效生物群系（非空，小于 Count）
     auto predicate = [](BiomeId biome) { return biome < Biomes::Count; };
 
-    auto result = provider.findBiome(0, 64, 0, 1000, 64, predicate, random, true);
+    auto result = source->findBiome(0, 64, 0, 1000, 64, predicate, random, true);
     EXPECT_TRUE(result.has_value());
 }

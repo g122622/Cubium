@@ -52,7 +52,7 @@ private:
 
     struct BiomeSectionData {
         i32 sectionY = 0;
-        std::array<BiomeId, BiomeContainer::BIOME_SIZE> biomes{};
+        std::array<BiomeId, BiomeContainer::SECTION_BIOME_SIZE> biomes{};
     };
 
     /**

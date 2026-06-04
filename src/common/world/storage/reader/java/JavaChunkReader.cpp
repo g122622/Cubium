@@ -336,7 +336,7 @@ Result<std::optional<JavaChunkReader::SectionBiomePalette>> JavaChunkReader::rea
     const auto& packed = biomesNbt->get<longarray_tag>("data");
     const i32 bitsPerEntry =
         std::max(1, static_cast<i32>(std::ceil(std::log2(std::max(static_cast<i32>(result.palette.size()), 2)))));
-    result.indices = unpackLongArray(packed, bitsPerEntry, BiomeContainer::BIOME_SIZE, false);
+    result.indices = unpackLongArray(packed, bitsPerEntry, BiomeContainer::SECTION_BIOME_SIZE, false);
     return std::optional<SectionBiomePalette>(std::move(result));
 }
 

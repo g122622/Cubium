@@ -50,7 +50,7 @@ using BlockId = u32;
  * NetherCaveCarver carver;
  * CarvingMask mask(chunkX, chunkZ);
  * ProbabilityConfig config(0.2f);
- * carver.carve(chunk, biomeProvider, 31, chunkX, chunkZ, mask, config);
+ * carver.carve(chunk, biomeSource, 31, chunkX, chunkZ, mask, config);
  * @endcode
  */
 class NetherCaveCarver : public CaveCarver {

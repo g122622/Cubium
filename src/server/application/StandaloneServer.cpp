@@ -39,7 +39,7 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/biome/layer/LayerUtil.hpp"
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/blockentity/interactive/EnchantingTableEntity.hpp"
 #include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"

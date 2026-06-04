@@ -164,10 +164,12 @@ void DebugChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
     MC_UNUSED(region);
     auto& biomes = chunk.getBiomes();
     // 填充平原生物群系到所有位置
-    for (i32 x = 0; x < BiomeContainer::BIOME_WIDTH; ++x) {
-        for (i32 y = 0; y < BiomeContainer::BIOME_HEIGHT; ++y) {
-            for (i32 z = 0; z < BiomeContainer::BIOME_DEPTH; ++z) {
-                biomes.setBiome(x, y, z, Biomes::Plains);
+    for (i32 sectionIndex = 0; sectionIndex < BiomeContainer::SECTION_COUNT; ++sectionIndex) {
+        for (i32 y = 0; y < BiomeContainer::VERT_SIZE; ++y) {
+            for (i32 z = 0; z < BiomeContainer::HORIZ_SIZE; ++z) {
+                for (i32 x = 0; x < BiomeContainer::HORIZ_SIZE; ++x) {
+                    biomes.setBiome(sectionIndex, x, y, z, Biomes::Plains);
+                }
             }
         }
     }

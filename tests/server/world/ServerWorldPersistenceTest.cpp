@@ -2,7 +2,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/blockentity/CraftingTableEntity.hpp"
-#include "common/world/biome/layer/LayerUtil.hpp"
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
@@ -51,7 +51,7 @@ protected:
         world->setSharedStorage(&m_storage);
 
         auto generator = std::make_unique<NoiseChunkGenerator>(
-            config.seed, DimensionSettings::overworld(), std::make_unique<LayerBiomeProvider>(config.seed, false));
+            config.seed, DimensionSettings::overworld(), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(config.seed, false));
         auto chunkManager = std::make_unique<ServerChunkManager>(*world, std::move(generator));
         world->setChunkManager(std::move(chunkManager));
 

@@ -25,7 +25,7 @@
 
 #include "common/core/Constants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/biome/layer/LayerUtil.hpp"
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
@@ -86,10 +86,12 @@ protected:
     static void fillChunkBiomes(ChunkPrimer& chunk, BiomeId biomeId)
     {
         BiomeContainer& biomes = chunk.getBiomes();
-        for (i32 y = 0; y < BiomeContainer::BIOME_HEIGHT; ++y) {
-            for (i32 z = 0; z < BiomeContainer::BIOME_DEPTH; ++z) {
-                for (i32 x = 0; x < BiomeContainer::BIOME_WIDTH; ++x) {
-                    biomes.setBiome(x, y, z, biomeId);
+        for (i32 section = 0; section < BiomeContainer::SECTION_COUNT; ++section) {
+            for (i32 y = 0; y < BiomeContainer::VERT_SIZE; ++y) {
+                for (i32 z = 0; z < BiomeContainer::HORIZ_SIZE; ++z) {
+                    for (i32 x = 0; x < BiomeContainer::HORIZ_SIZE; ++x) {
+                        biomes.setBiome(section, x, y, z, biomeId);
+                    }
                 }
             }
         }
@@ -109,7 +111,7 @@ TEST_F(NoiseSurfaceParityTest, PlainsSurfaceUsesDirtUnderTopLayer)
 
     DimensionSettings settings = DimensionSettings::overworld();
     NoiseChunkGenerator generator(
-        123456789ULL, std::move(settings), std::make_unique<LayerBiomeProvider>(123456789ULL, false));
+        123456789ULL, std::move(settings), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(123456789ULL, false));
 
     generator.buildSurface(*m_region, *m_centerChunk);
 

@@ -26,7 +26,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/biome/layer/LayerUtil.hpp"
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "common/world/blockentity/processing/FurnaceEntity.hpp"
@@ -88,7 +88,7 @@ protected:
     {
         auto world = std::make_unique<ServerWorld>(config);
         auto generator = std::make_unique<NoiseChunkGenerator>(
-            config.seed, DimensionSettings::overworld(), std::make_unique<LayerBiomeProvider>(config.seed, false));
+            config.seed, DimensionSettings::overworld(), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(config.seed, false));
         auto chunkManager = std::make_unique<ServerChunkManager>(*world, std::move(generator));
         world->setChunkManager(std::move(chunkManager));
         return world;

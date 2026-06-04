@@ -33,9 +33,8 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/crypto/Sha256.hpp"
-#include "common/world/biome/layer/LayerUtil.hpp"
-#include "common/world/biome/provider/end/EndBiomeProvider.hpp"
-#include "common/world/biome/provider/nether/NetherBiomeProvider.hpp"
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "common/world/biome/source/EndBiomeSource.hpp"
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/chunk/EndChunkGenerator.hpp"
 #include "common/world/gen/chunk/NetherChunkGenerator.hpp"
@@ -403,8 +402,9 @@ std::unique_ptr<ServerDimension> ServerDimensionManager::_createServerDimension(
                     break;
             }
 
+            auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, isLargeBiomes);
             generator = std::make_unique<NoiseChunkGenerator>(
-                seed, std::move(settings), std::make_unique<LayerBiomeProvider>(seed, isLargeBiomes));
+                seed, std::move(settings), std::move(biomeSource));
             break;
         }
         case NETHER: {

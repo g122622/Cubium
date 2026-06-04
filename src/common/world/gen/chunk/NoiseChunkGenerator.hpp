@@ -26,7 +26,7 @@
 #include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../biome/BiomeGenerationSettings.hpp"
-#include "../../biome/BiomeProvider.hpp"
+#include "../../biome/BiomeSource.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../carver/CanyonCarver.hpp"
 #include "../carver/CaveCarver.hpp"
@@ -50,11 +50,12 @@ namespace mc {
  * @brief 噪声区块生成器
  *
  * 使用多层噪声生成地形，是主世界和下界的标准地形生成器。
+ * MC 1.18+ 使用 BiomeSource（3D 多噪声）替代旧版 BiomeProvider。
  *
  * 使用方法：
  * @code
  * DimensionSettings settings = DimensionSettings::overworld();
- * NoiseChunkGenerator generator(seed, std::move(settings), std::move(biomeProvider));
+ * NoiseChunkGenerator generator(seed, std::move(settings), std::move(biomeSource));
  *
  * ChunkPrimer primer(chunkX, chunkZ);
  * generator.generateBiomes(region, primer);
@@ -65,12 +66,12 @@ namespace mc {
 class NoiseChunkGenerator : public BaseChunkGenerator {
 public:
     /**
-     * @brief 构造噪声区块生成器（带生物群系提供者）
+     * @brief 构造噪声区块生成器（带生物群系源）
      * @param seed 世界种子
      * @param settings 维度设置
-     * @param biomeProvider 生物群系提供者
+     * @param biomeSource 生物群系源
      */
-    NoiseChunkGenerator(u64 seed, DimensionSettings settings, std::unique_ptr<BiomeProvider> biomeProvider);
+    NoiseChunkGenerator(u64 seed, DimensionSettings settings, std::unique_ptr<world::biome::BiomeSource> biomeSource);
 
     ~NoiseChunkGenerator() override;
 
@@ -91,10 +92,10 @@ public:
     [[nodiscard]] i32 getHeight(i32 x, i32 z, HeightmapType type) const override;
     [[nodiscard]] i32 getGroundHeight() const override { return m_settings.seaLevel + 1; }
 
-    // === 生物群系提供者 ===
+    // === 生物群系源 ===
 
-    [[nodiscard]] BiomeProvider* getBiomeProvider() override { return m_biomeProvider.get(); }
-    [[nodiscard]] const BiomeProvider* getBiomeProvider() const override { return m_biomeProvider.get(); }
+    [[nodiscard]] world::biome::BiomeSource* getBiomeSource() override { return m_biomeSource.get(); }
+    [[nodiscard]] const world::biome::BiomeSource* getBiomeSource() const override { return m_biomeSource.get(); }
 
     // === 噪声参数 ===
 
@@ -139,7 +140,7 @@ private:
     std::unique_ptr<OctavesNoiseGenerator> m_randomDensityOffsetNoise; // 随机密度偏移噪声
 
     // === 生物群系 ===
-    std::unique_ptr<BiomeProvider> m_biomeProvider;
+    std::unique_ptr<world::biome::BiomeSource> m_biomeSource;
 
     // === 洞穴雕刻器 ===
     std::unique_ptr<CaveCarver> m_caveCarver;

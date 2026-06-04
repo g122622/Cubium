@@ -27,7 +27,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/biome/BiomeProvider.hpp"
+#include "common/world/biome/BiomeSource.hpp"
 #include "common/world/biome/Biomes.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/application/IServer.hpp"
@@ -114,13 +114,13 @@ i32 LocateBiomeCommand::_locateBiome(CommandContext<ServerCommandSource>& contex
     constexpr i32 SEARCH_RADIUS = 6400;
     constexpr i32 SEARCH_STEP = 8;
 
-    BiomeProvider* biomeProvider = generator->getBiomeProvider();
-    if (biomeProvider == nullptr) {
-        source.sendError("Biome provider not available");
+    world::biome::BiomeSource* biomeSource = generator->getBiomeSource();
+    if (biomeSource == nullptr) {
+        source.sendError("Biome source not available");
         return 0;
     }
 
-    auto result = biomeProvider->findBiome(searchCenter.x,
+    auto result = biomeSource->findBiome(searchCenter.x,
         searchCenter.y,
         searchCenter.z,
         SEARCH_RADIUS,

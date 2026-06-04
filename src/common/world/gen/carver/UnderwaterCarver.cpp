@@ -91,7 +91,7 @@ UnderwaterCaveCarver::UnderwaterCaveCarver()
 {}
 
 bool UnderwaterCaveCarver::carve(ChunkPrimer& chunk,
-    const BiomeProvider& biomeProvider,
+    const world::biome::BiomeSource& biomeSource,
     i32 seaLevel,
     ChunkCoord chunkX,
     ChunkCoord chunkZ,
@@ -128,7 +128,7 @@ bool UnderwaterCaveCarver::carve(ChunkPrimer& chunk,
             // 生成房间（使用水下版本）
             const f32 roomRadius = rng.nextFloat(1.0f, 7.0f);
             carveEllipsoidUnderwater(chunk,
-                biomeProvider,
+                biomeSource,
                 seaLevel,
                 chunkX,
                 chunkZ,
@@ -177,7 +177,7 @@ bool UnderwaterCaveCarver::carve(ChunkPrimer& chunk,
                 // 每隔几步雕刻一个椭球
                 if (step % 4 == 0) {
                     carveEllipsoidUnderwater(chunk,
-                        biomeProvider,
+                        biomeSource,
                         seaLevel,
                         chunkX,
                         chunkZ,
@@ -233,7 +233,7 @@ bool UnderwaterCaveCarver::isInCarvingRangeUnderwater(
 }
 
 bool UnderwaterCaveCarver::carveEllipsoidUnderwater(ChunkPrimer& chunk,
-    const BiomeProvider& /*biomeProvider*/,
+    const world::biome::BiomeSource& /*biomeSource*/,
     i32 /*seaLevel*/,
     ChunkCoord chunkX,
     ChunkCoord chunkZ,

@@ -24,7 +24,7 @@
 #pragma once
 
 #include "../../../util/math/random/Random.hpp"
-#include "../../biome/provider/end/EndBiomeProvider.hpp"
+#include "../../biome/source/EndBiomeSource.hpp"
 #include "../noise/OctavesNoiseGenerator.hpp"
 #include "../settings/NoiseSettings.hpp"
 #include "../structure/StructureManager.hpp"
@@ -44,7 +44,7 @@ namespace mc {
  * - 无天空光
  * - 中央岛屿：末地石和黑曜石柱
  * - 外岛：末地石、紫颂树、末地城
- * - 使用 EndBiomeProvider（2D 噪声采样区分主岛/外岛）
+ * - 使用 EndBiomeSource（2D 噪声采样区分主岛/外岛）
  *
  * 使用示例：
  * @code
@@ -88,10 +88,10 @@ public:
     [[nodiscard]] i32 getHeight(i32 x, i32 z, HeightmapType type) const override;
     [[nodiscard]] i32 getGroundHeight() const override { return 64; }
 
-    // === 生物群系提供者 ===
+    // === 生物群系源 ===
 
-    [[nodiscard]] BiomeProvider* getBiomeProvider() override { return m_biomeProvider.get(); }
-    [[nodiscard]] const BiomeProvider* getBiomeProvider() const override { return m_biomeProvider.get(); }
+    [[nodiscard]] world::biome::BiomeSource* getBiomeSource() override { return m_biomeSource.get(); }
+    [[nodiscard]] const world::biome::BiomeSource* getBiomeSource() const override { return m_biomeSource.get(); }
 
     // === 末地特有参数 ===
 
@@ -110,8 +110,8 @@ private:
     std::unique_ptr<SimplexNoiseGenerator> m_islandNoise;  // 岛屿噪声
     std::unique_ptr<OctavesNoiseGenerator> m_densityNoise; // 密度噪声
 
-    // === 生物群系提供者 ===
-    std::unique_ptr<biome::end::EndBiomeProvider> m_biomeProvider;
+    // === 生物群系源 ===
+    std::unique_ptr<world::biome::source::EndBiomeSource> m_biomeSource;
 
     // === 结构管理器 ===
     std::unique_ptr<world::gen::structure::StructureManager> m_structureManager;

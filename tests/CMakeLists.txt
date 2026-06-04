@@ -606,8 +606,6 @@ add_executable(mc_tests
     common/resource/LanguageManagerTest.cpp
     # 缂撳瓨鎬ц兘瀵规瘮娴嬭瘯
     common/util/cache/CacheBenchmark.cpp
-    # 鐢熺墿缇ょ郴灞傛祴璇?    common/world/biome/layer/BiomeLayerTest.cpp
-    common/world/biome/layer/MergeLayersTest.cpp
     # 妞嶈鐗瑰緛闆嗘垚娴嬭瘯
     common/world/gen/test_vegetation_features.cpp
     # 涓栫晫鐢熸垚纭畾鎬ф祴璇?    common/world/gen/WorldGenDeterminismTest.cpp
@@ -974,19 +972,15 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/carver/CanyonCarver.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/carver/WorldCarver.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/Biome.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeProvider.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeEffects.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeGenerationSettings.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/layer/LayerContext.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/layer/BiomeValues.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/layer/LayerUtil.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/layer/transformers/SourceLayers.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/layer/transformers/ClimateLayers.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/layer/transformers/EdgeLayers.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/layer/transformers/ZoomLayers.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/layer/transformers/BiomeLayers.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/layer/transformers/MergeLayers.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeSource.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/MultiNoiseBiomeSource.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/OverworldBiomeBuilder.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/NetherBiomeSource.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/EndBiomeSource.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/biome/climate/Climate.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/surface/SurfaceBuilders.cpp
         # 生物群系颜色解析器
         ${CMAKE_SOURCE_DIR}/src/client/world/color/BiomeColors.cpp

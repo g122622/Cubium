@@ -25,7 +25,7 @@
 
 #include "common/core/Constants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/biome/layer/LayerUtil.hpp"
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
@@ -39,7 +39,7 @@ namespace {
 /**
  * @brief NoiseChunkGenerator 雕刻阶段一致性测试
  *
- * 验证两次独立注入 BiomeProvider 的构造路径在空气雕刻阶段行为一致，
+ * 验证两次独立注入 BiomeSource 的构造路径在空气雕刻阶段行为一致，
  * 防止显式装配路径遗漏关键初始化逻辑。
 
  */
@@ -83,10 +83,12 @@ protected:
     static void fillChunkBiomes(ChunkPrimer& chunk, BiomeId biomeId)
     {
         BiomeContainer& biomes = chunk.getBiomes();
-        for (i32 y = 0; y < BiomeContainer::BIOME_HEIGHT; ++y) {
-            for (i32 z = 0; z < BiomeContainer::BIOME_DEPTH; ++z) {
-                for (i32 x = 0; x < BiomeContainer::BIOME_WIDTH; ++x) {
-                    biomes.setBiome(x, y, z, biomeId);
+        for (i32 section = 0; section < BiomeContainer::SECTION_COUNT; ++section) {
+            for (i32 y = 0; y < BiomeContainer::VERT_SIZE; ++y) {
+                for (i32 z = 0; z < BiomeContainer::HORIZ_SIZE; ++z) {
+                    for (i32 x = 0; x < BiomeContainer::HORIZ_SIZE; ++x) {
+                        biomes.setBiome(section, x, y, z, biomeId);
+                    }
                 }
             }
         }
@@ -151,21 +153,21 @@ protected:
 };
 
 /**
- * @brief 注入 BiomeProvider 的构造路径应保持雕刻阶段一致
+ * @brief 注入 BiomeSource 的构造路径应保持雕刻阶段一致
  *
  * @note 若未初始化雕刻器，此测试会在首个发生雕刻的区块上失败。
  */
-TEST_F(NoiseChunkGeneratorCarverParityTest, InjectedBiomeProviderKeepsCarverPipelineParity)
+TEST_F(NoiseChunkGeneratorCarverParityTest, InjectedBiomeSourceKeepsCarverPipelineParity)
 {
     constexpr u64 seed = 0x4D435245424F524EULL;
 
     DimensionSettings defaultSettings = DimensionSettings::overworld();
     NoiseChunkGenerator defaultGenerator(
-        seed, std::move(defaultSettings), std::make_unique<LayerBiomeProvider>(seed, false));
+        seed, std::move(defaultSettings), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false));
 
     DimensionSettings injectedSettings = DimensionSettings::overworld();
-    auto injectedProvider = std::make_unique<LayerBiomeProvider>(seed, false);
-    NoiseChunkGenerator injectedGenerator(seed, std::move(injectedSettings), std::move(injectedProvider));
+    auto injectedSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
+    NoiseChunkGenerator injectedGenerator(seed, std::move(injectedSettings), std::move(injectedSource));
 
     bool foundCarvedChunk = false;
 
@@ -211,13 +213,13 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, GaussianLUTInitialization)
     // 创建生成器时高斯查找表应该被初始化
     constexpr u64 seed = 12345ULL;
     DimensionSettings settings = DimensionSettings::overworld();
-    NoiseChunkGenerator generator(seed, std::move(settings), std::make_unique<LayerBiomeProvider>(seed, false));
+    NoiseChunkGenerator generator(seed, std::move(settings), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false));
 
     // 验证生成器成功创建（高斯查找表作为静态成员初始化）
     // 如果初始化失败，会有编译或运行时错误
     EXPECT_NO_THROW({
         DimensionSettings settings2 = DimensionSettings::overworld();
-        NoiseChunkGenerator generator2(seed, std::move(settings2), std::make_unique<LayerBiomeProvider>(seed, false));
+        NoiseChunkGenerator generator2(seed, std::move(settings2), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false));
     });
 }
 

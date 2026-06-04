@@ -40,7 +40,10 @@ namespace mc {
 // 前向声明
 class WorldGenRegion;
 class WorldGenSpawner;
-class BiomeProvider;
+
+namespace world::biome {
+class BiomeSource;
+}
 
 /**
  * @brief 生成的实体数据（前向声明）
@@ -173,14 +176,14 @@ public:
      */
     [[nodiscard]] virtual bool isDebugGenerator() const { return false; }
 
-    // === 生物群系提供者 ===
+    // === 生物群系源 ===
 
     /**
-     * @brief 获取生物群系提供者
-     * @return 生物群系提供者指针
+     * @brief 获取生物群系源（MC 1.18+）
+     * @return 生物群系源指针
      */
-    [[nodiscard]] virtual BiomeProvider* getBiomeProvider() { return nullptr; }
-    [[nodiscard]] virtual const BiomeProvider* getBiomeProvider() const { return nullptr; }
+    [[nodiscard]] virtual world::biome::BiomeSource* getBiomeSource() { return nullptr; }
+    [[nodiscard]] virtual const world::biome::BiomeSource* getBiomeSource() const { return nullptr; }
 };
 
 /**

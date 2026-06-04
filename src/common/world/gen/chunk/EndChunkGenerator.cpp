@@ -79,8 +79,8 @@ EndChunkGenerator::EndChunkGenerator(u64 seed)
     // 确保生物群系注册表已初始化
     BiomeRegistry::instance().initialize();
 
-    // 创建末地生物群系提供者
-    m_biomeProvider = std::make_unique<biome::end::EndBiomeProvider>(seed);
+    // 创建末地生物群系源
+    m_biomeSource = std::make_unique<world::biome::source::EndBiomeSource>(seed);
 
     // 初始化结构管理器（末地城等）
     world::gen::structure::StructureRegistry::initialize();
@@ -100,8 +100,8 @@ EndChunkGenerator::EndChunkGenerator(u64 seed, DimensionSettings settings)
     // 确保生物群系注册表已初始化
     BiomeRegistry::instance().initialize();
 
-    // 创建末地生物群系提供者
-    m_biomeProvider = std::make_unique<biome::end::EndBiomeProvider>(seed);
+    // 创建末地生物群系源
+    m_biomeSource = std::make_unique<world::biome::source::EndBiomeSource>(seed);
 
     // 初始化结构管理器
     world::gen::structure::StructureRegistry::initialize();
@@ -160,9 +160,9 @@ void EndChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& chun
 {
     MC_TRACE_EVENT("world.gen.end", "GenerateBiomes");
 
-    // 使用 EndBiomeProvider 填充生物群系
-    if (m_biomeProvider) {
-        m_biomeProvider->fillBiomeContainer(chunk.getBiomes(), chunk.x(), chunk.z());
+    // 使用 EndBiomeSource 填充生物群系
+    if (m_biomeSource) {
+        m_biomeSource->fillBiomeContainer(chunk.getBiomes(), chunk.x(), chunk.z());
     }
 
     chunk.setChunkStatus(ChunkStatuses::BIOMES);
@@ -224,7 +224,7 @@ void EndChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk
     std::call_once(s_featureRegistryInitFlag, []() { FeatureRegistry::instance().initialize(); });
 
     const BiomeId biomeId = chunk.getBiomeAtBlock(8, 64, 8);
-    const Biome& biome = m_biomeProvider->getBiomeDefinition(biomeId);
+    const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
     const BiomeGenerationSettings& settings = biome.generationSettings();
 
     for (DecorationStage stage : DecorationStages::getAll()) {
@@ -251,16 +251,16 @@ i32 EndChunkGenerator::spawnInitialMobs(
 
 BiomeId EndChunkGenerator::getBiome(i32 x, i32 y, i32 z) const
 {
-    if (m_biomeProvider) {
-        return m_biomeProvider->getBiome(x, y, z);
+    if (m_biomeSource) {
+        return m_biomeSource->getNoiseBiome(x >> 2, y >> 2, z >> 2);
     }
     return m_defaultBiome;
 }
 
 BiomeId EndChunkGenerator::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const
 {
-    if (m_biomeProvider) {
-        return m_biomeProvider->getNoiseBiome(noiseX, noiseY, noiseZ);
+    if (m_biomeSource) {
+        return m_biomeSource->getNoiseBiome(noiseX, noiseY, noiseZ);
     }
     return m_defaultBiome;
 }

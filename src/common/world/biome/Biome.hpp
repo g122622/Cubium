@@ -67,16 +67,32 @@ inline constexpr f32 TEMPERATURE_HEIGHT_DIVISOR = 30.0f;
 struct BiomeClimate {
     enum class Precipitation { None, Rain, Snow };
 
+    /**
+     * @brief 温度修改器（MC 1.18+）
+     *
+     * FROZEN 用于冰冻生物群系的特殊温度处理，
+     * 使得在某些情况下温度固定为冰点以下。
+     */
+    enum class TemperatureModifier { None, Frozen };
+
     Precipitation precipitation = Precipitation::Rain;
     f32 temperature = 0.5f;
-    f32 temperatureModifier = 0.0f;
+    TemperatureModifier temperatureModifier = TemperatureModifier::None;
     f32 downfall = 0.5f;
 
     BiomeClimate() = default;
-    BiomeClimate(Precipitation precip, f32 temp, f32 modifier, f32 down)
+    BiomeClimate(Precipitation precip, f32 temp, TemperatureModifier modifier, f32 down)
         : precipitation(precip)
         , temperature(temp)
         , temperatureModifier(modifier)
+        , downfall(down)
+    {}
+
+    /** 便捷构造函数，TemperatureModifier 默认为 None */
+    BiomeClimate(Precipitation precip, f32 temp, f32 down)
+        : precipitation(precip)
+        , temperature(temp)
+        , temperatureModifier(TemperatureModifier::None)
         , downfall(down)
     {}
 };
@@ -449,8 +465,33 @@ constexpr BiomeId CrimsonForest = 171;
 constexpr BiomeId WarpedForest = 172;
 constexpr BiomeId BasaltDeltas = 173;
 
+// MC 1.18+ 新增生物群系 (174-185)
+constexpr BiomeId Meadow = 174;
+constexpr BiomeId Grove = 175;
+constexpr BiomeId SnowySlopes = 176;
+constexpr BiomeId JaggedPeaks = 177;
+constexpr BiomeId FrozenPeaks = 178;
+constexpr BiomeId StonyPeaks = 179;
+constexpr BiomeId DripstoneCaves = 180;
+constexpr BiomeId LushCaves = 181;
+constexpr BiomeId DeepDark = 182;
+constexpr BiomeId MangroveSwamp = 183;
+constexpr BiomeId CherryGrove = 184;
+constexpr BiomeId PaleGarden = 185;
+
+// MC 1.18+ 重命名生物群系（使用新名称，旧ID不变）
+constexpr BiomeId WindsweptHills = Mountains;                 // 原 Mountains (3)
+constexpr BiomeId WindsweptForest = WoodedMountains;          // 原 WoodedMountains (34)
+constexpr BiomeId WindsweptGravellyHills = GravellyMountains; // 原 GravellyMountains (131)
+constexpr BiomeId StonyShore = StoneShore;                    // 原 StoneShore (25)
+constexpr BiomeId OldGrowthPineTaiga = GiantTreeTaiga;        // 原 GiantTreeTaiga (32)
+constexpr BiomeId OldGrowthSpruceTaiga = GiantSpruceTaiga;    // 原 GiantSpruceTaiga (160)
+constexpr BiomeId OldGrowthBirchForest = TallBirchForest;     // 原 TallBirchForest (155)
+constexpr BiomeId SparseJungle = JungleEdge;                  // 原 JungleEdge (23)
+constexpr BiomeId WoodedBadlands = WoodedBadlandsPlateau;     // 原 WoodedBadlandsPlateau (38)
+
 // 生物群系总数（最大 ID + 1）
-constexpr BiomeId Count = 174;
+constexpr BiomeId Count = 186;
 
 } // namespace Biomes
 

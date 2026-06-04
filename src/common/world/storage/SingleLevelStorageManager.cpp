@@ -438,18 +438,22 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
             continue;
         }
 
-        if (!hasBiomes && sectionData->biomes.size() == BiomeContainer::BIOME_SIZE) {
-            for (i32 biomeY = 0; biomeY < BiomeContainer::BIOME_HEIGHT; ++biomeY) {
-                for (i32 biomeZ = 0; biomeZ < BiomeContainer::BIOME_DEPTH; ++biomeZ) {
-                    for (i32 biomeX = 0; biomeX < BiomeContainer::BIOME_WIDTH; ++biomeX) {
-                        const size_t biomeIndex =
-                            static_cast<size_t>(biomeY * BiomeContainer::BIOME_WIDTH * BiomeContainer::BIOME_DEPTH +
-                                biomeZ * BiomeContainer::BIOME_WIDTH + biomeX);
-                        biomeContainer.setBiome(biomeX, biomeY, biomeZ, sectionData->biomes[biomeIndex]);
+        if (sectionData->biomes.size() == SectionData::BIOME_COUNT) {
+            const i32 sectionIndex = static_cast<i32>(keys[i].sectionY) - (world::MIN_BUILD_HEIGHT >> 4);
+            if (sectionIndex >= 0 && sectionIndex < BiomeContainer::SECTION_COUNT) {
+                for (i32 biomeY = 0; biomeY < BiomeContainer::VERT_SIZE; ++biomeY) {
+                    for (i32 biomeZ = 0; biomeZ < BiomeContainer::HORIZ_SIZE; ++biomeZ) {
+                        for (i32 biomeX = 0; biomeX < BiomeContainer::HORIZ_SIZE; ++biomeX) {
+                            const size_t biomeIndex =
+                                static_cast<size_t>(biomeY * BiomeContainer::HORIZ_SIZE * BiomeContainer::HORIZ_SIZE +
+                                    biomeZ * BiomeContainer::HORIZ_SIZE + biomeX);
+                            biomeContainer.setBiome(
+                                sectionIndex, biomeX, biomeY, biomeZ, sectionData->biomes[biomeIndex]);
+                        }
                     }
                 }
+                hasBiomes = true;
             }
-            hasBiomes = true;
         }
 
         const i8 sectionY = keys[i].sectionY;

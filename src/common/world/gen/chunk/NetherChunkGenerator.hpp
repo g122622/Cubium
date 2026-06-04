@@ -24,7 +24,8 @@
 #pragma once
 
 #include "../../../util/math/random/Random.hpp"
-#include "../../biome/provider/nether/NetherBiomeProvider.hpp"
+#include "../../biome/source/MultiNoiseBiomeSource.hpp"
+#include "../../biome/source/NetherBiomeSource.hpp"
 #include "../carver/NetherCaveCarver.hpp"
 #include "../noise/OctavesNoiseGenerator.hpp"
 #include "../settings/NoiseSettings.hpp"
@@ -44,7 +45,7 @@ namespace mc {
  * - 熔岩海：Y=31
  * - 无天空光
  * - 不同的地形生成参数
- * - 使用 NetherBiomeProvider（3D 生物群系采样）
+ * - 使用 MultiNoiseBiomeSource（3D 多噪声生物群系采样）
  *
  * 使用示例：
  * @code
@@ -88,10 +89,10 @@ public:
     [[nodiscard]] i32 getHeight(i32 x, i32 z, HeightmapType type) const override;
     [[nodiscard]] i32 getGroundHeight() const override { return 64; }
 
-    // === 生物群系提供者 ===
+    // === 生物群系源 ===
 
-    [[nodiscard]] BiomeProvider* getBiomeProvider() override { return m_biomeProvider.get(); }
-    [[nodiscard]] const BiomeProvider* getBiomeProvider() const override { return m_biomeProvider.get(); }
+    [[nodiscard]] world::biome::BiomeSource* getBiomeSource() override { return m_biomeSource.get(); }
+    [[nodiscard]] const world::biome::BiomeSource* getBiomeSource() const override { return m_biomeSource.get(); }
 
     // === 下界特有参数 ===
 
@@ -116,8 +117,8 @@ private:
     std::unique_ptr<OctavesNoiseGenerator> m_secondaryDensityNoise; // 次密度噪声
     std::unique_ptr<SimplexNoiseGenerator> m_simplexNoise;          // Simplex 噪声
 
-    // === 生物群系提供者 ===
-    std::unique_ptr<biome::nether::NetherBiomeProvider> m_biomeProvider;
+    // === 生物群系源 ===
+    std::unique_ptr<world::biome::BiomeSource> m_biomeSource;
 
     // === 结构管理器 ===
     std::unique_ptr<world::gen::structure::StructureManager> m_structureManager;

@@ -331,10 +331,12 @@ void BaseChunkGenerator::generateBiomes(WorldGenRegion& /*region*/, ChunkPrimer&
     // 默认实现：设置默认生物群系
     BiomeContainer& biomes = chunk.getBiomes();
 
-    for (i32 y = 0; y < BiomeContainer::BIOME_HEIGHT; ++y) {
-        for (i32 z = 0; z < BiomeContainer::BIOME_DEPTH; ++z) {
-            for (i32 x = 0; x < BiomeContainer::BIOME_WIDTH; ++x) {
-                biomes.setBiome(x, y, z, m_defaultBiome);
+    for (i32 sectionIndex = 0; sectionIndex < BiomeContainer::SECTION_COUNT; ++sectionIndex) {
+        for (i32 y = 0; y < BiomeContainer::VERT_SIZE; ++y) {
+            for (i32 z = 0; z < BiomeContainer::HORIZ_SIZE; ++z) {
+                for (i32 x = 0; x < BiomeContainer::HORIZ_SIZE; ++x) {
+                    biomes.setBiome(sectionIndex, x, y, z, m_defaultBiome);
+                }
             }
         }
     }

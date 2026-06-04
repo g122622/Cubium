@@ -59,10 +59,12 @@ public:
     void setBiome(ChunkCoord chunkX, ChunkCoord chunkZ, BiomeId biomeId)
     {
         ChunkData& chunk = ensureChunk(chunkX, chunkZ);
-        for (i32 x = 0; x < BiomeContainer::BIOME_WIDTH; ++x) {
-            for (i32 y = 0; y < BiomeContainer::BIOME_HEIGHT; ++y) {
-                for (i32 z = 0; z < BiomeContainer::BIOME_DEPTH; ++z) {
-                    chunk.getBiomes().setBiome(x, y, z, biomeId);
+        for (i32 section = 0; section < BiomeContainer::SECTION_COUNT; ++section) {
+            for (i32 x = 0; x < BiomeContainer::HORIZ_SIZE; ++x) {
+                for (i32 y = 0; y < BiomeContainer::VERT_SIZE; ++y) {
+                    for (i32 z = 0; z < BiomeContainer::HORIZ_SIZE; ++z) {
+                        chunk.getBiomes().setBiome(section, x, y, z, biomeId);
+                    }
                 }
             }
         }

@@ -26,7 +26,7 @@
 #include "../../core/Constants.hpp"
 #include "../../core/Types.hpp"
 #include "../../util/math/Vector3.hpp"
-#include "../biome/BiomeProvider.hpp"
+#include "../biome/BiomeSource.hpp"
 #include "../gen/chunk/IChunkGenerator.hpp"
 #include "DimensionType.hpp"
 #include <memory>
@@ -47,7 +47,7 @@ class WorldLightManager;
  * auto dimension = Dimension::createOverworld(seed);
  * auto& type = dimension.type();
  * auto spawnPoint = dimension.spawnPoint();
- * auto biome = dimension.generator()->getBiomeProvider()->getBiome(x, y, z);
+ * auto biome = dimension.generator()->getBiomeSource()->getNoiseBiome(x >> 2, y >> 2, z >> 2);
  * @endcode
  *
  * @note 维度实例是不可变的，应在初始化时创建。
@@ -96,15 +96,15 @@ public:
     // ========== 生物群系 ==========
 
     /**
-     * @brief 获取生物群系提供者
+     * @brief 获取生物群系源（MC 1.18+）
      */
-    [[nodiscard]] BiomeProvider* biomeProvider()
+    [[nodiscard]] world::biome::BiomeSource* biomeSource()
     {
-        return m_generator != nullptr ? m_generator->getBiomeProvider() : nullptr;
+        return m_generator != nullptr ? m_generator->getBiomeSource() : nullptr;
     }
-    [[nodiscard]] const BiomeProvider* biomeProvider() const
+    [[nodiscard]] const world::biome::BiomeSource* biomeSource() const
     {
-        return m_generator != nullptr ? m_generator->getBiomeProvider() : nullptr;
+        return m_generator != nullptr ? m_generator->getBiomeSource() : nullptr;
     }
 
     // ========== 出生点 ==========

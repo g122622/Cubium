@@ -23,7 +23,7 @@
 
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/util/thread/ServerWorkerPool.hpp"
-#include "common/world/biome/layer/LayerUtil.hpp"
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
@@ -61,7 +61,7 @@ protected:
         // 创建区块生成器
         auto settings = mc::DimensionSettings::overworld();
         auto generator = std::make_unique<mc::NoiseChunkGenerator>(
-            12345, std::move(settings), std::make_unique<mc::LayerBiomeProvider>(12345, false));
+            12345, std::move(settings), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(12345, false));
 
         // 创建区块管理器（不关联 ServerWorld）
         m_manager = std::make_unique<ServerChunkManager>(std::move(generator));

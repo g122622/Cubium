@@ -90,10 +90,12 @@ public:
         }
 
         // 设置默认生物群系为海洋
-        for (i32 x = 0; x < 4; ++x) {
-            for (i32 y = 0; y < 4; ++y) {
-                for (i32 z = 0; z < 4; ++z) {
-                    m_chunk->getBiomes().setBiome(x, y, z, Biomes::Ocean);
+        for (i32 section = 0; section < BiomeContainer::SECTION_COUNT; ++section) {
+            for (i32 x = 0; x < BiomeContainer::HORIZ_SIZE; ++x) {
+                for (i32 y = 0; y < BiomeContainer::VERT_SIZE; ++y) {
+                    for (i32 z = 0; z < BiomeContainer::HORIZ_SIZE; ++z) {
+                        m_chunk->getBiomes().setBiome(section, x, y, z, Biomes::Ocean);
+                    }
                 }
             }
         }
@@ -198,7 +200,10 @@ public:
     void setBiomeAt(i32 x, i32 y, i32 z, BiomeId biome)
     {
         if (m_chunk == nullptr) return;
-        m_chunk->getBiomes().setBiome(x, y, z, biome);
+        // Set the biome for all sections at the given local (x,y,z) within the biome grid
+        for (i32 section = 0; section < BiomeContainer::SECTION_COUNT; ++section) {
+            m_chunk->getBiomes().setBiome(section, x, y, z, biome);
+        }
     }
 
 private:

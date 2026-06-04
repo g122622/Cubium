@@ -23,9 +23,8 @@
 
 #include "Dimension.hpp"
 #include "../../core/Constants.hpp"
-#include "../biome/layer/LayerUtil.hpp"
-#include "../biome/provider/end/EndBiomeProvider.hpp"
-#include "../biome/provider/nether/NetherBiomeProvider.hpp"
+#include "../biome/source/EndBiomeSource.hpp"
+#include "../biome/source/MultiNoiseBiomeSource.hpp"
 #include "../gen/chunk/EndChunkGenerator.hpp"
 #include "../gen/chunk/NetherChunkGenerator.hpp"
 #include "../gen/chunk/NoiseChunkGenerator.hpp"
@@ -62,10 +61,10 @@ std::unique_ptr<Dimension> Dimension::createOverworld(u64 seed)
 {
     DimensionType dimType = DimensionType::overworld();
 
-    // 创建生物群系提供者
+    // 创建主世界生物群系源（3D 多噪声）
     auto settings = DimensionSettings::overworld();
-    auto generator = std::make_unique<NoiseChunkGenerator>(
-        seed, std::move(settings), std::make_unique<LayerBiomeProvider>(seed, false));
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
+    auto generator = std::make_unique<NoiseChunkGenerator>(seed, std::move(settings), std::move(biomeSource));
 
     auto dimension = std::make_unique<Dimension>(0, // DimensionId::Overworld
         std::move(dimType),
@@ -81,7 +80,7 @@ std::unique_ptr<Dimension> Dimension::createNether(u64 seed)
 {
     DimensionType dimType = DimensionType::nether();
 
-    // 下界使用 NetherBiomeProvider
+    // 下界使用 NetherChunkGenerator（内置 MultiNoiseBiomeSource）
     auto settings = DimensionSettings::nether();
     auto generator = std::make_unique<NetherChunkGenerator>(seed, std::move(settings));
 
@@ -97,7 +96,7 @@ std::unique_ptr<Dimension> Dimension::createTheEnd(u64 seed)
 {
     DimensionType dimType = DimensionType::theEnd();
 
-    // 末地使用 EndBiomeProvider
+    // 末地使用 EndChunkGenerator（内置 EndBiomeSource）
     auto settings = DimensionSettings::end();
     auto generator = std::make_unique<EndChunkGenerator>(seed, std::move(settings));
 

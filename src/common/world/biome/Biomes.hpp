@@ -23,21 +23,17 @@
 
 #pragma once
 
-// 生物群系系统聚合头文件
+// 生物群系系统聚合头文件 (MC 1.18+ 3D 多噪声系统)
 
 #include "Biome.hpp"
-#include "BiomeProvider.hpp"
 #include "BiomeRegistry.hpp"
+#include "BiomeSource.hpp"
 
-// Layer 系统
-#include "layer/BiomeValues.hpp"
-#include "layer/Layer.hpp"
-#include "layer/LayerContext.hpp"
-#include "layer/LayerUtil.hpp"
-#include "layer/transformers/BiomeLayers.hpp"
-#include "layer/transformers/ClimateLayers.hpp"
-#include "layer/transformers/EdgeLayers.hpp"
-#include "layer/transformers/MergeLayers.hpp"
-#include "layer/transformers/SourceLayers.hpp"
-#include "layer/transformers/TransformerTraits.hpp"
-#include "layer/transformers/ZoomLayers.hpp"
+// Climate 参数系统
+#include "climate/Climate.hpp"
+
+// 生物群系源实现
+#include "source/EndBiomeSource.hpp"
+#include "source/MultiNoiseBiomeSource.hpp"
+#include "source/NetherBiomeSource.hpp"
+#include "source/OverworldBiomeBuilder.hpp"

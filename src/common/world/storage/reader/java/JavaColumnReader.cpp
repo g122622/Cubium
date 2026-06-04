@@ -265,7 +265,7 @@ Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkD
 
             const auto& sectionBiomes = *sectionBiomesResult.value();
             const i32 sectionIndex = sectionBiomes.sectionY - baseSectionY;
-            if (sectionIndex < 0 || sectionIndex >= BiomeContainer::BIOME_HEIGHT) {
+            if (sectionIndex < 0 || sectionIndex >= BiomeContainer::SECTION_COUNT) {
                 continue;
             }
 
@@ -273,9 +273,9 @@ Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkD
                 continue;
             }
 
-            for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
-                for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
-                    const i32 localIndex = bz * BiomeContainer::BIOME_WIDTH + bx;
+            for (i32 bz = 0; bz < BiomeContainer::HORIZ_SIZE; ++bz) {
+                for (i32 bx = 0; bx < BiomeContainer::HORIZ_SIZE; ++bx) {
+                    const i32 localIndex = bz * BiomeContainer::HORIZ_SIZE + bx;
                     u32 paletteIndex = 0;
                     if (!sectionBiomes.indices.empty() && localIndex < static_cast<i32>(sectionBiomes.indices.size())) {
                         paletteIndex = sectionBiomes.indices[static_cast<size_t>(localIndex)];
@@ -283,7 +283,9 @@ Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkD
                     const BiomeId biome = (paletteIndex < sectionBiomes.palette.size())
                         ? sectionBiomes.palette[paletteIndex]
                         : Biomes::Ocean;
-                    biomeContainer.setBiome(bx, sectionIndex, bz, biome);
+                    for (i32 by = 0; by < BiomeContainer::VERT_SIZE; ++by) {
+                        biomeContainer.setBiome(sectionIndex, bx, by, bz, biome);
+                    }
                 }
             }
         }
@@ -295,8 +297,8 @@ Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkD
     const bytearray_tag* biomeBytes = getByteArray(columnNbt, "Biomes");
     if (biomeBytes != nullptr) {
         BiomeContainer biomeContainer;
-        for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
-            for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
+        for (i32 bz = 0; bz < BiomeContainer::HORIZ_SIZE; ++bz) {
+            for (i32 bx = 0; bx < BiomeContainer::HORIZ_SIZE; ++bx) {
                 const i32 srcZ = bz * BIOME_SAMPLE_STRIDE + BIOME_SAMPLE_OFFSET;
                 const i32 srcX = bx * BIOME_SAMPLE_STRIDE + BIOME_SAMPLE_OFFSET;
                 const i32 srcIdx = srcZ * world::CHUNK_WIDTH + srcX;
@@ -304,8 +306,10 @@ Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkD
                     ? static_cast<u8>(biomeBytes->value[static_cast<size_t>(srcIdx)])
                     : static_cast<i32>(Biomes::Ocean);
                 const BiomeId biome = m_chunkReader.mapBiomeId(javaBiomeId);
-                for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
-                    biomeContainer.setBiome(bx, by, bz, biome);
+                for (i32 sectionIndex = 0; sectionIndex < BiomeContainer::SECTION_COUNT; ++sectionIndex) {
+                    for (i32 by = 0; by < BiomeContainer::VERT_SIZE; ++by) {
+                        biomeContainer.setBiome(sectionIndex, bx, by, bz, biome);
+                    }
                 }
             }
         }
@@ -320,20 +324,24 @@ Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkD
 
     const i32 baseSectionY = world::MIN_BUILD_HEIGHT / world::CHUNK_SECTION_HEIGHT;
     BiomeContainer biomeContainer;
-    // 1024 = 4x4x4 生物群系采样 * 16 个区块段（3D 生物群系格式）
+    // 1024 = 4x4x4 生物群系采样 * 16 个区块段（旧版 3D 生物群系格式，仅覆盖下半部分）
     constexpr i32 JAVA_BIOME_3D_ARRAY_SIZE = 1024;
     if (biomeInts->value.size() == JAVA_BIOME_3D_ARRAY_SIZE) {
-        for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
-            const i32 globalY = (baseSectionY * world::CHUNK_SECTION_HEIGHT) + by * BIOME_SAMPLE_STRIDE;
-            for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
-                for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
-                    const i32 srcIdx =
-                        (globalY / BIOME_SAMPLE_STRIDE) * world::CHUNK_WIDTH + bz * BIOME_SAMPLE_STRIDE + bx;
-                    const i32 javaBiomeId = (srcIdx < static_cast<i32>(biomeInts->value.size()))
-                        ? biomeInts->value[static_cast<size_t>(srcIdx)]
-                        : -1;
-                    const BiomeId biome = (javaBiomeId >= 0) ? m_chunkReader.mapBiomeId(javaBiomeId) : Biomes::Ocean;
-                    biomeContainer.setBiome(bx, by, bz, biome);
+        for (i32 sectionIndex = 0; sectionIndex < 16; ++sectionIndex) {
+            for (i32 by = 0; by < BiomeContainer::VERT_SIZE; ++by) {
+                for (i32 bz = 0; bz < BiomeContainer::HORIZ_SIZE; ++bz) {
+                    for (i32 bx = 0; bx < BiomeContainer::HORIZ_SIZE; ++bx) {
+                        const i32 globalY = (baseSectionY * world::CHUNK_SECTION_HEIGHT) +
+                            (sectionIndex * world::CHUNK_SECTION_HEIGHT) + by * BIOME_SAMPLE_STRIDE;
+                        const i32 srcIdx =
+                            (globalY / BIOME_SAMPLE_STRIDE) * world::CHUNK_WIDTH + bz * BIOME_SAMPLE_STRIDE + bx;
+                        const i32 javaBiomeId = (srcIdx < static_cast<i32>(biomeInts->value.size()))
+                            ? biomeInts->value[static_cast<size_t>(srcIdx)]
+                            : -1;
+                        const BiomeId biome =
+                            (javaBiomeId >= 0) ? m_chunkReader.mapBiomeId(javaBiomeId) : Biomes::Ocean;
+                        biomeContainer.setBiome(sectionIndex, bx, by, bz, biome);
+                    }
                 }
             }
         }
@@ -344,8 +352,8 @@ Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkD
     // 256 = 16x16 2D 生物群系格式（旧版 Java）
     constexpr i32 JAVA_BIOME_2D_ARRAY_SIZE = 256;
     if (biomeInts->value.size() == JAVA_BIOME_2D_ARRAY_SIZE) {
-        for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
-            for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
+        for (i32 bz = 0; bz < BiomeContainer::HORIZ_SIZE; ++bz) {
+            for (i32 bx = 0; bx < BiomeContainer::HORIZ_SIZE; ++bx) {
                 const i32 srcZ = bz * BIOME_SAMPLE_STRIDE + BIOME_SAMPLE_OFFSET;
                 const i32 srcX = bx * BIOME_SAMPLE_STRIDE + BIOME_SAMPLE_OFFSET;
                 const i32 srcIdx = srcZ * world::CHUNK_WIDTH + srcX;
@@ -353,8 +361,10 @@ Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkD
                     ? biomeInts->value[static_cast<size_t>(srcIdx)]
                     : -1;
                 const BiomeId biome = (javaBiomeId >= 0) ? m_chunkReader.mapBiomeId(javaBiomeId) : Biomes::Ocean;
-                for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
-                    biomeContainer.setBiome(bx, by, bz, biome);
+                for (i32 sectionIndex = 0; sectionIndex < BiomeContainer::SECTION_COUNT; ++sectionIndex) {
+                    for (i32 by = 0; by < BiomeContainer::VERT_SIZE; ++by) {
+                        biomeContainer.setBiome(sectionIndex, bx, by, bz, biome);
+                    }
                 }
             }
         }

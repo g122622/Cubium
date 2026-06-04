@@ -23,7 +23,7 @@
 
 #include "common/util/thread/ServerWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/biome/layer/LayerUtil.hpp"
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
@@ -58,7 +58,7 @@ protected:
 
         // 创建区块管理器
         auto generator = std::make_unique<NoiseChunkGenerator>(
-            config.seed, DimensionSettings::overworld(), std::make_unique<LayerBiomeProvider>(config.seed, false));
+            config.seed, DimensionSettings::overworld(), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(config.seed, false));
         m_manager = std::make_unique<ServerChunkManager>(*m_world, std::move(generator));
         m_manager->setWorkerPool(m_workerPool.get());
     }

@@ -775,6 +775,13 @@ add_library(mc_common STATIC
     # World - Generation - Noise
     world/gen/noise/ImprovedNoiseGenerator.cpp
     world/gen/noise/OctavesNoiseGenerator.cpp
+    world/gen/noise/PerlinNoise.cpp
+    world/gen/noise/NormalNoise.cpp
+
+    # World - Generation - Density
+    world/gen/density/DensityFunctions.cpp
+    world/gen/density/NoiseRouter.cpp
+    world/gen/density/NoiseRouterData.cpp
 
     # World - Generation - Chunk Generators
     world/gen/chunk/IChunkGenerator.cpp
@@ -811,25 +818,18 @@ add_library(mc_common STATIC
 
     # World - Biome
     world/biome/Biome.cpp
-    world/biome/BiomeProvider.cpp
+    world/biome/BiomeSource.cpp
     world/biome/BiomeRegistry.cpp
     world/biome/BiomeGenerationSettings.cpp
 
-    # World - Biome - Layer
-    world/biome/layer/LayerContext.cpp
-    world/biome/layer/BiomeValues.cpp
-    world/biome/layer/LayerUtil.cpp
-    world/biome/layer/transformers/TransformerTraits.cpp
-    world/biome/layer/transformers/SourceLayers.cpp
-    world/biome/layer/transformers/ClimateLayers.cpp
-    world/biome/layer/transformers/EdgeLayers.cpp
-    world/biome/layer/transformers/ZoomLayers.cpp
-    world/biome/layer/transformers/BiomeLayers.cpp
-    world/biome/layer/transformers/MergeLayers.cpp
+    # World - Biome - Climate
+    world/biome/climate/Climate.cpp
 
-    # World - Biome - Provider
-    world/biome/provider/nether/NetherBiomeProvider.cpp
-    world/biome/provider/end/EndBiomeProvider.cpp
+    # World - Biome - Source
+    world/biome/source/MultiNoiseBiomeSource.cpp
+    world/biome/source/OverworldBiomeBuilder.cpp
+    world/biome/source/NetherBiomeSource.cpp
+    world/biome/source/EndBiomeSource.cpp
 
     # World - Generation - Surface
     world/gen/surface/SurfaceBuilders.cpp

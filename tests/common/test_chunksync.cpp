@@ -417,8 +417,8 @@ TEST_F(ChunkSerializerTest, DeserializeChunkPreservesBiomeData)
     ChunkData original(3, 7);
 
     BiomeContainer biomes;
-    biomes.setBiome(0, 0, 0, Biomes::Forest);
-    biomes.setBiome(3, 3, 3, Biomes::Badlands);
+    biomes.setBiome(0, 0, 0, 0, Biomes::Forest);
+    biomes.setBiome(0, 3, 3, 3, Biomes::Badlands);
     original.setBiomes(std::move(biomes));
 
     auto serializeResult = ChunkSerializer::serializeChunk(original);
@@ -1108,9 +1108,9 @@ TEST_F(ChunkSerializerExtendedTest, SerializeDeserializeConsistency)
 
     // 设置生物群系
     BiomeContainer biomes;
-    biomes.setBiome(0, 0, 0, Biomes::Forest);
-    biomes.setBiome(7, 7, 7, Biomes::Desert);
-    biomes.setBiome(15, 15, 15, Biomes::Ocean);
+    biomes.setBiome(0, 0, 0, 0, Biomes::Forest);
+    biomes.setBiome(0, 7, 7, 7, Biomes::Desert);
+    biomes.setBiome(0, 15, 15, 15, Biomes::Ocean);
     original.setBiomes(std::move(biomes));
 
     // 序列化

@@ -175,9 +175,9 @@ namespace {
 // ============================================================================
 
 NoiseChunkGenerator::NoiseChunkGenerator(
-    u64 seed, DimensionSettings settings, std::unique_ptr<BiomeProvider> biomeProvider)
+    u64 seed, DimensionSettings settings, std::unique_ptr<world::biome::BiomeSource> biomeSource)
     : BaseChunkGenerator(seed, std::move(settings))
-    , m_biomeProvider(std::move(biomeProvider))
+    , m_biomeSource(std::move(biomeSource))
     , m_noiseSizeX(0)
     , m_noiseSizeY(0)
     , m_noiseSizeZ(0)
@@ -191,7 +191,7 @@ NoiseChunkGenerator::NoiseChunkGenerator(
     // 确保生物群系注册表已初始化（默认构造路径会初始化，注入路径也需要）
     BiomeRegistry::instance().initialize();
 
-    MC_ASSERT_RELEASE(m_biomeProvider != nullptr);
+    MC_ASSERT_RELEASE(m_biomeSource != nullptr);
 
     _initCarvers();
     _initGenerationRegistries();
@@ -394,7 +394,7 @@ void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
     const ChunkCoord chunkX = chunk.x();
     const ChunkCoord chunkZ = chunk.z();
 
-    m_biomeProvider->fillBiomeContainer(biomes, chunkX, chunkZ);
+    m_biomeSource->fillBiomeContainer(biomes, chunkX, chunkZ);
 
     // 标记阶段完成
     chunk.setChunkStatus(ChunkStatuses::BIOMES);
@@ -568,7 +568,7 @@ void NoiseChunkGenerator::_fillNoiseColumn(
 
     {
         // 地形密度计算使用 sea level 作为 biome 噪声采样 Y
-        const i32 biomeNoiseY = m_settings.seaLevel;
+        const i32 biomeNoiseY = m_settings.seaLevel >> 2; // quart 坐标
 
         // 使用 5x5 批量采样 + 滑窗复用，减少重复调用 getNoiseBiome()
         if (biomeWindowCache.valid && noiseX == biomeWindowCache.centerNoiseX &&
@@ -582,18 +582,21 @@ void NoiseChunkGenerator::_fillNoiseColumn(
             }
 
             // 仅采样新进入窗口的最后一行（dz = +2）
-            std::array<BiomeId, 5> newRow{};
-            m_biomeProvider->getNoiseBiomesBatch(noiseX - 2, biomeNoiseY, noiseZ + 2, 5, 1, newRow.data());
             for (i32 col = 0; col < 5; ++col) {
-                biomeWindowCache.window[static_cast<size_t>(20 + col)] = newRow[static_cast<size_t>(col)];
+                biomeWindowCache.window[static_cast<size_t>(20 + col)] =
+                    m_biomeSource->getNoiseBiome(noiseX - 2 + col, biomeNoiseY, noiseZ + 2);
             }
 
             biomeWindowCache.centerNoiseX = noiseX;
             biomeWindowCache.centerNoiseZ = noiseZ;
         } else {
             // 首次或不连续访问：完整采样 5x5
-            m_biomeProvider->getNoiseBiomesBatch(
-                noiseX - 2, biomeNoiseY, noiseZ - 2, 5, 5, biomeWindowCache.window.data());
+            for (i32 dz = 0; dz < 5; ++dz) {
+                for (i32 dx = 0; dx < 5; ++dx) {
+                    biomeWindowCache.window[static_cast<size_t>(dz * 5 + dx)] =
+                        m_biomeSource->getNoiseBiome(noiseX - 2 + dx, biomeNoiseY, noiseZ - 2 + dz);
+                }
+            }
             biomeWindowCache.valid = true;
             biomeWindowCache.centerNoiseX = noiseX;
             biomeWindowCache.centerNoiseZ = noiseZ;
@@ -601,14 +604,14 @@ void NoiseChunkGenerator::_fillNoiseColumn(
 
         // 获取中心生物群系的深度（用于权重调整）
         const BiomeId centerBiome = biomeWindowCache.window[12];
-        const Biome& centerDef = m_biomeProvider->getBiomeDefinition(centerBiome);
+        const Biome& centerDef = m_biomeSource->getBiomeDefinition(centerBiome);
         const f32 centerDepth = centerDef.depth();
 
         for (i32 dz = -2; dz <= 2; ++dz) {
             for (i32 dx = -2; dx <= 2; ++dx) {
                 const i32 kernelIndex = (dx + 2) + (dz + 2) * 5;
                 const BiomeId biome = biomeWindowCache.window[static_cast<size_t>(kernelIndex)];
-                const Biome& def = m_biomeProvider->getBiomeDefinition(biome);
+                const Biome& def = m_biomeSource->getBiomeDefinition(biome);
 
                 const f32 depth = def.depth(); // f4
                 const f32 scale = def.scale(); // f5
@@ -870,7 +873,7 @@ void NoiseChunkGenerator::_buildSurfaceForColumn(
         return;
     }
 
-    const Biome& biomeDef = m_biomeProvider->getBiomeDefinition(biome);
+    const Biome& biomeDef = m_biomeSource->getBiomeDefinition(biome);
 
     if (SurfaceBuilder* specialBuilder = selectSpecialSurfaceBuilder(biomeDef, biome); specialBuilder != nullptr) {
         const SurfaceBuilderConfig config = makeSurfaceConfigFromBiome(biomeDef, m_settings.defaultBlock);
@@ -1038,14 +1041,13 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
         // 空气雕刻阶段：洞穴和峡谷
         // 应用洞穴雕刻器
         if (m_caveCarver) {
-            m_caveCarver->carve(
-                chunk, *m_biomeProvider, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
+            m_caveCarver->carve(chunk, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
         }
 
         // 应用峡谷雕刻器
         if (m_canyonCarver) {
             m_canyonCarver->carve(
-                chunk, *m_biomeProvider, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_canyonConfig);
+                chunk, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_canyonConfig);
         }
 
         chunk.setChunkStatus(ChunkStatuses::CARVERS);
@@ -1054,13 +1056,13 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
         // 应用水下洞穴雕刻器（使用与普通洞穴相同的概率）
         if (m_underwaterCaveCarver) {
             m_underwaterCaveCarver->carve(
-                chunk, *m_biomeProvider, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
+                chunk, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
         }
 
         // 应用水下峡谷雕刻器（使用与普通峡谷相同的概率）
         if (m_underwaterCanyonCarver) {
             m_underwaterCanyonCarver->carve(
-                chunk, *m_biomeProvider, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_canyonConfig);
+                chunk, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_canyonConfig);
         }
 
         chunk.setChunkStatus(ChunkStatuses::LIQUID_CARVERS);
@@ -1101,7 +1103,7 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
     // === 阶段 2: 放置生物群系特征 ===
     // 获取区块中心位置的主要生物群系
     const BiomeId biomeId = chunk.getBiomeAtBlock(8, 64, 8);
-    const Biome& biome = m_biomeProvider->getBiomeDefinition(biomeId);
+    const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
     const BiomeGenerationSettings& biomeSettings = biome.generationSettings();
 
     // 按装饰阶段顺序放置特征
@@ -1118,12 +1120,12 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
 
 BiomeId NoiseChunkGenerator::getBiome(i32 x, i32 y, i32 z) const
 {
-    return m_biomeProvider->getBiome(x, y, z);
+    return m_biomeSource->getNoiseBiome(x >> 2, y >> 2, z >> 2);
 }
 
 BiomeId NoiseChunkGenerator::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const
 {
-    return m_biomeProvider->getNoiseBiome(noiseX, noiseY, noiseZ);
+    return m_biomeSource->getNoiseBiome(noiseX, noiseY, noiseZ);
 }
 
 i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
@@ -1227,7 +1229,7 @@ i32 NoiseChunkGenerator::spawnInitialMobs(
 
     // 获取区块中心位置的生物群系
     const BiomeId biomeId = chunk.getBiomeAtBlock(8, 64, 8);
-    const Biome& biome = m_biomeProvider->getBiomeDefinition(biomeId);
+    const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
 
     // 使用种子创建随机数生成器
     // 参考 MC: setDecorationSeed

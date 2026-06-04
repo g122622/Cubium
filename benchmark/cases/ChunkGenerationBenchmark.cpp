@@ -25,7 +25,7 @@
 
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/biome/layer/LayerUtil.hpp"
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/ChunkStatus.hpp"
@@ -61,8 +61,9 @@ public:
         m_chunkX = config.parameters.at("chunkX").get<i32>();
         m_chunkZ = config.parameters.at("chunkZ").get<i32>();
 
-        m_generator = std::make_unique<NoiseChunkGenerator>(
-            seed, DimensionSettings::overworld(), std::make_unique<LayerBiomeProvider>(seed, false));
+        m_generator = std::make_unique<NoiseChunkGenerator>(seed,
+            DimensionSettings::overworld(),
+            world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false));
         m_random = std::make_unique<math::Random>(seed);
         return Result<void>::ok();
     }

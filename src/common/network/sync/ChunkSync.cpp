@@ -77,7 +77,7 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
     ser.writeBytes(heightmapData.data(), heightmapData.size());
 
     // 写入生物群系
-    ser.writeU8(static_cast<u8>(BiomeContainer::BIOME_SIZE));
+    ser.writeU8(static_cast<u8>(BiomeContainer::TOTAL_SIZE));
     ser.writeBytes(biomeData);
 
     // 写入区块段数据
@@ -214,7 +214,7 @@ Result<std::unique_ptr<ChunkSection>> ChunkSerializer::deserializeChunkSection(c
 
 size_t ChunkSerializer::calculateChunkSize(const ChunkData& chunk)
 {
-    const size_t biomeDataSize = BiomeContainer::BIOME_SIZE * sizeof(BiomeId);
+    const size_t biomeDataSize = BiomeContainer::TOTAL_SIZE * sizeof(BiomeId);
     constexpr size_t heightmapSize = static_cast<size_t>(world::CHUNK_WIDTH) * world::CHUNK_WIDTH;
     size_t size = 4 + 4 + 2 + heightmapSize + 1 + biomeDataSize; // 坐标 + 位掩码 + 高度图 + 生物群系
 

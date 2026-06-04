@@ -23,7 +23,7 @@
 
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/biome/layer/LayerUtil.hpp"
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
@@ -51,23 +51,23 @@ protected:
 };
 
 /**
- * @brief 测试生物群系层生成的确定性
+ * @brief 测试生物群系源生成的确定性
  */
-TEST_F(WorldGenDeterminismTest, LayerBiomeProviderDeterminism)
+TEST_F(WorldGenDeterminismTest, MultiNoiseBiomeSourceDeterminism)
 {
     const u64 seed = 12345;
 
-    // 创建两个生物群系提供者
-    auto provider1 = std::make_unique<LayerBiomeProvider>(seed, false);
-    auto provider2 = std::make_unique<LayerBiomeProvider>(seed, false);
+    // 创建两个生物群系源
+    auto source1 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
+    auto source2 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
 
     // 在相同坐标采样，结果应相同
     for (int i = 0; i < 100; ++i) {
         i32 x = (i * 17) % 1000 - 500;
         i32 z = (i * 31) % 1000 - 500;
 
-        BiomeId biome1 = provider1->getBiome(x, 64, z);
-        BiomeId biome2 = provider2->getBiome(x, 64, z);
+        BiomeId biome1 = source1->getNoiseBiome(x, 64, z);
+        BiomeId biome2 = source2->getNoiseBiome(x, 64, z);
 
         EXPECT_EQ(biome1, biome2) << "Biome mismatch at (" << x << ", " << z << ")";
     }
@@ -76,10 +76,10 @@ TEST_F(WorldGenDeterminismTest, LayerBiomeProviderDeterminism)
 /**
  * @brief 测试噪声坐标批量采样与逐点采样一致
  */
-TEST_F(WorldGenDeterminismTest, LayerBiomeProviderNoiseBatchMatchesScalarSampling)
+TEST_F(WorldGenDeterminismTest, MultiNoiseBiomeSourceNoiseBatchMatchesScalarSampling)
 {
     const u64 seed = 24680;
-    LayerBiomeProvider provider(seed, false);
+    auto source = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
 
     constexpr i32 startNoiseX = -40;
     constexpr i32 startNoiseZ = 28;
@@ -87,12 +87,12 @@ TEST_F(WorldGenDeterminismTest, LayerBiomeProviderNoiseBatchMatchesScalarSamplin
     constexpr i32 height = 6;
 
     std::array<BiomeId, width * height> batch{};
-    provider.getNoiseBiomesBatch(startNoiseX, 0, startNoiseZ, width, height, batch.data());
+    source->fillBiomeContainer(batch, startNoiseX / 4, startNoiseZ / 4);
 
     size_t idx = 0;
     for (i32 z = 0; z < height; ++z) {
         for (i32 x = 0; x < width; ++x) {
-            const BiomeId scalar = provider.getNoiseBiome(startNoiseX + x, 0, startNoiseZ + z);
+            const BiomeId scalar = source->getNoiseBiome(startNoiseX + x, 0, startNoiseZ + z);
             EXPECT_EQ(batch[idx], scalar) << "Noise batch mismatch at local(" << x << ", " << z << ")";
             ++idx;
         }
@@ -102,10 +102,10 @@ TEST_F(WorldGenDeterminismTest, LayerBiomeProviderNoiseBatchMatchesScalarSamplin
 /**
  * @brief 测试区块生物群系容器使用噪声网格坐标填充
  */
-TEST_F(WorldGenDeterminismTest, LayerBiomeProviderContainerMatchesNoiseGrid)
+TEST_F(WorldGenDeterminismTest, MultiNoiseBiomeSourceContainerMatchesNoiseGrid)
 {
     const u64 seed = 13579;
-    LayerBiomeProvider provider(seed, false);
+    auto source = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
 
     constexpr ChunkCoord chunkX = 3;
     constexpr ChunkCoord chunkZ = -2;
@@ -113,13 +113,13 @@ TEST_F(WorldGenDeterminismTest, LayerBiomeProviderContainerMatchesNoiseGrid)
     constexpr i32 startNoiseZ = chunkZ * 4;
 
     BiomeContainer container;
-    provider.fillBiomeContainer(container, chunkX, chunkZ);
+    source->fillBiomeContainer(container, chunkX, chunkZ);
 
-    for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
-        for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
-            for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
-                const BiomeId expected = provider.getNoiseBiome(startNoiseX + bx, 0, startNoiseZ + bz);
-                const BiomeId actual = container.getBiome(bx, by, bz);
+    for (i32 by = 0; by < BiomeContainer::VERT_SIZE; ++by) {
+        for (i32 bz = 0; bz < BiomeContainer::HORIZ_SIZE; ++bz) {
+            for (i32 bx = 0; bx < BiomeContainer::HORIZ_SIZE; ++bx) {
+                const BiomeId expected = source->getNoiseBiome(startNoiseX + bx, 0, startNoiseZ + bz);
+                const BiomeId actual = container.getBiome(0, bx, by, bz);
                 EXPECT_EQ(actual, expected) << "Biome container mismatch at (" << bx << ", " << by << ", " << bz << ")";
             }
         }
@@ -402,23 +402,23 @@ TEST_F(WorldGenDeterminismTest, NextLongNoArgs)
 }
 
 /**
- * @brief 测试生物群系层多次采样确定性
+ * @brief 测试生物群系源多次采样确定性
  */
-TEST_F(WorldGenDeterminismTest, LayerBiomeProviderMultipleSamples)
+TEST_F(WorldGenDeterminismTest, MultiNoiseBiomeSourceMultipleSamples)
 {
     const u64 seed = 98765;
 
-    // 使用相同种子创建两个提供者
-    LayerBiomeProvider provider1(seed, false);
-    LayerBiomeProvider provider2(seed, false);
+    // 使用相同种子创建两个生物群系源
+    auto source1 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
+    auto source2 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
 
     // 采样多个点
     for (int i = 0; i < 50; ++i) {
         i32 x = i * 100;
         i32 z = i * 100 + 50;
 
-        BiomeId b1 = provider1.getBiome(x, 64, z);
-        BiomeId b2 = provider2.getBiome(x, 64, z);
+        BiomeId b1 = source1->getNoiseBiome(x, 64, z);
+        BiomeId b2 = source2->getNoiseBiome(x, 64, z);
 
         EXPECT_EQ(b1, b2) << "Biome mismatch at (" << x << ", " << z << ") iteration " << i;
     }
@@ -436,7 +436,7 @@ TEST_F(WorldGenDeterminismTest, OverworldTerrainHasTallReliefInSampleWindow)
 
     for (u64 seed : seeds) {
         DimensionSettings settings = DimensionSettings::overworld();
-        NoiseChunkGenerator generator(seed, std::move(settings));
+        NoiseChunkGenerator generator(seed, std::move(settings), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false));
 
         for (i32 z = -512; z <= 512; z += 32) {
             for (i32 x = -512; x <= 512; x += 32) {
