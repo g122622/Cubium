@@ -38,13 +38,13 @@ void SayCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto messageArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "message", StringArgumentType::greedyString());
-    messageArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return say(ctx); });
+    messageArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _say(ctx); });
     sayNode->addChild(messageArg);
 
     dispatcher.registerCommand(sayNode);
 }
 
-i32 SayCommand::say(CommandContext<ServerCommandSource>& context)
+i32 SayCommand::_say(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();

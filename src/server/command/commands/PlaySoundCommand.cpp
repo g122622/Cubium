@@ -125,34 +125,34 @@ void PlaySoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
         auto targetNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
             "player", EntityArgumentType::player());
         targetNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
-            return playSoundDefault(ctx, parseSoundCategory(sourceName));
+            return _playSoundDefault(ctx, parseSoundCategory(sourceName));
         });
 
         auto posNode =
             std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
         posNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
-            return playSoundAtPosition(ctx, parseSoundCategory(sourceName));
+            return _playSoundAtPosition(ctx, parseSoundCategory(sourceName));
         });
 
         // volume 节点
         auto volumeNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
             "volume", FloatArgumentType::floatArg(0.0f, 1000.0f));
         volumeNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
-            return playSoundWithVolume(ctx, parseSoundCategory(sourceName));
+            return _playSoundWithVolume(ctx, parseSoundCategory(sourceName));
         });
 
         // pitch 节点
         auto pitchNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
             "pitch", FloatArgumentType::floatArg(0.0f, 2.0f));
         pitchNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
-            return playSoundWithPitch(ctx, parseSoundCategory(sourceName));
+            return _playSoundWithPitch(ctx, parseSoundCategory(sourceName));
         });
 
         // minimumVolume 节点
         auto minVolumeNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
             "minimumVolume", FloatArgumentType::floatArg(0.0f, 1.0f));
         minVolumeNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
-            return playSoundWithMinVolume(ctx, parseSoundCategory(sourceName));
+            return _playSoundWithMinVolume(ctx, parseSoundCategory(sourceName));
         });
 
         // 构建参数链
@@ -168,7 +168,7 @@ void PlaySoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     dispatcher.registerCommand(playsoundNode);
 }
 
-i32 PlaySoundCommand::playSoundDefault(CommandContext<ServerCommandSource>& context, sound::SoundCategory category)
+i32 PlaySoundCommand::_playSoundDefault(CommandContext<ServerCommandSource>& context, sound::SoundCategory category)
 {
     auto& source = context.getSource();
 
@@ -201,7 +201,7 @@ i32 PlaySoundCommand::playSoundDefault(CommandContext<ServerCommandSource>& cont
     return successCount;
 }
 
-i32 PlaySoundCommand::playSoundAtPosition(CommandContext<ServerCommandSource>& context, sound::SoundCategory category)
+i32 PlaySoundCommand::_playSoundAtPosition(CommandContext<ServerCommandSource>& context, sound::SoundCategory category)
 {
     auto& source = context.getSource();
 
@@ -228,7 +228,7 @@ i32 PlaySoundCommand::playSoundAtPosition(CommandContext<ServerCommandSource>& c
     return successCount;
 }
 
-i32 PlaySoundCommand::playSoundWithVolume(CommandContext<ServerCommandSource>& context, sound::SoundCategory category)
+i32 PlaySoundCommand::_playSoundWithVolume(CommandContext<ServerCommandSource>& context, sound::SoundCategory category)
 {
     auto& source = context.getSource();
 
@@ -256,7 +256,7 @@ i32 PlaySoundCommand::playSoundWithVolume(CommandContext<ServerCommandSource>& c
     return successCount;
 }
 
-i32 PlaySoundCommand::playSoundWithPitch(CommandContext<ServerCommandSource>& context, sound::SoundCategory category)
+i32 PlaySoundCommand::_playSoundWithPitch(CommandContext<ServerCommandSource>& context, sound::SoundCategory category)
 {
     auto& source = context.getSource();
 
@@ -285,7 +285,7 @@ i32 PlaySoundCommand::playSoundWithPitch(CommandContext<ServerCommandSource>& co
     return successCount;
 }
 
-i32 PlaySoundCommand::playSoundWithMinVolume(
+i32 PlaySoundCommand::_playSoundWithMinVolume(
     CommandContext<ServerCommandSource>& context, sound::SoundCategory category)
 {
     auto& source = context.getSource();

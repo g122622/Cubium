@@ -41,8 +41,8 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 locateStructure(CommandContext<ServerCommandSource>& context);
-    static std::string normalizeStructureName(const std::string& name);
+    static i32 _locateStructure(CommandContext<ServerCommandSource>& context);
+    static std::string _normalizeStructureName(const std::string& name);
 };
 
 } // namespace command

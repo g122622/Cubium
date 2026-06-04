@@ -47,13 +47,13 @@ void DeOpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // /deop <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::player());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return deopPlayer(ctx); });
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _deopPlayer(ctx); });
 
     deopNode->addChild(playerArg);
     dispatcher.registerCommand(deopNode);
 }
 
-i32 DeOpCommand::deopPlayer(CommandContext<ServerCommandSource>& context)
+i32 DeOpCommand::_deopPlayer(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");

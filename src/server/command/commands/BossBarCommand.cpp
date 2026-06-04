@@ -56,7 +56,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("id", StringArgumentType::string());
     auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "name", StringArgumentType::greedyString());
-    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addBossBar(ctx); });
+    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addBossBar(ctx); });
     idArg->addChild(nameArg);
     addNode->addChild(idArg);
     bossbarNode->addChild(addNode);
@@ -65,13 +65,13 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
     auto removeIdArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("id", StringArgumentType::string());
-    removeIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeBossBar(ctx); });
+    removeIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeBossBar(ctx); });
     removeNode->addChild(removeIdArg);
     bossbarNode->addChild(removeNode);
 
     // /bossbar list
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
-    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listBossBars(ctx); });
+    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listBossBars(ctx); });
     bossbarNode->addChild(listNode);
 
     // /bossbar set <id> <property> <value>
@@ -83,7 +83,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto nameNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("name");
     auto nameValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "name", StringArgumentType::greedyString());
-    nameValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setName(ctx); });
+    nameValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setName(ctx); });
     nameNode->addChild(nameValueArg);
     setIdArg->addChild(nameNode);
 
@@ -92,7 +92,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     for (const auto& colorName : {"pink", "blue", "red", "green", "yellow", "purple", "white"}) {
         auto colorValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(colorName);
         colorValueNode->setCommand(
-            [colorName](CommandContext<ServerCommandSource>& ctx) { return setColor(ctx, std::string(colorName)); });
+            [colorName](CommandContext<ServerCommandSource>& ctx) { return _setColor(ctx, std::string(colorName)); });
         colorNode->addChild(colorValueNode);
     }
     setIdArg->addChild(colorNode);
@@ -102,7 +102,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     for (const auto& styleName : {"progress", "notched_6", "notched_10", "notched_12", "notched_20"}) {
         auto styleValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(styleName);
         styleValueNode->setCommand(
-            [styleName](CommandContext<ServerCommandSource>& ctx) { return setStyle(ctx, std::string(styleName)); });
+            [styleName](CommandContext<ServerCommandSource>& ctx) { return _setStyle(ctx, std::string(styleName)); });
         styleNode->addChild(styleValueNode);
     }
     setIdArg->addChild(styleNode);
@@ -111,7 +111,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto valueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("value");
     auto valueArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", IntegerArgumentType::integer(0));
-    valueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setValue(ctx); });
+    valueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setValue(ctx); });
     valueNode->addChild(valueArg);
     setIdArg->addChild(valueNode);
 
@@ -119,7 +119,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto maxNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("max");
     auto maxArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("max", IntegerArgumentType::integer(1));
-    maxArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setMax(ctx); });
+    maxArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setMax(ctx); });
     maxNode->addChild(maxArg);
     setIdArg->addChild(maxNode);
 
@@ -127,7 +127,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto visibleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("visible");
     auto visibleArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("visible", BoolArgumentType::boolArg());
-    visibleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setVisible(ctx); });
+    visibleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setVisible(ctx); });
     visibleNode->addChild(visibleArg);
     setIdArg->addChild(visibleNode);
 
@@ -135,7 +135,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto playersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("players");
     auto playersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::players());
-    playersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setPlayers(ctx); });
+    playersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPlayers(ctx); });
     playersNode->addChild(playersArg);
     setIdArg->addChild(playersNode);
 
@@ -148,19 +148,19 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("id", StringArgumentType::string());
 
     auto getValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("value");
-    getValueNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getValue(ctx); });
+    getValueNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getValue(ctx); });
     getIdArg->addChild(getValueNode);
 
     auto getMaxNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("max");
-    getMaxNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getMax(ctx); });
+    getMaxNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getMax(ctx); });
     getIdArg->addChild(getMaxNode);
 
     auto getVisibleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("visible");
-    getVisibleNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getVisible(ctx); });
+    getVisibleNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getVisible(ctx); });
     getIdArg->addChild(getVisibleNode);
 
     auto getPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("players");
-    getPlayersNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getPlayers(ctx); });
+    getPlayersNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getPlayers(ctx); });
     getIdArg->addChild(getPlayersNode);
 
     getNode->addChild(getIdArg);
@@ -169,7 +169,7 @@ void BossBarCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     dispatcher.registerCommand(bossbarNode);
 }
 
-i32 BossBarCommand::addBossBar(CommandContext<ServerCommandSource>& context)
+i32 BossBarCommand::_addBossBar(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
@@ -202,7 +202,7 @@ i32 BossBarCommand::addBossBar(CommandContext<ServerCommandSource>& context)
     return static_cast<i32>(manager.size());
 }
 
-i32 BossBarCommand::removeBossBar(CommandContext<ServerCommandSource>& context)
+i32 BossBarCommand::_removeBossBar(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
@@ -222,7 +222,7 @@ i32 BossBarCommand::removeBossBar(CommandContext<ServerCommandSource>& context)
     return static_cast<i32>(manager.size());
 }
 
-i32 BossBarCommand::listBossBars(CommandContext<ServerCommandSource>& context)
+i32 BossBarCommand::_listBossBars(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto& manager = source.server()->bossBarManager();
@@ -254,7 +254,7 @@ i32 BossBarCommand::listBossBars(CommandContext<ServerCommandSource>& context)
     return static_cast<i32>(ids.size());
 }
 
-i32 BossBarCommand::setName(CommandContext<ServerCommandSource>& context)
+i32 BossBarCommand::_setName(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
@@ -276,7 +276,7 @@ i32 BossBarCommand::setName(CommandContext<ServerCommandSource>& context)
     return 0;
 }
 
-i32 BossBarCommand::setColor(CommandContext<ServerCommandSource>& context, const std::string& colorStr)
+i32 BossBarCommand::_setColor(CommandContext<ServerCommandSource>& context, const std::string& colorStr)
 {
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
@@ -297,7 +297,7 @@ i32 BossBarCommand::setColor(CommandContext<ServerCommandSource>& context, const
     return 0;
 }
 
-i32 BossBarCommand::setStyle(CommandContext<ServerCommandSource>& context, const std::string& styleStr)
+i32 BossBarCommand::_setStyle(CommandContext<ServerCommandSource>& context, const std::string& styleStr)
 {
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
@@ -318,7 +318,7 @@ i32 BossBarCommand::setStyle(CommandContext<ServerCommandSource>& context, const
     return 0;
 }
 
-i32 BossBarCommand::setValue(CommandContext<ServerCommandSource>& context)
+i32 BossBarCommand::_setValue(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
@@ -341,7 +341,7 @@ i32 BossBarCommand::setValue(CommandContext<ServerCommandSource>& context)
     return value;
 }
 
-i32 BossBarCommand::setMax(CommandContext<ServerCommandSource>& context)
+i32 BossBarCommand::_setMax(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
@@ -364,7 +364,7 @@ i32 BossBarCommand::setMax(CommandContext<ServerCommandSource>& context)
     return max;
 }
 
-i32 BossBarCommand::setVisible(CommandContext<ServerCommandSource>& context)
+i32 BossBarCommand::_setVisible(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
@@ -387,7 +387,7 @@ i32 BossBarCommand::setVisible(CommandContext<ServerCommandSource>& context)
     return 0;
 }
 
-i32 BossBarCommand::setPlayers(CommandContext<ServerCommandSource>& context)
+i32 BossBarCommand::_setPlayers(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
@@ -440,7 +440,7 @@ i32 BossBarCommand::setPlayers(CommandContext<ServerCommandSource>& context)
     return static_cast<i32>(players.size());
 }
 
-i32 BossBarCommand::getValue(CommandContext<ServerCommandSource>& context)
+i32 BossBarCommand::_getValue(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
@@ -460,7 +460,7 @@ i32 BossBarCommand::getValue(CommandContext<ServerCommandSource>& context)
     return bossInfo->value();
 }
 
-i32 BossBarCommand::getMax(CommandContext<ServerCommandSource>& context)
+i32 BossBarCommand::_getMax(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
@@ -480,7 +480,7 @@ i32 BossBarCommand::getMax(CommandContext<ServerCommandSource>& context)
     return bossInfo->max();
 }
 
-i32 BossBarCommand::getVisible(CommandContext<ServerCommandSource>& context)
+i32 BossBarCommand::_getVisible(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");
@@ -504,7 +504,7 @@ i32 BossBarCommand::getVisible(CommandContext<ServerCommandSource>& context)
     return bossInfo->visible() ? 1 : 0;
 }
 
-i32 BossBarCommand::getPlayers(CommandContext<ServerCommandSource>& context)
+i32 BossBarCommand::_getPlayers(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string idStr = context.getArgument<std::string>("id");

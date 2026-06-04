@@ -36,7 +36,7 @@ namespace command {
 /**
  * @brief /loot 命令 - 从战利品表生成物品
  *
- * 完整语法参考 MC 1.16.5 LootCommand：
+ * 完整语法：
  *
  * 源（从哪里获取战利品）：
  *   loot <loot_table>           - 直接从战利品表获取

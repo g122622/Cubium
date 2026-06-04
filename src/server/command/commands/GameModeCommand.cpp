@@ -42,11 +42,11 @@ void GameModeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     auto modeArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, GameMode>>("mode", GameModeArgumentType::gameMode());
 
-    modeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setGameModeSelf(ctx); });
+    modeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setGameModeSelf(ctx); });
 
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "target", EntityArgumentType::players());
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setGameModeOthers(ctx); });
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setGameModeOthers(ctx); });
 
     modeArg->addChild(targetArg);
 
@@ -66,7 +66,7 @@ void GameModeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
  * @param context 命令上下文。
  * @return 成功时返回 `1`，失败时返回 `0`。
  */
-i32 GameModeCommand::setGameModeSelf(CommandContext<ServerCommandSource>& context)
+i32 GameModeCommand::_setGameModeSelf(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
@@ -85,7 +85,7 @@ i32 GameModeCommand::setGameModeSelf(CommandContext<ServerCommandSource>& contex
     }
 
     std::ostringstream ss;
-    ss << "Set " << source.name() << "'s game mode to " << getGameModeName(mode);
+    ss << "Set " << source.name() << "'s game mode to " << _getGameModeName(mode);
     source.sendMessage(ss.str());
     return 1;
 }
@@ -96,7 +96,7 @@ i32 GameModeCommand::setGameModeSelf(CommandContext<ServerCommandSource>& contex
  * @param context 命令上下文。
  * @return 成功修改的玩家数量。
  */
-i32 GameModeCommand::setGameModeOthers(CommandContext<ServerCommandSource>& context)
+i32 GameModeCommand::_setGameModeOthers(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
@@ -123,7 +123,7 @@ i32 GameModeCommand::setGameModeOthers(CommandContext<ServerCommandSource>& cont
     }
 
     std::ostringstream ss;
-    ss << "Set game mode of " << changedCount << " player(s) to " << getGameModeName(mode);
+    ss << "Set game mode of " << changedCount << " player(s) to " << _getGameModeName(mode);
     source.sendMessage(ss.str());
     return changedCount;
 }
@@ -134,7 +134,7 @@ i32 GameModeCommand::setGameModeOthers(CommandContext<ServerCommandSource>& cont
  * @param mode 游戏模式。
  * @return 用于命令反馈的可读名称。
  */
-const char* GameModeCommand::getGameModeName(GameMode mode)
+const char* GameModeCommand::_getGameModeName(GameMode mode)
 {
     switch (mode) {
         case GameMode::Survival:

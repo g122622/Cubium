@@ -31,18 +31,37 @@ namespace mc {
 namespace command {
 
 /**
- * @brief ReplaceItemCommand - 替换物品
+ * @brief ReplaceItemCommand - 替换物品命令
  *
  * 用法: /replaceitem <entity|block> <target> <slot> <item> [count]
  * 权限: 2 (游戏管理员)
+ *
+ * 支持两种目标类型：
+ * - entity: 替换实体（玩家）物品栏中的物品
+ * - block: 替换方块容器（如箱子）中的物品
  */
 class ReplaceItemCommand {
 public:
+    /**
+     * @brief 注册命令到调度器
+     * @param dispatcher 命令调度器
+     */
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 replaceEntityItem(CommandContext<ServerCommandSource>& context);
-    static i32 replaceBlockItem(CommandContext<ServerCommandSource>& context);
+    /**
+     * @brief 替换实体物品栏中的物品
+     * @param context 命令上下文
+     * @return 成功替换的实体数量
+     */
+    static i32 _replaceEntityItem(CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 替换方块容器中的物品
+     * @param context 命令上下文
+     * @return 成功替换的数量（0或1）
+     */
+    static i32 _replaceBlockItem(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

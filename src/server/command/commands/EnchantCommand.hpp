@@ -48,7 +48,7 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 enchantItem(CommandContext<ServerCommandSource>& context);
+    static i32 _enchantItem(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

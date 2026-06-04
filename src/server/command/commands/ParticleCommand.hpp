@@ -45,8 +45,8 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 spawnParticle(CommandContext<ServerCommandSource>& context);
-    static std::optional<client::renderer::trident::particle::ParticleTypeId> parseParticleType(
+    static i32 _spawnParticle(CommandContext<ServerCommandSource>& context);
+    static std::optional<client::renderer::trident::particle::ParticleTypeId> _parseParticleType(
         const std::string& name) noexcept;
 };
 

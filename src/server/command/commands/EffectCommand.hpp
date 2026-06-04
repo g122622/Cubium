@@ -49,9 +49,9 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 giveEffect(CommandContext<ServerCommandSource>& context);
-    static i32 clearAllEffects(CommandContext<ServerCommandSource>& context);
-    static i32 clearSpecificEffect(CommandContext<ServerCommandSource>& context);
+    static i32 _giveEffect(CommandContext<ServerCommandSource>& context);
+    static i32 _clearAllEffects(CommandContext<ServerCommandSource>& context);
+    static i32 _clearSpecificEffect(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

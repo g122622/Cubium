@@ -62,17 +62,17 @@ void SaveAllCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         saveAllNode, support::makeMetadata("Saves the server to disk.", "/save-all [flush]", 4, {}, false));
 
     // /save-all
-    saveAllNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return saveAll(ctx); });
+    saveAllNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _saveAll(ctx); });
 
     // /save-all flush
     auto flushNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("flush");
-    flushNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return saveAllFlush(ctx); });
+    flushNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _saveAllFlush(ctx); });
 
     saveAllNode->addChild(flushNode);
     dispatcher.registerCommand(saveAllNode);
 }
 
-i32 SaveAllCommand::saveAll(CommandContext<ServerCommandSource>& context)
+i32 SaveAllCommand::_saveAll(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
@@ -114,7 +114,7 @@ i32 SaveAllCommand::saveAll(CommandContext<ServerCommandSource>& context)
     return 1;
 }
 
-i32 SaveAllCommand::saveAllFlush(CommandContext<ServerCommandSource>& context)
+i32 SaveAllCommand::_saveAllFlush(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();

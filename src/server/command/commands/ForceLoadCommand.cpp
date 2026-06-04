@@ -39,16 +39,9 @@
 namespace mc {
 namespace command {
 
-// 引入 ChunkPos 类型
-using mc::ChunkPos;
-
 namespace {
-// MC 1.16.5 最大强制加载区块数量限制
+// 单次操作最大强制加载区块数量限制
 constexpr i32 MAX_FORCE_LOAD_CHUNKS = 256;
-
-// 世界边界常量
-constexpr i32 WORLD_BORDER_MIN = -30000000;
-constexpr i32 WORLD_BORDER_MAX = 30000000;
 } // namespace
 
 void ForceLoadCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
@@ -63,9 +56,9 @@ void ForceLoadCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
     auto toArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("to", Vec3ArgumentType::vec3());
-    toArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addForceLoad(ctx); });
+    toArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addForceLoad(ctx); });
     posArg->addChild(toArg);
-    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return addForceLoad(ctx); });
+    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addForceLoad(ctx); });
     addNode->addChild(posArg);
     forceloadNode->addChild(addNode);
 
@@ -75,14 +68,14 @@ void ForceLoadCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
         std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
     auto removeToArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("to", Vec3ArgumentType::vec3());
-    removeToArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeForceLoad(ctx); });
+    removeToArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeForceLoad(ctx); });
     removePosArg->addChild(removeToArg);
-    removePosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeForceLoad(ctx); });
+    removePosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeForceLoad(ctx); });
     removeNode->addChild(removePosArg);
 
     // /forceload remove all
     auto allNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("all");
-    allNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeAllForceLoad(ctx); });
+    allNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeAllForceLoad(ctx); });
     removeNode->addChild(allNode);
 
     forceloadNode->addChild(removeNode);
@@ -91,16 +84,28 @@ void ForceLoadCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     auto queryNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("query");
     auto queryPosArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
-    queryPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return queryForceLoad(ctx); });
+    queryPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _queryForceLoad(ctx); });
     queryNode->addChild(queryPosArg);
     // /forceload query (without position - list all)
-    queryNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listAllForceLoad(ctx); });
+    queryNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listAllForceLoad(ctx); });
     forceloadNode->addChild(queryNode);
 
     dispatcher.registerCommand(forceloadNode);
 }
 
-i32 ForceLoadCommand::addForceLoad(CommandContext<ServerCommandSource>& context)
+const char* ForceLoadCommand::_getDimensionName(DimensionId dimensionId)
+{
+    switch (dimensionId) {
+        case -1:
+            return "minecraft:the_nether";
+        case 1:
+            return "minecraft:the_end";
+        default:
+            return "minecraft:overworld";
+    }
+}
+
+i32 ForceLoadCommand::_addForceLoad(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
@@ -120,11 +125,11 @@ i32 ForceLoadCommand::addForceLoad(CommandContext<ServerCommandSource>& context)
 
     const Vector3d& pos = context.getArgument<Vector3d>("pos");
 
-    // 转换为区块坐标
+    // 转换为区块坐标（使用 BlockPos 的 chunkX/chunkZ 方法）
     BlockPos blockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y), static_cast<BlockCoord>(pos.z));
 
-    ChunkCoord chunkX = blockPos.x >> 4;
-    ChunkCoord chunkZ = blockPos.z >> 4;
+    ChunkCoord chunkX = blockPos.chunkX();
+    ChunkCoord chunkZ = blockPos.chunkZ();
 
     // 计算范围
     ChunkCoord minChunkX = chunkX;
@@ -136,8 +141,8 @@ i32 ForceLoadCommand::addForceLoad(CommandContext<ServerCommandSource>& context)
     if (context.hasArgument("to")) {
         const Vector3d& to = context.getArgument<Vector3d>("to");
         BlockPos toPos(static_cast<BlockCoord>(to.x), static_cast<BlockCoord>(to.y), static_cast<BlockCoord>(to.z));
-        ChunkCoord toChunkX = toPos.x >> 4;
-        ChunkCoord toChunkZ = toPos.z >> 4;
+        ChunkCoord toChunkX = toPos.chunkX();
+        ChunkCoord toChunkZ = toPos.chunkZ();
 
         minChunkX = std::min(chunkX, toChunkX);
         minChunkZ = std::min(chunkZ, toChunkZ);
@@ -145,14 +150,8 @@ i32 ForceLoadCommand::addForceLoad(CommandContext<ServerCommandSource>& context)
         maxChunkZ = std::max(chunkZ, toChunkZ);
     }
 
-    // 世界边界检查
-    i64 minBlockX = static_cast<i64>(minChunkX) * 16;
-    i64 minBlockZ = static_cast<i64>(minChunkZ) * 16;
-    i64 maxBlockX = static_cast<i64>(maxChunkX) * 16 + 15;
-    i64 maxBlockZ = static_cast<i64>(maxChunkZ) * 16 + 15;
-
-    if (minBlockX < WORLD_BORDER_MIN || minBlockZ < WORLD_BORDER_MIN || maxBlockX >= WORLD_BORDER_MAX ||
-        maxBlockZ >= WORLD_BORDER_MAX) {
+    // 世界边界检查（使用 world 命名空间的工具函数）
+    if (!world::isValidChunkCoord(minChunkX, minChunkZ) || !world::isValidChunkCoord(maxChunkX, maxChunkZ)) {
         source.sendError("commands.forceload.failed.outOfWorld");
         return 0;
     }
@@ -169,12 +168,7 @@ i32 ForceLoadCommand::addForceLoad(CommandContext<ServerCommandSource>& context)
 
     // 获取维度信息
     auto dimensionId = world->dimension();
-    std::string dimensionName = "minecraft:overworld";
-    if (dimensionId == -1) {
-        dimensionName = "minecraft:the_nether";
-    } else if (dimensionId == 1) {
-        dimensionName = "minecraft:the_end";
-    }
+    const char* dimensionName = _getDimensionName(dimensionId);
 
     // 添加强制加载
     auto& ticketManager = chunkManager->ticketManager();
@@ -209,7 +203,7 @@ i32 ForceLoadCommand::addForceLoad(CommandContext<ServerCommandSource>& context)
     return successCount;
 }
 
-i32 ForceLoadCommand::removeForceLoad(CommandContext<ServerCommandSource>& context)
+i32 ForceLoadCommand::_removeForceLoad(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
@@ -232,8 +226,8 @@ i32 ForceLoadCommand::removeForceLoad(CommandContext<ServerCommandSource>& conte
     // 转换为区块坐标
     BlockPos blockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y), static_cast<BlockCoord>(pos.z));
 
-    ChunkCoord chunkX = blockPos.x >> 4;
-    ChunkCoord chunkZ = blockPos.z >> 4;
+    ChunkCoord chunkX = blockPos.chunkX();
+    ChunkCoord chunkZ = blockPos.chunkZ();
 
     // 计算范围
     ChunkCoord minChunkX = chunkX;
@@ -245,8 +239,8 @@ i32 ForceLoadCommand::removeForceLoad(CommandContext<ServerCommandSource>& conte
     if (context.hasArgument("to")) {
         const Vector3d& to = context.getArgument<Vector3d>("to");
         BlockPos toPos(static_cast<BlockCoord>(to.x), static_cast<BlockCoord>(to.y), static_cast<BlockCoord>(to.z));
-        ChunkCoord toChunkX = toPos.x >> 4;
-        ChunkCoord toChunkZ = toPos.z >> 4;
+        ChunkCoord toChunkX = toPos.chunkX();
+        ChunkCoord toChunkZ = toPos.chunkZ();
 
         minChunkX = std::min(chunkX, toChunkX);
         minChunkZ = std::min(chunkZ, toChunkZ);
@@ -256,12 +250,7 @@ i32 ForceLoadCommand::removeForceLoad(CommandContext<ServerCommandSource>& conte
 
     // 获取维度信息
     auto dimensionId = world->dimension();
-    std::string dimensionName = "minecraft:overworld";
-    if (dimensionId == -1) {
-        dimensionName = "minecraft:the_nether";
-    } else if (dimensionId == 1) {
-        dimensionName = "minecraft:the_end";
-    }
+    const char* dimensionName = _getDimensionName(dimensionId);
 
     // 移除强制加载
     auto& ticketManager = chunkManager->ticketManager();
@@ -300,7 +289,7 @@ i32 ForceLoadCommand::removeForceLoad(CommandContext<ServerCommandSource>& conte
     return removedCount;
 }
 
-i32 ForceLoadCommand::queryForceLoad(CommandContext<ServerCommandSource>& context)
+i32 ForceLoadCommand::_queryForceLoad(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
@@ -323,17 +312,12 @@ i32 ForceLoadCommand::queryForceLoad(CommandContext<ServerCommandSource>& contex
     // 转换为区块坐标
     BlockPos blockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y), static_cast<BlockCoord>(pos.z));
 
-    ChunkCoord chunkX = blockPos.x >> 4;
-    ChunkCoord chunkZ = blockPos.z >> 4;
+    ChunkCoord chunkX = blockPos.chunkX();
+    ChunkCoord chunkZ = blockPos.chunkZ();
 
     // 获取维度信息
     auto dimensionId = world->dimension();
-    std::string dimensionName = "minecraft:overworld";
-    if (dimensionId == -1) {
-        dimensionName = "minecraft:the_nether";
-    } else if (dimensionId == 1) {
-        dimensionName = "minecraft:the_end";
-    }
+    const char* dimensionName = _getDimensionName(dimensionId);
 
     // 查询强制加载状态
     auto& ticketManager = chunkManager->ticketManager();
@@ -352,7 +336,7 @@ i32 ForceLoadCommand::queryForceLoad(CommandContext<ServerCommandSource>& contex
     }
 }
 
-i32 ForceLoadCommand::listAllForceLoad(CommandContext<ServerCommandSource>& context)
+i32 ForceLoadCommand::_listAllForceLoad(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
@@ -372,12 +356,7 @@ i32 ForceLoadCommand::listAllForceLoad(CommandContext<ServerCommandSource>& cont
 
     // 获取维度信息
     auto dimensionId = world->dimension();
-    std::string dimensionName = "minecraft:overworld";
-    if (dimensionId == -1) {
-        dimensionName = "minecraft:the_nether";
-    } else if (dimensionId == 1) {
-        dimensionName = "minecraft:the_end";
-    }
+    const char* dimensionName = _getDimensionName(dimensionId);
 
     // 获取所有强制加载区块
     auto& ticketManager = chunkManager->ticketManager();
@@ -420,7 +399,7 @@ i32 ForceLoadCommand::listAllForceLoad(CommandContext<ServerCommandSource>& cont
     return count;
 }
 
-i32 ForceLoadCommand::removeAllForceLoad(CommandContext<ServerCommandSource>& context)
+i32 ForceLoadCommand::_removeAllForceLoad(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
@@ -440,12 +419,7 @@ i32 ForceLoadCommand::removeAllForceLoad(CommandContext<ServerCommandSource>& co
 
     // 获取维度信息
     auto dimensionId = world->dimension();
-    std::string dimensionName = "minecraft:overworld";
-    if (dimensionId == -1) {
-        dimensionName = "minecraft:the_nether";
-    } else if (dimensionId == 1) {
-        dimensionName = "minecraft:the_end";
-    }
+    const char* dimensionName = _getDimensionName(dimensionId);
 
     // 获取所有强制加载区块并移除
     auto& ticketManager = chunkManager->ticketManager();

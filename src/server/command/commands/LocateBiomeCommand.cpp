@@ -49,13 +49,13 @@ void LocateBiomeCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
 
     auto biomeArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("biome", StringArgumentType::string());
-    biomeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return locateBiome(ctx); });
+    biomeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _locateBiome(ctx); });
     locateBiomeNode->addChild(biomeArg);
 
     dispatcher.registerCommand(locateBiomeNode);
 }
 
-i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context)
+i32 LocateBiomeCommand::_locateBiome(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
@@ -68,7 +68,7 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
     const Vector3d& playerPos = source.position();
 
     // 解析生物群系
-    auto biomeId = parseBiomeId(biomeName);
+    auto biomeId = _parseBiomeId(biomeName);
     if (!biomeId.has_value()) {
         source.sendError("Unknown biome: " + biomeName);
         source.sendError("Use /locatebiome with a valid biome ID (e.g., plains, desert, forest)");
@@ -110,7 +110,7 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
     math::Random random(static_cast<u64>(std::chrono::system_clock::now().time_since_epoch().count()));
 
     // 搜索生物群系
-    // 参考 MC 1.16.5: 搜索半径 6400 格，步长 8（对应 2 个噪声单元）
+    // 搜索半径 6400 格，步长 8（对应 2 个噪声单元）
     constexpr i32 SEARCH_RADIUS = 6400;
     constexpr i32 SEARCH_STEP = 8;
 
@@ -148,7 +148,7 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
     }
 }
 
-std::optional<BiomeId> LocateBiomeCommand::parseBiomeId(const std::string& name) noexcept
+std::optional<BiomeId> LocateBiomeCommand::_parseBiomeId(const std::string& name) noexcept
 {
     // 规范化名称
     std::string normalized = name;

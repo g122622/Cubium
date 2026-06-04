@@ -41,9 +41,9 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 enableDataPack(CommandContext<ServerCommandSource>& context);
-    static i32 disableDataPack(CommandContext<ServerCommandSource>& context);
-    static i32 listDataPacks(CommandContext<ServerCommandSource>& context);
+    static i32 _enableDataPack(CommandContext<ServerCommandSource>& context);
+    static i32 _disableDataPack(CommandContext<ServerCommandSource>& context);
+    static i32 _listDataPacks(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

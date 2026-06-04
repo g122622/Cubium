@@ -38,9 +38,9 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 showHelp(
+    static i32 _showHelp(
         CommandContext<ServerCommandSource>& context, CommandDispatcher<ServerCommandSource>& dispatcher);
-    static i32 showCommandHelp(
+    static i32 _showCommandHelp(
         CommandContext<ServerCommandSource>& context, CommandDispatcher<ServerCommandSource>& dispatcher);
 };
 

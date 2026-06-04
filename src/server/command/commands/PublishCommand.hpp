@@ -35,13 +35,24 @@ namespace command {
  *
  * 用法: /publish [port] [allowCheats]
  * 权限: 4 (服务器管理员)
+ *
+ * 此命令仅适用于集成服务器（单人游戏），用于将当前世界发布到局域网供其他玩家加入。
  */
 class PublishCommand {
 public:
+    /**
+     * @brief 注册命令到命令分发器
+     * @param dispatcher 命令分发器
+     */
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 publishToWorld(CommandContext<ServerCommandSource>& context);
+    /**
+     * @brief 执行发布到局域网的操作
+     * @param context 命令上下文
+     * @return 命令执行结果，成功返回1，失败返回0
+     */
+    static i32 _publishToWorld(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

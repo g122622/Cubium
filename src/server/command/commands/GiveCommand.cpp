@@ -86,7 +86,6 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
 /**
  * @brief 给予玩家物品
  *
- * 参考 MC 1.16.5 GiveCommand.giveItem()
  * 逻辑：
  * 1. 遍历目标玩家列表
  * 2. 对每个玩家，按堆叠大小分批给予物品
@@ -146,8 +145,7 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
             // 如果有剩余，说明背包满了，掉落在地上
             if (notAdded > 0) {
                 ItemStack dropStack(item, notAdded);
-                // 在玩家位置掉落物品
-                // 参考 MC 1.16.5: player.dropItem(stack, false) 并设置 noPickupDelay 和 owner
+                // 在玩家位置掉落物品，设置 noPickupDelay 和 owner
                 math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
                 ItemEntity* droppedItem = ItemDropHelper::spawnItemEntity(playerWorld,
                     dropStack,
@@ -170,9 +168,6 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
             syncInventoryToClient(source, playerId, *inventory);
 
             // 播放拾取音效
-            // 参考 MC 1.16.5: world.playSound(null, player.getPosX(), player.getPosY(), player.getPosZ(),
-            //              SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.2F,
-            //              ((random.nextFloat() - random.nextFloat()) * 0.7F + 1.0F) * 2.0F)
             math::Random rng(static_cast<u64>(playerId) * static_cast<u64>(count));
             const f32 pitch = (rng.nextFloat() - rng.nextFloat()) * 0.7f + 1.0f;
             server->sendSoundToPlayer(playerId,
@@ -222,12 +217,11 @@ void GiveCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto itemArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemInput>>("item", ItemArgumentType::item());
-    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return giveItem(ctx); });
+    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _giveItem(ctx); });
 
-    auto countArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "count", IntegerArgumentType::integer(1, 64) // MC 1.16.5 限制为 1-64
-    );
-    countArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return giveItem(ctx); });
+    auto countArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("count", IntegerArgumentType::integer(1, 64));
+    countArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _giveItem(ctx); });
 
     itemArg->addChild(countArg);
     targetsArg->addChild(itemArg);
@@ -236,7 +230,7 @@ void GiveCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     dispatcher.registerCommand(giveNode);
 }
 
-i32 GiveCommand::giveItem(CommandContext<ServerCommandSource>& context)
+i32 GiveCommand::_giveItem(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
@@ -277,7 +271,7 @@ i32 GiveCommand::giveItem(CommandContext<ServerCommandSource>& context)
     }
 
     // 发送反馈消息
-    // MC 1.16.5 格式：
+    // 格式：
     // - 单个玩家: "Gave 64 [Stone] to Steve"
     // - 多个玩家: "Gave 64 [Stone] to 3 players"
     std::ostringstream ss;

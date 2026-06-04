@@ -61,13 +61,13 @@ void PardonIpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     // /pardon-ip <target>
     auto targetArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("target", StringArgumentType::string());
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return pardonIp(ctx); });
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _pardonIp(ctx); });
 
     pardonIpNode->addChild(targetArg);
     dispatcher.registerCommand(pardonIpNode);
 }
 
-i32 PardonIpCommand::pardonIp(CommandContext<ServerCommandSource>& context)
+i32 PardonIpCommand::_pardonIp(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     std::string target = context.getArgument<std::string>("target");

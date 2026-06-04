@@ -26,8 +26,8 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/BlockStateArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
-#include "common/item/loot/LootTable.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/loot/LootTable.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
@@ -149,19 +149,19 @@ void SetBlockCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     auto blockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
         "block", BlockStateArgumentType::blockState());
-    blockArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setBlockState(ctx); });
+    blockArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBlockState(ctx); });
 
     // /setblock <pos> <block> destroy
     auto destroyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("destroy");
-    destroyNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setBlockDestroy(ctx); });
+    destroyNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBlockDestroy(ctx); });
 
     // /setblock <pos> <block> keep
     auto keepNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("keep");
-    keepNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setBlockKeep(ctx); });
+    keepNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBlockKeep(ctx); });
 
     // /setblock <pos> <block> replace
     auto replaceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("replace");
-    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setBlockReplace(ctx); });
+    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBlockReplace(ctx); });
 
     blockArg->addChild(destroyNode);
     blockArg->addChild(keepNode);
@@ -172,25 +172,25 @@ void SetBlockCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     dispatcher.registerCommand(setblockNode);
 }
 
-i32 SetBlockCommand::setBlockState(CommandContext<ServerCommandSource>& context)
+i32 SetBlockCommand::_setBlockState(CommandContext<ServerCommandSource>& context)
 {
     // 默认replace模式
     return executeSetBlock(context, false, false);
 }
 
-i32 SetBlockCommand::setBlockDestroy(CommandContext<ServerCommandSource>& context)
+i32 SetBlockCommand::_setBlockDestroy(CommandContext<ServerCommandSource>& context)
 {
     // destroy模式：先破坏再放置
     return executeSetBlock(context, false, true);
 }
 
-i32 SetBlockCommand::setBlockKeep(CommandContext<ServerCommandSource>& context)
+i32 SetBlockCommand::_setBlockKeep(CommandContext<ServerCommandSource>& context)
 {
     // keep模式：仅当目标位置为空气时放置
     return executeSetBlock(context, true, false);
 }
 
-i32 SetBlockCommand::setBlockReplace(CommandContext<ServerCommandSource>& context)
+i32 SetBlockCommand::_setBlockReplace(CommandContext<ServerCommandSource>& context)
 {
     // replace模式：直接替换
     return executeSetBlock(context, false, false);

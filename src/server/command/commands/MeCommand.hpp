@@ -41,7 +41,7 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 performAction(CommandContext<ServerCommandSource>& context);
+    static i32 _performAction(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

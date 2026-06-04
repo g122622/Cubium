@@ -25,6 +25,7 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/core/Constants.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include <sstream>
@@ -45,18 +46,18 @@ void PublishCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("port", IntegerArgumentType::integer(1, 65535));
     auto cheatsArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("allowCheats", BoolArgumentType::boolArg());
-    cheatsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return publishToWorld(ctx); });
+    cheatsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _publishToWorld(ctx); });
     portArg->addChild(cheatsArg);
-    portArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return publishToWorld(ctx); });
+    portArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _publishToWorld(ctx); });
     publishNode->addChild(portArg);
 
     // 默认参数
-    publishNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return publishToWorld(ctx); });
+    publishNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _publishToWorld(ctx); });
 
     dispatcher.registerCommand(publishNode);
 }
 
-i32 PublishCommand::publishToWorld(CommandContext<ServerCommandSource>& context)
+i32 PublishCommand::_publishToWorld(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
@@ -67,8 +68,8 @@ i32 PublishCommand::publishToWorld(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    // 默认值
-    i32 port = 25565;
+    // 默认值：使用网络默认端口
+    i32 port = static_cast<i32>(network::DEFAULT_PORT);
     bool allowCheats = false;
 
     if (context.hasArgument("port")) {

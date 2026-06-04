@@ -41,8 +41,8 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 startSpectating(CommandContext<ServerCommandSource>& context);
-    static i32 stopSpectating(CommandContext<ServerCommandSource>& context);
+    static i32 _startSpectating(CommandContext<ServerCommandSource>& context);
+    static i32 _stopSpectating(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

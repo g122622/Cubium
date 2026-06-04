@@ -35,13 +35,30 @@ namespace command {
  *
  * 用法: /reload
  * 权限: 2 (游戏管理员)
+ *
+ * TODO: 当前仅实现了战利品表和配方的重新加载，还需要添加：
+ * - 进度（advancements）重新加载
+ * - 函数（functions）重新加载
  */
 class ReloadCommand {
 public:
+    /**
+     * @brief 注册命令到命令分发器
+     *
+     * @param dispatcher 命令分发器
+     */
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 reload(CommandContext<ServerCommandSource>& context);
+    /**
+     * @brief 执行重新加载操作
+     *
+     * 重新加载服务器的数据包资源（战利品表、配方等）。
+     *
+     * @param context 命令上下文
+     * @return i32 执行结果，成功返回1，失败返回0
+     */
+    static i32 _reload(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

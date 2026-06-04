@@ -50,18 +50,18 @@ void KillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         killNode, support::makeMetadata("Kill entities (players, mobs, etc.).", "/kill [<target>]", 2, {}, false));
 
     // /kill - 杀死自己
-    killNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return killSelf(ctx); });
+    killNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _killSelf(ctx); });
 
     // /kill <target> - 杀死目标实体
     auto targetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "target", EntityArgumentType::entities());
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return killEntities(ctx); });
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _killEntities(ctx); });
     killNode->addChild(targetArg);
 
     dispatcher.registerCommand(killNode);
 }
 
-i32 KillCommand::killSelf(CommandContext<ServerCommandSource>& context)
+i32 KillCommand::_killSelf(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
@@ -77,7 +77,7 @@ i32 KillCommand::killSelf(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    // MC 1.16.5: 调用 entity.onKillCommand()
+    // 调用击杀命令处理
     player->onKillCommand();
 
     std::ostringstream ss;
@@ -87,7 +87,7 @@ i32 KillCommand::killSelf(CommandContext<ServerCommandSource>& context)
     return 1;
 }
 
-i32 KillCommand::killEntities(CommandContext<ServerCommandSource>& context)
+i32 KillCommand::_killEntities(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("target");
@@ -125,7 +125,7 @@ i32 KillCommand::killEntities(CommandContext<ServerCommandSource>& context)
             continue;
         }
 
-        // MC 1.16.5: 调用 entity.onKillCommand()
+        // 调用击杀命令处理
         player->onKillCommand();
         killedCount++;
     }

@@ -44,17 +44,17 @@ void ParticleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     auto nameArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
-    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return spawnParticle(ctx); });
+    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _spawnParticle(ctx); });
 
     auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
-    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return spawnParticle(ctx); });
+    posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _spawnParticle(ctx); });
 
     nameArg->addChild(posArg);
     particleNode->addChild(nameArg);
     dispatcher.registerCommand(particleNode);
 }
 
-i32 ParticleCommand::spawnParticle(CommandContext<ServerCommandSource>& context)
+i32 ParticleCommand::_spawnParticle(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
@@ -67,7 +67,7 @@ i32 ParticleCommand::spawnParticle(CommandContext<ServerCommandSource>& context)
     }
 
     // 解析粒子类型
-    auto particleType = parseParticleType(name);
+    auto particleType = _parseParticleType(name);
     if (!particleType.has_value()) {
         source.sendError("Unknown particle type: " + name);
         return 0;
@@ -81,7 +81,7 @@ i32 ParticleCommand::spawnParticle(CommandContext<ServerCommandSource>& context)
     }
 
     // 广播粒子效果
-    // 参考 MC 1.16.5: 默认速度为 0，数量为 0，偏移为 0
+    // 默认速度为 0，数量为 1，偏移为 0
     // 粒子广播范围为 256 格（与 ParticlePacket 默认范围一致）
     server->broadcastParticleInRange(static_cast<u32>(particleType.value()),
         pos.x,
@@ -104,7 +104,7 @@ i32 ParticleCommand::spawnParticle(CommandContext<ServerCommandSource>& context)
     return 1;
 }
 
-std::optional<client::renderer::trident::particle::ParticleTypeId> ParticleCommand::parseParticleType(
+std::optional<client::renderer::trident::particle::ParticleTypeId> ParticleCommand::_parseParticleType(
     const std::string& name) noexcept
 {
     using namespace client::renderer::trident::particle;

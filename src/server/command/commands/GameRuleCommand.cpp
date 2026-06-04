@@ -24,8 +24,6 @@
 /**
  * @file GameRuleCommand.cpp
  * @brief /gamerule 命令实现
- *
- * 参考 MC 1.16.5: net.minecraft.server.command.GameRuleCommand
  */
 
 #include "GameRuleCommand.hpp"
@@ -56,10 +54,10 @@ void GameRuleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // 构建命令树
     // /gamerule <rule> -> 查询
-    ruleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return executeQuery(ctx); });
+    ruleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _executeQuery(ctx); });
 
     // /gamerule <rule> <value> -> 设置
-    valueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return executeSet(ctx); });
+    valueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _executeSet(ctx); });
 
     // 连接节点
     queryNode->addChild(ruleArg);
@@ -68,7 +66,7 @@ void GameRuleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     dispatcher.registerCommand(queryNode);
 }
 
-i32 GameRuleCommand::executeQuery(CommandContext<ServerCommandSource>& context)
+i32 GameRuleCommand::_executeQuery(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     std::string ruleName = context.getArgument<std::string>("rule");
@@ -112,7 +110,7 @@ i32 GameRuleCommand::executeQuery(CommandContext<ServerCommandSource>& context)
     return 1;
 }
 
-i32 GameRuleCommand::executeSet(CommandContext<ServerCommandSource>& context)
+i32 GameRuleCommand::_executeSet(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     std::string ruleName = context.getArgument<std::string>("rule");
@@ -156,7 +154,7 @@ i32 GameRuleCommand::executeSet(CommandContext<ServerCommandSource>& context)
     }
 }
 
-std::vector<std::string> GameRuleCommand::getAllRuleNames()
+std::vector<std::string> GameRuleCommand::_getAllRuleNames()
 {
     return world::gamerule::GameRules::getRuleNames();
 }

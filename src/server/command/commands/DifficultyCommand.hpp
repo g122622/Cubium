@@ -31,14 +31,34 @@ namespace mc::command {
 
 /**
  * @brief /difficulty 命令。
+ *
+ * 提供查询和设置世界难度的功能。
  */
 class DifficultyCommand {
 public:
+    /**
+     * @brief 将命令注册到命令调度器。
+     *
+     * @param dispatcher 命令调度器
+     */
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 queryDifficulty(CommandContext<ServerCommandSource>& context);
-    static i32 setDifficulty(CommandContext<ServerCommandSource>& context);
+    /**
+     * @brief 查询当前世界难度。
+     *
+     * @param context 命令上下文
+     * @return 命令执行结果码
+     */
+    static i32 _queryDifficulty(CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 设置世界难度。
+     *
+     * @param context 命令上下文
+     * @return 命令执行结果码
+     */
+    static i32 _setDifficulty(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace mc::command

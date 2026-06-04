@@ -136,7 +136,6 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
 
                     case FillMode::Destroy: {
                         // 破坏模式：先掉落物品，再填充
-                        // 参考 MC 1.16.5 FillCommand.DESTROY: world.destroyBlock(pos, true)
                         const BlockState* currentState = world->getBlockState(x, y, z);
                         if (currentState != nullptr && !currentState->isAir()) {
                             // 获取掉落表管理器
@@ -234,27 +233,27 @@ void FillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto blockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
         "block", BlockStateArgumentType::blockState());
-    blockArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return fill(ctx); });
+    blockArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _fill(ctx); });
 
     // /fill <from> <to> <block> destroy
     auto destroyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("destroy");
-    destroyNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return fillDestroy(ctx); });
+    destroyNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _fillDestroy(ctx); });
 
     // /fill <from> <to> <block> hollow
     auto hollowNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("hollow");
-    hollowNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return fillHollow(ctx); });
+    hollowNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _fillHollow(ctx); });
 
     // /fill <from> <to> <block> keep
     auto keepNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("keep");
-    keepNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return fillKeep(ctx); });
+    keepNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _fillKeep(ctx); });
 
     // /fill <from> <to> <block> outline
     auto outlineNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("outline");
-    outlineNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return fillOutline(ctx); });
+    outlineNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _fillOutline(ctx); });
 
     // /fill <from> <to> <block> replace
     auto replaceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("replace");
-    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return fillReplace(ctx); });
+    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _fillReplace(ctx); });
 
     // /fill <from> <to> <block> replace <filter>
     auto filterArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
@@ -293,32 +292,32 @@ void FillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     dispatcher.registerCommand(fillNode);
 }
 
-i32 FillCommand::fill(CommandContext<ServerCommandSource>& context)
+i32 FillCommand::_fill(CommandContext<ServerCommandSource>& context)
 {
     return executeFill(context, FillMode::Replace);
 }
 
-i32 FillCommand::fillDestroy(CommandContext<ServerCommandSource>& context)
+i32 FillCommand::_fillDestroy(CommandContext<ServerCommandSource>& context)
 {
     return executeFill(context, FillMode::Destroy);
 }
 
-i32 FillCommand::fillHollow(CommandContext<ServerCommandSource>& context)
+i32 FillCommand::_fillHollow(CommandContext<ServerCommandSource>& context)
 {
     return executeFill(context, FillMode::Hollow);
 }
 
-i32 FillCommand::fillKeep(CommandContext<ServerCommandSource>& context)
+i32 FillCommand::_fillKeep(CommandContext<ServerCommandSource>& context)
 {
     return executeFill(context, FillMode::Keep);
 }
 
-i32 FillCommand::fillOutline(CommandContext<ServerCommandSource>& context)
+i32 FillCommand::_fillOutline(CommandContext<ServerCommandSource>& context)
 {
     return executeFill(context, FillMode::Outline);
 }
 
-i32 FillCommand::fillReplace(CommandContext<ServerCommandSource>& context)
+i32 FillCommand::_fillReplace(CommandContext<ServerCommandSource>& context)
 {
     return executeFill(context, FillMode::Replace);
 }

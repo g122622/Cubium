@@ -47,13 +47,13 @@ void OpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // /op <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::player());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return opPlayer(ctx); });
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _opPlayer(ctx); });
 
     opNode->addChild(playerArg);
     dispatcher.registerCommand(opNode);
 }
 
-i32 OpCommand::opPlayer(CommandContext<ServerCommandSource>& context)
+i32 OpCommand::_opPlayer(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");
@@ -94,8 +94,7 @@ i32 OpCommand::opPlayer(CommandContext<ServerCommandSource>& context)
     }
 
     // 创建 OP 条目
-    // MC 1.16.5 默认 OP 等级为 2（GameMaster）
-    // 但可以通过服务器配置设置默认等级
+    // 默认 OP 等级为 2（GameMaster），可通过服务器配置设置
     server::core::OpEntry entry(playerData->uuid,
         playerData->username,
         server::core::OpLevel::GameMaster, // 默认等级 2

@@ -40,18 +40,16 @@ namespace command {
  * - /setblock <pos> <block> replace - 替换目标位置的方块（默认）
  *
  * 权限等级：2
- *
- * 参考 MC 1.16.5 的 SetBlockCommand
  */
 class SetBlockCommand {
 public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 setBlockState(CommandContext<ServerCommandSource>& context);
-    static i32 setBlockDestroy(CommandContext<ServerCommandSource>& context);
-    static i32 setBlockKeep(CommandContext<ServerCommandSource>& context);
-    static i32 setBlockReplace(CommandContext<ServerCommandSource>& context);
+    static i32 _setBlockState(CommandContext<ServerCommandSource>& context);
+    static i32 _setBlockDestroy(CommandContext<ServerCommandSource>& context);
+    static i32 _setBlockKeep(CommandContext<ServerCommandSource>& context);
+    static i32 _setBlockReplace(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

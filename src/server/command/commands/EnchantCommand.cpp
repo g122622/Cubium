@@ -57,13 +57,12 @@ void EnchantCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // /enchant <player> <enchantment>
     auto enchantmentNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "enchantment", StringArgumentType::word());
-    enchantmentNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return enchantItem(ctx); });
+    enchantmentNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _enchantItem(ctx); });
 
     // /enchant <player> <enchantment> <level>
     auto levelNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "level", IntegerArgumentType::integer(0, 32767) // MC 1.16.5 允许任意正整数等级
-    );
-    levelNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return enchantItem(ctx); });
+        "level", IntegerArgumentType::integer(0, 32767));
+    levelNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _enchantItem(ctx); });
 
     enchantmentNode->addChild(levelNode);
     playerNode->addChild(enchantmentNode);
@@ -71,7 +70,7 @@ void EnchantCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     dispatcher.registerCommand(enchantNode);
 }
 
-i32 EnchantCommand::enchantItem(CommandContext<ServerCommandSource>& context)
+i32 EnchantCommand::_enchantItem(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 

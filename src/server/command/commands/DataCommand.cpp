@@ -72,11 +72,11 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto getBlockScaleArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("scale", FloatArgumentType::floatArg());
 
-    getBlockScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getBlock(ctx); });
+    getBlockScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getBlock(ctx); });
     getBlockPathArg->addChild(getBlockScaleArg);
-    getBlockPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getBlock(ctx); });
+    getBlockPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getBlock(ctx); });
     getBlockPosArg->addChild(getBlockPathArg);
-    getBlockPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getBlock(ctx); });
+    getBlockPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getBlock(ctx); });
     getBlockNode->addChild(getBlockPosArg);
     getNode->addChild(getBlockNode);
 
@@ -89,11 +89,11 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto getEntityScaleArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("scale", FloatArgumentType::floatArg());
 
-    getEntityScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getEntity(ctx); });
+    getEntityScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getEntity(ctx); });
     getEntityPathArg->addChild(getEntityScaleArg);
-    getEntityPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getEntity(ctx); });
+    getEntityPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getEntity(ctx); });
     getEntityTargetArg->addChild(getEntityPathArg);
-    getEntityTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getEntity(ctx); });
+    getEntityTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getEntity(ctx); });
     getEntityNode->addChild(getEntityTargetArg);
     getNode->addChild(getEntityNode);
 
@@ -106,11 +106,11 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto getStorageScaleArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("scale", FloatArgumentType::floatArg());
 
-    getStorageScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getStorage(ctx); });
+    getStorageScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getStorage(ctx); });
     getStoragePathArg->addChild(getStorageScaleArg);
-    getStoragePathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getStorage(ctx); });
+    getStoragePathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getStorage(ctx); });
     getStorageIdArg->addChild(getStoragePathArg);
-    getStorageIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getStorage(ctx); });
+    getStorageIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getStorage(ctx); });
     getStorageNode->addChild(getStorageIdArg);
     getNode->addChild(getStorageNode);
 
@@ -128,7 +128,7 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto setBlockValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::tag>>>(
         "value", NbtTagArgumentType::nbtTag());
 
-    setBlockValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setBlock(ctx); });
+    setBlockValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBlock(ctx); });
     setBlockPathArg->addChild(setBlockValueArg);
     setBlockPosArg->addChild(setBlockPathArg);
     setBlockNode->addChild(setBlockPosArg);
@@ -144,7 +144,7 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::tag>>>(
             "value", NbtTagArgumentType::nbtTag());
 
-    setEntityValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setEntity(ctx); });
+    setEntityValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setEntity(ctx); });
     setEntityPathArg->addChild(setEntityValueArg);
     setEntityTargetArg->addChild(setEntityPathArg);
     setEntityNode->addChild(setEntityTargetArg);
@@ -160,7 +160,7 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::tag>>>(
             "value", NbtTagArgumentType::nbtTag());
 
-    setStorageValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setStorage(ctx); });
+    setStorageValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setStorage(ctx); });
     setStoragePathArg->addChild(setStorageValueArg);
     setStorageIdArg->addChild(setStoragePathArg);
     setStorageNode->addChild(setStorageIdArg);
@@ -179,7 +179,7 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::compound_tag>>>(
             "nbt", NbtCompoundArgumentType::nbtCompound());
 
-    mergeBlockNbtArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return mergeBlock(ctx); });
+    mergeBlockNbtArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _mergeBlock(ctx); });
     mergeBlockPosArg->addChild(mergeBlockNbtArg);
     mergeBlockNode->addChild(mergeBlockPosArg);
     mergeNode->addChild(mergeBlockNode);
@@ -192,7 +192,7 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::compound_tag>>>(
             "nbt", NbtCompoundArgumentType::nbtCompound());
 
-    mergeEntityNbtArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return mergeEntity(ctx); });
+    mergeEntityNbtArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _mergeEntity(ctx); });
     mergeEntityTargetArg->addChild(mergeEntityNbtArg);
     mergeEntityNode->addChild(mergeEntityTargetArg);
     mergeNode->addChild(mergeEntityNode);
@@ -205,7 +205,7 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::compound_tag>>>(
             "nbt", NbtCompoundArgumentType::nbtCompound());
 
-    mergeStorageNbtArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return mergeStorage(ctx); });
+    mergeStorageNbtArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _mergeStorage(ctx); });
     mergeStorageIdArg->addChild(mergeStorageNbtArg);
     mergeStorageNode->addChild(mergeStorageIdArg);
     mergeNode->addChild(mergeStorageNode);
@@ -222,7 +222,7 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto removeBlockPathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
 
-    removeBlockPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeBlock(ctx); });
+    removeBlockPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeBlock(ctx); });
     removeBlockPosArg->addChild(removeBlockPathArg);
     removeBlockNode->addChild(removeBlockPosArg);
     removeNode->addChild(removeBlockNode);
@@ -234,7 +234,7 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto removeEntityPathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
 
-    removeEntityPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeEntity(ctx); });
+    removeEntityPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeEntity(ctx); });
     removeEntityTargetArg->addChild(removeEntityPathArg);
     removeEntityNode->addChild(removeEntityTargetArg);
     removeNode->addChild(removeEntityNode);
@@ -246,7 +246,7 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto removeStoragePathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
 
-    removeStoragePathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return removeStorage(ctx); });
+    removeStoragePathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _removeStorage(ctx); });
     removeStorageIdArg->addChild(removeStoragePathArg);
     removeStorageNode->addChild(removeStorageIdArg);
     removeNode->addChild(removeStorageNode);
@@ -258,13 +258,13 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
 // ========== get 子命令实现 ==========
 
-i32 DataCommand::getBlock(CommandContext<ServerCommandSource>& context)
+i32 DataCommand::_getBlock(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto world = source.world();
 
     if (world == nullptr) {
-        sendError(source, "commands.data.block.failed.noWorld");
+        _sendError(source, "commands.data.block.failed.noWorld");
         return 0;
     }
 
@@ -272,7 +272,7 @@ i32 DataCommand::getBlock(CommandContext<ServerCommandSource>& context)
     BlockDataAccessor accessor(world, BlockPos(pos.x, pos.y, pos.z));
 
     if (!accessor.isValid()) {
-        sendError(source, "commands.data.block.failed.noBlockEntity");
+        _sendError(source, "commands.data.block.failed.noBlockEntity");
         return 0;
     }
 
@@ -287,7 +287,7 @@ i32 DataCommand::getBlock(CommandContext<ServerCommandSource>& context)
                 auto results = path.get(*data);
 
                 if (results.empty()) {
-                    sendError(source, "commands.data.get.pathNotFound");
+                    _sendError(source, "commands.data.get.pathNotFound");
                     return 0;
                 }
 
@@ -297,12 +297,12 @@ i32 DataCommand::getBlock(CommandContext<ServerCommandSource>& context)
                     // 检查是否有缩放参数
                     if (context.hasArgument("scale")) {
                         f32 scale = context.getArgument<f32>("scale");
-                        i32 scaledValue = scaleValue(*result, scale);
+                        i32 scaledValue = _scaleValue(*result, scale);
                         source.sendMessage(accessor.getGetMessage(path, scale, scaledValue));
                         return scaledValue;
                     }
 
-                    i32 resultValue = getSingleResult(*result);
+                    i32 resultValue = _getSingleResult(*result);
                     source.sendMessage(accessor.getQueryMessage(*result));
                     return resultValue;
                 } else {
@@ -312,7 +312,7 @@ i32 DataCommand::getBlock(CommandContext<ServerCommandSource>& context)
                 }
             }
             catch (const CommandException& e) {
-                sendError(source, e.message());
+                _sendError(source, e.message());
                 return 0;
             }
         } else {
@@ -322,19 +322,19 @@ i32 DataCommand::getBlock(CommandContext<ServerCommandSource>& context)
         }
     }
     catch (const CommandException& e) {
-        sendError(source, e.message());
+        _sendError(source, e.message());
         return 0;
     }
 }
 
-i32 DataCommand::getEntity(CommandContext<ServerCommandSource>& context)
+i32 DataCommand::_getEntity(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto world = source.world();
     auto server = source.server();
 
     if (world == nullptr || server == nullptr) {
-        sendError(source, "commands.data.entity.failed.noWorld");
+        _sendError(source, "commands.data.entity.failed.noWorld");
         return 0;
     }
 
@@ -342,12 +342,11 @@ i32 DataCommand::getEntity(CommandContext<ServerCommandSource>& context)
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        sendError(source, "commands.data.entity.failed.noEntity");
+        _sendError(source, "commands.data.entity.failed.noEntity");
         return 0;
     }
 
-    // 只处理第一个实体
-    // TODO: 支持多实体
+    // TODO: 支持多实体，目前只处理第一个实体
     Entity* entity = nullptr;
     auto& playerEntityManager = server->playerEntityManager();
     // 检查是否是玩家
@@ -357,7 +356,7 @@ i32 DataCommand::getEntity(CommandContext<ServerCommandSource>& context)
     }
 
     if (entity == nullptr) {
-        sendError(source, "commands.data.entity.failed.noEntity");
+        _sendError(source, "commands.data.entity.failed.noEntity");
         return 0;
     }
 
@@ -374,7 +373,7 @@ i32 DataCommand::getEntity(CommandContext<ServerCommandSource>& context)
                 auto results = path.get(*data);
 
                 if (results.empty()) {
-                    sendError(source, "commands.data.get.pathNotFound");
+                    _sendError(source, "commands.data.get.pathNotFound");
                     return 0;
                 }
 
@@ -384,12 +383,12 @@ i32 DataCommand::getEntity(CommandContext<ServerCommandSource>& context)
                     // 检查是否有缩放参数
                     if (context.hasArgument("scale")) {
                         f32 scale = context.getArgument<f32>("scale");
-                        i32 scaledValue = scaleValue(*result, scale);
+                        i32 scaledValue = _scaleValue(*result, scale);
                         source.sendMessage(accessor.getGetMessage(path, scale, scaledValue));
                         return scaledValue;
                     }
 
-                    i32 resultValue = getSingleResult(*result);
+                    i32 resultValue = _getSingleResult(*result);
                     source.sendMessage(accessor.getQueryMessage(*result));
                     return resultValue;
                 } else {
@@ -398,7 +397,7 @@ i32 DataCommand::getEntity(CommandContext<ServerCommandSource>& context)
                 }
             }
             catch (const CommandException& e) {
-                sendError(source, e.message());
+                _sendError(source, e.message());
                 return 0;
             }
         } else {
@@ -407,28 +406,26 @@ i32 DataCommand::getEntity(CommandContext<ServerCommandSource>& context)
         }
     }
     catch (const CommandException& e) {
-        sendError(source, e.message());
+        _sendError(source, e.message());
         return 0;
     }
 }
 
-i32 DataCommand::getStorage(CommandContext<ServerCommandSource>& context)
+i32 DataCommand::_getStorage(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto server = source.server();
 
     if (server == nullptr) {
-        sendError(source, "commands.data.storage.failed.noServer");
+        _sendError(source, "commands.data.storage.failed.noServer");
         return 0;
     }
 
     ResourceLocation id = context.getArgument<ResourceLocation>("id");
 
-    // TODO: 从服务器获取 CommandStorage
+    // TODO: 从服务器获取 CommandStorage，而不是使用静态本地存储
     // CommandStorage* storage = server->getCommandStorage();
     // StorageDataAccessor accessor(storage, id);
-
-    // 临时：创建本地存储
     static CommandStorage storage;
     StorageDataAccessor accessor(&storage, id);
 
@@ -443,7 +440,7 @@ i32 DataCommand::getStorage(CommandContext<ServerCommandSource>& context)
                 auto results = path.get(*data);
 
                 if (results.empty()) {
-                    sendError(source, "commands.data.get.pathNotFound");
+                    _sendError(source, "commands.data.get.pathNotFound");
                     return 0;
                 }
 
@@ -452,12 +449,12 @@ i32 DataCommand::getStorage(CommandContext<ServerCommandSource>& context)
 
                     if (context.hasArgument("scale")) {
                         f32 scale = context.getArgument<f32>("scale");
-                        i32 scaledValue = scaleValue(*result, scale);
+                        i32 scaledValue = _scaleValue(*result, scale);
                         source.sendMessage(accessor.getGetMessage(path, scale, scaledValue));
                         return scaledValue;
                     }
 
-                    i32 resultValue = getSingleResult(*result);
+                    i32 resultValue = _getSingleResult(*result);
                     source.sendMessage(accessor.getQueryMessage(*result));
                     return resultValue;
                 } else {
@@ -466,7 +463,7 @@ i32 DataCommand::getStorage(CommandContext<ServerCommandSource>& context)
                 }
             }
             catch (const CommandException& e) {
-                sendError(source, e.message());
+                _sendError(source, e.message());
                 return 0;
             }
         } else {
@@ -475,20 +472,20 @@ i32 DataCommand::getStorage(CommandContext<ServerCommandSource>& context)
         }
     }
     catch (const CommandException& e) {
-        sendError(source, e.message());
+        _sendError(source, e.message());
         return 0;
     }
 }
 
 // ========== set 子命令实现 ==========
 
-i32 DataCommand::setBlock(CommandContext<ServerCommandSource>& context)
+i32 DataCommand::_setBlock(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto world = source.world();
 
     if (world == nullptr) {
-        sendError(source, "commands.data.block.failed.noWorld");
+        _sendError(source, "commands.data.block.failed.noWorld");
         return 0;
     }
 
@@ -499,7 +496,7 @@ i32 DataCommand::setBlock(CommandContext<ServerCommandSource>& context)
     BlockDataAccessor accessor(world, BlockPos(pos.x, pos.y, pos.z));
 
     if (!accessor.isValid()) {
-        sendError(source, "commands.data.block.failed.noBlockEntity");
+        _sendError(source, "commands.data.block.failed.noBlockEntity");
         return 0;
     }
 
@@ -510,7 +507,7 @@ i32 DataCommand::setBlock(CommandContext<ServerCommandSource>& context)
         i32 count = path.set(*data, [&value]() { return value->copy(); });
 
         if (count == 0) {
-            sendError(source, "commands.data.set.pathNotFound");
+            _sendError(source, "commands.data.set.pathNotFound");
             return 0;
         }
 
@@ -521,19 +518,19 @@ i32 DataCommand::setBlock(CommandContext<ServerCommandSource>& context)
         return count;
     }
     catch (const CommandException& e) {
-        sendError(source, e.message());
+        _sendError(source, e.message());
         return 0;
     }
 }
 
-i32 DataCommand::setEntity(CommandContext<ServerCommandSource>& context)
+i32 DataCommand::_setEntity(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto world = source.world();
     auto server = source.server();
 
     if (world == nullptr || server == nullptr) {
-        sendError(source, "commands.data.entity.failed.noWorld");
+        _sendError(source, "commands.data.entity.failed.noWorld");
         return 0;
     }
 
@@ -543,7 +540,7 @@ i32 DataCommand::setEntity(CommandContext<ServerCommandSource>& context)
 
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        sendError(source, "commands.data.entity.failed.noEntity");
+        _sendError(source, "commands.data.entity.failed.noEntity");
         return 0;
     }
 
@@ -555,14 +552,14 @@ i32 DataCommand::setEntity(CommandContext<ServerCommandSource>& context)
     }
 
     if (entity == nullptr) {
-        sendError(source, "commands.data.entity.failed.noEntity");
+        _sendError(source, "commands.data.entity.failed.noEntity");
         return 0;
     }
 
     EntityDataAccessor accessor(entity);
 
     if (accessor.isPlayer()) {
-        sendError(source, "commands.data.entity.failed.player");
+        _sendError(source, "commands.data.entity.failed.player");
         return 0;
     }
 
@@ -572,7 +569,7 @@ i32 DataCommand::setEntity(CommandContext<ServerCommandSource>& context)
         i32 count = path.set(*data, [&value]() { return value->copy(); });
 
         if (count == 0) {
-            sendError(source, "commands.data.set.pathNotFound");
+            _sendError(source, "commands.data.set.pathNotFound");
             return 0;
         }
 
@@ -582,12 +579,12 @@ i32 DataCommand::setEntity(CommandContext<ServerCommandSource>& context)
         return count;
     }
     catch (const CommandException& e) {
-        sendError(source, e.message());
+        _sendError(source, e.message());
         return 0;
     }
 }
 
-i32 DataCommand::setStorage(CommandContext<ServerCommandSource>& context)
+i32 DataCommand::_setStorage(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
@@ -595,6 +592,7 @@ i32 DataCommand::setStorage(CommandContext<ServerCommandSource>& context)
     NbtPath path = context.getArgument<NbtPath>("path");
     auto value = context.getArgument<std::shared_ptr<nbt::tags::tag>>("value");
 
+    // TODO: 从服务器获取 CommandStorage，而不是使用静态本地存储
     static CommandStorage storage;
     StorageDataAccessor accessor(&storage, id);
 
@@ -604,7 +602,7 @@ i32 DataCommand::setStorage(CommandContext<ServerCommandSource>& context)
         i32 count = path.set(*data, [&value]() { return value->copy(); });
 
         if (count == 0) {
-            sendError(source, "commands.data.set.pathNotFound");
+            _sendError(source, "commands.data.set.pathNotFound");
             return 0;
         }
 
@@ -614,20 +612,20 @@ i32 DataCommand::setStorage(CommandContext<ServerCommandSource>& context)
         return count;
     }
     catch (const CommandException& e) {
-        sendError(source, e.message());
+        _sendError(source, e.message());
         return 0;
     }
 }
 
 // ========== merge 子命令实现 ==========
 
-i32 DataCommand::mergeBlock(CommandContext<ServerCommandSource>& context)
+i32 DataCommand::_mergeBlock(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto world = source.world();
 
     if (world == nullptr) {
-        sendError(source, "commands.data.block.failed.noWorld");
+        _sendError(source, "commands.data.block.failed.noWorld");
         return 0;
     }
 
@@ -637,7 +635,7 @@ i32 DataCommand::mergeBlock(CommandContext<ServerCommandSource>& context)
     BlockDataAccessor accessor(world, BlockPos(pos.x, pos.y, pos.z));
 
     if (!accessor.isValid()) {
-        sendError(source, "commands.data.block.failed.noBlockEntity");
+        _sendError(source, "commands.data.block.failed.noBlockEntity");
         return 0;
     }
 
@@ -647,19 +645,19 @@ i32 DataCommand::mergeBlock(CommandContext<ServerCommandSource>& context)
         return 1;
     }
     catch (const CommandException& e) {
-        sendError(source, e.message());
+        _sendError(source, e.message());
         return 0;
     }
 }
 
-i32 DataCommand::mergeEntity(CommandContext<ServerCommandSource>& context)
+i32 DataCommand::_mergeEntity(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto world = source.world();
     auto server = source.server();
 
     if (world == nullptr || server == nullptr) {
-        sendError(source, "commands.data.entity.failed.noWorld");
+        _sendError(source, "commands.data.entity.failed.noWorld");
         return 0;
     }
 
@@ -668,7 +666,7 @@ i32 DataCommand::mergeEntity(CommandContext<ServerCommandSource>& context)
 
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        sendError(source, "commands.data.entity.failed.noEntity");
+        _sendError(source, "commands.data.entity.failed.noEntity");
         return 0;
     }
 
@@ -680,14 +678,14 @@ i32 DataCommand::mergeEntity(CommandContext<ServerCommandSource>& context)
     }
 
     if (entity == nullptr) {
-        sendError(source, "commands.data.entity.failed.noEntity");
+        _sendError(source, "commands.data.entity.failed.noEntity");
         return 0;
     }
 
     EntityDataAccessor accessor(entity);
 
     if (accessor.isPlayer()) {
-        sendError(source, "commands.data.entity.failed.player");
+        _sendError(source, "commands.data.entity.failed.player");
         return 0;
     }
 
@@ -697,18 +695,19 @@ i32 DataCommand::mergeEntity(CommandContext<ServerCommandSource>& context)
         return 1;
     }
     catch (const CommandException& e) {
-        sendError(source, e.message());
+        _sendError(source, e.message());
         return 0;
     }
 }
 
-i32 DataCommand::mergeStorage(CommandContext<ServerCommandSource>& context)
+i32 DataCommand::_mergeStorage(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
     ResourceLocation id = context.getArgument<ResourceLocation>("id");
     auto nbt = context.getArgument<std::shared_ptr<nbt::tags::compound_tag>>("nbt");
 
+    // TODO: 从服务器获取 CommandStorage，而不是使用静态本地存储
     static CommandStorage storage;
     StorageDataAccessor accessor(&storage, id);
 
@@ -718,20 +717,20 @@ i32 DataCommand::mergeStorage(CommandContext<ServerCommandSource>& context)
         return 1;
     }
     catch (const CommandException& e) {
-        sendError(source, e.message());
+        _sendError(source, e.message());
         return 0;
     }
 }
 
 // ========== remove 子命令实现 ==========
 
-i32 DataCommand::removeBlock(CommandContext<ServerCommandSource>& context)
+i32 DataCommand::_removeBlock(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto world = source.world();
 
     if (world == nullptr) {
-        sendError(source, "commands.data.block.failed.noWorld");
+        _sendError(source, "commands.data.block.failed.noWorld");
         return 0;
     }
 
@@ -741,7 +740,7 @@ i32 DataCommand::removeBlock(CommandContext<ServerCommandSource>& context)
     BlockDataAccessor accessor(world, BlockPos(pos.x, pos.y, pos.z));
 
     if (!accessor.isValid()) {
-        sendError(source, "commands.data.block.failed.noBlockEntity");
+        _sendError(source, "commands.data.block.failed.noBlockEntity");
         return 0;
     }
 
@@ -751,7 +750,7 @@ i32 DataCommand::removeBlock(CommandContext<ServerCommandSource>& context)
         i32 count = path.remove(*data);
 
         if (count == 0) {
-            sendError(source, "commands.data.remove.pathNotFound");
+            _sendError(source, "commands.data.remove.pathNotFound");
             return 0;
         }
 
@@ -760,19 +759,19 @@ i32 DataCommand::removeBlock(CommandContext<ServerCommandSource>& context)
         return count;
     }
     catch (const CommandException& e) {
-        sendError(source, e.message());
+        _sendError(source, e.message());
         return 0;
     }
 }
 
-i32 DataCommand::removeEntity(CommandContext<ServerCommandSource>& context)
+i32 DataCommand::_removeEntity(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto world = source.world();
     auto server = source.server();
 
     if (world == nullptr || server == nullptr) {
-        sendError(source, "commands.data.entity.failed.noWorld");
+        _sendError(source, "commands.data.entity.failed.noWorld");
         return 0;
     }
 
@@ -781,7 +780,7 @@ i32 DataCommand::removeEntity(CommandContext<ServerCommandSource>& context)
 
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        sendError(source, "commands.data.entity.failed.noEntity");
+        _sendError(source, "commands.data.entity.failed.noEntity");
         return 0;
     }
 
@@ -793,14 +792,14 @@ i32 DataCommand::removeEntity(CommandContext<ServerCommandSource>& context)
     }
 
     if (entity == nullptr) {
-        sendError(source, "commands.data.entity.failed.noEntity");
+        _sendError(source, "commands.data.entity.failed.noEntity");
         return 0;
     }
 
     EntityDataAccessor accessor(entity);
 
     if (accessor.isPlayer()) {
-        sendError(source, "commands.data.entity.failed.player");
+        _sendError(source, "commands.data.entity.failed.player");
         return 0;
     }
 
@@ -810,7 +809,7 @@ i32 DataCommand::removeEntity(CommandContext<ServerCommandSource>& context)
         i32 count = path.remove(*data);
 
         if (count == 0) {
-            sendError(source, "commands.data.remove.pathNotFound");
+            _sendError(source, "commands.data.remove.pathNotFound");
             return 0;
         }
 
@@ -819,18 +818,19 @@ i32 DataCommand::removeEntity(CommandContext<ServerCommandSource>& context)
         return count;
     }
     catch (const CommandException& e) {
-        sendError(source, e.message());
+        _sendError(source, e.message());
         return 0;
     }
 }
 
-i32 DataCommand::removeStorage(CommandContext<ServerCommandSource>& context)
+i32 DataCommand::_removeStorage(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
     ResourceLocation id = context.getArgument<ResourceLocation>("id");
     NbtPath path = context.getArgument<NbtPath>("path");
 
+    // TODO: 从服务器获取 CommandStorage，而不是使用静态本地存储
     static CommandStorage storage;
     StorageDataAccessor accessor(&storage, id);
 
@@ -840,7 +840,7 @@ i32 DataCommand::removeStorage(CommandContext<ServerCommandSource>& context)
         i32 count = path.remove(*data);
 
         if (count == 0) {
-            sendError(source, "commands.data.remove.pathNotFound");
+            _sendError(source, "commands.data.remove.pathNotFound");
             return 0;
         }
 
@@ -849,14 +849,14 @@ i32 DataCommand::removeStorage(CommandContext<ServerCommandSource>& context)
         return count;
     }
     catch (const CommandException& e) {
-        sendError(source, e.message());
+        _sendError(source, e.message());
         return 0;
     }
 }
 
 // ========== 辅助函数实现 ==========
 
-i32 DataCommand::getSingleResult(const nbt::tags::tag& tag)
+i32 DataCommand::_getSingleResult(const nbt::tags::tag& tag)
 {
     switch (tag.id()) {
         case nbt::TagId::Byte:
@@ -888,7 +888,7 @@ i32 DataCommand::getSingleResult(const nbt::tags::tag& tag)
     }
 }
 
-i32 DataCommand::scaleValue(const nbt::tags::tag& tag, double scale)
+i32 DataCommand::_scaleValue(const nbt::tags::tag& tag, double scale)
 {
     double value = 0.0;
 
@@ -912,47 +912,49 @@ i32 DataCommand::scaleValue(const nbt::tags::tag& tag, double scale)
             value = dynamic_cast<const nbt::tags::double_tag&>(tag).value;
             break;
         default:
-            return getSingleResult(tag);
+            return _getSingleResult(tag);
     }
 
     return static_cast<i32>(std::floor(value * scale));
 }
 
-std::string DataCommand::formatNbt(const nbt::tags::tag& tag)
+// TODO: _formatNbt 函数目前未使用，可能在未来用于 NBT 输出格式化
+std::string DataCommand::_formatNbt(const nbt::tags::tag& tag)
 {
     std::ostringstream ss;
     ss << nbt::contexts::mojangson << tag;
     return ss.str();
 }
 
-void DataCommand::sendError(ServerCommandSource& source, const std::string& message)
+void DataCommand::_sendError(ServerCommandSource& source, const std::string& message)
 {
     source.sendMessage("§c" + message);
 }
 
 // ========== 旧的子命令实现（废弃） ==========
+// TODO: 这些废弃的函数应该被删除，它们已被 _getBlock/_getEntity/_getStorage 等替代
 
-i32 DataCommand::getData(CommandContext<ServerCommandSource>& context)
+i32 DataCommand::_getData(CommandContext<ServerCommandSource>& context)
 {
-    // 废弃：由 getBlock/getEntity/getStorage 替代
+    // 废弃：由 _getBlock/_getEntity/_getStorage 替代
     return 0;
 }
 
-i32 DataCommand::setData(CommandContext<ServerCommandSource>& context)
+i32 DataCommand::_setData(CommandContext<ServerCommandSource>& context)
 {
-    // 废弃：由 setBlock/setEntity/setStorage 替代
+    // 废弃：由 _setBlock/_setEntity/_setStorage 替代
     return 0;
 }
 
-i32 DataCommand::mergeData(CommandContext<ServerCommandSource>& context)
+i32 DataCommand::_mergeData(CommandContext<ServerCommandSource>& context)
 {
-    // 废弃：由 mergeBlock/mergeEntity/mergeStorage 替代
+    // 废弃：由 _mergeBlock/_mergeEntity/_mergeStorage 替代
     return 0;
 }
 
-i32 DataCommand::removeData(CommandContext<ServerCommandSource>& context)
+i32 DataCommand::_removeData(CommandContext<ServerCommandSource>& context)
 {
-    // 废弃：由 removeBlock/removeEntity/removeStorage 替代
+    // 废弃：由 _removeBlock/_removeEntity/_removeStorage 替代
     return 0;
 }
 

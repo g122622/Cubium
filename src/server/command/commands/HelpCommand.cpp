@@ -59,18 +59,19 @@ void HelpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto helpNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("help");
     helpNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(0); });
     support::applyMetadata(helpNode, support::makeMetadata("Show command help.", "/help [command]", 0));
-    helpNode->setCommand([&dispatcher](CommandContext<ServerCommandSource>& ctx) { return showHelp(ctx, dispatcher); });
+    helpNode->setCommand(
+        [&dispatcher](CommandContext<ServerCommandSource>& ctx) { return _showHelp(ctx, dispatcher); });
 
     auto commandArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("command", StringArgumentType::word());
     commandArg->setCommand(
-        [&dispatcher](CommandContext<ServerCommandSource>& ctx) { return showCommandHelp(ctx, dispatcher); });
+        [&dispatcher](CommandContext<ServerCommandSource>& ctx) { return _showCommandHelp(ctx, dispatcher); });
     helpNode->addChild(commandArg);
 
     dispatcher.registerCommand(helpNode);
 }
 
-i32 HelpCommand::showHelp(
+i32 HelpCommand::_showHelp(
     CommandContext<ServerCommandSource>& context, CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto& source = context.getSource();
@@ -94,7 +95,7 @@ i32 HelpCommand::showHelp(
     return 1;
 }
 
-i32 HelpCommand::showCommandHelp(
+i32 HelpCommand::_showCommandHelp(
     CommandContext<ServerCommandSource>& context, CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto& source = context.getSource();

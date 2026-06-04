@@ -52,11 +52,11 @@ void KickCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::players());
-    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return kickPlayers(ctx); });
+    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _kickPlayers(ctx); });
 
     auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "reason", StringArgumentType::greedyString());
-    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return kickPlayers(ctx); });
+    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _kickPlayers(ctx); });
 
     targetsArg->addChild(reasonArg);
     kickNode->addChild(targetsArg);
@@ -70,7 +70,7 @@ void KickCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
  * @param context 命令上下文。
  * @return 成功踢出的玩家数量。
  */
-i32 KickCommand::kickPlayers(CommandContext<ServerCommandSource>& context)
+i32 KickCommand::_kickPlayers(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();

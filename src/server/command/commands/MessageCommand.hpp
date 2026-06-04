@@ -56,7 +56,7 @@ private:
      * @param context 命令上下文
      * @return 命令结果
      */
-    static i32 sendMessage(CommandContext<ServerCommandSource>& context);
+    static i32 _sendMessage(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

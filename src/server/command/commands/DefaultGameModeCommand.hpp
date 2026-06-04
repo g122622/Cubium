@@ -36,7 +36,7 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 setDefaultMode(CommandContext<ServerCommandSource>& context);
+    static i32 _setDefaultMode(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace mc::command

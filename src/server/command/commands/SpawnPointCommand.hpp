@@ -55,21 +55,21 @@ private:
      * @param context 命令上下文
      * @return 命令结果
      */
-    static i32 setSelfSpawnPoint(CommandContext<ServerCommandSource>& context);
+    static i32 _setSelfSpawnPoint(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 设置指定玩家的重生点（玩家当前位置）
      * @param context 命令上下文
      * @return 命令结果
      */
-    static i32 setPlayerSpawnPoint(CommandContext<ServerCommandSource>& context);
+    static i32 _setPlayerSpawnPoint(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 设置指定玩家到指定位置的重生点
      * @param context 命令上下文
      * @return 命令结果
      */
-    static i32 setPlayerSpawnPointAtPosition(CommandContext<ServerCommandSource>& context);
+    static i32 _setPlayerSpawnPointAtPosition(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

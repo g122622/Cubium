@@ -41,13 +41,13 @@ void SetIdleTimeoutCommand::registerTo(CommandDispatcher<ServerCommandSource>& d
 
     auto minutesArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
         "minutes", IntegerArgumentType::integer(0, 1440));
-    minutesArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setTimeout(ctx); });
+    minutesArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setTimeout(ctx); });
     timeoutNode->addChild(minutesArg);
 
     dispatcher.registerCommand(timeoutNode);
 }
 
-i32 SetIdleTimeoutCommand::setTimeout(CommandContext<ServerCommandSource>& context)
+i32 SetIdleTimeoutCommand::_setTimeout(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();

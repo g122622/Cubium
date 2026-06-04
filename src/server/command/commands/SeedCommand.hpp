@@ -37,15 +37,13 @@ namespace command {
  * - /seed - 显示世界种子
  *
  * 权限等级：2
- *
- * 参考 MC 的 SeedCommand
  */
 class SeedCommand {
 public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 showSeed(CommandContext<ServerCommandSource>& context);
+    static i32 _showSeed(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

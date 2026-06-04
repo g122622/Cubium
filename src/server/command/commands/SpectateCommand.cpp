@@ -48,24 +48,24 @@ void SpectateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
         "target", EntityArgumentType::entity());
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::player());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return startSpectating(ctx); });
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _startSpectating(ctx); });
     targetArg->addChild(playerArg);
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return startSpectating(ctx); });
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _startSpectating(ctx); });
     spectateNode->addChild(targetArg);
 
     // /spectate stop [player]
     auto stopNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("stop");
     auto stopPlayerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::player());
-    stopPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return stopSpectating(ctx); });
+    stopPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _stopSpectating(ctx); });
     stopNode->addChild(stopPlayerArg);
-    stopNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return stopSpectating(ctx); });
+    stopNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _stopSpectating(ctx); });
     spectateNode->addChild(stopNode);
 
     dispatcher.registerCommand(spectateNode);
 }
 
-i32 SpectateCommand::startSpectating(CommandContext<ServerCommandSource>& context)
+i32 SpectateCommand::_startSpectating(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const EntitySelector& targetSelector = context.getArgument<EntitySelector>("target");
@@ -125,7 +125,7 @@ i32 SpectateCommand::startSpectating(CommandContext<ServerCommandSource>& contex
     return 1;
 }
 
-i32 SpectateCommand::stopSpectating(CommandContext<ServerCommandSource>& context)
+i32 SpectateCommand::_stopSpectating(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 

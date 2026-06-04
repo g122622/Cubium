@@ -37,30 +37,30 @@ void DifficultyCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     difficultyNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
     support::applyMetadata(difficultyNode,
         support::makeMetadata("Query or set the world difficulty.", "/difficulty [peaceful|easy|normal|hard]", 2));
-    difficultyNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return queryDifficulty(ctx); });
+    difficultyNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _queryDifficulty(ctx); });
 
     auto peacefulNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("peaceful");
     peacefulNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         ctx.setArgument("difficulty", Difficulty::Peaceful);
-        return setDifficulty(ctx);
+        return _setDifficulty(ctx);
     });
 
     auto easyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("easy");
     easyNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         ctx.setArgument("difficulty", Difficulty::Easy);
-        return setDifficulty(ctx);
+        return _setDifficulty(ctx);
     });
 
     auto normalNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("normal");
     normalNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         ctx.setArgument("difficulty", Difficulty::Normal);
-        return setDifficulty(ctx);
+        return _setDifficulty(ctx);
     });
 
     auto hardNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("hard");
     hardNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         ctx.setArgument("difficulty", Difficulty::Hard);
-        return setDifficulty(ctx);
+        return _setDifficulty(ctx);
     });
 
     difficultyNode->addChild(peacefulNode);
@@ -71,7 +71,7 @@ void DifficultyCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     dispatcher.registerCommand(difficultyNode);
 }
 
-i32 DifficultyCommand::queryDifficulty(CommandContext<ServerCommandSource>& context)
+i32 DifficultyCommand::_queryDifficulty(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
@@ -86,7 +86,7 @@ i32 DifficultyCommand::queryDifficulty(CommandContext<ServerCommandSource>& cont
     return static_cast<i32>(server->difficulty());
 }
 
-i32 DifficultyCommand::setDifficulty(CommandContext<ServerCommandSource>& context)
+i32 DifficultyCommand::_setDifficulty(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();

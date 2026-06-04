@@ -41,8 +41,8 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 giveRecipe(CommandContext<ServerCommandSource>& context);
-    static i32 takeRecipe(CommandContext<ServerCommandSource>& context);
+    static i32 _giveRecipe(CommandContext<ServerCommandSource>& context);
+    static i32 _takeRecipe(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

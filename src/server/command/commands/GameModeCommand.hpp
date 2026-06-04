@@ -64,7 +64,7 @@ private:
      *
      * @warning 该分支要求命令源必须是玩家。
      */
-    static i32 setGameModeSelf(CommandContext<ServerCommandSource>& context);
+    static i32 _setGameModeSelf(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 将目标玩家集合切换到指定游戏模式。
@@ -74,7 +74,7 @@ private:
      *
      * @note 选择器解析统一走 `support::resolvePlayerIds()`，避免命令各自复制解析逻辑。
      */
-    static i32 setGameModeOthers(CommandContext<ServerCommandSource>& context);
+    static i32 _setGameModeOthers(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 获取命令反馈中使用的游戏模式名称。
@@ -82,7 +82,7 @@ private:
      * @param mode 游戏模式。
      * @return 可读名称。
      */
-    static const char* getGameModeName(GameMode mode);
+    static const char* _getGameModeName(GameMode mode);
 };
 
 } // namespace command

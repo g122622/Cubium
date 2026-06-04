@@ -195,7 +195,7 @@ std::vector<ItemStack> generateFromFish(
 /**
  * @brief 从 kill <target> 源生成战利品
  *
- * 参考 MC 1.16.5: 使用目标实体的战利品表和 ENTITY 参数集，
+ * 使用目标实体的战利品表和 ENTITY 参数集，
  * 用魔法伤害作为伤害源，命令执行者作为击杀者。
  */
 std::vector<ItemStack> generateFromKill(ServerCommandSource& source, Entity* target)
@@ -265,7 +265,6 @@ std::vector<ItemStack> generateFromMine(ServerCommandSource& source, const Vecto
 /**
  * @brief 给予玩家物品列表
  *
- * 参考 MC 1.16.5 GiveCommand 和 LootCommand.func_218859_a
  * @return 成功给予物品的玩家数量
  */
 i32 giveItemsToPlayers(
@@ -345,7 +344,6 @@ i32 giveItemsToPlayers(
 /**
  * @brief 在指定位置生成物品实体
  *
- * 参考 MC 1.16.5 LootCommand.func_218881_a
  * @return 生成的物品数量
  */
 i32 spawnItemsAtPosition(ServerCommandSource& source, const Vector3d& pos, const std::vector<ItemStack>& items)
@@ -371,7 +369,6 @@ i32 spawnItemsAtPosition(ServerCommandSource& source, const Vector3d& pos, const
 /**
  * @brief 将物品插入容器
  *
- * 参考 MC 1.16.5 LootCommand.func_218890_a 和 func_218900_a
  * 自动合并堆叠，然后放入空槽位。
  * @return 成功插入的物品数量
  */
@@ -458,7 +455,7 @@ ItemStack resolveTool(CommandContext<ServerCommandSource>& context)
     }
 
     // mainhand/offhand 或未指定工具时，使用命令源的主手物品
-    // 参考 MC 1.16.5: 无工具参数时默认使用 mainhand
+    // 无工具参数时默认使用 mainhand
     auto& source = context.getSource();
     return getHeldItem(source, "mainhand");
 }

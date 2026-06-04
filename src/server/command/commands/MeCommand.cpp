@@ -40,13 +40,13 @@ void MeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     auto actionArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "action", StringArgumentType::greedyString());
-    actionArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return performAction(ctx); });
+    actionArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _performAction(ctx); });
     meNode->addChild(actionArg);
 
     dispatcher.registerCommand(meNode);
 }
 
-i32 MeCommand::performAction(CommandContext<ServerCommandSource>& context)
+i32 MeCommand::_performAction(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();

@@ -25,8 +25,6 @@
  * @file GameRuleCommand.hpp
  * @brief /gamerule 命令
  *
- * 参考 MC 1.16.5: net.minecraft.server.command.GameRuleCommand
- *
  * 用法：
  *   /gamerule <rule>           - 查询规则值
  *   /gamerule <rule> <value>   - 设置规则值
@@ -58,20 +56,20 @@ private:
      * @param context 命令上下文
      * @return 命令结果
      */
-    static i32 executeQuery(CommandContext<ServerCommandSource>& context);
+    static i32 _executeQuery(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 执行设置规则
      * @param context 命令上下文
      * @return 命令结果
      */
-    static i32 executeSet(CommandContext<ServerCommandSource>& context);
+    static i32 _executeSet(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 获取所有规则名称
      * @return 规则名称列表
      */
-    static std::vector<std::string> getAllRuleNames();
+    static std::vector<std::string> _getAllRuleNames();
 };
 
 } // namespace mc::command

@@ -56,7 +56,7 @@ private:
      *
      * @note 若未提供原因，则使用默认原因 `Kicked by an operator`。
      */
-    static i32 kickPlayers(CommandContext<ServerCommandSource>& context);
+    static i32 _kickPlayers(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace mc::command

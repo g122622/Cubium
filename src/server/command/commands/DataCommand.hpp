@@ -62,8 +62,6 @@ class IDataAccessor;
  * - /data remove storage <id> <path>
  *
  * 权限: 2 (游戏管理员)
- *
- * 参考 MC 1.16.5: net.minecraft.command.impl.DataCommand
  */
 class DataCommand {
 public:
@@ -75,84 +73,84 @@ private:
     /**
      * @brief /data get 子命令
      */
-    static i32 getData(CommandContext<ServerCommandSource>& context);
+    static i32 _getData(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief /data set 子命令
      */
-    static i32 setData(CommandContext<ServerCommandSource>& context);
+    static i32 _setData(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief /data merge 子命令
      */
-    static i32 mergeData(CommandContext<ServerCommandSource>& context);
+    static i32 _mergeData(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief /data remove 子命令
      */
-    static i32 removeData(CommandContext<ServerCommandSource>& context);
+    static i32 _removeData(CommandContext<ServerCommandSource>& context);
 
     // ========== 具体目标类型的处理函数 ==========
 
     /**
      * @brief 获取方块实体的 NBT 数据
      */
-    static i32 getBlock(CommandContext<ServerCommandSource>& context);
+    static i32 _getBlock(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 获取实体的 NBT 数据
      */
-    static i32 getEntity(CommandContext<ServerCommandSource>& context);
+    static i32 _getEntity(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 获取存储的 NBT 数据
      */
-    static i32 getStorage(CommandContext<ServerCommandSource>& context);
+    static i32 _getStorage(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 设置方块实体的 NBT 数据
      */
-    static i32 setBlock(CommandContext<ServerCommandSource>& context);
+    static i32 _setBlock(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 设置实体的 NBT 数据
      */
-    static i32 setEntity(CommandContext<ServerCommandSource>& context);
+    static i32 _setEntity(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 设置存储的 NBT 数据
      */
-    static i32 setStorage(CommandContext<ServerCommandSource>& context);
+    static i32 _setStorage(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 合并方块实体的 NBT 数据
      */
-    static i32 mergeBlock(CommandContext<ServerCommandSource>& context);
+    static i32 _mergeBlock(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 合并实体的 NBT 数据
      */
-    static i32 mergeEntity(CommandContext<ServerCommandSource>& context);
+    static i32 _mergeEntity(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 合并存储的 NBT 数据
      */
-    static i32 mergeStorage(CommandContext<ServerCommandSource>& context);
+    static i32 _mergeStorage(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 删除方块实体的 NBT 数据路径
      */
-    static i32 removeBlock(CommandContext<ServerCommandSource>& context);
+    static i32 _removeBlock(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 删除实体的 NBT 数据路径
      */
-    static i32 removeEntity(CommandContext<ServerCommandSource>& context);
+    static i32 _removeEntity(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 删除存储的 NBT 数据路径
      */
-    static i32 removeStorage(CommandContext<ServerCommandSource>& context);
+    static i32 _removeStorage(CommandContext<ServerCommandSource>& context);
 
     // ========== 辅助函数 ==========
 
@@ -161,7 +159,7 @@ private:
      * @param tag NBT 标签
      * @return 对于数值返回其值，对于集合返回大小，对于字符串返回长度
      */
-    static i32 getSingleResult(const nbt::tags::tag& tag);
+    static i32 _getSingleResult(const nbt::tags::tag& tag);
 
     /**
      * @brief 缩放数值类型标签
@@ -169,17 +167,17 @@ private:
      * @param scale 缩放因子
      * @return 缩放后的整数值
      */
-    static i32 scaleValue(const nbt::tags::tag& tag, double scale);
+    static i32 _scaleValue(const nbt::tags::tag& tag, double scale);
 
     /**
      * @brief 格式化 NBT 标签为字符串
      */
-    static std::string formatNbt(const nbt::tags::tag& tag);
+    static std::string _formatNbt(const nbt::tags::tag& tag);
 
     /**
      * @brief 发送错误消息
      */
-    static void sendError(ServerCommandSource& source, const std::string& message);
+    static void _sendError(ServerCommandSource& source, const std::string& message);
 };
 
 } // namespace command

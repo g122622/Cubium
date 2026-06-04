@@ -40,8 +40,6 @@ namespace command {
  * - /experience query <player> [points|levels] - 查询经验
  *
  * 权限等级：2
- *
- * 参考 MC 1.16.5 ExperienceCommand
  */
 class ExperienceCommand {
 public:

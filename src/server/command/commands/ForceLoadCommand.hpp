@@ -33,8 +33,6 @@ namespace command {
 /**
  * @brief ForceLoadCommand - 强制加载区块命令
  *
- * 参考 MC 1.16.5 的 /forceload 命令实现。
- *
  * 用法:
  *   /forceload add <from> [to]    - 添加强制加载区块
  *   /forceload remove <from> [to] - 移除强制加载区块
@@ -57,34 +55,41 @@ public:
 
 private:
     /**
+     * @brief 获取维度名称
+     * @param dimensionId 维度ID
+     * @return 维度名称字符串
+     */
+    static const char* _getDimensionName(DimensionId dimensionId);
+
+    /**
      * @brief 添加强制加载区块
      * @return 成功添加的区块数量
      */
-    static i32 addForceLoad(CommandContext<ServerCommandSource>& context);
+    static i32 _addForceLoad(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 移除强制加载区块
      * @return 成功移除的区块数量
      */
-    static i32 removeForceLoad(CommandContext<ServerCommandSource>& context);
+    static i32 _removeForceLoad(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 查询单个区块是否被强制加载
      * @return 1 如果被强制加载，0 否则
      */
-    static i32 queryForceLoad(CommandContext<ServerCommandSource>& context);
+    static i32 _queryForceLoad(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 列出当前维度所有强制加载区块
      * @return 强制加载区块的数量
      */
-    static i32 listAllForceLoad(CommandContext<ServerCommandSource>& context);
+    static i32 _listAllForceLoad(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 移除当前维度所有强制加载区块
      * @return 成功移除的区块数量
      */
-    static i32 removeAllForceLoad(CommandContext<ServerCommandSource>& context);
+    static i32 _removeAllForceLoad(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

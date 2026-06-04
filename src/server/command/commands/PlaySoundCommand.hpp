@@ -67,27 +67,27 @@ private:
     /**
      * @brief 在玩家位置播放声音（默认参数）
      */
-    static i32 playSoundDefault(CommandContext<ServerCommandSource>& context, sound::SoundCategory category);
+    static i32 _playSoundDefault(CommandContext<ServerCommandSource>& context, sound::SoundCategory category);
 
     /**
      * @brief 在指定位置播放声音
      */
-    static i32 playSoundAtPosition(CommandContext<ServerCommandSource>& context, sound::SoundCategory category);
+    static i32 _playSoundAtPosition(CommandContext<ServerCommandSource>& context, sound::SoundCategory category);
 
     /**
      * @brief 在指定位置播放声音（带音量）
      */
-    static i32 playSoundWithVolume(CommandContext<ServerCommandSource>& context, sound::SoundCategory category);
+    static i32 _playSoundWithVolume(CommandContext<ServerCommandSource>& context, sound::SoundCategory category);
 
     /**
      * @brief 在指定位置播放声音（带音量和音调）
      */
-    static i32 playSoundWithPitch(CommandContext<ServerCommandSource>& context, sound::SoundCategory category);
+    static i32 _playSoundWithPitch(CommandContext<ServerCommandSource>& context, sound::SoundCategory category);
 
     /**
      * @brief 在指定位置播放声音（带所有参数，包括最小音量）
      */
-    static i32 playSoundWithMinVolume(CommandContext<ServerCommandSource>& context, sound::SoundCategory category);
+    static i32 _playSoundWithMinVolume(CommandContext<ServerCommandSource>& context, sound::SoundCategory category);
 };
 
 } // namespace command

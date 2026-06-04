@@ -41,8 +41,8 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 locateBiome(CommandContext<ServerCommandSource>& context);
-    static std::optional<BiomeId> parseBiomeId(const std::string& name) noexcept;
+    static i32 _locateBiome(CommandContext<ServerCommandSource>& context);
+    static std::optional<BiomeId> _parseBiomeId(const std::string& name) noexcept;
 };
 
 } // namespace command

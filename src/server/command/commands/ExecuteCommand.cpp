@@ -101,7 +101,7 @@ ServerPlayer* getPlayerEntity(ServerCommandSource& source, PlayerId playerId)
 
 // ========== 嵌套命令执行 ==========
 
-i32 ExecuteCommand::executeNestedCommand(ServerCommandSource& source, const std::string& command)
+i32 ExecuteCommand::_executeNestedCommand(ServerCommandSource& source, const std::string& command)
 {
     if (command.empty()) {
         source.sendError("commands.execute.failed.emptyCommand");
@@ -140,7 +140,7 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto runNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
     auto runCommandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "command", StringArgumentType::greedyString());
-    runCommandArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return executeRun(ctx); });
+    runCommandArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _executeRun(ctx); });
     runNode->addChild(runCommandArg);
     executeNode->addChild(runNode);
 
@@ -152,7 +152,7 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto asRunNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
     auto asCommandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "command", StringArgumentType::greedyString());
-    asCommandArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return executeAs(ctx); });
+    asCommandArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _executeAs(ctx); });
     asRunNode->addChild(asCommandArg);
     asEntityArg->addChild(asRunNode);
     asNode->addChild(asEntityArg);
@@ -166,7 +166,7 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto atRunNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
     auto atCommandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "command", StringArgumentType::greedyString());
-    atCommandArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return executeAt(ctx); });
+    atCommandArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _executeAt(ctx); });
     atRunNode->addChild(atCommandArg);
     atEntityArg->addChild(atRunNode);
     atNode->addChild(atEntityArg);
@@ -179,7 +179,7 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto posRunNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
     auto posCommandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "command", StringArgumentType::greedyString());
-    posCommandArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return executePositioned(ctx); });
+    posCommandArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _executePositioned(ctx); });
     posRunNode->addChild(posCommandArg);
     posArg->addChild(posRunNode);
     positionedNode->addChild(posArg);
@@ -196,7 +196,7 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto ifBlockRunNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
     auto ifBlockCommandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "command", StringArgumentType::greedyString());
-    ifBlockCommandArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return executeIfBlock(ctx); });
+    ifBlockCommandArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _executeIfBlock(ctx); });
     ifBlockRunNode->addChild(ifBlockCommandArg);
     ifBlockArg->addChild(ifBlockRunNode);
     ifBlockNode->addChild(ifBlockArg);
@@ -215,7 +215,8 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto unlessBlockRunNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
     auto unlessBlockCommandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "command", StringArgumentType::greedyString());
-    unlessBlockCommandArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return executeUnlessBlock(ctx); });
+    unlessBlockCommandArg->setCommand(
+        [](CommandContext<ServerCommandSource>& ctx) { return _executeUnlessBlock(ctx); });
     unlessBlockRunNode->addChild(unlessBlockCommandArg);
     unlessBlockArg->addChild(unlessBlockRunNode);
     unlessBlockNode->addChild(unlessBlockArg);
@@ -228,15 +229,15 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
 // ========== 子命令实现 ==========
 
-i32 ExecuteCommand::executeRun(CommandContext<ServerCommandSource>& context)
+i32 ExecuteCommand::_executeRun(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     std::string command = context.getArgument<std::string>("command");
 
-    return executeNestedCommand(source, command);
+    return _executeNestedCommand(source, command);
 }
 
-i32 ExecuteCommand::executeAs(CommandContext<ServerCommandSource>& context)
+i32 ExecuteCommand::_executeAs(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("entity");
@@ -263,13 +264,13 @@ i32 ExecuteCommand::executeAs(CommandContext<ServerCommandSource>& context)
         ServerCommandSource modifiedSource = source.withPlayer(player);
 
         // 执行嵌套命令
-        totalResult += executeNestedCommand(modifiedSource, command);
+        totalResult += _executeNestedCommand(modifiedSource, command);
     }
 
     return totalResult;
 }
 
-i32 ExecuteCommand::executeAt(CommandContext<ServerCommandSource>& context)
+i32 ExecuteCommand::_executeAt(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("entity");
@@ -304,13 +305,13 @@ i32 ExecuteCommand::executeAt(CommandContext<ServerCommandSource>& context)
         }
 
         // 执行嵌套命令
-        totalResult += executeNestedCommand(modifiedSource, command);
+        totalResult += _executeNestedCommand(modifiedSource, command);
     }
 
     return totalResult;
 }
 
-i32 ExecuteCommand::executePositioned(CommandContext<ServerCommandSource>& context)
+i32 ExecuteCommand::_executePositioned(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     Vector3d position = context.getArgument<Vector3d>("pos");
@@ -319,10 +320,10 @@ i32 ExecuteCommand::executePositioned(CommandContext<ServerCommandSource>& conte
     // 创建修改位置的命令源
     ServerCommandSource modifiedSource = source.withPosition(position);
 
-    return executeNestedCommand(modifiedSource, command);
+    return _executeNestedCommand(modifiedSource, command);
 }
 
-i32 ExecuteCommand::executeIfBlock(CommandContext<ServerCommandSource>& context)
+i32 ExecuteCommand::_executeIfBlock(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     Vector3i position = context.getArgument<Vector3i>("pos");
@@ -356,10 +357,10 @@ i32 ExecuteCommand::executeIfBlock(CommandContext<ServerCommandSource>& context)
     }
 
     // 条件满足，执行嵌套命令
-    return executeNestedCommand(source, command);
+    return _executeNestedCommand(source, command);
 }
 
-i32 ExecuteCommand::executeUnlessBlock(CommandContext<ServerCommandSource>& context)
+i32 ExecuteCommand::_executeUnlessBlock(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     Vector3i position = context.getArgument<Vector3i>("pos");
@@ -393,7 +394,7 @@ i32 ExecuteCommand::executeUnlessBlock(CommandContext<ServerCommandSource>& cont
     }
 
     // 条件不满足，执行嵌套命令
-    return executeNestedCommand(source, command);
+    return _executeNestedCommand(source, command);
 }
 
 } // namespace command

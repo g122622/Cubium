@@ -57,9 +57,9 @@ void ReplaceItemCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("item", StringArgumentType::string());
     auto countArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("count", IntegerArgumentType::integer(1, 64));
-    countArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return replaceEntityItem(ctx); });
+    countArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _replaceEntityItem(ctx); });
     itemArg->addChild(countArg);
-    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return replaceEntityItem(ctx); });
+    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _replaceEntityItem(ctx); });
     slotArg->addChild(itemArg);
     targetsArg->addChild(slotArg);
     entityNode->addChild(targetsArg);
@@ -74,9 +74,9 @@ void ReplaceItemCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("item", StringArgumentType::string());
     auto blockCountArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("count", IntegerArgumentType::integer(1, 64));
-    blockCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return replaceBlockItem(ctx); });
+    blockCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _replaceBlockItem(ctx); });
     blockItemArg->addChild(blockCountArg);
-    blockItemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return replaceBlockItem(ctx); });
+    blockItemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _replaceBlockItem(ctx); });
     blockSlotArg->addChild(blockItemArg);
     posArg->addChild(blockSlotArg);
     blockNode->addChild(posArg);
@@ -85,7 +85,7 @@ void ReplaceItemCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     dispatcher.registerCommand(replaceitemNode);
 }
 
-i32 ReplaceItemCommand::replaceEntityItem(CommandContext<ServerCommandSource>& context)
+i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
@@ -120,7 +120,7 @@ i32 ReplaceItemCommand::replaceEntityItem(CommandContext<ServerCommandSource>& c
     return successCount;
 }
 
-i32 ReplaceItemCommand::replaceBlockItem(CommandContext<ServerCommandSource>& context)
+i32 ReplaceItemCommand::_replaceBlockItem(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const Vector3d& pos = context.getArgument<Vector3d>("pos");

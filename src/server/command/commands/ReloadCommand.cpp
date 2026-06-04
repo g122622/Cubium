@@ -41,12 +41,12 @@ void ReloadCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     support::applyMetadata(reloadNode,
         support::makeMetadata("Reloads loot tables, advancements, and functions from disk.", "/reload", 2, {}, true));
 
-    reloadNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return reload(ctx); });
+    reloadNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _reload(ctx); });
 
     dispatcher.registerCommand(reloadNode);
 }
 
-i32 ReloadCommand::reload(CommandContext<ServerCommandSource>& context)
+i32 ReloadCommand::_reload(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 

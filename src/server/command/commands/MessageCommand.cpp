@@ -58,7 +58,7 @@ void MessageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     auto messageNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "message", StringArgumentType::greedyString());
-    messageNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return sendMessage(ctx); });
+    messageNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _sendMessage(ctx); });
 
     playerNode->addChild(messageNode);
     msgNode->addChild(playerNode);
@@ -68,7 +68,7 @@ void MessageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     dispatcher.registerCommand(wNode);
 }
 
-i32 MessageCommand::sendMessage(CommandContext<ServerCommandSource>& context)
+i32 MessageCommand::_sendMessage(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
@@ -102,7 +102,6 @@ i32 MessageCommand::sendMessage(CommandContext<ServerCommandSource>& context)
 
         // 构建私聊消息给接收者
         // 格式: "<sender> whispers to you: <message>" (灰色斜体)
-        // MC 1.16.5: TranslationTextComponent("commands.message.display.incoming", senderName, message)
         std::ostringstream incomingMsg;
         incomingMsg << "§7§o" << senderName << " whispers to you: " << message;
 
@@ -123,7 +122,6 @@ i32 MessageCommand::sendMessage(CommandContext<ServerCommandSource>& context)
             auto* targetData = playerManager.getPlayer(playerIds[0]);
             if (targetData) {
                 // 格式: "You whisper to <target>: <message>" (灰色斜体)
-                // MC 1.16.5: TranslationTextComponent("commands.message.display.outgoing", targetName, message)
                 std::ostringstream outgoingMsg;
                 outgoingMsg << "§7§oYou whisper to " << targetData->username << ": " << message;
                 source.sendMessage(outgoingMsg.str());

@@ -190,19 +190,19 @@ void ClearCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     support::applyMetadata(clearNode,
         support::makeMetadata("Clear player inventories.", "/clear [player] [item] [maxCount]", 2, {}, false));
 
-    clearNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return clearSelf(ctx); });
+    clearNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearSelf(ctx); });
 
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::players());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return clearPlayer(ctx); });
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearPlayer(ctx); });
 
     auto itemArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemInput>>("item", ItemArgumentType::item());
-    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return clearPlayerItem(ctx); });
+    itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearPlayerItem(ctx); });
 
     auto maxCountArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("maxCount", IntegerArgumentType::integer(0));
-    maxCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return clearPlayerItemCount(ctx); });
+    maxCountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearPlayerItemCount(ctx); });
 
     itemArg->addChild(maxCountArg);
     playerArg->addChild(itemArg);
@@ -211,7 +211,7 @@ void ClearCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     dispatcher.registerCommand(clearNode);
 }
 
-i32 ClearCommand::clearSelf(CommandContext<ServerCommandSource>& context)
+i32 ClearCommand::_clearSelf(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
@@ -227,7 +227,7 @@ i32 ClearCommand::clearSelf(CommandContext<ServerCommandSource>& context)
     return removedCount;
 }
 
-i32 ClearCommand::clearPlayer(CommandContext<ServerCommandSource>& context)
+i32 ClearCommand::_clearPlayer(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");
@@ -243,7 +243,7 @@ i32 ClearCommand::clearPlayer(CommandContext<ServerCommandSource>& context)
     return removedCount;
 }
 
-i32 ClearCommand::clearPlayerItem(CommandContext<ServerCommandSource>& context)
+i32 ClearCommand::_clearPlayerItem(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");
@@ -272,7 +272,7 @@ i32 ClearCommand::clearPlayerItem(CommandContext<ServerCommandSource>& context)
     return removedCount;
 }
 
-i32 ClearCommand::clearPlayerItemCount(CommandContext<ServerCommandSource>& context)
+i32 ClearCommand::_clearPlayerItemCount(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");

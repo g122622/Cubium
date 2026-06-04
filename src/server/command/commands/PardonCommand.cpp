@@ -47,13 +47,13 @@ void PardonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     // /pardon <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::player());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return pardonPlayer(ctx); });
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _pardonPlayer(ctx); });
 
     pardonNode->addChild(playerArg);
     dispatcher.registerCommand(pardonNode);
 }
 
-i32 PardonCommand::pardonPlayer(CommandContext<ServerCommandSource>& context)
+i32 PardonCommand::_pardonPlayer(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");

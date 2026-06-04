@@ -52,16 +52,16 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // append 模式
     auto appendNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("append");
-    appendNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return scheduleFunction(ctx, true); });
+    appendNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _scheduleFunction(ctx, true); });
     timeArg->addChild(appendNode);
 
     // replace 模式
     auto replaceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("replace");
-    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return scheduleFunction(ctx, false); });
+    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _scheduleFunction(ctx, false); });
     timeArg->addChild(replaceNode);
 
     // 默认为 replace
-    timeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return scheduleFunction(ctx, false); });
+    timeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _scheduleFunction(ctx, false); });
 
     nameArg->addChild(timeArg);
     functionNode->addChild(nameArg);
@@ -71,14 +71,14 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
     auto clearNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "function", StringArgumentType::string());
-    clearNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return clearSchedule(ctx); });
+    clearNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearSchedule(ctx); });
     clearNode->addChild(clearNameArg);
     scheduleNode->addChild(clearNode);
 
     dispatcher.registerCommand(scheduleNode);
 }
 
-i32 ScheduleCommand::scheduleFunction(CommandContext<ServerCommandSource>& context, bool append)
+i32 ScheduleCommand::_scheduleFunction(CommandContext<ServerCommandSource>& context, bool append)
 {
     auto& source = context.getSource();
     const std::string functionName = context.getArgument<std::string>("function");
@@ -101,7 +101,7 @@ i32 ScheduleCommand::scheduleFunction(CommandContext<ServerCommandSource>& conte
     return 1;
 }
 
-i32 ScheduleCommand::clearSchedule(CommandContext<ServerCommandSource>& context)
+i32 ScheduleCommand::_clearSchedule(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string functionName = context.getArgument<std::string>("function");

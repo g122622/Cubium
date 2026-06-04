@@ -41,16 +41,16 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 addObjective(CommandContext<ServerCommandSource>& context);
-    static i32 removeObjective(CommandContext<ServerCommandSource>& context);
-    static i32 listObjectives(CommandContext<ServerCommandSource>& context);
-    static i32 setScore(CommandContext<ServerCommandSource>& context);
-    static i32 addScore(CommandContext<ServerCommandSource>& context);
-    static i32 removeScore(CommandContext<ServerCommandSource>& context);
-    static i32 resetScore(CommandContext<ServerCommandSource>& context);
-    static i32 getScore(CommandContext<ServerCommandSource>& context);
-    static i32 enableTrigger(CommandContext<ServerCommandSource>& context);
-    static i32 listPlayers(CommandContext<ServerCommandSource>& context);
+    static i32 _addObjective(CommandContext<ServerCommandSource>& context);
+    static i32 _removeObjective(CommandContext<ServerCommandSource>& context);
+    static i32 _listObjectives(CommandContext<ServerCommandSource>& context);
+    static i32 _setScore(CommandContext<ServerCommandSource>& context);
+    static i32 _addScore(CommandContext<ServerCommandSource>& context);
+    static i32 _removeScore(CommandContext<ServerCommandSource>& context);
+    static i32 _resetScore(CommandContext<ServerCommandSource>& context);
+    static i32 _getScore(CommandContext<ServerCommandSource>& context);
+    static i32 _enableTrigger(CommandContext<ServerCommandSource>& context);
+    static i32 _listPlayers(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

@@ -42,8 +42,8 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 scheduleFunction(CommandContext<ServerCommandSource>& context, bool append);
-    static i32 clearSchedule(CommandContext<ServerCommandSource>& context);
+    static i32 _scheduleFunction(CommandContext<ServerCommandSource>& context, bool append);
+    static i32 _clearSchedule(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

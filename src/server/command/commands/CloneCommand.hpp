@@ -32,8 +32,6 @@ namespace command {
 
 /**
  * @brief 克隆模式
- *
- * 参考 MC 1.16.5 CloneCommand.Mode
  */
 enum class CloneMode {
     Normal, // 正常模式，不允许重叠
@@ -43,8 +41,6 @@ enum class CloneMode {
 
 /**
  * @brief 方块过滤模式
- *
- * 参考 MC 1.16.5 CloneCommand 的 filtered/masked/replace
  */
 enum class FilterMode {
     Replace, // 复制所有方块
@@ -67,20 +63,18 @@ enum class FilterMode {
  * - normal: 不允许源区域和目标区域重叠（默认）
  * - force: 允许重叠
  * - move: 复制后清空源区域
- *
- * 参考: MC 1.16.5 CloneCommand
  */
 class CloneCommand {
 public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 cloneBlocks(CommandContext<ServerCommandSource>& context);
+    static i32 _cloneBlocks(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 默认克隆操作（replace + normal）
      */
-    static i32 doCloneDefault(CommandContext<ServerCommandSource>& context);
+    static i32 _doCloneDefault(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 执行克隆操作
@@ -88,14 +82,14 @@ private:
      * @param filterMode 方块过滤模式
      * @param cloneMode 克隆模式
      */
-    static i32 doCloneStatic(CommandContext<ServerCommandSource>& context, FilterMode filterMode, CloneMode cloneMode);
+    static i32 _doCloneStatic(CommandContext<ServerCommandSource>& context, FilterMode filterMode, CloneMode cloneMode);
 
     /**
      * @brief 执行过滤克隆操作
      * @param context 命令上下文
      * @param cloneMode 克隆模式
      */
-    static i32 doCloneFilteredStatic(CommandContext<ServerCommandSource>& context, CloneMode cloneMode);
+    static i32 _doCloneFilteredStatic(CommandContext<ServerCommandSource>& context, CloneMode cloneMode);
 };
 
 } // namespace command

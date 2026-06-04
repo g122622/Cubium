@@ -49,13 +49,11 @@ namespace {
 
 /**
  * @brief 检查区域是否已加载
- *
- * 参考 MC 1.16.5 ServerWorld.isAreaLoaded
  */
 bool isAreaLoaded(IWorld& world, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ)
 {
-    for (i32 x = minX; x <= maxX; x += 16) {
-        for (i32 z = minZ; z <= maxZ; z += 16) {
+    for (i32 x = minX; x <= maxX; x += world::CHUNK_WIDTH) {
+        for (i32 z = minZ; z <= maxZ; z += world::CHUNK_WIDTH) {
             ChunkCoord chunkX = world::toChunkCoord(x);
             ChunkCoord chunkZ = world::toChunkCoord(z);
             if (!world.hasChunk(chunkX, chunkZ)) {
@@ -87,8 +85,6 @@ bool boxesOverlap(i32 min1X,
 
 /**
  * @brief 方块信息结构
- *
- * 参考 MC 1.16.5 CloneCommand.BlockInfo
  */
 struct BlockInfo {
     BlockPos pos;
@@ -104,8 +100,6 @@ struct BlockInfo {
 
 /**
  * @brief 执行克隆操作
- *
- * 参考 MC 1.16.5 CloneCommand.doClone
  */
 i32 executeClone(CommandContext<ServerCommandSource>& context,
     const BlockPos& beginPos,
@@ -180,7 +174,6 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
     }
 
     // 收集方块信息
-    // 参考 MC 1.16.5 CloneCommand.doClone 的方块收集逻辑
     // 分三类：普通方块、方块实体、透明/非完整方块
     std::vector<BlockInfo> normalBlocks;
     std::vector<BlockInfo> tileEntityBlocks;
@@ -254,7 +247,6 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
     }
 
     // 如果是 move 模式，先清空源区域
-    // 参考 MC 1.16.5: 先设置为屏障，再设置为空气，避免方块更新
     // 由于项目中没有注册屏障方块，我们直接设置为空气
     if (cloneMode == CloneMode::Move) {
         // 先清空方块实体的容器内容
@@ -279,7 +271,7 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
     }
 
     // 合并方块列表并反转顺序进行更新
-    // 参考 MC 1.16.5: 先放置方块实体和透明方块，最后放置普通方块
+    // 先放置方块实体和透明方块，最后放置普通方块
     std::vector<BlockInfo> allBlocks;
     allBlocks.reserve(normalBlocks.size() + tileEntityBlocks.size() + transparentBlocks.size());
     allBlocks.insert(allBlocks.end(), normalBlocks.begin(), normalBlocks.end());
@@ -354,28 +346,28 @@ void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
         "destination", BlockPosArgumentType::blockPos());
 
     // 默认执行：replace + normal
-    destArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return doCloneDefault(ctx); });
+    destArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _doCloneDefault(ctx); });
 
     // ============ replace 模式 ============
     auto replaceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("replace");
-    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return doCloneDefault(ctx); });
+    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _doCloneDefault(ctx); });
 
     // /clone ... replace force
     auto replaceForceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("force");
     replaceForceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return doCloneStatic(ctx, FilterMode::Replace, CloneMode::Force);
+        return _doCloneStatic(ctx, FilterMode::Replace, CloneMode::Force);
     });
 
     // /clone ... replace move
     auto replaceMoveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("move");
     replaceMoveNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return doCloneStatic(ctx, FilterMode::Replace, CloneMode::Move);
+        return _doCloneStatic(ctx, FilterMode::Replace, CloneMode::Move);
     });
 
     // /clone ... replace normal
     auto replaceNormalNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("normal");
     replaceNormalNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return doCloneStatic(ctx, FilterMode::Replace, CloneMode::Normal);
+        return _doCloneStatic(ctx, FilterMode::Replace, CloneMode::Normal);
     });
 
     replaceNode->addChild(replaceForceNode);
@@ -385,25 +377,25 @@ void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     // ============ masked 模式 ============
     auto maskedNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("masked");
     maskedNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return doCloneStatic(ctx, FilterMode::Masked, CloneMode::Normal);
+        return _doCloneStatic(ctx, FilterMode::Masked, CloneMode::Normal);
     });
 
     // /clone ... masked force
     auto maskedForceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("force");
     maskedForceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return doCloneStatic(ctx, FilterMode::Masked, CloneMode::Force);
+        return _doCloneStatic(ctx, FilterMode::Masked, CloneMode::Force);
     });
 
     // /clone ... masked move
     auto maskedMoveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("move");
     maskedMoveNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return doCloneStatic(ctx, FilterMode::Masked, CloneMode::Move);
+        return _doCloneStatic(ctx, FilterMode::Masked, CloneMode::Move);
     });
 
     // /clone ... masked normal
     auto maskedNormalNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("normal");
     maskedNormalNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return doCloneStatic(ctx, FilterMode::Masked, CloneMode::Normal);
+        return _doCloneStatic(ctx, FilterMode::Masked, CloneMode::Normal);
     });
 
     maskedNode->addChild(maskedForceNode);
@@ -415,22 +407,22 @@ void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     auto filterArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
         "filter", BlockStateArgumentType::blockState());
     filterArg->setCommand(
-        [](CommandContext<ServerCommandSource>& ctx) { return doCloneFilteredStatic(ctx, CloneMode::Normal); });
+        [](CommandContext<ServerCommandSource>& ctx) { return _doCloneFilteredStatic(ctx, CloneMode::Normal); });
 
     // /clone ... filtered <filter> force
     auto filteredForceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("force");
     filteredForceNode->setCommand(
-        [](CommandContext<ServerCommandSource>& ctx) { return doCloneFilteredStatic(ctx, CloneMode::Force); });
+        [](CommandContext<ServerCommandSource>& ctx) { return _doCloneFilteredStatic(ctx, CloneMode::Force); });
 
     // /clone ... filtered <filter> move
     auto filteredMoveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("move");
     filteredMoveNode->setCommand(
-        [](CommandContext<ServerCommandSource>& ctx) { return doCloneFilteredStatic(ctx, CloneMode::Move); });
+        [](CommandContext<ServerCommandSource>& ctx) { return _doCloneFilteredStatic(ctx, CloneMode::Move); });
 
     // /clone ... filtered <filter> normal
     auto filteredNormalNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("normal");
     filteredNormalNode->setCommand(
-        [](CommandContext<ServerCommandSource>& ctx) { return doCloneFilteredStatic(ctx, CloneMode::Normal); });
+        [](CommandContext<ServerCommandSource>& ctx) { return _doCloneFilteredStatic(ctx, CloneMode::Normal); });
 
     filterArg->addChild(filteredForceNode);
     filterArg->addChild(filteredMoveNode);
@@ -448,17 +440,17 @@ void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     dispatcher.registerCommand(cloneNode);
 }
 
-i32 CloneCommand::cloneBlocks(CommandContext<ServerCommandSource>& context)
+i32 CloneCommand::_cloneBlocks(CommandContext<ServerCommandSource>& context)
 {
-    return doCloneDefault(context);
+    return _doCloneDefault(context);
 }
 
-i32 CloneCommand::doCloneDefault(CommandContext<ServerCommandSource>& context)
+i32 CloneCommand::_doCloneDefault(CommandContext<ServerCommandSource>& context)
 {
-    return doCloneStatic(context, FilterMode::Replace, CloneMode::Normal);
+    return _doCloneStatic(context, FilterMode::Replace, CloneMode::Normal);
 }
 
-i32 CloneCommand::doCloneStatic(
+i32 CloneCommand::_doCloneStatic(
     CommandContext<ServerCommandSource>& context, FilterMode filterMode, CloneMode cloneMode)
 {
     const Vector3i& begin = context.getArgument<Vector3i>("begin");
@@ -472,7 +464,7 @@ i32 CloneCommand::doCloneStatic(
     return executeClone(context, beginPos, endPos, destPos, filterMode, cloneMode);
 }
 
-i32 CloneCommand::doCloneFilteredStatic(CommandContext<ServerCommandSource>& context, CloneMode cloneMode)
+i32 CloneCommand::_doCloneFilteredStatic(CommandContext<ServerCommandSource>& context, CloneMode cloneMode)
 {
     const Vector3i& begin = context.getArgument<Vector3i>("begin");
     const Vector3i& end = context.getArgument<Vector3i>("end");

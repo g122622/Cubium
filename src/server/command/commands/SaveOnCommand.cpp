@@ -39,12 +39,12 @@ void SaveOnCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     support::applyMetadata(
         saveOnNode, support::makeMetadata("Enables server automatic saving.", "/save-on", 4, {}, false));
 
-    saveOnNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return enableAutoSave(ctx); });
+    saveOnNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _enableAutoSave(ctx); });
 
     dispatcher.registerCommand(saveOnNode);
 }
 
-i32 SaveOnCommand::enableAutoSave(CommandContext<ServerCommandSource>& context)
+i32 SaveOnCommand::_enableAutoSave(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 

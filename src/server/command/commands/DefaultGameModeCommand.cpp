@@ -41,13 +41,13 @@ void DefaultGameModeCommand::registerTo(CommandDispatcher<ServerCommandSource>& 
 
     auto modeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, GameMode>>(
         "gamemode", GameModeArgumentType::gameMode());
-    modeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setDefaultMode(ctx); });
+    modeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setDefaultMode(ctx); });
     defaultGameModeNode->addChild(modeArg);
 
     dispatcher.registerCommand(defaultGameModeNode);
 }
 
-i32 DefaultGameModeCommand::setDefaultMode(CommandContext<ServerCommandSource>& context)
+i32 DefaultGameModeCommand::_setDefaultMode(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();

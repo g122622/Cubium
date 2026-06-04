@@ -41,13 +41,13 @@ void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     auto nameArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
-    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return runFunction(ctx); });
+    nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _runFunction(ctx); });
     functionNode->addChild(nameArg);
 
     dispatcher.registerCommand(functionNode);
 }
 
-i32 FunctionCommand::runFunction(CommandContext<ServerCommandSource>& context)
+i32 FunctionCommand::_runFunction(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string name = context.getArgument<std::string>("name");

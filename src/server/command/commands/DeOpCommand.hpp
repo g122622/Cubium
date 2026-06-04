@@ -37,15 +37,13 @@ namespace command {
  * - /deop <player> - 移除玩家 OP 权限
  *
  * 权限等级：3（需要管理员权限）
- *
- * 参考 MC 1.16.5 的 DeOpCommand
  */
 class DeOpCommand {
 public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 deopPlayer(CommandContext<ServerCommandSource>& context);
+    static i32 _deopPlayer(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

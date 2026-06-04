@@ -47,8 +47,6 @@ namespace command {
  * - /execute anchored <anchor> run <command> - 锚定后执行命令（待实现）
  *
  * 权限等级：2
- *
- * 参考 MC 1.16.5 的 ExecuteCommand
  */
 class ExecuteCommand {
 public:
@@ -63,16 +61,16 @@ private:
      * @param command 要执行的命令字符串
      * @return 命令执行结果（成功返回结果值，失败返回 0）
      */
-    static i32 executeNestedCommand(ServerCommandSource& source, const std::string& command);
+    static i32 _executeNestedCommand(ServerCommandSource& source, const std::string& command);
 
     // ========== 子命令执行 ==========
 
-    static i32 executeAs(CommandContext<ServerCommandSource>& context);
-    static i32 executeAt(CommandContext<ServerCommandSource>& context);
-    static i32 executePositioned(CommandContext<ServerCommandSource>& context);
-    static i32 executeRun(CommandContext<ServerCommandSource>& context);
-    static i32 executeIfBlock(CommandContext<ServerCommandSource>& context);
-    static i32 executeUnlessBlock(CommandContext<ServerCommandSource>& context);
+    static i32 _executeAs(CommandContext<ServerCommandSource>& context);
+    static i32 _executeAt(CommandContext<ServerCommandSource>& context);
+    static i32 _executePositioned(CommandContext<ServerCommandSource>& context);
+    static i32 _executeRun(CommandContext<ServerCommandSource>& context);
+    static i32 _executeIfBlock(CommandContext<ServerCommandSource>& context);
+    static i32 _executeUnlessBlock(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

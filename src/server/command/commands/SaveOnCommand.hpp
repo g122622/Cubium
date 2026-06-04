@@ -50,7 +50,7 @@ private:
      * @param context 命令上下文
      * @return 命令结果
      */
-    static i32 enableAutoSave(CommandContext<ServerCommandSource>& context);
+    static i32 _enableAutoSave(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

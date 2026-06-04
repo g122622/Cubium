@@ -138,7 +138,7 @@ if (objective->getCriteria().getName() == mc::scoreboard::TriggerCriteria::NAME)
 ### 与命令系统的集成
 
 - `/trigger` 命令由 `TriggerCommand` 实现
-- `/scoreboard players enable` 由 `ScoreboardCommand::enableTrigger()` 实现
+- `/scoreboard players enable` 由 `ScoreboardCommand::_enableTrigger()` 实现
 - 详细实现见 `src/server/command/commands/TriggerCommand.cpp`
 
 ## 显示槽位

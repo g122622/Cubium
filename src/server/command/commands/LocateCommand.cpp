@@ -42,13 +42,13 @@ void LocateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
 
     auto structureArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "structure", StringArgumentType::string());
-    structureArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return locateStructure(ctx); });
+    structureArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _locateStructure(ctx); });
     locateNode->addChild(structureArg);
 
     dispatcher.registerCommand(locateNode);
 }
 
-i32 LocateCommand::locateStructure(CommandContext<ServerCommandSource>& context)
+i32 LocateCommand::_locateStructure(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
@@ -61,7 +61,7 @@ i32 LocateCommand::locateStructure(CommandContext<ServerCommandSource>& context)
     const Vector3d& playerPos = source.position();
 
     // 规范化结构名称
-    std::string normalizedName = normalizeStructureName(structureName);
+    std::string normalizedName = _normalizeStructureName(structureName);
 
     BlockPos searchCenter(static_cast<BlockCoord>(playerPos.x),
         static_cast<BlockCoord>(playerPos.y),
@@ -83,7 +83,7 @@ i32 LocateCommand::locateStructure(CommandContext<ServerCommandSource>& context)
     return 1;
 }
 
-std::string LocateCommand::normalizeStructureName(const std::string& name)
+std::string LocateCommand::_normalizeStructureName(const std::string& name)
 {
     // 移除 minecraft: 前缀
     std::string normalized = name;

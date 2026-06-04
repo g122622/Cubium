@@ -37,15 +37,13 @@ namespace command {
  * - /list - 列出当前服务器上的所有玩家
  *
  * 权限等级：0（所有玩家可用）
- *
- * 参考 MC 的 ListCommand
  */
 class ListCommand {
 public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 listPlayers(CommandContext<ServerCommandSource>& context);
+    static i32 _listPlayers(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

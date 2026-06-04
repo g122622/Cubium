@@ -38,15 +38,13 @@ namespace command {
  * - /give <targets> <item> [count] - 给予玩家物品
  *
  * 权限等级：2
- *
- * 参考 MC 1.16.5 的 GiveCommand
  */
 class GiveCommand {
 public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 giveItem(CommandContext<ServerCommandSource>& context);
+    static i32 _giveItem(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

@@ -44,7 +44,7 @@ void DataPackCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     auto enableNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("enable");
     auto enableNameArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
-    enableNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return enableDataPack(ctx); });
+    enableNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _enableDataPack(ctx); });
     enableNode->addChild(enableNameArg);
     datapackNode->addChild(enableNode);
 
@@ -52,19 +52,19 @@ void DataPackCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     auto disableNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("disable");
     auto disableNameArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
-    disableNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return disableDataPack(ctx); });
+    disableNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _disableDataPack(ctx); });
     disableNode->addChild(disableNameArg);
     datapackNode->addChild(disableNode);
 
     // /datapack list
     auto listNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
-    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return listDataPacks(ctx); });
+    listNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _listDataPacks(ctx); });
     datapackNode->addChild(listNode);
 
     dispatcher.registerCommand(datapackNode);
 }
 
-i32 DataPackCommand::enableDataPack(CommandContext<ServerCommandSource>& context)
+i32 DataPackCommand::_enableDataPack(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string name = context.getArgument<std::string>("name");
@@ -103,7 +103,7 @@ i32 DataPackCommand::enableDataPack(CommandContext<ServerCommandSource>& context
     return 0;
 }
 
-i32 DataPackCommand::disableDataPack(CommandContext<ServerCommandSource>& context)
+i32 DataPackCommand::_disableDataPack(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const std::string name = context.getArgument<std::string>("name");
@@ -140,7 +140,7 @@ i32 DataPackCommand::disableDataPack(CommandContext<ServerCommandSource>& contex
     return 0;
 }
 
-i32 DataPackCommand::listDataPacks(CommandContext<ServerCommandSource>& context)
+i32 DataPackCommand::_listDataPacks(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
