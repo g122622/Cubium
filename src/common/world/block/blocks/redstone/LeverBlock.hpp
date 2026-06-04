@@ -71,17 +71,17 @@ public:
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return true;
     }
 
     [[nodiscard]] i32 getWeakPower(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
 
     [[nodiscard]] i32 getStrongPower(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
 
     // ========== 拉杆特有方法 ==========
 

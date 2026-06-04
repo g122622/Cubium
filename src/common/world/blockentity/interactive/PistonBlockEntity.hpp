@@ -71,7 +71,7 @@ public:
     /**
      * @brief 活塞需要每tick更新。
      */
-    [[nodiscard]] bool needsTick() const override { return true; }
+    [[nodiscard]] bool needsTick() const noexcept override { return true; }
 
     /**
      * @brief 每tick更新移动进度并处理实体推动。

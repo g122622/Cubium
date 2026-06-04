@@ -33,7 +33,7 @@ SpellcastingIllagerEntity::SpellcastingIllagerEntity(EntityId id)
     : AbstractIllagerEntity(id)
 {}
 
-SpellcastingIllagerEntity::SpellType SpellcastingIllagerEntity::spellTypeFromId(i32 id)
+SpellcastingIllagerEntity::SpellType SpellcastingIllagerEntity::spellTypeFromId(i32 id) noexcept
 {
     switch (id) {
         case 1:
@@ -51,7 +51,7 @@ SpellcastingIllagerEntity::SpellType SpellcastingIllagerEntity::spellTypeFromId(
     }
 }
 
-Vector3 SpellcastingIllagerEntity::getSpellParticleColor(SpellType type)
+Vector3 SpellcastingIllagerEntity::getSpellParticleColor(SpellType type) noexcept
 {
     // 粒子颜色通过速度参数传递给 ENTITY_EFFECT 粒子
     switch (type) {

@@ -75,7 +75,7 @@ public:
     // ========== BlockEntity 接口 ==========
 
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const override { return true; }
+    [[nodiscard]] bool needsTick() const noexcept override { return true; }
 
     /**
      * @brief 创建方块实体副本

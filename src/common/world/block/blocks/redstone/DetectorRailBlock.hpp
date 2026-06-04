@@ -56,7 +56,7 @@ public:
     /**
      * @brief 是否响应随机刻
      */
-    [[nodiscard]] bool ticksRandomly() const override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
 
     /**
      * @brief 执行刻
@@ -69,13 +69,13 @@ public:
      * @brief 获取弱信号
      */
     [[nodiscard]] i32 getWeakPower(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
 
     /**
      * @brief 获取强信号
      */
     [[nodiscard]] i32 getStrongPower(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
 
     // ========== 属性访问 ==========
 

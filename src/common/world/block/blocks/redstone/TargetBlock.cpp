@@ -114,7 +114,8 @@ void TargetBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, ma
     }
 }
 
-i32 TargetBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 TargetBlock::getWeakPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -123,7 +124,8 @@ i32 TargetBlock::getWeakPower(const BlockState& state, IWorld& world, const Bloc
     return getPower(state);
 }
 
-i32 TargetBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 TargetBlock::getStrongPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);

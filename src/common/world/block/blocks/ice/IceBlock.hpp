@@ -69,7 +69,7 @@ public:
     /**
      * @brief 是否响应随机刻
      */
-    [[nodiscard]] bool ticksRandomly() const override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
 };
 
 /**
@@ -144,7 +144,7 @@ public:
     /**
      * @brief 是否响应随机刻
      */
-    [[nodiscard]] bool ticksRandomly() const override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
 
     /**
      * @brief 获取 AGE 属性

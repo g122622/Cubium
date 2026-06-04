@@ -1628,12 +1628,12 @@ const BlockState* ServerWorld::getBlockStateForLight(const BlockPos& pos) const
     return getBlockState(pos);
 }
 
-IWorld* ServerWorld::getWorld()
+IWorld* ServerWorld::getWorld() noexcept
 {
     return this;
 }
 
-const IWorld* ServerWorld::getWorld() const
+const IWorld* ServerWorld::getWorld() const noexcept
 {
     return this;
 }
@@ -1691,17 +1691,17 @@ Difficulty ServerWorld::difficulty() const
     return Difficulty::Normal;
 }
 
-i32 ServerWorld::getMinBuildHeight() const
+i32 ServerWorld::getMinBuildHeight() const noexcept
 {
     return world::MIN_BUILD_HEIGHT;
 }
 
-i32 ServerWorld::getMaxBuildHeight() const
+i32 ServerWorld::getMaxBuildHeight() const noexcept
 {
     return world::MAX_BUILD_HEIGHT;
 }
 
-i32 ServerWorld::getSectionCount() const
+i32 ServerWorld::getSectionCount() const noexcept
 {
     return world::CHUNK_SECTIONS;
 }

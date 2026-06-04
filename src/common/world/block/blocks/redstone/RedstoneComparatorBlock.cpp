@@ -194,7 +194,7 @@ void RedstoneComparatorBlock::onStateChanged(
 {
     // 当状态变化时，更新 BlockEntity 中的输出信号
     if (isPowered(newState)) {
-        i32 outputSignal = calculateOutput(world, pos, newState);
+        i32 outputSignal = _calculateOutput(world, pos, newState);
         storeOutputSignal(world, pos, outputSignal);
     } else {
         storeOutputSignal(world, pos, 0);

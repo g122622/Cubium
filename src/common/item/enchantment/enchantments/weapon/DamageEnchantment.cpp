@@ -47,7 +47,7 @@ i32 DamageEnchantment::getMaxCost(i32 level) const
     return getMinCost(level) + 20;
 }
 
-f32 DamageEnchantment::getDamageBonus(i32 level, u32 entityType) const
+f32 DamageEnchantment::getDamageBonus(i32 level, u32 entityType) const noexcept
 {
     // 实体类型常量（与 EntityTypes 对应）
     constexpr u32 EntityTypeUndead = 1;    // 亡灵：僵尸、骷髅、凋灵等

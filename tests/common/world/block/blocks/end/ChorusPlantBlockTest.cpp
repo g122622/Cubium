@@ -337,17 +337,17 @@ TEST_F(ChorusPlantBlockTest, CanConnect_ToChorusPlant)
     // 检查从相邻位置向紫颂植物方向连接
     // BlockPos(0, 65, 0) 向 Down 方向检查，会检查 BlockPos(0, 64, 0) 的方块
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world, BlockPos(0, 65, 0), Direction::Down));
+            ->_canConnect(world, BlockPos(0, 65, 0), Direction::Down));
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world, BlockPos(0, 63, 0), Direction::Up));
+            ->_canConnect(world, BlockPos(0, 63, 0), Direction::Up));
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world, BlockPos(0, 64, 1), Direction::North));
+            ->_canConnect(world, BlockPos(0, 64, 1), Direction::North));
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world, BlockPos(0, 64, -1), Direction::South));
+            ->_canConnect(world, BlockPos(0, 64, -1), Direction::South));
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world, BlockPos(-1, 64, 0), Direction::East));
+            ->_canConnect(world, BlockPos(-1, 64, 0), Direction::East));
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world, BlockPos(1, 64, 0), Direction::West));
+            ->_canConnect(world, BlockPos(1, 64, 0), Direction::West));
 }
 
 TEST_F(ChorusPlantBlockTest, CanConnect_ToChorusFlower)
@@ -360,37 +360,37 @@ TEST_F(ChorusPlantBlockTest, CanConnect_ToChorusFlower)
     // 上方放置紫颂花
     world.setBlockAt(BlockPos(0, 65, 0), &flowerState);
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world, BlockPos(0, 64, 0), Direction::Up));
+            ->_canConnect(world, BlockPos(0, 64, 0), Direction::Up));
 
     // 下方放置紫颂花
     ChorusPlantTestWorld world2;
     world2.setBlockAt(BlockPos(0, 63, 0), &flowerState);
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world2, BlockPos(0, 64, 0), Direction::Down));
+            ->_canConnect(world2, BlockPos(0, 64, 0), Direction::Down));
 
     // 北方放置紫颂花
     ChorusPlantTestWorld world3;
     world3.setBlockAt(BlockPos(0, 64, -1), &flowerState);
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world3, BlockPos(0, 64, 0), Direction::North));
+            ->_canConnect(world3, BlockPos(0, 64, 0), Direction::North));
 
     // 南方放置紫颂花
     ChorusPlantTestWorld world4;
     world4.setBlockAt(BlockPos(0, 64, 1), &flowerState);
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world4, BlockPos(0, 64, 0), Direction::South));
+            ->_canConnect(world4, BlockPos(0, 64, 0), Direction::South));
 
     // 东方放置紫颂花
     ChorusPlantTestWorld world5;
     world5.setBlockAt(BlockPos(1, 64, 0), &flowerState);
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world5, BlockPos(0, 64, 0), Direction::East));
+            ->_canConnect(world5, BlockPos(0, 64, 0), Direction::East));
 
     // 西方放置紫颂花
     ChorusPlantTestWorld world6;
     world6.setBlockAt(BlockPos(-1, 64, 0), &flowerState);
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world6, BlockPos(0, 64, 0), Direction::West));
+            ->_canConnect(world6, BlockPos(0, 64, 0), Direction::West));
 }
 
 TEST_F(ChorusPlantBlockTest, CanConnect_ToEndStone_OnlyDownward)
@@ -403,33 +403,33 @@ TEST_F(ChorusPlantBlockTest, CanConnect_ToEndStone_OnlyDownward)
 
     // 只有向下方向能连接到末地石
     EXPECT_TRUE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world, BlockPos(0, 64, 0), Direction::Down));
+            ->_canConnect(world, BlockPos(0, 64, 0), Direction::Down));
 
     // 其他方向不能连接到末地石
     ChorusPlantTestWorld world2;
     world2.setBlockAt(BlockPos(0, 65, 0), &endStoneState); // 上方末地石
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world2, BlockPos(0, 64, 0), Direction::Up));
+            ->_canConnect(world2, BlockPos(0, 64, 0), Direction::Up));
 
     ChorusPlantTestWorld world3;
     world3.setBlockAt(BlockPos(0, 64, -1), &endStoneState); // 北方末地石
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world3, BlockPos(0, 64, 0), Direction::North));
+            ->_canConnect(world3, BlockPos(0, 64, 0), Direction::North));
 
     ChorusPlantTestWorld world4;
     world4.setBlockAt(BlockPos(0, 64, 1), &endStoneState); // 南方末地石
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world4, BlockPos(0, 64, 0), Direction::South));
+            ->_canConnect(world4, BlockPos(0, 64, 0), Direction::South));
 
     ChorusPlantTestWorld world5;
     world5.setBlockAt(BlockPos(1, 64, 0), &endStoneState); // 东方末地石
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world5, BlockPos(0, 64, 0), Direction::East));
+            ->_canConnect(world5, BlockPos(0, 64, 0), Direction::East));
 
     ChorusPlantTestWorld world6;
     world6.setBlockAt(BlockPos(-1, 64, 0), &endStoneState); // 西方末地石
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world6, BlockPos(0, 64, 0), Direction::West));
+            ->_canConnect(world6, BlockPos(0, 64, 0), Direction::West));
 }
 
 TEST_F(ChorusPlantBlockTest, CanConnect_NotToRegularBlocks)
@@ -442,13 +442,13 @@ TEST_F(ChorusPlantBlockTest, CanConnect_NotToRegularBlocks)
 
     // 不能连接到普通方块（即使是在下方）
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world, BlockPos(0, 64, 0), Direction::Down));
+            ->_canConnect(world, BlockPos(0, 64, 0), Direction::Down));
 
     // 其他方向测试
     ChorusPlantTestWorld world2;
     world2.setBlockAt(BlockPos(0, 65, 0), &stoneState);
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world2, BlockPos(0, 64, 0), Direction::Up));
+            ->_canConnect(world2, BlockPos(0, 64, 0), Direction::Up));
 }
 
 TEST_F(ChorusPlantBlockTest, CanConnect_NotToAir)
@@ -459,17 +459,17 @@ TEST_F(ChorusPlantBlockTest, CanConnect_NotToAir)
 
     // 不能连接到空气
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world, BlockPos(0, 64, 0), Direction::Down));
+            ->_canConnect(world, BlockPos(0, 64, 0), Direction::Down));
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world, BlockPos(0, 64, 0), Direction::Up));
+            ->_canConnect(world, BlockPos(0, 64, 0), Direction::Up));
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world, BlockPos(0, 64, 0), Direction::North));
+            ->_canConnect(world, BlockPos(0, 64, 0), Direction::North));
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world, BlockPos(0, 64, 0), Direction::South));
+            ->_canConnect(world, BlockPos(0, 64, 0), Direction::South));
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world, BlockPos(0, 64, 0), Direction::East));
+            ->_canConnect(world, BlockPos(0, 64, 0), Direction::East));
     EXPECT_FALSE(static_cast<const ChorusPlantBlock*>(VanillaBlocks::CHORUS_PLANT)
-            ->canConnect(world, BlockPos(0, 64, 0), Direction::West));
+            ->_canConnect(world, BlockPos(0, 64, 0), Direction::West));
 }
 
 // ============================================================================

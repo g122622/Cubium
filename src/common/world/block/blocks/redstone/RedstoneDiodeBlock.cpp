@@ -145,7 +145,8 @@ void RedstoneDiodeBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
     }
 }
 
-i32 RedstoneDiodeBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 RedstoneDiodeBlock::getWeakPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -164,7 +165,7 @@ i32 RedstoneDiodeBlock::getWeakPower(const BlockState& state, IWorld& world, con
 }
 
 i32 RedstoneDiodeBlock::getStrongPower(
-    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     // 二极管输出的是强信号，可以充能方块
     return getWeakPower(state, world, pos, side);

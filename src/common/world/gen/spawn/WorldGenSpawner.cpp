@@ -385,7 +385,7 @@ bool WorldGenSpawner::_canSpawnAt(
     }
 
     // 检查特定实体的生成规则（如果有）
-    return checkSpawnRules(region, entityType, x, y, z);
+    return _checkSpawnRules(region, entityType, x, y, z);
 }
 
 bool WorldGenSpawner::_checkSpawnRules(

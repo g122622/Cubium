@@ -103,7 +103,7 @@ public:
     /**
      * @brief 是否响应随机刻
      */
-    [[nodiscard]] bool ticksRandomly() const override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
 
     // ========== 交互 ==========
 
@@ -162,7 +162,7 @@ public:
     /**
      * @brief 检查是否有红石比较器输入覆盖
      */
-    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return true;

@@ -206,7 +206,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::submit
         m_executionState = ExecutionState::WaitingForNeighbors;
     }
 
-    return buildDecisionLocked();
+    return _buildDecisionLocked();
 }
 
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteNeighborProgress(bool neighborsReady)
@@ -223,7 +223,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteNe
     }
 
     m_executionState = neighborsReady ? ExecutionState::Queued : ExecutionState::WaitingForNeighbors;
-    return buildDecisionLocked();
+    return _buildDecisionLocked();
 }
 
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteStorageResolved(bool foundInStorage)
@@ -239,7 +239,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteSt
         m_executionState = ExecutionState::WaitingForNeighbors;
     }
 
-    return buildDecisionLocked();
+    return _buildDecisionLocked();
 }
 
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteGenerationQueued(u64 generation)
@@ -251,7 +251,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteGe
 
     m_submittedGeneration = generation;
     m_executionState = ExecutionState::Queued;
-    return buildDecisionLocked();
+    return _buildDecisionLocked();
 }
 
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteGenerationStarted(u64 generation)
@@ -263,7 +263,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteGe
 
     // worker 真正开始执行后，状态切换到 Generating；这一步只做状态登记，不处理结果。
     m_executionState = ExecutionState::Generating;
-    return buildDecisionLocked();
+    return _buildDecisionLocked();
 }
 
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteGenerationFinished(
@@ -285,7 +285,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteGe
     m_sourceState = SourceState::StorageMissing;
     m_executionState = ExecutionState::Idle;
     _clearActiveGenerationLocked();
-    return buildDecisionLocked();
+    return _buildDecisionLocked();
 }
 
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::cancelActiveWork()
@@ -293,7 +293,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::cancel
     std::lock_guard<std::mutex> lock(m_mutex);
     _clearActiveGenerationLocked();
     m_executionState = ExecutionState::Idle;
-    return buildDecisionLocked();
+    return _buildDecisionLocked();
 }
 
 std::vector<SingleChunkLifecycleManager::Waiter> SingleChunkLifecycleManager::takeReadyWaiters()

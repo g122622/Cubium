@@ -54,16 +54,16 @@ public:
 
     [[nodiscard]] std::string id() const override { return "minecraft:fortune"; }
 
-    [[nodiscard]] i32 minLevel() const override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override
+    [[nodiscard]] i32 maxLevel() const noexcept override
     {
         return 3; // Fortune I, II, III
     }
 
     [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Digger; }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
 
     [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override
     {

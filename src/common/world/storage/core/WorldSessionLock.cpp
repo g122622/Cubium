@@ -43,7 +43,7 @@ namespace mc::world::storage {
 inline constexpr std::string_view LOCK_FILE_NAME = "session.lock";
 
 /// 锁文件标识（雪人字符，与原版一致）
-inline constexpr std::string_view LOCK_FILE_IDENTIFIER = u8"☃";
+inline constexpr std::string_view LOCK_FILE_IDENTIFIER = "☃";
 
 WorldSessionLock::WorldSessionLock(std::filesystem::path worldDir, bool readonly)
     : m_readonly(readonly)

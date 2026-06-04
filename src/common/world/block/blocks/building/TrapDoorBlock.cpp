@@ -177,7 +177,7 @@ void TrapDoorBlock::neighborChanged(
     }
 
     if (wasOpen != isPowered) {
-        playSound(world, pos, isPowered);
+        _playSound(world, pos, isPowered);
     }
 }
 

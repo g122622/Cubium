@@ -30,7 +30,7 @@ RedstoneBlock::RedstoneBlock(const BlockProperties& properties)
     : Block(properties)
 {}
 
-i32 RedstoneBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 RedstoneBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(state);
     MC_UNUSED(world);
@@ -40,7 +40,7 @@ i32 RedstoneBlock::getWeakPower(const BlockState& state, IWorld& world, const Bl
     return world::redstone::RedstonePower::MAX_POWER;
 }
 
-i32 RedstoneBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 RedstoneBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(state);
     MC_UNUSED(world);

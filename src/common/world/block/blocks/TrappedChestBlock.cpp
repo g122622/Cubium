@@ -33,7 +33,7 @@ TrappedChestBlock::TrappedChestBlock(const BlockProperties& properties)
     : ChestBlock(properties)
 {}
 
-i32 TrappedChestBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 TrappedChestBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     BlockEntity* blockEntity = world.getBlockEntity(pos);
     if (!blockEntity || blockEntity->getType() != BlockEntityType::TrappedChest) {
@@ -46,7 +46,7 @@ i32 TrappedChestBlock::getWeakPower(const BlockState& state, IWorld& world, cons
     return chest->getOpenCount();
 }
 
-i32 TrappedChestBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 TrappedChestBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     // 仅从顶面输出强充能
     if (side != Direction::Up) {

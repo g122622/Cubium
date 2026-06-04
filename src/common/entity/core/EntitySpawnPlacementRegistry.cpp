@@ -331,7 +331,8 @@ bool canSlimeSpawn(const ISpawnWorldReader& world, const Vector3i& pos, const st
         // TODO: 实际实现需要 SlimeChunkChecker，使用世界种子检查是否为史莱姆区块
         const i32 chunkX = pos.x >> world::CHUNK_SHIFT;
         const i32 chunkZ = pos.z >> world::CHUNK_SHIFT;
-        MC_UNUSED(chunkX, chunkZ);
+        MC_UNUSED(chunkX);
+        MC_UNUSED(chunkZ);
         // 简化实现：暂时允许所有低位置
         return true;
     }

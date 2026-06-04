@@ -383,7 +383,7 @@ public:
     {}
 
     // Expose protected method for testing
-    LivingEntity* testFindExistingTarget(IWorld& world) { return findExistingTarget(world); }
+    LivingEntity* testFindExistingTarget(IWorld& world) { return _findExistingTarget(world); }
 
     void setTargetUuidForTest(const std::string& uuid)
     {

@@ -26,7 +26,7 @@
 #include "common/entity/ai/goal/goals/BreedGoal.hpp"
 #include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
-#include "common/entity/ai/goal/goals/LookRandomlyGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/PanicGoal.hpp"
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"

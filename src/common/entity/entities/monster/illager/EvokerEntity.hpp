@@ -72,7 +72,7 @@ public:
 protected:
     void registerGoals() override;
     void registerAttributes() override;
-    [[nodiscard]] const char* getSpellSoundId() const override { return "entity.evoker.cast_spell"; }
+    [[nodiscard]] const char* getSpellSoundId() const noexcept override { return "entity.evoker.cast_spell"; }
 
 private:
     /**

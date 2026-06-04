@@ -115,7 +115,7 @@ public:
     /**
      * @brief 检查是否有方块实体
      */
-    [[nodiscard]] bool hasBlockEntity() const override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
 
     /**
      * @brief 创建方块实体
@@ -154,12 +154,12 @@ public:
     /**
      * @brief 检查是否可以提供红石信号
      */
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override { return false; }
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override { return false; }
 
     /**
      * @brief 检查是否有红石比较器输入覆盖
      */
-    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override { return true; }
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override { return true; }
 
     /**
      * @brief 获取红石比较器信号

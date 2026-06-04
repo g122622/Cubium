@@ -89,7 +89,7 @@ public:
     }
 
     [[nodiscard]] i32 getWeakPower(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
 
     /**
      * @brief 获取强信号强度
@@ -104,7 +104,7 @@ public:
      * @return i32 强信号强度
      */
     [[nodiscard]] i32 getStrongPower(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
 
     // ========== 红石线特有方法 ==========
 

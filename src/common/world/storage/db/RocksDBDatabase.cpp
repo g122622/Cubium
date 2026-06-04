@@ -109,7 +109,7 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
             }
         }
 
-        rocksdb::ColumnFamilyOptions cfOptions = db->createCFOptions();
+        rocksdb::ColumnFamilyOptions cfOptions = db->_createCFOptions();
 
         // 添加所有定义的列族
         for (const auto& cfName : cf::ALL_COLUMN_FAMILIES) {
@@ -132,7 +132,7 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
 
         spdlog::info("Found {} existing column families", existingCFNames.size());
 
-        rocksdb::ColumnFamilyOptions cfOptions = db->createCFOptions();
+        rocksdb::ColumnFamilyOptions cfOptions = db->_createCFOptions();
 
         // 打开已有列族
         for (const auto& cfName : existingCFNames) {
@@ -186,7 +186,7 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::openReadOnly(const std
         return Error(ErrorCode::FileNotFound, fmt::format("Database not found: {}", status.ToString()));
     }
 
-    rocksdb::ColumnFamilyOptions cfOptions = db->createCFOptions();
+    rocksdb::ColumnFamilyOptions cfOptions = db->_createCFOptions();
     std::vector<rocksdb::ColumnFamilyDescriptor> cfDescriptors;
 
     for (const auto& cfName : existingCFNames) {

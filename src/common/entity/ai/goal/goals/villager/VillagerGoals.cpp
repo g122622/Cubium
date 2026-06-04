@@ -538,7 +538,7 @@ bool GatherItemsGoal::shouldExecute()
     if (!m_villager) return false;
 
     // 查找附近的物品
-    findNearbyItems();
+    _findNearbyItems();
     return m_targetItem != 0;
 }
 
@@ -798,7 +798,7 @@ bool AvoidHostileGoal::shouldExecute()
     if (!m_villager) return false;
 
     // 查找附近的敌对生物
-    findNearestHostile();
+    _findNearestHostile();
     return m_hostileEntity != 0;
 }
 

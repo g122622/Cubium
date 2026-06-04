@@ -86,19 +86,19 @@ TEST_F(DispenseBehaviorTest, OptionalDispenseBehavior_CanSetFailure)
     OptionalDispenseItemBehavior behavior;
 
     // 通过反射或友元类设置失败状态
-    // 注意：setSuccess 是 protected，需要子类访问
+    // 注意：_setSuccess 是 protected，需要子类访问
     class TestableOptionalBehavior : public OptionalDispenseItemBehavior {
     public:
-        using OptionalDispenseItemBehavior::setSuccess;
+        using OptionalDispenseItemBehavior::_setSuccess;
     };
 
     TestableOptionalBehavior testBehavior;
     EXPECT_TRUE(testBehavior.isSuccess());
 
-    testBehavior.setSuccess(false);
+    testBehavior._setSuccess(false);
     EXPECT_FALSE(testBehavior.isSuccess());
 
-    testBehavior.setSuccess(true);
+    testBehavior._setSuccess(true);
     EXPECT_TRUE(testBehavior.isSuccess());
 }
 

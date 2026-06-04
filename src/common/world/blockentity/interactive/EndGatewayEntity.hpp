@@ -91,7 +91,7 @@ public:
      * @brief 检查是否需要 tick
      * @return 末地折跃门需要持续 tick
      */
-    [[nodiscard]] bool needsTick() const override { return true; }
+    [[nodiscard]] bool needsTick() const noexcept override { return true; }
 
     /**
      * @brief 从 JSON 加载数据

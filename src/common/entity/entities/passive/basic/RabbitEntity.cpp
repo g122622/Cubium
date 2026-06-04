@@ -36,7 +36,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
-#include "common/entity/entities/passive/basic/player/Player.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"

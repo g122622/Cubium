@@ -149,7 +149,7 @@ const CollisionShape& LecternBlock::getCollisionShape(const BlockState& state) c
     return m_collisionShape;
 }
 
-i32 LecternBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 LecternBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -158,7 +158,7 @@ i32 LecternBlock::getWeakPower(const BlockState& state, IWorld& world, const Blo
     return state.get(BlockStateProperties::POWERED()) ? 15 : 0;
 }
 
-i32 LecternBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 LecternBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);

@@ -90,7 +90,7 @@ public:
      *
      * 只有距离为7且非持久的树叶才需要随机Tick（用于腐烂）
      */
-    [[nodiscard]] bool ticksRandomly() const override;
+    [[nodiscard]] bool ticksRandomly() const noexcept override;
 
     /**
      * @brief 随机Tick - 腐烂逻辑

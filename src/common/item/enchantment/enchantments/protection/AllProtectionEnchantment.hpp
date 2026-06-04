@@ -53,7 +53,7 @@ public:
         return "enchantment.minecraft.protection";
     }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Common; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Common; }
 };
 
 } // namespace enchant

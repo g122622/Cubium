@@ -34,7 +34,7 @@
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
-#include "common/entity/sound/SoundEvents.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"

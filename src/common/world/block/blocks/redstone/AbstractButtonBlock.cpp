@@ -175,7 +175,8 @@ void AbstractButtonBlock::tick(IWorld& world, const BlockPos& pos, BlockState& s
     }
 }
 
-i32 AbstractButtonBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 AbstractButtonBlock::getWeakPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -186,7 +187,7 @@ i32 AbstractButtonBlock::getWeakPower(const BlockState& state, IWorld& world, co
 }
 
 i32 AbstractButtonBlock::getStrongPower(
-    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);

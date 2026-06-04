@@ -27,7 +27,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/blocks/VanillaBlocks.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include <algorithm>
 #include <functional>
 

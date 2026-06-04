@@ -261,7 +261,7 @@ void SurfaceBuilder::_buildDefaultSurface(math::Random& random,
                 if (currentDepth == 0 && blockstate1 != nullptr && j > 1) {
                     const Block* block = &blockstate1->owner();
                     if (block == VanillaBlocks::SAND || block == VanillaBlocks::RED_SAND) {
-                        currentDepth = random.nextInt(4) + std::max(0, y - SEA_LEVEL);
+                        currentDepth = random.nextInt(4) + std::max(0, y - world::SEA_LEVEL);
                         if (block == VanillaBlocks::RED_SAND) {
                             blockstate1 = VanillaBlocks::getState(VanillaBlocks::RED_SANDSTONE);
                         } else {
@@ -608,7 +608,7 @@ void SwampSurfaceBuilder::buildSurface(math::Random& random,
             const BlockState* state = chunk.getBlockState(localX, y, localZ);
             if (!state || !state->isAir()) {
                 // 找到非空气方块，检查是否在海平面且不是水
-                if (y == SEA_LEVEL - 1 && state->blockId() != defaultFluid->blockId()) {
+                if (y == world::SEA_LEVEL - 1 && state->blockId() != defaultFluid->blockId()) {
                     // 替换为水
                     chunk.setBlockState(localX, y, localZ, defaultFluid);
                 }
@@ -777,7 +777,7 @@ void FrozenOceanSurfaceBuilder::buildSurface(math::Random& random,
                 if (currentDepth == 0 && underState != nullptr && depth > 1) {
                     const Block* block = &underState->owner();
                     if (block == VanillaBlocks::SAND || block == VanillaBlocks::RED_SAND) {
-                        currentDepth = random.nextInt(4) + std::max(0, y - SEA_LEVEL);
+                        currentDepth = random.nextInt(4) + std::max(0, y - world::SEA_LEVEL);
                         if (block == VanillaBlocks::RED_SAND) {
                             underState = VanillaBlocks::getState(VanillaBlocks::RED_SANDSTONE);
                         } else {

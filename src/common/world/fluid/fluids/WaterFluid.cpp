@@ -133,7 +133,7 @@ void WaterFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos, const 
     }
 }
 
-bool WaterFluid::isEquivalentTo(const Fluid& fluid) const
+bool WaterFluid::isEquivalentTo(const Fluid& fluid) const noexcept
 {
     // 水和流动水视为等效
     const auto& loc = fluid.fluidLocation();
@@ -217,7 +217,7 @@ FlowingFluid& WaterFlowingFluid::getStill()
     return *m_stillCache;
 }
 
-bool WaterFlowingFluid::isEquivalentTo(const Fluid& fluid) const
+bool WaterFlowingFluid::isEquivalentTo(const Fluid& fluid) const noexcept
 {
     // 水和流动水视为等效
     const auto& loc = fluid.fluidLocation();

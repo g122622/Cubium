@@ -85,7 +85,7 @@ public:
     // ========== BlockEntity 接口 ==========
 
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const override { return true; }
+    [[nodiscard]] bool needsTick() const noexcept override { return true; }
 
     // ========== IInventory 接口（委托给 FurnaceInventory） ==========
 

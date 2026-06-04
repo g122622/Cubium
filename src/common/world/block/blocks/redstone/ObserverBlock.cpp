@@ -197,7 +197,8 @@ void ObserverBlock::_updateNeighborsInFront(IWorld& world, const BlockPos& pos, 
     }
 }
 
-i32 ObserverBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 ObserverBlock::getWeakPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -210,7 +211,8 @@ i32 ObserverBlock::getWeakPower(const BlockState& state, IWorld& world, const Bl
     return isPowered(state) ? world::redstone::RedstonePower::MAX_POWER : 0;
 }
 
-i32 ObserverBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 ObserverBlock::getStrongPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     // 侦测器只输出弱信号
     return getWeakPower(state, world, pos, side);

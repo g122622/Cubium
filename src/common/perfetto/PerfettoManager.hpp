@@ -56,7 +56,7 @@
 #pragma once
 
 #include "PerfettoConfig.hpp"
-#include "common/core/Types.hpp"
+#include "../core/Types.hpp"
 
 #include <memory>
 #include <stdexcept>

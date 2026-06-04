@@ -229,14 +229,14 @@ public:
      * @param level 附魔等级
      * @return 最小玩家等级要求
      */
-    [[nodiscard]] virtual i32 getMinEnchantability(i32 level) const;
+    [[nodiscard]] virtual i32 getMinEnchantability(i32 level) const noexcept;
 
     /**
      * @brief 获取附魔台槽位中的最大等级要求
      * @param level 附魔等级
      * @return 最大玩家等级要求
      */
-    [[nodiscard]] virtual i32 getMaxEnchantability(i32 level) const;
+    [[nodiscard]] virtual i32 getMaxEnchantability(i32 level) const noexcept;
 
     // ========== 修饰符 ==========
 

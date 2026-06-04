@@ -132,7 +132,7 @@ protected:
     /**
      * @brief 获取施法音效ID
      */
-    [[nodiscard]] const char* getSpellSoundId() const override { return "entity.illusioner.cast_spell"; }
+    [[nodiscard]] const char* getSpellSoundId() const noexcept override { return "entity.illusioner.cast_spell"; }
 
 private:
     // 冷却时间

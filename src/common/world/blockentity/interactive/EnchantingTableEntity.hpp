@@ -74,7 +74,7 @@ public:
      * @brief 检查是否需要tick
      * @return 附魔台总是返回false（不需要tick）
      */
-    [[nodiscard]] bool needsTick() const override { return false; }
+    [[nodiscard]] bool needsTick() const noexcept override { return false; }
 
     /**
      * @brief 从JSON加载数据

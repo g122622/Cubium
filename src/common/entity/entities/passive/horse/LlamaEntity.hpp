@@ -278,13 +278,13 @@ public:
      * @brief 获取攻击间隔时间
      * @return 40 ticks
      */
-    [[nodiscard]] i32 getAttackInterval() const noexcept { return 40; }
+    [[nodiscard]] i32 getAttackInterval() const noexcept override { return 40; }
 
     /**
      * @brief 检查是否可以进行远程攻击
      * @return 吐口水冷却已结束返回 true
      */
-    [[nodiscard]] bool canRangedAttack() const { return m_spitCooldown <= 0; }
+    [[nodiscard]] bool canRangedAttack() const override { return m_spitCooldown <= 0; }
 
     void tick() override;
 

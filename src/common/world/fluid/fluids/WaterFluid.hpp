@@ -75,7 +75,7 @@ public:
      * @param other 其他流体
      * @return 是否等效
      */
-    [[nodiscard]] bool isEquivalentTo(const Fluid& other) const override;
+    [[nodiscard]] bool isEquivalentTo(const Fluid& other) const noexcept override;
 
 protected:
     void beforeReplacingBlock(IWorld& world, const BlockPos& pos, const BlockState* state) override;
@@ -137,7 +137,7 @@ public:
      * @param fluid 其他流体
      * @return 是否等效
      */
-    [[nodiscard]] bool isEquivalentTo(const Fluid& fluid) const override;
+    [[nodiscard]] bool isEquivalentTo(const Fluid& fluid) const noexcept override;
 
 private:
     mutable FlowingFluid* m_stillCache = nullptr;

@@ -56,11 +56,11 @@ public:
 
     [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Weapon; }
 
-    [[nodiscard]] i32 minLevel() const override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override { return 2; }
+    [[nodiscard]] i32 maxLevel() const noexcept override { return 2; }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Uncommon; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Uncommon; }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override { return 5 + (level - 1) * 20; }
 

@@ -200,14 +200,14 @@ public:
     void neighborChanged(
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return true;
     }
 
     [[nodiscard]] i32 getWeakPower(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
 
     // ========== 旋转 ==========
 
@@ -226,7 +226,7 @@ public:
 
     // ========== 方块实体 ==========
 
-    [[nodiscard]] bool hasBlockEntity() const override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
 
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
@@ -316,9 +316,9 @@ public:
 
     // ========== 黏液块粘连 ==========
 
-    [[nodiscard]] bool isStickyBlock(const BlockState& state) const override;
+    [[nodiscard]] bool isStickyBlock(const BlockState& state) const noexcept override;
 
-    [[nodiscard]] bool canStickTo(const BlockState& state, const BlockState& other) const override;
+    [[nodiscard]] bool canStickTo(const BlockState& state, const BlockState& other) const noexcept override;
 };
 
 /**
@@ -354,9 +354,9 @@ public:
 
     // ========== 蜂蜜块粘连 ==========
 
-    [[nodiscard]] bool isStickyBlock(const BlockState& state) const override;
+    [[nodiscard]] bool isStickyBlock(const BlockState& state) const noexcept override;
 
-    [[nodiscard]] bool canStickTo(const BlockState& state, const BlockState& other) const override;
+    [[nodiscard]] bool canStickTo(const BlockState& state, const BlockState& other) const noexcept override;
 
     // ========== 形状 ==========
 

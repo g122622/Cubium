@@ -4,31 +4,11 @@
 /docs/CODE_CONVENTIONS.md
 /docs/PROJECT_CONVENTIONS.md
 
-【重要】构建命令只能使用 `cmake --build --preset windows-clang-relwithdebinfo`。由于本项目代码量已达百万级，构建时间很长，任务的超时等待时间必须30分钟以上！
+【重要】由于本项目代码量已达百万级，构建时间很长，任务的超时等待时间必须30分钟以上！
 
-这台机器有些环境上的问题，如果构建过程中遇到工具链问题、 `<cstddef>`头文件找不到等问题，按照下面指引尝试先进行CMake configure，然后再重新构建：
-
-在windows平台上，CMake configure 必须使用 `configure.bat`（或 `configure.sh` / `configure.ps1`），这些脚本会自动注入 Visual Studio 开发环境变量，解决 vcpkg 找不到 VS 的问题。
-
-首次 configure 或清理后重新 configure（脚本位于 `scripts/` 目录下）：
-```bash
-# Git Bash / Claude Code 中：
-./scripts/configure.sh
-# 或直接调用 bat：
-cmd //c scripts\configure.bat
-
-# PowerShell 中：
-.\scripts\configure.ps1
-
-# CMD 中：
-scripts\configure.bat
-```
-
-其实上述方法可能也不行，此时可以试试 configure + build 一步完成，大概率能成功：
+只允许执行下面唯一构建命令：
 ```bash
 ./scripts/configure.sh build
-# 或
-cmd //c scripts\configure.bat build
 ```
 
 提交代码之前，必须使用clang-format对你修改的文件进行格式化：

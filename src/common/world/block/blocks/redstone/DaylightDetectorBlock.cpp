@@ -121,7 +121,7 @@ void DaylightDetectorBlock::tick(IWorld& world, const BlockPos& pos, BlockState&
 }
 
 i32 DaylightDetectorBlock::getWeakPower(
-    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -132,7 +132,7 @@ i32 DaylightDetectorBlock::getWeakPower(
 }
 
 i32 DaylightDetectorBlock::getStrongPower(
-    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     // 日光探测器只输出弱信号
     return getWeakPower(state, world, pos, side);

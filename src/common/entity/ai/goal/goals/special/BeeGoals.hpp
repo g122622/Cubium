@@ -94,7 +94,7 @@ public:
     void startExecuting() override;
     void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "BeeStingGoal"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override { return "BeeStingGoal"; }
 
 private:
     BeeEntity* m_beeEntity;

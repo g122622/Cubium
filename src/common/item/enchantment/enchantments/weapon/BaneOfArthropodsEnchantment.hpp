@@ -56,7 +56,7 @@ public:
         return "enchantment.minecraft.bane_of_arthropods";
     }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Uncommon; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Uncommon; }
 
     /**
      * @brief 获取缓慢效果的持续时间（tick）

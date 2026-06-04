@@ -68,7 +68,7 @@ public:
      * @brief 创建方块实体
      * 潮涌核心需要方块实体来管理效果
      */
-    [[nodiscard]] bool hasBlockEntity() const override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
 
     // ========== 放置逻辑 ==========
 

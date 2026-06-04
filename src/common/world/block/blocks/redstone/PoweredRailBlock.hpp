@@ -60,7 +60,7 @@ public:
      * @brief 获取弱信号
      */
     [[nodiscard]] i32 getWeakPower(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
 
     /**
      * @brief 邻居更新

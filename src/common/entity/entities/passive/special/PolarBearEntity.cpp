@@ -63,7 +63,7 @@ entity::DataParameter<bool> PolarBearEntity::DATA_STANDING_PARAM = entity::Entit
 class PolarBearMeleeAttackGoal : public entity::ai::goal::MeleeAttackGoal {
 public:
     explicit PolarBearMeleeAttackGoal(PolarBearEntity* bear);
-    void resetTask() override;
+    void resetTask() noexcept override;
     void tick() override;
 
 private:
@@ -369,7 +369,7 @@ PolarBearMeleeAttackGoal::PolarBearMeleeAttackGoal(PolarBearEntity* bear)
     , m_bear(bear)
 {}
 
-void PolarBearMeleeAttackGoal::resetTask()
+void PolarBearMeleeAttackGoal::resetTask() noexcept
 {
     m_bear->setStanding(false);
     MeleeAttackGoal::resetTask();

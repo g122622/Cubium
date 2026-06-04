@@ -64,7 +64,7 @@ protected:
      * @brief 检查椭球位置是否有效
      * 水下洞穴始终返回 false（不跳过任何位置）
      */
-    [[nodiscard]] bool shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const override;
+    [[nodiscard]] bool shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const noexcept override;
 
     /**
      * @brief 检查方块是否可雕刻
@@ -113,7 +113,7 @@ protected:
      * @brief 检查椭球位置是否有效
      * 水下峡谷使用与普通峡谷相同的厚度检测
      */
-    [[nodiscard]] bool shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const override;
+    [[nodiscard]] bool shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const noexcept override;
 };
 
 /**

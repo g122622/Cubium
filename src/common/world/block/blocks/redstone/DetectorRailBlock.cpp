@@ -91,7 +91,8 @@ void DetectorRailBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
     }
 }
 
-i32 DetectorRailBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 DetectorRailBlock::getWeakPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -103,7 +104,8 @@ i32 DetectorRailBlock::getWeakPower(const BlockState& state, IWorld& world, cons
     return 0;
 }
 
-i32 DetectorRailBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 DetectorRailBlock::getStrongPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);

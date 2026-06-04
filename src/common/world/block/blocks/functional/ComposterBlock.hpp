@@ -70,7 +70,7 @@ public:
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool ticksRandomly() const override { return false; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override { return false; }
 
     // ========== 形状 ==========
 
@@ -80,7 +80,7 @@ public:
 
     // ========== 渲染属性 ==========
 
-    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return true;

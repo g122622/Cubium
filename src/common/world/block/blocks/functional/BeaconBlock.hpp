@@ -92,7 +92,7 @@ public:
 
     // ========== 红石 ==========
 
-    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return true;

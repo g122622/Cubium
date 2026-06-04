@@ -69,7 +69,7 @@ protected:
      * 下界洞穴更少但更大
      * @return 10
      */
-    [[nodiscard]] i32 getMaxCaveCount() const override { return 10; }
+    [[nodiscard]] i32 getMaxCaveCount() const noexcept override { return 10; }
 
     /**
      * @brief 获取洞穴半径
@@ -84,7 +84,7 @@ protected:
      * 下界洞穴更扁平
      * @return 5.0
      */
-    [[nodiscard]] f32 getVerticalScale() const override { return 5.0f; }
+    [[nodiscard]] f32 getVerticalScale() const noexcept override { return 5.0f; }
 
     /**
      * @brief 获取熔岩填充高度

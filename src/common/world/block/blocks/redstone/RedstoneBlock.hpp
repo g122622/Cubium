@@ -55,7 +55,7 @@ public:
      * @brief 检查是否可以提供红石信号
      * @return 始终返回true
      */
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return true;
@@ -73,7 +73,7 @@ public:
      * @return 信号强度15
      */
     [[nodiscard]] i32 getWeakPower(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
 
     /**
      * @brief 获取强红石信号
@@ -87,7 +87,7 @@ public:
      * @return 信号强度15
      */
     [[nodiscard]] i32 getStrongPower(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override;
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
 };
 
 } // namespace blocks

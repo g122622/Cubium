@@ -297,7 +297,7 @@ public:
     TurtleWanderGoal(TurtleEntity* turtle, f64 speed, i32 chance);
 
     [[nodiscard]] bool shouldExecute() override;
-    [[nodiscard]] std::string getTypeName() const override { return "TurtleWanderGoal"; }
+    [[nodiscard]] std::string getTypeName() const noexcept override { return "TurtleWanderGoal"; }
 
 private:
     TurtleEntity* m_turtle;

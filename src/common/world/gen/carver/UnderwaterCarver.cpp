@@ -198,7 +198,7 @@ bool UnderwaterCaveCarver::carve(ChunkPrimer& chunk,
     return carved;
 }
 
-bool UnderwaterCaveCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const
+bool UnderwaterCaveCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const noexcept
 {
     // 水下洞穴使用与普通洞穴相同的椭球检测
     (void)y;
@@ -366,7 +366,7 @@ UnderwaterCanyonCarver::UnderwaterCanyonCarver()
     : CanyonCarver(world::MAX_BUILD_HEIGHT)
 {}
 
-bool UnderwaterCanyonCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const
+bool UnderwaterCanyonCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const noexcept
 {
     // 水下峡谷使用与普通峡谷相同的厚度检测
     return CanyonCarver::shouldSkipEllipsoidPosition(dx, dy, dz, y);

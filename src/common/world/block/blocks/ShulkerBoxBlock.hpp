@@ -79,7 +79,7 @@ public:
     /**
      * @brief 检查是否有方块实体
      */
-    [[nodiscard]] bool hasBlockEntity() const override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
 
     /**
      * @brief 创建方块实体
@@ -118,7 +118,7 @@ public:
     /**
      * @brief 检查是否可以提供红石信号
      */
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return false;
@@ -129,7 +129,7 @@ public:
      *
      * 潜影盒可以通过比较器输出信号，因此需要返回 true。
      */
-    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return true;

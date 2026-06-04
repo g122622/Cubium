@@ -608,7 +608,7 @@ RayTraceResult FishingBobberEntity::_performRayTrace()
         start,
         end,
         searchBox,
-        [this](const Entity& candidate) { return canHitEntity(candidate); },
+        [this](const Entity& candidate) { return _canHitEntity(candidate); },
         0.3f // collisionExpansion
     );
 
@@ -663,7 +663,7 @@ void FishingBobberEntity::_onEntityHit(const RayTraceResult& result)
     m_caughtEntity = result.hitEntity;
 
     // 同步实体ID（用于客户端）
-    syncCaughtEntityId();
+    _syncCaughtEntityId();
 
     // 清零速度
     m_velocity = Vector3(0.0, 0.0, 0.0);

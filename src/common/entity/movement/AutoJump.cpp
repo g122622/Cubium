@@ -24,8 +24,8 @@
 #include "AutoJump.hpp"
 
 #include "common/entity/entities/player/Player.hpp"
-#include "common/entity/physics/PhysicsConstants.hpp"
-#include "common/entity/physics/PhysicsEngine.hpp"
+#include "common/physics/PhysicsEngine.hpp"
+#include "common/physics/PhysicsConstants.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathUtils.hpp"
 

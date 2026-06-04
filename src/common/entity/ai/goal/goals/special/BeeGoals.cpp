@@ -22,8 +22,8 @@
  */
 
 #include "BeeGoals.hpp"
-#include "common/entity/ai/goal/controller/MovementController.hpp"
-#include "common/entity/ai/goal/pathfinding/PathNavigator.hpp"
+#include "common/entity/ai/controller/MovementController.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/entities/passive/special/BeeEntity.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"

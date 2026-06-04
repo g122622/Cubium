@@ -239,7 +239,7 @@ void LavaFluid::flowInto(
     FlowingFluid::flowInto(world, pos, blockState, dir, fluidState);
 }
 
-bool LavaFluid::isEquivalentTo(const Fluid& fluid) const
+bool LavaFluid::isEquivalentTo(const Fluid& fluid) const noexcept
 {
     // 岩浆和流动岩浆视为等效
     const auto& loc = fluid.fluidLocation();
@@ -286,7 +286,7 @@ FlowingFluid& LavaSourceFluid::getFlowing()
     return *m_flowingCache;
 }
 
-bool LavaSourceFluid::isEquivalentTo(const Fluid& fluid) const
+bool LavaSourceFluid::isEquivalentTo(const Fluid& fluid) const noexcept
 {
     const auto& loc = fluid.fluidLocation();
     return loc.namespace_() == "minecraft" && (loc.path() == "lava" || loc.path() == "flowing_lava");
@@ -329,7 +329,7 @@ FlowingFluid& LavaFlowingFluid::getStill()
     return *m_stillCache;
 }
 
-bool LavaFlowingFluid::isEquivalentTo(const Fluid& fluid) const
+bool LavaFlowingFluid::isEquivalentTo(const Fluid& fluid) const noexcept
 {
     const auto& loc = fluid.fluidLocation();
     return loc.namespace_() == "minecraft" && (loc.path() == "lava" || loc.path() == "flowing_lava");

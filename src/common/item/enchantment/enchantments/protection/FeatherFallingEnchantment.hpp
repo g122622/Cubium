@@ -53,7 +53,7 @@ public:
         return "enchantment.minecraft.feather_falling";
     }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Uncommon; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Uncommon; }
 };
 
 } // namespace enchant

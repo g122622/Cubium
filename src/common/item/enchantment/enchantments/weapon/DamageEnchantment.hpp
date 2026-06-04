@@ -55,15 +55,15 @@ public:
 
     [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Weapon; }
 
-    [[nodiscard]] i32 minLevel() const override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override { return 5; }
+    [[nodiscard]] i32 maxLevel() const noexcept override { return 5; }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override;
 
     [[nodiscard]] i32 getMaxCost(i32 level) const override;
 
-    [[nodiscard]] f32 getDamageBonus(i32 level, u32 entityType) const override;
+    [[nodiscard]] f32 getDamageBonus(i32 level, u32 entityType) const noexcept override;
 
     [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override;
 

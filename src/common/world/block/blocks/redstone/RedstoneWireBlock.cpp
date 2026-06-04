@@ -236,7 +236,7 @@ void RedstoneWireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
     }
 }
 
-i32 RedstoneWireBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 RedstoneWireBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -291,7 +291,7 @@ i32 RedstoneWireBlock::getWeakPower(const BlockState& state, IWorld& world, cons
     return power;
 }
 
-i32 RedstoneWireBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 RedstoneWireBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     // 红石线的 getStrongPower 委托给 getWeakPower
     // 这使得红石线可以充能相邻的实体方块

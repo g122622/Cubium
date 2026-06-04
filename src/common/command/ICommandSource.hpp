@@ -82,6 +82,12 @@ public:
     virtual void sendMessage(const std::string& message, const std::optional<Uuid>& senderUuid = std::nullopt) = 0;
 
     /**
+     * @brief 发送错误消息给命令源
+     * @param message 错误消息内容
+     */
+    virtual void sendError(const std::string& message) = 0;
+
+    /**
      * @brief 是否应该接收反馈消息
      */
     virtual bool shouldReceiveFeedback() const = 0;
@@ -105,6 +111,7 @@ public:
 class SilentCommandSource : public ICommandSource {
 public:
     void sendMessage(const std::string&, const std::optional<Uuid>&) override {}
+    void sendError(const std::string&) override {}
 
     bool shouldReceiveFeedback() const noexcept override { return false; }
     bool shouldReceiveErrors() const noexcept override { return false; }

@@ -28,7 +28,7 @@
 // 匿名 namespace：仅在当前编译单元可见
 namespace {
 // 引用型附魔存储（用于全局静态变量注册的附魔，注册表不拥有所有权）
-std::unordered_map<std::string, const Enchantment*> s_enchantmentRefs;
+std::unordered_map<std::string, const mc::item::enchant::Enchantment*> s_enchantmentRefs;
 } // namespace
 
 namespace mc {

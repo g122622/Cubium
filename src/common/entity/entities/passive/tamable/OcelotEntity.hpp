@@ -188,7 +188,7 @@ public:
      * @brief 检查是否可以消失
      * 未信任的豹猫存在超过 2400 tick (2分钟) 后可以消失
      */
-    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const override;
+    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const noexcept override;
 
     /**
      * @brief 摔落伤害处理

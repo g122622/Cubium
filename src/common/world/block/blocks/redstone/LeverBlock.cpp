@@ -151,7 +151,7 @@ BlockState LeverBlock::toggle(IWorld& world, const BlockPos& pos, const BlockSta
     return newState;
 }
 
-i32 LeverBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 LeverBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -161,7 +161,8 @@ i32 LeverBlock::getWeakPower(const BlockState& state, IWorld& world, const Block
     return isPowered(state) ? world::redstone::RedstonePower::MAX_POWER : 0;
 }
 
-i32 LeverBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 LeverBlock::getStrongPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);

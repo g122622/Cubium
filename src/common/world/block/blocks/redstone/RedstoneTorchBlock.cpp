@@ -144,7 +144,8 @@ void RedstoneTorchBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
     }
 }
 
-i32 RedstoneTorchBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 RedstoneTorchBlock::getWeakPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -169,7 +170,7 @@ i32 RedstoneTorchBlock::getWeakPower(const BlockState& state, IWorld& world, con
 }
 
 i32 RedstoneTorchBlock::getStrongPower(
-    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     // 只在向下方向输出强信号（充能下方方块）
     return side == Direction::Down ? getWeakPower(state, world, pos, side) : 0;

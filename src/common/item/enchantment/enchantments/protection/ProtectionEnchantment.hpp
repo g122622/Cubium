@@ -68,7 +68,7 @@ public:
 
     [[nodiscard]] i32 getMaxCost(i32 level) const override;
 
-    [[nodiscard]] i32 getDamageProtection(i32 level, u32 damageType) const override;
+    [[nodiscard]] i32 getDamageProtection(i32 level, u32 damageType) const noexcept override;
 
     [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override;
 

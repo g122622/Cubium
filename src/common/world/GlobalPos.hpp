@@ -133,11 +133,11 @@ struct hash<mc::GlobalPos> {
      *
      * 将维度ID和坐标组合成一个唯一的哈希值。
      */
-    Size operator()(const mc::GlobalPos& pos) const noexcept
+    mc::Size operator()(const mc::GlobalPos& pos) const noexcept
     {
-        const Size h1 = std::hash<i32>{}(pos.getDimensionId());
-        const Size h2 =
-            static_cast<Size>(pos.x()) ^ (static_cast<Size>(pos.y()) << 1) ^ (static_cast<Size>(pos.z()) << 2);
+        const mc::Size h1 = std::hash<mc::i32>{}(pos.getDimensionId());
+        const mc::Size h2 =
+            static_cast<mc::Size>(pos.x()) ^ (static_cast<mc::Size>(pos.y()) << 1) ^ (static_cast<mc::Size>(pos.z()) << 2);
         return h1 ^ (h2 << 1);
     }
 };

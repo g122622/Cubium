@@ -53,11 +53,11 @@ public:
 
     [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Trident; }
 
-    [[nodiscard]] i32 minLevel() const override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override { return 1; }
+    [[nodiscard]] i32 maxLevel() const noexcept override { return 1; }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::VeryRare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::VeryRare; }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override
     {

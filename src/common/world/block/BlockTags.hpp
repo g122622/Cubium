@@ -54,7 +54,7 @@ public:
      * @brief 构造方块标签
      * @param id 标签资源位置
      */
-    explicit BlockTag(ResourceLocation id);
+    explicit BlockTag(ResourceLocation id) noexcept;
 
     /**
      * @brief 获取标签ID
@@ -78,7 +78,7 @@ public:
      * @param blockId 方块资源位置
      * @return 是否在标签中
      */
-    [[nodiscard]] bool contains(const ResourceLocation& blockId) const;
+    [[nodiscard]] bool contains(const ResourceLocation& blockId) const noexcept;
 
     /**
      * @brief 检查方块是否在标签中

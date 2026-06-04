@@ -89,12 +89,13 @@ public:
     bool load(const nlohmann::json& data) override;
     void save(nlohmann::json& data) const override;
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const override;
+    [[nodiscard]] bool needsTick() const noexcept override;
     std::unique_ptr<BlockEntity> clone() const override;
 
     // ========== ICommandSource 接口 ==========
 
     void sendMessage(const std::string& message, const std::optional<Uuid>& senderUuid = std::nullopt) override;
+    void sendError(const std::string& message) override;
     [[nodiscard]] bool shouldReceiveFeedback() const override;
     [[nodiscard]] bool shouldReceiveErrors() const override;
     [[nodiscard]] bool allowLogging() const override;

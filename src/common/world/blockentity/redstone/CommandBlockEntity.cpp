@@ -187,7 +187,7 @@ void CommandBlockEntity::tick(IWorld& world)
     }
 }
 
-bool CommandBlockEntity::needsTick() const
+bool CommandBlockEntity::needsTick() const noexcept
 {
     // 循环命令方块需要每 tick 更新
     return m_mode == CommandBlockMode::Auto;
@@ -217,6 +217,15 @@ void CommandBlockEntity::sendMessage(const std::string& message, const std::opti
 {
     MC_UNUSED(senderUuid);
     // 命令方块的输出存储在 lastOutput 中
+    if (m_trackOutput) {
+        m_lastOutput = message;
+        setChanged();
+    }
+}
+
+void CommandBlockEntity::sendError(const std::string& message)
+{
+    // 命令方块的错误输出存储在 lastOutput 中
     if (m_trackOutput) {
         m_lastOutput = message;
         setChanged();

@@ -24,6 +24,9 @@
 #include "RangedAttackGoals.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/entity/ai/controller/LookController.hpp"
+#include "common/entity/ai/controller/MovementController.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/core/LivingEntity.hpp"

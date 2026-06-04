@@ -149,7 +149,7 @@ public:
     // ========== Tick 更新 ==========
 
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const override { return false; }
+    [[nodiscard]] bool needsTick() const noexcept override { return false; }
 
     // ========== 序列化 ==========
 

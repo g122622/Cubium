@@ -525,7 +525,7 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
                                 }
 
                                 // 确定方块
-                                const BlockState* blockState = getBlockForDensity(static_cast<f32>(density), worldY);
+                                const BlockState* blockState = _getBlockForDensity(static_cast<f32>(density), worldY);
 
                                 if (blockState) {
                                     chunk.setBlockState(localBlockX, worldY, localBlockZ, blockState);

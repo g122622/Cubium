@@ -206,7 +206,7 @@ BlockState TripWireHookBlock::updatePostPlacement(const BlockState& state,
 }
 
 [[nodiscard]] i32 TripWireHookBlock::getWeakPower(
-    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -220,7 +220,7 @@ BlockState TripWireHookBlock::updatePostPlacement(const BlockState& state,
 }
 
 [[nodiscard]] i32 TripWireHookBlock::getStrongPower(
-    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);

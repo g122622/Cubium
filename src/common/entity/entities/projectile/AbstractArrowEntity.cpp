@@ -23,7 +23,7 @@
 
 #include "AbstractArrowEntity.hpp"
 
-#include "common/client/renderer/trident/particle/ParticleTypes.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileHelper.hpp"

@@ -73,7 +73,7 @@ public:
     /**
      * @brief 检查是否有方块实体
      */
-    [[nodiscard]] bool hasBlockEntity() const override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
 
     /**
      * @brief 创建方块实体

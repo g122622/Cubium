@@ -70,7 +70,7 @@ i32 ProtectionEnchantment::getMaxCost(i32 level) const
     }
 }
 
-i32 ProtectionEnchantment::getDamageProtection(i32 level, u32 damageType) const
+i32 ProtectionEnchantment::getDamageProtection(i32 level, u32 damageType) const noexcept
 {
     // 计算保护附魔对特定伤害类型的EPF（Enchantment Protection Factor）值
     // - 全保护对所有伤害有效，每级 EPF = level

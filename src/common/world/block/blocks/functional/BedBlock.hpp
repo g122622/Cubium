@@ -87,7 +87,7 @@ public:
 
     // ========== 硬度 ==========
 
-    [[nodiscard]] f32 getExplosionResistance(const BlockState& state) const override
+    [[nodiscard]] f32 getExplosionResistance(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         // 在下界爆炸

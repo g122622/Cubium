@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "common/block/Block.hpp"
-#include "common/block/BlockRegistry.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <vector>
 

@@ -84,7 +84,7 @@ std::vector<PlacedPiece> JigsawManager::assemble(JigsawPatternRegistry& patternR
     startPlaced.mirror = mirror;
     startPlaced.groundLevelDelta = startPiece->getGroundLevelDelta();
     startPlaced.boundingBox = boundingBox;
-    startPlaced.joints = getTransformedJoints(*startPiece, startPos, rotation, mirror);
+    startPlaced.joints = _getTransformedJoints(*startPiece, startPos, rotation, mirror);
 
     placedPieces.push_back(std::move(startPlaced));
 
@@ -104,13 +104,13 @@ std::vector<PlacedPiece> JigsawManager::assemble(JigsawPatternRegistry& patternR
         pending.projection = joint.projection;
         pending.orientation = rotatedOrientation;
         pending.jointType = joint.jointType;
-        pendingJoints.push(pending);
+        pendingJoints.push(std::move(pending));
     }
 
     // 处理待处理的连接点
     i32 maxPieces = maxDepth * 20;
     while (!pendingJoints.empty() && static_cast<i32>(placedPieces.size()) < maxPieces) {
-        PendingJoint joint = pendingJoints.front();
+        PendingJoint joint = std::move(pendingJoints.front());
         pendingJoints.pop();
 
         if (joint.depth >= maxDepth) {
@@ -252,6 +252,12 @@ void JigsawManager::_placeFallbackBlocks(IWorldWriter& world, const PlacedPiece&
             }
         }
     }
+}
+
+std::vector<JigsawJoint> JigsawManager::getTransformedJoints(
+    const JigsawPiece& piece, const BlockPos& position, i32 rotation, i32 mirror)
+{
+    return _getTransformedJoints(piece, position, static_cast<Rotation>(rotation), static_cast<Mirror>(mirror));
 }
 
 std::vector<JigsawJoint> JigsawManager::_getTransformedJoints(
@@ -443,7 +449,7 @@ bool JigsawManager::tryPlacePiece(JigsawPatternRegistry& patternRegistry,
             newPending.projection = newJoint.projection;
             newPending.orientation = rotatedOrientation;
             newPending.jointType = newJoint.jointType;
-            pendingJoints.push(newPending);
+            pendingJoints.push(std::move(newPending));
         }
 
         return true;

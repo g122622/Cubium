@@ -25,7 +25,7 @@
 
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/Constants.hpp"
+#include "common/core/Constants.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/biome/Biome.hpp"

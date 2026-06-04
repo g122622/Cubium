@@ -78,7 +78,7 @@ public:
      * @brief 检查是否应该在这个区块生成洞穴
      */
     [[nodiscard]] bool shouldCarve(
-        math::IRandom& rng, ChunkCoord chunkX, ChunkCoord chunkZ, const ProbabilityConfig& config) const override;
+        math::IRandom& rng, ChunkCoord chunkX, ChunkCoord chunkZ, const ProbabilityConfig& config) const noexcept override;
 
 protected:
     /**

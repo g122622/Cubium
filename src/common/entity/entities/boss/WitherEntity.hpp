@@ -249,7 +249,7 @@ private:
     /**
      * @brief 更新AI任务
      */
-    void _updateAITasks() override;
+    void _updateAITasks();
 
     /**
      * @brief 更新头部目标追踪

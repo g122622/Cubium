@@ -52,7 +52,8 @@ void PoweredRailBlock::fillStateContainer(StateContainer<Block, BlockState>& con
     MC_UNUSED(container);
 }
 
-i32 PoweredRailBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 PoweredRailBlock::getWeakPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);

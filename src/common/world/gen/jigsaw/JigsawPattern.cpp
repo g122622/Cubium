@@ -75,8 +75,6 @@ JigsawPatternRegistry& JigsawPatternRegistry::instance() noexcept
     return registry;
 }
 
-JigsawPatternRegistry::JigsawPatternRegistry() = default;
-
 void JigsawPatternRegistry::registerPattern(std::unique_ptr<JigsawPattern> pattern)
 {
     if (pattern) {

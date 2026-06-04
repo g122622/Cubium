@@ -24,7 +24,7 @@
 #include "BuriedTreasureStructure.hpp"
 
 #include "common/util/math/random/Random.hpp"
-#include "common/world/Constants.hpp"
+#include "common/core/Constants.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/VanillaBlocks.hpp"

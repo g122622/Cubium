@@ -217,7 +217,6 @@ private:
      */
     static void _initGaussianLUT();
 
-private:
     void _initNoiseGenerators();
     void _initBiomeWeights();
 
@@ -254,7 +253,6 @@ private:
     void _buildSurfaceForColumn(
         ChunkPrimer& chunk, math::Random& random, i32 x, i32 z, i32 startHeight, f32 surfaceNoise, BiomeId biome);
 
-private:
     // === 24x24x24 高斯查找表 ===
     // 预计算的高斯核，用于结构边界地形平滑
     // 索引公式: x * 24 * 24 + y * 24 + z (偏移 +12)

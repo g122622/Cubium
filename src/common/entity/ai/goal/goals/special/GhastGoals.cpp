@@ -23,7 +23,7 @@
 
 #include "GhastGoals.hpp"
 #include "common/core/Types.hpp"
-#include "common/entity/ai/goal/controller/MovementController.hpp"
+#include "common/entity/ai/controller/MovementController.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
 #include "common/util/assert/AssertAll.hpp"

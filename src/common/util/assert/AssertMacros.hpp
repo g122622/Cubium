@@ -307,4 +307,4 @@
 /**
  * @brief 标记变量为未使用
  */
-#define MC_UNUSED(var) ((void)(var))
+#define MC_UNUSED(...) ((void)(__VA_ARGS__))

@@ -57,16 +57,16 @@ public:
 
     [[nodiscard]] std::string id() const override { return "minecraft:silk_touch"; }
 
-    [[nodiscard]] i32 minLevel() const override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override
+    [[nodiscard]] i32 maxLevel() const noexcept override
     {
         return 1; // 精准采集只有 I 级
     }
 
     [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Digger; }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::VeryRare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::VeryRare; }
 
     [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override
     {

@@ -85,7 +85,7 @@ public:
     /**
      * @brief 是否需要随机 tick
      */
-    [[nodiscard]] bool ticksRandomly() const override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
 
     /**
      * @brief 尝试生长

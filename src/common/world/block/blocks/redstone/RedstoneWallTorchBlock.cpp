@@ -193,7 +193,7 @@ BlockState RedstoneWallTorchBlock::getStateForPlacement(BlockItemUseContext& con
 }
 
 i32 RedstoneWallTorchBlock::getWeakPower(
-    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);

@@ -124,7 +124,7 @@ void AbstractPressurePlateBlock::tick(IWorld& world, const BlockPos& pos, BlockS
 }
 
 i32 AbstractPressurePlateBlock::getWeakPower(
-    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -135,7 +135,7 @@ i32 AbstractPressurePlateBlock::getWeakPower(
 }
 
 i32 AbstractPressurePlateBlock::getStrongPower(
-    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     // 压力板向上方输出强信号
     if (side == Direction::Up) {

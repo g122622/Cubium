@@ -54,13 +54,13 @@ public:
 
     [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Breakable; }
 
-    [[nodiscard]] i32 minLevel() const override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override { return 1; }
+    [[nodiscard]] i32 maxLevel() const noexcept override { return 1; }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
 
-    [[nodiscard]] bool isTreasure() const override
+    [[nodiscard]] bool isTreasure() const noexcept override
     {
         return true; // 只能从钓鱼、交易或宝箱获得
     }

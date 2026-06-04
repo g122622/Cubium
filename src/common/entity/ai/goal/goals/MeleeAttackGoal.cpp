@@ -146,7 +146,7 @@ void MeleeAttackGoal::startExecuting()
     }
 }
 
-void MeleeAttackGoal::resetTask()
+void MeleeAttackGoal::resetTask() noexcept
 {
     m_attackTarget = nullptr;
     m_failedPathFindingPenalty = 0;

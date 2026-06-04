@@ -81,7 +81,7 @@ public:
      *
      * TODO: 当前仅实现最小语义（被驯服或被骑乘时不消失），后续需要补充拴绳和流浪商人关联逻辑。
      */
-    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const override
+    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const noexcept override
     {
         (void)distanceToClosestPlayer;
         return !isTame() && !isBeingRidden();

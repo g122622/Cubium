@@ -88,7 +88,7 @@ const CollisionShape& LiquidBlock::getCollisionShape(const BlockState& state) co
     return VoxelShapes::empty();
 }
 
-bool LiquidBlock::ticksRandomly() const
+bool LiquidBlock::ticksRandomly() const noexcept
 {
     return m_fluid.ticksRandomly();
 }

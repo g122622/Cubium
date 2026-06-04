@@ -69,7 +69,7 @@ public:
 
     void randomTick(IWorld& world, const BlockPos& pos, const FluidState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool ticksRandomly() const override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
 
     /**
      * @brief 检查是否等效于指定流体
@@ -79,7 +79,7 @@ public:
      * @param other 其他流体
      * @return 是否等效
      */
-    [[nodiscard]] bool isEquivalentTo(const Fluid& other) const override;
+    [[nodiscard]] bool isEquivalentTo(const Fluid& other) const noexcept override;
 
 protected:
     void beforeReplacingBlock(IWorld& world, const BlockPos& pos, const BlockState* state) override;
@@ -162,7 +162,7 @@ public:
      * @param fluid 其他流体
      * @return 是否等效
      */
-    [[nodiscard]] bool isEquivalentTo(const Fluid& fluid) const override;
+    [[nodiscard]] bool isEquivalentTo(const Fluid& fluid) const noexcept override;
 
 private:
     mutable FlowingFluid* m_flowingCache = nullptr;
@@ -196,7 +196,7 @@ public:
      * @param fluid 其他流体
      * @return 是否等效
      */
-    [[nodiscard]] bool isEquivalentTo(const Fluid& fluid) const override;
+    [[nodiscard]] bool isEquivalentTo(const Fluid& fluid) const noexcept override;
 
 private:
     mutable FlowingFluid* m_stillCache = nullptr;

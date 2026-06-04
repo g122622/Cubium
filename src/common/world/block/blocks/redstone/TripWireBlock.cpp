@@ -212,7 +212,8 @@ BlockState TripWireBlock::updatePostPlacement(const BlockState& state,
     }
 }
 
-i32 TripWireBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 TripWireBlock::getWeakPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -221,7 +222,8 @@ i32 TripWireBlock::getWeakPower(const BlockState& state, IWorld& world, const Bl
     return isPowered(state) ? 15 : 0;
 }
 
-i32 TripWireBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 TripWireBlock::getStrongPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     // 绊线只输出弱信号，不输出强信号
     MC_UNUSED(world);

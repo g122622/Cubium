@@ -151,7 +151,7 @@ public:
     {}
 
     // 暴露 protected 方法用于测试
-    void testOnSneezeComplete() { onSneezeComplete(); }
+    void testOnSneezeComplete() { _onSneezeComplete(); }
 };
 
 // ==================== PandaEntity 性格测试 ====================

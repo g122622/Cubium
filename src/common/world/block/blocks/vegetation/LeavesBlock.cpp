@@ -98,7 +98,7 @@ void LeavesBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, ma
     }
 }
 
-bool LeavesBlock::ticksRandomly() const
+bool LeavesBlock::ticksRandomly() const noexcept
 {
     // 注意：这个方法检查的是方块本身的属性，而不是状态
     // 具体的随机tick检查在randomTick中做状态检查

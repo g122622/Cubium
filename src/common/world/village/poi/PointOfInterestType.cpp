@@ -100,6 +100,8 @@ void initializeBlockToPOIMap()
     addWorkstation("minecraft:yellow_bed", PointOfInterestType::BedYellow);
 }
 
+} // namespace
+
 const char* POITypeHelper::getName(PointOfInterestType type)
 {
     switch (type) {
@@ -229,8 +231,6 @@ f32 POITypeHelper::getSearchRange(PointOfInterestType type)
     }
     return 16.0f;
 }
-
-} // namespace
 
 } // namespace poi
 } // namespace village

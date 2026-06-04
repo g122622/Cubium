@@ -131,7 +131,7 @@ public:
     /**
      * @brief 是否可以提供红石信号
      */
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return m_isPowered;

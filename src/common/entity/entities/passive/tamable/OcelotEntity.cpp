@@ -150,7 +150,7 @@ void OcelotEntity::updateAITasks()
     }
 }
 
-bool OcelotEntity::canDespawn(double distanceToClosestPlayer) const
+bool OcelotEntity::canDespawn(double distanceToClosestPlayer) const noexcept
 {
     // 未信任的豹猫存在超过 2400 tick (2分钟) 后可以消失
     MC_UNUSED(distanceToClosestPlayer);

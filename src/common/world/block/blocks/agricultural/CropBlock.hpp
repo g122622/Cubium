@@ -108,7 +108,7 @@ public:
      * 注意：Block::ticksRandomly() 是无状态方法，无法检查作物是否成熟。
      * 成熟检查在 randomTick() 中进行。
      */
-    [[nodiscard]] bool ticksRandomly() const override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
 
     // ========== IGrowable 接口实现 ==========
 

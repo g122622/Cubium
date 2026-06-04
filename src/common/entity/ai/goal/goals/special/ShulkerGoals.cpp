@@ -23,7 +23,7 @@
 
 #include "ShulkerGoals.hpp"
 
-#include "common/core/LivingEntity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/monster/end/ShulkerEntity.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/math/random/Random.hpp"

@@ -98,7 +98,7 @@ public:
 
     // ========== 红石 ==========
 
-    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return true;
@@ -113,7 +113,7 @@ public:
      * @brief 检查是否有方块实体
      * @return true（酿造台有方块实体）
      */
-    [[nodiscard]] bool hasBlockEntity() const override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
 
     /**
      * @brief 创建酿造台方块实体

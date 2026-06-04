@@ -61,13 +61,7 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "PanicGoal"; }
 
-private:
-    /**
-     * @brief 寻找随机逃跑位置
-     * @return 是否找到有效位置
-     */
-    [[nodiscard]] bool _findRandomPosition();
-
+protected:
     /**
      * @brief 获取最近的水源位置（着火时）
      *
@@ -78,6 +72,13 @@ private:
      * @return 水源方块位置，如果没有则返回 (0, 0, 0)
      */
     [[nodiscard]] BlockPos _getRandomWaterPosition(i32 horizontalRange, i32 verticalRange);
+
+private:
+    /**
+     * @brief 寻找随机逃跑位置
+     * @return 是否找到有效位置
+     */
+    [[nodiscard]] bool _findRandomPosition();
 
     CreatureEntity* m_creature;
     f64 m_speed;

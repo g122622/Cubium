@@ -76,7 +76,7 @@ public:
         return true;
     }
 
-    [[nodiscard]] bool ticksRandomly() const override { return false; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override { return false; }
 
     [[nodiscard]] bool isEmpty() const override { return true; }
 };

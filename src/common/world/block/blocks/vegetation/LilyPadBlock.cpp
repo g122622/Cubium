@@ -26,7 +26,7 @@
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
-#include "common/world/block/fluid/Fluid.hpp"
+#include "common/world/fluid/Fluid.hpp"
 
 namespace mc {
 namespace blocks {

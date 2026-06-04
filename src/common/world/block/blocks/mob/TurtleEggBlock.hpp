@@ -78,7 +78,7 @@ public:
     void onFallenUpon(
         IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance) override;
 
-    [[nodiscard]] bool ticksRandomly() const override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
 
     // ========== 形状 ==========
 

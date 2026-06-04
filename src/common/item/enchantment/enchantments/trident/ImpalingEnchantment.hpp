@@ -53,11 +53,11 @@ public:
 
     [[nodiscard]] EnchantmentType type() const override { return EnchantmentType::Trident; }
 
-    [[nodiscard]] i32 minLevel() const override { return 1; }
+    [[nodiscard]] i32 minLevel() const noexcept override { return 1; }
 
-    [[nodiscard]] i32 maxLevel() const override { return 5; }
+    [[nodiscard]] i32 maxLevel() const noexcept override { return 5; }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Rare; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Rare; }
 
     [[nodiscard]] i32 getMinCost(i32 level) const override { return 1 + (level - 1) * 8; }
 
@@ -69,7 +69,7 @@ public:
      * @param entityType 生物属性类型 (转换为 CreatureAttribute)
      * @return 额外伤害
      */
-    [[nodiscard]] f32 getDamageBonus(i32 level, u32 entityType) const override
+    [[nodiscard]] f32 getDamageBonus(i32 level, u32 entityType) const noexcept override
     {
         const CreatureAttribute creatureType = static_cast<CreatureAttribute>(entityType);
         if (creatureType == CreatureAttribute::Water) {

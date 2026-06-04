@@ -137,7 +137,7 @@ public:
      *
      * 委托给关联的流体。岩浆需要随机tick以点燃周围可燃方块。
      */
-    [[nodiscard]] bool ticksRandomly() const override;
+    [[nodiscard]] bool ticksRandomly() const noexcept override;
 
     /**
      * @brief 随机tick

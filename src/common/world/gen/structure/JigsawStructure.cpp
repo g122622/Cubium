@@ -34,6 +34,8 @@
 
 namespace {
 
+using mc::i32;
+
 /// Jigsaw 结构生成所需的最小地形高度
 constexpr i32 MIN_TERRAIN_HEIGHT = 20;
 

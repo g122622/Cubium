@@ -54,7 +54,7 @@ public:
         return "enchantment.minecraft.smite";
     }
 
-    [[nodiscard]] EnchantmentRarity rarity() const override { return EnchantmentRarity::Uncommon; }
+    [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Uncommon; }
 };
 
 } // namespace enchant

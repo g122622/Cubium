@@ -159,7 +159,7 @@ const CollisionShape& WallBlock::getCollisionShape(const BlockState& state) cons
     return getShape(state);
 }
 
-bool WallBlock::canConnectRedstone(const BlockState& state, Direction side) const
+bool WallBlock::canConnectRedstone(const BlockState& state, Direction side) const noexcept
 {
     MC_UNUSED(state);
     MC_UNUSED(side);

@@ -382,7 +382,7 @@ void MansionGrid::_recursiveCorridor(SimpleGrid& grid, i32 x, i32 y, Direction d
             i32 ndz = Directions::zOffset(newDir);
 
             if (grid.get(nx + ndx, ny + ndz) == 0 && grid.get(nx + ndx * 2, ny + ndz * 2) == 0) {
-                recursiveCorridor(grid, nx + ndx, ny + ndz, newDir, depth - 1);
+                _recursiveCorridor(grid, nx + ndx, ny + ndz, newDir, depth - 1);
                 break;
             }
         }
@@ -786,14 +786,14 @@ void MansionPlacer::_traverseOuterWalls(std::vector<std::unique_ptr<StructurePie
 
         if (!MansionGrid::isHouse(grid, x + dx, y + dz)) {
             // 转角
-            traverseTurn(pieces, pos, rotation);
+            _traverseTurn(pieces, pos, rotation);
             dir = Directions::rotateY(dir); // CW
         } else if (MansionGrid::isHouse(grid, x + dx, y + dz) &&
             MansionGrid::isHouse(grid,
                 x + dx + Directions::xOffset(Directions::rotateYCCW(dir)),
                 y + dz + Directions::zOffset(Directions::rotateYCCW(dir)))) {
             // 内转角
-            traverseInnerTurn(pieces, pos, rotation);
+            _traverseInnerTurn(pieces, pos, rotation);
             x += dx;
             y += dz;
             dir = Directions::rotateYCCW(dir); // CCW
@@ -801,7 +801,7 @@ void MansionPlacer::_traverseOuterWalls(std::vector<std::unique_ptr<StructurePie
             x += dx;
             y += dz;
             if (x != targetX || y != targetY || dir != startDir) {
-                traverseWallPiece(pieces, pos, rotation, wallType);
+                _traverseWallPiece(pieces, pos, rotation, wallType);
             }
         }
     } while (x != targetX || y != targetY || dir != startDir);

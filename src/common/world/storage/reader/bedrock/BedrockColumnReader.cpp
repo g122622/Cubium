@@ -104,7 +104,11 @@ Result<void> BedrockColumnReader::_readBiomeAndHeight(
     auto data2DKey = LevelDBKey::key(dimension, ChunkPos(x, z), LevelDBKey::ChunkType::Data2D);
     auto data2DResult = db.get(data2DKey);
     if (data2DResult.success() && data2DResult.value().has_value()) {
-        m_chunkReader.readData2D(data2DResult.value().value(), chunk);
+        auto result = m_chunkReader.readData2D(data2DResult.value().value(), chunk);
+        if (result.failed()) {
+            // Data2D 读取失败，返回错误
+            return result.error();
+        }
     }
 
     return {};

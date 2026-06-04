@@ -170,7 +170,7 @@ public:
 
 class ExposedPanicGoal final : public PanicGoal {
 public:
-    using PanicGoal::getRandomWaterPosition;
+    using PanicGoal::_getRandomWaterPosition;
     using PanicGoal::PanicGoal;
 };
 
@@ -230,7 +230,7 @@ TEST(AiGoalRegressionTest, PanicGoal_FindsNearbyWaterWhenBurning)
     ExposedPanicGoal goal(&creature, 1.0);
 
     EXPECT_TRUE(goal.shouldExecute());
-    const BlockPos waterPos = goal.getRandomWaterPosition(8, 4);
+    const BlockPos waterPos = goal._getRandomWaterPosition(8, 4);
     EXPECT_NE(waterPos.x, 0);
     EXPECT_NE(waterPos.y, 0);
     EXPECT_NE(waterPos.z, 0);

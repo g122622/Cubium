@@ -116,7 +116,7 @@ public:
 
     // ========== 红石连接 ==========
 
-    [[nodiscard]] bool canConnectRedstone(const BlockState& state, Direction side) const override;
+    [[nodiscard]] bool canConnectRedstone(const BlockState& state, Direction side) const noexcept override;
 
     // ========== 旋转和镜像 ==========
 

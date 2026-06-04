@@ -301,7 +301,8 @@ void CommandBlock::neighborChanged(
     }
 }
 
-i32 CommandBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+i32 CommandBlock::getWeakPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -543,13 +544,13 @@ Material::PushReaction SlimeBlock::getPushReaction(const BlockState& state) cons
     return Material::PushReaction::Normal;
 }
 
-bool SlimeBlock::isStickyBlock(const BlockState& state) const
+bool SlimeBlock::isStickyBlock(const BlockState& state) const noexcept
 {
     MC_UNUSED(state);
     return true;
 }
 
-bool SlimeBlock::canStickTo(const BlockState& state, const BlockState& other) const
+bool SlimeBlock::canStickTo(const BlockState& state, const BlockState& other) const noexcept
 {
     MC_UNUSED(state);
     // 史莱姆块可以粘住史莱姆块和蜂蜜块
@@ -605,13 +606,13 @@ Material::PushReaction HoneyBlock::getPushReaction(const BlockState& state) cons
     return Material::PushReaction::Normal;
 }
 
-bool HoneyBlock::isStickyBlock(const BlockState& state) const
+bool HoneyBlock::isStickyBlock(const BlockState& state) const noexcept
 {
     MC_UNUSED(state);
     return true;
 }
 
-bool HoneyBlock::canStickTo(const BlockState& state, const BlockState& other) const
+bool HoneyBlock::canStickTo(const BlockState& state, const BlockState& other) const noexcept
 {
     MC_UNUSED(state);
     // 蜂蜜块只能粘住蜂蜜块（不能粘住史莱姆块）

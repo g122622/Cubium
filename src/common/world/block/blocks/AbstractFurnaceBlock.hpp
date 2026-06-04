@@ -83,7 +83,7 @@ public:
     /**
      * @brief 检查是否有方块实体
      */
-    [[nodiscard]] bool hasBlockEntity() const override { return true; }
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
 
     // ========== 交互 ==========
 
@@ -109,7 +109,7 @@ public:
     /**
      * @brief 检查是否有红石比较器输入覆盖
      */
-    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const override { return true; }
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override { return true; }
 
     /**
      * @brief 获取红石比较器信号

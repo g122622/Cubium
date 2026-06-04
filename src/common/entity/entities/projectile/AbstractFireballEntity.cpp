@@ -21,7 +21,7 @@
 
 #include "AbstractFireballEntity.hpp"
 
-#include "common/client/renderer/trident/particle/ParticleTypes.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
