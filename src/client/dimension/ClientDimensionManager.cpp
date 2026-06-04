@@ -86,14 +86,6 @@ void ClientDimensionManager::initialize(const std::vector<ClientDimensionInfo>& 
     m_transitionState = TransitionState::None;
 
     spdlog::info("[ClientDimensionManager] Initialized with {} dimensions", m_availableDimensions.size());
-    for (const auto& dim : m_availableDimensions) {
-        spdlog::debug("[ClientDimensionManager]   - Dimension {}: {} (hasSkyLight={}, hasCeiling={}, ambientLight={})",
-            static_cast<i32>(dim.id),
-            dim.name,
-            dim.hasSkyLight,
-            dim.hasCeiling,
-            dim.ambientLight);
-    }
 }
 
 void ClientDimensionManager::reset()

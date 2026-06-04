@@ -135,12 +135,6 @@ void ClientApplication::toggleMouseCapture()
 {
     m_mouseCaptured = !m_mouseCaptured;
     m_input.setMouseLocked(m_mouseCaptured);
-
-    if (m_mouseCaptured) {
-        spdlog::debug("Mouse captured - first person mode");
-    } else {
-        spdlog::debug("Mouse released - UI mode");
-    }
 }
 
 void ClientApplication::cancelBreakingBlock()
@@ -377,7 +371,6 @@ void ClientApplication::sendBlockInteraction(
     network::BlockInteractionAction action, const BlockPos& pos, Direction face)
 {
     if (!m_networkClient || !m_networkClient->isLoggedIn()) {
-        spdlog::debug("[Mining] Skip sending block interaction because client is not logged in");
         return;
     }
 

@@ -31,8 +31,6 @@ namespace mc {
 
 Result<void> SettingsBase::loadOrGenerate(const std::filesystem::path& path)
 {
-    spdlog::debug("Loading or generating settings at: {}", path.string());
-
     // 检查文件是否存在
     if (!std::filesystem::exists(path)) {
         spdlog::info("Settings file not found, generating default: {}", path.string());
@@ -58,8 +56,6 @@ Result<void> SettingsBase::loadOrGenerate(const std::filesystem::path& path)
 
 Result<void> SettingsBase::load(const std::filesystem::path& path)
 {
-    spdlog::debug("Loading settings from: {}", path.string());
-
     // 检查文件是否存在
     if (!std::filesystem::exists(path)) {
         spdlog::info("Settings file not found, using defaults: {}", path.string());
@@ -96,8 +92,6 @@ Result<void> SettingsBase::load(const std::filesystem::path& path)
 
 Result<void> SettingsBase::save(const std::filesystem::path& path) const
 {
-    spdlog::debug("Saving settings to: {}", path.string());
-
     // 确保目录存在
     std::filesystem::path dir = path.parent_path();
     if (!dir.empty() && !std::filesystem::exists(dir)) {
@@ -171,7 +165,6 @@ void SettingsBase::registerOption(const std::string& group, IOption* option)
     }
 
     m_options[group].push_back(option);
-    spdlog::trace("Registered option '{}' in group '{}'", option->getKey(), group);
 }
 
 void SettingsBase::resetToDefaults()
@@ -181,7 +174,6 @@ void SettingsBase::resetToDefaults()
             option->reset();
         }
     }
-    spdlog::debug("All settings reset to defaults");
 }
 
 void SettingsBase::resetGroupToDefaults(const std::string& group)
@@ -191,7 +183,6 @@ void SettingsBase::resetGroupToDefaults(const std::string& group)
         for (auto* option : it->second) {
             option->reset();
         }
-        spdlog::debug("Settings group '{}' reset to defaults", group);
     }
 }
 
@@ -199,13 +190,11 @@ void SettingsBase::enableAutoSave(std::filesystem::path path)
 {
     m_autoSave = true;
     m_autoSavePath = std::move(path);
-    spdlog::debug("Auto-save enabled for settings: {}", m_autoSavePath.string());
 }
 
 void SettingsBase::disableAutoSave()
 {
     m_autoSave = false;
-    spdlog::debug("Auto-save disabled for settings");
 }
 
 void SettingsBase::triggerAutoSave() const

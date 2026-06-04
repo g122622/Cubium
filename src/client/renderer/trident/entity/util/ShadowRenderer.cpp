@@ -487,7 +487,6 @@ bool ShadowRenderer::createShadowMesh(pipeline::EntityPipeline& pipeline)
     static pipeline::EntityMesh shadowMeshStorage = result.value();
     s_shadowMesh = &shadowMeshStorage;
 
-    spdlog::debug("ShadowRenderer: Created shadow mesh with {} vertices, {} indices", vertices.size(), indices.size());
     return true;
 }
 

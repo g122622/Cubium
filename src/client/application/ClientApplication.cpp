@@ -319,7 +319,7 @@ void ClientApplication::mainLoop()
             if (rebuildResult.failed()) {
                 spdlog::warn("Failed to rebuild skin atlas: {}", rebuildResult.error().toString());
             } else {
-                spdlog::debug("Skin atlas rebuilt successfully");
+                spdlog::info("Skin atlas rebuilt successfully");
             }
         }
 

@@ -31,6 +31,7 @@
 #include "common/world/block/VanillaBlocks.hpp"
 #include "common/world/gen/jigsaw/JigsawManager.hpp"
 #include "common/world/gen/jigsaw/JigsawPattern.hpp"
+#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <limits>
@@ -185,6 +186,7 @@ std::unique_ptr<StructureStart> VillageStructure::generate(
     const jigsaw::JigsawPattern* startPool = patternRegistry.getPattern(startPoolLocation);
 
     if (!startPool || startPool->isEmpty()) {
+        // TODO 移除下面的简化代码，找不到模板池时应该立即报错
         // 如果模板池不存在，创建一个简单的村庄标记
         // 放置一个简单的平台作为占位符
         const BlockState* cobblestone = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE);
@@ -274,6 +276,7 @@ const char* VillageStructure::getVillageTypeName(VillageType type)
         case VillageType::Zombie:
             return "zombie";
         default:
+            spdlog::error("Unknown VillageType: {}", static_cast<u8>(type));
             return "unknown";
     }
 }

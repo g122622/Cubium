@@ -289,6 +289,38 @@
 
 #if MC_ENABLE_TRACING
 
+namespace mc::perfetto {
+/**
+ * @brief 获取线程的排序索引
+ *
+ * 返回指定线程名称的排序索引，用于在 Perfetto UI 中固定线程显示顺序。
+ * 排序索引越小，线程越靠前显示。
+ *
+ * 固定顺序：
+ * 1. MemoryTrace (ProcessMemory 计数器所在线程)
+ * 2. ClientMainThread (FPS 计数器所在线程)
+ * 3. IntegratedServerThread (ServerTickTime 计数器所在线程)
+ * 4. AudioEngineWorker
+ * 5. ServerMainThread (独立服务器)
+ * 其他线程按默认顺序显示在后面
+ *
+ * @param name 线程名称
+ * @return 排序索引（0 = 最高优先级，100 = 默认/无特殊排序）
+ */
+[[nodiscard]] constexpr int getThreadSortIndex(std::string_view name) noexcept
+{
+    // 固定线程顺序：MemoryTrace, ClientMainThread, IntegratedServerThread, AudioEngineWorker
+    // 排序索引越小，显示位置越靠前
+    if (name == "MemoryTrace") return 1;
+    if (name == "ClientMainThread") return 2;
+    if (name == "IntegratedServerThread") return 3;
+    if (name == "AudioEngineWorker") return 4;
+    if (name == "ServerMainThread") return 5;
+    // 其他线程使用默认值 100，显示在固定线程之后
+    return 100;
+}
+} // namespace mc::perfetto
+
 /**
  * @brief 设置当前线程名称
  *
@@ -305,11 +337,12 @@
  * }
  * @endcode
  */
-#define MC_TRACE_SET_THREAD_NAME(name)                                                         \
-    do {                                                                                       \
-        auto _desc = ::perfetto::ThreadTrack::Current().Serialize();                           \
-        _desc.mutable_thread()->set_thread_name(name);                                         \
-        ::perfetto::TrackEvent::SetTrackDescriptor(::perfetto::ThreadTrack::Current(), _desc); \
+#define MC_TRACE_SET_THREAD_NAME(name)                                                           \
+    do {                                                                                         \
+        auto _desc = ::perfetto::ThreadTrack::Current().Serialize();                             \
+        _desc.mutable_thread()->set_thread_name(name);                                           \
+        _desc.mutable_thread()->set_legacy_sort_index(::mc::perfetto::getThreadSortIndex(name)); \
+        ::perfetto::TrackEvent::SetTrackDescriptor(::perfetto::ThreadTrack::Current(), _desc);   \
     } while (0)
 
 /**
@@ -343,12 +376,13 @@
  * @param tid 线程ID（base::PlatformThreadId 类型）
  * @param name 线程名称（字符串字面量）
  */
-#define MC_TRACE_SET_THREAD_NAME_FOR(tid, name)                    \
-    do {                                                           \
-        auto _track = ::perfetto::ThreadTrack::ForThread(tid);     \
-        auto _desc = _track.Serialize();                           \
-        _desc.mutable_thread()->set_thread_name(name);             \
-        ::perfetto::TrackEvent::SetTrackDescriptor(_track, _desc); \
+#define MC_TRACE_SET_THREAD_NAME_FOR(tid, name)                                                  \
+    do {                                                                                         \
+        auto _track = ::perfetto::ThreadTrack::ForThread(tid);                                   \
+        auto _desc = _track.Serialize();                                                         \
+        _desc.mutable_thread()->set_thread_name(name);                                           \
+        _desc.mutable_thread()->set_legacy_sort_index(::mc::perfetto::getThreadSortIndex(name)); \
+        ::perfetto::TrackEvent::SetTrackDescriptor(_track, _desc);                               \
     } while (0)
 
 #else // MC_ENABLE_TRACING == 0

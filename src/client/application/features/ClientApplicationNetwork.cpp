@@ -900,11 +900,6 @@ void ClientApplication::setupNetworkCallbacks()
 
     callbacks.onPlayerAbilities =
         [this](bool invulnerable, bool flying, bool canFly, bool creativeMode, f32 flySpeed, f32 walkSpeed) {
-            spdlog::debug("Player abilities updated: invulnerable={}, flying={}, canFly={}, creativeMode={}",
-                invulnerable,
-                flying,
-                canFly,
-                creativeMode);
             if (m_player) {
                 PlayerAbilities& abilities = m_player->abilities();
                 abilities.invulnerable = invulnerable;
@@ -1069,14 +1064,12 @@ void ClientApplication::setupNetworkCallbacks()
             }
 
             m_skinManager->registerPlayerSkin(profile);
-            spdlog::debug("PlayerList: Registered skin for {} ({})", entry.name, profile.uuidToString());
         }
     };
 
     callbacks.onPlayerListRemove = [this](const std::vector<std::array<u8, 16>>& uuids) {
         for (const auto& uuid : uuids) {
             m_skinManager->skinManager().removePlayerInfo(uuid);
-            spdlog::debug("PlayerList: Removed player skin");
         }
     };
 
@@ -1251,13 +1244,6 @@ void ClientApplication::setupNetworkCallbacks()
             dimensionInfos.reserve(dimensions.size());
 
             for (const auto& [id, name, hasSkyLight, hasCeiling, ambientLight] : dimensions) {
-                spdlog::debug("  Dimension: id={}, name={}, hasSkyLight={}, hasCeiling={}, ambientLight={}",
-                    static_cast<i32>(id),
-                    name,
-                    hasSkyLight,
-                    hasCeiling,
-                    ambientLight);
-
                 ClientDimensionInfo info;
                 info.id = id;
                 info.name = name;
@@ -1344,7 +1330,6 @@ void ClientApplication::setupNetworkCallbacks()
 
         // 更新本地玩家的选中槽位
         m_player->inventory().setSelectedSlot(slot);
-        spdlog::debug("Hotbar slot set to {}", slot);
     };
 
     // 标题显示回调

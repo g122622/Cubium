@@ -243,6 +243,18 @@ void PerfettoManager::setThreadName(const std::string& name)
     ::perfetto::TrackEvent::SetTrackDescriptor(::perfetto::ThreadTrack::Current(), desc);
 }
 
+void PerfettoManager::setThreadName(const std::string& name, int sortIndex)
+{
+    if (!m_initialized) {
+        return;
+    }
+
+    auto desc = ::perfetto::ThreadTrack::Current().Serialize();
+    desc.mutable_thread()->set_thread_name(name);
+    desc.mutable_thread()->set_legacy_sort_index(sortIndex);
+    ::perfetto::TrackEvent::SetTrackDescriptor(::perfetto::ThreadTrack::Current(), desc);
+}
+
 } // namespace perfetto
 } // namespace mc
 

@@ -434,9 +434,6 @@ Result<std::vector<u8>> DataPackList::readResource(std::string_view resourcePath
         if (result.success()) {
             return result;
         }
-
-        spdlog::debug(
-            "Failed to read resource {} from data pack {}: {}", resourcePath, pack->name(), result.error().toString());
     }
 
     return Error(

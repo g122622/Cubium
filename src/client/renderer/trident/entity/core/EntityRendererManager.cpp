@@ -206,7 +206,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
 
         // Path C: 无可用网格路径 - 记录警告
         if (!mesh) {
-            spdlog::debug("EntityRendererManager: No mesh path for entity type '{}'", normalizedType);
+            spdlog::warn("EntityRendererManager: No mesh path for entity type '{}'", normalizedType);
         }
     }
 

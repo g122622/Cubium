@@ -128,7 +128,6 @@ void NameTagRenderer::renderNameTag(VkCommandBuffer cmd,
 
     // 检查 WorldTextRenderer 是否已初始化
     if (!WorldTextRenderer::isInitialized()) {
-        spdlog::trace("NameTagRenderer: WorldTextRenderer not initialized, skipping name tag");
         return;
     }
 

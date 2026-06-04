@@ -251,9 +251,6 @@ void NetworkClient::sendBlockInteraction(network::BlockInteractionAction action,
 
     network::BlockInteractionPacket packet(action, x, y, z, face);
 
-    // spdlog::debug("[Mining] Queue block interaction action={} pos=({}, {}, {}) face={}",
-    //              static_cast<i32>(action), x, y, z, static_cast<i32>(face));
-
     network::PacketSerializer ser;
     packet.serialize(ser);
 
@@ -1051,10 +1048,6 @@ void NetworkClient::_handleUnloadChunk(network::PacketDeserializer& deser)
     }
 
     auto& packet = result.value();
-    spdlog::debug("[NetworkClient::_handleUnloadChunk] Received unload chunk: ({}, {}) dim={}",
-        packet.x(),
-        packet.z(),
-        packet.dimension());
 
     if (m_callbacks.onChunkUnload) {
         m_callbacks.onChunkUnload(packet.x(), packet.z(), packet.dimension());
@@ -1101,9 +1094,6 @@ void NetworkClient::_handleBlockUpdate(network::PacketDeserializer& deser)
     }
 
     auto& packet = result.value();
-
-    // spdlog::debug("[Mining] Received block update pos=({}, {}, {}) stateId={}",
-    //              packet.x(), packet.y(), packet.z(), packet.blockStateId());
 
     MC_TRACE_EVENT("client.lighting",
         "ReceiveBlockUpdate",
@@ -1292,8 +1282,6 @@ void NetworkClient::_handleEntityDestroy(network::PacketDeserializer& deser)
         return;
     }
 
-    // spdlog::debug("Received EntityDestroy: {} entities", packet.entityIds().size());
-
     if (m_callbacks.onEntityDestroy) {
         m_callbacks.onEntityDestroy(packet.entityIds());
     }
@@ -1315,7 +1303,7 @@ void NetworkClient::_handleEntityMove(network::PacketDeserializer& deser)
 
     if (m_callbacks.onEntityMove) {
         // 相对移动转换为绝对位置需要客户端缓存
-        // 这里简化处理，发送相对移动信息
+        // TODO 这里暂时简化处理，发送相对移动信息
         m_callbacks.onEntityMove(packet.entityId(),
             packet.deltaX() / 32.0f, // 转换为方块单位
             packet.deltaY() / 32.0f,
@@ -1375,9 +1363,6 @@ void NetworkClient::_handleEntityMetadata(network::PacketDeserializer& deser)
         spdlog::error("Failed to deserialize EntityMetadata packet: {}", result.error().message());
         return;
     }
-
-    // spdlog::debug(
-    //     "Received EntityMetadata for entity {}, metadata size: {}", packet.entityId(), packet.metadata().size());
 
     if (m_callbacks.onEntityMetadata) {
         m_callbacks.onEntityMetadata(packet.entityId(), packet.metadata());
@@ -1628,13 +1613,6 @@ void NetworkClient::_handlePlaySound(network::PacketDeserializer& deser)
     }
 
     const glm::vec3 pos = packet.getPosition();
-    spdlog::debug("[NetworkClient] Received PlaySound: {} at ({}, {}, {}) vol={} pitch={}",
-        packet.getSoundEventId().toString(),
-        pos.x,
-        pos.y,
-        pos.z,
-        packet.getVolume(),
-        packet.getPitch());
 
     if (m_callbacks.onPlaySound) {
         m_callbacks.onPlaySound(
@@ -1820,12 +1798,6 @@ void NetworkClient::_handleMovingSound(network::PacketDeserializer& deser)
         return;
     }
 
-    // spdlog::debug("[NetworkClient] Received MovingSound: {} for entity {} vol={} pitch={}",
-    //     packet.getSoundEventId().toString(),
-    //     packet.getEntityId(),
-    //     packet.getVolume(),
-    //     packet.getPitch());
-
     if (m_callbacks.onMovingSound) {
         m_callbacks.onMovingSound(packet.getSoundEventId(),
             packet.getCategory(),
@@ -1847,13 +1819,6 @@ void NetworkClient::_handleWorldEvent(network::PacketDeserializer& deser)
         return;
     }
 
-    // spdlog::debug("[NetworkClient] Received WorldEvent: id={}, pos=({},{},{}), data={}",
-    //     packet.getEventId(),
-    //     packet.getX(),
-    //     packet.getY(),
-    //     packet.getZ(),
-    //     packet.getData());
-
     if (m_callbacks.onWorldEvent) {
         m_callbacks.onWorldEvent(packet.getEventId(), packet.getX(), packet.getY(), packet.getZ(), packet.getData());
     }
@@ -1870,10 +1835,6 @@ void NetworkClient::_handleSetPassengers(network::PacketDeserializer& deser)
         spdlog::error("Failed to deserialize SetPassengers packet: {}", result.error().message());
         return;
     }
-
-    // spdlog::debug("[NetworkClient] Received SetPassengers: vehicle={}, passengers={}",
-    //     packet.entityId(),
-    //     packet.passengerIds().size());
 
     if (m_callbacks.onSetPassengers) {
         m_callbacks.onSetPassengers(packet.entityId(), packet.passengerIds());
@@ -1966,11 +1927,6 @@ void NetworkClient::_handleMapData(network::PacketDeserializer& deser)
         return;
     }
 
-    spdlog::trace("[NetworkClient] Received MapData: mapId={}, scale={}, columns={}",
-        packet.mapId(),
-        packet.scale(),
-        packet.columns());
-
     if (m_callbacks.onMapData) {
         m_callbacks.onMapData(packet);
     }
@@ -1984,13 +1940,6 @@ void NetworkClient::_handleVehicleMove(network::PacketDeserializer& deser)
         spdlog::error("Failed to deserialize VehicleMove packet: {}", result.error().message());
         return;
     }
-
-    spdlog::debug("[NetworkClient] Received VehicleMove: pos=({:.2f}, {:.2f}, {:.2f}), yaw={:.1f}, pitch={:.1f}",
-        packet.x(),
-        packet.y(),
-        packet.z(),
-        packet.yaw(),
-        packet.pitch());
 
     if (m_callbacks.onVehicleMove) {
         m_callbacks.onVehicleMove(packet.x(), packet.y(), packet.z(), packet.yaw(), packet.pitch());
@@ -2039,7 +1988,6 @@ void NetworkClient::_handleHotbarSet(network::PacketDeserializer& deser)
     }
 
     const auto& packet = result.value();
-    spdlog::debug("[NetworkClient] Received HotbarSet: slot={}", packet.slot());
 
     if (m_callbacks.onHotbarSet) {
         m_callbacks.onHotbarSet(packet.slot());
@@ -2057,8 +2005,6 @@ void NetworkClient::_handleTitle(network::PacketDeserializer& deser)
         spdlog::error("Failed to deserialize Title packet: {}", result.error().message());
         return;
     }
-
-    spdlog::debug("[NetworkClient] Received Title: action={}", static_cast<i32>(packet.action()));
 
     if (m_callbacks.onTitle) {
         m_callbacks.onTitle(packet.action(), packet.text(), packet.fadeIn(), packet.stay(), packet.fadeOut());

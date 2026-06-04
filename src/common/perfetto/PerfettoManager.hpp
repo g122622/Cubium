@@ -55,8 +55,8 @@
 
 #pragma once
 
-#include "PerfettoConfig.hpp"
 #include "../core/Types.hpp"
+#include "PerfettoConfig.hpp"
 
 #include <memory>
 #include <stdexcept>
@@ -211,6 +211,17 @@ public:
      */
     void setThreadName(const std::string& name);
 
+    /**
+     * @brief 设置当前线程名称和排序索引
+     *
+     * 在 Perfetto UI 中显示有意义的线程名称，并控制显示顺序。
+     * 排序索引越小，线程越靠前显示。
+     *
+     * @param name 线程名称
+     * @param sortIndex 排序索引（0 = 最高优先级）
+     */
+    void setThreadName(const std::string& name, int sortIndex);
+
 private:
     PerfettoManager();
     ~PerfettoManager();
@@ -256,6 +267,7 @@ public:
     [[nodiscard]] TraceConfig config() const noexcept { return {}; }
     void setProcessName(const std::string&) noexcept {}
     void setThreadName(const std::string&) noexcept {}
+    void setThreadName(const std::string&, int) noexcept {}
 
 private:
     PerfettoManager() = default;

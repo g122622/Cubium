@@ -589,8 +589,6 @@ void WorldTextRenderer::renderText(VkCommandBuffer cmd,
 
         cursorX += glyph->advanceX * effectiveScale;
     }
-
-    spdlog::trace("WorldTextRenderer: Rendered '{}' at ({}, {}, {})", text, position.x, position.y, position.z);
 }
 
 void WorldTextRenderer::renderNameTag(VkCommandBuffer cmd,
