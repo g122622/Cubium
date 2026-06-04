@@ -406,6 +406,7 @@ void ScreenStackWidget::onResize(i32 width, i32 height)
             auto* screen = std::get<std::unique_ptr<Screen>>(wrapper.item).get();
             if (screen) {
                 screen->setBounds(kagero::Rect(0, 0, width, height));
+                screen->onResize(width, height);
             }
         } else {
             auto* screen = std::get<std::unique_ptr<IScreen>>(wrapper.item).get();

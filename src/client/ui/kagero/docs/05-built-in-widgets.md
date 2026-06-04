@@ -387,6 +387,64 @@ container->removeChild("title");
 container->clearChildren();
 ```
 
+### Flex 布局
+
+ContainerWidget 支持 Flex 弹性布局，自动排列子元素：
+
+```cpp
+// 设置 Flex 列布局
+container->setLayoutType(ContainerLayoutType::Flex);
+container->setFlexConfig(layout::centerColumnFlexConfig());
+
+// 自定义 Flex 配置
+layout::FlexConfig config;
+config.direction = layout::Direction::Column;
+config.justifyContent = layout::JustifyContent::Center;
+config.alignItems = layout::Align::Center;
+config.gap = 10;
+container->setFlexConfig(config);
+```
+
+**FlexConfig 字段**：
+
+| 字段 | 类型 | 默认值 | 描述 |
+|------|------|--------|------|
+| `direction` | `Direction` | `Row` | 主轴方向 |
+| `justifyContent` | `JustifyContent` | `Start` | 主轴对齐 |
+| `alignItems` | `Align` | `Stretch` | 交叉轴对齐 |
+| `wrap` | `Wrap` | `NoWrap` | 换行方式 |
+| `gap` | `i32` | `0` | 子元素间距 |
+
+**Direction 枚举**：`Row`、`RowReverse`、`Column`、`ColumnReverse`
+
+**JustifyContent 枚举**：`Start`、`Center`、`End`、`SpaceBetween`、`SpaceAround`、`SpaceEvenly`
+
+**Align 枚举**：`Start`、`Center`、`End`、`Stretch`、`Baseline`
+
+**便捷函数**：
+
+```cpp
+// 水平居中
+auto config = layout::centerRowFlexConfig();
+
+// 垂直居中（常用）
+auto config = layout::centerColumnFlexConfig();
+
+// 两端对齐
+auto config = layout::spaceBetweenFlexConfig();
+```
+
+在模板中使用 Flex 布局：
+
+```xml
+<container layout="flex-column" gap="10" align-items="center" justify-content="center">
+    <button text="OK" size="100,20"/>
+    <button text="Cancel" size="100,20"/>
+</container>
+```
+
+**`<screen>` 标签默认使用垂直居中 Flex 布局**，无需手动指定 `layout` 属性。
+
 ## 滚动容器 (ScrollableWidget)
 
 支持滚动的内容容器：

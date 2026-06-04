@@ -111,6 +111,7 @@ protected:
 
 private:
     void _syncRootWidgetBounds();
+    void _resolvePercentSizes();
 
     std::unique_ptr<kagero::tpl::binder::BindingContext> m_ownedContext;
     kagero::tpl::binder::BindingContext* m_context = nullptr;

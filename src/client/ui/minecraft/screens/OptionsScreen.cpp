@@ -3,7 +3,7 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
+ * in the Software without restriction, including limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
@@ -22,17 +22,42 @@
  */
 
 #include "OptionsScreen.hpp"
+#include <GLFW/glfw3.h>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::ui::minecraft {
 
 OptionsScreen::OptionsScreen()
-    : Screen("options")
-{}
-
-void OptionsScreen::paint(kagero::widget::PaintContext& ctx)
+    : TemplateScreen(std::make_unique<kagero::tpl::binder::BindingContext>(
+                         kagero::state::StateStore::instance(), kagero::event::EventBus::instance()),
+          "options")
 {
-    // TODO: 绘制选项控件（按钮、滑块等）
-    ctx.drawFilledRect(bounds(), Colors::fromARGB(220, 18, 18, 26));
+    loadTemplateFile("src/client/ui/minecraft/templates/options.tpl");
+    _registerCallbacks();
+}
+
+bool OptionsScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
+{
+    (void)scanCode;
+    (void)mods;
+
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+        if (m_onClose) {
+            m_onClose();
+        }
+        return true;
+    }
+
+    return Screen::onKey(key, scanCode, action, mods);
+}
+
+void OptionsScreen::_registerCallbacks()
+{
+    exposeSimpleCallback("onClose", [this]() {
+        if (m_onClose) {
+            m_onClose();
+        }
+    });
 }
 
 } // namespace mc::client::ui::minecraft

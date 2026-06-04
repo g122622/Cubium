@@ -3,10 +3,10 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * in the Software without restriction, including limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * furnished to do so, subject to the conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
@@ -23,19 +23,36 @@
 
 #pragma once
 
-#include "Screen.hpp"
+#include "TemplateScreen.hpp"
+#include <functional>
 
 namespace mc::client::ui::minecraft {
 
 /**
  * @brief 游戏选项设置界面
  *
- * TODO: 当前仅为骨架实现，仅绘制背景，尚未实现选项控件和交互逻辑
+ * 提供游戏设置选项的骨架界面，使用模板驱动布局。
+ * ESC 键或 Done 按钮可关闭界面返回上一级。
  */
-class OptionsScreen : public Screen {
+class OptionsScreen : public TemplateScreen {
 public:
     OptionsScreen();
-    void paint(kagero::widget::PaintContext& ctx) override;
+
+    /**
+     * @brief 设置关闭回调
+     * @param callback 关闭时调用的回调函数
+     */
+    void setOnClose(std::function<void()> callback) { m_onClose = std::move(callback); }
+
+    /**
+     * @brief 处理键盘事件，ESC 键关闭界面
+     */
+    bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override;
+
+private:
+    void _registerCallbacks();
+
+    std::function<void()> m_onClose;
 };
 
 } // namespace mc::client::ui::minecraft

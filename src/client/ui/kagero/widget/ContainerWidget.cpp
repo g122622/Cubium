@@ -76,6 +76,17 @@ bool ContainerWidget::onScroll(i32 mouseX, i32 mouseY, f64 delta)
     return handleScrollInChildren(mouseX, mouseY, delta);
 }
 
+void ContainerWidget::updateHover(i32 mouseX, i32 mouseY)
+{
+    setHovered(isMouseOver(mouseX, mouseY));
+
+    for (auto& child : m_children) {
+        if (child->isVisible() && child->isActive()) {
+            child->updateHover(mouseX, mouseY);
+        }
+    }
+}
+
 // ========== 键盘事件 ==========
 
 bool ContainerWidget::onKey(i32 key, i32 scanCode, i32 action, i32 mods)

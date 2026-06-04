@@ -67,6 +67,11 @@ public:
     bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) override;
     bool onScroll(i32 mouseX, i32 mouseY, f64 delta) override;
 
+    /**
+     * @brief 更新自身及所有子控件的悬停状态
+     */
+    void updateHover(i32 mouseX, i32 mouseY) override;
+
     // ========== 键盘事件 ==========
 
     bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override;

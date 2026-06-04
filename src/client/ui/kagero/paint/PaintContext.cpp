@@ -92,9 +92,11 @@ const paint::ICanvas& PaintContext::canvas() const
 
 void PaintContext::drawTextCentered(const std::string& text, const Rect& bounds, u32 color)
 {
-    // 使用缓存的画笔
     m_fillPaint->setColor(paint::Color::fromARGB(color));
-    m_canvas.drawText(text, static_cast<f32>(bounds.centerX()), static_cast<f32>(bounds.centerY()), *m_fillPaint);
+    f32 textWidth = m_canvas.getTextWidth(text);
+    f32 x = static_cast<f32>(bounds.centerX()) - textWidth * 0.5f;
+    f32 y = static_cast<f32>(bounds.centerY());
+    m_canvas.drawText(text, x, y, *m_fillPaint);
 }
 
 void PaintContext::drawBorder(const Rect& bounds, f32 width, u32 color)

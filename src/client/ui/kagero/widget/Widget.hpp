@@ -23,11 +23,12 @@
 
 #pragma once
 
-#include "client/ui/kagero/Types.hpp"
 #include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace mc::client::ui::kagero::widget {
@@ -458,6 +459,26 @@ public:
      */
     void setId(std::string id) { m_id = std::move(id); }
 
+    // ==================== 自定义数据 ====================
+
+    /**
+     * @brief 设置自定义字符串数据
+     * @param key 数据键
+     * @param value 数据值
+     */
+    void setUserData(const std::string& key, const std::string& value) { m_userData[key] = value; }
+
+    /**
+     * @brief 获取自定义字符串数据
+     * @param key 数据键
+     * @return 数据值指针，不存在则返回 nullptr
+     */
+    [[nodiscard]] const std::string* getUserData(const std::string& key) const
+    {
+        auto it = m_userData.find(key);
+        return it != m_userData.end() ? &it->second : nullptr;
+    }
+
     /**
      * @brief 获取边界
      */
@@ -546,7 +567,7 @@ public:
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标
      */
-    void updateHover(i32 mouseX, i32 mouseY) { setHovered(isMouseOver(mouseX, mouseY)); }
+    virtual void updateHover(i32 mouseX, i32 mouseY) { setHovered(isMouseOver(mouseX, mouseY)); }
 
     // ==================== UI音效支持 ====================
 
@@ -619,21 +640,22 @@ protected:
     virtual void onActiveChanged(bool active) { (void)active; }
 
     // 成员变量
-    std::string m_id;                                     ///< 组件ID
-    Rect m_bounds;                                        ///< 边界矩形
-    Anchor m_anchor = Anchor::TopLeft;                    ///< 锚点
-    Margin m_margin;                                      ///< 边距
-    Padding m_padding;                                    ///< 内边距
-    bool m_visible = true;                                ///< 是否可见
-    bool m_active = true;                                 ///< 是否激活（可交互）
-    bool m_hovered = false;                               ///< 鼠标悬停
-    bool m_focused = false;                               ///< 是否获得焦点
-    i32 m_zIndex = 0;                                     ///< Z索引
-    f32 m_alpha = 1.0f;                                   ///< 透明度
-    u32 m_backgroundColor = Colors::fromARGB(0, 0, 0, 0); ///< 背景色
-    u32 m_borderColor = Colors::fromARGB(0, 0, 0, 0);     ///< 边框色
-    i32 m_cornerRadius = 0;                               ///< 圆角半径
-    IWidgetContainer* m_parent = nullptr;                 ///< 父容器
+    std::string m_id;                                        ///< 组件ID
+    Rect m_bounds;                                           ///< 边界矩形
+    Anchor m_anchor = Anchor::TopLeft;                       ///< 锚点
+    Margin m_margin;                                         ///< 边距
+    Padding m_padding;                                       ///< 内边距
+    bool m_visible = true;                                   ///< 是否可见
+    bool m_active = true;                                    ///< 是否激活（可交互）
+    bool m_hovered = false;                                  ///< 鼠标悬停
+    bool m_focused = false;                                  ///< 是否获得焦点
+    i32 m_zIndex = 0;                                        ///< Z索引
+    f32 m_alpha = 1.0f;                                      ///< 透明度
+    u32 m_backgroundColor = Colors::fromARGB(0, 0, 0, 0);    ///< 背景色
+    u32 m_borderColor = Colors::fromARGB(0, 0, 0, 0);        ///< 边框色
+    i32 m_cornerRadius = 0;                                  ///< 圆角半径
+    IWidgetContainer* m_parent = nullptr;                    ///< 父容器
+    std::unordered_map<std::string, std::string> m_userData; ///< 自定义数据存储
 
     // 静态成员：UI音效回调（inline 允许在头文件中定义）
     inline static UiSoundCallback s_uiSoundCallback;

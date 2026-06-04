@@ -146,8 +146,9 @@ public:
      * @param key GLFW键码
      * @param action GLFW动作 (GLFW_PRESS, GLFW_RELEASE, GLFW_REPEAT)
      * @param mods 修饰键
+     * @return true 表示事件已消费，阻止后续 action 触发；false 继续正常流程
      */
-    using KeyEventCallback = std::function<void(i32 key, i32 action, i32 mods)>;
+    using KeyEventCallback = std::function<bool(i32 key, i32 action, i32 mods)>;
 
     /**
      * @brief 设置键盘事件回调

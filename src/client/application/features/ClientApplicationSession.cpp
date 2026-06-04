@@ -31,6 +31,7 @@
 #include "client/ui/minecraft/screens/CreateWorldScreen.hpp"
 #include "client/ui/minecraft/screens/LoadingScreen.hpp"
 #include "client/ui/minecraft/screens/MainMenuScreen.hpp"
+#include "client/ui/minecraft/screens/OptionsScreen.hpp"
 #include "client/ui/minecraft/screens/PauseScreen.hpp"
 #include "client/ui/minecraft/screens/WorldSelectionScreen.hpp"
 #include "client/ui/minecraft/widgets/HudWidget.hpp"
@@ -471,8 +472,14 @@ void ClientApplication::showMainMenu()
     });
 
     mainMenuScreen->setOnOptions([this]() {
-        // TODO: 设置界面
-        spdlog::info("[Session] Options not yet implemented");
+        auto* screenStack = getScreenStackWidget(this);
+        if (!screenStack) {
+            return;
+        }
+        auto optionsScreen = std::make_unique<ui::minecraft::OptionsScreen>();
+        optionsScreen->setBounds(ui::kagero::Rect(0, 0, m_guiScaleState.width, m_guiScaleState.height));
+        optionsScreen->setOnClose([this, screenStack]() { screenStack->pop(); });
+        screenStack->push(std::move(optionsScreen));
     });
 
     mainMenuScreen->setOnQuit([this]() {
@@ -482,9 +489,8 @@ void ClientApplication::showMainMenu()
 
     // 设置屏幕大小
     mainMenuScreen->setBounds(ui::kagero::Rect(0, 0, m_guiScaleState.width, m_guiScaleState.height));
-    mainMenuScreen->onOpen();
 
-    // 添加到屏幕栈
+    // 添加到屏幕栈（push 会自动调用 onOpen）
     screenStack->push(std::move(mainMenuScreen));
 
     // 确保鼠标未被捕获
@@ -534,8 +540,14 @@ void ClientApplication::showPauseMenu()
     });
 
     pauseScreen->setOnOptions([this]() {
-        // TODO: 设置界面
-        spdlog::info("[Session] Options not yet implemented");
+        auto* screenStack = getScreenStackWidget(this);
+        if (!screenStack) {
+            return;
+        }
+        auto optionsScreen = std::make_unique<ui::minecraft::OptionsScreen>();
+        optionsScreen->setBounds(ui::kagero::Rect(0, 0, m_guiScaleState.width, m_guiScaleState.height));
+        optionsScreen->setOnClose([this, screenStack]() { screenStack->pop(); });
+        screenStack->push(std::move(optionsScreen));
     });
 
     pauseScreen->setOnSaveAndQuit([this]() {
@@ -546,9 +558,8 @@ void ClientApplication::showPauseMenu()
 
     // 设置屏幕大小
     pauseScreen->setBounds(ui::kagero::Rect(0, 0, m_guiScaleState.width, m_guiScaleState.height));
-    pauseScreen->onOpen();
 
-    // 添加到屏幕栈
+    // 添加到屏幕栈（push 会自动调用 onOpen）
     screenStack->push(std::move(pauseScreen));
 
     // 释放鼠标
@@ -605,9 +616,8 @@ void ClientApplication::showWorldSelection()
 
     // 设置屏幕大小
     worldSelectionScreen->setBounds(ui::kagero::Rect(0, 0, m_guiScaleState.width, m_guiScaleState.height));
-    worldSelectionScreen->onOpen();
 
-    // 添加到屏幕栈
+    // 添加到屏幕栈（push 会自动调用 onOpen）
     screenStack->push(std::move(worldSelectionScreen));
 }
 
@@ -672,9 +682,8 @@ void ClientApplication::showCreateWorld()
 
     // 设置屏幕大小
     createWorldScreen->setBounds(ui::kagero::Rect(0, 0, m_guiScaleState.width, m_guiScaleState.height));
-    createWorldScreen->onOpen();
 
-    // 添加到屏幕栈
+    // 添加到屏幕栈（push 会自动调用 onOpen）
     screenStack->push(std::move(createWorldScreen));
 }
 
@@ -697,9 +706,8 @@ void ClientApplication::showLoadingScreen()
 
     // 设置屏幕大小
     loadingScreen->setBounds(ui::kagero::Rect(0, 0, m_guiScaleState.width, m_guiScaleState.height));
-    loadingScreen->onOpen();
 
-    // 添加到屏幕栈
+    // 添加到屏幕栈（push 会自动调用 onOpen）
     screenStack->push(std::move(loadingScreen));
 }
 

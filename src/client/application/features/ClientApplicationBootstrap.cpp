@@ -650,24 +650,27 @@ void ClientApplication::initializeUi()
         });
 
         // 设置键盘事件回调 - 通过 KageroEngine 分发
-        m_input.setKeyEventCallback([this](i32 key, i32 action, i32 mods) {
+        // 返回 true 表示事件已消费，阻止后续 action 触发
+        m_input.setKeyEventCallback([this](i32 key, i32 action, i32 mods) -> bool {
             // F3 切换调试屏幕
             if (key == GLFW_KEY_F3 && action == GLFW_PRESS) {
                 m_debugScreenVisible = !m_debugScreenVisible;
                 if (m_kageroEngine) {
                     m_kageroEngine->setLayerVisible(m_debugScreenLayerId, m_debugScreenVisible);
                 }
-                return;
+                return true;
             }
 
             if (m_kageroEngine && m_kageroEngine->handleKey(key, 0, action, mods)) {
-                return;
+                return true;
             }
 
             // 游戏输入处理
             if (action == GLFW_PRESS && !ScreenManager::instance().hasScreen()) {
                 mc::client::application::features::captureMouseAfterScreens(m_input, m_mouseCaptured);
             }
+
+            return false;
         });
 
         // 设置GUI渲染回调 - 完全通过 KageroEngine

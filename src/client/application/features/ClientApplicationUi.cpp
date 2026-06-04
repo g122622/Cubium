@@ -191,6 +191,11 @@ void ClientApplication::handleEvents()
             m_kageroEngine->handleScroll(guiMouseX, guiMouseY, screenScrollDelta);
         }
 
+        // 转发鼠标移动事件以更新控件悬停状态
+        if (m_kageroEngine) {
+            m_kageroEngine->handleMouseMove(guiMouseX, guiMouseY);
+        }
+
         if (!screenStack->hasScreen()) {
             mc::client::application::features::captureMouseAfterScreens(m_input, m_mouseCaptured);
         }

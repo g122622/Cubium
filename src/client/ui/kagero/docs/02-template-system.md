@@ -217,13 +217,63 @@ instance.updateBinding("player.name");
 ### 样式属性
 
 ```xml
-<button id="btn" 
+<button id="btn"
         width="200" height="40"
         margin="10,5" padding="5"
         background-color="#404040"
         border-color="#606060"
         corner-radius="4"/>
 ```
+
+### Flex 布局
+
+容器组件支持 Flex 弹性布局，可自动排列子元素：
+
+```xml
+<!-- 垂直排列按钮，间距 10px -->
+<container id="menu" layout="flex-column" gap="10" align-items="center" size="200,120">
+    <button id="btn1" text="Option A" size="200,20"/>
+    <button id="btn2" text="Option B" size="200,20"/>
+    <button id="btn3" text="Option C" size="200,20"/>
+</container>
+```
+
+**布局类型** (`layout` 属性)：
+
+| 值 | 描述 |
+|----|------|
+| `flex` / `flex-row` | 水平排列（从左到右） |
+| `flex-column` | 垂直排列（从上到下） |
+| `flex-row-reverse` | 水平反向排列（从右到左） |
+| `flex-column-reverse` | 垂直反向排列（从下到上） |
+| `flex-center` | 垂直居中排列（Column + Center justify + Center align） |
+| `grid` | 网格布局 |
+| `anchor` | 锚点布局 |
+
+**Flex 子属性**：
+
+| 属性 | 描述 | 值 |
+|------|------|-----|
+| `gap` | 子元素间距 | 整数（像素），如 `10` |
+| `align-items` | 交叉轴对齐 | `start` / `center` / `end` / `stretch` / `baseline` |
+| `justify-content` | 主轴对齐 | `start` / `center` / `end` / `space-between` / `space-around` / `space-evenly` |
+
+**screen 默认布局**：`<screen>` 标签默认使用 `flex-center` 布局（垂直居中排列），无需手动设置。
+
+### 百分比尺寸
+
+`size` 和 `pos` 属性支持百分比值，相对于父容器尺寸计算：
+
+```xml
+<!-- 占满父容器 -->
+<container id="overlay" size="100%,100%" background-color="#B4000000"/>
+
+<!-- 居中且宽度为父容器的 50% -->
+<container id="panel" size="50%,80%"/>
+```
+
+- 像素值和百分比值可混合使用：`size="50%,200"`
+- 百分比在模板实例化后、父容器尺寸已知时解析
 
 ## 内置组件
 
@@ -480,6 +530,13 @@ if (compiled->hasErrors()) {
 | `min`/`max` | ✅ | ✅ | 滑块范围 |
 | `placeholder` | ✅ | ✅ | 输入框占位文本 |
 | `max-length` | ✅ | ✅ | 输入最大长度 |
+| `pos` | ✅ | ✅ | 位置（支持百分比如 "50%,0"） |
+| `size` | ✅ | ✅ | 尺寸（支持百分比如 "100%,100%"） |
+| `layout` | ✅ | ✅ | 布局类型（flex-column 等） |
+| `gap` | ✅ | ✅ | Flex 子元素间距 |
+| `align-items` | ✅ | ✅ | 交叉轴对齐 |
+| `justify-content` | ✅ | ✅ | 主轴对齐 |
+| `background-color` | ✅ | ✅ | 背景色（screen 和 container 均支持） |
 
 ### Widget 特定事件支持
 

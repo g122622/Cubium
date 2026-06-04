@@ -51,7 +51,7 @@ public:
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标
      */
-    void updateHover(i32 mouseX, i32 mouseY);
+    void updateHover(i32 mouseX, i32 mouseY) override;
 
     /** @brief 查询此屏幕是否为模态（模态屏幕会阻止下层屏幕接收输入） */
     [[nodiscard]] bool isModal() const;

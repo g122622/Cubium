@@ -83,12 +83,24 @@ std::unique_ptr<widget::Widget> BuiltinWidgets::create(
     if (widget) {
         auto posIt = attrs.find("pos");
         if (posIt != attrs.end()) {
-            widget_attrs::applyPosition(widget.get(), posIt->second);
+            if (widget_attrs::hasPercentValue(posIt->second)) {
+                // 百分比位置存储到 userData，待父容器尺寸确定后解析
+                widget->setUserData("__pos_percent", posIt->second);
+            } else {
+                widget_attrs::applyPosition(widget.get(), posIt->second);
+            }
         }
 
         auto sizeIt = attrs.find("size");
         if (sizeIt != attrs.end()) {
-            widget_attrs::applySize(widget.get(), sizeIt->second);
+            if (widget_attrs::hasPercentValue(sizeIt->second)) {
+                // 百分比尺寸存储到 userData，待父容器尺寸确定后解析
+                widget->setUserData("__size_percent", sizeIt->second);
+                // 同时设置像素值为临时值（百分比解析前使用）
+                widget_attrs::applySize(widget.get(), sizeIt->second);
+            } else {
+                widget_attrs::applySize(widget.get(), sizeIt->second);
+            }
         }
 
         auto visibleIt = attrs.find("visible");
@@ -123,13 +135,92 @@ std::unique_ptr<widget::Widget> BuiltinWidgets::create(
                 return static_cast<char>(std::tolower(c));
             });
             if (auto* container = dynamic_cast<widget::ContainerWidget*>(widget.get())) {
-                if (layout == "flex") {
+                if (layout == "flex" || layout == "flex-row") {
                     container->setLayoutType(widget::ContainerLayoutType::Flex);
+                    auto config = container->flexConfig();
+                    config.direction = layout::Direction::Row;
+                    container->setFlexConfig(config);
+                } else if (layout == "flex-column") {
+                    container->setLayoutType(widget::ContainerLayoutType::Flex);
+                    auto config = container->flexConfig();
+                    config.direction = layout::Direction::Column;
+                    container->setFlexConfig(config);
+                } else if (layout == "flex-row-reverse") {
+                    container->setLayoutType(widget::ContainerLayoutType::Flex);
+                    auto config = container->flexConfig();
+                    config.direction = layout::Direction::RowReverse;
+                    container->setFlexConfig(config);
+                } else if (layout == "flex-column-reverse") {
+                    container->setLayoutType(widget::ContainerLayoutType::Flex);
+                    auto config = container->flexConfig();
+                    config.direction = layout::Direction::ColumnReverse;
+                    container->setFlexConfig(config);
+                } else if (layout == "flex-center") {
+                    container->setLayoutType(widget::ContainerLayoutType::Flex);
+                    auto config = layout::centerColumnFlexConfig();
+                    container->setFlexConfig(config);
                 } else if (layout == "grid") {
                     container->setLayoutType(widget::ContainerLayoutType::Grid);
                 } else if (layout == "anchor") {
                     container->setLayoutType(widget::ContainerLayoutType::Anchor);
                 }
+            }
+        }
+
+        auto gapIt = attrs.find("gap");
+        if (gapIt != attrs.end()) {
+            if (auto* container = dynamic_cast<widget::ContainerWidget*>(widget.get())) {
+                auto config = container->flexConfig();
+                config.gap = widget_attrs::parseInt(gapIt->second);
+                container->setFlexConfig(config);
+            }
+        }
+
+        auto alignItemsIt = attrs.find("align-items");
+        if (alignItemsIt != attrs.end()) {
+            if (auto* container = dynamic_cast<widget::ContainerWidget*>(widget.get())) {
+                auto config = container->flexConfig();
+                std::string align = alignItemsIt->second;
+                std::transform(align.begin(), align.end(), align.begin(), [](unsigned char c) {
+                    return static_cast<char>(std::tolower(c));
+                });
+                if (align == "start") {
+                    config.alignItems = layout::Align::Start;
+                } else if (align == "center") {
+                    config.alignItems = layout::Align::Center;
+                } else if (align == "end") {
+                    config.alignItems = layout::Align::End;
+                } else if (align == "stretch") {
+                    config.alignItems = layout::Align::Stretch;
+                } else if (align == "baseline") {
+                    config.alignItems = layout::Align::Baseline;
+                }
+                container->setFlexConfig(config);
+            }
+        }
+
+        auto justifyContentIt = attrs.find("justify-content");
+        if (justifyContentIt != attrs.end()) {
+            if (auto* container = dynamic_cast<widget::ContainerWidget*>(widget.get())) {
+                auto config = container->flexConfig();
+                std::string justify = justifyContentIt->second;
+                std::transform(justify.begin(), justify.end(), justify.begin(), [](unsigned char c) {
+                    return static_cast<char>(std::tolower(c));
+                });
+                if (justify == "start") {
+                    config.justifyContent = layout::JustifyContent::Start;
+                } else if (justify == "center") {
+                    config.justifyContent = layout::JustifyContent::Center;
+                } else if (justify == "end") {
+                    config.justifyContent = layout::JustifyContent::End;
+                } else if (justify == "space-between") {
+                    config.justifyContent = layout::JustifyContent::SpaceBetween;
+                } else if (justify == "space-around") {
+                    config.justifyContent = layout::JustifyContent::SpaceAround;
+                } else if (justify == "space-evenly") {
+                    config.justifyContent = layout::JustifyContent::SpaceEvenly;
+                }
+                container->setFlexConfig(config);
             }
         }
     }
@@ -162,15 +253,27 @@ void BuiltinWidgets::_registerScreenWidget()
 {
     m_creators["screen"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "screen" : id);
-        // TODO: 实现title和modal属性的处理
+
+        // screen 默认使用垂直居中 Flex 布局，使子元素自动居中排列
+        widget->setLayoutType(widget::ContainerLayoutType::Flex);
+        widget->setFlexConfig(layout::centerColumnFlexConfig());
+
+        // 将 screen 属性存储到 userData，供 TemplateScreen 读取
         auto titleIt = attrs.find("title");
         if (titleIt != attrs.end()) {
-            MC_UNUSED(titleIt);
+            widget->setUserData("title", titleIt->second);
         }
         auto modalIt = attrs.find("modal");
         if (modalIt != attrs.end()) {
-            MC_UNUSED(modalIt);
+            widget->setUserData("modal", modalIt->second);
         }
+
+        // 解析 background-color 属性
+        auto bgColorIt = attrs.find("background-color");
+        if (bgColorIt != attrs.end()) {
+            widget->setBackgroundColor(widget_attrs::parseColor(bgColorIt->second));
+        }
+
         return widget;
     };
 
@@ -182,21 +285,8 @@ void BuiltinWidgets::_registerContainerWidget()
     m_creators["container"] = [](const std::string& id, const std::map<std::string, std::string>& attrs) {
         auto widget = std::make_unique<widget::ContainerWidget>(id.empty() ? "container" : id);
 
-        // TODO: layout属性的解析与BuiltinWidgets::create()中的通用属性处理重复，应去除此处重复逻辑
-        auto layoutIt = attrs.find("layout");
-        if (layoutIt != attrs.end()) {
-            std::string layout = layoutIt->second;
-            std::transform(layout.begin(), layout.end(), layout.begin(), [](unsigned char c) {
-                return static_cast<char>(std::tolower(c));
-            });
-            if (layout == "flex") {
-                widget->setLayoutType(widget::ContainerLayoutType::Flex);
-            } else if (layout == "grid") {
-                widget->setLayoutType(widget::ContainerLayoutType::Grid);
-            } else if (layout == "anchor") {
-                widget->setLayoutType(widget::ContainerLayoutType::Anchor);
-            }
-        }
+        // 注意：layout/gap/align-items/justify-content 属性的解析由 BuiltinWidgets::create() 统一处理
+        // 此处仅处理 container 特有的属性
 
         return widget;
     };
@@ -462,6 +552,20 @@ void BuiltinWidgets::_registerViewport3DWidget()
     m_defaultAttributes["viewport3d"] = {{"size", "100,100"}};
 }
 
+// ========== ParsedValue实现 ==========
+
+ParsedValue::ParsedValue(i32 pixels)
+    : pixels(pixels)
+    , percent(-1.0f)
+    , isPercent(false)
+{}
+
+ParsedValue::ParsedValue(f32 pct)
+    : pixels(0)
+    , percent(pct)
+    , isPercent(true)
+{}
+
 // ========== widget_attrs实现 ==========
 
 namespace widget_attrs {
@@ -488,6 +592,50 @@ std::pair<i32, i32> parseSize(const std::string& value)
     return parsePosition(value);
 }
 
+ParsedSize parseSizeEx(const std::string& value)
+{
+    size_t comma = value.find(',');
+    if (comma == std::string::npos) {
+        return {ParsedValue(0), ParsedValue(0)};
+    }
+
+    return {parseSingleValue(value.substr(0, comma)), parseSingleValue(value.substr(comma + 1))};
+}
+
+ParsedSize parsePositionEx(const std::string& value)
+{
+    return parseSizeEx(value);
+}
+
+ParsedValue parseSingleValue(const std::string& str)
+{
+    std::string trimmed = str;
+    // 去除首尾空格
+    while (!trimmed.empty() && std::isspace(static_cast<unsigned char>(trimmed.back()))) {
+        trimmed.pop_back();
+    }
+    while (!trimmed.empty() && std::isspace(static_cast<unsigned char>(trimmed.front()))) {
+        trimmed.erase(trimmed.begin());
+    }
+
+    if (!trimmed.empty() && trimmed.back() == '%') {
+        try {
+            f32 pct = std::stof(trimmed.substr(0, trimmed.size() - 1));
+            return ParsedValue(pct);
+        }
+        catch (...) {
+            return ParsedValue(0);
+        }
+    }
+
+    try {
+        return ParsedValue(std::stoi(trimmed));
+    }
+    catch (...) {
+        return ParsedValue(0);
+    }
+}
+
 void applyPosition(widget::Widget* widget, const std::string& value)
 {
     MC_ASSERT_RELEASE(widget != nullptr);
@@ -500,6 +648,52 @@ void applySize(widget::Widget* widget, const std::string& value)
     MC_ASSERT_RELEASE(widget != nullptr);
     auto [width, height] = parseSize(value);
     widget->setSize(width, height);
+}
+
+void applySizeWithParent(widget::Widget* widget, const std::string& value, i32 parentWidth, i32 parentHeight)
+{
+    MC_ASSERT_RELEASE(widget != nullptr);
+    auto parsed = parseSizeEx(value);
+    i32 w = parsed.width.isPercent ? static_cast<i32>(parsed.width.percent / 100.0f * static_cast<f32>(parentWidth))
+                                   : parsed.width.pixels;
+    i32 h = parsed.height.isPercent ? static_cast<i32>(parsed.height.percent / 100.0f * static_cast<f32>(parentHeight))
+                                    : parsed.height.pixels;
+    widget->setSize(w, h);
+}
+
+void applyPositionWithParent(widget::Widget* widget, const std::string& value, i32 parentWidth, i32 parentHeight)
+{
+    MC_ASSERT_RELEASE(widget != nullptr);
+    auto parsed = parsePositionEx(value);
+    i32 x = parsed.width.isPercent ? static_cast<i32>(parsed.width.percent / 100.0f * static_cast<f32>(parentWidth))
+                                   : parsed.width.pixels;
+    i32 y = parsed.height.isPercent ? static_cast<i32>(parsed.height.percent / 100.0f * static_cast<f32>(parentHeight))
+                                    : parsed.height.pixels;
+    widget->setPosition(x, y);
+}
+
+bool hasPercentValue(const std::string& value)
+{
+    size_t comma = value.find(',');
+    if (comma == std::string::npos) {
+        std::string trimmed = value;
+        while (!trimmed.empty() && std::isspace(static_cast<unsigned char>(trimmed.back()))) {
+            trimmed.pop_back();
+        }
+        while (!trimmed.empty() && std::isspace(static_cast<unsigned char>(trimmed.front()))) {
+            trimmed.erase(trimmed.begin());
+        }
+        return !trimmed.empty() && trimmed.back() == '%';
+    }
+    std::string left = value.substr(0, comma);
+    std::string right = value.substr(comma + 1);
+    while (!left.empty() && std::isspace(static_cast<unsigned char>(left.back()))) {
+        left.pop_back();
+    }
+    while (!right.empty() && std::isspace(static_cast<unsigned char>(right.back()))) {
+        right.pop_back();
+    }
+    return (!left.empty() && left.back() == '%') || (!right.empty() && right.back() == '%');
 }
 
 u32 parseColor(const std::string& value)

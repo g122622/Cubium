@@ -206,9 +206,11 @@ void InputManager::_scrollCallback(GLFWwindow* window, double xoffset, double yo
 
 void InputManager::_handleKey(i32 key, i32 action)
 {
-    // 先触发键盘事件回调（用于UI输入处理）
+    // 先触发键盘事件回调（用于UI输入处理），如果回调消费了事件则不再触发 action
     if (m_keyEventCallback) {
-        m_keyEventCallback(key, action, 0);
+        if (m_keyEventCallback(key, action, 0)) {
+            return;
+        }
     }
 
     if (action == GLFW_PRESS) {

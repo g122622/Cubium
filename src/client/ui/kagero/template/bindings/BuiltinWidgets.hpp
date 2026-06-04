@@ -130,6 +130,27 @@ private:
 };
 
 /**
+ * @brief 解析后的值，支持像素和百分比
+ */
+struct ParsedValue {
+    i32 pixels = 0;         ///< 像素值
+    f32 percent = -1.0f;    ///< 百分比值（-1 表示未使用百分比）
+    bool isPercent = false; ///< 是否为百分比值
+
+    ParsedValue() = default;
+    explicit ParsedValue(i32 pixels);
+    explicit ParsedValue(f32 percent);
+};
+
+/**
+ * @brief 解析后的尺寸，支持百分比
+ */
+struct ParsedSize {
+    ParsedValue width;
+    ParsedValue height;
+};
+
+/**
  * @brief Widget属性助手
  *
  * 提供解析和应用Widget属性的工具方法
@@ -153,6 +174,27 @@ namespace widget_attrs {
 [[nodiscard]] std::pair<i32, i32> parseSize(const std::string& value);
 
 /**
+ * @brief 解析尺寸属性（扩展版，支持百分比）
+ * @param value "width,height" 格式，支持 "50%,100%" 等百分比
+ * @return ParsedSize，每个分量可能是像素或百分比
+ */
+[[nodiscard]] ParsedSize parseSizeEx(const std::string& value);
+
+/**
+ * @brief 解析位置属性（扩展版，支持百分比）
+ * @param value "x,y" 格式，支持 "50%,0" 等百分比
+ * @return ParsedSize，每个分量可能是像素或百分比
+ */
+[[nodiscard]] ParsedSize parsePositionEx(const std::string& value);
+
+/**
+ * @brief 解析单个值（支持百分比）
+ * @param str "100" 或 "50%" 格式的字符串
+ * @return ParsedValue
+ */
+[[nodiscard]] ParsedValue parseSingleValue(const std::string& str);
+
+/**
  * @brief 应用位置属性
  */
 void applyPosition(widget::Widget* widget, const std::string& value);
@@ -161,6 +203,21 @@ void applyPosition(widget::Widget* widget, const std::string& value);
  * @brief 应用尺寸属性
  */
 void applySize(widget::Widget* widget, const std::string& value);
+
+/**
+ * @brief 应用尺寸属性（支持百分比，需要父容器尺寸）
+ */
+void applySizeWithParent(widget::Widget* widget, const std::string& value, i32 parentWidth, i32 parentHeight);
+
+/**
+ * @brief 应用位置属性（支持百分比，需要父容器尺寸）
+ */
+void applyPositionWithParent(widget::Widget* widget, const std::string& value, i32 parentWidth, i32 parentHeight);
+
+/**
+ * @brief 检查值字符串中是否包含百分比
+ */
+[[nodiscard]] bool hasPercentValue(const std::string& value);
 
 // ========== 颜色 ==========
 

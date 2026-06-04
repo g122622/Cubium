@@ -24,6 +24,9 @@
 #include "TemplateScreen.hpp"
 #include "client/ui/kagero/event/EventBus.hpp"
 #include "client/ui/kagero/state/StateStore.hpp"
+#include "client/ui/kagero/template/bindings/BuiltinWidgets.hpp"
+#include "client/ui/kagero/widget/ContainerWidget.hpp"
+#include "client/ui/kagero/widget/IWidgetContainer.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -121,6 +124,20 @@ void TemplateScreen::onOpen()
 {
     Screen::onOpen();
     _syncRootWidgetBounds();
+    _resolvePercentSizes();
+
+    // 从模板根节点读取 modal 属性并设置到 Screen
+    if (!m_children.empty()) {
+        auto* root = m_children.front().get();
+        if (root != nullptr) {
+            const auto* modalValue = root->getUserData("modal");
+            if (modalValue != nullptr) {
+                bool isModal = (*modalValue == "true" || *modalValue == "1");
+                setModal(isModal);
+            }
+        }
+    }
+
     if (m_instance) {
         m_instance->updateBindings();
     }
@@ -143,6 +160,7 @@ void TemplateScreen::onResize(i32 width, i32 height)
 {
     Screen::onResize(width, height);
     _syncRootWidgetBounds();
+    _resolvePercentSizes();
     if (m_instance) {
         m_instance->updateBindings();
     }
@@ -208,6 +226,7 @@ bool TemplateScreen::loadTemplate(const std::string& source)
 
     m_templateLoaded = true;
     _syncRootWidgetBounds();
+    _resolvePercentSizes();
     return true;
 }
 
@@ -234,6 +253,47 @@ void TemplateScreen::_syncRootWidgetBounds()
     auto* root = m_children.front().get();
     if (root != nullptr) {
         root->setBounds(bounds());
+    }
+}
+
+void TemplateScreen::_resolvePercentSizes()
+{
+    if (m_children.empty()) {
+        return;
+    }
+
+    // 递归遍历控件树，解析百分比值
+    std::function<void(kagero::widget::Widget*, i32, i32)> resolveRecursive;
+    resolveRecursive = [&resolveRecursive](kagero::widget::Widget* widget, i32 parentWidth, i32 parentHeight) {
+        if (widget == nullptr || parentWidth <= 0 || parentHeight <= 0) {
+            return;
+        }
+
+        // 解析百分比尺寸
+        const auto* sizePercent = widget->getUserData("__size_percent");
+        if (sizePercent != nullptr) {
+            kagero::tpl::bindings::widget_attrs::applySizeWithParent(widget, *sizePercent, parentWidth, parentHeight);
+        }
+
+        // 解析百分比位置
+        const auto* posPercent = widget->getUserData("__pos_percent");
+        if (posPercent != nullptr) {
+            kagero::tpl::bindings::widget_attrs::applyPositionWithParent(
+                widget, *posPercent, parentWidth, parentHeight);
+        }
+
+        // 递归子控件
+        if (auto* container = dynamic_cast<kagero::widget::IWidgetContainer*>(widget)) {
+            for (auto& child : container->widgets()) {
+                resolveRecursive(child.get(), widget->width(), widget->height());
+            }
+        }
+    };
+
+    auto* root = m_children.front().get();
+    if (root != nullptr) {
+        // 根控件的父容器是 TemplateScreen 自身
+        resolveRecursive(root, bounds().width, bounds().height);
     }
 }
 
