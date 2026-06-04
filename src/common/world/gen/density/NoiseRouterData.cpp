@@ -5,7 +5,7 @@
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, to to permit persons to whom the Software is
+ * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -43,6 +43,15 @@ NoiseRouterData::ClimateFunctions NoiseRouterData::createOverworldClimate(u64 se
 {
     ClimateFunctions climate;
 
+    // MC 1.21: SHIFT_X = flatCache(cache2D(shiftA(SHIFT)))
+    // MC 1.21: SHIFT_Z = flatCache(cache2D(shiftB(SHIFT)))
+    // 两者都使用相同的 SHIFT 噪声参数: firstOctave=-3, amplitudes=[1, 1, 1, 0]
+    const i32 shiftSeed = static_cast<i32>(seed ^ 0x66666666ULL);
+    auto shiftX = factory::flatCache(
+        factory::cache2D(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftZ = factory::flatCache(
+        factory::cache2D(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+
     // 根据是否大型生物群系选择参数
     const i32 tempOctave = largeBiomes ? TEMPERATURE_LARGE_FIRST_OCTAVE : TEMPERATURE_FIRST_OCTAVE;
     const auto tempAmps = largeBiomes ? toVector(TEMPERATURE_LARGE_AMPLITUDES) : toVector(TEMPERATURE_AMPLITUDES);
@@ -57,33 +66,69 @@ NoiseRouterData::ClimateFunctions NoiseRouterData::createOverworldClimate(u64 se
     const i32 eroOctave = largeBiomes ? EROSION_LARGE_FIRST_OCTAVE : EROSION_FIRST_OCTAVE;
     const auto eroAmps = largeBiomes ? toVector(EROSION_LARGE_AMPLITUDES) : toVector(EROSION_AMPLITUDES);
 
-    // 气候噪声（温度、湿度、大陆度、侵蚀）
-    // 完整版本使用 ShiftedNoise（带坐标偏移），当前简化版本使用普通 Noise
-    // xzScale = 0.25, yScale = 0（2D 噪声）
+    // MC 1.21: 气候噪声使用 shiftedNoise2d（带 SHIFT_X 和 SHIFT_Z 偏移）
+    // shiftedNoise2d(shiftX, shiftZ, xzScale=0.25, seed, firstOctave, amplitudes)
+    // 这确保相邻区块的气候参数平滑过渡
 
-    climate.temperature = factory::cache2D(factory::noise(seed ^ 0x11111111ULL, tempOctave, tempAmps, 0.25, 0.0));
+    climate.temperature = factory::cache2D(factory::shiftedNoise2d(
+        std::move(shiftX), std::move(shiftZ), 0.25, seed ^ 0x11111111ULL, tempOctave, tempAmps));
 
-    climate.vegetation = factory::cache2D(factory::noise(seed ^ 0x22222222ULL, vegOctave, vegAmps, 0.25, 0.0));
+    // 需要重新创建 shift 噪声实例用于后续参数
+    // MC 中每个 shiftedNoise2d 有自己的 shift 噪声副本，所以需要新建
+    // 但由于 SHIFT_X 和 SHIFT_Z 已经被 move，这里需要重新创建
+    // 实际上 MC 的做法是先创建 densityfunction (shiftX) 和 densityfunction1 (shiftZ)
+    // 然后多次引用它们——我们的 shiftedNoise2d 内部持有 shift 噪声的副本
+    // 所以需要重新创建用于后续的 climate 参数
 
-    climate.continents = factory::cache2D(factory::noise(seed ^ 0x33333333ULL, contOctave, contAmps, 0.25, 0.0));
+    // 为后续气候参数重新创建偏移
+    auto shiftX2 = factory::flatCache(
+        factory::cache2D(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftZ2 = factory::flatCache(
+        factory::cache2D(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
-    climate.erosion = factory::cache2D(factory::noise(seed ^ 0x44444444ULL, eroOctave, eroAmps, 0.25, 0.0));
+    climate.vegetation = factory::cache2D(factory::shiftedNoise2d(
+        std::move(shiftX2), std::move(shiftZ2), 0.25, seed ^ 0x22222222ULL, vegOctave, vegAmps));
+
+    auto shiftX3 = factory::flatCache(
+        factory::cache2D(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftZ3 = factory::flatCache(
+        factory::cache2D(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+
+    climate.continents = factory::cache2D(factory::shiftedNoise2d(
+        std::move(shiftX3), std::move(shiftZ3), 0.25, seed ^ 0x33333333ULL, contOctave, contAmps));
+
+    auto shiftX4 = factory::flatCache(
+        factory::cache2D(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftZ4 = factory::flatCache(
+        factory::cache2D(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+
+    climate.erosion = factory::cache2D(factory::shiftedNoise2d(
+        std::move(shiftX4), std::move(shiftZ4), 0.25, seed ^ 0x44444444ULL, eroOctave, eroAmps));
 
     // depth 使用 YClampedGradient（Y 轴线性映射）
     // MC 1.21: fromY=-64, toY=320, fromValue=1.5, toValue=-1.5
     // 这意味着表面 depth≈1.5，高空 depth≈-1.5
     climate.depth = factory::yClampedGradient(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT - 1, 1.5, -1.5);
 
-    // ridges（奇异度）使用基础噪声
-    climate.ridges = factory::cache2D(
-        factory::noise(seed ^ 0x55555555ULL, RIDGE_FIRST_OCTAVE, toVector(RIDGE_AMPLITUDES), 0.25, 0.0));
+    // ridges（奇异度）使用 shiftedNoise2d
+    auto shiftX5 = factory::flatCache(
+        factory::cache2D(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftZ5 = factory::flatCache(
+        factory::cache2D(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+
+    climate.ridges = factory::cache2D(factory::shiftedNoise2d(std::move(shiftX5),
+        std::move(shiftZ5),
+        0.25,
+        seed ^ 0x55555555ULL,
+        RIDGE_FIRST_OCTAVE,
+        toVector(RIDGE_AMPLITUDES)));
 
     return climate;
 }
 
 std::unique_ptr<DensityFunction> NoiseRouterData::peaksAndValleys(std::unique_ptr<DensityFunction> ridges)
 {
-    // MC 1.21: mul(add(add(abs(ridges), constant(-2/3)).abs(), constant(-1/3)), constant(-3))
+    // MC 1.21: mul(-3, add(abs(add(abs(ridges), -2/3)), -1/3))
     // 注意：不使用 squeeze，直接是 (abs(abs(ridges) - 2/3) - 1/3) * -3
     auto absRidges = factory::abs(std::move(ridges));
     auto shifted = factory::add(std::move(absRidges), factory::constant(-2.0 / 3.0));
