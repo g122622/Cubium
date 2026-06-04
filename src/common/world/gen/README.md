@@ -871,7 +871,7 @@ FeatureRegistry::initialize();         // 4. 初始化特征
 
 ## 参考资料
 
-- Minecraft 1.16.5 源码：`D:\Minecraft\MC研究\Minecraft1.16.5源码\net\minecraft`
+- Minecraft 1.16.5 源码：`D:\Minecraft\MC研究\Minecraft1.21.11源码\net\minecraft`
 - MC Wiki 世界生成：https://minecraft.fandom.com/wiki/World_generation
 - MC Wiki 区块格式：https://minecraft.fandom.com/wiki/Chunk_format
 

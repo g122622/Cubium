@@ -313,7 +313,7 @@ result = (d0 * 2.0 + d1) / 3.0
 
 ## 参考资料
 
-- Minecraft 1.16.5 源码：`D:\Minecraft\MC研究\Minecraft1.16.5源码\net\minecraft\world\light`
+- Minecraft 1.16.5 源码：`D:\Minecraft\MC研究\Minecraft1.21.11源码\net\minecraft\world\light`
 - Starlight 光照引擎优化
 - MC Wiki 光照：https://minecraft.fandom.com/wiki/Light
 

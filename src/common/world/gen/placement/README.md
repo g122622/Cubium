@@ -672,7 +672,7 @@ TEST_F(PlacementTest, HeightRangePlacementConfig) {
 
 ## 参考资料
 
-- Minecraft 1.16.5 源码：`D:\Minecraft\MC研究\Minecraft1.16.5源码\net\minecraft\world\gen\placement`
+- Minecraft 1.16.5 源码：`D:\Minecraft\MC研究\Minecraft1.21.11源码\net\minecraft\world\gen\placement`
 - MC Wiki 放置器：https://minecraft.fandom.com/wiki/Placement
 
 ---

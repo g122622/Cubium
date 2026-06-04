@@ -633,4 +633,4 @@ for (i32 z = 0; z < height; ++z) {
 
 - [Minecraft 1.16.5 源码](https://minecraft.gamepedia.com/Java_Edition_1.16.5)
 - [生物群系 ID 列表](https://minecraft.gamepedia.com/Biome#Biome_IDs)
-- MC 源码路径: `D:\Minecraft\MC研究\Minecraft1.16.5源码\net\minecraft\world\biome\layer`
+- MC 源码路径: `D:\Minecraft\MC研究\Minecraft1.21.11源码\net\minecraft\world\biome\layer`

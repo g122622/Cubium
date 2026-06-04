@@ -459,7 +459,7 @@ f32 g = rng.nextGaussian(0.0, 1.0); // 正态分布
 ## 重要说明
 
 ### MC Java 源码参考
-你可以在 `D:\Minecraft\MC研究\Minecraft1.16.5源码\net\minecraft` 访问 MC Java 1.16.5 源码作为参考。本项目旨在尽可能复制 Java 版游戏玩法。
+你可以在 `D:\Minecraft\MC研究\Minecraft1.21.11源码\net\minecraft` 访问 MC Java 1.16.5 源码作为参考。本项目旨在尽可能复制 Java 版游戏玩法。
 
 ### 代码质量
 - 必须有断言和单元测试
