@@ -109,6 +109,9 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         mc::perfetto::PerfettoManager::instance().setProcessName("MinecraftClient");
         mc::perfetto::PerfettoManager::instance().setThreadName("ClientMainThread");
         spdlog::info("Perfetto tracing initialized");
+
+        // 启动内存追踪线程
+        m_memoryTraceThread.start();
     } else {
         spdlog::info("Benchmark initialize-only mode enabled, skipping client perfetto tracing");
     }
@@ -332,9 +335,6 @@ void ClientApplication::mainLoop()
         if (fps < 1000) { // 过滤掉异常值
             MC_TRACE_COUNTER("rendering.frame", "FPS", fps);
         }
-
-        // 追踪内存信息
-        MC_TRACE_COUNTER("memory", "ProcessMemory", static_cast<int64_t>(util::PlatformInfo::getProcessMemoryMB()));
 #endif
 
         // 帧率限制（0=不限制）
@@ -633,6 +633,9 @@ void ClientApplication::shutdown()
     m_window.destroy();
 
     if (!m_launchParams.benchmarkExitAfterInitialize) {
+        // 停止内存追踪线程
+        m_memoryTraceThread.stop();
+
         // 关闭性能追踪
         mc::perfetto::PerfettoManager::instance().stopTracing();
         mc::perfetto::PerfettoManager::instance().shutdown();

@@ -39,6 +39,7 @@
 #include "client/ui/TridentCanvas.hpp"
 #include "client/ui/kagero/KageroEngine.hpp"
 #include "client/window/Window.hpp"
+#include "client/application/features/MemoryTraceThread.hpp"
 #include "client/world/ClientWorld.hpp"
 #include "client/world/player/ClientPlayerPredictor.hpp"
 #include "client/world/player/LocalPlayerIdentity.hpp"
@@ -524,6 +525,9 @@ private:
 
     // 随机数生成器（用于音调变化等）
     math::Random m_random;
+
+    // 内存追踪线程（独立线程采样，避免阻塞主循环）
+    MemoryTraceThread m_memoryTraceThread;
 };
 
 } // namespace mc::client

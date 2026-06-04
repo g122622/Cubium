@@ -19,6 +19,8 @@ src/client/application/features/
 ├── ClientApplicationTargetInfo.cpp
 ├── ClientApplicationTargetInfoUi.cpp
 ├── ClientApplicationSettings.cpp
+├── MemoryTraceThread.hpp
+├── MemoryTraceThread.cpp
 └── README.md
 ```
 
@@ -48,6 +50,8 @@ src/client/application/features/
 - `ClientApplicationTargetInfo.cpp`：射线检测结果更新（更新 `m_raycastResult`）。
 - `ClientApplicationTargetInfoUi.cpp`：准星目标信息与调试屏幕的每帧更新。
 - `ClientApplicationSettings.cpp`：设置读取、应用、回调绑定和 GUI 缩放逻辑。
+- `MemoryTraceThread.hpp`：内存追踪线程头文件，在独立线程中定期采样进程内存使用量并写入 Perfetto 追踪，避免阻塞主渲染循环。采样频率为每秒 100 次。
+- `MemoryTraceThread.cpp`：内存追踪线程实现。
 - `README.md`：本目录说明文档。
 
 ## 模块关系
