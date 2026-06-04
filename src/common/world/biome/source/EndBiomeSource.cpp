@@ -6,30 +6,39 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to whom the Software is
- * furnished to do so, subject to the other conditions:
+ * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
- * copies of substantial portions of the Software.
+ * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 #include "common/world/biome/source/EndBiomeSource.hpp"
 #include "common/core/Constants.hpp"
 #include "common/world/chunk/IChunk.hpp"
+#include "common/world/gen/density/DensityFunctions.hpp"
 
 namespace mc::world::biome::source {
 
 EndBiomeSource::EndBiomeSource(u64 seed)
     : BiomeSource(seed)
+    , m_islandNoise(std::make_unique<gen::density::EndIslands>(seed))
 {
     m_possibleBiomes = {
         Biomes::TheEnd, Biomes::EndHighlands, Biomes::EndMidlands, Biomes::SmallEndIslands, Biomes::EndBarrens};
 }
+
+EndBiomeSource::~EndBiomeSource() = default;
+
+EndBiomeSource::EndBiomeSource(EndBiomeSource&&) noexcept = default;
+EndBiomeSource& EndBiomeSource::operator=(EndBiomeSource&&) noexcept = default;
 
 BiomeId EndBiomeSource::getNoiseBiome(i32 quartX, i32 quartY, i32 quartZ) const
 {
@@ -44,21 +53,21 @@ BiomeId EndBiomeSource::getNoiseBiome(i32 quartX, i32 quartY, i32 quartZ) const
         return Biomes::TheEnd;
     }
 
-    // 外围岛屿使用简单的确定性映射
-    // MC 1.21 使用侵蚀噪声判断，这里用简化的坐标哈希
-    // 完整实现需要 NoiseRouter 中的 erosion 密度函数
-    // 使用种子化哈希模拟侵蚀值
-    const i64 hash =
-        static_cast<i64>(blockX) * 3129871LL + static_cast<i64>(blockZ) * 116129781LL + static_cast<i64>(m_seed);
-    const f64 erosion = static_cast<f64>(static_cast<i32>(hash ^ (hash >> 32))) / static_cast<f64>(0x7FFFFFFF);
+    // MC 1.21: 使用 EndIslands 密度函数判断外围岛屿生物群系
+    const f64 islandNoise = m_islandNoise->compute(blockX, 0, blockZ);
 
-    if (erosion > 0.25) {
-        return Biomes::EndHighlands;
-    }
-    if (erosion >= -0.0625) {
+    // MC 1.21 的生物群系映射逻辑
+    // islandNoise > 0 表示在岛屿上，根据高度确定生物群系
+    if (islandNoise > 0.0) {
+        // 在岛屿上
+        if (islandNoise > 0.25) {
+            return Biomes::EndHighlands;
+        }
         return Biomes::EndMidlands;
     }
-    if (erosion < -0.21875) {
+
+    // 不在岛屿上
+    if (islandNoise < -0.21875) {
         return Biomes::SmallEndIslands;
     }
     return Biomes::EndBarrens;
@@ -93,10 +102,10 @@ void EndBiomeSource::fillBiomeContainer(BiomeContainer& container, ChunkCoord ch
 
 bool EndBiomeSource::isInCentralIsland(i32 blockX, i32 blockZ)
 {
-    // 中央岛屿范围：64 格半径（x² + z² <= 4096）
-    const i64 chunkX = static_cast<i64>(blockX) / 16;
-    const i64 chunkZ = static_cast<i64>(blockZ) / 16;
-    return chunkX * chunkX + chunkZ * chunkZ <= 4096LL;
+    // MC 1.21: 中央岛屿范围 — 方块坐标 x² + z² <= 4096（64 格半径）
+    const i64 bx = static_cast<i64>(blockX);
+    const i64 bz = static_cast<i64>(blockZ);
+    return bx * bx + bz * bz <= 4096LL;
 }
 
 } // namespace mc::world::biome::source
