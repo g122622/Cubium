@@ -34,6 +34,9 @@ namespace mc::world::biome::source {
  * 使用 6 个气候参数（temperature, humidity, continentalness, erosion, depth, weirdness）
  * 在三维空间中采样，通过最近邻匹配确定生物群系。
  * 支持主世界和下界。
+ *
+ * 注意：此类拥有 NoiseRouter，Climate::Sampler 引用的 DensityFunction
+ * 由 router 管理，确保生命周期正确。
  */
 class MultiNoiseBiomeSource : public BiomeSource {
 public:
@@ -41,9 +44,11 @@ public:
      * @brief 构造多噪声生物群系源
      * @param seed 世界种子
      * @param parameters 气候参数到生物群系的映射
-     * @param sampler 气候采样器（不拥有，由外部管理生命周期）
+     * @param router 噪声路由器（拥有权转移）
      */
-    MultiNoiseBiomeSource(u64 seed, climate::ParameterList<BiomeId> parameters, const climate::Sampler* sampler);
+    MultiNoiseBiomeSource(u64 seed,
+        climate::ParameterList<BiomeId> parameters,
+        std::unique_ptr<gen::density::NoiseRouter> router);
 
     [[nodiscard]] BiomeId getNoiseBiome(i32 quartX, i32 quartY, i32 quartZ) const override;
     [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override;
@@ -57,7 +62,12 @@ public:
     /**
      * @brief 获取气候采样器
      */
-    [[nodiscard]] const climate::Sampler* sampler() const { return m_sampler; }
+    [[nodiscard]] const climate::Sampler& sampler() const { return m_sampler; }
+
+    /**
+     * @brief 获取噪声路由器
+     */
+    [[nodiscard]] const gen::density::NoiseRouter& router() const { return *m_router; }
 
     /**
      * @brief 通过 TargetPoint 直接查找生物群系
@@ -83,7 +93,8 @@ public:
 
 private:
     climate::ParameterList<BiomeId> m_parameters;
-    const climate::Sampler* m_sampler;
+    std::unique_ptr<gen::density::NoiseRouter> m_router;
+    climate::Sampler m_sampler;
 };
 
 } // namespace mc::world::biome::source

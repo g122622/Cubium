@@ -22,12 +22,27 @@
  */
 
 #include "Xoroshiro128ppRandom.hpp"
+#include "PositionalRandomFactory.hpp"
 
 namespace mc::math {
 
 Xoroshiro128ppRandom::Xoroshiro128ppRandom(u64 seed)
 {
     setSeed(seed);
+}
+
+Xoroshiro128ppRandom::Xoroshiro128ppRandom(u64 seedLo, u64 seedHi)
+{
+    m_state[0] = seedLo;
+    m_state[1] = seedHi;
+
+    // 与 MC Xoroshiro128PlusPlus 一致：全零状态时使用默认值
+    if ((m_state[0] | m_state[1]) == 0ULL) {
+        m_state[0] = 0x9e3779b97f4a7c15ULL; // GOLDEN_RATIO_64
+        m_state[1] = 0x6a09e667f3bcc909ULL;
+    }
+
+    m_hasGaussian = false;
 }
 
 void Xoroshiro128ppRandom::setSeed(u64 seed)
@@ -95,6 +110,14 @@ u64 Xoroshiro128ppRandom::splitMix64(u64& state)
     z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
     z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
     return z ^ (z >> 31);
+}
+
+PositionalRandomFactory Xoroshiro128ppRandom::forkPositional()
+{
+    // MC 1.21: 消耗两个 nextLong() 获取 128 位种子创建工厂
+    const u64 seedLo = static_cast<u64>(nextLong());
+    const u64 seedHi = static_cast<u64>(nextLong());
+    return PositionalRandomFactory(seedLo, seedHi);
 }
 
 } // namespace mc::math

@@ -32,41 +32,60 @@ namespace mc::world::gen::density {
 // ============================================================================
 
 EndIslands::EndIslands(u64 seed)
-    : m_islandNoise(std::make_unique<noise::NormalNoise>(seed, -4, std::vector<f64>{1.0, 1.0, 1.0, 1.0}))
+    : m_islandNoise(std::make_unique<noise::NormalNoise>(seed ^ 0x9E3779B97F4A7C15ULL, -4, std::vector<f64>{1.0, 1.0, 1.0, 1.0}))
 {}
 
 f64 EndIslands::compute(i32 blockX, i32 blockY, i32 blockZ) const
 {
     MC_UNUSED(blockY);
 
-    // 末地岛屿使用 100 格间距的采样
-    const i32 samplingScale = 100;
-    const i32 sx = blockX / samplingScale;
-    const i32 sz = blockZ / samplingScale;
+    // MC 1.21: 采样网格为 8 格间距（不是 100）
+    const i32 sx = blockX >> 3; // blockX / 8
+    const i32 sz = blockZ >> 3; // blockZ / 8
 
-    // 计算岛屿高度
-    const f64 height = getHeight(sx, sz);
-
-    // 采样岛屿噪声
-    const f64 noise = m_islandNoise->getValue(static_cast<f64>(blockX) / 100.0, 0.0, static_cast<f64>(blockZ) / 100.0);
-
-    // 如果在岛屿区域内，返回正值
-    if (height > 0.0) {
-        return height + noise * 0.2;
-    }
-
-    return noise;
+    const f64 height = getHeightValue(sx, sz);
+    return (height - 8.0) / 128.0;
 }
 
-f64 EndIslands::getHeight(i32 x, i32 z) const
+f64 EndIslands::getHeightValue(i32 x, i32 z) const
 {
-    // MC 1.21 末地岛屿高度计算
-    // 简化实现：基于噪声值计算岛屿是否存在
-    const f64 d = static_cast<f64>(x * x + z * z);
-    if (d < 1.0) {
-        return 1.0;
+    // MC 1.21 EndIslands.getHeightValue
+    const i32 i = x >> 1;
+    const i32 j = z >> 1;
+    const i32 k = x & 1; // x % 2
+    const i32 l = z & 1; // z % 2
+
+    // 基础高度：根据到原点的距离
+    f64 f = 100.0 - std::sqrt(static_cast<f64>(x * x + z * z)) * 8.0;
+    f = std::clamp(f, -100.0, 80.0);
+
+    // 检测周围的岛屿（-12 到 +12 范围内）
+    for (i32 i1 = -12; i1 <= 12; ++i1) {
+        for (i32 j1 = -12; j1 <= 12; ++j1) {
+            const i64 k1 = static_cast<i64>(i) + i1;
+            const i64 l1 = static_cast<i64>(j) + j1;
+
+            // 跳过中心区域（主岛）和太远的区域
+            if (k1 * k1 + l1 * l1 > 4096L) {
+                continue;
+            }
+
+            // 检查此位置是否有岛屿（噪声阈值 < -0.9）
+            const f64 noiseVal = m_islandNoise->getValue(static_cast<f64>(k1), 0.0, static_cast<f64>(l1));
+            if (noiseVal < -0.9) {
+                // 计算此岛屿对此位置的高度贡献
+                const f64 f1 =
+                    std::fmod(std::abs(static_cast<f64>(k1)) * 3439.0 + std::abs(static_cast<f64>(l1)) * 147.0, 13.0) + 9.0;
+                const f64 f2 = static_cast<f64>(k) - i1 * 2;
+                const f64 f3 = static_cast<f64>(l) - j1 * 2;
+                f64 f4 = 100.0 - std::sqrt(f2 * f2 + f3 * f3) * f1;
+                f4 = std::clamp(f4, -100.0, 80.0);
+                f = std::max(f, f4);
+            }
+        }
     }
-    return 0.0;
+
+    return f;
 }
 
 // ============================================================================
@@ -120,6 +139,11 @@ std::unique_ptr<DensityFunction> squeeze(std::unique_ptr<DensityFunction> input)
     return std::make_unique<Mapped>(std::move(input), MappedType::Squeeze);
 }
 
+std::unique_ptr<DensityFunction> invert(std::unique_ptr<DensityFunction> input)
+{
+    return std::make_unique<Mapped>(std::move(input), MappedType::Invert);
+}
+
 std::unique_ptr<DensityFunction> add(std::unique_ptr<DensityFunction> arg1, std::unique_ptr<DensityFunction> arg2)
 {
     return std::make_unique<TwoArgument>(std::move(arg1), std::move(arg2), TwoArgumentType::Add);
@@ -158,6 +182,28 @@ std::unique_ptr<DensityFunction> shiftedNoise(u64 seed,
     auto normalNoise = std::make_unique<noise::NormalNoise>(seed, firstOctave, std::move(amplitudes));
     return std::make_unique<ShiftedNoise>(
         std::move(normalNoise), xzScale, yScale, std::move(shiftX), std::move(shiftY), std::move(shiftZ));
+}
+
+std::unique_ptr<DensityFunction> shiftedNoise2d(
+    std::unique_ptr<DensityFunction> shiftX,
+    std::unique_ptr<DensityFunction> shiftZ,
+    f64 xzScale,
+    u64 seed,
+    i32 firstOctave,
+    std::vector<f64> amplitudes)
+{
+    auto normalNoise = std::make_unique<noise::NormalNoise>(seed, firstOctave, std::move(amplitudes));
+    auto zero = factory::constant(0.0);
+    return std::make_unique<ShiftedNoise>(
+        std::move(normalNoise), xzScale, 0.0, std::move(shiftX), std::move(zero), std::move(shiftZ));
+}
+
+std::unique_ptr<DensityFunction> lerp(
+    std::unique_ptr<DensityFunction> delta,
+    std::unique_ptr<DensityFunction> start,
+    std::unique_ptr<DensityFunction> end)
+{
+    return std::make_unique<Lerp>(std::move(delta), std::move(start), std::move(end));
 }
 
 std::unique_ptr<DensityFunction> shiftA(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
@@ -221,6 +267,18 @@ std::unique_ptr<DensityFunction> weirdScaledSampler(std::unique_ptr<DensityFunct
 std::unique_ptr<DensityFunction> endIslands(u64 seed)
 {
     return std::make_unique<EndIslands>(seed);
+}
+
+std::unique_ptr<DensityFunction> mappedNoise(u64 seed,
+    i32 firstOctave,
+    std::vector<f64> amplitudes,
+    f64 xzScale,
+    f64 yScale,
+    f64 fromValue,
+    f64 toValue)
+{
+    auto normalNoise = std::make_unique<noise::NormalNoise>(seed, firstOctave, std::move(amplitudes));
+    return std::make_unique<MappedNoise>(std::move(normalNoise), xzScale, yScale, fromValue, toValue);
 }
 
 } // namespace factory

@@ -23,6 +23,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <cmath>
 #include <limits>
@@ -59,8 +60,23 @@ public:
      * @param seed 随机种子
      * @param firstOctave 首个倍频索引
      * @param amplitudes 倍频振幅列表
+     *
+     * @note 内部创建 PositionalRandomFactory 用于派生各倍频种子，
+     *       与 MC 1.21 的 PerlinNoise.create(seed, firstOctave, amplitudes) 一致。
      */
     PerlinNoise(u64 seed, i32 firstOctave, std::vector<f64> amplitudes);
+
+    /**
+     * @brief 使用 PositionalRandomFactory 构造
+     * @param factory 位置随机工厂
+     * @param firstOctave 首个倍频索引
+     * @param amplitudes 倍频振幅列表
+     *
+     * @note 使用 fromHashOf("octave_N") 为每个倍频创建独立随机源，
+     *       与 MC 1.21 的 PerlinNoise(RandomSource, firstOctave, amplitudes) 一致。
+     *       调用者应先调用 random.forkPositional() 获取工厂。
+     */
+    PerlinNoise(const math::PositionalRandomFactory& factory, i32 firstOctave, std::vector<f64> amplitudes);
 
     ~PerlinNoise() = default;
 
@@ -106,6 +122,12 @@ private:
     [[nodiscard]] f64 edgeValue(f64 maxInputValue) const;
 
     /**
+     * @brief 初始化倍频层（两个构造函数共用）
+     * @param factory 位置随机工厂
+     */
+    void initLayers(const math::PositionalRandomFactory& factory);
+
+    /**
      * @brief 简化版 Perlin 噪声核心（用于每个倍频层）
      */
     class PerlinLayer {
@@ -115,8 +137,7 @@ private:
         [[nodiscard]] f64 noise(f64 x, f64 y, f64 z) const;
 
     private:
-        [[nodiscard]] f64 sampleAndLerp(i32 cellX, i32 cellY, i32 cellZ,
-            f64 deltaX, f64 deltaY, f64 deltaZ) const;
+        [[nodiscard]] f64 sampleAndLerp(i32 cellX, i32 cellY, i32 cellZ, f64 deltaX, f64 deltaY, f64 deltaZ) const;
 
         [[nodiscard]] i32 p(i32 index) const;
 

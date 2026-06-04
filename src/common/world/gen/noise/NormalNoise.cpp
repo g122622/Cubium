@@ -30,10 +30,47 @@ namespace mc::world::gen::noise {
 NormalNoise::NormalNoise(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
     : m_firstOctave(firstOctave)
     , m_amplitudes(std::move(amplitudes))
-    , m_first(seed, firstOctave, m_amplitudes)
-    , m_second(seed ^ 0xDEADBEEFULL, firstOctave, m_amplitudes)
 {
-    // 查找非零振幅的范围
+    // MC 1.21: 两个 PerlinNoise 共享同一个 RandomSource
+    // 第一个 PerlinNoise 调用 forkPositional() 消耗两次 nextLong()
+    // 第二个 PerlinNoise 再调用 forkPositional() 消耗两次 nextLong()
+    // 因此两个工厂的种子不同，产生独立的噪声模式
+    math::Random rng(seed);
+    m_first = std::make_unique<PerlinNoise>(rng.forkPositional(), m_firstOctave, m_amplitudes);
+    m_second = std::make_unique<PerlinNoise>(rng.forkPositional(), m_firstOctave, m_amplitudes);
+
+    computeValueFactor();
+}
+
+NormalNoise::NormalNoise(math::Random& rng, i32 firstOctave, std::vector<f64> amplitudes)
+    : m_firstOctave(firstOctave)
+    , m_amplitudes(std::move(amplitudes))
+{
+    // MC 1.21: 两次调用 forkPositional() 获取不同的 PositionalRandomFactory
+    // 与 MC NormalNoise(RandomSource, NoiseParameters) 一致
+    m_first = std::make_unique<PerlinNoise>(rng.forkPositional(), m_firstOctave, m_amplitudes);
+    m_second = std::make_unique<PerlinNoise>(rng.forkPositional(), m_firstOctave, m_amplitudes);
+
+    computeValueFactor();
+}
+
+f64 NormalNoise::getValue(f64 x, f64 y, f64 z) const
+{
+    // 第二个噪声使用缩放坐标（乘以 INPUT_FACTOR）
+    const f64 sx = x * INPUT_FACTOR;
+    const f64 sy = y * INPUT_FACTOR;
+    const f64 sz = z * INPUT_FACTOR;
+
+    return (m_first->getValue(x, y, z) + m_second->getValue(sx, sy, sz)) * m_valueFactor;
+}
+
+f64 NormalNoise::expectedDeviation(i32 octaveRange)
+{
+    return 0.1 * (1.0 + 1.0 / static_cast<f64>(octaveRange + 1));
+}
+
+void NormalNoise::computeValueFactor()
+{
     const i32 octaveCount = static_cast<i32>(m_amplitudes.size());
     i32 minNonZero = std::numeric_limits<i32>::max();
     i32 maxNonZero = std::numeric_limits<i32>::min();
@@ -47,22 +84,7 @@ NormalNoise::NormalNoise(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
 
     const i32 octaveRange = maxNonZero - minNonZero;
     m_valueFactor = VALUE_FACTOR_BASE / expectedDeviation(octaveRange);
-    m_maxValue = (m_first.maxValue() + m_second.maxValue()) * m_valueFactor;
-}
-
-f64 NormalNoise::getValue(f64 x, f64 y, f64 z) const
-{
-    // 第二个噪声使用缩放坐标（乘以 INPUT_FACTOR）
-    const f64 sx = x * INPUT_FACTOR;
-    const f64 sy = y * INPUT_FACTOR;
-    const f64 sz = z * INPUT_FACTOR;
-
-    return (m_first.getValue(x, y, z) + m_second.getValue(sx, sy, sz)) * m_valueFactor;
-}
-
-f64 NormalNoise::expectedDeviation(i32 octaveRange)
-{
-    return 0.1 * (1.0 + 1.0 / static_cast<f64>(octaveRange + 1));
+    m_maxValue = (m_first->maxValue() + m_second->maxValue()) * m_valueFactor;
 }
 
 } // namespace mc::world::gen::noise

@@ -166,7 +166,7 @@ private:
 /**
  * @brief 单参数变换类型枚举
  */
-enum class MappedType : u8 { Abs, Square, Cube, HalfNegative, QuarterNegative, Squeeze };
+enum class MappedType : u8 { Abs, Square, Cube, HalfNegative, QuarterNegative, Squeeze, Invert };
 
 /**
  * @brief 单参数变换密度函数
@@ -223,6 +223,8 @@ private:
                 const f64 clamped = std::clamp(value, -1.0, 1.0);
                 return clamped / 2.0 - clamped * clamped * clamped / 24.0;
             }
+            case MappedType::Invert:
+                return value == 0.0 ? 0.0 : 1.0 / value;
         }
         return 0.0;
     }
@@ -264,6 +266,21 @@ private:
                     std::swap(m_minValue, m_maxValue);
                 }
                 break;
+            case MappedType::Invert: {
+                // 1/x 的范围取决于输入范围是否跨零
+                if (inMin > 0.0) {
+                    m_minValue = 1.0 / inMax;
+                    m_maxValue = 1.0 / inMin;
+                } else if (inMax < 0.0) {
+                    m_minValue = 1.0 / inMin;
+                    m_maxValue = 1.0 / inMax;
+                } else {
+                    // 跨越零点，范围无界
+                    m_minValue = -1e6;
+                    m_maxValue = 1e6;
+                }
+                break;
+            }
         }
     }
 };
@@ -369,8 +386,112 @@ private:
 };
 
 // ============================================================================
-// Noise — 基础噪声密度函数
+// Lerp — 线性插值密度函数
 // ============================================================================
+
+/**
+ * @brief 线性插值密度函数
+ *
+ * lerp(delta, start, end) = start + delta * (end - start)
+ * MC 1.21 用于 BlendAlpha/BlendOffset 混合以及 spline 系统中的插值。
+ */
+class Lerp final : public DensityFunction {
+public:
+    Lerp(std::unique_ptr<DensityFunction> delta,
+        std::unique_ptr<DensityFunction> start,
+        std::unique_ptr<DensityFunction> end)
+        : m_delta(std::move(delta))
+        , m_start(std::move(start))
+        , m_end(std::move(end))
+    {
+        computeBounds();
+    }
+
+    [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override
+    {
+        const f64 d = m_delta->compute(blockX, blockY, blockZ);
+        const f64 s = m_start->compute(blockX, blockY, blockZ);
+        if (d <= 0.0) return s;
+        const f64 e = m_end->compute(blockX, blockY, blockZ);
+        if (d >= 1.0) return e;
+        return s + d * (e - s);
+    }
+
+    [[nodiscard]] f64 minValue() const override { return m_minValue; }
+    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+
+    [[nodiscard]] const DensityFunction& delta() const { return *m_delta; }
+    [[nodiscard]] const DensityFunction& start() const { return *m_start; }
+    [[nodiscard]] const DensityFunction& end() const { return *m_end; }
+
+private:
+    std::unique_ptr<DensityFunction> m_delta;
+    std::unique_ptr<DensityFunction> m_start;
+    std::unique_ptr<DensityFunction> m_end;
+    f64 m_minValue = 0.0;
+    f64 m_maxValue = 0.0;
+
+    void computeBounds()
+    {
+        const f64 sMin = m_start->minValue();
+        const f64 sMax = m_start->maxValue();
+        const f64 eMin = m_end->minValue();
+        const f64 eMax = m_end->maxValue();
+        m_minValue = std::min({sMin, sMax, eMin, eMax});
+        m_maxValue = std::max({sMin, sMax, eMin, eMax});
+    }
+};
+
+// ============================================================================
+// MappedNoise — 带输出重映射的噪声密度函数
+// ============================================================================
+
+/**
+ * @brief 带输出重映射的噪声密度函数
+ *
+ * compute(x, y, z) = noise(x * xzScale, y * yScale, z * xzScale) * scaleFactor + fromValue
+ * MC 1.21 中用于 SPAGHETTI_2D_ELEVATION 等噪声。
+ */
+class MappedNoise final : public DensityFunction {
+public:
+    MappedNoise(std::unique_ptr<noise::NormalNoise> noise,
+        f64 xzScale,
+        f64 yScale,
+        f64 fromValue,
+        f64 toValue)
+        : m_noise(std::move(noise))
+        , m_xzScale(xzScale)
+        , m_yScale(yScale)
+        , m_fromValue(fromValue)
+        , m_toValue(toValue)
+    {
+        const f64 maxNoise = m_noise->maxValue();
+        const f64 scale = toValue - fromValue;
+        m_minValue = fromValue - maxNoise * std::abs(scale);
+        m_maxValue = fromValue + maxNoise * std::abs(scale);
+    }
+
+    [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override
+    {
+        const f64 noiseVal = m_noise->getValue(
+            static_cast<f64>(blockX) * m_xzScale,
+            static_cast<f64>(blockY) * m_yScale,
+            static_cast<f64>(blockZ) * m_xzScale);
+        return m_fromValue + noiseVal * (m_toValue - m_fromValue);
+    }
+
+    [[nodiscard]] f64 minValue() const override { return m_minValue; }
+    [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
+
+private:
+    std::unique_ptr<noise::NormalNoise> m_noise;
+    f64 m_xzScale;
+    f64 m_yScale;
+    f64 m_fromValue;
+    f64 m_toValue;
+    f64 m_minValue;
+    f64 m_maxValue;
+};
 
 /**
  * @brief 基础噪声密度函数
@@ -884,9 +1005,9 @@ public:
     {
         const f64 inputValue = m_input->compute(blockX, blockY, blockZ);
         const f64 rarityValue = getRarity(inputValue);
-        return m_noise->getValue(static_cast<f64>(blockX) / rarityValue,
-                   static_cast<f64>(blockY) / rarityValue,
-                   static_cast<f64>(blockZ) / rarityValue) *
+        return std::abs(m_noise->getValue(static_cast<f64>(blockX) / rarityValue,
+                       static_cast<f64>(blockY) / rarityValue,
+                       static_cast<f64>(blockZ) / rarityValue)) *
             rarityValue;
     }
 
@@ -913,11 +1034,10 @@ private:
             if (value < 0.5) return 1.5;
             return 2.0;
         }
-        // Type2
+        // Type2 (sphaghettiRarity2D in MC 1.21)
         if (value < -0.75) return 0.5;
         if (value < -0.5) return 0.75;
-        if (value < 0.0) return 1.0;
-        if (value < 0.5) return 1.5;
+        if (value < 0.5) return 1.0;
         if (value < 0.75) return 2.0;
         return 3.0;
     }
@@ -938,7 +1058,8 @@ private:
 /**
  * @brief 末地岛屿密度函数
  *
- * 用于末地生物群系源，计算岛屿噪声。
+ * MC 1.21 的末地岛屿密度函数。
+ * 在 8x8 区块网格上检测岛屿，使用 SimplexNoise 生成外岛。
  */
 class EndIslands final : public DensityFunction {
 public:
@@ -946,11 +1067,12 @@ public:
 
     [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override;
 
-    [[nodiscard]] f64 minValue() const override { return -1.0; }
-    [[nodiscard]] f64 maxValue() const override { return 1.0; }
+    [[nodiscard]] f64 minValue() const override { return -0.84375; }
+    [[nodiscard]] f64 maxValue() const override { return 0.5625; }
 
 private:
-    [[nodiscard]] f64 getHeight(i32 x, i32 z) const;
+    /// MC 1.21: 检测岛屿高度值
+    [[nodiscard]] f64 getHeightValue(i32 x, i32 z) const;
 
     std::unique_ptr<noise::NormalNoise> m_islandNoise;
 };
@@ -1008,6 +1130,11 @@ namespace factory {
 [[nodiscard]] std::unique_ptr<DensityFunction> squeeze(std::unique_ptr<DensityFunction> input);
 
 /**
+ * @brief 创建反转密度函数 (1/x)
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> invert(std::unique_ptr<DensityFunction> input);
+
+/**
  * @brief 创建加法密度函数
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> add(
@@ -1048,6 +1175,31 @@ namespace factory {
     std::unique_ptr<DensityFunction> shiftX,
     std::unique_ptr<DensityFunction> shiftY,
     std::unique_ptr<DensityFunction> shiftZ);
+
+/**
+ * @brief 创建 2D 带偏移噪声（yScale=0, shiftY=zero）
+ *
+ * MC 1.21 的气候参数（temperature, vegetation, continents, erosion, ridges）
+ * 均使用此函数。
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> shiftedNoise2d(
+    std::unique_ptr<DensityFunction> shiftX,
+    std::unique_ptr<DensityFunction> shiftZ,
+    f64 xzScale,
+    u64 seed,
+    i32 firstOctave,
+    std::vector<f64> amplitudes);
+
+/**
+ * @brief 创建线性插值密度函数
+ *
+ * lerp(delta, start, end) = start + delta * (end - start)
+ * MC 1.21 用于 BlendAlpha/BlendOffset 混合。
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> lerp(
+    std::unique_ptr<DensityFunction> delta,
+    std::unique_ptr<DensityFunction> start,
+    std::unique_ptr<DensityFunction> end);
 
 /**
  * @brief 创建 ShiftA 偏移噪声
@@ -1102,6 +1254,19 @@ namespace factory {
     i32 firstOctave,
     std::vector<f64> amplitudes,
     WeirdScaledSamplerType type);
+
+/**
+ * @brief 创建带输出重映射的噪声密度函数
+ *
+ * compute = fromValue + noise(x*xzScale, y*yScale, z*xzScale) * (toValue - fromValue)
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> mappedNoise(u64 seed,
+    i32 firstOctave,
+    std::vector<f64> amplitudes,
+    f64 xzScale,
+    f64 yScale,
+    f64 fromValue,
+    f64 toValue);
 
 /**
  * @brief 创建末地岛屿密度函数

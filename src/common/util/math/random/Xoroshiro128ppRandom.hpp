@@ -27,6 +27,8 @@
 
 namespace mc::math {
 
+class PositionalRandomFactory;
+
 /**
  * @brief xoroshiro128++ 随机数生成器
  *
@@ -56,6 +58,16 @@ public:
      */
     explicit Xoroshiro128ppRandom(u64 seed = 0);
 
+    /**
+     * @brief 使用 128 位种子构造随机数生成器
+     * @param seedLo 种子低 64 位
+     * @param seedHi 种子高 64 位
+     *
+     * @note 直接设置 128 位状态，不经过 SplitMix64 扩展。
+     *       对应 MC Xoroshiro128PlusPlus(long, long) 构造函数。
+     */
+    Xoroshiro128ppRandom(u64 seedLo, u64 seedHi);
+
     // === IRandom 接口 ===
 
     void setSeed(u64 seed) override;
@@ -68,6 +80,16 @@ public:
      * xoroshiro128++ 支持快速跳转，时间复杂度 O(log count)
      */
     void skip(u64 count) override;
+
+    /**
+     * @brief 创建位置随机工厂
+     *
+     * 消耗两个 nextLong() 调用获取 128 位种子来创建工厂。
+     * 与 MC 1.21 XoroshiroRandomSource.forkPositional() 完全一致。
+     *
+     * @return 位置随机工厂
+     */
+    [[nodiscard]] PositionalRandomFactory forkPositional();
 
 private:
     u64 m_state[2];

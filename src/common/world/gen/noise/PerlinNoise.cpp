@@ -45,8 +45,7 @@ PerlinNoise::PerlinLayer::PerlinLayer(math::Random& rng)
     }
     for (i32 i = 0; i < 256; ++i) {
         const i32 j = i + rng.nextInt(256 - i);
-        std::swap(m_permutation[static_cast<size_t>(i)],
-            m_permutation[static_cast<size_t>(j)]);
+        std::swap(m_permutation[static_cast<size_t>(i)], m_permutation[static_cast<size_t>(j)]);
     }
 
     // 双倍排列表用于快速查找
@@ -85,17 +84,23 @@ f64 PerlinNoise::PerlinLayer::gradDot(i32 hash, f64 x, f64 y, f64 z)
 {
     // MC 使用 12 个梯度向量（从 16 个中选择，取模 12）
     // 与标准 Perlin 噪声一致的梯度表
-    static constexpr f64 GRADIENTS[12][3] = {
-        { 1.0, 1.0, 0.0 }, { -1.0, 1.0, 0.0 }, { 1.0, -1.0, 0.0 }, { -1.0, -1.0, 0.0 },
-        { 1.0, 0.0, 1.0 }, { -1.0, 0.0, 1.0 }, { 1.0, 0.0, -1.0 }, { -1.0, 0.0, -1.0 },
-        { 0.0, 1.0, 1.0 }, { 0.0, -1.0, 1.0 }, { 0.0, 1.0, -1.0 }, { 0.0, -1.0, -1.0 }
-    };
+    static constexpr f64 GRADIENTS[12][3] = {{1.0, 1.0, 0.0},
+        {-1.0, 1.0, 0.0},
+        {1.0, -1.0, 0.0},
+        {-1.0, -1.0, 0.0},
+        {1.0, 0.0, 1.0},
+        {-1.0, 0.0, 1.0},
+        {1.0, 0.0, -1.0},
+        {-1.0, 0.0, -1.0},
+        {0.0, 1.0, 1.0},
+        {0.0, -1.0, 1.0},
+        {0.0, 1.0, -1.0},
+        {0.0, -1.0, -1.0}};
     const i32 idx = hash % 12;
     return GRADIENTS[idx][0] * x + GRADIENTS[idx][1] * y + GRADIENTS[idx][2] * z;
 }
 
-f64 PerlinNoise::PerlinLayer::sampleAndLerp(i32 cellX, i32 cellY, i32 cellZ,
-    f64 fracX, f64 fracY, f64 fracZ) const
+f64 PerlinNoise::PerlinLayer::sampleAndLerp(i32 cellX, i32 cellY, i32 cellZ, f64 fracX, f64 fracY, f64 fracZ) const
 {
     // Smoothstep 插值因子
     const f64 sx = fracX * fracX * fracX * (fracX * (fracX * 6.0 - 15.0) + 10.0);
@@ -139,10 +144,34 @@ PerlinNoise::PerlinNoise(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
     : m_firstOctave(firstOctave)
     , m_amplitudes(std::move(amplitudes))
 {
+    // MC 1.21: 使用 PositionalRandomFactory 风格的种子派生
     math::Random rng(seed);
+    const math::PositionalRandomFactory factory = rng.forkPositional();
+    initLayers(factory);
+}
 
+PerlinNoise::PerlinNoise(const math::PositionalRandomFactory& factory, i32 firstOctave, std::vector<f64> amplitudes)
+    : m_firstOctave(firstOctave)
+    , m_amplitudes(std::move(amplitudes))
+{
+    initLayers(factory);
+}
+
+void PerlinNoise::initLayers(const math::PositionalRandomFactory& factory)
+{
     const i32 octaveCount = static_cast<i32>(m_amplitudes.size());
     m_layers.resize(static_cast<size_t>(octaveCount));
+
+    // MC 1.21: 使用 PositionalRandomFactory.fromHashOf("octave_" + octaveIndex)
+    // 为每个倍频创建独立的随机数生成器
+    for (i32 i = 0; i < octaveCount; ++i) {
+        if (m_amplitudes[static_cast<size_t>(i)] != 0.0) {
+            const i32 octaveIndex = m_firstOctave + i;
+            const std::string key = "octave_" + std::to_string(octaveIndex);
+            auto octaveRng = factory.fromHashOf(key);
+            m_layers[static_cast<size_t>(i)] = std::make_unique<PerlinLayer>(*octaveRng);
+        }
+    }
 
     // 查找非零振幅的范围
     i32 minNonZero = std::numeric_limits<i32>::max();
@@ -155,16 +184,6 @@ PerlinNoise::PerlinNoise(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
         }
     }
 
-    // 为每个非零倍频创建 PerlinLayer
-    for (i32 i = 0; i < octaveCount; ++i) {
-        if (m_amplitudes[static_cast<size_t>(i)] != 0.0) {
-            const i32 octaveIndex = m_firstOctave + i;
-            // 使用确定性种子的哈希来为每个倍频创建独立的随机生成器
-            math::Random octaveRng(static_cast<u64>(octaveIndex) * 3246578901ULL ^ seed);
-            m_layers[static_cast<size_t>(i)] = std::make_unique<PerlinLayer>(octaveRng);
-        }
-    }
-
     // 计算最低频率的输入和值缩放因子
     if (minNonZero < octaveCount) {
         const i32 nonZeroRange = maxNonZero - minNonZero;
@@ -172,9 +191,7 @@ PerlinNoise::PerlinNoise(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
             m_lowestFreqInputFactor = 1.0;
             m_lowestFreqValueFactor = 1.0;
         } else {
-            // 输入缩放：2^(-(-firstOctave)) = 2^(firstOctave) 当 firstOctave < 0 时频率更低
             m_lowestFreqInputFactor = std::pow(2.0, -static_cast<f64>(m_firstOctave + minNonZero));
-            // 值缩放：2^(n-1) / (2^n - 1) 其中 n = 非零倍频数
             const i32 nonZeroCount = nonZeroRange + 1;
             m_lowestFreqValueFactor = std::pow(2.0, nonZeroCount - 1) / (std::pow(2.0, nonZeroCount) - 1.0);
         }

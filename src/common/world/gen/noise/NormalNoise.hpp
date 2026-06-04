@@ -51,8 +51,22 @@ public:
      * @param seed 随机种子
      * @param firstOctave 首个倍频索引
      * @param amplitudes 倍频振幅列表
+     *
+     * @note 内部创建 Random 并通过 forkPositional() 派生两个 PerlinNoise 实例，
+     *       与 MC 1.21 的 NormalNoise 构造流程一致。
      */
     NormalNoise(u64 seed, i32 firstOctave, std::vector<f64> amplitudes);
+
+    /**
+     * @brief 使用 RandomSource 构造
+     * @param rng 随机数生成器引用（构造后状态会被推进）
+     * @param firstOctave 首个倍频索引
+     * @param amplitudes 倍频振幅列表
+     *
+     * @note 与 MC 1.21 的 NormalNoise.create(RandomSource, NoiseParameters) 一致。
+     *       两次调用 rng.forkPositional() 为两个 PerlinNoise 创建不同的工厂。
+     */
+    NormalNoise(math::Random& rng, i32 firstOctave, std::vector<f64> amplitudes);
 
     ~NormalNoise() = default;
 
@@ -95,13 +109,18 @@ private:
      */
     [[nodiscard]] static f64 expectedDeviation(i32 octaveRange);
 
+    /**
+     * @brief 计算 valueFactor 和 maxValue（两个构造函数共用）
+     */
+    void computeValueFactor();
+
     static constexpr f64 INPUT_FACTOR = 1.0181268882175227;
     static constexpr f64 VALUE_FACTOR_BASE = 1.0 / 6.0;
 
     i32 m_firstOctave;
     std::vector<f64> m_amplitudes;
-    PerlinNoise m_first;
-    PerlinNoise m_second;
+    std::unique_ptr<PerlinNoise> m_first;
+    std::unique_ptr<PerlinNoise> m_second;
     f64 m_valueFactor = 0.0;
     f64 m_maxValue = 0.0;
 };

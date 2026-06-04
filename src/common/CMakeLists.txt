@@ -23,6 +23,7 @@ add_library(mc_common STATIC
     # Math - Random
     util/math/random/IRandom.cpp
     util/math/random/Mt19937Random.cpp
+    util/math/random/PositionalRandomFactory.cpp
     util/math/random/Xoroshiro128ppRandom.cpp
     util/math/random/Xoshiro256ppRandom.cpp
     util/math/random/LcgRandom.cpp

@@ -30,11 +30,14 @@
 namespace mc::world::biome::source {
 
 MultiNoiseBiomeSource::MultiNoiseBiomeSource(
-    u64 seed, climate::ParameterList<BiomeId> parameters, const climate::Sampler* sampler)
+    u64 seed, climate::ParameterList<BiomeId> parameters, std::unique_ptr<gen::density::NoiseRouter> router)
     : BiomeSource(seed)
     , m_parameters(std::move(parameters))
-    , m_sampler(sampler)
+    , m_router(std::move(router))
+    , m_sampler(m_router->createClimateSampler())
 {
+    MC_ASSERT_RELEASE(m_router != nullptr);
+
     // 收集所有可能的生物群系
     for (const auto& entry : m_parameters.entries()) {
         const BiomeId id = entry.second;
@@ -46,8 +49,7 @@ MultiNoiseBiomeSource::MultiNoiseBiomeSource(
 
 BiomeId MultiNoiseBiomeSource::getNoiseBiome(i32 quartX, i32 quartY, i32 quartZ) const
 {
-    MC_ASSERT_RELEASE(m_sampler != nullptr);
-    const climate::TargetPoint target = m_sampler->sample(quartX, quartY, quartZ);
+    const climate::TargetPoint target = m_sampler.sample(quartX, quartY, quartZ);
     return m_parameters.findValue(target);
 }
 
@@ -73,8 +75,6 @@ void MultiNoiseBiomeSource::fillBiomeContainer(BiomeContainer& container, ChunkC
         for (i32 y = 0; y < VERT_SIZE; ++y) {
             for (i32 z = 0; z < HORIZ_SIZE; ++z) {
                 for (i32 x = 0; x < HORIZ_SIZE; ++x) {
-                    // quart 坐标 = (区块坐标 * 4 + 采样偏移) / 4
-                    // 因为 1 quart = 4 blocks，1 section = 16 blocks = 4 quart
                     const i32 quartX = (chunkX * HORIZ_SIZE) + x;
                     const i32 quartY = (section * VERT_SIZE) + y + (world::MIN_BUILD_HEIGHT >> 2);
                     const i32 quartZ = (chunkZ * HORIZ_SIZE) + z;
@@ -93,22 +93,12 @@ std::unique_ptr<MultiNoiseBiomeSource> MultiNoiseBiomeSource::createOverworld(u6
     auto router =
         std::make_unique<gen::density::NoiseRouter>(gen::density::NoiseRouterData::overworld(seed, largeBiomes));
 
-    // 创建气候采样器
-    const climate::Sampler sampler = router->createClimateSampler();
-
     // 构建主世界生物群系参数列表
     OverworldBiomeBuilder builder;
     climate::ParameterList<BiomeId> parameters = builder.buildParameterList();
 
-    // 注意：sampler 引用了 router 中的密度函数，需要保持 router 活着
-    // 这里有一个生命周期问题：sampler 持有 DensityFunction 的裸指针，
-    // 而 DensityFunction 由 router 持有。
-    // 解决方案：将 router 和 sampler 一起管理。
-    // 当前简化实现：直接在 MultiNoiseBiomeSource 内部持有 router。
-
-    auto source = std::make_unique<MultiNoiseBiomeSource>(seed, std::move(parameters), nullptr);
-    // TODO: 解决 sampler 生命周期问题，需要让 MultiNoiseBiomeSource 持有 NoiseRouter
-    return source;
+    // NoiseRouter 由 MultiNoiseBiomeSource 持有，Sampler 引用 Router 中的 DensityFunction
+    return std::make_unique<MultiNoiseBiomeSource>(seed, std::move(parameters), std::move(router));
 }
 
 std::unique_ptr<MultiNoiseBiomeSource> MultiNoiseBiomeSource::createNether(u64 seed)
@@ -119,8 +109,7 @@ std::unique_ptr<MultiNoiseBiomeSource> MultiNoiseBiomeSource::createNether(u64 s
     // 构建下界生物群系参数列表
     auto parameters = NetherBiomeSource::buildParameterList();
 
-    auto source = std::make_unique<MultiNoiseBiomeSource>(seed, std::move(parameters), nullptr);
-    return source;
+    return std::make_unique<MultiNoiseBiomeSource>(seed, std::move(parameters), std::move(router));
 }
 
 } // namespace mc::world::biome::source

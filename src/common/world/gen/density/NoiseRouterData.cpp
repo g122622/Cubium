@@ -83,15 +83,13 @@ NoiseRouterData::ClimateFunctions NoiseRouterData::createOverworldClimate(u64 se
 
 std::unique_ptr<DensityFunction> NoiseRouterData::peaksAndValleys(std::unique_ptr<DensityFunction> ridges)
 {
-    // peaksAndValleys: -(|(|x| - 2/3| - 1/3|) * 3)
-    // = squeeze(abs(abs(ridges) - 2/3) - 1/3) * -3
-    // 简化实现：
+    // MC 1.21: mul(add(add(abs(ridges), constant(-2/3)).abs(), constant(-1/3)), constant(-3))
+    // 注意：不使用 squeeze，直接是 (abs(abs(ridges) - 2/3) - 1/3) * -3
     auto absRidges = factory::abs(std::move(ridges));
     auto shifted = factory::add(std::move(absRidges), factory::constant(-2.0 / 3.0));
     auto absShifted = factory::abs(std::move(shifted));
     auto sub = factory::add(std::move(absShifted), factory::constant(-1.0 / 3.0));
-    auto squeezed = factory::squeeze(std::move(sub));
-    return factory::mul(factory::constant(-3.0), std::move(squeezed));
+    return factory::mul(factory::constant(-3.0), std::move(sub));
 }
 
 NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
