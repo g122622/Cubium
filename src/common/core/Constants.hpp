@@ -112,9 +112,9 @@ constexpr u32 MAX_LOGIN_ATTEMPTS = 5;
 // ============================================================================
 
 namespace world {
-// 高度限制
-constexpr i32 MIN_BUILD_HEIGHT = 0;
-constexpr i32 MAX_BUILD_HEIGHT = 256;
+// 高度限制(左闭右开区间)
+constexpr i32 MIN_BUILD_HEIGHT = -64;
+constexpr i32 MAX_BUILD_HEIGHT = 320;
 
 // 区块尺寸
 constexpr i32 CHUNK_WIDTH = 16;
