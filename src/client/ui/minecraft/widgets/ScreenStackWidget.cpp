@@ -172,8 +172,24 @@ bool ScreenStackWidget::_isScreenModal(const ScreenWrapper& wrapper) const
 
 void ScreenStackWidget::paint(kagero::widget::PaintContext& ctx)
 {
-    // 从底层到顶层渲染所有屏幕
-    for (const auto& wrapper : m_screens) {
+    if (m_screens.empty()) {
+        return;
+    }
+
+    // 从顶层向下找到第一个模态屏幕，模态屏幕下方的层不需要渲染
+    size_t firstPaintIndex = 0;
+    for (auto it = m_screens.rbegin(); it != m_screens.rend(); ++it) {
+        if (it->visible) {
+            firstPaintIndex = std::distance(it, m_screens.rend()) - 1;
+        }
+        if (it->modal) {
+            break;
+        }
+    }
+
+    // 从最底层的可见层渲染到顶层
+    for (size_t i = firstPaintIndex; i < m_screens.size(); ++i) {
+        const auto& wrapper = m_screens[i];
         if (!wrapper.visible) {
             continue;
         }

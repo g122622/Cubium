@@ -206,7 +206,7 @@ public:
     using Callback = std::function<void()>;
 
     MultiStateObserver() = default;
-    ~MultiStateObserver() = default;
+    ~MultiStateObserver() { clear(); }
 
     // 禁止拷贝
     MultiStateObserver(const MultiStateObserver&) = delete;
@@ -215,19 +215,22 @@ public:
     /**
      * @brief 观察响应式状态
      *
-     * @warning 观察者的生命周期不能超过被观察的 Reactive 对象，
-     *          否则清除时会通过悬垂引用访问已销毁的 Reactive
+     * @param reactive 响应式状态指针（调用方需确保其生命周期长于观察者）
+     *
+     * @note 使用指针而非引用，避免lambda捕获引用导致的悬垂风险。
+     *       调用方需确保被观察的 Reactive 对象在观察者销毁前不会被销毁。
      */
     template <typename T>
-    void observe(Reactive<T>& reactive)
+    void observe(Reactive<T>* reactive)
     {
-        auto id = reactive.observe([this](const T&, const T&) {
+        auto id = reactive->observe([this](const T&, const T&) {
             if (m_callback) {
                 m_callback();
             }
         });
-        // 捕获 reactive 引用用于析构时移除观察者
-        m_observerIds.push_back([id, &reactive]() { reactive.removeObserver(id); });
+        // 使用裸指针存储，析构时安全移除观察者
+        m_observerEntries.push_back(
+            {id, reactive, [](ObserverId id, void* ptr) { static_cast<Reactive<T>*>(ptr)->removeObserver(id); }});
     }
 
     /**
@@ -240,16 +243,26 @@ public:
      */
     void clear()
     {
-        for (auto& remover : m_observerIds) {
-            remover();
+        for (auto& entry : m_observerEntries) {
+            entry.remove(entry.id, entry.reactivePtr);
         }
-        m_observerIds.clear();
+        m_observerEntries.clear();
     }
 
 private:
+    using ObserverId = u64;
+
+    /**
+     * @brief 观察者条目，用于析构时移除观察者
+     */
+    struct ObserverEntry {
+        ObserverId id;
+        void* reactivePtr;
+        void (*remove)(ObserverId id, void* ptr);
+    };
+
     Callback m_callback;
-    // 存储每个观察者的移除函数，clear() 时逐一调用以反注册
-    std::vector<std::function<void()>> m_observerIds;
+    std::vector<ObserverEntry> m_observerEntries;
 };
 
 /**

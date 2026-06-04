@@ -408,6 +408,12 @@ void TemplateInstance::registerDefaultAttributeSetters()
         widget->setId(value.toString());
     };
 
+    // title属性（用于Screen标题）
+    m_attributeSetters["title"] = [](widget::Widget* widget, const std::string& attrName, const binder::Value& value) {
+        (void)attrName;
+        widget->setUserData("title", value.toString());
+    };
+
     // bind:items属性（用于ListWidget数据绑定）
     m_attributeSetters["items"] = [](widget::Widget* widget, const std::string& attrName, const binder::Value& value) {
         (void)attrName;

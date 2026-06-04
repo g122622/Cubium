@@ -158,8 +158,8 @@ TEST(MultiStateObserverTest, ObserveMultiple)
     int callCount = 0;
 
     MultiStateObserver observer;
-    observer.observe(health);
-    observer.observe(mana);
+    observer.observe(&health);
+    observer.observe(&mana);
     observer.setCallback([&]() { callCount++; });
 
     health.set(80);
@@ -183,8 +183,8 @@ TEST(MultiStateObserverTest, Clear)
     int callCount = 0;
 
     MultiStateObserver observer;
-    observer.observe(a);
-    observer.observe(b);
+    observer.observe(&a);
+    observer.observe(&b);
     observer.setCallback([&]() { callCount++; });
 
     a.set(1);
@@ -205,7 +205,7 @@ TEST(MultiStateObserverTest, SetCallbackBeforeObserve)
 
     MultiStateObserver observer;
     observer.setCallback([&]() { callCount++; });
-    observer.observe(value);
+    observer.observe(&value);
 
     value.set(1);
     EXPECT_EQ(callCount, 1);
@@ -216,7 +216,7 @@ TEST(MultiStateObserverTest, NoCallback)
     Reactive<i32> value(0);
 
     MultiStateObserver observer;
-    observer.observe(value);
+    observer.observe(&value);
 
     // 没有设置回调，不应崩溃
     EXPECT_NO_THROW(value.set(1));
@@ -472,8 +472,8 @@ TEST(MultiStateObserverTest, SameStateMultipleTimes)
     int callCount = 0;
 
     MultiStateObserver observer;
-    observer.observe(value);
-    observer.observe(value); // 同一个状态多次观察
+    observer.observe(&value);
+    observer.observe(&value); // 同一个状态多次观察
     observer.setCallback([&]() { callCount++; });
 
     value.set(1);

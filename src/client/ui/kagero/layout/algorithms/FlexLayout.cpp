@@ -494,6 +494,23 @@ void FlexLayout::_applyJustifyContent(FlexLine& line, i32 mainAxisSize, bool isH
 
 void FlexLayout::_applyAlignItems(FlexLine& line, i32 crossAxisSize, bool isHorizontal)
 {
+    // 先收集行内最大基线（用于Baseline对齐）
+    i32 maxBaseline = 0;
+    bool hasBaseline = false;
+    for (size_t i = 0; i < line.items.size(); ++i) {
+        Align align = line.items[i]->flexItem().alignSelf;
+        if (align == Align::Stretch) {
+            align = m_config.alignItems;
+        }
+        if (align == Align::Baseline) {
+            i32 baseline = line.items[i]->getBaseline();
+            if (baseline > maxBaseline) {
+                maxBaseline = baseline;
+            }
+            hasBaseline = true;
+        }
+    }
+
     for (size_t i = 0; i < line.items.size(); ++i) {
         auto* child = line.items[i];
         size_t idx = line.indices[i];
@@ -559,8 +576,14 @@ void FlexLayout::_applyAlignItems(FlexLine& line, i32 crossAxisSize, bool isHori
                 break;
 
             case Align::Baseline:
-                // TODO: 基线对齐目前简化为等同于Start，待实现真正的基线对齐
-                crossOffset = isHorizontal ? child->constraints().margin.top : child->constraints().margin.left;
+                if (hasBaseline && isHorizontal) {
+                    // 基线对齐：子元素的基线与行内最大基线对齐
+                    i32 childBaseline = child->getBaseline();
+                    crossOffset = maxBaseline - childBaseline + child->constraints().margin.top;
+                } else {
+                    // 非水平布局时退化为Start
+                    crossOffset = isHorizontal ? child->constraints().margin.top : child->constraints().margin.left;
+                }
                 break;
         }
 

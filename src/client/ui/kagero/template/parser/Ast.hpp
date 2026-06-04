@@ -62,6 +62,7 @@ enum class NodeType : u8 {
     Viewport3D, ///< 3D视口节点
     Scrollable, ///< 可滚动容器节点
     List,       ///< 列表节点
+    Container,  ///< 容器节点
     Style,      ///< 样式节点
 
     // 属性节点
@@ -112,6 +113,8 @@ enum class NodeType : u8 {
             return "Scrollable";
         case NodeType::List:
             return "List";
+        case NodeType::Container:
+            return "Container";
         case NodeType::Style:
             return "Style";
         case NodeType::StaticAttr:

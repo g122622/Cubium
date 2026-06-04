@@ -193,24 +193,8 @@ std::unique_ptr<CompiledTemplate> TemplateCompiler::compile(const std::string& s
         return result;
     }
 
-    // Parser成功，但我们需要重新创建AST
-    // 因为Parser::parse()返回新AST
-    Lexer lexer(source, sourcePath);
-    lexer.tokenize();
-
-    Parser parser(lexer, m_config);
-    auto ast = parser.parse();
-
-    if (!ast || parser.hasErrors()) {
-        for (const auto& error : parser.errors()) {
-            result->addError(error);
-            m_lastErrors.push_back(error);
-        }
-        result->setCompileTime(static_cast<u64>(
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime)
-                .count()));
-        return result;
-    }
+    // 使用_parse()生成的AST
+    auto ast = std::move(m_parsedAst);
 
     // 3. 语义验证
     if (!_validate(ast.get())) {
@@ -317,9 +301,22 @@ bool TemplateCompiler::_tokenize(const std::string& source, const std::string& s
 
 bool TemplateCompiler::_parse(const std::string& sourcePath)
 {
-    // TODO: 当前parse为空实现，实际的词法+语法分析在compile()中通过Lexer/Parser直接完成
-    // 后续应将compile()中的重复逻辑重构到此处，使编译管线各阶段真正独立
-    (void)sourcePath;
+    if (m_tokens.empty()) {
+        m_lastErrors.push_back(
+            TemplateErrorInfo(TemplateErrorType::ParserError, "No tokens to parse", SourceLocation(), sourcePath));
+        return false;
+    }
+
+    Parser parser(m_tokens, m_config);
+    m_parsedAst = parser.parse();
+
+    if (!m_parsedAst || parser.hasErrors()) {
+        for (const auto& error : parser.errors()) {
+            m_lastErrors.push_back(error);
+        }
+        return false;
+    }
+
     return true;
 }
 

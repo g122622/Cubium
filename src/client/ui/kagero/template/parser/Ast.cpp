@@ -259,6 +259,7 @@ NodeType getNodeTypeFromTagName(const std::string& tagName)
         {"viewport3d", NodeType::Viewport3D},
         {"scrollable", NodeType::Scrollable},
         {"list", NodeType::List},
+        {"container", NodeType::Container},
         {"style", NodeType::Style}};
 
     std::string lowerName = tagName;
@@ -303,7 +304,7 @@ bool isValidAttributeName(const std::string& name)
     }
 
     // 允许的属性前缀
-    static const std::vector<std::string> allowedPrefixes = {"bind:", "on:"};
+    static const std::vector<std::string> allowedPrefixes = {"bind:", "on:", "for:", "if:"};
 
     // 检查是否有前缀
     for (const auto& prefix : allowedPrefixes) {

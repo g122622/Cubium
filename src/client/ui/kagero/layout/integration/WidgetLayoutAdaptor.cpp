@@ -99,7 +99,22 @@ Padding WidgetLayoutAdaptor::padding() const
 
 Size WidgetLayoutAdaptor::measure(const MeasureSpec& widthSpec, const MeasureSpec& heightSpec)
 {
-    if (m_cacheValid && m_lastWidthSpec == widthSpec && m_lastHeightSpec == heightSpec) {
+    // 检查Widget约束是否变化（preferredSize、minSize等）
+    bool constraintsChanged = false;
+    if (m_widget != nullptr) {
+        auto& currentConstraints = m_constraints;
+        if (m_lastPreferredWidth != currentConstraints.preferredWidth ||
+            m_lastPreferredHeight != currentConstraints.preferredHeight ||
+            m_lastMinWidth != currentConstraints.minWidth || m_lastMinHeight != currentConstraints.minHeight) {
+            constraintsChanged = true;
+            m_lastPreferredWidth = currentConstraints.preferredWidth;
+            m_lastPreferredHeight = currentConstraints.preferredHeight;
+            m_lastMinWidth = currentConstraints.minWidth;
+            m_lastMinHeight = currentConstraints.minHeight;
+        }
+    }
+
+    if (m_cacheValid && !constraintsChanged && m_lastWidthSpec == widthSpec && m_lastHeightSpec == heightSpec) {
         return m_lastMeasuredSize;
     }
 
@@ -221,6 +236,7 @@ void WidgetLayoutAdaptor::requestLayout()
 
     m_layoutDirty = true;
     m_cacheValid = false;
+    m_childrenCacheDirty = true;
     _propagateLayoutRequest();
 }
 
@@ -248,30 +264,40 @@ void WidgetLayoutAdaptor::_propagateLayoutRequest()
 std::vector<WidgetLayoutAdaptor*> WidgetLayoutAdaptor::getChildren()
 {
     std::vector<WidgetLayoutAdaptor*> children;
-    m_childAdaptorsCache.clear();
 
     if (m_widget == nullptr) {
+        m_childAdaptorsCache.clear();
+        m_childrenCacheDirty = false;
         return children;
     }
 
     auto* container = dynamic_cast<widget::IWidgetContainer*>(m_widget);
     if (container == nullptr) {
+        m_childAdaptorsCache.clear();
+        m_childrenCacheDirty = false;
         return children;
     }
 
-    const auto& widgets = container->widgets();
-    children.reserve(widgets.size());
-    m_childAdaptorsCache.reserve(widgets.size());
+    if (m_childrenCacheDirty) {
+        m_childAdaptorsCache.clear();
+        const auto& widgets = container->widgets();
+        m_childAdaptorsCache.reserve(widgets.size());
 
-    for (const auto& child : widgets) {
-        auto adaptor = createChildAdaptor(child.get());
-        if (adaptor == nullptr) {
-            continue;
+        for (const auto& child : widgets) {
+            auto adaptor = createChildAdaptor(child.get());
+            if (adaptor == nullptr) {
+                continue;
+            }
+
+            adaptor->setDepth(m_depth + 1);
+            m_childAdaptorsCache.push_back(std::move(adaptor));
         }
+        m_childrenCacheDirty = false;
+    }
 
-        adaptor->setDepth(m_depth + 1);
+    children.reserve(m_childAdaptorsCache.size());
+    for (const auto& adaptor : m_childAdaptorsCache) {
         children.push_back(adaptor.get());
-        m_childAdaptorsCache.push_back(std::move(adaptor));
     }
 
     return children;
@@ -294,6 +320,26 @@ size_t WidgetLayoutAdaptor::childCount() const
 bool WidgetLayoutAdaptor::isContainer() const
 {
     return m_widget != nullptr && dynamic_cast<const widget::IWidgetContainer*>(m_widget) != nullptr;
+}
+
+i32 WidgetLayoutAdaptor::getBaseline() const
+{
+    if (m_widget == nullptr) {
+        return 0;
+    }
+
+    // 优先使用Widget的userData中存储的baseline值
+    if (auto* baselineStr = m_widget->getUserData("baseline")) {
+        try {
+            return std::stoi(*baselineStr);
+        }
+        catch (...) {
+            // 解析失败，使用默认值
+        }
+    }
+
+    // 默认：返回元素高度的一半作为近似基线
+    return m_widget->height() / 2;
 }
 
 // ============================================================================

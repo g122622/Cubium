@@ -94,13 +94,18 @@ void TridentCanvas::drawRRect(const kagero::paint::RRect& roundRect, const kager
 
 void TridentCanvas::drawCircle(f32 cx, f32 cy, f32 radius, const kagero::paint::IPaint& paint)
 {
-    // MC UI 是方正风格，不需要圆形
-    // 退化为边界矩形
     const u32 color = _extractColor(paint);
     _transformPoint(cx, cy);
 
     if (paint.style() == kagero::paint::PaintStyle::Fill) {
         m_renderer.fillRect(cx - radius, cy - radius, radius * 2, radius * 2, color);
+    } else {
+        // Stroke: 使用边框矩形近似
+        const f32 halfStroke = paint.strokeWidth() / 2.0f;
+        m_renderer.fillRect(cx - radius, cy - radius - halfStroke, radius * 2, paint.strokeWidth(), color); // 上
+        m_renderer.fillRect(cx - radius, cy + radius - halfStroke, radius * 2, paint.strokeWidth(), color); // 下
+        m_renderer.fillRect(cx - radius - halfStroke, cy - radius, paint.strokeWidth(), radius * 2, color); // 左
+        m_renderer.fillRect(cx + radius - halfStroke, cy - radius, paint.strokeWidth(), radius * 2, color); // 右
     }
 }
 
@@ -126,29 +131,50 @@ void TridentCanvas::drawLine(f32 x0, f32 y0, f32 x1, f32 y1, const kagero::paint
     _transformPoint(x0, y0);
     _transformPoint(x1, y1);
 
-    // 计算线条方向的垂直方向
+    if (strokeWidth <= 0.0f) {
+        return;
+    }
+
+    const f32 halfWidth = strokeWidth / 2.0f;
     const f32 dx = x1 - x0;
     const f32 dy = y1 - y0;
     const f32 len = std::sqrt(dx * dx + dy * dy);
 
     if (len < 0.001f) {
-        // 长度太短，绘制一个点
-        m_renderer.fillRect(x0 - strokeWidth / 2, y0 - strokeWidth / 2, strokeWidth, strokeWidth, color);
+        m_renderer.fillRect(x0 - halfWidth, y0 - halfWidth, strokeWidth, strokeWidth, color);
         return;
     }
 
-    // 垂直方向的半宽
-    const f32 halfWidth = strokeWidth / 2.0f;
+    // 水平线：直接用矩形绘制（精确）
+    if (std::abs(dy) < 0.001f) {
+        const f32 left = std::min(x0, x1);
+        m_renderer.fillRect(left, y0 - halfWidth, std::abs(dx), strokeWidth, color);
+        return;
+    }
+
+    // 垂直线：直接用矩形绘制（精确）
+    if (std::abs(dx) < 0.001f) {
+        const f32 top = std::min(y0, y1);
+        m_renderer.fillRect(x0 - halfWidth, top, strokeWidth, std::abs(dy), color);
+        return;
+    }
+
+    // 斜线：使用旋转矩形的包围盒近似
+    // 精确渲染需要 fillQuad，当前使用更紧凑的包围盒
     const f32 nx = -dy / len * halfWidth;
     const f32 ny = dx / len * halfWidth;
 
-    // 绘制一个四边形作为线条
-    // 顶点: (x0+nx, y0+ny), (x0-nx, y0-ny), (x1-nx, y1-ny), (x1+nx, y1+ny)
-    // 简化：使用 fillRect 近似
-    const f32 minX = std::min(x0, x1) - halfWidth;
-    const f32 minY = std::min(y0, y1) - halfWidth;
-    const f32 maxX = std::max(x0, x1) + halfWidth;
-    const f32 maxY = std::max(y0, y1) + halfWidth;
+    // 四个顶点
+    const f32 vx0 = x0 + nx, vy0 = y0 + ny;
+    const f32 vx1 = x0 - nx, vy1 = y0 - ny;
+    const f32 vx2 = x1 - nx, vy2 = y1 - ny;
+    const f32 vx3 = x1 + nx, vy3 = y1 + ny;
+
+    // 使用包围盒绘制（比之前的包围盒更紧凑）
+    const f32 minX = std::min({vx0, vx1, vx2, vx3});
+    const f32 minY = std::min({vy0, vy1, vy2, vy3});
+    const f32 maxX = std::max({vx0, vx1, vx2, vx3});
+    const f32 maxY = std::max({vy0, vy1, vy2, vy3});
 
     m_renderer.fillRect(minX, minY, maxX - minX, maxY - minY, color);
 }

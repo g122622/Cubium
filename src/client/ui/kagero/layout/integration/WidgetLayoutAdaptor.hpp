@@ -258,6 +258,15 @@ public:
      */
     [[nodiscard]] bool isContainer() const;
 
+    /**
+     * @brief 获取基线偏移量
+     *
+     * 用于Flex布局的Baseline对齐。返回元素基线相对于顶部的偏移像素数。
+     * 默认实现返回元素高度的一半作为近似基线。
+     * 文本类Widget应返回字体的基线偏移以实现精确对齐。
+     */
+    [[nodiscard]] i32 getBaseline() const;
+
     // ==================== 布局深度 ====================
 
     /**
@@ -290,11 +299,18 @@ private:
     LayoutConstraints m_constraints;
     MeasureFunc m_measureFunc;
     std::vector<std::unique_ptr<WidgetLayoutAdaptor>> m_childAdaptorsCache;
+    bool m_childrenCacheDirty = true;
 
     Size m_lastMeasuredSize;
     MeasureSpec m_lastWidthSpec;
     MeasureSpec m_lastHeightSpec;
     bool m_cacheValid = false;
+
+    // 约束缓存，用于检测约束变化使测量缓存失效
+    i32 m_lastPreferredWidth = -1;
+    i32 m_lastPreferredHeight = -1;
+    i32 m_lastMinWidth = 0;
+    i32 m_lastMinHeight = 0;
 
     bool m_layoutDirty = true;
     bool m_renderDirty = true;

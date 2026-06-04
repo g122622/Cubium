@@ -164,10 +164,13 @@ public:
                 break;
             }
 
-            // 应用过滤器
+            // 应用过滤器：仅应用全局过滤器或匹配事件类型的过滤器
             bool shouldHandle = true;
             for (const auto& filter : m_filters) {
-                if (!filter.second(event)) {
+                if (filter.second.eventType != std::type_index(typeid(void)) && filter.second.eventType != typeInfo) {
+                    continue; // 过滤器仅应用于特定类型，且不匹配当前事件类型
+                }
+                if (!filter.second.filter(event)) {
                     shouldHandle = false;
                     break;
                 }
@@ -180,7 +183,7 @@ public:
     }
 
     /**
-     * @brief 添加事件过滤器（自动生成ID）
+     * @brief 添加事件过滤器（自动生成ID，全局过滤）
      *
      * @param filter 过滤函数，返回 true 继续处理，返回 false 阻止处理
      * @return HandlerId 过滤器ID，用于移除过滤器
@@ -189,7 +192,24 @@ public:
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         HandlerId id = _nextId();
-        m_filters[id] = std::move(filter);
+        m_filters.insert_or_assign(id, FilterEntry{TypeInfo(typeid(void)), std::move(filter)});
+        return id;
+    }
+
+    /**
+     * @brief 添加类型化事件过滤器（仅过滤指定类型的事件）
+     *
+     * @tparam EventT 要过滤的事件类型
+     * @param filter 过滤函数
+     * @return HandlerId 过滤器ID
+     */
+    template <typename EventT>
+    HandlerId addFilterForType(EventFilter filter)
+    {
+        static_assert(std::is_base_of_v<Event, EventT>, "EventT must derive from Event");
+        std::lock_guard<std::mutex> lock(m_mutex);
+        HandlerId id = _nextId();
+        m_filters.insert_or_assign(id, FilterEntry{_getTypeInfo<EventT>(), std::move(filter)});
         return id;
     }
 
@@ -203,7 +223,7 @@ public:
     void addFilterWithId(HandlerId id, EventFilter filter)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        m_filters[id] = std::move(filter);
+        m_filters.insert_or_assign(id, FilterEntry{TypeInfo(typeid(void)), std::move(filter)});
     }
 
     /**
@@ -278,6 +298,14 @@ private:
     };
 
     /**
+     * @brief 过滤器条目
+     */
+    struct FilterEntry {
+        TypeInfo eventType = TypeInfo(typeid(void)); ///< 事件类型（typeid(void)表示全局过滤器）
+        EventFilter filter;                          ///< 过滤函数
+    };
+
+    /**
      * @brief 生成下一个ID
      */
     HandlerId _nextId() { return m_nextId++; }
@@ -295,7 +323,7 @@ private:
 
     std::unordered_map<TypeInfo, std::vector<HandlerEntry>> m_handlers;
     std::unordered_map<HandlerId, TypeInfo> m_handlerToType;
-    std::unordered_map<HandlerId, EventFilter> m_filters;
+    std::unordered_map<HandlerId, FilterEntry> m_filters;
     std::atomic<HandlerId> m_nextId{1};
     mutable std::mutex m_mutex;
 };

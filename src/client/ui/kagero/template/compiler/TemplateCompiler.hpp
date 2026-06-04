@@ -470,6 +470,7 @@ private:
     TemplateConfig m_config;
     // TODO: m_tokens 当前未被使用，词法分析结果直接从Lexer获取，后续缓存优化时可启用
     std::vector<Token> m_tokens;
+    std::unique_ptr<ast::DocumentNode> m_parsedAst;
     std::vector<TemplateErrorInfo> m_lastErrors;
 };
 
