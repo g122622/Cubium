@@ -96,12 +96,14 @@ add_executable(minecraft-client
     renderer/trident/blockentity/model/BlockEntityModel.cpp
     renderer/trident/blockentity/model/ChestModel.cpp
     renderer/trident/blockentity/model/BeaconBeamModel.cpp
+    renderer/trident/blockentity/model/BannerModel.cpp
     # 方块实体渲染器
     renderer/trident/blockentity/BlockEntityRenderer.cpp
     renderer/trident/blockentity/BlockEntityRendererDispatcher.cpp
     renderer/trident/blockentity/renderers/PistonRenderer.cpp
     renderer/trident/blockentity/renderers/ChestRenderer.cpp
     renderer/trident/blockentity/renderers/BeaconRenderer.cpp
+    renderer/trident/blockentity/renderers/BannerRenderer.cpp
     # 子渲染器
     renderer/trident/chunk/ChunkRenderer.cpp
     renderer/trident/chunk/ChunkMesher.cpp
@@ -281,6 +283,7 @@ add_executable(minecraft-client
     ui/screen/FurnaceScreen.cpp
     ui/screen/CartographyScreen.cpp
     ui/screen/MapScreen.cpp
+    ui/minecraft/screens/LoomScreen.cpp
     # UI Kagero模板系统
     ui/kagero/template/parser/Ast.cpp
     ui/kagero/template/parser/AstVisitor.cpp

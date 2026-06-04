@@ -490,6 +490,36 @@ public:
     static Item* WARPED_SIGN;   // 诡异告示牌
 
     // ========================================================================
+    // 旗帜物品 (16色)
+    // ========================================================================
+    static Item* WHITE_BANNER;
+    static Item* ORANGE_BANNER;
+    static Item* MAGENTA_BANNER;
+    static Item* LIGHT_BLUE_BANNER;
+    static Item* YELLOW_BANNER;
+    static Item* LIME_BANNER;
+    static Item* PINK_BANNER;
+    static Item* GRAY_BANNER;
+    static Item* LIGHT_GRAY_BANNER;
+    static Item* CYAN_BANNER;
+    static Item* PURPLE_BANNER;
+    static Item* BLUE_BANNER;
+    static Item* BROWN_BANNER;
+    static Item* GREEN_BANNER;
+    static Item* RED_BANNER;
+    static Item* BLACK_BANNER;
+
+    // ========================================================================
+    // 旗帜图案物品
+    // ========================================================================
+    static Item* FLOWER_BANNER_PATTERN;  // 花朵图案
+    static Item* CREEPER_BANNER_PATTERN; // 苦力怕图案
+    static Item* SKULL_BANNER_PATTERN;   // 骷髅图案
+    static Item* MOJANG_BANNER_PATTERN;  // Mojang标志图案
+    static Item* GLOBE_BANNER_PATTERN;   // 地球图案
+    static Item* PIGLIN_BANNER_PATTERN;  // 猪灵图案
+
+    // ========================================================================
     // 基础建筑方块
     // ========================================================================
     static Item* DIRT;        // 泥土
@@ -997,6 +1027,7 @@ private:
     static void _registerBoats();
     static void _registerHangingItems();
     static void _registerSigns();
+    static void _registerBanners();
     static void _registerBuildingBlocks();
     static void _registerWool();
     static void _registerCarpets();

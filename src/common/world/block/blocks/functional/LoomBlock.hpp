@@ -34,6 +34,8 @@ namespace mc {
 class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
+class Player;
+class BlockRaycastResult;
 
 namespace blocks {
 
@@ -69,6 +71,18 @@ public:
     // ========== 形状 ==========
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    // ========== 交互 ==========
+
+    /**
+     * @brief 右键打开织布机容器
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
 
     // ========== 渲染属性 ==========
 

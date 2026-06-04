@@ -32,6 +32,15 @@
 namespace mc {
 
 class IWorld;
+class BlockState;
+
+namespace text {
+class ITextComponent;
+}
+
+namespace item {
+class ItemStack;
+}
 
 namespace blockentity {
 
@@ -132,6 +141,25 @@ public:
      */
     void setBaseColor(DyeColor color);
 
+    // ========== 自定义名称 ==========
+
+    /**
+     * @brief 设置自定义显示名称
+     * @param name 自定义名称组件
+     */
+    void setCustomDisplayName(std::unique_ptr<text::ITextComponent> name);
+
+    /**
+     * @brief 获取自定义显示名称
+     * @return 自定义名称，如果没有返回nullptr
+     */
+    [[nodiscard]] const text::ITextComponent* getCustomDisplayName() const;
+
+    /**
+     * @brief 检查是否有自定义显示名称
+     */
+    [[nodiscard]] bool hasCustomDisplayName() const { return m_customName != nullptr; }
+
     // ========== 辅助方法 ==========
 
     /**
@@ -146,6 +174,62 @@ public:
      */
     [[nodiscard]] std::string getTextureName() const;
 
+    // ========== ItemStack 互操作 ==========
+
+    /**
+     * @brief 从ItemStack加载图案数据
+     *
+     * 从物品的BlockEntityTag.Patterns读取图案并设置到方块实体。
+     *
+     * @param stack 旗帜物品
+     * @param baseColor 旗帜底色
+     */
+    void loadFromItemStack(const item::ItemStack& stack, DyeColor baseColor);
+
+    /**
+     * @brief 生成包含图案数据的ItemStack
+     *
+     * 根据底色找到对应旗帜物品，将图案数据写入BlockEntityTag。
+     *
+     * @param state 当前方块状态
+     * @return 包含图案数据的物品堆
+     */
+    [[nodiscard]] item::ItemStack getItem(const BlockState& state) const;
+
+    // ========== 静态工具方法 ==========
+
+    /**
+     * @brief 从ItemStack获取图案列表
+     * @param stack 旗帜物品
+     * @return 图案列表，如果没有图案返回空列表
+     */
+    [[nodiscard]] static std::vector<BannerPattern> getPatternsFromItemStack(const item::ItemStack& stack);
+
+    /**
+     * @brief 从ItemStack获取图案数量
+     * @param stack 旗帜物品
+     * @return 图案数量
+     */
+    [[nodiscard]] static i32 getPatternCount(const item::ItemStack& stack);
+
+    /**
+     * @brief 从ItemStack移除最顶层图案数据
+     * @param stack 旗帜物品
+     */
+    static void removeBannerData(item::ItemStack& stack);
+
+    /**
+     * @brief 组合底色和图案为渲染数据
+     *
+     * 将底色作为第一层（Base图案），然后追加所有图案层。
+     *
+     * @param baseColor 底色
+     * @param patterns 图案列表
+     * @return 完整的图案+颜色列表（用于渲染）
+     */
+    [[nodiscard]] static std::vector<std::pair<BannerPatternType, DyeColor>> composePatterns(
+        DyeColor baseColor, const std::vector<BannerPattern>& patterns);
+
     // ========== Tick 更新 ==========
 
     void tick(IWorld& world) override;
@@ -155,11 +239,16 @@ public:
 
     bool load(const nlohmann::json& data) override;
     void save(nlohmann::json& data) const override;
+
+    bool loadFromNBT(const nbt::tags::compound_tag& tag) override;
+    void saveToNBT(nbt::tags::compound_tag& tag) const override;
+
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
 private:
-    std::vector<BannerPattern> m_patterns;  ///< 图案列表
-    DyeColor m_baseColor = DyeColor::White; ///< 底色（默认白色）
+    std::vector<BannerPattern> m_patterns;              ///< 图案列表
+    DyeColor m_baseColor = DyeColor::White;             ///< 底色（默认白色）
+    std::unique_ptr<text::ITextComponent> m_customName; ///< 自定义名称
 };
 
 } // namespace blockentity

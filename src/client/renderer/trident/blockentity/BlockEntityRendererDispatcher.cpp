@@ -27,6 +27,7 @@
 #include "client/resource/BlockModelCache.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include "renderers/BannerRenderer.hpp"
 #include "renderers/BeaconRenderer.hpp"
 #include "renderers/ChestRenderer.hpp"
 #include <spdlog/spdlog.h>
@@ -98,11 +99,13 @@ void BlockEntityRendererDispatcher::initializeDefaults()
     registerRenderer(BlockEntityType::Chest,
         []() -> std::unique_ptr<BlockEntityRendererBase> { return std::make_unique<ChestRenderer>(); });
 
+    registerRenderer(BlockEntityType::Banner,
+        []() -> std::unique_ptr<BlockEntityRendererBase> { return std::make_unique<BannerRenderer>(); });
+
     // 注册其他渲染器将在各自实现完成后添加
     // - SignRenderer (告示牌)
     // - BedRenderer (床)
     // - BellRenderer (钟)
-    // - BannerRenderer (旗帜)
     // - ShulkerBoxRenderer (潜影盒)
     // - ConduitRenderer (潮涌核心)
     // - LecternRenderer (讲台)

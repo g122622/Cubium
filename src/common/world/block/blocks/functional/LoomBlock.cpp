@@ -23,10 +23,12 @@
 
 #include "LoomBlock.hpp"
 
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockRaycastResult.hpp"
 
 namespace mc {
 namespace blocks {
@@ -93,6 +95,30 @@ const CollisionShape& LoomBlock::getShape(const BlockState& state) const
     size_t index = static_cast<size_t>(facing);
     MC_ASSERT(index < Directions::COUNT && Directions::isHorizontal(facing));
     return m_shapesByFacing[index];
+}
+
+ActionResultType LoomBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(state);
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    // 客户端只返回Success
+    if (world.isClientSide()) {
+        return ActionResultType::Success;
+    }
+
+    // 打开织布机容器
+    if (world.openContainer(ContainerType::Loom, pos, player)) {
+        return ActionResultType::Consume;
+    }
+
+    return ActionResultType::Pass;
 }
 
 } // namespace blocks

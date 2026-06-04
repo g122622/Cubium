@@ -645,6 +645,53 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     // 耕地
     registerSimpleBlock(VanillaBlocks::FARMLAND, "farmland");
 
+    // 旗帜（站立式，每种颜色对应一个BannerItem；墙壁旗帜不需要单独注册物品）
+    registerSimpleBlock(VanillaBlocks::WHITE_BANNER, "white_banner");
+    registerSimpleBlock(VanillaBlocks::ORANGE_BANNER, "orange_banner");
+    registerSimpleBlock(VanillaBlocks::MAGENTA_BANNER, "magenta_banner");
+    registerSimpleBlock(VanillaBlocks::LIGHT_BLUE_BANNER, "light_blue_banner");
+    registerSimpleBlock(VanillaBlocks::YELLOW_BANNER, "yellow_banner");
+    registerSimpleBlock(VanillaBlocks::LIME_BANNER, "lime_banner");
+    registerSimpleBlock(VanillaBlocks::PINK_BANNER, "pink_banner");
+    registerSimpleBlock(VanillaBlocks::GRAY_BANNER, "gray_banner");
+    registerSimpleBlock(VanillaBlocks::LIGHT_GRAY_BANNER, "light_gray_banner");
+    registerSimpleBlock(VanillaBlocks::CYAN_BANNER, "cyan_banner");
+    registerSimpleBlock(VanillaBlocks::PURPLE_BANNER, "purple_banner");
+    registerSimpleBlock(VanillaBlocks::BLUE_BANNER, "blue_banner");
+    registerSimpleBlock(VanillaBlocks::BROWN_BANNER, "brown_banner");
+    registerSimpleBlock(VanillaBlocks::GREEN_BANNER, "green_banner");
+    registerSimpleBlock(VanillaBlocks::RED_BANNER, "red_banner");
+    registerSimpleBlock(VanillaBlocks::BLACK_BANNER, "black_banner");
+
+    // 墙壁旗帜映射到与站立旗帜相同的物品
+    {
+        auto registerWallBanner = [this](Block* wallBlock, Block* standingBlock) {
+            if (wallBlock == nullptr || standingBlock == nullptr) {
+                return;
+            }
+            const BlockItem* standingItem = getBlockItem(standingBlock->blockId());
+            if (standingItem != nullptr) {
+                m_blockToItem[wallBlock->blockId()] = standingItem;
+            }
+        };
+        registerWallBanner(VanillaBlocks::WHITE_WALL_BANNER, VanillaBlocks::WHITE_BANNER);
+        registerWallBanner(VanillaBlocks::ORANGE_WALL_BANNER, VanillaBlocks::ORANGE_BANNER);
+        registerWallBanner(VanillaBlocks::MAGENTA_WALL_BANNER, VanillaBlocks::MAGENTA_BANNER);
+        registerWallBanner(VanillaBlocks::LIGHT_BLUE_WALL_BANNER, VanillaBlocks::LIGHT_BLUE_BANNER);
+        registerWallBanner(VanillaBlocks::YELLOW_WALL_BANNER, VanillaBlocks::YELLOW_BANNER);
+        registerWallBanner(VanillaBlocks::LIME_WALL_BANNER, VanillaBlocks::LIME_BANNER);
+        registerWallBanner(VanillaBlocks::PINK_WALL_BANNER, VanillaBlocks::PINK_BANNER);
+        registerWallBanner(VanillaBlocks::GRAY_WALL_BANNER, VanillaBlocks::GRAY_BANNER);
+        registerWallBanner(VanillaBlocks::LIGHT_GRAY_WALL_BANNER, VanillaBlocks::LIGHT_GRAY_BANNER);
+        registerWallBanner(VanillaBlocks::CYAN_WALL_BANNER, VanillaBlocks::CYAN_BANNER);
+        registerWallBanner(VanillaBlocks::PURPLE_WALL_BANNER, VanillaBlocks::PURPLE_BANNER);
+        registerWallBanner(VanillaBlocks::BLUE_WALL_BANNER, VanillaBlocks::BLUE_BANNER);
+        registerWallBanner(VanillaBlocks::BROWN_WALL_BANNER, VanillaBlocks::BROWN_BANNER);
+        registerWallBanner(VanillaBlocks::GREEN_WALL_BANNER, VanillaBlocks::GREEN_BANNER);
+        registerWallBanner(VanillaBlocks::RED_WALL_BANNER, VanillaBlocks::RED_BANNER);
+        registerWallBanner(VanillaBlocks::BLACK_WALL_BANNER, VanillaBlocks::BLACK_BANNER);
+    }
+
     m_initialized = true;
     spdlog::info("Registered {} block items", m_itemToBlock.size());
 }

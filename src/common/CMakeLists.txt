@@ -371,6 +371,7 @@ add_library(mc_common STATIC
     entity/inventory/container/CartographyContainer.cpp
     entity/inventory/container/BrewingStandContainer.cpp
     entity/inventory/container/AnvilContainer.cpp
+    entity/inventory/container/LoomContainer.cpp
 
     # Item System - Core
     item/core/Item.cpp
@@ -409,6 +410,10 @@ add_library(mc_common STATIC
     item/items/block/BlockItem.cpp
     item/items/block/BlockItemRegistry.cpp
     item/items/block/WallOrFloorItem.cpp
+    item/items/block/BannerItem.cpp
+
+    # Item - Banner Pattern
+    item/items/BannerPatternItem.cpp
 
     # Item - Tier System
     item/tier/IItemTier.cpp
@@ -490,6 +495,8 @@ add_library(mc_common STATIC
     item/crafting/special/MapCloningRecipe.cpp
     item/crafting/special/MapExtendingRecipe.cpp
     item/crafting/special/TippedArrowRecipe.cpp
+    item/crafting/special/BannerDuplicateRecipe.cpp
+    item/crafting/special/ShieldDecorationRecipe.cpp
 
     # Item - Enchantment System
     item/enchantment/Enchantment.cpp
@@ -617,6 +624,7 @@ add_library(mc_common STATIC
     world/block/blocks/decorative/ScaffoldingBlock.cpp
     world/block/blocks/decorative/CampfireBlock.cpp
     world/block/blocks/decorative/StainedGlassBlock.cpp
+    world/block/blocks/decorative/BannerBlock.cpp
 
     # World - Block - Vegetation
     world/block/blocks/vegetation/DoublePlantBlock.cpp

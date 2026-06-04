@@ -26,9 +26,11 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/item/armor/ArmorMaterial.hpp"
 #include "common/item/food/Foods.hpp"
+#include "common/item/items/BannerPatternItem.hpp"
 #include "common/item/items/armor/ArmorItem.hpp"
 #include "common/item/items/armor/DyeableArmorItem.hpp"
 #include "common/item/items/armor/HorseArmorItem.hpp"
+#include "common/item/items/block/BannerItem.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/WallOrFloorItem.hpp"
 #include "common/item/items/food/ChorusFruitItem.hpp"
@@ -940,6 +942,7 @@ void Items::initialize()
     _registerBoats();        // 船物品
     _registerHangingItems(); // 悬挂实体物品
     _registerSigns();        // 告示牌物品
+    _registerBanners();      // 旗帜和图案物品
     _registerBuildingBlocks();
     _registerWool();
     _registerCarpets();
@@ -2182,6 +2185,129 @@ void Items::_registerSigns()
         *VanillaBlocks::WARPED_SIGN,
         *VanillaBlocks::WARPED_WALL_SIGN,
         ItemProperties().maxStackSize(16));
+}
+
+void Items::_registerBanners()
+{
+    auto& registry = ItemRegistry::instance();
+
+    // ========================================================================
+    // 旗帜物品 - 使用 BannerItem (继承自 WallOrFloorItem)
+    // ========================================================================
+
+    WHITE_BANNER = &registry.registerItem<item::BannerItem>(ResourceLocation("minecraft:white_banner"),
+        *VanillaBlocks::WHITE_BANNER,
+        *VanillaBlocks::WHITE_WALL_BANNER,
+        ItemProperties().maxStackSize(16));
+
+    ORANGE_BANNER = &registry.registerItem<item::BannerItem>(ResourceLocation("minecraft:orange_banner"),
+        *VanillaBlocks::ORANGE_BANNER,
+        *VanillaBlocks::ORANGE_WALL_BANNER,
+        ItemProperties().maxStackSize(16));
+
+    MAGENTA_BANNER = &registry.registerItem<item::BannerItem>(ResourceLocation("minecraft:magenta_banner"),
+        *VanillaBlocks::MAGENTA_BANNER,
+        *VanillaBlocks::MAGENTA_WALL_BANNER,
+        ItemProperties().maxStackSize(16));
+
+    LIGHT_BLUE_BANNER = &registry.registerItem<item::BannerItem>(ResourceLocation("minecraft:light_blue_banner"),
+        *VanillaBlocks::LIGHT_BLUE_BANNER,
+        *VanillaBlocks::LIGHT_BLUE_WALL_BANNER,
+        ItemProperties().maxStackSize(16));
+
+    YELLOW_BANNER = &registry.registerItem<item::BannerItem>(ResourceLocation("minecraft:yellow_banner"),
+        *VanillaBlocks::YELLOW_BANNER,
+        *VanillaBlocks::YELLOW_WALL_BANNER,
+        ItemProperties().maxStackSize(16));
+
+    LIME_BANNER = &registry.registerItem<item::BannerItem>(ResourceLocation("minecraft:lime_banner"),
+        *VanillaBlocks::LIME_BANNER,
+        *VanillaBlocks::LIME_WALL_BANNER,
+        ItemProperties().maxStackSize(16));
+
+    PINK_BANNER = &registry.registerItem<item::BannerItem>(ResourceLocation("minecraft:pink_banner"),
+        *VanillaBlocks::PINK_BANNER,
+        *VanillaBlocks::PINK_WALL_BANNER,
+        ItemProperties().maxStackSize(16));
+
+    GRAY_BANNER = &registry.registerItem<item::BannerItem>(ResourceLocation("minecraft:gray_banner"),
+        *VanillaBlocks::GRAY_BANNER,
+        *VanillaBlocks::GRAY_WALL_BANNER,
+        ItemProperties().maxStackSize(16));
+
+    LIGHT_GRAY_BANNER = &registry.registerItem<item::BannerItem>(ResourceLocation("minecraft:light_gray_banner"),
+        *VanillaBlocks::LIGHT_GRAY_BANNER,
+        *VanillaBlocks::LIGHT_GRAY_WALL_BANNER,
+        ItemProperties().maxStackSize(16));
+
+    CYAN_BANNER = &registry.registerItem<item::BannerItem>(ResourceLocation("minecraft:cyan_banner"),
+        *VanillaBlocks::CYAN_BANNER,
+        *VanillaBlocks::CYAN_WALL_BANNER,
+        ItemProperties().maxStackSize(16));
+
+    PURPLE_BANNER = &registry.registerItem<item::BannerItem>(ResourceLocation("minecraft:purple_banner"),
+        *VanillaBlocks::PURPLE_BANNER,
+        *VanillaBlocks::PURPLE_WALL_BANNER,
+        ItemProperties().maxStackSize(16));
+
+    BLUE_BANNER = &registry.registerItem<item::BannerItem>(ResourceLocation("minecraft:blue_banner"),
+        *VanillaBlocks::BLUE_BANNER,
+        *VanillaBlocks::BLUE_WALL_BANNER,
+        ItemProperties().maxStackSize(16));
+
+    BROWN_BANNER = &registry.registerItem<item::BannerItem>(ResourceLocation("minecraft:brown_banner"),
+        *VanillaBlocks::BROWN_BANNER,
+        *VanillaBlocks::BROWN_WALL_BANNER,
+        ItemProperties().maxStackSize(16));
+
+    GREEN_BANNER = &registry.registerItem<item::BannerItem>(ResourceLocation("minecraft:green_banner"),
+        *VanillaBlocks::GREEN_BANNER,
+        *VanillaBlocks::GREEN_WALL_BANNER,
+        ItemProperties().maxStackSize(16));
+
+    RED_BANNER = &registry.registerItem<item::BannerItem>(ResourceLocation("minecraft:red_banner"),
+        *VanillaBlocks::RED_BANNER,
+        *VanillaBlocks::RED_WALL_BANNER,
+        ItemProperties().maxStackSize(16));
+
+    BLACK_BANNER = &registry.registerItem<item::BannerItem>(ResourceLocation("minecraft:black_banner"),
+        *VanillaBlocks::BLACK_BANNER,
+        *VanillaBlocks::BLACK_WALL_BANNER,
+        ItemProperties().maxStackSize(16));
+
+    // ========================================================================
+    // 旗帜图案物品
+    // ========================================================================
+
+    FLOWER_BANNER_PATTERN =
+        &registry.registerItem<item::BannerPatternItem>(ResourceLocation("minecraft:flower_banner_pattern"),
+            blockentity::BannerPatternType::Flower,
+            ItemProperties().maxStackSize(1));
+
+    CREEPER_BANNER_PATTERN =
+        &registry.registerItem<item::BannerPatternItem>(ResourceLocation("minecraft:creeper_banner_pattern"),
+            blockentity::BannerPatternType::Creeper,
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Uncommon));
+
+    SKULL_BANNER_PATTERN =
+        &registry.registerItem<item::BannerPatternItem>(ResourceLocation("minecraft:skull_banner_pattern"),
+            blockentity::BannerPatternType::Skull,
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Uncommon));
+
+    MOJANG_BANNER_PATTERN =
+        &registry.registerItem<item::BannerPatternItem>(ResourceLocation("minecraft:mojang_banner_pattern"),
+            blockentity::BannerPatternType::Mojang,
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Epic));
+
+    GLOBE_BANNER_PATTERN =
+        &registry.registerItem<item::BannerPatternItem>(ResourceLocation("minecraft:globe_banner_pattern"),
+            blockentity::BannerPatternType::Globe,
+            ItemProperties().maxStackSize(1));
+
+    PIGLIN_BANNER_PATTERN =
+        &registry.registerItem<item::BannerPatternItem>(ResourceLocation("minecraft:piglin_banner_pattern"),
+            blockentity::BannerPatternType::Piglin,
+            ItemProperties().maxStackSize(1));
 }
 
 void Items::_registerBuildingBlocks()

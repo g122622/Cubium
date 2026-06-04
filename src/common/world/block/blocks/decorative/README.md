@@ -16,6 +16,7 @@ decorative/
 ├── LadderBlock.hpp/cpp         # 梯子
 ├── ScaffoldingBlock.hpp/cpp    # 脚手架
 ├── CampfireBlock.hpp/cpp       # 营火
+├── BannerBlock.hpp/cpp         # 旗帜（站立+墙壁）
 └── README.md
 ```
 

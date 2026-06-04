@@ -29,6 +29,7 @@
 #include "blocks/RotatedPillarBlock.hpp"
 #include "blocks/SignBlock.hpp"
 #include "blocks/SimpleBlock.hpp"
+#include "blocks/decorative/BannerBlock.hpp"
 
 namespace mc {
 
@@ -711,6 +712,42 @@ public:
     static Block* WARPED_WALL_SIGN;   // 诡异告示牌（墙面）
 
     // ========================================================================
+    // 旗帜 (16色 × 2形态 = 32方块)
+    // ========================================================================
+    static Block* WHITE_BANNER;
+    static Block* WHITE_WALL_BANNER;
+    static Block* ORANGE_BANNER;
+    static Block* ORANGE_WALL_BANNER;
+    static Block* MAGENTA_BANNER;
+    static Block* MAGENTA_WALL_BANNER;
+    static Block* LIGHT_BLUE_BANNER;
+    static Block* LIGHT_BLUE_WALL_BANNER;
+    static Block* YELLOW_BANNER;
+    static Block* YELLOW_WALL_BANNER;
+    static Block* LIME_BANNER;
+    static Block* LIME_WALL_BANNER;
+    static Block* PINK_BANNER;
+    static Block* PINK_WALL_BANNER;
+    static Block* GRAY_BANNER;
+    static Block* GRAY_WALL_BANNER;
+    static Block* LIGHT_GRAY_BANNER;
+    static Block* LIGHT_GRAY_WALL_BANNER;
+    static Block* CYAN_BANNER;
+    static Block* CYAN_WALL_BANNER;
+    static Block* PURPLE_BANNER;
+    static Block* PURPLE_WALL_BANNER;
+    static Block* BLUE_BANNER;
+    static Block* BLUE_WALL_BANNER;
+    static Block* BROWN_BANNER;
+    static Block* BROWN_WALL_BANNER;
+    static Block* GREEN_BANNER;
+    static Block* GREEN_WALL_BANNER;
+    static Block* RED_BANNER;
+    static Block* RED_WALL_BANNER;
+    static Block* BLACK_BANNER;
+    static Block* BLACK_WALL_BANNER;
+
+    // ========================================================================
     // 下界扩展植物方块
     // ========================================================================
     static Block* CRIMSON_STEM;            // 绯红菌柄
@@ -774,6 +811,7 @@ private:
     static void registerQuartzBlocks();          // 石英系列
     static void registerPrismarineBlocks();      // 海晶系列
     static void registerSignBlocks();            // 告示牌
+    static void registerBannerBlocks();          // 旗帜
     static void registerPurpurBlocks();          // 紫珀系列
     static void registerEndBlocks();             // 末地方块
     static void registerBoneAndHayBlocks();      // 骨块和干草块
