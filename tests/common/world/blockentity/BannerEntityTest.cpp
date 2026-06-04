@@ -21,8 +21,10 @@
  *
  */
 
-#include "world/blockentity/interactive/BannerEntity.hpp"
+#include "item/core/ItemStack.hpp"
 #include "util/color/DyeColor.hpp"
+#include "util/text/StringTextComponent.hpp"
+#include "world/blockentity/interactive/BannerEntity.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -60,10 +62,10 @@ TEST_F(BannerEntityTest, SetBaseColor)
 
 TEST_F(BannerEntityTest, AddPatterns)
 {
-    entity_->addPattern(BannerPatternType::StripeBottom, DyeColor::White);
+    entity_->addPattern(BannerPattern(BannerPatternType::StripeBottom, DyeColor::White));
     EXPECT_EQ(entity_->getPatternCount(), 1);
 
-    entity_->addPattern(BannerPatternType::Cross, DyeColor::Red);
+    entity_->addPattern(BannerPattern(BannerPatternType::Cross, DyeColor::Red));
     EXPECT_EQ(entity_->getPatternCount(), 2);
 }
 
@@ -71,12 +73,12 @@ TEST_F(BannerEntityTest, MaxPatternsLimit)
 {
     // 最多6层图案
     for (i32 i = 0; i < 6; ++i) {
-        entity_->addPattern(BannerPatternType::StripeBottom, DyeColor::White);
+        entity_->addPattern(BannerPattern(BannerPatternType::StripeBottom, DyeColor::White));
     }
     EXPECT_EQ(entity_->getPatternCount(), 6);
 
     // 超过6层应该失败
-    bool added = entity_->addPattern(BannerPatternType::Cross, DyeColor::Red);
+    bool added = entity_->addPattern(BannerPattern(BannerPatternType::Cross, DyeColor::Red));
     EXPECT_FALSE(added);
     EXPECT_EQ(entity_->getPatternCount(), 6);
 }
@@ -85,9 +87,11 @@ TEST_F(BannerEntityTest, CustomDisplayName)
 {
     EXPECT_FALSE(entity_->hasCustomDisplayName());
 
-    entity_->setCustomDisplayName("My Banner");
+    entity_->setCustomDisplayName(std::make_unique<text::StringTextComponent>("My Banner"));
     EXPECT_TRUE(entity_->hasCustomDisplayName());
-    EXPECT_EQ(entity_->getCustomDisplayName(), "My Banner");
+    const auto* displayName = entity_->getCustomDisplayName();
+    ASSERT_NE(displayName, nullptr);
+    EXPECT_EQ(displayName->getUnformattedText(), "My Banner");
 }
 
 TEST_F(BannerEntityTest, GetPatternsFromItemStack)

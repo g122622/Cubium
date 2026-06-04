@@ -28,7 +28,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockRaycastResult.hpp"
+#include "core/BlockRaycastResult.hpp"
 
 namespace mc {
 namespace blocks {

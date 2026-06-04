@@ -73,7 +73,7 @@ TEST_F(LoomContainerTest, SlotCoordinates)
 TEST_F(LoomContainerTest, StillValid)
 {
     LoomContainer container(0, playerInventory_.get(), BlockPos(0, 0, 0));
-    // 当前stillValid返回true（距离检查TODO）
+    // isWithinDistance检查玩家与方块距离，玩家在原点附近应返回true
     EXPECT_TRUE(container.stillValid(*player_));
 }
 
@@ -122,7 +122,7 @@ TEST(LoomSlotTest, PatternSlotRejectsEmpty)
 
 // ========== LoomResultSlot 测试 ==========
 
-TEST(LoomSlotTest, ResultSlotRejectsPlacement)
+TEST_F(LoomContainerTest, ResultSlotRejectsPlacement)
 {
     LoomContainer container(0, playerInventory_.get(), BlockPos(0, 0, 0));
     LoomResultSlot slot(nullptr, 0, 0, 0, &container);

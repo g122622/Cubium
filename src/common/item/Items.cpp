@@ -897,6 +897,32 @@ Item* Items::DEAD_BUBBLE_CORAL_FAN = nullptr;
 Item* Items::DEAD_FIRE_CORAL_FAN = nullptr;
 Item* Items::DEAD_HORN_CORAL_FAN = nullptr;
 
+// 旗帜物品（16色）
+Item* Items::WHITE_BANNER = nullptr;
+Item* Items::ORANGE_BANNER = nullptr;
+Item* Items::MAGENTA_BANNER = nullptr;
+Item* Items::LIGHT_BLUE_BANNER = nullptr;
+Item* Items::YELLOW_BANNER = nullptr;
+Item* Items::LIME_BANNER = nullptr;
+Item* Items::PINK_BANNER = nullptr;
+Item* Items::GRAY_BANNER = nullptr;
+Item* Items::LIGHT_GRAY_BANNER = nullptr;
+Item* Items::CYAN_BANNER = nullptr;
+Item* Items::PURPLE_BANNER = nullptr;
+Item* Items::BLUE_BANNER = nullptr;
+Item* Items::BROWN_BANNER = nullptr;
+Item* Items::GREEN_BANNER = nullptr;
+Item* Items::RED_BANNER = nullptr;
+Item* Items::BLACK_BANNER = nullptr;
+
+// 旗帜图案物品
+Item* Items::FLOWER_BANNER_PATTERN = nullptr;
+Item* Items::CREEPER_BANNER_PATTERN = nullptr;
+Item* Items::SKULL_BANNER_PATTERN = nullptr;
+Item* Items::MOJANG_BANNER_PATTERN = nullptr;
+Item* Items::GLOBE_BANNER_PATTERN = nullptr;
+Item* Items::PIGLIN_BANNER_PATTERN = nullptr;
+
 // ============================================================================
 // 初始化
 // ============================================================================

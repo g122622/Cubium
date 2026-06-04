@@ -22,10 +22,11 @@
  */
 
 #include "world/blockentity/interactive/BannerEntity.hpp"
+#include "item/core/ItemRegistry.hpp"
 #include "item/core/ItemStack.hpp"
-#include "text/ITextComponent.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/nbt/Nbt.hpp"
+#include "util/text/ITextComponent.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
@@ -175,7 +176,7 @@ const text::ITextComponent* BannerEntity::getCustomDisplayName() const
     return m_customName.get();
 }
 
-void BannerEntity::loadFromItemStack(const item::ItemStack& stack, DyeColor baseColor)
+void BannerEntity::loadFromItemStack(const ItemStack& stack, DyeColor baseColor)
 {
     m_baseColor = baseColor;
 
@@ -210,15 +211,15 @@ void BannerEntity::loadFromItemStack(const item::ItemStack& stack, DyeColor base
     setChanged();
 }
 
-item::ItemStack BannerEntity::getItem(const BlockState& state) const
+ItemStack BannerEntity::getItem(const BlockState& state) const
 {
     // 根据底色查找对应的旗帜物品
     // 墙壁旗帜和站立旗帜共享同一个物品
     const auto* block = &state.getBlock();
-    auto& itemRegistry = item::ItemRegistry::instance();
+    auto& itemRegistry = ItemRegistry::instance();
 
     // 通过方块位置查找对应物品
-    const item::Item* bannerItem = itemRegistry.getItem(block->blockLocation());
+    const Item* bannerItem = itemRegistry.getItem(block->blockLocation());
 
     // 如果是墙壁旗帜，方块位置是 xxx_wall_banner，物品位置是 xxx_banner
     if (bannerItem == nullptr) {
@@ -236,10 +237,10 @@ item::ItemStack BannerEntity::getItem(const BlockState& state) const
     }
 
     if (bannerItem == nullptr) {
-        return item::ItemStack();
+        return ItemStack();
     }
 
-    item::ItemStack result(*bannerItem, 1);
+    ItemStack result(*bannerItem, 1);
 
     // 将图案数据写入BlockEntityTag
     if (!m_patterns.empty()) {
@@ -256,7 +257,7 @@ item::ItemStack BannerEntity::getItem(const BlockState& state) const
 
     // 设置自定义名称
     if (m_customName != nullptr) {
-        result.setCustomName(m_customName->getString());
+        result.setCustomName(m_customName->getUnformattedText());
     }
 
     return result;
@@ -264,7 +265,7 @@ item::ItemStack BannerEntity::getItem(const BlockState& state) const
 
 // ========== 静态工具方法 ==========
 
-std::vector<BannerPattern> BannerEntity::getPatternsFromItemStack(const item::ItemStack& stack)
+std::vector<BannerPattern> BannerEntity::getPatternsFromItemStack(const ItemStack& stack)
 {
     std::vector<BannerPattern> patterns;
 
@@ -289,7 +290,7 @@ std::vector<BannerPattern> BannerEntity::getPatternsFromItemStack(const item::It
     return patterns;
 }
 
-i32 BannerEntity::getPatternCount(const item::ItemStack& stack)
+i32 BannerEntity::getPatternCount(const ItemStack& stack)
 {
     const nlohmann::json* tag = stack.getChildTag("BlockEntityTag");
     if (tag != nullptr && tag->contains("Patterns")) {
@@ -301,9 +302,9 @@ i32 BannerEntity::getPatternCount(const item::ItemStack& stack)
     return 0;
 }
 
-void BannerEntity::removeBannerData(item::ItemStack& stack)
+void BannerEntity::removeBannerData(ItemStack& stack)
 {
-    nlohmann::json* tag = stack.getChildTag();
+    nlohmann::json* tag = stack.getTag();
     if (tag == nullptr) {
         return;
     }
@@ -324,7 +325,7 @@ void BannerEntity::removeBannerData(item::ItemStack& stack)
     }
 
     // 移除最顶层图案
-    patterns.erase(patterns.size() - 1);
+    patterns.erase(patterns.end() - 1);
 
     // 如果图案列表为空，移除整个BlockEntityTag
     if (patterns.empty()) {

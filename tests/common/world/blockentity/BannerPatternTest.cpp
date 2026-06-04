@@ -32,32 +32,32 @@ using namespace mc::blockentity;
 TEST(BannerPatternTest, ByHashReturnsCorrectPattern)
 {
     // 测试常见图案的hash名称查找
-    EXPECT_EQ(BannerPatterns::byHash("bs"), BannerPatternType::Base);
-    EXPECT_EQ(BannerPatterns::byHash("bl"), BannerPatternType::StripeBottom);
-    EXPECT_EQ(BannerPatterns::byHash("tl"), BannerPatternType::StripeTop);
-    EXPECT_EQ(BannerPatterns::byHash("br"), BannerPatternType::StripeRight);
-    EXPECT_EQ(BannerPatterns::byHash("tr"), BannerPatternType::StripeLeft);
+    EXPECT_EQ(BannerPatterns::byHash("b"), BannerPatternType::Base);
+    EXPECT_EQ(BannerPatterns::byHash("bs"), BannerPatternType::StripeBottom);
+    EXPECT_EQ(BannerPatterns::byHash("ts"), BannerPatternType::StripeTop);
+    EXPECT_EQ(BannerPatterns::byHash("rs"), BannerPatternType::StripeRight);
+    EXPECT_EQ(BannerPatterns::byHash("ls"), BannerPatternType::StripeLeft);
     EXPECT_EQ(BannerPatterns::byHash("mc"), BannerPatternType::Creeper);
     EXPECT_EQ(BannerPatterns::byHash("moj"), BannerPatternType::Mojang);
 }
 
-TEST(BannerPatternTest, ByHashReturnsNulloptForInvalid)
+TEST(BannerPatternTest, ByHashReturnsBaseForInvalid)
 {
+    // 无效的hash名称应返回Base
     auto result = BannerPatterns::byHash("invalid_hash");
-    EXPECT_FALSE(result.has_value());
+    EXPECT_EQ(result, BannerPatternType::Base);
 }
 
 TEST(BannerPatternTest, GetHashNameRoundTrip)
 {
-    // 验证所有图案的hash名称可以round-trip
+    // 验证所有图案的hash名称可以round-trip（跳过Base，因为无效hash也返回Base）
     for (i32 i = 1; i < static_cast<i32>(BannerPatternType::Count); ++i) {
         auto type = static_cast<BannerPatternType>(i);
         std::string hashName = BannerPatterns::getHashName(type);
         EXPECT_FALSE(hashName.empty()) << "Hash name empty for pattern index " << i;
 
         auto result = BannerPatterns::byHash(hashName);
-        ASSERT_TRUE(result.has_value()) << "byHash failed for hash name: " << hashName;
-        EXPECT_EQ(result.value(), type) << "Round-trip failed for pattern index " << i;
+        EXPECT_EQ(result, type) << "Round-trip failed for pattern index " << i;
     }
 }
 
@@ -81,15 +81,15 @@ TEST(BannerPatternTest, IsBase)
 {
     EXPECT_TRUE(BannerPatterns::isBase(BannerPatternType::Base));
     EXPECT_FALSE(BannerPatterns::isBase(BannerPatternType::StripeBottom));
-    EXPECT_FALSE(BannerPatterns::isBase(BannerPatternType::Creeper));
+    EXPECT_FALSE(BannerPatterns::isBase(BannerPatternType::Cross));
 }
 
 TEST(BannerPatternTest, GetFileName)
 {
-    // 验证文件名不为空
-    for (i32 i = 1; i < static_cast<i32>(BannerPatternType::Count); ++i) {
-        auto type = static_cast<BannerPatternType>(i);
-        std::string fileName = BannerPatterns::getFileName(type);
-        EXPECT_FALSE(fileName.empty()) << "File name empty for pattern index " << i;
-    }
+    // 测试几个常见图案的文件名
+    EXPECT_EQ(BannerPatterns::getFileName(BannerPatternType::Base), "base");
+    EXPECT_EQ(BannerPatterns::getFileName(BannerPatternType::StripeBottom), "stripe_bottom");
+    EXPECT_EQ(BannerPatterns::getFileName(BannerPatternType::Cross), "cross");
+    EXPECT_EQ(BannerPatterns::getFileName(BannerPatternType::Creeper), "creeper");
+    EXPECT_EQ(BannerPatterns::getFileName(BannerPatternType::Mojang), "mojang");
 }

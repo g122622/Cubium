@@ -33,6 +33,7 @@
 #include <spdlog/spdlog.h>
 
 // 完整的方块实体类型头文件（用于 dynamic_cast）
+#include "common/world/blockentity/interactive/BannerEntity.hpp"
 #include "common/world/blockentity/processing/BeaconEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 

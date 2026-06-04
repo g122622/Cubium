@@ -22,7 +22,7 @@
  */
 
 #include "item/items/BannerPatternItem.hpp"
-#include "text/TranslationTextComponent.hpp"
+#include "util/text/TranslationTextComponent.hpp"
 
 namespace mc {
 namespace item {
@@ -32,14 +32,14 @@ BannerPatternItem::BannerPatternItem(blockentity::BannerPatternType pattern, Ite
     , m_pattern(pattern)
 {}
 
-void BannerPatternItem::appendHoverText(
-    const ItemStack& stack, std::vector<std::unique_ptr<text::ITextComponent>>& tooltip) const
+void BannerPatternItem::addInformation(
+    const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const
 {
-    Item::appendHoverText(stack, tooltip);
+    Item::addInformation(stack, world, tooltip, advanced);
 
     // 显示图案翻译名称
     std::string translationKey = "item.minecraft.banner_pattern." + blockentity::BannerPatterns::getFileName(m_pattern);
-    tooltip.push_back(std::make_unique<text::TranslationTextComponent>(translationKey));
+    tooltip.push_back(translationKey);
 }
 
 } // namespace item

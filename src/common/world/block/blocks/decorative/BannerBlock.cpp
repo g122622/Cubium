@@ -22,15 +22,12 @@
  */
 
 #include "BannerBlock.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../IBlockReader.hpp"
+#include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../util/Direction.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../blockentity/BlockEntity.hpp"
-#include "../../../fluid/FluidState.hpp"
-#include "../../BlockItemUseContext.hpp"
-#include "../../BlockState.hpp"
-#include "../../BlockStateProperties.hpp"
+#include "../../../block/WaterLoggableHelpers.hpp"
 #include "../../VanillaBlocks.hpp"
+#include <cmath>
 
 namespace mc {
 namespace blocks {
@@ -59,10 +56,8 @@ void AbstractBannerBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, co
 
 const fluid::FluidState* AbstractBannerBlock::getFluidState(const BlockState& state) const
 {
-    if (isWaterlogged(state)) {
-        return &fluid::FluidState::WATER;
-    }
-    return &fluid::FluidState::EMPTY;
+    const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
+    return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
 // ========== StandingBannerBlock ==========
@@ -71,27 +66,25 @@ StandingBannerBlock::StandingBannerBlock(const BlockProperties& properties, DyeC
     : AbstractBannerBlock(properties, color)
 {
     // 旗杆碰撞形状：中心8x16x8像素
-    m_shape = CollisionShape::createBox(4.0, 0.0, 4.0, 12.0, 16.0, 12.0);
+    m_shape = CollisionShape::box(4.0 / 16.0, 0.0, 4.0 / 16.0, 12.0 / 16.0, 1.0, 12.0 / 16.0);
 }
 
 BlockState StandingBannerBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    auto* world = context.getWorld();
-    const auto& pos = context.getPos();
+    const IWorld& world = context.getWorld();
+    BlockPos pos = context.placementPos();
 
     // 根据玩家朝向计算旋转值（0-15，每22.5度）
-    i32 rotation = static_cast<i32>(math::floor((180.0f + context.getPlacementYaw()) * 16.0f / 360.0f + 0.5f)) & 15;
+    i32 rotation = static_cast<i32>(std::floor((180.0f + context.getPlayerYaw()) * 16.0f / 360.0f + 0.5f)) & 15;
 
     BlockState state = defaultState()
                            .with(BlockStateProperties::ROTATION_0_15(), rotation)
                            .with(BlockStateProperties::WATERLOGGED(), false);
 
     // 检查含水状态
-    if (world != nullptr) {
-        auto* fluidState = world->getFluidState(pos);
-        if (fluidState != nullptr && fluidState->isWater()) {
-            state = state.with(BlockStateProperties::WATERLOGGED(), true);
-        }
+    bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
+    if (waterlogged) {
+        state = state.with(BlockStateProperties::WATERLOGGED(), true);
     }
 
     return state;
@@ -101,8 +94,8 @@ bool StandingBannerBlock::isValidPosition(const BlockState& state, IBlockReader&
 {
     MC_UNUSED(state);
     // 需要下方方块是实心的
-    const BlockState& below = world.getBlockState(pos.down());
-    return below.isSolid();
+    const BlockState* below = world.getBlockState(pos.down());
+    return below != nullptr && below->isSolid();
 }
 
 BlockState StandingBannerBlock::updatePostPlacement(const BlockState& state,
@@ -112,29 +105,37 @@ BlockState StandingBannerBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
+    MC_UNUSED(facingState);
+    MC_UNUSED(facingPos);
+
     // 下方方块被移除时旗帜变为空气
-    if (facing == Direction::Down && !isValidPosition(state, world, currentPos)) {
-        return VanillaBlocks::AIR->defaultState();
+    if (facing == Direction::Down) {
+        const BlockState* below = world.getBlockState(currentPos.down());
+        if (below == nullptr || !below->isSolid()) {
+            return VanillaBlocks::AIR->defaultState();
+        }
     }
 
     // 处理含水状态更新
     if (state.get(BlockStateProperties::WATERLOGGED())) {
-        world.scheduleFluidTick(currentPos, *world.getFluidState(currentPos));
+        waterloggable::scheduleWaterTick(world, currentPos);
     }
 
-    return Block::updatePostPlacement(state, facing, facingState, world, currentPos, facingPos);
+    return state;
 }
 
 const BlockState& StandingBannerBlock::rotate(const BlockState& state, Rotation rotation) const
 {
-    return state.with(
-        BlockStateProperties::ROTATION_0_15(), rotation.rotate(state.get(BlockStateProperties::ROTATION_0_15()), 16));
+    i32 currentRotation = state.get(BlockStateProperties::ROTATION_0_15());
+    i32 newRotation = Directions::rotateRotation(currentRotation, rotation, 16);
+    return state.with(BlockStateProperties::ROTATION_0_15(), newRotation);
 }
 
 const BlockState& StandingBannerBlock::mirror(const BlockState& state, Mirror mirror) const
 {
-    return state.with(BlockStateProperties::ROTATION_0_15(),
-        mirror.mirrorRotation(state.get(BlockStateProperties::ROTATION_0_15()), 16));
+    i32 currentRotation = state.get(BlockStateProperties::ROTATION_0_15());
+    i32 newRotation = Directions::mirrorRotation(currentRotation, mirror, 16);
+    return state.with(BlockStateProperties::ROTATION_0_15(), newRotation);
 }
 
 const CollisionShape& StandingBannerBlock::getShape(const BlockState& state) const
@@ -150,32 +151,34 @@ WallBannerBlock::WallBannerBlock(const BlockProperties& properties, DyeColor col
 {
     // 各方向碰撞形状（贴墙薄板）
     // 旗帜面宽度16，高度12.5，厚度2
-    m_shapesByDirection[Direction::North] = CollisionShape::createBox(0.0, 0.0, 14.0, 16.0, 12.5, 16.0);
-    m_shapesByDirection[Direction::South] = CollisionShape::createBox(0.0, 0.0, 0.0, 16.0, 12.5, 2.0);
-    m_shapesByDirection[Direction::West] = CollisionShape::createBox(14.0, 0.0, 0.0, 16.0, 12.5, 16.0);
-    m_shapesByDirection[Direction::East] = CollisionShape::createBox(0.0, 0.0, 0.0, 2.0, 12.5, 16.0);
+    m_shapesByDirection[Direction::North] = CollisionShape::box(0.0, 0.0, 14.0 / 16.0, 1.0, 12.5 / 16.0, 1.0);
+    m_shapesByDirection[Direction::South] = CollisionShape::box(0.0, 0.0, 0.0, 1.0, 12.5 / 16.0, 2.0 / 16.0);
+    m_shapesByDirection[Direction::West] = CollisionShape::box(14.0 / 16.0, 0.0, 0.0, 1.0, 12.5 / 16.0, 1.0);
+    m_shapesByDirection[Direction::East] = CollisionShape::box(0.0, 0.0, 0.0, 2.0 / 16.0, 12.5 / 16.0, 1.0);
 }
 
 BlockState WallBannerBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    auto* world = context.getWorld();
-    const auto& pos = context.getPos();
+    const IWorld& world = context.getWorld();
+    BlockPos pos = context.placementPos();
 
     // 遍历玩家视线方向，找到可以放置的墙面
     for (Direction direction : context.getNearestLookingDirections()) {
-        if (!direction.isHorizontal()) {
+        if (!Directions::isHorizontal(direction)) {
             continue;
         }
 
-        Direction facing = direction.getOpposite();
+        Direction facing = Directions::opposite(direction);
         BlockState state = defaultState()
                                .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
                                .with(BlockStateProperties::WATERLOGGED(), false);
 
-        if (state.isValidPosition(*world, pos)) {
+        // 使用 IBlockReader 接口检查是否可放置
+        IBlockReader& blockReader = const_cast<IBlockReader&>(static_cast<const IBlockReader&>(world));
+        if (isValidPosition(state, blockReader, pos)) {
             // 检查含水状态
-            auto* fluidState = world->getFluidState(pos);
-            if (fluidState != nullptr && fluidState->isWater()) {
+            bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
+            if (waterlogged) {
                 state = state.with(BlockStateProperties::WATERLOGGED(), true);
             }
             return state;
@@ -190,8 +193,8 @@ bool WallBannerBlock::isValidPosition(const BlockState& state, IBlockReader& wor
 {
     // 检查面向方向的反方向是否有实心方块支撑
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    const BlockState& supportState = world.getBlockState(pos.offset(facing.getOpposite()));
-    return supportState.isSolid();
+    const BlockState* supportState = world.getBlockState(pos.offset(Directions::opposite(facing)));
+    return supportState != nullptr && supportState->isSolid();
 }
 
 BlockState WallBannerBlock::updatePostPlacement(const BlockState& state,
@@ -201,30 +204,39 @@ BlockState WallBannerBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
+    MC_UNUSED(facingState);
+    MC_UNUSED(facingPos);
+
     // 支撑方块被移除时旗帜变为空气
     Direction bannerFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    if (facing == bannerFacing.getOpposite() && !isValidPosition(state, world, currentPos)) {
-        return VanillaBlocks::AIR->defaultState();
+    if (facing == Directions::opposite(bannerFacing)) {
+        const BlockState* supportState = world.getBlockState(currentPos.offset(Directions::opposite(bannerFacing)));
+        if (supportState == nullptr || !supportState->isSolid()) {
+            return VanillaBlocks::AIR->defaultState();
+        }
     }
 
     // 处理含水状态更新
     if (state.get(BlockStateProperties::WATERLOGGED())) {
-        world.scheduleFluidTick(currentPos, *world.getFluidState(currentPos));
+        waterloggable::scheduleWaterTick(world, currentPos);
     }
 
-    return Block::updatePostPlacement(state, facing, facingState, world, currentPos, facingPos);
+    return state;
 }
 
 const BlockState& WallBannerBlock::rotate(const BlockState& state, Rotation rotation) const
 {
-    return state.with(BlockStateProperties::HORIZONTAL_FACING(),
-        rotation.rotate(state.get(BlockStateProperties::HORIZONTAL_FACING())));
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    Direction newFacing = Directions::rotateDirection(facing, rotation);
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
 const BlockState& WallBannerBlock::mirror(const BlockState& state, Mirror mirror) const
 {
-    return state.with(
-        BlockStateProperties::HORIZONTAL_FACING(), mirror.mirror(state.get(BlockStateProperties::HORIZONTAL_FACING())));
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    Rotation rot = Directions::mirrorToRotation(mirror, facing);
+    Direction newFacing = Directions::rotateDirection(facing, rot);
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
 const CollisionShape& WallBannerBlock::getShape(const BlockState& state) const

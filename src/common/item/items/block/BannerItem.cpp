@@ -22,8 +22,9 @@
  */
 
 #include "item/items/block/BannerItem.hpp"
-#include "text/ITextComponent.hpp"
-#include "text/TranslationTextComponent.hpp"
+#include "item/core/ItemStack.hpp"
+#include "util/text/ITextComponent.hpp"
+#include "util/text/TranslationTextComponent.hpp"
 #include "world/block/blocks/decorative/BannerBlock.hpp"
 #include "world/blockentity/interactive/BannerEntity.hpp"
 
@@ -43,10 +44,10 @@ DyeColor BannerItem::getColor() const
     return DyeColor::White;
 }
 
-void BannerItem::appendHoverText(
-    const ItemStack& stack, std::vector<std::unique_ptr<text::ITextComponent>>& tooltip) const
+void BannerItem::addInformation(
+    const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const
 {
-    WallOrFloorItem::appendHoverText(stack, tooltip);
+    WallOrFloorItem::addInformation(stack, world, tooltip, advanced);
 
     // 从BlockEntityTag读取图案并显示（最多6层）
     const nlohmann::json* tag = stack.getChildTag("BlockEntityTag");
@@ -95,7 +96,7 @@ void BannerItem::appendHoverText(
             std::string translationKey =
                 "block.minecraft.banner." + blockentity::BannerPatterns::getFileName(patternType) + "." + colorName;
 
-            tooltip.push_back(std::make_unique<text::TranslationTextComponent>(translationKey));
+            tooltip.push_back(translationKey);
         }
         ++count;
     }

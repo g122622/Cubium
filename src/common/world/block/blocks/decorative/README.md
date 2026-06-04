@@ -270,6 +270,56 @@ public:
 
 **参考**: MC 1.16.5 `net.minecraft.block.CampfireBlock`
 
+### BannerBlock.hpp/cpp
+
+**职责**：旗帜方块（站立式+墙壁式）。
+
+**类层次**:
+```
+Block
+└── AbstractBannerBlock (implements IWaterLoggable)
+    ├── StandingBannerBlock  (ROTATION_0_15, 16方向旋转)
+    └── WallBannerBlock      (HORIZONTAL_FACING, 4方向水平朝向)
+```
+
+**AbstractBannerBlock 状态属性**:
+```cpp
+- WATERLOGGED: bool  // 是否含水
+```
+
+**StandingBannerBlock 状态属性**:
+```cpp
+- ROTATION_0_15: IntegerProperty(0-15)  // 16方向旋转，每22.5°
+```
+
+**WallBannerBlock 状态属性**:
+```cpp
+- HORIZONTAL_FACING: Direction (NORTH, SOUTH, EAST, WEST)  // 墙壁朝向
+```
+
+**实现要点**:
+- `AbstractBannerBlock`: 持有 `DyeColor m_color`，创建 `BannerEntity` 方块实体
+- `onBlockPlacedBy()`: 从物品NBT读取自定义名称，设置到BannerEntity
+- `getItem()`: 从BannerEntity读取图案数据写回ItemStack的BlockEntityTag
+- `StandingBannerBlock`: 放置时根据玩家朝向计算旋转值 `floor((180 + yaw) * 16 / 360 + 0.5) & 15`
+- `StandingBannerBlock.isValidPosition()`: 下方方块需为实心
+- `WallBannerBlock.isValidPosition()`: 背面方块需有实心面支撑
+- 两者均实现 `updatePostPlacement()`: 支撑方块移除时自动变为空气
+- 两者均实现 `rotate()`/`mirror()`: 支持旋转和镜像变换
+- 碰撞箱: 站立 `(4,0,4,12,16,12)`；墙壁按方向贴墙薄板
+
+**衍生方块**: 16色×2=32方块
+- WHITE_BANNER ~ BLACK_BANNER（站立式，16色）
+- WHITE_WALL_BANNER ~ BLACK_WALL_BANNER（墙壁式，16色）
+
+**关联组件**:
+- `BannerEntity` - 旗帜方块实体（存储图案层数据）
+- `BannerItem` - 旗帜物品（WallOrFloorItem，处理站立/墙壁放置）
+- `LoomBlock` - 织布机（添加图案的交互方块）
+- `LoomContainer` - 织布机容器（图案选择和输出）
+
+**参考**: MC 1.16.5 `net.minecraft.block.BannerBlock`, `net.minecraft.block.WallBannerBlock`
+
 ## 依赖项
 
 ### 内部依赖

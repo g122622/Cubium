@@ -27,8 +27,8 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockStateProperties.hpp"
 #include "common/world/block/blocks/decorative/BannerBlock.hpp"
 #include "common/world/blockentity/interactive/BannerEntity.hpp"
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
@@ -90,13 +90,10 @@ model::BannerModel::BannerType BannerRenderer::_determineBannerType(const mc::bl
         return model::BannerModel::BannerType::Standing;
     }
 
-    const Block* block = blockState->getBlock();
-    if (block == nullptr) {
-        return model::BannerModel::BannerType::Standing;
-    }
+    const Block& block = blockState->getBlock();
 
     // 检查是否是墙壁旗帜
-    const auto* wallBanner = dynamic_cast<const blocks::WallBannerBlock*>(block);
+    const auto* wallBanner = dynamic_cast<const blocks::WallBannerBlock*>(&block);
     if (wallBanner != nullptr) {
         return model::BannerModel::BannerType::Wall;
     }
@@ -111,13 +108,10 @@ f32 BannerRenderer::_getRotation(const mc::blockentity::BannerEntity& entity) co
         return 0.0f;
     }
 
-    const Block* block = blockState->getBlock();
-    if (block == nullptr) {
-        return 0.0f;
-    }
+    const Block& block = blockState->getBlock();
 
     // 站立旗帜使用 ROTATION_0_15 属性（16个方向，每22.5度）
-    const auto* standingBanner = dynamic_cast<const blocks::StandingBannerBlock*>(block);
+    const auto* standingBanner = dynamic_cast<const blocks::StandingBannerBlock*>(&block);
     if (standingBanner != nullptr) {
         if (blockState->hasProperty(BlockStateProperties::ROTATION_0_15())) {
             i32 rotation = blockState->get(BlockStateProperties::ROTATION_0_15());
@@ -126,7 +120,7 @@ f32 BannerRenderer::_getRotation(const mc::blockentity::BannerEntity& entity) co
     }
 
     // 墙壁旗帜使用 HORIZONTAL_FACING 属性
-    const auto* wallBanner = dynamic_cast<const blocks::WallBannerBlock*>(block);
+    const auto* wallBanner = dynamic_cast<const blocks::WallBannerBlock*>(&block);
     if (wallBanner != nullptr) {
         if (blockState->hasProperty(BlockStateProperties::HORIZONTAL_FACING())) {
             Direction facing = blockState->get(BlockStateProperties::HORIZONTAL_FACING());

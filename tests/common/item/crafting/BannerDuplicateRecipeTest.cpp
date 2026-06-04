@@ -43,6 +43,6 @@ TEST(BannerDuplicateRecipeTest, RecipeType)
 {
     BannerDuplicateRecipe recipe(ResourceLocation("minecraft", "banner_duplication"));
     // SpecialRecipe的recipe type应该正确
-    EXPECT_TRUE(recipe.getId().getNamespace() == "minecraft");
-    EXPECT_TRUE(recipe.getId().getPath() == "banner_duplication");
+    EXPECT_TRUE(recipe.getId().namespace_() == "minecraft");
+    EXPECT_TRUE(recipe.getId().path() == "banner_duplication");
 }

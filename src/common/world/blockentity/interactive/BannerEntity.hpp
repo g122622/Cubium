@@ -33,13 +33,10 @@ namespace mc {
 
 class IWorld;
 class BlockState;
+class ItemStack;
 
 namespace text {
 class ITextComponent;
-}
-
-namespace item {
-class ItemStack;
 }
 
 namespace blockentity {
@@ -184,7 +181,7 @@ public:
      * @param stack 旗帜物品
      * @param baseColor 旗帜底色
      */
-    void loadFromItemStack(const item::ItemStack& stack, DyeColor baseColor);
+    void loadFromItemStack(const ItemStack& stack, DyeColor baseColor);
 
     /**
      * @brief 生成包含图案数据的ItemStack
@@ -194,7 +191,7 @@ public:
      * @param state 当前方块状态
      * @return 包含图案数据的物品堆
      */
-    [[nodiscard]] item::ItemStack getItem(const BlockState& state) const;
+    [[nodiscard]] ItemStack getItem(const BlockState& state) const;
 
     // ========== 静态工具方法 ==========
 
@@ -203,20 +200,20 @@ public:
      * @param stack 旗帜物品
      * @return 图案列表，如果没有图案返回空列表
      */
-    [[nodiscard]] static std::vector<BannerPattern> getPatternsFromItemStack(const item::ItemStack& stack);
+    [[nodiscard]] static std::vector<BannerPattern> getPatternsFromItemStack(const ItemStack& stack);
 
     /**
      * @brief 从ItemStack获取图案数量
      * @param stack 旗帜物品
      * @return 图案数量
      */
-    [[nodiscard]] static i32 getPatternCount(const item::ItemStack& stack);
+    [[nodiscard]] static i32 getPatternCount(const ItemStack& stack);
 
     /**
      * @brief 从ItemStack移除最顶层图案数据
      * @param stack 旗帜物品
      */
-    static void removeBannerData(item::ItemStack& stack);
+    static void removeBannerData(ItemStack& stack);
 
     /**
      * @brief 组合底色和图案为渲染数据

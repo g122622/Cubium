@@ -69,11 +69,12 @@ public:
     [[nodiscard]] blockentity::BannerPatternType getBannerPattern() const noexcept { return m_pattern; }
 
     /**
-     * @brief 添加工具提示
+     * @brief 添加物品提示信息
      *
      * 显示图案的翻译名称。
      */
-    void appendHoverText(const ItemStack& stack, std::vector<std::unique_ptr<text::ITextComponent>>& tooltip) const;
+    void addInformation(
+        const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const override;
 
 private:
     blockentity::BannerPatternType m_pattern;

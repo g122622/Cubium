@@ -56,6 +56,8 @@ add_executable(mc_tests
     common/item/crafting/ShapelessRecipeTest.cpp
     common/item/crafting/RecipeLoaderTest.cpp
     common/item/crafting/RecipeSerializersTest.cpp
+    common/item/crafting/BannerDuplicateRecipeTest.cpp
+    common/item/crafting/ShieldDecorationRecipeTest.cpp
     common/item/tool/ToolTests.cpp
     common/item/tool/ShearsItemTest.cpp
     # ItemTags 花朵标签测试
@@ -82,6 +84,7 @@ add_executable(mc_tests
     common/entity/inventory/container/EnchantmentContainerTest.cpp
     common/entity/inventory/container/BrewingStandContainerTest.cpp
     common/entity/inventory/container/AnvilContainerTest.cpp
+    common/entity/inventory/container/LoomContainerTest.cpp
     common/entity/entities/passive/basic/ChickenEntityTest.cpp
     common/entity/entities/passive/basic/RabbitEntityTest.cpp
     common/entity/entities/passive/basic/MooshroomEntityTest.cpp
@@ -263,6 +266,10 @@ add_executable(mc_tests
     common/world/blockentity/ShulkerBoxEntityTest.cpp
     # CommandBlockEntity 命令方块实体测试（命令执行、红石触发、连锁执行、条件检测）
     common/world/blockentity/CommandBlockEntityTest.cpp
+    # BannerEntity 旗帜方块实体测试（图案存储、底色、自定义名称、NBT序列化）
+    common/world/blockentity/BannerEntityTest.cpp
+    # BannerPattern 旗帜图案工具类测试（hashname、文件名、图案物品判断）
+    common/world/blockentity/BannerPatternTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp

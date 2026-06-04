@@ -25,6 +25,7 @@
 
 #include "TemplateScreen.hpp"
 #include "client/ui/kagero/widget/SlotWidget.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/container/LoomContainer.hpp"
 #include "core/Types.hpp"
 #include <functional>
@@ -33,7 +34,8 @@
 
 namespace mc {
 class PlayerInventory;
-}
+class ItemStack;
+} // namespace mc
 
 namespace mc::client::ui::minecraft {
 
@@ -58,8 +60,8 @@ namespace mc::client::ui::minecraft {
 class LoomScreen : public TemplateScreen {
 public:
     using ContainerClickSender =
-        std::function<void(inventory::ContainerId, i32, i32, i16, ClickAction, const ItemStack&)>;
-    using ContainerCloseSender = std::function<void(inventory::ContainerId)>;
+        std::function<void(mc::ContainerId, i32, i32, i16, mc::ClickAction, const mc::ItemStack&)>;
+    using ContainerCloseSender = std::function<void(mc::ContainerId)>;
 
     /**
      * @brief 构造函数
@@ -68,8 +70,8 @@ public:
      * @param clickSender 容器点击事件发送器
      * @param closeSender 容器关闭事件发送器
      */
-    LoomScreen(inventory::ContainerId containerId,
-        PlayerInventory* playerInventory,
+    LoomScreen(mc::ContainerId containerId,
+        mc::PlayerInventory* playerInventory,
         ContainerClickSender clickSender = {},
         ContainerCloseSender closeSender = {});
 
@@ -155,8 +157,8 @@ private:
 
     // ========== 容器 ==========
 
-    std::unique_ptr<inventory::container::LoomContainer> m_menu;
-    PlayerInventory* m_playerInventory = nullptr;
+    std::unique_ptr<mc::entity::inventory::container::LoomContainer> m_menu;
+    mc::PlayerInventory* m_playerInventory = nullptr;
     ContainerClickSender m_clickSender;
     ContainerCloseSender m_closeSender;
 

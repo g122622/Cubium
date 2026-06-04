@@ -730,6 +730,40 @@ Block* VanillaBlocks::RED_TERRACOTTA = nullptr;
 Block* VanillaBlocks::BLACK_TERRACOTTA = nullptr;
 Block* VanillaBlocks::TERRACOTTA = nullptr;
 
+// 旗帜（16色 × 2形态 = 32方块）
+Block* VanillaBlocks::WHITE_BANNER = nullptr;
+Block* VanillaBlocks::WHITE_WALL_BANNER = nullptr;
+Block* VanillaBlocks::ORANGE_BANNER = nullptr;
+Block* VanillaBlocks::ORANGE_WALL_BANNER = nullptr;
+Block* VanillaBlocks::MAGENTA_BANNER = nullptr;
+Block* VanillaBlocks::MAGENTA_WALL_BANNER = nullptr;
+Block* VanillaBlocks::LIGHT_BLUE_BANNER = nullptr;
+Block* VanillaBlocks::LIGHT_BLUE_WALL_BANNER = nullptr;
+Block* VanillaBlocks::YELLOW_BANNER = nullptr;
+Block* VanillaBlocks::YELLOW_WALL_BANNER = nullptr;
+Block* VanillaBlocks::LIME_BANNER = nullptr;
+Block* VanillaBlocks::LIME_WALL_BANNER = nullptr;
+Block* VanillaBlocks::PINK_BANNER = nullptr;
+Block* VanillaBlocks::PINK_WALL_BANNER = nullptr;
+Block* VanillaBlocks::GRAY_BANNER = nullptr;
+Block* VanillaBlocks::GRAY_WALL_BANNER = nullptr;
+Block* VanillaBlocks::LIGHT_GRAY_BANNER = nullptr;
+Block* VanillaBlocks::LIGHT_GRAY_WALL_BANNER = nullptr;
+Block* VanillaBlocks::CYAN_BANNER = nullptr;
+Block* VanillaBlocks::CYAN_WALL_BANNER = nullptr;
+Block* VanillaBlocks::PURPLE_BANNER = nullptr;
+Block* VanillaBlocks::PURPLE_WALL_BANNER = nullptr;
+Block* VanillaBlocks::BLUE_BANNER = nullptr;
+Block* VanillaBlocks::BLUE_WALL_BANNER = nullptr;
+Block* VanillaBlocks::BROWN_BANNER = nullptr;
+Block* VanillaBlocks::BROWN_WALL_BANNER = nullptr;
+Block* VanillaBlocks::GREEN_BANNER = nullptr;
+Block* VanillaBlocks::GREEN_WALL_BANNER = nullptr;
+Block* VanillaBlocks::RED_BANNER = nullptr;
+Block* VanillaBlocks::RED_WALL_BANNER = nullptr;
+Block* VanillaBlocks::BLACK_BANNER = nullptr;
+Block* VanillaBlocks::BLACK_WALL_BANNER = nullptr;
+
 // ============================================================================
 // 初始化
 // ============================================================================

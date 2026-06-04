@@ -26,6 +26,7 @@
 #include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/Slot.hpp"
 #include "util/color/DyeColor.hpp"
+#include "world/block/BlockPos.hpp"
 #include "world/blockentity/interactive/BannerPattern.hpp"
 #include <memory>
 
@@ -34,7 +35,6 @@ namespace mc {
 class Player;
 class PlayerInventory;
 class IInventory;
-class BlockPos;
 
 namespace entity {
 namespace inventory {
@@ -122,7 +122,7 @@ public:
      * @param id 选中的图案ID（1-based索引）
      * @return 如果选择有效返回true
      */
-    bool clickMenuButton(Player& player, i32 id) override;
+    bool clickMenuButton(Player& player, i32 id);
 
     /**
      * @brief Shift+点击快速移动
@@ -135,7 +135,7 @@ public:
      * @brief 获取选中的图案索引
      * @return 图案索引（0=无选择）
      */
-    [[nodiscard]] i32 getSelectedPattern() const noexcept { return m_selectedPattern.get(); }
+    [[nodiscard]] i32 getSelectedPattern() const noexcept { return m_selectedPattern; }
 
     /**
      * @brief 获取输入库存
@@ -171,12 +171,10 @@ private:
     std::unique_ptr<IInventory> m_inputInventory;
     /// 输出库存（1格）
     std::unique_ptr<IInventory> m_outputInventory;
-    /// 选中的图案索引（0=无选择，使用IntReferenceHolder同步到客户端）
-    IntReferenceHolder m_selectedPattern;
+    /// 选中的图案索引（0=无选择）
+    i32 m_selectedPattern = 0;
     /// 织布机方块位置
     BlockPos m_pos;
-    /// 上次播放音效的游戏时间
-    i64 m_lastSoundTime = 0;
 };
 
 // ========== 自定义槽位类 ==========
@@ -227,7 +225,7 @@ public:
     /**
      * @brief 取走输出物品时消耗输入
      */
-    void onTake(Player& player, ItemStack stack) override;
+    ItemStack onTake(Player& player, ItemStack stack) override;
 
 private:
     LoomContainer* m_container;

@@ -35,6 +35,6 @@ TEST(ShieldDecorationRecipeTest, Construction)
 TEST(ShieldDecorationRecipeTest, RecipeType)
 {
     ShieldDecorationRecipe recipe(ResourceLocation("minecraft", "shield_decoration"));
-    EXPECT_TRUE(recipe.getId().getNamespace() == "minecraft");
-    EXPECT_TRUE(recipe.getId().getPath() == "shield_decoration");
+    EXPECT_TRUE(recipe.getId().namespace_() == "minecraft");
+    EXPECT_TRUE(recipe.getId().path() == "shield_decoration");
 }

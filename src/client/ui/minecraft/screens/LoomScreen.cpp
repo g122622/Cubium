@@ -40,14 +40,15 @@ using kagero::widget::ButtonWidget;
 using kagero::widget::ScrollableWidget;
 using kagero::widget::SlotWidget;
 
-LoomScreen::LoomScreen(inventory::ContainerId containerId,
-    PlayerInventory* playerInventory,
+LoomScreen::LoomScreen(mc::ContainerId containerId,
+    mc::PlayerInventory* playerInventory,
     ContainerClickSender clickSender,
     ContainerCloseSender closeSender)
     : TemplateScreen(std::make_unique<kagero::tpl::binder::BindingContext>(
                          kagero::state::StateStore::instance(), kagero::event::EventBus::instance()),
           "loom")
-    , m_menu(std::make_unique<inventory::container::LoomContainer>(containerId, playerInventory, BlockPos(0, 0, 0)))
+    , m_menu(std::make_unique<mc::entity::inventory::container::LoomContainer>(
+          containerId, playerInventory, BlockPos(0, 0, 0)))
     , m_playerInventory(playerInventory)
     , m_clickSender(std::move(clickSender))
     , m_closeSender(std::move(closeSender))
@@ -122,7 +123,7 @@ void LoomScreen::_initSlots()
     // 旗帜槽
     auto* bannerSlot = dynamic_cast<SlotWidget*>(findWidget("bannerSlot"));
     if (bannerSlot) {
-        bannerSlot->setSlotIndex(inventory::container::LoomContainer::SLOT_BANNER);
+        bannerSlot->setSlotIndex(mc::entity::inventory::container::LoomContainer::SLOT_BANNER);
         bannerSlot->setOnSlotClick(
             [this](i32 slotIndex, i32 button, bool shiftHeld) { _onSlotClick(slotIndex, button, shiftHeld); });
     }
@@ -130,7 +131,7 @@ void LoomScreen::_initSlots()
     // 染料槽
     auto* dyeSlot = dynamic_cast<SlotWidget*>(findWidget("dyeSlot"));
     if (dyeSlot) {
-        dyeSlot->setSlotIndex(inventory::container::LoomContainer::SLOT_DYE);
+        dyeSlot->setSlotIndex(mc::entity::inventory::container::LoomContainer::SLOT_DYE);
         dyeSlot->setOnSlotClick(
             [this](i32 slotIndex, i32 button, bool shiftHeld) { _onSlotClick(slotIndex, button, shiftHeld); });
     }
@@ -138,7 +139,7 @@ void LoomScreen::_initSlots()
     // 图案物品槽
     auto* patternSlot = dynamic_cast<SlotWidget*>(findWidget("patternSlot"));
     if (patternSlot) {
-        patternSlot->setSlotIndex(inventory::container::LoomContainer::SLOT_PATTERN);
+        patternSlot->setSlotIndex(mc::entity::inventory::container::LoomContainer::SLOT_PATTERN);
         patternSlot->setOnSlotClick(
             [this](i32 slotIndex, i32 button, bool shiftHeld) { _onSlotClick(slotIndex, button, shiftHeld); });
     }
@@ -146,7 +147,7 @@ void LoomScreen::_initSlots()
     // 输出槽
     auto* resultSlot = dynamic_cast<SlotWidget*>(findWidget("resultSlot"));
     if (resultSlot) {
-        resultSlot->setSlotIndex(inventory::container::LoomContainer::SLOT_RESULT);
+        resultSlot->setSlotIndex(mc::entity::inventory::container::LoomContainer::SLOT_RESULT);
         resultSlot->setOnSlotClick(
             [this](i32 slotIndex, i32 button, bool shiftHeld) { _onSlotClick(slotIndex, button, shiftHeld); });
     }
@@ -154,7 +155,7 @@ void LoomScreen::_initSlots()
     // 玩家背包槽位（3行x9列）
     for (i32 row = 0; row < 3; ++row) {
         for (i32 col = 0; col < 9; ++col) {
-            i32 slotIndex = inventory::container::LoomContainer::LOOM_SLOTS + row * 9 + col;
+            i32 slotIndex = mc::entity::inventory::container::LoomContainer::LOOM_SLOTS + row * 9 + col;
             std::string slotId = "invSlot_" + std::to_string(row) + "_" + std::to_string(col);
             auto* slot = dynamic_cast<SlotWidget*>(findWidget(slotId));
             if (slot) {
@@ -166,7 +167,7 @@ void LoomScreen::_initSlots()
 
     // 快捷栏槽位（1行x9列）
     for (i32 col = 0; col < 9; ++col) {
-        i32 slotIndex = inventory::container::LoomContainer::LOOM_SLOTS + 27 + col;
+        i32 slotIndex = mc::entity::inventory::container::LoomContainer::LOOM_SLOTS + 27 + col;
         std::string slotId = "hotbarSlot_" + std::to_string(col);
         auto* slot = dynamic_cast<SlotWidget*>(findWidget(slotId));
         if (slot) {
@@ -185,7 +186,7 @@ void LoomScreen::_initPatternButtons()
     }
 
     // 35个基础图案（不需要图案物品的），4列布局 = 9行
-    const i32 totalPatterns = inventory::container::LoomContainer::PATTERN_ITEM_INDEX;
+    const i32 totalPatterns = mc::entity::inventory::container::LoomContainer::PATTERN_ITEM_INDEX;
     const i32 rows = (totalPatterns + PATTERN_GRID_COLS - 1) / PATTERN_GRID_COLS;
     patternList->setContentHeight(rows * PATTERN_BUTTON_SPACING);
 
@@ -222,7 +223,7 @@ void LoomScreen::_refreshSlots()
     // 旗帜槽
     auto* bannerSlot = dynamic_cast<SlotWidget*>(findWidget("bannerSlot"));
     if (bannerSlot) {
-        const mc::Slot* slot = m_menu->getSlot(inventory::container::LoomContainer::SLOT_BANNER);
+        const mc::Slot* slot = m_menu->getSlot(mc::entity::inventory::container::LoomContainer::SLOT_BANNER);
         if (slot) {
             bannerSlot->setItem(slot->getItem());
         }
@@ -231,7 +232,7 @@ void LoomScreen::_refreshSlots()
     // 染料槽
     auto* dyeSlot = dynamic_cast<SlotWidget*>(findWidget("dyeSlot"));
     if (dyeSlot) {
-        const mc::Slot* slot = m_menu->getSlot(inventory::container::LoomContainer::SLOT_DYE);
+        const mc::Slot* slot = m_menu->getSlot(mc::entity::inventory::container::LoomContainer::SLOT_DYE);
         if (slot) {
             dyeSlot->setItem(slot->getItem());
         }
@@ -240,7 +241,7 @@ void LoomScreen::_refreshSlots()
     // 图案物品槽
     auto* patternSlot = dynamic_cast<SlotWidget*>(findWidget("patternSlot"));
     if (patternSlot) {
-        const mc::Slot* slot = m_menu->getSlot(inventory::container::LoomContainer::SLOT_PATTERN);
+        const mc::Slot* slot = m_menu->getSlot(mc::entity::inventory::container::LoomContainer::SLOT_PATTERN);
         if (slot) {
             patternSlot->setItem(slot->getItem());
         }
@@ -249,7 +250,7 @@ void LoomScreen::_refreshSlots()
     // 输出槽
     auto* resultSlot = dynamic_cast<SlotWidget*>(findWidget("resultSlot"));
     if (resultSlot) {
-        const mc::Slot* slot = m_menu->getSlot(inventory::container::LoomContainer::SLOT_RESULT);
+        const mc::Slot* slot = m_menu->getSlot(mc::entity::inventory::container::LoomContainer::SLOT_RESULT);
         if (slot) {
             resultSlot->setItem(slot->getItem());
         }
@@ -258,7 +259,7 @@ void LoomScreen::_refreshSlots()
     // 玩家背包槽位
     for (i32 row = 0; row < 3; ++row) {
         for (i32 col = 0; col < 9; ++col) {
-            i32 slotIndex = inventory::container::LoomContainer::LOOM_SLOTS + row * 9 + col;
+            i32 slotIndex = mc::entity::inventory::container::LoomContainer::LOOM_SLOTS + row * 9 + col;
             std::string slotId = "invSlot_" + std::to_string(row) + "_" + std::to_string(col);
             auto* widget = dynamic_cast<SlotWidget*>(findWidget(slotId));
             if (widget) {
@@ -272,7 +273,7 @@ void LoomScreen::_refreshSlots()
 
     // 快捷栏槽位
     for (i32 col = 0; col < 9; ++col) {
-        i32 slotIndex = inventory::container::LoomContainer::LOOM_SLOTS + 27 + col;
+        i32 slotIndex = mc::entity::inventory::container::LoomContainer::LOOM_SLOTS + 27 + col;
         std::string slotId = "hotbarSlot_" + std::to_string(col);
         auto* widget = dynamic_cast<SlotWidget*>(findWidget(slotId));
         if (widget) {
@@ -334,7 +335,7 @@ void LoomScreen::_onSlotClick(i32 slotIndex, i32 button, bool shiftHeld)
         return;
     }
 
-    const ClickAction action = shiftHeld ? ClickAction::QuickMove : ClickAction::Pickup;
+    const mc::ClickAction action = shiftHeld ? mc::ClickAction::QuickMove : mc::ClickAction::Pickup;
     const i16 transactionId = m_menu->incrementTransactionId();
     m_clickSender(m_menu->getId(), slotIndex, button, transactionId, action, m_menu->getCarriedItem());
 }
