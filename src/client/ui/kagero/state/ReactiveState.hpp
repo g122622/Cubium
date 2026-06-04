@@ -84,6 +84,9 @@ public:
      */
     void set(const T& newValue)
     {
+        if (m_notifying) {
+            return; // 防止观察者中递归调用set
+        }
         if (m_value != newValue) {
             T oldValue = m_value;
             m_value = newValue;
@@ -96,6 +99,9 @@ public:
      */
     void set(T&& newValue)
     {
+        if (m_notifying) {
+            return; // 防止观察者中递归调用set
+        }
         if (m_value != newValue) {
             T oldValue = m_value;
             m_value = std::move(newValue);
@@ -189,16 +195,19 @@ private:
      */
     void _notify(const T& oldValue, const T& newValue)
     {
+        m_notifying = true;
         // 复制观察者列表以避免迭代时修改
         auto observers = m_observers;
         for (const auto& pair : observers) {
             pair.second(oldValue, newValue);
         }
+        m_notifying = false;
     }
 
     T m_value;
     std::vector<std::pair<ObserverId, Observer>> m_observers;
     ObserverId m_nextObserverId = 1;
+    bool m_notifying = false; ///< 防止递归通知的标志
 };
 
 /**

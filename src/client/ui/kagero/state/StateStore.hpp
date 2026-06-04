@@ -121,6 +121,22 @@ public:
     }
 
     /**
+     * @brief 获取状态的std::any引用，用于类型转换
+     * @param key 状态键
+     * @return 状态值的const引用，键不存在时抛出异常
+     */
+    [[nodiscard]] const std::any& getAny(const std::string& key) const
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = m_state.find(key);
+        if (it == m_state.end()) {
+            static const std::any empty;
+            return empty;
+        }
+        return it->second;
+    }
+
+    /**
      * @brief 设置状态值
      *
      * @tparam T 值类型
@@ -134,6 +150,19 @@ public:
 
         {
             std::lock_guard<std::mutex> lock(m_mutex);
+
+            // 检查值是否真正改变，避免不必要的通知
+            auto it = m_state.find(key);
+            if (it != m_state.end()) {
+                try {
+                    if (std::any_cast<T>(&it->second) != nullptr && *std::any_cast<T>(&it->second) == value) {
+                        return; // 值未改变，跳过
+                    }
+                }
+                catch (...) {
+                    // 类型不匹配，继续设置新值
+                }
+            }
 
             // 调用中间件（仅在非批量模式下）
             if (m_batchDepth == 0) {

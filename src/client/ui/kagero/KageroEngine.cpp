@@ -101,6 +101,9 @@ size_t KageroEngine::addLayer(std::unique_ptr<widget::Widget> widget, i32 zIndex
     // 设置层的尺寸为屏幕尺寸
     layer.widget->setBounds(Rect(0, 0, m_screenWidth, m_screenHeight));
 
+    // 初始化Widget生命周期
+    layer.widget->init();
+
     m_layers.push_back(std::move(layer));
 
     // 保持排序

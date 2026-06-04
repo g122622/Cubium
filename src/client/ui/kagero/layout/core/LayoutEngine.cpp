@@ -24,6 +24,8 @@
 #include "LayoutEngine.hpp"
 #include "LayoutEngineAdapters.hpp"
 
+#include "client/ui/kagero/widget/ContainerWidget.hpp"
+
 #include <algorithm>
 #include <chrono>
 
@@ -225,7 +227,13 @@ LayoutResult LayoutEngine::_layoutNode(
         m_stats.totalWidgets += static_cast<i32>(children.size());
 
         if (!children.empty()) {
-            m_flexLayout->setConfig(FlexConfig{});
+            // 从ContainerWidget获取FlexConfig，而非使用默认空配置
+            auto* containerWidget = dynamic_cast<widget::ContainerWidget*>(node->getWidget());
+            if (containerWidget != nullptr && containerWidget->layoutType() == widget::ContainerLayoutType::Flex) {
+                m_flexLayout->setConfig(containerWidget->flexConfig());
+            } else {
+                m_flexLayout->setConfig(FlexConfig{});
+            }
 
             const i32 contentWidth = std::max(0, finalWidth - constraints.padding.horizontal());
             const i32 contentHeight = std::max(0, finalHeight - constraints.padding.vertical());

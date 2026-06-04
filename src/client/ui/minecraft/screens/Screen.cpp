@@ -61,4 +61,14 @@ void Screen::setModal(bool modal)
     m_modal = modal;
 }
 
+bool Screen::isPauseScreen() const
+{
+    return m_pauseScreen;
+}
+
+void Screen::setPauseScreen(bool pauseScreen)
+{
+    m_pauseScreen = pauseScreen;
+}
+
 } // namespace mc::client::ui::minecraft

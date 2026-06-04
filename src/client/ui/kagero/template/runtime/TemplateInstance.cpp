@@ -462,36 +462,27 @@ void TemplateInstance::registerDefaultEventBinders()
         ctx.invokeCallback(callbackName, widget, event::MouseClickEvent(0, 0, 1, 1));
     };
 
-    // 鼠标进入事件
+    // 鼠标进入事件：只注册回调，状态修改由Widget自身的事件处理管理
     m_eventBinders["mouseEnter"] = [](widget::Widget* widget,
                                        const std::string& eventName,
                                        const std::string& callbackName,
                                        binder::BindingContext& ctx) {
         (void)eventName;
-        if (widget) {
-            widget->setHovered(true);
-            widget->onMouseEnter();
-            // 调用用户回调
-            if (!callbackName.empty()) {
-                // 使用Widget的位置作为事件坐标
-                ctx.invokeCallback(callbackName, widget, event::MouseEnterEvent(widget->x(), widget->y()));
-            }
+        if (widget && !callbackName.empty()) {
+            // 仅注册用户回调，hover状态由ContainerWidget::updateHover()管理
+            widget->setUserData("onMouseEnterCallback", callbackName);
         }
     };
 
-    // 鼠标离开事件
+    // 鼠标离开事件：只注册回调，状态修改由Widget自身的事件处理管理
     m_eventBinders["mouseLeave"] = [](widget::Widget* widget,
                                        const std::string& eventName,
                                        const std::string& callbackName,
                                        binder::BindingContext& ctx) {
         (void)eventName;
-        if (widget) {
-            widget->setHovered(false);
-            widget->onMouseLeave();
-            // 调用用户回调
-            if (!callbackName.empty()) {
-                ctx.invokeCallback(callbackName, widget, event::MouseLeaveEvent(widget->x(), widget->y()));
-            }
+        if (widget && !callbackName.empty()) {
+            // 仅注册用户回调，hover状态由ContainerWidget::updateHover()管理
+            widget->setUserData("onMouseLeaveCallback", callbackName);
         }
     };
 
@@ -534,35 +525,25 @@ void TemplateInstance::registerDefaultEventBinders()
         (void)callbackName;
     };
 
-    // 焦点获得事件
+    // 焦点获得事件：只注册回调，焦点状态由ContainerWidget的焦点管理管理
     m_eventBinders["focus"] = [](widget::Widget* widget,
                                   const std::string& eventName,
                                   const std::string& callbackName,
                                   binder::BindingContext& ctx) {
         (void)eventName;
-        if (widget) {
-            widget->setFocused(true);
-            widget->onFocusGained();
-            // 调用用户回调
-            if (!callbackName.empty()) {
-                ctx.invokeCallback(callbackName, widget, event::FocusGainedEvent());
-            }
+        if (widget && !callbackName.empty()) {
+            widget->setUserData("onFocusGainedCallback", callbackName);
         }
     };
 
-    // 失去焦点事件
+    // 失去焦点事件：只注册回调，焦点状态由ContainerWidget的焦点管理管理
     m_eventBinders["blur"] = [](widget::Widget* widget,
                                  const std::string& eventName,
                                  const std::string& callbackName,
                                  binder::BindingContext& ctx) {
         (void)eventName;
-        if (widget) {
-            widget->setFocused(false);
-            widget->onFocusLost();
-            // 调用用户回调
-            if (!callbackName.empty()) {
-                ctx.invokeCallback(callbackName, widget, event::FocusLostEvent());
-            }
+        if (widget && !callbackName.empty()) {
+            widget->setUserData("onFocusLostCallback", callbackName);
         }
     };
 

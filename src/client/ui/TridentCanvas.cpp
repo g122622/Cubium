@@ -76,7 +76,12 @@ void TridentCanvas::drawRect(const kagero::Rect& rect, const kagero::paint::IPai
         m_renderer.fillRect(x1, y1, x2 - x1, y2 - y1, color);
     } else if (style == kagero::paint::PaintStyle::Stroke) {
         const f32 strokeWidth = paint.strokeWidth();
-        m_renderer.drawRect(x1, y1, x2 - x1, y2 - y1, color);
+        const f32 half = strokeWidth * 0.5f;
+        // 绘制4条边框线（上、下、左、右）
+        m_renderer.fillRect(x1, y1 - half, x2 - x1, strokeWidth, color); // 上
+        m_renderer.fillRect(x1, y2 - half, x2 - x1, strokeWidth, color); // 下
+        m_renderer.fillRect(x1 - half, y1, strokeWidth, y2 - y1, color); // 左
+        m_renderer.fillRect(x2 - half, y1, strokeWidth, y2 - y1, color); // 右
     }
 }
 
@@ -345,28 +350,8 @@ void TridentCanvas::drawText(const std::string& text, f32 x, f32 y, const kagero
     const u32 color = _extractColor(paint);
     _transformPoint(x, y);
 
-    // 转换 std::string (std::u32string) 到 UTF-8
-    std::string utf8Text;
-    utf8Text.reserve(text.size());
-    for (char32_t c : text) {
-        if (c < 0x80) {
-            utf8Text.push_back(static_cast<char>(c));
-        } else if (c < 0x800) {
-            utf8Text.push_back(static_cast<char>(0xC0 | (c >> 6)));
-            utf8Text.push_back(static_cast<char>(0x80 | (c & 0x3F)));
-        } else if (c < 0x10000) {
-            utf8Text.push_back(static_cast<char>(0xE0 | (c >> 12)));
-            utf8Text.push_back(static_cast<char>(0x80 | ((c >> 6) & 0x3F)));
-            utf8Text.push_back(static_cast<char>(0x80 | (c & 0x3F)));
-        } else {
-            utf8Text.push_back(static_cast<char>(0xF0 | (c >> 18)));
-            utf8Text.push_back(static_cast<char>(0x80 | ((c >> 12) & 0x3F)));
-            utf8Text.push_back(static_cast<char>(0x80 | ((c >> 6) & 0x3F)));
-            utf8Text.push_back(static_cast<char>(0x80 | (c & 0x3F)));
-        }
-    }
-
-    m_renderer.drawText(utf8Text, x, y, color, false);
+    // text已经是UTF-8编码，直接传递给渲染器
+    m_renderer.drawText(text, x, y, color, false);
 }
 
 void TridentCanvas::drawTextBlob(const kagero::paint::ITextBlob& blob, f32 x, f32 y, const kagero::paint::IPaint& paint)
@@ -374,29 +359,9 @@ void TridentCanvas::drawTextBlob(const kagero::paint::ITextBlob& blob, f32 x, f3
     const u32 color = _extractColor(paint);
     _transformPoint(x, y);
 
-    // 将 TextBlob 的文本转换为 UTF-8 并绘制
+    // blob.text()已经是UTF-8编码，直接传递给渲染器
     const std::string& text = blob.text();
-    std::string utf8Text;
-    utf8Text.reserve(text.size());
-    for (char32_t c : text) {
-        if (c < 0x80) {
-            utf8Text.push_back(static_cast<char>(c));
-        } else if (c < 0x800) {
-            utf8Text.push_back(static_cast<char>(0xC0 | (c >> 6)));
-            utf8Text.push_back(static_cast<char>(0x80 | (c & 0x3F)));
-        } else if (c < 0x10000) {
-            utf8Text.push_back(static_cast<char>(0xE0 | (c >> 12)));
-            utf8Text.push_back(static_cast<char>(0x80 | ((c >> 6) & 0x3F)));
-            utf8Text.push_back(static_cast<char>(0x80 | (c & 0x3F)));
-        } else {
-            utf8Text.push_back(static_cast<char>(0xF0 | (c >> 18)));
-            utf8Text.push_back(static_cast<char>(0x80 | ((c >> 12) & 0x3F)));
-            utf8Text.push_back(static_cast<char>(0x80 | ((c >> 6) & 0x3F)));
-            utf8Text.push_back(static_cast<char>(0x80 | (c & 0x3F)));
-        }
-    }
-
-    m_renderer.drawText(utf8Text, x, y, color, false);
+    m_renderer.drawText(text, x, y, color, false);
 }
 
 void TridentCanvas::clipRect(const kagero::Rect& rect)

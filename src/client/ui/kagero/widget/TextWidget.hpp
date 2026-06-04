@@ -86,7 +86,21 @@ public:
     void paint(PaintContext& ctx) override
     {
         if (!isVisible() || m_text.empty()) return;
-        ctx.drawTextCentered(m_text, bounds(), m_color);
+
+        switch (m_alignment) {
+            case TextAlignment::Left:
+                ctx.drawText(m_text, bounds().x, bounds().y, m_color);
+                break;
+            case TextAlignment::Center:
+                ctx.drawTextCentered(m_text, bounds(), m_color);
+                break;
+            case TextAlignment::Right: {
+                f32 textWidth = ctx.canvas().getTextWidth(m_text);
+                i32 x = bounds().x + bounds().width - static_cast<i32>(textWidth);
+                ctx.drawText(m_text, x, bounds().y, m_color);
+                break;
+            }
+        }
     }
 
     /**

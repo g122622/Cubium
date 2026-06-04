@@ -197,6 +197,11 @@ public:
     {
         MC_ASSERT_RELEASE(widget != nullptr);
 
+        // 清除焦点引用，防止野指针
+        if (m_focusedWidget == widget) {
+            m_focusedWidget = nullptr;
+        }
+
         auto it = std::find_if(
             m_children.begin(), m_children.end(), [widget](const Widget::Ptr& ptr) { return ptr.get() == widget; });
 
@@ -219,6 +224,10 @@ public:
             m_children.begin(), m_children.end(), [&id](const Widget::Ptr& ptr) { return ptr->id() == id; });
 
         if (it != m_children.end()) {
+            // 清除焦点引用，防止野指针
+            if (m_focusedWidget == it->get()) {
+                m_focusedWidget = nullptr;
+            }
             (*it)->setParent(nullptr);
             m_children.erase(it);
             return true;

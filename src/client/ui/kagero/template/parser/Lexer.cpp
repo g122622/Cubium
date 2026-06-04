@@ -381,7 +381,8 @@ Token Lexer::_scanIdentifier()
     size_t start = m_pos;
     SourceLocation startLoc = m_location;
 
-    // 标识符可以包含: 字母、数字、下划线、连字符、冒号（用于bind:, on:）
+    // 标识符可以包含: 字母、数字、下划线、连字符
+    // 冒号（用于bind:, on:）作为独立的Colon token，由_scanToken处理
     // 第一个字符必须是字母或下划线
     while (!_isAtEnd() && isIdentifierChar(_currentChar())) {
         _advance();
@@ -584,7 +585,7 @@ bool Lexer::isAlphaNumeric(char c)
 
 bool Lexer::isIdentifierChar(char c)
 {
-    return isAlphaNumeric(c) || c == '_' || c == '-' || c == ':';
+    return isAlphaNumeric(c) || c == '_' || c == '-';
 }
 
 void Lexer::_addError(TemplateErrorType type, const std::string& message)

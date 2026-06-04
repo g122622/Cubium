@@ -384,8 +384,7 @@ Value BindingContext::resolveBinding(const std::string& path, const std::string&
 
     // 尝试从StateStore获取
     if (m_store.has(path)) {
-        // TODO: StateStore使用std::any，需要更完善的类型转换支持，目前暂返回空值
-        return Value();
+        return Value::fromAny(m_store.getAny(path));
     }
 
     // 尝试路径解析（嵌套属性）
@@ -452,6 +451,15 @@ u64 BindingContext::subscribe(const std::string& path, StateChangeCallback callb
 {
     u64 id = m_nextSubscriberId++;
     m_subscribers[path].emplace_back(id, std::move(callback));
+
+    // 桥接StateStore的订阅：当StateStore中的值变化时，转发到BindingContext的订阅者
+    if (m_store.has(path)) {
+        m_store.subscribe(path, [this, path]() {
+            auto newValue = Value::fromAny(m_store.getAny(path));
+            notifyChange(path, newValue);
+        });
+    }
+
     return id;
 }
 

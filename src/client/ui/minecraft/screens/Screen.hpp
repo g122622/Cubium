@@ -59,8 +59,15 @@ public:
     /** @brief 设置屏幕的模态状态 */
     void setModal(bool modal);
 
+    /** @brief 查询此屏幕是否为暂停屏幕（暂停屏幕会导致游戏暂停） */
+    [[nodiscard]] bool isPauseScreen() const;
+
+    /** @brief 设置此屏幕是否为暂停屏幕 */
+    void setPauseScreen(bool pauseScreen);
+
 private:
     bool m_modal = true;
+    bool m_pauseScreen = false;
 };
 
 } // namespace mc::client::ui::minecraft

@@ -94,8 +94,10 @@ void PaintContext::drawTextCentered(const std::string& text, const Rect& bounds,
 {
     m_fillPaint->setColor(paint::Color::fromARGB(color));
     f32 textWidth = m_canvas.getTextWidth(text);
+    f32 fontHeight = static_cast<f32>(m_canvas.getFontHeight());
     f32 x = static_cast<f32>(bounds.centerX()) - textWidth * 0.5f;
-    f32 y = static_cast<f32>(bounds.centerY());
+    // 垂直居中：centerY - fontHeight/2 + ascent偏移（约fontHeight*0.75）
+    f32 y = static_cast<f32>(bounds.centerY()) - fontHeight * 0.5f + fontHeight * 0.75f;
     m_canvas.drawText(text, x, y, *m_fillPaint);
 }
 

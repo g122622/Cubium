@@ -25,6 +25,7 @@
 #include "client/ui/kagero/event/EventBus.hpp"
 #include "client/ui/kagero/state/StateStore.hpp"
 #include <GLFW/glfw3.h>
+#include <spdlog/spdlog.h>
 
 namespace mc::client::ui::minecraft {
 
@@ -33,7 +34,10 @@ PauseScreen::PauseScreen()
                          kagero::state::StateStore::instance(), kagero::event::EventBus::instance()),
           "pause")
 {
-    loadTemplateFile("src/client/ui/minecraft/templates/pause_menu.tpl");
+    setPauseScreen(true);
+    if (!loadTemplateFile("src/client/ui/minecraft/templates/pause_menu.tpl")) {
+        spdlog::error("[PauseScreen] Failed to load pause_menu.tpl template");
+    }
     _registerCallbacks();
 }
 

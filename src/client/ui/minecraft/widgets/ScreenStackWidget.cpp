@@ -421,7 +421,12 @@ bool ScreenStackWidget::shouldPauseGame() const
 {
     // 检查是否有暂停屏幕
     for (const auto& wrapper : m_screens) {
-        if (!wrapper.isWidgetScreen()) {
+        if (wrapper.isWidgetScreen()) {
+            auto* screen = std::get<std::unique_ptr<Screen>>(wrapper.item).get();
+            if (screen && screen->isPauseScreen()) {
+                return true;
+            }
+        } else {
             auto* screen = std::get<std::unique_ptr<IScreen>>(wrapper.item).get();
             if (screen && screen->isPauseScreen()) {
                 return true;

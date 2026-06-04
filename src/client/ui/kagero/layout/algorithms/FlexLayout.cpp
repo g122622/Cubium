@@ -342,7 +342,8 @@ void FlexLayout::_collectLines(const std::vector<WidgetLayoutAdaptor*>& children
         if (!child || !child->constraints().isLayoutEnabled()) continue;
 
         i32 itemMainSize = isHorizontal ? m_measuredSizes[i].width : m_measuredSizes[i].height;
-        itemMainSize += child->constraints().margin.horizontal();
+        itemMainSize +=
+            isHorizontal ? child->constraints().margin.horizontal() : child->constraints().margin.vertical();
 
         // 检查是否需要换行
         i32 newSize = currentMainSize + itemMainSize;
