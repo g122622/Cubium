@@ -61,8 +61,6 @@ struct WorldGlyphMesh {
  * 在 3D 世界中渲染文本（如名称标签）。
  * 使用 billboard 技术使文本始终面向相机。
  *
- * 参考 MC 1.16.5 NameTagRenderer
- *
  * 集成现有 FontTextureAtlas 和 Font 系统。
  */
 class WorldTextRenderer {

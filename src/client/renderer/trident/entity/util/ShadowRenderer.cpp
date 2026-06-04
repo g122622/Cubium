@@ -553,8 +553,7 @@ f64 ShadowRenderer::computeShadowAlpha(ClientEntity& entity, f64 partialTicks, f
     (void)partialTicks;
     (void)shadowRadius;
 
-    // 获取相机距离用于距离衰减
-    // 参考 MC 1.16.5 EntityRendererManager.java:260
+    // TODO 获取相机距离用于距离衰减
 
     // 获取实体高度（假设站在地面上）
     f64 entityHeight = static_cast<f64>(entity.height());

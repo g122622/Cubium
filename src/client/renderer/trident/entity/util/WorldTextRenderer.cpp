@@ -649,7 +649,6 @@ void WorldTextRenderer::createBackgroundMesh(f32 width, f32 height)
 
 void WorldTextRenderer::computeBillboardMatrix(const Vector3f& position, std::array<f64, 16>& outMatrix)
 {
-    // 参考 MC 1.16.5: 名称标签始终面向相机（billboard）
     // 从视图矩阵中提取旋转部分，然后反转
 
     // 提取视图矩阵的上方向和右方向

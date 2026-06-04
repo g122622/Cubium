@@ -50,11 +50,6 @@ namespace client::renderer::entity::util {
  * 负责在实体下方渲染阴影。
  * 阴影大小根据实体尺寸和与地面的距离动态调整。
  *
- * 参考 MC 1.16.5 EntityRendererManager 中的阴影渲染实现：
- * - renderShadow(): 遍历实体周围的方块
- * - renderBlockShadow(): 在单个方块上绘制阴影
- * - shadowVertex(): 绘制单个阴影顶点
- *
  * 阴影渲染算法：
  * 1. 计算阴影覆盖的方块范围 [x-radius, x+radius] × [y-radius, y] × [z-radius, z+radius]
  * 2. 对范围内的每个方块位置：
