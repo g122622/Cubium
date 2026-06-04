@@ -23,16 +23,14 @@
 
 #pragma once
 
-#include <memory>
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
+#include <memory>
 
 namespace mc {
 
 /**
  * @brief 海带特征配置
- *
- * 参考 MC BlockStateFeatureConfig
  */
 struct KelpFeatureConfig : public IFeatureConfig {
     /// 海带方块状态
@@ -62,8 +60,6 @@ struct KelpFeatureConfig : public IFeatureConfig {
  *
  * 在水下生成海带。
  * 海带可以从海底向上生长到水面。
- *
- * 参考 MC KelpFeature
  */
 class KelpFeature {
 public:
@@ -81,12 +77,12 @@ private:
     /**
      * @brief 检查海带是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查位置是否为水
      */
-    [[nodiscard]] bool isWater(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isWater(WorldGenRegion& world, const BlockPos& pos) const;
 };
 
 /**

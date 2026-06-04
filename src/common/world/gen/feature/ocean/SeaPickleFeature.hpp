@@ -23,16 +23,14 @@
 
 #pragma once
 
-#include <memory>
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
+#include <memory>
 
 namespace mc {
 
 /**
  * @brief 海泡菜特征配置
- *
- * 参考 MC SeaPickleFeatureConfig
  */
 struct SeaPickleFeatureConfig : public IFeatureConfig {
     /// 海泡菜方块状态
@@ -46,7 +44,7 @@ struct SeaPickleFeatureConfig : public IFeatureConfig {
 
     SeaPickleFeatureConfig() = default;
 
-    explicit SeaPickleFeatureConfig(const BlockState* state, i32 t = 10, i32 maxC = 4)
+    explicit SeaPickleFeatureConfig(const BlockState* state, i32 t, i32 maxC) noexcept
         : seaPickleState(state)
         , tries(t)
         , maxCount(maxC)
@@ -58,8 +56,6 @@ struct SeaPickleFeatureConfig : public IFeatureConfig {
  *
  * 在水下生成海泡菜，通常在暖水海洋。
  * 海泡菜可以堆叠1-4个。
- *
- * 参考 MC SeaPickleFeature
  */
 class SeaPickleFeature {
 public:
@@ -77,12 +73,12 @@ private:
     /**
      * @brief 检查海泡菜是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const BlockState& pickleState) const;
+    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const BlockState& pickleState) const;
 
     /**
      * @brief 检查位置是否为水
      */
-    [[nodiscard]] bool isWater(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isWater(WorldGenRegion& world, const BlockPos& pos) const;
 };
 
 /**
@@ -98,9 +94,9 @@ public:
         math::Random& random,
         const BlockPos& pos) override;
 
-    [[nodiscard]] const char* name() const override { return m_name.c_str(); }
-    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
-    [[nodiscard]] const SeaPickleFeatureConfig& getConfig() const { return *m_config; }
+    [[nodiscard]] const char* name() const noexcept override { return m_name.c_str(); }
+    [[nodiscard]] DecorationStage stage() const noexcept override { return DecorationStage::VegetalDecoration; }
+    [[nodiscard]] const SeaPickleFeatureConfig& getConfig() const noexcept { return *m_config; }
 
 private:
     std::unique_ptr<SeaPickleFeatureConfig> m_config;
@@ -116,7 +112,7 @@ struct SeaPickleFeatures {
     static void initialize();
 
     /// 获取所有海泡菜特征
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredSeaPickleFeature>>& getAllFeatures();
+    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredSeaPickleFeature>>& getAllFeatures() noexcept;
 
     /// 获取所有海泡菜特征并清空（转移所有权）
     [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredSeaPickleFeature>> getAllFeaturesAndClear();

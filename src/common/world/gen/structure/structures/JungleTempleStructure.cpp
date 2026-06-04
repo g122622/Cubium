@@ -22,6 +22,8 @@
  */
 
 #include "JungleTempleStructure.hpp"
+
+#include "../../../../core/Constants.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorldWriter.hpp"
 #include "../../../biome/Biome.hpp"
@@ -34,17 +36,35 @@ namespace world {
 namespace gen {
 namespace structure {
 
+// 匿名命名空间：文件内部常量和辅助函数
+namespace {
+
 using namespace mc::Biomes;
+
+// 丛林神庙尺寸常量
+constexpr i32 TEMPLE_WIDTH = 12;      // X轴宽度
+constexpr i32 TEMPLE_LENGTH = 15;     // Z轴深度
+constexpr i32 TEMPLE_HEIGHT = 10;     // 主结构高度
+constexpr i32 TOWER_EXTRA_HEIGHT = 4; // 塔楼额外高度
+
+// 最低生成高度（低于此高度时不生成）
+constexpr i32 MIN_GENERATION_HEIGHT = 60;
+constexpr i32 FALLBACK_HEIGHT = 64;
+
+// 藤蔓装饰数量
+constexpr i32 VINE_DECORATION_COUNT = 20;
+
+} // namespace
 
 const std::string JungleTempleStructure::m_name = "jungle_temple";
 
-JungleTempleStructure::JungleTempleStructure()
+JungleTempleStructure::JungleTempleStructure() noexcept
     : Structure(StructureType::Temple)
 {
-    initializeBiomes();
+    _initializeBiomes();
 }
 
-void JungleTempleStructure::initializeBiomes()
+void JungleTempleStructure::_initializeBiomes() noexcept
 {
     m_validBiomes = {Jungle, JungleHills, JungleEdge, ModifiedJungle, ModifiedJungleEdge};
 }
@@ -52,7 +72,7 @@ void JungleTempleStructure::initializeBiomes()
 bool JungleTempleStructure::canGenerate(
     IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
-    // 检查生物群系是否合适
+    // TODO: 实现生物群系检查逻辑
     return true;
 }
 
@@ -61,24 +81,23 @@ std::unique_ptr<StructureStart> JungleTempleStructure::generate(
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
-    // 丛林神庙尺寸: 12x15 地面部分，高度约 10
     // 计算起始位置
-    i32 startX = chunkX * 16 + rng.nextInt(16);
-    i32 startZ = chunkZ * 16 + rng.nextInt(16);
+    i32 startX = chunkX * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
+    i32 startZ = chunkZ * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
 
     // 获取地表高度
     i32 startY = generator.getHeight(startX, startZ, HeightmapType::WorldSurfaceWG);
-    if (startY < 60) startY = 64;
+    if (startY < MIN_GENERATION_HEIGHT) startY = FALLBACK_HEIGHT;
 
     BlockPos startPos(startX, startY, startZ);
 
     // 生成丛林神庙
-    generateTemple(world, rng, startPos);
+    _generateTemple(world, rng, startPos);
 
     return start;
 }
 
-void JungleTempleStructure::generateTemple(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const
+void JungleTempleStructure::_generateTemple(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const
 {
     const BlockState* cobblestone = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE);
     const BlockState* mossyCobblestone = VanillaBlocks::getState(VanillaBlocks::MOSSY_COBBLESTONE);
@@ -95,14 +114,14 @@ void JungleTempleStructure::generateTemple(IWorldWriter& world, math::Random& rn
     i32 baseX = startPos.x;
     i32 baseY = startPos.y;
     i32 baseZ = startPos.z;
-    i32 width = 12;  // X轴宽度
-    i32 length = 15; // Z轴深度
-    i32 height = 10; // 高度
+    i32 width = TEMPLE_WIDTH;
+    i32 length = TEMPLE_LENGTH;
+    i32 height = TEMPLE_HEIGHT;
 
-    // 辅助lambda: 随机选择苔石或普通圆石
+    // 随机选择苔石或普通圆石
     auto randomCobble = [&]() -> const BlockState* { return rng.nextInt(100) < 30 ? mossyCobblestone : cobblestone; };
 
-    // 辅助lambda: 随机选择石砖类型
+    // 随机选择石砖类型
     auto randomBrick = [&]() -> const BlockState* {
         i32 r = rng.nextInt(100);
         if (r < 50) return stoneBricks;
@@ -175,8 +194,7 @@ void JungleTempleStructure::generateTemple(IWorldWriter& world, math::Random& rn
         world.setBlockState(baseX + puzzleX + 1, baseY + y, baseZ + puzzleZ, chiseledStoneBricks, 18);
     }
 
-    // 箭矢陷阱走廊（东侧） - MC 1.16.5 风格
-    // 参考: JungleTemplePiece.addArrows
+    // 箭矢陷阱走廊（东侧）
     i32 trapX = width - 3;
     for (i32 z = 2; z < 6; ++z) {
         world.setBlockState(baseX + trapX, baseY + 3, baseZ + z, air, 18);
@@ -202,8 +220,7 @@ void JungleTempleStructure::generateTemple(IWorldWriter& world, math::Random& rn
         world.setBlockState(baseX + trapX, baseY + 5, baseZ + 3, dispenser, 18);
         world.setBlockState(baseX + trapX, baseY + 5, baseZ + 4, dispenser, 18);
 
-        // 发射器内放置箭（使用金块占位符，实际需要物品容器）
-        // MC 1.16.5: 发射器内放置 2-14 支箭
+        // TODO: 发射器内放置箭（需要物品容器支持）
     }
 
     // 宝箱房间（北侧，隐藏）
@@ -226,7 +243,7 @@ void JungleTempleStructure::generateTemple(IWorldWriter& world, math::Random& rn
 
     // 宝箱（高概率生成）
     if (rng.nextInt(100) < 70) {
-        // 宝箱位置暂时用金块标记（实际应该放置宝箱）
+        // TODO: 放置真正的宝箱（当前用金块占位）
         const BlockState* goldBlock = VanillaBlocks::getState(VanillaBlocks::GOLD_BLOCK);
         world.setBlockState(baseX + chestX, baseY + 3, baseZ + chestZ + 2, goldBlock, 18);
     }
@@ -236,13 +253,13 @@ void JungleTempleStructure::generateTemple(IWorldWriter& world, math::Random& rn
         i32 cx = (corner % 2 == 0) ? 0 : width - 1;
         i32 cz = (corner < 2) ? 0 : length - 1;
 
-        // 塔楼高度额外增加 4 格
-        for (i32 y = height; y < height + 4; ++y) {
+        // 塔楼高度额外增加
+        for (i32 y = height; y < height + TOWER_EXTRA_HEIGHT; ++y) {
             world.setBlockState(baseX + cx, baseY + y, baseZ + cz, randomBrick(), 18);
         }
 
         // 塔楼顶部装饰
-        world.setBlockState(baseX + cx, baseY + height + 4, baseZ + cz, chiseledStoneBricks, 18);
+        world.setBlockState(baseX + cx, baseY + height + TOWER_EXTRA_HEIGHT, baseZ + cz, chiseledStoneBricks, 18);
     }
 
     // 屋顶平台
@@ -253,7 +270,7 @@ void JungleTempleStructure::generateTemple(IWorldWriter& world, math::Random& rn
     }
 
     // 添加藤蔓装饰（外墙）
-    for (i32 i = 0; i < 20; ++i) {
+    for (i32 i = 0; i < VINE_DECORATION_COUNT; ++i) {
         i32 vx = rng.nextInt(width);
         i32 vz = rng.nextInt(length);
         i32 vy = rng.nextInt(height - 2) + 2;

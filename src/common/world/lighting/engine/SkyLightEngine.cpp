@@ -22,15 +22,16 @@
  */
 
 #include "SkyLightEngine.hpp"
-#include "../../../physics/collision/CollisionShape.hpp"
-#include "../../../physics/shape/Shapes.hpp"
-#include "../../../physics/shape/VoxelShape.hpp"
-#include "../../IWorld.hpp"
-#include "../../block/Block.hpp"
-#include "../../chunk/ChunkData.hpp"
-#include "../../chunk/IChunk.hpp"
-#include "../IChunkLightProvider.hpp"
+#include "common/core/Constants.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/physics/shape/Shapes.hpp"
+#include "common/physics/shape/VoxelShape.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/IChunk.hpp"
+#include "common/world/lighting/IChunkLightProvider.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -48,7 +49,6 @@ namespace {
  * @brief 将 CollisionShape 转换为 VoxelShape
  *
  * 用于面遮挡检测。对于完整方块和空形状有优化路径。
- * 参考 Moonrise 中使用 Shapes.faceShapeOccludes 的逻辑
  */
 VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape)
 {
@@ -93,14 +93,16 @@ SkyStarLightEngine::SkyStarLightEngine(StarLightLightingProvider* provider)
     // 初始化 null 区块段检查缓存
     m_nullPropagationCheckCache.resize(static_cast<size_t>(totalLightSections), false);
 
-    // 初始化队列
-    m_increaseQueue.resize(16 * 16 * 16);
-    m_decreaseQueue.resize(16 * 16 * 16);
+    // 初始化队列（容量为一个区块段的方块数量）
+    constexpr i32 sectionVolume = world::CHUNK_WIDTH * world::CHUNK_WIDTH * world::CHUNK_SECTION_HEIGHT;
+    m_increaseQueue.resize(sectionVolume);
+    m_decreaseQueue.resize(sectionVolume);
 
     // 初始化高度图
     m_heightMapBlockChange.fill(INT_MIN);
 
-    (void)provider; // 暂时未使用
+    // TODO: provider 参数暂时未使用，未来可能用于获取世界信息
+    MC_UNUSED(provider);
 }
 
 // ============================================================================
@@ -140,7 +142,7 @@ void SkyStarLightEngine::setNibbles(const IChunk* chunk, SWMRNibbleArray* const*
 
 bool SkyStarLightEngine::canUseChunk(const IChunk* chunk) const
 {
-    // 与 Moonrise 一致：仅在可用状态且光照数据正确时使用区块
+    // 仅在可用状态且光照数据正确时使用区块
     const ChunkLoadStatus status = chunk->getStatus();
     const bool hasRequiredStatus = status == ChunkLoadStatus::Generated || status == ChunkLoadStatus::Loaded;
     return hasRequiredStatus && (m_isClientSide || chunk->isLightCorrect());
@@ -166,7 +168,7 @@ void SkyStarLightEngine::initNibble(i32 chunkX, i32 chunkY, i32 chunkZ, bool ext
         if (!initRemovedNibbles) {
             return;
         }
-        // 与 Moonrise 一致：先以 NULL 状态创建，再在 initNibble(...) 中决定是否变为 UNINIT/INIT
+        // 先以 NULL 状态创建，再在 initNibble(...) 中决定是否变为 UNINIT/INIT
         nibble = new SWMRNibbleArray(nullptr, true);
         setNibbleInCache(chunkX, chunkY, chunkZ, nibble);
     }
@@ -176,8 +178,7 @@ void SkyStarLightEngine::initNibble(i32 chunkX, i32 chunkY, i32 chunkZ, bool ext
 
 void SkyStarLightEngine::initNibble(SWMRNibbleArray* currNibble, i32 chunkX, i32 chunkY, i32 chunkZ, bool extrude)
 {
-    // 参考 Moonrise SkyStarLightEngine.initNibble
-    // 关键：使用 isNullUpdating() 而不是 !isInitializedUpdating()
+    // 使用 isNullUpdating() 而不是 !isInitializedUpdating()
     // NULL 状态表示 nibble 不存在，UNINIT/INIT 状态都表示已存在（数据全零或实际数据）
     if (!currNibble->isNullUpdating()) {
         // already initialised
@@ -284,9 +285,9 @@ bool SkyStarLightEngine::checkNullSection(i32 chunkX, i32 chunkY, i32 chunkZ, bo
 
 i32 SkyStarLightEngine::getLightLevelExtruded(i32 worldX, i32 worldY, i32 worldZ)
 {
-    i32 chunkX = worldX >> 4;
-    i32 chunkY = worldY >> 4;
-    i32 chunkZ = worldZ >> 4;
+    i32 chunkX = worldX >> world::CHUNK_SHIFT;
+    i32 chunkY = worldY >> world::SECTION_SHIFT;
+    i32 chunkZ = worldZ >> world::CHUNK_SHIFT;
 
     SWMRNibbleArray* nibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
     if (nibble != nullptr) {
@@ -296,7 +297,7 @@ i32 SkyStarLightEngine::getLightLevelExtruded(i32 worldX, i32 worldY, i32 worldZ
     // 向上查找非 null 区块段
     for (;;) {
         if (++chunkY > m_maxLightSection) {
-            return 15; // 天空光照默认15
+            return game::MAX_LIGHT_LEVEL; // 天空光照默认15
         }
 
         nibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
@@ -313,25 +314,28 @@ i32 SkyStarLightEngine::getLightLevelExtruded(i32 worldX, i32 worldY, i32 worldZ
 i32 SkyStarLightEngine::tryPropagateSkylight(
     IWorld* world, i32 worldX, i32 startY, i32 worldZ, bool extrudeInitialised, bool delayLightSet)
 {
-    // 参考 Moonrise SkyStarLightEngine.tryPropagateSkylight
-    (void)world;
+    MC_UNUSED(world);
     i32 encodeOffset = m_coordinateOffset;
     i64 propagateDirection =
         static_cast<i64>(getEverythingButDirection(LightAxisDirection::POSITIVE_Y)); // just don't check upwards
 
-    if (getLightLevelExtruded(worldX, startY + 1, worldZ) != 15) {
+    if (getLightLevelExtruded(worldX, startY + 1, worldZ) != game::MAX_LIGHT_LEVEL) {
         return startY;
     }
 
     // ensure this section is always checked
-    checkNullSection(worldX >> 4, startY >> 4, worldZ >> 4, extrudeInitialised);
+    checkNullSection(
+        worldX >> world::CHUNK_SHIFT, startY >> world::SECTION_SHIFT, worldZ >> world::CHUNK_SHIFT, extrudeInitialised);
 
     const BlockState* above = getBlockState(worldX, startY + 1, worldZ);
 
-    for (i32 currY = startY; currY >= (m_minLightSection << 4); --currY) {
-        if ((currY & 15) == 15) {
+    for (i32 currY = startY; currY >= (m_minLightSection << world::SECTION_SHIFT); --currY) {
+        if ((currY & world::CHUNK_MASK) == world::CHUNK_MASK) {
             // ensure this section is always checked
-            checkNullSection(worldX >> 4, currY >> 4, worldZ >> 4, extrudeInitialised);
+            checkNullSection(worldX >> world::CHUNK_SHIFT,
+                currY >> world::SECTION_SHIFT,
+                worldZ >> world::CHUNK_SHIFT,
+                extrudeInitialised);
         }
         const BlockState* current = getBlockState(worldX, currY, worldZ);
 
@@ -361,14 +365,20 @@ i32 SkyStarLightEngine::tryPropagateSkylight(
             break;
         }
 
-        // light set delayed until we determine if this nibble section is null
+        // 光照队列编码格式（紧凑64位）：
+        // 位 0-5: X坐标（相对于编码偏移）
+        // 位 6-11: Z坐标（相对于编码偏移）
+        // 位 12-27: Y坐标（相对于编码偏移）
+        // 位 28-31: 传播级别 (0-15)
+        // 位 32-37: 传播方向位集
         appendToIncreaseQueue(((worldX + (worldZ << 6) + (currY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
-            (15LL << 28) // we know we're at full lit here
+            (static_cast<u64>(game::MAX_LIGHT_LEVEL) << 28) // 天空光照满级
             | (propagateDirection << 32) | flags);
 
         above = current;
 
-        if (getNibbleFromCache(worldX >> 4, currY >> 4, worldZ >> 4) == nullptr) {
+        if (getNibbleFromCache(
+                worldX >> world::CHUNK_SHIFT, currY >> world::SECTION_SHIFT, worldZ >> world::CHUNK_SHIFT) == nullptr) {
             // we skip empty sections here, as this is just an easy way of making sure the above block
             // can propagate through air.
 
@@ -376,14 +386,14 @@ i32 SkyStarLightEngine::tryPropagateSkylight(
             --m_increaseQueueInitialLength;
 
             // advance currY to the top of the section below
-            currY = currY & ~15;
+            currY = currY & ~world::CHUNK_MASK;
             // note: this value ^ is actually 1 above the top, but the loop decrements by 1 so we actually
             // end up there
 
             // make sure this is marked as AIR
             above = nullptr; // AIR_BLOCK_STATE
         } else if (!delayLightSet) {
-            setLightLevel(worldX, currY, worldZ, 15);
+            setLightLevel(worldX, currY, worldZ, game::MAX_LIGHT_LEVEL);
         }
     }
 
@@ -441,9 +451,9 @@ void SkyStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess, i32 
     i32 encodeOffset = m_coordinateOffset;
     i32 currentLevel = getLightLevel(worldX, worldY, worldZ);
 
-    if (currentLevel == 15) {
+    if (currentLevel == game::MAX_LIGHT_LEVEL) {
         // 必须重新传播被覆盖的天空源
-        // 使用 28 位掩码，与 Moonrise 一致
+        // 队列编码：位 0-27 为坐标，位 28-31 为光照等级
         appendToIncreaseQueue(((worldX + (worldZ << 6) + (worldY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
             (static_cast<u64>(currentLevel & 0xF) << 28) | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32) |
             FLAG_HAS_SIDED_TRANSPARENT_BLOCKS // don't know if the block is conditionally transparent
@@ -463,8 +473,7 @@ void SkyStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess, i32 
 i32 SkyStarLightEngine::calculateLightValue(
     StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ, i32 expected)
 {
-    // 参考 Moonrise SkyStarLightEngine.calculateLightValue
-    if (expected == 15) {
+    if (expected == game::MAX_LIGHT_LEVEL) {
         return expected;
     }
 
@@ -503,7 +512,7 @@ i32 SkyStarLightEngine::calculateLightValue(
 
         const BlockState* neighbourState = getBlockState(offX, offY, offZ);
 
-        // 条件透明检查 - 与 Moonrise 完全一致的逻辑
+        // 条件透明检查
         if (neighbourState != nullptr && neighbourState->useShapeForLightOcclusion()) {
             // here the block can be conditionally opaque (i.e light cannot propagate from it), so we need to test that
             // we don't read the blockstate because most of the time this is false, so using the faster
@@ -549,27 +558,30 @@ void SkyStarLightEngine::propagateBlockChanges(
 
     i32 chunkX = chunk->pos().x;
     i32 chunkZ = chunk->pos().z;
-    i32 heightMapOffset = chunkX * -16 + (chunkZ * (-16 * 16));
+    // 高度图偏移计算：用于将世界坐标映射到高度图数组索引
+    // 每个区块有 CHUNK_WIDTH * CHUNK_WIDTH 个列
+    i32 heightMapOffset = chunkX * -world::CHUNK_WIDTH + (chunkZ * (-world::CHUNK_WIDTH * world::CHUNK_WIDTH));
 
     // 设置高度图用于变化
     for (const BlockPos& pos : positions) {
-        i32 index = pos.x + (pos.z << 4) + heightMapOffset;
+        i32 index = pos.x + (pos.z << world::CHUNK_SHIFT) + heightMapOffset;
         i32 curr = m_heightMapBlockChange[static_cast<size_t>(index)];
         if (pos.y > curr) {
             m_heightMapBlockChange[static_cast<size_t>(index)] = pos.y;
         }
     }
 
-    // 重新计算变化列的源
-    for (i32 index = 0; index < 256; ++index) {
+    // 重新计算变化列的源（高度图大小为 CHUNK_WIDTH * CHUNK_WIDTH）
+    constexpr i32 heightMapSize = world::CHUNK_WIDTH * world::CHUNK_WIDTH;
+    for (i32 index = 0; index < heightMapSize; ++index) {
         i32 maxY = m_heightMapBlockChange[static_cast<size_t>(index)];
         if (maxY == INT_MIN) {
             continue; // 未变化
         }
         m_heightMapBlockChange[static_cast<size_t>(index)] = INT_MIN; // 恢复默认
 
-        i32 columnX = (index & 15) | (chunkX << 4);
-        i32 columnZ = (index >> 4) | (chunkZ << 4);
+        i32 columnX = (index & world::CHUNK_MASK) | (chunkX << world::CHUNK_SHIFT);
+        i32 columnZ = (index >> world::CHUNK_SHIFT) | (chunkZ << world::CHUNK_SHIFT);
 
         // 尝试从上方 Y 传播天空光
         i32 maxPropagationY = tryPropagateSkylight(world, columnX, maxY, columnZ, true, true);
@@ -578,26 +590,33 @@ void SkyStarLightEngine::propagateBlockChanges(
         i32 encodeOffset = m_coordinateOffset;
         i32 propagateDirection = getEverythingButDirection(LightAxisDirection::POSITIVE_Y);
 
-        if (getLightLevelExtruded(columnX, maxPropagationY, columnZ) == 15) {
-            checkNullSection(columnX >> 4, maxPropagationY >> 4, columnZ >> 4, true);
+        if (getLightLevelExtruded(columnX, maxPropagationY, columnZ) == game::MAX_LIGHT_LEVEL) {
+            checkNullSection(columnX >> world::CHUNK_SHIFT,
+                maxPropagationY >> world::SECTION_SHIFT,
+                columnZ >> world::CHUNK_SHIFT,
+                true);
 
-            for (i32 currY = maxPropagationY; currY >= (m_minLightSection << 4); --currY) {
-                if ((currY & 15) == 15) {
-                    checkNullSection(columnX >> 4, currY >> 4, columnZ >> 4, true);
+            for (i32 currY = maxPropagationY; currY >= (m_minLightSection << world::SECTION_SHIFT); --currY) {
+                if ((currY & world::CHUNK_MASK) == world::CHUNK_MASK) {
+                    checkNullSection(columnX >> world::CHUNK_SHIFT,
+                        currY >> world::SECTION_SHIFT,
+                        columnZ >> world::CHUNK_SHIFT,
+                        true);
                 }
 
-                SWMRNibbleArray* nibble = getNibbleFromCache(columnX >> 4, currY >> 4, columnZ >> 4);
+                SWMRNibbleArray* nibble = getNibbleFromCache(
+                    columnX >> world::CHUNK_SHIFT, currY >> world::SECTION_SHIFT, columnZ >> world::CHUNK_SHIFT);
                 if (nibble == nullptr) {
-                    currY = currY & ~15;
+                    currY = currY & ~world::CHUNK_MASK;
                     continue;
                 }
 
-                if (nibble->getUpdating(columnX, currY, columnZ) != 15) {
+                if (nibble->getUpdating(columnX, currY, columnZ) != game::MAX_LIGHT_LEVEL) {
                     break;
                 }
 
                 appendToDecreaseQueue(((columnX + (columnZ << 6) + (currY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
-                    (15LL << 28) | (static_cast<u64>(propagateDirection) << 32)
+                    (static_cast<u64>(game::MAX_LIGHT_LEVEL) << 28) | (static_cast<u64>(propagateDirection) << 32)
                     // do not set transparent blocks for the same reason we don't in the checkBlock method
                 );
             }
@@ -633,7 +652,7 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, cons
     // 获取区块段数组
     const ChunkSection* const* sections = chunk->getSections();
 
-    // 找到最高非空区块段（参考 Moonrise SkyStarLightEngine.lightChunk）
+    // 找到最高非空区块段
     i32 highestNonEmptySection = m_maxSection;
     while (highestNonEmptySection == (m_minSection - 1) || sections[highestNonEmptySection - m_minSection] == nullptr ||
         sections[highestNonEmptySection - m_minSection]->hasOnlyAir()) {
@@ -647,12 +666,8 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, cons
             i32 neighbourX = chunkX + dx;
             i32 neighbourZ = chunkZ + dz;
             SWMRNibbleArray* neighbourNibble = getNibbleFromCache(neighbourX, highestNonEmptySection, neighbourZ);
-            // MC_ASSERT_RELEASE(neighbourNibble != nullptr);
             if (neighbourNibble == nullptr) {
                 // 未加载的邻居，跳过
-                // spdlog::warn("SkyStarLightEngine: Neighbor chunk at ({}, {}) is not loaded, skipping skylight
-                // propagation for empty section {}",
-                //              neighbourX, neighbourZ, highestNonEmptySection);
                 continue;
             }
 
@@ -662,24 +677,29 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, cons
                 // X 方向
                 incX = 0;
                 incZ = 1;
-                startX = (dx < 0) ? (chunkX << 4) : ((chunkX << 4) | 15);
-                startZ = chunkZ << 4;
+                startX =
+                    (dx < 0) ? (chunkX << world::CHUNK_SHIFT) : ((chunkX << world::CHUNK_SHIFT) | world::CHUNK_MASK);
+                startZ = chunkZ << world::CHUNK_SHIFT;
             } else {
                 // Z 方向
                 incX = 1;
                 incZ = 0;
-                startX = chunkX << 4;
-                startZ = (dz < 0) ? (chunkZ << 4) : ((chunkZ << 4) | 15);
+                startX = chunkX << world::CHUNK_SHIFT;
+                startZ =
+                    (dz < 0) ? (chunkZ << world::CHUNK_SHIFT) : ((chunkZ << world::CHUNK_SHIFT) | world::CHUNK_MASK);
             }
 
             i32 encodeOffset = m_coordinateOffset;
             i32 propagateDir = getDirectionBitset(dir);
 
             // 向邻居传播全亮
-            for (i32 currY = highestNonEmptySection << 4, maxY = currY | 15; currY <= maxY; ++currY) {
-                for (i32 i = 0, currX = startX, currZ = startZ; i < 16; ++i, currX += incX, currZ += incZ) {
+            for (i32 currY = highestNonEmptySection << world::SECTION_SHIFT, maxY = currY | world::CHUNK_MASK;
+                currY <= maxY;
+                ++currY) {
+                for (i32 i = 0, currX = startX, currZ = startZ; i < world::CHUNK_WIDTH;
+                    ++i, currX += incX, currZ += incZ) {
                     appendToIncreaseQueue(((currX + (currZ << 6) + (currY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
-                        (15LL << 28) // we know we're at full lit here
+                        (static_cast<u64>(game::MAX_LIGHT_LEVEL) << 28) // 天空光照满级
                         | (static_cast<u64>(propagateDir) << 32)
                         // no transparent flag, we know for a fact there are no blocks here that could be directionally
                         // transparent (as the section is EMPTY)
@@ -695,11 +715,11 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, cons
 
     if (highestNonEmptySection >= m_minSection) {
         // 填充其他源（从最高非空区块段的顶层向下传播）
-        i32 minX = chunkX << 4;
-        i32 maxX = (chunkX << 4) | 15;
-        i32 minZ = chunkZ << 4;
-        i32 maxZ = (chunkZ << 4) | 15;
-        i32 startY = (highestNonEmptySection << 4) | 15;
+        i32 minX = chunkX << world::CHUNK_SHIFT;
+        i32 maxX = (chunkX << world::CHUNK_SHIFT) | world::CHUNK_MASK;
+        i32 minZ = chunkZ << world::CHUNK_SHIFT;
+        i32 maxZ = (chunkZ << world::CHUNK_SHIFT) | world::CHUNK_MASK;
+        i32 startY = (highestNonEmptySection << world::SECTION_SHIFT) | world::CHUNK_MASK;
 
         for (i32 currZ = minZ; currZ <= maxZ; ++currZ) {
             for (i32 currX = minX; currX <= maxX; ++currX) {
@@ -717,7 +737,7 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, cons
             checkNullSection(chunkX, y, chunkZ, false);
         }
 
-        // 直接调基类方法，与 Moonrise Starlight 的实现保持一致（SkyStarLightEngine.lightChunk）
+        // 直接调基类方法
         StarLightEngine::checkChunkEdges(lightAccess, chunk, m_minLightSection, highestNonEmptySection);
     } else {
         for (i32 y = highestNonEmptySection; y >= m_minLightSection; --y) {
@@ -795,9 +815,10 @@ void SkyStarLightEngine::setData(const SectionPos& pos, const NibbleArray& array
         setNibbleInCache(pos.x, sectionY, pos.z, nibble);
     }
 
-    // 从 NibbleArray 复制数据
+    // 从 NibbleArray 复制数据（区块段体积 = CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_SECTION_HEIGHT）
     nibble->setNonNull();
-    for (i32 i = 0; i < 4096; ++i) {
+    constexpr i32 sectionVolume = world::CHUNK_WIDTH * world::CHUNK_WIDTH * world::CHUNK_SECTION_HEIGHT;
+    for (i32 i = 0; i < sectionVolume; ++i) {
         nibble->set(i, array.get(i));
     }
 

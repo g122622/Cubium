@@ -33,7 +33,6 @@ namespace mc::resource::metadata {
  * @brief 动画帧数据
  *
  * 表示动画纹理中的单个帧。
- * 参考 MC 1.16.5 AnimationFrame
  */
 struct AnimationFrame {
     /**
@@ -55,14 +54,14 @@ struct AnimationFrame {
     /**
      * @brief 默认构造函数
      */
-    AnimationFrame() = default;
+    AnimationFrame() noexcept = default;
 
     /**
      * @brief 构造指定索引和时间的帧
      * @param frameIndex 帧索引
      * @param frameTime 帧时间（-1使用默认值）
      */
-    AnimationFrame(i32 frameIndex, i32 frameTime = -1)
+    AnimationFrame(i32 frameIndex, i32 frameTime) noexcept
         : index(frameIndex)
         , time(frameTime)
     {}
@@ -72,7 +71,6 @@ struct AnimationFrame {
  * @brief 动画元数据
  *
  * 从.mcmeta文件解析的动画配置信息。
- * 参考 MC 1.16.5 AnimationMetadataSection
  *
  * mcmeta文件格式示例：
  * @code

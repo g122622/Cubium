@@ -40,8 +40,6 @@ namespace blocks {
  * - 最大检测距离42格
  * - 红石信号输出
  * - 被剪断时触发
- *
- * 参考: net.minecraft.block.TripWireHookBlock
  */
 class TripWireHookBlock : public Block {
 public:
@@ -84,7 +82,6 @@ public:
     /**
      * @brief 获取绊线钩形状
      *
-     * 参考 MC 1.16.5: TripWireHookBlock.getShape()
      * 根据FACING方向返回不同的形状
      */
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
@@ -144,7 +141,7 @@ private:
      * @param shouldTriggerOnChange 是否在状态改变时触发
      * @return true 如果成功连接
      */
-    bool calculateState(IWorld& world,
+    bool _calculateState(IWorld& world,
         const BlockPos& pos,
         Direction facing,
         const BlockState& currentState,
@@ -158,7 +155,7 @@ private:
      * @param outOtherHookPos 输出：另一端绊线钩位置
      * @return true 如果找到完整的绊线链
      */
-    [[nodiscard]] bool checkForTripwire(
+    [[nodiscard]] bool _checkForTripwire(
         IWorld& world, const BlockPos& pos, Direction facing, BlockPos& outOtherHookPos) const;
 };
 

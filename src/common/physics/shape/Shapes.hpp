@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../util/Direction.hpp"
 #include "BooleanOp.hpp"
 #include "VoxelShape.hpp"
+#include "common/util/Direction.hpp"
 #include <memory>
 #include <vector>
 
@@ -39,8 +39,6 @@ namespace mc {
  * - 基础形状创建（空、完整方块、盒子）
  * - 布尔运算（并集、交集、差集）
  * - 面遮挡检测（用于光照系统）
- *
- * 参考MC Shapes类。
  */
 class Shapes {
 public:
@@ -230,14 +228,13 @@ private:
     static bool s_initialized;
 
     // 初始化静态缓存
-    static void ensureInitialized();
+    static void _ensureInitialized();
 };
 
 /**
  * @brief 索引合并器接口
  *
  * 用于合并两个形状的坐标点列表。
- * 参考MC IndexMerger接口。
  */
 class Shapes::IndexMerger {
 public:
@@ -246,7 +243,7 @@ public:
     /**
      * @brief 获取合并后的坐标列表
      */
-    [[nodiscard]] virtual const std::vector<f64>& getList() const = 0;
+    [[nodiscard]] virtual const std::vector<f64>& getList() const noexcept = 0;
 
     /**
      * @brief 遍历合并的索引
@@ -258,7 +255,7 @@ public:
     /**
      * @brief 获取合并后的大小
      */
-    [[nodiscard]] virtual i32 size() const = 0;
+    [[nodiscard]] virtual i32 size() const noexcept = 0;
 };
 
 } // namespace mc

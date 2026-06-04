@@ -457,7 +457,7 @@ private:
      * 该函数只读内部状态，不产生副作用。
      * 所有真正的 IO、worker 提交和等待者完成都由上层调度器执行。
      */
-    [[nodiscard]] EnqueueDecision buildDecisionLocked() const;
+    [[nodiscard]] EnqueueDecision _buildDecisionLocked() const;
 
     /**
      * @brief 在持锁状态下清理当前 active generation
@@ -465,7 +465,7 @@ private:
      * 该函数会推进 generation、触发取消令牌并丢弃生成中间态，
      * 用于取消、失败恢复和卸载清理等路径。
      */
-    void clearActiveGenerationLocked();
+    void _clearActiveGenerationLocked();
 
     ChunkCoord m_x;
     ChunkCoord m_z;

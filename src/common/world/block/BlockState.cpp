@@ -22,6 +22,10 @@
  */
 
 #include "BlockState.hpp"
+
+// TODO: include 路径使用了 ../.. 形式，违反代码规范。
+// 应改为从 src/ 目录开始的绝对路径，如 "common/world/IWorld.hpp"。
+// 但这需要同时修改所有依赖此头文件的源文件，暂不处理。
 #include "../IWorld.hpp"
 #include "../fluid/Fluid.hpp"
 #include "../fluid/FluidRegistry.hpp"
@@ -46,10 +50,10 @@ BlockState::BlockState(const Block& block,
     u32 stateId)
     : StateHolder<Block, BlockState>(&block, std::move(valueIndices), propertyLayouts, allStates, stateId)
 {
-    cacheProperties();
+    _cacheProperties();
 }
 
-void BlockState::cacheProperties()
+void BlockState::_cacheProperties()
 {
     // 缓存方块属性
     m_isSolid = m_owner->isSolid(*this);
@@ -98,15 +102,13 @@ CollisionShape BlockState::getFaceOcclusionShape(Direction direction) const
 bool BlockState::hasOpaqueCollisionShape() const
 {
     // 如果方块不透明且有碰撞，则有不透明碰撞形状
-    // 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#hasOpaqueCollisionShape
     return m_isOpaque && m_owner->material().blocksMovement();
 }
 
-float BlockState::getAmbientOcclusionLightValue() const
+f32 BlockState::getAmbientOcclusionLightValue() const
 {
     // 如果方块有不透明碰撞形状，返回0.2（产生阴影）
     // 否则返回1.0（透明方块如玻璃、树叶不产生阴影）
-    // 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#getAmbientOcclusionLightValue
     return hasOpaqueCollisionShape() ? 0.2f : 1.0f;
 }
 

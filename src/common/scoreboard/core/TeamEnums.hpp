@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::scoreboard {
 
@@ -31,7 +31,6 @@ namespace mc::scoreboard {
  * @brief 队伍名称标签可见性
  *
  * 控制队伍成员名称标签的显示方式。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.Team.Visible
  */
 enum class TeamVisibility : u8 {
     /// 总是显示
@@ -51,7 +50,6 @@ enum class TeamVisibility : u8 {
  * @brief 队伍碰撞规则
  *
  * 控制队伍成员之间的碰撞行为。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.Team.CollisionRule
  */
 enum class TeamCollisionRule : u8 {
     /// 总是碰撞

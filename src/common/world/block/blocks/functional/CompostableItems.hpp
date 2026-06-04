@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -36,7 +36,6 @@ namespace blocks {
  * @brief 可堆肥物品注册表
  *
  * 管理可堆肥物品及其堆肥概率。
- * 参考 MC 1.16.5 net.minecraft.block.ComposterBlock.CHANCES
  *
  * 堆肥概率表：
  * - 30%: 树叶、树苗、种子等
@@ -60,7 +59,7 @@ public:
      * @param item 物品指针
      * @return 堆肥概率 [0.0, 1.0]，返回 0.0 表示不可堆肥
      */
-    [[nodiscard]] static float getCompostChance(const Item* item);
+    [[nodiscard]] static f32 getCompostChance(const Item* item);
 
     /**
      * @brief 检查物品是否可堆肥
@@ -73,11 +72,11 @@ public:
     /**
      * @brief 检查注册表是否已初始化
      */
-    [[nodiscard]] static bool isInitialized() { return s_initialized; }
+    [[nodiscard]] static bool isInitialized() noexcept { return s_initialized; }
 
 private:
     // 物品到堆肥概率的映射
-    static std::unordered_map<const Item*, float> s_chances;
+    static std::unordered_map<const Item*, f32> s_chances;
     static bool s_initialized;
 
     /**
@@ -86,14 +85,14 @@ private:
      * @param item 物品指针
      * @param chance 堆肥概率 [0.0, 1.0]
      */
-    static void registerCompostable(const Item* item, float chance);
+    static void _registerCompostable(const Item* item, f32 chance);
 
     // 按概率等级注册物品
-    static void registerChance30();  // 30% 概率物品
-    static void registerChance50();  // 50% 概率物品
-    static void registerChance65();  // 65% 概率物品
-    static void registerChance85();  // 85% 概率物品
-    static void registerChance100(); // 100% 概率物品
+    static void _registerChance30();  // 30% 概率物品
+    static void _registerChance50();  // 50% 概率物品
+    static void _registerChance65();  // 65% 概率物品
+    static void _registerChance85();  // 85% 概率物品
+    static void _registerChance100(); // 100% 概率物品
 };
 
 } // namespace blocks

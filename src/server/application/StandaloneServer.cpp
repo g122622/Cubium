@@ -96,7 +96,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     } else {
         settingsFilePath = GameDirectory::defaultDirectory().serverOptionsPath();
     }
-    auto settingsResult = loadSettings(settingsFilePath.string());
+    auto settingsResult = _loadSettings(settingsFilePath.string());
     if (settingsResult.failed()) {
         spdlog::warn("Failed to load settings from {}: {}. Using defaults.",
             settingsFilePath.string(),
@@ -121,7 +121,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     }
 
     // 应用设置到系统
-    applySettings();
+    _applySettings();
 
     // 设置日志级别
     const auto& logLevel = m_settings.logLevel.get();
@@ -270,8 +270,6 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                     return result;
                 }
                 case mc::ContainerType::Enchantment: {
-                    // MC 1.16.5: 附魔台容器创建
-                    // 参考: net.minecraft.inventory.container.EnchantmentContainer
                     result.menu = std::make_unique<mc::EnchantmentContainer>(containerId, playerInventory, pos, world);
                     return result;
                 }
@@ -291,7 +289,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                                               mc::ContainerType type,
                                               const std::string& title,
                                               i32 slotCount) {
-        (void)slotCount; // slotCount is no longer sent in the packet (MC 1.16.5 protocol)
+        (void)slotCount; // slotCount 不再发送到客户端
         const std::string resolvedTitle = title.empty() ? std::string(ContainerTypes::getDefaultTitle(type)) : title;
 
         network::PacketSerializer ser;
@@ -413,10 +411,10 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     m_tcpServer = std::make_unique<TcpServer>();
 
     // 设置网络回调
-    m_tcpServer->setOnConnect([this](TcpSession* session) { onClientConnect(session); });
+    m_tcpServer->setOnConnect([this](TcpSession* session) { _onClientConnect(session); });
 
     m_tcpServer->setOnDisconnect(
-        [this](TcpSession* session, const std::string& reason) { onClientDisconnect(session, reason); });
+        [this](TcpSession* session, const std::string& reason) { _onClientDisconnect(session, reason); });
 
     m_tcpServer->setOnPacket([this](TcpSession* session, const u8* data, size_t size) {
         dispatchPacket(static_cast<u32>(session->id()), data, size);
@@ -484,9 +482,7 @@ void StandaloneServer::stop()
 void StandaloneServer::pollNetwork()
 {
     MC_TRACE_EVENT("server.network", "PollNetwork");
-    if (m_tcpServer) {
-        m_tcpServer->poll();
-    }
+    m_tcpServer->poll();
 }
 
 void StandaloneServer::broadcastPacket(const u8* data, size_t size)
@@ -512,7 +508,7 @@ Result<void> StandaloneServer::run()
     m_running = true;
 
     try {
-        mainLoop();
+        _mainLoop();
     }
     catch (const std::exception& e) {
         spdlog::critical("Server crashed: {}", e.what());
@@ -523,7 +519,7 @@ Result<void> StandaloneServer::run()
     return Result<void>::ok();
 }
 
-void StandaloneServer::mainLoop()
+void StandaloneServer::_mainLoop()
 {
     using clock = std::chrono::steady_clock;
     using namespace std::chrono_literals;
@@ -553,13 +549,6 @@ void StandaloneServer::mainLoop()
             const f64 tps = 1.0 / (std::chrono::duration<f64>(deltaTime).count());
             MC_TRACE_COUNTER("server.tick", "TPS", static_cast<i64>(tps));
             MC_TRACE_COUNTER("server.tick", "PlayerCount", static_cast<i64>(m_playerManager->playerCount()));
-
-            // 每秒输出一次统计信息
-            u64 tickCount = currentTick();
-            if (tickCount % 20 == 0) {
-                (void)tps; // Avoid unused variable warning when SPDLOG_TRACE is disabled
-                SPDLOG_TRACE("TPS: {:.1f}, Tick: {}", tps, tickCount);
-            }
         } else {
             // 等待下一刻
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -567,7 +556,7 @@ void StandaloneServer::mainLoop()
     }
 }
 
-Result<void> StandaloneServer::loadSettings(const std::string& path)
+Result<void> StandaloneServer::_loadSettings(const std::string& path)
 {
     m_settingsPath = std::filesystem::path(path);
 
@@ -594,7 +583,7 @@ Result<void> StandaloneServer::loadSettings(const std::string& path)
     return Result<void>::ok();
 }
 
-void StandaloneServer::applySettings()
+void StandaloneServer::_applySettings()
 {
     // 设置变更回调
     m_settings.serverPort.onChange([this](i32 value) {
@@ -635,12 +624,12 @@ void StandaloneServer::applySettings()
     });
 }
 
-void StandaloneServer::onClientConnect(TcpSession* session)
+void StandaloneServer::_onClientConnect(TcpSession* session)
 {
     spdlog::info("Client connected: {}:{}", session->address(), session->port());
 }
 
-void StandaloneServer::onClientDisconnect(TcpSession* session, const std::string& reason)
+void StandaloneServer::_onClientDisconnect(TcpSession* session, const std::string& reason)
 {
     spdlog::info("Client disconnected: {}:{} - {}", session->address(), session->port(), reason);
 
@@ -668,7 +657,7 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
 
     if (result.failed()) {
         spdlog::warn("Failed to parse login request from session {}", sessionId);
-        sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, "", "Invalid login request");
+        _sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, "", "Invalid login request");
         session->disconnect("Invalid login request");
         return;
     }
@@ -684,7 +673,7 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
         auto banEntry = m_bannedPlayerList->getEntryByName(username);
         std::string banReason = banEntry.has_value() ? banEntry->reason : "You are banned from this server!";
         spdlog::info("Player '{}' rejected: name banned", username);
-        sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, banReason);
+        _sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, banReason);
         session->disconnect("Name banned");
         return;
     }
@@ -695,15 +684,15 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
         auto banEntry = m_bannedIpList->getEntry(ipAddress);
         std::string banReason = banEntry.has_value() ? banEntry->reason : "Your IP is banned from this server!";
         spdlog::info("Player '{}' rejected: IP {} banned", username, ipAddress);
-        sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, banReason);
+        _sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, banReason);
         session->disconnect("IP banned");
         return;
     }
 
-    // 白名单检查（MC 1.16.5 行为：白名单启用时拒绝不在名单中的玩家）
+    // 白名单检查
     if (m_whitelistManager->isEnabled() && !m_whitelistManager->isNameWhitelisted(username)) {
         spdlog::info("Player '{}' rejected: not in whitelist", username);
-        sendLoginResponse(
+        _sendLoginResponse(
             session.get(), false, 0, INVALID_ENTITY_ID, username, "You are not whitelisted on this server!");
         session->disconnect("Not in whitelist");
         return;
@@ -711,7 +700,7 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
 
     // 检查玩家数量限制
     if (m_playerManager->isFull()) {
-        sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, "Server is full");
+        _sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, "Server is full");
         session->disconnect("Server is full");
         return;
     }
@@ -723,14 +712,13 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     PlayerId playerId = m_playerManager->nextPlayerId();
 
     // 生成离线模式 UUID（基于用户名）
-    // 参考 MC 1.16.5: UUID.nameUUIDFromBytes(("OfflinePlayer:" + username).getBytes(UTF_8))
     Uuid offlineUuid = util::generateOfflineUuid(username);
     std::string uuidStr = util::uuidToString(offlineUuid);
 
     // 添加玩家会话信息
     auto* playerData = m_playerManager->addPlayer(playerId, uuidStr, username, connection);
     if (!playerData) {
-        sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, "Failed to add player");
+        _sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, "Failed to add player");
         session->disconnect("Failed to add player");
         return;
     }
@@ -758,7 +746,7 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     if (!playerEntity) {
         spdlog::error("Failed to create player entity for {}", username);
         m_playerManager->removePlayer(playerId);
-        sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, "Failed to create player entity");
+        _sendLoginResponse(session.get(), false, 0, INVALID_ENTITY_ID, username, "Failed to create player entity");
         session->disconnect("Failed to create player entity");
         return;
     }
@@ -777,7 +765,7 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     }
 
     // 发送登录成功响应（包含 playerId 和 entityId）
-    sendLoginResponse(session.get(), true, playerId, entityId, username, "Welcome!");
+    _sendLoginResponse(session.get(), true, playerId, entityId, username, "Welcome!");
 
     // 同步命令树
     sendCommandTreePacket(playerId);
@@ -808,8 +796,7 @@ void StandaloneServer::handleHotbarSelectPacket(PlayerId playerId, const u8* dat
     // 使用 InventoryManager 设置选中槽位
     inventoryManager().setSelectedSlot(playerId, slot);
 
-    // MC 1.16.5 对齐：服务端必须回送 HotbarSetPacket 确认
-    // 参考 ServerPlayNetHandler.processHeldItemChange
+    // 服务端回送确认包
     HotbarSetPacket response(slot);
     network::PacketSerializer ser;
     response.serialize(ser);
@@ -868,7 +855,7 @@ void StandaloneServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
 // 数据包发送
 // ============================================================================
 
-void StandaloneServer::sendLoginResponse(TcpSession* session,
+void StandaloneServer::_sendLoginResponse(TcpSession* session,
     bool success,
     PlayerId playerId,
     EntityId entityId,

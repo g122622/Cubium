@@ -34,7 +34,7 @@ namespace mc::world::gen::carver {
 /**
  * @brief 水下洞穴雕刻器
  *
- * 参考 MC 1.16.5 UnderwaterCaveWorldCarver，继承自 CaveWorldCarver。
+ * 继承自 CaveWorldCarver。
  * 与普通洞穴的区别：
  * - 可雕刻方块包含水下相关方块（水、熔岩、黑曜石、空气等）
  * - 不检测区域是否在水下（始终可以在水下生成）
@@ -45,7 +45,7 @@ class UnderwaterCaveCarver : public CaveCarver {
 public:
     UnderwaterCaveCarver();
 
-    ~UnderwaterCaveCarver() override = default;
+    ~UnderwaterCaveCarver() noexcept override = default;
 
     /**
      * @brief 在区块中雕刻水下洞穴
@@ -70,7 +70,7 @@ protected:
      * @brief 检查方块是否可雕刻
      * 水下洞穴包含更多可雕刻方块
      */
-    [[nodiscard]] static bool isUnderwaterCarvable(const BlockState& state);
+    [[nodiscard]] static bool isUnderwaterCarvable(const BlockState& state) noexcept;
 
     /**
      * @brief 雕刻单个椭球区域（水下版本）
@@ -93,20 +93,20 @@ protected:
      * @brief 检查椭球是否在雕刻范围内（水下版本，不检查流体）
      */
     [[nodiscard]] static bool isInCarvingRangeUnderwater(
-        ChunkCoord chunkX, ChunkCoord chunkZ, f32 x, f32 z, i32 step, i32 maxSteps, f32 radius);
+        ChunkCoord chunkX, ChunkCoord chunkZ, f32 x, f32 z, i32 step, i32 maxSteps, f32 radius) noexcept;
 };
 
 /**
  * @brief 水下峡谷雕刻器
  *
- * 参考 MC 1.16.5 UnderwaterCanyonWorldCarver，继承自 CanyonWorldCarver。
+ * 继承自 CanyonWorldCarver。
  * 与普通峡谷的区别类似水下洞穴。
  */
 class UnderwaterCanyonCarver : public CanyonCarver {
 public:
     UnderwaterCanyonCarver();
 
-    ~UnderwaterCanyonCarver() override = default;
+    ~UnderwaterCanyonCarver() noexcept override = default;
 
 protected:
     /**

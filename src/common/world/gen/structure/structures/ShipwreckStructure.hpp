@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../../feature/template/Template.hpp"
-#include "../../feature/template/TemplateManager.hpp"
-#include "../Structure.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include <memory>
 #include <vector>
 
@@ -34,8 +34,6 @@ namespace mc::world::gen::structure {
 
 /**
  * @brief 沉船配置
- *
- * 参考 MC 1.16.5 ShipwreckConfig
  */
 struct ShipwreckConfig {
     bool isBeached = false; ///< 是否为搁浅沉船（在沙滩上）
@@ -44,7 +42,6 @@ struct ShipwreckConfig {
 /**
  * @brief 沉船结构片段
  *
- * 参考 MC 1.16.5 ShipwreckPieces.Piece
  * 使用模板系统生成沉船。
  */
 class ShipwreckPiece : public StructurePiece {
@@ -76,11 +73,11 @@ public:
     [[nodiscard]] const std::string& templateName() const { return m_templateName; }
     [[nodiscard]] bool isBeached() const { return m_isBeached; }
 
-    // 结构偏移（MC 1.16.5: BlockPos(4, 0, 15)）
+    // 结构偏移
     static const BlockPos STRUCTURE_OFFSET;
 
 private:
-    void loadTemplate();
+    void _loadTemplate();
 
     std::string m_templateName;
     Rotation m_rotation;
@@ -93,7 +90,6 @@ private:
 /**
  * @brief 沉船结构
  *
- * 参考 MC 1.16.5 ShipwreckStructure
  * 使用模板系统生成沉船，支持水下和搁浅两种类型。
  */
 class ShipwreckStructure : public Structure {
@@ -129,7 +125,7 @@ public:
     static const std::vector<std::string> s_allTemplates;
 
 private:
-    void initializeBiomes();
+    void _initializeBiomes();
 
     /**
      * @brief 获取随机沉船模板名称
@@ -137,9 +133,9 @@ private:
      * @param isBeached 是否为搁浅沉船
      * @return 模板名称
      */
-    [[nodiscard]] std::string getRandomTemplateName(math::Random& rng, bool isBeached) const;
+    [[nodiscard]] std::string _getRandomTemplateName(math::Random& rng, bool isBeached) const;
 
-    static constexpr StructureSeparationSettings m_settings{24, 4, 165745295}; // MC 1.16.5: 165745295
+    static constexpr StructureSeparationSettings m_settings{24, 4, 165745295};
     static const std::string m_name;
     std::vector<BiomeId> m_validBiomes;
     ShipwreckConfig m_config;

@@ -24,11 +24,11 @@
 #pragma once
 
 #include "common/mod/bedrock/addon/core/ScriptResult.hpp"
-#include <quickjs.h>
 #include <optional>
 #include <string>
 #include <type_traits>
 #include <vector>
+#include <quickjs.h>
 
 namespace mc::mod::bedrock::addon {
 
@@ -44,50 +44,128 @@ namespace mc::mod::bedrock::addon {
 class QuickJSContext;
 
 /**
- * @brief 将JSValue转换为C++类型（特化版本）
+ * @brief JSValue转换器模板基类
  *
+ * 将JSValue转换为C++类型（特化版本）。
  * 默认实现返回std::nullopt，需要为具体类型提供特化。
+ *
+ * @tparam T 目标C++类型
  */
 template <typename T>
 struct JSValueConverter {
-    static std::optional<T> fromJS(JSContext* ctx, JSValue val) { return std::nullopt; }
-    static JSValue toJS(JSContext* ctx, const T& val) { return JS_UNDEFINED; }
+    /**
+     * @brief 从JSValue转换为C++类型
+     * @param ctx JS上下文
+     * @param val JS值
+     * @return 转换结果，失败返回std::nullopt
+     */
+    static std::optional<T> fromJS(JSContext* ctx, JSValue val) noexcept { return std::nullopt; }
+
+    /**
+     * @brief 从C++类型转换为JSValue
+     * @param ctx JS上下文
+     * @param val C++值
+     * @return JS值
+     */
+    static JSValue toJS(JSContext* ctx, const T& val) noexcept { return JS_UNDEFINED; }
 };
 
+/**
+ * @brief bool类型的JSValue转换器特化
+ */
 template <>
 struct JSValueConverter<bool> {
-    static std::optional<bool> fromJS(JSContext* ctx, JSValue val) {
+    /**
+     * @brief 从JSValue转换为bool
+     * @param ctx JS上下文
+     * @param val JS值
+     * @return 布尔值，非bool类型返回std::nullopt
+     */
+    static std::optional<bool> fromJS(JSContext* ctx, JSValue val) noexcept
+    {
         if (!JS_IsBool(val)) return std::nullopt;
         return JS_ToBool(ctx, val) != 0;
     }
-    static JSValue toJS(JSContext* ctx, const bool& val) { return JS_NewBool(ctx, val ? 1 : 0); }
+
+    /**
+     * @brief 从bool转换为JSValue
+     * @param ctx JS上下文
+     * @param val 布尔值
+     * @return JS布尔值
+     */
+    static JSValue toJS(JSContext* ctx, const bool& val) noexcept { return JS_NewBool(ctx, val ? 1 : 0); }
 };
 
+/**
+ * @brief i32类型的JSValue转换器特化
+ */
 template <>
 struct JSValueConverter<i32> {
-    static std::optional<i32> fromJS(JSContext* ctx, JSValue val) {
+    /**
+     * @brief 从JSValue转换为i32
+     * @param ctx JS上下文
+     * @param val JS值
+     * @return 32位整数，非数值类型返回std::nullopt
+     */
+    static std::optional<i32> fromJS(JSContext* ctx, JSValue val) noexcept
+    {
         if (!JS_IsNumber(val)) return std::nullopt;
         f64 num;
         if (JS_ToFloat64(ctx, &num, val) != 0) return std::nullopt;
         return static_cast<i32>(num);
     }
-    static JSValue toJS(JSContext* ctx, const i32& val) { return JS_NewInt32(ctx, val); }
+
+    /**
+     * @brief 从i32转换为JSValue
+     * @param ctx JS上下文
+     * @param val 32位整数
+     * @return JS数值
+     */
+    static JSValue toJS(JSContext* ctx, const i32& val) noexcept { return JS_NewInt32(ctx, val); }
 };
 
+/**
+ * @brief f64类型的JSValue转换器特化
+ */
 template <>
 struct JSValueConverter<f64> {
-    static std::optional<f64> fromJS(JSContext* ctx, JSValue val) {
+    /**
+     * @brief 从JSValue转换为f64
+     * @param ctx JS上下文
+     * @param val JS值
+     * @return 64位浮点数，非数值类型返回std::nullopt
+     */
+    static std::optional<f64> fromJS(JSContext* ctx, JSValue val) noexcept
+    {
         if (!JS_IsNumber(val)) return std::nullopt;
         f64 num;
         if (JS_ToFloat64(ctx, &num, val) != 0) return std::nullopt;
         return num;
     }
-    static JSValue toJS(JSContext* ctx, const f64& val) { return JS_NewFloat64(ctx, val); }
+
+    /**
+     * @brief 从f64转换为JSValue
+     * @param ctx JS上下文
+     * @param val 64位浮点数
+     * @return JS数值
+     */
+    static JSValue toJS(JSContext* ctx, const f64& val) noexcept { return JS_NewFloat64(ctx, val); }
 };
 
+/**
+ * @brief std::string类型的JSValue转换器特化
+ */
 template <>
 struct JSValueConverter<std::string> {
-    static std::optional<std::string> fromJS(JSContext* ctx, JSValue val) {
+    /**
+     * @brief 从JSValue转换为std::string
+     * @param ctx JS上下文
+     * @param val JS值
+     * @return 字符串，非字符串类型返回std::nullopt
+     * @note 返回的字符串是拷贝，原始JS字符串会被释放
+     */
+    static std::optional<std::string> fromJS(JSContext* ctx, JSValue val) noexcept
+    {
         if (!JS_IsString(val)) return std::nullopt;
         const char* str = JS_ToCString(ctx, val);
         if (!str) return std::nullopt;
@@ -95,43 +173,75 @@ struct JSValueConverter<std::string> {
         JS_FreeCString(ctx, str);
         return result;
     }
-    static JSValue toJS(JSContext* ctx, const std::string& val) {
+
+    /**
+     * @brief 从std::string转换为JSValue
+     * @param ctx JS上下文
+     * @param val 字符串
+     * @return JS字符串
+     */
+    static JSValue toJS(JSContext* ctx, const std::string& val) noexcept
+    {
         return JS_NewStringLen(ctx, val.c_str(), val.size());
     }
 };
 
+/**
+ * @brief std::string_view类型的JSValue转换器特化
+ * @note 仅支持toJS转换，fromJS需要所有权转移故不支持
+ */
 template <>
 struct JSValueConverter<std::string_view> {
-    static JSValue toJS(JSContext* ctx, const std::string_view& val) {
+    /**
+     * @brief 从std::string_view转换为JSValue
+     * @param ctx JS上下文
+     * @param val 字符串视图
+     * @return JS字符串
+     */
+    static JSValue toJS(JSContext* ctx, const std::string_view& val) noexcept
+    {
         return JS_NewStringLen(ctx, val.data(), val.size());
     }
 };
 
 /**
  * @brief 便捷函数：从JSValue转换为C++类型
+ * @tparam T 目标C++类型
+ * @param ctx JS上下文
+ * @param val JS值
+ * @return 转换结果，失败返回std::nullopt
  */
 template <typename T>
-std::optional<T> jsValueTo(JSContext* ctx, JSValue val) {
+std::optional<T> jsValueTo(JSContext* ctx, JSValue val) noexcept
+{
     return JSValueConverter<T>::fromJS(ctx, val);
 }
 
 /**
  * @brief 便捷函数：从C++类型转换为JSValue
+ * @tparam T 源C++类型
+ * @param ctx JS上下文
+ * @param val C++值
+ * @return JS值
  */
 template <typename T>
-JSValue jsValueFrom(JSContext* ctx, const T& val) {
+JSValue jsValueFrom(JSContext* ctx, const T& val) noexcept
+{
     return JSValueConverter<T>::toJS(ctx, val);
 }
 
 /**
  * @brief 将JSValue数组转换为C++ vector
  *
+ * @tparam T 元素类型
  * @param ctx JS上下文
  * @param val JS数组值
  * @return 元素类型为T的vector，转换失败返回std::nullopt
+ * @note 会遍历整个数组并转换每个元素
  */
 template <typename T>
-std::optional<std::vector<T>> jsArrayToVector(JSContext* ctx, JSValue val) {
+std::optional<std::vector<T>> jsArrayToVector(JSContext* ctx, JSValue val) noexcept
+{
     if (!JS_IsArray(ctx, val)) return std::nullopt;
 
     JSValue lengthVal = JS_GetPropertyStr(ctx, val, "length");
@@ -156,9 +266,15 @@ std::optional<std::vector<T>> jsArrayToVector(JSContext* ctx, JSValue val) {
 
 /**
  * @brief 将C++ vector转换为JSValue数组
+ *
+ * @tparam T 元素类型
+ * @param ctx JS上下文
+ * @param vec C++ vector
+ * @return JS数组
  */
 template <typename T>
-JSValue vectorToJSArray(JSContext* ctx, const std::vector<T>& vec) {
+JSValue vectorToJSArray(JSContext* ctx, const std::vector<T>& vec) noexcept
+{
     JSValue arr = JS_NewArray(ctx);
     for (u32 i = 0; i < static_cast<u32>(vec.size()); ++i) {
         JSValue elem = JSValueConverter<T>::toJS(ctx, vec[i]);

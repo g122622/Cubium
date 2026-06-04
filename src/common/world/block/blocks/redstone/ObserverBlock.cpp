@@ -22,11 +22,11 @@
  */
 
 #include "ObserverBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
-#include "../../../tick/base/TickPriority.hpp"
-#include "../../../tick/manager/TickManager.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -35,7 +35,6 @@ namespace blocks {
 ObserverBlock::ObserverBlock(const BlockProperties& properties)
     : Block(properties)
 {
-
     // 创建状态容器
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
@@ -50,7 +49,7 @@ ObserverBlock::ObserverBlock(const BlockProperties& properties)
             });
     createBlockState(std::move(container));
 
-    // 设置默认状态 - MC 1.16.5 默认朝向是 South
+    // 设置默认状态 - 默认朝向是 South
     setDefaultState(defaultState()
             .with(BlockStateProperties::FACING(), Direction::South)
             .with(BlockStateProperties::POWERED(), false));
@@ -58,7 +57,7 @@ ObserverBlock::ObserverBlock(const BlockProperties& properties)
 
 BlockState ObserverBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // MC 1.16.5: 侦测器朝向玩家面向方向的反方向
+    // 侦测器朝向玩家面向方向的反方向
     // context.horizontalDirection() 是玩家面向的方向
     // 侦测器的输出方向应该是玩家面向方向的反方向
     Direction facing = Directions::opposite(context.horizontalDirection());
@@ -82,21 +81,21 @@ BlockState ObserverBlock::withPowered(BlockState state, bool powered)
 
 void ObserverBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC 1.16.5: 放置时如果状态是激活的，需要先设置为非激活状态
+    // 放置时如果状态是激活的，需要先设置为非激活状态
     // 这通常不应该发生，因为默认状态是非激活的
     if (isPowered(state)) {
         // 如果已经有tick调度，需要先取消
         BlockState unpoweredState = withPowered(state, false);
         world.setBlockState(pos, &unpoweredState, 18);
-        updateNeighborsInFront(world, pos, unpoweredState);
+        _updateNeighborsInFront(world, pos, unpoweredState);
     }
 }
 
 void ObserverBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC 1.16.5: 移除时如果正在输出且有tick调度，需要通知邻居
+    // 移除时如果正在输出且有tick调度，需要通知邻居
     if (isPowered(state)) {
-        updateNeighborsInFront(world, pos, state.with(BlockStateProperties::POWERED(), false));
+        _updateNeighborsInFront(world, pos, state.with(BlockStateProperties::POWERED(), false));
     }
 }
 
@@ -118,7 +117,7 @@ void ObserverBlock::neighborChanged(
 
     // 只有侦测面的变化才触发
     if (neighborPos == observePos) {
-        // MC 1.16.5: 如果当前未激活，调度1 tick延迟后激活
+        // 如果当前未激活，调度1 tick延迟后激活
         if (!isPowered(*state)) {
             world.tickManager().scheduleBlockTick(pos, *this, DETECT_DELAY, world::tick::TickPriority::High);
         }
@@ -132,19 +131,18 @@ BlockState ObserverBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
 
-    // MC 1.16.5: 当 updatePostPlacement 被调用时，检查更新是否来自观察面
-    // 注意：MC 的 facing 参数是"邻居相对于当前方块的方向"
+    // 当 updatePostPlacement 被调用时，检查更新是否来自观察面
+    // 注意：facing 参数是"邻居相对于当前方块的方向"
     // 所以如果观察面被更新，facing 应该是观察方向（输出的反方向）
     Direction outputDir = getFacing(state);
     Direction observeDir = Directions::opposite(outputDir);
 
     // 当观察面有方块变化时触发检测
     if (facing == observeDir && !isPowered(state)) {
-        // MC 1.16.5: 调度 2 tick 延迟后激活
+        // 调度 2 tick 延迟后激活
         world.tickManager().scheduleBlockTick(currentPos, *this, DETECT_DELAY, world::tick::TickPriority::High);
     }
 
@@ -154,7 +152,7 @@ BlockState ObserverBlock::updatePostPlacement(const BlockState& state,
 void ObserverBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(random);
-    // MC 1.16.5 逻辑：
+    // 逻辑：
     // 1. 如果未激活 -> 激活并调度 2 tick 后熄灭
     // 2. 如果已激活 -> 熄灭
     if (isPowered(state)) {
@@ -169,12 +167,11 @@ void ObserverBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, 
     }
 
     // 无论激活还是熄灭，都需要通知前方的邻居更新
-    updateNeighborsInFront(world, pos, isPowered(state) ? state : withPowered(state, true));
+    _updateNeighborsInFront(world, pos, isPowered(state) ? state : withPowered(state, true));
 }
 
-void ObserverBlock::updateNeighborsInFront(IWorld& world, const BlockPos& pos, const BlockState& state)
+void ObserverBlock::_updateNeighborsInFront(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC Java: updateNeighborsInFront
     // 通知观察面背面的方块（即侦测器指向的反方向）更新
     Direction facing = getFacing(state);
     Direction observeDir = Directions::opposite(facing);
@@ -188,7 +185,6 @@ void ObserverBlock::updateNeighborsInFront(IWorld& world, const BlockPos& pos, c
     }
 
     // 然后通知观察面周围的其他邻居（除了侦测器本身）
-    // MC Java: worldIn.notifyNeighborsOfStateExcept(blockpos, this, direction);
     for (Direction dir : Directions::all()) {
         if (dir == facing) continue; // 跳过侦测器输出方向
 

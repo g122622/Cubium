@@ -22,19 +22,19 @@
  */
 
 #include "LavaFluid.hpp"
-#include "../../../core/Constants.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../util/math/random/IRandom.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../util/property/FluidProperties.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../../IWorld.hpp"
-#include "../../WorldEvents.hpp"
-#include "../../block/Block.hpp"
-#include "../../block/Material.hpp"
-#include "../../block/VanillaBlocks.hpp"
-#include "../FluidRegistry.hpp"
-#include "../FluidTags.hpp"
+#include "common/core/Constants.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/property/FluidProperties.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 #include <cmath>
 
 namespace mc {
@@ -114,28 +114,6 @@ bool LavaFluid::canDisplace(
 
 void LavaFluid::randomTick(IWorld& world, const BlockPos& pos, const FluidState& state, math::IRandom& random)
 {
-    // 参考: net.minecraft.fluid.LavaFluid#randomTick
-    // MC 1.16.5 源码逻辑:
-    // int i = random.nextInt(3);
-    // if (i > 0) {
-    //     // 向上搜索可燃位置
-    //     BlockPos blockpos = pos;
-    //     for(int j = 0; j < i; ++j) {
-    //         blockpos = blockpos.add(random.nextInt(3) - 1, 1, random.nextInt(3) - 1);
-    //         if (blockstate.isAir()) {
-    //             if (isSurroundingBlockFlammable(...)) { 点火; return; }
-    //         } else if (blockstate.getMaterial().blocksMovement()) {
-    //             return; // 阻挡移动，直接返回
-    //         }
-    //     }
-    // } else {
-    //     // i == 0: 水平搜索
-    //     for(int k = 0; k < 3; ++k) {
-    //         BlockPos blockpos1 = pos.add(random.nextInt(3) - 1, 0, random.nextInt(3) - 1);
-    //         if (上方是空气 && 下方方块可燃) { 在上方点火; }
-    //     }
-    // }
-
     if (!world.doFireTick()) {
         return;
     }
@@ -165,7 +143,7 @@ void LavaFluid::randomTick(IWorld& world, const BlockPos& pos, const FluidState&
 
             if (blockState->isAir()) {
                 // 检查周围是否有可燃方块
-                if (isSurroundingBlockFlammable(world, checkPos)) {
+                if (_isSurroundingBlockFlammable(world, checkPos)) {
                     world.setBlockState(checkPos, &VanillaBlocks::FIRE->defaultState());
                     return;
                 }
@@ -195,25 +173,25 @@ void LavaFluid::randomTick(IWorld& world, const BlockPos& pos, const FluidState&
             }
 
             const BlockState* aboveState = world.getBlockState(abovePos);
-            if (aboveState != nullptr && aboveState->isAir() && isBlockFlammable(world, checkPos)) {
+            if (aboveState != nullptr && aboveState->isAir() && _isBlockFlammable(world, checkPos)) {
                 world.setBlockState(abovePos, &VanillaBlocks::FIRE->defaultState());
             }
         }
     }
 }
 
-bool LavaFluid::isSurroundingBlockFlammable(IWorld& world, const BlockPos& pos) const
+bool LavaFluid::_isSurroundingBlockFlammable(IWorld& world, const BlockPos& pos) const
 {
     for (Direction dir : Directions::all()) {
         BlockPos neighborPos = pos.offset(Directions::toBlockFace(dir));
-        if (isBlockFlammable(world, neighborPos)) {
+        if (_isBlockFlammable(world, neighborPos)) {
             return true;
         }
     }
     return false;
 }
 
-bool LavaFluid::isBlockFlammable(IWorld& world, const BlockPos& pos) const
+bool LavaFluid::_isBlockFlammable(IWorld& world, const BlockPos& pos) const
 {
     if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
         return false;
@@ -230,32 +208,29 @@ bool LavaFluid::isBlockFlammable(IWorld& world, const BlockPos& pos) const
 void LavaFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos, const BlockState* state)
 {
     // 岩浆替换方块前触发效果
-    triggerEffects(world, pos);
+    _triggerEffects(world, pos);
 }
 
-void LavaFluid::triggerEffects(IWorld& world, const BlockPos& pos)
+void LavaFluid::_triggerEffects(IWorld& world, const BlockPos& pos)
 {
     // 触发烟雾和嘶嘶声音效果
-    // 参考: net.minecraft.fluid.LavaFluid#triggerEffects
     world.playEvent(world::WorldEvents::LAVA_EXTINGUISH, pos, 0);
 }
 
 void LavaFluid::flowInto(
     IWorld& world, const BlockPos& pos, const BlockState* blockState, Direction dir, const FluidState& fluidState)
 {
-    // 参考: net.minecraft.fluid.LavaFluid#flowInto
-    // MC 1.16.5 行为: 只有在向下流动时(direction == DOWN)才检查水交互
+    // 只有在向下流动时(direction == DOWN)才检查水交互
     // 当岩浆向下流入水时，把目标位置变成石头
     if (dir == Direction::Down) {
         // 检查目标位置是否有水
         const FluidState* targetFluid = world.getFluidState(pos);
         if (targetFluid != nullptr && !targetFluid->isEmpty() && targetFluid->getFluid().isIn(FluidTags::WATER())) {
             // 岩浆向下流入水 -> 生成石头
-            // MC 还检查目标方块是否是 FlowingFluidBlock，这里简化处理
             if (VanillaBlocks::STONE != nullptr) {
                 world.setBlockState(pos, &VanillaBlocks::STONE->defaultState(), 3);
             }
-            triggerEffects(world, pos);
+            _triggerEffects(world, pos);
             return;
         }
     }

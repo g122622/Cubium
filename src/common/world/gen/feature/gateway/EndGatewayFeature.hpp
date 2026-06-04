@@ -23,17 +23,15 @@
 
 #pragma once
 
-#include <memory>
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
+#include <memory>
 #include <vector>
 
 namespace mc {
 
 /**
  * @brief 末地折跃门配置
- *
- * 参考 MC EndGatewayFeatureConfig
  */
 struct EndGatewayFeatureConfig : public IFeatureConfig {
     /// 是否为退出折跃门（在玩家进入时生成）
@@ -42,7 +40,7 @@ struct EndGatewayFeatureConfig : public IFeatureConfig {
     /// 传送到外岛的精确位置（如果为空则使用默认位置）
     std::optional<BlockPos> exactPosition;
 
-    EndGatewayFeatureConfig() = default;
+    EndGatewayFeatureConfig() noexcept = default;
 
     explicit EndGatewayFeatureConfig(bool exit, const std::optional<BlockPos>& pos = {})
         : isExit(exit)
@@ -54,7 +52,6 @@ struct EndGatewayFeatureConfig : public IFeatureConfig {
  * @brief 末地折跃门特征
  *
  * 在末地生成末地折跃门，用于在主岛和外岛之间传送。
- * 参考 MC EndGatewayFeature / EndGatewayBlock
  *
  * 特点：
  * - 末影龙死亡后生成（最多20个）
@@ -86,12 +83,12 @@ private:
     /**
      * @brief 检查折跃门是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 生成折跃门结构
      */
-    void generateGateway(WorldGenRegion& world, math::Random& random, const BlockPos& pos);
+    void _generateGateway(WorldGenRegion& world, math::Random& random, const BlockPos& pos);
 };
 
 /**

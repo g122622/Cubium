@@ -110,7 +110,7 @@ public:
     {
         ChunkPos pos(x, z);
         ChunkLoadTicket ticket(type, level, value);
-        addTicket(pos, std::move(ticket));
+        _addTicket(pos, std::move(ticket));
     }
 
     /**
@@ -134,7 +134,7 @@ public:
     {
         ChunkPos pos(x, z);
         ChunkLoadTicket ticket(type, level, value);
-        removeTicket(pos, ticket);
+        _removeTicket(pos, ticket);
     }
 
     /**
@@ -304,7 +304,7 @@ public:
     /**
      * @brief 检查区块是否有玩家追踪
      *
-     * @param chunkKey 区块键（posToKey 生成）
+     * @param chunkKey 区块键（_posToKey 生成）
      * @return true 表示有至少一个玩家追踪该区块
      */
     [[nodiscard]] bool hasTrackingPlayers(u64 chunkKey) const;
@@ -358,27 +358,27 @@ private:
     };
 
     /// 内部票据操作
-    void addTicket(ChunkPos pos, ChunkLoadTicket ticket);
-    void removeTicket(ChunkPos pos, const ChunkLoadTicket& ticket);
+    void _addTicket(ChunkPos pos, ChunkLoadTicket ticket);
+    void _removeTicket(ChunkPos pos, const ChunkLoadTicket& ticket);
 
     /// 重新计算单个区块的聚合源级别并同步到距离图
-    void refreshChunkSourceLevel(ChunkCoord x, ChunkCoord z);
+    void _refreshChunkSourceLevel(ChunkCoord x, ChunkCoord z);
 
     /// 更新玩家来源中心区块
-    void updatePlayerSourceCenter(const ChunkPos* oldPos, const ChunkPos* newPos);
+    void _updatePlayerSourceCenter(const ChunkPos* oldPos, const ChunkPos* newPos);
 
     /// 计算某个玩家在给定中心和视距下覆盖的区块集合
-    [[nodiscard]] std::unordered_set<u64> buildTrackedChunkSet(ChunkCoord centerX, ChunkCoord centerZ) const;
+    [[nodiscard]] std::unordered_set<u64> _buildTrackedChunkSet(ChunkCoord centerX, ChunkCoord centerZ) const;
 
     /// 应用玩家追踪覆盖变化并派发 enter/leave 回调
-    void applyTrackingDelta(
+    void _applyTrackingDelta(
         PlayerId playerId, const std::unordered_set<u64>& oldChunks, const std::unordered_set<u64>& newChunks);
 
     /// 根据当前玩家位置和视距重建所有玩家来源
-    void rebuildAllPlayerSources();
+    void _rebuildAllPlayerSources();
 
     /// 区块位置转键
-    [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z)
+    [[nodiscard]] static u64 _posToKey(ChunkCoord x, ChunkCoord z)
     {
         return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u32>(z);
     }

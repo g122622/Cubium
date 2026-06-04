@@ -22,10 +22,10 @@
  */
 
 #include "NyliumBlock.hpp"
-#include "../../../../util/math/random/IRandom.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../lighting/engine/LightEngineUtils.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/lighting/engine/LightEngineUtils.hpp"
 
 namespace mc::blocks {
 
@@ -42,17 +42,14 @@ void NyliumBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
 
     MC_UNUSED(random); // 退化不需要随机数
 
-    // 参考: MC 1.16.5 NyliumBlock.randomTick()
     // 如果位置不够暗，退化为下界岩
-
-    if (!isDarkEnough(world, pos, state)) {
+    if (!_isDarkEnough(world, pos, state)) {
         world.setBlockState(pos, &VanillaBlocks::NETHERRACK->defaultState());
     }
 }
 
-bool NyliumBlock::isDarkEnough(IWorld& world, const BlockPos& pos, const BlockState& state)
+bool NyliumBlock::_isDarkEnough(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 参考: MC 1.16.5 NyliumBlock.isDarkEnough()
     const BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
     static const BlockState* s_airState = &VanillaBlocks::AIR->defaultState();

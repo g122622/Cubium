@@ -86,14 +86,14 @@ std::vector<WorldListEntry> filterWorldEntries(
     }
 
     // 不区分大小写的搜索
-    std::string lowerQuery = util::toLowerAscii(searchQuery);
+    const std::string lowerQuery = util::toLowerAscii(searchQuery);
 
     std::vector<WorldListEntry> result;
     result.reserve(entries.size());
 
     for (const auto& entry : entries) {
-        std::string lowerDisplayName = util::toLowerAscii(entry.displayName);
-        std::string lowerLevelId = util::toLowerAscii(entry.levelId);
+        const std::string lowerDisplayName = util::toLowerAscii(entry.displayName);
+        const std::string lowerLevelId = util::toLowerAscii(entry.levelId);
 
         if (lowerDisplayName.find(lowerQuery) != std::string::npos ||
             lowerLevelId.find(lowerQuery) != std::string::npos) {

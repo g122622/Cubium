@@ -78,7 +78,7 @@ bool TreeFeature::place(
     // 检查是否有足够的空间放置树干。
     // forcePlacement=true 时跳过空间约束，用于部分特例树木配置。
     if (!config.forcePlacement) {
-        i32 availableHeight = calculateAvailableHeight(world, trunkHeight, startPos, config);
+        i32 availableHeight = _calculateAvailableHeight(world, trunkHeight, startPos, config);
         if (availableHeight < trunkHeight) {
             return false;
         }
@@ -99,7 +99,7 @@ bool TreeFeature::place(
         world, random, trunkHeight, foliagePositions, trunkBlocks, trunkHeight - 1, config.foliageBlock, foliageBlocks);
 
     // 设置树叶距离属性（用于树叶腐烂机制）
-    setFoliageDistance(world, trunkBlocks, foliageBlocks);
+    _setFoliageDistance(world, trunkBlocks, foliageBlocks);
 
     return true;
 }
@@ -190,14 +190,14 @@ bool TreeFeature::isWaterAt(WorldGenRegion& world, const BlockPos& pos)
     return state->is(VanillaBlocks::WATER);
 }
 
-i32 TreeFeature::calculateAvailableHeight(
+i32 TreeFeature::_calculateAvailableHeight(
     WorldGenRegion& world, i32 maxHeight, const BlockPos& startPos, const TreeFeatureConfig& config) const
 {
     (void)config;
     BlockPos pos;
 
     for (i32 y = 0; y <= maxHeight + 1; ++y) {
-        // 参考 MC：树干底部只检查中心，中段检查 1 格，顶部放宽到 2 格。
+        // 树干底部只检查中心，中段检查 1 格，顶部放宽到 2 格。
         i32 checkRadius = 1;
         if (y == 0) {
             checkRadius = 0;
@@ -222,11 +222,10 @@ i32 TreeFeature::calculateAvailableHeight(
     return maxHeight;
 }
 
-void TreeFeature::setFoliageDistance(
+void TreeFeature::_setFoliageDistance(
     WorldGenRegion& world, const std::set<BlockPos>& trunkBlocks, const std::set<BlockPos>& foliageBlocks)
 {
     // BFS 从树干方块开始，计算每个树叶到最近树干的曼哈顿距离
-    // 参考: net.minecraft.world.gen.feature.TreeFeature.func_236408_b_
 
     if (trunkBlocks.empty() || foliageBlocks.empty()) {
         return;

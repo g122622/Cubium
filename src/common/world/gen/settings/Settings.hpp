@@ -23,7 +23,16 @@
 
 #pragma once
 
-// 生成设置
+/// @file Settings.hpp
+/// @brief 世界生成设置聚合头文件
+///
+/// 本文件聚合了所有世界生成相关的设置类型，方便外部模块统一引用。
+/// 包含：
+/// - DimensionSettings：维度设置
+/// - NoiseSettings：噪声设置
+/// - ScalingSettings：缩放设置
+/// - SlideSettings：滑动设置
+
 #include "DimensionSettings.hpp"
 #include "NoiseSettings.hpp"
 #include "ScalingSettings.hpp"

@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <memory>
-#include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../Block.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
+#include <memory>
 
 namespace mc {
 
@@ -44,8 +44,6 @@ namespace blocks {
  * - 关联 EndGatewayEntity 方块实体处理传送逻辑
  * - 实体进入时触发传送
  * - 有传送冷却（100 tick）
- *
- * 参考: net.minecraft.block.EndGatewayBlock
  */
 class EndGatewayBlock : public Block {
 public:

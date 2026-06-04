@@ -35,7 +35,7 @@ namespace mc {
 // HeightRangePlacementConfig 实现
 // ============================================================================
 
-i32 HeightRangePlacementConfig::getRandomY(math::Random& random) const
+i32 HeightRangePlacementConfig::getRandomY(math::Random& random) const noexcept
 {
     // 在 [bottomOffset, maximum - topOffset) 范围内随机选择
     i32 range = maximum - topOffset - bottomOffset;
@@ -49,7 +49,7 @@ i32 HeightRangePlacementConfig::getRandomY(math::Random& random) const
 // BiomePlacementConfig 实现
 // ============================================================================
 
-bool BiomePlacementConfig::isAllowed(u32 biomeId) const
+bool BiomePlacementConfig::isAllowed(u32 biomeId) const noexcept
 {
     for (u32 id : allowedBiomes) {
         if (id == biomeId) {
@@ -140,9 +140,9 @@ std::vector<BlockPos> SquarePlacement::getPositions(
     (void)region;
     (void)config;
 
-    // 在XZ平面内随机分散（0-15范围内）
-    i32 x = basePos.x + random.nextInt(0, 15);
-    i32 z = basePos.z + random.nextInt(0, 15);
+    // 在XZ平面内随机分散（区块范围内）
+    i32 x = basePos.x + random.nextInt(0, world::CHUNK_WIDTH - 1);
+    i32 z = basePos.z + random.nextInt(0, world::CHUNK_WIDTH - 1);
 
     return {BlockPos(x, basePos.y, z)};
 }

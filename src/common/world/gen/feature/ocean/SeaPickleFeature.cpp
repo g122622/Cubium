@@ -88,7 +88,7 @@ bool SeaPickleFeature::place(
 
         const BlockPos placePos(placeX, oceanFloorY + 1, placeZ);
 
-        if (canPlaceAt(world, placePos, *config.seaPickleState)) {
+        if (_canPlaceAt(world, placePos, *config.seaPickleState)) {
             // 随机数量 (1-4)
             const i32 maxCount = std::clamp(config.maxCount, 1, 4);
             const i32 count = random.nextInt(maxCount) + 1;
@@ -106,11 +106,11 @@ bool SeaPickleFeature::place(
     return placedAny;
 }
 
-bool SeaPickleFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const BlockState& pickleState) const
+bool SeaPickleFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const BlockState& pickleState) const
 {
     MC_UNUSED(pickleState);
 
-    if (!isWater(world, pos)) {
+    if (!_isWater(world, pos)) {
         return false;
     }
 
@@ -119,7 +119,7 @@ bool SeaPickleFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos, co
     return belowState != nullptr && belowState->isSolid();
 }
 
-bool SeaPickleFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
+bool SeaPickleFeature::_isWater(WorldGenRegion& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (!state) {
@@ -164,7 +164,7 @@ void SeaPickleFeatures::initialize()
     s_features.push_back(createNormalSeaPickle());
 }
 
-const std::vector<std::unique_ptr<ConfiguredSeaPickleFeature>>& SeaPickleFeatures::getAllFeatures()
+const std::vector<std::unique_ptr<ConfiguredSeaPickleFeature>>& SeaPickleFeatures::getAllFeatures() noexcept
 {
     return s_features;
 }

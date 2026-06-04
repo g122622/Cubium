@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 
@@ -45,8 +45,6 @@ namespace blocks {
  * 下界的可蔓延岩类方块，在光照过高时会退化为下界岩。
  *
  * MC ID: minecraft:crimson_nylium, minecraft:warped_nylium
- *
- * 参考 MC 1.16.5 NyliumBlock
  */
 class NyliumBlock : public Block {
 public:
@@ -73,7 +71,7 @@ private:
      * @param state 方块状态
      * @return true 如果足够暗（不会退化）
      */
-    [[nodiscard]] static bool isDarkEnough(IWorld& world, const BlockPos& pos, const BlockState& state);
+    [[nodiscard]] static bool _isDarkEnough(IWorld& world, const BlockPos& pos, const BlockState& state);
 };
 
 } // namespace blocks

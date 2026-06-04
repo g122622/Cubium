@@ -1,17 +1,41 @@
-#include "EntityStorageManager.hpp"
-#include "common/entity/core/Entity.hpp"
-#include "common/entity/serialization/EntityDeserializer.hpp"
-#include "common/util/assert/AssertMacros.hpp"
-#include "common/util/nbt/Nbt.hpp"
-#include "common/world/storage/db/ColumnFamilies.hpp"
-#include "common/world/storage/db/RocksDBDatabase.hpp"
-#include "spdlog/spdlog.h"
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
-#include <zlib.h>
+#include "EntityStorageManager.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <sstream>
+
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/serialization/EntityDeserializer.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/storage/db/ColumnFamilies.hpp"
+#include "common/world/storage/db/RocksDBDatabase.hpp"
+#include "spdlog/spdlog.h"
+#include <zlib.h>
 
 namespace mc::world::storage {
 
@@ -57,8 +81,9 @@ Result<EntityKey> EntityKey::parse(const std::string& str)
 EntityKey EntityKey::fromEntity(const Entity& entity)
 {
     EntityKey key;
-    key.chunkX = static_cast<ChunkCoord>(std::floor(entity.position().x / 16.0));
-    key.chunkZ = static_cast<ChunkCoord>(std::floor(entity.position().z / 16.0));
+    // 使用 math::toChunkCoord 进行世界坐标到区块坐标的转换，避免硬编码区块尺寸
+    key.chunkX = math::toChunkCoord(entity.position().x);
+    key.chunkZ = math::toChunkCoord(entity.position().z);
     key.uuid = entity.uuid();
     return key;
 }
@@ -88,19 +113,19 @@ Result<void> EntityStorageManager::saveEntity(const Entity& entity, DimensionId 
 
     // 计算键
     EntityKey key = EntityKey::fromEntity(entity);
-    auto dbKey = makeKey(key);
+    auto dbKey = _makeKey(key);
 
     // 写入数据库
-    return m_db.put(columnFamilyName(dimension), dbKey, binaryResult.value());
+    return m_db.put(_columnFamilyName(dimension), dbKey, binaryResult.value());
 }
 
 Result<std::unique_ptr<Entity>> EntityStorageManager::loadEntity(
     const std::string& uuid, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension, IWorld* world)
 {
     EntityKey key{chunkX, chunkZ, uuid};
-    auto dbKey = makeKey(key);
+    auto dbKey = _makeKey(key);
 
-    auto result = m_db.get(columnFamilyName(dimension), dbKey);
+    auto result = m_db.get(_columnFamilyName(dimension), dbKey);
     if (!result.success()) {
         return result.error();
     }
@@ -117,8 +142,8 @@ Result<void> EntityStorageManager::deleteEntity(
     const std::string& uuid, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension)
 {
     EntityKey key{chunkX, chunkZ, uuid};
-    auto dbKey = makeKey(key);
-    return m_db.del(columnFamilyName(dimension), dbKey);
+    auto dbKey = _makeKey(key);
+    return m_db.del(_columnFamilyName(dimension), dbKey);
 }
 
 // ========== 区块级操作 ==========
@@ -128,9 +153,9 @@ Result<std::vector<std::unique_ptr<Entity>>> EntityStorageManager::loadEntitiesI
 {
     std::vector<std::unique_ptr<Entity>> entities;
 
-    auto prefix = makeChunkPrefixKey(chunkX, chunkZ);
-    auto endKey = makeChunkEndKey(chunkX, chunkZ);
-    const char* cf = columnFamilyName(dimension);
+    auto prefix = _makeChunkPrefixKey(chunkX, chunkZ);
+    auto endKey = _makeChunkEndKey(chunkX, chunkZ);
+    const char* cf = _columnFamilyName(dimension);
 
     auto iter = m_db.newIterator(cf);
     if (!iter) {
@@ -201,31 +226,31 @@ Result<size_t> EntityStorageManager::saveAllEntities(
 
 Result<void> EntityStorageManager::deleteEntitiesInChunk(ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension)
 {
-    auto startKey = makeChunkPrefixKey(chunkX, chunkZ);
-    auto endKey = makeChunkEndKey(chunkX, chunkZ);
-    return m_db.deleteRange(columnFamilyName(dimension), startKey, endKey);
+    auto startKey = _makeChunkPrefixKey(chunkX, chunkZ);
+    auto endKey = _makeChunkEndKey(chunkX, chunkZ);
+    return m_db.deleteRange(_columnFamilyName(dimension), startKey, endKey);
 }
 
 // ========== 私有方法 ==========
 
-const char* EntityStorageManager::columnFamilyName(DimensionId dimension)
+const char* EntityStorageManager::_columnFamilyName(DimensionId dimension)
 {
     return cf::getEntityCF(dimension);
 }
 
-std::vector<u8> EntityStorageManager::makeKey(const EntityKey& key)
+std::vector<u8> EntityStorageManager::_makeKey(const EntityKey& key)
 {
     std::string str = key.toString();
     return std::vector<u8>(str.begin(), str.end());
 }
 
-std::vector<u8> EntityStorageManager::makeChunkPrefixKey(ChunkCoord chunkX, ChunkCoord chunkZ)
+std::vector<u8> EntityStorageManager::_makeChunkPrefixKey(ChunkCoord chunkX, ChunkCoord chunkZ)
 {
     std::string prefix = EntityKey::buildChunkPrefix(chunkX, chunkZ);
     return std::vector<u8>(prefix.begin(), prefix.end());
 }
 
-std::vector<u8> EntityStorageManager::makeChunkEndKey(ChunkCoord chunkX, ChunkCoord chunkZ)
+std::vector<u8> EntityStorageManager::_makeChunkEndKey(ChunkCoord chunkX, ChunkCoord chunkZ)
 {
     // 区块前缀 + 一个比任何 UUID 都大的字符，确保范围扫描包含整个区块
     std::string prefix = EntityKey::buildChunkPrefix(chunkX, chunkZ);

@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include <memory>
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
+#include <memory>
 
 namespace mc {
 
@@ -52,8 +52,6 @@ namespace blocks {
  *
  * 不可见的不可破坏方块，用于地图制作。
  * 只有创造模式玩家可以看到边界轮廓。
- *
- * 参考: net.minecraft.block.BarrierBlock
  */
 class BarrierBlock : public Block {
 public:
@@ -75,8 +73,6 @@ public:
  * @brief 结构空位方块
  *
  * 结构方块使用的空位，放置时不会替换现有方块。
- *
- * 参考: net.minecraft.block.StructureVoidBlock
  */
 class StructureVoidBlock : public Block {
 public:
@@ -104,8 +100,6 @@ public:
  *
  * 状态属性：
  * - MODE: 结构方块模式 (SAVE, LOAD, CORNER, DATA)
- *
- * 参考: net.minecraft.block.StructureBlock
  */
 class StructureBlock : public Block {
 public:
@@ -154,8 +148,6 @@ public:
  *
  * 状态属性：
  * - ORIENTATION: 方向 (DOWN_EAST, DOWN_NORTH, ..., UP_WEST)
- *
- * 参考: net.minecraft.block.JigsawBlock
  */
 class JigsawBlock : public Block {
 public:
@@ -187,8 +179,6 @@ public:
  * - FACING: 朝向
  * - CONDITIONAL: 是否有条件
  * - POWERED: 是否被激活
- *
- * 参考: net.minecraft.block.CommandBlock
  */
 class CommandBlock : public Block {
 public:
@@ -244,7 +234,6 @@ protected:
     /**
      * @brief 执行命令
      *
-     * MC 1.16.5: CommandBlock.execute()
      * 执行命令方块的命令，并触发连锁执行。
      *
      * @param world 世界引用
@@ -258,7 +247,6 @@ protected:
     /**
      * @brief 触发连锁命令方块
      *
-     * MC 1.16.5: CommandBlock.executeChain()
      * 沿着 FACING 方向触发连锁命令方块。
      *
      * @param world 世界引用
@@ -272,8 +260,6 @@ protected:
  * @brief 循环命令方块
  *
  * 每个 tick 都执行命令的命令方块。
- *
- * 参考: net.minecraft.block.RepeatingCommandBlock
  */
 class RepeatingCommandBlock : public CommandBlock {
 public:
@@ -289,8 +275,6 @@ public:
  * @brief 连锁命令方块
  *
  * 当前方块命令执行后连锁触发的命令方块。
- *
- * 参考: net.minecraft.block.ChainCommandBlock
  */
 class ChainCommandBlock : public CommandBlock {
 public:
@@ -309,8 +293,6 @@ public:
  * 物理：
  * - 弹跳系数：0.9（每次弹跳损失 10% 速度）
  * - 滑度：0.8
- *
- * 参考: net.minecraft.block.SlimeBlock
  */
 class SlimeBlock : public Block {
 public:
@@ -349,8 +331,6 @@ public:
  * - 滑度：0.5
  * - 跳跃因子：0.5
  * - 速度因子：0.4（在内部移动时）
- *
- * 参考: net.minecraft.block.HoneyBlock
  */
 class HoneyBlock : public Block {
 public:
@@ -405,8 +385,6 @@ private:
  * - 成功吸水后变成湿润海绵
  *
  * 状态属性：无（湿润状态是不同的方块）
- *
- * 参考: net.minecraft.block.SpongeBlock
  */
 class SpongeBlock : public Block {
 public:
@@ -455,10 +433,10 @@ public:
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
 private:
-    /// 海绵吸水最大搜索深度（MC 1.16.5）
+    /// 海绵吸水最大搜索深度
     static constexpr i32 MAX_ABSORB_DEPTH = 6;
 
-    /// 海绵吸水最大吸收数量（MC 1.16.5）
+    /// 海绵吸水最大吸收数量
     static constexpr i32 MAX_ABSORB_COUNT = 65;
 
     /**
@@ -479,8 +457,6 @@ private:
  * 特殊行为：
  * - 在下界放置时会变干（变成普通海绵）
  * - 产生蒸汽粒子效果和火焰熄灭音效
- *
- * 参考: net.minecraft.block.WetSpongeBlock
  */
 class WetSpongeBlock : public Block {
 public:
@@ -510,8 +486,6 @@ public:
  * - 移动速度减少 97.5%（乘以 0.025）
  * - Y轴下落速度减少（乘以 0.025）
  * - 不影响跳跃
- *
- * 参考: net.minecraft.block.WebBlock
  */
 class WebBlock : public Block {
 public:

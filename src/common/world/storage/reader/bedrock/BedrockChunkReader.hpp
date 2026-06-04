@@ -48,7 +48,7 @@ public:
     [[nodiscard]] Result<void> readBiomeState(const std::vector<u8>& data, ChunkData& chunk);
 
 private:
-    [[nodiscard]] i32 resolveSectionIndex(u8 version, i8 keySubChunkY, const std::vector<u8>& data, size_t& pos) const;
+    [[nodiscard]] i32 _resolveSectionIndex(u8 version, i8 keySubChunkY, const std::vector<u8>& data, size_t& pos) const;
 
     struct BiomeSectionData {
         i32 sectionY = 0;
@@ -58,12 +58,12 @@ private:
     /**
      * @brief 读取子区块数据
      */
-    Result<BiomeSectionData> readBiomeSectionPalette(
+    Result<BiomeSectionData> _readBiomeSectionPalette(
         const std::vector<u8>& data, size_t& pos, i32 sectionY, DimensionId dimension) const;
-    void applyBiomeSectionsToChunk(const std::vector<BiomeSectionData>& sections, ChunkData& chunk) const;
-    Result<u32> readPaletteEntry(const std::vector<u8>& data, size_t& pos, bool isRuntimeEncoding);
-    u32 mapBlockState(const std::string& blockName, const std::unordered_map<std::string, std::string>& states);
-    void applyBlockPalette(ChunkSection& section,
+    void _applyBiomeSectionsToChunk(const std::vector<BiomeSectionData>& sections, ChunkData& chunk) const;
+    Result<u32> _readPaletteEntry(const std::vector<u8>& data, size_t& pos, bool isRuntimeEncoding);
+    u32 _mapBlockState(const std::string& blockName, const std::unordered_map<std::string, std::string>& states);
+    void _applyBlockPalette(ChunkSection& section,
         const std::vector<u32>& indices,
         const std::vector<u32>& paletteIds,
         bool isAuxiliaryLayer);

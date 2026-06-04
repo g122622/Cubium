@@ -23,6 +23,7 @@
 
 #include "SkinMetadataParser.hpp"
 #include "common/skin/core/SkinTextures.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -70,7 +71,7 @@ std::vector<u8> base64Decode(const std::string& encoded)
     decoded.reserve((cleanEncoded.length() / 4) * 3 - padding);
 
     u32 buffer = 0;
-    int bits = 0;
+    i32 bits = 0;
 
     for (size_t i = 0; i < cleanEncoded.length(); ++i) {
         char c = cleanEncoded[i];
@@ -193,11 +194,6 @@ Result<SkinTextures> SkinMetadataParser::parseJson(const std::string& jsonData)
                 }
             }
         }
-
-        spdlog::debug("SkinMetadataParser: Parsed textures - skin:{}, cape:{}, elytra:{}",
-            textures.hasSkin(),
-            textures.hasCape(),
-            textures.hasElytra());
     }
     catch (const nlohmann::json::exception& e) {
         return Error(ErrorCode::InvalidData, std::string("Failed to parse textures JSON: ") + e.what());
@@ -225,9 +221,13 @@ bool SkinMetadataParser::verifySignature(const GameProfileProperty& property)
     return true;
 }
 
-void SkinMetadataParser::parseTexture(const void* textureObj, const std::string& type, SkinTextures& textures)
+void SkinMetadataParser::_parseTexture(const void* textureObj, const std::string& type, SkinTextures& textures)
 {
-    // 此方法在 parseJson 中已经实现，这里保留用于未来扩展
+    // TODO: 此方法目前未实现，parseJson 中已直接内联了解析逻辑。
+    // 未来可重构为使用此方法，以提高代码复用性。
+    MC_UNUSED(textureObj);
+    MC_UNUSED(type);
+    MC_UNUSED(textures);
 }
 
 } // namespace mc::skin

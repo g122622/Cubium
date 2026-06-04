@@ -51,7 +51,6 @@ struct PortalInfo {
 /**
  * @brief 传送器基类
  *
- * 参考 MC 1.16.5 ITeleporter
  * 处理实体在维度间的传送逻辑。
  *
  * 使用示例:
@@ -120,18 +119,15 @@ public:
     // ========== 传送门搜索半径 ==========
 
     /// 从主世界到下界的搜索半径（格）
-    /// MC 1.16.5: 主世界坐标 ÷ 8 = 下界坐标，需要大范围搜索避免分散
     static constexpr i32 OVERWORLD_TO_NETHER_SEARCH_RADIUS = 128;
 
     /// 从下界到主世界的搜索半径（格）
-    /// MC 1.16.5: 下界坐标 × 8 = 主世界坐标，需要小范围搜索
     static constexpr i32 NETHER_TO_OVERWORLD_SEARCH_RADIUS = 16;
 
     /// 创建新传送门时的搜索半径（格）
     static constexpr i32 CREATE_PORTAL_SEARCH_RADIUS = 16;
 
     /// 末地传送门固定位置
-    /// MC 1.16.5 ServerWorld.field_241108_a_ = new BlockPos(100, 50, 0)
     /// 玩家出生在方块中心，所以加 0.5
     [[nodiscard]] static Vector3d getEndSpawnPosition() { return Vector3d(100.5, 50.0, 0.5); }
 
@@ -163,8 +159,6 @@ protected:
  *
  * 处理主世界和下界之间的传送。
  * 坐标转换比例：1:8（主世界 8 格 = 下界 1 格）
- *
- * 参考 MC 1.16.5 NetherTeleporter
  */
 class NetherTeleporter : public Teleporter {
 public:
@@ -206,8 +200,6 @@ private:
  *
  * 处理主世界和末地之间的传送。
  * 坐标无缩放，固定传送到 (100, 49, 0)。
- *
- * 参考 MC 1.16.5 EndTeleporter
  */
 class EndTeleporter : public Teleporter {
 public:

@@ -31,14 +31,38 @@ namespace blockentity {
 SimpleInventory::SimpleInventory(i32 size)
     : m_items(static_cast<std::size_t>(size))
 {
-    MC_ASSERT(size > 0 && "Inventory size must be positive");
+    MC_ASSERT_RELEASE(size > 0 && "Inventory size must be positive");
 }
 
 SimpleInventory::SimpleInventory(i32 size, std::function<void()> onChanged)
     : m_items(static_cast<std::size_t>(size))
     , m_onChanged(std::move(onChanged))
 {
-    MC_ASSERT(size > 0 && "Inventory size must be positive");
+    MC_ASSERT_RELEASE(size > 0 && "Inventory size must be positive");
+}
+
+SimpleInventory::SimpleInventory(SimpleInventory&& other) noexcept
+    : m_items(std::move(other.m_items))
+    , m_maxStackSize(other.m_maxStackSize)
+    , m_onChanged(std::move(other.m_onChanged))
+{
+    // 重置源对象
+    other.m_maxStackSize = 64;
+    other.m_onChanged = nullptr;
+}
+
+SimpleInventory& SimpleInventory::operator=(SimpleInventory&& other) noexcept
+{
+    if (this != &other) {
+        m_items = std::move(other.m_items);
+        m_maxStackSize = other.m_maxStackSize;
+        m_onChanged = std::move(other.m_onChanged);
+
+        // 重置源对象
+        other.m_maxStackSize = 64;
+        other.m_onChanged = nullptr;
+    }
+    return *this;
 }
 
 bool SimpleInventory::isEmpty() const
@@ -53,7 +77,7 @@ bool SimpleInventory::isEmpty() const
 
 ItemStack SimpleInventory::getItem(i32 slot) const
 {
-    if (!isValidSlot(slot)) {
+    if (!_isValidSlot(slot)) {
         return ItemStack();
     }
     return m_items[static_cast<std::size_t>(slot)];
@@ -61,7 +85,7 @@ ItemStack SimpleInventory::getItem(i32 slot) const
 
 void SimpleInventory::setItem(i32 slot, const ItemStack& stack)
 {
-    MC_ASSERT(isValidSlot(slot) && "Slot index out of bounds");
+    MC_ASSERT_RELEASE(_isValidSlot(slot) && "Slot index out of bounds");
     const std::size_t slotIndex = static_cast<std::size_t>(slot);
 
     // 只在物品实际变化时触发回调
@@ -70,12 +94,12 @@ void SimpleInventory::setItem(i32 slot, const ItemStack& stack)
     }
 
     m_items[slotIndex] = stack;
-    onChanged();
+    _onChanged();
 }
 
 ItemStack SimpleInventory::removeItem(i32 slot, i32 count)
 {
-    if (!isValidSlot(slot) || count <= 0) {
+    if (!_isValidSlot(slot) || count <= 0) {
         return ItemStack();
     }
 
@@ -93,13 +117,13 @@ ItemStack SimpleInventory::removeItem(i32 slot, i32 count)
         m_items[static_cast<std::size_t>(slot)] = ItemStack();
     }
 
-    onChanged();
+    _onChanged();
     return result;
 }
 
 ItemStack SimpleInventory::removeItemNoUpdate(i32 slot)
 {
-    if (!isValidSlot(slot)) {
+    if (!_isValidSlot(slot)) {
         return ItemStack();
     }
 
@@ -114,17 +138,17 @@ void SimpleInventory::clear()
     for (auto& item : m_items) {
         item = ItemStack();
     }
-    onChanged();
+    _onChanged();
 }
 
 void SimpleInventory::setChanged()
 {
-    onChanged();
+    _onChanged();
 }
 
 bool SimpleInventory::canPlaceItem(i32 slot, const ItemStack& stack) const
 {
-    if (!isValidSlot(slot) || stack.isEmpty()) {
+    if (!_isValidSlot(slot) || stack.isEmpty()) {
         return false;
     }
 
@@ -185,7 +209,7 @@ ItemStack SimpleInventory::addItem(const ItemStack& stack)
     }
 
     if (remaining.getCount() != stack.getCount()) {
-        onChanged();
+        _onChanged();
     }
 
     return remaining;
@@ -225,15 +249,15 @@ ItemStack SimpleInventory::extractItem(i32 slot)
     return removeItemNoUpdate(slot);
 }
 
-bool SimpleInventory::isSlotEmpty(i32 slot) const
+bool SimpleInventory::isSlotEmpty(i32 slot) const noexcept
 {
-    if (!isValidSlot(slot)) {
+    if (!_isValidSlot(slot)) {
         return true;
     }
     return m_items[static_cast<std::size_t>(slot)].isEmpty();
 }
 
-i32 SimpleInventory::getNonEmptySlotCount() const
+i32 SimpleInventory::getNonEmptySlotCount() const noexcept
 {
     i32 count = 0;
     for (const auto& item : m_items) {
@@ -255,7 +279,7 @@ void SimpleInventory::forEachItem(std::function<bool(i32 slot, const ItemStack& 
     }
 }
 
-void SimpleInventory::onChanged()
+void SimpleInventory::_onChanged()
 {
     if (m_onChanged) {
         m_onChanged();
@@ -288,7 +312,7 @@ void SimpleInventory::load(const nlohmann::json& data)
 void SimpleInventory::save(nlohmann::json& data) const
 {
     data = nlohmann::json::array();
-    for (size_t i = 0; i < m_items.size(); ++i) {
+    for (std::size_t i = 0; i < m_items.size(); ++i) {
         if (!m_items[i].isEmpty()) {
             data.push_back(m_items[i].toJson());
         } else {

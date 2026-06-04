@@ -47,8 +47,6 @@ namespace blockentity {
  * - 锁定功能
  * - ISidedInventory 接口（漏斗交互）
  *
- * 参考: net.minecraft.tileentity.AbstractFurnaceTileEntity
- *
  * 子类:
  * - FurnaceEntity（普通熔炉，200tick熔炼）
  * - BlastFurnaceEntity（高炉，100tick熔炼，仅矿石/金属）
@@ -82,7 +80,7 @@ public:
     /**
      * @brief 析构函数
      */
-    ~AbstractFurnaceEntity() override = default;
+    ~AbstractFurnaceEntity() noexcept override = default;
 
     // ========== BlockEntity 接口 ==========
 
@@ -151,7 +149,7 @@ private:
      * @param direction 方向
      * @return 如果槽位可访问返回 true
      */
-    [[nodiscard]] bool isSlotAccessibleForDirection(i32 slot, Direction direction) const;
+    [[nodiscard]] bool _isSlotAccessibleForDirection(i32 slot, Direction direction) const;
 
 public:
     // ========== 序列化 ==========

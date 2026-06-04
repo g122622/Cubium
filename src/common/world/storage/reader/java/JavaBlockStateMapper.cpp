@@ -25,7 +25,6 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
-#include <spdlog/spdlog.h>
 
 namespace mc::world::storage::reader::java {
 
@@ -33,7 +32,7 @@ JavaBlockStateMapper::JavaBlockStateMapper() = default;
 
 u32 JavaBlockStateMapper::mapBlockState(const PaletteEntry& entry)
 {
-    std::string cacheKey = buildCacheKey(entry);
+    std::string cacheKey = _buildCacheKey(entry);
 
     auto it = m_cache.find(cacheKey);
     if (it != m_cache.end()) {
@@ -46,7 +45,6 @@ u32 JavaBlockStateMapper::mapBlockState(const PaletteEntry& entry)
 
     if (!block) {
         // 未知方块，映射为空气
-        spdlog::debug("JavaBlockStateMapper: Unknown block '{}', mapping to air", entry.blockName);
         m_cache[cacheKey] = 0;
         return 0;
     }
@@ -66,10 +64,6 @@ u32 JavaBlockStateMapper::mapBlockState(const PaletteEntry& entry)
 
             auto parsedValue = prop->parseValue(propValue);
             if (!parsedValue.has_value()) {
-                spdlog::debug("JavaBlockStateMapper: Cannot parse property '{}'='{}' for block '{}'",
-                    propName,
-                    propValue,
-                    entry.blockName);
                 continue;
             }
 
@@ -137,7 +131,7 @@ std::vector<u32> JavaBlockStateMapper::mapPalette(const std::vector<PaletteEntry
     return result;
 }
 
-std::string JavaBlockStateMapper::buildCacheKey(const PaletteEntry& entry) const
+std::string JavaBlockStateMapper::_buildCacheKey(const PaletteEntry& entry) const noexcept
 {
     std::string key = entry.blockName;
     for (const auto& [k, v] : entry.properties) {

@@ -34,8 +34,6 @@ namespace blocks {
  * 测重压力板根据检测到的物品数量输出不同的信号强度。
  * - 轻质测重压力板：信号强度 = min(物品数量, 15)
  * - 重质测重压力板：信号强度 = min(物品数量 / 10, 15)
- *
- * 参考: net.minecraft.block.WeightedPressurePlateBlock
  */
 class WeightedPressurePlateBlock : public AbstractPressurePlateBlock {
 public:
@@ -71,7 +69,7 @@ private:
      * @param pos 方块位置
      * @return i32 实体数量
      */
-    [[nodiscard]] i32 getEntityCount(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] i32 _getEntityCount(IWorld& world, const BlockPos& pos) const;
 };
 
 } // namespace blocks

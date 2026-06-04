@@ -56,7 +56,7 @@ BossInfoPacket BossInfoPacket::add(u64 uuid,
 {
     BossInfoPacket packet(BossInfoAction::Add);
     packet.m_uuid = uuid;
-    packet.m_nameJson = serializeName(*name);
+    packet.m_nameJson = _serializeName(*name);
     packet.m_percent = percent;
     packet.m_color = color;
     packet.m_overlay = overlay;
@@ -85,7 +85,7 @@ BossInfoPacket BossInfoPacket::updateName(u64 uuid, std::unique_ptr<text::ITextC
 {
     BossInfoPacket packet(BossInfoAction::UpdateName);
     packet.m_uuid = uuid;
-    packet.m_nameJson = serializeName(*name);
+    packet.m_nameJson = _serializeName(*name);
     return packet;
 }
 
@@ -112,7 +112,7 @@ BossInfoPacket BossInfoPacket::updateProperties(u64 uuid, bool darkenSky, bool p
 // 序列化
 // ============================================================================
 
-std::string BossInfoPacket::serializeName(const text::ITextComponent& name)
+std::string BossInfoPacket::_serializeName(const text::ITextComponent& name)
 {
     nlohmann::json json = name.toJson();
     return json.dump();

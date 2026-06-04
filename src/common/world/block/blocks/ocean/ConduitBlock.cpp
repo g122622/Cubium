@@ -22,16 +22,16 @@
  */
 
 #include "ConduitBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../blockentity/BlockEntity.hpp"
-#include "../../../blockentity/core/BlockEntityRegistry.hpp"
-#include "../../../blockentity/processing/ConduitEntity.hpp"
-#include "../../VanillaBlocks.hpp"
-#include "../../WaterLoggableHelpers.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/core/BlockEntityRegistry.hpp"
+#include "common/world/blockentity/processing/ConduitEntity.hpp"
 
 namespace mc {
 namespace blocks {
@@ -73,7 +73,7 @@ bool ConduitBlock::isWaterlogged(const BlockState& state) const
 BlockState ConduitBlock::getStateForPlacement(BlockItemUseContext& context)
 {
     // 检查放置位置是否在水中
-    // MC 1.16.5: 默认含水
+    // 默认含水
     return defaultState().with(BlockStateProperties::WATERLOGGED(), true);
 }
 

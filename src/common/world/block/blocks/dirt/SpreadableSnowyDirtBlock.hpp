@@ -47,8 +47,6 @@ namespace blocks {
  * - 当光照不足时退化成泥土
  * - 当光照足够时向周围泥土蔓延
  * - 支持 SNOWY 属性，表示顶部是否覆盖雪
- *
- * 参考 MC 1.16.5 SpreadableSnowyDirtBlock (继承自 SnowyDirtBlock)
  */
 class SpreadableSnowyDirtBlock : public Block {
 public:
@@ -135,8 +133,6 @@ protected:
  * 在光照不足时退化成泥土。
  *
  * MC ID: minecraft:grass_block
- *
- * 参考 MC 1.16.5 GrassBlock
  */
 class GrassBlock : public SpreadableSnowyDirtBlock {
 public:
@@ -150,8 +146,6 @@ public:
  * 在光照不足时退化成泥土。
  *
  * MC ID: minecraft:mycelium
- *
- * 参考 MC 1.16.5 MyceliumBlock
  */
 class MyceliumBlock : public SpreadableSnowyDirtBlock {
 public:

@@ -36,8 +36,6 @@ namespace blocks {
  * 4个生长阶段（AGE_0_3），成熟时掉落甜菜根和甜菜根种子。
  * 形状高度：2, 4, 6, 8 像素。
  * 生长速度比其他作物慢（有 1/3 概率跳过生长）。
- *
- * 参考: net.minecraft.block.BeetrootBlock
  */
 class BeetrootBlock : public CropBlock {
 public:

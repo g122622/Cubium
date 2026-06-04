@@ -40,7 +40,7 @@ CaveCarver::CaveCarver(i32 maxHeight)
 {}
 
 bool CaveCarver::shouldCarve(
-    math::IRandom& rng, ChunkCoord /*chunkX*/, ChunkCoord /*chunkZ*/, const ProbabilityConfig& config) const
+    math::IRandom& rng, ChunkCoord /*chunkX*/, ChunkCoord /*chunkZ*/, const ProbabilityConfig& config) const noexcept
 {
     return rng.nextFloat() <= config.probability;
 }
@@ -53,7 +53,6 @@ bool CaveCarver::carve(ChunkPrimer& chunk,
     CarvingMask& carvingMask,
     const ProbabilityConfig& config)
 {
-    // 参考 MC CaveWorldCarver.carveRegion
     math::Random rng(static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL +
         static_cast<u64>(m_maxHeight));
 
@@ -62,20 +61,19 @@ bool CaveCarver::carve(ChunkPrimer& chunk,
     }
 
     // 隧道长度范围
-    const i32 tunnelLength = (getRange() * 2 - 1) * 16;
+    const i32 tunnelLength = (getRange() * 2 - 1) * world::CHUNK_WIDTH;
 
     // 确定洞穴数量
-    // 参考 MC: int j = rand.nextInt(rand.nextInt(rand.nextInt(this.func_230357_a_()) + 1) + 1);
     const i32 numCaves = rng.nextInt(rng.nextInt(rng.nextInt(getMaxCaveCount()) + 1) + 1);
 
     bool carved = false;
-    const i32 startX = chunkX << 4;
-    const i32 startZ = chunkZ << 4;
+    const i32 startX = chunkX << world::CHUNK_SHIFT;
+    const i32 startZ = chunkZ << world::CHUNK_SHIFT;
 
     for (i32 i = 0; i < numCaves; ++i) {
         // 随机起始位置
-        const f32 startXPos = static_cast<f32>(startX) + rng.nextFloat(0.0f, 16.0f);
-        const f32 startZPos = static_cast<f32>(startZ) + rng.nextFloat(0.0f, 16.0f);
+        const f32 startXPos = static_cast<f32>(startX) + rng.nextFloat(0.0f, static_cast<f32>(world::CHUNK_WIDTH));
+        const f32 startZPos = static_cast<f32>(startZ) + rng.nextFloat(0.0f, static_cast<f32>(world::CHUNK_WIDTH));
         const f32 startYPos = static_cast<f32>(getCaveStartY(rng));
 
         // 有概率生成大型圆形房间
@@ -84,7 +82,7 @@ bool CaveCarver::carve(ChunkPrimer& chunk,
         if (rng.nextInt(4) == 0) {
             // 生成房间
             const f32 roomRadius = rng.nextFloat(1.0f, 7.0f);
-            carveRoom(chunk,
+            _carveRoom(chunk,
                 biomeProvider,
                 seaLevel,
                 chunkX,
@@ -109,7 +107,7 @@ bool CaveCarver::carve(ChunkPrimer& chunk,
             // 隧道长度
             const i32 length = tunnelLength - rng.nextInt(tunnelLength / 4 + 1);
 
-            carveTunnel(chunk,
+            _carveTunnel(chunk,
                 biomeProvider,
                 seaLevel,
                 chunkX,
@@ -133,28 +131,28 @@ bool CaveCarver::carve(ChunkPrimer& chunk,
     return carved;
 }
 
-bool CaveCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const
+bool CaveCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 /*y*/) const noexcept
 {
-    // 参考 MC CaveWorldCarver.func_222708_a_
-    // return p_222708_3_ <= -0.7D || dx * dx + dy * dy + dz * dz >= 1.0D;
-    // 其中 p_222708_3_ 是 dy
-    (void)y; // MC 原版不使用 y 坐标，只使用 dy
+    // 椭球边界检测：dy <= -0.7 表示椭球底部，跳过以避免穿透地面
+    // dx² + dy² + dz² >= 1.0 表示超出椭球范围
     return dy <= -0.7f || dx * dx + dy * dy + dz * dz >= 1.0f;
 }
 
 i32 CaveCarver::getCaveStartY(math::IRandom& rng) const
 {
-    // 参考 MC: return rand.nextInt(rand.nextInt(120) + 8);
+    // 洞穴起始Y坐标范围：8 到 128（通过嵌套随机实现）
+    // 内层：rng.nextInt(121) 生成 0-120
+    // 外层：+8 后范围变为 8-128
+    // 这决定了洞穴主要生成在地下较深处
     return rng.nextInt(rng.nextInt(121) + 8);
 }
 
 f32 CaveCarver::getCaveRadius(math::IRandom& rng) const
 {
-    // 参考 MC CaveWorldCarver.func_230359_a_
-    // float f = rand.nextFloat() * 2.0F + rand.nextFloat();
-    // if (rand.nextInt(10) == 0) { f *= rand.nextFloat() * rand.nextFloat() * 3.0F + 1.0F; }
+    // 基础半径：0.0 - 2.0 范围的随机值
     f32 radius = rng.nextFloat() * 2.0f + rng.nextFloat();
 
+    // 有 10% 概率生成大型洞穴
     if (rng.nextInt(10) == 0) {
         radius *= rng.nextFloat() * rng.nextFloat() * 3.0f + 1.0f;
     }
@@ -162,7 +160,7 @@ f32 CaveCarver::getCaveRadius(math::IRandom& rng) const
     return radius;
 }
 
-void CaveCarver::carveTunnel(ChunkPrimer& chunk,
+void CaveCarver::_carveTunnel(ChunkPrimer& chunk,
     const BiomeProvider& biomeProvider,
     i32 seaLevel,
     ChunkCoord chunkX,
@@ -179,7 +177,6 @@ void CaveCarver::carveTunnel(ChunkPrimer& chunk,
     f32 verticalScale,
     CarvingMask& carvingMask)
 {
-    // 参考 MC CaveWorldCarver.func_227206_a_
     math::Random rng(static_cast<u64>(seed));
 
     // 分支点
@@ -201,7 +198,7 @@ void CaveCarver::carveTunnel(ChunkPrimer& chunk,
         const f32 horizontalRadius = radius * sinProgress;
         const f32 vertRadius = horizontalRadius * verticalScale;
 
-        // 更新位置（参考MC的方向计算）
+        // 更新位置
         const f32 cosPitch = std::cos(currentPitch);
         currentX += std::cos(currentYaw) * cosPitch;
         currentY += std::sin(currentPitch);
@@ -223,7 +220,7 @@ void CaveCarver::carveTunnel(ChunkPrimer& chunk,
             // 生成两个分支隧道
             const f32 branchRadius = radius * rng.nextFloat(0.5f, 1.0f);
 
-            carveTunnel(chunk,
+            _carveTunnel(chunk,
                 biomeProvider,
                 seaLevel,
                 chunkX,
@@ -240,7 +237,7 @@ void CaveCarver::carveTunnel(ChunkPrimer& chunk,
                 1.0f,
                 carvingMask);
 
-            carveTunnel(chunk,
+            _carveTunnel(chunk,
                 biomeProvider,
                 seaLevel,
                 chunkX,
@@ -282,7 +279,7 @@ void CaveCarver::carveTunnel(ChunkPrimer& chunk,
     }
 }
 
-void CaveCarver::carveRoom(ChunkPrimer& chunk,
+void CaveCarver::_carveRoom(ChunkPrimer& chunk,
     const BiomeProvider& biomeProvider,
     i32 seaLevel,
     ChunkCoord chunkX,
@@ -295,7 +292,6 @@ void CaveCarver::carveRoom(ChunkPrimer& chunk,
     f32 verticalScale,
     CarvingMask& carvingMask)
 {
-    // 参考 MC CaveWorldCarver.func_227205_a_
     // 生成一个椭圆形房间
     const f32 horizontalRadius = 1.5f + std::sin(math::HALF_PI) * radius;
     const f32 vertRadius = horizontalRadius * verticalScale;

@@ -82,7 +82,9 @@ void MapDataManager::tick(IWorld& world)
     // 实际的地形更新和玩家追踪由FilledMapItem::inventoryTick()负责
     // 网络包发送由ServerWorld在tick后处理
     for (auto& [mapId, mapData] : m_mapData) {
-        if (mapData && mapData->isDirty()) {
+        MC_UNUSED(mapId);
+        MC_ASSERT_RELEASE(mapData != nullptr);
+        if (mapData->isDirty()) {
             // 脏标记由地形更新和装饰物更新设置
             // tick时重置脏标记，网络包发送在ServerWorld中处理
             mapData->clearDirty();

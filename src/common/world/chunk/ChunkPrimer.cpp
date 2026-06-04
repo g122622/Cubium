@@ -21,10 +21,10 @@
  *
  */
 
-#include "ChunkPrimer.hpp"
-#include "../WorldConstants.hpp"
-#include "../block/BlockRegistry.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 
 namespace mc {
 
@@ -278,14 +278,14 @@ std::unique_ptr<ChunkData> ChunkPrimer::toChunkData()
 // 静态工具方法
 // ============================================================================
 
-u16 ChunkPrimer::packToLocal(BlockCoord x, BlockCoord y, BlockCoord z)
+u16 ChunkPrimer::packToLocal(BlockCoord x, BlockCoord y, BlockCoord z) noexcept
 {
     return static_cast<u16>((x & world::CHUNK_MASK) | ((y & world::CHUNK_MASK) << world::SECTION_SHIFT) |
         ((z & world::CHUNK_MASK) << (world::SECTION_SHIFT * 2)));
 }
 
 void ChunkPrimer::unpackFromLocal(
-    u16 packed, i32 yOffset, ChunkCoord chunkX, ChunkCoord chunkZ, BlockCoord& x, BlockCoord& y, BlockCoord& z)
+    u16 packed, i32 yOffset, ChunkCoord chunkX, ChunkCoord chunkZ, BlockCoord& x, BlockCoord& y, BlockCoord& z) noexcept
 {
     x = (packed & world::CHUNK_MASK) + (chunkX << world::CHUNK_SHIFT);
     y = ((packed >> world::SECTION_SHIFT) & world::CHUNK_MASK) + (yOffset << world::SECTION_SHIFT);
@@ -296,7 +296,7 @@ void ChunkPrimer::unpackFromLocal(
 // 辅助方法
 // ============================================================================
 
-bool ChunkPrimer::_isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z)
+bool ChunkPrimer::_isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z) noexcept
 {
     return x >= 0 && x < world::CHUNK_WIDTH && y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT && z >= 0 &&
         z < world::CHUNK_WIDTH;

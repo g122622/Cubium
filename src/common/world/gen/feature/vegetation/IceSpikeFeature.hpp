@@ -23,16 +23,14 @@
 
 #pragma once
 
-#include <memory>
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
+#include <memory>
 
 namespace mc {
 
 /**
  * @brief 冰刺特征配置
- *
- * 参考 MC NoFeatureConfig（冰刺特征不需要额外配置）
  */
 struct IceSpikeFeatureConfig : public IFeatureConfig {
     /// 冰刺类型：true = 尖塔型，false = 冰丘型
@@ -56,8 +54,7 @@ struct IceSpikeFeatureConfig : public IFeatureConfig {
 /**
  * @brief 冰刺特征
  *
- * 在冰刺平原生成冰刺结构。
- * 参考 MC IceSpikeFeature
+ * 在冰刺平原生成冰刺结构
  */
 class IceSpikeFeature {
 public:
@@ -75,18 +72,18 @@ private:
     /**
      * @brief 检查冰刺是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 生成尖塔型冰刺
      */
-    void generateSpike(
+    void _generateSpike(
         WorldGenRegion& world, math::Random& random, const BlockPos& basePos, i32 height, i32 baseRadius);
 
     /**
      * @brief 生成冰丘型结构
      */
-    void generateIceberg(
+    void _generateIceberg(
         WorldGenRegion& world, math::Random& random, const BlockPos& basePos, i32 height, i32 baseRadius);
 };
 

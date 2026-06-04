@@ -726,7 +726,7 @@ std::vector<std::string> RocksDBDatabase::listColumnFamilies() const
 // 私有方法
 // ============================================================================
 
-rocksdb::ColumnFamilyOptions RocksDBDatabase::createCFOptions() const
+rocksdb::ColumnFamilyOptions RocksDBDatabase::_createCFOptions() const
 {
     MC_TRACE_EVENT("storage.db", "RocksDBDatabase::createCFOptions");
 

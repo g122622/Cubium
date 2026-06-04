@@ -33,7 +33,7 @@ namespace mc::skin {
 
 HttpSkinLoader::HttpSkinLoader() = default;
 
-HttpSkinLoader::~HttpSkinLoader()
+HttpSkinLoader::~HttpSkinLoader() noexcept
 {
     shutdown();
 }
@@ -83,20 +83,20 @@ Result<SkinLoadResult> HttpSkinLoader::load(const std::string& url)
     SkinLoadResult result;
 
     // 提取哈希
-    std::string hash = extractHashFromUrl(url);
+    std::string hash = _extractHashFromUrl(url);
     if (hash.empty()) {
         std::vector<u8> urlData(url.begin(), url.end());
-        hash = calculateHash(urlData);
+        hash = _calculateHash(urlData);
     }
 
     // 执行 HTTP GET
-    auto httpResult = httpGet(url);
+    auto httpResult = _httpGet(url);
     if (!httpResult.success()) {
         return httpResult.error();
     }
 
     // 验证和转换
-    auto validateResult = validateAndConvertSkin(httpResult.value());
+    auto validateResult = _validateAndConvertSkin(httpResult.value());
     if (!validateResult.success()) {
         return validateResult.error();
     }
@@ -104,7 +104,6 @@ Result<SkinLoadResult> HttpSkinLoader::load(const std::string& url)
     result.pngData = validateResult.value();
     result.hash = hash;
 
-    spdlog::debug("HttpSkinLoader: Downloaded skin from {} ({} bytes)", url, result.pngData.size());
     return result;
 }
 
@@ -134,7 +133,7 @@ void HttpSkinLoader::cancelAll()
     m_pendingLoads.clear();
 }
 
-Result<std::vector<u8>> HttpSkinLoader::httpGet(const std::string& url)
+Result<std::vector<u8>> HttpSkinLoader::_httpGet(const std::string& url)
 {
     // TODO: 实现真正的 HTTP GET
     // 这里需要使用 curl 或 asio 实现
@@ -144,7 +143,7 @@ Result<std::vector<u8>> HttpSkinLoader::httpGet(const std::string& url)
     return Error(ErrorCode::Unsupported, "HTTP GET not implemented");
 }
 
-std::string HttpSkinLoader::extractHashFromUrl(const std::string& url) const
+std::string HttpSkinLoader::_extractHashFromUrl(const std::string& url) const
 {
     // URL 格式: http://textures.minecraft.net/texture/<hash>
     size_t lastSlash = url.rfind('/');
@@ -162,7 +161,7 @@ std::string HttpSkinLoader::extractHashFromUrl(const std::string& url) const
     return "";
 }
 
-Result<std::vector<u8>> HttpSkinLoader::validateAndConvertSkin(const std::vector<u8>& pngData)
+Result<std::vector<u8>> HttpSkinLoader::_validateAndConvertSkin(const std::vector<u8>& pngData)
 {
     // 与 FileSkinLoader 相同的验证逻辑
     // 简化实现：假设数据有效
@@ -174,7 +173,7 @@ Result<std::vector<u8>> HttpSkinLoader::validateAndConvertSkin(const std::vector
     return pngData;
 }
 
-std::string HttpSkinLoader::calculateHash(const std::vector<u8>& data)
+std::string HttpSkinLoader::_calculateHash(const std::vector<u8>& data)
 {
     // 简化的哈希计算
     u64 hash = 0xcbf29ce484222325ULL;

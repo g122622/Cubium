@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../world/chunk/ChunkPos.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
 #include <array>
 #include <cstdint>
-#include <cstring>
 
 namespace mc::world::storage {
 
@@ -76,9 +76,9 @@ struct SectionKey {
      */
     static SectionKey fromBlock(i32 x, i32 y, i32 z, DimensionId dim = 0)
     {
-        return SectionKey(x >> 4,    // chunkX
-            z >> 4,                  // chunkZ
-            static_cast<i8>(y >> 4), // sectionY
+        return SectionKey(x >> CHUNK_SHIFT,      // chunkX
+            z >> CHUNK_SHIFT,                    // chunkZ
+            static_cast<i8>(y >> SECTION_SHIFT), // sectionY
             dim);
     }
 
@@ -93,17 +93,17 @@ struct SectionKey {
     /**
      * @brief 获取Section在世界中的最小Y坐标
      */
-    [[nodiscard]] i32 minY() const noexcept { return static_cast<i32>(sectionY) * 16; }
+    [[nodiscard]] i32 minY() const noexcept { return static_cast<i32>(sectionY) * CHUNK_SECTION_HEIGHT; }
 
     /**
      * @brief 获取Section在世界中的最大Y坐标
      */
-    [[nodiscard]] i32 maxY() const noexcept { return minY() + 15; }
+    [[nodiscard]] i32 maxY() const noexcept { return minY() + CHUNK_SECTION_HEIGHT - 1; }
 
     /**
      * @brief 序列化为二进制（13字节）
      */
-    [[nodiscard]] std::array<u8, 13> serialize() const
+    [[nodiscard]] std::array<u8, 13> serialize() const noexcept
     {
         std::array<u8, 13> data{};
 
@@ -136,7 +136,7 @@ struct SectionKey {
     /**
      * @brief 从二进制反序列化
      */
-    static SectionKey deserialize(const u8* data)
+    static SectionKey deserialize(const u8* data) noexcept
     {
         SectionKey key;
 
@@ -169,15 +169,15 @@ struct SectionKey {
     /**
      * @brief 比较运算符
      */
-    bool operator==(const SectionKey& other) const
+    bool operator==(const SectionKey& other) const noexcept
     {
         return chunkX == other.chunkX && chunkZ == other.chunkZ && sectionY == other.sectionY &&
             dimension == other.dimension;
     }
 
-    bool operator!=(const SectionKey& other) const { return !(*this == other); }
+    bool operator!=(const SectionKey& other) const noexcept { return !(*this == other); }
 
-    bool operator<(const SectionKey& other) const
+    bool operator<(const SectionKey& other) const noexcept
     {
         if (dimension != other.dimension) return dimension < other.dimension;
         if (chunkX != other.chunkX) return chunkX < other.chunkX;

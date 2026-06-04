@@ -68,20 +68,19 @@ Result<SkinLoadResult> FileSkinLoader::load(const std::string& url)
     if (url.find(':') != std::string::npos && url.find("file://") != 0) {
         // 格式: namespace:path
         ResourceLocation location(url);
-        auto loadResult = loadFromResourcePack(location);
+        auto loadResult = _loadFromResourcePack(location);
         if (loadResult.success()) {
             return loadResult;
         }
     }
 
     // 尝试作为文件路径加载
-    return loadFromFilesystem(url);
+    return _loadFromFilesystem(url);
 }
 
 void FileSkinLoader::loadAsync(const std::string& url, std::function<void(Result<SkinLoadResult>)> callback)
 {
-    // 简单实现：同步加载后调用回调
-    // 生产环境应该使用线程池
+    // TODO: 使用线程池实现真正的异步加载
     auto result = load(url);
     callback(std::move(result));
 }
@@ -96,7 +95,7 @@ void FileSkinLoader::cancelAll()
     // 文件加载是同步的，无法取消
 }
 
-Result<SkinLoadResult> FileSkinLoader::loadFromFilesystem(const std::string& path)
+Result<SkinLoadResult> FileSkinLoader::_loadFromFilesystem(const std::string& path)
 {
     SkinLoadResult result;
 
@@ -122,19 +121,18 @@ Result<SkinLoadResult> FileSkinLoader::loadFromFilesystem(const std::string& pat
     }
 
     // 验证和转换
-    auto validateResult = validateAndConvertSkin(data);
+    auto validateResult = _validateAndConvertSkin(data);
     if (!validateResult.success()) {
         return validateResult.error();
     }
 
     result.pngData = validateResult.value();
-    result.hash = calculateHash(result.pngData);
+    result.hash = _calculateHash(result.pngData);
 
-    spdlog::debug("FileSkinLoader: Loaded skin from {} ({} bytes, hash: {})", path, result.pngData.size(), result.hash);
     return result;
 }
 
-Result<SkinLoadResult> FileSkinLoader::loadFromResourcePack(const ResourceLocation& location)
+Result<SkinLoadResult> FileSkinLoader::_loadFromResourcePack(const ResourceLocation& location)
 {
     if (!m_resourcePack) {
         return Error(ErrorCode::NotInitialized, "No resource pack available");
@@ -156,22 +154,18 @@ Result<SkinLoadResult> FileSkinLoader::loadFromResourcePack(const ResourceLocati
     auto& data = readResult.value();
 
     // 验证和转换
-    auto validateResult = validateAndConvertSkin(data);
+    auto validateResult = _validateAndConvertSkin(data);
     if (!validateResult.success()) {
         return validateResult.error();
     }
 
     result.pngData = validateResult.value();
-    result.hash = calculateHash(result.pngData);
+    result.hash = _calculateHash(result.pngData);
 
-    spdlog::debug("FileSkinLoader: Loaded skin from resource pack {} ({} bytes, hash: {})",
-        location.toString(),
-        result.pngData.size(),
-        result.hash);
     return result;
 }
 
-Result<std::vector<u8>> FileSkinLoader::validateAndConvertSkin(const std::vector<u8>& pngData)
+Result<std::vector<u8>> FileSkinLoader::_validateAndConvertSkin(const std::vector<u8>& pngData)
 {
     // 使用 stb_image 解析 PNG
     int width = 0;
@@ -223,17 +217,16 @@ Result<std::vector<u8>> FileSkinLoader::validateAndConvertSkin(const std::vector
 
     stbi_image_free(pixels);
 
-    // 将 RGBA 数据编码回 PNG（简化实现：直接返回 RGBA 数据）
-    // 生产环境应该使用 stb_image_write 编码为 PNG
-    // 这里简化处理，假设调用者会处理原始 RGBA 数据
+    // TODO: 使用 stb_image_write 将 RGBA 数据编码为 PNG 格式
+    // 当前简化处理，直接返回 RGBA 数据，假设调用者会处理原始 RGBA 数据
 
     return result;
 }
 
-std::string FileSkinLoader::calculateHash(const std::vector<u8>& data)
+std::string FileSkinLoader::_calculateHash(const std::vector<u8>& data)
 {
-    // 简化的哈希计算（生产环境应该使用 SHA1）
-    // 这里使用简单的累加哈希作为 fallback
+    // TODO: 实现真正的 SHA1 哈希计算
+    // 当前使用 FNV-1a 哈希作为临时方案
     u64 hash = 0xcbf29ce484222325ULL;       // FNV offset basis
     constexpr u64 prime = 0x100000001b3ULL; // FNV prime
 

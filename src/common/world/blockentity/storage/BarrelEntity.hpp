@@ -44,8 +44,6 @@ namespace blockentity {
  * - 可以面向任意六个方向放置
  * - 打开时改变方块状态
  * - 支持战利品表填充（继承自 LootableContainerBlockEntity）
- *
- * 参考: net.minecraft.tileentity.BarrelTileEntity
  */
 class BarrelEntity : public LootableContainerBlockEntity {
 public:
@@ -63,7 +61,7 @@ public:
     /**
      * @brief 析构函数
      */
-    ~BarrelEntity() override;
+    ~BarrelEntity() noexcept override;
 
     // ========== IInventory 接口实现 ==========
 
@@ -123,7 +121,7 @@ private:
      * @param world 世界引用
      * @param open 是否打开
      */
-    void updateBlockState(IWorld& world, bool open);
+    void _updateBlockState(IWorld& world, bool open);
 
     SimpleInventory m_inventory; ///< 27格物品存储
     i32 m_ticksSinceSync = 0;    ///< 同步计数器

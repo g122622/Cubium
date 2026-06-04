@@ -22,21 +22,21 @@
  */
 
 #include "Template.hpp"
-#include "../../../../entity/core/Entity.hpp"
-#include "../../../../entity/core/EntityRegistry.hpp"
-#include "../../../../entity/core/EntityType.hpp"
-#include "../../../../util/assert/AssertMacros.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/IWorldWriter.hpp"
-#include "../../../../world/block/Block.hpp"
-#include "../../../../world/block/BlockRegistry.hpp"
-#include "../../../../world/block/ILiquidContainer.hpp"
-#include "../../../../world/block/VanillaBlocks.hpp"
-#include "../../../../world/blockentity/BlockEntity.hpp"
-#include "../../../../world/blockentity/BlockEntityType.hpp"
-#include "../../../../world/fluid/Fluid.hpp"
 #include "RuleTest.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/ILiquidContainer.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include <algorithm>
 #include <unordered_map>
 
@@ -53,18 +53,16 @@ using fluid::FluidState;
 // BlockAgeProcessor 常量
 // ============================================================================
 
-// MC 1.16.5: 黑曜石变哭泣黑曜石的概率（固定 15%，不受 mossiness 影响）
-// 参考: BlockAgeProcessor.java
+// 黑曜石变哭泣黑曜石的概率（固定 15%，不受 mossiness 影响）
 static constexpr f32 OBSIDIAN_TO_CRYING_PROBABILITY = 0.15f;
 
-// MC 1.16.5: 石砖类方块不替换的概率
+// 石砖类方块不替换的概率
 static constexpr f32 STONE_BRICK_NO_REPLACE_CHANCE = 0.5f;
 
-// MC 1.16.5: 石砖楼梯苔藓化概率（使用 0.5 而非 mossiness）
-// 参考: BlockMosinessProcessor.func_237067_a_
+// 石砖楼梯苔藓化概率（使用 0.5 而非 mossiness）
 static constexpr f32 STONE_BRICK_STAIRS_MOSS_CHANCE = 0.5f;
 
-// MC 1.16.5: 裂纹石砖生成概率
+// 裂纹石砖生成概率
 static constexpr f32 CRACKED_STONE_BRICK_CHANCE = 0.5f;
 
 // ============================================================================
@@ -303,7 +301,6 @@ PlacementSettings& PlacementSettings::setKeepLiquids(bool keep)
 
 math::Random PlacementSettings::getRandom(const BlockPos& pos) const
 {
-    // MC 1.16.5: PlacementSettings.getRandom(BlockPos)
     // 如果设置了预设随机数，则返回副本；否则基于位置种子创建
     if (m_random) {
         return *m_random;
@@ -352,7 +349,7 @@ const std::vector<const BlockInfo*>& Palette::getBlocksByType(const Block& block
 
     // 构建缓存
     if (!m_cacheBuilt) {
-        buildCache();
+        _buildCache();
     }
 
     it = m_blockTypeCache.find(&block);
@@ -365,9 +362,9 @@ const std::vector<const BlockInfo*>& Palette::getBlocksByType(const Block& block
     return empty;
 }
 
-void Palette::buildCache() const
+void Palette::_buildCache() const
 {
-    // MC 1.16.5: Palette.func_237158_a_ 按方块类型缓存
+    // 按方块类型缓存
     auto& registry = BlockRegistry::instance();
 
     for (const auto& blockInfo : m_blocks) {
@@ -408,7 +405,6 @@ const Palette* Template::selectPalette(math::Random& rng) const
     if (m_palettes.empty()) {
         return nullptr;
     }
-    // MC 1.16.5: PlacementSettings.func_237132_a_
     // 随机选择一个调色板
     size_t index = static_cast<size_t>(rng.nextInt(static_cast<i32>(m_palettes.size())));
     return &m_palettes[index];
@@ -478,7 +474,6 @@ structure::StructureBoundingBox Template::getBoundingBox(const PlacementSettings
 bool Template::place(
     IWorldWriter& world, const BlockPos& pos, const PlacementSettings& settings, math::Random& rng, u32 flags) const
 {
-    // MC 1.16.5: Template.func_237146_a_
     // 选择调色板
     const Palette* selectedPalette = selectPalette(rng);
     if (!selectedPalette || selectedPalette->empty()) {
@@ -497,7 +492,7 @@ bool Template::place(
     // 获取边界框（可选检查）
     const auto* bounds = settings.getBoundingBox();
 
-    // MC 1.16.5: 首先处理方块信息（应用处理器链）
+    // 首先处理方块信息（应用处理器链）
     std::vector<ProcessedBlockInfo> processedBlocks;
     processedBlocks.reserve(blocks.size());
 
@@ -559,7 +554,6 @@ bool Template::place(
         processedBlocks.push_back(std::move(processedBlock));
     }
 
-    // MC 1.16.5: Template.func_237151_a_
     // 方块排序逻辑：按 Y, X, Z 坐标排序，并分为三类
     // 1. 普通方块（无 NBT，有opaque碰撞箱）
     // 2. 其他方块（透明或变量透明度）
@@ -583,7 +577,6 @@ bool Template::place(
             blockEntityBlocks.push_back(std::move(block));
         } else if (state->hasOpaqueCollisionShape()) {
             // 有opaque碰撞箱的方块首先放置
-            // MC 1.16.5: 还需要检查 !isVariableOpacity()
             // 当前项目中所有方块默认 variableOpacity = false
             normalBlocks.push_back(std::move(block));
         } else {
@@ -667,7 +660,6 @@ bool Template::place(
 bool Template::placeInWorld(
     IWorld& world, const BlockPos& pos, const PlacementSettings& settings, math::Random& rng, u32 flags) const
 {
-    // MC 1.16.5: Template.func_237146_a_
     // 选择调色板
     const Palette* selectedPalette = selectPalette(rng);
     if (!selectedPalette || selectedPalette->empty()) {
@@ -765,8 +757,7 @@ bool Template::placeInWorld(
             transformedState = &transformedState->getBlock().rotate(*transformedState, settings.getRotation());
         }
 
-        // MC 1.16.5: 如果有 TileEntity NBT，先清除旧 TileEntity
-        // 参考 Template.func_237146_a_ 第233-237行
+        // 如果有 TileEntity NBT，先清除旧 TileEntity
         if (processedBlock.nbt) {
             BlockEntity* existingEntity = world.getBlockEntity(processedBlock.pos);
             if (existingEntity) {
@@ -792,8 +783,7 @@ bool Template::placeInWorld(
             continue;
         }
 
-        // MC 1.16.5: 处理 TileEntity NBT
-        // 参考 Template.func_237146_a_ 第247-260行
+        // 处理 TileEntity NBT
         if (processedBlock.nbt) {
             BlockEntity* tileEntity = world.getBlockEntity(processedBlock.pos);
             if (tileEntity) {
@@ -802,18 +792,14 @@ bool Template::placeInWorld(
                 processedBlock.nbt->put("y", processedBlock.pos.y);
                 processedBlock.nbt->put("z", processedBlock.pos.z);
 
-                // MC 1.16.5: TileEntity.mirror() 和 TileEntity.rotate() 默认是空实现
-                // 只有 StructureBlockTileEntity 等特定 TileEntity 会重写
                 // 加载 NBT 数据到方块实体
                 tileEntity->loadFromNBT(*processedBlock.nbt);
 
                 // 为战利品表容器设置随机种子
-                // 参考 Template.func_237146_a_ 第253-254行
             }
         }
 
-        // MC 1.16.5: 处理液体填充
-        // 参考 Template.func_237146_a_ 第263-268行
+        // 处理液体填充
         if (fluidState && !fluidState->isEmpty()) {
             Block& block = const_cast<Block&>(transformedState->getBlock());
             ILiquidContainer* liquidContainer = dynamic_cast<ILiquidContainer*>(&block);
@@ -829,12 +815,10 @@ bool Template::placeInWorld(
         }
     }
 
-    // MC 1.16.5: 液体传播处理
-    // 参考 Template.func_237146_a_ 第273-304行
+    // 液体传播处理
     // 如果方块被放置在非源流体位置，需要处理流体传播
     if (!fluidUpdatePositions.empty() && settings.keepLiquids()) {
         // 完整实现：追踪相邻流体并填充容器
-        // 参考 MC 1.16.5: 使用 Direction.UP, NORTH, EAST, SOUTH, WEST 顺序查找
         static const Direction directions[] = {
             Direction::Up, Direction::North, Direction::East, Direction::South, Direction::West};
 
@@ -885,8 +869,7 @@ bool Template::placeInWorld(
         }
     }
 
-    // MC 1.16.5: 处理实体
-    // 参考 Template.addEntitiesToWorld 第412-438行
+    // 处理实体
     if (!settings.ignoreEntities() && !m_entities.empty()) {
         for (const auto& entityInfo : m_entities) {
             // 变换实体位置
@@ -904,7 +887,6 @@ bool Template::placeInWorld(
             }
 
             // 计算精确位置
-            // 参考 MC 1.16.5 Template.getTransformedPos(Vector3d, Mirror, Rotation, BlockPos)
             // 精确位置也需要变换
             f64 entityX = entityInfo.posx;
             f64 entityY = entityInfo.posy;
@@ -923,8 +905,7 @@ bool Template::placeInWorld(
             }
 
             // 应用旋转到精确位置（相对于中心偏移）
-            // 简化实现：只对方块位置应用变换，精确位置跟随方块位置偏移
-            // 完整实现需要类似 Vector3d 变换
+            // TODO: 完整实现需要类似 Vector3d 变换，当前简化实现只对方块位置应用变换，精确位置跟随方块位置偏移
 
             // 加上世界偏移
             entityX += pos.x;
@@ -943,7 +924,6 @@ bool Template::placeInWorld(
                             static_cast<f32>(entityX), static_cast<f32>(entityY), static_cast<f32>(entityZ));
 
                         // 应用镜像和旋转到实体朝向
-                        // 参考 MC 1.16.5 Entity.getMirroredYaw 和 getRotatedYaw
                         f32 yaw = entity->yaw();
                         f32 pitch = entity->pitch();
 
@@ -978,8 +958,7 @@ bool Template::placeInWorld(
                         yaw = math::wrapDegrees(yaw);
                         entity->setRotation(yaw, pitch);
 
-                        // MC 1.16.5: 如果 entityInfo.nbt 存在，应加载 NBT 数据到实体
-                        // 参考 EntityType.loadEntityUnchecked -> entity.read(nbt)
+                        // TODO: 如果 entityInfo.nbt 存在，应加载 NBT 数据到实体
                         // 当前 Entity 系统暂不支持 NBT 加载，完整实现需要：
                         // 1. Entity::loadFromNBT(nbt) 方法
                         // 2. 实体数据参数的 NBT 反序列化
@@ -1069,7 +1048,7 @@ std::optional<ProcessedBlockInfo> GravityStructureProcessor::process(const Block
     const BlockInfo& blockInfo,
     const PlacementSettings& settings)
 {
-    // MC 1.16.5: GravityStructureProcessor 根据高度图调整 Y 坐标
+    // GravityStructureProcessor 根据高度图调整 Y 坐标
     // 如果有世界访问，则获取地面高度；否则使用简化实现
     const IWorld* world = settings.getWorld();
 
@@ -1114,7 +1093,7 @@ std::optional<ProcessedBlockInfo> JigsawReplacementStructureProcessor::process(c
     const BlockInfo& blockInfo,
     const PlacementSettings& /*settings*/)
 {
-    // MC 1.16.5: JigsawReplacementStructureProcessor
+    // JigsawReplacementStructureProcessor
     // 检查方块是否为 Jigsaw 方块
     // 如果是，读取 NBT 中的 final_state 字段并解析为新的方块状态
 
@@ -1269,18 +1248,13 @@ std::optional<ProcessedBlockInfo> IntegrityProcessor::process(const BlockPos& /*
     const BlockInfo& blockInfo,
     const PlacementSettings& /*settings*/)
 {
-    // MC 1.16.5: IntegrityProcessor.func_230386_a_
     // 使用位置种子创建确定性随机数生成器
     // 关键：使用变换后的世界坐标 (blockInfo.pos)，而非模板内坐标
     u64 seed = math::getPositionRandom(blockInfo.pos.x, blockInfo.pos.y, blockInfo.pos.z);
     math::Random rng(seed);
 
-    // MC 1.16.5 核心逻辑：
-    // if (this.integrity >= 1.0F) return blockInfo;  // 完整度 >= 1.0，保留所有方块
-    // if (random.nextFloat() <= this.integrity) return blockInfo;  // 随机判断
-    // return null;  // 移除方块
-
     // 完整度 >= 1.0：保留所有方块
+    // 随机判断是否保留方块：nextFloat() 返回 [0.0, 1.0)，所以 <= integrity 的概率正好是 integrity
     if (m_integrity >= 1.0f) {
         return ProcessedBlockInfo::fromBlockInfo(blockInfo);
     }
@@ -1309,7 +1283,6 @@ std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(const BlockPos
     const BlockInfo& blockInfo,
     const PlacementSettings& settings)
 {
-    // MC 1.16.5: RuleStructureProcessor.func_230386_a_
     // 遍历所有规则，找到第一个匹配的规则
     // 使用位置种子创建确定性随机数生成器
     u64 seed = math::getPositionRandom(blockInfo.pos.x, blockInfo.pos.y, blockInfo.pos.z);
@@ -1350,7 +1323,7 @@ std::optional<ProcessedBlockInfo> NopStructureProcessor::process(const BlockPos&
     const BlockInfo& blockInfo,
     const PlacementSettings& /*settings*/)
 {
-    // MC 1.16.5: NopProcessor 直接返回原始方块信息
+    // 直接返回原始方块信息
     return ProcessedBlockInfo::fromBlockInfo(blockInfo);
 }
 
@@ -1364,7 +1337,7 @@ std::optional<ProcessedBlockInfo> LavaSubmergingProcessor::process(const BlockPo
     const BlockInfo& blockInfo,
     const PlacementSettings& settings)
 {
-    // MC 1.16.5: LavaSubmergingProcessor
+    // LavaSubmergingProcessor
     // 如果当前位置是岩浆，且模板方块不透明，则替换为岩浆
     const IWorld* world = settings.getWorld();
     if (!world) {
@@ -1392,7 +1365,6 @@ std::optional<ProcessedBlockInfo> LavaSubmergingProcessor::process(const BlockPo
     }
 
     // 检查模板方块是否不透明
-    // MC 1.16.5: Block.isOpaque 检查方块形状是否不透明
     // 如果不透明，则让岩浆保留；如果透明，则放置模板方块
     bool isOpaque = templateState->isOpaque();
 
@@ -1424,7 +1396,7 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(const BlockPos& see
     const BlockInfo& blockInfo,
     const PlacementSettings& settings)
 {
-    // MC 1.16.5: BlockAgeProcessor / BlockMosinessProcessor
+    // BlockAgeProcessor / BlockMosinessProcessor
     // 随机将石砖相关方块替换为苔藓化或裂变版本
 
     const BlockState* state = BlockRegistry::instance().getBlockState(blockInfo.blockStateId);
@@ -1442,7 +1414,7 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(const BlockPos& see
     result.pos = blockInfo.pos;
     result.blockStateId = blockInfo.blockStateId; // 默认保持原样
 
-    // MC 1.16.5: 黑曜石 -> 哭泣黑曜石（固定 15% 概率，不受 mossiness 影响）
+    // 黑曜石 -> 哭泣黑曜石（固定 15% 概率，不受 mossiness 影响）
     if (VanillaBlocks::OBSIDIAN && &block == VanillaBlocks::OBSIDIAN) {
         if (rng.nextFloat() < OBSIDIAN_TO_CRYING_PROBABILITY && VanillaBlocks::CRYING_OBSIDIAN) {
             result.blockStateId = VanillaBlocks::CRYING_OBSIDIAN->defaultState().stateId();
@@ -1453,7 +1425,7 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(const BlockPos& see
         return result;
     }
 
-    // MC 1.16.5: 石砖类方块处理（石砖、石头、錾刻石砖）
+    // 石砖类方块处理（石砖、石头、錾刻石砖）
     bool isStoneBrickType = (VanillaBlocks::STONE_BRICKS && &block == VanillaBlocks::STONE_BRICKS) ||
         (VanillaBlocks::STONE && &block == VanillaBlocks::STONE) ||
         (VanillaBlocks::CHISELED_STONE_BRICKS && &block == VanillaBlocks::CHISELED_STONE_BRICKS);
@@ -1486,7 +1458,7 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(const BlockPos& see
         return result;
     }
 
-    // MC 1.16.5: 圆石 -> 苔藓圆石
+    // 圆石 -> 苔藓圆石
     if (VanillaBlocks::COBBLESTONE && &block == VanillaBlocks::COBBLESTONE) {
         if (rng.nextFloat() < m_mossiness && VanillaBlocks::MOSSY_COBBLESTONE) {
             result.blockStateId = VanillaBlocks::MOSSY_COBBLESTONE->defaultState().stateId();
@@ -1497,9 +1469,9 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(const BlockPos& see
         return result;
     }
 
-    // MC 1.16.5: 石砖楼梯 -> 苔藓石砖楼梯
-    // BlockMosinessProcessor.func_237067_a_
+    // 石砖楼梯 -> 苔藓石砖楼梯
     // 注意：当前简化实现使用默认状态，不保留原方块的 facing/half 属性
+    // TODO: 保留原方块的属性
     if (VanillaBlocks::STONE_BRICK_STAIRS && &block == VanillaBlocks::STONE_BRICK_STAIRS) {
         if (rng.nextFloat() < STONE_BRICK_STAIRS_MOSS_CHANCE && VanillaBlocks::MOSSY_STONE_BRICK_STAIRS) {
             result.blockStateId = VanillaBlocks::MOSSY_STONE_BRICK_STAIRS->defaultState().stateId();
@@ -1510,8 +1482,7 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(const BlockPos& see
         return result;
     }
 
-    // MC 1.16.5: 石砖台阶 -> 苔藓石砖台阶
-    // BlockMosinessProcessor.func_237070_b_
+    // 石砖台阶 -> 苔藓石砖台阶
     if (VanillaBlocks::STONE_BRICK_SLAB && &block == VanillaBlocks::STONE_BRICK_SLAB) {
         if (rng.nextFloat() < m_mossiness && VanillaBlocks::MOSSY_STONE_BRICK_SLAB) {
             result.blockStateId = VanillaBlocks::MOSSY_STONE_BRICK_SLAB->defaultState().stateId();
@@ -1522,8 +1493,7 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(const BlockPos& see
         return result;
     }
 
-    // MC 1.16.5: 石砖墙 -> 苔藓石砖墙
-    // BlockMosinessProcessor.func_237071_c_
+    // 石砖墙 -> 苔藓石砖墙
     if (VanillaBlocks::STONE_BRICK_WALL && &block == VanillaBlocks::STONE_BRICK_WALL) {
         if (rng.nextFloat() < m_mossiness && VanillaBlocks::MOSSY_STONE_BRICK_WALL) {
             result.blockStateId = VanillaBlocks::MOSSY_STONE_BRICK_WALL->defaultState().stateId();
@@ -1548,8 +1518,7 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(const BlockPos& see
 
 BlackstoneReplacementProcessor::BlackstoneReplacementProcessor()
 {
-    // MC 1.16.5: BlackStoneReplacementProcessor
-    // 参考 BlackStoneReplacementProcessor.java 第18-42行
+    // 黑石替换映射：将普通石质方块替换为黑石变体，用于堡垒遗迹
 
     auto& registry = BlockRegistry::instance();
 
@@ -1689,8 +1658,6 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(const 
     const BlockInfo& blockInfo,
     const PlacementSettings& /*settings*/)
 {
-    // MC 1.16.5: BlackStoneReplacementProcessor.func_230386_a_
-    // 参考 BlackStoneReplacementProcessor.java 第47-68行
 
     const BlockState* state = BlockRegistry::instance().getBlockState(blockInfo.blockStateId);
     if (!state) {
@@ -1714,7 +1681,7 @@ std::optional<ProcessedBlockInfo> BlackstoneReplacementProcessor::process(const 
             const auto& sourceContainer = sourceBlock.stateContainer();
             const auto& targetContainer = targetBlock->stateContainer();
 
-            // MC 1.16.5: 保持兼容的方块状态属性
+            // 保持兼容的方块状态属性
             // 参考 BlackStoneReplacementProcessor.java 第54-65行
 
             // 尝试复制 FACING 属性（用于楼梯、墙等）

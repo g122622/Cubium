@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../IWaterLoggable.hpp"
-#include "../../Material.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/IWaterLoggable.hpp"
+#include "common/world/block/Material.hpp"
 #include <array>
 
 namespace mc {
@@ -49,8 +49,6 @@ namespace blocks {
  * - HALF: 上半/下半 (TOP, BOTTOM) - 楼梯是正放还是倒放
  * - SHAPE: 楼梯形状 (STRAIGHT, INNER_LEFT, INNER_RIGHT, OUTER_LEFT, OUTER_RIGHT)
  * - WATERLOGGED: 是否含水
- *
- * 参考: net.minecraft.block.StairsBlock
  */
 class StairsBlock : public Block, public IWaterLoggable {
 public:
@@ -93,7 +91,6 @@ public:
      * @brief 是否使用形状进行光照遮挡检测
      *
      * 楼梯有复杂的形状，需要精确的形状遮挡检测。
-     * 参考: MC 1.16.5 StairsBlock.isTransparent() 相关逻辑
      */
     [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
     {
@@ -147,7 +144,7 @@ private:
      * @param pos 位置
      * @return 楼梯形状
      */
-    [[nodiscard]] BlockStateProperties::StairsShape calculateShape(
+    [[nodiscard]] BlockStateProperties::StairsShape _calculateShape(
         const BlockState& state, IWorld& world, const BlockPos& pos) const;
 
     /**
@@ -156,8 +153,9 @@ private:
      * @param pos 位置
      * @param facing 检查方向
      * @return 如果是楼梯返回其形状，否则返回nullopt
+     * TODO: 此函数尚未实现，待后续完善
      */
-    [[nodiscard]] std::optional<BlockStateProperties::StairsShape> neighborIsStairs(
+    [[nodiscard]] std::optional<BlockStateProperties::StairsShape> _neighborIsStairs(
         IWorld& world, const BlockPos& pos, Direction facing) const;
 
     /**
@@ -168,7 +166,7 @@ private:
      * @param face 检查方向
      * @return 如果该方向是不同的楼梯（或不是楼梯）返回true
      */
-    [[nodiscard]] bool isDifferentStairs(
+    [[nodiscard]] bool _isDifferentStairs(
         const BlockState& state, IWorld& world, const BlockPos& pos, Direction face) const;
 
     /**
@@ -176,14 +174,14 @@ private:
      * @param state 方块状态
      * @return 状态索引 (0-19)
      */
-    [[nodiscard]] static size_t getStateIndex(const BlockState& state);
+    [[nodiscard]] static size_t _getStateIndex(const BlockState& state);
 
     /**
      * @brief 根据状态获取形状
      * @param state 方块状态
      * @return 形状的常量引用
      */
-    [[nodiscard]] const CollisionShape& getShapeForState(const BlockState& state) const;
+    [[nodiscard]] const CollisionShape& _getShapeForState(const BlockState& state) const;
 
     /// 源方块状态（用于继承属性如硬度、抗性等）
     const BlockState* m_baseState;

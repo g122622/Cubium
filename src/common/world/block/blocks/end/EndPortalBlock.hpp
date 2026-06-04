@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../Block.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 
@@ -39,12 +39,14 @@ namespace blocks {
  * 由末地传送门框架组成，放满末影之眼后激活。
  *
  * 状态属性：无
- *
- * 参考: net.minecraft.block.EndPortalBlock
  */
 class EndPortalBlock : public Block {
 public:
     explicit EndPortalBlock(const BlockProperties& properties);
+    EndPortalBlock(const EndPortalBlock&) = delete;
+    EndPortalBlock& operator=(const EndPortalBlock&) = delete;
+    EndPortalBlock(EndPortalBlock&&) noexcept = default;
+    EndPortalBlock& operator=(EndPortalBlock&&) noexcept = default;
     ~EndPortalBlock() override = default;
 
     // ========== 实体交互 ==========

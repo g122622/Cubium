@@ -31,17 +31,39 @@
 
 namespace mc::world::storage::reader::bedrock {
 
+/**
+ * @brief 基岩版区块列读取器
+ *
+ * 负责从LevelDB数据库中读取完整的区块列（Column）数据，
+ * 包括所有子区块和生物群系/高度数据。
+ */
 class BedrockColumnReader {
 public:
     explicit BedrockColumnReader(BedrockChunkReader& chunkReader);
 
+    /**
+     * @brief 读取完整的区块列数据
+     *
+     * @param x 区块X坐标
+     * @param z 区块Z坐标
+     * @param dimension 维度ID
+     * @param db LevelDB数据库实例
+     * @return 成功返回ChunkData，区块不存在返回空指针，失败返回错误
+     */
     [[nodiscard]] Result<std::unique_ptr<ChunkData>> readColumn(
         ChunkCoord x, ChunkCoord z, DimensionId dimension, BedrockLevelDb& db);
 
 private:
-    [[nodiscard]] Result<void> readSubChunks(
+    /**
+     * @brief 读取所有子区块数据
+     */
+    [[nodiscard]] Result<void> _readSubChunks(
         ChunkCoord x, ChunkCoord z, DimensionId dimension, BedrockLevelDb& db, ChunkData& chunk);
-    [[nodiscard]] Result<void> readBiomeAndHeight(
+
+    /**
+     * @brief 读取生物群系和高度数据
+     */
+    [[nodiscard]] Result<void> _readBiomeAndHeight(
         ChunkCoord x, ChunkCoord z, DimensionId dimension, BedrockLevelDb& db, ChunkData& chunk);
 
     BedrockChunkReader& m_chunkReader;

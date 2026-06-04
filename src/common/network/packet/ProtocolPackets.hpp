@@ -23,14 +23,14 @@
 
 #pragma once
 
-#include "../../core/Result.hpp"
-#include "../../core/Types.hpp"
-#include "../../util/Direction.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../../world/block/BlockPos.hpp"
-#include "common/perfetto/TraceEvents.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
 #include "PacketSerializer.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
 #include <memory>
 
 namespace mc::network {
@@ -845,8 +845,10 @@ public:
         if (zResult.failed()) return zResult.error();
         packet.m_z = zResult.value();
 
-        MC_TRACE_INSTANT("client.network", "readChunkCoordinates", [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(packet.m_x, packet.m_z).toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
+        MC_TRACE_INSTANT("client.network",
+            "readChunkCoordinates",
+            [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(packet.m_x, packet.m_z).toId())](
+                ::perfetto::EventContext ctx) { flow(ctx); });
 
         auto dimResult = deser.readI32();
         if (dimResult.failed()) return dimResult.error();

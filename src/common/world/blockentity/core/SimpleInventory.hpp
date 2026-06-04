@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../../entity/inventory/IInventory.hpp"
+#include "entity/inventory/IInventory.hpp"
 #include <functional>
 #include <vector>
 
@@ -69,11 +69,20 @@ public:
      */
     ~SimpleInventory() override = default;
 
+    // ========== 移动语义 ==========
+
+    SimpleInventory(SimpleInventory&& other) noexcept;
+    SimpleInventory& operator=(SimpleInventory&& other) noexcept;
+
+    // 禁止拷贝（包含 std::function）
+    SimpleInventory(const SimpleInventory&) = delete;
+    SimpleInventory& operator=(const SimpleInventory&) = delete;
+
     // ========== IInventory 接口实现 ==========
 
-    [[nodiscard]] i32 getContainerSize() const override { return static_cast<i32>(m_items.size()); }
+    [[nodiscard]] i32 getContainerSize() const noexcept override { return static_cast<i32>(m_items.size()); }
     [[nodiscard]] bool isEmpty() const override;
-    [[nodiscard]] i32 getMaxStackSize() const override { return m_maxStackSize; }
+    [[nodiscard]] i32 getMaxStackSize() const noexcept override { return m_maxStackSize; }
     [[nodiscard]] ItemStack getItem(i32 slot) const override;
     void setItem(i32 slot, const ItemStack& stack) override;
     ItemStack removeItem(i32 slot, i32 count) override;
@@ -89,7 +98,7 @@ public:
      * @brief 设置最大堆叠数量
      * @param maxStackSize 最大堆叠数量（默认64）
      */
-    void setMaxStackSize(i32 maxStackSize) { m_maxStackSize = maxStackSize; }
+    void setMaxStackSize(i32 maxStackSize) noexcept { m_maxStackSize = maxStackSize; }
 
     /**
      * @brief 设置变更回调
@@ -123,13 +132,13 @@ public:
      * @param slot 槽位索引
      * @return 如果为空返回true
      */
-    [[nodiscard]] bool isSlotEmpty(i32 slot) const;
+    [[nodiscard]] bool isSlotEmpty(i32 slot) const noexcept;
 
     /**
      * @brief 获取非空槽位数量
      * @return 非空槽位数量
      */
-    [[nodiscard]] i32 getNonEmptySlotCount() const;
+    [[nodiscard]] i32 getNonEmptySlotCount() const noexcept;
 
     /**
      * @brief 遍历所有物品
@@ -157,12 +166,15 @@ private:
      * @param slot 槽位索引
      * @return 如果有效返回true
      */
-    [[nodiscard]] bool isValidSlot(i32 slot) const { return slot >= 0 && slot < static_cast<i32>(m_items.size()); }
+    [[nodiscard]] bool _isValidSlot(i32 slot) const noexcept
+    {
+        return slot >= 0 && slot < static_cast<i32>(m_items.size());
+    }
 
     /**
      * @brief 触发变更回调
      */
-    void onChanged();
+    void _onChanged();
 
     std::vector<ItemStack> m_items;
     i32 m_maxStackSize = 64;

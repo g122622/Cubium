@@ -22,11 +22,11 @@
  */
 
 #include "RuleTest.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../block/Block.hpp"
-#include "../../../block/BlockRegistry.hpp"
-#include "../../../block/BlockTags.hpp"
+#include "util/assert/AssertAll.hpp"
+#include "util/math/MathUtils.hpp"
+#include "world/block/Block.hpp"
+#include "world/block/BlockRegistry.hpp"
+#include "world/block/BlockTags.hpp"
 
 namespace mc {
 namespace world {
@@ -125,7 +125,6 @@ bool TagMatchRuleTest::test(const BlockState* state, math::Random& /*rng*/) cons
     if (!state) {
         return false;
     }
-    // MC 1.16.5: TagMatchRuleTest.test() - state.isIn(tag)
     // 获取标签并检查方块是否在其中
     BlockTag* tag = BlockTags::getTag(m_tagId);
     if (!tag) {
@@ -144,16 +143,14 @@ LinearPosRuleTest::LinearPosRuleTest(i32 minDistance, i32 maxDistance, f32 minPr
     , m_minProbability(minProbability)
     , m_maxProbability(maxProbability)
 {
-    // MC 1.16.5: 当 minDistance == maxDistance 时，概率固定为 minProbability
+    // 当 minDistance == maxDistance 时，概率固定为 minProbability
     // 仅当 minDistance > maxDistance 时才是无效参数
-    // 参考: LinearPosTest 构造函数 - if (minDist > maxDist) throw IllegalArgumentException
     MC_ASSERT_RELEASE(minDistance <= maxDistance);
 }
 
 bool LinearPosRuleTest::test(
     const BlockPos& /*originalPos*/, const BlockPos& worldPos, const BlockPos& seedPos, math::Random& rng) const
 {
-    // MC 1.16.5: LinearPosTest.func_230385_a_
     // 使用曼哈顿距离（Manhattan distance）
     i32 distance = worldPos.manhattanDistance(seedPos);
     f32 randomValue = rng.nextFloat();
@@ -180,16 +177,14 @@ AxisAlignedLinearPosTest::AxisAlignedLinearPosTest(
     , m_maxDistance(maxDistance)
     , m_axis(axis)
 {
-    // MC 1.16.5: 当 minDistance == maxDistance 时，概率固定为 minProbability
+    // 当 minDistance == maxDistance 时，概率固定为 minProbability
     // 仅当 minDistance > maxDistance 时才是无效参数
-    // 参考: AxisAlignedLinearPosTest 构造函数 - if (minDist > maxDist) throw IllegalArgumentException
     MC_ASSERT_RELEASE(minDistance <= maxDistance);
 }
 
 bool AxisAlignedLinearPosTest::test(
     const BlockPos& /*originalPos*/, const BlockPos& worldPos, const BlockPos& seedPos, math::Random& rng) const
 {
-    // MC 1.16.5: AxisAlignedLinearPosTest.func_230385_a_
     // 计算指定轴方向上的距离
     i32 distance = 0;
     switch (m_axis) {
@@ -251,7 +246,6 @@ bool RuleEntry::matches(const BlockState* inputState,
     const BlockPos& seedPos,
     math::Random& rng) const
 {
-    // MC 1.16.5: RuleEntry.func_237110_a_
     // 三个条件必须全部满足
     if (m_inputPredicate && !m_inputPredicate->test(inputState, rng)) {
         return false;

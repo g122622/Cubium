@@ -47,8 +47,6 @@ namespace blocks {
  * - getDelay(): 返回延迟tick数
  * - shouldBePowered(): 判断是否应该输出信号
  * - calculateOutputSignal(): 计算输出信号强度
- *
- * 参考: net.minecraft.block.RedstoneDiodeBlock
  */
 class RedstoneDiodeBlock : public Block {
 public:
@@ -86,7 +84,7 @@ public:
     /**
      * @brief 获取强信号强度
      *
-     * MC Java: 二极管输出的是强信号，可以充能方块。
+     * 二极管输出的是强信号，可以充能方块。
      *
      * @param state 方块状态
      * @param world 世界引用
@@ -203,7 +201,6 @@ protected:
     /**
      * @brief 通知邻居方块更新
      *
-     * MC Java: notifyNeighbors
      * 当二极管放置或移除时，需要通知输入端周围的方块更新。
      *
      * @param world 世界引用

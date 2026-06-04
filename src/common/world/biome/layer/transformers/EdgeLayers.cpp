@@ -47,10 +47,6 @@ i32 CoolWarmEdgeLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, 
 {
     (void)ctx; // 未使用
 
-    // 参考 MC EdgeLayer.CoolWarm.apply:
-    // return center != 1 || north != 3 && west != 3 && east != 3 && south != 3 &&
-    //        north != 4 && west != 4 && east != 4 && south != 4 ? center : 2;
-
     // 如果中心不是温暖区域(1)，保持不变
     if (center != BiomeValues::Climate::Warm) {
         return center;
@@ -75,10 +71,6 @@ i32 HeatIceEdgeLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i
 {
     (void)ctx; // 未使用
 
-    // 参考 MC EdgeLayer.HeatIce.apply:
-    // return center != 4 || north != 1 && west != 1 && east != 1 && south != 1 &&
-    //        north != 2 && west != 2 && east != 2 && south != 2 ? center : 3;
-
     // 如果中心不是冰冻区域(4)，保持不变
     if (center != BiomeValues::Climate::Icy) {
         return center;
@@ -101,12 +93,6 @@ i32 HeatIceEdgeLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i
 
 i32 SpecialEdgeLayer::apply(IAreaContext& ctx, i32 value)
 {
-    // 参考 MC EdgeLayer.Special.apply:
-    // if (!LayerUtil.isShallowOcean(value) && context.random(13) == 0) {
-    //     value |= 1 + context.random(15) << 8 & 3840;
-    // }
-    // return value;
-
     // 浅海不变
     if (BiomeValues::isShallowOcean(value)) {
         return value;
@@ -129,9 +115,6 @@ i32 SpecialEdgeLayer::apply(IAreaContext& ctx, i32 value)
 i32 BiomeEdgeLayer::apply(IAreaContext& ctx, i32 north, i32 east, i32 south, i32 west, i32 center)
 {
     (void)ctx; // 未使用
-
-    // 参考 MC EdgeBiomeLayer.apply:
-    // 这是一个复杂的层，处理多种生物群系的边缘过渡
 
     // 处理山地边缘 (mountain_edge)
     if (BiomeValues::areBiomesSimilar(center, BiomeValues::Mountains)) {

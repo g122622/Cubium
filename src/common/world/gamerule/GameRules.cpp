@@ -25,9 +25,7 @@
  * @file GameRules.cpp
  * @brief 游戏规则容器实现
  *
- * 参考 MC 1.16.5: net.minecraft.world.GameRules
- *
- * 包含所有 MC 1.16.5 游戏规则的定义和默认值。
+ * 包含所有游戏规则的定义和默认值。
  */
 
 #include "GameRules.hpp"
@@ -218,18 +216,18 @@ const IntegerGameRuleKey MAX_COMMAND_CHAIN_LENGTH("maxCommandChainLength", GameR
 
 GameRules::GameRules()
 {
-    initializeRules();
+    _initializeRules();
 }
 
 GameRules::GameRules(const nbt::tags::compound_tag& nbt)
 {
-    initializeRules();
+    _initializeRules();
     read(nbt);
 }
 
 GameRules::GameRules(const GameRules& other)
 {
-    initializeRules();
+    _initializeRules();
     // 复制值
     for (const auto& [name, value] : other.m_booleanRules) {
         m_booleanRules[name] = value.clone();
@@ -238,6 +236,11 @@ GameRules::GameRules(const GameRules& other)
         m_integerRules[name] = value.clone();
     }
 }
+
+GameRules::GameRules(GameRules&& other) noexcept
+    : m_booleanRules(std::move(other.m_booleanRules))
+    , m_integerRules(std::move(other.m_integerRules))
+{}
 
 GameRules& GameRules::operator=(const GameRules& other)
 {
@@ -253,7 +256,16 @@ GameRules& GameRules::operator=(const GameRules& other)
     return *this;
 }
 
-void GameRules::initializeRules()
+GameRules& GameRules::operator=(GameRules&& other) noexcept
+{
+    if (this != &other) {
+        m_booleanRules = std::move(other.m_booleanRules);
+        m_integerRules = std::move(other.m_integerRules);
+    }
+    return *this;
+}
+
+void GameRules::_initializeRules()
 {
     const auto& registry = getRegistry();
 
@@ -488,7 +500,7 @@ bool GameRules::reset(const std::string& ruleName, server::MinecraftServer* serv
 // NBT 辅助方法
 // ============================================================================
 
-bool GameRules::getBooleanFromNbt(const nbt::tags::compound_tag& nbt, const std::string& key, bool defaultValue)
+bool GameRules::_getBooleanFromNbt(const nbt::tags::compound_tag& nbt, const std::string& key, bool defaultValue)
 {
     auto it = nbt.value.find(key);
     if (it != nbt.value.end()) {
@@ -504,7 +516,7 @@ bool GameRules::getBooleanFromNbt(const nbt::tags::compound_tag& nbt, const std:
     return defaultValue;
 }
 
-i32 GameRules::getIntFromNbt(const nbt::tags::compound_tag& nbt, const std::string& key, i32 defaultValue)
+i32 GameRules::_getIntFromNbt(const nbt::tags::compound_tag& nbt, const std::string& key, i32 defaultValue)
 {
     auto it = nbt.value.find(key);
     if (it != nbt.value.end()) {

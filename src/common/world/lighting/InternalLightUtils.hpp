@@ -36,8 +36,6 @@ class BlockPos;
  *
  * 提供用于游戏机制的内部光照计算。
  * 内部光照考虑天空减暗、天气等因素。
- *
- * 参考: net.minecraft.world.World (getLight, getLightSubtracted等方法)
  */
 namespace InternalLightUtils {
 
@@ -51,10 +49,8 @@ namespace InternalLightUtils {
  * @param isRaining 是否下雨
  * @param isThundering 是否雷暴
  * @return 天空减暗因子 (0-11)
- *
- * 参考: net.minecraft.world.World#calculateSkylightSubtracted
  */
-[[nodiscard]] i32 calculateSkyDarkening(i64 dayTime, bool isRaining, bool isThundering);
+[[nodiscard]] i32 calculateSkyDarkening(i64 dayTime, bool isRaining, bool isThundering) noexcept;
 
 /**
  * @brief 计算指定时间的默认天空减暗
@@ -64,7 +60,7 @@ namespace InternalLightUtils {
  * @param dayTime 世界时间（可以是任意值，内部会取模）
  * @return 天空减暗因子 (0-11)
  */
-[[nodiscard]] i32 calculateDefaultSkyDarkening(i64 dayTime);
+[[nodiscard]] i32 calculateDefaultSkyDarkening(i64 dayTime) noexcept;
 
 /**
  * @brief 使用角度计算天空减暗
@@ -72,7 +68,7 @@ namespace InternalLightUtils {
  * @param celestialAngle 天体角度 (0.0-1.0)
  * @return 天空减暗因子 (0-11)
  */
-[[nodiscard]] i32 calculateSkyDarkeningFromAngle(f32 celestialAngle);
+[[nodiscard]] i32 calculateSkyDarkeningFromAngle(f32 celestialAngle) noexcept;
 
 /**
  * @brief 计算内部光照等级
@@ -84,7 +80,7 @@ namespace InternalLightUtils {
  * @param skyLight 天空光照等级 (0-15)，应该已经减去天空减暗因子
  * @return 内部光照等级 (0-15)
  */
-[[nodiscard]] i32 calculateInternalLight(u8 blockLight, u8 skyLight);
+[[nodiscard]] i32 calculateInternalLight(u8 blockLight, u8 skyLight) noexcept;
 
 /**
  * @brief 计算原始亮度
@@ -96,10 +92,8 @@ namespace InternalLightUtils {
  * @param skyLight 天空光照等级 (0-15，未减暗)
  * @param skyDarkening 天空减暗因子 (0-11)
  * @return 原始亮度 (0-15)
- *
- * 参考: net.minecraft.world.World#getLightSubtracted
  */
-[[nodiscard]] i32 calculateRawBrightness(u8 blockLight, u8 skyLight, i32 skyDarkening);
+[[nodiscard]] i32 calculateRawBrightness(u8 blockLight, u8 skyLight, i32 skyDarkening) noexcept;
 
 /**
  * @brief 检查位置是否足够黑暗以生成敌对生物
@@ -107,7 +101,7 @@ namespace InternalLightUtils {
  * @param rawBrightness 原始亮度
  * @return 如果足够黑暗返回true
  */
-[[nodiscard]] bool isDarkEnoughForSpawning(i32 rawBrightness);
+[[nodiscard]] bool isDarkEnoughForSpawning(i32 rawBrightness) noexcept;
 
 /**
  * @brief 检查位置是否足够明亮以防止敌对生物生成
@@ -115,7 +109,7 @@ namespace InternalLightUtils {
  * @param rawBrightness 原始亮度
  * @return 如果足够明亮返回true
  */
-[[nodiscard]] bool isBrightEnoughToPreventSpawning(i32 rawBrightness);
+[[nodiscard]] bool isBrightEnoughToPreventSpawning(i32 rawBrightness) noexcept;
 
 /**
  * @brief 检查是否可以睡觉
@@ -124,7 +118,7 @@ namespace InternalLightUtils {
  * @param isThundering 是否雷暴
  * @return 如果可以睡觉返回true
  */
-[[nodiscard]] bool canSleep(i32 rawBrightness, bool isThundering);
+[[nodiscard]] bool canSleep(i32 rawBrightness, bool isThundering) noexcept;
 
 /**
  * @brief 获取天体角度
@@ -136,13 +130,12 @@ namespace InternalLightUtils {
  * @return 天体角度 (0.0-1.0)
  *         0.0 = 日出, 0.25 = 正午, 0.5 = 日落, 0.75 = 午夜
  */
-[[nodiscard]] f32 getCelestialAngle(i64 dayTime);
+[[nodiscard]] f32 getCelestialAngle(i64 dayTime) noexcept;
 
 /**
- * @brief 获取 MC 1.16.5 原版天体角度
+ * @brief 获取原版天体角度
  *
- * 使用 MC 1.16.5 原版公式计算天体角度。
- * 参考: net.minecraft.world.DimensionType.func_236032_b_()
+ * 使用原版公式计算天体角度。
  *
  * 公式:
  *   d0 = frac(dayTime / 24000.0 - 0.25)
@@ -160,7 +153,7 @@ namespace InternalLightUtils {
  *   - dayTime = 18000 (午夜) → celestialAngle = 0.5
  *   - dayTime = 22000-22600 (黎明) → celestialAngle ≈ 0.65-0.69
  */
-[[nodiscard]] f32 getCelestialAngleMC(i64 dayTime);
+[[nodiscard]] f32 getCelestialAngleMC(i64 dayTime) noexcept;
 
 /**
  * @brief 获取太阳高度角
@@ -170,7 +163,7 @@ namespace InternalLightUtils {
  * @param celestialAngle 天体角度 (0.0-1.0)
  * @return 太阳高度角 (弧度)
  */
-[[nodiscard]] f32 getSunAngle(f32 celestialAngle);
+[[nodiscard]] f32 getSunAngle(f32 celestialAngle) noexcept;
 
 /**
  * @brief 检查是否为白天
@@ -178,7 +171,7 @@ namespace InternalLightUtils {
  * @param dayTime 世界时间
  * @return 如果是白天返回true
  */
-[[nodiscard]] bool isDaytime(i64 dayTime);
+[[nodiscard]] bool isDaytime(i64 dayTime) noexcept;
 
 /**
  * @brief 检查是否为夜晚
@@ -186,7 +179,7 @@ namespace InternalLightUtils {
  * @param dayTime 世界时间
  * @return 如果是夜晚返回true
  */
-[[nodiscard]] bool isNighttime(i64 dayTime);
+[[nodiscard]] bool isNighttime(i64 dayTime) noexcept;
 
 /**
  * @brief 月相索引
@@ -194,7 +187,7 @@ namespace InternalLightUtils {
  * @param dayTime 世界时间
  * @return 月相索引 (0-7)
  */
-[[nodiscard]] i32 getMoonPhase(i64 dayTime);
+[[nodiscard]] i32 getMoonPhase(i64 dayTime) noexcept;
 
 /**
  * @brief 月亮亮度因子
@@ -202,7 +195,7 @@ namespace InternalLightUtils {
  * @param moonPhase 月相索引 (0-7)
  * @return 月亮亮度因子 (0.0-1.0)
  */
-[[nodiscard]] f32 getMoonBrightness(i32 moonPhase);
+[[nodiscard]] f32 getMoonBrightness(i32 moonPhase) noexcept;
 
 } // namespace InternalLightUtils
 

@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../../physics/collision/CollisionShape.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../../blockentity/BlockEntityType.hpp"
-#include "../Block.hpp"
-#include "../BlockPos.hpp"
-#include "../Material.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include <memory>
 
 namespace mc {
@@ -45,8 +45,6 @@ namespace blocks {
  * 方块状态属性：
  * - FACING: 输出方向（下/北/南/东/西，不能向上）
  * - ENABLED: 是否启用（红石控制）
- *
- * 参考: net.minecraft.block.HopperBlock
  *
  * 功能：
  * - 自动从上方容器或物品实体拉取物品
@@ -225,12 +223,12 @@ private:
      * @param pos 方块位置
      * @param state 当前方块状态
      */
-    void updateState(IWorld& world, const BlockPos& pos, const BlockState& state);
+    void _updateState(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
      * @brief 初始化形状
      */
-    void initShapes();
+    void _initShapes();
 
     // 形状缓存（按方向索引）
     // 0: DOWN, 1: UP (unused), 2: NORTH, 3: SOUTH, 4: WEST, 5: EAST

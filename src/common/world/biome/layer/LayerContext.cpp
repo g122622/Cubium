@@ -34,40 +34,24 @@ namespace mc {
 LayerContext::LayerContext(i32 maxCacheSize, u64 worldSeed, u64 modifier)
     : m_maxCacheSize(maxCacheSize)
     , m_worldSeed(worldSeed)
-    , m_layerSeed(hashLayerSeed(worldSeed, modifier))
+    , m_layerSeed(_hashLayerSeed(worldSeed, modifier))
     , m_noise(worldSeed) // 使用种子初始化噪声生成器
     , m_cache(maxCacheSize)
-{
-    // MC_TRACE_EVENT("world.biome", "LayerContext_Construct", "maxCacheSize", maxCacheSize, "modifier",
-    // static_cast<i64>(modifier));
-}
+{}
 
 void LayerContext::setPosition(i64 x, i64 z)
 {
     // 使用 FastRandom.mix 算法计算位置种子
-    // 参考 MC LazyAreaLayerContext.setPosition:
-    // long i = this.seed;
-    // i = FastRandom.mix(i, x);
-    // i = FastRandom.mix(i, z);
-    // i = FastRandom.mix(i, x);
-    // i = FastRandom.mix(i, z);
-    // this.positionSeed = i;
-
     u64 seed = m_layerSeed;
-    seed = mix(seed, static_cast<u64>(x));
-    seed = mix(seed, static_cast<u64>(z));
-    seed = mix(seed, static_cast<u64>(x));
-    seed = mix(seed, static_cast<u64>(z));
+    seed = _mix(seed, static_cast<u64>(x));
+    seed = _mix(seed, static_cast<u64>(z));
+    seed = _mix(seed, static_cast<u64>(x));
+    seed = _mix(seed, static_cast<u64>(z));
     m_positionSeed = seed;
 }
 
 i32 LayerContext::nextInt(i32 bound)
 {
-    // 参考 MC LazyAreaLayerContext.random:
-    // int i = (int)Math.floorMod(this.positionSeed >> 24, (long)bound);
-    // this.positionSeed = FastRandom.mix(this.positionSeed, this.seed);
-    // return i;
-
     if (bound <= 0) {
         return 0;
     }
@@ -76,7 +60,7 @@ i32 LayerContext::nextInt(i32 bound)
     if (result < 0) {
         result += bound;
     }
-    m_positionSeed = mix(m_positionSeed, m_layerSeed);
+    m_positionSeed = _mix(m_positionSeed, m_layerSeed);
     return result;
 }
 
@@ -124,34 +108,21 @@ std::unique_ptr<LayerContext> LayerContext::withModifier(u64 modifier) const
 
 // 静态成员函数
 
-u64 LayerContext::mix(u64 left, u64 right)
+u64 LayerContext::_mix(u64 left, u64 right)
 {
-    // 参考 MC FastRandom.mix:
-    // left = left * (left * 6364136223846793005L + 1442695040888963407L);
-    // return left + right;
     left = left * (left * 6364136223846793005ULL + 1442695040888963407ULL);
     return left + right;
 }
 
-u64 LayerContext::hashLayerSeed(u64 worldSeed, u64 modifier)
+u64 LayerContext::_hashLayerSeed(u64 worldSeed, u64 modifier)
 {
-    // 参考 MC LazyAreaLayerContext 构造函数:
-    // this.seed = hash(seedIn, seedModifierIn);
-    // 其中 hash:
-    // long lvt_4_1_ = FastRandom.mix(right, right);
-    // lvt_4_1_ = FastRandom.mix(lvt_4_1_, right);
-    // lvt_4_1_ = FastRandom.mix(lvt_4_1_, right);
-    // long lvt_6_1_ = FastRandom.mix(left, lvt_4_1_);
-    // lvt_6_1_ = FastRandom.mix(lvt_6_1_, lvt_4_1_);
-    // return FastRandom.mix(lvt_6_1_, lvt_4_1_);
+    u64 hash = _mix(modifier, modifier);
+    hash = _mix(hash, modifier);
+    hash = _mix(hash, modifier);
 
-    u64 hash = mix(modifier, modifier);
-    hash = mix(hash, modifier);
-    hash = mix(hash, modifier);
-
-    u64 result = mix(worldSeed, hash);
-    result = mix(result, hash);
-    result = mix(result, hash);
+    u64 result = _mix(worldSeed, hash);
+    result = _mix(result, hash);
+    result = _mix(result, hash);
 
     return result;
 }

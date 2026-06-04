@@ -44,8 +44,6 @@ class AbstractContainerMenu;
  * - 容器内容同步
  * - 点击操作
  * - 配方同步
- *
- * 参考: MC 1.16.5 容器网络处理
  */
 class ContainerPacketHandler {
 public:

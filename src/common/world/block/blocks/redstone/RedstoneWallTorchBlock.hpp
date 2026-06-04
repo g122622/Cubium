@@ -118,7 +118,7 @@ private:
      * @param facing 火把朝向
      * @return true 如果可以放置
      */
-    [[nodiscard]] bool canPlaceAt(IWorld& world, const BlockPos& pos, Direction facing) const;
+    [[nodiscard]] bool _canPlaceAt(IWorld& world, const BlockPos& pos, Direction facing) const;
 
     /**
      * @brief 更新火把状态
@@ -127,7 +127,7 @@ private:
      * @param pos 火把位置
      * @param state 当前方块状态
      */
-    void updateState(IWorld& world, const BlockPos& pos, const BlockState& state);
+    void _updateState(IWorld& world, const BlockPos& pos, const BlockState& state);
 };
 
 } // namespace blocks

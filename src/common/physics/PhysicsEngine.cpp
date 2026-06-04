@@ -42,8 +42,6 @@ PhysicsEngine::PhysicsEngine(ICollisionWorld& world)
 /**
  * @brief 移动实体并处理碰撞
  *
- * 参考MC的Entity.move()和Entity.getAllowedMovement()实现。
- *
  * 核心流程：
  * 1. 收集潜在碰撞箱
  * 2. Y轴优先碰撞解决
@@ -62,7 +60,7 @@ Vector3 PhysicsEngine::moveEntity(AxisAlignedBB& entityBox, const Vector3& movem
     AxisAlignedBB originalBox = entityBox;
 
     // 收集扩展范围内的碰撞箱
-    // MC使用 collisionBox.expand(vec)，不额外扩展
+    // 使用 collisionBox.expand(vec)，不额外扩展
     // 但为了安全处理浮点误差，添加小量缓冲
     constexpr f32 COLLISION_BUFFER = 0.001f;
     AxisAlignedBB searchBox = entityBox.expand(std::abs(movement.x) + COLLISION_BUFFER,
@@ -74,7 +72,7 @@ Vector3 PhysicsEngine::moveEntity(AxisAlignedBB& entityBox, const Vector3& movem
 
     // 处理初始轻微重叠（常见于浮点误差/网络同步边界）
     // 若不先去重叠，逐轴偏移算法不会把已嵌入地面的实体推出。
-    f32 overlapPushUp = resolveInitialOverlaps(entityBox, boxes);
+    f32 overlapPushUp = _resolveInitialOverlaps(entityBox, boxes);
 
     if (boxes.empty()) {
         // 无碰撞，直接移动
@@ -85,7 +83,7 @@ Vector3 PhysicsEngine::moveEntity(AxisAlignedBB& entityBox, const Vector3& movem
     }
 
     // 执行碰撞解决
-    Vector3 resolved = resolveCollision(entityBox, movement, boxes);
+    Vector3 resolved = _resolveCollision(entityBox, movement, boxes);
     if (overlapPushUp > 0.0f) {
         resolved.y += overlapPushUp;
     }
@@ -95,14 +93,14 @@ Vector3 PhysicsEngine::moveEntity(AxisAlignedBB& entityBox, const Vector3& movem
         std::abs(resolved.z - movement.z) > EPSILON_COLLISION);
     bool verticalCollision = (std::abs(resolved.y - movement.y) > EPSILON_COLLISION);
 
-    // 尝试步进（MC: 仅当水平碰撞且之前在地面或有向下移动时）
+    // 尝试步进（仅当水平碰撞且之前在地面或有向下移动时）
     if (stepHeight > 0.0f && horizontalCollision && (movement.x != 0.0f || movement.z != 0.0f)) {
-        // MC检查: onGround || (verticalCollision && movement.y < 0)
+        // 检查: onGround || (verticalCollision && movement.y < 0)
         bool wasOnGround = isOnGround(originalBox);
         if (wasOnGround || (verticalCollision && movement.y < 0.0f)) {
-            Vector3 stepped = attemptStepUp(entityBox, originalBox, movement, stepHeight, resolved);
+            Vector3 stepped = _attemptStepUp(entityBox, originalBox, movement, stepHeight, resolved);
 
-            // MC使用水平距离平方比较
+            // 使用水平距离平方比较
             f32 resolvedHorizontalSq = resolved.x * resolved.x + resolved.z * resolved.z;
             f32 steppedHorizontalSq = stepped.x * stepped.x + stepped.z * stepped.z;
 
@@ -175,7 +173,7 @@ void PhysicsEngine::collectCollisionBoxes(const AxisAlignedBB& searchBox, std::v
     for (i32 x = minX; x <= maxX; ++x) {
         for (i32 y = minY; y <= maxY; ++y) {
             for (i32 z = minZ; z <= maxZ; ++z) {
-                getBlockCollisionBoxes(x, y, z, boxes);
+                _getBlockCollisionBoxes(x, y, z, boxes);
             }
         }
     }
@@ -184,13 +182,13 @@ void PhysicsEngine::collectCollisionBoxes(const AxisAlignedBB& searchBox, std::v
 /**
  * @brief 核心碰撞解决算法
  *
- * 参考MC的Entity.collideBoundingBox():
+ * 逐轴处理碰撞：
  * 1. 先处理Y轴（重力最重要）
  * 2. 按移动幅度处理X/Z轴（幅度大的先处理）
  *
  * 注意：每次轴移动后更新entityBox位置
  */
-Vector3 PhysicsEngine::resolveCollision(
+Vector3 PhysicsEngine::_resolveCollision(
     AxisAlignedBB& entityBox, const Vector3& movement, const std::vector<AxisAlignedBB>& boxes)
 {
     f32 dx = movement.x;
@@ -205,7 +203,7 @@ Vector3 PhysicsEngine::resolveCollision(
         entityBox.offset(0.0f, dy, 0.0f);
     }
 
-    // 2. X/Z按移动幅度排序处理（MC逻辑）
+    // 2. X/Z按移动幅度排序处理
     if (std::abs(dx) >= std::abs(dz)) {
         // X轴优先
         if (dx != 0.0f) {
@@ -247,13 +245,13 @@ inline f32 horizontalMagSq(const Vector3& v)
     return v.x * v.x + v.z * v.z;
 }
 
-Vector3 PhysicsEngine::applyHorizontalCollision(
+Vector3 PhysicsEngine::_applyHorizontalCollision(
     AxisAlignedBB& entityBox, const Vector3& movement, const std::vector<AxisAlignedBB>& boxes)
 {
     f32 dx = movement.x;
     f32 dz = movement.z;
 
-    // X/Z按移动幅度排序（MC标准逻辑）
+    // X/Z按移动幅度排序（标准逻辑）
     if (std::abs(dx) >= std::abs(dz)) {
         if (dx != 0.0f) {
             for (const auto& box : boxes) {
@@ -288,8 +286,7 @@ Vector3 PhysicsEngine::applyHorizontalCollision(
 /**
  * @brief 尝试步进
  *
- * 参考MC的Entity.getAllowedMovement()中的步进逻辑：
- * MC使用三种策略竞争最优结果：
+ * 使用三种策略竞争最优结果：
  * 1. 策略A：整体抬起stepHeight后水平移动
  * 2. 策略B：先抬起，然后水平移动
  * 3. 策略C：在抬起高度不足时，在部分抬起高度水平移动
@@ -302,24 +299,24 @@ Vector3 PhysicsEngine::applyHorizontalCollision(
  * @param stepHeight 步进高度
  * @return 实际移动向量
  */
-Vector3 PhysicsEngine::attemptStepUp(AxisAlignedBB& entityBox,
+Vector3 PhysicsEngine::_attemptStepUp(AxisAlignedBB& entityBox,
     const AxisAlignedBB& originalBox,
     const Vector3& movement,
     f32 stepHeight,
     const Vector3& fallbackResult)
 {
     // =====================================================
-    // 策略A：整体抬起 + 水平移动（MC: collideBoundingBoxHeuristically 整体）
+    // 策略A：整体抬起 + 水平移动
     // =====================================================
     AxisAlignedBB strategyABox = originalBox;
-    Vector3 strategyA = tryStepStrategyA(strategyABox, movement, stepHeight);
+    Vector3 strategyA = _tryStepStrategyA(strategyABox, movement, stepHeight);
 
     // =====================================================
     // 策略B：先抬起后水平移动
     // =====================================================
     AxisAlignedBB strategyBBox = originalBox;
     f32 actualStepUp = 0.0f; // 记录实际抬起高度
-    Vector3 strategyB = tryStepStrategyBWithHeight(strategyBBox, movement, stepHeight, actualStepUp);
+    Vector3 strategyB = _tryStepStrategyBWithHeight(strategyBBox, movement, stepHeight, actualStepUp);
 
     // 选择水平移动距离最远的策略
     Vector3 bestResult = strategyA;
@@ -337,11 +334,10 @@ Vector3 PhysicsEngine::attemptStepUp(AxisAlignedBB& entityBox,
 
     // =====================================================
     // 策略C：当策略B抬起高度不足stepHeight时，在部分抬起高度水平移动
-    // 参考MC 1.16.5 Entity.getAllowedMovement() 行767-779
     // =====================================================
     if (actualStepUp < stepHeight && actualStepUp > 0.0f) {
         AxisAlignedBB strategyCBox = originalBox;
-        Vector3 strategyC = tryStepStrategyC(strategyCBox, movement, actualStepUp);
+        Vector3 strategyC = _tryStepStrategyC(strategyCBox, movement, actualStepUp);
 
         f32 cDistSq = horizontalMagSq(strategyC);
         if (cDistSq > bestDistSq) {
@@ -356,9 +352,9 @@ Vector3 PhysicsEngine::attemptStepUp(AxisAlignedBB& entityBox,
     f32 fallbackDistSq = horizontalMagSq(fallbackResult);
     if (bestDistSq > fallbackDistSq) {
         // 最后下落回地面
-        // MC使用 -stepY + movementY，即从步进后位置下落到目标Y位置
+        // 使用 -stepY + movementY，即从步进后位置下落到目标Y位置
         f32 fallDistance = -bestStepY + movement.y;
-        Vector3 fallDown = applyFallDown(bestBox, fallDistance);
+        Vector3 fallDown = _applyFallDown(bestBox, fallDistance);
         entityBox = bestBox;
         // 计算最终移动向量（X和Z已经移动过了，Y是下落距离）
         return Vector3(bestBox.minX - originalBox.minX, fallDown.y, bestBox.minZ - originalBox.minZ);
@@ -373,7 +369,7 @@ Vector3 PhysicsEngine::attemptStepUp(AxisAlignedBB& entityBox,
  * 将抬起和水平移动作为一个整体处理。
  * 返回从原始位置到最终位置的完整移动向量。
  */
-Vector3 PhysicsEngine::tryStepStrategyA(AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight)
+Vector3 PhysicsEngine::_tryStepStrategyA(AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight)
 {
     // 保存原始位置
     f32 origMinX = entityBox.minX;
@@ -390,7 +386,7 @@ Vector3 PhysicsEngine::tryStepStrategyA(AxisAlignedBB& entityBox, const Vector3&
     collectCollisionBoxes(searchBox, boxes);
 
     // 在抬起状态下尝试水平移动
-    applyHorizontalCollision(raisedBox, movement, boxes);
+    _applyHorizontalCollision(raisedBox, movement, boxes);
 
     entityBox = raisedBox;
     // 返回从原始位置的移动距离
@@ -400,23 +396,23 @@ Vector3 PhysicsEngine::tryStepStrategyA(AxisAlignedBB& entityBox, const Vector3&
 /**
  * @brief 策略B：先抬起 -> 水平移动
  *
- * MC 的标准步进逻辑。
+ * 标准步进逻辑。
  * 返回从原始位置到最终位置的完整移动向量。
  */
-Vector3 PhysicsEngine::tryStepStrategyB(AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight)
+Vector3 PhysicsEngine::_tryStepStrategyB(AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight)
 {
     f32 unused = 0.0f;
-    return tryStepStrategyBWithHeight(entityBox, movement, stepHeight, unused);
+    return _tryStepStrategyBWithHeight(entityBox, movement, stepHeight, unused);
 }
 
 /**
  * @brief 策略B：先抬起 -> 水平移动（带高度输出）
  *
- * MC 的标准步进逻辑。
+ * 标准步进逻辑。
  * 返回从原始位置到最终位置的完整移动向量。
  * @param actualStepUp 输出实际抬起高度
  */
-Vector3 PhysicsEngine::tryStepStrategyBWithHeight(
+Vector3 PhysicsEngine::_tryStepStrategyBWithHeight(
     AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight, f32& actualStepUp)
 {
     // 保存原始位置
@@ -447,7 +443,7 @@ Vector3 PhysicsEngine::tryStepStrategyBWithHeight(
     std::vector<AxisAlignedBB> horizontalBoxes;
     collectCollisionBoxes(horizontalSearchBox, horizontalBoxes);
 
-    applyHorizontalCollision(raisedBox, movement, horizontalBoxes);
+    _applyHorizontalCollision(raisedBox, movement, horizontalBoxes);
 
     entityBox = raisedBox;
     // 返回从原始位置的移动距离
@@ -457,11 +453,10 @@ Vector3 PhysicsEngine::tryStepStrategyBWithHeight(
 /**
  * @brief 策略C：在部分抬起高度水平移动
  *
- * 参考MC 1.16.5 Entity.getAllowedMovement() 行767-779：
  * 当策略B抬起高度不足stepHeight时，在部分抬起高度尝试水平移动。
- * 这是MC的第三种步进策略，用于处理台阶等特殊情况。
+ * 这是第三种步进策略，用于处理台阶等特殊情况。
  */
-Vector3 PhysicsEngine::tryStepStrategyC(AxisAlignedBB& entityBox, const Vector3& movement, f32 partialStepHeight)
+Vector3 PhysicsEngine::_tryStepStrategyC(AxisAlignedBB& entityBox, const Vector3& movement, f32 partialStepHeight)
 {
     // 保存原始位置
     f32 origMinX = entityBox.minX;
@@ -491,7 +486,7 @@ Vector3 PhysicsEngine::tryStepStrategyC(AxisAlignedBB& entityBox, const Vector3&
     std::vector<AxisAlignedBB> horizontalBoxes;
     collectCollisionBoxes(horizontalSearchBox, horizontalBoxes);
 
-    applyHorizontalCollision(raisedBox, movement, horizontalBoxes);
+    _applyHorizontalCollision(raisedBox, movement, horizontalBoxes);
 
     entityBox = raisedBox;
     // 返回从原始位置的移动距离
@@ -501,7 +496,7 @@ Vector3 PhysicsEngine::tryStepStrategyC(AxisAlignedBB& entityBox, const Vector3&
 /**
  * @brief 应用下落直到碰到地面
  */
-Vector3 PhysicsEngine::applyFallDown(AxisAlignedBB& entityBox, f32 originalYMovement)
+Vector3 PhysicsEngine::_applyFallDown(AxisAlignedBB& entityBox, f32 originalYMovement)
 {
     // 收集下落路径上的碰撞箱
     // Y轴扩展：原始移动距离 + 1.0f 用于处理步进后的额外下落空间
@@ -519,7 +514,7 @@ Vector3 PhysicsEngine::applyFallDown(AxisAlignedBB& entityBox, f32 originalYMove
     return Vector3(0.0f, downDist, 0.0f);
 }
 
-void PhysicsEngine::getBlockCollisionBoxes(i32 x, i32 y, i32 z, std::vector<AxisAlignedBB>& boxes) const
+void PhysicsEngine::_getBlockCollisionBoxes(i32 x, i32 y, i32 z, std::vector<AxisAlignedBB>& boxes) const
 {
     if (!m_world->isWithinWorldBounds(x, y, z)) return;
 
@@ -534,7 +529,7 @@ void PhysicsEngine::getBlockCollisionBoxes(i32 x, i32 y, i32 z, std::vector<Axis
     boxes.insert(boxes.end(), worldBoxes.begin(), worldBoxes.end());
 }
 
-f32 PhysicsEngine::resolveInitialOverlaps(AxisAlignedBB& entityBox, const std::vector<AxisAlignedBB>& boxes) const
+f32 PhysicsEngine::_resolveInitialOverlaps(AxisAlignedBB& entityBox, const std::vector<AxisAlignedBB>& boxes) const
 {
     // 仅处理小范围向上推出，避免对合法穿插场景造成过度修正
     constexpr f32 MAX_DEPENETRATION_UP = 0.45f;

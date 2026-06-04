@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../IWaterLoggable.hpp"
-#include "../../Material.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/IWaterLoggable.hpp"
+#include "common/world/block/Material.hpp"
 #include <array>
 
 namespace mc {
@@ -85,7 +85,6 @@ public:
      * @brief 是否使用形状进行光照遮挡检测
      *
      * 墙有复杂的形状，需要精确的形状遮挡检测。
-     * 参考: MC 1.16.5 WallBlock.propagatesSkylightDown()
      */
     [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
     {
@@ -133,7 +132,7 @@ private:
      * @param state 当前状态
      * @return 更新后的状态
      */
-    [[nodiscard]] BlockState calculateState(const IWorld& world, const BlockPos& pos, const BlockState& state) const;
+    [[nodiscard]] BlockState _calculateState(const IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
     /**
      * @brief 检查邻居是否连接到墙
@@ -141,7 +140,8 @@ private:
      * @param neighborSide 邻居相对于墙的方向
      * @return 连接高度
      */
-    [[nodiscard]] BlockStateProperties::WallHeight getWallHeight(const BlockState& state, Direction neighborSide) const;
+    [[nodiscard]] BlockStateProperties::WallHeight _getWallHeight(
+        const BlockState& state, Direction neighborSide) const;
 
     /**
      * @brief 获取形状索引
@@ -152,7 +152,7 @@ private:
      * @param west 西面高度
      * @return 形状索引
      */
-    [[nodiscard]] static size_t getShapeIndex(bool up,
+    [[nodiscard]] static size_t _getShapeIndex(bool up,
         BlockStateProperties::WallHeight north,
         BlockStateProperties::WallHeight east,
         BlockStateProperties::WallHeight south,

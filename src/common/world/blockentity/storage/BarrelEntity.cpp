@@ -39,7 +39,7 @@ BarrelEntity::BarrelEntity(const BlockPos& pos)
     , m_inventory(BARREL_SIZE)
 {}
 
-BarrelEntity::~BarrelEntity() = default;
+BarrelEntity::~BarrelEntity() noexcept = default;
 
 void BarrelEntity::openContainer(Player* player)
 {
@@ -50,7 +50,7 @@ void BarrelEntity::openContainer(Player* player)
     LootableContainerBlockEntity::openContainer(player);
 
     if (m_world != nullptr) {
-        updateBlockState(*m_world, true);
+        _updateBlockState(*m_world, true);
     }
 
     setChanged();
@@ -62,16 +62,14 @@ void BarrelEntity::closeContainer(Player* player)
     LootableContainerBlockEntity::closeContainer(player);
 
     if (m_world != nullptr) {
-        updateBlockState(*m_world, m_openCount > 0);
+        _updateBlockState(*m_world, m_openCount > 0);
     }
 
     setChanged();
 }
 
-i32 BarrelEntity::getComparatorSignal(IWorld& world) const
+i32 BarrelEntity::getComparatorSignal(IWorld& /*world*/) const
 {
-    MC_UNUSED(world);
-
     i32 filledSlots = 0;
     i32 totalCount = 0;
 
@@ -102,17 +100,15 @@ void BarrelEntity::tick(IWorld& world)
     if (m_ticksSinceSync >= 10) {
         m_ticksSinceSync = 0;
 
-        // 通过 setBlockState 触发方块更新与客户端状态同步。
+        // 通过 setBlockState 触发方块更新与客户端状态同步
         const BlockState* state = world.getBlockState(m_pos);
         if (state != nullptr) {
             world.setBlockState(m_pos, state, 3);
         }
     }
-
-    MC_UNUSED(world);
 }
 
-void BarrelEntity::updateBlockState(IWorld& world, bool open)
+void BarrelEntity::_updateBlockState(IWorld& world, bool open)
 {
     const BlockState* state = world.getBlockState(m_pos);
     if (state == nullptr) {

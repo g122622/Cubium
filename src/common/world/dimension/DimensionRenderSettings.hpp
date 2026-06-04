@@ -23,14 +23,12 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::world {
 
 /**
  * @brief 雾类型
- *
- * 参考 MC 1.16.5 DimensionRenderInfo.FogType
  */
 enum class FogType : u8 {
     None = 0,   ///< 无雾
@@ -42,7 +40,6 @@ enum class FogType : u8 {
  * @brief 维度渲染设置
  *
  * 定义各维度特有的渲染参数。
- * 参考 MC 1.16.5 DimensionRenderInfo。
  *
  * 注意：由于项目使用 -ffast-math 编译选项，NaN 检测不可靠，
  * 因此使用显式的布尔字段来表示云的存在性。
@@ -84,7 +81,7 @@ struct DimensionRenderSettings {
     /**
      * @brief 获取主世界渲染设置
      */
-    static DimensionRenderSettings overworld()
+    static DimensionRenderSettings overworld() noexcept
     {
         DimensionRenderSettings settings;
         settings.cloudHeight = 192.0f;
@@ -100,7 +97,7 @@ struct DimensionRenderSettings {
     /**
      * @brief 获取下界渲染设置
      */
-    static DimensionRenderSettings nether()
+    static DimensionRenderSettings nether() noexcept
     {
         DimensionRenderSettings settings;
         settings.cloudHeight = 0.0f; // 无云时不使用此值
@@ -116,7 +113,7 @@ struct DimensionRenderSettings {
     /**
      * @brief 获取末地渲染设置
      */
-    static DimensionRenderSettings end()
+    static DimensionRenderSettings end() noexcept
     {
         DimensionRenderSettings settings;
         settings.cloudHeight = 0.0f; // 无云时不使用此值
@@ -132,7 +129,7 @@ struct DimensionRenderSettings {
     /**
      * @brief 获取默认维度设置 (主世界)
      */
-    static DimensionRenderSettings getDefault() { return overworld(); }
+    static DimensionRenderSettings getDefault() noexcept { return overworld(); }
 };
 
 } // namespace mc::world

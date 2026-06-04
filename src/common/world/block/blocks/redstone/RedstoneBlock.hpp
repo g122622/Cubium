@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../redstone/RedstonePower.hpp"
-#include "../../Block.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/redstone/RedstonePower.hpp"
 
 namespace mc {
 namespace blocks {
@@ -40,8 +40,6 @@ namespace blocks {
  * - 强信号输出到所有六个方向
  * - 可以被活塞推动
  * - 不需要方块实体
- *
- * 参考: net.minecraft.block.RedstoneBlock
  */
 class RedstoneBlock : public Block {
 public:

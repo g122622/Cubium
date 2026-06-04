@@ -57,7 +57,7 @@ NetherWartBlock::NetherWartBlock(const BlockProperties& properties)
     m_shapesByAge[3] = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.625f, 0.9375f);
 }
 
-i32 NetherWartBlock::getAge(const BlockState& state) const
+i32 NetherWartBlock::getAge(const BlockState& state) const noexcept
 {
     return state.get(BlockStateProperties::AGE_0_3());
 }
@@ -78,7 +78,6 @@ bool NetherWartBlock::isValidPosition(const BlockState& state, IBlockReader& wor
     MC_UNUSED(state);
 
     // 检查下方是否为灵魂沙
-    // 参考 MC 1.16.5: NetherWartBlock.isValidPosition
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
 

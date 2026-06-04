@@ -22,7 +22,7 @@
  */
 
 #include "RotatedPillarBlock.hpp"
-#include "../../../item/context/BlockItemUseContext.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 
 namespace mc {
 
@@ -39,7 +39,7 @@ const EnumProperty<Axis>& RotatedPillarBlock::AXIS()
     return *g_axisProperty;
 }
 
-RotatedPillarBlock::RotatedPillarBlock(BlockProperties properties)
+RotatedPillarBlock::RotatedPillarBlock(const BlockProperties& properties)
     : Block(properties)
 {
     // 创建带有axis属性的状态容器
@@ -50,7 +50,7 @@ RotatedPillarBlock::RotatedPillarBlock(BlockProperties properties)
             const std::vector<BlockState*>* allStates,
             u32 id) { return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id); });
     createBlockState(std::move(container));
-    // 设置默认轴向为 Y（原版行为）
+    // 设置默认轴向为Y
     setDefaultState(withAxis(defaultState(), Axis::Y));
 }
 
@@ -66,7 +66,6 @@ const BlockState& RotatedPillarBlock::withAxis(const BlockState& state, Axis axi
 
 const BlockState& RotatedPillarBlock::rotate(const BlockState& state, Rotation rotation) const
 {
-    // 参考: net.minecraft.block.RotatedPillarBlock#rotate
     // 90度旋转时，X轴和Z轴互换
     if (rotation == Rotation::Clockwise90 || rotation == Rotation::CounterClockwise90) {
         Axis currentAxis = state.get(AXIS());
@@ -82,7 +81,6 @@ const BlockState& RotatedPillarBlock::rotate(const BlockState& state, Rotation r
 
 BlockState RotatedPillarBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 参考: net.minecraft.block.RotatedPillarBlock#getStateForPlacement
     // 根据放置面的轴向设置初始状态
     Direction clickedFace = context.getClickedFace();
     Axis axis = Directions::getAxis(clickedFace);

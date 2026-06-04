@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/nbt/Nbt.hpp"
-#include "../../../block/BlockPos.hpp"
+#include "core/Types.hpp"
+#include "resource/ResourceLocation.hpp"
+#include "util/Direction.hpp"
+#include "util/math/random/Random.hpp"
+#include "util/nbt/Nbt.hpp"
+#include "world/block/BlockPos.hpp"
 #include <memory>
 #include <optional>
 
@@ -62,7 +62,6 @@ enum class RuleTestType : u32 {
 /**
  * @brief 方块规则测试基类
  *
- * 参考 MC 1.16.5 RuleTest
  * 用于测试方块是否匹配特定条件
  */
 class RuleTest {
@@ -90,8 +89,6 @@ public:
 
 /**
  * @brief 总是返回 true 的规则测试
- *
- * 参考 MC 1.16.5 AlwaysTrueTest
  */
 class AlwaysTrueRuleTest : public RuleTest {
 public:
@@ -105,8 +102,6 @@ public:
 
 /**
  * @brief 匹配特定方块的规则测试
- *
- * 参考 MC 1.16.5 BlockMatchRuleTest
  */
 class BlockMatchRuleTest : public RuleTest {
 public:
@@ -128,8 +123,6 @@ private:
 
 /**
  * @brief 匹配特定方块状态的规则测试
- *
- * 参考 MC 1.16.5 BlockStateMatchRuleTest
  */
 class BlockStateMatchRuleTest : public RuleTest {
 public:
@@ -151,8 +144,6 @@ private:
 
 /**
  * @brief 随机匹配特定方块的规则测试
- *
- * 参考 MC 1.16.5 RandomBlockMatchRuleTest
  */
 class RandomBlockMatchRuleTest : public RuleTest {
 public:
@@ -176,8 +167,6 @@ private:
 
 /**
  * @brief 随机匹配特定方块状态的规则测试
- *
- * 参考 MC 1.16.5 RandomBlockStateMatchRuleTest
  */
 class RandomBlockStateMatchRuleTest : public RuleTest {
 public:
@@ -202,7 +191,6 @@ private:
 /**
  * @brief 方块标签匹配规则测试
  *
- * 参考 MC 1.16.5 TagMatchRuleTest
  * 检查方块是否属于指定标签
  */
 class TagMatchRuleTest : public RuleTest {
@@ -229,8 +217,6 @@ private:
 
 /**
  * @brief 位置规则测试基类
- *
- * 参考 MC 1.16.5 PosRuleTest
  */
 class PosRuleTest {
 public:
@@ -260,8 +246,6 @@ public:
 
 /**
  * @brief 总是返回 true 的位置规则测试
- *
- * 参考 MC 1.16.5 AlwaysTruePosRuleTest
  */
 class AlwaysTruePosRuleTest : public PosRuleTest {
 public:
@@ -285,7 +269,6 @@ public:
 /**
  * @brief 线性距离位置规则测试
  *
- * 参考 MC 1.16.5 LinearPosTest
  * 根据 worldPos 到 seedPos 的曼哈顿距离线性插值概率
  */
 class LinearPosRuleTest : public PosRuleTest {
@@ -320,7 +303,6 @@ private:
 /**
  * @brief 轴对齐线性位置规则测试
  *
- * 参考 MC 1.16.5 AxisAlignedLinearPosTest
  * 根据指定轴方向上的距离线性插值概率
  */
 class AxisAlignedLinearPosTest : public PosRuleTest {
@@ -358,7 +340,6 @@ private:
 /**
  * @brief 规则条目
  *
- * 参考 MC 1.16.5 RuleEntry
  * 定义一个完整的替换规则：条件 + 输出
  */
 class RuleEntry {

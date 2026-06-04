@@ -37,7 +37,6 @@ namespace mc {
  * @brief 配方同步包 (服务端 -> 客户端)
  *
  * 同步单个配方到客户端。
- * 参考: MC 1.16.5 SPacketRecipeBook
  */
 class RecipeSyncPacket {
 public:
@@ -56,9 +55,9 @@ public:
     {}
 
     // Getters
-    [[nodiscard]] const ResourceLocation& recipeId() const { return m_recipeId; }
-    [[nodiscard]] const std::string& recipeType() const { return m_recipeType; }
-    [[nodiscard]] const std::string& recipeData() const { return m_recipeData; }
+    [[nodiscard]] const ResourceLocation& recipeId() const noexcept { return m_recipeId; }
+    [[nodiscard]] const std::string& recipeType() const noexcept { return m_recipeType; }
+    [[nodiscard]] const std::string& recipeData() const noexcept { return m_recipeData; }
 
     // Setters
     void setRecipeId(const ResourceLocation& id) { m_recipeId = id; }
@@ -118,9 +117,9 @@ public:
     {}
 
     // Getters
-    [[nodiscard]] const std::vector<RecipeSyncPacket>& recipes() const { return m_recipes; }
-    [[nodiscard]] size_t size() const { return m_recipes.size(); }
-    [[nodiscard]] bool empty() const { return m_recipes.empty(); }
+    [[nodiscard]] const std::vector<RecipeSyncPacket>& recipes() const noexcept { return m_recipes; }
+    [[nodiscard]] size_t size() const noexcept { return m_recipes.size(); }
+    [[nodiscard]] bool empty() const noexcept { return m_recipes.empty(); }
 
     // Setters
     void setRecipes(std::vector<RecipeSyncPacket> recipes) { m_recipes = std::move(recipes); }
@@ -162,7 +161,6 @@ private:
  * @brief 配方解锁包 (服务端 -> 客户端)
  *
  * 通知客户端解锁新配方。
- * 参考: MC 1.16.5 SPacketRecipeBookAdd
  */
 class RecipeUnlockPacket {
 public:
@@ -179,8 +177,8 @@ public:
     {}
 
     // Getters
-    [[nodiscard]] const ResourceLocation& recipeId() const { return m_recipeId; }
-    [[nodiscard]] bool display() const { return m_display; }
+    [[nodiscard]] const ResourceLocation& recipeId() const noexcept { return m_recipeId; }
+    [[nodiscard]] bool display() const noexcept { return m_display; }
 
     // Setters
     void setRecipeId(const ResourceLocation& id) { m_recipeId = id; }
@@ -238,10 +236,10 @@ public:
     {}
 
     // Getters
-    [[nodiscard]] i32 containerId() const { return m_containerId; }
-    [[nodiscard]] const ItemStack& resultItem() const { return m_resultItem; }
-    [[nodiscard]] const ResourceLocation& recipeId() const { return m_recipeId; }
-    [[nodiscard]] bool hasRecipe() const { return !m_recipeId.path().empty(); }
+    [[nodiscard]] i32 containerId() const noexcept { return m_containerId; }
+    [[nodiscard]] const ItemStack& resultItem() const noexcept { return m_resultItem; }
+    [[nodiscard]] const ResourceLocation& recipeId() const noexcept { return m_recipeId; }
+    [[nodiscard]] bool hasRecipe() const noexcept { return !m_recipeId.path().empty(); }
 
     // Setters
     void setContainerId(i32 id) { m_containerId = id; }

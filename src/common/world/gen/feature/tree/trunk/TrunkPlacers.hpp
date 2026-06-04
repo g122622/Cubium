@@ -32,7 +32,6 @@ namespace mc {
  * @brief 深色橡树树干放置器
  *
  * 生成 2x2 的深色橡树树干。
- * 参考 MC 1.16.5: DarkOakTrunkPlacer
  */
 class DarkOakTrunkPlacer : public TrunkPlacer {
 public:
@@ -59,7 +58,6 @@ public:
  * @brief 精美树干放置器
  *
  * 生成弯曲的树干，用于精美橡树。
- * 参考 MC 1.16.5: FancyTrunkPlacer
  */
 class FancyTrunkPlacer : public TrunkPlacer {
 public:
@@ -78,15 +76,13 @@ public:
 private:
     /**
      * @brief 计算分支长度
-     * 参考 MC func_236890_b_
      */
-    [[nodiscard]] f32 getBranchLength(i32 trunkHeight, i32 y) const;
+    [[nodiscard]] f32 _getBranchLength(i32 trunkHeight, i32 y) const;
 
     /**
      * @brief 检查并放置分支
-     * 参考 MC func_236887_a_
      */
-    bool checkAndPlaceBranch(WorldGenRegion& world,
+    bool _checkAndPlaceBranch(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& start,
         const BlockPos& end,
@@ -97,7 +93,7 @@ private:
     /**
      * @brief 放置直线
      */
-    void placeLine(WorldGenRegion& world,
+    void _placeLine(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& start,
         const BlockPos& end,
@@ -107,22 +103,19 @@ private:
 
     /**
      * @brief 获取步数
-     * 参考 MC func_236888_a_
      */
-    [[nodiscard]] i32 getSteps(const BlockPos& delta) const;
+    [[nodiscard]] i32 _getSteps(const BlockPos& delta) const;
 
     /**
      * @brief 判断是否保留树叶
-     * 参考 MC func_236885_a_
      */
-    [[nodiscard]] bool shouldKeepFoliage(i32 trunkHeight, i32 relY) const;
+    [[nodiscard]] bool _shouldKeepFoliage(i32 trunkHeight, i32 relY) const;
 };
 
 /**
  * @brief 分叉树干放置器
  *
  * 生成带有分叉的树干，用于金合欢树。
- * 参考 MC 1.16.5: ForkyTrunkPlacer
  */
 class ForkyTrunkPlacer : public TrunkPlacer {
 public:
@@ -143,7 +136,6 @@ public:
  * @brief 巨型树干放置器
  *
  * 生成 2x2 的巨型树干，用于巨型云杉。
- * 参考 MC 1.16.5: GiantTrunkPlacer
  */
 class GiantTrunkPlacer : public TrunkPlacer {
 public:
@@ -164,7 +156,6 @@ public:
  * @brief 巨型丛林木树干放置器
  *
  * 生成 2x2 的丛林木树干，并在树干上生成藤蔓。
- * 参考 MC 1.16.5: MegaJungleTrunkPlacer
  */
 class MegaJungleTrunkPlacer : public TrunkPlacer {
 public:

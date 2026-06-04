@@ -22,12 +22,13 @@
  */
 
 #include "SurfaceBuilders.hpp"
-#include "../../../util/math/MathConstants.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../biome/Biome.hpp"
-#include "../../block/BlockRegistry.hpp"
-#include "../../block/VanillaBlocks.hpp"
-#include "../../chunk/ChunkPrimer.hpp"
+#include "common/core/Constants.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -44,14 +45,12 @@ namespace {
 /**
  * @brief 全局 INFO_NOISE 噪声生成器
  *
- * 参考 MC Biome.INFO_NOISE，用于沼泽等地表构建器。
- * MC 中这是一个静态共享的 PerlinNoiseGenerator。
+ * 用于沼泽等地表构建器。
  */
 class GlobalInfoNoise {
 public:
     static PerlinNoiseGenerator& instance()
     {
-        // 使用固定种子初始化（MC Biome.INFO_NOISE 使用派生种子）
         static PerlinNoiseGenerator s_noise(12345ULL, 0, 0);
         return s_noise;
     }
@@ -98,7 +97,7 @@ SurfaceBuilderConfig SurfaceBuilderConfig::redSand()
         VanillaBlocks::getState(VanillaBlocks::RED_SAND));
 }
 
-// ========== MC原版预设配置 ==========
+// ========== 预设配置 ==========
 
 SurfaceBuilderConfig SurfaceBuilderConfig::podzolDirtGravel()
 {
@@ -174,7 +173,7 @@ SurfaceBuilderConfig SurfaceBuilderConfig::netherrack()
 // SurfaceBuilder 基类实现
 // ============================================================================
 
-void SurfaceBuilder::buildDefaultSurface(math::Random& random,
+void SurfaceBuilder::_buildDefaultSurface(math::Random& random,
     ChunkPrimer& chunk,
     const Biome& biome,
     i32 x,
@@ -192,7 +191,6 @@ void SurfaceBuilder::buildDefaultSurface(math::Random& random,
     const i32 l = z & 15; // 区块内Z坐标
 
     // 计算地表深度
-    // 参考 MC DefaultSurfaceBuilder 第25行
     const i32 j = static_cast<i32>(surfaceNoise / 3.0 + 3.0 + random.nextDouble() * 0.25);
 
     const BlockState* blockstate = top;     // 表层方块
@@ -212,18 +210,16 @@ void SurfaceBuilder::buildDefaultSurface(math::Random& random,
         if (currentState->blockId() == static_cast<u32>(defaultBlock->blockId())) {
             if (currentDepth == -1) {
                 // 到达地表，确定表层方块
-
-                // MC第36-39行：深度<=0时的处理
                 if (j <= 0) {
                     blockstate = nullptr; // AIR
                     blockstate1 = defaultBlock;
                 } else if (y >= seaLevel - 4 && y <= seaLevel + 1) {
-                    // MC第39-41行：海平面附近使用配置的表层
+                    // 海平面附近使用配置的表层
                     blockstate = top;
                     blockstate1 = middle;
                 }
 
-                // MC第44-52行：水下填充逻辑
+                // 水下填充逻辑
                 if (y < seaLevel && (blockstate == nullptr || blockstate->isAir())) {
                     // 根据生物群系温度决定放冰还是水
                     if (biome.temperature() < 0.15f) {
@@ -235,14 +231,14 @@ void SurfaceBuilder::buildDefaultSurface(math::Random& random,
 
                 currentDepth = j;
 
-                // MC第55-63行：放置表层方块
+                // 放置表层方块
                 if (y >= seaLevel - 1) {
                     // 水面或以上
                     if (blockstate != nullptr) {
                         chunk.setBlockState(x, y, z, blockstate);
                     }
                 } else if (y < seaLevel - 7 - j) {
-                    // MC第57-60行：深层水下底板
+                    // 深层水下底板
                     blockstate = nullptr; // AIR
                     blockstate1 = defaultBlock;
                     if (bottom != nullptr) {
@@ -261,11 +257,11 @@ void SurfaceBuilder::buildDefaultSurface(math::Random& random,
                     chunk.setBlockState(x, y, z, blockstate1);
                 }
 
-                // MC第67-70行：砂岩替换逻辑
+                // 砂岩替换逻辑
                 if (currentDepth == 0 && blockstate1 != nullptr && j > 1) {
                     const Block* block = &blockstate1->owner();
                     if (block == VanillaBlocks::SAND || block == VanillaBlocks::RED_SAND) {
-                        currentDepth = random.nextInt(4) + std::max(0, y - 63);
+                        currentDepth = random.nextInt(4) + std::max(0, y - SEA_LEVEL);
                         if (block == VanillaBlocks::RED_SAND) {
                             blockstate1 = VanillaBlocks::getState(VanillaBlocks::RED_SANDSTONE);
                         } else {
@@ -297,7 +293,7 @@ void DefaultSurfaceBuilder::buildSurface(math::Random& random,
 {
     (void)worldSeed; // DefaultSurfaceBuilder不需要种子
 
-    buildDefaultSurface(random,
+    _buildDefaultSurface(random,
         chunk,
         biome,
         x,
@@ -314,7 +310,6 @@ void DefaultSurfaceBuilder::buildSurface(math::Random& random,
 
 i32 DefaultSurfaceBuilder::calculateDepth(f64 noise, math::Random& random) const
 {
-    // 参考 MC DefaultSurfaceBuilder 第25行
     i32 depth = static_cast<i32>(noise / 3.0 + 3.0 + random.nextDouble() * 0.25);
     return std::max(1, depth);
 }
@@ -339,11 +334,10 @@ void MountainSurfaceBuilder::buildSurface(math::Random& random,
     (void)config; // MountainSurfaceBuilder根据噪声选择配置
     (void)worldSeed;
 
-    // 参考 MC MountainSurfaceBuilder
     // 根据噪声值委托给DefaultSurfaceBuilder使用不同配置
     if (surfaceNoise > 1.0) {
         const SurfaceBuilderConfig stoneConfig = SurfaceBuilderConfig::stoneStoneGravel();
-        buildDefaultSurface(random,
+        _buildDefaultSurface(random,
             chunk,
             biome,
             x,
@@ -358,7 +352,7 @@ void MountainSurfaceBuilder::buildSurface(math::Random& random,
             stoneConfig.underWaterBlock);
     } else {
         const SurfaceBuilderConfig grassConfig = SurfaceBuilderConfig::grassDirtGravel();
-        buildDefaultSurface(random,
+        _buildDefaultSurface(random,
             chunk,
             biome,
             x,
@@ -394,11 +388,10 @@ void GravellyMountainSurfaceBuilder::buildSurface(math::Random& random,
     (void)config;
     (void)worldSeed;
 
-    // 参考 MC GravellyMountainSurfaceBuilder
     // 根据噪声值选择不同配置
     if (surfaceNoise > 2.0 || surfaceNoise < -1.0) {
         const SurfaceBuilderConfig gravelConfig = SurfaceBuilderConfig::gravelOnly();
-        buildDefaultSurface(random,
+        _buildDefaultSurface(random,
             chunk,
             biome,
             x,
@@ -413,7 +406,7 @@ void GravellyMountainSurfaceBuilder::buildSurface(math::Random& random,
             gravelConfig.underWaterBlock);
     } else if (surfaceNoise > 1.0) {
         const SurfaceBuilderConfig stoneConfig = SurfaceBuilderConfig::stoneStoneGravel();
-        buildDefaultSurface(random,
+        _buildDefaultSurface(random,
             chunk,
             biome,
             x,
@@ -428,7 +421,7 @@ void GravellyMountainSurfaceBuilder::buildSurface(math::Random& random,
             stoneConfig.underWaterBlock);
     } else {
         const SurfaceBuilderConfig grassConfig = SurfaceBuilderConfig::grassDirtGravel();
-        buildDefaultSurface(random,
+        _buildDefaultSurface(random,
             chunk,
             biome,
             x,
@@ -464,11 +457,10 @@ void ShatteredSavannaSurfaceBuilder::buildSurface(math::Random& random,
     (void)config;
     (void)worldSeed;
 
-    // 参考 MC ShatteredSavannaSurfaceBuilder
     // 根据噪声值委托给DefaultSurfaceBuilder使用不同配置
     if (surfaceNoise > 1.75) {
         const SurfaceBuilderConfig stoneConfig = SurfaceBuilderConfig::stoneStoneGravel();
-        buildDefaultSurface(random,
+        _buildDefaultSurface(random,
             chunk,
             biome,
             x,
@@ -483,7 +475,7 @@ void ShatteredSavannaSurfaceBuilder::buildSurface(math::Random& random,
             stoneConfig.underWaterBlock);
     } else if (surfaceNoise > -0.5) {
         const SurfaceBuilderConfig coarseConfig = SurfaceBuilderConfig::coarseDirtDirtGravel();
-        buildDefaultSurface(random,
+        _buildDefaultSurface(random,
             chunk,
             biome,
             x,
@@ -498,7 +490,7 @@ void ShatteredSavannaSurfaceBuilder::buildSurface(math::Random& random,
             coarseConfig.underWaterBlock);
     } else {
         const SurfaceBuilderConfig grassConfig = SurfaceBuilderConfig::grassDirtGravel();
-        buildDefaultSurface(random,
+        _buildDefaultSurface(random,
             chunk,
             biome,
             x,
@@ -534,11 +526,10 @@ void GiantTreeTaigaSurfaceBuilder::buildSurface(math::Random& random,
     (void)config;
     (void)worldSeed;
 
-    // 参考 MC GiantTreeTaigaSurfaceBuilder
     // 根据噪声值委托给DefaultSurfaceBuilder使用不同配置
     if (surfaceNoise > 1.75) {
         const SurfaceBuilderConfig coarseConfig = SurfaceBuilderConfig::coarseDirtDirtGravel();
-        buildDefaultSurface(random,
+        _buildDefaultSurface(random,
             chunk,
             biome,
             x,
@@ -553,7 +544,7 @@ void GiantTreeTaigaSurfaceBuilder::buildSurface(math::Random& random,
             coarseConfig.underWaterBlock);
     } else if (surfaceNoise > -0.95) {
         const SurfaceBuilderConfig podzolConfig = SurfaceBuilderConfig::podzolDirtGravel();
-        buildDefaultSurface(random,
+        _buildDefaultSurface(random,
             chunk,
             biome,
             x,
@@ -568,7 +559,7 @@ void GiantTreeTaigaSurfaceBuilder::buildSurface(math::Random& random,
             podzolConfig.underWaterBlock);
     } else {
         const SurfaceBuilderConfig grassConfig = SurfaceBuilderConfig::grassDirtGravel();
-        buildDefaultSurface(random,
+        _buildDefaultSurface(random,
             chunk,
             biome,
             x,
@@ -603,13 +594,11 @@ void SwampSurfaceBuilder::buildSurface(math::Random& random,
 {
     (void)worldSeed;
 
-    // 参考 MC SwampSurfaceBuilder 第15-34行
     // 使用Biome.INFO_NOISE在水面附近生成粘土
     const i32 localX = x & 15;
     const i32 localZ = z & 15;
 
     // 使用全局 INFO_NOISE 采样
-    // MC 第16行：Biome.INFO_NOISE.noiseAt((double)x * 0.25D, (double)z * 0.25D, false)
     const f64 infoNoiseValue = static_cast<f64>(
         GlobalInfoNoise::instance().noiseAt(static_cast<f32>(x) * 0.25f, static_cast<f32>(z) * 0.25f, false));
 
@@ -618,8 +607,8 @@ void SwampSurfaceBuilder::buildSurface(math::Random& random,
         for (i32 y = startHeight; y >= 0; --y) {
             const BlockState* state = chunk.getBlockState(localX, y, localZ);
             if (!state || !state->isAir()) {
-                // 找到非空气方块，检查是否在海平面(62)且不是水
-                if (y == 62 && state->blockId() != defaultFluid->blockId()) {
+                // 找到非空气方块，检查是否在海平面且不是水
+                if (y == SEA_LEVEL - 1 && state->blockId() != defaultFluid->blockId()) {
                     // 替换为水
                     chunk.setBlockState(localX, y, localZ, defaultFluid);
                 }
@@ -629,7 +618,7 @@ void SwampSurfaceBuilder::buildSurface(math::Random& random,
     }
 
     // 委托给 DefaultSurfaceBuilder 完成常规地表生成
-    buildDefaultSurface(random,
+    _buildDefaultSurface(random,
         chunk,
         biome,
         x,
@@ -669,11 +658,10 @@ void FrozenOceanSurfaceBuilder::buildSurface(math::Random& random,
 {
     (void)worldSeed;
 
-    // 参考 MC FrozenOceanSurfaceBuilder 第30-123行
     const i32 localX = x & 15;
     const i32 localZ = z & 15;
 
-    // 获取温度（参考第34行）
+    // 获取温度
     const f32 temperature = biome.temperature();
 
     // 计算冰山参数
@@ -681,7 +669,6 @@ void FrozenOceanSurfaceBuilder::buildSurface(math::Random& random,
     f64 icebergBase = 0.0;
 
     // 使用噪声生成器计算冰山尺寸
-    // MC 第35行：min(abs(noise), field_205199_h.noiseAt(...) * 15.0)
     if (m_icebergHeightNoise && m_icebergDensityNoise) {
         const f64 noiseValue = std::abs(surfaceNoise);
         const f64 heightNoise = static_cast<f64>(m_icebergHeightNoise->noiseAt(
@@ -691,11 +678,9 @@ void FrozenOceanSurfaceBuilder::buildSurface(math::Random& random,
         const f64 d2 = std::min(noiseValue, heightNoise);
 
         if (d2 > 1.8) {
-            // MC 第37-43行：计算冰山密度
-            const f64 densityNoise = std::abs(
-                static_cast<f64>(m_icebergDensityNoise->noiseAt(static_cast<f32>(x) * 0.09765625f, // 1/1024 * 100
-                    static_cast<f32>(z) * 0.09765625f,
-                    false)));
+            // 计算冰山密度
+            const f64 densityNoise = std::abs(static_cast<f64>(m_icebergDensityNoise->noiseAt(
+                static_cast<f32>(x) * 0.09765625f, static_cast<f32>(z) * 0.09765625f, false)));
 
             icebergHeight = d2 * d2 * 1.2;
             f64 maxHeight = std::ceil(densityNoise * 40.0) + 14.0;
@@ -737,7 +722,7 @@ void FrozenOceanSurfaceBuilder::buildSurface(math::Random& random,
     for (i32 y = startY; y >= 0; --y) {
         const BlockState* currentState = chunk.getBlockState(localX, y, localZ);
 
-        // 冰山生成（MC 第72-76行）
+        // 冰山生成
         if ((!currentState || currentState->isAir()) && y < static_cast<i32>(icebergHeight)) {
             if (random.nextDouble() > 0.01) {
                 chunk.setBlockState(localX, y, localZ, packedIceState);
@@ -792,7 +777,7 @@ void FrozenOceanSurfaceBuilder::buildSurface(math::Random& random,
                 if (currentDepth == 0 && underState != nullptr && depth > 1) {
                     const Block* block = &underState->owner();
                     if (block == VanillaBlocks::SAND || block == VanillaBlocks::RED_SAND) {
-                        currentDepth = random.nextInt(4) + std::max(0, y - 63);
+                        currentDepth = random.nextInt(4) + std::max(0, y - SEA_LEVEL);
                         if (block == VanillaBlocks::RED_SAND) {
                             underState = VanillaBlocks::getState(VanillaBlocks::RED_SANDSTONE);
                         } else {
@@ -802,7 +787,7 @@ void FrozenOceanSurfaceBuilder::buildSurface(math::Random& random,
                 }
             }
         } else if (packedIceState && currentState->blockId() == packedIceState->blockId()) {
-            // 浮冰转换为雪块（MC 第82-84行）
+            // 浮冰转换为雪块
             if (packedIceCount <= maxPackedIce && y > snowThreshold) {
                 chunk.setBlockState(localX, y, localZ, snowBlockState);
                 ++packedIceCount;
@@ -821,12 +806,9 @@ void FrozenOceanSurfaceBuilder::setSeed(u64 seed)
     m_seed = seed;
 
     // 创建随机数生成器用于噪声初始化
-    // MC 使用 SharedSeedRandom，我们使用标准 Random
     math::Random rng(seed);
 
-    // MC 第128-129行：创建两个 PerlinNoiseGenerator
-    // field_205199_h: rangeClosed(-3, 0) = 4 octaves
-    // field_205200_i: ImmutableList.of(0) = 1 octave
+    // 创建两个 PerlinNoiseGenerator
     m_icebergHeightNoise = std::make_unique<PerlinNoiseGenerator>(rng, -3, 0);
     m_icebergDensityNoise = std::make_unique<PerlinNoiseGenerator>(rng, 0, 0);
 }
@@ -852,7 +834,6 @@ void BadlandsSurfaceBuilder::buildSurface(math::Random& random,
     (void)defaultFluid;
     (void)worldSeed;
 
-    // 参考 MC BadlandsSurfaceBuilder 第35-111行
     const i32 localX = x & 15;
     const i32 localZ = z & 15;
 
@@ -870,7 +851,7 @@ void BadlandsSurfaceBuilder::buildSurface(math::Random& random,
     bool useOrangeLayer = false;
     i32 terracottaCount = 0;
 
-    // MC 第44行：cos(noise / 3.0 * PI) > 0 判断是否使用陶瓦色带
+    // cos(noise / 3.0 * PI) > 0 判断是否使用陶瓦色带
     const bool useTerracottaBands = std::cos(surfaceNoise / 3.0 * math::PI) > 0.0;
 
     for (i32 y = startHeight; y >= 0; --y) {
@@ -906,7 +887,7 @@ void BadlandsSurfaceBuilder::buildSurface(math::Random& random,
                             if (useTerracottaBands) {
                                 layerState = terracottaState;
                             } else {
-                                layerState = getTerracottaLayer(x, y, z);
+                                layerState = _getTerracottaLayer(x, y, z);
                             }
                         } else {
                             layerState = orangeTerracottaState;
@@ -925,8 +906,8 @@ void BadlandsSurfaceBuilder::buildSurface(math::Random& random,
                     const BlockState* underState = config.underBlock;
                     chunk.setBlockState(localX, y, localZ, underState);
 
-                    // 如果是陶瓦颜色，替换为橙色陶瓦（MC 第93-95行）
-                    if (underState && isTerracottaColor(underState)) {
+                    // 如果是陶瓦颜色，替换为橙色陶瓦
+                    if (underState && _isTerracottaColor(underState)) {
                         chunk.setBlockState(localX, y, localZ, orangeTerracottaState);
                     }
                 }
@@ -938,7 +919,7 @@ void BadlandsSurfaceBuilder::buildSurface(math::Random& random,
                         chunk.setBlockState(localX, y, localZ, orangeTerracottaState);
                     }
                 } else {
-                    const BlockState* layerState = getTerracottaLayer(x, y, z);
+                    const BlockState* layerState = _getTerracottaLayer(x, y, z);
                     if (layerState) {
                         chunk.setBlockState(localX, y, localZ, layerState);
                     }
@@ -950,7 +931,7 @@ void BadlandsSurfaceBuilder::buildSurface(math::Random& random,
     }
 }
 
-bool BadlandsSurfaceBuilder::isTerracottaColor(const BlockState* state) const
+bool BadlandsSurfaceBuilder::_isTerracottaColor(const BlockState* state) const
 {
     if (!state) return false;
     const Block* block = &state->owner();
@@ -976,19 +957,16 @@ void BadlandsSurfaceBuilder::setSeed(u64 seed)
     // 创建随机数生成器
     math::Random rng(seed);
 
-    // MC 第119-122行：创建噪声生成器
-    // field_215435_c: rangeClosed(-3, 0) = 4 octaves
-    // field_215437_d: ImmutableList.of(0) = 1 octave
+    // 创建噪声生成器
     m_surfaceNoiseA = std::make_unique<PerlinNoiseGenerator>(rng, -3, 0);
     m_surfaceNoiseB = std::make_unique<PerlinNoiseGenerator>(rng, 0, 0);
 
-    // MC 第127-192行：初始化陶瓦色带
-    initBands(seed, rng);
+    // 初始化陶瓦色带
+    _initBands(seed, rng);
 }
 
-void BadlandsSurfaceBuilder::initBands(u64 seed, math::IRandom& rng)
+void BadlandsSurfaceBuilder::_initBands(u64 seed, math::IRandom& rng)
 {
-    // MC BadlandsSurfaceBuilder.func_215430_b (第127-192行)
     // 初始化陶瓦色带数组
 
     // 默认填充橙色陶瓦
@@ -1005,17 +983,17 @@ void BadlandsSurfaceBuilder::initBands(u64 seed, math::IRandom& rng)
         m_terracottaBands[i] = terracotta;
     }
 
-    // MC 第131行：创建色带偏移噪声
+    // 创建色带偏移噪声
     m_bandOffsetNoise = std::make_unique<PerlinNoiseGenerator>(rng, 0, 0);
 
-    // MC 第133-138行：添加橙色条带
+    // 添加橙色条带
     for (i32 i = 0; i < 64; i += rng.nextInt(5) + 1) {
         if (i < 64) {
             m_terracottaBands[i] = orangeTerracotta;
         }
     }
 
-    // MC 第140-149行：添加黄色条带
+    // 添加黄色条带
     i32 yellowBands = rng.nextInt(4) + 2;
     for (i32 i = 0; i < yellowBands; ++i) {
         i32 bandLength = rng.nextInt(3) + 1;
@@ -1025,7 +1003,7 @@ void BadlandsSurfaceBuilder::initBands(u64 seed, math::IRandom& rng)
         }
     }
 
-    // MC 第151-160行：添加棕色条带
+    // 添加棕色条带
     i32 brownBands = rng.nextInt(4) + 2;
     for (i32 i = 0; i < brownBands; ++i) {
         i32 bandLength = rng.nextInt(3) + 2;
@@ -1035,7 +1013,7 @@ void BadlandsSurfaceBuilder::initBands(u64 seed, math::IRandom& rng)
         }
     }
 
-    // MC 第162-171行：添加红色条带
+    // 添加红色条带
     i32 redBands = rng.nextInt(4) + 2;
     for (i32 i = 0; i < redBands; ++i) {
         i32 bandLength = rng.nextInt(3) + 1;
@@ -1045,7 +1023,7 @@ void BadlandsSurfaceBuilder::initBands(u64 seed, math::IRandom& rng)
         }
     }
 
-    // MC 第173-191行：添加白色和浅灰色条带
+    // 添加白色和浅灰色条带
     i32 whiteBands = rng.nextInt(3) + 3;
     i32 currentPos = 0;
     for (i32 i = 0; i < whiteBands; ++i) {
@@ -1068,9 +1046,8 @@ void BadlandsSurfaceBuilder::initBands(u64 seed, math::IRandom& rng)
     (void)seed; // 已通过 rng 使用
 }
 
-const BlockState* BadlandsSurfaceBuilder::getTerracottaLayer(i32 worldX, i32 worldY, i32 worldZ)
+const BlockState* BadlandsSurfaceBuilder::_getTerracottaLayer(i32 worldX, i32 worldY, i32 worldZ)
 {
-    // MC BadlandsSurfaceBuilder.func_215431_a (第194-197行)
     if (!m_bandOffsetNoise) {
         return nullptr;
     }
@@ -1108,10 +1085,9 @@ void ErodedBadlandsSurfaceBuilder::buildSurface(math::Random& random,
 {
     (void)config;
 
-    // 参考 MC ErodedBadlandsSurfaceBuilder
     // 侵蚀恶地使用红沙和白陶瓦
     const SurfaceBuilderConfig erodedConfig = SurfaceBuilderConfig::redSandWhiteTerracottaGravel();
-    buildDefaultSurface(random,
+    _buildDefaultSurface(random,
         chunk,
         biome,
         x,
@@ -1145,12 +1121,11 @@ void WoodedBadlandsSurfaceBuilder::buildSurface(math::Random& random,
 {
     (void)config;
 
-    // 参考 MC WoodedBadlandsSurfaceBuilder
     // 疏林恶地地表有草和泥土
     const BlockState* grassState = VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK);
     const BlockState* dirtState = VanillaBlocks::getState(VanillaBlocks::DIRT);
 
-    buildDefaultSurface(random,
+    _buildDefaultSurface(random,
         chunk,
         biome,
         x,
@@ -1187,9 +1162,8 @@ void NetherSurfaceBuilder::buildSurface(math::Random& random,
     (void)biome;
     (void)worldSeed;
 
-    // 参考 MC NetherSurfaceBuilder
     const SurfaceBuilderConfig netherConfig = SurfaceBuilderConfig::netherrack();
-    buildDefaultSurface(random,
+    _buildDefaultSurface(random,
         chunk,
         biome,
         x,
@@ -1225,7 +1199,6 @@ void NetherForestsSurfaceBuilder::buildSurface(math::Random& random,
     (void)seaLevel;
     (void)worldSeed;
 
-    // 参考 MC NetherForestsSurfaceBuilder 第23-73行
     const i32 localX = x & 15;
     const i32 localZ = z & 15;
 
@@ -1237,7 +1210,7 @@ void NetherForestsSurfaceBuilder::buildSurface(math::Random& random,
         return;
     }
 
-    // MC 第27-28行：使用噪声决定表层类型
+    // 使用噪声决定表层类型
     bool useUnderAsTop = false;
     bool useUnderWater = false;
 
@@ -1314,8 +1287,7 @@ void NetherForestsSurfaceBuilder::setSeed(u64 seed)
     m_cachedSeed = seed;
     m_seed = seed;
 
-    // MC 第75-77行：创建 OctavesNoiseGenerator
-    // ImmutableList.of(0) = 1 octave
+    // 创建 OctavesNoiseGenerator
     math::Random rng(seed);
     m_noise = std::make_unique<OctavesNoiseGenerator>(rng, 0, 0);
 }
@@ -1342,7 +1314,6 @@ void SoulSandValleySurfaceBuilder::buildSurface(math::Random& random,
     (void)biome;
     (void)worldSeed;
 
-    // 参考 MC SoulSandValleySurfaceBuilder
     const BlockState* topState = config.topBlock;
     const BlockState* underState = config.underBlock;
     const BlockState* soulSandState = VanillaBlocks::getState(VanillaBlocks::SOUL_SAND);
@@ -1409,7 +1380,6 @@ void BasaltDeltasSurfaceBuilder::buildSurface(math::Random& random,
     (void)biome;
     (void)worldSeed;
 
-    // 参考 MC BasaltDeltasSurfaceBuilder
     const BlockState* basaltState = VanillaBlocks::getState(VanillaBlocks::BASALT);
     const BlockState* blackstoneState = VanillaBlocks::getState(VanillaBlocks::BLACKSTONE);
 

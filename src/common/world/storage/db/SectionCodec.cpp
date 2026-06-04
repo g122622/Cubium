@@ -155,7 +155,7 @@ u32 SectionData::getBlockStateId(i32 x, i32 y, i32 z) const
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return 0;
     }
-    return blockStates[static_cast<size_t>(blockIndex(x, y, z))];
+    return blockStates[static_cast<size_t>(_blockIndex(x, y, z))];
 }
 
 void SectionData::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId)
@@ -164,7 +164,7 @@ void SectionData::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId)
         return;
     }
 
-    i32 idx = blockIndex(x, y, z);
+    i32 idx = _blockIndex(x, y, z);
     u32 oldStateId = blockStates[static_cast<size_t>(idx)];
 
     // 更新非空方块计数
@@ -182,7 +182,7 @@ BiomeId SectionData::getBiome(i32 x, i32 y, i32 z) const
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return 1; // 默认平原
     }
-    return biomes[static_cast<size_t>(biomeIndex(x, y, z))];
+    return biomes[static_cast<size_t>(_biomeIndex(x, y, z))];
 }
 
 void SectionData::setBiome(i32 x, i32 y, i32 z, BiomeId biome)
@@ -190,7 +190,7 @@ void SectionData::setBiome(i32 x, i32 y, i32 z, BiomeId biome)
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return;
     }
-    biomes[static_cast<size_t>(biomeIndex(x, y, z))] = biome;
+    biomes[static_cast<size_t>(_biomeIndex(x, y, z))] = biome;
 }
 
 // ============================================================================

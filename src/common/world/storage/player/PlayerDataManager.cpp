@@ -41,14 +41,9 @@ namespace mc::world::storage {
 
 PlayerDataManager::PlayerDataManager(RocksDBDatabase& db)
     : m_db(db)
-{
-    // spdlog::debug("PlayerDataManager initialized");
-}
+{}
 
-PlayerDataManager::~PlayerDataManager()
-{
-    // spdlog::debug("PlayerDataManager shutdown");
-}
+PlayerDataManager::~PlayerDataManager() {}
 
 // ============================================================================
 // 玩家数据操作
@@ -66,7 +61,7 @@ Result<PlayerSaveData*> PlayerDataManager::loadPlayer(const std::string& uuid)
     }
 
     // 从数据库加载
-    auto key = makeKey(uuid);
+    auto key = _makeKey(uuid);
     auto dataResult = m_db.get(cf::PLAYERS, key);
     if (dataResult.failed()) {
         // NotFound 表示玩家不存在，返回 nullptr
@@ -98,7 +93,6 @@ Result<PlayerSaveData*> PlayerDataManager::loadPlayer(const std::string& uuid)
         m_cache[uuid] = std::move(playerData);
     }
 
-    // spdlog::debug("Loaded player data for {}", uuid);
     return ptr;
 }
 
@@ -130,7 +124,7 @@ Result<void> PlayerDataManager::savePlayerImmediate(const PlayerSaveData& data)
     }
 
     // 写入数据库
-    auto key = makeKey(data.uuid);
+    auto key = _makeKey(data.uuid);
     auto putResult = m_db.put(cf::PLAYERS, key, serializeResult.value(), true);
     if (putResult.failed()) {
         return putResult.error();
@@ -153,8 +147,6 @@ Result<void> PlayerDataManager::savePlayerImmediate(const PlayerSaveData& data)
         }
     }
 
-    spdlog::debug("Saved player data for {}", data.uuid);
-
     // 触发回调
     if (m_onPlayerSaved) {
         m_onPlayerSaved(data.uuid);
@@ -166,16 +158,15 @@ Result<void> PlayerDataManager::savePlayerImmediate(const PlayerSaveData& data)
 Result<void> PlayerDataManager::deletePlayer(const std::string& uuid)
 {
     // 从数据库删除
-    auto key = makeKey(uuid);
+    auto key = _makeKey(uuid);
     auto delResult = m_db.del(cf::PLAYERS, key);
     if (delResult.failed()) {
         return delResult.error();
     }
 
     // 从缓存和脏集合移除
-    removeFromCache(uuid);
+    _removeFromCache(uuid);
 
-    spdlog::debug("Deleted player data for {}", uuid);
     return Result<void>::ok();
 }
 
@@ -190,7 +181,7 @@ bool PlayerDataManager::hasPlayer(const std::string& uuid) const
     }
 
     // 检查数据库
-    auto key = makeKey(uuid);
+    auto key = _makeKey(uuid);
     return m_db.exists(cf::PLAYERS, key);
 }
 
@@ -481,12 +472,12 @@ size_t PlayerDataManager::cacheSize() const
 // 私有方法
 // ============================================================================
 
-std::vector<u8> PlayerDataManager::makeKey(const std::string& uuid)
+std::vector<u8> PlayerDataManager::_makeKey(const std::string& uuid)
 {
     return std::vector<u8>(uuid.begin(), uuid.end());
 }
 
-void PlayerDataManager::removeFromCache(const std::string& uuid)
+void PlayerDataManager::_removeFromCache(const std::string& uuid)
 {
     std::lock_guard<std::mutex> lock(m_cacheMutex);
     m_cache.erase(uuid);

@@ -42,8 +42,6 @@ class BlockState;
  * @brief 树叶放置器基类
  *
  * 负责生成树叶。接收树干放置器返回的树叶位置列表。
- *
- * 参考: net.minecraft.world.gen.foliageplacer.FoliagePlacer
  */
 class FoliagePlacer {
 public:

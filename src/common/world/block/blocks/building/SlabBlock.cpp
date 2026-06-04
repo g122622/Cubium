@@ -67,7 +67,6 @@ SlabBlock::SlabBlock(const BlockProperties& properties)
 
 BlockState SlabBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 参考: MC 1.16.5 SlabBlock.getStateForPlacement()
     BlockPos pos = context.placementPos();
     const BlockState* existingState = context.getWorld().getBlockState(pos);
 

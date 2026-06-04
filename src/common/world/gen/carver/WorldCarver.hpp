@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../core/Constants.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../block/Block.hpp"
-#include "../../chunk/ChunkPrimer.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
 #include <bitset>
 #include <functional>
 #include <memory>
@@ -41,8 +41,6 @@ class Random;
 
 /**
  * @brief 雕刻器配置接口
- *
- * 参考 MC ICarverConfig
  */
 struct ICarverConfig {
     virtual ~ICarverConfig() = default;
@@ -51,7 +49,7 @@ struct ICarverConfig {
 /**
  * @brief 概率配置
  *
- * 参考 MC ProbabilityConfig，控制雕刻器生成概率。
+ * 控制雕刻器生成概率。
  */
 struct ProbabilityConfig : public ICarverConfig {
     /// 生成概率 (0.0 - 1.0)
@@ -66,7 +64,6 @@ struct ProbabilityConfig : public ICarverConfig {
  * @brief 雕刻掩码
  *
  * 用于追踪哪些位置已被雕刻，防止重复雕刻。
- * 参考 MC 中的 BitSet carvingMask
  */
 class CarvingMask {
 public:
@@ -103,7 +100,10 @@ public:
      */
     [[nodiscard]] static constexpr i32 getIndex(BlockCoord x, i32 y, BlockCoord z)
     {
-        return static_cast<i32>(x) | (static_cast<i32>(z) << 4) | (y << 8);
+        // y 需要转换为相对于 MIN_BUILD_HEIGHT 的偏移量
+        const i32 relativeY = y - world::MIN_BUILD_HEIGHT;
+        return static_cast<i32>(x) | (static_cast<i32>(z) << world::CHUNK_SHIFT) |
+            (relativeY << (world::CHUNK_SHIFT + world::SECTION_SHIFT));
     }
 
 private:
@@ -115,7 +115,7 @@ private:
 /**
  * @brief 世界雕刻器基类
  *
- * 参考 MC WorldCarver，定义雕刻器的通用接口和工具方法。
+ * 定义雕刻器的通用接口和工具方法。
  *
  * @tparam Config 配置类型
  */
@@ -288,6 +288,8 @@ protected:
      * @param y Y坐标
      * @return 是否应该跳过
      */
+    // TODO: 私有成员函数应命名为 _shouldSkipEllipsoidPosition，但修改会影响子类
+    // CaveCarver/CanyonCarver/UnderwaterCarver
     [[nodiscard]] virtual bool shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const = 0;
 };
 
@@ -295,7 +297,6 @@ protected:
  * @brief 配置化的雕刻器
  *
  * 组合雕刻器和配置，方便注册和使用。
- * 参考 MC ConfiguredCarver
  */
 template <typename Carver, typename Config>
 class ConfiguredCarver {

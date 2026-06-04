@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <optional>
 
 namespace mc {
@@ -47,8 +47,6 @@ namespace explosion {
  * 用于自定义爆炸行为，例如：
  * - 凋灵之首可以破坏更高抗性的方块
  * - TNT 矿车不破坏铁轨
- *
- * 对应 Minecraft 1.16.5 的 ExplosionContext 类。
  */
 class ExplosionContext {
 public:

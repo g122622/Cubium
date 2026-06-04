@@ -92,7 +92,6 @@ int BrewingStandBlock::getComparatorInputOverride(const BlockState& state, IWorl
     MC_UNUSED(state);
 
     // 从酿造台方块实体获取比较器信号
-    // 参考 MC 1.16.5 BrewingStandBlock.getComparatorInputOverride
     BlockEntity* entity = world.getBlockEntity(pos);
     if (entity != nullptr && entity->getType() == BlockEntityType::BrewingStand) {
         auto* brewingStand = static_cast<blockentity::BrewingStandEntity*>(entity);
@@ -107,8 +106,7 @@ std::unique_ptr<BlockEntity> BrewingStandBlock::createBlockEntity(const BlockPos
     return std::make_unique<blockentity::BrewingStandEntity>(pos);
 }
 
-ActionResultType BrewingStandBlock::onBlockActivated(
-    const BlockState& state,
+ActionResultType BrewingStandBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -163,8 +161,7 @@ void BrewingStandBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const
         for (i32 i = 0; i < inventory->getContainerSize(); ++i) {
             ItemStack stack = inventory->removeItemNoUpdate(i);
             if (!stack.isEmpty()) {
-                ItemDropHelper::spawnItemEntity(
-                    &world, stack, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, rng);
+                ItemDropHelper::spawnItemEntity(&world, stack, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, rng);
             }
         }
     }

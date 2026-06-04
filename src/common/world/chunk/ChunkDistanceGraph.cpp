@@ -60,14 +60,14 @@ void ChunkDistanceGraph::updateSourceLevel(ChunkCoord x, ChunkCoord z, i32 level
     if (newSourceLevel >= MAX_LEVEL) {
         if (sourceIt != m_sourceLevels.end()) {
             m_sourceLevels.erase(sourceIt);
-            enqueueUpdate(x, z);
+            _enqueueUpdate(x, z);
         }
         return;
     }
 
     if (sourceIt == m_sourceLevels.end() || sourceIt->second != newSourceLevel) {
         m_sourceLevels[key] = newSourceLevel;
-        enqueueUpdate(x, z);
+        _enqueueUpdate(x, z);
     }
 }
 
@@ -126,7 +126,7 @@ i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess)
         onLevelChanged(x, z, currentLevel, recomputedLevel);
 
         // 当前节点级别变化后，邻居的最优值可能也会变化。
-        propagateToNeighbors(x, z, recomputedLevel, recomputedLevel < currentLevel);
+        _propagateToNeighbors(x, z, recomputedLevel, recomputedLevel < currentLevel);
     }
 
     return processed;
@@ -180,7 +180,7 @@ void ChunkDistanceGraph::onLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel
     }
 }
 
-void ChunkDistanceGraph::propagateToNeighbors(ChunkCoord x, ChunkCoord z, i32 level, bool isDecreasing)
+void ChunkDistanceGraph::_propagateToNeighbors(ChunkCoord x, ChunkCoord z, i32 level, bool isDecreasing)
 {
     // 4个相邻区块：北、南、东、西
     struct Neighbor {
@@ -193,11 +193,13 @@ void ChunkDistanceGraph::propagateToNeighbors(ChunkCoord x, ChunkCoord z, i32 le
         {x - 1, z}  // 西
     };
 
-    i32 propagatedLevel = computePropagatedLevel(level);
+    i32 propagatedLevel = _computePropagatedLevel(level);
     if (propagatedLevel > MAX_LEVEL) {
         propagatedLevel = MAX_LEVEL;
     }
 
+    // TODO: propagatedLevel 和 isDecreasing 参数暂时未使用，后续可用于优化传播逻辑
+    // 当前统一触发邻居重计算，未来可根据这两个值进行更细粒度的传播控制
     (void)propagatedLevel;
     (void)isDecreasing;
 
@@ -206,11 +208,11 @@ void ChunkDistanceGraph::propagateToNeighbors(ChunkCoord x, ChunkCoord z, i32 le
         ChunkCoord nz = neighbors[i].z;
 
         // 无论升/降级，邻居都可能依赖当前节点，统一触发重计算。
-        enqueueUpdate(nx, nz);
+        _enqueueUpdate(nx, nz);
     }
 }
 
-void ChunkDistanceGraph::enqueueUpdate(ChunkCoord x, ChunkCoord z)
+void ChunkDistanceGraph::_enqueueUpdate(ChunkCoord x, ChunkCoord z)
 {
     const u64 key = posToKey(x, z);
     if (m_pendingKeys.insert(key).second) {

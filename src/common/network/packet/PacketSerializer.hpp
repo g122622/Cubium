@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Result.hpp"
-#include "../../core/Types.hpp"
 #include "PacketDeserializer.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <array>
 #include <cstring>
 #include <string>
@@ -102,6 +102,11 @@ class PacketSerializer {
 public:
     PacketSerializer();
     explicit PacketSerializer(size_t initialCapacity);
+    PacketSerializer(const PacketSerializer& other) = default;
+    PacketSerializer(PacketSerializer&& other) noexcept;
+    PacketSerializer& operator=(const PacketSerializer& other) = default;
+    PacketSerializer& operator=(PacketSerializer&& other) noexcept;
+    ~PacketSerializer() = default;
 
     // 写入操作
     void writeU8(u8 value);

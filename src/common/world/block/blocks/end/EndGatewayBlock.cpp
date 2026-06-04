@@ -47,7 +47,7 @@ void EndGatewayBlock::onEntityCollision(
     MC_UNUSED(state);
 
     // 检查实体是否可以传送
-    // MC 1.16.5: 检查实体是否是旁观者、是否有乘客/正在骑乘
+    // 检查实体是否是旁观者、是否有乘客/正在骑乘
     // 实际传送逻辑由 EndGatewayEntity::tick() 处理
     // 这里只需要标记实体在折跃门内，方块实体会在 tick 中检测并处理
 
@@ -65,7 +65,6 @@ void EndGatewayBlock::onEntityCollision(
     }
 
     // 检查实体是否可以传送
-    // MC 1.16.5 EndGatewayTileEntity.func_242690_a:
     // - 不是旁观者模式
     // - 最低骑乘实体不是正在使用盾牌格挡（不适用于本项目）
     if (!entity.canTeleport()) {

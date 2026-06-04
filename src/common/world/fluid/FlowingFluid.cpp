@@ -21,19 +21,19 @@
  *
  */
 
-#include "FlowingFluid.hpp"
-#include "../../physics/collision/CollisionShape.hpp"
-#include "../../util/Direction.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../IWorld.hpp"
-#include "../block/Block.hpp"
-#include "../block/BlockPos.hpp"
-#include "../block/ILiquidContainer.hpp"
-#include "../block/Material.hpp"
-#include "../block/VanillaBlocks.hpp"
-#include "../tick/manager/TickManager.hpp"
-#include "FluidRegistry.hpp"
+#include "common/world/fluid/FlowingFluid.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/ILiquidContainer.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -287,6 +287,7 @@ Vector3 FlowingFluid::getFlow(IBlockReader& world, const BlockPos& pos, const Fl
             if (belowFluid != nullptr && isSameOrEmpty(*belowFluid)) {
                 neighborHeight = belowFluid->getHeight();
                 if (neighborHeight > 0.0f) {
+                    // 0.8888889f ≈ 8/9，表示下落流体的额外高度偏移
                     heightDelta = state.getHeight() - (neighborHeight - 0.8888889f);
                 }
             }
@@ -305,6 +306,7 @@ Vector3 FlowingFluid::getFlow(IBlockReader& world, const BlockPos& pos, const Fl
         for (Direction dir : Directions::horizontal()) {
             samplePos = pos.offset(Directions::toBlockFace(dir));
             if (causesDownwardCurrent(world, samplePos, dir) || causesDownwardCurrent(world, samplePos.up(), dir)) {
+                // 6.0f 是下落流体的向下流动强度系数
                 flow = flow.normalized() + Vector3(0.0f, -6.0f, 0.0f);
                 break;
             }
@@ -474,7 +476,7 @@ void FlowingFluid::flowInto(
 
     // 设置流体方块
     // 必须使用传入状态自身的流体类型做方块映射，避免 source/fluid 实例错配。
-    // 使用 flags=3 来通知邻居和更新客户端（与 MC 1.16.5 一致）
+    // 使用 flags=3 来通知邻居和更新客户端
     const BlockState* newBlockState = state.getBlockState();
     if (newBlockState != nullptr) {
         world.setBlockState(pos, newBlockState, 3);
@@ -675,6 +677,7 @@ i32 FlowingFluid::calculateFlowDecay(IWorld& world,
     std::unordered_map<i16, std::pair<const BlockState*, const FluidState*>>& stateCache,
     std::unordered_map<i16, bool>& fallCache) const
 {
+    // 1000 作为初始大值，用于寻找最小衰减值
     i32 minDecay = 1000;
 
     for (Direction dir : Directions::horizontal()) {
@@ -773,10 +776,11 @@ bool FlowingFluid::canFlowInto(IWorld& world,
     return false;
 }
 
-i16 FlowingFluid::packRelativePos(const BlockPos& source, const BlockPos& target) const
+i16 FlowingFluid::packRelativePos(const BlockPos& source, const BlockPos& target) const noexcept
 {
     i32 dx = target.x - source.x;
     i32 dz = target.z - source.z;
+    // 使用 128 作为偏移量将 [-128, 127] 范围的相对坐标映射到 [0, 255]
     return static_cast<i16>(((dx + 128) & 0xFF) << 8 | ((dz + 128) & 0xFF));
 }
 
@@ -784,6 +788,7 @@ std::unordered_map<Direction, FluidState> FlowingFluid::getFlowDirections(
     IWorld& world, const BlockPos& pos, const BlockState* blockState)
 {
     std::unordered_map<Direction, FluidState> result;
+    // 1000 作为初始大值，用于寻找最小衰减值
     i32 minDecay = 1000;
 
     std::unordered_map<i16, std::pair<const BlockState*, const FluidState*>> stateCache;

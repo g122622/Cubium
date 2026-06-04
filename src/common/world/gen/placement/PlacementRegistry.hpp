@@ -35,14 +35,13 @@ namespace mc {
  * @brief 放置器注册表
  *
  * 管理所有已注册的放置器类型。
- * 参考 MC 1.16.5 的 Placement 类。
  */
 class PlacementRegistry {
 public:
     /**
      * @brief 获取单例实例
      */
-    static PlacementRegistry& instance();
+    static PlacementRegistry& instance() noexcept;
 
     /**
      * @brief 初始化注册表
@@ -63,12 +62,12 @@ public:
      * @param name 放置器名称
      * @return 放置器指针，如果不存在则返回 nullptr
      */
-    [[nodiscard]] const Placement* get(const std::string& name) const;
+    [[nodiscard]] const Placement* get(const std::string& name) const noexcept;
 
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
 
     /**
      * @brief 获取所有已注册的放置器名称

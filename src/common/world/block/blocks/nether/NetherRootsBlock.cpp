@@ -22,13 +22,13 @@
  */
 
 #include "NetherRootsBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
 
-// 参考 MC 1.16.5 NetherRootsBlock: shape = makeCuboidShape(2.0, 0.0, 2.0, 14.0, 13.0, 14.0)
+// 下界菌索的碰撞箱形状：宽10像素（从2到14），高13像素
 static const CollisionShape s_rootsShape = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.8125f, 0.875f);
 
 NetherRootsBlock::NetherRootsBlock(const BlockProperties& properties)
@@ -46,8 +46,7 @@ bool NetherRootsBlock::canSustain(const BlockState& groundState, IWorld& world, 
     MC_UNUSED(world);
     MC_UNUSED(groundPos);
 
-    // 参考 MC 1.16.5 NetherRootsBlock.isValidGround():
-    // state.isIn(BlockTags.NYLIUM) || state.isIn(Blocks.SOUL_SOIL) || super.isValidGround(...)
+    // 下界菌索可放置在菌岩（绯红/诡异）、灵魂土上，以及 BushBlock 默认支撑面
     if (VanillaBlocks::CRIMSON_NYLIUM != nullptr && groundState.is(VanillaBlocks::CRIMSON_NYLIUM)) {
         return true;
     }

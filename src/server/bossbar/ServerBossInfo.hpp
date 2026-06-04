@@ -56,7 +56,6 @@ enum class BossInfoUpdateType : u8 {
  *
  * 扩展 BossInfo，添加玩家管理功能。
  * 管理可见此 Boss 栏的玩家列表，并提供玩家添加/移除功能。
- * 参考 MC 1.16.5: net.minecraft.world.server.ServerBossInfo
  */
 class ServerBossInfo : public BossInfo {
 public:

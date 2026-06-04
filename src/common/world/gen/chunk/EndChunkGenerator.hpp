@@ -36,7 +36,6 @@ namespace mc {
 /**
  * @brief 末地区块生成器
  *
- * 参考 MC 1.16.5 EndChunkGenerator
  * 专门用于末地维度的区块生成器，与主世界和下界有以下区别：
  *
  * - 高度范围：0-255
@@ -118,7 +117,7 @@ private:
     std::unique_ptr<world::gen::structure::StructureManager> m_structureManager;
 
     // === 末地特有参数 ===
-    i32 m_mainIslandRadius = 256;      // 主岛半径（方块单位），MC 1.16.5 使用 sqrt(4096) * 4 = 256
+    i32 m_mainIslandRadius = 256;      // 主岛半径（方块单位）
     i32 m_endIslandHeight = 64;        // 末地岛高度
     f32 m_islandNoiseThreshold = 1.0f; // 岛屿生成阈值
 
@@ -138,12 +137,12 @@ private:
      * @param z 世界 Z 坐标
      * @return 岛屿高度（0 表示无岛屿）
      */
-    [[nodiscard]] f32 calculateIslandHeight(i32 x, i32 z) const;
+    [[nodiscard]] f32 _calculateIslandHeight(i32 x, i32 z) const;
 
     /**
      * @brief 计算噪声密度
      */
-    [[nodiscard]] f32 calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noiseZ) const;
+    [[nodiscard]] f32 _calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noiseZ) const;
 
     /**
      * @brief 判断密度值对应的方块
@@ -151,34 +150,34 @@ private:
      * @param y Y 坐标
      * @return 方块状态指针，nullptr 表示空气
      */
-    [[nodiscard]] const BlockState* getBlockForDensity(f32 density, i32 y) const;
+    [[nodiscard]] const BlockState* _getBlockForDensity(f32 density, i32 y) const;
 
     /**
      * @brief 生成主岛
      * @param chunk 区块
      */
-    void generateMainIsland(ChunkPrimer& chunk);
+    void _generateMainIsland(ChunkPrimer& chunk);
 
     /**
      * @brief 生成外岛
      * @param chunk 区块
      */
-    void generateOuterIslands(ChunkPrimer& chunk);
+    void _generateOuterIslands(ChunkPrimer& chunk);
 
     /**
      * @brief 生成末地黑曜石柱
      * @param chunk 区块
      */
-    void generateObsidianPillars(ChunkPrimer& chunk);
+    void _generateObsidianPillars(ChunkPrimer& chunk);
 
     /**
      * @brief 判断区块是否在主岛范围内
      */
-    [[nodiscard]] bool isChunkInMainIsland(ChunkCoord chunkX, ChunkCoord chunkZ) const;
+    [[nodiscard]] bool _isChunkInMainIsland(ChunkCoord chunkX, ChunkCoord chunkZ) const;
 
     // === 初始化方法 ===
-    void initNoiseGenerators();
-    void initSettings();
+    void _initNoiseGenerators();
+    void _initSettings();
 };
 
 } // namespace mc

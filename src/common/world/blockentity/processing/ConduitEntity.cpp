@@ -78,7 +78,7 @@ constexpr i64 EFFECT_APPLY_INTERVAL = 40;
 constexpr i64 ATTACK_INTERVAL = 40;
 
 /// 计算效果范围
-/// MC 1.16.5: frameCount / 7 * 16
+/// frameCount / 7 * 16
 [[nodiscard]] i32 calculateEffectRange(i32 frameCount)
 {
     return (frameCount / 7) * 16;
@@ -108,13 +108,12 @@ void ConduitEntity::tick(IWorld& world)
 
     // 每40tick重新检测激活状态
     if (gameTime % UPDATE_INTERVAL == 0) {
-        const bool wasActive = m_active;
-        setActive(world, shouldBeActive(world));
+        _setActive(world, _shouldBeActive(world));
 
         // 服务端：激活时应用效果和攻击
         if (!world.isClientSide() && m_active) {
-            addEffectsToPlayers(world);
-            attackMobs(world);
+            _addEffectsToPlayers(world);
+            _attackMobs(world);
         }
     }
 
@@ -123,11 +122,11 @@ void ConduitEntity::tick(IWorld& world)
         if (m_active) {
             ++m_activeRotation;
         }
-        spawnParticles(world);
+        _spawnParticles(world);
     }
 
     // 激活状态下播放环境音效
-    // MC 1.16.5: 每隔随机间隔（60-100 ticks）播放一次
+    // 每隔随机间隔（60-100 ticks）播放一次
     if (m_active && !world.isClientSide()) {
         if (m_ambientSoundCounter <= 0) {
             // 播放环境音效
@@ -143,23 +142,23 @@ void ConduitEntity::tick(IWorld& world)
     }
 }
 
-bool ConduitEntity::shouldBeActive(IWorld& world)
+bool ConduitEntity::_shouldBeActive(IWorld& world)
 {
     m_prismarinePositions.clear();
 
-    // MC 1.16.5: 检测中心周围3x3x3是否全部是水
+    // 检测中心周围3x3x3是否全部是水
     for (i32 dx = -1; dx <= 1; ++dx) {
         for (i32 dy = -1; dy <= 1; ++dy) {
             for (i32 dz = -1; dz <= 1; ++dz) {
                 const BlockPos checkPos(m_pos.x + dx, m_pos.y + dy, m_pos.z + dz);
-                if (!isWaterAt(world, checkPos)) {
+                if (!_isWaterAt(world, checkPos)) {
                     return false;
                 }
             }
         }
     }
 
-    // MC 1.16.5: 检测5x5x5范围内的框架方块
+    // 检测5x5x5范围内的框架方块
     // 框架位置：距离中心2格，且在坐标轴上
     // 判断条件: |dx| > 1 || |dy| > 1 || |dz| > 1
     //         且 (dx == 0 && (|dy| == 2 || |dz| == 2)) ||
@@ -186,7 +185,7 @@ bool ConduitEntity::shouldBeActive(IWorld& world)
                 }
 
                 const BlockPos framePos(m_pos.x + dx, m_pos.y + dy, m_pos.z + dz);
-                if (isValidFrameBlock(world, framePos)) {
+                if (_isValidFrameBlock(world, framePos)) {
                     m_prismarinePositions.push_back(framePos);
                 }
             }
@@ -197,12 +196,12 @@ bool ConduitEntity::shouldBeActive(IWorld& world)
     const i32 frameCount = static_cast<i32>(m_prismarinePositions.size());
 
     // 眼睛状态：42个或更多框架方块时睁开
-    setEyeOpen(frameCount >= EYE_OPEN_FRAME_BLOCKS);
+    _setEyeOpen(frameCount >= EYE_OPEN_FRAME_BLOCKS);
 
     return frameCount >= MIN_FRAME_BLOCKS;
 }
 
-void ConduitEntity::addEffectsToPlayers(IWorld& world)
+void ConduitEntity::_addEffectsToPlayers(IWorld& world)
 {
     const i32 frameCount = static_cast<i32>(m_prismarinePositions.size());
     const i32 range = calculateEffectRange(frameCount);
@@ -223,7 +222,7 @@ void ConduitEntity::addEffectsToPlayers(IWorld& world)
             continue;
         }
 
-        // MC 1.16.5: 玩家必须在水中（isWet = isInWater || isInRain）
+        // 玩家必须在水中（isWet = isInWater || isInRain）
         if (!player->isWet()) {
             continue;
         }
@@ -240,7 +239,7 @@ void ConduitEntity::addEffectsToPlayers(IWorld& world)
     }
 }
 
-void ConduitEntity::attackMobs(IWorld& world)
+void ConduitEntity::_attackMobs(IWorld& world)
 {
     const i32 frameCount = static_cast<i32>(m_prismarinePositions.size());
 
@@ -252,10 +251,10 @@ void ConduitEntity::attackMobs(IWorld& world)
     }
 
     // 尝试从UUID恢复目标
-    // MC 1.16.5: 在攻击范围内搜索匹配UUID的LivingEntity
-    // 参考: ConduitTileEntity.findExistingTarget() - 使用 getEntitiesWithinAABB 而非全局UUID查找
+    // 在攻击范围内搜索匹配UUID的LivingEntity
+    // 不使用全局UUID查找，因为潮涌核心只能攻击范围内的目标
     if (m_target == nullptr && m_targetUuid.has_value()) {
-        m_target = findExistingTarget(world);
+        m_target = _findExistingTarget(world);
         if (m_target != nullptr) {
             // 找到目标后清除UUID，避免后续重复查找
             m_targetUuid = std::nullopt;
@@ -281,7 +280,7 @@ void ConduitEntity::attackMobs(IWorld& world)
                 continue;
             }
 
-            // MC 1.16.5: 检查是否为敌对生物 (IMob 接口)
+            // 检查是否为敌对生物 (IMob 接口)
             // 只有实现 IMob 接口的实体才是敌对生物
             if (dynamic_cast<entity::IMob*>(living) == nullptr) {
                 continue;
@@ -310,7 +309,7 @@ void ConduitEntity::attackMobs(IWorld& world)
         if (!targetValid) {
             m_target = nullptr;
         } else {
-            // MC 1.16.5: 攻击目标 - 使用魔法伤害（绕过护甲）
+            // 攻击目标 - 使用魔法伤害（绕过护甲）
             auto magicDamage = DamageSources::magic();
             m_target->hurt(magicDamage, ATTACK_DAMAGE);
 
@@ -324,20 +323,19 @@ void ConduitEntity::attackMobs(IWorld& world)
     }
 }
 
-bool ConduitEntity::isWaterAt(IWorld& world, const BlockPos& pos) const
+bool ConduitEntity::_isWaterAt(IWorld& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
         return false;
     }
 
-    // MC 1.16.5: 检查是否为水方块或含水的流体状态
-    // 参考: world.hasWater(pos)
-    // 简化实现：检查是否为水方块
+    // 检查是否为水方块或含水的流体状态
+    // TODO: 当前简化实现只检查是否为水方块，需要完善为检查流体状态（含水方块）
     return state->is(VanillaBlocks::WATER);
 }
 
-bool ConduitEntity::isValidFrameBlock(IWorld& world, const BlockPos& pos) const
+bool ConduitEntity::_isValidFrameBlock(IWorld& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
@@ -346,13 +344,12 @@ bool ConduitEntity::isValidFrameBlock(IWorld& world, const BlockPos& pos) const
 
     const Block* block = &state->getBlock();
 
-    // MC 1.16.5: 有效框架方块
-    // PRISMARINE, PRISMARINE_BRICKS, SEA_LANTERN, DARK_PRISMARINE
+    // 有效框架方块：海晶石、海晶石砖、暗海晶石、海晶灯
     return block == VanillaBlocks::PRISMARINE || block == VanillaBlocks::PRISMARINE_BRICKS ||
         block == VanillaBlocks::DARK_PRISMARINE || block == VanillaBlocks::SEA_LANTERN;
 }
 
-void ConduitEntity::setActive(IWorld& world, bool active)
+void ConduitEntity::_setActive(IWorld& world, bool active)
 {
     if (m_active != active) {
         m_active = active;
@@ -369,7 +366,7 @@ void ConduitEntity::setActive(IWorld& world, bool active)
     }
 }
 
-void ConduitEntity::setEyeOpen(bool eyeOpen)
+void ConduitEntity::_setEyeOpen(bool eyeOpen)
 {
     if (m_eyeOpen != eyeOpen) {
         m_eyeOpen = eyeOpen;
@@ -377,14 +374,13 @@ void ConduitEntity::setEyeOpen(bool eyeOpen)
     }
 }
 
-void ConduitEntity::spawnParticles(IWorld& world)
+void ConduitEntity::_spawnParticles(IWorld& world)
 {
     // 只在激活状态下生成粒子
     if (!m_active) {
         return;
     }
 
-    // 参考 MC 1.16.5 ConduitTileEntity.spawnParticles()
     math::Random& random = world.getRandom();
 
     // 计算潮涌核心上方的粒子发射点
@@ -400,7 +396,7 @@ void ConduitEntity::spawnParticles(IWorld& world)
 
     // 从框架方块向潮涌核心发射粒子
     for (const BlockPos& framePos : m_prismarinePositions) {
-        // MC 1.16.5: 每个框架方块有 1/50 的概率发射粒子
+        // 每个框架方块有 1/50 的概率发射粒子
         if (random.nextInt(50) != 0) {
             continue;
         }
@@ -442,9 +438,8 @@ void ConduitEntity::spawnParticles(IWorld& world)
     }
 }
 
-LivingEntity* ConduitEntity::findExistingTarget(IWorld& world)
+LivingEntity* ConduitEntity::_findExistingTarget(IWorld& world)
 {
-    // MC 1.16.5: ConduitTileEntity.findExistingTarget()
     // 在攻击范围内搜索匹配UUID的LivingEntity
     // 不使用全局UUID查找，因为潮涌核心只能攻击范围内的目标
 

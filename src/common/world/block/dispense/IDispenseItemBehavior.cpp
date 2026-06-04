@@ -57,16 +57,16 @@ ItemStack DefaultDispenseItemBehavior::dispense(
     Direction direction = state.get(BlockStateProperties::FACING());
 
     // 执行投掷
-    ItemStack result = doDispense(world, pos, state, stack, direction, 6.0f, 6.0f);
+    ItemStack result = _doDispense(world, pos, state, stack, direction, 6.0f, 6.0f);
 
     // 播放音效和粒子
-    playSound(world, pos);
-    spawnParticles(world, pos, direction);
+    _playSound(world, pos);
+    _spawnParticles(world, pos, direction);
 
     return result;
 }
 
-ItemStack DefaultDispenseItemBehavior::doDispense(IWorld& world,
+ItemStack DefaultDispenseItemBehavior::_doDispense(IWorld& world,
     const BlockPos& pos,
     const BlockState& state,
     ItemStack& stack,
@@ -87,38 +87,32 @@ ItemStack DefaultDispenseItemBehavior::doDispense(IWorld& world,
         return stack;
     }
 
-    // 计算发射位置（MC 1.16.5 算法）
-    // 发射口位置 = 方块中心 + 方向偏移 * 0.7
+    // 计算发射位置：方块中心 + 方向偏移
     Vector3 dispensePos = getDispensePosition(pos, direction);
 
-    // Y轴偏移调整（MC 1.16.5 DefaultDispenseItemBehavior.doDispense）
-    // 使物品看起来从发射口出来
+    // Y轴偏移调整，使物品看起来从发射口出来
     f32 adjustedY = dispensePos.y;
     if (Directions::getAxis(direction) == Axis::Y) {
-        adjustedY -= 0.125f; // 向上/向下时
+        adjustedY -= Y_AXIS_OFFSET;
     } else {
-        adjustedY -= 0.15625f; // 水平方向时
+        adjustedY -= HORIZONTAL_Y_OFFSET;
     }
 
     // 获取随机数生成器
     math::Random& rng = world.getRandom();
 
-    // 计算速度（MC 1.16.5 算法）
-    // 基础速度 d3 = random(0.1) + 0.2，范围 [0.2, 0.3]
-    f32 baseVelocity = static_cast<f32>(rng.nextDouble() * 0.1 + 0.2);
+    // 计算速度：基础速度范围 [BASE_VELOCITY_MIN, BASE_VELOCITY_MIN + BASE_VELOCITY_RANGE]
+    f32 baseVelocity = static_cast<f32>(rng.nextDouble() * BASE_VELOCITY_RANGE + BASE_VELOCITY_MIN);
 
-    // 速度计算：
-    // vx = random.gaussian() * 0.0075 * speed + direction.xOffset * baseVelocity
-    // vy = random.gaussian() * 0.0075 * speed + 0.2
-    // vz = random.gaussian() * 0.0075 * speed + direction.zOffset * baseVelocity
-    f32 gaussianFactor = 0.0075f * speed;
+    // 速度计算：方向偏移 * 基础速度 + 高斯扰动
+    f32 gaussianFactor = GAUSSIAN_FACTOR * speed;
     f32 vx = static_cast<f32>(rng.nextGaussian()) * gaussianFactor +
         static_cast<f32>(Directions::xOffset(direction)) * baseVelocity;
-    f32 vy = static_cast<f32>(rng.nextGaussian()) * gaussianFactor + 0.2f;
+    f32 vy = static_cast<f32>(rng.nextGaussian()) * gaussianFactor + Y_VELOCITY_BASE;
     f32 vz = static_cast<f32>(rng.nextGaussian()) * gaussianFactor +
         static_cast<f32>(Directions::zOffset(direction)) * baseVelocity;
 
-    // 创建物品实体（ItemEntity在mc命名空间，不在mc::entity中）
+    // 创建物品实体
     auto itemEntity = std::make_unique<ItemEntity>(EntityId(0), // ID由世界分配
         dispensedStack,
         dispensePos.x,
@@ -129,7 +123,7 @@ ItemStack DefaultDispenseItemBehavior::doDispense(IWorld& world,
         vz);
 
     // 设置拾取延迟（发射器发射的物品不能立即被拾取）
-    itemEntity->setPickupDelay(10);
+    itemEntity->setPickupDelay(DEFAULT_PICKUP_DELAY);
 
     // 添加到世界
     world.spawnEntity(std::move(itemEntity));
@@ -138,19 +132,17 @@ ItemStack DefaultDispenseItemBehavior::doDispense(IWorld& world,
     return stack;
 }
 
-void DefaultDispenseItemBehavior::playSound(IWorld& world, const BlockPos& pos)
+void DefaultDispenseItemBehavior::_playSound(IWorld& world, const BlockPos& pos)
 {
-    // MC 1.16.5: 播放发射音效 (事件ID 1000)
-    // 参考: DefaultDispenseItemBehavior.playSound()
+    // 播放发射音效（事件ID 1000）
     if (!world.isClientSide()) {
         world.playEvent(world::WorldEvents::DISPENSER_DISPENSE_SOUND, pos, 0);
     }
 }
 
-void DefaultDispenseItemBehavior::spawnParticles(IWorld& world, const BlockPos& pos, Direction direction)
+void DefaultDispenseItemBehavior::_spawnParticles(IWorld& world, const BlockPos& pos, Direction direction)
 {
-    // MC 1.16.5: 生成发射烟雾粒子 (事件ID 2000，数据为方向索引)
-    // 参考: DefaultDispenseItemBehavior.spawnDispenseParticles()
+    // 生成发射烟雾粒子（事件ID 2000，数据为方向索引）
     if (!world.isClientSide()) {
         // 服务端通过世界事件广播粒子
         world.playEvent(world::WorldEvents::DISPENSER_SMOKE, pos, static_cast<i32>(direction));
@@ -160,10 +152,9 @@ void DefaultDispenseItemBehavior::spawnParticles(IWorld& world, const BlockPos& 
 Vector3 DefaultDispenseItemBehavior::getDispensePosition(const BlockPos& pos, Direction direction)
 {
     // 计算发射位置：从方块面中心稍微向外偏移
-    // MC 1.16.5: DispenserBlock.getDispensePosition()
-    f32 x = static_cast<f32>(pos.x) + 0.5f + static_cast<f32>(Directions::xOffset(direction)) * 0.7f;
-    f32 y = static_cast<f32>(pos.y) + 0.5f + static_cast<f32>(Directions::yOffset(direction)) * 0.7f;
-    f32 z = static_cast<f32>(pos.z) + 0.5f + static_cast<f32>(Directions::zOffset(direction)) * 0.7f;
+    f32 x = static_cast<f32>(pos.x) + 0.5f + static_cast<f32>(Directions::xOffset(direction)) * DISPENSE_OFFSET;
+    f32 y = static_cast<f32>(pos.y) + 0.5f + static_cast<f32>(Directions::yOffset(direction)) * DISPENSE_OFFSET;
+    f32 z = static_cast<f32>(pos.z) + 0.5f + static_cast<f32>(Directions::zOffset(direction)) * DISPENSE_OFFSET;
     return Vector3(x, y, z);
 }
 
@@ -171,9 +162,9 @@ Vector3 DefaultDispenseItemBehavior::getDispensePosition(const BlockPos& pos, Di
 // OptionalDispenseItemBehavior
 // ============================================================================
 
-void OptionalDispenseItemBehavior::playSound(IWorld& world, const BlockPos& pos)
+void OptionalDispenseItemBehavior::_playSound(IWorld& world, const BlockPos& pos)
 {
-    // MC 1.16.5: 根据成功/失败播放不同音效
+    // 根据成功/失败播放不同音效
     // 成功: 1000 (DISPENSER_DISPENSE_SOUND)
     // 失败: 1001 (DISPENSER_FAIL_SOUND)
     if (!world.isClientSide()) {
@@ -183,11 +174,11 @@ void OptionalDispenseItemBehavior::playSound(IWorld& world, const BlockPos& pos)
     }
 }
 
-void OptionalDispenseItemBehavior::spawnParticles(IWorld& world, const BlockPos& pos, Direction direction)
+void OptionalDispenseItemBehavior::_spawnParticles(IWorld& world, const BlockPos& pos, Direction direction)
 {
     // 只有成功时才生成粒子
     if (m_success) {
-        DefaultDispenseItemBehavior::spawnParticles(world, pos, direction);
+        DefaultDispenseItemBehavior::_spawnParticles(world, pos, direction);
     }
 }
 
@@ -230,9 +221,7 @@ ItemStack ProjectileDispenseBehavior::dispense(
         return DefaultDispenseItemBehavior::dispense(world, pos, state, stack);
     }
 
-    // 设置发射方向和速度（MC 1.16.5 算法）
-    // shoot(x, y, z, velocity, inaccuracy)
-    // Y方向额外+0.1使投掷物稍向上
+    // 设置发射方向和速度，Y方向额外+0.1使投掷物稍向上
     projectileEntity->shoot(static_cast<f32>(Directions::xOffset(direction)),
         static_cast<f32>(Directions::yOffset(direction)) + 0.1f,
         static_cast<f32>(Directions::zOffset(direction)),
@@ -251,7 +240,7 @@ ItemStack ProjectileDispenseBehavior::dispense(
     }
 
     // 生成烟雾粒子
-    spawnParticles(world, pos, direction);
+    _spawnParticles(world, pos, direction);
 
     return stack.isEmpty() ? ItemStack() : stack;
 }
@@ -266,14 +255,13 @@ BoatDispenseBehavior::BoatDispenseBehavior(entity::BoatEntity::Type type)
 
 ItemStack BoatDispenseBehavior::dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
 {
-    // 参考 MC 1.16.5: DispenseBoatBehavior
     Direction direction = state.get(BlockStateProperties::FACING());
 
     // 计算船的位置
-    // MC 1.16.5: d0 = source.getX() + direction.getXOffset() * 1.125D
-    f32 x = static_cast<f32>(pos.x) + 0.5f + static_cast<f32>(Directions::xOffset(direction)) * 1.125f;
-    f32 y = static_cast<f32>(pos.y) + 0.5f + static_cast<f32>(Directions::yOffset(direction)) * 1.125f;
-    f32 z = static_cast<f32>(pos.z) + 0.5f + static_cast<f32>(Directions::zOffset(direction)) * 1.125f;
+    static constexpr f32 BOAT_OFFSET = 1.125f;
+    f32 x = static_cast<f32>(pos.x) + 0.5f + static_cast<f32>(Directions::xOffset(direction)) * BOAT_OFFSET;
+    f32 y = static_cast<f32>(pos.y) + 0.5f + static_cast<f32>(Directions::yOffset(direction)) * BOAT_OFFSET;
+    f32 z = static_cast<f32>(pos.z) + 0.5f + static_cast<f32>(Directions::zOffset(direction)) * BOAT_OFFSET;
 
     // 检查目标位置是否有水
     BlockPos targetPos = pos.offset(direction);
@@ -311,8 +299,8 @@ ItemStack BoatDispenseBehavior::dispense(IWorld& world, const BlockPos& pos, con
     stack.shrink(1);
 
     // 播放音效和粒子
-    playSound(world, pos);
-    spawnParticles(world, pos, direction);
+    _playSound(world, pos);
+    _spawnParticles(world, pos, direction);
 
     return stack.isEmpty() ? ItemStack() : stack;
 }
@@ -328,9 +316,8 @@ BucketDispenseBehavior::BucketDispenseBehavior(fluid::Fluid& fluid)
 ItemStack BucketDispenseBehavior::dispense(
     IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
 {
-    // 参考 MC 1.16.5: BucketDispenseBehavior（放置流体）
     // TODO: 当 IWorld 支持放置流体后完善实现
-    setSuccess(false);
+    _setSuccess(false);
     return stack;
 }
 
@@ -341,9 +328,8 @@ ItemStack BucketDispenseBehavior::dispense(
 ItemStack EmptyBucketDispenseBehavior::dispense(
     IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
 {
-    // 参考 MC 1.16.5: BucketDispenseBehavior（收集流体）
     // TODO: 当 IWorld 支持收取流体后完善实现
-    setSuccess(false);
+    _setSuccess(false);
     return stack;
 }
 
@@ -354,9 +340,8 @@ ItemStack EmptyBucketDispenseBehavior::dispense(
 ItemStack FlintAndSteelDispenseBehavior::dispense(
     IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
 {
-    // 参考 MC 1.16.5: FlintAndSteelDispenseBehavior
     // TODO: 完善 FlintAndSteelItem API 后完善实现
-    setSuccess(false);
+    _setSuccess(false);
     return stack;
 }
 
@@ -367,9 +352,8 @@ ItemStack FlintAndSteelDispenseBehavior::dispense(
 ItemStack BonemealDispenseBehavior::dispense(
     IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
 {
-    // 参考 MC 1.16.5: BonemealDispenseBehavior
     // TODO: 完善 BoneMealItem API 后完善实现
-    setSuccess(false);
+    _setSuccess(false);
     return stack;
 }
 

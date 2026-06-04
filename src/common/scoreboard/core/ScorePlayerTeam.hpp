@@ -35,7 +35,6 @@ class Scoreboard;
  * @brief 记分板队伍实现
  *
  * 表示记分板中的一个队伍，管理队伍成员、属性和格式化设置。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScorePlayerTeam
  *
  * 队伍名称限制：
  * - 最大长度：16 个字符

@@ -22,15 +22,15 @@
  */
 
 #include "BastionRemnantStructure.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../../biome/Biome.hpp"
-#include "../../../block/BlockPos.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../../jigsaw/JigsawManager.hpp"
-#include "../../jigsaw/JigsawPattern.hpp"
-#include <spdlog/spdlog.h>
+#include "common/core/Constants.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/jigsaw/JigsawManager.hpp"
+#include "common/world/gen/jigsaw/JigsawPattern.hpp"
 
 namespace mc {
 namespace world {
@@ -40,7 +40,7 @@ namespace structure {
 using namespace mc::Biomes;
 
 const std::string BastionRemnantStructure::s_name = "bastion_remnant";
-// MC 1.16.5: 堡垒遗迹在除玄武岩三角洲外的所有下界生物群系中生成
+
 const std::vector<BiomeId> BastionRemnantStructure::s_validBiomes = {
     NetherWastes, CrimsonForest, WarpedForest, SoulSandValley};
 
@@ -66,21 +66,14 @@ public:
         , m_junctions(placed.junctions)
     {}
 
-    void generate(IWorldWriter&,
-        math::Random&,
-        i32,
-        i32,
-        const StructureBoundingBox&) override
+    void generate(IWorldWriter&, math::Random&, i32, i32, const StructureBoundingBox&) override
     {
         // 实际方块放置已在 JigsawManager::placePieceRecursive 中完成
     }
 
     [[nodiscard]] i32 getGroundLevelDelta() const override { return m_groundLevelDelta; }
 
-    [[nodiscard]] const std::vector<jigsaw::JigsawJunction>& getJunctions() const override
-    {
-        return m_junctions;
-    }
+    [[nodiscard]] const std::vector<jigsaw::JigsawJunction>& getJunctions() const override { return m_junctions; }
 
     [[nodiscard]] bool isJigsawPiece() const override { return true; }
 
@@ -89,17 +82,15 @@ private:
     std::vector<jigsaw::JigsawJunction> m_junctions;
 };
 
-// MC 1.16.5: 堡垒遗迹4种类型的起始池路径
-// 参考 BastionRemnantsPieces.java
+// 堡垒遗迹4种类型的起始池路径
 constexpr const char* BASTION_START_POOLS[] = {
-    "minecraft:bastion/units/start",     // 单元型 (权重最高)
-    "minecraft:bastion/stables/start",   // 猪灵兽栏
-    "minecraft:bastion/treasure/start",  // 宝藏型
-    "minecraft:bastion/bridge/start"     // 桥梁型
+    "minecraft:bastion/units/start",    // 单元型 (权重最高)
+    "minecraft:bastion/stables/start",  // 猪灵兽栏
+    "minecraft:bastion/treasure/start", // 宝藏型
+    "minecraft:bastion/bridge/start"    // 桥梁型
 };
 
-// MC 1.16.5: 各类型的选择权重 (bastion/units 权重最高)
-// 参考 BastionRemnantsPieces.PIECE_WEIGHTS
+// 各类型的选择权重 (units 权重最高)
 constexpr i32 BASTION_WEIGHTS[] = {4, 2, 2, 2}; // units, stables, treasure, bridge
 
 } // anonymous namespace
@@ -115,7 +106,7 @@ bool BastionRemnantStructure::canGenerate(
     MC_UNUSED(rng);
 
     // 检查生物群系 - 堡垒遗迹在所有下界生物群系中生成（玄武岩三角洲除外）
-    BiomeId biome = generator.getBiome(chunkX * 16 + 8, 64, chunkZ * 16 + 8);
+    BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
     for (BiomeId valid : s_validBiomes) {
         if (biome == valid) {
             return true;
@@ -127,10 +118,10 @@ bool BastionRemnantStructure::canGenerate(
 std::unique_ptr<StructureStart> BastionRemnantStructure::generate(
     IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
+    MC_UNUSED(generator);
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
-    // MC 1.16.5: 随机选择堡垒类型
-    // 参考 BastionRemnantsPieces.random()
+    // 随机选择堡垒类型
     i32 totalWeight = 0;
     for (i32 w : BASTION_WEIGHTS) {
         totalWeight += w;
@@ -155,18 +146,15 @@ std::unique_ptr<StructureStart> BastionRemnantStructure::generate(
     const jigsaw::JigsawPattern* startPool = patternRegistry.getPattern(startPoolLocation);
 
     if (!startPool || startPool->isEmpty()) {
-        spdlog::debug("[BastionRemnantStructure] Start pool not found: {}", startPoolLocation.toString());
         return start;
     }
 
-    // MC 1.16.5: 堡垒遗迹生成在下界的固定高度范围 (Y: 30-80)
-    // 参考 BastionRemnantsStructure.java - 在下界生成，不需要地形高度查询
-    const i32 startY = 60; // 中等高度
+    // 堡垒遗迹生成在下界的固定高度
+    constexpr i32 startY = 60;
 
-    BlockPos startPos(chunkX * 16 + 8, startY, chunkZ * 16 + 8);
+    BlockPos startPos(chunkX * world::CHUNK_WIDTH + 8, startY, chunkZ * world::CHUNK_WIDTH + 8);
 
-    // MC 1.16.5: 使用 JigsawManager 组装堡垒结构
-    // maxDepth = 7 是 MC 默认值
+    // 使用 JigsawManager 组装堡垒结构，maxDepth = 7
     auto placedPieces = jigsaw::JigsawManager::assemble(patternRegistry, *startPool, 7, startPos, rng);
 
     // 为每个 PlacedPiece 创建适配器并添加到 StructureStart

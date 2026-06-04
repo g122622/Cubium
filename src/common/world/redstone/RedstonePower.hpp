@@ -53,8 +53,6 @@ namespace redstone {
  * - 0：无信号
  * - 1-14：中间强度，红石线每传输一格衰减1
  * - 15：最大强度
- *
- * 参考 MC 1.16.5 RedstoneRedstonePowerLogic
  */
 class RedstonePower {
 public:
@@ -201,7 +199,7 @@ private:
      * @param state 方块状态
      * @return true 如果可以连接
      */
-    [[nodiscard]] static bool canConnectRedstone(const BlockState& state);
+    [[nodiscard]] static bool _canConnectRedstone(const BlockState& state);
 };
 
 } // namespace redstone

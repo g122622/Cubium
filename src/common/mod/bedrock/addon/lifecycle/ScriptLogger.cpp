@@ -29,28 +29,32 @@ namespace mc::mod::bedrock::addon {
 
 void ScriptLogger::onInfo(const std::string& message)
 {
-    if (m_logLevel <= 2) {
+    // 仅当日志级别 <= info 时输出
+    if (m_logLevel <= static_cast<int>(spdlog::level::info)) {
         spdlog::info("[Script] {}", message);
     }
 }
 
 void ScriptLogger::onWarn(const std::string& message)
 {
-    if (m_logLevel <= 3) {
+    // 仅当日志级别 <= warn 时输出
+    if (m_logLevel <= static_cast<int>(spdlog::level::warn)) {
         spdlog::warn("[Script] {}", message);
     }
 }
 
 void ScriptLogger::onError(const std::string& message)
 {
-    if (m_logLevel <= 4) {
+    // 仅当日志级别 <= error 时输出
+    if (m_logLevel <= static_cast<int>(spdlog::level::err)) {
         spdlog::error("[Script] {}", message);
     }
 }
 
 void ScriptLogger::onException(const ScriptException& exception)
 {
-    if (m_logLevel <= 4) {
+    // 异常日志始终使用error级别
+    if (m_logLevel <= static_cast<int>(spdlog::level::err)) {
         spdlog::error("[Script] {} at {}:{}: {}",
             ScriptException::errorTypeName(exception.type()),
             exception.filename(),

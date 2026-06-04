@@ -57,15 +57,14 @@ void CampfireBlockEntity::tick(IWorld& world)
 
     // 服务端：烹饪逻辑
     if (isLit) {
-        cookAndDrop(world);
+        _cookAndDrop(world);
     } else {
-        coolDown();
+        _coolDown();
     }
 }
 
-void CampfireBlockEntity::cookAndDrop(IWorld& world)
+void CampfireBlockEntity::_cookAndDrop(IWorld& world)
 {
-    // MC 1.16.5: CampfireTileEntity.cookAndDrop()
     // 遍历所有槽位，烹饪并掉落完成的物品
 
     bool anyChanged = false;
@@ -91,7 +90,6 @@ void CampfireBlockEntity::cookAndDrop(IWorld& world)
                 ItemStack result = recipe->getResultItem().copy();
 
                 // 在营火位置掉落结果物品
-                // MC 1.16.5: InventoryHelper.spawnItemStack()
                 f64 x = static_cast<f64>(m_pos.x) + 0.5;
                 f64 y = static_cast<f64>(m_pos.y) + 0.5;
                 f64 z = static_cast<f64>(m_pos.z) + 0.5;
@@ -118,16 +116,14 @@ void CampfireBlockEntity::cookAndDrop(IWorld& world)
     }
 }
 
-void CampfireBlockEntity::coolDown()
+void CampfireBlockEntity::_coolDown()
 {
-    // MC 1.16.5: 熄灭时烹饪时间每tick减少2
-    // 如果烹饪时间大于0，则减少到0为止
+    // 熄灭时烹饪时间每tick减少2，直到减到0为止
 
     bool anyChanged = false;
 
     for (i32 i = 0; i < SLOT_COUNT; ++i) {
         if (m_cookTimes[i] > 0) {
-            // MC 1.16.5: MathHelper.clamp(cookingTimes[i] - 2, 0, cookingTotalTimes[i])
             m_cookTimes[i] = std::max(0, m_cookTimes[i] - 2);
             anyChanged = true;
         }
@@ -141,7 +137,6 @@ void CampfireBlockEntity::coolDown()
 std::optional<std::pair<const crafting::CampfireCookingRecipe*, i32>> CampfireBlockEntity::findMatchingRecipe(
     const ItemStack& stack) const
 {
-    // MC 1.16.5: CampfireTileEntity.findMatchingRecipe()
     // 仅在有空槽位时查找配方
 
     if (stack.isEmpty()) {
@@ -180,8 +175,6 @@ std::optional<std::pair<const crafting::CampfireCookingRecipe*, i32>> CampfireBl
 
 bool CampfireBlockEntity::addItem(ItemStack& stack, i32 cookTime)
 {
-    // MC 1.16.5: CampfireTileEntity.addItem()
-
     if (stack.isEmpty()) {
         return false;
     }
@@ -197,7 +190,7 @@ bool CampfireBlockEntity::addItem(ItemStack& stack, i32 cookTime)
             m_cookTimes[i] = 0;
             m_cookTimesTotal[i] = cookTime > 0 ? cookTime : DEFAULT_COOK_TIME;
 
-            inventoryChanged();
+            _inventoryChanged();
             return true;
         }
     }
@@ -207,7 +200,6 @@ bool CampfireBlockEntity::addItem(ItemStack& stack, i32 cookTime)
 
 void CampfireBlockEntity::dropAllItems(IWorld& world)
 {
-    // MC 1.16.5: CampfireTileEntity.dropAllItems()
     // 掉落所有槽位中的物品
 
     std::vector<ItemStack> drops;
@@ -239,9 +231,9 @@ void CampfireBlockEntity::clear()
     ContainerBlockEntity::setChanged();
 }
 
-f32 CampfireBlockEntity::getCookProgress(i32 slot) const
+f32 CampfireBlockEntity::getCookProgress(i32 slot) const noexcept
 {
-    if (!isValidSlot(slot)) {
+    if (!_isValidSlot(slot)) {
         return 0.0f;
     }
 
@@ -253,12 +245,11 @@ f32 CampfireBlockEntity::getCookProgress(i32 slot) const
     return static_cast<f32>(m_cookTimes[slot]) / static_cast<f32>(m_cookTimesTotal[slot]);
 }
 
-void CampfireBlockEntity::inventoryChanged()
+void CampfireBlockEntity::_inventoryChanged()
 {
     ContainerBlockEntity::setChanged();
-    // MC 1.16.5: world.notifyBlockUpdate()
     // 通知客户端方块实体更新
-    // 这将在世界系统完善后实现
+    // TODO: 实现世界通知机制，参考原版 world.notifyBlockUpdate()
 }
 
 bool CampfireBlockEntity::load(const nlohmann::json& data)

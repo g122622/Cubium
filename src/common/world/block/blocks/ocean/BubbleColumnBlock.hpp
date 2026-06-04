@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 
@@ -47,15 +47,13 @@ namespace blocks {
  *   - false: 向上推动（灵魂沙产生）
  *   - true: 向下拖拽（岩浆块产生）
  *
- * ## 推动机制 (MC 1.16.5)
+ * ## 推动机制
  * - 灵魂沙: 产生上升气泡柱 (DRAG=false)，推动速度 +0.1
  * - 岩浆块: 产生下降气泡柱 (DRAG=true)，拖拽速度 -0.03
  *
  * ## 延伸机制
  * - 气泡柱会向上延伸直到水面或空气
  * - tick 方法处理向上传播
- *
- * 参考: net.minecraft.block.BubbleColumnBlock
  */
 class BubbleColumnBlock : public Block {
 public:
@@ -67,7 +65,6 @@ public:
     /**
      * @brief 放置气泡柱方块
      *
-     * MC 1.16.5: BubbleColumnBlock.placeBubbleColumn(IWorld, BlockPos, boolean)
      * 检查目标位置是否可以放置气泡柱，如果可以则设置气泡柱方块。
      *
      * @param world 世界引用
@@ -79,7 +76,6 @@ public:
     /**
      * @brief 检查位置是否可以放置气泡柱
      *
-     * MC 1.16.5: BubbleColumnBlock.canHoldBubbleColumn(IWorld, BlockPos)
      * 条件：是水方块 + 流体等级 >= 8 + 是水源
      *
      * @param world 世界引用
@@ -91,7 +87,6 @@ public:
     /**
      * @brief 获取气泡柱的 DRAG 状态
      *
-     * MC 1.16.5: BubbleColumnBlock.getDrag(IBlockReader, BlockPos)
      * 根据下方方块类型决定 DRAG 状态：
      * - 下方是气泡柱：继承其 DRAG 状态
      * - 下方是灵魂沙：返回 false（上推）
@@ -117,7 +112,7 @@ public:
     /**
      * @brief 方块被添加到世界时
      *
-     * MC 1.16.5: 气泡柱被添加时，在上方放置气泡柱
+     * 气泡柱被添加时，在上方放置气泡柱
      */
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
@@ -138,7 +133,7 @@ public:
     /**
      * @brief 实体碰撞时推动实体
      *
-     * MC 1.16.5 逻辑：
+     * 逻辑：
      * - DRAG=false: 向上推动 +0.1 Y 速度
      * - DRAG=true: 向下拖拽 -0.03 Y 速度
      * - 重置摔落距离
@@ -150,12 +145,10 @@ public:
      */
     void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
-    // ========== Tick ==========
-
     /**
      * @brief 方块 tick，处理气泡柱向上延伸
      *
-     * MC 1.16.5 逻辑：
+     * 逻辑：
      * - 检查上方是否为水源方块
      * - 如果是水，将其转换为气泡柱并继承 DRAG 状态
      * - 如果上方已是气泡柱，更新其 DRAG 状态
@@ -192,7 +185,7 @@ private:
      * @param pos 当前位置
      * @return bool DRAG 状态
      */
-    [[nodiscard]] bool checkSource(const IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _checkSource(const IWorld& world, const BlockPos& pos) const;
 };
 
 } // namespace blocks

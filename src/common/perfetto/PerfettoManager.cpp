@@ -214,10 +214,9 @@ void PerfettoManager::flush()
     }
 
     ::perfetto::TrackEvent::Flush();
-    spdlog::debug("[Perfetto] Flushed");
 }
 
-bool PerfettoManager::isEnabled() const
+bool PerfettoManager::isEnabled() const noexcept
 {
     return m_initialized && m_enabled && m_tracing;
 }
@@ -231,8 +230,6 @@ void PerfettoManager::setProcessName(const std::string& name)
     auto desc = ::perfetto::ProcessTrack::Current().Serialize();
     desc.mutable_process()->set_process_name(name);
     ::perfetto::TrackEvent::SetTrackDescriptor(::perfetto::ProcessTrack::Current(), desc);
-
-    spdlog::debug("[Perfetto] Process name set to: {}", name);
 }
 
 void PerfettoManager::setThreadName(const std::string& name)
@@ -244,8 +241,6 @@ void PerfettoManager::setThreadName(const std::string& name)
     auto desc = ::perfetto::ThreadTrack::Current().Serialize();
     desc.mutable_thread()->set_thread_name(name);
     ::perfetto::TrackEvent::SetTrackDescriptor(::perfetto::ThreadTrack::Current(), desc);
-
-    spdlog::debug("[Perfetto] Thread name set to: {}", name);
 }
 
 } // namespace perfetto

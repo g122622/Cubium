@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../Material.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 
 namespace mc {
 
@@ -98,7 +98,7 @@ public:
         return true;
     }
 
-    [[nodiscard]] int getComparatorInputOverride(
+    [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
 protected:

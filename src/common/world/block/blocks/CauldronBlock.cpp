@@ -22,20 +22,20 @@
  */
 
 #include "CauldronBlock.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../item/Items.hpp"
-#include "../../../item/core/ItemStack.hpp"
-#include "../../../item/items/armor/DyeableArmorItem.hpp"
-#include "../../../item/potion/PotionUtils.hpp"
-#include "../../../item/potion/Potions.hpp"
-#include "../../../sound/SoundCategory.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../util/assert/AssertAll.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../IWorld.hpp"
-#include "../VanillaBlocks.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/armor/DyeableArmorItem.hpp"
+#include "common/item/potion/PotionUtils.hpp"
+#include "common/item/potion/Potions.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -167,25 +167,25 @@ ActionResultType CauldronBlock::onBlockActivated(const BlockState& state,
     ActionResultType result = ActionResultType::Pass;
 
     // 水桶交互
-    result = handleBucketInteraction(world, pos, state, player, heldItem);
+    result = _handleBucketInteraction(world, pos, state, player, heldItem);
     if (result != ActionResultType::Pass) {
         return result;
     }
 
     // 玻璃瓶交互
-    result = handleBottleInteraction(world, pos, state, player, heldItem);
+    result = _handleBottleInteraction(world, pos, state, player, heldItem);
     if (result != ActionResultType::Pass) {
         return result;
     }
 
     // 皮革盔甲清洗
-    result = handleLeatherArmorCleaning(world, pos, state, player, heldItem);
+    result = _handleLeatherArmorCleaning(world, pos, state, player, heldItem);
     if (result != ActionResultType::Pass) {
         return result;
     }
 
     // 旗帜清洗
-    result = handleBannerCleaning(world, pos, state, player, heldItem);
+    result = _handleBannerCleaning(world, pos, state, player, heldItem);
     if (result != ActionResultType::Pass) {
         return result;
     }
@@ -258,7 +258,7 @@ bool CauldronBlock::isFull(const BlockState& state)
 
 // ========== 私有方法 ==========
 
-ActionResultType CauldronBlock::handleBucketInteraction(
+ActionResultType CauldronBlock::_handleBucketInteraction(
     IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem)
 {
 
@@ -274,7 +274,6 @@ ActionResultType CauldronBlock::handleBucketInteraction(
         if (currentLevel < 3 && !world.isClientSide()) {
             // 水桶装水：空炼药锅 -> 满炼药锅
             setLevel(world, pos, state, 3);
-            // MC 1.16.5: 水桶倒入炼药锅使用 ITEM_BUCKET_EMPTY（水桶倒空）
             world.playSound(SoundEvents::ITEM_BUCKET_EMPTY,
                 sound::SoundCategory::Blocks,
                 Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
@@ -306,7 +305,6 @@ ActionResultType CauldronBlock::handleBucketInteraction(
         if (currentLevel == 3 && !world.isClientSide()) {
             // 空桶取水：满炼药锅 -> 空炼药锅
             setLevel(world, pos, state, 0);
-            // MC 1.16.5: 空桶从炼药锅取水使用 ITEM_BUCKET_FILL（桶装满）
             world.playSound(SoundEvents::ITEM_BUCKET_FILL,
                 sound::SoundCategory::Blocks,
                 Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
@@ -336,7 +334,7 @@ ActionResultType CauldronBlock::handleBucketInteraction(
     return ActionResultType::Pass;
 }
 
-ActionResultType CauldronBlock::handleBottleInteraction(
+ActionResultType CauldronBlock::_handleBottleInteraction(
     IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem)
 {
 
@@ -356,7 +354,6 @@ ActionResultType CauldronBlock::handleBottleInteraction(
             // 降低水位
             setLevel(world, pos, state, currentLevel - 1);
 
-            // MC 1.16.5: 玻璃瓶取水使用 ITEM_BOTTLE_FILL
             world.playSound(SoundEvents::ITEM_BOTTLE_FILL,
                 sound::SoundCategory::Blocks,
                 Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
@@ -388,7 +385,6 @@ ActionResultType CauldronBlock::handleBottleInteraction(
             // 增加水位
             setLevel(world, pos, state, currentLevel + 1);
 
-            // MC 1.16.5: 水瓶倒水使用 ITEM_BOTTLE_EMPTY
             world.playSound(SoundEvents::ITEM_BOTTLE_EMPTY,
                 sound::SoundCategory::Blocks,
                 Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
@@ -418,7 +414,7 @@ ActionResultType CauldronBlock::handleBottleInteraction(
     return ActionResultType::Pass;
 }
 
-ActionResultType CauldronBlock::handleLeatherArmorCleaning(
+ActionResultType CauldronBlock::_handleLeatherArmorCleaning(
     IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem)
 {
 
@@ -428,7 +424,6 @@ ActionResultType CauldronBlock::handleLeatherArmorCleaning(
     }
 
     // 检查是否为皮革盔甲且有颜色
-    // MC 1.16.5: item instanceof IDyeableArmorItem
     const auto* dyeableArmor = dynamic_cast<const item::items::DyeableArmorItem*>(item);
     if (dyeableArmor != nullptr) {
         i32 currentLevel = getLevel(state);
@@ -441,8 +436,6 @@ ActionResultType CauldronBlock::handleLeatherArmorCleaning(
 
                 // 降低水位
                 setLevel(world, pos, state, currentLevel - 1);
-
-                // MC 1.16.5: 皮革盔甲清洗不播放音效
             }
             return ActionResultType::Success;
         }
@@ -451,7 +444,7 @@ ActionResultType CauldronBlock::handleLeatherArmorCleaning(
     return ActionResultType::Pass;
 }
 
-ActionResultType CauldronBlock::handleBannerCleaning(
+ActionResultType CauldronBlock::_handleBannerCleaning(
     IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem)
 {
 
@@ -461,24 +454,14 @@ ActionResultType CauldronBlock::handleBannerCleaning(
     MC_UNUSED(state);
     MC_UNUSED(heldItem);
 
-    // 旗帜系统尚未实现
-    // MC 1.16.5: 检查物品是否为 BannerItem 并有图案层
-    // if (item == Items::BANNER) {
-    //     if (BannerTileEntity::getPatterns(heldItem) > 0 && !isEmpty(state)) {
-    //         // 移除最顶层的图案
-    //         // 降低水位
-    //         setLevel(world, pos, state, getLevel(state) - 1);
-    //         playEmptySound(world, pos);
-    //         return ActionResultType::Success;
-    //     }
-    // }
+    // TODO: 旗帜系统尚未实现，需要实现旗帜清洗功能
+    // 检查物品是否为 BannerItem 并有图案层，如果有则移除最顶层图案并降低水位
 
     return ActionResultType::Pass;
 }
 
-void CauldronBlock::playFillSound(IWorld& world, const BlockPos& pos)
+void CauldronBlock::_playFillSound(IWorld& world, const BlockPos& pos)
 {
-    // 参考: net.minecraft.block.CauldronBlock - 使用 playSound 而不是 playEvent
     world.playSound(SoundEvents::ITEM_BUCKET_FILL,
         sound::SoundCategory::Blocks,
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
@@ -486,9 +469,8 @@ void CauldronBlock::playFillSound(IWorld& world, const BlockPos& pos)
         1.0f);
 }
 
-void CauldronBlock::playEmptySound(IWorld& world, const BlockPos& pos)
+void CauldronBlock::_playEmptySound(IWorld& world, const BlockPos& pos)
 {
-    // 参考: net.minecraft.block.CauldronBlock - 使用 playSound 而不是 playEvent
     world.playSound(SoundEvents::ITEM_BUCKET_EMPTY,
         sound::SoundCategory::Blocks,
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),

@@ -65,7 +65,7 @@ public:
 
 private:
     /// 构建缓存键
-    [[nodiscard]] std::string buildCacheKey(const PaletteEntry& entry) const;
+    [[nodiscard]] std::string _buildCacheKey(const PaletteEntry& entry) const noexcept;
 
     /// 缓存：完整方块状态字符串→stateId
     std::unordered_map<std::string, u32> m_cache;

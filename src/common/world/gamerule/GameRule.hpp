@@ -25,8 +25,6 @@
  * @file GameRule.hpp
  * @brief 游戏规则类型定义
  *
- * 参考 MC 1.16.5: net.minecraft.world.GameRules
- *
  * 游戏规则是 Minecraft 中控制游戏行为的配置项，如：
  * - mobGriefing: 生物是否能破坏方块
  * - naturalRegeneration: 玩家是否自然恢复生命
@@ -116,12 +114,12 @@ public:
     /**
      * @brief 获取规则名称
      */
-    [[nodiscard]] const std::string& getName() const { return m_name; }
+    [[nodiscard]] const std::string& getName() const noexcept { return m_name; }
 
     /**
      * @brief 获取规则分类
      */
-    [[nodiscard]] GameRuleCategory getCategory() const { return m_category; }
+    [[nodiscard]] GameRuleCategory getCategory() const noexcept { return m_category; }
 
     /**
      * @brief 获取本地化键
@@ -132,12 +130,12 @@ public:
     /**
      * @brief 相等比较
      */
-    bool operator==(const GameRuleKey& other) const { return m_name == other.m_name; }
+    bool operator==(const GameRuleKey& other) const noexcept { return m_name == other.m_name; }
 
     /**
      * @brief 哈希值
      */
-    [[nodiscard]] size_t hashCode() const { return std::hash<std::string>{}(m_name); }
+    [[nodiscard]] size_t hashCode() const noexcept { return std::hash<std::string>{}(m_name); }
 
 private:
     std::string m_name;
@@ -168,12 +166,12 @@ public:
     /**
      * @brief 获取默认值
      */
-    [[nodiscard]] T getDefaultValue() const { return m_defaultValue; }
+    [[nodiscard]] T getDefaultValue() const noexcept { return m_defaultValue; }
 
     /**
      * @brief 获取变更监听器
      */
-    [[nodiscard]] const GameRuleChangeListener<T>& getChangeListener() const { return m_changeListener; }
+    [[nodiscard]] const GameRuleChangeListener<T>& getChangeListener() const noexcept { return m_changeListener; }
 
     /**
      * @brief 创建规则值实例
@@ -219,7 +217,7 @@ public:
     /**
      * @brief 获取当前值
      */
-    [[nodiscard]] T get() const { return m_value; }
+    [[nodiscard]] T get() const noexcept { return m_value; }
 
     /**
      * @brief 设置新值
@@ -242,7 +240,7 @@ public:
     /**
      * @brief 检查是否为默认值
      */
-    [[nodiscard]] bool isDefault() const { return m_value == m_defaultValue; }
+    [[nodiscard]] bool isDefault() const noexcept { return m_value == m_defaultValue; }
 
     /**
      * @brief 获取字符串表示（用于序列化）
@@ -259,12 +257,12 @@ public:
     /**
      * @brief 获取规则类型
      */
-    [[nodiscard]] const GameRuleType<T>* getType() const { return m_type; }
+    [[nodiscard]] const GameRuleType<T>* getType() const noexcept { return m_type; }
 
     /**
      * @brief 复制规则值（创建新实例）
      */
-    [[nodiscard]] GameRuleValue<T> clone() const
+    [[nodiscard]] GameRuleValue<T> clone() const noexcept
     {
         GameRuleValue<T> copy;
         copy.m_type = m_type;

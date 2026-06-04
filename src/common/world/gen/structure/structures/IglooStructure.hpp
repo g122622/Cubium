@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../../feature/template/Template.hpp"
-#include "../../feature/template/TemplateManager.hpp"
-#include "../Structure.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include <memory>
 #include <vector>
 
@@ -35,7 +35,6 @@ namespace mc::world::gen::structure {
 /**
  * @brief 雪屋结构片段
  *
- * 参考 MC 1.16.5 IglooPieces.Piece
  * 使用模板系统生成雪屋，支持地上部分和地下室。
  */
 class IglooPiece : public StructurePiece {
@@ -68,11 +67,11 @@ public:
     [[nodiscard]] i32 middleCount() const { return m_middleCount; }
 
 private:
-    void loadTemplates();
-    void generateTop(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
-    void generateMiddle(IWorldWriter& world, math::Random& rng, i32 index, const StructureBoundingBox& bounds);
-    void generateBottom(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
-    void updateBoundingBox();
+    void _loadTemplates();
+    void _generateTop(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
+    void _generateMiddle(IWorldWriter& world, math::Random& rng, i32 index, const StructureBoundingBox& bounds);
+    void _generateBottom(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
+    void _updateBoundingBox();
 
     Rotation m_rotation;
     bool m_hasBasement;
@@ -91,7 +90,6 @@ private:
 /**
  * @brief 雪屋结构
  *
- * 参考 MC 1.16.5 IglooStructure
  * 在雪地生物群系中生成的小型雪屋结构。
  * 50% 概率生成地下室。
  * 使用模板系统从 igloo/top.nbt, igloo/middle.nbt, igloo/bottom.nbt 加载。

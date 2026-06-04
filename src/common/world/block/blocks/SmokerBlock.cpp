@@ -22,10 +22,11 @@
  */
 
 #include "SmokerBlock.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/inventory/ContainerTypes.hpp"
-#include "../../IWorld.hpp"
-#include "../../blockentity/processing/SmokerEntity.hpp"
+
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/blockentity/processing/SmokerEntity.hpp"
 
 namespace mc {
 namespace blocks {

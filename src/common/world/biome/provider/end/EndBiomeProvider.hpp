@@ -34,7 +34,6 @@ namespace end {
 /**
  * @brief 末地生物群系提供者
  *
- * 参考 MC 1.16.5 EndBiomeProvider
  * 使用原版岛屿高度函数区分主岛与外岛四类生物群系。
  *
  * 末地生物群系：
@@ -97,12 +96,12 @@ private:
     /**
      * @brief 根据噪声坐标选择末地生物群系
      */
-    [[nodiscard]] BiomeId selectBiome(i32 noiseX, i32 noiseZ) const;
+    [[nodiscard]] BiomeId _selectBiome(i32 noiseX, i32 noiseZ) const;
 
     /**
-     * @brief 原版末地岛屿高度函数（func_235317_a_）
+     * @brief 原版末地岛屿高度函数
      */
-    [[nodiscard]] static f32 computeIslandHeight(const SimplexNoiseGenerator& noise, i32 x, i32 z);
+    [[nodiscard]] static f32 _computeIslandHeight(const SimplexNoiseGenerator& noise, i32 x, i32 z);
 };
 
 } // namespace end

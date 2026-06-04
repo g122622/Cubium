@@ -41,7 +41,6 @@ namespace world::storage {
  * @brief 玩家保存数据
  *
  * 用于持久化的玩家数据结构，包含所有需要保存的玩家状态。
- * 参考 MC 1.16.5 PlayerEntity.writeWithoutTypeId()
  *
  * 包含的数据：
  * - 基本信息：用户名、UUID

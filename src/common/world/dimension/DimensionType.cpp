@@ -22,7 +22,7 @@
  */
 
 #include "DimensionType.hpp"
-#include "../../core/Constants.hpp"
+#include "common/core/Constants.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -72,7 +72,7 @@ DimensionType DimensionType::overworld()
 
 DimensionType DimensionType::nether()
 {
-    // MC 1.16.5: 下界维度ID = -1 (存档目录 DIM-1)
+    // 下界维度ID = -1 (存档目录 DIM-1)
     DimensionType type(-1, "minecraft:the_nether");
 
     // 环境属性
@@ -112,7 +112,7 @@ DimensionType DimensionType::nether()
 
 DimensionType DimensionType::theEnd()
 {
-    // MC 1.16.5: 末地维度ID = 1 (存档目录 DIM1)
+    // 末地维度ID = 1 (存档目录 DIM1)
     DimensionType type(1, "minecraft:the_end");
 
     // 环境属性
@@ -148,7 +148,7 @@ DimensionType DimensionType::theEnd()
 
 DimensionType DimensionType::fromId(DimensionId id)
 {
-    // MC 1.16.5 维度ID: 主世界=0, 下界=-1, 末地=1
+    // 维度ID: 主世界=0, 下界=-1, 末地=1
     switch (id) {
         case 0:
             return overworld();

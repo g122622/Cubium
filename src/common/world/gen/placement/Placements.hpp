@@ -32,7 +32,6 @@ namespace mc {
  * @brief 噪声阈值放置配置
  *
  * 根据噪声值决定是否放置特征。
- * 参考 MC NoisePlacementConfig
  */
 struct NoisePlacementConfig : public IPlacementConfig {
     f64 noiseLevel;  ///< 噪声阈值
@@ -50,7 +49,6 @@ struct NoisePlacementConfig : public IPlacementConfig {
  * @brief 噪声控制数量放置配置
  *
  * 根据噪声值决定放置数量。
- * 参考 MC CountNoisePlacementConfig
  */
 struct CountNoiseConfig : public IPlacementConfig {
     f64 noiseLevel; ///< 噪声阈值
@@ -66,8 +64,6 @@ struct CountNoiseConfig : public IPlacementConfig {
 
 /**
  * @brief 地表额外数量放置配置
- *
- * 参考 MC AtSurfaceWithExtraConfig
  */
 struct AtSurfaceWithExtraConfig : public IPlacementConfig {
     i32 count;       ///< 基础数量
@@ -85,7 +81,6 @@ struct AtSurfaceWithExtraConfig : public IPlacementConfig {
  * @brief 深度平均放置配置
  *
  * 在基准深度附近放置特征。
- * 参考 MC DepthAverageConfig
  */
 struct DepthAverageConfig : public IPlacementConfig {
     i32 baseline; ///< 基准深度
@@ -101,7 +96,6 @@ struct DepthAverageConfig : public IPlacementConfig {
  * @brief 随机偏移放置配置
  *
  * 随机偏移放置位置。
- * 参考 MC RandomOffsetPlacementConfig
  */
 struct RandomOffsetConfig : public IPlacementConfig {
     i32 xzSpread; ///< XZ平面扩散
@@ -117,7 +111,6 @@ struct RandomOffsetConfig : public IPlacementConfig {
  * @brief 水深阈值放置配置
  *
  * 根据水深决定是否放置。
- * 参考 MC WaterDepthThresholdConfig
  */
 struct WaterDepthThresholdConfig : public IPlacementConfig {
     i32 maxWaterDepth; ///< 最大水深
@@ -135,7 +128,7 @@ struct WaterDepthThresholdConfig : public IPlacementConfig {
 struct SeaLevelConfig : public IPlacementConfig {
     i32 offset; ///< 相对于海平面的偏移
 
-    explicit SeaLevelConfig(i32 off = 0)
+    explicit SeaLevelConfig(i32 off)
         : offset(off)
     {}
 };
@@ -148,7 +141,6 @@ struct SeaLevelConfig : public IPlacementConfig {
  * @brief 噪声阈值放置器
  *
  * 根据噪声值决定是否放置特征。
- * 参考 MC NoiseBasedPlacement
  */
 class NoisePlacement : public Placement {
 public:
@@ -157,14 +149,13 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const override { return "noise"; }
+    [[nodiscard]] const char* name() const noexcept override { return "noise"; }
 };
 
 /**
  * @brief 噪声控制数量放置器
  *
  * 根据噪声值决定放置数量。
- * 参考 MC CountNoisePlacement
  */
 class CountNoisePlacement : public Placement {
 public:
@@ -173,14 +164,13 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const override { return "count_noise"; }
+    [[nodiscard]] const char* name() const noexcept override { return "count_noise"; }
 };
 
 /**
  * @brief 深度平均放置器
  *
  * 在基准深度附近放置特征。
- * 参考 MC DepthAveragePlacement
  */
 class DepthAveragePlacement : public Placement {
 public:
@@ -189,14 +179,13 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const override { return "depth_average"; }
+    [[nodiscard]] const char* name() const noexcept override { return "depth_average"; }
 };
 
 /**
  * @brief 顶层固体放置器
  *
  * 在顶层固体方块上放置特征。
- * 参考 MC TopSolidPlacement
  */
 class TopSolidPlacement : public Placement {
 public:
@@ -205,14 +194,13 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const override { return "top_solid"; }
+    [[nodiscard]] const char* name() const noexcept override { return "top_solid"; }
 };
 
 /**
  * @brief 雕刻掩码放置器
  *
  * 在雕刻掩码指定的位置放置特征。
- * 参考 MC CarvingMaskPlacement
  */
 class CarvingMaskPlacement : public Placement {
 public:
@@ -221,14 +209,13 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const override { return "carving_mask"; }
+    [[nodiscard]] const char* name() const noexcept override { return "carving_mask"; }
 };
 
 /**
  * @brief 随机偏移放置器
  *
  * 对位置进行随机偏移。
- * 参考 MC RandomOffsetPlacement
  */
 class RandomOffsetPlacement : public Placement {
 public:
@@ -237,14 +224,13 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const override { return "random_offset"; }
+    [[nodiscard]] const char* name() const noexcept override { return "random_offset"; }
 };
 
 /**
  * @brief 水深阈值放置器
  *
  * 根据水深决定是否放置特征。
- * 参考 MC WaterDepthThresholdPlacement
  */
 class WaterDepthThresholdPlacement : public Placement {
 public:
@@ -253,7 +239,7 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const override { return "water_depth_threshold"; }
+    [[nodiscard]] const char* name() const noexcept override { return "water_depth_threshold"; }
 };
 
 /**
@@ -268,14 +254,13 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const override { return "sea_level"; }
+    [[nodiscard]] const char* name() const noexcept override { return "sea_level"; }
 };
 
 /**
  * @brief 扩散放置器
  *
  * 在原始位置周围扩散放置特征。
- * 参考 MC SpreadPlacement
  */
 class SpreadPlacement : public Placement {
 public:
@@ -284,14 +269,13 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const override { return "spread"; }
+    [[nodiscard]] const char* name() const noexcept override { return "spread"; }
 };
 
 /**
  * @brief 额外数量放置器
  *
  * 基础数量 + 概率额外数量。
- * 参考 MC CountExtraPlacement
  */
 class CountExtraPlacement : public Placement {
 public:
@@ -300,7 +284,7 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const override { return "count_extra"; }
+    [[nodiscard]] const char* name() const noexcept override { return "count_extra"; }
 };
 
 } // namespace mc

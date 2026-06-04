@@ -119,6 +119,38 @@ struct TreeFeatureConfig : public IFeatureConfig {
         }
         return *this;
     }
+
+    /**
+     * @brief 移动构造函数
+     */
+    TreeFeatureConfig(TreeFeatureConfig&& other) noexcept
+        : trunkBlock(other.trunkBlock)
+        , foliageBlock(other.foliageBlock)
+        , trunkPlacer(std::move(other.trunkPlacer))
+        , foliagePlacer(std::move(other.foliagePlacer))
+        , maxWaterDepth(other.maxWaterDepth)
+        , ignoreVines(other.ignoreVines)
+        , forcePlacement(other.forcePlacement)
+        , minHeight(other.minHeight)
+    {}
+
+    /**
+     * @brief 移动赋值运算符
+     */
+    TreeFeatureConfig& operator=(TreeFeatureConfig&& other) noexcept
+    {
+        if (this != &other) {
+            trunkBlock = other.trunkBlock;
+            foliageBlock = other.foliageBlock;
+            trunkPlacer = std::move(other.trunkPlacer);
+            foliagePlacer = std::move(other.foliagePlacer);
+            maxWaterDepth = other.maxWaterDepth;
+            ignoreVines = other.ignoreVines;
+            forcePlacement = other.forcePlacement;
+            minHeight = other.minHeight;
+        }
+        return *this;
+    }
 };
 
 /**
@@ -194,7 +226,7 @@ private:
      * @param config 树木配置
      * @return 可用高度
      */
-    [[nodiscard]] i32 calculateAvailableHeight(
+    [[nodiscard]] i32 _calculateAvailableHeight(
         WorldGenRegion& world, i32 maxHeight, const BlockPos& startPos, const TreeFeatureConfig& config) const;
 
     /**
@@ -207,7 +239,7 @@ private:
      * @param trunkBlocks 树干方块集合
      * @param foliageBlocks 树叶方块集合
      */
-    void setFoliageDistance(
+    void _setFoliageDistance(
         WorldGenRegion& world, const std::set<BlockPos>& trunkBlocks, const std::set<BlockPos>& foliageBlocks);
 };
 

@@ -42,9 +42,8 @@ std::string normalizePathSeparators(std::string path)
 
 std::string toLowerAscii(std::string value)
 {
-    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
-        return static_cast<char>(std::tolower(ch));
-    });
+    std::transform(
+        value.begin(), value.end(), value.begin(), [](u8 ch) { return static_cast<char>(std::tolower(ch)); });
     return value;
 }
 
@@ -70,7 +69,6 @@ Result<size_t> ResourcePackList::scanDirectory(const std::filesystem::path& dir)
     // 注意：音频线程会并发读取 ResourcePackList，因此这里的"已存在检查"
     // 不能再返回内部元素指针给外部长期持有。我们只做布尔查询。
     if (!std::filesystem::exists(dir)) {
-        spdlog::debug("Resource pack directory does not exist: {}", dir.string());
         return static_cast<size_t>(0);
     }
 
@@ -86,14 +84,14 @@ Result<size_t> ResourcePackList::scanDirectory(const std::filesystem::path& dir)
         const auto& path = entry.path();
 
         // 跳过已存在的资源包
-        std::string normalizedPath = normalizePathKey(path);
+        std::string normalizedPath = _normalizePathKey(path);
         if (containsPack(normalizedPath)) {
             continue;
         }
 
         // 检查是否是 ZIP 文件或资源包目录
-        bool isZip = isZipFile(path);
-        bool isPackDir = !isZip && isResourcePackDir(path);
+        bool isZip = _isZipFile(path);
+        bool isPackDir = !isZip && _isResourcePackDir(path);
 
         if (!isZip && !isPackDir) {
             continue;
@@ -114,7 +112,7 @@ Result<size_t> ResourcePackList::scanDirectory(const std::filesystem::path& dir)
         }
     }
 
-    notifyChange();
+    _notifyChange();
     return addedCount;
 }
 
@@ -134,7 +132,7 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
         return Error(ErrorCode::FileNotFound, "Resource pack not found: " + path.string());
     }
 
-    std::string normalizedPath = normalizePathKey(path);
+    std::string normalizedPath = _normalizePathKey(path);
 
     // 先在锁内做一次"已存在"检查：如果只是更新开关/优先级，应该快速返回，
     // 不要做昂贵的 ZIP 打开与初始化。
@@ -158,7 +156,7 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
 
         if (foundExisting) {
             if (changed) {
-                notifyChange();
+                _notifyChange();
             }
             return existing;
         }
@@ -169,7 +167,7 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
     info.path = normalizedPath;
     info.enabled = enabled;
     info.priority = priority;
-    info.isZip = isZipFile(path);
+    info.isZip = _isZipFile(path);
 
     // 创建资源包实例
     if (info.isZip) {
@@ -220,7 +218,7 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
     }
 
     if (shouldNotify) {
-        notifyChange();
+        _notifyChange();
     }
 
     return resultInfo;
@@ -228,7 +226,7 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
 
 bool ResourcePackList::removePack(const std::string& path)
 {
-    std::string normalizedPath = normalizePathKey(std::filesystem::path(path));
+    std::string normalizedPath = _normalizePathKey(std::filesystem::path(path));
 
     bool removed = false;
     {
@@ -243,7 +241,7 @@ bool ResourcePackList::removePack(const std::string& path)
     }
 
     if (removed) {
-        notifyChange();
+        _notifyChange();
     }
 
     return removed;
@@ -256,7 +254,7 @@ void ResourcePackList::clear()
         std::unique_lock lock(m_mutex);
         m_packs.clear();
     }
-    notifyChange();
+    _notifyChange();
 }
 
 // ============================================================================
@@ -277,7 +275,7 @@ bool ResourcePackList::setEnabled(const std::string& path, bool enabled)
     }
 
     if (changed) {
-        notifyChange();
+        _notifyChange();
     }
 
     return changed;
@@ -297,7 +295,7 @@ bool ResourcePackList::setPriority(const std::string& path, i32 priority)
     }
 
     if (changed) {
-        notifyChange();
+        _notifyChange();
     }
 
     return changed;
@@ -343,7 +341,7 @@ bool ResourcePackList::moveUp(const std::string& path)
     }
 
     if (changed) {
-        notifyChange();
+        _notifyChange();
     }
 
     return changed;
@@ -389,7 +387,7 @@ bool ResourcePackList::moveDown(const std::string& path)
     }
 
     if (changed) {
-        notifyChange();
+        _notifyChange();
     }
 
     return changed;
@@ -519,9 +517,7 @@ Result<std::vector<u8>> ResourcePackList::readResource(resource::PackType type, 
         if (result.success()) {
             return result;
         }
-
-        spdlog::debug(
-            "Failed to read resource {} from pack {}: {}", resourcePath, pack->name(), result.error().toString());
+        // 资源包中存在该资源但读取失败，继续尝试下一个资源包
     }
 
     return Error(ErrorCode::ResourceNotFound, "Resource not found in any enabled pack: " + std::string(resourcePath));
@@ -646,9 +642,9 @@ void ResourcePackList::onChange(std::function<void()> callback)
     m_callback = std::move(callback);
 }
 
-void ResourcePackList::notifyChange()
+void ResourcePackList::_notifyChange()
 {
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::notifyChange");
+    MC_TRACE_EVENT("client.resource", "ResourcePackList::_notifyChange");
 
     // 拷贝回调到局部变量，避免回调内部再次访问 ResourcePackList 时造成锁重入
     std::function<void()> callback;
@@ -667,16 +663,16 @@ void ResourcePackList::notifyChange()
 // 私有方法
 // ============================================================================
 
-std::string ResourcePackList::normalizePath(const std::filesystem::path& path)
+std::string ResourcePackList::_normalizePath(const std::filesystem::path& path)
 {
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::normalizePath");
+    MC_TRACE_EVENT("client.resource", "ResourcePackList::_normalizePath");
 
     return normalizePathSeparators(path.string());
 }
 
-std::string ResourcePackList::normalizePathKey(const std::filesystem::path& path)
+std::string ResourcePackList::_normalizePathKey(const std::filesystem::path& path)
 {
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::normalizePathKey");
+    MC_TRACE_EVENT("client.resource", "ResourcePackList::_normalizePathKey");
 
     std::filesystem::path normalizedPath = path;
     std::error_code ec;
@@ -690,18 +686,16 @@ std::string ResourcePackList::normalizePathKey(const std::filesystem::path& path
     return toLowerAscii(normalizePathSeparators(normalizedPath.string()));
 }
 
-bool ResourcePackList::isZipFile(const std::filesystem::path& path)
+bool ResourcePackList::_isZipFile(const std::filesystem::path& path)
 {
     if (!std::filesystem::is_regular_file(path)) {
         return false;
     }
 
-    std::string ext = path.extension().string();
-    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-    return ext == ".zip";
+    return toLowerAscii(path.extension().string()) == ".zip";
 }
 
-bool ResourcePackList::isResourcePackDir(const std::filesystem::path& path)
+bool ResourcePackList::_isResourcePackDir(const std::filesystem::path& path)
 {
     if (!std::filesystem::is_directory(path)) {
         return false;

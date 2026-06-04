@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
 #include "CropBlock.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include <array>
 
 namespace mc {
@@ -35,8 +35,6 @@ namespace blocks {
  *
  * 8个生长阶段（AGE_0_7），成熟时掉落多个胡萝卜。
  * 形状高度比小麦低：2, 3, 4, 5, 6, 7, 8, 9 像素。
- *
- * 参考: net.minecraft.block.CarrotBlock
  */
 class CarrotBlock : public CropBlock {
 public:

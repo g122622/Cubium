@@ -58,7 +58,6 @@ namespace mc::server::advancement {
  * @brief 成就事件处理器
  *
  * 订阅服务端事件并触发相应的成就触发器。
- * 参考 MC 1.16.5 的 CriteriaTriggers 触发机制。
  *
  * ## 架构说明
  *
@@ -103,80 +102,80 @@ public:
         // 订阅物品栏变化事件
         m_inventoryChangedSubscription =
             event::ServerEventBus::instance().makeSubscription<event::InventoryChangedEvent>(
-                [this](const event::InventoryChangedEvent& e) { onInventoryChanged(e); });
+                [this](const event::InventoryChangedEvent& e) { _onInventoryChanged(e); });
 
         // 订阅玩家击杀实体事件
         m_playerKillSubscription = event::ServerEventBus::instance().makeSubscription<event::PlayerKillEntityEvent>(
-            [this](const event::PlayerKillEntityEvent& e) { onPlayerKillEntity(e); });
+            [this](const event::PlayerKillEntityEvent& e) { _onPlayerKillEntity(e); });
 
         // 订阅玩家登录事件（初始化成就监听器）
         m_playerLoginSubscription = event::ServerEventBus::instance().makeSubscription<event::PlayerLoginEvent>(
-            [this](const event::PlayerLoginEvent& e) { onPlayerLogin(e); });
+            [this](const event::PlayerLoginEvent& e) { _onPlayerLogin(e); });
 
         // 订阅方块放置事件
         m_blockPlaceSubscription = event::ServerEventBus::instance().makeSubscription<event::BlockPlaceEvent>(
-            [this](const event::BlockPlaceEvent& e) { onBlockPlaced(e); });
+            [this](const event::BlockPlaceEvent& e) { _onBlockPlaced(e); });
 
         // 订阅僵尸村民治愈事件
         m_curedZombieVillagerSubscription =
             event::ServerEventBus::instance().makeSubscription<event::CuredZombieVillagerEvent>(
-                [this](const event::CuredZombieVillagerEvent& e) { onCuredZombieVillager(e); });
+                [this](const event::CuredZombieVillagerEvent& e) { _onCuredZombieVillager(e); });
 
         // 订阅玩家睡眠事件
         m_playerSleepSubscription = event::ServerEventBus::instance().makeSubscription<event::PlayerSleepEvent>(
-            [this](const event::PlayerSleepEvent& e) { onPlayerSleep(e); });
+            [this](const event::PlayerSleepEvent& e) { _onPlayerSleep(e); });
 
         // 订阅效果变化事件
         m_effectChangedSubscription = event::ServerEventBus::instance().makeSubscription<event::EffectChangedEvent>(
-            [this](const event::EffectChangedEvent& e) { onEffectChanged(e); });
+            [this](const event::EffectChangedEvent& e) { _onEffectChanged(e); });
 
         // 订阅玩家位置事件
         m_playerLocationSubscription = event::ServerEventBus::instance().makeSubscription<event::PlayerLocationEvent>(
-            [this](const event::PlayerLocationEvent& e) { onPlayerLocation(e); });
+            [this](const event::PlayerLocationEvent& e) { _onPlayerLocation(e); });
 
         // 订阅维度变化事件
         m_dimensionChangeSubscription = event::ServerEventBus::instance().makeSubscription<event::DimensionChangeEvent>(
-            [this](const event::DimensionChangeEvent& e) { onDimensionChange(e); });
+            [this](const event::DimensionChangeEvent& e) { _onDimensionChange(e); });
 
         // 订阅引雷附魔触发事件
         m_channeledLightningSubscription =
             event::ServerEventBus::instance().makeSubscription<event::ChanneledLightningEvent>(
-                [this](const event::ChanneledLightningEvent& e) { onChanneledLightning(e); });
+                [this](const event::ChanneledLightningEvent& e) { _onChanneledLightning(e); });
 
         // 订阅消耗物品事件
         m_consumeItemSubscription = event::ServerEventBus::instance().makeSubscription<event::ConsumeItemEvent>(
-            [this](const event::ConsumeItemEvent& e) { onConsumeItem(e); });
+            [this](const event::ConsumeItemEvent& e) { _onConsumeItem(e); });
 
         // 订阅物品耐久变化事件
         m_itemDurabilitySubscription = event::ServerEventBus::instance().makeSubscription<event::ItemDurabilityEvent>(
-            [this](const event::ItemDurabilityEvent& e) { onItemDurability(e); });
+            [this](const event::ItemDurabilityEvent& e) { _onItemDurability(e); });
 
         // 订阅附魔事件
         m_enchantItemSubscription = event::ServerEventBus::instance().makeSubscription<event::EnchantItemEvent>(
-            [this](const event::EnchantItemEvent& e) { onEnchantItem(e); });
+            [this](const event::EnchantItemEvent& e) { _onEnchantItem(e); });
 
         // 订阅填充桶事件
         m_filledBucketSubscription = event::ServerEventBus::instance().makeSubscription<event::FilledBucketEvent>(
-            [this](const event::FilledBucketEvent& e) { onFilledBucket(e); });
+            [this](const event::FilledBucketEvent& e) { _onFilledBucket(e); });
 
         // 订阅进入方块事件
         m_enterBlockSubscription = event::ServerEventBus::instance().makeSubscription<event::EnterBlockEvent>(
-            [this](const event::EnterBlockEvent& e) { onEnterBlock(e); });
+            [this](const event::EnterBlockEvent& e) { _onEnterBlock(e); });
 
         // 订阅滑落方块事件
         m_slideDownBlockSubscription = event::ServerEventBus::instance().makeSubscription<event::SlideDownBlockEvent>(
-            [this](const event::SlideDownBlockEvent& e) { onSlideDownBlock(e); });
+            [this](const event::SlideDownBlockEvent& e) { _onSlideDownBlock(e); });
 
         // 订阅蜂巢破坏事件
         m_beeNestDestroyedSubscription =
             event::ServerEventBus::instance().makeSubscription<event::BeeNestDestroyedEvent>(
-                [this](const event::BeeNestDestroyedEvent& e) { onBeeNestDestroyed(e); });
+                [this](const event::BeeNestDestroyedEvent& e) { _onBeeNestDestroyed(e); });
 
         // 订阅动物繁殖事件
         m_bredAnimalsSubscription = event::ServerEventBus::instance().makeSubscription<event::BredAnimalsEvent>(
-            [this](const event::BredAnimalsEvent& e) { onBredAnimals(e); });
+            [this](const event::BredAnimalsEvent& e) { _onBredAnimals(e); });
 
-        initialized_ = true;
+        m_initialized = true;
     }
 
     /**
@@ -204,22 +203,21 @@ public:
         m_slideDownBlockSubscription.unsubscribe();
         m_beeNestDestroyedSubscription.unsubscribe();
         m_bredAnimalsSubscription.unsubscribe();
-        initialized_ = false;
+        m_initialized = false;
     }
 
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const noexcept { return initialized_; }
+    [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
 
 private:
     /**
      * @brief 处理物品栏变化事件
      *
      * 触发 InventoryChangedTrigger。
-     * 参考 MC 1.16.5: InventoryChangeListener.onInventoryChange
      */
-    void onInventoryChanged(const event::InventoryChangedEvent& e)
+    void _onInventoryChanged(const event::InventoryChangedEvent& e)
     {
         // 获取触发器
         auto* trigger =
@@ -267,9 +265,8 @@ private:
      * @brief 处理玩家击杀实体事件
      *
      * 触发 PlayerKilledEntityTrigger。
-     * 参考 MC 1.16.5: CriteriaTriggers.PLAYER_KILLED_ENTITY
      */
-    void onPlayerKillEntity(const event::PlayerKillEntityEvent& e)
+    void _onPlayerKillEntity(const event::PlayerKillEntityEvent& e)
     {
         // 获取触发器
         auto* trigger =
@@ -280,7 +277,7 @@ private:
         }
 
         // 获取 ServerPlayer
-        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
         if (serverPlayer == nullptr) {
             return;
         }
@@ -297,7 +294,6 @@ private:
         }
 
         // 使用基类的 trigger 模板方法触发检测
-        // 参考 TriggerInstantiation.hpp
         trigger->AbstractCriterionTrigger<mc::advancement::PlayerKilledEntityTriggerInstance>::trigger(
             *advancements, [&e](const mc::advancement::PlayerKilledEntityTriggerInstance& instance) {
                 return instance.test(*e.victim, *e.cause);
@@ -309,7 +305,7 @@ private:
      *
      * 初始化玩家的成就监听器。
      */
-    void onPlayerLogin(const event::PlayerLoginEvent& e)
+    void _onPlayerLogin(const event::PlayerLoginEvent& e)
     {
         // 玩家登录时，PlayerAdvancements 已经在 ServerPlayer 构造函数中初始化
         // 这里可以做一些额外的初始化工作
@@ -320,9 +316,8 @@ private:
      * @brief 处理方块放置事件
      *
      * 触发 PlacedBlockTrigger。
-     * 参考 MC 1.16.5: CriteriaTriggers.PLACED_BLOCK.trigger()
      */
-    void onBlockPlaced(const event::BlockPlaceEvent& e)
+    void _onBlockPlaced(const event::BlockPlaceEvent& e)
     {
         // 获取触发器
         auto* trigger =
@@ -343,7 +338,7 @@ private:
         }
 
         // 获取 ServerPlayer
-        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
         if (serverPlayer == nullptr) {
             return;
         }
@@ -375,10 +370,8 @@ private:
      *
      * 触发 CuredZombieVillagerTrigger。
      * 更新村庄声望（MajorPositive + MinorPositive）。
-     * 参考 MC 1.16.5: CriteriaTriggers.CURED_ZOMBIE_VILLAGER.trigger()
-     * 参考 MC 1.16.5: VillagerEntity.updateReputation(IReputationType.ZOMBIE_VILLAGER_CURED)
      */
-    void onCuredZombieVillager(const event::CuredZombieVillagerEvent& e)
+    void _onCuredZombieVillager(const event::CuredZombieVillagerEvent& e)
     {
         // 检查治愈发起者UUID是否有效
         if (e.starterUuid.empty()) {
@@ -398,7 +391,7 @@ private:
         PlayerId playerId = playerData->playerId;
 
         // 获取 ServerPlayer
-        mc::ServerPlayer* serverPlayer = getServerPlayer(playerId);
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(playerId);
         if (serverPlayer == nullptr) {
             return;
         }
@@ -429,18 +422,16 @@ private:
             });
 
         // 更新村庄声望
-        // 参考 MC 1.16.5: VillagerEntity.updateReputation(IReputationType.ZOMBIE_VILLAGER_CURED)
         // 治愈僵尸村民获得:
         // - MajorPositive: +20 (权重5 = +100声望)
         // - MinorPositive: +25 (权重1 = +25声望)
         // 总计: +125声望
-        updateVillageReputationOnCure(e.starterUuid, e.villager);
+        _updateVillageReputationOnCure(e.starterUuid, e.villager);
     }
 
     /**
      * @brief 治愈僵尸村民时更新村庄声望
      *
-     * 参考 MC 1.16.5: VillagerEntity.updateReputation()
      * - MajorPositive: +20 (权重5 = +100声望，永不衰减)
      * - MinorPositive: +25 (权重1 = +25声望，每日衰减1点)
      * 总计: +125声望
@@ -448,7 +439,7 @@ private:
      * @param starterUuid 治愈者UUID
      * @param villager 治愈后的村民实体
      */
-    void updateVillageReputationOnCure(const std::string& starterUuid, Entity* villager)
+    void _updateVillageReputationOnCure(const std::string& starterUuid, Entity* villager)
     {
         if (m_server == nullptr || villager == nullptr) {
             return;
@@ -473,7 +464,6 @@ private:
 
         if (village == nullptr) {
             // 村民不在任何村庄内，不更新声望
-            // MC 1.16.5: 只有在村庄内治愈才获得声望
             return;
         }
 
@@ -482,11 +472,9 @@ private:
         u64 playerIdentifier = std::hash<std::string>{}(starterUuid);
 
         // 添加 MajorPositive 流言 (+20，权重5 = +100声望)
-        // MC 1.16.5: this.gossip.add(target.getUniqueID(), GossipType.MAJOR_POSITIVE, 20);
         village->addGossip(playerIdentifier, mc::world::village::VillageGossipType::MajorPositive, 20);
 
         // 添加 MinorPositive 流言 (+25，权重1 = +25声望)
-        // MC 1.16.5: this.gossip.add(target.getUniqueID(), GossipType.MINOR_POSITIVE, 25);
         village->addGossip(playerIdentifier, mc::world::village::VillageGossipType::MinorPositive, 25);
 
         spdlog::info("VillageGossip: Player {} cured zombie villager, gained MajorPositive(+20) and MinorPositive(+25) "
@@ -499,9 +487,8 @@ private:
      * @brief 处理玩家睡眠事件
      *
      * 触发 SleptInBedTrigger。
-     * 参考 MC 1.16.5: CriteriaTriggers.SLEPT_IN_BED.trigger()
      */
-    void onPlayerSleep(const event::PlayerSleepEvent& e)
+    void _onPlayerSleep(const event::PlayerSleepEvent& e)
     {
         // 获取触发器
         auto* trigger = mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::SleptInBedTrigger>();
@@ -511,7 +498,7 @@ private:
         }
 
         // 获取 ServerPlayer
-        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
         if (serverPlayer == nullptr) {
             return;
         }
@@ -542,12 +529,11 @@ private:
      * @brief 处理效果变化事件
      *
      * 触发 EffectsChangedTrigger、HeroOfTheVillageTrigger 和 VoluntaryExileTrigger。
-     * 参考 MC 1.16.5: CriteriaTriggers.EFFECTS_CHANGED.trigger()
      */
-    void onEffectChanged(const event::EffectChangedEvent& e)
+    void _onEffectChanged(const event::EffectChangedEvent& e)
     {
         // 获取 ServerPlayer
-        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
         if (serverPlayer == nullptr) {
             return;
         }
@@ -559,7 +545,6 @@ private:
         }
 
         // 触发通用的 EffectsChangedTrigger
-        // 参考 MC 1.16.5: CriteriaTriggers.EFFECTS_CHANGED.trigger(ServerPlayer)
         {
             auto* effectsTrigger =
                 mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::EffectsChangedTrigger>();
@@ -616,9 +601,8 @@ private:
      * @brief 处理玩家位置事件
      *
      * 触发 LocationTrigger。
-     * 参考 MC 1.16.5: CriteriaTriggers.LOCATION.trigger()
      */
-    void onPlayerLocation(const event::PlayerLocationEvent& e)
+    void _onPlayerLocation(const event::PlayerLocationEvent& e)
     {
         // 获取触发器
         auto* trigger = mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::LocationTrigger>();
@@ -628,7 +612,7 @@ private:
         }
 
         // 获取 ServerPlayer
-        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
         if (serverPlayer == nullptr) {
             return;
         }
@@ -656,9 +640,8 @@ private:
      * @brief 处理维度变化事件
      *
      * 触发 LocationTrigger（维度变化后检测新位置）。
-     * 参考 MC 1.16.5: 玩家传送后触发 location 触发器
      */
-    void onDimensionChange(const event::DimensionChangeEvent& e)
+    void _onDimensionChange(const event::DimensionChangeEvent& e)
     {
         // 获取触发器
         auto* trigger = mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::LocationTrigger>();
@@ -668,7 +651,7 @@ private:
         }
 
         // 获取 ServerPlayer
-        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
         if (serverPlayer == nullptr) {
             return;
         }
@@ -696,9 +679,8 @@ private:
      * @brief 处理引雷附魔触发事件
      *
      * 触发 ChanneledLightningTrigger。
-     * 参考 MC 1.16.5: CriteriaTriggers.CHANNELED_LIGHTNING.trigger()
      */
-    void onChanneledLightning(const event::ChanneledLightningEvent& e)
+    void _onChanneledLightning(const event::ChanneledLightningEvent& e)
     {
         // 获取触发器
         auto* trigger =
@@ -709,7 +691,7 @@ private:
         }
 
         // 获取 ServerPlayer
-        mc::ServerPlayer* serverPlayer = getServerPlayer(e.casterId);
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.casterId);
         if (serverPlayer == nullptr) {
             return;
         }
@@ -738,9 +720,8 @@ private:
      * @brief 处理消耗物品事件
      *
      * 触发 ConsumeItemTrigger。
-     * 参考 MC 1.16.5: CriteriaTriggers.CONSUME_ITEM.trigger()
      */
-    void onConsumeItem(const event::ConsumeItemEvent& e)
+    void _onConsumeItem(const event::ConsumeItemEvent& e)
     {
         // 获取触发器
         auto* trigger =
@@ -751,7 +732,7 @@ private:
         }
 
         // 获取 ServerPlayer
-        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
         if (serverPlayer == nullptr) {
             return;
         }
@@ -771,9 +752,8 @@ private:
      * @brief 处理物品耐久变化事件
      *
      * 触发 ItemDurabilityTrigger。
-     * 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED.trigger()
      */
-    void onItemDurability(const event::ItemDurabilityEvent& e)
+    void _onItemDurability(const event::ItemDurabilityEvent& e)
     {
         // 获取触发器
         auto* trigger =
@@ -784,7 +764,7 @@ private:
         }
 
         // 获取 ServerPlayer
-        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
         if (serverPlayer == nullptr) {
             return;
         }
@@ -806,9 +786,8 @@ private:
      * @brief 处理附魔事件
      *
      * 触发 EnchantedItemTrigger。
-     * 参考 MC 1.16.5: CriteriaTriggers.ENCHANTED_ITEM.trigger()
      */
-    void onEnchantItem(const event::EnchantItemEvent& e)
+    void _onEnchantItem(const event::EnchantItemEvent& e)
     {
         // 获取触发器
         auto* trigger =
@@ -819,7 +798,7 @@ private:
         }
 
         // 获取 ServerPlayer
-        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
         if (serverPlayer == nullptr) {
             return;
         }
@@ -841,9 +820,8 @@ private:
      * @brief 处理填充桶事件
      *
      * 触发 FilledBucketTrigger。
-     * 参考 MC 1.16.5: CriteriaTriggers.FILLED_BUCKET.trigger()
      */
-    void onFilledBucket(const event::FilledBucketEvent& e)
+    void _onFilledBucket(const event::FilledBucketEvent& e)
     {
         // 获取触发器
         auto* trigger =
@@ -854,7 +832,7 @@ private:
         }
 
         // 获取 ServerPlayer
-        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
         if (serverPlayer == nullptr) {
             return;
         }
@@ -874,9 +852,8 @@ private:
      * @brief 处理进入方块事件
      *
      * 触发 EnterBlockTrigger。
-     * 参考 MC 1.16.5: CriteriaTriggers.ENTER_BLOCK.trigger()
      */
-    void onEnterBlock(const event::EnterBlockEvent& e)
+    void _onEnterBlock(const event::EnterBlockEvent& e)
     {
         // 获取触发器
         auto* trigger = mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::EnterBlockTrigger>();
@@ -891,7 +868,7 @@ private:
         }
 
         // 获取 ServerPlayer
-        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
         if (serverPlayer == nullptr) {
             return;
         }
@@ -919,9 +896,8 @@ private:
      * @brief 处理滑落方块事件
      *
      * 触发 SlideDownBlockTrigger。
-     * 参考 MC 1.16.5: CriteriaTriggers.SLIDE_DOWN_BLOCK.trigger()
      */
-    void onSlideDownBlock(const event::SlideDownBlockEvent& e)
+    void _onSlideDownBlock(const event::SlideDownBlockEvent& e)
     {
         // 获取触发器
         auto* trigger =
@@ -937,7 +913,7 @@ private:
         }
 
         // 获取 ServerPlayer
-        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
         if (serverPlayer == nullptr) {
             return;
         }
@@ -957,9 +933,8 @@ private:
      * @brief 处理蜂巢破坏事件
      *
      * 触发 BeeNestDestroyedTrigger。
-     * 参考 MC 1.16.5: CriteriaTriggers.BEE_NEST_DESTROYED.trigger()
      */
-    void onBeeNestDestroyed(const event::BeeNestDestroyedEvent& e)
+    void _onBeeNestDestroyed(const event::BeeNestDestroyedEvent& e)
     {
         // 获取触发器
         auto* trigger =
@@ -975,7 +950,7 @@ private:
         }
 
         // 获取 ServerPlayer
-        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
         if (serverPlayer == nullptr) {
             return;
         }
@@ -997,11 +972,9 @@ private:
      * @brief 处理动物繁殖事件
      *
      * 触发 BredAnimalsTrigger。
-     * 参考 MC 1.16.5: CriteriaTriggers.BRED_ANIMALS.trigger()
-     *
      * 动物繁殖时触发，检查子代和父母的谓词条件。
      */
-    void onBredAnimals(const event::BredAnimalsEvent& e)
+    void _onBredAnimals(const event::BredAnimalsEvent& e)
     {
         // 获取触发器
         auto* trigger =
@@ -1012,7 +985,7 @@ private:
         }
 
         // 获取 ServerPlayer
-        mc::ServerPlayer* serverPlayer = getServerPlayer(e.playerId);
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
         if (serverPlayer == nullptr) {
             return;
         }
@@ -1041,9 +1014,8 @@ private:
      * @return ServerPlayer 指针，如果未找到返回 nullptr
      *
      * 通过 ServerPlayerEntityManager 获取玩家实体。
-     * 参考 MC 1.16.5: PlayerList.getPlayerByUUID()
      */
-    [[nodiscard]] mc::ServerPlayer* getServerPlayer(PlayerId playerId)
+    [[nodiscard]] mc::ServerPlayer* _getServerPlayer(PlayerId playerId)
     {
         if (m_server == nullptr) {
             return nullptr;
@@ -1092,7 +1064,7 @@ private:
     // 玩家管理器（用于 UUID 查找）
     mc::server::core::PlayerManager* m_playerManager = nullptr;
 
-    bool initialized_ = false;
+    bool m_initialized = false;
 };
 
 } // namespace mc::server::advancement

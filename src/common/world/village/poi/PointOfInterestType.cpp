@@ -22,8 +22,8 @@
  */
 
 #include "PointOfInterestType.hpp"
-#include "../../../resource/ResourceLocation.hpp"
-#include "../../../world/block/BlockRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -31,12 +31,14 @@ namespace world {
 namespace village {
 namespace poi {
 
+namespace {
+
 // 方块ID到POI类型的映射表（在initialize()中填充）
-static std::unordered_map<u32, PointOfInterestType> s_blockToPOI;
-static bool s_initialized = false;
+std::unordered_map<u32, PointOfInterestType> s_blockToPOI;
+bool s_initialized = false;
 
 // 初始化方块ID到POI类型的映射
-static void initializeBlockToPOIMap()
+void initializeBlockToPOIMap()
 {
     if (s_initialized) {
         return;
@@ -227,6 +229,8 @@ f32 POITypeHelper::getSearchRange(PointOfInterestType type)
     }
     return 16.0f;
 }
+
+} // namespace
 
 } // namespace poi
 } // namespace village

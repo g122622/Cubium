@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include <memory>
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
+#include <memory>
 
 namespace mc {
 
@@ -47,8 +47,6 @@ namespace blocks {
  * - HAS_BOTTLE_0: 第一个槽位是否有瓶子
  * - HAS_BOTTLE_1: 第二个槽位是否有瓶子
  * - HAS_BOTTLE_2: 第三个槽位是否有瓶子
- *
- * 参考: net.minecraft.block.BrewingStandBlock
  */
 class BrewingStandBlock : public Block {
 public:
@@ -130,11 +128,8 @@ public:
      * @brief 处理玩家右键交互
      *
      * 打开酿造台GUI。
-     *
-     * 参考: net.minecraft.block.BrewingStandBlock#onBlockActivated
      */
-    [[nodiscard]] ActionResultType onBlockActivated(
-        const BlockState& state,
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
@@ -145,8 +140,6 @@ public:
      * @brief 方块放置后回调
      *
      * 设置方块实体（酿造台方块实体在createBlockEntity中创建）。
-     *
-     * 参考: net.minecraft.block.BrewingStandBlock#onBlockPlacedBy
      */
     void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
@@ -154,8 +147,6 @@ public:
      * @brief 方块移除时回调
      *
      * 掉落酿造台内的物品。
-     *
-     * 参考: net.minecraft.block.BrewingStandBlock#onReplaced
      */
     void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 

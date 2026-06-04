@@ -37,8 +37,6 @@ namespace mc::skin {
  *
  * 提供内置的默认皮肤（Steve 和 Alex）。
  *
- * 参考 MC 1.16.5 DefaultPlayerSkin
- *
  * 默认皮肤：
  * - Steve: 宽手臂模型，textures/entity/steve.png
  * - Alex: 窄手臂模型，textures/entity/alex.png
@@ -64,48 +62,48 @@ public:
      * @param uuid 玩家UUID
      * @return 皮肤位置（Steve 或 Alex）
      */
-    [[nodiscard]] ResourceLocation getDefaultSkin(const std::array<u8, 16>& uuid) const;
+    [[nodiscard]] ResourceLocation getDefaultSkin(const std::array<u8, 16>& uuid) const noexcept;
 
     /**
      * @brief 获取默认皮肤类型
      * @param uuid 玩家UUID
      * @return 皮肤类型（Default 或 Slim）
      */
-    [[nodiscard]] SkinType getDefaultSkinType(const std::array<u8, 16>& uuid) const;
+    [[nodiscard]] SkinType getDefaultSkinType(const std::array<u8, 16>& uuid) const noexcept;
 
     /**
      * @brief 获取 Steve 皮肤位置
      */
-    [[nodiscard]] ResourceLocation getSteveSkin() const { return m_steveLocation; }
+    [[nodiscard]] ResourceLocation getSteveSkin() const noexcept { return m_steveLocation; }
 
     /**
      * @brief 获取 Alex 皮肤位置
      */
-    [[nodiscard]] ResourceLocation getAlexSkin() const { return m_alexLocation; }
+    [[nodiscard]] ResourceLocation getAlexSkin() const noexcept { return m_alexLocation; }
 
     /**
      * @brief 获取 Steve 皮肤 PNG 数据
      * @return PNG 数据（64x64）
      */
-    [[nodiscard]] const std::vector<u8>& getSteveSkinData() const { return m_steveData; }
+    [[nodiscard]] const std::vector<u8>& getSteveSkinData() const noexcept { return m_steveData; }
 
     /**
      * @brief 获取 Alex 皮肤 PNG 数据
      * @return PNG 数据（64x64）
      */
-    [[nodiscard]] const std::vector<u8>& getAlexSkinData() const { return m_alexData; }
+    [[nodiscard]] const std::vector<u8>& getAlexSkinData() const noexcept { return m_alexData; }
 
     /**
      * @brief 检查 ResourceLocation 是否为默认皮肤
      * @param location 资源位置
      * @return 是否为默认皮肤
      */
-    [[nodiscard]] bool isDefaultSkin(const ResourceLocation& location) const;
+    [[nodiscard]] bool isDefaultSkin(const ResourceLocation& location) const noexcept;
 
     /**
      * @brief 检查是否已初始化
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
 
 private:
     /**
@@ -113,7 +111,7 @@ private:
      *
      * 如果资源文件不存在，使用硬编码的简单皮肤。
      */
-    Result<void> loadBuiltinSkins();
+    Result<void> _loadBuiltinSkins();
 
     ResourceLocation m_steveLocation{"minecraft:textures/entity/steve.png"};
     ResourceLocation m_alexLocation{"minecraft:textures/entity/alex.png"};

@@ -47,8 +47,8 @@ bool EmptinessMap::updateFromChunk(const IChunk& chunk)
     bool changed = false;
 
     for (i32 sectionY = m_minSection; sectionY <= m_maxSection; ++sectionY) {
-        i32 index = sectionYToIndex(sectionY);
-        if (!isValidSectionIndex(index)) {
+        i32 index = _sectionYToIndex(sectionY);
+        if (!_isValidSectionIndex(index)) {
             continue;
         }
 

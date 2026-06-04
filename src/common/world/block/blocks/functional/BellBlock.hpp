@@ -47,8 +47,6 @@ namespace blocks {
  * - HORIZONTAL_FACING: 朝向 (NORTH, SOUTH, EAST, WEST) - 墙面附着
  * - ATTACHMENT: 附着类型 (FLOOR, CEILING, SINGLE_WALL, DOUBLE_WALL)
  * - POWERED: 是否被激活
- *
- * 参考: net.minecraft.block.BellBlock
  */
 class BellBlock : public Block {
 public:

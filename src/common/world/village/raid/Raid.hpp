@@ -341,7 +341,7 @@ private:
      *
      * @note 当前仅保留扩展点，未来接入同步系统后在此集中更新。
      */
-    void updateBossBar();
+    void _updateBossBar();
 
     /**
      * @brief 生成指定波次。
@@ -351,7 +351,7 @@ private:
      *
      * @note 这是 `spawnRaiders()` 的显式波次入口，便于未来做预生成或重放测试。
      */
-    void spawnWave(IWorld& world, i32 waveNum);
+    void _spawnWave(IWorld& world, i32 waveNum);
 
     /**
      * @brief 计算指定波次的袭击者数量。
@@ -360,7 +360,7 @@ private:
      * @param difficulty 世界难度。
      * @return 该波次应生成的袭击者数量。
      */
-    [[nodiscard]] i32 calculateRaidersForWave(i32 waveNum, Difficulty difficulty) const;
+    [[nodiscard]] i32 _calculateRaidersForWave(i32 waveNum, Difficulty difficulty) const;
 
     /**
      * @brief 为本波中的单个索引选择袭击者类型。
@@ -370,7 +370,7 @@ private:
      * @param total 本波总生成数量。
      * @return 选择出的袭击者类型。
      */
-    [[nodiscard]] RaiderType selectRaiderType(i32 waveNum, i32 index, i32 total) const;
+    [[nodiscard]] RaiderType _selectRaiderType(i32 waveNum, i32 index, i32 total) const;
 
     /**
      * @brief 生成单个袭击者实体。
@@ -380,7 +380,7 @@ private:
      * @param pos 生成方块坐标。
      * @return 新实体 ID，失败时返回 0。
      */
-    EntityId spawnRaider(IWorld& world, RaiderType type, BlockPos pos);
+    EntityId _spawnRaider(IWorld& world, RaiderType type, BlockPos pos);
 
     /**
      * @brief 查找本次波次的生成位置。
@@ -388,7 +388,7 @@ private:
      * @param world 所属世界。
      * @return 可用生成位置；若无法生成则返回空值。
      */
-    [[nodiscard]] std::optional<BlockPos> findSpawnPosition(IWorld& world) const;
+    [[nodiscard]] std::optional<BlockPos> _findSpawnPosition(IWorld& world) const;
 
 private:
     RaidId m_id;
@@ -407,7 +407,7 @@ private:
     i32 m_postRaidTicks = 0;
     i32 m_celebrateTicks = 0;
 
-    // 英雄追踪（MC 1.16.5: heroes 字段）
+    // 英雄追踪
     std::unordered_set<Uuid, UuidHash> m_heroes; ///< 参与袭击的玩家 UUID
     std::vector<RaidParticipant> m_participants; ///< 参与者详细信息
 };

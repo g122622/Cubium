@@ -66,9 +66,6 @@ std::string SkinTextures::getElytraCacheKey() const
 
 std::string SkinTextures::extractHashFromUrl(const std::string& url)
 {
-    // Mojang 皮肤URL格式：http://textures.minecraft.net/texture/<hash>
-    // 或：https://textures.minecraft.net/texture/<hash>
-
     // 查找最后一个斜杠
     size_t lastSlash = url.rfind('/');
     if (lastSlash == std::string::npos || lastSlash + 1 >= url.length()) {
@@ -85,10 +82,6 @@ std::string SkinTextures::extractHashFromUrl(const std::string& url)
         size_t queryPos = hash.find('?');
         if (queryPos != std::string::npos) {
             hash = hash.substr(0, queryPos);
-        }
-
-        if (hash.length() != 64) {
-            spdlog::debug("SkinTextures::extractHashFromUrl: Unusual hash length: {} (URL: {})", hash.length(), url);
         }
     }
 

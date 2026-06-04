@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../resource/DataPackList.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
 #include "Template.hpp"
 #include "TemplateLoader.hpp"
+#include "common/resource/DataPackList.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -114,10 +114,10 @@ public:
         const std::string& name, i32 width, i32 height, i32 depth);
 
 private:
-    [[nodiscard]] std::unique_ptr<Template> loadTemplate(const ResourceLocation& location);
+    [[nodiscard]] std::unique_ptr<Template> _loadTemplate(const ResourceLocation& location);
 
     std::unordered_map<ResourceLocation, std::unique_ptr<Template>> m_templates;
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
     std::unique_ptr<Template> m_emptyTemplate;
     const IResourcePack* m_resourcePack = nullptr;
     const resource::DataPackList* m_dataPackList = nullptr;

@@ -21,8 +21,8 @@
  *
  */
 
-#include "SectionManager.hpp"
-#include "../../../perfetto/TraceEvents.hpp"
+#include "common/world/storage/section/SectionManager.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include <mutex>
 #include <spdlog/spdlog.h>
 
@@ -73,7 +73,7 @@ Result<std::shared_ptr<const SectionData>> SectionManager::loadSectionSync(const
     }
 
     // 从数据库加载
-    return loadFromDatabase(key);
+    return _loadFromDatabase(key);
 }
 
 std::future<Result<std::shared_ptr<const SectionData>>> SectionManager::loadSectionAsync(
@@ -145,7 +145,7 @@ Result<std::vector<std::shared_ptr<const SectionData>>> SectionManager::loadSect
         return results;
     }
 
-    auto batchResult = loadFromDatabaseBatch(missedKeys);
+    auto batchResult = _loadFromDatabaseBatch(missedKeys);
     if (batchResult.failed()) {
         return batchResult.error();
     }
@@ -185,7 +185,7 @@ Result<void> SectionManager::saveSectionSync(const SectionKey& key, const Sectio
     }
 
     // 保存到数据库
-    auto result = saveToDatabase(key, data, immediate);
+    auto result = _saveToDatabase(key, data, immediate);
     if (!result.success()) {
         return result;
     }
@@ -441,6 +441,9 @@ Result<size_t> SectionManager::deleteChunkSections(i32 chunkX, i32 chunkZ)
 
     // 注意：sectionY 使用有符号字节直接序列化时，字节序排序并不适合做范围删除。
     // 这里逐个删除，避免删除范围在 RocksDB 字典序下失效。
+    // TODO: sectionY 范围 -4 到 19 是硬编码值，对应 Y=-64 到 Y=320 的区块段索引。
+    //       应在 mc::world 命名空间中定义 MIN_SECTION_Y 和 MAX_SECTION_Y 常量，
+    //       或提供工具函数计算有效 section Y 范围，避免硬编码。
     size_t removedCount = 0;
     for (i8 sectionY = -4; sectionY <= 19; ++sectionY) {
         SectionKey key(chunkX, chunkZ, sectionY, m_dimension);
@@ -513,7 +516,7 @@ std::vector<SectionKey> SectionManager::getDirtyKeys() const
 // 内部方法
 // ============================================================================
 
-Result<std::shared_ptr<const SectionData>> SectionManager::loadFromDatabase(const SectionKey& key)
+Result<std::shared_ptr<const SectionData>> SectionManager::_loadFromDatabase(const SectionKey& key)
 {
     MC_TRACE_EVENT("storage.section",
         "SectionManager::loadFromDatabase",
@@ -555,7 +558,7 @@ Result<std::shared_ptr<const SectionData>> SectionManager::loadFromDatabase(cons
     return std::static_pointer_cast<const SectionData>(data);
 }
 
-Result<std::vector<std::shared_ptr<const SectionData>>> SectionManager::loadFromDatabaseBatch(
+Result<std::vector<std::shared_ptr<const SectionData>>> SectionManager::_loadFromDatabaseBatch(
     const std::vector<SectionKey>& keys)
 {
     MC_TRACE_EVENT("storage.section", "SectionManager::loadFromDatabaseBatch", "count", keys.size());
@@ -604,7 +607,7 @@ Result<std::vector<std::shared_ptr<const SectionData>>> SectionManager::loadFrom
     return results;
 }
 
-Result<void> SectionManager::saveToDatabase(const SectionKey& key, const SectionData& data, bool sync)
+Result<void> SectionManager::_saveToDatabase(const SectionKey& key, const SectionData& data, bool sync)
 {
     MC_TRACE_EVENT("storage.section",
         "SectionManager::saveToDatabase",

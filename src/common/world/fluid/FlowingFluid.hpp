@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../util/Direction.hpp"
-#include "../../util/property/FluidProperties.hpp"
-#include "../block/BlockPos.hpp"
-#include "Fluid.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/FluidProperties.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -37,8 +37,6 @@ namespace fluid {
  *
  * 实现流体流动的核心算法，包括向下流动、水平扩散、源头形成等。
  * 水和岩浆都继承此类。
- *
- * 参考: net.minecraft.fluid.FlowingFluid
  *
  * 流动规则：
  * 1. 优先向下流动
@@ -76,7 +74,6 @@ public:
     /**
      * @brief 斜坡搜索距离（用于水平扩散路径搜索）
      *
-     * 参考 MC 1.16.5 getSlopeFindDistance：
      * 水: 4格
      * 岩浆(主世界): 2格
      * 岩浆(下界): 4格
@@ -390,7 +387,7 @@ protected:
      * @param target 目标位置
      * @return 打包后的值
      */
-    [[nodiscard]] i16 packRelativePos(const BlockPos& source, const BlockPos& target) const;
+    [[nodiscard]] i16 packRelativePos(const BlockPos& source, const BlockPos& target) const noexcept;
 };
 
 } // namespace fluid

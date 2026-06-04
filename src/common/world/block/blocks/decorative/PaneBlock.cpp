@@ -79,10 +79,10 @@ PaneBlock::PaneBlock(const BlockProperties& properties)
         m_shapes[i] = CollisionShape::empty();
     }
 
-    for (int north = 0; north <= 1; ++north) {
-        for (int east = 0; east <= 1; ++east) {
-            for (int south = 0; south <= 1; ++south) {
-                for (int west = 0; west <= 1; ++west) {
+    for (i32 north = 0; north <= 1; ++north) {
+        for (i32 east = 0; east <= 1; ++east) {
+            for (i32 south = 0; south <= 1; ++south) {
+                for (i32 west = 0; west <= 1; ++west) {
                     const size_t index = getShapeIndex(north != 0, east != 0, south != 0, west != 0);
 
                     CollisionShape shape = m_centerShape;
@@ -185,7 +185,7 @@ const fluid::FluidState* PaneBlock::getFluidState(const BlockState& state) const
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
-bool PaneBlock::connectsTo(const BlockState& state, Direction facing)
+bool PaneBlock::connectsTo(const BlockState& state, Direction facing) noexcept
 {
     if (facing == Direction::North) {
         return state.get(BlockStateProperties::NORTH());
@@ -216,7 +216,7 @@ bool PaneBlock::shouldConnectTo(
     return neighborBlock.isSolidSide(neighborState, world, pos, oppositeDirection);
 }
 
-size_t PaneBlock::getShapeIndex(bool north, bool east, bool south, bool west)
+size_t PaneBlock::getShapeIndex(bool north, bool east, bool south, bool west) noexcept
 {
     return static_cast<size_t>(north) | (static_cast<size_t>(east) << 1U) | (static_cast<size_t>(south) << 2U) |
         (static_cast<size_t>(west) << 3U);

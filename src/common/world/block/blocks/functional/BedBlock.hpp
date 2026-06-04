@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../../../core/BlockRaycastResult.hpp"
-#include "../../../../entity/entities/player/Player.hpp"
-#include "../../../../item/core/ActionResult.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../Material.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 #include <array>
 
 namespace mc {
@@ -51,8 +51,6 @@ namespace blocks {
  * - HORIZONTAL_FACING: 朝向 (NORTH, SOUTH, EAST, WEST)
  * - BED_PART: 部分 (HEAD, FOOT)
  * - OCCUPIED: 是否被占用
- *
- * 参考: net.minecraft.block.BedBlock
  */
 class BedBlock : public Block {
 public:
@@ -116,7 +114,7 @@ public:
     /**
      * @brief 右键交互 - 睡眠或爆炸
      *
-     * MC Java: 在主世界可以睡眠设置重生点，在下界和末地会爆炸。
+     * 在主世界可以睡眠设置重生点，在下界和末地会爆炸。
      */
     [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,

@@ -56,7 +56,6 @@ struct EmptyPlacementConfig : public IPlacementConfig {
  * @brief 数量放置配置
  *
  * 控制每个区块中特征出现的次数。
- * 参考 MC CountPlacement
  */
 struct CountPlacementConfig : public IPlacementConfig {
     /// 每区块尝试次数
@@ -71,7 +70,6 @@ struct CountPlacementConfig : public IPlacementConfig {
  * @brief 高度范围放置配置
  *
  * 控制特征的Y坐标范围。
- * 参考 MC RangePlacement / TopSolidRangeConfig
  */
 struct HeightRangePlacementConfig : public IPlacementConfig {
     /// 最小Y坐标（底部偏移）
@@ -117,7 +115,7 @@ struct HeightRangePlacementConfig : public IPlacementConfig {
      * @param random 随机数生成器
      * @return Y坐标
      */
-    [[nodiscard]] i32 getRandomY(math::Random& random) const;
+    [[nodiscard]] i32 getRandomY(math::Random& random) const noexcept;
 };
 
 /**
@@ -138,7 +136,7 @@ struct BiomePlacementConfig : public IPlacementConfig {
      * @param biomeId 生物群系ID
      * @return 是否允许
      */
-    [[nodiscard]] bool isAllowed(u32 biomeId) const;
+    [[nodiscard]] bool isAllowed(u32 biomeId) const noexcept;
 };
 
 /**
@@ -159,7 +157,6 @@ struct ChancePlacementConfig : public IPlacementConfig {
  * @brief 地表放置配置
  *
  * 在地表高度放置特征（用于树木等）。
- * 参考 MC SurfacePlacement / HeightmapPlacement
  */
 struct SurfacePlacementConfig : public IPlacementConfig {
     /// 最大水深（树木不能种在太深的水中）
@@ -178,7 +175,6 @@ struct SurfacePlacementConfig : public IPlacementConfig {
  * @brief 放置器基类
  *
  * 控制特征在世界中的放置位置。
- * 参考 MC Placement
  */
 class Placement {
 public:
@@ -200,7 +196,7 @@ public:
     /**
      * @brief 获取放置器名称
      */
-    [[nodiscard]] virtual const char* name() const = 0;
+    [[nodiscard]] virtual const char* name() const noexcept = 0;
 };
 
 /**
@@ -215,7 +211,7 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const override { return "count"; }
+    [[nodiscard]] const char* name() const noexcept override { return "count"; }
 };
 
 /**
@@ -230,7 +226,7 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const override { return "height_range"; }
+    [[nodiscard]] const char* name() const noexcept override { return "height_range"; }
 };
 
 /**
@@ -245,7 +241,7 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const override { return "square"; }
+    [[nodiscard]] const char* name() const noexcept override { return "square"; }
 };
 
 /**
@@ -260,7 +256,7 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const override { return "biome"; }
+    [[nodiscard]] const char* name() const noexcept override { return "biome"; }
 };
 
 /**
@@ -275,7 +271,7 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const override { return "chance"; }
+    [[nodiscard]] const char* name() const noexcept override { return "chance"; }
 };
 
 /**
@@ -291,7 +287,7 @@ public:
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
-    [[nodiscard]] const char* name() const override { return "surface"; }
+    [[nodiscard]] const char* name() const noexcept override { return "surface"; }
 };
 
 /**
@@ -324,8 +320,8 @@ public:
      */
     void setNext(std::unique_ptr<ConfiguredPlacement> next) { m_next = std::move(next); }
 
-    [[nodiscard]] ConfiguredPlacement* next() { return m_next.get(); }
-    [[nodiscard]] const ConfiguredPlacement* next() const { return m_next.get(); }
+    [[nodiscard]] ConfiguredPlacement* next() noexcept { return m_next.get(); }
+    [[nodiscard]] const ConfiguredPlacement* next() const noexcept { return m_next.get(); }
 
 private:
     std::unique_ptr<Placement> m_placement;

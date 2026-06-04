@@ -33,13 +33,6 @@ namespace layer {
 
 i32 IslandLayer::apply(IAreaContext& ctx, i32 x, i32 z)
 {
-    // 参考 MC IslandLayer.apply:
-    // if (p_215735_2_ == 0 && p_215735_3_ == 0) {
-    //     return 1;
-    // } else {
-    //     return p_215735_1_.random(10) == 0 ? 1 : 0;
-    // }
-
     // 原点固定为陆地（玩家出生点）
     if (x == 0 && z == 0) {
         return 1;
@@ -61,19 +54,6 @@ std::unique_ptr<IAreaFactory> IslandLayer::apply(IExtendedAreaContext& context)
 
 i32 OceanLayer::apply(IAreaContext& ctx, i32 x, i32 z)
 {
-    // 参考 MC OceanLayer.apply:
-    // ImprovedNoiseGenerator improvednoisegenerator = p_215735_1_.getNoiseGenerator();
-    // double d0 = improvednoisegenerator.func_215456_a((double)p_215735_2_ / 8.0D, (double)p_215735_3_ / 8.0D, 0.0D,
-    // 0.0D, 0.0D); if (d0 > 0.4D) {
-    //     return 44;  // warm_ocean
-    // } else if (d0 > 0.2D) {
-    //     return 45;  // lukewarm_ocean
-    // } else if (d0 < -0.4D) {
-    //     return 10;  // frozen_ocean
-    // } else {
-    //     return d0 < -0.2D ? 46 : 0;  // cold_ocean or ocean
-    // }
-
     ImprovedNoiseGenerator* noise = ctx.getNoiseGenerator();
     if (!noise) {
         // 如果没有噪声生成器，返回普通海洋
@@ -81,19 +61,25 @@ i32 OceanLayer::apply(IAreaContext& ctx, i32 x, i32 z)
     }
 
     // 使用噪声值决定海洋温度
-    // 缩放坐标到 1/8
-    f32 value = noise->noise(static_cast<f32>(x) / 8.0f, 0.0f, static_cast<f32>(z) / 8.0f);
+    // 缩放坐标到 1/8，生成大范围的温度带
+    constexpr f32 COORD_SCALE = 8.0f;
+    constexpr f32 WARM_OCEAN_THRESHOLD = 0.4f;
+    constexpr f32 LUKEWARM_OCEAN_THRESHOLD = 0.2f;
+    constexpr f32 COLD_OCEAN_THRESHOLD = -0.2f;
+    constexpr f32 FROZEN_OCEAN_THRESHOLD = -0.4f;
 
-    if (value > 0.4f) {
-        return BiomeValues::WarmOcean; // 暖海洋
-    } else if (value > 0.2f) {
-        return BiomeValues::LukewarmOcean; // 微温海洋
-    } else if (value < -0.4f) {
-        return BiomeValues::FrozenOcean; // 冻结海洋
-    } else if (value < -0.2f) {
-        return BiomeValues::ColdOcean; // 冷海洋
+    f32 value = noise->noise(static_cast<f32>(x) / COORD_SCALE, 0.0f, static_cast<f32>(z) / COORD_SCALE);
+
+    if (value > WARM_OCEAN_THRESHOLD) {
+        return BiomeValues::WarmOcean;
+    } else if (value > LUKEWARM_OCEAN_THRESHOLD) {
+        return BiomeValues::LukewarmOcean;
+    } else if (value < FROZEN_OCEAN_THRESHOLD) {
+        return BiomeValues::FrozenOcean;
+    } else if (value < COLD_OCEAN_THRESHOLD) {
+        return BiomeValues::ColdOcean;
     } else {
-        return BiomeValues::Ocean; // 普通海洋
+        return BiomeValues::Ocean;
     }
 }
 

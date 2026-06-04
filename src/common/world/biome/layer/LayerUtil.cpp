@@ -121,7 +121,7 @@ void LayerStack::sampleBatch(i32 startX, i32 startZ, i32 width, i32 height, Biom
 }
 
 // ============================================================================
-// LayerUtil 实现 - 完整的 MC 1.16.5 层链（包含河流分支）
+// LayerUtil 实现 - 完整的层链（包含河流分支）
 // ============================================================================
 
 namespace LayerUtil {
@@ -235,7 +235,6 @@ std::unique_ptr<IAreaFactory> buildOverworldLayers(
     MC_TRACE_EVENT("world.biome", "BuildOverworldLayers", "biomeSize", biomeSize, "riverSize", riverSize);
 
     // 实现 largeBiomes 参数支持
-    // 参考 MC 1.16.5: biomeSize = largeBiomes ? 6 : 4, riverSize = largeBiomes ? 6 : 4
     if (largeBiomes) {
         biomeSize = 6;
         riverSize = 6;
@@ -264,7 +263,6 @@ std::unique_ptr<IAreaFactory> buildOverworldLayers(
 
     // ========================================================================
     // 第一阶段：气候层（只计算一次，通过 SharedFactory 复用）
-    // 参考 MC 1.16.5 LayerUtil.func_237216_a_
     // ========================================================================
     auto climateFactory = std::make_shared<SharedFactory>(buildClimateLayers(seed, createContext));
 
@@ -277,7 +275,7 @@ std::unique_ptr<IAreaFactory> buildOverworldLayers(
 
     // ========================================================================
     // 第三阶段：河流分支（从气候层派生）
-    // 注意：MC Java 的河流分支架构：
+    // 河流分支架构：
     //   climateFactory → StartRiverLayer → Zoom(2次) → [分支给 HillsLayer]
     //                                            → [继续 Zoom → RiverLayer → MixRiverLayer]
     // ========================================================================
@@ -341,8 +339,7 @@ std::unique_ptr<IAreaFactory> buildOverworldLayers(
             biomeFactory = addIslandLayer.apply(*context, std::move(biomeFactory));
         }
 
-        // 修复：ShoreLayer 应该在 i == 1 或 biomeSize == 1 时执行
-        // 参考 MC 1.16.5: if (i == 1 || biomeSize == 1)
+        // ShoreLayer 应该在 i == 1 或 biomeSize == 1 时执行
         if (i == 1 || biomeSize == 1) {
             context = createContext(1000L);
             biomeFactory = shoreLayer.apply(*context, std::move(biomeFactory));
@@ -434,7 +431,7 @@ BiomeId LayerBiomeProvider::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) co
 {
     MC_TRACE_EVENT("world.biome", "LayerBiomeProvider_GetNoiseBiome", "noiseX", noiseX, "noiseZ", noiseZ);
     (void)noiseY; // Layer 系统不使用 Y 坐标
-    // 对齐 MC 1.16.5 OverworldBiomeProvider：噪声坐标直接传入层采样。
+    // 噪声坐标直接传入层采样
     return m_layerStack->sample(noiseX, noiseZ);
 }
 
@@ -518,7 +515,7 @@ void LayerBiomeProvider::getNoiseBiomesBatch(
         return;
     }
 
-    // 对齐 getNoiseBiome：噪声坐标直接采样层系统。
+    // 噪声坐标直接采样层系统
     size_t idx = 0;
     for (i32 z = 0; z < height; ++z) {
         for (i32 x = 0; x < width; ++x) {

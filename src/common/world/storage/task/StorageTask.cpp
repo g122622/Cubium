@@ -67,6 +67,24 @@ StorageTask::StorageTask(StorageTaskType type, std::string description, const ch
     , m_executor(std::move(executor))
 {}
 
+StorageTask::StorageTask(StorageTask&& other) noexcept
+    : m_type(other.m_type)
+    , m_description(std::move(other.m_description))
+    , m_traceCategory(other.m_traceCategory)
+    , m_executor(std::move(other.m_executor))
+{}
+
+StorageTask& StorageTask::operator=(StorageTask&& other) noexcept
+{
+    if (this != &other) {
+        m_type = other.m_type;
+        m_description = std::move(other.m_description);
+        m_traceCategory = other.m_traceCategory;
+        m_executor = std::move(other.m_executor);
+    }
+    return *this;
+}
+
 bool StorageTask::execute(const std::atomic<bool>& cancelSignal)
 {
     MC_TRACE_EVENT("storage.task", "StorageTask::execute", "description", m_description);

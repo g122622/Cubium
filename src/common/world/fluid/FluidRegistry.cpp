@@ -44,27 +44,27 @@ void FluidRegistry::initialize()
     // 注册内置流体
     // EmptyFluid在构造时自动注册，ID为0
     auto emptyFluid = std::make_unique<EmptyFluid>();
-    registerFluidInternal(emptyFluid.get(), ResourceLocation("minecraft:empty"), EMPTY_ID);
+    _registerFluidInternal(emptyFluid.get(), ResourceLocation("minecraft:empty"), EMPTY_ID);
     m_fluids.push_back(std::move(emptyFluid));
 
     // 注册水源头 (ID = 1)
     auto waterSource = std::make_unique<WaterSourceFluid>();
-    registerFluidInternal(waterSource.get(), ResourceLocation("minecraft:water"), WATER_ID);
+    _registerFluidInternal(waterSource.get(), ResourceLocation("minecraft:water"), WATER_ID);
     m_fluids.push_back(std::move(waterSource));
 
     // 注册流动水 (ID = 2)
     auto flowingWater = std::make_unique<WaterFlowingFluid>();
-    registerFluidInternal(flowingWater.get(), ResourceLocation("minecraft:flowing_water"), FLOWING_WATER_ID);
+    _registerFluidInternal(flowingWater.get(), ResourceLocation("minecraft:flowing_water"), FLOWING_WATER_ID);
     m_fluids.push_back(std::move(flowingWater));
 
     // 注册岩浆源头 (ID = 3)
     auto lavaSource = std::make_unique<LavaSourceFluid>();
-    registerFluidInternal(lavaSource.get(), ResourceLocation("minecraft:lava"), LAVA_ID);
+    _registerFluidInternal(lavaSource.get(), ResourceLocation("minecraft:lava"), LAVA_ID);
     m_fluids.push_back(std::move(lavaSource));
 
     // 注册流动岩浆 (ID = 4)
     auto flowingLava = std::make_unique<LavaFlowingFluid>();
-    registerFluidInternal(flowingLava.get(), ResourceLocation("minecraft:flowing_lava"), FLOWING_LAVA_ID);
+    _registerFluidInternal(flowingLava.get(), ResourceLocation("minecraft:flowing_lava"), FLOWING_LAVA_ID);
     m_fluids.push_back(std::move(flowingLava));
 
     m_initialized = true;
@@ -106,7 +106,7 @@ void FluidRegistry::forEachFluidState(std::function<void(const FluidState&)> cal
     }
 }
 
-void FluidRegistry::registerFluidInternal(Fluid* fluid, const ResourceLocation& id, u32 fluidId)
+void FluidRegistry::_registerFluidInternal(Fluid* fluid, const ResourceLocation& id, u32 fluidId)
 {
     // 设置流体属性
     fluid->m_fluidLocation = id;

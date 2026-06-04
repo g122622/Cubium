@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "world/blockentity/processing/AbstractFurnaceEntity.hpp"
+#include <memory>
 
 namespace mc {
 namespace blockentity {
@@ -51,7 +51,7 @@ public:
     /**
      * @brief 析构函数
      */
-    ~FurnaceEntity() override = default;
+    ~FurnaceEntity() noexcept override = default;
 
     /**
      * @brief 创建方块实体副本

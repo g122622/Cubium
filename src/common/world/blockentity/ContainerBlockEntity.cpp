@@ -28,11 +28,11 @@ namespace mc {
 
 void ContainerBlockEntity::openContainer(Player* player)
 {
-    // MC 1.16.5: 观察者模式玩家不计入打开数
+    // 观察者模式玩家不计入打开数
     if (player != nullptr && player->isSpectator()) {
         return;
     }
-    // MC 1.16.5: 负数保护（防止数据损坏）
+    // 负数保护（防止数据损坏）
     if (m_openCount < 0) {
         m_openCount = 0;
     }
@@ -41,7 +41,7 @@ void ContainerBlockEntity::openContainer(Player* player)
 
 void ContainerBlockEntity::closeContainer(Player* player)
 {
-    // MC 1.16.5: 观察者模式玩家不计入打开数
+    // 观察者模式玩家不计入打开数
     if (player != nullptr && player->isSpectator()) {
         return;
     }
@@ -52,7 +52,6 @@ void ContainerBlockEntity::closeContainer(Player* player)
 
 bool ContainerBlockEntity::isUsableByPlayer(const Player& player, f32 maxDistanceSq) const
 {
-    // 参考 MC 1.16.5: net.minecraft.tileentity.LockableTileEntity.isUsableByPlayer
     // 检查：
     // 1. 方块实体仍然存在于世界中（m_world != nullptr 且未被移除）
     // 2. 玩家在指定距离范围内

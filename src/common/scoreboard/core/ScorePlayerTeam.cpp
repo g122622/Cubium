@@ -154,7 +154,6 @@ void ScorePlayerTeam::setCollisionRule(TeamCollisionRule rule)
 
 std::unique_ptr<text::ITextComponent> ScorePlayerTeam::formatName(const text::ITextComponent& name) const
 {
-    // MC 1.16.5: 参考 ScorePlayerTeam.func_230427_d_()
     // 创建空根组件，依次追加 prefix + name + suffix
     // 然后将队伍颜色应用到整个组件
 

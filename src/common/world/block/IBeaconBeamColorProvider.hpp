@@ -34,8 +34,6 @@ namespace block {
  *
  * 实现此接口的方块可以为信标光束提供颜色。
  * 染色玻璃等透明方块实现此接口来修改信标光束的颜色。
- *
- * 参考 MC 1.16.5: net.minecraft.block.IBeaconBeamColorProvider
  */
 class IBeaconBeamColorProvider {
 public:
@@ -59,15 +57,12 @@ struct BeaconColors {
      * @brief 获取染料颜色对应的 RGB float 数组
      *
      * 返回值范围 [0.0, 1.0]，用于信标光束渲染。
-     * 参考 MC 1.16.5: net.minecraft.item.DyeColor#getColorComponentValues
      *
      * @param color 染料颜色
      * @return RGB float 数组 {r, g, b}
      */
     [[nodiscard]] static std::array<f32, 3> getColorComponents(DyeColor color)
     {
-        // MC 1.16.5 DyeColor 颜色值
-        // 格式: RGB (整数) -> float[3]
         switch (color) {
             case DyeColor::White:
                 return {0.9764706f, 0.9764706f, 0.9764706f}; // #FAFAFA

@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include <cstdint>
+#include "common/core/Types.hpp"
 
 namespace mc {
 namespace world {
@@ -33,9 +33,8 @@ namespace explosion {
  * @brief 爆炸模式枚举
  *
  * 定义爆炸对方块的影响方式。
- * 对应 Minecraft 1.16.5 的 Explosion.Mode 枚举。
  */
-enum class ExplosionMode : std::uint8_t {
+enum class ExplosionMode : u8 {
     /**
      * @brief 仅造成伤害和击退，不破坏方块
      *

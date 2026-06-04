@@ -53,8 +53,6 @@ namespace mc::skin {
  *   }
  * }
  * @endcode
- *
- * 参考 MC 1.16.5 MinecraftProfileTexture
  */
 class SkinMetadataParser {
 public:
@@ -101,7 +99,7 @@ private:
      * @param type 纹理类型（"SKIN", "CAPE", "ELYTRA"）
      * @param textures 输出的皮肤纹理集合
      */
-    static void parseTexture(const void* textureObj, const std::string& type, SkinTextures& textures);
+    static void _parseTexture(const void* textureObj, const std::string& type, SkinTextures& textures);
 };
 
 } // namespace mc::skin

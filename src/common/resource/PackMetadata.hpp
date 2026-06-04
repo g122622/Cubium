@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../core/Result.hpp"
-#include "../core/Types.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <string>
 
 namespace mc {
@@ -43,22 +43,41 @@ public:
      * @param packFormat pack_format 版本号
      * @param description 描述文本
      */
-    PackMetadata(i32 packFormat, std::string description = "");
+    PackMetadata(i32 packFormat, std::string description);
 
-    // 从JSON字符串解析
+    /**
+     * @brief 从JSON字符串解析资源包元数据
+     * @param jsonContent JSON格式的pack.mcmeta内容
+     * @return 解析成功返回PackMetadata，失败返回错误
+     */
     [[nodiscard]] static Result<PackMetadata> parse(std::string_view jsonContent);
 
-    // 从文件解析
+    /**
+     * @brief 从文件解析资源包元数据
+     * @param filePath pack.mcmeta文件路径
+     * @return 解析成功返回PackMetadata，失败返回错误
+     */
     [[nodiscard]] static Result<PackMetadata> parseFile(std::string_view filePath);
 
-    // 获取pack_format版本
+    /**
+     * @brief 获取pack_format版本号
+     * @return pack_format版本
+     */
     [[nodiscard]] i32 packFormat() const noexcept { return m_packFormat; }
 
-    // 获取描述文本
+    /**
+     * @brief 获取描述文本
+     * @return 描述文本
+     */
     [[nodiscard]] const std::string& description() const noexcept { return m_description; }
 
-    // 验证版本兼容性
-    [[nodiscard]] bool isCompatible(i32 minFormat, i32 maxFormat) const;
+    /**
+     * @brief 验证版本兼容性
+     * @param minFormat 最低支持版本
+     * @param maxFormat 最高支持版本
+     * @return 版本在范围内返回true
+     */
+    [[nodiscard]] bool isCompatible(i32 minFormat, i32 maxFormat) const noexcept;
 
 private:
     i32 m_packFormat = 0;

@@ -22,12 +22,12 @@
  */
 
 #include "TickManager.hpp"
-#include "../../IWorld.hpp"
-#include "../../block/BlockRegistry.hpp"
-#include "../../fluid/FluidRegistry.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
 
 namespace mc::world::tick {
 
@@ -50,7 +50,6 @@ TickManager::TickManager(IWorld& world)
         // 反序列化：ResourceLocation -> Block*
         [](const ResourceLocation& id) -> Block* { return BlockRegistry::instance().getBlock(id); },
         // tick回调：执行方块tick
-        // 参考: MC 1.16.5 ServerWorld.tickBlock
         // 必须检查当前位置的方块是否是调度时的目标方块
         [](IWorld& w, const BlockPos& pos, Block& block) {
             const BlockState* state = w.getBlockState(pos);
@@ -85,7 +84,6 @@ TickManager::TickManager(IWorld& world)
         // 反序列化：ResourceLocation -> Fluid*
         [](const ResourceLocation& id) -> fluid::Fluid* { return fluid::FluidRegistry::instance().getFluid(id); },
         // tick回调：执行流体tick
-        // 参考: MC 1.16.5 ServerWorld.tickFluid
         // 必须检查当前位置的流体是否是调度时的目标流体
         [](IWorld& w, const BlockPos& pos, fluid::Fluid& fluid) {
             const fluid::FluidState* state = w.getFluidState(pos);
@@ -101,7 +99,7 @@ TickManager::TickManager(IWorld& world)
         });
 }
 
-TickManager::~TickManager() = default;
+TickManager::~TickManager() noexcept = default;
 
 // ============================================================================
 // 方块tick调度

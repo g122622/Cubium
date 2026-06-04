@@ -35,7 +35,6 @@ namespace mc::world {
 /**
  * @brief 区块距离图 - 管理 BFS 级别传播
  *
- * 参考 Minecraft 的 ChunkDistanceGraph / BaseLightEngine。
  * 核心算法：Dijkstra 风格的最短路径传播。
  *
  * 工作原理：
@@ -72,7 +71,7 @@ public:
     /// 最大级别（未加载）
     static constexpr i32 MAX_LEVEL = 34;
 
-    ChunkDistanceGraph() = default;
+    ChunkDistanceGraph() noexcept = default;
     virtual ~ChunkDistanceGraph() = default;
 
     /**
@@ -174,13 +173,13 @@ protected:
     }
 
 private:
-    void enqueueUpdate(ChunkCoord x, ChunkCoord z);
+    void _enqueueUpdate(ChunkCoord x, ChunkCoord z);
 
     /// 计算传播后的级别
-    [[nodiscard]] static i32 computePropagatedLevel(i32 sourceLevel) { return sourceLevel + 1; }
+    [[nodiscard]] static i32 _computePropagatedLevel(i32 sourceLevel) { return sourceLevel + 1; }
 
     /// 传播级别到相邻区块
-    void propagateToNeighbors(ChunkCoord x, ChunkCoord z, i32 level, bool isDecreasing);
+    void _propagateToNeighbors(ChunkCoord x, ChunkCoord z, i32 level, bool isDecreasing);
 
     /// 区块级别映射
     std::unordered_map<u64, i32> m_levels;

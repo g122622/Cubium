@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../core/Constants.hpp"
-#include "../../core/Types.hpp"
-#include "../../util/Direction.hpp"
-#include "../block/BlockPos.hpp"
-#include "ChunkPos.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
 
 #include <cstdint>
 #include <functional>
@@ -39,12 +39,11 @@ namespace mc {
  * @brief 区块段位置
  *
  * 用于标识区块中的一个16x16x16的段
- * 参考 MC 1.16.5 的 SectionPos 类
  */
 class SectionPos {
 public:
     ChunkCoord x;
-    i32 y; // 段Y坐标 (0-15 for y=0-255)
+    i32 y; // 段Y坐标
     ChunkCoord z;
 
     SectionPos() noexcept
@@ -68,7 +67,7 @@ public:
     /**
      * @brief 从方块位置创建区块段位置
      */
-    [[nodiscard]] static SectionPos fromBlockPos(const BlockPos& pos)
+    [[nodiscard]] static SectionPos fromBlockPos(const BlockPos& pos) noexcept
     {
         return SectionPos(pos.chunkX(), pos.sectionIndex(), pos.chunkZ());
     }
@@ -76,7 +75,7 @@ public:
     /**
      * @brief 从区块位置创建区块段位置
      */
-    [[nodiscard]] static SectionPos fromChunkPos(ChunkCoord chunkX, i32 sectionY, ChunkCoord chunkZ)
+    [[nodiscard]] static SectionPos fromChunkPos(ChunkCoord chunkX, i32 sectionY, ChunkCoord chunkZ) noexcept
     {
         return SectionPos(chunkX, sectionY, chunkZ);
     }
@@ -84,7 +83,7 @@ public:
     /**
      * @brief 从长整型编码创建
      */
-    [[nodiscard]] static SectionPos fromLong(i64 packed)
+    [[nodiscard]] static SectionPos fromLong(i64 packed) noexcept
     {
         return SectionPos(static_cast<ChunkCoord>(packed >> 42),
             static_cast<i32>((packed << 44) >> 44),
@@ -94,7 +93,7 @@ public:
     /**
      * @brief 转换为长整型编码
      */
-    [[nodiscard]] i64 toLong() const
+    [[nodiscard]] i64 toLong() const noexcept
     {
         i64 lx = static_cast<i64>(x) & 0x3FFFFFLL;
         i64 lz = static_cast<i64>(z) & 0x3FFFFFLL;
@@ -127,24 +126,27 @@ public:
     /**
      * @brief 转换为世界坐标
      */
-    [[nodiscard]] i32 worldX() const noexcept { return x << 4; }
-    [[nodiscard]] i32 worldY() const noexcept { return y << 4; }
-    [[nodiscard]] i32 worldZ() const noexcept { return z << 4; }
+    [[nodiscard]] i32 worldX() const noexcept { return x << world::CHUNK_SHIFT; }
+    [[nodiscard]] i32 worldY() const noexcept { return y << world::SECTION_SHIFT; }
+    [[nodiscard]] i32 worldZ() const noexcept { return z << world::CHUNK_SHIFT; }
 
     /**
      * @brief 获取区块段内的局部坐标
      */
-    [[nodiscard]] static i32 mask(i32 coord) { return coord & 0xF; }
+    [[nodiscard]] static i32 mask(i32 coord) noexcept { return coord & world::CHUNK_MASK; }
 
     /**
      * @brief 向指定方向偏移
      */
-    [[nodiscard]] SectionPos offset(i32 dx, i32 dy, i32 dz) const { return SectionPos(x + dx, y + dy, z + dz); }
+    [[nodiscard]] SectionPos offset(i32 dx, i32 dy, i32 dz) const noexcept
+    {
+        return SectionPos(x + dx, y + dy, z + dz);
+    }
 
     /**
      * @brief 向指定方向偏移
      */
-    [[nodiscard]] SectionPos offset(Direction dir) const
+    [[nodiscard]] SectionPos offset(Direction dir) const noexcept
     {
         switch (dir) {
             case Direction::Down:
@@ -167,19 +169,26 @@ public:
     /**
      * @brief 转换为区块列位置（不含Y坐标）
      */
-    [[nodiscard]] i64 toColumnLong() const
+    [[nodiscard]] i64 toColumnLong() const noexcept
     {
         i64 lx = static_cast<i64>(x) & 0x3FFFFFLL;
         i64 lz = static_cast<i64>(z) & 0x3FFFFFLL;
         return (lx << 42) | (lz << 20);
     }
 
-    // 世界Y坐标范围
+    /**
+     * @brief 获取该段的最小世界Y坐标
+     */
     [[nodiscard]] i32 minY() const noexcept { return y * world::CHUNK_SECTION_HEIGHT; }
 
+    /**
+     * @brief 获取该段的最大世界Y坐标
+     */
     [[nodiscard]] i32 maxY() const noexcept { return (y + 1) * world::CHUNK_SECTION_HEIGHT - 1; }
 
-    // 区块位置
+    /**
+     * @brief 获取区块位置（不含Y坐标）
+     */
     [[nodiscard]] ChunkPos chunkPos() const noexcept { return {x, z}; }
 };
 

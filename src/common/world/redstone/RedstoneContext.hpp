@@ -51,15 +51,13 @@ namespace redstone {
  *
  * ## 线程安全
  * 内部使用 mutex 保护，支持多线程访问。
- *
- * 参考 MC 1.16.5 World.redstoneUpdateEnabled
  */
 class RedstoneContext {
 public:
     /// 最大更新深度限制
     static constexpr i32 MAX_DEPTH = 512;
 
-    RedstoneContext() = default;
+    RedstoneContext() noexcept = default;
 
     /**
      * @brief 检查位置是否正在更新
@@ -93,22 +91,22 @@ public:
      *
      * @return true 如果当前深度小于最大深度
      */
-    [[nodiscard]] bool canPushDepth() const;
+    [[nodiscard]] bool canPushDepth() const noexcept;
 
     /**
      * @brief 增加更新深度
      */
-    void pushDepth();
+    void pushDepth() noexcept;
 
     /**
      * @brief 减少更新深度
      */
-    void popDepth();
+    void popDepth() noexcept;
 
     /**
      * @brief 获取当前更新深度
      */
-    [[nodiscard]] i32 depth() const { return m_depth.load(std::memory_order_relaxed); }
+    [[nodiscard]] i32 depth() const noexcept { return m_depth.load(std::memory_order_relaxed); }
 
     /**
      * @brief 清空所有状态

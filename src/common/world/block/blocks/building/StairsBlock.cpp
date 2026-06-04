@@ -22,18 +22,18 @@
  */
 
 #include "StairsBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
-#include "../../BlockRegistry.hpp"
-#include "../../WaterLoggableHelpers.hpp"
+
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/WaterLoggableHelpers.hpp"
 
 namespace mc {
 namespace blocks {
 
 // ========== 静态形状定义 ==========
-// 参考 MC 1.16.5 StairsBlock.java
 
 // 下半台阶形状 (0-8像素高)
 static const CollisionShape SLAB_BOTTOM = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
@@ -78,8 +78,6 @@ static const CollisionShape SEU_CORNER = CollisionShape::box(0.5f, 0.5f, 0.5f, 1
  * - bit 1 (2): 包含东北角
  * - bit 2 (4): 包含西南角
  * - bit 3 (8): 包含东南角
- *
- * 参考: MC 1.16.5 StairsBlock.combineShapes()
  *
  * @param bitfield 位域值 (0-15)
  * @param slabShape 基础台阶形状
@@ -155,8 +153,6 @@ static const std::array<CollisionShape, 16> SLAB_TOP_SHAPES =
  * 将 (shape.ordinal() * 4 + facing.getHorizontalIndex()) 映射到形状数组索引。
  * 顺序: STRAIGHT(4) + INNER_LEFT(4) + INNER_RIGHT(4) + OUTER_LEFT(4) + OUTER_RIGHT(4)
  * 每组按 NORTH(0), SOUTH(1), WEST(2), EAST(3) 排列
- *
- * 参考: MC 1.16.5 StairsBlock.field_196522_K
  */
 static constexpr std::array<int, 20> SHAPE_INDEX_MAP = {
     12, 5, 3, 10, 14, 13, 7, 11, 13, 7, 11, 14, 8, 4, 1, 2, 4, 1, 2, 8};
@@ -204,7 +200,6 @@ void StairsBlock::fillStateContainer(StateContainer<Block, BlockState>& containe
 
 BlockState StairsBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 参考: MC 1.16.5 StairsBlock.getStateForPlacement()
     Direction facing = context.horizontalDirection();
 
     // 根据点击位置决定上半/下半
@@ -242,7 +237,7 @@ BlockState StairsBlock::updatePostPlacement(const BlockState& state,
     }
 
     // 计算新的形状
-    BlockStateProperties::StairsShape newShape = calculateShape(state, world, currentPos);
+    BlockStateProperties::StairsShape newShape = _calculateShape(state, world, currentPos);
 
     if (state.get(BlockStateProperties::STAIRS_SHAPE()) != newShape) {
         return state.with(BlockStateProperties::STAIRS_SHAPE(), newShape);
@@ -255,10 +250,7 @@ BlockState StairsBlock::updatePostPlacement(const BlockState& state,
 
 const CollisionShape& StairsBlock::getShape(const BlockState& state) const
 {
-    // 参考: MC 1.16.5 StairsBlock.getShape()
-    // return (state.get(HALF) == Half.TOP ? SLAB_TOP_SHAPES :
-    // SLAB_BOTTOM_SHAPES)[field_196522_K[this.func_196511_x(state)]];
-    return getShapeForState(state);
+    return _getShapeForState(state);
 }
 
 const CollisionShape& StairsBlock::getCollisionShape(const BlockState& state) const
@@ -283,7 +275,6 @@ const BlockState& StairsBlock::rotate(const BlockState& state, Rotation rotation
 
 const BlockState& StairsBlock::mirror(const BlockState& state, Mirror mirror) const
 {
-    // 参考: MC 1.16.5 StairsBlock.mirror()
     if (mirror == Mirror::None) {
         return state;
     }
@@ -291,7 +282,7 @@ const BlockState& StairsBlock::mirror(const BlockState& state, Mirror mirror) co
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     BlockStateProperties::StairsShape shape = state.get(BlockStateProperties::STAIRS_SHAPE());
 
-    // MC中镜像逻辑：仅在特定朝向上生效
+    // 镜像逻辑：仅在特定朝向上生效
     bool shouldMirror = false;
     if (mirror == Mirror::LeftRight && (facing == Direction::South || facing == Direction::North)) {
         shouldMirror = true;
@@ -343,10 +334,9 @@ const fluid::FluidState* StairsBlock::getFluidState(const BlockState& state) con
 
 // ========== 私有方法 ==========
 
-BlockStateProperties::StairsShape StairsBlock::calculateShape(
+BlockStateProperties::StairsShape StairsBlock::_calculateShape(
     const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
-    // 参考: MC 1.16.5 StairsBlock.getShapeProperty()
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
 
@@ -362,7 +352,7 @@ BlockStateProperties::StairsShape StairsBlock::calculateShape(
         // 检查是否同层且朝向垂直
         if (forwardHalf == half && Directions::getAxis(forwardFacing) != Directions::getAxis(facing)) {
             // 检查第三个位置是否形成外角
-            if (isDifferentStairs(state, world, pos, Directions::opposite(forwardFacing))) {
+            if (_isDifferentStairs(state, world, pos, Directions::opposite(forwardFacing))) {
                 // 判断是左外角还是右外角
                 if (forwardFacing == Directions::rotateYCCW(facing)) {
                     return BlockStateProperties::StairsShape::OuterLeft;
@@ -384,7 +374,7 @@ BlockStateProperties::StairsShape StairsBlock::calculateShape(
         // 检查是否同层且朝向垂直
         if (backwardHalf == half && Directions::getAxis(backwardFacing) != Directions::getAxis(facing)) {
             // 检查第三个位置是否形成内角
-            if (isDifferentStairs(state, world, pos, backwardFacing)) {
+            if (_isDifferentStairs(state, world, pos, backwardFacing)) {
                 // 判断是左内角还是右内角
                 if (backwardFacing == Directions::rotateYCCW(facing)) {
                     return BlockStateProperties::StairsShape::InnerLeft;
@@ -398,9 +388,8 @@ BlockStateProperties::StairsShape StairsBlock::calculateShape(
     return BlockStateProperties::StairsShape::Straight;
 }
 
-bool StairsBlock::isDifferentStairs(const BlockState& state, IWorld& world, const BlockPos& pos, Direction face) const
+bool StairsBlock::_isDifferentStairs(const BlockState& state, IWorld& world, const BlockPos& pos, Direction face) const
 {
-    // 参考: MC 1.16.5 StairsBlock.isDifferentStairs()
     BlockPos checkPos(
         pos.x + Directions::xOffset(face), pos.y + Directions::yOffset(face), pos.z + Directions::zOffset(face));
     const BlockState* checkState = world.getBlockState(checkPos);
@@ -417,10 +406,8 @@ bool StairsBlock::isDifferentStairs(const BlockState& state, IWorld& world, cons
         checkHalf != state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
 }
 
-size_t StairsBlock::getStateIndex(const BlockState& state)
+size_t StairsBlock::_getStateIndex(const BlockState& state)
 {
-    // 参考: MC 1.16.5 StairsBlock.func_196511_x()
-    // return state.get(SHAPE).ordinal() * 4 + state.get(FACING).getHorizontalIndex();
     size_t shapeIdx = static_cast<size_t>(state.get(BlockStateProperties::STAIRS_SHAPE()));
     size_t facingIdx = 0;
 
@@ -446,14 +433,10 @@ size_t StairsBlock::getStateIndex(const BlockState& state)
     return shapeIdx * 4 + facingIdx;
 }
 
-const CollisionShape& StairsBlock::getShapeForState(const BlockState& state) const
+const CollisionShape& StairsBlock::_getShapeForState(const BlockState& state) const
 {
-    // 参考: MC 1.16.5 StairsBlock.getShape()
-    // return (state.get(HALF) == Half.TOP ? SLAB_TOP_SHAPES :
-    // SLAB_BOTTOM_SHAPES)[field_196522_K[this.func_196511_x(state)]];
-
     bool isTop = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Upper;
-    size_t stateIdx = getStateIndex(state);
+    size_t stateIdx = _getStateIndex(state);
 
     // 确保索引在有效范围内
     MC_ASSERT(stateIdx < SHAPE_INDEX_MAP.size());

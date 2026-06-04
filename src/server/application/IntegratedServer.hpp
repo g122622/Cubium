@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include <memory>
 #include "MinecraftServer.hpp"
 #include "common/core/DefaultValues.hpp"
 #include "common/core/GameDirectory.hpp"
@@ -32,6 +31,7 @@
 #include "common/world/WorldConfig.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include <memory>
 #include <mutex>
 #include <thread>
 
@@ -92,7 +92,7 @@ protected:
     void sendPacketToPlayer(PlayerId playerId, const u8* data, size_t size) override
     {
         if (playerId == m_clientPlayerId) {
-            sendToClient(data, size);
+            _sendToClient(data, size);
         }
     }
 
@@ -144,21 +144,21 @@ public:
     [[nodiscard]] const PlayerInventory* playerInventory(PlayerId playerId) const override;
 
 private:
-    void mainLoop();
+    void _mainLoop();
 
     // 发送数据包
-    void sendLoginResponse(
+    void _sendLoginResponse(
         bool success, PlayerId playerId, EntityId entityId, const std::string& username, const std::string& message);
-    void sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId);
-    void sendPlayerInventory();
-    void sendContainerContent(const AbstractContainerMenu& menu);
-    void sendOpenContainer(ContainerId containerId, mc::ContainerType type, const std::string& title, i32 slotCount);
-    void sendCloseContainer(ContainerId containerId);
-    void sendToClient(const u8* data, size_t size);
-    void sendBlockBreakAnim(EntityId breakerId, i32 x, i32 y, i32 z, i8 stage);
-    [[nodiscard]] bool openContainerMenu(ContainerType type, const BlockPos& pos);
-    void closeCurrentContainer(bool sendClosePacket);
-    void openCraftingTableMenu();
+    void _sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId);
+    void _sendPlayerInventory();
+    void _sendContainerContent(const AbstractContainerMenu& menu);
+    void _sendOpenContainer(ContainerId containerId, mc::ContainerType type, const std::string& title, i32 slotCount);
+    void _sendCloseContainer(ContainerId containerId);
+    void _sendToClient(const u8* data, size_t size);
+    void _sendBlockBreakAnim(EntityId breakerId, i32 x, i32 y, i32 z, i8 stage);
+    [[nodiscard]] bool _openContainerMenu(ContainerType type, const BlockPos& pos);
+    void _closeCurrentContainer(bool sendClosePacket);
+    void _openCraftingTableMenu();
 
     void onCreativeInventoryInitialized(PlayerId playerId, PlayerInventory& inventory) override;
     [[nodiscard]] ItemStack getHeldItemForPlacement(PlayerId playerId) override;
@@ -168,7 +168,7 @@ private:
     [[nodiscard]] bool tryOpenCraftingContainer(PlayerId playerId, const BlockPos& pos) override;
 
     // 玩家数据便捷方法
-    ServerPlayerData* getPlayerData()
+    ServerPlayerData* _getPlayerData()
     {
         return m_playerManager ? m_playerManager->getPlayer(m_clientPlayerId) : nullptr;
     }

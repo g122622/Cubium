@@ -22,34 +22,35 @@
  */
 
 #include "DimensionSettings.hpp"
-#include "../../block/BlockRegistry.hpp"
-#include "../../block/VanillaBlocks.hpp"
+#include "common/core/Constants.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc {
 
-DimensionSettings DimensionSettings::overworld()
+DimensionSettings DimensionSettings::overworld() noexcept
 {
     DimensionSettings settings;
     settings.noise = NoiseSettings::overworld();
     settings.defaultBlock = VanillaBlocks::getState(VanillaBlocks::STONE);
     settings.defaultFluid = VanillaBlocks::getState(VanillaBlocks::WATER);
-    settings.seaLevel = 63;
+    settings.seaLevel = world::SEA_LEVEL;
     return settings;
 }
 
-DimensionSettings DimensionSettings::nether()
+DimensionSettings DimensionSettings::nether() noexcept
 {
     DimensionSettings settings;
     settings.noise = NoiseSettings::nether();
     settings.defaultBlock = VanillaBlocks::getState(VanillaBlocks::NETHERRACK);
     settings.defaultFluid = VanillaBlocks::getState(VanillaBlocks::LAVA);
-    settings.seaLevel = 31; // MC 1.16.5: 熔岩海高度 Y<=31
+    settings.seaLevel = 31; // 熔岩海高度
     settings.bedrockRoof = 127;
     settings.bedrockFloor = 0;
     return settings;
 }
 
-DimensionSettings DimensionSettings::end()
+DimensionSettings DimensionSettings::end() noexcept
 {
     DimensionSettings settings;
     settings.noise = NoiseSettings::end();
@@ -59,7 +60,7 @@ DimensionSettings DimensionSettings::end()
     return settings;
 }
 
-DimensionSettings DimensionSettings::flat()
+DimensionSettings DimensionSettings::flat() noexcept
 {
     DimensionSettings settings;
     settings.noise.height = 4;

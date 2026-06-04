@@ -71,7 +71,7 @@ private:
      * @param mode 授予模式
      * @return 受影响的玩家数量
      */
-    static i32 grantAdvancement(CommandContext<ServerCommandSource>& context, GrantMode mode);
+    static i32 _grantAdvancement(CommandContext<ServerCommandSource>& context, GrantMode mode);
 
     /**
      * @brief 撤销成就
@@ -79,14 +79,14 @@ private:
      * @param mode 撤销模式
      * @return 受影响的玩家数量
      */
-    static i32 revokeAdvancement(CommandContext<ServerCommandSource>& context, GrantMode mode);
+    static i32 _revokeAdvancement(CommandContext<ServerCommandSource>& context, GrantMode mode);
 
     /**
      * @brief 测试成就
      * @param context 命令上下文
      * @return 完成成就的玩家数量
      */
-    static i32 testAdvancement(CommandContext<ServerCommandSource>& context);
+    static i32 _testAdvancement(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

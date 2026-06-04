@@ -91,6 +91,23 @@ PacketSerializer::PacketSerializer(size_t initialCapacity)
     m_buffer.reserve(initialCapacity);
 }
 
+PacketSerializer::PacketSerializer(PacketSerializer&& other) noexcept
+    : m_buffer(std::move(other.m_buffer))
+    , m_readPos(other.m_readPos)
+{
+    other.m_readPos = 0;
+}
+
+PacketSerializer& PacketSerializer::operator=(PacketSerializer&& other) noexcept
+{
+    if (this != &other) {
+        m_buffer = std::move(other.m_buffer);
+        m_readPos = other.m_readPos;
+        other.m_readPos = 0;
+    }
+    return *this;
+}
+
 void PacketSerializer::writeU8(u8 value)
 {
     m_buffer.push_back(value);

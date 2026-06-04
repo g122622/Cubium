@@ -54,7 +54,7 @@ Result<void> ScriptManager::initialize()
     spdlog::info("[BedrockAddon] Initializing script manager...");
 
     // 注册内置模块工厂
-    registerBuiltinModules();
+    _registerBuiltinModules();
 
     // 初始化引擎
     if (!m_engine->initialize()) {
@@ -274,7 +274,7 @@ const BehaviorPackList* ScriptManager::packList() const
     return m_packList.get();
 }
 
-void ScriptManager::registerBuiltinModules()
+void ScriptManager::_registerBuiltinModules()
 {
     // 注册 @minecraft/server 模块
     auto minecraftFactory = std::make_unique<MinecraftModuleFactory>();

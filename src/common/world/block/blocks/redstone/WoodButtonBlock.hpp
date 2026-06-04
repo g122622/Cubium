@@ -31,10 +31,8 @@ namespace blocks {
 /**
  * @brief 木按钮方块
  *
- * 木按钮被按下后持续 15 tick（1.5秒），比石头按钮长。
+ * 木按钮被按下后持续 30 tick（1.5秒），比石头按钮长。
  * 木按钮还可以被箭触发。
- *
- * 参考: net.minecraft.block.WoodButtonBlock
  */
 class WoodButtonBlock : public AbstractButtonBlock {
 public:

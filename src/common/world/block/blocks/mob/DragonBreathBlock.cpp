@@ -22,9 +22,9 @@
  */
 
 #include "DragonBreathBlock.hpp"
-#include "../../../../entity/core/LivingEntity.hpp"
-#include "../../../../entity/damage/DamageSource.hpp"
-#include "../../../IWorld.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace blocks {
@@ -39,9 +39,9 @@ void DragonBreathBlock::onEntityCollision(
     MC_UNUSED(state);
     MC_UNUSED(pos);
 
-    // 参考 MC 1.16.5: 只对 LivingEntity 造成伤害
-    // MC 中龙息效果通过 AreaEffectCloudEntity 实现，每 5 tick 检测一次
-    // 简化实现：每次碰撞 tick 造成伤害
+    // 只对 LivingEntity 造成伤害
+    // 龙息效果通过 AreaEffectCloudEntity 实现，每 5 tick 检测一次
+    // TODO: 简化实现，每次碰撞 tick 造成伤害，后续应实现完整的 AreaEffectCloudEntity 机制
     auto* livingEntity = dynamic_cast<LivingEntity*>(&entity);
     if (livingEntity == nullptr) {
         return;
@@ -52,8 +52,7 @@ void DragonBreathBlock::onEntityCollision(
         return;
     }
 
-    // 造成龙息伤害
-    // MC 1.16.5: DamageSource.DRAGON_BREATH 绕过护甲
+    // 造成龙息伤害，绕过护甲
     auto damageSource = DamageSources::dragonBreath();
     livingEntity->hurt(damageSource, 1.0f);
 }

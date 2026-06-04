@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../util/Direction.hpp"
-#include "../../../util/property/DirectionProperty.hpp"
-#include "../Block.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 
@@ -37,8 +37,6 @@ class BlockState;
  *
  * 用于原木、柱状玄武岩等可绕Y轴旋转的方块。
  * 拥有 axis 属性（X、Y、Z）。
- *
- * 参考: net.minecraft.block.RotatedPillarBlock
  */
 class RotatedPillarBlock : public Block {
 public:
@@ -49,16 +47,26 @@ public:
 
     /**
      * @brief 构造函数
+     * @param properties 方块属性
      */
-    RotatedPillarBlock(BlockProperties properties);
+    explicit RotatedPillarBlock(const BlockProperties& properties);
+
+    /**
+     * @brief 析构函数
+     */
+    ~RotatedPillarBlock() override = default;
 
     /**
      * @brief 获取方块的轴
+     * @param state 方块状态
+     * @return 轴向（X、Y或Z）
      */
     Axis getAxis(const BlockState& state) const;
 
     /**
      * @brief 设置方块的轴
+     * @param state 方块状态
+     * @param axis 目标轴向
      * @return 新状态
      */
     const BlockState& withAxis(const BlockState& state, Axis axis) const;

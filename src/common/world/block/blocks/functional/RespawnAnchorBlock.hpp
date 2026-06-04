@@ -51,8 +51,6 @@ namespace blocks {
  *
  * 状态属性：
  * - CHARGES: 充能等级 (0-4)
- *
- * 参考: net.minecraft.block.RespawnAnchorBlock
  */
 class RespawnAnchorBlock : public Block {
 public:
@@ -61,7 +59,7 @@ public:
      * @param properties 方块属性
      */
     explicit RespawnAnchorBlock(const BlockProperties& properties);
-    ~RespawnAnchorBlock() override = default;
+    ~RespawnAnchorBlock() noexcept override = default;
 
     // ========== 状态属性 ==========
 
@@ -146,11 +144,6 @@ public:
 
     /**
      * @brief 右键交互 - 充能或设置重生点
-     *
-     * MC Java:
-     * - 使用萤石充能（需要物品检查）
-     * - 在非下界维度使用会爆炸
-     * - 充能后在非下界设置重生点
      */
     [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,

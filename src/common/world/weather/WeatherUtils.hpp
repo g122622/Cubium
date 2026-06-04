@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/math/Vector3.hpp"
 #include "WeatherConstants.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 
 namespace mc {
 
@@ -54,8 +54,6 @@ namespace WeatherUtils {
  *
  * 温度 < 0.15 时降雪，>= 0.15 时降雨。
  * 无降水生物群系需要由调用者结合 BiomeClimate::Precipitation::None 额外过滤。
- *
- * 参考 MC 1.16.5 Biome.doesSnowGenerate(): temperature >= 0.15F 时返回 false
  *
  * @param temperature 生物群系温度
  * @return 1=降雨, 2=降雪
@@ -145,13 +143,11 @@ namespace WeatherUtils {
  * @brief 计算天空颜色混合因子
  *
  * 根据天气强度计算天空颜色的暗化程度
- *
- * 参考 MC 1.16.5 ClientWorld.getSunBrightness():
  * f1 = (1 - rain * 5/16) * (1 - thunder * 5/16)
  * 暗化因子 = 1 - f1
  *
  * @param rainStrength 降雨强度 (0.0-1.0)
- * @param thunderStrength 雷暴强度 (0.0-1.0)，注意MC中thunderStrength已经乘以rainStrength
+ * @param thunderStrength 雷暴强度 (0.0-1.0)，thunderStrength已经乘以rainStrength
  * @return 混合因子 (0.0=正常, 接近0.527=最暗)
  */
 [[nodiscard]] inline f32 calculateSkyDarkenFactor(f32 rainStrength, f32 thunderStrength) noexcept

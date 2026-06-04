@@ -45,8 +45,6 @@ namespace blocks {
  * 存储方块的燃烧参数：
  * - encouragement: 火焰蔓延速度（影响火焰向此方块蔓延的概率）
  * - flammability: 可燃性 0-300（影响方块被点燃和烧毁的概率）
- *
- * 参考 MC 1.16.5: net.minecraft.block.FireBlock
  */
 struct FireInfo {
     i32 encouragement = 0; ///< 火焰蔓延速度
@@ -64,15 +62,13 @@ struct FireInfo {
  *
  * 管理所有方块的燃烧参数。
  * 在方块注册时调用 registerFireInfo() 注册燃烧参数。
- *
- * 参考 MC 1.16.5: net.minecraft.block.FireBlock.init()
  */
 class FireInfoRegistry {
 public:
     /**
      * @brief 获取单例实例
      */
-    static FireInfoRegistry& instance();
+    static FireInfoRegistry& instance() noexcept;
 
     /**
      * @brief 注册方块的燃烧参数
@@ -89,7 +85,7 @@ public:
      * @param blockId 方块ID
      * @return 燃烧参数，如果未注册返回默认值 (0, 0)
      */
-    [[nodiscard]] FireInfo getFireInfo(u32 blockId) const;
+    [[nodiscard]] FireInfo getFireInfo(u32 blockId) const noexcept;
 
     /**
      * @brief 获取方块的可燃性
@@ -97,7 +93,7 @@ public:
      * @param blockId 方块ID
      * @return 可燃性值 (0-300)
      */
-    [[nodiscard]] i32 getFlammability(u32 blockId) const;
+    [[nodiscard]] i32 getFlammability(u32 blockId) const noexcept;
 
     /**
      * @brief 获取方块的火焰蔓延速度
@@ -105,7 +101,7 @@ public:
      * @param blockId 方块ID
      * @return 火焰蔓延速度
      */
-    [[nodiscard]] i32 getEncouragement(u32 blockId) const;
+    [[nodiscard]] i32 getEncouragement(u32 blockId) const noexcept;
 
     /**
      * @brief 初始化原版方块的燃烧参数

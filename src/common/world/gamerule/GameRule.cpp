@@ -43,7 +43,6 @@ template <>
 template <>
 bool GameRuleValue<bool>::fromString(const std::string& value)
 {
-    // MC 1.16.5 使用 Boolean.parseBoolean，支持 "true"（大小写不敏感）
     if (value == "true" || value == "TRUE" || value == "1") {
         m_value = true;
         return true;
@@ -51,7 +50,7 @@ bool GameRuleValue<bool>::fromString(const std::string& value)
         m_value = false;
         return true;
     }
-    // 其他情况默认为 false（与 Java Boolean.parseBoolean 行为一致）
+    // 其他情况默认为 false
     m_value = false;
     return false;
 }

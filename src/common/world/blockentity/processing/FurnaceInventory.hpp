@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../../entity/inventory/IInventory.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include <array>
 #include <functional>
 
@@ -163,12 +163,12 @@ private:
     /**
      * @brief 验证槽位索引
      */
-    [[nodiscard]] bool isValidSlot(i32 slot) const { return slot >= 0 && slot < SLOT_COUNT; }
+    [[nodiscard]] bool _isValidSlot(i32 slot) const { return slot >= 0 && slot < SLOT_COUNT; }
 
     /**
      * @brief 触发变更回调
      */
-    void onChanged();
+    void _onChanged();
 
     std::array<ItemStack, SLOT_COUNT> m_items;
     std::function<void()> m_onChanged;

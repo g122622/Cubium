@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../block/Block.hpp"
-#include "../../fluid/Fluid.hpp"
-#include "../list/EmptyTickList.hpp"
-#include "../list/ITickList.hpp"
-#include "../list/ServerTickList.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/tick/list/EmptyTickList.hpp"
+#include "common/world/tick/list/ITickList.hpp"
+#include "common/world/tick/list/ServerTickList.hpp"
 #include <memory>
 
 namespace mc::world::tick {
@@ -38,8 +38,6 @@ namespace mc::world::tick {
  *
  * 统一管理方块和流体的计划刻调度。
  * 作为外观类封装ServerTickList，提供简洁的API。
- *
- * 参考: MC 1.16.5中World类持有的pendingBlockTicks和pendingFluidTicks
  *
  * 架构说明:
  * - 服务端: 使用ServerTickList<Block>和ServerTickList<Fluid>进行实际调度
@@ -69,7 +67,7 @@ public:
     /**
      * @brief 析构函数
      */
-    ~TickManager();
+    ~TickManager() noexcept;
 
     // ========== 方块tick调度 ==========
 

@@ -70,13 +70,13 @@ bool RedstoneDiodeBlock::isPowered(const BlockState& state)
 
 void RedstoneDiodeBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC Java: 放置时通知邻居更新
+    // 放置时通知邻居更新
     notifyNeighbors(world, pos, state);
 }
 
 void RedstoneDiodeBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC Java: 移除时通知邻居更新
+    // 移除时通知邻居更新
     notifyNeighbors(world, pos, state);
 }
 
@@ -166,7 +166,7 @@ i32 RedstoneDiodeBlock::getWeakPower(const BlockState& state, IWorld& world, con
 i32 RedstoneDiodeBlock::getStrongPower(
     const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
 {
-    // MC Java: 二极管输出强信号，可以充能方块
+    // 二极管输出的是强信号，可以充能方块
     return getWeakPower(state, world, pos, side);
 }
 
@@ -221,9 +221,8 @@ i32 RedstoneDiodeBlock::getPowerOnSides(IWorld& world, const BlockPos& pos, cons
             const Block& sideBlock = sideState->getBlock();
             Direction oppositeSide = Directions::opposite(side);
 
-            // MC Java: 中继器只能被其他二极管的侧面输出锁定
+            // 中继器只能被其他二极管的侧面输出锁定
             // 关键：侧面二极管的输出端必须朝向当前中继器
-            // 参考 RepeaterBlock.getAlternateInput() 和 isDiode() 的实现
             i32 power = 0;
 
             // 检查是否是二极管（中继器或比较器）
@@ -235,8 +234,7 @@ i32 RedstoneDiodeBlock::getPowerOnSides(IWorld& world, const BlockPos& pos, cons
                     power = sideBlock.getWeakPower(*sideState, world, sidePos, oppositeSide);
                 }
             }
-            // 注意：红石线和其他信号源不能锁定中继器！
-            // MC源码中 RepeaterBlock.getAlternateInput 只检查 isDiode
+            // 注意：红石线和其他信号源不能锁定中继器
 
             maxPower = std::max(maxPower, power);
         }
@@ -305,7 +303,7 @@ bool RedstoneDiodeBlock::isFacingTowardsRepeater(IWorld& world, const BlockPos& 
         return false;
     }
 
-    // MC Java: 检查二极管是否不是背向自己
+    // 检查二极管是否不是背向自己
     // 即：输出端的二极管朝向不能是自己的反方向
     Direction outputFacing = getFacing(*outputState);
     return outputFacing != Directions::opposite(facing);
@@ -313,7 +311,6 @@ bool RedstoneDiodeBlock::isFacingTowardsRepeater(IWorld& world, const BlockPos& 
 
 void RedstoneDiodeBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC Java: notifyNeighbors
     // 通知输入端周围的方块更新
     Direction facing = getFacing(state);
     Direction inputDir = Directions::opposite(facing);

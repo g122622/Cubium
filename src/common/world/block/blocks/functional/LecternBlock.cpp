@@ -169,7 +169,7 @@ i32 LecternBlock::getStrongPower(const BlockState& state, IWorld& world, const B
     return 0;
 }
 
-int LecternBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+i32 LecternBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
     if (!state.get(BlockStateProperties::HAS_BOOK())) {
         return 0;
@@ -215,7 +215,7 @@ void LecternBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const Bloc
 {
     // 如果有书，掉落书本
     if (state.get(BlockStateProperties::HAS_BOOK())) {
-        dropBook(world, pos, state);
+        _dropBook(world, pos, state);
     }
 
     // 如果处于激活状态，通知下方方块更新红石
@@ -227,7 +227,7 @@ void LecternBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const Bloc
     Block::onBlockRemoved(world, pos, state);
 }
 
-void LecternBlock::dropBook(IWorld& world, const BlockPos& pos, const BlockState& state)
+void LecternBlock::_dropBook(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     BlockEntity* entity = world.getBlockEntity(pos);
     if (entity != nullptr && entity->getType() == BlockEntityType::Lectern) {

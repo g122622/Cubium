@@ -22,8 +22,9 @@
  */
 
 #include "VillageManager.hpp"
-#include "../../util/nbt/Nbt.hpp"
-#include "../IWorld.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -114,7 +115,7 @@ Village* VillageManager::getOrCreateVillage(BlockPos pos)
     center.y = static_cast<i32>(sumY / static_cast<i64>(beds.size()));
     center.z = static_cast<i32>(sumZ / static_cast<i64>(beds.size()));
 
-    return createVillage(center);
+    return _createVillage(center);
 }
 
 Village* VillageManager::getVillageById(VillageId id)
@@ -141,7 +142,7 @@ void VillageManager::onVillagerJoin(u64 villagerId, BlockPos pos)
     m_villagerToVillage[villagerId] = village;
 
     // 更新区块映射 - 将村庄关联到村民所在区块
-    u64 chunkKey = getChunkKey(static_cast<ChunkCoord>(pos.x >> 4), static_cast<ChunkCoord>(pos.z >> 4));
+    u64 chunkKey = _getChunkKey(world::toChunkCoord(pos.x), world::toChunkCoord(pos.z));
     m_chunkToVillages[chunkKey].insert(village->getId());
 }
 
@@ -249,12 +250,12 @@ void VillageManager::tick(i64 gameTime)
 
     // 定期移除空村庄
     if (gameTime % 1200 == 0) { // 每分钟检查一次
-        removeEmptyVillages();
+        _removeEmptyVillages();
     }
 
     // 定期更新村庄边界
     if (gameTime % 6000 == 0) { // 每5分钟更新一次
-        updateVillageBounds();
+        _updateVillageBounds();
     }
 }
 
@@ -270,7 +271,7 @@ void VillageManager::onChunkUnloaded(ChunkCoord x, ChunkCoord z)
     m_poiStorage.onChunkUnloaded(x, z);
 
     // 更新区块到村庄的映射
-    u64 chunkKey = getChunkKey(x, z);
+    u64 chunkKey = _getChunkKey(x, z);
     m_chunkToVillages.erase(chunkKey);
 }
 
@@ -350,7 +351,7 @@ void VillageManager::deserialize(const nbt::tags::compound_tag& tag)
 
 // ========== 私有方法 ==========
 
-Village* VillageManager::createVillage(BlockPos center)
+Village* VillageManager::_createVillage(BlockPos center)
 {
     auto village = std::make_unique<Village>(center);
 
@@ -373,7 +374,7 @@ Village* VillageManager::createVillage(BlockPos center)
     return ptr;
 }
 
-void VillageManager::removeEmptyVillages()
+void VillageManager::_removeEmptyVillages()
 {
     for (auto it = m_villages.begin(); it != m_villages.end();) {
         if ((*it)->getPopulation() == 0 && (*it)->getBedCount() == 0) {
@@ -391,7 +392,7 @@ void VillageManager::removeEmptyVillages()
     }
 }
 
-void VillageManager::updateVillageBounds()
+void VillageManager::_updateVillageBounds()
 {
     for (auto& village : m_villages) {
         village->recalculateBounds(m_poiStorage);
@@ -425,7 +426,7 @@ Village* VillageManager::checkPlayerEnterVillage(BlockPos playerPos, BlockPos pr
     return nullptr;
 }
 
-u64 VillageManager::getChunkKey(ChunkCoord x, ChunkCoord z)
+u64 VillageManager::_getChunkKey(ChunkCoord x, ChunkCoord z)
 {
     return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u64>(static_cast<u32>(z));
 }

@@ -68,7 +68,7 @@ ComposterBlock::ComposterBlock(const BlockProperties& properties)
     // 内部空洞随等级变化
     // 等级0-7：内部空洞从下到上
     // 等级8：满的
-    for (int i = 0; i < 8; ++i) {
+    for (i32 i = 0; i < 8; ++i) {
         // 内部填充高度 = max(2, 1 + i * 2) 像素
         f32 fillHeight = static_cast<f32>(std::max(2, 1 + i * 2)) * P;
         // 形状 = 完整方块 - 内部空洞
@@ -87,13 +87,13 @@ BlockState ComposterBlock::getStateForPlacement(BlockItemUseContext& context)
 void ComposterBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(random);
-    int level = getLevel(state);
+    i32 level = getLevel(state);
     if (level == 7) {
         // 等级7时，经过20 tick后变成等级8（可以收获骨粉）
         BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), 8);
         world.setBlockState(pos, &newState, 3);
 
-        // MC 1.16.5: 播放堆肥完成音效
+        // 播放堆肥完成音效
         if (!world.isClientSide()) {
             world.playSound(SoundEvents::BLOCK_COMPOSTER_READY, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
         }
@@ -102,7 +102,7 @@ void ComposterBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state,
 
 const CollisionShape& ComposterBlock::getShape(const BlockState& state) const
 {
-    int level = getLevel(state);
+    i32 level = getLevel(state);
     MC_ASSERT(level >= 0 && level <= 8);
     // 等级0时返回完整方块形状
     if (level == 0) {
@@ -118,7 +118,7 @@ const CollisionShape& ComposterBlock::getCollisionShape(const BlockState& state)
     return m_collisionShape;
 }
 
-int ComposterBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+i32 ComposterBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
 
     MC_UNUSED(world);
@@ -132,7 +132,7 @@ BlockState ComposterBlock::attemptCompost(
     const BlockState& state, IWorld& world, const BlockPos& pos, Block& block, u32 itemId)
 {
 
-    int level = getLevel(state);
+    i32 level = getLevel(state);
     if (level >= 7) {
         return state; // 已满或正在完成
     }
@@ -143,7 +143,7 @@ BlockState ComposterBlock::attemptCompost(
         return state;
     }
 
-    float chance = CompostableItems::getCompostChance(item);
+    f32 chance = CompostableItems::getCompostChance(item);
     if (chance <= 0.0f) {
         return state; // 不可堆肥
     }
@@ -151,11 +151,11 @@ BlockState ComposterBlock::attemptCompost(
     // 概率性增加等级
     math::Random random;
     if (random.nextFloat() < chance) {
-        int newLevel = level + 1;
+        i32 newLevel = level + 1;
         BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), newLevel);
         world.setBlockState(pos, &newState, 3);
 
-        // MC 1.16.5: 播放成功音效
+        // 播放成功音效
         if (!world.isClientSide()) {
             world.playSound(
                 SoundEvents::BLOCK_COMPOSTER_FILL_SUCCESS, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
@@ -169,7 +169,7 @@ BlockState ComposterBlock::attemptCompost(
         return newState;
     }
 
-    // MC 1.16.5: 播放失败音效（尝试堆肥但没增加等级）
+    // 播放失败音效（尝试堆肥但没增加等级）
     if (!world.isClientSide()) {
         world.playSound(SoundEvents::BLOCK_COMPOSTER_FILL, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
     }
@@ -179,9 +179,9 @@ BlockState ComposterBlock::attemptCompost(
 
 BlockState ComposterBlock::empty(IWorld& world, const BlockPos& pos, BlockState& state)
 {
-    // MC 1.16.5: 生成骨粉物品
+    // 生成骨粉物品
     // 只有等级为 8 时才能收获
-    int level = getLevel(state);
+    i32 level = getLevel(state);
     if (level != 8) {
         return state;
     }
@@ -208,7 +208,7 @@ BlockState ComposterBlock::empty(IWorld& world, const BlockPos& pos, BlockState&
     BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), 0);
     world.setBlockState(pos, &newState, 3);
 
-    // MC 1.16.5: 播放清空音效
+    // 播放清空音效
     if (!world.isClientSide()) {
         world.playSound(SoundEvents::BLOCK_COMPOSTER_EMPTY, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
     }
@@ -222,7 +222,7 @@ bool ComposterBlock::isCompostable(u32 itemId)
     return CompostableItems::isCompostable(item);
 }
 
-float ComposterBlock::getCompostChance(u32 itemId)
+f32 ComposterBlock::getCompostChance(u32 itemId)
 {
     const Item* item = Item::getItem(static_cast<ItemId>(itemId));
     return CompostableItems::getCompostChance(item);
@@ -238,7 +238,7 @@ ActionResultType ComposterBlock::onBlockActivated(const BlockState& state,
 
     MC_UNUSED(hand);
     MC_UNUSED(hit);
-    int level = getLevel(state);
+    i32 level = getLevel(state);
 
     // 如果等级为8，取出骨粉
     if (level == 8) {
@@ -258,7 +258,7 @@ ActionResultType ComposterBlock::onBlockActivated(const BlockState& state,
     }
 
     // 检查物品是否可堆肥
-    float chance = CompostableItems::getCompostChance(item);
+    f32 chance = CompostableItems::getCompostChance(item);
     if (chance <= 0.0f) {
         return ActionResultType::Pass;
     }

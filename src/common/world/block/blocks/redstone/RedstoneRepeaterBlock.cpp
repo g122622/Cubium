@@ -22,9 +22,11 @@
  */
 
 #include "RedstoneRepeaterBlock.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../../sound/SoundCategory.hpp"
-#include "../../../IWorld.hpp"
+
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/world/IWorld.hpp"
+
 #include <algorithm>
 #include <unordered_map>
 
@@ -70,7 +72,7 @@ BlockState RedstoneRepeaterBlock::updatePostPlacement(const BlockState& state,
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
 
-    // MC Java: 如果更新方向不是中继器的朝向方向，更新 LOCKED 状态
+    // 如果更新方向不是中继器的朝向方向，更新 LOCKED 状态
     Direction blockFacing = getFacing(state);
     if (Directions::getAxis(facing) != Directions::getAxis(blockFacing)) {
         // 检查是否被锁定
@@ -137,7 +139,7 @@ ActionResultType RedstoneRepeaterBlock::onBlockActivated(const BlockState& state
     MC_UNUSED(hand);
     MC_UNUSED(hit);
 
-    // MC Java: 右键点击中继器可以在 1-4 档延迟之间循环切换
+    // 右键点击中继器可以在 1-4 档延迟之间循环切换
     // 只有未被锁定的中继器才能调整延迟
     if (isLockedState(state)) {
         return ActionResultType::Pass;

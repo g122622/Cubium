@@ -251,13 +251,13 @@ private:
      * @param uuid 玩家 UUID
      * @return 数据库键
      */
-    [[nodiscard]] static std::vector<u8> makeKey(const std::string& uuid);
+    [[nodiscard]] static std::vector<u8> _makeKey(const std::string& uuid);
 
     /**
      * @brief 从缓存中移除玩家
      * @param uuid 玩家 UUID
      */
-    void removeFromCache(const std::string& uuid);
+    void _removeFromCache(const std::string& uuid);
 
 private:
     RocksDBDatabase& m_db;

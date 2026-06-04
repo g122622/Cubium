@@ -23,7 +23,6 @@
 
 #include "PlayerSkinInfo.hpp"
 #include "common/skin/core/SkinTypes.hpp"
-#include <spdlog/spdlog.h>
 
 namespace mc::skin {
 
@@ -82,12 +81,12 @@ void PlayerSkinInfo::setElytraLocation(const ResourceLocation& location)
     m_textures.setElytra(location);
 }
 
-bool PlayerSkinInfo::isWearing(PlayerModelPart part) const
+bool PlayerSkinInfo::isWearing(PlayerModelPart part) const noexcept
 {
     return (m_modelParts & getPlayerModelPartMask(part)) != 0;
 }
 
-void PlayerSkinInfo::setModelPartEnabled(PlayerModelPart part, bool enabled)
+void PlayerSkinInfo::setModelPartEnabled(PlayerModelPart part, bool enabled) noexcept
 {
     u8 mask = getPlayerModelPartMask(part);
     if (enabled) {

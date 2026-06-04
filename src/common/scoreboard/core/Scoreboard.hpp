@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../core/Result.hpp"
-#include "../../util/text/ITextComponentFwd.hpp"
 #include "Score.hpp"
 #include "ScoreCriteriaRenderType.hpp"
 #include "ScoreObjective.hpp"
 #include "ScorePlayerTeam.hpp"
+#include "common/core/Result.hpp"
+#include "common/util/text/ITextComponentFwd.hpp"
 #include <array>
 #include <functional>
 #include <memory>
@@ -44,7 +44,6 @@ namespace mc::scoreboard {
  * @brief 分数比较器
  *
  * 用于对分数进行排序。按分数降序排列，分数相同则按名称升序排列。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.Score.SCORE_COMPARATOR
  */
 struct ScoreComparator {
     bool operator()(const Score* a, const Score* b) const;
@@ -54,7 +53,6 @@ struct ScoreComparator {
  * @brief 记分板核心类
  *
  * 管理目标、分数和队伍。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.Scoreboard
  *
  * 这是客户端和服务端共用的基类。服务端应使用 ServerScoreboard 子类，
  * 它添加了网络同步功能。
@@ -441,12 +439,12 @@ private:
     /**
      * @brief 检查目标名称是否有效
      */
-    [[nodiscard]] static bool isValidObjectiveName(const std::string& name);
+    [[nodiscard]] static bool _isValidObjectiveName(const std::string& name);
 
     /**
      * @brief 检查玩家名称是否有效
      */
-    [[nodiscard]] static bool isValidPlayerName(const std::string& name);
+    [[nodiscard]] static bool _isValidPlayerName(const std::string& name);
 };
 
 } // namespace mc::scoreboard

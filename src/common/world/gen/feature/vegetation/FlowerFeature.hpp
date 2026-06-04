@@ -24,16 +24,15 @@
 #pragma once
 
 #include <memory>
-#include "../ConfiguredFeature.hpp"
-#include "../Feature.hpp"
 #include <vector>
+
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/Feature.hpp"
 
 namespace mc {
 
 /**
  * @brief 花卉特征配置
- *
- * 参考 MC 1.16.5 BlockClusterFeatureConfig
  */
 struct FlowerFeatureConfig : public IFeatureConfig {
     /// 可放置的花卉方块状态列表（随机选择）
@@ -83,7 +82,6 @@ struct FlowerFeatureConfig : public IFeatureConfig {
  * @brief 花卉特征
  *
  * 在指定位置周围随机放置花卉。
- * 参考 MC 1.16.5 RandomPatchFeature / DefaultFlowersFeature
  */
 class FlowerFeature {
 public:
@@ -104,7 +102,7 @@ private:
      * @param pos 下方方块位置
      * @param config 配置（用于白名单/黑名单检查）
      */
-    [[nodiscard]] bool isValidGround(
+    [[nodiscard]] bool _isValidGround(
         WorldGenRegion& world, const BlockPos& pos, const FlowerFeatureConfig& config) const;
 
     /**
@@ -113,7 +111,7 @@ private:
      * @param pos 检查位置
      * @return 四个水平方向是否有水
      */
-    [[nodiscard]] bool hasAdjacentWater(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _hasAdjacentWater(WorldGenRegion& world, const BlockPos& pos) const;
 };
 
 /**

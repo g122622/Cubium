@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../block/BlockPos.hpp"
-#include "../storage/EmptinessMap.hpp"
-#include "../storage/SWMRNibbleArray.hpp"
-#include "BaseLightEngine.hpp"
-#include "LightEngineUtils.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/lighting/engine/BaseLightEngine.hpp"
+#include "common/world/lighting/engine/LightEngineUtils.hpp"
+#include "common/world/lighting/storage/EmptinessMap.hpp"
+#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -40,8 +40,6 @@ class ChunkData;
 
 /**
  * @brief 方块光照引擎
- *
- * 参考: ca.spottedleaf.moonrise.patches.starlight.light.BlockStarLightEngine
  *
  * 实现方块光照的传播算法：
  * - 光源方块发出初始光照等级
@@ -178,19 +176,27 @@ public:
     void updateEmptinessMap(i32 chunkX, i32 chunkZ, const ChunkData* chunk);
 
 private:
-    // 空映射缓存（每个区块）
-    std::vector<bool> m_emptinessMapCache;
+    // ========================================================================
+    // 私有方法
+    // ========================================================================
 
     /**
      * @brief 获取区块的光源位置
      */
-    std::vector<BlockPos> getSources(StarLightLightingProvider* lightAccess, const IChunk* chunk);
+    std::vector<BlockPos> _getSources(StarLightLightingProvider* lightAccess, const IChunk* chunk);
 
     /**
      * @brief 获取发射光照等级
      */
-    [[nodiscard]] i32 getLightEmission(
+    [[nodiscard]] i32 _getLightEmission(
         StarLightLightingProvider* lightAccess, const BlockState* state, i32 x, i32 y, i32 z) const;
+
+    // ========================================================================
+    // 私有成员变量
+    // ========================================================================
+
+    // 空映射缓存（每个区块）
+    std::vector<bool> m_emptinessMapCache;
 };
 
 } // namespace mc

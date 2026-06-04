@@ -135,7 +135,7 @@ private:
      * @param inverted 是否为夜间模式
      * @return i32 计算出的信号强度
      */
-    [[nodiscard]] static i32 calculateSignalStrength(IWorld& world, const BlockPos& pos, bool inverted);
+    [[nodiscard]] static i32 _calculateSignalStrength(IWorld& world, const BlockPos& pos, bool inverted);
 
     /**
      * @brief 更新信号强度
@@ -144,7 +144,7 @@ private:
      * @param pos 方块位置
      * @param state 当前方块状态
      */
-    static void updatePower(IWorld& world, const BlockPos& pos, const BlockState& state);
+    static void _updatePower(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
      * @brief 通知相邻方块更新
@@ -152,7 +152,7 @@ private:
      * @param world 世界引用
      * @param pos 方块位置
      */
-    static void notifyNeighbors(IWorld& world, const BlockPos& pos);
+    static void _notifyNeighbors(IWorld& world, const BlockPos& pos);
 };
 
 } // namespace blocks

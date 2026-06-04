@@ -23,18 +23,19 @@
 
 #include "OceanRuinStructure.hpp"
 
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../../biome/Biome.hpp"
-#include "../../../block/BlockPos.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../../feature/template/Template.hpp"
-#include "../../feature/template/TemplateLoader.hpp"
-#include "../../feature/template/TemplateManager.hpp"
-#include "../../jigsaw/JigsawManager.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/Constants.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/feature/template/TemplateLoader.hpp"
+#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/jigsaw/JigsawManager.hpp"
 #include <algorithm>
 
 namespace mc::world::gen::structure {
@@ -130,7 +131,7 @@ OceanRuinPiece::OceanRuinPiece(const std::string& templateName,
     , m_size(1, 1, 1)
 {}
 
-void OceanRuinPiece::loadTemplate()
+void OceanRuinPiece::_loadTemplate()
 {
     if (!m_templateManager) {
         return;
@@ -163,7 +164,7 @@ void OceanRuinPiece::generate(
 
     // 延迟加载模板
     if (!m_template) {
-        loadTemplate();
+        _loadTemplate();
     }
 
     if (!m_template) {
@@ -198,10 +199,10 @@ void OceanRuinPiece::generate(
 OceanRuinStructure::OceanRuinStructure()
     : Structure(StructureType::OceanRuin)
 {
-    initializeBiomes();
+    _initializeBiomes();
 }
 
-void OceanRuinStructure::initializeBiomes()
+void OceanRuinStructure::_initializeBiomes() noexcept
 {
     m_validBiomes = {Biomes::Ocean,
         Biomes::WarmOcean,
@@ -215,8 +216,11 @@ void OceanRuinStructure::initializeBiomes()
         Biomes::DeepFrozenOcean};
 }
 
-bool OceanRuinStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/)
+bool OceanRuinStructure::canGenerate([[maybe_unused]] IWorld& world,
+    [[maybe_unused]] IChunkGenerator& generator,
+    math::Random& rng,
+    [[maybe_unused]] i32 chunkX,
+    [[maybe_unused]] i32 chunkZ)
 {
     return rng.nextFloat() < 0.4f;
 }
@@ -227,8 +231,8 @@ std::unique_ptr<StructureStart> OceanRuinStructure::generate(
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 计算基础位置
-    const i32 baseX = (chunkX << 4) + rng.nextInt(16);
-    const i32 baseZ = (chunkZ << 4) + rng.nextInt(16);
+    const i32 baseX = (chunkX << world::CHUNK_SHIFT) + rng.nextInt(world::CHUNK_WIDTH);
+    const i32 baseZ = (chunkZ << world::CHUNK_SHIFT) + rng.nextInt(world::CHUNK_WIDTH);
 
     // 获取海底高度
     i32 floorY = generator.getHeight(baseX, baseZ, HeightmapType::OceanFloorWG);
@@ -238,7 +242,7 @@ std::unique_ptr<StructureStart> OceanRuinStructure::generate(
 
     // 确定废墟类型（根据生物群系）
     const BiomeId biome = generator.getBiome(baseX, floorY, baseZ);
-    const bool warmVariant = isWarmBiome(biome);
+    const bool warmVariant = _isWarmBiome(biome);
 
     // 更新配置
     OceanRuinConfig config = m_config;
@@ -319,7 +323,6 @@ void OceanRuinStructure::generatePiece(feature::template_::TemplateManager& temp
         }
 
         // 生成三层叠加，不同完整度
-        // MC 1.16.5: 三层叠加，integrity 分别为传入值、0.7、0.5
         auto brickPiece =
             std::make_unique<OceanRuinPiece>(brickTemplate, pos, rotation, integrity, config.biomeType, isLarge);
         brickPiece->setTemplateManager(&templateManager);
@@ -339,12 +342,12 @@ void OceanRuinStructure::generatePiece(feature::template_::TemplateManager& temp
 
 void OceanRuinStructure::generateClusterPieces(feature::template_::TemplateManager& templateManager,
     math::Random& rng,
-    Rotation mainRotation,
+    [[maybe_unused]] Rotation mainRotation,
     const BlockPos& mainPos,
     const OceanRuinConfig& config,
     std::vector<std::unique_ptr<StructurePiece>>& pieces) const
 {
-    // MC 1.16.5: 生成周围的小废墟群
+    // 生成周围的小废墟群
     // 计算主废墟的变换后角落位置
     const i32 mainX = mainPos.x;
     const i32 mainZ = mainPos.z;
@@ -371,12 +374,11 @@ void OceanRuinStructure::generateClusterPieces(feature::template_::TemplateManag
 
 std::vector<BlockPos> OceanRuinStructure::getCandidatePositions(math::Random& rng, i32 x, i32 z) const
 {
-    // MC 1.16.5: OceanRuinPieces.func_204044_a
     // 生成 8 个候选位置，围绕主废墟
     std::vector<BlockPos> positions;
     positions.reserve(8);
 
-    // Y 坐标固定为 90（MC 1.16.5 使用固定高度，后续会调整到海床）
+    // Y 坐标固定为 90（后续会调整到海床）
     const i32 y = 90;
 
     // 北侧偏移
@@ -396,7 +398,7 @@ std::vector<BlockPos> OceanRuinStructure::getCandidatePositions(math::Random& rn
     return positions;
 }
 
-bool OceanRuinStructure::isWarmBiome(BiomeId biomeId) const
+bool OceanRuinStructure::_isWarmBiome(BiomeId biomeId) const noexcept
 {
     return biomeId == Biomes::WarmOcean || biomeId == Biomes::LukewarmOcean || biomeId == Biomes::DeepWarmOcean ||
         biomeId == Biomes::DeepLukewarmOcean;

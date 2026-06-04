@@ -49,14 +49,14 @@ public:
     static Result<LevelSummaryData> readSummary(const std::filesystem::path& worldDir);
 
 private:
-    static Result<std::unique_ptr<mc::nbt::tags::compound_tag>> readBedrockNbt(const std::filesystem::path& filePath);
+    static Result<std::unique_ptr<mc::nbt::tags::compound_tag>> _readBedrockNbt(const std::filesystem::path& filePath);
 
-    static Result<LevelSummaryData> parseSummary(const mc::nbt::tags::compound_tag& root);
-    static Result<LevelRuntimeData> parseRuntimeData(const mc::nbt::tags::compound_tag& root);
+    static Result<LevelSummaryData> _parseSummary(const mc::nbt::tags::compound_tag& root);
+    static Result<LevelRuntimeData> _parseRuntimeData(const mc::nbt::tags::compound_tag& root);
 
-    static GameMode parseGameMode(i32 gameType);
-    static Difficulty parseDifficulty(i32 difficulty);
-    static WorldType parseWorldType(const std::string& generatorName);
+    static GameMode _parseGameMode(i32 gameType);
+    static Difficulty _parseDifficulty(i32 difficulty);
+    static WorldType _parseWorldType(const std::string& generatorName);
 };
 
 } // namespace mc::world::storage::reader::bedrock

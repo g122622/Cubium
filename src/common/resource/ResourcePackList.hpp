@@ -362,27 +362,27 @@ private:
     /**
      * @brief 通知变更
      */
-    void notifyChange();
+    void _notifyChange();
 
     /**
      * @brief 规范化路径
      */
-    [[nodiscard]] static std::string normalizePath(const std::filesystem::path& path);
+    [[nodiscard]] static std::string _normalizePath(const std::filesystem::path& path);
 
     /**
      * @brief 生成用于去重比较的路径键
      */
-    [[nodiscard]] static std::string normalizePathKey(const std::filesystem::path& path);
+    [[nodiscard]] static std::string _normalizePathKey(const std::filesystem::path& path);
 
     /**
      * @brief 检查是否是 ZIP 文件
      */
-    [[nodiscard]] static bool isZipFile(const std::filesystem::path& path);
+    [[nodiscard]] static bool _isZipFile(const std::filesystem::path& path);
 
     /**
      * @brief 检查是否是有效的资源包目录
      */
-    [[nodiscard]] static bool isResourcePackDir(const std::filesystem::path& path);
+    [[nodiscard]] static bool _isResourcePackDir(const std::filesystem::path& path);
 };
 
 } // namespace mc

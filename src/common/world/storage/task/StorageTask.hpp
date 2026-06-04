@@ -46,6 +46,16 @@ class StorageTask : public util::ITask {
 public:
     using Executor = std::function<bool(const std::atomic<bool>&)>;
 
+    // 禁止拷贝
+    StorageTask(const StorageTask&) = delete;
+    StorageTask& operator=(const StorageTask&) = delete;
+
+    // 移动操作
+    StorageTask(StorageTask&& other) noexcept;
+    StorageTask& operator=(StorageTask&& other) noexcept;
+
+    ~StorageTask() noexcept override = default;
+
     /**
      * @brief 创建加载任务
      */

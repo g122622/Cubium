@@ -26,8 +26,6 @@
 #include <filesystem>
 #include <fstream>
 
-#include <spdlog/spdlog.h>
-
 namespace mc::mod::bedrock::addon {
 
 BehaviorPack::BehaviorPack(std::string path, AddonManifest manifest)

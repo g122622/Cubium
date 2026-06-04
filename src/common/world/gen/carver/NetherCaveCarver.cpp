@@ -22,11 +22,17 @@
  */
 
 #include "NetherCaveCarver.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../block/BlockRegistry.hpp"
-#include "../../block/VanillaBlocks.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc {
+
+// TODO: NETHER_HEIGHT 常量在 NetherChunkGenerator.cpp 中也有定义，应该统一提取到公共头文件中
+namespace {
+// 下界最大高度
+constexpr i32 NETHER_HEIGHT = 128;
+} // namespace
 
 // ============================================================================
 // 下界可雕刻方块集合 - 使用延迟初始化避免静态初始化顺序问题
@@ -59,24 +65,22 @@ static const std::unordered_set<BlockId>& getNetherCarvableBlocks()
 // ============================================================================
 
 NetherCaveCarver::NetherCaveCarver()
-    : CaveCarver(128) // 下界最大高度 128
+    : CaveCarver(NETHER_HEIGHT)
 {}
 
 f32 NetherCaveCarver::getCaveRadius(math::IRandom& rng) const
 {
-    // 参考 MC NetherCaveCarver.func_230359_a_
-    // return (rand.nextFloat() * 2.0F + rand.nextFloat()) * 2.0F;
+    // 下界洞穴半径更大：(nextFloat() * 2.0F + nextFloat()) * 2.0F
     return (rng.nextFloat() * 2.0f + rng.nextFloat()) * 2.0f;
 }
 
 i32 NetherCaveCarver::getCaveStartY(math::IRandom& rng) const
 {
-    // 参考 MC NetherCaveCarver.func_230361_b_
-    // return rand.nextInt(this.maxHeight);
+    // 下界使用完整高度范围
     return rng.nextInt(m_maxHeight);
 }
 
-bool NetherCaveCarver::isNetherCarvable(const BlockState& state)
+bool NetherCaveCarver::_isNetherCarvable(const BlockState& state)
 {
     const auto& blocks = getNetherCarvableBlocks();
     return blocks.find(state.blockId()) != blocks.end();
@@ -89,17 +93,14 @@ bool NetherCaveCarver::canCarveBlock(const BlockState* state, const BlockState* 
     }
 
     // 检查是否在下界可雕刻方块列表中
-    if (isNetherCarvable(*state)) {
+    if (_isNetherCarvable(*state)) {
         return true;
     }
 
     // 沙子和沙砾可以在特定条件下雕刻
-    // 参考 MC: (state.isIn(Blocks.SAND) || state.isIn(Blocks.GRAVEL)) &&
-    // !aboveState.getFluidState().isTagged(FluidTags.WATER)
     bool isSandOrGravel = state->is(VanillaBlocks::SAND) || state->is(VanillaBlocks::GRAVEL);
     if (isSandOrGravel && aboveState) {
         // 下界中检查熔岩而不是水
-        // 但由于下界很少有水和沙子组合，这里简化处理
         return !aboveState->isLiquid();
     }
 

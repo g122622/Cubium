@@ -46,8 +46,6 @@ namespace blocks {
  * - 脉冲持续时间需要精确控制
  * - 附着面变化时需要检测支撑
  * - 木按钮和石按钮延迟不同
- *
- * 参考: net.minecraft.block.AbstractButtonBlock
  */
 class AbstractButtonBlock : public Block {
 public:
@@ -107,7 +105,7 @@ public:
      * @param state 方块状态
      * @return true 如果被按下
      */
-    [[nodiscard]] static bool isPowered(const BlockState& state);
+    [[nodiscard]] static bool isPowered(const BlockState& state) noexcept;
 
     /**
      * @brief 设置按钮的按下状态
@@ -116,7 +114,7 @@ public:
      * @param powered 是否按下
      * @return BlockState 更新后的状态
      */
-    [[nodiscard]] static BlockState withPowered(BlockState state, bool powered);
+    [[nodiscard]] static BlockState withPowered(BlockState state, bool powered) noexcept;
 
     /**
      * @brief 获取按钮附着的方向
@@ -124,7 +122,7 @@ public:
      * @param state 方块状态
      * @return Direction 附着方向
      */
-    [[nodiscard]] static Direction getFacing(const BlockState& state);
+    [[nodiscard]] static Direction getFacing(const BlockState& state) noexcept;
 
     /**
      * @brief 按下按钮

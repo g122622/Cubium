@@ -35,8 +35,6 @@ namespace blocks {
  * - 自动连接到相邻铁轨
  * - 支持弯轨和斜轨
  * - 无碰撞箱
- *
- * 参考: net.minecraft.block.RailBlock
  */
 class RailBlock : public AbstractRailBlock {
 public:

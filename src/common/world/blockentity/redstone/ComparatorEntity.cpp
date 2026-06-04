@@ -67,7 +67,7 @@ std::unique_ptr<BlockEntity> ComparatorEntity::clone() const
 
 void ComparatorEntity::setOutputSignal(i32 signal)
 {
-    MC_ASSERT(signal >= 0 && signal <= 15);
+    MC_ASSERT_RELEASE(signal >= 0 && signal <= 15);
     m_outputSignal = signal;
     setChanged();
 }

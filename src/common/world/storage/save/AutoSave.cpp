@@ -91,12 +91,12 @@ void AutoSave::tick(u64 tickCount)
         config = m_config;
     }
 
-    if (!shouldSave(tickCount)) {
+    if (!_shouldSave(tickCount)) {
         return;
     }
 
     // 执行保存
-    auto result = doSave(config.createSnapshotBeforeSave);
+    auto result = _doSave(config.createSnapshotBeforeSave);
     if (result.success()) {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_lastSaveTick = tickCount;
@@ -117,19 +117,19 @@ void AutoSave::tick(u64 tickCount)
 
 Result<size_t> AutoSave::saveNow()
 {
-    return doSave(false);
+    return _doSave(false);
 }
 
 Result<size_t> AutoSave::saveNowWithSnapshot(const std::string& snapshotName)
 {
-    return doSave(true, snapshotName);
+    return _doSave(true, snapshotName);
 }
 
 // ============================================================================
 // 私有方法
 // ============================================================================
 
-bool AutoSave::shouldSave(u64 tickCount) const
+bool AutoSave::_shouldSave(u64 tickCount) const
 {
     AutoSaveConfig config;
     u64 lastSaveTick = 0;
@@ -164,7 +164,7 @@ bool AutoSave::shouldSave(u64 tickCount) const
     return false;
 }
 
-Result<size_t> AutoSave::doSave(bool createSnapshot, const std::string& snapshotName)
+Result<size_t> AutoSave::_doSave(bool createSnapshot, const std::string& snapshotName)
 {
     MC_TRACE_EVENT("storage.task.save", "AutoSave::doSave");
 
@@ -188,7 +188,7 @@ Result<size_t> AutoSave::doSave(bool createSnapshot, const std::string& snapshot
             spdlog::warn("Failed to create auto-save snapshot: {}", backupResult.error().message());
         } else {
             spdlog::info("Created auto-save snapshot: {}", name);
-            pruneOldSnapshots();
+            _pruneOldSnapshots();
         }
     }
 
@@ -201,7 +201,7 @@ Result<size_t> AutoSave::doSave(bool createSnapshot, const std::string& snapshot
     return result;
 }
 
-void AutoSave::pruneOldSnapshots()
+void AutoSave::_pruneOldSnapshots()
 {
     AutoSaveConfig config;
     {
@@ -211,7 +211,7 @@ void AutoSave::pruneOldSnapshots()
 
     auto result = m_storage.pruneOldBackups(config.maxAutoSnapshots);
     if (result.success() && result.value() > 0) {
-        spdlog::debug("Pruned {} old snapshots", result.value());
+        spdlog::info("Pruned {} old snapshots", result.value());
     }
 }
 

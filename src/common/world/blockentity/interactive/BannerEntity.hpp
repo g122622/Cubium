@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "entity/entities/passive/basic/SheepEntity.hpp"
+#include "util/color/DyeColor.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/interactive/BannerPattern.hpp"
 #include <memory>
@@ -78,7 +78,7 @@ public:
     /**
      * @brief 析构函数
      */
-    ~BannerEntity() override;
+    ~BannerEntity() noexcept override;
 
     // ========== 图案接口 ==========
 

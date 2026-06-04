@@ -113,6 +113,9 @@ public:
     [[nodiscard]] const std::filesystem::path& path() const { return m_path; }
 
 private:
+    // 区域尺寸常量
+    static constexpr i32 REGION_SIZE = 32; // 每个区域包含 32x32 个区块
+
     static constexpr i32 SECTOR_SIZE = 4096;
     static constexpr i32 HEADER_SIZE = 8192;
     static constexpr i32 CHUNKS_PER_REGION = 1024;
@@ -131,8 +134,8 @@ private:
         External = 128,
     };
 
-    Result<void> readHeader();
-    Result<std::vector<u8>> decompress(CompressionType type, const std::vector<u8>& data);
+    Result<void> _readHeader();
+    Result<std::vector<u8>> _decompress(CompressionType type, const std::vector<u8>& data);
 
     std::filesystem::path m_path;
     std::ifstream m_stream;

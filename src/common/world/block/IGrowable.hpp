@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 
@@ -41,8 +41,6 @@ class IRandom;
  *
  * 实现此接口的方块可以被骨粉催熟。
  * 包括农作物、树苗、花朵、草等植物。
- *
- * 参考: net.minecraft.block.IGrowable
  */
 class IGrowable {
 public:

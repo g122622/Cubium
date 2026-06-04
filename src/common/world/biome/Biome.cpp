@@ -25,7 +25,7 @@
 
 namespace mc {
 
-Biome::Biome(BiomeId id, const std::string& name)
+Biome::Biome(BiomeId id, const std::string& name) noexcept
     : m_id(id)
     , m_name(name)
 {}

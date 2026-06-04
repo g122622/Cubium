@@ -22,14 +22,14 @@
  */
 
 #include "TrapDoorBlock.hpp"
-#include "../../../../entity/core/Entity.hpp"
-#include "../../../../entity/entities/player/Player.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
-#include "../../WaterLoggableHelpers.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
 
 namespace mc {
 namespace blocks {
@@ -61,46 +61,38 @@ TrapDoorBlock::TrapDoorBlock(const BlockProperties& properties, bool isIron)
             .with(BlockStateProperties::POWERED(), false)
             .with(BlockStateProperties::WATERLOGGED(), false));
 
-    // 参考 MC 1.16.5 TrapDoorBlock.java:
-    // EAST_OPEN_AABB  = makeCuboidShape(0.0, 0.0, 0.0, 3.0, 16.0, 16.0)  // 朝东打开，贴东墙
-    // WEST_OPEN_AABB  = makeCuboidShape(13.0, 0.0, 0.0, 16.0, 16.0, 16.0) // 朝西打开，贴西墙
-    // SOUTH_OPEN_AABB = makeCuboidShape(0.0, 0.0, 0.0, 16.0, 16.0, 3.0)   // 朝南打开，贴南墙
-    // NORTH_OPEN_AABB = makeCuboidShape(0.0, 0.0, 13.0, 16.0, 16.0, 16.0) // 朝北打开，贴北墙
-    // BOTTOM_AABB     = makeCuboidShape(0.0, 0.0, 0.0, 16.0, 3.0, 16.0)
-    // TOP_AABB        = makeCuboidShape(0.0, 13.0, 0.0, 16.0, 16.0, 16.0)
+    // 关闭状态的碰撞形状（上半和下半不同）
+    // 形状尺寸：厚度为 3/16 格
     constexpr f32 P = 1.0f / 16.0f;
 
     CollisionShape closedBottom = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 3.0f * P, 1.0f);
     CollisionShape closedTop = CollisionShape::box(0.0f, 13.0f * P, 0.0f, 1.0f, 1.0f, 1.0f);
 
-    // 朝北打开: 贴北墙 (z: 13/16 -> 16/16)
+    // 打开状态的碰撞形状（贴墙放置）
     CollisionShape openNorth = CollisionShape::box(0.0f, 0.0f, 13.0f * P, 1.0f, 1.0f, 1.0f);
-    // 朝南打开: 贴南墙 (z: 0 -> 3/16)
     CollisionShape openSouth = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 3.0f * P);
-    // 朝东打开: 贴东墙 (x: 13/16 -> 16/16)
     CollisionShape openEast = CollisionShape::box(13.0f * P, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
-    // 朝西打开: 贴西墙 (x: 0 -> 3/16)
     CollisionShape openWest = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f * P, 1.0f, 1.0f);
 
     // 关闭状态的形状（上半和下半不同）
-    m_shapes[getShapeIndex(Direction::North, false, BlockStateProperties::Half::Bottom)] = closedBottom;
-    m_shapes[getShapeIndex(Direction::North, false, BlockStateProperties::Half::Top)] = closedTop;
-    m_shapes[getShapeIndex(Direction::South, false, BlockStateProperties::Half::Bottom)] = closedBottom;
-    m_shapes[getShapeIndex(Direction::South, false, BlockStateProperties::Half::Top)] = closedTop;
-    m_shapes[getShapeIndex(Direction::East, false, BlockStateProperties::Half::Bottom)] = closedBottom;
-    m_shapes[getShapeIndex(Direction::East, false, BlockStateProperties::Half::Top)] = closedTop;
-    m_shapes[getShapeIndex(Direction::West, false, BlockStateProperties::Half::Bottom)] = closedBottom;
-    m_shapes[getShapeIndex(Direction::West, false, BlockStateProperties::Half::Top)] = closedTop;
+    m_shapes[_getShapeIndex(Direction::North, false, BlockStateProperties::Half::Bottom)] = closedBottom;
+    m_shapes[_getShapeIndex(Direction::North, false, BlockStateProperties::Half::Top)] = closedTop;
+    m_shapes[_getShapeIndex(Direction::South, false, BlockStateProperties::Half::Bottom)] = closedBottom;
+    m_shapes[_getShapeIndex(Direction::South, false, BlockStateProperties::Half::Top)] = closedTop;
+    m_shapes[_getShapeIndex(Direction::East, false, BlockStateProperties::Half::Bottom)] = closedBottom;
+    m_shapes[_getShapeIndex(Direction::East, false, BlockStateProperties::Half::Top)] = closedTop;
+    m_shapes[_getShapeIndex(Direction::West, false, BlockStateProperties::Half::Bottom)] = closedBottom;
+    m_shapes[_getShapeIndex(Direction::West, false, BlockStateProperties::Half::Top)] = closedTop;
 
     // 打开状态的形状（根据朝向决定，上半和下半打开后形状相同）
-    m_shapes[getShapeIndex(Direction::North, true, BlockStateProperties::Half::Bottom)] = openNorth;
-    m_shapes[getShapeIndex(Direction::North, true, BlockStateProperties::Half::Top)] = openNorth;
-    m_shapes[getShapeIndex(Direction::South, true, BlockStateProperties::Half::Bottom)] = openSouth;
-    m_shapes[getShapeIndex(Direction::South, true, BlockStateProperties::Half::Top)] = openSouth;
-    m_shapes[getShapeIndex(Direction::East, true, BlockStateProperties::Half::Bottom)] = openEast;
-    m_shapes[getShapeIndex(Direction::East, true, BlockStateProperties::Half::Top)] = openEast;
-    m_shapes[getShapeIndex(Direction::West, true, BlockStateProperties::Half::Bottom)] = openWest;
-    m_shapes[getShapeIndex(Direction::West, true, BlockStateProperties::Half::Top)] = openWest;
+    m_shapes[_getShapeIndex(Direction::North, true, BlockStateProperties::Half::Bottom)] = openNorth;
+    m_shapes[_getShapeIndex(Direction::North, true, BlockStateProperties::Half::Top)] = openNorth;
+    m_shapes[_getShapeIndex(Direction::South, true, BlockStateProperties::Half::Bottom)] = openSouth;
+    m_shapes[_getShapeIndex(Direction::South, true, BlockStateProperties::Half::Top)] = openSouth;
+    m_shapes[_getShapeIndex(Direction::East, true, BlockStateProperties::Half::Bottom)] = openEast;
+    m_shapes[_getShapeIndex(Direction::East, true, BlockStateProperties::Half::Top)] = openEast;
+    m_shapes[_getShapeIndex(Direction::West, true, BlockStateProperties::Half::Bottom)] = openWest;
+    m_shapes[_getShapeIndex(Direction::West, true, BlockStateProperties::Half::Top)] = openWest;
 }
 
 BlockState TrapDoorBlock::getStateForPlacement(BlockItemUseContext& context)
@@ -132,10 +124,7 @@ BlockState TrapDoorBlock::getStateForPlacement(BlockItemUseContext& context)
 
 bool TrapDoorBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-
-    // 参考: net.minecraft.block.TrapDoorBlock
-    // 活板门没有特殊的放置位置检查
-    // 如果支撑丢失，由 updatePostPlacement 处理移除
+    // 活板门没有特殊的放置位置检查，如果支撑丢失由 updatePostPlacement 处理移除
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -149,8 +138,6 @@ BlockState TrapDoorBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-
-    // 参考: net.minecraft.block.TrapDoorBlock#updatePostPlacement
     // 处理含水状态
     if (state.get(BlockStateProperties::WATERLOGGED())) {
         waterloggable::scheduleWaterTick(world, currentPos);
@@ -220,7 +207,7 @@ const CollisionShape& TrapDoorBlock::getShape(const BlockState& state) const
     bool open = state.get(BlockStateProperties::OPEN());
     BlockStateProperties::Half half = state.get(BlockStateProperties::HALF());
 
-    size_t index = getShapeIndex(facing, open, half);
+    size_t index = _getShapeIndex(facing, open, half);
     MC_ASSERT(index < 16);
     return m_shapes[index];
 }
@@ -271,10 +258,10 @@ void TrapDoorBlock::toggle(IWorld& world, const BlockPos& pos, const BlockState&
         waterloggable::scheduleWaterTick(world, pos);
     }
 
-    playSound(world, pos, open);
+    _playSound(world, pos, open);
 }
 
-void TrapDoorBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening)
+void TrapDoorBlock::_playSound(IWorld& world, const BlockPos& pos, bool isOpening)
 {
     const BlockState* state = world.getBlockState(pos);
     const auto* trapDoor = state != nullptr ? dynamic_cast<const TrapDoorBlock*>(&state->getBlock()) : nullptr;
@@ -290,7 +277,7 @@ void TrapDoorBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening
     world.playSound(ResourceLocation(soundId), sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
 }
 
-size_t TrapDoorBlock::getShapeIndex(Direction facing, bool open, BlockStateProperties::Half half)
+size_t TrapDoorBlock::_getShapeIndex(Direction facing, bool open, BlockStateProperties::Half half)
 {
     size_t facingIdx = 0;
     switch (facing) {
@@ -328,15 +315,12 @@ const fluid::FluidState* TrapDoorBlock::getFluidState(const BlockState& state) c
 
 bool TrapDoorBlock::isLadder(const BlockState& state, IWorld* world, const BlockPos* pos, const Entity* entity) const
 {
-    // 参考: MC 1.16.5 Forge TrapDoorBlock.isLadder()
     // 只有打开的活板门才能攀爬
     if (!state.get(BlockStateProperties::OPEN())) {
         return false;
     }
 
     // 如果没有世界信息，只检查是否打开
-    // 这是项目扩展行为，不同于MC 1.16.5 Forge
-    // Forge需要检查下方是否有梯子，但项目测试期望更宽松的行为
     if (world == nullptr || pos == nullptr) {
         return true;
     }
@@ -359,7 +343,7 @@ bool TrapDoorBlock::isLadder(const BlockState& state, IWorld* world, const Block
         }
     }
 
-    // 即使下方没有梯子，打开的活板门也可以攀爬（项目扩展）
+    // 即使下方没有梯子，打开的活板门也可以攀爬
     return true;
 }
 

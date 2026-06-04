@@ -35,21 +35,19 @@ namespace mc::network {
  *
  * 当玩家重生或切换维度时发送。客户端应卸载当前维度的所有区块，
  * 重置状态，并准备加载新维度。
- *
- * 参考 MC 1.16.5 SRespawnPacket:
- * - DimensionType field_240822_a_ (维度类型)
- * - RegistryKey<World> dimensionID (世界名称: minecraft:overworld/nether/the_end)
- * - long hashedSeed (世界种子的 SHA-256 前8字节)
- * - GameType gameType
- * - GameType field_241787_e_ (上一个游戏模式)
- * - boolean field_240823_e_ (isDebug)
- * - boolean field_240824_f_ (isFlat)
- * - boolean field_240825_g_ (copyMetadata - 用于维度切换时保留数据)
  */
 class RespawnPacket : public Packet {
 public:
     RespawnPacket();
     ~RespawnPacket() override = default;
+
+    // 移动语义
+    RespawnPacket(RespawnPacket&&) noexcept = default;
+    RespawnPacket& operator=(RespawnPacket&&) noexcept = default;
+
+    // 禁止拷贝
+    RespawnPacket(const RespawnPacket&) = delete;
+    RespawnPacket& operator=(const RespawnPacket&) = delete;
 
     // ========== Packet 接口实现 ==========
 
@@ -117,7 +115,6 @@ public:
     /**
      * @brief 是否保留玩家数据
      *
-     * MC 1.16.5: copyMetadata
      * 如果为 true，客户端应保留某些玩家状态（如经验值）。
      * 维度切换时通常为 true，死亡重生时为 false。
      */
@@ -156,6 +153,14 @@ public:
 
     DimensionInfoPacket();
     ~DimensionInfoPacket() override = default;
+
+    // 移动语义
+    DimensionInfoPacket(DimensionInfoPacket&&) noexcept = default;
+    DimensionInfoPacket& operator=(DimensionInfoPacket&&) noexcept = default;
+
+    // 禁止拷贝（Packet 基类通常不可拷贝）
+    DimensionInfoPacket(const DimensionInfoPacket&) = delete;
+    DimensionInfoPacket& operator=(const DimensionInfoPacket&) = delete;
 
     // ========== Packet 接口实现 ==========
 
@@ -198,6 +203,14 @@ class ConfirmDimensionChangePacket : public Packet {
 public:
     ConfirmDimensionChangePacket();
     ~ConfirmDimensionChangePacket() override = default;
+
+    // 移动语义
+    ConfirmDimensionChangePacket(ConfirmDimensionChangePacket&&) noexcept = default;
+    ConfirmDimensionChangePacket& operator=(ConfirmDimensionChangePacket&&) noexcept = default;
+
+    // 禁止拷贝
+    ConfirmDimensionChangePacket(const ConfirmDimensionChangePacket&) = delete;
+    ConfirmDimensionChangePacket& operator=(const ConfirmDimensionChangePacket&) = delete;
 
     // ========== Packet 接口实现 ==========
 

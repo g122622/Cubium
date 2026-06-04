@@ -22,7 +22,7 @@
  */
 
 #include "ResourceLocation.hpp"
-#include <algorithm>
+#include <functional>
 
 namespace mc {
 
@@ -87,17 +87,17 @@ std::string ResourceLocation::toFilePath(resource::PackType type, std::string_vi
     return result;
 }
 
-bool ResourceLocation::operator==(const ResourceLocation& other) const
+bool ResourceLocation::operator==(const ResourceLocation& other) const noexcept
 {
     return m_namespace == other.m_namespace && m_path == other.m_path;
 }
 
-bool ResourceLocation::operator!=(const ResourceLocation& other) const
+bool ResourceLocation::operator!=(const ResourceLocation& other) const noexcept
 {
     return !(*this == other);
 }
 
-bool ResourceLocation::operator<(const ResourceLocation& other) const
+bool ResourceLocation::operator<(const ResourceLocation& other) const noexcept
 {
     if (m_namespace != other.m_namespace) {
         return m_namespace < other.m_namespace;
@@ -105,7 +105,7 @@ bool ResourceLocation::operator<(const ResourceLocation& other) const
     return m_path < other.m_path;
 }
 
-size_t ResourceLocation::hash() const
+size_t ResourceLocation::hash() const noexcept
 {
     size_t h1 = std::hash<std::string>{}(m_namespace);
     size_t h2 = std::hash<std::string>{}(m_path);

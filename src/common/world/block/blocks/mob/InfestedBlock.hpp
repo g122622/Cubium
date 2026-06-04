@@ -39,15 +39,13 @@ namespace blocks {
  * 外观与普通方块相同，但被破坏时会生成蠹虫。
  * 蠹虫可以藏入这些方块中。
  *
- * MC 1.16.5 中有 6 种虫蚀方块变体：
+ * 有 6 种虫蚀方块变体：
  * - INFESTED_STONE (虫蚀石头)
  * - INFESTED_COBBLESTONE (虫蚀圆石)
  * - INFESTED_STONE_BRICKS (虫蚀石砖)
  * - INFESTED_MOSSY_STONE_BRICKS (虫蚀苔藓石砖)
  * - INFESTED_CRACKED_STONE_BRICKS (虫蚀裂纹石砖)
  * - INFESTED_CHISELED_STONE_BRICKS (虫蚀錾制石砖)
- *
- * 参考: net.minecraft.block.InfestedBlock (原 SilverfishBlock)
  */
 class InfestedBlock : public Block {
 public:
@@ -73,8 +71,6 @@ public:
      * @brief 检查方块状态是否可以被虫蚀
      * @param state 要检查的方块状态
      * @return 如果此方块有对应的虫蚀版本，返回 true
-     *
-     * MC 1.16.5: SilverfishBlock.canContainSilverfish(BlockState state)
      */
     [[nodiscard]] static bool canContainSilverfish(const BlockState& state);
 
@@ -82,8 +78,6 @@ public:
      * @brief 将普通方块转换为虫蚀方块
      * @param block 普通方块指针
      * @return 对应的虫蚀方块的默认状态，如果不存在则返回 nullptr
-     *
-     * MC 1.16.5: SilverfishBlock.infest(Block block)
      */
     [[nodiscard]] static const BlockState* infest(const Block& block);
 

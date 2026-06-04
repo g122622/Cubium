@@ -37,8 +37,6 @@ namespace structure {
  * 在平原、沙漠、热带草原、针叶林、雪地等生物群系生成的塔楼结构。
  * 包含掠夺者塔楼和周围的辅助设施（笼子、帐篷、原木堆等）。
  * 掠夺者会在前哨站内生成。
- *
- * 参考: MC 1.16.5 PillagerOutpostStructure.java
  */
 class PillagerOutpostStructure : public JigsawStructure {
 public:
@@ -58,7 +56,7 @@ private:
      *
      * 掠夺者前哨站不会在村庄附近生成（至少10个区块距离）
      */
-    [[nodiscard]] bool isNearVillage(
+    [[nodiscard]] bool _isNearVillage(
         IChunkGenerator& generator, i64 seed, math::Random& rng, i32 chunkX, i32 chunkZ) const;
 
     static const std::string s_name;

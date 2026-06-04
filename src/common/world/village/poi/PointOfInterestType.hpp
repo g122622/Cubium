@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <string>
 
 namespace mc {
@@ -36,8 +36,6 @@ namespace poi {
  *
  * 定义世界中可作为兴趣点的方块类型，包括床位、工作站和其他特殊方块。
  * 每种工作站类型对应一种村民职业。
- *
- * 参考 MC 1.16.5 PointOfInterestType
  */
 enum class PointOfInterestType : u16 {
     // ========== 床位类型（用于村民睡眠和重生） ==========

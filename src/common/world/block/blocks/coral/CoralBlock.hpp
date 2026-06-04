@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../IWaterLoggable.hpp"
-#include "../../Material.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/IWaterLoggable.hpp"
+#include "common/world/block/Material.hpp"
 
 namespace mc {
 
@@ -56,8 +56,6 @@ enum class CoralColor : u8 {
  *
  * 状态属性：
  * - WATERLOGGED: 是否含水
- *
- * 参考: net.minecraft.block.CoralBlock
  */
 class CoralBlock : public Block, public IWaterLoggable {
 public:
@@ -140,8 +138,6 @@ protected:
  * 状态属性：
  * - WATERLOGGED: 是否含水
  * - HORIZONTAL_FACING: 朝向
- *
- * 参考: net.minecraft.block.CoralFanBlock
  */
 class CoralFanBlock : public Block, public IWaterLoggable {
 public:
@@ -214,8 +210,6 @@ protected:
  * 状态属性：
  * - WATERLOGGED: 是否含水
  * - FACING: 朝向
- *
- * 参考: net.minecraft.block.CoralWallFanBlock
  */
 class CoralWallFanBlock : public Block, public IWaterLoggable {
 public:
@@ -268,9 +262,14 @@ public:
     }
 
 protected:
+    /**
+     * @brief 检查是否可以附着到指定方向
+     */
     [[nodiscard]] bool canAttachTo(IBlockReader& world, const BlockPos& pos, Direction direction) const;
 
+    /// 珊瑚颜色
     CoralColor m_color;
+    /// 死珊瑚方块ID
     u32 m_deadBlock;
 };
 
@@ -278,8 +277,6 @@ protected:
  * @brief 珊瑚块方块
  *
  * 固体的珊瑚块，不会因缺水而死亡。
- *
- * 参考: net.minecraft.block.CoralBlockBlock
  */
 class CoralBlockBlock : public Block {
 public:
@@ -291,6 +288,7 @@ public:
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
 protected:
+    /// 珊瑚颜色
     CoralColor m_color;
 };
 

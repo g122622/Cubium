@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 
@@ -33,8 +33,6 @@ namespace mc {
  * 用于区分不同类型植物的土壤需求。
  * 植物通过 IPlantable 接口返回此类型，
  * 方块通过 canSustainPlant() 方法检查是否支持该类型。
- *
- * 参考: net.minecraftforge.common.PlantType
  */
 enum class PlantType : u8 {
     /// 平原植物（大多数花草、树苗等）
@@ -64,8 +62,6 @@ enum class PlantType : u8 {
  *
  * 实现此接口的方块被视为植物。
  * 植物可以报告其类型，并允许土壤方块检查是否支持该植物。
- *
- * 参考: net.minecraftforge.common.IPlantable
  */
 class IPlantable {
 public:

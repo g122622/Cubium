@@ -38,21 +38,7 @@ namespace mc {
 namespace blocks {
 
 // ========== 静态形状常量定义 ==========
-
-// 参考 MC 1.16.5 RedstoneWireBlock.java:
-// field_235538_g_ = Block.makeCuboidShape(3.0, 0.0, 3.0, 13.0, 1.0, 13.0) - 中心点
-// SIDE_TO_SHAPE:
-//   NORTH = Block.makeCuboidShape(3.0, 0.0, 0.0, 13.0, 1.0, 13.0)
-//   SOUTH = Block.makeCuboidShape(3.0, 0.0, 3.0, 13.0, 1.0, 16.0)
-//   EAST = Block.makeCuboidShape(3.0, 0.0, 3.0, 16.0, 1.0, 13.0)
-//   WEST = Block.makeCuboidShape(0.0, 0.0, 3.0, 13.0, 1.0, 13.0)
-// SIDE_TO_ASCENDING_SHAPE = VoxelShapes.or(SIDE_TO_SHAPE, 向上部分):
-//   NORTH向上 = VoxelShapes.or(NORTH_SIDE, Block.makeCuboidShape(3.0, 0.0, 0.0, 13.0, 16.0, 1.0))
-//   SOUTH向上 = VoxelShapes.or(SOUTH_SIDE, Block.makeCuboidShape(3.0, 0.0, 15.0, 13.0, 16.0, 16.0))
-//   EAST向上 = VoxelShapes.or(EAST_SIDE, Block.makeCuboidShape(15.0, 0.0, 3.0, 16.0, 16.0, 13.0))
-//   WEST向上 = VoxelShapes.or(WEST_SIDE, Block.makeCuboidShape(0.0, 0.0, 3.0, 1.0, 16.0, 13.0))
-
-// 像素单位转方块单位（MC使用16像素=1方块）
+// 像素单位转方块单位（16像素=1方块）
 constexpr f32 P = 1.0f / 16.0f;
 
 // 中心点形状 (3, 0, 3) -> (13, 1, 13)
@@ -217,7 +203,7 @@ void RedstoneWireBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const
 {
     MC_UNUSED(state);
     // 通知相邻方块更新
-    notifyWireNeighbors(world, pos);
+    _notifyWireNeighbors(world, pos);
 }
 
 void RedstoneWireBlock::neighborChanged(
@@ -236,7 +222,7 @@ void RedstoneWireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
     MC_UNUSED(random);
     // 计算新的信号强度
     i32 oldPower = getPower(state);
-    i32 newPower = calculateInputPower(world, pos, state);
+    i32 newPower = _calculateInputPower(world, pos, state);
 
     if (oldPower != newPower) {
         // 更新状态
@@ -246,7 +232,7 @@ void RedstoneWireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
         world.setBlockState(pos, &newState, 2);
 
         // 通知相邻红石线更新
-        notifyWireNeighbors(world, pos);
+        _notifyWireNeighbors(world, pos);
     }
 }
 
@@ -260,7 +246,7 @@ i32 RedstoneWireBlock::getWeakPower(const BlockState& state, IWorld& world, cons
         return 0;
     }
 
-    // MC Java: 红石线不向下输出信号 (side != Direction.DOWN)
+    // 红石线不向下输出信号
     if (side == Direction::Down) {
         return 0;
     }
@@ -270,13 +256,11 @@ i32 RedstoneWireBlock::getWeakPower(const BlockState& state, IWorld& world, cons
         return 0;
     }
 
-    // MC Java: getWeakPower 的逻辑
-    // 对于向上方向（side == Direction.UP）：直接返回信号强度
+    // 对于向上方向：直接返回信号强度
     // 对于水平方向：只有该方向有连接时才输出信号
-    // 参考 RedstoneWireBlock.java 第347-358行
 
     if (side == Direction::Up) {
-        // 向上方向：MC Java 中向上总是输出信号
+        // 向上方向：总是输出信号
         return power;
     }
 
@@ -309,7 +293,7 @@ i32 RedstoneWireBlock::getWeakPower(const BlockState& state, IWorld& world, cons
 
 i32 RedstoneWireBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
 {
-    // MC Java: 红石线的 getStrongPower 委托给 getWeakPower
+    // 红石线的 getStrongPower 委托给 getWeakPower
     // 这使得红石线可以充能相邻的实体方块
     return getWeakPower(state, world, pos, side);
 }
@@ -322,7 +306,7 @@ bool RedstoneWireBlock::updatePower(IWorld& world, const BlockPos& pos)
     }
 
     i32 oldPower = getPower(*state);
-    i32 newPower = calculateInputPower(world, pos, *state);
+    i32 newPower = _calculateInputPower(world, pos, *state);
 
     if (oldPower != newPower) {
         BlockState newState = withPower(*state, newPower);
@@ -330,7 +314,7 @@ bool RedstoneWireBlock::updatePower(IWorld& world, const BlockPos& pos)
         world.setBlockState(pos, &newState, 2);
 
         // 通知相邻红石线更新
-        notifyWireNeighbors(world, pos);
+        _notifyWireNeighbors(world, pos);
         return true;
     }
 
@@ -360,13 +344,13 @@ BlockStateProperties::RedstoneSide RedstoneWireBlock::getConnection(
         return BlockStateProperties::RedstoneSide::None;
     }
 
-    // MC Java: canConnectTo 检查相邻方块是否可以连接红石
+    // canConnectTo 检查相邻方块是否可以连接红石
     // 参数 side 是从红石线指向相邻方块的方向
     if (canConnectTo(*neighborState, direction)) {
         return BlockStateProperties::RedstoneSide::Side;
     }
 
-    // MC Java: 检查向上连接
+    // 检查向上连接
     // 如果相邻方块是实体方块，检查其上方是否有红石线
     if (isNormalCube(*neighborState)) {
         BlockPos upPos = neighborPos.up();
@@ -375,7 +359,7 @@ BlockStateProperties::RedstoneSide RedstoneWireBlock::getConnection(
             return BlockStateProperties::RedstoneSide::Up;
         }
     } else {
-        // MC Java: 相邻不是实体方块时，需要检查两种情况：
+        // 相邻不是实体方块时，需要检查两种情况：
         // 1. 相邻方块下方是否有红石线
         // 2. 当前红石线位置下方是否有红石线（用于向上爬墙的情况）
 
@@ -386,7 +370,7 @@ BlockStateProperties::RedstoneSide RedstoneWireBlock::getConnection(
             return BlockStateProperties::RedstoneSide::Side;
         }
 
-        // MC Java: 还需要检查当前红石线下方的方块位置
+        // 还需要检查当前红石线下方的方块位置
         // 当红石线在悬崖边时，可以向下连接到低一格的红石线
         BlockPos downPos = pos.down();
         const BlockState* downState = world.getBlockState(downPos);
@@ -406,7 +390,7 @@ BlockStateProperties::RedstoneSide RedstoneWireBlock::getConnection(
     return BlockStateProperties::RedstoneSide::None;
 }
 
-i32 RedstoneWireBlock::calculateInputPower(IWorld& world, const BlockPos& pos, const BlockState& state) const
+i32 RedstoneWireBlock::_calculateInputPower(IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
     MC_UNUSED(state);
 
@@ -483,7 +467,7 @@ i32 RedstoneWireBlock::calculateInputPower(IWorld& world, const BlockPos& pos, c
     return maxPower;
 }
 
-i32 RedstoneWireBlock::getWirePower(IWorld& world, const BlockPos& pos) const
+i32 RedstoneWireBlock::_getWirePower(IWorld& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (!state || !state->is(this)) {
@@ -492,7 +476,7 @@ i32 RedstoneWireBlock::getWirePower(IWorld& world, const BlockPos& pos) const
     return getPower(*state);
 }
 
-void RedstoneWireBlock::notifyWireNeighbors(IWorld& world, const BlockPos& pos)
+void RedstoneWireBlock::_notifyWireNeighbors(IWorld& world, const BlockPos& pos)
 {
     // 通知六个方向的相邻方块
     for (Direction dir : Directions::all()) {
@@ -521,22 +505,22 @@ ActionResultType RedstoneWireBlock::onBlockActivated(const BlockState& state,
     MC_UNUSED(hand);
     MC_UNUSED(hit);
 
-    // MC 1.16.5: 右键点击可以在十字连接和点状连接之间切换
+    // 右键点击可以在十字连接和点状连接之间切换
     // 只有当玩家可以编辑时才允许切换
     // 检查是否是十字连接或点状连接模式
-    bool isCross = isCrossConnection(state);
-    bool isDot = isDotConnection(state);
+    bool isCross = _isCrossConnection(state);
+    bool isDot = _isDotConnection(state);
 
     if (isCross || isDot) {
         // 切换模式：十字 -> 点状，点状 -> 十字
-        BlockState newState = isCross ? createDotState(state) : createCrossState(state);
+        BlockState newState = isCross ? _createDotState(state) : _createCrossState(state);
         newState = calculateConnections(world, pos, newState);
 
         if (newState != state) {
             world.setBlockState(pos, &newState, 3);
 
             // 通知对角邻居更新
-            notifyDiagonalNeighbors(world, pos, state, newState);
+            _notifyDiagonalNeighbors(world, pos, state, newState);
             return ActionResultType::Success;
         }
     }
@@ -544,25 +528,25 @@ ActionResultType RedstoneWireBlock::onBlockActivated(const BlockState& state,
     return ActionResultType::Pass;
 }
 
-bool RedstoneWireBlock::isCrossConnection(const BlockState& state) const
+bool RedstoneWireBlock::_isCrossConnection(const BlockState& state) const
 {
-    // MC 1.16.5: func_235555_m_ - 检查四个方向是否都有连接
+    // 检查四个方向是否都有连接
     return state.get(BlockStateProperties::REDSTONE_NORTH()) != BlockStateProperties::RedstoneSide::None &&
         state.get(BlockStateProperties::REDSTONE_SOUTH()) != BlockStateProperties::RedstoneSide::None &&
         state.get(BlockStateProperties::REDSTONE_EAST()) != BlockStateProperties::RedstoneSide::None &&
         state.get(BlockStateProperties::REDSTONE_WEST()) != BlockStateProperties::RedstoneSide::None;
 }
 
-bool RedstoneWireBlock::isDotConnection(const BlockState& state) const
+bool RedstoneWireBlock::_isDotConnection(const BlockState& state) const
 {
-    // MC 1.16.5: func_235556_n_ - 检查四个方向是否都没有连接
+    // 检查四个方向是否都没有连接
     return state.get(BlockStateProperties::REDSTONE_NORTH()) == BlockStateProperties::RedstoneSide::None &&
         state.get(BlockStateProperties::REDSTONE_SOUTH()) == BlockStateProperties::RedstoneSide::None &&
         state.get(BlockStateProperties::REDSTONE_EAST()) == BlockStateProperties::RedstoneSide::None &&
         state.get(BlockStateProperties::REDSTONE_WEST()) == BlockStateProperties::RedstoneSide::None;
 }
 
-BlockState RedstoneWireBlock::createDotState(const BlockState& state) const
+BlockState RedstoneWireBlock::_createDotState(const BlockState& state) const
 {
     // 创建点状连接状态（所有方向都无连接）
     return state.with(BlockStateProperties::REDSTONE_NORTH(), BlockStateProperties::RedstoneSide::None)
@@ -571,7 +555,7 @@ BlockState RedstoneWireBlock::createDotState(const BlockState& state) const
         .with(BlockStateProperties::REDSTONE_WEST(), BlockStateProperties::RedstoneSide::None);
 }
 
-BlockState RedstoneWireBlock::createCrossState(const BlockState& state) const
+BlockState RedstoneWireBlock::_createCrossState(const BlockState& state) const
 {
     // 创建十字连接状态（所有方向都有 Side 连接）
     return state.with(BlockStateProperties::REDSTONE_NORTH(), BlockStateProperties::RedstoneSide::Side)
@@ -580,10 +564,9 @@ BlockState RedstoneWireBlock::createCrossState(const BlockState& state) const
         .with(BlockStateProperties::REDSTONE_WEST(), BlockStateProperties::RedstoneSide::Side);
 }
 
-void RedstoneWireBlock::notifyDiagonalNeighbors(
+void RedstoneWireBlock::_notifyDiagonalNeighbors(
     IWorld& world, const BlockPos& pos, const BlockState& oldState, const BlockState& newState)
 {
-    // MC 1.16.5: updateDiagonalNeighbors
     // 当连接状态改变时，通知对角方向的方块更新
     for (Direction dir : Directions::horizontal()) {
         BlockStateProperties::RedstoneSide oldConnection = BlockStateProperties::RedstoneSide::None;
@@ -650,16 +633,14 @@ const CollisionShape& RedstoneWireBlock::getShape(const BlockState& state) const
     }
 
     // 计算并缓存形状
-    CollisionShape shape = computeShapeForState(state);
+    CollisionShape shape = _computeShapeForState(state);
     m_shapeCache[cacheKey] = shape;
     return m_shapeCache[cacheKey];
 }
 
-CollisionShape RedstoneWireBlock::computeShapeForState(const BlockState& state) const
+CollisionShape RedstoneWireBlock::_computeShapeForState(const BlockState& state) const
 {
-    // 参考 MC 1.16.5 RedstoneWireBlock.getShapeForState()
     // 从中心点开始，根据各方向的连接状态添加形状
-
     CollisionShape shape = s_centerShape;
 
     // 北面连接

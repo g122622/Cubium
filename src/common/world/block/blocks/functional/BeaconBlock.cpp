@@ -22,11 +22,11 @@
  */
 
 #include "BeaconBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../blockentity/BlockEntityType.hpp"
-#include "../../../blockentity/processing/BeaconEntity.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/processing/BeaconEntity.hpp"
 
 namespace mc {
 namespace blocks {
@@ -61,12 +61,12 @@ const CollisionShape& BeaconBlock::getShape(const BlockState& state) const
     return m_shape;
 }
 
-int BeaconBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+i32 BeaconBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);
 
     // 从信标方块实体获取比较器信号
-    // 参考 MC 1.16.5: 信标的比较器输出等于金字塔等级 (1-4层 = 信号强度 1-4)
+    // 信标的比较器输出等于金字塔等级 (1-4层 = 信号强度 1-4)
     // 如果信标未激活（等级为0），则返回0
     BlockEntity* entity = world.getBlockEntity(pos);
     if (entity != nullptr && entity->getType() == BlockEntityType::Beacon) {

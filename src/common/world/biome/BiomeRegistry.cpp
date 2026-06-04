@@ -52,7 +52,7 @@ void BiomeRegistry::initialize()
     if (!m_registered.empty()) {
         return; // 已经初始化
     }
-    registerDefaultBiomes();
+    _registerDefaultBiomes();
 }
 
 void BiomeRegistry::registerBiome(const Biome& biome)
@@ -79,9 +79,9 @@ bool BiomeRegistry::hasBiome(BiomeId id) const
     return id < m_biomes.size() && m_registered[id];
 }
 
-void BiomeRegistry::registerDefaultBiomes()
+void BiomeRegistry::_registerDefaultBiomes()
 {
-    MC_TRACE_EVENT("server.initialization", "BiomeRegistry::registerDefaultBiomes");
+    MC_TRACE_EVENT("server.initialization", "BiomeRegistry::_registerDefaultBiomes");
 
     // 注册所有默认生物群系
 
@@ -207,7 +207,7 @@ void BiomeRegistry::registerDefaultBiomes()
 }
 
 // ============================================================================
-// BiomeFactory 实现（参考 MC 1.16.5 BiomeMaker）
+// BiomeFactory 实现
 // ============================================================================
 
 namespace BiomeFactory {
@@ -222,7 +222,6 @@ const BlockState* getBlockState(Block* block)
 
 Biome createPlains()
 {
-    // MC: depth=0.125F, scale=0.05F
     Biome biome(Biomes::Plains, "plains");
     biome.setDepth(0.125f);
     biome.setScale(0.05f);
@@ -234,7 +233,7 @@ Biome createPlains()
     biome.setGenerationSettings(BiomeGenerationSettings::createPlains());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createPlains());
 
-    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    // 主世界默认洞穴心境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
@@ -244,7 +243,6 @@ Biome createPlains()
 
 Biome createDesert()
 {
-    // MC: depth=0.125F, scale=0.05F
     Biome biome(Biomes::Desert, "desert");
     biome.setDepth(0.125f);
     biome.setScale(0.05f);
@@ -257,7 +255,7 @@ Biome createDesert()
     biome.setGenerationSettings(BiomeGenerationSettings::createDesert());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDesert());
 
-    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    // 主世界默认洞穴心境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
@@ -267,7 +265,6 @@ Biome createDesert()
 
 Biome createMountains()
 {
-    // MC: depth=1.0F, scale=0.5F (Extreme Hills)
     Biome biome(Biomes::Mountains, "mountains");
     biome.setDepth(1.0f);
     biome.setScale(0.5f);
@@ -279,7 +276,7 @@ Biome createMountains()
     biome.setGenerationSettings(BiomeGenerationSettings::createMountains());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createMountains());
 
-    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    // 主世界默认洞穴心境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
@@ -289,7 +286,6 @@ Biome createMountains()
 
 Biome createForest()
 {
-    // MC: depth=0.1F, scale=0.2F
     Biome biome(Biomes::Forest, "forest");
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
@@ -301,7 +297,7 @@ Biome createForest()
     biome.setGenerationSettings(BiomeGenerationSettings::createForest());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
 
-    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    // 主世界默认洞穴心境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
@@ -311,7 +307,6 @@ Biome createForest()
 
 Biome createOcean()
 {
-    // MC: depth=-1.0F, scale=0.1F
     Biome biome(Biomes::Ocean, "ocean");
     biome.setDepth(-1.0f);
     biome.setScale(0.1f);
@@ -328,7 +323,6 @@ Biome createOcean()
 
 Biome createDeepOcean()
 {
-    // MC: depth=-1.8F, scale=0.1F (Deep Ocean)
     Biome biome(Biomes::DeepOcean, "deep_ocean");
     biome.setDepth(-1.8f);
     biome.setScale(0.1f);
@@ -344,7 +338,6 @@ Biome createDeepOcean()
 
 Biome createTaiga()
 {
-    // MC: depth=0.2F, scale=0.2F
     Biome biome(Biomes::Taiga, "taiga");
     biome.setDepth(0.2f);
     biome.setScale(0.2f);
@@ -356,7 +349,7 @@ Biome createTaiga()
     biome.setGenerationSettings(BiomeGenerationSettings::createTaiga());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTaiga());
 
-    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    // 主世界默认洞穴心境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
@@ -366,7 +359,6 @@ Biome createTaiga()
 
 Biome createSnowyTaiga()
 {
-    // MC: depth=0.2F, scale=0.2F
     // 雪地针叶林表面应为雪
     Biome biome(Biomes::SnowyTaiga, "snowy_taiga");
     biome.setDepth(0.2f);
@@ -383,7 +375,6 @@ Biome createSnowyTaiga()
 
 Biome createJungle()
 {
-    // MC: depth=0.1F, scale=0.2F
     Biome biome(Biomes::Jungle, "jungle");
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
@@ -395,7 +386,7 @@ Biome createJungle()
     biome.setGenerationSettings(BiomeGenerationSettings::createJungle());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createJungle());
 
-    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    // 主世界默认洞穴心境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
@@ -405,7 +396,6 @@ Biome createJungle()
 
 Biome createSavanna()
 {
-    // MC: depth=0.3625F, scale=0.05F
     Biome biome(Biomes::Savanna, "savanna");
     biome.setDepth(0.3625f);
     biome.setScale(0.05f);
@@ -417,7 +407,7 @@ Biome createSavanna()
     biome.setGenerationSettings(BiomeGenerationSettings::createSavanna());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSavanna());
 
-    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    // 主世界默认洞穴心境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
@@ -427,7 +417,6 @@ Biome createSavanna()
 
 Biome createShatteredSavanna()
 {
-    // MC: depth=0.3625F, scale=1.225F (Shattered Savanna)
     Biome biome(Biomes::ShatteredSavanna, "shattered_savanna");
     biome.setDepth(0.3625f);
     biome.setScale(1.225f);
@@ -443,7 +432,6 @@ Biome createShatteredSavanna()
 
 Biome createSavannaPlateau()
 {
-    // MC: depth=1.05F, scale=0.0125F
     Biome biome(Biomes::SavannaPlateau, "savanna_plateau");
     biome.setDepth(1.05f);
     biome.setScale(0.0125f);
@@ -459,7 +447,6 @@ Biome createSavannaPlateau()
 
 Biome createBadlands()
 {
-    // MC: depth=0.1F, scale=0.2F
     // 恶地有特殊的草和树叶颜色
     Biome biome(Biomes::Badlands, "badlands");
     biome.setDepth(0.1f);
@@ -482,7 +469,6 @@ Biome createBadlands()
 
 Biome createErodedBadlands()
 {
-    // MC: depth=0.1F, scale=0.2F
     // 风蚀恶地使用与恶地相同的颜色
     Biome biome(Biomes::ErodedBadlands, "eroded_badlands");
     biome.setDepth(0.1f);
@@ -505,7 +491,6 @@ Biome createErodedBadlands()
 
 Biome createBadlandsPlateau()
 {
-    // MC: depth=1.5F, scale=0.025F
     // 恶地高原使用与恶地相同的颜色
     Biome biome(Biomes::BadlandsPlateau, "badlands_plateau");
     biome.setDepth(1.5f);
@@ -528,7 +513,6 @@ Biome createBadlandsPlateau()
 
 Biome createWoodedBadlandsPlateau()
 {
-    // MC: depth=1.5F, scale=0.025F
     // 繁茂恶地高原有草和树叶
     Biome biome(Biomes::WoodedBadlandsPlateau, "wooded_badlands_plateau");
     biome.setDepth(1.5f);
@@ -551,7 +535,6 @@ Biome createWoodedBadlandsPlateau()
 
 Biome createBeach()
 {
-    // MC: depth=0.0F, scale=0.025F
     Biome biome(Biomes::Beach, "beach");
     biome.setDepth(0.0f);
     biome.setScale(0.025f);
@@ -566,7 +549,6 @@ Biome createBeach()
 
 Biome createStoneShore()
 {
-    // MC: depth=0.1F, scale=0.8F (Stone Shore)
     Biome biome(Biomes::StoneShore, "stone_shore");
     biome.setDepth(0.1f);
     biome.setScale(0.8f);
@@ -581,7 +563,6 @@ Biome createStoneShore()
 
 Biome createSnowyBeach()
 {
-    // MC: depth=0.0F, scale=0.025F
     Biome biome(Biomes::SnowyBeach, "snowy_beach");
     biome.setDepth(0.0f);
     biome.setScale(0.025f);
@@ -596,7 +577,6 @@ Biome createSnowyBeach()
 
 Biome createSwamp()
 {
-    // MC: depth=-0.2F, scale=0.1F
     // 沼泽有特殊的水体颜色和草颜色修改器
     Biome biome(Biomes::Swamp, "swamp");
     biome.setDepth(-0.2f);
@@ -616,7 +596,7 @@ Biome createSwamp()
             .grassColorModifier(GrassColorModifier::Swamp)
             .build());
 
-    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    // 主世界默认洞穴心境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
@@ -626,7 +606,6 @@ Biome createSwamp()
 
 Biome createRiver()
 {
-    // MC: depth=-0.5F, scale=0.0F
     Biome biome(Biomes::River, "river");
     biome.setDepth(-0.5f);
     biome.setScale(0.0f);
@@ -642,7 +621,6 @@ Biome createRiver()
 
 Biome createWoodedHills()
 {
-    // MC: depth=0.45F, scale=0.3F
     Biome biome(Biomes::WoodedHills, "wooded_hills");
     biome.setDepth(0.45f);
     biome.setScale(0.3f);
@@ -658,7 +636,6 @@ Biome createWoodedHills()
 
 Biome createBirchForest()
 {
-    // MC: depth=0.1F, scale=0.2F
     Biome biome(Biomes::BirchForest, "birch_forest");
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
@@ -674,7 +651,6 @@ Biome createBirchForest()
 
 Biome createDarkForest()
 {
-    // MC: depth=0.1F, scale=0.2F
     // 黑森林有特殊的深绿色草
     Biome biome(Biomes::DarkForest, "dark_forest");
     biome.setDepth(0.1f);
@@ -692,7 +668,7 @@ Biome createDarkForest()
             .grassColorModifier(GrassColorModifier::DarkForest)
             .build());
 
-    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    // 主世界默认洞穴心境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
@@ -702,7 +678,6 @@ Biome createDarkForest()
 
 Biome createSnowyPlains()
 {
-    // MC: depth=0.125F, scale=0.05F (Snowy Tundra)
     // 雪地平原表面应为雪
     Biome biome(Biomes::SnowyPlains, "snowy_plains");
     biome.setDepth(0.125f);
@@ -715,7 +690,7 @@ Biome createSnowyPlains()
     biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
 
-    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    // 主世界默认洞穴心境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
@@ -725,7 +700,6 @@ Biome createSnowyPlains()
 
 Biome createGiantTreeTaiga()
 {
-    // MC: depth=0.2F, scale=0.2F
     Biome biome(Biomes::GiantTreeTaiga, "giant_tree_taiga");
     biome.setDepth(0.2f);
     biome.setScale(0.2f);
@@ -737,7 +711,7 @@ Biome createGiantTreeTaiga()
     biome.setGenerationSettings(BiomeGenerationSettings::createForest());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTaiga());
 
-    // 主世界默认洞穴心境音效 (MC 1.16.5)
+    // 主世界默认洞穴心境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
@@ -747,7 +721,6 @@ Biome createGiantTreeTaiga()
 
 Biome createWoodedMountains()
 {
-    // MC: depth=0.45F, scale=0.3F (Gravelly Mountains)
     Biome biome(Biomes::WoodedMountains, "wooded_mountains");
     biome.setDepth(0.45f);
     biome.setScale(0.3f);
@@ -763,7 +736,6 @@ Biome createWoodedMountains()
 
 Biome createMountainEdge()
 {
-    // MC: depth=0.8F, scale=0.3F (Mountain Edge)
     Biome biome(Biomes::MountainEdge, "mountain_edge");
     biome.setDepth(0.8f);
     biome.setScale(0.3f);
@@ -779,7 +751,6 @@ Biome createMountainEdge()
 
 Biome createFrozenOcean()
 {
-    // MC: depth=-1.0F, scale=0.1F
     // 冻洋有特殊的深紫色水体
     Biome biome(Biomes::FrozenOcean, "frozen_ocean");
     biome.setDepth(-1.0f);
@@ -801,7 +772,6 @@ Biome createFrozenOcean()
 
 Biome createFrozenRiver()
 {
-    // MC: depth=-0.5F, scale=0.0F
     Biome biome(Biomes::FrozenRiver, "frozen_river");
     biome.setDepth(-0.5f);
     biome.setScale(0.0f);
@@ -822,7 +792,6 @@ Biome createFrozenRiver()
 
 Biome createSnowyMountains()
 {
-    // MC: depth=0.45F, scale=0.3F (Snowy Mountains)
     Biome biome(Biomes::SnowyMountains, "snowy_mountains");
     biome.setDepth(0.45f);
     biome.setScale(0.3f);
@@ -838,7 +807,6 @@ Biome createSnowyMountains()
 
 Biome createIceSpikes()
 {
-    // MC: depth=0.4375F, scale=0.05F
     Biome biome(Biomes::IceSpikes, "ice_spikes");
     biome.setDepth(0.4375f);
     biome.setScale(0.05f);
@@ -854,7 +822,6 @@ Biome createIceSpikes()
 
 Biome createDeepFrozenOcean()
 {
-    // MC: depth=-1.8F, scale=0.1F
     // 深海冻洋使用与冻洋相同的水体颜色
     Biome biome(Biomes::DeepFrozenOcean, "deep_frozen_ocean");
     biome.setDepth(-1.8f);
@@ -880,7 +847,6 @@ Biome createDeepFrozenOcean()
 
 Biome createWarmOcean()
 {
-    // MC: depth=-1.0F, scale=0.1F
     // 温暖海洋，温度高，沙子底部，水体为青绿色
     Biome biome(Biomes::WarmOcean, "warm_ocean");
     biome.setDepth(-1.0f);
@@ -902,7 +868,6 @@ Biome createWarmOcean()
 
 Biome createLukewarmOcean()
 {
-    // MC: depth=-1.0F, scale=0.1F
     // 温水海洋，水体为浅蓝色
     Biome biome(Biomes::LukewarmOcean, "lukewarm_ocean");
     biome.setDepth(-1.0f);
@@ -924,7 +889,6 @@ Biome createLukewarmOcean()
 
 Biome createColdOcean()
 {
-    // MC: depth=-1.0F, scale=0.1F
     // 冷水海洋，水体为深蓝色
     Biome biome(Biomes::ColdOcean, "cold_ocean");
     biome.setDepth(-1.0f);
@@ -946,7 +910,6 @@ Biome createColdOcean()
 
 Biome createDeepWarmOcean()
 {
-    // MC: depth=-1.8F, scale=0.1F
     // 深海暖水海洋，使用与暖水海洋相同的水体颜色
     Biome biome(Biomes::DeepWarmOcean, "deep_warm_ocean");
     biome.setDepth(-1.8f);
@@ -968,7 +931,6 @@ Biome createDeepWarmOcean()
 
 Biome createDeepLukewarmOcean()
 {
-    // MC: depth=-1.8F, scale=0.1F
     // 深海温水海洋
     Biome biome(Biomes::DeepLukewarmOcean, "deep_lukewarm_ocean");
     biome.setDepth(-1.8f);
@@ -990,7 +952,6 @@ Biome createDeepLukewarmOcean()
 
 Biome createDeepColdOcean()
 {
-    // MC: depth=-1.8F, scale=0.1F
     // 深海冷水海洋
     Biome biome(Biomes::DeepColdOcean, "deep_cold_ocean");
     biome.setDepth(-1.8f);
@@ -1012,7 +973,6 @@ Biome createDeepColdOcean()
 
 Biome createJungleHills()
 {
-    // MC: depth=0.45F, scale=0.3F
     Biome biome(Biomes::JungleHills, "jungle_hills");
     biome.setDepth(0.45f);
     biome.setScale(0.3f);
@@ -1028,7 +988,6 @@ Biome createJungleHills()
 
 Biome createJungleEdge()
 {
-    // MC: depth=0.1F, scale=0.2F
     Biome biome(Biomes::JungleEdge, "jungle_edge");
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
@@ -1044,8 +1003,7 @@ Biome createJungleEdge()
 
 Biome createBambooJungle()
 {
-    // MC: depth=0.1F, scale=0.2F
-    // 暂不生成竹子，使用丛林生成设置
+    // TODO: 暂不生成竹子，使用丛林生成设置
     Biome biome(Biomes::BambooJungle, "bamboo_jungle");
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
@@ -1061,7 +1019,6 @@ Biome createBambooJungle()
 
 Biome createBambooJungleHills()
 {
-    // MC: depth=0.45F, scale=0.3F
     Biome biome(Biomes::BambooJungleHills, "bamboo_jungle_hills");
     biome.setDepth(0.45f);
     biome.setScale(0.3f);
@@ -1077,7 +1034,6 @@ Biome createBambooJungleHills()
 
 Biome createBirchForestHills()
 {
-    // MC: depth=0.45F, scale=0.3F
     Biome biome(Biomes::BirchForestHills, "birch_forest_hills");
     biome.setDepth(0.45f);
     biome.setScale(0.3f);
@@ -1093,7 +1049,6 @@ Biome createBirchForestHills()
 
 Biome createFlowerForest()
 {
-    // MC: depth=0.1F, scale=0.2F
     Biome biome(Biomes::FlowerForest, "flower_forest");
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
@@ -1109,7 +1064,6 @@ Biome createFlowerForest()
 
 Biome createTallBirchForest()
 {
-    // MC: depth=0.1F, scale=0.2F
     // 高桦木
     Biome biome(Biomes::TallBirchForest, "tall_birch_forest");
     biome.setDepth(0.1f);
@@ -1126,7 +1080,6 @@ Biome createTallBirchForest()
 
 Biome createTallBirchHills()
 {
-    // MC: depth=0.45F, scale=0.3F
     Biome biome(Biomes::TallBirchHills, "tall_birch_hills");
     biome.setDepth(0.45f);
     biome.setScale(0.3f);
@@ -1142,7 +1095,6 @@ Biome createTallBirchHills()
 
 Biome createDarkForestHills()
 {
-    // MC: depth=0.45F, scale=0.3F
     Biome biome(Biomes::DarkForestHills, "dark_forest_hills");
     biome.setDepth(0.45f);
     biome.setScale(0.3f);
@@ -1158,7 +1110,6 @@ Biome createDarkForestHills()
 
 Biome createMushroomFields()
 {
-    // MC: depth=0.2F, scale=0.3F
     // 蘑菇岛
     Biome biome(Biomes::MushroomFields, "mushroom_fields");
     biome.setCategory(Biome::Category::Mushroom);
@@ -1177,7 +1128,6 @@ Biome createMushroomFields()
 
 Biome createMushroomFieldShore()
 {
-    // MC: depth=0.0F, scale=0.025F
     // 蘑菇岛海岸
     Biome biome(Biomes::MushroomFieldShore, "mushroom_field_shore");
     biome.setCategory(Biome::Category::Mushroom);
@@ -1196,7 +1146,6 @@ Biome createMushroomFieldShore()
 
 Biome createDesertHills()
 {
-    // MC: depth=0.225F, scale=0.25F
     Biome biome(Biomes::DesertHills, "desert_hills");
     biome.setDepth(0.225f);
     biome.setScale(0.25f);
@@ -1213,7 +1162,6 @@ Biome createDesertHills()
 
 Biome createTaigaHills()
 {
-    // MC: depth=0.3F, scale=0.25F
     Biome biome(Biomes::TaigaHills, "taiga_hills");
     biome.setDepth(0.3f);
     biome.setScale(0.25f);
@@ -1229,7 +1177,6 @@ Biome createTaigaHills()
 
 Biome createGiantSpruceTaiga()
 {
-    // MC: depth=0.2F, scale=0.2F
     Biome biome(Biomes::GiantSpruceTaiga, "giant_spruce_taiga");
     biome.setDepth(0.2f);
     biome.setScale(0.2f);
@@ -1245,7 +1192,6 @@ Biome createGiantSpruceTaiga()
 
 Biome createGiantSpruceTaigaHills()
 {
-    // MC: depth=0.2F, scale=0.2F
     Biome biome(Biomes::GiantSpruceTaigaHills, "giant_spruce_taiga_hills");
     biome.setDepth(0.2f);
     biome.setScale(0.2f);
@@ -1265,7 +1211,6 @@ Biome createGiantSpruceTaigaHills()
 
 Biome createSunflowerPlains()
 {
-    // MC: depth=0.125F, scale=0.05F
     Biome biome(Biomes::SunflowerPlains, "sunflower_plains");
     biome.setDepth(0.125f);
     biome.setScale(0.05f);
@@ -1281,7 +1226,6 @@ Biome createSunflowerPlains()
 
 Biome createDesertLakes()
 {
-    // MC: depth=0.225F, scale=0.25F
     Biome biome(Biomes::DesertLakes, "desert_lakes");
     biome.setDepth(0.225f);
     biome.setScale(0.25f);
@@ -1298,7 +1242,6 @@ Biome createDesertLakes()
 
 Biome createGravellyMountains()
 {
-    // MC: depth=1.0F, scale=0.5F
     Biome biome(Biomes::GravellyMountains, "gravelly_mountains");
     biome.setDepth(1.0f);
     biome.setScale(0.5f);
@@ -1314,7 +1257,6 @@ Biome createGravellyMountains()
 
 Biome createTaigaMountains()
 {
-    // MC: depth=0.3F, scale=0.25F
     Biome biome(Biomes::TaigaMountains, "taiga_mountains");
     biome.setDepth(0.3f);
     biome.setScale(0.25f);
@@ -1330,7 +1272,6 @@ Biome createTaigaMountains()
 
 Biome createSwampHills()
 {
-    // MC: depth=-0.1F, scale=0.3F
     Biome biome(Biomes::SwampHills, "swamp_hills");
     biome.setDepth(-0.1f);
     biome.setScale(0.3f);
@@ -1353,7 +1294,6 @@ Biome createSwampHills()
 
 Biome createModifiedJungle()
 {
-    // MC: depth=0.1F, scale=0.2F
     Biome biome(Biomes::ModifiedJungle, "modified_jungle");
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
@@ -1369,7 +1309,6 @@ Biome createModifiedJungle()
 
 Biome createModifiedJungleEdge()
 {
-    // MC: depth=0.1F, scale=0.2F
     Biome biome(Biomes::ModifiedJungleEdge, "modified_jungle_edge");
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
@@ -1385,7 +1324,6 @@ Biome createModifiedJungleEdge()
 
 Biome createSnowyTaigaMountains()
 {
-    // MC: depth=0.3F, scale=0.25F
     Biome biome(Biomes::SnowyTaigaMountains, "snowy_taiga_mountains");
     biome.setDepth(0.3f);
     biome.setScale(0.25f);
@@ -1401,7 +1339,6 @@ Biome createSnowyTaigaMountains()
 
 Biome createModifiedGravellyMountains()
 {
-    // MC: depth=1.0F, scale=0.5F
     Biome biome(Biomes::ModifiedGravellyMountains, "modified_gravelly_mountains");
     biome.setDepth(1.0f);
     biome.setScale(0.5f);
@@ -1417,7 +1354,6 @@ Biome createModifiedGravellyMountains()
 
 Biome createShatteredSavannaPlateau()
 {
-    // MC: depth=1.05F, scale=0.0125F
     Biome biome(Biomes::ShatteredSavannaPlateau, "shattered_savanna_plateau");
     biome.setDepth(1.05f);
     biome.setScale(0.0125f);
@@ -1433,7 +1369,6 @@ Biome createShatteredSavannaPlateau()
 
 Biome createModifiedWoodedBadlandsPlateau()
 {
-    // MC: depth=1.5F, scale=0.025F
     Biome biome(Biomes::ModifiedWoodedBadlandsPlateau, "modified_wooded_badlands_plateau");
     biome.setDepth(1.5f);
     biome.setScale(0.025f);
@@ -1450,7 +1385,6 @@ Biome createModifiedWoodedBadlandsPlateau()
 
 Biome createModifiedBadlandsPlateau()
 {
-    // MC: depth=1.5F, scale=0.025F
     Biome biome(Biomes::ModifiedBadlandsPlateau, "modified_badlands_plateau");
     biome.setDepth(1.5f);
     biome.setScale(0.025f);
@@ -1467,7 +1401,6 @@ Biome createModifiedBadlandsPlateau()
 
 Biome createGiantTreeTaigaHillsBiome()
 {
-    // MC: depth=0.3F, scale=0.25F
     // 注意：这是 GiantTreeTaiga 的丘陵变体，与已有的 GiantTreeTaigaHills 类似
     Biome biome(Biomes::GiantTreeTaigaHills, "giant_tree_taiga_hills");
     biome.setDepth(0.3f);
@@ -1484,7 +1417,6 @@ Biome createGiantTreeTaigaHillsBiome()
 
 Biome createSnowyTaigaHills()
 {
-    // MC: depth=0.3F, scale=0.25F
     Biome biome(Biomes::SnowyTaigaHills, "snowy_taiga_hills");
     biome.setDepth(0.3f);
     biome.setScale(0.25f);
@@ -1499,13 +1431,12 @@ Biome createSnowyTaigaHills()
 }
 
 // ============================================================================
-// 下界生物群系工厂函数（参考 MC 1.16.5 BiomeMaker）
+// 下界生物群系工厂函数
 // ============================================================================
 
 Biome createNetherWastes()
 {
-    // MC: 下界荒地 - 下界岩为主，猪灵、恶魂、岩浆怪
-    // depth=0.1F, scale=0.2F, temperature=2.0F
+    // 下界荒地：下界岩为主，猪灵、恶魂、岩浆怪
     Biome biome(Biomes::NetherWastes, "nether_wastes");
     biome.setCategory(Biome::Category::Nether);
     biome.setDepth(0.1f);
@@ -1523,7 +1454,7 @@ Biome createNetherWastes()
     biome.setGenerationSettings(BiomeGenerationSettings::createNether());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createNetherWastes());
 
-    // 下界荒地环境音效 (MC 1.16.5)
+    // 下界荒地环境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setLoopSound(ResourceLocation("minecraft:ambient.nether_wastes.loop"));
     sounds.setMoodSound(world::biome::MoodSoundAmbience(ResourceLocation("minecraft:ambient.nether_wastes.mood"),
@@ -1535,7 +1466,7 @@ Biome createNetherWastes()
         world::biome::SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.nether_wastes.additions"),
             0.0111 // tick_chance
             ));
-    // 下界荒地专属音乐 (MC 1.16.5)
+    // 下界荒地专属音乐
     sounds.setMusic(world::biome::BiomeMusic(ResourceLocation("minecraft:music.nether.nether_wastes"),
         12000, // min_delay_ticks
         24000, // max_delay_ticks
@@ -1548,8 +1479,7 @@ Biome createNetherWastes()
 
 Biome createSoulSandValley()
 {
-    // MC: 灵魂沙谷 - 灵魂沙和灵魂土，骷髅和恶魂
-    // depth=0.1F, scale=0.2F, temperature=2.0F
+    // 灵魂沙谷：灵魂沙和灵魂土，骷髅和恶魂
     Biome biome(Biomes::SoulSandValley, "soul_sand_valley");
     biome.setCategory(Biome::Category::Nether);
     biome.setDepth(0.1f);
@@ -1567,7 +1497,7 @@ Biome createSoulSandValley()
     biome.setGenerationSettings(BiomeGenerationSettings::createSoulSandValley());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSoulSandValley());
 
-    // 灵魂沙谷环境音效 (MC 1.16.5)
+    // 灵魂沙谷环境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setLoopSound(ResourceLocation("minecraft:ambient.soul_sand_valley.loop"));
     sounds.setMoodSound(world::biome::MoodSoundAmbience(ResourceLocation("minecraft:ambient.soul_sand_valley.mood"),
@@ -1579,7 +1509,7 @@ Biome createSoulSandValley()
         world::biome::SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.soul_sand_valley.additions"),
             0.0111 // tick_chance
             ));
-    // 灵魂沙谷专属音乐 (MC 1.16.5)
+    // 灵魂沙谷专属音乐
     sounds.setMusic(world::biome::BiomeMusic(ResourceLocation("minecraft:music.nether.soul_sand_valley"),
         12000, // min_delay_ticks
         24000, // max_delay_ticks
@@ -1592,8 +1522,7 @@ Biome createSoulSandValley()
 
 Biome createCrimsonForest()
 {
-    // MC: 绯红森林 - 绯红菌和疣猪兽，红色主题
-    // depth=0.1F, scale=0.2F, temperature=2.0F
+    // 绯红森林：绯红菌和疣猪兽，红色主题
     Biome biome(Biomes::CrimsonForest, "crimson_forest");
     biome.setCategory(Biome::Category::Nether);
     biome.setDepth(0.1f);
@@ -1611,7 +1540,7 @@ Biome createCrimsonForest()
     biome.setGenerationSettings(BiomeGenerationSettings::createCrimsonForest());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createCrimsonForest());
 
-    // 绯红森林环境音效 (MC 1.16.5)
+    // 绯红森林环境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setLoopSound(ResourceLocation("minecraft:ambient.crimson_forest.loop"));
     sounds.setMoodSound(world::biome::MoodSoundAmbience(ResourceLocation("minecraft:ambient.crimson_forest.mood"),
@@ -1623,7 +1552,7 @@ Biome createCrimsonForest()
         world::biome::SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.crimson_forest.additions"),
             0.0111 // tick_chance
             ));
-    // 绯红森林专属音乐 (MC 1.16.5)
+    // 绯红森林专属音乐
     sounds.setMusic(world::biome::BiomeMusic(ResourceLocation("minecraft:music.nether.crimson_forest"),
         12000, // min_delay_ticks
         24000, // max_delay_ticks
@@ -1636,8 +1565,7 @@ Biome createCrimsonForest()
 
 Biome createWarpedForest()
 {
-    // MC: 诡异森林 - 诡异菌和末影人，青色主题
-    // depth=0.1F, scale=0.2F, temperature=2.0F
+    // 诡异森林：诡异菌和末影人，青色主题
     Biome biome(Biomes::WarpedForest, "warped_forest");
     biome.setCategory(Biome::Category::Nether);
     biome.setDepth(0.1f);
@@ -1655,7 +1583,7 @@ Biome createWarpedForest()
     biome.setGenerationSettings(BiomeGenerationSettings::createWarpedForest());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createWarpedForest());
 
-    // 诡异森林环境音效 (MC 1.16.5)
+    // 诡异森林环境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setLoopSound(ResourceLocation("minecraft:ambient.warped_forest.loop"));
     sounds.setMoodSound(world::biome::MoodSoundAmbience(ResourceLocation("minecraft:ambient.warped_forest.mood"),
@@ -1667,7 +1595,7 @@ Biome createWarpedForest()
         world::biome::SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.warped_forest.additions"),
             0.0111 // tick_chance
             ));
-    // 诡异森林专属音乐 (MC 1.16.5)
+    // 诡异森林专属音乐
     // 注意: sounds.json 中 music.nether.warped_forest 定义为空数组，实际上不会播放音乐
     // 但游戏代码中仍然注册了这个音乐选择器
     sounds.setMusic(world::biome::BiomeMusic(ResourceLocation("minecraft:music.nether.warped_forest"),
@@ -1682,8 +1610,7 @@ Biome createWarpedForest()
 
 Biome createBasaltDeltas()
 {
-    // MC: 玄武岩三角洲 - 玄武岩和岩浆块，黑色颗粒效果
-    // depth=0.1F, scale=0.2F, temperature=2.0F
+    // 玄武岩三角洲：玄武岩和岩浆块，黑色颗粒效果
     Biome biome(Biomes::BasaltDeltas, "basalt_deltas");
     biome.setCategory(Biome::Category::Nether);
     biome.setDepth(0.1f);
@@ -1701,7 +1628,7 @@ Biome createBasaltDeltas()
     biome.setGenerationSettings(BiomeGenerationSettings::createBasaltDeltas());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createBasaltDeltas());
 
-    // 玄武岩三角洲环境音效 (MC 1.16.5)
+    // 玄武岩三角洲环境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setLoopSound(ResourceLocation("minecraft:ambient.basalt_deltas.loop"));
     sounds.setMoodSound(world::biome::MoodSoundAmbience(ResourceLocation("minecraft:ambient.basalt_deltas.mood"),
@@ -1713,7 +1640,7 @@ Biome createBasaltDeltas()
         world::biome::SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.basalt_deltas.additions"),
             0.0111 // tick_chance
             ));
-    // 玄武岩三角洲专属音乐 (MC 1.16.5)
+    // 玄武岩三角洲专属音乐
     sounds.setMusic(world::biome::BiomeMusic(ResourceLocation("minecraft:music.nether.basalt_deltas"),
         12000, // min_delay_ticks
         24000, // max_delay_ticks
@@ -1725,13 +1652,12 @@ Biome createBasaltDeltas()
 }
 
 // ============================================================================
-// 末地生物群系工厂函数（参考 MC 1.16.5 BiomeMaker）
+// 末地生物群系工厂函数
 // ============================================================================
 
 Biome createTheEnd()
 {
-    // MC: 末地主岛 - 末影龙战斗区域
-    // depth=0.1F, scale=0.2F, temperature=0.5F
+    // 末地主岛：末影龙战斗区域
     Biome biome(Biomes::TheEnd, "the_end");
     biome.setCategory(Biome::Category::TheEnd);
     biome.setDepth(0.1f);
@@ -1746,8 +1672,7 @@ Biome createTheEnd()
     biome.setEffects(
         world::biome::BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
 
-    // 环境音效：默认洞穴心境音效 (MC 1.16.5 func_244222_a)
-    // 参考: MoodSoundAmbience.field_235027_b_ = new MoodSoundAmbience(SoundEvents.AMBIENT_CAVE, 6000, 8, 2.0D)
+    // 环境音效：默认洞穴心境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
@@ -1759,8 +1684,7 @@ Biome createTheEnd()
 
 Biome createSmallEndIslands()
 {
-    // MC: 小型末地岛屿 - 外岛的小型岛屿群
-    // depth=0.1F, scale=0.2F, temperature=0.5F
+    // 小型末地岛屿：外岛的小型岛屿群
     Biome biome(Biomes::SmallEndIslands, "small_end_islands");
     biome.setCategory(Biome::Category::TheEnd);
     biome.setDepth(0.1f);
@@ -1774,7 +1698,7 @@ Biome createSmallEndIslands()
     biome.setEffects(
         world::biome::BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
 
-    // 环境音效：默认洞穴心境音效 (MC 1.16.5)
+    // 环境音效：默认洞穴心境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
@@ -1786,8 +1710,7 @@ Biome createSmallEndIslands()
 
 Biome createEndMidlands()
 {
-    // MC: 末地中部 - 外岛过渡区域
-    // depth=0.1F, scale=0.2F, temperature=0.5F
+    // 末地中部：外岛过渡区域
     Biome biome(Biomes::EndMidlands, "end_midlands");
     biome.setCategory(Biome::Category::TheEnd);
     biome.setDepth(0.1f);
@@ -1801,7 +1724,7 @@ Biome createEndMidlands()
     biome.setEffects(
         world::biome::BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
 
-    // 环境音效：默认洞穴心境音效 (MC 1.16.5)
+    // 环境音效：默认洞穴心境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
@@ -1813,8 +1736,7 @@ Biome createEndMidlands()
 
 Biome createEndHighlands()
 {
-    // MC: 末地高地 - 末地城和紫颂树生成区域
-    // depth=0.1F, scale=0.2F, temperature=0.5F
+    // 末地高地：末地城和紫颂树生成区域
     Biome biome(Biomes::EndHighlands, "end_highlands");
     biome.setCategory(Biome::Category::TheEnd);
     biome.setDepth(0.1f);
@@ -1828,7 +1750,7 @@ Biome createEndHighlands()
     biome.setEffects(
         world::biome::BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
 
-    // 环境音效：默认洞穴心境音效 (MC 1.16.5)
+    // 环境音效：默认洞穴心境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
@@ -1840,8 +1762,7 @@ Biome createEndHighlands()
 
 Biome createEndBarrens()
 {
-    // MC: 末地荒地 - 空旷区域，无特征
-    // depth=0.1F, scale=0.2F, temperature=0.5F
+    // 末地荒地：空旷区域，无特征
     Biome biome(Biomes::EndBarrens, "end_barrens");
     biome.setCategory(Biome::Category::TheEnd);
     biome.setDepth(0.1f);
@@ -1855,7 +1776,7 @@ Biome createEndBarrens()
     biome.setEffects(
         world::biome::BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
 
-    // 环境音效：默认洞穴心境音效 (MC 1.16.5)
+    // 环境音效：默认洞穴心境音效
     world::biome::BiomeAmbientSounds sounds;
     sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);

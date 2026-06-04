@@ -40,8 +40,6 @@ namespace border {
 
 /**
  * @brief 边界状态枚举（用于客户端渲染）
- *
- * 参考: net.minecraft.world.border.BorderStatus
  */
 enum class BorderStatus : u8 {
     Stationary = 0, // 静止 - 灰色
@@ -51,8 +49,6 @@ enum class BorderStatus : u8 {
 
 /**
  * @brief 边界变化监听器接口
- *
- * 参考: net.minecraft.world.border.IBorderListener
  */
 class IBorderListener {
 public:
@@ -106,8 +102,6 @@ public:
 
 /**
  * @brief 边界状态接口（状态模式）
- *
- * 参考: net.minecraft.world.border.WorldBorder.IBorderInfo
  *
  * 使用状态模式支持边界大小的渐变动画。
  * - StationaryBorderState: 静止边界，固定大小
@@ -190,8 +184,6 @@ public:
  * - 伤害参数配置
  * - 警告参数配置
  * - 玩家越界检测
- *
- * 参考: net.minecraft.world.border.WorldBorder
  */
 class WorldBorder {
 public:
@@ -470,22 +462,17 @@ private:
     /**
      * @brief 通知所有监听器边界大小变化
      */
-    void notifySizeChanged(double newSize);
+    void _notifySizeChanged(double newSize);
 
     /**
      * @brief 通知所有监听器过渡开始
      */
-    void notifyTransitionStarted(double oldSize, double newSize, u64 timeMs);
+    void _notifyTransitionStarted(double oldSize, double newSize, u64 timeMs);
 
     /**
      * @brief 通知所有监听器中心变化
      */
-    void notifyCenterChanged(double x, double z);
-
-    /**
-     * @brief 更新边界状态缓存
-     */
-    void updateCachedBounds();
+    void _notifyCenterChanged(double x, double z);
 
 private:
     double m_centerX = 0.0;        // 边界中心 X

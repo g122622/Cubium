@@ -101,7 +101,7 @@ bool ChunkTicketSet::removeTicket(const ChunkLoadTicket& ticket)
     return false;
 }
 
-i32 ChunkTicketSet::getMinLevel() const
+i32 ChunkTicketSet::getMinLevel() const noexcept
 {
     if (m_tickets.empty()) {
         return static_cast<i32>(ChunkLoadLevel::MaxLevel);
@@ -143,9 +143,9 @@ ChunkLoadTicketManager::ChunkLoadTicketManager()
     });
 }
 
-void ChunkLoadTicketManager::addTicket(ChunkPos pos, ChunkLoadTicket ticket)
+void ChunkLoadTicketManager::_addTicket(ChunkPos pos, ChunkLoadTicket ticket)
 {
-    u64 key = posToKey(pos.x, pos.z);
+    u64 key = _posToKey(pos.x, pos.z);
 
     auto& ticketSet = m_chunkTickets[key];
     ticketSet.addTicket(std::move(ticket));
@@ -153,9 +153,9 @@ void ChunkLoadTicketManager::addTicket(ChunkPos pos, ChunkLoadTicket ticket)
     m_dirtyChunks.insert(key);
 }
 
-void ChunkLoadTicketManager::removeTicket(ChunkPos pos, const ChunkLoadTicket& ticket)
+void ChunkLoadTicketManager::_removeTicket(ChunkPos pos, const ChunkLoadTicket& ticket)
 {
-    u64 key = posToKey(pos.x, pos.z);
+    u64 key = _posToKey(pos.x, pos.z);
 
     auto it = m_chunkTickets.find(key);
     if (it != m_chunkTickets.end()) {
@@ -183,17 +183,17 @@ void ChunkLoadTicketManager::updatePlayerPosition(PlayerId playerId, ChunkCoord 
     const std::unordered_set<u64> oldTrackedChunks = state.trackedChunks;
 
     if (oldPos.has_value()) {
-        updatePlayerSourceCenter(&oldPos.value(), &newPos);
+        _updatePlayerSourceCenter(&oldPos.value(), &newPos);
     } else {
-        updatePlayerSourceCenter(nullptr, &newPos);
+        _updatePlayerSourceCenter(nullptr, &newPos);
     }
 
     state.center = newPos;
     state.hasPosition = true;
-    state.trackedChunks = buildTrackedChunkSet(x, z);
+    state.trackedChunks = _buildTrackedChunkSet(x, z);
     m_playerPositions[playerId] = newPos;
 
-    applyTrackingDelta(playerId, oldTrackedChunks, state.trackedChunks);
+    _applyTrackingDelta(playerId, oldTrackedChunks, state.trackedChunks);
     processUpdates();
 }
 
@@ -207,10 +207,10 @@ void ChunkLoadTicketManager::removePlayer(PlayerId playerId)
 
     const PlayerSourceState state = stateIt->second;
     if (state.hasPosition) {
-        updatePlayerSourceCenter(&state.center, nullptr);
+        _updatePlayerSourceCenter(&state.center, nullptr);
     }
 
-    applyTrackingDelta(playerId, state.trackedChunks, {});
+    _applyTrackingDelta(playerId, state.trackedChunks, {});
     m_playerStates.erase(stateIt);
     m_playerPositions.erase(playerId);
     processUpdates();
@@ -261,10 +261,10 @@ void ChunkLoadTicketManager::setViewDistance(i32 distance)
 
     for (const auto& [playerId, state] : m_playerStates) {
         if (state.hasPosition) {
-            m_dirtyChunks.insert(posToKey(state.center.x, state.center.z));
+            m_dirtyChunks.insert(_posToKey(state.center.x, state.center.z));
         }
     }
-    rebuildAllPlayerSources();
+    _rebuildAllPlayerSources();
     processUpdates();
 }
 
@@ -283,9 +283,9 @@ void ChunkLoadTicketManager::forceChunk(ChunkCoord x, ChunkCoord z, bool force)
     ChunkLoadTicket ticket(TicketTypes::FORCED, static_cast<i32>(ChunkLoadLevel::Full), pos);
 
     if (force) {
-        addTicket(pos, ticket);
+        _addTicket(pos, ticket);
     } else {
-        removeTicket(pos, ticket);
+        _removeTicket(pos, ticket);
     }
 
     processUpdates();
@@ -303,16 +303,16 @@ void ChunkLoadTicketManager::processUpdates()
     for (u64 key : m_dirtyChunks) {
         ChunkCoord x = static_cast<ChunkCoord>(key >> 32);
         ChunkCoord z = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
-        refreshChunkSourceLevel(x, z);
+        _refreshChunkSourceLevel(x, z);
     }
     m_dirtyChunks.clear();
 
     m_distanceGraph.processUpdates(1000);
 }
 
-void ChunkLoadTicketManager::refreshChunkSourceLevel(ChunkCoord x, ChunkCoord z)
+void ChunkLoadTicketManager::_refreshChunkSourceLevel(ChunkCoord x, ChunkCoord z)
 {
-    const u64 key = posToKey(x, z);
+    const u64 key = _posToKey(x, z);
 
     i32 sourceLevel = ChunkDistanceGraph::MAX_LEVEL;
     auto ticketIt = m_chunkTickets.find(key);
@@ -329,10 +329,10 @@ void ChunkLoadTicketManager::refreshChunkSourceLevel(ChunkCoord x, ChunkCoord z)
     m_distanceGraph.updateSourceLevel(x, z, sourceLevel, isDecreasing);
 }
 
-void ChunkLoadTicketManager::updatePlayerSourceCenter(const ChunkPos* oldPos, const ChunkPos* newPos)
+void ChunkLoadTicketManager::_updatePlayerSourceCenter(const ChunkPos* oldPos, const ChunkPos* newPos)
 {
     if (oldPos != nullptr) {
-        const u64 oldKey = posToKey(oldPos->x, oldPos->z);
+        const u64 oldKey = _posToKey(oldPos->x, oldPos->z);
         auto it = m_playerSourceCounts.find(oldKey);
         if (it != m_playerSourceCounts.end()) {
             --it->second;
@@ -344,27 +344,27 @@ void ChunkLoadTicketManager::updatePlayerSourceCenter(const ChunkPos* oldPos, co
     }
 
     if (newPos != nullptr) {
-        const u64 newKey = posToKey(newPos->x, newPos->z);
+        const u64 newKey = _posToKey(newPos->x, newPos->z);
         ++m_playerSourceCounts[newKey];
         m_dirtyChunks.insert(newKey);
     }
 }
 
-std::unordered_set<u64> ChunkLoadTicketManager::buildTrackedChunkSet(ChunkCoord centerX, ChunkCoord centerZ) const
+std::unordered_set<u64> ChunkLoadTicketManager::_buildTrackedChunkSet(ChunkCoord centerX, ChunkCoord centerZ) const
 {
     std::unordered_set<u64> chunks;
     for (i32 dx = -m_viewDistance; dx <= m_viewDistance; ++dx) {
         for (i32 dz = -m_viewDistance; dz <= m_viewDistance; ++dz) {
             const i32 distance = std::max(std::abs(dx), std::abs(dz));
             if (distance <= m_viewDistance) {
-                chunks.insert(posToKey(centerX + dx, centerZ + dz));
+                chunks.insert(_posToKey(centerX + dx, centerZ + dz));
             }
         }
     }
     return chunks;
 }
 
-void ChunkLoadTicketManager::applyTrackingDelta(
+void ChunkLoadTicketManager::_applyTrackingDelta(
     PlayerId playerId, const std::unordered_set<u64>& oldChunks, const std::unordered_set<u64>& newChunks)
 {
     std::vector<TrackingChangeEvent> trackingEvents;
@@ -408,7 +408,7 @@ void ChunkLoadTicketManager::applyTrackingDelta(
     }
 }
 
-void ChunkLoadTicketManager::rebuildAllPlayerSources()
+void ChunkLoadTicketManager::_rebuildAllPlayerSources()
 {
     for (const auto& [key, count] : m_playerSourceCounts) {
         MC_UNUSED(count);
@@ -422,10 +422,10 @@ void ChunkLoadTicketManager::rebuildAllPlayerSources()
         }
 
         const std::unordered_set<u64> oldTrackedChunks = state.trackedChunks;
-        state.trackedChunks = buildTrackedChunkSet(state.center.x, state.center.z);
-        applyTrackingDelta(playerId, oldTrackedChunks, state.trackedChunks);
+        state.trackedChunks = _buildTrackedChunkSet(state.center.x, state.center.z);
+        _applyTrackingDelta(playerId, oldTrackedChunks, state.trackedChunks);
 
-        const u64 key = posToKey(state.center.x, state.center.z);
+        const u64 key = _posToKey(state.center.x, state.center.z);
         ++m_playerSourceCounts[key];
         m_dirtyChunks.insert(key);
     }
@@ -433,7 +433,7 @@ void ChunkLoadTicketManager::rebuildAllPlayerSources()
 
 const ChunkTicketSet* ChunkLoadTicketManager::getChunkTickets(ChunkCoord x, ChunkCoord z) const
 {
-    u64 key = posToKey(x, z);
+    u64 key = _posToKey(x, z);
     auto it = m_chunkTickets.find(key);
     if (it != m_chunkTickets.end()) {
         return &it->second;
@@ -443,7 +443,7 @@ const ChunkTicketSet* ChunkLoadTicketManager::getChunkTickets(ChunkCoord x, Chun
 
 std::vector<PlayerId> ChunkLoadTicketManager::getTrackingPlayers(ChunkCoord x, ChunkCoord z) const
 {
-    u64 key = posToKey(x, z);
+    u64 key = _posToKey(x, z);
     std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
 
     std::vector<PlayerId> result;
@@ -456,7 +456,7 @@ std::vector<PlayerId> ChunkLoadTicketManager::getTrackingPlayers(ChunkCoord x, C
 
 bool ChunkLoadTicketManager::isPlayerTracking(PlayerId playerId, ChunkCoord x, ChunkCoord z) const
 {
-    u64 key = posToKey(x, z);
+    u64 key = _posToKey(x, z);
     std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
 
     auto it = m_chunkTrackingPlayers.find(key);

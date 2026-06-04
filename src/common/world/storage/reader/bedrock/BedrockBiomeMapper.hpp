@@ -36,7 +36,7 @@ namespace mc::world::storage::reader::bedrock {
  */
 class BedrockBiomeMapper {
 public:
-    BedrockBiomeMapper();
+    BedrockBiomeMapper() noexcept;
 
     /**
      * @brief 将基岩版生物群系 ID 映射到内部 BiomeId
@@ -47,7 +47,7 @@ public:
     BiomeId mapBiome(i32 bedrockBiomeId, DimensionId dimension = 0);
 
 private:
-    void initializeMappings();
+    void _initializeMappings();
 
     /// 基岩版 ID → Java 版 ID 映射表
     std::unordered_map<i32, BiomeId> m_bedrockToJava;

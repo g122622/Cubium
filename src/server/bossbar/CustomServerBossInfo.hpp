@@ -45,7 +45,6 @@ class CustomServerBossInfoManager;
  *
  * 用于 /bossbar 命令创建的自定义 Boss 栏。
  * 支持持久化存储、玩家重连后恢复可见性。
- * 参考 MC 1.16.5: net.minecraft.server.CustomServerBossInfo
  */
 class CustomServerBossInfo : public ServerBossInfo {
 public:

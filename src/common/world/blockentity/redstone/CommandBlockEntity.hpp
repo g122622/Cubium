@@ -8,7 +8,7 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall included in all
+ * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <memory>
 #include "../BlockEntity.hpp"
 #include "command/ICommandSource.hpp"
 #include "util/math/Vector3.hpp"
+#include <memory>
 #include <string>
 
 namespace mc {
@@ -39,7 +39,6 @@ namespace blockentity {
  * @brief 命令方块实体模式
  *
  * 定义三种命令方块的行为模式。
- * 参考 MC 1.16.5: CommandBlockTileEntity.Mode
  */
 enum class CommandBlockMode : u8 {
     /**
@@ -69,8 +68,6 @@ enum class CommandBlockMode : u8 {
  *
  * 存储命令方块的命令、执行状态和输出信息。
  * 支持三种模式：脉冲、循环、连锁。
- *
- * 参考 MC 1.16.5: net.minecraft.tileentity.CommandBlockTileEntity
  */
 class CommandBlockEntity : public BlockEntity, public command::ICommandSource {
 public:

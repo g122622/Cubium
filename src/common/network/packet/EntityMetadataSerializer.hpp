@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../entity/core/EntityDataManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include <vector>
 
 namespace mc::network {
@@ -88,16 +88,16 @@ public:
 
 private:
     // 写入变长整数
-    static void writeVarInt(i32 value, std::vector<u8>& output);
-    static void writeVarLong(i64 value, std::vector<u8>& output);
+    static void _writeVarInt(i32 value, std::vector<u8>& output) noexcept;
+    static void _writeVarLong(i64 value, std::vector<u8>& output) noexcept;
 
     // 读取变长整数
-    static i32 readVarInt(const u8* data, size_t size, size_t& offset);
-    static i64 readVarLong(const u8* data, size_t size, size_t& offset);
+    static i32 _readVarInt(const u8* data, size_t size, size_t& offset) noexcept;
+    static i64 _readVarLong(const u8* data, size_t size, size_t& offset) noexcept;
 
     // 写入字符串
-    static void writeString(const std::string& str, std::vector<u8>& output);
-    static std::string readString(const u8* data, size_t size, size_t& offset);
+    static void _writeString(const std::string& str, std::vector<u8>& output) noexcept;
+    static std::string _readString(const u8* data, size_t size, size_t& offset) noexcept;
 };
 
 } // namespace mc::network

@@ -26,13 +26,11 @@
 namespace mc::world::spawn {
 
 // ============================================================================
-// 工厂方法实现（参考 MC 1.16.5 生物群系生成配置）
+// 工厂方法实现
 // ============================================================================
 
 MobSpawnInfo MobSpawnInfo::createPlains()
 {
-    // 参考 MC 1.16.5 PlainsBiome
-    // creature_spawn_probability = 0.1F
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
     info.m_playerSpawnFriendly = true;
@@ -40,11 +38,11 @@ MobSpawnInfo MobSpawnInfo::createPlains()
     // 怪物（怪物在夜间/黑暗环境自然生成）
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1)); // MC 1.16.5
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
     info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4)); // MC 1.16.5
+    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
 
@@ -66,7 +64,6 @@ MobSpawnInfo MobSpawnInfo::createPlains()
 
 MobSpawnInfo MobSpawnInfo::createForest()
 {
-    // 参考 MC 1.16.5 ForestBiome
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
     info.m_playerSpawnFriendly = true;
@@ -74,15 +71,15 @@ MobSpawnInfo MobSpawnInfo::createForest()
     // 怪物
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1)); // MC 1.16.5
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
     info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4)); // MC 1.16.5
+    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
 
-    // 动物 - MC 1.16.5 森林没有狼！森林生物群系的狼在其他变体中
+    // 动物（森林没有狼，狼在其他变体中）
     info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
     info.addCreatureSpawn(SpawnEntry("minecraft:sheep", 12, 4, 4));
     info.addCreatureSpawn(SpawnEntry("minecraft:pig", 10, 4, 4));
@@ -99,20 +96,19 @@ MobSpawnInfo MobSpawnInfo::createForest()
 
 MobSpawnInfo MobSpawnInfo::createDesert()
 {
-    // 参考 MC 1.16.5 DesertBiome
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物 - MC 1.16.5 沙漠没有末影人和女巫
+    // 怪物（沙漠没有末影人和女巫）
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 19, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 1, 1, 1)); // MC 1.16.5
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 1, 1, 1));
     info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:husk", 80, 4, 4)); // 沙漠僵尸
 
-    // 动物 - 沙漠只有兔子
+    // 动物（沙漠只有兔子）
     info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
     info.addCreatureSpawn(SpawnEntry("minecraft:rabbit", 4, 2, 3));
 
@@ -124,11 +120,10 @@ MobSpawnInfo MobSpawnInfo::createDesert()
 
 MobSpawnInfo MobSpawnInfo::createOcean()
 {
-    // 参考 MC 1.16.5 OceanBiome
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物 - MC 1.16.5 海洋只有溺尸
+    // 怪物（海洋有溺尸）
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
@@ -138,32 +133,31 @@ MobSpawnInfo MobSpawnInfo::createOcean()
     info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 5, 1, 1)); // MC 1.16.5 权重是5
+    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 5, 1, 1));
 
-    // 水生生物 - MC 1.16.5 权重
+    // 水生生物
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 15, 3, 6)); // MC 1.16.5: 15
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 15, 1, 5)); // MC 1.16.5: 15
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 3, 1, 4)); // MC 1.16.5: 3
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 15, 3, 6));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 15, 1, 5));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 3, 1, 4));
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createWarmOcean()
 {
-    // 参考 MC 1.16.5 WarmOceanBiome
     // 暖水海洋：热带鱼和河豚为主，鳕鱼、鲑鱼、海豚
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物 - MC 1.16.5 标准 + 溺尸
+    // 怪物（标准 + 溺尸）
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 5, 1, 1)); // MC 1.16.5: 5,1,1
+    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 5, 1, 1));
 
-    // 水生生物 - MC 1.16.5 暖水海洋配置
+    // 水生生物（暖水海洋配置）
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 15, 3, 6)); // MC 1.16.5: 15
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 1, 2)); // MC 1.16.5: 10, 1, 2
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 15, 3, 6));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 1, 2));
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:pufferfish", 5, 1, 3));
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:tropical_fish", 25, 8, 8));
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
@@ -173,7 +167,6 @@ MobSpawnInfo MobSpawnInfo::createWarmOcean()
 
 MobSpawnInfo MobSpawnInfo::createLukewarmOcean()
 {
-    // 参考 MC 1.16.5 LukewarmOceanBiome
     // 温水海洋：混合鱼群
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
@@ -182,7 +175,7 @@ MobSpawnInfo MobSpawnInfo::createLukewarmOcean()
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 100, 4, 4));
 
-    // 水生生物 - 温水海洋混合配置
+    // 水生生物（温水海洋混合配置）
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 10, 3, 6));
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 5, 1, 5));
@@ -196,7 +189,6 @@ MobSpawnInfo MobSpawnInfo::createLukewarmOcean()
 
 MobSpawnInfo MobSpawnInfo::createColdOcean()
 {
-    // 参考 MC 1.16.5 ColdOceanBiome
     // 冷水海洋：更多鲑鱼
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
@@ -205,7 +197,7 @@ MobSpawnInfo MobSpawnInfo::createColdOcean()
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 100, 4, 4));
 
-    // 水生生物 - 冷水海洋配置
+    // 水生生物（冷水海洋配置）
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 10, 3, 6));
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 15, 1, 5)); // 更高权重
@@ -217,12 +209,11 @@ MobSpawnInfo MobSpawnInfo::createColdOcean()
 
 MobSpawnInfo MobSpawnInfo::createFrozenOcean()
 {
-    // 参考 MC 1.16.5 FrozenOceanBiome
     // 冰冻海洋：鲑鱼为主，北极熊，没有鳕鱼！
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物 - MC 1.16.5 冰冻海洋配置
+    // 怪物
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
@@ -232,15 +223,15 @@ MobSpawnInfo MobSpawnInfo::createFrozenOcean()
     info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 5, 1, 1)); // MC 1.16.5: 5,1,1
+    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 5, 1, 1));
     // 注意：流浪者(Stray)只在冰面上生成，不在水中
 
-    // 水生生物 - MC 1.16.5 冰冻海洋没有鳕鱼！
+    // 水生生物（冰冻海洋没有鳕鱼！）
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 15, 1, 5)); // MC 1.16.5: 15
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 1, 1, 4)); // MC 1.16.5: 1
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 15, 1, 5));
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 1, 1, 4));
 
-    // 动物 - 冰面上的北极熊
+    // 动物（冰面上的北极熊）
     info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
     info.addCreatureSpawn(SpawnEntry("minecraft:polar_bear", 1, 1, 2));
 
@@ -249,7 +240,6 @@ MobSpawnInfo MobSpawnInfo::createFrozenOcean()
 
 MobSpawnInfo MobSpawnInfo::createDeepOcean()
 {
-    // 参考 MC 1.16.5 DeepOceanBiome
     // 深海：更多鱿鱼
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
@@ -258,7 +248,7 @@ MobSpawnInfo MobSpawnInfo::createDeepOcean()
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 100, 4, 4));
 
-    // 水生生物 - 深海更多鱿鱼
+    // 水生生物（深海更多鱿鱼）
     info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 10, 3, 6));
     info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 5, 1, 5));
@@ -270,7 +260,6 @@ MobSpawnInfo MobSpawnInfo::createDeepOcean()
 
 MobSpawnInfo MobSpawnInfo::createTaiga()
 {
-    // 参考 MC 1.16.5 TaigaBiome
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
     info.m_playerSpawnFriendly = true;
@@ -278,15 +267,15 @@ MobSpawnInfo MobSpawnInfo::createTaiga()
     // 怪物
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1)); // MC 1.16.5
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
     info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4)); // MC 1.16.5
+    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
 
-    // 动物 - 针叶林有狐狸和狼
+    // 动物（针叶林有狐狸和狼）
     info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
     info.addCreatureSpawn(SpawnEntry("minecraft:sheep", 12, 4, 4));
     info.addCreatureSpawn(SpawnEntry("minecraft:pig", 10, 4, 4));
@@ -303,7 +292,6 @@ MobSpawnInfo MobSpawnInfo::createTaiga()
 
 MobSpawnInfo MobSpawnInfo::createJungle()
 {
-    // 参考 MC 1.16.5 JungleBiome
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
     info.m_playerSpawnFriendly = true;
@@ -311,22 +299,22 @@ MobSpawnInfo MobSpawnInfo::createJungle()
     // 怪物
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1)); // MC 1.16.5
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
     info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4)); // MC 1.16.5
+    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:ocelot", 2, 1, 1)); // MC 1.16.5: 丛林豹猫是怪物分类！
+    info.addMonsterSpawn(SpawnEntry("minecraft:ocelot", 2, 1, 1)); // 丛林豹猫是怪物分类
 
-    // 动物 - MC 1.16.5 丛林没有牛！
+    // 动物（丛林没有牛！）
     info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
     info.addCreatureSpawn(SpawnEntry("minecraft:sheep", 12, 4, 4));
     info.addCreatureSpawn(SpawnEntry("minecraft:pig", 10, 4, 4));
     info.addCreatureSpawn(SpawnEntry("minecraft:chicken", 10, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:parrot", 40, 1, 2)); // MC 1.16.5: 权重40
-    info.addCreatureSpawn(SpawnEntry("minecraft:panda", 1, 1, 2)); // MC 1.16.5: 权重1（竹林变体是80）
+    info.addCreatureSpawn(SpawnEntry("minecraft:parrot", 40, 1, 2));
+    info.addCreatureSpawn(SpawnEntry("minecraft:panda", 1, 1, 2)); // 竹林变体是80
 
     // 环境生物
     info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
@@ -336,7 +324,6 @@ MobSpawnInfo MobSpawnInfo::createJungle()
 
 MobSpawnInfo MobSpawnInfo::createSavanna()
 {
-    // 参考 MC 1.16.5 SavannaBiome
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
     info.m_playerSpawnFriendly = true;
@@ -350,7 +337,7 @@ MobSpawnInfo MobSpawnInfo::createSavanna()
     info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
 
-    // 动物 - 热带草原有马、驴、羊驼
+    // 动物（热带草原有马、驴、羊驼）
     info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
     info.addCreatureSpawn(SpawnEntry("minecraft:sheep", 12, 4, 4));
     info.addCreatureSpawn(SpawnEntry("minecraft:pig", 10, 4, 4));
@@ -368,21 +355,20 @@ MobSpawnInfo MobSpawnInfo::createSavanna()
 
 MobSpawnInfo MobSpawnInfo::createSwamp()
 {
-    // 参考 MC 1.16.5 SwampBiome
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物 - 沼泽有更多女巫
+    // 怪物（沼泽有更多女巫）
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1)); // MC 1.16.5
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
     info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4)); // MC 1.16.5: 标准史莱姆
+    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1)); // MC 1.16.5: 权重5（不是50）
-    // 注意：MC 1.16.5 沼泽还有额外的史莱姆生成，通过特定条件检测实现
+    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
+    // 注意：沼泽还有额外的史莱姆生成，通过特定条件检测实现
     // 在沼泽群系的史莱姆区块和 Y=50-70 之间会额外生成史莱姆
 
     // 动物
@@ -400,7 +386,6 @@ MobSpawnInfo MobSpawnInfo::createSwamp()
 
 MobSpawnInfo MobSpawnInfo::createMountains()
 {
-    // 参考 MC 1.16.5 MountainsBiome
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
 
@@ -413,7 +398,7 @@ MobSpawnInfo MobSpawnInfo::createMountains()
     info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
 
-    // 动物 - 山地有羊驼
+    // 动物（山地有羊驼）
     info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
     info.addCreatureSpawn(SpawnEntry("minecraft:sheep", 12, 4, 4));
     info.addCreatureSpawn(SpawnEntry("minecraft:pig", 10, 4, 4));
@@ -429,23 +414,22 @@ MobSpawnInfo MobSpawnInfo::createMountains()
 
 MobSpawnInfo MobSpawnInfo::createSnowy()
 {
-    // 参考 MC 1.16.5 SnowyBiome（雪地平原等）
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物 - 雪地有流浪者
+    // 怪物（雪地有流浪者）
     info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
     info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1)); // MC 1.16.5
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 20, 4, 4)); // MC 1.16.5: 雪地骷髅权重20
-    info.addMonsterSpawn(SpawnEntry("minecraft:stray", 80, 4, 4)); // 流浪者
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
+    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 20, 4, 4)); // 雪地骷髅权重较低
+    info.addMonsterSpawn(SpawnEntry("minecraft:stray", 80, 4, 4));    // 流浪者
     info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4)); // MC 1.16.5
+    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
 
-    // 动物 - 雪地有北极熊和兔子
+    // 动物（雪地有北极熊和兔子）
     info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
     info.addCreatureSpawn(SpawnEntry("minecraft:rabbit", 10, 2, 3));
     info.addCreatureSpawn(SpawnEntry("minecraft:polar_bear", 1, 1, 2));
@@ -470,20 +454,19 @@ MobSpawnInfo MobSpawnInfo::createEmpty()
 
 MobSpawnInfo MobSpawnInfo::createNetherWastes()
 {
-    // 参考 MC 1.16.5 NetherWastesBiome
     // 生物：猪灵、僵尸猪灵、恶魂、岩浆怪、末影人、炽足兽
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.0f; // 下界没有被动动物生成
 
-    // 怪物 - MC 1.16.5 权重
+    // 怪物
     info.setMaxMonsterInstances(70);
-    info.addMonsterSpawn(SpawnEntry("minecraft:ghast", 50, 4, 4)); // MC 1.16.5: 50
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombified_piglin", 100, 4, 4)); // MC 1.16.5: 100
-    info.addMonsterSpawn(SpawnEntry("minecraft:magma_cube", 2, 4, 4)); // MC 1.16.5: 2
+    info.addMonsterSpawn(SpawnEntry("minecraft:ghast", 50, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombified_piglin", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:magma_cube", 2, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:piglin", 15, 4, 4));
     info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 1, 4, 4));
 
-    // 生物（炽足兽）- MC 1.16.5 炽足兽是 CREATURE 分类
+    // 生物（炽足兽）
     info.setMaxCreatureInstances(10);
     info.addCreatureSpawn(SpawnEntry("minecraft:strider", 60, 1, 2));
 
@@ -492,18 +475,17 @@ MobSpawnInfo MobSpawnInfo::createNetherWastes()
 
 MobSpawnInfo MobSpawnInfo::createSoulSandValley()
 {
-    // 参考 MC 1.16.5 SoulSandValleyBiome
     // 生物：骷髅、恶魂、末影人、炽足兽
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.0f;
 
-    // 怪物 - MC 1.16.5 权重
+    // 怪物
     info.setMaxMonsterInstances(70);
     info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 20, 5, 5));
     info.addMonsterSpawn(SpawnEntry("minecraft:ghast", 50, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 1, 4, 4)); // MC 1.16.5: 1（不是4）
+    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 1, 4, 4));
 
-    // MC 1.16.5: 灵魂沙谷所有怪物都有 SpawnCosts
+    // 灵魂沙谷所有怪物都有 SpawnCosts
     info.setSpawnCost("minecraft:skeleton", SpawnCosts(0.12, 0.7));
     info.setSpawnCost("minecraft:ghast", SpawnCosts(0.12, 0.7));
     info.setSpawnCost("minecraft:enderman", SpawnCosts(0.12, 0.7));
@@ -518,17 +500,15 @@ MobSpawnInfo MobSpawnInfo::createSoulSandValley()
 
 MobSpawnInfo MobSpawnInfo::createCrimsonForest()
 {
-    // 参考 MC 1.16.5 CrimsonForestBiome
     // 生物：猪灵、僵尸猪灵、疣猪兽、炽足兽
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.0f;
 
-    // 怪物 - MC 1.16.5 配置
-    // 注意：疣猪兽(Hoglin)在 MC 1.16.5 中是 MONSTER 分类！
+    // 怪物（注意：疣猪兽是 MONSTER 分类）
     info.setMaxMonsterInstances(70);
     info.addMonsterSpawn(SpawnEntry("minecraft:zombified_piglin", 1, 2, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:hoglin", 9, 3, 4)); // MC 1.16.5: MONSTER 分类
-    info.addMonsterSpawn(SpawnEntry("minecraft:piglin", 5, 3, 4)); // MC 1.16.5: 权重5
+    info.addMonsterSpawn(SpawnEntry("minecraft:hoglin", 9, 3, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:piglin", 5, 3, 4));
 
     // 生物（炽足兽）
     info.setMaxCreatureInstances(10);
@@ -539,7 +519,6 @@ MobSpawnInfo MobSpawnInfo::createCrimsonForest()
 
 MobSpawnInfo MobSpawnInfo::createWarpedForest()
 {
-    // 参考 MC 1.16.5 WarpedForestBiome
     // 生物：末影人、炽足兽
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.0f;
@@ -547,8 +526,7 @@ MobSpawnInfo MobSpawnInfo::createWarpedForest()
     // 怪物（末影人为主）
     info.setMaxMonsterInstances(70);
     info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 1, 4, 4));
-    // MC 1.16.5: 末影人 SpawnCosts(energyBudget=0.12, charge=1.0)
-    info.setSpawnCost("minecraft:enderman", SpawnCosts(0.12, 1.0)); // 参数顺序：energyBudget, charge
+    info.setSpawnCost("minecraft:enderman", SpawnCosts(0.12, 1.0));
 
     // 生物（炽足兽）
     info.setMaxCreatureInstances(10);
@@ -559,15 +537,14 @@ MobSpawnInfo MobSpawnInfo::createWarpedForest()
 
 MobSpawnInfo MobSpawnInfo::createBasaltDeltas()
 {
-    // 参考 MC 1.16.5 BasaltDeltasBiome
     // 生物：岩浆怪、恶魂、炽足兽
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.0f;
 
-    // 怪物（岩浆怪为主）- MC 1.16.5 权重
+    // 怪物（岩浆怪为主）
     info.setMaxMonsterInstances(70);
-    info.addMonsterSpawn(SpawnEntry("minecraft:ghast", 40, 1, 1)); // MC 1.16.5: 40, 1, 1
-    info.addMonsterSpawn(SpawnEntry("minecraft:magma_cube", 100, 2, 5)); // MC 1.16.5: 100, 2, 5
+    info.addMonsterSpawn(SpawnEntry("minecraft:ghast", 40, 1, 1));
+    info.addMonsterSpawn(SpawnEntry("minecraft:magma_cube", 100, 2, 5));
 
     // 生物（炽足兽）
     info.setMaxCreatureInstances(10);
@@ -582,7 +559,6 @@ MobSpawnInfo MobSpawnInfo::createBasaltDeltas()
 
 MobSpawnInfo MobSpawnInfo::createTheEnd()
 {
-    // 参考 MC 1.16.5 TheEndBiome
     // 只有末影人
     MobSpawnInfo info;
     info.m_creatureSpawnProbability = 0.0f;

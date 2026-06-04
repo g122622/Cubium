@@ -25,6 +25,7 @@
 #include "../../../util/assert/AssertAll.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../WorldConstants.hpp"
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../block/BlockRegistry.hpp"
@@ -183,17 +184,17 @@ NoiseChunkGenerator::NoiseChunkGenerator(
     , m_verticalNoiseGranularity(0)
     , m_horizontalNoiseGranularity(0)
 {
-    initNoiseGenerators();
-    initBiomeWeights();
-    initGaussianLUT();
+    _initNoiseGenerators();
+    _initBiomeWeights();
+    _initGaussianLUT();
 
     // 确保生物群系注册表已初始化（默认构造路径会初始化，注入路径也需要）
     BiomeRegistry::instance().initialize();
 
     MC_ASSERT_RELEASE(m_biomeProvider != nullptr);
 
-    initCarvers();
-    initGenerationRegistries();
+    _initCarvers();
+    _initGenerationRegistries();
 }
 
 NoiseChunkGenerator::~NoiseChunkGenerator() = default;
@@ -202,7 +203,7 @@ NoiseChunkGenerator::~NoiseChunkGenerator() = default;
 // 初始化
 // ============================================================================
 
-void NoiseChunkGenerator::initNoiseGenerators()
+void NoiseChunkGenerator::_initNoiseGenerators()
 {
     MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initNoiseGenerators");
 
@@ -211,11 +212,11 @@ void NoiseChunkGenerator::initNoiseGenerators()
     // 计算噪声尺寸
     m_verticalNoiseGranularity = noise.sizeVertical * 4;
     m_horizontalNoiseGranularity = noise.sizeHorizontal * 4;
-    m_noiseSizeX = 16 / m_horizontalNoiseGranularity;
+    m_noiseSizeX = world::CHUNK_WIDTH / m_horizontalNoiseGranularity;
     m_noiseSizeY = noise.height / m_verticalNoiseGranularity;
-    m_noiseSizeZ = 16 / m_horizontalNoiseGranularity;
+    m_noiseSizeZ = world::CHUNK_WIDTH / m_horizontalNoiseGranularity;
 
-    // 创建噪声生成器（参考 MC）
+    // 创建噪声生成器
     math::Random rng(m_seed);
 
     // 主密度噪声：16 倍频（-15 到 0）
@@ -228,27 +229,25 @@ void NoiseChunkGenerator::initNoiseGenerators()
     m_weightNoise = std::make_unique<OctavesNoiseGenerator>(rng, -7, 0);
 
     // 地表深度噪声
-    // 参考 MC：simplexSurfaceNoise=true 时使用 PerlinNoiseGenerator，
-    // 否则使用 OctavesNoiseGenerator。
+    // simplexSurfaceNoise=true 时使用 PerlinNoiseGenerator，否则使用 OctavesNoiseGenerator
     if (noise.simplexSurfaceNoise) {
         m_surfaceDepthNoise = std::make_unique<PerlinNoiseGenerator>(rng, -3, 0);
     } else {
         m_surfaceDepthNoise = std::make_unique<OctavesNoiseGenerator>(rng, -3, 0);
     }
 
-    // 跳过一些随机数（参考 MC）
+    // 跳过一些随机数
     rng.skip(2620);
 
     // 随机密度偏移噪声
-    // 参考 MC：基于同一个随机序列继续构建该噪声层。
     m_randomDensityOffsetNoise = std::make_unique<OctavesNoiseGenerator>(rng, -15, 0);
 }
 
-void NoiseChunkGenerator::initBiomeWeights()
+void NoiseChunkGenerator::_initBiomeWeights()
 {
     MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initBiomeWeights");
 
-    // 参考 MC 的 field_236081_j_ 查找表
+    // 5x5 权重查找表
     for (i32 dz = -2; dz <= 2; ++dz) {
         for (i32 dx = -2; dx <= 2; ++dx) {
             const i32 index = (dx + 2) + (dz + 2) * 5;
@@ -258,7 +257,7 @@ void NoiseChunkGenerator::initBiomeWeights()
     }
 }
 
-void NoiseChunkGenerator::initGaussianLUT()
+void NoiseChunkGenerator::_initGaussianLUT()
 {
     MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initGaussianLUT");
 
@@ -266,15 +265,13 @@ void NoiseChunkGenerator::initGaussianLUT()
         return;
     }
 
-    // 参考 MC 1.16.5: NoiseChunkGenerator.field_222561_h
     // 24x24x24 高斯核，索引公式: x * 24 * 24 + y * 24 + z
     // 索引偏移: +12（因为坐标范围是 -12 到 +11）
     for (i32 x = 0; x < 24; ++x) {
         for (i32 y = 0; y < 24; ++y) {
             for (i32 z = 0; z < 24; ++z) {
                 const i32 index = x * 24 * 24 + y * 24 + z;
-                // MC 1.16.5: func_222554_b 计算高斯衰减
-                // 参数是距离中心的偏移（-12 到 +11）
+                // 计算高斯衰减，参数是距离中心的偏移（-12 到 +11）
                 s_gaussianLUT[index] = static_cast<f32>(calculateStructureDensityOffset(x - 12, y - 12, z - 12));
             }
         }
@@ -285,7 +282,6 @@ void NoiseChunkGenerator::initGaussianLUT()
 
 f64 NoiseChunkGenerator::calculateStructureDensityOffset(i32 dx, i32 dy, i32 dz)
 {
-    // 参考 MC 1.16.5: NoiseChunkGenerator.func_222554_b
     // 高斯衰减函数，用于结构边界地形平滑
     //
     // 计算:
@@ -309,11 +305,11 @@ f64 NoiseChunkGenerator::calculateStructureDensityOffset(i32 dx, i32 dy, i32 dz)
     return d4 * d3;
 }
 
-void NoiseChunkGenerator::initCarvers()
+void NoiseChunkGenerator::_initCarvers()
 {
     MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initCarvers");
 
-    // 洞穴概率参考 MC: 1/7 ≈ 0.14285715
+    // 洞穴概率: 1/7 ≈ 0.14285715
     m_caveCarver = std::make_unique<CaveCarver>(world::MAX_BUILD_HEIGHT);
     m_caveConfig = ProbabilityConfig(0.14285715f);
 
@@ -326,7 +322,7 @@ void NoiseChunkGenerator::initCarvers()
     m_underwaterCanyonCarver = std::make_unique<world::gen::carver::UnderwaterCanyonCarver>();
 }
 
-void NoiseChunkGenerator::initGenerationRegistries()
+void NoiseChunkGenerator::_initGenerationRegistries()
 {
     MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initGenerationRegistries");
 
@@ -415,15 +411,14 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
 
     const ChunkCoord chunkX = chunk.x();
     const ChunkCoord chunkZ = chunk.z();
-    const i32 startX = chunkX << 4;
-    const i32 startZ = chunkZ << 4;
+    const i32 startX = chunkX * world::CHUNK_WIDTH;
+    const i32 startZ = chunkZ * world::CHUNK_WIDTH;
     BiomeWindowCache biomeWindowCache;
 
     // === 收集结构数据用于地形平滑 ===
-    // 参考 MC 1.16.5: NoiseChunkGenerator.func_230352_b_
     std::vector<const world::gen::structure::StructurePiece*> structurePieces;
     std::vector<world::gen::jigsaw::JigsawJunction> junctions;
-    collectStructureData(chunk, structurePieces, junctions);
+    _collectStructureData(chunk, structurePieces, junctions);
 
     // === 噪声缓存初始化 ===
     std::vector<std::vector<f32>> noiseCache[2];
@@ -435,13 +430,12 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
         // 初始化第一列噪声数据
         for (i32 noiseZ = 0; noiseZ <= m_noiseSizeZ; ++noiseZ) {
             const i32 globalNoiseZ = chunkZ * m_noiseSizeZ + noiseZ;
-            fillNoiseColumn(noiseCache[0][noiseZ], chunkX * m_noiseSizeX, globalNoiseZ, biomeWindowCache);
+            _fillNoiseColumn(noiseCache[0][noiseZ], chunkX * m_noiseSizeX, globalNoiseZ, biomeWindowCache);
         }
     }
 
     // === 噪声填充与方块放置 ===
-    // 注意：地形密度计算已在 fillNoiseColumn() 中完成，包含 biome depth/scale 的影响
-    // 参考 MC 1.16.5 NoiseChunkGenerator
+    // 地形密度计算已在 fillNoiseColumn() 中完成，包含 biome depth/scale 的影响
     {
         MC_TRACE_EVENT("world.chunk_gen", "GenerateNoise_FillBlocks");
         // 遍历每个噪声单元
@@ -450,7 +444,7 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
             for (i32 noiseZ = 0; noiseZ <= m_noiseSizeZ; ++noiseZ) {
                 const i32 globalNoiseX = chunkX * m_noiseSizeX + noiseX + 1;
                 const i32 globalNoiseZ = chunkZ * m_noiseSizeZ + noiseZ;
-                fillNoiseColumn(noiseCache[1][noiseZ], globalNoiseX, globalNoiseZ, biomeWindowCache);
+                _fillNoiseColumn(noiseCache[1][noiseZ], globalNoiseX, globalNoiseZ, biomeWindowCache);
             }
 
             // 处理当前噪声单元
@@ -496,11 +490,10 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
                                 // Z 轴插值 - 最终密度值
                                 // 密度值已包含 biome depth/scale 影响（在 fillNoiseColumn 中计算）
                                 f64 density = static_cast<f64>(math::lerp(x0, x1, zLerp));
-                                const i32 localBlockX = worldX & 15;
-                                const i32 localBlockZ = worldZ & 15;
+                                const i32 localBlockX = worldX % world::CHUNK_WIDTH;
+                                const i32 localBlockZ = worldZ % world::CHUNK_WIDTH;
 
                                 // === 结构地形平滑 ===
-                                // 参考 MC 1.16.5: NoiseChunkGenerator.func_230352_b_
                                 // 计算结构片段对密度的影响
                                 if (!structurePieces.empty() || !junctions.empty()) {
                                     // 将密度归一化到 [-1, 1] 范围
@@ -560,7 +553,7 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
     chunk.setChunkStatus(ChunkStatuses::NOISE);
 }
 
-void NoiseChunkGenerator::fillNoiseColumn(
+void NoiseChunkGenerator::_fillNoiseColumn(
     std::vector<f32>& column, i32 noiseX, i32 noiseZ, BiomeWindowCache& biomeWindowCache) const
 {
     MC_TRACE_EVENT("world.chunk_gen", "FillNoiseColumn", "x", noiseX, "z", noiseZ);
@@ -569,12 +562,12 @@ void NoiseChunkGenerator::fillNoiseColumn(
     const NoiseSettings& noise = m_settings.noise;
 
     // === 阶段 1: 计算生物群系权重 ===
-    f32 totalScale = 0.0f;  // f - 累加比例
-    f32 totalDepth = 0.0f;  // f1 - 累加深度
-    f32 totalWeight = 0.0f; // f2 - 累加权重
+    f32 totalScale = 0.0f;  // 累加比例
+    f32 totalDepth = 0.0f;  // 累加深度
+    f32 totalWeight = 0.0f; // 累加权重
 
     {
-        // 参考 MC：地形密度计算使用 sea level 作为 biome 噪声采样 Y
+        // 地形密度计算使用 sea level 作为 biome 噪声采样 Y
         const i32 biomeNoiseY = m_settings.seaLevel;
 
         // 使用 5x5 批量采样 + 滑窗复用，减少重复调用 getNoiseBiome()
@@ -620,33 +613,33 @@ void NoiseChunkGenerator::fillNoiseColumn(
                 const f32 depth = def.depth(); // f4
                 const f32 scale = def.scale(); // f5
 
-                f32 weightedDepth = depth; // f6
-                f32 weightedScale = scale; // f7
+                f32 weightedDepth = depth;
+                f32 weightedScale = scale;
 
-                // 参考 MC：放大化世界对正深度生物群系进行额外拉伸
+                // 放大化世界对正深度生物群系进行额外拉伸
                 if (noise.isAmplified && depth > 0.0f) {
                     weightedDepth = 1.0f + depth * 2.0f;
                     weightedScale = 1.0f + scale * 4.0f;
                 }
 
-                // 参考 MC：权重因子
-                const f32 depthFactor = (depth > centerDepth) ? 0.5f : 1.0f; // f8
+                // 权重因子
+                const f32 depthFactor = (depth > centerDepth) ? 0.5f : 1.0f;
 
-                // 参考 MC：计算权重
+                // 计算权重
                 const f32 baseWeight = m_biomeWeights[static_cast<size_t>(kernelIndex)];
-                const f32 weightFactor = depthFactor * baseWeight / (weightedDepth + 2.0f); // f9
+                const f32 weightFactor = depthFactor * baseWeight / (weightedDepth + 2.0f);
 
-                // 参考 MC：累加
-                totalScale += weightedScale * weightFactor; // f += f7 * f9
-                totalDepth += weightedDepth * weightFactor; // f1 += f6 * f9
-                totalWeight += weightFactor;                // f2 += f9
+                // 累加
+                totalScale += weightedScale * weightFactor;
+                totalDepth += weightedDepth * weightFactor;
+                totalWeight += weightFactor;
             }
         }
     }
 
-    // 参考 MC：计算平均深度和比例
-    const f32 avgDepth = totalDepth / totalWeight; // f10 = f1 / f2
-    const f32 avgScale = totalScale / totalWeight; // f11 = f / f2
+    // 计算平均深度和比例
+    const f32 avgDepth = totalDepth / totalWeight;
+    const f32 avgScale = totalScale / totalWeight;
 
     // 转换为地形参数
     const f32 depthOffset = (avgDepth * 0.5f - 0.125f) * 0.265625f;
@@ -659,41 +652,33 @@ void NoiseChunkGenerator::fillNoiseColumn(
     const f32 yFactor = yScale / noise.scaling.yFactor;
 
     // === 随机密度偏移 ===
-    const f32 randomDensityOffset = noise.randomDensityOffset ? calculateRandomDensityOffset(noiseX, noiseZ) : 0.0f;
+    const f32 randomDensityOffset = noise.randomDensityOffset ? _calculateRandomDensityOffset(noiseX, noiseZ) : 0.0f;
 
     const f32 densityFactor = noise.densityFactor;
     const f32 densityOffset = noise.densityOffset;
 
     // === 阶段 2: 填充噪声列 ===
-    // 参考 MC 1.16.5 NoiseChunkGenerator.fillNoiseColumn()
     for (i32 y = 0; y <= m_noiseSizeY; ++y) {
         // 计算 3D 噪声密度
-        f32 density = calculateNoiseDensity(noiseX, y, noiseZ, xzScale, yScale, xzFactor, yFactor);
+        f32 density = _calculateNoiseDensity(noiseX, y, noiseZ, xzScale, yScale, xzFactor, yFactor);
 
         // 高度归一化 + 随机密度偏移
-        // 参考 MC: double d8 = 1.0D - (double)i1 * 2.0D / (double)this.noiseSizeY + d4;
-        // 其中 d4 是 randomDensityOffset
         const f32 normalizedY =
             1.0f - static_cast<f32>(y) * 2.0f / static_cast<f32>(m_noiseSizeY) + randomDensityOffset;
 
         // 应用密度因子和偏移
-        // 参考 MC: double d9 = d8 * d5 + d6; (d5=densityFactor, d6=densityOffset)
         f32 value = normalizedY * densityFactor + densityOffset;
 
         // 应用地形偏移 (biome depth/scale 影响)
-        // 参考 MC: double d10 = (d9 + d0) * d1; (d0=depthOffset, d1=heightFactor)
         f32 terrainMod = (value + depthOffset) * heightFactor;
 
-        // 参考 MC: if (d10 > 0.0D) d7 = d7 + d10 * 4.0D; else d7 = d7 + d10;
         if (terrainMod > 0.0f) {
             density += terrainMod * 4.0f;
         } else {
             density += terrainMod;
         }
 
-        // 顶部滑动
-        // 参考 MC: MathHelper.clampedLerp(target, density, slide)
-        // 仅 clamp 插值因子到 [0, 1]，不裁剪 density 本身，避免整列密度被硬截断。
+        // 顶部滑动（仅 clamp 插值因子到 [0, 1]，不裁剪 density 本身，避免整列密度被硬截断）
         if (noise.topSlide.size > 0) {
             const f32 slide =
                 static_cast<f32>(m_noiseSizeY - y - noise.topSlide.offset) / static_cast<f32>(noise.topSlide.size);
@@ -710,7 +695,7 @@ void NoiseChunkGenerator::fillNoiseColumn(
     }
 }
 
-f32 NoiseChunkGenerator::calculateNoiseDensity(
+f32 NoiseChunkGenerator::_calculateNoiseDensity(
     i32 noiseX, i32 noiseY, i32 noiseZ, f32 xzScale, f32 yScale, f32 xzFactor, f32 yFactor) const
 {
     // 参考 MC func_222552_a
@@ -769,13 +754,12 @@ f32 NoiseChunkGenerator::calculateNoiseDensity(
     return math::lerp(density / 512.0f, secondaryDensity / 512.0f, blend);
 }
 
-f32 NoiseChunkGenerator::calculateRandomDensityOffset(i32 noiseX, i32 noiseZ) const
+f32 NoiseChunkGenerator::_calculateRandomDensityOffset(i32 noiseX, i32 noiseZ) const
 {
     if (!m_randomDensityOffsetNoise) {
         return 0.0f;
     }
 
-    // 参考 MC func_236095_c_
     const f32 noise = m_randomDensityOffsetNoise->getValue(
         static_cast<f32>(noiseX) * 200.0f, 10.0f, static_cast<f32>(noiseZ) * 200.0f, 1.0f, 0.0f, true);
 
@@ -795,7 +779,7 @@ f32 NoiseChunkGenerator::calculateRandomDensityOffset(i32 noiseX, i32 noiseZ) co
     }
 }
 
-const BlockState* NoiseChunkGenerator::getBlockForDensity(f32 density, i32 y) const
+const BlockState* NoiseChunkGenerator::_getBlockForDensity(f32 density, i32 y) const
 {
     if (density > 0.0f) {
         return m_settings.defaultBlock;
@@ -806,7 +790,7 @@ const BlockState* NoiseChunkGenerator::getBlockForDensity(f32 density, i32 y) co
     }
 }
 
-f32 NoiseChunkGenerator::sampleSurfaceDepthNoise(i32 worldX, i32 worldZ, i32 localX) const
+f32 NoiseChunkGenerator::_sampleSurfaceDepthNoise(i32 worldX, i32 worldZ, i32 localX) const
 {
     if (!m_surfaceDepthNoise) {
         return 0.0f;
@@ -815,12 +799,12 @@ f32 NoiseChunkGenerator::sampleSurfaceDepthNoise(i32 worldX, i32 worldZ, i32 loc
     const f32 sampleX = static_cast<f32>(worldX) * 0.0625f;
     const f32 sampleZ = static_cast<f32>(worldZ) * 0.0625f;
 
-    // 参考 MC：Perlin 路径会额外乘 0.55，并忽略额外参数。
+    // Perlin 路径会额外乘 0.55，并忽略额外参数
     if (const auto* perlin = dynamic_cast<const PerlinNoiseGenerator*>(m_surfaceDepthNoise.get())) {
         return perlin->noiseAt(sampleX, sampleZ, true) * 0.55f;
     }
 
-    // 参考 MC：Octaves 路径使用 4 参数 noiseAt。
+    // Octaves 路径使用 4 参数 noiseAt
     if (const auto* octaves = dynamic_cast<const OctavesNoiseGenerator*>(m_surfaceDepthNoise.get())) {
         return octaves->noiseAt(sampleX, sampleZ, 0.0625f, static_cast<f32>(localX) * 0.0625f);
     }
@@ -837,10 +821,10 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chun
     MC_TRACE_EVENT("world.chunk_gen", "BuildSurface", "x", chunk.x(), "z", chunk.z());
     const ChunkCoord chunkX = chunk.x();
     const ChunkCoord chunkZ = chunk.z();
-    const i32 startX = chunkX << 4;
-    const i32 startZ = chunkZ << 4;
+    const i32 startX = chunkX * world::CHUNK_WIDTH;
+    const i32 startZ = chunkZ * world::CHUNK_WIDTH;
 
-    // 设置随机种子（参考 MC: setBaseChunkSeed）
+    // 设置随机种子
     // 种子 = chunkX * 341873128712 + chunkZ * 132897987541 + worldSeed
     math::Random surfaceRng(
         static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL + m_seed);
@@ -849,22 +833,22 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chun
     {
         MC_TRACE_EVENT("world.chunk_gen", "BuildSurface_Columns", "phase", "columns");
         // 遍历每个 XZ 列
-        for (i32 localX = 0; localX < 16; ++localX) {
-            for (i32 localZ = 0; localZ < 16; ++localZ) {
+        for (i32 localX = 0; localX < world::CHUNK_WIDTH; ++localX) {
+            for (i32 localZ = 0; localZ < world::CHUNK_WIDTH; ++localZ) {
                 const i32 worldX = startX + localX;
                 const i32 worldZ = startZ + localZ;
 
-                // 参考 MC：从高度图高度再上移 1 格开始扫描。
+                // 从高度图高度再上移 1 格开始扫描
                 const i32 startHeight = chunk.getTopBlockY(HeightmapType::WorldSurfaceWG, localX, localZ) + 1;
 
                 // 获取生物群系
                 const BiomeId biomeId = region.getBiome(worldX, startHeight, worldZ);
 
                 // 计算地表噪声
-                const f32 surfaceNoise = sampleSurfaceDepthNoise(worldX, worldZ, localX) * 15.0f;
+                const f32 surfaceNoise = _sampleSurfaceDepthNoise(worldX, worldZ, localX) * 15.0f;
 
                 // 生成地表
-                buildSurfaceForColumn(chunk, surfaceRng, localX, localZ, startHeight, surfaceNoise, biomeId);
+                _buildSurfaceForColumn(chunk, surfaceRng, localX, localZ, startHeight, surfaceNoise, biomeId);
             }
         }
     }
@@ -872,14 +856,14 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chun
     // === 阶段 2: 生成基岩 ===
     {
         MC_TRACE_EVENT("world.chunk_gen", "BuildSurface_Bedrock", "phase", "bedrock");
-        applyBedrock(chunk, surfaceRng);
+        _applyBedrock(chunk, surfaceRng);
     }
 
     // 标记阶段完成
     chunk.setChunkStatus(ChunkStatuses::SURFACE);
 }
 
-void NoiseChunkGenerator::buildSurfaceForColumn(
+void NoiseChunkGenerator::_buildSurfaceForColumn(
     ChunkPrimer& chunk, math::Random& random, i32 x, i32 z, i32 startHeight, f32 surfaceNoise, BiomeId biome)
 {
     if (m_settings.defaultBlock == nullptr || m_settings.defaultFluid == nullptr) {
@@ -914,13 +898,13 @@ void NoiseChunkGenerator::buildSurfaceForColumn(
     const BlockState* middleState = biomeDef.subSurfaceBlock();
     const BlockState* underWaterState = biomeDef.underWaterBlock();
 
-    // 参考 MC DefaultSurfaceBuilder：每列深度含随机抖动。
+    // 每列深度含随机抖动
     const i32 surfaceDepth = static_cast<i32>(surfaceNoise / 3.0f + 3.0f + random.nextDouble() * 0.25f);
 
     i32 currentDepth = -1;
     const i32 clampedStartHeight = std::min(startHeight, m_settings.noise.height - 1);
 
-    for (i32 y = clampedStartHeight; y >= 0; --y) {
+    for (i32 y = clampedStartHeight; y >= world::MIN_BUILD_HEIGHT; --y) {
         const BlockState* state = chunk.getBlockState(x, y, z);
 
         if (state == nullptr || state->isAir()) {
@@ -993,7 +977,7 @@ void NoiseChunkGenerator::buildSurfaceForColumn(
     }
 }
 
-void NoiseChunkGenerator::applyBedrock(ChunkPrimer& chunk, math::Random& random) const
+void NoiseChunkGenerator::_applyBedrock(ChunkPrimer& chunk, math::Random& random) const
 {
     const BlockState* bedrockState = VanillaBlocks::BEDROCK ? &VanillaBlocks::BEDROCK->defaultState() : nullptr;
     if (bedrockState == nullptr) {
@@ -1004,19 +988,19 @@ void NoiseChunkGenerator::applyBedrock(ChunkPrimer& chunk, math::Random& random)
     const i32 floorAnchor = m_settings.bedrockFloor;
     const i32 roofAnchor = m_settings.bedrockRoof;
 
-    const bool hasFloor = floorAnchor + 4 >= 0 && floorAnchor < noiseHeight;
-    const bool hasRoof = roofAnchor + 4 >= 0 && roofAnchor < noiseHeight;
+    const bool hasFloor = floorAnchor + 4 >= world::MIN_BUILD_HEIGHT && floorAnchor < noiseHeight;
+    const bool hasRoof = roofAnchor + 4 >= world::MIN_BUILD_HEIGHT && roofAnchor < noiseHeight;
     if (!hasFloor && !hasRoof) {
         return;
     }
 
-    for (i32 localX = 0; localX < 16; ++localX) {
-        for (i32 localZ = 0; localZ < 16; ++localZ) {
+    for (i32 localX = 0; localX < world::CHUNK_WIDTH; ++localX) {
+        for (i32 localZ = 0; localZ < world::CHUNK_WIDTH; ++localZ) {
             if (hasFloor) {
                 for (i32 offset = 0; offset < 5; ++offset) {
                     if (offset <= random.nextInt(5)) {
                         const i32 y = floorAnchor + offset;
-                        if (y >= 0 && y < noiseHeight) {
+                        if (y >= world::MIN_BUILD_HEIGHT && y < noiseHeight) {
                             chunk.setBlockState(localX, y, localZ, bedrockState);
                         }
                     }
@@ -1027,7 +1011,7 @@ void NoiseChunkGenerator::applyBedrock(ChunkPrimer& chunk, math::Random& random)
                 for (i32 offset = 0; offset < 5; ++offset) {
                     if (offset <= random.nextInt(5)) {
                         const i32 y = roofAnchor - offset;
-                        if (y >= 0 && y < noiseHeight) {
+                        if (y >= world::MIN_BUILD_HEIGHT && y < noiseHeight) {
                             chunk.setBlockState(localX, y, localZ, bedrockState);
                         }
                     }
@@ -1167,10 +1151,10 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
     std::vector<f32> column11;
     BiomeWindowCache biomeWindowCache;
 
-    fillNoiseColumn(column00, noiseX, noiseZ, biomeWindowCache);
-    fillNoiseColumn(column01, noiseX, noiseZ + 1, biomeWindowCache);
-    fillNoiseColumn(column10, noiseX + 1, noiseZ, biomeWindowCache);
-    fillNoiseColumn(column11, noiseX + 1, noiseZ + 1, biomeWindowCache);
+    _fillNoiseColumn(column00, noiseX, noiseZ, biomeWindowCache);
+    _fillNoiseColumn(column01, noiseX, noiseZ + 1, biomeWindowCache);
+    _fillNoiseColumn(column10, noiseX + 1, noiseZ, biomeWindowCache);
+    _fillNoiseColumn(column11, noiseX + 1, noiseZ + 1, biomeWindowCache);
 
     auto matchesHeightmap = [type](const BlockState* state) -> bool {
         if (!state || state->isAir()) {
@@ -1202,7 +1186,7 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
         }
     };
 
-    for (i32 worldY = noise.height - 1; worldY >= 0; --worldY) {
+    for (i32 worldY = noise.height - 1; worldY >= world::MIN_BUILD_HEIGHT; --worldY) {
         const i32 noiseY = worldY / vGranularity;
         const i32 localY = worldY % vGranularity;
 
@@ -1221,13 +1205,13 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
         const f32 x1 = math::lerp(y01, y11, xLerp);
         const f32 density = math::lerp(x0, x1, zLerp);
 
-        const BlockState* blockState = getBlockForDensity(density, worldY);
+        const BlockState* blockState = _getBlockForDensity(density, worldY);
         if (matchesHeightmap(blockState)) {
             return worldY + 1;
         }
     }
 
-    return 0;
+    return world::MIN_BUILD_HEIGHT;
 }
 
 i32 NoiseChunkGenerator::spawnInitialMobs(
@@ -1257,7 +1241,7 @@ i32 NoiseChunkGenerator::spawnInitialMobs(
 // JigsawJunction 地形平滑
 // ============================================================================
 
-void NoiseChunkGenerator::collectStructureData(ChunkPrimer& chunk,
+void NoiseChunkGenerator::_collectStructureData(ChunkPrimer& chunk,
     std::vector<const world::gen::structure::StructurePiece*>& outPieces,
     std::vector<world::gen::jigsaw::JigsawJunction>& outJunctions) const
 {
@@ -1265,10 +1249,9 @@ void NoiseChunkGenerator::collectStructureData(ChunkPrimer& chunk,
 
     const ChunkCoord chunkX = chunk.x();
     const ChunkCoord chunkZ = chunk.z();
-    const i32 startX = chunkX << 4;
-    const i32 startZ = chunkZ << 4;
+    const i32 startX = chunkX * world::CHUNK_WIDTH;
+    const i32 startZ = chunkZ * world::CHUNK_WIDTH;
 
-    // 参考 MC 1.16.5: NoiseChunkGenerator.func_230352_b_
     // 收集 12 格范围内的结构片段和 JigsawJunction
 
     // 遍历区块中的所有结构起点
@@ -1285,8 +1268,8 @@ void NoiseChunkGenerator::collectStructureData(ChunkPrimer& chunk,
 
             // 检查片段是否在区块附近（12 格范围）
             const auto& box = piece->getBoundingBox();
-            if (box.maxX() < startX - 12 || box.minX() > startX + 15 + 12 || box.maxZ() < startZ - 12 ||
-                box.minZ() > startZ + 15 + 12) {
+            if (box.maxX() < startX - 12 || box.minX() > startX + world::CHUNK_WIDTH - 1 + 12 ||
+                box.maxZ() < startZ - 12 || box.minZ() > startZ + world::CHUNK_WIDTH - 1 + 12) {
                 continue; // 超出范围
             }
 
@@ -1299,7 +1282,8 @@ void NoiseChunkGenerator::collectStructureData(ChunkPrimer& chunk,
                     // 检查 Junction 是否在区块附近（12 格范围）
                     const i32 jx = junction.getSourceX();
                     const i32 jz = junction.getSourceZ();
-                    if (jx > startX - 12 && jx < startX + 15 + 12 && jz > startZ - 12 && jz < startZ + 15 + 12) {
+                    if (jx > startX - 12 && jx < startX + world::CHUNK_WIDTH - 1 + 12 && jz > startZ - 12 &&
+                        jz < startZ + world::CHUNK_WIDTH - 1 + 12) {
                         outJunctions.push_back(junction);
                     }
                 }

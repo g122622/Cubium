@@ -15,7 +15,7 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
@@ -32,16 +32,16 @@ namespace mc::world::map {
  * @brief 地图ID追踪器
  *
  * 管理地图ID的自增分配，确保每个新地图获得唯一ID。
- * 对应MC中的MapIdTracker，存储在data/idcounts.dat中。
+ * 存储在data/idcounts.dat中。
  */
 class MapIdTracker {
 public:
-    MapIdTracker() = default;
+    MapIdTracker() noexcept = default;
 
     /**
      * @brief 获取下一个地图ID并递增计数器
      */
-    [[nodiscard]] i32 getNextId();
+    [[nodiscard]] i32 getNextId() noexcept;
 
     /**
      * @brief 从NBT读取

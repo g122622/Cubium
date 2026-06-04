@@ -22,11 +22,11 @@
  */
 
 #include "TrunkPlacer.hpp"
-#include "../../../../../core/Constants.hpp"
-#include "../../../../../core/Types.hpp"
-#include "../../../../block/BlockRegistry.hpp"
-#include "../../../../block/VanillaBlocks.hpp"
-#include "../../../chunk/IChunkGenerator.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 
 namespace mc {
 
@@ -38,7 +38,6 @@ TrunkPlacer::TrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB)
 
 i32 TrunkPlacer::getHeight(math::Random& random) const
 {
-    // MC 1.16.5: baseHeight + nextInt(heightRandA + 1) + nextInt(heightRandB + 1)
     return m_baseHeight + random.nextInt(m_heightRandA + 1) + random.nextInt(m_heightRandB + 1);
 }
 

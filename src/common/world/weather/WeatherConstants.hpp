@@ -23,14 +23,13 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::weather {
 
 /**
  * @brief 天气持续时间常量
  *
- * 参考 MC 1.16.5 ServerWorld 和 WorldInfo
  * 所有时间单位为 ticks (20 ticks = 1秒)
  *
  * 时间分布计算：

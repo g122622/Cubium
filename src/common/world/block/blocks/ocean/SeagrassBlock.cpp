@@ -65,7 +65,6 @@ bool SeagrassBlock::isValidPosition(const BlockState& state, IBlockReader& world
     }
 
     // 检查当前位置是否为水源方块（level=8）
-    // 参考 MC 1.16.5 SeaGrassBlock.isValidPosition
     const fluid::FluidState* fluidState = world.getFluidState(pos);
     if (fluidState == nullptr || fluidState->isEmpty()) {
         return false;
@@ -105,7 +104,7 @@ bool SeagrassBlock::canGrow(IBlockReader& world, const BlockPos& pos, const Bloc
     MC_UNUSED(state);
     MC_UNUSED(isClientSide);
 
-    // MC 1.16.5: 海草可以生长的条件是上方有水源方块
+    // 海草可以生长的条件是上方有水源方块
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const fluid::FluidState* aboveFluid = world.getFluidState(abovePos);
 
@@ -130,7 +129,7 @@ bool SeagrassBlock::canUseBonemeal(
     MC_UNUSED(pos);
     MC_UNUSED(state);
 
-    // MC 1.16.5: 海草骨粉总是有效
+    // 海草骨粉总是有效
     return true;
 }
 
@@ -140,7 +139,7 @@ void SeagrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& p
     MC_UNUSED(random);
     MC_UNUSED(state);
 
-    // MC 1.16.5: 将海草变成高海草
+    // 将海草变成高海草
     // 需要 VanillaBlocks::TALL_SEAGRASS 存在
     if (VanillaBlocks::TALL_SEAGRASS == nullptr) {
         return;
@@ -179,8 +178,7 @@ void SeagrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& p
 const fluid::FluidState* SeagrassBlock::getFluidState(const BlockState& state) const
 {
     MC_UNUSED(state);
-    // MC 1.16.5: 海草始终返回静止水的流体状态
-    // return Fluids.WATER.getStillFluidState(false);
+    // 海草始终返回静止水的流体状态
     fluid::Fluid* waterFluid = waterloggable::getWaterFluid();
     if (waterFluid != nullptr) {
         return &waterFluid->defaultState();

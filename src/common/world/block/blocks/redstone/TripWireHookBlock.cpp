@@ -39,11 +39,6 @@ namespace blocks {
 
 using namespace mc; // Bring BlockStateProperties into scope
 
-// 参考 MC 1.16.5 TripWireHookBlock.java:
-// HOOK_NORTH_AABB = Block.makeCuboidShape(5.0D, 0.0D, 10.0D, 11.0D, 10.0D, 16.0D)
-// HOOK_SOUTH_AABB = Block.makeCuboidShape(5.0D, 0.0D, 0.0D, 11.0D, 10.0D, 6.0D)
-// HOOK_WEST_AABB  = Block.makeCuboidShape(10.0D, 0.0D, 5.0D, 16.0D, 10.0D, 11.0D)
-// HOOK_EAST_AABB  = Block.makeCuboidShape(0.0D, 0.0D, 5.0D, 6.0D, 10.0D, 11.0D)
 namespace {
 constexpr f32 P = 1.0f / 16.0f;
 
@@ -113,7 +108,6 @@ void TripWireHookBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const B
 
     if (!attachState || !attachState->isSolid()) {
         // 没有支撑，掉落绊线钩物品
-        // 参考 MC 1.16.5: TripWireHookBlock.onBlockAdded
         const Block* block = &state.getBlock();
         if (block != nullptr) {
             const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*block);
@@ -152,7 +146,6 @@ void TripWireHookBlock::neighborChanged(
 
     if (!attachState || !attachState->isSolid()) {
         // 没有支撑，掉落绊线钩物品
-        // 参考 MC 1.16.5: TripWireHookBlock.neighborChanged
         const Block* block = &state->getBlock();
         if (block != nullptr) {
             const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*block);
@@ -170,7 +163,7 @@ void TripWireHookBlock::neighborChanged(
         world.setBlockState(pos, nullptr, 3);
     } else {
         // 重新计算状态
-        calculateState(world, pos, facing, *state, true);
+        _calculateState(world, pos, facing, *state, true);
     }
 }
 
@@ -178,7 +171,7 @@ void TripWireHookBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
 {
     MC_UNUSED(random);
     Direction facing = getFacing(state);
-    calculateState(world, pos, facing, state, false);
+    _calculateState(world, pos, facing, state, false);
 }
 
 void TripWireHookBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
@@ -212,13 +205,13 @@ BlockState TripWireHookBlock::updatePostPlacement(const BlockState& state,
     return state;
 }
 
-i32 TripWireHookBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+[[nodiscard]] i32 TripWireHookBlock::getWeakPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
 
-    // MC Java: 只在绊线钩背面（朝向的反方向）输出信号
-    // getWeakPower 检查的是 side == facing.getOpposite()
+    // 只在绊线钩背面（朝向的反方向）输出信号
     Direction facing = getFacing(state);
     if (side == Directions::opposite(facing)) {
         return isPowered(state) ? 15 : 0;
@@ -226,12 +219,13 @@ i32 TripWireHookBlock::getWeakPower(const BlockState& state, IWorld& world, cons
     return 0;
 }
 
-i32 TripWireHookBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+[[nodiscard]] i32 TripWireHookBlock::getStrongPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
 
-    // MC Java: 强信号同样只在背面输出
+    // 强信号同样只在背面输出
     Direction facing = getFacing(state);
     if (side == Directions::opposite(facing)) {
         return isPowered(state) ? 15 : 0;
@@ -239,9 +233,8 @@ i32 TripWireHookBlock::getStrongPower(const BlockState& state, IWorld& world, co
     return 0;
 }
 
-const CollisionShape& TripWireHookBlock::getShape(const BlockState& state) const
+[[nodiscard]] const CollisionShape& TripWireHookBlock::getShape(const BlockState& state) const
 {
-    // 参考 MC 1.16.5 TripWireHookBlock.getShape()
     Direction facing = getFacing(state);
     switch (facing) {
         case Direction::North:
@@ -256,19 +249,18 @@ const CollisionShape& TripWireHookBlock::getShape(const BlockState& state) const
     }
 }
 
-bool TripWireHookBlock::calculateState(
+bool TripWireHookBlock::_calculateState(
     IWorld& world, const BlockPos& pos, Direction facing, const BlockState& currentState, bool shouldTriggerOnChange)
 {
     // 检测绊线链
     BlockPos otherHookPos;
-    bool foundChain = checkForTripwire(world, pos, facing, otherHookPos);
+    bool foundChain = _checkForTripwire(world, pos, facing, otherHookPos);
 
-    // 检查绊线是否被触发
     bool isTripwirePowered = false;
     bool shouldBreak = false;
 
     if (foundChain) {
-        // MC 1.16.5: 沿朝向检查所有绊线，直到另一端的钩
+        // 沿朝向检查所有绊线，直到另一端的钩
         Direction checkDir = facing;
         BlockPos checkPos = pos.offset(checkDir);
 
@@ -293,7 +285,7 @@ bool TripWireHookBlock::calculateState(
 
             // 检查是否是绊线
             if (state->is(VanillaBlocks::TRIPWIRE)) {
-                // MC 1.16.5: 检查绊线是否被触发
+                // 检查绊线是否被触发
                 // 只有未被拆除(DISARMED=false)且被触发(POWERED=true)的绊线才触发信号
                 bool isDisarmed = false;
                 bool isPowered = false;
@@ -323,7 +315,7 @@ bool TripWireHookBlock::calculateState(
     bool wasPowered = isPowered(currentState);
     bool wasConnected = isConnected(currentState);
 
-    // MC 1.16.5: 只有链完整时才可能触发
+    // 只有链完整时才可能触发
     bool shouldPower = foundChain && isTripwirePowered && !shouldBreak;
 
     if (shouldPower != wasPowered || foundChain != wasConnected) {
@@ -342,7 +334,7 @@ bool TripWireHookBlock::calculateState(
     return false;
 }
 
-bool TripWireHookBlock::checkForTripwire(
+bool TripWireHookBlock::_checkForTripwire(
     IWorld& world, const BlockPos& pos, Direction facing, BlockPos& outOtherHookPos) const
 {
     // 沿朝向检查最多42格

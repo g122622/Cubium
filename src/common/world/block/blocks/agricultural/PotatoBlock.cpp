@@ -21,9 +21,9 @@
  *
  */
 
-#include "PotatoBlock.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
+#include "common/world/block/blocks/agricultural/PotatoBlock.hpp"
+#include "common/item/Items.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blocks {
@@ -45,7 +45,6 @@ PotatoBlock::PotatoBlock(const BlockProperties& properties)
 u32 PotatoBlock::getCropItem() const
 {
     // 马铃薯的作物和种子是同一个物品
-    // 参考: net.minecraft.block.PotatoBlock#getCropItem
     return Items::POTATO->itemId();
 }
 

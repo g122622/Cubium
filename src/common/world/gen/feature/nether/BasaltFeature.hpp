@@ -23,17 +23,16 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/Feature.hpp"
 #include <memory>
-#include "../ConfiguredFeature.hpp"
-#include "../Feature.hpp"
 #include <vector>
 
 namespace mc {
 
 /**
  * @brief 玄武岩柱特征配置
- *
- * 参考 MC BasaltColumnsFeature
  */
 struct BasaltColumnFeatureConfig : public IFeatureConfig {
     /// 最小柱高
@@ -58,7 +57,6 @@ struct BasaltColumnFeatureConfig : public IFeatureConfig {
  * @brief 玄武岩柱特征
  *
  * 生成从地板向上延伸的玄武岩柱。
- * 参考 MC BasaltColumnsFeature
  */
 class BasaltColumnFeature {
 public:
@@ -72,12 +70,12 @@ private:
     /**
      * @brief 检查位置是否可以放置玄武岩
      */
-    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 获取柱高度
      */
-    [[nodiscard]] i32 getColumnHeight(WorldGenRegion& world, const BlockPos& pos, i32 minH, i32 maxH) const;
+    [[nodiscard]] i32 _getColumnHeight(WorldGenRegion& world, const BlockPos& pos, i32 minH, i32 maxH) const;
 };
 
 /**
@@ -123,8 +121,6 @@ private:
 
 /**
  * @brief 玄武岩簇特征配置
- *
- * 参考 MC DeltaFeature
  */
 struct BasaltDeltaFeatureConfig : public IFeatureConfig {
     /// 簇的大小
@@ -149,7 +145,6 @@ struct BasaltDeltaFeatureConfig : public IFeatureConfig {
  * @brief 玄武岩三角洲特征
  *
  * 生成玄武岩三角洲特有的地貌：玄武岩地面和岩浆块池。
- * 参考 MC DeltaFeature
  */
 class BasaltDeltaFeature {
 public:

@@ -51,7 +51,7 @@ bool FurnaceInventory::isEmpty() const
 
 ItemStack FurnaceInventory::getItem(i32 slot) const
 {
-    if (!isValidSlot(slot)) {
+    if (!_isValidSlot(slot)) {
         return ItemStack();
     }
     return m_items[static_cast<std::size_t>(slot)];
@@ -59,14 +59,14 @@ ItemStack FurnaceInventory::getItem(i32 slot) const
 
 void FurnaceInventory::setItem(i32 slot, const ItemStack& stack)
 {
-    MC_ASSERT(isValidSlot(slot) && "Slot index out of bounds");
+    MC_ASSERT(_isValidSlot(slot) && "Slot index out of bounds");
     m_items[static_cast<std::size_t>(slot)] = stack;
-    onChanged();
+    _onChanged();
 }
 
 ItemStack FurnaceInventory::removeItem(i32 slot, i32 count)
 {
-    if (!isValidSlot(slot) || count <= 0) {
+    if (!_isValidSlot(slot) || count <= 0) {
         return ItemStack();
     }
 
@@ -82,13 +82,13 @@ ItemStack FurnaceInventory::removeItem(i32 slot, i32 count)
         m_items[static_cast<std::size_t>(slot)] = ItemStack();
     }
 
-    onChanged();
+    _onChanged();
     return result;
 }
 
 ItemStack FurnaceInventory::removeItemNoUpdate(i32 slot)
 {
-    if (!isValidSlot(slot)) {
+    if (!_isValidSlot(slot)) {
         return ItemStack();
     }
 
@@ -103,17 +103,17 @@ void FurnaceInventory::clear()
     for (auto& item : m_items) {
         item = ItemStack();
     }
-    onChanged();
+    _onChanged();
 }
 
 void FurnaceInventory::setChanged()
 {
-    onChanged();
+    _onChanged();
 }
 
 bool FurnaceInventory::canPlaceItem(i32 slot, const ItemStack& stack) const
 {
-    if (!isValidSlot(slot) || stack.isEmpty()) {
+    if (!_isValidSlot(slot) || stack.isEmpty()) {
         return false;
     }
 
@@ -153,7 +153,7 @@ ItemStack FurnaceInventory::addToOutput(const ItemStack& stack)
     if (output.isEmpty()) {
         // 输出槽为空，直接放入
         output = stack;
-        onChanged();
+        _onChanged();
         return ItemStack();
     }
 
@@ -168,7 +168,7 @@ ItemStack FurnaceInventory::addToOutput(const ItemStack& stack)
 
             ItemStack remaining = stack;
             remaining.shrink(toAdd);
-            onChanged();
+            _onChanged();
             return remaining;
         }
     }
@@ -197,7 +197,7 @@ bool FurnaceInventory::canAcceptOutput(const ItemStack& stack) const
     return output.getCount() + stack.getCount() <= maxCount;
 }
 
-void FurnaceInventory::onChanged()
+void FurnaceInventory::_onChanged()
 {
     if (m_onChanged) {
         m_onChanged();

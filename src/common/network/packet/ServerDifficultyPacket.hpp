@@ -23,21 +23,19 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "Packet.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::network {
 
 /**
- * @brief 难度同步数据包
+ * @brief 难度同步数据包 (S->C)
  *
  * 服务端向客户端同步世界难度和锁定状态。
  * 在以下情况发送：
  * - 玩家登录时
  * - 难度变更时
  * - 难度锁定状态变更时
- *
- * 参考 MC 1.16.5 SServerDifficultyPacket
  *
  * 协议格式:
  * | 字段           | 类型 | 说明                    |
@@ -57,33 +55,42 @@ public:
      */
     ServerDifficultyPacket(Difficulty difficulty, bool locked);
 
+    // ========== 移动语义 ==========
+
+    ServerDifficultyPacket(ServerDifficultyPacket&& other) noexcept = default;
+    ServerDifficultyPacket& operator=(ServerDifficultyPacket&& other) noexcept = default;
+
+    // 禁止拷贝（Packet基类不可拷贝）
+    ServerDifficultyPacket(const ServerDifficultyPacket&) = delete;
+    ServerDifficultyPacket& operator=(const ServerDifficultyPacket&) = delete;
+
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
-    size_t expectedSize() const override;
+    size_t expectedSize() const noexcept override;
 
     // ========== Getters ==========
 
     /**
      * @brief 获取难度
      */
-    [[nodiscard]] Difficulty difficulty() const { return m_difficulty; }
+    [[nodiscard]] Difficulty difficulty() const noexcept { return m_difficulty; }
 
     /**
      * @brief 难度是否锁定
      */
-    [[nodiscard]] bool locked() const { return m_locked; }
+    [[nodiscard]] bool locked() const noexcept { return m_locked; }
 
     // ========== Setters ==========
 
     /**
      * @brief 设置难度
      */
-    void setDifficulty(Difficulty difficulty) { m_difficulty = difficulty; }
+    void setDifficulty(Difficulty difficulty) noexcept { m_difficulty = difficulty; }
 
     /**
      * @brief 设置锁定状态
      */
-    void setLocked(bool locked) { m_locked = locked; }
+    void setLocked(bool locked) noexcept { m_locked = locked; }
 
 private:
     Difficulty m_difficulty = Difficulty::Normal;

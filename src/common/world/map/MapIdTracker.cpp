@@ -28,7 +28,7 @@ namespace mc::world::map {
 
 namespace nbt_helper = mc::entity::serialization::nbt_helper;
 
-i32 MapIdTracker::getNextId()
+i32 MapIdTracker::getNextId() noexcept
 {
     return m_nextMapId++;
 }

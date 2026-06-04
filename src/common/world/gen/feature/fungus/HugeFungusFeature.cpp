@@ -22,10 +22,13 @@
  */
 
 #include "HugeFungusFeature.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
+
+#include "common/core/Constants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+
 #include <cmath>
 
 namespace mc {
@@ -38,7 +41,7 @@ bool HugeFungusFeature::place(
     WorldGenRegion& world, math::Random& random, const BlockPos& pos, const HugeFungusFeatureConfig& config)
 {
     // 检查是否可以放置
-    if (!canPlaceAt(world, pos, config.fungusType)) {
+    if (!_canPlaceAt(world, pos, config.fungusType)) {
         return false;
     }
 
@@ -46,22 +49,22 @@ bool HugeFungusFeature::place(
     i32 height = config.minHeight + random.nextInt(config.maxHeight - config.minHeight + 1);
 
     // 生成菌柄
-    generateStem(world, random, pos, height, config.fungusType);
+    _generateStem(world, random, pos, height, config.fungusType);
 
     // 生成菌盖
     BlockPos topPos(pos.x, pos.y + height - 1, pos.z);
-    generateCap(world, random, topPos, config.capRadius, config.fungusType);
+    _generateCap(world, random, topPos, config.capRadius, config.fungusType);
 
     // 生成藤蔓
-    generateVines(world, random, topPos, config.fungusType);
+    _generateVines(world, random, topPos, config.fungusType);
 
     // 生成菌光体
-    generateShroomlights(world, random, topPos, config.capRadius);
+    _generateShroomlights(world, random, topPos, config.capRadius);
 
     return true;
 }
 
-bool HugeFungusFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos, FungusType type) const
+bool HugeFungusFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos, FungusType type) const
 {
     // 检查底部方块是否为菌岩
     const BlockState* groundState = world.getBlockState(pos.x, pos.y - 1, pos.z);
@@ -70,14 +73,15 @@ bool HugeFungusFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos, F
     }
 
     // 绯红真菌需要绯红菌岩，诡异真菌需要诡异菌岩
-    // 由于菌岩方块尚未实现，暂时允许在下界岩上生成
+    // TODO: 由于菌岩方块尚未实现，暂时允许在下界岩上生成
     const Block& ground = groundState->getBlock();
     if (&ground != VanillaBlocks::NETHERRACK) {
         return false;
     }
 
-    // 检查上方是否有足够空间
-    for (i32 y = 0; y < 15; ++y) {
+    // 检查上方是否有足够空间（使用世界高度常量）
+    constexpr i32 REQUIRED_SPACE = 15;
+    for (i32 y = 0; y < REQUIRED_SPACE; ++y) {
         const BlockState* state = world.getBlockState(pos.x, pos.y + y, pos.z);
         if (state && !state->isAir()) {
             return false;
@@ -87,7 +91,7 @@ bool HugeFungusFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos, F
     return true;
 }
 
-void HugeFungusFeature::generateStem(
+void HugeFungusFeature::_generateStem(
     WorldGenRegion& world, math::Random& random, const BlockPos& pos, i32 height, FungusType type)
 {
     // 根据类型选择菌柄方块
@@ -111,7 +115,7 @@ void HugeFungusFeature::generateStem(
     }
 }
 
-void HugeFungusFeature::generateCap(
+void HugeFungusFeature::_generateCap(
     WorldGenRegion& world, math::Random& random, const BlockPos& topPos, i32 radius, FungusType type)
 {
     // 根据类型选择菌盖方块
@@ -119,7 +123,7 @@ void HugeFungusFeature::generateCap(
     if (type == FungusType::Crimson && VanillaBlocks::NETHER_WART_BLOCK) {
         cap = VanillaBlocks::getState(VanillaBlocks::NETHER_WART_BLOCK);
     } else if (type == FungusType::Warped && VanillaBlocks::WARPED_NYLIUM) {
-        // 诡异菌盖使用诡异疣块（暂用诡异菌岩代替）
+        // TODO: 诡异菌盖应使用诡异疣块，当前暂用诡异菌岩代替
         cap = VanillaBlocks::getState(VanillaBlocks::WARPED_NYLIUM);
     }
     // 回退到萤石
@@ -156,7 +160,7 @@ void HugeFungusFeature::generateCap(
     }
 }
 
-void HugeFungusFeature::generateVines(
+void HugeFungusFeature::_generateVines(
     WorldGenRegion& world, math::Random& random, const BlockPos& capPos, FungusType type)
 {
     // 根据类型选择藤蔓方块
@@ -190,7 +194,7 @@ void HugeFungusFeature::generateVines(
     }
 }
 
-void HugeFungusFeature::generateShroomlights(
+void HugeFungusFeature::_generateShroomlights(
     WorldGenRegion& world, math::Random& random, const BlockPos& capPos, i32 radius)
 {
     // 使用菌光体方块，回退到萤石

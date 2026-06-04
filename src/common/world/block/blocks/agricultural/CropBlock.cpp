@@ -21,13 +21,13 @@
  *
  */
 
-#include "CropBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorld.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/world/block/blocks/agricultural/CropBlock.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/blocks/VanillaBlocks.hpp"
 #include <algorithm>
 #include <functional>
 
@@ -45,7 +45,7 @@ CropBlock::CropBlock(const BlockProperties& properties)
     constexpr f32 P = 1.0f / 16.0f;
     constexpr f32 heights[] = {2.0f, 4.0f, 6.0f, 8.0f, 10.0f, 12.0f, 14.0f, 16.0f};
 
-    for (int i = 0; i < 8; ++i) {
+    for (i32 i = 0; i < 8; ++i) {
         m_shapesByAge[i] = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f * P, heights[i] * P, 16.0f * P);
     }
 }
@@ -92,7 +92,6 @@ bool CropBlock::isValidPosition(const BlockState& state, IBlockReader& world, co
         return false;
     }
 
-    // 参考 MC 1.16.5: CropsBlock.isValidPosition
     // 检查光照：getLightSubtracted(pos, 0) >= 8 或 canSeeSky(pos)
     // 由于 IBlockReader 没有 getLightSubtracted 方法，使用传统方式
     const i32 blockLight = static_cast<i32>(world.getBlockLight(pos));
@@ -105,13 +104,12 @@ bool CropBlock::isValidPosition(const BlockState& state, IBlockReader& world, co
 
 void CropBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    // 参考 MC 1.16.5: CropsBlock.randomTick
     // 如果已经成熟，不需要生长
     if (isMaxAge(state)) {
         return;
     }
 
-    // 参考 MC 1.16.5: 光照检查使用 getLightSubtracted(pos, 0)
+    // 光照检查
     if (world.getLightSubtracted(pos, 0) < 9) {
         return;
     }
@@ -153,8 +151,8 @@ void CropBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, 
 
     MC_UNUSED(random);
 
-    int newAge = getAge(state) + getBonemealAgeIncrease(world, pos);
-    int maxAge = getMaxAge();
+    i32 newAge = getAge(state) + getBonemealAgeIncrease(world, pos);
+    i32 maxAge = getMaxAge();
 
     if (newAge > maxAge) {
         newAge = maxAge;
@@ -171,7 +169,6 @@ void CropBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state
 
 int CropBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const
 {
-    // 参考: net.minecraft.block.CropsBlock#getBonemealAgeIncrease
     // 使用世界种子和方块位置派生确定性随机数
     // 这确保同一位置多次使用骨粉结果一致
     const u64 seed = world.seed() ^ static_cast<u64>(std::hash<BlockPos>{}(pos));
@@ -184,8 +181,8 @@ int CropBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const
 
 const CollisionShape& CropBlock::getShape(const BlockState& state) const
 {
-    int age = getAge(state);
-    MC_ASSERT(age >= 0 && age <= 7);
+    i32 age = getAge(state);
+    MC_ASSERT_RELEASE(age >= 0 && age <= 7);
     return m_shapesByAge[age];
 }
 
@@ -201,11 +198,9 @@ bool CropBlock::canSustain(const BlockState& groundState, IWorld& world, const B
     return VanillaBlocks::FARMLAND != nullptr && groundState.is(VanillaBlocks::FARMLAND);
 }
 
-float CropBlock::getGrowthChance(const Block& block, IBlockReader& world, const BlockPos& pos)
+f32 CropBlock::getGrowthChance(const Block& block, IBlockReader& world, const BlockPos& pos)
 {
-
-    // 参考: net.minecraft.block.CropsBlock#getGrowthChance
-    float growthChance = 1.0f;
+    f32 growthChance = 1.0f;
 
     const auto& moistureProp = BlockStateProperties::MOISTURE_0_7();
     for (i32 dx = -1; dx <= 1; ++dx) {

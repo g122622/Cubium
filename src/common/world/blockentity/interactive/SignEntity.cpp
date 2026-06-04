@@ -60,8 +60,8 @@ bool SignEntity::setLine(i32 line, std::unique_ptr<text::ITextComponent> text)
     }
 
     // 验证并截断文本
-    auto truncated = truncateText(std::move(text));
-    if (!validateText(*truncated)) {
+    auto truncated = _truncateText(std::move(text));
+    if (!_validateText(*truncated)) {
         return false;
     }
 
@@ -93,8 +93,8 @@ void SignEntity::setLines(std::array<std::unique_ptr<text::ITextComponent>, LINE
 {
     for (std::size_t i = 0; i < LINE_COUNT; ++i) {
         if (lines[i]) {
-            m_lines[i] = truncateText(std::move(lines[i]));
-            MC_ASSERT_RELEASE(validateText(*m_lines[i]));
+            m_lines[i] = _truncateText(std::move(lines[i]));
+            MC_ASSERT_RELEASE(_validateText(*m_lines[i]));
         }
     }
     setChanged();
@@ -143,7 +143,7 @@ void SignEntity::tick(IWorld& world)
     // 告示牌不需要 tick 更新
 }
 
-bool SignEntity::validateText(const text::ITextComponent& text)
+bool SignEntity::_validateText(const text::ITextComponent& text)
 {
     // 验证纯文本内容中的控制字符
     std::string plainText = text.getUnformattedText();
@@ -157,7 +157,7 @@ bool SignEntity::validateText(const text::ITextComponent& text)
     return true;
 }
 
-std::unique_ptr<text::ITextComponent> SignEntity::truncateText(std::unique_ptr<text::ITextComponent> text)
+std::unique_ptr<text::ITextComponent> SignEntity::_truncateText(std::unique_ptr<text::ITextComponent> text)
 {
     std::string plainText = text->getUnformattedText();
     if (plainText.length() <= static_cast<size_t>(MAX_LINE_LENGTH)) {
@@ -189,8 +189,8 @@ bool SignEntity::load(const nlohmann::json& data)
                     m_lines[i] = text::ITextComponent::fromJson(lineJson);
                 }
                 if (m_lines[i]) {
-                    m_lines[i] = truncateText(std::move(m_lines[i]));
-                    if (!validateText(*m_lines[i])) {
+                    m_lines[i] = _truncateText(std::move(m_lines[i]));
+                    if (!_validateText(*m_lines[i])) {
                         m_lines[i] = std::make_unique<text::StringTextComponent>("");
                     }
                 } else {
@@ -261,12 +261,9 @@ bool SignEntity::executeCommand(IWorld& world, Player& player)
 {
     MC_UNUSED(world);
 
-    // MC 1.16.5: 参考 SignTileEntity.executeCommand()
     // 遍历所有行文本，检查并执行点击事件
-    //
     // 注意：此方法在 mc_common 库中，无法直接访问服务端的命令系统。
     // 命令执行逻辑由服务端的 SignBlock 交互处理。
-    //
     // 此方法仅检查是否存在有效的点击事件，实际命令执行在服务端完成。
     bool hasCommand = false;
 
@@ -288,7 +285,7 @@ bool SignEntity::executeCommand(IWorld& world, Player& player)
                     hasCommand = true;
                     break;
                 case text::ClickAction::OpenFile:
-                    // MC 1.16.5: 出于安全原因，不自动执行 OpenFile
+                    // 出于安全原因，不自动执行 OpenFile
                     break;
             }
         }

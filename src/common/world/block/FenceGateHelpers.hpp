@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../util/Direction.hpp"
-#include "../../util/property/Properties.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
 
 namespace mc {
 namespace fencehelpers {
@@ -37,7 +37,7 @@ namespace fencehelpers {
  * @param state 方块状态
  * @return 如果是栅栏门返回 true
  */
-[[nodiscard]] inline bool isFenceGate(const BlockState& state)
+[[nodiscard]] inline bool isFenceGate(const BlockState& state) noexcept
 {
     return state.hasProperty(BlockStateProperties::OPEN()) && state.hasProperty(BlockStateProperties::IN_WALL());
 }
@@ -45,7 +45,6 @@ namespace fencehelpers {
 /**
  * @brief 检查栅栏门是否与给定方向平行（可连接）
  *
- * 参考: MC 1.16.5 FenceGateBlock.isParallel()
  * 栅栏门朝向轴与连接方向轴垂直时，可以连接。
  * 例如：栅栏门朝南（Z轴方向），可以连接东西方向的栅栏（X轴方向）。
  *
@@ -53,7 +52,7 @@ namespace fencehelpers {
  * @param connectionSide 连接方向（从栅栏/墙指向栅栏门的方向）
  * @return 如果栅栏门平行于连接方向返回 true
  */
-[[nodiscard]] inline bool isFenceGateParallel(const BlockState& state, Direction connectionSide)
+[[nodiscard]] inline bool isFenceGateParallel(const BlockState& state, Direction connectionSide) noexcept
 {
     Direction gateFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Axis gateAxis = Directions::getAxis(gateFacing);

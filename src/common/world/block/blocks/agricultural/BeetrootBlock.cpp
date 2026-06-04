@@ -52,7 +52,6 @@ const IntegerProperty& BeetrootBlock::getAgeProperty() const
 
 void BeetrootBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    // 参考: net.minecraft.block.BeetrootBlock#randomTick
     // 甜菜根有 1/3 概率跳过生长检查
 
     // 如果已经成熟，不需要生长
@@ -61,7 +60,6 @@ void BeetrootBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& s
     }
 
     // 甜菜根有 1/3 概率跳过
-    // 参考: if (worldIn.getRandom().nextInt(3) != 0)
     if (random.nextInt(3) == 0) {
         return;
     }
@@ -85,7 +83,6 @@ void BeetrootBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& s
 int BeetrootBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const
 {
     // 甜菜根骨粉增加的生长阶段较少
-    // 参考: net.minecraft.block.BeetrootBlock#getBonemealAgeIncrease
     // 返回父类的 1/3（约 0-1，因为父类返回 2-5）
     // 实际上，甜菜根骨粉只增加 1 个阶段
     MC_UNUSED(world);
@@ -103,7 +100,6 @@ const CollisionShape& BeetrootBlock::getShape(const BlockState& state) const
 u32 BeetrootBlock::getCropItem() const
 {
     // 返回甜菜根物品ID
-    // 参考: net.minecraft.block.BeetrootBlock#getCropItem
     return Items::BEETROOT->itemId();
 }
 

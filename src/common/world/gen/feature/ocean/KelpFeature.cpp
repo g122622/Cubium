@@ -22,12 +22,12 @@
  */
 
 #include "KelpFeature.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../WorldConstants.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 
 #include <algorithm>
 
@@ -74,21 +74,21 @@ bool KelpFeature::place(
         return false;
     }
 
-    // 参考原版 KelpFeature：单次放置会尝试多次随机点，并在顶端设置 AGE 20-23。
+    // 单次放置会尝试多次随机点，并在顶端设置 AGE 20-23。
     const i32 tries = std::max(1, config.tries);
     const i32 maxHeight = std::max(1, config.maxHeight);
 
     bool placedAny = false;
     for (i32 attempt = 0; attempt < tries; ++attempt) {
-        const i32 placeX = pos.x + random.nextInt(16);
-        const i32 placeZ = pos.z + random.nextInt(16);
+        const i32 placeX = pos.x + random.nextInt(world::CHUNK_WIDTH);
+        const i32 placeZ = pos.z + random.nextInt(world::CHUNK_WIDTH);
         const i32 oceanFloorY = findOceanFloorY(world, placeX, placeZ);
         if (oceanFloorY <= 0) {
             continue;
         }
 
         BlockPos currentPos(placeX, oceanFloorY + 1, placeZ);
-        if (!isWater(world, currentPos)) {
+        if (!_isWater(world, currentPos)) {
             continue;
         }
 
@@ -97,10 +97,11 @@ bool KelpFeature::place(
         for (i32 y = 0; y <= height; ++y) {
             const BlockPos abovePos = currentPos.up();
             const bool canGrowHere =
-                isWater(world, currentPos) && isWater(world, abovePos) && canPlaceAt(world, currentPos);
+                _isWater(world, currentPos) && _isWater(world, abovePos) && _canPlaceAt(world, currentPos);
 
             if (canGrowHere) {
                 if (y == height) {
+                    // 顶端海带设置 AGE 属性，值为 20-23
                     const i32 age = random.nextInt(4) + 20;
                     world.setBlockState(currentPos, &config.kelpTopState->with(BlockStateProperties::AGE_0_25(), age));
                     placedAny = true;
@@ -115,7 +116,8 @@ bool KelpFeature::place(
                 const bool belowHasKelp = (VanillaBlocks::KELP != nullptr && belowBelowState != nullptr &&
                     belowBelowState->is(VanillaBlocks::KELP));
 
-                if (canPlaceAt(world, belowPos) && !belowHasKelp) {
+                if (_canPlaceAt(world, belowPos) && !belowHasKelp) {
+                    // 顶端海带设置 AGE 属性，值为 20-23
                     const i32 age = random.nextInt(4) + 20;
                     world.setBlockState(belowPos, &config.kelpTopState->with(BlockStateProperties::AGE_0_25(), age));
                     placedAny = true;
@@ -130,7 +132,7 @@ bool KelpFeature::place(
     return placedAny;
 }
 
-bool KelpFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
+bool KelpFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
     const BlockState* belowState = world.getBlockState(pos.down());
 
@@ -146,7 +148,7 @@ bool KelpFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
     return belowState->owner().isSolid(*belowState);
 }
 
-bool KelpFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
+bool KelpFeature::_isWater(WorldGenRegion& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (!state) {

@@ -23,22 +23,22 @@
 
 #pragma once
 
-#include <memory>
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
+#include <memory>
 
 namespace mc {
 
 /**
  * @brief 蓝冰特征配置
  *
- * 参考 MC 1.16.5 BlueIceFeature 的冷海域蓝冰生成逻辑。
+ * 冷海域蓝冰生成逻辑的配置参数。
  */
 struct BlueIceFeatureConfig : public IFeatureConfig {
     const BlockState* blueIceState = nullptr;
     const BlockState* packedIceState = nullptr;
 
-    /// 传播迭代次数（原版为 200）
+    /// 传播迭代次数
     i32 spreadAttempts = 200;
 };
 
@@ -54,12 +54,12 @@ public:
         i32 seaLevel);
 
 private:
-    [[nodiscard]] bool isWater(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isWater(WorldGenRegion& world, const BlockPos& pos) const;
 
-    [[nodiscard]] bool isReplaceableForSpread(
+    [[nodiscard]] bool _isReplaceableForSpread(
         WorldGenRegion& world, const BlockPos& pos, const BlueIceFeatureConfig& config) const;
 
-    [[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) const;
+    [[nodiscard]] i32 _findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) const;
 };
 
 /**

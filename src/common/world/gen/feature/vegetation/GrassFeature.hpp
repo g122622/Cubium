@@ -24,16 +24,16 @@
 #pragma once
 
 #include <memory>
-#include "../ConfiguredFeature.hpp"
-#include "../Feature.hpp"
 #include <vector>
+
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/Feature.hpp"
 
 namespace mc {
 
 /**
  * @brief 草丛特征配置
  *
- * 参考 MC BlockClusterFeatureConfig
  * 用于配置草、蕨类等植被的生成参数。
  */
 struct GrassFeatureConfig : public IFeatureConfig {
@@ -78,7 +78,6 @@ struct GrassFeatureConfig : public IFeatureConfig {
  * @brief 草丛特征
  *
  * 在指定位置周围随机放置草、蕨类等植被。
- * 参考 MC RandomPatchFeature
  */
 class GrassFeature {
 public:
@@ -96,12 +95,12 @@ private:
     /**
      * @brief 检查草丛是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const GrassFeatureConfig& config) const;
+    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const GrassFeatureConfig& config) const;
 
     /**
      * @brief 检查下方方块是否支持草丛生长
      */
-    [[nodiscard]] bool isValidGround(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isValidGround(WorldGenRegion& world, const BlockPos& pos) const;
 };
 
 /**

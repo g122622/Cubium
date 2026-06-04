@@ -34,8 +34,6 @@ namespace block {
  *
  * 透明玻璃方块，可以为信标光束提供颜色。
  * 实现 IBeaconBeamColorProvider 接口以支持信标光束颜色修改。
- *
- * 参考 MC 1.16.5: net.minecraft.block.StainedGlassBlock
  */
 class StainedGlassBlock : public Block, public IBeaconBeamColorProvider {
 public:

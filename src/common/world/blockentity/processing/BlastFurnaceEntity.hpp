@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "world/blockentity/processing/AbstractFurnaceEntity.hpp"
+#include <memory>
 
 namespace mc {
 namespace blockentity {
@@ -34,8 +34,6 @@ namespace blockentity {
  *
  * 实现100tick熔炼时间的熔炉。
  * 只能熔炼矿石和金属物品。
- *
- * 参考: net.minecraft.tileentity.BlastFurnaceTileEntity
  */
 class BlastFurnaceEntity : public AbstractFurnaceEntity {
 public:
@@ -84,8 +82,7 @@ protected:
     /**
      * @brief 获取燃料燃烧时间（重写）
      *
-     * MC 1.16.5: 高炉燃烧燃料的速度是普通熔炉的2倍，
-     * 即同样燃料只能燃烧一半的时间。
+     * 高炉燃烧燃料的速度是普通熔炉的2倍，即同样燃料只能燃烧一半的时间。
      *
      * @param stack 物品堆
      * @return 燃烧时间（tick），如果不是燃料返回0

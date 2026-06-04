@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../Structure.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include <memory>
 #include <vector>
 
@@ -41,7 +41,6 @@ class StrongholdStartStairs;
  * @brief 要塞片段权重
  *
  * 用于要塞片段的随机选择
- * 参考 MC 1.16.5: StrongholdPieces.PieceWeight
  */
 struct StrongholdPieceWeight {
     i32 pieceType;        ///< 片段类型
@@ -79,8 +78,6 @@ struct StrongholdPieceWeight {
 
 /**
  * @brief 要塞片段基类
- *
- * 参考 MC 1.16.5: StrongholdPieces.Stronghold
  */
 class StrongholdPiece : public StructurePiece {
 public:
@@ -118,7 +115,6 @@ public:
     /**
      * @brief 获取下一个组件（正向）
      *
-     * 参考 MC 1.16.5: Stronghold.getNextComponentNormal
      * 在当前片段前方生成下一个连接片段
      */
     StructurePiece* getNextComponentNormal(StrongholdStartStairs* start,
@@ -130,7 +126,6 @@ public:
     /**
      * @brief 获取下一个组件（X方向）
      *
-     * 参考 MC 1.16.5: Stronghold.getNextComponentX
      * 在当前片段左侧或右侧生成连接片段
      */
     StructurePiece* getNextComponentX(StrongholdStartStairs* start,
@@ -142,7 +137,6 @@ public:
     /**
      * @brief 获取下一个组件（Z方向）
      *
-     * 参考 MC 1.16.5: Stronghold.getNextComponentZ
      * 在当前片段左侧或右侧生成连接片段
      */
     StructurePiece* getNextComponentZ(StrongholdStartStairs* start,
@@ -172,8 +166,6 @@ protected:
 
 /**
  * @brief 要塞石砖选择器
- *
- * 参考 MC 1.16.5: StrongholdPieces.Stones
  */
 class StrongholdStonesSelector : public StructurePiece::BlockSelector {
 public:
@@ -186,8 +178,6 @@ public:
 
 /**
  * @brief 要塞直走廊
- *
- * 参考 MC 1.16.5: StrongholdPieces.Straight
  */
 class StrongholdStraight : public StrongholdPiece {
 public:
@@ -229,8 +219,6 @@ private:
 
 /**
  * @brief 要塞监狱
- *
- * 参考 MC 1.16.5: StrongholdPieces.Prison
  */
 class StrongholdPrison : public StrongholdPiece {
 public:
@@ -268,8 +256,6 @@ public:
 
 /**
  * @brief 要塞左转
- *
- * 参考 MC 1.16.5: StrongholdPieces.LeftTurn
  */
 class StrongholdLeftTurn : public StrongholdPiece {
 public:
@@ -307,8 +293,6 @@ public:
 
 /**
  * @brief 要塞右转
- *
- * 参考 MC 1.16.5: StrongholdPieces.RightTurn
  */
 class StrongholdRightTurn : public StrongholdPiece {
 public:
@@ -346,8 +330,6 @@ public:
 
 /**
  * @brief 要塞房间交叉点
- *
- * 参考 MC 1.16.5: StrongholdPieces.RoomCrossing
  */
 class StrongholdRoomCrossing : public StrongholdPiece {
 public:
@@ -388,8 +370,6 @@ private:
 
 /**
  * @brief 要塞直楼梯
- *
- * 参考 MC 1.16.5: StrongholdPieces.StairsStraight
  */
 class StrongholdStairsStraight : public StrongholdPiece {
 public:
@@ -427,8 +407,6 @@ public:
 
 /**
  * @brief 要塞螺旋楼梯
- *
- * 参考 MC 1.16.5: StrongholdPieces.Stairs
  */
 class StrongholdStairs : public StrongholdPiece {
 public:
@@ -470,7 +448,6 @@ protected:
 /**
  * @brief 要塞起始楼梯
  *
- * 参考 MC 1.16.5: StrongholdPieces.Stairs2
  * 存储要塞生成的全局状态（权重列表、lastPlaced等）
  */
 class StrongholdStartStairs : public StrongholdStairs {
@@ -506,8 +483,6 @@ private:
 
 /**
  * @brief 要塞交叉点
- *
- * 参考 MC 1.16.5: StrongholdPieces.Crossing
  */
 class StrongholdCrossing : public StrongholdPiece {
 public:
@@ -551,8 +526,6 @@ private:
 
 /**
  * @brief 要塞宝箱走廊
- *
- * 参考 MC 1.16.5: StrongholdPieces.ChestCorridor
  */
 class StrongholdChestCorridor : public StrongholdPiece {
 public:
@@ -593,8 +566,6 @@ private:
 
 /**
  * @brief 要塞图书馆
- *
- * 参考 MC 1.16.5: StrongholdPieces.Library
  */
 class StrongholdLibrary : public StrongholdPiece {
 public:
@@ -632,8 +603,6 @@ private:
 
 /**
  * @brief 要塞传送门房间
- *
- * 参考 MC 1.16.5: StrongholdPieces.PortalRoom
  */
 class StrongholdPortalRoom : public StrongholdPiece {
 public:
@@ -662,8 +631,6 @@ private:
 
 /**
  * @brief 要塞填充走廊
- *
- * 参考 MC 1.16.5: StrongholdPieces.Corridor
  */
 class StrongholdCorridor : public StrongholdPiece {
 public:

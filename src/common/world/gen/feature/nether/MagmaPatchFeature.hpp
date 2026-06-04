@@ -23,17 +23,15 @@
 
 #pragma once
 
-#include <memory>
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
+#include <memory>
 #include <vector>
 
 namespace mc {
 
 /**
  * @brief 岩浆池特征配置
- *
- * 参考 MC SpringFeature / LakeFeature
  */
 struct MagmaPatchFeatureConfig : public IFeatureConfig {
     /// 池的半径
@@ -65,8 +63,7 @@ struct MagmaPatchFeatureConfig : public IFeatureConfig {
 /**
  * @brief 岩浆池特征
  *
- * 生成岩浆块和火焰的池子。
- * 参考 MC SpringFeature 和下界岩浆池生成
+ * 生成岩浆块和火焰的池子
  */
 class MagmaPatchFeature {
 public:
@@ -79,7 +76,7 @@ private:
     /**
      * @brief 检查位置是否有效
      */
-    [[nodiscard]] bool isValidLocation(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isValidLocation(WorldGenRegion& world, const BlockPos& pos) const;
 };
 
 /**
@@ -127,6 +124,7 @@ struct NetherFireFeatureConfig : public IFeatureConfig {
     i32 spread = 4;
 
     /// 每个火焰的高度范围
+    // TODO: minHeight 和 maxHeight 尚未在生成逻辑中使用，待实现火焰高度变化
     i32 minHeight = 1;
     i32 maxHeight = 3;
 

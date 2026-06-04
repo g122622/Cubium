@@ -32,7 +32,7 @@ namespace mc {
 
 namespace ChunkStatuses {
 
-// 阶段定义（按顺序，与 MC 1.16.5 一致）
+// 阶段定义（按顺序）
 //
 // taskRange 参数说明：
 // - 0: 不需要邻居区块
@@ -141,7 +141,6 @@ const ChunkStatus FULL("full",
 
 namespace {
 
-// 根据 MC 的 STATUS_BY_RANGE 映射
 // 用于将距离值映射到对应的状态
 const std::vector<const ChunkStatus*> STATUS_BY_RANGE = {&ChunkStatuses::FULL,
     &ChunkStatuses::FEATURES,

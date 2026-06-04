@@ -27,6 +27,7 @@
 #undef BYTE_SIZE
 
 #include "Teleporter.hpp"
+#include "../DimensionManager.hpp"
 #include "../DimensionType.hpp"
 #include "PortalSize.hpp"
 // Note: ServerWorld is forward declared in Teleporter.hpp
@@ -76,10 +77,10 @@ std::vector<BlockPos> Teleporter::searchPortalBlocks(IWorld& world, const BlockP
     const BlockState* portalState = &VanillaBlocks::NETHER_PORTAL->defaultState();
 
     // 在搜索半径内遍历区块
-    ChunkCoord minChunkX = (center.x - radius) >> 4;
-    ChunkCoord maxChunkX = (center.x + radius) >> 4;
-    ChunkCoord minChunkZ = (center.z - radius) >> 4;
-    ChunkCoord maxChunkZ = (center.z + radius) >> 4;
+    ChunkCoord minChunkX = (center.x - radius) >> world::CHUNK_SHIFT;
+    ChunkCoord maxChunkX = (center.x + radius) >> world::CHUNK_SHIFT;
+    ChunkCoord minChunkZ = (center.z - radius) >> world::CHUNK_SHIFT;
+    ChunkCoord maxChunkZ = (center.z + radius) >> world::CHUNK_SHIFT;
 
     for (ChunkCoord cx = minChunkX; cx <= maxChunkX; ++cx) {
         for (ChunkCoord cz = minChunkZ; cz <= maxChunkZ; ++cz) {
@@ -91,12 +92,12 @@ std::vector<BlockPos> Teleporter::searchPortalBlocks(IWorld& world, const BlockP
 
             // 遍历区块内的方块
             for (i32 y = world::MIN_BUILD_HEIGHT; y < world::MAX_BUILD_HEIGHT; ++y) {
-                for (i32 z = 0; z < 16; ++z) {
-                    for (i32 x = 0; x < 16; ++x) {
+                for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+                    for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
                         const BlockState* state = chunk->getBlockState(x, y, z);
                         if (state == portalState) {
                             // 转换为世界坐标
-                            BlockPos worldPos(cx * 16 + x, y, cz * 16 + z);
+                            BlockPos worldPos(cx * world::CHUNK_WIDTH + x, y, cz * world::CHUNK_WIDTH + z);
 
                             // 检查是否在搜索半径内（水平距离）
                             if (worldPos.distanceHorizontalSq(center) <= radius * radius) {
@@ -150,7 +151,6 @@ void Teleporter::placePortalBlocks(IWorld& world, const BlockPos& corner, i32 wi
 
 bool NetherTeleporter::teleport(Entity& entity, DimensionId targetDim)
 {
-    // 参考 MC 1.16.5 NetherTeleporter
     // 传送逻辑：
     // 1. 获取当前位置
     // 2. 根据维度缩放计算目标位置
@@ -177,14 +177,14 @@ std::optional<PortalInfo> NetherTeleporter::findPortal(IWorld& world, const Vect
     BlockPos blockPos(
         math::floorTo<BlockCoord>(pos.x), math::floorTo<BlockCoord>(pos.y), math::floorTo<BlockCoord>(pos.z));
 
-    // MC 1.16.5: 根据目标维度确定搜索半径
+    // 根据目标维度确定搜索半径
     // 下界 -> 主世界: 搜索半径 16 格（因为下界坐标 × 8 = 主世界坐标，范围会扩大）
     // 主世界 -> 下界: 搜索半径 128 格（因为主世界坐标 ÷ 8 = 下界坐标，范围会缩小）
     // 注意：此方法在目标世界中执行，所以：
     // - 如果目标世界是主世界，使用 16 格半径
     // - 如果目标世界是下界，使用 128 格半径
     i32 searchRadius = NETHER_TO_OVERWORLD_SEARCH_RADIUS; // 默认 16
-    if (world.dimension() == -1) {                        // NETHER = -1
+    if (world.dimension() == DimensionManager::NETHER) {
         searchRadius = OVERWORLD_TO_NETHER_SEARCH_RADIUS; // 128
     }
 
@@ -195,12 +195,12 @@ std::optional<PortalInfo> NetherTeleporter::findPortal(IWorld& world, const Vect
         return std::nullopt;
     }
 
-    // 找到最近的传送门（使用 3D 距离平方，MC 1.16.5 使用 distanceSq）
+    // 找到最近的传送门（使用 3D 距离平方）
     // 次排序键：Y 坐标（距离相同时选择 Y 更小的）
     BlockPos closest = portalBlocks[0];
     i64 closestDistSq = closest.distanceSq(blockPos);
 
-    for (size_t i = 1; i < portalBlocks.size(); ++i) {
+    for (Size i = 1; i < portalBlocks.size(); ++i) {
         i64 distSq = portalBlocks[i].distanceSq(blockPos);
         if (distSq < closestDistSq || (distSq == closestDistSq && portalBlocks[i].y < closest.y)) {
             closestDistSq = distSq;
@@ -244,7 +244,6 @@ PortalInfo NetherTeleporter::createNetherPortal(IWorld& world, const BlockPos& p
     // 2. 放置黑曜石框架
     // 3. 点燃传送门
 
-    // 参考 MC 1.16.5 NetherTeleporter.createPortal
     // 默认创建 2x3 的传送门框架
 
     // 确定传送门轴向（随机或基于位置）
@@ -353,7 +352,6 @@ void NetherTeleporter::placeObsidianFrame(IWorld& world, const BlockPos& corner,
 
 bool EndTeleporter::teleport(Entity& entity, DimensionId targetDim)
 {
-    // 参考 MC 1.16.5 EndTeleporter
     // 传送逻辑：
     // 1. 主世界 -> 末地: 传送到固定出生点 (100, 49, 0)
     // 2. 末地 -> 主世界: 返回重生点或床
@@ -371,7 +369,6 @@ std::optional<PortalInfo> EndTeleporter::findPortal(IWorld& world, const Vector3
     MC_UNUSED(pos);
     // 末地传送门是固定的，不需要搜索
     // 返回固定的出生位置
-    // MC 1.16.5 ServerWorld.field_241108_a_ = new BlockPos(100, 50, 0)
     PortalInfo info;
     info.position = getEndSpawnPosition(); // (100.5, 50.0, 0.5)
     info.yaw = 90.0f;                      // 面向末地岛
@@ -406,7 +403,6 @@ void EndTeleporter::createExitPortal(IWorld& world, const BlockPos& pos)
 void EndTeleporter::createEndSpawnPlatform(IWorld& world)
 {
     // 创建末地出生平台（黑曜石平台）
-    // MC 1.16.5 ServerWorld.func_241121_a_:
     // 出生点 (100, 50, 0)，平台在 y = 48（spawnY - 2）
     // 清空空间 y = 49, 50, 51（spawnY - 1 到 spawnY + 1）
 
@@ -417,7 +413,7 @@ void EndTeleporter::createEndSpawnPlatform(IWorld& world)
 
     const BlockState* obsidian = &VanillaBlocks::OBSIDIAN->defaultState();
 
-    // MC 1.16.5 常量
+    // 出生点常量
     constexpr i32 SPAWN_X = 100;
     constexpr i32 SPAWN_Y = 50; // 出生点 Y 坐标
     constexpr i32 SPAWN_Z = 0;
@@ -432,7 +428,6 @@ void EndTeleporter::createEndSpawnPlatform(IWorld& world)
     }
 
     // 清空上方空间 (y = 49, 50, 51)
-    // MC 1.16.5: for (int k = -1; k < 3; ++k) 即 y = spawnY - 1 到 spawnY + 1
     for (i32 x = -2; x <= 2; ++x) {
         for (i32 z = -2; z <= 2; ++z) {
             for (i32 y = SPAWN_Y - 1; y <= SPAWN_Y + 1; ++y) {

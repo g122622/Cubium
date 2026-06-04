@@ -191,17 +191,17 @@ private:
     /**
      * @brief 检查是否应该保存
      */
-    [[nodiscard]] bool shouldSave(u64 tickCount) const;
+    [[nodiscard]] bool _shouldSave(u64 tickCount) const;
 
     /**
      * @brief 执行保存
      */
-    Result<size_t> doSave(bool createSnapshot, const std::string& snapshotName = "");
+    Result<size_t> _doSave(bool createSnapshot, const std::string& snapshotName = "");
 
     /**
      * @brief 清理旧快照
      */
-    void pruneOldSnapshots();
+    void _pruneOldSnapshots();
 
 private:
     SingleLevelStorageManager& m_storage;

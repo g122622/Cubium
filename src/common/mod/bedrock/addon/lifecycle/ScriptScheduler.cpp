@@ -23,14 +23,12 @@
 
 #include "common/mod/bedrock/addon/lifecycle/ScriptScheduler.hpp"
 
-#include <spdlog/spdlog.h>
-
 namespace mc::mod::bedrock::addon {
 
 ScriptScheduler::RunId ScriptScheduler::run(Callback callback)
 {
     std::lock_guard lock(m_mutex);
-    RunId id = nextId();
+    RunId id = _nextId();
     m_pendingRunCallbacks.push_back(std::move(callback));
     return id;
 }
@@ -38,7 +36,7 @@ ScriptScheduler::RunId ScriptScheduler::run(Callback callback)
 ScriptScheduler::RunId ScriptScheduler::runTimeout(Callback callback, u32 tickDelay)
 {
     std::lock_guard lock(m_mutex);
-    RunId id = nextId();
+    RunId id = _nextId();
     // 一次性回调：nextTick=0表示首次tick时设置，recurring=false
     m_entries.emplace(id, ScheduledEntry{id, std::move(callback), 0, tickDelay, false, false});
     return id;
@@ -47,7 +45,7 @@ ScriptScheduler::RunId ScriptScheduler::runTimeout(Callback callback, u32 tickDe
 ScriptScheduler::RunId ScriptScheduler::runInterval(Callback callback, u32 tickInterval)
 {
     std::lock_guard lock(m_mutex);
-    RunId id = nextId();
+    RunId id = _nextId();
     // 周期性回调：recurring=true
     m_entries.emplace(id, ScheduledEntry{id, std::move(callback), 0, tickInterval, true, false});
     return id;
@@ -135,7 +133,7 @@ size_t ScriptScheduler::pendingCount() const
     return m_entries.size() + m_pendingRunCallbacks.size();
 }
 
-ScriptScheduler::RunId ScriptScheduler::nextId()
+ScriptScheduler::RunId ScriptScheduler::_nextId()
 {
     return m_nextId.fetch_add(1);
 }

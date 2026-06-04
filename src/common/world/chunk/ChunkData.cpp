@@ -21,6 +21,7 @@
  *
  */
 
+// TODO: include 路径应改为不使用 ../ 的形式，但这会影响其他文件，暂时保持现状
 // 在macOS系统头文件中，BYTE_SIZE被定义为宏，会与NibbleArray的静态常数冲突
 // 使用pragma push_macro/pop_macro来暂时屏蔽系统宏
 #pragma push_macro("BYTE_SIZE")
@@ -121,8 +122,7 @@ void ChunkSection::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId)
         m_blockCount--;
     }
 
-    // 更新随机刻计数器 (MC 1.16.5)
-    // 参考: net.minecraft.world.chunk.ChunkSection.setBlockState
+    // 更新随机刻计数器
     if (oldState && oldState->getBlock().ticksRandomly()) {
         --m_blockTickRefCount;
     }
@@ -847,7 +847,7 @@ void ChunkData::initLightData()
     m_nibblePtrsInitialized = false;
 }
 
-void ChunkData::ensureNibblePtrs() const
+void ChunkData::_ensureNibblePtrs() const
 {
     if (m_nibblePtrsInitialized) {
         return;
@@ -903,7 +903,7 @@ void ChunkData::setBlockEmptinessMap(const bool* map)
 
 SWMRNibbleArray* const* ChunkData::getSkyNibbles() const
 {
-    ensureNibblePtrs();
+    _ensureNibblePtrs();
     return m_skyNibblePtrs.data();
 }
 
@@ -924,7 +924,7 @@ void ChunkData::setSkyNibbles(SWMRNibbleArray* const* nibbles)
 
 SWMRNibbleArray* const* ChunkData::getBlockNibbles() const
 {
-    ensureNibblePtrs();
+    _ensureNibblePtrs();
     return m_blockNibblePtrs.data();
 }
 

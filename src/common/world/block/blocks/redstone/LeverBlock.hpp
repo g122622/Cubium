@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../redstone/RedstonePower.hpp"
-#include "../../Block.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/redstone/RedstonePower.hpp"
 
 namespace mc {
 namespace blocks {
@@ -128,7 +128,7 @@ private:
      * @param pos 方块位置
      * @param powered true为开启，false为关闭
      */
-    static void playClickSound(IWorld& world, const BlockPos& pos, bool powered);
+    static void _playClickSound(IWorld& world, const BlockPos& pos, bool powered);
 
     /**
      * @brief 通知相邻方块更新
@@ -137,7 +137,7 @@ private:
      * @param pos 方块位置
      * @param state 当前方块状态
      */
-    static void notifyNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state);
+    static void _notifyNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state);
 };
 
 } // namespace blocks

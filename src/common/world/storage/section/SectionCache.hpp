@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../db/SectionKey.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/storage/db/SectionKey.hpp"
 #include <list>
 #include <memory>
 #include <mutex>
@@ -285,19 +285,19 @@ private:
      *
      * @param it 列表迭代器
      */
-    void updateAccessOrder(LRUIterator it);
+    void _updateAccessOrder(LRUIterator it);
 
     /**
      * @brief 驱逐最久未使用的Section
      *
      * @return 被驱逐的Section
      */
-    std::shared_ptr<SectionData> evictLRU();
+    std::shared_ptr<SectionData> _evictLRU();
 
     /**
      * @brief 获取当前时间戳（毫秒）
      */
-    [[nodiscard]] static u64 getCurrentTimeMs();
+    [[nodiscard]] static u64 _getCurrentTimeMs();
 
     // ========================================================================
     // 成员变量

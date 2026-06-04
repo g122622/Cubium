@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include <memory>
 #include "util/math/random/Random.hpp"
 #include "world/blockentity/ContainerBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include <array>
+#include <memory>
 #include <optional>
 
 namespace mc {
@@ -52,15 +52,13 @@ namespace blockentity {
  * - 4个物品槽位
  * - 每个槽位的烹饪时间
  * - 每个槽位的总烹饪时间
- *
- * 参考: net.minecraft.tileentity.CampfireTileEntity
  */
 class CampfireBlockEntity : public ContainerBlockEntity {
 public:
     /// 营火槽位数量
     static constexpr i32 SLOT_COUNT = 4;
 
-    /// 默认烹饪时间（tick），MC 1.16.5 = 600 tick = 30秒
+    /// 默认烹饪时间（tick）= 600 tick = 30秒
     static constexpr i32 DEFAULT_COOK_TIME = 600;
 
     /**
@@ -88,7 +86,7 @@ public:
      * @brief 检查是否需要tick
      * @return 始终返回true，营火需要持续更新
      */
-    [[nodiscard]] bool needsTick() const override { return true; }
+    [[nodiscard]] bool needsTick() const noexcept override { return true; }
 
     /**
      * @brief 从JSON加载数据
@@ -115,14 +113,14 @@ public:
      * @brief 获取容器
      * @return 容器指针
      */
-    [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
-    [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
+    [[nodiscard]] IInventory* getInventory() noexcept override { return &m_inventory; }
+    [[nodiscard]] const IInventory* getInventory() const noexcept override { return &m_inventory; }
 
     /**
      * @brief 获取容器大小
      * @return 4个槽位
      */
-    [[nodiscard]] i32 getContainerSize() const override { return SLOT_COUNT; }
+    [[nodiscard]] i32 getContainerSize() const noexcept override { return SLOT_COUNT; }
 
     // ========== 营火特有方法 ==========
 
@@ -143,7 +141,7 @@ public:
      * @return 是否成功添加
      *
      * 找到第一个空槽位添加物品。
-     * MC 1.16.5: 创造模式传入副本，生存模式传入原物品。
+     * 创造模式传入副本，生存模式传入原物品。
      */
     bool addItem(ItemStack& stack, i32 cookTime);
 
@@ -166,21 +164,24 @@ public:
      * @param slot 槽位索引 (0-3)
      * @return 烹饪进度 (0.0 - 1.0)，如果槽位为空返回0
      */
-    [[nodiscard]] f32 getCookProgress(i32 slot) const;
+    [[nodiscard]] f32 getCookProgress(i32 slot) const noexcept;
 
     /**
      * @brief 获取指定槽位的烹饪时间
      * @param slot 槽位索引 (0-3)
      * @return 已烹饪时间（tick）
      */
-    [[nodiscard]] i32 getCookTime(i32 slot) const { return isValidSlot(slot) ? m_cookTimes[slot] : 0; }
+    [[nodiscard]] i32 getCookTime(i32 slot) const noexcept { return _isValidSlot(slot) ? m_cookTimes[slot] : 0; }
 
     /**
      * @brief 获取指定槽位的总烹饪时间
      * @param slot 槽位索引 (0-3)
      * @return 总烹饪时间（tick）
      */
-    [[nodiscard]] i32 getCookTimeTotal(i32 slot) const { return isValidSlot(slot) ? m_cookTimesTotal[slot] : 0; }
+    [[nodiscard]] i32 getCookTimeTotal(i32 slot) const noexcept
+    {
+        return _isValidSlot(slot) ? m_cookTimesTotal[slot] : 0;
+    }
 
 private:
     /**
@@ -189,26 +190,26 @@ private:
      *
      * 点燃时每tick调用，更新烹饪进度并掉落完成的食物。
      */
-    void cookAndDrop(IWorld& world);
+    void _cookAndDrop(IWorld& world);
 
     /**
      * @brief 冷却烹饪进度
      *
      * 熄灭时每tick调用，烹饪进度会缓慢下降。
      */
-    void coolDown();
+    void _coolDown();
 
     /**
      * @brief 标记方块实体已更改并通知客户端
      */
-    void inventoryChanged();
+    void _inventoryChanged();
 
     /**
      * @brief 验证槽位索引
      * @param slot 槽位索引
      * @return 如果有效返回true
      */
-    [[nodiscard]] bool isValidSlot(i32 slot) const { return slot >= 0 && slot < SLOT_COUNT; }
+    [[nodiscard]] bool _isValidSlot(i32 slot) const noexcept { return slot >= 0 && slot < SLOT_COUNT; }
 
     /// 物品库存（4个槽位）
     SimpleInventory m_inventory;

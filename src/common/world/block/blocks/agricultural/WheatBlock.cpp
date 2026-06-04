@@ -22,7 +22,7 @@
  */
 
 #include "WheatBlock.hpp"
-#include "../../../../item/Items.hpp"
+#include "common/item/Items.hpp"
 
 namespace mc {
 namespace blocks {
@@ -36,7 +36,6 @@ WheatBlock::WheatBlock(const BlockProperties& properties)
 u32 WheatBlock::getCropItem() const
 {
     // 返回小麦物品ID
-    // 参考: net.minecraft.block.CropsBlock#getCropItem
     return Items::WHEAT->itemId();
 }
 

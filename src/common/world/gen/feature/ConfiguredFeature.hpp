@@ -23,11 +23,10 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../chunk/ChunkPos.hpp"
 #include "DecorationStage.hpp"
-#include <functional>
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
 #include <memory>
 #include <vector>
 
@@ -45,7 +44,6 @@ struct OreFeatureConfig;
  * @brief 配置化特征基类
  *
  * 组合特征与其放置配置。
- * 参考 MC ConfiguredFeature
  */
 class ConfiguredFeatureBase {
 public:

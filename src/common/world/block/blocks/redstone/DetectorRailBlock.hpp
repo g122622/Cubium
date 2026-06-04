@@ -35,8 +35,6 @@ namespace blocks {
  * - 矿车经过时输出红石信号
  * - 信号强度根据矿车内容物变化
  * - 只支持直轨和斜轨（不支持弯轨）
- *
- * 参考: net.minecraft.block.DetectorRailBlock
  */
 class DetectorRailBlock : public AbstractRailBlock {
 public:

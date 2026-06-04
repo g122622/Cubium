@@ -22,13 +22,13 @@
  */
 
 #include "PillagerOutpostStructure.hpp"
+#include "../../../../core/Constants.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
-#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace world {
@@ -36,6 +36,7 @@ namespace gen {
 namespace structure {
 
 using namespace mc::Biomes;
+using namespace mc::world;
 
 const std::string PillagerOutpostStructure::s_name = "Pillager_Outpost";
 const std::vector<BiomeId> PillagerOutpostStructure::s_validBiomes = {Plains,
@@ -62,10 +63,10 @@ bool PillagerOutpostStructure::canGenerate(
     MC_UNUSED(world);
 
     // 检查生物群系
-    BiomeId biome = generator.getBiome(chunkX * 16 + 8, 64, chunkZ * 16 + 8);
+    BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, 64, chunkZ * CHUNK_WIDTH + 8);
     for (BiomeId valid : s_validBiomes) {
         if (biome == valid) {
-            // MC 1.16.5: 20% 的生成概率
+            // 20% 的生成概率
             i32 i = chunkX >> 4;
             i32 j = chunkZ >> 4;
             rng.setSeed(static_cast<i64>(i ^ j << 4) ^ static_cast<i64>(generator.seed()));
@@ -76,29 +77,28 @@ bool PillagerOutpostStructure::canGenerate(
             }
 
             // 检查附近是否有村庄
-            return !isNearVillage(generator, static_cast<i64>(generator.seed()), rng, chunkX, chunkZ);
+            return !_isNearVillage(generator, static_cast<i64>(generator.seed()), rng, chunkX, chunkZ);
         }
     }
     return false;
 }
 
-bool PillagerOutpostStructure::isNearVillage(
+bool PillagerOutpostStructure::_isNearVillage(
     IChunkGenerator& generator, i64 seed, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     MC_UNUSED(rng);
     MC_UNUSED(generator);
 
-    // MC 1.16.5: PillagerOutpostStructure.isVillageNearby
     // 检查 21x21 区块范围内是否有村庄起始位置
     // 如果在范围内有村庄，则不生成前哨站
 
-    // 村庄的间距设置: spacing=32, separation=8, salt=10387312
+    // 村庄的间距设置
     constexpr i32 villageSpacing = 32;
     constexpr i32 villageSeparation = 8;
     constexpr i32 villageSalt = 10387312;
 
-    // 检查范围内的区块网格
-    i32 searchRadius = 10; // 10 区块半径
+    // 检查范围内的区块网格（10 区块半径）
+    constexpr i32 searchRadius = 10;
 
     for (i32 dx = -searchRadius; dx <= searchRadius; ++dx) {
         for (i32 dz = -searchRadius; dz <= searchRadius; ++dz) {

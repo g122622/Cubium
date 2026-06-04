@@ -38,8 +38,6 @@ namespace blocks {
  * - 音调取决于上方方块类型（乐器）
  * - 红石触发或玩家右键触发
  * - 发出声音并产生粒子效果
- *
- * 参考: net.minecraft.block.NoteBlock
  */
 class NoteBlock : public Block {
 public:
@@ -112,7 +110,7 @@ private:
      * @param pos 音符盒位置
      * @return 乐器类型ID
      */
-    [[nodiscard]] i32 getInstrumentType(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] i32 _getInstrumentType(IWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 播放音符声音
@@ -121,7 +119,7 @@ private:
      * @param instrument 乐器类型
      * @param note 音调
      */
-    void playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32 note);
+    void _playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32 note);
 };
 
 } // namespace blocks

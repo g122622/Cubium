@@ -57,7 +57,7 @@ const Template* TemplateManager::getTemplate(const ResourceLocation& location)
         return it->second.get();
     }
 
-    auto templ = loadTemplate(location);
+    auto templ = _loadTemplate(location);
     if (!templ) {
         return nullptr;
     }
@@ -76,7 +76,7 @@ const Template& TemplateManager::getTemplateDefaulted(const ResourceLocation& lo
         return *it->second.get();
     }
 
-    auto templ = loadTemplate(location);
+    auto templ = _loadTemplate(location);
     if (templ) {
         const Template& result = *templ;
         m_templates[location] = std::move(templ);
@@ -88,7 +88,7 @@ const Template& TemplateManager::getTemplateDefaulted(const ResourceLocation& lo
 
 bool TemplateManager::hasTemplate(const ResourceLocation& location) const
 {
-    std::lock_guard<std::mutex> lock(const_cast<std::mutex&>(m_mutex));
+    std::lock_guard<std::mutex> lock(m_mutex);
     return m_templates.find(location) != m_templates.end();
 }
 
@@ -104,7 +104,7 @@ void TemplateManager::clear()
     m_templates.clear();
 }
 
-std::unique_ptr<Template> TemplateManager::loadTemplate(const ResourceLocation& location)
+std::unique_ptr<Template> TemplateManager::_loadTemplate(const ResourceLocation& location)
 {
     // 优先从 DataPackList 加载（支持多数据包优先级）
     if (m_dataPackList) {

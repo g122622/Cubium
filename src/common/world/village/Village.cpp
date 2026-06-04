@@ -22,12 +22,12 @@
  */
 
 #include "Village.hpp"
-#include "../../core/Types.hpp"
-#include "../../entity/core/Entity.hpp"
-#include "../../util/nbt/Nbt.hpp"
-#include "../IWorld.hpp"
-#include "poi/PointOfInterestStorage.hpp"
-#include "poi/PointOfInterestType.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/village/poi/PointOfInterestStorage.hpp"
+#include "common/world/village/poi/PointOfInterestType.hpp"
 
 #include <algorithm>
 #include <array>
@@ -170,21 +170,21 @@ void Village::tick(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poi
     m_gossipManager.tick(gameTime);
 
     // 2. 检查村民是否仍在范围内，释放离开村民的 POI
-    tickVillagerCheck(world, gameTime, poiStorage);
+    _tickVillagerCheck(world, gameTime, poiStorage);
 
     // 3. 定期更新 POI 统计（如果提供了 POI 存储）
     if (poiStorage != nullptr && gameTime - m_lastPOIStatUpdateTime >= POI_STAT_UPDATE_INTERVAL) {
-        tickPOIStats(*poiStorage);
+        _tickPOIStats(*poiStorage);
         m_lastPOIStatUpdateTime = gameTime;
     }
 
     // 4. 检查袭击状态
-    tickRaidCheck(world, gameTime);
+    _tickRaidCheck(world, gameTime);
 }
 
-void Village::tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage)
+void Village::_tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage)
 {
-    // 参考 MC 1.16.5: 村庄不直接管理村民列表的移除，由 VillageManager 通过
+    // 村庄不直接管理村民列表的移除，由 VillageManager 通过
     // 村民的 Brain 记忆模块和工作站绑定来管理村民与村庄的关联。
     // 这里实现简化的范围检查：记录村民最后出现时间，超时的村民从列表移除。
 
@@ -252,7 +252,7 @@ void Village::tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfInteres
     }
 }
 
-void Village::tickPOIStats(const poi::PointOfInterestStorage& poiStorage)
+void Village::_tickPOIStats(const poi::PointOfInterestStorage& poiStorage)
 {
     // 更新床位计数
     i32 bedCount = 0;
@@ -271,7 +271,7 @@ void Village::tickPOIStats(const poi::PointOfInterestStorage& poiStorage)
     m_workstationCount = workstationCount;
 
     // 更新聚集点（钟）
-    auto meetingPoint = findMeetingPoint(poiStorage);
+    auto meetingPoint = _findMeetingPoint(poiStorage);
     if (meetingPoint.has_value()) {
         m_meetingPoint = meetingPoint;
     } else {
@@ -283,7 +283,7 @@ void Village::tickPOIStats(const poi::PointOfInterestStorage& poiStorage)
         VillageConfig::MAX_RADIUS);
 }
 
-void Village::tickRaidCheck(IWorld& world, i64 gameTime)
+void Village::_tickRaidCheck(IWorld& world, i64 gameTime)
 {
     // 如果村庄当前不在袭击中，无需检查
     if (!m_underRaid) {
@@ -299,7 +299,6 @@ void Village::tickRaidCheck(IWorld& world, i64 gameTime)
     // RaidManager 可以通过 VillageManager 访问
     // 但当前设计中 RaidManager 是独立的服务
     // 这里需要通过 ServerWorld 访问 RaidManager
-    // 暂时通过 VillageManager 间接检查
 
     // TODO: 当 RaidManager 集成到 VillageManager 后，
     // 应该检查 RaidManager::getRaidForVillage(this) 来获取袭击状态
@@ -311,7 +310,7 @@ void Village::tickRaidCheck(IWorld& world, i64 gameTime)
     (void)gameTime; // 暂时未使用
 }
 
-std::optional<BlockPos> Village::findMeetingPoint(const poi::PointOfInterestStorage& poiStorage) const
+std::optional<BlockPos> Village::_findMeetingPoint(const poi::PointOfInterestStorage& poiStorage) const
 {
     // 在村庄范围内搜索钟 POI
     auto bells = poiStorage.findAllInRange(m_center, m_radius, poi::PointOfInterestType::Bell);

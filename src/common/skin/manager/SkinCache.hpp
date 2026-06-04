@@ -182,7 +182,7 @@ public:
     /**
      * @brief 获取缓存大小（字节）
      */
-    [[nodiscard]] size_t cacheSize() const;
+    [[nodiscard]] size_t cacheSize() const noexcept;
 
     /**
      * @brief 获取缓存条目数量
@@ -192,7 +192,7 @@ public:
     /**
      * @brief 获取缓存目录路径
      */
-    [[nodiscard]] const std::filesystem::path& cacheDir() const { return m_cacheDir; }
+    [[nodiscard]] const std::filesystem::path& cacheDir() const noexcept { return m_cacheDir; }
 
 private:
     /**
@@ -201,49 +201,49 @@ private:
      * @param hash 哈希值
      * @return 文件路径
      */
-    std::filesystem::path getCacheFilePath(const std::string& type, const std::string& hash) const;
+    std::filesystem::path _getCacheFilePath(const std::string& type, const std::string& hash) const;
 
     /**
      * @brief 从缓存目录扫描已有文件
      */
-    void scanExistingFiles();
+    void _scanExistingFiles();
 
     /**
      * @brief 加载元数据
      */
-    void loadMetadata();
+    void _loadMetadata();
 
     /**
      * @brief 保存元数据
      */
-    void saveMetadata();
+    void _saveMetadata();
 
     /**
      * @brief 更新访问时间
      * @param hash 哈希值
      */
-    void updateAccessTime(const std::string& hash);
+    void _updateAccessTime(const std::string& hash);
 
     /**
      * @brief 确保目录存在
      */
-    Result<void> ensureDirectoriesExist();
+    Result<void> _ensureDirectoriesExist();
 
     /**
      * @brief 通用保存方法
      */
-    Result<std::filesystem::path> saveTexture(
+    Result<std::filesystem::path> _saveTexture(
         const std::string& type, const std::string& hash, const std::vector<u8>& data);
 
     /**
      * @brief 通用读取方法
      */
-    Result<std::vector<u8>> readTexture(const std::string& type, const std::string& hash) const;
+    Result<std::vector<u8>> _readTexture(const std::string& type, const std::string& hash) const;
 
     /**
      * @brief 通用检查方法
      */
-    [[nodiscard]] bool hasTexture(const std::string& type, const std::string& hash) const;
+    [[nodiscard]] bool _hasTexture(const std::string& type, const std::string& hash) const;
 
     std::string m_cacheDirStr;
     std::filesystem::path m_cacheDir;

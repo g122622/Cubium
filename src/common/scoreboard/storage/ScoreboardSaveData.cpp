@@ -21,11 +21,11 @@
  *
  */
 
-#include "ScoreboardSaveData.hpp"
-#include "../../util/nbt/Nbt.hpp"
-#include "../../util/text/ITextComponent.hpp"
-#include "../../util/text/StringTextComponent.hpp"
-#include "../core/ScoreCriteria.hpp"
+#include "common/scoreboard/storage/ScoreboardSaveData.hpp"
+#include "common/scoreboard/core/ScoreCriteria.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ITextComponent.hpp"
+#include "common/util/text/StringTextComponent.hpp"
 #include <sstream>
 #include <nlohmann/json.hpp>
 

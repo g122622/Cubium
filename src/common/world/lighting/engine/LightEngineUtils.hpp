@@ -23,10 +23,11 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../block/Block.hpp"
-#include "../../block/BlockPos.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <climits>
 
 namespace mc {
@@ -39,7 +40,7 @@ class CollisionShape;
 
 // ============================================================================
 // 方向位集常量 (Direction Bitset)
-// 参考 Starlight 的方向位集优化，用于光照传播时快速跳过反向方向
+// 用于光照传播时快速跳过反向方向
 // ============================================================================
 
 /**
@@ -182,7 +183,7 @@ namespace DirectionBits {
 /**
  * @brief 预计算的方向检查数组
  *
- * 根据 Starlight 的优化，我们可以预计算每个方向位集对应的方向数组。
+ * 预计算每个方向位集对应的方向数组。
  * 这样可以在传播时直接遍历数组，而不用遍历所有6个方向再检查是否在位集中。
  */
 struct DirectionArray {
@@ -239,7 +240,6 @@ public:
      * @brief 世界位置编码
      *
      * 编码格式: X(26位) | Z(26位) | Y(12位)
-     * 参考 MC 1.16.5 BlockPos.pack()
      * 支持 X/Z: ±30,000,000 (约 ±2^25)
      * 支持 Y: -2048 到 +2047
      */
@@ -264,8 +264,6 @@ public:
 
     /**
      * @brief 世界位置解码
-     *
-     * 参考 MC 1.16.5 BlockPos.unpackX/Y/Z()
      */
     static constexpr void unpackPos(i64 packed, i32& x, i32& y, i32& z)
     {
@@ -335,10 +333,10 @@ public:
     static constexpr void extractNibbleIndices(i64 packed, i32& x, i32& localY, i32& z)
     {
         // X在高位，偏移38位；Z在中间，偏移12位；Y在低位
-        x = static_cast<i32>((packed >> 38) & 0xF);
+        x = static_cast<i32>((packed >> 38) & world::CHUNK_MASK);
         i32 y = static_cast<i32>(packed & 0xFFF);
-        localY = y & 0xF;
-        z = static_cast<i32>((packed >> 12) & 0xF);
+        localY = y & world::CHUNK_MASK;
+        z = static_cast<i32>((packed >> 12) & world::CHUNK_MASK);
     }
 
     // ========================================================================
@@ -402,7 +400,6 @@ public:
     /**
      * @brief 计算光线从一个方块传播到相邻方块时的阻挡值
      *
-     * 语义对齐 MC 1.16.5 `LightEngine.func_215613_a(...)`：
      * 结合目标方块不透明度与两侧面遮挡形状，计算光线穿过边界时的有效阻挡。
      *
      * @param world 世界
@@ -426,7 +423,7 @@ private:
     /**
      * @brief 检查碰撞形状是否在指定方向完全遮挡
      */
-    [[nodiscard]] static bool shapeFullyOccludesFace(const CollisionShape& shape, Direction face);
+    [[nodiscard]] static bool _shapeFullyOccludesFace(const CollisionShape& shape, Direction face);
 };
 
 } // namespace mc

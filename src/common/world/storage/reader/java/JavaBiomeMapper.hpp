@@ -60,7 +60,7 @@ public:
     BiomeId mapBiome(i32 numericId);
 
 private:
-    void initializeMappings();
+    void _initializeMappings();
 
     std::unordered_map<std::string, BiomeId> m_nameToId;
 };

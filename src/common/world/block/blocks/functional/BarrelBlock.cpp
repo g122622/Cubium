@@ -22,14 +22,15 @@
  */
 
 #include "BarrelBlock.hpp"
-#include "../../../../entity/inventory/IInventory.hpp"
-#include "../../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../blockentity/BlockEntityType.hpp"
-#include "../../../blockentity/storage/BarrelEntity.hpp"
+
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/storage/BarrelEntity.hpp"
 
 namespace mc {
 namespace blocks {

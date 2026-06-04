@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../block/BlockPos.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <optional>
 #include <vector>
 
@@ -47,13 +47,16 @@ struct PortalSizeResult {
     i32 portalBlockCount = 0; ///< 已存在的传送门方块数量
     bool valid = false;       ///< 是否有效
 
+    /**
+     * @brief 获取传送门内部所有方块位置
+     * @return 方块位置列表
+     */
     [[nodiscard]] std::vector<BlockPos> getPortalBlocks() const;
 };
 
 /**
  * @brief 传送门尺寸检测工具
  *
- * 参考 MC 1.16.5 PortalSize
  * 检测黑曜石框架（下界传送门）和末地传送门框架。
  */
 class PortalSize {
@@ -77,29 +80,79 @@ public:
 
     /**
      * @brief 点燃下界传送门
+     * @param world 世界引用
+     * @param portal 传送门尺寸信息
+     * @return 是否成功点燃
      */
     static bool lightNetherPortal(IWorld& world, const PortalSizeResult& portal);
 
     /**
      * @brief 检查方块状态是否可以作为传送门内部方块
+     * @param state 方块状态
+     * @return 是否可以连接（空气、火焰或传送门方块）
      */
     [[nodiscard]] static bool canConnect(const BlockState& state);
 
 private:
-    [[nodiscard]] static std::optional<PortalSizeResult> tryFindPortalOnAxis(
+    /**
+     * @brief 尝试在指定轴向上寻找传送门
+     * @param world 世界引用
+     * @param pos 搜索位置
+     * @param rightDir 右方向（决定轴向）
+     * @return 检测结果
+     */
+    [[nodiscard]] static std::optional<PortalSizeResult> _tryFindPortalOnAxis(
         IWorld& world, const BlockPos& pos, Direction rightDir);
 
-    [[nodiscard]] static std::optional<BlockPos> findBottomLeft(IWorld& world, const BlockPos& pos, Direction rightDir);
+    /**
+     * @brief 寻找传送门左下角位置
+     * @param world 世界引用
+     * @param pos 搜索位置
+     * @param rightDir 右方向
+     * @return 左下角位置
+     */
+    [[nodiscard]] static std::optional<BlockPos> _findBottomLeft(
+        IWorld& world, const BlockPos& pos, Direction rightDir);
 
-    [[nodiscard]] static i32 calculateWidth(IWorld& world, const BlockPos& bottomLeft, Direction rightDir);
+    /**
+     * @brief 计算传送门宽度
+     * @param world 世界引用
+     * @param bottomLeft 左下角位置
+     * @param rightDir 右方向
+     * @return 宽度（无效返回0）
+     */
+    [[nodiscard]] static i32 _calculateWidth(IWorld& world, const BlockPos& bottomLeft, Direction rightDir);
 
-    [[nodiscard]] static i32 calculateHeight(
+    /**
+     * @brief 计算传送门高度
+     * @param world 世界引用
+     * @param bottomLeft 左下角位置
+     * @param rightDir 右方向
+     * @param width 已计算的宽度
+     * @param outPortalBlockCount 输出：已存在的传送门方块数量
+     * @return 高度
+     */
+    [[nodiscard]] static i32 _calculateHeight(
         IWorld& world, const BlockPos& bottomLeft, Direction rightDir, i32 width, i32& outPortalBlockCount);
 
-    [[nodiscard]] static bool checkTopFrame(
+    /**
+     * @brief 检查顶部框架是否完整
+     * @param world 世界引用
+     * @param bottomLeft 左下角位置
+     * @param rightDir 右方向
+     * @param width 宽度
+     * @param height 高度
+     * @return 顶部框架是否有效
+     */
+    [[nodiscard]] static bool _checkTopFrame(
         IWorld& world, const BlockPos& bottomLeft, Direction rightDir, i32 width, i32 height);
 
-    [[nodiscard]] static bool isPortalFrame(const BlockState& state);
+    /**
+     * @brief 检查方块是否为传送门框架方块（黑曜石）
+     * @param state 方块状态
+     * @return 是否为框架方块
+     */
+    [[nodiscard]] static bool _isPortalFrame(const BlockState& state);
 };
 
 } // namespace mc

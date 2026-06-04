@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/Direction.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
 #include <functional>
 
 namespace mc {
@@ -33,7 +33,6 @@ namespace mc {
  * @brief 布尔操作接口
  *
  * 用于 VoxelShape 之间的布尔运算（并集、交集、差集等）。
- * 参考MC BooleanOp接口。
  *
  * 操作类型：
  * - FALSE: 始终返回false
@@ -57,7 +56,7 @@ class BooleanOp {
 public:
     using OpFunc = std::function<bool(bool, bool)>;
 
-    BooleanOp()
+    BooleanOp() noexcept
         : m_func(nullptr)
     {}
     explicit BooleanOp(OpFunc func)
@@ -66,7 +65,7 @@ public:
 
     bool apply(bool a, bool b) const { return m_func ? m_func(a, b) : false; }
 
-    explicit operator bool() const { return m_func != nullptr; }
+    explicit operator bool() const noexcept { return m_func != nullptr; }
 
     // 预定义操作
     static BooleanOp FALSE();

@@ -22,12 +22,14 @@
  */
 
 #include "DesertPyramidStructure.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../../biome/Biome.hpp"
-#include "../../../block/BlockPos.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../StructureBoundingBox.hpp"
+
+#include "common/core/Constants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 
 namespace mc {
 namespace world {
@@ -41,10 +43,10 @@ const std::string DesertPyramidStructure::m_name = "desert_pyramid";
 DesertPyramidStructure::DesertPyramidStructure()
     : Structure(StructureType::Temple)
 {
-    initializeBiomes();
+    _initializeBiomes();
 }
 
-void DesertPyramidStructure::initializeBiomes()
+void DesertPyramidStructure::_initializeBiomes()
 {
     m_validBiomes = {Desert, DesertHills, DesertLakes};
 }
@@ -52,7 +54,7 @@ void DesertPyramidStructure::initializeBiomes()
 bool DesertPyramidStructure::canGenerate(
     IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
-    // 检查生物群系是否合适
+    // TODO: 实现完整的生物群系检查逻辑
     return true;
 }
 
@@ -63,8 +65,8 @@ std::unique_ptr<StructureStart> DesertPyramidStructure::generate(
 
     // 沙漠神殿尺寸: 21x21 地面部分，深度 12
     // 计算起始位置（居中）
-    i32 startX = chunkX * 16 + rng.nextInt(16);
-    i32 startZ = chunkZ * 16 + rng.nextInt(16);
+    i32 startX = chunkX * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
+    i32 startZ = chunkZ * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
 
     // 获取地表高度
     i32 startY = generator.getHeight(startX, startZ, HeightmapType::WorldSurfaceWG);
@@ -73,12 +75,12 @@ std::unique_ptr<StructureStart> DesertPyramidStructure::generate(
     BlockPos startPos(startX, startY, startZ);
 
     // 生成沙漠神殿
-    generatePyramid(world, rng, startPos);
+    _generatePyramid(world, rng, startPos);
 
     return start;
 }
 
-void DesertPyramidStructure::generatePyramid(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const
+void DesertPyramidStructure::_generatePyramid(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const
 {
     const BlockState* sandstone = VanillaBlocks::getState(VanillaBlocks::SANDSTONE);
     const BlockState* cutSandstone = VanillaBlocks::getState(VanillaBlocks::CUT_SANDSTONE);

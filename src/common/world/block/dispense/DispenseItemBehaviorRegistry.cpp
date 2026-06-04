@@ -22,28 +22,29 @@
  */
 
 #include "DispenseItemBehaviorRegistry.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../entity/core/Entity.hpp"
-#include "../../../entity/core/EntityType.hpp"
-#include "../../../entity/entities/item/ItemEntity.hpp"
-#include "../../../entity/entities/misc/MiscEntities.hpp"
-#include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
-#include "../../../entity/entities/projectile/AbstractFireballEntity.hpp"
-#include "../../../entity/entities/projectile/OtherProjectiles.hpp"
-#include "../../../entity/entities/projectile/ProjectileEntity.hpp"
-#include "../../../entity/entities/projectile/ProjectileItemEntity.hpp"
-#include "../../../entity/entities/vehicle/BoatEntity.hpp"
-#include "../../../item/Items.hpp"
-#include "../../../item/potion/PotionUtils.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../IWorld.hpp"
-#include "../../WorldEvents.hpp"
-#include "../../fluid/FluidRegistry.hpp"
-#include "../Block.hpp"
-#include "../VanillaBlocks.hpp"
+
 #include "IDispenseItemBehavior.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/misc/MiscEntities.hpp"
+#include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
+#include "common/entity/entities/projectile/OtherProjectiles.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "common/entity/entities/vehicle/BoatEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/potion/PotionUtils.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
 
 namespace mc {
 namespace blocks {
@@ -99,7 +100,6 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
 {
     // ========================================================================
     // 投掷物发射行为
-    // 参考: MC 1.16.5 DispenserBlock.static block()
     // ========================================================================
 
     // --- 箭矢 ---
@@ -141,7 +141,6 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
         6.0f);
 
     // 药水箭: velocity=1.1, inaccuracy=6.0
-    // 参考 MC 1.16.5: AbstractArrowEntity.setPotionEffect(itemStack)
     registerBehavior<ProjectileDispenseBehavior>(
         "minecraft:tipped_arrow",
         [](IWorld& world, const Vector3& pos, const ItemStack& stack) -> std::unique_ptr<mc::Entity> {
@@ -208,7 +207,6 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
         6.0f);
 
     // 附魔之瓶: velocity=1.1, inaccuracy=3.0 (更精确)
-    // MC 1.16.5: inaccuracy * 0.5 = 3.0
     registerBehavior<ProjectileDispenseBehavior>(
         "minecraft:experience_bottle",
         [](IWorld& world, const Vector3& pos, const ItemStack& stack) -> std::unique_ptr<mc::Entity> {
@@ -223,7 +221,6 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
         3.0f);
 
     // 喷溅药水: velocity=1.1, inaccuracy=6.0
-    // 参考 MC 1.16.5: PotionEntity.setItemStack() 在 onImpact() 中读取效果
     registerBehavior<ProjectileDispenseBehavior>(
         "minecraft:splash_potion",
         [](IWorld& world, const Vector3& pos, const ItemStack& stack) -> std::unique_ptr<mc::Entity> {
@@ -243,7 +240,6 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
         6.0f);
 
     // 滞留药水: velocity=1.1, inaccuracy=6.0
-    // 参考 MC 1.16.5: PotionEntity.setItemStack() 在 onImpact() 中读取效果
     registerBehavior<ProjectileDispenseBehavior>(
         "minecraft:lingering_potion",
         [](IWorld& world, const Vector3& pos, const ItemStack& stack) -> std::unique_ptr<mc::Entity> {
@@ -264,7 +260,6 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
 
     // ========================================================================
     // 火焰弹发射行为
-    // 参考 MC 1.16.5: FireChargeDispenseBehavior
     // ========================================================================
     registerBehavior<ProjectileDispenseBehavior>(
         "minecraft:fire_charge",
@@ -281,7 +276,6 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
 
     // ========================================================================
     // 烟花火箭发射行为
-    // 参考 MC 1.16.5: FireworkRocketDispenseBehavior
     // ========================================================================
     registerBehavior<ProjectileDispenseBehavior>(
         "minecraft:firework_rocket",
@@ -302,13 +296,11 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
 
     // ========================================================================
     // TNT 发射行为
-    // 参考 MC 1.16.5: TNTDispenseBehavior
     // ========================================================================
     registerBehavior("minecraft:tnt", std::make_unique<DefaultDispenseItemBehavior>());
 
     // ========================================================================
     // 船发射行为
-    // 参考 MC 1.16.5: BoatDispenseBehavior
     // 需要检测目标位置是否有水
     // ========================================================================
 
@@ -328,7 +320,6 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
 
     // ========================================================================
     // 水桶/岩浆桶发射行为
-    // 参考 MC 1.16.5: BucketDispenseBehavior
     // ========================================================================
     // 获取流体实例
     fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
@@ -348,13 +339,11 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
 
     // ========================================================================
     // 打火石发射行为
-    // 参考 MC 1.16.5: FlintAndSteelDispenseBehavior
     // ========================================================================
     registerBehavior("minecraft:flint_and_steel", std::make_unique<FlintAndSteelDispenseBehavior>());
 
     // ========================================================================
     // 骨粉发射行为
-    // 参考 MC 1.16.5: BonemealDispenseBehavior
     // ========================================================================
     registerBehavior("minecraft:bone_meal", std::make_unique<BonemealDispenseBehavior>());
 }

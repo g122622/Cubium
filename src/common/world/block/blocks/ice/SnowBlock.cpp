@@ -29,9 +29,23 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../block/VanillaBlocks.hpp"
-#include <unordered_map>
 
 namespace mc::blocks {
+
+// ============================================================================
+// 常量
+// ============================================================================
+
+namespace {
+
+/// 雪融化的最小光照等级阈值
+constexpr i32 MELT_LIGHT_LEVEL = 11;
+
+} // namespace
+
+// ============================================================================
+// SnowBlock 实现
+// ============================================================================
 
 SnowBlock::SnowBlock(BlockProperties properties)
     : Block(std::move(properties))
@@ -51,24 +65,20 @@ SnowBlock::SnowBlock(BlockProperties properties)
 
 void SnowBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-
     (void)random; // 雪融化不需要随机数
 
-    // 参考: MC 1.16.5 SnowBlock.randomTick()
     // 如果方块光照 > 11，融化
-
     u8 blockLight = world.getBlockLight(pos);
     u8 skyLight = world.getSkyLight(pos);
 
     // 计算综合光照（不考虑天气衰减的简化版本）
-    u8 lightLevel = std::max(blockLight, skyLight);
+    i32 lightLevel = static_cast<i32>(std::max(blockLight, skyLight));
 
-    if (lightLevel > 11) {
+    if (lightLevel > MELT_LIGHT_LEVEL) {
         // 融化：掉落雪球并移除方块
-        // 参考 MC 1.16.5: spawnDrops(state, world, pos)
         // 雪层掉落雪球数量等于层数
         i32 layers = state.get(LAYERS());
-        if (layers > 0 && Items::SNOWBALL != nullptr) {
+        if (layers > 0) {
             ItemStack dropStack(*Items::SNOWBALL, layers);
             math::Random rng;
             ItemDropHelper::spawnItemEntity(&world,
@@ -79,9 +89,7 @@ void SnowBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
                 rng);
         }
         const BlockState* airState = &VanillaBlocks::AIR->defaultState();
-        if (airState != nullptr) {
-            world.setBlockState(pos, airState);
-        }
+        world.setBlockState(pos, airState);
     }
 }
 

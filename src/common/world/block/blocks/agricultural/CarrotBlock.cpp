@@ -21,9 +21,9 @@
  *
  */
 
-#include "CarrotBlock.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
+#include "common/world/block/blocks/agricultural/CarrotBlock.hpp"
+#include "common/item/Items.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blocks {
@@ -45,7 +45,6 @@ CarrotBlock::CarrotBlock(const BlockProperties& properties)
 u32 CarrotBlock::getCropItem() const
 {
     // 胡萝卜的作物和种子是同一个物品
-    // 参考: net.minecraft.block.CarrotBlock#getCropItem
     return Items::CARROT->itemId();
 }
 

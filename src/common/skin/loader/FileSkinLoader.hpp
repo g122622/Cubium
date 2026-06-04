@@ -64,12 +64,12 @@ private:
     /**
      * @brief 从文件系统加载
      */
-    Result<SkinLoadResult> loadFromFilesystem(const std::string& path);
+    Result<SkinLoadResult> _loadFromFilesystem(const std::string& path);
 
     /**
      * @brief 从资源包加载
      */
-    Result<SkinLoadResult> loadFromResourcePack(const ResourceLocation& location);
+    Result<SkinLoadResult> _loadFromResourcePack(const ResourceLocation& location);
 
     /**
      * @brief 验证皮肤 PNG 数据
@@ -77,12 +77,12 @@ private:
      * 检查是否为有效的 64x64 或 64x32 PNG。
      * 如果是 64x32，自动转换为 64x64。
      */
-    Result<std::vector<u8>> validateAndConvertSkin(const std::vector<u8>& pngData);
+    Result<std::vector<u8>> _validateAndConvertSkin(const std::vector<u8>& pngData);
 
     /**
-     * @brief 计算 SHA1 哈希
+     * @brief 计算数据哈希值
      */
-    std::string calculateHash(const std::vector<u8>& data);
+    std::string _calculateHash(const std::vector<u8>& data);
 
     IResourcePack* m_resourcePack = nullptr;
     bool m_initialized = false;

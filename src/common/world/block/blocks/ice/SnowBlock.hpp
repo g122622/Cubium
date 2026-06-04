@@ -27,8 +27,6 @@
 #include "../../../../util/property/StateContainer.hpp"
 #include "../../Block.hpp"
 
-#include <unordered_map>
-
 namespace mc {
 
 // 前向声明
@@ -49,8 +47,6 @@ namespace blocks {
  * 每层高度为 2 像素（1/8 方块）。
  *
  * MC ID: minecraft:snow
- *
- * 参考 MC 1.16.5 SnowBlock
  */
 class SnowBlock : public Block {
 public:

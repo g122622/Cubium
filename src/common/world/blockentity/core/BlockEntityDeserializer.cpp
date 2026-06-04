@@ -37,6 +37,12 @@ namespace mc::blockentity {
 
 namespace {
 
+/**
+ * @brief 尝试从复合标签中获取字符串值
+ * @param tag NBT 复合标签
+ * @param key 键名
+ * @return 字符串值，若不存在或类型不匹配则返回 nullopt
+ */
 std::optional<std::string> tryGetString(const nbt::tags::compound_tag& tag, const std::string& key)
 {
     auto it = tag.value.find(key);
@@ -50,6 +56,12 @@ std::optional<std::string> tryGetString(const nbt::tags::compound_tag& tag, cons
     return strTag->value;
 }
 
+/**
+ * @brief 尝试从复合标签中获取整数值
+ * @param tag NBT 复合标签
+ * @param key 键名
+ * @return 整数值，若不存在或类型不匹配则返回 nullopt
+ */
 std::optional<i32> tryGetInt(const nbt::tags::compound_tag& tag, const std::string& key)
 {
     auto it = tag.value.find(key);
@@ -63,6 +75,11 @@ std::optional<i32> tryGetInt(const nbt::tags::compound_tag& tag, const std::stri
     return intTag->value;
 }
 
+/**
+ * @brief gzip 解压缩
+ * @param compressed 压缩数据
+ * @return 解压后的数据或错误
+ */
 Result<std::vector<u8>> gzipDecompress(const std::vector<u8>& compressed)
 {
     if (compressed.empty()) {
@@ -98,6 +115,11 @@ Result<std::vector<u8>> gzipDecompress(const std::vector<u8>& compressed)
     return result;
 }
 
+/**
+ * @brief gzip 压缩
+ * @param data 原始数据
+ * @return 压缩后的数据或错误
+ */
 Result<std::vector<u8>> gzipCompress(const std::vector<u8>& data)
 {
     if (data.empty()) {

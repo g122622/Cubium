@@ -23,7 +23,6 @@
 
 #include "BedrockColumnReader.hpp"
 #include "LevelDBKey.hpp"
-#include <spdlog/spdlog.h>
 
 namespace mc::world::storage::reader::bedrock {
 
@@ -36,15 +35,16 @@ Result<std::unique_ptr<ChunkData>> BedrockColumnReader::readColumn(
 {
     auto chunk = std::make_unique<ChunkData>(x, z);
 
-    auto subChunkResult = readSubChunks(x, z, dimension, db, *chunk);
+    auto subChunkResult = _readSubChunks(x, z, dimension, db, *chunk);
     if (subChunkResult.failed()) {
         return subChunkResult.error();
     }
     if (!chunk->isLoaded()) {
+        // 区块不存在，返回空指针
         return std::unique_ptr<ChunkData>{};
     }
 
-    auto biomeResult = readBiomeAndHeight(x, z, dimension, db, *chunk);
+    auto biomeResult = _readBiomeAndHeight(x, z, dimension, db, *chunk);
     if (biomeResult.failed()) {
         return biomeResult.error();
     }
@@ -54,9 +54,12 @@ Result<std::unique_ptr<ChunkData>> BedrockColumnReader::readColumn(
     return chunk;
 }
 
-Result<void> BedrockColumnReader::readSubChunks(
+Result<void> BedrockColumnReader::_readSubChunks(
     ChunkCoord x, ChunkCoord z, DimensionId dimension, BedrockLevelDb& db, ChunkData& chunk)
 {
+    // 基岩版子区块索引范围：-64 到 63
+    // 对应 Y 坐标范围 -1024 到 1023（每个子区块高度 16）
+    // TODO: 考虑将此范围定义为常量，便于未来调整
     bool hasAnySection = false;
     for (i8 subY = -64; subY < 64; ++subY) {
         auto subKey = LevelDBKey::key(dimension, ChunkPos(x, z), subY, LevelDBKey::ChunkType::SubChunkPrefix);
@@ -70,11 +73,7 @@ Result<void> BedrockColumnReader::readSubChunks(
 
         auto sectionResult = m_chunkReader.readSubChunk(subResult.value().value(), subY, chunk);
         if (sectionResult.failed()) {
-            spdlog::debug("BedrockColumnReader: Failed to read sub-chunk {} for ({}, {}): {}",
-                subY,
-                x,
-                z,
-                sectionResult.error().message());
+            // 子区块读取失败，跳过继续处理其他子区块
             continue;
         }
         hasAnySection = true;
@@ -86,26 +85,26 @@ Result<void> BedrockColumnReader::readSubChunks(
     return {};
 }
 
-Result<void> BedrockColumnReader::readBiomeAndHeight(
+Result<void> BedrockColumnReader::_readBiomeAndHeight(
     ChunkCoord x, ChunkCoord z, DimensionId dimension, BedrockLevelDb& db, ChunkData& chunk)
 {
+    // 优先尝试读取新版本的 BiomeState 数据
     auto biomeStateKey = LevelDBKey::key(dimension, ChunkPos(x, z), LevelDBKey::ChunkType::BiomeState);
     auto biomeStateResult = db.get(biomeStateKey);
     if (biomeStateResult.success() && biomeStateResult.value().has_value()) {
         auto biomeResult = m_chunkReader.readBiomeState(biomeStateResult.value().value(), chunk);
         if (biomeResult.failed()) {
-            spdlog::debug("BedrockColumnReader: Failed to read biome state for ({}, {})", x, z);
+            // BiomeState 读取失败，回退到 Data2D
+        } else {
+            return {};
         }
-        return {};
     }
 
+    // 回退读取旧版本的 Data2D 数据
     auto data2DKey = LevelDBKey::key(dimension, ChunkPos(x, z), LevelDBKey::ChunkType::Data2D);
     auto data2DResult = db.get(data2DKey);
     if (data2DResult.success() && data2DResult.value().has_value()) {
-        auto biomeResult = m_chunkReader.readData2D(data2DResult.value().value(), chunk);
-        if (biomeResult.failed()) {
-            spdlog::debug("BedrockColumnReader: Failed to read Data2D for ({}, {})", x, z);
-        }
+        m_chunkReader.readData2D(data2DResult.value().value(), chunk);
     }
 
     return {};

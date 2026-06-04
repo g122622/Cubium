@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
+#include <memory>
 
 namespace mc {
 
@@ -77,18 +77,18 @@ private:
     /**
      * @brief 检查甘蔗是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查周围是否有水
      * 甘蔗需要相邻的水源才能生长
      */
-    [[nodiscard]] bool hasWaterNearby(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _hasWaterNearby(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查下方方块是否支持甘蔗生长
      */
-    [[nodiscard]] bool isValidGround(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isValidGround(WorldGenRegion& world, const BlockPos& pos) const;
 };
 
 /**
@@ -104,9 +104,9 @@ public:
         math::Random& random,
         const BlockPos& pos) override;
 
-    [[nodiscard]] const char* name() const override { return m_name.c_str(); }
-    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
-    [[nodiscard]] const SugarCaneFeatureConfig& getConfig() const { return *m_config; }
+    [[nodiscard]] const char* name() const noexcept override { return m_name.c_str(); }
+    [[nodiscard]] DecorationStage stage() const noexcept override { return DecorationStage::VegetalDecoration; }
+    [[nodiscard]] const SugarCaneFeatureConfig& getConfig() const noexcept { return *m_config; }
 
 private:
     std::unique_ptr<SugarCaneFeatureConfig> m_config;

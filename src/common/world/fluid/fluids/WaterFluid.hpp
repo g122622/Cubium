@@ -23,16 +23,14 @@
 
 #pragma once
 
-#include "../../../util/math/Vector3.hpp"
-#include "../FlowingFluid.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/fluid/FlowingFluid.hpp"
 
 namespace mc {
 namespace fluid {
 
 /**
  * @brief 水流体基类
- *
- * 参考MC 1.16.5 WaterFluid
  *
  * 特性：
  * - tick延迟: 5 tick

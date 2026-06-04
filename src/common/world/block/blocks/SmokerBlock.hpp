@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../blockentity/BlockEntityType.hpp"
 #include "AbstractFurnaceBlock.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include <memory>
 
 namespace mc {
@@ -35,8 +35,6 @@ namespace blocks {
  *
  * 实现100tick熔炼时间的熔炉方块。
  * 只能烹饪食物。
- *
- * 参考: net.minecraft.block.SmokerBlock
  */
 class SmokerBlock : public AbstractFurnaceBlock {
 public:

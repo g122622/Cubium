@@ -62,13 +62,11 @@ namespace blocks {
  *
  * 方块实体：CampfireBlockEntity
  *
- * 注意：MC 1.16.5 中营火没有 AGE 属性，也不会因为雨天而熄灭。
+ * 注意：营火没有 AGE 属性，也不会因为雨天而熄灭。
  * 营火的熄灭方式：
  * 1. 水接触（含水）
  * 2. 铲子右键
  * 3. 喷溅型水瓶
- *
- * 参考: net.minecraft.block.CampfireBlock
  */
 class CampfireBlock : public Block, public IWaterLoggable {
 public:
@@ -239,7 +237,7 @@ protected:
      * @param pos 营火位置
      * @return 如果下方是干草块返回true
      */
-    [[nodiscard]] bool isHayBlock(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isHayBlock(IWorld& world, const BlockPos& pos) const;
 };
 
 /**
@@ -249,8 +247,6 @@ protected:
  * - 光源：发出10级光照（比普通营火暗）
  * - 催化：可以重生物魂土上的生物
  * - 蓝色火焰：视觉效果不同于普通营火
- *
- * 参考: net.minecraft.block.SoulCampfireBlock
  */
 class SoulCampfireBlock : public CampfireBlock {
 public:

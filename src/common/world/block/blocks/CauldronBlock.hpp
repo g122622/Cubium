@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../util/assert/AssertAll.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../Block.hpp"
-#include "../BlockPos.hpp"
-#include "../Material.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/Material.hpp"
 #include <memory>
 
 namespace mc {
@@ -62,8 +62,6 @@ namespace blocks {
  * - 潜影盒：清洗（水位-1，移除颜色）
  *
  * 雨天时会缓慢填充水。
- *
- * 参考: net.minecraft.block.CauldronBlock
  */
 class CauldronBlock : public Block {
 public:
@@ -212,7 +210,7 @@ private:
      * @param heldItem 手持物品
      * @return 交互结果
      */
-    ActionResultType handleBucketInteraction(
+    ActionResultType _handleBucketInteraction(
         IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem);
 
     /**
@@ -224,7 +222,7 @@ private:
      * @param heldItem 手持物品
      * @return 交互结果
      */
-    ActionResultType handleBottleInteraction(
+    ActionResultType _handleBottleInteraction(
         IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem);
 
     /**
@@ -236,7 +234,7 @@ private:
      * @param heldItem 手持物品
      * @return 交互结果
      */
-    ActionResultType handleLeatherArmorCleaning(
+    ActionResultType _handleLeatherArmorCleaning(
         IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem);
 
     /**
@@ -248,7 +246,7 @@ private:
      * @param heldItem 手持物品
      * @return 交互结果
      */
-    ActionResultType handleBannerCleaning(
+    ActionResultType _handleBannerCleaning(
         IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem);
 
     /**
@@ -256,14 +254,14 @@ private:
      * @param world 世界
      * @param pos 方块位置
      */
-    void playFillSound(IWorld& world, const BlockPos& pos);
+    void _playFillSound(IWorld& world, const BlockPos& pos);
 
     /**
      * @brief 播放取水音效
      * @param world 世界
      * @param pos 方块位置
      */
-    void playEmptySound(IWorld& world, const BlockPos& pos);
+    void _playEmptySound(IWorld& world, const BlockPos& pos);
 
     /// 炼药锅外部形状
     CollisionShape m_outerShape;

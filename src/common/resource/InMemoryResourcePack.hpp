@@ -52,7 +52,7 @@ public:
      * @brief 添加资源
      * @param path 资源路径（如 "minecraft/models/block/cube_all.json"）
      * @param content 资源内容
- */
+     */
     void addClientResource(std::string path, std::string content);
     void addServerDataResource(std::string path, std::string content);
 
@@ -91,9 +91,31 @@ private:
 
     /**
      * @brief 规范化路径
+     *
+     * 将路径中的反斜杠转换为正斜杠，移除前导斜杠
+     *
+     * @param path 原始路径
+     * @return 规范化后的路径
      */
-    [[nodiscard]] static std::string normalizePath(std::string_view path);
-    [[nodiscard]] static std::string makeTypedPath(resource::PackType type, std::string_view path);
+    [[nodiscard]] static std::string _normalizePath(std::string_view path);
+
+    /**
+     * @brief 构造带类型前缀的路径
+     *
+     * 将资源类型目录前缀添加到路径前，并规范化路径
+     *
+     * @param type 资源类型
+     * @param path 资源路径
+     * @return 带类型前缀的规范化路径
+     */
+    [[nodiscard]] static std::string _makeTypedPath(resource::PackType type, std::string_view path);
+
+    /**
+     * @brief 为资源路径自动添加所有父目录条目
+     *
+     * @param normalizedPath 已规范化的资源路径
+     */
+    void _addDirectoryEntries(const std::string& normalizedPath);
 };
 
 } // namespace mc

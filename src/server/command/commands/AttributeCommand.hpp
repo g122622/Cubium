@@ -41,13 +41,13 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 getAttribute(CommandContext<ServerCommandSource>& context);
-    static i32 setAttributeBase(CommandContext<ServerCommandSource>& context);
+    static i32 _getAttribute(CommandContext<ServerCommandSource>& context);
+    static i32 _setAttributeBase(CommandContext<ServerCommandSource>& context);
 
-    static std::string normalizeAttributeName(const std::string& name);
-    static bool isKnownAttribute(const std::string& name) noexcept;
-    static f64 getAttributeDefaultValue(const std::string& name) noexcept;
-    static std::pair<f64, f64> getAttributeRange(const std::string& name) noexcept;
+    static std::string _normalizeAttributeName(const std::string& name);
+    static bool _isKnownAttribute(const std::string& name) noexcept;
+    static f64 _getAttributeDefaultValue(const std::string& name) noexcept;
+    static std::pair<f64, f64> _getAttributeRange(const std::string& name) noexcept;
 };
 
 } // namespace command

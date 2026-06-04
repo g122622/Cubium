@@ -22,12 +22,13 @@
  */
 
 #include "LanternBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
-#include "../../VanillaBlocks.hpp"
-#include "../../WaterLoggableHelpers.hpp"
+
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/WaterLoggableHelpers.hpp"
 
 namespace mc {
 namespace blocks {
@@ -83,7 +84,6 @@ BlockState LanternBlock::getStateForPlacement(BlockItemUseContext& context)
 
 bool LanternBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-    // 参考 MC 1.16.5: LanternBlock.isValidPosition
     // 根据悬挂状态检查支撑方块
     bool hanging = state.get(BlockStateProperties::HANGING());
     // 悬挂时检查上方方块，站立时检查下方方块
@@ -114,7 +114,6 @@ BlockState LanternBlock::updatePostPlacement(const BlockState& state,
         waterloggable::scheduleWaterTick(world, currentPos);
     }
 
-    // 参考 MC 1.16.5: LanternBlock.updatePostPlacement
     // 如果支撑方块被移除，则移除灯笼
     bool hanging = state.get(BlockStateProperties::HANGING());
     Direction supportDir = hanging ? Direction::Up : Direction::Down;

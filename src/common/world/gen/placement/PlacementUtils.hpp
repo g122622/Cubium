@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "Placement.hpp"
+#include <memory>
 #include <vector>
 
 namespace mc {
@@ -33,7 +33,6 @@ namespace mc {
  * @brief 放置器工具函数
  *
  * 提供常用的放置器构建辅助函数。
- * 参考 MC 1.16.5 的 Features 类。
  */
 namespace PlacementUtils {
 

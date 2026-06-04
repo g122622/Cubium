@@ -40,7 +40,6 @@ FoliagePlacer::FoliagePlacer(const FeatureSpread& radius, const FeatureSpread& o
 bool FoliagePlacer::shouldSkip(math::Random& /*random*/, i32 dx, i32 /*dy*/, i32 dz, i32 radius, bool trunkTop) const
 {
     // 基类默认实现：跳过角落
-    // 参考 MC FoliagePlacer.func_230373_a_
     if (trunkTop) {
         i32 absDx = std::abs(dx);
         i32 absDz = std::abs(dz);

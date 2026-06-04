@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../resource/ResourceLocation.hpp"
-#include "../../../util/math/random/Random.hpp"
 #include "JigsawPiece.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -40,8 +40,8 @@ class JigsawPattern {
 public:
     JigsawPattern(const ResourceLocation& name, const ResourceLocation& fallback);
 
-    const ResourceLocation& getName() const { return m_name; }
-    const ResourceLocation& getFallback() const { return m_fallback; }
+    const ResourceLocation& getName() const noexcept { return m_name; }
+    const ResourceLocation& getFallback() const noexcept { return m_fallback; }
 
     /**
      * @brief 获取随机拼图块
@@ -53,7 +53,6 @@ public:
     /**
      * @brief 获取打乱后的拼图块列表
      *
-     * MC 1.16.5: getShuffledPieces(Random)
      * 返回一个打乱后的拼图块列表副本，用于Jigsaw组装时的候选块遍历。
      *
      * @param rng 随机数生成器
@@ -61,10 +60,10 @@ public:
      */
     [[nodiscard]] std::vector<const JigsawPiece*> getShuffledPieces(math::Random& rng) const;
 
-    size_t getNumberOfPieces() const { return m_pieces.size(); }
-    bool isEmpty() const { return m_pieces.empty(); }
+    size_t getNumberOfPieces() const noexcept { return m_pieces.size(); }
+    bool isEmpty() const noexcept { return m_pieces.empty(); }
 
-    void addPiece(std::unique_ptr<JigsawPiece> piece, i32 weight = 1);
+    void addPiece(std::unique_ptr<JigsawPiece> piece, i32 weight);
 
 private:
     ResourceLocation m_name;
@@ -74,14 +73,14 @@ private:
 
 class JigsawPatternRegistry {
 public:
-    static JigsawPatternRegistry& instance();
+    static JigsawPatternRegistry& instance() noexcept;
 
     void registerPattern(std::unique_ptr<JigsawPattern> pattern);
-    const JigsawPattern* getPattern(const ResourceLocation& name) const;
-    void clear();
+    const JigsawPattern* getPattern(const ResourceLocation& name) const noexcept;
+    void clear() noexcept;
 
 private:
-    JigsawPatternRegistry();
+    JigsawPatternRegistry() = default;
     std::unordered_map<ResourceLocation, std::unique_ptr<JigsawPattern>> m_patterns;
 };
 

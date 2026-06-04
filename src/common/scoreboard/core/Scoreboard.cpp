@@ -22,8 +22,8 @@
  */
 
 #include "Scoreboard.hpp"
-#include "../../util/text/StringTextComponent.hpp"
 #include "ScoreCriteria.hpp"
+#include "common/util/text/StringTextComponent.hpp"
 #include <algorithm>
 #include <regex>
 
@@ -71,7 +71,7 @@ ScoreObjective* Scoreboard::addObjective(
         return nullptr;
     }
 
-    if (!isValidObjectiveName(name)) {
+    if (!_isValidObjectiveName(name)) {
         return nullptr;
     }
 
@@ -301,7 +301,6 @@ void Scoreboard::setObjectiveInDisplaySlot(DisplaySlot slot, ScoreObjective* obj
         return;
     }
 
-    ScoreObjective* oldObjective = m_displaySlots[index];
     m_displaySlots[index] = objective;
 
     onDisplaySlotChanged(slot, objective);
@@ -345,7 +344,7 @@ ScorePlayerTeam* Scoreboard::createTeam(const std::string& name)
         return nullptr;
     }
 
-    if (!isValidObjectiveName(name)) {
+    if (!_isValidObjectiveName(name)) {
         return nullptr;
     }
 
@@ -535,12 +534,12 @@ void Scoreboard::forAllObjectives(
 
 // ========== 静态辅助方法 ==========
 
-bool Scoreboard::isValidObjectiveName(const std::string& name)
+bool Scoreboard::_isValidObjectiveName(const std::string& name)
 {
     return std::regex_match(name, s_validNameRegex);
 }
 
-bool Scoreboard::isValidPlayerName(const std::string& name)
+bool Scoreboard::_isValidPlayerName(const std::string& name)
 {
     // 玩家名称可以包含更多字符
     return !name.empty() && name.length() <= MAX_PLAYER_NAME_LENGTH;

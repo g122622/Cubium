@@ -22,19 +22,20 @@
  */
 
 #include "DropperBlock.hpp"
-#include "../../../../entity/core/EntityRegistry.hpp"
-#include "../../../../entity/entities/item/ItemEntity.hpp"
-#include "../../../../entity/inventory/IInventory.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../blockentity/BlockEntity.hpp"
-#include "../../../blockentity/interactive/DispenserBlockEntity.hpp"
-#include <unordered_map>
+
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/interactive/DispenserBlockEntity.hpp"
 
 namespace mc {
 namespace blocks {
 
-DropperBlock::DropperBlock(const BlockProperties& properties)
+DropperBlock::DropperBlock(const BlockProperties& properties) noexcept
     : DispenserBlock(properties)
 {
     // 投掷器继承自发射器，复用基本功能
@@ -132,7 +133,6 @@ bool DropperBlock::tryDispense(IWorld& world, const BlockPos& pos, const BlockSt
     }
 
     // 没有容器或容器已满，投掷物品实体
-    // MC 1.16.5: 投掷器的投掷速度比发射器慢
     constexpr f32 DROP_SPEED = 0.1f;
 
     // 计算投掷位置

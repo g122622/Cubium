@@ -22,8 +22,8 @@
  */
 
 #include "EntityMetadataSerializer.hpp"
-#include "../../util/math/Vector3.hpp"
 #include "PacketSerializer.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <cstring>
 
 namespace mc::network {
@@ -125,11 +125,11 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
             break;
         }
         case 1: { // i32
-            writeVarInt(value.get<i32>(), output);
+            _writeVarInt(value.get<i32>(), output);
             break;
         }
         case 2: { // i64
-            writeVarLong(value.get<i64>(), output);
+            _writeVarLong(value.get<i64>(), output);
             break;
         }
         case 3: { // f32
@@ -141,7 +141,7 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
             break;
         }
         case 4: { // std::string
-            writeString(value.get<std::string>(), output);
+            _writeString(value.get<std::string>(), output);
             break;
         }
         case 5: { // bool
@@ -151,9 +151,9 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
         case 6: { // Vector3i (BlockPos)
             auto pos = value.get<Vector3i>();
             // BlockPos 编码为 VarInt (x, y, z)
-            writeVarInt(pos.x, output);
-            writeVarInt(pos.y, output);
-            writeVarInt(pos.z, output);
+            _writeVarInt(pos.x, output);
+            _writeVarInt(pos.y, output);
+            _writeVarInt(pos.z, output);
             break;
         }
         case 7: { // Vector2f (Rotation - pitch, yaw)
@@ -222,7 +222,7 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                 break;
             }
             case MetadataTypeId::VarInt: {
-                i32 value = readVarInt(data.data(), data.size(), offset);
+                i32 value = _readVarInt(data.data(), data.size(), offset);
                 (void)manager.setRaw(index, entity::DataValue(value));
                 manager.clearDirty(index);
                 break;
@@ -237,7 +237,7 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                 break;
             }
             case MetadataTypeId::String: {
-                std::string value = readString(data.data(), data.size(), offset);
+                std::string value = _readString(data.data(), data.size(), offset);
                 (void)manager.setRaw(index, entity::DataValue(value));
                 manager.clearDirty(index);
                 break;
@@ -250,9 +250,9 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                 break;
             }
             case MetadataTypeId::Position: {
-                i32 x = readVarInt(data.data(), data.size(), offset);
-                i32 y = readVarInt(data.data(), data.size(), offset);
-                i32 z = readVarInt(data.data(), data.size(), offset);
+                i32 x = _readVarInt(data.data(), data.size(), offset);
+                i32 y = _readVarInt(data.data(), data.size(), offset);
+                i32 z = _readVarInt(data.data(), data.size(), offset);
                 (void)manager.setRaw(index, entity::DataValue(entity::Vector3i(x, y, z)));
                 manager.clearDirty(index);
                 break;
@@ -282,7 +282,7 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
 // 辅助方法
 // ============================================================================
 
-void EntityMetadataSerializer::writeVarInt(i32 value, std::vector<u8>& output)
+void EntityMetadataSerializer::_writeVarInt(i32 value, std::vector<u8>& output) noexcept
 {
     u32 uval = static_cast<u32>(value);
     do {
@@ -295,7 +295,7 @@ void EntityMetadataSerializer::writeVarInt(i32 value, std::vector<u8>& output)
     } while (uval != 0);
 }
 
-void EntityMetadataSerializer::writeVarLong(i64 value, std::vector<u8>& output)
+void EntityMetadataSerializer::_writeVarLong(i64 value, std::vector<u8>& output) noexcept
 {
     u64 uval = static_cast<u64>(value);
     do {
@@ -308,10 +308,10 @@ void EntityMetadataSerializer::writeVarLong(i64 value, std::vector<u8>& output)
     } while (uval != 0);
 }
 
-i32 EntityMetadataSerializer::readVarInt(const u8* data, size_t size, size_t& offset)
+i32 EntityMetadataSerializer::_readVarInt(const u8* data, size_t size, size_t& offset) noexcept
 {
     i32 result = 0;
-    int shift = 0;
+    i32 shift = 0;
 
     while (offset < size) {
         u8 byte = data[offset++];
@@ -326,10 +326,10 @@ i32 EntityMetadataSerializer::readVarInt(const u8* data, size_t size, size_t& of
     return result;
 }
 
-i64 EntityMetadataSerializer::readVarLong(const u8* data, size_t size, size_t& offset)
+i64 EntityMetadataSerializer::_readVarLong(const u8* data, size_t size, size_t& offset) noexcept
 {
     i64 result = 0;
-    int shift = 0;
+    i32 shift = 0;
 
     while (offset < size) {
         u8 byte = data[offset++];
@@ -344,19 +344,19 @@ i64 EntityMetadataSerializer::readVarLong(const u8* data, size_t size, size_t& o
     return result;
 }
 
-void EntityMetadataSerializer::writeString(const std::string& str, std::vector<u8>& output)
+void EntityMetadataSerializer::_writeString(const std::string& str, std::vector<u8>& output) noexcept
 {
     // 截断过长的字符串
     size_t writeLen = std::min(str.size(), static_cast<size_t>(MAX_STRING_LENGTH));
     // 字符串长度 (VarInt)
-    writeVarInt(static_cast<i32>(writeLen), output);
+    _writeVarInt(static_cast<i32>(writeLen), output);
     // 字符串内容
     output.insert(output.end(), str.begin(), str.begin() + writeLen);
 }
 
-std::string EntityMetadataSerializer::readString(const u8* data, size_t size, size_t& offset)
+std::string EntityMetadataSerializer::_readString(const u8* data, size_t size, size_t& offset) noexcept
 {
-    i32 length = readVarInt(data, size, offset);
+    i32 length = _readVarInt(data, size, offset);
 
     // 验证长度
     if (length < 0) {

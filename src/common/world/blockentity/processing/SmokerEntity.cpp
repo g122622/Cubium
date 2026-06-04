@@ -52,8 +52,7 @@ std::unique_ptr<BlockEntity> SmokerEntity::clone() const
 
 bool SmokerEntity::canSmelt(IWorld& world) const
 {
-    // MC 1.16.5: 烟熏炉只能烹饪食物
-    // 通过配方类型过滤：只有 Smoking 类型的配方才能使用
+    // 烟熏炉只能烹饪食物，通过配方类型过滤
     const crafting::SmeltingRecipe* recipe = getRecipe(world);
     if (recipe == nullptr) {
         return false;

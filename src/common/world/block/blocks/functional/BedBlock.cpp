@@ -22,17 +22,17 @@
  */
 
 #include "BedBlock.hpp"
-#include "../../../../entity/player/SleepManager.hpp"
-#include "../../../../entity/player/SleepResult.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../../sound/SoundCategory.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../dimension/DimensionType.hpp"
-#include "../../../explosion/ExplosionMode.hpp"
+#include "common/entity/player/SleepManager.hpp"
+#include "common/entity/player/SleepResult.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/dimension/DimensionType.hpp"
+#include "common/world/explosion/ExplosionMode.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -166,9 +166,7 @@ bool BedBlock::isBed(IWorld& world, const BlockPos& pos)
     if (state == nullptr) {
         return false;
     }
-    // 检查是否为床方块：通过检查 BED_PART 属性判断
-    // 只有床方块才有 BED_PART 属性，因此这种方式是可靠的
-    // 参考 SpawnPointValidator::isBed() 和 POITypeHelper::isBed()
+    // 通过检查 BED_PART 属性判断是否为床方块
     return state->hasProperty(BlockStateProperties::BED_PART());
 }
 
@@ -182,11 +180,6 @@ ActionResultType BedBlock::onBlockActivated(const BlockState& state,
 
     MC_UNUSED(hand);
     MC_UNUSED(hit);
-
-    // MC Java: 床的交互逻辑
-    // 参考 MC 1.16.5 BedBlock.onBlockActivated()
-    // 1. 检查维度 - 在下界和末地床会爆炸
-    // 2. 在主世界尝试睡眠（验证距离、阻挡、时间、怪物等）
 
     // 获取维度信息
     DimensionType dimType = DimensionType::fromId(world.dimension());
@@ -209,8 +202,7 @@ ActionResultType BedBlock::onBlockActivated(const BlockState& state,
             }
         }
 
-        // MC 1.16.5: 床爆炸强度为 5.0，破坏方块并生成火焰
-        // 参考: net.minecraft.block.BedBlock.onBlockActivated
+        // 床爆炸，破坏方块并生成火焰
         world.createExplosion(pos.center(),
             5.0f, // 爆炸半径
             world::explosion::ExplosionMode::Destroy,
@@ -238,7 +230,6 @@ ActionResultType BedBlock::onBlockActivated(const BlockState& state,
     // 检查床是否被占用
     if (headState->get(BlockStateProperties::OCCUPIED())) {
         // 床已被占用，显示消息
-        // 参考 MC 1.16.5 BedBlock.onBlockActivated() 行96-100
         player.sendStatusMessage("block.minecraft.bed.occupied", true);
         return ActionResultType::Success;
     }

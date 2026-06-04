@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/property/EnumProperty.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/EnumProperty.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 
@@ -74,7 +74,7 @@ public:
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
 
-    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override
+    [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return Material::PushReaction::Block;
@@ -88,7 +88,7 @@ public:
      * @param state 方块状态
      * @return Direction 朝向方向
      */
-    [[nodiscard]] static Direction getFacing(const BlockState& state);
+    [[nodiscard]] static Direction getFacing(const BlockState& state) noexcept;
 
     /**
      * @brief 获取活塞头类型
@@ -96,7 +96,7 @@ public:
      * @param state 方块状态
      * @return Type 活塞头类型
      */
-    [[nodiscard]] static Type getType(const BlockState& state);
+    [[nodiscard]] static Type getType(const BlockState& state) noexcept;
 
     /**
      * @brief 设置活塞头类型
@@ -105,7 +105,7 @@ public:
      * @param type 类型
      * @return BlockState 更新后的状态
      */
-    [[nodiscard]] static BlockState withType(BlockState state, Type type);
+    [[nodiscard]] static BlockState withType(BlockState state, Type type) noexcept;
 
     /**
      * @brief 获取活塞头类型属性
@@ -114,7 +114,7 @@ public:
      *
      * @return 类型属性的引用
      */
-    [[nodiscard]] static const EnumProperty<Type>& getTypeProperty();
+    [[nodiscard]] static const EnumProperty<Type>& getTypeProperty() noexcept;
 };
 
 } // namespace blocks

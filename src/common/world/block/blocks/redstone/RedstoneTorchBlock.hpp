@@ -23,10 +23,9 @@
 
 #pragma once
 
-#include "../../../../util/property/Properties.hpp"
-#include "../../../redstone/RedstonePower.hpp"
-#include "../../Block.hpp"
-#include <unordered_map>
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/redstone/RedstonePower.hpp"
 
 namespace mc {
 namespace blocks {
@@ -47,8 +46,6 @@ namespace blocks {
  * - 红石火把不向下输出信号
  * - 烧毁时需要记录历史翻转
  * - 更新时需要防止无限递归
- *
- * 参考: net.minecraft.block.RedstoneTorchBlock
  */
 class RedstoneTorchBlock : public Block {
 public:
@@ -83,7 +80,7 @@ public:
     /**
      * @brief 获取强信号强度
      *
-     * MC Java: 红石火把只在向下方向输出强信号。
+     * 红石火把只在向下方向输出强信号。
      * 这使得红石火把可以充能其下方的方块。
      *
      * @param state 方块状态

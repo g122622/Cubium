@@ -22,6 +22,7 @@
  */
 
 #include "CactusFeature.hpp"
+#include "../../../../core/Constants.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../../chunk/ChunkPrimer.hpp"
@@ -42,7 +43,7 @@ bool CactusFeature::place(
 
     // 寻找有效的放置位置（向下找到地面）
     BlockPos placePos = pos;
-    for (i32 y = pos.y; y >= 1; --y) {
+    for (i32 y = pos.y; y >= world::MIN_BUILD_HEIGHT + 1; --y) {
         BlockPos checkPos(pos.x, y, pos.z);
         const BlockState* state = world.getBlockState(checkPos);
 
@@ -53,7 +54,7 @@ bool CactusFeature::place(
     }
 
     // 检查是否可以放置
-    if (!canPlaceAt(world, placePos)) {
+    if (!_canPlaceAt(world, placePos)) {
         return false;
     }
 
@@ -70,7 +71,7 @@ bool CactusFeature::place(
         }
 
         // 检查周围空间
-        if (!hasValidSpace(world, checkPos)) {
+        if (!_hasValidSpace(world, checkPos)) {
             height = y;
             break;
         }
@@ -89,7 +90,7 @@ bool CactusFeature::place(
     return true;
 }
 
-bool CactusFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
+bool CactusFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
     // 检查位置是否为空气
     const BlockState* state = world.getBlockState(pos);
@@ -99,15 +100,15 @@ bool CactusFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 
     // 检查下方方块
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    if (!isValidGround(world, belowPos)) {
+    if (!_isValidGround(world, belowPos)) {
         return false;
     }
 
     // 检查周围空间
-    return hasValidSpace(world, pos);
+    return _hasValidSpace(world, pos);
 }
 
-bool CactusFeature::hasValidSpace(WorldGenRegion& world, const BlockPos& pos) const
+bool CactusFeature::_hasValidSpace(WorldGenRegion& world, const BlockPos& pos) const
 {
     // 仙人掌需要周围4个方向都是空气或水
     static const i32 directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
@@ -128,7 +129,7 @@ bool CactusFeature::hasValidSpace(WorldGenRegion& world, const BlockPos& pos) co
     return true;
 }
 
-bool CactusFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos) const
+bool CactusFeature::_isValidGround(WorldGenRegion& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (!state) {

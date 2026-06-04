@@ -51,21 +51,21 @@ struct PackVersion {
      * @brief 转换为整数数组
      * @return [major, minor, patch] 格式的数组
      */
-    [[nodiscard]] std::vector<i32> toVector() const;
+    [[nodiscard]] std::vector<i32> toVector() const noexcept;
 
     /**
      * @brief 转换为字符串表示
      * @return "major.minor.patch" 格式的字符串
      */
-    [[nodiscard]] std::string toString() const;
+    [[nodiscard]] std::string toString() const noexcept;
 
     // 比较运算符
-    [[nodiscard]] bool operator==(const PackVersion& o) const;
-    [[nodiscard]] bool operator!=(const PackVersion& o) const;
-    [[nodiscard]] bool operator<(const PackVersion& o) const;
-    [[nodiscard]] bool operator<=(const PackVersion& o) const;
-    [[nodiscard]] bool operator>(const PackVersion& o) const;
-    [[nodiscard]] bool operator>=(const PackVersion& o) const;
+    [[nodiscard]] bool operator==(const PackVersion& o) const noexcept;
+    [[nodiscard]] bool operator!=(const PackVersion& o) const noexcept;
+    [[nodiscard]] bool operator<(const PackVersion& o) const noexcept;
+    [[nodiscard]] bool operator<=(const PackVersion& o) const noexcept;
+    [[nodiscard]] bool operator>(const PackVersion& o) const noexcept;
+    [[nodiscard]] bool operator>=(const PackVersion& o) const noexcept;
 
     /**
      * @brief 检查版本兼容性
@@ -75,7 +75,7 @@ struct PackVersion {
      * @param required 要求的最低版本
      * @return 是否兼容
      */
-    [[nodiscard]] bool isCompatibleWith(const PackVersion& required) const;
+    [[nodiscard]] bool isCompatibleWith(const PackVersion& required) const noexcept;
 };
 
 } // namespace mc::mod::bedrock::addon

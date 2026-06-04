@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include <memory>
 #include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
 #include <array>
+#include <memory>
 
 namespace mc {
 
@@ -54,8 +54,6 @@ namespace blocks {
  * - HORIZONTAL_FACING: 朝向 (NORTH, SOUTH, EAST, WEST)
  * - POWERED: 是否发出红石信号
  * - HAS_BOOK: 是否有书
- *
- * 参考: net.minecraft.block.LecternBlock
  */
 class LecternBlock : public Block {
 public:
@@ -114,7 +112,7 @@ public:
         return true;
     }
 
-    [[nodiscard]] int getComparatorInputOverride(
+    [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
     // ========== 方块实体 ==========
@@ -129,8 +127,6 @@ public:
      * @brief 处理玩家右键交互
      *
      * 有书时打开GUI，无书时尝试放置书。
-     *
-     * 参考: net.minecraft.block.LecternBlock#onBlockActivated
      */
     [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
@@ -143,8 +139,6 @@ public:
      * @brief 方块移除时回调
      *
      * 掉落讲台上的书本。
-     *
-     * 参考: net.minecraft.block.LecternBlock#onReplaced
      */
     void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
@@ -175,10 +169,8 @@ protected:
 private:
     /**
      * @brief 掉落书本
-     *
-     * 参考: net.minecraft.block.LecternBlock#dropBook
      */
-    void dropBook(IWorld& world, const BlockPos& pos, const BlockState& state);
+    void _dropBook(IWorld& world, const BlockPos& pos, const BlockState& state);
 };
 
 } // namespace blocks

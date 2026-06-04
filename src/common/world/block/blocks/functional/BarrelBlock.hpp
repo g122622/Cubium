@@ -24,11 +24,12 @@
 #pragma once
 
 #include <memory>
-#include "../../../../entity/entities/player/Player.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../Material.hpp"
+
+#include "common/entity/entities/player/Player.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 
 namespace mc {
 
@@ -48,8 +49,6 @@ namespace blocks {
  * 状态属性：
  * - FACING: 朝向 (6个方向)
  * - OPEN: 是否打开
- *
- * 参考: net.minecraft.block.BarrelBlock
  */
 class BarrelBlock : public Block {
 public:
@@ -58,7 +57,7 @@ public:
      * @param properties 方块属性
      */
     explicit BarrelBlock(const BlockProperties& properties);
-    ~BarrelBlock() override = default;
+    ~BarrelBlock() noexcept override = default;
 
     // ========== 状态属性 ==========
 
@@ -97,8 +96,6 @@ public:
      * @brief 处理玩家右键交互
      *
      * 打开木桶GUI。
-     *
-     * 参考: net.minecraft.block.BarrelBlock#onBlockActivated
      */
     [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
@@ -111,8 +108,6 @@ public:
      * @brief 方块移除时回调
      *
      * 掉落木桶内的物品。
-     *
-     * 参考: net.minecraft.block.BarrelBlock#onReplaced
      */
     void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 

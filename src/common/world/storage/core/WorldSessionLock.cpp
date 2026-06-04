@@ -35,6 +35,16 @@
 
 namespace mc::world::storage {
 
+// ============================================================================
+// 常量定义
+// ============================================================================
+
+/// 锁文件名
+inline constexpr std::string_view LOCK_FILE_NAME = "session.lock";
+
+/// 锁文件标识（雪人字符，与原版一致）
+inline constexpr std::string_view LOCK_FILE_IDENTIFIER = u8"☃";
+
 WorldSessionLock::WorldSessionLock(std::filesystem::path worldDir, bool readonly)
     : m_readonly(readonly)
 #ifdef _WIN32
@@ -56,7 +66,7 @@ Result<WorldSessionLock> WorldSessionLock::acquire(const std::filesystem::path& 
         std::filesystem::create_directories(worldDir, ec);
     }
 
-    std::filesystem::path lockPath = worldDir / "session.lock";
+    std::filesystem::path lockPath = worldDir / LOCK_FILE_NAME;
 
     WorldSessionLock lock(worldDir);
     lock.m_lockPath = lockPath;
@@ -99,9 +109,9 @@ Result<WorldSessionLock> WorldSessionLock::acquire(const std::filesystem::path& 
     }
 
     // 写入标识
-    const char* snowman = "☃";
     DWORD bytesWritten = 0;
-    WriteFile(hFile, snowman, 3, &bytesWritten, nullptr);
+    WriteFile(
+        hFile, LOCK_FILE_IDENTIFIER.data(), static_cast<DWORD>(LOCK_FILE_IDENTIFIER.size()), &bytesWritten, nullptr);
 
     lock.m_fileHandle = hFile;
     lock.m_valid = true;
@@ -127,8 +137,7 @@ Result<WorldSessionLock> WorldSessionLock::acquire(const std::filesystem::path& 
     }
 
     // 写入标识
-    const char* snowman = "☃";
-    (void)write(fd, snowman, 3);
+    (void)write(fd, LOCK_FILE_IDENTIFIER.data(), static_cast<ssize_t>(LOCK_FILE_IDENTIFIER.size()));
 
     lock.m_fd = fd;
     lock.m_valid = true;
@@ -162,7 +171,7 @@ Result<WorldSessionLock> WorldSessionLock::acquireReadOnly(const std::filesystem
 bool WorldSessionLock::isLocked(const std::filesystem::path& worldDir)
 {
     std::error_code ec;
-    std::filesystem::path lockPath = worldDir / "session.lock";
+    std::filesystem::path lockPath = worldDir / LOCK_FILE_NAME;
 
     if (!std::filesystem::exists(lockPath, ec)) {
         return false;

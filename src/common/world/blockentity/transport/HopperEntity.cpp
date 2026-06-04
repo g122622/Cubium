@@ -106,7 +106,7 @@ void HopperEntity::tick(IWorld& world)
     setTransferCooldown(0);
 
     // 更新漏斗状态
-    updateHopper([&]() { return pullItems(*this); });
+    _updateHopper([&]() { return pullItems(*this); });
 }
 
 std::unique_ptr<BlockEntity> HopperEntity::clone() const
@@ -188,7 +188,7 @@ void HopperEntity::save(nlohmann::json& data) const
 
 bool HopperEntity::isFull() const
 {
-    return isInventoryFull(&m_inventory, Direction::None);
+    return _isInventoryFull(&m_inventory, Direction::None);
 }
 
 void HopperEntity::setTransferCooldown(i32 cooldown)
@@ -222,7 +222,7 @@ bool HopperEntity::pullItems(IHopper& hopper)
         Direction direction = Direction::Down;
 
         // 检查源容器是否为空
-        if (isInventoryEmpty(sourceInventory, direction)) {
+        if (_isInventoryEmpty(sourceInventory, direction)) {
             return false;
         }
 
@@ -234,7 +234,7 @@ bool HopperEntity::pullItems(IHopper& hopper)
             for (i32 slot : slots) {
                 const ItemStack& stack = sourceInventory->getItem(slot);
                 if (!stack.isEmpty()) {
-                    if (pullItemFromSlot(hopper, sourceInventory, slot, direction)) {
+                    if (_pullItemFromSlot(hopper, sourceInventory, slot, direction)) {
                         return true;
                     }
                 }
@@ -246,7 +246,7 @@ bool HopperEntity::pullItems(IHopper& hopper)
         for (i32 slot = 0; slot < sourceInventory->getContainerSize(); ++slot) {
             const ItemStack& stack = sourceInventory->getItem(slot);
             if (!stack.isEmpty()) {
-                if (pullItemFromSlot(hopper, sourceInventory, slot, direction)) {
+                if (_pullItemFromSlot(hopper, sourceInventory, slot, direction)) {
                     return true;
                 }
             }
@@ -285,7 +285,7 @@ bool HopperEntity::captureItem(IInventory* inventory, ItemEntity* itemEntity)
     } else {
         // 部分物品被捕获，更新实体物品数量
         itemEntity->setItemStack(remaining);
-        return false; // MC 1.16.5: 部分捕获时返回 false
+        return false;
     }
 }
 
@@ -298,11 +298,11 @@ IInventory* HopperEntity::getInventoryAtPosition(IWorld* world, const BlockPos& 
     // 获取方块状态
     const BlockState* blockState = world->getBlockState(pos);
 
-    // MC 1.16.5: 首先检查方块是否实现 ISidedInventoryProvider
+    // 首先检查方块是否实现 ISidedInventoryProvider
     // 例如堆肥桶（ComposterBlock）实现此接口
     if (blockState != nullptr) {
         // 注意：getBlock() 返回 const Block&，但 createInventory 需要非 const
-        // MC 1.16.5 中 block 本身是 final 的，不会修改 block 状态
+        // block 本身是 final 的，不会修改 block 状态
         Block& block = const_cast<Block&>(blockState->getBlock());
         ISidedInventoryProvider* provider = dynamic_cast<ISidedInventoryProvider*>(&block);
         if (provider != nullptr) {
@@ -403,12 +403,12 @@ ItemStack HopperEntity::putStackInInventoryAllSlots(
             if (remaining.isEmpty()) {
                 break;
             }
-            remaining = insertStack(source, destination, remaining, slot, direction);
+            remaining = _insertStack(source, destination, remaining, slot, direction);
         }
     } else {
         // 非 ISidedInventory：遍历所有槽位
         for (i32 slot = 0; slot < destination->getContainerSize() && !remaining.isEmpty(); ++slot) {
-            remaining = insertStack(source, destination, remaining, slot, direction);
+            remaining = _insertStack(source, destination, remaining, slot, direction);
         }
     }
 
@@ -417,7 +417,7 @@ ItemStack HopperEntity::putStackInInventoryAllSlots(
 
 // ========== 私有方法 ==========
 
-bool HopperEntity::updateHopper(std::function<bool()> pullFunc)
+bool HopperEntity::_updateHopper(std::function<bool()> pullFunc)
 {
     if (m_world == nullptr) {
         return false;
@@ -436,7 +436,7 @@ bool HopperEntity::updateHopper(std::function<bool()> pullFunc)
 
     // 首先尝试输出物品（优先级高于拉取）
     if (!isEmpty()) {
-        transferred = transferItemsOut();
+        transferred = _transferItemsOut();
     }
 
     // 然后尝试拉取物品
@@ -453,10 +453,10 @@ bool HopperEntity::updateHopper(std::function<bool()> pullFunc)
     return false;
 }
 
-bool HopperEntity::transferItemsOut()
+bool HopperEntity::_transferItemsOut()
 {
     // 获取输出目标容器
-    IInventory* targetInventory = getInventoryForHopperTransfer();
+    IInventory* targetInventory = _getInventoryForHopperTransfer();
     if (targetInventory == nullptr) {
         return false;
     }
@@ -466,7 +466,7 @@ bool HopperEntity::transferItemsOut()
     Direction insertDir = Directions::opposite(outputDir);
 
     // 检查目标容器是否已满
-    if (isInventoryFull(targetInventory, insertDir)) {
+    if (_isInventoryFull(targetInventory, insertDir)) {
         return false;
     }
 
@@ -497,7 +497,7 @@ bool HopperEntity::transferItemsOut()
     return false;
 }
 
-IInventory* HopperEntity::getInventoryForHopperTransfer()
+IInventory* HopperEntity::_getInventoryForHopperTransfer()
 {
     if (m_world == nullptr) {
         return nullptr;
@@ -510,7 +510,7 @@ IInventory* HopperEntity::getInventoryForHopperTransfer()
     return getInventoryAtPosition(m_world, targetPos);
 }
 
-bool HopperEntity::isInventoryFull(const IInventory* inventory, Direction side)
+bool HopperEntity::_isInventoryFull(const IInventory* inventory, Direction side)
 {
     if (inventory == nullptr) {
         return true;
@@ -541,7 +541,7 @@ bool HopperEntity::isInventoryFull(const IInventory* inventory, Direction side)
     return true;
 }
 
-bool HopperEntity::isInventoryEmpty(const IInventory* inventory, Direction side)
+bool HopperEntity::_isInventoryEmpty(const IInventory* inventory, Direction side)
 {
     if (inventory == nullptr) {
         return true;
@@ -570,7 +570,7 @@ bool HopperEntity::isInventoryEmpty(const IInventory* inventory, Direction side)
     return true;
 }
 
-bool HopperEntity::pullItemFromSlot(IHopper& hopper, IInventory* inventory, i32 slotIndex, Direction direction)
+bool HopperEntity::_pullItemFromSlot(IHopper& hopper, IInventory* inventory, i32 slotIndex, Direction direction)
 {
 
     if (inventory == nullptr) {
@@ -583,7 +583,7 @@ bool HopperEntity::pullItemFromSlot(IHopper& hopper, IInventory* inventory, i32 
     }
 
     // 检查是否可以从该槽位提取
-    if (!canExtractItemFromSlot(inventory, stack, slotIndex, direction)) {
+    if (!_canExtractItemFromSlot(inventory, stack, slotIndex, direction)) {
         return false;
     }
 
@@ -614,7 +614,7 @@ bool HopperEntity::pullItemFromSlot(IHopper& hopper, IInventory* inventory, i32 
     return false;
 }
 
-ItemStack HopperEntity::insertStack(
+ItemStack HopperEntity::_insertStack(
     IInventory* source, IInventory* destination, const ItemStack& stack, i32 slotIndex, Direction direction)
 {
 
@@ -625,7 +625,7 @@ ItemStack HopperEntity::insertStack(
     const ItemStack& existingStack = destination->getItem(slotIndex);
 
     // 检查是否可以插入该槽位
-    if (!canInsertItemInSlot(destination, stack, slotIndex, direction)) {
+    if (!_canInsertItemInSlot(destination, stack, slotIndex, direction)) {
         return stack;
     }
 
@@ -638,7 +638,7 @@ ItemStack HopperEntity::insertStack(
         destination->setItem(slotIndex, stack);
         remaining = ItemStack::EMPTY; // 全部插入，无剩余
         inserted = true;
-    } else if (canCombine(existingStack, stack)) {
+    } else if (_canCombine(existingStack, stack)) {
         // 可合并的物品，尝试堆叠
         i32 availableSpace = existingStack.getMaxStackSize() - existingStack.getCount();
         i32 toInsert = std::min(stack.getCount(), availableSpace);
@@ -657,7 +657,7 @@ ItemStack HopperEntity::insertStack(
     }
 
     if (inserted) {
-        // MC 1.16.5 漏斗链优化：如果目标是漏斗且为空
+        // 漏斗链优化：如果目标是漏斗且为空
         // 减少冷却时间，但需要检查游戏时间
         if (wasEmpty && destination != nullptr) {
             HopperEntity* targetHopper = dynamic_cast<HopperEntity*>(destination);
@@ -683,7 +683,7 @@ ItemStack HopperEntity::insertStack(
     return remaining;
 }
 
-bool HopperEntity::canInsertItemInSlot(
+bool HopperEntity::_canInsertItemInSlot(
     const IInventory* inventory, const ItemStack& stack, i32 slotIndex, Direction direction)
 {
 
@@ -705,7 +705,7 @@ bool HopperEntity::canInsertItemInSlot(
     return true;
 }
 
-bool HopperEntity::canExtractItemFromSlot(
+bool HopperEntity::_canExtractItemFromSlot(
     const IInventory* inventory, const ItemStack& stack, i32 slotIndex, Direction direction)
 {
 
@@ -725,7 +725,7 @@ bool HopperEntity::canExtractItemFromSlot(
     return true;
 }
 
-bool HopperEntity::canCombine(const ItemStack& stack1, const ItemStack& stack2)
+bool HopperEntity::_canCombine(const ItemStack& stack1, const ItemStack& stack2)
 {
     return stack1.canMergeWith(stack2);
 }
@@ -749,7 +749,7 @@ void HopperEntity::onEntityCollision(IWorld& world, Entity* entity)
     }
 
     // 尝试捕获物品
-    updateHopper([&]() { return captureItem(&m_inventory, itemEntity); });
+    _updateHopper([&]() { return captureItem(&m_inventory, itemEntity); });
 }
 
 } // namespace blockentity

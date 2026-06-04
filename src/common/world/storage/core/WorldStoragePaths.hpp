@@ -64,6 +64,25 @@ public:
      */
     explicit WorldStoragePaths(std::filesystem::path savesDir, std::filesystem::path backupsDir);
 
+    // ============================================================================
+    // 特殊成员函数
+    // ============================================================================
+
+    /** @brief 默认析构函数 */
+    ~WorldStoragePaths() = default;
+
+    /** @brief 拷贝构造函数 */
+    WorldStoragePaths(const WorldStoragePaths&) = default;
+
+    /** @brief 拷贝赋值运算符 */
+    WorldStoragePaths& operator=(const WorldStoragePaths&) = default;
+
+    /** @brief 移动构造函数 */
+    WorldStoragePaths(WorldStoragePaths&&) noexcept = default;
+
+    /** @brief 移动赋值运算符 */
+    WorldStoragePaths& operator=(WorldStoragePaths&&) noexcept = default;
+
     /**
      * @brief 使用默认游戏目录构造
      *

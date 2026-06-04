@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../blockentity/BlockEntityType.hpp"
 #include "AbstractFurnaceBlock.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include <memory>
 
 namespace mc {
@@ -34,8 +34,6 @@ namespace blocks {
  * @brief 普通熔炉方块
  *
  * 实现200tick熔炼时间的熔炉方块。
- *
- * 参考: net.minecraft.block.FurnaceBlock
  */
 class FurnaceBlock : public AbstractFurnaceBlock {
 public:

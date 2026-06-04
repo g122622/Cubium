@@ -46,7 +46,8 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
     const auto biomeData = chunk.getBiomes().serialize();
     const u16 sectionMask = calculateSectionMask(chunk);
 
-    size_t expectedSize = 4 + 4 + 2 + 256 + 1 + biomeData.size();
+    constexpr size_t heightmapSize = static_cast<size_t>(world::CHUNK_WIDTH) * world::CHUNK_WIDTH;
+    size_t expectedSize = 4 + 4 + 2 + heightmapSize + 1 + biomeData.size();
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
         if ((sectionMask & (1 << i)) == 0) continue;
 
@@ -214,7 +215,8 @@ Result<std::unique_ptr<ChunkSection>> ChunkSerializer::deserializeChunkSection(c
 size_t ChunkSerializer::calculateChunkSize(const ChunkData& chunk)
 {
     const size_t biomeDataSize = BiomeContainer::BIOME_SIZE * sizeof(BiomeId);
-    size_t size = 4 + 4 + 2 + 256 + 1 + biomeDataSize; // 坐标 + 位掩码 + 高度图 + 生物群系
+    constexpr size_t heightmapSize = static_cast<size_t>(world::CHUNK_WIDTH) * world::CHUNK_WIDTH;
+    size_t size = 4 + 4 + 2 + heightmapSize + 1 + biomeDataSize; // 坐标 + 位掩码 + 高度图 + 生物群系
 
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
         const ChunkSection* section = chunk.getSection(i);
@@ -367,7 +369,6 @@ void ChunkSyncManager::removeTracker(PlayerId playerId)
 void ChunkSyncManager::updatePlayerPosition(PlayerId playerId, f64 x, f64 z)
 {
     auto tracker = getTracker(playerId);
-    if (!tracker) return;
 
     ChunkCoord newChunkX = blockToChunk(x);
     ChunkCoord newChunkZ = blockToChunk(z);
@@ -387,15 +388,12 @@ void ChunkSyncManager::calculateUpdates(
     chunksToUnload.clear();
 
     auto tracker = getTracker(playerId);
-    if (!tracker) return;
-
     tracker->calculateChunkUpdates(chunksToLoad, chunksToUnload);
 }
 
 void ChunkSyncManager::markChunkSent(PlayerId playerId, ChunkCoord x, ChunkCoord z)
 {
     auto tracker = getTracker(playerId);
-    if (!tracker) return;
 
     ChunkId chunkId(x, z, 0);
     tracker->addLoadedChunk(x, z);
@@ -405,7 +403,6 @@ void ChunkSyncManager::markChunkSent(PlayerId playerId, ChunkCoord x, ChunkCoord
 void ChunkSyncManager::markChunkUnloaded(PlayerId playerId, ChunkCoord x, ChunkCoord z)
 {
     auto tracker = getTracker(playerId);
-    if (!tracker) return;
 
     ChunkId chunkId(x, z, 0);
     tracker->removeLoadedChunk(x, z);

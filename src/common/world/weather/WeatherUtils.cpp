@@ -22,12 +22,13 @@
  */
 
 #include "WeatherUtils.hpp"
-#include "../../util/math/random/Random.hpp"
-#include "../../world/IWorld.hpp"
-#include "../../world/biome/Biome.hpp"
-#include "../../world/biome/BiomeRegistry.hpp"
-#include "../../world/block/BlockPos.hpp"
-#include "../../world/chunk/ChunkData.hpp"
+
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/ChunkData.hpp"
 #include <cmath>
 
 namespace mc::weather {
@@ -49,7 +50,6 @@ namespace {
 
 bool WeatherUtils::canSeeSky(const mc::IWorld& world, const mc::BlockPos& pos)
 {
-    // MC 1.16.5: return this.getLightFor(LightType.SKY, pos) >= this.getMaxLightLevel();
     // 直接使用 IWorld::canSeeSky，它基于天空光照等级判断
     return world.canSeeSky(pos);
 }

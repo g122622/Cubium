@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../../core/Constants.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../util/NibbleArray.hpp"
-#include "../../block/Block.hpp"
-#include "../../chunk/ChunkPos.hpp"
-#include "../storage/SWMRNibbleArray.hpp"
 #include "LightEngineUtils.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/NibbleArray.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include <array>
 #include <cstdint>
 #include <vector>
@@ -86,7 +86,7 @@ constexpr i32 ALL_DIRECTIONS_BITSET = 0x3F; // 0b111111
 /**
  * @brief 获取方向的偏移量
  */
-inline constexpr void getDirectionOffset(LightAxisDirection dir, i32& dx, i32& dy, i32& dz)
+inline constexpr void getDirectionOffset(LightAxisDirection dir, i32& dx, i32& dy, i32& dz) noexcept
 {
     switch (dir) {
         case LightAxisDirection::POSITIVE_X:
@@ -125,7 +125,7 @@ inline constexpr void getDirectionOffset(LightAxisDirection dir, i32& dx, i32& d
 /**
  * @brief 获取方向的 NMS Direction（用于面遮挡查询）
  */
-inline constexpr Direction getNMSDirection(LightAxisDirection dir)
+inline constexpr Direction getNMSDirection(LightAxisDirection dir) noexcept
 {
     switch (dir) {
         case LightAxisDirection::POSITIVE_X:
@@ -148,7 +148,7 @@ inline constexpr Direction getNMSDirection(LightAxisDirection dir)
  * @brief 获取相反方向
  * 偶数 XOR 1 得奇数（负方向），奇数 XOR 1 得偶数（正方向）
  */
-inline constexpr LightAxisDirection getOppositeDirection(LightAxisDirection dir)
+inline constexpr LightAxisDirection getOppositeDirection(LightAxisDirection dir) noexcept
 {
     return static_cast<LightAxisDirection>(static_cast<u8>(dir) ^ 1);
 }
@@ -156,7 +156,7 @@ inline constexpr LightAxisDirection getOppositeDirection(LightAxisDirection dir)
 /**
  * @brief 获取方向位集
  */
-inline constexpr i32 getDirectionBitset(LightAxisDirection dir)
+inline constexpr i32 getDirectionBitset(LightAxisDirection dir) noexcept
 {
     return 1 << static_cast<u8>(dir);
 }
@@ -164,7 +164,7 @@ inline constexpr i32 getDirectionBitset(LightAxisDirection dir)
 /**
  * @brief 获取排除某方向后的位集
  */
-inline constexpr i32 getEverythingButDirection(LightAxisDirection dir)
+inline constexpr i32 getEverythingButDirection(LightAxisDirection dir) noexcept
 {
     return ALL_DIRECTIONS_BITSET ^ getDirectionBitset(dir);
 }
@@ -172,7 +172,7 @@ inline constexpr i32 getEverythingButDirection(LightAxisDirection dir)
 /**
  * @brief 获取排除某方向及其反方向后的位集
  */
-inline constexpr i32 getEverythingButOppositeDirection(LightAxisDirection dir)
+inline constexpr i32 getEverythingButOppositeDirection(LightAxisDirection dir) noexcept
 {
     return ALL_DIRECTIONS_BITSET ^ (getDirectionBitset(dir) | getDirectionBitset(getOppositeDirection(dir)));
 }
@@ -236,7 +236,7 @@ public:
      * 在新的光照操作开始前调用，确保队列状态干净。
      * 与 Moonrise StarLightEngine.light() 中的重置逻辑一致。
      */
-    void resetQueueState()
+    void resetQueueState() noexcept
     {
         m_increaseQueueInitialLength = 0;
         m_decreaseQueueInitialLength = 0;
@@ -561,9 +561,10 @@ protected:
     bool m_isClientSide = false;
 
     // 世界高度范围（从世界高度常量计算）
-    // 区块段索引：Y >> 4，所以 MIN_BUILD_HEIGHT=0 -> section 0，MAX_BUILD_HEIGHT=256 -> section 15（包含Y=240-255）
-    i32 m_minSection = world::MIN_BUILD_HEIGHT >> 4;
-    i32 m_maxSection = (world::MAX_BUILD_HEIGHT - 1) >> 4;
+    // 区块段索引：Y >> SECTION_SHIFT，所以 MIN_BUILD_HEIGHT=0 -> section 0，MAX_BUILD_HEIGHT=256 -> section
+    // 15（包含Y=240-255）
+    i32 m_minSection = world::MIN_BUILD_HEIGHT >> world::SECTION_SHIFT;
+    i32 m_maxSection = (world::MAX_BUILD_HEIGHT - 1) >> world::SECTION_SHIFT;
     // 光照段需要额外缓冲段（上方和下方各一个）
     i32 m_minLightSection = m_minSection - 1;
     i32 m_maxLightSection = m_maxSection + 1;
@@ -619,7 +620,7 @@ private:
     static std::array<std::vector<LightAxisDirection>, 64> s_oldCheckDirections;
     static bool s_directionsInitialized;
 
-    static void initializeDirections();
+    static void _initializeDirections();
 };
 
 } // namespace mc

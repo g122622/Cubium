@@ -22,13 +22,14 @@
  */
 
 #include "Structure.hpp"
-#include "../../../util/math/MathUtils.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../IWorld.hpp"
-#include "../../IWorldWriter.hpp"
-#include "../../block/Block.hpp"
-#include "../../chunk/ChunkPrimer.hpp"
-#include "../chunk/IChunkGenerator.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <algorithm>
 
 namespace mc::world::gen::structure {
@@ -61,10 +62,10 @@ StructureBoundingBox StructurePiece::boundingBox() const
 
 bool StructurePiece::intersectsChunk(i32 chunkX, i32 chunkZ) const
 {
-    i32 chunkMinX = chunkX << 4;
-    i32 chunkMinZ = chunkZ << 4;
-    i32 chunkMaxX = chunkMinX + 15;
-    i32 chunkMaxZ = chunkMinZ + 15;
+    i32 chunkMinX = chunkX * world::CHUNK_WIDTH;
+    i32 chunkMinZ = chunkZ * world::CHUNK_WIDTH;
+    i32 chunkMaxX = chunkMinX + world::CHUNK_WIDTH - 1;
+    i32 chunkMaxZ = chunkMinZ + world::CHUNK_WIDTH - 1;
 
     return m_maxX >= chunkMinX && m_minX <= chunkMaxX && m_maxZ >= chunkMinZ && m_minZ <= chunkMaxZ;
 }
@@ -256,9 +257,8 @@ void StructurePiece::fillWithRandomizedBlocks(IWorldWriter& world,
     math::Random& rng,
     BlockSelector& selector)
 {
-    // MC 1.16.5: 当 alwaysReplace=true 时，只替换非空气方块
+    // 当 alwaysReplace=true 时，只替换非空气方块
     // 当 alwaysReplace=false 时，无条件填充
-    // 参考: StructurePiece.fillWithRandomizedBlocks
     IWorld* worldReader = alwaysReplace ? dynamic_cast<IWorld*>(&world) : nullptr;
 
     for (i32 y = minY; y <= maxY; ++y) {
@@ -339,7 +339,7 @@ void StructurePiece::replaceAirAndLiquidDownwards(
         return;
     }
 
-    while (worldY > 1) {
+    while (worldY > world::MIN_BUILD_HEIGHT) {
         const BlockState* current = world.getBlockState(worldX, worldY, worldZ);
         if (current == nullptr || current->isAir() || current->getMaterial().isLiquid()) {
             world.setBlockState(worldX, worldY, worldZ, state, 2);
@@ -426,9 +426,7 @@ bool Structure::findStructureStart(i64 seed,
 
     i32 offsetRange = spacing - separation;
 
-    // MC 1.16.5: 大多数结构使用均匀分布
-    // 废弃矿井等使用非均匀分布: (nextInt(offsetRange) + nextInt(offsetRange)) / 2
-    // 参考 Structure.func_236386_a_ 和 Structure.func_230365_b_()
+    // 均匀分布 vs 非均匀分布（两次随机取平均，产生更集中的分布）
     i32 offsetX, offsetZ;
     if (useUniformSpacing) {
         offsetX = rng.nextInt(offsetRange);
@@ -477,7 +475,7 @@ void StructureStart::recalculateStructureSize()
     }
 }
 
-bool StructureStart::isRefCountBelowMax() const
+bool StructureStart::isRefCountBelowMax() const noexcept
 {
     return m_references < getMaxRefCount();
 }

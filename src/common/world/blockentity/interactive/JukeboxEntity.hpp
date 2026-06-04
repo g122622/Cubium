@@ -60,7 +60,7 @@ public:
     /**
      * @brief 析构函数
      */
-    ~JukeboxEntity() override;
+    ~JukeboxEntity() noexcept override;
 
     // ========== IInventory 接口实现 ==========
 
@@ -104,7 +104,7 @@ public:
      * @brief 检查是否正在播放
      * @return 如果正在播放返回true
      */
-    [[nodiscard]] bool isPlaying() const { return m_isPlaying; }
+    [[nodiscard]] bool isPlaying() const noexcept { return m_isPlaying; }
 
     /**
      * @brief 获取红石信号强度

@@ -47,6 +47,10 @@ public:
     JavaAnvilBackend(const JavaAnvilBackend&) = delete;
     JavaAnvilBackend& operator=(const JavaAnvilBackend&) = delete;
 
+    // 移动语义
+    JavaAnvilBackend(JavaAnvilBackend&& other) noexcept;
+    JavaAnvilBackend& operator=(JavaAnvilBackend&& other) noexcept;
+
     Result<void> open(const std::filesystem::path& worldPath, const SaveFormatInfo& formatInfo) override;
     void close() override;
     [[nodiscard]] bool isOpen() const override;

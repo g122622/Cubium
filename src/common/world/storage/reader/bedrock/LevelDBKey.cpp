@@ -23,15 +23,27 @@
 
 #include "LevelDBKey.hpp"
 
+#include <algorithm>
+
 namespace mc::world::storage::reader::bedrock {
 
 namespace {
 
+/**
+ * @brief 将字符串视图转换为字节数组
+ * @param value 输入字符串
+ * @return 字节数组
+ */
 std::vector<u8> toBytes(std::string_view value)
 {
     return std::vector<u8>(value.begin(), value.end());
 }
 
+/**
+ * @brief 以小端序追加 32 位整数到字节数组
+ * @param bytes 目标字节数组
+ * @param value 要追加的整数值
+ */
 void appendLe32(std::vector<u8>& bytes, i32 value)
 {
     bytes.push_back(static_cast<u8>(value & 0xFF));
@@ -44,15 +56,7 @@ void appendLe32(std::vector<u8>& bytes, i32 value)
 
 bool LevelDBKey::startsWith(const std::vector<u8>& input, const std::vector<u8>& prefix)
 {
-    if (input.size() < prefix.size()) {
-        return false;
-    }
-    for (size_t i = 0; i < prefix.size(); ++i) {
-        if (input[i] != prefix[i]) {
-            return false;
-        }
-    }
-    return true;
+    return input.size() >= prefix.size() && std::equal(prefix.begin(), prefix.end(), input.begin());
 }
 
 std::string LevelDBKey::extractSuffix(const std::vector<u8>& input, const std::vector<u8>& prefix)
@@ -63,10 +67,12 @@ std::string LevelDBKey::extractSuffix(const std::vector<u8>& input, const std::v
 std::vector<u8> LevelDBKey::key(DimensionId dimension, const ChunkPos& pos, ChunkType type)
 {
     std::vector<u8> bytes;
-    bytes.reserve(dimension == 0 ? 9 : 13);
+    // 主世界键长度: 4(x) + 4(z) + 1(type) = 9
+    // 其他维度键长度: 4(x) + 4(z) + 4(dimension) + 1(type) = 13
+    bytes.reserve(dimension == OVERWORLD_DIMENSION ? 9 : 13);
     appendLe32(bytes, pos.x);
     appendLe32(bytes, pos.z);
-    if (dimension != 0) {
+    if (dimension != OVERWORLD_DIMENSION) {
         appendLe32(bytes, dimension);
     }
     bytes.push_back(static_cast<u8>(type));
@@ -83,11 +89,13 @@ std::vector<u8> LevelDBKey::key(DimensionId dimension, const ChunkPos& pos, i8 y
 std::vector<u8> LevelDBKey::key(const std::vector<u8>& prefix, DimensionId dimension, const ChunkPos& pos)
 {
     std::vector<u8> bytes;
-    bytes.reserve(prefix.size() + (dimension == 0 ? 8 : 12));
+    // 主世界键长度: prefix + 4(x) + 4(z) = prefix + 8
+    // 其他维度键长度: prefix + 4(x) + 4(z) + 4(dimension) = prefix + 12
+    bytes.reserve(prefix.size() + (dimension == OVERWORLD_DIMENSION ? 8 : 12));
     bytes.insert(bytes.end(), prefix.begin(), prefix.end());
     appendLe32(bytes, pos.x);
     appendLe32(bytes, pos.z);
-    if (dimension != 0) {
+    if (dimension != OVERWORLD_DIMENSION) {
         appendLe32(bytes, dimension);
     }
     return bytes;
@@ -105,10 +113,12 @@ std::vector<u8> LevelDBKey::key(const std::vector<u8>& prefix, std::string_view 
 std::vector<u8> LevelDBKey::chunkPrefix(DimensionId dimension, const ChunkPos& pos)
 {
     std::vector<u8> bytes;
-    bytes.reserve(dimension == 0 ? 8 : 12);
+    // 主世界前缀长度: 4(x) + 4(z) = 8
+    // 其他维度前缀长度: 4(x) + 4(z) + 4(dimension) = 12
+    bytes.reserve(dimension == OVERWORLD_DIMENSION ? 8 : 12);
     appendLe32(bytes, pos.x);
     appendLe32(bytes, pos.z);
-    if (dimension != 0) {
+    if (dimension != OVERWORLD_DIMENSION) {
         appendLe32(bytes, dimension);
     }
     return bytes;

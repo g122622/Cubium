@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/block/BlockPos.hpp"
-#include "../structure/StructureBoundingBox.hpp"
 #include "JigsawOrientation.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <memory>
 #include <optional>
 #include <string>
@@ -49,7 +49,6 @@ enum class JigsawPlacementBehaviour : u8 {
 /**
  * @brief Jigsaw 连接类型
  *
- * 参考 MC 1.16.5 JigsawTileEntity.OrientationType
  * - ROLLABLE: 可以旋转连接，只需要facing相反
  * - ALIGNED: 对齐连接，facing相反且rotation必须相同
  */
@@ -61,7 +60,7 @@ enum class JigsawJointType : u8 {
 /**
  * @brief Jigsaw 连接点类型
  *
- * 参考 MC 1.16.5 的 JigsawBlock 名称：
+ * 标准连接点名称：
  * - minecraft:bottom, minecraft:top
  * - minecraft:left, minecraft:right
  * - minecraft:front, minecraft:back
@@ -80,8 +79,6 @@ struct JigsawTarget {
 
 /**
  * @brief Jigsaw 连接点信息
- *
- * 参考 MC 1.16.5 Template.BlockInfo 中的 Jigsaw 方块数据
  */
 struct JigsawJoint {
     BlockPos sourcePos;     ///< 源位置（在拼图块内）
@@ -109,8 +106,6 @@ struct JigsawJoint {
 
 /**
  * @brief Jigsaw 拼图块基类
- *
- * 参考 MC 1.16.5: JigsawPiece
  */
 class JigsawPiece {
 public:
@@ -130,9 +125,6 @@ public:
 
     /**
      * @brief 获取打乱后的连接点列表
-     *
-     * MC 1.16.5: getJigsawBlocks 返回打乱顺序的连接点
-     * 参考: SingleJigsawPiece.getJigsawBlocks() 第91-96行
      *
      * @param rng 随机数生成器
      * @return 打乱后的连接点列表
@@ -157,7 +149,6 @@ public:
     /**
      * @brief 从模板加载 Jigsaw 方块信息
      *
-     * 参考 MC 1.16.5: JigsawPiece.getJigsawBlocks
      * 加载模板并提取所有 Jigsaw 方块作为连接点
      *
      * @param templateName 模板名称（资源位置）
@@ -174,7 +165,7 @@ protected:
     {}
 
     JigsawPlacementBehaviour m_placementBehaviour = JigsawPlacementBehaviour::Rigid;
-    i32 m_groundLevelDelta = 1; // MC 1.16.5 默认值为 1
+    i32 m_groundLevelDelta = 1; // 默认值为 1
     std::vector<JigsawJoint> m_joints;
     std::string m_name;
 };
@@ -191,8 +182,6 @@ public:
     bool isEmpty() const override { return true; }
     BlockPos getSize() const override { return BlockPos(0, 0, 0); }
 
-    // MC 1.16.5: EmptyJigsawPiece 是单例，但 clone() 需要返回有效指针
-    // 参考: EmptyJigsawPiece.java - INSTANCE 单例
     EmptyJigsawPiece()
         : JigsawPiece(JigsawPlacementBehaviour::Rigid)
     {}
@@ -253,7 +242,6 @@ private:
  * @brief 连接点匹配器
  *
  * 负责匹配两个 Jigsaw 连接点
- * 参考 MC 1.16.5: JigsawBlock.func_220171_a
  */
 class JigsawMatcher {
 public:
@@ -276,14 +264,13 @@ public:
             return false;
         }
 
-        // 目标名称必须匹配（MC中是target.target == source.name）
+        // 目标名称必须匹配
         return sourceTarget == targetName;
     }
 
     /**
      * @brief 检查两个 Jigsaw 方向是否可以连接
      *
-     * 参考 MC 1.16.5: JigsawBlock.func_220171_a
      * 连接条件：
      * 1. facing 方向必须相反（面对面）
      * 2. 如果是 rollable 类型，则只需 facing 相反
@@ -344,7 +331,6 @@ public:
     /**
      * @brief 从连接点方向确定默认连接类型
      *
-     * 参考 MC 1.16.5: JigsawTileEntity.OrientationType.func_235673_a_
      * - 如果 facing 是水平方向，默认为 ALIGNED
      * - 如果 facing 是垂直方向，默认为 ROLLABLE
      *
@@ -354,7 +340,7 @@ public:
     static JigsawJointType getDefaultJointType(JigsawOrientation orientation)
     {
         Direction facing = JigsawOrientations::getFacing(orientation);
-        // MC 1.16.5: direction.getAxis().isHorizontal() ? ALIGNED : ROLLABLE
+        // 水平方向默认为 ALIGNED，垂直方向默认为 ROLLABLE
         if (facing == Direction::North || facing == Direction::South || facing == Direction::East ||
             facing == Direction::West) {
             return JigsawJointType::Aligned;

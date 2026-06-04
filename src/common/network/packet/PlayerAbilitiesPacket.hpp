@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "Packet.hpp"
+#include "common/core/Types.hpp"
+#include "common/network/packet/Packet.hpp"
 
 namespace mc {
 
@@ -36,8 +36,6 @@ namespace network {
 
 /**
  * @brief 玩家能力标志位
- *
- * 参考 MC 1.16.5 SPlayerAbilitiesPacket
  */
 enum class PlayerAbilityFlags : u8 {
     None = 0,
@@ -57,8 +55,6 @@ enum class PlayerAbilityFlags : u8 {
  * - 是否为创造模式
  * - 飞行速度
  * - 行走速度
- *
- * 参考 MC 1.16.5 SPlayerAbilitiesPacket
  *
  * 协议格式:
  * | 字段     | 类型 | 说明                                    |

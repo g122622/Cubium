@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/nbt/Nbt.hpp"
-#include "../../../block/BlockPos.hpp"
-#include "../../structure/StructureBoundingBox.hpp"
 #include "RuleTest.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <memory>
 #include <optional>
 #include <unordered_set>
@@ -74,9 +74,6 @@ struct BlockInfo {
 
 /**
  * @brief 处理后的方块信息
- *
- * 参考 MC 1.16.5 Template.BlockInfo
- * 用于处理器链处理后返回的结果
  */
 struct ProcessedBlockInfo {
     BlockPos pos;
@@ -113,8 +110,6 @@ struct ProcessedBlockInfo {
 
 /**
  * @brief 放置设置
- *
- * 参考 MC 1.16.5 PlacementSettings
  */
 class PlacementSettings {
 public:
@@ -153,8 +148,6 @@ public:
 
     /**
      * @brief 获取确定性随机数生成器
-     *
-     * 参考 MC 1.16.5: PlacementSettings.getRandom(BlockPos)
      * 如果设置了预设随机数，则返回预设的；否则基于位置种子创建
      *
      * @param pos 位置种子
@@ -193,8 +186,6 @@ private:
 
 /**
  * @brief 结构处理器接口
- *
- * 参考 MC 1.16.5 StructureProcessor
  * 处理器可以修改或过滤模板中的方块
  */
 class StructureProcessor {
@@ -203,8 +194,6 @@ public:
 
     /**
      * @brief 处理方块信息
-     *
-     * 参考 MC 1.16.5 StructureProcessor.process
      * @param seedPos 种子位置
      * @param pos 当前放置位置
      * @param rawBlockInfo 原始方块信息（未变换）
@@ -226,8 +215,6 @@ public:
 
 /**
  * @brief 结构处理器列表
- *
- * 参考 MC 1.16.5 StructureProcessorList
  */
 class StructureProcessorList {
 public:
@@ -288,8 +275,6 @@ struct TemplateJigsawBlockInfo {
 
 /**
  * @brief 实体信息
- *
- * 参考 MC 1.16.5 Template.EntityInfo
  * 包含两个位置：
  * - pos: 精确位置（Double 列表），用于实体精确放置
  * - blockPos: 方块坐标（Int 列表），用于方块对齐
@@ -312,8 +297,6 @@ struct TemplateEntityInfo {
 
 /**
  * @brief 模板调色板
- *
- * 参考 MC 1.16.5 Template.Palette
  * 存储一组方块信息，并提供按方块类型快速查找的缓存。
  * 一个模板可以有多个调色板，用于结构变体。
  */
@@ -331,8 +314,6 @@ public:
      * @brief 获取指定方块类型的所有方块信息
      * @param block 方块类型
      * @return 匹配的方块信息列表
-     *
-     * MC 1.16.5: Palette.func_237158_a_
      */
     [[nodiscard]] const std::vector<const BlockInfo*>& getBlocksByType(const Block& block) const;
 
@@ -351,7 +332,7 @@ private:
     mutable std::unordered_map<const Block*, std::vector<const BlockInfo*>> m_blockTypeCache;
     mutable bool m_cacheBuilt = false;
 
-    void buildCache() const;
+    void _buildCache() const;
 };
 
 /**
@@ -367,7 +348,6 @@ public:
 
     /**
      * @brief 添加调色板
-     * MC 1.16.5: Template 支持多个调色板，用于结构变体
      */
     void addPalette(Palette palette);
 
@@ -383,7 +363,6 @@ public:
 
     /**
      * @brief 选择一个调色板
-     * MC 1.16.5: PlacementSettings.func_237132_a_
      * @param rng 随机数生成器
      * @return 选中的调色板，如果没有调色板返回 nullptr
      */
@@ -427,8 +406,6 @@ public:
 
     /**
      * @brief 放置模板到世界（完整版本）
-     *
-     * MC 1.16.5: Template.func_237146_a_
      * 完整实现包括：
      * - 方块放置
      * - 液体处理（水、岩浆填充容器）
@@ -452,15 +429,13 @@ public:
 
 private:
     BlockPos m_size;
-    std::vector<Palette> m_palettes; // MC 1.16.5: 多调色板支持
+    std::vector<Palette> m_palettes; // 支持多调色板
     std::vector<TemplateJigsawBlockInfo> m_jigsawBlocks;
     std::vector<TemplateEntityInfo> m_entities;
 };
 
 /**
  * @brief 重力结构处理器
- *
- * 参考 MC 1.16.5 GravityStructureProcessor
  */
 class GravityStructureProcessor : public StructureProcessor {
 public:
@@ -482,8 +457,6 @@ private:
 
 /**
  * @brief 方块忽略结构处理器
- *
- * 参考 MC 1.16.5 BlockIgnoreStructureProcessor
  */
 class BlockIgnoreStructureProcessor : public StructureProcessor {
 public:
@@ -503,8 +476,6 @@ private:
 
 /**
  * @brief Jigsaw 替换结构处理器
- *
- * 参考 MC 1.16.5 JigsawReplacementStructureProcessor
  * 当遇到 Jigsaw 方块时，读取其 final_state NBT 字段，
  * 解析并替换为对应的方块状态。
  * 如果 final_state 是 structure_void，则跳过此方块。
@@ -530,8 +501,6 @@ private:
 
 /**
  * @brief 完整度结构处理器
- *
- * 参考 MC 1.16.5 IntegrityProcessor
  */
 class IntegrityProcessor : public StructureProcessor {
 public:
@@ -549,8 +518,6 @@ private:
 
 /**
  * @brief 规则结构处理器
- *
- * 参考 MC 1.16.5 RuleStructureProcessor
  * 根据一组规则来替换方块，每条规则包含：
  * - inputPredicate: 测试输入方块（模板中的方块）
  * - locationPredicate: 测试位置方块（世界中已有的方块）
@@ -579,8 +546,6 @@ private:
 
 /**
  * @brief 空操作结构处理器
- *
- * 参考 MC 1.16.5 NopProcessor
  * 直接返回原始方块信息，不做任何修改。
  * 主要用于测试或作为占位符。
  */
@@ -597,8 +562,6 @@ public:
 
 /**
  * @brief 岩浆淹没结构处理器
- *
- * 参考 MC 1.16.5 LavaSubmergingProcessor
  * 当结构放置在岩浆中时，如果方块是非固体（非不透明），则将其替换为岩浆。
  * 用于堡垒遗迹等在下界岩浆海中生成的结构。
  */
@@ -615,8 +578,6 @@ public:
 
 /**
  * @brief 方块老化结构处理器（苔藓化处理器）
- *
- * 参考 MC 1.16.5 BlockAgeProcessor / BlockMosinessProcessor
  * 根据苔藓概率随机将石砖相关方块替换为苔藓化或裂变版本。
  * 用于村庄等结构的老化效果。
  */
@@ -642,8 +603,6 @@ private:
 
 /**
  * @brief 黑石替换结构处理器
- *
- * 参考 MC 1.16.5 BlackStoneReplacementProcessor
  * 将普通石质方块替换为黑石变体，用于堡垒遗迹的结构生成。
  * 替换映射：
  * - 圆石 -> 黑石

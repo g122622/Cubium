@@ -22,8 +22,6 @@
  */
 
 #include "DispenserBlockEntity.hpp"
-#include "item/loot/context/LootContext.hpp"
-#include "item/loot/LootTable.hpp"
 #include "item/core/ItemStack.hpp"
 #include <random>
 
@@ -128,7 +126,7 @@ i32 DispenserBlockEntity::getRandomSlot()
 
 i32 DispenserBlockEntity::getDispenseSlot()
 {
-    // MC 储水池采样算法：每个非空槽位被选中的概率相等
+    // 储水池采样算法：每个非空槽位被选中的概率相等
     i32 selectedSlot = -1;
     i32 nonEmptyCount = 0;
 
@@ -147,7 +145,7 @@ i32 DispenserBlockEntity::getDispenseSlot()
 
 i32 DispenserBlockEntity::addItemStack(const ItemStack& stack)
 {
-    // MC 1.16.5: 查找第一个空槽位，将整个物品放入该槽位
+    // 查找第一个空槽位，将整个物品放入该槽位
     // 不尝试与现有堆叠合并
     if (stack.isEmpty()) {
         return -1;

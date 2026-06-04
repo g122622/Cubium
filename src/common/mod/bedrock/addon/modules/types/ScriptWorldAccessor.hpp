@@ -60,7 +60,7 @@ public:
     void setCurrentTickCallback(std::function<u64()> callback);
 
 private:
-    ScriptWorldAccessor() = default;
+    ScriptWorldAccessor() noexcept = default;
 
     std::function<void(const std::string&)> m_messageCallback;
     std::function<std::vector<std::string>()> m_getPlayerNamesCallback;

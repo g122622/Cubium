@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 
@@ -39,8 +39,6 @@ class Fluid;
  * @brief 桶拾取处理器接口
  *
  * 实现此接口的方块可以被空桶从中取出流体。
- * 参考 MC 1.16.5 IBucketPickupHandler
- *
  * 当玩家使用空桶右键方块时，会调用 pickupFluid 方法。
  * 如果返回非空流体，则空桶变为对应流体的桶。
  */

@@ -21,19 +21,19 @@
  *
  */
 
-#include "ShulkerBoxBlock.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/inventory/ContainerTypes.hpp"
-#include "../../../item/context/BlockItemUseContext.hpp"
-#include "../../../item/core/ItemStack.hpp"
-#include "../../../util/AxisAlignedBB.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../util/assert/AssertAll.hpp"
-#include "../../IWorld.hpp"
-#include "../../blockentity/BlockEntityType.hpp"
-#include "../../blockentity/storage/ShulkerBoxEntity.hpp"
-#include "../Block.hpp"
-#include "../Material.hpp"
+#include "common/world/block/blocks/ShulkerBoxBlock.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/storage/ShulkerBoxEntity.hpp"
 
 namespace mc {
 namespace blocks {
@@ -43,7 +43,7 @@ namespace blocks {
 ShulkerBoxBlock::ShulkerBoxBlock(const BlockProperties& properties)
     : Block(properties)
 {
-    // MC 1.16.5: ShulkerBoxBlock 使用 FACING 属性（6 个方向）
+    // 潜影盒使用 FACING 属性（6 个方向）
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::FACING())
@@ -64,7 +64,7 @@ ShulkerBoxBlock::ShulkerBoxBlock(const BlockProperties& properties)
 
 BlockState ShulkerBoxBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // MC 1.16.5: 潜影盒朝向放置面
+    // 潜影盒朝向放置面
     Direction facing = context.face();
 
     // 如果放置面是 DOWN，朝向保持 DOWN；否则使用放置面
@@ -153,9 +153,8 @@ i32 ShulkerBoxBlock::getComparatorInputOverride(const BlockState& state, IWorld&
 
 void ShulkerBoxBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC 1.16.5: 潜影盒被破坏时会保留物品
-    // 物品会通过 BlockItem 保留到 ItemStack 的 NBT 中
-    // 这里不需要像普通容器那样掉落物品，因为物品会保留在潜影盒物品中
+    // 潜影盒被破坏时会保留物品，物品会通过 BlockItem 保留到 ItemStack 的 NBT 中
+    // 这里不需要像普通容器那样掉落物品
 
     // 清理方块实体
     BlockEntity* blockEntity = world.getBlockEntity(pos);
@@ -172,16 +171,14 @@ void ShulkerBoxBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const B
 
 bool ShulkerBoxBlock::canOpen(IWorld& world, const BlockPos& pos, Direction facing)
 {
-    // MC 1.16.5: 检查潜影盒打开方向是否有碰撞空间
+    // 检查潜影盒打开方向是否有碰撞空间
     AxisAlignedBB openBox = getOpenBoundingBox(pos, facing);
     return world.getBlockCollisions(openBox).empty();
 }
 
 AxisAlignedBB ShulkerBoxBlock::getOpenBoundingBox(const BlockPos& pos, Direction facing)
 {
-    // MC 1.16.5: ShulkerBoxTileEntity.getTopBoundingBox(Direction)
     // 潜影盒打开时会向朝向方向扩展
-
     f32 minX = static_cast<f32>(pos.x);
     f32 minY = static_cast<f32>(pos.y);
     f32 minZ = static_cast<f32>(pos.z);
@@ -192,8 +189,7 @@ AxisAlignedBB ShulkerBoxBlock::getOpenBoundingBox(const BlockPos& pos, Direction
     // 获取相反方向的偏移
     Direction opposite = Directions::opposite(facing);
 
-    // 向朝向方向扩展后收缩
-    // 参考 MC 的实现：先向朝向方向扩展 0.5，然后向反方向收缩 1.0
+    // 先向朝向方向扩展 0.5，然后向反方向收缩 1.0
     f32 offsetX = static_cast<f32>(Directions::xOffset(facing)) * 0.5f;
     f32 offsetY = static_cast<f32>(Directions::yOffset(facing)) * 0.5f;
     f32 offsetZ = static_cast<f32>(Directions::zOffset(facing)) * 0.5f;

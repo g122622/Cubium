@@ -44,8 +44,6 @@ namespace blocks {
  *
  * 状态属性：
  * - AGE_0_15: 年龄（用于生长计时）
- *
- * 参考: net.minecraft.block.SugarCaneBlock
  */
 class SugarCaneBlock : public Block {
 public:
@@ -93,7 +91,7 @@ private:
     /**
      * @brief 检查是否可以放置甘蔗（检查水）
      */
-    [[nodiscard]] bool isNearWater(IBlockReader& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isNearWater(IBlockReader& world, const BlockPos& pos) const;
 
     CollisionShape m_shape;
 };

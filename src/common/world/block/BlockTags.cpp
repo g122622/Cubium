@@ -31,7 +31,7 @@ namespace mc {
 // BlockTag Implementation
 // ============================================================================
 
-BlockTag::BlockTag(ResourceLocation id)
+BlockTag::BlockTag(ResourceLocation id) noexcept
     : m_id(std::move(id))
 {}
 
@@ -47,7 +47,7 @@ void BlockTag::addAll(const std::vector<ResourceLocation>& blockIds)
     }
 }
 
-bool BlockTag::contains(const ResourceLocation& blockId) const
+bool BlockTag::contains(const ResourceLocation& blockId) const noexcept
 {
     return m_blockIds.find(blockId) != m_blockIds.end();
 }
@@ -76,7 +76,7 @@ bool BlockTag::contains(const BlockState& state) const
 
 bool BlockTags::s_initialized = false;
 
-std::unordered_map<ResourceLocation, std::unique_ptr<BlockTag>>& BlockTags::getTags()
+std::unordered_map<ResourceLocation, std::unique_ptr<BlockTag>>& BlockTags::_getTags()
 {
     static std::unordered_map<ResourceLocation, std::unique_ptr<BlockTag>> tags;
     return tags;
@@ -340,7 +340,7 @@ void BlockTags::initialize()
         return;
     }
 
-    auto& tags = getTags();
+    auto& tags = _getTags();
 
     // 创建 LOGS 标签
     auto logs = std::make_unique<BlockTag>(ResourceLocation("minecraft", "logs"));
@@ -447,7 +447,7 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "soul_sand")});
     tags[sand->getId()] = std::move(sand);
 
-    // 创建 STONE 标签（MC 1.16.5 stone 标签仅包含 stone 方块）
+    // 创建 STONE 标签
     auto stone = std::make_unique<BlockTag>(ResourceLocation("minecraft", "stone"));
     stone->addAll({ResourceLocation("minecraft", "stone"),
         ResourceLocation("minecraft", "granite"),
@@ -464,7 +464,6 @@ void BlockTags::initialize()
     tags[fire->getId()] = std::move(fire);
 
     // 创建 SOUL_FIRE_BASE_BLOCKS 标签（灵魂火基座方块）
-    // 参考 MC 1.16.5: Blocks.SOUL_SAND, Blocks.SOUL_SOIL
     auto soulFireBaseBlocks = std::make_unique<BlockTag>(ResourceLocation("minecraft", "soul_fire_base_blocks"));
     soulFireBaseBlocks->addAll(
         {ResourceLocation("minecraft", "soul_sand"), ResourceLocation("minecraft", "soul_soil")});
@@ -505,8 +504,6 @@ void BlockTags::initialize()
     tags[bambooPlantableOn->getId()] = std::move(bambooPlantableOn);
 
     // 创建 VALID_SWEET_BERRY_BUSH_GROUND 标签
-    // 参考 MC 1.16.5 SweetBerryBushBlock.isValidGround()
-    // Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.COARSE_DIRT, Blocks.PODZOL, Blocks.FARMLAND
     auto sweetBerryBushGround =
         std::make_unique<BlockTag>(ResourceLocation("minecraft", "valid_sweet_berry_bush_ground"));
     sweetBerryBushGround->addAll({ResourceLocation("minecraft", "grass_block"),
@@ -517,7 +514,6 @@ void BlockTags::initialize()
     tags[sweetBerryBushGround->getId()] = std::move(sweetBerryBushGround);
 
     // 创建 WALL_CORALS 标签（墙珊瑚扇）
-    // 参考 MC 1.16.5 BlockTags.WALL_CORALS
     // 包含所有活的和死的墙珊瑚扇
     auto wallCorals = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wall_corals"));
     wallCorals->addAll({// 活的墙珊瑚扇
@@ -535,7 +531,6 @@ void BlockTags::initialize()
     tags[wallCorals->getId()] = std::move(wallCorals);
 
     // 创建 UNDERWATER_BONEMEALS 标签（水下骨粉可催熟方块）
-    // 参考 MC 1.16.5 BlockTags.UNDERWATER_BONEMEALS
     // 包含海草、海带、各种珊瑚扇（活的）
     auto underwaterBonemeals = std::make_unique<BlockTag>(ResourceLocation("minecraft", "underwater_bonemeals"));
     underwaterBonemeals->addAll({// 海草和海带
@@ -550,14 +545,12 @@ void BlockTags::initialize()
     tags[underwaterBonemeals->getId()] = std::move(underwaterBonemeals);
 
     // 创建 STRIDER_WARM_BLOCKS 标签（炽足兽温暖方块）
-    // 参考 MC 1.16.5 BlockTags.STRIDER_WARM_BLOCKS
     // 只包含熔岩方块
     auto striderWarmBlocks = std::make_unique<BlockTag>(ResourceLocation("minecraft", "strider_warm_blocks"));
     striderWarmBlocks->addAll({ResourceLocation("minecraft", "lava")});
     tags[striderWarmBlocks->getId()] = std::move(striderWarmBlocks);
 
     // 创建 SMALL_FLOWERS 标签（小花朵）
-    // 参考 MC 1.16.5: BlockTags.SMALL_FLOWERS
     auto smallFlowers = std::make_unique<BlockTag>(ResourceLocation("minecraft", "small_flowers"));
     smallFlowers->addAll({ResourceLocation("minecraft", "dandelion"),
         ResourceLocation("minecraft", "poppy"),
@@ -575,7 +568,6 @@ void BlockTags::initialize()
     tags[smallFlowers->getId()] = std::move(smallFlowers);
 
     // 创建 TALL_FLOWERS 标签（高花朵）
-    // 参考 MC 1.16.5: BlockTags.TALL_FLOWERS
     auto tallFlowers = std::make_unique<BlockTag>(ResourceLocation("minecraft", "tall_flowers"));
     tallFlowers->addAll({ResourceLocation("minecraft", "sunflower"),
         ResourceLocation("minecraft", "lilac"),
@@ -584,13 +576,11 @@ void BlockTags::initialize()
     tags[tallFlowers->getId()] = std::move(tallFlowers);
 
     // 创建 BEEHIVES 标签（蜂巢/蜂箱）
-    // 参考 MC 1.16.5: BlockTags.BEEHIVES
     auto beehives = std::make_unique<BlockTag>(ResourceLocation("minecraft", "beehives"));
     beehives->addAll({ResourceLocation("minecraft", "beehive"), ResourceLocation("minecraft", "bee_nest")});
     tags[beehives->getId()] = std::move(beehives);
 
     // 创建 BEE_GROWABLES 标签（蜜蜂可授粉作物）
-    // 参考 MC 1.16.5: BlockTags.BEE_GROWABLES
     auto beeGrowables = std::make_unique<BlockTag>(ResourceLocation("minecraft", "bee_growables"));
     beeGrowables->addAll({// 农作物
         ResourceLocation("minecraft", "wheat"),
@@ -605,7 +595,6 @@ void BlockTags::initialize()
     tags[beeGrowables->getId()] = std::move(beeGrowables);
 
     // 创建 ENDERMAN_HOLDABLE 标签（末影人可拾取方块）
-    // 参考 MC 1.16.5: BlockTags.ENDERMAN_HOLDABLE
     // 包含：泥土类、沙子类、蘑菇、花、仙人掌、南瓜/西瓜、TNT、下界方块
     auto endermanHoldable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "enderman_holdable"));
     endermanHoldable->addAll({// 泥土类
@@ -695,7 +684,6 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "stripped_warped_stem")});
 
     // 创建 WITHER_IMMUNE 标签（凋灵免疫方块）
-    // 参考 MC 1.16.5: BlockTags.WITHER_IMMUNE
     // 凋灵无法破坏这些方块（基岩、屏障、末地传送门、命令方块等）
     auto witherImmune = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wither_immune"));
     witherImmune->addAll({// 屏障方块
@@ -724,7 +712,7 @@ void BlockTags::initialize()
 
 BlockTag* BlockTags::getTag(const ResourceLocation& id)
 {
-    auto& tags = getTags();
+    auto& tags = _getTags();
     auto it = tags.find(id);
     if (it != tags.end()) {
         return it->second.get();
@@ -734,7 +722,7 @@ BlockTag* BlockTags::getTag(const ResourceLocation& id)
 
 void BlockTags::forEachTag(std::function<void(BlockTag&)> callback)
 {
-    auto& tags = getTags();
+    auto& tags = _getTags();
     for (auto& [id, tag] : tags) {
         callback(*tag);
     }

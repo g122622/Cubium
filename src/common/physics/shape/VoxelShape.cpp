@@ -22,7 +22,9 @@
  */
 
 #include "VoxelShape.hpp"
+
 #include "Shapes.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -225,8 +227,7 @@ VoxelShape VoxelShape::move(const Vector3& delta) const
 
 VoxelShape VoxelShape::optimize() const
 {
-    // 简化实现：收集所有盒子并合并
-    // 完整实现应该使用更复杂的优化算法
+    // TODO: 完整实现应该使用更复杂的优化算法，当前简化实现收集所有盒子并合并
 
     if (isEmpty()) {
         return Shapes::empty();
@@ -303,14 +304,14 @@ VoxelShape VoxelShape::getFaceShape(Direction dir) const
             return m_faces[idx];
         }
 
-        m_faces[idx] = calculateFace(dir);
+        m_faces[idx] = _calculateFace(dir);
         return m_faces[idx];
     }
 
     return *this;
 }
 
-VoxelShape VoxelShape::calculateFace(Direction dir) const
+VoxelShape VoxelShape::_calculateFace(Direction dir) const
 {
     const Axis axis = Directions::getAxis(dir);
     if (isCubeLikeAlong(axis)) {
@@ -374,10 +375,10 @@ f64 getAABBMax(const AxisAlignedBB& box, Axis axis)
 
 f64 VoxelShape::collide(Axis axis, const AxisAlignedBB& entityBox, f64 movement) const
 {
-    return collideX(AxisCycles::between(axis, Axis::X), entityBox, movement);
+    return _collideX(AxisCycles::between(axis, Axis::X), entityBox, movement);
 }
 
-f64 VoxelShape::collideX(AxisCycle cycle, const AxisAlignedBB& entityBox, f64 movement) const
+f64 VoxelShape::_collideX(AxisCycle cycle, const AxisAlignedBB& entityBox, f64 movement) const
 {
     if (isEmpty()) {
         return movement;
@@ -667,11 +668,6 @@ bool VoxelShape::contains(f64 x, f64 y, f64 z) const
         return false;
     }
 
-    // 参考MC 1.16.5 VoxelShape.contains():
-    // return this.part.contains(this.getClosestIndex(Direction.Axis.X, x),
-    //                             this.getClosestIndex(Direction.Axis.Y, y),
-    //                             this.getClosestIndex(Direction.Axis.Z, z));
-
     const i32 xi = findIndex(Axis::X, x);
     const i32 yi = findIndex(Axis::Y, y);
     const i32 zi = findIndex(Axis::Z, z);
@@ -683,13 +679,13 @@ bool VoxelShape::contains(f64 x, f64 y, f64 z) const
 // 内部方法
 // ============================================================================
 
-bool VoxelShape::isCubePointRange(Axis axis) const
+bool VoxelShape::_isCubePointRange(Axis axis) const
 {
     const std::vector<f64>& coords = getCoords(axis);
     return coords.size() == 2 && std::abs(coords[0]) < EPSILON && std::abs(coords[1] - 1.0) < EPSILON;
 }
 
-void VoxelShape::initFaceCache() const
+void VoxelShape::_initFaceCache() const
 {
     if (!m_faces) {
         m_faces = std::make_unique<VoxelShape[]>(6);

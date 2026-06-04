@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../redstone/RedstonePower.hpp"
-#include "../../Block.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/redstone/RedstonePower.hpp"
 
 namespace mc {
 
@@ -49,8 +49,6 @@ namespace blocks {
  * - 信号强度计算需要正确的实体计数
  * - 需要处理玩家/生物/物品的不同检测
  * - 支撑方块移除时压力板掉落
- *
- * 参考: net.minecraft.block.AbstractPressurePlateBlock
  */
 class AbstractPressurePlateBlock : public Block {
 public:
@@ -73,8 +71,6 @@ public:
      * @brief 实体碰撞回调
      *
      * 当实体踩上压力板时触发状态更新。
-     *
-     * 参考 MC 1.16.5: AbstractPressurePlateBlock.onEntityCollision
      */
     void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 

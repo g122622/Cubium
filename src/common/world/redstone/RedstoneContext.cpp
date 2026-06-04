@@ -45,17 +45,17 @@ void RedstoneContext::endUpdate(const BlockPos& pos)
     m_updatingPositions.erase(pos);
 }
 
-bool RedstoneContext::canPushDepth() const
+bool RedstoneContext::canPushDepth() const noexcept
 {
     return m_depth.load(std::memory_order_relaxed) < MAX_DEPTH;
 }
 
-void RedstoneContext::pushDepth()
+void RedstoneContext::pushDepth() noexcept
 {
     m_depth.fetch_add(1, std::memory_order_relaxed);
 }
 
-void RedstoneContext::popDepth()
+void RedstoneContext::popDepth() noexcept
 {
     i32 current = m_depth.load(std::memory_order_relaxed);
     while (current > 0) {

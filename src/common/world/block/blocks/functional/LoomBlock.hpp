@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../Material.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 #include <array>
 
 namespace mc {
@@ -54,7 +54,7 @@ public:
      * @param properties 方块属性
      */
     explicit LoomBlock(const BlockProperties& properties);
-    ~LoomBlock() override = default;
+    ~LoomBlock() noexcept override = default;
 
     // ========== 状态属性 ==========
 

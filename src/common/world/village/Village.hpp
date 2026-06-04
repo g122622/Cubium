@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../block/BlockPos.hpp"
-#include "VillageGossip.hpp"
-#include "poi/PointOfInterestStorage.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/village/VillageGossip.hpp"
+#include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include <optional>
 #include <unordered_map>
 #include <unordered_set>
@@ -90,8 +90,6 @@ using VillageId = u64;
  * - 流言/声誉系统
  * - 铃铛（聚集点）
  * - 袭击状态
- *
- * 参考 MC 1.16.5 Village
  */
 class Village {
 public:
@@ -106,25 +104,25 @@ public:
     /**
      * @brief 获取村庄ID
      */
-    [[nodiscard]] VillageId getId() const { return m_id; }
+    [[nodiscard]] VillageId getId() const noexcept { return m_id; }
 
     /**
      * @brief 设置村庄ID（仅由 VillageManager 调用）
      * @param id 村庄ID
      */
-    void setId(VillageId id) { m_id = id; }
+    void setId(VillageId id) noexcept { m_id = id; }
 
     // ========== 边界管理 ==========
 
     /**
      * @brief 获取村庄中心
      */
-    [[nodiscard]] BlockPos getCenter() const { return m_center; }
+    [[nodiscard]] BlockPos getCenter() const noexcept { return m_center; }
 
     /**
      * @brief 获取村庄半径
      */
-    [[nodiscard]] f32 getRadius() const { return m_radius; }
+    [[nodiscard]] f32 getRadius() const noexcept { return m_radius; }
 
     /**
      * @brief 检查位置是否在村庄内
@@ -166,19 +164,19 @@ public:
     /**
      * @brief 获取所有村民ID
      */
-    [[nodiscard]] const std::unordered_set<u64>& getVillagers() const { return m_villagers; }
+    [[nodiscard]] const std::unordered_set<u64>& getVillagers() const noexcept { return m_villagers; }
 
     /**
      * @brief 获取村民数量
      */
-    [[nodiscard]] i32 getPopulation() const { return static_cast<i32>(m_villagers.size()); }
+    [[nodiscard]] i32 getPopulation() const noexcept { return static_cast<i32>(m_villagers.size()); }
 
     // ========== 床位和繁殖 ==========
 
     /**
      * @brief 获取床位数量
      */
-    [[nodiscard]] i32 getBedCount() const { return m_bedCount; }
+    [[nodiscard]] i32 getBedCount() const noexcept { return m_bedCount; }
 
     /**
      * @brief 获取可用床位数（床位数 - 村民数）
@@ -189,7 +187,7 @@ public:
      * @brief 更新床位计数
      * @param count 新的床位数量
      */
-    void setBedCount(i32 count) { m_bedCount = count; }
+    void setBedCount(i32 count) noexcept { m_bedCount = count; }
 
     /**
      * @brief 检查村庄是否可以繁殖更多村民
@@ -201,42 +199,45 @@ public:
     /**
      * @brief 获取工作站数量
      */
-    [[nodiscard]] i32 getWorkstationCount() const { return m_workstationCount; }
+    [[nodiscard]] i32 getWorkstationCount() const noexcept { return m_workstationCount; }
 
     /**
      * @brief 更新工作站计数
      */
-    void setWorkstationCount(i32 count) { m_workstationCount = count; }
+    void setWorkstationCount(i32 count) noexcept { m_workstationCount = count; }
 
     // ========== 聚集点 ==========
 
     /**
      * @brief 获取聚集点（钟的位置）
      */
-    [[nodiscard]] std::optional<BlockPos> getMeetingPoint() const { return m_meetingPoint; }
+    [[nodiscard]] std::optional<BlockPos> getMeetingPoint() const noexcept { return m_meetingPoint; }
 
     /**
      * @brief 设置聚集点
      */
-    void setMeetingPoint(BlockPos pos) { m_meetingPoint = pos; }
+    void setMeetingPoint(BlockPos pos) noexcept { m_meetingPoint = pos; }
 
     /**
      * @brief 检查是否有聚集点
      */
-    [[nodiscard]] bool hasMeetingPoint() const { return m_meetingPoint.has_value(); }
+    [[nodiscard]] bool hasMeetingPoint() const noexcept { return m_meetingPoint.has_value(); }
 
     // ========== 流言/声誉系统 ==========
 
     /**
      * @brief 获取流言管理器
      */
-    [[nodiscard]] VillageGossipManager& getGossipManager() { return m_gossipManager; }
-    [[nodiscard]] const VillageGossipManager& getGossipManager() const { return m_gossipManager; }
+    [[nodiscard]] VillageGossipManager& getGossipManager() noexcept { return m_gossipManager; }
+    [[nodiscard]] const VillageGossipManager& getGossipManager() const noexcept { return m_gossipManager; }
 
     /**
      * @brief 添加流言（便捷方法）
+     * @param playerId 玩家ID
+     * @param type 流言类型
+     * @param value 流言值
      */
-    void addGossip(u64 playerId, VillageGossipType type, i32 value = 1)
+    void addGossip(u64 playerId, VillageGossipType type, i32 value)
     {
         m_gossipManager.addGossip(playerId, type, value);
     }
@@ -256,22 +257,22 @@ public:
     /**
      * @brief 检查村庄是否正在被袭击
      */
-    [[nodiscard]] bool isUnderRaid() const { return m_underRaid; }
+    [[nodiscard]] bool isUnderRaid() const noexcept { return m_underRaid; }
 
     /**
      * @brief 设置袭击状态
      */
-    void setUnderRaid(bool underRaid) { m_underRaid = underRaid; }
+    void setUnderRaid(bool underRaid) noexcept { m_underRaid = underRaid; }
 
     /**
      * @brief 获取上次袭击时间
      */
-    [[nodiscard]] i64 getLastRaidTime() const { return m_lastRaidTime; }
+    [[nodiscard]] i64 getLastRaidTime() const noexcept { return m_lastRaidTime; }
 
     /**
      * @brief 设置上次袭击时间
      */
-    void setLastRaidTime(i64 time) { m_lastRaidTime = time; }
+    void setLastRaidTime(i64 time) noexcept { m_lastRaidTime = time; }
 
     // ========== Tick更新 ==========
 
@@ -279,9 +280,9 @@ public:
      * @brief 每游戏tick更新
      * @param world 世界接口
      * @param gameTime 当前游戏时间
-     * @param poiStorage POI存储（可选，用于更新POI统计和工作站绑定）
+     * @param poiStorage POI存储（用于更新POI统计和工作站绑定）
      */
-    void tick(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage = nullptr);
+    void tick(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage);
 
     // ========== 常量 ==========
 
@@ -289,8 +290,7 @@ public:
     static constexpr i64 POI_STAT_UPDATE_INTERVAL = 1200;
 
     /// 村民超时时间（6000 tick = 5 分钟不在村庄范围内视为离开）
-    /// MC 1.16.5 中村民通过 Brain 记忆和工作站绑定自动与村庄关联，
-    /// 这里使用超时作为简化的离开检测
+    /// 使用超时作为简化的离开检测
     static constexpr i64 VILLAGER_TIMEOUT = 6000;
 
     // ========== 序列化 ==========
@@ -310,13 +310,12 @@ private:
      * @brief 检查并更新村民列表
      *
      * 移除离开村庄范围超过指定时间的村民，并释放其占用的 POI。
-     * 参考 MC 1.16.5: 没有显式的村民移除逻辑，村民离开后由 VillageManager 管理重新分配。
      *
      * @param world 世界接口（用于获取实体）
      * @param gameTime 当前游戏时间
      * @param poiStorage POI存储（用于释放离开村民的占用）
      */
-    void tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage);
+    void _tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage);
 
     /**
      * @brief 更新 POI 统计
@@ -325,18 +324,17 @@ private:
      *
      * @param poiStorage POI存储
      */
-    void tickPOIStats(const poi::PointOfInterestStorage& poiStorage);
+    void _tickPOIStats(const poi::PointOfInterestStorage& poiStorage);
 
     /**
      * @brief 检查袭击状态
      *
      * 如果袭击结束，更新袭击状态和时间。
-     * 参考 MC 1.16.5: Raid.tick() 中更新村庄状态。
      *
      * @param world 世界接口
      * @param gameTime 当前游戏时间
      */
-    void tickRaidCheck(IWorld& world, i64 gameTime);
+    void _tickRaidCheck(IWorld& world, i64 gameTime);
 
     /**
      * @brief 查找聚集点（钟）
@@ -346,7 +344,7 @@ private:
      * @param poiStorage POI存储
      * @return 如果找到返回钟的位置，否则返回空
      */
-    [[nodiscard]] std::optional<BlockPos> findMeetingPoint(const poi::PointOfInterestStorage& poiStorage) const;
+    [[nodiscard]] std::optional<BlockPos> _findMeetingPoint(const poi::PointOfInterestStorage& poiStorage) const;
 
     /// 村庄ID（由 VillageManager 分配）
     VillageId m_id = 0;
@@ -382,8 +380,7 @@ private:
     i64 m_createdTime = 0;
 
     /// 村民最后出现时间（用于范围检查）
-    /// MC 1.16.5 没有显式的村民超时移除，村民由 VillageManager 管理
-    /// 但我们保留此映射用于优化，避免每tick都检查所有村民
+    /// 保留此映射用于优化，避免每tick都检查所有村民
     std::unordered_map<u64, i64> m_villagerLastSeenTime;
 
     /// 上次 POI 统计更新时间

@@ -29,7 +29,7 @@ namespace mc {
 // PlacementRegistry 实现
 // ============================================================================
 
-PlacementRegistry& PlacementRegistry::instance()
+PlacementRegistry& PlacementRegistry::instance() noexcept
 {
     static PlacementRegistry s_instance;
     return s_instance;
@@ -70,7 +70,7 @@ void PlacementRegistry::registerPlacement(const std::string& name, std::unique_p
     m_placements[name] = std::move(placement);
 }
 
-const Placement* PlacementRegistry::get(const std::string& name) const
+const Placement* PlacementRegistry::get(const std::string& name) const noexcept
 {
     auto it = m_placements.find(name);
     return it != m_placements.end() ? it->second.get() : nullptr;

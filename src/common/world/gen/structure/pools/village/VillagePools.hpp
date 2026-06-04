@@ -34,8 +34,6 @@ namespace pools {
 /**
  * @brief 村庄模板池统一注册入口
  *
- * 参考 MC 1.16.5: net.minecraft.world.gen.feature.structure.VillagesPools
- *
  * 管理 5 种村庄类型的模板池：
  * - 平原村庄 (PlainsVillagePools)
  * - 沙漠村庄 (DesertVillagePools)
@@ -58,7 +56,7 @@ void registerAll(JigsawPatternRegistry& registry);
 /**
  * @brief 注册公共模板池
  *
- * MC 1.16.5 参考:
+ * 注册公共池：
  * - village/common/animals
  * - village/common/cats
  * - village/common/iron_golem
@@ -82,8 +80,6 @@ bool isRegistered();
 /**
  * @brief 平原村庄模板池
  *
- * MC 1.16.5: PlainsVillagePools.java
- *
  * 模板池:
  * - village/plains/town_centers (起始池)
  * - village/plains/streets
@@ -103,8 +99,6 @@ void registerAll(JigsawPatternRegistry& registry);
 
 /**
  * @brief 沙漠村庄模板池
- *
- * MC 1.16.5: DesertVillagePools.java
  */
 namespace DesertVillagePools {
 void registerAll(JigsawPatternRegistry& registry);
@@ -112,8 +106,6 @@ void registerAll(JigsawPatternRegistry& registry);
 
 /**
  * @brief 热带草原村庄模板池
- *
- * MC 1.16.5: SavannaVillagePools.java
  */
 namespace SavannaVillagePools {
 void registerAll(JigsawPatternRegistry& registry);
@@ -121,8 +113,6 @@ void registerAll(JigsawPatternRegistry& registry);
 
 /**
  * @brief 雪地村庄模板池
- *
- * MC 1.16.5: SnowyVillagePools.java
  */
 namespace SnowyVillagePools {
 void registerAll(JigsawPatternRegistry& registry);
@@ -130,8 +120,6 @@ void registerAll(JigsawPatternRegistry& registry);
 
 /**
  * @brief 针叶林村庄模板池
- *
- * MC 1.16.5: TaigaVillagePools.java
  */
 namespace TaigaVillagePools {
 void registerAll(JigsawPatternRegistry& registry);

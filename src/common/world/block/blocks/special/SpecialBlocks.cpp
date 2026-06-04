@@ -95,7 +95,6 @@ StructureBlock::StructureBlock(const BlockProperties& properties)
     : Block(properties)
 {
     // 创建状态容器，添加 MODE 属性
-    // 参考 MC 1.16.5: StructureBlock.fillStateContainer() - builder.add(MODE)
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::STRUCTURE_MODE())
@@ -109,7 +108,6 @@ StructureBlock::StructureBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     // 设置默认状态：DATA 模式
-    // 参考 MC 1.16.5: StructureBlock.getStateForPlacement() - 默认为 DATA 模式
     setDefaultState(defaultState().with(BlockStateProperties::STRUCTURE_MODE(), Mode::Data));
 }
 
@@ -120,7 +118,6 @@ StructureBlock::Mode StructureBlock::getMode(const BlockState& state) const
 
 BlockState StructureBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // MC 1.16.5: StructureBlock.getStateForPlacement()
     // 放置时默认为 DATA 模式
     MC_UNUSED(context);
     return defaultState();
@@ -151,7 +148,6 @@ JigsawBlock::JigsawBlock(const BlockProperties& properties)
     : Block(properties)
 {
     // 创建状态容器，添加 ORIENTATION 属性
-    // 参考 MC 1.16.5: JigsawBlock.fillStateContainer() - builder.add(ORIENTATION)
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::ORIENTATION())
@@ -165,24 +161,23 @@ JigsawBlock::JigsawBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     // 设置默认状态：NorthUp
-    // 参考 MC 1.16.5: JigsawBlock.getDefaultState()
     setDefaultState(
         defaultState().with(BlockStateProperties::ORIENTATION(), world::gen::jigsaw::JigsawOrientation::NorthUp));
 }
 
 const BlockState& JigsawBlock::rotate(const BlockState& state, Rotation rotation) const
 {
-    // MC 1.16.5: JigsawBlock.rotate()
     world::gen::jigsaw::JigsawOrientation orientation = state.get(BlockStateProperties::ORIENTATION());
-    world::gen::jigsaw::JigsawOrientation newOrientation = world::gen::jigsaw::JigsawOrientations::rotate(orientation, rotation);
+    world::gen::jigsaw::JigsawOrientation newOrientation =
+        world::gen::jigsaw::JigsawOrientations::rotate(orientation, rotation);
     return state.with(BlockStateProperties::ORIENTATION(), newOrientation);
 }
 
 const BlockState& JigsawBlock::mirror(const BlockState& state, Mirror mirror) const
 {
-    // MC 1.16.5: JigsawBlock.mirror()
     world::gen::jigsaw::JigsawOrientation orientation = state.get(BlockStateProperties::ORIENTATION());
-    world::gen::jigsaw::JigsawOrientation newOrientation = world::gen::jigsaw::JigsawOrientations::mirror(orientation, mirror);
+    world::gen::jigsaw::JigsawOrientation newOrientation =
+        world::gen::jigsaw::JigsawOrientations::mirror(orientation, mirror);
     return state.with(BlockStateProperties::ORIENTATION(), newOrientation);
 }
 
@@ -261,7 +256,6 @@ void CommandBlock::neighborChanged(
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    // MC 1.16.5: CommandBlock.neighborChanged()
     // 客户端不处理红石逻辑
     if (world.isClientSide()) {
         return;
@@ -294,7 +288,7 @@ void CommandBlock::neighborChanged(
             commandEntity->checkCondition(
                 world, getFacing(*world.getBlockState(pos)), isConditional(*world.getBlockState(pos)));
 
-            // 延迟 1 tick 后执行（MC 1.16.5 行为）
+            // 延迟 1 tick 后执行
             world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::High);
         }
     }
@@ -358,7 +352,6 @@ std::unique_ptr<BlockEntity> CommandBlock::createBlockEntity(const BlockPos& pos
 void CommandBlock::execute(
     IWorld& world, const BlockPos& pos, const BlockState& state, blockentity::CommandBlockEntity* commandEntity)
 {
-    // MC 1.16.5: CommandBlock.execute()
     if (commandEntity == nullptr) {
         return;
     }
@@ -380,16 +373,14 @@ void CommandBlock::execute(
     executeChain(world, pos, getFacing(state));
 
     // TODO: 更新比较器输出（需要 IWorld::updateComparators 支持）
-    // MC 1.16.5: world.updateComparators(pos, this);
     // 比较器可以检测命令方块的成功计数
 }
 
 void CommandBlock::executeChain(IWorld& world, const BlockPos& pos, Direction facing)
 {
-    // MC 1.16.5: CommandBlock.executeChain()
     // 沿着 FACING 方向查找并触发连锁命令方块
 
-    // 最大链长度限制（MC 1.16.5 默认值）
+    // 最大链长度限制
     constexpr i32 MAX_CHAIN_LENGTH = 65536;
 
     BlockPos currentPos = pos;
@@ -450,7 +441,6 @@ void CommandBlock::executeChain(IWorld& world, const BlockPos& pos, Direction fa
         }
 
         // TODO: 更新比较器输出（需要 IWorld::updateComparators 支持）
-        // MC 1.16.5: world.updateComparators(currentPos, nextBlock);
         // 比较器可以检测命令方块的成功计数
 
         // 继续链
@@ -468,7 +458,6 @@ void RepeatingCommandBlock::tick(IWorld& world, const BlockPos& pos, BlockState&
 {
     MC_UNUSED(random);
 
-    // MC 1.16.5: RepeatingCommandBlock.tick()
     // 获取方块实体
     BlockEntity* entity = world.getBlockEntity(pos);
     if (entity == nullptr || entity->getType() != BlockEntityType::CommandBlock) {
@@ -521,7 +510,6 @@ SlimeBlock::SlimeBlock(const BlockProperties& properties)
 
 void SlimeBlock::onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    // MC 1.16.5: SlimeBlock.onLanded
     // 如果实体向下落，反弹
     // 反弹系数：LivingEntity 使用 1.0，其他实体使用 0.8
     MC_UNUSED(state);
@@ -531,7 +519,6 @@ void SlimeBlock::onLanded(const BlockState& state, IWorld& world, const BlockPos
     Vector3 velocity = entity.velocity();
     if (velocity.y < 0.0f) {
         // 反弹：Y速度取反并乘以弹跳系数
-        // MC 1.16.5: this.setMotion(vec3d.x, -vec3d.y * 0.9D, vec3d.z);
         // 使用非生物实体的弹跳系数（保守值），LivingEntity 会单独处理
         entity.setVelocity(velocity.x, -velocity.y * physics::SLIME_BLOCK_BOUNCE_FACTOR_NON_LIVING, velocity.z);
     } else {
@@ -542,7 +529,6 @@ void SlimeBlock::onLanded(const BlockState& state, IWorld& world, const BlockPos
 
 void SlimeBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    // MC 1.16.5: SlimeBlock.onEntityCollision
     // 史莱姆块会减缓实体的Y轴速度（类似于蜘蛛网的效果，但更温和）
     MC_UNUSED(state);
     MC_UNUSED(world);
@@ -560,15 +546,13 @@ Material::PushReaction SlimeBlock::getPushReaction(const BlockState& state) cons
 bool SlimeBlock::isStickyBlock(const BlockState& state) const
 {
     MC_UNUSED(state);
-    // MC 1.16.5: SlimeBlock.isStickyBlock returns true
     return true;
 }
 
 bool SlimeBlock::canStickTo(const BlockState& state, const BlockState& other) const
 {
     MC_UNUSED(state);
-    // MC 1.16.5: SlimeBlock.canStickTo
-    // 黏液块可以粘住黏液块和蜂蜜块
+    // 史莱姆块可以粘住史莱姆块和蜂蜜块
     const Block& otherBlock = other.getBlock();
     return otherBlock.isStickyBlock(other);
 }
@@ -578,7 +562,8 @@ bool SlimeBlock::canStickTo(const BlockState& state, const BlockState& other) co
 HoneyBlock::HoneyBlock(const BlockProperties& properties)
     : Block(properties)
 {
-    // 蜂蜜块滑度为 0.98 (MC 1.16.5: Blocks.java:445)
+    // 蜂蜜块滑度为 0.98
+    // TODO: 应使用 PhysicsConstants 中的常量替代硬编码值，但当前未定义 SLIPPERINESS_HONEY
     m_slipperiness = 0.98f;
     // 蜂蜜块跳跃因子为 0.5
     m_jumpFactor = physics::HONEY_BLOCK_JUMP_FACTOR;
@@ -589,7 +574,6 @@ HoneyBlock::HoneyBlock(const BlockProperties& properties)
 
 void HoneyBlock::onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    // MC 1.16.5: HoneyBlock.onLanded
     // 蜂蜜块消除摔落伤害，但不弹跳
     MC_UNUSED(state);
     MC_UNUSED(world);
@@ -604,7 +588,6 @@ void HoneyBlock::onLanded(const BlockState& state, IWorld& world, const BlockPos
 
 void HoneyBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    // MC 1.16.5: HoneyBlock.onEntityCollision
     // 蜂蜜块减缓实体速度
     MC_UNUSED(state);
     MC_UNUSED(world);
@@ -613,7 +596,6 @@ void HoneyBlock::onEntityCollision(const BlockState& state, IWorld& world, const
     Vector3 velocity = entity.velocity();
     // 水平速度减少 40%（乘以 0.4）
     // 垂直下落速度减少（下落时每 tick 减速）
-    // MC 1.16.5: entity.setMotion(entity.getMotion().mul(0.4D, 0.9D, 0.4D));
     entity.setVelocity(velocity.x * 0.4f, velocity.y * 0.9f, velocity.z * 0.4f);
 }
 
@@ -626,16 +608,13 @@ Material::PushReaction HoneyBlock::getPushReaction(const BlockState& state) cons
 bool HoneyBlock::isStickyBlock(const BlockState& state) const
 {
     MC_UNUSED(state);
-    // MC 1.16.5: HoneyBlock.isStickyBlock returns true
     return true;
 }
 
 bool HoneyBlock::canStickTo(const BlockState& state, const BlockState& other) const
 {
     MC_UNUSED(state);
-    // MC 1.16.5: HoneyBlock.canStickTo
-    // 蜂蜜块只能粘住蜂蜜块（不能粘住黏液块）
-    // 参考: AbstractBlock.AbstractBlockState.canStickTo
+    // 蜂蜜块只能粘住蜂蜜块（不能粘住史莱姆块）
     // 如果两个都是蜂蜜块，则可以粘连
     // 检查 other 方块是否是蜂蜜块
     return other.is(VanillaBlocks::HONEY_BLOCK);
@@ -662,7 +641,6 @@ bool SpongeBlock::tryAbsorbWater(IWorld& world, const BlockPos& pos)
         world.setBlockState(pos, &wetSpongeState, 3);
 
         // 播放水被吸收的视觉效果（事件 2001，data 为水的方块状态 ID）
-        // MC 1.16.5: world.playEvent(2001, pos, Block.getStateId(Blocks.WATER.getDefaultState()));
         const BlockState& waterState = VanillaBlocks::WATER->defaultState();
         world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos, waterState.stateId());
 
@@ -674,19 +652,18 @@ bool SpongeBlock::tryAbsorbWater(IWorld& world, const BlockPos& pos)
 void SpongeBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     MC_UNUSED(state);
-    // MC 1.16.5: 放置时尝试吸水
+    // 放置时尝试吸水
     tryAbsorbWater(world, pos);
 }
 
 void SpongeBlock::neighborChanged(
     IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
 {
-
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    // MC 1.16.5: 邻居更新时尝试吸水
+    // 邻居更新时尝试吸水
     tryAbsorbWater(world, pos);
 
     // 调用基类方法
@@ -695,7 +672,6 @@ void SpongeBlock::neighborChanged(
 
 i32 SpongeBlock::absorb(IWorld& world, const BlockPos& pos)
 {
-    // MC 1.16.5: SpongeBlock.absorb()
     // 使用 BFS 搜索周围的水方块
 
     // 队列元素：(位置, 深度)
@@ -736,7 +712,6 @@ i32 SpongeBlock::absorb(IWorld& world, const BlockPos& pos)
             Block& block = const_cast<Block&>(blockState->getBlock());
 
             // 情况1：可舀取的水源（如水源方块）
-            // MC 1.16.5: if (blockstate.getBlock() instanceof IBucketPickupHandler)
             IBucketPickupHandler* bucketPickup = dynamic_cast<IBucketPickupHandler*>(&block);
             if (bucketPickup != nullptr) {
                 fluid::Fluid* pickedFluid = bucketPickup->pickupFluid(world, neighborPos, *blockState);
@@ -749,7 +724,6 @@ i32 SpongeBlock::absorb(IWorld& world, const BlockPos& pos)
                 }
             }
             // 情况2：流动水方块
-            // MC 1.16.5: else if (blockstate.getBlock() instanceof FlowingFluidBlock)
             else if (dynamic_cast<block::LiquidBlock*>(&block) != nullptr) {
                 // 移除流动水方块，设置为空气
                 const BlockState& airState = VanillaBlocks::AIR->defaultState();
@@ -761,12 +735,10 @@ i32 SpongeBlock::absorb(IWorld& world, const BlockPos& pos)
                 }
             }
             // 情况3：海洋植物/海草
-            // MC 1.16.5: else if (material == Material.OCEAN_PLANT || material == Material.SEA_GRASS)
             else {
                 const Material& material = blockState->getMaterial();
                 if (material == Material::OCEAN_PLANT || material == Material::SEA_GRASS) {
-                    // [已知限制] 海洋植物掉落物品尚未实现
-                    // MC 1.16.5: spawnDrops(blockstate, worldIn, blockpos1, tileentity);
+                    // TODO: 海洋植物掉落物品尚未实现
                     // 需要 Block::spawnDrops() 方法支持，当前直接移除方块
                     // 详见 README.md "海绵吸水机制 - 已知限制" 章节
                     const BlockState& airState = VanillaBlocks::AIR->defaultState();
@@ -799,7 +771,6 @@ void WetSpongeBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const Bloc
 {
     MC_UNUSED(state);
 
-    // MC 1.16.5: WetSpongeBlock.onBlockAdded
     // 在下界（超热维度）放置时变干
     if (world.isUltraWarm()) {
         // 变为干海绵
@@ -835,11 +806,8 @@ const CollisionShape& WebBlock::getShape(const BlockState& state) const
 
 void WebBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    // MC 1.16.5: WebBlock.onEntityCollision
     // 蜘蛛网大幅减缓实体速度
-    // MC 源码: entity.setMotion(entity.getMotion().mul(0.25D, 0.05000000074505806D, 0.25D));
-    // 但实际上减速更慢，因为实体每tick都会被再次减速
-    // 最终效果是水平速度 * 0.025，垂直下落 * 0.05
+    // 实际效果是水平速度 * 0.025，垂直下落 * 0.05
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);

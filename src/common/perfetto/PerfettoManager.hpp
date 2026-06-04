@@ -56,6 +56,7 @@
 #pragma once
 
 #include "PerfettoConfig.hpp"
+#include "common/core/Types.hpp"
 
 #include <memory>
 #include <stdexcept>
@@ -79,7 +80,7 @@ struct TraceConfig {
     std::string outputPath = MC_TRACE_DEFAULT_OUTPUT;
 
     /** 缓冲区大小 (KB) */
-    size_t bufferSizeKb = MC_TRACE_BUFFER_SIZE_KB;
+    u64 bufferSizeKb = MC_TRACE_BUFFER_SIZE_KB;
 
     /** 是否记录进程元数据 */
     bool recordProcessMetadata = true;
@@ -165,14 +166,14 @@ public:
      *
      * @return true 如果追踪系统已初始化且正在记录
      */
-    [[nodiscard]] bool isEnabled() const;
+    [[nodiscard]] bool isEnabled() const noexcept;
 
     /**
      * @brief 检查追踪系统是否已初始化
      *
      * @return true 如果已调用 initialize()
      */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
+    [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
 
     /**
      * @brief 运行时启用/禁用追踪
@@ -181,14 +182,14 @@ public:
      *
      * @param enabled 是否启用
      */
-    void setEnabled(bool enabled) { m_enabled = enabled; }
+    void setEnabled(bool enabled) noexcept { m_enabled = enabled; }
 
     /**
      * @brief 获取当前配置
      *
      * @return const TraceConfig& 配置的常量引用
      */
-    [[nodiscard]] const TraceConfig& config() const { return m_config; }
+    [[nodiscard]] const TraceConfig& config() const noexcept { return m_config; }
 
     /**
      * @brief 设置当前进程名称
@@ -236,25 +237,25 @@ private:
  */
 class PerfettoManager {
 public:
-    static PerfettoManager& instance()
+    static PerfettoManager& instance() noexcept
     {
         static PerfettoManager instance;
         return instance;
     }
 
-    void initialize(const TraceConfig& = {}) {}
-    void shutdown() {}
-    void startTracing() {}
-    void stopTracing() {}
-    void flush() {}
+    void initialize(const TraceConfig& = {}) noexcept {}
+    void shutdown() noexcept {}
+    void startTracing() noexcept {}
+    void stopTracing() noexcept {}
+    void flush() noexcept {}
 
-    [[nodiscard]] bool isEnabled() const { return false; }
-    [[nodiscard]] bool isInitialized() const { return false; }
-    void setEnabled(bool) {}
+    [[nodiscard]] bool isEnabled() const noexcept { return false; }
+    [[nodiscard]] bool isInitialized() const noexcept { return false; }
+    void setEnabled(bool) noexcept {}
 
-    [[nodiscard]] TraceConfig config() const { return {}; }
-    void setProcessName(const std::string&) {}
-    void setThreadName(const std::string&) {}
+    [[nodiscard]] TraceConfig config() const noexcept { return {}; }
+    void setProcessName(const std::string&) noexcept {}
+    void setThreadName(const std::string&) noexcept {}
 
 private:
     PerfettoManager() = default;

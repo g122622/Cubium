@@ -106,7 +106,7 @@ public:
         }
 
         // 动态分配方块ID（AIR 获得 ID 0）
-        u32 blockId = allocateBlockId(id);
+        u32 blockId = _allocateBlockId(id);
         block->m_blockId = blockId;
 
         // 注册所有状态
@@ -121,7 +121,7 @@ public:
             }
 
             state->m_blockId = block->m_blockId;
-            u32 stateId = allocateStateId();
+            u32 stateId = _allocateStateId();
             const_cast<BlockState*>(state.get())->m_stateId = stateId;
             m_statesById[stateId] = state.get();
         }
@@ -225,6 +225,8 @@ public:
         return air ? &air->defaultState() : nullptr;
     }
 
+    ~BlockRegistry() noexcept = default;
+
 private:
     BlockRegistry() = default;
 
@@ -233,7 +235,7 @@ private:
      *
      * 对于 minecraft:air 方块，返回 0 作为保留 ID。
      */
-    u32 allocateBlockId(const ResourceLocation& id)
+    u32 _allocateBlockId(const ResourceLocation& id)
     {
         // AIR 方块始终获得 ID 0
         if (id == ResourceLocation("minecraft:air")) {
@@ -246,7 +248,7 @@ private:
     /**
      * @brief 分配状态ID
      */
-    u32 allocateStateId() { return m_nextStateId++; }
+    u32 _allocateStateId() noexcept { return m_nextStateId++; }
 
     std::unordered_map<ResourceLocation, std::unique_ptr<Block>> m_blocks;
     std::unordered_map<ResourceLocation, u32> m_numericIds; // 字符串ID -> 数字ID

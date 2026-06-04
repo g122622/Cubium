@@ -204,7 +204,7 @@ ScriptResult QuickJSContext::callFunction(const std::string& name, const std::ve
     std::vector<JSValue> jsArgs;
     jsArgs.reserve(args.size());
     for (const auto& arg : args) {
-        jsArgs.push_back(scriptValueToJSValue(arg));
+        jsArgs.push_back(_scriptValueToJSValue(arg));
     }
 
     // 调用函数
@@ -218,10 +218,10 @@ ScriptResult QuickJSContext::callFunction(const std::string& name, const std::ve
 
     if (JS_IsException(result)) {
         JS_FreeValue(m_context, result);
-        return exceptionToResult();
+        return _exceptionToResult();
     }
 
-    ScriptValue scriptResult = jsValueToScriptValue(result);
+    ScriptValue scriptResult = _jsValueToScriptValue(result);
     JS_FreeValue(m_context, result);
     return ScriptResult::ok(std::move(scriptResult));
 }
@@ -284,7 +284,7 @@ std::vector<ScriptValue> convertArgsToScriptValues(JSContext* ctx, i32 argc, JSV
             scriptArgs.emplace_back(std::string(str ? str : ""));
             JS_FreeCString(ctx, str);
         } else {
-            // 对象、数组、函数等暂不支持作为参数传递
+            // TODO: 对象、数组、函数等复杂类型作为参数传递暂不支持，需要扩展ScriptValue类型系统
             scriptArgs.emplace_back();
         }
     }
@@ -310,6 +310,7 @@ JSValue convertScriptValueToJSValue(JSContext* ctx, const ScriptValue& result)
         case ScriptValueType::Object:
         case ScriptValueType::Array:
         case ScriptValueType::Function:
+            // TODO: 对象、数组、函数等复杂类型暂不支持，需要扩展ScriptValue类型系统
             return JS_UNDEFINED;
     }
     return JS_UNDEFINED;
@@ -330,7 +331,7 @@ bool QuickJSContext::registerGlobalFunction(
     }
 
     // 使用JS_NewCClosure传递回调数据（context指针+函数名）
-    // JSCClosure签名：JSValue(JSContext*, JSValueConst, int argc, JSValueConst*, int magic, void* opaque)
+    // JSCClosure签名：JSValue(JSContext*, JSValueConst, i32 argc, JSValueConst*, i32 magic, void* opaque)
     struct GlobalCallbackData {
         const QuickJSContext* context;
         std::string name;
@@ -340,7 +341,7 @@ bool QuickJSContext::registerGlobalFunction(
 
     JSValue closure = JS_NewCClosure(
         m_context,
-        [](JSContext* ctx, JSValueConst, int argc, JSValueConst* argv, int, void* opaque) -> JSValue {
+        [](JSContext* ctx, JSValueConst, i32 argc, JSValueConst* argv, i32, void* opaque) -> JSValue {
             auto* data = static_cast<GlobalCallbackData*>(opaque);
 
             // 在注册表中查找回调
@@ -387,7 +388,7 @@ bool QuickJSContext::registerGlobalFunction(
     return true;
 }
 
-bool QuickJSContext::registerNativeGlobalFunction(const std::string& name, void* func, int length)
+bool QuickJSContext::registerNativeGlobalFunction(const std::string& name, void* func, i32 length)
 {
     if (!m_valid || !m_context) {
         return false;
@@ -430,8 +431,8 @@ bool QuickJSContext::setGlobalVariable(const std::string& name, const ScriptValu
     }
 
     JSValue global = JS_GetGlobalObject(m_context);
-    JSValue jsVal = scriptValueToJSValue(value);
-    int ret = JS_SetPropertyStr(m_context, global, name.c_str(), jsVal);
+    JSValue jsVal = _scriptValueToJSValue(value);
+    i32 ret = JS_SetPropertyStr(m_context, global, name.c_str(), jsVal);
     JS_FreeValue(m_context, global);
 
     return ret >= 0;
@@ -452,7 +453,7 @@ std::optional<ScriptValue> QuickJSContext::getGlobalVariable(const std::string& 
         return std::nullopt;
     }
 
-    ScriptValue result = const_cast<QuickJSContext*>(this)->jsValueToScriptValue(val);
+    ScriptValue result = const_cast<QuickJSContext*>(this)->_jsValueToScriptValue(val);
     JS_FreeValue(m_context, val);
     return result;
 }
@@ -462,7 +463,7 @@ const std::string& QuickJSContext::moduleName() const
     return m_moduleName;
 }
 
-ScriptResult QuickJSContext::exceptionToResult()
+ScriptResult QuickJSContext::_exceptionToResult()
 {
     if (!m_context) {
         return ScriptResult::error("Unknown error: context is null");
@@ -496,7 +497,7 @@ ScriptResult QuickJSContext::exceptionToResult()
     return ScriptResult::error(std::move(message));
 }
 
-ScriptValue QuickJSContext::jsValueToScriptValue(JSValue val)
+ScriptValue QuickJSContext::_jsValueToScriptValue(JSValue val)
 {
     if (!m_context) {
         return ScriptValue();
@@ -525,11 +526,11 @@ ScriptValue QuickJSContext::jsValueToScriptValue(JSValue val)
         return ScriptValue(std::move(result));
     }
     // 对象、数组、函数等暂时作为undefined返回
-    // 绑定层通过ScriptClassBinding和ClassRegistrar直接操作JSValue
+    // TODO: 绑定层通过ScriptClassBinding和ClassRegistrar直接操作JSValue，需要完善此处的转换逻辑
     return ScriptValue();
 }
 
-JSValue QuickJSContext::scriptValueToJSValue(const ScriptValue& val)
+JSValue QuickJSContext::_scriptValueToJSValue(const ScriptValue& val)
 {
     if (!m_context) {
         return JS_UNDEFINED;

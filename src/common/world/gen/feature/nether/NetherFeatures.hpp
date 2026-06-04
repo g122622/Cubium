@@ -37,11 +37,12 @@
  */
 
 #include <memory>
-#include "../fungus/HugeFungusFeature.hpp"
-#include "BasaltFeature.hpp"
-#include "GlowstoneFeature.hpp"
-#include "MagmaPatchFeature.hpp"
 #include <vector>
+
+#include "common/world/gen/feature/fungus/HugeFungusFeature.hpp"
+#include "common/world/gen/feature/nether/BasaltFeature.hpp"
+#include "common/world/gen/feature/nether/GlowstoneFeature.hpp"
+#include "common/world/gen/feature/nether/MagmaPatchFeature.hpp"
 
 namespace mc {
 

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../world/block/BlockPos.hpp"
 #include "Packet.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <vector>
 
 namespace mc::network {
@@ -39,7 +39,6 @@ namespace mc::network {
  * - 玩家登录时
  * - 执行 /setworldspawn 命令后
  *
- * 参考 MC 1.16.5 SSpawnPositionPacket
  * 协议格式: BlockPos(x, y, z) + angle(f32)
  */
 class SpawnPositionPacket : public Packet {
@@ -65,7 +64,7 @@ public:
     /**
      * @brief 获取出生点偏航角
      *
-     * 用于指南针指向计算。MC 1.16.5 新增字段。
+     * 用于指南针指向计算。
      */
     [[nodiscard]] f32 angle() const { return m_angle; }
     void setAngle(f32 angle) { m_angle = angle; }

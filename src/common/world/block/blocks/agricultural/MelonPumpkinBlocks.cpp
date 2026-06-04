@@ -101,7 +101,7 @@ ActionResultType PumpkinBlock::onBlockActivated(const BlockState& state,
     }
 
     // 计算雕刻南瓜的朝向
-    // MC 1.16.5: 如果点击的面是垂直方向，则使用玩家的水平朝向的相反方向
+    // 如果点击的面是垂直方向，则使用玩家的水平朝向的相反方向
     // 否则使用点击面的方向
     Direction facing = hit.face();
     if (facing == Direction::Up || facing == Direction::Down) {
@@ -143,9 +143,6 @@ ActionResultType PumpkinBlock::onBlockActivated(const BlockState& state,
     world.setBlockState(pos, carvedState, 11);
 
     // 生成南瓜种子（4个）
-    // MC 1.16.5: ItemEntity itementity = new ItemEntity(worldIn, (double)pos.getX() + 0.5D +
-    // (double)direction1.getXOffset() * 0.65D, (double)pos.getY() + 0.1D, (double)pos.getZ() + 0.5D +
-    // (double)direction1.getZOffset() * 0.65D, new ItemStack(Items.PUMPKIN_SEEDS, 4));
     math::Random rng(static_cast<u64>(pos.x ^ pos.y ^ pos.z));
 
     // 计算种子生成位置（朝向方向的偏移）
@@ -157,9 +154,7 @@ ActionResultType PumpkinBlock::onBlockActivated(const BlockState& state,
     ItemStack seedStack(*Items::PUMPKIN_SEEDS, 4);
 
     // 使用 ItemDropHelper 生成物品实体
-    // MC 1.16.5: 种子有轻微的随机速度
-    // itementity.setMotion(0.05D * (double)direction1.getXOffset() + worldIn.rand.nextDouble() * 0.02D, 0.05D, 0.05D *
-    // (double)direction1.getZOffset() + worldIn.rand.nextDouble() * 0.02D);
+    // 种子有轻微的随机速度
     f32 vx = 0.05f * static_cast<f32>(Directions::xOffset(facing)) + static_cast<f32>(rng.nextDouble() * 0.02);
     f32 vy = 0.05f;
     f32 vz = 0.05f * static_cast<f32>(Directions::zOffset(facing)) + static_cast<f32>(rng.nextDouble() * 0.02);
@@ -177,7 +172,6 @@ ActionResultType PumpkinBlock::onBlockActivated(const BlockState& state,
     );
 
     // 消耗剪刀耐久度
-    // MC 1.16.5: itemstack.damageItem(1, player, (p_220282_1_) -> { p_220282_1_.sendBreakAnimation(handIn); });
     heldItem.attemptDamageItem(1);
 
     return ActionResultType::Success;
@@ -213,20 +207,18 @@ void CarvedPumpkinBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const 
 {
     MC_UNUSED(state);
     // 尝试生成傀儡（雪傀儡或铁傀儡）
-    trySpawnGolem(world, pos);
+    _trySpawnGolem(world, pos);
 }
 
 // ============================================================================
 // 傀儡生成逻辑
 // ============================================================================
 
-bool CarvedPumpkinBlock::trySpawnGolem(IWorld& world, const BlockPos& pos)
+bool CarvedPumpkinBlock::_trySpawnGolem(IWorld& world, const BlockPos& pos)
 {
-    // MC 1.16.5: 先检测雪傀儡，再检测铁傀儡
-
     // ===== 1. 检测雪傀儡模式 =====
     // 模式：从上到下依次为南瓜、雪块、雪块（垂直线形）
-    if (checkSnowGolemPattern(world, pos)) {
+    if (_checkSnowGolemPattern(world, pos)) {
         // 获取需要移除的位置
         BlockPos below1 = pos.down();
         BlockPos below2 = pos.down(2);
@@ -265,7 +257,6 @@ bool CarvedPumpkinBlock::trySpawnGolem(IWorld& world, const BlockPos& pos)
         if (snowGolemType != nullptr) {
             std::unique_ptr<Entity> entity = snowGolemType->create(&world);
             if (entity != nullptr) {
-                // MC 1.16.5: setLocationAndAngles(pos + 0.5, pos.y + 0.05, pos + 0.5, 0, 0)
                 // 位置设置在南瓜位置（模式顶部）
                 entity->setPosition(
                     static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.05f, static_cast<f32>(pos.z) + 0.5f);
@@ -284,7 +275,7 @@ bool CarvedPumpkinBlock::trySpawnGolem(IWorld& world, const BlockPos& pos)
     // 中层：铁块、铁块、铁块（手臂）
     // 底层：空气、铁块、空气（身体）
     BlockPos bodyPos;
-    if (checkIronGolemPattern(world, pos, bodyPos)) {
+    if (_checkIronGolemPattern(world, pos, bodyPos)) {
         // 需要移除的铁块位置（相对于bodyPos）
         // 中层手臂：bodyPos.up(1) 的东西两侧
         // 底层身体：bodyPos
@@ -322,7 +313,6 @@ bool CarvedPumpkinBlock::trySpawnGolem(IWorld& world, const BlockPos& pos)
         if (ironGolemType != nullptr) {
             std::unique_ptr<Entity> entity = ironGolemType->create(&world);
             if (entity != nullptr) {
-                // MC 1.16.5: setLocationAndAngles(bodyPos + 0.5, bodyPos.y + 2 + 0.05, bodyPos + 0.5, 0, 0)
                 // 位置设置在南瓜位置（模式顶部中央）
                 entity->setPosition(
                     static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.05f, static_cast<f32>(pos.z) + 0.5f);
@@ -344,11 +334,10 @@ bool CarvedPumpkinBlock::trySpawnGolem(IWorld& world, const BlockPos& pos)
     return false;
 }
 
-bool CarvedPumpkinBlock::checkSnowGolemPattern(IWorld& world, const BlockPos& pos) const
+bool CarvedPumpkinBlock::_checkSnowGolemPattern(IWorld& world, const BlockPos& pos) const
 {
-    // MC 1.16.5: 雪傀儡模式
+    // 雪傀儡模式
     // 从上到下：南瓜、雪块、雪块
-    // 模式匹配：translateOffset(0, 0, 0) = 南瓜，(0, 1, 0) = 雪块，(0, 2, 0) = 雪块
 
     // 检查南瓜下方第一个雪块
     const BlockState* below1 = world.getBlockState(pos.down());
@@ -365,10 +354,9 @@ bool CarvedPumpkinBlock::checkSnowGolemPattern(IWorld& world, const BlockPos& po
     return true;
 }
 
-bool CarvedPumpkinBlock::checkIronGolemPattern(IWorld& world, const BlockPos& pos, BlockPos& outBodyPos) const
+bool CarvedPumpkinBlock::_checkIronGolemPattern(IWorld& world, const BlockPos& pos, BlockPos& outBodyPos) const
 {
-
-    // MC 1.16.5: 铁傀儡模式 - T形结构
+    // 铁傀儡模式 - T形结构
     // 顶层：空气、南瓜、空气  (~^~)
     // 中层：铁块、铁块、铁块 (###) - 手臂
     // 底层：空气、铁块、空气 (~#~) - 身体
@@ -407,14 +395,14 @@ bool CarvedPumpkinBlock::checkIronGolemPattern(IWorld& world, const BlockPos& po
         // 检查顶层的空气
         const BlockState* topEast = world.getBlockState(pos.east());
         const BlockState* topWest = world.getBlockState(pos.west());
-        if (!isAir(topEast) || !isAir(topWest)) {
+        if (!_isAir(topEast) || !_isAir(topWest)) {
             eastWestValid = false;
         }
 
         // 检查底层的空气
         const BlockState* bottomEast = world.getBlockState(armCenter.east().down());
         const BlockState* bottomWest = world.getBlockState(armCenter.west().down());
-        if (!isAir(bottomEast) || !isAir(bottomWest)) {
+        if (!_isAir(bottomEast) || !_isAir(bottomWest)) {
             eastWestValid = false;
         }
     }
@@ -434,14 +422,14 @@ bool CarvedPumpkinBlock::checkIronGolemPattern(IWorld& world, const BlockPos& po
         // 检查顶层的空气
         const BlockState* topNorth = world.getBlockState(pos.north());
         const BlockState* topSouth = world.getBlockState(pos.south());
-        if (!isAir(topNorth) || !isAir(topSouth)) {
+        if (!_isAir(topNorth) || !_isAir(topSouth)) {
             northSouthValid = false;
         }
 
         // 检查底层的空气
         const BlockState* bottomNorth = world.getBlockState(armCenter.north().down());
         const BlockState* bottomSouth = world.getBlockState(armCenter.south().down());
-        if (!isAir(bottomNorth) || !isAir(bottomSouth)) {
+        if (!_isAir(bottomNorth) || !_isAir(bottomSouth)) {
             northSouthValid = false;
         }
     }
@@ -454,9 +442,8 @@ bool CarvedPumpkinBlock::checkIronGolemPattern(IWorld& world, const BlockPos& po
     return false;
 }
 
-bool CarvedPumpkinBlock::isPumpkin(const BlockState* state)
+bool CarvedPumpkinBlock::_isPumpkin(const BlockState* state)
 {
-    // MC 1.16.5: IS_PUMPKIN 谓词
     // 检查是否为雕刻南瓜或南瓜灯
     if (state == nullptr) {
         return false;
@@ -469,9 +456,9 @@ bool CarvedPumpkinBlock::isPumpkin(const BlockState* state)
         false; // 占位，后续可添加 CARVED_PUMPKIN 检查
 }
 
-bool CarvedPumpkinBlock::isAir(const BlockState* state)
+bool CarvedPumpkinBlock::_isAir(const BlockState* state)
 {
-    // MC 1.16.5: 检查是否为空气
+    // 检查是否为空气
     if (state == nullptr) {
         return true; // 超出世界边界视为空气
     }
@@ -507,12 +494,11 @@ BlockState JackOLanternBlock::getStateForPlacement(BlockItemUseContext& context)
 void JackOLanternBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     MC_UNUSED(state);
-    // MC 1.16.5: 南瓜灯也能触发傀儡生成
-    // JackOLanternBlock 继承的 IS_PUMPKIN 谓词包含 JACK_O_LANTERN
-    trySpawnGolem(world, pos);
+    // 南瓜灯也能触发傀儡生成
+    _trySpawnGolem(world, pos);
 }
 
-bool JackOLanternBlock::trySpawnGolem(IWorld& world, const BlockPos& pos)
+bool JackOLanternBlock::_trySpawnGolem(IWorld& world, const BlockPos& pos)
 {
     // 复用 CarvedPumpkinBlock 的检测逻辑
     // 由于检测逻辑相同，这里直接使用类似的实现

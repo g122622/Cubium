@@ -22,11 +22,11 @@
  */
 
 #include "Placements.hpp"
-#include "../../../core/Constants.hpp"
-#include "../../IWorld.hpp"
-#include "../chunk/IChunkGenerator.hpp"
-#include "../noise/OctavesNoiseGenerator.hpp"
 #include "PlacementUtils.hpp"
+#include "common/core/Constants.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/noise/OctavesNoiseGenerator.hpp"
 #include <cmath>
 #include <memory>
 
@@ -45,9 +45,8 @@ namespace {
  */
 f32 getChunkNoise(i64 seed, i32 chunkX, i32 chunkZ, f32 scale)
 {
+    // TODO: 使用实际的噪声生成器替代简单的哈希实现
     // 使用确定性哈希来模拟噪声
-    // 完整实现应使用实际的噪声生成器
-    // MC 1.16.5 使用常量 341873128712
     u64 hash = static_cast<u64>(chunkX) * 341873128712ULL ^ static_cast<u64>(chunkZ) * 132897987541ULL;
     hash ^= static_cast<u64>(seed);
 
@@ -71,9 +70,8 @@ std::vector<BlockPos> NoisePlacement::getPositions(
     }
 
     // 计算噪声值
-    // 参考 MC 1.16.5: NoiseBasedPlacement 使用 Biome 提供的噪声
-    i32 chunkX = basePos.x >> 4;
-    i32 chunkZ = basePos.z >> 4;
+    i32 chunkX = basePos.x >> world::CHUNK_SHIFT;
+    i32 chunkZ = basePos.z >> world::CHUNK_SHIFT;
 
     f32 noiseValue = getChunkNoise(
         static_cast<i64>(random.nextInt()) & 0xFFFFFFFFLL, chunkX, chunkZ, static_cast<f32>(noiseConfig->noiseFactor));
@@ -103,7 +101,6 @@ std::vector<BlockPos> CountNoisePlacement::getPositions(
 
     (void)region;
 
-    // 参考 MC CountNoisePlacement 第16-18行
     // 使用 Biome.INFO_NOISE.noiseAt(x / 200.0, z / 200.0, false)
     // 这里使用与 SwampSurfaceBuilder 相同的全局噪声生成器
     static PerlinNoiseGenerator s_infoNoise(12345ULL, 0, 0);
@@ -117,8 +114,8 @@ std::vector<BlockPos> CountNoisePlacement::getPositions(
     positions.reserve(count);
 
     for (i32 i = 0; i < count; ++i) {
-        i32 dx = random.nextInt(16);
-        i32 dz = random.nextInt(16);
+        i32 dx = random.nextInt(world::CHUNK_WIDTH);
+        i32 dz = random.nextInt(world::CHUNK_WIDTH);
         positions.emplace_back(basePos.x + dx, basePos.y, basePos.z + dz);
     }
 
@@ -139,7 +136,6 @@ std::vector<BlockPos> DepthAveragePlacement::getPositions(
 
     (void)region;
 
-    // 参考 MC DepthAveragePlacement.java 第18行
     // 使用三角形分布：nextInt(spread) + nextInt(spread) - spread + baseline
     // 这产生一个以baseline为中心的三角形分布
     const i32 j = depthConfig->spread;
@@ -190,9 +186,9 @@ std::vector<BlockPos> CarvingMaskPlacement::getPositions(
     i32 count = random.nextInt(4) + 1;
 
     for (i32 i = 0; i < count; ++i) {
-        i32 dx = random.nextInt(16);
+        i32 dx = random.nextInt(world::CHUNK_WIDTH);
         i32 dy = random.nextInt(40) + 10; // Y 10-50
-        i32 dz = random.nextInt(16);
+        i32 dz = random.nextInt(world::CHUNK_WIDTH);
         positions.emplace_back(basePos.x + dx, dy, basePos.z + dz);
     }
 
@@ -238,7 +234,7 @@ std::vector<BlockPos> WaterDepthThresholdPlacement::getPositions(
 
     // 检查水深
     i32 waterDepth = 0;
-    for (i32 y = basePos.y; y > 0; --y) {
+    for (i32 y = basePos.y; y > world::MIN_BUILD_HEIGHT; --y) {
         const BlockState* state = region.getBlockState(basePos.x, y, basePos.z);
         if (state && state->isLiquid()) {
             ++waterDepth;
@@ -269,9 +265,7 @@ std::vector<BlockPos> SeaLevelPlacement::getPositions(
     (void)region;
     (void)random;
 
-    // 海平面默认为 63
-    constexpr i32 SEA_LEVEL = 63;
-    i32 y = SEA_LEVEL + seaConfig->offset;
+    i32 y = world::SEA_LEVEL + seaConfig->offset;
 
     std::vector<BlockPos> positions;
     positions.emplace_back(basePos.x, y, basePos.z);
@@ -303,7 +297,7 @@ std::vector<BlockPos> SpreadPlacement::getPositions(
 }
 
 // ============================================================================
-// CountExtraPlacement 实现 - 参考 MC CountExtraPlacement.java
+// CountExtraPlacement 实现
 // ============================================================================
 
 std::vector<BlockPos> CountExtraPlacement::getPositions(
@@ -316,7 +310,7 @@ std::vector<BlockPos> CountExtraPlacement::getPositions(
 
     (void)region;
 
-    // MC 第14-18行: 基础数量 + 概率额外数量
+    // 基础数量 + 概率额外数量
     i32 count = extraConfig->count;
     if (random.nextFloat() < extraConfig->extraChance) {
         count += extraConfig->extraCount;

@@ -170,7 +170,7 @@ private:
     /**
      * @brief 将 ITextComponent 序列化为 JSON 字符串
      */
-    static std::string serializeName(const text::ITextComponent& name);
+    static std::string _serializeName(const text::ITextComponent& name);
 
     BossInfoAction m_action = BossInfoAction::Add;
 

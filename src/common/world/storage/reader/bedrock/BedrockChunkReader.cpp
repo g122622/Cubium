@@ -32,7 +32,6 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include <algorithm>
 #include <sstream>
-#include <spdlog/spdlog.h>
 
 namespace mc::world::storage::reader::bedrock {
 
@@ -82,7 +81,7 @@ Result<void> BedrockChunkReader::readSubChunk(const std::vector<u8>& data, i8 su
     // 版本字节
     u8 version = data[pos++];
 
-    const i32 sectionIndex = resolveSectionIndex(version, subChunkY, data, pos);
+    const i32 sectionIndex = _resolveSectionIndex(version, subChunkY, data, pos);
     if (sectionIndex < 0 || sectionIndex >= world::CHUNK_SECTIONS) {
         return Error(ErrorCode::Unsupported,
             fmt::format("Sub-chunk Y {} (version {}) maps outside supported section range [0, {})",
@@ -156,7 +155,7 @@ Result<void> BedrockChunkReader::readSubChunk(const std::vector<u8>& data, i8 su
                 }
                 blockId = runtimeIdResult.value();
             } else {
-                auto blockResult = readPaletteEntry(data, pos, false);
+                auto blockResult = _readPaletteEntry(data, pos, false);
                 if (blockResult.failed()) {
                     return blockResult.error();
                 }
@@ -168,24 +167,21 @@ Result<void> BedrockChunkReader::readSubChunk(const std::vector<u8>& data, i8 su
 
         if (paletteSize == 1 && indices.empty()) {
             std::vector<u32> singleIndices(4096, 0);
-            applyBlockPalette(*section, singleIndices, paletteIds, storageIdx != 0);
+            _applyBlockPalette(*section, singleIndices, paletteIds, storageIdx != 0);
             continue;
         }
 
-        applyBlockPalette(*section, indices, paletteIds, storageIdx != 0);
+        _applyBlockPalette(*section, indices, paletteIds, storageIdx != 0);
     }
 
     return {};
 }
 
-i32 BedrockChunkReader::resolveSectionIndex(u8 version, i8 keySubChunkY, const std::vector<u8>& data, size_t& pos) const
+i32 BedrockChunkReader::_resolveSectionIndex(
+    u8 version, i8 keySubChunkY, const std::vector<u8>& data, size_t& pos) const
 {
-    // 对齐 Chunker：
-    // - version 8：继续使用 key 上的 Y
-    // - version 9：真实 Y 在 header 中，读取后直接使用，不再依赖 key
-    // 当前项目没有把外来存档的 generator / experiments 配置继续下传到 chunk reader，
-    // 因此这里先只补齐 Chunker 的"v9 读 header Y"这一硬行为；旧 caves&cliffs 的
-    // version 8 key-Y 偏移问题留待后续更完整的版本/level 配置接线再收口。
+    // version 8：使用 key 上的 Y
+    // version 9+：真实 Y 在 header 中，读取后直接使用
     i32 sectionY = keySubChunkY;
     if (version >= 9) {
         if (pos >= data.size()) {
@@ -246,18 +242,18 @@ Result<void> BedrockChunkReader::readBiomeState(const std::vector<u8>& data, Chu
             continue;
         }
 
-        auto sectionResult = readBiomeSectionPalette(data, pos, sectionY, 0);
+        auto sectionResult = _readBiomeSectionPalette(data, pos, sectionY, 0);
         if (sectionResult.failed()) {
             return sectionResult.error();
         }
         sections.push_back(std::move(sectionResult.value()));
     }
 
-    applyBiomeSectionsToChunk(sections, chunk);
+    _applyBiomeSectionsToChunk(sections, chunk);
     return {};
 }
 
-Result<BedrockChunkReader::BiomeSectionData> BedrockChunkReader::readBiomeSectionPalette(
+Result<BedrockChunkReader::BiomeSectionData> BedrockChunkReader::_readBiomeSectionPalette(
     const std::vector<u8>& data, size_t& pos, i32 sectionY, DimensionId dimension) const
 {
     if (pos >= data.size()) {
@@ -302,7 +298,7 @@ Result<BedrockChunkReader::BiomeSectionData> BedrockChunkReader::readBiomeSectio
     return section;
 }
 
-void BedrockChunkReader::applyBiomeSectionsToChunk(
+void BedrockChunkReader::_applyBiomeSectionsToChunk(
     const std::vector<BiomeSectionData>& sections, ChunkData& chunk) const
 {
     if (sections.empty()) {
@@ -335,12 +331,12 @@ void BedrockChunkReader::applyBiomeSectionsToChunk(
     chunk.setBiomes(std::move(biomeContainer));
 }
 
-void BedrockChunkReader::applyBlockPalette(
+void BedrockChunkReader::_applyBlockPalette(
     ChunkSection& section, const std::vector<u32>& indices, const std::vector<u32>& paletteIds, bool isAuxiliaryLayer)
 {
-    for (i32 y = 0; y < 16; ++y) {
-        for (i32 z = 0; z < 16; ++z) {
-            for (i32 x = 0; x < 16; ++x) {
+    for (i32 y = 0; y < world::CHUNK_SECTION_HEIGHT; ++y) {
+        for (i32 z = 0; z < world::CHUNK_SECTION_HEIGHT; ++z) {
+            for (i32 x = 0; x < world::CHUNK_SECTION_HEIGHT; ++x) {
                 // 基岩版索引顺序：x = (i >> 8) & 0xF, y = i & 0xF, z = (i >> 4) & 0xF
                 i32 index = (x << 8) | (z << 4) | y;
                 u32 paletteIndex = (index < static_cast<i32>(indices.size())) ? indices[index] : 0;
@@ -361,7 +357,7 @@ void BedrockChunkReader::applyBlockPalette(
     }
 }
 
-Result<u32> BedrockChunkReader::readPaletteEntry(const std::vector<u8>& data, size_t& pos, bool isRuntimeEncoding)
+Result<u32> BedrockChunkReader::_readPaletteEntry(const std::vector<u8>& data, size_t& pos, bool isRuntimeEncoding)
 {
     if (isRuntimeEncoding) {
         return Error(ErrorCode::Unsupported, "Runtime-encoded palette entry should be decoded by caller");
@@ -420,10 +416,10 @@ Result<u32> BedrockChunkReader::readPaletteEntry(const std::vector<u8>& data, si
         }
     }
 
-    return mapBlockState(nameTag->value, states);
+    return _mapBlockState(nameTag->value, states);
 }
 
-u32 BedrockChunkReader::mapBlockState(
+u32 BedrockChunkReader::_mapBlockState(
     const std::string& blockName, const std::unordered_map<std::string, std::string>& states)
 {
     const std::string cacheKey = buildCacheKey(blockName, states);
@@ -434,7 +430,7 @@ u32 BedrockChunkReader::mapBlockState(
 
     Block* block = BlockRegistry::instance().getBlock(ResourceLocation(blockName));
     if (!block) {
-        spdlog::debug("BedrockChunkReader: Unknown Bedrock block '{}', mapping to air", blockName);
+        // 未知的基岩版方块，映射为空气
         m_blockStateCache[cacheKey] = 0;
         return 0;
     }

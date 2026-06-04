@@ -22,15 +22,16 @@
  */
 
 #include "BubbleColumnBlock.hpp"
-#include "../../../../entity/core/Entity.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../fluid/Fluid.hpp"
-#include "../../../fluid/FluidTags.hpp"
-#include "../../../tick/manager/TickManager.hpp"
-#include "../../VanillaBlocks.hpp"
+
+#include "common/entity/core/Entity.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidTags.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace blocks {
@@ -62,7 +63,6 @@ BubbleColumnBlock::BubbleColumnBlock(const BlockProperties& properties)
 
 void BubbleColumnBlock::placeBubbleColumn(IWorld& world, const BlockPos& pos, bool drag)
 {
-    // MC 1.16.5: BubbleColumnBlock.placeBubbleColumn()
     if (canHoldBubbleColumn(world, pos)) {
         const BlockState& bubbleState =
             VanillaBlocks::BUBBLE_COLUMN->defaultState().with(BlockStateProperties::DRAG(), drag);
@@ -72,9 +72,7 @@ void BubbleColumnBlock::placeBubbleColumn(IWorld& world, const BlockPos& pos, bo
 
 bool BubbleColumnBlock::canHoldBubbleColumn(const IWorld& world, const BlockPos& pos)
 {
-    // MC 1.16.5: BubbleColumnBlock.canHoldBubbleColumn()
     // 条件：是水方块 + 流体等级 >= 8 + 是水源
-
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
         return false;
@@ -97,7 +95,6 @@ bool BubbleColumnBlock::canHoldBubbleColumn(const IWorld& world, const BlockPos&
 
 bool BubbleColumnBlock::getDrag(const IWorld& world, const BlockPos& pos)
 {
-    // MC 1.16.5: BubbleColumnBlock.getDrag()
     const BlockState* state = world.getBlockState(pos);
 
     if (state == nullptr) {
@@ -125,7 +122,6 @@ bool BubbleColumnBlock::isDrag(const BlockState& state) const
 
 void BubbleColumnBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC 1.16.5: BubbleColumnBlock.onBlockAdded()
     // 气泡柱被添加时，在上方放置气泡柱
     // DRAG 状态由下方方块决定
     bool drag = getDrag(world, pos.down());
@@ -138,7 +134,7 @@ BlockState BubbleColumnBlock::getStateForPlacement(BlockItemUseContext& context)
     BlockPos pos = context.placementPos();
 
     // 根据下方方块决定是否为下拖
-    bool drag = checkSource(world, pos);
+    bool drag = _checkSource(world, pos);
 
     return defaultState().with(BlockStateProperties::DRAG(), drag);
 }
@@ -180,8 +176,6 @@ BlockState BubbleColumnBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-    // MC 1.16.5: 气泡柱更新逻辑
-
     // 检查位置有效性
     IBlockReader& blockReader = static_cast<IBlockReader&>(world);
     if (!isValidPosition(state, blockReader, currentPos)) {
@@ -204,7 +198,6 @@ BlockState BubbleColumnBlock::updatePostPlacement(const BlockState& state,
         // 上方方块变化
         if (!facingState.is(this) && canHoldBubbleColumn(world, facingPos)) {
             // 上方是水（非气泡柱），调度 tick 传播气泡柱
-            // MC 1.16.5: world.getPendingBlockTicks().scheduleTick(currentPos, this, 5);
             world.tickManager().scheduleBlockTick(currentPos, *this, 5);
         }
     }
@@ -218,7 +211,7 @@ void BubbleColumnBlock::onEntityCollision(
     MC_UNUSED(&world);
     MC_UNUSED(&pos);
 
-    // MC 1.16.5: 气泡柱推动实体
+    // 气泡柱推动实体
     // 上推速度: 0.1 (灵魂沙)
     // 下拖速度: 0.03 (岩浆块，实际是 -0.03)
     if (isDrag(state)) {
@@ -237,8 +230,7 @@ void BubbleColumnBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
 {
     MC_UNUSED(random);
 
-    // MC 1.16.5: 气泡柱传播逻辑
-    // 在上方位置放置气泡柱，继承当前 DRAG 状态
+    // 气泡柱传播逻辑：在上方位置放置气泡柱，继承当前 DRAG 状态
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     bool currentDrag = isDrag(state);
 
@@ -259,7 +251,7 @@ const CollisionShape& BubbleColumnBlock::getCollisionShape(const BlockState& sta
     return emptyShape;
 }
 
-bool BubbleColumnBlock::checkSource(const IWorld& world, const BlockPos& pos) const
+bool BubbleColumnBlock::_checkSource(const IWorld& world, const BlockPos& pos) const
 {
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);

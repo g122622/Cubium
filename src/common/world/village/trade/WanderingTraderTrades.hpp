@@ -38,12 +38,8 @@ namespace trade {
  * @brief 流浪商人交易配方表
  *
  * 管理流浪商人的所有交易配方。
- * 流浪商人与普通村民不同：
- * - 没有职业和等级系统
- * - 交易列表分为普通交易和稀有交易两个层级
- * - 每次刷新时随机从交易池中选取一部分交易
- *
- * 参考 MC 1.16.5 VillagerTrades.field_221240_b (WANDERER_TRADES)
+ * 流浪商人交易分为普通交易和稀有交易两个层级，
+ * 每次刷新时随机从交易池中选取一部分交易。
  */
 class WanderingTraderTrades {
 public:
@@ -118,7 +114,7 @@ private:
      * @param xp 交易经验
      * @return 交易工厂
      */
-    static TradeFactory sellForEmeralds(
+    static TradeFactory _sellForEmeralds(
         const char* sellItem, i32 sellCount, i32 emeraldCount, i32 maxUses = 12, i32 xp = 1);
 
     /**
@@ -130,29 +126,29 @@ private:
      * @param xp 交易经验
      * @return 交易工厂
      */
-    static TradeFactory buyForEmeralds(
+    static TradeFactory _buyForEmeralds(
         i32 emeraldCount, const char* buyItem, i32 buyCount, i32 maxUses = 12, i32 xp = 1);
 
     /**
      * @brief 注册普通交易
      */
-    static void registerNormalTrade(TradeFactory factory);
+    static void _registerNormalTrade(TradeFactory factory);
 
     /**
      * @brief 注册稀有交易
      */
-    static void registerRareTrade(TradeFactory factory);
+    static void _registerRareTrade(TradeFactory factory);
 
     // ========== 交易注册方法 ==========
 
-    static void registerOceanTrades();
-    static void registerPlantTrades();
-    static void registerFlowerTrades();
-    static void registerSeedTrades();
-    static void registerSaplingTrades();
-    static void registerDyeTrades();
-    static void registerCoralTrades();
-    static void registerRareItemTrades();
+    static void _registerOceanTrades();
+    static void _registerPlantTrades();
+    static void _registerFlowerTrades();
+    static void _registerSeedTrades();
+    static void _registerSaplingTrades();
+    static void _registerDyeTrades();
+    static void _registerCoralTrades();
+    static void _registerRareItemTrades();
 };
 
 } // namespace trade

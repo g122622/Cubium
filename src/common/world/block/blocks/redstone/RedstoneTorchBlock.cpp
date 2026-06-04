@@ -22,10 +22,12 @@
  */
 
 #include "RedstoneTorchBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
-#include "../../../tick/base/TickPriority.hpp"
-#include "../../../tick/manager/TickManager.hpp"
+
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace blocks {
@@ -53,7 +55,6 @@ RedstoneTorchBlock::RedstoneTorchBlock(const BlockProperties& properties)
 
 bool RedstoneTorchBlock::shouldBeOff(IWorld& world, const BlockPos& pos) const
 {
-    // MC Java: worldIn.isSidePowered(pos.down(), Direction.DOWN)
     // 检查火把附着方块（下方）是否从下方方向接收到强信号
     // 即：检查附着方块是否有来自其下方的强信号输入
     BlockPos belowPos = pos.down();
@@ -67,7 +68,7 @@ bool RedstoneTorchBlock::isLit(const BlockState& state)
 
 void RedstoneTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC Java: 放置时通知六个方向的邻居
+    // 放置时通知六个方向的邻居
     for (Direction dir : Directions::all()) {
         BlockPos neighborPos = pos.offset(dir);
         const BlockState* neighborState = world.getBlockState(neighborPos);
@@ -80,14 +81,15 @@ void RedstoneTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const 
     // 检查初始状态是否正确
     bool shouldBeLit = !shouldBeOff(world, pos);
     if (isLit(state) != shouldBeLit) {
-        // 需要更新状态（MC Java 使用 2 tick 延迟）
-        world.tickManager().scheduleBlockTick(pos, *this, 2, world::tick::TickPriority::ExtremelyHigh);
+        // 需要更新状态
+        world.tickManager().scheduleBlockTick(
+            pos, *this, world::REDSTONE_DELAY, world::tick::TickPriority::ExtremelyHigh);
     }
 }
 
 void RedstoneTorchBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC Java: 移除时清理烧毁记录
+    // 移除时清理烧毁记录
     world::redstone::RedstoneSystem::instance().clearTorchRecord(pos);
 
     // 通知相邻方块更新
@@ -169,7 +171,7 @@ i32 RedstoneTorchBlock::getWeakPower(const BlockState& state, IWorld& world, con
 i32 RedstoneTorchBlock::getStrongPower(
     const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
 {
-    // MC Java: 只在向下方向输出强信号（充能下方方块）
+    // 只在向下方向输出强信号（充能下方方块）
     return side == Direction::Down ? getWeakPower(state, world, pos, side) : 0;
 }
 
@@ -187,8 +189,9 @@ void RedstoneTorchBlock::updateState(IWorld& world, const BlockPos& pos, const B
     bool isCurrentlyLit = isLit(state);
 
     if (isCurrentlyLit != shouldBeLit) {
-        // 调度更新（MC Java 使用 2 tick 延迟）
-        world.tickManager().scheduleBlockTick(pos, *this, 2, world::tick::TickPriority::ExtremelyHigh);
+        // 调度更新
+        world.tickManager().scheduleBlockTick(
+            pos, *this, world::REDSTONE_DELAY, world::tick::TickPriority::ExtremelyHigh);
     }
 }
 

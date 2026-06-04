@@ -22,15 +22,16 @@
  */
 
 #include "IceBlock.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/math/random/IRandom.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../fluid/Fluid.hpp"
-#include "../../../fluid/FluidRegistry.hpp"
-#include "../../../tick/base/TickPriority.hpp"
-#include "../../../tick/manager/TickManager.hpp"
-#include "../../BlockRegistry.hpp"
+
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace blocks {
@@ -191,7 +192,7 @@ FrostedIceBlock::FrostedIceBlock(BlockProperties properties)
 
 void FrostedIceBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC 1.16.5: 放置时调度 tick
+    // 放置时调度 tick
     world.tickManager().scheduleBlockTick(
         pos, *this, math::Random(world.seed() ^ pos.toId()).nextInt(20, 40), world::tick::TickPriority::Normal);
 }
@@ -202,11 +203,11 @@ void FrostedIceBlock::neighborChanged(
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    // MC 1.16.5: 如果邻居是霜冰且应该融化，则融化
+    // 如果邻居是霜冰且应该融化，则融化
     const BlockState* state = world.getBlockState(pos);
     if (state && state->is(this)) {
         IBlockReader& blockReader = static_cast<IBlockReader&>(world);
-        if (shouldMelt(blockReader, pos, 2)) {
+        if (_shouldMelt(blockReader, pos, 2)) {
             meltIce(world, pos);
         }
     }
@@ -216,20 +217,21 @@ void FrostedIceBlock::neighborChanged(
 
 void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    // MC 1.16.5: 检查是否应该融化
+    // 检查是否应该融化
     IBlockReader& blockReader = static_cast<IBlockReader&>(world);
     i32 age = getAge(state);
 
-    // 光照检查：光照 > 11 - age - opacity
+    // 光照检查：光照 > MELT_LIGHT_LEVEL - age - opacity
     u8 blockLight = world.getBlockLight(pos);
     u8 skyLight = world.getSkyLight(pos);
     i32 lightLevel = static_cast<i32>(std::max(blockLight, skyLight));
     // 霜冰的不透明度通常是 2-3
     i32 opacity = state.getOpacity();
 
-    bool shouldMeltNow = (random.nextInt(3) == 0 || shouldMelt(blockReader, pos, 4)) && lightLevel > 11 - age - opacity;
+    bool shouldMeltNow =
+        (random.nextInt(3) == 0 || _shouldMelt(blockReader, pos, 4)) && lightLevel > MELT_LIGHT_LEVEL - age - opacity;
 
-    if (shouldMeltNow && slightlyMelt(world, pos, state)) {
+    if (shouldMeltNow && _slightlyMelt(world, pos, state)) {
         // 完全融化，通知相邻霜冰检查
         for (Direction dir : Directions::all()) {
             BlockPos neighborPos = pos.offset(dir);
@@ -248,13 +250,13 @@ void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state
 
 void FrostedIceBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    // MC 1.16.5: randomTick 也调用 tick
+    // randomTick 也调用 tick
     tick(world, pos, state, random);
 }
 
-bool FrostedIceBlock::shouldMelt(IBlockReader& world, const BlockPos& pos, i32 neighborsRequired) const
+bool FrostedIceBlock::_shouldMelt(IBlockReader& world, const BlockPos& pos, i32 neighborsRequired) const
 {
-    // MC 1.16.5: 检查周围霜冰邻居数量
+    // 检查周围霜冰邻居数量
     // 如果霜冰邻居数量 >= neighborsRequired，则不应该融化
     i32 frostNeighborCount = 0;
 
@@ -272,7 +274,7 @@ bool FrostedIceBlock::shouldMelt(IBlockReader& world, const BlockPos& pos, i32 n
     return true;
 }
 
-bool FrostedIceBlock::slightlyMelt(IWorld& world, const BlockPos& pos, BlockState& state)
+bool FrostedIceBlock::_slightlyMelt(IWorld& world, const BlockPos& pos, BlockState& state)
 {
     i32 age = getAge(state);
 

@@ -33,7 +33,6 @@ namespace layer {
  * @brief 添加岛屿层
  *
  * 在海洋中扩展陆地。
- * 参考 MC AddIslandLayer (IBishopTransformer)
  *
  * 采样模式：四对角 + 中心
  */
@@ -47,7 +46,6 @@ public:
  * @brief 添加雪地层
  *
  * 为陆地分配温度区域。
- * 参考 MC AddSnowLayer (IC1Transformer)
  *
  * 输出值：
  * - 0: 海洋（保持不变）
@@ -66,7 +64,6 @@ public:
  * @brief 移除过多海洋层
  *
  * 如果周围都是浅海，有一定概率变成陆地。
- * 参考 MC RemoveTooMuchOceanLayer (ICastleTransformer)
  */
 class RemoveTooMuchOceanLayer : public ICastleTransformer {
 public:
@@ -78,7 +75,6 @@ public:
  * @brief 深海层
  *
  * 将被浅海包围的海洋变成深海。
- * 参考 MC DeepOceanLayer (ICastleTransformer)
  */
 class DeepOceanLayer : public ICastleTransformer {
 public:

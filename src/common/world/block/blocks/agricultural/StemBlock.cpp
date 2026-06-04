@@ -21,13 +21,13 @@
  *
  */
 
-#include "StemBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorld.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/world/block/blocks/agricultural/StemBlock.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include <algorithm>
 #include <functional>
 
@@ -123,14 +123,12 @@ void StemBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
         return;
     }
 
-    // 参考 MC 1.16.5: StemBlock.randomTick
     // 光照检查：使用 getLightSubtracted 在方块位置本身，不是上方
     if (world.getLightSubtracted(pos, 0) < 9) {
         return;
     }
 
-    // 参考 MC 1.16.5: 简化生长概率计算
-    // 基础概率 1/25，加上湿润度加成
+    // 简化生长概率计算：基础概率 1/25，加上湿润度加成
     float growthChance = 1.0f / 25.0f;
 
     // 检查下方耕地是否湿润
@@ -286,7 +284,6 @@ AttachedStemBlock::AttachedStemBlock(const StemGrownBlock* crop, const BlockProp
 
     // 预计算各方向的形状
     // 形状从中心 (6, 0, 6) 延伸到对应方向的边缘，高度 10 像素
-    // 参考 MC 源码中的 SHAPES 映射
     constexpr f32 P = 1.0f / 16.0f;
 
     // North: (6, 0, 0) -> (10, 10, 10)

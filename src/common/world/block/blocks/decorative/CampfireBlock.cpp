@@ -46,7 +46,7 @@ CampfireBlock::CampfireBlock(BlockProperties properties, u8 lightValue)
     , m_lightValue(lightValue)
 {
     // 创建状态容器
-    // MC 1.16.5: 营火有 LIT, SIGNAL_FIRE, WATERLOGGED, FACING 四个属性
+    // 营火有 LIT, SIGNAL_FIRE, WATERLOGGED, FACING 四个属性
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::LIT())
@@ -85,7 +85,7 @@ BlockState CampfireBlock::getStateForPlacement(BlockItemUseContext& context)
     bool lit = !waterlogged;
 
     // 检查下方是否是干草块（信号火）
-    bool signalFire = isHayBlock(const_cast<IWorld&>(world), pos);
+    bool signalFire = _isHayBlock(const_cast<IWorld&>(world), pos);
 
     // 获取放置朝向
     Direction facing = context.horizontalDirection();
@@ -112,9 +112,9 @@ BlockState CampfireBlock::updatePostPlacement(const BlockState& state,
         waterloggable::scheduleWaterTick(world, currentPos);
     }
 
-    // MC 1.16.5: 当下方方块变化时，检查是否需要更新信号火状态
+    // 当下方方块变化时，检查是否需要更新信号火状态
     if (facing == Direction::Down) {
-        bool signalFire = isHayBlock(world, currentPos);
+        bool signalFire = _isHayBlock(world, currentPos);
         if (state.get(BlockStateProperties::SIGNAL_FIRE()) != signalFire) {
             return state.with(BlockStateProperties::SIGNAL_FIRE(), signalFire);
         }
@@ -132,7 +132,7 @@ void CampfireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, 
         return;
     }
 
-    // 注意：MC 1.16.5 营火不会因为雨天而熄灭，这是普通火焰(FireBlock)的行为
+    // 注意：营火不会因为雨天而熄灭，这是普通火焰(FireBlock)的行为
     // 营火的熄灭方式只有：水接触、铲子右键、喷溅型水瓶
 
     // 烹饪逻辑由 CampfireBlockEntity.tick() 处理
@@ -172,7 +172,6 @@ ActionResultType CampfireBlock::onBlockActivated(const BlockState& state,
     MC_UNUSED(hand);
     MC_UNUSED(hit);
 
-    // MC 1.16.5: CampfireBlock.onBlockActivated()
     // 玩家右键点击营火时，尝试添加食物进行烹饪
 
     if (world.isClientSide()) {
@@ -197,11 +196,9 @@ ActionResultType CampfireBlock::onBlockActivated(const BlockState& state,
         i32 cookTime = recipeResult->second;
 
         // 添加物品到营火
-        // MC 1.16.5: 创造模式传入副本，生存模式传入原物品
+        // 创造模式传入副本，生存模式传入原物品
         if (campfire->addItem(heldItem, cookTime)) {
             // 成功添加
-            // MC 1.16.5: 统计 INTERACT_WITH_CAMPFIRE
-            // player.addStat(Stats.INTERACT_WITH_CAMPFIRE);
             return ActionResultType::Success;
         }
     }
@@ -211,7 +208,6 @@ ActionResultType CampfireBlock::onBlockActivated(const BlockState& state,
 
 void CampfireBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC 1.16.5: CampfireBlock.onReplaced()
     // 方块被移除时，掉落所有烹饪中的物品
 
     BlockEntity* blockEntity = world.getBlockEntity(pos);
@@ -225,7 +221,7 @@ void CampfireBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const Blo
 
 const BlockState& CampfireBlock::rotate(const BlockState& state, Rotation rotation) const
 {
-    // MC 1.16.5: 根据旋转改变朝向
+    // 根据旋转改变朝向
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction newFacing = facing;
 
@@ -249,7 +245,7 @@ const BlockState& CampfireBlock::rotate(const BlockState& state, Rotation rotati
 
 const BlockState& CampfireBlock::mirror(const BlockState& state, Mirror mirror) const
 {
-    // MC 1.16.5: 根据镜像改变朝向
+    // 根据镜像改变朝向
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction newFacing = facing;
 
@@ -283,9 +279,7 @@ void CampfireBlock::light(IWorld& world, const BlockPos& pos, BlockState& state)
     if (!isLit(state) && !state.get(BlockStateProperties::WATERLOGGED())) {
         BlockState newState = state.with(BlockStateProperties::LIT(), true);
         world.setBlockState(pos, &newState, 3);
-        // MC 1.16.5: 点燃音效
-        // 参考: CampfireBlock.onBlockAdded 和 FireBlock.onBlockAdded
-        // 注: 点燃音效使用通用的火焰点燃声，此处不播放特定音效
+        // 点燃音效使用通用的火焰点燃声，此处不播放特定音效
         // 粒子效果由客户端渲染器处理
     }
 }
@@ -296,9 +290,7 @@ void CampfireBlock::extinguish(IWorld& world, const BlockPos& pos, BlockState& s
         BlockState newState = state.with(BlockStateProperties::LIT(), false);
         world.setBlockState(pos, &newState, 3);
 
-        // MC 1.16.5: 熄灭时播放音效
-        // 参考: CampfireBlock.receiveFluid 和 extinguish 方法
-        // 注: 原版使用 ENTITY_GENERIC_EXTINGUISH_FIRE 音效
+        // 熄灭时播放音效
         if (!world.isClientSide()) {
             world.playSound(
                 SoundEvents::ENTITY_GENERIC_EXTINGUISH_FIRE, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
@@ -306,9 +298,9 @@ void CampfireBlock::extinguish(IWorld& world, const BlockPos& pos, BlockState& s
     }
 }
 
-bool CampfireBlock::isHayBlock(IWorld& world, const BlockPos& pos) const
+bool CampfireBlock::_isHayBlock(IWorld& world, const BlockPos& pos) const
 {
-    // MC 1.16.5: 检查下方是否是干草块
+    // 检查下方是否是干草块
     BlockPos belowPos = pos.down();
     const BlockState* belowState = world.getBlockState(belowPos);
     if (belowState == nullptr) {

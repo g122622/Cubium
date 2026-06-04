@@ -24,7 +24,6 @@
 #include "GameProfile.hpp"
 #include "SkinTypes.hpp"
 #include <algorithm>
-#include <cctype>
 #include <iomanip>
 #include <sstream>
 #include <spdlog/spdlog.h>
@@ -129,7 +128,7 @@ const GameProfileProperty* GameProfile::getProperty(const std::string& name) con
     return it != m_properties.end() ? &(*it) : nullptr;
 }
 
-bool GameProfile::hasTextures() const
+bool GameProfile::hasTextures() const noexcept
 {
     return getProperty("textures") != nullptr;
 }
@@ -225,19 +224,14 @@ std::array<u8, 16> GameProfile::parseUUID(const std::string& str)
     return uuid;
 }
 
-i32 GameProfile::uuidHashCode() const
+i32 GameProfile::uuidHashCode() const noexcept
 {
     return calculateUUIDHashCode(m_uuid);
 }
 
-bool GameProfile::hasValidUUID() const
+bool GameProfile::hasValidUUID() const noexcept
 {
-    for (size_t i = 0; i < 16; ++i) {
-        if (m_uuid[i] != 0) {
-            return true;
-        }
-    }
-    return false;
+    return std::any_of(m_uuid.begin(), m_uuid.end(), [](u8 byte) { return byte != 0; });
 }
 
 void GameProfile::serialize(network::PacketSerializer& ser) const

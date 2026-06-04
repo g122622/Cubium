@@ -40,10 +40,10 @@ bool BlueIceFeature::place(
         return false;
     }
 
-    // 参考原版 BlueIceFeature：每次特征调用仅选一个起点，再做 200 次邻接扩散。
-    const i32 placeX = pos.x + random.nextInt(16);
-    const i32 placeZ = pos.z + random.nextInt(16);
-    const i32 oceanFloorY = findOceanFloorY(world, placeX, placeZ);
+    // 每次特征调用仅选一个起点，再做 200 次邻接扩散
+    const i32 placeX = pos.x + random.nextInt(world::CHUNK_WIDTH);
+    const i32 placeZ = pos.z + random.nextInt(world::CHUNK_WIDTH);
+    const i32 oceanFloorY = _findOceanFloorY(world, placeX, placeZ);
     if (oceanFloorY <= 0) {
         return false;
     }
@@ -54,7 +54,7 @@ bool BlueIceFeature::place(
     }
 
     const BlockPos belowPos(startPos.x, startPos.y - 1, startPos.z);
-    if (!isWater(world, startPos) && !isWater(world, belowPos)) {
+    if (!_isWater(world, startPos) && !_isWater(world, belowPos)) {
         return false;
     }
 
@@ -94,7 +94,7 @@ bool BlueIceFeature::place(
             startPos.y + dy,
             startPos.z + random.nextInt(range) - random.nextInt(range));
 
-        if (!isReplaceableForSpread(world, targetPos, config)) {
+        if (!_isReplaceableForSpread(world, targetPos, config)) {
             continue;
         }
 
@@ -111,7 +111,7 @@ bool BlueIceFeature::place(
     return true;
 }
 
-bool BlueIceFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
+bool BlueIceFeature::_isWater(WorldGenRegion& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr || VanillaBlocks::WATER == nullptr) {
@@ -121,7 +121,7 @@ bool BlueIceFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
     return state->is(VanillaBlocks::WATER);
 }
 
-bool BlueIceFeature::isReplaceableForSpread(
+bool BlueIceFeature::_isReplaceableForSpread(
     WorldGenRegion& world, const BlockPos& pos, const BlueIceFeatureConfig& config) const
 {
     const BlockState* state = world.getBlockState(pos);
@@ -133,7 +133,7 @@ bool BlueIceFeature::isReplaceableForSpread(
         return true;
     }
 
-    if (isWater(world, pos)) {
+    if (_isWater(world, pos)) {
         return true;
     }
 
@@ -144,7 +144,7 @@ bool BlueIceFeature::isReplaceableForSpread(
     return VanillaBlocks::ICE != nullptr && state->is(VanillaBlocks::ICE);
 }
 
-i32 BlueIceFeature::findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) const
+i32 BlueIceFeature::_findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) const
 {
     i32 oceanFloorY = world.getTopBlockY(x, z, HeightmapType::OceanFloorWG);
     if (oceanFloorY > 0) {

@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../../core/Result.hpp"
+#include "common/core/Result.hpp"
 #include <filesystem>
 #include <string>
 

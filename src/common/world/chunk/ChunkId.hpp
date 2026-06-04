@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "ChunkPos.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
 
 #include <cstdint>
 #include <functional>
@@ -35,7 +35,6 @@ namespace mc {
  * @brief 区块唯一标识符
  *
  * 用于标识区块在世界中的唯一位置，包含维度信息
- * 参考 MC 1.16.5 的 ChunkPos 区块标识（维度+坐标）
  */
 struct ChunkId {
     ChunkCoord x;
@@ -47,6 +46,8 @@ struct ChunkId {
         , z(0)
         , dimension(0)
     {}
+    // TODO: 构造函数的默认参数违反项目规范（函数参数不允许使用默认值），
+    // 但移除会影响 ClientWorld.cpp 等文件，待统一修改
     ChunkId(ChunkCoord x, ChunkCoord z, i32 dim = 0)
         : x(x)
         , z(z)
@@ -59,7 +60,7 @@ struct ChunkId {
      * 编码格式：高16位=维度，中间24位=X，低24位=Z
      * 支持坐标范围 -8388608 到 8388607
      */
-    [[nodiscard]] u64 toId() const
+    [[nodiscard]] u64 toId() const noexcept
     {
         u64 dim = static_cast<u64>(static_cast<u32>(dimension) & 0xFFFF);
         u64 dx = static_cast<u64>(static_cast<u32>(x) & 0xFFFFFF);
@@ -70,7 +71,7 @@ struct ChunkId {
     /**
      * @brief 从64位ID解码
      */
-    [[nodiscard]] static ChunkId fromId(u64 id)
+    [[nodiscard]] static ChunkId fromId(u64 id) noexcept
     {
         ChunkId cid;
         cid.dimension = static_cast<i32>(static_cast<u16>(id >> 48));
@@ -88,11 +89,14 @@ struct ChunkId {
      */
     [[nodiscard]] ChunkPos chunkPos() const noexcept { return ChunkPos(x, z); }
 
-    bool operator==(const ChunkId& other) const { return x == other.x && z == other.z && dimension == other.dimension; }
+    bool operator==(const ChunkId& other) const noexcept
+    {
+        return x == other.x && z == other.z && dimension == other.dimension;
+    }
 
-    bool operator!=(const ChunkId& other) const { return !(*this == other); }
+    bool operator!=(const ChunkId& other) const noexcept { return !(*this == other); }
 
-    bool operator<(const ChunkId& other) const
+    bool operator<(const ChunkId& other) const noexcept
     {
         if (dimension != other.dimension) return dimension < other.dimension;
         if (x != other.x) return x < other.x;
@@ -106,6 +110,6 @@ struct ChunkId {
 namespace std {
 template <>
 struct hash<mc::ChunkId> {
-    size_t operator()(const mc::ChunkId& id) const { return static_cast<size_t>(id.toId()); }
+    size_t operator()(const mc::ChunkId& id) const noexcept { return static_cast<size_t>(id.toId()); }
 };
 } // namespace std

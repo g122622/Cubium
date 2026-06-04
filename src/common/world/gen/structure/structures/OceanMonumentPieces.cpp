@@ -1,10 +1,10 @@
-#include "OceanMonumentPieces.hpp"
-#include "../../../../entity/core/Entity.hpp"
-#include "../../../../entity/entities/monster/ocean/ElderGuardianEntity.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../StructureBoundingBox.hpp"
+#include "common/world/gen/structure/structures/OceanMonumentPieces.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/monster/ocean/ElderGuardianEntity.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <algorithm>
 #include <array>
 
@@ -1127,7 +1127,7 @@ OceanMonumentBuilding::OceanMonumentBuilding(math::Random& rng, i32 x, i32 z, Di
     : OceanMonumentPiece(
           OceanMonumentPieceTypes::MONUMENT_BUILDING, direction, StructureBoundingBox(x, 39, z, x + 57, 61, z + 57))
 {
-    auto roomList = generateRoomGraph(rng);
+    auto roomList = _generateRoomGraph(rng);
     MC_ASSERT_RELEASE(!roomList.empty());
     m_sourceRoom = roomList.front();
 
@@ -1167,7 +1167,7 @@ OceanMonumentBuilding::OceanMonumentBuilding(math::Random& rng, i32 x, i32 z, Di
     m_childPieces.emplace_back(std::make_unique<OceanMonumentPenthouse>(direction, penthouseBox));
 }
 
-std::vector<OceanMonumentRoomDefinition*> OceanMonumentBuilding::generateRoomGraph(math::Random& rng)
+std::vector<OceanMonumentRoomDefinition*> OceanMonumentBuilding::_generateRoomGraph(math::Random& rng)
 {
     m_roomDefinitions.clear();
     m_roomDefinitions.reserve(75);
@@ -1307,12 +1307,12 @@ void OceanMonumentBuilding::generate(
 {
     MC_UNUSED(rng);
     fillWithBlocks(world, chunkBounds, 0, 0, 0, 57, 22, 57, s_bricksPrismarine, s_water, false);
-    generateEntranceArchs(world, rng, chunkBounds);
-    generateEntranceWall(world, rng, chunkBounds);
-    generateLowerWall(world, rng, chunkBounds);
-    generateMiddleWall(world, rng, chunkBounds);
-    generateUpperWall(world, rng, chunkBounds);
-    generateRoofPiece(world, rng, chunkBounds);
+    _generateEntranceArchs(world, rng, chunkBounds);
+    _generateEntranceWall(world, rng, chunkBounds);
+    _generateLowerWall(world, rng, chunkBounds);
+    _generateMiddleWall(world, rng, chunkBounds);
+    _generateUpperWall(world, rng, chunkBounds);
+    _generateRoofPiece(world, rng, chunkBounds);
 
     for (const auto& childPiece : m_childPieces) {
         if (childPiece->intersectsChunk(chunkX, chunkZ)) {
@@ -1321,7 +1321,7 @@ void OceanMonumentBuilding::generate(
     }
 }
 
-void OceanMonumentBuilding::generateWing(
+void OceanMonumentBuilding::_generateWing(
     bool isLeft, i32 startX, IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
 {
     MC_UNUSED(rng);
@@ -1435,7 +1435,7 @@ void OceanMonumentBuilding::generateWing(
         world, chunkBounds, startX + 12, 1, 11, startX + 12, 7, 13, s_roughPrismarine, s_roughPrismarine, false);
 }
 
-void OceanMonumentBuilding::generateEntranceArchs(
+void OceanMonumentBuilding::_generateEntranceArchs(
     IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
 {
     MC_UNUSED(rng);
@@ -1461,7 +1461,7 @@ void OceanMonumentBuilding::generateEntranceArchs(
     }
 }
 
-void OceanMonumentBuilding::generateEntranceWall(
+void OceanMonumentBuilding::_generateEntranceWall(
     IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
 {
     MC_UNUSED(rng);
@@ -1523,7 +1523,7 @@ void OceanMonumentBuilding::generateEntranceWall(
     makeOpening(world, chunkBounds, 35, 1, 21, 35, 2, 21);
 }
 
-void OceanMonumentBuilding::generateRoofPiece(
+void OceanMonumentBuilding::_generateRoofPiece(
     IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
 {
     MC_UNUSED(rng);
@@ -1605,7 +1605,7 @@ void OceanMonumentBuilding::generateRoofPiece(
     fillWithBlocks(world, chunkBounds, 30, 21, 28, 30, 21, 29, s_roughPrismarine, s_roughPrismarine, false);
 }
 
-void OceanMonumentBuilding::generateLowerWall(
+void OceanMonumentBuilding::_generateLowerWall(
     IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
 {
     MC_UNUSED(rng);
@@ -1681,7 +1681,7 @@ void OceanMonumentBuilding::generateLowerWall(
     }
 }
 
-void OceanMonumentBuilding::generateMiddleWall(
+void OceanMonumentBuilding::_generateMiddleWall(
     IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
 {
     MC_UNUSED(rng);
@@ -1771,7 +1771,7 @@ void OceanMonumentBuilding::generateMiddleWall(
     }
 }
 
-void OceanMonumentBuilding::generateUpperWall(
+void OceanMonumentBuilding::_generateUpperWall(
     IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
 {
     MC_UNUSED(rng);

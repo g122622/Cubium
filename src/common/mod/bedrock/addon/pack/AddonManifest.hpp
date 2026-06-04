@@ -75,7 +75,7 @@ struct AddonManifest {
      * @brief 检查是否包含脚本模块
      * @return 是否包含脚本模块
      */
-    [[nodiscard]] bool hasScriptModule() const;
+    [[nodiscard]] bool hasScriptModule() const noexcept;
 
     /**
      * @brief 获取所有脚本模块
@@ -88,7 +88,7 @@ struct AddonManifest {
      * @param cap 能力名称
      * @return 是否具有该能力
      */
-    [[nodiscard]] bool hasCapability(const std::string& cap) const;
+    [[nodiscard]] bool hasCapability(const std::string& cap) const noexcept;
 };
 
 } // namespace mc::mod::bedrock::addon

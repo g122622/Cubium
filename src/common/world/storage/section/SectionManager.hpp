@@ -23,14 +23,14 @@
 
 #pragma once
 
-#include "../../../core/Result.hpp"
-#include "../../../core/Types.hpp"
-#include "../db/ConsistencyMode.hpp"
-#include "../db/RocksDBDatabase.hpp"
-#include "../db/SectionCodec.hpp"
-#include "../db/SectionKey.hpp"
-#include "../task/StorageTaskManager.hpp"
-#include "SectionCache.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/storage/db/ConsistencyMode.hpp"
+#include "common/world/storage/db/RocksDBDatabase.hpp"
+#include "common/world/storage/db/SectionCodec.hpp"
+#include "common/world/storage/db/SectionKey.hpp"
+#include "common/world/storage/section/SectionCache.hpp"
+#include "common/world/storage/task/StorageTaskManager.hpp"
 #include <functional>
 #include <future>
 #include <memory>
@@ -328,7 +328,7 @@ private:
     /**
      * @brief 从数据库加载Section
      */
-    Result<std::shared_ptr<const SectionData>> loadFromDatabase(const SectionKey& key);
+    Result<std::shared_ptr<const SectionData>> _loadFromDatabase(const SectionKey& key);
 
     /**
      * @brief 从数据库批量加载多个 Section
@@ -336,17 +336,17 @@ private:
      * @param keys Section 标识列表
      * @return 与输入顺序一致的加载结果列表
      */
-    Result<std::vector<std::shared_ptr<const SectionData>>> loadFromDatabaseBatch(const std::vector<SectionKey>& keys);
+    Result<std::vector<std::shared_ptr<const SectionData>>> _loadFromDatabaseBatch(const std::vector<SectionKey>& keys);
 
     /**
      * @brief 保存Section到数据库
      */
-    Result<void> saveToDatabase(const SectionKey& key, const SectionData& data, bool sync = false);
+    Result<void> _saveToDatabase(const SectionKey& key, const SectionData& data, bool sync = false);
 
     /**
      * @brief 删除Section范围
      */
-    Result<void> deleteSectionRange(const std::vector<u8>& startKey, const std::vector<u8>& endKey);
+    Result<void> _deleteSectionRange(const std::vector<u8>& startKey, const std::vector<u8>& endKey);
 
     // ========================================================================
     // 成员变量

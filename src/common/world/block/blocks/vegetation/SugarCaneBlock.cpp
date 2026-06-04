@@ -95,10 +95,10 @@ bool SugarCaneBlock::isValidPosition(const BlockState& state, IBlockReader& worl
         (VanillaBlocks::SAND != nullptr && belowState->is(VanillaBlocks::SAND)) ||
         (VanillaBlocks::RED_SAND != nullptr && belowState->is(VanillaBlocks::RED_SAND));
 
-    return validGround && isNearWater(world, pos);
+    return validGround && _isNearWater(world, pos);
 }
 
-bool SugarCaneBlock::isNearWater(IBlockReader& world, const BlockPos& pos) const
+bool SugarCaneBlock::_isNearWater(IBlockReader& world, const BlockPos& pos) const
 {
     // 检查根部同高度四个方向是否有水
     const i32 waterY = pos.y - 1;
@@ -148,8 +148,8 @@ void SugarCaneBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
     }
 
     // 检查高度限制（最高3格）
-    int height = 1;
-    for (int i = 1; i < 3; ++i) {
+    i32 height = 1;
+    for (i32 i = 1; i < 3; ++i) {
         BlockPos checkPos(pos.x, pos.y - i, pos.z);
         const BlockState* checkState = world.getBlockState(checkPos);
         if (checkState == nullptr || !checkState->is(this)) {

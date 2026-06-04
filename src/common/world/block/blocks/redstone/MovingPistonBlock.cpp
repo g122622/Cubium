@@ -22,10 +22,9 @@
  */
 
 #include "MovingPistonBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../blockentity/BlockEntity.hpp"
-#include "../../../blockentity/interactive/PistonBlockEntity.hpp"
-#include <unordered_map>
+#include "common/world/IWorld.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/interactive/PistonBlockEntity.hpp"
 
 namespace mc {
 namespace blocks {
@@ -67,7 +66,6 @@ void MovingPistonBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const
     MC_UNUSED(state);
 
     // 当方块被移除时，清理 PistonBlockEntity
-    // MC Java: onReplaced 中调用 clearPistonTileEntity
     BlockEntity* entity = world.getBlockEntity(pos);
     if (entity) {
         auto* pistonEntity = dynamic_cast<blockentity::PistonBlockEntity*>(entity);
@@ -83,7 +81,6 @@ void MovingPistonBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const
 std::unique_ptr<BlockEntity> MovingPistonBlock::createBlockEntity(const BlockPos& pos)
 {
     MC_UNUSED(pos);
-    // MC Java: createNewTileEntity 返回 null
     // 实际的 PistonBlockEntity 由 PistonBlock.extend() 创建
     // 这里返回 nullptr，因为方块实体是由活塞操作时创建的
     return nullptr;
@@ -108,7 +105,7 @@ BlockState MovingPistonBlock::withType(BlockState state, PistonHeadBlock::Type t
     return state.with(PistonHeadBlock::getTypeProperty(), type);
 }
 
-const EnumProperty<PistonHeadBlock::Type>& MovingPistonBlock::getTypeProperty()
+const EnumProperty<PistonHeadBlock::Type>& MovingPistonBlock::_getTypeProperty()
 {
     // 返回 PistonHeadBlock 的 TYPE_PROP
     return PistonHeadBlock::getTypeProperty();

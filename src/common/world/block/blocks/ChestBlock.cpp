@@ -22,20 +22,21 @@
  */
 
 #include "ChestBlock.hpp"
-#include "../../../entity/core/Entity.hpp"
-#include "../../../entity/entities/passive/tamable/CatEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/inventory/ContainerTypes.hpp"
-#include "../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../item/context/BlockItemUseContext.hpp"
-#include "../../../item/core/ItemStack.hpp"
-#include "../../../util/assert/AssertAll.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../IWorld.hpp"
-#include "../../blockentity/storage/ChestEntity.hpp"
-#include "../Block.hpp"
-#include "../BlockRegistry.hpp"
-#include "../WaterLoggableHelpers.hpp"
+
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/passive/tamable/CatEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/blockentity/storage/ChestEntity.hpp"
 #include <vector>
 
 namespace mc {
@@ -215,7 +216,6 @@ ActionResultType ChestBlock::onBlockActivated(const BlockState& state,
 
 void ChestBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 参考 MC 1.16.5: ChestBlock.onReplaced
     // 箱子被移除时需要掉落其内容物
     BlockEntity* blockEntity = world.getBlockEntity(pos);
     if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Chest) {
@@ -263,7 +263,6 @@ i32 ChestBlock::getComparatorInputOverride(const BlockState& state, IWorld& worl
 
 const BlockState& ChestBlock::rotate(const BlockState& state, Rotation rotation) const
 {
-    // MC 1.16.5: ChestBlock.rotate()
     // 旋转箱子的朝向（HORIZONTAL_FACING）
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction newFacing = Directions::rotateDirection(facing, rotation);
@@ -272,7 +271,6 @@ const BlockState& ChestBlock::rotate(const BlockState& state, Rotation rotation)
 
 const BlockState& ChestBlock::mirror(const BlockState& state, Mirror mirror) const
 {
-    // MC 1.16.5: ChestBlock.mirror()
     // 镜像箱子的朝向，并交换左/右类型
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     BlockStateProperties::ChestType chestType = state.get(BlockStateProperties::CHEST_TYPE());

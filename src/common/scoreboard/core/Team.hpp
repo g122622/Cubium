@@ -24,11 +24,12 @@
 #pragma once
 
 #include <memory>
-#include "../../util/text/ITextComponent.hpp"
-#include "TeamEnums.hpp"
 #include <set>
 #include <string>
 #include <vector>
+
+#include "common/util/text/ITextComponent.hpp"
+#include "scoreboard/core/TeamEnums.hpp"
 
 namespace mc::scoreboard {
 
@@ -39,7 +40,6 @@ using text::TextFormatting;
  * @brief 队伍抽象类
  *
  * 定义队伍的基本接口。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.Team
  */
 class Team {
 public:

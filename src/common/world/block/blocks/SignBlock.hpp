@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include <memory>
 #include "../../../core/BlockRaycastResult.hpp"
 #include "../../../core/Types.hpp"
 #include "../../../item/core/ActionResult.hpp"
@@ -32,6 +31,7 @@
 #include "../Block.hpp"
 #include "../IWaterLoggable.hpp"
 #include "../Material.hpp"
+#include <memory>
 
 namespace mc {
 
@@ -47,7 +47,7 @@ namespace blocks {
 /**
  * @brief 告示牌木材类型
  *
- * MC 1.16.5 支持多种木材类型的告示牌。
+ * 支持多种木材类型的告示牌。
  */
 enum class WoodType : u8 {
     Oak = 0,
@@ -101,11 +101,6 @@ public:
 
     /**
      * @brief 处理玩家右键点击告示牌
-     *
-     * MC 1.16.5: 当玩家右键点击告示牌时，如果文本中包含
-     * 点击事件（如 run_command），则执行该命令。
-     *
-     * 参考: SignBlock.onBlockActivated()
      *
      * @param state 方块状态
      * @param world 世界

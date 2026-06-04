@@ -86,12 +86,18 @@ struct PlacedPiece {
         , groundLevelDelta(delta)
         , boundingBox(box)
     {}
+
+    // 移动构造和移动赋值
+    PlacedPiece(PlacedPiece&& other) noexcept = default;
+    PlacedPiece& operator=(PlacedPiece&& other) noexcept = default;
+
+    // 禁用拷贝
+    PlacedPiece(const PlacedPiece&) = delete;
+    PlacedPiece& operator=(const PlacedPiece&) = delete;
 };
 
 /**
  * @brief 待处理的连接点
- *
- * 参考 MC 1.16.5 JigsawManager.Entry
  */
 struct PendingJoint {
     BlockPos position;      ///< 连接点在世界中的位置
@@ -121,13 +127,20 @@ struct PendingJoint {
         , orientation(orient)
         , jointType(jt)
     {}
+
+    // 移动构造和移动赋值
+    PendingJoint(PendingJoint&& other) noexcept = default;
+    PendingJoint& operator=(PendingJoint&& other) noexcept = default;
+
+    // 禁用拷贝
+    PendingJoint(const PendingJoint&) = delete;
+    PendingJoint& operator=(const PendingJoint&) = delete;
 };
 
 /**
  * @brief Jigsaw 结构组装器
  *
- * 参考 MC 1.16.5 的 JigsawManager，实现递归式结构组装。
- * 从起始模板池开始，通过连接点逐步扩展结构。
+ * 实现递归式结构组装，从起始模板池开始，通过连接点逐步扩展结构。
  */
 class JigsawManager {
 public:
@@ -277,23 +290,22 @@ private:
      * @param placed 已放置的拼图块信息
      * @param rng 随机数生成器
      */
-    static void placeFallbackBlocks(IWorldWriter& world, const PlacedPiece& placed, math::Random& rng);
+    static void _placeFallbackBlocks(IWorldWriter& world, const PlacedPiece& placed, math::Random& rng);
 
     /**
      * @brief 处理单个连接点
      */
-    static bool processJoint(JigsawPatternRegistry& patternRegistry,
+    static bool _processJoint(JigsawPatternRegistry& patternRegistry,
         std::vector<PlacedPiece>& placedPieces,
         std::queue<PendingJoint>& pendingJoints,
         const PendingJoint& joint,
         i32 maxDepth,
         math::Random& rng);
 
-private:
     /**
      * @brief 获取变换后的连接点
      */
-    static std::vector<JigsawJoint> getTransformedJoints(
+    static std::vector<JigsawJoint> _getTransformedJoints(
         const JigsawPiece& piece, const BlockPos& pos, Rotation rotation, Mirror mirror);
 
     static feature::template_::TemplateManager s_templateManager;

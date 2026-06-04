@@ -71,12 +71,12 @@ public:
     /**
      * @brief 获取交易数量
      */
-    [[nodiscard]] size_t size() const { return m_offers.size(); }
+    [[nodiscard]] size_t size() const noexcept { return m_offers.size(); }
 
     /**
      * @brief 是否为空
      */
-    [[nodiscard]] bool empty() const { return m_offers.empty(); }
+    [[nodiscard]] bool empty() const noexcept { return m_offers.empty(); }
 
     /**
      * @brief 补货所有交易
@@ -100,8 +100,6 @@ private:
  * @brief 商人接口
  *
  * 所有可交易实体的接口（村民、流浪商人等）
- *
- * 参考 MC 1.16.5 Merchant
  */
 class IMerchant {
 public:

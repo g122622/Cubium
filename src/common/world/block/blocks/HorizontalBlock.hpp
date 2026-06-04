@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../util/Direction.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../Block.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 namespace blocks {

@@ -22,8 +22,8 @@
  */
 
 #include "SectionCache.hpp"
-#include "../../../util/TimeUtils.hpp"
-#include "../db/SectionCodec.hpp"
+#include "common/util/TimeUtils.hpp"
+#include "common/world/storage/db/SectionCodec.hpp"
 #include <mutex>
 
 namespace mc::world::storage {
@@ -53,10 +53,10 @@ std::shared_ptr<SectionData> SectionCache::get(const SectionKey& key)
     }
 
     // 更新访问顺序
-    updateAccessOrder(it->second);
+    _updateAccessOrder(it->second);
 
     // 更新访问时间
-    it->second->entry.lastAccessTime = getCurrentTimeMs();
+    it->second->entry.lastAccessTime = _getCurrentTimeMs();
 
     ++m_stats.hits;
     return it->second->entry.data;
@@ -73,19 +73,19 @@ std::shared_ptr<SectionData> SectionCache::put(const SectionKey& key, std::share
         auto oldValue = it->second->entry.data;
         it->second->entry.data = std::move(data);
         it->second->entry.dirty = dirty;
-        it->second->entry.lastAccessTime = getCurrentTimeMs();
-        updateAccessOrder(it->second);
+        it->second->entry.lastAccessTime = _getCurrentTimeMs();
+        _updateAccessOrder(it->second);
         return oldValue;
     }
 
     // 驱逐直到有空间
     std::shared_ptr<SectionData> evicted;
     while (m_lruList.size() >= m_capacity) {
-        evicted = evictLRU();
+        evicted = _evictLRU();
     }
 
     // 添加新条目
-    m_lruList.push_front({key, CacheEntry{std::move(data), dirty, getCurrentTimeMs()}});
+    m_lruList.push_front({key, CacheEntry{std::move(data), dirty, _getCurrentTimeMs()}});
     m_cacheMap[key] = m_lruList.begin();
 
     m_stats.currentSize = m_lruList.size();
@@ -239,7 +239,7 @@ void SectionCache::setCapacity(size_t capacity)
 
     // 驱逐多余的Section
     while (m_lruList.size() > m_capacity) {
-        evictLRU();
+        _evictLRU();
     }
 
     m_stats.currentSize = m_lruList.size();
@@ -270,13 +270,13 @@ void SectionCache::resetStats()
 // 内部方法
 // ============================================================================
 
-void SectionCache::updateAccessOrder(LRUIterator it)
+void SectionCache::_updateAccessOrder(LRUIterator it)
 {
     // 移动到列表最前
     m_lruList.splice(m_lruList.begin(), m_lruList, it);
 }
 
-std::shared_ptr<SectionData> SectionCache::evictLRU()
+std::shared_ptr<SectionData> SectionCache::_evictLRU()
 {
     if (m_lruList.empty()) {
         return nullptr;
@@ -296,11 +296,9 @@ std::shared_ptr<SectionData> SectionCache::evictLRU()
     return data;
 }
 
-u64 SectionCache::getCurrentTimeMs()
+u64 SectionCache::_getCurrentTimeMs()
 {
-    return static_cast<u64>(
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
-            .count());
+    return util::TimeUtils::getCurrentTimeMs();
 }
 
 } // namespace mc::world::storage

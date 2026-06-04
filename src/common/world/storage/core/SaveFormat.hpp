@@ -85,19 +85,19 @@ public:
 
 private:
     /// 检查目录是否包含 RocksDB 特征文件（OPTIONS-、*.sst、CURRENT）
-    static bool hasRocksDb(const std::filesystem::path& dbDir);
+    static bool _hasRocksDb(const std::filesystem::path& dbDir);
 
     /// 检查目录是否包含 Anvil 区域文件（region/*.mca）
-    static bool hasAnvilRegion(const std::filesystem::path& worldDir);
+    static bool _hasAnvilRegion(const std::filesystem::path& worldDir);
 
     /// 检查目录是否包含 Bedrock LevelDB 特征文件（*.ldb、LOG 文件且无 OPTIONS-）
-    static bool hasBedrockDb(const std::filesystem::path& dbDir);
+    static bool _hasBedrockDb(const std::filesystem::path& dbDir);
 
     /// 从 Java level.dat 读取版本信息
-    static Result<SaveFormatInfo> detectJavaVersion(const std::filesystem::path& worldDir);
+    static Result<SaveFormatInfo> _detectJavaVersion(const std::filesystem::path& worldDir);
 
     /// 从 Bedrock level.dat 读取版本信息
-    static Result<SaveFormatInfo> detectBedrockVersion(const std::filesystem::path& worldDir);
+    static Result<SaveFormatInfo> _detectBedrockVersion(const std::filesystem::path& worldDir);
 };
 
 } // namespace mc::world::storage

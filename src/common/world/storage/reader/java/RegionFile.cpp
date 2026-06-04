@@ -97,7 +97,7 @@ Result<void> RegionFile::open()
         return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open region file: {}", m_path.string()));
     }
 
-    auto headerResult = readHeader();
+    auto headerResult = _readHeader();
     if (headerResult.failed()) {
         m_stream.close();
         return headerResult.error();
@@ -117,10 +117,10 @@ void RegionFile::close()
 
 bool RegionFile::hasChunk(i32 localX, i32 localZ) const
 {
-    if (localX < 0 || localX >= 32 || localZ < 0 || localZ >= 32) {
+    if (localX < 0 || localX >= REGION_SIZE || localZ < 0 || localZ >= REGION_SIZE) {
         return false;
     }
-    i32 index = localZ * 32 + localX;
+    i32 index = localZ * REGION_SIZE + localX;
     return m_locations[index].offset != 0 && m_locations[index].sectorCount != 0;
 }
 
@@ -130,11 +130,11 @@ Result<std::vector<u8>> RegionFile::readChunkData(i32 localX, i32 localZ)
         return Error(ErrorCode::InvalidState, "Region file not open");
     }
 
-    if (localX < 0 || localX >= 32 || localZ < 0 || localZ >= 32) {
+    if (localX < 0 || localX >= REGION_SIZE || localZ < 0 || localZ >= REGION_SIZE) {
         return Error(ErrorCode::ChunkNotFound, fmt::format("Chunk ({}, {}) out of region bounds", localX, localZ));
     }
 
-    i32 index = localZ * 32 + localX;
+    i32 index = localZ * REGION_SIZE + localX;
     const auto& loc = m_locations[index];
 
     if (loc.offset == 0 || loc.sectorCount == 0) {
@@ -185,15 +185,15 @@ Result<std::vector<u8>> RegionFile::readChunkData(i32 localX, i32 localZ)
         return Error(ErrorCode::ChunkCorrupted, "Failed to read chunk compressed data");
     }
 
-    return decompress(compressionType, compressedData);
+    return _decompress(compressionType, compressedData);
 }
 
 std::vector<std::pair<i32, i32>> RegionFile::listChunks() const
 {
     std::vector<std::pair<i32, i32>> chunks;
-    for (i32 z = 0; z < 32; ++z) {
-        for (i32 x = 0; x < 32; ++x) {
-            i32 index = z * 32 + x;
+    for (i32 z = 0; z < REGION_SIZE; ++z) {
+        for (i32 x = 0; x < REGION_SIZE; ++x) {
+            i32 index = z * REGION_SIZE + x;
             if (m_locations[index].offset != 0 && m_locations[index].sectorCount != 0) {
                 chunks.emplace_back(x, z);
             }
@@ -202,7 +202,7 @@ std::vector<std::pair<i32, i32>> RegionFile::listChunks() const
     return chunks;
 }
 
-Result<void> RegionFile::readHeader()
+Result<void> RegionFile::_readHeader()
 {
     // 读取偏移表（1024 个 4 字节条目）
     for (i32 i = 0; i < CHUNKS_PER_REGION; ++i) {
@@ -233,7 +233,7 @@ Result<void> RegionFile::readHeader()
     return {};
 }
 
-Result<std::vector<u8>> RegionFile::decompress(CompressionType type, const std::vector<u8>& data)
+Result<std::vector<u8>> RegionFile::_decompress(CompressionType type, const std::vector<u8>& data)
 {
     const u8 rawType = static_cast<u8>(type);
     if ((rawType & static_cast<u8>(CompressionType::External)) != 0) {

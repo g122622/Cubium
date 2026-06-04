@@ -23,14 +23,12 @@
 
 #include "OceanDecorationFeature.hpp"
 
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../WorldConstants.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
-
-#include <spdlog/spdlog.h>
+#include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 
 #include <algorithm>
 
@@ -45,19 +43,22 @@ bool OceanDecorationFeature::place(
 
     bool placedAny = false;
     for (i32 i = 0; i < config.tries; ++i) {
-        const i32 placeX = pos.x + random.nextInt(16);
-        const i32 placeZ = pos.z + random.nextInt(16);
-        const i32 oceanFloorY = findOceanFloorY(world, placeX, placeZ);
-        if (oceanFloorY <= 0) {
+        // 在区块内随机选择位置
+        const i32 placeX = pos.x + random.nextInt(world::CHUNK_WIDTH);
+        const i32 placeZ = pos.z + random.nextInt(world::CHUNK_WIDTH);
+        const i32 oceanFloorY = _findOceanFloorY(world, placeX, placeZ);
+
+        // 检查是否找到有效的海洋底部
+        if (oceanFloorY <= world::MIN_BUILD_HEIGHT) {
             continue;
         }
 
         const BlockPos centerPos(placeX, oceanFloorY + 1, placeZ);
-        if (!isWater(world, centerPos) || !hasSolidSupport(world, centerPos.down())) {
+        if (!_isWater(world, centerPos) || !_hasSolidSupport(world, centerPos.down())) {
             continue;
         }
 
-        if (placeSingleDecoration(world, random, centerPos, config)) {
+        if (_placeSingleDecoration(world, random, centerPos, config)) {
             placedAny = true;
         }
     }
@@ -65,7 +66,7 @@ bool OceanDecorationFeature::place(
     return placedAny;
 }
 
-bool OceanDecorationFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
+bool OceanDecorationFeature::_isWater(WorldGenRegion& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr || VanillaBlocks::WATER == nullptr) {
@@ -75,19 +76,21 @@ bool OceanDecorationFeature::isWater(WorldGenRegion& world, const BlockPos& pos)
     return state->is(VanillaBlocks::WATER);
 }
 
-bool OceanDecorationFeature::hasSolidSupport(WorldGenRegion& world, const BlockPos& pos) const
+bool OceanDecorationFeature::_hasSolidSupport(WorldGenRegion& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     return state != nullptr && !state->isAir() && state->owner().isSolid(*state);
 }
 
-i32 OceanDecorationFeature::findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) const
+i32 OceanDecorationFeature::_findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) const
 {
+    // 首先尝试使用高度图快速获取海洋底部
     i32 oceanFloorY = world.getTopBlockY(x, z, HeightmapType::OceanFloorWG);
-    if (oceanFloorY > 0) {
+    if (oceanFloorY > world::MIN_BUILD_HEIGHT) {
         return oceanFloorY;
     }
 
+    // 回退方案：从上往下扫描查找海洋底部
     for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT + 1; --y) {
         const BlockState* state = world.getBlockState(x, y, z);
         if (state == nullptr || state->isAir()) {
@@ -104,26 +107,29 @@ i32 OceanDecorationFeature::findOceanFloorY(WorldGenRegion& world, i32 x, i32 z)
     return -1;
 }
 
-bool OceanDecorationFeature::placeSingleDecoration(
+bool OceanDecorationFeature::_placeSingleDecoration(
     WorldGenRegion& world, math::Random& random, const BlockPos& centerPos, const OceanDecorationFeatureConfig& config)
 {
     bool placed = false;
 
+    // 在中心位置放置海晶石作为基座
     const BlockPos floorPos = centerPos.down();
     if (config.prismarineState != nullptr) {
         world.setBlockState(floorPos, config.prismarineState);
         placed = true;
     }
 
-    if (config.conduitState != nullptr && isWater(world, centerPos)) {
+    // 放置潮涌核心（如果位置仍在水中）
+    if (config.conduitState != nullptr && _isWater(world, centerPos)) {
         world.setBlockState(centerPos, config.conduitState);
         placed = true;
     }
 
+    // 在四周放置海晶石楼梯和台阶
     const auto directions = Directions::horizontal();
     for (Direction direction : directions) {
         const BlockPos ringPos = centerPos.offset(direction);
-        if (!isWater(world, ringPos) || !hasSolidSupport(world, ringPos.down())) {
+        if (!_isWater(world, ringPos) || !_hasSolidSupport(world, ringPos.down())) {
             continue;
         }
 
@@ -139,14 +145,15 @@ bool OceanDecorationFeature::placeSingleDecoration(
         }
     }
 
+    // 在周围放置干海带块
     const i32 driedKelpCount = std::max(0, config.driedKelpCount);
     for (i32 i = 0; i < driedKelpCount; ++i) {
         const i32 dx = random.nextInt(5) - 2;
         const i32 dz = random.nextInt(5) - 2;
         const BlockPos kelpPos(centerPos.x + dx, centerPos.y, centerPos.z + dz);
 
-        if (config.driedKelpBlockState == nullptr || !isWater(world, kelpPos) ||
-            !hasSolidSupport(world, kelpPos.down())) {
+        if (config.driedKelpBlockState == nullptr || !_isWater(world, kelpPos) ||
+            !_hasSolidSupport(world, kelpPos.down())) {
             continue;
         }
 
@@ -154,11 +161,12 @@ bool OceanDecorationFeature::placeSingleDecoration(
         placed = true;
     }
 
+    // 放置海龟蛋巢穴
     if (config.turtleEggState != nullptr) {
         const Direction nestDirection = directions[static_cast<size_t>(random.nextInt(4))];
         const BlockPos nestPos = centerPos.offset(nestDirection, 2);
 
-        if (hasSolidSupport(world, nestPos.down())) {
+        if (_hasSolidSupport(world, nestPos.down())) {
             if (config.sandState != nullptr) {
                 world.setBlockState(nestPos.down(), config.sandState);
             }
@@ -170,16 +178,18 @@ bool OceanDecorationFeature::placeSingleDecoration(
         }
     }
 
+    // 放置气泡柱（岩浆块上方）
     if (config.bubbleColumnState != nullptr && config.magmaState != nullptr) {
         const Direction ventDirection = directions[static_cast<size_t>(random.nextInt(4))];
         const BlockPos ventSourcePos = centerPos.offset(ventDirection, 2).down();
-        if (hasSolidSupport(world, ventSourcePos)) {
+        if (_hasSolidSupport(world, ventSourcePos)) {
             world.setBlockState(ventSourcePos, config.magmaState);
 
+            // 向上生成气泡柱
             const i32 maxColumnHeight = std::max(1, config.bubbleColumnMaxHeight);
             for (i32 yOffset = 1; yOffset <= maxColumnHeight; ++yOffset) {
                 const BlockPos bubblePos(ventSourcePos.x, ventSourcePos.y + yOffset, ventSourcePos.z);
-                if (!isWater(world, bubblePos)) {
+                if (!_isWater(world, bubblePos)) {
                     break;
                 }
 

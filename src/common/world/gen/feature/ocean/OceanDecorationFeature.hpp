@@ -23,9 +23,10 @@
 
 #pragma once
 
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/Feature.hpp"
+
 #include <memory>
-#include "../ConfiguredFeature.hpp"
-#include "../Feature.hpp"
 
 namespace mc {
 
@@ -57,20 +58,47 @@ struct OceanDecorationFeatureConfig : public IFeatureConfig {
 
 /**
  * @brief 海洋装饰特征
+ *
+ * 在海洋底部生成装饰性结构，包括：
+ * - 潮涌核心框架（海晶石楼梯、台阶环绕）
+ * - 干海带块
+ * - 海龟蛋巢穴
+ * - 气泡柱（岩浆块上方）
  */
 class OceanDecorationFeature {
 public:
+    /**
+     * @brief 在指定位置尝试生成海洋装饰
+     * @param world 世界生成区域
+     * @param random 随机数生成器
+     * @param pos 装饰中心位置（区块内坐标）
+     * @param config 装饰配置
+     * @return 是否成功放置了任何装饰
+     */
     bool place(
         WorldGenRegion& world, math::Random& random, const BlockPos& pos, const OceanDecorationFeatureConfig& config);
 
 private:
-    [[nodiscard]] bool isWater(WorldGenRegion& world, const BlockPos& pos) const;
+    /**
+     * @brief 检查指定位置是否为水
+     */
+    [[nodiscard]] bool _isWater(WorldGenRegion& world, const BlockPos& pos) const;
 
-    [[nodiscard]] bool hasSolidSupport(WorldGenRegion& world, const BlockPos& pos) const;
+    /**
+     * @brief 检查指定位置下方是否有固体支撑
+     */
+    [[nodiscard]] bool _hasSolidSupport(WorldGenRegion& world, const BlockPos& pos) const;
 
-    [[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) const;
+    /**
+     * @brief 查找海洋底部Y坐标
+     * @return 海洋底部Y坐标，若未找到返回-1
+     */
+    [[nodiscard]] i32 _findOceanFloorY(WorldGenRegion& world, i32 x, i32 z) const;
 
-    bool placeSingleDecoration(WorldGenRegion& world,
+    /**
+     * @brief 在单个位置生成装饰
+     */
+    bool _placeSingleDecoration(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& centerPos,
         const OceanDecorationFeatureConfig& config);

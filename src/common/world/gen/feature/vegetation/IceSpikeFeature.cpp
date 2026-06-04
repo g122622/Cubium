@@ -22,11 +22,14 @@
  */
 
 #include "IceSpikeFeature.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
+
+#include "common/core/Constants.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+
 #include <cmath>
 
 namespace mc {
@@ -39,15 +42,13 @@ bool IceSpikeFeature::place(
     WorldGenRegion& world, math::Random& random, const BlockPos& pos, const IceSpikeFeatureConfig& config)
 {
     // 寻找雪块表面
-    // 参考 MC IceSpikeFeature.java 第23行：检查SNOW_BLOCK
     BlockPos basePos = pos;
     bool foundSnowBlock = false;
 
-    for (i32 y = pos.y; y >= 1 && !foundSnowBlock; --y) {
+    for (i32 y = pos.y; y >= mc::world::MIN_BUILD_HEIGHT + 1 && !foundSnowBlock; --y) {
         BlockPos checkPos(pos.x, y, pos.z);
         const BlockState* state = world.getBlockState(checkPos);
 
-        // MC第23行检查SNOW_BLOCK
         if (state && VanillaBlocks::SNOW_BLOCK && state->is(VanillaBlocks::SNOW_BLOCK)) {
             basePos = BlockPos(pos.x, y + 1, pos.z);
             foundSnowBlock = true;
@@ -79,15 +80,15 @@ bool IceSpikeFeature::place(
 
     // 根据类型生成
     if (config.isSpike) {
-        generateSpike(world, random, basePos, height, baseRadius);
+        _generateSpike(world, random, basePos, height, baseRadius);
     } else {
-        generateIceberg(world, random, basePos, height, baseRadius);
+        _generateIceberg(world, random, basePos, height, baseRadius);
     }
 
     return true;
 }
 
-bool IceSpikeFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
+bool IceSpikeFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (!state || !state->isAir()) {
@@ -95,18 +96,16 @@ bool IceSpikeFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) con
     }
 
     // 检查下方是否为雪块
-    // 参考 MC IceSpikeFeature.java 第23行：SNOW_BLOCK
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
 
     return belowState && VanillaBlocks::SNOW_BLOCK && belowState->is(VanillaBlocks::SNOW_BLOCK);
 }
 
-void IceSpikeFeature::generateSpike(
+void IceSpikeFeature::_generateSpike(
     WorldGenRegion& world, math::Random& random, const BlockPos& basePos, i32 height, i32 baseRadius)
 {
-    // 参考 MC IceSpikeFeature 生成尖塔型冰刺
-    // 使用浮冰填充
+    // 生成尖塔型冰刺，使用浮冰填充
 
     for (i32 y = 0; y < height; ++y) {
         f32 radiusF = (1.0f - static_cast<f32>(y) / static_cast<f32>(height)) * static_cast<f32>(baseRadius);
@@ -177,7 +176,7 @@ void IceSpikeFeature::generateSpike(
                 depth = random.nextInt(5);
             }
 
-            while (downPos.y > 50 && depth > 0) {
+            while (downPos.y > mc::world::MIN_BUILD_HEIGHT && depth > 0) {
                 const BlockState* state = world.getBlockState(downPos);
 
                 if (state && !state->isAir() && state->blockId() != VanillaBlocks::DIRT->blockId() &&
@@ -203,7 +202,7 @@ void IceSpikeFeature::generateSpike(
     }
 }
 
-void IceSpikeFeature::generateIceberg(
+void IceSpikeFeature::_generateIceberg(
     WorldGenRegion& world, math::Random& random, const BlockPos& basePos, i32 height, i32 baseRadius)
 {
     (void)height;

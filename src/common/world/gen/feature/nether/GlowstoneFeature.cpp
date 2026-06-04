@@ -22,12 +22,17 @@
  */
 
 #include "GlowstoneFeature.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 
 namespace mc {
+
+// TODO: NETHER_HEIGHT 常量在 NetherChunkGenerator.cpp 和 NetherCaveCarver.cpp 中也有定义，
+// 应该统一提取到公共头文件中（如 WorldConstants.hpp）
+constexpr i32 NETHER_HEIGHT = 128;
 
 // ============================================================================
 // GlowstoneFeature 实现
@@ -71,13 +76,13 @@ bool GlowstoneFeature::place(
         }
 
         i32 branchLength = 1 + random.nextInt(config.maxBranchLength);
-        growBranch(world, random, glowPos, dx, dy, dz, branchLength);
+        _growBranch(world, random, glowPos, dx, dy, dz, branchLength);
     }
 
     return true;
 }
 
-void GlowstoneFeature::growBranch(
+void GlowstoneFeature::_growBranch(
     WorldGenRegion& world, math::Random& random, const BlockPos& start, i32 dx, i32 dy, i32 dz, i32 length)
 {
     const BlockState* glowstone = VanillaBlocks::getState(VanillaBlocks::GLOWSTONE);
@@ -90,13 +95,13 @@ void GlowstoneFeature::growBranch(
     for (i32 i = 0; i < length; ++i) {
         BlockPos next(current.x + dx, current.y + dy, current.z + dz);
 
-        // 边界检查
-        if (next.y < 1 || next.y >= 128) {
+        // 边界检查：使用常量而非硬编码
+        if (next.y < world::MIN_BUILD_HEIGHT + 1 || next.y >= NETHER_HEIGHT) {
             break;
         }
 
         // 检查是否可以放置
-        if (!canPlaceAt(world, next)) {
+        if (!_canPlaceAt(world, next)) {
             break;
         }
 
@@ -109,7 +114,7 @@ void GlowstoneFeature::growBranch(
             i32 sideDz = random.nextInt(3) - 1;
             if (sideDx != 0 || sideDz != 0) {
                 BlockPos sidePos(next.x + sideDx, next.y, next.z + sideDz);
-                if (canPlaceAt(world, sidePos)) {
+                if (_canPlaceAt(world, sidePos)) {
                     world.setBlockState(sidePos, glowstone);
                 }
             }
@@ -129,7 +134,7 @@ void GlowstoneFeature::growBranch(
     }
 }
 
-bool GlowstoneFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
+bool GlowstoneFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     // 可以在空气或液体中放置

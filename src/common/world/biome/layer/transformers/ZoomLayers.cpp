@@ -37,31 +37,6 @@ ZoomLayer::ZoomLayer(Mode mode)
 
 i32 ZoomLayer::apply(IAreaContext& ctx, const IArea& area, i32 x, i32 z)
 {
-    // 参考 MC ZoomLayer.apply:
-    // int i = area.getValue(this.getOffsetX(x), this.getOffsetZ(z));
-    // context.setPosition((long)(x >> 1 << 1), (long)(z >> 1 << 1));
-    // int j = x & 1;
-    // int k = z & 1;
-    //
-    // if (j == 0 && k == 0) {
-    //     return i;
-    // } else {
-    //     int l = area.getValue(this.getOffsetX(x), this.getOffsetZ(z + 1));
-    //     int i1 = context.pickRandom(i, l);
-    //     if (j == 0 && k == 1) {
-    //         return i1;
-    //     } else {
-    //         int j1 = area.getValue(this.getOffsetX(x + 1), this.getOffsetZ(z));
-    //         int k1 = context.pickRandom(i, j1);
-    //         if (j == 1 && k == 0) {
-    //             return k1;
-    //         } else {
-    //             int l1 = area.getValue(this.getOffsetX(x + 1), this.getOffsetZ(z + 1));
-    //             return this.pickZoomed(context, i, j1, l, l1);
-    //         }
-    //     }
-    // }
-
     // 获取基础坐标
     i32 baseX = getOffsetX(x);
     i32 baseZ = getOffsetZ(z);
@@ -96,35 +71,12 @@ i32 ZoomLayer::apply(IAreaContext& ctx, const IArea& area, i32 x, i32 z)
         return ctx.pickRandom(v00, v10);
     } else {
         // 角落：使用众数算法
-        return pickZoomed(ctx, v00, v10, v01, v11);
+        return _pickZoomed(ctx, v00, v10, v01, v11);
     }
 }
 
-i32 ZoomLayer::pickZoomed(IAreaContext& ctx, i32 a, i32 b, i32 c, i32 d)
+i32 ZoomLayer::_pickZoomed(IAreaContext& ctx, i32 a, i32 b, i32 c, i32 d)
 {
-    // 参考 MC ZoomLayer.pickZoomed:
-    // if (second == third && third == fourth) {
-    //     return second;
-    // } else if (first == second && first == third) {
-    //     return first;
-    // } else if (first == second && first == fourth) {
-    //     return first;
-    // } else if (first == third && first == fourth) {
-    //     return first;
-    // } else if (first == second && third != fourth) {
-    //     return first;
-    // } else if (first == third && second != fourth) {
-    //     return first;
-    // } else if (first == fourth && second != third) {
-    //     return first;
-    // } else if (second == third && first != fourth) {
-    //     return second;
-    // } else if (second == fourth && first != third) {
-    //     return second;
-    // } else {
-    //     return third == fourth && first != second ? third : context.pickRandom(first, second, third, fourth);
-    // }
-
     // a = 左上, b = 右上, c = 左下, d = 右下
 
     // 检查三值相同

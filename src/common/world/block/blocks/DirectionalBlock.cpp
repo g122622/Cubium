@@ -22,7 +22,7 @@
  */
 
 #include "DirectionalBlock.hpp"
-#include "../../../item/context/BlockItemUseContext.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 
 namespace mc {
 namespace blocks {

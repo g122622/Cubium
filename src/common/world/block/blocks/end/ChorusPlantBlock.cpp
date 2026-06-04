@@ -22,9 +22,9 @@
  */
 
 #include "ChorusPlantBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../IWorld.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -57,14 +57,14 @@ ChorusPlantBlock::ChorusPlantBlock(const BlockProperties& properties)
             .with(BlockStateProperties::DOWN(), false)
             .with(BlockStateProperties::UP(), false));
 
-    // 参考 MC 1.16.5 SixWayBlock.makeShapes
+    // 形状计算：中心柱 + 各方向臂
     constexpr f32 apothem = 0.3125f;
     constexpr f32 f = 0.5f - apothem;
     constexpr f32 f1 = 0.5f + apothem;
 
     m_centerShape = CollisionShape::box(f, f, f, f1, f1, f1);
 
-    for (int i = 0; i < 6; ++i) {
+    for (i32 i = 0; i < 6; ++i) {
         Direction dir = static_cast<Direction>(i);
         f32 xOffset = static_cast<f32>(Directions::xOffset(dir));
         f32 yOffset = static_cast<f32>(Directions::yOffset(dir));
@@ -80,10 +80,11 @@ ChorusPlantBlock::ChorusPlantBlock(const BlockProperties& properties)
         m_armShapes[i] = CollisionShape::box(minX, minY, minZ, maxX, maxY, maxZ);
     }
 
+    // 预计算所有 64 种连接组合的形状
     for (size_t k = 0; k < 64; ++k) {
         CollisionShape shape = m_centerShape;
 
-        for (int j = 0; j < 6; ++j) {
+        for (i32 j = 0; j < 6; ++j) {
             if ((k & (1ULL << j)) != 0) {
                 shape = CollisionShape::combine(shape, m_armShapes[j]);
             }
@@ -99,12 +100,12 @@ BlockState ChorusPlantBlock::getStateForPlacement(BlockItemUseContext& context)
     BlockPos pos = context.placementPos();
 
     const IBlockReader& blockReader = static_cast<const IBlockReader&>(world);
-    bool north = canConnect(const_cast<IBlockReader&>(blockReader), pos, Direction::North);
-    bool south = canConnect(const_cast<IBlockReader&>(blockReader), pos, Direction::South);
-    bool east = canConnect(const_cast<IBlockReader&>(blockReader), pos, Direction::East);
-    bool west = canConnect(const_cast<IBlockReader&>(blockReader), pos, Direction::West);
-    bool up = canConnect(const_cast<IBlockReader&>(blockReader), pos, Direction::Up);
-    bool down = canConnect(const_cast<IBlockReader&>(blockReader), pos, Direction::Down);
+    bool north = _canConnect(const_cast<IBlockReader&>(blockReader), pos, Direction::North);
+    bool south = _canConnect(const_cast<IBlockReader&>(blockReader), pos, Direction::South);
+    bool east = _canConnect(const_cast<IBlockReader&>(blockReader), pos, Direction::East);
+    bool west = _canConnect(const_cast<IBlockReader&>(blockReader), pos, Direction::West);
+    bool up = _canConnect(const_cast<IBlockReader&>(blockReader), pos, Direction::Up);
+    bool down = _canConnect(const_cast<IBlockReader&>(blockReader), pos, Direction::Down);
 
     return defaultState()
         .with(BlockStateProperties::NORTH(), north)
@@ -119,9 +120,9 @@ bool ChorusPlantBlock::isValidPosition(const BlockState& state, IBlockReader& wo
 {
     MC_UNUSED(state);
 
-    for (int i = 0; i < 6; ++i) {
+    for (i32 i = 0; i < 6; ++i) {
         Direction dir = static_cast<Direction>(i);
-        if (canConnect(world, pos, dir)) {
+        if (_canConnect(world, pos, dir)) {
             return true;
         }
     }
@@ -140,7 +141,7 @@ BlockState ChorusPlantBlock::updatePostPlacement(const BlockState& state,
     MC_UNUSED(facingPos);
 
     IBlockReader& blockReader = static_cast<IBlockReader&>(world);
-    bool connected = canConnect(blockReader, currentPos, facing);
+    bool connected = _canConnect(blockReader, currentPos, facing);
 
     switch (facing) {
         case Direction::North:
@@ -181,7 +182,7 @@ size_t ChorusPlantBlock::getShapeIndex(const BlockState& state)
     return index;
 }
 
-bool ChorusPlantBlock::canConnect(IBlockReader& world, const BlockPos& pos, Direction direction) const
+bool ChorusPlantBlock::_canConnect(IBlockReader& world, const BlockPos& pos, Direction direction) const
 {
     BlockPos adjPos = pos.offset(direction);
     const BlockState* adjState = world.getBlockState(adjPos);

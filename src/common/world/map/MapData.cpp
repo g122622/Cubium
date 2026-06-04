@@ -87,11 +87,12 @@ void MapData::initialize(
 
 void MapData::calculateMapCenter(f64 x, f64 z, i32 scale, i32& outCenterX, i32& outCenterZ)
 {
-    i32 i = 128 * (1 << scale);
-    i32 j = static_cast<i32>(std::floor((x + 64.0) / static_cast<f64>(i)));
-    i32 k = static_cast<i32>(std::floor((z + 64.0) / static_cast<f64>(i)));
-    outCenterX = j * i + i / 2 - 64;
-    outCenterZ = k * i + i / 2 - 64;
+    i32 i = MAP_SIZE * (1 << scale);
+    i32 halfMapSize = MAP_SIZE / 2;
+    i32 j = static_cast<i32>(std::floor((x + static_cast<f64>(halfMapSize)) / static_cast<f64>(i)));
+    i32 k = static_cast<i32>(std::floor((z + static_cast<f64>(halfMapSize)) / static_cast<f64>(i)));
+    outCenterX = j * i + i / 2 - halfMapSize;
+    outCenterZ = k * i + i / 2 - halfMapSize;
 }
 
 void MapData::updateDecoration(DecorationType type,

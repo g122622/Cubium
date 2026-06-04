@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../world/block/BlockPos.hpp"
 #include "PointOfInterestType.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <optional>
 #include <vector>
 
@@ -59,15 +59,13 @@ struct POITicket {
  *
  * 表示世界中一个可被村民使用或占用的特殊方块位置。
  * POI包括床位、工作站、钟等，村民通过POI进行睡眠、工作、聚集等行为。
- *
- * 参考 MC 1.16.5 PointOfInterest
  */
 class PointOfInterest {
 public:
     /**
      * @brief 默认构造函数
      */
-    PointOfInterest() = default;
+    PointOfInterest() noexcept = default;
 
     /**
      * @brief 构造函数
@@ -81,12 +79,12 @@ public:
     /**
      * @brief 获取位置
      */
-    [[nodiscard]] BlockPos getPosition() const { return m_position; }
+    [[nodiscard]] BlockPos getPosition() const noexcept { return m_position; }
 
     /**
      * @brief 获取类型
      */
-    [[nodiscard]] PointOfInterestType getType() const { return m_type; }
+    [[nodiscard]] PointOfInterestType getType() const noexcept { return m_type; }
 
     // ========== 占用状态 ==========
 
@@ -94,7 +92,10 @@ public:
      * @brief 检查是否已被占用
      * @return 是否有所有者
      */
-    [[nodiscard]] bool isOccupied() const { return m_tickets.size() >= static_cast<std::size_t>(m_maxTickets); }
+    [[nodiscard]] bool isOccupied() const noexcept
+    {
+        return m_tickets.size() >= static_cast<std::size_t>(m_maxTickets);
+    }
 
     /**
      * @brief 检查是否可被指定实体占用
@@ -106,12 +107,12 @@ public:
     /**
      * @brief 获取当前占用票据数
      */
-    [[nodiscard]] i32 getTicketCount() const { return static_cast<i32>(m_tickets.size()); }
+    [[nodiscard]] i32 getTicketCount() const noexcept { return static_cast<i32>(m_tickets.size()); }
 
     /**
      * @brief 获取最大票据数
      */
-    [[nodiscard]] i32 getMaxTickets() const { return m_maxTickets; }
+    [[nodiscard]] i32 getMaxTickets() const noexcept { return m_maxTickets; }
 
     // ========== 票据操作 ==========
 
@@ -172,7 +173,7 @@ private:
  * @brief POI比较器（用于空间索引）
  */
 struct POIComparator {
-    bool operator()(const PointOfInterest& a, const PointOfInterest& b) const
+    bool operator()(const PointOfInterest& a, const PointOfInterest& b) const noexcept
     {
         if (a.getPosition().y != b.getPosition().y) {
             return a.getPosition().y < b.getPosition().y;

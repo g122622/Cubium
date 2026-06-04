@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../core/Result.hpp"
-#include "../../core/Types.hpp"
-#include "../core/Scoreboard.hpp"
 #include "ScoreboardSaveData.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -50,8 +50,6 @@ namespace mc::scoreboard {
  * - "scores:{objective}:{player}" - 分数数据
  * - "teams:{name}" - 队伍数据
  * - "displayslots" - 显示槽位数据
- *
- * 参考 MC 1.16.5: net.minecraft.world.storage.ScoreboardSaveData
  */
 class ScoreboardDataManager {
 public:
@@ -67,7 +65,7 @@ public:
      *
      * 自动保存脏数据
      */
-    ~ScoreboardDataManager();
+    ~ScoreboardDataManager() noexcept;
 
     // 禁止拷贝
     ScoreboardDataManager(const ScoreboardDataManager&) = delete;

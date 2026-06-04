@@ -38,7 +38,7 @@ bool MagmaPatchFeature::place(
     WorldGenRegion& world, math::Random& random, const BlockPos& pos, const MagmaPatchFeatureConfig& config)
 {
     // 检查起始位置是否有效
-    if (!isValidLocation(world, pos)) {
+    if (!_isValidLocation(world, pos)) {
         return false;
     }
 
@@ -105,7 +105,7 @@ bool MagmaPatchFeature::place(
     return true;
 }
 
-bool MagmaPatchFeature::isValidLocation(WorldGenRegion& world, const BlockPos& pos) const
+bool MagmaPatchFeature::_isValidLocation(WorldGenRegion& world, const BlockPos& pos) const
 {
     // 检查当前位置是否为下界岩
     const BlockState* state = world.getBlockState(pos);

@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../IWaterLoggable.hpp"
-#include "../../Material.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/IWaterLoggable.hpp"
+#include "common/world/block/Material.hpp"
 
 namespace mc {
 namespace blocks {
@@ -41,8 +41,6 @@ namespace blocks {
  * - 玩家可以在上面行走
  * - 距离底部过远会掉落
  * - 实现 IWaterLoggable 接口支持含水功能
- *
- * 参考: net.minecraft.block.ScaffoldingBlock (MC 1.16.5)
  */
 class ScaffoldingBlock : public Block, public IWaterLoggable {
 public:
@@ -94,12 +92,12 @@ public:
     /**
      * @brief 获取形状
      */
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const noexcept override;
 
     /**
      * @brief 获取碰撞形状
      */
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const noexcept override;
 
     // ========== 攀爬 ==========
 
@@ -113,7 +111,7 @@ public:
     [[nodiscard]] bool isLadder(const BlockState& state,
         IWorld* world = nullptr,
         const BlockPos* pos = nullptr,
-        const Entity* entity = nullptr) const override
+        const Entity* entity = nullptr) const noexcept override
     {
         MC_UNUSED(world);
         MC_UNUSED(pos);
@@ -132,7 +130,7 @@ public:
     /**
      * @brief 检查方块是否含水
      */
-    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const noexcept override
     {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
@@ -141,8 +139,6 @@ public:
 
     /**
      * @brief 计算脚手架距离支撑点的距离
-     *
-     * 参考: net.minecraft.block.ScaffoldingBlock#func_220117_a
      *
      * @param world 世界引用
      * @param pos 脚手架位置
@@ -157,6 +153,7 @@ protected:
     CollisionShape m_topShape;
     /// 完整形状（含支撑柱）
     CollisionShape m_fullShape;
+    // TODO: m_collisionShape 未被使用，可能需要删除或实现相关功能
     /// 碰撞形状（用于掉落检测）
     CollisionShape m_collisionShape;
     /// 无碰撞形状（当脚手架距离=0且有底部支撑时）
@@ -165,19 +162,17 @@ protected:
     /**
      * @brief 检查是否应该显示底部支撑柱
      *
-     * 参考: net.minecraft.block.ScaffoldingBlock#func_220116_a
-     *
      * @param world 世界引用
      * @param pos 脚手架位置
      * @param distance 距离值
      * @return 如果应该显示底部返回 true
      */
-    [[nodiscard]] static bool shouldShowBottom(IWorld& world, const BlockPos& pos, i32 distance);
+    [[nodiscard]] static bool shouldShowBottom(IWorld& world, const BlockPos& pos, i32 distance) noexcept;
 
     /**
      * @brief 检查方块是否为脚手架
      */
-    [[nodiscard]] static bool isScaffolding(const BlockState* state);
+    [[nodiscard]] static bool isScaffolding(const BlockState* state) noexcept;
 };
 
 } // namespace blocks

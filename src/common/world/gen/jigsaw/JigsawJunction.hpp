@@ -31,8 +31,23 @@ namespace world {
 namespace gen {
 namespace jigsaw {
 
+/**
+ * @brief Jigsaw 连接点交叉数据结构
+ *
+ * 用于记录两个拼图块连接点之间的地形高度关系。
+ * 主要用于 TerrainMatching 放置行为的拼图块，确保地形高度正确衔接。
+ */
 class JigsawJunction {
 public:
+    /**
+     * @brief 构造函数
+     *
+     * @param sourceX 源 X 坐标
+     * @param sourceGroundY 源地面高度
+     * @param sourceZ 源 Z 坐标
+     * @param deltaY 高度偏移量（目标地面高度与源地面高度之差）
+     * @param destProjection 目标放置行为
+     */
     JigsawJunction(i32 sourceX, i32 sourceGroundY, i32 sourceZ, i32 deltaY, JigsawPlacementBehaviour destProjection)
         : m_sourceX(sourceX)
         , m_sourceGroundY(sourceGroundY)
@@ -41,26 +56,42 @@ public:
         , m_destProjection(destProjection)
     {}
 
-    i32 getSourceX() const { return m_sourceX; }
-    i32 getSourceGroundY() const { return m_sourceGroundY; }
-    i32 getSourceZ() const { return m_sourceZ; }
-    i32 getDeltaY() const { return m_deltaY; }
-    JigsawPlacementBehaviour getDestProjection() const { return m_destProjection; }
+    /** @brief 获取源 X 坐标 */
+    i32 getSourceX() const noexcept { return m_sourceX; }
 
-    bool operator==(const JigsawJunction& other) const
+    /** @brief 获取源地面高度 */
+    i32 getSourceGroundY() const noexcept { return m_sourceGroundY; }
+
+    /** @brief 获取源 Z 坐标 */
+    i32 getSourceZ() const noexcept { return m_sourceZ; }
+
+    /** @brief 获取高度偏移量 */
+    i32 getDeltaY() const noexcept { return m_deltaY; }
+
+    /** @brief 获取目标放置行为 */
+    JigsawPlacementBehaviour getDestProjection() const noexcept { return m_destProjection; }
+
+    /**
+     * @brief 相等比较运算符
+     *
+     * 注意：比较时不包含 m_sourceGroundY，因为 MC 1.16.5 中 Junction 的相等性判断
+     * 仅基于 X、Z 坐标、高度偏移和放置行为。
+     */
+    bool operator==(const JigsawJunction& other) const noexcept
     {
         return m_sourceX == other.m_sourceX && m_sourceZ == other.m_sourceZ && m_deltaY == other.m_deltaY &&
             m_destProjection == other.m_destProjection;
     }
 
-    bool operator!=(const JigsawJunction& other) const { return !(*this == other); }
+    /** @brief 不相等比较运算符 */
+    bool operator!=(const JigsawJunction& other) const noexcept { return !(*this == other); }
 
 private:
-    i32 m_sourceX;
-    i32 m_sourceGroundY;
-    i32 m_sourceZ;
-    i32 m_deltaY;
-    JigsawPlacementBehaviour m_destProjection;
+    i32 m_sourceX;                             ///< 源 X 坐标
+    i32 m_sourceGroundY;                       ///< 源地面高度
+    i32 m_sourceZ;                             ///< 源 Z 坐标
+    i32 m_deltaY;                              ///< 高度偏移量
+    JigsawPlacementBehaviour m_destProjection; ///< 目标放置行为
 };
 
 } // namespace jigsaw

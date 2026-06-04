@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../core/BlockRaycastResult.hpp"
-#include "../../../../entity/entities/player/Player.hpp"
-#include "../../../../item/core/ActionResult.hpp"
-#include "RedstoneDiodeBlock.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/world/block/blocks/redstone/RedstoneDiodeBlock.hpp"
 
 namespace mc {
 namespace blocks {
@@ -119,7 +119,7 @@ public:
     /**
      * @brief 右键交互 - 调整延迟档位
      *
-     * MC Java: 右键点击中继器可以在 1-4 档延迟之间循环切换。
+     * 右键点击中继器可以在 1-4 档延迟之间循环切换。
      */
     [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,

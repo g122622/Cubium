@@ -8,11 +8,15 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
  */
@@ -36,9 +40,9 @@ Result<SaveFormatInfo> SaveFormatDetector::detect(const std::filesystem::path& w
     }
 
     // 优先级 1：检查是否存在 region/ 目录及 .mca 文件 → Java Anvil
-    if (hasAnvilRegion(worldDir)) {
+    if (_hasAnvilRegion(worldDir)) {
         spdlog::info("SaveFormatDetector: Detected Java Anvil format at {}", worldDir.string());
-        auto versionResult = detectJavaVersion(worldDir);
+        auto versionResult = _detectJavaVersion(worldDir);
         if (versionResult.success()) {
             return versionResult;
         }
@@ -56,9 +60,9 @@ Result<SaveFormatInfo> SaveFormatDetector::detect(const std::filesystem::path& w
 
     if (std::filesystem::exists(dbDir, ec)) {
         // 优先级 2：检查是否包含 Bedrock LevelDB 特征文件
-        if (hasBedrockDb(dbDir)) {
+        if (_hasBedrockDb(dbDir)) {
             spdlog::info("SaveFormatDetector: Detected Bedrock LevelDB format at {}", worldDir.string());
-            auto versionResult = detectBedrockVersion(worldDir);
+            auto versionResult = _detectBedrockVersion(worldDir);
             if (versionResult.success()) {
                 return versionResult;
             }
@@ -71,7 +75,7 @@ Result<SaveFormatInfo> SaveFormatDetector::detect(const std::filesystem::path& w
         }
 
         // 优先级 3：检查是否包含 RocksDB 特征文件 → Native
-        if (hasRocksDb(dbDir)) {
+        if (_hasRocksDb(dbDir)) {
             spdlog::info("SaveFormatDetector: Detected Native RocksDB format at {}", worldDir.string());
             SaveFormatInfo info;
             info.format = SaveFormat::Native;
@@ -101,7 +105,7 @@ Result<SaveFormatInfo> SaveFormatDetector::detect(const std::filesystem::path& w
                         auto root = mc::nbt::tags::compound_tag::read(stream);
                         if (root) {
                             // Java 版 level.dat 成功解析
-                            auto versionResult = detectJavaVersion(worldDir);
+                            auto versionResult = _detectJavaVersion(worldDir);
                             if (versionResult.success()) {
                                 return versionResult;
                             }
@@ -121,7 +125,7 @@ Result<SaveFormatInfo> SaveFormatDetector::detect(const std::filesystem::path& w
                     stream >> mc::nbt::contexts::bedrock_disk;
                     auto root = mc::nbt::tags::compound_tag::read(stream);
                     if (root) {
-                        auto versionResult = detectBedrockVersion(worldDir);
+                        auto versionResult = _detectBedrockVersion(worldDir);
                         if (versionResult.success()) {
                             return versionResult;
                         }
@@ -146,7 +150,7 @@ Result<SaveFormatInfo> SaveFormatDetector::detect(const std::filesystem::path& w
     return info;
 }
 
-bool SaveFormatDetector::hasRocksDb(const std::filesystem::path& dbDir)
+bool SaveFormatDetector::_hasRocksDb(const std::filesystem::path& dbDir)
 {
     std::error_code ec;
 
@@ -168,7 +172,7 @@ bool SaveFormatDetector::hasRocksDb(const std::filesystem::path& dbDir)
     return hasCurrent && hasOptions;
 }
 
-bool SaveFormatDetector::hasAnvilRegion(const std::filesystem::path& worldDir)
+bool SaveFormatDetector::_hasAnvilRegion(const std::filesystem::path& worldDir)
 {
     std::error_code ec;
 
@@ -187,7 +191,7 @@ bool SaveFormatDetector::hasAnvilRegion(const std::filesystem::path& worldDir)
     return false;
 }
 
-bool SaveFormatDetector::hasBedrockDb(const std::filesystem::path& dbDir)
+bool SaveFormatDetector::_hasBedrockDb(const std::filesystem::path& dbDir)
 {
     std::error_code ec;
 
@@ -213,7 +217,7 @@ bool SaveFormatDetector::hasBedrockDb(const std::filesystem::path& dbDir)
     return hasLdb && !hasOptions;
 }
 
-Result<SaveFormatInfo> SaveFormatDetector::detectJavaVersion(const std::filesystem::path& worldDir)
+Result<SaveFormatInfo> SaveFormatDetector::_detectJavaVersion(const std::filesystem::path& worldDir)
 {
     std::filesystem::path levelDatPath = worldDir / "level.dat";
     std::error_code ec;
@@ -280,7 +284,7 @@ Result<SaveFormatInfo> SaveFormatDetector::detectJavaVersion(const std::filesyst
     }
 }
 
-Result<SaveFormatInfo> SaveFormatDetector::detectBedrockVersion(const std::filesystem::path& worldDir)
+Result<SaveFormatInfo> SaveFormatDetector::_detectBedrockVersion(const std::filesystem::path& worldDir)
 {
     std::filesystem::path levelDatPath = worldDir / "level.dat";
     std::error_code ec;

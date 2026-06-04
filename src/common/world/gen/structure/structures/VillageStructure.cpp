@@ -22,13 +22,16 @@
  */
 
 #include "VillageStructure.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../../biome/Biome.hpp"
-#include "../../../block/BlockPos.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../jigsaw/JigsawManager.hpp"
-#include "../../jigsaw/JigsawPattern.hpp"
+
+#include "common/core/Constants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/jigsaw/JigsawManager.hpp"
+#include "common/world/gen/jigsaw/JigsawPattern.hpp"
+
 #include <algorithm>
 #include <limits>
 
@@ -38,6 +41,13 @@ namespace gen {
 namespace structure {
 
 namespace {
+
+// 村庄生成相关常量
+constexpr i32 VILLAGE_MIN_TERRAIN_HEIGHT = 50;   // 村庄最低生成高度
+constexpr i32 VILLAGE_MIN_SURFACE_HEIGHT = 60;   // 地面最低有效高度
+constexpr i32 VILLAGE_DEFAULT_HEIGHT = 64;       // 默认村庄高度
+constexpr i32 VILLAGE_MAX_HEIGHT_VARIATION = 12; // 村庄区域最大高差
+constexpr i32 SAMPLE_OFFSET_DISTANCE = 8;        // 采样点偏移距离（区块半径的一半）
 
 /**
  * @brief Jigsaw 结构片段适配器
@@ -59,21 +69,14 @@ public:
         , m_junctions(placed.junctions)
     {}
 
-    void generate(IWorldWriter&,
-        math::Random&,
-        i32,
-        i32,
-        const StructureBoundingBox&) override
+    void generate(IWorldWriter&, math::Random&, i32, i32, const StructureBoundingBox&) override
     {
         // 实际方块放置已在 JigsawManager::placePieceRecursive 中完成
     }
 
     [[nodiscard]] i32 getGroundLevelDelta() const override { return m_groundLevelDelta; }
 
-    [[nodiscard]] const std::vector<jigsaw::JigsawJunction>& getJunctions() const override
-    {
-        return m_junctions;
-    }
+    [[nodiscard]] const std::vector<jigsaw::JigsawJunction>& getJunctions() const override { return m_junctions; }
 
     [[nodiscard]] bool isJigsawPiece() const override { return true; }
 
@@ -92,17 +95,17 @@ VillageStructure::VillageStructure(VillageType type)
     : Structure(StructureType::Village)
 {
     m_config.type = type;
-    initializeBiomes();
+    _initializeBiomes();
 }
 
 VillageStructure::VillageStructure(const VillageConfig& config)
     : Structure(StructureType::Village)
     , m_config(config)
 {
-    initializeBiomes();
+    _initializeBiomes();
 }
 
-void VillageStructure::initializeBiomes()
+void VillageStructure::_initializeBiomes()
 {
     // 根据村庄类型设置有效生物群系
     switch (m_config.type) {
@@ -133,17 +136,23 @@ bool VillageStructure::canGenerate(IWorld& world, IChunkGenerator& generator, ma
     (void)world;
     (void)rng;
 
-    const i32 centerX = chunkX * 16 + 8;
-    const i32 centerZ = chunkZ * 16 + 8;
+    using namespace mc::world;
+
+    const i32 centerX = chunkX * CHUNK_WIDTH + SAMPLE_OFFSET_DISTANCE;
+    const i32 centerZ = chunkZ * CHUNK_WIDTH + SAMPLE_OFFSET_DISTANCE;
 
     // 检查生物群系
-    const BiomeId biomeId = generator.getBiome(centerX, 64, centerZ);
+    const BiomeId biomeId = generator.getBiome(centerX, SEA_LEVEL, centerZ);
     if (!isValidBiome(biomeId)) {
         return false;
     }
 
     // 检查地形是否具备建造空间：中心与四角高差不能过大
-    constexpr i32 SAMPLE_OFFSETS[5][2] = {{0, 0}, {-8, -8}, {-8, 8}, {8, -8}, {8, 8}};
+    constexpr i32 SAMPLE_OFFSETS[5][2] = {{0, 0},
+        {-SAMPLE_OFFSET_DISTANCE, -SAMPLE_OFFSET_DISTANCE},
+        {-SAMPLE_OFFSET_DISTANCE, SAMPLE_OFFSET_DISTANCE},
+        {SAMPLE_OFFSET_DISTANCE, -SAMPLE_OFFSET_DISTANCE},
+        {SAMPLE_OFFSET_DISTANCE, SAMPLE_OFFSET_DISTANCE}};
 
     i32 minHeight = std::numeric_limits<i32>::max();
     i32 maxHeight = std::numeric_limits<i32>::min();
@@ -156,16 +165,18 @@ bool VillageStructure::canGenerate(IWorld& world, IChunkGenerator& generator, ma
         maxHeight = std::max(maxHeight, h);
     }
 
-    if (minHeight < 50) {
+    if (minHeight < VILLAGE_MIN_TERRAIN_HEIGHT) {
         return false;
     }
 
-    return (maxHeight - minHeight) <= 12;
+    return (maxHeight - minHeight) <= VILLAGE_MAX_HEIGHT_VARIATION;
 }
 
 std::unique_ptr<StructureStart> VillageStructure::generate(
     IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
+    using namespace mc::world;
+
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 获取起始模板池
@@ -179,10 +190,10 @@ std::unique_ptr<StructureStart> VillageStructure::generate(
         const BlockState* cobblestone = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE);
         const BlockState* oakPlanks = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
 
-        i32 baseX = chunkX * 16 + 8;
-        i32 baseZ = chunkZ * 16 + 8;
+        i32 baseX = chunkX * CHUNK_WIDTH + SAMPLE_OFFSET_DISTANCE;
+        i32 baseZ = chunkZ * CHUNK_WIDTH + SAMPLE_OFFSET_DISTANCE;
         i32 baseY = generator.getHeight(baseX, baseZ, HeightmapType::WorldSurfaceWG);
-        if (baseY < 60) baseY = 64;
+        if (baseY < VILLAGE_MIN_SURFACE_HEIGHT) baseY = VILLAGE_DEFAULT_HEIGHT;
 
         // 简单的 5x5 平台
         for (i32 x = -2; x <= 2; ++x) {
@@ -197,14 +208,14 @@ std::unique_ptr<StructureStart> VillageStructure::generate(
     }
 
     // 计算起始位置
-    i32 startX = chunkX * 16 + rng.nextInt(16);
-    i32 startZ = chunkZ * 16 + rng.nextInt(16);
+    i32 startX = chunkX * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
+    i32 startZ = chunkZ * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
     i32 startY = generator.getHeight(startX, startZ, HeightmapType::WorldSurfaceWG);
-    if (startY < 60) startY = 64;
+    if (startY < VILLAGE_MIN_SURFACE_HEIGHT) startY = VILLAGE_DEFAULT_HEIGHT;
 
     BlockPos startPos(startX, startY, startZ);
 
-    // MC 1.16.5: 使用 JigsawManager 组装村庄结构
+    // 使用 JigsawManager 组装村庄结构
     // 组装获取 PlacedPiece 列表，包含 JigsawJunction 信息用于地形适配
     auto placedPieces = jigsaw::JigsawManager::assemble(patternRegistry, *startPool, m_config.size, startPos, rng);
 

@@ -224,7 +224,7 @@ std::vector<std::string> CommandRegistry::getCommandNames() const
     return names;
 }
 
-bool CommandRegistry::hasCommand(const std::string& name) const
+bool CommandRegistry::hasCommand(const std::string& name) const noexcept
 {
     return m_dispatcher.getRoot()->getChild(name) != nullptr;
 }

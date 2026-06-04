@@ -130,13 +130,13 @@ Result<void> SingleLevelStorageManager::open(
     // 外来格式：使用后端读取，强制只读
     if (m_config.formatInfo.format != SaveFormat::Native) {
         m_config.readonly = true;
-        return openForeignFormat(worldPath);
+        return _openForeignFormat(worldPath);
     }
 
-    return openNativeFormat(worldPath);
+    return _openNativeFormat(worldPath);
 }
 
-Result<void> SingleLevelStorageManager::openNativeFormat(const std::filesystem::path& worldPath)
+Result<void> SingleLevelStorageManager::_openNativeFormat(const std::filesystem::path& worldPath)
 {
     std::filesystem::path dbPath = worldPath / "db";
     std::filesystem::path backupPath = worldPath / "backups";
@@ -198,7 +198,7 @@ Result<void> SingleLevelStorageManager::openNativeFormat(const std::filesystem::
     return {};
 }
 
-Result<void> SingleLevelStorageManager::openForeignFormat(const std::filesystem::path& worldPath)
+Result<void> SingleLevelStorageManager::_openForeignFormat(const std::filesystem::path& worldPath)
 {
     auto lockResult = WorldSessionLock::acquireReadOnly(worldPath);
     if (!lockResult.success()) {
@@ -355,7 +355,7 @@ Result<void> SingleLevelStorageManager::saveChunk(const ChunkData& chunk, Dimens
         return Result<void>::ok();
     }
 
-    auto& manager = sectionManager(dimension);
+    auto& manager = _sectionManager(dimension);
 
     std::vector<BiomeId> biomes;
     const auto biomeBytes = chunk.getBiomes().serialize();
@@ -412,7 +412,7 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
     }
 
     // Native 格式：通过 RocksDB SectionManager 读取
-    auto& manager = sectionManager(dimension);
+    auto& manager = _sectionManager(dimension);
     ChunkData chunk(x, z);
     bool hasAnySection = false;
     bool hasBiomes = false;
@@ -570,7 +570,7 @@ Result<void> SingleLevelStorageManager::saveLevelData(i64 gameTime,
     return Result<void>::ok();
 }
 
-SectionManager& SingleLevelStorageManager::sectionManager(DimensionId dimension)
+SectionManager& SingleLevelStorageManager::_sectionManager(DimensionId dimension)
 {
     if (!isOpen()) {
         throw std::runtime_error("Storage not open");
@@ -584,7 +584,7 @@ SectionManager& SingleLevelStorageManager::sectionManager(DimensionId dimension)
         }
     }
 
-    auto* manager = createSectionManager(dimension);
+    auto* manager = _createSectionManager(dimension);
     if (!manager) {
         throw std::runtime_error(
             fmt::format("Failed to create SectionManager for dimension {}", static_cast<i32>(dimension)));
@@ -592,7 +592,7 @@ SectionManager& SingleLevelStorageManager::sectionManager(DimensionId dimension)
     return *manager;
 }
 
-const SectionManager& SingleLevelStorageManager::sectionManager(DimensionId dimension) const
+const SectionManager& SingleLevelStorageManager::_sectionManager(DimensionId dimension) const
 {
     if (!isOpen()) {
         throw std::runtime_error("Storage not open");
@@ -606,13 +606,13 @@ const SectionManager& SingleLevelStorageManager::sectionManager(DimensionId dime
     return *it->second;
 }
 
-bool SingleLevelStorageManager::hasSectionManager(DimensionId dimension) const
+bool SingleLevelStorageManager::_hasSectionManager(DimensionId dimension) const
 {
     std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
     return m_sectionManagers.find(dimension) != m_sectionManagers.end();
 }
 
-SectionManager* SingleLevelStorageManager::createSectionManager(DimensionId dimension)
+SectionManager* SingleLevelStorageManager::_createSectionManager(DimensionId dimension)
 {
     MC_TRACE_EVENT(
         "server.world", "SingleLevelStorageManager::createSectionManager", "dimension", static_cast<i32>(dimension));
@@ -672,7 +672,7 @@ std::vector<DimensionId> SingleLevelStorageManager::getOpenDimensions() const
 
 void SingleLevelStorageManager::setCacheCapacity(DimensionId dimension, size_t capacity)
 {
-    sectionManager(dimension).setCacheCapacity(capacity);
+    _sectionManager(dimension).setCacheCapacity(capacity);
 }
 
 void SingleLevelStorageManager::clearCache(DimensionId dimension)

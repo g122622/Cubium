@@ -91,10 +91,8 @@ CollisionShape VoxelShapes::cube(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2)
 namespace {
 /**
  * @brief 根据材质获取默认的声音类型
- *
- * 参考 Java 版 net.minecraft.block.SoundType 和 Material 的对应关系
  */
-const BlockSoundType& getDefaultSoundType(const Material& material)
+const BlockSoundType& getDefaultSoundType(const Material& material) noexcept
 {
     // 木头材质 -> 木头声音
     if (&material == &Material::WOOD || &material == &Material::NETHER_WOOD) {
@@ -155,85 +153,6 @@ BlockProperties::BlockProperties(const Material& material)
     , m_isReplaceable(material.isReplaceable())
     , m_soundType(&getDefaultSoundType(material))
 {}
-
-BlockProperties& BlockProperties::hardness(f32 value)
-{
-    m_hardness = value;
-    return *this;
-}
-
-BlockProperties& BlockProperties::resistance(f32 value)
-{
-    m_resistance = value;
-    return *this;
-}
-
-BlockProperties& BlockProperties::lightLevel(u8 level)
-{
-    m_lightLevel = level > 15 ? 15 : level;
-    return *this;
-}
-
-BlockProperties& BlockProperties::noCollision()
-{
-    m_hasCollision = false;
-    return *this;
-}
-
-BlockProperties& BlockProperties::notSolid()
-{
-    m_isSolid = false;
-    return *this;
-}
-
-BlockProperties& BlockProperties::requiresTool()
-{
-    m_requiresTool = true;
-    return *this;
-}
-
-BlockProperties& BlockProperties::flammable(bool value)
-{
-    m_isFlammable = value;
-    return *this;
-}
-
-BlockProperties& BlockProperties::replaceable()
-{
-    m_isReplaceable = true;
-    return *this;
-}
-
-BlockProperties& BlockProperties::strength(f32 value)
-{
-    m_hardness = value;
-    m_resistance = value;
-    return *this;
-}
-
-BlockProperties& BlockProperties::opacity(i32 value)
-{
-    m_opacity = value < 0 ? 0 : (value > 15 ? 15 : value);
-    return *this;
-}
-
-BlockProperties& BlockProperties::propagatesSkylightDown(bool value)
-{
-    m_propagatesSkylightDown = value;
-    return *this;
-}
-
-BlockProperties& BlockProperties::harvestTool(u8 toolType)
-{
-    m_harvestTool = toolType;
-    return *this;
-}
-
-BlockProperties& BlockProperties::harvestLevel(i32 level)
-{
-    m_harvestLevel = level < 0 ? 0 : level;
-    return *this;
-}
 
 // ============================================================================
 // Block
@@ -322,7 +241,6 @@ void Block::onLanded(const BlockState& state, IWorld& world, const BlockPos& pos
     MC_UNUSED(world);
     MC_UNUSED(pos);
     // 默认实现：Y速度归零
-    // MC 1.16.5: entityIn.setMotion(entityIn.getMotion().mul(1.0D, 0.0D, 1.0D));
     entity.setVelocity(entity.velocity().x, 0.0f, entity.velocity().z);
 }
 
@@ -359,7 +277,6 @@ CollisionShape Block::getFaceOcclusionShape(const BlockState& state, Direction d
 {
     // 默认实现：如果遮挡形状是完整方块，返回完整方块
     // 否则返回遮挡形状在指定方向的面投影
-    // 参考 MC 1.16.5 AbstractBlock.AbstractBlockState.getFaceOcclusionShape
     const CollisionShape& occlusion = getOcclusionShape(state);
     if (occlusion.isFullBlock()) {
         return CollisionShape::fullBlock();
@@ -401,7 +318,7 @@ i32 Block::getOpacity(const BlockState& state, IWorld* world, const BlockPos* po
 {
     (void)world;
     (void)pos;
-    // 默认实现对齐 Java 1.16.5：
+    // 默认实现：
     // - 不透明方块 -> 15
     // - 透明方块且显式设置 opacity -> 使用显式值
     // - 透明方块未显式设置 opacity（默认 15 作为哨兵）
@@ -453,9 +370,7 @@ void Block::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IR
 
 void Block::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    // MC 1.16.5 行为：默认调用 tick()
-    // 参考: net.minecraft.block.AbstractBlock.randomTick()
-    // 如果方块设置了 ticksRandomly = true 但没有重写 randomTick()，
+    // 默认行为：如果方块设置了 ticksRandomly = true 但没有重写 randomTick()，
     // 则在随机刻时执行 tick() 方法
     tick(world, pos, state, random);
 }
@@ -492,7 +407,6 @@ void Block::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState&
 
 bool Block::isSolidSide(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
 {
-    // 参考 MC 1.16.5: Block.isSolidSide
     // 冰块特殊处理：冰块的侧面不被认为是实体面（用于流体流动判断）
     if (*m_material == Material::ICE) {
         return false;
@@ -674,27 +588,23 @@ bool Block::hasSolidSideOnTop(IWorld& world, const BlockPos& pos)
         return false;
     }
 
-    // 参考 MC 1.16.5: Block.hasSolidSideOnTop
     // 检查顶面是否为实体面
     return state->isSolidSide(world, pos, Direction::Up);
 }
 
 bool Block::hasEnoughSolidSide(IWorld& world, const BlockPos& pos, Direction direction)
 {
-
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr || state->isAir()) {
         return false;
     }
 
-    // 参考 MC 1.16.5: Block.hasEnoughSolidSide
     // 检查指定方向是否有足够大的固体面
     return state->isSolidSide(world, pos, direction);
 }
 
 bool Block::doesSideFillSquare(const CollisionShape& shape, Direction direction)
 {
-    // 参考 MC 1.16.5: Block.doesSideFillSquare
     // 如果形状是完整方块，则填充整个面
     if (shape.isFullBlock()) {
         return true;
@@ -703,6 +613,7 @@ bool Block::doesSideFillSquare(const CollisionShape& shape, Direction direction)
     // 检查形状在指定面上的投影是否填充整个面
     // 对于非完整方块，需要检查投影面积
     // 简化实现：非完整方块的面不填充方形
+    (void)direction;
     return false;
 }
 
@@ -717,8 +628,6 @@ void Block::harvestBlock(IWorld& world,
     BlockEntity* blockEntity,
     const ItemStack* stack)
 {
-
-    // 参考 MC 1.16.5: Block.harvestBlock
     // 播放破坏音效
     const BlockSoundType& soundType = state.owner().getSoundType();
     world.playSound(soundType.getBreakSound(),
@@ -736,11 +645,8 @@ void Block::harvestBlock(IWorld& world,
 f32 Block::getPlayerRelativeBlockHardness(
     Player& player, IBlockReader& world, const BlockPos& pos, const BlockState& state) const
 {
-
-    // 参考 MC 1.16.5: Block.getPlayerRelativeBlockHardness
     // 基础挖掘速度 = 1 / (hardness * 30) 对于硬度 > 0
     // 创造模式：瞬间破坏
-
     MC_UNUSED(world);
 
     f32 hardness = state.hardness();

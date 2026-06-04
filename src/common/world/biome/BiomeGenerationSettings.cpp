@@ -22,18 +22,24 @@
  */
 
 #include "BiomeGenerationSettings.hpp"
+#include "../../core/Constants.hpp"
 #include "../../util/math/random/Random.hpp"
 #include "../chunk/ChunkPrimer.hpp"
 #include "../gen/chunk/IChunkGenerator.hpp"
 #include "../gen/feature/ConfiguredFeature.hpp"
 #include "../gen/feature/FeatureIds.hpp"
 #include <algorithm>
-#include <spdlog/spdlog.h>
 
 namespace mc {
 
 namespace {
 
+/**
+ * @brief 为主世界生物群系添加默认矿石特征
+ * @param settings 生物群系生成设置
+ *
+ * 添加煤矿石、铁矿石、金矿石、红石矿石、钻石矿石、青金石矿石、铜矿石
+ */
 void addDefaultOverworldOres(BiomeGenerationSettings& settings)
 {
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CoalOre);
@@ -68,7 +74,7 @@ void BiomeGenerationSettings::addFeature(DecorationStage stage, u32 featureId)
     m_featuresByStage[stageIndex].push_back(featureId);
 }
 
-const std::vector<u32>& BiomeGenerationSettings::getFeatures(DecorationStage stage) const
+const std::vector<u32>& BiomeGenerationSettings::getFeatures(DecorationStage stage) const noexcept
 {
     const size_t stageIndex = static_cast<size_t>(stage);
     if (stageIndex >= m_featuresByStage.size()) {
@@ -78,7 +84,7 @@ const std::vector<u32>& BiomeGenerationSettings::getFeatures(DecorationStage sta
     return m_featuresByStage[stageIndex];
 }
 
-bool BiomeGenerationSettings::hasFeatures() const
+bool BiomeGenerationSettings::hasFeatures() const noexcept
 {
     for (const auto& features : m_featuresByStage) {
         if (!features.empty()) {
@@ -88,7 +94,7 @@ bool BiomeGenerationSettings::hasFeatures() const
     return false;
 }
 
-void BiomeGenerationSettings::clear()
+void BiomeGenerationSettings::clear() noexcept
 {
     for (auto& features : m_featuresByStage) {
         features.clear();
@@ -465,7 +471,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepWarmOcean()
 BiomeGenerationSettings BiomeGenerationSettings::createDeepLukewarmOcean()
 {
     // 深温水海洋：深海草 + 海带
-    // 注意：MC 1.16.5 中深海温水海洋没有珊瑚，珊瑚只在暖水海洋生成
+    // 注意：深海温水海洋没有珊瑚，珊瑚只在暖水海洋生成
     BiomeGenerationSettings settings;
 
     addDefaultOverworldOres(settings);
@@ -696,10 +702,9 @@ void BiomeFeaturePlacer::placeFeaturesForStage(WorldGenRegion& region,
 
     const i32 chunkX = chunk.x();
     const i32 chunkZ = chunk.z();
-    const i32 startX = chunkX * 16;
-    const i32 startZ = chunkZ * 16;
+    const i32 startX = chunkX * world::CHUNK_WIDTH;
+    const i32 startZ = chunkZ * world::CHUNK_WIDTH;
 
-    // 参考 MC ChunkGenerator.func_230351_a_ 和 Biome.func_242427_a
     // 使用 setDecorationSeed 算法计算装饰种子
     // setDecorationSeed(baseSeed, x, z):
     //   setSeed(baseSeed)
@@ -725,7 +730,7 @@ void BiomeFeaturePlacer::placeFeaturesForStage(WorldGenRegion& region,
     i32 featureIndex = 0;
 
     // 放置每个特征
-    // 参考 MC: 使用 setFeatureSeed(decorSeed, index, stageOrdinal)
+    // 使用 setFeatureSeed 算法设置特征种子
     // setFeatureSeed(baseSeed, x, z):
     //   i = baseSeed + x + 10000 * z
     //   setSeed(i)

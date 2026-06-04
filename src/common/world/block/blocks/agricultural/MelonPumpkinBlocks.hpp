@@ -185,7 +185,7 @@ private:
      * @param pos 南瓜位置
      * @return 是否成功生成傀儡
      */
-    bool trySpawnGolem(IWorld& world, const BlockPos& pos);
+    bool _trySpawnGolem(IWorld& world, const BlockPos& pos);
 
     /**
      * @brief 检测雪傀儡模式
@@ -196,7 +196,7 @@ private:
      * @param pos 南瓜位置
      * @return 是否匹配雪傀儡模式
      */
-    [[nodiscard]] bool checkSnowGolemPattern(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _checkSnowGolemPattern(IWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 检测铁傀儡模式
@@ -211,7 +211,7 @@ private:
      * @param outBodyPos 输出铁傀儡身体位置（模式匹配时填充）
      * @return 是否匹配铁傀儡模式
      */
-    [[nodiscard]] bool checkIronGolemPattern(IWorld& world, const BlockPos& pos, BlockPos& outBodyPos) const;
+    [[nodiscard]] bool _checkIronGolemPattern(IWorld& world, const BlockPos& pos, BlockPos& outBodyPos) const;
 
     /**
      * @brief 检查方块是否为南瓜类型（雕刻南瓜或南瓜灯）
@@ -219,7 +219,7 @@ private:
      * @param state 方块状态
      * @return 是否为南瓜类型
      */
-    [[nodiscard]] static bool isPumpkin(const BlockState* state);
+    [[nodiscard]] static bool _isPumpkin(const BlockState* state);
 
     /**
      * @brief 检查方块是否为空气
@@ -227,7 +227,7 @@ private:
      * @param state 方块状态
      * @return 是否为空气
      */
-    [[nodiscard]] static bool isAir(const BlockState* state);
+    [[nodiscard]] static bool _isAir(const BlockState* state);
 };
 
 /**
@@ -271,7 +271,7 @@ private:
      * @param pos 南瓜灯位置
      * @return 是否成功生成傀儡
      */
-    bool trySpawnGolem(IWorld& world, const BlockPos& pos);
+    bool _trySpawnGolem(IWorld& world, const BlockPos& pos);
 };
 
 // ============================================================================

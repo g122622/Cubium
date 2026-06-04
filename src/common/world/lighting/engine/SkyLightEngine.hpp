@@ -23,10 +23,11 @@
 
 #pragma once
 
-#include "../../block/Block.hpp"
-#include "../storage/SWMRNibbleArray.hpp"
-#include "BaseLightEngine.hpp"
-#include "LightEngineUtils.hpp"
+#include "common/core/Constants.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/lighting/engine/BaseLightEngine.hpp"
+#include "common/world/lighting/engine/LightEngineUtils.hpp"
+#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include <unordered_set>
 #include <vector>
 
@@ -39,8 +40,6 @@ class ChunkSection;
 
 /**
  * @brief 天空光照引擎
- *
- * 参考: ca.spottedleaf.moonrise.patches.starlight.light.SkyStarLightEngine
  *
  * 天空光照特殊处理：
  * - 向下传播不衰减
@@ -209,22 +208,23 @@ private:
     // Null 区块段传播检查缓存
     std::vector<bool> m_nullPropagationCheckCache;
 
-    // 高度图（用于方块变化）
-    std::array<i32, 256> m_heightMapBlockChange;
+    // 高度图（用于方块变化，大小为 CHUNK_WIDTH * CHUNK_WIDTH）
+    std::array<i32, world::CHUNK_WIDTH * world::CHUNK_WIDTH> m_heightMapBlockChange;
 
     // 启用的区块列（用于控制光照更新范围）
     std::unordered_set<i64> m_enabledColumns;
 
     /**
      * @brief 获取发射光照等级（天空光照始终为 0）
+     * @note 天空光照没有自发光源，返回值始终为 0
      */
-    [[nodiscard]] i32 getLightEmission(const BlockState* state, i32 x, i32 y, i32 z) const
+    [[nodiscard]] i32 _getLightEmission(const BlockState* state, i32 x, i32 y, i32 z) const noexcept
     {
-        (void)state;
-        (void)x;
-        (void)y;
-        (void)z;
-        return 0; // 天空光照没有光源
+        MC_UNUSED(state);
+        MC_UNUSED(x);
+        MC_UNUSED(y);
+        MC_UNUSED(z);
+        return 0;
     }
 };
 

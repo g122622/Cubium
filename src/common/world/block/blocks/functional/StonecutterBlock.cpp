@@ -22,10 +22,10 @@
  */
 
 #include "StonecutterBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace blocks {
@@ -35,8 +35,7 @@ namespace blocks {
 StonecutterBlock::StonecutterBlock(const BlockProperties& properties)
     : Block(properties)
 {
-
-    // 创建状态容器
+    // 创建状态容器，添加水平朝向属性
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::HORIZONTAL_FACING())
@@ -49,17 +48,18 @@ StonecutterBlock::StonecutterBlock(const BlockProperties& properties)
             });
     createBlockState(std::move(container));
 
-    // 设置默认状态
+    // 设置默认状态：朝向北
     setDefaultState(defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
 
-    // 创建切石机形状
-    // 底座 + 锯片区域
+    // 创建切石机碰撞形状
+    // 形状为一个扁平的底座：宽16格，高9格，深16格（转换为像素单位）
     constexpr f32 P = 1.0f / 16.0f;
     m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f * P, 9.0f * P, 16.0f * P);
 }
 
 BlockState StonecutterBlock::getStateForPlacement(BlockItemUseContext& context)
 {
+    // 放置时面向玩家的反方向
     Direction facing = context.horizontalDirection();
     return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(facing));
 }

@@ -38,8 +38,6 @@ namespace blocks {
  * - 可以放置花卉、树苗、仙人掌等植物
  * - 无碰撞箱
  * - 可以放置在任何固体表面
- *
- * 参考: net.minecraft.block.FlowerPotBlock
  */
 class FlowerPotBlock : public Block {
 public:

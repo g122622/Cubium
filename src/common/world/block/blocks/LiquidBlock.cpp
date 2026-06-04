@@ -21,18 +21,18 @@
  *
  */
 
-#include "LiquidBlock.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../util/property/FluidProperties.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../../IWorld.hpp"
-#include "../../fluid/FluidTags.hpp"
-#include "../../tick/manager/TickManager.hpp"
-#include "../Block.hpp"
-#include "../BlockPos.hpp"
-#include "../VanillaBlocks.hpp"
+#include "common/world/block/blocks/LiquidBlock.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/property/FluidProperties.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/fluid/FluidTags.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include <functional>
 
 namespace mc {
@@ -72,7 +72,7 @@ LiquidBlock::LiquidBlock(fluid::FlowingFluid& fluid, BlockProperties properties)
     setDefaultState(defaultState().with(LEVEL_0_15(), 0));
 
     // 构建流体状态缓存
-    buildFluidStateCache();
+    _buildFluidStateCache();
 }
 
 const mc::fluid::FluidState* LiquidBlock::getFluidState(const BlockState& state) const
@@ -289,7 +289,7 @@ fluid::Fluid* LiquidBlock::pickupFluid(IWorld& world, const BlockPos& pos, const
     return nullptr; // 非源头，无法舀起
 }
 
-i32 LiquidBlock::blockLevelToFluidLevel(i32 blockLevel)
+i32 LiquidBlock::blockLevelToFluidLevel(i32 blockLevel) noexcept
 {
     // 方块level=0 -> 流体level=8（源头）
     // 方块level=1-7 -> 流体level=8-blockLevel（反向）
@@ -303,7 +303,7 @@ i32 LiquidBlock::blockLevelToFluidLevel(i32 blockLevel)
     }
 }
 
-i32 LiquidBlock::fluidLevelToBlockLevel(i32 fluidLevel, bool falling)
+i32 LiquidBlock::fluidLevelToBlockLevel(i32 fluidLevel, bool falling) noexcept
 {
     // 流体level=8, falling=false -> 方块level=0（源头）
     // 流体level=1-7 -> 方块level=8-fluidLevel
@@ -317,7 +317,7 @@ i32 LiquidBlock::fluidLevelToBlockLevel(i32 fluidLevel, bool falling)
     }
 }
 
-void LiquidBlock::buildFluidStateCache()
+void LiquidBlock::_buildFluidStateCache()
 {
     m_fluidStateCache.clear();
     m_fluidStateCache.reserve(16);

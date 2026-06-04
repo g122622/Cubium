@@ -22,16 +22,14 @@
  */
 
 #include "RedstoneLampBlock.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
-#include "../../../tick/manager/TickManager.hpp"
-#include <unordered_map>
+
+#include "util/property/Properties.hpp"
+#include "world/IWorld.hpp"
+#include "world/redstone/RedstonePower.hpp"
+#include "world/tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace blocks {
-
-using namespace mc; // Bring BlockStateProperties into scope
 
 RedstoneLampBlock::RedstoneLampBlock(const BlockProperties& properties)
     : Block(properties)
@@ -54,12 +52,12 @@ RedstoneLampBlock::RedstoneLampBlock(const BlockProperties& properties)
     setDefaultState(defaultState().with(BlockStateProperties::LIT(), false));
 }
 
-bool RedstoneLampBlock::isLit(const BlockState& state)
+bool RedstoneLampBlock::isLit(const BlockState& state) noexcept
 {
     return state.get(BlockStateProperties::LIT());
 }
 
-BlockState RedstoneLampBlock::withLit(BlockState state, bool lit)
+BlockState RedstoneLampBlock::withLit(BlockState state, bool lit) noexcept
 {
     return state.with(BlockStateProperties::LIT(), lit);
 }

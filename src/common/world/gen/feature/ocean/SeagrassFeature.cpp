@@ -22,12 +22,12 @@
  */
 
 #include "SeagrassFeature.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../WorldConstants.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 
 #include <algorithm>
 
@@ -38,7 +38,7 @@ namespace {
 [[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z)
 {
     i32 oceanFloorY = world.getTopBlockY(x, z, HeightmapType::OceanFloorWG);
-    if (oceanFloorY > 0) {
+    if (oceanFloorY > world::MIN_BUILD_HEIGHT) {
         return oceanFloorY;
     }
 
@@ -93,7 +93,7 @@ bool SeagrassFeature::place(
         return false;
     }
 
-    // 参考原版 SeaGrassFeature：每次调用尝试多个随机偏移点。
+    // 每次调用尝试多个随机偏移点
     const i32 tries = std::max(1, config.tries);
     const i32 spread = std::max(1, config.horizontalSpread);
 
@@ -105,12 +105,12 @@ bool SeagrassFeature::place(
         const i32 placeX = pos.x + dx;
         const i32 placeZ = pos.z + dz;
         const i32 oceanFloorY = findOceanFloorY(world, placeX, placeZ);
-        if (oceanFloorY <= 0) {
+        if (oceanFloorY <= world::MIN_BUILD_HEIGHT) {
             continue;
         }
 
         const BlockPos placePos(placeX, oceanFloorY + 1, placeZ);
-        if (!canPlaceAt(world, placePos, *config.seagrassState)) {
+        if (!_canPlaceAt(world, placePos, *config.seagrassState)) {
             continue;
         }
 
@@ -119,8 +119,8 @@ bool SeagrassFeature::place(
 
         if (shouldPlaceTall) {
             const BlockPos abovePos(placePos.x, placePos.y + 1, placePos.z);
-            if (isWater(world, abovePos)) {
-                placeTallSeagrass(world, placePos, config);
+            if (_isWater(world, abovePos)) {
+                _placeTallSeagrass(world, placePos, config);
                 placedAny = true;
                 continue;
             }
@@ -133,11 +133,11 @@ bool SeagrassFeature::place(
     return placedAny;
 }
 
-bool SeagrassFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const BlockState& seagrassState) const
+bool SeagrassFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const BlockState& seagrassState) const
 {
     MC_UNUSED(seagrassState);
 
-    if (!isWater(world, pos)) {
+    if (!_isWater(world, pos)) {
         return false;
     }
 
@@ -146,7 +146,7 @@ bool SeagrassFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos, con
     return belowState != nullptr && belowState->isSolid();
 }
 
-bool SeagrassFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
+bool SeagrassFeature::_isWater(WorldGenRegion& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (!state) {
@@ -161,7 +161,7 @@ bool SeagrassFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
     return false;
 }
 
-bool SeagrassFeature::placeTallSeagrass(
+bool SeagrassFeature::_placeTallSeagrass(
     WorldGenRegion& world, const BlockPos& pos, const SeagrassFeatureConfig& config) const
 {
     // 放置下半部分

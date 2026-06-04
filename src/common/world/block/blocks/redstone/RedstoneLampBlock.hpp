@@ -71,7 +71,7 @@ public:
      * @param state 方块状态
      * @return true 如果点亮
      */
-    [[nodiscard]] static bool isLit(const BlockState& state);
+    [[nodiscard]] static bool isLit(const BlockState& state) noexcept;
 
     /**
      * @brief 设置点亮状态
@@ -79,7 +79,7 @@ public:
      * @param lit 是否点亮
      * @return BlockState 更新后的状态
      */
-    [[nodiscard]] static BlockState withLit(BlockState state, bool lit);
+    [[nodiscard]] static BlockState withLit(BlockState state, bool lit) noexcept;
 };
 
 } // namespace blocks

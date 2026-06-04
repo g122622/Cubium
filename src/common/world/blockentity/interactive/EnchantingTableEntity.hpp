@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <memory>
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include <array>
+#include <memory>
 
 namespace mc {
 
@@ -158,7 +158,7 @@ private:
      * @param tablePos 附魔台位置
      * @return 如果有效返回true
      */
-    [[nodiscard]] static bool isValidBookshelf(IWorld& world, const BlockPos& bookshelfPos, const BlockPos& tablePos);
+    [[nodiscard]] static bool _isValidBookshelf(IWorld& world, const BlockPos& bookshelfPos, const BlockPos& tablePos);
 
     /// 附魔力量（0-15，每个书架+1，书架最大15个）
     i32 m_enchantPower = 0;

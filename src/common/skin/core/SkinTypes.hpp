@@ -35,8 +35,6 @@ namespace mc::skin {
  * 决定玩家模型的手臂宽度：
  * - Default (Steve): 4像素宽手臂
  * - Slim (Alex): 3像素宽手臂
- *
- * 参考 MC 1.16.5 PlayerModel 构造函数
  */
 enum class SkinType : u8 {
     Default = 0, // 宽手臂 (4px)，Steve 模型
@@ -48,8 +46,6 @@ enum class SkinType : u8 {
  *
  * @param typeStr 类型字符串 ("default" 或 "slim")
  * @return 皮肤类型，无法识别时返回 Default
- *
- * @note MC 1.16.5 中皮肤元数据 JSON 的 "model" 字段使用此格式
  */
 [[nodiscard]] SkinType parseSkinType(const std::string& typeStr);
 
@@ -64,16 +60,12 @@ enum class SkinType : u8 {
 /**
  * @brief 根据UUID确定默认皮肤类型
  *
- * 使用 MC 1.16.5 的算法：
- * - 计算 UUID 的 hashCode
+ * 基于UUID的哈希值确定玩家默认皮肤类型：
  * - 如果 (hashCode & 1) == 1，则为 Slim (Alex)
  * - 否则为 Default (Steve)
  *
  * @param uuid 玩家UUID（16字节，big-endian）
  * @return 默认皮肤类型
- *
- * @note 这确保了即使没有自定义皮肤，
- *       玩家也会有正确的 Steve/Alex 皮肤
  */
 [[nodiscard]] SkinType getDefaultSkinTypeForUUID(const std::array<u8, 16>& uuid);
 

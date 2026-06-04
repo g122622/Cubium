@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../Material.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 #include <array>
 
 namespace mc {
@@ -46,8 +46,6 @@ namespace blocks {
  * 状态属性：
  * - HORIZONTAL_FACING: 朝向 (NORTH, SOUTH, EAST, WEST)
  * - ATTACH_FACE: 附着面 (FLOOR, WALL, CEILING)
- *
- * 参考: net.minecraft.block.GrindstoneBlock (MC 1.16.5)
  */
 class GrindstoneBlock : public Block {
 public:

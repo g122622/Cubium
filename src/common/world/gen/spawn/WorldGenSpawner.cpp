@@ -106,20 +106,14 @@ i32 WorldGenSpawner::spawnInitialMobs(WorldGenRegion& region,
     // 怪物通过 NaturalSpawner 在夜间/黑暗环境生成
     const std::vector<world::spawn::SpawnEntry>& creatures = spawnInfo.getCreatureSpawns();
     if (creatures.empty()) {
-        // spdlog::info("WorldGenSpawner: No creature spawns for biome {}", biome.name());
         return 0;
     }
-
-    // spdlog::info("WorldGenSpawner: Biome {} has {} creature types, probability {:.4f}",
-    //               biome.name(), creatures.size(), biome.creatureSpawnProbability());
 
     // 区块世界坐标起点（使用工具函数）
     const i32 startX = world::toWorldCoord(chunkX);
     const i32 startZ = world::toWorldCoord(chunkZ);
 
-    // 参考 MC 1.16.5 performWorldGenSpawning
     // 使用生物群系的生成概率 (creatureSpawnProbability)
-    // 默认概率是 10/128 或者从 biome.getSpawningChance() 获取
     const f32 spawnProbability = biome.creatureSpawnProbability();
 
     // 预计算总权重（creatures 列表不会改变，可以提前计算）
@@ -168,27 +162,27 @@ i32 WorldGenSpawner::spawnInitialMobs(WorldGenRegion& region,
         }
 
         // 随机生成位置
-        i32 groupX = startX + random.nextInt(16);
-        i32 groupZ = startZ + random.nextInt(16);
+        i32 groupX = startX + random.nextInt(world::CHUNK_WIDTH);
+        i32 groupZ = startZ + random.nextInt(world::CHUNK_WIDTH);
 
         // 尝试多次找到合适的生成位置
         for (i32 attempt = 0; attempt < MAX_SPAWN_ATTEMPTS; ++attempt) {
             // 获取生成高度
-            i32 spawnY = getSpawnHeight(region, *entityType, groupX, groupZ);
+            i32 spawnY = _getSpawnHeight(region, *entityType, groupX, groupZ);
             if (spawnY < 0) {
                 // 尝试新位置
-                groupX = startX + random.nextInt(16);
-                groupZ = startZ + random.nextInt(16);
+                groupX = startX + random.nextInt(world::CHUNK_WIDTH);
+                groupZ = startZ + random.nextInt(world::CHUNK_WIDTH);
                 continue;
             }
 
             // 检查是否可以生成
-            if (!canSpawnAt(region, *entityType, groupX, spawnY, groupZ)) {
+            if (!_canSpawnAt(region, *entityType, groupX, spawnY, groupZ)) {
                 continue;
             }
 
             // 在组内生成多个实体
-            i32 spawned = spawnGroup(region,
+            i32 spawned = _spawnGroup(region,
                 *entityType,
                 static_cast<f32>(groupX) + 0.5f,
                 static_cast<f32>(spawnY),
@@ -209,19 +203,15 @@ i32 WorldGenSpawner::spawnInitialMobs(WorldGenRegion& region,
             }
 
             // 尝试新位置
-            groupX = startX + random.nextInt(16);
-            groupZ = startZ + random.nextInt(16);
+            groupX = startX + random.nextInt(world::CHUNK_WIDTH);
+            groupZ = startZ + random.nextInt(world::CHUNK_WIDTH);
         }
-    }
-
-    if (totalSpawned > 0) {
-        // spdlog::info("WorldGenSpawner: Spawned {} entities at chunk ({}, {})", totalSpawned, chunkX, chunkZ);
     }
 
     return totalSpawned;
 }
 
-i32 WorldGenSpawner::spawnGroup(WorldGenRegion& region,
+i32 WorldGenSpawner::_spawnGroup(WorldGenRegion& region,
     const entity::EntityType& entityType,
     f32 x,
     [[maybe_unused]] f32 y,
@@ -232,7 +222,6 @@ i32 WorldGenSpawner::spawnGroup(WorldGenRegion& region,
 {
     i32 spawned = 0;
 
-    // MC 1.16.5 performWorldGenSpawning 第 350 行：
     // 检查 isSummonable() - 实体类型是否可以被生成
     if (!entityType.canSummon()) {
         return 0;
@@ -244,23 +233,22 @@ i32 WorldGenSpawner::spawnGroup(WorldGenRegion& region,
     const f32 height = size.height();
 
     // 区块起点
-    const i32 chunkStartX = static_cast<i32>(x) & ~0xF;
-    const i32 chunkStartZ = static_cast<i32>(z) & ~0xF;
+    const i32 chunkStartX = static_cast<i32>(x) & ~(world::CHUNK_WIDTH - 1);
+    const i32 chunkStartZ = static_cast<i32>(z) & ~(world::CHUNK_WIDTH - 1);
 
     for (i32 i = 0; i < count; ++i) {
         // 添加随机偏移使群体分散
-        // 参考 MC 的群体分散逻辑
         f32 spawnX = x + (random.nextFloat() - 0.5f) * width * 2.0f;
         f32 spawnZ = z + (random.nextFloat() - 0.5f) * width * 2.0f;
 
-        // MC 1.16.5 performWorldGenSpawning 第 352-353 行：
         // clamp 确保实体在区块边界内，考虑实体宽度
-        // MathHelper.clamp(l, i + f, i + 16.0 - f)
-        spawnX = std::clamp(spawnX, static_cast<f32>(chunkStartX) + width, static_cast<f32>(chunkStartX + 16) - width);
-        spawnZ = std::clamp(spawnZ, static_cast<f32>(chunkStartZ) + width, static_cast<f32>(chunkStartZ + 16) - width);
+        spawnX = std::clamp(
+            spawnX, static_cast<f32>(chunkStartX) + width, static_cast<f32>(chunkStartX + world::CHUNK_WIDTH) - width);
+        spawnZ = std::clamp(
+            spawnZ, static_cast<f32>(chunkStartZ) + width, static_cast<f32>(chunkStartZ + world::CHUNK_WIDTH) - width);
 
         // 检查碰撞空间
-        i32 spawnY = getSpawnHeight(region, entityType, static_cast<i32>(spawnX), static_cast<i32>(spawnZ));
+        i32 spawnY = _getSpawnHeight(region, entityType, static_cast<i32>(spawnX), static_cast<i32>(spawnZ));
         if (spawnY < 0) {
             continue;
         }
@@ -268,13 +256,11 @@ i32 WorldGenSpawner::spawnGroup(WorldGenRegion& region,
         const i32 spawnXi = static_cast<i32>(spawnX);
         const i32 spawnZi = static_cast<i32>(spawnZ);
 
-        if (!canSpawnAt(region, entityType, spawnXi, spawnY, spawnZi)) {
+        if (!_canSpawnAt(region, entityType, spawnXi, spawnY, spawnZi)) {
             continue;
         }
 
-        // MC 1.16.5 performWorldGenSpawning 第 354 行：
-        // 检查碰撞 - !worldIn.hasNoCollisions(entityType.getBoundingBoxWithSizeApplied(d0, y, d1))
-        // 创建实体的碰撞箱
+        // 检查碰撞
         const AxisAlignedBB entityBox =
             AxisAlignedBB::fromPosition(Vector3(spawnX, static_cast<f32>(spawnY), spawnZ), width, height);
 
@@ -282,10 +268,7 @@ i32 WorldGenSpawner::spawnGroup(WorldGenRegion& region,
             continue; // 有碰撞，跳过此位置
         }
 
-        // MC 1.16.5 performWorldGenSpawning 第 354 行：
-        // EntitySpawnPlacementRegistry.canSpawnEntity(entityType, world, SpawnReason.CHUNK_GENERATION, pos, random)
         // 检查实体特定的生成规则（如蝙蝠需要光照<4等）
-        // 注意：canSpawnEntity 的参数顺序是，这里需要适配器
         WorldGenRegionAdapter adapter(region);
         const Vector3i checkPos(spawnXi, spawnY, spawnZi);
         if (!world::spawn::EntitySpawnPlacementRegistry::canSpawnEntity(
@@ -302,7 +285,7 @@ i32 WorldGenSpawner::spawnGroup(WorldGenRegion& region,
     return spawned;
 }
 
-i32 WorldGenSpawner::getSpawnHeight(WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 z) const
+i32 WorldGenSpawner::_getSpawnHeight(WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 z) const
 {
     // 获取实体类型的高度图类型
     HeightmapType heightmapType = world::spawn::EntitySpawnPlacementRegistry::getHeightmapType(entityType.name());
@@ -371,7 +354,7 @@ i32 WorldGenSpawner::getSpawnHeight(WorldGenRegion& region, const entity::Entity
     return topY;
 }
 
-bool WorldGenSpawner::canSpawnAt(
+bool WorldGenSpawner::_canSpawnAt(
     WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 y, i32 z) const
 {
     // WorldGenSpawner 只处理 Creature 分类（被动动物）的区块生成
@@ -405,7 +388,7 @@ bool WorldGenSpawner::canSpawnAt(
     return checkSpawnRules(region, entityType, x, y, z);
 }
 
-bool WorldGenSpawner::checkSpawnRules(
+bool WorldGenSpawner::_checkSpawnRules(
     WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 y, i32 z) const
 {
     const BlockState* ground = region.getBlockState(x, y - 1, z);
@@ -415,7 +398,7 @@ bool WorldGenSpawner::checkSpawnRules(
 
     const std::string& typeName = entityType.name();
 
-    // 参考原版常见被动生物规则：大多数生物偏好草方块
+    // 常见被动生物规则：羊、牛、马、驴偏好草方块
     if (typeName == "minecraft:sheep" || typeName == "minecraft:cow" || typeName == "minecraft:horse" ||
         typeName == "minecraft:donkey") {
         if (!ground->is(VanillaBlocks::GRASS_BLOCK)) {

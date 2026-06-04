@@ -32,7 +32,6 @@
 #include "../../../fluid/Fluid.hpp"
 #include "../../../lighting/engine/LightEngineUtils.hpp"
 #include "../ice/SnowBlock.hpp"
-#include <spdlog/spdlog.h>
 
 namespace mc::blocks {
 
@@ -43,9 +42,7 @@ namespace mc::blocks {
 SpreadableSnowyDirtBlock::SpreadableSnowyDirtBlock(BlockProperties properties)
     : Block(std::move(properties))
 {
-
     // 创建状态容器，添加 SNOWY 属性
-    // 参考 MC 1.16.5 SnowyDirtBlock.fillStateContainer()
     auto container = StateContainer<Block, BlockState>::Builder(*this).add(SNOWY()).create(
         [this](const Block& block,
             std::vector<size_t> values,
@@ -55,15 +52,11 @@ SpreadableSnowyDirtBlock::SpreadableSnowyDirtBlock(BlockProperties properties)
     createBlockState(std::move(container));
 
     // 设置默认状态：无雪
-    // 参考 MC 1.16.5 SnowyDirtBlock 构造函数
     setDefaultState(defaultState().with(SNOWY(), false));
 }
 
 void SpreadableSnowyDirtBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-
-    // 参考: MC 1.16.5 SpreadableSnowyDirtBlock.randomTick()
-
     // 检查是否满足蔓延条件
     if (!isSnowyConditions(world, pos, state)) {
         // 不满足条件，退化成泥土
@@ -75,6 +68,7 @@ void SpreadableSnowyDirtBlock::randomTick(IWorld& world, const BlockPos& pos, Bl
         const u8 blockLight = world.getBlockLight(pos.x, pos.y + 1, pos.z);
         const u8 lightLevel = std::max(skyLight, blockLight);
 
+        // TODO: 将硬编码的蔓延光照阈值 9 替换为常量（建议在 game 命名空间定义 GRASS_SPREAD_LIGHT_THRESHOLD）
         if (lightLevel >= 9) {
             const BlockState* defaultState = &getDefaultState();
 
@@ -95,7 +89,7 @@ void SpreadableSnowyDirtBlock::randomTick(IWorld& world, const BlockPos& pos, Bl
                 // 检查目标位置是否满足蔓延条件
                 if (isSnowyAndNotUnderwater(world, targetPos, *defaultState)) {
                     // 检查目标位置上方是否有雪
-                    // 参考 MC 1.16.5: 蔓延时只检查 SNOW（雪层），不检查 SNOW_BLOCK（雪块）
+                    // 蔓延时只检查 SNOW（雪层），不检查 SNOW_BLOCK（雪块）
                     const BlockPos abovePos(targetPos.x, targetPos.y + 1, targetPos.z);
                     const BlockState* aboveState = world.getBlockState(abovePos);
                     const bool hasSnow = aboveState != nullptr && aboveState->is(VanillaBlocks::SNOW);
@@ -111,14 +105,13 @@ void SpreadableSnowyDirtBlock::randomTick(IWorld& world, const BlockPos& pos, Bl
 
 BlockState SpreadableSnowyDirtBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 参考 MC 1.16.5 SnowyDirtBlock.getStateForPlacement()
     // 检查放置位置上方是否有雪块或雪层
     const IWorld& world = context.getWorld();
     const BlockPos pos = context.placementPos();
     const BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
 
-    // MC 1.16.5: 检查 SNOW_BLOCK 或 SNOW（任意层数）
+    // 检查 SNOW_BLOCK 或 SNOW（任意层数）
     const bool hasSnow =
         aboveState != nullptr && (aboveState->is(VanillaBlocks::SNOW_BLOCK) || aboveState->is(VanillaBlocks::SNOW));
 
@@ -132,8 +125,6 @@ BlockState SpreadableSnowyDirtBlock::updatePostPlacement(const BlockState& state
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-
-    // 参考 MC 1.16.5 SnowyDirtBlock.updatePostPlacement()
     // 只有上方方块变化时才更新 SNOWY 状态
     if (facing == Direction::Up) {
         // 检查上方是否为雪块或雪层
@@ -146,18 +137,17 @@ BlockState SpreadableSnowyDirtBlock::updatePostPlacement(const BlockState& state
 
 bool SpreadableSnowyDirtBlock::isSnowyConditions(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 参考: MC 1.16.5 SpreadableSnowyDirtBlock.isSnowyConditions()
     const BlockPos abovePos = pos.up();
     const BlockState* aboveState = world.getBlockState(abovePos);
 
     // 检查是否为雪层且层数为1
-    // MC 1.16.5: blockstate.isIn(Blocks.SNOW) && blockstate.get(SnowBlock.LAYERS) == 1
+    // 只有1层雪时满足条件
     if (aboveState != nullptr && aboveState->is(VanillaBlocks::SNOW)) {
         // 检查 LAYERS 属性是否为 1
         // 使用 getOptional 安全获取，因为 SNOWY 状态会在这里被检查
         const std::optional<i32> layers = aboveState->getOptional(SnowBlock::LAYERS());
         if (layers.has_value() && layers.value() == 1) {
-            return true; // 只有1层雪时满足条件
+            return true;
         }
         // 多层雪会进入下面的光照检查逻辑
     }
@@ -165,13 +155,13 @@ bool SpreadableSnowyDirtBlock::isSnowyConditions(IWorld& world, const BlockPos& 
     // 检查上方是否有完整水源
     if (aboveState != nullptr) {
         const fluid::FluidState* fluidState = aboveState->getFluidState();
+        // TODO: 将硬编码的流体源等级 8 替换为常量（需要在 fluid 命名空间定义 FLUID_SOURCE_LEVEL 常量）
         if (fluidState != nullptr && !fluidState->isEmpty() && fluidState->getLevel() == 8) {
             return false; // 上方有完整水源，不满足条件
         }
     }
 
-    // 对齐 MC 1.16.5 LightEngine.func_215613_a：
-    // 结合上方方块的不透明度与面遮挡形状，判断是否达到满阻挡。
+    // 结合上方方块的不透明度与面遮挡形状，判断是否达到满阻挡
     static const BlockState* s_airState = &VanillaBlocks::AIR->defaultState();
     const BlockState& resolvedAboveState = aboveState != nullptr ? *aboveState : *s_airState;
     const i32 lightBlockInto = LightEngineUtils::getLightBlockInto(
@@ -181,9 +171,6 @@ bool SpreadableSnowyDirtBlock::isSnowyConditions(IWorld& world, const BlockPos& 
 
 bool SpreadableSnowyDirtBlock::isSnowyAndNotUnderwater(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-
-    // 参考: MC 1.16.5 SpreadableSnowyDirtBlock.isSnowyAndNotUnderwater()
-
     if (!isSnowyConditions(world, pos, state)) {
         return false;
     }

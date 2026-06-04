@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Constants.hpp"
-#include "../../core/Types.hpp"
-#include "../../util/math/Vector3.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <optional>
 #include <string>
 
@@ -34,7 +34,6 @@ namespace mc {
 /**
  * @brief 维度类型定义
  *
- * 参考 MC 1.16.5 DimensionType
  * 定义维度的固有属性，如坐标缩放、环境特性、高度限制等。
  *
  * 使用示例:
@@ -68,7 +67,7 @@ public:
     /**
      * @brief 根据维度ID获取维度类型
      *
-     * @param id 维度ID (0=主世界, 1=下界, 2=末地)
+     * @param id 维度ID (0=主世界, -1=下界, 1=末地)
      * @return 对应的维度类型
      */
     [[nodiscard]] static DimensionType fromId(DimensionId id);
@@ -234,6 +233,14 @@ public:
     bool operator==(const DimensionType& other) const { return m_id == other.m_id; }
     bool operator!=(const DimensionType& other) const { return m_id != other.m_id; }
 
+    // 移动操作（noexcept 提升性能）
+    DimensionType(DimensionType&& other) noexcept = default;
+    DimensionType& operator=(DimensionType&& other) noexcept = default;
+
+    // 拷贝操作
+    DimensionType(const DimensionType& other) = default;
+    DimensionType& operator=(const DimensionType& other) = default;
+
     /**
      * @brief 检查是否为主世界
      */
@@ -241,13 +248,11 @@ public:
 
     /**
      * @brief 检查是否为下界
-     * MC 1.16.5: 下界维度ID = -1
      */
     [[nodiscard]] bool isNether() const { return m_id == -1; }
 
     /**
      * @brief 检查是否为末地
-     * MC 1.16.5: 末地维度ID = 1
      */
     [[nodiscard]] bool isTheEnd() const { return m_id == 1; }
 

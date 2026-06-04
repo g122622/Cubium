@@ -25,7 +25,7 @@
 
 namespace mc::scoreboard {
 
-TriggerCriteria::TriggerCriteria()
+TriggerCriteria::TriggerCriteria() noexcept
     : m_name(NAME)
 {}
 

@@ -78,8 +78,6 @@ namespace blocks {
  * - 减法模式计算复杂
  * - 方向性处理
  * - 输出信号在 tick 时存储到 BlockEntity，而不是实时计算
- *
- * 参考: net.minecraft.block.ComparatorBlock
  */
 class RedstoneComparatorBlock : public RedstoneDiodeBlock {
 public:
@@ -115,7 +113,7 @@ public:
     /**
      * @brief 检查是否被锁定
      *
-     * 参考 MC 1.16.5: 比较器不会被侧面信号锁定（与中继器不同）。
+     * 比较器不会被侧面信号锁定（与中继器不同）。
      * 红石二极管基类默认返回侧面信号检测，比较器需要重写为始终返回 false。
      *
      * @return false 比较器永远不被锁定
@@ -180,7 +178,7 @@ public:
     /**
      * @brief 右键交互 - 切换比较/减法模式
      *
-     * MC Java: 右键点击比较器可以在比较模式和减法模式之间切换。
+     * 右键点击比较器可以在比较模式和减法模式之间切换。
      */
     [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
@@ -204,7 +202,6 @@ private:
     /**
      * @brief 计算输入信号强度（包括容器信号检测）
      *
-     * MC Java: calculateInputStrength
      * 不仅检测红石信号，还检测容器信号和物品展示框信号。
      *
      * @param world 世界引用
@@ -212,7 +209,7 @@ private:
      * @param state 当前方块状态
      * @return i32 输入信号强度 0-15
      */
-    [[nodiscard]] i32 calculateInputStrength(IWorld& world, const BlockPos& pos, const BlockState& state) const;
+    [[nodiscard]] i32 _calculateInputStrength(IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
     /**
      * @brief 计算输出信号强度
@@ -224,12 +221,11 @@ private:
      * @param sideInput 侧面输入信号（用于减法模式）
      * @return i32 计算后的输出信号强度
      */
-    [[nodiscard]] i32 calculateOutput(IWorld& world, const BlockPos& pos, const BlockState& state) const;
+    [[nodiscard]] i32 _calculateOutput(IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
     /**
      * @brief 查找物品展示框
      *
-     * MC 1.16.5: findItemFrame
      * 在指定位置查找朝向特定方向的物品展示框。
      * 物品展示框必须附着在方块的表面上，且朝向必须与比较器朝向相同。
      *
@@ -238,7 +234,7 @@ private:
      * @param pos 要搜索的方块位置
      * @return ItemFrameEntity* 找到的物品展示框，如果没有或多个则返回 nullptr
      */
-    [[nodiscard]] static entity::ItemFrameEntity* findItemFrame(IWorld& world, Direction facing, const BlockPos& pos);
+    [[nodiscard]] static entity::ItemFrameEntity* _findItemFrame(IWorld& world, Direction facing, const BlockPos& pos);
 };
 
 } // namespace blocks

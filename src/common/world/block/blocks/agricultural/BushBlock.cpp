@@ -21,12 +21,12 @@
  *
  */
 
-#include "BushBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
-#include "../../BlockRegistry.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 
 namespace mc {
 namespace blocks {

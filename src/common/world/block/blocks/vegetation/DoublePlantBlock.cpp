@@ -22,10 +22,10 @@
  */
 
 #include "DoublePlantBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../IWorld.hpp"
-#include "../../BlockRegistry.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 
 namespace mc {
 namespace blocks {

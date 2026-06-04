@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../item/core/Item.hpp"
-#include "../../../item/core/ItemStack.hpp"
 #include "IDispenseItemBehavior.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include <memory>
 #include <unordered_map>
 
@@ -54,8 +54,6 @@ namespace blocks {
  *     defaultBehavior.dispense(source, stack);
  * }
  * ```
- *
- * 参考: net.minecraft.block.DispenserBlock.DISPENSE_BEHAVIOR_REGISTRY
  */
 class DispenseItemBehaviorRegistry {
 public:

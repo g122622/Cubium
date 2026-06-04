@@ -48,7 +48,7 @@ SWMRNibbleArray::~SWMRNibbleArray()
     // 释放可见侧存储（只有当它与更新侧不同时）
     auto* visible = m_storageVisible.load();
     if (visible != nullptr && visible != m_storageUpdating.get()) {
-        freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>>(visible));
+        _freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>>(visible));
     }
     // 更新侧存储由 unique_ptr 自动释放
 }
@@ -170,12 +170,12 @@ void SWMRNibbleArray::setFull()
 
         if (sharedWithVisible && m_storageUpdating != nullptr) {
             // 如果与可见侧共享内存，需要先创建新存储
-            auto newStorage = allocateBytes();
+            auto newStorage = _allocateBytes();
             m_storageUpdating = std::move(newStorage);
             // 更新可见侧指向新存储
             m_storageVisible.store(m_storageUpdating.get(), std::memory_order_release);
         } else {
-            m_storageUpdating = allocateBytes();
+            m_storageUpdating = _allocateBytes();
         }
     }
 
@@ -197,12 +197,12 @@ void SWMRNibbleArray::setZero()
 
         if (sharedWithVisible && m_storageUpdating != nullptr) {
             // 如果与可见侧共享内存，需要先创建新存储
-            auto newStorage = allocateBytes();
+            auto newStorage = _allocateBytes();
             m_storageUpdating = std::move(newStorage);
             // 更新可见侧指向新存储
             m_storageVisible.store(m_storageUpdating.get(), std::memory_order_release);
         } else {
-            m_storageUpdating = allocateBytes();
+            m_storageUpdating = _allocateBytes();
         }
     }
 
@@ -226,7 +226,7 @@ void SWMRNibbleArray::setNull()
 {
     m_stateUpdating = State::Null;
     if (m_updatingDirty && m_storageUpdating != nullptr) {
-        freeBytes(std::move(m_storageUpdating));
+        _freeBytes(std::move(m_storageUpdating));
     }
     m_storageUpdating = nullptr;
     m_updatingDirty = false;
@@ -236,7 +236,7 @@ void SWMRNibbleArray::setUninitialized()
 {
     m_stateUpdating = State::Uninit;
     if (m_storageUpdating != nullptr && m_updatingDirty) {
-        freeBytes(std::move(m_storageUpdating));
+        _freeBytes(std::move(m_storageUpdating));
     }
     m_storageUpdating = nullptr;
     m_updatingDirty = false;
@@ -281,7 +281,7 @@ void SWMRNibbleArray::set(i32 x, i32 y, i32 z, u8 value)
 
 void SWMRNibbleArray::set(i32 index, u8 value)
 {
-    ensureWritable();
+    _ensureWritable();
 
     const i32 shift = (index & 1) << 2;
     const size_t i = static_cast<size_t>(index >> 1);
@@ -326,10 +326,10 @@ bool SWMRNibbleArray::updateVisible()
         auto* oldVisible = m_storageVisible.load(std::memory_order_acquire);
         m_storageVisible.store(nullptr, std::memory_order_release);
         if (oldVisible != nullptr && oldVisible != m_storageUpdating.get()) {
-            freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>>(oldVisible));
+            _freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>>(oldVisible));
         }
         if (m_storageUpdating != nullptr) {
-            freeBytes(std::move(m_storageUpdating));
+            _freeBytes(std::move(m_storageUpdating));
             m_storageUpdating = nullptr;
         }
     } else {
@@ -347,7 +347,7 @@ bool SWMRNibbleArray::updateVisible()
             if (m_storageUpdating.get() != currentVisible) {
                 std::memcpy(currentVisible->data(), m_storageUpdating->data(), ARRAY_SIZE);
                 // 释放旧的更新侧存储
-                freeBytes(std::move(m_storageUpdating));
+                _freeBytes(std::move(m_storageUpdating));
                 m_storageUpdating = std::unique_ptr<std::array<u8, ARRAY_SIZE>>(currentVisible);
             }
         }
@@ -382,14 +382,14 @@ void SWMRNibbleArray::extrudeLower(const SWMRNibbleArray& other)
         if (m_storageUpdating != nullptr) {
             if (sharedWithVisible) {
                 // 如果与可见侧共享内存，需要先创建新存储
-                auto newStorage = allocateBytes();
+                auto newStorage = _allocateBytes();
                 m_storageUpdating = std::move(newStorage);
                 m_storageVisible.store(m_storageUpdating.get(), std::memory_order_release);
             } else {
-                m_storageUpdating = allocateBytes();
+                m_storageUpdating = _allocateBytes();
             }
         } else {
-            m_storageUpdating = allocateBytes();
+            m_storageUpdating = _allocateBytes();
             m_stateUpdating = State::Init;
         }
         m_updatingDirty = true;
@@ -421,7 +421,7 @@ SWMRNibbleArray::SaveState SWMRNibbleArray::getSaveState() const
         return SaveState{nullptr, State::Uninit};
     }
 
-    if (data != nullptr && isAllZero(*data)) {
+    if (data != nullptr && _isAllZero(*data)) {
         return state == State::Init ? SaveState{nullptr, State::Uninit} : SaveState{nullptr, State::Null};
     }
 
@@ -446,7 +446,7 @@ std::vector<u8> SWMRNibbleArray::toByteArray() const
 // 私有方法
 // ============================================================================
 
-std::unique_ptr<std::array<u8, SWMRNibbleArray::ARRAY_SIZE>> SWMRNibbleArray::allocateBytes()
+std::unique_ptr<std::array<u8, SWMRNibbleArray::ARRAY_SIZE>> SWMRNibbleArray::_allocateBytes()
 {
     // 尝试从对象池获取
     if (!s_bytePool.empty()) {
@@ -458,14 +458,14 @@ std::unique_ptr<std::array<u8, SWMRNibbleArray::ARRAY_SIZE>> SWMRNibbleArray::al
     return std::make_unique<std::array<u8, ARRAY_SIZE>>();
 }
 
-void SWMRNibbleArray::freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>> bytes)
+void SWMRNibbleArray::_freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>> bytes)
 {
     if (bytes != nullptr) {
         s_bytePool.push_back(std::move(bytes));
     }
 }
 
-bool SWMRNibbleArray::isAllZero(const std::array<u8, ARRAY_SIZE>& data)
+bool SWMRNibbleArray::_isAllZero(const std::array<u8, ARRAY_SIZE>& data)
 {
     // 使用 64 位比较加速
     constexpr size_t numU64 = ARRAY_SIZE / sizeof(u64);
@@ -487,14 +487,14 @@ bool SWMRNibbleArray::isAllZero(const std::array<u8, ARRAY_SIZE>& data)
     return true;
 }
 
-void SWMRNibbleArray::ensureWritable()
+void SWMRNibbleArray::_ensureWritable()
 {
     if (m_updatingDirty) {
         return;
     }
 
     if (m_storageUpdating == nullptr) {
-        m_storageUpdating = allocateBytes();
+        m_storageUpdating = _allocateBytes();
         std::fill(m_storageUpdating->begin(), m_storageUpdating->end(), 0);
     } else {
         // 检查更新侧和可见侧是否共享同一块内存
@@ -502,7 +502,7 @@ void SWMRNibbleArray::ensureWritable()
         bool sharedWithVisible = (m_storageUpdating.get() == currentVisible);
 
         // 写时复制：创建新数组并复制数据
-        auto newStorage = allocateBytes();
+        auto newStorage = _allocateBytes();
         *newStorage = *m_storageUpdating;
 
         if (sharedWithVisible) {

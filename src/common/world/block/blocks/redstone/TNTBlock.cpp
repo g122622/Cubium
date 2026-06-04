@@ -22,23 +22,22 @@
  */
 
 #include "TNTBlock.hpp"
-#include "../../../../entity/core/EntityRegistry.hpp"
-#include "../../../../entity/entities/misc/MiscEntities.hpp"
-#include "../../../../sound/SoundCategory.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../explosion/Explosion.hpp"
-#include "../../../explosion/ExplosionMode.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
-#include "../../VanillaBlocks.hpp"
-#include <unordered_map>
+
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/entities/misc/MiscEntities.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/explosion/Explosion.hpp"
+#include "common/world/explosion/ExplosionMode.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
 
 namespace mc {
 namespace blocks {
-
-using namespace mc; // Bring BlockStateProperties into scope
 
 TNTBlock::TNTBlock(const BlockProperties& properties)
     : Block(properties)
@@ -70,7 +69,7 @@ void TNTBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState
 {
     // 检查是否有红石信号或火焰
     bool hasPower = world::redstone::RedstonePower::isPowered(world, pos);
-    bool hasFire = hasFlammableNeighbor(world, pos);
+    bool hasFire = _hasFlammableNeighbor(world, pos);
 
     if (hasPower || hasFire) {
         ignite(world, pos, state);
@@ -98,7 +97,7 @@ void TNTBlock::neighborChanged(
     }
 
     // 检查是否有火焰或熔岩
-    bool hasFire = hasFlammableNeighbor(world, pos);
+    bool hasFire = _hasFlammableNeighbor(world, pos);
     if (hasFire) {
         ignite(world, pos, *state);
     }
@@ -117,7 +116,6 @@ void TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& stat
     world.setBlockState(pos, nullptr, 11);
 
     // 生成点燃的TNT实体
-    // 参考 MC 1.16.5 TNTBlock.onCaughtFire
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* tntType = registry.getType(entity::EntityTypes::TNT);
 
@@ -136,9 +134,8 @@ void TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& stat
                 tnt->setPosition(centerX, centerY, centerZ);
 
                 // 设置随机初始速度
-                // MC 1.16.5: 随机水平方向 + 向上 0.2
                 math::Random& rng = world.getRandom();
-                f32 angle = rng.nextFloat() * static_cast<f32>(math::TWO_PI);
+                f32 angle = rng.nextFloat() * math::TWO_PI;
                 f32 vx = -std::sin(angle) * 0.02f;
                 f32 vy = 0.2f;
                 f32 vz = -std::cos(angle) * 0.02f;
@@ -153,7 +150,7 @@ void TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& stat
         }
     }
 
-    // MC 1.16.5: 播放点燃音效
+    // 播放点燃音效
     world.playSound(SoundEvents::ENTITY_TNT_PRIMED,
         sound::SoundCategory::Blocks,
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
@@ -167,7 +164,6 @@ void TNTBlock::explode(IWorld& world, const BlockPos& pos, f32 power)
     world.setBlockState(pos, nullptr, 11);
 
     // 创建爆炸
-    // 参考 MC 1.16.5: world.createExplosion(pos, power, Explosion.Mode.BREAK)
     world.createExplosion(
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.0625f, static_cast<f32>(pos.z) + 0.5f),
         power,
@@ -177,7 +173,7 @@ void TNTBlock::explode(IWorld& world, const BlockPos& pos, f32 power)
     );
 }
 
-bool TNTBlock::hasFlammableNeighbor(IWorld& world, const BlockPos& pos) const
+bool TNTBlock::_hasFlammableNeighbor(IWorld& world, const BlockPos& pos) const
 {
     // 检查六个方向是否有火焰或熔岩
     for (Direction dir :

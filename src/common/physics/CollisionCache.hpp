@@ -38,7 +38,6 @@ namespace mc::physics {
  * @brief 碰撞箱缓存
  *
  * 缓存区块内的方块碰撞箱，避免每帧重新计算。
- * 参考 MC 1.16.5 的碰撞缓存机制。
  *
  * 线程安全：
  * - 使用读写锁保护缓存访问
@@ -163,7 +162,7 @@ private:
     /**
      * @brief 生成缓存键
      */
-    [[nodiscard]] static u64 makeKey(ChunkCoord chunkX, ChunkCoord chunkZ);
+    [[nodiscard]] static u64 _makeKey(ChunkCoord chunkX, ChunkCoord chunkZ);
 
     mutable std::unordered_map<u64, ChunkCache> m_cache;
     mutable std::shared_mutex m_mutex;

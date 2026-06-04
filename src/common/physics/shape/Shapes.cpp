@@ -42,7 +42,7 @@ bool Shapes::s_initialized = false;
 // 初始化
 // ============================================================================
 
-void Shapes::ensureInitialized()
+void Shapes::_ensureInitialized()
 {
     if (s_initialized) return;
 
@@ -71,19 +71,19 @@ void Shapes::ensureInitialized()
 
 VoxelShape Shapes::empty()
 {
-    ensureInitialized();
+    _ensureInitialized();
     return s_empty;
 }
 
 VoxelShape Shapes::block()
 {
-    ensureInitialized();
+    _ensureInitialized();
     return s_block;
 }
 
 VoxelShape Shapes::infinity()
 {
-    ensureInitialized();
+    _ensureInitialized();
     return s_infinity;
 }
 
@@ -216,9 +216,8 @@ VoxelShape Shapes::joinUnoptimized(const VoxelShape& a, const VoxelShape& b, con
         return op.apply(true, false) ? a : empty();
     }
 
-    // 简化实现：收集所有盒子并应用布尔运算
-    // 完整实现需要使用 IndexMerger 和 BitSetDiscreteVoxelShape.join
-
+    // TODO: 完整实现需要使用 IndexMerger 和 BitSetDiscreteVoxelShape.join
+    // 当前是简化实现：收集所有盒子并应用布尔运算
     // 对于 OR 操作，简单合并盒子
     if (op.apply(true, true)) {
         std::vector<AxisAlignedBB> boxes = a.toAabbs();
@@ -513,7 +512,7 @@ f64 Shapes::collide(Axis axis, const AxisAlignedBB& entityBox, const std::vector
 
 bool Shapes::isBlock(const VoxelShape& shape)
 {
-    ensureInitialized();
+    _ensureInitialized();
     return shape.isCubeLike();
 }
 
@@ -535,7 +534,21 @@ public:
         , m_pairs(std::move(pairs))
     {}
 
-    const std::vector<f64>& getList() const override { return m_list; }
+    SimpleIndexMerger(SimpleIndexMerger&& other) noexcept
+        : m_list(std::move(other.m_list))
+        , m_pairs(std::move(other.m_pairs))
+    {}
+
+    SimpleIndexMerger& operator=(SimpleIndexMerger&& other) noexcept
+    {
+        if (this != &other) {
+            m_list = std::move(other.m_list);
+            m_pairs = std::move(other.m_pairs);
+        }
+        return *this;
+    }
+
+    const std::vector<f64>& getList() const noexcept override { return m_list; }
 
     bool forMergedIndexes(const std::function<bool(i32, i32, i32)>& consumer) const override
     {
@@ -547,7 +560,7 @@ public:
         return true;
     }
 
-    i32 size() const override { return static_cast<i32>(m_list.size()); }
+    i32 size() const noexcept override { return static_cast<i32>(m_list.size()); }
 
 private:
     std::vector<f64> m_list;

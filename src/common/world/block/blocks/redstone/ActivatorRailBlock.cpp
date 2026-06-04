@@ -22,8 +22,8 @@
  */
 
 #include "ActivatorRailBlock.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/redstone/RedstonePower.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/redstone/RedstonePower.hpp"
 
 namespace mc {
 namespace blocks {
@@ -57,7 +57,7 @@ void ActivatorRailBlock::neighborChanged(
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    // MC 1.16.5: 检查红石信号并更新状态
+    // 检查红石信号并更新状态
     const BlockState* currentState = world.getBlockState(pos);
     if (!currentState) return;
 

@@ -22,14 +22,13 @@
  */
 
 #include "AbstractPressurePlateBlock.hpp"
-#include "../../../../entity/core/Entity.hpp"
-#include "../../../../util/AxisAlignedBB.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
-#include "../../../tick/base/TickPriority.hpp"
-#include "../../../tick/manager/TickManager.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include <algorithm>
-#include <unordered_map>
 
 namespace mc {
 namespace blocks {
@@ -138,8 +137,7 @@ i32 AbstractPressurePlateBlock::getWeakPower(
 i32 AbstractPressurePlateBlock::getStrongPower(
     const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
 {
-    // 参考 MC 1.16.5: 压力板向上方输出强信号
-    // getStrongPower: side == Direction.UP ? this.getRedstoneStrength(blockState) : 0
+    // 压力板向上方输出强信号
     if (side == Direction::Up) {
         return getPower(state);
     }
@@ -168,7 +166,6 @@ bool AbstractPressurePlateBlock::hasEntityOnPlate(IWorld& world, const BlockPos&
     std::vector<Entity*> entities = world.getEntitiesInAABB(detectionBox, nullptr);
 
     // 过滤：只检测可以触发压力板的实体
-    // 参考 MC 1.16.5 PressurePlateBlock.computeRedstoneStrength()
     for (Entity* entity : entities) {
         if (entity != nullptr && !entity->doesEntityNotTriggerPressurePlate()) {
             return true;
@@ -181,8 +178,7 @@ bool AbstractPressurePlateBlock::hasEntityOnPlate(IWorld& world, const BlockPos&
 void AbstractPressurePlateBlock::onEntityCollision(
     const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    // 参考 MC 1.16.5: AbstractPressurePlateBlock.onEntityCollision
-    // 当实体踩上压力板时，如果当前未被触发，则更新状态
+    // 当实体踩上压力板时，如果当前未被触发，则调度tick更新状态
     MC_UNUSED(entity);
     i32 currentPower = getPower(state);
     if (currentPower == 0) {

@@ -23,15 +23,13 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "Packet.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::network {
 
 /**
  * @brief 游戏状态变化原因
- *
- * 参考 MC 1.16.5 SChangeGameStatePacket
  */
 enum class GameStateChangeReason : u8 {
     InvalidBed = 0,              // 床无效（在白天或非主维度使用）
@@ -58,8 +56,6 @@ enum class GameStateChangeReason : u8 {
  * - 游戏模式改变
  * - 床无效通知
  * - 其他游戏事件
- *
- * 参考 MC 1.16.5 SChangeGameStatePacket
  */
 class GameStateChangePacket : public Packet {
 public:
@@ -69,12 +65,15 @@ public:
     /**
      * @brief 创建雨停包
      */
-    static GameStateChangePacket endRain() { return GameStateChangePacket(GameStateChangeReason::EndRaining, 0.0f); }
+    static GameStateChangePacket endRain() noexcept
+    {
+        return GameStateChangePacket(GameStateChangeReason::EndRaining, 0.0f);
+    }
 
     /**
      * @brief 创建开始下雨包
      */
-    static GameStateChangePacket beginRain()
+    static GameStateChangePacket beginRain() noexcept
     {
         return GameStateChangePacket(GameStateChangeReason::BeginRaining, 0.0f);
     }
@@ -84,7 +83,7 @@ public:
      *
      * @param strength 降雨强度 (0.0 - 1.0)
      */
-    static GameStateChangePacket rainStrength(f32 strength)
+    static GameStateChangePacket rainStrength(f32 strength) noexcept
     {
         return GameStateChangePacket(GameStateChangeReason::RainStrengthChange, strength);
     }
@@ -94,7 +93,7 @@ public:
      *
      * @param strength 雷暴强度 (0.0 - 1.0)
      */
-    static GameStateChangePacket thunderStrength(f32 strength)
+    static GameStateChangePacket thunderStrength(f32 strength) noexcept
     {
         return GameStateChangePacket(GameStateChangeReason::ThunderStrengthChange, strength);
     }
@@ -104,7 +103,7 @@ public:
      *
      * @param mode 新的游戏模式
      */
-    static GameStateChangePacket gameModeChange(GameMode mode)
+    static GameStateChangePacket gameModeChange(GameMode mode) noexcept
     {
         return GameStateChangePacket(GameStateChangeReason::ChangeGameMode, static_cast<f32>(mode));
     }
@@ -113,8 +112,8 @@ public:
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
     size_t expectedSize() const override;
 
-    GameStateChangeReason reason() const { return m_reason; }
-    f32 value() const { return m_value; }
+    GameStateChangeReason reason() const noexcept { return m_reason; }
+    f32 value() const noexcept { return m_value; }
 
 private:
     GameStateChangeReason m_reason = GameStateChangeReason::InvalidBed;

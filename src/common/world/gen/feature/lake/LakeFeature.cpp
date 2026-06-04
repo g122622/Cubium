@@ -55,7 +55,7 @@ bool LakeFeature::place(IWorldWriter& world, math::Random& rng, i32 x, i32 y, i3
     constexpr i32 RADIUS_Z = 8;
 
     // 检查是否适合生成
-    if (!canPlaceAt(world, x, y, z)) {
+    if (!_canPlaceAt(world, x, y, z)) {
         return false;
     }
 
@@ -101,13 +101,13 @@ bool LakeFeature::place(IWorldWriter& world, math::Random& rng, i32 x, i32 y, i3
     return true;
 }
 
-bool LakeFeature::canPlaceAt(IWorldWriter& world, i32 x, i32 y, i32 z) const
+bool LakeFeature::_canPlaceAt(IWorldWriter& world, i32 x, i32 y, i32 z) const
 {
-    // 参考 MC 1.16.5: 湖泊生成位置检查
     // 水湖限制: Y >= 8
     // 熔岩湖限制: Y >= 8，在较低高度更常见
+    constexpr i32 MIN_LAKE_Y = 8;
 
-    if (y < 8 || y >= world::MAX_BUILD_HEIGHT) {
+    if (y < MIN_LAKE_Y || y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
 
@@ -192,17 +192,19 @@ bool ConfiguredLakeFeature::place(
 
     if (m_isLava) {
         const i32 seaLevel = generator.seaLevel();
-        maxY = std::min(maxY, seaLevel + 8);
+        // 半个区块段高度，用于控制熔岩湖生成高度范围
+        constexpr i32 halfSectionHeight = world::CHUNK_SECTION_HEIGHT / 2;
+        maxY = std::min(maxY, seaLevel + halfSectionHeight);
 
         // 熔岩湖通常更偏地下，保留少量高位湖泊。
         if (random.nextInt(10) != 0) {
-            maxY = std::min(maxY, seaLevel - 8);
+            maxY = std::min(maxY, seaLevel - halfSectionHeight);
         }
         maxY = std::max(maxY, minY);
     }
 
-    const i32 x = pos.x + random.nextInt(16) + 8;
-    const i32 z = pos.z + random.nextInt(16) + 8;
+    const i32 x = pos.x + random.nextInt(world::CHUNK_WIDTH) + world::CHUNK_WIDTH / 2;
+    const i32 z = pos.z + random.nextInt(world::CHUNK_WIDTH) + world::CHUNK_WIDTH / 2;
     const i32 y = minY + random.nextInt(maxY - minY + 1);
 
     return m_feature.place(region, random, x, y, z);
@@ -231,14 +233,17 @@ std::vector<std::unique_ptr<ConfiguredLakeFeature>> LakeFeatures::getAllFeatures
 
 std::unique_ptr<ConfiguredLakeFeature> LakeFeatures::createWaterLake()
 {
+    // 水湖最大高度约为世界高度的一半
+    constexpr i32 WATER_LAKE_MAX_Y = world::MAX_BUILD_HEIGHT / 2 - 1;
     return std::make_unique<ConfiguredLakeFeature>(
-        world::gen::feature::lake::LakeFeature::createWaterLake(), "water_lake", 4, 20, 127);
+        world::gen::feature::lake::LakeFeature::createWaterLake(), "water_lake", 4, 20, WATER_LAKE_MAX_Y);
 }
 
 std::unique_ptr<ConfiguredLakeFeature> LakeFeatures::createLavaLake()
 {
+    // 熔岩湖最大高度使用海平面高度
     return std::make_unique<ConfiguredLakeFeature>(
-        world::gen::feature::lake::LakeFeature::createLavaLake(), "lava_lake", 8, 10, 63);
+        world::gen::feature::lake::LakeFeature::createLavaLake(), "lava_lake", 8, 10, world::SEA_LEVEL);
 }
 
 } // namespace mc

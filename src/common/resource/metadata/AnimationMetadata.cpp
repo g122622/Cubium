@@ -34,15 +34,13 @@ AnimationMetadata AnimationMetadata::fromJson(const nlohmann::json& json)
         return metadata;
     }
 
-    // 解析frametime（默认1）
-    // MC 1.16.5: 如果显式指定，必须 >= 1
+    // 解析frametime（默认1），如果显式指定必须 >= 1
     metadata.frametime = json.value("frametime", 1);
     if (metadata.frametime < 1) {
         metadata.frametime = 1;
     }
 
-    // 解析width和height（-1表示自动检测）
-    // MC 1.16.5: 如果显式指定，必须 >= 1
+    // 解析width和height（-1表示自动检测），如果显式指定必须 >= 1
     metadata.width = json.value("width", -1);
     metadata.height = json.value("height", -1);
 
@@ -59,19 +57,19 @@ AnimationMetadata AnimationMetadata::fromJson(const nlohmann::json& json)
             if (frame.is_number_integer()) {
                 // 简单形式：直接是帧索引数字
                 const i32 index = frame.get<i32>();
-                // MC 1.16.5: 帧索引必须 >= 0
+                // 帧索引必须 >= 0
                 if (index < 0) {
                     continue; // 跳过无效帧
                 }
                 metadata.frames.emplace_back(index, -1);
             } else if (frame.is_object()) {
                 // 对象形式：{ "index": N, "time": M }
-                // MC 1.16.5: index是必需字段
+                // index是必需字段
                 if (!frame.contains("index")) {
                     continue; // 跳过无效帧
                 }
                 const i32 index = frame["index"].get<i32>();
-                // MC 1.16.5: 帧索引必须 >= 0
+                // 帧索引必须 >= 0
                 if (index < 0) {
                     continue; // 跳过无效帧
                 }
@@ -79,7 +77,7 @@ AnimationMetadata AnimationMetadata::fromJson(const nlohmann::json& json)
                 i32 time = -1;
                 if (frame.contains("time")) {
                     time = frame["time"].get<i32>();
-                    // MC 1.16.5: 如果显式指定time，必须 >= 1
+                    // 如果显式指定time，必须 >= 1
                     if (time < 1) {
                         time = -1; // 使用默认值
                     }
@@ -108,8 +106,7 @@ AnimationMetadata AnimationMetadata::fromMcmeta(const std::vector<u8>& mcmetaDat
 
         AnimationMetadata metadata = fromJson(json["animation"]);
 
-        // MC 1.16.5: 自动检测帧尺寸
-        // 当width和height都未指定时，使用min(imageWidth, imageHeight)
+        // 自动检测帧尺寸：当width和height都未指定时，使用min(imageWidth, imageHeight)
         if (metadata.width <= 0 && metadata.height <= 0) {
             const u32 minDim = std::min(imageWidth, imageHeight);
             metadata.width = static_cast<i32>(minDim);

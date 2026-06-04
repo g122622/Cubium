@@ -21,9 +21,9 @@
  *
  */
 
-#include "../../../util/nbt/Nbt.hpp"
 #include "Merchant.hpp"
 #include "MerchantOffer.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -35,9 +35,7 @@ namespace trade {
 
 void MerchantOffers::addOffer(std::unique_ptr<MerchantOffer> offer)
 {
-    if (offer) {
-        m_offers.push_back(std::move(offer));
-    }
+    m_offers.push_back(std::move(offer));
 }
 
 void MerchantOffers::removeOffer(size_t index)
@@ -66,22 +64,18 @@ const MerchantOffer* MerchantOffers::getOffer(size_t index) const
 void MerchantOffers::restockAll()
 {
     for (auto& offer : m_offers) {
-        if (offer) {
-            offer->restock();
-        }
+        offer->restock();
     }
 }
 
 void MerchantOffers::updatePrices(f32 modifier)
 {
     for (auto& offer : m_offers) {
-        if (offer) {
-            // 价格修正影响特殊价格
-            i32 basePrice = offer->getBuyA().getCount();
-            i32 adjusted = static_cast<i32>(basePrice * modifier);
-            i32 specialPrice = adjusted - basePrice;
-            offer->setSpecialPrice(specialPrice);
-        }
+        // 价格修正影响特殊价格
+        const i32 basePrice = offer->getBuyA().getCount();
+        const i32 adjusted = static_cast<i32>(basePrice * modifier);
+        const i32 specialPrice = adjusted - basePrice;
+        offer->setSpecialPrice(specialPrice);
     }
 }
 
@@ -89,11 +83,9 @@ void MerchantOffers::serialize(nbt::tags::compound_tag& tag) const
 {
     auto offersList = std::make_unique<nbt::tags::compound_list_tag>();
     for (const auto& offer : m_offers) {
-        if (offer) {
-            nbt::tags::compound_tag offerTag;
-            offer->serialize(offerTag);
-            offersList->value.push_back(std::move(offerTag));
-        }
+        nbt::tags::compound_tag offerTag;
+        offer->serialize(offerTag);
+        offersList->value.push_back(std::move(offerTag));
     }
     tag.value["Offers"] = std::move(offersList);
 }

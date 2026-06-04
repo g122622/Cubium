@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 #include <array>
 
 namespace mc {
@@ -39,17 +39,16 @@ namespace blocks {
 /**
  * @brief 紫颂花方块
  *
- * 紫颂植物的顶部，可以生长。
+ * 紫颂植物的顶部，可以生长。紫颂花会随着生长阶段改变外观，
+ * 当达到最大年龄时会死亡。
  *
  * 状态属性：
- * - AGE_0_5: 生长阶段
- *
- * 参考: net.minecraft.block.ChorusFlowerBlock
+ * - AGE_0_5: 生长阶段 (0-5)
  */
 class ChorusFlowerBlock : public Block {
 public:
     explicit ChorusFlowerBlock(const BlockProperties& properties);
-    ~ChorusFlowerBlock() override = default;
+    ~ChorusFlowerBlock() noexcept override = default;
 
     // ========== 状态属性 ==========
 

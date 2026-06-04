@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -53,8 +53,6 @@ class IAreaContext;
  *
  * 表示一个可以被采样的区域，返回指定位置的整数值。
  * 用于生物群系生成中的层叠处理。
- *
- * 参考 MC 1.16.5 IArea / LazyArea
  */
 class IArea {
 public:
@@ -103,7 +101,6 @@ public:
  * @brief 区域上下文接口
  *
  * 提供区域采样的上下文信息，包括位置感知的随机数生成器。
- * 参考 MC INoiseRandom
  */
 class IAreaContext {
 public:
@@ -156,7 +153,6 @@ public:
  * @brief 扩展区域上下文接口
  *
  * 扩展 IAreaContext，支持创建延迟计算区域。
- * 参考 MC IExtendedNoiseRandom
  */
 class IExtendedAreaContext : public IAreaContext, public std::enable_shared_from_this<IExtendedAreaContext> {
 public:
@@ -194,7 +190,6 @@ public:
  * @brief 零输入变换器接口
  *
  * 从无生成数据，用于初始层（如 IslandLayer, OceanLayer）。
- * 参考 MC IAreaTransformer0
  */
 class ITransformer0 {
 public:
@@ -232,7 +227,6 @@ public:
  * @brief 单输入变换器接口
  *
  * 变换一个输入区域。
- * 参考 MC IAreaTransformer1
  */
 class ITransformer1 {
 public:
@@ -287,7 +281,6 @@ public:
  * @brief 双输入变换器接口
  *
  * 合并两个输入区域。
- * 参考 MC IAreaTransformer2
  */
 class ITransformer2 {
 public:
@@ -365,15 +358,15 @@ public:
  * @brief 共享工厂包装器
  *
  * 包装一个 IAreaFactory 在 shared_ptr 中，允许多个消费者共享同一个工厂。
- * 这对于河流生成分支架构是必需的，因为 MC 的层链需要将同一个工厂传递给多个下游分支。
+ * 这对于河流生成分支架构是必需的，层链需要将同一个工厂传递给多个下游分支。
  *
  * 用法示例：
  * @code
  * auto climateFactory = std::make_shared<SharedFactory>(std::move(factory));
  * // 河流分支
- * auto riverBranch = riverLayer.apply(ctx, climateFactory->clone());
+ * auto riverBranch = riverLayer.apply(ctx, climateFactory->share());
  * // 生物群系分支
- * auto biomeBranch = biomeLayer.apply(ctx, climateFactory->clone());
+ * auto biomeBranch = biomeLayer.apply(ctx, climateFactory->share());
  * @endcode
  */
 class SharedFactory : public IAreaFactory {
@@ -421,7 +414,6 @@ private:
  * @brief 无偏移变换器特征
  *
  * 采样坐标无偏移。
- * 参考 MC IDimOffset0Transformer
  */
 class IDimOffset0Transformer {
 public:
@@ -437,7 +429,6 @@ public:
  * @brief +1偏移变换器特征
  *
  * 采样坐标偏移 +1。
- * 参考 MC IDimOffset1Transformer
  */
 class IDimOffset1Transformer {
 public:
@@ -453,7 +444,6 @@ public:
  * @brief 像素变换器接口
  *
  * 直接变换单个像素值。
- * 参考 MC IPixelTransformer
  */
 class IPixelTransformer {
 public:

@@ -40,27 +40,27 @@ PackVersion PackVersion::fromVector(const std::vector<i32>& v)
     return version;
 }
 
-std::vector<i32> PackVersion::toVector() const
+std::vector<i32> PackVersion::toVector() const noexcept
 {
     return {major, minor, patch};
 }
 
-std::string PackVersion::toString() const
+std::string PackVersion::toString() const noexcept
 {
     return std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(patch);
 }
 
-bool PackVersion::operator==(const PackVersion& o) const
+bool PackVersion::operator==(const PackVersion& o) const noexcept
 {
     return major == o.major && minor == o.minor && patch == o.patch;
 }
 
-bool PackVersion::operator!=(const PackVersion& o) const
+bool PackVersion::operator!=(const PackVersion& o) const noexcept
 {
     return !(*this == o);
 }
 
-bool PackVersion::operator<(const PackVersion& o) const
+bool PackVersion::operator<(const PackVersion& o) const noexcept
 {
     if (major != o.major) {
         return major < o.major;
@@ -71,22 +71,22 @@ bool PackVersion::operator<(const PackVersion& o) const
     return patch < o.patch;
 }
 
-bool PackVersion::operator<=(const PackVersion& o) const
+bool PackVersion::operator<=(const PackVersion& o) const noexcept
 {
     return *this < o || *this == o;
 }
 
-bool PackVersion::operator>(const PackVersion& o) const
+bool PackVersion::operator>(const PackVersion& o) const noexcept
 {
     return o < *this;
 }
 
-bool PackVersion::operator>=(const PackVersion& o) const
+bool PackVersion::operator>=(const PackVersion& o) const noexcept
 {
     return o <= *this;
 }
 
-bool PackVersion::isCompatibleWith(const PackVersion& required) const
+bool PackVersion::isCompatibleWith(const PackVersion& required) const noexcept
 {
     // 主版本号必须一致
     if (major != required.major) {

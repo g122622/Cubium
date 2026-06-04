@@ -22,16 +22,16 @@
  */
 
 #include "StrongholdPieces.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../../block/Block.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../blockentity/BlockEntity.hpp"
-#include "../../../blockentity/storage/ChestEntity.hpp"
-#include "../StructureBoundingBox.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/storage/ChestEntity.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -155,8 +155,7 @@ void StrongholdPiece::generateChest(IWorldWriter& world,
         const BlockState* chest = VanillaBlocks::getState(VanillaBlocks::CHEST);
         setBlockState(world, chest, x, y, z, bounds);
 
-        // MC 1.16.5: 设置战利品表到箱子实体
-        // 参考: LockableLootTileEntity.setLootTable
+        // 设置战利品表到箱子实体
         IWorld* iworld = dynamic_cast<IWorld*>(&world);
         if (iworld != nullptr && !lootTable.empty()) {
             BlockPos chestPos(worldX, worldY, worldZ);
@@ -323,13 +322,13 @@ void StrongholdStonesSelector::selectBlocks(math::Random& rng, i32 x, i32 y, i32
         } else if (f < 0.5f) {
             m_blockState = VanillaBlocks::getState(VanillaBlocks::MOSSY_STONE_BRICKS);
         } else if (f < 0.55f) {
-            // 5% 概率生成被虫蚀的石砖 (MC 1.16.5 原版行为)
+            // 5% 概率生成被虫蚀的石砖
             m_blockState = VanillaBlocks::getState(VanillaBlocks::INFESTED_STONE_BRICKS);
         } else {
             m_blockState = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
         }
     } else {
-        // 要塞内部使用洞穴空气 (MC 1.16.5 原版行为)
+        // 要塞内部使用洞穴空气
         m_blockState = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
     }
 }
@@ -385,7 +384,6 @@ void StrongholdStraight::generate(
 void StrongholdStraight::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    // 参考 MC 1.16.5: Straight.buildComponent
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
         return;
@@ -482,7 +480,6 @@ void StrongholdPrison::generate(
 void StrongholdPrison::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    // 参考 MC 1.16.5: Prison.buildComponent
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
         return;
@@ -554,7 +551,6 @@ void StrongholdLeftTurn::generate(
 void StrongholdLeftTurn::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    // 参考 MC 1.16.5: LeftTurn.buildComponent
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
         return;
@@ -631,7 +627,6 @@ void StrongholdRightTurn::generate(
 void StrongholdRightTurn::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    // 参考 MC 1.16.5: RightTurn.buildComponent
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
         return;
@@ -743,7 +738,6 @@ void StrongholdRoomCrossing::generate(
 void StrongholdRoomCrossing::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    // 参考 MC 1.16.5: RoomCrossing.buildComponent
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
         return;
@@ -823,7 +817,6 @@ void StrongholdStairsStraight::generate(
 void StrongholdStairsStraight::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    // 参考 MC 1.16.5: StairsStraight.buildComponent
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
         return;
@@ -908,7 +901,6 @@ void StrongholdStairs::generate(
 void StrongholdStairs::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    // 参考 MC 1.16.5: Stairs.buildComponent
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
         return;
@@ -916,8 +908,7 @@ void StrongholdStairs::buildComponent(
 
     // 如果是起始楼梯，设置下一个组件类型为 Crossing
     if (m_isSource) {
-        // 设置下一个组件类型为交叉点
-        // MC 1.16.5 中是通过 strongComponentType 静态变量实现的
+        // TODO: 设置下一个组件类型为交叉点
     }
 
     getNextComponentNormal(start, pieces, rng, 1, 1);
@@ -968,8 +959,6 @@ StrongholdStartStairs::StrongholdStartStairs(math::Random& rng, i32 x, i32 z)
 void StrongholdStartStairs::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    // 参考 MC 1.16.5: Stairs2 (继承自 Stairs)
-    // Stairs.buildComponent 已经处理了基础逻辑
     StrongholdStairs::buildComponent(component, pieces, rng);
 }
 
@@ -1024,7 +1013,6 @@ void StrongholdCrossing::generate(
 void StrongholdCrossing::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    // 参考 MC 1.16.5: Crossing.buildComponent
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
         return;
@@ -1140,7 +1128,6 @@ void StrongholdChestCorridor::generate(
 void StrongholdChestCorridor::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    // 参考 MC 1.16.5: ChestCorridor.buildComponent
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
         return;
@@ -1321,7 +1308,7 @@ void StrongholdPortalRoom::generate(
     }
 
     // 末地传送门框架 - 带随机眼睛状态
-    // MC 1.16.5: 每个框架有 10% 概率没有眼睛（nextFloat() > 0.9F）
+    // 每个框架有 10% 概率没有眼睛
     bool eyeStates[12];
     bool allEyesFilled = true;
     for (i32 eyeIdx = 0; eyeIdx < 12; ++eyeIdx) {
@@ -1447,7 +1434,6 @@ void StrongholdPortalRoom::generate(
     }
 
     // 蠹虫刷怪笼
-    // MC 1.16.5: 在位置 (5, 3, 6) 放置刷怪笼
     if (!m_hasSpawner) {
         i32 spawnerX = getXWithOffset(5, 6);
         i32 spawnerY = getYWithOffset(3);
@@ -1477,7 +1463,6 @@ void StrongholdPortalRoom::generate(
 void StrongholdPortalRoom::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
 {
-    // 参考 MC 1.16.5: PortalRoom.buildComponent
     // PortalRoom 是终点，不再生成后续组件
     // 但需要将自身注册到 start 的 portalRoom 引用
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
@@ -1596,7 +1581,6 @@ StructureBoundingBox StrongholdCorridor::findPieceBox(
 void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weights)
 {
     weights.clear();
-    // 参考 MC 1.16.5: PIECE_WEIGHTS
     // Library 需要 depth > 4
     // PortalRoom 需要 depth > 5
     weights.emplace_back(StrongholdPieceTypes::STRAIGHT, 40, 0, 0);
@@ -1678,7 +1662,6 @@ StrongholdPiece* generatePieceFromSmallDoor(StrongholdStartStairs* start,
     std::vector<StrongholdPieceWeight>& weights,
     StrongholdPieceWeight*& lastPlaced)
 {
-    // 参考 MC 1.16.5: generatePieceFromSmallDoor
     i32 totalWeight = 0;
     if (!canAddStructurePieces(weights, totalWeight)) {
         return nullptr;
@@ -1709,8 +1692,7 @@ StrongholdPiece* generatePieceFromSmallDoor(StrongholdStartStairs* start,
 
                     // 如果达到限制，从列表中移除
                     if (!weight.canSpawnMoreStructures()) {
-                        // 注意：这里不能直接移除，因为 lastPlaced 指向它
-                        // MC 1.16.5 中是通过从列表移除实现的
+                        // TODO: 实现从列表移除逻辑（当前不能直接移除，因为 lastPlaced 指向它）
                     }
 
                     return piece;
@@ -1747,7 +1729,6 @@ StructurePiece* generateAndAddPiece(StrongholdStartStairs* start,
     Direction direction,
     i32 depth)
 {
-    // 参考 MC 1.16.5: generateAndAddPiece
     // 深度限制：最多 50 层
     if (depth > 50) {
         return nullptr;

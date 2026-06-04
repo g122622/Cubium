@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../Structure.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include <memory>
 #include <vector>
 
@@ -38,7 +38,6 @@ class OceanMonumentRoomDefinition;
 /**
  * @brief 海洋纪念碑房间定义
  *
- * 参考 MC 1.16.5: OceanMonumentPieces.RoomDefinition
  * 75 个房间形成 5x5x3 的 3D 网格
  */
 class OceanMonumentRoomDefinition {
@@ -108,8 +107,6 @@ private:
 
 /**
  * @brief 海洋纪念碑片段基类
- *
- * 参考 MC 1.16.5: OceanMonumentPieces.Piece
  */
 class OceanMonumentPiece : public StructurePiece {
 public:
@@ -333,7 +330,6 @@ private:
 /**
  * @brief 海洋纪念碑主体建筑
  *
- * 参考 MC 1.16.5: OceanMonumentPieces.MonumentBuilding
  * 包含房间图生成和所有子片段的管理
  */
 class OceanMonumentBuilding : public OceanMonumentPiece {
@@ -348,45 +344,44 @@ public:
 private:
     /**
      * @brief 生成房间图
-     * 参考 MC 1.16.5: MonumentBuilding.generateRoomGraph
      */
-    std::vector<OceanMonumentRoomDefinition*> generateRoomGraph(math::Random& rng);
+    std::vector<OceanMonumentRoomDefinition*> _generateRoomGraph(math::Random& rng);
 
     /**
      * @brief 生成翼楼
      */
-    void generateWing(
+    void _generateWing(
         bool isLeft, i32 startX, IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds);
 
     /**
      * @brief 生成入口拱门
      */
-    void generateEntranceArchs(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds);
+    void _generateEntranceArchs(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds);
 
     /**
      * @brief 生成入口墙壁
      */
-    void generateEntranceWall(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds);
+    void _generateEntranceWall(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds);
 
     /**
      * @brief 生成屋顶部分
      */
-    void generateRoofPiece(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds);
+    void _generateRoofPiece(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds);
 
     /**
      * @brief 生成下部墙壁
      */
-    void generateLowerWall(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds);
+    void _generateLowerWall(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds);
 
     /**
      * @brief 生成中部墙壁
      */
-    void generateMiddleWall(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds);
+    void _generateMiddleWall(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds);
 
     /**
      * @brief 生成上部墙壁
      */
-    void generateUpperWall(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds);
+    void _generateUpperWall(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds);
 
     OceanMonumentRoomDefinition* m_sourceRoom = nullptr;
     OceanMonumentRoomDefinition* m_coreRoom = nullptr;
@@ -396,8 +391,6 @@ private:
 
 /**
  * @brief 房间匹配辅助器接口
- *
- * 参考 MC 1.16.5: OceanMonumentPieces.IMonumentRoomFitHelper
  */
 class IMonumentRoomFitHelper {
 public:

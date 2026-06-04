@@ -22,6 +22,7 @@
  */
 
 #include "DaylightDetectorBlock.hpp"
+#include "../../../../util/math/MathConstants.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../lighting/InternalLightUtils.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
@@ -83,19 +84,19 @@ void DaylightDetectorBlock::toggleMode(IWorld& world, const BlockPos& pos, const
     BlockState newState = withInverted(state, newInverted);
 
     // 立即更新信号强度
-    i32 power = calculateSignalStrength(world, pos, newInverted);
+    i32 power = _calculateSignalStrength(world, pos, newInverted);
     newState = withPower(newState, power);
 
     world.setBlockState(pos, &newState, 2);
 
     // 通知相邻方块
-    notifyNeighbors(world, pos);
+    _notifyNeighbors(world, pos);
 }
 
 void DaylightDetectorBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     // 立即更新信号强度
-    updatePower(world, pos, state);
+    _updatePower(world, pos, state);
 }
 
 void DaylightDetectorBlock::neighborChanged(
@@ -113,7 +114,7 @@ void DaylightDetectorBlock::tick(IWorld& world, const BlockPos& pos, BlockState&
 {
     MC_UNUSED(random);
     // 更新信号强度
-    updatePower(world, pos, state);
+    _updatePower(world, pos, state);
 
     // 继续调度下一次更新
     world.tickManager().scheduleBlockTick(pos, *this, UPDATE_DELAY, world::tick::TickPriority::Normal);
@@ -137,15 +138,14 @@ i32 DaylightDetectorBlock::getStrongPower(
     return getWeakPower(state, world, pos, side);
 }
 
-i32 DaylightDetectorBlock::calculateSignalStrength(IWorld& world, const BlockPos& pos, bool inverted)
+i32 DaylightDetectorBlock::_calculateSignalStrength(IWorld& world, const BlockPos& pos, bool inverted)
 {
     // 检查维度是否有天空光照（主世界有，下界和末地没有）
     if (!world.hasSkyLight()) {
         return inverted ? 15 : 0;
     }
 
-    // MC Java: int i = world.getLightFor(LightType.SKY, pos) - world.getSkylightSubtracted();
-    // 注意：获取的是探测器位置的天空光照，不是上方位置
+    // 获取探测器位置的天空光照
     u8 skyLight = world.getSkyLight(pos);
 
     // 使用 InternalLightUtils 计算天空减暗因子
@@ -155,50 +155,43 @@ i32 DaylightDetectorBlock::calculateSignalStrength(IWorld& world, const BlockPos
 
     i32 i = static_cast<i32>(skyLight) - skyDarkening;
 
-    // MC Java: 反相模式在余弦调整之前反转
-    // 参考 DaylightDetectorBlock.updatePower() 第48-67行
+    // 反相模式在余弦调整之前反转
     if (inverted) {
         i = 15 - std::max(0, i);
     }
 
-    // 获取天体角度进行余弦调整
-    // MC Java: float f = world.getCelestialAngleRadians(1.0F);
+    // 进行余弦调整
     if (i > 0) {
         f32 celestialAngle = InternalLightUtils::getCelestialAngle(tod);
         // 转换为弧度（getCelestialAngle 返回 0.0-1.0）
-        constexpr f32 TWO_PI = 6.28318530718f;
-        f32 f = celestialAngle * TWO_PI;
+        f32 f = celestialAngle * math::TWO_PI;
 
-        // MC Java: float f1 = f < (float)Math.PI ? 0.0F : ((float)Math.PI * 2F);
-        constexpr f32 PI = 3.14159265359f;
-        f32 f1 = f < PI ? 0.0f : TWO_PI;
+        f32 f1 = f < math::PI ? 0.0f : math::TWO_PI;
 
-        // MC Java: f = f + (f1 - f) * 0.2F;
         f = f + (f1 - f) * 0.2f;
 
-        // MC Java: i = Math.round((float)i * MathHelper.cos(f));
         i = static_cast<i32>(std::round(static_cast<f32>(i) * std::cos(f)));
     }
 
     return std::clamp(i, 0, 15);
 }
 
-void DaylightDetectorBlock::updatePower(IWorld& world, const BlockPos& pos, const BlockState& state)
+void DaylightDetectorBlock::_updatePower(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     bool inverted = isInverted(state);
     i32 oldPower = getPower(state);
-    i32 newPower = calculateSignalStrength(world, pos, inverted);
+    i32 newPower = _calculateSignalStrength(world, pos, inverted);
 
     if (oldPower != newPower) {
         BlockState newState = withPower(state, newPower);
         world.setBlockState(pos, &newState, 2);
 
         // 通知相邻方块更新
-        notifyNeighbors(world, pos);
+        _notifyNeighbors(world, pos);
     }
 }
 
-void DaylightDetectorBlock::notifyNeighbors(IWorld& world, const BlockPos& pos)
+void DaylightDetectorBlock::_notifyNeighbors(IWorld& world, const BlockPos& pos)
 {
     // 获取当前方块用于通知
     const BlockState* currentState = world.getBlockState(pos);

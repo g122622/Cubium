@@ -84,8 +84,6 @@ struct MineshaftConfig {
 
 /**
  * @brief 废弃矿井片段基类
- *
- * 参考 MC 1.16.5: MineshaftPieces.Piece
  */
 class MineshaftPiece : public StructurePiece {
 public:
@@ -108,12 +106,12 @@ protected:
     /**
      * @brief 检查位置是否可以放置片段
      */
-    [[nodiscard]] static bool canPlaceAt(i32 x, i32 y, i32 z);
+    [[nodiscard]] static bool _canPlaceAt(i32 x, i32 y, i32 z);
 
     /**
      * @brief 生成木板支撑
      */
-    void generateSupport(IWorldWriter& world, i32 x, i32 y, i32 z, i32 height, math::Random& rng);
+    void _generateSupport(IWorldWriter& world, i32 x, i32 y, i32 z, i32 height, math::Random& rng);
 
     MineshaftType m_mineshaftType;
 };
@@ -126,7 +124,6 @@ protected:
  * @brief 废弃矿井房间
  *
  * 废弃矿井的中央起点房间。
- * 参考 MC 1.16.5: MineshaftPieces.Room
  */
 class MineshaftRoom : public MineshaftPiece {
 public:
@@ -153,7 +150,6 @@ private:
  * @brief 废弃矿井走廊
  *
  * 水平的矿道走廊，带有支撑柱和铁轨。
- * 参考 MC 1.16.5: MineshaftPieces.Corridor
  */
 class MineshaftCorridor : public MineshaftPiece {
 public:
@@ -182,7 +178,7 @@ private:
     /**
      * @brief 生成走廊地板
      */
-    void generateFloor(IWorldWriter& world,
+    void _generateFloor(IWorldWriter& world,
         i32 x1,
         i32 z1,
         i32 x2,
@@ -193,7 +189,7 @@ private:
     /**
      * @brief 生成走廊天花板
      */
-    void generateCeiling(IWorldWriter& world,
+    void _generateCeiling(IWorldWriter& world,
         i32 x1,
         i32 z1,
         i32 x2,
@@ -204,23 +200,23 @@ private:
     /**
      * @brief 生成支撑柱
      */
-    void generatePillars(
+    void _generatePillars(
         IWorldWriter& world, i32 sectionIndex, math::Random& rng, const StructureBoundingBox& chunkBounds);
 
     /**
      * @brief 生成铁轨
      */
-    void generateRails(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds);
+    void _generateRails(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds);
 
     /**
      * @brief 生成蜘蛛刷怪笼
      */
-    void generateSpawner(IWorldWriter& world, i32 x, i32 y, i32 z, const StructureBoundingBox& chunkBounds);
+    void _generateSpawner(IWorldWriter& world, i32 x, i32 y, i32 z, const StructureBoundingBox& chunkBounds);
 
     /**
      * @brief 生成宝箱矿车
      */
-    void generateChestMinecart(
+    void _generateChestMinecart(
         IWorldWriter& world, i32 x, i32 y, i32 z, math::Random& rng, const StructureBoundingBox& chunkBounds);
 
     bool m_hasRails;
@@ -238,7 +234,6 @@ private:
  * @brief 废弃矿井交叉点
  *
  * 两条走廊的交叉点。
- * 参考 MC 1.16.5: MineshaftPieces.Cross
  */
 class MineshaftCross : public MineshaftPiece {
 public:
@@ -274,7 +269,6 @@ private:
  * @brief 废弃矿井楼梯
  *
  * 连接不同高度层的楼梯。
- * 参考 MC 1.16.5: MineshaftPieces.Stairs
  */
 class MineshaftStairs : public MineshaftPiece {
 public:
@@ -310,7 +304,6 @@ private:
  * @brief 废弃矿井结构
  *
  * 地下生成的复杂矿井结构，包含走廊、交叉点和楼梯。
- * 参考 MC 1.16.5: MineshaftStructure
  */
 class MineshaftStructure : public Structure {
 public:
@@ -323,7 +316,6 @@ public:
     /**
      * @brief 废弃矿井使用非均匀间距分布
      *
-     * MC 1.16.5: MineshaftStructure.func_230365_b_() 返回 false
      * 这使得偏移量使用两次随机值的平均值，产生更集中的分布
      */
     [[nodiscard]] bool useUniformSpacing() const override { return false; }
@@ -341,7 +333,7 @@ public:
         IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
-    // MC 1.16.5: spacing=1, separation=0, salt=0 (每个区块都可能生成)
+    // spacing=1, separation=0, salt=0 (每个区块都可能生成)
     static constexpr StructureSeparationSettings m_settings{1, 0, 0};
     static const std::string m_name;
     static const std::vector<BiomeId> m_validBiomes;

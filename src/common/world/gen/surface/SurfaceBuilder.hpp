@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../block/Block.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 
@@ -39,7 +39,6 @@ class Biome;
  *
  * 定义地表、次表层和水下层的方块类型。
  * 使用 BlockState* 替代固定 BlockId，支持动态方块注册。
- * 参考 MC SurfaceBuilderConfig
  */
 struct SurfaceBuilderConfig {
     /// 表层方块（草方块、沙子等）
@@ -84,7 +83,7 @@ struct SurfaceBuilderConfig {
      */
     static SurfaceBuilderConfig redSand();
 
-    // ========== MC原版预设配置 ==========
+    // ========== 预设配置 ==========
 
     /**
      * @brief 灰化土配置（巨型针叶林）
@@ -150,8 +149,7 @@ struct SurfaceBuilderConfig {
 /**
  * @brief 地表构建器基类
  *
- * 参考 MC SurfaceBuilder，负责构建区块的地表层。
- * 不同的生物群系可以使用不同的地表构建器。
+ * 负责构建区块的地表层，不同的生物群系可以使用不同的地表构建器。
  */
 class SurfaceBuilder {
 public:
@@ -205,10 +203,9 @@ protected:
     /**
      * @brief 默认地表构建实现
      *
-     * 参考 MC DefaultSurfaceBuilder，提供标准的地表构建逻辑。
-     * 其他构建器可以委托调用此方法。
+     * 提供标准的地表构建逻辑，其他构建器可以委托调用此方法。
      */
-    static void buildDefaultSurface(math::Random& random,
+    static void _buildDefaultSurface(math::Random& random,
         ChunkPrimer& chunk,
         const Biome& biome,
         i32 x,

@@ -25,7 +25,7 @@
 
 namespace mc::mod::bedrock::addon {
 
-AddonModuleType AddonModule::parseType(const std::string& typeStr)
+AddonModuleType AddonModule::parseType(std::string_view typeStr) noexcept
 {
     if (typeStr == "script") {
         return AddonModuleType::Script;
@@ -45,7 +45,7 @@ AddonModuleType AddonModule::parseType(const std::string& typeStr)
     return AddonModuleType::Unknown;
 }
 
-std::string AddonModule::typeToString() const
+const char* AddonModule::typeToString() const noexcept
 {
     switch (type) {
         case AddonModuleType::Script:

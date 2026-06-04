@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../block/Block.hpp"
-#include "../gen/spawn/WorldGenSpawner.hpp"
-#include "../gen/structure/Structure.hpp"
-#include "ChunkData.hpp"
-#include "ChunkStatus.hpp"
-#include "IChunk.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/ChunkStatus.hpp"
+#include "common/world/chunk/IChunk.hpp"
+#include "common/world/gen/spawn/WorldGenSpawner.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -122,7 +122,7 @@ public:
     /**
      * @brief 获取当前生成阶段
      */
-    [[nodiscard]] const ChunkStatus& getChunkStatus() const { return *m_chunkStatus; }
+    [[nodiscard]] const ChunkStatus& getChunkStatus() const noexcept { return *m_chunkStatus; }
 
     /**
      * @brief 设置当前生成阶段
@@ -132,7 +132,10 @@ public:
     /**
      * @brief 检查是否已完成指定阶段
      */
-    [[nodiscard]] bool hasCompletedStatus(const ChunkStatus& status) const { return m_chunkStatus->isAtLeast(status); }
+    [[nodiscard]] bool hasCompletedStatus(const ChunkStatus& status) const noexcept
+    {
+        return m_chunkStatus->isAtLeast(status);
+    }
 
     // ============================================================================
     // 生物群系管理
@@ -141,13 +144,13 @@ public:
     /**
      * @brief 设置生物群系容器
      */
-    void setBiomes(BiomeContainer biomes) { m_biomes = std::move(biomes); }
+    void setBiomes(BiomeContainer biomes) noexcept { m_biomes = std::move(biomes); }
 
     /**
      * @brief 获取生物群系容器
      */
-    [[nodiscard]] const BiomeContainer& getBiomes() const { return m_biomes; }
-    [[nodiscard]] BiomeContainer& getBiomes() { return m_biomes; }
+    [[nodiscard]] const BiomeContainer& getBiomes() const noexcept { return m_biomes; }
+    [[nodiscard]] BiomeContainer& getBiomes() noexcept { return m_biomes; }
 
     /**
      * @brief 获取方块位置的生物群系
@@ -166,7 +169,7 @@ public:
     /**
      * @brief 获取所有光源位置
      */
-    [[nodiscard]] const std::vector<BlockCoord>& getLightPositions() const { return m_lightPositions; }
+    [[nodiscard]] const std::vector<BlockCoord>& getLightPositions() const noexcept { return m_lightPositions; }
 
     // ============================================================================
     // 高度图管理
@@ -204,12 +207,12 @@ public:
     /**
      * @brief 清空生成的实体列表
      */
-    void clearSpawnedEntities() { m_spawnedEntities.clear(); }
+    void clearSpawnedEntities() noexcept { m_spawnedEntities.clear(); }
 
     /**
      * @brief 获取生成的实体数量
      */
-    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+    [[nodiscard]] size_t spawnedEntityCount() const noexcept { return m_spawnedEntities.size(); }
 
     // ============================================================================
     // 结构起点管理
@@ -231,7 +234,7 @@ public:
      * @param structureName 结构名称
      * @return 结构起点指针，如果不存在则返回 nullptr
      */
-    [[nodiscard]] world::gen::structure::StructureStart* getStructureStart(const std::string& structureName)
+    [[nodiscard]] world::gen::structure::StructureStart* getStructureStart(const std::string& structureName) noexcept
     {
         auto it = m_structureStarts.find(structureName);
         return it != m_structureStarts.end() ? it->second.get() : nullptr;
@@ -241,7 +244,7 @@ public:
      * @brief 获取所有结构起点
      */
     [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<world::gen::structure::StructureStart>>&
-    structureStarts() const
+    structureStarts() const noexcept
     {
         return m_structureStarts;
     }
@@ -249,7 +252,7 @@ public:
     /**
      * @brief 检查是否有结构起点
      */
-    [[nodiscard]] bool hasStructureStarts() const { return !m_structureStarts.empty(); }
+    [[nodiscard]] bool hasStructureStarts() const noexcept { return !m_structureStarts.empty(); }
 
     // ============================================================================
     // 转换方法
@@ -264,8 +267,8 @@ public:
     /**
      * @brief 获取底层 ChunkData（如果存在）
      */
-    [[nodiscard]] ChunkData* getChunkData() { return m_data.get(); }
-    [[nodiscard]] const ChunkData* getChunkData() const { return m_data.get(); }
+    [[nodiscard]] ChunkData* getChunkData() noexcept { return m_data.get(); }
+    [[nodiscard]] const ChunkData* getChunkData() const noexcept { return m_data.get(); }
 
     // ============================================================================
     // 静态工具方法
@@ -274,13 +277,18 @@ public:
     /**
      * @brief 将方块坐标打包为短整型
      */
-    [[nodiscard]] static u16 packToLocal(BlockCoord x, BlockCoord y, BlockCoord z);
+    [[nodiscard]] static u16 packToLocal(BlockCoord x, BlockCoord y, BlockCoord z) noexcept;
 
     /**
      * @brief 将短整型解包为方块坐标
      */
-    static void unpackFromLocal(
-        u16 packed, i32 yOffset, ChunkCoord chunkX, ChunkCoord chunkZ, BlockCoord& x, BlockCoord& y, BlockCoord& z);
+    static void unpackFromLocal(u16 packed,
+        i32 yOffset,
+        ChunkCoord chunkX,
+        ChunkCoord chunkZ,
+        BlockCoord& x,
+        BlockCoord& y,
+        BlockCoord& z) noexcept;
 
 private:
     ChunkCoord m_x;
@@ -310,7 +318,7 @@ private:
     std::unordered_map<std::string, std::unique_ptr<world::gen::structure::StructureStart>> m_structureStarts;
 
     // 辅助方法
-    [[nodiscard]] static bool _isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z);
+    [[nodiscard]] static bool _isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z) noexcept;
 };
 
 } // namespace mc

@@ -29,7 +29,7 @@ namespace mc {
 // MaterialBuilder
 // ============================================================================
 
-MaterialBuilder::MaterialBuilder()
+MaterialBuilder::MaterialBuilder() noexcept
     : m_blocksMovement(false)
     , m_flammable(false)
     , m_liquid(false)
@@ -40,7 +40,7 @@ MaterialBuilder::MaterialBuilder()
     , m_materialColor(0)
 {}
 
-MaterialBuilder& MaterialBuilder::liquid()
+MaterialBuilder& MaterialBuilder::liquid() noexcept
 {
     m_liquid = true;
     m_solid = false;
@@ -48,7 +48,7 @@ MaterialBuilder& MaterialBuilder::liquid()
     return *this;
 }
 
-MaterialBuilder& MaterialBuilder::solid(bool solid)
+MaterialBuilder& MaterialBuilder::solid(bool solid) noexcept
 {
     m_solid = solid;
     if (solid) {
@@ -57,43 +57,43 @@ MaterialBuilder& MaterialBuilder::solid(bool solid)
     return *this;
 }
 
-MaterialBuilder& MaterialBuilder::blocksMovement(bool blocks)
+MaterialBuilder& MaterialBuilder::blocksMovement(bool blocks) noexcept
 {
     m_blocksMovement = blocks;
     return *this;
 }
 
-MaterialBuilder& MaterialBuilder::flammable(bool flammable)
+MaterialBuilder& MaterialBuilder::flammable(bool flammable) noexcept
 {
     m_flammable = flammable;
     return *this;
 }
 
-MaterialBuilder& MaterialBuilder::replaceable(bool replaceable)
+MaterialBuilder& MaterialBuilder::replaceable(bool replaceable) noexcept
 {
     m_replaceable = replaceable;
     return *this;
 }
 
-MaterialBuilder& MaterialBuilder::opaque(bool opaque)
+MaterialBuilder& MaterialBuilder::opaque(bool opaque) noexcept
 {
     m_opaque = opaque;
     return *this;
 }
 
-MaterialBuilder& MaterialBuilder::pushReaction(Material::PushReaction reaction)
+MaterialBuilder& MaterialBuilder::pushReaction(Material::PushReaction reaction) noexcept
 {
     m_pushReaction = reaction;
     return *this;
 }
 
-MaterialBuilder& MaterialBuilder::color(u8 color)
+MaterialBuilder& MaterialBuilder::color(u8 color) noexcept
 {
     m_materialColor = color;
     return *this;
 }
 
-Material MaterialBuilder::build()
+Material MaterialBuilder::build() noexcept
 {
     return Material(
         m_blocksMovement, m_flammable, m_liquid, m_solid, m_replaceable, m_opaque, m_pushReaction, m_materialColor);
@@ -289,7 +289,6 @@ Material makeMossMaterial()
 Material makeOrganicMaterial()
 {
     // 有机材质：用于草方块、干草块、地狱疣块、诡异疣块等
-    // 参考 MC 1.16.5: Material.ORGANIC - 固体、不透明、不可燃
     return MaterialBuilder().solid().opaque().build();
 }
 } // namespace
@@ -479,21 +478,15 @@ const Material& Material::ORGANIC = []() -> const Material& {
     return material;
 }();
 
-// 参考 MC 1.16.5: Material.CAKE - 非固体、不可燃、不可推动
 const Material& Material::CAKE = []() -> const Material& {
-    static const Material material = MaterialBuilder()
-                                         .solid(false)
-                                         .pushReaction(Material::PushReaction::Destroy)
-                                         .build();
+    static const Material material =
+        MaterialBuilder().solid(false).pushReaction(Material::PushReaction::Destroy).build();
     return material;
 }();
 
 const Material& Material::BARRIER = []() -> const Material& {
-    static const Material material = MaterialBuilder()
-                                          .solid()
-                                          .opaque()
-                                          .pushReaction(Material::PushReaction::Block)
-                                          .build();
+    static const Material material =
+        MaterialBuilder().solid().opaque().pushReaction(Material::PushReaction::Block).build();
     return material;
 }();
 

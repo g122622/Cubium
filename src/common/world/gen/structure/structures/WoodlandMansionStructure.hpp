@@ -46,8 +46,6 @@ class MansionPlacer;
  * 在黑森林生物群系生成的大型府邸结构。
  * 使用递归走廊生成算法创建复杂房间布局。
  * 包含掠夺者和唤魔者。
- *
- * 参考: MC 1.16.5 WoodlandMansionStructure.java
  */
 class WoodlandMansionStructure : public Structure {
 public:
@@ -66,15 +64,13 @@ public:
 
 private:
     static const std::string s_name;
-    // MC 1.16.5: spacing=80, separation=20, salt=10387319
+    // spacing=80, separation=20, salt=10387319
     static constexpr StructureSeparationSettings s_settings{80, 20, 10387319};
     static const std::vector<BiomeId> s_validBiomes;
 };
 
 /**
  * @brief 林地府邸模板片段
- *
- * 参考 MC 1.16.5 WoodlandMansionPieces.MansionTemplate
  */
 class WoodlandMansionPiece : public StructurePiece {
 public:
@@ -104,8 +100,6 @@ namespace woodland_mansion {
 
 /**
  * @brief 简单二维网格
- *
- * 参考 MC 1.16.5 WoodlandMansionPieces.SimpleGrid
  */
 class SimpleGrid {
 public:
@@ -132,7 +126,6 @@ private:
  * @brief 林地府邸布局网格生成器
  *
  * 使用递归走廊算法生成府邸房间布局。
- * 参考 MC 1.16.5 WoodlandMansionPieces.Grid
  */
 class MansionGrid {
 public:
@@ -150,10 +143,10 @@ public:
     [[nodiscard]] i32 entranceY() const { return m_entranceY; }
 
 private:
-    void recursiveCorridor(SimpleGrid& grid, i32 x, i32 y, Direction dir, i32 depth);
-    [[nodiscard]] bool cleanEdges(SimpleGrid& grid);
-    void identifyRooms(const SimpleGrid& sourceGrid, SimpleGrid& roomGrid);
-    void setupThirdFloor();
+    void _recursiveCorridor(SimpleGrid& grid, i32 x, i32 y, Direction dir, i32 depth);
+    [[nodiscard]] bool _cleanEdges(SimpleGrid& grid);
+    void _identifyRooms(const SimpleGrid& sourceGrid, SimpleGrid& roomGrid);
+    void _setupThirdFloor();
 
     math::Random& m_rng;
     std::unique_ptr<SimpleGrid> m_baseGrid;
@@ -167,7 +160,6 @@ private:
  * @brief 林地府邸放置器
  *
  * 根据网格布局放置模板片段。
- * 参考 MC 1.16.5 WoodlandMansionPieces.Placer
  */
 class MansionPlacer {
 public:
@@ -180,10 +172,10 @@ public:
         const MansionGrid& grid);
 
 private:
-    void entrance(
+    void _entrance(
         std::vector<std::unique_ptr<StructurePiece>>& pieces, feature::template_::Rotation& rotation, BlockPos& pos);
 
-    void traverseOuterWalls(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    void _traverseOuterWalls(std::vector<std::unique_ptr<StructurePiece>>& pieces,
         const SimpleGrid& grid,
         Direction startDir,
         i32 startX,
@@ -194,30 +186,30 @@ private:
         feature::template_::Rotation& rotation,
         const std::string& wallType);
 
-    void traverseWallPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    void _traverseWallPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
         BlockPos& pos,
         feature::template_::Rotation rotation,
         const std::string& wallType);
 
-    void traverseTurn(
+    void _traverseTurn(
         std::vector<std::unique_ptr<StructurePiece>>& pieces, BlockPos& pos, feature::template_::Rotation& rotation);
 
-    void traverseInnerTurn(
+    void _traverseInnerTurn(
         std::vector<std::unique_ptr<StructurePiece>>& pieces, BlockPos& pos, feature::template_::Rotation& rotation);
 
-    void createRoof(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    void _createRoof(std::vector<std::unique_ptr<StructurePiece>>& pieces,
         const BlockPos& basePos,
         feature::template_::Rotation rotation,
         const SimpleGrid& grid,
         const SimpleGrid* upperGrid);
 
-    void addRoom1x1(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    void _addRoom1x1(std::vector<std::unique_ptr<StructurePiece>>& pieces,
         const BlockPos& pos,
         feature::template_::Rotation rotation,
         Direction doorDir,
         i32 floor);
 
-    void addRoom1x2(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    void _addRoom1x2(std::vector<std::unique_ptr<StructurePiece>>& pieces,
         const BlockPos& pos,
         feature::template_::Rotation rotation,
         Direction roomDir,
@@ -225,14 +217,14 @@ private:
         i32 floor,
         bool isStairs);
 
-    void addRoom2x2(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    void _addRoom2x2(std::vector<std::unique_ptr<StructurePiece>>& pieces,
         const BlockPos& pos,
         feature::template_::Rotation rotation,
         Direction roomDir,
         Direction doorDir,
         i32 floor);
 
-    void addRoom2x2Secret(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    void _addRoom2x2Secret(std::vector<std::unique_ptr<StructurePiece>>& pieces,
         const BlockPos& pos,
         feature::template_::Rotation rotation,
         i32 floor);
@@ -246,7 +238,6 @@ private:
  * @brief 房间模板选择器
  *
  * 根据楼层和房间类型选择合适的模板。
- * 参考 MC 1.16.5 WoodlandMansionPieces.RoomCollection
  */
 class RoomCollection {
 public:

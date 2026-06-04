@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/math/Vector3.hpp"
 #include "Packet.hpp"
 #include "PacketSerializer.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <vector>
 
 namespace mc::network {
@@ -36,7 +36,6 @@ namespace mc::network {
  * @brief 粒子生成数据包 (S->C)
  *
  * 服务端向客户端广播粒子生成事件。
- * 参考 MC 1.16.5 SSpawnParticlePacket
  *
  * 协议格式:
  * | 字段        | 类型      | 说明                        |
@@ -81,85 +80,88 @@ public:
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
-    size_t expectedSize() const override;
+    [[nodiscard]] size_t expectedSize() const noexcept override;
 
     // ========== Getters ==========
 
-    [[nodiscard]] client::renderer::trident::particle::ParticleTypeId particleType() const { return m_particleType; }
+    [[nodiscard]] client::renderer::trident::particle::ParticleTypeId particleType() const noexcept
+    {
+        return m_particleType;
+    }
 
-    [[nodiscard]] f64 x() const { return m_x; }
-    [[nodiscard]] f64 y() const { return m_y; }
-    [[nodiscard]] f64 z() const { return m_z; }
-    [[nodiscard]] Vector3 position() const
+    [[nodiscard]] f64 x() const noexcept { return m_x; }
+    [[nodiscard]] f64 y() const noexcept { return m_y; }
+    [[nodiscard]] f64 z() const noexcept { return m_z; }
+    [[nodiscard]] Vector3 position() const noexcept
     {
         return Vector3(static_cast<f32>(m_x), static_cast<f32>(m_y), static_cast<f32>(m_z));
     }
 
-    [[nodiscard]] f32 velocityX() const { return m_velocityX; }
-    [[nodiscard]] f32 velocityY() const { return m_velocityY; }
-    [[nodiscard]] f32 velocityZ() const { return m_velocityZ; }
-    [[nodiscard]] Vector3 velocity() const { return Vector3(m_velocityX, m_velocityY, m_velocityZ); }
+    [[nodiscard]] f32 velocityX() const noexcept { return m_velocityX; }
+    [[nodiscard]] f32 velocityY() const noexcept { return m_velocityY; }
+    [[nodiscard]] f32 velocityZ() const noexcept { return m_velocityZ; }
+    [[nodiscard]] Vector3 velocity() const noexcept { return Vector3(m_velocityX, m_velocityY, m_velocityZ); }
 
-    [[nodiscard]] f32 offsetX() const { return m_offsetX; }
-    [[nodiscard]] f32 offsetY() const { return m_offsetY; }
-    [[nodiscard]] f32 offsetZ() const { return m_offsetZ; }
-    [[nodiscard]] Vector3 offset() const { return Vector3(m_offsetX, m_offsetY, m_offsetZ); }
+    [[nodiscard]] f32 offsetX() const noexcept { return m_offsetX; }
+    [[nodiscard]] f32 offsetY() const noexcept { return m_offsetY; }
+    [[nodiscard]] f32 offsetZ() const noexcept { return m_offsetZ; }
+    [[nodiscard]] Vector3 offset() const noexcept { return Vector3(m_offsetX, m_offsetY, m_offsetZ); }
 
-    [[nodiscard]] u32 count() const { return m_count; }
+    [[nodiscard]] u32 count() const noexcept { return m_count; }
 
-    [[nodiscard]] const std::vector<u8>& optionalData() const { return m_optionalData; }
+    [[nodiscard]] const std::vector<u8>& optionalData() const noexcept { return m_optionalData; }
 
     // ========== Setters ==========
 
-    void setParticleType(client::renderer::trident::particle::ParticleTypeId type) { m_particleType = type; }
+    void setParticleType(client::renderer::trident::particle::ParticleTypeId type) noexcept { m_particleType = type; }
 
-    void setPosition(f64 x, f64 y, f64 z)
+    void setPosition(f64 x, f64 y, f64 z) noexcept
     {
         m_x = x;
         m_y = y;
         m_z = z;
     }
 
-    void setPosition(const Vector3& pos)
+    void setPosition(const Vector3& pos) noexcept
     {
         m_x = pos.x;
         m_y = pos.y;
         m_z = pos.z;
     }
 
-    void setVelocity(f32 vx, f32 vy, f32 vz)
+    void setVelocity(f32 vx, f32 vy, f32 vz) noexcept
     {
         m_velocityX = vx;
         m_velocityY = vy;
         m_velocityZ = vz;
     }
 
-    void setVelocity(const Vector3& vel)
+    void setVelocity(const Vector3& vel) noexcept
     {
         m_velocityX = vel.x;
         m_velocityY = vel.y;
         m_velocityZ = vel.z;
     }
 
-    void setOffset(f32 ox, f32 oy, f32 oz)
+    void setOffset(f32 ox, f32 oy, f32 oz) noexcept
     {
         m_offsetX = ox;
         m_offsetY = oy;
         m_offsetZ = oz;
     }
 
-    void setOffset(const Vector3& off)
+    void setOffset(const Vector3& off) noexcept
     {
         m_offsetX = off.x;
         m_offsetY = off.y;
         m_offsetZ = off.z;
     }
 
-    void setCount(u32 count) { m_count = count; }
+    void setCount(u32 count) noexcept { m_count = count; }
 
     void setOptionalData(const std::vector<u8>& data) { m_optionalData = data; }
 
-    void setOptionalData(std::vector<u8>&& data) { m_optionalData = std::move(data); }
+    void setOptionalData(std::vector<u8>&& data) noexcept { m_optionalData = std::move(data); }
 
     // ========== 便捷工厂方法 ==========
 

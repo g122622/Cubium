@@ -36,8 +36,6 @@ namespace mc::skin {
 
 /**
  * @brief 玩家列表操作类型
- *
- * 参考 MC 1.16.5 SPlayerListItemPacket.Action
  */
 enum class PlayerListAction : u8 {
     AddPlayer = 0,         // 添加玩家
@@ -68,33 +66,39 @@ struct PlayerListEntry {
 
     PlayerListEntry() = default;
 
+    // 移动构造和赋值
+    PlayerListEntry(PlayerListEntry&&) = default;
+    PlayerListEntry& operator=(PlayerListEntry&&) = default;
+    PlayerListEntry(const PlayerListEntry&) = default;
+    PlayerListEntry& operator=(const PlayerListEntry&) = default;
+
     /**
      * @brief 创建添加玩家条目
      * @param profile 玩家档案
      * @param gameMode 游戏模式
      * @param ping 延迟
      */
-    static PlayerListEntry createAdd(const GameProfile& profile, GameMode gameMode, i32 ping);
+    static PlayerListEntry createAdd(const GameProfile& profile, GameMode gameMode, i32 ping) noexcept;
 
     /**
      * @brief 创建移除玩家条目
      * @param uuid 玩家UUID
      */
-    static PlayerListEntry createRemove(const std::array<u8, 16>& uuid);
+    static PlayerListEntry createRemove(const std::array<u8, 16>& uuid) noexcept;
 
     /**
      * @brief 创建更新延迟条目
      * @param uuid 玩家UUID
      * @param ping 新延迟
      */
-    static PlayerListEntry createUpdateLatency(const std::array<u8, 16>& uuid, i32 ping);
+    static PlayerListEntry createUpdateLatency(const std::array<u8, 16>& uuid, i32 ping) noexcept;
 
     /**
      * @brief 创建更新游戏模式条目
      * @param uuid 玩家UUID
      * @param gameMode 新游戏模式
      */
-    static PlayerListEntry createUpdateGameMode(const std::array<u8, 16>& uuid, GameMode gameMode);
+    static PlayerListEntry createUpdateGameMode(const std::array<u8, 16>& uuid, GameMode gameMode) noexcept;
 
     /**
      * @brief 创建更新显示名条目
@@ -102,7 +106,7 @@ struct PlayerListEntry {
      * @param displayName 显示名（JSON格式的ITextComponent），std::nullopt表示清除显示名
      */
     static PlayerListEntry createUpdateDisplayName(
-        const std::array<u8, 16>& uuid, const std::optional<std::string>& displayName);
+        const std::array<u8, 16>& uuid, const std::optional<std::string>& displayName) noexcept;
 
     /**
      * @brief 从ITextComponent设置显示名
@@ -133,8 +137,6 @@ struct PlayerListEntry {
 /**
  * @brief 玩家列表包
  *
- * 参考 MC 1.16.5 SPlayerListItemPacket
- *
  * 用于：
  * - 添加玩家（包含皮肤属性）
  * - 更新玩家信息（游戏模式、延迟、显示名）
@@ -157,22 +159,28 @@ struct PlayerListEntry {
  */
 class PlayerListItemPacket : public network::Packet {
 public:
-    PlayerListItemPacket();
-    explicit PlayerListItemPacket(PlayerListAction action);
+    PlayerListItemPacket() noexcept;
+    explicit PlayerListItemPacket(PlayerListAction action) noexcept;
+
+    // 移动构造和赋值
+    PlayerListItemPacket(PlayerListItemPacket&&) noexcept = default;
+    PlayerListItemPacket& operator=(PlayerListItemPacket&&) noexcept = default;
+    PlayerListItemPacket(const PlayerListItemPacket&) = default;
+    PlayerListItemPacket& operator=(const PlayerListItemPacket&) = default;
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
 
     // 访问器
-    [[nodiscard]] PlayerListAction action() const { return m_action; }
-    void setAction(PlayerListAction action) { m_action = action; }
+    [[nodiscard]] PlayerListAction action() const noexcept { return m_action; }
+    void setAction(PlayerListAction action) noexcept { m_action = action; }
 
-    [[nodiscard]] const std::vector<PlayerListEntry>& entries() const { return m_entries; }
-    std::vector<PlayerListEntry>& entries() { return m_entries; }
+    [[nodiscard]] const std::vector<PlayerListEntry>& entries() const noexcept { return m_entries; }
+    std::vector<PlayerListEntry>& entries() noexcept { return m_entries; }
 
     void addEntry(const PlayerListEntry& entry) { m_entries.push_back(entry); }
-    void addEntry(PlayerListEntry&& entry) { m_entries.push_back(std::move(entry)); }
-    void clearEntries() { m_entries.clear(); }
+    void addEntry(PlayerListEntry&& entry) noexcept { m_entries.push_back(std::move(entry)); }
+    void clearEntries() noexcept { m_entries.clear(); }
 
 private:
     PlayerListAction m_action = PlayerListAction::AddPlayer;

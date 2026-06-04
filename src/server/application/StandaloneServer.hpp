@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include <memory>
 #include "MinecraftServer.hpp"
 #include "common/core/GameDirectory.hpp"
 #include "server/network/TcpServer.hpp"
@@ -31,6 +30,7 @@
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <atomic>
 #include <filesystem>
+#include <memory>
 #include <thread>
 #include <unordered_map>
 
@@ -133,18 +133,18 @@ public:
     [[nodiscard]] bool tryOpenCraftingContainer(PlayerId playerId, const BlockPos& pos) override;
 
 private:
-    void mainLoop();
+    void _mainLoop();
 
     // 加载设置
-    [[nodiscard]] Result<void> loadSettings(const std::string& path);
-    void applySettings();
+    [[nodiscard]] Result<void> _loadSettings(const std::string& path);
+    void _applySettings();
 
     // 网络事件处理
-    void onClientConnect(TcpSession* session);
-    void onClientDisconnect(TcpSession* session, const std::string& reason);
+    void _onClientConnect(TcpSession* session);
+    void _onClientDisconnect(TcpSession* session, const std::string& reason);
 
     // 数据包发送
-    void sendLoginResponse(TcpSession* session,
+    void _sendLoginResponse(TcpSession* session,
         bool success,
         PlayerId playerId,
         EntityId entityId,

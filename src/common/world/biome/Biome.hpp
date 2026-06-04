@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../block/Block.hpp"
-#include "../spawn/MobSpawnInfo.hpp"
 #include "BiomeAmbientSounds.hpp"
 #include "BiomeEffects.hpp"
 #include "BiomeGenerationSettings.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/spawn/MobSpawnInfo.hpp"
 #include <memory>
 #include <string>
 
@@ -38,10 +38,31 @@ namespace mc {
 class BlockState;
 class BlockPos;
 
+// ============================================================================
+// 生物群系气候常量
+// ============================================================================
+
+/// 温度变化起始高度（海拔超过此高度时温度开始降低）
+inline constexpr i32 TEMPERATURE_HEIGHT_BASE = 64;
+
+/// 降雪温度阈值（温度低于此值时生成雪）
+inline constexpr f32 SNOW_TEMPERATURE_THRESHOLD = 0.15f;
+
+/// 结冰温度阈值（温度低于此值时水结冰）
+inline constexpr f32 FREEZE_TEMPERATURE_THRESHOLD = 0.15f;
+
+/// 温度高度因子系数（温度随高度降低的系数）
+inline constexpr f32 TEMPERATURE_HEIGHT_FACTOR = 0.05f;
+
+/// 温度高度因子除数（温度随高度降低的除数）
+inline constexpr f32 TEMPERATURE_HEIGHT_DIVISOR = 30.0f;
+
+// ============================================================================
+// 生物群系气候设置
+// ============================================================================
+
 /**
  * @brief 生物群系气候设置
- *
- * 参考 MC Biome.Climate
  */
 struct BiomeClimate {
     enum class Precipitation { None, Rain, Snow };
@@ -64,9 +85,6 @@ struct BiomeClimate {
  * @brief 生物群系定义
  *
  * 存储单个生物群系的生成参数。
- * 参考 MC Biome 类。
- *
- * @note 参考 MC 1.16.5 Biome
  */
 class Biome {
 public:
@@ -103,7 +121,7 @@ public:
      * @param id 生物群系ID
      * @param name 生物群系名称
      */
-    Biome(BiomeId id, const std::string& name);
+    Biome(BiomeId id, const std::string& name) noexcept;
 
     // === 基本信息 ===
     [[nodiscard]] BiomeId id() const { return m_id; }
@@ -124,10 +142,7 @@ public:
     /**
      * @brief 获取指定位置的温度
      *
-     * 参考 MC 1.16.5 Biome.getTemperature(BlockPos):
-     * - 海拔 <= 64: 返回基础温度
-     * - 海拔 > 64: 温度随海拔降低
-     * - 温度降低公式: temperature - (noise + (y - 64)) * 0.05 / 30
+     * 海拔不超过基准高度时返回基础温度，超过时温度随海拔降低。
      *
      * @param y Y坐标（高度）
      * @return 位置相关温度
@@ -136,14 +151,12 @@ public:
     {
         f32 temp = m_climate.temperature;
 
-        // 海拔 > 64 时降温
-        if (y > 64) {
-            // 使用确定性噪声计算温度变化
-            // 简化实现：温度随高度线性降低
-            // MC原版使用 TEMPERATURE_NOISE.noiseAt() 添加噪声变化
-            // 这里使用简化版本，效果接近
-            // TODO 和原版保持一致需要引入噪声函数，增加温度变化的随机性
-            f32 heightFactor = static_cast<f32>(y - 64) * 0.05f / 30.0f;
+        // 海拔超过基准高度时降温
+        if (y > TEMPERATURE_HEIGHT_BASE) {
+            // 温度随高度线性降低
+            // TODO: 和原版保持一致需要引入噪声函数，增加温度变化的随机性
+            f32 heightFactor =
+                static_cast<f32>(y - TEMPERATURE_HEIGHT_BASE) * TEMPERATURE_HEIGHT_FACTOR / TEMPERATURE_HEIGHT_DIVISOR;
             temp = std::max(0.0f, temp - heightFactor);
         }
 
@@ -161,24 +174,18 @@ public:
     /**
      * @brief 判断是否应该降雪
      *
-     * 参考 MC 1.16.5 Biome.doesSnowGenerate():
-     * return this.getTemperature(pos) < 0.15F;
-     *
      * @param y Y坐标
      * @return 是否应该降雪
      */
-    [[nodiscard]] bool doesSnowGenerate(i32 y) const { return getTemperature(y) < 0.15f; }
+    [[nodiscard]] bool doesSnowGenerate(i32 y) const { return getTemperature(y) < SNOW_TEMPERATURE_THRESHOLD; }
 
     /**
      * @brief 判断水是否应该结冰
      *
-     * 参考 MC 1.16.5 Biome.doesWaterFreeze():
-     * return this.getTemperature(pos) >= 0.15F ? false : ...
-     *
      * @param y Y坐标
      * @return 是否应该结冰
      */
-    [[nodiscard]] bool doesWaterFreeze(i32 y) const { return getTemperature(y) < 0.15f; }
+    [[nodiscard]] bool doesWaterFreeze(i32 y) const { return getTemperature(y) < FREEZE_TEMPERATURE_THRESHOLD; }
 
     // === 方块设置 ===
     [[nodiscard]] const BlockState* surfaceBlock() const { return m_surfaceBlock; }
@@ -213,7 +220,6 @@ public:
     /**
      * @brief 获取动物生成概率
      *
-     * 参考 MC Biome.getSpawningChance()
      * 返回每次尝试生成动物的基础概率。
      * 默认值为 10.0f / 128.0f ≈ 0.078
      *
@@ -273,7 +279,6 @@ public:
     /**
      * @brief 获取生物群系音乐
      *
-     * MC 1.16.5: Biome.getMusic() -> Optional<BackgroundMusicSelector>
      * 每个生物群系可以定义专属音乐（如玄武岩三角洲、绯红森林等）。
      * 某些生物群系（如诡异森林）没有音乐。
      *
@@ -317,9 +322,8 @@ private:
 };
 
 // ============================================================================
-// 预定义生物群系ID常量（参考 MC 1.16.5 Biomes.java）
-// 完整列表，ID 与 MC 1.16.5 完全一致
-// ============================================================================
+// 预定义生物群系ID常量
+// 完整列表，ID 与原版完全一致
 // 注意：这些 ID 与 BiomeValues.hpp 中的值保持一致
 // ============================================================================
 
@@ -352,7 +356,7 @@ constexpr BiomeId Beach = 16;
 constexpr BiomeId DesertHills = 17;
 constexpr BiomeId WoodedHills = 18; // 也称作 wooded_hills
 constexpr BiomeId TaigaHills = 19;
-constexpr BiomeId MountainEdge = 20; // MC 中已弃用，但 ID 保留
+constexpr BiomeId MountainEdge = 20; // 已弃用，但 ID 保留
 
 // 丛林 (21-23)
 constexpr BiomeId Jungle = 21;
@@ -439,7 +443,7 @@ constexpr BiomeId ModifiedBadlandsPlateau = 167;
 constexpr BiomeId BambooJungle = 168;
 constexpr BiomeId BambooJungleHills = 169;
 
-// 下界生物群系 (170-173，MC 1.16 新增)
+// 下界生物群系 (170-173)
 constexpr BiomeId SoulSandValley = 170;
 constexpr BiomeId CrimsonForest = 171;
 constexpr BiomeId WarpedForest = 172;

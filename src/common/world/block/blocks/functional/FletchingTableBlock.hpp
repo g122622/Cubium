@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../Material.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 
 namespace mc {
 
@@ -40,8 +40,6 @@ namespace blocks {
  * @brief 制箭台方块
  *
  * 用于制作箭矢的功能方块，也是制箭师村民的工作站。
- *
- * 参考: net.minecraft.block.FletchingTableBlock
  */
 class FletchingTableBlock : public Block {
 public:

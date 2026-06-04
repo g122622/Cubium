@@ -22,14 +22,14 @@
  */
 
 #include "CompostableItems.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
+#include "common/item/Items.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blocks {
 
 // 静态成员初始化
-std::unordered_map<const Item*, float> CompostableItems::s_chances;
+std::unordered_map<const Item*, f32> CompostableItems::s_chances;
 bool CompostableItems::s_initialized = false;
 
 // ============================================================================
@@ -43,20 +43,18 @@ void CompostableItems::initialize()
     }
 
     // 注册各概率等级的物品
-    registerChance30();
-    registerChance50();
-    registerChance65();
-    registerChance85();
-    registerChance100();
+    _registerChance30();
+    _registerChance50();
+    _registerChance65();
+    _registerChance85();
+    _registerChance100();
 
     s_initialized = true;
 }
 
-float CompostableItems::getCompostChance(const Item* item)
+f32 CompostableItems::getCompostChance(const Item* item)
 {
-    if (item == nullptr) {
-        return 0.0f;
-    }
+    MC_ASSERT_RELEASE(item != nullptr);
 
     auto it = s_chances.find(item);
     if (it != s_chances.end()) {
@@ -74,7 +72,7 @@ bool CompostableItems::isCompostable(const Item* item)
 // 私有方法
 // ============================================================================
 
-void CompostableItems::registerCompostable(const Item* item, float chance)
+void CompostableItems::_registerCompostable(const Item* item, f32 chance)
 {
     if (item != nullptr) {
         s_chances[item] = chance;
@@ -83,187 +81,182 @@ void CompostableItems::registerCompostable(const Item* item, float chance)
 
 // ============================================================================
 // 30% 概率物品
-// 参考 MC 1.16.5 ComposterBlock.registerCompostable(0.3F, ...)
 // ============================================================================
-void CompostableItems::registerChance30()
+void CompostableItems::_registerChance30()
 {
     // 树叶 (所有6种)
-    registerCompostable(Items::OAK_LEAVES, 0.3f);
-    registerCompostable(Items::SPRUCE_LEAVES, 0.3f);
-    registerCompostable(Items::BIRCH_LEAVES, 0.3f);
-    registerCompostable(Items::JUNGLE_LEAVES, 0.3f);
-    registerCompostable(Items::ACACIA_LEAVES, 0.3f);
-    registerCompostable(Items::DARK_OAK_LEAVES, 0.3f);
+    _registerCompostable(Items::OAK_LEAVES, 0.3f);
+    _registerCompostable(Items::SPRUCE_LEAVES, 0.3f);
+    _registerCompostable(Items::BIRCH_LEAVES, 0.3f);
+    _registerCompostable(Items::JUNGLE_LEAVES, 0.3f);
+    _registerCompostable(Items::ACACIA_LEAVES, 0.3f);
+    _registerCompostable(Items::DARK_OAK_LEAVES, 0.3f);
 
     // 树苗 (所有6种)
-    registerCompostable(Items::OAK_SAPLING, 0.3f);
-    registerCompostable(Items::SPRUCE_SAPLING, 0.3f);
-    registerCompostable(Items::BIRCH_SAPLING, 0.3f);
-    registerCompostable(Items::JUNGLE_SAPLING, 0.3f);
-    registerCompostable(Items::ACACIA_SAPLING, 0.3f);
-    registerCompostable(Items::DARK_OAK_SAPLING, 0.3f);
+    _registerCompostable(Items::OAK_SAPLING, 0.3f);
+    _registerCompostable(Items::SPRUCE_SAPLING, 0.3f);
+    _registerCompostable(Items::BIRCH_SAPLING, 0.3f);
+    _registerCompostable(Items::JUNGLE_SAPLING, 0.3f);
+    _registerCompostable(Items::ACACIA_SAPLING, 0.3f);
+    _registerCompostable(Items::DARK_OAK_SAPLING, 0.3f);
 
     // 种子
-    registerCompostable(Items::WHEAT_SEEDS, 0.3f);
-    registerCompostable(Items::PUMPKIN_SEEDS, 0.3f);
-    registerCompostable(Items::MELON_SEEDS, 0.3f);
-    registerCompostable(Items::BEETROOT_SEEDS, 0.3f);
+    _registerCompostable(Items::WHEAT_SEEDS, 0.3f);
+    _registerCompostable(Items::PUMPKIN_SEEDS, 0.3f);
+    _registerCompostable(Items::MELON_SEEDS, 0.3f);
+    _registerCompostable(Items::BEETROOT_SEEDS, 0.3f);
 
     // 海洋植物
-    registerCompostable(Items::DRIED_KELP, 0.3f);
-    registerCompostable(Items::KELP, 0.3f);
-    registerCompostable(Items::SEAGRASS, 0.3f);
+    _registerCompostable(Items::DRIED_KELP, 0.3f);
+    _registerCompostable(Items::KELP, 0.3f);
+    _registerCompostable(Items::SEAGRASS, 0.3f);
 
-    // 草 (MC 1.16.5 中 Items.GRASS 对应 SHORT_GRASS)
-    registerCompostable(Items::SHORT_GRASS, 0.3f);
+    // 草
+    _registerCompostable(Items::SHORT_GRASS, 0.3f);
 
     // 甜浆果
-    registerCompostable(Items::SWEET_BERRIES, 0.3f);
+    _registerCompostable(Items::SWEET_BERRIES, 0.3f);
 }
 
 // ============================================================================
 // 50% 概率物品
-// 参考 MC 1.16.5 ComposterBlock.registerCompostable(0.5F, ...)
 // ============================================================================
-void CompostableItems::registerChance50()
+void CompostableItems::_registerChance50()
 {
     // 干海带块
-    registerCompostable(Items::DRIED_KELP_BLOCK, 0.5f);
+    _registerCompostable(Items::DRIED_KELP_BLOCK, 0.5f);
 
     // 高草
-    registerCompostable(Items::TALL_GRASS, 0.5f);
+    _registerCompostable(Items::TALL_GRASS, 0.5f);
 
     // 仙人掌
-    registerCompostable(Items::CACTUS, 0.5f);
+    _registerCompostable(Items::CACTUS, 0.5f);
 
     // 甘蔗
-    registerCompostable(Items::SUGAR_CANE, 0.5f);
+    _registerCompostable(Items::SUGAR_CANE, 0.5f);
 
     // 藤蔓
-    registerCompostable(Items::VINE, 0.5f);
+    _registerCompostable(Items::VINE, 0.5f);
 
     // 西瓜片
-    registerCompostable(Items::MELON_SLICE, 0.5f);
+    _registerCompostable(Items::MELON_SLICE, 0.5f);
 
     // 下界植物
-    registerCompostable(Items::WEEPING_VINES, 0.5f);  // 垂泪藤
-    registerCompostable(Items::TWISTING_VINES, 0.5f); // 缠怨藤
+    _registerCompostable(Items::WEEPING_VINES, 0.5f);
+    _registerCompostable(Items::TWISTING_VINES, 0.5f);
 
     // 下界苗
-    registerCompostable(Items::NETHER_SPROUTS, 0.5f);
+    _registerCompostable(Items::NETHER_SPROUTS, 0.5f);
 }
 
 // ============================================================================
 // 65% 概率物品
-// 参考 MC 1.16.5 ComposterBlock.registerCompostable(0.65F, ...)
 // ============================================================================
-void CompostableItems::registerChance65()
+void CompostableItems::_registerChance65()
 {
     // 海泡菜
-    registerCompostable(Items::SEA_PICKLE, 0.65f);
+    _registerCompostable(Items::SEA_PICKLE, 0.65f);
 
     // 睡莲
-    registerCompostable(Items::LILY_PAD, 0.65f);
+    _registerCompostable(Items::LILY_PAD, 0.65f);
 
     // 南瓜和雕刻南瓜
-    registerCompostable(Items::PUMPKIN, 0.65f);
-    registerCompostable(Items::CARVED_PUMPKIN, 0.65f);
+    _registerCompostable(Items::PUMPKIN, 0.65f);
+    _registerCompostable(Items::CARVED_PUMPKIN, 0.65f);
 
     // 西瓜块
-    registerCompostable(Items::MELON, 0.65f);
+    _registerCompostable(Items::MELON, 0.65f);
 
     // 食物类
-    registerCompostable(Items::APPLE, 0.65f);
-    registerCompostable(Items::BEETROOT, 0.65f);
-    registerCompostable(Items::CARROT, 0.65f);
-    registerCompostable(Items::COCOA_BEANS, 0.65f);
-    registerCompostable(Items::POTATO, 0.65f);
-    registerCompostable(Items::WHEAT, 0.65f);
+    _registerCompostable(Items::APPLE, 0.65f);
+    _registerCompostable(Items::BEETROOT, 0.65f);
+    _registerCompostable(Items::CARROT, 0.65f);
+    _registerCompostable(Items::COCOA_BEANS, 0.65f);
+    _registerCompostable(Items::POTATO, 0.65f);
+    _registerCompostable(Items::WHEAT, 0.65f);
 
     // 蘑菇
-    registerCompostable(Items::BROWN_MUSHROOM, 0.65f);
-    registerCompostable(Items::RED_MUSHROOM, 0.65f);
-    registerCompostable(Items::MUSHROOM_STEM, 0.65f);
+    _registerCompostable(Items::BROWN_MUSHROOM, 0.65f);
+    _registerCompostable(Items::RED_MUSHROOM, 0.65f);
+    _registerCompostable(Items::MUSHROOM_STEM, 0.65f);
 
     // 下界菌类
-    registerCompostable(Items::CRIMSON_FUNGUS, 0.65f); // 绯红菌
-    registerCompostable(Items::WARPED_FUNGUS, 0.65f);  // 诡异菌
+    _registerCompostable(Items::CRIMSON_FUNGUS, 0.65f);
+    _registerCompostable(Items::WARPED_FUNGUS, 0.65f);
 
     // 下界疣
-    registerCompostable(Items::NETHER_WART, 0.65f);
+    _registerCompostable(Items::NETHER_WART, 0.65f);
 
     // 发酵蜘蛛眼
-    registerCompostable(Items::FERMENTED_SPIDER_EYE, 0.65f);
+    _registerCompostable(Items::FERMENTED_SPIDER_EYE, 0.65f);
 
     // 荧光菇
-    registerCompostable(Items::SHROOMLIGHT, 0.65f);
+    _registerCompostable(Items::SHROOMLIGHT, 0.65f);
 
     // 小型花朵
-    registerCompostable(Items::DANDELION, 0.65f);          // 蒲公英
-    registerCompostable(Items::POPPY, 0.65f);              // 虞美人
-    registerCompostable(Items::BLUE_ORCHID, 0.65f);        // 蓝花美耳草
-    registerCompostable(Items::ALLIUM, 0.65f);             // 绒球葱
-    registerCompostable(Items::AZURE_BLUET, 0.65f);        // 蓝花美耳草
-    registerCompostable(Items::RED_TULIP, 0.65f);          // 红色郁金香
-    registerCompostable(Items::ORANGE_TULIP, 0.65f);       // 橙色郁金香
-    registerCompostable(Items::WHITE_TULIP, 0.65f);        // 白色郁金香
-    registerCompostable(Items::PINK_TULIP, 0.65f);         // 粉色郁金香
-    registerCompostable(Items::OXEYE_DAISY, 0.65f);        // 滨菊
-    registerCompostable(Items::CORNFLOWER, 0.65f);         // 矢车菊
-    registerCompostable(Items::LILY_OF_THE_VALLEY, 0.65f); // 铃兰
-    registerCompostable(Items::WITHER_ROSE, 0.65f);        // 凋零玫瑰
+    _registerCompostable(Items::DANDELION, 0.65f);
+    _registerCompostable(Items::POPPY, 0.65f);
+    _registerCompostable(Items::BLUE_ORCHID, 0.65f);
+    _registerCompostable(Items::ALLIUM, 0.65f);
+    _registerCompostable(Items::AZURE_BLUET, 0.65f);
+    _registerCompostable(Items::RED_TULIP, 0.65f);
+    _registerCompostable(Items::ORANGE_TULIP, 0.65f);
+    _registerCompostable(Items::WHITE_TULIP, 0.65f);
+    _registerCompostable(Items::PINK_TULIP, 0.65f);
+    _registerCompostable(Items::OXEYE_DAISY, 0.65f);
+    _registerCompostable(Items::CORNFLOWER, 0.65f);
+    _registerCompostable(Items::LILY_OF_THE_VALLEY, 0.65f);
+    _registerCompostable(Items::WITHER_ROSE, 0.65f);
 
     // 蕨
-    registerCompostable(Items::FERN, 0.65f);
+    _registerCompostable(Items::FERN, 0.65f);
 
     // 大型花朵
-    registerCompostable(Items::SUNFLOWER, 0.65f); // 向日葵
-    registerCompostable(Items::LILAC, 0.65f);     // 紫丁香
-    registerCompostable(Items::ROSE_BUSH, 0.65f); // 玫瑰丛
-    registerCompostable(Items::PEONY, 0.65f);     // 牡丹
+    _registerCompostable(Items::SUNFLOWER, 0.65f);
+    _registerCompostable(Items::LILAC, 0.65f);
+    _registerCompostable(Items::ROSE_BUSH, 0.65f);
+    _registerCompostable(Items::PEONY, 0.65f);
 
     // 大型蕨
-    registerCompostable(Items::LARGE_FERN, 0.65f);
+    _registerCompostable(Items::LARGE_FERN, 0.65f);
 
     // 下界菌索
-    registerCompostable(Items::CRIMSON_ROOTS, 0.65f); // 绯红菌索
-    registerCompostable(Items::WARPED_ROOTS, 0.65f);  // 诡异菌索
+    _registerCompostable(Items::CRIMSON_ROOTS, 0.65f);
+    _registerCompostable(Items::WARPED_ROOTS, 0.65f);
 }
 
 // ============================================================================
 // 85% 概率物品
-// 参考 MC 1.16.5 ComposterBlock.registerCompostable(0.85F, ...)
 // ============================================================================
-void CompostableItems::registerChance85()
+void CompostableItems::_registerChance85()
 {
     // 干草块
-    registerCompostable(Items::HAY_BLOCK, 0.85f);
+    _registerCompostable(Items::HAY_BLOCK, 0.85f);
 
     // 蘑菇方块
-    registerCompostable(Items::BROWN_MUSHROOM_BLOCK, 0.85f);
-    registerCompostable(Items::RED_MUSHROOM_BLOCK, 0.85f);
+    _registerCompostable(Items::BROWN_MUSHROOM_BLOCK, 0.85f);
+    _registerCompostable(Items::RED_MUSHROOM_BLOCK, 0.85f);
 
     // 下界疣块
-    registerCompostable(Items::NETHER_WART_BLOCK, 0.85f);
-    registerCompostable(Items::WARPED_WART_BLOCK, 0.85f);
+    _registerCompostable(Items::NETHER_WART_BLOCK, 0.85f);
+    _registerCompostable(Items::WARPED_WART_BLOCK, 0.85f);
 
     // 食物类
-    registerCompostable(Items::BREAD, 0.85f);
-    registerCompostable(Items::BAKED_POTATO, 0.85f);
-    registerCompostable(Items::COOKIE, 0.85f);
+    _registerCompostable(Items::BREAD, 0.85f);
+    _registerCompostable(Items::BAKED_POTATO, 0.85f);
+    _registerCompostable(Items::COOKIE, 0.85f);
 }
 
 // ============================================================================
 // 100% 概率物品
-// 参考 MC 1.16.5 ComposterBlock.registerCompostable(1.0F, ...)
 // ============================================================================
-void CompostableItems::registerChance100()
+void CompostableItems::_registerChance100()
 {
     // 南瓜派
-    registerCompostable(Items::PUMPKIN_PIE, 1.0f);
+    _registerCompostable(Items::PUMPKIN_PIE, 1.0f);
 
     // 蛋糕
-    registerCompostable(Items::CAKE, 1.0f);
+    _registerCompostable(Items::CAKE, 1.0f);
 }
 
 } // namespace blocks

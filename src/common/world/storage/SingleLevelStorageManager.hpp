@@ -382,13 +382,13 @@ public:
     [[nodiscard]] bool isForeignFormat() const { return m_backend != nullptr; }
 
 private:
-    SectionManager& sectionManager(DimensionId dimension);
-    const SectionManager& sectionManager(DimensionId dimension) const;
-    [[nodiscard]] bool hasSectionManager(DimensionId dimension) const;
-    SectionManager* createSectionManager(DimensionId dimension);
+    SectionManager& _sectionManager(DimensionId dimension);
+    const SectionManager& _sectionManager(DimensionId dimension) const;
+    [[nodiscard]] bool _hasSectionManager(DimensionId dimension) const;
+    SectionManager* _createSectionManager(DimensionId dimension);
 
-    Result<void> openNativeFormat(const std::filesystem::path& worldPath);
-    Result<void> openForeignFormat(const std::filesystem::path& worldPath);
+    Result<void> _openNativeFormat(const std::filesystem::path& worldPath);
+    Result<void> _openForeignFormat(const std::filesystem::path& worldPath);
 
 private:
     std::unique_ptr<RocksDBDatabase> m_db;
@@ -411,6 +411,8 @@ private:
     SingleLevelStorageConfig m_config;
     std::filesystem::path m_worldPath;
 
+    // TODO: 应该重命名为 _database() 以符合私有方法命名规范，
+    // 但这会影响 ScoreboardDataManager.cpp，需要一起修改
     [[nodiscard]] RocksDBDatabase* database() { return m_db.get(); }
     [[nodiscard]] const RocksDBDatabase* database() const { return m_db.get(); }
 };

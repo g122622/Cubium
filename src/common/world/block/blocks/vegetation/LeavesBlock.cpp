@@ -60,7 +60,7 @@ LeavesBlock::LeavesBlock(const BlockProperties& properties)
 BlockState LeavesBlock::getStateForPlacement(BlockItemUseContext& context)
 {
     // 玩家放置的树叶标记为持久
-    return updateDistance(
+    return _updateDistance(
         defaultState().with(BlockStateProperties::PERSISTENT(), true), context.getWorld(), context.placementPos());
 }
 
@@ -75,7 +75,7 @@ BlockState LeavesBlock::updatePostPlacement(const BlockState& state,
     MC_UNUSED(facingPos);
 
     // 检查邻居的距离
-    i32 neighborDistance = getDistance(facingState) + 1;
+    i32 neighborDistance = _getDistance(facingState) + 1;
 
     // 如果距离变化，调度更新
     i32 currentDistance = state.get(BlockStateProperties::DISTANCE_1_7());
@@ -91,7 +91,7 @@ void LeavesBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, ma
     MC_UNUSED(random);
     const BlockState* newState = world.getBlockState(pos);
     if (newState != nullptr) {
-        BlockState updated = updateDistance(*newState, world, pos);
+        BlockState updated = _updateDistance(*newState, world, pos);
         if (updated != *newState) {
             world.setBlockState(pos, &updated, 3);
         }
@@ -125,7 +125,7 @@ const CollisionShape& LeavesBlock::getCollisionShape(const BlockState& state) co
     return EMPTY_SHAPE;
 }
 
-BlockState LeavesBlock::updateDistance(const BlockState& state, IWorld& world, const BlockPos& pos)
+BlockState LeavesBlock::_updateDistance(const BlockState& state, IWorld& world, const BlockPos& pos)
 {
     i32 minDistance = 7;
 
@@ -137,7 +137,7 @@ BlockState LeavesBlock::updateDistance(const BlockState& state, IWorld& world, c
         BlockPos neighborPos = pos.offset(dir);
         const BlockState* neighborState = world.getBlockState(neighborPos);
         if (neighborState != nullptr) {
-            minDistance = std::min(minDistance, getDistance(*neighborState) + 1);
+            minDistance = std::min(minDistance, _getDistance(*neighborState) + 1);
             if (minDistance == 1) {
                 break; // 已经找到原木，不需要继续检查
             }
@@ -147,7 +147,7 @@ BlockState LeavesBlock::updateDistance(const BlockState& state, IWorld& world, c
     return state.with(BlockStateProperties::DISTANCE_1_7(), minDistance);
 }
 
-i32 LeavesBlock::getDistance(const BlockState& neighborState)
+i32 LeavesBlock::_getDistance(const BlockState& neighborState)
 {
     // 检查是否是原木（LOGS标签）
     if (BlockTags::LOGS().contains(neighborState)) {

@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
@@ -58,7 +58,7 @@ public:
      * @param outData 输出数据缓冲区
      * @return 是否收到数据
      */
-    bool receive(std::vector<u8>& outData);
+    [[nodiscard]] bool receive(std::vector<u8>& outData);
 
     /**
      * @brief 接收数据（阻塞，带超时）
@@ -66,17 +66,17 @@ public:
      * @param timeoutMs 超时毫秒，0 表示无限等待
      * @return 是否收到数据
      */
-    bool receiveWait(std::vector<u8>& outData, u32 timeoutMs = 0);
+    [[nodiscard]] bool receiveWait(std::vector<u8>& outData, u32 timeoutMs = 0);
 
     /**
      * @brief 是否有数据可读
      */
-    bool hasData() const;
+    [[nodiscard]] bool hasData() const;
 
     /**
      * @brief 获取待处理数据数量
      */
-    size_t pendingCount() const;
+    [[nodiscard]] size_t pendingCount() const;
 
     /**
      * @brief 连接到对端
@@ -92,7 +92,7 @@ public:
     /**
      * @brief 是否已连接
      */
-    bool isConnected() const;
+    [[nodiscard]] bool isConnected() const;
 
 private:
     std::queue<std::vector<u8>> m_queue;

@@ -38,8 +38,6 @@ namespace network {
  * - VarInt: breakerEntityId (挖掘者实体ID)
  * - Position: position (方块位置，x/y/z各i32)
  * - Byte: stage (破坏阶段 0-9，-1表示移除)
- *
- * 参考 MC 1.16.5 SAnimateBlockBreakPacket
  */
 class BlockBreakAnimPacket : public Packet {
 public:

@@ -23,13 +23,12 @@
 
 #include "JavaBiomeMapper.hpp"
 #include "common/world/biome/Biome.hpp"
-#include <spdlog/spdlog.h>
 
 namespace mc::world::storage::reader::java {
 
 JavaBiomeMapper::JavaBiomeMapper()
 {
-    initializeMappings();
+    _initializeMappings();
 }
 
 BiomeId JavaBiomeMapper::mapBiome(const std::string& biomeName)
@@ -48,7 +47,7 @@ BiomeId JavaBiomeMapper::mapBiome(const std::string& biomeName)
         }
     }
 
-    spdlog::debug("JavaBiomeMapper: Unknown biome '{}', defaulting to ocean", biomeName);
+    // 未知生物群系默认返回海洋
     return Biomes::Ocean;
 }
 
@@ -61,7 +60,7 @@ BiomeId JavaBiomeMapper::mapBiome(i32 numericId)
     return Biomes::Ocean;
 }
 
-void JavaBiomeMapper::initializeMappings()
+void JavaBiomeMapper::_initializeMappings()
 {
     // Java 1.16.5 生物群系名称→ID 映射
     // 同时注册旧名称和新名称（1.18+ 重命名）以便兼容

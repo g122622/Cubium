@@ -22,14 +22,16 @@
  */
 
 #include "Fluid.hpp"
-#include "../../physics/collision/CollisionShape.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../../util/property/FluidProperties.hpp"
-#include "../IWorld.hpp"
-#include "../block/Block.hpp"
-#include "../block/BlockPos.hpp"
+
 #include "FluidRegistry.hpp"
 #include "FluidTags.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/property/FluidProperties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+
 #include <sstream>
 
 namespace mc {
@@ -201,7 +203,6 @@ CollisionShape Fluid::getShape(const FluidState& state, IBlockReader& world, con
     // 基类默认返回空碰撞形状
     // EmptyFluid 继承此行为（空流体无碰撞）
     // FlowingFluid 重写此方法，根据流体高度返回正确的碰撞形状
-    // 参考 MC 1.16.5: Fluid.func_215664_b()
     (void)state;
     (void)world;
     (void)pos;

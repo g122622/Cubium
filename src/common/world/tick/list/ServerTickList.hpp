@@ -24,14 +24,15 @@
 #pragma once
 
 #include <memory>
-#include "../../../core/Types.hpp"
-#include "../../../resource/ResourceLocation.hpp"
-#include "../../IWorld.hpp"
-#include "../base/ScheduledTick.hpp"
-#include "ITickList.hpp"
-#include "common/perfetto/TraceEvents.hpp"
 
-#include <cmath>
+#include "common/core/Types.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/tick/base/ScheduledTick.hpp"
+#include "common/world/tick/list/ITickList.hpp"
+
 #include <functional>
 #include <queue>
 #include <set>
@@ -200,17 +201,17 @@ private:
      *
      * 如果已存在相同位置和目标的tick，会被新的替换。
      */
-    void addEntry(const ScheduledTick<T>& entry);
+    void _addEntry(const ScheduledTick<T>& entry);
 
     /**
      * @brief 检查位置是否可tick（区块已加载）
      */
-    [[nodiscard]] bool canTick(const BlockPos& pos) const;
+    [[nodiscard]] bool _canTick(const BlockPos& pos) const;
 
     /**
      * @brief 生成新的tick条目ID
      */
-    [[nodiscard]] static u64 nextTickEntryId()
+    [[nodiscard]] static u64 _nextTickEntryId() noexcept
     {
         static u64 s_nextId = 0;
         return ++s_nextId;
@@ -284,18 +285,16 @@ void ServerTickList<T>::scheduleTick(const BlockPos& pos, T& target, i32 delay, 
     u64 scheduledTick = mCurrentTick + static_cast<u64>(delay > 0 ? delay : 0);
 
     // 创建新的tick条目
-    ScheduledTick<T> entry(pos, &target, scheduledTick, priority, nextTickEntryId());
+    ScheduledTick<T> entry(pos, &target, scheduledTick, priority, _nextTickEntryId());
 
-    // MC 1.16.5 行为：已存在相同 的 tick 时，保留旧的，忽略新的
-    // 参考: net.minecraft.world.server.ServerTickList.addEntry()
+    // 如果已存在相同 的 tick，保留旧的，忽略新的
     auto existingIt = m_pendingTicksSet.find(entry);
     if (existingIt != m_pendingTicksSet.end()) {
-        // 已存在相同 (position, target) 的 tick，保留旧的，忽略新的
         return;
     }
 
     // 添加新的
-    addEntry(entry);
+    _addEntry(entry);
 }
 
 template <typename T>
@@ -349,7 +348,7 @@ void ServerTickList<T>::tick(u64 currentTick, size_t maxTicks)
             break;
         }
 
-        if (canTick(tick.position)) {
+        if (_canTick(tick.position)) {
             m_ticksThisTick.push(tick);
             it = m_pendingTicksTree.erase(it);
             m_pendingTicksSet.erase(tick);
@@ -360,13 +359,13 @@ void ServerTickList<T>::tick(u64 currentTick, size_t maxTicks)
     }
 
     // 执行tick回调
-    // MC 1.16.5: 执行前再次检查区块加载状态，未加载则重新调度(delay=0)
+    // 执行前再次检查区块加载状态，未加载则重新调度(delay=0)
     while (!m_ticksThisTick.empty()) {
         ScheduledTick<T> tick = m_ticksThisTick.front();
         m_ticksThisTick.pop();
 
         if (tick.target != nullptr) {
-            if (canTick(tick.position)) {
+            if (_canTick(tick.position)) {
                 m_executedThisTick.push_back(tick);
 
                 MC_TRACE_EVENT("server.tick",
@@ -396,12 +395,11 @@ std::vector<ScheduledTick<T>> ServerTickList<T>::getPendingTicks(
 
     std::vector<ScheduledTick<T>> result;
 
-    // MC 1.16.5 行为：边界外扩 2 格
-    // 参考: net.minecraft.world.server.ServerTickList.getPending(ChunkPos, boolean, boolean)
-    i32 minX = chunkX * 16 - 2;
-    i32 maxX = (chunkX + 1) * 16 + 2;
-    i32 minZ = chunkZ * 16 - 2;
-    i32 maxZ = (chunkZ + 1) * 16 + 2;
+    // 边界外扩 2 格
+    i32 minX = chunkX * CHUNK_WIDTH - 2;
+    i32 maxX = (chunkX + 1) * CHUNK_WIDTH + 2;
+    i32 minZ = chunkZ * CHUNK_WIDTH - 2;
+    i32 maxZ = (chunkZ + 1) * CHUNK_WIDTH + 2;
 
     // 从TreeSet中收集
     for (auto it = m_pendingTicksTree.begin(); it != m_pendingTicksTree.end();) {
@@ -453,26 +451,23 @@ void ServerTickList<T>::copyTicks(
     // 添加偏移后重新调度
     for (const auto& tick : ticksToCopy) {
         BlockPos newPos(tick.position.x + offsetX, tick.position.y + offsetY, tick.position.z + offsetZ);
-        ScheduledTick<T> newTick(newPos, tick.target, tick.scheduledTick, tick.priority, nextTickEntryId());
-        addEntry(newTick);
+        ScheduledTick<T> newTick(newPos, tick.target, tick.scheduledTick, tick.priority, _nextTickEntryId());
+        _addEntry(newTick);
     }
 }
 
 template <typename T>
-void ServerTickList<T>::addEntry(const ScheduledTick<T>& entry)
+void ServerTickList<T>::_addEntry(const ScheduledTick<T>& entry)
 {
     m_pendingTicksTree.insert(entry);
     m_pendingTicksSet.insert(entry);
 }
 
 template <typename T>
-bool ServerTickList<T>::canTick(const BlockPos& pos) const
+bool ServerTickList<T>::_canTick(const BlockPos& pos) const
 {
     // 检查区块是否加载
-    // 将方块坐标转换为区块坐标
-    ChunkCoord chunkX = static_cast<ChunkCoord>(std::floor(static_cast<f32>(pos.x) / 16.0f));
-    ChunkCoord chunkZ = static_cast<ChunkCoord>(std::floor(static_cast<f32>(pos.z) / 16.0f));
-    return m_world.hasChunk(chunkX, chunkZ);
+    return m_world.hasChunk(toChunkCoord(pos.x), toChunkCoord(pos.z));
 }
 
 } // namespace world::tick

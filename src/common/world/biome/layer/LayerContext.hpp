@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../util/cache/Long2IntLRUCache.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../gen/noise/ImprovedNoiseGenerator.hpp"
 #include "Layer.hpp"
 #include "LayerCacheConfig.hpp"
+#include "common/util/cache/Long2IntLRUCache.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/gen/noise/ImprovedNoiseGenerator.hpp"
 #include <memory>
 
 namespace mc {
@@ -36,7 +36,6 @@ namespace mc {
  * @brief Layer 上下文实现
  *
  * 提供位置感知的随机数生成和缓存管理。
- * 参考 MC LazyAreaLayerContext + IExtendedNoiseRandom
  */
 class LayerContext : public IExtendedAreaContext {
 public:
@@ -55,7 +54,7 @@ public:
     /**
      * @brief 设置当前位置（必须在采样前调用）
      *
-     * 使用 MC 的 FastRandom.mix 算法混合种子：
+     * 使用 FastRandom.mix 算法混合种子：
      * mix(seed, x) -> mix(result, z) -> mix(result, x) -> mix(result, z)
      *
      * @param x X 坐标
@@ -132,12 +131,8 @@ private:
 
     /**
      * @brief FastRandom.mix 算法
-     *
-     * 参考 MC FastRandom.mix:
-     * left = left * (left * 6364136223846793005L + 1442695040888963407L);
-     * return left + right;
      */
-    static u64 mix(u64 left, u64 right);
+    static u64 _mix(u64 left, u64 right);
 
     /**
      * @brief 计算层种子
@@ -145,14 +140,13 @@ private:
      * @param modifier 层修饰符
      * @return 层种子
      */
-    static u64 hashLayerSeed(u64 worldSeed, u64 modifier);
+    static u64 _hashLayerSeed(u64 worldSeed, u64 modifier);
 };
 
 /**
  * @brief 延迟计算区域实现
  *
  * 使用回调函数计算像素值，并缓存结果。
- * 参考 MC LazyArea
  */
 class LazyArea : public IArea {
 public:

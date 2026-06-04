@@ -23,9 +23,9 @@
 
 #include "world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "entity/entities/player/Player.hpp"
-#include "item/loot/context/LootContext.hpp"
 #include "item/loot/LootTable.hpp"
 #include "item/loot/LootTableManager.hpp"
+#include "item/loot/context/LootContext.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 
@@ -53,11 +53,11 @@ void LootableContainerBlockEntity::setLootTable(const ResourceLocation& lootTabl
 
 bool LootableContainerBlockEntity::isEmpty() const
 {
-    // MC 1.16.5: 在检查前自动填充战利品表
+    // 在检查前检查战利品表填充状态
     // 注意：这里需要 const_cast 因为 fillWithLoot 不是 const 方法
     if (m_hasLootTable && !m_lootFilled) {
         // 标记为需要填充，等待下次非 const 访问时填充
-        // 在 MC 中，isEmpty 会在 fillWithLoot 后立即检查
+        // 在实际实现中，isEmpty 会在 fillWithLoot 后立即检查
         // 这里简化处理：返回 false 表示可能有物品
         return false;
     }
@@ -66,11 +66,11 @@ bool LootableContainerBlockEntity::isEmpty() const
 
 void LootableContainerBlockEntity::openContainer(Player* player)
 {
-    // MC 1.16.5: 观察者模式玩家不能打开有战利品表的容器
+    // 观察者模式玩家不能打开有战利品表的容器
     if (m_hasLootTable && player != nullptr) {
-        // 检查玩家是否是观察者模式（需要在 Player 类中实现）
+        // TODO: 检查玩家是否是观察者模式，需要在 Player 类中实现 isSpectator() 方法
         // if (player->isSpectator()) {
-        //     return; // 观察者不能打开有战利品表的容器
+        //     return;
         // }
     }
 
@@ -172,7 +172,7 @@ bool LootableContainerBlockEntity::fillWithLootFromTable(loot::LootTableManager&
     }
 
     // 创建战利品上下文
-    // MC 1.16.5: 使用 CHEST 参数集，包含位置参数
+    // 使用 CHEST 参数集，包含位置参数
     loot::LootContextBuilder builder(*m_world);
 
     // 设置种子
@@ -188,6 +188,7 @@ bool LootableContainerBlockEntity::fillWithLootFromTable(loot::LootTableManager&
 
     // 设置玩家相关参数（如果有）
     if (player != nullptr) {
+        // TODO: 设置玩家幸运值和实体参数
         // builder.withLuck(player->getLuck());
         // builder.withParameter(loot::LootParams::THIS_ENTITY, player);
         MC_UNUSED(player);

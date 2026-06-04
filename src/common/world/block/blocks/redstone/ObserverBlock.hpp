@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../redstone/RedstonePower.hpp"
-#include "../../Block.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/redstone/RedstonePower.hpp"
 
 namespace mc {
 namespace blocks {
@@ -46,8 +46,6 @@ namespace blocks {
  * - 脉冲输出需要精确的tick控制
  * - 方块放置/破坏检测
  * - 方向性处理
- *
- * 参考: net.minecraft.block.ObserverBlock
  */
 class ObserverBlock : public Block {
 public:
@@ -126,14 +124,13 @@ private:
     /**
      * @brief 通知侦测器前方的邻居方块更新
      *
-     * MC Java: updateNeighborsInFront
      * 当侦测器状态改变时，需要通知前方（观察面背面的方块）更新。
      *
      * @param world 世界引用
      * @param pos 侦测器位置
      * @param state 侦测器状态
      */
-    void updateNeighborsInFront(IWorld& world, const BlockPos& pos, const BlockState& state);
+    void _updateNeighborsInFront(IWorld& world, const BlockPos& pos, const BlockState& state);
 };
 
 } // namespace blocks

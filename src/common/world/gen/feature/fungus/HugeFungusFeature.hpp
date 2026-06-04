@@ -23,9 +23,10 @@
 
 #pragma once
 
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/Feature.hpp"
+
 #include <memory>
-#include "../ConfiguredFeature.hpp"
-#include "../Feature.hpp"
 
 namespace mc {
 
@@ -39,8 +40,6 @@ enum class FungusType : u8 {
 
 /**
  * @brief 巨型真菌特征配置
- *
- * 参考 MC HugeFungusFeatureConfig
  */
 struct HugeFungusFeatureConfig : public IFeatureConfig {
     /// 真菌类型
@@ -74,7 +73,6 @@ struct HugeFungusFeatureConfig : public IFeatureConfig {
  * @brief 巨型真菌特征
  *
  * 在下界生成巨型真菌（绯红和诡异）。
- * 参考 MC HugeFungusFeature
  *
  * 绯红真菌：
  * - 绯红菌柄（深红色）
@@ -102,27 +100,27 @@ private:
     /**
      * @brief 检查巨型真菌是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos, FungusType type) const;
+    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos, FungusType type) const;
 
     /**
      * @brief 生成菌柄
      */
-    void generateStem(WorldGenRegion& world, math::Random& random, const BlockPos& pos, i32 height, FungusType type);
+    void _generateStem(WorldGenRegion& world, math::Random& random, const BlockPos& pos, i32 height, FungusType type);
 
     /**
      * @brief 生成菌盖
      */
-    void generateCap(WorldGenRegion& world, math::Random& random, const BlockPos& topPos, i32 radius, FungusType type);
+    void _generateCap(WorldGenRegion& world, math::Random& random, const BlockPos& topPos, i32 radius, FungusType type);
 
     /**
      * @brief 生成藤蔓（垂泪藤或扭曲藤）
      */
-    void generateVines(WorldGenRegion& world, math::Random& random, const BlockPos& capPos, FungusType type);
+    void _generateVines(WorldGenRegion& world, math::Random& random, const BlockPos& capPos, FungusType type);
 
     /**
      * @brief 生成菌光体（发光装饰）
      */
-    void generateShroomlights(WorldGenRegion& world, math::Random& random, const BlockPos& capPos, i32 radius);
+    void _generateShroomlights(WorldGenRegion& world, math::Random& random, const BlockPos& capPos, i32 radius);
 };
 
 /**

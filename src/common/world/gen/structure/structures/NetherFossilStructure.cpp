@@ -23,19 +23,20 @@
 
 #include "NetherFossilStructure.hpp"
 
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../../biome/Biome.hpp"
-#include "../../../block/BlockPos.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../../feature/template/Template.hpp"
-#include "../../feature/template/TemplateLoader.hpp"
-#include "../../feature/template/TemplateManager.hpp"
-#include "../../jigsaw/JigsawManager.hpp"
-#include "../StructureBoundingBox.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/feature/template/TemplateLoader.hpp"
+#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/jigsaw/JigsawManager.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -49,7 +50,7 @@ using namespace mc::Biomes;
 
 const std::string NetherFossilStructure::s_name = "Nether_Fossil";
 
-// MC 1.16.5: 下界化石模板名称（共14个）
+// 下界化石模板名称（共14个）
 const std::vector<std::string> NetherFossilStructure::s_fossilTemplates = {"nether_fossils/fossil_1",
     "nether_fossils/fossil_2",
     "nether_fossils/fossil_3",
@@ -79,7 +80,7 @@ NetherFossilPiece::NetherFossilPiece(const std::string& templateName, const Bloc
     , m_size(1, 1, 1)
 {}
 
-void NetherFossilPiece::loadTemplate()
+void NetherFossilPiece::_loadTemplate()
 {
     if (!m_templateManager) {
         return;
@@ -111,7 +112,7 @@ void NetherFossilPiece::generate(
 
     // 延迟加载模板
     if (!m_template) {
-        loadTemplate();
+        _loadTemplate();
     }
 
     if (!m_template) {
@@ -144,7 +145,7 @@ bool NetherFossilStructure::canGenerate(
     MC_UNUSED(rng);
 
     // 检查生物群系
-    BiomeId biome = generator.getBiome(chunkX * 16 + 8, 64, chunkZ * 16 + 8);
+    BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
     for (BiomeId valid : s_validBiomes) {
         if (biome == valid) {
             return true;
@@ -161,16 +162,16 @@ std::unique_ptr<StructureStart> NetherFossilStructure::generate(
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 计算生成位置
-    i32 x = chunkX * 16 + rng.nextInt(16);
-    i32 z = chunkZ * 16 + rng.nextInt(16);
+    i32 x = chunkX * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
+    i32 z = chunkZ * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
 
-    // MC 1.16.5: 下界化石在 Y=30-60 之间生成
+    // 下界化石在 Y=30-60 之间生成
     i32 y = 30 + rng.nextInt(30);
 
     // 随机旋转
     Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
 
-    // MC 1.16.5: 随机选择一个化石模板（共14个）
+    // 随机选择一个化石模板（共14个）
     const size_t templateIndex = static_cast<size_t>(rng.nextInt(static_cast<i32>(s_fossilTemplates.size())));
     const std::string templateName = s_fossilTemplates[templateIndex];
 

@@ -22,16 +22,16 @@
  */
 
 #include "FenceGateBlock.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../item/context/BlockItemUseContext.hpp"
-#include "../../../sound/SoundCategory.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../util/assert/AssertAll.hpp"
-#include "../../IWorld.hpp"
-#include "../../redstone/RedstoneSystem.hpp"
-#include "../VanillaBlocks.hpp"
-#include "building/WallBlock.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/blocks/VanillaBlocks.hpp"
+#include "common/world/block/blocks/building/WallBlock.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
 
 namespace mc {
 namespace blocks {
@@ -87,7 +87,7 @@ BlockState FenceGateBlock::getStateForPlacement(BlockItemUseContext& context)
 {
     IWorld& world = const_cast<IWorld&>(context.getWorld());
     Direction facing = context.horizontalDirection();
-    bool inWall = isWall(world, context.placementPos(), facing);
+    bool inWall = _isWall(world, context.placementPos(), facing);
     bool powered = world::redstone::RedstoneSystem::instance().isBlockPowered(world, context.placementPos());
 
     return defaultState()
@@ -122,7 +122,7 @@ void FenceGateBlock::neighborChanged(
     world.setBlockState(pos, &newState, 2);
 
     if (wasOpen != powered) {
-        playSound(world, pos, powered);
+        _playSound(world, pos, powered);
     }
 }
 
@@ -139,7 +139,7 @@ BlockState FenceGateBlock::updatePostPlacement(const BlockState& state,
     MC_UNUSED(facingPos);
 
     Direction gateFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    bool inWall = isWall(world, currentPos, gateFacing);
+    bool inWall = _isWall(world, currentPos, gateFacing);
     if (inWall != state.get(BlockStateProperties::IN_WALL())) {
         return state.with(BlockStateProperties::IN_WALL(), inWall);
     }
@@ -162,7 +162,7 @@ ActionResultType FenceGateBlock::onBlockActivated(const BlockState& state,
     bool wasOpen = state.get(BlockStateProperties::OPEN());
     BlockState newState = state.with(BlockStateProperties::OPEN(), !wasOpen);
     world.setBlockState(pos, &newState, 10);
-    playSound(world, pos, !wasOpen);
+    _playSound(world, pos, !wasOpen);
     return ActionResultType::Success;
 }
 
@@ -241,7 +241,7 @@ bool FenceGateBlock::isOpen(const BlockState& state)
     return state.get(BlockStateProperties::OPEN());
 }
 
-bool FenceGateBlock::isWall(const IWorld& world, const BlockPos& pos, Direction facing) const
+bool FenceGateBlock::_isWall(const IWorld& world, const BlockPos& pos, Direction facing) const
 {
     Direction leftDir;
     Direction rightDir;
@@ -273,9 +273,8 @@ bool FenceGateBlock::isWall(const IWorld& world, const BlockPos& pos, Direction 
         (rightState != nullptr && WallBlock::isWall(*rightState));
 }
 
-void FenceGateBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening)
+void FenceGateBlock::_playSound(IWorld& world, const BlockPos& pos, bool isOpening)
 {
-    // MC 1.16.5: FenceGateBlock.playSound()
     const ResourceLocation& soundEvent =
         isOpening ? SoundEvents::BLOCK_FENCE_GATE_OPEN : SoundEvents::BLOCK_FENCE_GATE_CLOSE;
     world.playSound(soundEvent,

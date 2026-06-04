@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <string>
 
 namespace mc {
@@ -32,8 +32,6 @@ namespace mc {
  * @brief 世界类型枚举
  *
  * 定义可用的世界生成类型。
- *
- * 参考 MC 1.16.5 WorldType / BiomeGeneratorTypeScreens
  */
 enum class WorldType : u8 {
     Default,     ///< 默认世界（噪声地形生成）

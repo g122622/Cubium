@@ -44,19 +44,18 @@ namespace mc::world {
  */
 struct Unit {
     // 为 Unit 类型提供比较运算符
-    bool operator<(const Unit&) const { return false; }
-    bool operator==(const Unit&) const { return true; }
+    bool operator<(const Unit&) const noexcept { return false; }
+    bool operator==(const Unit&) const noexcept { return true; }
 };
 
 /**
  * @brief 显式区块加载 ticket 类型
  *
- * 参考 Minecraft TicketType，定义会直接存入 `ChunkTicketSet`
- * 的显式加载请求类型。
+ * 定义会直接存入 `ChunkTicketSet` 的显式加载请求类型。
+ * 用于强制加载、传送门、光照等非玩家来源的区块加载请求。
  *
- * 本文件只描述显式 ticket 来源，例如强制加载、传送门、光照等。
- * 玩家加载来源不再表示为 ticket，而是由 `ChunkLoadTicketManager`
- * 作为独立 player source 聚合后注入 `ChunkDistanceGraph`。
+ * @note 玩家加载来源不再表示为 ticket，而是由 `ChunkLoadTicketManager`
+ *       作为独立 player source 聚合后注入 `ChunkDistanceGraph`。
  *
  * @tparam T 显式 ticket 关联的值类型（如 ChunkPos、u32、Unit）
  *
@@ -120,9 +119,9 @@ public:
         return ChunkLoadTicketType<T>(name, comp, lifespan);
     }
 
-    bool operator==(const ChunkLoadTicketType& other) const { return m_name == other.m_name; }
+    bool operator==(const ChunkLoadTicketType& other) const noexcept { return m_name == other.m_name; }
 
-    bool operator!=(const ChunkLoadTicketType& other) const { return m_name != other.m_name; }
+    bool operator!=(const ChunkLoadTicketType& other) const noexcept { return m_name != other.m_name; }
 
 private:
     std::string m_name;
@@ -257,7 +256,7 @@ public:
      *
      * @note 级别越小优先级越高
      */
-    bool operator<(const ChunkLoadTicket& other) const
+    bool operator<(const ChunkLoadTicket& other) const noexcept
     {
         if (m_level != other.m_level) {
             return m_level > other.m_level; // 级别大的排后面
@@ -265,20 +264,20 @@ public:
         return m_typeName > other.m_typeName;
     }
 
-    bool operator==(const ChunkLoadTicket& other) const
+    bool operator==(const ChunkLoadTicket& other) const noexcept
     {
         return m_typeName == other.m_typeName && m_level == other.m_level && m_chunkValue == other.m_chunkValue &&
             m_intValue == other.m_intValue;
     }
 
-    bool operator!=(const ChunkLoadTicket& other) const { return !(*this == other); }
+    bool operator!=(const ChunkLoadTicket& other) const noexcept { return !(*this == other); }
 
     /**
      * @brief 比较优先级
      * @param other 另一个票据
      * @return true 表示 this 优先级高于 other
      */
-    bool hasHigherPriorityThan(const ChunkLoadTicket& other) const
+    bool hasHigherPriorityThan(const ChunkLoadTicket& other) const noexcept
     {
         if (m_level != other.m_level) {
             return m_level < other.m_level; // 级别小优先级高
@@ -301,7 +300,7 @@ public:
     [[nodiscard]] bool hasIntValue() const noexcept { return m_hasIntValue; }
 
     /** @brief 设置时间戳（用于过期检查） */
-    void setTimestamp(u64 timestamp) { m_timestamp = timestamp; }
+    void setTimestamp(u64 timestamp) noexcept { m_timestamp = timestamp; }
 
     /**
      * @brief 检查是否过期
@@ -310,7 +309,7 @@ public:
      *
      * @note 生命周期为 0 的票据永不过期
      */
-    [[nodiscard]] bool isExpired(u64 currentTime) const
+    [[nodiscard]] bool isExpired(u64 currentTime) const noexcept
     {
         if (m_lifespan == 0) return false;
         return currentTime - m_timestamp > m_lifespan;
@@ -318,7 +317,7 @@ public:
 
     /** @brief 是否强制 tick */
     [[nodiscard]] bool isForceTicks() const noexcept { return m_forceTicks; }
-    void setForceTicks(bool force) { m_forceTicks = force; }
+    void setForceTicks(bool force) noexcept { m_forceTicks = force; }
 
 private:
     std::string m_typeName;
@@ -365,7 +364,7 @@ public:
      * @brief 获取最小级别（最高优先级）
      * @return 最小级别，如果集合为空返回 MaxLevel
      */
-    [[nodiscard]] i32 getMinLevel() const;
+    [[nodiscard]] i32 getMinLevel() const noexcept;
 
     /** @brief 是否为空 */
     [[nodiscard]] bool empty() const { return m_tickets.empty(); }

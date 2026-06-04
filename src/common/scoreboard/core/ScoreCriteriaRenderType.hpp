@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <string>
 
 namespace mc::scoreboard {
@@ -32,7 +32,6 @@ namespace mc::scoreboard {
  * @brief 分数渲染类型
  *
  * 控制分数在记分板中的显示方式。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScoreCriteria.RenderType
  */
 enum class RenderType : u8 {
     /// 显示为整数
@@ -71,7 +70,6 @@ enum class RenderType : u8 {
  * @brief 显示槽位枚举
  *
  * 定义记分板可以显示的位置。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.Scoreboard
  *
  * 槽位说明：
  * - 0: list (Tab 列表)

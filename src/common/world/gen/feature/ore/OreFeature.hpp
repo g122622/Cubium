@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../chunk/ChunkPos.hpp"
-#include "../../placement/Placement.hpp"
-#include "../ConfiguredFeature.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/placement/Placement.hpp"
 #include <memory>
 
 namespace mc {
@@ -37,7 +37,7 @@ class WorldGenRegion;
 /**
  * @brief 矿石特征
  *
- * 参考 MC OreFeature，生成矿脉形状的矿石。
+ * 生成矿脉形状的矿石。
  * 使用球形采样算法在石头中放置矿石。
  */
 class OreFeature {
@@ -82,7 +82,7 @@ private:
      * @param sizeZ 范围大小Z
      * @param placedCount 已放置计数（输出）
      */
-    void generateSphere(ChunkPrimer& chunk,
+    void _generateSphere(ChunkPrimer& chunk,
         math::Random& random,
         const OreFeatureConfig& config,
         f32 x1,

@@ -22,8 +22,9 @@
  */
 
 #include "HorizontalBlock.hpp"
-#include "../../../item/context/BlockItemUseContext.hpp"
-#include "../../../util/assert/AssertAll.hpp"
+
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace blocks {

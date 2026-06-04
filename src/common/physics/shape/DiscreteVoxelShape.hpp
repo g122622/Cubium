@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/Direction.hpp"
 #include "BooleanOp.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
 #include <bitset>
 #include <functional>
 #include <vector>
@@ -40,8 +40,6 @@ class VoxelShape;
  *
  * 使用位图存储体素占用状态的离散形状表示。
  * 每个体素用1位表示是否被占用。
- *
- * 参考MC DiscreteVoxelShape。
  *
  * 坐标系：
  * - x, y, z 方向的尺寸可以不同
@@ -244,8 +242,8 @@ protected:
     void fillUpdateBounds(i32 x, i32 y, i32 z, bool updateBounds);
 
 private:
-    void forAllAxisEdges(const IntLineConsumer& consumer, AxisCycle cycle, bool simplify);
-    void forAllAxisFaces(const IntFaceConsumer& consumer, AxisCycle cycle);
+    void _forAllAxisEdges(const IntLineConsumer& consumer, AxisCycle cycle, bool simplify);
+    void _forAllAxisFaces(const IntFaceConsumer& consumer, AxisCycle cycle);
 };
 
 } // namespace mc

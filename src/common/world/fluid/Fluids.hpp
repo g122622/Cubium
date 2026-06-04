@@ -34,18 +34,16 @@ namespace fluid {
  * 提供对内置流体实例的静态访问。
  * 类似于 VanillaBlocks 对方块提供访问。
  *
- * 参考: net.minecraft.fluid.Fluids
- *
  * ## 使用示例
  * ```cpp
  * // 获取水源流体
- * Fluid* water = Fluids::WATER;
+ * Fluid* water = Fluids::WATER();
  *
  * // 获取岩浆源流体
- * Fluid* lava = Fluids::LAVA;
+ * Fluid* lava = Fluids::LAVA();
  *
  * // 检查流体状态是否为水
- * if (fluidState.getType() == *Fluids::WATER) {
+ * if (fluidState.getType() == *Fluids::WATER()) {
  *     // 处理水
  * }
  * ```

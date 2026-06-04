@@ -47,13 +47,13 @@ namespace blocks {
 class NetherWartBlock : public Block {
 public:
     explicit NetherWartBlock(const BlockProperties& properties);
-    ~NetherWartBlock() override = default;
+    ~NetherWartBlock() noexcept override = default;
 
     // ========== 状态属性 ==========
 
-    [[nodiscard]] i32 getAge(const BlockState& state) const;
+    [[nodiscard]] i32 getAge(const BlockState& state) const noexcept;
     [[nodiscard]] BlockState withAge(i32 age) const;
-    [[nodiscard]] i32 getMaxAge() const { return 3; }
+    [[nodiscard]] i32 getMaxAge() const noexcept { return 3; }
 
     // ========== 放置逻辑 ==========
 

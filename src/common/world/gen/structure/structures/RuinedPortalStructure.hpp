@@ -34,36 +34,31 @@ namespace mc::world::gen::structure {
 
 /**
  * @brief 废弃传送门垂直放置位置
- *
- * 参考 MC 1.16.5 RuinedPortalPiece.Location
  */
 enum class RuinedPortalLocation : u8 {
-    OnLandSurface,   ///< 在地表
-    PartlyBuried,    ///< 部分掩埋
-    OnOceanFloor,    ///< 在海底
-    InMountain,      ///< 在山中
-    Underground,     ///< 地下
-    InNether         ///< 下界
+    OnLandSurface, ///< 在地表
+    PartlyBuried,  ///< 部分掩埋
+    OnOceanFloor,  ///< 在海底
+    InMountain,    ///< 在山中
+    Underground,   ///< 地下
+    InNether       ///< 下界
 };
 
 /**
  * @brief 废弃传送门属性配置
- *
- * 参考 MC 1.16.5 RuinedPortalPiece.Serializer
  */
 struct RuinedPortalProperties {
-    bool cold = false;              ///< 是否为寒冷生物群系
-    f32 mossiness = 0.2f;           ///< 苔藓程度 (0.0-1.0)
-    bool airPocket = false;         ///< 是否有空气口袋
-    bool overgrown = false;         ///< 是否过度生长（丛林）
-    bool vines = false;             ///< 是否有藤蔓
+    bool cold = false;                  ///< 是否为寒冷生物群系
+    f32 mossiness = 0.2f;               ///< 苔藓程度 (0.0-1.0)
+    bool airPocket = false;             ///< 是否有空气口袋
+    bool overgrown = false;             ///< 是否过度生长（丛林）
+    bool vines = false;                 ///< 是否有藤蔓
     bool replaceWithBlackstone = false; ///< 是否替换为黑石（下界）
 };
 
 /**
  * @brief 废弃传送门结构片段
  *
- * 参考 MC 1.16.5 RuinedPortalPiece
  * 使用模板系统生成废弃传送门。
  */
 class RuinedPortalPiece : public StructurePiece {
@@ -84,7 +79,7 @@ public:
         RuinedPortalLocation location,
         const RuinedPortalProperties& properties);
 
-    ~RuinedPortalPiece() override = default;
+    ~RuinedPortalPiece() noexcept override = default;
 
     void generate(IWorldWriter& world,
         math::Random& rng,
@@ -104,8 +99,8 @@ public:
     [[nodiscard]] const RuinedPortalProperties& properties() const { return m_properties; }
 
 private:
-    void loadTemplate();
-    void updateBoundingBox();
+    void _loadTemplate();
+    void _updateBoundingBox();
 
     std::string m_templateName;
     Rotation m_rotation;
@@ -122,23 +117,21 @@ private:
 /**
  * @brief 废弃传送门结构类型
  *
- * 参考 MC 1.16.5 RuinedPortalStructure.Location
  * 根据生物群系决定传送门的变体类型
  */
 enum class RuinedPortalType : u8 {
-    Standard,   ///< 标准类型
-    Desert,     ///< 沙漠类型
-    Jungle,     ///< 丛林类型
-    Swamp,      ///< 沼泽类型
-    Mountain,   ///< 山地类型
-    Ocean,      ///< 海洋类型
-    Nether      ///< 下界类型
+    Standard, ///< 标准类型
+    Desert,   ///< 沙漠类型
+    Jungle,   ///< 丛林类型
+    Swamp,    ///< 沼泽类型
+    Mountain, ///< 山地类型
+    Ocean,    ///< 海洋类型
+    Nether    ///< 下界类型
 };
 
 /**
  * @brief 废弃传送门结构
  *
- * 参考 MC 1.16.5 RuinedPortalStructure
  * 使用模板系统生成废弃传送门，支持多种变体。
  */
 class RuinedPortalStructure : public Structure {

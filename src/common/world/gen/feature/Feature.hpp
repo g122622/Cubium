@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../block/Block.hpp"
-#include "../../chunk/ChunkPos.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
 #include <memory>
 #include <vector>
 
@@ -47,7 +47,6 @@ class IChunkGenerator;
  * @brief 方块匹配规则基类
  *
  * 用于结构模板中的规则测试，判断方块是否满足特定条件。
- * 参考 MC 1.16.5: RuleTest
  *
  * 子类实现：
  * - AlwaysTrueRuleTest: 总是返回 true
@@ -86,8 +85,6 @@ public:
 
 /**
  * @brief 总是返回 true 的规则测试
- *
- * 参考 MC 1.16.5: AlwaysTrueRuleTest
  */
 class AlwaysTrueRuleTest : public RuleTest {
 public:
@@ -109,7 +106,6 @@ private:
  * @brief 匹配特定方块的规则测试
  *
  * 只检查方块类型，不检查方块状态属性。
- * 参考 MC 1.16.5: BlockMatchRuleTest
  */
 class BlockMatchRuleTest : public RuleTest {
 public:
@@ -133,7 +129,6 @@ private:
  * @brief 匹配特定方块状态的规则测试
  *
  * 完全匹配方块状态（包括所有属性）。
- * 参考 MC 1.16.5: BlockStateMatchRuleTest
  */
 class BlockStateMatchRuleTest : public RuleTest {
 public:
@@ -157,7 +152,6 @@ private:
  * @brief 带概率的方块匹配规则测试
  *
  * 当方块匹配且有随机概率命中时返回 true。
- * 参考 MC 1.16.5: RandomBlockMatchRuleTest
  */
 class RandomBlockMatchRuleTest : public RuleTest {
 public:
@@ -183,7 +177,6 @@ private:
  * @brief 带概率的方块状态匹配规则测试
  *
  * 当方块状态完全匹配且有随机概率命中时返回 true。
- * 参考 MC 1.16.5: RandomBlockStateMatchRuleTest
  */
 class RandomBlockStateMatchRuleTest : public RuleTest {
 public:
@@ -209,7 +202,6 @@ private:
  * @brief 匹配方块标签的规则测试
  *
  * 当方块属于指定标签时返回 true。
- * 参考 MC 1.16.5: TagMatchRuleTest
  */
 class TagMatchRuleTest : public RuleTest {
 public:
@@ -293,7 +285,7 @@ struct IFeatureConfig {
 /**
  * @brief 矿石特征配置
  *
- * 参考 MC OreFeatureConfig，定义矿石生成的参数。
+ * 定义矿石生成的参数。
  */
 struct OreFeatureConfig : public IFeatureConfig {
     /// 目标方块规则（哪些方块可被替换为矿石）

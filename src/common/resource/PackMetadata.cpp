@@ -71,7 +71,7 @@ Result<PackMetadata> PackMetadata::parseFile(std::string_view filePath)
     return parse(content);
 }
 
-bool PackMetadata::isCompatible(i32 minFormat, i32 maxFormat) const
+bool PackMetadata::isCompatible(i32 minFormat, i32 maxFormat) const noexcept
 {
     return m_packFormat >= minFormat && m_packFormat <= maxFormat;
 }

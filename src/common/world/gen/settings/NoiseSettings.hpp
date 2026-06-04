@@ -23,25 +23,23 @@
 
 #pragma once
 
-#include "../../../core/Constants.hpp"
-#include "../../../core/Types.hpp"
 #include "ScalingSettings.hpp"
 #include "SlideSettings.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 
 /**
  * @brief 噪声地形生成设置
  *
- * 参考 MC 1.16.5 NoiseSettings，用于配置地形噪声生成参数。
+ * 用于配置地形噪声生成参数。
  *
  * 使用方法：
  * @code
  * NoiseSettings settings = NoiseSettings::overworld();
  * // 使用 settings 生成地形
  * @endcode
- *
- * @note 参考 MC 1.16.5 NoiseSettings
  */
 struct NoiseSettings {
     // === 基本尺寸 ===
@@ -66,11 +64,11 @@ struct NoiseSettings {
     bool isAmplified = false;        ///< 放大化地形
 
     // === 噪声尺寸计算 ===
-    [[nodiscard]] i32 noiseSizeX() const { return 16 / (sizeHorizontal * 4); }
+    [[nodiscard]] i32 noiseSizeX() const { return world::CHUNK_WIDTH / (sizeHorizontal * 4); }
 
     [[nodiscard]] i32 noiseSizeY() const { return height / (sizeVertical * 4); }
 
-    [[nodiscard]] i32 noiseSizeZ() const { return 16 / (sizeHorizontal * 4); }
+    [[nodiscard]] i32 noiseSizeZ() const { return world::CHUNK_WIDTH / (sizeHorizontal * 4); }
 
     [[nodiscard]] i32 verticalNoiseGranularity() const { return sizeVertical * 4; }
 
@@ -112,8 +110,10 @@ struct NoiseSettings {
      */
     static NoiseSettings nether()
     {
+        // TODO: 将 NETHER_HEIGHT 常量统一提取到 world 命名空间
+        constexpr i32 NETHER_HEIGHT = 128;
         NoiseSettings settings;
-        settings.height = 128;
+        settings.height = NETHER_HEIGHT;
         settings.sizeHorizontal = 1;
         settings.sizeVertical = 2;
         settings.densityFactor = 0.0f;
@@ -130,8 +130,10 @@ struct NoiseSettings {
      */
     static NoiseSettings end()
     {
+        // TODO: 将 END_HEIGHT 常量统一提取到 world 命名空间
+        constexpr i32 END_HEIGHT = 128;
         NoiseSettings settings;
-        settings.height = 128;
+        settings.height = END_HEIGHT;
         settings.sizeHorizontal = 2;
         settings.sizeVertical = 1;
         settings.densityFactor = 0.0f;

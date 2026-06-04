@@ -50,8 +50,6 @@ namespace mc::server {
  *
  * 负责追踪玩家在所有成就上的进度，管理触发器监听，
  * 并处理持久化和网络同步。
- *
- * 参考 MC 1.16.5: net.minecraft.advancements.PlayerAdvancements
  */
 class PlayerAdvancements {
 public:
@@ -66,7 +64,7 @@ public:
     /**
      * @brief 析构函数
      */
-    ~PlayerAdvancements();
+    ~PlayerAdvancements() noexcept;
 
     // ========== 进度操作 ==========
 
@@ -217,17 +215,17 @@ private:
     /**
      * @brief 确保成就可见性正确
      */
-    void ensureVisibility(mc::advancement::AdvancementPtr advancement);
+    void _ensureVisibility(mc::advancement::AdvancementPtr advancement);
 
     /**
      * @brief 更新所有成就的可见性
      */
-    void updateVisibility();
+    void _updateVisibility();
 
     /**
      * @brief 检查成就是否应该可见
      */
-    bool shouldShow(mc::advancement::AdvancementPtr advancement) const;
+    bool _shouldShow(mc::advancement::AdvancementPtr advancement) const;
 };
 
 } // namespace mc::server

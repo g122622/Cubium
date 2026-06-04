@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "../Layer.hpp"
+#include <memory>
 
 // 前向声明
 namespace mc {
@@ -39,7 +39,7 @@ namespace layer {
 // ============================================================================
 // 邻域采样模式特征类
 //
-// 这些类提供了不同的邻域采样模式，参考 MC 1.16.5 的实现：
+// 提供不同的邻域采样模式：
 // - IC0Transformer: 无偏移，采样单个点 (x, z)
 // - IC1Transformer: 偏移 +1，采样单个点 (x+1, z+1)
 // - ICastleTransformer: 四方向采样 (N/E/S/W + 中心)
@@ -50,7 +50,6 @@ namespace layer {
  * @brief 邻域采样模式 - 无偏移
  *
  * 采样单个点 (x, z)，无偏移。
- * 参考 MC IC0Transformer
  *
  * 用法示例：
  * @code
@@ -90,7 +89,6 @@ public:
  * @brief 邻域采样模式 - 中心点偏移+1
  *
  * 采样点 (x+1, z+1)，用于需要周围上下文的变换器。
- * 参考 MC IC1Transformer
  *
  * 用法示例：
  * @code
@@ -133,9 +131,8 @@ public:
  *
  * 采样五个点：北、东、南、西和中心。
  * 用于边缘检测和平滑变换。
- * 参考 MC ICastleTransformer
  *
- * 坐标映射（MC 坐标系，Z轴向上为北）：
+ * 坐标映射（Z轴向上为北）：
  * - north: (x+1, z)   - 北
  * - east:  (x+2, z+1) - 东
  * - south: (x+1, z+2) - 南
@@ -195,7 +192,6 @@ public:
  *
  * 采样五个点：西南、东南、东北、西北和中心。
  * 用于岛屿扩展等操作。
- * 参考 MC IBishopTransformer
  *
  * 坐标映射（视觉坐标系，假设 X 向右，Z 向下）：
  * - nw: (x, z)         - 西北（左上）
@@ -203,8 +199,6 @@ public:
  * - sw: (x, z+2)       - 西南（左下）
  * - se: (x+2, z+2)     - 东南（右下）
  * - center: (x+1, z+1) - 中心
- *
- * 注意：MC 源码中的参数命名为 south, southEast, east, northEast，这是基于 MC 的坐标约定
  *
  * 用法示例：
  * @code
@@ -226,11 +220,11 @@ public:
     {
         return apply(ctx,
             x,
-            area.getValue(x, z + 2),     // south (MC name, 实际是左下 sw)
-            area.getValue(x + 2, z + 2), // southEast (右下 se)
-            area.getValue(x + 2, z),     // east (MC name, 实际是右上 ne)
-            area.getValue(x, z),         // northEast (MC name, 实际是左上 nw)
-            area.getValue(x + 1, z + 1)  // center
+            area.getValue(x, z + 2),     // sw: 西南
+            area.getValue(x + 2, z + 2), // se: 东南
+            area.getValue(x + 2, z),     // ne: 东北
+            area.getValue(x, z),         // nw: 西北
+            area.getValue(x + 1, z + 1)  // center: 中心
         );
     }
 

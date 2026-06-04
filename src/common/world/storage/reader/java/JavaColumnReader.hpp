@@ -51,11 +51,11 @@ public:
         const std::vector<u8>& nbtData, ChunkCoord x, ChunkCoord z, DimensionId dimension);
 
 private:
-    [[nodiscard]] Result<void> readSections(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
-    [[nodiscard]] Result<void> readBiomes(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
-    void readHeightmaps(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
-    void readEntities(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
-    void readBlockEntities(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
+    [[nodiscard]] Result<void> _readSections(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
+    [[nodiscard]] Result<void> _readBiomes(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
+    void _readHeightmaps(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
+    void _readEntities(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
+    void _readBlockEntities(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
 
     JavaChunkReader& m_chunkReader;
 };

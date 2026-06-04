@@ -23,17 +23,15 @@
 
 #pragma once
 
-#include <memory>
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
+#include <memory>
 #include <vector>
 
 namespace mc {
 
 /**
  * @brief 巨型蘑菇特征配置
- *
- * 参考 MC BigMushroomFeatureConfig
  */
 struct BigMushroomFeatureConfig : public IFeatureConfig {
     /// 蘑菇盖方块状态
@@ -47,7 +45,7 @@ struct BigMushroomFeatureConfig : public IFeatureConfig {
 
     BigMushroomFeatureConfig() = default;
 
-    BigMushroomFeatureConfig(const BlockState* cap, const BlockState* stem, i32 radius = 2)
+    BigMushroomFeatureConfig(const BlockState* cap, const BlockState* stem, i32 radius)
         : capState(cap)
         , stemState(stem)
         , capRadius(radius)
@@ -56,8 +54,6 @@ struct BigMushroomFeatureConfig : public IFeatureConfig {
 
 /**
  * @brief 巨型蘑菇特征基类
- *
- * 参考 MC AbstractBigMushroomFeature
  */
 class BigMushroomFeature {
 public:
@@ -118,7 +114,6 @@ protected:
 /**
  * @brief 巨型棕色蘑菇特征
  *
- * 参考 MC BigBrownMushroomFeature
  * 生成平顶的棕色巨型蘑菇
  */
 class BigBrownMushroomFeature : public BigMushroomFeature {
@@ -138,7 +133,6 @@ protected:
 /**
  * @brief 巨型红色蘑菇特征
  *
- * 参考 MC BigRedMushroomFeature
  * 生成圆顶的红色巨型蘑菇
  */
 class BigRedMushroomFeature : public BigMushroomFeature {

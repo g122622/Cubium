@@ -3,7 +3,7 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction restriction, including without limitation the rights
+ * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
@@ -22,6 +22,8 @@
  */
 
 #include "StrongholdStructure.hpp"
+
+#include "../../../../core/Constants.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/MathConstants.hpp"
 #include "../../../../util/math/random/Random.hpp"
@@ -30,12 +32,31 @@
 #include "../../../block/BlockPos.hpp"
 #include "../../../block/VanillaBlocks.hpp"
 #include "../StructureBoundingBox.hpp"
+
 #include <cmath>
 
 namespace mc {
 namespace world {
 namespace gen {
 namespace structure {
+
+namespace {
+
+// 要塞分布环配置
+// 环 0: 3 个要塞，距离 1408-2688
+// 环 1: 3 个要塞，距离 4480-5760
+// 环 2: 3 个要塞，距离 7552-8832
+// 环 3: 4 个要塞，距离 10624-11904
+// 环 4: 6 个要塞，距离 13696-14976
+// 环 5: 10 个要塞，距离 16768-18048
+// 环 6: 15 个要塞，距离 19840-21120
+// 环 7: 21 个要塞，距离 22912-24192
+// 总计: 3+3+3+4+6+10+15+21 = 65 个要塞
+constexpr i32 RING_COUNTS[] = {3, 3, 3, 4, 6, 10, 15, 21};
+constexpr i32 RING_DISTANCES[] = {1408, 4480, 7552, 10624, 13696, 16768, 19840, 22912};
+constexpr i32 RING_SPREADS[] = {1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280};
+
+} // namespace
 
 using namespace mc::Biomes;
 
@@ -44,17 +65,17 @@ const std::string StrongholdStructure::m_name = "stronghold";
 StrongholdStructure::StrongholdStructure()
     : Structure(StructureType::Stronghold)
 {
-    initializeBiomes();
+    _initializeBiomes();
 }
 
 StrongholdStructure::StrongholdStructure(const Config& config)
     : Structure(StructureType::Stronghold)
     , m_config(config)
 {
-    initializeBiomes();
+    _initializeBiomes();
 }
 
-void StrongholdStructure::initializeBiomes()
+void StrongholdStructure::_initializeBiomes()
 {
     // 要塞可以在大多数主世界生物群系生成
     m_validBiomes = {Plains,
@@ -130,28 +151,27 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 计算起始位置
-    i32 startX = chunkX * 16 + 8;
-    i32 startZ = chunkZ * 16 + 8;
+    i32 startX = chunkX * mc::world::CHUNK_WIDTH + 8;
+    i32 startZ = chunkZ * mc::world::CHUNK_WIDTH + 8;
 
-    // 要塞生成在地下 (MC 1.16.5: Y 20-40)
+    // 要塞生成在地下 (Y 20-40)
     i32 startY = m_config.minY + rng.nextInt(m_config.maxY - m_config.minY);
 
     BlockPos startPos(startX, startY, startZ);
 
     // 使用 StrongholdPieces 系统生成要塞
-    generateStrongholdPieces(world, rng, startPos, start->pieces());
+    _generateStrongholdPieces(world, rng, startPos, start->pieces());
 
     start->recalculateStructureSize();
 
     return start;
 }
 
-void StrongholdStructure::generateStrongholdPieces(IWorldWriter& world,
+void StrongholdStructure::_generateStrongholdPieces(IWorldWriter& world,
     math::Random& rng,
     const BlockPos& startPos,
     std::vector<std::unique_ptr<StructurePiece>>& pieces) const
 {
-    // MC 1.16.5: StrongholdStructure.start
     // 生成起始楼梯
     auto startStairs = std::make_unique<StrongholdStartStairs>(rng, startPos.x, startPos.z);
     StrongholdStartStairs* startStairsPtr = startStairs.get();
@@ -163,17 +183,15 @@ void StrongholdStructure::generateStrongholdPieces(IWorldWriter& world,
 
     StrongholdPieceWeight* lastPlaced = nullptr;
 
-    // MC 1.16.5: 递归生成走廊和房间
-    // 参考: StrongholdPieces.registerStrongholdPieces -> MapGenStructureIO.registerStructure
-    generateCorridor(pieces, rng, 0, startStairsPtr);
+    // 递归生成走廊和房间
+    _generateCorridor(pieces, rng, 0, startStairsPtr);
 }
 
-void StrongholdStructure::generateCorridor(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+void StrongholdStructure::_generateCorridor(std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
     i32 depth,
     StrongholdStartStairs* start) const
 {
-    // MC 1.16.5: StrongholdPieces.Stronghold.Door.findAndCreatePieceFactory
     // 递归生成走廊和房间，直到达到最大深度或无法生成更多片段
 
     if (depth > 50 || pieces.size() > 100) {
@@ -270,8 +288,7 @@ void StrongholdStructure::generateCorridor(std::vector<std::unique_ptr<Structure
     if (newPiece != nullptr) {
         pieces.emplace_back(newPiece);
 
-        // 递归生成更多片段
-        // MC 1.16.5: 10% 概率生成图书馆，传送门房间必须生成
+        // 10% 概率生成图书馆，传送门房间必须生成
         if (rng.nextInt(10) == 0 && depth < 30) {
             // 可能生成图书馆
             StrongholdLibrary* library = StrongholdLibrary::createPiece(
@@ -282,7 +299,7 @@ void StrongholdStructure::generateCorridor(std::vector<std::unique_ptr<Structure
         }
 
         // 继续生成走廊
-        generateCorridor(pieces, rng, depth + 1, start);
+        _generateCorridor(pieces, rng, depth + 1, start);
     } else {
         // 无法生成更多片段，强制生成传送门房间
         if (depth > 5) {
@@ -296,32 +313,17 @@ void StrongholdStructure::generateCorridor(std::vector<std::unique_ptr<Structure
 
 std::pair<i32, i32> StrongholdStructure::calculateStrongholdPos(i32 index, i64 worldSeed)
 {
-    // 要塞分布算法（参考 MC 1.16.5: StrongholdStructure.java）
+    // 要塞分布算法
     // 8 个环，每个环有不同数量的要塞
-    // 环 0: 3 个要塞，距离 1408-2688
-    // 环 1: 3 个要塞，距离 4480-5760
-    // 环 2: 3 个要塞，距离 7552-8832
-    // 环 3: 4 个要塞，距离 10624-11904
-    // 环 4: 6 个要塞，距离 13696-14976
-    // 环 5: 10 个要塞，距离 16768-18048
-    // 环 6: 15 个要塞，距离 19840-21120
-    // 环 7: 21 个要塞，距离 22912-24192
-    // 总计: 3+3+3+4+6+10+15+21 = 65 个要塞 (MC 1.16.5)
-
-    // MC 1.16.5: StrongholdStructure.java 第 47-48 行
-    static const i32 ringCounts[] = {3, 3, 3, 4, 6, 10, 15, 21};
-    static const i32 ringDistances[] = {1408, 4480, 7552, 10624, 13696, 16768, 19840, 22912};
-    static const i32 ringSpreads[] = {1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280};
-
     i32 ring = getRing(index);
     i32 ringIndex = index;
     for (i32 i = 0; i < ring; ++i) {
-        ringIndex -= ringCounts[i];
+        ringIndex -= RING_COUNTS[i];
     }
 
-    i32 count = ringCounts[ring];
-    i32 distance = ringDistances[ring];
-    i32 spread = ringSpreads[ring];
+    i32 count = RING_COUNTS[ring];
+    i32 distance = RING_DISTANCES[ring];
+    i32 spread = RING_SPREADS[ring];
 
     // 计算角度
     math::Random rng(worldSeed);
@@ -343,16 +345,15 @@ std::pair<i32, i32> StrongholdStructure::calculateStrongholdPos(i32 index, i64 w
     i32 x = static_cast<i32>(std::cos(angle) * actualDistance);
     i32 z = static_cast<i32>(std::sin(angle) * actualDistance);
 
-    return {x >> 4, z >> 4}; // 转换为区块坐标
+    // 转换为区块坐标
+    return {x >> mc::world::CHUNK_SHIFT, z >> mc::world::CHUNK_SHIFT};
 }
 
-i32 StrongholdStructure::getRing(i32 index)
+i32 StrongholdStructure::getRing(i32 index) noexcept
 {
-    // MC 1.16.5: 3+3+3+4+6+10+15+21 = 65 个要塞
-    static const i32 ringCounts[] = {3, 3, 3, 4, 6, 10, 15, 21};
     i32 cumulative = 0;
     for (i32 ring = 0; ring < 8; ++ring) {
-        cumulative += ringCounts[ring];
+        cumulative += RING_COUNTS[ring];
         if (index < cumulative) {
             return ring;
         }

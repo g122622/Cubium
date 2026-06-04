@@ -22,9 +22,10 @@
  */
 
 #include "FletchingTableBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
+
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace blocks {
@@ -34,7 +35,6 @@ namespace blocks {
 FletchingTableBlock::FletchingTableBlock(const BlockProperties& properties)
     : Block(properties)
 {
-
     // 制箭台没有特殊状态属性
     auto container = StateContainer<Block, BlockState>::Builder(*this).create(
         [](const Block& block,
@@ -50,6 +50,7 @@ FletchingTableBlock::FletchingTableBlock(const BlockProperties& properties)
 
 BlockState FletchingTableBlock::getStateForPlacement(BlockItemUseContext& context)
 {
+    // TODO: 实现制箭台的朝向状态（根据玩家面向方向）
     return defaultState();
 }
 
@@ -58,6 +59,9 @@ const CollisionShape& FletchingTableBlock::getShape(const BlockState& state) con
     MC_UNUSED(state);
     return m_shape;
 }
+
+// TODO: 实现制箭台的交互功能（打开制箭台界面）
+// 参考: 原版制箭台右键可打开制箭台GUI，用于制作箭矢
 
 } // namespace blocks
 } // namespace mc

@@ -36,7 +36,7 @@ RedstoneSystem& RedstoneSystem::instance()
     return instance;
 }
 
-void RedstoneSystem::notifyNeighbor(IWorld& world,
+void RedstoneSystem::_notifyNeighbor(IWorld& world,
     const BlockPos& neighborPos,
     const BlockState& neighborState,
     Block& sourceBlock,
@@ -46,7 +46,7 @@ void RedstoneSystem::notifyNeighbor(IWorld& world,
     world.notifyNeighborChanged(neighborPos, neighborState, sourceBlock, sourcePos, false);
 }
 
-void RedstoneSystem::updateNeighborsInDirections(
+void RedstoneSystem::_updateNeighborsInDirections(
     IWorld& world, const BlockPos& pos, Block& block, const Direction* directions, size_t directionCount)
 {
     for (size_t i = 0; i < directionCount; ++i) {
@@ -58,13 +58,13 @@ void RedstoneSystem::updateNeighborsInDirections(
             continue;
         }
 
-        notifyNeighbor(world, neighborPos, *neighborState, block, pos);
+        _notifyNeighbor(world, neighborPos, *neighborState, block, pos);
     }
 }
 
 void RedstoneSystem::updateNeighbors(IWorld& world, const BlockPos& pos, Block& block)
 {
-    // MC Java: 防止无限递归更新
+    // 防止无限递归更新
     // 如果当前位置正在更新，则跳过
     if (m_context.isUpdating(pos)) {
         return;
@@ -80,7 +80,7 @@ void RedstoneSystem::updateNeighbors(IWorld& world, const BlockPos& pos, Block& 
     m_context.pushDepth();
 
     const auto& allDirs = Directions::all();
-    updateNeighborsInDirections(world, pos, block, allDirs.data(), allDirs.size());
+    _updateNeighborsInDirections(world, pos, block, allDirs.data(), allDirs.size());
 
     m_context.popDepth();
     m_context.endUpdate(pos);
@@ -88,7 +88,7 @@ void RedstoneSystem::updateNeighbors(IWorld& world, const BlockPos& pos, Block& 
 
 void RedstoneSystem::updateNeighborsExcept(IWorld& world, const BlockPos& pos, Block& block, Direction skipDirection)
 {
-    // MC Java: 防止无限递归更新
+    // 防止无限递归更新
     if (m_context.isUpdating(pos)) {
         return;
     }
@@ -107,7 +107,7 @@ void RedstoneSystem::updateNeighborsExcept(IWorld& world, const BlockPos& pos, B
             directions[count++] = dir;
         }
     }
-    updateNeighborsInDirections(world, pos, block, directions, count);
+    _updateNeighborsInDirections(world, pos, block, directions, count);
 
     m_context.popDepth();
     m_context.endUpdate(pos);
@@ -115,7 +115,7 @@ void RedstoneSystem::updateNeighborsExcept(IWorld& world, const BlockPos& pos, B
 
 void RedstoneSystem::updateNeighborsHorizontalAndDown(IWorld& world, const BlockPos& pos, Block& block)
 {
-    // MC Java: 防止无限递归更新
+    // 防止无限递归更新
     if (m_context.isUpdating(pos)) {
         return;
     }
@@ -134,7 +134,7 @@ void RedstoneSystem::updateNeighborsHorizontalAndDown(IWorld& world, const Block
         directions[count++] = dir;
     }
     directions[count++] = Direction::Down;
-    updateNeighborsInDirections(world, pos, block, directions, count);
+    _updateNeighborsInDirections(world, pos, block, directions, count);
 
     m_context.popDepth();
     m_context.endUpdate(pos);

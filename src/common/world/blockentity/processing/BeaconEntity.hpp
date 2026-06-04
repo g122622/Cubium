@@ -41,7 +41,6 @@ namespace blockentity {
  * @brief 信标光束段数据
  *
  * 每段光束有自己的颜色和高度。
- * 参考 MC 1.16.5 BeaconTileEntity.BeamSegment
  */
 struct BeaconBeamSegment {
     /// RGB 颜色值 (0.0-1.0)
@@ -92,8 +91,6 @@ struct BeaconBeamSegment {
  * - 提供主效果（速度/急迫/抗性/跳跃/力量）
  * - 提供辅助效果（生命恢复）
  * - 消耗矿物作为燃料
- *
- * 参考: net.minecraft.tileentity.BeaconTileEntity
  */
 class BeaconEntity : public BlockEntity {
 public:
@@ -230,36 +227,33 @@ private:
      * @brief 检查并更新金字塔等级
      * @param world 世界引用
      */
-    void updateLevels(IWorld& world);
+    void _updateLevels(IWorld& world);
 
     /**
      * @brief 检查是否可以看到天空
      * @param world 世界引用
      * @return 如果可以看到天空返回true
      */
-    [[nodiscard]] bool canSeeSky(IWorld& world) const;
+    [[nodiscard]] bool _canSeeSky(IWorld& world) const;
 
     /**
      * @brief 应用效果给附近玩家
      * @param world 世界引用
      */
-    void applyEffects(IWorld& world);
+    void _applyEffects(IWorld& world);
 
     /**
      * @brief 检查矿物是否有效
      * @param itemId 物品ID
      * @return 如果是有效的支付物品返回true
      */
-    [[nodiscard]] static bool isValidPayment(u32 itemId);
+    [[nodiscard]] static bool _isValidPayment(u32 itemId);
 
     /**
      * @brief 更新光束段（客户端 tick 中调用）
      * @param world 世界引用
-     *
-     * 遍历光束经过的方块，计算每段的颜色和高度。
-     * 参考 MC 1.16.5 BeaconTileEntity.tick() 中的光束计算逻辑。
      */
-    void updateBeamSegments(IWorld& world);
+    void _updateBeamSegments(IWorld& world);
 
     /**
      * @brief 获取光束颜色叠加后的颜色
@@ -267,7 +261,7 @@ private:
      * @param newColor 新颜色
      * @return 叠加后的颜色
      */
-    [[nodiscard]] static std::array<f32, 3> blendColors(
+    [[nodiscard]] static std::array<f32, 3> _blendColors(
         const std::array<f32, 3>& current, const std::array<f32, 3>& newColor);
 
     i32 m_level = 0;                               ///< 金字塔等级 (0-4)

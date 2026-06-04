@@ -37,7 +37,6 @@ namespace mc {
 /**
  * @brief 下界区块生成器
  *
- * 参考 MC 1.16.5 NetherChunkGenerator
  * 专门用于下界维度的区块生成器，与主世界有以下区别：
  *
  * - 高度范围：0-127（主世界 0-255）
@@ -144,12 +143,12 @@ private:
      *
      * 下界使用类似主世界的密度噪声算法，但参数不同。
      */
-    void fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ) const;
+    void _fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ) const;
 
     /**
      * @brief 计算噪声密度
      */
-    [[nodiscard]] f32 calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noiseZ) const;
+    [[nodiscard]] f32 _calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noiseZ) const;
 
     /**
      * @brief 判断密度值对应的方块
@@ -157,7 +156,7 @@ private:
      * @param y Y 坐标
      * @return 方块状态指针，nullptr 表示空气
      */
-    [[nodiscard]] const BlockState* getBlockForDensity(f32 density, i32 y) const;
+    [[nodiscard]] const BlockState* _getBlockForDensity(f32 density, i32 y) const;
 
     /**
      * @brief 生成基岩层
@@ -165,11 +164,11 @@ private:
      * @param x 本地 X 坐标 (0-15)
      * @param z 本地 Z 坐标 (0-15)
      */
-    void generateBedrock(ChunkPrimer& chunk, i32 x, i32 z, math::Random& random) const;
+    void _generateBedrock(ChunkPrimer& chunk, i32 x, i32 z, math::Random& random) const;
 
     // === 初始化方法 ===
-    void initNoiseGenerators();
-    void initSettings();
+    void _initNoiseGenerators();
+    void _initSettings();
 };
 
 } // namespace mc

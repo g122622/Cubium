@@ -27,7 +27,7 @@
 #include "common/mod/bedrock/addon/pack/PackVersion.hpp"
 
 #include <optional>
-#include <string>
+#include <string_view>
 
 namespace mc::mod::bedrock::addon {
 
@@ -61,13 +61,13 @@ struct AddonModule {
      * @param typeStr 类型字符串
      * @return 对应的模块类型枚举值
      */
-    static AddonModuleType parseType(const std::string& typeStr);
+    static AddonModuleType parseType(std::string_view typeStr) noexcept;
 
     /**
      * @brief 将模块类型转换为字符串
      * @return 类型字符串
      */
-    [[nodiscard]] std::string typeToString() const;
+    [[nodiscard]] const char* typeToString() const noexcept;
 };
 
 } // namespace mc::mod::bedrock::addon

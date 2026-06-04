@@ -22,6 +22,7 @@
  */
 
 #include "SugarCaneFeature.hpp"
+#include "../../../../core/Constants.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../block/VanillaBlocks.hpp"
 #include "../../../chunk/ChunkPrimer.hpp"
@@ -50,7 +51,10 @@ bool SugarCaneFeature::place(
         BlockPos placePos(pos.x + dx, pos.y, pos.z + dz);
 
         // 向下寻找地面
-        for (i32 y = 128; y >= 1; --y) {
+        // 从世界中间高度向下搜索到最小建筑高度+1（避开最底层）
+        constexpr i32 searchStartY = world::MAX_BUILD_HEIGHT / 2;
+        constexpr i32 searchEndY = world::MIN_BUILD_HEIGHT + 1;
+        for (i32 y = searchStartY; y >= searchEndY; --y) {
             BlockPos checkPos(placePos.x, y, placePos.z);
             const BlockState* state = world.getBlockState(checkPos);
 
@@ -61,7 +65,7 @@ bool SugarCaneFeature::place(
         }
 
         // 检查是否可以放置
-        if (!canPlaceAt(world, placePos)) {
+        if (!_canPlaceAt(world, placePos)) {
             continue;
         }
 
@@ -95,7 +99,7 @@ bool SugarCaneFeature::place(
     return placedCount > 0;
 }
 
-bool SugarCaneFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
+bool SugarCaneFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
     // 检查位置是否为空气
     const BlockState* state = world.getBlockState(pos);
@@ -105,15 +109,15 @@ bool SugarCaneFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) co
 
     // 检查下方方块
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    if (!isValidGround(world, belowPos)) {
+    if (!_isValidGround(world, belowPos)) {
         return false;
     }
 
     // 检查周围是否有水
-    return hasWaterNearby(world, belowPos);
+    return _hasWaterNearby(world, belowPos);
 }
 
-bool SugarCaneFeature::hasWaterNearby(WorldGenRegion& world, const BlockPos& pos) const
+bool SugarCaneFeature::_hasWaterNearby(WorldGenRegion& world, const BlockPos& pos) const
 {
     // 甘蔗需要周围有水（4个方向相邻）
     static const i32 directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
@@ -130,7 +134,7 @@ bool SugarCaneFeature::hasWaterNearby(WorldGenRegion& world, const BlockPos& pos
     return false;
 }
 
-bool SugarCaneFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos) const
+bool SugarCaneFeature::_isValidGround(WorldGenRegion& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (!state) {

@@ -47,7 +47,7 @@ ActionResultType SpawnerBlock::onBlockActivated(const BlockState& state,
     MC_UNUSED(hand);
     MC_UNUSED(hit);
 
-    // 只有创造模式可以打开刷怪笼界面
+    // TODO: 实现创造模式下打开刷怪笼编辑界面
     return ActionResultType::Pass;
 }
 

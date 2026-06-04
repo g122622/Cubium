@@ -45,6 +45,36 @@ JavaAnvilBackend::~JavaAnvilBackend()
     close();
 }
 
+JavaAnvilBackend::JavaAnvilBackend(JavaAnvilBackend&& other) noexcept
+    : m_worldPath(std::move(other.m_worldPath))
+    , m_formatInfo(std::move(other.m_formatInfo))
+    , m_isOpen(other.m_isOpen)
+    , m_blockMapper(std::move(other.m_blockMapper))
+    , m_biomeMapper(std::move(other.m_biomeMapper))
+    , m_chunkReader(std::move(other.m_chunkReader))
+    , m_columnReader(std::move(other.m_columnReader))
+    , m_worldReader(std::move(other.m_worldReader))
+{
+    other.m_isOpen = false;
+}
+
+JavaAnvilBackend& JavaAnvilBackend::operator=(JavaAnvilBackend&& other) noexcept
+{
+    if (this != &other) {
+        close();
+        m_worldPath = std::move(other.m_worldPath);
+        m_formatInfo = std::move(other.m_formatInfo);
+        m_isOpen = other.m_isOpen;
+        m_blockMapper = std::move(other.m_blockMapper);
+        m_biomeMapper = std::move(other.m_biomeMapper);
+        m_chunkReader = std::move(other.m_chunkReader);
+        m_columnReader = std::move(other.m_columnReader);
+        m_worldReader = std::move(other.m_worldReader);
+        other.m_isOpen = false;
+    }
+    return *this;
+}
+
 Result<void> JavaAnvilBackend::open(const std::filesystem::path& worldPath, const SaveFormatInfo& formatInfo)
 {
     m_worldPath = worldPath;

@@ -89,8 +89,7 @@ std::vector<PlacedPiece> JigsawManager::assemble(JigsawPatternRegistry& patternR
     placedPieces.push_back(std::move(startPlaced));
 
     // 将起始块的连接点添加到待处理队列
-    // MC 1.16.5: 使用打乱后的连接点顺序
-    // 参考: SingleJigsawPiece.getJigsawBlocks() 第91-96行
+    // 使用打乱后的连接点顺序
     std::vector<JigsawJoint> shuffledJoints = startPiece->getShuffledJoints(rng);
     for (const auto& joint : shuffledJoints) {
         // 计算旋转后的朝向
@@ -170,8 +169,7 @@ void JigsawManager::placePieceRecursive(IWorldWriter& world, const PlacedPiece& 
                 settings.setRotation(placed.rotation);
                 settings.setMirror(placed.mirror);
 
-                // MC 1.16.5: 对于 TerrainMatching 放置行为，自动添加 GravityStructureProcessor
-                // 参考: JigsawPattern.PlacementBehaviour.TERRAIN_MATCHING
+                // 对于 TerrainMatching 放置行为，自动添加 GravityStructureProcessor
                 // 添加 GravityStructureProcessor(Heightmap.Type.WORLD_SURFACE_WG, -1)
                 // WORLD_SURFACE_WG 对应高度图类型 0（世界表面高度图，用于世界生成）
                 StructureProcessorList processorList;
@@ -192,7 +190,7 @@ void JigsawManager::placePieceRecursive(IWorldWriter& world, const PlacedPiece& 
                 templ->place(world, placed.position, settings, rng, 18);
             } else {
                 // 模板未找到，创建简单的占位方块
-                placeFallbackBlocks(world, placed, rng);
+                _placeFallbackBlocks(world, placed, rng);
             }
         }
         return;
@@ -222,10 +220,10 @@ void JigsawManager::placePieceRecursive(IWorldWriter& world, const PlacedPiece& 
     }
 
     // 处理其他类型的拼图块（使用回退方块）
-    placeFallbackBlocks(world, placed, rng);
+    _placeFallbackBlocks(world, placed, rng);
 }
 
-void JigsawManager::placeFallbackBlocks(IWorldWriter& world, const PlacedPiece& placed, math::Random& rng)
+void JigsawManager::_placeFallbackBlocks(IWorldWriter& world, const PlacedPiece& placed, math::Random& rng)
 {
     // 当模板未找到时，放置简单的方块来标记结构位置
     const BlockState* markerBlock = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
@@ -256,7 +254,7 @@ void JigsawManager::placeFallbackBlocks(IWorldWriter& world, const PlacedPiece& 
     }
 }
 
-std::vector<JigsawJoint> JigsawManager::getTransformedJoints(
+std::vector<JigsawJoint> JigsawManager::_getTransformedJoints(
     const JigsawPiece& piece, const BlockPos& position, Rotation rotation, Mirror mirror)
 {
     std::vector<JigsawJoint> transformed;
@@ -287,7 +285,7 @@ std::vector<JigsawJoint> JigsawManager::getTransformedJoints(
     return transformed;
 }
 
-bool JigsawManager::processJoint(JigsawPatternRegistry& patternRegistry,
+bool JigsawManager::_processJoint(JigsawPatternRegistry& patternRegistry,
     std::vector<PlacedPiece>& placedPieces,
     std::queue<PendingJoint>& pendingJoints,
     const PendingJoint& joint,
@@ -308,19 +306,12 @@ bool JigsawManager::tryPlacePiece(JigsawPatternRegistry& patternRegistry,
     ResourceLocation poolLocation(joint.targetPool);
     const JigsawPattern* targetPool = patternRegistry.getPattern(poolLocation);
 
-    // MC 1.16.5: 如果目标池为空或不存在，尝试使用回退池
-    // 参考: JigsawManager.Assembler.tryFitPiece -> fallbackPool.getShuffledPieces()
+    // 如果目标池为空或不存在，尝试使用回退池
     if (!targetPool || targetPool->isEmpty()) {
         return false;
     }
 
-    // MC 1.16.5: 构建候选块列表 - 使用打乱的列表而非多次随机选择
-    // 参考: JigsawManager.Assembler.func_236831_a_ 第141-145行
-    // List<JigsawPiece> list = Lists.newArrayList();
-    // if (p_236831_4_ != this.maxDepth) {
-    //     list.addAll(optional.get().getShuffledPieces(this.rand));
-    // }
-    // list.addAll(optional1.get().getShuffledPieces(this.rand));
+    // 构建候选块列表 - 使用打乱的列表而非多次随机选择
     std::vector<const JigsawPiece*> candidatePieces;
 
     if (joint.depth < maxDepth) {
@@ -343,8 +334,7 @@ bool JigsawManager::tryPlacePiece(JigsawPatternRegistry& patternRegistry,
         return false;
     }
 
-    // MC 1.16.5: 遍历候选块列表，尝试每个块直到找到合适的
-    // 参考: JigsawManager.Assembler.func_236831_a_ 第152-252行
+    // 遍历候选块列表，尝试每个块直到找到合适的
     // 预分配匹配连接点容器（最多有 pieceJoints.size() * 4 个匹配，因为有4种旋转）
     std::vector<std::pair<size_t, Rotation>> matchingJoints;
     matchingJoints.reserve(16); // 预估容量避免循环内重复分配
@@ -368,7 +358,6 @@ bool JigsawManager::tryPlacePiece(JigsawPatternRegistry& patternRegistry,
                 JigsawOrientation rotatedOrientation = JigsawOrientations::rotate(pieceJoint.orientation, rotEnum);
 
                 // 检查名称和方向是否匹配
-                // MC 1.16.5: JigsawBlock.func_220171_a
                 // 匹配条件: source.targetName == target.sourceName && 方向相反
                 if (JigsawMatcher::canMatch(pieceJoint.targetName,
                         joint.sourceName,
@@ -410,13 +399,10 @@ bool JigsawManager::tryPlacePiece(JigsawPatternRegistry& patternRegistry,
         placed.mirror = Mirror::None;
         placed.groundLevelDelta = selectedPiece->getGroundLevelDelta();
         placed.boundingBox = boundingBox;
-        placed.joints = getTransformedJoints(*selectedPiece, placementPos, rotation, Mirror::None);
+        placed.joints = _getTransformedJoints(*selectedPiece, placementPos, rotation, Mirror::None);
 
-        // MC 1.16.5: 创建 JigsawJunction 用于 NoiseChunkGenerator 地形适配
-        // 参考: JigsawManager.Assembler 第 232-233 行
+        // 创建 JigsawJunction 用于 NoiseChunkGenerator 地形适配
         // JigsawJunction 记录连接点的高度信息，用于后续地形平滑
-        // 当前简化实现：记录连接点位置和高度偏移
-        // 完整实现需要在 NoiseChunkGenerator.buildSurface 中应用
         i32 sourceGroundY = joint.position.y;
         i32 destGroundY = placementPos.y;
         i32 deltaY = sourceGroundY - destGroundY;
@@ -436,7 +422,7 @@ bool JigsawManager::tryPlacePiece(JigsawPatternRegistry& patternRegistry,
         placedPieces.push_back(std::move(placed));
 
         // 添加新的待处理连接点
-        // MC 1.16.5: 使用打乱后的连接点顺序
+        // 使用打乱后的连接点顺序
         std::vector<JigsawJoint> shuffledNewJoints = selectedPiece->getShuffledJoints(rng);
         for (const auto& newJoint : shuffledNewJoints) {
             // 跳过已经匹配的连接点（通过比较位置）
@@ -487,16 +473,14 @@ structure::StructureBoundingBox JigsawManager::calculateBoundingBox(
 bool JigsawManager::boxesIntersect(
     const std::vector<PlacedPiece>& placedPieces, const structure::StructureBoundingBox& newBox)
 {
-    // MC 1.16.5: 使用 0.25 收缩边界进行碰撞检测
-    // 参考: JigsawManager.Assembler.tryFitPiece -> VoxelShapes.combineAndSimplify(..., IBooleanFunction.ONLY_SECOND)
-    // 收缩边界避免相邻块被判定为重叠
-    f32 shrink = 0.25f;
-    f32 shrunkMinX = static_cast<f32>(newBox.minX()) + shrink;
-    f32 shrunkMinY = static_cast<f32>(newBox.minY()) + shrink;
-    f32 shrunkMinZ = static_cast<f32>(newBox.minZ()) + shrink;
-    f32 shrunkMaxX = static_cast<f32>(newBox.maxX()) - shrink;
-    f32 shrunkMaxY = static_cast<f32>(newBox.maxY()) - shrink;
-    f32 shrunkMaxZ = static_cast<f32>(newBox.maxZ()) - shrink;
+    // 使用 0.25 收缩边界进行碰撞检测，收缩边界避免相邻块被判定为重叠
+    constexpr f32 SHRINK = 0.25f;
+    f32 shrunkMinX = static_cast<f32>(newBox.minX()) + SHRINK;
+    f32 shrunkMinY = static_cast<f32>(newBox.minY()) + SHRINK;
+    f32 shrunkMinZ = static_cast<f32>(newBox.minZ()) + SHRINK;
+    f32 shrunkMaxX = static_cast<f32>(newBox.maxX()) - SHRINK;
+    f32 shrunkMaxY = static_cast<f32>(newBox.maxY()) - SHRINK;
+    f32 shrunkMaxZ = static_cast<f32>(newBox.maxZ()) - SHRINK;
 
     for (const auto& placed : placedPieces) {
         const auto& existing = placed.boundingBox;

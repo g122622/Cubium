@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../Structure.hpp"
-#include "OceanMonumentPieces.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/structure/Structure.hpp"
+#include "common/world/gen/structure/structures/OceanMonumentPieces.hpp"
 #include <memory>
 
 namespace mc {
@@ -37,7 +37,6 @@ namespace structure {
  * @brief 海洋纪念碑结构
  *
  * 海洋纪念碑是生成在深海的大型结构，由海晶石构成。
- * 参考 MC 1.16.5: OceanMonumentStructure
  *
  * 特点：
  * - 生成在深海生物群系
@@ -56,8 +55,7 @@ public:
     /**
      * @brief 海洋纪念碑使用非均匀间距分布
      *
-     * MC 1.16.5: OceanMonumentStructure.func_230365_b_() 返回 false
-     * 使用两次随机平均值作为偏移，产生更集中的分布
+     * 使用两次随机平均值作为偏移，产生更集中的分布。
      */
     [[nodiscard]] bool useUniformSpacing() const override { return false; }
 
@@ -74,13 +72,12 @@ public:
         IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
-    void initializeBiomes();
+    void _initializeBiomes();
 
     /**
      * @brief 检查生物群系是否属于海洋或河流类别
-     * MC 1.16.5: Biome.Category.OCEAN 或 Biome.Category.RIVER
      */
-    [[nodiscard]] bool isOceanOrRiverBiome(BiomeId biomeId) const;
+    [[nodiscard]] bool _isOceanOrRiverBiome(BiomeId biomeId) const;
 
     static constexpr StructureSeparationSettings m_settings{32, 5, 10387313};
     static const std::string m_name;

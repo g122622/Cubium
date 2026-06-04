@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "Packet.hpp"
+#include "common/core/Types.hpp"
 #include <vector>
 
 namespace mc::network {
@@ -34,8 +34,6 @@ namespace mc::network {
  *
  * 服务端向客户端发送实体的乘客列表。
  * 当实体骑乘/离开载具时发送。
- *
- * 参考 MC 1.16.5 SSetPassengersPacket
  */
 class SetPassengersPacket : public Packet {
 public:

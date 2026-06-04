@@ -51,8 +51,6 @@ namespace blocks {
  * - 必须放置在水源方块中（流体等级=8）
  * - 可用骨粉催熟变成高海草
  * - 实现 IGrowable 接口
- *
- * 参考: net.minecraft.block.SeaGrassBlock
  */
 class SeagrassBlock : public Block, public IGrowable {
 public:

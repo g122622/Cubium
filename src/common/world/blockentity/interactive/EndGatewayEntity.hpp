@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntity.hpp"
+#include <memory>
 #include <optional>
 
 namespace mc {
@@ -138,13 +138,13 @@ public:
      * @brief 获取出口传送门位置
      * @return 出口位置（如果已设置）
      */
-    [[nodiscard]] std::optional<BlockPos> getExitPortal() const { return m_exitPortal; }
+    [[nodiscard]] std::optional<BlockPos> getExitPortal() const noexcept { return m_exitPortal; }
 
     /**
      * @brief 检查是否精确传送
      * @return 如果精确传送返回 true
      */
-    [[nodiscard]] bool isExactTeleport() const { return m_exactTeleport; }
+    [[nodiscard]] bool isExactTeleport() const noexcept { return m_exactTeleport; }
 
     // ========== 状态查询 ==========
 
@@ -152,25 +152,25 @@ public:
      * @brief 检查是否正在生成（新生成的折跃门）
      * @return 年龄小于 200 tick 返回 true
      */
-    [[nodiscard]] bool isSpawning() const { return m_age < SPAWN_DURATION; }
+    [[nodiscard]] bool isSpawning() const noexcept { return m_age < SPAWN_DURATION; }
 
     /**
      * @brief 检查是否在冷却中
      * @return 冷却时间大于 0 返回 true
      */
-    [[nodiscard]] bool isCoolingDown() const { return m_teleportCooldown > 0; }
+    [[nodiscard]] bool isCoolingDown() const noexcept { return m_teleportCooldown > 0; }
 
     /**
      * @brief 获取年龄
      * @return 年龄（tick）
      */
-    [[nodiscard]] i64 getAge() const { return m_age; }
+    [[nodiscard]] i64 getAge() const noexcept { return m_age; }
 
     /**
      * @brief 获取传送冷却
      * @return 剩余冷却时间（tick）
      */
-    [[nodiscard]] i32 getTeleportCooldown() const { return m_teleportCooldown; }
+    [[nodiscard]] i32 getTeleportCooldown() const noexcept { return m_teleportCooldown; }
 
     /**
      * @brief 获取生成进度（用于客户端动画）
@@ -212,7 +212,7 @@ private:
      *
      * 在出口传送门附近寻找安全的传送位置。
      */
-    [[nodiscard]] BlockPos findExitPosition(IWorld& world) const;
+    [[nodiscard]] BlockPos _findExitPosition(IWorld& world) const;
 
     /**
      * @brief 生成出口传送门（末地主岛折跃门专用）
@@ -220,14 +220,14 @@ private:
      *
      * 在外岛生成新的折跃门结构。
      */
-    void generateExitPortal(IWorld& world);
+    void _generateExitPortal(IWorld& world);
 
     /**
      * @brief 在指定位置创建折跃门结构
      * @param world 世界
      * @param pos 基础位置
      */
-    void createGatewayStructure(IWorld& world, const BlockPos& pos);
+    void _createGatewayStructure(IWorld& world, const BlockPos& pos);
 
     /**
      * @brief 查找最高方块
@@ -237,7 +237,7 @@ private:
      * @param allowBedrock 是否允许基岩
      * @return 最高方块位置
      */
-    [[nodiscard]] static BlockPos findHighestBlock(
+    [[nodiscard]] static BlockPos _findHighestBlock(
         IWorld& world, const BlockPos& center, i32 radius, bool allowBedrock);
 
     /// 年龄（tick）- 用于生成动画

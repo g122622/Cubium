@@ -52,8 +52,6 @@ namespace blocks {
  *
  * 状态属性：
  * - LEVEL_0_8: 填充等级 (0-8，8表示完成)
- *
- * 参考: net.minecraft.block.ComposterBlock
  */
 class ComposterBlock : public Block {
 public:
@@ -62,7 +60,7 @@ public:
      * @param properties 方块属性
      */
     explicit ComposterBlock(const BlockProperties& properties);
-    ~ComposterBlock() override = default;
+    ~ComposterBlock() noexcept override = default;
 
     // ========== 状态属性 ==========
 
@@ -88,7 +86,7 @@ public:
         return true;
     }
 
-    [[nodiscard]] int getComparatorInputOverride(
+    [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
     // ========== 交互 ==========
@@ -112,7 +110,7 @@ public:
     /**
      * @brief 获取填充等级
      */
-    [[nodiscard]] static int getLevel(const BlockState& state) { return state.get(BlockStateProperties::LEVEL_0_8()); }
+    [[nodiscard]] static i32 getLevel(const BlockState& state) { return state.get(BlockStateProperties::LEVEL_0_8()); }
 
     /**
      * @brief 尝试堆肥
@@ -140,7 +138,7 @@ public:
      * @brief 获取物品的堆肥概率
      * @return 0.0-1.0之间的概率，0.0表示不可堆肥
      */
-    [[nodiscard]] static float getCompostChance(u32 itemId);
+    [[nodiscard]] static f32 getCompostChance(u32 itemId);
 
 protected:
     /// 各等级的形状缓存

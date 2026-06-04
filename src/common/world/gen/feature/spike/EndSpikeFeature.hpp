@@ -24,9 +24,10 @@
 #pragma once
 
 #include <memory>
-#include "../ConfiguredFeature.hpp"
-#include "../Feature.hpp"
 #include <vector>
+
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/Feature.hpp"
 
 namespace mc {
 
@@ -54,7 +55,7 @@ struct EndSpike {
 /**
  * @brief 黑曜石柱特征配置
  *
- * 参考 MC EndSpikeFeatureConfig
+ * 定义黑曜石柱生成的参数配置。
  */
 struct EndSpikeFeatureConfig : public IFeatureConfig {
     /// 黑曜石柱列表（如果为空则自动生成）
@@ -82,7 +83,6 @@ struct EndSpikeFeatureConfig : public IFeatureConfig {
  * @brief 黑曜石柱特征
  *
  * 在末地生成黑曜石柱（末影龙战斗区域）。
- * 参考 MC EndSpikeFeature / SpikeFeature
  *
  * 特点：
  * - 10根黑曜石柱围绕末地中心（0,0）
@@ -106,17 +106,17 @@ private:
     /**
      * @brief 检查柱子是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 生成单根黑曜石柱
      */
-    void generateSpike(WorldGenRegion& world, math::Random& random, const EndSpike& spike);
+    void _generateSpike(WorldGenRegion& world, math::Random& random, const EndSpike& spike);
 
     /**
      * @brief 生成铁栏杆笼子
      */
-    void generateCage(WorldGenRegion& world, const BlockPos& topPos, i32 radius);
+    void _generateCage(WorldGenRegion& world, const BlockPos& topPos, i32 radius);
 };
 
 /**

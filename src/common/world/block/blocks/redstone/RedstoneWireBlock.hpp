@@ -52,8 +52,6 @@ namespace blocks {
  * - 向上/向下连接需要特殊处理
  * - 信号传播顺序影响性能
  * - 更新时需要防止无限递归
- *
- * 参考: net.minecraft.block.RedstoneWireBlock
  */
 class RedstoneWireBlock : public Block {
 public:
@@ -81,7 +79,10 @@ public:
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    /**
+     * @brief 检查是否可以提供红石信号
+     */
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return true;
@@ -93,7 +94,7 @@ public:
     /**
      * @brief 获取强信号强度
      *
-     * MC Java 中红石线也输出强信号（委托给 getWeakPower）。
+     * 红石线也输出强信号（委托给 getWeakPower）。
      * 这是因为红石线可以直接充能相邻的实体方块。
      *
      * @param state 方块状态
@@ -131,7 +132,6 @@ public:
     /**
      * @brief 判断方块是否可以在指定方向连接红石
      *
-     * MC Java: canConnectTo 方法重载
      * - 红石线总是可以连接
      * - 中继器/比较器只有输出端朝向该方向时才连接
      * - 观察者只有输出端朝向该方向时才连接
@@ -178,7 +178,7 @@ public:
     /**
      * @brief 获取碰撞形状（红石线无碰撞）
      */
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return VoxelShapes::empty();
@@ -187,7 +187,7 @@ public:
     /**
      * @brief 检查是否可以使用形状进行光照遮挡
      */
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return false;
@@ -196,7 +196,7 @@ public:
     /**
      * @brief 右键交互 - 切换十字/点状连接
      *
-     * MC Java: 右键点击红石线可以在十字和点状连接之间切换。
+     * 右键点击红石线可以在十字和点状连接之间切换。
      * 这个功能用于控制红石信号的传播方向。
      */
     [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
@@ -210,49 +210,44 @@ private:
     /**
      * @brief 计算输入信号强度
      */
-    [[nodiscard]] i32 calculateInputPower(IWorld& world, const BlockPos& pos, const BlockState& state) const;
+    [[nodiscard]] i32 _calculateInputPower(IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
     /**
      * @brief 获取相邻红石线的信号强度
      */
-    [[nodiscard]] i32 getWirePower(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] i32 _getWirePower(IWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 通知相邻红石组件更新
      */
-    void notifyWireNeighbors(IWorld& world, const BlockPos& pos);
+    void _notifyWireNeighbors(IWorld& world, const BlockPos& pos);
 
     /**
      * @brief 检查是否是十字连接（四个方向都有连接）
-     *
-     * MC Java: func_235555_m_
      */
-    [[nodiscard]] bool isCrossConnection(const BlockState& state) const;
+    [[nodiscard]] bool _isCrossConnection(const BlockState& state) const;
 
     /**
      * @brief 检查是否是点状连接（四个方向都没有连接）
-     *
-     * MC Java: func_235556_n_
      */
-    [[nodiscard]] bool isDotConnection(const BlockState& state) const;
+    [[nodiscard]] bool _isDotConnection(const BlockState& state) const;
 
     /**
      * @brief 创建点状连接状态（所有方向都无连接）
      */
-    [[nodiscard]] BlockState createDotState(const BlockState& state) const;
+    [[nodiscard]] BlockState _createDotState(const BlockState& state) const;
 
     /**
      * @brief 创建十字连接状态（所有方向都有 Side 连接）
      */
-    [[nodiscard]] BlockState createCrossState(const BlockState& state) const;
+    [[nodiscard]] BlockState _createCrossState(const BlockState& state) const;
 
     /**
      * @brief 通知对角方向的方块更新
      *
-     * MC Java: updateDiagonalNeighbors
      * 当连接状态改变时，通知对角方向的方块更新。
      */
-    void notifyDiagonalNeighbors(
+    void _notifyDiagonalNeighbors(
         IWorld& world, const BlockPos& pos, const BlockState& oldState, const BlockState& newState);
 
     /// 临时变量：防止递归调用时检测自己的信号输出
@@ -262,10 +257,8 @@ private:
 
     /**
      * @brief 计算给定状态的形状
-     *
-     * 参考 MC 1.16.5 RedstoneWireBlock.getShapeForState()
      */
-    [[nodiscard]] CollisionShape computeShapeForState(const BlockState& state) const;
+    [[nodiscard]] CollisionShape _computeShapeForState(const BlockState& state) const;
 
     /// 形状缓存：以连接状态为键（忽略POWER）
     mutable std::unordered_map<u32, CollisionShape> m_shapeCache;

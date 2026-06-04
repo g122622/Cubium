@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../Block.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 
@@ -39,8 +39,6 @@ namespace blocks {
  *
  * 用于沙子、红沙、砾石等会受重力影响的方块。
  * 当下方方块无法支撑时，调度计划刻并生成下落方块实体。
- *
- * 参考: net.minecraft.block.FallingBlock
  */
 class FallingBlock : public Block {
 public:

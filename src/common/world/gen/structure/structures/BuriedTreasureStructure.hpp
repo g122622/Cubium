@@ -48,14 +48,13 @@ private:
     /**
      * @brief 检查位置是否在区块边界内
      */
-    [[nodiscard]] bool isInBounds(i32 x, i32 y, i32 z, const StructureBoundingBox& chunkBounds) const;
+    [[nodiscard]] bool _isInBounds(i32 x, i32 y, i32 z, const StructureBoundingBox& chunkBounds) const;
 };
 
 /**
  * @brief 埋藏的宝藏结构
  *
  * 最简单的结构类型，只包含一个箱子。
- * 参考 MC 1.16.5: BuriedTreasureStructure
  */
 class BuriedTreasureStructure : public Structure {
 public:
@@ -82,10 +81,9 @@ public:
         IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
-    // MC 1.16.5: spacing=1, separation=0, salt=0
+    // spacing=1, separation=0, salt=0
     // BuriedTreasure使用DimensionStructuresSettings中的默认配置
     // 注意：canGenerate中使用单独的salt(10387320)来计算概率种子
-    // 参考: DimensionStructuresSettings.java 第21行
     static constexpr StructureSeparationSettings m_settings{1, 0, 0};
     static const std::string m_name;
     static const std::vector<BiomeId> m_validBiomes;

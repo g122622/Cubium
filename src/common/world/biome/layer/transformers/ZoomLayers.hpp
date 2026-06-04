@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "../LayerContext.hpp"
+#include <memory>
 
 namespace mc {
 namespace layer {
@@ -33,12 +33,11 @@ namespace layer {
  * @brief 缩放层变换器
  *
  * 将区域放大 2 倍。有两种模式：普通和模糊。
- * 参考 MC ZoomLayer
  *
  * 采样模式：
  * - 偶数坐标 (x, z)：直接返回父级值
  * - 边缘坐标：从相邻值中选择
- * - 角落坐标：使用 pickZoomed 算法
+ * - 角落坐标：使用众数算法
  */
 class ZoomLayer : public ITransformer1 {
 public:
@@ -67,7 +66,7 @@ private:
     /**
      * @brief 选择缩放后的值（众数算法）
      */
-    [[nodiscard]] i32 pickZoomed(IAreaContext& ctx, i32 a, i32 b, i32 c, i32 d);
+    [[nodiscard]] i32 _pickZoomed(IAreaContext& ctx, i32 a, i32 b, i32 c, i32 d);
 };
 
 } // namespace layer

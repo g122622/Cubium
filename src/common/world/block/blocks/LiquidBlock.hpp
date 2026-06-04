@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../../util/property/Properties.hpp"
-#include "../../IWorld.hpp"
-#include "../../fluid/FlowingFluid.hpp"
-#include "../../fluid/Fluid.hpp"
-#include "../Block.hpp"
-#include "../BlockPos.hpp"
-#include "../IBucketPickupHandler.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/IBucketPickupHandler.hpp"
+#include "common/world/fluid/FlowingFluid.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include <memory>
 
 namespace mc {
@@ -164,7 +164,7 @@ public:
      * @param blockLevel 方块等级 (0-15)
      * @return 流体等级 (1-8)
      */
-    [[nodiscard]] static i32 blockLevelToFluidLevel(i32 blockLevel);
+    [[nodiscard]] static i32 blockLevelToFluidLevel(i32 blockLevel) noexcept;
 
     /**
      * @brief 流体等级转方块等级
@@ -173,17 +173,17 @@ public:
      * @param falling 是否下落
      * @return 方块等级 (0-15)
      */
-    [[nodiscard]] static i32 fluidLevelToBlockLevel(i32 fluidLevel, bool falling);
+    [[nodiscard]] static i32 fluidLevelToBlockLevel(i32 fluidLevel, bool falling) noexcept;
 
     /**
      * @brief 检查方块等级是否表示源头
      */
-    [[nodiscard]] static bool isSourceLevel(i32 blockLevel) { return blockLevel == 0; }
+    [[nodiscard]] static bool isSourceLevel(i32 blockLevel) noexcept { return blockLevel == 0; }
 
     /**
      * @brief 检查方块等级是否表示下落
      */
-    [[nodiscard]] static bool isFallingLevel(i32 blockLevel) { return blockLevel >= 8; }
+    [[nodiscard]] static bool isFallingLevel(i32 blockLevel) noexcept { return blockLevel >= 8; }
 
     /**
      * @brief 获取放置时的方块状态
@@ -272,7 +272,7 @@ private:
     /**
      * @brief 构建流体状态缓存
      */
-    void buildFluidStateCache();
+    void _buildFluidStateCache();
 };
 
 } // namespace block

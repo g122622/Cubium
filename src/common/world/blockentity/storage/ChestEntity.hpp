@@ -93,6 +93,15 @@ public:
      */
     ~ChestEntity() override;
 
+    // ========== 移动操作 ==========
+
+    ChestEntity(ChestEntity&& other) noexcept;
+    ChestEntity& operator=(ChestEntity&& other) noexcept;
+
+    // 禁止拷贝
+    ChestEntity(const ChestEntity&) = delete;
+    ChestEntity& operator=(const ChestEntity&) = delete;
+
     // ========== IInventory 接口实现 ==========
 
     [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }

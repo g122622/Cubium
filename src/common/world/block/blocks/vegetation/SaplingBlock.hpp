@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../util/property/Properties.hpp"
-#include "../agricultural/BushBlock.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include <functional>
 
 namespace mc {
@@ -39,8 +39,6 @@ class ITreeConfig;
  * 可以生长成树木的树苗。
  * 使用 STAGE_0_1 属性表示生长阶段。
  * 当阶段达到最大值时，在合适的条件下会生长成树。
- *
- * 参考: net.minecraft.block.SaplingBlock
  */
 class SaplingBlock : public BushBlock {
 public:
@@ -59,7 +57,7 @@ public:
     /**
      * @brief 析构函数
      */
-    ~SaplingBlock() override = default;
+    ~SaplingBlock() noexcept override = default;
 
     // ========== 状态属性 ==========
 

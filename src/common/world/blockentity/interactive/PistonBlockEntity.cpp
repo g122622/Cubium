@@ -22,15 +22,15 @@
  */
 
 #include "PistonBlockEntity.hpp"
-#include "../../../entity/core/Entity.hpp"
-#include "../../../entity/core/MoverType.hpp"
-#include "../../../physics/collision/CollisionShape.hpp"
-#include "../../../util/AxisAlignedBB.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../IWorld.hpp"
-#include "../../block/Block.hpp"
-#include "../../block/BlockRegistry.hpp"
-#include "../../block/VanillaBlocks.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/MoverType.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -101,8 +101,6 @@ constexpr f32 PISTON_PUSH_EPSILON = 0.01f;
 
 /**
  * @brief 计算实体在指定方向上需要的最小位移以脱离碰撞。
- *
- * 参考: MC 1.16.5 PistonTileEntity.getMovement()
  */
 [[nodiscard]] f32 getMovement(const AxisAlignedBB& pistonBox, Direction direction, const AxisAlignedBB& entityBox)
 {
@@ -198,7 +196,7 @@ std::unique_ptr<BlockEntity> PistonBlockEntity::clone() const
     return cloned;
 }
 
-float PistonBlockEntity::getProgress(float partialTick) const
+f32 PistonBlockEntity::getProgress(f32 partialTick) const
 {
     if (partialTick > 1.0f) {
         partialTick = 1.0f;
@@ -206,22 +204,22 @@ float PistonBlockEntity::getProgress(float partialTick) const
     return m_lastProgress + (m_progress - m_lastProgress) * partialTick;
 }
 
-Direction PistonBlockEntity::getMotionDirection() const
+Direction PistonBlockEntity::getMotionDirection() const noexcept
 {
     return m_extending ? m_facing : Directions::opposite(m_facing);
 }
 
-float PistonBlockEntity::getOffsetX(float partialTick) const
+f32 PistonBlockEntity::getOffsetX(f32 partialTick) const
 {
     return static_cast<float>(Directions::xOffset(m_facing)) * getExtendedProgress(getProgress(partialTick));
 }
 
-float PistonBlockEntity::getOffsetY(float partialTick) const
+f32 PistonBlockEntity::getOffsetY(f32 partialTick) const
 {
     return static_cast<float>(Directions::yOffset(m_facing)) * getExtendedProgress(getProgress(partialTick));
 }
 
-float PistonBlockEntity::getOffsetZ(float partialTick) const
+f32 PistonBlockEntity::getOffsetZ(f32 partialTick) const
 {
     return static_cast<float>(Directions::zOffset(m_facing)) * getExtendedProgress(getProgress(partialTick));
 }
@@ -257,8 +255,7 @@ void PistonBlockEntity::clearPistonBlockEntity(IWorld& world)
 
 void PistonBlockEntity::tick(IWorld& world)
 {
-    // MC 1.16.5: 记录游戏时间用于漏斗链优化
-    // 参考: PistonTileEntity.tick() 第 290 行
+    // 记录游戏时间用于漏斗链优化
     m_lastTicked = static_cast<i64>(world.getGameTime());
 
     m_lastProgress = m_progress;
@@ -268,13 +265,11 @@ void PistonBlockEntity::tick(IWorld& world)
         return;
     }
 
-    const float newProgress = m_progress + PROGRESS_PER_TICK;
-    moveCollidedEntities(world, newProgress);
+    const f32 newProgress = m_progress + PROGRESS_PER_TICK;
+    _moveCollidedEntities(world, newProgress);
 
-    // MC 1.16.5: 蜂蜜块拖拽逻辑
-    // 当活塞推动蜂蜜块时，站在蜂蜜块上的实体应该被拖拽
-    // 参考: PistonTileEntity.func_227024_g_
-    dragEntitiesOnHoneyBlock(world, newProgress);
+    // 蜂蜜块拖拽逻辑：当活塞推动蜂蜜块时，站在蜂蜜块上的实体应该被拖拽
+    _dragEntitiesOnHoneyBlock(world, newProgress);
 
     m_progress = newProgress;
     if (m_progress >= COMPLETE_THRESHOLD) {
@@ -283,14 +278,13 @@ void PistonBlockEntity::tick(IWorld& world)
     }
 }
 
-float PistonBlockEntity::getExtendedProgress(float progress) const
+f32 PistonBlockEntity::getExtendedProgress(f32 progress) const
 {
     return m_extending ? progress - 1.0f : 1.0f - progress;
 }
 
-void PistonBlockEntity::moveCollidedEntities(IWorld& world, float progressDelta)
+void PistonBlockEntity::_moveCollidedEntities(IWorld& world, f32 progressDelta)
 {
-    // MC 1.16.5 对齐 - 参考 PistonTileEntity.moveCollidedEntities()
     if (m_pistonState == nullptr) {
         return;
     }
@@ -313,11 +307,11 @@ void PistonBlockEntity::moveCollidedEntities(IWorld& world, float progressDelta)
     const Direction motionDirection = getMotionDirection();
     const Vector3 motionVector = toDirectionVector(motionDirection);
 
-    // MC 1.16.5: 检查是否为黏液块
+    // 检查是否为黏液块
     const bool isSlimeBlock = m_pistonState->is(VanillaBlocks::SLIME_BLOCK);
 
     for (const AxisAlignedBB& localBox : collisionBoxes) {
-        const AxisAlignedBB pistonBox = moveByPositionAndProgress(localBox);
+        const AxisAlignedBB pistonBox = _moveByPositionAndProgress(localBox);
         const AxisAlignedBB sweepBox = buildSweepBox(pistonBox, motionDirection, moveDistance);
 
         const std::vector<Entity*> collidedEntities = world.getEntitiesInAABB(sweepBox, nullptr);
@@ -326,12 +320,12 @@ void PistonBlockEntity::moveCollidedEntities(IWorld& world, float progressDelta)
                 continue;
             }
 
-            // MC 1.16.5: 检查 PushReaction
+            // 检查 PushReaction
             if (entity->getPushReaction() == PushReaction::Ignore) {
                 continue;
             }
 
-            // MC 1.16.5: 黏液块特殊处理 - 设置实体速度
+            // 黏液块特殊处理：设置实体速度
             if (isSlimeBlock && m_extending) {
                 // 非玩家实体在黏液块推动时会被设置速度
                 // 玩家实体不在此处处理（由客户端处理）
@@ -367,21 +361,20 @@ void PistonBlockEntity::moveCollidedEntities(IWorld& world, float progressDelta)
 
             if (pushDistance > 0.0f) {
                 const Vector3 pushDelta = motionVector * pushDistance;
-                // MC 1.16.5: 使用 MoverType::Piston
+                // 使用 MoverType::Piston
                 entity->move(entity::MoverType::Piston, pushDelta);
 
                 // 收回时修复实体位置，防止卡入活塞基座
                 if (!m_extending && m_shouldRenderHead) {
-                    fixEntityWithinPistonBase(*entity, motionDirection, moveDistance);
+                    _fixEntityWithinPistonBase(*entity, motionDirection, moveDistance);
                 }
             }
         }
     }
 }
 
-void PistonBlockEntity::fixEntityWithinPistonBase(Entity& entity, Direction direction, f32 moveDistance)
+void PistonBlockEntity::_fixEntityWithinPistonBase(Entity& entity, Direction direction, f32 moveDistance)
 {
-    // MC 1.16.5: fixEntityWithinPistonBase
     // 当活塞收回时，检查实体是否卡在活塞基座内
     // 如果是，将实体推出到基座之外
 
@@ -420,31 +413,28 @@ void PistonBlockEntity::fixEntityWithinPistonBase(Entity& entity, Direction dire
     }
 }
 
-AxisAlignedBB PistonBlockEntity::moveByPositionAndProgress(const AxisAlignedBB& aabb) const
+AxisAlignedBB PistonBlockEntity::_moveByPositionAndProgress(const AxisAlignedBB& aabb) const
 {
-    const float extendedProgress = getExtendedProgress(m_progress);
+    const f32 extendedProgress = getExtendedProgress(m_progress);
     return aabb.offsetted(
-        static_cast<f32>(m_pos.x) + extendedProgress * static_cast<float>(Directions::xOffset(m_facing)),
-        static_cast<f32>(m_pos.y) + extendedProgress * static_cast<float>(Directions::yOffset(m_facing)),
-        static_cast<f32>(m_pos.z) + extendedProgress * static_cast<float>(Directions::zOffset(m_facing)));
+        static_cast<f32>(m_pos.x) + extendedProgress * static_cast<f32>(Directions::xOffset(m_facing)),
+        static_cast<f32>(m_pos.y) + extendedProgress * static_cast<f32>(Directions::yOffset(m_facing)),
+        static_cast<f32>(m_pos.z) + extendedProgress * static_cast<f32>(Directions::zOffset(m_facing)));
 }
 
-bool PistonBlockEntity::isHoneyBlock() const
+bool PistonBlockEntity::_isHoneyBlock() const
 {
-    // MC 1.16.5: 检查活塞移动的方块是否是蜂蜜块
-    // 参考: PistonTileEntity.func_227025_y_()
+    // 检查活塞移动的方块是否是蜂蜜块
     if (m_pistonState == nullptr) {
         return false;
     }
     return m_pistonState->is(VanillaBlocks::HONEY_BLOCK);
 }
 
-void PistonBlockEntity::dragEntitiesOnHoneyBlock(IWorld& world, float progressDelta)
+void PistonBlockEntity::_dragEntitiesOnHoneyBlock(IWorld& world, f32 progressDelta)
 {
-    // MC 1.16.5: 参考 PistonTileEntity.func_227024_g_()
     // 当活塞推动蜂蜜块时，站在蜂蜜块上方的实体应该被拖拽
-
-    if (!isHoneyBlock()) {
+    if (!_isHoneyBlock()) {
         return;
     }
 
@@ -459,7 +449,7 @@ void PistonBlockEntity::dragEntitiesOnHoneyBlock(IWorld& world, float progressDe
         }
 
         // 获取蜂蜜块碰撞箱上方的区域
-        // MC 1.16.5: 碰撞箱 Y 轴最高点 + 1.5 格高度作为扫描区域
+        // 碰撞箱 Y 轴最高点 + 1.5 格高度作为扫描区域
         const CollisionShape& collisionShape = m_pistonState->getCollisionShape();
         if (collisionShape.isEmpty()) {
             return;
@@ -477,9 +467,9 @@ void PistonBlockEntity::dragEntitiesOnHoneyBlock(IWorld& world, float progressDe
         }
 
         // 构建蜂蜜块上方实体的扫描区域
-        // MC 1.16.5: 从碰撞箱顶部向上 1.5 格
+        // 从碰撞箱顶部向上 1.5 格
         AxisAlignedBB honeyBox =
-            moveByPositionAndProgress(AxisAlignedBB(0.0f, maxY, 0.0f, 1.0f, maxY + 1.5000001f, 1.0f));
+            _moveByPositionAndProgress(AxisAlignedBB(0.0f, maxY, 0.0f, 1.0f, maxY + 1.5000001f, 1.0f));
 
         // 获取该区域内的实体
         const std::vector<Entity*> entitiesAbove = world.getEntitiesInAABB(honeyBox, nullptr);
@@ -489,7 +479,7 @@ void PistonBlockEntity::dragEntitiesOnHoneyBlock(IWorld& world, float progressDe
                 continue;
             }
 
-            // MC 1.16.5: 检查实体是否满足拖拽条件
+            // 检查实体是否满足拖拽条件
             // 1. 实体的 PushReaction 为 NORMAL
             // 2. 实体站在地面上
             // 3. 实体的 X/Z 坐标在蜂蜜块范围内

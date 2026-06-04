@@ -22,14 +22,14 @@
  */
 
 #include "HopperBlock.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../item/context/BlockItemUseContext.hpp"
-#include "../../../item/core/ItemStack.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../util/assert/AssertAll.hpp"
-#include "../../IWorld.hpp"
-#include "../../blockentity/transport/HopperEntity.hpp"
-#include "../../redstone/RedstoneSystem.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/blockentity/transport/HopperEntity.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
 
 #include <algorithm>
 
@@ -54,7 +54,7 @@ HopperBlock::HopperBlock(const BlockProperties& properties)
     setDefaultState(defaultState()
             .with(BlockStateProperties::FACING_EXCEPT_UP(), Direction::Down)
             .with(BlockStateProperties::ENABLED(), true));
-    initShapes();
+    _initShapes();
 }
 
 BlockState HopperBlock::getStateForPlacement(BlockItemUseContext& context)
@@ -72,7 +72,7 @@ BlockState HopperBlock::getStateForPlacement(BlockItemUseContext& context)
 
 void HopperBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    updateState(world, pos, state);
+    _updateState(world, pos, state);
 }
 
 void HopperBlock::neighborChanged(
@@ -85,7 +85,7 @@ void HopperBlock::neighborChanged(
 
     const BlockState* state = world.getBlockState(pos);
     if (state != nullptr) {
-        updateState(world, pos, *state);
+        _updateState(world, pos, *state);
     }
 }
 
@@ -211,7 +211,7 @@ bool HopperBlock::isEnabled(const BlockState& state)
     return state.get(BlockStateProperties::ENABLED());
 }
 
-void HopperBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state)
+void HopperBlock::_updateState(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     const bool powered = world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos);
     const bool enabled = !powered;
@@ -221,7 +221,7 @@ void HopperBlock::updateState(IWorld& world, const BlockPos& pos, const BlockSta
     }
 }
 
-void HopperBlock::initShapes()
+void HopperBlock::_initShapes()
 {
     CollisionShape inputShape = CollisionShape::fromPixelBox(0, 10, 0, 16, 16, 16);
     CollisionShape middleShape = CollisionShape::fromPixelBox(4, 4, 4, 12, 10, 12);

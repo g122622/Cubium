@@ -22,15 +22,15 @@
  */
 
 #include "NoteBlock.hpp"
-#include "../../../../sound/SoundCategory.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
-#include "../../BlockTags.hpp"
-#include "../../Material.hpp"
-#include "../../VanillaBlocks.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
 #include <cmath>
 
 namespace mc {
@@ -102,8 +102,6 @@ const ResourceLocation& getSoundEventForInstrument(Instrument instrument)
  * - 基准音高: note = 12 时, f = 1.0 (标准音高)
  * - 每增加 1 个音符值，音高上升一个半音
  * - 每增加 12 个音符值，音高上升一个八度 (频率翻倍)
- *
- * 参考: net.minecraft.block.NoteBlock.eventReceived
  */
 f32 calculatePitch(i32 note)
 {
@@ -215,16 +213,15 @@ BlockState NoteBlock::updatePostPlacement(const BlockState& state,
 void NoteBlock::triggerNote(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     i32 note = getNote(state);
-    i32 instrument = getInstrumentType(world, pos);
+    i32 instrument = _getInstrumentType(world, pos);
 
     // 播放音符
-    playNote(world, pos, instrument, note);
+    _playNote(world, pos, instrument, note);
 }
 
-i32 NoteBlock::getInstrumentType(IWorld& world, const BlockPos& pos) const
+i32 NoteBlock::_getInstrumentType(IWorld& world, const BlockPos& pos) const
 {
     // 根据音符盒下方的方块类型确定乐器
-    // 参考: net.minecraft.state.properties.NoteBlockInstrument.byState
 
     BlockPos belowPos = pos.down();
     const BlockState* belowState = world.getBlockState(belowPos);
@@ -235,7 +232,6 @@ i32 NoteBlock::getInstrumentType(IWorld& world, const BlockPos& pos) const
 
     // ========================================================================
     // 特定方块检测（优先级从高到低）
-    // 参考 MC 1.16.5 NoteBlockInstrument.byState 的判断顺序
     // ========================================================================
 
     // 陶土 -> 长笛 (FLUTE)
@@ -254,7 +250,6 @@ i32 NoteBlock::getInstrumentType(IWorld& world, const BlockPos& pos) const
     }
 
     // 浮冰 -> 管钟 (CHIME)
-    // 注意: MC 1.16.5 源码中是 PACKED_ICE (浮冰)，不是 BLUE_ICE (蓝冰)
     if (isBlock(belowState, VanillaBlocks::PACKED_ICE)) {
         return static_cast<i32>(Instrument::Chime);
     }
@@ -275,8 +270,7 @@ i32 NoteBlock::getInstrumentType(IWorld& world, const BlockPos& pos) const
     }
 
     // 南瓜 -> 迪吉里杜管 (DIDGERIDOO)
-    // 参考 MC 1.16.5: NoteBlockInstrument.byState() 检测的是 PUMPKIN (普通南瓜)
-    // 注意: CARVED_PUMPKIN 和 JACK_O_LANTERN 在 MC 1.16.5 中不会触发此乐器
+    // 注意: CARVED_PUMPKIN 和 JACK_O_LANTERN 不会触发此乐器
     if (isBlock(belowState, VanillaBlocks::PUMPKIN)) {
         return static_cast<i32>(Instrument::Didgeridoo);
     }
@@ -326,7 +320,7 @@ i32 NoteBlock::getInstrumentType(IWorld& world, const BlockPos& pos) const
     return static_cast<i32>(Instrument::Harp);
 }
 
-void NoteBlock::playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32 note)
+void NoteBlock::_playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32 note)
 {
     // 转换乐器类型
     auto instrumentEnum = static_cast<Instrument>(instrument);
@@ -337,14 +331,13 @@ void NoteBlock::playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32
     // 计算音高 (基于音符值 0-24)
     f32 pitch = calculatePitch(note);
 
-    // 播放声音
-    // 参考 MC 1.16.5: 音量为 3.0f，声音类别为 RECORDS
+    // 播放声音（音量固定为 3.0，声音类别为 RECORDS）
     Vector3 soundPos = pos.center();
     world.playSound(soundEvent,
         sound::SoundCategory::Records,
         soundPos,
-        3.0f, // 音量 (MC 原版固定为 3.0)
-        pitch // 音高 (根据音符值计算)
+        3.0f, // 音量
+        pitch // 音高
     );
 
     // 生成音符粒子效果

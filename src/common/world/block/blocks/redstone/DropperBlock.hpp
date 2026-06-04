@@ -53,7 +53,7 @@ public:
      * @brief 构造函数
      * @param properties 方块属性
      */
-    explicit DropperBlock(const BlockProperties& properties);
+    explicit DropperBlock(const BlockProperties& properties) noexcept;
 
     // ========== 重写发射器方法 ==========
 

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../entity/core/EntityClassification.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityClassification.hpp"
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -36,20 +36,12 @@ namespace mc::world::spawn {
  *
  * 定义在特定位置生成实体的成本，
  * 用于限制高密度区域内的实体数量。
- *
- * 参考 MC 1.16.5 SpawnCosts
- *
- * 字段命名与MC原版对应：
- * - energy_budget: 能量预算，限制区域内的总生成成本
- * - charge: 单个实体的"充电"成本
  */
 struct SpawnCosts {
     /// 能量预算（区域内允许的最大生成成本总和）
-    /// 对应MC原版的 energy_budget
     f64 energyBudget = 0.0;
 
     /// 单个实体的充电成本（增加给区域的成本）
-    /// 对应MC原版的 charge
     f64 charge = 0.0;
 
     SpawnCosts() = default;
@@ -59,7 +51,7 @@ struct SpawnCosts {
      * @param budget 能量预算（最大总成本）
      * @param chargePerEntity 每个实体的成本
      */
-    SpawnCosts(f64 budget, f64 chargePerEntity)
+    SpawnCosts(f64 budget, f64 chargePerEntity) noexcept
         : energyBudget(budget)
         , charge(chargePerEntity)
     {}
@@ -67,15 +59,13 @@ struct SpawnCosts {
     /**
      * @brief 检查是否有效（有成本限制）
      */
-    [[nodiscard]] bool isValid() const { return energyBudget > 0.0 && charge > 0.0; }
+    [[nodiscard]] bool isValid() const noexcept { return energyBudget > 0.0 && charge > 0.0; }
 };
 
 /**
  * @brief 生成权重条目
  *
  * 定义单个实体类型的生成配置。
- *
- * 参考 MC 1.16.5 MobSpawnInfo.SpawnCosts
  */
 struct SpawnEntry {
     /// 实体类型ID（字符串标识符）
@@ -95,14 +85,14 @@ struct SpawnEntry {
 
     SpawnEntry() = default;
 
-    SpawnEntry(std::string typeId, i32 w, i32 minC, i32 maxC)
+    SpawnEntry(std::string typeId, i32 w, i32 minC, i32 maxC) noexcept
         : entityTypeId(std::move(typeId))
         , weight(w)
         , minCount(minC)
         , maxCount(maxC)
     {}
 
-    SpawnEntry(std::string typeId, i32 w, i32 minC, i32 maxC, SpawnCosts c)
+    SpawnEntry(std::string typeId, i32 w, i32 minC, i32 maxC, SpawnCosts c) noexcept
         : entityTypeId(std::move(typeId))
         , weight(w)
         , minCount(minC)
@@ -115,8 +105,6 @@ struct SpawnEntry {
  * @brief 生成分类信息
  *
  * 定义特定实体分类（怪物、动物、环境等）的生成配置。
- *
- * 参考 MC 1.16.5 MobSpawnInfo.Spawners
  */
 struct SpawnCategory {
     /// 该分类的生成条目列表
@@ -130,18 +118,18 @@ struct SpawnCategory {
 
     SpawnCategory() = default;
 
-    explicit SpawnCategory(i32 maxInst)
+    explicit SpawnCategory(i32 maxInst) noexcept
         : maxInstances(maxInst)
     {}
 
     void addEntry(const SpawnEntry& entry) { entries.push_back(entry); }
 
-    void addEntry(SpawnEntry&& entry) { entries.push_back(std::move(entry)); }
+    void addEntry(SpawnEntry&& entry) noexcept { entries.push_back(std::move(entry)); }
 
     /**
      * @brief 计算所有条目的总权重
      */
-    [[nodiscard]] i32 getTotalWeight() const
+    [[nodiscard]] i32 getTotalWeight() const noexcept
     {
         i32 total = 0;
         for (const auto& entry : entries) {
@@ -156,8 +144,6 @@ struct SpawnCategory {
  *
  * 定义在特定生物群系中可以生成的实体类型及其配置。
  * 包含生成概率、各分类的生成列表、生成成本等完整信息。
- *
- * 参考 MC 1.16.5 MobSpawnInfo
  */
 class MobSpawnInfo {
 public:
@@ -311,8 +297,6 @@ public:
      * @brief 根据实体分类获取生成列表
      * @param classification 实体分类
      * @return 对应分类的生成列表
-     *
-     * 参考 MC 1.16.5 MobSpawnInfo.func_242559_a
      */
     [[nodiscard]] const std::vector<SpawnEntry>& getSpawns(entity::EntityClassification classification) const
     {
@@ -333,24 +317,28 @@ public:
         }
     }
 
-    [[nodiscard]] const std::vector<SpawnEntry>& getMonsterSpawns() const { return m_monsters.entries; }
+    [[nodiscard]] const std::vector<SpawnEntry>& getMonsterSpawns() const noexcept { return m_monsters.entries; }
 
-    [[nodiscard]] const std::vector<SpawnEntry>& getCreatureSpawns() const { return m_creatures.entries; }
+    [[nodiscard]] const std::vector<SpawnEntry>& getCreatureSpawns() const noexcept { return m_creatures.entries; }
 
-    [[nodiscard]] const std::vector<SpawnEntry>& getAmbientSpawns() const { return m_ambient.entries; }
+    [[nodiscard]] const std::vector<SpawnEntry>& getAmbientSpawns() const noexcept { return m_ambient.entries; }
 
-    [[nodiscard]] const std::vector<SpawnEntry>& getWaterCreatureSpawns() const { return m_waterCreatures.entries; }
+    [[nodiscard]] const std::vector<SpawnEntry>& getWaterCreatureSpawns() const noexcept
+    {
+        return m_waterCreatures.entries;
+    }
 
-    [[nodiscard]] const std::vector<SpawnEntry>& getWaterAmbientSpawns() const { return m_waterAmbient.entries; }
+    [[nodiscard]] const std::vector<SpawnEntry>& getWaterAmbientSpawns() const noexcept
+    {
+        return m_waterAmbient.entries;
+    }
 
-    [[nodiscard]] const std::vector<SpawnEntry>& getMiscSpawns() const { return m_misc.entries; }
+    [[nodiscard]] const std::vector<SpawnEntry>& getMiscSpawns() const noexcept { return m_misc.entries; }
 
     /**
      * @brief 获取实体的生成成本
      * @param entityTypeId 实体类型ID
      * @return 生成成本指针，如果不存在返回 nullptr
-     *
-     * 参考 MC 1.16.5 MobSpawnInfo.func_242558_a
      */
     [[nodiscard]] const SpawnCosts* getSpawnCost(const std::string& entityTypeId) const
     {
@@ -360,49 +348,47 @@ public:
 
     // ========== 分类配置 ==========
 
-    [[nodiscard]] i32 getMaxMonsterInstances() const { return m_monsters.maxInstances; }
-    void setMaxMonsterInstances(i32 max) { m_monsters.maxInstances = max; }
+    [[nodiscard]] i32 getMaxMonsterInstances() const noexcept { return m_monsters.maxInstances; }
+    void setMaxMonsterInstances(i32 max) noexcept { m_monsters.maxInstances = max; }
 
-    [[nodiscard]] i32 getMaxCreatureInstances() const { return m_creatures.maxInstances; }
-    void setMaxCreatureInstances(i32 max) { m_creatures.maxInstances = max; }
+    [[nodiscard]] i32 getMaxCreatureInstances() const noexcept { return m_creatures.maxInstances; }
+    void setMaxCreatureInstances(i32 max) noexcept { m_creatures.maxInstances = max; }
 
-    [[nodiscard]] i32 getMaxAmbientInstances() const { return m_ambient.maxInstances; }
-    void setMaxAmbientInstances(i32 max) { m_ambient.maxInstances = max; }
+    [[nodiscard]] i32 getMaxAmbientInstances() const noexcept { return m_ambient.maxInstances; }
+    void setMaxAmbientInstances(i32 max) noexcept { m_ambient.maxInstances = max; }
 
-    [[nodiscard]] i32 getMaxWaterCreatureInstances() const { return m_waterCreatures.maxInstances; }
-    void setMaxWaterCreatureInstances(i32 max) { m_waterCreatures.maxInstances = max; }
+    [[nodiscard]] i32 getMaxWaterCreatureInstances() const noexcept { return m_waterCreatures.maxInstances; }
+    void setMaxWaterCreatureInstances(i32 max) noexcept { m_waterCreatures.maxInstances = max; }
 
-    [[nodiscard]] i32 getMaxWaterAmbientInstances() const { return m_waterAmbient.maxInstances; }
-    void setMaxWaterAmbientInstances(i32 max) { m_waterAmbient.maxInstances = max; }
+    [[nodiscard]] i32 getMaxWaterAmbientInstances() const noexcept { return m_waterAmbient.maxInstances; }
+    void setMaxWaterAmbientInstances(i32 max) noexcept { m_waterAmbient.maxInstances = max; }
 
     // ========== 生物群系特性 ==========
 
     /**
      * @brief 获取动物生成概率
      *
-     * 参考 MC 1.16.5 MobSpawnInfo.func_242557_a
      * 这是区块生成时放置动物的基础概率
      * 默认值为 0.1F (10%)
      */
-    [[nodiscard]] f32 getCreatureSpawnProbability() const { return m_creatureSpawnProbability; }
+    [[nodiscard]] f32 getCreatureSpawnProbability() const noexcept { return m_creatureSpawnProbability; }
 
     /**
      * @brief 设置动物生成概率
      */
-    void setCreatureSpawnProbability(f32 probability) { m_creatureSpawnProbability = probability; }
+    void setCreatureSpawnProbability(f32 probability) noexcept { m_creatureSpawnProbability = probability; }
 
     /**
      * @brief 是否适合玩家生成
      *
-     * 参考 MC 1.16.5 MobSpawnInfo.func_242562_b
      * 用于判断是否可以在该生物群系生成玩家
      */
-    [[nodiscard]] bool isPlayerSpawnFriendly() const { return m_playerSpawnFriendly; }
+    [[nodiscard]] bool isPlayerSpawnFriendly() const noexcept { return m_playerSpawnFriendly; }
 
     /**
      * @brief 设置是否适合玩家生成
      */
-    void setPlayerSpawnFriendly(bool friendly) { m_playerSpawnFriendly = friendly; }
+    void setPlayerSpawnFriendly(bool friendly) noexcept { m_playerSpawnFriendly = friendly; }
 
     // ========== 工厂方法 ==========
 
@@ -544,15 +530,12 @@ private:
     SpawnCategory m_misc;           // 其他
 
     /// 实体类型到生成成本的映射
-    /// 参考 MC 1.16.5 MobSpawnInfo.field_242555_f
     std::unordered_map<std::string, SpawnCosts> m_spawnCosts;
 
     /// 动物生成概率
-    /// 参考 MC 1.16.5 MobSpawnInfo.field_242553_d
     f32 m_creatureSpawnProbability = 0.1f;
 
     /// 是否适合玩家生成
-    /// 参考 MC 1.16.5 MobSpawnInfo.field_242556_g
     bool m_playerSpawnFriendly = false;
 
     // 默认实例限制

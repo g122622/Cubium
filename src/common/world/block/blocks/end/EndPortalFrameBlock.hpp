@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 
@@ -52,8 +52,8 @@ public:
 
     // ========== 状态属性 ==========
 
-    [[nodiscard]] bool hasEye(const BlockState& state) const;
-    [[nodiscard]] Direction getFacing(const BlockState& state) const;
+    [[nodiscard]] bool hasEye(const BlockState& state) const noexcept;
+    [[nodiscard]] Direction getFacing(const BlockState& state) const noexcept;
 
     // ========== 放置逻辑 ==========
 
@@ -61,13 +61,13 @@ public:
 
     // ========== 旋转 ==========
 
-    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const noexcept override;
 
-    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const noexcept override;
 
     // ========== 形状 ==========
 
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const noexcept override;
 
 private:
     CollisionShape m_frameShape;

@@ -23,16 +23,16 @@
 
 #include "Raid.hpp"
 
-#include "../../../entity/combat/DifficultyHelper.hpp"
-#include "../../../entity/core/Entity.hpp"
-#include "../../../entity/entities/monster/illager/EvokerEntity.hpp"
-#include "../../../entity/entities/monster/illager/IllagerEntities.hpp"
-#include "../../../entity/entities/monster/illager/RavagerEntity.hpp"
-#include "../../../entity/entities/monster/illager/WitchEntity.hpp"
-#include "../../../util/assert/AssertAll.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../IWorld.hpp"
-#include "../Village.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/monster/illager/EvokerEntity.hpp"
+#include "common/entity/entities/monster/illager/IllagerEntities.hpp"
+#include "common/entity/entities/monster/illager/RavagerEntity.hpp"
+#include "common/entity/entities/monster/illager/WitchEntity.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/village/Village.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -144,8 +144,8 @@ void Raid::spawnRaiders(IWorld& world)
         return;
     }
 
-    const i32 totalRaiders = calculateRaidersForWave(m_wave, m_difficulty);
-    auto spawnPos = findSpawnPosition(world);
+    const i32 totalRaiders = _calculateRaidersForWave(m_wave, m_difficulty);
+    auto spawnPos = _findSpawnPosition(world);
     if (!spawnPos.has_value()) {
         return;
     }
@@ -158,13 +158,13 @@ void Raid::spawnRaiders(IWorld& world)
     waveData.totalToSpawn = totalRaiders;
 
     for (i32 i = 0; i < totalRaiders; ++i) {
-        const RaiderType type = selectRaiderType(m_wave, i, totalRaiders);
+        const RaiderType type = _selectRaiderType(m_wave, i, totalRaiders);
         const f32 offsetX = (rng.nextFloat() - 0.5f) * 10.0f;
         const f32 offsetZ = (rng.nextFloat() - 0.5f) * 10.0f;
         const BlockPos pos(
             static_cast<BlockCoord>(basePos.x + offsetX), basePos.y, static_cast<BlockCoord>(basePos.z + offsetZ));
 
-        const EntityId raider = spawnRaider(world, type, pos);
+        const EntityId raider = _spawnRaider(world, type, pos);
         if (raider != 0) {
             addRaider(raider);
             waveData.raiders.push_back(raider);
@@ -244,7 +244,7 @@ void Raid::tick(IWorld& world)
         }
     }
 
-    updateBossBar();
+    _updateBossBar();
 }
 
 /**
@@ -326,7 +326,7 @@ f32 Raid::getBossBarProgress() const
  *
  * @note 当前暂无同步目标，因此此处保持空实现。
  */
-void Raid::updateBossBar() {}
+void Raid::_updateBossBar() {}
 
 /**
  * @brief 显式生成指定波次。
@@ -334,7 +334,7 @@ void Raid::updateBossBar() {}
  * @param world 所属世界。
  * @param waveNum 波次编号。
  */
-void Raid::spawnWave(IWorld& world, i32 waveNum)
+void Raid::_spawnWave(IWorld& world, i32 waveNum)
 {
     MC_ASSERT_RELEASE(waveNum > 0);
     m_wave = waveNum;
@@ -348,7 +348,7 @@ void Raid::spawnWave(IWorld& world, i32 waveNum)
  * @param difficulty 世界难度。
  * @return 该波次应生成的袭击者数量。
  */
-i32 Raid::calculateRaidersForWave(i32 waveNum, Difficulty difficulty) const
+i32 Raid::_calculateRaidersForWave(i32 waveNum, Difficulty difficulty) const
 {
     MC_ASSERT_RELEASE(waveNum > 0);
 
@@ -368,7 +368,7 @@ i32 Raid::calculateRaidersForWave(i32 waveNum, Difficulty difficulty) const
  * @param total 本波总数。
  * @return 选择结果。
  */
-RaiderType Raid::selectRaiderType(i32 waveNum, i32 index, i32 total) const
+RaiderType Raid::_selectRaiderType(i32 waveNum, i32 index, i32 total) const
 {
     MC_ASSERT_RELEASE(waveNum > 0);
     MC_ASSERT_RELEASE(index >= 0);
@@ -401,7 +401,7 @@ RaiderType Raid::selectRaiderType(i32 waveNum, i32 index, i32 total) const
  * @param pos 生成位置。
  * @return 实体 ID，失败返回 0。
  */
-EntityId Raid::spawnRaider(IWorld& world, RaiderType type, BlockPos pos)
+EntityId Raid::_spawnRaider(IWorld& world, RaiderType type, BlockPos pos)
 {
     std::unique_ptr<Entity> entity;
 
@@ -448,7 +448,7 @@ EntityId Raid::spawnRaider(IWorld& world, RaiderType type, BlockPos pos)
  * @param world 所属世界。
  * @return 生成点；若当前没有可用村庄则返回空值。
  */
-std::optional<BlockPos> Raid::findSpawnPosition(IWorld& world) const
+std::optional<BlockPos> Raid::_findSpawnPosition(IWorld& world) const
 {
     if (m_village == nullptr) {
         return std::nullopt;
@@ -469,8 +469,6 @@ std::optional<BlockPos> Raid::findSpawnPosition(IWorld& world) const
 
 /**
  * @brief 添加英雄（参与袭击的玩家）。
- *
- * 参考 MC 1.16.5 Raid.addHero()
  */
 void Raid::addHero(Uuid playerUuid, EntityId entityId)
 {

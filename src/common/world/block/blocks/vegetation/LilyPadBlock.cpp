@@ -22,10 +22,11 @@
  */
 
 #include "LilyPadBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../fluid/Fluid.hpp"
+
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/fluid/Fluid.hpp"
 
 namespace mc {
 namespace blocks {
@@ -56,7 +57,6 @@ bool LilyPadBlock::isValidPosition(const BlockState& state, IBlockReader& world,
         return false;
     }
 
-    // 参考 MC 1.16.5: LilyPadBlock.isValidPosition
     // 检查是否为水方块（包括静止水和流动水）
     if (!belowState->is(VanillaBlocks::WATER)) {
         // 也可以检查材料是否为水
@@ -73,7 +73,7 @@ bool LilyPadBlock::isValidPosition(const BlockState& state, IBlockReader& world,
     }
 
     // 如果当前是水，检查流体级别是否为满（级别 0 表示满）
-    // 参考 MC 1.16.5: 水位必须为 0（满水源）才能放置睡莲
+    // 满水源的级别为 0-7，只有级别 0-7 的静止水可以放置睡莲
     const fluid::FluidState* fluidState = currentState->getFluidState();
     if (fluidState != nullptr && !fluidState->isEmpty()) {
         // 满水源的级别为 0-7，只有级别 0-7 的静止水可以放置睡莲

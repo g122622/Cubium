@@ -43,7 +43,7 @@ const compound_tag* getCompound(const compound_tag& parent, const std::string& n
 }
 } // namespace
 
-Result<std::unique_ptr<compound_tag>> JavaLevelDatReader::readGzipNbt(const std::filesystem::path& filePath)
+Result<std::unique_ptr<compound_tag>> JavaLevelDatReader::_readGzipNbt(const std::filesystem::path& filePath)
 {
     std::ifstream file(filePath, std::ios::binary);
     if (!file.is_open()) {
@@ -75,7 +75,7 @@ Result<std::unique_ptr<compound_tag>> JavaLevelDatReader::readGzipNbt(const std:
 Result<LevelSummaryData> JavaLevelDatReader::readSummary(const std::filesystem::path& worldDir)
 {
     std::filesystem::path levelDatPath = worldDir / "level.dat";
-    auto rootResult = readGzipNbt(levelDatPath);
+    auto rootResult = _readGzipNbt(levelDatPath);
     if (rootResult.failed()) {
         return rootResult.error();
     }
@@ -89,13 +89,13 @@ Result<LevelSummaryData> JavaLevelDatReader::readSummary(const std::filesystem::
     if (!data) {
         return Error(ErrorCode::FileCorrupted, "level.dat Data tag is not a compound");
     }
-    return parseSummary(*data);
+    return _parseSummary(*data);
 }
 
 Result<LevelRuntimeData> JavaLevelDatReader::readRuntimeData(const std::filesystem::path& worldDir)
 {
     std::filesystem::path levelDatPath = worldDir / "level.dat";
-    auto rootResult = readGzipNbt(levelDatPath);
+    auto rootResult = _readGzipNbt(levelDatPath);
     if (rootResult.failed()) {
         return rootResult.error();
     }
@@ -109,13 +109,13 @@ Result<LevelRuntimeData> JavaLevelDatReader::readRuntimeData(const std::filesyst
     if (!data) {
         return Error(ErrorCode::FileCorrupted, "level.dat Data tag is not a compound");
     }
-    return parseRuntimeData(*data);
+    return _parseRuntimeData(*data);
 }
 
 Result<std::optional<PlayerSaveData>> JavaLevelDatReader::readLocalPlayer(const std::filesystem::path& worldDir)
 {
     std::filesystem::path levelDatPath = worldDir / "level.dat";
-    auto rootResult = readGzipNbt(levelDatPath);
+    auto rootResult = _readGzipNbt(levelDatPath);
     if (rootResult.failed()) {
         return rootResult.error();
     }
@@ -129,10 +129,10 @@ Result<std::optional<PlayerSaveData>> JavaLevelDatReader::readLocalPlayer(const 
     if (!data) {
         return Error(ErrorCode::FileCorrupted, "level.dat Data tag is not a compound");
     }
-    return parseLocalPlayer(*data);
+    return _parseLocalPlayer(*data);
 }
 
-Result<LevelSummaryData> JavaLevelDatReader::parseSummary(const compound_tag& data)
+Result<LevelSummaryData> JavaLevelDatReader::_parseSummary(const compound_tag& data)
 {
     // 读取版本信息
     i32 storageVersion = 0;
@@ -181,9 +181,9 @@ Result<LevelSummaryData> JavaLevelDatReader::parseSummary(const compound_tag& da
         }
     }
 
-    GameMode gameMode = parseGameMode(data);
-    Difficulty difficulty = parseDifficulty(data);
-    WorldType worldType = parseWorldType(data);
+    GameMode gameMode = _parseGameMode(data);
+    Difficulty difficulty = _parseDifficulty(data);
+    WorldType worldType = _parseWorldType(data);
 
     bool hardcore = false;
     if (data.value.count("hardcore") != 0) {
@@ -210,9 +210,9 @@ Result<LevelSummaryData> JavaLevelDatReader::parseSummary(const compound_tag& da
         "");
 }
 
-Result<LevelRuntimeData> JavaLevelDatReader::parseRuntimeData(const compound_tag& data)
+Result<LevelRuntimeData> JavaLevelDatReader::_parseRuntimeData(const compound_tag& data)
 {
-    auto summaryResult = parseSummary(data);
+    auto summaryResult = _parseSummary(data);
     if (summaryResult.failed()) {
         return summaryResult.error();
     }
@@ -296,7 +296,7 @@ Result<LevelRuntimeData> JavaLevelDatReader::parseRuntimeData(const compound_tag
         difficultyLocked);
 }
 
-Result<std::optional<PlayerSaveData>> JavaLevelDatReader::parseLocalPlayer(const compound_tag& data)
+Result<std::optional<PlayerSaveData>> JavaLevelDatReader::_parseLocalPlayer(const compound_tag& data)
 {
     const auto* player = getCompound(data, "Player");
     if (!player) {
@@ -319,7 +319,7 @@ Result<std::optional<PlayerSaveData>> JavaLevelDatReader::parseLocalPlayer(const
     return std::optional<PlayerSaveData>(std::move(playerData));
 }
 
-WorldType JavaLevelDatReader::parseWorldType(const compound_tag& data)
+WorldType JavaLevelDatReader::_parseWorldType(const compound_tag& data)
 {
     std::string generatorName;
     if (data.value.count("generatorName") != 0) {
@@ -341,7 +341,7 @@ WorldType JavaLevelDatReader::parseWorldType(const compound_tag& data)
     return WorldType::Default;
 }
 
-GameMode JavaLevelDatReader::parseGameMode(const compound_tag& data)
+GameMode JavaLevelDatReader::_parseGameMode(const compound_tag& data)
 {
     if (data.value.count("GameType") != 0) {
         i32 gameType = static_cast<i32>(data.get<int_tag>("GameType"));
@@ -361,7 +361,7 @@ GameMode JavaLevelDatReader::parseGameMode(const compound_tag& data)
     return GameMode::Survival;
 }
 
-Difficulty JavaLevelDatReader::parseDifficulty(const compound_tag& data)
+Difficulty JavaLevelDatReader::_parseDifficulty(const compound_tag& data)
 {
     if (data.value.count("Difficulty") != 0) {
         i32 diff = static_cast<i32>(data.get<byte_tag>("Difficulty"));

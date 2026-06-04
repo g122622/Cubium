@@ -62,7 +62,7 @@ public:
     /**
      * @brief 析构函数
      */
-    ~LecternEntity() override;
+    ~LecternEntity() noexcept override;
 
     // ========== 书本接口 ==========
 
@@ -162,13 +162,13 @@ private:
      * @param stack 物品
      * @return 如果是有效书本返回true
      */
-    [[nodiscard]] static bool isValidBook(const ItemStack& stack);
+    [[nodiscard]] static bool _isValidBook(const ItemStack& stack);
 
     /**
      * @brief 更新方块状态（HAS_BOOK属性）
      * @param world 世界引用
      */
-    void updateBlockState(IWorld& world);
+    void _updateBlockState(IWorld& world);
 
     SimpleInventory m_inventory; ///< 1格物品存储
     i32 m_page = 0;              ///< 当前页码

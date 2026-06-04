@@ -22,19 +22,19 @@
  */
 
 #include "WaterFluid.hpp"
-#include "../../../item/loot/context/LootContext.hpp"
-#include "../../../item/loot/LootTable.hpp"
-#include "../../../item/loot/LootTableManager.hpp"
-#include "../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../util/property/FluidProperties.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../../IWorld.hpp"
-#include "../../block/Block.hpp"
-#include "../../block/VanillaBlocks.hpp"
-#include "../../blockentity/BlockEntity.hpp"
-#include "../FluidRegistry.hpp"
-#include "../FluidTags.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/loot/LootTable.hpp"
+#include "common/item/loot/LootTableManager.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/property/FluidProperties.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 
 namespace mc {
 namespace fluid {
@@ -80,12 +80,7 @@ const BlockState* WaterFluid::getBlockState(const FluidState& state) const
 
 void WaterFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos, const BlockState* state)
 {
-    // 参考: net.minecraft.fluid.WaterFluid#beforeReplacingBlock
-    // MC 1.16.5: TileEntity tileentity = state.hasTileEntity() ? worldIn.getTileEntity(pos) : null;
-    //           Block.spawnDrops(state, worldIn, pos, tileentity);
-    //
-    // 水替换方块时，生成方块掉落物。
-
+    // 水替换方块时，生成方块掉落物
     if (state == nullptr || state->isAir()) {
         return;
     }

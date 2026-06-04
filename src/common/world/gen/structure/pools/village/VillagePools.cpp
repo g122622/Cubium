@@ -98,21 +98,17 @@ void VillagePools::registerCommonPools(JigsawPatternRegistry& registry)
 {
     // ========================================================================
     // village/common/animals - 村庄动物池
-    // MC 1.16.5: VillagePools.field_244091_a
     // ========================================================================
     auto animals = std::make_unique<JigsawPattern>(
         ResourceLocation("minecraft", "village/common/animals"), ResourceLocation("minecraft", "empty"));
 
-    // MC 1.16.5: animals/cows_1 (weight: 7), animals/pigs_1 (weight: 7)
-    // animals/horses_1~5 (weight: 1 each), animals/sheep_1~2 (weight: 1 each)
-    // empty (weight: 5)
-    // 注：动物池需要 FeatureJigsawPiece 支持，当前使用空元素占位
+    // 动物池需要 FeatureJigsawPiece 支持，当前使用空元素占位
     animals->addPiece(makeEmptyPiece(), 7); // cows placeholder
     animals->addPiece(makeEmptyPiece(), 7); // pigs placeholder
-    for (int i = 0; i < 5; ++i) {
+    for (i32 i = 0; i < 5; ++i) {
         animals->addPiece(makeEmptyPiece(), 1); // horses placeholder
     }
-    for (int i = 0; i < 2; ++i) {
+    for (i32 i = 0; i < 2; ++i) {
         animals->addPiece(makeEmptyPiece(), 1); // sheep placeholder
     }
     animals->addPiece(makeEmptyPiece(), 5);
@@ -120,7 +116,6 @@ void VillagePools::registerCommonPools(JigsawPatternRegistry& registry)
 
     // ========================================================================
     // village/common/sheep - 羊池
-    // MC 1.16.5: VillagePools.field_244092_b
     // ========================================================================
     auto sheep = std::make_unique<JigsawPattern>(
         ResourceLocation("minecraft", "village/common/sheep"), ResourceLocation("minecraft", "empty"));
@@ -131,13 +126,12 @@ void VillagePools::registerCommonPools(JigsawPatternRegistry& registry)
 
     // ========================================================================
     // village/common/cats - 猫池
-    // MC 1.16.5: VillagePools.field_244093_c
     // ========================================================================
     auto cats = std::make_unique<JigsawPattern>(
         ResourceLocation("minecraft", "village/common/cats"), ResourceLocation("minecraft", "empty"));
 
-    // MC 1.16.5: 10 种猫各 1，空元素 3
-    for (int i = 0; i < 10; ++i) {
+    // 10 种猫各 1，空元素 3
+    for (i32 i = 0; i < 10; ++i) {
         cats->addPiece(makeEmptyPiece(), 1);
     }
     cats->addPiece(makeEmptyPiece(), 3);
@@ -145,7 +139,6 @@ void VillagePools::registerCommonPools(JigsawPatternRegistry& registry)
 
     // ========================================================================
     // village/common/butcher_animals - 屠夫动物池
-    // MC 1.16.5: VillagePools.field_244094_d
     // ========================================================================
     auto butcherAnimals = std::make_unique<JigsawPattern>(
         ResourceLocation("minecraft", "village/common/butcher_animals"), ResourceLocation("minecraft", "empty"));
@@ -158,7 +151,6 @@ void VillagePools::registerCommonPools(JigsawPatternRegistry& registry)
 
     // ========================================================================
     // village/common/iron_golem - 铁傀儡池
-    // MC 1.16.5: VillagePools.field_244095_e
     // ========================================================================
     auto ironGolem = std::make_unique<JigsawPattern>(
         ResourceLocation("minecraft", "village/common/iron_golem"), ResourceLocation("minecraft", "empty"));
@@ -168,7 +160,6 @@ void VillagePools::registerCommonPools(JigsawPatternRegistry& registry)
 
     // ========================================================================
     // village/common/well_bottoms - 井底池
-    // MC 1.16.5: VillagePools.field_244096_f
     // ========================================================================
     auto wellBottoms = std::make_unique<JigsawPattern>(
         ResourceLocation("minecraft", "village/common/well_bottoms"), ResourceLocation("minecraft", "empty"));
@@ -192,23 +183,18 @@ void registerAll(JigsawPatternRegistry& registry)
 {
     // ========================================================================
     // village/plains/town_centers - 起始池
-    // MC 1.16.5: PlainsVillagePools.field_244090_a
     // ========================================================================
     auto townCenters = std::make_unique<JigsawPattern>(
         ResourceLocation("minecraft", "village/plains/town_centers"), ResourceLocation("minecraft", "empty"));
 
-    // MC 1.16.5: 正常村庄中心
-    // plains_fountain_01 (weight: 50, mossify 20%)
-    // plains_meeting_point_1 (weight: 50, mossify 20%)
-    // plains_meeting_point_2 (weight: 50, no processor)
-    // plains_meeting_point_3 (weight: 50, mossify 20%)
+    // 正常村庄中心
     // 注：当前 SingleJigsawPiece 不支持处理器列表，后续需要扩展
     townCenters->addPiece(makeSinglePiece("minecraft:village/plains/town_centers/plains_fountain_01"), 50);
     townCenters->addPiece(makeSinglePiece("minecraft:village/plains/town_centers/plains_meeting_point_1"), 50);
     townCenters->addPiece(makeSinglePiece("minecraft:village/plains/town_centers/plains_meeting_point_2"), 50);
     townCenters->addPiece(makeSinglePiece("minecraft:village/plains/town_centers/plains_meeting_point_3"), 50);
 
-    // MC 1.16.5: 僵尸村庄中心 (weight: 1 each)
+    // 僵尸村庄中心
     townCenters->addPiece(makeSinglePiece("minecraft:village/plains/zombie/town_centers/plains_fountain_01"), 1);
     townCenters->addPiece(makeSinglePiece("minecraft:village/plains/zombie/town_centers/plains_meeting_point_1"), 1);
     townCenters->addPiece(makeSinglePiece("minecraft:village/plains/zombie/town_centers/plains_meeting_point_2"), 1);
@@ -218,13 +204,12 @@ void registerAll(JigsawPatternRegistry& registry)
 
     // ========================================================================
     // village/plains/streets - 街道池
-    // MC 1.16.5: PlainsVillagePools 静态块
     // fallback: village/plains/terminators
     // ========================================================================
     auto streets = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/plains/streets"),
         ResourceLocation("minecraft", "village/plains/terminators"));
 
-    // MC 1.16.5: 街道模板
+    // 街道模板
     streets->addPiece(makeSinglePiece("minecraft:village/plains/streets/corner_01"), 2);
     streets->addPiece(makeSinglePiece("minecraft:village/plains/streets/corner_02"), 2);
     streets->addPiece(makeSinglePiece("minecraft:village/plains/streets/corner_03"), 2);
@@ -276,7 +261,7 @@ void registerAll(JigsawPatternRegistry& registry)
     auto houses = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/plains/houses"),
         ResourceLocation("minecraft", "village/plains/terminators"));
 
-    // MC 1.16.5: 小型房屋 (weight: 2 each)
+    // 小型房屋
     houses->addPiece(makeSinglePiece("minecraft:village/plains/houses/small_house_1"), 2);
     houses->addPiece(makeSinglePiece("minecraft:village/plains/houses/small_house_2"), 2);
     houses->addPiece(makeSinglePiece("minecraft:village/plains/houses/small_house_3"), 2);
@@ -462,7 +447,6 @@ void registerAll(JigsawPatternRegistry& registry)
 
 // ============================================================================
 // DesertVillagePools 实现
-// 参考 MC 1.16.5: DesertVillagePools.java
 // ============================================================================
 
 namespace DesertVillagePools {
@@ -471,7 +455,7 @@ void registerAll(JigsawPatternRegistry& registry)
 {
     // ========================================================================
     // village/desert/town_centers - 起始池
-    // MC 1.16.5: 正常村庄中心 (meeting_point_1: 98, meeting_point_2: 98, meeting_point_3: 49)
+    // 正常村庄中心
     // 僵尸村庄中心 (zombie meeting_point: 2, 2, 1)
     // ========================================================================
     auto townCenters = std::make_unique<JigsawPattern>(
@@ -491,7 +475,6 @@ void registerAll(JigsawPatternRegistry& registry)
 
     // ========================================================================
     // village/desert/streets - 街道池
-    // MC 1.16.5: 使用 TerrainMatching 放置行为
     // ========================================================================
     auto streets = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/desert/streets"),
         ResourceLocation("minecraft", "village/desert/terminators"));
@@ -695,7 +678,6 @@ void registerAll(JigsawPatternRegistry& registry)
 
 // ============================================================================
 // SavannaVillagePools 实现
-// 参考 MC 1.16.5: SavannaVillagePools.java
 // ============================================================================
 
 namespace SavannaVillagePools {
@@ -704,7 +686,7 @@ void registerAll(JigsawPatternRegistry& registry)
 {
     // ========================================================================
     // village/savanna/town_centers - 起始池
-    // MC 1.16.5: meeting_point_1: 100, meeting_point_2: 50, meeting_point_3: 150, meeting_point_4: 150
+    // 正常村庄
     // 僵尸: meeting_point_1: 2, meeting_point_2: 1, meeting_point_3: 3, meeting_point_4: 3
     // ========================================================================
     auto townCenters = std::make_unique<JigsawPattern>(
@@ -970,7 +952,6 @@ void registerAll(JigsawPatternRegistry& registry)
 
 // ============================================================================
 // SnowyVillagePools 实现
-// 参考 MC 1.16.5: SnowyVillagePools.java
 // ============================================================================
 
 namespace SnowyVillagePools {
@@ -979,7 +960,7 @@ void registerAll(JigsawPatternRegistry& registry)
 {
     // ========================================================================
     // village/snowy/town_centers - 起始池
-    // MC 1.16.5: meeting_point_1: 100, meeting_point_2: 50, meeting_point_3: 150
+    // 正常村庄中心
     // 僵尸: meeting_point_1: 2, meeting_point_2: 1, meeting_point_3: 3
     // ========================================================================
     auto townCenters = std::make_unique<JigsawPattern>(
@@ -1223,7 +1204,6 @@ void registerAll(JigsawPatternRegistry& registry)
 
 // ============================================================================
 // TaigaVillagePools 实现
-// 参考 MC 1.16.5: TaigaVillagePools.java
 // ============================================================================
 
 namespace TaigaVillagePools {
@@ -1232,7 +1212,7 @@ void registerAll(JigsawPatternRegistry& registry)
 {
     // ========================================================================
     // village/taiga/town_centers - 起始池
-    // MC 1.16.5: meeting_point_1: 49, meeting_point_2: 49 (10% mossy)
+    // 正常村庄
     // 僵尸: meeting_point_1: 1, meeting_point_2: 1
     // ========================================================================
     auto townCenters = std::make_unique<JigsawPattern>(

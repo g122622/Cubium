@@ -31,7 +31,6 @@ namespace mc::scoreboard {
  * @brief 击杀计数判据基类
  *
  * 当玩家击杀实体时自动增加分数。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScoreCriteria
  */
 class KillCountCriteria : public ScoreCriteria {
 public:
@@ -59,7 +58,6 @@ protected:
  * @brief 玩家击杀计数判据
  *
  * 当玩家击杀其他玩家时自动增加分数。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScoreCriteria.PLAYER_KILL_COUNT
  */
 class PlayerKillCountCriteria : public KillCountCriteria {
 public:
@@ -72,7 +70,6 @@ public:
  * @brief 总击杀计数判据
  *
  * 当玩家击杀任何实体时自动增加分数。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScoreCriteria.TOTAL_KILL_COUNT
  */
 class TotalKillCountCriteria : public KillCountCriteria {
 public:

@@ -42,7 +42,7 @@ ZipResourcePack::ZipResourcePack(std::filesystem::path zipPath)
     , m_name(m_zipPath.stem().string())
 {}
 
-ZipResourcePack::~ZipResourcePack() = default;
+ZipResourcePack::~ZipResourcePack() noexcept = default;
 
 // ============================================================================
 // 静态工厂方法
@@ -99,7 +99,7 @@ Result<void> ZipResourcePack::initialize()
     while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
         const char* pathname = archive_entry_pathname(entry);
         if (pathname && *pathname) {
-            std::string normalizedPath = normalizePath(pathname);
+            std::string normalizedPath = _normalizePath(pathname);
             // 跳过目录条目
             if (!normalizedPath.empty() && normalizedPath.back() != '/') {
                 m_entries.insert(std::move(normalizedPath));
@@ -137,7 +137,7 @@ Result<void> ZipResourcePack::initialize()
 
 bool ZipResourcePack::hasResource(resource::PackType type, std::string_view resourcePath) const
 {
-    const std::string normalized = makeTypedPath(type, resourcePath);
+    const std::string normalized = _makeTypedPath(type, resourcePath);
     return m_entries.find(normalized) != m_entries.end();
 }
 
@@ -147,7 +147,7 @@ Result<std::vector<u8>> ZipResourcePack::readResource(resource::PackType type, s
     if (resourcePath == "../pack.mcmeta") {
         normalized = "pack.mcmeta";
     } else {
-        normalized = makeTypedPath(type, resourcePath);
+        normalized = _makeTypedPath(type, resourcePath);
     }
 
     // 先查缓存，避免并发读取时重复解压同一个条目
@@ -186,7 +186,7 @@ Result<std::vector<u8>> ZipResourcePack::readResource(resource::PackType type, s
 
     while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
         const char* pathname = archive_entry_pathname(entry);
-        if (pathname && normalizePath(pathname) == normalized) {
+        if (pathname && _normalizePath(pathname) == normalized) {
             // 找到目标条目，读取数据
             la_int64_t size = archive_entry_size(entry);
             if (size > 0) {
@@ -219,7 +219,7 @@ Result<std::vector<std::string>> ZipResourcePack::listResources(
     resource::PackType type, std::string_view directory, std::string_view extension) const
 {
     std::vector<std::string> resources;
-    std::string normalizedDir = makeTypedPath(type, directory);
+    std::string normalizedDir = _makeTypedPath(type, directory);
 
     // 确保目录以斜杠结尾
     if (!normalizedDir.empty() && normalizedDir.back() != '/') {
@@ -292,7 +292,7 @@ void ZipResourcePack::clearCache()
 // 私有方法
 // ============================================================================
 
-std::string ZipResourcePack::normalizePath(std::string_view path)
+std::string ZipResourcePack::_normalizePath(std::string_view path)
 {
     std::string result(path);
 
@@ -307,9 +307,9 @@ std::string ZipResourcePack::normalizePath(std::string_view path)
     return result;
 }
 
-std::string ZipResourcePack::makeTypedPath(resource::PackType type, std::string_view path)
+std::string ZipResourcePack::_makeTypedPath(resource::PackType type, std::string_view path)
 {
-    return normalizePath(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(path));
+    return _normalizePath(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(path));
 }
 
 } // namespace mc

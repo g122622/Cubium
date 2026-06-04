@@ -226,12 +226,12 @@ void placeCoralDecorations(WorldGenRegion& world,
         return;
     }
 
-    // 参考 MC CoralFeature.java 第28-37行
+    // 放置珊瑚装饰（珊瑚扇和海泡菜）
     const BlockPos topPos(pos.x, pos.y + 1, pos.z);
     if (isWaterAt(world, topPos)) {
-        // MC第33行：25%概率放珊瑚扇
+        // 25%概率放珊瑚扇
         if (random.nextFloat() < 0.25f) {
-            // MC第35行：在珊瑚扇基础上，5%概率放海泡菜而不是珊瑚扇
+            // 在珊瑚扇基础上，5%概率放海泡菜而不是珊瑚扇
             if (VanillaBlocks::SEA_PICKLE != nullptr && random.nextFloat() < 0.05f) {
                 const i32 pickleCount = random.nextInt(4) + 1;
                 const BlockState* pickleState =
@@ -243,7 +243,7 @@ void placeCoralDecorations(WorldGenRegion& world,
         }
     }
 
-    // MC第39-46行：水平方向20%概率放墙珊瑚扇
+    // 水平方向20%概率放墙珊瑚扇
     const auto horizontalDirections = Directions::horizontal();
     for (Direction horizontal : horizontalDirections) {
         if (random.nextFloat() >= 0.20f) {
@@ -255,7 +255,7 @@ void placeCoralDecorations(WorldGenRegion& world,
             continue;
         }
 
-        // 参考 MC CoralFeature.java 第43行：FACING应为direction而非opposite
+        // FACING应为direction而非opposite
         if (const BlockState* wallFanState = getCoralWallFanState(color, horizontal, isDead); wallFanState != nullptr) {
             world.setBlockState(sidePos, wallFanState);
         }
@@ -287,8 +287,8 @@ bool CoralFeature::place(
     WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config)
 {
     // 在当前区块内随机选择一个 X/Z，使用海底高度图定位珊瑚基点。
-    const i32 placeX = pos.x + random.nextInt(16);
-    const i32 placeZ = pos.z + random.nextInt(16);
+    const i32 placeX = pos.x + random.nextInt(world::CHUNK_WIDTH);
+    const i32 placeZ = pos.z + random.nextInt(world::CHUNK_WIDTH);
     const i32 oceanFloorY = findOceanFloorY(world, placeX, placeZ);
     if (oceanFloorY <= 0) {
         return false;
@@ -297,11 +297,11 @@ bool CoralFeature::place(
     const BlockPos placePos(placeX, oceanFloorY + 1, placeZ);
 
     // 检查是否可以放置
-    if (!canPlaceAt(world, placePos)) {
+    if (!_canPlaceAt(world, placePos)) {
         return false;
     }
 
-    // 与原版一致，随机选择三类珊瑚结构之一。
+    // 随机选择三类珊瑚结构之一
     bool placed = false;
     switch (random.nextInt(3)) {
         case 0: {
@@ -328,10 +328,10 @@ bool CoralFeature::place(
     return placed;
 }
 
-bool CoralFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
+bool CoralFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
     // 检查位置是否为水
-    if (!isWater(world, pos)) {
+    if (!_isWater(world, pos)) {
         return false;
     }
 
@@ -347,7 +347,7 @@ bool CoralFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
     return belowState->owner().isSolid(*belowState);
 }
 
-bool CoralFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
+bool CoralFeature::_isWater(WorldGenRegion& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (!state) {
@@ -362,12 +362,12 @@ bool CoralFeature::isWater(WorldGenRegion& world, const BlockPos& pos) const
     return false;
 }
 
-void CoralFeature::placeCoralBlock(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color) const
+void CoralFeature::_placeCoralBlock(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color) const
 {
     [[maybe_unused]] const bool placed = placeCoralBase(world, pos, color, false);
 }
 
-void CoralFeature::placeCoralFan(
+void CoralFeature::_placeCoralFan(
     WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, Direction direction) const
 {
     if (!isWaterAt(world, pos)) {
@@ -393,7 +393,6 @@ void CoralFeature::placeCoralFan(
 bool CoralTreeFeature::place(
     WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config)
 {
-    // 参考 MC CoralTreeFeature.java 第18-52行
     const i32 trunkHeight = random.nextInt(3) + 1;
 
     BlockPos topPos = pos;
@@ -411,26 +410,26 @@ bool CoralTreeFeature::place(
         return false;
     }
 
-    // MC第31行：nextInt(3) + 2，即2-4个分支
+    // 2-4个分支
     const auto horizontalDirections = Directions::horizontal();
     const i32 branchCount = random.nextInt(3) + 2;
     for (i32 i = 0; i < branchCount; ++i) {
         const Direction direction = horizontalDirections[static_cast<size_t>(random.nextInt(4))];
-        // MC第38行：分支长度nextInt(5) + 2，即2-6
-        generateBranch(world,
+        // 分支长度2-6
+        _generateBranch(world,
             random,
             topPos,
             config.color,
             config.isDead,
             direction,
-            random.nextInt(5) + 2, // 修正：应为2-6而非2-4
+            random.nextInt(5) + 2,
             config.includeWallFan);
     }
 
     return true;
 }
 
-void CoralTreeFeature::generateBranch(WorldGenRegion& world,
+void CoralTreeFeature::_generateBranch(WorldGenRegion& world,
     math::Random& random,
     const BlockPos& pos,
     blocks::CoralColor color,
@@ -476,12 +475,12 @@ bool CoralMushroomFeature::place(
 
     const BlockPos capPos(pos.x, pos.y + stemHeight, pos.z);
     const i32 radius = random.nextInt(2) + 2;
-    generateCap(world, random, capPos, config.color, config.isDead, radius, config.includeWallFan);
+    _generateCap(world, random, capPos, config.color, config.isDead, radius, config.includeWallFan);
 
     return true;
 }
 
-void CoralMushroomFeature::generateCap(WorldGenRegion& world,
+void CoralMushroomFeature::_generateCap(WorldGenRegion& world,
     math::Random& random,
     const BlockPos& pos,
     blocks::CoralColor color,
@@ -489,8 +488,7 @@ void CoralMushroomFeature::generateCap(WorldGenRegion& world,
     i32 radius,
     bool includeDecorations)
 {
-    // 参考 MC CoralMushroomFeature.java 第27行
-    // MC使用复杂的边界检测逻辑来生成蘑菇形状
+    // 生成蘑菇形状的珊瑚盖
     const i32 i = radius + 1; // X范围
     const i32 j = radius;     // Y范围
     const i32 k = radius + 1; // Z范围
@@ -501,7 +499,7 @@ void CoralMushroomFeature::generateCap(WorldGenRegion& world,
             for (i32 k1 = 0; k1 <= k; ++k1) {
                 BlockPos capPos(pos.x + i1, pos.y + j1 - l, pos.z + k1);
 
-                // MC第27行的复杂条件
+                // 复杂边界条件生成蘑菇形状
                 const bool cond1 = (i1 != 0 && i1 != i) || (j1 != 0 && j1 != j);
                 const bool cond2 = (k1 != 0 && k1 != k) || (j1 != 0 && j1 != j);
                 const bool cond3 = (i1 != 0 && i1 != i) || (k1 != 0 && k1 != k);
@@ -535,7 +533,7 @@ bool CoralClawFeature::place(
 
     for (Direction direction : clawDirections) {
         if (random.nextFloat() < 0.75f) {
-            generateClaw(world, random, pos, config.color, config.isDead, direction, config.includeWallFan);
+            _generateClaw(world, random, pos, config.color, config.isDead, direction, config.includeWallFan);
             placedAny = true;
         }
     }
@@ -543,7 +541,7 @@ bool CoralClawFeature::place(
     return placedAny;
 }
 
-void CoralClawFeature::generateClaw(WorldGenRegion& world,
+void CoralClawFeature::_generateClaw(WorldGenRegion& world,
     math::Random& random,
     const BlockPos& pos,
     blocks::CoralColor color,

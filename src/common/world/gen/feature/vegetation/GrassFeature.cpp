@@ -22,11 +22,12 @@
  */
 
 #include "GrassFeature.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../WorldConstants.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
+
+#include "common/util/math/random/Random.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 
 namespace mc {
 
@@ -78,7 +79,7 @@ bool GrassFeature::place(
         BlockPos placePos(basePos.x + dx, basePos.y + dy, basePos.z + dz);
 
         // 检查是否可以放置
-        if (canPlaceAt(world, placePos, config)) {
+        if (_canPlaceAt(world, placePos, config)) {
             const BlockState* state = config.getRandomState(random);
             if (state) {
                 world.setBlockState(placePos, state);
@@ -90,7 +91,7 @@ bool GrassFeature::place(
     return placedCount > 0;
 }
 
-bool GrassFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const GrassFeatureConfig& config) const
+bool GrassFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const GrassFeatureConfig& config) const
 {
     const BlockState* state = world.getBlockState(pos);
 
@@ -103,7 +104,7 @@ bool GrassFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const 
 
     // 检查下方方块
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    if (!isValidGround(world, belowPos)) {
+    if (!_isValidGround(world, belowPos)) {
         return false;
     }
 
@@ -127,7 +128,7 @@ bool GrassFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const 
     return true;
 }
 
-bool GrassFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos) const
+bool GrassFeature::_isValidGround(WorldGenRegion& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (!state) return false;

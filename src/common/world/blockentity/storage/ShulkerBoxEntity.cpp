@@ -57,8 +57,6 @@ namespace {
 
 /**
  * @brief 计算实体推动区域。
- *
- * 参考: ShulkerBoxTileEntity.getTopBoundingBox(Direction)
  */
 [[nodiscard]] AxisAlignedBB getTopBoundingBox(const BlockPos& pos, Direction facing)
 {
@@ -95,7 +93,7 @@ ShulkerBoxEntity::ShulkerBoxEntity(const BlockPos& pos)
     , m_inventory(SHULKER_BOX_SIZE)
 {}
 
-ShulkerBoxEntity::~ShulkerBoxEntity() = default;
+ShulkerBoxEntity::~ShulkerBoxEntity() noexcept = default;
 
 f32 ShulkerBoxEntity::getProgress(f32 partialTick) const
 {
@@ -134,26 +132,26 @@ void ShulkerBoxEntity::closeContainer(Player* player)
 
 bool ShulkerBoxEntity::canOpen(IWorld& world) const
 {
-    return checkCanOpen(world);
+    return _checkCanOpen(world);
 }
 
 void ShulkerBoxEntity::tick(IWorld& world)
 {
     // 缓存朝向（仅首次或朝向未初始化时）
     if (m_cachedFacing == Direction::None) {
-        cacheFacing(world);
+        _cacheFacing(world);
     }
 
-    // MC 1.16.5: 先更新动画状态
-    updateAnimation(0.0f);
+    // 先更新动画状态
+    _updateAnimation(0.0f);
 
-    // MC 1.16.5: 在 Opening 或 Closing 状态时推动实体
+    // 在 Opening 或 Closing 状态时推动实体
     if (m_animationStatus == AnimationStatus::Opening || m_animationStatus == AnimationStatus::Closing) {
-        moveCollidedEntities(world, m_cachedFacing);
+        _moveCollidedEntities(world, m_cachedFacing);
     }
 }
 
-void ShulkerBoxEntity::updateAnimation(f32 partialTick)
+void ShulkerBoxEntity::_updateAnimation(f32 partialTick)
 {
     MC_UNUSED(partialTick);
 
@@ -187,7 +185,7 @@ void ShulkerBoxEntity::updateAnimation(f32 partialTick)
     }
 }
 
-void ShulkerBoxEntity::moveCollidedEntities(IWorld& world, Direction facing)
+void ShulkerBoxEntity::_moveCollidedEntities(IWorld& world, Direction facing)
 {
     if (facing == Direction::None) {
         return;
@@ -251,7 +249,7 @@ void ShulkerBoxEntity::moveCollidedEntities(IWorld& world, Direction facing)
     }
 }
 
-void ShulkerBoxEntity::cacheFacing(IWorld& world)
+void ShulkerBoxEntity::_cacheFacing(IWorld& world)
 {
     const BlockState* state = world.getBlockState(m_pos);
     if (state == nullptr) {
@@ -263,7 +261,7 @@ void ShulkerBoxEntity::cacheFacing(IWorld& world)
     }
 }
 
-bool ShulkerBoxEntity::checkCanOpen(IWorld& world) const
+bool ShulkerBoxEntity::_checkCanOpen(IWorld& world) const
 {
     const AxisAlignedBB openSpace = makeShulkerOpenSpaceBox(m_pos);
     const std::vector<Entity*> collidingEntities = world.getEntitiesInAABB(openSpace, nullptr);
@@ -316,7 +314,7 @@ i32 ShulkerBoxEntity::getComparatorSignal(IWorld& world) const
 {
     MC_UNUSED(world);
 
-    // MC 1.16.5: 比较器信号计算 - 基于填充比例
+    // 比较器信号计算 - 基于填充比例
     // 信号强度 = floor(填充槽位数 / 总槽位数 * 14) + (有物品 ? 1 : 0)
     i32 filledSlots = 0;
     i32 totalCount = 0;
@@ -342,8 +340,7 @@ i32 ShulkerBoxEntity::getComparatorSignal(IWorld& world) const
 std::vector<i32> ShulkerBoxEntity::getSlotsForFace(Direction side) const
 {
     MC_UNUSED(side);
-    // MC 1.16.5: 潜影盒可以从任意方向访问所有槽位
-    // SLOTS = IntStream.range(0, 27).toArray()
+    // 潜影盒可以从任意方向访问所有槽位
     // 使用静态常量避免每次调用都分配 vector
     static const std::vector<i32> allSlots = []() {
         std::vector<i32> slots;
@@ -361,8 +358,7 @@ bool ShulkerBoxEntity::canInsertItem(i32 slot, const ItemStack& stack, Direction
     MC_UNUSED(slot);
     MC_UNUSED(direction);
 
-    // MC 1.16.5: 潜影盒不能插入另一个潜影盒（防止递归）
-    // return !(Block.getBlockFromItem(itemStackIn.getItem()) instanceof ShulkerBoxBlock);
+    // 潜影盒不能插入另一个潜影盒（防止递归）
     if (stack.isEmpty()) {
         return false;
     }
@@ -384,7 +380,7 @@ bool ShulkerBoxEntity::canExtractItem(i32 slot, const ItemStack& stack, Directio
     MC_UNUSED(slot);
     MC_UNUSED(stack);
     MC_UNUSED(direction);
-    // MC 1.16.5: 潜影盒可以从任意方向提取任意物品
+    // 潜影盒可以从任意方向提取任意物品
     return true;
 }
 

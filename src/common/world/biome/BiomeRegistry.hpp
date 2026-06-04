@@ -79,11 +79,11 @@ private:
     std::vector<bool> m_registered;
     Biome m_defaultBiome;
 
-    void registerDefaultBiomes();
+    void _registerDefaultBiomes();
 };
 
 // ============================================================================
-// 生物群系工厂函数（参考 MC BiomeMaker）
+// 生物群系工厂函数
 // ============================================================================
 
 namespace BiomeFactory {
@@ -355,12 +355,6 @@ Biome createMushroomFields();
 Biome createMushroomFieldShore();
 
 /**
- * @brief 创建冰刺之地生物群系
- * @note depth=0.4375, scale=0.05
- */
-Biome createIceSpikes();
-
-/**
  * @brief 创建沙漠丘陵生物群系
  * @note depth=0.225, scale=0.25
  */
@@ -460,7 +454,7 @@ Biome createGiantTreeTaigaHillsBiome();
 Biome createSnowyTaigaHills();
 
 // ============================================================================
-// 下界生物群系 (MC 1.16 新增)
+// 下界生物群系
 // ============================================================================
 
 /**

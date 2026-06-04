@@ -21,9 +21,9 @@
  *
  */
 
-#include "BiomeProvider.hpp"
-#include "../../util/math/random/Random.hpp"
-#include "BiomeRegistry.hpp"
+#include "common/world/biome/BiomeProvider.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
 #include <cmath>
 
 namespace mc {
@@ -50,7 +50,6 @@ std::optional<BlockPos> BiomeProvider::findBiome(i32 centerX,
     math::Random& random,
     bool stopOnFirst) const
 {
-    // 参考 MC 1.16.5 BiomeProvider.func_230321_a_
     // 噪声坐标 = 方块坐标 / 4（每个噪声单元是 4x4 方块）
     i32 noiseX = centerX >> 2;
     i32 noiseZ = centerZ >> 2;

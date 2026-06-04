@@ -22,12 +22,12 @@
  */
 
 #include "ContainerPacketHandler.hpp"
-#include "../../entity/entities/player/Player.hpp"
-#include "../../entity/inventory/AbstractContainerMenu.hpp"
-#include "../../entity/inventory/ContainerTypes.hpp"
-#include "../../entity/inventory/PlayerInventory.hpp"
-#include "../../entity/inventory/Slot.hpp"
-#include "item/crafting/RecipeNetworkSerializer.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/AbstractContainerMenu.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/entity/inventory/Slot.hpp"
+#include "common/item/crafting/RecipeNetworkSerializer.hpp"
 
 namespace mc {
 

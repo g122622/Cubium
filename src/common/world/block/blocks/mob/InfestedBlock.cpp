@@ -22,9 +22,9 @@
  */
 
 #include "InfestedBlock.hpp"
-#include "../../../../entity/entities/monster/arthropod/EndermiteEntity.hpp"
-#include "../../../IWorld.hpp"
-#include "../../BlockRegistry.hpp"
+#include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 
 namespace mc {
 namespace blocks {
@@ -42,11 +42,10 @@ InfestedBlock::InfestedBlock(u32 hostBlock, const BlockProperties& properties)
 
 void InfestedBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC 1.16.5: InfestedBlock.spawnAdditionalDrops()
     // 当被破坏时，有概率生成蠹虫
     // 注意：实际生成条件需要检查游戏规则 doTileDrops 和精准采集附魔
     // 这些检查在 onBlockHarvested 或 spawnAdditionalDrops 中进行
-    // 这里简化处理：直接生成蠹虫
+    // TODO: 当前简化处理，应检查游戏规则和精准采集附魔后再决定是否生成蠹虫
 
     MC_UNUSED(state);
 
@@ -55,29 +54,18 @@ void InfestedBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const Blo
         return;
     }
 
-    // MC 1.16.5: 创建蠹虫实体
-    // SilverfishEntity silverfishentity = EntityType.SILVERFISH.create(world);
-    // silverfishentity.setLocationAndAngles(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
-    // world.addEntity(silverfishentity);
-    // silverfishentity.spawnExplosionParticle();
-
+    // 创建蠹虫实体
     auto silverfish = std::make_unique<SilverfishEntity>(EntityId(0));
-    if (silverfish) {
-        // 设置位置（方块中心）
-        silverfish->setPosition(
-            static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
-        silverfish->setRotation(0.0f, 0.0f);
 
-        // 生成到世界
-        world.spawnEntity(std::move(silverfish));
+    // 设置位置（方块中心）
+    silverfish->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
+    silverfish->setRotation(0.0f, 0.0f);
 
-        // MC 1.16.5: 生成爆炸粒子效果
-        // silverfishentity.spawnExplosionParticle()
-        // 注意：粒子效果通过 ServerWorld::addParticle 广播给客户端
-        // 使用 ParticleTypeId::Poof (27) 生成消散效果
-        // 由于此文件在 common 模块，无法直接包含客户端头文件
-        // 粒子效果会在实体生成时由客户端自动处理
-    }
+    // 生成到世界
+    world.spawnEntity(std::move(silverfish));
+
+    // TODO: 生成爆炸粒子效果 (ParticleTypeId::Poof)
+    // 粒子效果通过 ServerWorld::addParticle 广播给客户端
 }
 
 // ========== 静态方法实现 ==========
@@ -98,7 +86,6 @@ void InfestedBlock::initializeMappings()
 
 bool InfestedBlock::canContainSilverfish(const BlockState& state)
 {
-    // MC 1.16.5: return normalToInfectedMap.containsKey(state.getBlock());
     for (const auto& pair : s_hostToInfestedMap) {
         if (pair.first == state.blockId()) {
             return true;
@@ -109,7 +96,6 @@ bool InfestedBlock::canContainSilverfish(const BlockState& state)
 
 const BlockState* InfestedBlock::infest(const Block& block)
 {
-    // MC 1.16.5: return normalToInfectedMap.get(blockIn).getDefaultState();
     for (const auto& pair : s_hostToInfestedMap) {
         if (pair.first == block.blockId()) {
             return &BlockRegistry::instance().getBlock(pair.second)->defaultState();

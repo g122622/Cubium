@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../WorldConfig.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/WorldConfig.hpp"
 #include <chrono>
 #include <filesystem>
 #include <optional>
@@ -224,7 +224,7 @@ struct WorldListEntry {
             return *this;
         }
 
-        WorldListEntry build() const
+        [[nodiscard]] WorldListEntry build() const noexcept
         {
             return WorldListEntry(m_levelId,
                 m_worldDir,

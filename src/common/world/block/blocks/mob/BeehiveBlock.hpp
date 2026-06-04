@@ -46,8 +46,6 @@ namespace blocks {
  * 状态属性：
  * - HONEY_LEVEL_0_5: 蜂蜜等级 (0-5)
  * - FACING: 朝向
- *
- * 参考: net.minecraft.block.BeehiveBlock
  */
 class BeehiveBlock : public Block {
 public:
@@ -58,7 +56,7 @@ public:
 
     [[nodiscard]] i32 getHoneyLevel(const BlockState& state) const;
     [[nodiscard]] BlockState withHoneyLevel(i32 level) const;
-    [[nodiscard]] i32 getMaxHoneyLevel() const { return 5; }
+    [[nodiscard]] i32 getMaxHoneyLevel() const { return 5; } // HONEY_LEVEL_0_5 的最大值
 
     // ========== 放置逻辑 ==========
 

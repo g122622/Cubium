@@ -44,8 +44,6 @@ namespace blocks {
  * 状态属性：
  * - HORIZONTAL_FACING: 朝向（指向丛林原木的方向）
  * - AGE_0_2: 生长阶段 (0-2)
- *
- * 参考: net.minecraft.block.CocoaBlock
  */
 class CocoaBlock : public HorizontalBlock, public IGrowable {
 public:
@@ -144,12 +142,12 @@ private:
     /**
      * @brief 初始化形状缓存
      */
-    void initShapes();
+    void _initShapes();
 
     /**
      * @brief 检查是否可以附着在指定方向
      */
-    [[nodiscard]] bool canAttachTo(IBlockReader& world, const BlockPos& pos, Direction facing) const;
+    [[nodiscard]] bool _canAttachTo(IBlockReader& world, const BlockPos& pos, Direction facing) const;
 };
 
 } // namespace blocks

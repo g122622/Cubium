@@ -22,15 +22,34 @@
  */
 
 #include "StructureBoundingBox.hpp"
+#include "../../../core/Constants.hpp"
 #include "../../../util/Direction.hpp"
 
 namespace mc::world::gen::structure {
 
-StructureBoundingBox StructureBoundingBox::createBox(
-    i32 x, i32 y, i32 z, i32 offsetX, i32 offsetY, i32 offsetZ, i32 sizeX, i32 sizeY, i32 sizeZ, Direction direction)
+StructureBoundingBox StructureBoundingBox::fromChunk(i32 chunkX, i32 chunkZ) noexcept
+{
+    const i32 chunkMinX = chunkX << world::CHUNK_SHIFT;
+    const i32 chunkMinZ = chunkZ << world::CHUNK_SHIFT;
+    const i32 chunkMaxX = chunkMinX + world::CHUNK_WIDTH - 1;
+    const i32 chunkMaxZ = chunkMinZ + world::CHUNK_WIDTH - 1;
+
+    return StructureBoundingBox(
+        chunkMinX, world::MIN_BUILD_HEIGHT, chunkMinZ, chunkMaxX, world::MAX_BUILD_HEIGHT - 1, chunkMaxZ);
+}
+
+StructureBoundingBox StructureBoundingBox::createBox(i32 x,
+    i32 y,
+    i32 z,
+    i32 offsetX,
+    i32 offsetY,
+    i32 offsetZ,
+    i32 sizeX,
+    i32 sizeY,
+    i32 sizeZ,
+    Direction direction) noexcept
 {
 
-    // 参考 MC 1.16.5 MutableBoundingBox.getComponentToAddBoundingBox
     switch (direction) {
         case Direction::North:
             return StructureBoundingBox(x + offsetX,

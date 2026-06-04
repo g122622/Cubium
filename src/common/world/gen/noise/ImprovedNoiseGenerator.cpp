@@ -22,7 +22,7 @@
  */
 
 #include "ImprovedNoiseGenerator.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -35,19 +35,19 @@ namespace mc {
 ImprovedNoiseGenerator::ImprovedNoiseGenerator(u64 seed)
 {
     math::Random rng(seed);
-    initPermutation(rng);
+    _initPermutation(rng);
 }
 
 ImprovedNoiseGenerator::ImprovedNoiseGenerator(math::IRandom& rng)
 {
-    initPermutation(rng);
+    _initPermutation(rng);
 }
 
 // ============================================================================
 // 初始化
 // ============================================================================
 
-void ImprovedNoiseGenerator::initPermutation(math::IRandom& rng)
+void ImprovedNoiseGenerator::_initPermutation(math::IRandom& rng)
 {
     // 初始化排列数组
     for (i32 i = 0; i < 256; ++i) {
@@ -66,7 +66,7 @@ void ImprovedNoiseGenerator::initPermutation(math::IRandom& rng)
         m_p[static_cast<size_t>(i + 256)] = m_permutation[static_cast<size_t>(i)];
     }
 
-    // 设置随机偏移（参考 MC）
+    // 设置随机偏移
     m_xOffset = rng.nextFloat(0.0f, 256.0f);
     m_yOffset = rng.nextFloat(0.0f, 256.0f);
     m_zOffset = rng.nextFloat(0.0f, 256.0f);
@@ -101,7 +101,7 @@ f32 ImprovedNoiseGenerator::noise(f32 x, f32 y, f32 z) const
     return noiseRaw(ix, iy, iz, dx, dy, dz, fx, fy, fz);
 }
 
-f32 ImprovedNoiseGenerator::noise(f32 x, f32 y, f32 z, f32 yScale, f32 yBound) const
+f32 ImprovedNoiseGenerator::noise(f32 x, f32 y, f32 z, f32 yScale, f32 yBound) const noexcept
 {
     // 添加偏移
     x += m_xOffset;
@@ -116,7 +116,7 @@ f32 ImprovedNoiseGenerator::noise(f32 x, f32 y, f32 z, f32 yScale, f32 yBound) c
     // 计算立方体内的小数坐标
     f32 dy = y - static_cast<f32>(iy);
 
-    // Y 轴缩放（参考 MC）
+    // Y 轴缩放
     if (yScale != 0.0f) {
         const f32 clampedY = std::min(yBound, dy);
         dy = std::floor(clampedY / yScale) * yScale;
@@ -134,26 +134,26 @@ f32 ImprovedNoiseGenerator::noise(f32 x, f32 y, f32 z, f32 yScale, f32 yBound) c
 }
 
 f32 ImprovedNoiseGenerator::noiseRaw(
-    i32 x, i32 y, i32 z, f32 deltaX, f32 deltaY, f32 deltaZ, f32 fadeX, f32 fadeY, f32 fadeZ) const
+    i32 x, i32 y, i32 z, f32 deltaX, f32 deltaY, f32 deltaZ, f32 fadeX, f32 fadeY, f32 fadeZ) const noexcept
 {
     // 哈希索引
-    const i32 i0 = getPermut(x);
-    const i32 i1 = getPermut(x + 1);
+    const i32 i0 = _getPermut(x);
+    const i32 i1 = _getPermut(x + 1);
 
-    const i32 j0 = getPermut(i0 + y);
-    const i32 j1 = getPermut(i1 + y);
-    const i32 j2 = getPermut(i0 + y + 1);
-    const i32 j3 = getPermut(i1 + y + 1);
+    const i32 j0 = _getPermut(i0 + y);
+    const i32 j1 = _getPermut(i1 + y);
+    const i32 j2 = _getPermut(i0 + y + 1);
+    const i32 j3 = _getPermut(i1 + y + 1);
 
     // 8 个角的梯度值
-    const f32 n000 = grad(getPermut(j0 + z), deltaX, deltaY, deltaZ);
-    const f32 n100 = grad(getPermut(j1 + z), deltaX - 1.0f, deltaY, deltaZ);
-    const f32 n010 = grad(getPermut(j2 + z), deltaX, deltaY - 1.0f, deltaZ);
-    const f32 n110 = grad(getPermut(j3 + z), deltaX - 1.0f, deltaY - 1.0f, deltaZ);
-    const f32 n001 = grad(getPermut(j0 + z + 1), deltaX, deltaY, deltaZ - 1.0f);
-    const f32 n101 = grad(getPermut(j1 + z + 1), deltaX - 1.0f, deltaY, deltaZ - 1.0f);
-    const f32 n011 = grad(getPermut(j2 + z + 1), deltaX, deltaY - 1.0f, deltaZ - 1.0f);
-    const f32 n111 = grad(getPermut(j3 + z + 1), deltaX - 1.0f, deltaY - 1.0f, deltaZ - 1.0f);
+    const f32 n000 = grad(_getPermut(j0 + z), deltaX, deltaY, deltaZ);
+    const f32 n100 = grad(_getPermut(j1 + z), deltaX - 1.0f, deltaY, deltaZ);
+    const f32 n010 = grad(_getPermut(j2 + z), deltaX, deltaY - 1.0f, deltaZ);
+    const f32 n110 = grad(_getPermut(j3 + z), deltaX - 1.0f, deltaY - 1.0f, deltaZ);
+    const f32 n001 = grad(_getPermut(j0 + z + 1), deltaX, deltaY, deltaZ - 1.0f);
+    const f32 n101 = grad(_getPermut(j1 + z + 1), deltaX - 1.0f, deltaY, deltaZ - 1.0f);
+    const f32 n011 = grad(_getPermut(j2 + z + 1), deltaX, deltaY - 1.0f, deltaZ - 1.0f);
+    const f32 n111 = grad(_getPermut(j3 + z + 1), deltaX - 1.0f, deltaY - 1.0f, deltaZ - 1.0f);
 
     // 三线性插值
     return math::lerp3(fadeX, fadeY, fadeZ, n000, n100, n010, n110, n001, n101, n011, n111);
@@ -163,7 +163,7 @@ f32 ImprovedNoiseGenerator::noiseRaw(
 // 梯度计算
 // ============================================================================
 
-f32 ImprovedNoiseGenerator::grad(i32 hash, f32 x, f32 y, f32 z)
+f32 ImprovedNoiseGenerator::grad(i32 hash, f32 x, f32 y, f32 z) noexcept
 {
     const i32 h = hash & 15;
     const f32* gradVec = PERLIN_GRADIENTS[h];

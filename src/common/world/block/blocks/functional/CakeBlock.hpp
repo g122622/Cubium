@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../Material.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 #include <array>
 
 namespace mc {
@@ -45,8 +45,6 @@ namespace blocks {
  *
  * 状态属性：
  * - BITES_0_6: 已吃的片数 (0-6)
- *
- * 参考: net.minecraft.block.CakeBlock
  */
 class CakeBlock : public Block {
 public:
@@ -91,7 +89,7 @@ public:
         return true;
     }
 
-    [[nodiscard]] int getComparatorInputOverride(
+    [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
     // ========== 工具方法 ==========
@@ -99,7 +97,7 @@ public:
     /**
      * @brief 获取已吃的片数
      */
-    [[nodiscard]] static int getBites(const BlockState& state) { return state.get(BlockStateProperties::BITES_0_6()); }
+    [[nodiscard]] static i32 getBites(const BlockState& state) { return state.get(BlockStateProperties::BITES_0_6()); }
 
     /**
      * @brief 尝试吃蛋糕

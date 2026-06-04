@@ -23,6 +23,7 @@
 
 #include "common/mod/bedrock/addon/pack/AddonManifest.hpp"
 
+#include <algorithm>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -184,35 +185,25 @@ Result<AddonManifest> AddonManifest::loadFromFile(const std::string& path)
     }
 }
 
-bool AddonManifest::hasScriptModule() const
+bool AddonManifest::hasScriptModule() const noexcept
 {
-    for (const auto& module : modules) {
-        if (module.type == AddonModuleType::Script) {
-            return true;
-        }
-    }
-    return false;
+    return std::any_of(modules.begin(), modules.end(), [](const AddonModule& module) {
+        return module.type == AddonModuleType::Script;
+    });
 }
 
 std::vector<AddonModule> AddonManifest::getScriptModules() const
 {
     std::vector<AddonModule> scriptModules;
-    for (const auto& module : modules) {
-        if (module.type == AddonModuleType::Script) {
-            scriptModules.push_back(module);
-        }
-    }
+    std::copy_if(modules.begin(), modules.end(), std::back_inserter(scriptModules), [](const AddonModule& module) {
+        return module.type == AddonModuleType::Script;
+    });
     return scriptModules;
 }
 
-bool AddonManifest::hasCapability(const std::string& cap) const
+bool AddonManifest::hasCapability(const std::string& cap) const noexcept
 {
-    for (const auto& capability : capabilities) {
-        if (capability == cap) {
-            return true;
-        }
-    }
-    return false;
+    return std::find(capabilities.begin(), capabilities.end(), cap) != capabilities.end();
 }
 
 } // namespace mc::mod::bedrock::addon

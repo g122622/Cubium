@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <string>
 #include <vector>
 
@@ -109,12 +109,11 @@ inline const std::vector<std::string> ALL_COLUMN_FAMILIES = {META,
 
 /**
  * @brief 根据维度ID获取Section列族名
- * @param dim 维度ID (MC 1.16.5: 主世界=0, 下界=-1, 末地=1)
+ * @param dim 维度ID (主世界=0, 下界=-1, 末地=1)
  * @return 列族名
  */
-inline const char* getSectionCF(DimensionId dim)
+inline const char* getSectionCF(DimensionId dim) noexcept
 {
-    // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
     switch (dim) {
         case 0:
             return SECTIONS_OVERWORLD;
@@ -129,12 +128,11 @@ inline const char* getSectionCF(DimensionId dim)
 
 /**
  * @brief 根据维度ID获取实体列族名
- * @param dim 维度ID (MC 1.16.5: 主世界=0, 下界=-1, 末地=1)
+ * @param dim 维度ID (主世界=0, 下界=-1, 末地=1)
  * @return 列族名
  */
-inline const char* getEntityCF(DimensionId dim)
+inline const char* getEntityCF(DimensionId dim) noexcept
 {
-    // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
     switch (dim) {
         case 0:
             return ENTITIES_OVERWORLD;
@@ -149,12 +147,11 @@ inline const char* getEntityCF(DimensionId dim)
 
 /**
  * @brief 根据维度ID获取POI列族名
- * @param dim 维度ID (MC 1.16.5: 主世界=0, 下界=-1, 末地=1)
+ * @param dim 维度ID (主世界=0, 下界=-1, 末地=1)
  * @return 列族名
  */
-inline const char* getPoiCF(DimensionId dim)
+inline const char* getPoiCF(DimensionId dim) noexcept
 {
-    // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
     switch (dim) {
         case 0:
             return POI_OVERWORLD;
@@ -169,10 +166,10 @@ inline const char* getPoiCF(DimensionId dim)
 
 /**
  * @brief 根据维度ID获取方块实体列族名
- * @param dim 维度ID (MC 1.16.5: 主世界=0, 下界=-1, 末地=1)
+ * @param dim 维度ID (主世界=0, 下界=-1, 末地=1)
  * @return 列族名
  */
-inline const char* getBlockEntityCF(DimensionId dim)
+inline const char* getBlockEntityCF(DimensionId dim) noexcept
 {
     switch (dim) {
         case 0:

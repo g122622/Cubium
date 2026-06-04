@@ -22,11 +22,11 @@
  */
 
 #include "Pools.hpp"
-#include "village/VillagePools.hpp"
-#include "bastion/BastionPools.hpp"
-#include "pillager_outpost/PillagerOutpostPools.hpp"
 #include "ProcessorLists.hpp"
-#include "resource/ResourceLocation.hpp"
+#include "bastion/BastionPools.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "pillager_outpost/PillagerOutpostPools.hpp"
+#include "village/VillagePools.hpp"
 
 namespace mc {
 namespace world {
@@ -71,11 +71,9 @@ bool Pools::isInitialized()
 
 void Pools::registerEmptyPool(JigsawPatternRegistry& registry)
 {
-    // MC 1.16.5: Pools.EMPTY
     // 空模板池，用于终止 Jigsaw 链
     auto emptyPool = std::make_unique<JigsawPattern>(
-        ResourceLocation("minecraft", "empty"),
-        ResourceLocation("minecraft", "empty")  // fallback 指向自己
+        ResourceLocation("minecraft", "empty"), ResourceLocation("minecraft", "empty") // fallback 指向自己
     );
 
     registry.registerPattern(std::move(emptyPool));

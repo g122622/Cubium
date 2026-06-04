@@ -51,30 +51,27 @@ Result<std::vector<u8>> ServerDifficultyPacket::serialize() const
 Result<void> ServerDifficultyPacket::deserialize(const u8* data, size_t size)
 {
     if (size < expectedSize()) {
-        return Error(ErrorCode::InvalidPacket, "ServerDifficultyPacket: insufficient data");
+        return Error(ErrorCode::InvalidData, "ServerDifficultyPacket: insufficient data");
     }
 
     PacketDeserializer deserializer(data, size);
 
-    // 跳过包头（由上层处理）
-    // 这里直接读取数据
-
     auto difficultyResult = deserializer.readU8();
-    if (difficultyResult.failed()) {
+    if (!difficultyResult.success()) {
         return difficultyResult.error();
     }
     m_difficulty = static_cast<Difficulty>(difficultyResult.value());
 
     auto lockedResult = deserializer.readBool();
-    if (lockedResult.failed()) {
+    if (!lockedResult.success()) {
         return lockedResult.error();
     }
     m_locked = lockedResult.value();
 
-    return Result<void>::ok();
+    return {};
 }
 
-size_t ServerDifficultyPacket::expectedSize() const
+size_t ServerDifficultyPacket::expectedSize() const noexcept
 {
     // difficulty (1 byte) + locked (1 byte)
     return 2;

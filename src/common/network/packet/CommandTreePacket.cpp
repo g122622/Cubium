@@ -28,12 +28,18 @@
 
 namespace mc::network {
 
+// ============================================================================
+// CommandTreePacket 序列化/反序列化实现
+// ============================================================================
+
 Result<std::vector<u8>> CommandTreePacket::serialize() const
 {
-    // 使用 VarInt 编码长度，需要计算实际编码字节数
+    // 计算 VarInt 编码所需的字节数
+    // 字符串长度使用 VarInt 编码，需要计算实际编码字节数
     const size_t jsonSize = std::min(m_treeJson.size(), static_cast<size_t>(MAX_STRING_LENGTH));
     const size_t varIntSize = (jsonSize < 128) ? 1 : (jsonSize < 16384) ? 2 : 3;
 
+    // 预分配缓冲区：VarInt 长度 + JSON 内容
     PacketSerializer serializer(varIntSize + jsonSize);
     serializer.writeString(m_treeJson);
 

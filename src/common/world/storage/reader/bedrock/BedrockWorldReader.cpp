@@ -49,21 +49,28 @@ Result<std::vector<ChunkPos>> BedrockWorldReader::listChunks(DimensionId dimensi
     std::vector<ChunkPos> chunks;
     std::unordered_set<u64> seen;
 
+    // 从字节数组读取小端序32位整数
     auto readLe32 = [](const std::vector<u8>& key, size_t offset) -> i32 {
         return static_cast<i32>(key[offset]) | (static_cast<i32>(key[offset + 1]) << 8) |
             (static_cast<i32>(key[offset + 2]) << 16) | (static_cast<i32>(key[offset + 3]) << 24);
     };
 
+    // 遍历数据库中所有键，查找版本键以确定存在的区块
+    // 基岩版 LevelDB 键格式：
+    // - 主世界: [chunkX(4字节)][chunkZ(4字节)][type(1字节)] = 9字节
+    // - 其他维度: [chunkX(4字节)][chunkZ(4字节)][dimension(4字节)][type(1字节)] = 13字节
     auto iterateResult = db.iteratePrefix(std::vector<u8>{},
         [dimension, &chunks, &seen, &readLe32](const std::vector<u8>& key, const std::vector<u8>& value) -> bool {
             MC_UNUSED(value);
 
             const auto versionType = static_cast<u8>(LevelDBKey::ChunkType::Version);
             if (dimension == 0) {
+                // 主世界键长度为9字节
                 if (key.size() != 9 || key[8] != versionType) {
                     return true;
                 }
             } else {
+                // 其他维度键长度为13字节，且维度ID位于偏移8处
                 if (key.size() != 13 || key[12] != versionType) {
                     return true;
                 }
@@ -72,6 +79,7 @@ Result<std::vector<ChunkPos>> BedrockWorldReader::listChunks(DimensionId dimensi
                 }
             }
 
+            // 提取区块坐标并去重
             const i32 chunkX = readLe32(key, 0);
             const i32 chunkZ = readLe32(key, 4);
             const u64 packed = (static_cast<u64>(static_cast<u32>(chunkX)) << 32) | static_cast<u32>(chunkZ);

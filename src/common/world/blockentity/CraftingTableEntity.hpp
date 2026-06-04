@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <memory>
 #include "entity/inventory/CraftingInventory.hpp" // 包含 CraftingInventory 和 CraftResultInventory
 #include "item/crafting/RecipeManager.hpp"
 #include "world/blockentity/ContainerBlockEntity.hpp"
+#include <memory>
 
 namespace mc {
 

@@ -5,7 +5,7 @@
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software, and
+ * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -31,7 +31,7 @@ namespace mc::world::storage::reader::bedrock {
 using namespace mc::nbt;
 using namespace mc::nbt::tags;
 
-Result<std::unique_ptr<compound_tag>> BedrockLevelDatReader::readBedrockNbt(const std::filesystem::path& filePath)
+Result<std::unique_ptr<compound_tag>> BedrockLevelDatReader::_readBedrockNbt(const std::filesystem::path& filePath)
 {
     std::ifstream file(filePath, std::ios::binary);
     if (!file.is_open()) {
@@ -65,26 +65,26 @@ Result<std::unique_ptr<compound_tag>> BedrockLevelDatReader::readBedrockNbt(cons
 Result<LevelSummaryData> BedrockLevelDatReader::readSummary(const std::filesystem::path& worldDir)
 {
     std::filesystem::path levelDatPath = worldDir / "level.dat";
-    auto rootResult = readBedrockNbt(levelDatPath);
+    auto rootResult = _readBedrockNbt(levelDatPath);
     if (rootResult.failed()) {
         return rootResult.error();
     }
 
-    return parseSummary(*rootResult.value());
+    return _parseSummary(*rootResult.value());
 }
 
 Result<LevelRuntimeData> BedrockLevelDatReader::readRuntimeData(const std::filesystem::path& worldDir)
 {
     std::filesystem::path levelDatPath = worldDir / "level.dat";
-    auto rootResult = readBedrockNbt(levelDatPath);
+    auto rootResult = _readBedrockNbt(levelDatPath);
     if (rootResult.failed()) {
         return rootResult.error();
     }
 
-    return parseRuntimeData(*rootResult.value());
+    return _parseRuntimeData(*rootResult.value());
 }
 
-Result<LevelSummaryData> BedrockLevelDatReader::parseSummary(const compound_tag& root)
+Result<LevelSummaryData> BedrockLevelDatReader::_parseSummary(const compound_tag& root)
 {
     // 基岩版 level.dat 字段
     std::string displayName;
@@ -144,12 +144,12 @@ Result<LevelSummaryData> BedrockLevelDatReader::parseSummary(const compound_tag&
 
     return LevelSummaryData(std::move(displayName),
         lastPlayedMs,
-        parseGameMode(gameType),
-        parseDifficulty(difficulty),
+        _parseGameMode(gameType),
+        _parseDifficulty(difficulty),
         hardcore,
         allowCommands,
         seed,
-        parseWorldType(generatorName),
+        _parseWorldType(generatorName),
         LevelVersionInfo(0, dataVersion, std::move(versionName), false),
         0,
         dataVersion,
@@ -157,9 +157,9 @@ Result<LevelSummaryData> BedrockLevelDatReader::parseSummary(const compound_tag&
         "");
 }
 
-Result<LevelRuntimeData> BedrockLevelDatReader::parseRuntimeData(const compound_tag& root)
+Result<LevelRuntimeData> BedrockLevelDatReader::_parseRuntimeData(const compound_tag& root)
 {
-    auto summaryResult = parseSummary(root);
+    auto summaryResult = _parseSummary(root);
     if (summaryResult.failed()) {
         return summaryResult.error();
     }
@@ -237,7 +237,7 @@ Result<LevelRuntimeData> BedrockLevelDatReader::parseRuntimeData(const compound_
         difficultyLocked);
 }
 
-GameMode BedrockLevelDatReader::parseGameMode(i32 gameType)
+GameMode BedrockLevelDatReader::_parseGameMode(i32 gameType)
 {
     switch (gameType) {
         case 0:
@@ -253,7 +253,7 @@ GameMode BedrockLevelDatReader::parseGameMode(i32 gameType)
     }
 }
 
-Difficulty BedrockLevelDatReader::parseDifficulty(i32 difficulty)
+Difficulty BedrockLevelDatReader::_parseDifficulty(i32 difficulty)
 {
     switch (difficulty) {
         case 0:
@@ -269,7 +269,7 @@ Difficulty BedrockLevelDatReader::parseDifficulty(i32 difficulty)
     }
 }
 
-WorldType BedrockLevelDatReader::parseWorldType(const std::string& generatorName)
+WorldType BedrockLevelDatReader::_parseWorldType(const std::string& generatorName)
 {
     if (generatorName == "flat") {
         return WorldType::Flat;

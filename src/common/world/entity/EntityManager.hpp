@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../entity/core/Entity.hpp"
-#include "../../entity/core/EntityClassification.hpp"
-#include "../../entity/core/EntityTypeIdNumber.hpp"
-#include "../../util/AxisAlignedBB.hpp"
-#include "../../util/math/Vector3.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassification.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -47,8 +47,6 @@ namespace mc {
  * - 实体更新循环
  *
  * 线程安全：所有公共方法都是线程安全的。
- *
- * 参考 MC 1.16.5 World (实体管理部分)
  */
 class EntityManager {
 public:
@@ -186,7 +184,7 @@ private:
     std::vector<EntityId> m_freeIds; // 可重用的ID池
 
     // 内部方法（假设已持有锁）
-    void removeDeadEntitiesInternal();
+    void _removeDeadEntitiesInternal();
 };
 
 } // namespace mc

@@ -22,8 +22,8 @@
  */
 
 #include "EmptyFluid.hpp"
-#include "../../block/VanillaBlocks.hpp"
-#include "../FluidRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
 
 namespace mc {
 namespace fluid {

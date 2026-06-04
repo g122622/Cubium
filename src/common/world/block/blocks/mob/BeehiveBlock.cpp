@@ -36,7 +36,6 @@ BeehiveBlock::BeehiveBlock(const BlockProperties& properties)
 {
 
     // 创建状态容器
-    // MC 1.16.5: BeehiveBlock 有 FACING 和 HONEY_LEVEL 两个属性
     // HONEY_LEVEL 范围 0-5，表示蜂巢中的蜂蜜量
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)

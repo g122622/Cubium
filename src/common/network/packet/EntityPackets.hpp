@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../item/core/ItemStack.hpp"
-#include "../../util/math/Vector3.hpp"
 #include "Packet.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <array>
 #include <memory>
 #include <vector>
@@ -37,8 +37,6 @@ namespace mc::network {
  * @brief 实体生成包
  *
  * 用于生成非生物实体（物品、经验球等）。
- *
- * 参考 MC 1.16.5 SpawnObjectPacket
  */
 class SpawnEntityPacket : public Packet {
 public:
@@ -136,8 +134,6 @@ private:
  * @brief Mob生成包
  *
  * 用于生成Mob实体（动物、怪物等）。
- *
- * 参考 MC 1.16.5 SpawnMobPacket
  */
 class SpawnMobPacket : public Packet {
 public:
@@ -217,8 +213,6 @@ private:
  * @brief 实体数据同步包
  *
  * 同步实体的数据参数（生命值、姿态、状态等）。
- *
- * 参考 MC 1.16.5 EntityMetadataPacket
  */
 class EntityMetadataPacket : public Packet {
 public:
@@ -244,8 +238,6 @@ private:
  * @brief 实体速度包
  *
  * 同步实体的运动速度。
- *
- * 参考 MC 1.16.5 EntityVelocityPacket
  */
 class EntityVelocityPacket : public Packet {
 public:
@@ -281,8 +273,6 @@ private:
  * @brief 实体传送包
  *
  * 传送实体到指定位置。
- *
- * 参考 MC 1.16.5 EntityTeleportPacket
  */
 class EntityTeleportPacket : public Packet {
 public:
@@ -331,8 +321,6 @@ private:
  * @brief 实体销毁包
  *
  * 通知客户端销毁指定实体。
- *
- * 参考 MC 1.16.5 DestroyEntitiesPacket
  */
 class EntityDestroyPacket : public Packet {
 public:
@@ -355,8 +343,6 @@ private:
  * @brief 实体动画包
  *
  * 播放实体动画（挥手、受伤、起床等）。
- *
- * 参考 MC 1.16.5 EntityAnimationPacket
  */
 class EntityAnimationPacket : public Packet {
 public:
@@ -392,8 +378,6 @@ private:
  * @brief 实体相对移动包
  *
  * 同步实体的相对移动。
- *
- * 参考 MC 1.16.5 EntityMovePacket
  */
 class EntityMovePacket : public Packet {
 public:
@@ -443,8 +427,6 @@ private:
  * @brief 实体头部朝向包
  *
  * 同步实体的头部朝向。
- *
- * 参考 MC 1.16.5 EntityHeadLookPacket
  */
 class EntityHeadLookPacket : public Packet {
 public:
@@ -470,8 +452,6 @@ private:
  * @brief 实体状态包
  *
  * 通知客户端实体的状态变化（受伤、死亡等）。
- *
- * 参考 MC 1.16.5 EntityStatusPacket
  */
 class EntityStatusPacket : public Packet {
 public:
@@ -535,8 +515,6 @@ private:
  * 1. 播放物品飞向玩家的动画
  * 2. 播放拾取音效
  * 3. 从世界中移除物品实体
- *
- * 参考 MC 1.16.5 CollectItemPacket
  */
 class CollectItemPacket : public Packet {
 public:
@@ -581,8 +559,6 @@ private:
  *
  * 客户端发送玩家的移动输入给服务端，用于骑乘控制。
  * 包含前后左右移动、跳跃和潜行状态。
- *
- * 参考 MC 1.16.5 CInputPacket
  */
 class PlayerInputPacket : public Packet {
 public:
@@ -635,8 +611,6 @@ private:
  *
  * 客户端发送船的划桨状态给服务端。
  * 仅包含两个布尔值：左桨是否划动、右桨是否划动。
- *
- * 参考 MC 1.16.5 CSteerBoatPacket
  */
 class SteerBoatPacket : public Packet {
 public:
@@ -682,8 +656,6 @@ private:
  *
  * 客户端发送载具（马、船、矿车等）的位置和旋转给服务端。
  * 当玩家骑乘载具时，客户端每tick发送此包同步载具位置。
- *
- * 参考 MC 1.16.5 CMoveVehiclePacket
  */
 class MoveVehiclePacket : public Packet {
 public:
@@ -731,8 +703,6 @@ private:
  *
  * 服务端向客户端同步载具的位置和旋转。
  * 当服务端校正载具位置时发送此包。
- *
- * 参考 MC 1.16.5 SMoveVehiclePacket
  */
 class VehicleMovePacket : public Packet {
 public:
@@ -777,8 +747,6 @@ private:
 
 /**
  * @brief 实体动作类型枚举
- *
- * 参考 MC 1.16.5 CEntityActionPacket.Action
  */
 enum class EntityActionType : i32 {
     PressShiftKey = 0,   // 按下潜行键
@@ -797,8 +765,6 @@ enum class EntityActionType : i32 {
  *
  * 客户端发送实体动作给服务端。
  * 用于潜行、疾跑、马跳跃蓄力等动作。
- *
- * 参考 MC 1.16.5 CEntityActionPacket
  */
 class EntityActionPacket : public Packet {
 public:
@@ -841,8 +807,6 @@ private:
 
 /**
  * @brief 实体交互类型枚举
- *
- * 参考 MC 1.16.5 CUseEntityPacket.Action
  */
 enum class UseEntityAction : u8 {
     Interact = 0,  // 右键交互（不指定位置）
@@ -855,8 +819,6 @@ enum class UseEntityAction : u8 {
  *
  * 客户端发送玩家对实体的交互请求（攻击、右键交互）。
  * 服务端收到后调用 Player::interactOn() 或 Player::attack()。
- *
- * 参考 MC 1.16.5 CUseEntityPacket
  */
 class UseEntityPacket : public Packet {
 public:

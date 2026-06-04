@@ -41,8 +41,6 @@ namespace blocks {
  * - 根据相邻方块自动连接
  * - 四个方向的布尔属性
  * - 支持水logged状态
- *
- * 参考: net.minecraft.block.PaneBlock
  */
 class PaneBlock : public Block, public IWaterLoggable {
 public:
@@ -87,9 +85,8 @@ public:
      * @brief 是否使用形状进行光照遮挡检测
      *
      * 玻璃板/铁栏杆有复杂的形状，需要精确的形状遮挡检测。
-     * 参考: MC 1.16.5 PaneBlock.getRenderShape()
      */
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return true;
@@ -105,7 +102,7 @@ public:
     /**
      * @brief 检查方块是否含水
      */
-    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const noexcept override
     {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
@@ -118,7 +115,7 @@ public:
      * @param facing 方向
      * @return 如果连接返回true
      */
-    [[nodiscard]] static bool connectsTo(const BlockState& state, Direction facing);
+    [[nodiscard]] static bool connectsTo(const BlockState& state, Direction facing) noexcept;
 
 protected:
     /**
@@ -135,7 +132,7 @@ protected:
     /**
      * @brief 计算形状索引
      */
-    [[nodiscard]] static size_t getShapeIndex(bool north, bool east, bool south, bool west);
+    [[nodiscard]] static size_t getShapeIndex(bool north, bool east, bool south, bool west) noexcept;
 
     /// 中心柱形状
     CollisionShape m_centerShape;

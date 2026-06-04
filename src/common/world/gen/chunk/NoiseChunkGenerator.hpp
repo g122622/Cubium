@@ -49,8 +49,7 @@ namespace mc {
 /**
  * @brief 噪声区块生成器
  *
- * 参考 MC NoiseChunkGenerator，使用多层噪声生成地形。
- * 这是主世界和下界的标准地形生成器。
+ * 使用多层噪声生成地形，是主世界和下界的标准地形生成器。
  *
  * 使用方法：
  * @code
@@ -62,8 +61,6 @@ namespace mc {
  * generator.generateNoise(region, primer);
  * generator.buildSurface(region, primer);
  * @endcode
- *
- * @note 参考 MC 1.16.5 NoiseChunkGenerator 实现
  */
 class NoiseChunkGenerator : public BaseChunkGenerator {
 public:
@@ -92,7 +89,7 @@ public:
     [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override;
     [[nodiscard]] BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const override;
     [[nodiscard]] i32 getHeight(i32 x, i32 z, HeightmapType type) const override;
-    [[nodiscard]] i32 getGroundHeight() const override { return 64; }
+    [[nodiscard]] i32 getGroundHeight() const override { return m_settings.seaLevel + 1; }
 
     // === 生物群系提供者 ===
 
@@ -111,7 +108,6 @@ public:
     /**
      * @brief 计算结构片段对地形密度的影响
      *
-     * 参考 MC 1.16.5 func_222556_a（field_222561_h 查找表）
      * 使用 24x24x24 高斯核计算平滑影响值。
      *
      * @param dx X 方向距离（方块坐标差）
@@ -166,7 +162,7 @@ private:
     i32 m_verticalNoiseGranularity;
     i32 m_horizontalNoiseGranularity;
 
-    // === 5x5 权重查找表（参考 MC field_236081_j_）===
+    // === 5x5 权重查找表 ===
     std::array<f32, 25> m_biomeWeights;
 
     // === 核心生成方法 ===
@@ -174,96 +170,92 @@ private:
     /**
      * @brief 填充噪声列
      *
-     * 参考 MC fillNoiseColumn，计算噪声柱的高度值。
-     * 这是地形生成的核心算法。
+     * 计算噪声柱的高度值，这是地形生成的核心算法。
      */
-    void fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ, BiomeWindowCache& biomeWindowCache) const;
+    void _fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ, BiomeWindowCache& biomeWindowCache) const;
 
     /**
      * @brief 计算噪声密度
      *
-     * 参考 MC func_222552_a，计算 3D 噪声采样值。
+     * 计算 3D 噪声采样值。
      */
-    [[nodiscard]] f32 calculateNoiseDensity(
+    [[nodiscard]] f32 _calculateNoiseDensity(
         i32 noiseX, i32 noiseY, i32 noiseZ, f32 xzScale, f32 yScale, f32 xzFactor, f32 yFactor) const;
 
     /**
      * @brief 计算随机密度偏移
      *
-     * 参考 MC func_236095_c_，用于增加地形的随机变化。
+     * 用于增加地形的随机变化。
      */
-    [[nodiscard]] f32 calculateRandomDensityOffset(i32 noiseX, i32 noiseZ) const;
+    [[nodiscard]] f32 _calculateRandomDensityOffset(i32 noiseX, i32 noiseZ) const;
 
     /**
      * @brief 判断密度值对应的方块
      * @return 方块状态指针，nullptr 表示空气
      */
-    [[nodiscard]] const BlockState* getBlockForDensity(f32 density, i32 y) const;
+    [[nodiscard]] const BlockState* _getBlockForDensity(f32 density, i32 y) const;
 
     // === JigsawJunction 地形平滑 ===
 
     /**
      * @brief 收集区块附近的结构片段和 JigsawJunction
      *
-     * 参考 MC 1.16.5 NoiseChunkGenerator.func_230352_b_
      * 收集 12 格范围内的所有 JigsawJunction 用于地形平滑。
      *
      * @param chunk 区块
      * @param outPieces 输出：结构片段列表
      * @param outJunctions 输出：JigsawJunction 列表
      */
-    void collectStructureData(ChunkPrimer& chunk,
+    void _collectStructureData(ChunkPrimer& chunk,
         std::vector<const world::gen::structure::StructurePiece*>& outPieces,
         std::vector<world::gen::jigsaw::JigsawJunction>& outJunctions) const;
 
     /**
      * @brief 初始化高斯查找表
      *
-     * 参考 MC 1.16.5 field_222561_h
      * 预计算 24x24x24 高斯核用于地形平滑。
      */
-    static void initGaussianLUT();
+    static void _initGaussianLUT();
 
 private:
-    void initNoiseGenerators();
-    void initBiomeWeights();
+    void _initNoiseGenerators();
+    void _initBiomeWeights();
 
     /**
      * @brief 初始化洞穴/峡谷雕刻器与概率配置
      *
      * @note 该方法必须在所有构造路径中调用，避免生成阶段出现行为分叉。
      */
-    void initCarvers();
+    void _initCarvers();
 
     /**
      * @brief 初始化结构与放置器注册表
      *
      * @warning 该方法会触发全局注册逻辑，调用方需保证幂等语义。
      */
-    void initGenerationRegistries();
+    void _initGenerationRegistries();
 
     // === 地表生成 ===
 
     /**
      * @brief 采样地表深度噪声
      *
-     * 该方法统一封装 Perlin/Octaves 两种地表噪声路径，
-     * 并尽量对齐 MC 1.16.5 的调用参数。
+     * 该方法统一封装 Perlin/Octaves 两种地表噪声路径。
      */
-    [[nodiscard]] f32 sampleSurfaceDepthNoise(i32 worldX, i32 worldZ, i32 localX) const;
+    [[nodiscard]] f32 _sampleSurfaceDepthNoise(i32 worldX, i32 worldZ, i32 localX) const;
 
     /**
      * @brief 生成顶部/底部基岩层
      *
-     * 参考 MC makeBedrock，使用维度设置中的基岩锚点控制上下基岩。
+     * 使用维度设置中的基岩锚点控制上下基岩。
      */
-    void applyBedrock(ChunkPrimer& chunk, math::Random& random) const;
+    void _applyBedrock(ChunkPrimer& chunk, math::Random& random) const;
 
-    void buildSurfaceForColumn(
+    void _buildSurfaceForColumn(
         ChunkPrimer& chunk, math::Random& random, i32 x, i32 z, i32 startHeight, f32 surfaceNoise, BiomeId biome);
 
 private:
-    // === 24x24x24 高斯查找表（参考 MC field_222561_h）===
+    // === 24x24x24 高斯查找表 ===
     // 预计算的高斯核，用于结构边界地形平滑
     // 索引公式: x * 24 * 24 + y * 24 + z (偏移 +12)
     static std::array<f32, 13824> s_gaussianLUT;

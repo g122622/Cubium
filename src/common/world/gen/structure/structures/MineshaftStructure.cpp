@@ -172,12 +172,12 @@ MineshaftPiece::MineshaftPiece(
     , m_mineshaftType(mineshaftType)
 {}
 
-bool MineshaftPiece::canPlaceAt(i32 /*x*/, i32 y, i32 /*z*/)
+bool MineshaftPiece::_canPlaceAt(i32 /*x*/, i32 y, i32 /*z*/)
 {
     return world::isValidY(y) && y > world::MIN_BUILD_HEIGHT + 4;
 }
 
-void MineshaftPiece::generateSupport(IWorldWriter& world, i32 x, i32 y, i32 z, i32 height, math::Random& rng)
+void MineshaftPiece::_generateSupport(IWorldWriter& world, i32 x, i32 y, i32 z, i32 height, math::Random& rng)
 {
     const BlockState* fenceState = VanillaBlocks::getState(VanillaBlocks::OAK_LOG); // 使用原木代替栅栏
     const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
@@ -240,7 +240,7 @@ void MineshaftRoom::generate(
             i32 x = minX() + dx;
             i32 z = minZ() + dz;
             if (chunkBounds.contains(x, minY() + 1, z)) {
-                generateSupport(world, x, minY() + 1, z, 3, rng);
+                _generateSupport(world, x, minY() + 1, z, 3, rng);
             }
         }
     }
@@ -328,52 +328,51 @@ void MineshaftCorridor::generate(
     if (m_direction == 0 || m_direction == 1) {
         // 南北方向
         for (i32 z = minZ(); z <= maxZ(); ++z) {
-            generateFloor(world, minX(), z, maxX(), z, rng, chunkBounds);
-            generateCeiling(world, minX(), z, maxX(), z, rng, chunkBounds);
+            _generateFloor(world, minX(), z, maxX(), z, rng, chunkBounds);
+            _generateCeiling(world, minX(), z, maxX(), z, rng, chunkBounds);
 
             // 每5格放置支撑柱
             if ((z - minZ()) % 5 == 2) {
                 i32 sectionIndex = (z - minZ()) / 5;
-                generatePillars(world, sectionIndex, rng, chunkBounds);
+                _generatePillars(world, sectionIndex, rng, chunkBounds);
             }
         }
     } else {
         // 东西方向
         for (i32 x = minX(); x <= maxX(); ++x) {
-            generateFloor(world, x, minZ(), x, maxZ(), rng, chunkBounds);
-            generateCeiling(world, x, minZ(), x, maxZ(), rng, chunkBounds);
+            _generateFloor(world, x, minZ(), x, maxZ(), rng, chunkBounds);
+            _generateCeiling(world, x, minZ(), x, maxZ(), rng, chunkBounds);
 
             // 每5格放置支撑柱
             if ((x - minX()) % 5 == 2) {
                 i32 sectionIndex = (x - minX()) / 5;
-                generatePillars(world, sectionIndex, rng, chunkBounds);
+                _generatePillars(world, sectionIndex, rng, chunkBounds);
             }
         }
     }
 
     // 生成铁轨
     if (m_hasRails) {
-        generateRails(world, rng, chunkBounds);
+        _generateRails(world, rng, chunkBounds);
     }
 
     // 生成蜘蛛刷怪笼
     if (m_hasSpiders && !m_spawnerPlaced && rng.nextInt(3) == 0) {
         i32 sx = (minX() + maxX()) / 2;
         i32 sz = (minZ() + maxZ()) / 2;
-        generateSpawner(world, sx, minY() + 1, sz, chunkBounds);
+        _generateSpawner(world, sx, minY() + 1, sz, chunkBounds);
         m_spawnerPlaced = true;
     }
 
-    // 随机生成宝箱矿车
-    // MC 1.16.5: 概率为 1%（nextInt(100) == 0）
+    // 随机生成宝箱矿车（概率为 1%）
     if (rng.nextInt(100) == 0) {
         i32 cx = minX() + rng.nextInt(maxX() - minX());
         i32 cz = minZ() + rng.nextInt(maxZ() - minZ());
-        generateChestMinecart(world, cx, minY() + 1, cz, rng, chunkBounds);
+        _generateChestMinecart(world, cx, minY() + 1, cz, rng, chunkBounds);
     }
 }
 
-void MineshaftCorridor::generateFloor(
+void MineshaftCorridor::_generateFloor(
     IWorldWriter& world, i32 x1, i32 z1, i32 x2, i32 z2, math::Random& rng, const StructureBoundingBox& chunkBounds)
 {
     const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
@@ -399,7 +398,7 @@ void MineshaftCorridor::generateFloor(
     }
 }
 
-void MineshaftCorridor::generateCeiling(
+void MineshaftCorridor::_generateCeiling(
     IWorldWriter& world, i32 x1, i32 z1, i32 x2, i32 z2, math::Random& rng, const StructureBoundingBox& chunkBounds)
 {
     const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
@@ -419,11 +418,9 @@ void MineshaftCorridor::generateCeiling(
     }
 }
 
-void MineshaftCorridor::generatePillars(
+void MineshaftCorridor::_generatePillars(
     IWorldWriter& world, i32 /*sectionIndex*/, math::Random& rng, const StructureBoundingBox& chunkBounds)
 {
-    const BlockState* fenceState = VanillaBlocks::getState(VanillaBlocks::OAK_LOG); // 使用原木代替栅栏
-
     if (m_direction == 0 || m_direction == 1) {
         // 南北方向：支撑柱在东西两侧
         i32 z = minZ() + (m_sectionCount / 2) * 5 + 2;
@@ -431,11 +428,11 @@ void MineshaftCorridor::generatePillars(
 
         // 西侧支撑柱
         if (chunkBounds.contains(minX(), minY() + 1, z)) {
-            generateSupport(world, minX(), minY() + 1, z, 2, rng);
+            _generateSupport(world, minX(), minY() + 1, z, 2, rng);
         }
         // 东侧支撑柱
         if (chunkBounds.contains(maxX(), minY() + 1, z)) {
-            generateSupport(world, maxX(), minY() + 1, z, 2, rng);
+            _generateSupport(world, maxX(), minY() + 1, z, 2, rng);
         }
     } else {
         // 东西方向：支撑柱在南北两侧
@@ -444,16 +441,16 @@ void MineshaftCorridor::generatePillars(
 
         // 北侧支撑柱
         if (chunkBounds.contains(x, minY() + 1, minZ())) {
-            generateSupport(world, x, minY() + 1, minZ(), 2, rng);
+            _generateSupport(world, x, minY() + 1, minZ(), 2, rng);
         }
         // 南侧支撑柱
         if (chunkBounds.contains(x, minY() + 1, maxZ())) {
-            generateSupport(world, x, minY() + 1, maxZ(), 2, rng);
+            _generateSupport(world, x, minY() + 1, maxZ(), 2, rng);
         }
     }
 }
 
-void MineshaftCorridor::generateRails(
+void MineshaftCorridor::_generateRails(
     IWorldWriter& world, math::Random& /*rng*/, const StructureBoundingBox& chunkBounds)
 {
     const BlockState* railState = VanillaBlocks::getState(VanillaBlocks::RAIL);
@@ -480,7 +477,7 @@ void MineshaftCorridor::generateRails(
     }
 }
 
-void MineshaftCorridor::generateSpawner(
+void MineshaftCorridor::_generateSpawner(
     IWorldWriter& world, i32 x, i32 y, i32 z, const StructureBoundingBox& chunkBounds)
 {
     if (!chunkBounds.contains(x, y, z)) return;
@@ -506,7 +503,7 @@ void MineshaftCorridor::generateSpawner(
     }
 }
 
-void MineshaftCorridor::generateChestMinecart(
+void MineshaftCorridor::_generateChestMinecart(
     IWorldWriter& world, i32 x, i32 y, i32 z, math::Random& /*rng*/, const StructureBoundingBox& chunkBounds)
 {
     if (!chunkBounds.contains(x, y, z)) return;
@@ -575,7 +572,6 @@ void MineshaftCross::generate(
     IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
 {
     const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
-    const BlockState* fenceState = VanillaBlocks::getState(VanillaBlocks::OAK_LOG); // 使用原木代替栅栏
 
     // 生成地板
     for (i32 x = minX(); x <= maxX(); ++x) {
@@ -597,7 +593,7 @@ void MineshaftCross::generate(
         i32 px = minX() + pos[0];
         i32 pz = minZ() + pos[1];
         if (chunkBounds.contains(px, minY() + 1, pz)) {
-            generateSupport(world, px, minY() + 1, pz, 2, rng);
+            _generateSupport(world, px, minY() + 1, pz, 2, rng);
         }
     }
 }
@@ -664,7 +660,6 @@ void MineshaftStairs::generate(
     IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
 {
     const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
-    const BlockState* fenceState = VanillaBlocks::getState(VanillaBlocks::OAK_LOG); // 使用原木代替栅栏
 
     i32 length = (m_direction == 0 || m_direction == 1) ? (maxZ() - minZ()) : (maxX() - minX());
     i32 stepCount = length / 2; // 每两格下降一格
@@ -701,17 +696,17 @@ void MineshaftStairs::generate(
         if (i % 2 == 0) {
             if (m_direction == 0 || m_direction == 1) {
                 if (chunkBounds.contains(minX(), stepY + 1, z)) {
-                    generateSupport(world, minX(), stepY + 1, z, 2, rng);
+                    _generateSupport(world, minX(), stepY + 1, z, 2, rng);
                 }
                 if (chunkBounds.contains(maxX(), stepY + 1, z)) {
-                    generateSupport(world, maxX(), stepY + 1, z, 2, rng);
+                    _generateSupport(world, maxX(), stepY + 1, z, 2, rng);
                 }
             } else {
                 if (chunkBounds.contains(x, stepY + 1, minZ())) {
-                    generateSupport(world, x, stepY + 1, minZ(), 2, rng);
+                    _generateSupport(world, x, stepY + 1, minZ(), 2, rng);
                 }
                 if (chunkBounds.contains(x, stepY + 1, maxZ())) {
-                    generateSupport(world, x, stepY + 1, maxZ(), 2, rng);
+                    _generateSupport(world, x, stepY + 1, maxZ(), 2, rng);
                 }
             }
         }
@@ -810,13 +805,13 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 确定矿井起点位置
-    i32 baseX = (chunkX << 4) + rng.nextInt(16);
-    i32 baseZ = (chunkZ << 4) + rng.nextInt(16);
+    i32 baseX = (chunkX << world::CHUNK_SHIFT) + rng.nextInt(world::CHUNK_WIDTH);
+    i32 baseZ = (chunkZ << world::CHUNK_SHIFT) + rng.nextInt(world::CHUNK_WIDTH);
 
     // 获取高度（在地下）
     i32 surfaceY = generator.getHeight(baseX, baseZ, HeightmapType::WorldSurfaceWG);
-    i32 minY = 10;            // 最低高度
-    i32 maxY = surfaceY - 20; // 最高高度（地表下20格）
+    i32 minY = world::MIN_BUILD_HEIGHT + 10; // 最低高度（底部往上10格）
+    i32 maxY = surfaceY - 20;                // 最高高度（地表下20格）
     if (maxY < minY + 10) maxY = minY + 10;
 
     i32 baseY = minY + rng.nextInt(maxY - minY);

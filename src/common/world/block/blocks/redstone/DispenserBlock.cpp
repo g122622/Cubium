@@ -37,7 +37,6 @@
 #include "../../../tick/manager/TickManager.hpp"
 #include "../../dispense/DispenseItemBehaviorRegistry.hpp"
 #include <chrono>
-#include <unordered_map>
 
 namespace mc {
 namespace blocks {
@@ -83,10 +82,7 @@ Direction DispenserBlock::getFacing(const BlockState& state)
 
 void DispenserBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(state);
-    // 发射器放置时不触发
+    // 发射器放置时不触发额外行为
 }
 
 void DispenserBlock::neighborChanged(
@@ -134,8 +130,9 @@ BlockState DispenserBlock::updatePostPlacement(const BlockState& state,
 
 void DispenserBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
+    // 注意：random 参数未使用，因为发射器使用独立的 thread_local 随机数生成器
+    // 这确保发射器的随机行为独立于 tick 系统的随机数序列
     MC_UNUSED(random);
-    // 尝试发射物品
     dispense(world, pos, state);
 }
 
@@ -255,31 +252,25 @@ ItemStack DispenserBlock::defaultDispense(
 
 void DispenserBlock::spawnItemEntity(IWorld& world, const BlockPos& pos, Direction facing, const ItemStack& stack)
 {
-
-    // MC 1.16.5: 发射物品实体的位置和速度
-    // 位置：发射方向偏移 0.7 格，加上随机偏移
-    // 速度：发射方向 0.2，加上随机偏移
-
+    // 发射速度常量
     constexpr f32 DISPENSE_SPEED = 0.2f;
-    constexpr f32 RANDOM_FACTOR = 0.0074999998f;
+    constexpr f32 INACCURACY = 0.0074999998f;
 
-    // 计算发射位置
-    f32 x = static_cast<f32>(pos.x) + 0.5f + static_cast<f32>(Directions::xOffset(facing)) * 0.7f;
-    f32 y = static_cast<f32>(pos.y) + 0.5f + static_cast<f32>(Directions::yOffset(facing)) * 0.7f;
-    f32 z = static_cast<f32>(pos.z) + 0.5f + static_cast<f32>(Directions::zOffset(facing)) * 0.7f;
+    // 计算发射位置（发射方向偏移 0.7 格）
+    const f32 x = static_cast<f32>(pos.x) + 0.5f + static_cast<f32>(Directions::xOffset(facing)) * 0.7f;
+    const f32 y = static_cast<f32>(pos.y) + 0.5f + static_cast<f32>(Directions::yOffset(facing)) * 0.7f;
+    const f32 z = static_cast<f32>(pos.z) + 0.5f + static_cast<f32>(Directions::zOffset(facing)) * 0.7f;
 
     // 计算发射速度
     f32 vx = static_cast<f32>(Directions::xOffset(facing)) * DISPENSE_SPEED;
     f32 vy = static_cast<f32>(Directions::yOffset(facing)) * DISPENSE_SPEED;
     f32 vz = static_cast<f32>(Directions::zOffset(facing)) * DISPENSE_SPEED;
 
-    // 添加随机偏移
-    // MC 1.16.5: nextGaussian() * 0.007499999832361937D + 0.2D
-    // 使用 thread_local 避免每次创建新对象的开销
+    // 使用 thread_local 随机数生成器生成高斯偏移
     thread_local math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
-    vx += rng.nextGaussian(0.0f, RANDOM_FACTOR);
-    vy += rng.nextGaussian(0.0f, RANDOM_FACTOR) + 0.1f; // Y方向额外加一点，模拟发射时的小跳
-    vz += rng.nextGaussian(0.0f, RANDOM_FACTOR);
+    vx += rng.nextGaussian(0.0f, INACCURACY);
+    vy += rng.nextGaussian(0.0f, INACCURACY) + 0.1f; // Y方向额外加一点，模拟发射时的小跳
+    vz += rng.nextGaussian(0.0f, INACCURACY);
 
     // 创建物品实体
     auto itemEntity = std::make_unique<ItemEntity>(EntityId(0), stack, x, y, z, vx, vy, vz);
@@ -293,7 +284,6 @@ void DispenserBlock::spawnItemEntity(IWorld& world, const BlockPos& pos, Directi
 
 void DispenserBlock::playDispenseSound(IWorld& world, const BlockPos& pos)
 {
-    // MC 1.16.5: 播放发射音效
     world.playSound(SoundEvents::BLOCK_DISPENSER_DISPENSE, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
 }
 

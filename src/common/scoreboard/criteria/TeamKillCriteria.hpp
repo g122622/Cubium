@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../util/text/TextStyle.hpp"
-#include "../core/ScoreCriteria.hpp"
+#include "common/scoreboard/core/ScoreCriteria.hpp"
+#include "common/util/text/TextStyle.hpp"
 #include <string>
 
 namespace mc::scoreboard {
@@ -37,7 +37,6 @@ using text::TextFormatting;
  *
  * 当玩家击杀指定颜色队伍的玩家时自动增加分数。
  * 名称格式：teamkill.{color} 或 killedByTeam.{color}
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScoreCriteria.TEAM_KILL / KILLED_BY_TEAM
  */
 class TeamKillCriteria : public ScoreCriteria {
 public:

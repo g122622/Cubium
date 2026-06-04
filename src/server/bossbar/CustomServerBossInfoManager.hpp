@@ -45,7 +45,6 @@ class IServer;
  *
  * 管理所有自定义 Boss 栏，提供创建、删除、查询功能。
  * 支持持久化存储和网络同步。
- * 参考 MC 1.16.5: net.minecraft.server.CustomServerBossInfoManager
  */
 class CustomServerBossInfoManager {
 public:
@@ -190,17 +189,17 @@ public:
     /**
      * @brief 标记数据为脏
      */
-    void markDirty() { m_dirty = true; }
+    void markDirty() noexcept { m_dirty = true; }
 
     /**
      * @brief 检查数据是否需要保存
      */
-    [[nodiscard]] bool isDirty() const { return m_dirty; }
+    [[nodiscard]] bool isDirty() const noexcept { return m_dirty; }
 
     /**
      * @brief 清除脏标记
      */
-    void clearDirty() { m_dirty = false; }
+    void clearDirty() noexcept { m_dirty = false; }
 
 private:
     /// 服务器引用

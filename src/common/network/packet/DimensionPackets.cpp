@@ -42,22 +42,12 @@ Result<std::vector<u8>> RespawnPacket::serialize() const
     // 写入包头
     ser.writeU16(static_cast<u16>(type()));
 
-    // 参考 MC 1.16.5 SRespawnPacket 格式:
-    // 1. DimensionType (使用 VarInt 编码的类型 ID)
-    // 2. RegistryKey<World> (维度名称: minecraft:overworld/nether/the_end)
-    // 3. hashedSeed (long)
-    // 4. gameType (ubyte)
-    // 5. previousGameType (ubyte)
-    // 6. isDebug (boolean)
-    // 7. isFlat (boolean)
-    // 8. copyMetadata (boolean)
-
     // 维度类型 (简化: 使用维度ID作为类型ID)
-    // MC 1.16.5 维度类型 ID:
+    // 维度类型 ID:
     //   0 = minecraft:overworld
     //   1 = minecraft:the_nether
     //   2 = minecraft:the_end
-    // 注意：这与维度 ID 不同（下界类型ID是1，但维度ID是-1）
+    // 注意：这与维度 ID 不同（下界维度ID=-1, 类型ID=1；末地维度ID=1, 类型ID=2）
     i32 dimensionTypeId = m_dimensionType;
     if (dimensionTypeId == 0) {
         dimensionTypeId = 0; // Overworld

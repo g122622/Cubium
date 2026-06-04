@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::world::tick {
 
@@ -60,7 +60,7 @@ enum class TickPriority : i8 {
  * @param value 整数值
  * @return 对应的优先级，如果超出范围返回边界值
  */
-[[nodiscard]] inline TickPriority fromInt(i32 value)
+[[nodiscard]] inline TickPriority fromInt(i32 value) noexcept
 {
     if (value < -3) return TickPriority::ExtremelyHigh;
     if (value > 3) return TickPriority::ExtremelyLow;
@@ -73,7 +73,7 @@ enum class TickPriority : i8 {
  * @param priority 优先级
  * @return 整数值
  */
-[[nodiscard]] inline i32 toInt(TickPriority priority)
+[[nodiscard]] inline i32 toInt(TickPriority priority) noexcept
 {
     return static_cast<i32>(priority);
 }

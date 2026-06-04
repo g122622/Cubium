@@ -24,6 +24,7 @@
 #pragma once
 
 #include "resource/ResourceLocation.hpp"
+#include "util/assert/AssertAll.hpp"
 #include "util/nbt/Nbt.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
@@ -63,19 +64,19 @@ public:
      * @brief 获取方块实体类型
      * @return 方块实体类型
      */
-    [[nodiscard]] BlockEntityType getType() const { return m_type; }
+    [[nodiscard]] BlockEntityType getType() const noexcept { return m_type; }
 
     /**
      * @brief 获取方块位置
      * @return 世界坐标位置
      */
-    [[nodiscard]] BlockPos getPos() const { return m_pos; }
+    [[nodiscard]] BlockPos getPos() const noexcept { return m_pos; }
 
     /**
      * @brief 获取世界引用
      * @return 世界引用，可能为nullptr
      */
-    [[nodiscard]] IWorld* getWorld() const { return m_world; }
+    [[nodiscard]] IWorld* getWorld() const noexcept { return m_world; }
 
     /**
      * @brief 设置世界引用
@@ -93,7 +94,7 @@ public:
      */
     virtual bool load(const nlohmann::json& data)
     {
-        (void)data;
+        MC_UNUSED(data);
         return true;
     }
 
@@ -139,7 +140,7 @@ public:
      * 服务端每游戏tick调用一次。
      * 用于处理熔炉燃烧、漏斗传输等逻辑。
      */
-    virtual void tick(IWorld& world) { (void)world; }
+    virtual void tick(IWorld& world) { MC_UNUSED(world); }
 
     /**
      * @brief 检查是否需要tick
@@ -147,7 +148,7 @@ public:
      *
      * 用于优化性能，静态方块实体可以返回false。
      */
-    [[nodiscard]] virtual bool needsTick() const { return false; }
+    [[nodiscard]] virtual bool needsTick() const noexcept { return false; }
 
     /**
      * @brief 获取方块实体的方块状态
@@ -159,20 +160,20 @@ public:
      * @brief 检查是否已修改
      * @return 如果已修改返回true
      */
-    [[nodiscard]] bool isChanged() const { return m_changed; }
+    [[nodiscard]] bool isChanged() const noexcept { return m_changed; }
 
     /**
      * @brief 清除修改标记
      *
      * 在保存后调用。
      */
-    void clearChanged() { m_changed = false; }
+    void clearChanged() noexcept { m_changed = false; }
 
     /**
      * @brief 检查方块实体是否已被移除
      * @return 如果已被移除返回true
      */
-    [[nodiscard]] bool isRemoved() const { return m_removed; }
+    [[nodiscard]] bool isRemoved() const noexcept { return m_removed; }
 
     /**
      * @brief 标记方块实体为已移除
@@ -210,7 +211,7 @@ public:
      * @brief 设置自定义名称
      * @param name 名称
      */
-    virtual void setCustomName(const std::string& name) { (void)name; }
+    virtual void setCustomName(const std::string& name) { MC_UNUSED(name); }
 
     /**
      * @brief 创建方块实体的副本

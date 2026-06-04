@@ -21,17 +21,17 @@
  *
  */
 
-#include "FenceBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../fluid/Fluid.hpp"
-#include "../../../fluid/FluidRegistry.hpp"
-#include "../../../fluid/FluidTags.hpp"
-#include "../../../tick/manager/TickManager.hpp"
-#include "../../FenceGateHelpers.hpp"
-#include "../../WaterLoggableHelpers.hpp"
+#include "common/world/block/blocks/building/FenceBlock.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/FenceGateHelpers.hpp"
+#include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/FluidTags.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace blocks {
@@ -71,7 +71,7 @@ FenceBlock::FenceBlock(const BlockProperties& properties)
     // 像素单位
     constexpr f32 P = 1.0f / 16.0f;
 
-    // 栅栏柱子：中间6x16x6像素（MC 1.16.5: Block.makeCuboidShape(6, 0, 6, 10, 16, 10)）
+    // 栅栏柱子：中间6x16x6像素
     CollisionShape pillar = CollisionShape::box(6.0f * P, 0.0f, 6.0f * P, 10.0f * P, 16.0f * P, 10.0f * P);
 
     // 栅栏横杆：在7-9像素高度，厚2像素
@@ -93,7 +93,7 @@ FenceBlock::FenceBlock(const BlockProperties& properties)
         for (int east = 0; east <= 1; ++east) {
             for (int south = 0; south <= 1; ++south) {
                 for (int west = 0; west <= 1; ++west) {
-                    size_t idx = getShapeIndex(north != 0, east != 0, south != 0, west != 0);
+                    size_t idx = _getShapeIndex(north != 0, east != 0, south != 0, west != 0);
 
                     CollisionShape shape = pillar;
 
@@ -117,7 +117,6 @@ BlockState FenceBlock::getStateForPlacement(BlockItemUseContext& context)
     BlockPos pos = context.placementPos();
 
     // 计算初始连接状态
-    // 参考: MC 1.16.5 FenceBlock.getStateForPlacement()
     BlockPos northPos = pos.north();
     BlockPos eastPos = pos.east();
     BlockPos southPos = pos.south();
@@ -128,10 +127,10 @@ BlockState FenceBlock::getStateForPlacement(BlockItemUseContext& context)
     const BlockState* southState = world.getBlockState(southPos);
     const BlockState* westState = world.getBlockState(westPos);
 
-    bool connectNorth = northState && canConnect(*northState, northState->isSolid(), Direction::North);
-    bool connectEast = eastState && canConnect(*eastState, eastState->isSolid(), Direction::East);
-    bool connectSouth = southState && canConnect(*southState, southState->isSolid(), Direction::South);
-    bool connectWest = westState && canConnect(*westState, westState->isSolid(), Direction::West);
+    bool connectNorth = northState && _canConnect(*northState, northState->isSolid(), Direction::North);
+    bool connectEast = eastState && _canConnect(*eastState, eastState->isSolid(), Direction::East);
+    bool connectSouth = southState && _canConnect(*southState, southState->isSolid(), Direction::South);
+    bool connectWest = westState && _canConnect(*westState, westState->isSolid(), Direction::West);
 
     // 检查是否含水
     bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
@@ -159,10 +158,9 @@ BlockState FenceBlock::updatePostPlacement(const BlockState& state,
 
     // 只处理水平方向的更新
     if (Directions::getAxis(facing) != Axis::Y) {
-        // 参考: MC 1.16.5 FenceBlock.updatePostPlacement()
         // 检查对面方向是否为固体
         bool isSideSolid = facingState.isSolid();
-        bool shouldConnect = canConnect(facingState, isSideSolid, facing);
+        bool shouldConnect = _canConnect(facingState, isSideSolid, facing);
 
         switch (facing) {
             case Direction::North:
@@ -185,7 +183,7 @@ BlockState FenceBlock::updatePostPlacement(const BlockState& state,
 
 const CollisionShape& FenceBlock::getShape(const BlockState& state) const
 {
-    size_t index = getShapeIndex(state.get(BlockStateProperties::NORTH()),
+    size_t index = _getShapeIndex(state.get(BlockStateProperties::NORTH()),
         state.get(BlockStateProperties::EAST()),
         state.get(BlockStateProperties::SOUTH()),
         state.get(BlockStateProperties::WEST()));
@@ -259,13 +257,8 @@ const BlockState& FenceBlock::mirror(const BlockState& state, Mirror mirror) con
 
 // ========== 私有方法 ==========
 
-bool FenceBlock::canConnect(const BlockState& state, bool isNeighborSolid, Direction direction) const
+bool FenceBlock::_canConnect(const BlockState& state, bool isNeighborSolid, Direction direction) const
 {
-    // 参考: MC 1.16.5 FenceBlock.canConnect()
-    // boolean flag = this.func_235493_c_(block);
-    // boolean flag1 = block instanceof FenceGateBlock && FenceGateBlock.isParallel(state, direction);
-    // return !cannotAttach(block) && isSideSolid || flag || flag1;
-
     // 检查是否为栅栏门且平行
     if (fencehelpers::isFenceGate(state)) {
         if (fencehelpers::isFenceGateParallel(state, direction)) {
@@ -274,7 +267,6 @@ bool FenceBlock::canConnect(const BlockState& state, bool isNeighborSolid, Direc
     }
 
     // 检查是否为同类栅栏
-    // MC 1.16.5: block.isIn(FENCES) && block.isIn(WOODEN_FENCES) == this.isIn(WOODEN_FENCES)
     // 简化实现：检查是否有相同的NORTH属性（表示是栅栏类方块）
     if (state.hasProperty(BlockStateProperties::NORTH())) {
         // 如果是栅栏或墙，可以连接
@@ -286,9 +278,7 @@ bool FenceBlock::canConnect(const BlockState& state, bool isNeighborSolid, Direc
         return true;
     }
 
-    // 连接到固体方块（排除某些不可连接的方块）
-    // MC 1.16.5: !cannotAttach(block) && isSideSolid
-    // 简化实现：固体方块可以连接
+    // 连接到固体方块
     if (isNeighborSolid) {
         return true;
     }
@@ -296,7 +286,7 @@ bool FenceBlock::canConnect(const BlockState& state, bool isNeighborSolid, Direc
     return false;
 }
 
-size_t FenceBlock::getShapeIndex(bool north, bool east, bool south, bool west)
+size_t FenceBlock::_getShapeIndex(bool north, bool east, bool south, bool west)
 {
     size_t index = 0;
     if (north) index |= 1;

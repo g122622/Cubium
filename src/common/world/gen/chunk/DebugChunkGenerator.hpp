@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../block/Block.hpp"
-#include "../../block/BlockRegistry.hpp"
-#include "IChunkGenerator.hpp"
+#include "common/block/Block.hpp"
+#include "common/block/BlockRegistry.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <vector>
 
 namespace mc {
@@ -33,7 +33,7 @@ namespace mc {
 /**
  * @brief 调试模式区块生成器
  *
- * 参考 MC 1.16.5 DebugChunkGenerator，生成一个展示所有方块状态的网格世界。
+ * 生成一个展示所有方块状态的网格世界。
  *
  * 特点：
  * - Y=60 层是屏障方块（Barrier）基座
@@ -45,16 +45,13 @@ namespace mc {
  * - 资源包开发和测试
  * - 方块模型和纹理调试
  * - 方块状态可视化
- *
- * @note 参考 MC 1.16.5 net.minecraft.world.gen.DebugChunkGenerator
  */
 class DebugChunkGenerator : public BaseChunkGenerator {
 public:
     /**
      * @brief 构造调试区块生成器
-     * @param biomeRegistry 生物群系注册表（用于提供默认生物群系）
      */
-    explicit DebugChunkGenerator();
+    explicit DebugChunkGenerator() noexcept;
 
     ~DebugChunkGenerator() override = default;
 
@@ -108,7 +105,6 @@ public:
      * @param z 世界Z坐标
      * @return 方块状态指针，如果位置无方块返回空气状态
      *
-     * 参考 MC 1.16.5: DebugChunkGenerator#getBlockStateFor
      * 方块只在奇数坐标放置：
      * - x > 0, z > 0
      * - x % 2 != 0, z % 2 != 0

@@ -53,7 +53,7 @@ const list_tag* getList(const compound_tag& parent, const std::string& name)
 }
 } // namespace
 
-JavaChunkReader::JavaChunkReader(JavaBlockStateMapper& blockMapper, JavaBiomeMapper& biomeMapper)
+JavaChunkReader::JavaChunkReader(JavaBlockStateMapper& blockMapper, JavaBiomeMapper& biomeMapper) noexcept
     : m_blockMapper(blockMapper)
     , m_biomeMapper(biomeMapper)
 {}
@@ -195,19 +195,19 @@ Result<void> JavaChunkReader::readBlockStates(const compound_tag& sectionNbt, Ch
         auto& dataArray = blockStatesNbt->get<longarray_tag>("data");
         i32 bitsPerEntry =
             std::max(4, static_cast<i32>(std::ceil(std::log2(std::max(static_cast<i32>(paletteIds.size()), 2)))));
-        blockIndices = unpackLongArray(dataArray, bitsPerEntry, 4096, false);
+        blockIndices = unpackLongArray(dataArray, bitsPerEntry, ChunkSection::VOLUME, false);
     } else if (sectionNbt.value.count("BlockStates") != 0) {
         // 1.16.5 格式
         auto& dataArray = sectionNbt.get<longarray_tag>("BlockStates");
         i32 bitsPerEntry =
             std::max(4, static_cast<i32>(std::ceil(std::log2(std::max(static_cast<i32>(paletteIds.size()), 2)))));
-        blockIndices = unpackLongArray(dataArray, bitsPerEntry, 4096, true);
+        blockIndices = unpackLongArray(dataArray, bitsPerEntry, ChunkSection::VOLUME, true);
     }
 
     // 如果只有单个调色板条目且无数据数组，填充整个section
     if (blockIndices.empty()) {
         if (paletteIds.size() == 1) {
-            blockIndices.resize(4096, 0);
+            blockIndices.resize(ChunkSection::VOLUME, 0);
         } else {
             return {};
         }
@@ -219,10 +219,10 @@ Result<void> JavaChunkReader::readBlockStates(const compound_tag& sectionNbt, Ch
         return Error(ErrorCode::ChunkCorrupted, fmt::format("Failed to create section {} for chunk", sectionY));
     }
 
-    for (i32 y = 0; y < 16; ++y) {
-        for (i32 z = 0; z < 16; ++z) {
-            for (i32 x = 0; x < 16; ++x) {
-                i32 index = y * 256 + z * 16 + x;
+    for (i32 y = 0; y < ChunkSection::SIZE; ++y) {
+        for (i32 z = 0; z < ChunkSection::SIZE; ++z) {
+            for (i32 x = 0; x < ChunkSection::SIZE; ++x) {
+                i32 index = y * ChunkSection::SIZE * ChunkSection::SIZE + z * ChunkSection::SIZE + x;
                 u32 paletteIndex = (index < static_cast<i32>(blockIndices.size())) ? blockIndices[index] : 0;
                 u32 stateId = (paletteIndex < paletteIds.size()) ? paletteIds[paletteIndex] : 0;
                 section->setBlockStateId(x, y, z, stateId);
@@ -248,10 +248,10 @@ void JavaChunkReader::readHeightmaps(const compound_tag& levelNbt, ChunkData& ch
 void JavaChunkReader::readLightData(const compound_tag& sectionNbt, ChunkSection& section)
 {
     auto applyNibble = [&section](const bytearray_tag& bytes, bool isSky) {
-        if (bytes.value.size() < 2048) {
+        if (bytes.value.size() < NibbleArray::BYTE_SIZE) {
             return;
         }
-        for (i32 i = 0; i < 4096; ++i) {
+        for (i32 i = 0; i < ChunkSection::VOLUME; ++i) {
             const i32 x = i & 0xF;
             const i32 z = (i >> 4) & 0xF;
             const i32 y = (i >> 8) & 0xF;
@@ -336,7 +336,7 @@ Result<std::optional<JavaChunkReader::SectionBiomePalette>> JavaChunkReader::rea
     const auto& packed = biomesNbt->get<longarray_tag>("data");
     const i32 bitsPerEntry =
         std::max(1, static_cast<i32>(std::ceil(std::log2(std::max(static_cast<i32>(result.palette.size()), 2)))));
-    result.indices = unpackLongArray(packed, bitsPerEntry, 64, false);
+    result.indices = unpackLongArray(packed, bitsPerEntry, BiomeContainer::BIOME_SIZE, false);
     return std::optional<SectionBiomePalette>(std::move(result));
 }
 

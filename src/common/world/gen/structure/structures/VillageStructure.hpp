@@ -37,7 +37,7 @@ namespace structure {
 /**
  * @brief 村庄类型
  *
- * 对应 MC 1.16.5 的不同村庄风格
+ * 不同村庄风格
  */
 enum class VillageType : u8 {
     Plains,  ///< 平原村庄
@@ -53,7 +53,7 @@ enum class VillageType : u8 {
  */
 struct VillageConfig {
     VillageType type = VillageType::Plains;
-    i32 size = 6;           ///< 村庄大小 (MC 默认 6)
+    i32 size = 6;           ///< 村庄大小
     i32 distance = 32;      ///< 村庄间距
     i32 separation = 8;     ///< 村庄分离距离
     i32 startPoolIndex = 0; ///< 起始模板池索引
@@ -64,7 +64,6 @@ struct VillageConfig {
  * @brief 村庄结构
  *
  * 使用 Jigsaw 系统生成的村庄结构。
- * 参考 MC 1.16.5: VillageStructure
  *
  * 村庄由多个建筑组成，通过 Jigsaw 连接点组装：
  * - 房屋（各种类型）
@@ -111,11 +110,10 @@ private:
     /**
      * @brief 初始化生物群系列表
      */
-    void initializeBiomes();
+    void _initializeBiomes();
 
     VillageConfig m_config;
-    // MC 1.16.5: spacing=32, separation=8, salt=10387312
-    // 注意：spacing=32（每32个区块检查一次），而不是34
+    // 村庄结构生成间距设置
     static constexpr StructureSeparationSettings m_settings{32, 8, 10387312};
     static const std::string m_name;
     std::vector<BiomeId> m_validBiomes;

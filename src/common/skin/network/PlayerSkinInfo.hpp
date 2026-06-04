@@ -28,8 +28,6 @@
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTextures.hpp"
 #include <atomic>
-#include <memory>
-#include <mutex>
 
 namespace mc::skin {
 
@@ -53,8 +51,6 @@ enum class SkinLoadState : u8 {
  * - 加载状态
  * - 皮肤部件可见性
  *
- * 参考 MC 1.16.5 NetworkPlayerInfo
- *
  * 线程安全：加载状态使用 atomic，纹理访问需要外部同步。
  */
 class PlayerSkinInfo {
@@ -70,17 +66,17 @@ public:
     /**
      * @brief 获取玩家档案
      */
-    [[nodiscard]] const GameProfile& profile() const { return m_profile; }
+    [[nodiscard]] const GameProfile& profile() const noexcept { return m_profile; }
 
     /**
      * @brief 获取玩家UUID
      */
-    [[nodiscard]] const std::array<u8, 16>& uuid() const { return m_profile.uuid(); }
+    [[nodiscard]] const std::array<u8, 16>& uuid() const noexcept { return m_profile.uuid(); }
 
     /**
      * @brief 获取玩家名称
      */
-    [[nodiscard]] const std::string& name() const { return m_profile.name(); }
+    [[nodiscard]] const std::string& name() const noexcept { return m_profile.name(); }
 
     // ========== 皮肤纹理 ==========
 
@@ -115,17 +111,17 @@ public:
     /**
      * @brief 获取皮肤纹理集合
      */
-    [[nodiscard]] const SkinTextures& textures() const { return m_textures; }
+    [[nodiscard]] const SkinTextures& textures() const noexcept { return m_textures; }
 
     // ========== 加载状态 ==========
 
-    [[nodiscard]] SkinLoadState loadState() const { return m_loadState.load(); }
-    void setLoadState(SkinLoadState state) { m_loadState.store(state); }
+    [[nodiscard]] SkinLoadState loadState() const noexcept { return m_loadState.load(); }
+    void setLoadState(SkinLoadState state) noexcept { m_loadState.store(state); }
 
-    [[nodiscard]] bool isLoaded() const { return m_loadState == SkinLoadState::Loaded; }
-    [[nodiscard]] bool isLoading() const { return m_loadState == SkinLoadState::Loading; }
-    [[nodiscard]] bool isFailed() const { return m_loadState == SkinLoadState::Failed; }
-    [[nodiscard]] bool isUsingDefault() const { return m_loadState == SkinLoadState::UsingDefault; }
+    [[nodiscard]] bool isLoaded() const noexcept { return m_loadState == SkinLoadState::Loaded; }
+    [[nodiscard]] bool isLoading() const noexcept { return m_loadState == SkinLoadState::Loading; }
+    [[nodiscard]] bool isFailed() const noexcept { return m_loadState == SkinLoadState::Failed; }
+    [[nodiscard]] bool isUsingDefault() const noexcept { return m_loadState == SkinLoadState::UsingDefault; }
 
     // ========== 纹理设置（由 SkinManager 调用） ==========
 
@@ -142,7 +138,7 @@ public:
     /**
      * @brief 设置皮肤类型
      */
-    void setSkinType(SkinType type) { m_textures.setSkinType(type); }
+    void setSkinType(SkinType type) noexcept { m_textures.setSkinType(type); }
 
     /**
      * @brief 设置披风位置
@@ -168,25 +164,25 @@ public:
      * - Bit 5: Right Pants Leg (右裤腿)
      * - Bit 6: Hat (帽子)
      */
-    [[nodiscard]] u8 modelParts() const { return m_modelParts; }
+    [[nodiscard]] u8 modelParts() const noexcept { return m_modelParts; }
 
     /**
      * @brief 设置皮肤部件可见性掩码
      */
-    void setModelParts(u8 parts) { m_modelParts = parts; }
+    void setModelParts(u8 parts) noexcept { m_modelParts = parts; }
 
     /**
      * @brief 检查是否穿着指定部件
      * @param part 部件类型
      */
-    [[nodiscard]] bool isWearing(PlayerModelPart part) const;
+    [[nodiscard]] bool isWearing(PlayerModelPart part) const noexcept;
 
     /**
      * @brief 设置指定部件的可见性
      * @param part 部件类型
      * @param enabled 是否可见
      */
-    void setModelPartEnabled(PlayerModelPart part, bool enabled);
+    void setModelPartEnabled(PlayerModelPart part, bool enabled) noexcept;
 
     // ========== 默认皮肤 ==========
 

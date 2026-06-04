@@ -23,14 +23,13 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../block/BlockPos.hpp"
-#include "../chunk/ChunkPos.hpp"
 #include "Village.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
 #include "poi/PointOfInterestStorage.hpp"
 #include <functional>
 #include <memory>
-#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -44,7 +43,6 @@ struct compound_tag;
 
 // 前向声明
 class IWorld;
-class Player;
 
 namespace world {
 namespace village {
@@ -58,8 +56,6 @@ namespace village {
  * - 维护村庄与区块的映射关系
  * - 处理村民加入/离开村庄
  * - 协调袭击事件
- *
- * 参考 MC 1.16.5 VillageManager
  */
 class VillageManager {
 public:
@@ -229,22 +225,22 @@ private:
      * @param center 村庄中心位置
      * @return 新村庄的指针
      */
-    Village* createVillage(BlockPos center);
+    Village* _createVillage(BlockPos center);
 
     /**
      * @brief 删除空村庄
      */
-    void removeEmptyVillages();
+    void _removeEmptyVillages();
 
     /**
      * @brief 更新村庄边界
      */
-    void updateVillageBounds();
+    void _updateVillageBounds();
 
     /**
      * @brief 计算区块键
      */
-    [[nodiscard]] static u64 getChunkKey(ChunkCoord x, ChunkCoord z);
+    [[nodiscard]] static u64 _getChunkKey(ChunkCoord x, ChunkCoord z);
 
 private:
     /// 世界接口引用

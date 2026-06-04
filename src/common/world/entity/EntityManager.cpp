@@ -22,8 +22,8 @@
  */
 
 #include "EntityManager.hpp"
-#include "../../entity/core/Entity.hpp"
-#include "../../entity/core/EntityRegistry.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
@@ -202,16 +202,16 @@ void EntityManager::tick()
     }
 
     // 移除死亡实体
-    removeDeadEntitiesInternal();
+    _removeDeadEntitiesInternal();
 }
 
 void EntityManager::removeDeadEntities()
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    removeDeadEntitiesInternal();
+    _removeDeadEntitiesInternal();
 }
 
-void EntityManager::removeDeadEntitiesInternal()
+void EntityManager::_removeDeadEntitiesInternal()
 {
     // 内部方法，假设已持有锁
     for (auto it = m_entities.begin(); it != m_entities.end();) {

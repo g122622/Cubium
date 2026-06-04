@@ -74,7 +74,6 @@ bool NetherPortalBlock::isValidPosition(const BlockState& state, IBlockReader& w
 {
     MC_UNUSED(state);
 
-    // 参考 MC 1.16.5 NetherPortalBlock.updatePostPlacement:
     // 当邻居方块更新时，会调用 PortalSize 验证传送门是否仍然有效。
     // isValidPosition 用于检查当前位置是否可以作为传送门的一部分。
 
@@ -93,16 +92,16 @@ bool NetherPortalBlock::isValidPosition(const BlockState& state, IBlockReader& w
     // 检查上下方向
     const BlockState* upState = world.getBlockState(pos.up());
     const BlockState* downState = world.getBlockState(pos.down());
-    if ((upState != nullptr && isConnectedToPortal(*upState)) ||
-        (downState != nullptr && isConnectedToPortal(*downState))) {
+    if ((upState != nullptr && _isConnectedToPortal(*upState)) ||
+        (downState != nullptr && _isConnectedToPortal(*downState))) {
         return true;
     }
 
     // 检查宽度方向（X轴传送门检查东西，Z轴传送门检查南北）
     const BlockState* widthPosState = world.getBlockState(pos.offset(widthDir));
     const BlockState* widthNegState = world.getBlockState(pos.offset(Directions::opposite(widthDir)));
-    if ((widthPosState != nullptr && isConnectedToPortal(*widthPosState)) ||
-        (widthNegState != nullptr && isConnectedToPortal(*widthNegState))) {
+    if ((widthPosState != nullptr && _isConnectedToPortal(*widthPosState)) ||
+        (widthNegState != nullptr && _isConnectedToPortal(*widthNegState))) {
         return true;
     }
 
@@ -110,15 +109,15 @@ bool NetherPortalBlock::isValidPosition(const BlockState& state, IBlockReader& w
     // 深度方向应该是框架方块
     const BlockState* depthPosState = world.getBlockState(pos.offset(depthDir));
     const BlockState* depthNegState = world.getBlockState(pos.offset(Directions::opposite(depthDir)));
-    if ((depthPosState != nullptr && isConnectedToPortal(*depthPosState)) ||
-        (depthNegState != nullptr && isConnectedToPortal(*depthNegState))) {
+    if ((depthPosState != nullptr && _isConnectedToPortal(*depthPosState)) ||
+        (depthNegState != nullptr && _isConnectedToPortal(*depthNegState))) {
         return true;
     }
 
     return false;
 }
 
-bool NetherPortalBlock::isConnectedToPortal(const BlockState& state) const
+bool NetherPortalBlock::_isConnectedToPortal(const BlockState& state) const
 {
     if (state.isAir()) {
         return false;
@@ -163,7 +162,6 @@ BlockState NetherPortalBlock::updatePostPlacement(const BlockState& state,
 void NetherPortalBlock::onEntityCollision(
     const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    // 参考 MC 1.16.5 NetherPortalBlock.onEntityCollision
     // 实体进入传送门后开始传送计时
     // 玩家需要站立在传送门中约 4 秒（80 ticks）才能传送
     // 其他实体约 1 tick
@@ -171,7 +169,6 @@ void NetherPortalBlock::onEntityCollision(
     MC_UNUSED(state);
     MC_UNUSED(world);
 
-    // MC: if (!entity.isPassenger() && !entity.isBeingRidden() && entity.isNonBoss()) {
     // 检查实体是否是乘客或被骑乘
     if (entity.isRiding() || entity.hasPassengers()) {
         return;

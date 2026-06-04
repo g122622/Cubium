@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../util/math/random/IRandom.hpp"
-#include "../noise/OctavesNoiseGenerator.hpp"
-#include "SurfaceBuilder.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/world/gen/noise/OctavesNoiseGenerator.hpp"
+#include "common/world/gen/surface/SurfaceBuilder.hpp"
 #include <array>
 #include <memory>
 
@@ -34,7 +34,7 @@ namespace mc {
 /**
  * @brief 默认地表构建器
  *
- * 参考 MC DefaultSurfaceBuilder，适用于大多数生物群系。
+ * 适用于大多数生物群系。
  * 根据噪声值计算地表深度，放置表层和次层方块。
  */
 class DefaultSurfaceBuilder : public SurfaceBuilder {
@@ -69,7 +69,7 @@ protected:
 /**
  * @brief 山地地表构建器
  *
- * 参考 MC MountainSurfaceBuilder，适用于山地生物群系。
+ * 适用于山地生物群系。
  * 根据噪声值委托给DefaultSurfaceBuilder使用不同配置：
  * - noise > 1.0: STONE_STONE_GRAVEL_CONFIG (石头/石头/沙砾)
  * - 否则: GRASS_DIRT_GRAVEL_CONFIG (草方块/泥土/沙砾)
@@ -97,7 +97,6 @@ public:
 /**
  * @brief 砾石山地地表构建器
  *
- * 参考 MC GravellyMountainSurfaceBuilder。
  * 根据噪声值选择不同配置：
  * - noise > 2.0 或 noise < -1.0: GRAVEL_CONFIG
  * - noise > 1.0: STONE_STONE_GRAVEL_CONFIG
@@ -126,7 +125,7 @@ public:
 /**
  * @brief 破碎热带草原地表构建器
  *
- * 参考 MC ShatteredSavannaSurfaceBuilder，适用于破碎热带草原生物群系。
+ * 适用于破碎热带草原生物群系。
  * 根据噪声值委托给DefaultSurfaceBuilder使用不同配置：
  * - noise > 1.75: STONE_STONE_GRAVEL_CONFIG
  * - noise > -0.5: CORASE_DIRT_DIRT_GRAVEL_CONFIG
@@ -155,7 +154,7 @@ public:
 /**
  * @brief 巨型针叶林地表构建器
  *
- * 参考 MC GiantTreeTaigaSurfaceBuilder，适用于巨型针叶林生物群系。
+ * 适用于巨型针叶林生物群系。
  * 根据噪声值委托给DefaultSurfaceBuilder使用不同配置：
  * - noise > 1.75: COARSE_DIRT_DIRT_GRAVEL_CONFIG
  * - noise > -0.95: PODZOL_DIRT_GRAVEL_CONFIG
@@ -184,7 +183,7 @@ public:
 /**
  * @brief 沼泽地表构建器
  *
- * 参考 MC SwampSurfaceBuilder，适用于沼泽生物群系。
+ * 适用于沼泽生物群系。
  * 使用Biome.INFO_NOISE在水面附近生成粘土。
  */
 class SwampSurfaceBuilder : public SurfaceBuilder {
@@ -212,7 +211,7 @@ public:
 /**
  * @brief 冻洋地表构建器
  *
- * 参考 MC FrozenOceanSurfaceBuilder，适用于冰冻海洋。
+ * 适用于冰冻海洋。
  * 生成浮冰冰山和冰层。
  */
 class FrozenOceanSurfaceBuilder : public SurfaceBuilder {
@@ -247,7 +246,7 @@ private:
 /**
  * @brief 恶地地表构建器
  *
- * 参考 MC BadlandsSurfaceBuilder，适用于恶地生物群系。
+ * 适用于恶地生物群系。
  * 生成彩色陶瓦层，需要基于种子的噪声生成色带。
  */
 class BadlandsSurfaceBuilder : public SurfaceBuilder {
@@ -282,15 +281,14 @@ private:
     std::unique_ptr<PerlinNoiseGenerator> m_surfaceNoiseB;
     u64 m_cachedSeed = 0;
 
-    void initBands(u64 seed, math::IRandom& rng);
-    const BlockState* getTerracottaLayer(i32 worldX, i32 worldY, i32 worldZ);
-    [[nodiscard]] bool isTerracottaColor(const BlockState* state) const;
+    void _initBands(u64 seed, math::IRandom& rng);
+    const BlockState* _getTerracottaLayer(i32 worldX, i32 worldY, i32 worldZ);
+    [[nodiscard]] bool _isTerracottaColor(const BlockState* state) const;
 };
 
 /**
  * @brief 侵蚀恶地地表构建器
  *
- * 参考 MC ErodedBadlandsSurfaceBuilder，继承自BadlandsSurfaceBuilder。
  * 在侵蚀恶地生物群系使用。
  */
 class ErodedBadlandsSurfaceBuilder : public SurfaceBuilder {
@@ -316,7 +314,6 @@ public:
 /**
  * @brief 疏林恶地地表构建器
  *
- * 参考 MC WoodedBadlandsSurfaceBuilder，继承自BadlandsSurfaceBuilder。
  * 在疏林恶地生物群系使用，地表有草和泥土。
  */
 class WoodedBadlandsSurfaceBuilder : public SurfaceBuilder {
@@ -342,7 +339,7 @@ public:
 /**
  * @brief 下界地表构建器
  *
- * 参考 MC NetherSurfaceBuilder，适用于下界生物群系。
+ * 适用于下界生物群系。
  */
 class NetherSurfaceBuilder : public SurfaceBuilder {
 public:
@@ -367,7 +364,7 @@ public:
 /**
  * @brief 下界森林地表构建器
  *
- * 参考 MC NetherForestsSurfaceBuilder，适用于下界森林生物群系。
+ * 适用于下界森林生物群系。
  * 使用噪声决定表层方块类型。
  */
 class NetherForestsSurfaceBuilder : public SurfaceBuilder {
@@ -400,7 +397,7 @@ private:
 /**
  * @brief 灵魂沙峡谷地表构建器
  *
- * 参考 MC SoulSandValleySurfaceBuilder，适用于灵魂沙峡谷生物群系。
+ * 适用于灵魂沙峡谷生物群系。
  */
 class SoulSandValleySurfaceBuilder : public SurfaceBuilder {
 public:
@@ -425,7 +422,7 @@ public:
 /**
  * @brief 玄武岩三角洲地表构建器
  *
- * 参考 MC BasaltDeltasSurfaceBuilder，适用于玄武岩三角洲生物群系。
+ * 适用于玄武岩三角洲生物群系。
  */
 class BasaltDeltasSurfaceBuilder : public SurfaceBuilder {
 public:
@@ -450,7 +447,7 @@ public:
 /**
  * @brief 空操作地表构建器
  *
- * 参考 MC NoopSurfaceBuilder，不执行任何操作。
+ * 不执行任何操作。
  * 用于不需要地表生成的生物群系。
  */
 class NoopSurfaceBuilder : public SurfaceBuilder {

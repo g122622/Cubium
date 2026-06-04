@@ -45,8 +45,6 @@ namespace blocks {
  * 状态属性：
  * - UP: 是否向上延伸
  * - NORTH/SOUTH/EAST/WEST: 各方向是否附着
- *
- * 参考: net.minecraft.block.VineBlock
  */
 class VineBlock : public Block {
 public:
@@ -118,12 +116,12 @@ private:
     /**
      * @brief 检查是否可以附着到指定方向的方块
      */
-    [[nodiscard]] bool canAttachTo(IBlockReader& world, const BlockPos& pos, Direction direction) const;
+    [[nodiscard]] bool _canAttachTo(IBlockReader& world, const BlockPos& pos, Direction direction) const;
 
     /**
      * @brief 获取藤蔓连接数
      */
-    [[nodiscard]] i32 getConnectionCount(const BlockState& state) const;
+    [[nodiscard]] i32 _getConnectionCount(const BlockState& state) const;
 
     /**
      * @brief 检查周围藤蔓密度是否允许蔓延
@@ -134,25 +132,25 @@ private:
      * @param pos 当前位置
      * @return 如果有空间蔓延返回 true
      */
-    [[nodiscard]] bool hasRoomToSpread(IBlockReader& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _hasRoomToSpread(IBlockReader& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查状态是否有水平连接
      */
-    [[nodiscard]] bool hasHorizontalConnection(const BlockState& state) const;
+    [[nodiscard]] bool _hasHorizontalConnection(const BlockState& state) const;
 
     /**
      * @brief 随机复制水平连接
      *
      * 从源状态随机复制水平连接到目标状态。
      */
-    [[nodiscard]] BlockState copyRandomHorizontalConnections(
+    [[nodiscard]] BlockState _copyRandomHorizontalConnections(
         const BlockState& source, const BlockState& target, math::IRandom& random) const;
 
     /**
      * @brief 获取方向对应的属性
      */
-    [[nodiscard]] const BooleanProperty* getPropertyFor(Direction direction) const;
+    [[nodiscard]] const BooleanProperty* _getPropertyFor(Direction direction) const;
 
     /// 各方向的形状
     CollisionShape m_northShape;

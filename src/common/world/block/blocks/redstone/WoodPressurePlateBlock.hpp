@@ -33,8 +33,6 @@ namespace blocks {
  *
  * 木压力板可以被所有实体触发（玩家、怪物、物品等）。
  * 只输出两种信号：0（无实体）和 15（有实体）。
- *
- * 参考: net.minecraft.block.WoodPressurePlateBlock
  */
 class WoodPressurePlateBlock : public AbstractPressurePlateBlock {
 public:

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "world/blockentity/BlockEntity.hpp"
+#include <memory>
 
 namespace mc {
 namespace blockentity {
@@ -35,12 +35,7 @@ namespace blockentity {
  * 日光探测器使用方块 tick 来管理定期更新，每20游戏tick更新一次信号强度。
  * 这个方块实体主要用于未来的扩展（如自定义名称存储）。
  *
- * ## 注意
- * 当前的日光探测器使用方块 tick 机制而非方块实体 tick。
- * 此实体存在主要是为了与 MC Java 架构保持一致。
- *
- * ## 参考
- * - MC 1.16.5: net.minecraft.tileentity.DaylightDetectorTileEntity
+ * 当前实现使用方块 tick 机制而非方块实体 tick。
  */
 class DaylightDetectorEntity : public BlockEntity {
 public:

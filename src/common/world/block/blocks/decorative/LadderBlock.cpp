@@ -88,7 +88,6 @@ BlockState LadderBlock::getStateForPlacement(BlockItemUseContext& context)
 
 bool LadderBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-    // 参考 MC 1.16.5: LadderBlock.isValidPosition
     // 梯子需要附着在固体方块的侧面
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     // 获取梯子背面的方块位置（朝向的反方向）
@@ -118,7 +117,6 @@ BlockState LadderBlock::updatePostPlacement(const BlockState& state,
         waterloggable::scheduleWaterTick(world, currentPos);
     }
 
-    // 参考 MC 1.16.5: LadderBlock.updatePostPlacement
     // 如果梯子背面方块被移除，则移除梯子
     Direction ladderFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     if (facing == Directions::opposite(ladderFacing)) {

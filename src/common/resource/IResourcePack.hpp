@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../core/Result.hpp"
-#include "../core/Types.hpp"
 #include "PackMetadata.hpp"
 #include "PackType.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 #include <string>
 #include <vector>

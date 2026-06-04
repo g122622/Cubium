@@ -103,19 +103,19 @@ void BanCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // /ban <player>
     auto playerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::player());
-    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return banPlayer(ctx); });
+    playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _banPlayer(ctx); });
 
     // /ban <player> <reason>
     auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "reason", StringArgumentType::greedyString());
-    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return banPlayer(ctx); });
+    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _banPlayer(ctx); });
 
     playerArg->addChild(reasonArg);
     banNode->addChild(playerArg);
     dispatcher.registerCommand(banNode);
 }
 
-i32 BanCommand::banPlayer(CommandContext<ServerCommandSource>& context)
+i32 BanCommand::_banPlayer(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("player");

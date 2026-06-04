@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "common/resource/IResourcePack.hpp"
 #include <filesystem>
+#include <memory>
 #include <shared_mutex>
 #include <unordered_map>
 #include <unordered_set>
@@ -43,7 +43,7 @@ public:
     /**
      * @brief 析构函数
      */
-    ~ZipResourcePack() override;
+    ~ZipResourcePack() noexcept override;
 
     /**
      * @brief 创建 ZIP 资源包
@@ -77,8 +77,8 @@ private:
     /**
      * @brief 规范化资源路径
      */
-    [[nodiscard]] static std::string normalizePath(std::string_view path);
-    [[nodiscard]] static std::string makeTypedPath(resource::PackType type, std::string_view path);
+    [[nodiscard]] static std::string _normalizePath(std::string_view path);
+    [[nodiscard]] static std::string _makeTypedPath(resource::PackType type, std::string_view path);
 
     std::filesystem::path m_zipPath;           ///< ZIP 文件路径
     std::string m_name;                        ///< 资源包名称（文件名）

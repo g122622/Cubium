@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 #include <array>
 
 namespace mc {
@@ -44,7 +44,6 @@ namespace blocks {
  * 状态属性：
  * - NORTH/SOUTH/EAST/WEST/DOWN/UP: 各方向连接
  *
- * 参考 MC 1.16.5: SixWayBlock, ChorusPlantBlock
  * 形状系统：预计算 64 种组合（2^6），使用位掩码索引
  */
 class ChorusPlantBlock : public Block {
@@ -89,7 +88,7 @@ public:
     /**
      * @brief 检查是否连接到指定方向
      *
-     * 连接规则（参考 MC 1.16.5）：
+     * 连接规则：
      * - 所有方向：连接到紫颂植物和紫颂花
      * - 仅下方：额外连接到末地石
      *
@@ -98,7 +97,7 @@ public:
      * @param direction 检查方向
      * @return true 如果应该连接
      */
-    [[nodiscard]] bool canConnect(IBlockReader& world, const BlockPos& pos, Direction direction) const;
+    [[nodiscard]] bool _canConnect(IBlockReader& world, const BlockPos& pos, Direction direction) const;
 
 private:
     CollisionShape m_centerShape;            ///< 中心柱形状

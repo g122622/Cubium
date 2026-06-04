@@ -23,17 +23,16 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../IWaterLoggable.hpp"
-#include "../../Material.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/IWaterLoggable.hpp"
+#include "common/world/block/Material.hpp"
 #include <array>
 
 namespace mc {
 
 class IWorld;
-class IBlockReader;
 class BlockItemUseContext;
 
 namespace blocks {
@@ -47,8 +46,6 @@ namespace blocks {
  * 状态属性：
  * - NORTH/WEST/EAST/SOUTH: 各方向是否连接
  * - WATERLOGGED: 是否含水
- *
- * 参考: net.minecraft.block.FenceBlock
  */
 class FenceBlock : public Block, public IWaterLoggable {
 public:
@@ -86,7 +83,6 @@ public:
      * @brief 是否使用形状进行光照遮挡检测
      *
      * 栅栏有复杂的形状，需要精确的形状遮挡检测。
-     * 参考: MC 1.16.5 FenceBlock.getRenderShape()
      */
     [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
     {
@@ -123,7 +119,7 @@ private:
      * @param direction 从栅栏指向邻居的方向
      * @return 如果可以连接返回true
      */
-    [[nodiscard]] bool canConnect(const BlockState& state, bool isNeighborSolid, Direction direction) const;
+    [[nodiscard]] bool _canConnect(const BlockState& state, bool isNeighborSolid, Direction direction) const;
 
     /**
      * @brief 获取形状索引
@@ -133,7 +129,7 @@ private:
      * @param west 西面是否连接
      * @return 形状索引 (0-15)
      */
-    [[nodiscard]] static size_t getShapeIndex(bool north, bool east, bool south, bool west);
+    [[nodiscard]] static size_t _getShapeIndex(bool north, bool east, bool south, bool west);
 
     /// 预计算的形状缓存（16种组合）
     std::array<CollisionShape, 16> m_shapes;

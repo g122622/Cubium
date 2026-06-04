@@ -1,12 +1,36 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
 #pragma once
 
+#include <functional>
 #include <memory>
+#include <string>
+#include <vector>
+
 #include "EntityKey.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include <functional>
-#include <string>
-#include <vector>
 
 namespace mc {
 
@@ -22,7 +46,6 @@ class RocksDBDatabase;
  * @brief 实体存储管理器
  *
  * 负责实体的持久化存储，使用 RocksDB 列族。
- * 参考 PlayerDataManager 的设计模式。
  *
  * 存储格式：
  * - 键: {chunkX}:{chunkZ}:{uuid} (字符串)
@@ -144,22 +167,22 @@ private:
      * @param dimension 维度ID
      * @return 列族名
      */
-    [[nodiscard]] static const char* columnFamilyName(DimensionId dimension);
+    [[nodiscard]] static const char* _columnFamilyName(DimensionId dimension);
 
     /**
      * @brief 构建数据库键（二进制格式）
      */
-    [[nodiscard]] static std::vector<u8> makeKey(const EntityKey& key);
+    [[nodiscard]] static std::vector<u8> _makeKey(const EntityKey& key);
 
     /**
      * @brief 构建区块前缀键（用于范围查询）
      */
-    [[nodiscard]] static std::vector<u8> makeChunkPrefixKey(ChunkCoord chunkX, ChunkCoord chunkZ);
+    [[nodiscard]] static std::vector<u8> _makeChunkPrefixKey(ChunkCoord chunkX, ChunkCoord chunkZ);
 
     /**
      * @brief 构建区块范围结束键
      */
-    [[nodiscard]] static std::vector<u8> makeChunkEndKey(ChunkCoord chunkX, ChunkCoord chunkZ);
+    [[nodiscard]] static std::vector<u8> _makeChunkEndKey(ChunkCoord chunkX, ChunkCoord chunkZ);
 
     RocksDBDatabase& m_db;
 };

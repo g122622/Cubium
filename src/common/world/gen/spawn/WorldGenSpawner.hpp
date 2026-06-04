@@ -86,7 +86,6 @@ struct SpawnedEntityData {
  * @brief 区块生成时的生物放置器
  *
  * 在区块首次生成时放置被动动物（猪、牛、羊等）。
- * 参考 MC 1.16.5 WorldEntitySpawner.performWorldGenSpawning
  *
  * 与 NaturalSpawner 的区别：
  * - WorldGenSpawner: 区块生成时放置动物（仅 Creature 分类）
@@ -108,7 +107,6 @@ public:
     /**
      * @brief 在区块生成时放置动物
      *
-     * 参考 MC 1.16.5 performWorldGenSpawning
      * 只放置 Creature 分类（被动动物），不生成怪物。
      * 怪物通过 NaturalSpawner 在夜间/黑暗环境生成。
      *
@@ -155,7 +153,7 @@ private:
      * @param outEntities 输出：生成的实体数据
      * @return 实际生成的数量
      */
-    i32 spawnGroup(WorldGenRegion& region,
+    i32 _spawnGroup(WorldGenRegion& region,
         const entity::EntityType& entityType,
         f32 x,
         f32 y,
@@ -173,7 +171,7 @@ private:
      * @param z Z 坐标
      * @return 生成高度，如果无法生成返回 -1
      */
-    [[nodiscard]] i32 getSpawnHeight(WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 z) const;
+    [[nodiscard]] i32 _getSpawnHeight(WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 z) const;
 
     /**
      * @brief 检查位置是否可以生成实体
@@ -185,15 +183,13 @@ private:
      * @param z Z 坐标
      * @return 是否可以生成
      */
-    [[nodiscard]] bool canSpawnAt(
+    [[nodiscard]] bool _canSpawnAt(
         WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 y, i32 z) const;
 
     /**
      * @brief 检查方块是否允许实体生成
-     *
-     * 参考 MC EntitySpawnPlacementRegistry.canSpawnAtLocation
      */
-    [[nodiscard]] bool checkSpawnRules(
+    [[nodiscard]] bool _checkSpawnRules(
         WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 y, i32 z) const;
 };
 

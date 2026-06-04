@@ -45,6 +45,16 @@ public:
      */
     BehaviorPack(std::string path, AddonManifest manifest);
 
+    // 禁止拷贝
+    BehaviorPack(const BehaviorPack&) = delete;
+    BehaviorPack& operator=(const BehaviorPack&) = delete;
+
+    // 允许移动
+    BehaviorPack(BehaviorPack&&) noexcept = default;
+    BehaviorPack& operator=(BehaviorPack&&) noexcept = default;
+
+    ~BehaviorPack() = default;
+
     /**
      * @brief 获取行为包路径
      * @return 行为包目录路径

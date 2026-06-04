@@ -30,7 +30,16 @@
 
 namespace mc::network {
 
-// 数据包类型ID
+/**
+ * @brief 数据包类型枚举
+ *
+ * 定义所有网络数据包的类型ID，用于序列化和反序列化时识别数据包类型。
+ * 类型ID范围：
+ * - 0-99: 内部控制包
+ * - 100-199: 客户端 -> 服务端包
+ * - 200-299: 服务端 -> 客户端包
+ * - 300+: 特殊功能包
+ */
 enum class PacketType : u16 {
     // 内部控制包
     Handshake = 0,
@@ -46,11 +55,11 @@ enum class PacketType : u16 {
     ChatMessage = 103,
     BlockInteraction = 104,
     PlayerTryUseItemOnBlock = 105, // 方块放置
-    PlayerInput = 106,             // 玩家输入 (骑乘/移动) - MC 1.16.5 CInputPacket
-    MoveVehicle = 107,             // 载具移动 - MC 1.16.5 CMoveVehiclePacket
-    EntityAction = 108,            // 实体动作 (跳跃、潜行等) - MC 1.16.5 CEntityActionPacket
-    UseEntity = 109,               // 实体交互 - MC 1.16.5 CUseEntityPacket
-    SteerBoat = 110,               // 船划桨状态 - MC 1.16.5 CSteerBoatPacket
+    PlayerInput = 106,             // 玩家输入 (骑乘/移动)
+    MoveVehicle = 107,             // 载具移动
+    EntityAction = 108,            // 实体动作 (跳跃、潜行等)
+    UseEntity = 109,               // 实体交互
+    SteerBoat = 110,               // 船划桨状态
 
     // 服务端 -> 客户端 (登录阶段)
     LoginResponse = 200,
@@ -84,11 +93,11 @@ enum class PacketType : u16 {
     SetPassengers = 224,   // 设置乘客列表 (S->C)
 
     // 维度相关包
-    Respawn = 225,                // 重生/维度切换 (S->C) - 参考 MC 1.16.5 SRespawnPacket
+    Respawn = 225,                // 重生/维度切换 (S->C)
     DimensionInfo = 226,          // 维度信息 (S->C)
     ConfirmDimensionChange = 227, // 确认维度切换 (C->S)
     SpawnPosition = 228,          // 世界出生点 (S->C)
-    VehicleMove = 229,            // 载具移动同步 (S->C) - MC 1.16.5 SMoveVehiclePacket
+    VehicleMove = 229,            // 载具移动同步 (S->C)
 
     // 命令系统
     CommandTree = 230, // 命令树同步 (S->C)
@@ -136,10 +145,10 @@ enum class PacketType : u16 {
     WorldBorder = 530, // 世界边界同步
 
     // Boss 栏包 (S->C)
-    BossInfo = 535, // Boss 栏同步 - 参考 MC 1.16.5 SUpdateBossInfoPacket
+    BossInfo = 535, // Boss 栏同步
 
     // 地图包 (S->C)
-    MapData = 550, // 地图数据更新 - 参考 MC 1.16.5 SMapPacket
+    MapData = 550, // 地图数据更新
 
     // 成就包 (S->C)
     AdvancementInfo = 540,      // 成就信息同步
@@ -155,7 +164,11 @@ enum class PacketType : u16 {
     Teams = 703,               // 队伍同步 (创建/移除/更新/成员变更)
 };
 
-// 数据包头
+/**
+ * @brief 数据包头结构
+ *
+ * 每个网络数据包都以固定的12字节头部开始，包含包大小、类型、标志位等信息。
+ */
 struct PacketHeader {
     u32 size;     // 数据包总大小 (包含头部)
     u16 type;     // 数据包类型 (PacketType)
@@ -166,7 +179,12 @@ struct PacketHeader {
 
 static_assert(sizeof(PacketHeader) == 12, "PacketHeader should be 12 bytes");
 
-// 数据包基类
+/**
+ * @brief 数据包基类
+ *
+ * 所有网络数据包的抽象基类，定义了序列化和反序列化接口。
+ * 派生类必须实现 serialize() 和 deserialize() 方法。
+ */
 class Packet {
 public:
     Packet(PacketType type);
@@ -190,7 +208,12 @@ protected:
     u16 m_flags = 0;
 };
 
-// 心跳包 (KeepAlive)
+/**
+ * @brief 心跳包
+ *
+ * 用于维持连接活跃状态，客户端和服务端双向发送。
+ * 包含时间戳用于计算往返延迟。
+ */
 class KeepAlivePacket : public Packet {
 public:
     KeepAlivePacket()
@@ -207,7 +230,11 @@ private:
     u64 m_timestamp = 0;
 };
 
-// 断开连接包
+/**
+ * @brief 断开连接包
+ *
+ * 用于通知对方断开连接，包含断开原因的文本说明。
+ */
 class DisconnectPacket : public Packet {
 public:
     DisconnectPacket()

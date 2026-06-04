@@ -163,8 +163,8 @@ void CactusBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
     }
 
     // 检查高度限制（最高3格）
-    int height = 1;
-    for (int i = 1; i < 3; ++i) {
+    i32 height = 1;
+    for (i32 i = 1; i < 3; ++i) {
         BlockPos checkPos(pos.x, pos.y - i, pos.z);
         const BlockState* checkState = world.getBlockState(checkPos);
         if (checkState == nullptr || !checkState->is(this)) {

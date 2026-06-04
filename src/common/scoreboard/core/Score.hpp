@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <string>
 
 namespace mc::scoreboard {
@@ -36,7 +36,6 @@ class ScoreObjective;
  * @brief 分数类
  *
  * 表示一个玩家/实体在某个目标上的分数。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.Score
  *
  * 分数限制：
  * - 最小值：-2147483648 (INT32_MIN)

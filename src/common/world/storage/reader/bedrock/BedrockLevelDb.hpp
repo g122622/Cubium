@@ -44,11 +44,13 @@ namespace mc::world::storage::reader::bedrock {
  */
 class BedrockLevelDb {
 public:
-    BedrockLevelDb();
+    BedrockLevelDb() = default;
     ~BedrockLevelDb();
 
     BedrockLevelDb(const BedrockLevelDb&) = delete;
     BedrockLevelDb& operator=(const BedrockLevelDb&) = delete;
+    BedrockLevelDb(BedrockLevelDb&& other) noexcept;
+    BedrockLevelDb& operator=(BedrockLevelDb&& other) noexcept;
 
     /**
      * @brief 打开 LevelDB 数据库（只读）
@@ -134,7 +136,6 @@ public:
 
 private:
     leveldb::DB* m_db = nullptr;
-    bool m_readonly = true;
 };
 
 } // namespace mc::world::storage::reader::bedrock

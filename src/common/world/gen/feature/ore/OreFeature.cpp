@@ -21,14 +21,15 @@
  *
  */
 
-#define _USE_MATH_DEFINES
 #include "OreFeature.hpp"
-#include "../../../biome/Biome.hpp"
-#include "../../../block/BlockRegistry.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../../placement/PlacementUtils.hpp"
-#include "../Feature.hpp"
+#include "common/core/Constants.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/Feature.hpp"
+#include "common/world/gen/placement/PlacementUtils.hpp"
 #include <algorithm>
 #include <cmath>
 #include <mutex>
@@ -51,11 +52,11 @@ bool OreFeature::place(WorldGenRegion& region,
     const BlockPos& origin,
     const OreFeatureConfig& config)
 {
-    // 参考 MC OreFeature.place()
     // 生成椭圆形矿脉
+    using namespace mc::world;
 
     // 计算矿脉参数
-    f32 angle = random.nextFloat() * static_cast<f32>(M_PI);
+    f32 angle = random.nextFloat() * math::PI;
     f32 sizeFactor = static_cast<f32>(config.size) / 8.0f;
     i32 halfSize = static_cast<i32>(std::ceil((static_cast<f32>(config.size) / 16.0f * 2.0f + 1.0f) / 2.0f));
 
@@ -82,7 +83,7 @@ bool OreFeature::place(WorldGenRegion& region,
             i32 topY = region.getTopBlockY(checkX, checkZ, HeightmapType::WorldSurfaceWG);
             if (minY <= topY) {
                 i32 placedCount = 0;
-                generateSphere(
+                _generateSphere(
                     chunk, random, config, x1, y1, z1, x2, y2, z2, minX, minY, minZ, sizeX, sizeY, sizeZ, placedCount);
                 return placedCount > 0;
             }
@@ -92,7 +93,7 @@ bool OreFeature::place(WorldGenRegion& region,
     return false;
 }
 
-void OreFeature::generateSphere(ChunkPrimer& chunk,
+void OreFeature::_generateSphere(ChunkPrimer& chunk,
     math::Random& random,
     const OreFeatureConfig& config,
     f32 x1,
@@ -109,8 +110,8 @@ void OreFeature::generateSphere(ChunkPrimer& chunk,
     i32 sizeZ,
     i32& placedCount)
 {
-    // 参考 MC OreFeature.func_207803_a()
-    // 使用球形采样算法
+    // 使用球形采样算法生成矿脉
+    using namespace mc::world;
 
     placedCount = 0;
     i32 totalSize = sizeX * sizeY * sizeZ;
@@ -130,7 +131,7 @@ void OreFeature::generateSphere(ChunkPrimer& chunk,
         f32 cz = z1 + (z2 - z1) * progress;
 
         f32 radiusFactor = static_cast<f32>(random.nextDouble() * static_cast<f64>(config.size) / 16.0);
-        f32 radius = (std::sin(static_cast<f32>(M_PI) * progress) + 1.0f) * radiusFactor + 1.0f;
+        f32 radius = (std::sin(math::PI * progress) + 1.0f) * radiusFactor + 1.0f;
 
         sphereCenters[static_cast<size_t>(i) * 4 + 0] = cx;
         sphereCenters[static_cast<size_t>(i) * 4 + 1] = cy;
@@ -235,14 +236,14 @@ void OreFeature::generateSphere(ChunkPrimer& chunk,
                     processed[static_cast<size_t>(index)] = true;
 
                     // 获取当前方块并检查是否可以替换
-                    const BlockState* currentState = chunk.getBlockState(static_cast<BlockCoord>(bx & 15),
+                    const BlockState* currentState = chunk.getBlockState(static_cast<BlockCoord>(bx & CHUNK_MASK),
                         static_cast<BlockCoord>(by),
-                        static_cast<BlockCoord>(bz & 15));
+                        static_cast<BlockCoord>(bz & CHUNK_MASK));
 
                     if (currentState && config.target->test(*currentState, random)) {
-                        chunk.setBlockState(static_cast<BlockCoord>(bx & 15),
+                        chunk.setBlockState(static_cast<BlockCoord>(bx & CHUNK_MASK),
                             static_cast<BlockCoord>(by),
-                            static_cast<BlockCoord>(bz & 15),
+                            static_cast<BlockCoord>(bz & CHUNK_MASK),
                             oreState);
                         ++placedCount;
                     }
@@ -276,7 +277,7 @@ bool ConfiguredOreFeature::place(
     }
 
     // 获取放置位置
-    BlockPos chunkPos(chunk.x() * 16, 0, chunk.z() * 16);
+    BlockPos chunkPos(mc::world::toWorldCoord(chunk.x()), 0, mc::world::toWorldCoord(chunk.z()));
     auto positions = m_placement->getPositions(region, random, chunkPos);
 
     // 在每个位置生成矿石
@@ -297,7 +298,7 @@ void ConfiguredOreFeature::generate(WorldGenRegion& region, ChunkPrimer& chunk, 
     }
 
     // 获取放置位置
-    BlockPos chunkPos(chunk.x() * 16, 0, chunk.z() * 16);
+    BlockPos chunkPos(mc::world::toWorldCoord(chunk.x()), 0, mc::world::toWorldCoord(chunk.z()));
     auto positions = m_placement->getPositions(region, random, chunkPos);
 
     // 在每个位置生成矿石

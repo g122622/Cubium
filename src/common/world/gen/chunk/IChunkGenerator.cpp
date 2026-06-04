@@ -150,7 +150,7 @@ i32 WorldGenRegion::getTopBlockY(i32 x, i32 z, HeightmapType type) const
     return chunk->getTopBlockY(type, localX, localZ);
 }
 
-i32 WorldGenRegion::worldToChunkIndex(i32 x, i32 z) const
+i32 WorldGenRegion::_worldToChunkIndex(i32 x, i32 z) const
 {
     const ChunkCoord chunkX = world::toChunkCoord(x);
     const ChunkCoord chunkZ = world::toChunkCoord(z);
@@ -164,12 +164,12 @@ i32 WorldGenRegion::worldToChunkIndex(i32 x, i32 z) const
     return (relZ + m_chunkRadius) * m_chunkDiameter + (relX + m_chunkRadius);
 }
 
-i32 WorldGenRegion::centerIndex() const
+i32 WorldGenRegion::_centerIndex() const
 {
     return m_chunkRadius * m_chunkDiameter + m_chunkRadius;
 }
 
-void WorldGenRegion::worldToLocal(i32 worldX, i32 worldZ, i32& localX, i32& localZ)
+void WorldGenRegion::_worldToLocal(i32 worldX, i32 worldZ, i32& localX, i32& localZ)
 {
     localX = world::toLocalCoord(worldX);
     localZ = world::toLocalCoord(worldZ);
@@ -369,7 +369,6 @@ i32 BaseChunkGenerator::spawnInitialMobs(
     const Biome& biome = BiomeRegistry::instance().get(biomeId);
 
     // 使用种子创建随机数生成器
-    // 参考 MC: setDecorationSeed
     math::Random rng;
     rng.setSeed(static_cast<u64>(chunk.x()) * 341873128712ULL + static_cast<u64>(chunk.z()) * 132897987541ULL + m_seed);
 

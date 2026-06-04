@@ -33,7 +33,7 @@
  * 注意：这些ID必须与 FeatureRegistry::initialize() 中注册的顺序一致。
  */
 
-#include "../../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 

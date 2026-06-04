@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "world/blockentity/processing/AbstractFurnaceEntity.hpp"
+#include <memory>
 
 namespace mc {
 namespace blockentity {

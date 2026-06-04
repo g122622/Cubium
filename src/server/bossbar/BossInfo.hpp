@@ -35,7 +35,6 @@ namespace server {
  * @brief Boss 信息颜色枚举
  *
  * 定义 Boss 栏的颜色选项。
- * 参考 MC 1.16.5: net.minecraft.world.BossInfo.Color
  */
 enum class BossInfoColor : u8 {
     Pink = 0,   // 粉色
@@ -51,7 +50,6 @@ enum class BossInfoColor : u8 {
  * @brief Boss 信息样式枚举
  *
  * 定义 Boss 栏的样式选项（进度条外观）。
- * 参考 MC 1.16.5: net.minecraft.world.BossInfo.Overlay
  */
 enum class BossInfoOverlay : u8 {
     Progress = 0,  // 平滑进度条
@@ -97,7 +95,6 @@ std::string bossInfoOverlayToName(BossInfoOverlay overlay);
  * @brief Boss 信息基类
  *
  * 定义 Boss 栏的核心属性：唯一ID、名称、百分比、颜色、样式、标志位。
- * 参考 MC 1.16.5: net.minecraft.world.BossInfo
  */
 class BossInfo {
 public:

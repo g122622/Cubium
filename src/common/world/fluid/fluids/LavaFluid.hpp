@@ -23,17 +23,15 @@
 
 #pragma once
 
-#include "../../../util/math/Vector3.hpp"
-#include "../../../util/math/random/IRandom.hpp"
-#include "../FlowingFluid.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/world/fluid/FlowingFluid.hpp"
 
 namespace mc {
 namespace fluid {
 
 /**
  * @brief 岩浆流体基类
- *
- * 参考MC 1.16.5 LavaFluid
  *
  * 特性：
  * - tick延迟: 主世界30tick，下界10tick
@@ -89,7 +87,7 @@ protected:
     /**
      * @brief 流入指定位置（重写以处理岩浆与水的交互）
      *
-     * MC 1.16.5 行为：只有向下流动时(direction == DOWN)才检查水交互
+     * 只有向下流动时(direction == DOWN)才检查水交互
      * 岩浆向下流入水时，把目标位置变成石头
      *
      * @param world 世界
@@ -112,7 +110,7 @@ private:
      * @param pos 位置
      * @return 周围是否有可燃方块
      */
-    [[nodiscard]] bool isSurroundingBlockFlammable(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isSurroundingBlockFlammable(IWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查指定方块是否可燃
@@ -121,7 +119,7 @@ private:
      * @param pos 位置
      * @return 方块是否可燃
      */
-    [[nodiscard]] bool isBlockFlammable(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isBlockFlammable(IWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 触发岩浆效果（烟雾和嘶嘶声）
@@ -129,7 +127,7 @@ private:
      * @param world 世界
      * @param pos 位置
      */
-    void triggerEffects(IWorld& world, const BlockPos& pos);
+    void _triggerEffects(IWorld& world, const BlockPos& pos);
 };
 
 /**

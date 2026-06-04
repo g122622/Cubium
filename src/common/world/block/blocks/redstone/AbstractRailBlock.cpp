@@ -22,10 +22,10 @@
  */
 
 #include "AbstractRailBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace blocks {
@@ -165,7 +165,7 @@ RailShape AbstractRailBlock::calculateRailShape(IWorld& world, const BlockPos& p
     bool westUp = canAscendTo(static_cast<IBlockReader&>(world), pos, Direction::West);
 
     // 计算连接数
-    int connections = (north ? 1 : 0) + (south ? 1 : 0) + (east ? 1 : 0) + (west ? 1 : 0);
+    i32 connections = (north ? 1 : 0) + (south ? 1 : 0) + (east ? 1 : 0) + (west ? 1 : 0);
 
     // 优先处理斜坡
     if (northUp) {
@@ -223,7 +223,7 @@ RailShape AbstractRailBlock::calculateRailShape(IWorld& world, const BlockPos& p
     }
 
     // 三连接或四连接：保持当前形状
-    // 实际MC中会更复杂，这里简化处理
+    // TODO: 实际MC中三连接和四连接的处理更复杂，需要根据周围铁轨状态选择最佳形状
     return getRailShape(state);
 }
 

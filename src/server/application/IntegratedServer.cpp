@@ -65,9 +65,10 @@ namespace mc::server {
 namespace {
 
 /**
- * @brief 获取菜单玩家（临时方案）
+ * @brief 获取菜单玩家
+ * TODO: 这是临时方案，后续需要优化容器系统的玩家上下文处理
  */
-Player& getMenuPlayer()
+Player& _getMenuPlayer()
 {
     static Player player(0, "IntegratedServerMenu");
     return player;
@@ -177,7 +178,6 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
     });
 
     // 设置命令执行回调（用于命令方块矿车等实体执行命令）
-    // 参考 MC 1.16.5: CommandBlockLogic.trigger() -> Commands.handleCommand()
     // 为所有维度设置命令执行回调
     m_dimensionManager->forEachDimension([this](Dimension& dim) {
         auto* serverDim = static_cast<ServerDimension*>(&dim);
@@ -194,7 +194,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
                         this, nullptr, world->dimension(), position, Vector2f(0.0f, 0.0f), permissionLevel, 0, "@");
                     auto result = m_commandRegistry->execute(cmd, source);
                     if (result.failed()) {
-                        spdlog::debug("Command execution failed for '{}': {}", cmd, result.error().message());
+                        spdlog::info("Command execution failed for '{}': {}", cmd, result.error().message());
                         return 0;
                     }
 
@@ -236,7 +236,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
 
     // 启动服务端线程
     m_running = true;
-    m_serverThread = std::make_unique<std::thread>([this]() { mainLoop(); });
+    m_serverThread = std::make_unique<std::thread>([this]() { _mainLoop(); });
 
     m_initialized = true;
     spdlog::info("Integrated server initialized");
@@ -330,7 +330,7 @@ const PlayerInventory* IntegratedServer::playerInventory(PlayerId playerId) cons
     return MinecraftServer::playerInventory(playerId);
 }
 
-void IntegratedServer::mainLoop()
+void IntegratedServer::_mainLoop()
 {
     using clock = std::chrono::steady_clock;
     const auto tickDuration = std::chrono::milliseconds(1000 / m_settings.tickRate.get());
@@ -369,7 +369,7 @@ void IntegratedServer::pollNetwork()
 
 void IntegratedServer::broadcastPacket(const u8* data, size_t size)
 {
-    sendToClient(data, size);
+    _sendToClient(data, size);
 }
 
 // ============================================================================
@@ -386,7 +386,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
 
     if (result.failed()) {
         spdlog::warn("Failed to parse login request");
-        sendLoginResponse(false, 0, INVALID_ENTITY_ID, "", "Invalid login request");
+        _sendLoginResponse(false, 0, INVALID_ENTITY_ID, "", "Invalid login request");
         return;
     }
 
@@ -395,10 +395,10 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
 
     spdlog::info("Player '{}' attempting to join", username);
 
-    // 白名单检查（MC 1.16.5 行为：白名单启用时拒绝不在名单中的玩家）
+    // 白名单检查（白名单启用时拒绝不在名单中的玩家）
     if (m_whitelistManager->isEnabled() && !m_whitelistManager->isNameWhitelisted(username)) {
         spdlog::info("Player '{}' rejected: not in whitelist", username);
-        sendLoginResponse(false, 0, INVALID_ENTITY_ID, username, "You are not whitelisted on this server!");
+        _sendLoginResponse(false, 0, INVALID_ENTITY_ID, username, "You are not whitelisted on this server!");
         return;
     }
 
@@ -409,14 +409,13 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     m_clientPlayerId = m_playerManager->nextPlayerId();
 
     // 生成离线模式 UUID（基于用户名）
-    // 参考 MC 1.16.5: UUID.nameUUIDFromBytes(("OfflinePlayer:" + username).getBytes(UTF_8))
     Uuid offlineUuid = util::generateOfflineUuid(username);
     std::string uuidStr = util::uuidToString(offlineUuid);
 
     // 添加玩家会话信息
     auto* playerData = m_playerManager->addPlayer(m_clientPlayerId, uuidStr, username, m_clientConnection);
     if (!playerData) {
-        sendLoginResponse(false, 0, INVALID_ENTITY_ID, username, "Failed to add player");
+        _sendLoginResponse(false, 0, INVALID_ENTITY_ID, username, "Failed to add player");
         return;
     }
 
@@ -445,7 +444,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
         if (!playerEntity) {
             spdlog::error("Failed to create player entity for {}", username);
             m_playerManager->removePlayer(m_clientPlayerId);
-            sendLoginResponse(false, 0, INVALID_ENTITY_ID, username, "Failed to create player entity");
+            _sendLoginResponse(false, 0, INVALID_ENTITY_ID, username, "Failed to create player entity");
             return;
         }
 
@@ -480,7 +479,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     }
 
     // 发送登录成功响应（包含 playerId 和 entityId）
-    sendLoginResponse(true, m_clientPlayerId, m_clientEntityId, username, "Welcome to singleplayer world!");
+    _sendLoginResponse(true, m_clientPlayerId, m_clientEntityId, username, "Welcome to singleplayer world!");
 
     // 同步命令树
     sendCommandTreePacket(m_clientPlayerId);
@@ -488,7 +487,7 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     // 发送初始游戏状态
     sendInitialGameState(
         m_clientPlayerId, playerData->x, playerData->y, playerData->z, playerData->yaw, playerData->pitch);
-    sendPlayerInventory();
+    _sendPlayerInventory();
 
     spdlog::info(
         "Player '{}' (PlayerId={}, EntityId={}) joined the game", username, m_clientPlayerId, m_clientEntityId);
@@ -498,7 +497,7 @@ void IntegratedServer::handleHotbarSelectPacket(PlayerId playerId, const u8* dat
 {
     (void)playerId;
     MC_TRACE_EVENT("server.network", "HandleHotbarSelect");
-    auto* player = getPlayerData();
+    auto* player = _getPlayerData();
     if (!player || !player->loggedIn) {
         return;
     }
@@ -517,7 +516,7 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const u8* d
 {
     (void)playerId;
     MC_TRACE_EVENT("server.network", "HandleContainerClick");
-    auto* player = getPlayerData();
+    auto* player = _getPlayerData();
     if (!player || !player->loggedIn) {
         return;
     }
@@ -530,20 +529,20 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const u8* d
     }
 
     const auto& packet = result.value();
-    Player& menuPlayer = getMenuPlayer();
+    Player& menuPlayer = _getMenuPlayer();
     if (!ContainerPacketHandler::handleContainerClick(menuPlayer, packet)) {
         return;
     }
 
-    sendContainerContent(*m_openMenu);
-    sendPlayerInventory();
+    _sendContainerContent(*m_openMenu);
+    _sendPlayerInventory();
 }
 
 void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const u8* data, size_t size)
 {
     (void)playerId;
     MC_TRACE_EVENT("server.network", "HandleCloseContainer");
-    auto* player = getPlayerData();
+    auto* player = _getPlayerData();
     if (!player || !player->loggedIn) {
         return;
     }
@@ -559,19 +558,19 @@ void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const u8* d
         return;
     }
 
-    closeCurrentContainer(false);
-    sendPlayerInventory();
+    _closeCurrentContainer(false);
+    _sendPlayerInventory();
 }
 
 // ============================================================================
 // 数据包发送
 // ============================================================================
 
-void IntegratedServer::sendLoginResponse(
+void IntegratedServer::_sendLoginResponse(
     bool success, PlayerId playerId, EntityId entityId, const std::string& username, const std::string& message)
 {
     MC_TRACE_EVENT("server.network",
-        "IntegratedServer::sendLoginResponse",
+        "IntegratedServer::_sendLoginResponse",
         "success",
         success,
         "playerId",
@@ -586,37 +585,37 @@ void IntegratedServer::sendLoginResponse(
     response.serialize(ser);
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::LoginResponse, ser.buffer());
-    sendToClient(fullPacket.data(), fullPacket.size());
+    _sendToClient(fullPacket.data(), fullPacket.size());
 }
 
-void IntegratedServer::sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId)
+void IntegratedServer::_sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId)
 {
     MC_TRACE_EVENT(
-        "server.network", "IntegratedServer::sendTeleport", "x", x, "y", y, "z", z, "teleportId", teleportId);
+        "server.network", "IntegratedServer::_sendTeleport", "x", x, "y", y, "z", z, "teleportId", teleportId);
 
     network::TeleportPacket packet(x, y, z, yaw, pitch, teleportId);
     network::PacketSerializer ser;
     packet.serialize(ser);
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Teleport, ser.buffer());
-    sendToClient(fullPacket.data(), fullPacket.size());
+    _sendToClient(fullPacket.data(), fullPacket.size());
 }
 
-void IntegratedServer::sendPlayerInventory()
+void IntegratedServer::_sendPlayerInventory()
 {
-    MC_TRACE_EVENT("server.network", "IntegratedServer::sendPlayerInventory");
+    MC_TRACE_EVENT("server.network", "IntegratedServer::_sendPlayerInventory");
 
     PlayerInventoryPacket packet(m_clientInventory);
     network::PacketSerializer ser;
     packet.serialize(ser);
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::PlayerInventory, ser.buffer());
-    sendToClient(fullPacket.data(), fullPacket.size());
+    _sendToClient(fullPacket.data(), fullPacket.size());
 }
 
-void IntegratedServer::sendContainerContent(const AbstractContainerMenu& menu)
+void IntegratedServer::_sendContainerContent(const AbstractContainerMenu& menu)
 {
-    MC_TRACE_EVENT("server.network", "IntegratedServer::sendContainerContent", "containerId", menu.getId());
+    MC_TRACE_EVENT("server.network", "IntegratedServer::_sendContainerContent", "containerId", menu.getId());
 
     if (m_serverEndpoint == nullptr || !m_serverEndpoint->isConnected()) {
         return;
@@ -631,17 +630,17 @@ void IntegratedServer::sendContainerContent(const AbstractContainerMenu& menu)
     m_serverEndpoint->send(fullPacket.data(), fullPacket.size());
 }
 
-void IntegratedServer::sendOpenContainer(
+void IntegratedServer::_sendOpenContainer(
     ContainerId containerId, mc::ContainerType type, const std::string& title, i32 slotCount)
 {
     MC_TRACE_EVENT("server.network",
-        "IntegratedServer::sendOpenContainer",
+        "IntegratedServer::_sendOpenContainer",
         "containerId",
         containerId,
         "type",
         static_cast<i32>(type));
 
-    (void)slotCount; // slotCount is no longer sent in the packet (MC 1.16.5 protocol)
+    (void)slotCount; // slotCount 不再发送到客户端
     if (m_serverEndpoint == nullptr || !m_serverEndpoint->isConnected()) {
         return;
     }
@@ -655,9 +654,9 @@ void IntegratedServer::sendOpenContainer(
     m_serverEndpoint->send(fullPacket.data(), fullPacket.size());
 }
 
-void IntegratedServer::sendCloseContainer(ContainerId containerId)
+void IntegratedServer::_sendCloseContainer(ContainerId containerId)
 {
-    MC_TRACE_EVENT("server.network", "IntegratedServer::sendCloseContainer", "containerId", containerId);
+    MC_TRACE_EVENT("server.network", "IntegratedServer::_sendCloseContainer", "containerId", containerId);
 
     if (m_serverEndpoint == nullptr || !m_serverEndpoint->isConnected()) {
         return;
@@ -671,19 +670,19 @@ void IntegratedServer::sendCloseContainer(ContainerId containerId)
     m_serverEndpoint->send(fullPacket.data(), fullPacket.size());
 }
 
-void IntegratedServer::sendToClient(const u8* data, size_t size)
+void IntegratedServer::_sendToClient(const u8* data, size_t size)
 {
-    MC_TRACE_EVENT("server.network", "IntegratedServer::sendToClient", "size", size);
+    MC_TRACE_EVENT("server.network", "IntegratedServer::_sendToClient", "size", size);
 
     if (m_serverEndpoint && m_serverEndpoint->isConnected()) {
         m_serverEndpoint->send(data, size);
     }
 }
 
-void IntegratedServer::sendBlockBreakAnim(EntityId breakerId, i32 x, i32 y, i32 z, i8 stage)
+void IntegratedServer::_sendBlockBreakAnim(EntityId breakerId, i32 x, i32 y, i32 z, i8 stage)
 {
     MC_TRACE_EVENT("server.network",
-        "IntegratedServer::sendBlockBreakAnim",
+        "IntegratedServer::_sendBlockBreakAnim",
         "breakerId",
         breakerId,
         "pos",
@@ -703,23 +702,23 @@ void IntegratedServer::sendBlockBreakAnim(EntityId breakerId, i32 x, i32 y, i32 
     }
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::BlockBreakAnim, result.value());
-    sendToClient(fullPacket.data(), fullPacket.size());
+    _sendToClient(fullPacket.data(), fullPacket.size());
 }
 
 bool IntegratedServer::openContainerRequest(ContainerType type, const BlockPos& pos, Player& player)
 {
     (void)player;
-    return openContainerMenu(type, pos);
+    return _openContainerMenu(type, pos);
 }
 
-bool IntegratedServer::openContainerMenu(ContainerType type, const BlockPos& pos)
+bool IntegratedServer::_openContainerMenu(ContainerType type, const BlockPos& pos)
 {
-    auto* player = getPlayerData();
+    auto* player = _getPlayerData();
     if (!player) {
         return false;
     }
 
-    closeCurrentContainer(true);
+    _closeCurrentContainer(true);
 
     ContainerId containerId = m_nextContainerId++;
     std::unique_ptr<AbstractContainerMenu> menu;
@@ -801,17 +800,17 @@ bool IntegratedServer::openContainerMenu(ContainerType type, const BlockPos& pos
         return false;
     }
 
-    sendOpenContainer(containerId, type, std::string(ContainerTypes::getDefaultTitle(type)), menu->getSlotCount());
-    sendContainerContent(*menu);
+    _sendOpenContainer(containerId, type, std::string(ContainerTypes::getDefaultTitle(type)), menu->getSlotCount());
+    _sendContainerContent(*menu);
 
     m_openContainerType = type;
     m_openContainerPos = pos;
     m_openMenu = std::move(menu);
-    getMenuPlayer().setOpenContainerMenu(m_openMenu.get());
+    _getMenuPlayer().setOpenContainerMenu(m_openMenu.get());
     return true;
 }
 
-void IntegratedServer::closeCurrentContainer(bool sendClosePacket)
+void IntegratedServer::_closeCurrentContainer(bool sendClosePacket)
 {
     if (!m_openMenu) {
         return;
@@ -830,10 +829,10 @@ void IntegratedServer::closeCurrentContainer(bool sendClosePacket)
         }
     }
 
-    Player& menuPlayer = getMenuPlayer();
+    Player& menuPlayer = _getMenuPlayer();
     m_openMenu->removed(menuPlayer);
     if (sendClosePacket) {
-        sendCloseContainer(m_openMenu->getId());
+        _sendCloseContainer(m_openMenu->getId());
     }
     menuPlayer.clearOpenContainerMenu();
     m_openMenu.reset();
@@ -842,9 +841,9 @@ void IntegratedServer::closeCurrentContainer(bool sendClosePacket)
     m_openContainerPos = BlockPos();
 }
 
-void IntegratedServer::openCraftingTableMenu()
+void IntegratedServer::_openCraftingTableMenu()
 {
-    (void)openContainerMenu(ContainerType::Crafting, BlockPos());
+    (void)_openContainerMenu(ContainerType::Crafting, BlockPos());
 }
 
 void IntegratedServer::onCreativeInventoryInitialized(PlayerId playerId, PlayerInventory& inventory)
@@ -874,14 +873,14 @@ void IntegratedServer::setInventoryItem(PlayerId playerId, i32 slotIndex, const 
 void IntegratedServer::syncPlayerInventory(PlayerId playerId)
 {
     MC_UNUSED(playerId);
-    sendPlayerInventory();
+    _sendPlayerInventory();
 }
 
 bool IntegratedServer::tryOpenCraftingContainer(PlayerId playerId, const BlockPos& pos)
 {
     MC_UNUSED(playerId);
     MC_UNUSED(pos);
-    openCraftingTableMenu();
+    _openCraftingTableMenu();
     return true;
 }
 

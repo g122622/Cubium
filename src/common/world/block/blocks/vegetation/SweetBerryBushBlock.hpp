@@ -46,8 +46,6 @@ namespace blocks {
  *
  * 状态属性：
  * - AGE_0_3: 生长阶段（0-3）
- *
- * 参考: net.minecraft.block.SweetBerryBushBlock
  */
 class SweetBerryBushBlock : public BushBlock, public IGrowable {
 public:
@@ -69,22 +67,22 @@ public:
     /**
      * @brief 获取最大年龄
      */
-    [[nodiscard]] static constexpr int getMaxAge() { return 3; }
+    [[nodiscard]] static constexpr i32 getMaxAge() noexcept { return 3; }
 
     /**
      * @brief 获取当前年龄
      */
-    [[nodiscard]] int getAge(const BlockState& state) const;
+    [[nodiscard]] i32 getAge(const BlockState& state) const noexcept;
 
     /**
      * @brief 创建指定年龄的状态
      */
-    [[nodiscard]] const BlockState& withAge(const BlockState& state, int age) const;
+    [[nodiscard]] const BlockState& withAge(const BlockState& state, i32 age) const;
 
     /**
      * @brief 是否为最大年龄
      */
-    [[nodiscard]] bool isMaxAge(const BlockState& state) const;
+    [[nodiscard]] bool isMaxAge(const BlockState& state) const noexcept;
 
     // ========== 放置逻辑 ==========
 

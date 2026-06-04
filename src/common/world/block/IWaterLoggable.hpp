@@ -39,7 +39,6 @@ class FluidRegistry;
  *
  * 实现此接口的方块可以容纳水（waterlogged）。
  * 继承 IBucketPickupHandler 和 ILiquidContainer，提供完整的含水功能。
- * 参考 MC 1.16.5 IWaterLoggable
  *
  * 注意：实现类必须：
  * 1. 添加 WATERLOGGED 属性

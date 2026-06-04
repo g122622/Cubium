@@ -73,14 +73,14 @@ Result<void> FolderResourcePack::initialize()
 bool FolderResourcePack::hasResource(resource::PackType type, std::string_view resourcePath) const
 {
     const std::string fullPath =
-        normalizePath(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(resourcePath));
+        _normalize_path(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(resourcePath));
     return fs::exists(fullPath) && fs::is_regular_file(fullPath);
 }
 
 Result<std::vector<u8>> FolderResourcePack::readResource(resource::PackType type, std::string_view resourcePath) const
 {
     const std::string fullPath =
-        normalizePath(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(resourcePath));
+        _normalize_path(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(resourcePath));
 
     if (!fs::exists(fullPath)) {
         return Error(ErrorCode::ResourceNotFound,
@@ -180,7 +180,7 @@ Result<std::vector<std::string>> FolderResourcePack::getResourceNamespaces(resou
     return namespaces;
 }
 
-std::string FolderResourcePack::normalizePath(std::string_view resourcePath) const
+std::string FolderResourcePack::_normalize_path(std::string_view resourcePath) const
 {
     std::string path(resourcePath);
 

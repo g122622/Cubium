@@ -182,7 +182,7 @@ public:
     /**
      * @brief 获取红石比较器信号强度
      *
-     * 计算方式参考 MC 1.16.5 Container.calcRedstoneFromInventory:
+     * 计算方式：
      * 1. 计算每个槽位的填充率 = 物品数量 / min(容器堆叠上限, 物品最大堆叠数)
      * 2. 平均填充率 = 所有槽位填充率之和 / 总槽位数
      * 3. 信号强度 = floor(平均填充率 * 14) + (有非空槽位 ? 1 : 0)
@@ -207,24 +207,24 @@ private:
      * @brief 检查是否可以酿造
      * @return 如果可以酿造返回true
      */
-    [[nodiscard]] bool canBrew() const;
+    [[nodiscard]] bool _canBrew() const;
 
     /**
      * @brief 执行酿造
      * @param world 世界引用
      */
-    void doBrew(IWorld& world);
+    void _doBrew(IWorld& world);
 
     /**
      * @brief 消耗燃料
      */
-    void consumeFuel();
+    void _consumeFuel();
 
     /**
      * @brief 更新方块状态
      * @param world 世界引用
      */
-    void updateBlockState(IWorld& world);
+    void _updateBlockState(IWorld& world);
 
     SimpleInventory m_inventory; ///< 物品存储
     i32 m_brewTime = 0;          ///< 酿造时间 (0-400)

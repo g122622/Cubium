@@ -31,7 +31,6 @@ namespace mc::scoreboard {
  * @brief 手动设置判据
  *
  * 最基础的判据类型，分数只能通过命令手动设置。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScoreCriteria.DUMMY
  */
 class DummyCriteria : public ScoreCriteria {
 public:

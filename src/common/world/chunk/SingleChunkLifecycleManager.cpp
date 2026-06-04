@@ -22,7 +22,7 @@
  */
 
 #include "SingleChunkLifecycleManager.hpp"
-#include "../../util/assert/AssertAll.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <limits>
 
@@ -168,7 +168,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::submit
         if (callback || promise) {
             m_waiters.push_back(Waiter{std::move(callback), std::move(promise)});
         }
-        return buildDecisionLocked();
+        return _buildDecisionLocked();
     }
 
     // 所有请求统一收敛到 lifecycle manager 内部，避免 ServerChunkManager 再维护一份并行状态。
@@ -192,13 +192,13 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::submit
 
     // Ready 说明内存中已经有结果，但尚未通过上方快速路径命中，直接唤醒等待者即可。
     if (m_sourceState == SourceState::Ready) {
-        return buildDecisionLocked();
+        return _buildDecisionLocked();
     }
 
     // Unknown 是唯一允许触发一次"来源解析"的状态。
     if (m_sourceState == SourceState::Unknown) {
         m_sourceState = SourceState::ResolvingStorage;
-        return buildDecisionLocked();
+        return _buildDecisionLocked();
     }
 
     // 已确认存档不存在时，只剩生成链路。
@@ -215,11 +215,11 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteNe
 
     // 邻居推进事件只允许影响"等待邻居"的执行状态，不得改写来源状态。
     if (m_sourceState != SourceState::StorageMissing) {
-        return buildDecisionLocked();
+        return _buildDecisionLocked();
     }
 
     if (m_executionState != ExecutionState::WaitingForNeighbors && m_executionState != ExecutionState::Idle) {
-        return buildDecisionLocked();
+        return _buildDecisionLocked();
     }
 
     m_executionState = neighborsReady ? ExecutionState::Queued : ExecutionState::WaitingForNeighbors;
@@ -246,7 +246,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteGe
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (generation != m_requestGeneration) {
-        return buildDecisionLocked();
+        return _buildDecisionLocked();
     }
 
     m_submittedGeneration = generation;
@@ -258,7 +258,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteGe
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (generation != m_requestGeneration) {
-        return buildDecisionLocked();
+        return _buildDecisionLocked();
     }
 
     // worker 真正开始执行后，状态切换到 Generating；这一步只做状态登记，不处理结果。
@@ -271,27 +271,27 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteGe
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (generation != m_requestGeneration) {
-        return buildDecisionLocked();
+        return _buildDecisionLocked();
     }
 
     if (completionState == CompletionState::Succeeded) {
         m_sourceState = SourceState::Ready;
         m_executionState = ExecutionState::Idle;
         m_requestPriority = std::numeric_limits<i32>::max();
-        return buildDecisionLocked();
+        return _buildDecisionLocked();
     }
 
     // 失败或取消后，保留"来源已确认缺失"的事实，只重置执行状态，允许后续重新请求。
     m_sourceState = SourceState::StorageMissing;
     m_executionState = ExecutionState::Idle;
-    clearActiveGenerationLocked();
+    _clearActiveGenerationLocked();
     return buildDecisionLocked();
 }
 
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::cancelActiveWork()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-    clearActiveGenerationLocked();
+    _clearActiveGenerationLocked();
     m_executionState = ExecutionState::Idle;
     return buildDecisionLocked();
 }
@@ -402,7 +402,7 @@ std::shared_ptr<std::atomic<bool>> SingleChunkLifecycleManager::cancelToken() co
 // 内部工具
 // ============================================================================
 
-SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::buildDecisionLocked() const
+SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::_buildDecisionLocked() const
 {
     EnqueueDecision decision;
     decision.generation = m_requestGeneration;
@@ -431,7 +431,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::buildD
     return decision;
 }
 
-void SingleChunkLifecycleManager::clearActiveGenerationLocked()
+void SingleChunkLifecycleManager::_clearActiveGenerationLocked()
 {
     if (m_cancelToken) {
         m_cancelToken->store(true, std::memory_order_release);

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../Block.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 
@@ -37,8 +37,6 @@ namespace blocks {
  * @brief 龙息方块
  *
  * 末影龙喷出的龙息滞留药水效果方块。
- *
- * 参考: net.minecraft.block.DragonBreathBlock
  */
 class DragonBreathBlock : public Block {
 public:

@@ -23,8 +23,13 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/Direction.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+
+#include <array>
+#include <optional>
+#include <string>
+#include <string_view>
 #include <unordered_map>
 
 namespace mc {
@@ -36,9 +41,7 @@ namespace jigsaw {
  * @brief Jigsaw 方块方向枚举
  *
  * 表示 Jigsaw 方块的 12 种方向组合。
- * 每个 JigsawOrientation 由一个主要朝向（facing）和一个旋转朝向（rotation）组成。
- *
- * 参考: net.minecraft.state.properties.JigsawOrientation (MC 1.16.5)
+ * 每个 JigsawOrientation 由一个主要朝向和一个旋转朝向组成。
  *
  * 方向组合规则：
  * - 当 facing 为 DOWN 时，rotation 可以是 EAST, NORTH, SOUTH, WEST
@@ -64,12 +67,13 @@ enum class JigsawOrientation : u8 {
  * @brief JigsawOrientation 工具函数
  */
 namespace JigsawOrientations {
-constexpr size_t COUNT = 12;
+
+inline constexpr size_t COUNT = 12;
 
 /**
  * @brief 获取所有 JigsawOrientation
  */
-inline std::array<JigsawOrientation, 12> all()
+inline std::array<JigsawOrientation, 12> all() noexcept
 {
     return {JigsawOrientation::DownEast,
         JigsawOrientation::DownNorth,
@@ -92,7 +96,7 @@ inline std::array<JigsawOrientation, 12> all()
  * @param rotation 旋转朝向（必须与 facing 垂直）
  * @return JigsawOrientation，如果组合无效则返回默认值
  */
-inline JigsawOrientation fromFacingAndRotation(Direction facing, Direction rotation)
+inline JigsawOrientation fromFacingAndRotation(Direction facing, Direction rotation) noexcept
 {
     // facing 和 rotation 必须垂直
     if (facing == rotation || Directions::opposite(facing) == rotation) {
@@ -133,7 +137,6 @@ inline JigsawOrientation fromFacingAndRotation(Direction facing, Direction rotat
     }
 
     // 水平 facing (rotation 只能是 UP)
-    // 注意：MC 1.16.5 中，水平 facing 时 rotation 固定为 UP
     switch (facing) {
         case Direction::West:
             return JigsawOrientation::WestUp;
@@ -149,9 +152,9 @@ inline JigsawOrientation fromFacingAndRotation(Direction facing, Direction rotat
 }
 
 /**
- * @brief 获取主要朝向 (facing)
+ * @brief 获取主要朝向
  */
-inline Direction getFacing(JigsawOrientation orientation)
+inline Direction getFacing(JigsawOrientation orientation) noexcept
 {
     switch (orientation) {
         case JigsawOrientation::DownEast:
@@ -178,9 +181,9 @@ inline Direction getFacing(JigsawOrientation orientation)
 }
 
 /**
- * @brief 获取旋转朝向 (rotation)
+ * @brief 获取旋转朝向
  */
-inline Direction getRotation(JigsawOrientation orientation)
+inline Direction getRotation(JigsawOrientation orientation) noexcept
 {
     switch (orientation) {
         case JigsawOrientation::DownEast:
@@ -208,7 +211,7 @@ inline Direction getRotation(JigsawOrientation orientation)
 /**
  * @brief 从索引获取 JigsawOrientation
  */
-inline JigsawOrientation fromIndex(size_t index)
+inline JigsawOrientation fromIndex(size_t index) noexcept
 {
     return static_cast<JigsawOrientation>(index % COUNT);
 }
@@ -216,7 +219,7 @@ inline JigsawOrientation fromIndex(size_t index)
 /**
  * @brief 获取索引 (0-11)
  */
-inline size_t index(JigsawOrientation orientation)
+inline size_t index(JigsawOrientation orientation) noexcept
 {
     return static_cast<size_t>(orientation);
 }
@@ -293,7 +296,7 @@ inline std::string toString(JigsawOrientation orientation)
  * @param rollable 是否允许旋转（如果为 true，则只检查 facing 相反）
  * @return 是否可以连接
  */
-inline bool canConnect(JigsawOrientation source, JigsawOrientation target, bool rollable = true)
+inline bool canConnect(JigsawOrientation source, JigsawOrientation target, bool rollable = true) noexcept
 {
     Direction sourceFacing = getFacing(source);
     Direction targetFacing = getFacing(target);
@@ -319,7 +322,7 @@ inline bool canConnect(JigsawOrientation source, JigsawOrientation target, bool 
  * @param rotation 旋转类型
  * @return 旋转后的方向
  */
-inline JigsawOrientation rotate(JigsawOrientation orientation, Rotation rotation)
+inline JigsawOrientation rotate(JigsawOrientation orientation, Rotation rotation) noexcept
 {
     if (rotation == Rotation::None) {
         return orientation;
@@ -328,7 +331,7 @@ inline JigsawOrientation rotate(JigsawOrientation orientation, Rotation rotation
     Direction facing = getFacing(orientation);
     Direction rot = getRotation(orientation);
 
-    // 垂直方向（UP/DOWN）的 facing
+    // 垂直方向的 facing
     if (facing == Direction::Up || facing == Direction::Down) {
         // rotation 是水平方向，需要旋转
         Direction newRot = Directions::rotateDirection(rot, rotation);
@@ -344,15 +347,14 @@ inline JigsawOrientation rotate(JigsawOrientation orientation, Rotation rotation
 /**
  * @brief 对 JigsawOrientation 应用镜像
  *
- * 参考 MC 1.16.5 Mirror.java:
- * - LEFT_RIGHT = INVERT_Z = Z轴镜像 = North <-> South
- * - FRONT_BACK = INVERT_X = X轴镜像 = East <-> West
+ * - LEFT_RIGHT = Z轴镜像 = North <-> South
+ * - FRONT_BACK = X轴镜像 = East <-> West
  *
  * @param orientation 原始方向
  * @param mirror 镜像类型
  * @return 镜像后的方向
  */
-inline JigsawOrientation mirror(JigsawOrientation orientation, Mirror mirror)
+inline JigsawOrientation mirror(JigsawOrientation orientation, Mirror mirror) noexcept
 {
     if (mirror == Mirror::None) {
         return orientation;
@@ -368,25 +370,29 @@ inline JigsawOrientation mirror(JigsawOrientation orientation, Mirror mirror)
     switch (mirror) {
         case Mirror::LeftRight:
             // Z 轴镜像：North <-> South
-            if (facing == Direction::North)
+            if (facing == Direction::North) {
                 newFacing = Direction::South;
-            else if (facing == Direction::South)
+            } else if (facing == Direction::South) {
                 newFacing = Direction::North;
-            if (rot == Direction::North)
+            }
+            if (rot == Direction::North) {
                 newRot = Direction::South;
-            else if (rot == Direction::South)
+            } else if (rot == Direction::South) {
                 newRot = Direction::North;
+            }
             break;
         case Mirror::FrontBack:
             // X 轴镜像：East <-> West
-            if (facing == Direction::East)
+            if (facing == Direction::East) {
                 newFacing = Direction::West;
-            else if (facing == Direction::West)
+            } else if (facing == Direction::West) {
                 newFacing = Direction::East;
-            if (rot == Direction::East)
+            }
+            if (rot == Direction::East) {
                 newRot = Direction::West;
-            else if (rot == Direction::West)
+            } else if (rot == Direction::West) {
                 newRot = Direction::East;
+            }
             break;
         default:
             break;
@@ -404,7 +410,7 @@ inline JigsawOrientation mirror(JigsawOrientation orientation, Mirror mirror)
  * @param orientation 原始方向
  * @return 相反方向
  */
-inline JigsawOrientation opposite(JigsawOrientation orientation)
+inline JigsawOrientation opposite(JigsawOrientation orientation) noexcept
 {
     Direction facing = getFacing(orientation);
     Direction rot = getRotation(orientation);
@@ -418,6 +424,7 @@ inline JigsawOrientation opposite(JigsawOrientation orientation)
     // 如果 facing 变为水平方向，rotation 只能是 UP
     return fromFacingAndRotation(oppositeFacing, Direction::Up);
 }
+
 } // namespace JigsawOrientations
 
 } // namespace jigsaw

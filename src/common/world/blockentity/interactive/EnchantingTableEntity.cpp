@@ -22,11 +22,11 @@
  */
 
 #include "EnchantingTableEntity.hpp"
-#include "../../../entity/core/Entity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../IWorld.hpp"
-#include "../../block/VanillaBlocks.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include <cmath>
 
 namespace mc {
@@ -138,7 +138,7 @@ void EnchantingTableEntity::recalculateEnchantPower(IWorld& world)
                 for (i32 dy = 0; dy <= 1; ++dy) {
                     BlockPos bookshelfPos(m_pos.x + dx, m_pos.y + dy, m_pos.z + dz);
 
-                    if (isValidBookshelf(world, bookshelfPos, m_pos)) {
+                    if (_isValidBookshelf(world, bookshelfPos, m_pos)) {
                         m_enchantPower++;
                     }
                 }
@@ -150,7 +150,7 @@ void EnchantingTableEntity::recalculateEnchantPower(IWorld& world)
     m_enchantPower = std::min(m_enchantPower, 15);
 }
 
-bool EnchantingTableEntity::isValidBookshelf(IWorld& world, const BlockPos& bookshelfPos, const BlockPos& tablePos)
+bool EnchantingTableEntity::_isValidBookshelf(IWorld& world, const BlockPos& bookshelfPos, const BlockPos& tablePos)
 {
     // 检查书架位置是否是书架方块
     const BlockState* bookshelfState = world.getBlockState(bookshelfPos.x, bookshelfPos.y, bookshelfPos.z);

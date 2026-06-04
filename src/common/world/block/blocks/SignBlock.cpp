@@ -83,7 +83,6 @@ ActionResultType AbstractSignBlock::onBlockActivated(const BlockState& state,
     MC_UNUSED(hand);
     MC_UNUSED(hit);
 
-    // MC 1.16.5: 参考 SignBlock.onBlockActivated()
     // 当玩家右键点击告示牌时，执行告示牌上的命令
     BlockEntity* blockEntity = world.getBlockEntity(pos);
     if (blockEntity && blockEntity->getType() == BlockEntityType::Sign) {

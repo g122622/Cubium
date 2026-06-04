@@ -22,9 +22,9 @@
  */
 
 #include "FoliagePlacers.hpp"
-#include "../../../../block/BlockRegistry.hpp"
-#include "../../../../block/VanillaBlocks.hpp"
-#include "../../../chunk/IChunkGenerator.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <cmath>
 
 namespace mc {
@@ -55,7 +55,7 @@ void PineFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
 {
     // 从下到上逐层放置树叶，半径逐渐减小
     for (i32 y = 0; y <= foliageHeight; ++y) {
-        i32 layerRadius = getRadiusAtHeight(y, foliageHeight);
+        i32 layerRadius = _getRadiusAtHeight(y, foliageHeight);
 
         for (i32 dx = -layerRadius; dx <= layerRadius; ++dx) {
             for (i32 dz = -layerRadius; dz <= layerRadius; ++dz) {
@@ -87,7 +87,7 @@ bool PineFoliagePlacer::shouldSkip(
     return false;
 }
 
-i32 PineFoliagePlacer::getRadiusAtHeight(i32 height, i32 foliageHeight) const
+i32 PineFoliagePlacer::_getRadiusAtHeight(i32 height, i32 foliageHeight) const
 {
     // 锥形：底部大，顶部小
     if (foliageHeight <= 0) {
@@ -102,7 +102,7 @@ std::unique_ptr<FoliagePlacer> PineFoliagePlacer::clone() const
 }
 
 // ============================================================================
-// SpruceFoliagePlacer 实现 - 参考 MC SpruceFoliagePlacer.java
+// SpruceFoliagePlacer 实现
 // ============================================================================
 
 SpruceFoliagePlacer::SpruceFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset, i32 height)
@@ -112,7 +112,6 @@ SpruceFoliagePlacer::SpruceFoliagePlacer(const FeatureSpread& radius, const Feat
 
 i32 SpruceFoliagePlacer::getFoliageHeight(math::Random& random, i32 trunkHeight) const
 {
-    // MC 第49-51行: return Math.max(4, trunkHeight - trunkHeightSpread)
     return std::max(4, trunkHeight - m_height);
 }
 
@@ -126,20 +125,17 @@ void SpruceFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     std::set<BlockPos>& foliageBlocks,
     const BlockState* foliageBlock)
 {
-    // 参考 MC SpruceFoliagePlacer.func_230372_a_ (第30-46行)
     // 云杉树叶从顶部向下层叠，半径从顶部开始逐渐增大
+    i32 currentRadius = random.nextInt(2);
+    i32 minRadius = 1;
+    i32 nextRadius = 0;
 
-    i32 currentRadius = random.nextInt(2); // MC 第32行: int i = random.nextInt(2);
-    i32 minRadius = 1;                     // MC 第33行: int j = 1;
-    i32 nextRadius = 0;                    // MC 第34行: int k = 0;
-
-    // MC 第36-45行: 从offset向下遍历到-foliageHeight
     for (i32 y = offset; y >= -foliageHeight; --y) {
         // 放置当前层的树叶
-        placeFoliageLayer(
+        _placeFoliageLayer(
             world, random, foliagePos, currentRadius, y, foliageBlocks, foliageBlock, foliagePos.trunkTop);
 
-        // MC 第38-44行: 半径递增逻辑
+        // 半径递增逻辑
         if (currentRadius >= minRadius) {
             currentRadius = nextRadius;
             nextRadius = 1;
@@ -150,7 +146,7 @@ void SpruceFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     }
 }
 
-void SpruceFoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
+void SpruceFoliagePlacer::_placeFoliageLayer(WorldGenRegion& world,
     math::Random& random,
     const FoliagePosition& foliagePos,
     i32 radius,
@@ -174,7 +170,7 @@ void SpruceFoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
 bool SpruceFoliagePlacer::shouldSkip(
     math::Random& /*random*/, i32 dx, i32 /*dy*/, i32 dz, i32 radius, bool /*trunkTop*/) const
 {
-    // MC 第53-55行: 只跳过角落且半径>0的情况
+    // 只跳过角落且半径>0的情况
     return dx == radius && dz == radius && radius > 0;
 }
 
@@ -184,7 +180,7 @@ std::unique_ptr<FoliagePlacer> SpruceFoliagePlacer::clone() const
 }
 
 // ============================================================================
-// AcaciaFoliagePlacer 实现 - 参考 MC AcaciaFoliagePlacer.java
+// AcaciaFoliagePlacer 实现
 // ============================================================================
 
 AcaciaFoliagePlacer::AcaciaFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset)
@@ -193,7 +189,6 @@ AcaciaFoliagePlacer::AcaciaFoliagePlacer(const FeatureSpread& radius, const Feat
 
 i32 AcaciaFoliagePlacer::getFoliageHeight(math::Random& /*random*/, i32 /*trunkHeight*/) const
 {
-    // MC 第34-36行: return 0
     return 0;
 }
 
@@ -207,13 +202,11 @@ void AcaciaFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     std::set<BlockPos>& foliageBlocks,
     const BlockState* foliageBlock)
 {
-    // 参考 MC AcaciaFoliagePlacer.func_230372_a_ (第26-32行)
     // 金合欢有3层树叶，不同的半径和Y偏移
-
     bool trunkTop = foliagePos.trunkTop;
 
-    // MC 第29行: 第一层，半径=radius+radiusBonus，Y偏移=-1-foliageHeight
-    placeFoliageLayer(world,
+    // 第一层，半径=radius+radiusBonus，Y偏移=-1-foliageHeight
+    _placeFoliageLayer(world,
         random,
         foliagePos,
         radius + foliagePos.radiusBonus,
@@ -222,15 +215,15 @@ void AcaciaFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
         foliageBlock,
         trunkTop);
 
-    // MC 第30行: 第二层，半径=radius-1，Y偏移=-foliageHeight
-    placeFoliageLayer(world, random, foliagePos, radius - 1, -foliageHeight, foliageBlocks, foliageBlock, trunkTop);
+    // 第二层，半径=radius-1，Y偏移=-foliageHeight
+    _placeFoliageLayer(world, random, foliagePos, radius - 1, -foliageHeight, foliageBlocks, foliageBlock, trunkTop);
 
-    // MC 第31行: 第三层，半径=radius+radiusBonus-1，Y偏移=0
-    placeFoliageLayer(
+    // 第三层，半径=radius+radiusBonus-1，Y偏移=0
+    _placeFoliageLayer(
         world, random, foliagePos, radius + foliagePos.radiusBonus - 1, 0, foliageBlocks, foliageBlock, trunkTop);
 }
 
-void AcaciaFoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
+void AcaciaFoliagePlacer::_placeFoliageLayer(WorldGenRegion& world,
     math::Random& random,
     const FoliagePosition& foliagePos,
     i32 radius,
@@ -253,7 +246,6 @@ void AcaciaFoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
 
 bool AcaciaFoliagePlacer::shouldSkip(math::Random& /*random*/, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const
 {
-    // MC 第38-44行
     if (dy == 0) {
         // 第一层（dy=0时，实际是y=-1-foliageHeight层）
         // 跳过角落，但保留边缘
@@ -270,7 +262,7 @@ std::unique_ptr<FoliagePlacer> AcaciaFoliagePlacer::clone() const
 }
 
 // ============================================================================
-// DarkOakFoliagePlacer 实现 - 参考 MC DarkOakFoliagePlacer.java
+// DarkOakFoliagePlacer 实现
 // ============================================================================
 
 DarkOakFoliagePlacer::DarkOakFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset, i32 height)
@@ -280,7 +272,6 @@ DarkOakFoliagePlacer::DarkOakFoliagePlacer(const FeatureSpread& radius, const Fe
 
 i32 DarkOakFoliagePlacer::getFoliageHeight(math::Random& /*random*/, i32 /*trunkHeight*/) const
 {
-    // MC 第43-45行: return 4
     return 4;
 }
 
@@ -294,33 +285,31 @@ void DarkOakFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     std::set<BlockPos>& foliageBlocks,
     const BlockState* foliageBlock)
 {
-    // 参考 MC DarkOakFoliagePlacer.func_230372_a_ (第26-40行)
     // 深色橡树有多层不同半径的树叶
-
     bool trunkTop = foliagePos.trunkTop;
 
     if (trunkTop) {
-        // MC 第29-35行: trunkTop为true时的层叠
+        // trunkTop为true时的层叠
         // 第一层，半径=radius+2，Y偏移=-1
-        placeFoliageLayer(world, random, foliagePos, radius + 2, -1, foliageBlocks, foliageBlock, trunkTop);
+        _placeFoliageLayer(world, random, foliagePos, radius + 2, -1, foliageBlocks, foliageBlock, trunkTop);
         // 第二层，半径=radius+3，Y偏移=0
-        placeFoliageLayer(world, random, foliagePos, radius + 3, 0, foliageBlocks, foliageBlock, trunkTop);
+        _placeFoliageLayer(world, random, foliagePos, radius + 3, 0, foliageBlocks, foliageBlock, trunkTop);
         // 第三层，半径=radius+2，Y偏移=1
-        placeFoliageLayer(world, random, foliagePos, radius + 2, 1, foliageBlocks, foliageBlock, trunkTop);
+        _placeFoliageLayer(world, random, foliagePos, radius + 2, 1, foliageBlocks, foliageBlock, trunkTop);
         // 可选第四层，半径=radius，Y偏移=2
         if (random.nextBoolean()) {
-            placeFoliageLayer(world, random, foliagePos, radius, 2, foliageBlocks, foliageBlock, trunkTop);
+            _placeFoliageLayer(world, random, foliagePos, radius, 2, foliageBlocks, foliageBlock, trunkTop);
         }
     } else {
-        // MC 第36-39行: trunkTop为false时的层叠
+        // trunkTop为false时的层叠
         // 第一层，半径=radius+2，Y偏移=-1
-        placeFoliageLayer(world, random, foliagePos, radius + 2, -1, foliageBlocks, foliageBlock, trunkTop);
+        _placeFoliageLayer(world, random, foliagePos, radius + 2, -1, foliageBlocks, foliageBlock, trunkTop);
         // 第二层，半径=radius+1，Y偏移=0
-        placeFoliageLayer(world, random, foliagePos, radius + 1, 0, foliageBlocks, foliageBlock, trunkTop);
+        _placeFoliageLayer(world, random, foliagePos, radius + 1, 0, foliageBlocks, foliageBlock, trunkTop);
     }
 }
 
-void DarkOakFoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
+void DarkOakFoliagePlacer::_placeFoliageLayer(WorldGenRegion& world,
     math::Random& random,
     const FoliagePosition& foliagePos,
     i32 radius,
@@ -343,7 +332,6 @@ void DarkOakFoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
 
 bool DarkOakFoliagePlacer::shouldSkip(math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const
 {
-    // MC 第51-59行
     if (dy == -1 && !trunkTop) {
         // 第一层且非trunkTop：跳过角落
         return dx == radius && dz == radius;
@@ -356,9 +344,9 @@ bool DarkOakFoliagePlacer::shouldSkip(math::Random& random, i32 dx, i32 dy, i32 
     }
 }
 
-bool DarkOakFoliagePlacer::shouldSkipBase(math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const
+bool DarkOakFoliagePlacer::_shouldSkipBase(
+    math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const
 {
-    // MC 第47-49行: 基类方法
     return FoliagePlacer::shouldSkip(random, dx, dy, dz, radius, trunkTop);
 }
 
@@ -408,19 +396,12 @@ void JungleFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
 
 bool JungleFoliagePlacer::shouldSkip(math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool /*trunkTop*/) const
 {
-    // 参考 MC 1.16.5 JungleFoliagePlacer.func_230373_a_ (第44-50行)
-    // MC 源码使用欧几里得距离平方比较
-    // if (dx + dz >= 7) return true;
-    // else return dx * dx + dz * dz > radius * radius;
-
-    // MC 逻辑：如果距离过大则跳过
     // 第一个条件：曼哈顿距离 >= 7 时跳过（防止过大的树叶）
     if (std::abs(dx) + std::abs(dz) >= 7) {
         return true;
     }
 
     // 第二个条件：使用欧几里得距离平方比较（圆形判定）
-    // 如果 dx*dx + dz*dz > radius*radius 则跳过
     return dx * dx + dz * dz > radius * radius;
 }
 
@@ -474,11 +455,6 @@ void MegaPineFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
 bool MegaPineFoliagePlacer::shouldSkip(
     math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool /*trunkTop*/) const
 {
-    // 参考 MC 1.16.5 MegaPineFoliagePlacer.func_230373_a_ (第55-61行)
-    // 与 JungleFoliagePlacer 相同的逻辑
-    // if (dx + dz >= 7) return true;
-    // else return dx * dx + dz * dz > radius * radius;
-
     // 第一个条件：曼哈顿距离 >= 7 时跳过
     if (std::abs(dx) + std::abs(dz) >= 7) {
         return true;
@@ -595,10 +571,7 @@ void FancyFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
 bool FancyFoliagePlacer::shouldSkip(
     math::Random& /*random*/, i32 dx, i32 /*dy*/, i32 dz, i32 radius, bool /*trunkTop*/) const
 {
-    // 参考 MC 1.16.5 FancyFoliagePlacer.func_230373_a_ (第35-37行)
-    // MC 源码: return MathHelper.abs((float)dx + 0.5F) + MathHelper.abs((float)dz + 0.5F) > (float)(radius * radius);
-    // 注意：这里使用半径的平方作为阈值，创建更圆形的树叶
-
+    // 使用半径的平方作为阈值，创建更圆形的树叶
     f32 absDx = std::abs(static_cast<f32>(dx) + 0.5f);
     f32 absDz = std::abs(static_cast<f32>(dz) + 0.5f);
 

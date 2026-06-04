@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../util/property/Properties.hpp"
-#include "../../blockentity/BlockEntityType.hpp"
-#include "../Block.hpp"
-#include "../BlockPos.hpp"
-#include "../Material.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include <memory>
 
 namespace mc {
@@ -51,8 +51,6 @@ namespace blocks {
  * - 支持红石比较器信号输出
  * - 不能将潜影盒放入另一个潜影盒（防止递归嵌套）
  * - 被活塞推动时会销毁（因为包含实体数据）
- *
- * 参考: net.minecraft.block.ShulkerBoxBlock
  */
 class ShulkerBoxBlock : public Block {
 public:

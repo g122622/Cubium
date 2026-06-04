@@ -23,18 +23,19 @@
 
 #include "ShipwreckStructure.hpp"
 
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../../biome/Biome.hpp"
-#include "../../../block/BlockPos.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../../feature/template/Template.hpp"
-#include "../../feature/template/TemplateLoader.hpp"
-#include "../../feature/template/TemplateManager.hpp"
-#include "../../jigsaw/JigsawManager.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/feature/template/TemplateLoader.hpp"
+#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/jigsaw/JigsawManager.hpp"
 #include <algorithm>
 
 namespace mc::world::gen::structure {
@@ -43,7 +44,7 @@ namespace mc::world::gen::structure {
 // 静态模板名称
 // ============================================================================
 
-// 搁浅沉船变体（MC 1.16.5: STRUCTURE_VARIANT_A）
+// 搁浅沉船变体
 const std::vector<std::string> ShipwreckStructure::s_beachedTemplates = {"shipwreck/with_mast",
     "shipwreck/sideways_full",
     "shipwreck/sideways_fronthalf",
@@ -56,7 +57,7 @@ const std::vector<std::string> ShipwreckStructure::s_beachedTemplates = {"shipwr
     "shipwreck/rightsideup_fronthalf_degraded",
     "shipwreck/rightsideup_backhalf_degraded"};
 
-// 所有沉船变体（MC 1.16.5: field_204762_b）
+// 所有沉船变体
 const std::vector<std::string> ShipwreckStructure::s_allTemplates = {"shipwreck/with_mast",
     "shipwreck/upsidedown_full",
     "shipwreck/upsidedown_fronthalf",
@@ -106,7 +107,7 @@ ShipwreckPiece::ShipwreckPiece(const std::string& templateName,
     , m_size(1, 1, 1)
 {}
 
-void ShipwreckPiece::loadTemplate()
+void ShipwreckPiece::_loadTemplate()
 {
     if (!m_templateManager) {
         return;
@@ -139,7 +140,7 @@ void ShipwreckPiece::generate(
 
     // 延迟加载模板
     if (!m_template) {
-        loadTemplate();
+        _loadTemplate();
     }
 
     if (!m_template) {
@@ -147,7 +148,6 @@ void ShipwreckPiece::generate(
     }
 
     // 创建放置设置
-    // MC 1.16.5: PlacementSettings().setRotation(rotation).setMirror(Mirror.NONE).setCenterOffset(STRUCTURE_OFFSET)
     feature::template_::PlacementSettings settings;
     settings.setRotation(m_rotation);
     settings.setMirror(Mirror::None);
@@ -163,8 +163,7 @@ void ShipwreckPiece::generate(
     processors.addProcessor(std::make_unique<feature::template_::BlockIgnoreStructureProcessor>(blocksToIgnore));
     settings.setProcessors(&processors);
 
-    // 放置模板
-    // MC 1.16.5 使用中心偏移，所以需要调整位置
+    // 放置模板（使用中心偏移，需要调整位置）
     BlockPos adjustedPos(m_minX - STRUCTURE_OFFSET.x, m_minY, m_minZ - STRUCTURE_OFFSET.z);
     m_template->place(world, adjustedPos, settings, rng, 18);
 }
@@ -176,10 +175,10 @@ void ShipwreckPiece::generate(
 ShipwreckStructure::ShipwreckStructure()
     : Structure(StructureType::Shipwreck)
 {
-    initializeBiomes();
+    _initializeBiomes();
 }
 
-void ShipwreckStructure::initializeBiomes()
+void ShipwreckStructure::_initializeBiomes()
 {
     m_validBiomes = {Biomes::Ocean,
         Biomes::WarmOcean,
@@ -198,12 +197,11 @@ void ShipwreckStructure::initializeBiomes()
 bool ShipwreckStructure::canGenerate(
     IWorld& /*world*/, IChunkGenerator& /*generator*/, math::Random& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
 {
-    // MC 1.16.5: 沉船不像海洋废墟那样有随机概率检查
-    // 直接由间距设置控制生成频率
+    // 沉船不像海洋废墟那样有随机概率检查，直接由间距设置控制生成频率
     return true;
 }
 
-std::string ShipwreckStructure::getRandomTemplateName(math::Random& rng, bool isBeached) const
+std::string ShipwreckStructure::_getRandomTemplateName(math::Random& rng, bool isBeached) const
 {
     if (isBeached) {
         const size_t index = static_cast<size_t>(rng.nextInt(static_cast<i32>(s_beachedTemplates.size())));
@@ -219,9 +217,9 @@ std::unique_ptr<StructureStart> ShipwreckStructure::generate(
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
-    // 计算基础位置
-    const i32 baseX = (chunkX << 4) + rng.nextInt(16);
-    const i32 baseZ = (chunkZ << 4) + rng.nextInt(16);
+    // 计算基础位置（使用区块坐标转换）
+    const i32 baseX = (chunkX << world::CHUNK_SHIFT) + rng.nextInt(world::CHUNK_WIDTH);
+    const i32 baseZ = (chunkZ << world::CHUNK_SHIFT) + rng.nextInt(world::CHUNK_WIDTH);
 
     // 确定是否为搁浅沉船（检查是否在海滩生物群系）
     const BiomeId biome = generator.getBiome(baseX, 64, baseZ); // 使用固定高度检查生物群系
@@ -231,7 +229,7 @@ std::unique_ptr<StructureStart> ShipwreckStructure::generate(
     const HeightmapType heightmapType = isBeached ? HeightmapType::WorldSurfaceWG : HeightmapType::OceanFloorWG;
     i32 height = generator.getHeight(baseX, baseZ, heightmapType);
 
-    // MC 1.16.5: 根据是否搁浅调整高度
+    // 根据是否搁浅调整高度
     // 搁浅沉船: height = minHeight - templateHeight/2 - random(0, 2)
     // 水下沉船: height = averageHeight
     // 这里简化处理，直接使用查询到的高度
@@ -249,7 +247,7 @@ std::unique_ptr<StructureStart> ShipwreckStructure::generate(
     }
 
     // 选择随机模板
-    const std::string templateName = getRandomTemplateName(rng, isBeached);
+    const std::string templateName = _getRandomTemplateName(rng, isBeached);
 
     // 创建片段
     auto piece = std::make_unique<ShipwreckPiece>(templateName, BlockPos(baseX, height, baseZ), rotation, isBeached);

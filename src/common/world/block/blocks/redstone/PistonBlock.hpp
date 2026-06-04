@@ -47,8 +47,6 @@ namespace blocks {
  * - 某些方块不能被推动（基岩等）
  * - 推动过程中不能被再次激活
  * - 方向性处理
- *
- * 参考: net.minecraft.block.PistonBlock
  */
 class PistonBlock : public Block {
 public:
@@ -189,7 +187,7 @@ private:
      * @param pos 活塞位置
      * @param state 当前方块状态
      */
-    void checkForMove(IWorld& world, const BlockPos& pos, const BlockState& state);
+    void _checkForMove(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
      * @brief 执行移动
@@ -200,7 +198,7 @@ private:
      * @param extending 是否伸出
      * @return 如果移动成功返回 true
      */
-    bool doMove(IWorld& world, const BlockPos& pos, Direction facing, bool extending);
+    bool _doMove(IWorld& world, const BlockPos& pos, Direction facing, bool extending);
 
     /**
      * @brief 检查方块是否可以被推动
@@ -208,7 +206,7 @@ private:
      * @param state 方块状态
      * @return PushReaction 方块的推动反应
      */
-    [[nodiscard]] Material::PushReaction getBlockPushReaction(const BlockState& state) const;
+    [[nodiscard]] Material::PushReaction _getBlockPushReaction(const BlockState& state) const;
 };
 
 } // namespace blocks

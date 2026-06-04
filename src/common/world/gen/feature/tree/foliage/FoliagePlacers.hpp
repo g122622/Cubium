@@ -32,7 +32,6 @@ namespace mc {
  * @brief 松树树叶放置器
  *
  * 生成锥形树叶，从下到上逐渐变细。
- * 参考 MC 1.16.5: PineFoliagePlacer
  */
 class PineFoliagePlacer : public FoliagePlacer {
 public:
@@ -62,14 +61,13 @@ private:
     /**
      * @brief 计算指定高度的树叶半径
      */
-    [[nodiscard]] i32 getRadiusAtHeight(i32 height, i32 foliageHeight) const;
+    [[nodiscard]] i32 _getRadiusAtHeight(i32 height, i32 foliageHeight) const;
 };
 
 /**
  * @brief 云杉树叶放置器
  *
  * 生成尖顶形状的树叶。
- * 参考 MC 1.16.5: SpruceFoliagePlacer
  */
 class SpruceFoliagePlacer : public FoliagePlacer {
 public:
@@ -96,7 +94,7 @@ protected:
 private:
     i32 m_height;
 
-    void placeFoliageLayer(WorldGenRegion& world,
+    void _placeFoliageLayer(WorldGenRegion& world,
         math::Random& random,
         const FoliagePosition& foliagePos,
         i32 radius,
@@ -110,7 +108,6 @@ private:
  * @brief 金合欢树叶放置器
  *
  * 生成伞形树叶。
- * 参考 MC 1.16.5: AcaciaFoliagePlacer
  */
 class AcaciaFoliagePlacer : public FoliagePlacer {
 public:
@@ -135,7 +132,7 @@ protected:
         math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
 
 private:
-    void placeFoliageLayer(WorldGenRegion& world,
+    void _placeFoliageLayer(WorldGenRegion& world,
         math::Random& random,
         const FoliagePosition& foliagePos,
         i32 radius,
@@ -149,7 +146,6 @@ private:
  * @brief 深色橡树树叶放置器
  *
  * 生成球形树叶，用于深色橡树。
- * 参考 MC 1.16.5: DarkOakFoliagePlacer
  */
 class DarkOakFoliagePlacer : public FoliagePlacer {
 public:
@@ -176,7 +172,7 @@ protected:
 private:
     i32 m_height;
 
-    void placeFoliageLayer(WorldGenRegion& world,
+    void _placeFoliageLayer(WorldGenRegion& world,
         math::Random& random,
         const FoliagePosition& foliagePos,
         i32 radius,
@@ -185,14 +181,13 @@ private:
         const BlockState* foliageBlock,
         bool trunkTop);
 
-    bool shouldSkipBase(math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const;
+    bool _shouldSkipBase(math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const;
 };
 
 /**
  * @brief 丛林木树叶放置器
  *
  * 生成单层树叶，用于丛林木。
- * 参考 MC 1.16.5: JungleFoliagePlacer
  */
 class JungleFoliagePlacer : public FoliagePlacer {
 public:
@@ -224,7 +219,6 @@ private:
  * @brief 巨型松树树叶放置器
  *
  * 生成大型锥形树叶，用于巨型松树。
- * 参考 MC 1.16.5: MegaPineFoliagePlacer
  */
 class MegaPineFoliagePlacer : public FoliagePlacer {
 public:
@@ -256,7 +250,6 @@ private:
  * @brief 灌木树叶放置器
  *
  * 生成单层球形树叶，用于灌木。
- * 参考 MC 1.16.5: BushFoliagePlacer
  */
 class BushFoliagePlacer : public FoliagePlacer {
 public:
@@ -285,7 +278,6 @@ protected:
  * @brief 精美树叶放置器
  *
  * 生成更大更密集的球形树叶。
- * 参考 MC 1.16.5: FancyFoliagePlacer
  */
 class FancyFoliagePlacer : public FoliagePlacer {
 public:

@@ -40,8 +40,6 @@ namespace blocks {
  * - 实现 IWaterLoggable 接口支持含水功能
  * - 可以攀爬
  * - 没有碰撞箱
- *
- * 参考: net.minecraft.block.LadderBlock
  */
 class LadderBlock : public Block, public IWaterLoggable {
 public:
@@ -110,7 +108,7 @@ public:
     [[nodiscard]] bool isLadder(const BlockState& state,
         IWorld* world = nullptr,
         const BlockPos* pos = nullptr,
-        const Entity* entity = nullptr) const override
+        const Entity* entity = nullptr) const noexcept override
     {
         MC_UNUSED(world);
         MC_UNUSED(pos);
@@ -129,7 +127,7 @@ public:
     /**
      * @brief 检查方块是否含水
      */
-    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const noexcept override
     {
         return state.get(BlockStateProperties::WATERLOGGED());
     }

@@ -22,6 +22,7 @@
  */
 
 #include "InternalLightUtils.hpp"
+#include "common/core/Constants.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <algorithm>
 #include <cmath>
@@ -33,7 +34,7 @@ namespace InternalLightUtils {
 // 天空减暗计算
 // ============================================================================
 
-i32 calculateSkyDarkening(i64 dayTime, bool isRaining, bool isThundering)
+i32 calculateSkyDarkening(i64 dayTime, bool isRaining, bool isThundering) noexcept
 {
     // 基础天空减暗（基于时间）
     i32 baseDarkening = calculateDefaultSkyDarkening(dayTime);
@@ -50,15 +51,14 @@ i32 calculateSkyDarkening(i64 dayTime, bool isRaining, bool isThundering)
     return baseDarkening;
 }
 
-i32 calculateDefaultSkyDarkening(i64 dayTime)
+i32 calculateDefaultSkyDarkening(i64 dayTime) noexcept
 {
     f32 celestialAngle = getCelestialAngle(dayTime);
     return calculateSkyDarkeningFromAngle(celestialAngle);
 }
 
-i32 calculateSkyDarkeningFromAngle(f32 celestialAngle)
+i32 calculateSkyDarkeningFromAngle(f32 celestialAngle) noexcept
 {
-    // 参考 MC 1.16.5 World.calculateSkylightSubtracted
     // celestialAngle: 0.0 = 日出, 0.25 = 正午, 0.5 = 日落, 0.75 = 午夜
     // 天空减暗范围: 0 (正午) 到 11 (午夜)
 
@@ -85,12 +85,12 @@ i32 calculateSkyDarkeningFromAngle(f32 celestialAngle)
 // 内部光照计算
 // ============================================================================
 
-i32 calculateInternalLight(u8 blockLight, u8 skyLight)
+i32 calculateInternalLight(u8 blockLight, u8 skyLight) noexcept
 {
     return std::max(static_cast<i32>(blockLight), static_cast<i32>(skyLight));
 }
 
-i32 calculateRawBrightness(u8 blockLight, u8 skyLight, i32 skyDarkening)
+i32 calculateRawBrightness(u8 blockLight, u8 skyLight, i32 skyDarkening) noexcept
 {
     // 天空光照减去减暗因子，但不低于0
     i32 effectiveSkyLight = static_cast<i32>(skyLight) - skyDarkening;
@@ -104,19 +104,19 @@ i32 calculateRawBrightness(u8 blockLight, u8 skyLight, i32 skyDarkening)
 // 生物生成条件
 // ============================================================================
 
-bool isDarkEnoughForSpawning(i32 rawBrightness)
+bool isDarkEnoughForSpawning(i32 rawBrightness) noexcept
 {
     // 亮度 <= 7 时可以生成敌对生物
     return rawBrightness <= 7;
 }
 
-bool isBrightEnoughToPreventSpawning(i32 rawBrightness)
+bool isBrightEnoughToPreventSpawning(i32 rawBrightness) noexcept
 {
     // 亮度 > 7 时不能生成敌对生物
     return rawBrightness > 7;
 }
 
-bool canSleep(i32 rawBrightness, bool isThundering)
+bool canSleep(i32 rawBrightness, bool isThundering) noexcept
 {
     // 夜晚或雷暴时可以睡觉
     // 亮度 <= 7 表示夜晚
@@ -127,9 +127,9 @@ bool canSleep(i32 rawBrightness, bool isThundering)
 // 天体计算
 // ============================================================================
 
-f32 getCelestialAngle(i64 dayTime)
+f32 getCelestialAngle(i64 dayTime) noexcept
 {
-    // 一天有24000 ticks
+    // 一天有 DAY_LENGTH_TICKS ticks
     // celestialAngle = 0.0 时日出
     // celestialAngle = 0.25 时正午
     // celestialAngle = 0.5 时日落
@@ -142,17 +142,16 @@ f32 getCelestialAngle(i64 dayTime)
     // 18000 = 午夜
 
     // 直接计算，不需要偏移
-    i64 timeOfDay = dayTime % 24000;
-    return static_cast<f32>(timeOfDay) / 24000.0f;
+    i64 timeOfDay = dayTime % game::DAY_LENGTH_TICKS;
+    return static_cast<f32>(timeOfDay) / static_cast<f32>(game::DAY_LENGTH_TICKS);
 }
 
-f32 getCelestialAngleMC(i64 dayTime)
+f32 getCelestialAngleMC(i64 dayTime) noexcept
 {
-    // MC 1.16.5 原版天体角度计算
-    // 参考: net.minecraft.world.DimensionType.func_236032_b_()
+    // 原版天体角度计算
     //
     // 公式:
-    //   d0 = frac(dayTime / 24000.0 - 0.25)
+    //   d0 = frac(dayTime / DAY_LENGTH_TICKS - 0.25)
     //   d1 = 0.5 - cos(d0 * π) / 2.0
     //   result = (d0 * 2.0 + d1) / 3.0
     //
@@ -165,10 +164,9 @@ f32 getCelestialAngleMC(i64 dayTime)
     // 黎明时分 (dayTime ≈ 22000-22600) 时 celestialAngle ≈ 0.65-0.69
     // 这是海龟蛋孵化的最佳时间
 
-    constexpr f64 TICKS_PER_DAY = 24000.0;
-    constexpr f64 PI = 3.14159265358979323846;
+    constexpr f64 TICKS_PER_DAY = static_cast<f64>(game::DAY_LENGTH_TICKS);
 
-    f64 normalizedTime = static_cast<f64>(dayTime % 24000);
+    f64 normalizedTime = static_cast<f64>(dayTime % game::DAY_LENGTH_TICKS);
     f64 d0 = normalizedTime / TICKS_PER_DAY - 0.25;
 
     // 确保 d0 在 [0, 1) 范围内 (frac 函数)
@@ -178,7 +176,7 @@ f32 getCelestialAngleMC(i64 dayTime)
 
     // d1 = 0.5 - cos(d0 * π) / 2.0
     // 这是一个平滑曲线，在 d0=0 时 d1=0，在 d0=0.5 时 d1=1
-    f64 d1 = 0.5 - std::cos(d0 * PI) / 2.0;
+    f64 d1 = 0.5 - std::cos(d0 * math::PI_DOUBLE) / 2.0;
 
     // result = (d0 * 2.0 + d1) / 3.0
     f64 celestialAngle = (d0 * 2.0 + d1) / 3.0;
@@ -186,7 +184,7 @@ f32 getCelestialAngleMC(i64 dayTime)
     return static_cast<f32>(celestialAngle);
 }
 
-f32 getSunAngle(f32 celestialAngle)
+f32 getSunAngle(f32 celestialAngle) noexcept
 {
     // 太阳高度角
     // 0 = 地平线，正值 = 白天，负值 = 夜晚
@@ -195,30 +193,30 @@ f32 getSunAngle(f32 celestialAngle)
     return std::sin(angle);
 }
 
-bool isDaytime(i64 dayTime)
+bool isDaytime(i64 dayTime) noexcept
 {
     // 白天: 0 - 12000 (日出到日落)
     // 注意：MC中时间从日出开始
-    i64 timeOfDay = dayTime % 24000;
+    i64 timeOfDay = dayTime % game::DAY_LENGTH_TICKS;
     return timeOfDay < 12000;
 }
 
-bool isNighttime(i64 dayTime)
+bool isNighttime(i64 dayTime) noexcept
 {
     // 夜晚: 12000 - 24000 (日落到日出)
-    i64 timeOfDay = dayTime % 24000;
+    i64 timeOfDay = dayTime % game::DAY_LENGTH_TICKS;
     return timeOfDay >= 12000;
 }
 
-i32 getMoonPhase(i64 dayTime)
+i32 getMoonPhase(i64 dayTime) noexcept
 {
     // 月相周期为8天
-    // 每天有24000 ticks
-    i64 dayNumber = dayTime / 24000;
+    // 每天有 DAY_LENGTH_TICKS ticks
+    i64 dayNumber = dayTime / game::DAY_LENGTH_TICKS;
     return static_cast<i32>(dayNumber % 8);
 }
 
-f32 getMoonBrightness(i32 moonPhase)
+f32 getMoonBrightness(i32 moonPhase) noexcept
 {
     // 月相亮度：
     // 0: 满月 (1.0)

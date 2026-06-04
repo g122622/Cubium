@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../BlockPos.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <vector>
 
 namespace mc {
@@ -90,7 +90,7 @@ private:
      * @param facing 检查方向
      * @return 如果可以继续推动返回 true
      */
-    [[nodiscard]] bool addBlockLine(const BlockPos& origin, Direction facing);
+    [[nodiscard]] bool _addBlockLine(const BlockPos& origin, Direction facing);
 
     /**
      * @brief 添加分支方块
@@ -100,17 +100,17 @@ private:
      * @param fromPos 粘性方块位置
      * @return 如果所有分支都可以推动返回 true
      */
-    [[nodiscard]] bool addBranchingBlocks(const BlockPos& fromPos);
+    [[nodiscard]] bool _addBranchingBlocks(const BlockPos& fromPos);
 
     /**
      * @brief 在碰撞时重新排序列表
      *
      * 当推动链中的方块发生碰撞时，重新排序以正确处理推动顺序。
      *
-     * @param p1 第一个参数
-     * @param p2 第二个参数
+     * @param p1 新添加的方块数量
+     * @param p2 碰撞点在列表中的索引
      */
-    void reorderListAtCollision(i32 p1, i32 p2);
+    void _reorderListAtCollision(i32 p1, i32 p2);
 
     // 世界引用
     IWorld& m_world;

@@ -98,7 +98,7 @@ private:
      * @param state 方块状态
      * @return 如果是传送门方块或框架方块返回 true
      */
-    [[nodiscard]] bool isConnectedToPortal(const BlockState& state) const;
+    [[nodiscard]] bool _isConnectedToPortal(const BlockState& state) const;
 };
 
 } // namespace blocks

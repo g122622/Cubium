@@ -1,6 +1,29 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
 #include "common/mod/bedrock/addon/event/ScriptEventBus.hpp"
-#include "common/mod/bedrock/addon/event/BeforeEventSignal.hpp"
 #include "common/mod/bedrock/addon/event/AfterEventSignal.hpp"
+#include "common/mod/bedrock/addon/event/BeforeEventSignal.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -11,11 +34,33 @@ ScriptEventBus::ScriptEventBus()
     , m_afterEvents(std::make_unique<AfterEventSignal>())
 {}
 
-ScriptEventBus::~ScriptEventBus() {
+ScriptEventBus::~ScriptEventBus()
+{
     shutdown();
 }
 
-void ScriptEventBus::initialize() {
+ScriptEventBus::ScriptEventBus(ScriptEventBus&& other) noexcept
+    : m_beforeEvents(std::move(other.m_beforeEvents))
+    , m_afterEvents(std::move(other.m_afterEvents))
+    , m_initialized(other.m_initialized)
+{
+    other.m_initialized = false;
+}
+
+ScriptEventBus& ScriptEventBus::operator=(ScriptEventBus&& other) noexcept
+{
+    if (this != &other) {
+        shutdown();
+        m_beforeEvents = std::move(other.m_beforeEvents);
+        m_afterEvents = std::move(other.m_afterEvents);
+        m_initialized = other.m_initialized;
+        other.m_initialized = false;
+    }
+    return *this;
+}
+
+void ScriptEventBus::initialize()
+{
     if (m_initialized) {
         return;
     }
@@ -23,7 +68,8 @@ void ScriptEventBus::initialize() {
     m_initialized = true;
 }
 
-void ScriptEventBus::shutdown() {
+void ScriptEventBus::shutdown()
+{
     if (!m_initialized) {
         return;
     }
@@ -33,7 +79,8 @@ void ScriptEventBus::shutdown() {
     spdlog::info("[BedrockAddon] ScriptEventBus shut down");
 }
 
-void ScriptEventBus::tick() {
+void ScriptEventBus::tick()
+{
     if (!m_initialized) {
         return;
     }
@@ -44,21 +91,24 @@ void ScriptEventBus::tick() {
     m_afterEvents->postFlush();
 }
 
-void ScriptEventBus::enqueueAfterEvent(std::type_index eventType, std::any eventData) {
+void ScriptEventBus::enqueueAfterEvent(std::type_index eventType, std::any eventData)
+{
     if (!m_initialized) {
         return;
     }
     m_afterEvents->enqueue(eventType, std::move(eventData));
 }
 
-bool ScriptEventBus::dispatchBeforeEvent(std::type_index eventType, std::any& eventData) {
+bool ScriptEventBus::dispatchBeforeEvent(std::type_index eventType, std::any& eventData)
+{
     if (!m_initialized) {
         return false;
     }
     return m_beforeEvents->fire(eventType, eventData);
 }
 
-bool ScriptEventBus::hasPendingAfterEvents() const {
+bool ScriptEventBus::hasPendingAfterEvents() const
+{
     return m_afterEvents->pendingCount() > 0;
 }
 

@@ -41,7 +41,7 @@ struct DecorationTypeInfo {
     i32 mapColor; // -1 表示无颜色
 };
 
-static const DecorationTypeInfo DECORATION_TYPE_INFOS[] = {
+static constexpr DecorationTypeInfo DECORATION_TYPE_INFOS[] = {
     /* PLAYER */ {false, -1},
     /* FRAME */ {true, -1},
     /* RED_MARKER */ {false, -1},
@@ -74,28 +74,28 @@ static const DecorationTypeInfo DECORATION_TYPE_INFOS[] = {
 static_assert(sizeof(DECORATION_TYPE_INFOS) / sizeof(DecorationTypeInfo) == static_cast<size_t>(DecorationType::COUNT),
     "DECORATION_TYPE_INFOS size must match DecorationType::COUNT");
 
-bool isRenderedOnFrame(DecorationType type)
+bool isRenderedOnFrame(DecorationType type) noexcept
 {
-    auto index = static_cast<size_t>(type);
-    MC_ASSERT(index < static_cast<size_t>(DecorationType::COUNT));
+    const auto index = static_cast<size_t>(type);
+    MC_ASSERT_RELEASE(index < static_cast<size_t>(DecorationType::COUNT));
     return DECORATION_TYPE_INFOS[index].renderedOnFrame;
 }
 
-bool hasMapColor(DecorationType type)
+bool hasMapColor(DecorationType type) noexcept
 {
-    auto index = static_cast<size_t>(type);
-    MC_ASSERT(index < static_cast<size_t>(DecorationType::COUNT));
+    const auto index = static_cast<size_t>(type);
+    MC_ASSERT_RELEASE(index < static_cast<size_t>(DecorationType::COUNT));
     return DECORATION_TYPE_INFOS[index].mapColor >= 0;
 }
 
-i32 getMapColor(DecorationType type)
+i32 getMapColor(DecorationType type) noexcept
 {
-    auto index = static_cast<size_t>(type);
-    MC_ASSERT(index < static_cast<size_t>(DecorationType::COUNT));
+    const auto index = static_cast<size_t>(type);
+    MC_ASSERT_RELEASE(index < static_cast<size_t>(DecorationType::COUNT));
     return DECORATION_TYPE_INFOS[index].mapColor;
 }
 
-DecorationType decorationTypeByIcon(u8 icon)
+DecorationType decorationTypeByIcon(u8 icon) noexcept
 {
     if (icon >= static_cast<u8>(DecorationType::COUNT)) {
         return DecorationType::PLAYER;

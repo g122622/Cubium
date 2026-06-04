@@ -33,7 +33,6 @@ namespace layer {
  * @brief 冷暖边缘层
  *
  * 防止温暖区域直接接触冰冻区域。
- * 参考 MC EdgeLayer.CoolWarm (ICastleTransformer)
  */
 class CoolWarmEdgeLayer : public ICastleTransformer {
 public:
@@ -46,7 +45,6 @@ public:
  * @brief 热冰边缘层
  *
  * 防止炎热区域直接接触冰冻区域。
- * 参考 MC EdgeLayer.HeatIce (ICastleTransformer)
  */
 class HeatIceEdgeLayer : public ICastleTransformer {
 public:
@@ -59,7 +57,6 @@ public:
  * @brief 特殊变体层
  *
  * 为非海洋区域添加特殊变体位。
- * 参考 MC EdgeLayer.Special (IC0Transformer)
  */
 class SpecialEdgeLayer : public IC0Transformer {
 public:
@@ -71,7 +68,6 @@ public:
  * @brief 生物群系边缘层
  *
  * 处理生物群系之间的过渡边缘。
- * 参考 MC EdgeBiomeLayer (ICastleTransformer)
  */
 class BiomeEdgeLayer : public ICastleTransformer {
 public:

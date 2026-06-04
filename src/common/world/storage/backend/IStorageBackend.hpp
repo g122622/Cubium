@@ -52,7 +52,7 @@ namespace mc::world::storage {
  */
 class IStorageBackend {
 public:
-    virtual ~IStorageBackend() = default;
+    virtual ~IStorageBackend() noexcept = default;
 
     // ========== 生命周期 ==========
 

@@ -23,6 +23,10 @@
 
 #pragma once
 
+// TODO: include 路径使用了 ../.. 形式，违反代码规范。
+// 应改为从 src/ 目录开始的绝对路径，如 "common/core/Types.hpp"。
+// 但这需要同时修改所有依赖此头文件的源文件，暂不处理。
+
 #include "../../core/Types.hpp"
 #include "../../physics/collision/CollisionShape.hpp"
 #include "../../resource/ResourceLocation.hpp"
@@ -90,8 +94,6 @@ class IProperty;
  *
  * 不可变的方块状态对象，包含方块的所有属性值。
  * 继承自StateHolder以支持O(1)的状态转换。
- *
- * 参考: net.minecraft.block.BlockState
  */
 class BlockState : public StateHolder<Block, BlockState> {
 public:
@@ -159,8 +161,6 @@ public:
 
     /**
      * @brief 获取光照透明度 (0-15)
-     *
-     * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#getOpacity
      */
     [[nodiscard]] i32 getOpacity() const { return m_opacity; }
 
@@ -221,8 +221,6 @@ public:
      *
      * 用于环境光遮蔽(AO)计算。如果方块有不透明的完整碰撞箱，
      * 则返回true，导致周围顶点变暗。
-     *
-     * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#hasOpaqueCollisionShape
      */
     [[nodiscard]] bool hasOpaqueCollisionShape() const;
 
@@ -232,10 +230,8 @@ public:
      * 返回值用于AO计算：
      * - 0.2f: 方块有不透明碰撞形状（实心方块），产生阴影
      * - 1.0f: 方块无碰撞或透明（玻璃、树叶等），不产生阴影
-     *
-     * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#getAmbientOcclusionLightValue
      */
-    [[nodiscard]] float getAmbientOcclusionLightValue() const;
+    [[nodiscard]] f32 getAmbientOcclusionLightValue() const;
 
     /**
      * @brief 检查指定面是否为实体面
@@ -354,7 +350,6 @@ public:
      * @brief 检查是否为粘性方块
      *
      * 委托到方块的 isStickyBlock 方法。
-     * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#isStickyBlock
      *
      * @return 如果是粘性方块返回 true
      */
@@ -364,7 +359,6 @@ public:
      * @brief 检查两个方块是否可以粘连
      *
      * 委托到方块的 canStickTo 方法。
-     * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#canStickTo
      *
      * @param other 目标方块状态
      * @return 如果可以粘连返回 true
@@ -379,7 +373,6 @@ public:
      * @brief 获取方块的可燃性值
      *
      * 委托到方块的 getFlammability 方法。
-     * 参考: net.minecraft.block.FireBlock.getFlammability()
      *
      * @param world 世界（可选）
      * @param pos 方块位置（可选）
@@ -393,7 +386,6 @@ public:
      * @brief 获取方块的火焰蔓延速度
      *
      * 委托到方块的 getFireSpreadSpeed 方法。
-     * 参考: net.minecraft.block.FireBlock.getFireSpreadSpeed()
      *
      * @param world 世界（可选）
      * @param pos 方块位置（可选）
@@ -407,7 +399,6 @@ public:
      * @brief 检查方块是否为火焰源
      *
      * 委托到方块的 isFireSource 方法。
-     * 参考: Forge IForgeBlock.isFireSource()
      *
      * @param world 世界
      * @param pos 方块位置
@@ -420,7 +411,6 @@ public:
      * @brief 方块被点燃时的回调
      *
      * 委托到方块的 catchFire 方法。
-     * 参考: Forge IForgeBlock.catchFire()
      *
      * @param world 世界
      * @param pos 方块位置
@@ -451,7 +441,7 @@ private:
     /**
      * @brief 缓存方块属性
      */
-    void cacheProperties();
+    void _cacheProperties();
 
     // 缓存的属性
     bool m_isSolid = true;

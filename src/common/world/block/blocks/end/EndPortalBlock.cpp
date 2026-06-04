@@ -22,8 +22,8 @@
  */
 
 #include "EndPortalBlock.hpp"
-#include "../../../../entity/core/Entity.hpp"
-#include "../../../IWorld.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace blocks {
@@ -38,7 +38,6 @@ EndPortalBlock::EndPortalBlock(const BlockProperties& properties)
 void EndPortalBlock::onEntityCollision(
     const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    // 参考 MC 1.16.5 EndPortalBlock.onEntityCollision
     // 末地传送门是立即传送的，不需要等待时间
     // 玩家进入末地传送门后会立即传送到末地出生点 (100, 49, 0)
 
@@ -55,10 +54,9 @@ void EndPortalBlock::onEntityCollision(
     entity.setPortalCooldown(300); // 15秒冷却
 
     // 确定目标维度
-    // MC 1.16.5 标准：主世界=0，下界=-1，末地=1
     // 主世界 -> 末地: 传送到固定出生点 (100, 49, 0)
     // 末地 -> 主世界: 返回重生点或床
-    DimensionId targetDim = (entity.dimension() == 1) ? DimensionId(0) : DimensionId(1); // THE_END=1, OVERWORLD=0
+    DimensionId targetDim = (entity.dimension() == 1) ? DimensionId(0) : DimensionId(1);
 
     // 设置实体的目标维度标志
     // 实际传送由 ServerDimensionManager 处理

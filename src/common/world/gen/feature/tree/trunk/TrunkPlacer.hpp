@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../chunk/ChunkPos.hpp"
-#include "../../FeatureSpread.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/gen/feature/FeatureSpread.hpp"
 #include <memory>
 #include <set>
 #include <vector>
@@ -40,12 +40,12 @@ class BlockState;
 /**
  * @brief 树叶位置信息
  *
- * 参考: net.minecraft.world.gen.foliageplacer.FoliagePlacer.Foliage
+ * 用于记录树叶生成位置和属性。
  */
 struct FoliagePosition {
     BlockPos pos;    ///< 树叶中心位置
-    i32 radiusBonus; ///< 树叶半径加成（MC: field_236761_b_）
-    bool trunkTop;   ///< 是否在树干顶部（MC: field_236762_c_）
+    i32 radiusBonus; ///< 树叶半径加成
+    bool trunkTop;   ///< 是否在树干顶部
 
     FoliagePosition(const BlockPos& p, i32 radiusBonus = 0, bool top = false)
         : pos(p)
@@ -58,8 +58,6 @@ struct FoliagePosition {
  * @brief 树干放置器基类
  *
  * 负责生成树干，返回树叶位置信息供树叶放置器使用。
- *
- * 参考: net.minecraft.world.gen.trunkplacer.AbstractTrunkPlacer
  */
 class TrunkPlacer {
 public:

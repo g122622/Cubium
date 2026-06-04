@@ -23,15 +23,15 @@
 
 #pragma once
 
-#include "../core/Types.hpp"
-#include "../resource/ResourceLocation.hpp"
-#include "../sound/SoundCategory.hpp"
-#include "../util/AxisAlignedBB.hpp"
-#include "../util/math/Vector3.hpp"
-#include "../util/math/random/Random.hpp"
 #include "IWorldWriter.hpp"
 #include "block/BlockPos.hpp"
 #include "border/WorldBorder.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "explosion/ExplosionMode.hpp"
 #include "lighting/InternalLightUtils.hpp"
 #include "tick/base/TickPriority.hpp"
@@ -105,8 +105,6 @@ enum class ParticleTypeId : u16;
  * ServerWorld 和 ClientWorld 将实现此接口。
  *
  * 继承自 IWorldWriter，提供读写能力。
- *
- * 参考 MC 1.16.5 IWorldReader / World
  */
 class IWorld : public IWorldWriter {
 public:
@@ -186,7 +184,6 @@ public:
      * @brief 打开实体容器
      *
      * 用于旁观者模式玩家与实体容器交互（如村民交易、矿车容器）。
-     * MC 1.16.5: PlayerEntity.interactOn() 中的 INamedContainerProvider 处理
      *
      * @param provider 命名容器提供者（实体）
      * @param player 发起交互的玩家
@@ -239,7 +236,6 @@ public:
     /**
      * @brief 通知相邻方块更新
      *
-     * MC 1.16.5: notifyNeighborsOfStateChange
      * 通知指定位置的所有6个相邻方块发生变化
      *
      * @param pos 发生变化的位置
@@ -250,7 +246,6 @@ public:
     /**
      * @brief 通知相邻方块更新（排除指定方向）
      *
-     * MC 1.16.5: notifyNeighborsOfStateExcept
      * 通知指定位置的所有相邻方块发生变化，排除指定方向
      *
      * @param pos 发生变化的位置
@@ -353,8 +348,6 @@ public:
      * 世界事件是服务端广播给客户端的游戏事件，用于触发音效和粒子效果。
      * 例如：门开关音效、铁砧使用、方块破坏粒子等。
      *
-     * 参考 MC 1.16.5: net.minecraft.world.IWorld#playEvent
-     *
      * @param eventId 事件ID，参见 WorldEvents 命名空间
      * @param pos 事件位置
      * @param data 事件数据（含义因事件而异）
@@ -409,9 +402,7 @@ public:
      * @brief 获取综合光照等级
      *
      * 计算方块位置的实际光照等级，考虑天空光照衰减。
-     * 这是 MC 1.16.5 中用于作物生长判断的标准方法。
-     *
-     * 参考: net.minecraft.world.World#getLightSubtracted
+     * 这是用于作物生长判断的标准方法。
      *
      * @param pos 方块位置
      * @param skyDarkening 天空光照衰减值（0-15，用于天气/时间影响）
@@ -437,17 +428,14 @@ public:
      * 如果当前位置可以看到天空（天空光照 >= 15），会检查邻居方块的天空光照。
      * 如果邻居的天空光照更低，则使用更小的天空减暗因子。
      *
-     * 参考: net.minecraft.world.IWorldReader#getNeighborAwareLightSubtracted
-     * 参考: net.minecraft.world.IWorldReader#getLight
-     *
      * @param pos 方块位置
      * @param skyDarkening 天空光照衰减值（0-15）
      * @return 综合光照等级 (0-15)
      */
     [[nodiscard]] virtual u8 getNeighborAwareLightSubtracted(const BlockPos& pos, u32 skyDarkening) const
     {
-        // MC 1.16.5: 检查坐标是否在有效范围内
-        // 世界边界检查: -30000000 到 30000000
+        // 检查坐标是否在有效范围内
+        // TODO: 应该使用 mc::world 命名空间下的世界边界常量，但当前 WorldConstants.hpp 中未暴露 WORLD_BORDER 常量
         constexpr i32 WORLD_BORDER_MIN = -30000000;
         constexpr i32 WORLD_BORDER_MAX = 30000000;
         if (pos.x < WORLD_BORDER_MIN || pos.x >= WORLD_BORDER_MAX || pos.z < WORLD_BORDER_MIN ||
@@ -461,16 +449,12 @@ public:
      * @brief 获取当前位置的综合光照等级
      *
      * 使用当前时间和天气计算的天空减暗因子。
-     * 这是 MC 1.16.5 中 IWorldReader.getLight(pos) 的实现方式。
-     *
-     * 参考: net.minecraft.world.IWorldReader#getLight(BlockPos)
      *
      * @param pos 方块位置
      * @return 综合光照等级 (0-15)
      */
     [[nodiscard]] virtual u8 getLight(const BlockPos& pos) const
     {
-        // MC 1.16.5: getNeighborAwareLightSubtracted(pos, getSkylightSubtracted())
         return getNeighborAwareLightSubtracted(pos, static_cast<u32>(getSkyDarkening()));
     }
 
@@ -479,8 +463,6 @@ public:
      *
      * 根据当前时间和天气计算天空减暗因子。
      * 用于计算综合光照等级。
-     *
-     * 参考: net.minecraft.world.World#getSkylightSubtracted
      *
      * @return 天空减暗因子 (0-11)
      */
@@ -495,16 +477,14 @@ public:
     /**
      * @brief 检查位置是否可以看到天空
      *
-     * 基于 MC 1.16.5 实现：检查该位置的天空光照等级是否达到最大值。
-     * 参考: net.minecraft.world.IWorldReader#canSeeSky
+     * 检查该位置的天空光照等级是否达到最大值。
+     * 只有有天空光照的维度才能看到天空。
      *
      * @param pos 方块位置
      * @return 如果该位置可以看到天空返回 true
      */
     [[nodiscard]] virtual bool canSeeSky(const BlockPos& pos) const
     {
-        // MC 1.16.5: return this.getLightFor(LightType.SKY, pos) >= this.getMaxLightLevel();
-        // 只有有天空光照的维度才能看到天空
         if (!hasSkyLight()) {
             return false;
         }
@@ -516,8 +496,6 @@ public:
      *
      * 根据位置的光照等级计算亮度因子（0.0-1.0）。
      * 用于阴影渲染、生物生成等。
-     *
-     * 参考: net.minecraft.world.IWorldReader#getBrightness
      *
      * @param pos 方块位置
      * @return 亮度因子 (0.0-1.0)
@@ -661,9 +639,6 @@ public:
     /**
      * @brief 获取最近的玩家
      *
-     * 参考 MC 1.16.5: World.getClosestPlayer(double x, double y, double z, double maxDistance, @Nullable
-     * Predicate<Entity> predicate)
-     *
      * @param pos 中心位置
      * @param maxDistance 最大距离（-1 表示无限制）
      * @return 最近的玩家指针，如果没有玩家返回 nullptr
@@ -683,8 +658,6 @@ public:
 
     /**
      * @brief 获取最近的玩家（排除特定玩家）
-     *
-     * 参考 MC 1.16.5: World.getClosestPlayerExcept
      *
      * @param pos 中心位置
      * @param maxDistance 最大距离（-1 表示无限制）
@@ -713,8 +686,6 @@ public:
      * 这是一个便捷方法，用于快速检查实体与最近玩家的距离。
      * 如果没有玩家，返回 std::numeric_limits<f64>::max()。
      *
-     * 参考 MC 1.16.5: 此方法常用于生物消失距离检查
-     *
      * @param pos 中心位置
      * @return 最近玩家距离的平方，如果没有玩家返回最大值
      */
@@ -734,11 +705,11 @@ public:
     /**
      * @brief 是否为超热维度
      *
-     * 下界是超热维度，水会蒸发。MC 1.16.5 标准下界ID为 -1。
+     * 下界是超热维度，水会蒸发。
      */
     [[nodiscard]] virtual bool isUltraWarm() const
     {
-        return dimension() == -1; // DimensionManager::NETHER
+        return dimension() == -1; // NETHER
     }
 
     /**
@@ -772,14 +743,12 @@ public:
      * @brief 获取当前一天内的时间 (0-23999)
      *
      * 用于天体角度计算、时间显示、睡眠检测等场景。
-     * MC 1.16.5: dayTime % 24000
      */
     [[nodiscard]] virtual i64 dayTimeOfDay() const { return dayTime() % 24000; }
 
     /**
      * @brief 检查是否为白天
      *
-     * MC 1.16.5: world.isDaytime()
      * dayTimeOfDay() < 12000 为白天 (0-11999 = 白天, 12000-23999 = 夜晚)
      */
     [[nodiscard]] virtual bool isDaytime() const { return dayTimeOfDay() < 12000; }
@@ -800,12 +769,10 @@ public:
     /**
      * @brief 检查维度是否有天空光照
      * @return 如果维度有天空光照返回true（主世界），否则返回false（下界、末地）
-     *
-     * MC 1.16.5 标准：只有主世界(ID=0)有天空光照
      */
     [[nodiscard]] virtual bool hasSkyLight() const
     {
-        return dimension() == 0; // DimensionManager::OVERWORLD
+        return dimension() == 0; // OVERWORLD
     }
 
     // ========== 难度 ==========
@@ -884,8 +851,6 @@ public:
      * @brief 设置闪电闪烁时间
      *
      * 当闪电击中时调用，产生天空闪烁效果。
-     * 参考 MC 1.16.5 World.setTimeLightningFlash()
-     *
      * 注意：只有客户端世界需要实现此方法。
      *
      * @param time 闪烁时间（ticks），通常为 2
@@ -1047,8 +1012,6 @@ public:
      * 只有ServerWorld会返回有效的指针，其他实现返回nullptr。
      * 用于方块实体填充战利品表。
      *
-     * 参考 MC 1.16.5: World.getLootTableManager()
-     *
      * @return LootTableManager指针，如果不存在返回nullptr
      */
     [[nodiscard]] virtual const loot::LootTableManager* lootTableManager() const { return nullptr; }
@@ -1103,8 +1066,6 @@ public:
      * 当玩家开始或停止睡眠时调用，用于更新世界的睡眠标志。
      * ServerWorld 重写此方法来调用 updateAllPlayersSleepingFlag()。
      * ClientWorld 返回空实现。
-     *
-     * 参考 MC 1.16.5: ServerWorld.updateAllPlayersSleepingFlag()
      */
     virtual void onPlayerSleepingChanged()
     {
@@ -1119,8 +1080,6 @@ public:
      * 当玩家成功放置方块时调用，用于触发进度检测。
      * ServerWorld 重写此方法来发布 BlockPlaceEvent。
      * ClientWorld 和其他实现返回空实现。
-     *
-     * 参考 MC 1.16.5: BlockItem.onItemUse() 中的 CriteriaTriggers.PLACED_BLOCK.trigger()
      *
      * @param playerId 放置方块的玩家ID（可能为0表示非玩家放置）
      * @param pos 方块位置
@@ -1143,8 +1102,6 @@ public:
      * ServerWorld 重写此方法来发布 CuredZombieVillagerEvent。
      * ClientWorld 和其他实现返回空实现。
      *
-     * 参考 MC 1.16.5: CriteriaTriggers.CURED_ZOMBIE_VILLAGER.trigger()
-     *
      * @param starterUuid 治愈发起者玩家UUID（可能为空）
      * @param zombie 治愈前的僵尸村民实体
      * @param villager 治愈后的村民实体
@@ -1164,8 +1121,6 @@ public:
      * ServerWorld 重写此方法来发布 ChanneledLightningEvent。
      * ClientWorld 和其他实现返回空实现。
      *
-     * 参考 MC 1.16.5: CriteriaTriggers.CHANNELED_LIGHTNING
-     *
      * @param casterId 施法者ID（引雷附魔的玩家）
      * @param victims 被闪电击中的实体列表
      */
@@ -1182,9 +1137,6 @@ public:
      * 当玩家物品因使用而损坏或消耗完毕时调用，用于触发进度检测。
      * ServerWorld 重写此方法来发布 PlayerDestroyItemEvent。
      * ClientWorld 和其他实现返回空实现。
-     *
-     * 参考 MC 1.16.5: Forge PlayerDestroyItemEvent
-     * 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED
      *
      * @param playerId 玩家ID
      * @param item 销毁前的物品副本
@@ -1206,8 +1158,6 @@ public:
      * 当玩家消耗物品（如吃食物、喝药水）时调用，用于触发进度检测。
      * ServerWorld 重写此方法来发布 ConsumeItemEvent。
      *
-     * 参考 MC 1.16.5: CriteriaTriggers.CONSUME_ITEM
-     *
      * @param playerId 玩家ID
      * @param item 消耗的物品
      */
@@ -1223,8 +1173,6 @@ public:
      *
      * 当物品耐久度变化时调用，用于触发进度检测。
      * ServerWorld 重写此方法来发布 ItemDurabilityEvent。
-     *
-     * 参考 MC 1.16.5: CriteriaTriggers.ITEM_DURABILITY_CHANGED
      *
      * @param playerId 玩家ID
      * @param item 物品
@@ -1246,8 +1194,6 @@ public:
      * 当玩家附魔物品时调用，用于触发进度检测。
      * ServerWorld 重写此方法来发布 EnchantItemEvent。
      *
-     * 参考 MC 1.16.5: CriteriaTriggers.ENCHANTED_ITEM
-     *
      * @param playerId 玩家ID
      * @param item 附魔的物品
      * @param levels 消耗的经验等级
@@ -1266,8 +1212,6 @@ public:
      * 当玩家用桶装液体时调用，用于触发进度检测。
      * ServerWorld 重写此方法来发布 FilledBucketEvent。
      *
-     * 参考 MC 1.16.5: CriteriaTriggers.FILLED_BUCKET
-     *
      * @param playerId 玩家ID
      * @param bucket 填充后的桶物品
      */
@@ -1283,8 +1227,6 @@ public:
      *
      * 当玩家进入方块碰撞箱时调用。
      * ServerWorld 重写此方法来发布 EnterBlockEvent。
-     *
-     * 参考 MC 1.16.5: Entity.onInsideBlock() -> CriteriaTriggers.ENTER_BLOCK
      *
      * @param playerId 玩家ID
      * @param pos 方块位置
@@ -1304,8 +1246,6 @@ public:
      * 当玩家在方块上滑落（如蜂蜜块）时调用。
      * ServerWorld 重写此方法来发布 SlideDownBlockEvent。
      *
-     * 参考 MC 1.16.5: HoneyBlock.triggerSlideDownBlock()
-     *
      * @param playerId 玩家ID
      * @param pos 方块位置
      * @param state 方块状态
@@ -1323,8 +1263,6 @@ public:
      *
      * 当玩家破坏蜂巢/蜂箱时调用。
      * ServerWorld 重写此方法来发布 BeeNestDestroyedEvent。
-     *
-     * 参考 MC 1.16.5: BeehiveBlock.harvestBlock() -> CriteriaTriggers.BEE_NEST_DESTROYED
      *
      * @param playerId 玩家ID
      * @param pos 方块位置
@@ -1350,8 +1288,6 @@ public:
      * ServerWorld 重写此方法来发布 BredAnimalsEvent。
      * ClientWorld 和其他实现返回空实现。
      *
-     * 参考 MC 1.16.5: CriteriaTriggers.BRED_ANIMALS.trigger()
-     *
      * @param playerId 繁殖发起者玩家ID（喂食动物的玩家）
      * @param child 幼体实体
      * @param parent1 父母1
@@ -1374,14 +1310,11 @@ public:
      * 在指定范围内搜索指定类型结构的最近位置。
      * 服务端世界实现此方法，客户端世界返回空。
      *
-     * 参考 MC 1.16.5: ServerWorld.func_241117_a_
-     * 参考 MC 1.16.5: Structure.func_236388_a_ (螺旋搜索算法)
-     *
      * @param center 搜索中心位置
      * @param structureType 结构类型
      * @param maxDistance 最大搜索距离（格）
      * @param skipExisting 是否跳过已找到的结构（用于定位命令的多次搜索）
-     * @return 最近的结构位置，如果未找到返回空
+     * @return 最近结构位置，如果未找到返回空
      */
     [[nodiscard]] virtual std::optional<BlockPos> findNearestStructure(const BlockPos& center,
         world::gen::structure::StructureType structureType,
@@ -1403,8 +1336,6 @@ public:
      * 在世界中以指定位置和权限级别执行命令。
      * ServerWorld 会通过 CommandRegistry 执行命令。
      * ClientWorld 和其他实现返回空实现（返回0）。
-     *
-     * 参考 MC 1.16.5: CommandBlockLogic.trigger() -> Commands.handleCommand()
      *
      * @param command 命令字符串（可包含或不包含 '/' 前缀）
      * @param position 命令执行位置
@@ -1428,8 +1359,6 @@ public:
      * ServerWorld 返回有效的 GameRules 实例。
      * ClientWorld 和其他实现应返回默认规则。
      *
-     * 参考 MC 1.16.5: World.getGameRules()
-     *
      * @return GameRules 常引用
      */
     [[nodiscard]] virtual const world::gamerule::GameRules& getGameRules() const;
@@ -1449,7 +1378,6 @@ protected:
  * @brief 区块读取器接口
  *
  * IBlockReader 继承自 IWorld，用于表示只读的方块访问接口。
- * 参考 MC 1.16.5 IBlockReader
  */
 class IBlockReader : public IWorld {};
 

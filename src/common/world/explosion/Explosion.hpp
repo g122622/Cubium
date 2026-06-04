@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../entity/damage/DamageSource.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../../util/math/random/Random.hpp"
-#include "../block/BlockPos.hpp"
 #include "ExplosionContext.hpp"
 #include "ExplosionMode.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
@@ -59,8 +59,6 @@ namespace world::explosion {
  * - 实体伤害和击退
  * - 物品掉落
  * - 粒子和音效
- *
- * 参考 Minecraft 1.16.5 的 Explosion 类。
  *
  * 使用方法：
  * @code
@@ -109,38 +107,38 @@ public:
      * @brief 获取受影响的方块位置列表
      * @return 受影响方块的坐标列表
      */
-    [[nodiscard]] const std::vector<BlockPos>& affectedBlocks() const { return m_affectedBlocks; }
+    [[nodiscard]] const std::vector<BlockPos>& affectedBlocks() const noexcept { return m_affectedBlocks; }
 
     /**
      * @brief 获取玩家击退映射
      * @return 玩家ID到击退向量的映射
      */
-    [[nodiscard]] const std::unordered_map<u64, Vector3>& playerKnockback() const { return m_playerKnockback; }
+    [[nodiscard]] const std::unordered_map<u64, Vector3>& playerKnockback() const noexcept { return m_playerKnockback; }
 
     /**
      * @brief 获取爆炸半径
      */
-    [[nodiscard]] f32 radius() const { return m_radius; }
+    [[nodiscard]] f32 radius() const noexcept { return m_radius; }
 
     /**
      * @brief 获取爆炸中心位置
      */
-    [[nodiscard]] const Vector3& position() const { return m_position; }
+    [[nodiscard]] const Vector3& position() const noexcept { return m_position; }
 
     /**
      * @brief 获取爆炸模式
      */
-    [[nodiscard]] ExplosionMode mode() const { return m_mode; }
+    [[nodiscard]] ExplosionMode mode() const noexcept { return m_mode; }
 
     /**
      * @brief 是否生成火焰
      */
-    [[nodiscard]] bool causesFire() const { return m_causesFire; }
+    [[nodiscard]] bool causesFire() const noexcept { return m_causesFire; }
 
     /**
      * @brief 获取爆炸源实体
      */
-    [[nodiscard]] Entity* source() const { return m_source; }
+    [[nodiscard]] Entity* source() const noexcept { return m_source; }
 
 private:
     // ========== 第一阶段：计算 ==========
@@ -153,7 +151,7 @@ private:
      * - 每条射线步进 0.3 格
      * - 根据方块爆炸抗性消耗射线强度
      */
-    void calculateAffectedBlocks();
+    void _calculateAffectedBlocks();
 
     /**
      * @brief 计算受影响的实体
@@ -161,7 +159,7 @@ private:
      * - 获取半径 * 2 范围内的所有实体
      * - 计算每个实体的伤害和击退
      */
-    void calculateAffectedEntities();
+    void _calculateAffectedEntities();
 
     // ========== 第二阶段：执行 ==========
 
@@ -173,22 +171,22 @@ private:
      * - Break: 破坏方块但不掉落
      * - Destroy: 破坏方块并掉落物品
      */
-    void destroyBlocks();
+    void _destroyBlocks();
 
     /**
      * @brief 应用击退效果
      */
-    void applyKnockback();
+    void _applyKnockback();
 
     /**
      * @brief 生成粒子效果
      */
-    void spawnParticles();
+    void _spawnParticles();
 
     /**
      * @brief 播放爆炸音效
      */
-    void playSound();
+    void _playSound();
 
     // ========== 辅助方法 ==========
 
@@ -200,7 +198,7 @@ private:
      * @param entityBox 实体碰撞箱
      * @return 阻挡密度 (0.0 - 1.0)，1.0 表示完全无遮挡
      */
-    [[nodiscard]] f32 getBlockDensity(const AxisAlignedBB& entityBox);
+    [[nodiscard]] f32 _getBlockDensity(const AxisAlignedBB& entityBox);
 
     /**
      * @brief 获取指定位置的爆炸抗性
@@ -208,7 +206,7 @@ private:
      * @param pos 方块位置
      * @return 爆炸抗性值，如果为空气返回 std::nullopt
      */
-    [[nodiscard]] std::optional<f32> getExplosionResistance(const BlockPos& pos);
+    [[nodiscard]] std::optional<f32> _getExplosionResistance(const BlockPos& pos);
 
     /**
      * @brief 计算实体伤害
@@ -218,26 +216,25 @@ private:
      * @param density 阻挡密度
      * @return 伤害值
      */
-    [[nodiscard]] f32 calculateDamage(Entity& entity, f32 distance, f32 density);
+    [[nodiscard]] f32 _calculateDamage(Entity& entity, f32 distance, f32 density);
 
     /**
      * @brief 生成火焰
      *
      * 在被破坏的方块位置随机生成火焰（如果 causesFire 为 true）。
      */
-    void spawnFire();
+    void _spawnFire();
 
     /**
      * @brief 生成方块掉落物
      *
      * 在 DESTROY 模式下为可掉落的方块生成 ItemEntity。
-     * 参考 MC 1.16.5 Explosion.doExplosionB 中的掉落逻辑。
      *
      * @param pos 方块位置
      * @param state 方块状态
      * @return 生成的掉落物列表
      */
-    [[nodiscard]] std::vector<ItemStack> generateBlockDrops(const BlockPos& pos, const BlockState& state);
+    [[nodiscard]] std::vector<ItemStack> _generateBlockDrops(const BlockPos& pos, const BlockState& state);
 
     /**
      * @brief 在世界中生成物品实体
@@ -247,7 +244,7 @@ private:
      * @param pos 方块位置
      * @param drops 掉落物列表
      */
-    void spawnItemEntities(const BlockPos& pos, const std::vector<ItemStack>& drops);
+    void _spawnItemEntities(const BlockPos& pos, const std::vector<ItemStack>& drops);
 
 private:
     IWorld& m_world;

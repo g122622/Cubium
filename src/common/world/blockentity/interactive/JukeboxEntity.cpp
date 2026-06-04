@@ -38,9 +38,6 @@ namespace {
 /**
  * @brief 获取唱片对应的比较器信号强度。
  *
- * MC 1.16.5: 每种唱片有固定的比较器输出值（1-15）。
- * 参考: net.minecraft.item.MusicDiscItem.comparatorValue
- *
  * @param item 唱片物品。
  * @return 范围 [1, 15] 的信号强度，如果不是有效唱片返回 0。
  */
@@ -50,8 +47,7 @@ namespace {
         return 0;
     }
 
-    // MC 1.16.5 固定映射表
-    // 参考: net.minecraft.item.Items 中的 MusicDiscItem 构造
+    // 唱片信号强度映射表
     static const std::unordered_map<std::string, i32> s_discSignals = {
         {"minecraft:music_disc_13", 1},
         {"minecraft:music_disc_cat", 2},
@@ -80,7 +76,7 @@ JukeboxEntity::JukeboxEntity(const BlockPos& pos)
     , m_inventory(1)
 {}
 
-JukeboxEntity::~JukeboxEntity() = default;
+JukeboxEntity::~JukeboxEntity() noexcept = default;
 
 ItemStack JukeboxEntity::getRecord() const
 {

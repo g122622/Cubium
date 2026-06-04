@@ -22,30 +22,30 @@
  */
 
 #include "StructureManager.hpp"
-#include "../../../resource/DataPackList.hpp"
-#include "../../../resource/ResourceLocation.hpp"
-#include "../jigsaw/JigsawPattern.hpp"
-#include "../jigsaw/JigsawPiece.hpp"
-#include "../jigsaw/TemplatePoolLoader.hpp"
-#include "pools/Pools.hpp"
-#include "structures/BastionRemnantStructure.hpp"
-#include "structures/BuriedTreasureStructure.hpp"
-#include "structures/DesertPyramidStructure.hpp"
-#include "structures/EndCityStructure.hpp"
-#include "structures/FortressStructure.hpp"
-#include "structures/IglooStructure.hpp"
-#include "structures/JungleTempleStructure.hpp"
-#include "structures/MineshaftStructure.hpp"
-#include "structures/NetherFossilStructure.hpp"
-#include "structures/OceanMonumentStructure.hpp"
-#include "structures/OceanRuinStructure.hpp"
-#include "structures/PillagerOutpostStructure.hpp"
-#include "structures/RuinedPortalStructure.hpp"
-#include "structures/ShipwreckStructure.hpp"
-#include "structures/StrongholdStructure.hpp"
-#include "structures/SwampHutStructure.hpp"
-#include "structures/VillageStructure.hpp"
-#include "structures/WoodlandMansionStructure.hpp"
+#include "common/resource/DataPackList.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/gen/jigsaw/JigsawPattern.hpp"
+#include "common/world/gen/jigsaw/JigsawPiece.hpp"
+#include "common/world/gen/jigsaw/TemplatePoolLoader.hpp"
+#include "common/world/gen/structure/pools/Pools.hpp"
+#include "common/world/gen/structure/structures/BastionRemnantStructure.hpp"
+#include "common/world/gen/structure/structures/BuriedTreasureStructure.hpp"
+#include "common/world/gen/structure/structures/DesertPyramidStructure.hpp"
+#include "common/world/gen/structure/structures/EndCityStructure.hpp"
+#include "common/world/gen/structure/structures/FortressStructure.hpp"
+#include "common/world/gen/structure/structures/IglooStructure.hpp"
+#include "common/world/gen/structure/structures/JungleTempleStructure.hpp"
+#include "common/world/gen/structure/structures/MineshaftStructure.hpp"
+#include "common/world/gen/structure/structures/NetherFossilStructure.hpp"
+#include "common/world/gen/structure/structures/OceanMonumentStructure.hpp"
+#include "common/world/gen/structure/structures/OceanRuinStructure.hpp"
+#include "common/world/gen/structure/structures/PillagerOutpostStructure.hpp"
+#include "common/world/gen/structure/structures/RuinedPortalStructure.hpp"
+#include "common/world/gen/structure/structures/ShipwreckStructure.hpp"
+#include "common/world/gen/structure/structures/StrongholdStructure.hpp"
+#include "common/world/gen/structure/structures/SwampHutStructure.hpp"
+#include "common/world/gen/structure/structures/VillageStructure.hpp"
+#include "common/world/gen/structure/structures/WoodlandMansionStructure.hpp"
 
 namespace mc::world::gen::structure {
 
@@ -68,8 +68,7 @@ void StructureRegistry::initialize()
 {
     if (s_initialized) return;
 
-    // 初始化 Jigsaw 模板池（使用硬编码注册系统）
-    // 参考 MC 1.16.5: Pools.bootstrap()
+    // 初始化 Jigsaw 模板池
     pools::Pools::initialize();
 
     // 注册原版结构
@@ -153,13 +152,16 @@ void StructureManager::placeStructureInChunk(
 
 void StructureManager::clearCache()
 {
-    // 清理缓存（简化版本）
+    // TODO: 实现结构缓存清理逻辑
 }
 
-math::Random StructureManager::createRandom(i32 chunkX, i32 chunkZ, i32 salt) const
+math::Random StructureManager::_createRandom(i32 chunkX, i32 chunkZ, i32 salt) const
 {
-    // MC 1.16.5 使用常量 341873128712
-    u64 combinedSeed = static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL +
+    // 结构生成使用的常量种子混合参数
+    constexpr u64 CHUNK_X_MULTIPLIER = 341873128712ULL;
+    constexpr u64 CHUNK_Z_MULTIPLIER = 132897987541ULL;
+
+    u64 combinedSeed = static_cast<u64>(chunkX) * CHUNK_X_MULTIPLIER + static_cast<u64>(chunkZ) * CHUNK_Z_MULTIPLIER +
         static_cast<u64>(m_seed) + static_cast<u64>(salt);
     return math::Random(static_cast<i64>(combinedSeed));
 }

@@ -33,8 +33,6 @@ namespace mc::network {
 
 /**
  * @brief 记分板目标操作类型
- *
- * 参考 MC 1.16.5: net.minecraft.network.play.server.SScoreboardObjectivePacket
  */
 enum class ObjectiveAction : u8 {
     /// 添加目标
@@ -49,8 +47,6 @@ enum class ObjectiveAction : u8 {
 
 /**
  * @brief 分数操作类型
- *
- * 参考 MC 1.16.5: net.minecraft.network.play.server.SUpdateScorePacket
  */
 enum class ScoreAction : u8 {
     /// 更新/设置分数
@@ -62,8 +58,6 @@ enum class ScoreAction : u8 {
 
 /**
  * @brief 队伍操作类型
- *
- * 参考 MC 1.16.5: net.minecraft.network.play.server.STeamsPacket
  */
 enum class TeamAction : u8 {
     /// 创建队伍（包含完整信息和成员列表）
@@ -86,7 +80,6 @@ enum class TeamAction : u8 {
  * @brief 记分板目标同步包
  *
  * 用于同步目标的创建、移除和更新。
- * 参考 MC 1.16.5: SScoreboardObjectivePacket (0x3B)
  */
 class ScoreboardObjectivePacket {
 public:
@@ -151,7 +144,6 @@ private:
  * @brief 分数更新同步包
  *
  * 用于同步分数的设置和移除。
- * 参考 MC 1.16.5: SUpdateScorePacket (0x3C)
  */
 class UpdateScorePacket {
 public:
@@ -203,7 +195,6 @@ private:
  * @brief 显示目标同步包
  *
  * 用于设置目标在哪个显示槽位显示。
- * 参考 MC 1.16.5: SDisplayObjectivePacket (0x3D)
  */
 class DisplayObjectivePacket {
 public:
@@ -244,7 +235,6 @@ private:
  * @brief 队伍同步包
  *
  * 用于同步队伍的创建、移除、更新和成员变更。
- * 参考 MC 1.16.5: STeamsPacket (0x3E)
  */
 class TeamsPacket {
 public:

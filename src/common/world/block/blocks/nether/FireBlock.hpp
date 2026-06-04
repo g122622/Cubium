@@ -45,8 +45,6 @@ namespace blocks {
  * 状态属性：
  * - AGE_0_15: 火的年龄（影响蔓延）
  * - NORTH/SOUTH/EAST/WEST/UP: 各方向的连接
- *
- * 参考: net.minecraft.block.FireBlock
  */
 class FireBlock : public Block {
 public:
@@ -85,7 +83,6 @@ public:
     /**
      * @brief 方块被添加到世界时调用
      *
-     * 参考 MC 1.16.5 AbstractFireBlock.onBlockAdded
      * 在放置时立即检测并点燃下界传送门（而不是在tick时）。
      *
      * @param world 世界引用
@@ -115,7 +112,6 @@ protected:
      * @brief 检查位置是否可以燃烧（有可燃方块）
      *
      * 检查指定位置周围是否有可燃方块。
-     * 参考 MC 1.16.5: FireBlock.canBurn()
      *
      * @param world 世界读取器
      * @param pos 要检查的位置
@@ -127,7 +123,6 @@ protected:
      * @brief 尝试火焰蔓延
      *
      * 在火焰 tick 时调用，尝试将火焰蔓延到周围方块。
-     * 参考 MC 1.16.5: FireBlock.tick() 中的蔓延逻辑
      *
      * @param world 世界引用
      * @param pos 火焰位置
@@ -142,8 +137,6 @@ protected:
      * 检查火焰周围是否形成有效的下界传送门框架，
      * 如果有效则点燃传送门。
      *
-     * 参考 MC 1.16.5 AbstractFireBlock.onBlockAdded
-     *
      * @param world 世界引用
      * @param pos 火焰位置
      * @return 是否成功点燃传送门
@@ -157,8 +150,6 @@ protected:
 
     /**
      * @brief 检查火焰是否会被雨淋灭
-     *
-     * 参考 MC 1.16.5: FireBlock.canDie()
      *
      * @param world 世界引用
      * @param pos 火焰位置
@@ -180,8 +171,6 @@ protected:
     /**
      * @brief 获取目标位置周围的火焰蔓延鼓励值
      *
-     * 参考 MC 1.16.5: FireBlock.getNeighborEncouragement()
-     *
      * @param world 世界引用
      * @param pos 目标位置
      * @return 最大火焰蔓延速度
@@ -190,8 +179,6 @@ protected:
 
     /**
      * @brief 尝试点燃指定位置
-     *
-     * 参考 MC 1.16.5: FireBlock.tryCatchFire()
      *
      * @param world 世界引用
      * @param pos 目标位置
@@ -205,8 +192,6 @@ protected:
     /**
      * @brief 检查周围是否有可燃方块
      *
-     * 参考 MC 1.16.5: FireBlock.areNeighborsFlammable()
-     *
      * @param world 世界读取器
      * @param pos 位置
      * @return 如果周围有可燃方块返回 true
@@ -215,8 +200,6 @@ protected:
 
     /**
      * @brief 检查位置是否可以被点燃
-     *
-     * 参考 MC 1.16.5: FireBlock.canCatchFire() / IForgeBlock.canCatchFire()
      *
      * @param world 世界引用
      * @param pos 目标位置

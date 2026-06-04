@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../entity/entities/villager/AbstractVillagerEntity.hpp"
-#include "Merchant.hpp"
-#include "MerchantOffer.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/world/village/trade/Merchant.hpp"
+#include "common/world/village/trade/MerchantOffer.hpp"
 #include <functional>
 #include <memory>
 #include <unordered_map>
@@ -49,8 +49,6 @@ using TradeFactory = std::function<std::unique_ptr<MerchantOffer>(i32 demand, u6
  *
  * 管理所有村民职业的交易配方。
  * 每个职业有5个等级（新手1-5级大师），每个等级有多个交易选项。
- *
- * 参考 MC 1.16.5 VillagerTrades
  */
 class VillagerTrades {
 public:
@@ -93,20 +91,20 @@ private:
 
     // ========== 职业交易注册 ==========
 
-    static void registerArmorerTrades();
-    static void registerButcherTrades();
-    static void registerCartographerTrades();
-    static void registerClericTrades();
-    static void registerFarmerTrades();
-    static void registerFishermanTrades();
-    static void registerFletcherTrades();
-    static void registerLeatherworkerTrades();
-    static void registerLibrarianTrades();
-    static void registerMasonTrades();
-    static void registerShepherdTrades();
-    static void registerToolsmithTrades();
-    static void registerWeaponsmithTrades();
-    static void registerNitwitTrades();
+    static void _registerArmorerTrades();
+    static void _registerButcherTrades();
+    static void _registerCartographerTrades();
+    static void _registerClericTrades();
+    static void _registerFarmerTrades();
+    static void _registerFishermanTrades();
+    static void _registerFletcherTrades();
+    static void _registerLeatherworkerTrades();
+    static void _registerLibrarianTrades();
+    static void _registerMasonTrades();
+    static void _registerShepherdTrades();
+    static void _registerToolsmithTrades();
+    static void _registerWeaponsmithTrades();
+    static void _registerNitwitTrades();
 
     // ========== 交易工厂辅助方法 ==========
 
@@ -120,7 +118,7 @@ private:
      * @param xp 交易经验
      * @param priceMultiplier 价格乘数
      */
-    static TradeFactory simpleTrade(const char* buyItem,
+    static TradeFactory _simpleTrade(const char* buyItem,
         i32 buyCount,
         const char* sellItem,
         i32 sellCount,
@@ -140,7 +138,7 @@ private:
      * @param xp 交易经验
      * @param priceMultiplier 价格乘数
      */
-    static TradeFactory twoItemTrade(const char* buyItemA,
+    static TradeFactory _twoItemTrade(const char* buyItemA,
         i32 buyCountA,
         const char* buyItemB,
         i32 buyCountB,
@@ -160,7 +158,7 @@ private:
      * @param xp 交易经验
      * @param priceMultiplier 价格乘数
      */
-    static TradeFactory demandTrade(i32 baseBuyCount,
+    static TradeFactory _demandTrade(i32 baseBuyCount,
         const char* buyItem,
         const char* sellItem,
         i32 sellCount,
@@ -174,7 +172,7 @@ private:
      * @param level 等级（1-5）
      * @param factory 交易工厂
      */
-    static void registerTrade(entity::VillagerProfession profession, i32 level, TradeFactory factory);
+    static void _registerTrade(entity::VillagerProfession profession, i32 level, TradeFactory factory);
 };
 
 } // namespace trade

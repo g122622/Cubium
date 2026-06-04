@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "CaveCarver.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/gen/carver/CaveCarver.hpp"
 #include <unordered_set>
 
 namespace mc {
@@ -35,7 +35,7 @@ using BlockId = u32;
 /**
  * @brief 下界洞穴雕刻器
  *
- * 参考 MC 1.16.5 NetherCaveCarver，专门用于下界维度的洞穴生成。
+ * 专门用于下界维度的洞穴生成。
  * 与主世界洞穴的主要区别：
  *
  * - 最大高度 128（下界高度限制）
@@ -52,8 +52,6 @@ using BlockId = u32;
  * ProbabilityConfig config(0.2f);
  * carver.carve(chunk, biomeProvider, 31, chunkX, chunkZ, mask, config);
  * @endcode
- *
- * @note 参考 MC 1.16.5 NetherCaveCarver
  */
 class NetherCaveCarver : public CaveCarver {
 public:
@@ -119,7 +117,7 @@ private:
      * @param state 方块状态
      * @return 是否可雕刻
      */
-    [[nodiscard]] static bool isNetherCarvable(const BlockState& state);
+    [[nodiscard]] static bool _isNetherCarvable(const BlockState& state);
 };
 
 } // namespace mc

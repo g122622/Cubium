@@ -21,11 +21,11 @@
  *
  */
 
-#include "WorldListService.hpp"
-#include "../core/SaveFormat.hpp"
-#include "../reader/bedrock/BedrockLevelDatReader.hpp"
-#include "../reader/java/JavaLevelDatReader.hpp"
-#include "WorldNameSanitizer.hpp"
+#include "common/world/storage/list/WorldListService.hpp"
+#include "common/world/storage/core/SaveFormat.hpp"
+#include "common/world/storage/list/WorldNameSanitizer.hpp"
+#include "common/world/storage/reader/bedrock/BedrockLevelDatReader.hpp"
+#include "common/world/storage/reader/java/JavaLevelDatReader.hpp"
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
@@ -42,7 +42,7 @@ WorldListService::WorldListService(WorldStoragePaths paths)
 
 Result<std::vector<WorldListEntry>> WorldListService::listWorlds()
 {
-    auto dirsResult = enumerateWorldDirectories();
+    auto dirsResult = _enumerateWorldDirectories();
     if (!dirsResult.success()) {
         return dirsResult.error();
     }
@@ -52,7 +52,7 @@ Result<std::vector<WorldListEntry>> WorldListService::listWorlds()
 
     for (const auto& levelId : dirsResult.value()) {
         std::filesystem::path worldDir = m_paths.worldDir(levelId);
-        entries.push_back(tryReadWorldSummary(levelId, worldDir));
+        entries.push_back(_tryReadWorldSummary(levelId, worldDir));
     }
 
     // 按 lastPlayedMs 降序、levelId 升序排序
@@ -70,7 +70,7 @@ Result<WorldListEntry> WorldListService::getWorldSummary(const std::string& leve
         return Error(ErrorCode::FileNotFound, "World not found: " + levelId);
     }
 
-    return tryReadWorldSummary(levelId, worldDir);
+    return _tryReadWorldSummary(levelId, worldDir);
 }
 
 bool WorldListService::worldExists(const std::string& levelId)
@@ -336,7 +336,7 @@ const WorldStoragePaths& WorldListService::paths() const noexcept
     return m_paths;
 }
 
-Result<std::vector<std::string>> WorldListService::enumerateWorldDirectories()
+Result<std::vector<std::string>> WorldListService::_enumerateWorldDirectories()
 {
     std::error_code ec;
 
@@ -368,17 +368,17 @@ Result<std::vector<std::string>> WorldListService::enumerateWorldDirectories()
     return dirs;
 }
 
-WorldListEntry WorldListService::tryReadWorldSummary(const std::string& levelId, const std::filesystem::path& worldDir)
+WorldListEntry WorldListService::_tryReadWorldSummary(const std::string& levelId, const std::filesystem::path& worldDir)
 {
     WorldListEntry entry;
     entry.levelId = levelId;
     entry.worldDir = worldDir;
 
     // 检测锁定状态
-    entry.locked = detectLock(worldDir);
+    entry.locked = _detectLock(worldDir);
 
     // 检测图标
-    entry.iconPath = detectIconPath(worldDir);
+    entry.iconPath = _detectIconPath(worldDir);
 
     Result<LevelSummaryData> summaryResult = LevelDatCodec::readSummary(worldDir);
     auto formatResult = SaveFormatDetector::detect(worldDir);
@@ -417,12 +417,12 @@ WorldListEntry WorldListService::tryReadWorldSummary(const std::string& levelId,
     return entry;
 }
 
-bool WorldListService::detectLock(const std::filesystem::path& worldDir)
+bool WorldListService::_detectLock(const std::filesystem::path& worldDir)
 {
     return WorldSessionLock::isLocked(worldDir);
 }
 
-std::filesystem::path WorldListService::detectIconPath(const std::filesystem::path& worldDir)
+std::filesystem::path WorldListService::_detectIconPath(const std::filesystem::path& worldDir)
 {
     std::error_code ec;
     std::filesystem::path iconPath = worldDir / "icon.png";

@@ -22,20 +22,17 @@
  */
 
 #include "RaidManager.hpp"
-#include "../../../entity/core/Entity.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/effect/EffectInstance.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../IWorld.hpp"
-#include "../Village.hpp"
-#include "../VillageManager.hpp"
-#include "Raid.hpp"
+#include "entity/core/Entity.hpp"
+#include "entity/core/LivingEntity.hpp"
+#include "entity/effect/EffectInstance.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "world/IWorld.hpp"
+#include "world/village/Village.hpp"
+#include "world/village/VillageManager.hpp"
+#include "world/village/raid/Raid.hpp"
 #include <algorithm>
 
-namespace mc {
-namespace world {
-namespace village {
-namespace raid {
+namespace mc::world::village::raid {
 
 // ============================================================================
 // 常量
@@ -57,7 +54,7 @@ RaidManager::RaidManager(IWorld& world, village::VillageManager& villageManager)
     , m_villageManager(villageManager)
 {}
 
-bool RaidManager::isWithinRaidRange(BlockPos pos, BlockPos center) const
+bool RaidManager::_isWithinRaidRange(BlockPos pos, BlockPos center) const
 {
     f32 distSq = static_cast<f32>((pos.x - center.x) * (pos.x - center.x) + (pos.z - center.z) * (pos.z - center.z));
     return distSq <= RAID_TRIGGER_DISTANCE * RAID_TRIGGER_DISTANCE;
@@ -67,7 +64,7 @@ Raid* RaidManager::getRaidAt(BlockPos pos)
 {
     for (auto& raid : m_raids) {
         if (raid && raid->status() == RaidStatus::Ongoing) {
-            if (isWithinRaidRange(pos, raid->center())) {
+            if (_isWithinRaidRange(pos, raid->center())) {
                 return raid.get();
             }
         }
@@ -79,7 +76,7 @@ const Raid* RaidManager::getRaidAt(BlockPos pos) const
 {
     for (const auto& raid : m_raids) {
         if (raid && raid->status() == RaidStatus::Ongoing) {
-            if (isWithinRaidRange(pos, raid->center())) {
+            if (_isWithinRaidRange(pos, raid->center())) {
                 return raid.get();
             }
         }
@@ -118,12 +115,12 @@ size_t RaidManager::getActiveRaidCount() const
 Raid* RaidManager::tryStartRaid(BlockPos pos, i32 badOmenLevel)
 {
     // 检查是否可以开始袭击
-    if (!canStartRaidAt(pos)) {
+    if (!_canStartRaidAt(pos)) {
         return nullptr;
     }
 
     // 查找附近的村庄
-    Village* village = findNearbyVillage(pos);
+    Village* village = _findNearbyVillage(pos);
     if (village == nullptr) {
         return nullptr;
     }
@@ -134,7 +131,7 @@ Raid* RaidManager::tryStartRaid(BlockPos pos, i32 badOmenLevel)
     }
 
     // 创建新袭击
-    RaidId id = generateRaidId();
+    RaidId id = _generateRaidId();
     auto raid = std::make_unique<Raid>(id, village);
     raid->setBadOmenLevel(badOmenLevel);
     raid->setCenter(pos);
@@ -260,18 +257,18 @@ void RaidManager::removeCompletedRaids()
         m_raids.end());
 }
 
-RaidId RaidManager::generateRaidId()
+RaidId RaidManager::_generateRaidId()
 {
     return m_nextRaidId++;
 }
 
-village::Village* RaidManager::findNearbyVillage(BlockPos pos) const
+village::Village* RaidManager::_findNearbyVillage(BlockPos pos) const
 {
     // 使用村庄管理器查找村庄
     return m_villageManager.getVillageAt(pos);
 }
 
-bool RaidManager::canStartRaidAt(BlockPos pos) const
+bool RaidManager::_canStartRaidAt(BlockPos pos) const
 {
     // 检查位置是否在世界边界内
     if (!m_world.isWithinWorldBounds(pos)) {
@@ -286,7 +283,4 @@ bool RaidManager::canStartRaidAt(BlockPos pos) const
     return true;
 }
 
-} // namespace raid
-} // namespace village
-} // namespace world
-} // namespace mc
+} // namespace mc::world::village::raid

@@ -41,7 +41,6 @@ class Random;
  * @brief 生物群系生成设置
  *
  * 存储生物群系特有的特征列表，按装饰阶段组织。
- * 参考 MC BiomeGenerationSettings
  */
 class BiomeGenerationSettings {
 public:
@@ -60,17 +59,17 @@ public:
      * @param stage 装饰阶段
      * @return 特征ID列表
      */
-    [[nodiscard]] const std::vector<u32>& getFeatures(DecorationStage stage) const;
+    [[nodiscard]] const std::vector<u32>& getFeatures(DecorationStage stage) const noexcept;
 
     /**
      * @brief 检查是否有任何特征
      */
-    [[nodiscard]] bool hasFeatures() const;
+    [[nodiscard]] bool hasFeatures() const noexcept;
 
     /**
      * @brief 清除所有特征
      */
-    void clear();
+    void clear() noexcept;
 
     /**
      * @brief 创建默认的生物群系生成设置
@@ -90,10 +89,22 @@ public:
      */
     static BiomeGenerationSettings createForest();
 
+    /**
+     * @brief 创建针叶林生物群系的生成设置
+     * @return 针叶林设置
+     */
     static BiomeGenerationSettings createTaiga();
 
+    /**
+     * @brief 创建丛林生物群系的生成设置
+     * @return 丛林设置
+     */
     static BiomeGenerationSettings createJungle();
 
+    /**
+     * @brief 创建稀树草原生物群系的生成设置
+     * @return 稀树草原设置
+     */
     static BiomeGenerationSettings createSavanna();
 
     /**

@@ -22,10 +22,11 @@
  */
 
 #include "DetectorRailBlock.hpp"
-#include "../../../../entity/core/Entity.hpp"
-#include "../../../../entity/core/EntityTypeIdNumber.hpp"
-#include "../../../../util/AxisAlignedBB.hpp"
-#include "../../../../world/IWorld.hpp"
+
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace blocks {
@@ -56,7 +57,7 @@ void DetectorRailBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
 {
     MC_UNUSED(random);
 
-    // MC 1.16.5: 检测矿车并更新状态
+    // 检测矿车并更新状态
     bool shouldBePowered = false;
 
     // 创建检测区域（铁轨上方一格高度）
@@ -85,7 +86,7 @@ void DetectorRailBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
         state = state.with(POWERED(), shouldBePowered);
         world.setBlockState(pos.x, pos.y, pos.z, &state, 3);
 
-        // MC 1.16.5: 通知相邻方块更新
+        // 通知相邻方块更新
         world.updateNeighbors(pos, *this);
     }
 }
@@ -107,7 +108,7 @@ i32 DetectorRailBlock::getStrongPower(const BlockState& state, IWorld& world, co
     MC_UNUSED(world);
     MC_UNUSED(pos);
 
-    // MC 1.16.5: 探测铁轨只向上输出强信号
+    // 探测铁轨只向上输出强信号
     if (isPowered(state) && side == Direction::Up) {
         return 15;
     }

@@ -22,11 +22,11 @@
  */
 
 #include "MerchantOffer.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/inventory/PlayerInventory.hpp"
-#include "../../../item/core/ItemStack.hpp"
-#include "../../../util/nbt/Nbt.hpp"
 #include "Merchant.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -187,7 +187,7 @@ bool MerchantOffer::isDisabled() const
     return isOutOfStock() && m_restocksToday >= 2; // 每天最多补货2次
 }
 
-f32 MerchantOffer::getProgress() const
+f32 MerchantOffer::getProgress() const noexcept
 {
     if (m_maxUses <= 0) return 0.0f;
     return static_cast<f32>(m_uses) / static_cast<f32>(m_maxUses);
@@ -201,7 +201,7 @@ void MerchantOffer::applyDemand(i32 demandBonus)
     m_specialPrice = static_cast<i32>(m_demand * m_priceMultiplier);
 }
 
-i32 MerchantOffer::getAdjustedBuyPrice() const
+i32 MerchantOffer::getAdjustedBuyPrice() const noexcept
 {
     i32 basePrice = m_buyA.getCount();
     i32 adjusted = basePrice + m_specialPrice;
@@ -227,7 +227,7 @@ void MerchantOffer::serialize(nbt::tags::compound_tag& tag) const
     m_sell.toNbt(sellTag);
     tag.value["sell"] = std::make_unique<nbt::tags::compound_tag>(std::move(sellTag));
 
-    // 序列化基础数值字段（MC 1.16.5 NBT 键名）
+    // 序列化基础数值字段
     tag.put("uses", static_cast<std::int32_t>(m_uses));
     tag.put("maxUses", static_cast<std::int32_t>(m_maxUses));
     tag.put("xp", static_cast<std::int32_t>(m_xp));
@@ -272,7 +272,7 @@ MerchantOffer MerchantOffer::deserialize(const nbt::tags::compound_tag& tag)
         }
     }
 
-    // 反序列化数值字段（MC 1.16.5 NBT 键名，小写）
+    // 反序列化数值字段
     auto getOptionalInt = [&tag](const std::string& key, i32 defaultValue) -> i32 {
         auto it = tag.value.find(key);
         if (it != tag.value.end()) {

@@ -32,7 +32,7 @@ namespace raid {
 // RaiderTypeHelper 实现
 // ============================================================================
 
-const char* RaiderTypeHelper::getName(RaiderType type)
+const char* RaiderTypeHelper::getName(RaiderType type) noexcept
 {
     switch (type) {
         case RaiderType::Pillager:
@@ -50,7 +50,7 @@ const char* RaiderTypeHelper::getName(RaiderType type)
     }
 }
 
-f32 RaiderTypeHelper::getBaseHealth(RaiderType type)
+f32 RaiderTypeHelper::getBaseHealth(RaiderType type) noexcept
 {
     switch (type) {
         case RaiderType::Pillager:
@@ -68,7 +68,7 @@ f32 RaiderTypeHelper::getBaseHealth(RaiderType type)
     }
 }
 
-i32 RaiderTypeHelper::getSpawnWeight(RaiderType type, i32 wave)
+i32 RaiderTypeHelper::getSpawnWeight(RaiderType type, i32 wave) noexcept
 {
     // 根据波次调整生成权重
     // 后期波次增加更强的敌人权重
@@ -93,7 +93,7 @@ i32 RaiderTypeHelper::getSpawnWeight(RaiderType type, i32 wave)
     }
 }
 
-bool RaiderTypeHelper::canRideRavager(RaiderType type)
+bool RaiderTypeHelper::canRideRavager(RaiderType type) noexcept
 {
     // 掠夺者和灾厄村民可以骑劫掠兽
     switch (type) {

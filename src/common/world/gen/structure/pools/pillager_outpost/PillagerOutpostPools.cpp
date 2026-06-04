@@ -22,9 +22,9 @@
  */
 
 #include "PillagerOutpostPools.hpp"
-#include "../ProcessorLists.hpp"
 #include "../../../jigsaw/JigsawPattern.hpp"
 #include "../../../jigsaw/JigsawPiece.hpp"
+#include "../ProcessorLists.hpp"
 #include "resource/ResourceLocation.hpp"
 
 namespace mc {
@@ -55,28 +55,22 @@ void PillagerOutpostPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     // pillager_outpost/base_plate - 基座
     // ========================================================================
-    // MC 1.16.5: 4 种基座，权重各 1
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "pillager_outpost/base_plate"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "pillager_outpost/base_plate"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/base_plate/base_plate_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/base_plate/base_plate_1",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/base_plate/base_plate_2",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/base_plate/base_plate_3",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:pillager_outpost/base_plate/base_plate_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:pillager_outpost/base_plate/base_plate_1", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:pillager_outpost/base_plate/base_plate_2", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:pillager_outpost/base_plate/base_plate_3", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -84,28 +78,22 @@ void PillagerOutpostPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     // pillager_outpost/watchtower - 观察塔 (起始池)
     // ========================================================================
-    // MC 1.16.5: 4 种观察塔，权重各 1
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "pillager_outpost/watchtower"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "pillager_outpost/watchtower"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/watchtower/watchtower_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/watchtower/watchtower_1",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/watchtower/watchtower_2",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/watchtower/watchtower_3",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:pillager_outpost/watchtower/watchtower_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:pillager_outpost/watchtower/watchtower_1", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:pillager_outpost/watchtower/watchtower_2", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:pillager_outpost/watchtower/watchtower_3", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -114,14 +102,13 @@ void PillagerOutpostPools::registerAll(JigsawPatternRegistry& registry)
     // pillager_outpost/feature_cage_with_allays - 带悦灵的笼子特征
     // ========================================================================
     {
-        auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "pillager_outpost/feature_cage_with_allays"),
-            ResourceLocation("minecraft", "empty"));
+        auto pool =
+            std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "pillager_outpost/feature_cage_with_allays"),
+                ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/feature_cage_with_allays",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:pillager_outpost/feature_cage_with_allays", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -131,13 +118,11 @@ void PillagerOutpostPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "pillager_outpost/feature_cage"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "pillager_outpost/feature_cage"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/feature_cage",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:pillager_outpost/feature_cage", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -147,21 +132,17 @@ void PillagerOutpostPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "pillager_outpost/tent"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "pillager_outpost/tent"), ResourceLocation("minecraft", "empty"));
 
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/tent_0",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:pillager_outpost/tent_0", JigsawPlacementBehaviour::Rigid),
+            1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/tent_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:pillager_outpost/tent_1", JigsawPlacementBehaviour::Rigid),
+            1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/tent_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:pillager_outpost/tent_2", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -171,17 +152,14 @@ void PillagerOutpostPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "pillager_outpost/tent_feature"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "pillager_outpost/tent_feature"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/tent_feature_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/tent_feature_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:pillager_outpost/tent_feature_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:pillager_outpost/tent_feature_1", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -191,21 +169,17 @@ void PillagerOutpostPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "pillager_outpost/logs"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "pillager_outpost/logs"), ResourceLocation("minecraft", "empty"));
 
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/logs_0",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:pillager_outpost/logs_0", JigsawPlacementBehaviour::Rigid),
+            1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/logs_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:pillager_outpost/logs_1", JigsawPlacementBehaviour::Rigid),
+            1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/logs_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:pillager_outpost/logs_2", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -215,21 +189,17 @@ void PillagerOutpostPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "pillager_outpost/targets"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "pillager_outpost/targets"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/targets_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/targets_1",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/targets_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:pillager_outpost/targets_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:pillager_outpost/targets_1", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:pillager_outpost/targets_2", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -239,8 +209,7 @@ void PillagerOutpostPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "pillager_outpost/feature_trees"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "pillager_outpost/feature_trees"), ResourceLocation("minecraft", "empty"));
 
         // 使用空元素占位，需要 FeatureJigsawPiece 支持树木生成
         pool->addPiece(EmptyJigsawPiece::instance().clone(), 1);
@@ -258,8 +227,8 @@ void PillagerOutpostPools::registerAll(JigsawPatternRegistry& registry)
 
         pool->addPiece(
             std::make_unique<SingleJigsawPiece>(
-                "minecraft:pillager_outpost/feature_cage_with_allays_pillager",
-                JigsawPlacementBehaviour::Rigid), 1);
+                "minecraft:pillager_outpost/feature_cage_with_allays_pillager", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }

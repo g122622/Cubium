@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/math/MathUtils.hpp"
 #include "WeatherConstants.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 // 使用嵌套命名空间定义，避免嵌套包含问题
 namespace mc::weather {
@@ -47,7 +47,6 @@ enum class WeatherType : u8 {
  * @brief 天气状态数据
  *
  * 存储世界的天气状态，包括计时器和强度。
- * 参考 MC 1.16.5 ServerWorld 和 WorldInfo。
  *
  * 天气周期逻辑：
  * 1. clearWeatherTime > 0 时，强制晴天

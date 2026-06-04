@@ -38,8 +38,6 @@ namespace structure {
  * 在下界生成的堡垒结构，由黑石和玄武岩构成。
  * 包含猪灵、猪灵蛮兵和炽足兽。
  * 有四种类型：桥梁、藏宝室、住宅区和马厩。
- *
- * 参考: MC 1.16.5 BastionRemnantsStructure.java
  */
 class BastionRemnantStructure : public Structure {
 public:
@@ -58,7 +56,6 @@ public:
 
 private:
     static const std::string s_name;
-    // MC 1.16.5: spacing=27, separation=4, salt=30084232
     static constexpr StructureSeparationSettings s_settings{27, 4, 30084232};
     static const std::vector<BiomeId> s_validBiomes;
 };

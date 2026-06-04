@@ -23,17 +23,15 @@
 
 #pragma once
 
-#include <memory>
 #include "../../../block/blocks/coral/CoralBlock.hpp"
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
+#include <memory>
 
 namespace mc {
 
 /**
  * @brief 珊瑚特征配置
- *
- * 参考 MC CoralFeatureConfig
  */
 struct CoralFeatureConfig : public IFeatureConfig {
     /// 珊瑚颜色
@@ -59,8 +57,6 @@ struct CoralFeatureConfig : public IFeatureConfig {
  *
  * 在水下生成珊瑚结构。
  * 有多种变体：树形、蘑菇形、爪形。
- *
- * 参考 MC CoralFeature, CoralTreeFeature, CoralMushroomFeature, CoralClawFeature
  */
 class CoralFeature {
 public:
@@ -78,22 +74,23 @@ protected:
     /**
      * @brief 检查珊瑚是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查位置是否为水
      */
-    [[nodiscard]] bool isWater(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isWater(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 放置珊瑚方块
      */
-    void placeCoralBlock(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color) const;
+    void _placeCoralBlock(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color) const;
 
     /**
      * @brief 放置珊瑚扇
      */
-    void placeCoralFan(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, Direction direction) const;
+    void _placeCoralFan(
+        WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, Direction direction) const;
 };
 
 /**
@@ -129,7 +126,7 @@ public:
     bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config);
 
 private:
-    void generateBranch(WorldGenRegion& world,
+    void _generateBranch(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& pos,
         blocks::CoralColor color,
@@ -149,7 +146,7 @@ public:
     bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config);
 
 private:
-    void generateCap(WorldGenRegion& world,
+    void _generateCap(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& pos,
         blocks::CoralColor color,
@@ -168,7 +165,7 @@ public:
     bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config);
 
 private:
-    void generateClaw(WorldGenRegion& world,
+    void _generateClaw(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& pos,
         blocks::CoralColor color,

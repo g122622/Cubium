@@ -87,9 +87,7 @@ i32 calculateUUIDHashCode(const std::array<u8, 16>& uuid)
 
 SkinType getDefaultSkinTypeForUUID(const std::array<u8, 16>& uuid)
 {
-    // MC 1.16.5 DefaultPlayerSkin.isSlimSkin(UUID):
-    // return (playerUUID.hashCode() & 1) == 1;
-
+    // 基于 UUID 哈希值的最低位确定皮肤类型
     i32 hashCode = calculateUUIDHashCode(uuid);
     return (hashCode & 1) == 1 ? SkinType::Slim : SkinType::Default;
 }

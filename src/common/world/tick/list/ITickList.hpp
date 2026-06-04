@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../block/BlockPos.hpp"
-#include "../base/TickPriority.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
 
 namespace mc::world::tick {
 
@@ -33,8 +33,6 @@ namespace mc::world::tick {
  *
  * 定义tick调度的通用接口，支持方块tick、流体tick等。
  * 实现可以是ServerTickList（服务端）或EmptyTickList（客户端/空实现）。
- *
- * 参考: net.minecraft.world.ITickList
  *
  * 用法示例:
  * @code

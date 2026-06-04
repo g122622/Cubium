@@ -22,14 +22,24 @@
  */
 
 #include "ScoreCriteriaRenderType.hpp"
-#include "../../util/text/TextStyle.hpp"
 #include <unordered_map>
 
 namespace mc::scoreboard {
 
 namespace {
 
-// 颜色名称到索引的映射
+// ============================================================================
+// 常量定义
+// ============================================================================
+
+/// 队伍颜色数量（16种颜色）
+constexpr size_t TEAM_COLOR_COUNT = 16;
+
+// ============================================================================
+// 查找表
+// ============================================================================
+
+/// 颜色名称到 DisplaySlot 的映射表
 const std::unordered_map<std::string, DisplaySlot> s_colorSlotMap = {{"black", DisplaySlot::SidebarTeamBlack},
     {"dark_blue", DisplaySlot::SidebarTeamDarkBlue},
     {"dark_green", DisplaySlot::SidebarTeamDarkGreen},
@@ -47,8 +57,8 @@ const std::unordered_map<std::string, DisplaySlot> s_colorSlotMap = {{"black", D
     {"yellow", DisplaySlot::SidebarTeamYellow},
     {"white", DisplaySlot::SidebarTeamWhite}};
 
-// 颜色索引到名称的映射
-const char* s_slotColorNames[16] = {"black",
+/// 颜色索引到名称的数组
+const char* s_slotColorNames[TEAM_COLOR_COUNT] = {"black",
     "dark_blue",
     "dark_green",
     "dark_aqua",
@@ -67,6 +77,10 @@ const char* s_slotColorNames[16] = {"black",
 
 } // namespace
 
+// ============================================================================
+// 公共函数实现
+// ============================================================================
+
 std::string displaySlotToString(DisplaySlot slot)
 {
     switch (slot) {
@@ -79,7 +93,7 @@ std::string displaySlotToString(DisplaySlot slot)
         default: {
             // 队伍侧边栏
             const size_t index = static_cast<size_t>(slot) - static_cast<size_t>(DisplaySlot::SidebarTeamBlack);
-            if (index < 16) {
+            if (index < TEAM_COLOR_COUNT) {
                 return std::string("sidebar.team.") + s_slotColorNames[index];
             }
             return "list";

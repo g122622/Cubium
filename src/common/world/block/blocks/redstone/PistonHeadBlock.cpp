@@ -22,7 +22,7 @@
  */
 
 #include "PistonHeadBlock.hpp"
-#include "../../../IWorld.hpp"
+#include "common/world/IWorld.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -61,7 +61,7 @@ const EnumProperty<PistonHeadBlock::Type>& TYPE_PROP()
 }
 
 // 静态方法实现 - 返回类型属性
-const EnumProperty<PistonHeadBlock::Type>& PistonHeadBlock::getTypeProperty()
+const EnumProperty<PistonHeadBlock::Type>& PistonHeadBlock::getTypeProperty() noexcept
 {
     return TYPE_PROP();
 }
@@ -89,17 +89,17 @@ PistonHeadBlock::PistonHeadBlock(const BlockProperties& properties)
         defaultState().with(BlockStateProperties::FACING(), Direction::North).with(TYPE_PROP(), Type::Normal));
 }
 
-Direction PistonHeadBlock::getFacing(const BlockState& state)
+Direction PistonHeadBlock::getFacing(const BlockState& state) noexcept
 {
     return state.get(BlockStateProperties::FACING());
 }
 
-PistonHeadBlock::Type PistonHeadBlock::getType(const BlockState& state)
+PistonHeadBlock::Type PistonHeadBlock::getType(const BlockState& state) noexcept
 {
     return state.get(TYPE_PROP());
 }
 
-BlockState PistonHeadBlock::withType(BlockState state, Type type)
+BlockState PistonHeadBlock::withType(BlockState state, Type type) noexcept
 {
     return state.with(TYPE_PROP(), type);
 }
@@ -120,8 +120,8 @@ BlockState PistonHeadBlock::updatePostPlacement(const BlockState& state,
 
     const BlockState* pistonState = world.getBlockState(pistonPos);
     if (!pistonState || pistonState->isAir()) {
-        // 活塞主体不存在，活塞头应该消失
-        // 返回空气状态（通过设置 null）
+        // TODO: 活塞主体不存在时，活塞头应该消失（返回空气状态）
+        // 当前实现返回原状态，需要实现正确的方块移除逻辑
         return state;
     }
 

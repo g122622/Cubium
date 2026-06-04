@@ -23,16 +23,14 @@
 
 #pragma once
 
-#include <memory>
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
+#include <memory>
 
 namespace mc {
 
 /**
  * @brief 仙人掌特征配置
- *
- * 参考 MC BlockStateFeatureConfig
  */
 struct CactusFeatureConfig : public IFeatureConfig {
     /// 仙人掌方块状态
@@ -43,7 +41,7 @@ struct CactusFeatureConfig : public IFeatureConfig {
 
     CactusFeatureConfig() = default;
 
-    explicit CactusFeatureConfig(const BlockState* cactusState, i32 maxH = 3)
+    explicit CactusFeatureConfig(const BlockState* cactusState, i32 maxH = 3) noexcept
         : state(cactusState)
         , maxHeight(maxH)
     {}
@@ -53,7 +51,6 @@ struct CactusFeatureConfig : public IFeatureConfig {
  * @brief 仙人掌特征
  *
  * 在沙漠中生成仙人掌。
- * 参考 MC CactusFeature
  */
 class CactusFeature {
 public:
@@ -71,18 +68,18 @@ private:
     /**
      * @brief 检查仙人掌是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查指定位置是否适合仙人掌生长
      * 仙人掌需要周围没有实体方块
      */
-    [[nodiscard]] bool hasValidSpace(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _hasValidSpace(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查下方方块是否支持仙人掌生长
      */
-    [[nodiscard]] bool isValidGround(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isValidGround(WorldGenRegion& world, const BlockPos& pos) const;
 };
 
 /**

@@ -42,12 +42,12 @@ Result<std::vector<u8>> SpawnPositionPacket::serialize() const
 {
     PacketSerializer ser;
 
-    // 写入出生点坐标 (MC 1.16.5 协议格式)
+    // 写入出生点坐标
     ser.writeI32(m_position.x);
     ser.writeI32(m_position.y);
     ser.writeI32(m_position.z);
 
-    // 写入出生点偏航角 (MC 1.16.5 协议格式)
+    // 写入出生点偏航角
     ser.writeF32(m_angle);
 
     return ser.buffer();
@@ -76,7 +76,7 @@ Result<void> SpawnPositionPacket::deserialize(const u8* data, size_t size)
     // 读取出生点偏航角
     auto angleResult = deser.readF32();
     if (angleResult.failed()) {
-        // MC 1.16.5 协议要求 angle 字段，但为了向后兼容，允许缺失
+        // 协议要求 angle 字段，但为了向后兼容，允许缺失
         m_angle = 0.0f;
     } else {
         m_angle = angleResult.value();

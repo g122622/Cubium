@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../util/property/Properties.hpp"
-#include "../agricultural/BushBlock.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
 
 namespace mc {
 

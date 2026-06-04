@@ -22,10 +22,10 @@
  */
 
 #include "CakeBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../block/VanillaBlocks.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -53,7 +53,7 @@ CakeBlock::CakeBlock(const BlockProperties& properties)
     setDefaultState(defaultState().with(BlockStateProperties::BITES_0_6(), 0));
 
     // 预计算各片数的形状
-    // 参考 MC 1.16.5: 蛋糕从左侧开始吃，每吃一片减少2像素宽度
+    // 蛋糕从左侧开始吃，每吃一片减少2像素宽度
     // SHAPES[0] = (1,0,1)->(15,8,15) 完整蛋糕
     // SHAPES[1] = (3,0,1)->(15,8,15) 吃了1片
     // SHAPES[2] = (5,0,1)->(15,8,15) 吃了2片
@@ -62,10 +62,10 @@ CakeBlock::CakeBlock(const BlockProperties& properties)
     constexpr f32 P = 1.0f / 16.0f;
     constexpr i32 startX[] = {1, 3, 5, 7, 9, 11, 13};
 
-    for (int i = 0; i < 7; ++i) {
+    for (i32 i = 0; i < 7; ++i) {
         // 从左侧开始吃，每片增加2像素起始X位置
-        m_shapesByBites[i] = CollisionShape::box(
-            static_cast<f32>(startX[i]) * P, 0.0f, 1.0f * P, 15.0f * P, 8.0f * P, 15.0f * P);
+        m_shapesByBites[i] =
+            CollisionShape::box(static_cast<f32>(startX[i]) * P, 0.0f, 1.0f * P, 15.0f * P, 8.0f * P, 15.0f * P);
     }
 }
 
@@ -116,12 +116,12 @@ BlockState CakeBlock::updatePostPlacement(const BlockState& state,
 
 const CollisionShape& CakeBlock::getShape(const BlockState& state) const
 {
-    int bites = getBites(state);
+    i32 bites = getBites(state);
     MC_ASSERT(bites >= 0 && bites <= 6);
     return m_shapesByBites[bites];
 }
 
-int CakeBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+i32 CakeBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
 
     MC_UNUSED(world);
@@ -133,7 +133,7 @@ int CakeBlock::getComparatorInputOverride(const BlockState& state, IWorld& world
 
 bool CakeBlock::eatSlice(IWorld& world, const BlockPos& pos, BlockState& state)
 {
-    int bites = getBites(state);
+    i32 bites = getBites(state);
 
     if (bites < 6) {
         // 还有剩余片数，增加已吃片数
@@ -142,7 +142,6 @@ bool CakeBlock::eatSlice(IWorld& world, const BlockPos& pos, BlockState& state)
         return true;
     } else {
         // 最后一片，移除方块
-        // 参考 MC 1.16.5: CakeBlock.eatSlice
         world.setBlockState(pos, &VanillaBlocks::AIR->defaultState(), 3);
         return true;
     }

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../core/Types.hpp"
-#include "PackType.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
 #include <string>
 
 namespace mc {
@@ -66,12 +66,12 @@ public:
     [[nodiscard]] std::string toFilePath(resource::PackType type, std::string_view extension) const;
 
     // 比较
-    [[nodiscard]] bool operator==(const ResourceLocation& other) const;
-    [[nodiscard]] bool operator!=(const ResourceLocation& other) const;
-    [[nodiscard]] bool operator<(const ResourceLocation& other) const;
+    [[nodiscard]] bool operator==(const ResourceLocation& other) const noexcept;
+    [[nodiscard]] bool operator!=(const ResourceLocation& other) const noexcept;
+    [[nodiscard]] bool operator<(const ResourceLocation& other) const noexcept;
 
     // 哈希
-    [[nodiscard]] size_t hash() const;
+    [[nodiscard]] size_t hash() const noexcept;
 
 private:
     std::string m_namespace;

@@ -57,7 +57,6 @@ namespace {
 CocoaBlock::CocoaBlock(const BlockProperties& properties)
     : HorizontalBlock(properties)
 {
-
     // 创建状态容器，添加 AGE 属性
     auto container = StateContainer<Block, BlockState>::Builder(*this).add(FACING()).add(AGE()).create(
         [](const Block& block,
@@ -71,7 +70,7 @@ CocoaBlock::CocoaBlock(const BlockProperties& properties)
     setDefaultState(defaultState().with(FACING(), Direction::North).with(AGE(), 0));
 
     // 初始化形状
-    initShapes();
+    _initShapes();
 }
 
 int CocoaBlock::getAge(const BlockState& state) const
@@ -110,9 +109,8 @@ BlockState CocoaBlock::getStateForPlacement(BlockItemUseContext& context)
 
 bool CocoaBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-
     Direction facing = state.get(FACING());
-    return canAttachTo(world, pos, facing);
+    return _canAttachTo(world, pos, facing);
 }
 
 BlockState CocoaBlock::updatePostPlacement(const BlockState& state,
@@ -122,7 +120,6 @@ BlockState CocoaBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
 
@@ -131,7 +128,7 @@ BlockState CocoaBlock::updatePostPlacement(const BlockState& state,
     if (facing == attachDir) {
         // IWorld 继承自 IBlockReader，可以安全转换
         IBlockReader& blockReader = static_cast<IBlockReader&>(world);
-        if (!canAttachTo(blockReader, currentPos, attachDir)) {
+        if (!_canAttachTo(blockReader, currentPos, attachDir)) {
             // 附着方块被移除，变成空气
             if (auto* airState = BlockRegistry::instance().airState()) {
                 return *airState;
@@ -150,8 +147,7 @@ void CocoaBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& stat
         return;
     }
 
-    // 检查光照：MC 1.16.5 使用 getLightSubtracted(pos, 0) >= 9
-    // 这等于 max(blockLight, skyLight) >= 9
+    // 检查光照：需要上方光照等级 >= 9
     const BlockPos abovePos = pos.up();
     const i32 blockLight = static_cast<i32>(world.getBlockLight(abovePos));
     const i32 skyLight = static_cast<i32>(world.getSkyLight(abovePos));
@@ -160,7 +156,6 @@ void CocoaBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& stat
     }
 
     // 1/5 概率生长
-    // 参考: net.minecraft.block.CocoaBlock#randomTick
     if (random.nextInt(5) == 0) {
         const BlockState& newState = withAge(state, age + 1);
         world.setBlockState(pos, &newState, 2);
@@ -169,7 +164,6 @@ void CocoaBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& stat
 
 bool CocoaBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
 {
-
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(isClientSide);
@@ -181,7 +175,6 @@ bool CocoaBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockSt
 bool CocoaBlock::canUseBonemeal(
     IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const
 {
-
     MC_UNUSED(world);
     MC_UNUSED(random);
     MC_UNUSED(pos);
@@ -192,7 +185,6 @@ bool CocoaBlock::canUseBonemeal(
 
 void CocoaBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state)
 {
-
     MC_UNUSED(random);
 
     // 骨粉使可可豆增加一个生长阶段
@@ -214,7 +206,6 @@ const CollisionShape& CocoaBlock::getShape(const BlockState& state) const
 
 bool CocoaBlock::allowsMovement(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -223,9 +214,8 @@ bool CocoaBlock::allowsMovement(const BlockState& state, IBlockReader& world, co
     return true;
 }
 
-void CocoaBlock::initShapes()
+void CocoaBlock::_initShapes()
 {
-    // 参考 MC 1.16.5 CocoaBlock 的形状定义
     // 形状基于像素坐标 (0-16)
 
     // 朝东 - 从丛林原木向东延伸
@@ -273,7 +263,7 @@ void CocoaBlock::initShapes()
         CollisionShape::box(4.0f / 16.0f, 3.0f / 16.0f, 7.0f / 16.0f, 12.0f / 16.0f, 12.0f / 16.0f, 15.0f / 16.0f);
 }
 
-bool CocoaBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direction facing) const
+bool CocoaBlock::_canAttachTo(IBlockReader& world, const BlockPos& pos, Direction facing) const
 {
     // 检查 FACING 方向的方块是否为丛林原木
     BlockPos attachPos = pos.offset(facing);

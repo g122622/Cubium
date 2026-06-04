@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
 #pragma once
 
 #include "common/core/Types.hpp"
@@ -22,45 +45,45 @@ struct ScriptVec3 {
     f64 y = 0.0;
     f64 z = 0.0;
 
-    ScriptVec3() = default;
-    ScriptVec3(f64 x_, f64 y_, f64 z_)
+    ScriptVec3() noexcept = default;
+    ScriptVec3(f64 x_, f64 y_, f64 z_) noexcept
         : x(x_)
         , y(y_)
         , z(z_)
     {}
 
     /// 从游戏Vector3f转换
-    explicit ScriptVec3(const math::Vector3f& v)
+    explicit ScriptVec3(const math::Vector3f& v) noexcept
         : x(static_cast<f64>(v.x))
         , y(static_cast<f64>(v.y))
         , z(static_cast<f64>(v.z))
     {}
 
     /// 从游戏Vector3d转换
-    explicit ScriptVec3(const math::Vector3d& v)
+    explicit ScriptVec3(const math::Vector3d& v) noexcept
         : x(v.x)
         , y(v.y)
         , z(v.z)
     {}
 
     /// 从BlockPos转换（整数值）
-    explicit ScriptVec3(const BlockPos& p)
+    explicit ScriptVec3(const BlockPos& p) noexcept
         : x(static_cast<f64>(p.x))
         , y(static_cast<f64>(p.y))
         , z(static_cast<f64>(p.z))
     {}
 
     /// 转换为Vector3f
-    [[nodiscard]] math::Vector3f toVec3f() const
+    [[nodiscard]] math::Vector3f toVec3f() const noexcept
     {
         return {static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)};
     }
 
     /// 转换为Vector3d
-    [[nodiscard]] math::Vector3d toVec3d() const { return {x, y, z}; }
+    [[nodiscard]] math::Vector3d toVec3d() const noexcept { return {x, y, z}; }
 
     /// 转换为BlockPos
-    [[nodiscard]] BlockPos toBlockPos() const
+    [[nodiscard]] BlockPos toBlockPos() const noexcept
     {
         return {static_cast<BlockCoord>(x), static_cast<BlockCoord>(y), static_cast<BlockCoord>(z)};
     }

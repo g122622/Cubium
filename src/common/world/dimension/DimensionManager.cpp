@@ -22,7 +22,7 @@
  */
 
 #include "DimensionManager.hpp"
-#include "../../util/assert/AssertAll.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc {
 

@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../../util/assert/AssertAll.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../../blockentity/BlockEntityType.hpp"
-#include "../Block.hpp"
-#include "../BlockPos.hpp"
-#include "../Material.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include <memory>
 
 namespace mc {

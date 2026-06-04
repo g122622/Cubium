@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../core/Constants.hpp"
-#include "../core/Types.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::world {
 
@@ -95,45 +95,74 @@ constexpr i32 ENTITY_DESPAWN_RANGE = 128;
 // 辅助函数
 // ============================================================================
 
-// 检查Y坐标是否在有效范围内
-inline bool isValidY(i32 y)
+/**
+ * @brief 检查Y坐标是否在有效范围内
+ * @param y Y坐标
+ * @return 如果y在 [MIN_BUILD_HEIGHT, MAX_BUILD_HEIGHT) 范围内返回true
+ */
+inline bool isValidY(i32 y) noexcept
 {
     return y >= MIN_BUILD_HEIGHT && y < MAX_BUILD_HEIGHT;
 }
 
-// 将世界坐标转换为区块坐标
-inline i32 toChunkCoord(i32 worldCoord)
+/**
+ * @brief 将世界坐标转换为区块坐标
+ * @param worldCoord 世界坐标
+ * @return 区块坐标
+ */
+inline i32 toChunkCoord(i32 worldCoord) noexcept
 {
     return worldCoord >= 0 ? worldCoord / CHUNK_WIDTH : (worldCoord + 1) / CHUNK_WIDTH - 1;
 }
 
-// 将世界坐标转换为区块内本地坐标
-inline i32 toLocalCoord(i32 worldCoord)
+/**
+ * @brief 将世界坐标转换为区块内本地坐标
+ * @param worldCoord 世界坐标
+ * @return 区块内本地坐标 [0, CHUNK_WIDTH)
+ */
+inline i32 toLocalCoord(i32 worldCoord) noexcept
 {
     i32 local = worldCoord % CHUNK_WIDTH;
     return local >= 0 ? local : local + CHUNK_WIDTH;
 }
 
-// 将区块坐标转换为世界坐标
-inline i32 toWorldCoord(i32 chunkCoord)
+/**
+ * @brief 将区块坐标转换为世界坐标（区块左上角）
+ * @param chunkCoord 区块坐标
+ * @return 世界坐标
+ */
+inline i32 toWorldCoord(i32 chunkCoord) noexcept
 {
     return chunkCoord * CHUNK_WIDTH;
 }
 
-// 将Y坐标转换为区块段索引
-inline i32 toSectionIndex(i32 y)
+/**
+ * @brief 将Y坐标转换为区块段索引
+ * @param y Y坐标
+ * @return 区块段索引
+ */
+inline i32 toSectionIndex(i32 y) noexcept
 {
     return (y - MIN_BUILD_HEIGHT) / CHUNK_SECTION_HEIGHT;
 }
 
-// 将区块段索引转换为Y坐标
-inline i32 sectionToY(i32 sectionIndex)
+/**
+ * @brief 将区块段索引转换为Y坐标
+ * @param sectionIndex 区块段索引
+ * @return 区块段的最低Y坐标
+ */
+inline i32 sectionToY(i32 sectionIndex) noexcept
 {
     return MIN_BUILD_HEIGHT + sectionIndex * CHUNK_SECTION_HEIGHT;
 }
 
-// 检查区块坐标是否有效
-inline bool isValidChunkCoord(i32 chunkX, i32 chunkZ)
+/**
+ * @brief 检查区块坐标是否有效
+ * @param chunkX 区块X坐标
+ * @param chunkZ 区块Z坐标
+ * @return 如果区块坐标在世界边界内返回true
+ */
+inline bool isValidChunkCoord(i32 chunkX, i32 chunkZ) noexcept
 {
     constexpr i32 WORLD_BORDER = 30000000;
     constexpr i32 MIN_CHUNK = -WORLD_BORDER / CHUNK_WIDTH;

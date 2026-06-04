@@ -26,7 +26,6 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../tick/manager/TickManager.hpp"
-#include <unordered_map>
 
 namespace mc {
 namespace blocks {
@@ -61,17 +60,17 @@ AbstractButtonBlock::AbstractButtonBlock(const BlockProperties& properties, i32 
             .with(BlockStateProperties::ATTACH_FACE(), AttachFace::Wall));
 }
 
-bool AbstractButtonBlock::isPowered(const BlockState& state)
+bool AbstractButtonBlock::isPowered(const BlockState& state) noexcept
 {
     return state.get(BlockStateProperties::POWERED());
 }
 
-BlockState AbstractButtonBlock::withPowered(BlockState state, bool powered)
+BlockState AbstractButtonBlock::withPowered(BlockState state, bool powered) noexcept
 {
     return state.with(BlockStateProperties::POWERED(), powered);
 }
 
-Direction AbstractButtonBlock::getFacing(const BlockState& state)
+Direction AbstractButtonBlock::getFacing(const BlockState& state) noexcept
 {
     return state.get(BlockStateProperties::HORIZONTAL_FACING());
 }
@@ -182,7 +181,6 @@ i32 AbstractButtonBlock::getWeakPower(const BlockState& state, IWorld& world, co
     MC_UNUSED(pos);
     MC_UNUSED(side);
 
-    // MC Java: return blockState.get(POWERED) ? 15 : 0;
     // 按钮按下时向所有方向输出弱信号
     return isPowered(state) ? world::redstone::RedstonePower::MAX_POWER : 0;
 }
@@ -193,7 +191,6 @@ i32 AbstractButtonBlock::getStrongPower(
     MC_UNUSED(world);
     MC_UNUSED(pos);
 
-    // MC Java: return blockState.get(POWERED) && getFacing(blockState) == side ? 15 : 0;
     // 只在附着面方向输出强信号
     if (!isPowered(state)) {
         return 0;
@@ -308,7 +305,7 @@ void AbstractButtonBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, Di
 
     AttachFace attachFace = state->get(BlockStateProperties::ATTACH_FACE());
 
-    // MC Java: 计算输出方向和支撑位置
+    // 计算输出方向和支撑位置
     Direction outputDir = Direction::North; // 默认值
     BlockPos supportPos = pos;
 

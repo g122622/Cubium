@@ -44,6 +44,14 @@ public:
         , m_treeJson(std::move(treeJson))
     {}
 
+    // 移动操作
+    CommandTreePacket(CommandTreePacket&&) noexcept = default;
+    CommandTreePacket& operator=(CommandTreePacket&&) noexcept = default;
+
+    // 禁止拷贝（数据包通常不需要拷贝）
+    CommandTreePacket(const CommandTreePacket&) = delete;
+    CommandTreePacket& operator=(const CommandTreePacket&) = delete;
+
     /**
      * @brief 获取命令树 JSON 包体
      */
@@ -52,7 +60,7 @@ public:
     /**
      * @brief 设置命令树 JSON 包体
      */
-    void setTreeJson(std::string treeJson) { m_treeJson = std::move(treeJson); }
+    void setTreeJson(std::string treeJson) noexcept { m_treeJson = std::move(treeJson); }
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;

@@ -39,6 +39,14 @@ public:
     explicit FolderResourcePack(std::string rootPath);
     ~FolderResourcePack() override = default;
 
+    // 移动构造和赋值
+    FolderResourcePack(FolderResourcePack&& other) noexcept = default;
+    FolderResourcePack& operator=(FolderResourcePack&& other) noexcept = default;
+
+    // 禁止拷贝（由于资源包持有文件系统资源）
+    FolderResourcePack(const FolderResourcePack&) = delete;
+    FolderResourcePack& operator=(const FolderResourcePack&) = delete;
+
     // IResourcePack接口实现
     [[nodiscard]] Result<void> initialize() override;
     [[nodiscard]] const PackMetadata& metadata() const override { return m_metadata; }
@@ -58,8 +66,8 @@ private:
     std::string m_name;
     PackMetadata m_metadata;
 
-    // 规范化路径
-    [[nodiscard]] std::string normalizePath(std::string_view resourcePath) const;
+    // 规范化路径（将反斜杠转为正斜杠，移除前导斜杠）
+    [[nodiscard]] std::string _normalize_path(std::string_view resourcePath) const;
 };
 
 } // namespace mc

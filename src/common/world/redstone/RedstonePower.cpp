@@ -135,7 +135,6 @@ bool RedstonePower::isSidePowered(IWorld& world, const BlockPos& pos, Direction 
 
     const Block& neighborBlock = neighborState->getBlock();
 
-    // MC Java: 特殊处理红石线
     // 如果相邻方块是红石线，直接获取其信号强度
     if (neighborState->is(VanillaBlocks::REDSTONE_WIRE)) {
         return blocks::RedstoneWireBlock::getPower(*neighborState) > 0;
@@ -297,7 +296,7 @@ i32 RedstonePower::getRedstonePowerFromNeighbors(IWorld& world, const BlockPos& 
 
 // ========== 私有方法 ==========
 
-bool RedstonePower::canConnectRedstone(const BlockState& state)
+bool RedstonePower::_canConnectRedstone(const BlockState& state)
 {
     // 检查方块是否可以连接红石
     // 可以输出红石信号或可以被红石充能的方块

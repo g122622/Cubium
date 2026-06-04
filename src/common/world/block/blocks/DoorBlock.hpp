@@ -208,13 +208,13 @@ public:
      * @param state 方块状态
      * @return 如果打开返回true
      */
-    [[nodiscard]] static bool isOpen(const BlockState& state);
+    [[nodiscard]] static bool isOpen(const BlockState& state) noexcept;
 
     /**
      * @brief 检查是否为铁门
      * @return 如果是铁门返回true
      */
-    [[nodiscard]] bool isIronDoor() const { return m_isIron; }
+    [[nodiscard]] bool isIronDoor() const noexcept { return m_isIron; }
 
     /**
      * @brief 检查是否为木门
@@ -223,7 +223,7 @@ public:
      * @param pos 方块位置
      * @return 如果是木门返回true
      */
-    [[nodiscard]] static bool isWooden(const BlockState& state);
+    [[nodiscard]] static bool isWooden(const BlockState& state) noexcept;
 
 private:
     /**
@@ -231,7 +231,7 @@ private:
      * @param context 放置上下文
      * @return 铰链位置
      */
-    [[nodiscard]] BlockStateProperties::DoorHinge calculateHingeSide(BlockItemUseContext& context);
+    [[nodiscard]] BlockStateProperties::DoorHinge _calculateHingeSide(BlockItemUseContext& context);
 
     /**
      * @brief 播放开关门音效
@@ -239,19 +239,19 @@ private:
      * @param pos 方块位置
      * @param isOpening 是否正在打开
      */
-    void playSound(IWorld& world, const BlockPos& pos, bool isOpening);
+    void _playSound(IWorld& world, const BlockPos& pos, bool isOpening);
 
     /**
      * @brief 获取开门音效ID
      * @return 音效ID
      */
-    [[nodiscard]] i32 getOpenSound() const;
+    [[nodiscard]] i32 _getOpenSound() const;
 
     /**
      * @brief 获取关门音效ID
      * @return 音效ID
      */
-    [[nodiscard]] i32 getCloseSound() const;
+    [[nodiscard]] i32 _getCloseSound() const;
 
     /**
      * @brief 根据状态获取形状
@@ -260,7 +260,7 @@ private:
      * @param hingeRight 铰链是否在右边
      * @return 形状索引
      */
-    [[nodiscard]] static size_t getShapeIndex(Direction facing, bool open, bool hingeRight);
+    [[nodiscard]] static size_t _getShapeIndex(Direction facing, bool open, bool hingeRight) noexcept;
 
     /// 是否为铁门
     bool m_isIron;

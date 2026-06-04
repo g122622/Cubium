@@ -75,7 +75,7 @@ BellBlock::BellBlock(const BlockProperties& properties)
     m_wallShape = CollisionShape::box(4.0f * P, 4.0f * P, 0.0f, 12.0f * P, 12.0f * P, 16.0f * P);
 
     // 初始化形状缓存
-    for (int i = 0; i < 16; ++i) {
+    for (i32 i = 0; i < 16; ++i) {
         m_shapesByState[i] = m_floorShape;
     }
 }
@@ -139,7 +139,6 @@ BlockState BellBlock::updatePostPlacement(const BlockState& state,
     }
 
     if (!valid) {
-        // 参考 MC 1.16.5: BellBlock.updatePostPlacement
         // 支撑失效时，掉落钟物品并移除方块
         // 生成物品掉落
         const Block* block = &state.getBlock();

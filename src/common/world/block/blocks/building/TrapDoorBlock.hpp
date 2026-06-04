@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../IWaterLoggable.hpp"
-#include "../../Material.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/IWaterLoggable.hpp"
+#include "common/world/block/Material.hpp"
 #include <array>
 
 namespace mc {
@@ -51,8 +51,6 @@ namespace blocks {
  * - HALF: 上半/下半 (TOP, BOTTOM) - 对应MC的Half枚举
  * - POWERED: 是否被充能
  * - WATERLOGGED: 是否含水
- *
- * 参考: net.minecraft.block.TrapDoorBlock
  */
 class TrapDoorBlock : public Block, public IWaterLoggable {
 public:
@@ -177,8 +175,7 @@ public:
     /**
      * @brief 检查方块是否可攀爬
      *
-     * MC 1.16.5: 打开的活板门可以攀爬。
-     * 参考: net.minecraft.block.TrapDoorBlock.isLadder()
+     * 打开的活板门可以攀爬。
      *
      * @param state 方块状态
      * @param world 世界引用
@@ -198,7 +195,7 @@ private:
      * @param pos 方块位置
      * @param isOpening 是否正在打开
      */
-    static void playSound(IWorld& world, const BlockPos& pos, bool isOpening);
+    static void _playSound(IWorld& world, const BlockPos& pos, bool isOpening);
 
     /**
      * @brief 获取形状索引
@@ -207,7 +204,7 @@ private:
      * @param half 上半/下半
      * @return 形状索引
      */
-    [[nodiscard]] static size_t getShapeIndex(Direction facing, bool open, BlockStateProperties::Half half);
+    [[nodiscard]] static size_t _getShapeIndex(Direction facing, bool open, BlockStateProperties::Half half);
 
     /// 是否为铁活板门
     bool m_isIron;

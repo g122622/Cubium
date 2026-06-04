@@ -22,6 +22,7 @@
  */
 
 #include "Dimension.hpp"
+#include "../../core/Constants.hpp"
 #include "../biome/layer/LayerUtil.hpp"
 #include "../biome/provider/end/EndBiomeProvider.hpp"
 #include "../biome/provider/nether/NetherBiomeProvider.hpp"
@@ -70,8 +71,8 @@ std::unique_ptr<Dimension> Dimension::createOverworld(u64 seed)
         std::move(dimType),
         std::move(generator));
 
-    // 主世界默认出生点
-    dimension->m_spawnPoint = Vector3d(0.0, 64.0, 0.0);
+    // 主世界默认出生点（海平面高度+1）
+    dimension->m_spawnPoint = Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
 
     return dimension;
 }
@@ -84,12 +85,10 @@ std::unique_ptr<Dimension> Dimension::createNether(u64 seed)
     auto settings = DimensionSettings::nether();
     auto generator = std::make_unique<NetherChunkGenerator>(seed, std::move(settings));
 
-    auto dimension = std::make_unique<Dimension>(DimensionManager::NETHER, // -1 (MC 1.16.5 标准)
-        std::move(dimType),
-        std::move(generator));
+    auto dimension = std::make_unique<Dimension>(DimensionManager::NETHER, std::move(dimType), std::move(generator));
 
-    // 下界默认出生点
-    dimension->m_spawnPoint = Vector3d(0.0, 64.0, 0.0);
+    // 下界默认出生点（海平面高度+1）
+    dimension->m_spawnPoint = Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
 
     return dimension;
 }
@@ -102,11 +101,9 @@ std::unique_ptr<Dimension> Dimension::createTheEnd(u64 seed)
     auto settings = DimensionSettings::end();
     auto generator = std::make_unique<EndChunkGenerator>(seed, std::move(settings));
 
-    auto dimension = std::make_unique<Dimension>(DimensionManager::THE_END, // 1 (MC 1.16.5 标准)
-        std::move(dimType),
-        std::move(generator));
+    auto dimension = std::make_unique<Dimension>(DimensionManager::THE_END, std::move(dimType), std::move(generator));
 
-    // 末地默认出生点（末地传送门平台位置）
+    // 末地默认出生点（末地传送门平台固定位置：x=100, y=49, z=0）
     dimension->m_spawnPoint = Vector3d(100.0, 49.0, 0.0);
 
     return dimension;

@@ -31,8 +31,6 @@ namespace mc::network {
 
 /**
  * @brief 世界边界包动作类型
- *
- * 参考 MC 1.16.5 SWorldBorderPacket.Action
  */
 enum class WorldBorderAction : u8 {
     SetSize = 0,            // 设置大小（立即）
@@ -41,8 +39,8 @@ enum class WorldBorderAction : u8 {
     Initialize = 3,         // 完整初始化
     SetWarningTime = 4,     // 设置警告时间
     SetWarningDistance = 5, // 设置警告距离
-    SetDamageBuffer = 6,    // 设置伤害缓冲（MC 1.16.5 没有这个动作，但我们添加）
-    SetDamagePerBlock = 7   // 设置每格伤害（MC 1.16.5 没有这个动作，但我们添加）
+    SetDamageBuffer = 6,    // 设置伤害缓冲
+    SetDamagePerBlock = 7   // 设置每格伤害
 };
 
 /**
@@ -54,13 +52,19 @@ enum class WorldBorderAction : u8 {
  * - 设置伤害参数
  * - 设置警告参数
  * - 完整初始化
- *
- * 参考 MC 1.16.5 SWorldBorderPacket
  */
 class WorldBorderPacket : public Packet {
 public:
     WorldBorderPacket();
     ~WorldBorderPacket() override = default;
+
+    // 移动语义
+    WorldBorderPacket(WorldBorderPacket&& other) noexcept = default;
+    WorldBorderPacket& operator=(WorldBorderPacket&& other) noexcept = default;
+
+    // 禁止拷贝（Packet基类通常不可拷贝）
+    WorldBorderPacket(const WorldBorderPacket&) = delete;
+    WorldBorderPacket& operator=(const WorldBorderPacket&) = delete;
 
     // ========================================================================
     // 静态工厂方法
@@ -70,7 +74,7 @@ public:
      * @brief 创建设置大小包
      * @param size 新的边界大小
      */
-    static WorldBorderPacket setSize(double size);
+    static WorldBorderPacket setSize(f64 size);
 
     /**
      * @brief 创建渐变大小包
@@ -78,14 +82,14 @@ public:
      * @param newSize 目标大小
      * @param timeMs 过渡时间（毫秒）
      */
-    static WorldBorderPacket lerpSize(double oldSize, double newSize, u64 timeMs);
+    static WorldBorderPacket lerpSize(f64 oldSize, f64 newSize, u64 timeMs);
 
     /**
      * @brief 创建设置中心包
      * @param x 中心 X 坐标
      * @param z 中心 Z 坐标
      */
-    static WorldBorderPacket setCenter(double x, double z);
+    static WorldBorderPacket setCenter(f64 x, f64 z);
 
     /**
      * @brief 创建完整初始化包
@@ -109,13 +113,13 @@ public:
      * @brief 创建设置伤害缓冲包
      * @param damageBuffer 伤害缓冲距离
      */
-    static WorldBorderPacket setDamageBuffer(double damageBuffer);
+    static WorldBorderPacket setDamageBuffer(f64 damageBuffer);
 
     /**
      * @brief 创建设置每格伤害包
      * @param damagePerBlock 每格伤害量
      */
-    static WorldBorderPacket setDamagePerBlock(double damagePerBlock);
+    static WorldBorderPacket setDamagePerBlock(f64 damagePerBlock);
 
     // ========================================================================
     // 序列化
@@ -132,18 +136,18 @@ public:
     WorldBorderAction action() const { return m_action; }
 
     // 大小相关
-    double size() const { return m_size; }
-    double oldSize() const { return m_oldSize; }
-    double newSize() const { return m_newSize; }
+    f64 size() const { return m_size; }
+    f64 oldSize() const { return m_oldSize; }
+    f64 newSize() const { return m_newSize; }
     u64 timeMs() const { return m_timeMs; }
 
     // 中心相关
-    double centerX() const { return m_centerX; }
-    double centerZ() const { return m_centerZ; }
+    f64 centerX() const { return m_centerX; }
+    f64 centerZ() const { return m_centerZ; }
 
     // 伤害相关
-    double damagePerBlock() const { return m_damagePerBlock; }
-    double damageBuffer() const { return m_damageBuffer; }
+    f64 damagePerBlock() const { return m_damagePerBlock; }
+    f64 damageBuffer() const { return m_damageBuffer; }
 
     // 警告相关
     i32 warningTime() const { return m_warningTime; }
@@ -155,18 +159,18 @@ private:
     WorldBorderAction m_action = WorldBorderAction::SetSize;
 
     // 大小
-    double m_size = 0.0;
-    double m_oldSize = 0.0;
-    double m_newSize = 0.0;
+    f64 m_size = 0.0;
+    f64 m_oldSize = 0.0;
+    f64 m_newSize = 0.0;
     u64 m_timeMs = 0;
 
     // 中心
-    double m_centerX = 0.0;
-    double m_centerZ = 0.0;
+    f64 m_centerX = 0.0;
+    f64 m_centerZ = 0.0;
 
     // 伤害
-    double m_damagePerBlock = 0.2;
-    double m_damageBuffer = 5.0;
+    f64 m_damagePerBlock = 0.2;
+    f64 m_damageBuffer = 5.0;
 
     // 警告
     i32 m_warningTime = 15;

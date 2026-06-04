@@ -33,7 +33,7 @@ PlayerAdvancements::PlayerAdvancements(PlayerId playerId)
     : m_playerId(playerId)
 {}
 
-PlayerAdvancements::~PlayerAdvancements() = default;
+PlayerAdvancements::~PlayerAdvancements() noexcept = default;
 
 bool PlayerAdvancements::grantCriterion(mc::advancement::AdvancementPtr advancement, const std::string& criterion)
 {
@@ -62,7 +62,7 @@ bool PlayerAdvancements::grantCriterion(mc::advancement::AdvancementPtr advancem
         }
 
         // 更新可见性
-        ensureVisibility(advancement);
+        _ensureVisibility(advancement);
     }
 
     return changed;
@@ -82,7 +82,7 @@ bool PlayerAdvancements::revokeCriterion(mc::advancement::AdvancementPtr advance
     bool changed = it->second.revokeCriterion(criterion);
     if (changed) {
         m_progressChanged.insert(advancement);
-        ensureVisibility(advancement);
+        _ensureVisibility(advancement);
     }
 
     return changed;
@@ -172,7 +172,7 @@ void PlayerAdvancements::onAdvancementsReloaded(mc::advancement::AdvancementMana
     m_visibilityChanged.clear();
 
     // 重新加载所有成就
-    // [TODO 阶段5：持久化存储] 从持久化数据恢复进度
+    // TODO: 从持久化数据恢复进度
     MC_UNUSED(manager);
 }
 
@@ -206,7 +206,7 @@ bool PlayerAdvancements::loadFromJson(const nlohmann::json& json, mc::advancemen
     }
 
     // 更新可见性
-    updateVisibility();
+    _updateVisibility();
 
     return true;
 }
@@ -244,7 +244,7 @@ void PlayerAdvancements::registerListeners(mc::advancement::AdvancementPtr advan
         }
 
         // 创建监听器并注册
-        // [TODO 阶段2+3：事件系统集成] 根据触发器类型创建正确的监听器并注册到触发器
+        // TODO: 根据触发器类型创建正确的监听器并注册到触发器
     }
 }
 
@@ -262,18 +262,18 @@ void PlayerAdvancements::unregisterListeners(mc::advancement::AdvancementPtr adv
             continue;
         }
 
-        // [TODO 阶段2+3：事件系统集成] 移除监听器
+        // TODO: 移除监听器
     }
 }
 
-void PlayerAdvancements::ensureVisibility(mc::advancement::AdvancementPtr advancement)
+void PlayerAdvancements::_ensureVisibility(mc::advancement::AdvancementPtr advancement)
 {
     if (!advancement) {
         return;
     }
 
     bool wasVisible = m_visible.count(advancement) > 0;
-    bool shouldShow = this->shouldShow(advancement);
+    bool shouldShow = this->_shouldShow(advancement);
 
     if (shouldShow != wasVisible) {
         if (shouldShow) {
@@ -285,7 +285,7 @@ void PlayerAdvancements::ensureVisibility(mc::advancement::AdvancementPtr advanc
     }
 }
 
-void PlayerAdvancements::updateVisibility()
+void PlayerAdvancements::_updateVisibility()
 {
     m_visible.clear();
 
@@ -296,7 +296,7 @@ void PlayerAdvancements::updateVisibility()
     m_visibilityChanged.clear();
 }
 
-bool PlayerAdvancements::shouldShow(mc::advancement::AdvancementPtr advancement) const
+bool PlayerAdvancements::_shouldShow(mc::advancement::AdvancementPtr advancement) const
 {
     if (!advancement) {
         return false;

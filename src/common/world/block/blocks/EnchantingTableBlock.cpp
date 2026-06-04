@@ -22,12 +22,13 @@
  */
 
 #include "EnchantingTableBlock.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/inventory/ContainerTypes.hpp"
-#include "../../../item/context/BlockItemUseContext.hpp"
-#include "../../../util/assert/AssertAll.hpp"
-#include "../../IWorld.hpp"
-#include "../../blockentity/interactive/EnchantingTableEntity.hpp"
+
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/blockentity/interactive/EnchantingTableEntity.hpp"
 
 namespace mc {
 namespace blocks {
@@ -70,8 +71,7 @@ ActionResultType EnchantingTableBlock::onBlockActivated(const BlockState& state,
     MC_UNUSED(hand);
     MC_UNUSED(hit);
 
-    // MC 1.16.5: 客户端直接返回成功
-    // 参考: net.minecraft.block.EnchantingTableBlock.onBlockActivated
+    // 客户端直接返回成功
     if (world.asServerWorld() == nullptr) {
         return ActionResultType::Success;
     }
@@ -83,7 +83,6 @@ ActionResultType EnchantingTableBlock::onBlockActivated(const BlockState& state,
     }
 
     // 打开附魔台GUI
-    // 参考: net.minecraft.block.EnchantingTableBlock.getContainer
     if (world.openContainer(ContainerType::Enchantment, pos, player)) {
         return ActionResultType::Consume;
     }
@@ -112,11 +111,8 @@ void EnchantingTableBlock::onBlockAdded(IWorld& world, const BlockPos& pos, cons
 {
     MC_UNUSED(state);
 
-    // 当附魔台放置时，重新计算附魔力量
-    if (world.getBlockEntity(pos) != nullptr) {
-        // 注意：这里需要World引用来重新计算附魔力量
-        // 在IWorld中可能无法直接调用，需要在World中处理
-    }
+    // TODO: 当附魔台放置时，需要重新计算附魔力量
+    // 当前 IWorld 接口无法直接调用附魔力量计算，需要在 World 中处理或扩展 IWorld 接口
 }
 
 } // namespace blocks

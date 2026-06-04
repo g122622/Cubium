@@ -22,12 +22,12 @@
  */
 
 #include "JigsawPiece.hpp"
-#include "../../../resource/IResourcePack.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../../block/BlockRegistry.hpp"
-#include "../feature/template/TemplateLoader.hpp"
-#include "../feature/template/TemplateManager.hpp"
 #include "JigsawManager.hpp"
+#include "common/resource/IResourcePack.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/gen/feature/template/TemplateLoader.hpp"
+#include "common/world/gen/feature/template/TemplateManager.hpp"
 
 namespace mc {
 namespace world {
@@ -51,8 +51,6 @@ EmptyJigsawPiece& EmptyJigsawPiece::instance()
 
 std::unique_ptr<JigsawPiece> EmptyJigsawPiece::clone() const
 {
-    // MC 1.16.5: EmptyJigsawPiece 返回自身的克隆（单例模式，但仍需返回有效指针）
-    // 参考: EmptyJigsawPiece.java - INSTANCE 单例，但在 JigsawPattern 中仍需有效指针
     return std::make_unique<EmptyJigsawPiece>();
 }
 
@@ -85,7 +83,6 @@ bool JigsawPiece::loadJointsFromTemplate(
         joint.projection = getPlacementBehaviour();
 
         // 从方块状态读取 orientation
-        // 参考 MC 1.16.5: JigsawBlock.getOrientation(state)
         joint.orientation = JigsawOrientation::NorthUp; // 默认值
 
         if (jigsawInfo.blockStateId != 0) {
@@ -99,10 +96,7 @@ bool JigsawPiece::loadJointsFromTemplate(
         joints.push_back(joint);
     }
 
-    // MC 1.16.5: 连接点不需要打乱顺序
-    // 参考: SingleJigsawPiece.getJigsawBlocks() 返回的是模板中的原始顺序
-    // 打乱是在 JigsawManager 中选择模板池中的块时进行的 (getShuffledPieces)
-    // 而不是在加载连接点时进行的
+    // 注意：连接点不需要打乱顺序，打乱是在 JigsawManager 中选择模板池中的块时进行的
 
     return true;
 }

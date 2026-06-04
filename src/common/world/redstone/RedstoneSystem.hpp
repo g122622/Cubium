@@ -95,8 +95,6 @@ struct TorchBurnoutRecord {
  *
  * ## 线程安全
  * 内部使用 RedstoneContext 保护共享状态。
- *
- * 参考 MC 1.16.5 World.redstonePowerProvider
  */
 class RedstoneSystem {
 public:
@@ -342,7 +340,7 @@ private:
      * @param sourceBlock 触发更新的源方块
      * @param sourcePos 源方块位置
      */
-    void notifyNeighbor(IWorld& world,
+    void _notifyNeighbor(IWorld& world,
         const BlockPos& neighborPos,
         const BlockState& neighborState,
         Block& sourceBlock,
@@ -357,7 +355,7 @@ private:
      * @param directions 方向列表
      * @param directionCount 方向数量
      */
-    void updateNeighborsInDirections(
+    void _updateNeighborsInDirections(
         IWorld& world, const BlockPos& pos, Block& block, const Direction* directions, size_t directionCount);
 };
 

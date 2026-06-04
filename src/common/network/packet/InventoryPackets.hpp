@@ -275,7 +275,7 @@ public:
     void setSlotIndex(i32 slotIndex) { m_slotIndex = slotIndex; }
     void setItem(ItemStack item) { m_item = std::move(item); }
 
-    // 序列化 (MC 1.16.5 对齐: slotId 是 i16)
+    // 序列化 (MC 1.16.5: slotId 是 i16)
     void serialize(network::PacketSerializer& ser) const
     {
         ser.writeI16(static_cast<i16>(m_slotIndex));
@@ -489,7 +489,7 @@ public:
     void setType(i32 type) { m_type = type; }
     void setTitle(const std::string& title) { m_title = title; }
 
-    // 序列化 (MC 1.16.5 对齐: VarInt windowId, VarInt type, Component title)
+    // 序列化 (MC 1.16.5: VarInt windowId, VarInt type, Component title)
     void serialize(network::PacketSerializer& ser) const
     {
         ser.writeVarInt(m_containerId);
@@ -552,7 +552,7 @@ public:
     // Setters
     void setSlot(i32 slot) { m_slot = slot; }
 
-    // 序列化 (MC 1.16.5 对齐: slotId 是 i16)
+    // 序列化 (MC 1.16.5: slotId 是 i16)
     void serialize(network::PacketSerializer& ser) const { ser.writeI16(static_cast<i16>(m_slot)); }
 
     // 反序列化

@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../util/assert/AssertAll.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../Block.hpp"
-#include "../BlockPos.hpp"
-#include "../Material.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/Material.hpp"
 #include <memory>
 
 namespace mc {
@@ -49,8 +49,6 @@ namespace blocks {
  * - OPEN: 是否打开
  * - IN_WALL: 是否在墙内（改变碰撞箱）
  * - POWERED: 是否被充能
- *
- * 参考: net.minecraft.block.FenceGateBlock
  */
 class FenceGateBlock : public Block {
 public:
@@ -150,7 +148,6 @@ public:
      * @brief 是否使用形状进行光照遮挡检测
      *
      * 栅栏门有复杂的形状，需要精确的形状遮挡检测。
-     * 参考: MC 1.16.5 FenceGateBlock.getRenderShape()
      */
     [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
     {
@@ -204,7 +201,7 @@ private:
      * @param facing 栅栏门朝向
      * @return 如果在墙内返回true
      */
-    [[nodiscard]] bool isWall(const IWorld& world, const BlockPos& pos, Direction facing) const;
+    [[nodiscard]] bool _isWall(const IWorld& world, const BlockPos& pos, Direction facing) const;
 
     /**
      * @brief 播放开关门音效
@@ -212,7 +209,7 @@ private:
      * @param pos 方块位置
      * @param isOpening 是否正在打开
      */
-    void playSound(IWorld& world, const BlockPos& pos, bool isOpening);
+    void _playSound(IWorld& world, const BlockPos& pos, bool isOpening);
 
     /// 关闭状态碰撞形状（2像素厚）
     CollisionShape m_closedShape;

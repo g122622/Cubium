@@ -38,7 +38,7 @@ namespace blockentity {
 
 namespace {
 
-/// 火苗噼啪声概率 (MC 1.16.5: 1/20 per tick when burning)
+/// 火苗噼啪声概率 (每 tick 有 1/N 的概率播放音效)
 constexpr i32 FIRE_CRACKLE_CHANCE = 20;
 
 /**
@@ -101,10 +101,9 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
 /**
  * @brief 获取指定物品的燃烧时间。
  *
- * 参考: MC 1.16.5 AbstractFurnaceTileEntity.getBurnTimes()
  * 燃烧时间单位：tick
  *
- * 注意：部分物品尚未在 Items 中注册，待相关物品添加后需补充。
+ * TODO: 部分物品尚未在 Items 中注册，待相关物品添加后需补充。
  */
 [[nodiscard]] i32 getBurnTimeByItem(const Item* item)
 {
@@ -114,7 +113,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
 
     // ========== 特殊燃料（高燃烧值）==========
     // 岩浆桶: 20000 tick (1000 秒) - 燃烧后返回空桶
-    // 参考: MC 1.16.5 AbstractFurnaceTileEntity.getBurnTimes() 第 97 行
     if (item == Items::LAVA_BUCKET) {
         return 20000;
     }
@@ -130,7 +128,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
         return 1600;
     }
     // 煤炭块: 16000 tick (800 秒)
-    // 参考: MC 1.16.5 第 98 行: addItemBurnTime(map, Blocks.COAL_BLOCK, 16000);
     if (isBlockItem(item, VanillaBlocks::COAL_BLOCK)) {
         return 16000;
     }
@@ -188,7 +185,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
     }
 
     // ========== 木质建筑方块 (300 tick = 15 秒) ==========
-    // 参考: MC 1.16.5 第 104-127 行
     // 木质楼梯 - 目前只有橡木楼梯
     if (isBlockItem(item, VanillaBlocks::OAK_STAIRS)) {
         return 300;
@@ -227,7 +223,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
     }
 
     // ========== 木质台阶 (150 tick = 7.5 秒) ==========
-    // 参考: MC 1.16.5 第 105 行: addItemTagBurnTime(map, ItemTags.WOODEN_SLABS, 150);
     if (isBlockItem(item, VanillaBlocks::OAK_SLAB)) {
         return 150;
     }
@@ -239,7 +234,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
     }
 
     // ========== 弓、钓鱼竿、弩 (300 tick = 15 秒) ==========
-    // 参考: MC 1.16.5 第 129-131 行
     if (item == Items::BOW || item == Items::FISHING_ROD || item == Items::CROSSBOW) {
         return 300;
     }
@@ -249,7 +243,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
         return 100;
     }
     // 树苗 - 所有 6 种类型
-    // 参考: MC 1.16.5 第 143 行: addItemTagBurnTime(map, ItemTags.SAPLINGS, 100);
     if (isBlockInList(item,
             {VanillaBlocks::OAK_SAPLING,
                 VanillaBlocks::SPRUCE_SAPLING,
@@ -260,7 +253,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
         return 100;
     }
     // 木质按钮（主世界木材，可燃）
-    // 参考: MC 1.16.5 第 141 行: addItemTagBurnTime(map, ItemTags.WOODEN_BUTTONS, 100);
     // 注意: CRIMSON_BUTTON 和 WARPED_BUTTON 是下界木材，不可燃
     if (isBlockInList(item,
             {VanillaBlocks::OAK_BUTTON,
@@ -273,7 +265,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
     }
 
     // ========== 羊毛 (100 tick = 5 秒) ==========
-    // 参考: MC 1.16.5 第 140 行: addItemTagBurnTime(map, ItemTags.WOOL, 100);
     if (isBlockInList(item,
             {VanillaBlocks::WHITE_WOOL,
                 VanillaBlocks::ORANGE_WOOL,
@@ -295,99 +286,82 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
     }
 
     // ========== 地毯 (67 tick) ==========
-    // 参考: MC 1.16.5 第 145 行: addItemTagBurnTime(map, ItemTags.CARPETS, 67);
-    // 注意: 地毯方块尚未注册，待注册后补充
+    // TODO: 地毯方块尚未注册，待注册后补充
 
     // ========== 竹子 (50 tick) ==========
-    // 参考: MC 1.16.5 第 148 行: addItemBurnTime(map, Blocks.BAMBOO, 50);
     if (isBlockItem(item, VanillaBlocks::BAMBOO)) {
         return 50;
     }
 
     // ========== 脚手架 (400 tick = 20 秒) ==========
-    // 参考: MC 1.16.5 第 150 行: addItemBurnTime(map, Blocks.SCAFFOLDING, 400);
-    // 注意: 脚手架方块物品尚未注册，待注册后补充
+    // TODO: 脚手架方块物品尚未注册，待注册后补充
 
     // ========== 干海带块 (4001 tick) ==========
-    // 参考: MC 1.16.5 第 146 行: addItemBurnTime(map, Blocks.DRIED_KELP_BLOCK, 4001);
     if (isBlockItem(item, VanillaBlocks::DRIED_KELP_BLOCK)) {
         return 4001;
     }
 
     // ========== 梯子 (300 tick = 15 秒) ==========
-    // 参考: MC 1.16.5 第 117 行: addItemBurnTime(map, Blocks.LADDER, 300);
     if (isBlockItem(item, VanillaBlocks::LADDER)) {
         return 300;
     }
 
     // ========== 死灌木 (100 tick = 5 秒) ==========
-    // 参考: MC 1.16.5 第 135 行: addItemBurnTime(map, Blocks.DEAD_BUSH, 100);
     if (isBlockItem(item, VanillaBlocks::DEAD_BUSH)) {
         return 100;
     }
 
     // ========== 箱子 (300 tick = 15 秒) ==========
-    // 参考: MC 1.16.5 第 114 行: addItemBurnTime(map, Blocks.CHEST, 300);
     if (isBlockItem(item, VanillaBlocks::CHEST)) {
         return 300;
     }
 
     // ========== 陷阱箱 (300 tick = 15 秒) ==========
-    // 参考: MC 1.16.5 第 125 行: addItemBurnTime(map, Blocks.TRAPPED_CHEST, 300);
     if (isBlockItem(item, VanillaBlocks::TRAPPED_CHEST)) {
         return 300;
     }
 
     // ========== 织布机 (300 tick = 15 秒) ==========
-    // 参考: MC 1.16.5 第 151 行: addItemBurnTime(map, Blocks.LOOM, 300);
     if (isBlockItem(item, VanillaBlocks::LOOM)) {
         return 300;
     }
 
     // ========== 木桶 (300 tick = 15 秒) ==========
-    // 参考: MC 1.16.5 第 152 行: addItemBurnTime(map, Blocks.BARREL, 300);
     if (isBlockItem(item, VanillaBlocks::BARREL)) {
         return 300;
     }
 
     // ========== 制图台 (300 tick = 15 秒) ==========
-    // 参考: MC 1.16.5 第 153 行: addItemBurnTime(map, Blocks.CARTOGRAPHY_TABLE, 300);
     if (isBlockItem(item, VanillaBlocks::CARTOGRAPHY_TABLE)) {
         return 300;
     }
 
     // ========== 制箭台 (300 tick = 15 秒) ==========
-    // 参考: MC 1.16.5 第 154 行: addItemBurnTime(map, Blocks.FLETCHING_TABLE, 300);
     if (isBlockItem(item, VanillaBlocks::FLETCHING_TABLE)) {
         return 300;
     }
 
     // ========== 锻造台 (300 tick = 15 秒) ==========
-    // 参考: MC 1.16.5 第 155 行: addItemBurnTime(map, Blocks.SMITHING_TABLE, 300);
     if (isBlockItem(item, VanillaBlocks::SMITHING_TABLE)) {
         return 300;
     }
 
     // ========== 堆肥桶 (300 tick = 15 秒) ==========
-    // 参考: MC 1.16.5 第 156 行: addItemBurnTime(map, Blocks.COMPOSTER, 300);
     if (isBlockItem(item, VanillaBlocks::COMPOSTER)) {
         return 300;
     }
 
     // ========== 讲台 (300 tick = 15 秒) ==========
-    // 参考: MC 1.16.5 第 122 行: addItemBurnTime(map, Blocks.LECTERN, 300);
     if (isBlockItem(item, VanillaBlocks::LECTERN)) {
         return 300;
     }
 
     // ========== 唱片机 (300 tick = 15 秒) ==========
-    // 参考: MC 1.16.5 第 123 行: addItemBurnTime(map, Blocks.JUKEBOX, 300);
     if (isBlockItem(item, VanillaBlocks::JUKEBOX)) {
         return 300;
     }
 
     // ========== 地毯 (67 tick) ==========
-    // 参考: MC 1.16.5 第 145 行: addItemTagBurnTime(map, ItemTags.CARPETS, 67);
     if (isBlockInList(item,
             {VanillaBlocks::WHITE_CARPET,
                 VanillaBlocks::ORANGE_CARPET,
@@ -409,7 +383,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
     }
 
     // ========== 告示牌 (200 tick = 10 秒) ==========
-    // 参考: MC 1.16.5 第 132 行: addItemTagBurnTime(map, ItemTags.SIGNS, 200);
     // 所有 8 种木材类型的告示牌
     if (item == Items::OAK_SIGN || item == Items::SPRUCE_SIGN || item == Items::BIRCH_SIGN ||
         item == Items::JUNGLE_SIGN || item == Items::ACACIA_SIGN || item == Items::DARK_OAK_SIGN ||
@@ -418,7 +391,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
     }
 
     // ========== 木船 (1200 tick = 60 秒) ==========
-    // 参考: MC 1.16.5 第 139 行: addItemTagBurnTime(map, ItemTags.BOATS, 1200);
     // 所有 6 种木材类型的船
     if (item == Items::OAK_BOAT || item == Items::SPRUCE_BOAT || item == Items::BIRCH_BOAT ||
         item == Items::JUNGLE_BOAT || item == Items::ACACIA_BOAT || item == Items::DARK_OAK_BOAT) {
@@ -444,8 +416,7 @@ void AbstractFurnaceEntity::tick(IWorld& world)
     if (isBurning()) {
         --m_burnTime;
 
-        // MC 1.16.5: 火苗噼啪声 - 燃烧时随机播放
-        // 参考: AbstractFurnaceTileEntity.tick() 中 world.playSound 调用
+        // 火苗噼啪声 - 燃烧时随机播放
         if (!world.isClientSide() && world.getRandom().nextInt(FIRE_CRACKLE_CHANCE) == 0) {
             ResourceLocation soundEvent = getFireCrackleSound();
             world.playSound(soundEvent, sound::SoundCategory::Blocks, m_pos.center(), 1.0f, 1.0f);
@@ -676,9 +647,7 @@ void AbstractFurnaceEntity::smeltWithRecipe(const crafting::SmeltingRecipe* reci
         m_inventory.setOutputItem(output);
     }
 
-    // MC 1.16.5: 湿海绵干燥逻辑
-    // 当输入是湿海绵且燃料槽有空桶时，将空桶变为水桶
-    // 参考: AbstractFurnaceTileEntity.smelt() 第 310-313 行
+    // 湿海绵干燥逻辑：当输入是湿海绵且燃料槽有空桶时，将空桶变为水桶
     if (input.getItem() == Items::WET_SPONGE) {
         ItemStack fuelItem = m_inventory.getFuelItem();
         if (!fuelItem.isEmpty() && fuelItem.getItem() == Items::BUCKET) {
@@ -698,10 +667,8 @@ bool AbstractFurnaceEntity::burnFuel()
         return false;
     }
 
-    // MC 1.16.5: 容器物品消耗逻辑
-    // 参考: AbstractFurnaceTileEntity.tick() 第 234-243 行
+    // 容器物品消耗逻辑：有容器物品的情况（如岩浆桶），直接用容器物品替换燃料槽
     if (fuel.hasContainerItem()) {
-        // 有容器物品的情况（如岩浆桶），直接用容器物品替换燃料槽
         m_inventory.setFuelItem(fuel.getContainerItem());
     } else {
         // 没有容器物品的情况，减少燃料数量
@@ -733,11 +700,10 @@ const crafting::SmeltingRecipe* AbstractFurnaceEntity::getRecipe(IWorld& world) 
 
 std::vector<i32> AbstractFurnaceEntity::getSlotsForFace(Direction side) const
 {
-    // 参考 MC 1.16.5 AbstractFurnaceTileEntity:
-    // SLOTS_UP = new int[]{0}          - 上方只能访问输入槽
-    // SLOTS_DOWN = new int[]{2, 1}     - 下方可以访问输出槽和燃料槽
-    // SLOTS_HORIZONTAL = new int[]{1}  - 侧面只能访问燃料槽
-
+    // 熔炉槽位访问规则：
+    // - 上方 (Direction::Up)：输入槽（槽位 0）
+    // - 下方 (Direction::Down)：输出槽（槽位 2）、燃料槽（槽位 1）
+    // - 侧面：燃料槽（槽位 1）
     switch (side) {
         case Direction::Up:
             // 上方：输入槽
@@ -751,7 +717,7 @@ std::vector<i32> AbstractFurnaceEntity::getSlotsForFace(Direction side) const
     }
 }
 
-bool AbstractFurnaceEntity::isSlotAccessibleForDirection(i32 slot, Direction direction) const
+bool AbstractFurnaceEntity::_isSlotAccessibleForDirection(i32 slot, Direction direction) const
 {
     const std::vector<i32> accessibleSlots = getSlotsForFace(direction);
     for (i32 accessibleSlot : accessibleSlots) {
@@ -764,11 +730,8 @@ bool AbstractFurnaceEntity::isSlotAccessibleForDirection(i32 slot, Direction dir
 
 bool AbstractFurnaceEntity::canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const
 {
-    // MC 1.16.5: 参考 AbstractFurnaceTileEntity.isItemValidForSlot() 第 437-445 行
-    // 和 canInsertItem() 第 347-349 行
-
     // 首先检查方向是否允许访问该槽位
-    if (!isSlotAccessibleForDirection(slot, direction)) {
+    if (!_isSlotAccessibleForDirection(slot, direction)) {
         return false;
     }
 
@@ -783,7 +746,6 @@ bool AbstractFurnaceEntity::canInsertItem(i32 slot, const ItemStack& stack, Dire
                 return true;
             }
             // 或者如果燃料槽当前不是空桶则接受空桶（用于装岩浆桶燃烧后的空桶）
-            // 参考: isFuel(stack) || stack.getItem() == Items.BUCKET && itemstack.getItem() != Items.BUCKET
             if (stack.getItem() == Items::BUCKET) {
                 const ItemStack fuelItem = m_inventory.getFuelItem();
                 return fuelItem.isEmpty() || fuelItem.getItem() != Items::BUCKET;
@@ -800,7 +762,6 @@ bool AbstractFurnaceEntity::canInsertItem(i32 slot, const ItemStack& stack, Dire
 
 bool AbstractFurnaceEntity::canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const
 {
-    // MC 1.16.5: 参考 AbstractFurnaceTileEntity.canExtractItem() 第 354-363 行
     // 从下方提取燃料槽时，只允许提取空桶或水桶
     // 这是为了防止漏斗从燃料槽中提取部分使用的燃料（如岩浆桶）
     if (direction == Direction::Down && slot == SLOT_FUEL) {

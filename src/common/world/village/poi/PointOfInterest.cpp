@@ -22,7 +22,7 @@
  */
 
 #include "PointOfInterest.hpp"
-#include "../../../util/nbt/Nbt.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <algorithm>
 
 namespace mc {

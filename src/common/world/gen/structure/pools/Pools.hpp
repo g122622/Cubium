@@ -24,7 +24,7 @@
 #pragma once
 
 #include "ProcessorLists.hpp"
-#include "../../jigsaw/JigsawPattern.hpp"
+#include "common/world/gen/jigsaw/JigsawPattern.hpp"
 
 namespace mc {
 namespace world {
@@ -38,8 +38,6 @@ using jigsaw::JigsawPlacementBehaviour;
 
 /**
  * @brief 模板池统一注册入口
- *
- * 参考 MC 1.16.5: net.minecraft.world.gen.feature.structure.Pools
  *
  * 此命名空间提供所有模板池的注册功能。
  * 使用方式：
@@ -78,7 +76,6 @@ bool isInitialized();
 /**
  * @brief 注册空模板池
  *
- * MC 1.16.5: minecraft:empty
  * 用于模板池的 fallback 终止链。
  */
 void registerEmptyPool(JigsawPatternRegistry& registry);

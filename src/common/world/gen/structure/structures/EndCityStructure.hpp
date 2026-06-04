@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../Structure.hpp"
 #include "../../feature/template/Template.hpp"
+#include "../Structure.hpp"
 #include <functional>
 #include <memory>
 #include <vector>
@@ -58,8 +58,6 @@ class IGenerator;
  * 在末地外岛生成的城市结构，由末地石砖和紫珀块构成。
  * 包含塔楼、房屋和末地船（有概率生成）。
  * 潜影贝会在末地城内生成。
- *
- * 参考: MC 1.16.5 EndCityStructure.java, EndCityPieces.java
  */
 class EndCityStructure : public Structure {
 public:
@@ -80,13 +78,13 @@ private:
     /**
      * @brief 计算末地城生成高度
      */
-    [[nodiscard]] static i32 getYPosition(i32 chunkX, i32 chunkZ, IChunkGenerator& generator);
+    [[nodiscard]] static i32 _getYPosition(i32 chunkX, i32 chunkZ, IChunkGenerator& generator);
 
-    /// 最大递归深度 (MC 1.16.5: 8)
+    /// 最大递归深度
     static constexpr i32 MAX_DEPTH = 8;
 
     static const std::string s_name;
-    // MC 1.16.5: spacing=20, separation=11, salt=10387313
+    /// 结构分隔设置: spacing=20, separation=11, salt=10387313
     static constexpr StructureSeparationSettings s_settings{20, 11, 10387313};
     static const std::vector<BiomeId> s_validBiomes;
 };
@@ -96,7 +94,6 @@ namespace end_city {
 /**
  * @brief 末地城模板片段
  *
- * 参考 MC 1.16.5 EndCityPieces.CityTemplate
  * 使用模板系统生成末地城各部分。
  */
 class CityTemplate : public StructurePiece {
@@ -113,7 +110,6 @@ public:
     /**
      * @brief 计算连接位置
      *
-     * 参考 MC Template.calculateConnectedPos
      * 计算从当前模板的某个位置连接到新模板的位置偏移
      */
     [[nodiscard]] BlockPos calculateConnectedPos(
@@ -139,8 +135,6 @@ private:
 
 /**
  * @brief 生成器接口
- *
- * 参考 MC 1.16.5 EndCityPieces.IGenerator
  */
 class IGenerator {
 public:
@@ -156,8 +150,6 @@ public:
 
 /**
  * @brief 房屋塔生成器
- *
- * 参考 MC 1.16.5 EndCityPieces.HOUSE_TOWER_GENERATOR
  */
 class HouseTowerGenerator : public IGenerator {
 public:
@@ -172,8 +164,6 @@ public:
 
 /**
  * @brief 塔生成器
- *
- * 参考 MC 1.16.5 EndCityPieces.TOWER_GENERATOR
  */
 class TowerGenerator : public IGenerator {
 public:
@@ -189,7 +179,6 @@ public:
 /**
  * @brief 塔桥生成器
  *
- * 参考 MC 1.16.5 EndCityPieces.TOWER_BRIDGE_GENERATOR
  * 包含末地船生成逻辑
  */
 class TowerBridgeGenerator : public IGenerator {
@@ -208,8 +197,6 @@ private:
 
 /**
  * @brief 胖塔生成器
- *
- * 参考 MC 1.16.5 EndCityPieces.FAT_TOWER_GENERATOR
  */
 class FatTowerGenerator : public IGenerator {
 public:
@@ -224,15 +211,11 @@ public:
 
 /**
  * @brief 添加片段到列表并返回引用
- *
- * 参考 MC 1.16.5 EndCityPieces.addHelper
  */
 CityTemplate* addHelper(std::vector<std::unique_ptr<StructurePiece>>& pieces, std::unique_ptr<CityTemplate> piece);
 
 /**
  * @brief 创建新片段并连接到父片段
- *
- * 参考 MC 1.16.5 EndCityPieces.addPiece
  */
 std::unique_ptr<CityTemplate> addPiece(feature::template_::TemplateManager& templateManager,
     CityTemplate& parent,
@@ -243,8 +226,6 @@ std::unique_ptr<CityTemplate> addPiece(feature::template_::TemplateManager& temp
 
 /**
  * @brief 递归生成子片段
- *
- * 参考 MC 1.16.5 EndCityPieces.recursiveChildren
  */
 bool recursiveChildren(feature::template_::TemplateManager& templateManager,
     IGenerator& generator,
@@ -256,8 +237,6 @@ bool recursiveChildren(feature::template_::TemplateManager& templateManager,
 
 /**
  * @brief 启动房屋塔生成
- *
- * 参考 MC 1.16.5 EndCityPieces.startHouseTower
  */
 void startHouseTower(feature::template_::TemplateManager& templateManager,
     const BlockPos& startPos,

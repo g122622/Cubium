@@ -22,14 +22,17 @@
  */
 
 #include "SwampHutStructure.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../../biome/Biome.hpp"
-#include "../../../block/BlockPos.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../chunk/IChunk.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../StructureBoundingBox.hpp"
+
+#include "common/core/Constants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/IChunk.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
+
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -53,7 +56,7 @@ bool SwampHutStructure::canGenerate(
     MC_UNUSED(rng);
 
     // 检查生物群系
-    BiomeId biome = generator.getBiome(chunkX * 16 + 8, 64, chunkZ * 16 + 8);
+    BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
     for (BiomeId valid : s_validBiomes) {
         if (biome == valid) {
             return true;
@@ -68,15 +71,15 @@ std::unique_ptr<StructureStart> SwampHutStructure::generate(
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 计算生成位置
-    i32 x = chunkX * 16 + rng.nextInt(16);
-    i32 z = chunkZ * 16 + rng.nextInt(16);
+    i32 x = chunkX * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
+    i32 z = chunkZ * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
 
     // 获取地表高度
     i32 y = generator.getHeight(x, z, HeightmapType::WorldSurface);
 
-    // 确保在地表上方（沼泽小屋通常在水面以上）
-    if (y < 62) {
-        y = 62;
+    // 确保在海平面以上（沼泽小屋通常在水面以上）
+    if (y < world::SEA_LEVEL - 1) {
+        y = world::SEA_LEVEL - 1;
     }
 
     // 随机旋转
@@ -112,7 +115,7 @@ SwampHutPiece::SwampHutPiece(const BlockPos& pos, feature::template_::Rotation r
     : StructurePiece(StructurePieceTypes::SWAMP_HUT, pos.x, pos.y, pos.z, pos.x + 7, pos.y + 6, pos.z + 9)
     , m_rotation(rotation)
 {
-    // MC 1.16.5: 沼泽小屋尺寸约 7x5x9
+    // 沼泽小屋尺寸约 7x5x9
     m_minX = pos.x;
     m_minY = pos.y;
     m_minZ = pos.z;
@@ -133,40 +136,39 @@ void SwampHutPiece::generate(
         return;
     }
 
-    generateHut(world, rng, chunkBounds);
+    _generateHut(world, rng, chunkBounds);
 }
 
-void SwampHutPiece::generateHut(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds)
+void SwampHutPiece::_generateHut(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds)
 {
     // 生成支柱（支撑小屋）
-    generatePillars(world, bounds);
+    _generatePillars(world, bounds);
 
     // 生成地板
-    generateFloor(world, bounds);
+    _generateFloor(world, bounds);
 
     // 生成墙壁
-    generateWalls(world, bounds);
+    _generateWalls(world, bounds);
 
     // 生成屋顶
-    generateRoof(world, bounds);
+    _generateRoof(world, bounds);
 
     // 生成内部设施
-    generateInterior(world, rng, bounds);
+    _generateInterior(world, rng, bounds);
 }
 
-void SwampHutPiece::generatePillars(IWorldWriter& world, const StructureBoundingBox& bounds)
+void SwampHutPiece::_generatePillars(IWorldWriter& world, const StructureBoundingBox& bounds)
 {
-    // MC 1.16.5: 四个角落的橡木栅栏支柱
-    // 支柱从水面延伸到地板
+    // 四个角落的橡木栅栏支柱，从水面延伸到地板
 
     i32 pillarPositions[4][2] = {{m_minX, m_minZ}, {m_maxX, m_minZ}, {m_minX, m_maxZ - 2}, {m_maxX, m_maxZ - 2}};
 
-    for (int i = 0; i < 4; ++i) {
+    for (i32 i = 0; i < 4; ++i) {
         i32 px = pillarPositions[i][0];
         i32 pz = pillarPositions[i][1];
 
         // 从 Y-2 到地板
-        for (int y = m_minY - 2; y <= m_minY; ++y) {
+        for (i32 y = m_minY - 2; y <= m_minY; ++y) {
             BlockPos pos(px, y, pz);
             if (bounds.contains(pos.x, pos.y, pos.z)) {
                 if (VanillaBlocks::OAK_FENCE) {
@@ -177,12 +179,12 @@ void SwampHutPiece::generatePillars(IWorldWriter& world, const StructureBounding
     }
 }
 
-void SwampHutPiece::generateFloor(IWorldWriter& world, const StructureBoundingBox& bounds)
+void SwampHutPiece::_generateFloor(IWorldWriter& world, const StructureBoundingBox& bounds)
 {
-    // MC 1.16.5: 地板由橡木木板构成，外延一格
+    // 地板由橡木木板构成，外延一格
 
-    for (int x = m_minX - 1; x <= m_maxX + 1; ++x) {
-        for (int z = m_minZ; z <= m_maxZ - 1; ++z) {
+    for (i32 x = m_minX - 1; x <= m_maxX + 1; ++x) {
+        for (i32 z = m_minZ; z <= m_maxZ - 1; ++z) {
             BlockPos pos(x, m_minY, z);
             if (bounds.contains(pos.x, pos.y, pos.z)) {
                 if (VanillaBlocks::OAK_PLANKS) {
@@ -193,13 +195,13 @@ void SwampHutPiece::generateFloor(IWorldWriter& world, const StructureBoundingBo
     }
 }
 
-void SwampHutPiece::generateWalls(IWorldWriter& world, const StructureBoundingBox& bounds)
+void SwampHutPiece::_generateWalls(IWorldWriter& world, const StructureBoundingBox& bounds)
 {
-    // MC 1.16.5: 墙壁由云杉木板构成
+    // 墙壁由云杉木板构成
 
-    for (int y = m_minY + 1; y <= m_minY + 3; ++y) {
-        for (int x = m_minX; x <= m_maxX; ++x) {
-            for (int z = m_minZ; z <= m_maxZ - 1; ++z) {
+    for (i32 y = m_minY + 1; y <= m_minY + 3; ++y) {
+        for (i32 x = m_minX; x <= m_maxX; ++x) {
+            for (i32 z = m_minZ; z <= m_maxZ - 1; ++z) {
                 // 只在边缘放置
                 if (x == m_minX || x == m_maxX || z == m_minZ || z == m_maxZ - 1) {
                     // 门的位置（南面中间）
@@ -219,15 +221,14 @@ void SwampHutPiece::generateWalls(IWorldWriter& world, const StructureBoundingBo
     }
 }
 
-void SwampHutPiece::generateRoof(IWorldWriter& world, const StructureBoundingBox& bounds)
+void SwampHutPiece::_generateRoof(IWorldWriter& world, const StructureBoundingBox& bounds)
 {
-    // MC 1.16.5: 梯形屋顶，由云杉楼梯构成
-    // 使用橡木楼梯代替（项目中暂无云杉楼梯）
+    // 梯形屋顶，由云杉楼梯构成
     // 注: 楼梯朝向需要根据位置设置，此处使用默认状态
 
     // 第一层屋顶（最宽）
-    for (int x = m_minX - 1; x <= m_maxX + 1; ++x) {
-        for (int z = m_minZ - 1; z <= m_maxZ; ++z) {
+    for (i32 x = m_minX - 1; x <= m_maxX + 1; ++x) {
+        for (i32 z = m_minZ - 1; z <= m_maxZ; ++z) {
             BlockPos pos(x, m_minY + 4, z);
             if (bounds.contains(pos.x, pos.y, pos.z)) {
                 if (VanillaBlocks::OAK_STAIRS) {
@@ -238,8 +239,8 @@ void SwampHutPiece::generateRoof(IWorldWriter& world, const StructureBoundingBox
     }
 
     // 第二层屋顶（较窄）
-    for (int x = m_minX; x <= m_maxX; ++x) {
-        for (int z = m_minZ; z <= m_maxZ - 1; ++z) {
+    for (i32 x = m_minX; x <= m_maxX; ++x) {
+        for (i32 z = m_minZ; z <= m_maxZ - 1; ++z) {
             BlockPos pos(x, m_minY + 5, z);
             if (bounds.contains(pos.x, pos.y, pos.z)) {
                 if (VanillaBlocks::OAK_STAIRS) {
@@ -250,15 +251,11 @@ void SwampHutPiece::generateRoof(IWorldWriter& world, const StructureBoundingBox
     }
 }
 
-void SwampHutPiece::generateInterior(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds)
+void SwampHutPiece::_generateInterior(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds)
 {
     MC_UNUSED(rng);
 
-    // MC 1.16.5: 内部设施
-    // - 炼药台（酿造台）
-    // - 炼药锅
-    // - 红色蘑菇盆栽
-    // - 棕色蘑菇盆栽
+    // 内部设施：炼药台（酿造台）、炼药锅、红色蘑菇盆栽、棕色蘑菇盆栽
 
     // 炼药台（西北角）
     BlockPos brewingPos(m_minX + 1, m_minY + 1, m_minZ + 1);

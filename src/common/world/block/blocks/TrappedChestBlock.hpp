@@ -33,8 +33,6 @@ namespace blocks {
  *
  * 继承自箱子方块，额外提供红石信号输出功能。
  * 输出的红石信号强度等于打开箱子的玩家数量（最大15）。
- *
- * 参考: net.minecraft.block.TrappedChestBlock
  */
 class TrappedChestBlock : public ChestBlock {
 public:

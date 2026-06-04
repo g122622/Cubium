@@ -340,12 +340,13 @@ private:
     /**
      * @brief 初始化列族
      */
-    Result<void> initializeColumnFamilies();
+    // TODO: 实现此方法，用于在打开数据库后初始化列族
+    Result<void> _initializeColumnFamilies();
 
     /**
      * @brief 创建默认列族选项
      */
-    [[nodiscard]] rocksdb::ColumnFamilyOptions createCFOptions() const;
+    [[nodiscard]] rocksdb::ColumnFamilyOptions _createCFOptions() const;
 
     // 成员变量
     rocksdb::DB* m_db = nullptr;

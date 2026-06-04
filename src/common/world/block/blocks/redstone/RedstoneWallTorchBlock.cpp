@@ -28,7 +28,6 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../tick/manager/TickManager.hpp"
-#include <unordered_map>
 
 namespace mc {
 namespace blocks {
@@ -69,15 +68,13 @@ BlockState RedstoneWallTorchBlock::withFacing(BlockState state, Direction facing
 
 bool RedstoneWallTorchBlock::shouldBeOff(IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
-    // MC Java: Direction direction = state.get(FACING).getOpposite();
-    // return worldIn.isSidePowered(pos.offset(direction), direction);
     Direction facing = getFacing(state);
-    Direction attachDir = Directions::opposite(facing); // 附着面方向
+    Direction attachDir = Directions::opposite(facing);
     BlockPos attachPos = pos.offset(attachDir);
     return world::redstone::RedstonePower::isSidePowered(world, attachPos, attachDir);
 }
 
-bool RedstoneWallTorchBlock::canPlaceAt(IWorld& world, const BlockPos& pos, Direction facing) const
+bool RedstoneWallTorchBlock::_canPlaceAt(IWorld& world, const BlockPos& pos, Direction facing) const
 {
     // 检查附着面是否可以支撑火把
     BlockPos attachPos = pos.offset(Directions::opposite(facing));
@@ -92,7 +89,7 @@ bool RedstoneWallTorchBlock::canPlaceAt(IWorld& world, const BlockPos& pos, Dire
 
 void RedstoneWallTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC Java: 放置时通知邻居
+    // 放置时通知邻居
     for (Direction dir : Directions::all()) {
         BlockPos neighborPos = pos.offset(dir);
         const BlockState* neighborState = world.getBlockState(neighborPos);
@@ -123,14 +120,14 @@ void RedstoneWallTorchBlock::neighborChanged(
 
     // 检查支撑是否还在
     Direction facing = getFacing(*state);
-    if (!canPlaceAt(world, pos, facing)) {
+    if (!_canPlaceAt(world, pos, facing)) {
         // 支撑丢失，火把掉落
         world.setBlockState(pos, nullptr, 2);
         return;
     }
 
     // 更新火把状态
-    updateState(world, pos, *state);
+    _updateState(world, pos, *state);
 }
 
 BlockState RedstoneWallTorchBlock::updatePostPlacement(const BlockState& state,
@@ -206,7 +203,6 @@ i32 RedstoneWallTorchBlock::getWeakPower(
         return 0;
     }
 
-    // MC Java: return blockState.get(REDSTONE_TORCH_LIT) && blockState.get(FACING) != side ? 15 : 0;
     // 不向附着面方向输出信号
     Direction facing = getFacing(state);
     if (side == facing) {
@@ -243,14 +239,14 @@ const CollisionShape& RedstoneWallTorchBlock::getShape(const BlockState& state) 
     }
 }
 
-void RedstoneWallTorchBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state)
+void RedstoneWallTorchBlock::_updateState(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     // 检查是否应该改变状态
     bool shouldBeLit = !shouldBeOff(world, pos, state);
     bool isCurrentlyLit = isLit(state);
 
     if (isCurrentlyLit != shouldBeLit) {
-        // 调度更新（MC Java 使用 2 tick 延迟）
+        // 调度更新（使用2 tick延迟）
         world.tickManager().scheduleBlockTick(pos, *this, 2, world::tick::TickPriority::ExtremelyHigh);
     }
 }

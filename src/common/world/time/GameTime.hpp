@@ -23,16 +23,12 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::time {
 
 /**
  * @brief 时间常量定义
- *
- * Minecraft 1.16.5 时间系统常量：
- * - 一天 = 24000 ticks
- * - 0 = 日出, 6000 = 正午, 12000 = 日落, 18000 = 午夜
  */
 namespace TimeConstants {
 /// 一天的 tick 数
@@ -65,13 +61,6 @@ constexpr i64 DEFAULT_MS_PER_TICK = 50;
  * dayTime: 累积的日光时间（无边界），可用于计算天数、月相等
  *          使用 dayTimeOfDay() 获取一天内的时间 (0-23999)
  * gameTime: 游戏启动以来的总 tick 数，用于统计和月相计算
- *
- * 参考MC 1.16.5: World.tick() 和 DimensionType.calculateCelestialAngle()
- *
- * 【重要】与项目旧实现的区别：
- * - MC 1.16.5 中 dayTime 是无边界计数器，不会自动取模
- * - /time add 100000 后 dayTime 可以是 125000（即 5 天 + 1000）
- * - 只有在计算天体角度、显示时间等场景才使用 dayTime % 24000
  */
 class GameTime {
 public:
@@ -103,7 +92,6 @@ public:
      * @param time 新的 dayTime 值（直接存储，不取模）
      *
      * 用于 /time set 命令。
-     * MC 1.16.5 行为：dayTime 是无边界计数器，可存储任意值。
      */
     void setDayTime(i64 time);
 
@@ -178,9 +166,6 @@ public:
     /**
      * @brief 获取用于网络同步的 dayTime 值
      * @return 如果日光周期禁用，返回负值；否则返回正值
-     *
-     * MC 协议: 负数表示日光周期禁用
-     * 返回的是 dayTimeOfDay (0-23999) 而非原始 dayTime
      */
     [[nodiscard]] i64 dayTimeForNetwork() const;
 

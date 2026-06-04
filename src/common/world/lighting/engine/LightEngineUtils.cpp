@@ -22,11 +22,11 @@
  */
 
 #include "LightEngineUtils.hpp"
-#include "../../../physics/collision/CollisionShape.hpp"
-#include "../../IWorld.hpp"
-#include "../../block/Block.hpp"
-#include "../../chunk/ChunkPos.hpp"
-#include "../../chunk/IChunk.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/IChunk.hpp"
 #include <climits>
 
 namespace mc {
@@ -40,7 +40,7 @@ i64 LightEngineUtils::worldToSectionPos(i64 worldPos)
     // 使用unpackPos解码坐标，然后转换为SectionPos
     i32 x, y, z;
     unpackPos(worldPos, x, y, z);
-    return SectionPos(x >> 4, y >> 4, z >> 4).toLong();
+    return SectionPos(x >> world::SECTION_SHIFT, y >> world::SECTION_SHIFT, z >> world::SECTION_SHIFT).toLong();
 }
 
 const BlockState* LightEngineUtils::getBlockAndOpacity(const IChunk* chunk, i64 worldPos, i32* opacityOut)
@@ -55,14 +55,14 @@ const BlockState* LightEngineUtils::getBlockAndOpacity(const IChunk* chunk, i64 
 
     if (chunk == nullptr) {
         if (opacityOut != nullptr) {
-            *opacityOut = 15; // 视为不透明
+            *opacityOut = game::MAX_LIGHT_LEVEL; // 视为不透明
         }
         return nullptr; // 基岩
     }
 
     i32 x, y, z;
     unpackPos(worldPos, x, y, z);
-    const BlockState* state = chunk->getBlockState(x & 0xF, y, z & 0xF);
+    const BlockState* state = chunk->getBlockState(x & world::CHUNK_MASK, y, z & world::CHUNK_MASK);
 
     if (state == nullptr) {
         if (opacityOut != nullptr) {
@@ -113,8 +113,8 @@ bool LightEngineUtils::facesHaveOcclusion(IWorld* world,
         return false;
     }
 
-    // 如果透明度为15（完全不透明），检查是否有完整遮挡面
-    if (opacityA >= 15 && stateB.getOpacity() >= 15) {
+    // 如果透明度为最大值（完全不透明），检查是否有完整遮挡面
+    if (opacityA >= game::MAX_LIGHT_LEVEL && stateB.getOpacity() >= game::MAX_LIGHT_LEVEL) {
         // 两个完全不透明的方块
         // 检查是否有完整的遮挡形状
         const CollisionShape& shapeA = stateA.getOcclusionShape();
@@ -128,7 +128,7 @@ bool LightEngineUtils::facesHaveOcclusion(IWorld* world,
         // 对于非完整方块，检查面遮挡
         Direction oppositeDir = Directions::opposite(dir);
 
-        if (shapeFullyOccludesFace(shapeA, dir) && shapeFullyOccludesFace(shapeB, oppositeDir)) {
+        if (_shapeFullyOccludesFace(shapeA, dir) && _shapeFullyOccludesFace(shapeB, oppositeDir)) {
             return true;
         }
     }
@@ -149,13 +149,13 @@ bool LightEngineUtils::blocksLightInDirection(const BlockState& state, Direction
         return false;
     }
 
-    if (opacity >= 15) {
+    if (opacity >= game::MAX_LIGHT_LEVEL) {
         return true;
     }
 
     // 部分透明方块，检查遮挡形状
     const CollisionShape& shape = state.getOcclusionShape();
-    return shapeFullyOccludesFace(shape, dir);
+    return _shapeFullyOccludesFace(shape, dir);
 }
 
 i32 LightEngineUtils::getLightBlockInto(IWorld& world,
@@ -166,17 +166,16 @@ i32 LightEngineUtils::getLightBlockInto(IWorld& world,
     Direction dir,
     i32 targetOpacity)
 {
-    // MC 1.16.5 LightEngine.func_215613_a:
     // 如果两侧面形状完全遮挡，则直接视为满阻挡；否则至少返回 1。
-    const i32 clampedOpacity = std::max(0, std::min(targetOpacity, 15));
+    const i32 clampedOpacity = std::max(0, std::min(targetOpacity, game::MAX_LIGHT_LEVEL));
     if (facesHaveOcclusion(&world, sourceState, sourcePos, targetState, targetPos, dir, sourceState.getOpacity())) {
-        return 16;
+        return game::MAX_LIGHT_LEVEL + 1;
     }
 
     return std::max(1, clampedOpacity);
 }
 
-bool LightEngineUtils::shapeFullyOccludesFace(const CollisionShape& shape, Direction face)
+bool LightEngineUtils::_shapeFullyOccludesFace(const CollisionShape& shape, Direction face)
 {
     if (shape.isEmpty()) {
         return false;

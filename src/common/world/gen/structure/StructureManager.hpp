@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../util/math/random/Random.hpp"
-#include "../../chunk/ChunkPrimer.hpp"
-#include "../chunk/IChunkGenerator.hpp"
-#include "Structure.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -80,7 +80,6 @@ private:
  * @brief 结构管理器
  *
  * 协调结构生成，管理结构引用和起始点。
- * 参考 MC 1.16.5: StructureManager
  */
 class StructureManager {
 public:
@@ -149,8 +148,12 @@ private:
 
     /**
      * @brief 创建结构随机数生成器
+     * @param chunkX 区块 X 坐标
+     * @param chunkZ 区块 Z 坐标
+     * @param salt 盐值
+     * @return 随机数生成器
      */
-    [[nodiscard]] math::Random createRandom(i32 chunkX, i32 chunkZ, i32 salt) const;
+    [[nodiscard]] math::Random _createRandom(i32 chunkX, i32 chunkZ, i32 salt) const;
 };
 
 } // namespace world::gen::structure

@@ -21,10 +21,10 @@
  *
  */
 
-#include "TallGrassBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../Material.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/world/block/blocks/vegetation/TallGrassBlock.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace {
 

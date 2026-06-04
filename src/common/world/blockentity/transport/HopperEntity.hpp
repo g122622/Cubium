@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include <memory>
 #include "entity/inventory/IInventory.hpp"
 #include "util/Direction.hpp"
 #include "world/blockentity/core/LockableBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "world/blockentity/transport/IHopper.hpp"
+#include <memory>
 #include <vector>
 
 namespace mc {
@@ -230,19 +230,19 @@ private:
      * @param pullFunc 拉取函数
      * @return 是否成功传输
      */
-    bool updateHopper(std::function<bool()> pullFunc);
+    bool _updateHopper(std::function<bool()> pullFunc);
 
     /**
      * @brief 输出物品到目标容器
      * @return 如果成功输出返回true
      */
-    bool transferItemsOut();
+    bool _transferItemsOut();
 
     /**
      * @brief 获取漏斗输出的目标容器
      * @return 容器指针，如果没有返回nullptr
      */
-    [[nodiscard]] IInventory* getInventoryForHopperTransfer();
+    [[nodiscard]] IInventory* _getInventoryForHopperTransfer();
 
     /**
      * @brief 检查容器是否已满
@@ -250,7 +250,7 @@ private:
      * @param side 检查方向
      * @return 如果所有槽位都满了返回true
      */
-    [[nodiscard]] static bool isInventoryFull(const IInventory* inventory, Direction side);
+    [[nodiscard]] static bool _isInventoryFull(const IInventory* inventory, Direction side);
 
     /**
      * @brief 检查容器是否为空
@@ -258,7 +258,7 @@ private:
      * @param side 检查方向
      * @return 如果所有槽位都为空返回true
      */
-    [[nodiscard]] static bool isInventoryEmpty(const IInventory* inventory, Direction side);
+    [[nodiscard]] static bool _isInventoryEmpty(const IInventory* inventory, Direction side);
 
     /**
      * @brief 从容器槽位拉取物品
@@ -268,7 +268,7 @@ private:
      * @param direction 拉取方向
      * @return 如果成功拉取返回true
      */
-    static bool pullItemFromSlot(IHopper& hopper, IInventory* inventory, i32 slotIndex, Direction direction);
+    static bool _pullItemFromSlot(IHopper& hopper, IInventory* inventory, i32 slotIndex, Direction direction);
 
     /**
      * @brief 插入物品到容器槽位
@@ -279,7 +279,7 @@ private:
      * @param direction 插入方向
      * @return 剩余未插入的物品
      */
-    static ItemStack insertStack(
+    static ItemStack _insertStack(
         IInventory* source, IInventory* destination, const ItemStack& stack, i32 slotIndex, Direction direction);
 
     /**
@@ -290,7 +290,7 @@ private:
      * @param direction 插入方向
      * @return 如果可以插入返回true
      */
-    [[nodiscard]] static bool canInsertItemInSlot(
+    [[nodiscard]] static bool _canInsertItemInSlot(
         const IInventory* inventory, const ItemStack& stack, i32 slotIndex, Direction direction);
 
     /**
@@ -301,7 +301,7 @@ private:
      * @param direction 提取方向
      * @return 如果可以提取返回true
      */
-    [[nodiscard]] static bool canExtractItemFromSlot(
+    [[nodiscard]] static bool _canExtractItemFromSlot(
         const IInventory* inventory, const ItemStack& stack, i32 slotIndex, Direction direction);
 
     /**
@@ -310,7 +310,7 @@ private:
      * @param stack2 物品2
      * @return 如果可以合并返回true
      */
-    [[nodiscard]] static bool canCombine(const ItemStack& stack1, const ItemStack& stack2);
+    [[nodiscard]] static bool _canCombine(const ItemStack& stack1, const ItemStack& stack2);
 
     // ========== 成员变量 ==========
 

@@ -35,8 +35,6 @@ namespace blocks {
  *
  * 实现100tick熔炼时间的熔炉方块。
  * 只能熔炼矿石和金属物品。
- *
- * 参考: net.minecraft.block.BlastFurnaceBlock
  */
 class BlastFurnaceBlock : public AbstractFurnaceBlock {
 public:

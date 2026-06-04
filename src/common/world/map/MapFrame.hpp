@@ -34,12 +34,11 @@ namespace mc::world::map {
  * @brief 地图展示框标记
  *
  * 记录地图在物品展示框中的位置和旋转信息，用于在地图上显示绿色标记点。
- * 参考: net.minecraft.world.storage.MapFrame
  */
 class MapFrame {
 public:
     MapFrame() = default;
-    MapFrame(BlockPos pos, i32 rotation, i32 entityId);
+    MapFrame(BlockPos pos, i32 rotation, i32 entityId) noexcept;
 
     /**
      * @brief 从NBT读取展示框标记
@@ -61,9 +60,9 @@ public:
      */
     [[nodiscard]] static std::string getIdForPos(BlockPos pos);
 
-    [[nodiscard]] BlockPos pos() const { return m_pos; }
-    [[nodiscard]] i32 rotation() const { return m_rotation; }
-    [[nodiscard]] i32 entityId() const { return m_entityId; }
+    [[nodiscard]] BlockPos pos() const noexcept { return m_pos; }
+    [[nodiscard]] i32 rotation() const noexcept { return m_rotation; }
+    [[nodiscard]] i32 entityId() const noexcept { return m_entityId; }
 
 private:
     BlockPos m_pos;

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../util/math/Vector3.hpp"
-#include "../Fluid.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/fluid/Fluid.hpp"
 
 namespace mc {
 namespace fluid {
@@ -33,8 +33,6 @@ namespace fluid {
  * @brief 空流体
  *
  * 表示无流体的状态。单例模式。
- *
- * 参考: net.minecraft.fluid.EmptyFluid
  */
 class EmptyFluid : public Fluid {
 public:

@@ -34,7 +34,7 @@ BannerEntity::BannerEntity(const BlockPos& pos)
     : BlockEntity(BlockEntityType::Banner, pos)
 {}
 
-BannerEntity::~BannerEntity() = default;
+BannerEntity::~BannerEntity() noexcept = default;
 
 bool BannerEntity::addPattern(const BannerPattern& pattern)
 {

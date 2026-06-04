@@ -22,9 +22,10 @@
  */
 
 #include "WorldBorder.hpp"
-#include "../../util/math/MathUtils.hpp"
-#include "../../world/block/BlockPos.hpp"
-#include "../../world/chunk/ChunkPos.hpp"
+#include "common/core/Constants.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -59,7 +60,7 @@ public:
     void onCenterChanged(double centerX, double centerZ) override;
 
 private:
-    void updateBounds();
+    void _updateBounds();
 
     double m_size;
     double m_centerX;
@@ -93,7 +94,7 @@ public:
     void onCenterChanged(double centerX, double centerZ) override;
 
 private:
-    void updateBounds() const;
+    void _updateBounds() const;
 
     double m_oldSize;     // 起始大小
     double m_newSize;     // 目标大小
@@ -134,10 +135,10 @@ StationaryBorderState::StationaryBorderState(double size, double centerX, double
     , m_centerX(centerX)
     , m_centerZ(centerZ)
 {
-    updateBounds();
+    _updateBounds();
 }
 
-void StationaryBorderState::updateBounds()
+void StationaryBorderState::_updateBounds()
 {
     m_minX = m_centerX - m_size / 2.0;
     m_maxX = m_centerX + m_size / 2.0;
@@ -149,7 +150,7 @@ void StationaryBorderState::onCenterChanged(double centerX, double centerZ)
 {
     m_centerX = centerX;
     m_centerZ = centerZ;
-    updateBounds();
+    _updateBounds();
 }
 
 // ============================================================================
@@ -166,13 +167,13 @@ MovingBorderState::MovingBorderState(double oldSize, double newSize, u64 timeMs,
     m_startTime = now;
     m_endTime = now + timeMs;
     m_transitionTime = timeMs;
-    updateBounds();
+    _updateBounds();
 }
 
 double MovingBorderState::getMinX() const
 {
     if (m_dirty) {
-        updateBounds();
+        _updateBounds();
     }
     return m_cachedMinX;
 }
@@ -180,7 +181,7 @@ double MovingBorderState::getMinX() const
 double MovingBorderState::getMaxX() const
 {
     if (m_dirty) {
-        updateBounds();
+        _updateBounds();
     }
     return m_cachedMaxX;
 }
@@ -188,7 +189,7 @@ double MovingBorderState::getMaxX() const
 double MovingBorderState::getMinZ() const
 {
     if (m_dirty) {
-        updateBounds();
+        _updateBounds();
     }
     return m_cachedMinZ;
 }
@@ -196,7 +197,7 @@ double MovingBorderState::getMinZ() const
 double MovingBorderState::getMaxZ() const
 {
     if (m_dirty) {
-        updateBounds();
+        _updateBounds();
     }
     return m_cachedMaxZ;
 }
@@ -204,7 +205,7 @@ double MovingBorderState::getMaxZ() const
 double MovingBorderState::getSize() const
 {
     if (m_dirty) {
-        updateBounds();
+        _updateBounds();
     }
     return m_cachedSize;
 }
@@ -249,7 +250,7 @@ void MovingBorderState::onCenterChanged(double centerX, double centerZ)
     m_dirty = true;
 }
 
-void MovingBorderState::updateBounds() const
+void MovingBorderState::_updateBounds() const
 {
     // 计算当前大小（线性插值）
     u64 now = getCurrentTimeMs();
@@ -388,7 +389,7 @@ void WorldBorder::setSize(double size)
 {
     size = std::clamp(size, 1.0, MAX_SIZE);
     m_state = std::make_unique<StationaryBorderState>(size, m_centerX, m_centerZ);
-    notifySizeChanged(size);
+    _notifySizeChanged(size);
 }
 
 void WorldBorder::setSizeLerp(double oldSize, double newSize, u64 timeMs)
@@ -402,7 +403,7 @@ void WorldBorder::setSizeLerp(double oldSize, double newSize, u64 timeMs)
     }
 
     m_state = std::make_unique<MovingBorderState>(oldSize, newSize, timeMs, m_centerX, m_centerZ);
-    notifyTransitionStarted(oldSize, newSize, timeMs);
+    _notifyTransitionStarted(oldSize, newSize, timeMs);
 }
 
 void WorldBorder::setCenter(double x, double z)
@@ -410,7 +411,7 @@ void WorldBorder::setCenter(double x, double z)
     m_centerX = x;
     m_centerZ = z;
     m_state->onCenterChanged(x, z);
-    notifyCenterChanged(x, z);
+    _notifyCenterChanged(x, z);
 }
 
 // ============================================================================
@@ -436,7 +437,7 @@ bool WorldBorder::intersects(const AxisAlignedBB& box) const
 
 bool WorldBorder::intersectsChunk(i32 chunkX, i32 chunkZ) const
 {
-    constexpr double CHUNK_SIZE = 16.0;
+    constexpr double CHUNK_SIZE = static_cast<double>(world::CHUNK_WIDTH);
     double chunkMinX = static_cast<double>(chunkX) * CHUNK_SIZE;
     double chunkMinZ = static_cast<double>(chunkZ) * CHUNK_SIZE;
     double chunkMaxX = chunkMinX + CHUNK_SIZE;
@@ -544,7 +545,7 @@ void WorldBorder::deserialize(const SerializedData& data)
 // 私有方法
 // ============================================================================
 
-void WorldBorder::notifySizeChanged(double newSize)
+void WorldBorder::_notifySizeChanged(double newSize)
 {
     for (auto& weakListener : m_listeners) {
         if (auto listener = weakListener.lock()) {
@@ -553,7 +554,7 @@ void WorldBorder::notifySizeChanged(double newSize)
     }
 }
 
-void WorldBorder::notifyTransitionStarted(double oldSize, double newSize, u64 timeMs)
+void WorldBorder::_notifyTransitionStarted(double oldSize, double newSize, u64 timeMs)
 {
     for (auto& weakListener : m_listeners) {
         if (auto listener = weakListener.lock()) {
@@ -562,7 +563,7 @@ void WorldBorder::notifyTransitionStarted(double oldSize, double newSize, u64 ti
     }
 }
 
-void WorldBorder::notifyCenterChanged(double x, double z)
+void WorldBorder::_notifyCenterChanged(double x, double z)
 {
     for (auto& weakListener : m_listeners) {
         if (auto listener = weakListener.lock()) {

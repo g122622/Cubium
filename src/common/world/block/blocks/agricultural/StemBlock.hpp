@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../IGrowable.hpp"
-#include "BushBlock.hpp"
+#include "common/world/block/IGrowable.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include <array>
 #include <unordered_map>
 

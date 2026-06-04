@@ -59,8 +59,6 @@ struct SkinLoadCallbacks {
  * - 协调本地缓存、网络下载和默认皮肤
  * - 线程安全的皮肤信息访问
  *
- * 参考 MC 1.16.5 SkinManager
- *
  * 使用示例：
  * @code
  * SkinManager manager(gameDirectory.cacheDir() / "skins");
@@ -217,23 +215,23 @@ private:
     /**
      * @brief 从缓存加载皮肤
      */
-    bool loadFromCache(const SkinTextures& textures, std::shared_ptr<PlayerSkinInfo> info);
+    bool _loadFromCache(const SkinTextures& textures, std::shared_ptr<PlayerSkinInfo> info);
 
     /**
      * @brief 从 textures 属性解析并加载皮肤
      */
-    void loadFromTextures(
+    void _loadFromTextures(
         const GameProfile& profile, std::shared_ptr<PlayerSkinInfo> info, const SkinLoadCallbacks& callbacks);
 
     /**
      * @brief 使用默认皮肤
      */
-    void useDefaultSkin(std::shared_ptr<PlayerSkinInfo> info);
+    void _useDefaultSkin(std::shared_ptr<PlayerSkinInfo> info);
 
     /**
      * @brief UUID 转字符串键
      */
-    [[nodiscard]] static std::string uuidToKey(const std::array<u8, 16>& uuid);
+    [[nodiscard]] static std::string _uuidToKey(const std::array<u8, 16>& uuid);
 
     std::string m_cacheDir;
     std::unique_ptr<SkinCache> m_cache;

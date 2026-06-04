@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -42,19 +42,19 @@ public:
      * @brief 构造固定值扩散
      * @param value 固定值
      */
-    static FeatureSpread fixed(i32 value) { return FeatureSpread(value, 0); }
+    static FeatureSpread fixed(i32 value) noexcept { return FeatureSpread(value, 0); }
 
     /**
      * @brief 构造随机扩散
      * @param base 基础值
      * @param spread 扩散范围（0到spread的随机值）
      */
-    static FeatureSpread spread(i32 base, i32 spread) { return FeatureSpread(base, spread); }
+    static FeatureSpread spread(i32 base, i32 spread) noexcept { return FeatureSpread(base, spread); }
 
     /**
      * @brief 默认构造（值为0）
      */
-    FeatureSpread()
+    FeatureSpread() noexcept
         : m_base(0)
         , m_spread(0)
     {}
@@ -64,7 +64,7 @@ public:
      * @param base 基础值
      * @param spread 扩散范围
      */
-    FeatureSpread(i32 base, i32 spread)
+    FeatureSpread(i32 base, i32 spread) noexcept
         : m_base(base)
         , m_spread(spread)
     {}

@@ -22,18 +22,19 @@
  */
 
 #include "TurtleEggBlock.hpp"
-#include "../../../../core/BlockRaycastResult.hpp"
-#include "../../../../core/Types.hpp"
-#include "../../../../entity/core/EntityTypeIdNumber.hpp"
-#include "../../../../entity/entities/passive/special/TurtleEntity.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../sound/SoundCategory.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../gamerule/GameRules.hpp"
-#include "../../../lighting/InternalLightUtils.hpp"
-#include "../../BlockRegistry.hpp"
+
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/entities/passive/special/TurtleEntity.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/gamerule/GameRules.hpp"
+#include "common/world/lighting/InternalLightUtils.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -42,7 +43,6 @@ namespace blocks {
 TurtleEggBlock::TurtleEggBlock(const BlockProperties& properties)
     : Block(properties)
 {
-
     // 创建状态容器
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
@@ -61,9 +61,8 @@ TurtleEggBlock::TurtleEggBlock(const BlockProperties& properties)
     setDefaultState(
         defaultState().with(BlockStateProperties::EGGS_1_4(), 1).with(BlockStateProperties::HATCH_0_2(), 0));
 
-    // 创建各蛋数量的形状 (MC 1.16.5: box(3, 0, 3, 12, 7, 12) for 1 egg, box(1, 0, 1, 15, 7, 15) for 4)
+    // 创建各蛋数量的形状
     // 1个蛋: 3/16=0.1875, 12/16=0.75, 7/16=0.4375
-    // MC实际形状: 1 egg: (3, 0, 3, 12, 7, 12), 2 eggs: (1, 0, 3, 15, 7, 12), etc
     m_shapesByEggCount[0] = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.75f, 0.4375f, 0.75f);     // 1 egg
     m_shapesByEggCount[1] = CollisionShape::box(0.0625f, 0.0f, 0.1875f, 0.9375f, 0.4375f, 0.75f);   // 2 eggs
     m_shapesByEggCount[2] = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.4375f, 0.9375f); // 3 eggs
@@ -95,7 +94,7 @@ BlockState TurtleEggBlock::getStateForPlacement(BlockItemUseContext& context)
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
-    // MC 1.16.5: 如果放置在已有的海龟蛋上，增加蛋数量
+    // 如果放置在已有的海龟蛋上，增加蛋数量
     const BlockState* existingState = world.getBlockState(pos);
     if (existingState != nullptr && existingState->is(this)) {
         i32 currentEggs = existingState->get(BlockStateProperties::EGGS_1_4());
@@ -110,10 +109,9 @@ BlockState TurtleEggBlock::getStateForPlacement(BlockItemUseContext& context)
 
 bool TurtleEggBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-
     MC_UNUSED(state);
 
-    // MC 1.16.5: 海龟蛋只能放在沙子类方块上
+    // 海龟蛋只能放在沙子类方块上
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
 
@@ -125,53 +123,40 @@ bool TurtleEggBlock::isValidPosition(const BlockState& state, IBlockReader& worl
     return BlockTags::SAND().contains(*belowState);
 }
 
-bool TurtleEggBlock::canGrow(IWorld& world, math::IRandom& random) const
+bool TurtleEggBlock::_canGrow(IWorld& world, math::IRandom& random) const
 {
-    // MC 1.16.5 TurtleEggBlock.canGrow():
-    // float f = world.func_242415_f(1.0F);  // getCelestialAngle
-    // if ((double)f < 0.69D && (double)f > 0.65D) {
-    //     return true;  // 黎明时分（天体角度 0.65-0.69）
-    // } else {
-    //     return world.rand.nextInt(500) == 0;  // 其他时间 1/500 概率
-    // }
-    //
-    // MC 原版天体角度：
+    // 天体角度计算：
     // - 0.0 = 正午
     // - 0.25 = 日落
     // - 0.5 = 午夜
     // - 0.75 = 日出
-    //
-    // 天体角度 0.65-0.69 对应黎明时分（约 dayTime 22000-22600）
-    // 这是海龟蛋孵化的最佳时间
+    // 天体角度 0.65-0.69 对应黎明时分，这是海龟蛋孵化的最佳时间
     f32 celestialAngle = InternalLightUtils::getCelestialAngleMC(world.dayTimeOfDay());
 
     if (celestialAngle < 0.69 && celestialAngle > 0.65) {
         // 黎明时分，100% 孵化
         return true;
-    } else {
-        // 其他时间，1/500 随机概率
-        return random.nextInt(500) == 0;
     }
+    // 其他时间，1/500 随机概率
+    return random.nextInt(500) == 0;
 }
 
 void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    // MC 1.16.5: 孵化逻辑
     // 检查是否在沙子上
     IBlockReader& blockReader = static_cast<IBlockReader&>(world);
-    if (!hasProperHabitat(blockReader, pos)) {
+    if (!_hasProperHabitat(blockReader, pos)) {
         return;
     }
 
     // 检查孵化条件
-    if (!canGrow(world, random)) {
+    if (!_canGrow(world, random)) {
         return;
     }
 
     i32 hatch = getHatch(state);
     if (hatch < 2) {
         // 孵化进度增加
-        // MC 1.16.5: 播放裂开音效
         if (!world.isClientSide()) {
             world.playSound(SoundEvents::ENTITY_TURTLE_EGG_CRACK,
                 sound::SoundCategory::Blocks,
@@ -183,7 +168,6 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
         world.setBlockState(pos, &newState, 2);
     } else {
         // 孵化完成，生成海龟
-        // MC 1.16.5: 播放孵化音效
         if (!world.isClientSide()) {
             world.playSound(SoundEvents::ENTITY_TURTLE_EGG_HATCH,
                 sound::SoundCategory::Blocks,
@@ -199,26 +183,14 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
             world.setBlockState(pos, airState, 2);
         }
 
-        // MC 1.16.5: 为每个蛋生成一只小海龟
-        // 参考: TurtleEggBlock.randomTick
-        // for(int j = 0; j < state.get(EGGS); ++j) {
-        //     TurtleEntity turtleentity = EntityType.TURTLE.create(worldIn);
-        //     turtleentity.setGrowingAge(-24000);
-        //     turtleentity.setHome(pos);
-        //     turtleentity.setLocationAndAngles(
-        //         (double)pos.getX() + 0.3D + (double)j * 0.2D,
-        //         (double)pos.getY(),
-        //         (double)pos.getZ() + 0.3D,
-        //         0.0F, 0.0F);
-        //     worldIn.addEntity(turtleentity);
-        // }
+        // 为每个蛋生成一只小海龟
         for (i32 i = 0; i < eggs; ++i) {
             auto turtle = std::make_unique<TurtleEntity>(EntityId(0));
             if (turtle) {
-                // MC 1.16.5: 设置为幼体（-24000 ticks = 20分钟）
+                // 设置为幼体（-24000 ticks = 20分钟）
                 turtle->setChild(true);
 
-                // MC 1.16.5: 设置出生位置（小海龟会记住这个位置作为"家"）
+                // 设置出生位置（小海龟会记住这个位置作为"家"）
                 turtle->setHomePos(pos);
 
                 // 设置位置：多个蛋时错开位置
@@ -238,51 +210,35 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
 
 void TurtleEggBlock::onEntityWalk(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    // MC 1.16.5: 实体走过时尝试踩破蛋
-    tryTrample(world, pos, state, entity, 100);
+    // 实体走过时尝试踩破蛋
+    _tryTrample(world, pos, state, entity, 100);
 }
 
 void TurtleEggBlock::onFallenUpon(
     IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance)
 {
-
-    // MC 1.16.5: 实体摔落时尝试踩破蛋
-    // 僵尸类生物不会踩破蛋（它们会直接走过去）
     MC_UNUSED(fallDistance);
 
-    // 检查是否为僵尸类（僵尸、尸壳、溺尸等）
-    // 僵尸类不会踩破蛋
-    if (isZombieType(entity)) {
+    // 僵尸类生物不会踩破蛋（它们会直接走过去）
+    if (_isZombieType(entity)) {
         return;
     }
 
-    tryTrample(world, pos, state, entity, 3);
+    _tryTrample(world, pos, state, entity, 3);
 }
 
-bool TurtleEggBlock::hasProperHabitat(IBlockReader& world, const BlockPos& pos) const
+bool TurtleEggBlock::_hasProperHabitat(IBlockReader& world, const BlockPos& pos) const
 {
-    // MC 1.16.5: 检查下方是否为沙子
+    // 检查下方是否为沙子
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
     return belowState != nullptr && BlockTags::SAND().contains(*belowState);
 }
 
-bool TurtleEggBlock::canTrample(IWorld& world, Entity& entity) const
+bool TurtleEggBlock::_canTrample(IWorld& world, Entity& entity) const
 {
-    // MC 1.16.5: 只有玩家或满足 mobGriefing 的生物才能踩破蛋
+    // 只有玩家或满足 mobGriefing 的生物才能踩破蛋
     // 海龟和蝙蝠不能踩破蛋
-
-    // MC 1.16.5 TurtleEggBlock.canTrample():
-    // if (!(trampler instanceof TurtleEntity) && !(trampler instanceof BatEntity)) {
-    //     if (!(trampler instanceof LivingEntity)) {
-    //         return false;
-    //     } else {
-    //         return trampler instanceof PlayerEntity ||
-    //         net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(worldIn, trampler);
-    //     }
-    // } else {
-    //     return false;
-    // }
 
     // 获取实体类型
     entity::EntityTypeId type = entity.typeId();
@@ -309,11 +265,10 @@ bool TurtleEggBlock::canTrample(IWorld& world, Entity& entity) const
     return world.getGameRules().getBoolean(mc::world::gamerule::GameRuleKeys::MOB_GRIEFING);
 }
 
-void TurtleEggBlock::tryTrample(
+void TurtleEggBlock::_tryTrample(
     IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, i32 chance) const
 {
-    // MC 1.16.5: 尝试踩破蛋
-    if (!canTrample(world, entity)) {
+    if (!_canTrample(world, entity)) {
         return;
     }
 
@@ -323,12 +278,11 @@ void TurtleEggBlock::tryTrample(
     }
 
     // 踩破一个蛋
-    removeOneEgg(world, pos, state);
+    _removeOneEgg(world, pos, state);
 }
 
-void TurtleEggBlock::removeOneEgg(IWorld& world, const BlockPos& pos, const BlockState& state) const
+void TurtleEggBlock::_removeOneEgg(IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
-    // MC 1.16.5: 移除一个蛋
     // 播放破碎音效
     if (!world.isClientSide()) {
         world.playSound(SoundEvents::ENTITY_TURTLE_EGG_BREAK,
@@ -353,21 +307,14 @@ void TurtleEggBlock::removeOneEgg(IWorld& world, const BlockPos& pos, const Bloc
     }
 }
 
-bool TurtleEggBlock::isZombieType(Entity& entity) const
+bool TurtleEggBlock::_isZombieType(Entity& entity) const
 {
-    // MC 1.16.5: 检查实体是否为僵尸类
-    // 使用 instanceof ZombieEntity 检查，由于 ZombieEntity 是基类，
-    // HuskEntity、DrownedEntity 等是子类
-    // 但在当前项目中，这些是独立的实体类型，需要通过 typeId 检查
-
+    // 检查实体是否为僵尸类（僵尸、尸壳、溺尸等会踩破海龟蛋）
+    // 骷髅、流浪者、凋灵骷髅虽然是亡灵，但不是僵尸类，不会踩破蛋
     entity::EntityTypeId type = entity.typeId();
 
-    // MC 1.16.5: 只有 ZombieEntity 及其子类（Husk、Drowned）会踩破海龟蛋
-    // 注意：MC 中 ZombieVillager 也是 ZombieEntity 的子类，但当前项目中未定义
-    // Skeleton、Stray、WitherSkeleton 虽然是亡灵，但不是僵尸类，不会踩破蛋
     if (type == entity::EntityTypeIdNumber::ZOMBIE || type == entity::EntityTypeIdNumber::HUSK ||
         type == entity::EntityTypeIdNumber::DROWNED) {
-        // 僵尸及其变种会踩破海龟蛋
         return true;
     }
     return false;

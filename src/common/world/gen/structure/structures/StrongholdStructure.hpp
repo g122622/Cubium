@@ -38,13 +38,12 @@ namespace structure {
  * @brief 要塞结构
  *
  * 要塞是生成在地下的大型结构，包含末地传送门。
- * 参考 MC 1.16.5: StrongholdStructure
  *
  * 特点：
  * - 生成于地下，Y 坐标通常在 20-40
  * - 包含多个房间：图书馆、监狱、传送门房间等
  * - 有复杂的走廊连接系统
- * - 每个世界最多 65 个要塞 (MC 1.16.5)
+ * - 每个世界最多 65 个要塞
  */
 class StrongholdStructure : public Structure {
 public:
@@ -54,7 +53,7 @@ public:
     struct Config {
         i32 distance = 32; ///< 距离（环之间的距离）
         i32 spread = 3;    ///< 扩散角度
-        i32 count = 65;    ///< 最大要塞数量 (MC 1.16.5: 65)
+        i32 count = 65;    ///< 最大要塞数量
         i32 minY = 20;     ///< 最低 Y 坐标
         i32 maxY = 40;     ///< 最高 Y 坐标
     };
@@ -62,9 +61,9 @@ public:
     StrongholdStructure();
     explicit StrongholdStructure(const Config& config);
 
-    [[nodiscard]] const std::string& name() const override { return m_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
+    [[nodiscard]] const std::string& name() const noexcept override { return m_name; }
+    [[nodiscard]] StructureSeparationSettings separationSettings() const noexcept override { return m_settings; }
+    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const noexcept override { return m_validBiomes; }
 
     /**
      * @brief 检查是否可以生成
@@ -91,15 +90,15 @@ public:
      * @param index 要塞索引
      * @return 环索引 (0-7)
      */
-    [[nodiscard]] static i32 getRing(i32 index);
+    [[nodiscard]] static i32 getRing(i32 index) noexcept;
 
 private:
-    void initializeBiomes();
+    void _initializeBiomes();
 
     /**
      * @brief 使用 StrongholdPieces 生成要塞
      */
-    void generateStrongholdPieces(IWorldWriter& world,
+    void _generateStrongholdPieces(IWorldWriter& world,
         math::Random& rng,
         const BlockPos& startPos,
         std::vector<std::unique_ptr<StructurePiece>>& pieces) const;
@@ -107,13 +106,13 @@ private:
     /**
      * @brief 递归生成走廊
      */
-    void generateCorridor(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    void _generateCorridor(std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::Random& rng,
         i32 depth,
         StrongholdStartStairs* start) const;
 
     Config m_config;
-    // MC 1.16.5: 要塞使用特殊的位置计算算法，不使用标准 spacing/separation
+    // 要塞使用特殊的位置计算算法，不使用标准 spacing/separation
     // 但 Structure 基类需要这些参数，所以设置为 {1, 0, 0}
     // 实际位置由 calculateStrongholdPos() 计算
     static constexpr StructureSeparationSettings m_settings{1, 0, 0};

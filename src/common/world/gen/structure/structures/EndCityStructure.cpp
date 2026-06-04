@@ -22,6 +22,7 @@
  */
 
 #include "EndCityStructure.hpp"
+#include "../../../../core/Constants.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorldWriter.hpp"
@@ -33,7 +34,6 @@
 #include "../../jigsaw/JigsawManager.hpp"
 #include "../StructureBoundingBox.hpp"
 #include <algorithm>
-#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace world {
@@ -44,11 +44,11 @@ using namespace mc::Biomes;
 using namespace end_city;
 
 // ============================================================================
-// 常量定义 - 参考 MC 1.16.5 EndCityPieces
+// 常量定义
 // ============================================================================
 
 namespace {
-/// 塔桥连接点配置 - 参考 TOWER_BRIDGES
+/// 塔桥连接点配置
 struct BridgeAttachment {
     feature::template_::Rotation rotation;
     BlockPos offset;
@@ -61,7 +61,7 @@ const BridgeAttachment TOWER_BRIDGES[] = {
     {feature::template_::Rotation::Clockwise180, BlockPos(5, -1, 6)},
 };
 
-/// 胖塔桥连接点配置 - 参考 FAT_TOWER_BRIDGES
+/// 胖塔桥连接点配置
 const BridgeAttachment FAT_TOWER_BRIDGES[] = {
     {feature::template_::Rotation::None, BlockPos(4, -1, 0)},
     {feature::template_::Rotation::Clockwise90, BlockPos(12, -1, 4)},
@@ -94,11 +94,11 @@ bool EndCityStructure::canGenerate(IWorld& world, IChunkGenerator& generator, ma
     MC_UNUSED(rng);
 
     // 检查生物群系
-    BiomeId biome = generator.getBiome(chunkX * 16 + 8, 64, chunkZ * 16 + 8);
+    BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
     for (BiomeId valid : s_validBiomes) {
         if (biome == valid) {
             // 末地城只在高度 >= 60 的位置生成
-            return getYPosition(chunkX, chunkZ, generator) >= 60;
+            return _getYPosition(chunkX, chunkZ, generator) >= 60;
         }
     }
     return false;
@@ -110,9 +110,9 @@ std::unique_ptr<StructureStart> EndCityStructure::generate(
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 计算生成位置
-    i32 x = chunkX * 16 + 8;
-    i32 z = chunkZ * 16 + 8;
-    i32 y = getYPosition(chunkX, chunkZ, generator);
+    i32 x = chunkX * world::CHUNK_WIDTH + 8;
+    i32 z = chunkZ * world::CHUNK_WIDTH + 8;
+    i32 y = _getYPosition(chunkX, chunkZ, generator);
 
     if (y < 60) {
         return start;
@@ -121,7 +121,7 @@ std::unique_ptr<StructureStart> EndCityStructure::generate(
     // 随机旋转
     feature::template_::Rotation rotation = static_cast<feature::template_::Rotation>(rng.nextInt(4));
 
-    // MC 1.16.5: 使用递归生成器系统
+    // 使用递归生成器系统
     std::vector<std::unique_ptr<StructurePiece>> pieces;
 
     // 获取模板管理器
@@ -138,7 +138,12 @@ std::unique_ptr<StructureStart> EndCityStructure::generate(
     // 放置方块到世界
     for (const auto& piece : start->pieces()) {
         if (piece) {
-            StructureBoundingBox chunkBounds(chunkX * 16, 0, chunkZ * 16, chunkX * 16 + 15, 256, chunkZ * 16 + 15);
+            StructureBoundingBox chunkBounds(chunkX * world::CHUNK_WIDTH,
+                world::MIN_BUILD_HEIGHT,
+                chunkZ * world::CHUNK_WIDTH,
+                chunkX * world::CHUNK_WIDTH + world::CHUNK_MASK,
+                world::MAX_BUILD_HEIGHT - 1,
+                chunkZ * world::CHUNK_WIDTH + world::CHUNK_MASK);
             // 创建临时随机数生成器
             math::Random localRng(rng.nextU64());
             const_cast<StructurePiece*>(piece.get())->generate(world, localRng, chunkX, chunkZ, chunkBounds);
@@ -148,7 +153,7 @@ std::unique_ptr<StructureStart> EndCityStructure::generate(
     return start;
 }
 
-i32 EndCityStructure::getYPosition(i32 chunkX, i32 chunkZ, IChunkGenerator& generator)
+i32 EndCityStructure::_getYPosition(i32 chunkX, i32 chunkZ, IChunkGenerator& generator)
 {
     math::Random random(static_cast<i64>(chunkX + chunkZ * 10387313));
     feature::template_::Rotation rotation = static_cast<feature::template_::Rotation>(random.nextInt(4));
@@ -170,8 +175,8 @@ i32 EndCityStructure::getYPosition(i32 chunkX, i32 chunkZ, IChunkGenerator& gene
             break;
     }
 
-    i32 k = (chunkX << 4) + 7;
-    i32 l = (chunkZ << 4) + 7;
+    i32 k = (chunkX << world::CHUNK_SHIFT) + 7;
+    i32 l = (chunkZ << world::CHUNK_SHIFT) + 7;
     i32 i1 = generator.getHeight(k, l, HeightmapType::WorldSurface);
     i32 j1 = generator.getHeight(k, l + j, HeightmapType::WorldSurface);
     i32 k1 = generator.getHeight(k + i, l, HeightmapType::WorldSurface);
@@ -226,7 +231,6 @@ void CityTemplate::generate(
 
     if (!templ || templ->getBlockCount() == 0) {
         // 模板未找到，使用占位方块
-        spdlog::debug("[CityTemplate] Template not found: {}", m_templateName);
         const BlockState* endStoneBricks = VanillaBlocks::getState(VanillaBlocks::END_STONE_BRICKS);
         if (endStoneBricks) {
             for (int y = 0; y < 4; ++y) {
@@ -268,7 +272,7 @@ void CityTemplate::generate(
 
 BlockPos CityTemplate::calculateConnectedPos(const BlockPos& localPos, feature::template_::Rotation newRotation) const
 {
-    // 参考 MC Template.calculateConnectedPos
+    MC_UNUSED(newRotation);
     // 计算从当前模板的 localPos 位置，连接到新模板的偏移
 
     // 获取当前模板尺寸
@@ -337,7 +341,7 @@ bool recursiveChildren(feature::template_::TemplateManager& templateManager,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng)
 {
-    // 参考 MC 1.16.5: 最大深度为 8
+    // 最大深度为 8
     if (depth > 8) {
         return false;
     }
@@ -350,7 +354,7 @@ bool recursiveChildren(feature::template_::TemplateManager& templateManager,
         return false;
     }
 
-    // 检查碰撞 - 参考 MC recursiveChildren
+    // 检查碰撞
     i32 componentId = rng.nextInt();
     bool hasCollision = false;
 
@@ -396,7 +400,6 @@ void startHouseTower(feature::template_::TemplateManager& templateManager,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng)
 {
-    // 参考 MC 1.16.5: EndCityPieces.startHouseTower
     static HouseTowerGenerator houseTowerGen;
     static TowerGenerator towerGen;
     static TowerBridgeGenerator bridgeGen;
@@ -434,7 +437,6 @@ bool HouseTowerGenerator::generate(feature::template_::TemplateManager& template
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng)
 {
-    // 参考 MC 1.16.5: HOUSE_TOWER_GENERATOR
     if (depth > 8) {
         return false;
     }
@@ -489,7 +491,6 @@ bool TowerGenerator::generate(feature::template_::TemplateManager& templateManag
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng)
 {
-    // 参考 MC 1.16.5: TOWER_GENERATOR
     feature::template_::Rotation rotation = parent.rotation();
 
     // 放置 tower_base
@@ -555,7 +556,6 @@ bool TowerBridgeGenerator::generate(feature::template_::TemplateManager& templat
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng)
 {
-    // 参考 MC 1.16.5: TOWER_BRIDGE_GENERATOR
     feature::template_::Rotation rotation = parent.rotation();
 
     // 添加桥段
@@ -630,7 +630,6 @@ bool FatTowerGenerator::generate(feature::template_::TemplateManager& templateMa
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng)
 {
-    // 参考 MC 1.16.5: FAT_TOWER_GENERATOR
     feature::template_::Rotation rotation = parent.rotation();
 
     // 放置 fat_tower_base

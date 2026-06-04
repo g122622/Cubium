@@ -55,13 +55,17 @@ struct LakeFeatureConfig {
         , fluidState(fluid ? &fluid->defaultState() : nullptr)
         , borderState(border ? &border->defaultState() : nullptr)
     {}
+
+    LakeFeatureConfig(const LakeFeatureConfig&) = default;
+    LakeFeatureConfig(LakeFeatureConfig&&) noexcept = default;
+    LakeFeatureConfig& operator=(const LakeFeatureConfig&) = default;
+    LakeFeatureConfig& operator=(LakeFeatureConfig&&) noexcept = default;
 };
 
 /**
  * @brief 湖泊特征
  *
  * 生成湖泊或熔岩湖。
- * 参考 MC 1.16.5: net.minecraft.world.gen.feature.LakesFeature
  */
 class LakeFeature {
 public:
@@ -96,7 +100,7 @@ private:
     /**
      * @brief 检查位置是否适合生成湖泊
      */
-    [[nodiscard]] bool canPlaceAt(IWorldWriter& world, i32 x, i32 y, i32 z) const;
+    [[nodiscard]] bool _canPlaceAt(IWorldWriter& world, i32 x, i32 y, i32 z) const;
 
     LakeFeatureConfig m_config;
 };

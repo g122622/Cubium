@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../core/Result.hpp"
-#include "../../../util/nbt/Nbt.hpp"
-#include "../list/WorldListEntry.hpp"
-#include "../request/WorldRequests.hpp"
+#include "common/core/Result.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/storage/list/WorldListEntry.hpp"
+#include "common/world/storage/request/WorldRequests.hpp"
 #include <filesystem>
 #include <memory>
 #include <optional>
@@ -306,23 +306,23 @@ private:
     /**
      * @brief 从 gzip 文件读取 NBT
      */
-    static Result<std::unique_ptr<nbt::tags::compound_tag>> readGzipNbt(const std::filesystem::path& filePath);
+    static Result<std::unique_ptr<nbt::tags::compound_tag>> _readGzipNbt(const std::filesystem::path& filePath);
 
     /**
      * @brief 将 NBT 写入 gzip 文件
      */
-    static Result<void> writeGzipNbt(const std::filesystem::path& filePath, const nbt::tags::compound_tag& root);
+    static Result<void> _writeGzipNbt(const std::filesystem::path& filePath, const nbt::tags::compound_tag& root);
 
     /**
      * @brief 构建最小 level.dat NBT 结构
      */
-    static std::unique_ptr<nbt::tags::compound_tag> buildInitialNbt(
+    static std::unique_ptr<nbt::tags::compound_tag> _buildInitialNbt(
         const CreateWorldRequest& request, i64 lastPlayedMs);
 
     /**
      * @brief 原子写入：临时文件 -> level.dat_old 备份 -> 替换 level.dat
      */
-    static Result<void> atomicWrite(const std::filesystem::path& worldDir, const nbt::tags::compound_tag& root);
+    static Result<void> _atomicWrite(const std::filesystem::path& worldDir, const nbt::tags::compound_tag& root);
 
     /**
      * @brief 读取 Data 复合标签
@@ -334,44 +334,44 @@ private:
      * @param outData 输出的 Data 复合标签
      * @return 成功返回 true，失败返回错误
      */
-    static Result<void> readDataCompound(const std::filesystem::path& worldDir,
+    static Result<void> _readDataCompound(const std::filesystem::path& worldDir,
         std::unique_ptr<nbt::tags::compound_tag>& outRoot,
         nbt::tags::compound_tag*& outData);
 
     /**
      * @brief 从 NBT 解析世界类型
      */
-    static WorldType parseWorldType(const nbt::tags::compound_tag& data);
+    static WorldType _parseWorldType(const nbt::tags::compound_tag& data);
 
     /**
      * @brief 将世界类型写入 NBT
      */
-    static void writeWorldType(nbt::tags::compound_tag& data, WorldType worldType);
+    static void _writeWorldType(nbt::tags::compound_tag& data, WorldType worldType);
 
     /**
      * @brief 从 NBT 解析游戏模式
      */
-    static GameMode parseGameMode(const nbt::tags::compound_tag& data);
+    static GameMode _parseGameMode(const nbt::tags::compound_tag& data);
 
     /**
      * @brief 将游戏模式写入 NBT
      */
-    static void writeGameMode(nbt::tags::compound_tag& data, GameMode gameMode);
+    static void _writeGameMode(nbt::tags::compound_tag& data, GameMode gameMode);
 
     /**
      * @brief 从 NBT 解析难度
      */
-    static Difficulty parseDifficulty(const nbt::tags::compound_tag& data);
+    static Difficulty _parseDifficulty(const nbt::tags::compound_tag& data);
 
     /**
      * @brief 将难度写入 NBT
      */
-    static void writeDifficulty(nbt::tags::compound_tag& data, Difficulty difficulty);
+    static void _writeDifficulty(nbt::tags::compound_tag& data, Difficulty difficulty);
 
     /**
      * @brief 判断兼容性状态
      */
-    static WorldCompatibility determineCompatibility(i32 storageVersion, i32 dataVersion);
+    static WorldCompatibility _determineCompatibility(i32 storageVersion, i32 dataVersion);
 };
 
 } // namespace mc::world::storage

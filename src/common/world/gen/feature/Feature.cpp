@@ -22,9 +22,9 @@
  */
 
 #include "Feature.hpp"
-#include "../../block/BlockRegistry.hpp"
-#include "../../block/BlockTags.hpp"
-#include "../../block/VanillaBlocks.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc {
 
@@ -138,7 +138,6 @@ TagMatchRuleTest::TagMatchRuleTest(const std::string& tagName)
 bool TagMatchRuleTest::test(const BlockState& state, math::Random& random) const
 {
     (void)random;
-    // MC 1.16.5: TagMatchRuleTest.test() - state.isIn(tag)
     // 将标签名解析为 ResourceLocation 并查询 BlockTags
     ResourceLocation tagId(m_tagName);
     BlockTag* tag = BlockTags::getTag(tagId);

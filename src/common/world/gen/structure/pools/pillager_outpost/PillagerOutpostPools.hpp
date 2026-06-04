@@ -34,8 +34,6 @@ namespace pools {
 /**
  * @brief 掠夺者前哨站模板池
  *
- * 参考 MC 1.16.5: net.minecraft.world.gen.feature.structure.PillagerOutpostPieces
- *
  * 掠夺者前哨站是一个相对简单的结构，主要包括：
  * - 主塔 (base_plate)
  * - 塔楼各层

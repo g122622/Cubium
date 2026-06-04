@@ -36,7 +36,6 @@ namespace blocks {
 DragonEggBlock::DragonEggBlock(const BlockProperties& properties)
     : FallingBlock(properties)
 {
-    // 参考: net.minecraft.block.DragonEggBlock#SHAPE
     // 碰撞箱: (1/16, 0, 1/16) 到 (15/16, 1, 15/16)
     m_shape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 1.0f, 0.9375f);
 }
@@ -59,8 +58,7 @@ ActionResultType DragonEggBlock::onBlockActivated(const BlockState& state,
     MC_UNUSED(hit);
 
     // 右键点击触发传送
-    // 参考: net.minecraft.block.DragonEggBlock#onBlockActivated
-    teleport(world, pos, state);
+    _teleport(world, pos, state);
 
     // 返回 Success 表示成功处理，阻止后续操作
     return ActionResultType::Success;
@@ -71,21 +69,16 @@ void DragonEggBlock::attack(const BlockState& state, IWorld& world, const BlockP
     MC_UNUSED(player);
 
     // 左键点击也触发传送
-    // 参考: net.minecraft.block.DragonEggBlock#onBlockClicked
-    teleport(world, pos, state);
+    _teleport(world, pos, state);
 }
 
-bool DragonEggBlock::teleport(IWorld& world, const BlockPos& pos, const BlockState& state)
+bool DragonEggBlock::_teleport(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 参考: net.minecraft.block.DragonEggBlock#teleport
     // 随机寻找新位置，最多尝试 1000 次
-
     math::Random& random = world.getRandom();
 
     for (i32 attempt = 0; attempt < MAX_TELEPORT_ATTEMPTS; ++attempt) {
-        // 计算随机偏移
-        // MC 1.16.5: pos.add(world.rand.nextInt(16) - world.rand.nextInt(16), ...)
-        // 即 X/Z 范围: -15 ~ +15，Y 范围: -7 ~ +7
+        // 计算随机偏移，X/Z 范围: -15 ~ +15，Y 范围: -7 ~ +7
         i32 dx = random.nextInt(HORIZONTAL_RANGE + 1) - random.nextInt(HORIZONTAL_RANGE + 1);
         i32 dy = random.nextInt(VERTICAL_RANGE + 1) - random.nextInt(VERTICAL_RANGE + 1);
         i32 dz = random.nextInt(HORIZONTAL_RANGE + 1) - random.nextInt(HORIZONTAL_RANGE + 1);
@@ -99,15 +92,9 @@ bool DragonEggBlock::teleport(IWorld& world, const BlockPos& pos, const BlockSta
         }
 
         // 目标位置是空气，可以传送
-        // 客户端：生成粒子效果
-        // 服务端：移动方块
+        // 客户端：生成粒子效果；服务端：移动方块
         if (!world.isClientSide()) {
             // 服务端逻辑：在新位置放置龙蛋，移除原位置龙蛋
-            // 参考: net.minecraft.block.DragonEggBlock#teleport (服务端分支)
-            // world.setBlockState(targetPos, state, 2);
-            // world.removeBlock(pos, false);
-
-            // 在目标位置放置龙蛋
             world.setBlockState(targetPos, &state, 2);
 
             // 移除原位置的龙蛋（设置空气，不触发方块更新以避免递归）
@@ -117,13 +104,9 @@ bool DragonEggBlock::teleport(IWorld& world, const BlockPos& pos, const BlockSta
             }
         } else {
             // 客户端逻辑：生成传送门粒子效果
-            // 参考: net.minecraft.block.DragonEggBlock#teleport (客户端分支)
             // 在新旧位置之间生成粒子轨迹
             for (i32 j = 0; j < 128; ++j) {
                 // 粒子位置在新旧位置之间插值
-                // MC 1.16.5: MathHelper.lerp(t, target, source)
-                // 我们的 lerp(a, b, t) = a + (b - a) * t，即从 a 插值到 b
-                // 所以 lerp(targetPos, pos, t) 从目标位置插值到源位置
                 f64 t = random.nextDouble();
                 f32 velocityX = (random.nextFloat() - 0.5f) * 0.2f;
                 f32 velocityY = (random.nextFloat() - 0.5f) * 0.2f;
@@ -137,7 +120,6 @@ bool DragonEggBlock::teleport(IWorld& world, const BlockPos& pos, const BlockSta
                     (random.nextDouble() - 0.5) + 0.5;
 
                 // 生成传送门粒子效果
-                // 参考 MC 1.16.5: world.addParticle(ParticleTypes.PORTAL, d1, d2, d3, f, f1, f2)
                 world.addParticle(client::renderer::trident::particle::ParticleTypeId::Portal,
                     Vector3(static_cast<f32>(particleX), static_cast<f32>(particleY), static_cast<f32>(particleZ)),
                     Vector3(velocityX, velocityY, velocityZ));

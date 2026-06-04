@@ -80,9 +80,9 @@ public:
 
     // 拷贝和移动
     SoundEvent(const SoundEvent&) = default;
-    SoundEvent(SoundEvent&&) = default;
+    SoundEvent(SoundEvent&&) noexcept = default;
     SoundEvent& operator=(const SoundEvent&) = default;
-    SoundEvent& operator=(SoundEvent&&) = default;
+    SoundEvent& operator=(SoundEvent&&) noexcept = default;
 
     // 比较
     [[nodiscard]] bool operator==(const SoundEvent& other) const { return m_id == other.m_id; }

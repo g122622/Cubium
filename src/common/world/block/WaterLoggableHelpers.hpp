@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../util/assert/AssertAll.hpp"
-#include "../../util/property/Properties.hpp"
-#include "../IWorld.hpp"
-#include "../fluid/Fluid.hpp"
-#include "../fluid/FluidRegistry.hpp"
-#include "../fluid/FluidTags.hpp"
-#include "../tick/manager/TickManager.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/FluidTags.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace waterloggable {

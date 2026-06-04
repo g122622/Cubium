@@ -83,9 +83,6 @@ constexpr const char* PAYMENT_ITEM_KEY = "payment_item";
 
 /**
  * @brief 检查信标基座方块是否属于可用矿物方块。
- *
- * MC 1.16.5 参考: BlockTags.BEACON_BASE_BLOCKS
- * 包含: 铁块、金块、钻石块、绿宝石块、下界合金块
  */
 [[nodiscard]] bool isValidBeaconBaseBlock(const BlockState* state)
 {
@@ -187,7 +184,7 @@ void BeaconEntity::setSecondaryEffect(const EffectType* effect)
 void BeaconEntity::setPaymentItem(const ItemStack& stack)
 {
     if (!stack.isEmpty()) {
-        MC_ASSERT_RELEASE(isValidPayment(stack.getItem()->itemId()));
+        MC_ASSERT_RELEASE(_isValidPayment(stack.getItem()->itemId()));
     }
     m_paymentItem = stack;
     setChanged();
@@ -215,7 +212,7 @@ void BeaconEntity::tick(IWorld& world)
     const i32 oldLevel = m_level;
 
     if (m_tickCount % BEACON_UPDATE_INTERVAL == 0) {
-        updateLevels(world);
+        _updateLevels(world);
     }
 
     // 激活/取消激活音效
@@ -231,19 +228,18 @@ void BeaconEntity::tick(IWorld& world)
     }
 
     if (isActive() && m_tickCount % BEACON_UPDATE_INTERVAL == 0) {
-        applyEffects(world);
+        _applyEffects(world);
     }
 
-    // 激活状态下播放环境音效 (MC 1.16.5: 每80 ticks播放一次)
+    // 激活状态下播放环境音效
     if (isActive() && !world.isClientSide() && m_tickCount % BEACON_UPDATE_INTERVAL == 0) {
         world.playSound(SoundEvents::BLOCK_BEACON_AMBIENT, sound::SoundCategory::Blocks, m_pos.center(), 1.0f, 1.0f);
     }
 }
 
-void BeaconEntity::updateLevels(IWorld& world)
+void BeaconEntity::_updateLevels(IWorld& world)
 {
-    // MC 1.16.5: 金字塔检测不需要检查天空可见性
-    // 参考: BeaconTileEntity.checkBeaconLevel()
+    // 金字塔检测不需要检查天空可见性
     i32 newLevel = 0;
 
     for (i32 level = 1; level <= MAX_LEVELS; ++level) {
@@ -269,7 +265,7 @@ void BeaconEntity::updateLevels(IWorld& world)
     setLevel(newLevel);
 }
 
-bool BeaconEntity::canSeeSky(IWorld& world) const
+bool BeaconEntity::_canSeeSky(IWorld& world) const
 {
     const i32 maxY = world.getHeight(m_pos.x, m_pos.z);
     for (i32 y = m_pos.y + 1; y <= maxY; ++y) {
@@ -281,7 +277,7 @@ bool BeaconEntity::canSeeSky(IWorld& world) const
     return true;
 }
 
-void BeaconEntity::applyEffects(IWorld& world)
+void BeaconEntity::_applyEffects(IWorld& world)
 {
     if (m_level <= 0 || !m_primaryEffect.has_value()) {
         return;
@@ -311,7 +307,7 @@ void BeaconEntity::applyEffects(IWorld& world)
     }
 }
 
-bool BeaconEntity::isValidPayment(u32 itemId)
+bool BeaconEntity::_isValidPayment(u32 itemId)
 {
     if (itemId > static_cast<u32>(std::numeric_limits<ItemId>::max())) {
         return false;
@@ -356,7 +352,7 @@ bool BeaconEntity::load(const nlohmann::json& data)
         const auto paymentResult = ItemStack::fromJson(data[PAYMENT_ITEM_KEY]);
         if (paymentResult.success()) {
             const ItemStack loadedPayment = paymentResult.value();
-            if (loadedPayment.isEmpty() || isValidPayment(loadedPayment.getItem()->itemId())) {
+            if (loadedPayment.isEmpty() || _isValidPayment(loadedPayment.getItem()->itemId())) {
                 m_paymentItem = loadedPayment;
             }
         }
@@ -403,13 +399,13 @@ std::unique_ptr<BlockEntity> BeaconEntity::clone() const
     return cloned;
 }
 
-std::array<f32, 3> BeaconEntity::blendColors(const std::array<f32, 3>& current, const std::array<f32, 3>& newColor)
+std::array<f32, 3> BeaconEntity::_blendColors(const std::array<f32, 3>& current, const std::array<f32, 3>& newColor)
 {
-    // MC 1.16.5: 颜色平均混合
+    // 颜色平均混合
     return {(current[0] + newColor[0]) / 2.0f, (current[1] + newColor[1]) / 2.0f, (current[2] + newColor[2]) / 2.0f};
 }
 
-void BeaconEntity::updateBeamSegments(IWorld& world)
+void BeaconEntity::_updateBeamSegments(IWorld& world)
 {
     m_beamSegments.clear();
 
@@ -418,7 +414,6 @@ void BeaconEntity::updateBeamSegments(IWorld& world)
     }
 
     // 遍历光束经过的方块
-    // 参考 MC 1.16.5 BeaconTileEntity.tick() 中的光束段计算
     BeaconBeamSegment* currentSegment = nullptr;
 
     // 从信标上方开始遍历，直到世界顶部
@@ -449,7 +444,6 @@ void BeaconEntity::updateBeamSegments(IWorld& world)
         }
 
         // 从方块获取信标光束颜色
-        // 参考 MC 1.16.5: Block.getBeaconColorMultiplier() / IBeaconBeamColorProvider
         const std::array<f32, 3>* blockColorPtr = block->getBeaconColorMultiplier(*state, &world, &checkPos, &m_pos);
 
         if (blockColorPtr == nullptr) {
@@ -480,7 +474,7 @@ void BeaconEntity::updateBeamSegments(IWorld& world)
                     currentSegment->incrementHeight();
                 } else {
                     // 颜色不同，创建新段（颜色混合）
-                    std::array<f32, 3> blendedColor = blendColors(currentSegment->colors, blockColor);
+                    std::array<f32, 3> blendedColor = _blendColors(currentSegment->colors, blockColor);
                     m_beamSegments.emplace_back(blendedColor);
                     currentSegment = &m_beamSegments.back();
                 }

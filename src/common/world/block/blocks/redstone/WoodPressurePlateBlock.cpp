@@ -22,11 +22,12 @@
  */
 
 #include "WoodPressurePlateBlock.hpp"
-#include "../../../../entity/core/Entity.hpp"
-#include "../../../../sound/SoundCategory.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/AxisAlignedBB.hpp"
-#include "../../../IWorld.hpp"
+
+#include "common/entity/core/Entity.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace blocks {
@@ -73,7 +74,6 @@ i32 WoodPressurePlateBlock::getTickDelay(i32 oldSignal, i32 newSignal) const
 
 void WoodPressurePlateBlock::playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const
 {
-    // MC 1.16.5: 木压力板点击音效
     if (!world.isClientSide()) {
         world.playSound(pressed ? SoundEvents::BLOCK_WOODEN_PRESSURE_PLATE_CLICK_ON
                                 : SoundEvents::BLOCK_WOODEN_PRESSURE_PLATE_CLICK_OFF,

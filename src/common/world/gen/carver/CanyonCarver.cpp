@@ -36,14 +36,13 @@ namespace mc {
 
 CanyonCarver::CanyonCarver(i32 maxHeight)
     : WorldCarver<ProbabilityConfig>(maxHeight)
-    , m_heightThresholds(1024, 1.0f) // MC 原版大小是 1024
+    , m_heightThresholds(HEIGHT_THRESHOLD_TABLE_SIZE, 1.0f)
 {
-    initializeHeightThresholds();
+    _initializeHeightThresholds();
 }
 
-void CanyonCarver::initializeHeightThresholds()
+void CanyonCarver::_initializeHeightThresholds()
 {
-    // 参考 MC CanyonWorldCarver 构造函数
     // 为每个高度预计算半径变化因子
     math::Random rng(0); // 使用固定种子生成确定性阈值
 
@@ -75,7 +74,6 @@ bool CanyonCarver::carve(ChunkPrimer& chunk,
     CarvingMask& carvingMask,
     const ProbabilityConfig& config)
 {
-    // 参考 MC CanyonWorldCarver.carveRegion
     math::Random rng(static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL +
         static_cast<u64>(m_maxHeight) + 1);
 
@@ -83,28 +81,25 @@ bool CanyonCarver::carve(ChunkPrimer& chunk,
         return false;
     }
 
-    const i32 tunnelLength = (getRange() * 2 - 1) * 16;
-    const i32 startX = chunkX << 4;
-    const i32 startZ = chunkZ << 4;
+    const i32 tunnelLength = (getRange() * 2 - 1) * world::CHUNK_WIDTH;
+    const i32 startX = world::toWorldCoord(chunkX);
+    const i32 startZ = world::toWorldCoord(chunkZ);
 
     // 峡谷起点
-    // 参考 MC: double d1 = (double)(rand.nextInt(rand.nextInt(40) + 8) + 20);
-    const f32 canyonX = static_cast<f32>(startX) + rng.nextFloat(0.0f, 16.0f);
+    const f32 canyonX = static_cast<f32>(startX) + rng.nextFloat(0.0f, static_cast<f32>(world::CHUNK_WIDTH));
     const f32 canyonY = static_cast<f32>(rng.nextInt(rng.nextInt(40) + 8) + 20);
-    const f32 canyonZ = static_cast<f32>(startZ) + rng.nextFloat(0.0f, 16.0f);
+    const f32 canyonZ = static_cast<f32>(startZ) + rng.nextFloat(0.0f, static_cast<f32>(world::CHUNK_WIDTH));
 
     // 峡谷方向和尺寸
     const f32 yaw = rng.nextFloat(0.0f, math::TWO_PI);
-    // 参考 MC: float f1 = (rand.nextFloat() - 0.5F) * 2.0F / 8.0F;
     const f32 pitch = (rng.nextFloat() - 0.5f) * 2.0f / 8.0f;
-    // 参考 MC: float f2 = (rand.nextFloat() * 2.0F + rand.nextFloat()) * 2.0F;
     const f32 radius = (rng.nextFloat() * 2.0f + rng.nextFloat()) * 2.0f;
 
     // 峡谷长度
     const i32 length = tunnelLength - rng.nextInt(tunnelLength / 4 + 1);
 
     // 生成蜿蜒峡谷
-    generateCanyon(chunk,
+    _generateCanyon(chunk,
         biomeProvider,
         seaLevel,
         chunkX,
@@ -126,8 +121,6 @@ bool CanyonCarver::carve(ChunkPrimer& chunk,
 
 bool CanyonCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const
 {
-    // 参考 MC CanyonWorldCarver.func_222708_a_
-    // return (dx * dx + dz * dz) * this.field_202536_i[y - 1] + dy * dy / 6.0D >= 1.0D;
     // 峡谷使用特殊的厚度检测：考虑Y坐标的半径变化
 
     // 如果 y <= 0 或超出阈值表范围，使用标准检测
@@ -136,12 +129,11 @@ bool CanyonCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) co
     }
 
     // 使用预计算的阈值
-    // 注意：MC 使用 y - 1 作为索引
     const f32 threshold = m_heightThresholds[static_cast<size_t>(y - 1)];
     return (dx * dx + dz * dz) * threshold + dy * dy / 6.0f >= 1.0f;
 }
 
-void CanyonCarver::generateCanyon(ChunkPrimer& chunk,
+void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
     const BiomeProvider& biomeProvider,
     i32 seaLevel,
     ChunkCoord chunkX,
@@ -158,10 +150,9 @@ void CanyonCarver::generateCanyon(ChunkPrimer& chunk,
     f32 horizontalScale,
     CarvingMask& carvingMask)
 {
-    // 参考 MC CanyonWorldCarver.func_227204_a_
     math::Random rng(static_cast<u64>(seed));
 
-    // 重新初始化高度阈值（MC 每次生成时都重新计算）
+    // 重新初始化高度阈值
     std::vector<f32> heightThresholds(world::MAX_BUILD_HEIGHT);
     f32 currentThreshold = 1.0f;
     for (i32 i = 0; i < world::MAX_BUILD_HEIGHT; ++i) {
@@ -177,47 +168,33 @@ void CanyonCarver::generateCanyon(ChunkPrimer& chunk,
 
     for (i32 i = startIndex; i < endIndex; ++i) {
         // 计算当前半径（正弦曲线变化）
-        // 参考 MC: double d0 = 1.5D + (double)(MathHelper.sin((float)j * (float)Math.PI / (float)p_227204_18_) *
-        // p_227204_14_) * d0;
         const f32 progress = static_cast<f32>(i) / static_cast<f32>(endIndex);
         const f32 sinProgress = std::sin(progress * math::PI);
         f32 horizontalRadius = radius * sinProgress;
         f32 verticalRadius = horizontalRadius * horizontalScale;
 
-        // 添加随机变化（参考MC）
+        // 添加随机变化
         horizontalRadius *= rng.nextFloat() * 0.25f + 0.75f;
         verticalRadius *= rng.nextFloat() * 0.25f + 0.75f;
 
-        // 更新位置（参考MC的方向计算）
-        // float f2 = MathHelper.cos(p_227204_16_);
-        // randOffsetXCoord += (double)(MathHelper.cos(pitch) * f2);
-        // startY += (double)MathHelper.sin(p_227204_16_);
-        // randOffsetZCoord += (double)(MathHelper.sin(pitch) * f2);
+        // 更新位置
         const f32 cosPitch = std::cos(pitch);
         startX += std::cos(yaw) * cosPitch;
         startY += std::sin(pitch);
         startZ += std::sin(yaw) * cosPitch;
 
-        // 更新角度（参考MC的衰减和扰动顺序）
-        // p_227204_16_ = p_227204_16_ * 0.7F;
-        // p_227204_16_ = p_227204_16_ + f1 * 0.05F;
-        // pitch += f * 0.1F;
+        // 更新角度
         pitch *= 0.7f;
         pitch += pitchModifier * 0.05f;
         yaw += yawModifier * 0.05f;
 
         // 衰减和随机扰动
-        // f1 = f1 * 0.8F;
-        // f = f * 0.5F;
-        // f1 = f1 + (random.nextFloat() - random.nextFloat()) * random.nextFloat() * 2.0F;
-        // f = f + (random.nextFloat() - random.nextFloat()) * random.nextFloat() * 4.0F;
         pitchModifier *= 0.8f;
         yawModifier *= 0.5f;
         pitchModifier += (rng.nextFloat() - rng.nextFloat()) * rng.nextFloat() * 2.0f;
         yawModifier += (rng.nextFloat() - rng.nextFloat()) * rng.nextFloat() * 4.0f;
 
-        // 随机跳过一些点（每4步跳过1次）
-        // MC: if (random.nextInt(4) != 0) { ... }
+        // 随机跳过一些点
         if (rng.nextInt(4) == 0) {
             continue;
         }
@@ -240,7 +217,7 @@ void CanyonCarver::generateCanyon(ChunkPrimer& chunk,
     }
 }
 
-f32 CanyonCarver::updateRadius(f32 baseRadius, f32 progress, const std::vector<f32>& thresholds, i32 index) const
+f32 CanyonCarver::_updateRadius(f32 baseRadius, f32 progress, const std::vector<f32>& thresholds, i32 index) const
 {
     // 峡谷入口较宽，深处较窄
     const f32 factor = 1.0f - progress * 0.3f;

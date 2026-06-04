@@ -22,15 +22,16 @@
  */
 
 #include "FortressStructure.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../../biome/Biome.hpp"
-#include "../../../biome/Biomes.hpp"
-#include "../../../block/BlockPos.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../jigsaw/JigsawManager.hpp"
-#include "../../jigsaw/JigsawPattern.hpp"
-#include "../StructureBoundingBox.hpp"
+#include "common/core/Constants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/Biomes.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/jigsaw/JigsawManager.hpp"
+#include "common/world/gen/jigsaw/JigsawPattern.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <cmath>
 
 namespace mc {
@@ -45,17 +46,17 @@ const std::string FortressStructure::m_name = "fortress";
 FortressStructure::FortressStructure()
     : Structure(StructureType::Fortress)
 {
-    initializeBiomes();
+    _initializeBiomes();
 }
 
 FortressStructure::FortressStructure(const Config& config)
     : Structure(StructureType::Fortress)
     , m_config(config)
 {
-    initializeBiomes();
+    _initializeBiomes();
 }
 
-void FortressStructure::initializeBiomes()
+void FortressStructure::_initializeBiomes()
 {
     // 下界要塞只生成在下界荒地和灵魂沙谷
     m_validBiomes = {
@@ -67,11 +68,10 @@ void FortressStructure::initializeBiomes()
 bool FortressStructure::canGenerate(
     IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
-    // MC 1.16.5: 下界要塞只检查概率，不检查生物群系
+    // 下界要塞只检查概率，不检查生物群系
     // 生物群系检查由维度的 BiomeGenerationSettings 决定
-    // 参考: FortressStructure.func_230363_a_ -> 只调用 rng.nextInt(5) < 2
 
-    // 40% 概率生成 (参考 MC: nextInt(5) < 2)
+    // 40% 概率生成
     return rng.nextInt(5) < 2;
 }
 
@@ -81,10 +81,10 @@ std::unique_ptr<StructureStart> FortressStructure::generate(
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 计算起始位置
-    i32 startX = chunkX * 16 + 2;
-    i32 startZ = chunkZ * 16 + 2;
+    i32 startX = chunkX * world::CHUNK_WIDTH + 2;
+    i32 startZ = chunkZ * world::CHUNK_WIDTH + 2;
 
-    // Y 坐标在 64-128 之间随机选择
+    // Y 坐标在配置范围内随机选择
     i32 startY = m_config.minY + rng.nextInt(m_config.maxY - m_config.minY);
 
     BlockPos startPos(startX, startY, startZ);
@@ -104,13 +104,14 @@ std::unique_ptr<StructureStart> FortressStructure::generate(
             rng);
     } else {
         // 回退：生成简单的要塞结构
-        generateFallbackFortress(world, rng, startPos);
+        _generateFallbackFortress(world, rng, startPos);
     }
 
     return start;
 }
 
-void FortressStructure::generateFallbackFortress(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const
+void FortressStructure::_generateFallbackFortress(
+    IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const
 {
     // 获取方块状态
     const BlockState* netherBricks = VanillaBlocks::getState(VanillaBlocks::NETHERRACK); // 使用下界岩替代

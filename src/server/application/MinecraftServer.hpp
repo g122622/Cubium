@@ -109,6 +109,10 @@ public:
      */
     ~MinecraftServer() override;
 
+    // 移动操作
+    MinecraftServer(MinecraftServer&&) noexcept = default;
+    MinecraftServer& operator=(MinecraftServer&&) noexcept = default;
+
     // 禁止拷贝
     MinecraftServer(const MinecraftServer&) = delete;
     MinecraftServer& operator=(const MinecraftServer&) = delete;
@@ -765,13 +769,11 @@ protected:
     /**
      * @brief 广播爆炸事件给范围内玩家
      *
-     * 参考 MC 1.16.5: 发送给爆炸点 64 格范围内的玩家
-     *
      * @param position 爆炸位置
      * @param strength 爆炸威力（半径）
      * @param affectedBlocks 受影响的方块列表
      * @param playerKnockback 玩家击退映射（玩家ID -> 击退向量）
-     * @param range 广播范围（格），默认 64.0f（与 MC 1.16.5 一致）
+     * @param range 广播范围（格），默认 64.0f
      */
     void broadcastExplosionInRange(const Vector3& position,
         f32 strength,

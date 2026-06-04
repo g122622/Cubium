@@ -60,8 +60,6 @@ std::unique_ptr<IAreaFactory> repeatZoom(u64 seed,
 /**
  * @brief 构建主世界层链
  *
- * 参考 MC 1.16.5 LayerUtil.func_237216_a_
- *
  * @param seed 世界种子
  * @param legacyBiomeInit 是否使用旧版生物群系初始化
  * @param largeBiomes 是否使用大型生物群系
@@ -146,7 +144,6 @@ private:
  * @brief 基于层的生物群系提供者
  *
  * 使用 Layer 系统生成生物群系。
- * 参考 MC 1.16.5 OverworldBiomeProvider
  */
 class LayerBiomeProvider : public BiomeProvider {
 public:

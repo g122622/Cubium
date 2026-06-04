@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/AxisAlignedBB.hpp"
-#include "../../util/Direction.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../../world/block/BlockPos.hpp"
-#include "BooleanOp.hpp"
-#include "DiscreteVoxelShape.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/shape/BooleanOp.hpp"
+#include "common/physics/shape/DiscreteVoxelShape.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
 #include <optional>
 #include <vector>
@@ -61,8 +61,6 @@ struct BlockHitResult {
  *
  * 表示一个3D形状，由离散体素网格和坐标点列表组成。
  * 支持形状运算（并集、交集、差集）和碰撞检测。
- *
- * 参考MC VoxelShape。
  *
  * 关键概念：
  * - DiscreteVoxelShape: 离散的体素占用网格
@@ -174,7 +172,7 @@ public:
      * @brief 计算面形状
      */
 private:
-    [[nodiscard]] VoxelShape calculateFace(Direction dir) const;
+    [[nodiscard]] VoxelShape _calculateFace(Direction dir) const;
 
 public:
     /**
@@ -253,7 +251,7 @@ public:
      * @brief 检查点是否在形状内部
      * @param x, y, z 点坐标（方块本地坐标，0-1范围）
      * @return 点是否在形状内部
-     * @note 使用半开区间 [min, max)，与MC 1.16.5对齐
+     * @note 使用半开区间 [min, max)
      */
     [[nodiscard]] bool contains(f64 x, f64 y, f64 z) const;
 
@@ -271,13 +269,13 @@ protected:
     mutable std::unique_ptr<VoxelShape[]> m_faces;
 
     // 碰撞检测内部方法
-    [[nodiscard]] f64 collideX(AxisCycle cycle, const AxisAlignedBB& entityBox, f64 movement) const;
+    [[nodiscard]] f64 _collideX(AxisCycle cycle, const AxisAlignedBB& entityBox, f64 movement) const;
 
     // 检查形状点列表是否匹配立方体
-    [[nodiscard]] bool isCubePointRange(Axis axis) const;
+    [[nodiscard]] bool _isCubePointRange(Axis axis) const;
 
     // 初始化面形状缓存
-    void initFaceCache() const;
+    void _initFaceCache() const;
 };
 
 } // namespace mc

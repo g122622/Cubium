@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 
@@ -46,8 +46,6 @@ namespace blocks {
  * 挖掘后会变成水源方块。
  *
  * MC ID: minecraft:ice
- *
- * 参考 MC 1.16.5 IceBlock
  */
 class IceBlock : public Block {
 public:
@@ -81,8 +79,6 @@ public:
  * 挖掘后会掉落自身（使用精准采集）或什么都不掉落。
  *
  * MC ID: minecraft:packed_ice
- *
- * 参考 MC 1.16.5 PackedIceBlock
  */
 class PackedIceBlock : public Block {
 public:
@@ -99,8 +95,6 @@ public:
  * 可以用浮冰合成，不会融化。
  *
  * MC ID: minecraft:blue_ice
- *
- * 参考 MC 1.16.5 BlueIceBlock
  */
 class BlueIceBlock : public Block {
 public:
@@ -117,8 +111,6 @@ public:
  * 有 AGE 属性（0-3），随着时间推移会逐渐融化成水。
  *
  * MC ID: minecraft:frosted_ice
- *
- * 参考 MC 1.16.5 FrostedIceBlock
  */
 class FrostedIceBlock : public Block {
 public:
@@ -173,7 +165,7 @@ private:
      * @param neighborsRequired 需要的霜冰邻居数量
      * @return true 如果应该融化
      */
-    [[nodiscard]] bool shouldMelt(IBlockReader& world, const BlockPos& pos, i32 neighborsRequired) const;
+    [[nodiscard]] bool _shouldMelt(IBlockReader& world, const BlockPos& pos, i32 neighborsRequired) const;
 
     /**
      * @brief 稍微融化（增加 AGE 或变成水）
@@ -183,7 +175,7 @@ private:
      * @param state 当前状态
      * @return true 如果完全融化成水
      */
-    bool slightlyMelt(IWorld& world, const BlockPos& pos, BlockState& state);
+    bool _slightlyMelt(IWorld& world, const BlockPos& pos, BlockState& state);
 };
 
 } // namespace blocks

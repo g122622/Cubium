@@ -745,7 +745,10 @@ public:
      * @param block 方块指针（可能为 nullptr）
      * @return 方块默认状态指针，如果方块为空则返回 nullptr
      */
-    [[nodiscard]] static const BlockState* getState(Block* block) { return block ? &block->defaultState() : nullptr; }
+    [[nodiscard]] static const BlockState* getState(Block* block) noexcept
+    {
+        return block ? &block->defaultState() : nullptr;
+    }
 
 private:
     static bool s_initialized;

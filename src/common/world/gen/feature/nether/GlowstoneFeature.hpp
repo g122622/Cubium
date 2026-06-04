@@ -23,17 +23,16 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/Feature.hpp"
 #include <memory>
-#include "../ConfiguredFeature.hpp"
-#include "../Feature.hpp"
 #include <vector>
 
 namespace mc {
 
 /**
  * @brief 萤石簇特征配置
- *
- * 参考 MC GlowstoneFeature
  */
 struct GlowstoneFeatureConfig : public IFeatureConfig {
     /// 萤石簇的最大延伸距离
@@ -58,7 +57,6 @@ struct GlowstoneFeatureConfig : public IFeatureConfig {
  * @brief 萤石簇特征
  *
  * 在下界天花板生成萤石簇。
- * 参考 MC GlowstoneFeature
  */
 class GlowstoneFeature {
 public:
@@ -76,13 +74,13 @@ private:
     /**
      * @brief 从起点向指定方向延伸萤石
      */
-    void growBranch(
+    void _growBranch(
         WorldGenRegion& world, math::Random& random, const BlockPos& start, i32 dx, i32 dy, i32 dz, i32 length);
 
     /**
      * @brief 检查位置是否可以放置萤石
      */
-    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
 };
 
 /**

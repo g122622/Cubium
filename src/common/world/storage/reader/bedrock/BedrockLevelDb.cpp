@@ -30,11 +30,25 @@
 
 namespace mc::world::storage::reader::bedrock {
 
-BedrockLevelDb::BedrockLevelDb() = default;
-
 BedrockLevelDb::~BedrockLevelDb()
 {
     close();
+}
+
+BedrockLevelDb::BedrockLevelDb(BedrockLevelDb&& other) noexcept
+    : m_db(other.m_db)
+{
+    other.m_db = nullptr;
+}
+
+BedrockLevelDb& BedrockLevelDb::operator=(BedrockLevelDb&& other) noexcept
+{
+    if (this != &other) {
+        close();
+        m_db = other.m_db;
+        other.m_db = nullptr;
+    }
+    return *this;
 }
 
 Result<void> BedrockLevelDb::open(const std::filesystem::path& dbPath)
@@ -57,7 +71,6 @@ Result<void> BedrockLevelDb::open(const std::filesystem::path& dbPath)
     }
 
     m_db = db;
-    m_readonly = true;
 
     spdlog::info("BedrockLevelDb: Opened database at {}", dbPath.string());
     return {};
@@ -131,12 +144,14 @@ Result<void> BedrockLevelDb::iteratePrefix(const std::vector<u8>& prefix, KeyCal
         iter->Next();
     }
 
-    if (!iter->status().ok()) {
-        delete iter;
-        return Error(ErrorCode::ChunkLoadFailed, fmt::format("LevelDB iteration error: {}", iter->status().ToString()));
+    // 检查迭代错误
+    leveldb::Status iterStatus = iter->status();
+    delete iter;
+
+    if (!iterStatus.ok()) {
+        return Error(ErrorCode::ChunkLoadFailed, fmt::format("LevelDB iteration error: {}", iterStatus.ToString()));
     }
 
-    delete iter;
     return {};
 }
 

@@ -351,9 +351,9 @@ bool DiscreteVoxelShape::isXZRectangleFull(i32 fromX, i32 toX, i32 fromZ, i32 to
 
 void DiscreteVoxelShape::forAllEdges(const IntLineConsumer& consumer, bool simplify)
 {
-    forAllAxisEdges(consumer, AxisCycle::NONE, simplify);
-    forAllAxisEdges(consumer, AxisCycle::FORWARD, simplify);
-    forAllAxisEdges(consumer, AxisCycle::BACKWARD, simplify);
+    _forAllAxisEdges(consumer, AxisCycle::NONE, simplify);
+    _forAllAxisEdges(consumer, AxisCycle::FORWARD, simplify);
+    _forAllAxisEdges(consumer, AxisCycle::BACKWARD, simplify);
 }
 
 void DiscreteVoxelShape::forAllBoxes(const IntLineConsumer& consumer, bool simplify)
@@ -378,7 +378,6 @@ void DiscreteVoxelShape::forAllBoxes(const IntLineConsumer& consumer, bool simpl
     }
 
     // 合并模式：贪心算法合并相邻体素
-    // 参考 MC 1.16.5 BitSetDiscreteVoxelShape.forEachBox
     // 算法：沿Z轴扫描连续填充段，然后向X/Y方向扩展形成最大盒子
 
     // 创建可修改的副本
@@ -449,9 +448,9 @@ void DiscreteVoxelShape::forAllBoxes(const IntLineConsumer& consumer, bool simpl
 
 void DiscreteVoxelShape::forAllFaces(const IntFaceConsumer& consumer)
 {
-    forAllAxisFaces(consumer, AxisCycle::NONE);
-    forAllAxisFaces(consumer, AxisCycle::FORWARD);
-    forAllAxisFaces(consumer, AxisCycle::BACKWARD);
+    _forAllAxisFaces(consumer, AxisCycle::NONE);
+    _forAllAxisFaces(consumer, AxisCycle::FORWARD);
+    _forAllAxisFaces(consumer, AxisCycle::BACKWARD);
 }
 
 // ============================================================================
@@ -557,7 +556,7 @@ void DiscreteVoxelShape::recalculateBounds() const
     m_boundsDirty = false;
 }
 
-void DiscreteVoxelShape::forAllAxisEdges(const IntLineConsumer& consumer, AxisCycle cycle, bool simplify)
+void DiscreteVoxelShape::_forAllAxisEdges(const IntLineConsumer& consumer, AxisCycle cycle, bool simplify)
 {
     const AxisCycle invCycle = AxisCycles::inverse(cycle);
     const i32 jSize = getSize(AxisCycles::cycle(invCycle, Axis::X));
@@ -609,7 +608,7 @@ void DiscreteVoxelShape::forAllAxisEdges(const IntLineConsumer& consumer, AxisCy
     }
 }
 
-void DiscreteVoxelShape::forAllAxisFaces(const IntFaceConsumer& consumer, AxisCycle cycle)
+void DiscreteVoxelShape::_forAllAxisFaces(const IntFaceConsumer& consumer, AxisCycle cycle)
 {
     const AxisCycle invCycle = AxisCycles::inverse(cycle);
     const Axis zAxis = AxisCycles::cycle(invCycle, Axis::Z);

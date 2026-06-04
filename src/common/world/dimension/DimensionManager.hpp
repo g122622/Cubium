@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Result.hpp"
 #include "Dimension.hpp"
+#include "common/core/Result.hpp"
 #include <functional>
 #include <memory>
 #include <unordered_map>
@@ -51,22 +51,19 @@ namespace mc {
  *     // 处理每个维度
  * });
  * @endcode
- *
- * @note 参考 MC 1.16.5 的维度注册表概念
  */
 class DimensionManager {
 public:
     // ========== 维度ID常量 ==========
-    // 参考 MC 1.16.5 DimensionType.func_236025_a_
     // 主世界 = 0，下界 = -1 (存档目录 DIM-1)，末地 = 1 (存档目录 DIM1)
 
     /// 主世界维度ID
     static constexpr DimensionId OVERWORLD = 0;
 
-    /// 下界维度ID (MC 1.16.5 使用 -1)
+    /// 下界维度ID
     static constexpr DimensionId NETHER = -1;
 
-    /// 末地维度ID (MC 1.16.5 使用 1)
+    /// 末地维度ID
     static constexpr DimensionId THE_END = 1;
 
     // ========== 构造与析构 ==========

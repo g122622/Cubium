@@ -31,7 +31,6 @@ namespace mc::scoreboard {
  * @brief 死亡计数判据
  *
  * 当玩家死亡时自动增加分数。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScoreCriteria.DEATH_COUNT
  */
 class DeathCountCriteria : public ScoreCriteria {
 public:

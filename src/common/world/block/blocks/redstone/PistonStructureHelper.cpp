@@ -22,13 +22,13 @@
  */
 
 #include "PistonStructureHelper.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../IWorld.hpp"
-#include "../../Block.hpp"
-#include "../../BlockPos.hpp"
-#include "../../Material.hpp"
-#include "../../VanillaBlocks.hpp"
-#include "PistonBlock.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/blocks/redstone/PistonBlock.hpp"
 
 namespace mc {
 namespace blocks {
@@ -53,7 +53,7 @@ bool PistonStructureHelper::canMove()
         return false;
     }
 
-    // MC 1.16.5: 检查起始方块是否可以被推动
+    // 检查起始方块是否可以被推动
     if (!PistonBlock::canPush(*blockState, m_world, m_blockToMove, m_moveDirection, false, m_facing)) {
         // 如果是伸出且方块会被破坏，则可以推动
         if (m_extending && blockState->getMaterial().getPushReaction() == Material::PushReaction::Destroy) {
@@ -64,7 +64,7 @@ bool PistonStructureHelper::canMove()
     }
 
     // 添加方块线
-    if (!addBlockLine(m_blockToMove, m_moveDirection)) {
+    if (!_addBlockLine(m_blockToMove, m_moveDirection)) {
         return false;
     }
 
@@ -73,7 +73,7 @@ bool PistonStructureHelper::canMove()
         const BlockPos& blockPos = m_toMove[i];
         const BlockState* state = m_world.getBlockState(blockPos);
         if (state && state->isStickyBlock()) {
-            if (!addBranchingBlocks(blockPos)) {
+            if (!_addBranchingBlocks(blockPos)) {
                 return false;
             }
         }
@@ -82,7 +82,7 @@ bool PistonStructureHelper::canMove()
     return true;
 }
 
-bool PistonStructureHelper::addBlockLine(const BlockPos& origin, Direction facingIn)
+bool PistonStructureHelper::_addBlockLine(const BlockPos& origin, Direction facingIn)
 {
     const BlockState* blockState = m_world.getBlockState(origin);
 
@@ -114,7 +114,7 @@ bool PistonStructureHelper::addBlockLine(const BlockPos& origin, Direction facin
         return false;
     }
 
-    // MC 1.16.5: 检查粘性方块链
+    // 检查粘性方块链
     // 沿着推动反方向查找连续的粘性方块
     while (blockState && blockState->isStickyBlock()) {
         BlockPos prevPos = origin.offset(Directions::opposite(m_moveDirection), count);
@@ -170,14 +170,14 @@ bool PistonStructureHelper::addBlockLine(const BlockPos& origin, Direction facin
 
         if (existingIndex > -1) {
             // 碰撞到已有的方块，重新排序
-            reorderListAtCollision(movedBlocks, existingIndex);
+            _reorderListAtCollision(movedBlocks, existingIndex);
 
             // 检查所有涉及的粘性方块
             for (i32 i = 0; i <= existingIndex + movedBlocks; ++i) {
                 const BlockPos& blockPos = m_toMove[i];
                 const BlockState* state = m_world.getBlockState(blockPos);
                 if (state && state->isStickyBlock()) {
-                    if (!addBranchingBlocks(blockPos)) {
+                    if (!_addBranchingBlocks(blockPos)) {
                         return false;
                     }
                 }
@@ -220,9 +220,8 @@ bool PistonStructureHelper::addBlockLine(const BlockPos& origin, Direction facin
     }
 }
 
-void PistonStructureHelper::reorderListAtCollision(i32 p1, i32 p2)
+void PistonStructureHelper::_reorderListAtCollision(i32 p1, i32 p2)
 {
-    // MC 1.16.5: reorderListAtCollision
     // 将移动列表分成三部分并重新排序
     std::vector<BlockPos> list1; // 前半部分
     std::vector<BlockPos> list2; // 新添加的部分
@@ -253,7 +252,7 @@ void PistonStructureHelper::reorderListAtCollision(i32 p1, i32 p2)
     m_toMove.insert(m_toMove.end(), list3.begin(), list3.end());
 }
 
-bool PistonStructureHelper::addBranchingBlocks(const BlockPos& fromPos)
+bool PistonStructureHelper::_addBranchingBlocks(const BlockPos& fromPos)
 {
     const BlockState* blockState = m_world.getBlockState(fromPos);
     if (!blockState) {
@@ -270,7 +269,7 @@ bool PistonStructureHelper::addBranchingBlocks(const BlockPos& fromPos)
         const BlockState* neighborState = m_world.getBlockState(neighborPos);
 
         if (neighborState && neighborState->canStickTo(*blockState)) {
-            if (!addBlockLine(neighborPos, dir)) {
+            if (!_addBlockLine(neighborPos, dir)) {
                 return false;
             }
         }

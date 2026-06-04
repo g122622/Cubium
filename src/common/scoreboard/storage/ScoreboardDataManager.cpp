@@ -22,10 +22,10 @@
  */
 
 #include "ScoreboardDataManager.hpp"
-#include "../../util/nbt/Nbt.hpp"
-#include "../../world/storage/SingleLevelStorageManager.hpp"
-#include "../../world/storage/db/ColumnFamilies.hpp"
-#include "../../world/storage/db/RocksDBDatabase.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/storage/SingleLevelStorageManager.hpp"
+#include "common/world/storage/db/ColumnFamilies.hpp"
+#include "common/world/storage/db/RocksDBDatabase.hpp"
 #include <sstream>
 #include <spdlog/spdlog.h>
 
@@ -109,7 +109,7 @@ ScoreboardDataManager::ScoreboardDataManager(world::storage::SingleLevelStorageM
     : m_storage(storage)
 {}
 
-ScoreboardDataManager::~ScoreboardDataManager()
+ScoreboardDataManager::~ScoreboardDataManager() noexcept
 {
     // 自动保存脏数据
     if (dirtyCount() > 0) {

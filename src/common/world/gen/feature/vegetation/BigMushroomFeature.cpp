@@ -23,6 +23,7 @@
 
 #include "BigMushroomFeature.hpp"
 #include "../../../../core/Constants.hpp"
+#include "../../../../util/assert/AssertAll.hpp"
 #include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/property/Properties.hpp"
@@ -62,7 +63,7 @@ void BigMushroomFeature::generateStem(WorldGenRegion& world,
     const BigMushroomFeatureConfig& config,
     i32 height)
 {
-    (void)random; // 暂不使用
+    MC_UNUSED(random);
 
     for (i32 y = 0; y < height; ++y) {
         BlockPos stemPos(pos.x, pos.y + y, pos.z);
@@ -88,8 +89,7 @@ void BigMushroomFeature::generateStem(WorldGenRegion& world,
 
 i32 BigMushroomFeature::calculateHeight(math::Random& random) const
 {
-    // 参考 MC: random.nextInt(3) + 4
-    // 有 1/12 概率高度翻倍
+    // 高度范围: 4-6，有 1/12 概率高度翻倍
     i32 height = random.nextInt(3) + 4;
     if (random.nextInt(12) == 0) {
         height *= 2;
@@ -100,7 +100,7 @@ i32 BigMushroomFeature::calculateHeight(math::Random& random) const
 bool BigMushroomFeature::canPlaceAt(
     WorldGenRegion& world, const BlockPos& pos, i32 height, const BigMushroomFeatureConfig& config) const
 {
-    (void)config;
+    MC_UNUSED(config);
 
     // 检查Y坐标范围
     i32 baseY = pos.y;
@@ -156,11 +156,10 @@ bool BigMushroomFeature::canPlaceAt(
 
 i32 BigBrownMushroomFeature::getCapRadius(i32 baseRadius, i32 totalHeight, i32 capRadius, i32 currentHeight) const
 {
-    (void)baseRadius;
-    (void)totalHeight;
+    MC_UNUSED(baseRadius);
+    MC_UNUSED(totalHeight);
 
     // 棕色蘑菇：只有顶部有盖
-    // 参考 MC 1.16.5 BigBrownMushroomFeature.func_225563_a_: height <= 3 ? 0 : capRadius
     return currentHeight <= 3 ? 0 : capRadius;
 }
 
@@ -170,11 +169,10 @@ void BigBrownMushroomFeature::generateCap(WorldGenRegion& world,
     i32 height,
     const BigMushroomFeatureConfig& config)
 {
-    (void)random;
+    MC_UNUSED(random);
 
     i32 capRadius = config.capRadius;
 
-    // MC 1.16.5 BigBrownMushroomFeature.func_225564_a_
     // 生成棕色蘑菇盖，设置正确的方向属性
     for (i32 dx = -capRadius; dx <= capRadius; ++dx) {
         for (i32 dz = -capRadius; dz <= capRadius; ++dz) {
@@ -204,11 +202,7 @@ void BigBrownMushroomFeature::generateCap(WorldGenRegion& world,
                 }
             }
 
-            // MC 1.16.5: 计算边缘方向属性
-            // flag6 = flag || flag5 && j == 1 - i  (west)
-            // flag7 = flag1 || flag5 && j == i - 1 (east)
-            // flag8 = flag2 || flag4 && k == 1 - i  (north)
-            // flag9 = flag3 || flag4 && k == i - 1  (south)
+            // 计算边缘方向属性
             bool west = isWest || (isEdgeZ && dx == 1 - capRadius);
             bool east = isEast || (isEdgeZ && dx == capRadius - 1);
             bool north = isNorth || (isEdgeX && dz == 1 - capRadius);
@@ -237,9 +231,9 @@ void BigBrownMushroomFeature::generateCap(WorldGenRegion& world,
 
 i32 BigRedMushroomFeature::getCapRadius(i32 baseRadius, i32 totalHeight, i32 capRadius, i32 currentHeight) const
 {
-    (void)baseRadius;
+    MC_UNUSED(baseRadius);
 
-    // 红色蘑菇顶部是 capRadius，下方三层是 capRadius - 1，更早的层没有盖。
+    // 红色蘑菇顶部是 capRadius，下方三层是 capRadius - 1，更早的层没有盖
     if (currentHeight == totalHeight) {
         return capRadius;
     }
@@ -255,12 +249,11 @@ void BigRedMushroomFeature::generateCap(WorldGenRegion& world,
     i32 height,
     const BigMushroomFeatureConfig& config)
 {
-    (void)random;
+    MC_UNUSED(random);
 
     i32 capRadius = config.capRadius;
     i32 innerRadius = capRadius - 2;
 
-    // MC 1.16.5 BigRedMushroomFeature.func_225564_a_
     // 红色蘑菇盖：多层圆顶形状
     for (i32 y = height - 3; y <= height; ++y) {
         i32 currentRadius = (y < height) ? capRadius : (capRadius - 1);
@@ -274,7 +267,6 @@ void BigRedMushroomFeature::generateCap(WorldGenRegion& world,
                 bool isEdgeX = isWest || isEast;
                 bool isEdgeZ = isNorth || isSouth;
 
-                // MC 1.16.5: i >= height || flag4 != flag5
                 // 只在顶层或非对角位置放置
                 if (y >= height || isEdgeX != isEdgeZ) {
                     BlockPos capPos(pos.x + dx, pos.y + y, pos.z + dz);
@@ -293,12 +285,7 @@ void BigRedMushroomFeature::generateCap(WorldGenRegion& world,
                         }
                     }
 
-                    // MC 1.16.5: 计算方向属性
-                    // UP = i >= height - 1
-                    // WEST = l < -k  (dx < -innerRadius)
-                    // EAST = l > k   (dx > innerRadius)
-                    // NORTH = i1 < -k (dz < -innerRadius)
-                    // SOUTH = i1 > k  (dz > innerRadius)
+                    // 计算方向属性
                     bool isUp = (y >= height - 1);
                     bool west = (dx < -innerRadius);
                     bool east = (dx > innerRadius);
@@ -341,8 +328,8 @@ ConfiguredBigMushroomFeature::ConfiguredBigMushroomFeature(
 bool ConfiguredBigMushroomFeature::place(
     WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
-    (void)chunk;
-    (void)generator;
+    MC_UNUSED(chunk);
+    MC_UNUSED(generator);
     return m_feature->place(region, random, pos, *m_config);
 }
 

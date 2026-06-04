@@ -91,7 +91,7 @@ public:
     [[nodiscard]] bool needsRecalculate() const { return m_needsRecalculate; }
     void setNeedsRecalculate(bool value) { m_needsRecalculate = value; }
 
-    // 随机刻计数器 (MC 1.16.5 用于性能优化)
+    // 随机刻计数器（用于性能优化）
     [[nodiscard]] bool needsRandomTickAny() const { return m_blockTickRefCount > 0 || m_fluidRefCount > 0; }
     [[nodiscard]] bool needsRandomTick() const { return m_blockTickRefCount > 0; }
     [[nodiscard]] bool needsRandomTickFluid() const { return m_fluidRefCount > 0; }
@@ -150,8 +150,7 @@ private:
     u16 m_blockCount = 0;           // 非空气方块数量
     bool m_needsRecalculate = false;
 
-    // 随机刻计数器 (MC 1.16.5 用于性能优化)
-    // 参考: net.minecraft.world.chunk.ChunkSection.blockTickRefCount 和 fluidRefCount
+    // 随机刻计数器（用于性能优化）
     u16 m_blockTickRefCount = 0; // ticksRandomly 方块数量
     u16 m_fluidRefCount = 0;     // 流体方块数量
 };
@@ -454,7 +453,7 @@ private:
     /**
      * @brief 初始化 Nibble 指针数组
      */
-    void ensureNibblePtrs() const;
+    void _ensureNibblePtrs() const;
 };
 
 // ============================================================================

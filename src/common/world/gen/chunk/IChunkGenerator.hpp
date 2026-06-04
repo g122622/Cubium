@@ -52,9 +52,7 @@ struct SpawnedEntityData;
 /**
  * @brief 区块生成器接口
  *
- * 参考 MC ChunkGenerator，定义区块生成的核心接口。
- *
- * @note 参考 MC 1.16.5 ChunkGenerator
+ * 定义区块生成的核心接口。
  */
 class IChunkGenerator {
 public:
@@ -67,7 +65,6 @@ public:
      * @param region 世界生成区域
      * @param chunk 区块生成器
      *
-     * 参考 MC 1.16.5: STRUCTURE_STARTS 阶段
      * 在此阶段确定结构（村庄、神殿等）的起点位置
      */
     virtual void generateStructureStarts(WorldGenRegion& region, ChunkPrimer& chunk) = 0;
@@ -77,7 +74,6 @@ public:
      * @param region 世界生成区域
      * @param chunk 区块生成器
      *
-     * 参考 MC 1.16.5: STRUCTURE_REFERENCES 阶段
      * 计算结构之间的引用关系，用于结构间的连接
      */
     virtual void generateStructureReferences(WorldGenRegion& region, ChunkPrimer& chunk) = 0;
@@ -121,7 +117,6 @@ public:
     /**
      * @brief 生成初始生物（被动动物）
      *
-     * 参考 MC 1.16.5 performWorldGenSpawning
      * 在区块生成时放置被动动物（猪、牛、羊等）。
      * 只放置 Creature 分类（被动动物），不生成怪物。
      *
@@ -174,9 +169,6 @@ public:
      * 调试世界生成器（DebugChunkGenerator）会生成一个展示所有方块状态的网格世界，
      * 在调试世界中，方块的放置和破坏被禁止，游戏机制如计划刻、随机刻等也被禁用。
      *
-     * 参考 MC 1.16.5: DimensionGeneratorSettings.func_236227_h_()
-     * （检查 chunkGenerator 是否为 DebugChunkGenerator 实例）
-     *
      * @return true 如果是调试世界生成器
      */
     [[nodiscard]] virtual bool isDebugGenerator() const { return false; }
@@ -194,11 +186,9 @@ public:
 /**
  * @brief 世界生成区域
  *
- * 参考 MC WorldGenRegion，提供有限的世界视图给生成器。
+ * 提供有限的世界视图给生成器。
  * 访问范围由生成阶段的 taskRange 决定，常见窗口包括 0、1、8。
  * TODO 移到单独文件中
- *
- * @note 参考 MC 1.16.5 WorldGenRegion
  */
 class WorldGenRegion : public IWorld {
 public:
@@ -219,8 +209,8 @@ public:
     /**
      * @brief 获取主区块
      */
-    [[nodiscard]] IChunk* getMainChunk() { return m_chunks[static_cast<std::size_t>(centerIndex())]; }
-    [[nodiscard]] const IChunk* getMainChunk() const { return m_chunks[static_cast<std::size_t>(centerIndex())]; }
+    [[nodiscard]] IChunk* getMainChunk() { return m_chunks[static_cast<std::size_t>(_centerIndex())]; }
+    [[nodiscard]] const IChunk* getMainChunk() const { return m_chunks[static_cast<std::size_t>(_centerIndex())]; }
 
     /**
      * @brief 获取指定相对位置的区块（生成区域特有方法）
@@ -444,12 +434,12 @@ private:
     world::border::WorldBorder m_worldBorder;
 
     // 将世界坐标转换为区块索引
-    [[nodiscard]] i32 worldToChunkIndex(i32 x, i32 z) const;
+    [[nodiscard]] i32 _worldToChunkIndex(i32 x, i32 z) const;
 
-    [[nodiscard]] i32 centerIndex() const;
+    [[nodiscard]] i32 _centerIndex() const;
 
     // 将世界坐标转换为本地坐标
-    static void worldToLocal(i32 worldX, i32 worldZ, i32& localX, i32& localZ);
+    static void _worldToLocal(i32 worldX, i32 worldZ, i32& localX, i32& localZ);
 };
 
 // ============================================================================

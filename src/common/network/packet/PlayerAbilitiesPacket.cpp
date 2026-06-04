@@ -21,11 +21,11 @@
  *
  */
 
-#include "PlayerAbilitiesPacket.hpp"
-#include "../../entity/entities/player/GameModeUtils.hpp"
-#include "../../entity/entities/player/Player.hpp"
-#include "../../physics/PhysicsConstants.hpp"
-#include "PacketSerializer.hpp"
+#include "common/network/packet/PlayerAbilitiesPacket.hpp"
+#include "common/entity/entities/player/GameModeUtils.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/network/packet/PacketSerializer.hpp"
+#include "common/physics/PhysicsConstants.hpp"
 
 namespace mc::network {
 

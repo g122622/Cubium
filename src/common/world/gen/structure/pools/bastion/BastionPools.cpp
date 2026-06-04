@@ -22,9 +22,9 @@
  */
 
 #include "BastionPools.hpp"
-#include "../ProcessorLists.hpp"
 #include "../../../jigsaw/JigsawPattern.hpp"
 #include "../../../jigsaw/JigsawPiece.hpp"
+#include "../ProcessorLists.hpp"
 #include "resource/ResourceLocation.hpp"
 
 namespace mc {
@@ -74,17 +74,14 @@ void BastionUnitsPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     // bastion/units/start - 起始池
     // ========================================================================
-    // MC 1.16.5: 1 个起始元素，权重 1
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/units/start"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/units/start"), ResourceLocation("minecraft", "empty"));
 
         // 起始结构只有 1 个
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/center_0",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/center_0", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -94,17 +91,14 @@ void BastionUnitsPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/units/center_pieces"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/units/center_pieces"), ResourceLocation("minecraft", "empty"));
 
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/center_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/center_1", JigsawPlacementBehaviour::Rigid),
+            1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/center_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/center_2", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -114,21 +108,17 @@ void BastionUnitsPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/units/center_bridges"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/units/center_bridges"), ResourceLocation("minecraft", "empty"));
 
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/bridge_0",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/bridge_0", JigsawPlacementBehaviour::Rigid),
+            1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/bridge_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/bridge_1", JigsawPlacementBehaviour::Rigid),
+            1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/bridge_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/bridge_2", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -138,25 +128,16 @@ void BastionUnitsPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/units/stages"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/units/stages"), ResourceLocation("minecraft", "empty"));
 
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/stage_0",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/stage_0", JigsawPlacementBehaviour::Rigid), 1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/stage_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/stage_1", JigsawPlacementBehaviour::Rigid), 1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/stage_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/stage_2", JigsawPlacementBehaviour::Rigid), 1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/stage_3",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/stage_3", JigsawPlacementBehaviour::Rigid), 1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -166,25 +147,16 @@ void BastionUnitsPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/units/walls"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/units/walls"), ResourceLocation("minecraft", "empty"));
 
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/wall_0",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/wall_0", JigsawPlacementBehaviour::Rigid), 1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/wall_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/wall_1", JigsawPlacementBehaviour::Rigid), 1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/wall_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/wall_2", JigsawPlacementBehaviour::Rigid), 1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/wall_3",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/wall_3", JigsawPlacementBehaviour::Rigid), 1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -194,17 +166,12 @@ void BastionUnitsPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/units/walls/edges"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/units/walls/edges"), ResourceLocation("minecraft", "empty"));
 
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/edge_0",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/edge_0", JigsawPlacementBehaviour::Rigid), 1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/edge_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/edge_1", JigsawPlacementBehaviour::Rigid), 1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -214,25 +181,20 @@ void BastionUnitsPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/units/walls/walls"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/units/walls/walls"), ResourceLocation("minecraft", "empty"));
 
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/wall_base_0",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/wall_base_0", JigsawPlacementBehaviour::Rigid),
+            1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/wall_base_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/wall_base_1", JigsawPlacementBehaviour::Rigid),
+            1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/wall_base_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/wall_base_2", JigsawPlacementBehaviour::Rigid),
+            1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/wall_base_3",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/wall_base_3", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -242,25 +204,16 @@ void BastionUnitsPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/units/roofs"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/units/roofs"), ResourceLocation("minecraft", "empty"));
 
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/roof_0",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/roof_0", JigsawPlacementBehaviour::Rigid), 1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/roof_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/roof_1", JigsawPlacementBehaviour::Rigid), 1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/roof_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/roof_2", JigsawPlacementBehaviour::Rigid), 1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/roof_3",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/roof_3", JigsawPlacementBehaviour::Rigid), 1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -270,29 +223,23 @@ void BastionUnitsPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/units/ramparts"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/units/ramparts"), ResourceLocation("minecraft", "empty"));
 
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/rampart_0",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/rampart_0", JigsawPlacementBehaviour::Rigid),
+            1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/rampart_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/rampart_1", JigsawPlacementBehaviour::Rigid),
+            1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/rampart_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/rampart_2", JigsawPlacementBehaviour::Rigid),
+            1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/rampart_3",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/rampart_3", JigsawPlacementBehaviour::Rigid),
+            1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/rampart_4",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/units/rampart_4", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -302,17 +249,14 @@ void BastionUnitsPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/units/rampart_plates"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/units/rampart_plates"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/rampart_plate_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/units/rampart_plate_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/units/rampart_plate_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/units/rampart_plate_1", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -329,13 +273,11 @@ void BastionStablesPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/stables/start"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/stables/start"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/starting_pieces/stable_0",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/starting_pieces/stable_0", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -345,21 +287,17 @@ void BastionStablesPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/stables/legs"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/stables/legs"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/legs/leg_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/legs/leg_1",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/legs/leg_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/legs/leg_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/legs/leg_1", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/legs/leg_2", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -369,21 +307,17 @@ void BastionStablesPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/stables/walls"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/stables/walls"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/walls/wall_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/walls/wall_1",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/walls/wall_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/walls/wall_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/walls/wall_1", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/walls/wall_2", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -393,33 +327,26 @@ void BastionStablesPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/stables/ramparts"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/stables/ramparts"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/ramparts/large_rampart_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/ramparts/large_rampart_1",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/ramparts/large_rampart_2",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/ramparts/rampart_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/ramparts/rampart_1",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/ramparts/rampart_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/ramparts/large_rampart_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/ramparts/large_rampart_1", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/ramparts/large_rampart_2", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/ramparts/rampart_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/ramparts/rampart_1", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/ramparts/rampart_2", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -429,21 +356,17 @@ void BastionStablesPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/stables/air_base"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/stables/air_base"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/air_base/base_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/air_base/base_1",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/air_base/base_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/air_base/base_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/air_base/base_1", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/air_base/base_2", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -453,17 +376,14 @@ void BastionStablesPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/stables/bridges"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/stables/bridges"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/bridges/bridge_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/bridges/bridge_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/bridges/bridge_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/bridges/bridge_1", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -473,17 +393,14 @@ void BastionStablesPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/stables/roofs"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/stables/roofs"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/roofs/roof_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/roofs/roof_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/roofs/roof_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/roofs/roof_1", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -493,17 +410,14 @@ void BastionStablesPools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/stables/connectors"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/stables/connectors"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/connectors/connector_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/stables/connectors/connector_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/connectors/connector_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/stables/connectors/connector_1", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -520,13 +434,11 @@ void BastionTreasurePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/treasure/start"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/treasure/start"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/bases/centers/center_0",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/bases/centers/center_0", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -536,21 +448,17 @@ void BastionTreasurePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/treasure/legs"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/treasure/legs"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/legs/leg_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/legs/leg_1",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/legs/leg_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/legs/leg_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/legs/leg_1", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/legs/leg_2", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -560,21 +468,17 @@ void BastionTreasurePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/treasure/walls"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/treasure/walls"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/walls/wall_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/walls/wall_1",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/walls/wall_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/walls/wall_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/walls/wall_1", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/walls/wall_2", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -584,25 +488,20 @@ void BastionTreasurePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/treasure/ramparts"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/treasure/ramparts"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/ramparts/large_rampart_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/ramparts/large_rampart_1",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/ramparts/rampart_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/ramparts/rampart_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/ramparts/large_rampart_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/ramparts/large_rampart_1", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/ramparts/rampart_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/ramparts/rampart_1", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -612,21 +511,17 @@ void BastionTreasurePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/treasure/air_base"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/treasure/air_base"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/air_base/base_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/air_base/base_1",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/air_base/base_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/air_base/base_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/air_base/base_1", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/air_base/base_2", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -636,17 +531,14 @@ void BastionTreasurePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/treasure/bridges"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/treasure/bridges"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/bridges/bridge_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/bridges/bridge_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/bridges/bridge_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/bridges/bridge_1", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -656,17 +548,14 @@ void BastionTreasurePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/treasure/roofs"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/treasure/roofs"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/roofs/roof_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/roofs/roof_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/roofs/roof_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/roofs/roof_1", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -676,21 +565,17 @@ void BastionTreasurePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/treasure/extensions"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/treasure/extensions"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/extensions/extension_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/extensions/extension_1",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/extensions/extension_2",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/extensions/extension_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/extensions/extension_1", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/extensions/extension_2", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -700,21 +585,17 @@ void BastionTreasurePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/treasure/centers"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/treasure/centers"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/bases/centers/center_1",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/bases/centers/center_2",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/treasure/bases/centers/center_3",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/bases/centers/center_1", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/bases/centers/center_2", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/treasure/bases/centers/center_3", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -731,17 +612,14 @@ void BastionBridgePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/bridge/start"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/bridge/start"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/starting_piece/entrance_base",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/starting_piece/entrance_0",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/bridge/starting_piece/entrance_base", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/bridge/starting_piece/entrance_0", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -751,17 +629,14 @@ void BastionBridgePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/bridge/legs"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/bridge/legs"), ResourceLocation("minecraft", "empty"));
 
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/legs/leg_0",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/bridge/legs/leg_0", JigsawPlacementBehaviour::Rigid),
+            1);
         pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/legs/leg_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+            std::make_unique<SingleJigsawPiece>("minecraft:bastion/bridge/legs/leg_1", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -771,17 +646,14 @@ void BastionBridgePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/bridge/walls"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/bridge/walls"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/walls/wall_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/walls/wall_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/bridge/walls/wall_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/bridge/walls/wall_1", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -791,17 +663,14 @@ void BastionBridgePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/bridge/ramparts"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/bridge/ramparts"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/ramparts/rampart_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/ramparts/rampart_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/bridge/ramparts/rampart_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/bridge/ramparts/rampart_1", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -811,17 +680,14 @@ void BastionBridgePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/bridge/air_base"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/bridge/air_base"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/air_base/base_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/air_base/base_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/bridge/air_base/base_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/bridge/air_base/base_1", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -831,25 +697,20 @@ void BastionBridgePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/bridge/bridges"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/bridge/bridges"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/bridges/bridge_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/bridges/bridge_1",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/bridges/bridge_2",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/bridges/bridge_3",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/bridge/bridges/bridge_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/bridge/bridges/bridge_1", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/bridge/bridges/bridge_2", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/bridge/bridges/bridge_3", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -859,17 +720,14 @@ void BastionBridgePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/bridge/roofs"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/bridge/roofs"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/roofs/roof_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/roofs/roof_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/bridge/roofs/roof_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/bridge/roofs/roof_1", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }
@@ -879,17 +737,14 @@ void BastionBridgePools::registerAll(JigsawPatternRegistry& registry)
     // ========================================================================
     {
         auto pool = std::make_unique<JigsawPattern>(
-            ResourceLocation("minecraft", "bastion/bridge/connectors"),
-            ResourceLocation("minecraft", "empty"));
+            ResourceLocation("minecraft", "bastion/bridge/connectors"), ResourceLocation("minecraft", "empty"));
 
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/connectors/connector_0",
-                JigsawPlacementBehaviour::Rigid), 1);
-        pool->addPiece(
-            std::make_unique<SingleJigsawPiece>(
-                "minecraft:bastion/bridge/connectors/connector_1",
-                JigsawPlacementBehaviour::Rigid), 1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/bridge/connectors/connector_0", JigsawPlacementBehaviour::Rigid),
+            1);
+        pool->addPiece(std::make_unique<SingleJigsawPiece>(
+                           "minecraft:bastion/bridge/connectors/connector_1", JigsawPlacementBehaviour::Rigid),
+            1);
 
         registry.registerPattern(std::move(pool));
     }

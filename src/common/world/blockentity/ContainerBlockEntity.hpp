@@ -62,7 +62,7 @@ public:
      * @brief 玩家打开容器
      *
      * 增加打开计数，用于音效和红石信号。
-     * MC 1.16.5: 观察者模式玩家不计入打开数。
+     * 观察者模式玩家不计入打开数。
      * @param player 打开容器的玩家（可为nullptr）
      */
     virtual void openContainer(Player* player);
@@ -71,7 +71,7 @@ public:
      * @brief 玩家关闭容器
      *
      * 减少打开计数。
-     * MC 1.16.5: 观察者模式玩家不计入打开数。
+     * 观察者模式玩家不计入打开数。
      * @param player 关闭容器的玩家（可为nullptr）
      */
     virtual void closeContainer(Player* player);
@@ -111,7 +111,6 @@ public:
      * @param maxDistanceSq 最大距离的平方（默认64.0，即8格）
      * @return 如果玩家在范围内返回true
      *
-     * 参考 MC 1.16.5: net.minecraft.tileentity.LockableTileEntity.isUsableByPlayer
      * 检查玩家与方块的距离是否在指定范围内。
      */
     [[nodiscard]] bool isUsableByPlayer(const Player& player, f32 maxDistanceSq = 64.0f) const;

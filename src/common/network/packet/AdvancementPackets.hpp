@@ -159,17 +159,22 @@ struct AdvancementProgressData {
  * @brief 成就信息同步包
  *
  * 同步成就定义和进度到客户端。
- * 参考: MC 1.16.5 SPacketAdvancementInfo
  */
 class AdvancementInfoPacket {
 public:
-    AdvancementInfoPacket() = default;
+    AdvancementInfoPacket() noexcept = default;
 
     // Getters
-    [[nodiscard]] bool firstSync() const { return m_firstSync; }
-    [[nodiscard]] const std::vector<AdvancementData>& advancementsToAdd() const { return m_advancementsToAdd; }
-    [[nodiscard]] const std::set<ResourceLocation>& advancementsToRemove() const { return m_advancementsToRemove; }
-    [[nodiscard]] const std::map<ResourceLocation, AdvancementProgressData>& progress() const { return m_progress; }
+    [[nodiscard]] bool firstSync() const noexcept { return m_firstSync; }
+    [[nodiscard]] const std::vector<AdvancementData>& advancementsToAdd() const noexcept { return m_advancementsToAdd; }
+    [[nodiscard]] const std::set<ResourceLocation>& advancementsToRemove() const noexcept
+    {
+        return m_advancementsToRemove;
+    }
+    [[nodiscard]] const std::map<ResourceLocation, AdvancementProgressData>& progress() const noexcept
+    {
+        return m_progress;
+    }
 
     // Setters
     void setFirstSync(bool first) { m_firstSync = first; }
@@ -199,23 +204,22 @@ private:
  * @brief 成就标签页选择包
  *
  * 服务端通知客户端选中的成就标签页。
- * 参考: MC 1.16.5 SPacketSelectAdvancementsTab
  */
 class SelectAdvancementTabPacket {
 public:
-    SelectAdvancementTabPacket() = default;
+    SelectAdvancementTabPacket() noexcept = default;
 
     /**
      * @brief 构造标签页选择包
      * @param tab 选中的标签页ID（可选，空表示关闭）
      */
-    explicit SelectAdvancementTabPacket(const std::optional<ResourceLocation>& tab)
+    explicit SelectAdvancementTabPacket(const std::optional<ResourceLocation>& tab) noexcept
         : m_tab(tab)
     {}
 
     // Getters
-    [[nodiscard]] const std::optional<ResourceLocation>& tab() const { return m_tab; }
-    [[nodiscard]] bool hasTab() const { return m_tab.has_value(); }
+    [[nodiscard]] const std::optional<ResourceLocation>& tab() const noexcept { return m_tab; }
+    [[nodiscard]] bool hasTab() const noexcept { return m_tab.has_value(); }
 
     // Setters
     void setTab(const std::optional<ResourceLocation>& tab) { m_tab = tab; }
@@ -245,16 +249,15 @@ enum class AdvancementAction : u8 {
  * @brief 成就界面操作包
  *
  * 客户端通知服务端成就界面操作。
- * 参考: MC 1.16.5 CPacketSeenAdvancements
  */
 class SeenAdvancementsPacket {
 public:
-    SeenAdvancementsPacket() = default;
+    SeenAdvancementsPacket() noexcept = default;
 
     /**
      * @brief 构造打开标签页操作
      */
-    static SeenAdvancementsPacket openedTab(const ResourceLocation& tab)
+    static SeenAdvancementsPacket openedTab(const ResourceLocation& tab) noexcept
     {
         SeenAdvancementsPacket packet;
         packet.m_action = AdvancementAction::OpenedTab;
@@ -265,7 +268,7 @@ public:
     /**
      * @brief 构造关闭界面操作
      */
-    static SeenAdvancementsPacket closedScreen()
+    static SeenAdvancementsPacket closedScreen() noexcept
     {
         SeenAdvancementsPacket packet;
         packet.m_action = AdvancementAction::ClosedScreen;
@@ -273,10 +276,10 @@ public:
     }
 
     // Getters
-    [[nodiscard]] AdvancementAction action() const { return m_action; }
-    [[nodiscard]] const std::optional<ResourceLocation>& tab() const { return m_tab; }
-    [[nodiscard]] bool isOpenedTab() const { return m_action == AdvancementAction::OpenedTab; }
-    [[nodiscard]] bool isClosedScreen() const { return m_action == AdvancementAction::ClosedScreen; }
+    [[nodiscard]] AdvancementAction action() const noexcept { return m_action; }
+    [[nodiscard]] const std::optional<ResourceLocation>& tab() const noexcept { return m_tab; }
+    [[nodiscard]] bool isOpenedTab() const noexcept { return m_action == AdvancementAction::OpenedTab; }
+    [[nodiscard]] bool isClosedScreen() const noexcept { return m_action == AdvancementAction::ClosedScreen; }
 
     // 序列化
     void serialize(network::PacketSerializer& ser) const;

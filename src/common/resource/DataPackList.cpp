@@ -40,7 +40,6 @@ namespace mc::resource {
 Result<size_t> DataPackList::scanDirectory(const std::filesystem::path& dir)
 {
     if (!fs::exists(dir)) {
-        spdlog::debug("Data pack directory does not exist: {}", dir.string());
         return static_cast<size_t>(0);
     }
 
@@ -528,14 +527,14 @@ void DataPackList::notifyChange()
 // 私有方法
 // ============================================================================
 
-std::string DataPackList::normalizePath(const std::filesystem::path& path)
+std::string DataPackList::normalizePath(const std::filesystem::path& path) noexcept
 {
     std::string result = path.string();
     std::replace(result.begin(), result.end(), '\\', '/');
     return result;
 }
 
-bool DataPackList::isZipFile(const std::filesystem::path& path)
+bool DataPackList::isZipFile(const std::filesystem::path& path) noexcept
 {
     if (!fs::is_regular_file(path)) {
         return false;
@@ -546,7 +545,7 @@ bool DataPackList::isZipFile(const std::filesystem::path& path)
     return ext == ".zip";
 }
 
-bool DataPackList::isDataPackDir(const std::filesystem::path& path)
+bool DataPackList::isDataPackDir(const std::filesystem::path& path) noexcept
 {
     if (!fs::is_directory(path)) {
         return false;

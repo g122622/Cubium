@@ -105,7 +105,7 @@ private:
      * @param pos TNT位置
      * @return true 如果有火焰源
      */
-    [[nodiscard]] bool hasFlammableNeighbor(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _hasFlammableNeighbor(IWorld& world, const BlockPos& pos) const;
 };
 
 } // namespace blocks

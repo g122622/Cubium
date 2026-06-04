@@ -22,8 +22,9 @@
  */
 
 #include "TrappedChestBlock.hpp"
-#include "../../IWorld.hpp"
-#include "../../blockentity/storage/TrappedChestEntity.hpp"
+
+#include "common/world/IWorld.hpp"
+#include "common/world/blockentity/storage/TrappedChestEntity.hpp"
 
 namespace mc {
 namespace blocks {
@@ -41,8 +42,7 @@ i32 TrappedChestBlock::getWeakPower(const BlockState& state, IWorld& world, cons
 
     auto* chest = static_cast<blockentity::TrappedChestEntity*>(blockEntity);
 
-    // 需要转换为World来获取完整的红石信号计算
-    // 这里暂时返回打开计数
+    // TODO: 需要转换为World来获取完整的红石信号计算（支持双箱）
     return chest->getOpenCount();
 }
 

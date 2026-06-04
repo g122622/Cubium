@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 namespace layer {
@@ -32,12 +32,7 @@ namespace layer {
  * @brief Layer 系统内部使用的生物群系值
  *
  * 这些值用于 Layer 系统的中间处理，最终会被映射到实际的 BiomeId。
- * 参考 MC 1.16.5 LayerUtil 和各个 Layer 类中使用的值。
- *
- * 注意：这些值与 Biomes 命名空间中的 ID 是相同的，因为 MC 直接使用 ID 进行处理。
- *
- * MC 1.16.5 biome IDs 参考:
- * https://minecraft.gamepedia.com/Java_Edition_1.16.5
+ * 注意：这些值与 Biomes 命名空间中的 ID 是相同的。
  */
 namespace BiomeValues {
 
@@ -191,7 +186,7 @@ constexpr i32 Shift = 8;    // 右移位数
  * @param value 层值
  * @return 特殊变体索引 (0-15)
  */
-inline i32 extract(i32 value)
+[[nodiscard]] inline i32 extract(i32 value) noexcept
 {
     return (value & Mask) >> Shift;
 }
@@ -202,7 +197,7 @@ inline i32 extract(i32 value)
  * @param special 特殊变体索引 (0-15)
  * @return 带有特殊位的值
  */
-inline i32 set(i32 value, i32 special)
+[[nodiscard]] inline i32 set(i32 value, i32 special) noexcept
 {
     return (value & ~Mask) | ((special << Shift) & Mask);
 }
@@ -215,7 +210,7 @@ inline i32 set(i32 value, i32 special)
 /**
  * @brief 检查是否为海洋生物群系（包括深海）
  */
-inline bool isOcean(i32 biome)
+[[nodiscard]] inline bool isOcean(i32 biome) noexcept
 {
     return biome == Ocean || biome == DeepOcean || biome == WarmOcean || biome == LukewarmOcean || biome == ColdOcean ||
         biome == FrozenOcean || biome == DeepWarmOcean || biome == DeepLukewarmOcean || biome == DeepColdOcean ||
@@ -225,17 +220,15 @@ inline bool isOcean(i32 biome)
 /**
  * @brief 检查是否为浅海洋生物群系（不包括深海）
  */
-inline bool isShallowOcean(i32 biome)
+[[nodiscard]] inline bool isShallowOcean(i32 biome) noexcept
 {
     return biome == Ocean || biome == WarmOcean || biome == LukewarmOcean || biome == ColdOcean || biome == FrozenOcean;
 }
 
 /**
  * @brief 检查两个生物群系是否相似（属于同一类别）
- *
- * 参考 MC LayerUtil.areBiomesSimilar
  */
-bool areBiomesSimilar(i32 a, i32 b);
+[[nodiscard]] bool areBiomesSimilar(i32 a, i32 b) noexcept;
 
 // ============================================================================
 // 生物群系类别检查函数（用于 Layer 处理）

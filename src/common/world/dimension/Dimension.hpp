@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "../../core/Constants.hpp"
 #include "../../core/Types.hpp"
 #include "../../util/math/Vector3.hpp"
 #include "../biome/BiomeProvider.hpp"
@@ -38,7 +39,6 @@ class WorldLightManager;
 /**
  * @brief 维度实例
  *
- * 参考 MC 1.16.5 Dimension
  * 将维度类型与区块生成器、生物群系提供者组合，
  * 表示一个完整的维度实例。
  *
@@ -225,7 +225,7 @@ protected:
     DimensionId m_id;
     DimensionType m_type;
     std::unique_ptr<IChunkGenerator> m_generator;
-    Vector3d m_spawnPoint{0.0, 64.0, 0.0};
+    Vector3d m_spawnPoint{0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0};
 };
 
 } // namespace mc

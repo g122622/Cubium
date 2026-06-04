@@ -22,16 +22,16 @@
  */
 
 #include "BaseLightEngine.hpp"
-#include "../../../physics/collision/CollisionShape.hpp"
-#include "../../../physics/shape/Shapes.hpp"
-#include "../../../physics/shape/VoxelShape.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../IWorld.hpp"
-#include "../../block/Block.hpp"
-#include "../../chunk/ChunkData.hpp"
-#include "../../chunk/IChunk.hpp"
-#include "../IChunkLightProvider.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/physics/shape/Shapes.hpp"
+#include "common/physics/shape/VoxelShape.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/IChunk.hpp"
+#include "common/world/lighting/IChunkLightProvider.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -92,7 +92,7 @@ VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape)
 std::array<std::vector<LightAxisDirection>, 64> StarLightEngine::s_oldCheckDirections;
 bool StarLightEngine::s_directionsInitialized = false;
 
-void StarLightEngine::initializeDirections()
+void StarLightEngine::_initializeDirections()
 {
     if (s_directionsInitialized) return;
 
@@ -120,7 +120,7 @@ StarLightEngine::StarLightEngine(bool isSkyLight)
     , m_emittedLightMask(isSkyLight ? 0 : 0xF)
 {
 
-    initializeDirections();
+    _initializeDirections();
     m_chunkCache.fill(nullptr);
     m_emptinessMapCache.fill(nullptr);
 }
@@ -139,16 +139,16 @@ void StarLightEngine::setupEncodeOffset(i32 centerX, i32 centerY, i32 centerZ)
 {
     // 31 = center + encodeOffset，使中心坐标映射到 [0, 62] 范围
     m_encodeOffsetX = 31 - centerX;
-    m_encodeOffsetY = -(m_minLightSection - 1) << 4; // 使最小光照段Y=0
+    m_encodeOffsetY = -(m_minLightSection - 1) << world::SECTION_SHIFT; // 使最小光照段Y=0
     m_encodeOffsetZ = 31 - centerZ;
 
     // coordinateIndex = x | (z << 6) | (y << (6 + 6))
     m_coordinateOffset = m_encodeOffsetX + (m_encodeOffsetZ << 6) + (m_encodeOffsetY << 12);
 
-    // 2 = (centerX >> 4) + chunkOffset，使中心区块在缓存中心
-    m_chunkOffsetX = 2 - (centerX >> 4);
+    // 2 = (centerX >> CHUNK_SHIFT) + chunkOffset，使中心区块在缓存中心
+    m_chunkOffsetX = 2 - (centerX >> world::CHUNK_SHIFT);
     m_chunkOffsetY = -(m_minLightSection - 1); // 最低段Y=0
-    m_chunkOffsetZ = 2 - (centerZ >> 4);
+    m_chunkOffsetZ = 2 - (centerZ >> world::CHUNK_SHIFT);
 
     // chunk index = x + (5 * z)
     m_chunkIndexOffset = m_chunkOffsetX + (5 * m_chunkOffsetZ);
@@ -160,11 +160,13 @@ void StarLightEngine::setupEncodeOffset(i32 centerX, i32 centerY, i32 centerZ)
 void StarLightEngine::setupCaches(
     StarLightLightingProvider* lightAccess, i32 centerX, i32 centerY, i32 centerZ, bool relaxed, bool loadTwoRadius)
 {
-    i32 centerChunkX = centerX >> 4;
-    i32 centerChunkY = centerY >> 4;
-    i32 centerChunkZ = centerZ >> 4;
+    i32 centerChunkX = centerX >> world::CHUNK_SHIFT;
+    i32 centerChunkY = centerY >> world::CHUNK_SHIFT;
+    i32 centerChunkZ = centerZ >> world::CHUNK_SHIFT;
 
-    setupEncodeOffset(centerChunkX * 16 + 7, centerChunkY * 16 + 7, centerChunkZ * 16 + 7);
+    setupEncodeOffset(centerChunkX * world::CHUNK_WIDTH + 7,
+        centerChunkY * world::CHUNK_WIDTH + 7,
+        centerChunkZ * world::CHUNK_WIDTH + 7);
 
     i32 radius = loadTwoRadius ? 2 : 1;
 
@@ -275,7 +277,7 @@ void StarLightEngine::blocksChangedInChunk(StarLightLightingProvider* lightAcces
     const std::vector<BlockPos>& positions,
     const std::vector<bool>& changedSections)
 {
-    setupCaches(lightAccess, chunkX * 16 + 7, 128, chunkZ * 16 + 7, true, true);
+    setupCaches(lightAccess, chunkX * world::CHUNK_WIDTH + 7, 128, chunkZ * world::CHUNK_WIDTH + 7, true, true);
 
     const IChunk* chunk = getChunkInCache(chunkX, chunkZ);
     if (chunk == nullptr) {
@@ -409,7 +411,7 @@ void StarLightEngine::forceHandleEmptySectionChanges(
     i32 chunkX = chunkPos.x;
     i32 chunkZ = chunkPos.z;
 
-    setupCaches(lightAccess, chunkX * 16 + 7, 128, chunkZ * 16 + 7, true, true);
+    setupCaches(lightAccess, chunkX * world::CHUNK_WIDTH + 7, 128, chunkZ * world::CHUNK_WIDTH + 7, true, true);
 
     // 强制将当前区块加载到缓存
     setChunkInCache(chunkX, chunkZ, chunk);
@@ -430,7 +432,7 @@ void StarLightEngine::forceHandleEmptySectionChanges(
 
 void StarLightEngine::checkChunkEdges(StarLightLightingProvider* lightAccess, i32 chunkX, i32 chunkZ)
 {
-    setupCaches(lightAccess, chunkX * 16 + 7, 128, chunkZ * 16 + 7, true, false);
+    setupCaches(lightAccess, chunkX * world::CHUNK_WIDTH + 7, 128, chunkZ * world::CHUNK_WIDTH + 7, true, false);
 
     const IChunk* chunk = getChunkInCache(chunkX, chunkZ);
     if (chunk != nullptr) {
@@ -485,35 +487,37 @@ void StarLightEngine::checkChunkEdge(
             incZ = 1;
             if (dx < 0) {
                 // 负方向
-                startX = chunkX << 4;
+                startX = chunkX << world::CHUNK_SHIFT;
             } else {
-                startX = (chunkX << 4) | 15;
+                startX = (chunkX << world::CHUNK_SHIFT) | world::CHUNK_MASK;
             }
-            startZ = chunkZ << 4;
+            startZ = chunkZ << world::CHUNK_SHIFT;
         } else {
             // Z 方向
             incX = 1;
             incZ = 0;
             if (dz < 0) {
                 // 负方向
-                startZ = chunkZ << 4;
+                startZ = chunkZ << world::CHUNK_SHIFT;
             } else {
-                startZ = (chunkZ << 4) | 15;
+                startZ = (chunkZ << world::CHUNK_SHIFT) | world::CHUNK_MASK;
             }
-            startX = chunkX << 4;
+            startX = chunkX << world::CHUNK_SHIFT;
         }
 
         i32 centerDelayedChecks = 0;
         i32 neighbourDelayedChecks = 0;
-        for (i32 currY = chunkY << 4, maxY = currY | 15; currY <= maxY; ++currY) {
-            for (i32 i = 0, currX = startX, currZ = startZ; i < 16; ++i, currX += incX, currZ += incZ) {
+        for (i32 currY = chunkY << world::CHUNK_SHIFT, maxY = currY | world::CHUNK_MASK; currY <= maxY; ++currY) {
+            for (i32 i = 0, currX = startX, currZ = startZ; i < world::CHUNK_WIDTH; ++i, currX += incX, currZ += incZ) {
                 i32 neighbourX = currX + dx;
                 i32 neighbourZ = currZ + dz;
 
-                i32 currentIndex = (currX & 15) | ((currZ & 15) << 4) | ((currY & 15) << 8);
+                i32 currentIndex = (currX & world::CHUNK_MASK) | ((currZ & world::CHUNK_MASK) << world::CHUNK_SHIFT) |
+                    ((currY & world::CHUNK_MASK) << 8);
                 i32 currentLevel = currNibble->getUpdating(currentIndex);
 
-                i32 neighbourIndex = (neighbourX & 15) | ((neighbourZ & 15) << 4) | ((currY & 15) << 8);
+                i32 neighbourIndex = (neighbourX & world::CHUNK_MASK) |
+                    ((neighbourZ & world::CHUNK_MASK) << world::CHUNK_SHIFT) | ((currY & world::CHUNK_MASK) << 8);
                 i32 neighbourLevel = neighbourNibble->getUpdating(neighbourIndex);
 
                 // 延迟检查，因为 checkBlock 方法会覆盖光照值，这会影响后续的 calculateLightValue 操作
@@ -529,25 +533,25 @@ void StarLightEngine::checkChunkEdge(
             }
         }
 
-        i32 currentChunkOffX = chunkX << 4;
-        i32 currentChunkOffZ = chunkZ << 4;
-        i32 neighbourChunkOffX = (chunkX + dx) << 4;
-        i32 neighbourChunkOffZ = (chunkZ + dz) << 4;
-        i32 chunkOffY = chunkY << 4;
+        i32 currentChunkOffX = chunkX << world::CHUNK_SHIFT;
+        i32 currentChunkOffZ = chunkZ << world::CHUNK_SHIFT;
+        i32 neighbourChunkOffX = (chunkX + dx) << world::CHUNK_SHIFT;
+        i32 neighbourChunkOffZ = (chunkZ + dz) << world::CHUNK_SHIFT;
+        i32 chunkOffY = chunkY << world::CHUNK_SHIFT;
         for (i32 i = 0, len = std::max(centerDelayedChecks, neighbourDelayedChecks); i < len; ++i) {
             // 尝试将邻居数据一起排队
-            // index = x | (z << 4) | (y << 8)
+            // index = x | (z << CHUNK_SHIFT) | (y << 8)
             if (i < centerDelayedChecks) {
                 i32 value = m_chunkCheckDelayedUpdatesCenter[static_cast<size_t>(i)];
                 checkBlock(lightAccess,
-                    currentChunkOffX | (value & 15),
+                    currentChunkOffX | (value & world::CHUNK_MASK),
                     chunkOffY | (value >> 8),
                     currentChunkOffZ | ((value >> 4) & 0xF));
             }
             if (i < neighbourDelayedChecks) {
                 i32 value = m_chunkCheckDelayedUpdatesNeighbour[static_cast<size_t>(i)];
                 checkBlock(lightAccess,
-                    neighbourChunkOffX | (value & 15),
+                    neighbourChunkOffX | (value & world::CHUNK_MASK),
                     chunkOffY | (value >> 8),
                     neighbourChunkOffZ | ((value >> 4) & 0xF));
             }
@@ -586,31 +590,34 @@ void StarLightEngine::propagateNeighbourLevels(
                 incZ = 1;
                 if (dx < 0) {
                     // 负方向
-                    startX = (chunkX << 4) - 1;
+                    startX = (chunkX << world::CHUNK_SHIFT) - 1;
                 } else {
-                    startX = (chunkX << 4) + 16;
+                    startX = (chunkX << world::CHUNK_SHIFT) + world::CHUNK_WIDTH;
                 }
-                startZ = chunkZ << 4;
+                startZ = chunkZ << world::CHUNK_SHIFT;
             } else {
                 // Z 方向
                 incX = 1;
                 incZ = 0;
                 if (dz < 0) {
                     // 负方向
-                    startZ = (chunkZ << 4) - 1;
+                    startZ = (chunkZ << world::CHUNK_SHIFT) - 1;
                 } else {
-                    startZ = (chunkZ << 4) + 16;
+                    startZ = (chunkZ << world::CHUNK_SHIFT) + world::CHUNK_WIDTH;
                 }
-                startX = chunkX << 4;
+                startX = chunkX << world::CHUNK_SHIFT;
             }
 
             i32 propagateDirection =
                 getDirectionBitset(getOppositeDirection(dir)); // 只想在这个方向检查向这个区块的传播
             i32 sectionOffset = m_chunkSectionIndexOffset;
 
-            for (i32 currY = currSectionY << 4, maxY = currY | 15; currY <= maxY; ++currY) {
-                for (i32 i = 0, currX = startX, currZ = startZ; i < 16; ++i, currX += incX, currZ += incZ) {
-                    i32 level = neighbourNibble->getUpdating((currX & 15) | ((currZ & 15) << 4) | ((currY & 15) << 8));
+            for (i32 currY = currSectionY << world::CHUNK_SHIFT, maxY = currY | world::CHUNK_MASK; currY <= maxY;
+                ++currY) {
+                for (i32 i = 0, currX = startX, currZ = startZ; i < world::CHUNK_WIDTH;
+                    ++i, currX += incX, currZ += incZ) {
+                    i32 level = neighbourNibble->getUpdating((currX & world::CHUNK_MASK) |
+                        ((currZ & world::CHUNK_MASK) << world::CHUNK_SHIFT) | ((currY & world::CHUNK_MASK) << 8));
 
                     if (level <= 1) {
                         // 无需传播
@@ -640,9 +647,9 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
 
     i32 chunkX = chunk->x();
     i32 chunkZ = chunk->z();
-    i32 centerX = chunkX * 16 + 7;
+    i32 centerX = chunkX * world::CHUNK_WIDTH + 7;
     i32 centerY = 128; // 中间高度
-    i32 centerZ = chunkZ * 16 + 7;
+    i32 centerZ = chunkZ * world::CHUNK_WIDTH + 7;
 
     // 重置队列状态（确保多次调用不会累积队列条目）
     m_increaseQueueInitialLength = 0;
@@ -819,18 +826,19 @@ void StarLightEngine::setEmptinessMapCache(i32 chunkX, i32 chunkZ, const bool* m
 
 const BlockState* StarLightEngine::getBlockState(i32 worldX, i32 worldY, i32 worldZ) const
 {
-    const ChunkSection* section = getChunkSection(worldX >> 4, worldY >> 4, worldZ >> 4);
+    const ChunkSection* section =
+        getChunkSection(worldX >> world::CHUNK_SHIFT, worldY >> world::CHUNK_SHIFT, worldZ >> world::CHUNK_SHIFT);
     if (section == nullptr) {
         return nullptr; // 空气
     }
 
     // 通过区块获取方块状态
-    const IChunk* chunk = getChunkInCache(worldX >> 4, worldZ >> 4);
+    const IChunk* chunk = getChunkInCache(worldX >> world::CHUNK_SHIFT, worldZ >> world::CHUNK_SHIFT);
     if (chunk == nullptr) {
         return nullptr;
     }
 
-    return chunk->getBlockState(worldX & 15, worldY, worldZ & 15);
+    return chunk->getBlockState(worldX & world::CHUNK_MASK, worldY, worldZ & world::CHUNK_MASK);
 }
 
 const BlockState* StarLightEngine::getBlockState(i32 sectionIndex, i32 localIndex) const
@@ -844,21 +852,22 @@ const BlockState* StarLightEngine::getBlockState(i32 sectionIndex, i32 localInde
         return nullptr;
     }
 
-    // localIndex = x | (z << 4) | (y << 8)
-    i32 x = localIndex & 15;
-    i32 z = (localIndex >> 4) & 15;
-    i32 y = (localIndex >> 8) & 15;
+    // localIndex = x | (z << CHUNK_SHIFT) | (y << 8)
+    i32 x = localIndex & world::CHUNK_MASK;
+    i32 z = (localIndex >> world::CHUNK_SHIFT) & world::CHUNK_MASK;
+    i32 y = (localIndex >> 8) & world::CHUNK_MASK;
 
     return section->getBlockState(x, y, z);
 }
 
 i32 StarLightEngine::getLightLevel(i32 worldX, i32 worldY, i32 worldZ) const
 {
-    SWMRNibbleArray* nibble = getNibbleFromCache(worldX >> 4, worldY >> 4, worldZ >> 4);
+    SWMRNibbleArray* nibble =
+        getNibbleFromCache(worldX >> world::CHUNK_SHIFT, worldY >> world::CHUNK_SHIFT, worldZ >> world::CHUNK_SHIFT);
     if (nibble == nullptr) {
         return m_isSkyLight ? 15 : 0; // 天空光照默认15，方块光照默认0
     }
-    return nibble->getUpdating(worldX & 15, worldY & 15, worldZ & 15);
+    return nibble->getUpdating(worldX & world::CHUNK_MASK, worldY & world::CHUNK_MASK, worldZ & world::CHUNK_MASK);
 }
 
 i32 StarLightEngine::getLightLevel(i32 sectionIndex, i32 localIndex) const
@@ -875,20 +884,22 @@ i32 StarLightEngine::getLightLevel(i32 sectionIndex, i32 localIndex) const
 
 void StarLightEngine::setLightLevel(i32 worldX, i32 worldY, i32 worldZ, i32 level)
 {
-    i32 sectionIndex = (worldX >> 4) + 5 * (worldZ >> 4) + (5 * 5) * (worldY >> 4) + m_chunkSectionIndexOffset;
+    i32 sectionIndex = (worldX >> world::CHUNK_SHIFT) + 5 * (worldZ >> world::CHUNK_SHIFT) +
+        (5 * 5) * (worldY >> world::CHUNK_SHIFT) + m_chunkSectionIndexOffset;
     SWMRNibbleArray* nibble = m_nibbleCache[sectionIndex];
 
     if (nibble != nullptr) {
-        nibble->set(worldX & 15, worldY & 15, worldZ & 15, static_cast<u8>(level));
+        nibble->set(
+            worldX & world::CHUNK_MASK, worldY & world::CHUNK_MASK, worldZ & world::CHUNK_MASK, static_cast<u8>(level));
 
         // 客户端需要通知相邻区块段
         if (m_notifyUpdateCache != nullptr && m_isClientSide) {
-            i32 cx1 = (worldX - 1) >> 4;
-            i32 cx2 = (worldX + 1) >> 4;
-            i32 cy1 = (worldY - 1) >> 4;
-            i32 cy2 = (worldY + 1) >> 4;
-            i32 cz1 = (worldZ - 1) >> 4;
-            i32 cz2 = (worldZ + 1) >> 4;
+            i32 cx1 = (worldX - 1) >> world::CHUNK_SHIFT;
+            i32 cx2 = (worldX + 1) >> world::CHUNK_SHIFT;
+            i32 cy1 = (worldY - 1) >> world::CHUNK_SHIFT;
+            i32 cy2 = (worldY + 1) >> world::CHUNK_SHIFT;
+            i32 cz1 = (worldZ - 1) >> world::CHUNK_SHIFT;
+            i32 cz2 = (worldZ + 1) >> world::CHUNK_SHIFT;
             for (i32 x = cx1; x <= cx2; ++x) {
                 for (i32 y = cy1; y <= cy2; ++y) {
                     for (i32 z = cz1; z <= cz2; ++z) {
@@ -913,12 +924,12 @@ void StarLightEngine::setLightLevel(i32 sectionIndex, i32 localIndex, i32 worldX
         nibble->set(localIndex, static_cast<u8>(level));
 
         if (m_notifyUpdateCache != nullptr && m_isClientSide) {
-            i32 cx1 = (worldX - 1) >> 4;
-            i32 cx2 = (worldX + 1) >> 4;
-            i32 cy1 = (worldY - 1) >> 4;
-            i32 cy2 = (worldY + 1) >> 4;
-            i32 cz1 = (worldZ - 1) >> 4;
-            i32 cz2 = (worldZ + 1) >> 4;
+            i32 cx1 = (worldX - 1) >> world::CHUNK_SHIFT;
+            i32 cx2 = (worldX + 1) >> world::CHUNK_SHIFT;
+            i32 cy1 = (worldY - 1) >> world::CHUNK_SHIFT;
+            i32 cy2 = (worldY + 1) >> world::CHUNK_SHIFT;
+            i32 cz1 = (worldZ - 1) >> world::CHUNK_SHIFT;
+            i32 cz2 = (worldZ + 1) >> world::CHUNK_SHIFT;
             for (i32 x = cx1; x <= cx2; ++x) {
                 for (i32 y = cy1; y <= cy2; ++y) {
                     for (i32 z = cz1; z <= cz2; ++z) {
@@ -939,12 +950,12 @@ void StarLightEngine::postLightUpdate(i32 worldX, i32 worldY, i32 worldZ)
         return;
     }
 
-    i32 cx1 = (worldX - 1) >> 4;
-    i32 cx2 = (worldX + 1) >> 4;
-    i32 cy1 = (worldY - 1) >> 4;
-    i32 cy2 = (worldY + 1) >> 4;
-    i32 cz1 = (worldZ - 1) >> 4;
-    i32 cz2 = (worldZ + 1) >> 4;
+    i32 cx1 = (worldX - 1) >> world::CHUNK_SHIFT;
+    i32 cx2 = (worldX + 1) >> world::CHUNK_SHIFT;
+    i32 cy1 = (worldY - 1) >> world::CHUNK_SHIFT;
+    i32 cy2 = (worldY + 1) >> world::CHUNK_SHIFT;
+    i32 cz1 = (worldZ - 1) >> world::CHUNK_SHIFT;
+    i32 cz2 = (worldZ + 1) >> world::CHUNK_SHIFT;
 
     for (i32 x = cx1; x <= cx2; ++x) {
         for (i32 y = cy1; y <= cy2; ++y) {
@@ -1059,8 +1070,10 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
                 i32 offY = posY + dy;
                 i32 offZ = posZ + dz;
 
-                i32 sectionIndex = (offX >> 4) + 5 * (offZ >> 4) + (5 * 5) * (offY >> 4) + sectionOffset;
-                i32 localIndex = (offX & 15) | ((offZ & 15) << 4) | ((offY & 15) << 8);
+                i32 sectionIndex = (offX >> world::CHUNK_SHIFT) + 5 * (offZ >> world::CHUNK_SHIFT) +
+                    (5 * 5) * (offY >> world::CHUNK_SHIFT) + sectionOffset;
+                i32 localIndex = (offX & world::CHUNK_MASK) | ((offZ & world::CHUNK_MASK) << world::CHUNK_SHIFT) |
+                    ((offY & world::CHUNK_MASK) << 8);
 
                 SWMRNibbleArray* currentNibble = m_nibbleCache[sectionIndex];
                 i32 currentLevel;
@@ -1133,8 +1146,10 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
                     continue;
                 }
 
-                i32 sectionIndex = (offX >> 4) + 5 * (offZ >> 4) + (5 * 5) * (offY >> 4) + sectionOffset;
-                i32 localIndex = (offX & 15) | ((offZ & 15) << 4) | ((offY & 15) << 8);
+                i32 sectionIndex = (offX >> world::CHUNK_SHIFT) + 5 * (offZ >> world::CHUNK_SHIFT) +
+                    (5 * 5) * (offY >> world::CHUNK_SHIFT) + sectionOffset;
+                i32 localIndex = (offX & world::CHUNK_MASK) | ((offZ & world::CHUNK_MASK) << world::CHUNK_SHIFT) |
+                    ((offY & world::CHUNK_MASK) << 8);
 
                 SWMRNibbleArray* currentNibble = m_nibbleCache[sectionIndex];
                 i32 currentLevel;
@@ -1223,8 +1238,10 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                 i32 offY = posY + dy;
                 i32 offZ = posZ + dz;
 
-                i32 sectionIndex = (offX >> 4) + 5 * (offZ >> 4) + (5 * 5) * (offY >> 4) + sectionOffset;
-                i32 localIndex = (offX & 15) | ((offZ & 15) << 4) | ((offY & 15) << 8);
+                i32 sectionIndex = (offX >> world::CHUNK_SHIFT) + 5 * (offZ >> world::CHUNK_SHIFT) +
+                    (5 * 5) * (offY >> world::CHUNK_SHIFT) + sectionOffset;
+                i32 localIndex = (offX & world::CHUNK_MASK) | ((offZ & world::CHUNK_MASK) << world::CHUNK_SHIFT) |
+                    ((offY & world::CHUNK_MASK) << 8);
 
                 SWMRNibbleArray* currentNibble = m_nibbleCache[sectionIndex];
                 i32 lightLevel;
@@ -1321,8 +1338,10 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                     continue;
                 }
 
-                i32 sectionIndex = (offX >> 4) + 5 * (offZ >> 4) + (5 * 5) * (offY >> 4) + sectionOffset;
-                i32 localIndex = (offX & 15) | ((offZ & 15) << 4) | ((offY & 15) << 8);
+                i32 sectionIndex = (offX >> world::CHUNK_SHIFT) + 5 * (offZ >> world::CHUNK_SHIFT) +
+                    (5 * 5) * (offY >> world::CHUNK_SHIFT) + sectionOffset;
+                i32 localIndex = (offX & world::CHUNK_MASK) | ((offZ & world::CHUNK_MASK) << world::CHUNK_SHIFT) |
+                    ((offY & world::CHUNK_MASK) << 8);
 
                 SWMRNibbleArray* currentNibble = m_nibbleCache[sectionIndex];
                 i32 lightLevel;

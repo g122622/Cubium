@@ -80,7 +80,7 @@ public:
 /**
  * @brief 物理引擎
  *
- * 实现Minecraft兼容的物理系统，包括：
+ * 实现兼容的物理系统，包括：
  * - 逐轴碰撞检测和解决
  * - 重力和跳跃
  * - 自动步进（stairs/slabs）
@@ -92,11 +92,6 @@ public:
  * 3. 使用isOnGround()检测是否在地面
  *
  * 需要注意物理常量定义在 PhysicsConstants.hpp 中。
- *
- * 参考MC源码：
- * - Entity.move() - 核心移动逻辑
- * - Entity.getAllowedMovement() - 碰撞解决和步进
- * - Entity.collideBoundingBox() - 逐轴碰撞计算
  */
 class PhysicsEngine {
 public:
@@ -105,7 +100,7 @@ public:
     /**
      * @brief 带碰撞检测的实体移动
      *
-     * 算法（来自MC Entity.move）：
+     * 算法：
      * 1. 收集实体AABB扩展范围内的所有方块碰撞箱
      * 2. Y轴优先处理（重力/跳跃）
      * 3. X/Z按移动幅度排序处理
@@ -161,10 +156,10 @@ private:
      * 当浮点误差导致实体轻微嵌入地面时，先做一次向上去重叠，
      * 避免后续 calculateYOffset 无法修正而持续下陷。
      */
-    [[nodiscard]] f32 resolveInitialOverlaps(AxisAlignedBB& entityBox, const std::vector<AxisAlignedBB>& boxes) const;
+    [[nodiscard]] f32 _resolveInitialOverlaps(AxisAlignedBB& entityBox, const std::vector<AxisAlignedBB>& boxes) const;
 
     /**
-     * @brief 核心碰撞解决（MC的collideBoundingBox）
+     * @brief 核心碰撞解决
      *
      * 逐轴处理碰撞：
      * 1. Y轴优先（重力）
@@ -176,11 +171,11 @@ private:
      * @param boxes 碰撞箱列表
      * @return 实际移动向量
      */
-    Vector3 resolveCollision(
+    Vector3 _resolveCollision(
         AxisAlignedBB& entityBox, const Vector3& movement, const std::vector<AxisAlignedBB>& boxes);
 
     /**
-     * @brief 尝试步进（MC的auto-step）
+     * @brief 尝试步进
      *
      * 当水平方向移动受阻时，尝试抬起实体继续移动。
      * 使用三种策略竞争最优结果：
@@ -196,7 +191,7 @@ private:
      * @param fallbackResult 直接碰撞结果（作为备选）
      * @return 实际移动向量
      */
-    Vector3 attemptStepUp(AxisAlignedBB& entityBox,
+    Vector3 _attemptStepUp(AxisAlignedBB& entityBox,
         const AxisAlignedBB& originalBox,
         const Vector3& movement,
         f32 stepHeight,
@@ -207,53 +202,52 @@ private:
      *
      * 将抬起和水平移动作为一个整体处理。
      */
-    Vector3 tryStepStrategyA(AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight);
+    Vector3 _tryStepStrategyA(AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight);
 
     /**
      * @brief 策略B：先抬起后水平移动（带高度输出）
      *
-     * MC的标准步进逻辑。
+     * 标准步进逻辑。
      * @param actualStepUp 输出参数，实际抬起的高度
      */
-    Vector3 tryStepStrategyBWithHeight(
+    Vector3 _tryStepStrategyBWithHeight(
         AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight, f32& actualStepUp);
 
     /**
      * @brief 策略B：先抬起后水平移动
      *
-     * MC的标准步进逻辑。
+     * 标准步进逻辑。
      */
-    Vector3 tryStepStrategyB(AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight);
+    Vector3 _tryStepStrategyB(AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight);
 
     /**
      * @brief 策略C：在部分抬起高度水平移动
      *
      * 当策略B抬起不足stepHeight时，在部分抬起高度尝试水平移动。
-     * 参考MC 1.16.5 Entity.getAllowedMovement() 行767-779
      *
      * @param entityBox 实体碰撞箱（会被修改）
      * @param movement 期望移动向量
      * @param partialStepHeight 实际抬起高度（小于stepHeight）
      * @return 从原始位置的移动距离
      */
-    Vector3 tryStepStrategyC(AxisAlignedBB& entityBox, const Vector3& movement, f32 partialStepHeight);
+    Vector3 _tryStepStrategyC(AxisAlignedBB& entityBox, const Vector3& movement, f32 partialStepHeight);
 
     /**
      * @brief 应用下落直到碰到地面
      */
-    Vector3 applyFallDown(AxisAlignedBB& entityBox, f32 originalYMovement);
+    Vector3 _applyFallDown(AxisAlignedBB& entityBox, f32 originalYMovement);
 
     /**
      * @brief 应用水平移动碰撞解决
      *
-     * 按移动幅度排序处理X/Z轴碰撞（MC标准逻辑）。
+     * 按移动幅度排序处理X/Z轴碰撞。
      *
      * @param entityBox 实体碰撞箱（会被修改）
      * @param movement 期望移动向量（仅使用x和z分量）
      * @param boxes 碰撞箱列表
      * @return 实际水平移动向量
      */
-    static Vector3 applyHorizontalCollision(
+    static Vector3 _applyHorizontalCollision(
         AxisAlignedBB& entityBox, const Vector3& movement, const std::vector<AxisAlignedBB>& boxes);
 
     /**
@@ -261,7 +255,7 @@ private:
      * @param x, y, z 方块坐标
      * @param boxes 输出的碰撞箱列表
      */
-    void getBlockCollisionBoxes(i32 x, i32 y, i32 z, std::vector<AxisAlignedBB>& boxes) const;
+    void _getBlockCollisionBoxes(i32 x, i32 y, i32 z, std::vector<AxisAlignedBB>& boxes) const;
 
     ICollisionWorld* m_world;
     bool m_collidedVertically = false;

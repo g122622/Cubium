@@ -32,7 +32,6 @@ namespace mc::scoreboard {
  *
  * 允许玩家通过 /trigger 命令触发分数变更。
  * 玩家触发后分数会被锁定，需要管理员重新 enable。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScoreCriteria.TRIGGER
  */
 class TriggerCriteria : public ScoreCriteria {
 public:
@@ -42,7 +41,7 @@ public:
     /**
      * @brief 构造函数
      */
-    TriggerCriteria();
+    TriggerCriteria() noexcept;
 
     [[nodiscard]] const std::string& getName() const noexcept override { return m_name; }
     [[nodiscard]] bool isReadOnly() const noexcept override { return false; }

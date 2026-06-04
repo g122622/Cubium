@@ -81,8 +81,8 @@ Direction PistonBlock::getFacing(const BlockState& state)
 
 void PistonBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC 1.16.5: 放置时检查是否需要伸出
-    checkForMove(world, pos, state);
+    // 放置时检查是否需要伸出
+    _checkForMove(world, pos, state);
 }
 
 void PistonBlock::neighborChanged(
@@ -92,10 +92,10 @@ void PistonBlock::neighborChanged(
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    // MC 1.16.5: 邻居变化时检查是否需要改变状态
+    // 邻居变化时检查是否需要改变状态
     const BlockState* state = world.getBlockState(pos);
     if (state) {
-        checkForMove(world, pos, *state);
+        _checkForMove(world, pos, *state);
     }
 }
 
@@ -128,9 +128,8 @@ bool PistonBlock::shouldBeExtended(IWorld& world, const BlockPos& pos, const Blo
 {
     Direction facing = getFacing(state);
 
-    // MC 1.16.5: 检查活塞本体除前面外5个方向是否被充能
+    // 检查活塞本体除前面外5个方向是否被充能
     // 注意：不检查活塞朝向方向（前面）的信号
-
     for (Direction dir : Directions::all()) {
         if (dir == facing) {
             // 不检查活塞朝向方向（前面）
@@ -138,15 +137,13 @@ bool PistonBlock::shouldBeExtended(IWorld& world, const BlockPos& pos, const Blo
         }
 
         BlockPos neighborPos = pos.offset(dir);
-        // MC 1.16.5: worldIn.isSidePowered(pos.offset(direction), direction)
         // 检查相邻方块在该方向是否被充能（从该方向接收强信号）
         if (world::redstone::RedstonePower::isSidePowered(world, neighborPos, dir)) {
             return true;
         }
     }
 
-    // MC 1.16.5: 额外检查活塞上方位置的水平信号
-    // 这是 MC Java 的特殊逻辑
+    // 额外检查活塞上方位置的水平信号
     if (world::redstone::RedstonePower::isSidePowered(world, pos, Direction::Down)) {
         return true;
     }
@@ -171,9 +168,6 @@ bool PistonBlock::canPush(const BlockState& blockState,
     bool destroyBlocks,
     Direction direction)
 {
-
-    // MC 1.16.5: PistonBlock.canPush
-
     // 检查高度限制
     if (pos.y < 0 || pos.y >= world.getHeight(pos.x, pos.z)) {
         return false;
@@ -190,7 +184,6 @@ bool PistonBlock::canPush(const BlockState& blockState,
     }
 
     // 不可推动的方块
-    // 参考 MC 1.16.5: PistonBlock.canPush - obsidian, crying_obsidian, respawn_anchor, etc.
     if (blockState.is(VanillaBlocks::OBSIDIAN) || blockState.is(VanillaBlocks::CRYING_OBSIDIAN) ||
         blockState.is(VanillaBlocks::RESPAWN_ANCHOR)) {
         return false;
@@ -240,9 +233,8 @@ bool PistonBlock::canPush(const BlockState& blockState,
     return true;
 }
 
-void PistonBlock::checkForMove(IWorld& world, const BlockPos& pos, const BlockState& state)
+void PistonBlock::_checkForMove(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC 1.16.5: checkForMove
     Direction facing = getFacing(state);
     bool shouldExtend = shouldBeExtended(world, pos, state);
     bool isCurrentlyExtended = isExtended(state);
@@ -272,7 +264,7 @@ bool PistonBlock::extend(IWorld& world, const BlockPos& pos, const BlockState& s
     }
 
     // 执行移动
-    if (!doMove(world, pos, facing, true)) {
+    if (!_doMove(world, pos, facing, true)) {
         return false;
     }
 
@@ -304,7 +296,7 @@ bool PistonBlock::retract(IWorld& world, const BlockPos& pos, const BlockState& 
                 if (reaction == Material::PushReaction::Normal || pullState->is(VanillaBlocks::PISTON) ||
                     pullState->is(VanillaBlocks::STICKY_PISTON)) {
                     // 执行拉回
-                    doMove(world, pos, facing, false);
+                    _doMove(world, pos, facing, false);
                     return true;
                 }
             }
@@ -321,9 +313,8 @@ bool PistonBlock::retract(IWorld& world, const BlockPos& pos, const BlockState& 
     return true;
 }
 
-bool PistonBlock::doMove(IWorld& world, const BlockPos& pos, Direction facing, bool extending)
+bool PistonBlock::_doMove(IWorld& world, const BlockPos& pos, Direction facing, bool extending)
 {
-    // MC 1.16.5: doMove
     BlockPos frontPos = pos.offset(facing);
 
     // 收回时先清除活塞头
@@ -348,7 +339,6 @@ bool PistonBlock::doMove(IWorld& world, const BlockPos& pos, Direction facing, b
         const BlockPos& destroyPos = *it;
         const BlockState* destroyState = world.getBlockState(destroyPos);
         if (destroyState && !destroyState->isAir()) {
-            // 参考 MC 1.16.5: PistonBlock.doMove
             // 破坏方块时掉落物品
             const Block* destroyBlock = &destroyState->getBlock();
             if (destroyBlock != nullptr) {
@@ -419,7 +409,7 @@ bool PistonBlock::doMove(IWorld& world, const BlockPos& pos, Direction facing, b
     return true;
 }
 
-Material::PushReaction PistonBlock::getBlockPushReaction(const BlockState& state) const
+Material::PushReaction PistonBlock::_getBlockPushReaction(const BlockState& state) const
 {
     // 已伸出的活塞不能被推动
     if (isExtended(state)) {

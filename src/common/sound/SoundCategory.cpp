@@ -34,17 +34,16 @@ namespace {
  * @brief 声音类别名称表
  *
  * 索引与 SoundCategory 枚举值对应。
- * 名称与 MC Java 一致。
  */
 constexpr std::string_view s_categoryNames[] = {
     "master",  // Master
     "music",   // Music
-    "record",  // Records (注意: MC Java 使用单数形式 "record")
+    "record",  // Records
     "weather", // Weather
-    "block",   // Blocks (注意: MC Java 使用单数形式 "block")
+    "block",   // Blocks
     "hostile", // Hostile
     "neutral", // Neutral
-    "player",  // Players (注意: MC Java 使用单数形式 "player")
+    "player",  // Players
     "ambient", // Ambient
     "voice"    // Voice
 };
@@ -89,7 +88,6 @@ std::optional<SoundCategory> parseSoundCategory(std::string_view name) noexcept
     }
 
     // 特殊处理：支持复数形式的别名
-    // MC Java 在某些地方使用复数，如 "blocks", "players", "records"
     if (equalsIgnoreCase(name, "blocks")) {
         return SoundCategory::Blocks;
     }

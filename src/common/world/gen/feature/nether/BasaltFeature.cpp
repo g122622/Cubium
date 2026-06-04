@@ -22,10 +22,11 @@
  */
 
 #include "BasaltFeature.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <cmath>
 
 namespace mc {
@@ -38,12 +39,12 @@ bool BasaltColumnFeature::place(
     WorldGenRegion& world, math::Random& random, const BlockPos& pos, const BasaltColumnFeatureConfig& config)
 {
     // 检查起始位置是否在地面上
-    if (!canPlaceAt(world, pos)) {
+    if (!_canPlaceAt(world, pos)) {
         return false;
     }
 
     // 计算柱高度
-    i32 height = getColumnHeight(world, pos, config.minHeight, config.maxHeight);
+    i32 height = _getColumnHeight(world, pos, config.minHeight, config.maxHeight);
     if (height <= 0) {
         return false;
     }
@@ -67,7 +68,7 @@ bool BasaltColumnFeature::place(
     return true;
 }
 
-bool BasaltColumnFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
+bool BasaltColumnFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
     // 检查当前方块是否为可替换方块
     const BlockState* state = world.getBlockState(pos);
@@ -79,11 +80,11 @@ bool BasaltColumnFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos)
     return false;
 }
 
-i32 BasaltColumnFeature::getColumnHeight(WorldGenRegion& world, const BlockPos& pos, i32 minH, i32 maxH) const
+i32 BasaltColumnFeature::_getColumnHeight(WorldGenRegion& world, const BlockPos& pos, i32 minH, i32 maxH) const
 {
     // 计算到天花板的距离
     i32 spaceAbove = 0;
-    for (i32 y = pos.y; y < 128; ++y) {
+    for (i32 y = pos.y; y < world::MAX_BUILD_HEIGHT; ++y) {
         const BlockState* state = world.getBlockState(pos.x, y, pos.z);
         if (!state || state->isAir()) {
             ++spaceAbove;

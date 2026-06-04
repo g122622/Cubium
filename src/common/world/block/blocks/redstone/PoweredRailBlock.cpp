@@ -22,8 +22,9 @@
  */
 
 #include "PoweredRailBlock.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/redstone/RedstonePower.hpp"
+
+#include "common/world/IWorld.hpp"
+#include "common/world/redstone/RedstonePower.hpp"
 #include <unordered_set>
 
 namespace mc {
@@ -68,7 +69,6 @@ void PoweredRailBlock::neighborChanged(
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    // MC 1.16.5: 检查红石信号并更新状态
     const BlockState* currentState = world.getBlockState(pos);
     if (!currentState) return;
 
@@ -78,8 +78,8 @@ void PoweredRailBlock::neighborChanged(
 
     // 如果没有直接充能，尝试从相邻的动力铁轨获取信号
     if (!shouldBePowered) {
-        shouldBePowered = findPoweredRailSignal(world, pos, *currentState, true) ||
-            findPoweredRailSignal(world, pos, *currentState, false);
+        shouldBePowered = _findPoweredRailSignal(world, pos, *currentState, true) ||
+            _findPoweredRailSignal(world, pos, *currentState, false);
     }
 
     bool isCurrentlyPowered = isPowered(*currentState);
@@ -87,15 +87,15 @@ void PoweredRailBlock::neighborChanged(
         BlockState newState = currentState->with(POWERED(), shouldBePowered);
         world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
 
-        // MC 1.16.5: 通知相邻方块更新
+        // 通知相邻方块更新
         world.updateNeighbors(pos, *this);
     }
 }
 
-bool PoweredRailBlock::findPoweredRailSignal(
+bool PoweredRailBlock::_findPoweredRailSignal(
     IWorld& world, const BlockPos& startPos, const BlockState& startState, bool checkForward) const
 {
-    // MC 1.16.5: 迭代搜索相连的动力铁轨，最大距离8格
+    // 迭代搜索相连的动力铁轨，最大距离8格
     // 使用 visited 集合防止重复访问
     std::unordered_set<BlockPos> visited;
 

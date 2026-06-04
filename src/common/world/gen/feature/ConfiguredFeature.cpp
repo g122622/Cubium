@@ -22,24 +22,24 @@
  */
 
 #include "ConfiguredFeature.hpp"
-#include "../../biome/Biome.hpp"
-#include "../../block/BlockRegistry.hpp"
-#include "../../chunk/ChunkPrimer.hpp"
-#include "../chunk/IChunkGenerator.hpp"
-#include "gateway/EndGatewayFeature.hpp"
-#include "lake/LakeFeature.hpp"
-#include "nether/NetherFeatures.hpp"
-#include "ocean/BlueIceFeature.hpp"
-#include "ocean/CoralFeature.hpp"
-#include "ocean/KelpFeature.hpp"
-#include "ocean/OceanDecorationFeature.hpp"
-#include "ocean/SeaPickleFeature.hpp"
-#include "ocean/SeagrassFeature.hpp"
-#include "ore/OreFeature.hpp"
-#include "spike/EndSpikeFeature.hpp"
-#include "tree/TreeFeature.hpp"
-#include "vegetation/VegetationFeatures.hpp"
-#include <algorithm>
+#include "common/core/Constants.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/gateway/EndGatewayFeature.hpp"
+#include "common/world/gen/feature/lake/LakeFeature.hpp"
+#include "common/world/gen/feature/nether/NetherFeatures.hpp"
+#include "common/world/gen/feature/ocean/BlueIceFeature.hpp"
+#include "common/world/gen/feature/ocean/CoralFeature.hpp"
+#include "common/world/gen/feature/ocean/KelpFeature.hpp"
+#include "common/world/gen/feature/ocean/OceanDecorationFeature.hpp"
+#include "common/world/gen/feature/ocean/SeaPickleFeature.hpp"
+#include "common/world/gen/feature/ocean/SeagrassFeature.hpp"
+#include "common/world/gen/feature/ore/OreFeature.hpp"
+#include "common/world/gen/feature/spike/EndSpikeFeature.hpp"
+#include "common/world/gen/feature/tree/TreeFeature.hpp"
+#include "common/world/gen/feature/vegetation/VegetationFeatures.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -294,10 +294,10 @@ void FeatureGenerator::placeFeatures(WorldGenRegion& region,
 
     const i32 chunkX = chunk.x();
     const i32 chunkZ = chunk.z();
-    const i32 startX = chunkX * 16;
-    const i32 startZ = chunkZ * 16;
+    const i32 startX = chunkX * world::CHUNK_WIDTH;
+    const i32 startZ = chunkZ * world::CHUNK_WIDTH;
 
-    // 参考 MC setDecorationSeed：
+    // 设置装饰种子
     // i = nextLong() | 1
     // j = nextLong() | 1
     // decorSeed = x * i + z * j ^ worldSeed
@@ -310,7 +310,7 @@ void FeatureGenerator::placeFeatures(WorldGenRegion& region,
     // 区块原点位置
     const BlockPos chunkOrigin(startX, 0, startZ);
 
-    // 参考 MC setFeatureSeed：featureSeed = decorSeed + featureIndex + 10000 * stageOrdinal
+    // 设置特征种子：featureSeed = decorSeed + featureIndex + 10000 * stageOrdinal
     const i32 stageOrdinal = static_cast<i32>(stage);
     i32 featureIndex = 0;
 

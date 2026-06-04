@@ -43,7 +43,6 @@ namespace template_ {
  * @brief 模板 NBT 加载器
  *
  * 从 Minecraft 的 .nbt 文件格式加载结构模板。
- * 文件格式参考 MC 1.16.5 的 Template 类
  *
  * NBT 结构:
  * - size: [x, y, z] 模板大小
@@ -80,15 +79,15 @@ public:
     [[nodiscard]] static std::unique_ptr<Template> loadFromCompressedNbt(const std::vector<u8>& data);
 
 private:
-    [[nodiscard]] static BlockPos readBlockPos(const nbt::ListTag& list);
-    [[nodiscard]] static std::unique_ptr<nbt::CompoundTag> cloneNbt(const nbt::CompoundTag* source);
+    [[nodiscard]] static BlockPos _readBlockPos(const nbt::ListTag& list);
+    [[nodiscard]] static std::unique_ptr<nbt::CompoundTag> _cloneNbt(const nbt::CompoundTag* source) noexcept;
 
     /**
      * @brief 解析方块状态 ID
      * @param paletteEntry palette 中的方块状态 NBT
      * @return 方块状态 ID
      */
-    [[nodiscard]] static u32 parseBlockStateId(const nbt::CompoundTag& paletteEntry);
+    [[nodiscard]] static u32 _parseBlockStateId(const nbt::CompoundTag& paletteEntry);
 
     /**
      * @brief 解析 Jigsaw 方块信息
@@ -97,7 +96,7 @@ private:
      * @param blockStateId 方块状态 ID（用于读取 orientation 属性）
      * @return Jigsaw 信息，如果不是 Jigsaw 方块返回空
      */
-    [[nodiscard]] static TemplateJigsawBlockInfo parseJigsawBlock(
+    [[nodiscard]] static TemplateJigsawBlockInfo _parseJigsawBlock(
         const nbt::CompoundTag* nbt, const BlockPos& pos, u32 blockStateId);
 };
 

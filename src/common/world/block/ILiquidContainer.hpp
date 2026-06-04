@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 
@@ -40,7 +40,6 @@ class FluidState;
  * @brief 液体容器接口
  *
  * 实现此接口的方块可以容纳液体（如大锅、炼药锅等）。
- * 参考 MC 1.16.5 ILiquidContainer
  *
  * 当流体流入实现了此接口的方块时，会先调用 canContainFluid 检查是否可以容纳，
  * 然后调用 receiveFluid 来实际接收流体。

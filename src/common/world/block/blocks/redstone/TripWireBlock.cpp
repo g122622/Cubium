@@ -103,13 +103,11 @@ bool TripWireBlock::isActivated(const BlockState& state)
 
 bool TripWireBlock::shouldConnectTo(const BlockState& neighborState, Direction direction) const
 {
-    // MC 1.16.5: TripWireBlock.shouldConnectTo
     const Block& neighborBlock = neighborState.getBlock();
 
     // 检查相邻方块是否是绊线钩
     if (&neighborBlock == VanillaBlocks::TRIPWIRE_HOOK) {
         // 绊线钩必须面向绊线才能连接
-        // 即钩的 FACING 必须与当前检测方向相反
         Direction hookFacing = TripWireHookBlock::getFacing(neighborState);
         return hookFacing == Directions::opposite(direction);
     }
@@ -119,7 +117,6 @@ bool TripWireBlock::shouldConnectTo(const BlockState& neighborState, Direction d
         return true;
     }
 
-    // 其他情况不连接
     return false;
 }
 
@@ -148,7 +145,6 @@ void TripWireBlock::neighborChanged(
     const BlockState* belowState = world.getBlockState(belowPos);
     if (!belowState || !belowState->isSolid()) {
         // 没有支撑，掉落绊线物品
-        // 参考 MC 1.16.5: TripWireBlock.neighborChanged
         const Block* block = &state->getBlock();
         if (block != nullptr) {
             const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*block);
@@ -170,17 +166,16 @@ void TripWireBlock::neighborChanged(
 void TripWireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(random);
+    MC_UNUSED(state);
     // 更新绊线状态
     updateState(world, pos);
 }
 
 void TripWireBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
     MC_UNUSED(state);
     // 移除时通知绊线钩
-    notifyHooks(world, pos);
+    _notifyHooks(world, pos);
 }
 
 BlockState TripWireBlock::updatePostPlacement(const BlockState& state,
@@ -194,7 +189,7 @@ BlockState TripWireBlock::updatePostPlacement(const BlockState& state,
     MC_UNUSED(currentPos);
     MC_UNUSED(facingPos);
 
-    // MC 1.16.5: 只处理水平方向的更新
+    // 只处理水平方向的更新
     if (!Directions::isHorizontal(facing)) {
         return state;
     }
@@ -228,8 +223,6 @@ i32 TripWireBlock::getWeakPower(const BlockState& state, IWorld& world, const Bl
 
 i32 TripWireBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
 {
-    // 参考 MC 1.16.5: TripWireBlock 不重写 getStrongPower
-    // 继承自 Block，默认返回 0
     // 绊线只输出弱信号，不输出强信号
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -240,9 +233,8 @@ i32 TripWireBlock::getStrongPower(const BlockState& state, IWorld& world, const 
 
 const CollisionShape& TripWireBlock::getShape(const BlockState& state) const
 {
-    // 参考 MC 1.16.5 TripWireBlock.getShape():
     // ATTACHED=true: AABB = (0, 1, 0) -> (16, 2.5, 16) - 绷紧的绊线
-    // ATTACHED=false: TRIP_WRITE_ATTACHED_AABB = (0, 0, 0) -> (16, 8, 16) - 松弛的绊线（注：MC源码中变量名有拼写错误）
+    // ATTACHED=false: TRIP_WRITE_ATTACHED_AABB = (0, 0, 0) -> (16, 8, 16) - 松弛的绊线
     static const CollisionShape attachedShape = CollisionShape::box(0.0f, 1.0f / 16.0f, 0.0f, 1.0f, 2.5f / 16.0f, 1.0f);
     static const CollisionShape detachedShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 8.0f / 16.0f, 1.0f);
 
@@ -257,7 +249,7 @@ void TripWireBlock::updateState(IWorld& world, const BlockPos& pos)
     }
 
     // 检测实体碰撞
-    bool hasEntity = checkEntityCollision(world, pos);
+    bool hasEntity = _checkEntityCollision(world, pos);
     bool isCurrentlyPowered = isPowered(*state);
 
     if (hasEntity != isCurrentlyPowered) {
@@ -266,15 +258,13 @@ void TripWireBlock::updateState(IWorld& world, const BlockPos& pos)
         world.setBlockState(pos, &newState, 3);
 
         // 通知绊线钩
-        notifyHooks(world, pos);
+        _notifyHooks(world, pos);
     }
 }
 
-bool TripWireBlock::checkEntityCollision(IWorld& world, const BlockPos& pos) const
+bool TripWireBlock::_checkEntityCollision(IWorld& world, const BlockPos& pos) const
 {
-    // 创建绊线的碰撞箱
-    // 参考 MC 1.16.5: TripWireBlock.updateState()
-    // 使用方块的 shape 来获取碰撞箱
+    // 创建绊线的碰撞箱，使用方块的 shape 来获取碰撞箱
     const BlockState* state = world.getBlockState(pos);
     if (!state) {
         return false;
@@ -302,11 +292,9 @@ bool TripWireBlock::checkEntityCollision(IWorld& world, const BlockPos& pos) con
             static_cast<f32>(pos.z) + 1.0f);
     }
 
-    // 查询碰撞箱内的实体
+    // 查询碰撞箱内的实体，检查实体是否触发绊线
     std::vector<Entity*> entities = world.getEntitiesInAABB(detectionBox, nullptr);
 
-    // 参考 MC 1.16.5: TripWireBlock.updateState()
-    // 检查实体是否触发绊线
     for (Entity* entity : entities) {
         if (entity != nullptr && !entity->doesEntityNotTriggerPressurePlate()) {
             return true;
@@ -316,7 +304,7 @@ bool TripWireBlock::checkEntityCollision(IWorld& world, const BlockPos& pos) con
     return false;
 }
 
-void TripWireBlock::notifyHooks(IWorld& world, const BlockPos& pos)
+void TripWireBlock::_notifyHooks(IWorld& world, const BlockPos& pos)
 {
     // 通知四个方向的绊线钩
     for (Direction dir : {Direction::North, Direction::East, Direction::South, Direction::West}) {

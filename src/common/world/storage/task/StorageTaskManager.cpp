@@ -25,11 +25,11 @@
 
 namespace mc::world::storage {
 
-StorageTaskManager::StorageTaskManager(util::ServerWorkerPool& workerPool)
+StorageTaskManager::StorageTaskManager(util::ServerWorkerPool& workerPool) noexcept
     : m_workerPool(&workerPool)
 {}
 
-void StorageTaskManager::setWorkerPool(util::ServerWorkerPool* workerPool)
+void StorageTaskManager::setWorkerPool(util::ServerWorkerPool* workerPool) noexcept
 {
     m_workerPool = workerPool;
 }
@@ -39,6 +39,7 @@ u64 StorageTaskManager::submit(std::unique_ptr<StorageTask> task,
     util::TaskCallback callback,
     std::shared_ptr<std::atomic<bool>> cancelToken)
 {
+    // 空指针检查：作为公共接口，需要验证外部输入
     if (!m_workerPool || !task) {
         if (callback) {
             callback(false, nullptr);

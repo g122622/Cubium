@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../../util/property/Properties.hpp"
-#include "../../blockentity/BlockEntityType.hpp"
-#include "../Block.hpp"
-#include "../BlockPos.hpp"
-#include "../IWaterLoggable.hpp"
-#include "../Material.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/IWaterLoggable.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include <memory>
 
 namespace mc {

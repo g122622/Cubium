@@ -35,8 +35,6 @@ namespace mc::network {
 
 /**
  * @brief 标题动作类型
- *
- * 定义标题包的动作类型，参考 MC 1.16.5 STitlePacket.Type
  */
 enum class TitleAction : u8 {
     Title = 0,     // 设置主标题
@@ -51,7 +49,6 @@ enum class TitleAction : u8 {
  * @brief 标题显示数据包 (S->C)
  *
  * 服务端向客户端发送标题显示指令。
- * 参考 MC 1.16.5 STitlePacket
  *
  * 协议格式:
  * | 字段        | 类型            | 说明                        |
@@ -167,7 +164,7 @@ private:
      * @param text 文本组件
      * @return JSON字符串
      */
-    static std::string serializeText(const text::ITextComponent& text);
+    static std::string _serializeText(const text::ITextComponent& text);
 
     TitleAction m_action = TitleAction::Clear;
     std::optional<std::string> m_text; // 文本组件JSON（仅TITLE/SUBTITLE/ACTIONBAR）

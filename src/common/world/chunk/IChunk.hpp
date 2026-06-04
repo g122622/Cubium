@@ -23,9 +23,10 @@
 
 #pragma once
 
-#include "../../core/Result.hpp"
-#include "../../core/Types.hpp"
 #include "ChunkPos.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <array>
 #include <vector>
 
@@ -69,7 +70,7 @@ enum class HeightmapType : u8 {
 /**
  * @brief 区块接口
  *
- * 参考 MC IChunk，定义区块的基本操作接口。
+ * 定义区块的基本操作接口。
  * 支持 ChunkPrimer（中间状态）和 ChunkData（最终状态）。
  */
 class IChunk {
@@ -116,7 +117,7 @@ public:
     virtual void setModified(bool modified) = 0;
 
     // ========================================================================
-    // Starlight 光照数据接口 (参考 Moonrise StarlightChunk)
+    // Starlight 光照数据接口
     // ========================================================================
 
     /**
@@ -236,7 +237,7 @@ private:
  */
 class Heightmap {
 public:
-    static constexpr i32 SIZE = 16 * 16;
+    static constexpr i32 SIZE = mc::world::CHUNK_WIDTH * mc::world::CHUNK_WIDTH;
 
     explicit Heightmap(HeightmapType type = HeightmapType::WorldSurface);
 
@@ -274,7 +275,7 @@ private:
     /**
      * @brief 检查方块是否影响此高度图
      */
-    [[nodiscard]] bool isOpaque(const BlockState* state) const;
+    [[nodiscard]] bool _isOpaque(const BlockState* state) const;
 };
 
 } // namespace mc

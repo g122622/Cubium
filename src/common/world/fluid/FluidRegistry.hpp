@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "../../core/Result.hpp"
 #include "Fluid.hpp"
 #include <functional>
 #include <memory>
@@ -78,7 +77,7 @@ public:
         Fluid* ptr = fluid.get();
 
         u32 fluidId = static_cast<u32>(m_fluids.size());
-        registerFluidInternal(ptr, id, fluidId);
+        _registerFluidInternal(ptr, id, fluidId);
 
         m_fluids.push_back(std::move(fluid));
         return ptr;
@@ -140,12 +139,15 @@ private:
     /**
      * @brief 内部注册流体
      */
-    void registerFluidInternal(Fluid* fluid, const ResourceLocation& id, u32 fluidId);
+    void _registerFluidInternal(Fluid* fluid, const ResourceLocation& id, u32 fluidId);
 
     /**
      * @brief 分配下一个状态ID
+     *
+     * TODO: 此方法目前未被使用，状态ID由StateContainer在创建时自动分配。
+     * 未来如需手动分配状态ID，可启用此方法。
      */
-    [[nodiscard]] u32 nextStateId() { return m_stateIdCounter++; }
+    [[nodiscard]] u32 _nextStateId() { return m_stateIdCounter++; }
 
 private:
     std::vector<std::unique_ptr<Fluid>> m_fluids;

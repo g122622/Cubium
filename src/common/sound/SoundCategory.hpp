@@ -35,7 +35,6 @@ namespace mc::sound {
  * @brief 声音类别枚举
  *
  * 用于音量控制和分类播放。每个类别有独立的音量设置。
- * 参考: net.minecraft.util.SoundCategory
  *
  * 使用示例:
  * @code
@@ -66,12 +65,8 @@ enum class SoundCategory : u8 {
 /**
  * @brief 获取声音类别的内部名称
  *
- * 返回与 MC Java 一致的名称字符串。
- *
  * @param category 声音类别
  * @return 类别名称字符串，如 "master", "music", "block" 等
- *
- * @note 名称与 MC Java 的 sounds.json 中使用的名称一致
  *
  * 映射关系:
  * - Master  -> "master"
@@ -91,7 +86,6 @@ enum class SoundCategory : u8 {
  * @brief 从名称解析声音类别
  *
  * 将名称字符串转换为对应的 SoundCategory 枚举值。
- * 支持与 MC Java 一致的名称格式。
  *
  * @param name 类别名称（不区分大小写）
  * @return 解析结果，无效名称返回 nullopt

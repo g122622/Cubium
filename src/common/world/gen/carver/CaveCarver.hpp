@@ -31,11 +31,8 @@ namespace mc {
 /**
  * @brief 洞穴世界雕刻器
  *
- * 参考 MC CaveWorldCarver，生成洞穴系统。
- * 改进版本：
- * - 继承 WorldCarver 基类
- * - 使用雕刻掩码防止重复雕刻
- * - 更准确的 MC 1.16.5 洞穴生成算法
+ * 生成洞穴系统，继承 WorldCarver 基类。
+ * 使用雕刻掩码防止重复雕刻。
  *
  * 使用方法：
  * @code
@@ -46,7 +43,6 @@ namespace mc {
  * @endcode
  *
  * @note 洞穴雕刻应在 NOISE 阶段之后、SURFACE 阶段之前进行
- * @note 参考 MC 1.16.5 CaveWorldCarver
  */
 class CaveCarver : public WorldCarver<ProbabilityConfig> {
 public:
@@ -89,12 +85,12 @@ protected:
      * @brief 检查是否应该跳过椭球内的这个位置
      * @note 洞穴雕刻器使用标准椭球检测
      */
-    [[nodiscard]] bool shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const override;
+    [[nodiscard]] bool shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const noexcept override;
 
     /**
      * @brief 获取最大洞穴生成尝试次数
      */
-    [[nodiscard]] virtual i32 getMaxCaveCount() const { return 15; }
+    [[nodiscard]] virtual i32 getMaxCaveCount() const noexcept { return 15; }
 
     /**
      * @brief 获取洞穴起始Y坐标
@@ -114,7 +110,7 @@ protected:
      * @brief 获取垂直缩放因子
      * @return 垂直缩放
      */
-    [[nodiscard]] virtual f32 getVerticalScale() const { return 1.0f; }
+    [[nodiscard]] virtual f32 getVerticalScale() const noexcept { return 1.0f; }
 
 private:
     /**
@@ -137,7 +133,7 @@ private:
      * @param verticalScale 垂直缩放
      * @param carvingMask 雕刻掩码
      */
-    void carveTunnel(ChunkPrimer& chunk,
+    void _carveTunnel(ChunkPrimer& chunk,
         const BiomeProvider& biomeProvider,
         i32 seaLevel,
         ChunkCoord chunkX,
@@ -170,7 +166,7 @@ private:
      * @param verticalScale 垂直缩放
      * @param carvingMask 雕刻掩码
      */
-    void carveRoom(ChunkPrimer& chunk,
+    void _carveRoom(ChunkPrimer& chunk,
         const BiomeProvider& biomeProvider,
         i32 seaLevel,
         ChunkCoord chunkX,

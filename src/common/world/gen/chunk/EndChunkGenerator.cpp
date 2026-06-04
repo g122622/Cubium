@@ -50,7 +50,7 @@ namespace mc {
 constexpr i32 END_HEIGHT = world::MAX_BUILD_HEIGHT;
 constexpr i32 END_MIN_Y = world::MIN_BUILD_HEIGHT;
 
-// 主岛参数（参考 MC 1.16.5）
+// 主岛参数
 constexpr i32 MAIN_ISLAND_RADIUS = 96;
 constexpr i32 ISLAND_HEIGHT_BASE = 64;
 constexpr f32 VOID_HEIGHT = -64.0f; // 虚空高度
@@ -73,8 +73,8 @@ EndChunkGenerator::EndChunkGenerator(u64 seed)
     , m_noiseSizeZ(0)
     , m_random(seed)
 {
-    initSettings();
-    initNoiseGenerators();
+    _initSettings();
+    _initNoiseGenerators();
 
     // 确保生物群系注册表已初始化
     BiomeRegistry::instance().initialize();
@@ -94,8 +94,8 @@ EndChunkGenerator::EndChunkGenerator(u64 seed, DimensionSettings settings)
     , m_noiseSizeZ(0)
     , m_random(seed)
 {
-    initSettings();
-    initNoiseGenerators();
+    _initSettings();
+    _initNoiseGenerators();
 
     // 确保生物群系注册表已初始化
     BiomeRegistry::instance().initialize();
@@ -112,23 +112,23 @@ EndChunkGenerator::EndChunkGenerator(u64 seed, DimensionSettings settings)
 // 初始化
 // ============================================================================
 
-void EndChunkGenerator::initSettings()
+void EndChunkGenerator::_initSettings()
 {
     // 末地特有设置
     m_mainIslandRadius = MAIN_ISLAND_RADIUS;
     m_endIslandHeight = ISLAND_HEIGHT_BASE;
 }
 
-void EndChunkGenerator::initNoiseGenerators()
+void EndChunkGenerator::_initNoiseGenerators()
 {
     // 计算噪声尺寸
     constexpr i32 verticalGranularity = 8;
     constexpr i32 horizontalGranularity = 4;
-    m_noiseSizeX = 16 / horizontalGranularity;
+    m_noiseSizeX = world::CHUNK_WIDTH / horizontalGranularity;
     m_noiseSizeY = END_HEIGHT / verticalGranularity;
-    m_noiseSizeZ = 16 / horizontalGranularity;
+    m_noiseSizeZ = world::CHUNK_WIDTH / horizontalGranularity;
 
-    // 创建噪声生成器（参考 MC 1.16.5）
+    // 创建噪声生成器
     math::Random rng(m_seed);
 
     // 岛屿噪声（Simplex）
@@ -180,14 +180,14 @@ void EndChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chunk
     const BlockState* air = &VanillaBlocks::AIR->getDefaultState();
 
     // 判断区块是否在主岛范围内
-    const bool mainIsland = isChunkInMainIsland(chunkX, chunkZ);
+    const bool mainIsland = _isChunkInMainIsland(chunkX, chunkZ);
 
     if (mainIsland) {
         // 生成主岛
-        generateMainIsland(chunk);
+        _generateMainIsland(chunk);
     } else {
         // 生成外岛
-        generateOuterIslands(chunk);
+        _generateOuterIslands(chunk);
     }
 
     chunk.setChunkStatus(ChunkStatuses::NOISE);
@@ -198,8 +198,8 @@ void EndChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chunk)
     MC_TRACE_EVENT("world.gen.end", "BuildSurface");
 
     // 主岛生成黑曜石柱
-    if (isChunkInMainIsland(chunk.x(), chunk.z())) {
-        generateObsidianPillars(chunk);
+    if (_isChunkInMainIsland(chunk.x(), chunk.z())) {
+        _generateObsidianPillars(chunk);
     }
 
     // 末地无地表生成（无草地、泥土等）
@@ -314,7 +314,7 @@ i32 EndChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
                 }
             }
 
-            // 黑曜石柱（与 generateObsidianPillars 保持一致）
+            // 黑曜石柱（与 _generateObsidianPillars 保持一致）
             constexpr f32 PILLAR_RADIUS = 43.0f;
             const f64 pillarDistSq = static_cast<f64>(x) * x + static_cast<f64>(z) * z;
             const f32 distance = static_cast<f32>(std::sqrt(pillarDistSq));
@@ -336,8 +336,8 @@ i32 EndChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
             return false;
         }
 
-        // 外岛地形（与 generateOuterIslands 保持一致）
-        const f32 height = calculateIslandHeight(x, z);
+        // 外岛地形（与 _generateOuterIslands 保持一致）
+        const f32 height = _calculateIslandHeight(x, z);
         if (height <= 0.0f) {
             return false;
         }
@@ -368,15 +368,15 @@ bool EndChunkGenerator::isInMainIsland(i32 x, i32 z) const
     return distSq <= static_cast<i64>(m_mainIslandRadius) * m_mainIslandRadius;
 }
 
-bool EndChunkGenerator::isChunkInMainIsland(ChunkCoord chunkX, ChunkCoord chunkZ) const
+bool EndChunkGenerator::_isChunkInMainIsland(ChunkCoord chunkX, ChunkCoord chunkZ) const
 {
     // 检查区块中心是否在主岛范围内
-    const i32 centerX = chunkX * 16 + 8;
-    const i32 centerZ = chunkZ * 16 + 8;
+    const i32 centerX = chunkX * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2;
+    const i32 centerZ = chunkZ * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2;
     return isInMainIsland(centerX, centerZ);
 }
 
-f32 EndChunkGenerator::calculateIslandHeight(i32 x, i32 z) const
+f32 EndChunkGenerator::_calculateIslandHeight(i32 x, i32 z) const
 {
     // 主岛：固定高度
     if (isInMainIsland(x, z)) {
@@ -402,7 +402,7 @@ f32 EndChunkGenerator::calculateIslandHeight(i32 x, i32 z) const
     return static_cast<f32>(m_endIslandHeight);
 }
 
-f32 EndChunkGenerator::calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noiseZ) const
+f32 EndChunkGenerator::_calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noiseZ) const
 {
     // 缩放因子
     constexpr f32 SCALE = 0.0625f; // 1/16
@@ -415,7 +415,7 @@ f32 EndChunkGenerator::calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noiseZ)
     return m_densityNoise->noise(nx, ny, nz);
 }
 
-const BlockState* EndChunkGenerator::getBlockForDensity(f32 density, i32 y) const
+const BlockState* EndChunkGenerator::_getBlockForDensity(f32 density, i32 y) const
 {
     // 密度 > 0 表示实心方块
     if (density > 0.0f) {
@@ -425,12 +425,11 @@ const BlockState* EndChunkGenerator::getBlockForDensity(f32 density, i32 y) cons
     return nullptr;
 }
 
-void EndChunkGenerator::generateMainIsland(ChunkPrimer& chunk)
+void EndChunkGenerator::_generateMainIsland(ChunkPrimer& chunk)
 {
     const BlockState* endStone = &VanillaBlocks::END_STONE->getDefaultState();
 
     // 主岛生成算法
-    // 参考 MC 1.16.5: 主岛是一个凹陷的圆形岛屿
     // 中间是虚空（用于末地龙战斗）
 
     const i32 chunkX = chunk.x();
@@ -438,10 +437,10 @@ void EndChunkGenerator::generateMainIsland(ChunkPrimer& chunk)
     const f32 radiusF = static_cast<f32>(m_mainIslandRadius);
     const i64 radiusSq = static_cast<i64>(m_mainIslandRadius) * m_mainIslandRadius;
 
-    for (i32 lx = 0; lx < 16; ++lx) {
-        for (i32 lz = 0; lz < 16; ++lz) {
-            const i32 worldX = chunkX * 16 + lx;
-            const i32 worldZ = chunkZ * 16 + lz;
+    for (i32 lx = 0; lx < world::CHUNK_WIDTH; ++lx) {
+        for (i32 lz = 0; lz < world::CHUNK_WIDTH; ++lz) {
+            const i32 worldX = chunkX * world::CHUNK_WIDTH + lx;
+            const i32 worldZ = chunkZ * world::CHUNK_WIDTH + lz;
 
             // 计算到中心的距离（使用平方距离避免开方）
             const i64 distSq = static_cast<i64>(worldX) * worldX + static_cast<i64>(worldZ) * worldZ;
@@ -449,15 +448,15 @@ void EndChunkGenerator::generateMainIsland(ChunkPrimer& chunk)
 
             // 主岛地形
             // 边缘较高，中间较低（战斗平台）
-            for (i32 sectionY = 0; sectionY < 16; ++sectionY) {
+            for (i32 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
                 if (!chunk.hasSection(sectionY)) {
                     chunk.createSection(sectionY);
                 }
 
                 ChunkSection* section = chunk.getSection(sectionY);
-                const i32 worldY = sectionY * 16;
+                const i32 worldY = sectionY * world::CHUNK_SECTION_HEIGHT;
 
-                for (i32 ly = 0; ly < 16; ++ly) {
+                for (i32 ly = 0; ly < world::CHUNK_SECTION_HEIGHT; ++ly) {
                     const i32 globalY = worldY + ly;
 
                     // 计算高度
@@ -489,7 +488,7 @@ void EndChunkGenerator::generateMainIsland(ChunkPrimer& chunk)
     }
 }
 
-void EndChunkGenerator::generateOuterIslands(ChunkPrimer& chunk)
+void EndChunkGenerator::_generateOuterIslands(ChunkPrimer& chunk)
 {
     const BlockState* endStone = &VanillaBlocks::END_STONE->getDefaultState();
 
@@ -497,13 +496,13 @@ void EndChunkGenerator::generateOuterIslands(ChunkPrimer& chunk)
     const i32 chunkZ = chunk.z();
 
     // 外岛生成
-    for (i32 lx = 0; lx < 16; ++lx) {
-        for (i32 lz = 0; lz < 16; ++lz) {
-            const i32 worldX = chunkX * 16 + lx;
-            const i32 worldZ = chunkZ * 16 + lz;
+    for (i32 lx = 0; lx < world::CHUNK_WIDTH; ++lx) {
+        for (i32 lz = 0; lz < world::CHUNK_WIDTH; ++lz) {
+            const i32 worldX = chunkX * world::CHUNK_WIDTH + lx;
+            const i32 worldZ = chunkZ * world::CHUNK_WIDTH + lz;
 
             // 计算岛屿高度
-            const f32 height = calculateIslandHeight(worldX, worldZ);
+            const f32 height = _calculateIslandHeight(worldX, worldZ);
             if (height <= 0.0f) {
                 continue; // 虚空
             }
@@ -517,15 +516,15 @@ void EndChunkGenerator::generateOuterIslands(ChunkPrimer& chunk)
             const i32 topY = static_cast<i32>(height);
             const i32 bottomY = std::max(40, topY - thickness);
 
-            for (i32 sectionY = 0; sectionY < 16; ++sectionY) {
+            for (i32 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
                 if (!chunk.hasSection(sectionY)) {
                     chunk.createSection(sectionY);
                 }
 
                 ChunkSection* section = chunk.getSection(sectionY);
-                const i32 worldY = sectionY * 16;
+                const i32 worldY = sectionY * world::CHUNK_SECTION_HEIGHT;
 
-                for (i32 ly = 0; ly < 16; ++ly) {
+                for (i32 ly = 0; ly < world::CHUNK_SECTION_HEIGHT; ++ly) {
                     const i32 globalY = worldY + ly;
 
                     if (globalY >= bottomY && globalY <= topY) {
@@ -537,10 +536,10 @@ void EndChunkGenerator::generateOuterIslands(ChunkPrimer& chunk)
     }
 }
 
-void EndChunkGenerator::generateObsidianPillars(ChunkPrimer& chunk)
+void EndChunkGenerator::_generateObsidianPillars(ChunkPrimer& chunk)
 {
     // 黑曜石柱在主岛中心
-    // 参考 MC 1.16.5: 10 根黑曜石柱，围成一圈
+    // 10 根黑曜石柱，围成一圈
 
     const i32 chunkX = chunk.x();
     const i32 chunkZ = chunk.z();
@@ -554,10 +553,10 @@ void EndChunkGenerator::generateObsidianPillars(ChunkPrimer& chunk)
 
     m_random.setSeed(static_cast<u64>(chunkX) * 341873128712LL + static_cast<u64>(chunkZ) * 132897987541LL);
 
-    for (i32 lx = 0; lx < 16; ++lx) {
-        for (i32 lz = 0; lz < 16; ++lz) {
-            const i32 worldX = chunkX * 16 + lx;
-            const i32 worldZ = chunkZ * 16 + lz;
+    for (i32 lx = 0; lx < world::CHUNK_WIDTH; ++lx) {
+        for (i32 lz = 0; lz < world::CHUNK_WIDTH; ++lz) {
+            const i32 worldX = chunkX * world::CHUNK_WIDTH + lx;
+            const i32 worldZ = chunkZ * world::CHUNK_WIDTH + lz;
 
             // 检查是否在黑曜石柱圆周上（使用平方距离）
             const f64 distSq = static_cast<f64>(worldX) * worldX + static_cast<f64>(worldZ) * worldZ;
@@ -579,15 +578,15 @@ void EndChunkGenerator::generateObsidianPillars(ChunkPrimer& chunk)
                 const f32 distFromPillarCenter = std::abs(distance - PILLAR_RADIUS);
                 if (distFromPillarCenter < static_cast<f32>(pillarRadius)) {
                     // 填充黑曜石柱
-                    for (i32 sectionY = 0; sectionY < 16; ++sectionY) {
+                    for (i32 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
                         if (!chunk.hasSection(sectionY)) {
                             continue;
                         }
 
                         ChunkSection* section = chunk.getSection(sectionY);
-                        const i32 worldY = sectionY * 16;
+                        const i32 worldY = sectionY * world::CHUNK_SECTION_HEIGHT;
 
-                        for (i32 ly = 0; ly < 16; ++ly) {
+                        for (i32 ly = 0; ly < world::CHUNK_SECTION_HEIGHT; ++ly) {
                             const i32 globalY = worldY + ly;
 
                             if (globalY <= pillarHeight) {

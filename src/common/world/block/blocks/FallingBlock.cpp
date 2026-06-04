@@ -22,13 +22,14 @@
  */
 
 #include "FallingBlock.hpp"
-#include "../../../core/Constants.hpp"
-#include "../../../entity/entities/misc/MiscEntities.hpp"
-#include "../../IWorld.hpp"
-#include "../../tick/manager/TickManager.hpp"
-#include "../BlockRegistry.hpp"
-#include "../BlockTags.hpp"
-#include "../Material.hpp"
+
+#include "common/core/Constants.hpp"
+#include "common/entity/entities/misc/MiscEntities.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace blocks {
@@ -59,7 +60,6 @@ BlockState FallingBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-    // 参考: net.minecraft.block.FallingBlock#updatePostPlacement
     // 当邻居更新时也调度 tick
     MC_UNUSED(facing);
     MC_UNUSED(facingState);
@@ -113,7 +113,7 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
     }
 }
 
-// 参考: net.minecraft.block.FallingBlock#canFallThrough
+// 检查方块状态是否可穿透
 bool FallingBlock::canFallThrough(const BlockState* state)
 {
     // 空气可穿透
@@ -121,7 +121,7 @@ bool FallingBlock::canFallThrough(const BlockState* state)
         return true;
     }
 
-    // 火焰可穿透（MC 1.16.5: state.isIn(BlockTags.FIRE)）
+    // 火焰可穿透
     if (BlockTags::FIRE().contains(*state)) {
         return true;
     }

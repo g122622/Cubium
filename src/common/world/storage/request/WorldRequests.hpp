@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../WorldConfig.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/WorldConfig.hpp"
 #include <filesystem>
 #include <string>
 

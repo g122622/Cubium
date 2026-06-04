@@ -37,7 +37,7 @@ class BlockEntity;
 /**
  * @brief 方块实体 NBT 反序列化器
  *
- * 从 NBT 数据创建方块实体实例。参考 MC 1.16.5 TileEntity.loadStatic()。
+ * 从 NBT 数据创建方块实体实例。
  *
  * 流程：
  * 1. 读取 "id" 标签获取方块实体类型字符串

@@ -97,8 +97,6 @@ public:
  *
  * 从发射器中投掷物品到世界中。
  * 创建一个物品实体，设置速度并生成到世界中。
- *
- * 参考: net.minecraft.dispenser.DefaultDispenseItemBehavior
  */
 class DefaultDispenseItemBehavior : public IDispenseItemBehavior {
 public:
@@ -129,7 +127,7 @@ protected:
      * @param inaccuracy 发射偏差（MC默认为6.0，用于高斯扰动）
      * @return ItemStack 投掷后的物品堆
      */
-    virtual ItemStack doDispense(IWorld& world,
+    virtual ItemStack _doDispense(IWorld& world,
         const BlockPos& pos,
         const BlockState& state,
         ItemStack& stack,
@@ -142,7 +140,7 @@ protected:
      * @param world 世界引用
      * @param pos 发射器位置
      */
-    virtual void playSound(IWorld& world, const BlockPos& pos);
+    virtual void _playSound(IWorld& world, const BlockPos& pos);
 
     /**
      * @brief 生成发射粒子
@@ -150,7 +148,31 @@ protected:
      * @param pos 发射器位置
      * @param direction 发射方向
      */
-    virtual void spawnParticles(IWorld& world, const BlockPos& pos, Direction direction);
+    virtual void _spawnParticles(IWorld& world, const BlockPos& pos, Direction direction);
+
+    /// 发射位置偏移量（从方块中心到出口的距离）
+    static constexpr f32 DISPENSE_OFFSET = 0.7f;
+
+    /// Y轴方向发射时的额外偏移
+    static constexpr f32 Y_AXIS_OFFSET = 0.125f;
+
+    /// 水平方向发射时的Y轴额外偏移
+    static constexpr f32 HORIZONTAL_Y_OFFSET = 0.15625f;
+
+    /// 高斯随机因子的系数
+    static constexpr f32 GAUSSIAN_FACTOR = 0.0075f;
+
+    /// 基础速度的最小值
+    static constexpr f32 BASE_VELOCITY_MIN = 0.2f;
+
+    /// 基础速度的随机范围
+    static constexpr f32 BASE_VELOCITY_RANGE = 0.1f;
+
+    /// Y方向基础速度
+    static constexpr f32 Y_VELOCITY_BASE = 0.2f;
+
+    /// 默认拾取延迟（ticks）
+    static constexpr i32 DEFAULT_PICKUP_DELAY = 10;
 };
 
 /**
@@ -158,8 +180,6 @@ protected:
  *
  * 某些发射行为可能成功或失败（如打火石点火、桶装满水等）。
  * 失败时不播放发射音效，不减少物品数量。
- *
- * 参考: net.minecraft.dispenser.OptionalDispenseItemBehavior
  */
 class OptionalDispenseItemBehavior : public DefaultDispenseItemBehavior {
 public:
@@ -174,17 +194,17 @@ protected:
      * @brief 设置发射结果
      * @param success 是否成功
      */
-    void setSuccess(bool success) { m_success = success; }
+    void _setSuccess(bool success) { m_success = success; }
 
     /**
      * @brief 播放音效（根据成功/失败播放不同音效）
      */
-    void playSound(IWorld& world, const BlockPos& pos) override;
+    void _playSound(IWorld& world, const BlockPos& pos) override;
 
     /**
      * @brief 生成粒子（只有成功时才生成）
      */
-    void spawnParticles(IWorld& world, const BlockPos& pos, Direction direction) override;
+    void _spawnParticles(IWorld& world, const BlockPos& pos, Direction direction) override;
 
 private:
     bool m_success;
@@ -195,8 +215,6 @@ private:
  *
  * 用于发射投掷物（箭矢、雪球、鸡蛋等）。
  * 通过工厂函数创建具体的投掷物实体。
- *
- * 参考: net.minecraft.dispenser.ProjectileDispenseBehavior
  */
 class ProjectileDispenseBehavior : public DefaultDispenseItemBehavior {
 public:
@@ -244,8 +262,6 @@ private:
  *
  * 在水面放置船实体。
  * 如果目标位置不是水，则作为普通物品发射。
- *
- * 参考: net.minecraft.dispenser.BoatDispenseBehavior
  */
 class BoatDispenseBehavior : public DefaultDispenseItemBehavior {
 public:
@@ -265,8 +281,6 @@ private:
  * @brief 桶发射行为（装满流体的桶）
  *
  * 放置流体到世界中。
- *
- * 参考: net.minecraft.dispenser.BucketDispenseBehavior
  */
 class BucketDispenseBehavior : public OptionalDispenseItemBehavior {
 public:
@@ -286,8 +300,6 @@ private:
  * @brief 空桶发射行为（收集流体）
  *
  * 从世界中收集流体到桶中。
- *
- * 参考: net.minecraft.dispenser.BucketDispenseBehavior（空桶分支）
  */
 class EmptyBucketDispenseBehavior : public OptionalDispenseItemBehavior {
 public:
@@ -300,8 +312,6 @@ public:
  * @brief 打火石发射行为
  *
  * 点燃发射器前方的方块。
- *
- * 参考: net.minecraft.dispenser.FlintAndSteelDispenseBehavior
  */
 class FlintAndSteelDispenseBehavior : public OptionalDispenseItemBehavior {
 public:
@@ -314,8 +324,6 @@ public:
  * @brief 骨粉发射行为
  *
  * 对发射器前方的方块使用骨粉催熟效果。
- *
- * 参考: net.minecraft.dispenser.BonemealDispenseBehavior
  */
 class BonemealDispenseBehavior : public OptionalDispenseItemBehavior {
 public:

@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Material.hpp"
-#include "../agricultural/BushBlock.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
 
 namespace mc {
 
@@ -41,8 +41,6 @@ namespace blocks {
  *
  * 漂浮在水面上的扁平植物。
  * 可以放置在水面上，玩家可以在上面行走。
- *
- * 参考: net.minecraft.block.LilyPadBlock
  */
 class LilyPadBlock : public BushBlock {
 public:

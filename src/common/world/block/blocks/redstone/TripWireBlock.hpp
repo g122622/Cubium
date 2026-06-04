@@ -41,8 +41,6 @@ namespace blocks {
  * - 最大长度42格
  * - 被剪断时掉落线
  * - 需要支撑方块
- *
- * 参考: net.minecraft.block.TripWireBlock
  */
 class TripWireBlock : public Block {
 public:
@@ -85,7 +83,6 @@ public:
     /**
      * @brief 获取绊线形状
      *
-     * 参考 MC 1.16.5: TripWireBlock.getShape()
      * - ATTACHED=true: 绷紧状态，形状为 (0, 1, 0) -> (16, 2.5, 16)
      * - ATTACHED=false: 松弛状态，形状为 (0, 0, 0) -> (16, 8, 16)
      */
@@ -143,10 +140,9 @@ public:
     /**
      * @brief 检查是否应该连接到指定方向的方块
      *
-     * 参考 MC 1.16.5: TripWireBlock.shouldConnectTo
-     * - 如果相邻方块是绊线钩，检查其 FACING 是否朝向当前方向
-     * - 如果相邻方块是绊线，返回 true
-     * - 其他情况返回 false
+     * 如果相邻方块是绊线钩，检查其 FACING 是否朝向当前方向；
+     * 如果相邻方块是绊线，返回 true；
+     * 其他情况返回 false。
      *
      * @param neighborState 相邻方块的状态
      * @param direction 当前检测的方向（从当前方块指向相邻方块）
@@ -161,14 +157,14 @@ private:
      * @param pos 绊线位置
      * @return true 如果有实体碰撞
      */
-    [[nodiscard]] bool checkEntityCollision(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _checkEntityCollision(IWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 通知绊线钩更新
      * @param world 世界引用
      * @param pos 绊线位置
      */
-    void notifyHooks(IWorld& world, const BlockPos& pos);
+    void _notifyHooks(IWorld& world, const BlockPos& pos);
 };
 
 } // namespace blocks

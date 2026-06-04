@@ -23,9 +23,9 @@
 
 #pragma once
 
+#include "common/world/biome/layer/BiomeValues.hpp"
+#include "common/world/biome/layer/LayerContext.hpp"
 #include <memory>
-#include "../BiomeValues.hpp"
-#include "../LayerContext.hpp"
 
 namespace mc {
 namespace layer {

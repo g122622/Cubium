@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "TrunkPlacer.hpp"
+#include <memory>
 
 namespace mc {
 
@@ -33,8 +33,6 @@ namespace mc {
  *
  * 用于橡树、白桦、丛林木等简单的垂直树干。
  * 生成一条从底部到顶部的直线树干。
- *
- * 参考: net.minecraft.world.gen.trunkplacer.StraightTrunkPlacer
  */
 class StraightTrunkPlacer : public TrunkPlacer {
 public:

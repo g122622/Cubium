@@ -24,6 +24,7 @@
 #pragma once
 
 #include "ITickList.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc::world::tick {
 
@@ -32,8 +33,6 @@ namespace mc::world::tick {
  *
  * 用于客户端或不需要tick处理的场景。
  * 单例模式，所有方法返回空操作。
- *
- * 参考: net.minecraft.world.EmptyTickList
  *
  * 用法示例:
  * @code
@@ -53,27 +52,37 @@ public:
     /**
      * @brief 获取单例实例
      */
-    static EmptyTickList<T>& get()
+    static EmptyTickList<T>& get() noexcept
     {
         static EmptyTickList<T> instance;
         return instance;
     }
 
-    [[nodiscard]] bool isTickScheduled(const BlockPos& pos, T& target) const override { return false; }
-
-    [[nodiscard]] bool isTickPending(const BlockPos& pos, T& target) const override { return false; }
-
-    void scheduleTick(const BlockPos& pos, T& target, i32 delay) override
+    [[nodiscard]] bool isTickScheduled(const BlockPos& pos, T& target) const noexcept override
     {
+        MC_UNUSED(pos, target);
+        return false;
+    }
+
+    [[nodiscard]] bool isTickPending(const BlockPos& pos, T& target) const noexcept override
+    {
+        MC_UNUSED(pos, target);
+        return false;
+    }
+
+    void scheduleTick(const BlockPos& pos, T& target, i32 delay) noexcept override
+    {
+        MC_UNUSED(pos, target, delay);
         // 空操作
     }
 
-    void scheduleTick(const BlockPos& pos, T& target, i32 delay, TickPriority priority) override
+    void scheduleTick(const BlockPos& pos, T& target, i32 delay, TickPriority priority) noexcept override
     {
+        MC_UNUSED(pos, target, delay, priority);
         // 空操作
     }
 
-    [[nodiscard]] size_t pendingCount() const override { return 0; }
+    [[nodiscard]] size_t pendingCount() const noexcept override { return 0; }
 
 private:
     EmptyTickList() = default;

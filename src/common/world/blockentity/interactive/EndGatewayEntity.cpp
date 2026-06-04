@@ -27,6 +27,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/VanillaBlocks.hpp"
 
@@ -168,13 +169,12 @@ void EndGatewayEntity::teleportEntity(IWorld& world, Entity& entity)
     // 如果没有出口位置且在末地主岛，生成出口传送门
     if (!m_exitPortal.has_value()) {
         // 检查是否在末地维度
-        // MC 1.16.5: 只在主岛折跃门生成出口传送门
-        generateExitPortal(world);
+        _generateExitPortal(world);
     }
 
     // 如果有出口位置，执行传送
     if (m_exitPortal.has_value()) {
-        BlockPos targetPos = m_exactTeleport ? m_exitPortal.value() : findExitPosition(world);
+        BlockPos targetPos = m_exactTeleport ? m_exitPortal.value() : _findExitPosition(world);
 
         // 执行传送
         // 传送到目标位置的中心
@@ -213,8 +213,7 @@ void EndGatewayEntity::triggerCooldown(IWorld& world)
 {
     if (!world.isClientSide()) {
         m_teleportCooldown = TRIGGER_COOLDOWN;
-        // MC 1.16.5: world.addBlockEvent(pos, block, 1, 0)
-        // 这会通知客户端播放冷却动画
+        // 通知客户端播放冷却动画
         setChanged();
     }
 }
@@ -230,7 +229,7 @@ bool EndGatewayEntity::receiveClientEvent(i32 id, i32 type)
 
 // ========== 私有方法 ==========
 
-BlockPos EndGatewayEntity::findExitPosition(IWorld& world) const
+BlockPos EndGatewayEntity::_findExitPosition(IWorld& world) const
 {
     if (!m_exitPortal.has_value()) {
         return m_pos.up();
@@ -238,16 +237,15 @@ BlockPos EndGatewayEntity::findExitPosition(IWorld& world) const
 
     // 在出口传送门上方寻找安全位置
     BlockPos searchCenter = m_exitPortal.value().up(2);
-    BlockPos highestBlock = findHighestBlock(world, searchCenter, 5, false);
+    BlockPos highestBlock = _findHighestBlock(world, searchCenter, 5, false);
 
     // 返回最高方块上方
     return highestBlock.up();
 }
 
-void EndGatewayEntity::generateExitPortal(IWorld& world)
+void EndGatewayEntity::_generateExitPortal(IWorld& world)
 {
-    // MC 1.16.5: 从主岛向外约 1024 格生成出口传送门
-    // 这是一个简化的实现
+    // 从主岛向外约 1024 格生成出口传送门
     // 使用位置坐标作为随机种子
     math::Random rng(static_cast<u64>(static_cast<i64>(m_pos.x) * 3129871LL + static_cast<i64>(m_pos.z) * 116129781LL));
 
@@ -265,25 +263,25 @@ void EndGatewayEntity::generateExitPortal(IWorld& world)
     i32 targetX = static_cast<i32>(dirX * distance);
     i32 targetZ = static_cast<i32>(dirZ * distance);
 
-    // 寻找合适的高度
+    // TODO: 硬编码的初始高度75应该根据末地维度的地形生成规则来确定
+    // 目前使用固定值，后续应改为根据生物群系或地形生成器获取
     BlockPos targetPos(targetX, 75, targetZ);
 
     // 查找最高方块
-    BlockPos groundPos = findHighestBlock(world, targetPos, 16, true);
+    BlockPos groundPos = _findHighestBlock(world, targetPos, 16, true);
 
     // 在地面之上 10 格放置折跃门
     m_exitPortal = groundPos.up(10);
 
     // 创建折跃门结构
-    createGatewayStructure(world, m_exitPortal.value());
+    _createGatewayStructure(world, m_exitPortal.value());
 
     setChanged();
 }
 
-void EndGatewayEntity::createGatewayStructure(IWorld& world, const BlockPos& pos)
+void EndGatewayEntity::_createGatewayStructure(IWorld& world, const BlockPos& pos)
 {
-    // MC 1.16.5: 折跃门结构是一个单独的折跃门方块
-    // 周围是基岩框架
+    // 折跃门结构是一个单独的折跃门方块，周围是基岩框架
 
     // 获取方块
     Block* bedrockBlock = VanillaBlocks::BEDROCK;
@@ -298,11 +296,11 @@ void EndGatewayEntity::createGatewayStructure(IWorld& world, const BlockPos& pos
     const BlockState& endGateway = endGatewayBlock->defaultState();
 
     // 简化版：只放置折跃门方块本身
-    // 完整实现应该在周围放置基岩框架
+    // TODO: 完整实现应该在周围放置基岩框架
     world.setBlockState(pos, &endGateway);
 }
 
-BlockPos EndGatewayEntity::findHighestBlock(IWorld& world, const BlockPos& center, i32 radius, bool allowBedrock)
+BlockPos EndGatewayEntity::_findHighestBlock(IWorld& world, const BlockPos& center, i32 radius, bool allowBedrock)
 {
     BlockPos result = center;
     i32 highestY = -1;
@@ -315,7 +313,7 @@ BlockPos EndGatewayEntity::findHighestBlock(IWorld& world, const BlockPos& cente
             }
 
             // 从顶部向下搜索
-            for (i32 y = 255; y > highestY; --y) {
+            for (i32 y = world::MAX_BUILD_HEIGHT - 1; y > highestY; --y) {
                 BlockPos checkPos(center.x + dx, y, center.z + dz);
                 const BlockState* state = world.getBlockState(checkPos);
 

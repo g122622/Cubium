@@ -39,8 +39,6 @@ namespace blockentity {
  * 为容器方块实体提供锁定和自定义名称功能。
  * 锁定机制允许玩家通过重命名物品（钥匙）来保护容器。
  *
- * 参考: net.minecraft.tileentity.LockableTileEntity
- *
  * 功能:
  * - 锁定状态管理
  * - 自定义名称显示
@@ -57,7 +55,7 @@ public:
      * @brief 检查容器是否被锁定
      * @return 如果容器被锁定返回true
      */
-    [[nodiscard]] bool isLocked() const { return m_locked; }
+    [[nodiscard]] bool isLocked() const noexcept { return m_locked; }
 
     /**
      * @brief 设置锁定状态
@@ -75,7 +73,7 @@ public:
      * @brief 获取锁定钥匙名称
      * @return 钥匙名称（物品显示名）
      */
-    [[nodiscard]] const std::string& getLockKey() const { return m_lockKey; }
+    [[nodiscard]] const std::string& getLockKey() const noexcept { return m_lockKey; }
 
     /**
      * @brief 设置锁定钥匙名称
@@ -83,8 +81,10 @@ public:
      */
     void setLockKey(const std::string& key)
     {
-        m_lockKey = key;
-        setChanged();
+        if (m_lockKey != key) {
+            m_lockKey = key;
+            setChanged();
+        }
     }
 
     /**
@@ -102,7 +102,7 @@ public:
 
     // ========== 重写 BlockEntity 接口 ==========
 
-    [[nodiscard]] std::string getCustomName() const override { return m_customName; }
+    [[nodiscard]] std::string getCustomName() const noexcept override { return m_customName; }
     void setCustomName(const std::string& name) override;
 
     /**

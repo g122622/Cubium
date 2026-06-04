@@ -30,7 +30,7 @@ namespace mc::world::storage {
 
 const char* WorldNameSanitizer::ILLEGAL_CHARS = "/\\:*?\"<>|";
 
-bool WorldNameSanitizer::isReservedName(const std::string& name)
+bool WorldNameSanitizer::isReservedName(const std::string& name) noexcept
 {
     // Windows 保留名
     static const char* reservedNames[] = {"CON",
@@ -75,7 +75,7 @@ bool WorldNameSanitizer::isReservedName(const std::string& name)
     return false;
 }
 
-std::string WorldNameSanitizer::sanitizeName(const std::string& name)
+std::string WorldNameSanitizer::sanitizeName(const std::string& name) noexcept
 {
     if (name.empty()) {
         return "World";
@@ -90,7 +90,7 @@ std::string WorldNameSanitizer::sanitizeName(const std::string& name)
             return '_';
         }
         // 控制字符
-        if (c < 32) {
+        if (c <= CONTROL_CHAR_MAX) {
             return '_';
         }
         return static_cast<char>(c);
@@ -109,15 +109,16 @@ std::string WorldNameSanitizer::sanitizeName(const std::string& name)
         result = "_" + result + "_";
     }
 
-    // 限制长度（255 是大多数文件系统的限制，预留扩展名空间）
-    if (result.length() > 240) {
-        result = result.substr(0, 240);
+    // 限制长度（预留扩展名空间）
+    if (result.length() > MAX_FILENAME_LENGTH) {
+        result = result.substr(0, MAX_FILENAME_LENGTH);
     }
 
     return result;
 }
 
-bool WorldNameSanitizer::parseExistingNameWithNumber(const std::string& name, std::string& baseName, i32& number)
+bool WorldNameSanitizer::_parseExistingNameWithNumber(
+    const std::string& name, std::string& baseName, i32& number) noexcept
 {
     // 匹配模式 "Name (N)" 其中 N 是数字
     if (name.length() < 4) {
@@ -171,7 +172,7 @@ Result<std::string> WorldNameSanitizer::findAvailableLevelId(
 
     // 解析现有名称，找到最大序号
     i32 maxNumber = 0;
-    bool hasExistingNumber = parseExistingNameWithNumber(baseName, baseName, maxNumber);
+    bool hasExistingNumber = _parseExistingNameWithNumber(baseName, baseName, maxNumber);
 
     // 遍历目录查找冲突并确定下一个可用序号
     std::vector<i32> usedNumbers;
@@ -191,7 +192,7 @@ Result<std::string> WorldNameSanitizer::findAvailableLevelId(
 
         std::string existingBase;
         i32 existingNumber;
-        if (parseExistingNameWithNumber(dirName, existingBase, existingNumber)) {
+        if (_parseExistingNameWithNumber(dirName, existingBase, existingNumber)) {
             if (existingBase == baseName) {
                 usedNumbers.push_back(existingNumber);
             }
@@ -220,7 +221,7 @@ Result<std::string> WorldNameSanitizer::findAvailableLevelId(
     return oss.str();
 }
 
-bool WorldNameSanitizer::isLevelIdAvailable(const std::filesystem::path& savesDir, const std::string& levelId)
+bool WorldNameSanitizer::isLevelIdAvailable(const std::filesystem::path& savesDir, const std::string& levelId) noexcept
 {
     std::error_code ec;
     std::filesystem::path worldDir = savesDir / levelId;
@@ -236,7 +237,7 @@ bool WorldNameSanitizer::isLevelIdAvailable(const std::filesystem::path& savesDi
     return false;
 }
 
-std::string WorldNameSanitizer::generateLevelIdFromDisplayName(const std::string& displayName)
+std::string WorldNameSanitizer::generateLevelIdFromDisplayName(const std::string& displayName) noexcept
 {
     return sanitizeName(displayName);
 }

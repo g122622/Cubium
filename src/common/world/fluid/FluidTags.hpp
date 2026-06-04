@@ -39,7 +39,6 @@ class Fluid;
  * @brief 流体标签
  *
  * 用于标记具有相同特性的流体组。
- * 参考 MC 1.16.5 Tag<Fluid>
  *
  * 用法示例:
  * @code
@@ -103,8 +102,6 @@ private:
 
 /**
  * @brief 内置流体标签集合
- *
- * 参考 MC 1.16.5 FluidTags
  */
 class FluidTags {
 public:
@@ -137,7 +134,7 @@ public:
 private:
     FluidTags() = delete;
 
-    static std::unordered_map<ResourceLocation, std::unique_ptr<FluidTag>>& getTags();
+    static std::unordered_map<ResourceLocation, std::unique_ptr<FluidTag>>& _getTags();
     static bool s_initialized;
 };
 

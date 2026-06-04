@@ -40,15 +40,13 @@ namespace command {
  *
  * 管理所有命令的注册和分发。
  * 提供命令注册的统一入口点。
- *
- * 参考 MC 的 CommandDispatcher 和 Commands 类
  */
 class CommandRegistry {
 public:
     using Dispatcher = CommandDispatcher<ServerCommandSource>;
 
     CommandRegistry();
-    ~CommandRegistry() = default;
+    ~CommandRegistry() noexcept = default;
 
     // 禁止复制
     CommandRegistry(const CommandRegistry&) = delete;
@@ -116,7 +114,7 @@ public:
     /**
      * @brief 检查命令是否存在
      */
-    [[nodiscard]] bool hasCommand(const std::string& name) const;
+    [[nodiscard]] bool hasCommand(const std::string& name) const noexcept;
 
     /**
      * @brief 获取全局命令注册表实例

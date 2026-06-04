@@ -44,8 +44,6 @@ namespace blockentity {
  * - 支持富文本（颜色、样式、点击事件等）
  * - 可编辑（右键点击）
  * - 木告示牌和荧光告示牌
- *
- * 参考: net.minecraft.tileentity.SignTileEntity
  */
 class SignEntity : public BlockEntity {
 public:
@@ -176,10 +174,8 @@ public:
     /**
      * @brief 执行告示牌上的命令
      *
-     * MC 1.16.5: 当玩家右键点击告示牌时，如果文本中包含
-     * 点击事件（如 run_command），则执行该命令。
-     *
-     * 参考: SignTileEntity.executeCommand()
+     * 当玩家右键点击告示牌时，如果文本中包含点击事件（如 run_command），
+     * 则执行该命令。
      *
      * @param world 世界引用
      * @param player 执行命令的玩家
@@ -190,8 +186,7 @@ public:
     /**
      * @brief 检查是否只有 OP 可以设置 NBT
      *
-     * MC 1.16.5: 告示牌的 NBT 数据只能由 OP 级玩家修改。
-     * 参考: SignTileEntity.onlyOpsCanSetNbt()
+     * 告示牌的 NBT 数据只能由 OP 级玩家修改。
      *
      * @return 始终返回 true
      */
@@ -214,14 +209,15 @@ private:
      * @param text 文本组件
      * @return 如果有效返回 true
      */
-    [[nodiscard]] static bool validateText(const text::ITextComponent& text);
+    [[nodiscard]] static bool _validateText(const text::ITextComponent& text);
 
     /**
      * @brief 截断文本组件到最大长度
      * @param text 文本组件
      * @return 截断后的文本组件
      */
-    [[nodiscard]] static std::unique_ptr<text::ITextComponent> truncateText(std::unique_ptr<text::ITextComponent> text);
+    [[nodiscard]] static std::unique_ptr<text::ITextComponent> _truncateText(
+        std::unique_ptr<text::ITextComponent> text);
 
     std::array<std::unique_ptr<text::ITextComponent>, LINE_COUNT> m_lines; ///< 4行富文本
     bool m_editable = true;                                                ///< 是否可编辑

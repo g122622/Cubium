@@ -23,10 +23,10 @@
 
 #pragma once
 
+#include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include "common/mod/bedrock/addon/core/IScriptContext.hpp"
 #include "common/mod/bedrock/addon/core/IScriptRuntime.hpp"
 #include "common/mod/bedrock/addon/core/ScriptData.hpp"
-#include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include <functional>
 #include <memory>
 #include <optional>
@@ -112,7 +112,7 @@ public:
      * @param length 参数个数
      * @return 是否注册成功
      */
-    bool registerNativeGlobalFunction(const std::string& name, void* func, int length = 0);
+    bool registerNativeGlobalFunction(const std::string& name, void* func, i32 length = 0);
 
     /**
      * @brief 注册原生C模块

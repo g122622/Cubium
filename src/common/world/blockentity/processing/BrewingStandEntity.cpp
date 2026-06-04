@@ -67,7 +67,6 @@ bool BrewingStandEntity::hasBottle(i32 slot) const
 
 i32 BrewingStandEntity::getComparatorSignal() const
 {
-    // 参考 MC 1.16.5 Container.calcRedstoneFromInventory
     // 信号强度 = floor(平均填充率 * 14) + (有非空槽位 ? 1 : 0)
     // 槽位填充率 = 物品数量 / min(容器堆叠上限, 物品最大堆叠数)
 
@@ -100,23 +99,21 @@ void BrewingStandEntity::tick(IWorld& world)
 {
     bool brewing = isBrewing();
     if (brewing != m_lastBrewing) {
-        updateBlockState(world);
+        _updateBlockState(world);
         m_lastBrewing = brewing;
     }
 
     // 获取当前材料
     const ItemStack& ingredientStack = m_inventory.getItem(INGREDIENT_SLOT);
 
-    // MC Java: 检测材料变化，重置酿造时间
-    // 参考: BrewingStandTileEntity.java lines 113-116
-    // 如果材料变化，重置酿造时间
+    // 检测材料变化，重置酿造时间
     if (!ingredientStack.isSameItem(m_ingredientCache)) {
         m_ingredientCache = ingredientStack.copy();
         m_brewTime = 0;
         setChanged();
     }
 
-    if (!canBrew()) {
+    if (!_canBrew()) {
         m_brewTime = 0;
         return;
     }
@@ -139,9 +136,9 @@ void BrewingStandEntity::tick(IWorld& world)
     if (m_brewTime > 0) {
         --m_brewTime;
         if (m_brewTime == 0) {
-            doBrew(world);
-            consumeFuel();
-            updateBlockState(world);
+            _doBrew(world);
+            _consumeFuel();
+            _updateBlockState(world);
             setChanged();
         }
     } else {
@@ -150,7 +147,7 @@ void BrewingStandEntity::tick(IWorld& world)
     }
 }
 
-bool BrewingStandEntity::canBrew() const
+bool BrewingStandEntity::_canBrew() const
 {
     const ItemStack& ingredientStack = m_inventory.getItem(INGREDIENT_SLOT);
     if (ingredientStack.isEmpty()) {
@@ -179,7 +176,7 @@ bool BrewingStandEntity::canBrew() const
     return false;
 }
 
-void BrewingStandEntity::doBrew(IWorld& world)
+void BrewingStandEntity::_doBrew(IWorld& world)
 {
     ItemStack ingredientStack = m_inventory.getItem(INGREDIENT_SLOT);
     if (ingredientStack.isEmpty()) {
@@ -205,7 +202,7 @@ void BrewingStandEntity::doBrew(IWorld& world)
         }
     }
 
-    // MC 1.16.5: 酿造完成时播放音效
+    // 酿造完成时播放音效
     if (!world.isClientSide() && anyBrewed) {
         world.playSound(
             SoundEvents::BLOCK_BREWING_STAND_BREW, sound::SoundCategory::Blocks, m_pos.center(), 1.0f, 1.0f);
@@ -215,7 +212,7 @@ void BrewingStandEntity::doBrew(IWorld& world)
     m_inventory.setItem(INGREDIENT_SLOT, ingredientStack);
 }
 
-void BrewingStandEntity::consumeFuel()
+void BrewingStandEntity::_consumeFuel()
 {
     if (m_fuel > 0) {
         --m_fuel;
@@ -223,7 +220,7 @@ void BrewingStandEntity::consumeFuel()
     }
 }
 
-void BrewingStandEntity::updateBlockState(IWorld& world)
+void BrewingStandEntity::_updateBlockState(IWorld& world)
 {
     const BlockState* state = world.getBlockState(getPos());
     if (state == nullptr) {
@@ -295,11 +292,6 @@ std::unique_ptr<BlockEntity> BrewingStandEntity::clone() const
 
 std::vector<i32> BrewingStandEntity::getSlotsForFace(Direction side) const
 {
-    // 参考 MC 1.16.5 BrewingStandTileEntity:
-    // SLOTS_FOR_UP = new int[]{3}           - 上方只能访问材料槽
-    // SLOTS_FOR_DOWN = new int[]{0, 1, 2, 3} - 下方可以访问药水瓶槽和材料槽
-    // OUTPUT_SLOTS = new int[]{0, 1, 2, 4}   - 侧面可以访问药水瓶槽和燃料槽
-
     switch (side) {
         case Direction::Up:
             // 上方：材料槽
@@ -333,7 +325,6 @@ bool BrewingStandEntity::canInsertItem(i32 slot, const ItemStack& stack, Directi
         return false;
     }
 
-    // MC 1.16.5: return this.isItemValidForSlot(index, itemStackIn);
     return canPlaceItem(slot, stack);
 }
 
@@ -346,7 +337,7 @@ bool BrewingStandEntity::canExtractItem(i32 slot, const ItemStack& stack, Direct
         return false;
     }
 
-    // MC 1.16.5: 材料槽（槽位 3）只能提取玻璃瓶
+    // 材料槽（槽位 3）只能提取玻璃瓶
     if (slot == INGREDIENT_SLOT) {
         return stack.getItem() == Items::GLASS_BOTTLE;
     }
@@ -360,7 +351,6 @@ bool BrewingStandEntity::canPlaceItem(i32 slot, const ItemStack& stack) const
         return false;
     }
 
-    // MC 1.16.5 BrewingStandTileEntity.isItemValidForSlot
     switch (slot) {
         case 0:
         case 1:

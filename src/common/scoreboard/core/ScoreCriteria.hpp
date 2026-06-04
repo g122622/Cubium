@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Result.hpp"
-#include "../../util/assert/AssertMacros.hpp"
 #include "ScoreCriteriaRenderType.hpp"
+#include "common/core/Result.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -41,7 +41,6 @@ class Scoreboard;
  * @brief 判据基类
  *
  * 所有记分板判据的抽象基类。判据定义了分数的来源和更新方式。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScoreCriteria
  *
  * 内置判据类型：
  * - dummy: 手动设置分数

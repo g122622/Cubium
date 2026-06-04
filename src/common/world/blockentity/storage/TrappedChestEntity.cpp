@@ -68,7 +68,7 @@ void TrappedChestEntity::openContainer(Player* player)
     ChestEntity::openContainer(player);
 
     if (m_world != nullptr) {
-        notifyNeighbors(*m_world);
+        _notifyNeighbors(*m_world);
     }
 }
 
@@ -78,11 +78,11 @@ void TrappedChestEntity::closeContainer(Player* player)
     ChestEntity::closeContainer(player);
 
     if (m_world != nullptr) {
-        notifyNeighbors(*m_world);
+        _notifyNeighbors(*m_world);
     }
 }
 
-void TrappedChestEntity::notifyNeighbors(IWorld& world)
+void TrappedChestEntity::_notifyNeighbors(IWorld& world)
 {
     const BlockState* state = world.getBlockState(getPos());
     if (state == nullptr) {

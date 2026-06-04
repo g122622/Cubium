@@ -23,19 +23,20 @@
 
 #include "IglooStructure.hpp"
 
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../../biome/Biome.hpp"
-#include "../../../block/BlockPos.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../../feature/template/Template.hpp"
-#include "../../feature/template/TemplateLoader.hpp"
-#include "../../feature/template/TemplateManager.hpp"
-#include "../../jigsaw/JigsawManager.hpp"
-#include "../StructureBoundingBox.hpp"
+#include "common/core/Constants.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/feature/template/TemplateLoader.hpp"
+#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/jigsaw/JigsawManager.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::world::gen::structure {
@@ -50,7 +51,7 @@ const std::string IglooStructure::s_name = "Igloo";
 const std::vector<BiomeId> IglooStructure::s_validBiomes = {
     SnowyPlains, SnowyTaiga, SnowyTaigaHills, SnowyTaigaMountains};
 
-// MC 1.16.5: 雪屋模板名称
+// 雪屋模板名称
 const std::string IglooStructure::s_topTemplateName = "igloo/top";
 const std::string IglooStructure::s_middleTemplateName = "igloo/middle";
 const std::string IglooStructure::s_bottomTemplateName = "igloo/bottom";
@@ -66,7 +67,7 @@ IglooPiece::IglooPiece(const BlockPos& position, Rotation rotation, bool hasBase
     , m_middleCount(middleCount)
 {}
 
-void IglooPiece::loadTemplates()
+void IglooPiece::_loadTemplates()
 {
     if (!m_templateManager) {
         return;
@@ -93,16 +94,16 @@ void IglooPiece::loadTemplates()
     }
 
     // 更新边界框
-    updateBoundingBox();
+    _updateBoundingBox();
 }
 
-void IglooPiece::updateBoundingBox()
+void IglooPiece::_updateBoundingBox()
 {
-    // MC 1.16.5: igloo/top 的中心偏移是 BlockPos(3, 0, 5)
+    // igloo/top 的中心偏移是 BlockPos(3, 0, 5)
     // 使用 transformBlockPos 正确处理旋转变换
     BlockPos centerOffset(3, 0, 5);
-    BlockPos transformedOffset = feature::template_::Template::transformBlockPos(
-        centerOffset, Mirror::None, m_rotation, BlockPos(0, 0, 0));
+    BlockPos transformedOffset =
+        feature::template_::Template::transformBlockPos(centerOffset, Mirror::None, m_rotation, BlockPos(0, 0, 0));
 
     // 计算地上部分尺寸（考虑旋转）
     i32 topSizeX = m_topSize.x;
@@ -140,7 +141,7 @@ void IglooPiece::generate(
 
     // 延迟加载模板
     if (!m_topTemplate) {
-        loadTemplates();
+        _loadTemplates();
     }
 
     if (!m_topTemplate) {
@@ -155,18 +156,18 @@ void IglooPiece::generate(
     }
 
     // 生成地上部分
-    generateTop(world, rng, chunkBounds);
+    _generateTop(world, rng, chunkBounds);
 
     // 生成地下室（如果有）
     if (m_hasBasement) {
         for (i32 i = 0; i < m_middleCount; ++i) {
-            generateMiddle(world, rng, i, chunkBounds);
+            _generateMiddle(world, rng, i, chunkBounds);
         }
-        generateBottom(world, rng, chunkBounds);
+        _generateBottom(world, rng, chunkBounds);
     }
 }
 
-void IglooPiece::generateTop(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
+void IglooPiece::_generateTop(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
 {
     if (!m_topTemplate) {
         return;
@@ -178,11 +179,11 @@ void IglooPiece::generateTop(IWorldWriter& world, math::Random& rng, const Struc
     settings.setMirror(Mirror::None);
     settings.setBoundingBox(&chunkBounds);
 
-    // MC 1.16.5: igloo/top 模板的中心偏移是 BlockPos(3, 0, 5)
+    // igloo/top 模板的中心偏移是 BlockPos(3, 0, 5)
     // 使用 transformBlockPos 正确处理旋转变换
     BlockPos centerOffset(3, 0, 5);
-    BlockPos transformedOffset = feature::template_::Template::transformBlockPos(
-        centerOffset, Mirror::None, m_rotation, BlockPos(0, 0, 0));
+    BlockPos transformedOffset =
+        feature::template_::Template::transformBlockPos(centerOffset, Mirror::None, m_rotation, BlockPos(0, 0, 0));
 
     // 计算调整后的放置位置
     BlockPos adjustedPos(m_minX - transformedOffset.x, m_minY, m_minZ - transformedOffset.z);
@@ -191,7 +192,7 @@ void IglooPiece::generateTop(IWorldWriter& world, math::Random& rng, const Struc
     m_topTemplate->place(world, adjustedPos, settings, rng, 18);
 }
 
-void IglooPiece::generateMiddle(
+void IglooPiece::_generateMiddle(
     IWorldWriter& world, math::Random& rng, i32 index, const StructureBoundingBox& chunkBounds)
 {
     if (!m_middleTemplate) {
@@ -199,8 +200,7 @@ void IglooPiece::generateMiddle(
     }
 
     // 计算中间层位置（在地下部分）
-    // MC 1.16.5: 中间层偏移是 BlockPos(2, 0, 4)
-    // 每个中间层向下偏移 3 格
+    // 中间层偏移是 BlockPos(2, 0, 4)，每个中间层向下偏移 3 格
     i32 y = m_minY + m_topSize.y - 3 + index * (-3);
 
     feature::template_::PlacementSettings settings;
@@ -210,22 +210,22 @@ void IglooPiece::generateMiddle(
 
     // 使用 transformBlockPos 正确处理旋转变换
     BlockPos centerOffset(2, 0, 4);
-    BlockPos transformedOffset = feature::template_::Template::transformBlockPos(
-        centerOffset, Mirror::None, m_rotation, BlockPos(0, 0, 0));
+    BlockPos transformedOffset =
+        feature::template_::Template::transformBlockPos(centerOffset, Mirror::None, m_rotation, BlockPos(0, 0, 0));
 
     BlockPos adjustedPos(m_minX - transformedOffset.x, y, m_minZ - transformedOffset.z);
 
     m_middleTemplate->place(world, adjustedPos, settings, rng, 18);
 }
 
-void IglooPiece::generateBottom(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
+void IglooPiece::_generateBottom(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
 {
     if (!m_bottomTemplate) {
         return;
     }
 
     // 计算底部位置
-    // MC 1.16.5: 底部偏移是 BlockPos(3, 0, 7)
+    // 底部偏移是 BlockPos(3, 0, 7)
     i32 y = m_minY + m_topSize.y - 3 - m_middleSize.y * m_middleCount;
 
     feature::template_::PlacementSettings settings;
@@ -235,8 +235,8 @@ void IglooPiece::generateBottom(IWorldWriter& world, math::Random& rng, const St
 
     // 使用 transformBlockPos 正确处理旋转变换
     BlockPos centerOffset(3, 0, 7);
-    BlockPos transformedOffset = feature::template_::Template::transformBlockPos(
-        centerOffset, Mirror::None, m_rotation, BlockPos(0, 0, 0));
+    BlockPos transformedOffset =
+        feature::template_::Template::transformBlockPos(centerOffset, Mirror::None, m_rotation, BlockPos(0, 0, 0));
 
     BlockPos adjustedPos(m_minX - transformedOffset.x, y, m_minZ - transformedOffset.z);
 
@@ -257,7 +257,7 @@ bool IglooStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math
     MC_UNUSED(rng);
 
     // 检查生物群系
-    BiomeId biome = generator.getBiome(chunkX * 16 + 8, 64, chunkZ * 16 + 8);
+    BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
     for (BiomeId valid : s_validBiomes) {
         if (biome == valid) {
             return true;
@@ -274,8 +274,8 @@ std::unique_ptr<StructureStart> IglooStructure::generate(
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 计算生成位置
-    i32 x = chunkX * 16 + rng.nextInt(16);
-    i32 z = chunkZ * 16 + rng.nextInt(16);
+    i32 x = chunkX * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
+    i32 z = chunkZ * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
 
     // 获取地表高度
     i32 y = generator.getHeight(x, z, HeightmapType::WorldSurface);
@@ -283,10 +283,10 @@ std::unique_ptr<StructureStart> IglooStructure::generate(
     // 随机旋转
     Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
 
-    // MC 1.16.5: 雪屋有50%概率有地下室
+    // 雪屋有50%概率有地下室
     bool hasBasement = rng.nextFloat() < 0.5f;
 
-    // MC 1.16.5: 如果有地下室，随机 1-2 层中间层
+    // 如果有地下室，随机 1-2 层中间层
     i32 middleCount = 0;
     if (hasBasement) {
         middleCount = 1 + rng.nextInt(2); // 1 或 2

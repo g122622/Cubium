@@ -39,20 +39,23 @@ namespace mc {
 bool EndGatewayFeature::place(
     WorldGenRegion& world, math::Random& random, const BlockPos& pos, const EndGatewayFeatureConfig& config)
 {
+    MC_UNUSED(config);
+
     // 检查是否可以放置
-    if (!canPlaceAt(world, pos)) {
+    if (!_canPlaceAt(world, pos)) {
         return false;
     }
 
     // 生成折跃门结构
-    generateGateway(world, random, pos);
+    _generateGateway(world, random, pos);
 
     return true;
 }
 
 BlockPos EndGatewayFeature::calculateTeleportTarget(const BlockPos& currentPos, u64 seed)
 {
-    // 参考 MC 1.16.5: EndGatewayBlock
+    MC_UNUSED(currentPos);
+
     // 传送到1024格外的外岛
     math::Random rng(seed);
 
@@ -72,7 +75,7 @@ BlockPos EndGatewayFeature::calculateTeleportTarget(const BlockPos& currentPos, 
     return BlockPos(targetX, targetY, targetZ);
 }
 
-bool EndGatewayFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
+bool EndGatewayFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
     // 检查周围是否足够空间
     // 折跃门需要至少3x3的基岩平台
@@ -89,8 +92,10 @@ bool EndGatewayFeature::canPlaceAt(WorldGenRegion& world, const BlockPos& pos) c
     return true;
 }
 
-void EndGatewayFeature::generateGateway(WorldGenRegion& world, math::Random& random, const BlockPos& pos)
+void EndGatewayFeature::_generateGateway(WorldGenRegion& world, math::Random& random, const BlockPos& pos)
 {
+    MC_UNUSED(random);
+
     // 获取方块状态
     const BlockState* bedrock = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
     const BlockState* endGateway = VanillaBlocks::getState(VanillaBlocks::END_GATEWAY);
@@ -161,8 +166,8 @@ bool ConfiguredEndGatewayFeature::place(
         return false;
     }
 
-    const i32 sampleX = chunk.x() * 16 + random.nextInt(16);
-    const i32 sampleZ = chunk.z() * 16 + random.nextInt(16);
+    const i32 sampleX = chunk.x() * world::CHUNK_WIDTH + random.nextInt(world::CHUNK_WIDTH);
+    const i32 sampleZ = chunk.z() * world::CHUNK_WIDTH + random.nextInt(world::CHUNK_WIDTH);
     const i32 topY = region.getTopBlockY(sampleX, sampleZ, HeightmapType::WorldSurfaceWG);
 
     if (topY <= world::MIN_BUILD_HEIGHT) {

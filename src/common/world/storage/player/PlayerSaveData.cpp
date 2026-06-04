@@ -230,7 +230,7 @@ nbt::tags::compound_tag PlayerSaveData::toNbt() const
     tag.put(nbt_keys::UUID, uuid);
     tag.put(nbt_keys::NAME, username);
 
-    // 位置 (MC使用 Pos 列表)
+    // 位置
     {
         nbt::tags::double_list_tag posList;
         posList.value.reserve(3);
@@ -240,7 +240,7 @@ nbt::tags::compound_tag PlayerSaveData::toNbt() const
         tag.value.emplace(nbt_keys::POS, std::make_unique<nbt::tags::double_list_tag>(std::move(posList)));
     }
 
-    // 旋转 (MC使用 Rotation 列表)
+    // 旋转
     {
         nbt::tags::float_list_tag rotList;
         rotList.value.reserve(2);
@@ -272,7 +272,7 @@ nbt::tags::compound_tag PlayerSaveData::toNbt() const
         tag.value.emplace(nbt_keys::ENTERED_NETHER_POS, std::move(netherPos));
     }
 
-    // 游戏模式 (MC 1.16.5 使用 playerGameType)
+    // 游戏模式
     tag.put(nbt_keys::PLAYER_GAME_TYPE, static_cast<i32>(gameMode));
     tag.put(nbt_keys::FLYING, static_cast<i8>(flying ? 1 : 0));
 
@@ -565,7 +565,7 @@ Result<std::vector<u8>> PlayerSaveData::serialize() const
     std::string nbtStr = oss.str();
     std::vector<u8> nbtData(nbtStr.begin(), nbtStr.end());
 
-    // 使用 gzip 压缩 (MC 使用 gzip 压缩玩家数据)
+    // 使用 gzip 压缩玩家数据
     std::vector<u8> compressed;
     compressed.resize(nbtData.size() + 1024); // 预留压缩空间
 

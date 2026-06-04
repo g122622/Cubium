@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../core/Result.hpp"
-#include "../../../core/Types.hpp"
-#include "../../../util/NibbleArray.hpp"
-#include "../../chunk/ChunkData.hpp"
 #include "SectionKey.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/NibbleArray.hpp"
+#include "common/world/chunk/ChunkData.hpp"
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -263,12 +263,12 @@ private:
     /**
      * @brief 计算方块索引
      */
-    [[nodiscard]] static i32 blockIndex(i32 x, i32 y, i32 z) { return y * SIZE * SIZE + z * SIZE + x; }
+    [[nodiscard]] static i32 _blockIndex(i32 x, i32 y, i32 z) { return y * SIZE * SIZE + z * SIZE + x; }
 
     /**
      * @brief 计算生物群系索引
      */
-    [[nodiscard]] static i32 biomeIndex(i32 x, i32 y, i32 z)
+    [[nodiscard]] static i32 _biomeIndex(i32 x, i32 y, i32 z)
     {
         i32 bx = x / 4;
         i32 by = y / 4;

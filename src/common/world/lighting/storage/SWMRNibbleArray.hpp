@@ -314,22 +314,22 @@ private:
     /**
      * @brief 分配字节数组
      */
-    static std::unique_ptr<std::array<u8, ARRAY_SIZE>> allocateBytes();
+    static std::unique_ptr<std::array<u8, ARRAY_SIZE>> _allocateBytes();
 
     /**
      * @brief 释放字节数组到对象池
      */
-    static void freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>> bytes);
+    static void _freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>> bytes);
 
     /**
      * @brief 检查数组是否全零
      */
-    static bool isAllZero(const std::array<u8, ARRAY_SIZE>& data);
+    static bool _isAllZero(const std::array<u8, ARRAY_SIZE>& data);
 
     /**
      * @brief 确保存储可写（写时复制）
      */
-    void ensureWritable();
+    void _ensureWritable();
 
     // 状态
     State m_stateUpdating = State::Uninit;

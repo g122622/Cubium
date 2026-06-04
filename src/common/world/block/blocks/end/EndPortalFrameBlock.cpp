@@ -21,9 +21,9 @@
  *
  */
 
-#include "EndPortalFrameBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
+#include "common/world/block/blocks/end/EndPortalFrameBlock.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
 
 namespace mc {
 namespace blocks {
@@ -48,16 +48,18 @@ EndPortalFrameBlock::EndPortalFrameBlock(const BlockProperties& properties)
             .with(BlockStateProperties::EYE(), false)
             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
 
+    // 框架高度 13/16 = 0.8125（即 13 像素高，MC 中末地传送门框架的标准高度）
     m_frameShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.8125f, 1.0f);
+    // 放入末影之眼后高度变为完整的 1.0（16 像素）
     m_frameWithEyeShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
 }
 
-bool EndPortalFrameBlock::hasEye(const BlockState& state) const
+bool EndPortalFrameBlock::hasEye(const BlockState& state) const noexcept
 {
     return state.get(BlockStateProperties::EYE());
 }
 
-Direction EndPortalFrameBlock::getFacing(const BlockState& state) const
+Direction EndPortalFrameBlock::getFacing(const BlockState& state) const noexcept
 {
     return state.get(BlockStateProperties::HORIZONTAL_FACING());
 }
@@ -68,14 +70,14 @@ BlockState EndPortalFrameBlock::getStateForPlacement(BlockItemUseContext& contex
     return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
 }
 
-const BlockState& EndPortalFrameBlock::rotate(const BlockState& state, Rotation rotation) const
+const BlockState& EndPortalFrameBlock::rotate(const BlockState& state, Rotation rotation) const noexcept
 {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction newFacing = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
-const BlockState& EndPortalFrameBlock::mirror(const BlockState& state, Mirror mirror) const
+const BlockState& EndPortalFrameBlock::mirror(const BlockState& state, Mirror mirror) const noexcept
 {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Rotation rotation = Directions::mirrorToRotation(mirror, facing);
@@ -83,7 +85,7 @@ const BlockState& EndPortalFrameBlock::mirror(const BlockState& state, Mirror mi
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
-const CollisionShape& EndPortalFrameBlock::getShape(const BlockState& state) const
+const CollisionShape& EndPortalFrameBlock::getShape(const BlockState& state) const noexcept
 {
     return hasEye(state) ? m_frameWithEyeShape : m_frameShape;
 }

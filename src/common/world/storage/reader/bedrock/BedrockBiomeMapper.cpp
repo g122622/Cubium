@@ -23,13 +23,12 @@
 
 #include "BedrockBiomeMapper.hpp"
 #include "common/world/biome/Biome.hpp"
-#include <spdlog/spdlog.h>
 
 namespace mc::world::storage::reader::bedrock {
 
-BedrockBiomeMapper::BedrockBiomeMapper()
+BedrockBiomeMapper::BedrockBiomeMapper() noexcept
 {
-    initializeMappings();
+    _initializeMappings();
 }
 
 BiomeId BedrockBiomeMapper::mapBiome(i32 bedrockBiomeId, DimensionId dimension)
@@ -45,11 +44,11 @@ BiomeId BedrockBiomeMapper::mapBiome(i32 bedrockBiomeId, DimensionId dimension)
         return static_cast<BiomeId>(bedrockBiomeId);
     }
 
-    spdlog::debug("BedrockBiomeMapper: Unknown biome ID {}, defaulting to ocean", bedrockBiomeId);
+    // 未知生物群系 ID，默认返回海洋
     return Biomes::Ocean;
 }
 
-void BedrockBiomeMapper::initializeMappings()
+void BedrockBiomeMapper::_initializeMappings()
 {
     // 基岩版与 Java 版 ID 一致的生物群系（直接映射）
     // 大部分基础生物群系 ID 相同，以下是差异项

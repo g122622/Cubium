@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Block.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 
@@ -36,8 +36,6 @@ namespace blocks {
  * @brief 刷怪笼方块
  *
  * 自动生成生物的方块。
- *
- * 参考: net.minecraft.block.SpawnerBlock
  */
 class SpawnerBlock : public Block {
 public:

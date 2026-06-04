@@ -32,7 +32,7 @@ namespace mc::skin {
 // PlayerListEntry 实现
 // ============================================================================
 
-PlayerListEntry PlayerListEntry::createAdd(const GameProfile& profile, GameMode gameMode, i32 ping)
+PlayerListEntry PlayerListEntry::createAdd(const GameProfile& profile, GameMode gameMode, i32 ping) noexcept
 {
     PlayerListEntry entry;
     entry.uuid = profile.uuid();
@@ -43,14 +43,14 @@ PlayerListEntry PlayerListEntry::createAdd(const GameProfile& profile, GameMode 
     return entry;
 }
 
-PlayerListEntry PlayerListEntry::createRemove(const std::array<u8, 16>& uuid)
+PlayerListEntry PlayerListEntry::createRemove(const std::array<u8, 16>& uuid) noexcept
 {
     PlayerListEntry entry;
     entry.uuid = uuid;
     return entry;
 }
 
-PlayerListEntry PlayerListEntry::createUpdateLatency(const std::array<u8, 16>& uuid, i32 ping)
+PlayerListEntry PlayerListEntry::createUpdateLatency(const std::array<u8, 16>& uuid, i32 ping) noexcept
 {
     PlayerListEntry entry;
     entry.uuid = uuid;
@@ -58,7 +58,7 @@ PlayerListEntry PlayerListEntry::createUpdateLatency(const std::array<u8, 16>& u
     return entry;
 }
 
-PlayerListEntry PlayerListEntry::createUpdateGameMode(const std::array<u8, 16>& uuid, GameMode gameMode)
+PlayerListEntry PlayerListEntry::createUpdateGameMode(const std::array<u8, 16>& uuid, GameMode gameMode) noexcept
 {
     PlayerListEntry entry;
     entry.uuid = uuid;
@@ -67,7 +67,7 @@ PlayerListEntry PlayerListEntry::createUpdateGameMode(const std::array<u8, 16>& 
 }
 
 PlayerListEntry PlayerListEntry::createUpdateDisplayName(
-    const std::array<u8, 16>& uuid, const std::optional<std::string>& displayName)
+    const std::array<u8, 16>& uuid, const std::optional<std::string>& displayName) noexcept
 {
     PlayerListEntry entry;
     entry.uuid = uuid;
@@ -75,7 +75,6 @@ PlayerListEntry PlayerListEntry::createUpdateDisplayName(
     return entry;
 }
 
-// static
 std::string PlayerListEntry::serializeText(const text::ITextComponent& text)
 {
     return text.toJson().dump();
@@ -292,11 +291,11 @@ Result<PlayerListEntry> PlayerListEntry::deserialize(network::PacketDeserializer
 // PlayerListItemPacket 实现
 // ============================================================================
 
-PlayerListItemPacket::PlayerListItemPacket()
+PlayerListItemPacket::PlayerListItemPacket() noexcept
     : Packet(network::PacketType::PlayerListItem)
 {}
 
-PlayerListItemPacket::PlayerListItemPacket(PlayerListAction action)
+PlayerListItemPacket::PlayerListItemPacket(PlayerListAction action) noexcept
     : Packet(network::PacketType::PlayerListItem)
     , m_action(action)
 {}

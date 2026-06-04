@@ -22,10 +22,10 @@
  */
 
 #include "WorldCarver.hpp"
-#include "../../../core/Constants.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../block/BlockRegistry.hpp"
-#include "../../block/VanillaBlocks.hpp"
+#include "common/core/Constants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -38,12 +38,13 @@ namespace mc {
 CarvingMask::CarvingMask(ChunkCoord chunkX, ChunkCoord chunkZ)
     : m_chunkX(chunkX)
     , m_chunkZ(chunkZ)
-    , m_mask(16 * 16 * world::MAX_BUILD_HEIGHT, false) // 16x16 x height
+    , m_mask(static_cast<size_t>(world::CHUNK_WIDTH) * world::CHUNK_WIDTH * world::CHUNK_HEIGHT, false)
 {}
 
 bool CarvingMask::isCarved(BlockCoord x, i32 y, BlockCoord z) const
 {
-    if (x < 0 || x >= 16 || z < 0 || z >= 16 || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT) {
+    if (x < 0 || x >= world::CHUNK_WIDTH || z < 0 || z >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT ||
+        y >= world::MAX_BUILD_HEIGHT) {
         return false;
     }
     i32 index = getIndex(x, y, z);
@@ -52,7 +53,8 @@ bool CarvingMask::isCarved(BlockCoord x, i32 y, BlockCoord z) const
 
 void CarvingMask::setCarved(BlockCoord x, i32 y, BlockCoord z)
 {
-    if (x < 0 || x >= 16 || z < 0 || z >= 16 || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT) {
+    if (x < 0 || x >= world::CHUNK_WIDTH || z < 0 || z >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT ||
+        y >= world::MAX_BUILD_HEIGHT) {
         return;
     }
     i32 index = getIndex(x, y, z);
@@ -67,17 +69,13 @@ template <typename Config>
 const BlockState* WorldCarver<Config>::getCaveAirState() const
 {
     // 洞穴空气 - 用于洞穴、峡谷等地下结构生成
-    // 参考 MC 1.16.5: net.minecraft.world.gen.carver.WorldCarver.CAVE_AIR
     return VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
 }
 
 template <typename Config>
 bool WorldCarver<Config>::isCarvable(const BlockState& state)
 {
-    // 参考 MC WorldCarver.carvableBlocks（MC 1.16.5）
-    // 原版列表：STONE, GRANITE, DIORITE, ANDESITE, DIRT, COARSE_DIRT, PODZOL,
-    // GRASS_BLOCK, TERRACOTTA (及所有染色陶瓦), SANDSTONE, RED_SANDSTONE,
-    // MYCELIUM, SNOW, PACKED_ICE
+    // 可雕刻方块列表：石头变种、泥土类、陶瓦、砂岩等
 
     // 石头变种
     if (state.is(VanillaBlocks::STONE) || state.is(VanillaBlocks::GRANITE) || state.is(VanillaBlocks::DIORITE) ||
@@ -131,8 +129,6 @@ bool WorldCarver<Config>::canCarveBlock(const BlockState* state, const BlockStat
     }
 
     // 沙子和沙砾可以在特定条件下雕刻
-    // 参考 MC: (state.isIn(Blocks.SAND) || state.isIn(Blocks.GRAVEL)) &&
-    // !aboveState.getFluidState().isTagged(FluidTags.WATER)
     bool isSandOrGravel = state->is(VanillaBlocks::SAND) || state->is(VanillaBlocks::GRAVEL);
     if (isSandOrGravel && aboveState) {
         return !aboveState->isLiquid();
@@ -155,7 +151,6 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
     CarvingMask& carvingMask,
     i64 seed)
 {
-    // 参考 MC WorldCarver.func_227208_a_
     const i32 startX = static_cast<i32>(centerX - horizontalRadius - 1.0f);
     const i32 endX = static_cast<i32>(centerX + horizontalRadius + 1.0f);
     const i32 startY = static_cast<i32>(centerY - verticalRadius - 1.0f);
@@ -164,21 +159,22 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
     const i32 endZ = static_cast<i32>(centerZ + horizontalRadius + 1.0f);
 
     // 区块边界
-    const i32 chunkStartX = chunkX << 4;
-    const i32 chunkEndX = chunkStartX + 15;
-    const i32 chunkStartZ = chunkZ << 4;
-    const i32 chunkEndZ = chunkStartZ + 15;
+    const i32 chunkStartX = chunkX * world::CHUNK_WIDTH;
+    const i32 chunkEndX = chunkStartX + world::CHUNK_WIDTH - 1;
+    const i32 chunkStartZ = chunkZ * world::CHUNK_WIDTH;
+    const i32 chunkEndZ = chunkStartZ + world::CHUNK_WIDTH - 1;
 
     // 检查椭球是否在区块范围外
-    if (endX < chunkStartX - 16 || startX > chunkEndX + 16 || endZ < chunkStartZ - 16 || startZ > chunkEndZ + 16) {
+    if (endX < chunkStartX - world::CHUNK_WIDTH || startX > chunkEndX + world::CHUNK_WIDTH ||
+        endZ < chunkStartZ - world::CHUNK_WIDTH || startZ > chunkEndZ + world::CHUNK_WIDTH) {
         return false;
     }
 
     // 计算区块内有效范围
     const i32 localMinX = std::max(0, startX - chunkStartX);
-    const i32 localMaxX = std::min(15, endX - chunkStartX);
+    const i32 localMaxX = std::min(world::CHUNK_WIDTH - 1, endX - chunkStartX);
     const i32 localMinZ = std::max(0, startZ - chunkStartZ);
-    const i32 localMaxZ = std::min(15, endZ - chunkStartZ);
+    const i32 localMaxZ = std::min(world::CHUNK_WIDTH - 1, endZ - chunkStartZ);
 
     // 检查是否有水（避免水下雕刻）
     if (checkAreaForFluid(chunk,
@@ -197,12 +193,12 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
     bool carved = false;
 
     for (i32 lx = localMinX; lx <= localMaxX; ++lx) {
-        const i32 worldX = (chunkX << 4) + lx;
+        const i32 worldX = chunkX * world::CHUNK_WIDTH + lx;
         const f32 dx = (static_cast<f32>(worldX) + 0.5f - centerX) / horizontalRadius;
         const f32 dxSq = dx * dx;
 
         for (i32 lz = localMinZ; lz <= localMaxZ; ++lz) {
-            const i32 worldZ = (chunkZ << 4) + lz;
+            const i32 worldZ = chunkZ * world::CHUNK_WIDTH + lz;
             const f32 dz = (static_cast<f32>(worldZ) + 0.5f - centerZ) / horizontalRadius;
             const f32 dzSq = dz * dz;
 
@@ -284,15 +280,14 @@ template <typename Config>
 bool WorldCarver<Config>::isInCarvingRange(
     ChunkCoord chunkX, ChunkCoord chunkZ, f32 x, f32 z, i32 step, i32 maxSteps, f32 radius)
 {
-    // 参考 MC WorldCarver.func_222702_a_
-    const f32 chunkCenterX = static_cast<f32>(chunkX * 16 + 8);
-    const f32 chunkCenterZ = static_cast<f32>(chunkZ * 16 + 8);
+    const f32 chunkCenterX = static_cast<f32>(chunkX * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2);
+    const f32 chunkCenterZ = static_cast<f32>(chunkZ * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2);
 
     const f32 dx = x - chunkCenterX;
     const f32 dz = z - chunkCenterZ;
 
     const f32 remainingSteps = static_cast<f32>(maxSteps - step);
-    const f32 maxDist = radius + 2.0f + 16.0f;
+    const f32 maxDist = radius + 2.0f + static_cast<f32>(world::CHUNK_WIDTH);
 
     return dx * dx + dz * dz - remainingSteps * remainingSteps <= maxDist * maxDist;
 }
@@ -308,7 +303,6 @@ bool WorldCarver<Config>::checkAreaForFluid(ChunkPrimer& chunk,
     i32 minZ,
     i32 maxZ) const
 {
-    // 参考 MC WorldCarver.func_222700_a_
     // 检查区域内是否有液体（水/熔岩）
     for (i32 lx = minX; lx < maxX; ++lx) {
         for (i32 lz = minZ; lz < maxZ; ++lz) {

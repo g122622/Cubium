@@ -32,13 +32,42 @@
 
 namespace mc::world::storage::reader::bedrock {
 
+/**
+ * @brief 基岩版世界读取器
+ *
+ * 提供读取基岩版世界存档的高级接口，封装了区块列读取器，
+ * 用于读取完整的区块数据和列出世界中所有区块的位置。
+ */
 class BedrockWorldReader {
 public:
+    /**
+     * @brief 构造函数
+     * @param columnReader 区块列读取器引用，用于实际读取区块数据
+     */
     explicit BedrockWorldReader(BedrockColumnReader& columnReader);
 
+    /**
+     * @brief 读取指定位置的区块数据
+     *
+     * @param x 区块X坐标
+     * @param z 区块Z坐标
+     * @param dimension 维度ID
+     * @param db 基岩版LevelDB数据库
+     * @return 成功时返回ChunkData（如果区块存在）或空optional（如果区块不存在），
+     *         失败时返回错误信息
+     */
     [[nodiscard]] Result<std::optional<ChunkData>> readChunk(
         ChunkCoord x, ChunkCoord z, DimensionId dimension, BedrockLevelDb& db);
 
+    /**
+     * @brief 列出指定维度中的所有区块位置
+     *
+     * 遍历数据库中的所有键，找出属于指定维度的区块坐标。
+     *
+     * @param dimension 维度ID
+     * @param db 基岩版LevelDB数据库
+     * @return 成功时返回区块位置列表，失败时返回错误信息
+     */
     [[nodiscard]] Result<std::vector<ChunkPos>> listChunks(DimensionId dimension, BedrockLevelDb& db);
 
 private:

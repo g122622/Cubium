@@ -23,10 +23,9 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/math/Vector3.hpp"
-#include "../../block/BlockPos.hpp"
 #include "TickPriority.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <functional>
 
 namespace mc::world::tick {
@@ -52,7 +51,7 @@ struct ScheduledTick {
     /**
      * @brief 默认构造
      */
-    ScheduledTick()
+    ScheduledTick() noexcept
         : target(nullptr)
         , scheduledTick(0)
         , priority(TickPriority::Normal)
@@ -67,7 +66,7 @@ struct ScheduledTick {
      * @param priority 优先级
      * @param tickEntryId 唯一ID
      */
-    ScheduledTick(const BlockPos& pos, T* target, u64 scheduledTick, TickPriority priority, u64 tickEntryId)
+    ScheduledTick(const BlockPos& pos, T* target, u64 scheduledTick, TickPriority priority, u64 tickEntryId) noexcept
         : position(pos)
         , target(target)
         , scheduledTick(scheduledTick)
@@ -81,7 +80,7 @@ struct ScheduledTick {
      * 排序顺序: scheduledTick -> priority -> tickEntryId
      * 返回true表示this应该排在other之前（优先执行）
      */
-    [[nodiscard]] bool operator<(const ScheduledTick& other) const
+    [[nodiscard]] bool operator<(const ScheduledTick& other) const noexcept
     {
         if (scheduledTick != other.scheduledTick) {
             return scheduledTick < other.scheduledTick;
@@ -98,7 +97,7 @@ struct ScheduledTick {
      * 注意：用于HashSet去重，只比较位置和目标，
      * 不比较scheduledTick和priority
      */
-    [[nodiscard]] bool operator==(const ScheduledTick& other) const
+    [[nodiscard]] bool operator==(const ScheduledTick& other) const noexcept
     {
         return position == other.position && target == other.target;
     }
@@ -106,7 +105,7 @@ struct ScheduledTick {
     /**
      * @brief 哈希值，基于位置和目标
      */
-    [[nodiscard]] size_t hashCode() const
+    [[nodiscard]] size_t hashCode() const noexcept
     {
         size_t h = position.toId();
         // 混合目标指针
@@ -120,7 +119,7 @@ struct ScheduledTick {
  */
 template <typename T>
 struct ScheduledTickHash {
-    size_t operator()(const ScheduledTick<T>& tick) const { return tick.hashCode(); }
+    size_t operator()(const ScheduledTick<T>& tick) const noexcept { return tick.hashCode(); }
 };
 
 } // namespace mc::world::tick

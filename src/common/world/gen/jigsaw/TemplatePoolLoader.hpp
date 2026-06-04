@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../core/Result.hpp"
-#include "../../../resource/IResourcePack.hpp"
-#include "../../../resource/ResourceLocation.hpp"
 #include "JigsawPiece.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/IResourcePack.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 #include <memory>
 #include <string>
@@ -107,7 +107,9 @@ public:
     [[nodiscard]] static Result<std::unique_ptr<JigsawPattern>> loadFromJson(
         const nlohmann::json& jsonObj, const ResourceLocation& location);
 
-private:
+    // ============================================================================
+    // 私有方法
+    // ============================================================================
     /**
      * @brief 解析单个元素
      *
@@ -116,7 +118,7 @@ private:
      * @param outWeight 输出参数：权重
      * @return 是否成功
      */
-    static bool parseElement(const nlohmann::json& elementObj, std::unique_ptr<JigsawPiece>& outPiece, i32& outWeight);
+    static bool _parseElement(const nlohmann::json& elementObj, std::unique_ptr<JigsawPiece>& outPiece, i32& outWeight);
 
     /**
      * @brief 解析元素类型
@@ -124,27 +126,27 @@ private:
      * @param elementObj 元素 JSON 对象
      * @return 解析的拼图块，失败返回 nullptr
      */
-    static std::unique_ptr<JigsawPiece> parseElementType(const nlohmann::json& elementObj);
+    static std::unique_ptr<JigsawPiece> _parseElementType(const nlohmann::json& elementObj);
 
     /**
      * @brief 解析 single_pool_element 类型
      */
-    static std::unique_ptr<JigsawPiece> parseSinglePoolElement(const nlohmann::json& elementObj);
+    static std::unique_ptr<JigsawPiece> _parseSinglePoolElement(const nlohmann::json& elementObj);
 
     /**
      * @brief 解析 list_pool_element 类型
      */
-    static std::unique_ptr<JigsawPiece> parseListPoolElement(const nlohmann::json& elementObj);
+    static std::unique_ptr<JigsawPiece> _parseListPoolElement(const nlohmann::json& elementObj);
 
     /**
      * @brief 解析 empty_pool_element 类型
      */
-    static std::unique_ptr<JigsawPiece> parseEmptyPoolElement(const nlohmann::json& elementObj);
+    static std::unique_ptr<JigsawPiece> _parseEmptyPoolElement(const nlohmann::json& elementObj);
 
     /**
      * @brief 解析 feature_pool_element 类型
      */
-    static std::unique_ptr<JigsawPiece> parseFeaturePoolElement(const nlohmann::json& elementObj);
+    static std::unique_ptr<JigsawPiece> _parseFeaturePoolElement(const nlohmann::json& elementObj);
 
     /**
      * @brief 解析投影类型
@@ -152,7 +154,7 @@ private:
      * @param projectionStr 投影类型字符串
      * @return 投影类型
      */
-    static JigsawPlacementBehaviour parseProjection(const std::string& projectionStr);
+    static JigsawPlacementBehaviour _parseProjection(const std::string& projectionStr);
 };
 
 } // namespace jigsaw

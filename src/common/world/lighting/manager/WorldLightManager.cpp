@@ -22,13 +22,11 @@
  */
 
 #include "WorldLightManager.hpp"
-#include "../../../perfetto/TraceEvents.hpp"
-#include "../../../util/assert/AssertAll.hpp"
-#include "../../WorldConstants.hpp"
-#include "../../chunk/ChunkData.hpp"
-#include "../../chunk/IChunk.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/chunk/IChunk.hpp"
 #include <algorithm>
-#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -62,11 +60,10 @@ void WorldLightManager::checkBlock(i32 x, i32 y, i32 z)
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    i32 chunkX = x >> 4;
-    i32 chunkZ = z >> 4;
+    i32 chunkX = x >> world::CHUNK_SHIFT;
+    i32 chunkZ = z >> world::CHUNK_SHIFT;
 
-    // 使用 blocksChangedInChunk 流程（与 Moonrise StarLightInterface.blockChange 一致）
-    // 这会调用 propagateBlockChanges，对于天空光照会正确传播天空光
+    // 使用 blocksChangedInChunk 流程处理方块变化
     std::vector<BlockPos> positions;
     positions.emplace_back(x, y, z);
     std::vector<bool> changedSections; // 空的，因为我们不知道段是否为空
@@ -177,8 +174,7 @@ void WorldLightManager::enableLightSources(const ChunkPos& pos, bool enable)
     i64 columnPos = (static_cast<i64>(pos.x) & 0x3FFFFFLL) << 42 | (static_cast<i64>(pos.z) & 0x3FFFFFLL) << 20;
 
     if (m_blockLight != nullptr) {
-        // 方块光照启用区块列
-        // 通过存储层处理
+        // TODO: 方块光照需要启用区块列，目前通过存储层处理，待实现
     }
 
     if (m_skyLight != nullptr) {
@@ -298,8 +294,7 @@ void WorldLightManager::retainData(const ChunkPos& pos, bool retain)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    // 通过存储层保留数据
-    // 目前简化实现，后续可扩展
+    // TODO: 通过存储层保留数据，目前简化实现
     (void)pos;
     (void)retain;
 }
@@ -321,7 +316,6 @@ void WorldLightManager::forceLoadInChunk(const IChunk* chunk, const std::vector<
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    // 与 Moonrise StarLightInterface.forceLoadInChunk 一致
     // 对已正确光照的区块，只需要加载光照数据到缓存并检查边缘
 
     if (m_skyLight != nullptr) {
@@ -386,7 +380,8 @@ std::string WorldLightManager::getDebugInfo(LightType type, const SectionPos& po
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    (void)pos; // 暂时未使用
+    // TODO: 使用 pos 参数获取更详细的调试信息
+    (void)pos;
 
     switch (type) {
         case LightType::BLOCK:

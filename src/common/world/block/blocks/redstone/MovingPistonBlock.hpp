@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
 #include "PistonHeadBlock.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 #include <memory>
 
 namespace mc {
@@ -118,7 +118,7 @@ public:
 
 private:
     /// 活塞头类型属性（与 PistonHeadBlock 共享）
-    static const EnumProperty<PistonHeadBlock::Type>& getTypeProperty();
+    [[nodiscard]] static const EnumProperty<PistonHeadBlock::Type>& _getTypeProperty();
 };
 
 } // namespace blocks

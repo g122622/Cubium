@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "DispenserBlockEntity.hpp"
+#include <memory>
 
 namespace mc {
 namespace blockentity {
@@ -37,8 +37,6 @@ namespace blockentity {
  * - 投掷器只投掷物品，没有特殊行为
  * - 发射器对特定物品有特殊行为（如箭矢发射、火焰球等）
  * - 投掷器会尝试向相邻容器输出物品
- *
- * 参考: net.minecraft.tileentity.DropperTileEntity
  */
 class DropperBlockEntity : public DispenserBlockEntity {
 public:
@@ -55,6 +53,7 @@ public:
 
     /**
      * @brief 创建方块实体副本
+     * @return 克隆的投掷器方块实体
      */
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 

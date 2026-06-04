@@ -72,8 +72,6 @@ struct GossipEntry {
  * - 正面声誉降低交易价格
  * - 负面声誉提高交易价格
  * - 流言随时间衰减
- *
- * 参考 MC 1.16.5 GossipContainer
  */
 class VillageGossipManager {
 public:

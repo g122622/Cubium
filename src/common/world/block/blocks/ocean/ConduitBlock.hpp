@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Block.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 
@@ -44,8 +44,6 @@ namespace blocks {
  * - WATERLOGGED: 是否含水
  *
  * MC ID: minecraft:conduit
- *
- * 参考 MC 1.16.5 ConduitBlock
  *
  * 激活条件：
  * - 中心周围3x3x3必须全部是水

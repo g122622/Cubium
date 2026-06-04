@@ -21,12 +21,12 @@
  *
  */
 
-#include "ScoreObjective.hpp"
-#include "../../util/text/StringTextComponent.hpp"
-#include "../../util/text/TextEvents.hpp"
-#include "../../util/text/TextStyle.hpp"
-#include "ScoreCriteria.hpp"
-#include "Scoreboard.hpp"
+#include "common/scoreboard/core/ScoreObjective.hpp"
+#include "common/scoreboard/core/ScoreCriteria.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TextEvents.hpp"
+#include "common/util/text/TextStyle.hpp"
 
 namespace mc::scoreboard {
 
@@ -49,7 +49,6 @@ text::ITextComponent* ScoreObjective::getDisplayName() const noexcept
 
 std::unique_ptr<text::ITextComponent> ScoreObjective::getFormattedDisplayName() const
 {
-    // 参考 MC 1.16.5: ScoreObjective.func_237498_g_()
     // 1. 深拷贝显示名称
     // 2. 添加悬停事件，悬停时显示目标内部名称
     // 3. 用方括号包裹
@@ -80,9 +79,7 @@ std::unique_ptr<text::ITextComponent> ScoreObjective::getFormattedDisplayName() 
     displayNameCopy->setStyle(style);
 
     // 用方括号包裹：创建 "[" 组件，追加带悬停的显示名称，追加 "]"
-    // 参考 MC 1.16.5: TextComponentUtils.wrapWithSquareBrackets()
-    // 该方法使用翻译键 "chat.square_brackets"，即 "[%s]"
-    // 由于翻译系统未完成，直接用 StringTextComponent 组合
+    // TODO: 翻译系统完成后，改用翻译键 "chat.square_brackets"（即 "[%s]"）
     auto result = std::make_unique<text::StringTextComponent>("[");
     result->append(std::move(displayNameCopy));
     result->append(std::make_unique<text::StringTextComponent>("]"));

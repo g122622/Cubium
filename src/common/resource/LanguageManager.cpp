@@ -125,9 +125,6 @@ Result<size_t> LanguageManager::loadLanguageFromPack(
         return parseResult.error();
     }
 
-    spdlog::debug(
-        "[LanguageManager] Loaded {} entries from {} in pack '{}'", parseResult.value(), filePath, pack.name());
-
     return parseResult;
 }
 
@@ -193,7 +190,7 @@ bool LanguageManager::has(const std::string& key) const
 std::string LanguageManager::get(const std::string& key, const std::vector<std::string>& params) const
 {
     std::string text = get(key);
-    return replacePlaceholders(text, params);
+    return _replacePlaceholders(text, params);
 }
 
 // ============================================================================
@@ -259,7 +256,7 @@ std::vector<LanguageInfo> LanguageManager::getBuiltinLanguages()
 // 占位符替换
 // ============================================================================
 
-std::string LanguageManager::replacePlaceholders(const std::string& text, const std::vector<std::string>& params)
+std::string LanguageManager::_replacePlaceholders(const std::string& text, const std::vector<std::string>& params)
 {
     if (text.empty()) {
         return text;
@@ -296,7 +293,7 @@ std::string LanguageManager::replacePlaceholders(const std::string& text, const 
                 // 检查是否是 $s 格式
                 if (digitEnd + 1 < text.size() && text[digitEnd] == '$' && text[digitEnd + 1] == 's') {
                     // 解析位置索引
-                    int position = 0;
+                    i32 position = 0;
                     try {
                         position = std::stoi(text.substr(digitStart, digitEnd - digitStart));
                     }
@@ -308,7 +305,7 @@ std::string LanguageManager::replacePlaceholders(const std::string& text, const 
                     }
 
                     // 替换参数（位置从1开始）
-                    if (position >= 1 && position <= static_cast<int>(params.size())) {
+                    if (position >= 1 && position <= static_cast<i32>(params.size())) {
                         result += params[position - 1];
                     } else {
                         // 参数不存在，保留原占位符

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../resource/ResourceLocation.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <functional>
 #include <memory>
 #include <unordered_map>
@@ -39,7 +39,6 @@ class BlockState;
  * @brief 方块标签
  *
  * 用于将方块分组以便功能判断。
- * 参考: net.minecraft.tags.BlockTags
  *
  * 用法示例:
  * @code
@@ -114,8 +113,6 @@ private:
 
 /**
  * @brief 内置方块标签集合
- *
- * 参考 MC 1.16.5 BlockTags
  */
 class BlockTags {
 public:
@@ -184,54 +181,45 @@ public:
     // ========== 珊瑚和水下骨粉标签 ==========
 
     /// 墙珊瑚标签（所有墙珊瑚扇，包括死的和活的）
-    /// 参考 MC 1.16.5: BlockTags.WALL_CORALS
     static BlockTag& WALL_CORALS();
 
     /// 水下骨粉标签（骨粉可以在水下催熟的方块）
-    /// 参考 MC 1.16.5: BlockTags.UNDERWATER_BONEMEALS
     static BlockTag& UNDERWATER_BONEMEALS();
 
     // ========== 炽足兽标签 ==========
 
     /// 炽足兽温暖方块标签（熔岩方块）
     /// 炽足兽在这些方块上不会感到寒冷
-    /// 参考 MC 1.16.5: BlockTags.STRIDER_WARM_BLOCKS
     static BlockTag& STRIDER_WARM_BLOCKS();
 
     // ========== 蜜蜂相关标签 ==========
 
     /// 小花朵标签（蒲公英、虞美人等）
     /// 蜜蜂可以采集这些花朵
-    /// 参考 MC 1.16.5: BlockTags.SMALL_FLOWERS
     static BlockTag& SMALL_FLOWERS();
 
     /// 高花朵标签（向日葵、丁香等）
     /// 蜜蜂可以采集这些花朵
-    /// 参考 MC 1.16.5: BlockTags.TALL_FLOWERS
     static BlockTag& TALL_FLOWERS();
 
     /// 蜂巢/蜂箱标签
     /// 蜜蜂可以进入的方块
-    /// 参考 MC 1.16.5: BlockTags.BEEHIVES
     static BlockTag& BEEHIVES();
 
     /// 蜜蜂可授粉作物标签
     /// 小麦、胡萝卜、马铃薯、甜菜根、西瓜茎、南瓜茎、甜浆果丛
-    /// 参考 MC 1.16.5: BlockTags.BEE_GROWABLES
     static BlockTag& BEE_GROWABLES();
 
     // ========== 末影人标签 ==========
 
     /// 末影人可拾取方块标签
     /// 草方块、泥土、沙子、沙砾、蘑菇、花、仙人掌、南瓜、西瓜、TNT等
-    /// 参考 MC 1.16.5: BlockTags.ENDERMAN_HOLDABLE
     static BlockTag& ENDERMAN_HOLDABLE();
 
     // ========== 凋灵标签 ==========
 
     /// 凋灵免疫方块标签
     /// 凋灵无法破坏的方块：基岩、屏障、末地传送门、命令方块等
-    /// 参考 MC 1.16.5: BlockTags.WITHER_IMMUNE
     static BlockTag& WITHER_IMMUNE();
 
     /**
@@ -257,7 +245,7 @@ public:
 private:
     BlockTags() = delete;
 
-    static std::unordered_map<ResourceLocation, std::unique_ptr<BlockTag>>& getTags();
+    static std::unordered_map<ResourceLocation, std::unique_ptr<BlockTag>>& _getTags();
     static bool s_initialized;
 };
 

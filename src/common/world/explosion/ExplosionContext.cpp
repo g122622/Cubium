@@ -22,9 +22,9 @@
  */
 
 #include "ExplosionContext.hpp"
-#include "../../entity/core/Entity.hpp"
-#include "../block/Block.hpp"
-#include "../fluid/Fluid.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/fluid/Fluid.hpp"
 
 namespace mc {
 namespace world {

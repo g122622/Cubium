@@ -23,8 +23,8 @@
 
 #include "world/blockentity/storage/ChestEntity.hpp"
 #include "entity/entities/player/Player.hpp"
-#include "item/loot/context/LootContext.hpp"
 #include "item/loot/LootTable.hpp"
+#include "item/loot/context/LootContext.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
@@ -59,6 +59,40 @@ ChestEntity::ChestEntity(BlockEntityType type, const BlockPos& pos)
 {}
 
 ChestEntity::~ChestEntity() = default;
+
+// ========== 移动操作 ==========
+
+ChestEntity::ChestEntity(ChestEntity&& other) noexcept
+    : LootableContainerBlockEntity(std::move(other))
+    , m_inventory(std::move(other.m_inventory))
+    , m_lidAngle(other.m_lidAngle)
+    , m_prevLidAngle(other.m_prevLidAngle)
+    , m_ticksSinceSync(other.m_ticksSinceSync)
+{
+    // 设置库存变更回调
+    m_inventory.setOnChanged([this]() { setChanged(); });
+    // 重置源对象状态
+    other.m_lidAngle = 0.0f;
+    other.m_prevLidAngle = 0.0f;
+    other.m_ticksSinceSync = 0;
+}
+
+ChestEntity& ChestEntity::operator=(ChestEntity&& other) noexcept
+{
+    if (this != &other) {
+        LootableContainerBlockEntity::operator=(std::move(other));
+        m_inventory = std::move(other.m_inventory);
+        m_inventory.setOnChanged([this]() { setChanged(); });
+        m_lidAngle = other.m_lidAngle;
+        m_prevLidAngle = other.m_prevLidAngle;
+        m_ticksSinceSync = other.m_ticksSinceSync;
+        // 重置源对象状态
+        other.m_lidAngle = 0.0f;
+        other.m_prevLidAngle = 0.0f;
+        other.m_ticksSinceSync = 0;
+    }
+    return *this;
+}
 
 // ========== 双箱相关 ==========
 
@@ -223,13 +257,13 @@ i32 ChestEntity::getComparatorSignal(IWorld& world) const
 
 void ChestEntity::tick(IWorld& world)
 {
-    // MC 1.16.5: 在tick开头更新prevLidAngle，确保每帧都能正确插值
+    // 在tick开头更新prevLidAngle，确保每帧都能正确插值
     m_prevLidAngle = m_lidAngle;
 
     // 更新同步计数器
     ++m_ticksSinceSync;
 
-    // 定期重新统计附近打开箱子的玩家数（MC每200ticks）
+    // 定期重新统计附近打开箱子的玩家数
     // 注：原版calculatePlayersUsingSync在服务端执行，此处简化为方块状态同步
     if (m_ticksSinceSync >= SYNC_INTERVAL) {
         m_ticksSinceSync = 0;
@@ -240,7 +274,7 @@ void ChestEntity::tick(IWorld& world)
         }
     }
 
-    // MC 1.16.5: 只有在需要动画时才更新
+    // 只有在需要动画时才更新
     // 条件：(openCount == 0 && lidAngle > 0) || (openCount > 0 && lidAngle < 1)
     const bool needsAnimation = (m_openCount == 0 && m_lidAngle > 0.0f) || (m_openCount > 0 && m_lidAngle < 1.0f);
 

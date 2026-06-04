@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../IGrowable.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/IGrowable.hpp"
 #include <array>
 
 namespace mc {
@@ -37,13 +37,14 @@ class BlockItemUseContext;
 
 namespace blocks {
 
+/// 竹子最大生长高度（格）
+inline constexpr i32 BAMBOO_MAX_HEIGHT = 16;
+
 /**
  * @brief 竹子方块
  *
- * 高大的竹子植物，可以生长到 16 格高。
+ * 高大的竹子植物，可以生长到16格高。
  * 使用 AGE、BAMBOO_LEAVES 和 STAGE 属性。
- *
- * 参考: net.minecraft.block.BambooBlock
  */
 class BambooBlock : public Block, public IGrowable {
 public:
@@ -53,7 +54,7 @@ public:
      */
     explicit BambooBlock(const BlockProperties& properties);
 
-    ~BambooBlock() override = default;
+    ~BambooBlock() noexcept override = default;
 
     // ========== 状态属性 ==========
 
@@ -90,7 +91,7 @@ public:
 
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool ticksRandomly() const override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
 
     // ========== IGrowable 接口 ==========
 
@@ -104,13 +105,13 @@ public:
 
     // ========== 形状 ==========
 
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const noexcept override;
 
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const noexcept override;
 
     // ========== 渲染属性 ==========
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    [[nodiscard]] bool isOpaque(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return false;
@@ -122,7 +123,7 @@ public:
      * @brief 检查是否可以传播天光
      */
     [[nodiscard]] bool propagatesSkylightDown(
-        const BlockState& state, IWorld* world, const BlockPos* pos) const override;
+        const BlockState& state, IWorld* world, const BlockPos* pos) const noexcept override;
 
 private:
     /// 正常形状
@@ -137,12 +138,12 @@ private:
     /**
      * @brief 获取下方连续竹子数量
      */
-    [[nodiscard]] i32 getNumBambooBlocksBelow(IBlockReader& world, const BlockPos& pos) const;
+    [[nodiscard]] i32 _getNumBambooBlocksBelow(IBlockReader& world, const BlockPos& pos) const;
 
     /**
      * @brief 生长竹子
      */
-    void growBamboo(
+    void _growBamboo(
         const BlockState& currentState, IWorld& world, const BlockPos& pos, math::IRandom& random, i32 bambooHeight);
 };
 
@@ -150,8 +151,6 @@ private:
  * @brief 竹子幼苗方块
  *
  * 竹子的幼苗形态，可以生长成竹子。
- *
- * 参考: net.minecraft.block.BambooSaplingBlock
  */
 class BambooSaplingBlock : public Block, public IGrowable {
 public:
@@ -161,7 +160,7 @@ public:
      */
     explicit BambooSaplingBlock(const BlockProperties& properties);
 
-    ~BambooSaplingBlock() override = default;
+    ~BambooSaplingBlock() noexcept override = default;
 
     // ========== 放置逻辑 ==========
 
@@ -179,7 +178,7 @@ public:
 
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool ticksRandomly() const override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
 
     // ========== IGrowable 接口 ==========
 
@@ -193,11 +192,11 @@ public:
 
     // ========== 形状 ==========
 
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const noexcept override;
 
     // ========== 渲染属性 ==========
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    [[nodiscard]] bool isOpaque(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return false;
@@ -209,7 +208,7 @@ private:
     /**
      * @brief 生长成竹子
      */
-    void growBamboo(IWorld& world, const BlockPos& pos);
+    void _growBamboo(IWorld& world, const BlockPos& pos);
 };
 
 } // namespace blocks

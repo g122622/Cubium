@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/Direction.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../biome/Biome.hpp"
-#include "../jigsaw/JigsawJunction.hpp"
 #include "StructureBoundingBox.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/gen/jigsaw/JigsawJunction.hpp"
 #include <functional>
 #include <memory>
 #include <string>
@@ -89,7 +89,6 @@ struct StructureSeparationSettings {
 /**
  * @brief 结构片段基类
  *
- * 参考 MC 1.16.5 StructurePiece。
  * 提供结构片段的通用功能，包括坐标变换、方块放置等。
  */
 class StructurePiece {
@@ -125,14 +124,14 @@ public:
     StructurePiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ);
     virtual ~StructurePiece() = default;
 
-    [[nodiscard]] i32 type() const { return m_type; }
-    [[nodiscard]] i32 getComponentType() const { return m_type; } ///< 别名，与 MC 1.16.5 对齐
-    [[nodiscard]] i32 minX() const { return m_minX; }
-    [[nodiscard]] i32 minY() const { return m_minY; }
-    [[nodiscard]] i32 minZ() const { return m_minZ; }
-    [[nodiscard]] i32 maxX() const { return m_maxX; }
-    [[nodiscard]] i32 maxY() const { return m_maxY; }
-    [[nodiscard]] i32 maxZ() const { return m_maxZ; }
+    [[nodiscard]] i32 type() const noexcept { return m_type; }
+    [[nodiscard]] i32 getComponentType() const noexcept { return m_type; } ///< 别名
+    [[nodiscard]] i32 minX() const noexcept { return m_minX; }
+    [[nodiscard]] i32 minY() const noexcept { return m_minY; }
+    [[nodiscard]] i32 minZ() const noexcept { return m_minZ; }
+    [[nodiscard]] i32 maxX() const noexcept { return m_maxX; }
+    [[nodiscard]] i32 maxY() const noexcept { return m_maxY; }
+    [[nodiscard]] i32 maxZ() const noexcept { return m_maxZ; }
 
     /**
      * @brief 获取边界框
@@ -162,7 +161,7 @@ public:
     /**
      * @brief 获取基础方向
      */
-    [[nodiscard]] Direction getCoordBaseMode() const { return m_coordBaseMode; }
+    [[nodiscard]] Direction getCoordBaseMode() const noexcept { return m_coordBaseMode; }
 
     /**
      * @brief 设置基础方向（自动设置镜像和旋转）
@@ -172,43 +171,37 @@ public:
     /**
      * @brief 获取镜像
      */
-    [[nodiscard]] Mirror getMirror() const { return m_mirror; }
+    [[nodiscard]] Mirror getMirror() const noexcept { return m_mirror; }
 
     /**
      * @brief 设置镜像
      */
-    void setMirror(Mirror mirror) { m_mirror = mirror; }
+    void setMirror(Mirror mirror) noexcept { m_mirror = mirror; }
 
     /**
      * @brief 获取旋转
      */
-    [[nodiscard]] Rotation getRotation() const { return m_rotation; }
+    [[nodiscard]] Rotation getRotation() const noexcept { return m_rotation; }
 
     /**
      * @brief 设置旋转
      */
-    void setRotation(Rotation rotation) { m_rotation = rotation; }
+    void setRotation(Rotation rotation) noexcept { m_rotation = rotation; }
 
     // ========== 坐标变换方法 ==========
 
     /**
      * @brief 根据 X 坐标和相对 Z 坐标计算世界 X 坐标
-     *
-     * 参考 MC 1.16.5 StructurePiece.getXWithOffset
      */
     [[nodiscard]] i32 getXWithOffset(i32 x, i32 z) const;
 
     /**
      * @brief 根据 Y 坐标计算世界 Y 坐标
-     *
-     * 参考 MC 1.16.5 StructurePiece.getYWithOffset
      */
     [[nodiscard]] i32 getYWithOffset(i32 y) const;
 
     /**
      * @brief 根据 X 坐标和相对 Z 坐标计算世界 Z 坐标
-     *
-     * 参考 MC 1.16.5 StructurePiece.getZWithOffset
      */
     [[nodiscard]] i32 getZWithOffset(i32 x, i32 z) const;
 
@@ -216,8 +209,6 @@ public:
 
     /**
      * @brief 在指定位置放置方块（应用镜像和旋转）
-     *
-     * 参考 MC 1.16.5 StructurePiece.setBlockState
      */
     void setBlockState(
         IWorldWriter& world, const BlockState* state, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds);
@@ -330,8 +321,6 @@ public:
 
     /**
      * @brief 构建组件（由子类覆盖以添加连接组件）
-     *
-     * 参考 MC 1.16.5 StructurePiece.buildComponent
      */
     virtual void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng);
@@ -352,7 +341,6 @@ public:
     /**
      * @brief 获取地面高度偏移
      *
-     * 参考 MC 1.16.5 AbstractVillagePiece.getGroundLevelDelta
      * 用于地形平滑计算。
      *
      * @return 地面高度偏移，默认返回 0
@@ -362,7 +350,6 @@ public:
     /**
      * @brief 获取 Jigsaw 连接点列表
      *
-     * 参考 MC 1.16.5 AbstractVillagePiece.getJunctions
      * 用于地形平滑计算。
      *
      * @return JigsawJunction 列表的常量引用，默认返回空列表
@@ -375,8 +362,6 @@ public:
 
     /**
      * @brief 检查是否是 Jigsaw 结构片段
-     *
-     * 参考 MC 1.16.5 中检查 structurepiece instanceof AbstractVillagePiece
      *
      * @return 是否是 Jigsaw 结构片段
      */
@@ -402,27 +387,30 @@ protected:
 /**
  * @brief 结构实例
  *
- * 参考 MC 1.16.5 StructureStart。
  * 表示一个结构的起点，包含所有组成片段。
  */
 class StructureStart {
 public:
     StructureStart(i32 chunkX, i32 chunkZ);
+    StructureStart(const StructureStart&) = delete;
+    StructureStart(StructureStart&&) noexcept = default;
+    StructureStart& operator=(const StructureStart&) = delete;
+    StructureStart& operator=(StructureStart&&) noexcept = default;
     ~StructureStart() = default;
 
     void addPiece(std::unique_ptr<StructurePiece> piece);
-    [[nodiscard]] const std::vector<std::unique_ptr<StructurePiece>>& pieces() const { return m_pieces; }
-    [[nodiscard]] std::vector<std::unique_ptr<StructurePiece>>& pieces() { return m_pieces; }
-    [[nodiscard]] size_t pieceCount() const { return m_pieces.size(); }
-    [[nodiscard]] bool isValid() const { return !m_pieces.empty(); }
+    [[nodiscard]] const std::vector<std::unique_ptr<StructurePiece>>& pieces() const noexcept { return m_pieces; }
+    [[nodiscard]] std::vector<std::unique_ptr<StructurePiece>>& pieces() noexcept { return m_pieces; }
+    [[nodiscard]] size_t pieceCount() const noexcept { return m_pieces.size(); }
+    [[nodiscard]] bool isValid() const noexcept { return !m_pieces.empty(); }
 
-    [[nodiscard]] i32 chunkX() const { return m_chunkX; }
-    [[nodiscard]] i32 chunkZ() const { return m_chunkZ; }
+    [[nodiscard]] i32 chunkX() const noexcept { return m_chunkX; }
+    [[nodiscard]] i32 chunkZ() const noexcept { return m_chunkZ; }
 
     /**
      * @brief 获取边界框
      */
-    [[nodiscard]] const StructureBoundingBox& getBoundingBox() const { return m_boundingBox; }
+    [[nodiscard]] const StructureBoundingBox& getBoundingBox() const noexcept { return m_boundingBox; }
 
     /**
      * @brief 重新计算结构大小
@@ -434,22 +422,22 @@ public:
     /**
      * @brief 检查引用计数是否低于最大值
      */
-    [[nodiscard]] bool isRefCountBelowMax() const;
+    [[nodiscard]] bool isRefCountBelowMax() const noexcept;
 
     /**
      * @brief 增加引用计数
      */
-    void incrementRefCount() { ++m_references; }
+    void incrementRefCount() noexcept { ++m_references; }
 
     /**
      * @brief 获取引用计数
      */
-    [[nodiscard]] i32 getRefCount() const { return m_references; }
+    [[nodiscard]] i32 getRefCount() const noexcept { return m_references; }
 
     /**
      * @brief 获取最大引用计数
      */
-    [[nodiscard]] static constexpr i32 getMaxRefCount() { return 1; }
+    [[nodiscard]] static constexpr i32 getMaxRefCount() noexcept { return 1; }
 
     /**
      * @brief 移动结构
@@ -483,12 +471,10 @@ public:
      * 大多数结构返回 true（均匀分布）。
      * 废弃矿井等结构返回 false，使用两次随机平均值作为偏移，
      * 产生更集中的分布。
-     *
-     * 参考 MC 1.16.5 Structure.func_230365_b_()
      */
     [[nodiscard]] virtual bool useUniformSpacing() const { return true; }
 
-    [[nodiscard]] StructureType structureType() const { return m_type; }
+    [[nodiscard]] StructureType structureType() const noexcept { return m_type; }
     [[nodiscard]] bool isValidBiome(BiomeId biomeId) const;
 
     /**

@@ -22,15 +22,15 @@
  */
 
 #include "ScoreCriteria.hpp"
-#include "../../util/text/TextStyle.hpp"
-#include "../criteria/DeathCountCriteria.hpp"
-#include "../criteria/DummyCriteria.hpp"
-#include "../criteria/KillCountCriteria.hpp"
-#include "../criteria/ReadOnlyCriteria.hpp"
-#include "../criteria/TeamKillCriteria.hpp"
-#include "../criteria/TriggerCriteria.hpp"
 #include "Score.hpp"
 #include "Scoreboard.hpp"
+#include "common/scoreboard/criteria/DeathCountCriteria.hpp"
+#include "common/scoreboard/criteria/DummyCriteria.hpp"
+#include "common/scoreboard/criteria/KillCountCriteria.hpp"
+#include "common/scoreboard/criteria/ReadOnlyCriteria.hpp"
+#include "common/scoreboard/criteria/TeamKillCriteria.hpp"
+#include "common/scoreboard/criteria/TriggerCriteria.hpp"
+#include "common/util/text/TextStyle.hpp"
 #include <cassert>
 
 namespace mc::scoreboard {

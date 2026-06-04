@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../util/Direction.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../Block.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 namespace blocks {
@@ -35,8 +35,6 @@ namespace blocks {
  *
  * 支持6个方向（上下北南东西）的方块基类。
  * 提供旋转和镜像的默认实现。
- *
- * 参考: net.minecraft.block.DirectionalBlock
  */
 class DirectionalBlock : public Block {
 public:

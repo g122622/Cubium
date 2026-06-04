@@ -93,8 +93,6 @@ struct LanguageInfo {
  *     // 输出: "玩家: 你好"
  * }
  * @endcode
- *
- * 参考: net.minecraft.util.text.LanguageMap (MC 1.16.5)
  */
 class LanguageManager {
 public:
@@ -280,8 +278,8 @@ private:
     /// 互斥锁（用于线程安全）
     mutable std::mutex m_mutex;
 
-    /// 正则表达式模式（编译一次提高性能）
-    static std::string replacePlaceholders(const std::string& text, const std::vector<std::string>& params);
+    /// 占位符替换（内部实现）
+    static std::string _replacePlaceholders(const std::string& text, const std::vector<std::string>& params);
 };
 
 } // namespace mc

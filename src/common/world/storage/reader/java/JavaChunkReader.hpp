@@ -27,6 +27,7 @@
 #include "JavaBlockStateMapper.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/NibbleArray.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include <array>
 #include <limits>
@@ -60,7 +61,7 @@ public:
         std::vector<u32> indices;
     };
 
-    explicit JavaChunkReader(JavaBlockStateMapper& blockMapper, JavaBiomeMapper& biomeMapper);
+    explicit JavaChunkReader(JavaBlockStateMapper& blockMapper, JavaBiomeMapper& biomeMapper) noexcept;
 
     /**
      * @brief 从位压缩的 long 数组解包索引

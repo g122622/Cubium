@@ -44,7 +44,7 @@ ParticlePacket::ParticlePacket(client::renderer::trident::particle::ParticleType
     , m_count(count)
 {}
 
-size_t ParticlePacket::expectedSize() const
+size_t ParticlePacket::expectedSize() const noexcept
 {
     // 基础大小：包头 + VarInt(粒子类型) + 3*f64(位置) + 3*f32(速度) + 3*f32(偏移) + VarInt(数量) + VarInt(数据长度)
     // 保守估计：12 (header) + 5 + 24 + 12 + 12 + 5 + 5 = 75 bytes
@@ -64,7 +64,7 @@ Result<std::vector<u8>> ParticlePacket::serialize() const
     serializer.writeF64(m_y);
     serializer.writeF64(m_z);
 
-    // 写入偏移 (f32) - MC协议顺序：先偏移后速度
+    // 写入偏移 (f32) - 协议顺序：先偏移后速度
     serializer.writeF32(m_offsetX);
     serializer.writeF32(m_offsetY);
     serializer.writeF32(m_offsetZ);

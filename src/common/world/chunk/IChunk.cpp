@@ -22,8 +22,9 @@
  */
 
 #include "IChunk.hpp"
-#include "../block/Block.hpp"
 #include "ChunkData.hpp"
+#include "common/core/Constants.hpp"
+#include "common/world/block/Block.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -98,15 +99,15 @@ Heightmap::Heightmap(HeightmapType type)
 
 bool Heightmap::update(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
-    if (x < 0 || x >= 16 || z < 0 || z >= 16) {
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return false;
     }
 
-    const i32 index = z * 16 + x;
+    const i32 index = z * mc::world::CHUNK_WIDTH + x;
     const BlockCoord currentHeight = m_heights[static_cast<size_t>(index)];
 
     // 只有当新方块高于当前高度且是阻挡方块时才更新
-    if (y >= currentHeight && isOpaque(state)) {
+    if (y >= currentHeight && _isOpaque(state)) {
         m_heights[static_cast<size_t>(index)] = y + 1; // 高度图存储的是 Y+1（即上方空气方块的位置）
         return true;
     }
@@ -116,10 +117,10 @@ bool Heightmap::update(BlockCoord x, BlockCoord y, BlockCoord z, const BlockStat
 
 BlockCoord Heightmap::getHeight(BlockCoord x, BlockCoord z) const
 {
-    if (x < 0 || x >= 16 || z < 0 || z >= 16) {
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return 0;
     }
-    const i32 index = z * 16 + x;
+    const i32 index = z * mc::world::CHUNK_WIDTH + x;
     return m_heights[static_cast<size_t>(index)];
 }
 
@@ -128,7 +129,7 @@ void Heightmap::setData(const std::array<BlockCoord, SIZE>& data)
     m_heights = data;
 }
 
-bool Heightmap::isOpaque(const BlockState* state) const
+bool Heightmap::_isOpaque(const BlockState* state) const
 {
     if (!state) {
         return false;
@@ -159,7 +160,6 @@ bool Heightmap::isOpaque(const BlockState* state) const
 
         case HeightmapType::LightBlocking:
             // 阻挡光照的方块（不透明方块，透明度 > 0）
-            // 参考 MC 1.16.5: 阻挡光照传播的方块
             return block.isSolid(*state) && state->getOpacity() > 0;
 
         default:

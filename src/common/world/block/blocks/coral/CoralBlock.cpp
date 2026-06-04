@@ -22,13 +22,14 @@
  */
 
 #include "CoralBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../fluid/FluidRegistry.hpp"
-#include "../../BlockRegistry.hpp"
-#include "../../WaterLoggableHelpers.hpp"
+
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
 
 namespace {
 

@@ -22,11 +22,12 @@
  */
 
 #include "WeightedPressurePlateBlock.hpp"
-#include "../../../../entity/core/Entity.hpp"
-#include "../../../../sound/SoundCategory.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/AxisAlignedBB.hpp"
-#include "../../../IWorld.hpp"
+
+#include "common/entity/core/Entity.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace blocks {
@@ -41,7 +42,7 @@ WeightedPressurePlateBlock::WeightedPressurePlateBlock(const BlockProperties& pr
 
 i32 WeightedPressurePlateBlock::calculateSignalStrength(IWorld& world, const BlockPos& pos) const
 {
-    i32 count = getEntityCount(world, pos);
+    i32 count = _getEntityCount(world, pos);
 
     if (count <= 0) {
         return 0;
@@ -68,7 +69,7 @@ i32 WeightedPressurePlateBlock::getTickDelay(i32 oldSignal, i32 newSignal) const
 
 void WeightedPressurePlateBlock::playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const
 {
-    // MC 1.16.5: 测重压力板（金属）点击音效
+    // 测重压力板（金属材质）点击音效
     if (!world.isClientSide()) {
         world.playSound(pressed ? SoundEvents::BLOCK_METAL_PRESSURE_PLATE_CLICK_ON
                                 : SoundEvents::BLOCK_METAL_PRESSURE_PLATE_CLICK_OFF,
@@ -79,7 +80,7 @@ void WeightedPressurePlateBlock::playClickSound(IWorld& world, const BlockPos& p
     }
 }
 
-i32 WeightedPressurePlateBlock::getEntityCount(IWorld& world, const BlockPos& pos) const
+i32 WeightedPressurePlateBlock::_getEntityCount(IWorld& world, const BlockPos& pos) const
 {
     // 创建压力板上方的碰撞箱
     AxisAlignedBB detectionBox(static_cast<f32>(pos.x) + 0.125f,

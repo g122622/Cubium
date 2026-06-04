@@ -52,7 +52,7 @@ Result<void> BehaviorPackList::scanDirectory(const std::string& path)
 
         std::filesystem::path manifestPath = entry.path() / "manifest.json";
         if (!std::filesystem::exists(manifestPath)) {
-            spdlog::debug("[BedrockAddon] Skipping directory without manifest.json: {}", entry.path().string());
+            // 跳过没有manifest.json的目录
             continue;
         }
 

@@ -165,7 +165,6 @@ void CommandBlockEntity::save(nlohmann::json& data) const
 void CommandBlockEntity::tick(IWorld& world)
 {
     // 循环命令方块在 tick 中执行
-    // MC 1.16.5: RepeatingCommandBlock 在 tick 中处理
     if (m_mode != CommandBlockMode::Auto) {
         return;
     }
@@ -309,7 +308,6 @@ bool CommandBlockEntity::checkCondition(IWorld& world, Direction facing, bool is
 
 bool CommandBlockEntity::trigger(IWorld& world)
 {
-    // MC 1.16.5: CommandBlockLogic.trigger()
     // 检查是否在客户端
     if (world.isClientSide()) {
         return false;
@@ -344,8 +342,7 @@ bool CommandBlockEntity::trigger(IWorld& world)
     Vector3d position(
         static_cast<f64>(m_pos.x) + 0.5, static_cast<f64>(m_pos.y) + 0.5, static_cast<f64>(m_pos.z) + 0.5);
 
-    // 执行命令
-    // MC 1.16.5: 命令方块的权限级别为 2
+    // 执行命令（命令方块的权限级别为 2）
     i32 result = world.executeCommand(m_command, position, 2);
 
     // 更新成功计数

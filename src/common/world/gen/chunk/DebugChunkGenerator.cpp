@@ -22,9 +22,12 @@
  */
 
 #include "DebugChunkGenerator.hpp"
-#include "../../../util/assert/AssertAll.hpp"
-#include "../../biome/Biomes.hpp"
-#include "../../chunk/IChunk.hpp"
+
+#include "common/core/Constants.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/biome/Biomes.hpp"
+#include "common/world/chunk/IChunk.hpp"
+
 #include <cmath>
 
 namespace mc {
@@ -41,7 +44,7 @@ bool DebugChunkGenerator::s_initialized = false;
 // 构造函数
 // ============================================================================
 
-DebugChunkGenerator::DebugChunkGenerator()
+DebugChunkGenerator::DebugChunkGenerator() noexcept
     : BaseChunkGenerator(0, DimensionSettings{}) // 种子和设置对调试模式无意义
 {
     // 确保已初始化
@@ -82,7 +85,6 @@ void DebugChunkGenerator::initializeValidStates()
     });
 
     // 计算网格尺寸（近似正方形）
-    // 参考 MC 1.16.5: GRID_WIDTH = ceil(sqrt(count)), GRID_HEIGHT = ceil(count / GRID_WIDTH)
     if (!s_allValidStates.empty()) {
         auto count = static_cast<i32>(s_allValidStates.size());
         s_gridWidth = static_cast<i32>(std::ceil(std::sqrt(static_cast<f32>(count))));
@@ -116,7 +118,6 @@ i32 DebugChunkGenerator::getGridHeight()
 
 const BlockState* DebugChunkGenerator::getBlockStateFor(i32 x, i32 z)
 {
-    // 参考 MC 1.16.5: DebugChunkGenerator#getBlockStateFor
     // 方块只在奇数坐标放置
     if (x > 0 && z > 0 && (x % 2) != 0 && (z % 2) != 0) {
         i32 gridX = x / 2;
@@ -179,15 +180,14 @@ void DebugChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
         initializeValidStates();
     }
 
-    // 参考 MC 1.16.5: DebugChunkGenerator#func_230351_a_
     // 生成 Y=60 屏障层和 Y=70 方块网格
     ChunkCoord chunkX = chunk.x();
     ChunkCoord chunkZ = chunk.z();
 
-    for (i32 localX = 0; localX < 16; ++localX) {
-        for (i32 localZ = 0; localZ < 16; ++localZ) {
-            i32 worldX = (chunkX << 4) + localX;
-            i32 worldZ = (chunkZ << 4) + localZ;
+    for (i32 localX = 0; localX < world::CHUNK_WIDTH; ++localX) {
+        for (i32 localZ = 0; localZ < world::CHUNK_WIDTH; ++localZ) {
+            i32 worldX = (chunkX << world::CHUNK_SHIFT) + localX;
+            i32 worldZ = (chunkZ << world::CHUNK_SHIFT) + localZ;
 
             // Y=60: 屏障基座
             region.setBlockState(worldX, 60, worldZ, s_barrierState);

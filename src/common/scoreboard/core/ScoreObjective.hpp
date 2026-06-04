@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../util/text/ITextComponentFwd.hpp"
 #include "ScoreCriteriaRenderType.hpp"
+#include "common/util/text/ITextComponentFwd.hpp"
 #include <memory>
 #include <string>
 

@@ -22,10 +22,12 @@
  */
 
 #include "ProcessorLists.hpp"
-#include "../../../block/BlockRegistry.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../feature/template/Template.hpp"
-#include "resource/ResourceLocation.hpp"
+
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+
 #include <unordered_map>
 
 namespace mc {
@@ -34,9 +36,9 @@ namespace gen {
 namespace structure {
 namespace pools {
 
+using feature::template_::BlackstoneReplacementProcessor;
 using feature::template_::BlockAgeProcessor;
 using feature::template_::BlockIgnoreStructureProcessor;
-using feature::template_::BlackstoneReplacementProcessor;
 using feature::template_::GravityStructureProcessor;
 using feature::template_::IntegrityProcessor;
 using feature::template_::LavaSubmergingProcessor;
@@ -93,7 +95,8 @@ StructureProcessorList ProcessorLists::BASTION_HIGH_WALL;
 StructureProcessorList ProcessorLists::BASTION_HIGH_RAMPART;
 
 // 初始化标志
-static bool s_initialized = false;
+namespace {
+bool s_initialized = false;
 
 // ============================================================================
 // 辅助函数：创建僵尸村庄规则
@@ -102,18 +105,11 @@ static bool s_initialized = false;
 /**
  * @brief 创建僵尸村庄的方块替换规则
  *
- * MC 1.16.5 参考:
- * - ProcessorLists.field_244102_b (zombie_plains)
- * - ProcessorLists.field_244103_c (zombie_savanna)
- * - ProcessorLists.field_244104_d (zombie_snowy)
- * - ProcessorLists.field_244105_e (zombie_taiga)
- * - ProcessorLists.field_244106_f (zombie_desert)
- *
  * 僵尸村庄的方块替换规则包括：
  * 1. 苔藓化效果
  * 2. 特定方块替换（如玻璃 -> 空气，门 -> 空气等）
  */
-static StructureProcessorList createZombieVillageProcessor(f32 mossiness)
+StructureProcessorList createZombieVillageProcessor(f32 mossiness)
 {
     StructureProcessorList list;
 
@@ -121,7 +117,7 @@ static StructureProcessorList createZombieVillageProcessor(f32 mossiness)
     list.addProcessor(std::make_unique<BlockAgeProcessor>(mossiness));
 
     // 2. 添加方块替换规则
-    // MC 1.16.5: 僵尸村庄会将部分方块替换为其他方块
+    // 僵尸村庄会将部分方块替换为其他方块
     // 例如：玻璃 -> 空气，门 -> 空气等
     // 这里使用 BlockIgnoreStructureProcessor 来移除某些方块
     std::vector<u32> blocksToIgnore;
@@ -179,7 +175,7 @@ static StructureProcessorList createZombieVillageProcessor(f32 mossiness)
  * @param integrity 完整度 (0.0 - 1.0)
  * @param includeBlackstoneReplacement 是否包含黑石替换
  */
-static StructureProcessorList createBastionProcessor(f32 integrity, bool includeBlackstoneReplacement = true)
+StructureProcessorList createBastionProcessor(f32 integrity, bool includeBlackstoneReplacement = true)
 {
     StructureProcessorList list;
 
@@ -193,6 +189,8 @@ static StructureProcessorList createBastionProcessor(f32 integrity, bool include
 
     return list;
 }
+
+} // namespace
 
 // ============================================================================
 // 初始化函数
@@ -217,8 +215,7 @@ void ProcessorLists::initialize()
     // 僵尸村庄处理器
     // ========================================================================
 
-    // MC 1.16.5: 每种僵尸村庄有不同的苔藓化概率
-    // plains: 0.5, desert: 0.5, savanna: 0.5, snowy: 0.5, taiga: 0.5
+    // 每种僵尸村庄有不同的苔藓化概率
     ZOMBIE_PLAINS = createZombieVillageProcessor(0.5f);
     ZOMBIE_DESERT = createZombieVillageProcessor(0.5f);
     ZOMBIE_SAVANNA = createZombieVillageProcessor(0.5f);
@@ -229,8 +226,6 @@ void ProcessorLists::initialize()
     // 道路处理器
     // ========================================================================
 
-    // MC 1.16.5: 道路使用苔藓化处理器
-    // 平原和热带草原使用相同的处理器
     STREET_PLAINS.addProcessor(std::make_unique<BlockAgeProcessor>(0.1f));
     STREET_SAVANNA.addProcessor(std::make_unique<BlockAgeProcessor>(0.1f));
     STREET_SNOWY_TAIGA.addProcessor(std::make_unique<BlockAgeProcessor>(0.1f));
@@ -239,7 +234,6 @@ void ProcessorLists::initialize()
     // 农场处理器
     // ========================================================================
 
-    // MC 1.16.5: 农场使用较低的苔藓化概率
     FARM_PLAINS.addProcessor(std::make_unique<BlockAgeProcessor>(0.05f));
     FARM_SAVANNA.addProcessor(std::make_unique<BlockAgeProcessor>(0.05f));
     FARM_SNOWY.addProcessor(std::make_unique<BlockAgeProcessor>(0.05f));
@@ -250,50 +244,47 @@ void ProcessorLists::initialize()
     // 掠夺者前哨站处理器
     // ========================================================================
 
-    // MC 1.16.5: outpost_rot - 5% 完整度，大部分方块会被移除
+    // 5% 完整度，大部分方块会被移除
     OUTPOST_ROT.addProcessor(std::make_unique<IntegrityProcessor>(0.05f));
 
     // ========================================================================
     // 堡垒遗迹处理器
     // ========================================================================
 
-    // MC 1.16.5 参考: ProcessorLists.java
-
-    // 底层城墙 (bottom_rampart)
+    // 底层城墙
     BASTION_BOTTOM_RAMPART = createBastionProcessor(0.9f, true);
 
-    // 宝藏房间 (treasure_rooms)
+    // 宝藏房间
     BASTION_TREASURE_ROOMS = createBastionProcessor(0.95f, true);
 
-    // 住宅区域 (housing)
+    // 住宅区域
     BASTION_HOUSING = createBastionProcessor(0.85f, true);
 
-    // 侧墙退化 (side_wall_degradation)
+    // 侧墙退化
     BASTION_SIDE_WALL_DEGRADATION = createBastionProcessor(0.8f, true);
 
-    // 马厩退化 (stable_degradation)
+    // 马厩退化
     BASTION_STABLE_DEGRADATION = createBastionProcessor(0.85f, true);
 
-    // 通用退化 (bastion_generic_degradation)
-    // MC 1.16.5: field_244124_x - 最常用的堡垒处理器
+    // 通用退化
     BASTION_GENERIC_DEGRADATION = createBastionProcessor(0.9f, true);
 
-    // 城墙退化 (rampart_degradation)
+    // 城墙退化
     BASTION_RAMPART_DEGRADATION = createBastionProcessor(0.85f, true);
 
-    // 入口替换 (entrance_replacement)
+    // 入口替换
     BASTION_ENTRANCE_REPLACEMENT = createBastionProcessor(0.95f, true);
 
-    // 桥梁 (bridge)
+    // 桥梁
     BASTION_BRIDGE = createBastionProcessor(0.9f, true);
 
-    // 屋顶 (roof)
+    // 屋顶
     BASTION_ROOF = createBastionProcessor(0.95f, true);
 
-    // 高墙 (high_wall)
+    // 高墙
     BASTION_HIGH_WALL = createBastionProcessor(0.9f, true);
 
-    // 高城墙 (high_rampart)
+    // 高城墙
     BASTION_HIGH_RAMPART = createBastionProcessor(0.85f, true);
 }
 

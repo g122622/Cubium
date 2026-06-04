@@ -22,7 +22,7 @@
  */
 
 #include "LocalServerConnection.hpp"
-#include <spdlog/spdlog.h>
+#include "common/util/assert/AssertMacros.hpp"
 
 namespace mc::network {
 
@@ -42,9 +42,8 @@ void LocalServerConnection::disconnect(const std::string& reason)
 {
     if (m_endpoint) {
         m_endpoint->disconnect();
-        if (!reason.empty()) {
-            spdlog::debug("LocalServerConnection {} disconnected: {}", m_id, reason);
-        }
+        // 原因信息保留用于调试，但不输出日志（debug 级别日志会影响性能）
+        MC_UNUSED(reason);
     }
 }
 

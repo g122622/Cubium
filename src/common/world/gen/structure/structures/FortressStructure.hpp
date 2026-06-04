@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../chunk/IChunkGenerator.hpp"
 #include "../Structure.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <memory>
 #include <vector>
 
@@ -37,7 +37,6 @@ namespace structure {
  * @brief 下界要塞结构
  *
  * 下界要塞是生成在下界的大型结构，包含烈焰人刷怪笼和地狱疣房间。
- * 参考 MC 1.16.5: FortressStructure
  *
  * 特点：
  * - 生成于下界荒地(Nether Wastes)和灵魂沙谷(Soul Sand Valley)群系
@@ -80,8 +79,8 @@ public:
         IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
-    void initializeBiomes();
-    void generateFallbackFortress(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const;
+    void _initializeBiomes();
+    void _generateFallbackFortress(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const;
 
     Config m_config;
     static constexpr StructureSeparationSettings m_settings{27, 4, 30084232};

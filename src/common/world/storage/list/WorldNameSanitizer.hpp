@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../../core/Result.hpp"
+#include "common/core/Result.hpp"
 #include <filesystem>
 #include <string>
 
@@ -32,7 +32,7 @@ namespace mc::world::storage {
 /**
  * @brief 世界名称清理与去重工具
  *
- * 参考 MC 原版 FileUtil.findAvailableName 实现：
+ * 提供世界名称的合法性检查、清理和冲突解决功能：
  * - 替换非法文件名字符为 '_'
  * - Windows 保留名处理
  * - 冲突时追加 " (1)"、"(2)" 等
@@ -52,7 +52,7 @@ public:
      *
      * CON, PRN, AUX, NUL, COM1-COM9, LPT1-LPT9
      */
-    static bool isReservedName(const std::string& name);
+    static bool isReservedName(const std::string& name) noexcept;
 
     /**
      * @brief 清理世界名称为合法文件名
@@ -64,7 +64,7 @@ public:
      * @param name 用户输入的世界名称
      * @return 清理后的名称
      */
-    static std::string sanitizeName(const std::string& name);
+    static std::string sanitizeName(const std::string& name) noexcept;
 
     /**
      * @brief 在给定目录中查找可用的世界目录名
@@ -88,7 +88,7 @@ public:
      * @param levelId 目录名
      * @return 可用返回 true，不可用或错误返回 false
      */
-    static bool isLevelIdAvailable(const std::filesystem::path& savesDir, const std::string& levelId);
+    static bool isLevelIdAvailable(const std::filesystem::path& savesDir, const std::string& levelId) noexcept;
 
     /**
      * @brief 从显示名生成默认目录名
@@ -99,15 +99,26 @@ public:
      * @param displayName 世界显示名
      * @return 清理后的目录名基础
      */
-    static std::string generateLevelIdFromDisplayName(const std::string& displayName);
+    static std::string generateLevelIdFromDisplayName(const std::string& displayName) noexcept;
 
 private:
+    /// 控制字符的最大值（ASCII 0-31 为控制字符）
+    static constexpr u8 CONTROL_CHAR_MAX = 31;
+
+    /// 文件名最大长度（预留扩展名空间）
+    static constexpr std::size_t MAX_FILENAME_LENGTH = 240;
+
     /**
      * @brief 解析名称中的序号
      *
      * 如果名称形如 "Name (3)"，提取 "Name" 和序号 3。
+     *
+     * @param name 待解析的名称
+     * @param baseName 输出：基础名称
+     * @param number 输出：序号
+     * @return 是否成功解析出序号
      */
-    static bool parseExistingNameWithNumber(const std::string& name, std::string& baseName, i32& number);
+    static bool _parseExistingNameWithNumber(const std::string& name, std::string& baseName, i32& number) noexcept;
 };
 
 } // namespace mc::world::storage

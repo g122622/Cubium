@@ -23,11 +23,11 @@
 
 #include "TemplatePoolLoader.hpp"
 
-#include "../../../resource/DataPackList.hpp"
-#include "../../../resource/IResourcePack.hpp"
-#include "../../../resource/PackType.hpp"
-#include "../../../util/assert/AssertAll.hpp"
 #include "JigsawPattern.hpp"
+#include "common/resource/DataPackList.hpp"
+#include "common/resource/IResourcePack.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -187,7 +187,7 @@ Result<std::unique_ptr<JigsawPattern>> TemplatePoolLoader::loadFromJson(
     for (const auto& element : elements) {
         std::unique_ptr<JigsawPiece> piece;
         i32 weight = 1;
-        if (parseElement(element, piece, weight) && piece) {
+        if (_parseElement(element, piece, weight) && piece) {
             pattern->addPiece(std::move(piece), weight);
         }
     }
@@ -199,7 +199,7 @@ Result<std::unique_ptr<JigsawPattern>> TemplatePoolLoader::loadFromJson(
     return pattern;
 }
 
-bool TemplatePoolLoader::parseElement(
+bool TemplatePoolLoader::_parseElement(
     const nlohmann::json& elementObj, std::unique_ptr<JigsawPiece>& outPiece, i32& outWeight)
 {
     // 解析权重
@@ -217,11 +217,11 @@ bool TemplatePoolLoader::parseElement(
         return false;
     }
 
-    outPiece = parseElementType(elementObj["element"]);
+    outPiece = _parseElementType(elementObj["element"]);
     return outPiece != nullptr;
 }
 
-std::unique_ptr<JigsawPiece> TemplatePoolLoader::parseElementType(const nlohmann::json& elementObj)
+std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseElementType(const nlohmann::json& elementObj)
 {
     // 获取元素类型
     if (!elementObj.contains("element_type") || !elementObj["element_type"].is_string()) {
@@ -238,13 +238,13 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::parseElementType(const nlohmann
 
     // 根据类型分发解析
     if (elementType == "single_pool_element") {
-        return parseSinglePoolElement(elementObj);
+        return _parseSinglePoolElement(elementObj);
     } else if (elementType == "list_pool_element") {
-        return parseListPoolElement(elementObj);
+        return _parseListPoolElement(elementObj);
     } else if (elementType == "empty_pool_element") {
-        return parseEmptyPoolElement(elementObj);
+        return _parseEmptyPoolElement(elementObj);
     } else if (elementType == "feature_pool_element") {
-        return parseFeaturePoolElement(elementObj);
+        return _parseFeaturePoolElement(elementObj);
     } else {
         // 未知类型，返回空元素
         spdlog::warn("Unknown pool element type: {}, using empty element", elementType);
@@ -252,7 +252,7 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::parseElementType(const nlohmann
     }
 }
 
-std::unique_ptr<JigsawPiece> TemplatePoolLoader::parseSinglePoolElement(const nlohmann::json& elementObj)
+std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseSinglePoolElement(const nlohmann::json& elementObj)
 {
     // 解析模板位置
     if (!elementObj.contains("location") || !elementObj["location"].is_string()) {
@@ -265,7 +265,7 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::parseSinglePoolElement(const nl
     // 解析投影类型
     JigsawPlacementBehaviour projection = JigsawPlacementBehaviour::Rigid;
     if (elementObj.contains("projection") && elementObj["projection"].is_string()) {
-        projection = parseProjection(elementObj["projection"].get<std::string>());
+        projection = _parseProjection(elementObj["projection"].get<std::string>());
     }
 
     // 创建单个拼图块
@@ -273,7 +273,7 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::parseSinglePoolElement(const nl
     return piece;
 }
 
-std::unique_ptr<JigsawPiece> TemplatePoolLoader::parseListPoolElement(const nlohmann::json& elementObj)
+std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseListPoolElement(const nlohmann::json& elementObj)
 {
     if (!elementObj.contains("elements") || !elementObj["elements"].is_array()) {
         spdlog::warn("list_pool_element missing 'elements' array");
@@ -283,7 +283,7 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::parseListPoolElement(const nloh
     auto listPiece = std::make_unique<ListJigsawPiece>();
 
     for (const auto& subElement : elementObj["elements"]) {
-        std::unique_ptr<JigsawPiece> subPiece = parseElementType(subElement);
+        std::unique_ptr<JigsawPiece> subPiece = _parseElementType(subElement);
         if (subPiece) {
             listPiece->addPiece(std::move(subPiece));
         }
@@ -292,7 +292,7 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::parseListPoolElement(const nloh
     // 解析投影类型
     JigsawPlacementBehaviour projection = JigsawPlacementBehaviour::Rigid;
     if (elementObj.contains("projection") && elementObj["projection"].is_string()) {
-        projection = parseProjection(elementObj["projection"].get<std::string>());
+        projection = _parseProjection(elementObj["projection"].get<std::string>());
     }
     listPiece->setPlacementBehaviour(projection);
 
@@ -300,22 +300,20 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::parseListPoolElement(const nloh
     return result;
 }
 
-std::unique_ptr<JigsawPiece> TemplatePoolLoader::parseEmptyPoolElement(const nlohmann::json& elementObj)
+std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseEmptyPoolElement(const nlohmann::json& elementObj)
 {
     MC_UNUSED(elementObj);
     return EmptyJigsawPiece::instance().clone();
 }
 
-std::unique_ptr<JigsawPiece> TemplatePoolLoader::parseFeaturePoolElement(const nlohmann::json& elementObj)
+std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseFeaturePoolElement(const nlohmann::json& elementObj)
 {
-    // feature_pool_element 用于生成地物
-    // 当前实现为空元素，待地物系统完善后实现
-    spdlog::debug("feature_pool_element not yet implemented, using empty element");
+    // TODO: feature_pool_element 用于生成地物，当前实现为空元素，待地物系统完善后实现
     MC_UNUSED(elementObj);
     return EmptyJigsawPiece::instance().clone();
 }
 
-JigsawPlacementBehaviour TemplatePoolLoader::parseProjection(const std::string& projectionStr)
+JigsawPlacementBehaviour TemplatePoolLoader::_parseProjection(const std::string& projectionStr)
 {
     if (projectionStr == "terrain_matching" || projectionStr == "minecraft:terrain_matching") {
         return JigsawPlacementBehaviour::TerrainMatching;

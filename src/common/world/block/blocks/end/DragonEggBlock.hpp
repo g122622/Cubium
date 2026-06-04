@@ -37,8 +37,6 @@ namespace blocks {
  *
  * 末影龙死亡后掉落的方块，点击会传送。
  * 继承自 FallingBlock，下方无支撑时会下落。
- *
- * 参考: net.minecraft.block.DragonEggBlock
  */
 class DragonEggBlock : public FallingBlock {
 public:
@@ -55,8 +53,6 @@ public:
      * @brief 右键点击方块
      *
      * 右键点击会触发龙蛋传送。
-     *
-     * 参考: net.minecraft.block.DragonEggBlock#onBlockActivated
      */
     [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
@@ -69,8 +65,6 @@ public:
      * @brief 左键攻击方块
      *
      * 左键点击也会触发龙蛋传送。
-     *
-     * 参考: net.minecraft.block.DragonEggBlock#onBlockClicked
      */
     void attack(const BlockState& state, IWorld& world, const BlockPos& pos, Player& player) override;
 
@@ -84,8 +78,6 @@ public:
      * @brief 获取下落延迟
      *
      * 龙蛋的下落延迟为 5 tick，比普通下落方块（2 tick）更长。
-     *
-     * 参考: net.minecraft.block.DragonEggBlock#getFallDelay
      */
     [[nodiscard]] i32 getFallDelay() const override { return FALL_DELAY_TICKS; }
 
@@ -93,8 +85,6 @@ public:
      * @brief 是否允许移动（路径查找）
      *
      * 龙蛋不允许实体路径查找通过。
-     *
-     * 参考: net.minecraft.block.DragonEggBlock#allowsMovement
      */
     [[nodiscard]] bool allowsMovement(const BlockState& state, IBlockReader& world, const BlockPos& pos) const override
     {
@@ -116,14 +106,12 @@ private:
      * - Y: -7 ~ +7
      * - Z: -15 ~ +15
      *
-     * 参考: net.minecraft.block.DragonEggBlock#teleport
-     *
      * @param world 世界
      * @param pos 当前位置
      * @param state 当前方块状态
      * @return 如果传送成功返回 true
      */
-    bool teleport(IWorld& world, const BlockPos& pos, const BlockState& state);
+    bool _teleport(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /// 龙蛋下落延迟（5 tick）
     static constexpr i32 FALL_DELAY_TICKS = 5;

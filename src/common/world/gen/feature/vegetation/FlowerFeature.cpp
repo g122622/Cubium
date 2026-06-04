@@ -22,10 +22,11 @@
  */
 
 #include "FlowerFeature.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
+
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 
 namespace mc {
 
@@ -55,43 +56,39 @@ bool FlowerFeature::place(
     i32 placedCount = 0;
     i32 xzSpread = config.xzSpread;
 
-    // MC 1.16.5 RandomPatchFeature: 使用 getHeight 获取地表位置
-    // 当 project=true 时，使用世界表面高度；否则使用传入的 pos
+    // 使用世界表面高度作为起始位置
     BlockPos surfacePos(pos.x, world.getHeight(pos.x, pos.z), pos.z);
 
     for (i32 i = 0; i < config.tries; ++i) {
-        // MC 1.16.5: nextInt(spread + 1) - nextInt(spread + 1)
-        // 注意: MC 使用 xSpread, ySpread, zSpread 分别计算
+        // 计算随机偏移
         i32 dx = random.nextInt(xzSpread + 1) - random.nextInt(xzSpread + 1);
         i32 dz = random.nextInt(xzSpread + 1) - random.nextInt(xzSpread + 1);
         // TODO: 添加 ySpread 支持
 
         BlockPos placePos(surfacePos.x + dx, surfacePos.y, surfacePos.z + dz);
 
-        // MC 1.16.5: 检查是否为空气或可替换
+        // 检查是否为空气或可替换
         const BlockState* currentState = world.getBlockState(placePos);
         if (currentState && !currentState->isAir()) {
             continue;
         }
 
-        // MC 1.16.5: 检查方块是否可以放置 (blockstate.isValidPosition)
+        // 获取随机花卉
         const BlockState* flower = config.getRandomFlower(random);
         if (!flower) {
             continue;
         }
 
-        // MC 1.16.5: 检查下方方块是否在白名单中（如果有白名单）
-        // 或不在黑名单中
+        // 检查下方方块是否在白名单中（如果有白名单）或不在黑名单中
         BlockPos groundPos = placePos.down();
-        const BlockState* groundState = world.getBlockState(groundPos);
 
-        if (!isValidGround(world, groundPos, config)) {
+        if (!_isValidGround(world, groundPos, config)) {
             continue;
         }
 
-        // MC 1.16.5: 检查是否需要水
+        // 检查是否需要水
         if (config.requiresWater) {
-            if (!hasAdjacentWater(world, groundPos)) {
+            if (!_hasAdjacentWater(world, groundPos)) {
                 continue;
             }
         }
@@ -103,14 +100,14 @@ bool FlowerFeature::place(
     return placedCount > 0;
 }
 
-bool FlowerFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos, const FlowerFeatureConfig& config) const
+bool FlowerFeature::_isValidGround(WorldGenRegion& world, const BlockPos& pos, const FlowerFeatureConfig& config) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (!state) return false;
 
     u32 blockId = state->blockId();
 
-    // MC 1.16.5: 检查白名单（如果有）
+    // 检查白名单（如果有）
     if (!config.whitelist.empty()) {
         // 白名单检查：方块ID是否在白名单中
         bool inWhitelist = false;
@@ -123,7 +120,7 @@ bool FlowerFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos, co
         if (!inWhitelist) return false;
     }
 
-    // MC 1.16.5: 检查黑名单
+    // 检查黑名单
     for (const auto* blacklistState : config.blacklist) {
         if (blacklistState && *state == *blacklistState) {
             return false;
@@ -137,9 +134,9 @@ bool FlowerFeature::isValidGround(WorldGenRegion& world, const BlockPos& pos, co
         (VanillaBlocks::FARMLAND && blockId == VanillaBlocks::FARMLAND->blockId());
 }
 
-bool FlowerFeature::hasAdjacentWater(WorldGenRegion& world, const BlockPos& pos) const
+bool FlowerFeature::_hasAdjacentWater(WorldGenRegion& world, const BlockPos& pos) const
 {
-    // MC 1.16.5: 检查四个水平方向是否有水
+    // 检查四个水平方向是否有水
     constexpr i32 DX[] = {-1, 1, 0, 0};
     constexpr i32 DZ[] = {0, 0, -1, 1};
 

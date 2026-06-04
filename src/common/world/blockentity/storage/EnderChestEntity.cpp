@@ -36,7 +36,6 @@ namespace {
 /// 末影箱开盖动画每 tick 变化量。
 constexpr f32 ENDER_CHEST_LID_SPEED = 0.1f;
 /// 末影箱状态同步计数间隔（tick）。
-/// MC Java: ticksSinceSync % 20 * 4 == 0 => 80 ticks
 constexpr i32 ENDER_CHEST_SYNC_INTERVAL = 80;
 /// 玩家访问最大距离的平方（64格）
 constexpr f32 MAX_ACCESS_DISTANCE_SQ = 64.0f * 64.0f;
@@ -57,7 +56,7 @@ bool EnderChestEntity::openContainer(Player* player)
         return false;
     }
 
-    // MC 1.16.5: 检查玩家是否在访问范围内
+    // 检查玩家是否在访问范围内
     if (!canPlayerAccess(player)) {
         return false;
     }
@@ -65,7 +64,7 @@ bool EnderChestEntity::openContainer(Player* player)
     // 末影箱内容由玩家侧末影箱背包提供，这里仅维护方块实体动画与开关计数。
     m_openCount++;
 
-    // MC 1.16.5: 打开时播放音效
+    // 打开时播放音效
     // 当从 0 变为 1 时播放打开音效
     if (m_openCount == 1) {
         IWorld* world = player->world();
@@ -95,7 +94,7 @@ bool EnderChestEntity::canPlayerAccess(Player* player) const
         return false;
     }
 
-    // MC 1.16.5: 检查玩家是否在 64 格以内
+    // 检查玩家是否在 64 格以内
     return player->position().distanceSquared(m_pos.center()) <= MAX_ACCESS_DISTANCE_SQ;
 }
 
@@ -139,7 +138,7 @@ void EnderChestEntity::tick(IWorld& world)
     // 更新动画
     updateLidAnimation(0.0f);
 
-    // MC 1.16.5: 关门时播放音效
+    // 关门时播放音效
     // 当盖子从 >0.5 变为 <=0.5 时播放关闭音效
     if (!world.isClientSide() && prevOpenCount > 0 && m_openCount == 0 && m_prevLidAngle > 0.5f && m_lidAngle <= 0.5f) {
         world.playSound(SoundEvents::BLOCK_ENDER_CHEST_CLOSE, sound::SoundCategory::Blocks, m_pos.center(), 0.5f, 1.0f);

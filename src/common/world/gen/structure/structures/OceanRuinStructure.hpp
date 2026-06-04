@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../../feature/template/Template.hpp"
-#include "../../feature/template/TemplateManager.hpp"
-#include "../Structure.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include <memory>
 #include <vector>
 
@@ -34,8 +34,6 @@ namespace mc::world::gen::structure {
 
 /**
  * @brief 海底废墟类型
- *
- * 参考 MC 1.16.5 OceanRuinStructure.Type
  */
 enum class OceanRuinType : u8 {
     Warm, ///< 暖海废墟（砂岩材质）
@@ -44,8 +42,6 @@ enum class OceanRuinType : u8 {
 
 /**
  * @brief 海底废墟配置
- *
- * 参考 MC 1.16.5 OceanRuinConfig
  */
 struct OceanRuinConfig {
     OceanRuinType biomeType = OceanRuinType::Cold;
@@ -56,7 +52,6 @@ struct OceanRuinConfig {
 /**
  * @brief 海底废墟结构片段
  *
- * 参考 MC 1.16.5 OceanRuinPieces.Piece
  * 使用模板系统生成海底废墟。
  */
 class OceanRuinPiece : public StructurePiece {
@@ -98,7 +93,7 @@ public:
     [[nodiscard]] bool isLarge() const { return m_isLarge; }
 
 private:
-    void loadTemplate();
+    void _loadTemplate();
 
     std::string m_templateName;
     Rotation m_rotation;
@@ -113,7 +108,6 @@ private:
 /**
  * @brief 海底废墟结构
  *
- * 参考 MC 1.16.5 OceanRuinStructure
  * 使用模板系统生成海底废墟，支持暖海/冷海两种材质风格。
  */
 class OceanRuinStructure : public Structure {
@@ -153,7 +147,7 @@ public:
     static const std::vector<std::string> s_mossyBigTemplates;
 
 private:
-    void initializeBiomes();
+    void _initializeBiomes() noexcept;
 
     /**
      * @brief 生成废墟片段
@@ -200,9 +194,9 @@ private:
      */
     [[nodiscard]] std::vector<BlockPos> getCandidatePositions(math::Random& rng, i32 x, i32 z) const;
 
-    [[nodiscard]] bool isWarmBiome(BiomeId biomeId) const;
+    [[nodiscard]] bool _isWarmBiome(BiomeId biomeId) const noexcept;
 
-    static constexpr StructureSeparationSettings m_settings{20, 8, 14357621}; // MC 1.16.5: 14357621
+    static constexpr StructureSeparationSettings m_settings{20, 8, 14357621};
     static const std::string m_name;
     std::vector<BiomeId> m_validBiomes;
     OceanRuinConfig m_config;

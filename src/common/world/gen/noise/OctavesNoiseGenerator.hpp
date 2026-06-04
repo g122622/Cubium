@@ -39,8 +39,7 @@ class SimplexNoiseGenerator;
 /**
  * @brief 多倍频噪声生成器
  *
- * 参考 MC OctavesNoiseGenerator，组合多个 Perlin 噪声层（倍频）。
- * 每个倍频层有不同的频率和振幅，叠加产生更自然的地形。
+ * 组合多个 Perlin 噪声层（倍频），每个倍频层有不同的频率和振幅，叠加产生更自然的地形。
  *
  * 使用方法：
  * @code
@@ -48,8 +47,6 @@ class SimplexNoiseGenerator;
  * OctavesNoiseGenerator noise(seed, -15, 0);
  * f32 value = noise.noise(x, y, z);
  * @endcode
- *
- * @note 参考 MC 1.16.5 的实现
  */
 class OctavesNoiseGenerator : public INoiseGenerator {
 public:
@@ -90,8 +87,6 @@ public:
 
     /**
      * @brief 采样 3D 噪声值（带额外参数）
-     *
-     * 参考 MC 的 getValue 方法
      * @param x X 坐标
      * @param y Y 坐标
      * @param z Z 坐标
@@ -104,10 +99,8 @@ public:
 
     /**
      * @brief 采样 2D 噪声值（简化版）
-     *
-     * 参考 MC 的 noiseAt 方法
      * @param x X 坐标
-     * @param y Y 参数（在 MC 中用于高度权重）
+     * @param y Y 参数（用于高度权重）
      * @param z Z 坐标
      * @param scale 缩放因子
      * @return 噪声值
@@ -138,13 +131,14 @@ public:
     [[nodiscard]] i32 maxOctave() const { return m_maxOctave; }
 
     /**
-     * @brief 保持精度（参考 MC maintainPrecision）
+     * @brief 保持精度
      *
-     * 防止大坐标导致的精度问题
+     * 防止大坐标导致的精度问题。
+     * @param value 输入值
+     * @return 修正后的值
      */
     [[nodiscard]] static f32 maintainPrecision(f32 value)
     {
-        // 参考 MC: value - floor(value / 33554432.0 + 0.5) * 33554432.0
         constexpr f32 PRECISION_FACTOR = 33554432.0f;
         return value - std::floor(value / PRECISION_FACTOR + 0.5f) * PRECISION_FACTOR;
     }
@@ -158,14 +152,13 @@ private:
     f32 m_amplitudeLow;  // 低频振幅
     f32 m_amplitudeHigh; // 高频振幅
 
-    void initOctaves(math::IRandom& rng);
+    void _initOctaves(math::IRandom& rng);
 };
 
 /**
  * @brief Simplex 噪声生成器
  *
- * 参考 MC SimplexNoiseGenerator，用于特定维度的地形生成。
- * 与 Perlin 噪声相比，Simplex 噪声在低维度时更高效，伪影更少。
+ * 用于特定维度的地形生成。与 Perlin 噪声相比，Simplex 噪声在低维度时更高效，伪影更少。
  *
  * 使用方法：
  * @code
@@ -200,8 +193,6 @@ public:
 
     /**
      * @brief 采样 2D 噪声值（双精度版本）
-     *
-     * 参考 MC SimplexNoiseGenerator.getValue
      * @param x X 坐标
      * @param z Z 坐标
      * @return 噪声值
@@ -215,19 +206,16 @@ public:
 
     /**
      * @brief 获取 X 偏移
-     * 参考 MC SimplexNoiseGenerator.xo
      */
     [[nodiscard]] f32 xOffset() const { return m_offset[0]; }
 
     /**
      * @brief 获取 Y 偏移
-     * 参考 MC SimplexNoiseGenerator.yo
      */
     [[nodiscard]] f32 yOffset() const { return m_offset[1]; }
 
     /**
      * @brief 获取 Z 偏移
-     * 参考 MC SimplexNoiseGenerator.zo
      */
     [[nodiscard]] f32 zOffset() const { return m_offset[2]; }
 
@@ -236,18 +224,17 @@ private:
     std::array<u8, 512> m_p;
     std::array<f32, 3> m_offset;
 
-    void initPermutation(math::IRandom& rng);
-    [[nodiscard]] static i32 fastFloor(f32 x);
-    [[nodiscard]] static i32 fastFloor(f64 x);
-    [[nodiscard]] f32 grad(i32 hash, f32 x, f32 y, f32 z) const;
-    [[nodiscard]] f64 grad2D(i32 hash, f64 x, f64 z) const;
+    void _initPermutation(math::IRandom& rng);
+    [[nodiscard]] static i32 _fastFloor(f32 x);
+    [[nodiscard]] static i32 _fastFloor(f64 x);
+    [[nodiscard]] f32 _grad(i32 hash, f32 x, f32 y, f32 z) const;
+    [[nodiscard]] f64 _grad2D(i32 hash, f64 x, f64 z) const;
 };
 
 /**
  * @brief Perlin 噪声生成器
  *
- * 参考 MC PerlinNoiseGenerator，用于地表深度噪声。
- * 注意：MC 的 PerlinNoiseGenerator 实际使用 SimplexNoiseGenerator 作为倍频层。
+ * 用于地表深度噪声。注意：此实现使用 SimplexNoiseGenerator 作为倍频层。
  *
  * 使用方法：
  * @code
@@ -287,8 +274,6 @@ public:
 
     /**
      * @brief 采样 2D 噪声（带偏移选项）
-     *
-     * 参考 MC PerlinNoiseGenerator.noiseAt
      * @param x X 坐标
      * @param z Z 坐标
      * @param useNoiseOffsets 是否使用噪声偏移
@@ -316,12 +301,12 @@ public:
 
 private:
     std::vector<std::unique_ptr<SimplexNoiseGenerator>> m_noiseLevels;
-    f32 m_xFactor = 1.0f; // field_227463_c_ = 2^maxOctave
-    f32 m_yFactor = 1.0f; // field_227462_b_ = 1 / (2^(count) - 1)
+    f32 m_xFactor = 1.0f; // 2^maxOctave
+    f32 m_yFactor = 1.0f; // 1 / (2^(count) - 1)
     i32 m_minOctave = 0;
     i32 m_maxOctave = 0;
 
-    void initNoiseLevels(math::IRandom& rng);
+    void _initNoiseLevels(math::IRandom& rng);
 };
 
 } // namespace mc

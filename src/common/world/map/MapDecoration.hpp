@@ -82,24 +82,24 @@ enum class DecorationType : u8 {
 /**
  * @brief 获取装饰类型是否在展示框中渲染
  */
-[[nodiscard]] bool isRenderedOnFrame(DecorationType type);
+[[nodiscard]] bool isRenderedOnFrame(DecorationType type) noexcept;
 
 /**
  * @brief 获取装饰类型是否有地图颜色
  */
-[[nodiscard]] bool hasMapColor(DecorationType type);
+[[nodiscard]] bool hasMapColor(DecorationType type) noexcept;
 
 /**
  * @brief 获取装饰类型的地图颜色（用于物品栏显示）
  *
  * @return ARGB颜色值，如果没有地图颜色返回-1
  */
-[[nodiscard]] i32 getMapColor(DecorationType type);
+[[nodiscard]] i32 getMapColor(DecorationType type) noexcept;
 
 /**
  * @brief 根据图标ID获取装饰类型
  */
-[[nodiscard]] DecorationType decorationTypeByIcon(u8 icon);
+[[nodiscard]] DecorationType decorationTypeByIcon(u8 icon) noexcept;
 
 /**
  * @brief 地图装饰
@@ -143,21 +143,21 @@ public:
      */
     static MapDecoration deserialize(network::PacketDeserializer& deser);
 
-    [[nodiscard]] DecorationType type() const { return m_type; }
-    [[nodiscard]] i8 x() const { return m_x; }
-    [[nodiscard]] i8 y() const { return m_y; }
-    [[nodiscard]] u8 rotation() const { return m_rotation; }
-    [[nodiscard]] const text::ITextComponent* customName() const { return m_customName.get(); }
+    [[nodiscard]] DecorationType type() const noexcept { return m_type; }
+    [[nodiscard]] i8 x() const noexcept { return m_x; }
+    [[nodiscard]] i8 y() const noexcept { return m_y; }
+    [[nodiscard]] u8 rotation() const noexcept { return m_rotation; }
+    [[nodiscard]] const text::ITextComponent* customName() const noexcept { return m_customName.get(); }
 
     /**
      * @brief 获取图标字节值（用于序列化和纹理图集查找）
      */
-    [[nodiscard]] u8 getIcon() const { return static_cast<u8>(m_type); }
+    [[nodiscard]] u8 getIcon() const noexcept { return static_cast<u8>(m_type); }
 
     /**
      * @brief 是否在展示框中渲染
      */
-    [[nodiscard]] bool renderedOnFrame() const { return isRenderedOnFrame(m_type); }
+    [[nodiscard]] bool renderedOnFrame() const noexcept { return isRenderedOnFrame(m_type); }
 
 private:
     DecorationType m_type;

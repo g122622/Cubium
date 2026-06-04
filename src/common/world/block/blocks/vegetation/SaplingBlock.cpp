@@ -21,12 +21,12 @@
  *
  */
 
-#include "SaplingBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorld.hpp"
-#include "../../BlockRegistry.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/world/block/blocks/vegetation/SaplingBlock.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 #include <algorithm>
 
@@ -37,11 +37,9 @@ namespace {
 
 [[nodiscard]] bool isSaplingGround(const BlockState& groundState)
 {
-    return (VanillaBlocks::GRASS_BLOCK != nullptr && groundState.is(VanillaBlocks::GRASS_BLOCK)) ||
-        (VanillaBlocks::DIRT != nullptr && groundState.is(VanillaBlocks::DIRT)) ||
-        (VanillaBlocks::COARSE_DIRT != nullptr && groundState.is(VanillaBlocks::COARSE_DIRT)) ||
-        (VanillaBlocks::PODZOL != nullptr && groundState.is(VanillaBlocks::PODZOL)) ||
-        (VanillaBlocks::FARMLAND != nullptr && groundState.is(VanillaBlocks::FARMLAND));
+    return groundState.is(VanillaBlocks::GRASS_BLOCK) || groundState.is(VanillaBlocks::DIRT) ||
+        groundState.is(VanillaBlocks::COARSE_DIRT) || groundState.is(VanillaBlocks::PODZOL) ||
+        groundState.is(VanillaBlocks::FARMLAND);
 }
 
 } // namespace

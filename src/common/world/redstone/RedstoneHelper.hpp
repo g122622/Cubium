@@ -118,7 +118,7 @@ public:
      * @param distance 传输距离
      * @return i32 衰减后的强度 (最小为0)
      */
-    [[nodiscard]] static i32 attenuate(i32 strength, i32 distance) { return std::max(0, strength - distance); }
+    [[nodiscard]] static i32 attenuate(i32 strength, i32 distance) noexcept { return std::max(0, strength - distance); }
 
     /**
      * @brief 限制红石信号强度在有效范围内
@@ -126,7 +126,7 @@ public:
      * @param strength 信号强度
      * @return i32 限制后的强度 (0-15)
      */
-    [[nodiscard]] static i32 clamp(i32 strength) { return std::clamp(strength, MIN_POWER, MAX_POWER); }
+    [[nodiscard]] static i32 clamp(i32 strength) noexcept { return std::clamp(strength, MIN_POWER, MAX_POWER); }
 
     /// 红石信号最小强度
     static constexpr i32 MIN_POWER = 0;

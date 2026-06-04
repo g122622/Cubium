@@ -113,47 +113,84 @@ public:
     /**
      * @brief 设置硬度
      */
-    BlockProperties& hardness(f32 value);
+    BlockProperties& hardness(f32 value) noexcept
+    {
+        m_hardness = value;
+        return *this;
+    }
 
     /**
      * @brief 设置抗性
      */
-    BlockProperties& resistance(f32 value);
+    BlockProperties& resistance(f32 value) noexcept
+    {
+        m_resistance = value;
+        return *this;
+    }
 
     /**
      * @brief 设置光照等级
      */
-    BlockProperties& lightLevel(u8 level);
+    BlockProperties& lightLevel(u8 level) noexcept
+    {
+        m_lightLevel = level > 15 ? 15 : level;
+        return *this;
+    }
 
     /**
      * @brief 设置无碰撞
      */
-    BlockProperties& noCollision();
+    BlockProperties& noCollision() noexcept
+    {
+        m_hasCollision = false;
+        return *this;
+    }
 
     /**
      * @brief 设置非固体
      */
-    BlockProperties& notSolid();
+    BlockProperties& notSolid() noexcept
+    {
+        m_isSolid = false;
+        return *this;
+    }
 
     /**
      * @brief 设置需要工具
      */
-    BlockProperties& requiresTool();
+    BlockProperties& requiresTool() noexcept
+    {
+        m_requiresTool = true;
+        return *this;
+    }
 
     /**
      * @brief 设置可燃性
      */
-    BlockProperties& flammable(bool value = true);
+    BlockProperties& flammable(bool value = true) noexcept
+    {
+        m_isFlammable = value;
+        return *this;
+    }
 
     /**
      * @brief 设置可替换
      */
-    BlockProperties& replaceable();
+    BlockProperties& replaceable() noexcept
+    {
+        m_isReplaceable = true;
+        return *this;
+    }
 
     /**
      * @brief 设置强度（同时设置硬度和抗性）
      */
-    BlockProperties& strength(f32 value);
+    BlockProperties& strength(f32 value) noexcept
+    {
+        m_hardness = value;
+        m_resistance = value;
+        return *this;
+    }
 
     /**
      * @brief 设置光照透明度
@@ -165,7 +202,11 @@ public:
      *
      * 参考: net.minecraft.block.AbstractBlock.Properties#opacity
      */
-    BlockProperties& opacity(i32 value);
+    BlockProperties& opacity(i32 value) noexcept
+    {
+        m_opacity = value < 0 ? 0 : (value > 15 ? 15 : value);
+        return *this;
+    }
 
     /**
      * @brief 设置是否传播天空光向下
@@ -175,7 +216,11 @@ public:
      *
      * 参考: net.minecraft.block.AbstractBlock.Properties#propagatesSkylightDown
      */
-    BlockProperties& propagatesSkylightDown(bool value = true);
+    BlockProperties& propagatesSkylightDown(bool value = true) noexcept
+    {
+        m_propagatesSkylightDown = value;
+        return *this;
+    }
 
     /**
      * @brief 设置挖掘工具类型
@@ -186,7 +231,11 @@ public:
      *
      * @param toolType 工具类型值（HarvestTool::Pickaxe 等）
      */
-    BlockProperties& harvestTool(u8 toolType);
+    BlockProperties& harvestTool(u8 toolType) noexcept
+    {
+        m_harvestTool = toolType;
+        return *this;
+    }
 
     /**
      * @brief 设置挖掘等级
@@ -200,7 +249,11 @@ public:
      *
      * @param level 挖掘等级（0-4）
      */
-    BlockProperties& harvestLevel(i32 level);
+    BlockProperties& harvestLevel(i32 level) noexcept
+    {
+        m_harvestLevel = level < 0 ? 0 : level;
+        return *this;
+    }
 
     /**
      * @brief 设置掉落表ID
@@ -209,7 +262,7 @@ public:
      *
      * @param lootTableId 掉落表ID（如 "minecraft:blocks/diamond_ore"）
      */
-    BlockProperties& lootTableId(const std::string& id)
+    BlockProperties& lootTableId(const std::string& id) noexcept
     {
         m_lootTableId = id;
         m_noLootTable = false;
@@ -222,7 +275,7 @@ public:
      * 适用于不应有任何掉落物的方块（如空气），
      * 防止注册时自动推导出 "minecraft:blocks/air" 等无意义掉落表ID。
      */
-    BlockProperties& noLootTable()
+    BlockProperties& noLootTable() noexcept
     {
         m_noLootTable = true;
         m_lootTableId.clear();
@@ -232,7 +285,7 @@ public:
     /**
      * @brief 是否显式禁止掉落表
      */
-    [[nodiscard]] bool noLootTable() const { return m_noLootTable; }
+    [[nodiscard]] bool noLootTable() const noexcept { return m_noLootTable; }
 
     /**
      * @brief 设置声音类型
@@ -241,7 +294,7 @@ public:
      *
      * @param soundType 声音类型的引用（如 BlockSoundTypes::STONE）
      */
-    BlockProperties& soundType(const BlockSoundType& soundType)
+    BlockProperties& soundType(const BlockSoundType& soundType) noexcept
     {
         m_soundType = &soundType;
         return *this;
@@ -259,7 +312,7 @@ public:
      *
      * @param value 滑度值 (0.0-1.0)
      */
-    BlockProperties& slipperiness(f32 value)
+    BlockProperties& slipperiness(f32 value) noexcept
     {
         m_slipperiness = value;
         return *this;
@@ -276,7 +329,7 @@ public:
      *
      * @param value 速度因子值
      */
-    BlockProperties& speedFactor(f32 value)
+    BlockProperties& speedFactor(f32 value) noexcept
     {
         m_speedFactor = value;
         return *this;
@@ -292,7 +345,7 @@ public:
      *
      * @param value 跳跃因子值
      */
-    BlockProperties& jumpFactor(f32 value)
+    BlockProperties& jumpFactor(f32 value) noexcept
     {
         m_jumpFactor = value;
         return *this;
@@ -308,7 +361,7 @@ public:
      *
      * @return 属性构建器引用
      */
-    BlockProperties& tickRandomly()
+    BlockProperties& tickRandomly() noexcept
     {
         m_ticksRandomly = true;
         return *this;
@@ -321,7 +374,7 @@ public:
      *
      * @param color 地图颜色ID
      */
-    BlockProperties& mapColor(world::map::MaterialColorId color)
+    BlockProperties& mapColor(world::map::MaterialColorId color) noexcept
     {
         m_mapColor = color;
         m_hasMapColor = true;
@@ -329,27 +382,27 @@ public:
     }
 
     // Getters
-    [[nodiscard]] const Material& material() const { return *m_material; }
-    [[nodiscard]] f32 hardness() const { return m_hardness; }
-    [[nodiscard]] f32 resistance() const { return m_resistance; }
-    [[nodiscard]] u8 lightLevel() const { return m_lightLevel; }
-    [[nodiscard]] bool hasCollision() const { return m_hasCollision; }
-    [[nodiscard]] bool isSolid() const { return m_isSolid; }
-    [[nodiscard]] bool isFlammable() const { return m_isFlammable; }
-    [[nodiscard]] bool requiresTool() const { return m_requiresTool; }
-    [[nodiscard]] bool isReplaceable() const { return m_isReplaceable; }
-    [[nodiscard]] i32 opacity() const { return m_opacity; }
-    [[nodiscard]] bool doesPropagateSkylightDown() const { return m_propagatesSkylightDown; }
-    [[nodiscard]] u8 harvestTool() const { return m_harvestTool; }
-    [[nodiscard]] i32 harvestLevel() const { return m_harvestLevel; }
-    [[nodiscard]] const std::string& lootTableId() const { return m_lootTableId; }
-    [[nodiscard]] const BlockSoundType* soundType() const { return m_soundType; }
-    [[nodiscard]] f32 slipperiness() const { return m_slipperiness; }
-    [[nodiscard]] f32 speedFactor() const { return m_speedFactor; }
-    [[nodiscard]] f32 jumpFactor() const { return m_jumpFactor; }
-    [[nodiscard]] bool ticksRandomly() const { return m_ticksRandomly; }
-    [[nodiscard]] world::map::MaterialColorId mapColor() const { return m_mapColor; }
-    [[nodiscard]] bool hasMapColor() const { return m_hasMapColor; }
+    [[nodiscard]] const Material& material() const noexcept { return *m_material; }
+    [[nodiscard]] f32 hardness() const noexcept { return m_hardness; }
+    [[nodiscard]] f32 resistance() const noexcept { return m_resistance; }
+    [[nodiscard]] u8 lightLevel() const noexcept { return m_lightLevel; }
+    [[nodiscard]] bool hasCollision() const noexcept { return m_hasCollision; }
+    [[nodiscard]] bool isSolid() const noexcept { return m_isSolid; }
+    [[nodiscard]] bool isFlammable() const noexcept { return m_isFlammable; }
+    [[nodiscard]] bool requiresTool() const noexcept { return m_requiresTool; }
+    [[nodiscard]] bool isReplaceable() const noexcept { return m_isReplaceable; }
+    [[nodiscard]] i32 opacity() const noexcept { return m_opacity; }
+    [[nodiscard]] bool doesPropagateSkylightDown() const noexcept { return m_propagatesSkylightDown; }
+    [[nodiscard]] u8 harvestTool() const noexcept { return m_harvestTool; }
+    [[nodiscard]] i32 harvestLevel() const noexcept { return m_harvestLevel; }
+    [[nodiscard]] const std::string& lootTableId() const noexcept { return m_lootTableId; }
+    [[nodiscard]] const BlockSoundType* soundType() const noexcept { return m_soundType; }
+    [[nodiscard]] f32 slipperiness() const noexcept { return m_slipperiness; }
+    [[nodiscard]] f32 speedFactor() const noexcept { return m_speedFactor; }
+    [[nodiscard]] f32 jumpFactor() const noexcept { return m_jumpFactor; }
+    [[nodiscard]] bool ticksRandomly() const noexcept { return m_ticksRandomly; }
+    [[nodiscard]] world::map::MaterialColorId mapColor() const noexcept { return m_mapColor; }
+    [[nodiscard]] bool hasMapColor() const noexcept { return m_hasMapColor; }
 
 private:
     friend class Block;
@@ -442,42 +495,42 @@ public:
     /**
      * @brief 获取方块资源位置
      */
-    [[nodiscard]] const ResourceLocation& blockLocation() const { return m_blockLocation; }
+    [[nodiscard]] const ResourceLocation& blockLocation() const noexcept { return m_blockLocation; }
 
     /**
      * @brief 获取方块ID
      */
-    [[nodiscard]] u32 blockId() const { return m_blockId; }
+    [[nodiscard]] u32 blockId() const noexcept { return m_blockId; }
 
     /**
      * @brief 获取材质
      */
-    [[nodiscard]] const Material& material() const { return *m_material; }
+    [[nodiscard]] const Material& material() const noexcept { return *m_material; }
 
     /**
      * @brief 获取状态容器
      */
-    [[nodiscard]] const StateContainer<Block, BlockState>& stateContainer() const { return *m_stateContainer; }
+    [[nodiscard]] const StateContainer<Block, BlockState>& stateContainer() const noexcept { return *m_stateContainer; }
 
     /**
      * @brief 获取默认状态
      */
-    [[nodiscard]] const BlockState& defaultState() const { return *m_defaultState; }
+    [[nodiscard]] const BlockState& defaultState() const noexcept { return *m_defaultState; }
 
     /**
      * @brief 获取硬度
      */
-    [[nodiscard]] f32 hardness() const { return m_hardness; }
+    [[nodiscard]] f32 hardness() const noexcept { return m_hardness; }
 
     /**
      * @brief 获取抗性
      */
-    [[nodiscard]] f32 resistance() const { return m_resistance; }
+    [[nodiscard]] f32 resistance() const noexcept { return m_resistance; }
 
     /**
      * @brief 获取光照等级
      */
-    [[nodiscard]] u8 lightLevel() const { return m_lightLevel; }
+    [[nodiscard]] u8 lightLevel() const noexcept { return m_lightLevel; }
 
     /**
      * @brief 获取方块状态的动态光照等级
@@ -503,7 +556,7 @@ public:
     /**
      * @brief 获取光照透明度 (0-15)
      */
-    [[nodiscard]] i32 opacity() const { return m_opacity; }
+    [[nodiscard]] i32 opacity() const noexcept { return m_opacity; }
 
     /**
      * @brief 获取地图颜色
@@ -531,7 +584,7 @@ public:
     /**
      * @brief 检查是否传播天空光向下
      */
-    [[nodiscard]] bool doesPropagateSkylightDown() const { return m_propagatesSkylightDown; }
+    [[nodiscard]] bool doesPropagateSkylightDown() const noexcept { return m_propagatesSkylightDown; }
 
     /**
      * @brief 获取挖掘工具类型
@@ -541,7 +594,7 @@ public:
      *
      * @return 工具类型值
      */
-    [[nodiscard]] u8 harvestTool() const { return m_harvestTool; }
+    [[nodiscard]] u8 harvestTool() const noexcept { return m_harvestTool; }
 
     /**
      * @brief 获取挖掘等级
@@ -555,7 +608,7 @@ public:
      *
      * @return 挖掘等级（0-4）
      */
-    [[nodiscard]] i32 harvestLevel() const { return m_harvestLevel; }
+    [[nodiscard]] i32 harvestLevel() const noexcept { return m_harvestLevel; }
 
     /**
      * @brief 是否需要正确工具才能采集
@@ -565,7 +618,7 @@ public:
      *
      * @return 是否需要正确工具
      */
-    [[nodiscard]] bool requiresTool() const { return m_requiresTool; }
+    [[nodiscard]] bool requiresTool() const noexcept { return m_requiresTool; }
 
     // ========== 声音类型 ==========
 
@@ -576,7 +629,7 @@ public:
      *
      * @return 声音类型的常量引用
      */
-    [[nodiscard]] const BlockSoundType& getSoundType() const { return *m_soundType; }
+    [[nodiscard]] const BlockSoundType& getSoundType() const noexcept { return *m_soundType; }
 
     // ========== 掉落表 ==========
 
@@ -593,7 +646,7 @@ public:
      *
      * @return 掉落表ID，如 "minecraft:blocks/stone"，空字符串表示无掉落表
      */
-    [[nodiscard]] virtual std::string getLootTableId() const { return m_lootTableId; }
+    [[nodiscard]] virtual std::string getLootTableId() const noexcept { return m_lootTableId; }
 
     /**
      * @brief 获取方块的掉落表
@@ -610,7 +663,7 @@ public:
      *
      * @param id 掉落表ID
      */
-    void setLootTableId(const std::string& id) { m_lootTableId = id; }
+    void setLootTableId(const std::string& id) noexcept { m_lootTableId = id; }
 
     // ========================================================================
     // 虚方法
@@ -823,7 +876,7 @@ public:
     // ========================================================================
 
     /**
-     * @brief 获取方块的爆炸抗性
+     * @brief 获取爆炸抗性
      *
      * 返回方块抵抗爆炸的能力。值越大越难被破坏。
      * 默认实现返回方块的 resistance 值。
@@ -833,7 +886,10 @@ public:
      *
      * 参考: net.minecraft.block.Block.getExplosionResistance
      */
-    [[nodiscard]] virtual f32 getExplosionResistance(const BlockState& state) const { return state.resistance(); }
+    [[nodiscard]] virtual f32 getExplosionResistance(const BlockState& state) const noexcept
+    {
+        return state.resistance();
+    }
 
     /**
      * @brief 判断方块是否可以在爆炸中掉落物品
@@ -846,7 +902,7 @@ public:
      *
      * 参考: net.minecraft.block.Block.canDropFromExplosion
      */
-    [[nodiscard]] virtual bool canDropFromExplosion(const BlockState& state) const
+    [[nodiscard]] virtual bool canDropFromExplosion(const BlockState& state) const noexcept
     {
         MC_UNUSED(state);
         return true;
@@ -1040,7 +1096,7 @@ public:
      *
      * @return 是否响应随机刻
      */
-    [[nodiscard]] virtual bool ticksRandomly() const { return m_ticksRandomly; }
+    [[nodiscard]] virtual bool ticksRandomly() const noexcept { return m_ticksRandomly; }
 
     // ========================================================================
     // 方块状态
@@ -1190,7 +1246,7 @@ public:
      *
      * @return 如果此方块有对应的方块实体返回true
      */
-    [[nodiscard]] virtual bool hasBlockEntity() const { return false; }
+    [[nodiscard]] virtual bool hasBlockEntity() const noexcept { return false; }
 
     /**
      * @brief 创建方块实体
@@ -1210,7 +1266,7 @@ public:
      * @param state 方块状态
      * @return 如果可以提供信号返回true
      */
-    [[nodiscard]] virtual bool canProvidePower(const BlockState& state) const
+    [[nodiscard]] virtual bool canProvidePower(const BlockState& state) const noexcept
     {
         MC_UNUSED(state);
         return false;
@@ -1226,7 +1282,7 @@ public:
      * @param side 连接方向（从红石线的角度看）
      * @return 如果可以连接红石线返回true
      */
-    [[nodiscard]] virtual bool canConnectRedstone(const BlockState& state, Direction side) const
+    [[nodiscard]] virtual bool canConnectRedstone(const BlockState& state, Direction side) const noexcept
     {
         MC_UNUSED(side);
         return canProvidePower(state);
@@ -1238,7 +1294,7 @@ public:
      * @param state 方块状态
      * @return 如果有比较器输入覆盖返回true
      */
-    [[nodiscard]] virtual bool hasComparatorInputOverride(const BlockState& state) const
+    [[nodiscard]] virtual bool hasComparatorInputOverride(const BlockState& state) const noexcept
     {
         MC_UNUSED(state);
         return false;
@@ -1265,7 +1321,7 @@ public:
      * @return 信号强度 (0-15)
      */
     [[nodiscard]] virtual i32 getWeakPower(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
     {
         MC_UNUSED(state);
         MC_UNUSED(world);
@@ -1284,7 +1340,7 @@ public:
      * @return 信号强度 (0-15)
      */
     [[nodiscard]] virtual i32 getStrongPower(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
     {
         MC_UNUSED(state);
         MC_UNUSED(world);
@@ -1318,7 +1374,7 @@ public:
      * @param state 方块状态
      * @return 如果是粘性方块返回 true
      */
-    [[nodiscard]] virtual bool isStickyBlock(const BlockState& state) const
+    [[nodiscard]] virtual bool isStickyBlock(const BlockState& state) const noexcept
     {
         MC_UNUSED(state);
         return false;
@@ -1335,7 +1391,7 @@ public:
      * @param other 目标方块状态
      * @return 如果可以粘连返回 true
      */
-    [[nodiscard]] virtual bool canStickTo(const BlockState& state, const BlockState& other) const
+    [[nodiscard]] virtual bool canStickTo(const BlockState& state, const BlockState& other) const noexcept
     {
         MC_UNUSED(state);
         MC_UNUSED(other);
@@ -1369,7 +1425,7 @@ public:
     [[nodiscard]] virtual i32 getFlammability(const BlockState& state,
         IWorld* world = nullptr,
         const BlockPos* pos = nullptr,
-        Direction face = static_cast<Direction>(255)) const
+        Direction face = static_cast<Direction>(255)) const noexcept
     {
         MC_UNUSED(state);
         MC_UNUSED(world);
@@ -1399,7 +1455,7 @@ public:
     [[nodiscard]] virtual i32 getFireSpreadSpeed(const BlockState& state,
         IWorld* world = nullptr,
         const BlockPos* pos = nullptr,
-        Direction face = static_cast<Direction>(255)) const
+        Direction face = static_cast<Direction>(255)) const noexcept
     {
         MC_UNUSED(state);
         MC_UNUSED(world);
@@ -1470,8 +1526,7 @@ public:
      * 染色玻璃等透明方块会重写此方法返回对应的颜色。
      * 默认实现返回 nullptr，表示不改变光束颜色。
      *
-     * 参考 MC 1.16.5: net.minecraft.block.Block#getBeaconColorMultiplier
-     * Forge: IForgeBlock#getBeaconColorMultiplier
+     * 参考: Forge: IForgeBlock#getBeaconColorMultiplier
      *
      * @param state 方块状态
      * @param world 世界（可选）
@@ -1728,7 +1783,7 @@ public:
         ENTITYBLOCK_ANIMATED // 方块实体动画（箱子、熔炉等）
     };
 
-    [[nodiscard]] virtual RenderType getRenderType(const BlockState& state) const
+    [[nodiscard]] virtual RenderType getRenderType(const BlockState& state) const noexcept
     {
         MC_UNUSED(state);
         return RenderType::MODEL;
@@ -1757,7 +1812,7 @@ public:
     /**
      * @brief 转换为字符串
      */
-    [[nodiscard]] virtual std::string toString() const { return m_blockLocation.toString(); }
+    [[nodiscard]] virtual std::string toString() const noexcept { return m_blockLocation.toString(); }
 
 protected:
     friend class BlockRegistry;
@@ -1809,12 +1864,9 @@ protected:
     const BlockSoundType* m_soundType = &BlockSoundTypes::STONE;
 
     // 物理属性
-    // MC 1.16.5: Block.slipperiness 默认值 0.6f
-    f32 m_slipperiness = 0.6f;
-    // MC 1.16.5: Block.speedFactor 默认值 1.0f
-    f32 m_speedFactor = 1.0f;
-    // MC 1.16.5: Block.jumpFactor 默认值 1.0f
-    f32 m_jumpFactor = 1.0f;
+    f32 m_slipperiness = 0.6f; // 默认滑度
+    f32 m_speedFactor = 1.0f;  // 默认速度因子
+    f32 m_jumpFactor = 1.0f;   // 默认跳跃因子
 
     // 由createBlockState设置
     std::unique_ptr<StateContainer<Block, BlockState>> m_stateContainer;

@@ -46,10 +46,11 @@ namespace mc {
 // ============================================================================
 
 // 下界高度范围：0-127
+// TODO: NETHER_HEIGHT 常量在 NetherCaveCarver.cpp 中也有定义，应该统一提取到公共头文件中
 constexpr i32 NETHER_HEIGHT = 128;
 constexpr i32 NETHER_MIN_Y = 0;
 
-// 噪声参数（参考 MC 1.16.5 NetherChunkGenerator）
+// 噪声参数
 constexpr f32 NOISE_SCALE_X = 1.0f;
 constexpr f32 NOISE_SCALE_Y = 2.0f;
 constexpr f32 NOISE_SCALE_Z = 1.0f;
@@ -66,8 +67,8 @@ NetherChunkGenerator::NetherChunkGenerator(u64 seed)
     , m_noiseSizeY(0)
     , m_noiseSizeZ(0)
 {
-    initSettings();
-    initNoiseGenerators();
+    _initSettings();
+    _initNoiseGenerators();
 
     // 确保生物群系注册表已初始化
     BiomeRegistry::instance().initialize();
@@ -86,8 +87,8 @@ NetherChunkGenerator::NetherChunkGenerator(u64 seed, DimensionSettings settings)
     , m_noiseSizeY(0)
     , m_noiseSizeZ(0)
 {
-    initSettings();
-    initNoiseGenerators();
+    _initSettings();
+    _initNoiseGenerators();
 
     // 确保生物群系注册表已初始化
     BiomeRegistry::instance().initialize();
@@ -104,7 +105,7 @@ NetherChunkGenerator::NetherChunkGenerator(u64 seed, DimensionSettings settings)
 // 初始化
 // ============================================================================
 
-void NetherChunkGenerator::initSettings()
+void NetherChunkGenerator::_initSettings()
 {
     // 下界特有设置
     m_lavaLevel = m_settings.seaLevel; // 使用 seaLevel 作为熔岩高度
@@ -120,7 +121,7 @@ void NetherChunkGenerator::initSettings()
     }
 }
 
-void NetherChunkGenerator::initNoiseGenerators()
+void NetherChunkGenerator::_initNoiseGenerators()
 {
     const NoiseSettings& noise = m_settings.noise;
 
@@ -132,7 +133,7 @@ void NetherChunkGenerator::initNoiseGenerators()
     m_noiseSizeY = NETHER_HEIGHT / verticalGranularity;
     m_noiseSizeZ = 16 / horizontalGranularity;
 
-    // 创建噪声生成器（参考 MC 1.16.5）
+    // 创建噪声生成器
     math::Random rng(m_seed);
 
     // 主密度噪声：16 倍频
@@ -145,7 +146,7 @@ void NetherChunkGenerator::initNoiseGenerators()
     m_simplexNoise = std::make_unique<SimplexNoiseGenerator>(rng);
 
     // 初始化下界洞穴雕刻器
-    // 下界洞穴概率较高，参考 MC: 约 1/5
+    // 下界洞穴概率较高，约 1/5
     m_caveCarver = std::make_unique<NetherCaveCarver>();
     m_caveConfig = ProbabilityConfig(0.2f);
 }
@@ -202,7 +203,7 @@ void NetherChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& ch
 
     for (i32 noiseZ = 0; noiseZ <= m_noiseSizeZ; ++noiseZ) {
         const i32 globalNoiseZ = chunkZ * m_noiseSizeZ + noiseZ;
-        fillNoiseColumn(noiseCache[0][noiseZ], chunkX * m_noiseSizeX, globalNoiseZ);
+        _fillNoiseColumn(noiseCache[0][noiseZ], chunkX * m_noiseSizeX, globalNoiseZ);
     }
 
     const i32 startX = chunkX << 4;
@@ -212,7 +213,7 @@ void NetherChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& ch
         for (i32 noiseZ = 0; noiseZ <= m_noiseSizeZ; ++noiseZ) {
             const i32 globalNoiseX = chunkX * m_noiseSizeX + noiseX + 1;
             const i32 globalNoiseZ = chunkZ * m_noiseSizeZ + noiseZ;
-            fillNoiseColumn(noiseCache[1][noiseZ], globalNoiseX, globalNoiseZ);
+            _fillNoiseColumn(noiseCache[1][noiseZ], globalNoiseX, globalNoiseZ);
         }
 
         for (i32 noiseZ = 0; noiseZ < m_noiseSizeZ; ++noiseZ) {
@@ -247,7 +248,7 @@ void NetherChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& ch
                             const f32 zLerp = static_cast<f32>(localZ) / static_cast<f32>(horizontalNoiseGranularity);
                             const f32 density = math::lerp(x0, x1, zLerp);
 
-                            const BlockState* blockState = getBlockForDensity(density, worldY);
+                            const BlockState* blockState = _getBlockForDensity(density, worldY);
                             if (blockState == nullptr) {
                                 continue;
                             }
@@ -286,7 +287,7 @@ void NetherChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chu
 
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
-            generateBedrock(chunk, x, z, bedrockRng);
+            _generateBedrock(chunk, x, z, bedrockRng);
         }
     }
 
@@ -399,10 +400,10 @@ i32 NetherChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
     std::vector<f32> column10;
     std::vector<f32> column11;
 
-    fillNoiseColumn(column00, noiseX, noiseZ);
-    fillNoiseColumn(column01, noiseX, noiseZ + 1);
-    fillNoiseColumn(column10, noiseX + 1, noiseZ);
-    fillNoiseColumn(column11, noiseX + 1, noiseZ + 1);
+    _fillNoiseColumn(column00, noiseX, noiseZ);
+    _fillNoiseColumn(column01, noiseX, noiseZ + 1);
+    _fillNoiseColumn(column10, noiseX + 1, noiseZ);
+    _fillNoiseColumn(column11, noiseX + 1, noiseZ + 1);
 
     auto matchesHeightmap = [type](const BlockState* state) -> bool {
         if (!state || state->isAir()) {
@@ -453,7 +454,7 @@ i32 NetherChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
         const f32 x1 = math::lerp(y01, y11, xLerp);
         const f32 density = math::lerp(x0, x1, zLerp);
 
-        const BlockState* blockState = getBlockForDensity(density, worldY);
+        const BlockState* blockState = _getBlockForDensity(density, worldY);
         if (matchesHeightmap(blockState)) {
             return worldY + 1;
         }
@@ -466,7 +467,7 @@ i32 NetherChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
 // 核心生成方法
 // ============================================================================
 
-void NetherChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ) const
+void NetherChunkGenerator::_fillNoiseColumn(std::vector<f32>& column, i32 noiseX, i32 noiseZ) const
 {
     column.resize(m_noiseSizeY + 1);
 
@@ -475,7 +476,7 @@ void NetherChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX,
 
         // 计算密度
         // 下界地形特征：中间空旷，边缘实心
-        f32 density = calculateNoiseDensity(noiseX, y, noiseZ);
+        f32 density = _calculateNoiseDensity(noiseX, y, noiseZ);
 
         // 应用高度衰减
         // 靠近顶部和底部时密度增加
@@ -492,7 +493,7 @@ void NetherChunkGenerator::fillNoiseColumn(std::vector<f32>& column, i32 noiseX,
     }
 }
 
-f32 NetherChunkGenerator::calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noiseZ) const
+f32 NetherChunkGenerator::_calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 noiseZ) const
 {
     // 缩放因子
     constexpr f32 SCALE_X = 0.0625f; // 1/16
@@ -512,7 +513,7 @@ f32 NetherChunkGenerator::calculateNoiseDensity(i32 noiseX, i32 noiseY, i32 nois
     return density;
 }
 
-const BlockState* NetherChunkGenerator::getBlockForDensity(f32 density, i32 y) const
+const BlockState* NetherChunkGenerator::_getBlockForDensity(f32 density, i32 y) const
 {
     // 密度 > 0 表示实心方块
     if (density > 0.0f) {
@@ -526,11 +527,11 @@ const BlockState* NetherChunkGenerator::getBlockForDensity(f32 density, i32 y) c
     return nullptr;
 }
 
-void NetherChunkGenerator::generateBedrock(ChunkPrimer& chunk, i32 x, i32 z, math::Random& random) const
+void NetherChunkGenerator::_generateBedrock(ChunkPrimer& chunk, i32 x, i32 z, math::Random& random) const
 {
     const BlockState* bedrock = &VanillaBlocks::BEDROCK->getDefaultState();
 
-    // 对齐 MC makeBedrock：底部/顶部各 5 层，按 nextInt(5) 决定每层是否放置。
+    // 底部/顶部各 5 层，按 nextInt(5) 决定每层是否放置
     if (m_bedrockFloor + 4 >= NETHER_MIN_Y && m_bedrockFloor < NETHER_HEIGHT) {
         for (i32 offset = 0; offset < 5; ++offset) {
             if (offset <= random.nextInt(5)) {

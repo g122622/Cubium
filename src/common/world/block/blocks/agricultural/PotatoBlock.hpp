@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
 #include "CropBlock.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include <array>
 
 namespace mc {
@@ -35,8 +35,6 @@ namespace blocks {
  *
  * 8个生长阶段（AGE_0_7），成熟时掉落多个马铃薯，有几率掉落毒马铃薯。
  * 形状高度与胡萝卜相同。
- *
- * 参考: net.minecraft.block.PotatoBlock
  */
 class PotatoBlock : public CropBlock {
 public:

@@ -22,7 +22,6 @@
  */
 
 #include "GameTime.hpp"
-#include <algorithm>
 
 namespace mc::time {
 
@@ -31,16 +30,12 @@ void GameTime::tick()
     m_gameTime++;
 
     if (m_daylightCycleEnabled) {
-        // MC 1.16.5 行为：dayTime 递增但不取模
-        // 只有在读取一天内时间时才取模
         m_dayTime++;
     }
 }
 
 void GameTime::setDayTime(i64 time)
 {
-    // MC 1.16.5 行为：直接存储，不取模
-    // dayTime 可以是任意值，包括负数
     m_dayTime = time;
 }
 
@@ -61,8 +56,7 @@ void GameTime::setDaylightCycleEnabled(bool enabled)
 
 i64 GameTime::dayTimeOfDay() const
 {
-    // 使用数学公式确保负数也能正确取模
-    // 例如：-100 -> ((-100 % 24000) + 24000) % 24000 = 23900
+    // 确保负数也能正确取模
     return ((m_dayTime % TimeConstants::TICKS_PER_DAY) + TimeConstants::TICKS_PER_DAY) % TimeConstants::TICKS_PER_DAY;
 }
 
@@ -79,8 +73,6 @@ bool GameTime::isNight() const
 
 i64 GameTime::dayTimeForNetwork() const
 {
-    // MC 协议: 负数表示日光周期禁用
-    // 返回的是一天内的时间 (0-23999)
     i64 tod = dayTimeOfDay();
     return m_daylightCycleEnabled ? tod : -tod;
 }

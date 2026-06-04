@@ -22,6 +22,7 @@
  */
 
 #include "MinecraftServer.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/schedule/Schedule.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -631,20 +632,8 @@ void MinecraftServer::initializeInteractionManagers()
     m_miningManager->setOnMiningComplete([this](PlayerId playerId, const BlockPos& pos) {
         MC_ASSERT_RELEASE(m_blockInteractionManager != nullptr);
         auto result = m_blockInteractionManager->handleBlockBreak(playerId, pos);
-        if (result.failed()) {
-            spdlog::debug("Mining completion block break failed for player {} at {}: {}",
-                playerId,
-                pos.toString(),
-                result.error().message());
-            return;
-        }
-
-        if (!result.value().blockBroken) {
-            spdlog::debug("Mining completion did not break block for player {} at {}: {}",
-                playerId,
-                pos.toString(),
-                result.value().message);
-        }
+        // 即使失败也不影响流程，handleBlockBreak 内部已处理
+        (void)result;
     });
 
     // 设置服务器接口到 BlockInteractionManager（用于告示牌命令执行等）
@@ -1477,12 +1466,12 @@ void MinecraftServer::handlePlayerMovePacket(PlayerId playerId, const u8* data, 
     BlockPos prevPos(static_cast<i32>(player->x), static_cast<i32>(player->y), static_cast<i32>(player->z));
 
     // 计算新区块坐标
-    ChunkCoord newChunkX = static_cast<ChunkCoord>(std::floor(pos.x / 16.0));
-    ChunkCoord newChunkZ = static_cast<ChunkCoord>(std::floor(pos.z / 16.0));
+    ChunkCoord newChunkX = math::floorTo<ChunkCoord>(pos.x / static_cast<f64>(world::CHUNK_WIDTH));
+    ChunkCoord newChunkZ = math::floorTo<ChunkCoord>(pos.z / static_cast<f64>(world::CHUNK_WIDTH));
 
     // 检查玩家是否移动到了新区块
-    ChunkCoord oldChunkX = static_cast<ChunkCoord>(std::floor(player->x / 16.0f));
-    ChunkCoord oldChunkZ = static_cast<ChunkCoord>(std::floor(player->z / 16.0f));
+    ChunkCoord oldChunkX = math::floorTo<ChunkCoord>(player->x / static_cast<f32>(world::CHUNK_WIDTH));
+    ChunkCoord oldChunkZ = math::floorTo<ChunkCoord>(player->z / static_cast<f32>(world::CHUNK_WIDTH));
     bool chunkChanged = (newChunkX != oldChunkX || newChunkZ != oldChunkZ);
 
     switch (packet.type()) {
@@ -2070,9 +2059,6 @@ void MinecraftServer::dispatchPacket(u32 sessionId, const u8* data, size_t size)
 void MinecraftServer::broadcastSound(
     const ResourceLocation& soundEventId, sound::SoundCategory category, const Vector3& position, f32 volume, f32 pitch)
 {
-    // spdlog::debug("[Sound] Broadcasting sound: {} at ({}, {}, {})",
-    //               soundEventId.toString(), position.x, position.y, position.z);
-
     glm::vec3 pos(position.x, position.y, position.z);
     sound::PlaySoundPacket packet(soundEventId, category, pos, volume, pitch);
 
@@ -2093,9 +2079,6 @@ void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId
     f32 volume,
     f32 pitch)
 {
-    // spdlog::debug("[Sound] Broadcasting sound in range: {} at ({}, {}, {}) range={}",
-    //               soundEventId.toString(), position.x, position.y, position.z, range);
-
     glm::vec3 pos(position.x, position.y, position.z);
     sound::PlaySoundPacket packet(soundEventId, category, pos, volume, pitch);
 
@@ -2125,8 +2108,6 @@ void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId
             playersNotified++;
         }
     });
-
-    // spdlog::debug("[Sound] Sound {} sent to {} players", soundEventId.toString(), playersNotified);
 }
 
 void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
@@ -2136,8 +2117,6 @@ void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
     f32 volume,
     f32 pitch)
 {
-    // spdlog::debug("[Sound] Sending sound {} to player {}", soundEventId.toString(), playerId);
-
     glm::vec3 pos(position.x, position.y, position.z);
     sound::PlaySoundPacket packet(soundEventId, category, pos, volume, pitch);
 
@@ -2190,9 +2169,6 @@ void MinecraftServer::broadcastParticleInRange(client::renderer::trident::partic
             playersNotified++;
         }
     });
-
-    // spdlog::debug("[Particle] Particle type {} sent to {} players",
-    //               static_cast<u16>(type), playersNotified);
 }
 
 void MinecraftServer::sendParticleToPlayer(PlayerId playerId,
@@ -2317,7 +2293,7 @@ void MinecraftServer::broadcastExplosionInRange(const Vector3& position,
     const std::unordered_map<u64, Vector3>& playerKnockback,
     f32 range)
 {
-    // 参考 MC 1.16.5: 发送给爆炸点 64 格范围内的玩家
+    // 发送给爆炸点 64 格范围内的玩家
     // 每个玩家收到的击退向量不同，需要为每个玩家单独构建数据包
 
     f32 rangeSq = range * range;

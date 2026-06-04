@@ -119,7 +119,6 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
     auto sizeZ = dynamic_cast<const nbt::IntTag&>(*sizeList[2]).value;
     templ->setSize(BlockPos(sizeX, sizeY, sizeZ));
 
-    // MC 1.16.5: Template.readPalletesAndBlocks
     // 支持两种格式：
     // 1. palette: 单一调色板列表
     // 2. palettes: 多个调色板列表的列表（用于结构变体）
@@ -150,7 +149,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                     const nbt::Tag* entryTag = entryTagPtr.get();
                     MC_ASSERT_RELEASE(entryTag != nullptr);
                     const auto& entry = dynamic_cast<const nbt::CompoundTag&>(*entryTag);
-                    palette.push_back(parseBlockStateId(entry));
+                    palette.push_back(_parseBlockStateId(entry));
                 }
             }
         }
@@ -170,13 +169,13 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                 const nbt::Tag* entryTag = entryTagPtr.get();
                 MC_ASSERT_RELEASE(entryTag != nullptr);
                 const auto& entry = dynamic_cast<const nbt::CompoundTag&>(*entryTag);
-                palette.push_back(parseBlockStateId(entry));
+                palette.push_back(_parseBlockStateId(entry));
             }
         }
     }
 
     // 读取方块并分配到各个调色板
-    // MC 1.16.5: blocks 数组中的 state 索引引用调色板中的方块状态
+    // blocks 数组中的 state 索引引用调色板中的方块状态
     // 每个 Palette 包含完整的方块列表
     if (nbt.value.count("blocks") != 0 && !palettes.empty()) {
         auto& blocksTag = *nbt.value.at("blocks");
@@ -204,7 +203,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                 if (blockEntry.value.count("pos") != 0) {
                     auto& posTag = *blockEntry.value.at("pos");
                     if (posTag.id() == nbt::TagId::List) {
-                        rawInfo.pos = readBlockPos(dynamic_cast<const nbt::ListTag&>(posTag));
+                        rawInfo.pos = _readBlockPos(dynamic_cast<const nbt::ListTag&>(posTag));
                     }
                 }
 
@@ -219,7 +218,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                     auto& nbtTag = *blockEntry.value.at("nbt");
                     if (nbtTag.id() == nbt::TagId::Compound) {
                         const nbt::CompoundTag* nbtPtr = dynamic_cast<const nbt::CompoundTag*>(&nbtTag);
-                        rawInfo.nbt = cloneNbt(nbtPtr);
+                        rawInfo.nbt = _cloneNbt(nbtPtr);
                     }
                 }
 
@@ -242,7 +241,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
 
                     BlockInfo blockInfo(rawInfo.pos, stateId);
                     if (rawInfo.nbt) {
-                        blockInfo.nbt = cloneNbt(rawInfo.nbt.get());
+                        blockInfo.nbt = _cloneNbt(rawInfo.nbt.get());
                     }
                     blockInfos.push_back(std::move(blockInfo));
 
@@ -255,7 +254,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                         }
 
                         // 检查是否是 Jigsaw 方块
-                        auto jigsawInfo = parseJigsawBlock(rawInfo.nbt.get(), rawInfo.pos, firstPaletteStateId);
+                        auto jigsawInfo = _parseJigsawBlock(rawInfo.nbt.get(), rawInfo.pos, firstPaletteStateId);
                         if (!jigsawInfo.name.empty()) {
                             templ->addJigsawBlock(jigsawInfo);
                         }
@@ -268,7 +267,6 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
     }
 
     // 读取实体: entities: [...]
-    // MC 1.16.5: Template.readEntities
     // 实体有两个位置：
     // - pos: Double 列表（精确位置）
     // - blockPos: Int 列表（方块坐标）
@@ -290,7 +288,6 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                 }
 
                 // 读取精确位置 pos: [double, double, double]
-                // MC 1.16.5: Template.readDoubles
                 if (entityEntry.value.count("pos") != 0) {
                     auto& posTag = *entityEntry.value.at("pos");
                     if (posTag.id() == nbt::TagId::List) {
@@ -305,11 +302,10 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                 }
 
                 // 读取方块坐标 blockPos: [int, int, int]
-                // MC 1.16.5: Template.readInts
                 if (entityEntry.value.count("blockPos") != 0) {
                     auto& blockPosTag = *entityEntry.value.at("blockPos");
                     if (blockPosTag.id() == nbt::TagId::List) {
-                        entityInfo.blockPos = readBlockPos(dynamic_cast<const nbt::ListTag&>(blockPosTag));
+                        entityInfo.blockPos = _readBlockPos(dynamic_cast<const nbt::ListTag&>(blockPosTag));
                     }
                 }
 
@@ -318,7 +314,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                     auto& nbtTag = *entityEntry.value.at("nbt");
                     if (nbtTag.id() == nbt::TagId::Compound) {
                         const nbt::CompoundTag* nbtPtr = dynamic_cast<const nbt::CompoundTag*>(&nbtTag);
-                        entityInfo.nbt = cloneNbt(nbtPtr);
+                        entityInfo.nbt = _cloneNbt(nbtPtr);
                     }
                 }
 
@@ -377,7 +373,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromCompressedNbt(const std::vecto
     }
 }
 
-BlockPos TemplateLoader::readBlockPos(const nbt::ListTag& list)
+BlockPos TemplateLoader::_readBlockPos(const nbt::ListTag& list)
 {
     i32 x = 0, y = 0, z = 0;
 
@@ -390,7 +386,7 @@ BlockPos TemplateLoader::readBlockPos(const nbt::ListTag& list)
     return BlockPos(x, y, z);
 }
 
-std::unique_ptr<nbt::CompoundTag> TemplateLoader::cloneNbt(const nbt::CompoundTag* source)
+std::unique_ptr<nbt::CompoundTag> TemplateLoader::_cloneNbt(const nbt::CompoundTag* source) noexcept
 {
     if (!source) {
         return nullptr;
@@ -398,7 +394,7 @@ std::unique_ptr<nbt::CompoundTag> TemplateLoader::cloneNbt(const nbt::CompoundTa
     return std::make_unique<nbt::CompoundTag>(*source);
 }
 
-u32 TemplateLoader::parseBlockStateId(const nbt::CompoundTag& paletteEntry)
+u32 TemplateLoader::_parseBlockStateId(const nbt::CompoundTag& paletteEntry)
 {
     // NBT 格式:
     // Name: "minecraft:stone"
@@ -435,7 +431,7 @@ u32 TemplateLoader::parseBlockStateId(const nbt::CompoundTag& paletteEntry)
     return state->stateId();
 }
 
-TemplateJigsawBlockInfo TemplateLoader::parseJigsawBlock(
+TemplateJigsawBlockInfo TemplateLoader::_parseJigsawBlock(
     const nbt::CompoundTag* nbt, const BlockPos& pos, u32 blockStateId)
 {
     TemplateJigsawBlockInfo info;

@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../../world/block/BlockPos.hpp"
-#include "Packet.hpp"
-#include "PacketSerializer.hpp"
+#include "common/core/Types.hpp"
+#include "common/network/packet/Packet.hpp"
+#include "common/network/packet/PacketSerializer.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <unordered_map>
 #include <vector>
 
@@ -37,7 +37,6 @@ namespace mc::network {
  * @brief 爆炸数据包 (S->C)
  *
  * 服务端向客户端广播爆炸事件。
- * 参考 MC 1.16.5 SExplosionPacket
  *
  * 协议格式:
  * | 字段                  | 类型      | 说明                              |
@@ -82,6 +81,15 @@ public:
         const std::vector<BlockPos>& affectedBlocks,
         const std::unordered_map<u64, Vector3>& playerKnockback,
         u64 targetPlayerId);
+
+    // ========== 移动语义 ==========
+
+    ExplosionPacket(ExplosionPacket&& other) noexcept = default;
+    ExplosionPacket& operator=(ExplosionPacket&& other) noexcept = default;
+
+    // 禁止拷贝（Packet基类不可拷贝）
+    ExplosionPacket(const ExplosionPacket&) = delete;
+    ExplosionPacket& operator=(const ExplosionPacket&) = delete;
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;

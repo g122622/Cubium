@@ -23,17 +23,12 @@
 
 #pragma once
 
-#include <memory>
 #include "util/math/random/Random.hpp"
 #include "world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
+#include <memory>
 
 namespace mc {
-
-namespace loot {
-class LootTableManager;
-}
-
 namespace blockentity {
 
 /**
@@ -41,8 +36,6 @@ namespace blockentity {
  *
  * 提供9格物品存储和随机选择物品发射/投掷的功能。
  * 继承自 LootableContainerBlockEntity 以支持战利品表填充。
- *
- * 参考: net.minecraft.tileentity.DispenserTileEntity
  */
 class DispenserBlockEntity : public LootableContainerBlockEntity {
 public:
@@ -78,12 +71,10 @@ public:
     [[nodiscard]] i32 getRandomSlot();
 
     /**
-     * @brief 获取发射槽位（MC储水池采样算法）
+     * @brief 获取发射槽位（储水池采样算法）
      *
      * 选择第一个非空槽位，然后以 1/n 概率替换（n为已遍历的非空槽位数）。
      * 这确保每个非空槽位被选中的概率相等。
-     *
-     * MC 1.16.5: 在选择槽位前会先填充战利品表
      *
      * @return 非空槽位索引，如果没有返回 -1
      */
@@ -92,7 +83,7 @@ public:
     /**
      * @brief 向库存添加物品
      *
-     * MC 1.16.5 实现：查找第一个空槽位，将整个物品放入该槽位。
+     * 查找第一个空槽位，将整个物品放入该槽位。
      * 不尝试与现有堆叠合并。
      *
      * @param stack 要添加的物品堆

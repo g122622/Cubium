@@ -1,4 +1,28 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
 #include "BlockEntityStorageManager.hpp"
+#include "common/core/Constants.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/core/BlockEntityDeserializer.hpp"
@@ -26,21 +50,23 @@ Result<void> BlockEntityStorageManager::saveBlockEntity(const BlockEntity& block
     }
 
     BlockPos pos = blockEntity.getPos();
-    auto chunkX = static_cast<ChunkCoord>(std::floor(static_cast<f64>(pos.x) / 16.0));
-    auto chunkZ = static_cast<ChunkCoord>(std::floor(static_cast<f64>(pos.z) / 16.0));
-    auto key = buildKey(pos, chunkX, chunkZ);
-    auto dbKey = makeKey(key);
+    auto chunkX =
+        static_cast<ChunkCoord>(std::floor(static_cast<f64>(pos.x) / static_cast<f64>(mc::world::CHUNK_WIDTH)));
+    auto chunkZ =
+        static_cast<ChunkCoord>(std::floor(static_cast<f64>(pos.z) / static_cast<f64>(mc::world::CHUNK_WIDTH)));
+    auto key = _buildKey(pos, chunkX, chunkZ);
+    auto dbKey = _makeKey(key);
 
-    return m_db.put(columnFamilyName(dimension), dbKey, binaryResult.value());
+    return m_db.put(_columnFamilyName(dimension), dbKey, binaryResult.value());
 }
 
 Result<std::unique_ptr<BlockEntity>> BlockEntityStorageManager::loadBlockEntity(
     const BlockPos& pos, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension)
 {
-    auto key = buildKey(pos, chunkX, chunkZ);
-    auto dbKey = makeKey(key);
+    auto key = _buildKey(pos, chunkX, chunkZ);
+    auto dbKey = _makeKey(key);
 
-    auto result = m_db.get(columnFamilyName(dimension), dbKey);
+    auto result = m_db.get(_columnFamilyName(dimension), dbKey);
     if (!result.success()) {
         return result.error();
     }
@@ -66,9 +92,9 @@ Result<std::unique_ptr<BlockEntity>> BlockEntityStorageManager::loadBlockEntity(
 Result<void> BlockEntityStorageManager::deleteBlockEntity(
     const BlockPos& pos, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension)
 {
-    auto key = buildKey(pos, chunkX, chunkZ);
-    auto dbKey = makeKey(key);
-    return m_db.del(columnFamilyName(dimension), dbKey);
+    auto key = _buildKey(pos, chunkX, chunkZ);
+    auto dbKey = _makeKey(key);
+    return m_db.del(_columnFamilyName(dimension), dbKey);
 }
 
 // ========== 区块级操作 ==========
@@ -78,9 +104,9 @@ Result<std::vector<std::unique_ptr<BlockEntity>>> BlockEntityStorageManager::loa
 {
     std::vector<std::unique_ptr<BlockEntity>> blockEntities;
 
-    auto prefix = makeChunkPrefixKey(chunkX, chunkZ);
-    auto endKey = makeChunkEndKey(chunkX, chunkZ);
-    const char* cf = columnFamilyName(dimension);
+    auto prefix = _makeChunkPrefixKey(chunkX, chunkZ);
+    auto endKey = _makeChunkEndKey(chunkX, chunkZ);
+    const char* cf = _columnFamilyName(dimension);
 
     auto iter = m_db.newIterator(cf);
     if (!iter) {
@@ -156,36 +182,36 @@ Result<size_t> BlockEntityStorageManager::saveAllBlockEntities(
 Result<void> BlockEntityStorageManager::deleteBlockEntitiesInChunk(
     ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension)
 {
-    auto startKey = makeChunkPrefixKey(chunkX, chunkZ);
-    auto endKey = makeChunkEndKey(chunkX, chunkZ);
-    return m_db.deleteRange(columnFamilyName(dimension), startKey, endKey);
+    auto startKey = _makeChunkPrefixKey(chunkX, chunkZ);
+    auto endKey = _makeChunkEndKey(chunkX, chunkZ);
+    return m_db.deleteRange(_columnFamilyName(dimension), startKey, endKey);
 }
 
 // ========== 私有方法 ==========
 
-const char* BlockEntityStorageManager::columnFamilyName(DimensionId dimension)
+const char* BlockEntityStorageManager::_columnFamilyName(DimensionId dimension)
 {
     return cf::getBlockEntityCF(dimension);
 }
 
-std::string BlockEntityStorageManager::buildKey(const BlockPos& pos, ChunkCoord chunkX, ChunkCoord chunkZ)
+std::string BlockEntityStorageManager::_buildKey(const BlockPos& pos, ChunkCoord chunkX, ChunkCoord chunkZ)
 {
     return std::to_string(chunkX) + ":" + std::to_string(chunkZ) + ":" + std::to_string(pos.x) + ":" +
         std::to_string(pos.y) + ":" + std::to_string(pos.z);
 }
 
-std::vector<u8> BlockEntityStorageManager::makeKey(const std::string& key)
+std::vector<u8> BlockEntityStorageManager::_makeKey(const std::string& key)
 {
     return std::vector<u8>(key.begin(), key.end());
 }
 
-std::vector<u8> BlockEntityStorageManager::makeChunkPrefixKey(ChunkCoord chunkX, ChunkCoord chunkZ)
+std::vector<u8> BlockEntityStorageManager::_makeChunkPrefixKey(ChunkCoord chunkX, ChunkCoord chunkZ)
 {
     std::string prefix = std::to_string(chunkX) + ":" + std::to_string(chunkZ) + ":";
     return std::vector<u8>(prefix.begin(), prefix.end());
 }
 
-std::vector<u8> BlockEntityStorageManager::makeChunkEndKey(ChunkCoord chunkX, ChunkCoord chunkZ)
+std::vector<u8> BlockEntityStorageManager::_makeChunkEndKey(ChunkCoord chunkX, ChunkCoord chunkZ)
 {
     std::string prefix = std::to_string(chunkX) + ":" + std::to_string(chunkZ) + ":";
     prefix.push_back(static_cast<char>(0xFF));

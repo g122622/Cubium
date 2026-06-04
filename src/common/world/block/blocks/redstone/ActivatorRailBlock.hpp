@@ -37,8 +37,6 @@ namespace blocks {
  *   - 弹出矿车中的实体（运输矿车）
  *   - 切换矿车轨道（TNT矿车、漏斗矿车）
  * - 只支持直轨和斜轨（不支持弯轨）
- *
- * 参考: net.minecraft.block.ActivatorRailBlock
  */
 class ActivatorRailBlock : public AbstractRailBlock {
 public:

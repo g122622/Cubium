@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../Block.hpp"
-#include "../../Material.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 
 namespace mc {
 namespace blocks {
@@ -38,8 +38,6 @@ namespace blocks {
  * - 可放置在任何固体方块上
  * - 16种颜色
  * - 可以被活塞推动
- *
- * 参考: net.minecraft.block.CarpetBlock
  */
 class CarpetBlock : public Block {
 public:

@@ -22,8 +22,8 @@
  */
 
 #include "CarpetBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -52,7 +52,6 @@ const CollisionShape& CarpetBlock::getCollisionShape(const BlockState& state) co
 bool CarpetBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);
-    // 参考 MC 1.16.5: CarpetBlock.isValidPosition
     // 地毯需要放置在非空气方块上方
     const BlockPos belowPos = pos.down();
     const BlockState* belowState = world.getBlockState(belowPos);
@@ -69,7 +68,6 @@ BlockState CarpetBlock::updatePostPlacement(const BlockState& state,
 {
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
-    // 参考 MC 1.16.5: CarpetBlock.updatePostPlacement
     // 如果下方方块被移除，则移除地毯
     if (facing == Direction::Down) {
         const BlockPos belowPos = currentPos.down();

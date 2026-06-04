@@ -23,14 +23,14 @@
 
 #pragma once
 
-#include "../../core/Result.hpp"
-#include "../../core/Types.hpp"
-#include "../../util/nbt/Nbt.hpp"
-#include "../core/ScoreCriteriaRenderType.hpp"
-#include "../core/ScoreObjective.hpp"
-#include "../core/ScorePlayerTeam.hpp"
-#include "../core/Scoreboard.hpp"
-#include "../core/TeamEnums.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
+#include "common/scoreboard/core/ScoreObjective.hpp"
+#include "common/scoreboard/core/ScorePlayerTeam.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
+#include "common/scoreboard/core/TeamEnums.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -41,7 +41,6 @@ namespace mc::scoreboard {
  * @brief 记分板持久化数据
  *
  * 用于序列化和反序列化记分板状态。
- * 参考 MC 1.16.5: net.minecraft.world.storage.ScoreboardSaveData
  */
 class ScoreboardSaveData {
 public:
@@ -154,17 +153,17 @@ public:
 
     // ========== 数据访问 ==========
 
-    [[nodiscard]] const std::vector<ObjectiveData>& objectives() const { return m_objectives; }
-    [[nodiscard]] const std::vector<ScoreData>& scores() const { return m_scores; }
-    [[nodiscard]] const std::vector<TeamData>& teams() const { return m_teams; }
-    [[nodiscard]] const std::vector<DisplaySlotData>& displaySlots() const { return m_displaySlots; }
+    [[nodiscard]] const std::vector<ObjectiveData>& objectives() const noexcept { return m_objectives; }
+    [[nodiscard]] const std::vector<ScoreData>& scores() const noexcept { return m_scores; }
+    [[nodiscard]] const std::vector<TeamData>& teams() const noexcept { return m_teams; }
+    [[nodiscard]] const std::vector<DisplaySlotData>& displaySlots() const noexcept { return m_displaySlots; }
 
     void addObjective(ObjectiveData data) { m_objectives.push_back(std::move(data)); }
     void addScore(ScoreData data) { m_scores.push_back(std::move(data)); }
     void addTeam(TeamData data) { m_teams.push_back(std::move(data)); }
     void addDisplaySlot(DisplaySlotData data) { m_displaySlots.push_back(std::move(data)); }
 
-    void clear()
+    void clear() noexcept
     {
         m_objectives.clear();
         m_scores.clear();

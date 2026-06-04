@@ -112,8 +112,6 @@ inline constexpr bool hasFlag(HeightmapFlag flags, HeightmapFlag flag)
  * EMPTY → STRUCTURE_STARTS → STRUCTURE_REFERENCES → BIOMES → NOISE →
  * SURFACE → CARVERS → LIQUID_CARVERS → FEATURES → LIGHT → SPAWN →
  * HEIGHTMAPS → FULL
- *
- * 参考 MC 1.16.5 ChunkStatus，但简化了异步任务模型
  */
 class ChunkStatus {
 public:

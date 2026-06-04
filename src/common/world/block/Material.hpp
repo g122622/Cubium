@@ -32,7 +32,6 @@ namespace mc {
  * @brief 材质类
  *
  * 定义方块的基础材质属性，如是否固体、是否液体等。
- * 参考: net.minecraft.block.material.Material
  *
  * 注意: 材质是不可变的，应该通过静态常量访问预定义材质。
  */
@@ -272,52 +271,52 @@ private:
  */
 class MaterialBuilder {
 public:
-    MaterialBuilder();
+    MaterialBuilder() noexcept;
 
     /**
      * @brief 设置为液体
      */
-    MaterialBuilder& liquid();
+    MaterialBuilder& liquid() noexcept;
 
     /**
      * @brief 设置为固体
      */
-    MaterialBuilder& solid(bool solid = true);
+    MaterialBuilder& solid(bool solid = true) noexcept;
 
     /**
      * @brief 设置为阻挡移动
      */
-    MaterialBuilder& blocksMovement(bool blocks = true);
+    MaterialBuilder& blocksMovement(bool blocks = true) noexcept;
 
     /**
      * @brief 设置为可燃
      */
-    MaterialBuilder& flammable(bool flammable = true);
+    MaterialBuilder& flammable(bool flammable = true) noexcept;
 
     /**
      * @brief 设置为可替换
      */
-    MaterialBuilder& replaceable(bool replaceable = true);
+    MaterialBuilder& replaceable(bool replaceable = true) noexcept;
 
     /**
      * @brief 设置为不透明
      */
-    MaterialBuilder& opaque(bool opaque = true);
+    MaterialBuilder& opaque(bool opaque = true) noexcept;
 
     /**
      * @brief 设置推动反应
      */
-    MaterialBuilder& pushReaction(Material::PushReaction reaction);
+    MaterialBuilder& pushReaction(Material::PushReaction reaction) noexcept;
 
     /**
      * @brief 设置材质颜色
      */
-    MaterialBuilder& color(u8 color);
+    MaterialBuilder& color(u8 color) noexcept;
 
     /**
      * @brief 构建材质
      */
-    Material build();
+    Material build() noexcept;
 
 private:
     bool m_blocksMovement;

@@ -24,8 +24,10 @@
 #pragma once
 
 #include <memory>
-#include "../../feature/template/Template.hpp"
-#include "../Structure.hpp"
+
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/structure/Structure.hpp"
+
 #include <vector>
 
 namespace mc {
@@ -39,8 +41,6 @@ namespace structure {
  * 在沼泽生物群系中生成的女巫小屋结构。
  * 包含炼药台、炼药锅和蘑菇盆栽。
  * 女巫可以在小屋内生成。
- *
- * 参考: MC 1.16.5 SwampHutStructure.java / WoodlandMansionStructure.java
  */
 class SwampHutStructure : public Structure {
 public:
@@ -77,12 +77,12 @@ public:
         const StructureBoundingBox& chunkBounds) override;
 
 private:
-    void generateHut(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
-    void generateFloor(IWorldWriter& world, const StructureBoundingBox& bounds);
-    void generateWalls(IWorldWriter& world, const StructureBoundingBox& bounds);
-    void generateRoof(IWorldWriter& world, const StructureBoundingBox& bounds);
-    void generateInterior(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
-    void generatePillars(IWorldWriter& world, const StructureBoundingBox& bounds);
+    void _generateHut(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
+    void _generateFloor(IWorldWriter& world, const StructureBoundingBox& bounds);
+    void _generateWalls(IWorldWriter& world, const StructureBoundingBox& bounds);
+    void _generateRoof(IWorldWriter& world, const StructureBoundingBox& bounds);
+    void _generateInterior(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
+    void _generatePillars(IWorldWriter& world, const StructureBoundingBox& bounds);
 
     feature::template_::Rotation m_rotation;
 };

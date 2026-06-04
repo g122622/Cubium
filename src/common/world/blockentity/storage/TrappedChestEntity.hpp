@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "world/blockentity/storage/ChestEntity.hpp"
+#include <memory>
 
 namespace mc {
 namespace blockentity {
@@ -70,7 +70,7 @@ private:
      * @brief 通知邻居方块更新红石信号
      * @param world 世界引用
      */
-    void notifyNeighbors(IWorld& world);
+    void _notifyNeighbors(IWorld& world);
 };
 
 } // namespace blockentity

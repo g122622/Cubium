@@ -22,19 +22,21 @@
  */
 
 #include "WoodlandMansionStructure.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../../biome/Biome.hpp"
-#include "../../../block/BlockPos.hpp"
-#include "../../../block/VanillaBlocks.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../../feature/template/TemplateManager.hpp"
-#include "../../jigsaw/JigsawManager.hpp"
-#include "../StructureBoundingBox.hpp"
+
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/jigsaw/JigsawManager.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/gen/structure/structures/WoodlandMansionStructure.hpp"
+
 #include <algorithm>
-#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace world {
@@ -42,17 +44,32 @@ namespace gen {
 namespace structure {
 
 using namespace mc::Biomes;
+using namespace mc::world; // 引入 CHUNK_WIDTH、SEA_LEVEL 等常量
 using namespace woodland_mansion;
 
 namespace {
-// Helper function to add offset to BlockPos
+// 林地府邸网格尺寸常量
+constexpr i32 MANSION_GRID_SIZE = 11;
+constexpr i32 MANSION_GRID_OUTSIDE_VALUE = 5;
+
+// 林地府邸房间尺寸常量
+constexpr i32 ROOM_SIZE = 8;
+
+// 入口偏移常量
+constexpr i32 ENTRANCE_OFFSET_X = 7;
+constexpr i32 ENTRANCE_OFFSET_Y = 4;
+
+// 楼层高度
+constexpr i32 FLOOR_HEIGHT = 8;
+
+// 辅助函数：添加偏移到 BlockPos
 BlockPos addOffset(const BlockPos& pos, i32 dx, i32 dy, i32 dz)
 {
     return BlockPos(pos.x + dx, pos.y + dy, pos.z + dz);
 }
 } // namespace
 
-// Helper to convert rotation to direction
+// 辅助函数：将旋转转换为南方向
 static Direction rotationToSouth(feature::template_::Rotation rotation)
 {
     switch (rotation) {
@@ -87,7 +104,7 @@ bool WoodlandMansionStructure::canGenerate(
     MC_UNUSED(rng);
 
     // 检查生物群系
-    BiomeId biome = generator.getBiome(chunkX * 16 + 8, 64, chunkZ * 16 + 8);
+    BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, SEA_LEVEL, chunkZ * CHUNK_WIDTH + 8);
     for (BiomeId valid : s_validBiomes) {
         if (biome == valid) {
             return true;
@@ -104,8 +121,8 @@ std::unique_ptr<StructureStart> WoodlandMansionStructure::generate(
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 计算生成位置
-    i32 x = chunkX * 16 + rng.nextInt(16);
-    i32 z = chunkZ * 16 + rng.nextInt(16);
+    i32 x = chunkX * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
+    i32 z = chunkZ * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
 
     // 获取地表高度
     i32 y = generator.getHeight(x, z, HeightmapType::WorldSurface);
@@ -113,7 +130,7 @@ std::unique_ptr<StructureStart> WoodlandMansionStructure::generate(
     // 随机旋转
     feature::template_::Rotation rotation = static_cast<feature::template_::Rotation>(rng.nextInt(4));
 
-    // MC 1.16.5: 使用 MansionGrid 生成布局，然后用 MansionPlacer 放置模板
+    // 使用 MansionGrid 生成布局，然后用 MansionPlacer 放置模板
     MansionGrid grid(rng);
     MansionPlacer placer(rng);
 
@@ -165,7 +182,6 @@ void WoodlandMansionPiece::generate(
 
     if (!templ || templ->getBlockCount() == 0) {
         // 模板未找到，使用占位方块
-        spdlog::debug("[WoodlandMansionPiece] Template not found: {}", m_templateName);
         const BlockState* darkOakPlanks = VanillaBlocks::getState(VanillaBlocks::DARK_OAK_PLANKS);
         if (darkOakPlanks) {
             for (int y = 0; y < 8; ++y) {
@@ -272,11 +288,11 @@ bool SimpleGrid::edgesTo(i32 x, i32 y, i32 value) const
 
 MansionGrid::MansionGrid(math::Random& rng)
     : m_rng(rng)
-    , m_entranceX(7)
-    , m_entranceY(4)
+    , m_entranceX(ENTRANCE_OFFSET_X)
+    , m_entranceY(ENTRANCE_OFFSET_Y)
 {
-    // MC 1.16.5: 创建 11x11 网格
-    m_baseGrid = std::make_unique<SimpleGrid>(11, 11, 5);
+    // 创建 11x11 网格
+    m_baseGrid = std::make_unique<SimpleGrid>(MANSION_GRID_SIZE, MANSION_GRID_SIZE, MANSION_GRID_OUTSIDE_VALUE);
 
     // 设置入口区域
     m_baseGrid->set(m_entranceX, m_entranceY, m_entranceX + 1, m_entranceY + 1, 3);
@@ -286,34 +302,35 @@ MansionGrid::MansionGrid(math::Random& rng)
     m_baseGrid->set(m_entranceX + 1, m_entranceY + 2, m_entranceX + 1, m_entranceY + 3, 1);
     m_baseGrid->set(m_entranceX - 1, m_entranceY - 1, 1);
     m_baseGrid->set(m_entranceX - 1, m_entranceY + 2, 1);
-    m_baseGrid->set(0, 0, 11, 1, 5);
-    m_baseGrid->set(0, 9, 11, 11, 5);
+    m_baseGrid->set(0, 0, MANSION_GRID_SIZE, 1, MANSION_GRID_OUTSIDE_VALUE);
+    m_baseGrid->set(0, 9, MANSION_GRID_SIZE, MANSION_GRID_SIZE, MANSION_GRID_OUTSIDE_VALUE);
 
     // 递归走廊生成
-    recursiveCorridor(*m_baseGrid, m_entranceX, m_entranceY - 2, Direction::West, 6);
-    recursiveCorridor(*m_baseGrid, m_entranceX, m_entranceY + 3, Direction::West, 6);
-    recursiveCorridor(*m_baseGrid, m_entranceX - 2, m_entranceY - 1, Direction::West, 3);
-    recursiveCorridor(*m_baseGrid, m_entranceX - 2, m_entranceY + 2, Direction::West, 3);
+    _recursiveCorridor(*m_baseGrid, m_entranceX, m_entranceY - 2, Direction::West, 6);
+    _recursiveCorridor(*m_baseGrid, m_entranceX, m_entranceY + 3, Direction::West, 6);
+    _recursiveCorridor(*m_baseGrid, m_entranceX - 2, m_entranceY - 1, Direction::West, 3);
+    _recursiveCorridor(*m_baseGrid, m_entranceX - 2, m_entranceY + 2, Direction::West, 3);
 
     // 清理边缘
-    while (cleanEdges(*m_baseGrid)) {}
+    while (_cleanEdges(*m_baseGrid)) {}
 
     // 创建楼层房间网格
-    m_floorRooms[0] = std::make_unique<SimpleGrid>(11, 11, 5);
-    m_floorRooms[1] = std::make_unique<SimpleGrid>(11, 11, 5);
-    m_floorRooms[2] = std::make_unique<SimpleGrid>(11, 11, 5);
+    m_floorRooms[0] = std::make_unique<SimpleGrid>(MANSION_GRID_SIZE, MANSION_GRID_SIZE, MANSION_GRID_OUTSIDE_VALUE);
+    m_floorRooms[1] = std::make_unique<SimpleGrid>(MANSION_GRID_SIZE, MANSION_GRID_SIZE, MANSION_GRID_OUTSIDE_VALUE);
+    m_floorRooms[2] = std::make_unique<SimpleGrid>(MANSION_GRID_SIZE, MANSION_GRID_SIZE, MANSION_GRID_OUTSIDE_VALUE);
 
-    identifyRooms(*m_baseGrid, *m_floorRooms[0]);
-    identifyRooms(*m_baseGrid, *m_floorRooms[1]);
+    _identifyRooms(*m_baseGrid, *m_floorRooms[0]);
+    _identifyRooms(*m_baseGrid, *m_floorRooms[1]);
 
     // 标记入口
     m_floorRooms[0]->set(m_entranceX + 1, m_entranceY, m_entranceX + 1, m_entranceY + 1, 8388608);
     m_floorRooms[1]->set(m_entranceX + 1, m_entranceY, m_entranceX + 1, m_entranceY + 1, 8388608);
 
     // 设置三楼
-    m_thirdFloorGrid = std::make_unique<SimpleGrid>(m_baseGrid->width(), m_baseGrid->height(), 5);
-    setupThirdFloor();
-    identifyRooms(*m_thirdFloorGrid, *m_floorRooms[2]);
+    m_thirdFloorGrid =
+        std::make_unique<SimpleGrid>(m_baseGrid->width(), m_baseGrid->height(), MANSION_GRID_OUTSIDE_VALUE);
+    _setupThirdFloor();
+    _identifyRooms(*m_thirdFloorGrid, *m_floorRooms[2]);
 }
 
 bool MansionGrid::isHouse(const SimpleGrid& grid, i32 x, i32 y)
@@ -340,7 +357,7 @@ Direction MansionGrid::get1x2RoomDirection(const SimpleGrid& grid, i32 x, i32 y,
     return Direction::North; // 默认
 }
 
-void MansionGrid::recursiveCorridor(SimpleGrid& grid, i32 x, i32 y, Direction dir, i32 depth)
+void MansionGrid::_recursiveCorridor(SimpleGrid& grid, i32 x, i32 y, Direction dir, i32 depth)
 {
     if (depth <= 0) {
         return;
@@ -390,7 +407,7 @@ void MansionGrid::recursiveCorridor(SimpleGrid& grid, i32 x, i32 y, Direction di
     grid.setIf(x + rdx * 2, y + rdz * 2, 0, 2);
 }
 
-bool MansionGrid::cleanEdges(SimpleGrid& grid)
+bool MansionGrid::_cleanEdges(SimpleGrid& grid)
 {
     bool changed = false;
 
@@ -425,7 +442,7 @@ bool MansionGrid::cleanEdges(SimpleGrid& grid)
     return changed;
 }
 
-void MansionGrid::identifyRooms(const SimpleGrid& sourceGrid, SimpleGrid& roomGrid)
+void MansionGrid::_identifyRooms(const SimpleGrid& sourceGrid, SimpleGrid& roomGrid)
 {
     // 收集所有值为 2 的位置（潜在房间）
     std::vector<std::pair<i32, i32>> rooms;
@@ -500,7 +517,7 @@ void MansionGrid::identifyRooms(const SimpleGrid& sourceGrid, SimpleGrid& roomGr
     }
 }
 
-void MansionGrid::setupThirdFloor()
+void MansionGrid::_setupThirdFloor()
 {
     // 找到二楼有楼梯的房间
     std::vector<std::pair<i32, i32>> stairRooms;
@@ -518,7 +535,7 @@ void MansionGrid::setupThirdFloor()
 
     if (stairRooms.empty()) {
         // 没有楼梯房间，三楼为空
-        m_thirdFloorGrid->set(0, 0, m_thirdFloorGrid->width(), m_thirdFloorGrid->height(), 5);
+        m_thirdFloorGrid->set(0, 0, m_thirdFloorGrid->width(), m_thirdFloorGrid->height(), MANSION_GRID_OUTSIDE_VALUE);
         return;
     }
 
@@ -535,15 +552,14 @@ void MansionGrid::setupThirdFloor()
     for (i32 y = 0; y < m_thirdFloorGrid->height(); ++y) {
         for (i32 x = 0; x < m_thirdFloorGrid->width(); ++x) {
             if (!isHouse(*m_baseGrid, x, y)) {
-                m_thirdFloorGrid->set(x, y, 5);
+                m_thirdFloorGrid->set(x, y, MANSION_GRID_OUTSIDE_VALUE);
             } else if (x == sx && y == sy) {
                 m_thirdFloorGrid->set(x, y, 3);
             }
         }
     }
 
-    // 从楼梯位置生成走廊
-    // 简化实现：直接在三楼生成一些走廊
+    // TODO: 从楼梯位置生成走廊，当前为简化实现
 }
 
 // ============================================================================
@@ -569,14 +585,14 @@ void MansionPlacer::createMansion(const BlockPos& startPos,
     feature::template_::Rotation currentRotation = rotation;
     std::string wallType = "wall_flat";
 
-    entrance(pieces, currentRotation, pos);
+    _entrance(pieces, currentRotation, pos);
 
     // 一楼和二楼外墙
     BlockPos floor1Pos = pos;
-    BlockPos floor2Pos = addOffset(pos, 0, 8, 0);
+    BlockPos floor2Pos = addOffset(pos, 0, FLOOR_HEIGHT, 0);
 
     // 遍历外墙
-    traverseOuterWalls(pieces,
+    _traverseOuterWalls(pieces,
         grid.baseGrid(),
         Direction::South,
         grid.entranceX() + 1,
@@ -587,7 +603,7 @@ void MansionPlacer::createMansion(const BlockPos& startPos,
         currentRotation,
         wallType);
 
-    traverseOuterWalls(pieces,
+    _traverseOuterWalls(pieces,
         grid.baseGrid(),
         Direction::South,
         grid.entranceX() + 1,
@@ -615,21 +631,21 @@ void MansionPlacer::createMansion(const BlockPos& startPos,
                 // 根据旋转调整偏移
                 switch (rotation) {
                     case feature::template_::Rotation::None:
-                        thirdPos = addOffset(thirdPos, offsetX * 8, 0, offsetY * 8);
+                        thirdPos = addOffset(thirdPos, offsetX * ROOM_SIZE, 0, offsetY * ROOM_SIZE);
                         break;
                     case feature::template_::Rotation::Clockwise90:
-                        thirdPos = addOffset(thirdPos, -offsetY * 8, 0, offsetX * 8);
+                        thirdPos = addOffset(thirdPos, -offsetY * ROOM_SIZE, 0, offsetX * ROOM_SIZE);
                         break;
                     case feature::template_::Rotation::Clockwise180:
-                        thirdPos = addOffset(thirdPos, -offsetX * 8, 0, -offsetY * 8);
+                        thirdPos = addOffset(thirdPos, -offsetX * ROOM_SIZE, 0, -offsetY * ROOM_SIZE);
                         break;
                     case feature::template_::Rotation::CounterClockwise90:
-                        thirdPos = addOffset(thirdPos, offsetY * 8, 0, -offsetX * 8);
+                        thirdPos = addOffset(thirdPos, offsetY * ROOM_SIZE, 0, -offsetX * ROOM_SIZE);
                         break;
                 }
 
-                traverseWallPiece(pieces, thirdPos, rotation, "wall_window");
-                traverseOuterWalls(
+                _traverseWallPiece(pieces, thirdPos, rotation, "wall_window");
+                _traverseOuterWalls(
                     pieces, thirdFloor, Direction::South, x, y, x, y, thirdPos, currentRotation, "wall_window");
                 foundThirdFloor = true;
             }
@@ -637,8 +653,8 @@ void MansionPlacer::createMansion(const BlockPos& startPos,
     }
 
     // 屋顶
-    createRoof(pieces, addOffset(startPos, 0, 16, 0), rotation, grid.baseGrid(), &thirdFloor);
-    createRoof(pieces, addOffset(startPos, 0, 27, 0), rotation, thirdFloor, nullptr);
+    _createRoof(pieces, addOffset(startPos, 0, 16, 0), rotation, grid.baseGrid(), &thirdFloor);
+    _createRoof(pieces, addOffset(startPos, 0, 27, 0), rotation, thirdFloor, nullptr);
 
     // 走廊地板和房间
     static FirstFloorRoomCollection firstFloorRooms;
@@ -647,7 +663,7 @@ void MansionPlacer::createMansion(const BlockPos& startPos,
     const RoomCollection* roomCollections[3] = {&firstFloorRooms, &secondFloorRooms, &thirdFloorRooms};
 
     for (i32 floor = 0; floor < 3; ++floor) {
-        BlockPos floorPos = addOffset(startPos, 0, 8 * floor + (floor == 2 ? 3 : 0), 0);
+        BlockPos floorPos = addOffset(startPos, 0, FLOOR_HEIGHT * floor + (floor == 2 ? 3 : 0), 0);
         const SimpleGrid& floorGrid = floor == 2 ? thirdFloor : grid.baseGrid();
         const SimpleGrid& roomGrid = grid.floorRoom(floor);
 
@@ -661,16 +677,20 @@ void MansionPlacer::createMansion(const BlockPos& startPos,
 
                     switch (rotation) {
                         case feature::template_::Rotation::None:
-                            corridorPos = addOffset(corridorPos, offsetX * 8, 0, offsetY * 8 + 8);
+                            corridorPos =
+                                addOffset(corridorPos, offsetX * ROOM_SIZE, 0, offsetY * ROOM_SIZE + ROOM_SIZE);
                             break;
                         case feature::template_::Rotation::Clockwise90:
-                            corridorPos = addOffset(corridorPos, -offsetY * 8, 0, offsetX * 8 + 8);
+                            corridorPos =
+                                addOffset(corridorPos, -offsetY * ROOM_SIZE, 0, offsetX * ROOM_SIZE + ROOM_SIZE);
                             break;
                         case feature::template_::Rotation::Clockwise180:
-                            corridorPos = addOffset(corridorPos, -offsetX * 8, 0, -offsetY * 8 + 8);
+                            corridorPos =
+                                addOffset(corridorPos, -offsetX * ROOM_SIZE, 0, -offsetY * ROOM_SIZE + ROOM_SIZE);
                             break;
                         case feature::template_::Rotation::CounterClockwise90:
-                            corridorPos = addOffset(corridorPos, offsetY * 8, 0, -offsetX * 8 + 8);
+                            corridorPos =
+                                addOffset(corridorPos, offsetY * ROOM_SIZE, 0, -offsetX * ROOM_SIZE + ROOM_SIZE);
                             break;
                     }
 
@@ -679,7 +699,7 @@ void MansionPlacer::createMansion(const BlockPos& startPos,
             }
         }
 
-        // 放置房间（简化实现）
+        // TODO: 放置房间逻辑，当前为简化实现
         for (i32 y = 0; y < floorGrid.height(); ++y) {
             for (i32 x = 0; x < floorGrid.width(); ++x) {
                 if (floorGrid.get(x, y) == 2) {
@@ -695,16 +715,16 @@ void MansionPlacer::createMansion(const BlockPos& startPos,
 
                     switch (rotation) {
                         case feature::template_::Rotation::None:
-                            roomPos = addOffset(roomPos, offsetX * 8, 0, offsetY * 8 + 8);
+                            roomPos = addOffset(roomPos, offsetX * ROOM_SIZE, 0, offsetY * ROOM_SIZE + ROOM_SIZE);
                             break;
                         case feature::template_::Rotation::Clockwise90:
-                            roomPos = addOffset(roomPos, -offsetY * 8, 0, offsetX * 8 + 8);
+                            roomPos = addOffset(roomPos, -offsetY * ROOM_SIZE, 0, offsetX * ROOM_SIZE + ROOM_SIZE);
                             break;
                         case feature::template_::Rotation::Clockwise180:
-                            roomPos = addOffset(roomPos, -offsetX * 8, 0, -offsetY * 8 + 8);
+                            roomPos = addOffset(roomPos, -offsetX * ROOM_SIZE, 0, -offsetY * ROOM_SIZE + ROOM_SIZE);
                             break;
                         case feature::template_::Rotation::CounterClockwise90:
-                            roomPos = addOffset(roomPos, offsetY * 8, 0, -offsetX * 8 + 8);
+                            roomPos = addOffset(roomPos, offsetY * ROOM_SIZE, 0, -offsetX * ROOM_SIZE + ROOM_SIZE);
                             break;
                     }
 
@@ -728,7 +748,7 @@ void MansionPlacer::createMansion(const BlockPos& startPos,
     }
 }
 
-void MansionPlacer::entrance(
+void MansionPlacer::_entrance(
     std::vector<std::unique_ptr<StructurePiece>>& pieces, feature::template_::Rotation& rotation, BlockPos& pos)
 {
     Direction southDir = rotationToSouth(rotation);
@@ -745,7 +765,7 @@ void MansionPlacer::entrance(
     pos = addOffset(pos, sdx * 16, 0, sdz * 16);
 }
 
-void MansionPlacer::traverseOuterWalls(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+void MansionPlacer::_traverseOuterWalls(std::vector<std::unique_ptr<StructurePiece>>& pieces,
     const SimpleGrid& grid,
     Direction startDir,
     i32 startX,
@@ -787,7 +807,7 @@ void MansionPlacer::traverseOuterWalls(std::vector<std::unique_ptr<StructurePiec
     } while (x != targetX || y != targetY || dir != startDir);
 }
 
-void MansionPlacer::traverseWallPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+void MansionPlacer::_traverseWallPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
     BlockPos& pos,
     feature::template_::Rotation rotation,
     const std::string& wallType)
@@ -804,10 +824,10 @@ void MansionPlacer::traverseWallPiece(std::vector<std::unique_ptr<StructurePiece
     // 向南移动8格
     i32 sdx = Directions::xOffset(southDir);
     i32 sdz = Directions::zOffset(southDir);
-    pos = addOffset(pos, sdx * 8, 0, sdz * 8);
+    pos = addOffset(pos, sdx * ROOM_SIZE, 0, sdz * ROOM_SIZE);
 }
 
-void MansionPlacer::traverseTurn(
+void MansionPlacer::_traverseTurn(
     std::vector<std::unique_ptr<StructurePiece>>& pieces, BlockPos& pos, feature::template_::Rotation& rotation)
 {
     // 向南移动-1格
@@ -828,7 +848,7 @@ void MansionPlacer::traverseTurn(
     rotation = static_cast<feature::template_::Rotation>((static_cast<i32>(rotation) + 1) % 4);
 }
 
-void MansionPlacer::traverseInnerTurn(
+void MansionPlacer::_traverseInnerTurn(
     std::vector<std::unique_ptr<StructurePiece>>& pieces, BlockPos& pos, feature::template_::Rotation& rotation)
 {
     // 移动并旋转
@@ -840,12 +860,12 @@ void MansionPlacer::traverseInnerTurn(
     Direction eastDir = Directions::rotateY(southDir);
     dx = Directions::xOffset(eastDir);
     dz = Directions::zOffset(eastDir);
-    pos = addOffset(pos, dx * 8, 0, dz * 8);
+    pos = addOffset(pos, dx * ROOM_SIZE, 0, dz * ROOM_SIZE);
 
     rotation = static_cast<feature::template_::Rotation>((static_cast<i32>(rotation) + 3) % 4); // CCW
 }
 
-void MansionPlacer::createRoof(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+void MansionPlacer::_createRoof(std::vector<std::unique_ptr<StructurePiece>>& pieces,
     const BlockPos& basePos,
     feature::template_::Rotation rotation,
     const SimpleGrid& grid,
@@ -862,16 +882,16 @@ void MansionPlacer::createRoof(std::vector<std::unique_ptr<StructurePiece>>& pie
 
                 switch (rotation) {
                     case feature::template_::Rotation::None:
-                        roofPos = addOffset(roofPos, offsetX * 8, 3, offsetY * 8 + 8);
+                        roofPos = addOffset(roofPos, offsetX * ROOM_SIZE, 3, offsetY * ROOM_SIZE + ROOM_SIZE);
                         break;
                     case feature::template_::Rotation::Clockwise90:
-                        roofPos = addOffset(roofPos, -offsetY * 8, 3, offsetX * 8 + 8);
+                        roofPos = addOffset(roofPos, -offsetY * ROOM_SIZE, 3, offsetX * ROOM_SIZE + ROOM_SIZE);
                         break;
                     case feature::template_::Rotation::Clockwise180:
-                        roofPos = addOffset(roofPos, -offsetX * 8, 3, -offsetY * 8 + 8);
+                        roofPos = addOffset(roofPos, -offsetX * ROOM_SIZE, 3, -offsetY * ROOM_SIZE + ROOM_SIZE);
                         break;
                     case feature::template_::Rotation::CounterClockwise90:
-                        roofPos = addOffset(roofPos, offsetY * 8, 3, -offsetX * 8 + 8);
+                        roofPos = addOffset(roofPos, offsetY * ROOM_SIZE, 3, -offsetX * ROOM_SIZE + ROOM_SIZE);
                         break;
                 }
 
@@ -881,7 +901,7 @@ void MansionPlacer::createRoof(std::vector<std::unique_ptr<StructurePiece>>& pie
     }
 }
 
-void MansionPlacer::addRoom1x1(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+void MansionPlacer::_addRoom1x1(std::vector<std::unique_ptr<StructurePiece>>& pieces,
     const BlockPos& pos,
     feature::template_::Rotation rotation,
     Direction doorDir,
@@ -900,7 +920,7 @@ void MansionPlacer::addRoom1x1(std::vector<std::unique_ptr<StructurePiece>>& pie
     pieces.push_back(std::make_unique<WoodlandMansionPiece>(templateName, pos, rotation));
 }
 
-void MansionPlacer::addRoom1x2(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+void MansionPlacer::_addRoom1x2(std::vector<std::unique_ptr<StructurePiece>>& pieces,
     const BlockPos& pos,
     feature::template_::Rotation rotation,
     Direction roomDir,
@@ -922,7 +942,7 @@ void MansionPlacer::addRoom1x2(std::vector<std::unique_ptr<StructurePiece>>& pie
     pieces.push_back(std::make_unique<WoodlandMansionPiece>(templateName, pos, rotation));
 }
 
-void MansionPlacer::addRoom2x2(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+void MansionPlacer::_addRoom2x2(std::vector<std::unique_ptr<StructurePiece>>& pieces,
     const BlockPos& pos,
     feature::template_::Rotation rotation,
     Direction roomDir,
@@ -943,7 +963,7 @@ void MansionPlacer::addRoom2x2(std::vector<std::unique_ptr<StructurePiece>>& pie
     pieces.push_back(std::make_unique<WoodlandMansionPiece>(templateName, pos, rotation));
 }
 
-void MansionPlacer::addRoom2x2Secret(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+void MansionPlacer::_addRoom2x2Secret(std::vector<std::unique_ptr<StructurePiece>>& pieces,
     const BlockPos& pos,
     feature::template_::Rotation rotation,
     i32 floor)

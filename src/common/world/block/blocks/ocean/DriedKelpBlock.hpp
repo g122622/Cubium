@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Block.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 
@@ -41,8 +41,6 @@ namespace blocks {
  * 可以分解为9个干海带物品。
  *
  * MC ID: minecraft:dried_kelp_block
- *
- * 参考 MC 1.16.5 DriedKelpBlock
  */
 class DriedKelpBlock : public Block {
 public:

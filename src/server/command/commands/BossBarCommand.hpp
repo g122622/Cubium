@@ -58,20 +58,20 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 addBossBar(CommandContext<ServerCommandSource>& context);
-    static i32 removeBossBar(CommandContext<ServerCommandSource>& context);
-    static i32 listBossBars(CommandContext<ServerCommandSource>& context);
-    static i32 setName(CommandContext<ServerCommandSource>& context);
-    static i32 setColor(CommandContext<ServerCommandSource>& context, const std::string& colorStr);
-    static i32 setStyle(CommandContext<ServerCommandSource>& context, const std::string& styleStr);
-    static i32 setValue(CommandContext<ServerCommandSource>& context);
-    static i32 setMax(CommandContext<ServerCommandSource>& context);
-    static i32 setVisible(CommandContext<ServerCommandSource>& context);
-    static i32 setPlayers(CommandContext<ServerCommandSource>& context);
-    static i32 getValue(CommandContext<ServerCommandSource>& context);
-    static i32 getMax(CommandContext<ServerCommandSource>& context);
-    static i32 getVisible(CommandContext<ServerCommandSource>& context);
-    static i32 getPlayers(CommandContext<ServerCommandSource>& context);
+    static i32 _addBossBar(CommandContext<ServerCommandSource>& context);
+    static i32 _removeBossBar(CommandContext<ServerCommandSource>& context);
+    static i32 _listBossBars(CommandContext<ServerCommandSource>& context);
+    static i32 _setName(CommandContext<ServerCommandSource>& context);
+    static i32 _setColor(CommandContext<ServerCommandSource>& context, const std::string& colorStr);
+    static i32 _setStyle(CommandContext<ServerCommandSource>& context, const std::string& styleStr);
+    static i32 _setValue(CommandContext<ServerCommandSource>& context);
+    static i32 _setMax(CommandContext<ServerCommandSource>& context);
+    static i32 _setVisible(CommandContext<ServerCommandSource>& context);
+    static i32 _setPlayers(CommandContext<ServerCommandSource>& context);
+    static i32 _getValue(CommandContext<ServerCommandSource>& context);
+    static i32 _getMax(CommandContext<ServerCommandSource>& context);
+    static i32 _getVisible(CommandContext<ServerCommandSource>& context);
+    static i32 _getPlayers(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

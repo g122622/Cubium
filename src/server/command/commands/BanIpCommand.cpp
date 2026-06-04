@@ -88,19 +88,19 @@ void BanIpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     // /ban-ip <target>
     auto targetArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("target", StringArgumentType::string());
-    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return banIp(ctx); });
+    targetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _banIp(ctx); });
 
     // /ban-ip <target> <reason>
     auto reasonArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "reason", StringArgumentType::greedyString());
-    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return banIp(ctx); });
+    reasonArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _banIp(ctx); });
 
     targetArg->addChild(reasonArg);
     banIpNode->addChild(targetArg);
     dispatcher.registerCommand(banIpNode);
 }
 
-i32 BanIpCommand::banIp(CommandContext<ServerCommandSource>& context)
+i32 BanIpCommand::_banIp(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     std::string target = context.getArgument<std::string>("target");

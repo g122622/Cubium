@@ -92,7 +92,7 @@ BlockState DoorBlock::getStateForPlacement(BlockItemUseContext& context)
 
     return defaultState()
         .with(BlockStateProperties::HORIZONTAL_FACING(), context.horizontalDirection())
-        .with(BlockStateProperties::HINGE(), calculateHingeSide(context))
+        .with(BlockStateProperties::HINGE(), _calculateHingeSide(context))
         .with(BlockStateProperties::POWERED(), powered)
         .with(BlockStateProperties::OPEN(), powered)
         .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
@@ -143,7 +143,7 @@ void DoorBlock::neighborChanged(
             world.setBlockState(otherHalfPos, &otherState, 2);
         }
         if (wasOpen != powered) {
-            playSound(world, pos, powered);
+            _playSound(world, pos, powered);
         }
     }
 }
@@ -244,7 +244,7 @@ void DoorBlock::toggleDoor(IWorld& world, const BlockPos& pos, bool open)
     world.setBlockState(pos, &newState, 10);
     BlockState otherState = newState.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), otherHalf);
     world.setBlockState(otherHalfPos, &otherState, 10);
-    playSound(world, pos, open);
+    _playSound(world, pos, open);
 }
 
 const CollisionShape& DoorBlock::getShape(const BlockState& state) const
@@ -252,7 +252,7 @@ const CollisionShape& DoorBlock::getShape(const BlockState& state) const
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     bool open = state.get(BlockStateProperties::OPEN());
     bool hingeRight = state.get(BlockStateProperties::HINGE()) == BlockStateProperties::DoorHinge::Right;
-    return m_shapes[getShapeIndex(facing, open, hingeRight)];
+    return m_shapes[_getShapeIndex(facing, open, hingeRight)];
 }
 
 const CollisionShape& DoorBlock::getCollisionShape(const BlockState& state) const
@@ -282,12 +282,12 @@ const BlockState& DoorBlock::mirror(const BlockState& state, Mirror mirror) cons
     return rotated.with(BlockStateProperties::HINGE(), newHinge);
 }
 
-bool DoorBlock::isOpen(const BlockState& state)
+bool DoorBlock::isOpen(const BlockState& state) noexcept
 {
     return state.get(BlockStateProperties::OPEN());
 }
 
-bool DoorBlock::isWooden(const BlockState& state)
+bool DoorBlock::isWooden(const BlockState& state) noexcept
 {
     const Block* block = &state.getBlock();
     if (auto* doorBlock = dynamic_cast<const DoorBlock*>(block)) {
@@ -297,7 +297,7 @@ bool DoorBlock::isWooden(const BlockState& state)
     return false;
 }
 
-BlockStateProperties::DoorHinge DoorBlock::calculateHingeSide(BlockItemUseContext& context)
+BlockStateProperties::DoorHinge DoorBlock::_calculateHingeSide(BlockItemUseContext& context)
 {
     const IWorld& reader = context.getWorld();
     BlockPos pos = context.placementPos();
@@ -345,9 +345,8 @@ BlockStateProperties::DoorHinge DoorBlock::calculateHingeSide(BlockItemUseContex
     return BlockStateProperties::DoorHinge::Right;
 }
 
-void DoorBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening)
+void DoorBlock::_playSound(IWorld& world, const BlockPos& pos, bool isOpening)
 {
-    // MC 1.16.5: DoorBlock.playSound()
     const ResourceLocation& soundEvent = isOpening
         ? (m_isIron ? SoundEvents::BLOCK_IRON_DOOR_OPEN : SoundEvents::BLOCK_WOODEN_DOOR_OPEN)
         : (m_isIron ? SoundEvents::BLOCK_IRON_DOOR_CLOSE : SoundEvents::BLOCK_WOODEN_DOOR_CLOSE);
@@ -358,21 +357,19 @@ void DoorBlock::playSound(IWorld& world, const BlockPos& pos, bool isOpening)
         1.0f);
 }
 
-i32 DoorBlock::getOpenSound() const
+i32 DoorBlock::_getOpenSound() const
 {
-    // 参考 MC 1.16.5: DoorBlock.getOpenSound
     // 铁门开门音效 1005，木门开门音效 1006
     return m_isIron ? 1005 : 1006;
 }
 
-i32 DoorBlock::getCloseSound() const
+i32 DoorBlock::_getCloseSound() const
 {
-    // 参考 MC 1.16.5: DoorBlock.getCloseSound
     // 铁门关门音效 1011，木门关门音效 1012
     return m_isIron ? 1011 : 1012;
 }
 
-size_t DoorBlock::getShapeIndex(Direction facing, bool open, bool hingeRight)
+size_t DoorBlock::_getShapeIndex(Direction facing, bool open, bool hingeRight) noexcept
 {
     if (!open) {
         switch (facing) {

@@ -149,14 +149,14 @@ private:
      * @param pos 树叶位置
      * @return 更新后的状态
      */
-    static BlockState updateDistance(const BlockState& state, IWorld& world, const BlockPos& pos);
+    static BlockState _updateDistance(const BlockState& state, IWorld& world, const BlockPos& pos);
 
     /**
      * @brief 获取邻居方块的距离值
      * @param neighborState 邻居状态
      * @return 距离值（原木=0，树叶=其DISTANCE值，其他=7）
      */
-    static i32 getDistance(const BlockState& neighborState);
+    static i32 _getDistance(const BlockState& neighborState);
 };
 
 } // namespace blocks

@@ -39,14 +39,14 @@ WorldBorderPacket::WorldBorderPacket(WorldBorderAction action)
 // 静态工厂方法
 // ============================================================================
 
-WorldBorderPacket WorldBorderPacket::setSize(double size)
+WorldBorderPacket WorldBorderPacket::setSize(f64 size)
 {
     WorldBorderPacket packet(WorldBorderAction::SetSize);
     packet.m_size = size;
     return packet;
 }
 
-WorldBorderPacket WorldBorderPacket::lerpSize(double oldSize, double newSize, u64 timeMs)
+WorldBorderPacket WorldBorderPacket::lerpSize(f64 oldSize, f64 newSize, u64 timeMs)
 {
     WorldBorderPacket packet(WorldBorderAction::LerpSize);
     packet.m_oldSize = oldSize;
@@ -55,7 +55,7 @@ WorldBorderPacket WorldBorderPacket::lerpSize(double oldSize, double newSize, u6
     return packet;
 }
 
-WorldBorderPacket WorldBorderPacket::setCenter(double x, double z)
+WorldBorderPacket WorldBorderPacket::setCenter(f64 x, f64 z)
 {
     WorldBorderPacket packet(WorldBorderAction::SetCenter);
     packet.m_centerX = x;
@@ -92,14 +92,14 @@ WorldBorderPacket WorldBorderPacket::setWarningDistance(i32 warningDistance)
     return packet;
 }
 
-WorldBorderPacket WorldBorderPacket::setDamageBuffer(double damageBuffer)
+WorldBorderPacket WorldBorderPacket::setDamageBuffer(f64 damageBuffer)
 {
     WorldBorderPacket packet(WorldBorderAction::SetDamageBuffer);
     packet.m_damageBuffer = damageBuffer;
     return packet;
 }
 
-WorldBorderPacket WorldBorderPacket::setDamagePerBlock(double damagePerBlock)
+WorldBorderPacket WorldBorderPacket::setDamagePerBlock(f64 damagePerBlock)
 {
     WorldBorderPacket packet(WorldBorderAction::SetDamagePerBlock);
     packet.m_damagePerBlock = damagePerBlock;

@@ -35,8 +35,9 @@ class BlockState;
  * @brief 世界写入器接口
  *
  * 提供结构生成和特征放置时写入世界的抽象接口。
-   TODO 为了更清晰的架构，应该放到gen目录下，并且命名为 IWorldGenWriter 之类的名字。命名空间也不要直接放mc下。
- * 参考 MC 1.16.5: net.minecraft.world.IWorldWriter
+ *
+ * TODO: 为了更清晰的架构，应该放到gen目录下，并且命名为 IWorldGenWriter 之类的名字。
+ *       命名空间也不要直接放mc下。
  */
 class IWorldWriter {
 public:

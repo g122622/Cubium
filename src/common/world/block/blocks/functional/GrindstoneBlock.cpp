@@ -22,15 +22,15 @@
  */
 
 #include "GrindstoneBlock.hpp"
-#include "../../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../item/items/block/BlockItemRegistry.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorld.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -64,7 +64,6 @@ GrindstoneBlock::GrindstoneBlock(const BlockProperties& properties)
             .with(BlockStateProperties::ATTACH_FACE(), AttachFace::Wall));
 
     // 创建砂轮形状
-    // 参考 MC 1.16.5: GrindstoneBlock.VoxelShapes
     // 砂轮由底座/支架 + 两根立柱 + 砂轮组成
     constexpr f32 P = 1.0f / 16.0f;
 
@@ -250,7 +249,6 @@ BlockState GrindstoneBlock::getStateForPlacement(BlockItemUseContext& context)
     AttachFace attachFace;
     Direction finalFacing = horizontalFacing;
 
-    // 参考 MC 1.16.5: GrindstoneBlock.getStateForPlacement
     if (clickedFace == Direction::Up) {
         // 点击地面 -> 地面附着
         attachFace = AttachFace::Floor;
@@ -270,8 +268,6 @@ BlockState GrindstoneBlock::getStateForPlacement(BlockItemUseContext& context)
 
 bool GrindstoneBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-
-    // 参考 MC 1.16.5: GrindstoneBlock.isValidPosition
     AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
 
@@ -327,7 +323,6 @@ BlockState GrindstoneBlock::updatePostPlacement(const BlockState& state,
     }
 
     // 检查附着的支撑是否还存在
-    // 参考 MC 1.16.5: GrindstoneBlock.updatePostPlacement
     if (facingPos == supportPos) {
         if (!facingState.isSolid()) {
             // 支撑被移除，掉落砂轮物品

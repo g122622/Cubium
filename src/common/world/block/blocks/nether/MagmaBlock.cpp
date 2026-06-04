@@ -38,7 +38,6 @@ MagmaBlock::MagmaBlock(BlockProperties properties)
 
 void MagmaBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 参考: MC 1.16.5 MagmaBlock.onBlockAdded()
     // 调度 tick 以检查气泡柱
     Block& block = const_cast<Block&>(state.getBlock());
     world.tickManager().scheduleBlockTick(pos, block, 20);
@@ -47,11 +46,9 @@ void MagmaBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockSta
 void MagmaBlock::neighborChanged(
     IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
 {
-
     MC_UNUSED(neighborBlock);
     MC_UNUSED(isMoving);
 
-    // 参考: MC 1.16.5 MagmaBlock.updatePostPlacement()
     // 当上方有水时调度 tick
     if (neighborPos.x == pos.x && neighborPos.y == pos.y + 1 && neighborPos.z == pos.z) {
         const BlockState* aboveState = world.getBlockState(neighborPos);
@@ -68,7 +65,6 @@ void MagmaBlock::neighborChanged(
 
 void MagmaBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    // 参考: MC 1.16.5 MagmaBlock.tick()
     // 在上方生成气泡柱
     MC_UNUSED(state);
     MC_UNUSED(random);
@@ -82,8 +78,6 @@ void MagmaBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, mat
 
 void MagmaBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-
-    // 参考: MC 1.16.5 MagmaBlock.randomTick()
     // 在水中产生气泡效果
     MC_UNUSED(state);
 

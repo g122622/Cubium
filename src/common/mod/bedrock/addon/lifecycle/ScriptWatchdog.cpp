@@ -63,17 +63,17 @@ bool ScriptWatchdog::checkMemoryLimit(ScriptManager& manager) const
     return false;
 }
 
-bool ScriptWatchdog::checkExecutionTime() const
+bool ScriptWatchdog::checkExecutionTime() const noexcept
 {
     return m_lastTickDurationMs > m_config.tickTimeLimitMs;
 }
 
-void ScriptWatchdog::beginTick()
+void ScriptWatchdog::beginTick() noexcept
 {
     m_tickStartTime = std::chrono::steady_clock::now();
 }
 
-void ScriptWatchdog::endTick()
+void ScriptWatchdog::endTick() noexcept
 {
     auto endTime = std::chrono::steady_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - m_tickStartTime);

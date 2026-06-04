@@ -43,7 +43,7 @@ namespace mc::world::map {
  */
 class MapDataManager {
 public:
-    MapDataManager() = default;
+    MapDataManager() noexcept = default;
 
     /**
      * @brief 获取指定ID的地图数据

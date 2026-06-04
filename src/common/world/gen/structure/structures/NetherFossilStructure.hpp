@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../chunk/IChunkGenerator.hpp"
-#include "../../feature/template/Template.hpp"
-#include "../../feature/template/TemplateManager.hpp"
-#include "../Structure.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include <memory>
 #include <vector>
 
@@ -35,7 +35,6 @@ namespace mc::world::gen::structure {
 /**
  * @brief 下界化石结构片段
  *
- * 参考 MC 1.16.5 NetherFossilStructures.Piece
  * 使用模板系统生成下界化石。
  */
 class NetherFossilPiece : public StructurePiece {
@@ -66,7 +65,7 @@ public:
     [[nodiscard]] const std::string& templateName() const { return m_templateName; }
 
 private:
-    void loadTemplate();
+    void _loadTemplate();
 
     std::string m_templateName;
     Rotation m_rotation;
@@ -78,7 +77,6 @@ private:
 /**
  * @brief 下界化石结构
  *
- * 参考 MC 1.16.5 NetherFossilStructure
  * 在下界灵魂沙峡谷生物群系中生成的大型骨块结构。
  * 使用模板系统从 nether_fossils/fossil_1~14.nbt 加载。
  */
@@ -101,7 +99,7 @@ public:
      */
     void setTemplateManager(feature::template_::TemplateManager* manager) { m_templateManager = manager; }
 
-    // 模板名称常量（MC 1.16.5 有 14 个化石模板）
+    // 模板名称常量（共14个化石模板）
     static const std::vector<std::string> s_fossilTemplates;
 
 private:

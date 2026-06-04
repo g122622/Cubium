@@ -54,8 +54,8 @@ const CollisionShape& FlowerPotBlock::getCollisionShape(const BlockState& state)
 bool FlowerPotBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);
-    // 参考 MC 1.16.5: FlowerPotBlock 继承自 Block，默认 isValidPosition 返回 true
-    // 但实际上 updatePostPlacement 会检查下方是否有支撑
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
     // 花盆可以放置在任何完整方块上，不需要特别检查
     return true;
 }
@@ -69,7 +69,6 @@ BlockState FlowerPotBlock::updatePostPlacement(const BlockState& state,
 {
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
-    // 参考 MC 1.16.5: FlowerPotBlock.updatePostPlacement
     // 如果下方方块被移除，则移除花盆
     if (facing == Direction::Down) {
         const BlockPos belowPos = currentPos.down();

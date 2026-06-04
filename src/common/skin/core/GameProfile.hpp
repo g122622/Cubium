@@ -40,8 +40,6 @@ namespace mc::skin {
  * 用于存储皮肤、披风等纹理URL信息。
  * 通常包含 "textures" 属性，值为 Base64 编码的 JSON。
  *
- * 参考 MC 1.16.5 Property 类
- *
  * 示例：
  * - name: "textures"
  * - value: Base64编码的JSON，包含皮肤URL等信息
@@ -52,7 +50,7 @@ struct GameProfileProperty {
     std::string value;                    // Base64 编码的值
     std::optional<std::string> signature; // 可选的签名（用于验证）
 
-    GameProfileProperty() = default;
+    GameProfileProperty() noexcept = default;
 
     /**
      * @brief 构造属性
@@ -70,7 +68,7 @@ struct GameProfileProperty {
     /**
      * @brief 检查是否有签名
      */
-    [[nodiscard]] bool hasSignature() const { return signature.has_value(); }
+    [[nodiscard]] bool hasSignature() const noexcept { return signature.has_value(); }
 
     /**
      * @brief 序列化到网络包
@@ -91,8 +89,6 @@ struct GameProfileProperty {
  * - 网络同步（玩家列表、实体生成）
  * - 离线/在线模式区分
  *
- * 参考 MC 1.16.5 GameProfile 类
- *
  * 示例：
  * @code
  * GameProfile profile;
@@ -108,7 +104,7 @@ struct GameProfileProperty {
  */
 class GameProfile {
 public:
-    GameProfile() = default;
+    GameProfile() noexcept = default;
 
     /**
      * @brief 构造档案
@@ -123,7 +119,7 @@ public:
      * @brief 获取UUID
      * @return 16字节UUID数组
      */
-    [[nodiscard]] const std::array<u8, 16>& uuid() const { return m_uuid; }
+    [[nodiscard]] const std::array<u8, 16>& uuid() const noexcept { return m_uuid; }
 
     /**
      * @brief 设置UUID
@@ -133,7 +129,7 @@ public:
     /**
      * @brief 获取玩家名称
      */
-    [[nodiscard]] const std::string& name() const { return m_name; }
+    [[nodiscard]] const std::string& name() const noexcept { return m_name; }
 
     /**
      * @brief 设置玩家名称
@@ -145,7 +141,7 @@ public:
     /**
      * @brief 获取所有属性
      */
-    [[nodiscard]] const std::vector<GameProfileProperty>& properties() const { return m_properties; }
+    [[nodiscard]] const std::vector<GameProfileProperty>& properties() const noexcept { return m_properties; }
 
     /**
      * @brief 添加属性
@@ -167,7 +163,7 @@ public:
     /**
      * @brief 检查是否有 textures 属性
      */
-    [[nodiscard]] bool hasTextures() const;
+    [[nodiscard]] bool hasTextures() const noexcept;
 
     /**
      * @brief 获取 textures 属性
@@ -178,7 +174,7 @@ public:
     /**
      * @brief 清除所有属性
      */
-    void clearProperties() { m_properties.clear(); }
+    void clearProperties() noexcept { m_properties.clear(); }
 
     // ========== UUID 工具 ==========
 
@@ -209,20 +205,20 @@ public:
      * @brief 计算 UUID 哈希值（用于默认皮肤类型确定）
      * @return 32位哈希值
      */
-    [[nodiscard]] i32 uuidHashCode() const;
+    [[nodiscard]] i32 uuidHashCode() const noexcept;
 
     /**
      * @brief 检查 UUID 是否有效（非全零）
      */
-    [[nodiscard]] bool hasValidUUID() const;
+    [[nodiscard]] bool hasValidUUID() const noexcept;
 
     // ========== 比较操作 ==========
 
     /**
      * @brief 相等比较（基于UUID）
      */
-    bool operator==(const GameProfile& other) const { return m_uuid == other.m_uuid; }
-    bool operator!=(const GameProfile& other) const { return m_uuid != other.m_uuid; }
+    bool operator==(const GameProfile& other) const noexcept { return m_uuid == other.m_uuid; }
+    bool operator!=(const GameProfile& other) const noexcept { return m_uuid != other.m_uuid; }
 
     // ========== 序列化 ==========
 
@@ -249,8 +245,6 @@ public:
      *     "textures": [{"Value": "base64...", "Signature": "..."}]
      *   }
      * }
-     *
-     * 参考 MC 1.16.5 NBTUtil.writeGameProfile()
      *
      * @return JSON 对象
      */

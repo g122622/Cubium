@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../chunk/ChunkPos.hpp"
-#include "../LightType.hpp"
-#include "../engine/BlockLightEngine.hpp"
-#include "../engine/SkyLightEngine.hpp"
-#include "../storage/SWMRNibbleArray.hpp"
+#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/lighting/LightType.hpp"
+#include "common/world/lighting/engine/BlockLightEngine.hpp"
+#include "common/world/lighting/engine/SkyLightEngine.hpp"
+#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include <memory>
 #include <mutex>
 
@@ -42,8 +42,6 @@ class ChunkData;
  *
  * 协调方块光照和天空光照引擎，提供统一的光照计算接口。
  * 根据维度配置，可能只有方块光照（如下界）或两者都有（如主世界）。
- *
- * 参考: net.minecraft.world.lighting.WorldLightManager
  */
 class WorldLightManager {
 public:
@@ -210,8 +208,6 @@ public:
      * 用于已正确光照的区块，只需要重新加载光照数据到缓存，
      * 然后检查边缘以确保与邻居区块的一致性。
      * 不执行完整的光照计算。
-     *
-     * 参考: Moonrise StarLightInterface.forceLoadInChunk
      *
      * @param chunk 区块
      * @param emptySections 空区块段标记数组

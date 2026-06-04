@@ -58,8 +58,6 @@ public:
     /**
      * @brief 检查方块是否可以作为灵魂火的基座
      *
-     * 参考 MC 1.16.5: SoulFireBlock.func_235577_c_
-     *
      * @param block 要检查的方块
      * @return 如果方块是灵魂沙或灵魂土，返回 true
      */

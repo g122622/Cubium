@@ -46,12 +46,12 @@ private:
     /**
      * @brief 注册基础模型
      */
-    static void registerBaseModels(InMemoryResourcePack& pack);
+    static void _registerBaseModels(InMemoryResourcePack& pack);
 
     /**
      * @brief 注册 blockstates
      */
-    static void registerBlockStates(InMemoryResourcePack& pack);
+    static void _registerBlockStates(InMemoryResourcePack& pack);
 
     // 模型模板
     static const char* MODEL_CUBE_ALL;     // 单面纹理方块

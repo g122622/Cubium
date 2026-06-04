@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "IServerConnection.hpp"
 #include "LocalConnection.hpp"
+#include <memory>
 
 namespace mc::network {
 
@@ -49,7 +49,7 @@ public:
      */
     explicit LocalServerConnection(LocalEndpoint* endpoint);
 
-    ~LocalServerConnection() override = default;
+    ~LocalServerConnection() noexcept override = default;
 
     // 禁止拷贝
     LocalServerConnection(const LocalServerConnection&) = delete;

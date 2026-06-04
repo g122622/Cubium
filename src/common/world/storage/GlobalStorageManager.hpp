@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include <memory>
 #include "common/core/GameDirectory.hpp"
 #include "common/core/Result.hpp"
 #include "world/storage/SingleLevelStorageManager.hpp"
@@ -32,6 +31,7 @@
 #include "world/storage/list/WorldListService.hpp"
 #include "world/storage/request/WorldRequests.hpp"
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <vector>
 

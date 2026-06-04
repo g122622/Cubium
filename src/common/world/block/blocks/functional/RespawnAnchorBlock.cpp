@@ -80,8 +80,7 @@ void RespawnAnchorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
 
 void RespawnAnchorBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    // MC 1.16.5: RespawnAnchorBlock 没有重写 randomTick 方法
-    // 重生锚在非下界的爆炸只在玩家交互时触发（onBlockActivated 中处理）
+    // 重生锚没有随机刻逻辑
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
@@ -154,7 +153,6 @@ ActionResultType RespawnAnchorBlock::onBlockActivated(const BlockState& state,
     ItemStack& heldItem = player.getHeldItem(hand);
 
     // 检查是否用萤石充能
-    // MC Java: 检查物品是否对应 GLOWSTONE 方块
     bool hasGlowstone = false;
     if (!heldItem.isEmpty()) {
         const Item* item = heldItem.getItem();
@@ -187,8 +185,7 @@ ActionResultType RespawnAnchorBlock::onBlockActivated(const BlockState& state,
         // 移除重生锚
         world.setBlockState(pos, nullptr, 11);
 
-        // MC 1.16.5: 重生锚爆炸强度为 5.0，破坏方块但不生成火焰
-        // 参考: net.minecraft.block.RespawnAnchorBlock.onBlockActivated
+        // 爆炸强度为 5.0，破坏方块但不生成火焰
         world.createExplosion(pos.center(),
             5.0f, // 爆炸半径
             world::explosion::ExplosionMode::Destroy,
@@ -205,9 +202,6 @@ ActionResultType RespawnAnchorBlock::onBlockActivated(const BlockState& state,
         discharge(world, pos, mutableState);
 
         // 设置玩家的重生点
-        // 参考 MC 1.16.5 RespawnAnchorBlock.onBlockActivated 第73行：
-        // serverplayerentity.func_242111_a(worldIn.func_234923_W_(), pos, 0.0F, false, true);
-        // 参数：维度、位置、角度(由服务器单独保存)、强制=false、发送消息=true
         player.setSpawnPoint(world.dimension(), pos, false);
 
         // 播放设置重生点音效

@@ -55,8 +55,6 @@ EndBiomeProvider::EndBiomeProvider(u64 seed)
     : BiomeProvider(seed)
 {
     math::Random rng(seed);
-
-    // 参考原版：SharedSeedRandom(seed).skip(17292) 后初始化 SimplexNoiseGenerator。
     rng.skip(17292);
     m_islandNoise = std::make_unique<SimplexNoiseGenerator>(rng);
 }
@@ -74,7 +72,7 @@ BiomeId EndBiomeProvider::getBiome(i32 x, i32 y, i32 z) const
 BiomeId EndBiomeProvider::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const
 {
     MC_UNUSED(noiseY);
-    return selectBiome(noiseX, noiseZ);
+    return _selectBiome(noiseX, noiseZ);
 }
 
 f32 EndBiomeProvider::getDepth(i32 x, i32 z) const
@@ -107,24 +105,15 @@ bool EndBiomeProvider::isInMainIsland(i32 x, i32 z) const
 
 f32 EndBiomeProvider::getIslandHeight(i32 x, i32 z) const
 {
-    return computeIslandHeight(*m_islandNoise, x, z);
+    return _computeIslandHeight(*m_islandNoise, x, z);
 }
 
 // ============================================================================
 // 生物群系选择
 // ============================================================================
 
-BiomeId EndBiomeProvider::selectBiome(i32 noiseX, i32 noiseZ) const
+BiomeId EndBiomeProvider::_selectBiome(i32 noiseX, i32 noiseZ) const
 {
-    // 参考原版 EndBiomeProvider#getNoiseBiome：
-    // i = noiseX >> 2, j = noiseZ >> 2
-    // if i*i + j*j <= 4096 -> THE_END
-    // f = func_235317_a_(generator, i*2+1, j*2+1)
-    // f > 40 -> END_HIGHLANDS
-    // f >= 0 -> END_MIDLANDS
-    // f < -20 -> SMALL_END_ISLANDS
-    // else -> END_BARRENS
-
     const i64 i = static_cast<i64>(noiseX >> 2);
     const i64 j = static_cast<i64>(noiseZ >> 2);
     if (i * i + j * j <= MAIN_ISLAND_RADIUS_SQ) {
@@ -144,7 +133,7 @@ BiomeId EndBiomeProvider::selectBiome(i32 noiseX, i32 noiseZ) const
     return height < -20.0f ? EndBiomes::SmallEndIslands : EndBiomes::EndBarrens;
 }
 
-f32 EndBiomeProvider::computeIslandHeight(const SimplexNoiseGenerator& noise, i32 x, i32 z)
+f32 EndBiomeProvider::_computeIslandHeight(const SimplexNoiseGenerator& noise, i32 x, i32 z)
 {
     const i32 i = x / 2;
     const i32 j = z / 2;

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../core/Types.hpp"
-#include "block/BlockPos.hpp"
+#include "common/core/Types.hpp"
+#include "world/block/BlockPos.hpp"
 #include <functional>
 
 namespace mc {
@@ -32,60 +32,112 @@ namespace mc {
 /**
  * @brief 全局位置 - 方块位置 + 维度ID
  *
- * 用于标识跨维度的位置信息
- * 参考 MC 1.16.5 GlobalPos
+ * 用于标识跨维度的位置信息。
  */
 class GlobalPos {
 public:
-    GlobalPos()
+    /**
+     * @brief 默认构造函数
+     *
+     * 构造一个维度ID为0、位置为原点的全局位置。
+     */
+    GlobalPos() noexcept
         : m_dimensionId(0)
         , m_pos()
     {}
 
-    GlobalPos(DimensionId dimensionId, const BlockPos& pos)
+    /**
+     * @brief 从维度ID和方块位置构造
+     *
+     * @param dimensionId 维度ID
+     * @param pos 方块位置
+     */
+    GlobalPos(DimensionId dimensionId, const BlockPos& pos) noexcept
         : m_dimensionId(dimensionId)
         , m_pos(pos)
     {}
 
-    GlobalPos(DimensionId dimensionId, BlockCoord x, BlockCoord y, BlockCoord z)
+    /**
+     * @brief 从维度ID和坐标构造
+     *
+     * @param dimensionId 维度ID
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     */
+    GlobalPos(DimensionId dimensionId, BlockCoord x, BlockCoord y, BlockCoord z) noexcept
         : m_dimensionId(dimensionId)
         , m_pos(x, y, z)
     {}
 
-    [[nodiscard]] DimensionId getDimensionId() const { return m_dimensionId; }
-    [[nodiscard]] const BlockPos& getPos() const { return m_pos; }
-    [[nodiscard]] BlockCoord x() const { return m_pos.x; }
-    [[nodiscard]] BlockCoord y() const { return m_pos.y; }
-    [[nodiscard]] BlockCoord z() const { return m_pos.z; }
+    /** @brief 获取维度ID */
+    [[nodiscard]] DimensionId getDimensionId() const noexcept { return m_dimensionId; }
 
-    bool operator==(const GlobalPos& other) const
+    /** @brief 获取方块位置 */
+    [[nodiscard]] const BlockPos& getPos() const noexcept { return m_pos; }
+
+    /** @brief 获取X坐标 */
+    [[nodiscard]] BlockCoord x() const noexcept { return m_pos.x; }
+
+    /** @brief 获取Y坐标 */
+    [[nodiscard]] BlockCoord y() const noexcept { return m_pos.y; }
+
+    /** @brief 获取Z坐标 */
+    [[nodiscard]] BlockCoord z() const noexcept { return m_pos.z; }
+
+    /**
+     * @brief 相等比较
+     *
+     * @param other 另一个全局位置
+     * @return 是否相等（维度ID和位置都相同）
+     */
+    [[nodiscard]] bool operator==(const GlobalPos& other) const noexcept
     {
         return m_dimensionId == other.m_dimensionId && m_pos == other.m_pos;
     }
 
-    bool operator!=(const GlobalPos& other) const { return !(*this == other); }
+    /**
+     * @brief 不相等比较
+     *
+     * @param other 另一个全局位置
+     * @return 是否不相等
+     */
+    [[nodiscard]] bool operator!=(const GlobalPos& other) const noexcept { return !(*this == other); }
 
     /**
      * @brief 检查是否在同一维度
+     *
+     * @param other 另一个全局位置
+     * @return 是否在同一维度
      */
-    [[nodiscard]] bool sameDimension(const GlobalPos& other) const { return m_dimensionId == other.m_dimensionId; }
+    [[nodiscard]] bool sameDimension(const GlobalPos& other) const noexcept
+    {
+        return m_dimensionId == other.m_dimensionId;
+    }
 
 private:
-    DimensionId m_dimensionId;
-    BlockPos m_pos;
+    DimensionId m_dimensionId; ///< 维度ID
+    BlockPos m_pos;            ///< 方块位置
 };
 
 } // namespace mc
 
-// 哈希函数特化
+// ============================================================================
+// 哈希函数特化（std::hash）
+// ============================================================================
 namespace std {
 template <>
 struct hash<mc::GlobalPos> {
-    size_t operator()(const mc::GlobalPos& pos) const
+    /**
+     * @brief 计算GlobalPos的哈希值
+     *
+     * 将维度ID和坐标组合成一个唯一的哈希值。
+     */
+    Size operator()(const mc::GlobalPos& pos) const noexcept
     {
-        size_t h1 = std::hash<int>{}(static_cast<int>(pos.getDimensionId()));
-        size_t h2 = std::hash<int>{}(static_cast<int>(pos.x())) ^ (std::hash<int>{}(static_cast<int>(pos.y())) << 1) ^
-            (std::hash<int>{}(static_cast<int>(pos.z())) << 2);
+        const Size h1 = std::hash<i32>{}(pos.getDimensionId());
+        const Size h2 =
+            static_cast<Size>(pos.x()) ^ (static_cast<Size>(pos.y()) << 1) ^ (static_cast<Size>(pos.z()) << 2);
         return h1 ^ (h2 << 1);
     }
 };

@@ -61,13 +61,13 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
     // /attribute <target> <attribute> get
     auto getNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
-    getNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return getAttribute(ctx); });
+    getNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _getAttribute(ctx); });
 
     // /attribute <target> <attribute> set <value>
     auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     auto valueArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("value", FloatArgumentType::floatArg());
-    valueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return setAttributeBase(ctx); });
+    valueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setAttributeBase(ctx); });
     setNode->addChild(valueArg);
 
     attributeArg->addChild(getNode);
@@ -78,7 +78,7 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     dispatcher.registerCommand(attributeNode);
 }
 
-i32 AttributeCommand::getAttribute(CommandContext<ServerCommandSource>& context)
+i32 AttributeCommand::_getAttribute(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
@@ -102,7 +102,7 @@ i32 AttributeCommand::getAttribute(CommandContext<ServerCommandSource>& context)
     }
 
     const std::string attrName = context.getArgument<std::string>("attribute");
-    std::string normalizedAttrName = normalizeAttributeName(attrName);
+    std::string normalizedAttrName = _normalizeAttributeName(attrName);
 
     if (playerIds.size() > 1) {
         source.sendMessage("Only one entity is allowed, but the provided selector allows more");
@@ -124,7 +124,7 @@ i32 AttributeCommand::getAttribute(CommandContext<ServerCommandSource>& context)
     }
 
     // 检查属性是否为已知的标准属性
-    if (!isKnownAttribute(normalizedAttrName)) {
+    if (!_isKnownAttribute(normalizedAttrName)) {
         source.sendError("Unknown attribute: " + attrName);
         return 0;
     }
@@ -141,7 +141,7 @@ i32 AttributeCommand::getAttribute(CommandContext<ServerCommandSource>& context)
     return 1;
 }
 
-i32 AttributeCommand::setAttributeBase(CommandContext<ServerCommandSource>& context)
+i32 AttributeCommand::_setAttributeBase(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto* server = source.server();
@@ -170,19 +170,19 @@ i32 AttributeCommand::setAttributeBase(CommandContext<ServerCommandSource>& cont
     }
 
     const std::string attrName = context.getArgument<std::string>("attribute");
-    std::string normalizedAttrName = normalizeAttributeName(attrName);
+    std::string normalizedAttrName = _normalizeAttributeName(attrName);
     f32 value = context.getArgument<f32>("value");
 
     PlayerId playerId = playerIds[0];
 
     // 验证属性范围
-    if (!isKnownAttribute(normalizedAttrName)) {
+    if (!_isKnownAttribute(normalizedAttrName)) {
         source.sendError("Unknown attribute: " + attrName);
         return 0;
     }
 
     // 检查值是否在有效范围内
-    auto [minVal, maxVal] = getAttributeRange(normalizedAttrName);
+    auto [minVal, maxVal] = _getAttributeRange(normalizedAttrName);
     if (value < minVal || value > maxVal) {
         std::ostringstream ss;
         ss << "Value " << value << " is out of range [" << minVal << ", " << maxVal << "]";
@@ -212,13 +212,14 @@ i32 AttributeCommand::setAttributeBase(CommandContext<ServerCommandSource>& cont
     return 1;
 }
 
-std::string AttributeCommand::normalizeAttributeName(const std::string& name)
+std::string AttributeCommand::_normalizeAttributeName(const std::string& name)
 {
     std::string normalized = name;
 
     // 移除 minecraft: 前缀
-    if (normalized.find("minecraft:") == 0) {
-        normalized = normalized.substr(10);
+    constexpr std::string_view minecraftPrefix = "minecraft:";
+    if (normalized.starts_with(minecraftPrefix)) {
+        normalized = normalized.substr(minecraftPrefix.size());
     }
 
     // 添加 generic. 前缀（如果需要）
@@ -250,7 +251,7 @@ std::string AttributeCommand::normalizeAttributeName(const std::string& name)
     return normalized;
 }
 
-bool AttributeCommand::isKnownAttribute(const std::string& name) noexcept
+bool AttributeCommand::_isKnownAttribute(const std::string& name) noexcept
 {
     using namespace entity::attribute;
 
@@ -275,7 +276,8 @@ bool AttributeCommand::isKnownAttribute(const std::string& name) noexcept
     return knownAttrs.count(name) > 0;
 }
 
-f64 AttributeCommand::getAttributeDefaultValue(const std::string& name) noexcept
+// TODO: 此函数预留用于 future 功能，如 /attribute ... get ... base 命令
+f64 AttributeCommand::_getAttributeDefaultValue(const std::string& name) noexcept
 {
     using namespace entity::attribute;
 
@@ -304,7 +306,7 @@ f64 AttributeCommand::getAttributeDefaultValue(const std::string& name) noexcept
     return 0.0;
 }
 
-std::pair<f64, f64> AttributeCommand::getAttributeRange(const std::string& name) noexcept
+std::pair<f64, f64> AttributeCommand::_getAttributeRange(const std::string& name) noexcept
 {
     using namespace entity::attribute;
 

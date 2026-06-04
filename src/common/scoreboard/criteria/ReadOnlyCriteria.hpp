@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../core/ScoreCriteria.hpp"
-#include "../core/ScoreCriteriaRenderType.hpp"
+#include "common/scoreboard/core/ScoreCriteria.hpp"
+#include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
 
 namespace mc::scoreboard {
 
@@ -32,7 +32,6 @@ namespace mc::scoreboard {
  * @brief 只读判据基类
  *
  * 只读判据的分数由游戏自动更新，不能通过命令手动设置。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScoreCriteria
  */
 class ReadOnlyCriteria : public ScoreCriteria {
 public:
@@ -57,7 +56,6 @@ protected:
  * @brief 生命值判据
  *
  * 显示玩家的当前生命值（心）。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScoreCriteria.HEALTH
  */
 class HealthCriteria : public ReadOnlyCriteria {
 public:
@@ -70,7 +68,6 @@ public:
  * @brief 饥饿值判据
  *
  * 显示玩家的当前饥饿值。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScoreCriteria.FOOD
  */
 class FoodCriteria : public ReadOnlyCriteria {
 public:
@@ -83,7 +80,6 @@ public:
  * @brief 氧气值判据
  *
  * 显示玩家的当前氧气值。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScoreCriteria.AIR
  */
 class AirCriteria : public ReadOnlyCriteria {
 public:
@@ -96,7 +92,6 @@ public:
  * @brief 护甲值判据
  *
  * 显示玩家的当前护甲值。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScoreCriteria.ARMOR
  */
 class ArmorCriteria : public ReadOnlyCriteria {
 public:
@@ -109,7 +104,6 @@ public:
  * @brief 经验值判据
  *
  * 显示玩家的当前经验值。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScoreCriteria.XP
  */
 class XpCriteria : public ReadOnlyCriteria {
 public:
@@ -122,7 +116,6 @@ public:
  * @brief 等级判据
  *
  * 显示玩家的当前等级。
- * 参考 MC 1.16.5: net.minecraft.scoreboard.ScoreCriteria.LEVEL
  */
 class LevelCriteria : public ReadOnlyCriteria {
 public:

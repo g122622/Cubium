@@ -85,8 +85,6 @@ struct POISearchResult {
  * 使用区块级别索引实现高效的空间查询。
  *
  * 线程安全：所有公共方法都是线程安全的。
- *
- * 参考 MC 1.16.5 PointOfInterestStorage
  */
 class PointOfInterestStorage {
 public:
@@ -277,24 +275,24 @@ private:
     /**
      * @brief 计算方块位置所属的区块键
      */
-    [[nodiscard]] static u64 getChunkKey(BlockPos pos);
-    [[nodiscard]] static u64 getChunkKey(ChunkCoord x, ChunkCoord z);
+    [[nodiscard]] static u64 _getChunkKey(BlockPos pos);
+    [[nodiscard]] static u64 _getChunkKey(ChunkCoord x, ChunkCoord z);
 
     /**
      * @brief 计算两点之间的距离
      */
-    [[nodiscard]] static f32 distance(BlockPos a, BlockPos b);
+    [[nodiscard]] static f32 _distance(BlockPos a, BlockPos b);
 
     /**
      * @brief 检查POI是否匹配搜索条件
      */
-    [[nodiscard]] bool matchesCriteria(const PointOfInterest& poi, const POISearchCriteria& criteria) const;
+    [[nodiscard]] bool _matchesCriteria(const PointOfInterest& poi, const POISearchCriteria& criteria) const;
 
     /**
      * @brief 获取或创建区块POI列表
      */
-    std::list<PointOfInterest>& getOrCreateChunkPOIs(u64 chunkKey);
-    [[nodiscard]] const std::list<PointOfInterest>* getChunkPOIs(u64 chunkKey) const;
+    std::list<PointOfInterest>& _getOrCreateChunkPOIs(u64 chunkKey);
+    [[nodiscard]] const std::list<PointOfInterest>* _getChunkPOIs(u64 chunkKey) const;
 
 private:
     /// 区块级别POI存储（使用list避免指针失效）

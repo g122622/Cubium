@@ -44,7 +44,7 @@ struct AddonDependency {
      * @param j JSON对象
      * @return 解析后的依赖对象
      */
-    static AddonDependency fromJson(const nlohmann::json& j);
+    [[nodiscard]] static AddonDependency fromJson(const nlohmann::json& j);
 };
 
 } // namespace mc::mod::bedrock::addon

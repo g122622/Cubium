@@ -69,15 +69,15 @@ public:
     static Result<std::optional<PlayerSaveData>> readLocalPlayer(const std::filesystem::path& worldDir);
 
 private:
-    static Result<std::unique_ptr<mc::nbt::tags::compound_tag>> readGzipNbt(const std::filesystem::path& filePath);
+    static Result<std::unique_ptr<mc::nbt::tags::compound_tag>> _readGzipNbt(const std::filesystem::path& filePath);
 
-    static Result<LevelSummaryData> parseSummary(const mc::nbt::tags::compound_tag& data);
-    static Result<LevelRuntimeData> parseRuntimeData(const mc::nbt::tags::compound_tag& data);
-    static Result<std::optional<PlayerSaveData>> parseLocalPlayer(const mc::nbt::tags::compound_tag& data);
+    static Result<LevelSummaryData> _parseSummary(const mc::nbt::tags::compound_tag& data);
+    static Result<LevelRuntimeData> _parseRuntimeData(const mc::nbt::tags::compound_tag& data);
+    static Result<std::optional<PlayerSaveData>> _parseLocalPlayer(const mc::nbt::tags::compound_tag& data);
 
-    static WorldType parseWorldType(const mc::nbt::tags::compound_tag& data);
-    static GameMode parseGameMode(const mc::nbt::tags::compound_tag& data);
-    static Difficulty parseDifficulty(const mc::nbt::tags::compound_tag& data);
+    static WorldType _parseWorldType(const mc::nbt::tags::compound_tag& data);
+    static GameMode _parseGameMode(const mc::nbt::tags::compound_tag& data);
+    static Difficulty _parseDifficulty(const mc::nbt::tags::compound_tag& data);
 };
 
 } // namespace mc::world::storage::reader::java

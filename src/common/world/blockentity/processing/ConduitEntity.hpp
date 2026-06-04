@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include <memory>
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntity.hpp"
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -47,7 +47,7 @@ namespace blockentity {
  * - 激活后给予附近玩家潮涌能量效果
  * - 框架达到42个方块时睁开眼睛，攻击敌对生物
  *
- * 框架检测逻辑（MC 1.16.5）：
+ * 框架检测逻辑：
  * - 中心周围3x3x3必须全部是水
  * - 框架位置：5x5x5范围内，距离中心2格的位置
  * - 有效方块：海晶石、海晶石砖、暗海晶石、海晶灯
@@ -58,8 +58,6 @@ namespace blockentity {
  * - 28-34个方块：(28/7)*16 = 48格
  * - 35-41个方块：(35/7)*16 = 64格
  * - 42+个方块：(42/7)*16 = 96格
- *
- * 参考: net.minecraft.tileentity.ConduitTileEntity
  */
 class ConduitEntity : public BlockEntity {
 public:
@@ -131,20 +129,20 @@ private:
      * @param world 世界引用
      * @return 如果应该激活返回true
      */
-    [[nodiscard]] bool shouldBeActive(IWorld& world);
+    [[nodiscard]] bool _shouldBeActive(IWorld& world);
 
     /**
      * @brief 给附近玩家添加潮涌能量效果
      * @param world 世界引用
      */
-    void addEffectsToPlayers(IWorld& world);
+    void _addEffectsToPlayers(IWorld& world);
 
     /**
      * @brief 攻击附近的敌对生物
      * 需要42个以上的框架方块
      * @param world 世界引用
      */
-    void attackMobs(IWorld& world);
+    void _attackMobs(IWorld& world);
 
     /**
      * @brief 检查位置是否在水中
@@ -152,7 +150,7 @@ private:
      * @param pos 方块位置
      * @return 如果在水中返回true
      */
-    [[nodiscard]] bool isWaterAt(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isWaterAt(IWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 检查方块是否为有效的框架方块
@@ -160,40 +158,38 @@ private:
      * @param pos 方块位置
      * @return 如果是有效框架方块返回true
      */
-    [[nodiscard]] bool isValidFrameBlock(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isValidFrameBlock(IWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 设置激活状态
      * @param world 世界引用
      * @param active 激活状态
      */
-    void setActive(IWorld& world, bool active);
+    void _setActive(IWorld& world, bool active);
 
     /**
      * @brief 设置眼睛状态
      * @param eyeOpen 眼睛是否睁开
      */
-    void setEyeOpen(bool eyeOpen);
+    void _setEyeOpen(bool eyeOpen);
 
     /**
      * @brief 生成客户端粒子效果
-     * 参考 MC 1.16.5 ConduitTileEntity.spawnParticles()
      * @param world 世界引用
      */
-    void spawnParticles(IWorld& world);
+    void _spawnParticles(IWorld& world);
 
 protected:
     /**
      * @brief 通过UUID在攻击范围内查找目标实体
      *
-     * 参考 MC 1.16.5 ConduitTileEntity.findExistingTarget():
      * 在效果范围内搜索匹配UUID的LivingEntity。
      * 不使用全局UUID查找，因为潮涌核心只能攻击范围内的目标。
      *
      * @param world 世界引用
      * @return 找到的目标实体，如果未找到返回nullptr
      */
-    [[nodiscard]] LivingEntity* findExistingTarget(IWorld& world);
+    [[nodiscard]] LivingEntity* _findExistingTarget(IWorld& world);
 
     // ========== 状态数据 ==========
 

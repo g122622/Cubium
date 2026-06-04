@@ -69,7 +69,7 @@ std::vector<const JigsawPiece*> JigsawPattern::getShuffledPieces(math::Random& r
     return result;
 }
 
-JigsawPatternRegistry& JigsawPatternRegistry::instance()
+JigsawPatternRegistry& JigsawPatternRegistry::instance() noexcept
 {
     static JigsawPatternRegistry registry;
     return registry;
@@ -84,13 +84,13 @@ void JigsawPatternRegistry::registerPattern(std::unique_ptr<JigsawPattern> patte
     }
 }
 
-const JigsawPattern* JigsawPatternRegistry::getPattern(const ResourceLocation& name) const
+const JigsawPattern* JigsawPatternRegistry::getPattern(const ResourceLocation& name) const noexcept
 {
     auto it = m_patterns.find(name);
     return it != m_patterns.end() ? it->second.get() : nullptr;
 }
 
-void JigsawPatternRegistry::clear()
+void JigsawPatternRegistry::clear() noexcept
 {
     m_patterns.clear();
 }

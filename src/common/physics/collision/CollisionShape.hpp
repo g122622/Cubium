@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/AxisAlignedBB.hpp"
-#include "../../util/Direction.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/Direction.hpp"
 #include <vector>
 
 namespace mc {
@@ -46,7 +46,6 @@ namespace mc {
  * 面形状投影：
  * - getFaceShape(Direction) 返回形状在指定方向上的投影
  * - 用于光照遮挡检测，判断光线是否能穿过相邻方块之间的边界
- * - 参考 MC 1.16.5 VoxelShapes.getFaceShape
  */
 class CollisionShape {
 public:
@@ -225,12 +224,6 @@ public:
      * 这是光照系统的核心函数，用于判断光线是否能穿过相邻方块之间的边界。
      * 返回一个表示该面上投影区域的新碰撞形状。
      *
-     * 算法参考 MC 1.16.5 VoxelShapes.getFaceShape：
-     * 1. 空形状返回空
-     * 2. 完整方块返回完整方块
-     * 3. 检查形状是否延伸到指定面的边界
-     * 4. 如果是，返回投影面形状；否则返回空
-     *
      * @param direction 方向（Down=0, Up=1, North=2, South=3, West=4, East=5）
      * @return 该方向上的面投影形状
      */
@@ -252,8 +245,7 @@ public:
         result.m_type = Type::Empty;
         result.m_boxes.reserve(m_boxes.size());
 
-        // 精度常量，与MC 1.16.5对齐（MC使用1.0E-7D双精度）
-        // f32有约7位有效数字，使用1.0e-7f可以匹配MC的精度要求
+        // 精度常量，用于浮点数比较
         constexpr f32 EPSILON = 1.0e-7f;
 
         for (const auto& box : m_boxes) {

@@ -22,11 +22,10 @@
  */
 
 #include "LeverBlock.hpp"
-#include "../../../../sound/SoundCategory.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
-#include <unordered_map>
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
 
 namespace mc {
 namespace blocks {
@@ -144,10 +143,10 @@ BlockState LeverBlock::toggle(IWorld& world, const BlockPos& pos, const BlockSta
     world.setBlockState(pos, &newState, 2);
 
     // 播放音效
-    playClickSound(world, pos, newPowered);
+    _playClickSound(world, pos, newPowered);
 
     // 通知相邻方块更新
-    notifyNeighbors(world, pos, newState);
+    _notifyNeighbors(world, pos, newState);
 
     return newState;
 }
@@ -158,7 +157,6 @@ i32 LeverBlock::getWeakPower(const BlockState& state, IWorld& world, const Block
     MC_UNUSED(pos);
     MC_UNUSED(side);
 
-    // MC Java: return blockState.get(POWERED) ? 15 : 0;
     // 拉杆开启时向所有方向输出弱信号
     return isPowered(state) ? world::redstone::RedstonePower::MAX_POWER : 0;
 }
@@ -168,7 +166,6 @@ i32 LeverBlock::getStrongPower(const BlockState& state, IWorld& world, const Blo
     MC_UNUSED(world);
     MC_UNUSED(pos);
 
-    // MC Java: return blockState.get(POWERED) && getFacing(blockState) == side ? 15 : 0;
     // 只在朝向方向输出强信号
     if (!isPowered(state)) {
         return 0;
@@ -201,9 +198,8 @@ i32 LeverBlock::getStrongPower(const BlockState& state, IWorld& world, const Blo
     return 0;
 }
 
-void LeverBlock::playClickSound(IWorld& world, const BlockPos& pos, bool powered)
+void LeverBlock::_playClickSound(IWorld& world, const BlockPos& pos, bool powered)
 {
-    // 参考 MC 1.16.5: LeverBlock.playClickSound
     // 注意：拉杆使用木质按钮音效
     world.playSound(powered ? SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_ON : SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_OFF,
         sound::SoundCategory::Blocks,
@@ -212,7 +208,7 @@ void LeverBlock::playClickSound(IWorld& world, const BlockPos& pos, bool powered
         0.6f);
 }
 
-void LeverBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state)
+void LeverBlock::_notifyNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     // 获取拉杆输出方向
     Direction facing = getFacing(state);

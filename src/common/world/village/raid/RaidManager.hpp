@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../command/ICommandSource.hpp"
-#include "../../../core/Types.hpp"
-#include "../../block/BlockPos.hpp"
-#include "Raid.hpp"
+#include "command/ICommandSource.hpp"
+#include "core/Types.hpp"
+#include "world/block/BlockPos.hpp"
+#include "world/village/raid/Raid.hpp"
 
 #include <functional>
 #include <memory>
@@ -113,7 +113,7 @@ public:
     ~RaidManager() = default;
     RaidManager(const RaidManager&) = delete;
     RaidManager& operator=(const RaidManager&) = delete;
-    RaidManager(RaidManager&&) = default;
+    RaidManager(RaidManager&&) noexcept = default;
     RaidManager& operator=(RaidManager&&) = delete;
 
     /**
@@ -234,7 +234,7 @@ private:
     /**
      * @brief 生成新的袭击 ID。
      */
-    [[nodiscard]] RaidId generateRaidId();
+    [[nodiscard]] RaidId _generateRaidId();
 
     /**
      * @brief 判断指定位置是否处于某次袭击范围内。
@@ -243,7 +243,7 @@ private:
      * @param center 袭击中心。
      * @return 是否命中范围。
      */
-    [[nodiscard]] bool isWithinRaidRange(BlockPos pos, BlockPos center) const;
+    [[nodiscard]] bool _isWithinRaidRange(BlockPos pos, BlockPos center) const;
 
     /**
      * @brief 查找附近村庄。
@@ -251,7 +251,7 @@ private:
      * @param pos 参考位置。
      * @return 命中的村庄；若无则返回 `nullptr`。
      */
-    [[nodiscard]] village::Village* findNearbyVillage(BlockPos pos) const;
+    [[nodiscard]] village::Village* _findNearbyVillage(BlockPos pos) const;
 
     /**
      * @brief 判断指定位置是否允许开启袭击。
@@ -259,7 +259,7 @@ private:
      * @param pos 触发位置。
      * @return 是否允许开启袭击。
      */
-    [[nodiscard]] bool canStartRaidAt(BlockPos pos) const;
+    [[nodiscard]] bool _canStartRaidAt(BlockPos pos) const;
 
 private:
     IWorld& m_world;

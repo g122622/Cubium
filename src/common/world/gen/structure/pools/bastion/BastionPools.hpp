@@ -34,8 +34,6 @@ namespace pools {
 /**
  * @brief 堡垒遗迹模板池统一注册入口
  *
- * 参考 MC 1.16.5: net.minecraft.world.gen.feature.structure.BastionRemnantsPieces
- *
  * 堡垒遗迹有 4 种类型：
  * - 单元型 (Units) - 起始池: bastion/units/start
  * - 猪灵兽栏 (Stables) - 起始池: bastion/stables/start
@@ -68,8 +66,6 @@ bool isRegistered();
 /**
  * @brief 单元型堡垒遗迹模板池
  *
- * MC 1.16.5: BastionRemnantsPieces.java - Units 类型
- *
  * 模板池:
  * - bastion/units/start (起始池)
  * - bastion/units/center_pieces
@@ -89,8 +85,6 @@ void registerAll(JigsawPatternRegistry& registry);
 /**
  * @brief 猪灵兽栏堡垒遗迹模板池
  *
- * MC 1.16.5: BastionRemnantsPieces.java - Stables 类型
- *
  * 模板池:
  * - bastion/stables/start (起始池)
  * - bastion/stables/legs
@@ -107,8 +101,6 @@ void registerAll(JigsawPatternRegistry& registry);
 
 /**
  * @brief 宝藏型堡垒遗迹模板池
- *
- * MC 1.16.5: BastionRemnantsPieces.java - Treasure 类型
  *
  * 模板池:
  * - bastion/treasure/start (起始池)
@@ -127,8 +119,6 @@ void registerAll(JigsawPatternRegistry& registry);
 
 /**
  * @brief 桥梁型堡垒遗迹模板池
- *
- * MC 1.16.5: BastionRemnantsPieces.java - Bridge 类型
  *
  * 模板池:
  * - bastion/bridge/start (起始池)

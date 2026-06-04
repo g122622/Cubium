@@ -130,7 +130,7 @@ BlockState TallSeagrassBlock::updatePostPlacement(const BlockState& state,
         if (facing == Direction::Up) {
             if (!facingState.is(this) ||
                 facingState.get(BlockStateProperties::DOUBLE_BLOCK_HALF()) != DoubleBlockHalf::Upper) {
-                // 上方没有上半部分 - 可能需要清理，但这里暂不处理
+                // TODO: 上方没有上半部分时的处理逻辑待实现
             }
         }
     }

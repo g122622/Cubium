@@ -23,16 +23,14 @@
 
 #pragma once
 
-#include <memory>
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
+#include <memory>
 
 namespace mc {
 
 /**
  * @brief 海草特征配置
- *
- * 参考 MC BlockStateFeatureConfig
  */
 struct SeagrassFeatureConfig : public IFeatureConfig {
     /// 海草方块状态
@@ -82,8 +80,6 @@ struct SeagrassFeatureConfig : public IFeatureConfig {
  *
  * 在水下生成海草。
  * 可以生成普通海草和高海草。
- *
- * 参考 MC SeagrassFeature
  */
 class SeagrassFeature {
 public:
@@ -101,17 +97,17 @@ private:
     /**
      * @brief 检查海草是否可以放置在指定位置
      */
-    [[nodiscard]] bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const BlockState& seagrassState) const;
+    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const BlockState& seagrassState) const;
 
     /**
      * @brief 检查位置是否为水
      */
-    [[nodiscard]] bool isWater(WorldGenRegion& world, const BlockPos& pos) const;
+    [[nodiscard]] bool _isWater(WorldGenRegion& world, const BlockPos& pos) const;
 
     /**
      * @brief 放置高海草
      */
-    bool placeTallSeagrass(WorldGenRegion& world, const BlockPos& pos, const SeagrassFeatureConfig& config) const;
+    bool _placeTallSeagrass(WorldGenRegion& world, const BlockPos& pos, const SeagrassFeatureConfig& config) const;
 };
 
 /**
@@ -127,7 +123,7 @@ public:
         math::Random& random,
         const BlockPos& pos) override;
 
-    [[nodiscard]] const char* name() const override { return m_name.c_str(); }
+    [[nodiscard]] const char* name() const noexcept override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
     [[nodiscard]] const SeagrassFeatureConfig& getConfig() const { return *m_config; }
 

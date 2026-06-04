@@ -65,11 +65,28 @@ struct JavaRegionPosHash {
  */
 class JavaWorldReader {
 public:
+    /// Region 文件每边的区块数量（32x32）
+    static constexpr i32 REGION_WIDTH = 32;
+
+    /// Region 坐标位移量（log2(32) = 5）
+    static constexpr i32 REGION_SHIFT = 5;
+
+    /// Region 内坐标掩码（32 - 1 = 31）
+    static constexpr i32 REGION_MASK = REGION_WIDTH - 1;
+
+    /// Java 21w43a 数据版本，从此版本起实体数据独立存储于 entities/ 目录
+    static constexpr i32 DATA_VERSION_ENTITIES_SEPARATED = 2724;
+
     explicit JavaWorldReader(JavaColumnReader& columnReader);
+
+    JavaWorldReader(JavaWorldReader&&) noexcept = default;
+    JavaWorldReader& operator=(JavaWorldReader&&) noexcept = default;
+    JavaWorldReader(const JavaWorldReader&) = delete;
+    JavaWorldReader& operator=(const JavaWorldReader&) = delete;
 
     Result<void> open(const std::filesystem::path& worldPath, const SaveFormatInfo& formatInfo);
     void close();
-    [[nodiscard]] bool isOpen() const { return m_isOpen; }
+    [[nodiscard]] bool isOpen() const noexcept { return m_isOpen; }
 
     [[nodiscard]] Result<std::optional<ChunkData>> readChunk(ChunkCoord x, ChunkCoord z, DimensionId dimension);
     [[nodiscard]] Result<std::vector<ChunkPos>> listChunks(DimensionId dimension);
@@ -80,16 +97,16 @@ private:
         Entities,
     };
 
-    [[nodiscard]] std::filesystem::path getRegionDir(DimensionId dimension, RegionKind kind) const;
-    [[nodiscard]] RegionFile* getOrOpenRegion(i32 regionX, i32 regionZ, DimensionId dimension, RegionKind kind);
-    [[nodiscard]] Result<std::vector<u8>> combineColumnData(
+    [[nodiscard]] std::filesystem::path _getRegionDir(DimensionId dimension, RegionKind kind) const;
+    [[nodiscard]] RegionFile* _getOrOpenRegion(i32 regionX, i32 regionZ, DimensionId dimension, RegionKind kind);
+    [[nodiscard]] Result<std::vector<u8>> _combineColumnData(
         const std::optional<std::vector<u8>>& mainData, const std::optional<std::vector<u8>>& entityData) const;
-    [[nodiscard]] Result<std::vector<u8>> mergeEntitiesIntoMain(
+    [[nodiscard]] Result<std::vector<u8>> _mergeEntitiesIntoMain(
         const std::vector<u8>& mainData, const std::vector<u8>& entityData) const;
-    [[nodiscard]] Result<std::vector<u8>> createEntityOnlyColumn(const std::vector<u8>& entityData) const;
-    [[nodiscard]] Result<std::unique_ptr<mc::nbt::tags::compound_tag>> parseJavaRoot(
+    [[nodiscard]] Result<std::vector<u8>> _createEntityOnlyColumn(const std::vector<u8>& entityData) const;
+    [[nodiscard]] Result<std::unique_ptr<mc::nbt::tags::compound_tag>> _parseJavaRoot(
         const std::vector<u8>& nbtData) const;
-    [[nodiscard]] Result<std::vector<u8>> writeJavaRoot(const mc::nbt::tags::compound_tag& root) const;
+    [[nodiscard]] Result<std::vector<u8>> _writeJavaRoot(const mc::nbt::tags::compound_tag& root) const;
 
     JavaColumnReader& m_columnReader;
     std::filesystem::path m_worldPath;

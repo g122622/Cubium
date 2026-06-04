@@ -197,8 +197,8 @@ std::unique_ptr<InMemoryResourcePack> VanillaResources::createResourcePack()
 {
     auto pack = std::make_unique<InMemoryResourcePack>("vanilla");
 
-    registerBaseModels(*pack);
-    registerBlockStates(*pack);
+    _registerBaseModels(*pack);
+    _registerBlockStates(*pack);
 
     return pack;
 }
@@ -207,7 +207,7 @@ std::unique_ptr<InMemoryResourcePack> VanillaResources::createResourcePack()
 // 注册基础模型
 // ============================================================================
 
-void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
+void VanillaResources::_registerBaseModels(InMemoryResourcePack& pack)
 {
     // 基础方块模型（无父模型）
     pack.addClientResource("minecraft/models/block/cube.json", MODEL_CUBE);
@@ -753,7 +753,7 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
         }
     })");
 
-    // Wood log variants (using cube_column template)
+    // 原木变种（使用 cube_column 模板）
     const char* logTemplate = R"({
         "parent": "block/cube_column",
         "textures": {
@@ -880,10 +880,10 @@ void VanillaResources::registerBaseModels(InMemoryResourcePack& pack)
 }
 
 // ============================================================================
-// Register Blockstates
+// 注册 Blockstates
 // ============================================================================
 
-void VanillaResources::registerBlockStates(InMemoryResourcePack& pack)
+void VanillaResources::_registerBlockStates(InMemoryResourcePack& pack)
 {
     // Most simple blocks use "normal" variant
     const char* simpleBlockstate = R"({

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../item/core/ItemStack.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include <memory>
 #include <optional>
 
@@ -50,8 +50,6 @@ class IMerchant;
  * @brief 商人交易优惠
  *
  * 单个交易项，包含买入物品A、可选的买入物品B、卖出物品、使用次数等。
- *
- * 参考 MC 1.16.5 TradeOffer
  */
 class MerchantOffer {
 public:
@@ -109,7 +107,7 @@ public:
     /**
      * @brief 增加使用次数
      */
-    void increaseUses() { ++m_uses; }
+    void increaseUses() noexcept { ++m_uses; }
 
     /**
      * @brief 补货（重置使用次数）
@@ -121,7 +119,7 @@ public:
     /**
      * @brief 是否售罄
      */
-    [[nodiscard]] bool isOutOfStock() const { return m_uses >= m_maxUses; }
+    [[nodiscard]] bool isOutOfStock() const noexcept { return m_uses >= m_maxUses; }
 
     /**
      * @brief 是否禁用（售罄且无法补货）
@@ -131,69 +129,69 @@ public:
     /**
      * @brief 获取使用次数
      */
-    [[nodiscard]] i32 getUses() const { return m_uses; }
+    [[nodiscard]] i32 getUses() const noexcept { return m_uses; }
 
     /**
      * @brief 获取最大使用次数
      */
-    [[nodiscard]] i32 getMaxUses() const { return m_maxUses; }
+    [[nodiscard]] i32 getMaxUses() const noexcept { return m_maxUses; }
 
     /**
      * @brief 获取剩余使用次数
      */
-    [[nodiscard]] i32 getRemainingUses() const { return m_maxUses - m_uses; }
+    [[nodiscard]] i32 getRemainingUses() const noexcept { return m_maxUses - m_uses; }
 
     /**
      * @brief 获取使用进度（0.0-1.0）
      */
-    [[nodiscard]] f32 getProgress() const;
+    [[nodiscard]] f32 getProgress() const noexcept;
 
     // ========== 物品获取 ==========
 
     /**
      * @brief 获取第一买入物品
      */
-    [[nodiscard]] const ItemStack& getBuyA() const { return m_buyA; }
-    ItemStack& getBuyA() { return m_buyA; }
+    [[nodiscard]] const ItemStack& getBuyA() const noexcept { return m_buyA; }
+    ItemStack& getBuyA() noexcept { return m_buyA; }
 
     /**
      * @brief 获取第二买入物品
      */
-    [[nodiscard]] const std::optional<ItemStack>& getBuyB() const { return m_buyB; }
-    std::optional<ItemStack>& getBuyB() { return m_buyB; }
+    [[nodiscard]] const std::optional<ItemStack>& getBuyB() const noexcept { return m_buyB; }
+    std::optional<ItemStack>& getBuyB() noexcept { return m_buyB; }
 
     /**
      * @brief 获取卖出物品
      */
-    [[nodiscard]] const ItemStack& getSell() const { return m_sell; }
-    ItemStack& getSell() { return m_sell; }
+    [[nodiscard]] const ItemStack& getSell() const noexcept { return m_sell; }
+    ItemStack& getSell() noexcept { return m_sell; }
 
     // ========== 价格调整 ==========
 
     /**
      * @brief 获取价格乘数
      */
-    [[nodiscard]] f32 getPriceMultiplier() const { return m_priceMultiplier; }
+    [[nodiscard]] f32 getPriceMultiplier() const noexcept { return m_priceMultiplier; }
 
     /**
      * @brief 获取特殊价格修正
      */
-    [[nodiscard]] i32 getSpecialPrice() const { return m_specialPrice; }
+    [[nodiscard]] i32 getSpecialPrice() const noexcept { return m_specialPrice; }
 
     /**
      * @brief 设置特殊价格修正
      */
-    void setSpecialPrice(i32 price) { m_specialPrice = price; }
+    void setSpecialPrice(i32 price) noexcept { m_specialPrice = price; }
 
     /**
      * @brief 获取需求修正
      */
-    [[nodiscard]] i32 getDemand() const { return m_demand; }
+    [[nodiscard]] i32 getDemand() const noexcept { return m_demand; }
 
     /**
      * @brief 设置需求修正
      */
-    void setDemand(i32 demand) { m_demand = demand; }
+    void setDemand(i32 demand) noexcept { m_demand = demand; }
 
     /**
      * @brief 应用需求调整
@@ -204,26 +202,26 @@ public:
     /**
      * @brief 获取调整后的买入价格
      */
-    [[nodiscard]] i32 getAdjustedBuyPrice() const;
+    [[nodiscard]] i32 getAdjustedBuyPrice() const noexcept;
 
     // ========== 经验 ==========
 
     /**
      * @brief 获取交易给予的经验
      */
-    [[nodiscard]] i32 getXp() const { return m_xp; }
+    [[nodiscard]] i32 getXp() const noexcept { return m_xp; }
 
     // ========== 补货 ==========
 
     /**
      * @brief 获取今日补货次数
      */
-    [[nodiscard]] i32 getRestocksToday() const { return m_restocksToday; }
+    [[nodiscard]] i32 getRestocksToday() const noexcept { return m_restocksToday; }
 
     /**
      * @brief 重置每日补货计数
      */
-    void resetDailyRestock() { m_restocksToday = 0; }
+    void resetDailyRestock() noexcept { m_restocksToday = 0; }
 
     // ========== 序列化 ==========
 

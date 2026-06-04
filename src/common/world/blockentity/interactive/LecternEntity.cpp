@@ -56,7 +56,7 @@ LecternEntity::LecternEntity(const BlockPos& pos)
     , m_inventory(1)
 {}
 
-LecternEntity::~LecternEntity() = default;
+LecternEntity::~LecternEntity() noexcept = default;
 
 ItemStack LecternEntity::getBook() const
 {
@@ -65,7 +65,7 @@ ItemStack LecternEntity::getBook() const
 
 bool LecternEntity::setBook(const ItemStack& book)
 {
-    if (!isValidBook(book)) {
+    if (!_isValidBook(book)) {
         return false;
     }
 
@@ -191,7 +191,7 @@ void LecternEntity::tick(IWorld& world)
     MC_UNUSED(world);
 }
 
-bool LecternEntity::isValidBook(const ItemStack& stack)
+bool LecternEntity::_isValidBook(const ItemStack& stack)
 {
     if (stack.isEmpty()) {
         return false;
@@ -200,7 +200,7 @@ bool LecternEntity::isValidBook(const ItemStack& stack)
     return isLecternBookItem(stack.getItem());
 }
 
-void LecternEntity::updateBlockState(IWorld& world)
+void LecternEntity::_updateBlockState(IWorld& world)
 {
     MC_UNUSED(world);
 }

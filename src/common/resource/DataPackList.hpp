@@ -265,9 +265,9 @@ private:
 
     void notifyChange();
 
-    [[nodiscard]] static std::string normalizePath(const std::filesystem::path& path);
-    [[nodiscard]] static bool isZipFile(const std::filesystem::path& path);
-    [[nodiscard]] static bool isDataPackDir(const std::filesystem::path& path);
+    [[nodiscard]] static std::string normalizePath(const std::filesystem::path& path) noexcept;
+    [[nodiscard]] static bool isZipFile(const std::filesystem::path& path) noexcept;
+    [[nodiscard]] static bool isDataPackDir(const std::filesystem::path& path) noexcept;
 };
 
 } // namespace mc::resource

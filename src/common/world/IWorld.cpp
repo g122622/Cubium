@@ -95,14 +95,12 @@ void IWorld::notifyNeighborChanged(const BlockPos& neighborPos,
 
 void IWorld::updateNeighbors(const BlockPos& pos, Block& sourceBlock)
 {
-    // MC 1.16.5: notifyNeighborsOfStateChange
     // 委托给 RedstoneSystem 实现
     world::redstone::RedstoneSystem::instance().updateNeighbors(*this, pos, sourceBlock);
 }
 
 void IWorld::updateNeighborsExcept(const BlockPos& pos, Block& sourceBlock, Direction except)
 {
-    // MC 1.16.5: notifyNeighborsOfStateExcept
     // 委托给 RedstoneSystem 实现
     world::redstone::RedstoneSystem::instance().updateNeighborsExcept(*this, pos, sourceBlock, except);
 }

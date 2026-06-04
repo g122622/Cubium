@@ -65,13 +65,14 @@ Result<std::optional<ChunkData>> JavaWorldReader::readChunk(ChunkCoord x, ChunkC
         return Error(ErrorCode::InvalidState, "Java world reader not open");
     }
 
-    const i32 regionX = x >> 5;
-    const i32 regionZ = z >> 5;
-    const i32 localX = x & 31;
-    const i32 localZ = z & 31;
+    // 计算区域坐标和区域内本地坐标
+    const i32 regionX = x >> REGION_SHIFT;
+    const i32 regionZ = z >> REGION_SHIFT;
+    const i32 localX = x & REGION_MASK;
+    const i32 localZ = z & REGION_MASK;
 
-    RegionFile* mainRegion = getOrOpenRegion(regionX, regionZ, dimension, RegionKind::Main);
-    RegionFile* entitiesRegion = getOrOpenRegion(regionX, regionZ, dimension, RegionKind::Entities);
+    RegionFile* mainRegion = _getOrOpenRegion(regionX, regionZ, dimension, RegionKind::Main);
+    RegionFile* entitiesRegion = _getOrOpenRegion(regionX, regionZ, dimension, RegionKind::Entities);
 
     const bool hasMainChunk = mainRegion != nullptr && mainRegion->hasChunk(localX, localZ);
     const bool hasEntityChunk = entitiesRegion != nullptr && entitiesRegion->hasChunk(localX, localZ);
@@ -97,7 +98,7 @@ Result<std::optional<ChunkData>> JavaWorldReader::readChunk(ChunkCoord x, ChunkC
         entityData = std::move(dataResult.value());
     }
 
-    auto combinedDataResult = combineColumnData(mainData, entityData);
+    auto combinedDataResult = _combineColumnData(mainData, entityData);
     if (combinedDataResult.failed()) {
         return combinedDataResult.error();
     }
@@ -112,7 +113,7 @@ Result<std::vector<ChunkPos>> JavaWorldReader::listChunks(DimensionId dimension)
     }
 
     std::vector<ChunkPos> chunks;
-    const std::filesystem::path regionDir = getRegionDir(dimension, RegionKind::Main);
+    const std::filesystem::path regionDir = _getRegionDir(dimension, RegionKind::Main);
 
     std::error_code ec;
     if (!std::filesystem::exists(regionDir, ec)) {
@@ -146,7 +147,8 @@ Result<std::vector<ChunkPos>> JavaWorldReader::listChunks(DimensionId dimension)
             }
 
             for (const auto& [lx, lz] : region.listChunks()) {
-                chunks.emplace_back(rX * 32 + lx, rZ * 32 + lz);
+                // 将区域本地坐标转换为全局区块坐标
+                chunks.emplace_back(rX * REGION_WIDTH + lx, rZ * REGION_WIDTH + lz);
             }
         }
         catch (...) {
@@ -157,7 +159,7 @@ Result<std::vector<ChunkPos>> JavaWorldReader::listChunks(DimensionId dimension)
     return chunks;
 }
 
-std::filesystem::path JavaWorldReader::getRegionDir(DimensionId dimension, RegionKind kind) const
+std::filesystem::path JavaWorldReader::_getRegionDir(DimensionId dimension, RegionKind kind) const
 {
     switch (dimension) {
         case 0:
@@ -171,7 +173,7 @@ std::filesystem::path JavaWorldReader::getRegionDir(DimensionId dimension, Regio
     }
 }
 
-RegionFile* JavaWorldReader::getOrOpenRegion(i32 regionX, i32 regionZ, DimensionId dimension, RegionKind kind)
+RegionFile* JavaWorldReader::_getOrOpenRegion(i32 regionX, i32 regionZ, DimensionId dimension, RegionKind kind)
 {
     const JavaRegionPosKey key{
         kind == RegionKind::Main ? dimension : static_cast<DimensionId>(dimension ^ 0x40000000), regionX, regionZ};
@@ -181,7 +183,7 @@ RegionFile* JavaWorldReader::getOrOpenRegion(i32 regionX, i32 regionZ, Dimension
     }
 
     const std::filesystem::path regionPath =
-        getRegionDir(dimension, kind) / fmt::format("r.{}.{}.mca", regionX, regionZ);
+        _getRegionDir(dimension, kind) / fmt::format("r.{}.{}.mca", regionX, regionZ);
     std::error_code ec;
     if (!std::filesystem::exists(regionPath, ec)) {
         return nullptr;
@@ -199,14 +201,16 @@ RegionFile* JavaWorldReader::getOrOpenRegion(i32 regionX, i32 regionZ, Dimension
     return ptr;
 }
 
-Result<std::vector<u8>> JavaWorldReader::combineColumnData(
+Result<std::vector<u8>> JavaWorldReader::_combineColumnData(
     const std::optional<std::vector<u8>>& mainData, const std::optional<std::vector<u8>>& entityData) const
 {
-    if (mainData.has_value() && entityData.has_value() && m_formatInfo.dataVersion >= 2724) {
-        return mergeEntitiesIntoMain(*mainData, *entityData);
+    // Java 21w43a（数据版本 2724）起，实体数据独立存储于 entities/ 目录
+    if (mainData.has_value() && entityData.has_value() && m_formatInfo.dataVersion >= DATA_VERSION_ENTITIES_SEPARATED) {
+        return _mergeEntitiesIntoMain(*mainData, *entityData);
     }
-    if (!mainData.has_value() && entityData.has_value() && m_formatInfo.dataVersion >= 2724) {
-        return createEntityOnlyColumn(*entityData);
+    if (!mainData.has_value() && entityData.has_value() &&
+        m_formatInfo.dataVersion >= DATA_VERSION_ENTITIES_SEPARATED) {
+        return _createEntityOnlyColumn(*entityData);
     }
     if (mainData.has_value()) {
         return *mainData;
@@ -214,15 +218,15 @@ Result<std::vector<u8>> JavaWorldReader::combineColumnData(
     return Error(ErrorCode::ChunkNotFound, "No Java chunk data found in region or entities files");
 }
 
-Result<std::vector<u8>> JavaWorldReader::mergeEntitiesIntoMain(
+Result<std::vector<u8>> JavaWorldReader::_mergeEntitiesIntoMain(
     const std::vector<u8>& mainData, const std::vector<u8>& entityData) const
 {
-    auto mainRootResult = parseJavaRoot(mainData);
+    auto mainRootResult = _parseJavaRoot(mainData);
     if (mainRootResult.failed()) {
         return mainRootResult.error();
     }
 
-    auto entityRootResult = parseJavaRoot(entityData);
+    auto entityRootResult = _parseJavaRoot(entityData);
     if (entityRootResult.failed()) {
         return entityRootResult.error();
     }
@@ -245,12 +249,12 @@ Result<std::vector<u8>> JavaWorldReader::mergeEntitiesIntoMain(
         target->value["Entities"] = entityIt->second->copy();
     }
 
-    return writeJavaRoot(mainRoot);
+    return _writeJavaRoot(mainRoot);
 }
 
-Result<std::vector<u8>> JavaWorldReader::createEntityOnlyColumn(const std::vector<u8>& entityData) const
+Result<std::vector<u8>> JavaWorldReader::_createEntityOnlyColumn(const std::vector<u8>& entityData) const
 {
-    auto entityRootResult = parseJavaRoot(entityData);
+    auto entityRootResult = _parseJavaRoot(entityData);
     if (entityRootResult.failed()) {
         return entityRootResult.error();
     }
@@ -281,10 +285,10 @@ Result<std::vector<u8>> JavaWorldReader::createEntityOnlyColumn(const std::vecto
         root.value["Entities"] = entityIt->second->copy();
     }
 
-    return writeJavaRoot(root);
+    return _writeJavaRoot(root);
 }
 
-Result<std::unique_ptr<compound_tag>> JavaWorldReader::parseJavaRoot(const std::vector<u8>& nbtData) const
+Result<std::unique_ptr<compound_tag>> JavaWorldReader::_parseJavaRoot(const std::vector<u8>& nbtData) const
 {
     std::istringstream stream(std::string(nbtData.begin(), nbtData.end()));
     stream >> contexts::java;
@@ -295,7 +299,7 @@ Result<std::unique_ptr<compound_tag>> JavaWorldReader::parseJavaRoot(const std::
     return root;
 }
 
-Result<std::vector<u8>> JavaWorldReader::writeJavaRoot(const compound_tag& root) const
+Result<std::vector<u8>> JavaWorldReader::_writeJavaRoot(const compound_tag& root) const
 {
     std::ostringstream stream;
     stream << contexts::java;

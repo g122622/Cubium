@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::world::village::raid {
 
@@ -49,7 +49,7 @@ public:
      *
      * @note 返回值为静态字符串字面量，调用方不得释放。
      */
-    [[nodiscard]] static const char* getName(RaiderType type);
+    [[nodiscard]] static const char* getName(RaiderType type) noexcept;
 
     /**
      * @brief 获取袭击者基础生命值。
@@ -59,7 +59,7 @@ public:
      *
      * @note 该值目前用于简化袭击配置，后续可迁移到实体属性模板。
      */
-    [[nodiscard]] static f32 getBaseHealth(RaiderType type);
+    [[nodiscard]] static f32 getBaseHealth(RaiderType type) noexcept;
 
     /**
      * @brief 获取指定波次下的生成权重。
@@ -70,7 +70,7 @@ public:
      *
      * @warning 调用方需保证 `wave >= 1`，本函数不做防御性兜底。
      */
-    [[nodiscard]] static i32 getSpawnWeight(RaiderType type, i32 wave);
+    [[nodiscard]] static i32 getSpawnWeight(RaiderType type, i32 wave) noexcept;
 
     /**
      * @brief 判断该袭击者是否可骑乘劫掠兽。
@@ -78,7 +78,7 @@ public:
      * @param type 袭击者类型。
      * @return 是否允许骑乘劫掠兽。
      */
-    [[nodiscard]] static bool canRideRavager(RaiderType type);
+    [[nodiscard]] static bool canRideRavager(RaiderType type) noexcept;
 };
 
 /**

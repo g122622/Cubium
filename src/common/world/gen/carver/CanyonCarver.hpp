@@ -31,10 +31,10 @@ namespace mc {
 /**
  * @brief 峡谷雕刻器
  *
- * 参考 MC CanyonWorldCarver，生成峡谷地形。
+ * 生成峡谷地形。
  * 改进版本：
  * - 继承 WorldCarver 基类
- * - 使用预计算半径变化表（field_202536_i）
+ * - 使用预计算半径变化表
  * - 改进的蜿蜒曲线算法
  * - 使用雕刻掩码防止重复雕刻
  *
@@ -47,7 +47,6 @@ namespace mc {
  * @endcode
  *
  * @note 峡谷雕刻应在 NOISE 阶段之后、SURFACE 阶段之前进行
- * @note 参考 MC 1.16.5 CanyonWorldCarver
  */
 class CanyonCarver : public WorldCarver<ProbabilityConfig> {
 public:
@@ -93,13 +92,16 @@ protected:
     [[nodiscard]] bool shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const override;
 
 private:
-    /// 预计算的半径变化表（参考 MC field_202536_i，大小 1024）
+    /// 预计算的半径变化表（大小 1024）
     std::vector<f32> m_heightThresholds;
+
+    /// 高度阈值表大小常量
+    static constexpr size_t HEIGHT_THRESHOLD_TABLE_SIZE = 1024;
 
     /**
      * @brief 初始化半径变化表
      */
-    void initializeHeightThresholds();
+    void _initializeHeightThresholds();
 
     /**
      * @brief 生成蜿蜒峡谷
@@ -121,7 +123,7 @@ private:
      * @param horizontalScale 水平缩放
      * @param carvingMask 雕刻掩码
      */
-    void generateCanyon(ChunkPrimer& chunk,
+    void _generateCanyon(ChunkPrimer& chunk,
         const BiomeProvider& biomeProvider,
         i32 seaLevel,
         ChunkCoord chunkX,
@@ -146,7 +148,7 @@ private:
      * @param index 当前索引
      * @return 更新后的半径
      */
-    [[nodiscard]] f32 updateRadius(f32 baseRadius, f32 progress, const std::vector<f32>& thresholds, i32 index) const;
+    [[nodiscard]] f32 _updateRadius(f32 baseRadius, f32 progress, const std::vector<f32>& thresholds, i32 index) const;
 };
 
 } // namespace mc

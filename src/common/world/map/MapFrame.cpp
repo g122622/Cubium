@@ -28,7 +28,7 @@ namespace mc::world::map {
 
 namespace nbt_helper = mc::entity::serialization::nbt_helper;
 
-MapFrame::MapFrame(BlockPos pos, i32 rotation, i32 entityId)
+MapFrame::MapFrame(BlockPos pos, i32 rotation, i32 entityId) noexcept
     : m_pos(pos)
     , m_rotation(rotation)
     , m_entityId(entityId)

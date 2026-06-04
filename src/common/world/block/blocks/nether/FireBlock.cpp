@@ -156,8 +156,6 @@ BlockState FireBlock::updatePostPlacement(const BlockState& state,
 
 void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    // 参考 MC 1.16.5: FireBlock.tick()
-
     // 1. 检查位置有效性
     IBlockReader& blockReader = static_cast<IBlockReader&>(world);
     if (!isValidPosition(state, blockReader, pos)) {
@@ -225,11 +223,9 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
 
 void FireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 参考 MC 1.16.5 AbstractFireBlock.onBlockAdded
     // 火焰方块被放置时，立即检测并点燃下界传送门
 
     // 维度检查：只允许在主世界和下界点燃下界传送门
-    // MC 1.16.5: func_242649_a(world) 检查 world.dimension == OVERWORLD || world.dimension == NETHER
     DimensionId dimensionId = world.dimension();
 
     if (dimensionId != DimensionManager::OVERWORLD && dimensionId != DimensionManager::NETHER) {
@@ -237,8 +233,7 @@ void FireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockStat
         return;
     }
 
-    // 尝试点燃下界传送门
-    // 参考 MC 1.16.5: 先尝试 X 轴，再尝试 Z 轴
+    // 尝试点燃下界传送门（先尝试 X 轴，再尝试 Z 轴）
     if (tryLightNetherPortal(world, pos)) {
         return;
     }
@@ -246,14 +241,13 @@ void FireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockStat
 
 bool FireBlock::tryLightNetherPortal(IWorld& world, const BlockPos& pos)
 {
-    // 参考 MC 1.16.5 AbstractFireBlock.onBlockAdded
     // 检查火焰周围是否形成有效的下界传送门框架
 
     if (VanillaBlocks::OBSIDIAN == nullptr || VanillaBlocks::NETHER_PORTAL == nullptr) {
         return false;
     }
 
-    // 参考 MC 1.16.5: 先尝试 X 轴，再尝试 Z 轴
+    // 先尝试 X 轴，再尝试 Z 轴
     // PortalSize::findNetherPortal 会先尝试 preferXAxis 指定的轴向
     auto portalResult = PortalSize::findNetherPortal(world, pos, true);
 
@@ -285,7 +279,6 @@ void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const 
     MC_UNUSED(state);
     MC_UNUSED(pos);
 
-    // 参考 MC 1.16.5 AbstractFireBlock.onEntityCollision()
     // 1. 检查实体是否免疫火焰
     if (entity.isImmuneToFire()) {
         return;
@@ -295,7 +288,6 @@ void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const 
     entity.forceFireTicks(entity.getFireTimer() + 1);
 
     // 3. 如果火焰计时器为 0，设置燃烧 8 秒（160 ticks）
-    // MC 1.16.5: setFire 接收 ticks，所以 8 秒 = 8 * 20 = 160 ticks
     if (entity.getFireTimer() == 0) {
         entity.setFire(160);
     }
@@ -324,7 +316,6 @@ const CollisionShape& FireBlock::getCollisionShape(const BlockState& state) cons
 
 bool FireBlock::canBurn(IBlockReader& world, const BlockPos& pos) const
 {
-    // 参考 MC 1.16.5: FireBlock.canBurn()
     // 检查指定位置是否可以燃烧（检查周围是否有可燃方块）
 
     // 遍历6个方向，检查是否有可燃方块
@@ -343,8 +334,6 @@ bool FireBlock::canBurn(IBlockReader& world, const BlockPos& pos) const
 
 void FireBlock::trySpread(IWorld& world, const BlockPos& pos, i32 age, math::IRandom& random)
 {
-    // 参考 MC 1.16.5: FireBlock.tick() 中的蔓延逻辑
-
     // 检查游戏规则
     if (!world.doFireTick()) {
         return;
@@ -359,7 +348,6 @@ void FireBlock::trySpread(IWorld& world, const BlockPos& pos, i32 age, math::IRa
     bool isHighHumidity = world.isRaining() && canDie(world, pos);
 
     // ===== 1. 直接相邻方块的燃烧 =====
-    // 参考 MC 1.16.5: FireBlock.tick() 中对6个方向的 tryCatchFire 调用
 
     // 湿度惩罚：高湿度时 -50
     i32 humidityPenalty = isHighHumidity ? -50 : 0;
@@ -374,7 +362,6 @@ void FireBlock::trySpread(IWorld& world, const BlockPos& pos, i32 age, math::IRa
     tryCatchFire(world, pos.west(), 300 + humidityPenalty, random, age, Direction::East);
 
     // ===== 2. 远距离蔓延 =====
-    // 参考 MC 1.16.5: FireBlock.tick() 中的 3x6 循环
 
     // 蔓延范围：x: -1~1, y: -1~4, z: -1~1
     for (i32 dx = -1; dx <= 1; ++dx) {
@@ -426,7 +413,6 @@ void FireBlock::trySpread(IWorld& world, const BlockPos& pos, i32 age, math::IRa
 
 bool FireBlock::canDie(IWorld& world, const BlockPos& pos) const
 {
-    // 参考 MC 1.16.5: FireBlock.canDie()
     // 检查火焰位置或相邻位置是否在下雨
 
     if (world.canRainAt(pos)) {
@@ -451,7 +437,6 @@ bool FireBlock::canDieAt(IWorld& world, const BlockPos& pos) const
 
 i32 FireBlock::getNeighborEncouragement(IWorld& world, const BlockPos& pos) const
 {
-    // 参考 MC 1.16.5: FireBlock.getNeighborEncouragement()
     // 获取目标位置周围的最大火焰蔓延速度
 
     const BlockState* targetState = world.getBlockState(pos);
@@ -479,8 +464,6 @@ i32 FireBlock::getNeighborEncouragement(IWorld& world, const BlockPos& pos) cons
 void FireBlock::tryCatchFire(
     IWorld& world, const BlockPos& pos, i32 chance, math::IRandom& random, i32 age, Direction face)
 {
-    // 参考 MC 1.16.5: FireBlock.tryCatchFire()
-
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr || state->isAir()) {
         return;
@@ -506,7 +489,6 @@ void FireBlock::tryCatchFire(
 
     // ===== 点燃或烧毁 =====
     // 5% 基础概率点燃，否则直接烧毁
-    // MC: if (random.nextInt(age + 10) < 5 && !world.isRainingAt(pos))
 
     bool shouldIgnite = random.nextInt(age + 10) < 5 && !world.canRainAt(pos);
 
@@ -526,7 +508,6 @@ void FireBlock::tryCatchFire(
 
 bool FireBlock::areNeighborsFlammable(IBlockReader& world, const BlockPos& pos) const
 {
-    // 参考 MC 1.16.5: FireBlock.areNeighborsFlammable()
     // 检查周围是否有可燃方块
 
     for (Direction dir :
@@ -544,7 +525,6 @@ bool FireBlock::areNeighborsFlammable(IBlockReader& world, const BlockPos& pos) 
 
 bool FireBlock::canCatchFire(IWorld& world, const BlockPos& pos, Direction face) const
 {
-    // 参考 MC 1.16.5: IForgeBlock.canCatchFire()
     // 检查指定位置是否可以被点燃
 
     const BlockState* state = world.getBlockState(pos);

@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../core/Constants.hpp"
-#include "../../core/Types.hpp"
-#include "../../util/Direction.hpp"
-#include "../../util/math/MathUtils.hpp"
-#include "../../util/math/Vector3.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 
 #include <cstdint>
 #include <functional>

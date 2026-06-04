@@ -45,8 +45,6 @@ namespace blockentity {
  * - 打开时有动画效果
  * - 实现 ISidedInventory（漏斗可以从任意方向访问所有槽位）
  * - 支持战利品表填充（继承自 LootableContainerBlockEntity）
- *
- * 参考: net.minecraft.tileentity.ShulkerBoxTileEntity
  */
 class ShulkerBoxEntity : public LootableContainerBlockEntity, public ISidedInventory {
 public:
@@ -75,7 +73,7 @@ public:
     /**
      * @brief 析构函数
      */
-    ~ShulkerBoxEntity() override;
+    ~ShulkerBoxEntity() noexcept override;
 
     // ========== IInventory 接口实现 ==========
 
@@ -199,31 +197,30 @@ private:
      * @brief 更新动画状态
      * @param partialTick 部分tick时间
      */
-    void updateAnimation(f32 partialTick);
+    void _updateAnimation(f32 partialTick);
 
     /**
      * @brief 检查是否可以打开（内部使用）
      * @param world 世界引用
      * @return 如果可以打开返回true
      */
-    [[nodiscard]] bool checkCanOpen(IWorld& world) const;
+    [[nodiscard]] bool _checkCanOpen(IWorld& world) const;
 
     /**
      * @brief 推动碰撞的实体
      *
-     * MC 1.16.5: 当潜影盒打开/关闭时，推动附近实体。
-     * 参考: ShulkerBoxTileEntity.moveCollidedEntities()
+     * 当潜影盒打开/关闭时，推动附近实体。
      *
      * @param world 世界引用
      * @param facing 潜影盒朝向（缓存）
      */
-    void moveCollidedEntities(IWorld& world, Direction facing);
+    void _moveCollidedEntities(IWorld& world, Direction facing);
 
     /**
      * @brief 缓存潜影盒朝向
      * @param world 世界引用
      */
-    void cacheFacing(IWorld& world);
+    void _cacheFacing(IWorld& world);
 
     SimpleInventory m_inventory;                                 ///< 27格物品存储
     AnimationStatus m_animationStatus = AnimationStatus::Closed; ///< 动画状态

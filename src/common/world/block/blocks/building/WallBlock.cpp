@@ -21,13 +21,13 @@
  *
  */
 
-#include "WallBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
-#include "../../FenceGateHelpers.hpp"
-#include "../../WaterLoggableHelpers.hpp"
+#include "common/world/block/blocks/building/WallBlock.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/FenceGateHelpers.hpp"
+#include "common/world/block/WaterLoggableHelpers.hpp"
 
 namespace mc {
 namespace blocks {
@@ -73,7 +73,7 @@ WallBlock::WallBlock(const BlockProperties& properties)
             for (int east = 0; east <= 2; ++east) {
                 for (int south = 0; south <= 2; ++south) {
                     for (int west = 0; west <= 2; ++west) {
-                        size_t idx = getShapeIndex(up != 0,
+                        size_t idx = _getShapeIndex(up != 0,
                             static_cast<BlockStateProperties::WallHeight>(north),
                             static_cast<BlockStateProperties::WallHeight>(east),
                             static_cast<BlockStateProperties::WallHeight>(south),
@@ -119,7 +119,7 @@ BlockState WallBlock::getStateForPlacement(BlockItemUseContext& context)
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
-    BlockState state = calculateState(world, pos, defaultState());
+    BlockState state = _calculateState(world, pos, defaultState());
     bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
     return state.with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
@@ -140,12 +140,12 @@ BlockState WallBlock::updatePostPlacement(const BlockState& state,
         waterloggable::scheduleWaterTick(world, currentPos);
     }
 
-    return calculateState(world, currentPos, state);
+    return _calculateState(world, currentPos, state);
 }
 
 const CollisionShape& WallBlock::getShape(const BlockState& state) const
 {
-    size_t index = getShapeIndex(state.get(BlockStateProperties::UP()),
+    size_t index = _getShapeIndex(state.get(BlockStateProperties::UP()),
         state.get(BlockStateProperties::WALL_HEIGHT_NORTH()),
         state.get(BlockStateProperties::WALL_HEIGHT_EAST()),
         state.get(BlockStateProperties::WALL_HEIGHT_SOUTH()),
@@ -217,7 +217,7 @@ const BlockState& WallBlock::mirror(const BlockState& state, Mirror mirror) cons
     return state;
 }
 
-BlockState WallBlock::calculateState(const IWorld& world, const BlockPos& pos, const BlockState& state) const
+BlockState WallBlock::_calculateState(const IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
     BlockPos northPos(pos.x, pos.y, pos.z - 1);
     BlockPos southPos(pos.x, pos.y, pos.z + 1);
@@ -230,13 +230,13 @@ BlockState WallBlock::calculateState(const IWorld& world, const BlockPos& pos, c
     const BlockState* westState = world.getBlockState(westPos);
 
     BlockStateProperties::WallHeight northHeight =
-        northState ? getWallHeight(*northState, Direction::North) : BlockStateProperties::WallHeight::None;
+        northState ? _getWallHeight(*northState, Direction::North) : BlockStateProperties::WallHeight::None;
     BlockStateProperties::WallHeight southHeight =
-        southState ? getWallHeight(*southState, Direction::South) : BlockStateProperties::WallHeight::None;
+        southState ? _getWallHeight(*southState, Direction::South) : BlockStateProperties::WallHeight::None;
     BlockStateProperties::WallHeight eastHeight =
-        eastState ? getWallHeight(*eastState, Direction::East) : BlockStateProperties::WallHeight::None;
+        eastState ? _getWallHeight(*eastState, Direction::East) : BlockStateProperties::WallHeight::None;
     BlockStateProperties::WallHeight westHeight =
-        westState ? getWallHeight(*westState, Direction::West) : BlockStateProperties::WallHeight::None;
+        westState ? _getWallHeight(*westState, Direction::West) : BlockStateProperties::WallHeight::None;
 
     bool hasConnections = northHeight != BlockStateProperties::WallHeight::None ||
         southHeight != BlockStateProperties::WallHeight::None || eastHeight != BlockStateProperties::WallHeight::None ||
@@ -265,9 +265,8 @@ BlockState WallBlock::calculateState(const IWorld& world, const BlockPos& pos, c
         .with(BlockStateProperties::WALL_HEIGHT_WEST(), westHeight);
 }
 
-BlockStateProperties::WallHeight WallBlock::getWallHeight(const BlockState& state, Direction neighborSide) const
+BlockStateProperties::WallHeight WallBlock::_getWallHeight(const BlockState& state, Direction neighborSide) const
 {
-    // 参考: MC 1.16.5 WallBlock.func_220113_a 和 func_235633_a_
     // 连接逻辑:
     // 1. 墙总是连接到其他墙 (返回 Tall)
     // 2. 栅栏门平行时连接 (返回 Low)
@@ -312,7 +311,7 @@ bool WallBlock::isWall(const BlockState& state)
     return state.hasProperty(BlockStateProperties::WALL_HEIGHT_NORTH());
 }
 
-size_t WallBlock::getShapeIndex(bool up,
+size_t WallBlock::_getShapeIndex(bool up,
     BlockStateProperties::WallHeight north,
     BlockStateProperties::WallHeight east,
     BlockStateProperties::WallHeight south,

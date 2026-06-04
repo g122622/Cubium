@@ -23,12 +23,12 @@
 
 #pragma once
 
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 #include <memory>
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../Material.hpp"
 
 namespace mc {
 namespace blocks {
@@ -152,7 +152,7 @@ public:
     /**
      * @brief 是否为动力铁轨
      */
-    [[nodiscard]] bool isPowered() const { return m_isPowered; }
+    [[nodiscard]] bool isPowered() const noexcept { return m_isPowered; }
 
     /**
      * @brief 检查状态是否有铁轨形状属性

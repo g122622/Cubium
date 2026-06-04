@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../agricultural/BushBlock.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
 
 namespace mc {
 
@@ -42,8 +42,6 @@ namespace blocks {
  * 高度仅3像素（0.1875格），不会生长。
  *
  * MC ID: minecraft:nether_sprouts
- *
- * 参考: net.minecraft.block.NetherSproutsBlock
  */
 class NetherSproutsBlock : public BushBlock {
 public:

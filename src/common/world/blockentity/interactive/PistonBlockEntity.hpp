@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../util/Direction.hpp"
-#include "../../block/Block.hpp"
-#include "../BlockEntity.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include <memory>
 
 namespace mc {
@@ -81,23 +81,23 @@ public:
 
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
-    [[nodiscard]] bool isExtending() const { return m_extending; }
-    [[nodiscard]] Direction getFacing() const { return m_facing; }
-    [[nodiscard]] bool shouldRenderPistonHead() const { return m_shouldRenderHead; }
+    [[nodiscard]] bool isExtending() const noexcept { return m_extending; }
+    [[nodiscard]] Direction getFacing() const noexcept { return m_facing; }
+    [[nodiscard]] bool shouldRenderPistonHead() const noexcept { return m_shouldRenderHead; }
 
     /**
      * @brief 获取移动进度（0.0 - 1.0）。
      * @param partialTick 插值系数，超过 1.0 会被钳制
      * @return 插值后的进度
      */
-    [[nodiscard]] float getProgress(float partialTick) const;
+    [[nodiscard]] f32 getProgress(f32 partialTick) const;
 
-    [[nodiscard]] float getLastProgress() const { return m_lastProgress; }
-    [[nodiscard]] const BlockState* getPistonState() const { return m_pistonState; }
-    [[nodiscard]] Direction getMotionDirection() const;
-    [[nodiscard]] float getOffsetX(float partialTick) const;
-    [[nodiscard]] float getOffsetY(float partialTick) const;
-    [[nodiscard]] float getOffsetZ(float partialTick) const;
+    [[nodiscard]] f32 getLastProgress() const noexcept { return m_lastProgress; }
+    [[nodiscard]] const BlockState* getPistonState() const noexcept { return m_pistonState; }
+    [[nodiscard]] Direction getMotionDirection() const noexcept;
+    [[nodiscard]] f32 getOffsetX(f32 partialTick) const;
+    [[nodiscard]] f32 getOffsetY(f32 partialTick) const;
+    [[nodiscard]] f32 getOffsetZ(f32 partialTick) const;
 
     /**
      * @brief 清除活塞方块实体并落地最终状态。
@@ -105,15 +105,15 @@ public:
      */
     void clearPistonBlockEntity(IWorld& world);
 
-    [[nodiscard]] bool isComplete() const { return m_progress >= 1.0f; }
-    [[nodiscard]] i64 getLastTicked() const { return m_lastTicked; }
+    [[nodiscard]] bool isComplete() const noexcept { return m_progress >= 1.0f; }
+    [[nodiscard]] i64 getLastTicked() const noexcept { return m_lastTicked; }
 
     /**
      * @brief 计算扩展进度
      * @param progress 原始进度
      * @return 伸出时为 progress - 1.0，收回时为 1.0 - progress
      */
-    [[nodiscard]] float getExtendedProgress(float progress) const;
+    [[nodiscard]] f32 getExtendedProgress(f32 progress) const;
 
 private:
     /**
@@ -121,43 +121,42 @@ private:
      * @param world 世界引用
      * @param progressDelta 下一帧进度
      */
-    void moveCollidedEntities(IWorld& world, float progressDelta);
+    void _moveCollidedEntities(IWorld& world, f32 progressDelta);
 
     /**
      * @brief 收回时修复卡入活塞基座的实体。
      *
-     * MC 1.16.5: 当活塞收回时，如果实体被卡在活塞基座位置，
+     * 当活塞收回时，如果实体被卡在活塞基座位置，
      * 需要将实体推出到活塞基座之外。
      *
      * @param entity 实体指针
      * @param direction 活塞运动方向（收回方向）
      * @param moveDistance 移动距离
      */
-    void fixEntityWithinPistonBase(Entity& entity, Direction direction, f32 moveDistance);
+    void _fixEntityWithinPistonBase(Entity& entity, Direction direction, f32 moveDistance);
 
     /**
      * @brief 蜂蜜块拖拽实体逻辑。
      *
-     * MC 1.16.5: 当活塞推动蜂蜜块时，站在蜂蜜块上的实体应该被拖拽。
-     * 参考: PistonTileEntity.func_227024_g_
+     * 当活塞推动蜂蜜块时，站在蜂蜜块上的实体应该被拖拽。
      *
      * @param world 世界引用
      * @param progressDelta 下一帧进度
      */
-    void dragEntitiesOnHoneyBlock(IWorld& world, float progressDelta);
+    void _dragEntitiesOnHoneyBlock(IWorld& world, f32 progressDelta);
 
     /**
      * @brief 检查活塞移动的方块是否是蜂蜜块。
      * @return 如果是蜂蜜块返回 true
      */
-    [[nodiscard]] bool isHoneyBlock() const;
+    [[nodiscard]] bool _isHoneyBlock() const;
 
     /**
      * @brief 按当前方块位置与进度偏移 AABB。
      * @param aabb 方块局部 AABB
      * @return 偏移后的世界坐标 AABB
      */
-    [[nodiscard]] AxisAlignedBB moveByPositionAndProgress(const AxisAlignedBB& aabb) const;
+    [[nodiscard]] AxisAlignedBB _moveByPositionAndProgress(const AxisAlignedBB& aabb) const;
 
     /// 被移动的方块状态（非拥有）
     const BlockState* m_pistonState = nullptr;
@@ -166,13 +165,13 @@ private:
     bool m_extending = true;
     bool m_shouldRenderHead = false;
 
-    float m_progress = 0.0f;
-    float m_lastProgress = 0.0f;
+    f32 m_progress = 0.0f;
+    f32 m_lastProgress = 0.0f;
 
     i64 m_lastTicked = 0;
 
-    static constexpr float PROGRESS_PER_TICK = 0.5f;
-    static constexpr float COMPLETE_THRESHOLD = 1.0f;
+    static constexpr f32 PROGRESS_PER_TICK = 0.5f;
+    static constexpr f32 COMPLETE_THRESHOLD = 1.0f;
 };
 
 } // namespace blockentity

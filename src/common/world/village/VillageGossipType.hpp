@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <string>
 
 namespace mc {
@@ -35,8 +35,6 @@ namespace village {
  *
  * 流言影响村民对玩家的态度，进而影响交易价格。
  * 正面流言降低价格，负面流言提高价格。
- *
- * 参考 MC 1.16.5 GossipType
  */
 enum class VillageGossipType : u8 {
     /// 重大负面 - 攻击村民 (-100 声誉)

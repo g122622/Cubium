@@ -28,7 +28,11 @@ namespace fluid {
 
 namespace {
 
+// ============================================================================
 // 内置流体指针缓存
+// 这些指针在 Fluids::initialize() 中初始化，指向 FluidRegistry 中注册的流体实例
+// ============================================================================
+
 Fluid* g_empty = nullptr;
 Fluid* g_water = nullptr;
 Fluid* g_flowingWater = nullptr;
@@ -38,12 +42,18 @@ bool g_initialized = false;
 
 } // namespace
 
+// ============================================================================
+// Fluids 命名空间实现
+// ============================================================================
+
 void Fluids::initialize()
 {
+    // 防止重复初始化
     if (g_initialized) {
         return;
     }
 
+    // 从注册表中获取内置流体实例
     auto& registry = FluidRegistry::instance();
 
     g_empty = registry.getFluid(FluidRegistry::EMPTY_ID);

@@ -62,7 +62,7 @@ public:
 struct ChunkView {
     ChunkCoord centerX = 0;
     ChunkCoord centerZ = 0;
-    i32 viewDistance = 10; // 默认视距10个区块
+    i32 viewDistance = world::CHUNK_LOAD_RADIUS; // 默认视距
 
     // 检查区块是否在视距内
     [[nodiscard]] bool isChunkInView(ChunkCoord x, ChunkCoord z) const
@@ -196,7 +196,10 @@ public:
     [[nodiscard]] i32 defaultViewDistance() const { return m_defaultViewDistance; }
 
     // 区块坐标转换工具
-    static ChunkCoord blockToChunk(f64 blockCoord) { return static_cast<ChunkCoord>(std::floor(blockCoord / 16.0)); }
+    static ChunkCoord blockToChunk(f64 blockCoord)
+    {
+        return static_cast<ChunkCoord>(std::floor(blockCoord / static_cast<f64>(world::CHUNK_WIDTH)));
+    }
 
 private:
     std::unordered_map<PlayerId, std::shared_ptr<PlayerChunkTracker>> m_trackers;
@@ -204,7 +207,7 @@ private:
     // 区块 -> 订阅玩家映射
     std::unordered_map<ChunkId, std::unordered_set<PlayerId>> m_chunkSubscribers;
 
-    i32 m_defaultViewDistance = 10;
+    i32 m_defaultViewDistance = world::CHUNK_LOAD_RADIUS;
 };
 
 } // namespace mc::network

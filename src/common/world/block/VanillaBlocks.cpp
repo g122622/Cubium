@@ -64,9 +64,9 @@
 #include "blocks/functional/BarrelBlock.hpp"
 #include "blocks/functional/BeaconBlock.hpp"
 #include "blocks/functional/BrewingStandBlock.hpp"
+#include "blocks/functional/CakeBlock.hpp"
 #include "blocks/functional/CartographyTableBlock.hpp"
 #include "blocks/functional/ComposterBlock.hpp"
-#include "blocks/functional/CakeBlock.hpp"
 #include "blocks/functional/FletchingTableBlock.hpp"
 #include "blocks/functional/JukeboxBlock.hpp"
 #include "blocks/functional/LecternBlock.hpp"
@@ -83,9 +83,9 @@
 #include "blocks/nether/FireBlock.hpp"
 #include "blocks/nether/MagmaBlock.hpp"
 #include "blocks/nether/NetherPortalBlock.hpp"
-#include "blocks/nether/NetherWartBlock.hpp"
 #include "blocks/nether/NetherRootsBlock.hpp"
 #include "blocks/nether/NetherSproutsBlock.hpp"
+#include "blocks/nether/NetherWartBlock.hpp"
 #include "blocks/nether/NyliumBlock.hpp"
 #include "blocks/nether/SoulFireBlock.hpp"
 #include "blocks/ocean/BubbleColumnBlock.hpp"
@@ -892,7 +892,6 @@ void VanillaBlocks::registerBaseBlocks()
             .noLootTable());
 
     // 洞穴空气 - 用于洞穴、峡谷等地下结构生成
-    // 参考 MC 1.16.5: net.minecraft.block.Blocks.CAVE_AIR
     CAVE_AIR = &registry.registerBlock<AirBlock>(ResourceLocation("minecraft:cave_air"),
         BlockProperties(Material::AIR)
             .noCollision()
@@ -903,7 +902,6 @@ void VanillaBlocks::registerBaseBlocks()
             .noLootTable());
 
     // 虚空空气 - 用于世界边界外的空气空间
-    // 参考 MC 1.16.5: net.minecraft.block.Blocks.VOID_AIR
     VOID_AIR = &registry.registerBlock<AirBlock>(ResourceLocation("minecraft:void_air"),
         BlockProperties(Material::AIR)
             .noCollision()
@@ -914,7 +912,6 @@ void VanillaBlocks::registerBaseBlocks()
             .noLootTable());
 
     // 石头 - ID 1
-    // 参考: new Block(Properties.create(Material.ROCK).setRequiresTool().hardnessAndResistance(1.5F, 6.0F))
     STONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:stone"),
         BlockProperties(Material::ROCK)
             .hardness(1.5f)
@@ -924,28 +921,23 @@ void VanillaBlocks::registerBaseBlocks()
             .requiresTool());
 
     // 草方块 - ID 2
-    // 参考: new GrassBlock(Properties.create(Material.ORGANIC).tickRandomly().hardnessAndResistance(0.6F))
     GRASS_BLOCK = &registry.registerBlock<blocks::GrassBlock>(ResourceLocation("minecraft:grass_block"),
         BlockProperties(Material::EARTH).hardness(0.6f).soundType(BlockSoundTypes::GRASS));
 
     // 泥土 - ID 3
-    // 参考: new Block(Properties.create(Material.EARTH).hardnessAndResistance(0.5F))
     DIRT = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:dirt"), BlockProperties(Material::EARTH).hardness(0.5f));
 
     // 圆石 - ID 4
-    // 参考: new Block(Properties.create(Material.ROCK).setRequiresTool().hardnessAndResistance(2.0F, 6.0F))
     COBBLESTONE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:cobblestone"), BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
 
     // 橡木木板 - ID 5
-    // 参考: new Block(Properties.create(Material.WOOD).hardnessAndResistance(2.0F, 3.0F))
     OAK_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:oak_planks"),
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable());
 
     // 水 - ID 6
     // 使用LiquidBlock注册，关联FlowingFluid
-    // 参考: net.minecraft.block.FlowingFluidBlock
     // 视觉修正：当前渲染链路下，opacity=1 会导致海底在约 15 格深度后出现纯黑。
     // 这里改为 opacity=0，保留不传播天空光语义，同时避免"y48 以下全黑"的断崖现象。
     {
@@ -976,23 +968,19 @@ void VanillaBlocks::registerBaseBlocks()
     }
 
     // 基岩 - ID 8
-    // 参考: new Block(Properties.create(Material.ROCK).hardnessAndResistance(-1.0F, 3600000.0F).noDrops())
     BEDROCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:bedrock"),
         BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 
     // 沙子 - ID 9
-    // 参考: new SandBlock(14406560, Properties.create(Material.SAND).hardnessAndResistance(0.5F))
     SAND = &registry.registerBlock<blocks::FallingBlock>(
         ResourceLocation("minecraft:sand"), BlockProperties(Material::SAND).hardness(0.5f));
 
     // 砾石 - ID 10
-    // 参考: new GravelBlock(Properties.create(Material.SAND).hardnessAndResistance(0.6F))
     GRAVEL = &registry.registerBlock<blocks::FallingBlock>(
         ResourceLocation("minecraft:gravel"), BlockProperties(Material::SAND).hardness(0.6f));
 
     // 雪层 - ID 78
     // SnowBlock: 雪层方块，有LAYERS属性(1-8层)，在光照>11时会融化
-    // 参考: MC 1.16.5 SnowBlock
     SNOW = &registry.registerBlock<blocks::SnowBlock>(
         ResourceLocation("minecraft:snow"), BlockProperties(Material::SNOW).hardness(0.2f).notSolid().noCollision());
 
@@ -1012,22 +1000,18 @@ void VanillaBlocks::registerBaseBlocks()
         BlockProperties(Material::GLASS).hardness(0.3f).notSolid().opacity(0).propagatesSkylightDown());
 
     // 下界岩 - ID 21
-    // 参考: new Block(Properties.create(Material.ROCK).hardnessAndResistance(0.4F))
     NETHERRACK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:netherrack"), BlockProperties(Material::ROCK).hardness(0.4f));
 
     // 荧石 - ID 21
-    // 参考: new Block(Properties.create(Material.GLASS).hardnessAndResistance(0.3F).setLightLevel(15))
     GLOWSTONE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:glowstone"), BlockProperties(Material::GLASS).hardness(0.3f).lightLevel(15));
 
     // 末地石 - ID 22
-    // 参考: new Block(Properties.create(Material.ROCK).hardnessAndResistance(3.0F, 9.0F))
     END_STONE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:end_stone"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(9.0f));
 
     // 黑曜石 - ID 23
-    // 参考: new Block(Properties.create(Material.ROCK).setRequiresTool().hardnessAndResistance(50.0F, 1200.0F))
     OBSIDIAN = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:obsidian"), BlockProperties(Material::ROCK).hardness(50.0f).resistance(1200.0f));
 }
@@ -1040,7 +1024,6 @@ void VanillaBlocks::registerOreBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 金矿石 - ID 11
-    // 参考: new OreBlock(Properties.create(Material.ROCK).setRequiresTool().hardnessAndResistance(3.0F, 3.0F))
     GOLD_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:gold_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
 
@@ -1062,7 +1045,6 @@ void VanillaBlocks::registerOreBlocks()
             .requiresTool());
 
     // 钻石块 - ID 15
-    // 参考: new Block(Properties.create(Material.IRON).setRequiresTool().hardnessAndResistance(5.0F, 6.0F))
     DIAMOND_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:diamond_block"), BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f));
 
@@ -1079,12 +1061,10 @@ void VanillaBlocks::registerOreBlocks()
         ResourceLocation("minecraft:redstone_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
 
     // 铜矿 (1.17+)
-    // 参考: new OreBlock(Properties.create(Material.ROCK).setRequiresTool().hardnessAndResistance(3.0F, 3.0F))
     COPPER_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:copper_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
 
     // 下界石英矿
-    // 参考: new OreBlock(Properties.create(Material.ROCK).hardnessAndResistance(3.0F, 3.0F))
     NETHER_QUARTZ_ORE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:nether_quartz_ore"),
         BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
 
@@ -1093,7 +1073,6 @@ void VanillaBlocks::registerOreBlocks()
         ResourceLocation("minecraft:nether_gold_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
 
     // 远古残骸
-    // 参考: new Block(Properties.create(Material.ROCK).setRequiresTool().hardnessAndResistance(50.0F, 1200.0F))
     ANCIENT_DEBRIS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:ancient_debris"),
         BlockProperties(Material::ROCK).hardness(50.0f).resistance(1200.0f));
 }
@@ -1122,7 +1101,6 @@ void VanillaBlocks::registerStoneVariants()
     auto& registry = BlockRegistry::instance();
 
     // 花岗岩
-    // 参考: new Block(Properties.create(Material.ROCK).setRequiresTool().hardnessAndResistance(1.5F, 6.0F))
     GRANITE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:granite"), BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
 
@@ -1155,12 +1133,10 @@ void VanillaBlocks::registerDirtVariants()
     auto& registry = BlockRegistry::instance();
 
     // 粗泥土
-    // 参考: new Block(Properties.create(Material.EARTH).hardnessAndResistance(0.5F))
     COARSE_DIRT = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:coarse_dirt"), BlockProperties(Material::EARTH).hardness(0.5f));
 
     // 灰化土
-    // 参考: new SnowyDirtBlock(Properties.create(Material.EARTH).hardnessAndResistance(0.5F))
     PODZOL = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:podzol"), BlockProperties(Material::EARTH).hardness(0.5f));
 }
@@ -1173,7 +1149,6 @@ void VanillaBlocks::registerSandstones()
     auto& registry = BlockRegistry::instance();
 
     // 砂岩
-    // 参考: new Block(Properties.create(Material.ROCK).setRequiresTool().hardnessAndResistance(0.8F))
     SANDSTONE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:sandstone"), BlockProperties(Material::ROCK).hardness(0.8f));
 
@@ -1198,8 +1173,6 @@ void VanillaBlocks::registerMineralBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 煤炭块
-    // 参考 MC 1.16.5: new Block(Properties.create(Material.ROCK, MaterialColor.BLACK)
-    //     .setRequiresTool().hardnessAndResistance(5.0F, 6.0F))
     // 需要石镐及以上 (harvestLevel 1)
     COAL_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:coal_block"),
         BlockProperties(Material::ROCK)
@@ -1210,17 +1183,14 @@ void VanillaBlocks::registerMineralBlocks()
             .requiresTool());
 
     // 金块
-    // 参考: new Block(Properties.create(Material.IRON).setRequiresTool().hardnessAndResistance(3.0F, 6.0F))
     GOLD_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:gold_block"), BlockProperties(Material::IRON).hardness(3.0f).resistance(6.0f));
 
     // 铁块
-    // 参考: new Block(Properties.create(Material.IRON).setRequiresTool().hardnessAndResistance(5.0F, 6.0F))
     IRON_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:iron_block"), BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f));
 
     // 青金石块
-    // 参考: new Block(Properties.create(Material.IRON).setRequiresTool().hardnessAndResistance(3.0F, 3.0F))
     LAPIS_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:lapis_block"), BlockProperties(Material::IRON).hardness(3.0f).resistance(3.0f));
 
@@ -1233,8 +1203,6 @@ void VanillaBlocks::registerMineralBlocks()
         ResourceLocation("minecraft:redstone_block"), BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f));
 
     // 下界合金块
-    // 参考 MC 1.16.5: new Block(Properties.create(Material.IRON)
-    //     .setRequiresTool().hardnessAndResistance(50.0F, 1200.0F))
     // 需要钻石镐及以上 (harvestLevel 3)
     NETHERITE_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:netherite_block"),
         BlockProperties(Material::IRON)
@@ -1253,22 +1221,18 @@ void VanillaBlocks::registerBuildingBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 砖块
-    // 参考: new Block(Properties.create(Material.ROCK).setRequiresTool().hardnessAndResistance(2.0F, 6.0F))
     BRICKS = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:bricks"), BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
 
     // 苔石圆石
-    // 参考: new Block(Properties.create(Material.ROCK).setRequiresTool().hardnessAndResistance(2.0F, 6.0F))
     MOSSY_COBBLESTONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:mossy_cobblestone"),
         BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
 
     // 书架
-    // 参考: new Block(Properties.create(Material.WOOD).hardnessAndResistance(1.5F))
     BOOKSHELF = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:bookshelf"), BlockProperties(Material::WOOD).hardness(1.5f).flammable());
 
     // 海绵
-    // 参考: new SpongeBlock(Properties.create(Material.SPONGE).hardnessAndResistance(0.6F))
     SPONGE = &registry.registerBlock<blocks::SpongeBlock>(
         ResourceLocation("minecraft:sponge"), BlockProperties(Material::SPONGE).hardness(0.6f));
 
@@ -1285,126 +1249,102 @@ void VanillaBlocks::registerFunctionalBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 工作台
-    // 参考: new CraftingTableBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F))
     CRAFTING_TABLE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:crafting_table"),
         BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable());
 
     // 炼药锅
-    // 参考: new CauldronBlock(Properties.create(Material.IRON).hardnessAndResistance(2.0F).notSolid())
     CAULDRON = &registry.registerBlock<blocks::CauldronBlock>(ResourceLocation("minecraft:cauldron"),
         BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid());
 
     // 附魔台
-    // 参考: new EnchantingTableBlock(Properties.create(Material.ROCK).hardnessAndResistance(5.0F).notSolid())
     ENCHANTING_TABLE =
         &registry.registerBlock<blocks::EnchantingTableBlock>(ResourceLocation("minecraft:enchanting_table"),
             BlockProperties(Material::ROCK).hardness(5.0f).resistance(1200.0f).notSolid().lightLevel(7));
 
     // 箱子 - 含水方块
-    // 参考: new ChestBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F).notSolid())
     CHEST = &registry.registerBlock<blocks::ChestBlock>(ResourceLocation("minecraft:chest"),
         BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).notSolid().flammable());
 
     // 梯子 - 含水方块
-    // 参考: new LadderBlock(Properties.create(Material.WOOD).hardnessAndResistance(0.4F).notSolid())
     LADDER = &registry.registerBlock<blocks::LadderBlock>(
         ResourceLocation("minecraft:ladder"), BlockProperties(Material::WOOD).hardness(0.4f).notSolid().flammable());
 
     // 锁链 - 含水方块
-    // 参考: new ChainBlock(Properties.create(Material.IRON).hardnessAndResistance(5.0F).notSolid())
     CHAIN = &registry.registerBlock<blocks::ChainBlock>(ResourceLocation("minecraft:chain"),
         BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid());
 
     // 脚手架 - 含水方块
-    // 参考: new ScaffoldingBlock(Properties.create(Material.DECORATION).hardnessAndResistance(0.0F).notSolid())
     SCAFFOLDING = &registry.registerBlock<blocks::ScaffoldingBlock>(
         ResourceLocation("minecraft:scaffolding"), BlockProperties(Material::DECORATION).hardness(0.0f).notSolid());
 
     // 玻璃板 - 含水方块
-    // 参考: new PaneBlock(Properties.create(Material.GLASS).hardnessAndResistance(0.3F).notSolid())
     GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
         ResourceLocation("minecraft:glass_pane"), BlockProperties(Material::GLASS).hardness(0.3f).notSolid());
 
     // 铁栏杆 - 含水方块
-    // 参考: new PaneBlock(Properties.create(Material.IRON).hardnessAndResistance(5.0F))
     IRON_BARS = &registry.registerBlock<blocks::PaneBlock>(
         ResourceLocation("minecraft:iron_bars"), BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f));
 
     // 橡木门
-    // 参考: new DoorBlock(Material.WOOD, Block.Properties.create(Material.WOOD).hardnessAndResistance(3.0F).notSolid())
     OAK_DOOR = &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:oak_door"),
         BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).notSolid().flammable(),
         false // 不是铁门
     );
 
     // 铁门
-    // 参考: new DoorBlock(Material.IRON, Block.Properties.create(Material.IRON).hardnessAndResistance(5.0F).notSolid())
     IRON_DOOR = &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:iron_door"),
         BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid(),
         true // 是铁门
     );
 
     // 橡木栅栏门
-    // 参考: new FenceGateBlock(Material.WOOD,
-    // Block.Properties.create(Material.WOOD).hardnessAndResistance(2.0F).notSolid())
     OAK_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(ResourceLocation("minecraft:oak_fence_gate"),
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid().flammable());
 
     // 陷阱箱 - 含水方块
-    // 参考: new TrappedChestBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F).notSolid())
     TRAPPED_CHEST = &registry.registerBlock<blocks::TrappedChestBlock>(ResourceLocation("minecraft:trapped_chest"),
         BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).notSolid().flammable());
 
     // 潜影盒
-    // 参考: new ShulkerBoxBlock(Properties.create(Material.SHULKER_SHELL).hardnessAndResistance(2.0F).notSolid())
     // 注：MC 1.16.5 中潜影盒的 Material 是 SHULKER_SHELL，这里暂时使用 WOOD
     SHULKER_BOX = &registry.registerBlock<blocks::ShulkerBoxBlock>(ResourceLocation("minecraft:shulker_box"),
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid());
 
     // 织布机
-    // 参考: new LoomBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F))
     LOOM = &registry.registerBlock<blocks::LoomBlock>(ResourceLocation("minecraft:loom"),
         BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable());
 
     // 木桶
-    // 参考: new BarrelBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F))
     BARREL = &registry.registerBlock<blocks::BarrelBlock>(ResourceLocation("minecraft:barrel"),
         BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable());
 
     // 制图台
-    // 参考: new CartographyTableBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F))
     CARTOGRAPHY_TABLE =
         &registry.registerBlock<blocks::CartographyTableBlock>(ResourceLocation("minecraft:cartography_table"),
             BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable());
 
     // 制箭台
-    // 参考: new FletchingTableBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F))
     FLETCHING_TABLE =
         &registry.registerBlock<blocks::FletchingTableBlock>(ResourceLocation("minecraft:fletching_table"),
             BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable());
 
     // 锻造台
-    // 参考: new SmithingTableBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F))
     SMITHING_TABLE = &registry.registerBlock<blocks::SmithingTableBlock>(ResourceLocation("minecraft:smithing_table"),
         BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable());
 
     // 堆肥桶
-    // 参考: new ComposterBlock(Properties.create(Material.WOOD).hardnessAndResistance(0.6F))
     COMPOSTER = &registry.registerBlock<blocks::ComposterBlock>(
         ResourceLocation("minecraft:composter"), BlockProperties(Material::WOOD).hardness(0.6f).flammable());
 
     // 蛋糕
-    // 参考 MC 1.16.5: CakeBlock(Properties.create(Material.CAKE).hardnessAndResistance(0.5F).notSolid()))
     CAKE = &registry.registerBlock<blocks::CakeBlock>(
         ResourceLocation("minecraft:cake"), BlockProperties(Material::CAKE).hardness(0.5f).notSolid());
 
     // 讲台
-    // 参考: new LecternBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.5F))
     LECTERN = &registry.registerBlock<blocks::LecternBlock>(ResourceLocation("minecraft:lectern"),
         BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable());
 
     // 唱片机
-    // 参考: new JukeboxBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.0F))
     JUKEBOX = &registry.registerBlock<blocks::JukeboxBlock>(ResourceLocation("minecraft:jukebox"),
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(6.0f).flammable());
 }
@@ -1416,7 +1356,7 @@ void VanillaBlocks::registerWoolBlocks()
 {
     auto& registry = BlockRegistry::instance();
 
-    // 参考: new Block(Properties.create(Material.WOOL).hardnessAndResistance(0.8F))
+    // 羊毛基础硬度0.8f
     // 所有羊毛使用相同的属性
     BlockProperties woolProps = BlockProperties(Material::WOOL).hardness(0.8f);
 
@@ -1445,7 +1385,6 @@ void VanillaBlocks::registerCarpetBlocks()
 {
     auto& registry = BlockRegistry::instance();
 
-    // 参考: new CarpetBlock(Properties.create(Material.WOOL).hardnessAndResistance(0.1F).notSolid())
     // 所有地毯使用相同的属性
     BlockProperties carpetProps = BlockProperties(Material::WOOL).hardness(0.1f).notSolid();
 
@@ -1484,7 +1423,6 @@ void VanillaBlocks::registerPlanksVariants()
 {
     auto& registry = BlockRegistry::instance();
 
-    // 参考: new Block(Properties.create(Material.WOOD).hardnessAndResistance(2.0F, 3.0F))
     BlockProperties planksProps = BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable();
 
     SPRUCE_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:spruce_planks"), planksProps);
@@ -1502,17 +1440,14 @@ void VanillaBlocks::registerNetherBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 灵魂沙
-    // 参考: new Block(Properties.create(Material.SAND).hardnessAndResistance(0.5F))
     SOUL_SAND = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:soul_sand"), BlockProperties(Material::SAND).hardness(0.5f));
 
     // 灵魂土
-    // 参考: new Block(Properties.create(Material.EARTH).hardnessAndResistance(0.5F))
     SOUL_SOIL = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:soul_soil"), BlockProperties(Material::EARTH).hardness(0.5f));
 
     // 玄武岩
-    // 参考: new RotatedPillarBlock(Properties.create(Material.ROCK).hardnessAndResistance(1.25F, 4.2F))
     BASALT = &registry.registerBlock<RotatedPillarBlock>(
         ResourceLocation("minecraft:basalt"), BlockProperties(Material::ROCK).hardness(1.25f).resistance(4.2f));
 
@@ -1521,46 +1456,34 @@ void VanillaBlocks::registerNetherBlocks()
         BlockProperties(Material::ROCK).hardness(1.25f).resistance(4.2f));
 
     // 黑石
-    // 参考: new Block(Properties.create(Material.ROCK).hardnessAndResistance(1.5F, 6.0F))
     BLACKSTONE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:blackstone"), BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
 
     // 磨制黑石
-    // 参考: new Block(Properties.create(Material.ROCK).hardnessAndResistance(2.0F, 6.0F))
     POLISHED_BLACKSTONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_blackstone"),
         BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
 
     // 哭泣的黑曜石
-    // 参考: new Block(Properties.create(Material.ROCK).setRequiresTool().hardnessAndResistance(50.0F,
-    // 1200.0F).setLightLevel(10))
     CRYING_OBSIDIAN = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:crying_obsidian"),
         BlockProperties(Material::ROCK).hardness(50.0f).resistance(1200.0f).lightLevel(10));
 
     // 重生锚 - 不可被活塞推动
-    // 参考: net.minecraft.block.RespawnAnchorBlock
     RESPAWN_ANCHOR = &registry.registerBlock<blocks::RespawnAnchorBlock>(ResourceLocation("minecraft:respawn_anchor"),
         BlockProperties(Material::ROCK).hardness(50.0f).resistance(1200.0f));
 
     // 火 - 普通火焰
-    // 参考: new
-    // FireBlock(Properties.create(Material.FIRE).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(15))
     FIRE = &registry.registerBlock<blocks::FireBlock>(ResourceLocation("minecraft:fire"),
         BlockProperties(Material::FIRE).noCollision().hardness(0.0f).lightLevel(15).noLootTable());
 
     // 灵魂火 - 蓝色火焰，伤害更高
-    // 参考: new
-    // SoulFireBlock(Properties.create(Material.FIRE).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(10))
     SOUL_FIRE = &registry.registerBlock<blocks::SoulFireBlock>(ResourceLocation("minecraft:soul_fire"),
         BlockProperties(Material::FIRE).noCollision().hardness(0.0f).lightLevel(10).noLootTable());
 
     // 下界传送门
-    // 参考: new
-    // NetherPortalBlock(Properties.create(Material.PORTAL).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(11))
     NETHER_PORTAL = &registry.registerBlock<blocks::NetherPortalBlock>(ResourceLocation("minecraft:nether_portal"),
         BlockProperties(Material::PORTAL).noCollision().hardness(0.0f).lightLevel(11).noLootTable());
 
     // 下界疣 - 作物方块
-    // 参考: new NetherWartBlock(Properties.create(Material.PLANT).doesNotBlockMovement().zeroHardnessAndResistance())
     NETHER_WART = &registry.registerBlock<blocks::NetherWartBlock>(
         ResourceLocation("minecraft:nether_wart"), BlockProperties(Material::PLANT).noCollision().hardness(0.0f));
 }
@@ -1651,8 +1574,6 @@ void VanillaBlocks::registerVegetationBlocks()
     BlockProperties grassProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();
 
     // 矮草 - ID 51
-    // 参考: new
-    // TallGrassBlock(Properties.create(Material.REPLACEABLE_PLANT).doesNotBlockMovement().zeroHardnessAndResistance())
     SHORT_GRASS =
         &registry.registerBlock<blocks::TallGrassBlock>(ResourceLocation("minecraft:short_grass"), grassProps);
 
@@ -1718,7 +1639,8 @@ void VanillaBlocks::registerVegetationBlocks()
     PEONY = &registry.registerBlock<blocks::PeonyBlock>(ResourceLocation("minecraft:peony"), tallFlowerProps);
 
     // 大型蕨 - 双格高的蕨类植物
-    LARGE_FERN = &registry.registerBlock<blocks::LargeFernBlock>(ResourceLocation("minecraft:large_fern"), tallFlowerProps);
+    LARGE_FERN =
+        &registry.registerBlock<blocks::LargeFernBlock>(ResourceLocation("minecraft:large_fern"), tallFlowerProps);
 
     // 蘑菇属性
     BlockProperties mushroomProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1);
@@ -1758,7 +1680,6 @@ void VanillaBlocks::registerVegetationBlocks()
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:dark_oak_sapling"), saplingProps);
 
     // 竹子属性
-    // 参考: net.minecraft.block.BambooBlock
     // 竹子有碰撞箱但较细，可以跳跃穿过
     BlockProperties bambooProps = BlockProperties(Material::BAMBOO).hardness(1.0f).notSolid();
 
@@ -1781,7 +1702,6 @@ void VanillaBlocks::registerColoredBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 染色玻璃属性
-    // 参考: new StainedGlassBlock(Properties.create(Material.GLASS).hardnessAndResistance(0.3F).notSolid())
     // 染色玻璃：透明度0，不传播天空光
     BlockProperties stainedGlassProps = BlockProperties(Material::GLASS).hardness(0.3f).notSolid();
 
@@ -1820,7 +1740,6 @@ void VanillaBlocks::registerColoredBlocks()
         ResourceLocation("minecraft:black_stained_glass"), stainedGlassProps, DyeColor::Black);
 
     // 混凝土属性
-    // 参考: new Block(Properties.create(Material.ROCK).hardnessAndResistance(1.8F))
     BlockProperties concreteProps = BlockProperties(Material::ROCK).hardness(1.8f).resistance(1.8f);
 
     WHITE_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:white_concrete"), concreteProps);
@@ -1847,7 +1766,6 @@ void VanillaBlocks::registerColoredBlocks()
     BLACK_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:black_concrete"), concreteProps);
 
     // 混凝土粉末属性
-    // 参考: new ConcretePowderBlock(Properties.create(Material.SAND).hardnessAndResistance(0.5F))
     BlockProperties concretePowderProps = BlockProperties(Material::SAND).hardness(0.5f);
 
     WHITE_CONCRETE_POWDER =
@@ -1884,7 +1802,6 @@ void VanillaBlocks::registerColoredBlocks()
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:black_concrete_powder"), concretePowderProps);
 
     // 陶瓦属性
-    // 参考: new Block(Properties.create(Material.ROCK).hardnessAndResistance(1.4F, 4.2F))
     BlockProperties terracottaProps = BlockProperties(Material::ROCK).hardness(1.4f).resistance(4.2f);
 
     // 普通陶瓦
@@ -1933,7 +1850,6 @@ void VanillaBlocks::registerStoneBricks()
     auto& registry = BlockRegistry::instance();
 
     // 石砖属性
-    // 参考: new Block(Properties.create(Material.ROCK).setRequiresTool().hardnessAndResistance(1.5F, 6.0F))
     BlockProperties stoneBrickProps = BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f);
 
     STONE_BRICKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:stone_bricks"), stoneBrickProps);
@@ -1952,7 +1868,6 @@ void VanillaBlocks::registerStoneBricks()
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:stone_brick_slab"), stoneBrickProps);
 
     // 苔藓石砖楼梯、台阶、墙
-    // 参考 MC 1.16.5: MossyStoneBricksBlock 使用相同属性
     MOSSY_STONE_BRICK_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
         ResourceLocation("minecraft:mossy_stone_brick_stairs"), MOSSY_STONE_BRICKS->defaultState(), stoneBrickProps);
 
@@ -1971,12 +1886,10 @@ void VanillaBlocks::registerInfestedBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 虫蚀方块属性
-    // 参考 MC 1.16.5: Properties.create(Material.CLAY).hardnessAndResistance(0.0F, 0.75F)
     // 注意：项目中没有 CLAY 材质，使用 EARTH 作为替代（虫蚀方块本质是伪装的石头）
     BlockProperties infestedProps = BlockProperties(Material::EARTH).hardness(0.0f).resistance(0.75f);
 
     // 注册 6 种虫蚀方块变体
-    // MC 1.16.5: 每种虫蚀方块对应一种原版方块
     INFESTED_STONE = &registry.registerBlock<blocks::InfestedBlock>(
         ResourceLocation("minecraft:infested_stone"), STONE->blockId(), infestedProps);
     INFESTED_COBBLESTONE = &registry.registerBlock<blocks::InfestedBlock>(
@@ -1991,7 +1904,6 @@ void VanillaBlocks::registerInfestedBlocks()
         ResourceLocation("minecraft:infested_chiseled_stone_bricks"), CHISELED_STONE_BRICKS->blockId(), infestedProps);
 
     // 注册虫蚀方块映射
-    // MC 1.16.5: normalToInfectedMap.put(block, infestedBlock)
     blocks::InfestedBlock::registerInfestedBlock(STONE->blockId(), INFESTED_STONE->blockId());
     blocks::InfestedBlock::registerInfestedBlock(COBBLESTONE->blockId(), INFESTED_COBBLESTONE->blockId());
     blocks::InfestedBlock::registerInfestedBlock(STONE_BRICKS->blockId(), INFESTED_STONE_BRICKS->blockId());
@@ -2013,7 +1925,6 @@ void VanillaBlocks::registerQuartzBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 石英块属性
-    // 参考: new Block(Properties.create(Material.ROCK).hardnessAndResistance(0.8F))
     BlockProperties quartzProps = BlockProperties(Material::ROCK).hardness(0.8f);
 
     QUARTZ_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:quartz_block"), quartzProps);
@@ -2034,7 +1945,6 @@ void VanillaBlocks::registerPrismarineBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 海晶石属性
-    // 参考: new Block(Properties.create(Material.ROCK).setRequiresTool().hardnessAndResistance(1.5F, 6.0F))
     BlockProperties prismarineProps = BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f);
 
     PRISMARINE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:prismarine"), prismarineProps);
@@ -2044,7 +1954,6 @@ void VanillaBlocks::registerPrismarineBlocks()
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:dark_prismarine"), prismarineProps);
 
     // 海晶灯 - 发光15级
-    // 参考: new Block(Properties.create(Material.GLASS).hardnessAndResistance(0.3F).setLightLevel(15))
     SEA_LANTERN = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:sea_lantern"), BlockProperties(Material::GLASS).hardness(0.3f).lightLevel(15));
 }
@@ -2057,7 +1966,6 @@ void VanillaBlocks::registerSignBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 告示牌属性 - 不透明、可含水
-    // 参考: net.minecraft.block.AbstractSignBlock
     BlockProperties signProps = BlockProperties(Material::WOOD).hardness(1.0f).noCollision().notSolid();
 
     // 注册各木材类型的告示牌
@@ -2118,7 +2026,6 @@ void VanillaBlocks::registerPurpurBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 紫珀块属性
-    // 参考: new Block(Properties.create(Material.ROCK).hardnessAndResistance(1.5F, 6.0F))
     BlockProperties purpurProps = BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f);
 
     PURPUR_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:purpur_block"), purpurProps);
@@ -2136,95 +2043,75 @@ void VanillaBlocks::registerEndBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 末地石砖属性
-    // 参考: new Block(Properties.create(Material.ROCK).hardnessAndResistance(3.0F, 9.0F))
     BlockProperties endStoneBrickProps = BlockProperties(Material::ROCK).hardness(3.0f).resistance(9.0f);
 
     END_STONE_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:end_stone_bricks"), endStoneBrickProps);
 
     // 末地烛 - 发光14级
-    // 参考: new
-    // EndRodBlock(Properties.create(Material.DECORATION).hardnessAndResistance(0.0F).setLightLevel(14).noCollision())
     END_ROD = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:end_rod"), BlockProperties(Material::DECORATION).noCollision().lightLevel(14));
 
     // 末地传送门 - 穿越后传送到末地
-    // 参考: new
-    // EndPortalBlock(Properties.create(Material.PORTAL).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(15))
     END_PORTAL = &registry.registerBlock<blocks::EndPortalBlock>(ResourceLocation("minecraft:end_portal"),
         BlockProperties(Material::PORTAL).noCollision().hardness(0.0f).lightLevel(15).noLootTable());
 
     // 末地传送门框架 - 放置末影之眼激活传送门
-    // 参考: new EndPortalFrameBlock(Properties.create(Material.ROCK).hardnessAndResistance(-1.0F,
-    // 3600000.0F).setLightLevel(1))
     END_PORTAL_FRAME =
         &registry.registerBlock<blocks::EndPortalFrameBlock>(ResourceLocation("minecraft:end_portal_frame"),
             BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).lightLevel(1).noLootTable());
 
     // 末地折跃门 - 在末地之间传送
-    // 参考: new
-    // EndGatewayBlock(Properties.create(Material.PORTAL).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(15))
     END_GATEWAY = &registry.registerBlock<blocks::EndGatewayBlock>(ResourceLocation("minecraft:end_gateway"),
         BlockProperties(Material::PORTAL).noCollision().hardness(0.0f).lightLevel(15).noLootTable());
 
     // 紫颂植物 - 末地植物
-    // 参考: new ChorusPlantBlock(Properties.create(Material.PLANT).doesNotBlockMovement().zeroHardnessAndResistance())
     CHORUS_PLANT = &registry.registerBlock<blocks::ChorusPlantBlock>(
         ResourceLocation("minecraft:chorus_plant"), BlockProperties(Material::PLANT).noCollision().hardness(0.0f));
 
     // 紫颂花 - 紫颂植物的顶部
-    // 参考: new ChorusFlowerBlock(Properties.create(Material.PLANT).doesNotBlockMovement().zeroHardnessAndResistance())
     CHORUS_FLOWER = &registry.registerBlock<blocks::ChorusFlowerBlock>(
         ResourceLocation("minecraft:chorus_flower"), BlockProperties(Material::PLANT).noCollision().hardness(0.0f));
 
     // 龙蛋 - 末影龙掉落物
-    // 参考: new DragonEggBlock(Properties.create(Material.DRAGON_EGG).hardnessAndResistance(3.0F).setLightLevel(1))
     DRAGON_EGG = &registry.registerBlock<blocks::DragonEggBlock>(
         ResourceLocation("minecraft:dragon_egg"), BlockProperties(Material::ROCK).hardness(3.0f).lightLevel(1));
 
     // 信标 - 发光15级（通过 getLightLevel）
-    // 参考: new BeaconBlock(Properties.create(Material.GLASS).setLightLevel(15))
     BEACON = &registry.registerBlock<blocks::BeaconBlock>(
         ResourceLocation("minecraft:beacon"), BlockProperties(Material::GLASS).hardness(3.0f));
 
     // 酿造台 - 发光1级（通过 getLightLevel）
-    // 参考: new BrewingStandBlock(Properties.create(Material.IRON).setLightLevel(1))
     BREWING_STAND = &registry.registerBlock<blocks::BrewingStandBlock>(
         ResourceLocation("minecraft:brewing_stand"), BlockProperties(Material::IRON).hardness(0.5f));
 
     // 末影箱 - 发光7级
-    // 参考: new EnderChestBlock(Properties.create(Material.ROCK).hardnessAndResistance(22.5F).setLightLevel(7))
     ENDER_CHEST = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:ender_chest"),
         BlockProperties(Material::ROCK).hardness(22.5f).resistance(600.0f).lightLevel(7));
 
     // 灯笼 - 发光15级（通过构造函数参数）
-    // 参考: new LanternBlock(Properties.create(Material.IRON).hardnessAndResistance(3.5F).setLightLevel(15))
     LANTERN = &registry.registerBlock<blocks::LanternBlock>(ResourceLocation("minecraft:lantern"),
         BlockProperties(Material::IRON).hardness(3.5f).resistance(3.5f),
         15 // 光照等级
     );
 
     // 灵魂灯笼 - 发光10级（通过构造函数参数）
-    // 参考: new LanternBlock(Properties.create(Material.IRON).hardnessAndResistance(3.5F).setLightLevel(10))
     SOUL_LANTERN = &registry.registerBlock<blocks::LanternBlock>(ResourceLocation("minecraft:soul_lantern"),
         BlockProperties(Material::IRON).hardness(3.5f).resistance(3.5f),
         10 // 光照等级
     );
 
     // 营火 - 发光15级（点燃时，通过 getLightLevel 动态计算）
-    // 参考: new CampfireBlock(Properties.create(Material.WOOD).hardness(2.0F).setLightLevel(15))
     CAMPFIRE = &registry.registerBlock<blocks::CampfireBlock>(ResourceLocation("minecraft:campfire"),
         BlockProperties(Material::WOOD).hardness(2.0f),
         15 // 点燃时光照等级
     );
 
     // 灵魂营火 - 发光10级（点燃时，通过 getLightLevel 动态计算）
-    // 参考: new CampfireBlock(Properties.create(Material.WOOD).hardness(2.0F).setLightLevel(10))
     SOUL_CAMPFIRE = &registry.registerBlock<blocks::SoulCampfireBlock>(
         ResourceLocation("minecraft:soul_campfire"), BlockProperties(Material::WOOD).hardness(2.0f));
 
     // 南瓜灯 - 发光15级
-    // 参考: new Block(Properties.create(Material.GOURD).hardness(1.0F).setLightLevel(15))
     JACK_O_LANTERN = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:jack_o_lantern"), BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15));
 }
@@ -2237,12 +2124,10 @@ void VanillaBlocks::registerBoneAndHayBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 骨块 - 有轴属性
-    // 参考: new RotatedPillarBlock(Properties.create(Material.ROCK).hardnessAndResistance(2.0F, 2.0F))
     BONE_BLOCK = &registry.registerBlock<RotatedPillarBlock>(
         ResourceLocation("minecraft:bone_block"), BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
 
     // 干草块 - 有轴属性
-    // 参考: new RotatedPillarBlock(Properties.create(Material.ORGANIC).hardnessAndResistance(0.5F))
     HAY_BLOCK = &registry.registerBlock<RotatedPillarBlock>(
         ResourceLocation("minecraft:hay_block"), BlockProperties(Material::EARTH).hardness(0.5f).flammable());
 }
@@ -2255,14 +2140,10 @@ void VanillaBlocks::registerPumpkinMelonBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 先注册雕刻南瓜 - 有朝向属性，可生成傀儡
-    // 参考: net.minecraft.block.CarvedPumpkinBlock
-    // MC 1.16.5: Material.GOURD, hardness 1.0
     CARVED_PUMPKIN = &registry.registerBlock<blocks::CarvedPumpkinBlock>(
         ResourceLocation("minecraft:carved_pumpkin"), BlockProperties(Material::EARTH).hardness(1.0f));
 
     // 南瓜 - 可用剪刀雕刻成雕刻南瓜
-    // 参考: net.minecraft.block.PumpkinBlock
-    // MC 1.16.5: Material.GOURD, hardness 1.0
     // 注意：茎指针暂时为 nullptr，在茎注册后更新
     PUMPKIN = &registry.registerBlock<blocks::PumpkinBlock>(ResourceLocation("minecraft:pumpkin"),
         nullptr,        // stem - 暂时为 nullptr，稍后更新
@@ -2271,8 +2152,6 @@ void VanillaBlocks::registerPumpkinMelonBlocks()
         BlockProperties(Material::EARTH).hardness(1.0f));
 
     // 西瓜方块
-    // 参考: net.minecraft.block.MelonBlock
-    // MC 1.16.5: Material.GOURD, hardness 1.0
     // 注意：茎指针暂时为 nullptr，在茎注册后更新
     MELON = &registry.registerBlock<blocks::MelonBlock>(ResourceLocation("minecraft:melon"),
         nullptr, // stem - 暂时为 nullptr，稍后更新
@@ -2280,36 +2159,30 @@ void VanillaBlocks::registerPumpkinMelonBlocks()
         BlockProperties(Material::EARTH).hardness(1.0f));
 
     // 注册茎方块（可以引用已注册的果实方块）
-    // MC 1.16.5 茎方块属性：Material.PLANTS, 不稳固, 无碰撞, hardness 0.0
 
     // 南瓜茎
-    // 参考: net.minecraft.block.StemBlock (PUMPKIN_STEM)
     PUMPKIN_STEM = &registry.registerBlock<blocks::PumpkinStemBlock>(ResourceLocation("minecraft:pumpkin_stem"),
         static_cast<const blocks::StemGrownBlock*>(PUMPKIN), // 果实已注册
         BlockProperties(Material::PLANT).hardness(0.0f).noCollision().notSolid());
 
     // 连接南瓜茎（南瓜生成后茎变成的方块）
-    // 参考: net.minecraft.block.AttachedStemBlock (ATTACHED_PUMPKIN_STEM)
     ATTACHED_PUMPKIN_STEM =
         &registry.registerBlock<blocks::PumpkinAttachedStemBlock>(ResourceLocation("minecraft:attached_pumpkin_stem"),
             static_cast<const blocks::StemGrownBlock*>(PUMPKIN), // 果实已注册
             BlockProperties(Material::PLANT).hardness(0.0f).noCollision().notSolid());
 
     // 西瓜茎
-    // 参考: net.minecraft.block.StemBlock (MELON_STEM)
     MELON_STEM = &registry.registerBlock<blocks::MelonStemBlock>(ResourceLocation("minecraft:melon_stem"),
         static_cast<const blocks::StemGrownBlock*>(MELON), // 果实已注册
         BlockProperties(Material::PLANT).hardness(0.0f).noCollision().notSolid());
 
     // 连接西瓜茎（西瓜生成后茎变成的方块）
-    // 参考: net.minecraft.block.AttachedStemBlock (ATTACHED_MELON_STEM)
     ATTACHED_MELON_STEM =
         &registry.registerBlock<blocks::MelonAttachedStemBlock>(ResourceLocation("minecraft:attached_melon_stem"),
             static_cast<const blocks::StemGrownBlock*>(MELON), // 果实已注册
             BlockProperties(Material::PLANT).hardness(0.0f).noCollision().notSolid());
 
     // 更新果实方块的茎指针（解决循环依赖）
-    // MC 1.16.5: 果实方块需要知道对应的茎和连接茎
     static_cast<blocks::PumpkinBlock*>(PUMPKIN)->setStem(PUMPKIN_STEM);
     static_cast<blocks::PumpkinBlock*>(PUMPKIN)->setAttachedStem(ATTACHED_PUMPKIN_STEM);
     static_cast<blocks::MelonBlock*>(MELON)->setStem(MELON_STEM);
@@ -2324,19 +2197,15 @@ void VanillaBlocks::registerNetherExtensionBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 岩浆块 - 发光3级
-    // 参考: new MagmaBlock(Properties.create(Material.ROCK).hardnessAndResistance(0.5F).setLightValue(3))
     // 会站在上面造成伤害，在水中产生气泡柱
     MAGMA = &registry.registerBlock<blocks::MagmaBlock>(
         ResourceLocation("minecraft:magma"), BlockProperties(Material::ROCK).hardness(0.5f).lightLevel(3));
 
     // 地狱疣块
-    // 参考: new Block(Properties.create(Material.ORGANIC).hardnessAndResistance(1.0F).sound(SoundType.WART))
     NETHER_WART_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:nether_wart_block"),
         BlockProperties(Material::ORGANIC).hardness(1.0f).resistance(1.0f).soundType(BlockSoundTypes::WART));
 
     // 诡异疣块
-    // 参考: new Block(Properties.create(Material.ORGANIC,
-    // MaterialColor.WARPED_WART).hardnessAndResistance(1.0F).sound(SoundType.WART))
     WARPED_WART_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:warped_wart_block"),
         BlockProperties(Material::ORGANIC).hardness(1.0f).resistance(1.0f).soundType(BlockSoundTypes::WART));
 
@@ -2349,50 +2218,38 @@ void VanillaBlocks::registerNetherExtensionBlocks()
         ResourceLocation("minecraft:warped_stem"), BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
 
     // 去皮绯红菌柄
-    // 参考: createRotatableNetherBlock(MaterialColor.CRIMSON_STEM)
     STRIPPED_CRIMSON_STEM =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_crimson_stem"),
             BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
 
     // 去皮诡异菌柄
-    // 参考: createRotatableNetherBlock(MaterialColor.WARPED_STEM)
     STRIPPED_WARPED_STEM =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_warped_stem"),
             BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
 
     // 绯红菌核
-    // 参考: new RotatedPillarBlock(Material.NETHER_WOOD,
-    // MaterialColor.CRIMSON_HYPHAE).hardnessAndResistance(2.0F).sound(SoundType.HYPHAE)
     CRIMSON_HYPHAE = &registry.registerBlock<RotatedPillarBlock>(
         ResourceLocation("minecraft:crimson_hyphae"), BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
 
     // 诡异菌核
-    // 参考: new RotatedPillarBlock(Material.NETHER_WOOD,
-    // MaterialColor.WARPED_HYPHAE).hardnessAndResistance(2.0F).sound(SoundType.HYPHAE)
     WARPED_HYPHAE = &registry.registerBlock<RotatedPillarBlock>(
         ResourceLocation("minecraft:warped_hyphae"), BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
 
     // 去皮绯红菌核
-    // 参考: new RotatedPillarBlock(Material.NETHER_WOOD,
-    // MaterialColor.CRIMSON_HYPHAE).hardnessAndResistance(2.0F).sound(SoundType.HYPHAE)
     STRIPPED_CRIMSON_HYPHAE =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_crimson_hyphae"),
             BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
 
     // 去皮诡异菌核
-    // 参考: new RotatedPillarBlock(Material.NETHER_WOOD,
-    // MaterialColor.WARPED_HYPHAE).hardnessAndResistance(2.0F).sound(SoundType.HYPHAE)
     STRIPPED_WARPED_HYPHAE =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_warped_hyphae"),
             BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f));
 
     // 绯红菌岩
-    // 参考: new NyliumBlock(Properties.create(Material.ROCK).hardnessAndResistance(0.4F))
     CRIMSON_NYLIUM = &registry.registerBlock<blocks::NyliumBlock>(
         ResourceLocation("minecraft:crimson_nylium"), BlockProperties(Material::ROCK).hardness(0.4f).resistance(0.4f));
 
     // 诡异菌岩
-    // 参考: new NyliumBlock(Properties.create(Material.ROCK).hardnessAndResistance(0.4F))
     WARPED_NYLIUM = &registry.registerBlock<blocks::NyliumBlock>(
         ResourceLocation("minecraft:warped_nylium"), BlockProperties(Material::ROCK).hardness(0.4f).resistance(0.4f));
 
@@ -2417,20 +2274,19 @@ void VanillaBlocks::registerNetherExtensionBlocks()
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     // 绯红菌索 - 下界装饰植物
-    // 参考 MC 1.16.5: NetherRootsBlock(Properties.create(Material.field_242934_h, MaterialColor.NETHERRACK).doesNotBlockMovement().zeroHardnessAndResistance().sound(SoundType.ROOT))
     CRIMSON_ROOTS = &registry.registerBlock<blocks::NetherRootsBlock>(ResourceLocation("minecraft:crimson_roots"),
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().soundType(BlockSoundTypes::ROOT));
 
     // 诡异菌索 - 下界装饰植物
-    // 参考 MC 1.16.5: NetherRootsBlock(Properties.create(Material.field_242934_h, MaterialColor.CYAN).doesNotBlockMovement().zeroHardnessAndResistance().sound(SoundType.ROOT))
     WARPED_ROOTS = &registry.registerBlock<blocks::NetherRootsBlock>(ResourceLocation("minecraft:warped_roots"),
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().soundType(BlockSoundTypes::ROOT));
 
     // 下界苗 - 下界矮小装饰植物
-    // 参考 MC 1.16.5: NetherSproutsBlock(Properties.create(Material.field_242934_h, MaterialColor.CYAN).doesNotBlockMovement().zeroHardnessAndResistance().sound(SoundType.NETHER_SPROUT))
-    NETHER_SPROUTS = &registry.registerBlock<blocks::NetherSproutsBlock>(
-        ResourceLocation("minecraft:nether_sprouts"),
-        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().soundType(BlockSoundTypes::NETHER_SPROUT));
+    NETHER_SPROUTS = &registry.registerBlock<blocks::NetherSproutsBlock>(ResourceLocation("minecraft:nether_sprouts"),
+        BlockProperties(Material::REPLACEABLE_PLANT)
+            .noCollision()
+            .notSolid()
+            .soundType(BlockSoundTypes::NETHER_SPROUT));
 }
 
 // ============================================================================
@@ -2441,28 +2297,23 @@ void VanillaBlocks::registerNaturalBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 粘土
-    // 参考: new Block(Properties.create(Material.EARTH).hardnessAndResistance(0.6F))
     CLAY = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:clay"), BlockProperties(Material::EARTH).hardness(0.6f));
 
     // 菌丝
-    // 参考: new MyceliumBlock(Properties.create(Material.EARTH).hardnessAndResistance(0.6F))
     MYCELIUM = &registry.registerBlock<blocks::MyceliumBlock>(ResourceLocation("minecraft:mycelium"),
         BlockProperties(Material::EARTH).hardness(0.6f).soundType(BlockSoundTypes::GRASS));
 
     // 草径
-    // 参考: new Block(Properties.create(Material.EARTH).hardnessAndResistance(0.65F))
     GRASS_PATH = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:grass_path"), BlockProperties(Material::EARTH).hardness(0.65f));
 
     // 浮冰 - ID 174
-    // 参考: new Block(Properties.create(Material.ICE).hardnessAndResistance(0.5F))
     // 浮冰：不透明，不融化
     PACKED_ICE = &registry.registerBlock<blocks::PackedIceBlock>(ResourceLocation("minecraft:packed_ice"),
         BlockProperties(Material::ICE).hardness(0.5f).opacity(2).propagatesSkylightDown());
 
     // 蓝冰 - ID 266
-    // 参考: new Block(Properties.create(Material.ICE).hardnessAndResistance(2.8F))
     // 蓝冰：最滑的方块，摩擦力0.989
     BLUE_ICE = &registry.registerBlock<blocks::BlueIceBlock>(
         ResourceLocation("minecraft:blue_ice"), BlockProperties(Material::ICE).hardness(2.8f).resistance(2.8f));
@@ -2474,42 +2325,34 @@ void VanillaBlocks::registerNaturalBlocks()
         BlockProperties(Material::ICE).hardness(0.5f).notSolid().opacity(2).propagatesSkylightDown());
 
     // 粘液块
-    // 参考: new Block(Properties.create(Material.SLIME).hardnessAndResistance(0.0F).slipperiness(0.8F))
     SLIME_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:slime_block"), BlockProperties(Material::SLIME).hardness(0.0f));
 
     // 蜂蜜块
-    // 参考: new HoneyBlock(Properties.create(Material.HONEY).slipperiness(0.5F).notSolid())
     HONEY_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:honey_block"), BlockProperties(Material::HONEY).hardness(0.0f).notSolid());
 
     // 仙人掌
-    // 参考: new CactusBlock(Properties.create(Material.CACTUS).hardnessAndResistance(0.4F).noCollision())
     CACTUS = &registry.registerBlock<blocks::CactusBlock>(
         ResourceLocation("minecraft:cactus"), BlockProperties(Material::PLANT).hardness(0.4f));
 
     // 枯萎灌木
-    // 参考: new BushBlock(Properties.create(Material.REPLACEABLE_PLANT).zeroHardnessAndResistance().noCollision())
     DEAD_BUSH = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:dead_bush"), BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     // 睡莲
-    // 参考: new LilyPadBlock(Properties.create(Material.PLANT).hardnessAndResistance(0.0F).noCollision())
     LILY_PAD = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:lily_pad"), BlockProperties(Material::PLANT).noCollision().notSolid());
 
     // 藤蔓
-    // 参考: new VineBlock(Properties.create(Material.REPLACEABLE_PLANT).hardnessAndResistance(0.2F).noCollision())
     VINE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:vine"),
         BlockProperties(Material::REPLACEABLE_PLANT).hardness(0.2f).noCollision().notSolid());
 
     // 蜘蛛网
-    // 参考: new WebBlock(Properties.create(Material.WEB).hardnessAndResistance(4.0F))
     COBWEB = &registry.registerBlock<blocks::WebBlock>(
         ResourceLocation("minecraft:cobweb"), BlockProperties(Material::WEB).hardness(4.0f).noCollision());
 
     // 甘蔗
-    // 参考: new SugarCaneBlock(Properties.create(Material.REPLACEABLE_PLANT).zeroHardnessAndResistance().noCollision())
     SUGAR_CANE = &registry.registerBlock<blocks::SugarCaneBlock>(ResourceLocation("minecraft:sugar_cane"),
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
@@ -2523,7 +2366,6 @@ void VanillaBlocks::registerNaturalBlocks()
 
     // 干海带块 - ID 171
     // 可以作为燃料使用，燃烧时间200tick（10秒）
-    // 参考: new Block(Properties.create(Material.PLANT).hardnessAndResistance(0.5F))
     DRIED_KELP_BLOCK = &registry.registerBlock<blocks::DriedKelpBlock>(ResourceLocation("minecraft:dried_kelp_block"),
         BlockProperties(Material::PLANT).hardness(0.5f).resistance(0.5f));
 
@@ -2667,7 +2509,6 @@ void VanillaBlocks::registerNaturalBlocks()
 
     // 潮涌核心 - ID 545
     // 水下信标类方块，需要潮涌框架激活
-    // 参考: new ConduitBlock(Properties.create(Material.GLASS).hardnessAndResistance(3.0F).notSolid())
     CONDUIT = &registry.registerBlock<blocks::ConduitBlock>(ResourceLocation("minecraft:conduit"),
         BlockProperties(Material::GLASS).hardness(3.0f).resistance(3.0f).notSolid());
 }
@@ -2680,14 +2521,10 @@ void VanillaBlocks::registerRedstoneBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 红石线
-    // 参考: new
-    // RedstoneWireBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().zeroHardnessAndResistance())
     REDSTONE_WIRE = &registry.registerBlock<blocks::RedstoneWireBlock>(
         ResourceLocation("minecraft:redstone_wire"), BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     // 红石火把
-    // 参考: new
-    // RedstoneTorchBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().zeroHardnessAndResistance().setLightLevel(7))
     REDSTONE_TORCH = &registry.registerBlock<blocks::RedstoneTorchBlock>(ResourceLocation("minecraft:redstone_torch"),
         BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(7));
 
@@ -2697,40 +2534,30 @@ void VanillaBlocks::registerRedstoneBlocks()
             BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(7));
 
     // 红石灯
-    // 参考: new RedstoneLampBlock(Properties.create(Material.REDSTONE_LIGHT).hardnessAndResistance(0.3F))
     REDSTONE_LAMP = &registry.registerBlock<blocks::RedstoneLampBlock>(
         ResourceLocation("minecraft:redstone_lamp"), BlockProperties(Material::REDSTONE_LIGHT).hardness(0.3f));
 
     // 红石中继器
-    // 参考: new
-    // RepeaterBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().zeroHardnessAndResistance())
     REDSTONE_REPEATER = &registry.registerBlock<blocks::RedstoneRepeaterBlock>(
         ResourceLocation("minecraft:repeater"), BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     // 红石比较器
-    // 参考: new
-    // ComparatorBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().zeroHardnessAndResistance())
     REDSTONE_COMPARATOR = &registry.registerBlock<blocks::RedstoneComparatorBlock>(
         ResourceLocation("minecraft:comparator"), BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     // 侦测器
-    // 参考: new ObserverBlock(Properties.create(Material.ROCK).hardnessAndResistance(3.0F))
     OBSERVER = &registry.registerBlock<blocks::ObserverBlock>(
         ResourceLocation("minecraft:observer"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
 
     // 拉杆
-    // 参考: new
-    // LeverBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().zeroHardnessAndResistance())
     LEVER = &registry.registerBlock<blocks::LeverBlock>(
         ResourceLocation("minecraft:lever"), BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     // 石头按钮
-    // 参考: new StoneButtonBlock(Properties.create(Material.ROCK).doesNotBlockMovement().zeroHardnessAndResistance())
     STONE_BUTTON = &registry.registerBlock<blocks::StoneButtonBlock>(
         ResourceLocation("minecraft:stone_button"), BlockProperties(Material::ROCK).noCollision().notSolid());
 
     // 橡木按钮
-    // 参考: new WoodButtonBlock(Properties.create(Material.WOOD).doesNotBlockMovement().zeroHardnessAndResistance())
     OAK_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
         ResourceLocation("minecraft:oak_button"), BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
 
@@ -2763,49 +2590,38 @@ void VanillaBlocks::registerRedstoneBlocks()
         ResourceLocation("minecraft:warped_button"), BlockProperties(Material::NETHER_WOOD).noCollision().notSolid());
 
     // 石头压力板
-    // 参考: new PressurePlateBlock(PressurePlateBlock.Sensitivity.EVERYTHING,
-    // Properties.create(Material.ROCK).doesNotBlockMovement().hardnessAndResistance(0.5F))
     STONE_PRESSURE_PLATE =
         &registry.registerBlock<blocks::StonePressurePlateBlock>(ResourceLocation("minecraft:stone_pressure_plate"),
             BlockProperties(Material::ROCK).noCollision().notSolid().hardness(0.5f));
 
     // 橡木压力板
-    // 参考: new PressurePlateBlock(PressurePlateBlock.Sensitivity.EVERYTHING,
-    // Properties.create(Material.WOOD).doesNotBlockMovement().hardnessAndResistance(0.5F))
     OAK_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:oak_pressure_plate"),
             BlockProperties(Material::WOOD).noCollision().notSolid().hardness(0.5f).flammable());
 
     // 轻质测重压力板
-    // 参考: new WeightedPressurePlateBlock(1,
-    // Properties.create(Material.IRON).doesNotBlockMovement().hardnessAndResistance(0.5F))
     LIGHT_WEIGHTED_PRESSURE_PLATE = &registry.registerBlock<blocks::WeightedPressurePlateBlock>(
         ResourceLocation("minecraft:light_weighted_pressure_plate"),
         BlockProperties(Material::IRON).noCollision().notSolid().hardness(0.5f),
         blocks::WeightedPressurePlateBlock::Sensitivity::Light);
 
     // 重质测重压力板
-    // 参考: new WeightedPressurePlateBlock(10,
-    // Properties.create(Material.IRON).doesNotBlockMovement().hardnessAndResistance(0.5F))
     HEAVY_WEIGHTED_PRESSURE_PLATE = &registry.registerBlock<blocks::WeightedPressurePlateBlock>(
         ResourceLocation("minecraft:heavy_weighted_pressure_plate"),
         BlockProperties(Material::IRON).noCollision().notSolid().hardness(0.5f),
         blocks::WeightedPressurePlateBlock::Sensitivity::Heavy);
 
     // 日光探测器
-    // 参考: new DaylightDetectorBlock(Properties.create(Material.WOOD).hardnessAndResistance(0.2F))
     DAYLIGHT_DETECTOR = &registry.registerBlock<blocks::DaylightDetectorBlock>(
         ResourceLocation("minecraft:daylight_detector"), BlockProperties(Material::WOOD).hardness(0.2f).flammable());
 
     // 活塞
-    // 参考: new PistonBlock(false, Properties.create(Material.PISTON).hardnessAndResistance(0.5F))
     PISTON = &registry.registerBlock<blocks::PistonBlock>(ResourceLocation("minecraft:piston"),
         BlockProperties(Material::PISTON).hardness(0.5f).resistance(0.5f),
         false // not sticky
     );
 
     // 粘性活塞
-    // 参考: new PistonBlock(true, Properties.create(Material.PISTON).hardnessAndResistance(0.5F))
     STICKY_PISTON = &registry.registerBlock<blocks::PistonBlock>(ResourceLocation("minecraft:sticky_piston"),
         BlockProperties(Material::PISTON).hardness(0.5f).resistance(0.5f),
         true // sticky
@@ -2816,68 +2632,51 @@ void VanillaBlocks::registerRedstoneBlocks()
         BlockProperties(Material::PISTON).hardness(0.5f).resistance(0.5f).noLootTable());
 
     // 移动中的活塞
-    // 参考: new MovingPistonBlock(Properties.create(Material.PISTON).hardnessAndResistance(-1.0F))
-    // MC Java: 移动中的活塞是不可破坏的，硬度为 -1.0
+    // 硬度为 -1.0 表示不可破坏
     MOVING_PISTON = &registry.registerBlock<blocks::MovingPistonBlock>(ResourceLocation("minecraft:moving_piston"),
         BlockProperties(Material::PISTON).hardness(-1.0f).resistance(-1.0f).noLootTable());
 
     // 发射器
-    // 参考: new DispenserBlock(Properties.create(Material.ROCK).hardnessAndResistance(3.0F))
     DISPENSER = &registry.registerBlock<blocks::DispenserBlock>(
         ResourceLocation("minecraft:dispenser"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
 
     // 投掷器
-    // 参考: new DropperBlock(Properties.create(Material.ROCK).hardnessAndResistance(3.0F))
     DROPPER = &registry.registerBlock<blocks::DropperBlock>(
         ResourceLocation("minecraft:dropper"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
 
     // 音符盒
-    // 参考: new NoteBlock(Properties.create(Material.WOOD).hardnessAndResistance(0.8F))
     NOTE_BLOCK = &registry.registerBlock<blocks::NoteBlock>(
         ResourceLocation("minecraft:note_block"), BlockProperties(Material::WOOD).hardness(0.8f).flammable());
 
     // TNT
-    // 参考: new TNTBlock(Properties.create(Material.TNT).hardnessAndResistance(0.0F, 0.0F))
     TNT = &registry.registerBlock<blocks::TNTBlock>(
         ResourceLocation("minecraft:tnt"), BlockProperties(Material::TNT).hardness(0.0f));
 
     // 标靶
-    // 参考: new TargetBlock(Properties.create(Material.WOOL).hardnessAndResistance(0.5F))
     TARGET = &registry.registerBlock<blocks::TargetBlock>(
         ResourceLocation("minecraft:target"), BlockProperties(Material::WOOL).hardness(0.5f));
 
     // 绊线
-    // 参考: new
-    // TripWireBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().zeroHardnessAndResistance())
     TRIPWIRE = &registry.registerBlock<blocks::TripWireBlock>(
         ResourceLocation("minecraft:tripwire"), BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     // 绊线钩
-    // 参考: new
-    // TripWireHookBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().zeroHardnessAndResistance())
     TRIPWIRE_HOOK = &registry.registerBlock<blocks::TripWireHookBlock>(
         ResourceLocation("minecraft:tripwire_hook"), BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     // 普通铁轨
-    // 参考: new RailBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().hardnessAndResistance(0.7F))
     RAIL = &registry.registerBlock<blocks::RailBlock>(ResourceLocation("minecraft:rail"),
         BlockProperties(Material::DECORATION).noCollision().notSolid().hardness(0.7f));
 
     // 动力铁轨
-    // 参考: new
-    // PoweredRailBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().hardnessAndResistance(0.7F))
     POWERED_RAIL = &registry.registerBlock<blocks::PoweredRailBlock>(ResourceLocation("minecraft:powered_rail"),
         BlockProperties(Material::DECORATION).noCollision().notSolid().hardness(0.7f));
 
     // 探测铁轨
-    // 参考: new
-    // DetectorRailBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().hardnessAndResistance(0.7F))
     DETECTOR_RAIL = &registry.registerBlock<blocks::DetectorRailBlock>(ResourceLocation("minecraft:detector_rail"),
         BlockProperties(Material::DECORATION).noCollision().notSolid().hardness(0.7f));
 
     // 激活铁轨
-    // 参考: new
-    // ActivatorRailBlock(Properties.create(Material.MISCELLANEOUS).doesNotBlockMovement().hardnessAndResistance(0.7F))
     ACTIVATOR_RAIL = &registry.registerBlock<blocks::ActivatorRailBlock>(ResourceLocation("minecraft:activator_rail"),
         BlockProperties(Material::DECORATION).noCollision().notSolid().hardness(0.7f));
 }
@@ -2891,8 +2690,6 @@ void VanillaBlocks::registerStairsSlabsWalls()
 
     // ========== 楼梯 ==========
     // 橡木楼梯
-    // 参考: new StairsBlock(OAK_PLANKS.defaultBlockState(),
-    // Properties.create(Material.WOOD).hardnessAndResistance(2.0F))
     OAK_STAIRS = &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:oak_stairs"),
         OAK_PLANKS->defaultState(),
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable());
@@ -2922,7 +2719,6 @@ void VanillaBlocks::registerStairsSlabsWalls()
 
     // ========== 台阶 ==========
     // 橡木台阶
-    // 参考: new SlabBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.0F))
     OAK_SLAB = &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:oak_slab"),
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable());
 
@@ -2946,8 +2742,6 @@ void VanillaBlocks::registerStairsSlabsWalls()
 
     // ========== 墙 ==========
     // 圆石墙
-    // 参考: new
-    // WallBlock(Properties.create(Material.ROCK).doesNotBlockMovement().hardnessAndResistance(1.5F).setRequiresTool())
     COBBLESTONE_WALL = &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:cobblestone_wall"),
         BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
@@ -2957,13 +2751,11 @@ void VanillaBlocks::registerStairsSlabsWalls()
 
     // ========== 栅栏 ==========
     // 橡木栅栏
-    // 参考: new FenceBlock(Properties.create(Material.WOOD).hardnessAndResistance(2.0F, 3.0F))
     OAK_FENCE = &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:oak_fence"),
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable());
 
     // ========== 活板门 ==========
     // 木活板门（所有木材类型）
-    // 参考 MC 1.16.5: new TrapDoorBlock(Properties.create(Material.WOOD).hardnessAndResistance(3.0F).noCollission())
     // 木活板门属性: 硬度3.0, 抗爆3.0, 可燃
     BlockProperties woodTrapdoorProps = BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).flammable();
 
@@ -3001,8 +2793,6 @@ void VanillaBlocks::registerDoorsFencesAndPanes()
     auto& registry = BlockRegistry::instance();
 
     // ========== 木门（所有木材类型）==========
-    // 参考 MC 1.16.5: new DoorBlock(Material.WOOD,
-    // Properties.create(Material.WOOD).hardnessAndResistance(3.0F).notSolid())
     BlockProperties woodDoorProps =
         BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).notSolid().flammable();
 
@@ -3026,8 +2816,6 @@ void VanillaBlocks::registerDoorsFencesAndPanes()
         ResourceLocation("minecraft:warped_door"), netherWoodDoorProps, false);
 
     // ========== 栅栏门（所有木材类型）==========
-    // 参考 MC 1.16.5: new FenceGateBlock(Material.WOOD,
-    // Properties.create(Material.WOOD).hardnessAndResistance(2.0F).notSolid())
     BlockProperties woodFenceGateProps =
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid().flammable();
 
@@ -3051,7 +2839,6 @@ void VanillaBlocks::registerDoorsFencesAndPanes()
         ResourceLocation("minecraft:warped_fence_gate"), netherWoodFenceGateProps);
 
     // ========== 染色玻璃板（16色）==========
-    // 参考 MC 1.16.5: new PaneBlock(Properties.create(Material.GLASS).hardnessAndResistance(0.3F).notSolid())
     BlockProperties stainedGlassPaneProps = BlockProperties(Material::GLASS).hardness(0.3f).notSolid();
 
     WHITE_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
@@ -3096,28 +2883,22 @@ void VanillaBlocks::registerSpecialBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 刷怪笼 - 方块实体，生成生物
-    // 参考 MC 1.16.5: new SpawnerBlock(Properties.create(Material.ROCK).hardnessAndResistance(-1.0F, 3600000.0F))
     SPAWNER = &registry.registerBlock<blocks::SpawnerBlock>(ResourceLocation("minecraft:spawner"),
         BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 
     // 结构方块 - 创造模式专用，用于保存/加载结构
-    // 参考 MC 1.16.5: new StructureBlock(Properties.create(Material.ROCK).hardnessAndResistance(-1.0F,
-    // 3600000.0F))
     STRUCTURE_BLOCK = &registry.registerBlock<blocks::StructureBlock>(ResourceLocation("minecraft:structure_block"),
         BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 
     // 结构空位 - 结构生成时不会替换现有方块
-    // 参考 MC 1.16.5: new StructureVoidBlock(Properties.create(Material.STRUCTURE_VOID).noCollision())
     STRUCTURE_VOID = &registry.registerBlock<blocks::StructureVoidBlock>(ResourceLocation("minecraft:structure_void"),
         BlockProperties(Material::STRUCTURE_VOID).noCollision().noLootTable());
 
     // 拼图方块 - Jigsaw 结构生成系统核心
-    // 参考 MC 1.16.5: new JigsawBlock(Properties.create(Material.ROCK).hardnessAndResistance(-1.0F, 3600000.0F))
     JIGSAW = &registry.registerBlock<blocks::JigsawBlock>(ResourceLocation("minecraft:jigsaw"),
         BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 
     // 屏障 - 不可见的不可破坏方块
-    // 参考 MC 1.16.5: new BarrierBlock(Properties.create(Material.BARRIER).hardnessAndResistance(-1.0F, 3600000.0F))
     BARRIER = &registry.registerBlock<blocks::BarrierBlock>(ResourceLocation("minecraft:barrier"),
         BlockProperties(Material::BARRIER).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 }

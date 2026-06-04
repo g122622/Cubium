@@ -44,7 +44,7 @@ namespace mc::skin {
 class HttpSkinLoader : public ISkinLoader {
 public:
     HttpSkinLoader();
-    ~HttpSkinLoader() override;
+    ~HttpSkinLoader() noexcept override;
 
     Result<void> initialize() override;
     void shutdown() override;
@@ -73,22 +73,22 @@ private:
     /**
      * @brief 执行 HTTP GET 请求
      */
-    Result<std::vector<u8>> httpGet(const std::string& url);
+    Result<std::vector<u8>> _httpGet(const std::string& url);
 
     /**
      * @brief 从 URL 提取哈希
      */
-    [[nodiscard]] std::string extractHashFromUrl(const std::string& url) const;
+    [[nodiscard]] std::string _extractHashFromUrl(const std::string& url) const;
 
     /**
      * @brief 验证皮肤 PNG 数据
      */
-    Result<std::vector<u8>> validateAndConvertSkin(const std::vector<u8>& pngData);
+    Result<std::vector<u8>> _validateAndConvertSkin(const std::vector<u8>& pngData);
 
     /**
      * @brief 计算数据哈希
      */
-    std::string calculateHash(const std::vector<u8>& data);
+    std::string _calculateHash(const std::vector<u8>& data);
 
     std::mutex m_pendingMutex;
     std::unordered_map<std::string, std::future<Result<SkinLoadResult>>> m_pendingLoads;

@@ -43,7 +43,7 @@ bool FluidTag::contains(const Fluid& fluid) const
 
 bool FluidTags::s_initialized = false;
 
-std::unordered_map<ResourceLocation, std::unique_ptr<FluidTag>>& FluidTags::getTags()
+std::unordered_map<ResourceLocation, std::unique_ptr<FluidTag>>& FluidTags::_getTags()
 {
     static std::unordered_map<ResourceLocation, std::unique_ptr<FluidTag>> tags;
     return tags;
@@ -55,7 +55,7 @@ FluidTag& FluidTags::WATER()
     if (waterTag == nullptr) {
         auto tag = std::make_unique<FluidTag>(ResourceLocation("minecraft:water"));
         waterTag = tag.get();
-        getTags()[ResourceLocation("minecraft:water")] = std::move(tag);
+        _getTags()[ResourceLocation("minecraft:water")] = std::move(tag);
     }
     return *waterTag;
 }
@@ -66,7 +66,7 @@ FluidTag& FluidTags::LAVA()
     if (lavaTag == nullptr) {
         auto tag = std::make_unique<FluidTag>(ResourceLocation("minecraft:lava"));
         lavaTag = tag.get();
-        getTags()[ResourceLocation("minecraft:lava")] = std::move(tag);
+        _getTags()[ResourceLocation("minecraft:lava")] = std::move(tag);
     }
     return *lavaTag;
 }
@@ -93,14 +93,14 @@ void FluidTags::initialize()
 
 FluidTag* FluidTags::getTag(const ResourceLocation& id)
 {
-    auto& tags = getTags();
+    auto& tags = _getTags();
     auto it = tags.find(id);
     return it != tags.end() ? it->second.get() : nullptr;
 }
 
 void FluidTags::forEachTag(std::function<void(FluidTag&)> callback)
 {
-    for (auto& [id, tag] : getTags()) {
+    for (auto& [id, tag] : _getTags()) {
         callback(*tag);
     }
 }

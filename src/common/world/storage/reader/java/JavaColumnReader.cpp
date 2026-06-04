@@ -91,15 +91,16 @@ std::optional<BlockPos> readBlockEntityPos(const compound_tag& tag)
 
 void applyHeightmapArray(ChunkData& chunk, HeightmapType type, const longarray_tag& packedHeights)
 {
+    // Java版高度图使用9位编码每个高度值（支持-512到2047的范围）
     constexpr i32 BITS_PER_ENTRY = 9;
-    constexpr i32 ENTRY_COUNT = 16 * 16;
+    constexpr i32 ENTRY_COUNT = world::CHUNK_WIDTH * world::CHUNK_WIDTH;
     constexpr i32 HEIGHT_OFFSET = world::MIN_BUILD_HEIGHT;
 
     auto unpacked = JavaChunkReader::unpackLongArray(packedHeights.value, BITS_PER_ENTRY, ENTRY_COUNT, true);
     std::array<BlockCoord, Heightmap::SIZE> heights{};
-    for (i32 z = 0; z < 16; ++z) {
-        for (i32 x = 0; x < 16; ++x) {
-            const i32 index = z * 16 + x;
+    for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+        for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
+            const i32 index = z * world::CHUNK_WIDTH + x;
             const i32 encoded = (index < static_cast<i32>(unpacked.size()))
                 ? static_cast<i32>(unpacked[static_cast<size_t>(index)])
                 : 0;
@@ -109,9 +110,9 @@ void applyHeightmapArray(ChunkData& chunk, HeightmapType type, const longarray_t
 
     Heightmap heightmap(type);
     heightmap.setData(heights);
-    for (i32 z = 0; z < 16; ++z) {
-        for (i32 x = 0; x < 16; ++x) {
-            chunk.updateHeightmap(type, x, heights[static_cast<size_t>(z * 16 + x)] - 1, z, nullptr);
+    for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+        for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
+            chunk.updateHeightmap(type, x, heights[static_cast<size_t>(z * world::CHUNK_WIDTH + x)] - 1, z, nullptr);
         }
     }
 }
@@ -176,18 +177,19 @@ Result<std::optional<ChunkData>> JavaColumnReader::readColumn(
     }
 
     ChunkData chunk(x, z);
-    auto biomesResult = readBiomes(columnNbt, chunk);
+    auto biomesResult = _readBiomes(columnNbt, chunk);
     if (biomesResult.failed()) {
         return biomesResult.error();
     }
-    readHeightmaps(columnNbt, chunk);
-    readEntities(columnNbt, chunk);
-    readBlockEntities(columnNbt, chunk);
-    auto sectionsResult = readSections(columnNbt, chunk);
+    _readHeightmaps(columnNbt, chunk);
+    _readEntities(columnNbt, chunk);
+    _readBlockEntities(columnNbt, chunk);
+    auto sectionsResult = _readSections(columnNbt, chunk);
     if (sectionsResult.failed()) {
         return sectionsResult.error();
     }
 
+    // TODO: dimension 参数目前未使用，未来可能用于维度特定的区块处理
     MC_UNUSED(dimension);
     chunk.setLoaded(true);
     chunk.setFullyGenerated(true);
@@ -195,7 +197,7 @@ Result<std::optional<ChunkData>> JavaColumnReader::readColumn(
     return std::optional<ChunkData>(std::move(chunk));
 }
 
-Result<void> JavaColumnReader::readSections(const compound_tag& columnNbt, ChunkData& chunk)
+Result<void> JavaColumnReader::_readSections(const compound_tag& columnNbt, ChunkData& chunk)
 {
     const list_tag* sections = getList(columnNbt, "Sections");
     if (sections == nullptr) {
@@ -235,8 +237,12 @@ Result<void> JavaColumnReader::readSections(const compound_tag& columnNbt, Chunk
     return {};
 }
 
-Result<void> JavaColumnReader::readBiomes(const compound_tag& columnNbt, ChunkData& chunk)
+Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkData& chunk)
 {
+    // 生物群系采样参数：Java 版每 4x4x4 方块区域共享一个生物群系
+    constexpr i32 BIOME_SAMPLE_STRIDE = 4;
+    constexpr i32 BIOME_SAMPLE_OFFSET = 2;
+
     const list_tag* sections = getList(columnNbt, "sections");
     if (sections != nullptr) {
         BiomeContainer biomeContainer;
@@ -291,9 +297,9 @@ Result<void> JavaColumnReader::readBiomes(const compound_tag& columnNbt, ChunkDa
         BiomeContainer biomeContainer;
         for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
             for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
-                const i32 srcZ = bz * 4 + 2;
-                const i32 srcX = bx * 4 + 2;
-                const i32 srcIdx = srcZ * 16 + srcX;
+                const i32 srcZ = bz * BIOME_SAMPLE_STRIDE + BIOME_SAMPLE_OFFSET;
+                const i32 srcX = bx * BIOME_SAMPLE_STRIDE + BIOME_SAMPLE_OFFSET;
+                const i32 srcIdx = srcZ * world::CHUNK_WIDTH + srcX;
                 const i32 javaBiomeId = (srcIdx < static_cast<i32>(biomeBytes->value.size()))
                     ? static_cast<u8>(biomeBytes->value[static_cast<size_t>(srcIdx)])
                     : static_cast<i32>(Biomes::Ocean);
@@ -314,12 +320,15 @@ Result<void> JavaColumnReader::readBiomes(const compound_tag& columnNbt, ChunkDa
 
     const i32 baseSectionY = world::MIN_BUILD_HEIGHT / world::CHUNK_SECTION_HEIGHT;
     BiomeContainer biomeContainer;
-    if (biomeInts->value.size() == 1024) {
+    // 1024 = 4x4x4 生物群系采样 * 16 个区块段（3D 生物群系格式）
+    constexpr i32 JAVA_BIOME_3D_ARRAY_SIZE = 1024;
+    if (biomeInts->value.size() == JAVA_BIOME_3D_ARRAY_SIZE) {
         for (i32 by = 0; by < BiomeContainer::BIOME_HEIGHT; ++by) {
-            const i32 globalY = (baseSectionY * world::CHUNK_SECTION_HEIGHT) + by * 4;
+            const i32 globalY = (baseSectionY * world::CHUNK_SECTION_HEIGHT) + by * BIOME_SAMPLE_STRIDE;
             for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
                 for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
-                    const i32 srcIdx = (globalY / 4) * 16 + bz * 4 + bx;
+                    const i32 srcIdx =
+                        (globalY / BIOME_SAMPLE_STRIDE) * world::CHUNK_WIDTH + bz * BIOME_SAMPLE_STRIDE + bx;
                     const i32 javaBiomeId = (srcIdx < static_cast<i32>(biomeInts->value.size()))
                         ? biomeInts->value[static_cast<size_t>(srcIdx)]
                         : -1;
@@ -332,12 +341,14 @@ Result<void> JavaColumnReader::readBiomes(const compound_tag& columnNbt, ChunkDa
         return {};
     }
 
-    if (biomeInts->value.size() == 256) {
+    // 256 = 16x16 2D 生物群系格式（旧版 Java）
+    constexpr i32 JAVA_BIOME_2D_ARRAY_SIZE = 256;
+    if (biomeInts->value.size() == JAVA_BIOME_2D_ARRAY_SIZE) {
         for (i32 bz = 0; bz < BiomeContainer::BIOME_DEPTH; ++bz) {
             for (i32 bx = 0; bx < BiomeContainer::BIOME_WIDTH; ++bx) {
-                const i32 srcZ = bz * 4 + 2;
-                const i32 srcX = bx * 4 + 2;
-                const i32 srcIdx = srcZ * 16 + srcX;
+                const i32 srcZ = bz * BIOME_SAMPLE_STRIDE + BIOME_SAMPLE_OFFSET;
+                const i32 srcX = bx * BIOME_SAMPLE_STRIDE + BIOME_SAMPLE_OFFSET;
+                const i32 srcIdx = srcZ * world::CHUNK_WIDTH + srcX;
                 const i32 javaBiomeId = (srcIdx < static_cast<i32>(biomeInts->value.size()))
                     ? biomeInts->value[static_cast<size_t>(srcIdx)]
                     : -1;
@@ -356,7 +367,7 @@ Result<void> JavaColumnReader::readBiomes(const compound_tag& columnNbt, ChunkDa
     return {};
 }
 
-void JavaColumnReader::readHeightmaps(const compound_tag& columnNbt, ChunkData& chunk)
+void JavaColumnReader::_readHeightmaps(const compound_tag& columnNbt, ChunkData& chunk)
 {
     const compound_tag* heightmaps = getCompound(columnNbt, "Heightmaps");
     if (heightmaps != nullptr) {
@@ -386,13 +397,13 @@ void JavaColumnReader::readHeightmaps(const compound_tag& columnNbt, ChunkData& 
     }
 
     auto legacyHeightmap = getIntArray(columnNbt, "HeightMap");
-    if (legacyHeightmap == nullptr || legacyHeightmap->value.size() != 256) {
+    if (legacyHeightmap == nullptr || legacyHeightmap->value.size() != world::CHUNK_WIDTH * world::CHUNK_WIDTH) {
         return;
     }
 
-    for (i32 z = 0; z < 16; ++z) {
-        for (i32 x = 0; x < 16; ++x) {
-            const i32 index = z * 16 + x;
+    for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+        for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
+            const i32 index = z * world::CHUNK_WIDTH + x;
             const i32 height = legacyHeightmap->value[static_cast<size_t>(index)];
             chunk.updateHeightmap(HeightmapType::WorldSurface, x, height, z, nullptr);
             chunk.updateHeightmap(HeightmapType::WorldSurfaceWG, x, height, z, nullptr);
@@ -400,7 +411,7 @@ void JavaColumnReader::readHeightmaps(const compound_tag& columnNbt, ChunkData& 
     }
 }
 
-void JavaColumnReader::readEntities(const compound_tag& columnNbt, ChunkData& chunk)
+void JavaColumnReader::_readEntities(const compound_tag& columnNbt, ChunkData& chunk)
 {
     const list_tag* entities = getList(columnNbt, "Entities");
     if (entities == nullptr) {
@@ -427,7 +438,7 @@ void JavaColumnReader::readEntities(const compound_tag& columnNbt, ChunkData& ch
     }
 }
 
-void JavaColumnReader::readBlockEntities(const compound_tag& columnNbt, ChunkData& chunk)
+void JavaColumnReader::_readBlockEntities(const compound_tag& columnNbt, ChunkData& chunk)
 {
     const list_tag* blockEntities = getList(columnNbt, "block_entities");
     if (blockEntities == nullptr) {

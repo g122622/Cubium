@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../chunk/IChunk.hpp"
-#include "../gen/noise/OctavesNoiseGenerator.hpp"
-#include "Biome.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/chunk/IChunk.hpp"
+#include "common/world/gen/noise/OctavesNoiseGenerator.hpp"
 #include <functional>
 #include <memory>
 #include <optional>
@@ -37,15 +37,13 @@ namespace mc {
 /**
  * @brief 生物群系提供者基类
  *
- * 参考 MC BiomeProvider，负责提供世界中的生物群系信息。
+ * 负责提供世界中的生物群系信息。
  *
  * 使用方法：
  * @code
  * auto provider = createBiomeProvider(seed);
  * BiomeId biome = provider->getBiome(x, y, z);
  * @endcode
- *
- * @note 参考 MC 1.16.5 BiomeProvider
  */
 class BiomeProvider {
 public:
@@ -161,7 +159,6 @@ public:
     /**
      * @brief 在指定范围内搜索生物群系
      *
-     * 参考 MC 1.16.5 BiomeProvider.func_230321_a_
      * 从中心点向外螺旋搜索，直到找到匹配的生物群系。
      *
      * @param centerX 中心 X 坐标（世界坐标）

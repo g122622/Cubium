@@ -22,6 +22,8 @@
  */
 
 #include "RedstoneHelper.hpp"
+
+#include "../../util/assert/AssertMacros.hpp"
 #include "../IWorld.hpp"
 #include "../block/Block.hpp"
 
@@ -60,11 +62,11 @@ bool RedstoneHelper::isRedstoneConductor(IWorld& world, const BlockPos& pos, con
 
 i32 RedstoneHelper::getEntitySignal(IWorld& world, const BlockPos& pos)
 {
-    // 检查位置上的实体是否输出红石信号
+    // TODO: 检查位置上的实体是否输出红石信号
     // 例如：装有漏斗的矿车、动力矿车等
     // 待实体系统完善后实现
-    (void)world;
-    (void)pos;
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
     return 0;
 }
 

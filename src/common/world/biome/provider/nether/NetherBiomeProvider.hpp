@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../gen/noise/OctavesNoiseGenerator.hpp"
-#include "../../BiomeProvider.hpp"
+#include "common/world/biome/BiomeProvider.hpp"
+#include "common/world/gen/noise/OctavesNoiseGenerator.hpp"
 #include <memory>
 
 namespace mc {
@@ -34,7 +34,6 @@ namespace nether {
 /**
  * @brief 下界生物群系提供者
  *
- * 参考 MC 1.16.5 NetherBiomeProvider
  * 使用 3D 噪声采样确定生物群系，不同于主世界的 Layer 系统。
  *
  * 下界生物群系：
@@ -64,8 +63,8 @@ public:
 
     [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override;
     [[nodiscard]] BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const override;
-    [[nodiscard]] f32 getDepth(i32 x, i32 z) const override;
-    [[nodiscard]] f32 getScale(i32 x, i32 z) const override;
+    [[nodiscard]] f32 getDepth(i32 x, i32 z) const noexcept override;
+    [[nodiscard]] f32 getScale(i32 x, i32 z) const noexcept override;
     void fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ) override;
 
     // ========== 下界特有方法 ==========
@@ -99,7 +98,7 @@ private:
     /**
      * @brief 根据噪声值选择生物群系
      */
-    [[nodiscard]] BiomeId selectBiome(f32 temperature, f32 humidity, f32 biomeNoise) const;
+    [[nodiscard]] BiomeId _selectBiome(f32 temperature, f32 humidity, f32 biomeNoise) const;
 };
 
 } // namespace nether
