@@ -27,6 +27,7 @@
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/chunk/ChunkStatus.hpp"
 #include "common/world/chunk/IChunk.hpp"
+#include "common/world/gen/carver/CarvingMask.hpp"
 #include "common/world/gen/spawn/WorldGenSpawner.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 #include <memory>
@@ -34,9 +35,6 @@
 #include <vector>
 
 namespace mc {
-
-// 前向声明
-class CarvingMask;
 
 // ============================================================================
 // 区块生成器 (中间状态)

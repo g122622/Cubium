@@ -30,9 +30,9 @@
  * 和 TrunkPlacer 的基本行为。
  */
 
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "util/math/MathUtils.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/gen/feature/ConfiguredFeature.hpp"
 #include "world/gen/feature/FeatureIds.hpp"
 #include "world/gen/feature/FeatureSpread.hpp"
@@ -704,19 +704,13 @@ TEST_F(HugeFungusFeatureTest, FungusConfigDefaults)
 {
     HugeFungusFeatureConfig config;
     EXPECT_EQ(config.fungusType, FungusType::Crimson);
-    EXPECT_EQ(config.minHeight, 4);
-    EXPECT_EQ(config.maxHeight, 13);
-    EXPECT_EQ(config.capRadius, 2);
     EXPECT_EQ(config.planted, false);
 }
 
 TEST_F(HugeFungusFeatureTest, FungusConfigExplicit)
 {
-    HugeFungusFeatureConfig config(FungusType::Warped, 5, 15, 3, true);
+    HugeFungusFeatureConfig config(FungusType::Warped, true);
     EXPECT_EQ(config.fungusType, FungusType::Warped);
-    EXPECT_EQ(config.minHeight, 5);
-    EXPECT_EQ(config.maxHeight, 15);
-    EXPECT_EQ(config.capRadius, 3);
     EXPECT_EQ(config.planted, true);
 }
 

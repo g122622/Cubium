@@ -47,7 +47,7 @@ protected:
 TEST_F(GlowstoneFeatureTest, InitializeFeatures)
 {
     const auto& features = GlowstoneFeatures::getAllFeatures();
-    EXPECT_GE(features.size(), 2); // Normal 和 Large
+    EXPECT_GE(features.size(), 1); // Normal
 }
 
 TEST_F(GlowstoneFeatureTest, CreateNormalFeature)
@@ -58,20 +58,12 @@ TEST_F(GlowstoneFeatureTest, CreateNormalFeature)
     EXPECT_NE(feature->name(), nullptr);
 }
 
-TEST_F(GlowstoneFeatureTest, CreateLargeFeature)
-{
-    auto feature = GlowstoneFeatures::createLarge();
-    ASSERT_NE(feature, nullptr);
-    EXPECT_EQ(feature->stage(), DecorationStage::UndergroundDecoration);
-}
-
-TEST_F(GlowstoneFeatureTest, ConfigValues)
+TEST_F(GlowstoneFeatureTest, ConfigExists)
 {
     auto feature = GlowstoneFeatures::createNormal();
     const auto& config = feature->getConfig();
-    EXPECT_EQ(config.maxDistance, 8);
-    EXPECT_EQ(config.branchCount, 4);
-    EXPECT_EQ(config.maxBranchLength, 6);
+    // GlowstoneFeatureConfig is empty in MC 1.21.11 - uses fixed diffusion algorithm
+    (void)config;
 }
 
 // ============================================================================

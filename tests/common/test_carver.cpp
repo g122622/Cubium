@@ -21,15 +21,16 @@
  *
  */
 
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/WorldConstants.hpp"
 #include "world/biome/BiomeSource.hpp"
 #include "world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/chunk/ChunkPrimer.hpp"
 #include "world/gen/carver/CanyonCarver.hpp"
+#include "world/gen/carver/CarvingContext.hpp"
 #include "world/gen/carver/CaveCarver.hpp"
 #include "world/gen/carver/WorldCarver.hpp"
 #include <gtest/gtest.h>
@@ -143,12 +144,15 @@ protected:
         chunk = std::make_unique<ChunkPrimer>(0, 0);
         mask = std::make_unique<CarvingMask>(0, 0);
         biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(12345, false);
+        context = std::make_unique<CarvingContext>(
+            world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT - world::MIN_BUILD_HEIGHT, nullptr);
     }
 
     std::unique_ptr<CaveCarver> carver;
     std::unique_ptr<ChunkPrimer> chunk;
     std::unique_ptr<CarvingMask> mask;
     std::unique_ptr<world::biome::BiomeSource> biomeSource;
+    std::unique_ptr<CarvingContext> context;
 };
 
 TEST_F(CaveCarverTest, ShouldCarveWithProbability)
@@ -193,7 +197,7 @@ TEST_F(CaveCarverTest, CarveCreatesHoles)
                     }
                 }
             }
-            if (carver->carve(testChunk, *biomeSource, 63, cx, cz, testMask, config)) {
+            if (carver->carve(testChunk, *context, *biomeSource, 63, cx, cz, testMask, config)) {
                 carved = true;
             }
         }
@@ -219,7 +223,7 @@ TEST_F(CaveCarverTest, CarveRespectsMask)
     mask->setCarved(8, 32, 8);
 
     ProbabilityConfig config(1.0f);
-    carver->carve(*chunk, *biomeSource, 63, 0, 0, *mask, config);
+    carver->carve(*chunk, *context, *biomeSource, 63, 0, 0, *mask, config);
 
     // 已标记的位置不应该被重复雕刻
     // （虽然我们无法直接验证，但掩码应该阻止重复雕刻）
@@ -250,12 +254,15 @@ protected:
         chunk = std::make_unique<ChunkPrimer>(0, 0);
         mask = std::make_unique<CarvingMask>(0, 0);
         biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(12345, false);
+        context = std::make_unique<CarvingContext>(
+            world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT - world::MIN_BUILD_HEIGHT, nullptr);
     }
 
     std::unique_ptr<CanyonCarver> carver;
     std::unique_ptr<ChunkPrimer> chunk;
     std::unique_ptr<CarvingMask> mask;
     std::unique_ptr<world::biome::BiomeSource> biomeSource;
+    std::unique_ptr<CarvingContext> context;
 };
 
 TEST_F(CanyonCarverTest, ShouldCarveWithProbability)
@@ -299,7 +306,7 @@ TEST_F(CanyonCarverTest, CarveCreatesCanyon)
                     }
                 }
             }
-            if (carver->carve(testChunk, *biomeSource, 63, cx, cz, testMask, config)) {
+            if (carver->carve(testChunk, *context, *biomeSource, 63, cx, cz, testMask, config)) {
                 carved = true;
             }
         }

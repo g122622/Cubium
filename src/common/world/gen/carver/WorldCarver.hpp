@@ -24,6 +24,7 @@
 #pragma once
 
 #include "CarvingContext.hpp"
+#include "CarvingMask.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -61,58 +62,6 @@ struct ProbabilityConfig : public ICarverConfig {
     explicit ProbabilityConfig(f32 prob = 0.14285715f)
         : probability(prob)
     {}
-};
-
-/**
- * @brief 雕刻掩码
- *
- * 用于追踪哪些位置已被雕刻，防止重复雕刻。
- */
-class CarvingMask {
-public:
-    /**
-     * @brief 构造雕刻掩码
-     * @param chunkX 区块X坐标
-     * @param chunkZ 区块Z坐标
-     */
-    CarvingMask(ChunkCoord chunkX, ChunkCoord chunkZ);
-
-    /**
-     * @brief 检查指定位置是否已被雕刻
-     * @param x 区块内X坐标 (0-15)
-     * @param y Y坐标
-     * @param z 区块内Z坐标 (0-15)
-     * @return 是否已被雕刻
-     */
-    [[nodiscard]] bool isCarved(BlockCoord x, i32 y, BlockCoord z) const;
-
-    /**
-     * @brief 标记指定位置为已雕刻
-     * @param x 区块内X坐标 (0-15)
-     * @param y Y坐标
-     * @param z 区块内Z坐标 (0-15)
-     */
-    void setCarved(BlockCoord x, i32 y, BlockCoord z);
-
-    /**
-     * @brief 获取掩码索引
-     * @param x 区块内X坐标 (0-15)
-     * @param y Y坐标
-     * @param z 区块内Z坐标 (0-15)
-     * @return 位索引
-     */
-    [[nodiscard]] static constexpr i32 getIndex(BlockCoord x, i32 y, BlockCoord z)
-    {
-        // y 需要转换为相对于 MIN_BUILD_HEIGHT 的偏移量
-        const i32 relativeY = y - world::MIN_BUILD_HEIGHT;
-        return static_cast<i32>(x) | (static_cast<i32>(z) << world::CHUNK_SHIFT) |
-            (relativeY << (world::CHUNK_SHIFT + world::SECTION_SHIFT));
-    }
-
-private:
-    ChunkCoord m_chunkX;
-    ChunkCoord m_chunkZ;
-    std::vector<bool> m_mask; // 使用 vector<bool> 作为 BitSet
 };
 
 /**
