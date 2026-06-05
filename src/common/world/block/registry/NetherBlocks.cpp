@@ -23,8 +23,12 @@
 #include "world/block/registry/NetherBlocks.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
+#include "world/block/blocks/HopperBlock.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/building/SlabBlock.hpp"
+#include "world/block/blocks/building/StairsBlock.hpp"
+#include "world/block/blocks/building/WallBlock.hpp"
 #include "world/block/blocks/decorative/CampfireBlock.hpp"
 #include "world/block/blocks/decorative/LanternBlock.hpp"
 #include "world/block/blocks/end/ChorusFlowerBlock.hpp"
@@ -34,7 +38,9 @@
 #include "world/block/blocks/end/EndPortalBlock.hpp"
 #include "world/block/blocks/end/EndPortalFrameBlock.hpp"
 #include "world/block/blocks/functional/BeaconBlock.hpp"
+#include "world/block/blocks/functional/BellBlock.hpp"
 #include "world/block/blocks/functional/BrewingStandBlock.hpp"
+#include "world/block/blocks/functional/LodestoneBlock.hpp"
 #include "world/block/blocks/functional/RespawnAnchorBlock.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
 #include "world/block/blocks/nether/MagmaBlock.hpp"
@@ -80,9 +86,41 @@ Block* NetherBlocks::CRIMSON_FUNGUS = nullptr;
 Block* NetherBlocks::WARPED_FUNGUS = nullptr;
 Block* NetherBlocks::WEEPING_VINES = nullptr;
 Block* NetherBlocks::TWISTING_VINES = nullptr;
+Block* NetherBlocks::WEEPING_VINES_PLANT = nullptr;
+Block* NetherBlocks::TWISTING_VINES_PLANT = nullptr;
 Block* NetherBlocks::CRIMSON_ROOTS = nullptr;
 Block* NetherBlocks::WARPED_ROOTS = nullptr;
 Block* NetherBlocks::NETHER_SPROUTS = nullptr;
+
+// 灵魂火把
+Block* NetherBlocks::SOUL_TORCH = nullptr;
+Block* NetherBlocks::SOUL_WALL_TORCH = nullptr;
+
+// 黑石建筑方块
+Block* NetherBlocks::BLACKSTONE_STAIRS = nullptr;
+Block* NetherBlocks::BLACKSTONE_SLAB = nullptr;
+Block* NetherBlocks::BLACKSTONE_WALL = nullptr;
+Block* NetherBlocks::POLISHED_BLACKSTONE_BRICKS = nullptr;
+Block* NetherBlocks::CRACKED_POLISHED_BLACKSTONE_BRICKS = nullptr;
+Block* NetherBlocks::CHISELED_POLISHED_BLACKSTONE = nullptr;
+Block* NetherBlocks::POLISHED_BLACKSTONE_BRICK_STAIRS = nullptr;
+Block* NetherBlocks::POLISHED_BLACKSTONE_BRICK_SLAB = nullptr;
+Block* NetherBlocks::POLISHED_BLACKSTONE_BRICK_WALL = nullptr;
+Block* NetherBlocks::POLISHED_BLACKSTONE_STAIRS = nullptr;
+Block* NetherBlocks::POLISHED_BLACKSTONE_SLAB = nullptr;
+Block* NetherBlocks::POLISHED_BLACKSTONE_WALL = nullptr;
+Block* NetherBlocks::GILDED_BLACKSTONE = nullptr;
+
+// 下界砖扩展
+Block* NetherBlocks::CHISELED_NETHER_BRICKS = nullptr;
+Block* NetherBlocks::CRACKED_NETHER_BRICKS = nullptr;
+
+// 磁石
+Block* NetherBlocks::LODESTONE = nullptr;
+
+// 漏斗和钟
+Block* NetherBlocks::HOPPER = nullptr;
+Block* NetherBlocks::BELL = nullptr;
 
 // 末地方块
 Block* NetherBlocks::END_STONE_BRICKS = nullptr;
@@ -248,6 +286,16 @@ void registerNetherBlocks()
     NetherBlocks::TWISTING_VINES = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:twisting_vines"),
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
+    // 垂泪藤植株 - 垂泪藤的茎部分（不生长）
+    NetherBlocks::WEEPING_VINES_PLANT =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:weeping_vines_plant"),
+            BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+
+    // 扭曲藤植株 - 扭曲藤的茎部分（不生长）
+    NetherBlocks::TWISTING_VINES_PLANT =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:twisting_vines_plant"),
+            BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+
     // 绯红菌索 - 下界装饰植物
     NetherBlocks::CRIMSON_ROOTS =
         &registry.registerBlock<blocks::NetherRootsBlock>(ResourceLocation("minecraft:crimson_roots"),
@@ -265,6 +313,193 @@ void registerNetherBlocks()
                 .noCollision()
                 .notSolid()
                 .soundType(BlockSoundTypes::NETHER_SPROUT));
+
+    // 灵魂火把 - 发光等级10，蓝色火焰
+    NetherBlocks::SOUL_TORCH = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:soul_torch"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(10));
+
+    // 墙上的灵魂火把
+    NetherBlocks::SOUL_WALL_TORCH = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:soul_wall_torch"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(10));
+
+    // ============================================================================
+    // 黑石建筑方块
+    // ============================================================================
+
+    // 黑石楼梯
+    NetherBlocks::BLACKSTONE_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:blackstone_stairs"),
+            NetherBlocks::BLACKSTONE->defaultState(),
+            BlockProperties(Material::ROCK)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
+    // 黑石台阶
+    NetherBlocks::BLACKSTONE_SLAB =
+        &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:blackstone_slab"),
+            BlockProperties(Material::ROCK)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
+    // 黑石墙
+    NetherBlocks::BLACKSTONE_WALL =
+        &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:blackstone_wall"),
+            BlockProperties(Material::ROCK)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
+    // 磨制黑石砖
+    NetherBlocks::POLISHED_BLACKSTONE_BRICKS =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_blackstone_bricks"),
+            BlockProperties(Material::ROCK)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
+    // 裂纹磨制黑石砖
+    NetherBlocks::CRACKED_POLISHED_BLACKSTONE_BRICKS =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cracked_polished_blackstone_bricks"),
+            BlockProperties(Material::ROCK)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
+    // 雕纹磨制黑石
+    NetherBlocks::CHISELED_POLISHED_BLACKSTONE =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_polished_blackstone"),
+            BlockProperties(Material::ROCK)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
+    // 磨制黑石砖楼梯
+    NetherBlocks::POLISHED_BLACKSTONE_BRICK_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:polished_blackstone_brick_stairs"),
+            NetherBlocks::POLISHED_BLACKSTONE_BRICKS->defaultState(),
+            BlockProperties(Material::ROCK)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
+    // 磨制黑石砖台阶
+    NetherBlocks::POLISHED_BLACKSTONE_BRICK_SLAB =
+        &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:polished_blackstone_brick_slab"),
+            BlockProperties(Material::ROCK)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
+    // 磨制黑石砖墙
+    NetherBlocks::POLISHED_BLACKSTONE_BRICK_WALL =
+        &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:polished_blackstone_brick_wall"),
+            BlockProperties(Material::ROCK)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
+    // 磨制黑石楼梯
+    NetherBlocks::POLISHED_BLACKSTONE_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:polished_blackstone_stairs"),
+            NetherBlocks::POLISHED_BLACKSTONE->defaultState(),
+            BlockProperties(Material::ROCK)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
+    // 磨制黑石台阶
+    NetherBlocks::POLISHED_BLACKSTONE_SLAB =
+        &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:polished_blackstone_slab"),
+            BlockProperties(Material::ROCK)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
+    // 磨制黑石墙
+    NetherBlocks::POLISHED_BLACKSTONE_WALL =
+        &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:polished_blackstone_wall"),
+            BlockProperties(Material::ROCK)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
+    // 镶金黑石 - 可掉落金粒
+    NetherBlocks::GILDED_BLACKSTONE =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:gilded_blackstone"),
+            BlockProperties(Material::ROCK)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool()
+                .soundType(BlockSoundTypes::GILDED_BLACKSTONE));
+
+    // ============================================================================
+    // 下界砖扩展
+    // ============================================================================
+
+    // 雕纹下界砖
+    NetherBlocks::CHISELED_NETHER_BRICKS =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_nether_bricks"),
+            BlockProperties(Material::ROCK)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
+    // 裂纹下界砖
+    NetherBlocks::CRACKED_NETHER_BRICKS =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cracked_nether_bricks"),
+            BlockProperties(Material::ROCK)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
+    // ============================================================================
+    // 磁石
+    // ============================================================================
+
+    // 磁石 - 可重置指南针指向
+    NetherBlocks::LODESTONE = &registry.registerBlock<blocks::LodestoneBlock>(ResourceLocation("minecraft:lodestone"),
+        BlockProperties(Material::ROCK)
+            .hardness(3.5f)
+            .resistance(3.5f)
+            .harvestTool(HarvestTool::Pickaxe)
+            .requiresTool());
+
+    // ============================================================================
+    // 漏斗和钟
+    // ============================================================================
+
+    // 漏斗 - 物品传输方块
+    NetherBlocks::HOPPER = &registry.registerBlock<blocks::HopperBlock>(ResourceLocation("minecraft:hopper"),
+        BlockProperties(Material::IRON)
+            .hardness(3.0f)
+            .resistance(4.8f)
+            .harvestTool(HarvestTool::Pickaxe)
+            .requiresTool());
+
+    // 钟 - 村庄报时方块
+    NetherBlocks::BELL = &registry.registerBlock<blocks::BellBlock>(ResourceLocation("minecraft:bell"),
+        BlockProperties(Material::IRON)
+            .hardness(5.0f)
+            .resistance(5.0f)
+            .harvestTool(HarvestTool::Pickaxe)
+            .requiresTool());
 
     // ============================================================================
     // 末地方块注册

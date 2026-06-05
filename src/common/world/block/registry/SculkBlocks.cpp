@@ -52,6 +52,7 @@ void registerSculkBlocks()
             .hardness(0.2f)
             .resistance(0.2f)
             .harvestTool(HarvestTool::Hoe)
+            .requiresTool()
             .soundType(BlockSoundTypes::SCULK)
             .tickRandomly()
             .noLootTable());
@@ -65,6 +66,7 @@ void registerSculkBlocks()
             .hardness(0.2f)
             .resistance(0.2f)
             .harvestTool(HarvestTool::Hoe)
+            .requiresTool()
             .soundType(BlockSoundTypes::SCULK_VEIN));
 
     // 幽匿催化体 - Material::SCULK, 锄有效, 硬度3.0, 抗性3.0, 发光等级6
@@ -74,6 +76,7 @@ void registerSculkBlocks()
             .hardness(3.0f)
             .resistance(3.0f)
             .harvestTool(HarvestTool::Hoe)
+            .requiresTool()
             .soundType(BlockSoundTypes::SCULK_CATALYST)
             .lightLevel(6));
 
@@ -85,6 +88,7 @@ void registerSculkBlocks()
             .hardness(1.5f)
             .resistance(1.5f)
             .harvestTool(HarvestTool::Hoe)
+            .requiresTool()
             .soundType(BlockSoundTypes::SCULK_SENSOR));
 
     // 校准幽匿感测体 - Material::SCULK, 非固体, 锄有效, 硬度1.5, 抗性1.5
@@ -96,6 +100,7 @@ void registerSculkBlocks()
                 .hardness(1.5f)
                 .resistance(1.5f)
                 .harvestTool(HarvestTool::Hoe)
+                .requiresTool()
                 .soundType(BlockSoundTypes::SCULK_SENSOR));
 
     // 幽匿尖啸体 - Material::SCULK, 非固体, 锄有效, 硬度3.0, 抗性3.0
@@ -106,6 +111,7 @@ void registerSculkBlocks()
             .hardness(3.0f)
             .resistance(3.0f)
             .harvestTool(HarvestTool::Hoe)
+            .requiresTool()
             .soundType(BlockSoundTypes::SCULK_SHRIEKER));
 }
 

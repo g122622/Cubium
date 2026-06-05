@@ -83,6 +83,7 @@ void registerCaveBlocks()
             .hardness(1.5f)
             .resistance(1.5f)
             .harvestTool(HarvestTool::Pickaxe)
+            .requiresTool()
             .soundType(BlockSoundTypes::AMETHYST));
 
     // 生成紫水晶的方块 - 随机刻会生长紫水晶簇
@@ -91,6 +92,7 @@ void registerCaveBlocks()
             .hardness(1.5f)
             .resistance(1.5f)
             .harvestTool(HarvestTool::Pickaxe)
+            .requiresTool()
             .soundType(BlockSoundTypes::AMETHYST)
             .tickRandomly());
 
@@ -169,6 +171,7 @@ void registerCaveBlocks()
             .hardness(0.75f)
             .resistance(0.75f)
             .harvestTool(HarvestTool::Pickaxe)
+            .requiresTool()
             .soundType(BlockSoundTypes::CALCITE));
 
     // ============================================================================
@@ -195,6 +198,7 @@ void registerCaveBlocks()
             .hardness(0.1f)
             .resistance(0.1f)
             .harvestTool(HarvestTool::Shovel)
+            .requiresTool()
             .soundType(BlockSoundTypes::MOSS));
 
     // 苔藓地毯 - 地毯类方块
@@ -210,23 +214,13 @@ void registerCaveBlocks()
     // 杜鹃花系列
     // ============================================================================
 
-    // 杜鹃花 - 灌木类方块
+    // 杜鹃花 - 灌木类方块，有碰撞箱
     CaveBlocks::AZALEA = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:azalea"),
-        BlockProperties(Material::PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::AZALEA));
+        BlockProperties(Material::PLANT).hardness(0.0f).resistance(0.0f).soundType(BlockSoundTypes::AZALEA));
 
-    // 开花的杜鹃花 - 灌木类方块
+    // 开花的杜鹃花 - 灌木类方块，有碰撞箱
     CaveBlocks::FLOWERING_AZALEA = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:flowering_azalea"),
-        BlockProperties(Material::PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::FLOWERING_AZALEA));
+        BlockProperties(Material::PLANT).hardness(0.0f).resistance(0.0f).soundType(BlockSoundTypes::FLOWERING_AZALEA));
 
     // 杜鹃花叶 - 树叶类方块，随机刻可枯萎消失
     CaveBlocks::AZALEA_LEAVES = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:azalea_leaves"),

@@ -63,9 +63,41 @@ struct NetherBlocks {
     static Block* WARPED_FUNGUS;
     static Block* WEEPING_VINES;
     static Block* TWISTING_VINES;
+    static Block* WEEPING_VINES_PLANT;
+    static Block* TWISTING_VINES_PLANT;
     static Block* CRIMSON_ROOTS;
     static Block* WARPED_ROOTS;
     static Block* NETHER_SPROUTS;
+
+    // 灵魂火把
+    static Block* SOUL_TORCH;
+    static Block* SOUL_WALL_TORCH;
+
+    // 黑石建筑方块
+    static Block* BLACKSTONE_STAIRS;
+    static Block* BLACKSTONE_SLAB;
+    static Block* BLACKSTONE_WALL;
+    static Block* POLISHED_BLACKSTONE_BRICKS;
+    static Block* CRACKED_POLISHED_BLACKSTONE_BRICKS;
+    static Block* CHISELED_POLISHED_BLACKSTONE;
+    static Block* POLISHED_BLACKSTONE_BRICK_STAIRS;
+    static Block* POLISHED_BLACKSTONE_BRICK_SLAB;
+    static Block* POLISHED_BLACKSTONE_BRICK_WALL;
+    static Block* POLISHED_BLACKSTONE_STAIRS;
+    static Block* POLISHED_BLACKSTONE_SLAB;
+    static Block* POLISHED_BLACKSTONE_WALL;
+    static Block* GILDED_BLACKSTONE;
+
+    // 下界砖扩展
+    static Block* CHISELED_NETHER_BRICKS;
+    static Block* CRACKED_NETHER_BRICKS;
+
+    // 磁石
+    static Block* LODESTONE;
+
+    // 漏斗和钟
+    static Block* HOPPER;
+    static Block* BELL;
 
     // 末地方块
     static Block* END_STONE_BRICKS;

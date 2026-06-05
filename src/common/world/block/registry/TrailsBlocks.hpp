@@ -52,6 +52,10 @@ struct TrailsBlocks {
 
     // 瓶草
     static Block* PITCHER_PLANT;
+
+    // 作物
+    static Block* TORCHFLOWER_CROP;
+    static Block* PITCHER_CROP;
 };
 
 void registerTrailsBlocks();

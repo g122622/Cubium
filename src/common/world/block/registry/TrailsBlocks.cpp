@@ -52,6 +52,10 @@ Block* TrailsBlocks::TORCHFLOWER = nullptr;
 // 瓶草
 Block* TrailsBlocks::PITCHER_PLANT = nullptr;
 
+// 作物
+Block* TrailsBlocks::TORCHFLOWER_CROP = nullptr;
+Block* TrailsBlocks::PITCHER_CROP = nullptr;
+
 void registerTrailsBlocks()
 {
     auto& registry = BlockRegistry::instance();
@@ -82,6 +86,7 @@ void registerTrailsBlocks()
             BlockProperties(Material::WOOD)
                 .hardness(1.5f)
                 .resistance(1.5f)
+                .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::CHISELED_BOOKSHELF)
                 .flammable());
 
@@ -129,6 +134,19 @@ void registerTrailsBlocks()
     TrailsBlocks::PITCHER_PLANT =
         &registry.registerBlock<blocks::DoublePlantBlock>(ResourceLocation("minecraft:pitcher_plant"),
             BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::CROP));
+
+    // ============================================================================
+    // 作物方块
+    // ============================================================================
+
+    // 火把花作物 - 火把花的作物形态
+    TrailsBlocks::TORCHFLOWER_CROP =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:torchflower_crop"),
+            BlockProperties(Material::PLANT).noCollision().notSolid().hardness(0.0f).soundType(BlockSoundTypes::CROP));
+
+    // 瓶草作物 - 瓶草的作物形态
+    TrailsBlocks::PITCHER_CROP = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pitcher_crop"),
+        BlockProperties(Material::PLANT).noCollision().notSolid().hardness(0.0f).soundType(BlockSoundTypes::CROP));
 }
 
 } // namespace block_registry
