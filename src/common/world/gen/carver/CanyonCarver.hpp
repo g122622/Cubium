@@ -92,11 +92,8 @@ protected:
     [[nodiscard]] bool shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const override;
 
 private:
-    /// 预计算的半径变化表（大小 1024）
+    /// 预计算的半径变化表（大小与区块高度一致）
     std::vector<f32> m_heightThresholds;
-
-    /// 高度阈值表大小常量
-    static constexpr size_t HEIGHT_THRESHOLD_TABLE_SIZE = 1024;
 
     /**
      * @brief 初始化半径变化表
@@ -141,14 +138,18 @@ private:
         CarvingMask& carvingMask);
 
     /**
-     * @brief 更新半径（峡谷入口宽，深处窄）
-     * @param baseRadius 基础半径
+     * @brief 更新垂直半径（MC原版抛物线形状算法）
+     *
+     * MC: f = 1.0 - abs(0.5 - progress) * 2.0
+     *     f1 = verticalRadiusDefaultFactor + verticalRadiusCenterFactor * f
+     *     result = f1 * baseRadius * randomBetween(0.75, 1.0)
+     *
+     * @param baseRadius 基础垂直半径
      * @param progress 进度 (0.0 - 1.0)
-     * @param thresholds 半径变化表
-     * @param index 当前索引
-     * @return 更新后的半径
+     * @param rng 随机数生成器
+     * @return 更新后的垂直半径
      */
-    [[nodiscard]] f32 _updateRadius(f32 baseRadius, f32 progress, const std::vector<f32>& thresholds, i32 index) const;
+    [[nodiscard]] f32 _updateVerticalRadius(f32 baseRadius, f32 progress, math::IRandom& rng) const;
 };
 
 } // namespace mc

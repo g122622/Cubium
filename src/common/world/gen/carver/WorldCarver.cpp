@@ -151,39 +151,40 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
     CarvingMask& carvingMask,
     i64 seed)
 {
-    const i32 startX = static_cast<i32>(centerX - horizontalRadius - 1.0f);
-    const i32 endX = static_cast<i32>(centerX + horizontalRadius + 1.0f);
-    const i32 startY = static_cast<i32>(centerY - verticalRadius - 1.0f);
-    const i32 endY = static_cast<i32>(centerY + verticalRadius + 1.0f);
-    const i32 startZ = static_cast<i32>(centerZ - horizontalRadius - 1.0f);
-    const i32 endZ = static_cast<i32>(centerZ + horizontalRadius + 1.0f);
+    const i32 startX = static_cast<i32>(std::floor(centerX - horizontalRadius)) - 1;
+    const i32 endX = static_cast<i32>(std::floor(centerX + horizontalRadius));
+    const i32 startY_world = static_cast<i32>(std::floor(centerY - verticalRadius)) - 1;
+    const i32 endY_world = static_cast<i32>(std::floor(centerY + verticalRadius)) + 1;
+    const i32 startZ = static_cast<i32>(std::floor(centerZ - horizontalRadius)) - 1;
+    const i32 endZ = static_cast<i32>(std::floor(centerZ + horizontalRadius));
 
     // 区块边界
     const i32 chunkStartX = chunkX * world::CHUNK_WIDTH;
-    const i32 chunkEndX = chunkStartX + world::CHUNK_WIDTH - 1;
     const i32 chunkStartZ = chunkZ * world::CHUNK_WIDTH;
-    const i32 chunkEndZ = chunkStartZ + world::CHUNK_WIDTH - 1;
 
     // 检查椭球是否在区块范围外
-    if (endX < chunkStartX - world::CHUNK_WIDTH || startX > chunkEndX + world::CHUNK_WIDTH ||
-        endZ < chunkStartZ - world::CHUNK_WIDTH || startZ > chunkEndZ + world::CHUNK_WIDTH) {
+    const f32 distLimit = horizontalRadius + 2.0f + static_cast<f32>(world::CHUNK_WIDTH);
+    const f32 dxC = centerX - static_cast<f32>(chunkStartX + world::CHUNK_WIDTH / 2);
+    const f32 dzC = centerZ - static_cast<f32>(chunkStartZ + world::CHUNK_WIDTH / 2);
+    if (std::abs(dxC) > distLimit || std::abs(dzC) > distLimit) {
         return false;
     }
 
-    // 计算区块内有效范围
+    // MC: 计算区块内有效范围
     const i32 localMinX = std::max(0, startX - chunkStartX);
     const i32 localMaxX = std::min(world::CHUNK_WIDTH - 1, endX - chunkStartX);
     const i32 localMinZ = std::max(0, startZ - chunkStartZ);
     const i32 localMaxZ = std::min(world::CHUNK_WIDTH - 1, endZ - chunkStartZ);
 
-    // 检查是否有水（避免水下雕刻）
-    if (checkAreaForFluid(chunk,
+    // 检查是否有流体（水下/下界雕刻器跳过此检查）
+    if (shouldCheckForFluid() &&
+        checkAreaForFluid(chunk,
             chunkX,
             chunkZ,
             localMinX,
             localMaxX + 1,
-            std::max(1, startY),
-            std::min(m_maxHeight - 8, endY),
+            std::max(world::MIN_BUILD_HEIGHT + 1, startY_world),
+            std::min(world::MIN_BUILD_HEIGHT + world::CHUNK_HEIGHT - 8, endY_world),
             localMinZ,
             localMaxZ + 1)) {
         return false;
@@ -207,11 +208,12 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
                 continue;
             }
 
-            for (i32 y = endY; y >= startY; --y) {
-                // 边界检查
-                if (y < 1 || y >= m_maxHeight - 8) {
-                    continue;
-                }
+            // MC: Y 范围 [max(floor(centerY-vertRadius)-1, minGenY+1), min(floor(centerY+vertRadius)+1,
+            // minGenY+genDepth-8)] 从 topY 向下迭代到 bottomY（不含 bottomY，即 y > bottomY）
+            const i32 bottomY = std::max(world::MIN_BUILD_HEIGHT + 1, startY_world);
+            const i32 topY = std::min(world::MIN_BUILD_HEIGHT + world::CHUNK_HEIGHT - 8, endY_world);
+
+            for (i32 y = topY; y > bottomY; --y) {
 
                 const f32 dy = (static_cast<f32>(y) - 0.5f - centerY) / verticalRadius;
 
@@ -240,11 +242,11 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
                     continue;
                 }
 
+                // MC: 标记当前方块是否为草地或菌丝
+                bool hasGrassOrMycelium = state->is(VanillaBlocks::GRASS_BLOCK) || state->is(VanillaBlocks::MYCELIUM);
+
                 // 标记为已雕刻
                 carvingMask.setCarved(lx, y, lz);
-
-                // 检查上方是否有草地/菌丝，需要替换为泥土
-                bool hasGrassAbove = state->is(VanillaBlocks::GRASS_BLOCK);
 
                 // 设置为空气或熔岩
                 const i32 lavaLevel = getLavaLevel();
@@ -258,12 +260,18 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
                     if (air) {
                         chunk.setBlockState(lx, y, lz, air);
                     }
+                }
 
-                    // 如果上方有草地，替换为泥土
-                    if (hasGrassAbove && y < world::MAX_BUILD_HEIGHT - 1) {
+                // MC: 如果之前雕刻到了草地/菌丝，检查下方方块是否为泥土
+                // 如果是，替换为泥土（后续接入生物群系系统后应替换为生物群系表层材料）
+                // NetherWorldCarver 不执行此替换
+                if (handlesSurfaceReplacement() && hasGrassOrMycelium && y > world::MIN_BUILD_HEIGHT) {
+                    const BlockState* belowState = chunk.getBlockState(lx, y - 1, lz);
+                    if (belowState && belowState->is(VanillaBlocks::DIRT)) {
+                        // TODO: 应替换为生物群系的 topMaterial，暂时使用泥土
                         const BlockState* dirt = VanillaBlocks::getState(VanillaBlocks::DIRT);
                         if (dirt) {
-                            chunk.setBlockState(lx, y + 1, lz, dirt);
+                            chunk.setBlockState(lx, y - 1, lz, dirt);
                         }
                     }
                 }

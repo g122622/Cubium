@@ -40,18 +40,14 @@ using BlockId = u32;
  *
  * - 最大高度 128（下界高度限制）
  * - 可雕刻方块包含下界特有方块（地狱岩、灵魂沙、玄武岩等）
- * - 可雕刻流体包含熔岩
+ * - 不检查流体（下界有熔岩，不应因流体而跳过雕刻）
+ * - 不执行草地/菌丝表面替换
+ * - Y <= 31 时使用熔岩填充，Y >= 32 时使用 CAVE_AIR
  * - 更少但更大的洞穴（getMaxCaveCount = 10）
  * - 更扁平的洞穴形状（verticalScale = 5.0）
- * - Y <= 31 时使用熔岩填充，Y >= 32 时使用 CAVE_AIR
  *
- * 使用方法：
- * @code
- * NetherCaveCarver carver;
- * CarvingMask mask(chunkX, chunkZ);
- * ProbabilityConfig config(0.2f);
- * carver.carve(chunk, biomeSource, 31, chunkX, chunkZ, mask, config);
- * @endcode
+ * MC原版对齐：NetherWorldCarver 重写 carveBlock，使用简单的熔岩/空气逻辑，
+ * 不像主世界那样处理草地表面和流体检查。
  */
 class NetherCaveCarver : public CaveCarver {
 public:
@@ -100,6 +96,19 @@ protected:
      * @return Y坐标
      */
     [[nodiscard]] i32 getCaveStartY(math::IRandom& rng) const override;
+
+    /**
+     * @brief 不执行草地/菌丝表面替换
+     * MC原版 NetherWorldCarver 重写 carveBlock 时不做此处理
+     */
+    [[nodiscard]] bool handlesSurfaceReplacement() const override { return false; }
+
+    /**
+     * @brief 不检查流体
+     * MC原版 NetherWorldCarver 设置 liquids = {LAVA, WATER}，
+     * 即在熔岩和水区域都可以雕刻
+     */
+    [[nodiscard]] bool shouldCheckForFluid() const override { return false; }
 
     /**
      * @brief 检查是否可以雕刻该方块

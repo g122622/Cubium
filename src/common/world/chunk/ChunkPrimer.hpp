@@ -35,6 +35,9 @@
 
 namespace mc {
 
+// 前向声明
+class CarvingMask;
+
 // ============================================================================
 // 区块生成器 (中间状态)
 // ============================================================================
@@ -255,6 +258,25 @@ public:
     [[nodiscard]] bool hasStructureStarts() const noexcept { return !m_structureStarts.empty(); }
 
     // ============================================================================
+    // 雕刻掩码
+    // ============================================================================
+
+    /**
+     * @brief 获取雕刻掩码
+     *
+     * MC原版中，CarvingMask 在 AIR 和 LIQUID 两个雕刻阶段之间共享。
+     * 第一次调用时自动创建掩码。
+     *
+     * @return 雕刻掩码引用
+     */
+    [[nodiscard]] CarvingMask& carvingMask();
+
+    /**
+     * @brief 检查是否已有雕刻掩码
+     */
+    [[nodiscard]] bool hasCarvingMask() const noexcept { return m_carvingMask != nullptr; }
+
+    // ============================================================================
     // 转换方法
     // ============================================================================
 
@@ -316,6 +338,9 @@ private:
 
     // 结构起点（用于结构生成）
     std::unordered_map<std::string, std::unique_ptr<world::gen::structure::StructureStart>> m_structureStarts;
+
+    // 雕刻掩码（AIR 和 LIQUID 两个雕刻阶段共享）
+    std::unique_ptr<CarvingMask> m_carvingMask;
 
     // 辅助方法
     [[nodiscard]] static bool _isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z) noexcept;

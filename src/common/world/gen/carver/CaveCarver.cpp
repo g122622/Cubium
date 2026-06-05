@@ -94,7 +94,7 @@ bool CaveCarver::carve(ChunkPrimer& chunk,
                 roomRadius,
                 0.5f,
                 carvingMask);
-            numTunnels += rng.nextInt(5);
+            numTunnels += rng.nextInt(4);
         }
 
         // 生成隧道
@@ -179,8 +179,8 @@ void CaveCarver::_carveTunnel(ChunkPrimer& chunk,
 {
     math::Random rng(static_cast<u64>(seed));
 
-    // 分支点
-    const i32 branchPoint = endIndex / 4 + static_cast<i32>(rng.nextInt(endIndex / 2 + 1));
+    // MC: branchPoint = nextInt(endIndex / 2) + endIndex / 4
+    const i32 branchPoint = endIndex / 4 + rng.nextInt(endIndex / 2);
     const bool canBranch = rng.nextInt(6) == 0;
 
     f32 currentYaw = yaw;
@@ -192,10 +192,9 @@ void CaveCarver::_carveTunnel(ChunkPrimer& chunk,
     f32 currentZ = startZ;
 
     for (i32 i = startIndex; i < endIndex; ++i) {
-        // 椭球半径随距离变化（正弦曲线）
+        // MC: d0 = 1.5 + sin(PI * j / maxSteps) * thickness
         const f32 progress = static_cast<f32>(i) / static_cast<f32>(endIndex);
-        const f32 sinProgress = std::sin(progress * math::PI);
-        const f32 horizontalRadius = radius * sinProgress;
+        const f32 horizontalRadius = 1.5f + radius * std::sin(progress * math::PI);
         const f32 vertRadius = horizontalRadius * verticalScale;
 
         // 更新位置
@@ -256,13 +255,13 @@ void CaveCarver::_carveTunnel(ChunkPrimer& chunk,
             return;
         }
 
-        // 随机跳过一些点（增加不规则性）
-        if (rng.nextInt(4) == 0) {
-            continue;
-        }
+        // MC: 随机跳过一些点（25% 概率跳过，75% 概率雕刻）
+        if (rng.nextInt(4) != 0) {
+            // MC: canReach 失败时终止整个隧道
+            if (!isInCarvingRange(chunkX, chunkZ, currentX, currentZ, i, endIndex, radius)) {
+                return;
+            }
 
-        // 检查是否在雕刻范围内
-        if (isInCarvingRange(chunkX, chunkZ, currentX, currentZ, i, endIndex, radius)) {
             carveEllipsoid(chunk,
                 biomeSource,
                 seaLevel,

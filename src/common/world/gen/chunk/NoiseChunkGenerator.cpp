@@ -1115,17 +1115,15 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
     const ChunkCoord chunkX = chunk.x();
     const ChunkCoord chunkZ = chunk.z();
 
-    // 创建雕刻掩码
-    CarvingMask carvingMask(chunkX, chunkZ);
+    // MC原版：AIR 和 LIQUID 两个雕刻阶段共享同一个 CarvingMask
+    CarvingMask& carvingMask = chunk.carvingMask();
 
     if (!isLiquid) {
         // 空气雕刻阶段：洞穴和峡谷
-        // 应用洞穴雕刻器
         if (m_caveCarver) {
             m_caveCarver->carve(chunk, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
         }
 
-        // 应用峡谷雕刻器
         if (m_canyonCarver) {
             m_canyonCarver->carve(
                 chunk, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_canyonConfig);
@@ -1133,14 +1131,12 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
 
         chunk.setChunkStatus(ChunkStatuses::CARVERS);
     } else {
-        // 液体雕刻阶段：水下洞穴和峡谷
-        // 应用水下洞穴雕刻器（使用与普通洞穴相同的概率）
+        // 液体雕刻阶段：水下洞穴和峡谷（共享 AIR 阶段的掩码）
         if (m_underwaterCaveCarver) {
             m_underwaterCaveCarver->carve(
                 chunk, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
         }
 
-        // 应用水下峡谷雕刻器（使用与普通峡谷相同的概率）
         if (m_underwaterCanyonCarver) {
             m_underwaterCanyonCarver->carve(
                 chunk, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_canyonConfig);

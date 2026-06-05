@@ -315,8 +315,8 @@ void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chu
     const ChunkCoord chunkX = chunk.x();
     const ChunkCoord chunkZ = chunk.z();
 
-    // 创建雕刻掩码
-    CarvingMask carvingMask(chunkX, chunkZ);
+    // 共享雕刻掩码
+    CarvingMask& carvingMask = chunk.carvingMask();
 
     // 下界只使用洞穴雕刻器（不使用峡谷和水下雕刻器）
     if (!isLiquid && m_caveCarver) {

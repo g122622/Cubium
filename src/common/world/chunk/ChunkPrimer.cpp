@@ -25,6 +25,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/gen/carver/WorldCarver.hpp"
 
 namespace mc {
 
@@ -300,6 +301,18 @@ bool ChunkPrimer::_isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z) n
 {
     return x >= 0 && x < world::CHUNK_WIDTH && y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT && z >= 0 &&
         z < world::CHUNK_WIDTH;
+}
+
+// ============================================================================
+// 雕刻掩码
+// ============================================================================
+
+CarvingMask& ChunkPrimer::carvingMask()
+{
+    if (!m_carvingMask) {
+        m_carvingMask = std::make_unique<CarvingMask>(m_x, m_z);
+    }
+    return *m_carvingMask;
 }
 
 } // namespace mc

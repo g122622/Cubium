@@ -28,9 +28,8 @@
 
 namespace mc {
 
-// TODO: NETHER_HEIGHT 常量在 NetherChunkGenerator.cpp 中也有定义，应该统一提取到公共头文件中
 namespace {
-// 下界最大高度
+// TODO: NETHER_HEIGHT 常量在 NetherChunkGenerator.cpp 中也有定义，应该统一提取到公共头文件中
 constexpr i32 NETHER_HEIGHT = 128;
 } // namespace
 
@@ -100,7 +99,6 @@ bool NetherCaveCarver::canCarveBlock(const BlockState* state, const BlockState* 
     // 沙子和沙砾可以在特定条件下雕刻
     bool isSandOrGravel = state->is(VanillaBlocks::SAND) || state->is(VanillaBlocks::GRAVEL);
     if (isSandOrGravel && aboveState) {
-        // 下界中检查熔岩而不是水
         return !aboveState->isLiquid();
     }
 

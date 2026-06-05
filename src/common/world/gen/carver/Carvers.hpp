@@ -28,4 +28,5 @@
 #include "CanyonCarver.hpp"
 #include "CaveCarver.hpp"
 #include "NetherCaveCarver.hpp"
+#include "UnderwaterCarver.hpp"
 #include "WorldCarver.hpp"

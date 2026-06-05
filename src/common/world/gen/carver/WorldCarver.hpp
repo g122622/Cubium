@@ -210,6 +210,24 @@ public:
      */
     [[nodiscard]] virtual bool canCarveBlock(const BlockState* state, const BlockState* aboveState) const;
 
+    /**
+     * @brief 是否在雕刻时处理草地/菌丝表面替换
+     *
+     * MC原版中，NetherWorldCarver重写carveBlock时不做草地替换。
+     * 返回false的子类将跳过草地方块下方的泥土替换逻辑。
+     * @return 是否需要处理草地替换（默认true）
+     */
+    [[nodiscard]] virtual bool handlesSurfaceReplacement() const { return true; }
+
+    /**
+     * @brief 是否在雕刻前检查区域是否有流体
+     *
+     * MC原版中，水下雕刻器和下界雕刻器不检查流体（或检查不同的流体集合）。
+     * 返回false的子类将跳过checkAreaForFluid预检查。
+     * @return 是否需要检查流体（默认true）
+     */
+    [[nodiscard]] virtual bool shouldCheckForFluid() const { return true; }
+
 protected:
     i32 m_maxHeight;
 
@@ -287,11 +305,9 @@ protected:
      * @param dx X偏移（归一化）
      * @param dy Y偏移（归一化）
      * @param dz Z偏移（归一化）
-     * @param y Y坐标
+     * @param y Y坐标（世界坐标）
      * @return 是否应该跳过
      */
-    // TODO: 私有成员函数应命名为 _shouldSkipEllipsoidPosition，但修改会影响子类
-    // CaveCarver/CanyonCarver/UnderwaterCarver
     [[nodiscard]] virtual bool shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const = 0;
 };
 
