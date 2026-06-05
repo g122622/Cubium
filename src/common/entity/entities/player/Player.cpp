@@ -452,6 +452,17 @@ void Player::tick()
 {
     LivingEntity::tick();
 
+    for(i32 i = world::MIN_BUILD_HEIGHT; i < world::MAX_BUILD_HEIGHT; ++i) {
+        auto bs = m_world->getBlockState(BlockPos(x(), i, z()));
+        if (bs == nullptr) {
+            spdlog::error("Failed to get block state at y={}", i);
+            continue;
+        }
+        std::stringstream ss;
+        ss << "Block at y=" << i << " is " << bs->getBlock().toString();
+        spdlog::warn(ss.str());
+    }
+
     // 更新 XP 冷却
     if (m_xpCooldown > 0) {
         m_xpCooldown--;
