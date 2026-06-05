@@ -25,7 +25,7 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorldWriter.hpp"
 #include "../../../WorldConstants.hpp"
-#include "../../../block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../StructureBoundingBox.hpp"
 #include <cmath>
 

@@ -28,7 +28,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"

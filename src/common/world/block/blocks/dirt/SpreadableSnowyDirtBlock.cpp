@@ -28,7 +28,7 @@
 #include "../../../../util/math/random/IRandom.hpp"
 #include "../../../../util/property/StateContainer.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../fluid/Fluid.hpp"
 #include "../../../lighting/engine/LightEngineUtils.hpp"
 #include "../ice/SnowBlock.hpp"

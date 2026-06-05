@@ -32,7 +32,7 @@
 #include "../../../IWorld.hpp"
 #include "../../../blockentity/BlockEntity.hpp"
 #include "../../../blockentity/processing/CampfireBlockEntity.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../WaterLoggableHelpers.hpp"
 #include <memory>
 

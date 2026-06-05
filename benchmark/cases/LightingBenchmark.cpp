@@ -24,7 +24,7 @@
 #include "../BenchmarkRegistry.hpp"
 
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"

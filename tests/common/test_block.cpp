@@ -33,7 +33,7 @@
 #include "../src/common/world/block/Block.hpp"
 #include "../src/common/world/block/BlockRegistry.hpp"
 #include "../src/common/world/block/Material.hpp"
-#include "../src/common/world/block/VanillaBlocks.hpp"
+#include "../src/common/world/block/registry/VanillaBlocks.hpp"
 #include "../src/common/world/block/blocks/FallingBlock.hpp"
 #include "../src/common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "../src/common/world/block/blocks/agricultural/FarmlandBlock.hpp"

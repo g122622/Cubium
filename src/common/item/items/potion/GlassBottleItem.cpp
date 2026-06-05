@@ -28,7 +28,7 @@
 #include "common/item/potion/PotionUtils.hpp"
 #include "common/item/potion/Potions.hpp"
 #include "common/util/math/ray/Raycast.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/CauldronBlock.hpp"
 #include "common/world/fluid/Fluid.hpp"
 

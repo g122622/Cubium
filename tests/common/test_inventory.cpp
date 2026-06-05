@@ -39,7 +39,7 @@
 #include "../src/common/util/math/random/Random.hpp"
 #include "../src/common/world/IWorld.hpp"
 #include "../src/common/world/block/Block.hpp"
-#include "../src/common/world/block/VanillaBlocks.hpp"
+#include "../src/common/world/block/registry/VanillaBlocks.hpp"
 #include "../src/common/world/blockentity/core/SimpleInventory.hpp"
 #include "../src/common/world/border/WorldBorder.hpp"
 #include "../src/common/world/chunk/ChunkData.hpp"

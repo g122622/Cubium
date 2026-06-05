@@ -27,7 +27,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/feature/template/RuleTest.hpp"
 #include "common/world/gen/feature/template/Template.hpp"
 #include "common/world/gen/feature/template/TemplateLoader.hpp"

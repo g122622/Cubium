@@ -32,7 +32,7 @@
 #include "../../../fluid/FluidTags.hpp"
 #include "../../../tick/manager/TickManager.hpp"
 #include "../../PlantType.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "CropBlock.hpp"
 #include "StemBlock.hpp"
 

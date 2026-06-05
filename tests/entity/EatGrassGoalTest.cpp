@@ -28,7 +28,7 @@
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldEvents.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 
 using namespace mc;

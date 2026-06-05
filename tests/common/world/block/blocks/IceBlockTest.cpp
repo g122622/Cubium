@@ -28,7 +28,7 @@
 #include "common/world/tick/manager/TickManager.hpp"
 #include "core/Constants.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/fluid/FluidRegistry.hpp"

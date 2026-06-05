@@ -32,7 +32,7 @@
 #include "../../../IWorld.hpp"
 #include "../../../WorldEvents.hpp"
 #include "../../../block/IBucketPickupHandler.hpp"
-#include "../../../block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../block/blocks/LiquidBlock.hpp"
 #include "../../../blockentity/BlockEntity.hpp"
 #include "../../../blockentity/redstone/CommandBlockEntity.hpp"

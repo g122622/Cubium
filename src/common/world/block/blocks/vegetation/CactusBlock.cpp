@@ -29,7 +29,7 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
 #include "../../BlockRegistry.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <algorithm>
 

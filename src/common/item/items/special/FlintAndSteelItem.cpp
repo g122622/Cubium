@@ -29,7 +29,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
 

@@ -35,7 +35,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/redstone/ActivatorRailBlock.hpp"
 #include "common/world/block/blocks/redstone/DetectorRailBlock.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"

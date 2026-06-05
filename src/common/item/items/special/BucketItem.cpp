@@ -40,7 +40,7 @@
 #include "common/world/block/IBucketPickupHandler.hpp"
 #include "common/world/block/ILiquidContainer.hpp"
 #include "common/world/block/IWaterLoggable.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/LiquidBlock.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"

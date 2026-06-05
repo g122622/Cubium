@@ -26,7 +26,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/stats/Stat.hpp"
 #include "server/stats/StatRegistry.hpp"
 #include "server/stats/StatType.hpp"

@@ -33,7 +33,7 @@
 #include "world/IWorld.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/block/IWaterLoggable.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/WaterLoggableHelpers.hpp"
 #include "world/block/blocks/ChestBlock.hpp"
 #include "world/block/blocks/building/FenceBlock.hpp"

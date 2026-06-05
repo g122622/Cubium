@@ -31,7 +31,7 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/resource/FolderResourcePack.hpp"
 #include "common/resource/VanillaResources.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <algorithm>
 #include <filesystem>

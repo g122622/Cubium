@@ -28,7 +28,7 @@
 #include "entity/ai/goal/goals/special/PandaGoals.hpp"
 #include "entity/entities/passive/special/PandaEntity.hpp"
 #include "item/Items.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace test {

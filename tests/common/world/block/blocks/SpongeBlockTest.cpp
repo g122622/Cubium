@@ -35,7 +35,7 @@
 #include "world/IWorld.hpp"
 #include "world/WorldEvents.hpp"
 #include "world/block/BlockPos.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/special/SpecialBlocks.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"

@@ -27,7 +27,7 @@
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "common/world/blockentity/processing/FurnaceEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"

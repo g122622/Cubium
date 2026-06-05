@@ -25,7 +25,7 @@
 
 #include "common/item/Items.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
 

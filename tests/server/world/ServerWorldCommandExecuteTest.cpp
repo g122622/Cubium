@@ -24,7 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/ServerWorld.hpp"
 
 using namespace mc;

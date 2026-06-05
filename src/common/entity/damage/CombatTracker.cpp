@@ -31,7 +31,7 @@
 #include "../../world/IWorld.hpp"
 #include "../../world/block/Block.hpp"
 #include "../../world/block/BlockPos.hpp"
-#include "../../world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../core/Entity.hpp"
 #include "../core/LivingEntity.hpp"
 #include <algorithm>

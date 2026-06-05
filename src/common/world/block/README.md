@@ -16,7 +16,7 @@ block/
 ├── ILiquidContainer.hpp    # 液体容器接口
 ├── IWaterLoggable.hpp      # 含水方块接口
 ├── Material.hpp/cpp        # 材质系统
-├── VanillaBlocks.hpp/cpp   # 原版方块静态引用
+├── VanillaBlocks.hpp        # 原版方块主入口（包含 registry/ 子头文件）
 ├── WaterLoggableHelpers.hpp # 含水方块工具函数
 ├── FenceGateHelpers.hpp    # 栅栏门连接检测工具函数
 └── blocks/                 # 具体方块实现

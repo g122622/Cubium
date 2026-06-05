@@ -49,7 +49,7 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/perfetto/TraceEvents.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 
 #include <algorithm>

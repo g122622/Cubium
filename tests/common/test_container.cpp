@@ -31,7 +31,7 @@
 #include "../src/common/item/items/block/BlockItemRegistry.hpp"
 #include "../src/common/network/packet/ContainerPacketHandler.hpp"
 #include "../src/common/network/packet/InventoryPackets.hpp"
-#include "../src/common/world/block/VanillaBlocks.hpp"
+#include "../src/common/world/block/registry/VanillaBlocks.hpp"
 #include "../src/server/menu/CraftingMenu.hpp"
 #include <gtest/gtest.h>
 

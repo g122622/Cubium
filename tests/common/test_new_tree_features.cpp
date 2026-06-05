@@ -32,7 +32,7 @@
 
 #include "util/math/MathUtils.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/gen/feature/ConfiguredFeature.hpp"
 #include "world/gen/feature/FeatureIds.hpp"
 #include "world/gen/feature/FeatureSpread.hpp"

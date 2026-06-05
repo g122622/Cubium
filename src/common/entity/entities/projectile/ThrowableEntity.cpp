@@ -24,7 +24,7 @@
 #include "ThrowableEntity.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../world/blockentity/interactive/EndGatewayEntity.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"

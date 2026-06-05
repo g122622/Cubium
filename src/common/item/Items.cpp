@@ -69,7 +69,7 @@
 #include "common/item/items/weapon/TippedArrowItem.hpp"
 #include "common/item/items/weapon/TridentItem.hpp"
 #include "common/item/tier/ItemTiers.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 
 namespace {

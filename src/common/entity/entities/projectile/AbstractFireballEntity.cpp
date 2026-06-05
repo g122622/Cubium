@@ -31,7 +31,7 @@
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <cmath>

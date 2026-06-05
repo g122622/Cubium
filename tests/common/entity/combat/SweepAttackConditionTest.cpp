@@ -25,7 +25,7 @@
 
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "world/fluid/FluidRegistry.hpp"

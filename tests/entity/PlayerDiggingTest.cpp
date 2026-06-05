@@ -40,7 +40,7 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/items/tool/PickaxeItem.hpp"
 #include "common/world/block/BlockState.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::entity::effect;

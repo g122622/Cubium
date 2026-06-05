@@ -27,7 +27,7 @@
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../tick/manager/TickManager.hpp"
 #include "../../BlockRegistry.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <unordered_map>
 
 namespace mc {

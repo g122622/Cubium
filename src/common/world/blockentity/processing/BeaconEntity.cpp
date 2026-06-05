@@ -34,7 +34,7 @@
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <algorithm>
 #include <cmath>

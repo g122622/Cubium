@@ -23,7 +23,7 @@
 
 #include "NetherRootsBlock.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {

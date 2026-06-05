@@ -31,7 +31,7 @@
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockState.hpp"
 #include "../../../world/block/BlockTags.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../world/explosion/Explosion.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
 #include "../../ai/goal/Goal.hpp"

@@ -33,7 +33,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/Material.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/redstone/NoteBlock.hpp"
 #include "common/world/border/WorldBorder.hpp"
 

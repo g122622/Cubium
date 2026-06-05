@@ -36,7 +36,7 @@
 #include "../../BlockRegistry.hpp"
 #include "../../BlockTags.hpp"
 #include "../../FireInfoRegistry.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {

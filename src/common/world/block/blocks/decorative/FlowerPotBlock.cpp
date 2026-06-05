@@ -23,7 +23,7 @@
 
 #include "FlowerPotBlock.hpp"
 #include "../../../IWorld.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {

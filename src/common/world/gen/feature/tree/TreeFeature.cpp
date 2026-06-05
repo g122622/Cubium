@@ -26,7 +26,7 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../block/BlockRegistry.hpp"
-#include "../../../block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../placement/PlacementUtils.hpp"
 #include "foliage/BlobFoliagePlacer.hpp"

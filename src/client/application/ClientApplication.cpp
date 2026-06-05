@@ -68,7 +68,7 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/storage/GlobalStorageManager.hpp"
 #include "minecraft-reborn/version.h"

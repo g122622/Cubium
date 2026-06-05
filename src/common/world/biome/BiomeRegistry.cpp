@@ -22,7 +22,7 @@
  */
 
 #include "BiomeRegistry.hpp"
-#include "../block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "BiomeEffects.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>

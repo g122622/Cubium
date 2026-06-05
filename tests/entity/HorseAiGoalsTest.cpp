@@ -57,7 +57,7 @@
 #include "common/entity/entities/passive/horse/LlamaEntity.hpp"
 #include "common/entity/entities/passive/horse/MuleEntity.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace {

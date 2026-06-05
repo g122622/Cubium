@@ -34,7 +34,7 @@
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/BlockPos.hpp"
 #include "../../../../world/block/BlockTags.hpp"
-#include "../../../../world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../../world/block/blocks/mob/TurtleEggBlock.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"

@@ -36,7 +36,7 @@
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/ShulkerBoxBlock.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/storage/ShulkerBoxEntity.hpp"

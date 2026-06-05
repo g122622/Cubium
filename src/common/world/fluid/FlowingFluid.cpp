@@ -31,7 +31,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/ILiquidContainer.hpp"
 #include "common/world/block/Material.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 

@@ -39,7 +39,7 @@
 #include "util/math/random/RandomRanges.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/chunk/ChunkData.hpp"
 #include "world/fluid/Fluid.hpp"

@@ -27,7 +27,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/core/BlockEntityRegistry.hpp"

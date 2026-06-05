@@ -22,7 +22,7 @@
  */
 
 #include "client/renderer/mesh/MeshWorkerPool.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include <atomic>
 #include <chrono>

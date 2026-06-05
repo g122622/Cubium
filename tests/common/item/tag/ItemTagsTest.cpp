@@ -27,7 +27,7 @@
 #include "item/core/ItemStack.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
 #include "item/tag/ItemTags.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 using namespace mc;
 

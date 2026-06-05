@@ -24,7 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/chunk/NetherChunkGenerator.hpp"

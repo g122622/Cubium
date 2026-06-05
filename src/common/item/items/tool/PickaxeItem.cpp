@@ -23,7 +23,7 @@
 
 #include "PickaxeItem.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace item {

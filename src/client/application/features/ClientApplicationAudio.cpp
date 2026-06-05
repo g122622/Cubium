@@ -32,7 +32,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/ocean/BubbleColumnBlock.hpp"
 
 #include <cmath>

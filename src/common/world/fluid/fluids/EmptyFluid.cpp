@@ -22,7 +22,7 @@
  */
 
 #include "EmptyFluid.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 
 namespace mc {

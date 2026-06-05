@@ -26,7 +26,7 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/Feature.hpp"
 #include "common/world/gen/placement/PlacementUtils.hpp"

@@ -26,7 +26,7 @@
 
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/ChunkStatus.hpp"

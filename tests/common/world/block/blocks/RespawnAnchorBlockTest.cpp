@@ -40,7 +40,7 @@
 #include "util/property/Properties.hpp"
 #include "world/GlobalPos.hpp"
 #include "world/block/BlockPos.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/functional/RespawnAnchorBlock.hpp"
 #include "world/dimension/DimensionType.hpp"
 

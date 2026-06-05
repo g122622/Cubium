@@ -24,7 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "core/Constants.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/chunk/ChunkPrimer.hpp"
 #include "world/gen/chunk/IChunkGenerator.hpp"
 #include "world/gen/feature/ocean/BlueIceFeature.hpp"

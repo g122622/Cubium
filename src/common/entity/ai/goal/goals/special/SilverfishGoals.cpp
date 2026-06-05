@@ -31,7 +31,7 @@
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/mob/InfestedBlock.hpp"
 #include "world/gamerule/GameRules.hpp"
 #include <cmath>

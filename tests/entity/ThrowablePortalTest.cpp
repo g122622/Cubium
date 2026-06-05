@@ -28,7 +28,7 @@
 #include "common/entity/entities/projectile/ThrowableEntity.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockState.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/EndGatewayEntity.hpp"
 
 #include <memory>

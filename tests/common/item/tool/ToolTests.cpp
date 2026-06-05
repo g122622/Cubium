@@ -33,7 +33,7 @@
 #include "item/tier/ItemTiers.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

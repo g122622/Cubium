@@ -26,7 +26,7 @@
 #include "../IWorld.hpp"
 #include "../block/Block.hpp"
 #include "../block/BlockPos.hpp"
-#include "../block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../block/blocks/redstone/RedstoneWireBlock.hpp"
 #include "RedstoneHelper.hpp"
 

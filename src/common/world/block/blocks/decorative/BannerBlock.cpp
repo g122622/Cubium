@@ -26,7 +26,7 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../block/WaterLoggableHelpers.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 
 namespace mc {

@@ -45,7 +45,7 @@
 #include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace {

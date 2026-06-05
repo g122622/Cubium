@@ -33,7 +33,7 @@
 #include "entity/interfaces/IMob.hpp"
 #include "world/IWorld.hpp"
 #include "world/WorldConstants.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/blockentity/processing/ConduitEntity.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/chunk/ChunkData.hpp"

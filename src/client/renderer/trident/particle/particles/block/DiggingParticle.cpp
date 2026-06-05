@@ -26,7 +26,7 @@
 #include "client/resource/BlockModelCache.hpp"
 #include "client/resource/ResourceManager.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <optional>
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>

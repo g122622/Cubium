@@ -34,7 +34,7 @@
 
 #include "common/BaseTestServer.hpp"
 #include "common/item/Items.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
 

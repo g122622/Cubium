@@ -29,7 +29,7 @@
 #include "../../../util/AxisAlignedBB.hpp"
 #include "../../WorldConstants.hpp"
 #include "../../block/BlockRegistry.hpp"
-#include "../../block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../chunk/IChunkGenerator.hpp"
 #include <algorithm>
 #include <cmath>

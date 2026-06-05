@@ -24,7 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/item/Items.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "server/event/ServerEventBus.hpp"

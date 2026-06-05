@@ -44,7 +44,7 @@
 #include "world/WorldEvents.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "world/block/dispense/IDispenseItemBehavior.hpp"
 #include <gtest/gtest.h>

@@ -550,7 +550,16 @@ add_library(mc_common STATIC
     world/block/BlockRegistry.cpp
     world/block/BlockSoundType.cpp
     world/block/BlockTags.cpp
-    world/block/VanillaBlocks.cpp
+    world/block/registry/BaseBlocks.cpp
+    world/block/registry/BuildingBlocks.cpp
+    world/block/registry/BuildingVariantBlocks.cpp
+    world/block/registry/ColoredBlocks.cpp
+    world/block/registry/NaturalBlocks.cpp
+    world/block/registry/NetherBlocks.cpp
+    world/block/registry/RedstoneBlocks.cpp
+    world/block/registry/SignBannerBlocks.cpp
+    world/block/registry/VanillaBlocks.cpp
+    world/block/registry/VegetationBlocks.cpp
     world/block/IWaterLoggable.cpp
     world/block/blocks/AirBlock.cpp
     world/block/blocks/SimpleBlock.cpp

@@ -34,7 +34,7 @@
 #include "world/WorldConstants.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/ChestBlock.hpp"
 #include "world/block/blocks/HopperBlock.hpp"
 #include "world/block/blocks/TrappedChestBlock.hpp"

@@ -29,7 +29,7 @@
 #include "common/world/biome/source/EndBiomeSource.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/biome/source/NetherBiomeSource.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/feature/FeatureIds.hpp"
 #include <gtest/gtest.h>
 

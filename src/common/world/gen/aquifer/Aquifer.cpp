@@ -23,7 +23,7 @@
 #include "Aquifer.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/density/NoiseChunk.hpp"
 #include "common/world/gen/density/NoiseRouter.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"

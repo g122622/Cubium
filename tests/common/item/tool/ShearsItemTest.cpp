@@ -30,7 +30,7 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/items/tool/ShearsItem.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace {

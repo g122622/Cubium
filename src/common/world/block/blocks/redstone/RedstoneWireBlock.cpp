@@ -29,7 +29,7 @@
 #include "../../../tick/manager/TickManager.hpp"
 #include "../../Block.hpp"
 #include "../../BlockRegistry.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "ObserverBlock.hpp"
 #include "RedstoneDiodeBlock.hpp"
 #include <algorithm>

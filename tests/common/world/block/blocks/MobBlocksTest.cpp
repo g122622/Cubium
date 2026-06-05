@@ -35,7 +35,7 @@
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/mob/BeehiveBlock.hpp"
 #include "world/block/blocks/mob/DragonBreathBlock.hpp"
 #include "world/block/blocks/mob/InfestedBlock.hpp"

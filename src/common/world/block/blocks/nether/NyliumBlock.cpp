@@ -24,7 +24,7 @@
 #include "NyliumBlock.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
 
 namespace mc::blocks {

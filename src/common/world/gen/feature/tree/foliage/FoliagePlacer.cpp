@@ -25,7 +25,7 @@
 #include "../../../../../core/Constants.hpp"
 #include "../../../../../core/Types.hpp"
 #include "../../../../block/BlockRegistry.hpp"
-#include "../../../../block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../chunk/IChunkGenerator.hpp"
 #include <algorithm>
 #include <cmath>

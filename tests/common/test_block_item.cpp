@@ -30,7 +30,7 @@
 #include "item/items/block/BlockItemRegistry.hpp"
 #include "physics/collision/CollisionShape.hpp"
 #include "util/math/random/Random.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/tick/manager/TickManager.hpp"
 

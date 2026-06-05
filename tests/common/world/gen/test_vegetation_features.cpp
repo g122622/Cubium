@@ -29,7 +29,7 @@
  */
 
 #include "../src/common/world/biome/BiomeGenerationSettings.hpp"
-#include "../src/common/world/block/VanillaBlocks.hpp"
+#include "../src/common/world/block/registry/VanillaBlocks.hpp"
 #include "../src/common/world/gen/feature/ConfiguredFeature.hpp"
 #include "../src/common/world/gen/feature/FeatureIds.hpp"
 #include "../src/common/world/gen/feature/vegetation/VegetationFeatures.hpp"

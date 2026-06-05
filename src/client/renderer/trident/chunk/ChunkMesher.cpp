@@ -35,7 +35,7 @@
 #include "common/world/biome/BiomeEffects.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <algorithm>
 #include <array>

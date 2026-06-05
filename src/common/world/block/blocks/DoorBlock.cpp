@@ -32,7 +32,7 @@
 #include "../../IWorld.hpp"
 #include "../../redstone/RedstoneSystem.hpp"
 #include "../BlockRegistry.hpp"
-#include "../VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {

@@ -31,7 +31,7 @@
 #include "entity/entities/player/GameModeUtils.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "physics/PhysicsEngine.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/chunk/ChunkData.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/FluidRegistry.hpp"

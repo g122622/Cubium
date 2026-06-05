@@ -38,7 +38,7 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../../util/property/Properties.hpp"
 #include "../../IWorld.hpp"
-#include "../../block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../chunk/ChunkData.hpp"
 #include <algorithm>
 #include <cmath>

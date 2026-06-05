@@ -25,7 +25,7 @@
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 
 namespace mc {

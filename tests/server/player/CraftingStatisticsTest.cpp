@@ -43,7 +43,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/stats/StatisticsManager.hpp"
 #include <gtest/gtest.h>

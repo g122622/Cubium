@@ -30,7 +30,7 @@
 #include "core/Constants.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/vegetation/BambooBlock.hpp"
 #include "world/block/blocks/vegetation/CactusBlock.hpp"
 #include "world/block/blocks/vegetation/MushroomBlock.hpp"

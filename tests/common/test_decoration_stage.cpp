@@ -23,7 +23,7 @@
 
 #include "../src/common/world/biome/Biome.hpp"
 #include "../src/common/world/biome/BiomeGenerationSettings.hpp"
-#include "../src/common/world/block/VanillaBlocks.hpp"
+#include "../src/common/world/block/registry/VanillaBlocks.hpp"
 #include "../src/common/world/chunk/ChunkPrimer.hpp"
 #include "../src/common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "../src/common/world/gen/feature/ConfiguredFeature.hpp"

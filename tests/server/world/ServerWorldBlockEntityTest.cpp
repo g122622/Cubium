@@ -22,7 +22,7 @@
  */
 
 #include "server/world/ServerWorld.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include <gtest/gtest.h>

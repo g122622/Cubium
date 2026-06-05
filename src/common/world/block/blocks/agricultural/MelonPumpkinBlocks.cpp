@@ -40,7 +40,7 @@
 #include "../../../IWorld.hpp"
 #include "../../../WorldEvents.hpp"
 #include "../../BlockRegistry.hpp"
-#include "../../VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 
 namespace mc {

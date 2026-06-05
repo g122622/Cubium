@@ -36,7 +36,7 @@
 #include "common/world/biome/Biomes.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/IGrowable.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/ocean/SeagrassBlock.hpp"
 #include "common/world/block/blocks/ocean/TallSeagrassBlock.hpp"
 #include "common/world/border/WorldBorder.hpp"

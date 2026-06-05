@@ -26,7 +26,7 @@
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockTags.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../world/block/blocks/decorative/CampfireBlock.hpp"
 #include "../../core/LivingEntity.hpp"
 #include <cmath>

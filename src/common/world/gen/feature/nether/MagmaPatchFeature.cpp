@@ -23,7 +23,7 @@
 
 #include "MagmaPatchFeature.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../chunk/ChunkPrimer.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include <cmath>

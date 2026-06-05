@@ -24,7 +24,7 @@
 #include "WaterMobEntity.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include <cmath>

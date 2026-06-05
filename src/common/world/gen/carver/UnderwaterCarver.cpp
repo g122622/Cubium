@@ -24,7 +24,7 @@
 #include "UnderwaterCarver.hpp"
 #include "../../../core/Constants.hpp"
 #include "../../../util/math/random/Random.hpp"
-#include "../../block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <unordered_set>
 
 namespace mc {

@@ -24,7 +24,7 @@
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/WorldConfig.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include <cmath>
 #include <gtest/gtest.h>

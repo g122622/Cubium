@@ -27,7 +27,7 @@
 #include "../../../world/IWorldWriter.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/block/BlockRegistry.hpp"
-#include "../../../world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../feature/template/TemplateLoader.hpp"
 #include "../feature/template/TemplateManager.hpp"
 #include "JigsawPiece.hpp"

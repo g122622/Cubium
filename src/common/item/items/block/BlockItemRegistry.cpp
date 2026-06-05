@@ -25,7 +25,7 @@
 
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <spdlog/spdlog.h>
 

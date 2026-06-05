@@ -25,7 +25,7 @@
 #include "../../../../core/Constants.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorldWriter.hpp"
-#include "../../../block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include <algorithm>
 #include <cmath>

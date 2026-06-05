@@ -22,7 +22,7 @@
  */
 
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/feature/Feature.hpp"
 #include <gtest/gtest.h>
 

@@ -25,7 +25,7 @@
 #include "item/Items.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
 #include "world/block/BlockPos.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/blockentity/processing/BlastFurnaceEntity.hpp"
 #include "world/blockentity/processing/FurnaceInventory.hpp"
 #include "world/blockentity/processing/SmokerEntity.hpp"

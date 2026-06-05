@@ -27,7 +27,7 @@
 #include "world/biome/BiomeSource.hpp"
 #include "world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/chunk/ChunkPrimer.hpp"
 #include "world/gen/carver/CanyonCarver.hpp"
 #include "world/gen/carver/CaveCarver.hpp"

@@ -25,7 +25,7 @@
 
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/feature/template/Template.hpp"
 
 #include <unordered_map>

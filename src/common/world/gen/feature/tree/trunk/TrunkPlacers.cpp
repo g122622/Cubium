@@ -26,7 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <cmath>
 

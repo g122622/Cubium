@@ -35,7 +35,7 @@
 #include "client/renderer/trident/chunk/AmbientOcclusionCalculator.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/VanillaBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include <algorithm>
 #include <array>
