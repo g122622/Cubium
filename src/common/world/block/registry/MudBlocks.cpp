@@ -57,12 +57,12 @@ void registerMudBlocks()
             .harvestTool(HarvestTool::Shovel)
             .soundType(BlockSoundTypes::MUD));
 
-    // 泥坯属性 - EARTH材质, 镐有效, 硬度1.0, 抗性1.0
+    // 泥坯属性 - EARTH材质, 镐有效, 硬度1.0, 抗性3.0
     // 泥巴压实后的方块，可用于合成泥砖
     MudBlocks::PACKED_MUD = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:packed_mud"),
         BlockProperties(Material::EARTH)
             .hardness(1.0f)
-            .resistance(1.0f)
+            .resistance(3.0f)
             .harvestTool(HarvestTool::Pickaxe)
             .soundType(BlockSoundTypes::PACKED_MUD));
 

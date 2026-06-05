@@ -133,7 +133,7 @@ void registerCaveBlocks()
             .noCollision()
             .notSolid()
             .hardness(1.5f)
-            .resistance(0.0f)
+            .resistance(1.5f)
             .soundType(BlockSoundTypes::AMETHYST_CLUSTER)
             .lightLevel(5));
 
@@ -155,8 +155,8 @@ void registerCaveBlocks()
             BlockProperties(Material::ROCK)
                 .noCollision()
                 .notSolid()
-                .hardness(0.0f)
-                .resistance(0.0f)
+                .hardness(1.5f)
+                .resistance(3.0f)
                 .soundType(BlockSoundTypes::POINTED_DRIPSTONE));
 
     // ============================================================================
@@ -202,7 +202,7 @@ void registerCaveBlocks()
         BlockProperties(Material::PLANT)
             .noCollision()
             .notSolid()
-            .hardness(0.0f)
+            .hardness(0.1f)
             .resistance(0.0f)
             .soundType(BlockSoundTypes::MOSS_CARPET));
 
@@ -260,7 +260,7 @@ void registerCaveBlocks()
                 .noCollision()
                 .notSolid()
                 .hardness(0.1f)
-                .resistance(0.0f)
+                .resistance(0.1f)
                 .soundType(BlockSoundTypes::BIG_DRIPLEAF));
 
     // 小垂滴叶 - 装饰植物，可放置在粘土上
@@ -330,11 +330,10 @@ void registerCaveBlocks()
     // 粉雪 - 可替换的雪类方块，实体会陷入其中
     CaveBlocks::POWDER_SNOW = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:powder_snow"),
         BlockProperties(Material::POWDER_SNOW)
-            .noCollision()
             .notSolid()
             .replaceable()
             .hardness(0.25f)
-            .resistance(0.0f)
+            .resistance(0.25f)
             .soundType(BlockSoundTypes::POWDER_SNOW));
 }
 

@@ -45,25 +45,25 @@ void registerSculkBlocks()
     // 幽匿系列方块注册（1.19 荒野更新）
     // ============================================================================
 
-    // 幽匿块 - Material::SCULK, 锄有效, 硬度0.0, 抗性0.0, 随机刻, 无掉落表(精确采集掉落经验)
+    // 幽匿块 - Material::SCULK, 锄有效, 硬度0.2, 抗性0.2, 随机刻, 无掉落表(精确采集掉落经验)
     // 深暗之域的主要构成方块，会被幽匿催化体蔓延
     SculkBlocks::SCULK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:sculk"),
         BlockProperties(Material::SCULK)
-            .hardness(0.0f)
-            .resistance(0.0f)
+            .hardness(0.2f)
+            .resistance(0.2f)
             .harvestTool(HarvestTool::Hoe)
             .soundType(BlockSoundTypes::SCULK)
             .tickRandomly()
             .noLootTable());
 
-    // 幽匿脉络 - Material::SCULK, 无碰撞, 非固体, 锄有效, 硬度0.0, 抗性0.0
+    // 幽匿脉络 - Material::SCULK, 无碰撞, 非固体, 锄有效, 硬度0.2, 抗性0.2
     // 可放置在方块表面，类似藤蔓的多方向附着
     SculkBlocks::SCULK_VEIN = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:sculk_vein"),
         BlockProperties(Material::SCULK)
             .noCollision()
             .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
+            .hardness(0.2f)
+            .resistance(0.2f)
             .harvestTool(HarvestTool::Hoe)
             .soundType(BlockSoundTypes::SCULK_VEIN));
 
@@ -98,13 +98,13 @@ void registerSculkBlocks()
                 .harvestTool(HarvestTool::Hoe)
                 .soundType(BlockSoundTypes::SCULK_SENSOR));
 
-    // 幽匿尖啸体 - Material::SCULK, 非固体, 锄有效, 硬度1.0, 抗性1.0
+    // 幽匿尖啸体 - Material::SCULK, 非固体, 锄有效, 硬度3.0, 抗性3.0
     // 被激活多次后会召唤监守者
     SculkBlocks::SCULK_SHRIEKER = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:sculk_shrieker"),
         BlockProperties(Material::SCULK)
             .notSolid()
-            .hardness(1.0f)
-            .resistance(1.0f)
+            .hardness(3.0f)
+            .resistance(3.0f)
             .harvestTool(HarvestTool::Hoe)
             .soundType(BlockSoundTypes::SCULK_SHRIEKER));
 }

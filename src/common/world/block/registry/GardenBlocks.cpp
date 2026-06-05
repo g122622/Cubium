@@ -148,7 +148,7 @@ void registerGardenBlocks()
             .notSolid()
             .hardness(0.0f)
             .resistance(0.0f)
-            .soundType(BlockSoundTypes::GRASS)
+            .soundType(BlockSoundTypes::SWEET_BERRY_BUSH)
             .lightLevel(2));
 
     // ============================================================================

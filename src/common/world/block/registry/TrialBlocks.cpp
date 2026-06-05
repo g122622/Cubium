@@ -79,11 +79,11 @@ void registerTrialBlocks()
             .soundType(BlockSoundTypes::CRAFTER));
 
     // 重质核心 - 重质盾牌的核心材料
-    // 材质为铁，硬度10，抗爆10
+    // 材质为铁，硬度10，抗爆1200
     TrialBlocks::HEAVY_CORE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:heavy_core"),
         BlockProperties(Material::IRON)
             .hardness(10.0f)
-            .resistance(10.0f)
+            .resistance(1200.0f)
             .harvestTool(HarvestTool::Pickaxe)
             .soundType(BlockSoundTypes::HEAVY_CORE));
 }

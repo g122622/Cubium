@@ -480,8 +480,8 @@ void registerCopperBlocks()
     // ============================================================================
     CopperBlocks::LIGHTNING_ROD = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:lightning_rod"),
         BlockProperties(Material::IRON)
-            .hardness(0.5f)
-            .resistance(0.0f)
+            .hardness(3.0f)
+            .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
             .notSolid()
             .soundType(BlockSoundTypes::COPPER));

@@ -118,9 +118,10 @@ void registerMangroveBlocks()
     MangroveBlocks::MANGROVE_PROPAGULE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:mangrove_propagule"), propaguleProps);
 
-    // 红树根属性 - WOOD材质, 非固体, 斧有效, 硬度0.0, 可燃
+    // 红树根属性 - WOOD材质, 非固体, 斧有效, 硬度0.7, 可燃
     BlockProperties mangroveRootsProps = BlockProperties(Material::WOOD)
                                              .notSolid()
+                                             .hardness(0.7f)
                                              .harvestTool(HarvestTool::Axe)
                                              .soundType(BlockSoundTypes::MANGROVE_ROOTS)
                                              .flammable();

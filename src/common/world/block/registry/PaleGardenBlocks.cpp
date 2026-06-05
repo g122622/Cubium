@@ -247,7 +247,7 @@ void registerPaleGardenBlocks()
             BlockProperties(Material::PLANT)
                 .noCollision()
                 .notSolid()
-                .hardness(0.0f)
+                .hardness(0.1f)
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::PALE_MOSS));
 
@@ -269,7 +269,7 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::CREAKING_HEART =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:creaking_heart"),
             BlockProperties(Material::WOOD)
-                .hardness(1.0f)
+                .hardness(10.0f)
                 .resistance(1.0f)
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::CREAKING_HEART)
@@ -300,7 +300,7 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::RESIN_BRICKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:resin_bricks"),
         BlockProperties(Material::ROCK)
             .hardness(1.5f)
-            .resistance(3.0f)
+            .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
             .soundType(BlockSoundTypes::RESIN_BRICKS));
 
