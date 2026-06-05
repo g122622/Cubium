@@ -184,7 +184,7 @@ private:
     const mc::ClientDimensionManager* m_dimensionManager = nullptr;
 
     // ========== 调试数据 ==========
-    std::string m_version = "Minecraft Reborn 0.1.0";
+    std::string m_version = "Cubium 0.1.0";
     std::string m_rendererInfo = "Vulkan";
     i32 m_renderDistance = 12;
 

@@ -1,6 +1,6 @@
 # Biome 模块
 
-本目录包含 Minecraft Reborn 项目的生物群系（Biome）系统，负责生物群系定义、气候参数、生成和分布。该系统完整复刻了 Minecraft Java 1.21.11 的多噪声（MultiNoise）3D 生物群系生成算法。
+本目录包含 Cubium 项目的生物群系（Biome）系统，负责生物群系定义、气候参数、生成和分布。该系统完整复刻了 Minecraft Java 1.21.11 的多噪声（MultiNoise）3D 生物群系生成算法。
 
 ## 目录结构
 

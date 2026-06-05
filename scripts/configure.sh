@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# Minecraft Reborn - Build wrapper for Git Bash / MSYS2 / CI
+# Cubium - Build wrapper for Git Bash / MSYS2 / CI
 #
 # This script invokes configure.bat through cmd.exe, which
 # automatically sets up the Visual Studio developer environment

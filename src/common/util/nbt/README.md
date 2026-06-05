@@ -1,6 +1,6 @@
 # NBT (Named Binary Tag) 模块
 
-Minecraft NBT 格式序列化库，已集成到 Minecraft Reborn 项目。
+Minecraft NBT 格式序列化库，已集成到 Cubium 项目。
 
 ## 目录结构
 

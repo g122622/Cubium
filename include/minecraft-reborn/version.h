@@ -8,7 +8,7 @@
 #define MC_VERSION_PATCH 0
 
 #define MC_VERSION_STRING "0.1.0"
-#define MC_VERSION_NAME "Minecraft Reborn"
+#define MC_VERSION_NAME "Cubium"
 
 // ==================== Git 信息 ====================
 #define MC_GIT_COMMIT_HASH "1e8e53b"

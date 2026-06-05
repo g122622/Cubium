@@ -93,7 +93,7 @@ inline constexpr u16 serverPort = 25565;
 // 窗口
 inline constexpr i32 windowWidth = 1280;
 inline constexpr i32 windowHeight = 720;
-inline constexpr const char* windowTitle = "Minecraft Reborn";
+inline constexpr const char* windowTitle = "Cubium";
 inline constexpr i32 windowedX = 100;
 inline constexpr i32 windowedY = 100;
 
@@ -110,12 +110,12 @@ inline constexpr u16 serverPort = 25565;
 inline constexpr const char* bindAddress = "0.0.0.0";
 inline constexpr i32 maxPlayers = 20;
 inline constexpr bool onlineMode = true;
-inline constexpr const char* motd = "A Minecraft Reborn Server";
+inline constexpr const char* motd = "A Cubium Server";
 inline constexpr bool p2pEnabled = false;
 
 // 世界
 inline constexpr const char* worldName = "world";
-inline constexpr const char* levelName = "Minecraft Reborn Server";
+inline constexpr const char* levelName = "Cubium Server";
 inline constexpr const char* levelSeed = "";
 inline constexpr bool generateStructures = true;
 inline constexpr bool enableCommandBlock = false;

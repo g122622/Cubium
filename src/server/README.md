@@ -1,6 +1,6 @@
 # Server Module
 
-Minecraft Reborn 服务端模块，实现了完整的 Minecraft 1.16.5 服务端逻辑。
+Cubium 服务端模块，实现了完整的 Minecraft 1.16.5 服务端逻辑。
 
 ## 目录结构
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Minecraft Reborn Project
+// Copyright (c) 2024 Cubium Project
 // SPDX-License-Identifier: MIT
 
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"

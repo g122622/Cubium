@@ -1,6 +1,6 @@
 # Core Module
 
-The `common/core` module provides foundational types, error handling, constants, and settings infrastructure for the Minecraft Reborn project. It is the most fundamental module in the codebase, with no dependencies on other internal modules.
+The `common/core` module provides foundational types, error handling, constants, and settings infrastructure for the Cubium project. It is the most fundamental module in the codebase, with no dependencies on other internal modules.
 
 ## Directory Structure
 

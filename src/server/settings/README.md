@@ -1,6 +1,6 @@
 # Server Settings 模块
 
-服务端设置模块，负责管理 Minecraft Reborn 服务器的所有配置选项。
+服务端设置模块，负责管理 Cubium 服务器的所有配置选项。
 
 ## 目录结构
 
@@ -32,12 +32,12 @@ public:
     StringOption bindAddress;     // 绑定地址 (默认 "0.0.0.0")
     RangeOption maxPlayers;       // 最大玩家数 (1-1000, 默认 20)
     BooleanOption onlineMode;     // 在线模式验证 (默认 true)
-    StringOption motd;            // 服务器描述 (默认 "A Minecraft Reborn Server")
+    StringOption motd;            // 服务器描述 (默认 "A Cubium Server")
     BooleanOption p2pEnabled;     // P2P 连接 (默认 false)
 
     // 世界设置
     StringOption worldName;       // 世界名称 (默认 "world")
-    StringOption levelName;       // 关卡名称 (默认 "Minecraft Reborn Server")
+    StringOption levelName;       // 关卡名称 (默认 "Cubium Server")
     StringOption levelSeed;       // 世界种子 (默认空，表示随机)
     EnumOption<u8> levelType;     // 世界类型 (默认/平坦/巨型生物群系/放大化)
     BooleanOption generateStructures;  // 生成结构 (默认 true)
@@ -451,12 +451,12 @@ EXPECT_EQ(settings.difficulty.get(), DifficultyValue::Peaceful);
         "bindAddress": "0.0.0.0",
         "maxPlayers": 20,
         "onlineMode": true,
-        "motd": "A Minecraft Reborn Server",
+        "motd": "A Cubium Server",
         "p2pEnabled": false
     },
     "world": {
         "worldName": "world",
-        "levelName": "Minecraft Reborn Server",
+        "levelName": "Cubium Server",
         "levelSeed": "",
         "levelType": "default",
         "generateStructures": true,

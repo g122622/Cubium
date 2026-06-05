@@ -2,7 +2,7 @@
 setlocal
 
 :: ============================================================
-:: Minecraft Reborn - Build Environment Setup Script
+:: Cubium - Build Environment Setup Script
 :: Automatically configures Visual Studio developer environment
 :: before running CMake commands. Works in any terminal (cmd,
 :: PowerShell, Git Bash via cmd //c, CI pipelines).

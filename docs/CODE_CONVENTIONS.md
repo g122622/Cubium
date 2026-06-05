@@ -1,4 +1,4 @@
-# 📋 Minecraft Reborn 项目代码规范 v1.0
+# 📋 Cubium 项目代码规范 v1.0
 
 ## 1. 总则
 

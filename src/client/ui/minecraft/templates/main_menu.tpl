@@ -1,5 +1,5 @@
-<screen id="mainMenu" title="Minecraft Reborn">
-    <text id="title" text="Minecraft Reborn" align="center" size="200,40"/>
+<screen id="mainMenu" title="Cubium">
+    <text id="title" text="Cubium" align="center" size="200,40"/>
     <text id="version" text="v0.1.0" align="center" size="200,20"/>
 
     <container id="buttonContainer" layout="flex-column" gap="10" size="200,140" align-items="center">

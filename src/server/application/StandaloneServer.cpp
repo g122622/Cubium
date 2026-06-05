@@ -139,7 +139,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
         spdlog::set_level(spdlog::level::info);
     }
 
-    spdlog::info("=== Minecraft Reborn Server ===");
+    spdlog::info("=== Cubium Server ===");
     spdlog::info("Version: {}.{}.{}", MC_VERSION_MAJOR, MC_VERSION_MINOR, MC_VERSION_PATCH);
     spdlog::info("Initializing standalone server...");
 

@@ -1,6 +1,6 @@
 # Item 系统
 
-Minecraft Reborn 物品系统完整实现。
+Cubium 物品系统完整实现。
 
 ## 目录结构
 

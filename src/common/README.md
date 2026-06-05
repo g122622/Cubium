@@ -1,6 +1,6 @@
 # Common Module
 
-公共模块 (`mc_common`) 是 Minecraft Reborn 项目的核心共享库，包含客户端和服务端共用的所有代码。
+公共模块 (`mc_common`) 是 Cubium 项目的核心共享库，包含客户端和服务端共用的所有代码。
 
 ## 当前重点
 

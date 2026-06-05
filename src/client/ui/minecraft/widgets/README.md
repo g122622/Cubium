@@ -1,6 +1,6 @@
 # Minecraft Widgets 模块
 
-本目录包含 Minecraft Reborn 客户端的游戏内专用 Widget。它们基于 Kagero UI 框架构建，负责渲染 HUD、聊天框、准星、快捷栏、容器层和 3D 视口等游戏内界面。
+本目录包含 Cubium 客户端的游戏内专用 Widget。它们基于 Kagero UI 框架构建，负责渲染 HUD、聊天框、准星、快捷栏、容器层和 3D 视口等游戏内界面。
 
 ## 目录结构
 

@@ -118,7 +118,7 @@ Result<void> ClientApplication::initializeWindowAndInput()
 
         windowConfig.width = 1280;
         windowConfig.height = 720;
-        windowConfig.title = "Minecraft Reborn";
+        windowConfig.title = "Cubium";
         windowConfig.fullscreen = m_settings.fullscreen.get();
         windowConfig.vsync = m_settings.vsync.get();
 
@@ -164,7 +164,7 @@ Result<void> ClientApplication::initializeRenderer()
     m_renderer = std::make_unique<renderer::trident::TridentEngine>();
 
     renderer::api::RenderEngineConfig rendererConfig;
-    rendererConfig.appName = "Minecraft Reborn";
+    rendererConfig.appName = "Cubium";
     rendererConfig.enableValidation = true; // Debug模式启用验证层
     rendererConfig.enableVSync = m_settings.vsync.get();
     rendererConfig.enableAntiAliasing = m_settings.antiAliasing.get();
@@ -622,7 +622,7 @@ void ClientApplication::initializeUi()
                         DebugGpuInfo gpuInfo = getGpuInfo(context->deviceProperties(), context->memoryProperties());
 
                         debugWidget->setGpuInfo(gpuInfo);
-                        debugWidget->setVersion("Minecraft Reborn 0.1.0");
+                        debugWidget->setVersion("Cubium 0.1.0");
                         debugWidget->setRendererInfo(gpuInfo.name);
                     }
                 }

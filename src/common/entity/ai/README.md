@@ -1,6 +1,6 @@
 # AI 模块 (entity/ai)
 
-本目录包含 Minecraft Reborn 的实体人工智能系统，实现了类似 Minecraft Java Edition 1.16.5 的 AI 架构。
+本目录包含 Cubium 的实体人工智能系统，实现了类似 Minecraft Java Edition 1.16.5 的 AI 架构。
 
 ## 目录结构
 

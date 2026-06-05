@@ -1,6 +1,6 @@
 # src/client/ui - 用户界面模块
 
-本目录包含 Minecraft Reborn 客户端的完整用户界面系统，包括字体渲染、Kagero UI 框架和 Minecraft 特定的 UI 组件。
+本目录包含 Cubium 客户端的完整用户界面系统，包括字体渲染、Kagero UI 框架和 Minecraft 特定的 UI 组件。
 
 ## 目录结构
 

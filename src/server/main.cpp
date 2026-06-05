@@ -57,7 +57,7 @@ void printBanner()
 
 )" << std::endl;
 
-    std::cout << "  Minecraft Reborn Server v" << MC_VERSION_MAJOR << "." << MC_VERSION_MINOR << "." << MC_VERSION_PATCH
+    std::cout << "  Cubium Server v" << MC_VERSION_MAJOR << "." << MC_VERSION_MINOR << "." << MC_VERSION_PATCH
               << std::endl;
     std::cout << "  ========================================\n" << std::endl;
 }

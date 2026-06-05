@@ -1,6 +1,6 @@
 # Renderer 模块
 
-本文档详细介绍 Minecraft Reborn 项目的客户端渲染系统，包括目录结构、各组件职责、模块关系、依赖项、使用方法和注意事项。
+本文档详细介绍 Cubium 项目的客户端渲染系统，包括目录结构、各组件职责、模块关系、依赖项、使用方法和注意事项。
 
 ## 目录结构树
 
@@ -776,7 +776,7 @@ scheduler.drainCompleted([](mc::client::MeshWorkerResult&& result) {
 
 ## 整体职责
 
-Renderer 模块负责 Minecraft Reborn 客户端的所有渲染功能：
+Renderer 模块负责 Cubium 客户端的所有渲染功能：
 
 1. **渲染抽象**：通过 `api/` 提供平台无关的渲染接口
 2. **Vulkan 实现**：通过 `trident/` 实现 Vulkan 后端
@@ -849,7 +849,7 @@ auto engine = mc::client::renderer::api::createRenderEngine(
 
 // 配置
 mc::client::renderer::api::RenderEngineConfig config;
-config.appName = "Minecraft Reborn";
+config.appName = "Cubium";
 config.enableValidation = true;
 config.enableVSync = true;
 config.maxFramesInFlight = 2;

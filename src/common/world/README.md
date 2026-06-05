@@ -1,6 +1,6 @@
 # World Module
 
-The `world` module is the core of Minecraft Reborn's world simulation, providing terrain generation, block/fluid management, lighting systems, chunk handling, and world state management. This module implements Minecraft 1.16.5 compatible world mechanics.
+The `world` module is the core of Cubium's world simulation, providing terrain generation, block/fluid management, lighting systems, chunk handling, and world state management. This module implements Minecraft 1.16.5 compatible world mechanics.
 
 ## Directory Structure
 

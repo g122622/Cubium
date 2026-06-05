@@ -279,7 +279,7 @@ install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # 打印配置摘要
 message(STATUS "")
-message(STATUS "=== Minecraft Reborn Configuration ===")
+message(STATUS "=== Cubium Configuration ===")
 message(STATUS "  Version:        ${PROJECT_VERSION}")
 message(STATUS "  Build Type:     ${MC_BUILD_TYPE}")
 message(STATUS "  Platform:       ${MC_BUILD_PLATFORM} ${MC_BUILD_ARCH}")

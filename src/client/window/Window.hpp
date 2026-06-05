@@ -40,7 +40,7 @@ namespace mc::client {
 struct WindowConfig {
     i32 width = 1280;
     i32 height = 720;
-    std::string title = "Minecraft Reborn";
+    std::string title = "Cubium";
     bool fullscreen = false;
     bool vsync = true;
     bool resizable = true;

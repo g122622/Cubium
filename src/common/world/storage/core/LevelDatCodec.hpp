@@ -206,7 +206,7 @@ public:
     static constexpr i32 CURRENT_DATA_VERSION = 2586;
 
     /// 项目名称（用于版本名称）
-    static constexpr const char* PROJECT_NAME = "Minecraft Reborn";
+    static constexpr const char* PROJECT_NAME = "Cubium";
 
     /// 项目数据版本（用于未来兼容）
     static constexpr i32 PROJECT_DATA_VERSION = 1;

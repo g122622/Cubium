@@ -24,7 +24,7 @@ src/client/window/
 |------|------|--------|------|
 | `width` | `i32` | 1280 | 窗口宽度（像素） |
 | `height` | `i32` | 720 | 窗口高度（像素） |
-| `title` | `std::string` | "Minecraft Reborn" | 窗口标题 |
+| `title` | `std::string` | "Cubium" | 窗口标题 |
 | `fullscreen` | `bool` | false | 是否全屏模式 |
 | `vsync` | `bool` | true | 是否启用垂直同步 |
 | `resizable` | `bool` | true | 窗口是否可调整大小 |
@@ -277,7 +277,7 @@ while (!window.shouldClose()) {
 WindowConfig windowConfig;
 windowConfig.width = 1280;
 windowConfig.height = 720;
-windowConfig.title = "Minecraft Reborn";
+windowConfig.title = "Cubium";
 windowConfig.vsync = m_settings.vsync.get();
 
 auto result = m_window.create(windowConfig);

@@ -1,8 +1,8 @@
-# Minecraft Reborn - Copilot Coding Agent Instructions
+# Cubium - Copilot Coding Agent Instructions
 
 ## Project Overview
 
-Minecraft Reborn is a C++20 Minecraft clone with a client-server architecture,
+Cubium is a C++20 Minecraft clone with a client-server architecture,
 targeting Java Edition 1.16.5 compatibility. The codebase is ~1M+ lines of C++.
 
 ## Tech Stack

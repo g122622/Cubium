@@ -1,5 +1,5 @@
 # ============================================================
-# Minecraft Reborn - Build Environment Setup (PowerShell)
+# Cubium - Build Environment Setup (PowerShell)
 # Automatically configures Visual Studio developer environment
 # before running CMake commands.
 #

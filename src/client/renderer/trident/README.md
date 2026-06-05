@@ -1,6 +1,6 @@
 # Trident 渲染引擎
 
-Trident 是 Minecraft Reborn 客户端的 Vulkan 渲染引擎，实现了完整的 3D 渲染管线，包括区块渲染、实体渲染、天空渲染、粒子系统、GUI 渲染等功能。
+Trident 是 Cubium 客户端的 Vulkan 渲染引擎，实现了完整的 3D 渲染管线，包括区块渲染、实体渲染、天空渲染、粒子系统、GUI 渲染等功能。
 
 ## 目录结构
 
@@ -479,7 +479,7 @@ graph TB
 
 ## 整体职责
 
-Trident 渲染引擎作为 Minecraft Reborn 客户端的渲染后端，负责：
+Trident 渲染引擎作为 Cubium 客户端的渲染后端，负责：
 
 1. **Vulkan 资源管理**
    - 设备、队列、命令池管理
@@ -555,7 +555,7 @@ Trident 渲染引擎作为 Minecraft Reborn 客户端的渲染后端，负责：
 
 // 创建配置
 mc::client::renderer::trident::TridentConfig config;
-config.appName = "Minecraft Reborn";
+config.appName = "Cubium";
 config.enableValidation = true;
 config.enableVSync = true;
 config.maxFramesInFlight = 2;
