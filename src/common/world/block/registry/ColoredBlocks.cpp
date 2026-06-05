@@ -145,189 +145,189 @@ void registerColoredBlocks()
     // ========== 羊毛注册 (16色) ==========
     BlockProperties woolProps = BlockProperties(Material::WOOL).hardness(0.8f);
 
-    WHITE_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:white_wool"), woolProps);
-    ORANGE_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:orange_wool"), woolProps);
-    MAGENTA_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:magenta_wool"), woolProps);
-    LIGHT_BLUE_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:light_blue_wool"), woolProps);
-    YELLOW_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:yellow_wool"), woolProps);
-    LIME_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:lime_wool"), woolProps);
-    PINK_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pink_wool"), woolProps);
-    GRAY_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:gray_wool"), woolProps);
-    LIGHT_GRAY_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:light_gray_wool"), woolProps);
-    CYAN_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cyan_wool"), woolProps);
-    PURPLE_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:purple_wool"), woolProps);
-    BLUE_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:blue_wool"), woolProps);
-    BROWN_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:brown_wool"), woolProps);
-    GREEN_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:green_wool"), woolProps);
-    RED_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:red_wool"), woolProps);
-    BLACK_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:black_wool"), woolProps);
+    ColoredBlocks::WHITE_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:white_wool"), woolProps);
+    ColoredBlocks::ORANGE_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:orange_wool"), woolProps);
+    ColoredBlocks::MAGENTA_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:magenta_wool"), woolProps);
+    ColoredBlocks::LIGHT_BLUE_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:light_blue_wool"), woolProps);
+    ColoredBlocks::YELLOW_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:yellow_wool"), woolProps);
+    ColoredBlocks::LIME_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:lime_wool"), woolProps);
+    ColoredBlocks::PINK_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pink_wool"), woolProps);
+    ColoredBlocks::GRAY_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:gray_wool"), woolProps);
+    ColoredBlocks::LIGHT_GRAY_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:light_gray_wool"), woolProps);
+    ColoredBlocks::CYAN_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cyan_wool"), woolProps);
+    ColoredBlocks::PURPLE_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:purple_wool"), woolProps);
+    ColoredBlocks::BLUE_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:blue_wool"), woolProps);
+    ColoredBlocks::BROWN_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:brown_wool"), woolProps);
+    ColoredBlocks::GREEN_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:green_wool"), woolProps);
+    ColoredBlocks::RED_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:red_wool"), woolProps);
+    ColoredBlocks::BLACK_WOOL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:black_wool"), woolProps);
 
     // ========== 地毯注册 (16色) ==========
     BlockProperties carpetProps = BlockProperties(Material::WOOL).hardness(0.1f).notSolid();
 
-    WHITE_CARPET =
+    ColoredBlocks::WHITE_CARPET =
         &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:white_carpet"), carpetProps);
-    ORANGE_CARPET =
+    ColoredBlocks::ORANGE_CARPET =
         &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:orange_carpet"), carpetProps);
-    MAGENTA_CARPET =
+    ColoredBlocks::MAGENTA_CARPET =
         &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:magenta_carpet"), carpetProps);
-    LIGHT_BLUE_CARPET =
+    ColoredBlocks::LIGHT_BLUE_CARPET =
         &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:light_blue_carpet"), carpetProps);
-    YELLOW_CARPET =
+    ColoredBlocks::YELLOW_CARPET =
         &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:yellow_carpet"), carpetProps);
-    LIME_CARPET = &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:lime_carpet"), carpetProps);
-    PINK_CARPET = &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:pink_carpet"), carpetProps);
-    GRAY_CARPET = &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:gray_carpet"), carpetProps);
-    LIGHT_GRAY_CARPET =
+    ColoredBlocks::LIME_CARPET = &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:lime_carpet"), carpetProps);
+    ColoredBlocks::PINK_CARPET = &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:pink_carpet"), carpetProps);
+    ColoredBlocks::GRAY_CARPET = &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:gray_carpet"), carpetProps);
+    ColoredBlocks::LIGHT_GRAY_CARPET =
         &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:light_gray_carpet"), carpetProps);
-    CYAN_CARPET = &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:cyan_carpet"), carpetProps);
-    PURPLE_CARPET =
+    ColoredBlocks::CYAN_CARPET = &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:cyan_carpet"), carpetProps);
+    ColoredBlocks::PURPLE_CARPET =
         &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:purple_carpet"), carpetProps);
-    BLUE_CARPET = &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:blue_carpet"), carpetProps);
-    BROWN_CARPET =
+    ColoredBlocks::BLUE_CARPET = &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:blue_carpet"), carpetProps);
+    ColoredBlocks::BROWN_CARPET =
         &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:brown_carpet"), carpetProps);
-    GREEN_CARPET =
+    ColoredBlocks::GREEN_CARPET =
         &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:green_carpet"), carpetProps);
-    RED_CARPET = &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:red_carpet"), carpetProps);
-    BLACK_CARPET =
+    ColoredBlocks::RED_CARPET = &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:red_carpet"), carpetProps);
+    ColoredBlocks::BLACK_CARPET =
         &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:black_carpet"), carpetProps);
 
     // ========== 染色玻璃注册 (16色) ==========
     BlockProperties stainedGlassProps = BlockProperties(Material::GLASS).hardness(0.3f).notSolid();
 
-    WHITE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+    ColoredBlocks::WHITE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:white_stained_glass"), stainedGlassProps, DyeColor::White);
-    ORANGE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+    ColoredBlocks::ORANGE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:orange_stained_glass"), stainedGlassProps, DyeColor::Orange);
-    MAGENTA_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+    ColoredBlocks::MAGENTA_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:magenta_stained_glass"), stainedGlassProps, DyeColor::Magenta);
-    LIGHT_BLUE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+    ColoredBlocks::LIGHT_BLUE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:light_blue_stained_glass"), stainedGlassProps, DyeColor::LightBlue);
-    YELLOW_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+    ColoredBlocks::YELLOW_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:yellow_stained_glass"), stainedGlassProps, DyeColor::Yellow);
-    LIME_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+    ColoredBlocks::LIME_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:lime_stained_glass"), stainedGlassProps, DyeColor::Lime);
-    PINK_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+    ColoredBlocks::PINK_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:pink_stained_glass"), stainedGlassProps, DyeColor::Pink);
-    GRAY_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+    ColoredBlocks::GRAY_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:gray_stained_glass"), stainedGlassProps, DyeColor::Gray);
-    LIGHT_GRAY_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+    ColoredBlocks::LIGHT_GRAY_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:light_gray_stained_glass"), stainedGlassProps, DyeColor::LightGray);
-    CYAN_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+    ColoredBlocks::CYAN_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:cyan_stained_glass"), stainedGlassProps, DyeColor::Cyan);
-    PURPLE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+    ColoredBlocks::PURPLE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:purple_stained_glass"), stainedGlassProps, DyeColor::Purple);
-    BLUE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+    ColoredBlocks::BLUE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:blue_stained_glass"), stainedGlassProps, DyeColor::Blue);
-    BROWN_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+    ColoredBlocks::BROWN_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:brown_stained_glass"), stainedGlassProps, DyeColor::Brown);
-    GREEN_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+    ColoredBlocks::GREEN_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:green_stained_glass"), stainedGlassProps, DyeColor::Green);
-    RED_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+    ColoredBlocks::RED_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:red_stained_glass"), stainedGlassProps, DyeColor::Red);
-    BLACK_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
+    ColoredBlocks::BLACK_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:black_stained_glass"), stainedGlassProps, DyeColor::Black);
 
     // ========== 混凝土注册 (16色) ==========
     BlockProperties concreteProps = BlockProperties(Material::ROCK).hardness(1.8f).resistance(1.8f);
 
-    WHITE_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:white_concrete"), concreteProps);
-    ORANGE_CONCRETE =
+    ColoredBlocks::WHITE_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:white_concrete"), concreteProps);
+    ColoredBlocks::ORANGE_CONCRETE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:orange_concrete"), concreteProps);
-    MAGENTA_CONCRETE =
+    ColoredBlocks::MAGENTA_CONCRETE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:magenta_concrete"), concreteProps);
-    LIGHT_BLUE_CONCRETE =
+    ColoredBlocks::LIGHT_BLUE_CONCRETE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:light_blue_concrete"), concreteProps);
-    YELLOW_CONCRETE =
+    ColoredBlocks::YELLOW_CONCRETE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:yellow_concrete"), concreteProps);
-    LIME_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:lime_concrete"), concreteProps);
-    PINK_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pink_concrete"), concreteProps);
-    GRAY_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:gray_concrete"), concreteProps);
-    LIGHT_GRAY_CONCRETE =
+    ColoredBlocks::LIME_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:lime_concrete"), concreteProps);
+    ColoredBlocks::PINK_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pink_concrete"), concreteProps);
+    ColoredBlocks::GRAY_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:gray_concrete"), concreteProps);
+    ColoredBlocks::LIGHT_GRAY_CONCRETE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:light_gray_concrete"), concreteProps);
-    CYAN_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cyan_concrete"), concreteProps);
-    PURPLE_CONCRETE =
+    ColoredBlocks::CYAN_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cyan_concrete"), concreteProps);
+    ColoredBlocks::PURPLE_CONCRETE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:purple_concrete"), concreteProps);
-    BLUE_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:blue_concrete"), concreteProps);
-    BROWN_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:brown_concrete"), concreteProps);
-    GREEN_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:green_concrete"), concreteProps);
-    RED_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:red_concrete"), concreteProps);
-    BLACK_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:black_concrete"), concreteProps);
+    ColoredBlocks::BLUE_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:blue_concrete"), concreteProps);
+    ColoredBlocks::BROWN_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:brown_concrete"), concreteProps);
+    ColoredBlocks::GREEN_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:green_concrete"), concreteProps);
+    ColoredBlocks::RED_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:red_concrete"), concreteProps);
+    ColoredBlocks::BLACK_CONCRETE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:black_concrete"), concreteProps);
 
     // ========== 混凝土粉末注册 (16色) ==========
     BlockProperties concretePowderProps = BlockProperties(Material::SAND).hardness(0.5f);
 
-    WHITE_CONCRETE_POWDER =
+    ColoredBlocks::WHITE_CONCRETE_POWDER =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:white_concrete_powder"), concretePowderProps);
-    ORANGE_CONCRETE_POWDER =
+    ColoredBlocks::ORANGE_CONCRETE_POWDER =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:orange_concrete_powder"), concretePowderProps);
-    MAGENTA_CONCRETE_POWDER = &registry.registerBlock<SimpleBlock>(
+    ColoredBlocks::MAGENTA_CONCRETE_POWDER = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:magenta_concrete_powder"), concretePowderProps);
-    LIGHT_BLUE_CONCRETE_POWDER = &registry.registerBlock<SimpleBlock>(
+    ColoredBlocks::LIGHT_BLUE_CONCRETE_POWDER = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:light_blue_concrete_powder"), concretePowderProps);
-    YELLOW_CONCRETE_POWDER =
+    ColoredBlocks::YELLOW_CONCRETE_POWDER =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:yellow_concrete_powder"), concretePowderProps);
-    LIME_CONCRETE_POWDER =
+    ColoredBlocks::LIME_CONCRETE_POWDER =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:lime_concrete_powder"), concretePowderProps);
-    PINK_CONCRETE_POWDER =
+    ColoredBlocks::PINK_CONCRETE_POWDER =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pink_concrete_powder"), concretePowderProps);
-    GRAY_CONCRETE_POWDER =
+    ColoredBlocks::GRAY_CONCRETE_POWDER =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:gray_concrete_powder"), concretePowderProps);
-    LIGHT_GRAY_CONCRETE_POWDER = &registry.registerBlock<SimpleBlock>(
+    ColoredBlocks::LIGHT_GRAY_CONCRETE_POWDER = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:light_gray_concrete_powder"), concretePowderProps);
-    CYAN_CONCRETE_POWDER =
+    ColoredBlocks::CYAN_CONCRETE_POWDER =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cyan_concrete_powder"), concretePowderProps);
-    PURPLE_CONCRETE_POWDER =
+    ColoredBlocks::PURPLE_CONCRETE_POWDER =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:purple_concrete_powder"), concretePowderProps);
-    BLUE_CONCRETE_POWDER =
+    ColoredBlocks::BLUE_CONCRETE_POWDER =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:blue_concrete_powder"), concretePowderProps);
-    BROWN_CONCRETE_POWDER =
+    ColoredBlocks::BROWN_CONCRETE_POWDER =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:brown_concrete_powder"), concretePowderProps);
-    GREEN_CONCRETE_POWDER =
+    ColoredBlocks::GREEN_CONCRETE_POWDER =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:green_concrete_powder"), concretePowderProps);
-    RED_CONCRETE_POWDER =
+    ColoredBlocks::RED_CONCRETE_POWDER =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:red_concrete_powder"), concretePowderProps);
-    BLACK_CONCRETE_POWDER =
+    ColoredBlocks::BLACK_CONCRETE_POWDER =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:black_concrete_powder"), concretePowderProps);
 
     // ========== 陶瓦注册 (16色 + 普通) ==========
     BlockProperties terracottaProps = BlockProperties(Material::ROCK).hardness(1.4f).resistance(4.2f);
 
     // 普通陶瓦
-    TERRACOTTA = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:terracotta"), terracottaProps);
+    ColoredBlocks::TERRACOTTA = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:terracotta"), terracottaProps);
 
     // 染色陶瓦 (16色)
-    WHITE_TERRACOTTA =
+    ColoredBlocks::WHITE_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:white_terracotta"), terracottaProps);
-    ORANGE_TERRACOTTA =
+    ColoredBlocks::ORANGE_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:orange_terracotta"), terracottaProps);
-    MAGENTA_TERRACOTTA =
+    ColoredBlocks::MAGENTA_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:magenta_terracotta"), terracottaProps);
-    LIGHT_BLUE_TERRACOTTA =
+    ColoredBlocks::LIGHT_BLUE_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:light_blue_terracotta"), terracottaProps);
-    YELLOW_TERRACOTTA =
+    ColoredBlocks::YELLOW_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:yellow_terracotta"), terracottaProps);
-    LIME_TERRACOTTA =
+    ColoredBlocks::LIME_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:lime_terracotta"), terracottaProps);
-    PINK_TERRACOTTA =
+    ColoredBlocks::PINK_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pink_terracotta"), terracottaProps);
-    GRAY_TERRACOTTA =
+    ColoredBlocks::GRAY_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:gray_terracotta"), terracottaProps);
-    LIGHT_GRAY_TERRACOTTA =
+    ColoredBlocks::LIGHT_GRAY_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:light_gray_terracotta"), terracottaProps);
-    CYAN_TERRACOTTA =
+    ColoredBlocks::CYAN_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cyan_terracotta"), terracottaProps);
-    PURPLE_TERRACOTTA =
+    ColoredBlocks::PURPLE_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:purple_terracotta"), terracottaProps);
-    BLUE_TERRACOTTA =
+    ColoredBlocks::BLUE_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:blue_terracotta"), terracottaProps);
-    BROWN_TERRACOTTA =
+    ColoredBlocks::BROWN_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:brown_terracotta"), terracottaProps);
-    GREEN_TERRACOTTA =
+    ColoredBlocks::GREEN_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:green_terracotta"), terracottaProps);
-    RED_TERRACOTTA =
+    ColoredBlocks::RED_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:red_terracotta"), terracottaProps);
-    BLACK_TERRACOTTA =
+    ColoredBlocks::BLACK_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:black_terracotta"), terracottaProps);
 }
 

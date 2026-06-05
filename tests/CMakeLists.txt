@@ -1069,7 +1069,7 @@ target_sources(mc_tests
         # 鏂扮殑鏂瑰潡绯荤粺婧愭枃浠?        ${CMAKE_SOURCE_DIR}/src/common/world/block/Material.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/Block.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/BlockRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/VanillaBlocks.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/VanillaBlocks.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/AirBlock.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/SimpleBlock.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
@@ -1387,7 +1387,7 @@ target_sources(mc_resource_tests
         ${CMAKE_SOURCE_DIR}/src/common/resource/ResourceLocation.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/Block.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/BlockRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/VanillaBlocks.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/VanillaBlocks.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/AirBlock.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/SimpleBlock.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
@@ -1492,7 +1492,7 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/common/world/block/Material.cpp
             ${CMAKE_SOURCE_DIR}/src/common/world/block/Block.cpp
             ${CMAKE_SOURCE_DIR}/src/common/world/block/BlockRegistry.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/VanillaBlocks.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/VanillaBlocks.cpp
             ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/AirBlock.cpp
             ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/SimpleBlock.cpp
             ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
@@ -1758,7 +1758,7 @@ target_sources(mc_village_tests
         # 方块系统
         ${CMAKE_SOURCE_DIR}/src/common/world/block/Block.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/BlockRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/VanillaBlocks.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/VanillaBlocks.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/AirBlock.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/SimpleBlock.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp

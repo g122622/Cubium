@@ -101,159 +101,171 @@ void registerRedstoneBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 红石线
-    REDSTONE_WIRE = &registry.registerBlock<blocks::RedstoneWireBlock>(
+    RedstoneBlocks::REDSTONE_WIRE = &registry.registerBlock<blocks::RedstoneWireBlock>(
         ResourceLocation("minecraft:redstone_wire"), BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     // 红石火把
-    REDSTONE_TORCH = &registry.registerBlock<blocks::RedstoneTorchBlock>(ResourceLocation("minecraft:redstone_torch"),
-        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(7));
+    RedstoneBlocks::REDSTONE_TORCH =
+        &registry.registerBlock<blocks::RedstoneTorchBlock>(ResourceLocation("minecraft:redstone_torch"),
+            BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(7));
 
     // 墙上的红石火把
-    REDSTONE_WALL_TORCH =
+    RedstoneBlocks::REDSTONE_WALL_TORCH =
         &registry.registerBlock<blocks::RedstoneWallTorchBlock>(ResourceLocation("minecraft:redstone_wall_torch"),
             BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(7));
 
     // 红石灯
-    REDSTONE_LAMP = &registry.registerBlock<blocks::RedstoneLampBlock>(
+    RedstoneBlocks::REDSTONE_LAMP = &registry.registerBlock<blocks::RedstoneLampBlock>(
         ResourceLocation("minecraft:redstone_lamp"), BlockProperties(Material::REDSTONE_LIGHT).hardness(0.3f));
 
     // 红石中继器
-    REDSTONE_REPEATER = &registry.registerBlock<blocks::RedstoneRepeaterBlock>(
+    RedstoneBlocks::REDSTONE_REPEATER = &registry.registerBlock<blocks::RedstoneRepeaterBlock>(
         ResourceLocation("minecraft:repeater"), BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     // 红石比较器
-    REDSTONE_COMPARATOR = &registry.registerBlock<blocks::RedstoneComparatorBlock>(
+    RedstoneBlocks::REDSTONE_COMPARATOR = &registry.registerBlock<blocks::RedstoneComparatorBlock>(
         ResourceLocation("minecraft:comparator"), BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     // 侦测器
-    OBSERVER = &registry.registerBlock<blocks::ObserverBlock>(
+    RedstoneBlocks::OBSERVER = &registry.registerBlock<blocks::ObserverBlock>(
         ResourceLocation("minecraft:observer"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
 
     // 拉杆
-    LEVER = &registry.registerBlock<blocks::LeverBlock>(
+    RedstoneBlocks::LEVER = &registry.registerBlock<blocks::LeverBlock>(
         ResourceLocation("minecraft:lever"), BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     // 石头按钮
-    STONE_BUTTON = &registry.registerBlock<blocks::StoneButtonBlock>(
+    RedstoneBlocks::STONE_BUTTON = &registry.registerBlock<blocks::StoneButtonBlock>(
         ResourceLocation("minecraft:stone_button"), BlockProperties(Material::ROCK).noCollision().notSolid());
 
     // 橡木按钮
-    OAK_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
+    RedstoneBlocks::OAK_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
         ResourceLocation("minecraft:oak_button"), BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
 
     // 云杉木按钮
-    SPRUCE_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:spruce_button"),
-        BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+    RedstoneBlocks::SPRUCE_BUTTON =
+        &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:spruce_button"),
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
 
     // 白桦木按钮
-    BIRCH_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:birch_button"),
-        BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+    RedstoneBlocks::BIRCH_BUTTON =
+        &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:birch_button"),
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
 
     // 丛林木按钮
-    JUNGLE_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:jungle_button"),
-        BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+    RedstoneBlocks::JUNGLE_BUTTON =
+        &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:jungle_button"),
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
 
     // 金合欢木按钮
-    ACACIA_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:acacia_button"),
-        BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+    RedstoneBlocks::ACACIA_BUTTON =
+        &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:acacia_button"),
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
 
     // 深色橡木按钮
-    DARK_OAK_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:dark_oak_button"),
-        BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+    RedstoneBlocks::DARK_OAK_BUTTON =
+        &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:dark_oak_button"),
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
 
     // 绯红按钮（下界木材，不可燃）
-    CRIMSON_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
+    RedstoneBlocks::CRIMSON_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
         ResourceLocation("minecraft:crimson_button"), BlockProperties(Material::NETHER_WOOD).noCollision().notSolid());
 
     // 诡异按钮（下界木材，不可燃）
-    WARPED_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
+    RedstoneBlocks::WARPED_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
         ResourceLocation("minecraft:warped_button"), BlockProperties(Material::NETHER_WOOD).noCollision().notSolid());
 
     // 石头压力板
-    STONE_PRESSURE_PLATE =
+    RedstoneBlocks::STONE_PRESSURE_PLATE =
         &registry.registerBlock<blocks::StonePressurePlateBlock>(ResourceLocation("minecraft:stone_pressure_plate"),
             BlockProperties(Material::ROCK).noCollision().notSolid().hardness(0.5f));
 
     // 橡木压力板
-    OAK_PRESSURE_PLATE =
+    RedstoneBlocks::OAK_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:oak_pressure_plate"),
             BlockProperties(Material::WOOD).noCollision().notSolid().hardness(0.5f).flammable());
 
     // 轻质测重压力板
-    LIGHT_WEIGHTED_PRESSURE_PLATE = &registry.registerBlock<blocks::WeightedPressurePlateBlock>(
+    RedstoneBlocks::LIGHT_WEIGHTED_PRESSURE_PLATE = &registry.registerBlock<blocks::WeightedPressurePlateBlock>(
         ResourceLocation("minecraft:light_weighted_pressure_plate"),
         BlockProperties(Material::IRON).noCollision().notSolid().hardness(0.5f),
         blocks::WeightedPressurePlateBlock::Sensitivity::Light);
 
     // 重质测重压力板
-    HEAVY_WEIGHTED_PRESSURE_PLATE = &registry.registerBlock<blocks::WeightedPressurePlateBlock>(
+    RedstoneBlocks::HEAVY_WEIGHTED_PRESSURE_PLATE = &registry.registerBlock<blocks::WeightedPressurePlateBlock>(
         ResourceLocation("minecraft:heavy_weighted_pressure_plate"),
         BlockProperties(Material::IRON).noCollision().notSolid().hardness(0.5f),
         blocks::WeightedPressurePlateBlock::Sensitivity::Heavy);
 
     // 日光探测器
-    DAYLIGHT_DETECTOR = &registry.registerBlock<blocks::DaylightDetectorBlock>(
+    RedstoneBlocks::DAYLIGHT_DETECTOR = &registry.registerBlock<blocks::DaylightDetectorBlock>(
         ResourceLocation("minecraft:daylight_detector"), BlockProperties(Material::WOOD).hardness(0.2f).flammable());
 
     // 活塞
-    PISTON = &registry.registerBlock<blocks::PistonBlock>(ResourceLocation("minecraft:piston"),
+    RedstoneBlocks::PISTON = &registry.registerBlock<blocks::PistonBlock>(ResourceLocation("minecraft:piston"),
         BlockProperties(Material::PISTON).hardness(0.5f).resistance(0.5f),
         false // not sticky
     );
 
     // 粘性活塞
-    STICKY_PISTON = &registry.registerBlock<blocks::PistonBlock>(ResourceLocation("minecraft:sticky_piston"),
-        BlockProperties(Material::PISTON).hardness(0.5f).resistance(0.5f),
-        true // sticky
-    );
+    RedstoneBlocks::STICKY_PISTON =
+        &registry.registerBlock<blocks::PistonBlock>(ResourceLocation("minecraft:sticky_piston"),
+            BlockProperties(Material::PISTON).hardness(0.5f).resistance(0.5f),
+            true // sticky
+        );
 
     // 活塞头
-    PISTON_HEAD = &registry.registerBlock<blocks::PistonHeadBlock>(ResourceLocation("minecraft:piston_head"),
-        BlockProperties(Material::PISTON).hardness(0.5f).resistance(0.5f).noLootTable());
+    RedstoneBlocks::PISTON_HEAD =
+        &registry.registerBlock<blocks::PistonHeadBlock>(ResourceLocation("minecraft:piston_head"),
+            BlockProperties(Material::PISTON).hardness(0.5f).resistance(0.5f).noLootTable());
 
     // 移动中的活塞
-    MOVING_PISTON = &registry.registerBlock<blocks::MovingPistonBlock>(ResourceLocation("minecraft:moving_piston"),
-        BlockProperties(Material::PISTON).hardness(-1.0f).resistance(-1.0f).noLootTable());
+    RedstoneBlocks::MOVING_PISTON =
+        &registry.registerBlock<blocks::MovingPistonBlock>(ResourceLocation("minecraft:moving_piston"),
+            BlockProperties(Material::PISTON).hardness(-1.0f).resistance(-1.0f).noLootTable());
 
     // 发射器
-    DISPENSER = &registry.registerBlock<blocks::DispenserBlock>(
+    RedstoneBlocks::DISPENSER = &registry.registerBlock<blocks::DispenserBlock>(
         ResourceLocation("minecraft:dispenser"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
 
     // 投掷器
-    DROPPER = &registry.registerBlock<blocks::DropperBlock>(
+    RedstoneBlocks::DROPPER = &registry.registerBlock<blocks::DropperBlock>(
         ResourceLocation("minecraft:dropper"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
 
     // 音符盒
-    NOTE_BLOCK = &registry.registerBlock<blocks::NoteBlock>(
+    RedstoneBlocks::NOTE_BLOCK = &registry.registerBlock<blocks::NoteBlock>(
         ResourceLocation("minecraft:note_block"), BlockProperties(Material::WOOD).hardness(0.8f).flammable());
 
     // 标靶
-    TARGET = &registry.registerBlock<blocks::TargetBlock>(
+    RedstoneBlocks::TARGET = &registry.registerBlock<blocks::TargetBlock>(
         ResourceLocation("minecraft:target"), BlockProperties(Material::WOOL).hardness(0.5f));
 
     // 绊线
-    TRIPWIRE = &registry.registerBlock<blocks::TripWireBlock>(
+    RedstoneBlocks::TRIPWIRE = &registry.registerBlock<blocks::TripWireBlock>(
         ResourceLocation("minecraft:tripwire"), BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     // 绊线钩
-    TRIPWIRE_HOOK = &registry.registerBlock<blocks::TripWireHookBlock>(
+    RedstoneBlocks::TRIPWIRE_HOOK = &registry.registerBlock<blocks::TripWireHookBlock>(
         ResourceLocation("minecraft:tripwire_hook"), BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     // 普通铁轨
-    RAIL = &registry.registerBlock<blocks::RailBlock>(ResourceLocation("minecraft:rail"),
+    RedstoneBlocks::RAIL = &registry.registerBlock<blocks::RailBlock>(ResourceLocation("minecraft:rail"),
         BlockProperties(Material::DECORATION).noCollision().notSolid().hardness(0.7f));
 
     // 动力铁轨
-    POWERED_RAIL = &registry.registerBlock<blocks::PoweredRailBlock>(ResourceLocation("minecraft:powered_rail"),
-        BlockProperties(Material::DECORATION).noCollision().notSolid().hardness(0.7f));
+    RedstoneBlocks::POWERED_RAIL =
+        &registry.registerBlock<blocks::PoweredRailBlock>(ResourceLocation("minecraft:powered_rail"),
+            BlockProperties(Material::DECORATION).noCollision().notSolid().hardness(0.7f));
 
     // 探测铁轨
-    DETECTOR_RAIL = &registry.registerBlock<blocks::DetectorRailBlock>(ResourceLocation("minecraft:detector_rail"),
-        BlockProperties(Material::DECORATION).noCollision().notSolid().hardness(0.7f));
+    RedstoneBlocks::DETECTOR_RAIL =
+        &registry.registerBlock<blocks::DetectorRailBlock>(ResourceLocation("minecraft:detector_rail"),
+            BlockProperties(Material::DECORATION).noCollision().notSolid().hardness(0.7f));
 
     // 激活铁轨
-    ACTIVATOR_RAIL = &registry.registerBlock<blocks::ActivatorRailBlock>(ResourceLocation("minecraft:activator_rail"),
-        BlockProperties(Material::DECORATION).noCollision().notSolid().hardness(0.7f));
+    RedstoneBlocks::ACTIVATOR_RAIL =
+        &registry.registerBlock<blocks::ActivatorRailBlock>(ResourceLocation("minecraft:activator_rail"),
+            BlockProperties(Material::DECORATION).noCollision().notSolid().hardness(0.7f));
 }
 
 } // namespace block_registry

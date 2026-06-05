@@ -27,13 +27,15 @@
 #include "world/block/blocks/FallingBlock.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/LiquidBlock.hpp"
 #include "world/block/blocks/dirt/SpreadableSnowyDirtBlock.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"
 #include "world/block/blocks/ice/SnowBlock.hpp"
-#include "world/block/fluid/FluidRegistry.hpp"
-#include "world/block/fluid/FluidTags.hpp"
-#include "world/block/fluid/fluids/LavaFluid.hpp"
-#include "world/block/fluid/fluids/WaterFluid.hpp"
+#include "world/block/blocks/vegetation/LeavesBlock.hpp"
+#include "world/fluid/FluidRegistry.hpp"
+#include "world/fluid/FluidTags.hpp"
+#include "world/fluid/fluids/LavaFluid.hpp"
+#include "world/fluid/fluids/WaterFluid.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -154,7 +156,7 @@ void registerBaseBlocks()
     fluid::FluidTags::initialize();
 
     // 空气
-    AIR = &registry.registerBlock<AirBlock>(ResourceLocation("minecraft:air"),
+    BaseBlocks::AIR = &registry.registerBlock<AirBlock>(ResourceLocation("minecraft:air"),
         BlockProperties(Material::AIR)
             .noCollision()
             .notSolid()
@@ -163,7 +165,7 @@ void registerBaseBlocks()
             .propagatesSkylightDown()
             .noLootTable());
 
-    CAVE_AIR = &registry.registerBlock<AirBlock>(ResourceLocation("minecraft:cave_air"),
+    BaseBlocks::CAVE_AIR = &registry.registerBlock<AirBlock>(ResourceLocation("minecraft:cave_air"),
         BlockProperties(Material::AIR)
             .noCollision()
             .notSolid()
@@ -172,7 +174,7 @@ void registerBaseBlocks()
             .propagatesSkylightDown()
             .noLootTable());
 
-    VOID_AIR = &registry.registerBlock<AirBlock>(ResourceLocation("minecraft:void_air"),
+    BaseBlocks::VOID_AIR = &registry.registerBlock<AirBlock>(ResourceLocation("minecraft:void_air"),
         BlockProperties(Material::AIR)
             .noCollision()
             .notSolid()
@@ -182,7 +184,7 @@ void registerBaseBlocks()
             .noLootTable());
 
     // 石头
-    STONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:stone"),
+    BaseBlocks::STONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:stone"),
         BlockProperties(Material::ROCK)
             .hardness(1.5f)
             .resistance(6.0f)
@@ -191,19 +193,19 @@ void registerBaseBlocks()
             .requiresTool());
 
     // 草方块
-    GRASS_BLOCK = &registry.registerBlock<blocks::GrassBlock>(ResourceLocation("minecraft:grass_block"),
+    BaseBlocks::GRASS_BLOCK = &registry.registerBlock<blocks::GrassBlock>(ResourceLocation("minecraft:grass_block"),
         BlockProperties(Material::EARTH).hardness(0.6f).soundType(BlockSoundTypes::GRASS));
 
     // 泥土
-    DIRT = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::DIRT = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:dirt"), BlockProperties(Material::EARTH).hardness(0.5f));
 
     // 圆石
-    COBBLESTONE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::COBBLESTONE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:cobblestone"), BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
 
     // 橡木木板
-    OAK_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:oak_planks"),
+    BaseBlocks::OAK_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:oak_planks"),
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable());
 
     // 水
@@ -212,7 +214,7 @@ void registerBaseBlocks()
         if (waterFluid != nullptr) {
             auto* flowingWater = dynamic_cast<fluid::FlowingFluid*>(waterFluid);
             if (flowingWater != nullptr) {
-                WATER = &registry.registerBlock<block::LiquidBlock>(ResourceLocation("minecraft:water"),
+                BaseBlocks::WATER = &registry.registerBlock<::mc::block::LiquidBlock>(ResourceLocation("minecraft:water"),
                     *flowingWater,
                     BlockProperties(Material::WATER).noCollision().notSolid().opacity(0));
             }
@@ -225,7 +227,7 @@ void registerBaseBlocks()
         if (lavaFluid != nullptr) {
             auto* flowingLava = dynamic_cast<fluid::FlowingFluid*>(lavaFluid);
             if (flowingLava != nullptr) {
-                LAVA = &registry.registerBlock<block::LiquidBlock>(ResourceLocation("minecraft:lava"),
+                BaseBlocks::LAVA = &registry.registerBlock<::mc::block::LiquidBlock>(ResourceLocation("minecraft:lava"),
                     *flowingLava,
                     BlockProperties(Material::LAVA).noCollision().notSolid().lightLevel(15));
             }
@@ -233,129 +235,129 @@ void registerBaseBlocks()
     }
 
     // 基岩
-    BEDROCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:bedrock"),
+    BaseBlocks::BEDROCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:bedrock"),
         BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 
     // 沙子
-    SAND = &registry.registerBlock<blocks::FallingBlock>(
+    BaseBlocks::SAND = &registry.registerBlock<blocks::FallingBlock>(
         ResourceLocation("minecraft:sand"), BlockProperties(Material::SAND).hardness(0.5f));
 
     // 砾石
-    GRAVEL = &registry.registerBlock<blocks::FallingBlock>(
+    BaseBlocks::GRAVEL = &registry.registerBlock<blocks::FallingBlock>(
         ResourceLocation("minecraft:gravel"), BlockProperties(Material::SAND).hardness(0.6f));
 
     // 雪层
-    SNOW = &registry.registerBlock<blocks::SnowBlock>(
+    BaseBlocks::SNOW = &registry.registerBlock<blocks::SnowBlock>(
         ResourceLocation("minecraft:snow"), BlockProperties(Material::SNOW).hardness(0.2f).notSolid().noCollision());
 
     // 雪块
-    SNOW_BLOCK = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::SNOW_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:snow_block"), BlockProperties(Material::SNOW).hardness(0.2f));
 
     // 冰
-    ICE = &registry.registerBlock<blocks::IceBlock>(ResourceLocation("minecraft:ice"),
+    BaseBlocks::ICE = &registry.registerBlock<blocks::IceBlock>(ResourceLocation("minecraft:ice"),
         BlockProperties(Material::ICE).hardness(0.5f).notSolid().opacity(2).propagatesSkylightDown());
 
     // 玻璃
-    GLASS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:glass"),
+    BaseBlocks::GLASS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:glass"),
         BlockProperties(Material::GLASS).hardness(0.3f).notSolid().opacity(0).propagatesSkylightDown());
 
     // 下界岩
-    NETHERRACK = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::NETHERRACK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:netherrack"), BlockProperties(Material::ROCK).hardness(0.4f));
 
     // 荧石
-    GLOWSTONE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::GLOWSTONE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:glowstone"), BlockProperties(Material::GLASS).hardness(0.3f).lightLevel(15));
 
     // 末地石
-    END_STONE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::END_STONE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:end_stone"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(9.0f));
 
     // 黑曜石
-    OBSIDIAN = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::OBSIDIAN = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:obsidian"), BlockProperties(Material::ROCK).hardness(50.0f).resistance(1200.0f));
 
     // ========== 石头变种 ==========
-    GRANITE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::GRANITE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:granite"), BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
-    POLISHED_GRANITE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_granite"),
+    BaseBlocks::POLISHED_GRANITE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_granite"),
         BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
-    DIORITE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::DIORITE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:diorite"), BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
-    POLISHED_DIORITE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_diorite"),
+    BaseBlocks::POLISHED_DIORITE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_diorite"),
         BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
-    ANDESITE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::ANDESITE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:andesite"), BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
-    POLISHED_ANDESITE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_andesite"),
+    BaseBlocks::POLISHED_ANDESITE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_andesite"),
         BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
 
     // ========== 泥土变种 ==========
-    COARSE_DIRT = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::COARSE_DIRT = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:coarse_dirt"), BlockProperties(Material::EARTH).hardness(0.5f));
-    PODZOL = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::PODZOL = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:podzol"), BlockProperties(Material::EARTH).hardness(0.5f));
 
     // ========== 砂岩系列 ==========
-    SANDSTONE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::SANDSTONE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:sandstone"), BlockProperties(Material::ROCK).hardness(0.8f));
-    CHISELED_SANDSTONE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::CHISELED_SANDSTONE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:chiseled_sandstone"), BlockProperties(Material::ROCK).hardness(0.8f));
-    CUT_SANDSTONE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::CUT_SANDSTONE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:cut_sandstone"), BlockProperties(Material::ROCK).hardness(0.8f));
-    RED_SANDSTONE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::RED_SANDSTONE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:red_sandstone"), BlockProperties(Material::ROCK).hardness(0.8f));
 
     // ========== 矿石方块 ==========
-    GOLD_ORE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::GOLD_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:gold_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
-    IRON_ORE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::IRON_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:iron_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
-    COAL_ORE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::COAL_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:coal_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
-    DIAMOND_ORE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:diamond_ore"),
+    BaseBlocks::DIAMOND_ORE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:diamond_ore"),
         BlockProperties(Material::ROCK)
             .hardness(3.0f)
             .resistance(3.0f)
             .harvestTool(HarvestTool::Pickaxe)
             .harvestLevel(2)
             .requiresTool());
-    DIAMOND_BLOCK = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::DIAMOND_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:diamond_block"), BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f));
-    EMERALD_ORE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::EMERALD_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:emerald_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
-    LAPIS_ORE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::LAPIS_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:lapis_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
-    REDSTONE_ORE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::REDSTONE_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:redstone_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
-    COPPER_ORE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::COPPER_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:copper_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
-    NETHER_QUARTZ_ORE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:nether_quartz_ore"),
+    BaseBlocks::NETHER_QUARTZ_ORE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:nether_quartz_ore"),
         BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
-    NETHER_GOLD_ORE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::NETHER_GOLD_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:nether_gold_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
-    ANCIENT_DEBRIS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:ancient_debris"),
+    BaseBlocks::ANCIENT_DEBRIS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:ancient_debris"),
         BlockProperties(Material::ROCK).hardness(50.0f).resistance(1200.0f));
 
     // ========== 矿物方块 ==========
-    COAL_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:coal_block"),
+    BaseBlocks::COAL_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:coal_block"),
         BlockProperties(Material::ROCK)
             .hardness(5.0f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
             .harvestLevel(1)
             .requiresTool());
-    GOLD_BLOCK = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::GOLD_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:gold_block"), BlockProperties(Material::IRON).hardness(3.0f).resistance(6.0f));
-    IRON_BLOCK = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::IRON_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:iron_block"), BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f));
-    LAPIS_BLOCK = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::LAPIS_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:lapis_block"), BlockProperties(Material::IRON).hardness(3.0f).resistance(3.0f));
-    EMERALD_BLOCK = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::EMERALD_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:emerald_block"), BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f));
-    REDSTONE_BLOCK = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::REDSTONE_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:redstone_block"), BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f));
-    NETHERITE_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:netherite_block"),
+    BaseBlocks::NETHERITE_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:netherite_block"),
         BlockProperties(Material::IRON)
             .hardness(50.0f)
             .resistance(1200.0f)
@@ -368,64 +370,64 @@ void registerBaseBlocks()
     BlockProperties leavesProps =
         BlockProperties(Material::LEAVES).hardness(0.2f).flammable().notSolid().opacity(1).propagatesSkylightDown();
 
-    OAK_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:oak_log"), logProps);
-    OAK_LEAVES = &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:oak_leaves"), leavesProps);
-    OAK_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:oak_wood"), logProps);
-    SPRUCE_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:spruce_wood"), logProps);
-    BIRCH_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:birch_wood"), logProps);
-    JUNGLE_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:jungle_wood"), logProps);
-    ACACIA_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:acacia_wood"), logProps);
-    DARK_OAK_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:dark_oak_wood"), logProps);
+    BaseBlocks::OAK_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:oak_log"), logProps);
+    BaseBlocks::OAK_LEAVES = &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:oak_leaves"), leavesProps);
+    BaseBlocks::OAK_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:oak_wood"), logProps);
+    BaseBlocks::SPRUCE_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:spruce_wood"), logProps);
+    BaseBlocks::BIRCH_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:birch_wood"), logProps);
+    BaseBlocks::JUNGLE_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:jungle_wood"), logProps);
+    BaseBlocks::ACACIA_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:acacia_wood"), logProps);
+    BaseBlocks::DARK_OAK_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:dark_oak_wood"), logProps);
 
-    STRIPPED_OAK_LOG =
+    BaseBlocks::STRIPPED_OAK_LOG =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_oak_log"), logProps);
-    STRIPPED_SPRUCE_LOG =
+    BaseBlocks::STRIPPED_SPRUCE_LOG =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_spruce_log"), logProps);
-    STRIPPED_BIRCH_LOG =
+    BaseBlocks::STRIPPED_BIRCH_LOG =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_birch_log"), logProps);
-    STRIPPED_JUNGLE_LOG =
+    BaseBlocks::STRIPPED_JUNGLE_LOG =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_jungle_log"), logProps);
-    STRIPPED_ACACIA_LOG =
+    BaseBlocks::STRIPPED_ACACIA_LOG =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_acacia_log"), logProps);
-    STRIPPED_DARK_OAK_LOG =
+    BaseBlocks::STRIPPED_DARK_OAK_LOG =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_dark_oak_log"), logProps);
 
-    STRIPPED_OAK_WOOD =
+    BaseBlocks::STRIPPED_OAK_WOOD =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_oak_wood"), logProps);
-    STRIPPED_SPRUCE_WOOD =
+    BaseBlocks::STRIPPED_SPRUCE_WOOD =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_spruce_wood"), logProps);
-    STRIPPED_BIRCH_WOOD =
+    BaseBlocks::STRIPPED_BIRCH_WOOD =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_birch_wood"), logProps);
-    STRIPPED_JUNGLE_WOOD =
+    BaseBlocks::STRIPPED_JUNGLE_WOOD =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_jungle_wood"), logProps);
-    STRIPPED_ACACIA_WOOD =
+    BaseBlocks::STRIPPED_ACACIA_WOOD =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_acacia_wood"), logProps);
-    STRIPPED_DARK_OAK_WOOD =
+    BaseBlocks::STRIPPED_DARK_OAK_WOOD =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_dark_oak_wood"), logProps);
 
-    SPRUCE_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:spruce_log"), logProps);
-    SPRUCE_LEAVES =
+    BaseBlocks::SPRUCE_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:spruce_log"), logProps);
+    BaseBlocks::SPRUCE_LEAVES =
         &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:spruce_leaves"), leavesProps);
-    BIRCH_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:birch_log"), logProps);
-    BIRCH_LEAVES =
+    BaseBlocks::BIRCH_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:birch_log"), logProps);
+    BaseBlocks::BIRCH_LEAVES =
         &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:birch_leaves"), leavesProps);
-    JUNGLE_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:jungle_log"), logProps);
-    JUNGLE_LEAVES =
+    BaseBlocks::JUNGLE_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:jungle_log"), logProps);
+    BaseBlocks::JUNGLE_LEAVES =
         &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:jungle_leaves"), leavesProps);
-    ACACIA_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:acacia_log"), logProps);
-    ACACIA_LEAVES =
+    BaseBlocks::ACACIA_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:acacia_log"), logProps);
+    BaseBlocks::ACACIA_LEAVES =
         &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:acacia_leaves"), leavesProps);
-    DARK_OAK_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:dark_oak_log"), logProps);
-    DARK_OAK_LEAVES =
+    BaseBlocks::DARK_OAK_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:dark_oak_log"), logProps);
+    BaseBlocks::DARK_OAK_LEAVES =
         &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:dark_oak_leaves"), leavesProps);
 
     // ========== 木板变种 ==========
     BlockProperties planksProps = BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable();
-    SPRUCE_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:spruce_planks"), planksProps);
-    BIRCH_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:birch_planks"), planksProps);
-    JUNGLE_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:jungle_planks"), planksProps);
-    ACACIA_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:acacia_planks"), planksProps);
-    DARK_OAK_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:dark_oak_planks"), planksProps);
+    BaseBlocks::SPRUCE_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:spruce_planks"), planksProps);
+    BaseBlocks::BIRCH_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:birch_planks"), planksProps);
+    BaseBlocks::JUNGLE_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:jungle_planks"), planksProps);
+    BaseBlocks::ACACIA_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:acacia_planks"), planksProps);
+    BaseBlocks::DARK_OAK_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:dark_oak_planks"), planksProps);
 }
 
 } // namespace block_registry
