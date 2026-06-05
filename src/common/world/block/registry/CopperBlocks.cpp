@@ -163,6 +163,7 @@ void registerCopperBlocks()
                                            .hardness(3.0f)
                                            .resistance(6.0f)
                                            .harvestTool(HarvestTool::Pickaxe)
+                                           .requiresTool()
                                            .soundType(BlockSoundTypes::COPPER);
 
     // 切制铜属性（与铜块相同）
@@ -170,6 +171,7 @@ void registerCopperBlocks()
                                          .hardness(3.0f)
                                          .resistance(6.0f)
                                          .harvestTool(HarvestTool::Pickaxe)
+                                         .requiresTool()
                                          .soundType(BlockSoundTypes::COPPER);
 
     // 楼梯和台阶属性（与切制铜相同）
@@ -177,6 +179,7 @@ void registerCopperBlocks()
                                                .hardness(3.0f)
                                                .resistance(6.0f)
                                                .harvestTool(HarvestTool::Pickaxe)
+                                               .requiresTool()
                                                .soundType(BlockSoundTypes::COPPER);
 
     // 铜门/活板门属性: Material::IRON, 硬度3.0, 抗爆6.0, notSolid
@@ -184,14 +187,16 @@ void registerCopperBlocks()
                                           .hardness(3.0f)
                                           .resistance(6.0f)
                                           .harvestTool(HarvestTool::Pickaxe)
+                                          .requiresTool()
                                           .notSolid()
                                           .soundType(BlockSoundTypes::COPPER);
 
-    // 铜格栅属性: Material::IRON, 硬度3.5, 抗爆6.0, notSolid
+    // 铜格栅属性: Material::IRON, 硬度3.0, 抗爆6.0, notSolid
     BlockProperties copperGrateProps = BlockProperties(Material::IRON)
-                                           .hardness(3.5f)
+                                           .hardness(3.0f)
                                            .resistance(6.0f)
                                            .harvestTool(HarvestTool::Pickaxe)
+                                           .requiresTool()
                                            .notSolid()
                                            .soundType(BlockSoundTypes::COPPER_GRATE);
 
@@ -200,6 +205,7 @@ void registerCopperBlocks()
                                           .hardness(3.0f)
                                           .resistance(6.0f)
                                           .harvestTool(HarvestTool::Pickaxe)
+                                          .requiresTool()
                                           .soundType(BlockSoundTypes::COPPER_BULB);
 
     // 凿制铜属性（与铜块相同）
@@ -207,6 +213,7 @@ void registerCopperBlocks()
                                               .hardness(3.0f)
                                               .resistance(6.0f)
                                               .harvestTool(HarvestTool::Pickaxe)
+                                              .requiresTool()
                                               .soundType(BlockSoundTypes::COPPER);
 
     // ============================================================================
@@ -483,6 +490,7 @@ void registerCopperBlocks()
             .hardness(3.0f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
+            .requiresTool()
             .notSolid()
             .soundType(BlockSoundTypes::COPPER));
 
@@ -497,7 +505,8 @@ void registerCopperBlocks()
             .hardness(5.0f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
-            .harvestLevel(1));
+            .harvestLevel(1)
+            .requiresTool());
 
     CopperBlocks::RAW_COPPER_BLOCK =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:raw_copper_block"),
@@ -505,14 +514,16 @@ void registerCopperBlocks()
                 .hardness(5.0f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
-                .harvestLevel(1));
+                .harvestLevel(1)
+                .requiresTool());
 
     CopperBlocks::RAW_GOLD_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:raw_gold_block"),
         BlockProperties(Material::IRON)
             .hardness(5.0f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
-            .harvestLevel(2));
+            .harvestLevel(2)
+            .requiresTool());
 }
 
 } // namespace block_registry
