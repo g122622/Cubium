@@ -187,6 +187,22 @@ template <typename T>
 }
 
 /**
+ * @brief 线性映射，将值从 [fromMin, fromMax] 映射到 [toMin, toMax]
+ * 与 mappedLerp 不同，此函数不 clamp 输入值
+ *
+ * 参考 MC 1.21: Mth.map
+ */
+[[nodiscard]] inline f64 map(f64 value, f64 fromMin, f64 fromMax, f64 toMin, f64 toMax) noexcept
+{
+    return toMin + (value - fromMin) * (toMax - toMin) / (fromMax - fromMin);
+}
+
+[[nodiscard]] inline f32 map(f32 value, f32 fromMin, f32 fromMax, f32 toMin, f32 toMax) noexcept
+{
+    return toMin + (value - fromMin) * (toMax - toMin) / (fromMax - fromMin);
+}
+
+/**
  * @brief 立方
  */
 template <typename T>

@@ -34,6 +34,7 @@
 #include "../fluid/Fluid.hpp"
 #include <algorithm>
 #include <cstring>
+#include <sstream>
 #include <stdexcept>
 
 #pragma pop_macro("BYTE_SIZE")
@@ -270,8 +271,10 @@ Result<std::unique_ptr<ChunkSection>> ChunkSection::deserialize(const u8* data, 
 {
     // 新格式大小: 2 + VOLUME * 4 + BYTE_SIZE * 2
     constexpr size_t expectedSize = 2 + VOLUME * sizeof(u32) + NibbleArray::BYTE_SIZE * 2;
-    if (size < expectedSize) {
-        return Error(ErrorCode::InvalidArgument, "Invalid section data size");
+    if (size < expectedSize) [[unlikely]] {
+        std::stringstream ss;
+        ss << "Invalid section data size, expected at least " << expectedSize << " bytes, got " << size << " bytes";
+        return Error(ErrorCode::InvalidArgument, ss.str());
     }
 
     auto section = std::make_unique<ChunkSection>();
