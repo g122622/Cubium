@@ -67,7 +67,7 @@ void registerMangroveBlocks()
                                            .hardness(2.0f)
                                            .resistance(2.0f)
                                            .harvestTool(HarvestTool::Axe)
-                                           .soundType(BlockSoundTypes::MANGROVE_WOOD)
+                                           .soundType(BlockSoundTypes::WOOD)
                                            .flammable();
 
     // 红树原木 - 有轴属性
@@ -91,7 +91,7 @@ void registerMangroveBlocks()
                                               .hardness(2.0f)
                                               .resistance(3.0f)
                                               .harvestTool(HarvestTool::Axe)
-                                              .soundType(BlockSoundTypes::MANGROVE_WOOD)
+                                              .soundType(BlockSoundTypes::WOOD)
                                               .flammable();
 
     // 红树木板 - 基础建筑材料
