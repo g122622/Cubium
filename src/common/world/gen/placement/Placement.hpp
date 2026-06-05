@@ -27,6 +27,8 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../block/Block.hpp"
 #include "../../chunk/ChunkPos.hpp"
+#include "../valueprovider/HeightProvider.hpp"
+#include "../valueprovider/IntProvider.hpp"
 #include <memory>
 #include <vector>
 
@@ -63,6 +65,26 @@ struct CountPlacementConfig : public IPlacementConfig {
 
     explicit CountPlacementConfig(i32 count)
         : count(count)
+    {}
+};
+
+/**
+ * @brief IntProvider 数量放置配置
+ *
+ * 参考 MC 1.21.11: CountPlacement
+ * 使用 IntProvider 采样数量，支持固定值、均匀分布、正态分布等。
+ */
+struct CountWithProviderConfig : public IPlacementConfig {
+    /// 数量提供者
+    std::unique_ptr<world::gen::valueprovider::IntProvider> countProvider;
+
+    explicit CountWithProviderConfig(std::unique_ptr<world::gen::valueprovider::IntProvider> provider)
+        : countProvider(std::move(provider))
+    {}
+
+    /// 便捷构造：固定数量
+    explicit CountWithProviderConfig(i32 fixedCount)
+        : countProvider(std::make_unique<world::gen::valueprovider::ConstantInt>(fixedCount))
     {}
 };
 
@@ -119,6 +141,28 @@ struct HeightRangePlacementConfig : public IPlacementConfig {
 };
 
 /**
+ * @brief HeightProvider 高度放置配置
+ *
+ * 参考 MC 1.21.11: HeightRangePlacement
+ * 使用 HeightProvider 采样高度，支持固定高度、均匀分布、
+ * 偏向底部分布、梯形分布等。
+ */
+struct HeightProviderPlacementConfig : public IPlacementConfig {
+    /// 高度提供者
+    std::unique_ptr<world::gen::valueprovider::HeightProvider> heightProvider;
+
+    explicit HeightProviderPlacementConfig(std::unique_ptr<world::gen::valueprovider::HeightProvider> provider)
+        : heightProvider(std::move(provider))
+    {}
+
+    /// 便捷构造：固定高度
+    explicit HeightProviderPlacementConfig(i32 fixedY)
+        : heightProvider(std::make_unique<world::gen::valueprovider::ConstantHeight>(
+              world::gen::surface::VerticalAnchor::absolute(fixedY)))
+    {}
+};
+
+/**
  * @brief 生物群系过滤放置配置
  *
  * 只在指定生物群系中生成特征。
@@ -150,6 +194,22 @@ struct ChancePlacementConfig : public IPlacementConfig {
 
     explicit ChancePlacementConfig(f32 c)
         : chance(c)
+    {}
+};
+
+/**
+ * @brief 稀有度过滤配置
+ *
+ * 参考 MC 1.21.11: RarityFilter
+ * 以 "1/chance" 的概率通过，即 N 分之一的概率。
+ * 比 ChancePlacement 更适合整数概率的场景。
+ */
+struct RarityFilterConfig : public IPlacementConfig {
+    /// 概率分母（例如 chance=4 表示 1/4 概率）
+    i32 chance;
+
+    explicit RarityFilterConfig(i32 c)
+        : chance(std::max(1, c))
     {}
 };
 
@@ -288,6 +348,38 @@ public:
         const BlockPos& basePos) const override;
 
     [[nodiscard]] const char* name() const noexcept override { return "surface"; }
+};
+
+/**
+ * @brief 高度图放置器
+ *
+ * 参考 MC 1.21.11: HeightmapPlacement
+ * 基于高度图类型（MOTION_BLOCKING, OCEAN_FLOOR 等）查找 Y 坐标。
+ */
+class HeightmapPlacement : public Placement {
+public:
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
+        math::Random& random,
+        const IPlacementConfig& config,
+        const BlockPos& basePos) const override;
+
+    [[nodiscard]] const char* name() const noexcept override { return "heightmap"; }
+};
+
+/**
+ * @brief 稀有度过滤放置器
+ *
+ * 参考 MC 1.21.11: RarityFilter
+ * 以 1/chance 的概率通过，使用整数概率。
+ */
+class RarityFilterPlacement : public Placement {
+public:
+    [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
+        math::Random& random,
+        const IPlacementConfig& config,
+        const BlockPos& basePos) const override;
+
+    [[nodiscard]] const char* name() const noexcept override { return "rarity_filter"; }
 };
 
 /**

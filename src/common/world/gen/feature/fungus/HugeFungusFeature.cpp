@@ -29,8 +29,6 @@
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 
-#include <cmath>
-
 namespace mc {
 
 // ============================================================================
@@ -40,50 +38,86 @@ namespace mc {
 bool HugeFungusFeature::place(
     WorldGenRegion& world, math::Random& random, const BlockPos& pos, const HugeFungusFeatureConfig& config)
 {
-    // 检查是否可以放置
-    if (!_canPlaceAt(world, pos, config.fungusType)) {
+    // MC 1.21.11: 检查是否可以放置
+    if (!_canPlaceAt(world, pos, config)) {
         return false;
     }
 
-    // 计算高度
-    i32 height = config.minHeight + random.nextInt(config.maxHeight - config.minHeight + 1);
+    // MC 1.21.11: 高度 = 4 + random(8) = 4~11
+    // 1/12 概率双倍高度
+    i32 height = 4 + random.nextInt(8);
+    if (random.nextInt(12) == 0) {
+        height *= 2;
+    }
 
-    // 生成菌柄
-    _generateStem(world, random, pos, height, config.fungusType);
+    // MC 1.21.11: 6% 概率生成粗壮菌柄（3x3 菌柄而非 1x1）
+    const bool thickStem = random.nextFloat() < 0.06f;
 
-    // 生成菌盖
-    BlockPos topPos(pos.x, pos.y + height - 1, pos.z);
-    _generateCap(world, random, topPos, config.capRadius, config.fungusType);
+    // 获取方块状态
+    const BlockState* stemState = _getStemState(config.fungusType);
+    const BlockState* capState = _getCapState(config.fungusType);
+    const BlockState* shroomlightState = VanillaBlocks::getState(VanillaBlocks::SHROOMLIGHT);
+    if (!shroomlightState) {
+        shroomlightState = VanillaBlocks::getState(VanillaBlocks::GLOWSTONE);
+    }
+    const BlockState* airState = VanillaBlocks::getState(VanillaBlocks::AIR);
 
-    // 生成藤蔓
-    _generateVines(world, random, topPos, config.fungusType);
+    if (!stemState) return false;
 
-    // 生成菌光体
-    _generateShroomlights(world, random, topPos, config.capRadius);
+    // MC 1.21.11: 生成菌柄
+    _generateStem(world, pos, height, stemState, thickStem);
+
+    // MC 1.21.11: 生成菌盖（在菌柄顶部）
+    // 菌盖高度为 1 + random(2)，即 1~2 层
+    i32 capHeight = 1 + random.nextInt(2);
+    BlockPos capTopPos(pos.x, pos.y + height, pos.z);
+    _generateCap(world, random, capTopPos, capHeight, capState, shroomlightState, airState, thickStem);
+
+    // MC 1.21.11: 在菌盖下方生成藤蔓
+    _generateVines(world, random, pos, height, config.fungusType);
+
+    // MC 1.21.11: 在菌岩基座下方放置下界岩
+    _generateBase(world, pos, config);
 
     return true;
 }
 
-bool HugeFungusFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos, FungusType type) const
+bool HugeFungusFeature::_canPlaceAt(
+    WorldGenRegion& world, const BlockPos& pos, const HugeFungusFeatureConfig& config) const
 {
-    // 检查底部方块是否为菌岩
+    // MC 1.21.11: 检查底部方块是否为菌岩
     const BlockState* groundState = world.getBlockState(pos.x, pos.y - 1, pos.z);
-    if (!groundState) {
-        return false;
-    }
+    if (!groundState) return false;
 
-    // 绯红真菌需要绯红菌岩，诡异真菌需要诡异菌岩
-    // TODO: 由于菌岩方块尚未实现，暂时允许在下界岩上生成
     const Block& ground = groundState->getBlock();
-    if (&ground != VanillaBlocks::NETHERRACK) {
-        return false;
+    if (config.fungusType == FungusType::Crimson) {
+        // 绯红真菌需要绯红菌岩
+        if (VanillaBlocks::CRIMSON_NYLIUM && !groundState->is(VanillaBlocks::CRIMSON_NYLIUM)) {
+            // 如果菌岩未注册，回退到下界岩
+            if (VanillaBlocks::NETHERRACK && groundState->is(VanillaBlocks::NETHERRACK)) {
+                // 允许在下界岩上生成（过渡兼容）
+            } else {
+                return false;
+            }
+        }
+    } else {
+        // 诡异真菌需要诡异菌岩
+        if (VanillaBlocks::WARPED_NYLIUM && !groundState->is(VanillaBlocks::WARPED_NYLIUM)) {
+            if (VanillaBlocks::NETHERRACK && groundState->is(VanillaBlocks::NETHERRACK)) {
+                // 允许在下界岩上生成（过渡兼容）
+            } else {
+                return false;
+            }
+        }
     }
 
-    // 检查上方是否有足够空间（使用世界高度常量）
-    constexpr i32 REQUIRED_SPACE = 15;
-    for (i32 y = 0; y < REQUIRED_SPACE; ++y) {
+    // MC 1.21.11: 如果是种植的，不需要检查空间
+    if (config.planted) return true;
+
+    // 检查上方是否有足够空间（检查到高度上限或 16 格）
+    for (i32 y = 0; y < 16; ++y) {
         const BlockState* state = world.getBlockState(pos.x, pos.y + y, pos.z);
-        if (state && !state->isAir()) {
+        if (state && !state->isAir() && !state->isLiquid()) {
             return false;
         }
     }
@@ -91,69 +125,104 @@ bool HugeFungusFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos, 
     return true;
 }
 
-void HugeFungusFeature::_generateStem(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, i32 height, FungusType type)
+const BlockState* HugeFungusFeature::_getStemState(FungusType type) const
 {
-    // 根据类型选择菌柄方块
-    const BlockState* stem = nullptr;
     if (type == FungusType::Crimson && VanillaBlocks::CRIMSON_STEM) {
-        stem = VanillaBlocks::getState(VanillaBlocks::CRIMSON_STEM);
-    } else if (type == FungusType::Warped && VanillaBlocks::WARPED_STEM) {
-        stem = VanillaBlocks::getState(VanillaBlocks::WARPED_STEM);
+        return &VanillaBlocks::CRIMSON_STEM->defaultState();
     }
-    // 回退到下界岩
-    if (!stem) {
-        stem = VanillaBlocks::getState(VanillaBlocks::NETHERRACK);
+    if (type == FungusType::Warped && VanillaBlocks::WARPED_STEM) {
+        return &VanillaBlocks::WARPED_STEM->defaultState();
     }
-    if (!stem) {
-        return;
-    }
+    // 回退
+    return VanillaBlocks::getState(VanillaBlocks::NETHERRACK);
+}
 
-    // 生成菌柄
-    for (i32 y = 0; y < height; ++y) {
-        world.setBlockState(pos.x, pos.y + y, pos.z, stem);
+const BlockState* HugeFungusFeature::_getCapState(FungusType type) const
+{
+    if (type == FungusType::Crimson && VanillaBlocks::NETHER_WART_BLOCK) {
+        return &VanillaBlocks::NETHER_WART_BLOCK->defaultState();
+    }
+    if (type == FungusType::Warped && VanillaBlocks::WARPED_WART_BLOCK) {
+        return &VanillaBlocks::WARPED_WART_BLOCK->defaultState();
+    }
+    // 回退
+    return VanillaBlocks::getState(VanillaBlocks::GLOWSTONE);
+}
+
+void HugeFungusFeature::_generateStem(
+    WorldGenRegion& world, const BlockPos& pos, i32 height, const BlockState* stemState, bool thickStem)
+{
+    if (!stemState) return;
+
+    if (thickStem) {
+        // MC 1.21.11: 粗壮菌柄 - 3x3 截面
+        for (i32 y = 0; y < height; ++y) {
+            for (i32 dx = -1; dx <= 1; ++dx) {
+                for (i32 dz = -1; dz <= 1; ++dz) {
+                    world.setBlockState(pos.x + dx, pos.y + y, pos.z + dz, stemState);
+                }
+            }
+        }
+    } else {
+        // MC 1.21.11: 普通菌柄 - 1x1
+        for (i32 y = 0; y < height; ++y) {
+            world.setBlockState(pos.x, pos.y + y, pos.z, stemState);
+        }
     }
 }
 
-void HugeFungusFeature::_generateCap(
-    WorldGenRegion& world, math::Random& random, const BlockPos& topPos, i32 radius, FungusType type)
+void HugeFungusFeature::_generateCap(WorldGenRegion& world,
+    math::Random& random,
+    const BlockPos& topPos,
+    i32 capHeight,
+    const BlockState* capState,
+    const BlockState* shroomlightState,
+    const BlockState* airState,
+    bool thickStem)
 {
-    // 根据类型选择菌盖方块
-    const BlockState* cap = nullptr;
-    if (type == FungusType::Crimson && VanillaBlocks::NETHER_WART_BLOCK) {
-        cap = VanillaBlocks::getState(VanillaBlocks::NETHER_WART_BLOCK);
-    } else if (type == FungusType::Warped && VanillaBlocks::WARPED_NYLIUM) {
-        // TODO: 诡异菌盖应使用诡异疣块，当前暂用诡异菌岩代替
-        cap = VanillaBlocks::getState(VanillaBlocks::WARPED_NYLIUM);
+    if (!capState) return;
+
+    // MC 1.21.11: 菌盖是 3x3 或 5x5 的水平区域
+    // 对于普通菌柄，菌盖半径为 2（5x5）
+    // 对于粗壮菌柄，菌盖半径也为 2（但菌柄本身已占 3x3）
+    constexpr i32 CAP_RADIUS = 2;
+
+    for (i32 dy = 0; dy < capHeight; ++dy) {
+        i32 y = topPos.y + dy;
+        for (i32 dx = -CAP_RADIUS; dx <= CAP_RADIUS; ++dx) {
+            for (i32 dz = -CAP_RADIUS; dz <= CAP_RADIUS; ++dz) {
+                BlockPos placePos(topPos.x + dx, y, topPos.z + dz);
+
+                // MC 1.21.11: 菌盖内部有随机替换的菌光体
+                // MC 的替换概率约为 1/9
+                if (shroomlightState && random.nextInt(9) == 0) {
+                    // 不替换菌柄位置
+                    if (dx == 0 && dz == 0) continue;
+                    world.setBlockState(placePos, shroomlightState);
+                } else {
+                    world.setBlockState(placePos, capState);
+                }
+            }
+        }
     }
-    // 回退到萤石
-    if (!cap) {
-        cap = VanillaBlocks::getState(VanillaBlocks::GLOWSTONE);
-    }
-    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
 
-    if (!cap) {
-        return;
-    }
+    // MC 1.21.11: 菌盖顶层再放一层，但角落有 1/3 概率不放
+    {
+        i32 y = topPos.y + capHeight;
+        for (i32 dx = -CAP_RADIUS; dx <= CAP_RADIUS; ++dx) {
+            for (i32 dz = -CAP_RADIUS; dz <= CAP_RADIUS; ++dz) {
+                // 角落有 1/3 概率不放
+                if ((std::abs(dx) == CAP_RADIUS && std::abs(dz) == CAP_RADIUS) && random.nextInt(3) != 0) {
+                    continue;
+                }
 
-    // 生成菌盖（球形或扁平球形）
+                BlockPos placePos(topPos.x + dx, y, topPos.z + dz);
 
-    // 菌盖层数
-    i32 layers = 2 + random.nextInt(2);
-
-    for (i32 layer = 0; layer < layers; ++layer) {
-        i32 layerY = topPos.y + layer;
-        i32 layerRadius = radius - (layer / 2);
-
-        for (i32 x = -layerRadius; x <= layerRadius; ++x) {
-            for (i32 z = -layerRadius; z <= layerRadius; ++z) {
-                i32 distSq = x * x + z * z;
-                if (distSq <= layerRadius * layerRadius) {
-                    // 随机跳过一些边缘方块
-                    if (distSq >= (layerRadius - 1) * (layerRadius - 1) && random.nextInt(3) == 0) {
-                        continue;
-                    }
-                    world.setBlockState(topPos.x + x, layerY, topPos.z + z, cap);
+                if (shroomlightState && random.nextInt(9) == 0) {
+                    if (dx == 0 && dz == 0) continue;
+                    world.setBlockState(placePos, shroomlightState);
+                } else {
+                    world.setBlockState(placePos, capState);
                 }
             }
         }
@@ -161,67 +230,83 @@ void HugeFungusFeature::_generateCap(
 }
 
 void HugeFungusFeature::_generateVines(
-    WorldGenRegion& world, math::Random& random, const BlockPos& capPos, FungusType type)
+    WorldGenRegion& world, math::Random& random, const BlockPos& stemBase, i32 stemHeight, FungusType type)
 {
-    // 根据类型选择藤蔓方块
-    const BlockState* vine = nullptr;
-    if (type == FungusType::Crimson && VanillaBlocks::WEEPING_VINES) {
-        vine = VanillaBlocks::getState(VanillaBlocks::WEEPING_VINES);
-    } else if (type == FungusType::Warped && VanillaBlocks::TWISTING_VINES) {
-        vine = VanillaBlocks::getState(VanillaBlocks::TWISTING_VINES);
-    }
+    // MC 1.21.11: 绯红真菌 → 垂泪藤（向下），诡异真菌 → 扭曲藤（向上）
+    // 垂泪藤从菌盖底部向下生长
+    // 扭曲藤从菌岩向上生长
 
-    if (!vine) {
-        return;
-    }
+    if (type == FungusType::Crimson) {
+        // 垂泪藤：从菌盖底部向下悬挂
+        const BlockState* weepingVines = VanillaBlocks::getState(VanillaBlocks::WEEPING_VINES);
+        if (!weepingVines) return;
 
-    // 在菌盖下方生成藤蔓
-    i32 vineCount = 3 + random.nextInt(4);
-    for (i32 i = 0; i < vineCount; ++i) {
-        i32 offsetX = -2 + random.nextInt(5);
-        i32 offsetZ = -2 + random.nextInt(5);
-        i32 vineLength = 1 + random.nextInt(4);
+        // MC 1.21.11: 在菌盖底部的边缘位置随机放置垂泪藤
+        constexpr i32 CAP_RADIUS = 2;
+        for (i32 dx = -CAP_RADIUS; dx <= CAP_RADIUS; ++dx) {
+            for (i32 dz = -CAP_RADIUS; dz <= CAP_RADIUS; ++dz) {
+                // 只在边缘位置放藤蔓
+                if (std::abs(dx) < CAP_RADIUS && std::abs(dz) < CAP_RADIUS) continue;
 
-        for (i32 y = 0; y < vineLength; ++y) {
-            BlockPos vinePos(capPos.x + offsetX, capPos.y - y - 1, capPos.z + offsetZ);
-            const BlockState* existing = world.getBlockState(vinePos);
-            if (existing && existing->isAir()) {
-                world.setBlockState(vinePos, vine);
-            } else {
-                break;
+                if (random.nextInt(3) != 0) continue;
+
+                i32 vineStartY = stemBase.y + stemHeight - 1;
+                i32 vineLength = 1 + random.nextInt(4);
+
+                for (i32 vy = 0; vy < vineLength; ++vy) {
+                    BlockPos vinePos(stemBase.x + dx, vineStartY - vy, stemBase.z + dz);
+                    const BlockState* existing = world.getBlockState(vinePos);
+                    if (existing && existing->isAir()) {
+                        world.setBlockState(vinePos, weepingVines);
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+    } else {
+        // 扭曲藤：从菌岩向上生长
+        const BlockState* twistingVines = VanillaBlocks::getState(VanillaBlocks::TWISTING_VINES);
+        if (!twistingVines) return;
+
+        // MC 1.21.11: 在菌岩基座周围放置扭曲藤
+        constexpr i32 VINE_RADIUS = 3;
+        i32 vineCount = 2 + random.nextInt(3);
+        for (i32 i = 0; i < vineCount; ++i) {
+            i32 dx = random.nextInt(VINE_RADIUS * 2 + 1) - VINE_RADIUS;
+            i32 dz = random.nextInt(VINE_RADIUS * 2 + 1) - VINE_RADIUS;
+            // 避免与菌柄重叠
+            if (dx == 0 && dz == 0) continue;
+
+            i32 vineLength = 1 + random.nextInt(4);
+            for (i32 vy = 0; vy < vineLength; ++vy) {
+                BlockPos vinePos(stemBase.x + dx, stemBase.y + vy, stemBase.z + dz);
+                const BlockState* existing = world.getBlockState(vinePos);
+                if (existing && existing->isAir()) {
+                    world.setBlockState(vinePos, twistingVines);
+                } else {
+                    break;
+                }
             }
         }
     }
 }
 
-void HugeFungusFeature::_generateShroomlights(
-    WorldGenRegion& world, math::Random& random, const BlockPos& capPos, i32 radius)
+void HugeFungusFeature::_generateBase(WorldGenRegion& world, const BlockPos& pos, const HugeFungusFeatureConfig& config)
 {
-    // 使用菌光体方块，回退到萤石
-    const BlockState* shroomlight = nullptr;
-    if (VanillaBlocks::SHROOMLIGHT) {
-        shroomlight = VanillaBlocks::getState(VanillaBlocks::SHROOMLIGHT);
-    }
-    if (!shroomlight) {
-        shroomlight = VanillaBlocks::getState(VanillaBlocks::GLOWSTONE);
-    }
-
-    if (!shroomlight) {
-        return;
+    // MC 1.21.11: 将基座下方的方块替换为菌岩
+    const BlockState* nyliumState = nullptr;
+    if (config.fungusType == FungusType::Crimson && VanillaBlocks::CRIMSON_NYLIUM) {
+        nyliumState = &VanillaBlocks::CRIMSON_NYLIUM->defaultState();
+    } else if (config.fungusType == FungusType::Warped && VanillaBlocks::WARPED_NYLIUM) {
+        nyliumState = &VanillaBlocks::WARPED_NYLIUM->defaultState();
     }
 
-    // 在菌盖内部随机放置菌光体
-    i32 shroomlightCount = 1 + random.nextInt(3);
-
-    for (i32 i = 0; i < shroomlightCount; ++i) {
-        i32 offsetX = -radius + random.nextInt(2 * radius + 1);
-        i32 offsetZ = -radius + random.nextInt(2 * radius + 1);
-        i32 offsetY = random.nextInt(2);
-
-        // 只替换菌盖方块（非空气方块）
-        const BlockState* existing = world.getBlockState(capPos.x + offsetX, capPos.y + offsetY, capPos.z + offsetZ);
-        if (existing && !existing->isAir() && &existing->getBlock() != VanillaBlocks::AIR) {
-            world.setBlockState(capPos.x + offsetX, capPos.y + offsetY, capPos.z + offsetZ, shroomlight);
+    if (nyliumState) {
+        BlockPos basePos(pos.x, pos.y - 1, pos.z);
+        const BlockState* current = world.getBlockState(basePos);
+        if (current && current->is(VanillaBlocks::NETHERRACK)) {
+            world.setBlockState(basePos, nyliumState);
         }
     }
 }
@@ -252,10 +337,7 @@ void HugeFungusFeatures::initialize()
 {
     if (!s_features.empty()) return;
 
-    // 创建绯红巨型真菌
     s_features.push_back(createCrimson());
-
-    // 创建诡异巨型真菌
     s_features.push_back(createWarped());
 }
 
@@ -273,23 +355,13 @@ std::vector<std::unique_ptr<ConfiguredHugeFungusFeature>> HugeFungusFeatures::ge
 
 std::unique_ptr<ConfiguredHugeFungusFeature> HugeFungusFeatures::createCrimson()
 {
-    auto config = std::make_unique<HugeFungusFeatureConfig>(FungusType::Crimson, // 绯红类型
-        4,                                                                       // 最小高度
-        13,                                                                      // 最大高度
-        2,                                                                       // 菌盖半径
-        false                                                                    // 非种植
-    );
+    auto config = std::make_unique<HugeFungusFeatureConfig>(FungusType::Crimson, false);
     return std::make_unique<ConfiguredHugeFungusFeature>(std::move(config), "crimson_fungus");
 }
 
 std::unique_ptr<ConfiguredHugeFungusFeature> HugeFungusFeatures::createWarped()
 {
-    auto config = std::make_unique<HugeFungusFeatureConfig>(FungusType::Warped, // 诡异类型
-        4,                                                                      // 最小高度
-        13,                                                                     // 最大高度
-        2,                                                                      // 菌盖半径
-        false                                                                   // 非种植
-    );
+    auto config = std::make_unique<HugeFungusFeatureConfig>(FungusType::Warped, false);
     return std::make_unique<ConfiguredHugeFungusFeature>(std::move(config), "warped_fungus");
 }
 

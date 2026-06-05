@@ -1308,11 +1308,11 @@ void StrongholdPortalRoom::generate(
     }
 
     // 末地传送门框架 - 带随机眼睛状态
-    // 每个框架有 10% 概率没有眼睛
+    // MC: 每个框架有 10% 概率已有眼睛（nextFloat() > 0.9F）
     bool eyeStates[12];
     bool allEyesFilled = true;
     for (i32 eyeIdx = 0; eyeIdx < 12; ++eyeIdx) {
-        eyeStates[eyeIdx] = rng.nextFloat() > 0.1f; // 90% 概率有眼睛
+        eyeStates[eyeIdx] = rng.nextFloat() > 0.9f; // 10% 概率有眼睛
         if (!eyeStates[eyeIdx]) {
             allEyesFilled = false;
         }

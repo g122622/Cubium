@@ -190,10 +190,12 @@ const BlockState* SimpleBlockStateProvider::getState(math::Random& random, i32 x
 // OreFeatureConfig 实现
 // ============================================================================
 
-OreFeatureConfig::OreFeatureConfig(std::unique_ptr<RuleTest> targetRule, const BlockState* oreState, i32 veinSize)
+OreFeatureConfig::OreFeatureConfig(
+    std::unique_ptr<RuleTest> targetRule, const BlockState* oreState, i32 veinSize, f32 discardChance)
     : target(std::move(targetRule))
     , state(oreState)
     , size(veinSize)
+    , discardChanceOnAirExposure(discardChance)
 {}
 
 std::unique_ptr<RuleTest> OreFeatureConfig::naturalStone()

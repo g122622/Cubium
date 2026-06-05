@@ -123,6 +123,22 @@ std::unique_ptr<Placement> chance();
 std::unique_ptr<Placement> surface();
 
 /**
+ * @brief 创建高度图放置器
+ *
+ * 参考 MC 1.21.11: HeightmapPlacement
+ * 使用高度图类型查找 Y 坐标。
+ */
+std::unique_ptr<Placement> heightmap();
+
+/**
+ * @brief 创建稀有度过滤放置器
+ *
+ * 参考 MC 1.21.11: RarityFilter
+ * 以 1/chance 的概率通过。
+ */
+std::unique_ptr<Placement> rarityFilter();
+
+/**
  * @brief 创建噪声阈值放置器
  */
 std::unique_ptr<Placement> noise();

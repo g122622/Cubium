@@ -23,8 +23,10 @@
 
 #pragma once
 
-#include "../ConfiguredFeature.hpp"
-#include "../Feature.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/Feature.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -41,15 +43,16 @@ namespace mc::world::gen::feature::lake {
 /**
  * @brief 湖泊特征配置
  *
- * 配置湖泊或熔岩湖的参数。
+ * 参考 MC 1.21.11: LakeFeature.Configuration
+ * 配置湖泊或熔岩湖的流体和边界方块。
  */
 struct LakeFeatureConfig {
-    Block* fluidBlock;             ///< 流体方块（用于比较）
-    Block* borderBlock;            ///< 边界方块（用于比较）
+    const Block* fluidBlock;       ///< 流体方块（用于类型比较）
+    const Block* borderBlock;      ///< 边界方块（用于类型比较，MC 1.21 中可为 AIR 表示无边界）
     const BlockState* fluidState;  ///< 流体方块状态
     const BlockState* borderState; ///< 边界方块状态
 
-    LakeFeatureConfig(Block* fluid = nullptr, Block* border = nullptr)
+    LakeFeatureConfig(const Block* fluid = nullptr, const Block* border = nullptr)
         : fluidBlock(fluid)
         , borderBlock(border)
         , fluidState(fluid ? &fluid->defaultState() : nullptr)
@@ -65,7 +68,11 @@ struct LakeFeatureConfig {
 /**
  * @brief 湖泊特征
  *
- * 生成湖泊或熔岩湖。
+ * 使用 MC 1.21.11 的 16x8x16 布尔数组雕刻算法生成湖泊。
+ * 算法通过生成 4~7 个随机椭球体来创建不规则形状，
+ * 然后验证边界并放置流体和边界方块。
+ *
+ * 参考 MC 1.21.11: LakeFeature.place()
  */
 class LakeFeature {
 public:
@@ -77,14 +84,14 @@ public:
 
     /**
      * @brief 生成湖泊
-     * @param world 世界写入器
+     * @param world 世界区域
      * @param rng 随机数生成器
      * @param x 中心 X 坐标
      * @param y 中心 Y 坐标
      * @param z 中心 Z 坐标
      * @return 是否成功生成
      */
-    bool place(IWorldWriter& world, math::Random& rng, i32 x, i32 y, i32 z);
+    bool place(WorldGenRegion& world, math::Random& rng, i32 x, i32 y, i32 z);
 
     /**
      * @brief 创建水湖配置
@@ -98,9 +105,12 @@ public:
 
 private:
     /**
-     * @brief 检查位置是否适合生成湖泊
+     * @brief 检查方块是否可被湖泊替换
+     *
+     * 参考 MC 1.21.11: LakeFeature.canReplaceBlock()
+     * 使用 FEATURES_CANNOT_REPLACE 标签（如存在）或回退到简单检查。
      */
-    [[nodiscard]] bool _canPlaceAt(IWorldWriter& world, i32 x, i32 y, i32 z) const;
+    [[nodiscard]] static bool canReplaceBlock(const BlockState& state);
 
     LakeFeatureConfig m_config;
 };

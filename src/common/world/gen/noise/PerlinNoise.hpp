@@ -109,26 +109,11 @@ public:
      */
     [[nodiscard]] const std::vector<f64>& amplitudes() const { return m_amplitudes; }
 
-private:
-    /**
-     * @brief 坐标环绕，防止大坐标精度丢失
-     * MC 使用 2^25 = 33554432.0 作为环绕周期
-     */
-    [[nodiscard]] static f64 wrap(f64 value);
-
-    /**
-     * @brief 根据最大单倍频输出值计算总最大值
-     */
-    [[nodiscard]] f64 edgeValue(f64 maxInputValue) const;
-
-    /**
-     * @brief 初始化倍频层（两个构造函数共用）
-     * @param factory 位置随机工厂
-     */
-    void initLayers(const math::PositionalRandomFactory& factory);
-
     /**
      * @brief 简化版 Perlin 噪声核心（用于每个倍频层）
+     *
+     * 参考 MC 1.21.11: PerlinNoise.PerlinNoiseLayer
+     * 公开以支持 getOctaveNoise() 返回值和密度函数导数计算。
      */
     class PerlinLayer {
     public:
@@ -149,6 +134,42 @@ private:
         f64 m_yOffset = 0.0;
         f64 m_zOffset = 0.0;
     };
+
+    /**
+     * @brief 获取指定倍频层的噪声生成器
+     *
+     * 参考 MC 1.21.11: PerlinNoise.getOctaveNoise(int)
+     * 用于外部访问特定倍频层，例如密度函数导数计算。
+     *
+     * @param octave 倍频索引（相对于 firstOctave）
+     * @return 倍频层指针，如果振幅为零或索引越界则返回 nullptr
+     */
+    [[nodiscard]] const PerlinLayer* getOctaveNoise(i32 octave) const
+    {
+        const i32 index = octave - m_firstOctave;
+        if (index < 0 || index >= static_cast<i32>(m_layers.size())) {
+            return nullptr;
+        }
+        return m_layers[static_cast<size_t>(index)].get();
+    }
+
+private:
+    /**
+     * @brief 坐标环绕，防止大坐标精度丢失
+     * MC 使用 2^25 = 33554432.0 作为环绕周期
+     */
+    [[nodiscard]] static f64 wrap(f64 value);
+
+    /**
+     * @brief 根据最大单倍频输出值计算总最大值
+     */
+    [[nodiscard]] f64 edgeValue(f64 maxInputValue) const;
+
+    /**
+     * @brief 初始化倍频层（两个构造函数共用）
+     * @param factory 位置随机工厂
+     */
+    void initLayers(const math::PositionalRandomFactory& factory);
 
     i32 m_firstOctave;
     std::vector<f64> m_amplitudes;

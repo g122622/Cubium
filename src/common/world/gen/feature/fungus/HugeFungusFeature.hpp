@@ -40,31 +40,20 @@ enum class FungusType : u8 {
 
 /**
  * @brief 巨型真菌特征配置
+ *
+ * 参考 MC 1.21.11: HugeFungusConfiguration
  */
 struct HugeFungusFeatureConfig : public IFeatureConfig {
     /// 真菌类型
     FungusType fungusType = FungusType::Crimson;
 
-    /// 最小高度
-    i32 minHeight = 4;
-
-    /// 最大高度
-    i32 maxHeight = 13;
-
-    /// 菌盖半径
-    i32 capRadius = 2;
-
-    /// 是否种植在菌岩上
+    /// 是否种植在菌岩上（种植的不需要空间检查）
     bool planted = false;
 
     HugeFungusFeatureConfig() = default;
 
-    explicit HugeFungusFeatureConfig(
-        FungusType type, i32 minH = 4, i32 maxH = 13, i32 radius = 2, bool isPlanted = false)
+    explicit HugeFungusFeatureConfig(FungusType type, bool isPlanted = false)
         : fungusType(type)
-        , minHeight(minH)
-        , maxHeight(maxH)
-        , capRadius(radius)
         , planted(isPlanted)
     {}
 };
@@ -75,14 +64,16 @@ struct HugeFungusFeatureConfig : public IFeatureConfig {
  * 在下界生成巨型真菌（绯红和诡异）。
  *
  * 绯红真菌：
- * - 绯红菌柄（深红色）
- * - 绯红菌盖（红色菌块）
- * - 生成垂泪藤
+ * - 绯红菌柄 + 下界疣块菌盖 + 垂泪藤 + 菌光体
+ * - 1/12 概率双倍高度
+ * - 6% 概率粗壮菌柄（3x3）
  *
  * 诡异真菌：
- * - 诡异菌柄（青色）
- * - 诡异菌盖（青色菌块）
- * - 生成扭曲藤
+ * - 诡异菌柄 + 诡异疣块菌盖 + 扭曲藤 + 菌光体
+ * - 1/12 概率双倍高度
+ * - 6% 概率粗壮菌柄（3x3）
+ *
+ * 参考 MC 1.21.11: HugeFungusFeature
  */
 class HugeFungusFeature {
 public:
@@ -100,27 +91,47 @@ private:
     /**
      * @brief 检查巨型真菌是否可以放置在指定位置
      */
-    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos, FungusType type) const;
+    [[nodiscard]] bool _canPlaceAt(
+        WorldGenRegion& world, const BlockPos& pos, const HugeFungusFeatureConfig& config) const;
+
+    /**
+     * @brief 获取菌柄方块状态
+     */
+    [[nodiscard]] const BlockState* _getStemState(FungusType type) const;
+
+    /**
+     * @brief 获取菌盖方块状态
+     */
+    [[nodiscard]] const BlockState* _getCapState(FungusType type) const;
 
     /**
      * @brief 生成菌柄
      */
-    void _generateStem(WorldGenRegion& world, math::Random& random, const BlockPos& pos, i32 height, FungusType type);
+    void _generateStem(
+        WorldGenRegion& world, const BlockPos& pos, i32 height, const BlockState* stemState, bool thickStem);
 
     /**
      * @brief 生成菌盖
      */
-    void _generateCap(WorldGenRegion& world, math::Random& random, const BlockPos& topPos, i32 radius, FungusType type);
+    void _generateCap(WorldGenRegion& world,
+        math::Random& random,
+        const BlockPos& topPos,
+        i32 capHeight,
+        const BlockState* capState,
+        const BlockState* shroomlightState,
+        const BlockState* airState,
+        bool thickStem);
 
     /**
      * @brief 生成藤蔓（垂泪藤或扭曲藤）
      */
-    void _generateVines(WorldGenRegion& world, math::Random& random, const BlockPos& capPos, FungusType type);
+    void _generateVines(
+        WorldGenRegion& world, math::Random& random, const BlockPos& stemBase, i32 stemHeight, FungusType type);
 
     /**
-     * @brief 生成菌光体（发光装饰）
+     * @brief 生成菌岩基座
      */
-    void _generateShroomlights(WorldGenRegion& world, math::Random& random, const BlockPos& capPos, i32 radius);
+    void _generateBase(WorldGenRegion& world, const BlockPos& pos, const HugeFungusFeatureConfig& config);
 };
 
 /**
@@ -148,23 +159,13 @@ private:
 
 /**
  * @brief 预定义巨型真菌特征
- *
- * 注意：调用 getAllFeaturesAndClear() 后，所有权转移给调用者。
  */
 struct HugeFungusFeatures {
-    /// 初始化所有巨型真菌特征
     static void initialize();
-
-    /// 获取所有巨型真菌特征
     [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredHugeFungusFeature>>& getAllFeatures();
-
-    /// 获取所有巨型真菌特征并清空（转移所有权）
     [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredHugeFungusFeature>> getAllFeaturesAndClear();
 
-    /// 创建绯红巨型真菌
     static std::unique_ptr<ConfiguredHugeFungusFeature> createCrimson();
-
-    /// 创建诡异巨型真菌
     static std::unique_ptr<ConfiguredHugeFungusFeature> createWarped();
 
 private:

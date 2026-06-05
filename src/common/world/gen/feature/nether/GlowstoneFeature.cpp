@@ -22,17 +22,13 @@
  */
 
 #include "GlowstoneFeature.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/WorldConstants.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 
 namespace mc {
-
-// TODO: NETHER_HEIGHT 常量在 NetherChunkGenerator.cpp 和 NetherCaveCarver.cpp 中也有定义，
-// 应该统一提取到公共头文件中（如 WorldConstants.hpp）
-constexpr i32 NETHER_HEIGHT = 128;
 
 // ============================================================================
 // GlowstoneFeature 实现
@@ -41,104 +37,75 @@ constexpr i32 NETHER_HEIGHT = 128;
 bool GlowstoneFeature::place(
     WorldGenRegion& world, math::Random& random, const BlockPos& pos, const GlowstoneFeatureConfig& config)
 {
-    // 检查起始位置是否有效（应该在下界岩或基岩下方）
+    (void)config;
+
+    // MC 1.21.11: 检查起始位置是否为空气，上方是否为下界岩/玄武岩/黑石
     const BlockState* state = world.getBlockState(pos);
-    if (!state || (!state->is(VanillaBlocks::NETHERRACK) && !state->is(VanillaBlocks::BEDROCK))) {
+    if (!state || !state->isAir()) {
         return false;
     }
 
-    // 检查下方是否有空间
-    const BlockState* belowState = world.getBlockState(pos.x, pos.y - 1, pos.z);
-    if (belowState && !belowState->isAir()) {
+    const BlockState* aboveState = world.getBlockState(pos.x, pos.y + 1, pos.z);
+    if (!aboveState ||
+        (!aboveState->is(VanillaBlocks::NETHERRACK) && !aboveState->is(VanillaBlocks::BASALT) &&
+            !aboveState->is(VanillaBlocks::BLACKSTONE))) {
         return false;
     }
 
-    // 获取萤石方块
+    // 放置初始萤石块
     const BlockState* glowstone = VanillaBlocks::getState(VanillaBlocks::GLOWSTONE);
     if (!glowstone) {
         return false;
     }
+    world.setBlockState(pos, glowstone);
 
-    // 在起始位置下方放置萤石块
-    BlockPos glowPos(pos.x, pos.y - 1, pos.z);
-    world.setBlockState(glowPos, glowstone);
+    // MC 1.21.11 扩散算法：迭代 1500 次尝试扩展
+    // 每次随机偏移位置，如果该位置是空气且恰好只有 1 个相邻萤石，则放置
+    constexpr i32 ITERATIONS = 1500;
+    constexpr i32 HORIZONTAL_SPREAD = 8;
+    constexpr i32 VERTICAL_DROP = 12;
 
-    // 生成多个分支
-    for (i32 i = 0; i < config.branchCount; ++i) {
-        // 随机方向
-        i32 dx = random.nextInt(3) - 1; // -1, 0, 1
-        i32 dy = random.nextInt(2) - 1; // -1, 0 (向下或水平)
-        i32 dz = random.nextInt(3) - 1; // -1, 0, 1
+    for (i32 i = 0; i < ITERATIONS; ++i) {
+        // 随机偏移：X/Z 方向 ±8，Y 方向向下 0~11
+        i32 dx = random.nextInt(HORIZONTAL_SPREAD) - random.nextInt(HORIZONTAL_SPREAD);
+        i32 dy = -random.nextInt(VERTICAL_DROP);
+        i32 dz = random.nextInt(HORIZONTAL_SPREAD) - random.nextInt(HORIZONTAL_SPREAD);
 
-        // 跳过零方向
-        if (dx == 0 && dy == 0 && dz == 0) {
-            dx = 1;
+        BlockPos candidate(pos.x + dx, pos.y + dy, pos.z + dz);
+
+        // 只在空气中放置
+        const BlockState* candidateState = world.getBlockState(candidate);
+        if (!candidateState || !candidateState->isAir()) {
+            continue;
         }
 
-        i32 branchLength = 1 + random.nextInt(config.maxBranchLength);
-        _growBranch(world, random, glowPos, dx, dy, dz, branchLength);
-    }
+        // 统计相邻萤石块数量
+        i32 adjacentGlowstone = 0;
+        constexpr Direction directions[] = {
+            Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::West, Direction::East};
 
-    return true;
-}
+        for (Direction dir : directions) {
+            BlockPos neighbor(candidate.x + Directions::getStepX(dir),
+                candidate.y + Directions::getStepY(dir),
+                candidate.z + Directions::getStepZ(dir));
 
-void GlowstoneFeature::_growBranch(
-    WorldGenRegion& world, math::Random& random, const BlockPos& start, i32 dx, i32 dy, i32 dz, i32 length)
-{
-    const BlockState* glowstone = VanillaBlocks::getState(VanillaBlocks::GLOWSTONE);
-    if (!glowstone) {
-        return;
-    }
-
-    BlockPos current = start;
-
-    for (i32 i = 0; i < length; ++i) {
-        BlockPos next(current.x + dx, current.y + dy, current.z + dz);
-
-        // 边界检查：使用常量而非硬编码
-        if (next.y < world::MIN_BUILD_HEIGHT + 1 || next.y >= NETHER_HEIGHT) {
-            break;
-        }
-
-        // 检查是否可以放置
-        if (!_canPlaceAt(world, next)) {
-            break;
-        }
-
-        // 放置萤石
-        world.setBlockState(next, glowstone);
-
-        // 随机添加侧向分支
-        if (random.nextInt(4) == 0) {
-            i32 sideDx = random.nextInt(3) - 1;
-            i32 sideDz = random.nextInt(3) - 1;
-            if (sideDx != 0 || sideDz != 0) {
-                BlockPos sidePos(next.x + sideDx, next.y, next.z + sideDz);
-                if (_canPlaceAt(world, sidePos)) {
-                    world.setBlockState(sidePos, glowstone);
+            const BlockState* neighborState = world.getBlockState(neighbor);
+            if (neighborState && neighborState->is(VanillaBlocks::GLOWSTONE)) {
+                ++adjacentGlowstone;
+                // MC 提前退出：超过 1 个相邻萤石则跳过
+                if (adjacentGlowstone > 1) {
+                    break;
                 }
             }
         }
 
-        current = next;
-
-        // 随机改变方向
-        if (random.nextInt(3) == 0) {
-            dx = random.nextInt(3) - 1;
-            dy = random.nextInt(2) - 1;
-            dz = random.nextInt(3) - 1;
-            if (dx == 0 && dy == 0 && dz == 0) {
-                dy = -1; // 默认向下
-            }
+        // 只有恰好 1 个相邻萤石时才放置
+        if (adjacentGlowstone == 1) {
+            world.setBlockState(candidate, glowstone);
         }
     }
-}
 
-bool GlowstoneFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
-{
-    const BlockState* state = world.getBlockState(pos);
-    // 可以在空气或液体中放置
-    return !state || state->isAir() || state->isLiquid();
+    return true;
 }
 
 // ============================================================================
@@ -170,7 +137,6 @@ void GlowstoneFeatures::initialize()
     if (!s_features.empty()) return;
 
     s_features.push_back(createNormal());
-    s_features.push_back(createLarge());
 }
 
 const std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>>& GlowstoneFeatures::getAllFeatures()
@@ -187,20 +153,8 @@ std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>> GlowstoneFeatures::getA
 
 std::unique_ptr<ConfiguredGlowstoneFeature> GlowstoneFeatures::createNormal()
 {
-    auto config = std::make_unique<GlowstoneFeatureConfig>(8, // maxDistance
-        4,                                                    // branchCount
-        6                                                     // maxBranchLength
-    );
+    auto config = std::make_unique<GlowstoneFeatureConfig>();
     return std::make_unique<ConfiguredGlowstoneFeature>(std::move(config), "glowstone");
-}
-
-std::unique_ptr<ConfiguredGlowstoneFeature> GlowstoneFeatures::createLarge()
-{
-    auto config = std::make_unique<GlowstoneFeatureConfig>(12, // maxDistance
-        6,                                                     // branchCount
-        8                                                      // maxBranchLength
-    );
-    return std::make_unique<ConfiguredGlowstoneFeature>(std::move(config), "glowstone_large");
 }
 
 } // namespace mc

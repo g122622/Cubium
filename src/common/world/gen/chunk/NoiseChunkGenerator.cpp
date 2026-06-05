@@ -30,7 +30,6 @@
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../aquifer/Aquifer.hpp"
 #include "../carver/UnderwaterCarver.hpp"
 #include "../density/NoiseRouterData.hpp"
@@ -43,6 +42,7 @@
 #include "../structure/StructureManager.hpp"
 #include "../surface/SurfaceBuilders.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cmath>
 #include <mutex>
@@ -789,7 +789,8 @@ f32 NoiseChunkGenerator::_calculateNoiseDensity(
         if (m_mainDensityNoise) {
             const ImprovedNoiseGenerator* gen = m_mainDensityNoise->getOctave(octave);
             if (gen) {
-                density += gen->noise(px, py, pz, yFreq, static_cast<f32>(noiseY) * yFreq) / octaveScale;
+                density +=
+                    static_cast<f32>(gen->noise(px, py, pz, yFreq, static_cast<f32>(noiseY) * yFreq)) / octaveScale;
             }
         }
 
@@ -797,7 +798,8 @@ f32 NoiseChunkGenerator::_calculateNoiseDensity(
         if (m_secondaryDensityNoise) {
             const ImprovedNoiseGenerator* gen = m_secondaryDensityNoise->getOctave(octave);
             if (gen) {
-                secondaryDensity += gen->noise(px, py, pz, yFreq, static_cast<f32>(noiseY) * yFreq) / octaveScale;
+                secondaryDensity +=
+                    static_cast<f32>(gen->noise(px, py, pz, yFreq, static_cast<f32>(noiseY) * yFreq)) / octaveScale;
             }
         }
 
@@ -812,8 +814,8 @@ f32 NoiseChunkGenerator::_calculateNoiseDensity(
                 const f32 wpz =
                     OctavesNoiseGenerator::maintainPrecision(static_cast<f32>(noiseZ) * xzFactor * octaveScale);
 
-                weight +=
-                    gen->noise(wpx, wpy, wpz, yFactor * octaveScale, static_cast<f32>(noiseY) * yFactor * octaveScale) /
+                weight += static_cast<f32>(gen->noise(
+                              wpx, wpy, wpz, yFactor * octaveScale, static_cast<f32>(noiseY) * yFactor * octaveScale)) /
                     octaveScale;
             }
         }

@@ -286,6 +286,7 @@ struct IFeatureConfig {
  * @brief 矿石特征配置
  *
  * 定义矿石生成的参数。
+ * 参考 MC 1.21.11: OreConfiguration
  */
 struct OreFeatureConfig : public IFeatureConfig {
     /// 目标方块规则（哪些方块可被替换为矿石）
@@ -298,12 +299,26 @@ struct OreFeatureConfig : public IFeatureConfig {
     i32 size;
 
     /**
+     * @brief 空气暴露丢弃概率
+     *
+     * 当矿石方块相邻有空气时，以此概率跳过放置。
+     * 0.0 = 不丢弃（默认），1.0 = 总是丢弃暴露在空气中的矿石。
+     * 参考 MC 1.21.11: OreConfiguration.discardChanceOnAirExposure
+     * 例如：铜矿使用 0.0，深板铜矿使用 0.0，煤矿使用 0.0
+     *      钻石矿使用 0.0，绿宝石矿使用 0.0
+     *      花岗岩/闪长岩/安山岩矿使用 0.2
+     */
+    f32 discardChanceOnAirExposure = 0.0f;
+
+    /**
      * @brief 构造矿石配置
      * @param targetRule 目标方块规则
      * @param oreState 矿石方块状态
      * @param veinSize 矿脉大小
+     * @param discardChance 空气暴露丢弃概率（默认 0.0）
      */
-    OreFeatureConfig(std::unique_ptr<RuleTest> targetRule, const BlockState* oreState, i32 veinSize);
+    OreFeatureConfig(
+        std::unique_ptr<RuleTest> targetRule, const BlockState* oreState, i32 veinSize, f32 discardChance = 0.0f);
 
     /**
      * @brief 创建自然石头目标配置（用于主世界矿石）

@@ -25,9 +25,9 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../WorldConstants.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../chunk/ChunkPrimer.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <array>
 #include <cmath>
 
@@ -441,7 +441,7 @@ void CoralTreeFeature::_generateBranch(WorldGenRegion& world,
     BlockPos currentPos = pos;
     for (i32 i = 0; i < length; ++i) {
         currentPos = currentPos.offset(direction);
-        if (i > 0 && random.nextFloat() < 0.45f) {
+        if (i > 0 && random.nextFloat() < 0.25f) {
             currentPos = currentPos.offset(Direction::Up);
         }
 
@@ -458,26 +458,38 @@ void CoralTreeFeature::_generateBranch(WorldGenRegion& world,
 bool CoralMushroomFeature::place(
     WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config)
 {
-    const i32 stemHeight = random.nextInt(2) + 1;
+    // MC 1.21.11: 独立的 X/Y/Z 维度（3~5），而非使用半径
+    const i32 dimX = random.nextInt(3) + 3;       // 3~5
+    const i32 dimY = random.nextInt(3) + 3;       // 3~5
+    const i32 dimZ = random.nextInt(3) + 3;       // 3~5
+    const i32 downOffset = random.nextInt(3) + 1; // 1~3
+
     bool placedAny = false;
 
-    for (i32 y = 0; y < stemHeight; ++y) {
-        const BlockPos stemPos(pos.x, pos.y + y, pos.z);
-        if (!placeCoralWithDecorations(world, random, stemPos, config.color, config.isDead, config.includeWallFan)) {
-            break;
+    // MC 1.21.11 的循环：i1 对应 Y 方向范围 [0, dimX]，
+    // j1 对应 X 方向范围 [0, dimY]，k1 对应 Z 方向范围 [0, dimZ]
+    // 注意变量名在 MC 源码中是交叉使用的
+    for (i32 i1 = 0; i1 <= dimX; ++i1) {
+        for (i32 j1 = 0; j1 <= dimY; ++j1) {
+            for (i32 k1 = 0; k1 <= dimZ; ++k1) {
+                // MC 1.21.11 边界条件：创建空心蘑菇盖形状
+                const bool cond1 = (i1 != 0 && i1 != dimX) || (j1 != 0 && j1 != dimY);
+                const bool cond2 = (k1 != 0 && k1 != dimZ) || (j1 != 0 && j1 != dimY);
+                const bool cond3 = (i1 != 0 && i1 != dimX) || (k1 != 0 && k1 != dimZ);
+                const bool cond4 = (i1 == 0 || i1 == dimX || j1 == 0 || j1 == dimY || k1 == 0 || k1 == dimZ);
+
+                if (cond1 && cond2 && cond3 && cond4 && !(random.nextFloat() < 0.1f)) {
+                    BlockPos capPos(pos.x + i1, pos.y + j1 - downOffset, pos.z + k1);
+                    if (placeCoralWithDecorations(
+                            world, random, capPos, config.color, config.isDead, config.includeWallFan)) {
+                        placedAny = true;
+                    }
+                }
+            }
         }
-        placedAny = true;
     }
 
-    if (!placedAny) {
-        return false;
-    }
-
-    const BlockPos capPos(pos.x, pos.y + stemHeight, pos.z);
-    const i32 radius = random.nextInt(2) + 2;
-    _generateCap(world, random, capPos, config.color, config.isDead, radius, config.includeWallFan);
-
-    return true;
+    return placedAny;
 }
 
 void CoralMushroomFeature::_generateCap(WorldGenRegion& world,
@@ -488,33 +500,14 @@ void CoralMushroomFeature::_generateCap(WorldGenRegion& world,
     i32 radius,
     bool includeDecorations)
 {
-    // 生成蘑菇形状的珊瑚盖
-    const i32 i = radius + 1; // X范围
-    const i32 j = radius;     // Y范围
-    const i32 k = radius + 1; // Z范围
-    const i32 l = 0;          // 向下偏移
-
-    for (i32 i1 = 0; i1 <= i; ++i1) {
-        for (i32 j1 = 0; j1 <= j; ++j1) {
-            for (i32 k1 = 0; k1 <= k; ++k1) {
-                BlockPos capPos(pos.x + i1, pos.y + j1 - l, pos.z + k1);
-
-                // 复杂边界条件生成蘑菇形状
-                const bool cond1 = (i1 != 0 && i1 != i) || (j1 != 0 && j1 != j);
-                const bool cond2 = (k1 != 0 && k1 != k) || (j1 != 0 && j1 != j);
-                const bool cond3 = (i1 != 0 && i1 != i) || (k1 != 0 && k1 != k);
-                const bool cond4 = (i1 == 0 || i1 == i || j1 == 0 || j1 == j || k1 == 0 || k1 == k);
-
-                if (cond1 && cond2 && cond3 && cond4) {
-                    if (random.nextFloat() < 0.1f) {
-                        continue; // 10%概率跳过
-                    }
-                    [[maybe_unused]] const bool placed =
-                        placeCoralWithDecorations(world, random, capPos, color, isDead, includeDecorations);
-                }
-            }
-        }
-    }
+    (void)world;
+    (void)random;
+    (void)pos;
+    (void)color;
+    (void)isDead;
+    (void)radius;
+    (void)includeDecorations;
+    // 已被 place() 中的 MC 1.21.11 算法替代，此方法不再使用
 }
 
 // ============================================================================

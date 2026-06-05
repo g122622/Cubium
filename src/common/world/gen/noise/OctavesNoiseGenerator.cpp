@@ -82,29 +82,33 @@ f32 OctavesNoiseGenerator::noise(f32 x, f32 y, f32 z) const
 
 f32 OctavesNoiseGenerator::getValue(f32 x, f32 y, f32 z, f32 yScale, f32 yBound, bool fixY) const
 {
-    f32 result = 0.0f;
-    f32 freq = m_amplitudeLow;
-    f32 amp = m_amplitudeHigh;
+    f64 result = 0.0;
+    f64 freq = static_cast<f64>(m_amplitudeLow);
+    f64 amp = static_cast<f64>(m_amplitudeHigh);
 
     for (size_t i = 0; i < m_octaves.size(); ++i) {
         const auto& octave = m_octaves[i];
         if (octave) {
             // 保持精度
-            const f32 px = maintainPrecision(x * freq);
-            const f32 py = maintainPrecision(y * freq);
-            const f32 pz = maintainPrecision(z * freq);
+            const f64 px = maintainPrecision(static_cast<f64>(x) * freq);
+            const f64 py = maintainPrecision(static_cast<f64>(y) * freq);
+            const f64 pz = maintainPrecision(static_cast<f64>(z) * freq);
 
-            // 采样噪声
-            const f32 sample = octave->noise(px, fixY ? -octave->yOffset() : py, pz, yScale * freq, yBound * freq);
+            // 采样噪声（使用 f64 精度版本）
+            const f64 sample = octave->noise(px,
+                fixY ? -octave->yOffset() : py,
+                pz,
+                static_cast<f64>(yScale) * freq,
+                static_cast<f64>(yBound) * freq);
 
             result += amp * sample;
         }
 
-        freq *= 2.0f;
-        amp /= 2.0f;
+        freq *= 2.0;
+        amp /= 2.0;
     }
 
-    return result;
+    return static_cast<f32>(result);
 }
 
 f32 OctavesNoiseGenerator::noiseAt(f32 x, f32 y, f32 z, f32 scale) const

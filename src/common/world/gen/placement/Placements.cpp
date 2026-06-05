@@ -26,33 +26,33 @@
 #include "common/core/Constants.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/noise/OctavesNoiseGenerator.hpp"
+#include "common/world/gen/noise/PerlinNoise.hpp"
 #include <cmath>
 #include <memory>
 
 namespace mc {
 
 // ============================================================================
-// 噪声辅助函数
+// 噪声辅助
 // ============================================================================
 
 namespace {
 
 /**
- * @brief 获取或创建区块噪声缓存
+ * @brief 全局 BIOME_INFO_NOISE 生成器
  *
- * 使用简单的哈希来为每个区块创建一致的噪声值
+ * 参考 MC 1.21.11: Biome.BIOME_INFO_NOISE
+ * 用于 CountNoisePlacement 和 NoisePlacement。
+ * 使用种子 12345 和 firstOctave=-7, amplitudes={1,1,1}
  */
-f32 getChunkNoise(i64 seed, i32 chunkX, i32 chunkZ, f32 scale)
+world::gen::noise::PerlinNoise& getInfoNoise()
 {
-    // TODO: 使用实际的噪声生成器替代简单的哈希实现
-    // 使用确定性哈希来模拟噪声
-    u64 hash = static_cast<u64>(chunkX) * 341873128712ULL ^ static_cast<u64>(chunkZ) * 132897987541ULL;
-    hash ^= static_cast<u64>(seed);
-
-    // 将哈希转换为 [-1, 1] 范围的浮点数
-    f32 value = static_cast<f32>((hash & 0x7FFFFFFF) % 10000) / 5000.0f - 1.0f;
-    return value * scale;
+    static std::unique_ptr<world::gen::noise::PerlinNoise> s_infoNoise;
+    if (!s_infoNoise) {
+        std::vector<f64> amplitudes = {1.0, 1.0, 1.0};
+        s_infoNoise = std::make_unique<world::gen::noise::PerlinNoise>(12345ULL, -7, std::move(amplitudes));
+    }
+    return *s_infoNoise;
 }
 
 } // anonymous namespace
@@ -69,18 +69,21 @@ std::vector<BlockPos> NoisePlacement::getPositions(
         return {basePos};
     }
 
-    // 计算噪声值
-    i32 chunkX = basePos.x >> world::CHUNK_SHIFT;
-    i32 chunkZ = basePos.z >> world::CHUNK_SHIFT;
+    (void)region;
+    (void)random;
 
-    f32 noiseValue = getChunkNoise(
-        static_cast<i64>(random.nextInt()) & 0xFFFFFFFFLL, chunkX, chunkZ, static_cast<f32>(noiseConfig->noiseFactor));
+    // MC 1.21.11: 使用 BIOME_INFO_NOISE 采样噪声值
+    // noiseAt(x / noiseFactor, z / noiseFactor, false)
+    const f64 noiseValue =
+        getInfoNoise().getValue(static_cast<f64>(basePos.x) / static_cast<f64>(noiseConfig->noiseFactor),
+            0.0,
+            static_cast<f64>(basePos.z) / static_cast<f64>(noiseConfig->noiseFactor));
 
     // 应用偏移
-    noiseValue += static_cast<f32>(noiseConfig->noiseOffset);
+    const f64 adjustedValue = noiseValue + static_cast<f64>(noiseConfig->noiseOffset);
 
-    // 比较阈值
-    if (noiseValue < static_cast<f32>(noiseConfig->noiseLevel)) {
+    // 比较阈值：低于阈值时通过
+    if (adjustedValue < static_cast<f64>(noiseConfig->noiseLevel)) {
         return {basePos};
     }
 
@@ -101,17 +104,16 @@ std::vector<BlockPos> CountNoisePlacement::getPositions(
 
     (void)region;
 
-    // 使用 Biome.INFO_NOISE.noiseAt(x / 200.0, z / 200.0, false)
-    // 这里使用与 SwampSurfaceBuilder 相同的全局噪声生成器
-    static PerlinNoiseGenerator s_infoNoise(12345ULL, 0, 0);
-    const f64 noiseValue = static_cast<f64>(
-        s_infoNoise.noiseAt(static_cast<f32>(basePos.x) / 200.0f, static_cast<f32>(basePos.z) / 200.0f, false));
+    // MC 1.21.11: 使用 BIOME_INFO_NOISE 采样噪声值
+    // noiseAt(x / 200.0, z / 200.0, false)
+    const f64 noiseValue =
+        getInfoNoise().getValue(static_cast<f64>(basePos.x) / 200.0, 0.0, static_cast<f64>(basePos.z) / 200.0);
 
     // 根据噪声阈值决定数量
     const i32 count = (noiseValue < countConfig->noiseLevel) ? countConfig->belowCount : countConfig->aboveCount;
 
     std::vector<BlockPos> positions;
-    positions.reserve(count);
+    positions.reserve(static_cast<size_t>(count));
 
     for (i32 i = 0; i < count; ++i) {
         i32 dx = random.nextInt(world::CHUNK_WIDTH);
@@ -156,13 +158,21 @@ std::vector<BlockPos> TopSolidPlacement::getPositions(
     (void)config;
     (void)random;
 
-    // 找到最高固体方块
-    i32 topY = world::MAX_BUILD_HEIGHT - 1;
-    for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
-        const BlockState* state = region.getBlockState(basePos.x, y, basePos.z);
-        if (state && state->isSolid()) {
-            topY = y;
-            break;
+    // MC 1.21.11: 使用 MOTION_BLOCKING_NO_LEAVES 高度图
+    i32 topY = region.getTopBlockY(basePos.x, basePos.z, HeightmapType::MotionBlockingNoLeaves);
+    if (topY <= world::MIN_BUILD_HEIGHT) {
+        // 回退到 MOTION_BLOCKING
+        topY = region.getTopBlockY(basePos.x, basePos.z, HeightmapType::MotionBlocking);
+    }
+
+    if (topY <= world::MIN_BUILD_HEIGHT) {
+        // 最终回退：手动搜索
+        for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
+            const BlockState* state = region.getBlockState(basePos.x, y, basePos.z);
+            if (state && state->isSolid()) {
+                topY = y;
+                break;
+            }
         }
     }
 

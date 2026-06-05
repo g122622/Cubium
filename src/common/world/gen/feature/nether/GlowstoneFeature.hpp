@@ -33,30 +33,25 @@ namespace mc {
 
 /**
  * @brief 萤石簇特征配置
+ *
+ * 参考 MC 1.21.11: GlowstoneConfiguration
+ * MC 1.21 的 GlowstoneFeature 实际上不使用配置——它使用固定的扩散算法。
+ * 此配置保留以兼容 ConfiguredFeatureBase 流水线。
  */
 struct GlowstoneFeatureConfig : public IFeatureConfig {
-    /// 萤石簇的最大延伸距离
-    i32 maxDistance = 8;
-
-    /// 分支数量
-    i32 branchCount = 4;
-
-    /// 每个分支的最大长度
-    i32 maxBranchLength = 6;
-
     GlowstoneFeatureConfig() = default;
-
-    explicit GlowstoneFeatureConfig(i32 distance, i32 branches, i32 branchLen)
-        : maxDistance(distance)
-        , branchCount(branches)
-        , maxBranchLength(branchLen)
-    {}
 };
 
 /**
  * @brief 萤石簇特征
  *
- * 在下界天花板生成萤石簇。
+ * 在下界天花板生成萤石簇，使用扩散算法。
+ * 算法从天花板的基岩/下界岩/玄武岩/黑石处开始放置一个萤石块，
+ * 然后迭代 1500 次尝试扩展：每次随机选一个偏移位置，
+ * 如果该位置是空气且恰好只有 1 个相邻萤石块，则放置萤石。
+ * 这产生下垂的钟乳石状结构。
+ *
+ * 参考 MC 1.21.11: GlowstoneFeature.place()
  */
 class GlowstoneFeature {
 public:
@@ -69,18 +64,6 @@ public:
      * @return 是否成功放置
      */
     bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const GlowstoneFeatureConfig& config);
-
-private:
-    /**
-     * @brief 从起点向指定方向延伸萤石
-     */
-    void _growBranch(
-        WorldGenRegion& world, math::Random& random, const BlockPos& start, i32 dx, i32 dy, i32 dz, i32 length);
-
-    /**
-     * @brief 检查位置是否可以放置萤石
-     */
-    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
 };
 
 /**
@@ -114,11 +97,7 @@ struct GlowstoneFeatures {
     [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>>& getAllFeatures();
     [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>> getAllFeaturesAndClear();
 
-    /// 创建普通萤石簇
     static std::unique_ptr<ConfiguredGlowstoneFeature> createNormal();
-
-    /// 创建大型萤石簇
-    static std::unique_ptr<ConfiguredGlowstoneFeature> createLarge();
 
 private:
     static std::vector<std::unique_ptr<ConfiguredGlowstoneFeature>> s_features;

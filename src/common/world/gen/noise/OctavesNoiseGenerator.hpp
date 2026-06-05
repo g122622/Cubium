@@ -131,7 +131,7 @@ public:
     [[nodiscard]] i32 maxOctave() const { return m_maxOctave; }
 
     /**
-     * @brief 保持精度
+     * @brief 保持精度（f32 版本）
      *
      * 防止大坐标导致的精度问题。
      * @param value 输入值
@@ -141,6 +141,19 @@ public:
     {
         constexpr f32 PRECISION_FACTOR = 33554432.0f;
         return value - std::floor(value / PRECISION_FACTOR + 0.5f) * PRECISION_FACTOR;
+    }
+
+    /**
+     * @brief 保持精度（f64 版本）
+     *
+     * 防止大坐标导致的精度问题。
+     * @param value 输入值
+     * @return 修正后的值
+     */
+    [[nodiscard]] static f64 maintainPrecision(f64 value)
+    {
+        constexpr f64 PRECISION_FACTOR = 33554432.0;
+        return value - std::floor(value / PRECISION_FACTOR + 0.5) * PRECISION_FACTOR;
     }
 
 private:

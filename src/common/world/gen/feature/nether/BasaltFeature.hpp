@@ -56,7 +56,11 @@ struct BasaltColumnFeatureConfig : public IFeatureConfig {
 /**
  * @brief 玄武岩柱特征
  *
- * 生成从地板向上延伸的玄武岩柱。
+ * 使用 MC 1.21.11 的聚类算法生成从地板向上延伸的玄武岩柱。
+ * 90% 概率使用聚类模式（reach=5, size=50），
+ * 10% 概率使用非聚类模式（reach=8, size=15）。
+ *
+ * 参考 MC 1.21.11: BasaltColumnsFeature
  */
 class BasaltColumnFeature {
 public:
@@ -68,14 +72,27 @@ public:
 
 private:
     /**
-     * @brief 检查位置是否可以放置玄武岩
+     * @brief 在指定位置放置一根柱子
+     * @param world 世界区域
+     * @param pos 柱子底部位置
+     * @param height 柱子高度
      */
-    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
+    void _placeColumn(WorldGenRegion& world, const BlockPos& pos, i32 height);
 
     /**
-     * @brief 获取柱高度
+     * @brief 检查位置是否可以放置玄武岩（空气或熔岩海洋，且下方不在 CANNOT_PLACE_ON 中）
      */
-    [[nodiscard]] i32 _getColumnHeight(WorldGenRegion& world, const BlockPos& pos, i32 minH, i32 maxH) const;
+    [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos, i32 seaLevel) const;
+
+    /**
+     * @brief 向下搜索，找到可以放置玄武岩的表面位置
+     */
+    [[nodiscard]] BlockPos _findSurface(WorldGenRegion& world, const BlockPos& pos, i32 seaLevel) const;
+
+    /**
+     * @brief 向上搜索，找到空气位置
+     */
+    [[nodiscard]] BlockPos _findAir(WorldGenRegion& world, const BlockPos& pos, i32 seaLevel) const;
 };
 
 /**

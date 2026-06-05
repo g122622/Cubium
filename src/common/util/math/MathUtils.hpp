@@ -115,23 +115,36 @@ template <typename T>
  * @param v7 角点 (1, 1, 1) 的值
  * @return 插值结果
  *
- * 参考 MC 1.16.5: ImprovedNoiseGenerator.lerp3
+ * 三线性插值，插值顺序为 X → Y → Z，与 MC 的 Mth.lerp3 一致。
+ *
+ * @param sx X 方向插值因子（smoothstep 后的值）
+ * @param sy Y 方向插值因子
+ * @param sz Z 方向插值因子
+ * @param d0 角点 (0,0,0) 的值
+ * @param d1 角点 (1,0,0) 的值
+ * @param d2 角点 (0,1,0) 的值
+ * @param d3 角点 (1,1,0) 的值
+ * @param d4 角点 (0,0,1) 的值
+ * @param d5 角点 (1,0,1) 的值
+ * @param d6 角点 (0,1,1) 的值
+ * @param d7 角点 (1,1,1) 的值
+ * @return 插值结果
  */
 [[nodiscard]] inline f32 lerp3(
-    f32 t1, f32 t2, f32 t3, f32 v0, f32 v1, f32 v2, f32 v3, f32 v4, f32 v5, f32 v6, f32 v7) noexcept
+    f32 sx, f32 sy, f32 sz, f32 d0, f32 d1, f32 d2, f32 d3, f32 d4, f32 d5, f32 d6, f32 d7) noexcept
 {
-    // 沿 X 轴插值
-    const f32 i0 = lerp(v0, v1, t1);
-    const f32 i1 = lerp(v2, v3, t1);
-    const f32 i2 = lerp(v4, v5, t1);
-    const f32 i3 = lerp(v6, v7, t1);
+    // X 轴插值
+    const f32 x0 = lerp(d0, d1, sx); // (0,0,0)→(1,0,0)
+    const f32 x1 = lerp(d2, d3, sx); // (0,1,0)→(1,1,0)
+    const f32 x2 = lerp(d4, d5, sx); // (0,0,1)→(1,0,1)
+    const f32 x3 = lerp(d6, d7, sx); // (0,1,1)→(1,1,1)
 
-    // 沿 Z 轴插值
-    const f32 j0 = lerp(i0, i1, t2);
-    const f32 j1 = lerp(i2, i3, t2);
+    // Y 轴插值
+    const f32 y0 = lerp(x0, x1, sy); // z=0 平面
+    const f32 y1 = lerp(x2, x3, sy); // z=1 平面
 
-    // 沿 Y 轴插值
-    return lerp(j0, j1, t3);
+    // Z 轴插值
+    return lerp(y0, y1, sz);
 }
 
 /**

@@ -241,6 +241,27 @@ void OreFeature::_generateSphere(ChunkPrimer& chunk,
                         static_cast<BlockCoord>(bz & CHUNK_MASK));
 
                     if (currentState && config.target->test(*currentState, random)) {
+                        // MC 1.21: 检查空气暴露丢弃概率
+                        if (config.discardChanceOnAirExposure > 0.0f) {
+                            // 检查 6 个相邻方块是否有空气
+                            bool exposedToAir = false;
+                            static constexpr i32 offsets[6][3] = {
+                                {1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
+                            for (i32 d = 0; d < 6; ++d) {
+                                const BlockState* neighbor =
+                                    chunk.getBlockState(static_cast<BlockCoord>((bx + offsets[d][0]) & CHUNK_MASK),
+                                        static_cast<BlockCoord>(by + offsets[d][1]),
+                                        static_cast<BlockCoord>((bz + offsets[d][2]) & CHUNK_MASK));
+                                if (neighbor == nullptr || neighbor->isAir()) {
+                                    exposedToAir = true;
+                                    break;
+                                }
+                            }
+                            if (exposedToAir && random.nextFloat() < config.discardChanceOnAirExposure) {
+                                continue;
+                            }
+                        }
+
                         chunk.setBlockState(static_cast<BlockCoord>(bx & CHUNK_MASK),
                             static_cast<BlockCoord>(by),
                             static_cast<BlockCoord>(bz & CHUNK_MASK),

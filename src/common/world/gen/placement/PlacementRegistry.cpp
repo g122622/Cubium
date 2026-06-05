@@ -48,6 +48,8 @@ void PlacementRegistry::initialize()
     registerPlacement("biome", Placements::biome());
     registerPlacement("chance", Placements::chance());
     registerPlacement("surface", Placements::surface());
+    registerPlacement("heightmap", Placements::heightmap());
+    registerPlacement("rarity_filter", Placements::rarityFilter());
     registerPlacement("noise", Placements::noise());
     registerPlacement("count_noise", Placements::countNoise());
     registerPlacement("depth_average", Placements::depthAverage());
@@ -120,6 +122,16 @@ std::unique_ptr<Placement> chance()
 std::unique_ptr<Placement> surface()
 {
     return std::make_unique<SurfacePlacement>();
+}
+
+std::unique_ptr<Placement> heightmap()
+{
+    return std::make_unique<HeightmapPlacement>();
+}
+
+std::unique_ptr<Placement> rarityFilter()
+{
+    return std::make_unique<RarityFilterPlacement>();
 }
 
 std::unique_ptr<Placement> noise()

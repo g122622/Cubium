@@ -25,8 +25,8 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../WorldConstants.hpp"
 #include "../../block/Block.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../chunk/IChunkGenerator.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 
 namespace mc {
@@ -105,7 +105,20 @@ std::vector<BlockPos> CountPlacement::getPositions(
     WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     (void)region;
-    (void)random;
+
+    // 尝试使用 IntProvider 配置（MC 1.21 风格）
+    const auto* providerConfig = dynamic_cast<const CountWithProviderConfig*>(&config);
+    if (providerConfig && providerConfig->countProvider) {
+        i32 count = providerConfig->countProvider->sample(random);
+        std::vector<BlockPos> positions;
+        positions.reserve(static_cast<size_t>(std::max(0, count)));
+        for (i32 i = 0; i < count; ++i) {
+            positions.push_back(basePos);
+        }
+        return positions;
+    }
+
+    // 回退到旧式 CountPlacementConfig
     const auto& countConfig = static_cast<const CountPlacementConfig&>(config);
     std::vector<BlockPos> positions;
 
@@ -123,6 +136,15 @@ std::vector<BlockPos> CountPlacement::getPositions(
 std::vector<BlockPos> HeightRangePlacement::getPositions(
     WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
+    // 尝试使用 HeightProvider 配置（MC 1.21 风格）
+    const auto* providerConfig = dynamic_cast<const HeightProviderPlacementConfig*>(&config);
+    if (providerConfig && providerConfig->heightProvider) {
+        i32 y = providerConfig->heightProvider->sample(
+            random, world::gen::valueprovider::WorldGenerationContext(world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT));
+        return {BlockPos(basePos.x, y, basePos.z)};
+    }
+
+    // 回退到旧式 HeightRangePlacementConfig
     (void)region;
     const auto& heightConfig = static_cast<const HeightRangePlacementConfig&>(config);
 
@@ -191,49 +213,107 @@ std::vector<BlockPos> SurfacePlacement::getPositions(
     (void)random;
     const auto& surfaceConfig = static_cast<const SurfacePlacementConfig&>(config);
 
-    // 从顶部向下搜索第一个固体方块
+    // 尝试使用高度图
+    i32 topY = region.getTopBlockY(basePos.x, basePos.z, HeightmapType::WorldSurfaceWG);
+    if (topY > world::MIN_BUILD_HEIGHT) {
+        // 高度图有效，使用它
+        const BlockState* topState = region.getBlockState(basePos.x, topY, basePos.z);
+        if (topState && !topState->isAir()) {
+            // 检查水深
+            if (surfaceConfig.maxWaterDepth >= 0) {
+                i32 waterDepth = 0;
+                for (i32 wy = topY + 1; wy <= topY + surfaceConfig.maxWaterDepth + 1; ++wy) {
+                    const BlockState* waterState = region.getBlockState(basePos.x, wy, basePos.z);
+                    if (waterState && waterState->isLiquid()) {
+                        ++waterDepth;
+                    } else {
+                        break;
+                    }
+                }
+                if (waterDepth > surfaceConfig.maxWaterDepth) {
+                    return {};
+                }
+            }
+            return {BlockPos(basePos.x, topY + 1, basePos.z)};
+        }
+    }
+
+    // 回退：从顶部向下搜索
     constexpr i32 MIN_Y = world::MIN_BUILD_HEIGHT;
     constexpr i32 MAX_Y = world::MAX_BUILD_HEIGHT - 1;
 
     for (i32 y = MAX_Y; y >= MIN_Y; --y) {
         const BlockState* state = region.getBlockState(basePos.x, y, basePos.z);
-        if (state == nullptr) {
+        if (!state || state->isAir()) {
             continue;
         }
 
-        // 如果是空气，继续向下
-        if (state->isAir()) {
-            continue;
-        }
-
-        // 找到固体方块，检查是否是水
         if (state->is(VanillaBlocks::WATER)) {
             // 检查水深
             i32 waterDepth = 0;
             for (i32 wy = y; wy >= MIN_Y && waterDepth <= surfaceConfig.maxWaterDepth; --wy) {
                 const BlockState* waterState = region.getBlockState(basePos.x, wy, basePos.z);
-                if (waterState == nullptr || waterState->isAir()) {
+                if (!waterState || waterState->isAir()) {
                     break;
                 }
                 if (waterState->is(VanillaBlocks::WATER)) {
-                    waterDepth++;
+                    ++waterDepth;
                 } else {
-                    // 找到水下的固体方块
                     if (waterDepth <= surfaceConfig.maxWaterDepth) {
                         return {BlockPos(basePos.x, wy, basePos.z)};
                     }
                     break;
                 }
             }
-            // 水太深，不能放置
             return {};
         }
 
-        // 找到固体地表，返回上方一格的位置（种植位置）
         return {BlockPos(basePos.x, y + 1, basePos.z)};
     }
 
-    // 没找到地表
+    return {};
+}
+
+// ============================================================================
+// HeightmapPlacement 实现
+// ============================================================================
+
+std::vector<BlockPos> HeightmapPlacement::getPositions(
+    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+{
+    (void)random;
+    (void)config;
+
+    // 参考 MC 1.21.11: HeightmapPlacement
+    // 使用 OCEAN_FLOOR_WG 高度图查找海底 Y 坐标
+    // 如果配置为空，默认使用 OCEAN_FLOOR_WG
+    i32 topY = region.getTopBlockY(basePos.x, basePos.z, HeightmapType::OceanFloorWG);
+    if (topY <= world::MIN_BUILD_HEIGHT) {
+        // 回退到 WORLD_SURFACE_WG
+        topY = region.getTopBlockY(basePos.x, basePos.z, HeightmapType::WorldSurfaceWG);
+    }
+
+    if (topY <= world::MIN_BUILD_HEIGHT) {
+        return {};
+    }
+
+    return {BlockPos(basePos.x, topY, basePos.z)};
+}
+
+// ============================================================================
+// RarityFilterPlacement 实现
+// ============================================================================
+
+std::vector<BlockPos> RarityFilterPlacement::getPositions(
+    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+{
+    (void)region;
+    const auto& rarityConfig = static_cast<const RarityFilterConfig&>(config);
+
+    // MC 1.21.11: RarityFilter - 以 1/chance 概率通过
+    if (random.nextInt(rarityConfig.chance) == 0) {
+        return {basePos};
+    }
     return {};
 }
 
