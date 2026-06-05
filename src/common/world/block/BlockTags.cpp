@@ -1025,7 +1025,22 @@ void BlockTags::initialize()
     BlockTag& stoneTag = *tags.at(ResourceLocation("minecraft", "stone"));
     stoneTag.addAll({// 1.17 深板岩和凝灰岩
         ResourceLocation("minecraft", "deepslate"),
-        ResourceLocation("minecraft", "tuff")});
+        ResourceLocation("minecraft", "tuff"),
+        // 1.16 黑石变种
+        ResourceLocation("minecraft", "blackstone"),
+        ResourceLocation("minecraft", "polished_blackstone"),
+        ResourceLocation("minecraft", "polished_blackstone_bricks"),
+        ResourceLocation("minecraft", "chiseled_polished_blackstone"),
+        ResourceLocation("minecraft", "cracked_polished_blackstone_bricks"),
+        ResourceLocation("minecraft", "gilded_blackstone"),
+        // 1.17 方解石
+        ResourceLocation("minecraft", "calcite"),
+        // 1.17 滴水石块
+        ResourceLocation("minecraft", "dripstone_block"),
+        // 1.17 安山岩/花岗岩/闪长岩变种
+        ResourceLocation("minecraft", "granite"),
+        ResourceLocation("minecraft", "diorite"),
+        ResourceLocation("minecraft", "andesite")});
 
     // 更新 SAND 标签，添加细雪和红沙
     // (red_sand already included)
@@ -1579,6 +1594,34 @@ void BlockTags::initialize()
         // 光源方块
         ResourceLocation("minecraft", "light")});
     tags[witherImmune->getId()] = std::move(witherImmune);
+
+    // ============================================================================
+    // 额外标签更新 - 1.16+ 黑石和下界方块
+    // ============================================================================
+
+    // 黑石方块标签
+    auto blackstoneTag = std::make_unique<BlockTag>(ResourceLocation("minecraft", "blackstone"));
+    blackstoneTag->addAll({ResourceLocation("minecraft", "blackstone"),
+        ResourceLocation("minecraft", "blackstone_stairs"),
+        ResourceLocation("minecraft", "blackstone_slab"),
+        ResourceLocation("minecraft", "blackstone_wall"),
+        ResourceLocation("minecraft", "polished_blackstone"),
+        ResourceLocation("minecraft", "polished_blackstone_stairs"),
+        ResourceLocation("minecraft", "polished_blackstone_slab"),
+        ResourceLocation("minecraft", "polished_blackstone_wall"),
+        ResourceLocation("minecraft", "polished_blackstone_bricks"),
+        ResourceLocation("minecraft", "polished_blackstone_brick_stairs"),
+        ResourceLocation("minecraft", "polished_blackstone_brick_slab"),
+        ResourceLocation("minecraft", "polished_blackstone_brick_wall"),
+        ResourceLocation("minecraft", "chiseled_polished_blackstone"),
+        ResourceLocation("minecraft", "cracked_polished_blackstone_bricks"),
+        ResourceLocation("minecraft", "gilded_blackstone")});
+    tags[blackstoneTag->getId()] = std::move(blackstoneTag);
+
+    // 磁石标签
+    auto lodestoneTag = std::make_unique<BlockTag>(ResourceLocation("minecraft", "lodestone"));
+    lodestoneTag->addAll({ResourceLocation("minecraft", "lodestone")});
+    tags[lodestoneTag->getId()] = std::move(lodestoneTag);
 
     s_initialized = true;
 }
