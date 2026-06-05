@@ -47,7 +47,7 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
     const u16 sectionMask = calculateSectionMask(chunk);
 
     constexpr size_t heightmapSize = static_cast<size_t>(world::CHUNK_WIDTH) * world::CHUNK_WIDTH;
-    size_t expectedSize = 4 + 4 + 2 + heightmapSize + 1 + biomeData.size();
+    size_t expectedSize = 4 + 4 + 2 + heightmapSize + 4 + biomeData.size();
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
         if ((sectionMask & (1 << i)) == 0) continue;
 
@@ -76,8 +76,8 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
     }
     ser.writeBytes(heightmapData.data(), heightmapData.size());
 
-    // 写入生物群系
-    ser.writeU8(static_cast<u8>(BiomeContainer::TOTAL_SIZE));
+    // 写入生物群系数据（u32长度 + 原始数据）
+    ser.writeU32(static_cast<u32>(biomeData.size()));
     ser.writeBytes(biomeData);
 
     // 写入区块段数据
@@ -146,23 +146,23 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
         return heightmapResult.error();
     }
 
-    // 读取生物群系
-    auto biomeCountResult = deser.readU8();
-    if (biomeCountResult.failed()) {
-        return biomeCountResult.error();
+    // 读取生物群系数据（u32长度 + 原始数据）
+    auto biomeSizeResult = deser.readU32();
+    if (biomeSizeResult.failed()) {
+        return biomeSizeResult.error();
     }
 
-    const u8 biomeCount = biomeCountResult.value();
-    if (biomeCount > 0) {
+    const u32 biomeDataSize = biomeSizeResult.value();
+    if (biomeDataSize > 0) {
         MC_TRACE_EVENT("client.network", "ChunkSerializer::deserializeChunk.biomes");
 
-        std::vector<u8> biomeData(static_cast<size_t>(biomeCount) * sizeof(BiomeId));
-        auto biomeDataResult = deser.readBytesInto(biomeData.data(), biomeData.size());
+        std::vector<u8> biomeData(biomeDataSize);
+        auto biomeDataResult = deser.readBytesInto(biomeData.data(), biomeDataSize);
         if (biomeDataResult.failed()) {
             return biomeDataResult.error();
         }
 
-        auto biomeContainerResult = BiomeContainer::deserialize(biomeData.data(), biomeData.size());
+        auto biomeContainerResult = BiomeContainer::deserialize(biomeData.data(), biomeDataSize);
         if (biomeContainerResult.failed()) {
             return biomeContainerResult.error();
         }
@@ -216,7 +216,7 @@ size_t ChunkSerializer::calculateChunkSize(const ChunkData& chunk)
 {
     const size_t biomeDataSize = BiomeContainer::TOTAL_SIZE * sizeof(BiomeId);
     constexpr size_t heightmapSize = static_cast<size_t>(world::CHUNK_WIDTH) * world::CHUNK_WIDTH;
-    size_t size = 4 + 4 + 2 + heightmapSize + 1 + biomeDataSize; // 坐标 + 位掩码 + 高度图 + 生物群系
+    size_t size = 4 + 4 + 2 + heightmapSize + 4 + biomeDataSize; // 坐标 + 位掩码 + 高度图 + u32生物群系长度 + 生物群系
 
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
         const ChunkSection* section = chunk.getSection(i);
