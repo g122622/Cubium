@@ -680,6 +680,11 @@ add_library(mc_common STATIC
     world/block/blocks/ocean/DriedKelpBlock.cpp
     world/block/blocks/ocean/ConduitBlock.cpp
     world/block/blocks/SignBlock.cpp
+    world/block/blocks/HangingSignBlock.cpp
+
+    # World - Block - Copper
+    world/block/blocks/copper/WeatheringCopperBlock.cpp
+    world/block/blocks/copper/CopperBulbBlock.cpp
 
     # World - Block - Nether
     world/block/blocks/nether/FireBlock.cpp

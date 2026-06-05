@@ -57,6 +57,32 @@ struct SignBannerBlocks {
     static Block* PALE_OAK_SIGN;
     static Block* PALE_OAK_WALL_SIGN;
 
+    // 悬挂告示牌（1.20 Trails & Tales 新增，12种木材 × 2形态 = 24方块）
+    static Block* OAK_HANGING_SIGN;
+    static Block* OAK_WALL_HANGING_SIGN;
+    static Block* SPRUCE_HANGING_SIGN;
+    static Block* SPRUCE_WALL_HANGING_SIGN;
+    static Block* BIRCH_HANGING_SIGN;
+    static Block* BIRCH_WALL_HANGING_SIGN;
+    static Block* JUNGLE_HANGING_SIGN;
+    static Block* JUNGLE_WALL_HANGING_SIGN;
+    static Block* ACACIA_HANGING_SIGN;
+    static Block* ACACIA_WALL_HANGING_SIGN;
+    static Block* DARK_OAK_HANGING_SIGN;
+    static Block* DARK_OAK_WALL_HANGING_SIGN;
+    static Block* CRIMSON_HANGING_SIGN;
+    static Block* CRIMSON_WALL_HANGING_SIGN;
+    static Block* WARPED_HANGING_SIGN;
+    static Block* WARPED_WALL_HANGING_SIGN;
+    static Block* MANGROVE_HANGING_SIGN;
+    static Block* MANGROVE_WALL_HANGING_SIGN;
+    static Block* CHERRY_HANGING_SIGN;
+    static Block* CHERRY_WALL_HANGING_SIGN;
+    static Block* BAMBOO_HANGING_SIGN;
+    static Block* BAMBOO_WALL_HANGING_SIGN;
+    static Block* PALE_OAK_HANGING_SIGN;
+    static Block* PALE_OAK_WALL_HANGING_SIGN;
+
     // 旗帜 (16色 × 2形态 = 32方块)
     static Block* WHITE_BANNER;
     static Block* WHITE_WALL_BANNER;

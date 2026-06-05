@@ -105,6 +105,46 @@ public:
 class BlockProperties {
 public:
     /**
+     * @brief 方块模型偏移类型
+     *
+     * 控制方块在渲染时是否应用随机位置偏移，
+     * 用于植物、农作物等需要视觉多样性的方块。
+     *
+     * 参考: net.minecraft.world.level.block.BlockBehaviour.OffsetType
+     */
+    enum class OffsetType : u8 {
+        None = 0, ///< 无偏移（默认）
+        XZ = 1,   ///< 仅水平方向偏移
+        XYZ = 2   ///< 三个方向都偏移
+    };
+
+    /**
+     * @brief 音符盒乐器类型
+     *
+     * 当音符盒放置在此方块上方时演奏的乐器。
+     *
+     * 参考: net.minecraft.world.level.block.NoteBlockInstrument
+     */
+    enum class Instrument : u8 {
+        Harp = 0,           ///< 竖琴（默认）
+        BaseDrum = 1,       ///< 大鼓（石头类方块）
+        Snare = 2,          ///< 小军鼓（沙子类方块）
+        Hat = 3,            ///< 踩镲（玻璃类方块）
+        Bass = 4,           ///< 贝斯（木材类方块）
+        Flute = 5,          ///< 长笛（泥土类方块）
+        Bell = 6,           ///< 钟（金块）
+        Guitar = 7,         ///< 吉他（羊毛类方块）
+        Chime = 8,          ///< 风铃（冰类方块）
+        Xylophone = 9,      ///< 木琴（骨块）
+        IronXylophone = 10, ///< 铁琴（铁块）
+        CowBell = 11,       ///< 牛铃（灵魂沙）
+        Didgeridoo = 12,    ///< 迪吉里杜管（南瓜类）
+        Bit = 13,           ///< 电子音（绿宝石块）
+        Banjo = 14,         ///< 班卓琴（干草块）
+        Pling = 15          ///< 电钢琴（萤石）
+    };
+
+    /**
      * @brief 构造方块属性
      * @param material 材质
      */
@@ -381,6 +421,48 @@ public:
         return *this;
     }
 
+    /**
+     * @brief 设置是否可被岩浆点燃
+     *
+     * 当为 true 时，方块接触岩浆会被点燃（如木头、TNT）。
+     *
+     * 参考: net.minecraft.block.AbstractBlock.Properties.ignitedByLava
+     */
+    BlockProperties& ignitedByLava(bool value = true) noexcept
+    {
+        m_ignitedByLava = value;
+        return *this;
+    }
+
+    /**
+     * @brief 设置模型偏移类型
+     *
+     * 控制方块渲染时的随机位置偏移。
+     * - None: 无偏移（默认，大部分方块）
+     * - XZ: 仅水平偏移（植物类如花、草）
+     * - XYZ: 三轴偏移（如菌类）
+     *
+     * 参考: net.minecraft.block.AbstractBlock.Properties.offsetType
+     */
+    BlockProperties& offsetType(OffsetType type) noexcept
+    {
+        m_offsetType = type;
+        return *this;
+    }
+
+    /**
+     * @brief 设置音符盒乐器
+     *
+     * 当音符盒放置在此方块上方时演奏的乐器。
+     *
+     * 参考: net.minecraft.block.AbstractBlock.Properties.instrument
+     */
+    BlockProperties& instrument(Instrument instr) noexcept
+    {
+        m_instrument = instr;
+        return *this;
+    }
+
     // Getters
     [[nodiscard]] const Material& material() const noexcept { return *m_material; }
     [[nodiscard]] f32 hardness() const noexcept { return m_hardness; }
@@ -403,6 +485,9 @@ public:
     [[nodiscard]] bool ticksRandomly() const noexcept { return m_ticksRandomly; }
     [[nodiscard]] world::map::MaterialColorId mapColor() const noexcept { return m_mapColor; }
     [[nodiscard]] bool hasMapColor() const noexcept { return m_hasMapColor; }
+    [[nodiscard]] bool isIgnitedByLava() const noexcept { return m_ignitedByLava; }
+    [[nodiscard]] OffsetType getOffsetType() const noexcept { return m_offsetType; }
+    [[nodiscard]] Instrument getInstrument() const noexcept { return m_instrument; }
 
 private:
     friend class Block;
@@ -430,6 +515,9 @@ private:
     bool m_ticksRandomly = false;                                              // 是否响应随机刻
     world::map::MaterialColorId m_mapColor = world::map::MaterialColorId::AIR; // 地图颜色
     bool m_hasMapColor = false;                                                // 是否显式设置了地图颜色
+    bool m_ignitedByLava = false;                                              // 是否可被岩浆点燃
+    OffsetType m_offsetType = OffsetType::None;                                // 模型偏移类型
+    Instrument m_instrument = Instrument::Harp;                                // 音符盒乐器
 };
 
 /**
@@ -1097,6 +1185,35 @@ public:
      * @return 是否响应随机刻
      */
     [[nodiscard]] virtual bool ticksRandomly() const noexcept { return m_ticksRandomly; }
+
+    /**
+     * @brief 是否可被岩浆点燃
+     *
+     * 当返回 true 时，此方块接触岩浆会被点燃。
+     * 木头类、TNT等可燃方块应返回 true。
+     *
+     * 参考: net.minecraft.block.Block.isIgnitedByLava
+     */
+    [[nodiscard]] bool isIgnitedByLava() const noexcept { return m_ignitedByLava; }
+
+    /**
+     * @brief 获取模型偏移类型
+     *
+     * 控制方块渲染时的随机位置偏移。
+     * 植物、花等小方块使用XZ偏移来避免视觉重复。
+     *
+     * 参考: net.minecraft.block.Block.getOffsetType
+     */
+    [[nodiscard]] BlockProperties::OffsetType getOffsetType() const noexcept { return m_offsetType; }
+
+    /**
+     * @brief 获取音符盒乐器
+     *
+     * 当音符盒放置在此方块上方时演奏的乐器。
+     *
+     * 参考: net.minecraft.block.Block.getInstrument
+     */
+    [[nodiscard]] BlockProperties::Instrument getInstrument() const noexcept { return m_instrument; }
 
     // ========================================================================
     // 方块状态
@@ -1867,6 +1984,11 @@ protected:
     f32 m_slipperiness = 0.6f; // 默认滑度
     f32 m_speedFactor = 1.0f;  // 默认速度因子
     f32 m_jumpFactor = 1.0f;   // 默认跳跃因子
+
+    // 1.17+ 扩展属性
+    bool m_ignitedByLava = false;                                                 // 是否可被岩浆点燃
+    BlockProperties::OffsetType m_offsetType = BlockProperties::OffsetType::None; // 模型偏移类型
+    BlockProperties::Instrument m_instrument = BlockProperties::Instrument::Harp; // 音符盒乐器
 
     // 由createBlockState设置
     std::unique_ptr<StateContainer<Block, BlockState>> m_stateContainer;

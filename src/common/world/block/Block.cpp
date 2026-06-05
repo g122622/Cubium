@@ -207,6 +207,9 @@ Block::Block(BlockProperties properties)
     , m_slipperiness(properties.m_slipperiness)
     , m_speedFactor(properties.m_speedFactor)
     , m_jumpFactor(properties.m_jumpFactor)
+    , m_ignitedByLava(properties.m_ignitedByLava)
+    , m_offsetType(properties.m_offsetType)
+    , m_instrument(properties.m_instrument)
 {
     // 所有方块都必须至少拥有一个基础状态。
     // 这与 Java 版 StateContainer 行为一致，可避免遗漏 createBlockState()
