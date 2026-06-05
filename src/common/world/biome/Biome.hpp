@@ -489,6 +489,7 @@ constexpr BiomeId OldGrowthSpruceTaiga = GiantSpruceTaiga;    // 原 GiantSpruce
 constexpr BiomeId OldGrowthBirchForest = TallBirchForest;     // 原 TallBirchForest (155)
 constexpr BiomeId SparseJungle = JungleEdge;                  // 原 JungleEdge (23)
 constexpr BiomeId WoodedBadlands = WoodedBadlandsPlateau;     // 原 WoodedBadlandsPlateau (38)
+constexpr BiomeId WindsweptSavanna = ShatteredSavanna;        // 原 ShatteredSavanna (163)
 
 // 生物群系总数（最大 ID + 1）
 constexpr BiomeId Count = 186;

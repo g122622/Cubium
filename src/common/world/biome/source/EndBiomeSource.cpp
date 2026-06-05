@@ -48,25 +48,28 @@ BiomeId EndBiomeSource::getNoiseBiome(i32 quartX, i32 quartY, i32 quartZ) const
     const i32 blockX = quartX << 2;
     const i32 blockZ = quartZ << 2;
 
-    // 中央岛屿检查（距原点64格内，即 x²+z² <= 4096）
+    // 中央岛屿检查：使用区块坐标判断（MC 1.21 TheEndBiomeSource）
+    // blockToSectionCoord = blockX >> 4，4096 = 64^2（64格区块半径）
     if (isInCentralIsland(blockX, blockZ)) {
         return Biomes::TheEnd;
     }
 
-    // MC 1.21: 使用 EndIslands 密度函数判断外围岛屿生物群系
-    const f64 islandNoise = m_islandNoise->compute(blockX, 0, blockZ);
+    // 外围岛屿：噪声采样使用区块坐标缩放
+    // MC 1.21: (SectionPos.blockToSectionCoord(i) * 2 + 1) * 8
+    const i32 chunkX = blockX >> 4;
+    const i32 chunkZ = blockZ >> 4;
+    const i32 sampleX = (chunkX * 2 + 1) * 8;
+    const i32 sampleZ = (chunkZ * 2 + 1) * 8;
+    const i32 blockY = quartY << 2;
+    const f64 islandNoise = m_islandNoise->compute(sampleX, blockY, sampleZ);
 
-    // MC 1.21 的生物群系映射逻辑
-    // islandNoise > 0 表示在岛屿上，根据高度确定生物群系
-    if (islandNoise > 0.0) {
-        // 在岛屿上
-        if (islandNoise > 0.25) {
-            return Biomes::EndHighlands;
-        }
+    // MC 1.21 的生物群系映射阈值
+    if (islandNoise > 0.25) {
+        return Biomes::EndHighlands;
+    }
+    if (islandNoise >= -0.0625) {
         return Biomes::EndMidlands;
     }
-
-    // 不在岛屿上
     if (islandNoise < -0.21875) {
         return Biomes::SmallEndIslands;
     }
@@ -102,10 +105,14 @@ void EndBiomeSource::fillBiomeContainer(BiomeContainer& container, ChunkCoord ch
 
 bool EndBiomeSource::isInCentralIsland(i32 blockX, i32 blockZ)
 {
-    // MC 1.21: 中央岛屿范围 — 方块坐标 x² + z² <= 4096（64 格半径）
-    const i64 bx = static_cast<i64>(blockX);
-    const i64 bz = static_cast<i64>(blockZ);
-    return bx * bx + bz * bz <= 4096LL;
+    // MC 1.21 TheEndBiomeSource: 使用区块坐标判断中央岛屿
+    // SectionPos.blockToSectionCoord(blockX) = blockX >> 4
+    // 4096 = 64^2，即距原点64个区块半径（= 64*16 = 1024 格方块半径）
+    const i32 chunkX = blockX >> 4;
+    const i32 chunkZ = blockZ >> 4;
+    const i64 cx = static_cast<i64>(chunkX);
+    const i64 cz = static_cast<i64>(chunkZ);
+    return cx * cx + cz * cz <= 4096LL;
 }
 
 } // namespace mc::world::biome::source

@@ -74,6 +74,9 @@ struct Parameter {
         return {static_cast<i64>(minValue * QUANTIZATION_FACTOR), static_cast<i64>(maxValue * QUANTIZATION_FACTOR)};
     }
 
+    /** 从两个参数的范围创建跨度参数（使用 first.min 和 second.max） */
+    static Parameter span(const Parameter& first, const Parameter& second) { return {first.min, second.max}; }
+
     /** 全范围参数 [-2, 2] */
     static Parameter fullRange() { return span(-2.0f, 2.0f); }
 

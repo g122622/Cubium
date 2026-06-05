@@ -108,6 +108,14 @@ public:
      */
     [[nodiscard]] GrassColorModifier grassColorModifier() const noexcept { return m_grassColorModifier; }
 
+    /**
+     * @brief 获取干燥树叶颜色覆盖
+     * @return 干燥树叶颜色，如果未设置返回 nullopt
+     *
+     * MC 1.21.11 新增，用于苍白花园等生物群系的干枯植被颜色。
+     */
+    [[nodiscard]] OptionalColor dryFoliageColor() const noexcept { return m_dryFoliageColor; }
+
     // === 默认颜色常量 ===
 
     static constexpr u32 DEFAULT_WATER_COLOR = 0x3F76E4;     ///< 默认水体颜色 (蓝色)
@@ -140,6 +148,8 @@ public:
 
     static constexpr u32 BADLANDS_GRASS_COLOR = 0x90814D;   ///< 恶地草颜色
     static constexpr u32 BADLANDS_FOLIAGE_COLOR = 0x9E814D; ///< 恶地树叶颜色
+
+    static constexpr u32 DEFAULT_DRY_FOLIAGE_COLOR = 0xAEB05E; ///< 默认干燥树叶颜色
 
     /**
      * @brief Builder 模式用于构建 BiomeEffects
@@ -197,6 +207,12 @@ public:
             return *this;
         }
 
+        Builder& dryFoliageColor(u32 color)
+        {
+            m_dryFoliageColor = color;
+            return *this;
+        }
+
         BiomeEffects build() const
         {
             BiomeEffects effects;
@@ -207,6 +223,7 @@ public:
             effects.m_foliageColor = m_foliageColor;
             effects.m_grassColor = m_grassColor;
             effects.m_grassColorModifier = m_grassColorModifier;
+            effects.m_dryFoliageColor = m_dryFoliageColor;
             return effects;
         }
 
@@ -218,6 +235,7 @@ public:
         OptionalColor m_foliageColor;
         OptionalColor m_grassColor;
         GrassColorModifier m_grassColorModifier = GrassColorModifier::None;
+        OptionalColor m_dryFoliageColor;
     };
 
 private:
@@ -228,6 +246,7 @@ private:
     OptionalColor m_foliageColor;
     OptionalColor m_grassColor;
     GrassColorModifier m_grassColorModifier = GrassColorModifier::None;
+    OptionalColor m_dryFoliageColor;
 };
 
 } // namespace biome

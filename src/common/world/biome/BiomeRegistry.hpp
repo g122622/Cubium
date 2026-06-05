@@ -521,6 +521,82 @@ Biome createEndHighlands();
  */
 Biome createEndBarrens();
 
+// ============================================================================
+// MC 1.18+ 新生物群系（洞穴与山崖）
+// ============================================================================
+
+/**
+ * @brief 创建草甸生物群系 (ID: 174)
+ * @note MC 1.18+ 山地草甸，温度适中
+ */
+Biome createMeadow();
+
+/**
+ * @brief 创建树林生物群系 (ID: 175)
+ * @note MC 1.18+ 山地树林，降雪区域
+ */
+Biome createGrove();
+
+/**
+ * @brief 创建积雪坡地生物群系 (ID: 176)
+ * @note MC 1.18+ 积雪山坡
+ */
+Biome createSnowySlopes();
+
+/**
+ * @brief 创建尖峭山峰生物群系 (ID: 177)
+ * @note MC 1.18+ 雪覆盖的尖峰
+ */
+Biome createJaggedPeaks();
+
+/**
+ * @brief 创建冰封山峰生物群系 (ID: 178)
+ * @note MC 1.18+ 冰覆盖的山峰
+ */
+Biome createFrozenPeaks();
+
+/**
+ * @brief 创建裸岩山峰生物群系 (ID: 179)
+ * @note MC 1.18+ 石头和方解石山峰
+ */
+Biome createStonyPeaks();
+
+/**
+ * @brief 创建滴水石洞生物群系 (ID: 180)
+ * @note MC 1.18+ 钟乳石和石笋洞穴
+ */
+Biome createDripstoneCaves();
+
+/**
+ * @brief 创建繁茂洞穴生物群系 (ID: 181)
+ * @note MC 1.18+ 苔藓和发光浆果洞穴
+ */
+Biome createLushCaves();
+
+/**
+ * @brief 创建深暗之域生物群系 (ID: 182)
+ * @note MC 1.19+ 幽匿和监守者
+ */
+Biome createDeepDark();
+
+/**
+ * @brief 创建红树林沼泽生物群系 (ID: 183)
+ * @note MC 1.19+ 红树林和泥巴
+ */
+Biome createMangroveSwamp();
+
+/**
+ * @brief 创建樱花树林生物群系 (ID: 184)
+ * @note MC 1.20+ 樱花树和粉色花瓣
+ */
+Biome createCherryGrove();
+
+/**
+ * @brief 创建苍白花园生物群系 (ID: 185)
+ * @note MC 1.21+ 苍白橡树和嘎吱声
+ */
+Biome createPaleGarden();
+
 } // namespace BiomeFactory
 
 } // namespace mc

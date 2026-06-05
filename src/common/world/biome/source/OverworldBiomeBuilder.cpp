@@ -11,10 +11,13 @@
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 #include "common/world/biome/source/OverworldBiomeBuilder.hpp"
@@ -24,13 +27,8 @@ namespace mc::world::biome::source {
 
 using namespace climate;
 
-// ============================================================================
-// 生物群系 ID 别名（来自 Biomes 命名空间）
-// ============================================================================
-
 namespace B = Biomes;
 
-// 无效/空生物群系标记
 static constexpr BiomeId BIOME_NULL = static_cast<BiomeId>(-1);
 
 // ============================================================================
@@ -40,18 +38,18 @@ static constexpr BiomeId BIOME_NULL = static_cast<BiomeId>(-1);
 OverworldBiomeBuilder::OverworldBiomeBuilder()
 {
     // ========== 温度范围 ==========
-    m_temperatures[0] = Parameter::span(-1.0f, -0.45f);  // 冰冻
-    m_temperatures[1] = Parameter::span(-0.45f, -0.15f); // 冷
-    m_temperatures[2] = Parameter::span(-0.15f, 0.2f);   // 温和
-    m_temperatures[3] = Parameter::span(0.2f, 0.55f);    // 暖
-    m_temperatures[4] = Parameter::span(0.55f, 1.0f);    // 热
+    m_temperatures[0] = Parameter::span(-1.0f, -0.45f);
+    m_temperatures[1] = Parameter::span(-0.45f, -0.15f);
+    m_temperatures[2] = Parameter::span(-0.15f, 0.2f);
+    m_temperatures[3] = Parameter::span(0.2f, 0.55f);
+    m_temperatures[4] = Parameter::span(0.55f, 1.0f);
 
     // ========== 湿度范围 ==========
-    m_humidities[0] = Parameter::span(-1.0f, -0.35f); // 干旱
-    m_humidities[1] = Parameter::span(-0.35f, -0.1f); // 干燥
-    m_humidities[2] = Parameter::span(-0.1f, 0.1f);   // 中性
-    m_humidities[3] = Parameter::span(0.1f, 0.3f);    // 湿润
-    m_humidities[4] = Parameter::span(0.3f, 1.0f);    // 潮湿
+    m_humidities[0] = Parameter::span(-1.0f, -0.35f);
+    m_humidities[1] = Parameter::span(-0.35f, -0.1f);
+    m_humidities[2] = Parameter::span(-0.1f, 0.1f);
+    m_humidities[3] = Parameter::span(0.1f, 0.3f);
+    m_humidities[4] = Parameter::span(0.3f, 1.0f);
 
     // ========== 侵蚀范围 ==========
     m_erosions[0] = Parameter::span(-1.0f, -0.78f);
@@ -62,29 +60,22 @@ OverworldBiomeBuilder::OverworldBiomeBuilder()
     m_erosions[5] = Parameter::span(0.45f, 0.55f);
     m_erosions[6] = Parameter::span(0.55f, 1.0f);
 
+    // ========== 全局范围 ==========
+    m_fullRange = Parameter::fullRange();
+    m_frozenRange = m_temperatures[0];
+    m_unfrozenRange = Parameter::span(-0.45f, 1.0f);
+
     // ========== 大陆度范围 ==========
     m_mushroomFieldsContinentalness = Parameter::span(-1.2f, -1.05f);
     m_deepOceanContinentalness = Parameter::span(-1.05f, -0.455f);
     m_oceanContinentalness = Parameter::span(-0.455f, -0.19f);
     m_coastContinentalness = Parameter::span(-0.19f, -0.11f);
+    m_inlandContinentalness = Parameter::span(-0.11f, 0.55f);
     m_nearInlandContinentalness = Parameter::span(-0.11f, 0.03f);
     m_midInlandContinentalness = Parameter::span(0.03f, 0.3f);
     m_farInlandContinentalness = Parameter::span(0.3f, 1.0f);
 
-    // ========== 奇异度切片范围 ==========
-    // 使用 peaksAndValleys 变换后的值
-    m_valleyWeirdness = Parameter::span(-0.05f, 0.05f);
-    m_lowWeirdness = Parameter::span(-0.267f, -0.05f);   // 负侧
-    m_midWeirdness = Parameter::span(-0.4f, -0.267f);    // 负侧
-    m_highWeirdness = Parameter::span(-0.567f, -0.4f);   // 负侧
-    m_peakWeirdness = Parameter::span(-0.767f, -0.567f); // 负侧
-
-    // ========== 深度范围 ==========
-    m_surfaceDepth = Parameter::span(-1.0f, 0.0f);    // 表面
-    m_undergroundDepth = Parameter::span(0.2f, 0.9f); // 地下
-
     // ========== 海洋生物群系 ==========
-    // [温度索引][深浅: 0=深海, 1=浅海]
     m_oceans[0][0] = B::DeepFrozenOcean;
     m_oceans[0][1] = B::FrozenOcean;
     m_oceans[1][0] = B::DeepColdOcean;
@@ -97,64 +88,53 @@ OverworldBiomeBuilder::OverworldBiomeBuilder()
     m_oceans[4][1] = B::WarmOcean;
 
     // ========== 中部生物群系 ==========
-    // [温度][湿度]
-    // 冰冻
     m_middleBiomes[0][0] = B::SnowyPlains;
     m_middleBiomes[0][1] = B::SnowyPlains;
     m_middleBiomes[0][2] = B::SnowyPlains;
     m_middleBiomes[0][3] = B::SnowyTaiga;
     m_middleBiomes[0][4] = B::Taiga;
-    // 冷
     m_middleBiomes[1][0] = B::Plains;
     m_middleBiomes[1][1] = B::Plains;
     m_middleBiomes[1][2] = B::Forest;
     m_middleBiomes[1][3] = B::Taiga;
     m_middleBiomes[1][4] = B::OldGrowthSpruceTaiga;
-    // 温和
     m_middleBiomes[2][0] = B::FlowerForest;
     m_middleBiomes[2][1] = B::Plains;
     m_middleBiomes[2][2] = B::Forest;
     m_middleBiomes[2][3] = B::BirchForest;
     m_middleBiomes[2][4] = B::DarkForest;
-    // 暖
     m_middleBiomes[3][0] = B::Savanna;
     m_middleBiomes[3][1] = B::Savanna;
     m_middleBiomes[3][2] = B::Forest;
     m_middleBiomes[3][3] = B::Jungle;
     m_middleBiomes[3][4] = B::Jungle;
-    // 热
     m_middleBiomes[4][0] = B::Desert;
     m_middleBiomes[4][1] = B::Desert;
     m_middleBiomes[4][2] = B::Desert;
     m_middleBiomes[4][3] = B::Desert;
     m_middleBiomes[4][4] = B::Desert;
 
-    // ========== 中部变体生物群系（奇异度>=0时使用）==========
-    // 冰冻
+    // ========== 中部变体生物群系 ==========
     m_middleBiomesVariant[0][0] = B::IceSpikes;
     m_middleBiomesVariant[0][1] = BIOME_NULL;
-    m_middleBiomesVariant[0][2] = BIOME_NULL;
-    m_middleBiomesVariant[0][3] = B::SnowyTaiga;
+    m_middleBiomesVariant[0][2] = B::SnowyTaiga;
+    m_middleBiomesVariant[0][3] = BIOME_NULL;
     m_middleBiomesVariant[0][4] = BIOME_NULL;
-    // 冷
     m_middleBiomesVariant[1][0] = BIOME_NULL;
     m_middleBiomesVariant[1][1] = BIOME_NULL;
     m_middleBiomesVariant[1][2] = BIOME_NULL;
     m_middleBiomesVariant[1][3] = BIOME_NULL;
     m_middleBiomesVariant[1][4] = B::OldGrowthPineTaiga;
-    // 温和
     m_middleBiomesVariant[2][0] = B::SunflowerPlains;
     m_middleBiomesVariant[2][1] = BIOME_NULL;
     m_middleBiomesVariant[2][2] = BIOME_NULL;
     m_middleBiomesVariant[2][3] = B::OldGrowthBirchForest;
     m_middleBiomesVariant[2][4] = BIOME_NULL;
-    // 暖
     m_middleBiomesVariant[3][0] = BIOME_NULL;
     m_middleBiomesVariant[3][1] = BIOME_NULL;
     m_middleBiomesVariant[3][2] = B::Plains;
     m_middleBiomesVariant[3][3] = B::SparseJungle;
     m_middleBiomesVariant[3][4] = B::BambooJungle;
-    // 热
     m_middleBiomesVariant[4][0] = BIOME_NULL;
     m_middleBiomesVariant[4][1] = BIOME_NULL;
     m_middleBiomesVariant[4][2] = BIOME_NULL;
@@ -162,31 +142,26 @@ OverworldBiomeBuilder::OverworldBiomeBuilder()
     m_middleBiomesVariant[4][4] = BIOME_NULL;
 
     // ========== 高原生物群系 ==========
-    // 冰冻
     m_plateauBiomes[0][0] = B::SnowyPlains;
     m_plateauBiomes[0][1] = B::SnowyPlains;
     m_plateauBiomes[0][2] = B::SnowyPlains;
     m_plateauBiomes[0][3] = B::SnowyTaiga;
     m_plateauBiomes[0][4] = B::SnowyTaiga;
-    // 冷
     m_plateauBiomes[1][0] = B::Meadow;
     m_plateauBiomes[1][1] = B::Meadow;
     m_plateauBiomes[1][2] = B::Forest;
     m_plateauBiomes[1][3] = B::Taiga;
     m_plateauBiomes[1][4] = B::OldGrowthSpruceTaiga;
-    // 温和
     m_plateauBiomes[2][0] = B::Meadow;
     m_plateauBiomes[2][1] = B::Meadow;
     m_plateauBiomes[2][2] = B::Meadow;
     m_plateauBiomes[2][3] = B::Meadow;
     m_plateauBiomes[2][4] = B::PaleGarden;
-    // 暖
     m_plateauBiomes[3][0] = B::SavannaPlateau;
     m_plateauBiomes[3][1] = B::SavannaPlateau;
     m_plateauBiomes[3][2] = B::Forest;
     m_plateauBiomes[3][3] = B::Forest;
     m_plateauBiomes[3][4] = B::Jungle;
-    // 热
     m_plateauBiomes[4][0] = B::Badlands;
     m_plateauBiomes[4][1] = B::Badlands;
     m_plateauBiomes[4][2] = B::Badlands;
@@ -194,31 +169,26 @@ OverworldBiomeBuilder::OverworldBiomeBuilder()
     m_plateauBiomes[4][4] = B::WoodedBadlands;
 
     // ========== 高原变体生物群系 ==========
-    // 冰冻
     m_plateauBiomesVariant[0][0] = B::IceSpikes;
     m_plateauBiomesVariant[0][1] = BIOME_NULL;
     m_plateauBiomesVariant[0][2] = BIOME_NULL;
     m_plateauBiomesVariant[0][3] = BIOME_NULL;
     m_plateauBiomesVariant[0][4] = BIOME_NULL;
-    // 冷
     m_plateauBiomesVariant[1][0] = B::CherryGrove;
     m_plateauBiomesVariant[1][1] = BIOME_NULL;
     m_plateauBiomesVariant[1][2] = B::Meadow;
     m_plateauBiomesVariant[1][3] = B::Meadow;
     m_plateauBiomesVariant[1][4] = B::OldGrowthPineTaiga;
-    // 温和
     m_plateauBiomesVariant[2][0] = B::CherryGrove;
     m_plateauBiomesVariant[2][1] = B::CherryGrove;
     m_plateauBiomesVariant[2][2] = B::Forest;
     m_plateauBiomesVariant[2][3] = B::BirchForest;
     m_plateauBiomesVariant[2][4] = BIOME_NULL;
-    // 暖
     m_plateauBiomesVariant[3][0] = BIOME_NULL;
     m_plateauBiomesVariant[3][1] = BIOME_NULL;
     m_plateauBiomesVariant[3][2] = BIOME_NULL;
     m_plateauBiomesVariant[3][3] = BIOME_NULL;
     m_plateauBiomesVariant[3][4] = BIOME_NULL;
-    // 热
     m_plateauBiomesVariant[4][0] = B::ErodedBadlands;
     m_plateauBiomesVariant[4][1] = B::ErodedBadlands;
     m_plateauBiomesVariant[4][2] = BIOME_NULL;
@@ -226,31 +196,26 @@ OverworldBiomeBuilder::OverworldBiomeBuilder()
     m_plateauBiomesVariant[4][4] = BIOME_NULL;
 
     // ========== 破碎生物群系 ==========
-    // 冰冻
     m_shatteredBiomes[0][0] = B::WindsweptGravellyHills;
     m_shatteredBiomes[0][1] = B::WindsweptGravellyHills;
     m_shatteredBiomes[0][2] = B::WindsweptHills;
     m_shatteredBiomes[0][3] = B::WindsweptForest;
     m_shatteredBiomes[0][4] = B::WindsweptForest;
-    // 冷
     m_shatteredBiomes[1][0] = B::WindsweptGravellyHills;
     m_shatteredBiomes[1][1] = B::WindsweptGravellyHills;
     m_shatteredBiomes[1][2] = B::WindsweptHills;
     m_shatteredBiomes[1][3] = B::WindsweptForest;
     m_shatteredBiomes[1][4] = B::WindsweptForest;
-    // 温和
     m_shatteredBiomes[2][0] = B::WindsweptHills;
     m_shatteredBiomes[2][1] = B::WindsweptHills;
     m_shatteredBiomes[2][2] = B::WindsweptHills;
     m_shatteredBiomes[2][3] = B::WindsweptForest;
     m_shatteredBiomes[2][4] = B::WindsweptForest;
-    // 暖
     m_shatteredBiomes[3][0] = BIOME_NULL;
     m_shatteredBiomes[3][1] = BIOME_NULL;
     m_shatteredBiomes[3][2] = BIOME_NULL;
     m_shatteredBiomes[3][3] = BIOME_NULL;
     m_shatteredBiomes[3][4] = BIOME_NULL;
-    // 热
     m_shatteredBiomes[4][0] = BIOME_NULL;
     m_shatteredBiomes[4][1] = BIOME_NULL;
     m_shatteredBiomes[4][2] = BIOME_NULL;
@@ -262,20 +227,18 @@ OverworldBiomeBuilder::OverworldBiomeBuilder()
 // 生物群系选择方法
 // ============================================================================
 
-BiomeId OverworldBiomeBuilder::pickMiddleBiome(i32 temperature, i32 humidity, f64 weirdness) const
+BiomeId OverworldBiomeBuilder::pickMiddleBiome(i32 temperature, i32 humidity, const Parameter& weirdness) const
 {
-    if (weirdness >= 0.0) {
-        const BiomeId variant = m_middleBiomesVariant[temperature][humidity];
-        if (variant != BIOME_NULL) {
-            return variant;
-        }
+    if (weirdness.max < 0) {
+        return m_middleBiomes[temperature][humidity];
     }
-    return m_middleBiomes[temperature][humidity];
+    const BiomeId variant = m_middleBiomesVariant[temperature][humidity];
+    return variant != BIOME_NULL ? variant : m_middleBiomes[temperature][humidity];
 }
 
-BiomeId OverworldBiomeBuilder::pickPlateauBiome(i32 temperature, i32 humidity, f64 weirdness) const
+BiomeId OverworldBiomeBuilder::pickPlateauBiome(i32 temperature, i32 humidity, const Parameter& weirdness) const
 {
-    if (weirdness >= 0.0) {
+    if (weirdness.max >= 0) {
         const BiomeId variant = m_plateauBiomesVariant[temperature][humidity];
         if (variant != BIOME_NULL) {
             return variant;
@@ -284,32 +247,30 @@ BiomeId OverworldBiomeBuilder::pickPlateauBiome(i32 temperature, i32 humidity, f
     return m_plateauBiomes[temperature][humidity];
 }
 
-BiomeId OverworldBiomeBuilder::pickPeakBiome(i32 temperature, i32 humidity, f64 weirdness) const
+BiomeId OverworldBiomeBuilder::pickPeakBiome(i32 temperature, i32 humidity, const Parameter& weirdness) const
 {
     MC_UNUSED(humidity);
     if (temperature <= 2) {
-        return weirdness < 0.0 ? B::JaggedPeaks : B::FrozenPeaks;
+        return weirdness.max < 0 ? B::JaggedPeaks : B::FrozenPeaks;
     }
     if (temperature == 3) {
         return B::StonyPeaks;
     }
-    // temperature == 4 (hot)
     return pickBadlandsBiome(humidity, weirdness);
 }
 
-BiomeId OverworldBiomeBuilder::pickSlopeBiome(i32 temperature, i32 humidity, f64 weirdness) const
+BiomeId OverworldBiomeBuilder::pickSlopeBiome(i32 temperature, i32 humidity, const Parameter& weirdness) const
 {
-    MC_UNUSED(weirdness);
     if (temperature >= 3) {
         return pickPlateauBiome(temperature, humidity, weirdness);
     }
     return humidity <= 1 ? B::SnowySlopes : B::Grove;
 }
 
-BiomeId OverworldBiomeBuilder::pickBadlandsBiome(i32 humidity, f64 weirdness) const
+BiomeId OverworldBiomeBuilder::pickBadlandsBiome(i32 humidity, const Parameter& weirdness) const
 {
     if (humidity < 2) {
-        return weirdness < 0.0 ? B::Badlands : B::ErodedBadlands;
+        return weirdness.max < 0 ? B::Badlands : B::ErodedBadlands;
     }
     if (humidity < 3) {
         return B::Badlands;
@@ -328,55 +289,871 @@ BiomeId OverworldBiomeBuilder::pickBeachBiome(i32 temperature) const
     return B::Beach;
 }
 
+BiomeId OverworldBiomeBuilder::pickShatteredBiome(i32 temperature, i32 humidity, const Parameter& weirdness) const
+{
+    const BiomeId shattered = m_shatteredBiomes[temperature][humidity];
+    return shattered != BIOME_NULL ? shattered : pickMiddleBiome(temperature, humidity, weirdness);
+}
+
+BiomeId OverworldBiomeBuilder::pickMiddleBiomeOrBadlandsIfHot(
+    i32 temperature, i32 humidity, const Parameter& weirdness) const
+{
+    return temperature == 4 ? pickBadlandsBiome(humidity, weirdness)
+                            : pickMiddleBiome(temperature, humidity, weirdness);
+}
+
+BiomeId OverworldBiomeBuilder::pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(
+    i32 temperature, i32 humidity, const Parameter& weirdness) const
+{
+    return temperature == 0 ? pickSlopeBiome(temperature, humidity, weirdness)
+                            : pickMiddleBiomeOrBadlandsIfHot(temperature, humidity, weirdness);
+}
+
+BiomeId OverworldBiomeBuilder::maybePickWindsweptSavannaBiome(
+    i32 temperature, i32 humidity, const Parameter& weirdness, BiomeId defaultBiome) const
+{
+    MC_UNUSED(weirdness);
+    return (temperature > 1 && humidity < 4 && weirdness.max >= 0) ? B::WindsweptSavanna : defaultBiome;
+}
+
+BiomeId OverworldBiomeBuilder::pickShatteredCoastBiome(i32 temperature, i32 humidity, const Parameter& weirdness) const
+{
+    const BiomeId biome =
+        weirdness.max >= 0 ? pickMiddleBiome(temperature, humidity, weirdness) : pickBeachBiome(temperature);
+    return maybePickWindsweptSavannaBiome(temperature, humidity, weirdness, biome);
+}
+
 // ============================================================================
 // 参数添加辅助方法
 // ============================================================================
 
-void OverworldBiomeBuilder::addSurfaceBiome(ParameterList<BiomeId>& list,
+void OverworldBiomeBuilder::addSurfaceBiome(std::vector<ParameterList<BiomeId>::Entry>& entries,
     const Parameter& temperature,
     const Parameter& humidity,
     const Parameter& continentalness,
     const Parameter& erosion,
     const Parameter& weirdness,
-    f64 offset,
+    f32 offset,
     BiomeId biome) const
 {
-    // 表面生物群系注册两个参数点：depth=0 和 depth=1
-    const Parameter surfaceDepth0 = Parameter::span(-1.0f, 0.0f);
-    const Parameter surfaceDepth1 = Parameter::span(0.0f, 1.0f);
-
-    list.add(ParameterPoint{temperature,
-                 humidity,
-                 continentalness,
-                 erosion,
-                 surfaceDepth0,
-                 weirdness,
-                 quantizeCoord(static_cast<f32>(offset))},
+    const i64 qOffset = quantizeCoord(offset);
+    // depth=0 和 depth=1 两个参数点
+    entries.emplace_back(
+        ParameterPoint{temperature, humidity, continentalness, erosion, Parameter::point(0.0f), weirdness, qOffset},
         biome);
-    list.add(ParameterPoint{temperature,
-                 humidity,
-                 continentalness,
-                 erosion,
-                 surfaceDepth1,
-                 weirdness,
-                 quantizeCoord(static_cast<f32>(offset))},
+    entries.emplace_back(
+        ParameterPoint{temperature, humidity, continentalness, erosion, Parameter::point(1.0f), weirdness, qOffset},
         biome);
 }
 
-void OverworldBiomeBuilder::addUndergroundBiome(ParameterList<BiomeId>& list,
+void OverworldBiomeBuilder::addUndergroundBiome(std::vector<ParameterList<BiomeId>::Entry>& entries,
     const Parameter& temperature,
     const Parameter& humidity,
     const Parameter& continentalness,
     const Parameter& erosion,
-    const Parameter& depth,
     const Parameter& weirdness,
-    f64 offset,
+    f32 offset,
     BiomeId biome) const
 {
-    list.add(
-        ParameterPoint{
-            temperature, humidity, continentalness, erosion, depth, weirdness, quantizeCoord(static_cast<f32>(offset))},
+    entries.emplace_back(ParameterPoint{temperature,
+                             humidity,
+                             continentalness,
+                             erosion,
+                             Parameter::span(0.2f, 0.9f),
+                             weirdness,
+                             quantizeCoord(offset)},
         biome);
+}
+
+void OverworldBiomeBuilder::addBottomBiome(std::vector<ParameterList<BiomeId>::Entry>& entries,
+    const Parameter& temperature,
+    const Parameter& humidity,
+    const Parameter& continentalness,
+    const Parameter& erosion,
+    const Parameter& weirdness,
+    f32 offset,
+    BiomeId biome) const
+{
+    entries.emplace_back(
+        ParameterPoint{
+            temperature, humidity, continentalness, erosion, Parameter::point(1.1f), weirdness, quantizeCoord(offset)},
+        biome);
+}
+
+// ============================================================================
+// 近海生物群系
+// ============================================================================
+
+void OverworldBiomeBuilder::addOffCoastBiomes(std::vector<ParameterList<BiomeId>::Entry>& entries) const
+{
+    addSurfaceBiome(entries,
+        m_fullRange,
+        m_fullRange,
+        m_mushroomFieldsContinentalness,
+        m_fullRange,
+        m_fullRange,
+        0.0f,
+        B::MushroomFields);
+
+    for (i32 i = 0; i < 5; ++i) {
+        addSurfaceBiome(entries,
+            m_temperatures[i],
+            m_fullRange,
+            m_deepOceanContinentalness,
+            m_fullRange,
+            m_fullRange,
+            0.0f,
+            m_oceans[i][0]);
+        addSurfaceBiome(entries,
+            m_temperatures[i],
+            m_fullRange,
+            m_oceanContinentalness,
+            m_fullRange,
+            m_fullRange,
+            0.0f,
+            m_oceans[i][1]);
+    }
+}
+
+// ============================================================================
+// 内陆生物群系（13 个奇异度切片）
+// ============================================================================
+
+void OverworldBiomeBuilder::addInlandBiomes(std::vector<ParameterList<BiomeId>::Entry>& entries) const
+{
+    addMidSlice(entries, Parameter::span(-1.0f, -0.93333334f));
+    addHighSlice(entries, Parameter::span(-0.93333334f, -0.7666667f));
+    addPeaks(entries, Parameter::span(-0.7666667f, -0.56666666f));
+    addHighSlice(entries, Parameter::span(-0.56666666f, -0.4f));
+    addMidSlice(entries, Parameter::span(-0.4f, -0.26666668f));
+    addLowSlice(entries, Parameter::span(-0.26666668f, -0.05f));
+    addValleys(entries, Parameter::span(-0.05f, 0.05f));
+    addLowSlice(entries, Parameter::span(0.05f, 0.26666668f));
+    addMidSlice(entries, Parameter::span(0.26666668f, 0.4f));
+    addHighSlice(entries, Parameter::span(0.4f, 0.56666666f));
+    addPeaks(entries, Parameter::span(0.56666666f, 0.7666667f));
+    addHighSlice(entries, Parameter::span(0.7666667f, 0.93333334f));
+    addMidSlice(entries, Parameter::span(0.93333334f, 1.0f));
+}
+
+// ============================================================================
+// 中间切片
+// ============================================================================
+
+void OverworldBiomeBuilder::addMidSlice(
+    std::vector<ParameterList<BiomeId>::Entry>& entries, const Parameter& weirdness) const
+{
+    // 石岸
+    addSurfaceBiome(entries,
+        m_fullRange,
+        m_fullRange,
+        m_coastContinentalness,
+        Parameter::span(m_erosions[0], m_erosions[2]),
+        weirdness,
+        0.0f,
+        B::StonyShore);
+
+    // 沼泽（冷-温和温度，低侵蚀）
+    addSurfaceBiome(entries,
+        Parameter::span(m_temperatures[1], m_temperatures[2]),
+        m_fullRange,
+        Parameter::span(m_nearInlandContinentalness, m_farInlandContinentalness),
+        m_erosions[6],
+        weirdness,
+        0.0f,
+        B::Swamp);
+
+    // 红树林沼泽（暖-热温度，低侵蚀）
+    addSurfaceBiome(entries,
+        Parameter::span(m_temperatures[3], m_temperatures[4]),
+        m_fullRange,
+        Parameter::span(m_nearInlandContinentalness, m_farInlandContinentalness),
+        m_erosions[6],
+        weirdness,
+        0.0f,
+        B::MangroveSwamp);
+
+    for (i32 i = 0; i < 5; ++i) {
+        const Parameter& temp = m_temperatures[i];
+        for (i32 j = 0; j < 5; ++j) {
+            const Parameter& humid = m_humidities[j];
+            const BiomeId midBiome = pickMiddleBiome(i, j, weirdness);
+            const BiomeId midOrBadlands = pickMiddleBiomeOrBadlandsIfHot(i, j, weirdness);
+            const BiomeId midOrBadlandsOrSlope = pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(i, j, weirdness);
+            const BiomeId shattered = pickShatteredBiome(i, j, weirdness);
+            const BiomeId plateau = pickPlateauBiome(i, j, weirdness);
+            const BiomeId beach = pickBeachBiome(i);
+            const BiomeId windsweptSavanna = maybePickWindsweptSavannaBiome(i, j, weirdness, midBiome);
+            const BiomeId shatteredCoast = pickShatteredCoastBiome(i, j, weirdness);
+            const BiomeId slope = pickSlopeBiome(i, j, weirdness);
+
+            // 侵蚀 0（最抗侵蚀）：山坡/山峰
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_nearInlandContinentalness, m_farInlandContinentalness),
+                m_erosions[0],
+                weirdness,
+                0.0f,
+                slope);
+
+            // 侵蚀 1，近-中内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_nearInlandContinentalness, m_midInlandContinentalness),
+                m_erosions[1],
+                weirdness,
+                0.0f,
+                midOrBadlandsOrSlope);
+
+            // 侵蚀 1，远内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                m_farInlandContinentalness,
+                m_erosions[1],
+                weirdness,
+                0.0f,
+                i == 0 ? slope : plateau);
+
+            // 侵蚀 2，近内陆
+            addSurfaceBiome(
+                entries, temp, humid, m_nearInlandContinentalness, m_erosions[2], weirdness, 0.0f, midBiome);
+
+            // 侵蚀 2，中内陆
+            addSurfaceBiome(
+                entries, temp, humid, m_midInlandContinentalness, m_erosions[2], weirdness, 0.0f, midOrBadlands);
+
+            // 侵蚀 2，远内陆
+            addSurfaceBiome(entries, temp, humid, m_farInlandContinentalness, m_erosions[2], weirdness, 0.0f, plateau);
+
+            // 侵蚀 3，海岸-近内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_coastContinentalness, m_nearInlandContinentalness),
+                m_erosions[3],
+                weirdness,
+                0.0f,
+                midBiome);
+
+            // 侵蚀 3，中-远内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_midInlandContinentalness, m_farInlandContinentalness),
+                m_erosions[3],
+                weirdness,
+                0.0f,
+                midOrBadlands);
+
+            // 侵蚀 4：根据奇异度符号决定海岸/内陆
+            if (weirdness.max < 0) {
+                addSurfaceBiome(entries, temp, humid, m_coastContinentalness, m_erosions[4], weirdness, 0.0f, beach);
+                addSurfaceBiome(entries,
+                    temp,
+                    humid,
+                    Parameter::span(m_nearInlandContinentalness, m_farInlandContinentalness),
+                    m_erosions[4],
+                    weirdness,
+                    0.0f,
+                    midBiome);
+            } else {
+                addSurfaceBiome(entries,
+                    temp,
+                    humid,
+                    Parameter::span(m_coastContinentalness, m_farInlandContinentalness),
+                    m_erosions[4],
+                    weirdness,
+                    0.0f,
+                    midBiome);
+            }
+
+            // 侵蚀 5
+            addSurfaceBiome(
+                entries, temp, humid, m_coastContinentalness, m_erosions[5], weirdness, 0.0f, shatteredCoast);
+            addSurfaceBiome(
+                entries, temp, humid, m_nearInlandContinentalness, m_erosions[5], weirdness, 0.0f, windsweptSavanna);
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_midInlandContinentalness, m_farInlandContinentalness),
+                m_erosions[5],
+                weirdness,
+                0.0f,
+                shattered);
+
+            // 侵蚀 6：海岸
+            if (weirdness.max < 0) {
+                addSurfaceBiome(entries, temp, humid, m_coastContinentalness, m_erosions[6], weirdness, 0.0f, beach);
+            } else {
+                addSurfaceBiome(entries, temp, humid, m_coastContinentalness, m_erosions[6], weirdness, 0.0f, midBiome);
+            }
+
+            // 侵蚀 6：冰冻温度的内陆
+            if (i == 0) {
+                addSurfaceBiome(entries,
+                    temp,
+                    humid,
+                    Parameter::span(m_nearInlandContinentalness, m_farInlandContinentalness),
+                    m_erosions[6],
+                    weirdness,
+                    0.0f,
+                    midBiome);
+            }
+        }
+    }
+}
+
+// ============================================================================
+// 高切片
+// ============================================================================
+
+void OverworldBiomeBuilder::addHighSlice(
+    std::vector<ParameterList<BiomeId>::Entry>& entries, const Parameter& weirdness) const
+{
+    for (i32 i = 0; i < 5; ++i) {
+        const Parameter& temp = m_temperatures[i];
+        for (i32 j = 0; j < 5; ++j) {
+            const Parameter& humid = m_humidities[j];
+            const BiomeId midBiome = pickMiddleBiome(i, j, weirdness);
+            const BiomeId midOrBadlands = pickMiddleBiomeOrBadlandsIfHot(i, j, weirdness);
+            const BiomeId midOrBadlandsOrSlope = pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(i, j, weirdness);
+            const BiomeId plateau = pickPlateauBiome(i, j, weirdness);
+            const BiomeId shattered = pickShatteredBiome(i, j, weirdness);
+            const BiomeId windsweptSavanna = maybePickWindsweptSavannaBiome(i, j, weirdness, midBiome);
+            const BiomeId slope = pickSlopeBiome(i, j, weirdness);
+            const BiomeId peak = pickPeakBiome(i, j, weirdness);
+
+            // 侵蚀 0-1，海岸
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                m_coastContinentalness,
+                Parameter::span(m_erosions[0], m_erosions[1]),
+                weirdness,
+                0.0f,
+                midBiome);
+
+            // 侵蚀 0，近内陆
+            addSurfaceBiome(entries, temp, humid, m_nearInlandContinentalness, m_erosions[0], weirdness, 0.0f, slope);
+
+            // 侵蚀 0，中-远内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_midInlandContinentalness, m_farInlandContinentalness),
+                m_erosions[0],
+                weirdness,
+                0.0f,
+                peak);
+
+            // 侵蚀 1，近内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                m_nearInlandContinentalness,
+                m_erosions[1],
+                weirdness,
+                0.0f,
+                midOrBadlandsOrSlope);
+
+            // 侵蚀 1，中-远内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_midInlandContinentalness, m_farInlandContinentalness),
+                m_erosions[1],
+                weirdness,
+                0.0f,
+                slope);
+
+            // 侵蚀 2-3，海岸-近内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_coastContinentalness, m_nearInlandContinentalness),
+                Parameter::span(m_erosions[2], m_erosions[3]),
+                weirdness,
+                0.0f,
+                midBiome);
+
+            // 侵蚀 2，中-远内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_midInlandContinentalness, m_farInlandContinentalness),
+                m_erosions[2],
+                weirdness,
+                0.0f,
+                plateau);
+
+            // 侵蚀 3，中内陆
+            addSurfaceBiome(
+                entries, temp, humid, m_midInlandContinentalness, m_erosions[3], weirdness, 0.0f, midOrBadlands);
+
+            // 侵蚀 3，远内陆
+            addSurfaceBiome(entries, temp, humid, m_farInlandContinentalness, m_erosions[3], weirdness, 0.0f, plateau);
+
+            // 侵蚀 4
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_coastContinentalness, m_farInlandContinentalness),
+                m_erosions[4],
+                weirdness,
+                0.0f,
+                midBiome);
+
+            // 侵蚀 5，海岸-近内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_coastContinentalness, m_nearInlandContinentalness),
+                m_erosions[5],
+                weirdness,
+                0.0f,
+                windsweptSavanna);
+
+            // 侵蚀 5，中-远内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_midInlandContinentalness, m_farInlandContinentalness),
+                m_erosions[5],
+                weirdness,
+                0.0f,
+                shattered);
+
+            // 侵蚀 6
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_coastContinentalness, m_farInlandContinentalness),
+                m_erosions[6],
+                weirdness,
+                0.0f,
+                midBiome);
+        }
+    }
+}
+
+// ============================================================================
+// 山峰切片
+// ============================================================================
+
+void OverworldBiomeBuilder::addPeaks(
+    std::vector<ParameterList<BiomeId>::Entry>& entries, const Parameter& weirdness) const
+{
+    for (i32 i = 0; i < 5; ++i) {
+        const Parameter& temp = m_temperatures[i];
+        for (i32 j = 0; j < 5; ++j) {
+            const Parameter& humid = m_humidities[j];
+            const BiomeId midBiome = pickMiddleBiome(i, j, weirdness);
+            const BiomeId midOrBadlands = pickMiddleBiomeOrBadlandsIfHot(i, j, weirdness);
+            const BiomeId midOrBadlandsOrSlope = pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(i, j, weirdness);
+            const BiomeId plateau = pickPlateauBiome(i, j, weirdness);
+            const BiomeId shattered = pickShatteredBiome(i, j, weirdness);
+            const BiomeId windsweptSavanna = maybePickWindsweptSavannaBiome(i, j, weirdness, shattered);
+            const BiomeId peak = pickPeakBiome(i, j, weirdness);
+
+            // 侵蚀 0
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_coastContinentalness, m_farInlandContinentalness),
+                m_erosions[0],
+                weirdness,
+                0.0f,
+                peak);
+
+            // 侵蚀 1，海岸-近内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_coastContinentalness, m_nearInlandContinentalness),
+                m_erosions[1],
+                weirdness,
+                0.0f,
+                midOrBadlandsOrSlope);
+
+            // 侵蚀 1，中-远内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_midInlandContinentalness, m_farInlandContinentalness),
+                m_erosions[1],
+                weirdness,
+                0.0f,
+                peak);
+
+            // 侵蚀 2-3，海岸-近内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_coastContinentalness, m_nearInlandContinentalness),
+                Parameter::span(m_erosions[2], m_erosions[3]),
+                weirdness,
+                0.0f,
+                midBiome);
+
+            // 侵蚀 2，中-远内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_midInlandContinentalness, m_farInlandContinentalness),
+                m_erosions[2],
+                weirdness,
+                0.0f,
+                plateau);
+
+            // 侵蚀 3，中内陆
+            addSurfaceBiome(
+                entries, temp, humid, m_midInlandContinentalness, m_erosions[3], weirdness, 0.0f, midOrBadlands);
+
+            // 侵蚀 3，远内陆
+            addSurfaceBiome(entries, temp, humid, m_farInlandContinentalness, m_erosions[3], weirdness, 0.0f, plateau);
+
+            // 侵蚀 4
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_coastContinentalness, m_farInlandContinentalness),
+                m_erosions[4],
+                weirdness,
+                0.0f,
+                midBiome);
+
+            // 侵蚀 5，海岸-近内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_coastContinentalness, m_nearInlandContinentalness),
+                m_erosions[5],
+                weirdness,
+                0.0f,
+                windsweptSavanna);
+
+            // 侵蚀 5，中-远内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_midInlandContinentalness, m_farInlandContinentalness),
+                m_erosions[5],
+                weirdness,
+                0.0f,
+                shattered);
+
+            // 侵蚀 6
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_coastContinentalness, m_farInlandContinentalness),
+                m_erosions[6],
+                weirdness,
+                0.0f,
+                midBiome);
+        }
+    }
+}
+
+// ============================================================================
+// 低切片
+// ============================================================================
+
+void OverworldBiomeBuilder::addLowSlice(
+    std::vector<ParameterList<BiomeId>::Entry>& entries, const Parameter& weirdness) const
+{
+    // 石岸
+    addSurfaceBiome(entries,
+        m_fullRange,
+        m_fullRange,
+        m_coastContinentalness,
+        Parameter::span(m_erosions[0], m_erosions[2]),
+        weirdness,
+        0.0f,
+        B::StonyShore);
+
+    // 沼泽（冷-温和温度）
+    addSurfaceBiome(entries,
+        Parameter::span(m_temperatures[1], m_temperatures[2]),
+        m_fullRange,
+        Parameter::span(m_nearInlandContinentalness, m_farInlandContinentalness),
+        m_erosions[6],
+        weirdness,
+        0.0f,
+        B::Swamp);
+
+    // 红树林沼泽（暖-热温度）
+    addSurfaceBiome(entries,
+        Parameter::span(m_temperatures[3], m_temperatures[4]),
+        m_fullRange,
+        Parameter::span(m_nearInlandContinentalness, m_farInlandContinentalness),
+        m_erosions[6],
+        weirdness,
+        0.0f,
+        B::MangroveSwamp);
+
+    for (i32 i = 0; i < 5; ++i) {
+        const Parameter& temp = m_temperatures[i];
+        for (i32 j = 0; j < 5; ++j) {
+            const Parameter& humid = m_humidities[j];
+            const BiomeId midBiome = pickMiddleBiome(i, j, weirdness);
+            const BiomeId midOrBadlands = pickMiddleBiomeOrBadlandsIfHot(i, j, weirdness);
+            const BiomeId midOrBadlandsOrSlope = pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(i, j, weirdness);
+            const BiomeId beach = pickBeachBiome(i);
+            const BiomeId windsweptSavanna = maybePickWindsweptSavannaBiome(i, j, weirdness, midBiome);
+            const BiomeId shatteredCoast = pickShatteredCoastBiome(i, j, weirdness);
+
+            // 侵蚀 0-1，近内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                m_nearInlandContinentalness,
+                Parameter::span(m_erosions[0], m_erosions[1]),
+                weirdness,
+                0.0f,
+                midOrBadlands);
+
+            // 侵蚀 0-1，中-远内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_midInlandContinentalness, m_farInlandContinentalness),
+                Parameter::span(m_erosions[0], m_erosions[1]),
+                weirdness,
+                0.0f,
+                midOrBadlandsOrSlope);
+
+            // 侵蚀 2-3，近内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                m_nearInlandContinentalness,
+                Parameter::span(m_erosions[2], m_erosions[3]),
+                weirdness,
+                0.0f,
+                midBiome);
+
+            // 侵蚀 2-3，中-远内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_midInlandContinentalness, m_farInlandContinentalness),
+                Parameter::span(m_erosions[2], m_erosions[3]),
+                weirdness,
+                0.0f,
+                midOrBadlands);
+
+            // 侵蚀 3-4，海岸
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                m_coastContinentalness,
+                Parameter::span(m_erosions[3], m_erosions[4]),
+                weirdness,
+                0.0f,
+                beach);
+
+            // 侵蚀 4，近-远内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_nearInlandContinentalness, m_farInlandContinentalness),
+                m_erosions[4],
+                weirdness,
+                0.0f,
+                midBiome);
+
+            // 侵蚀 5，海岸
+            addSurfaceBiome(
+                entries, temp, humid, m_coastContinentalness, m_erosions[5], weirdness, 0.0f, shatteredCoast);
+
+            // 侵蚀 5，近内陆
+            addSurfaceBiome(
+                entries, temp, humid, m_nearInlandContinentalness, m_erosions[5], weirdness, 0.0f, windsweptSavanna);
+
+            // 侵蚀 5，中-远内陆
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_midInlandContinentalness, m_farInlandContinentalness),
+                m_erosions[5],
+                weirdness,
+                0.0f,
+                midBiome);
+
+            // 侵蚀 6，海岸
+            addSurfaceBiome(entries, temp, humid, m_coastContinentalness, m_erosions[6], weirdness, 0.0f, beach);
+
+            // 侵蚀 6，冰冻温度的内陆
+            if (i == 0) {
+                addSurfaceBiome(entries,
+                    temp,
+                    humid,
+                    Parameter::span(m_nearInlandContinentalness, m_farInlandContinentalness),
+                    m_erosions[6],
+                    weirdness,
+                    0.0f,
+                    midBiome);
+            }
+        }
+    }
+}
+
+// ============================================================================
+// 山谷切片（河流、冻河、沼泽）
+// ============================================================================
+
+void OverworldBiomeBuilder::addValleys(
+    std::vector<ParameterList<BiomeId>::Entry>& entries, const Parameter& weirdness) const
+{
+    // 冻河/石岸（冰冻温度，低侵蚀，海岸）
+    addSurfaceBiome(entries,
+        m_frozenRange,
+        m_fullRange,
+        m_coastContinentalness,
+        Parameter::span(m_erosions[0], m_erosions[1]),
+        weirdness,
+        0.0f,
+        weirdness.max < 0 ? B::StonyShore : B::FrozenRiver);
+
+    // 河流/石岸（非冰冻温度，低侵蚀，海岸）
+    addSurfaceBiome(entries,
+        m_unfrozenRange,
+        m_fullRange,
+        m_coastContinentalness,
+        Parameter::span(m_erosions[0], m_erosions[1]),
+        weirdness,
+        0.0f,
+        weirdness.max < 0 ? B::StonyShore : B::River);
+
+    // 冻河（冰冻温度，低侵蚀，近内陆）
+    addSurfaceBiome(entries,
+        m_frozenRange,
+        m_fullRange,
+        m_nearInlandContinentalness,
+        Parameter::span(m_erosions[0], m_erosions[1]),
+        weirdness,
+        0.0f,
+        B::FrozenRiver);
+
+    // 河流（非冰冻温度，低侵蚀，近内陆）
+    addSurfaceBiome(entries,
+        m_unfrozenRange,
+        m_fullRange,
+        m_nearInlandContinentalness,
+        Parameter::span(m_erosions[0], m_erosions[1]),
+        weirdness,
+        0.0f,
+        B::River);
+
+    // 冻河（冰冻温度，中侵蚀，海岸-远内陆）
+    addSurfaceBiome(entries,
+        m_frozenRange,
+        m_fullRange,
+        Parameter::span(m_coastContinentalness, m_farInlandContinentalness),
+        Parameter::span(m_erosions[2], m_erosions[5]),
+        weirdness,
+        0.0f,
+        B::FrozenRiver);
+
+    // 河流（非冰冻温度，中侵蚀，海岸-远内陆）
+    addSurfaceBiome(entries,
+        m_unfrozenRange,
+        m_fullRange,
+        Parameter::span(m_coastContinentalness, m_farInlandContinentalness),
+        Parameter::span(m_erosions[2], m_erosions[5]),
+        weirdness,
+        0.0f,
+        B::River);
+
+    // 冻河（冰冻温度，高侵蚀，海岸）
+    addSurfaceBiome(
+        entries, m_frozenRange, m_fullRange, m_coastContinentalness, m_erosions[6], weirdness, 0.0f, B::FrozenRiver);
+
+    // 河流（非冰冻温度，高侵蚀，海岸）
+    addSurfaceBiome(
+        entries, m_unfrozenRange, m_fullRange, m_coastContinentalness, m_erosions[6], weirdness, 0.0f, B::River);
+
+    // 沼泽（冷-温和温度，高侵蚀，内陆）
+    addSurfaceBiome(entries,
+        Parameter::span(m_temperatures[1], m_temperatures[2]),
+        m_fullRange,
+        Parameter::span(m_inlandContinentalness, m_farInlandContinentalness),
+        m_erosions[6],
+        weirdness,
+        0.0f,
+        B::Swamp);
+
+    // 红树林沼泽（暖-热温度，高侵蚀，内陆）
+    addSurfaceBiome(entries,
+        Parameter::span(m_temperatures[3], m_temperatures[4]),
+        m_fullRange,
+        Parameter::span(m_inlandContinentalness, m_farInlandContinentalness),
+        m_erosions[6],
+        weirdness,
+        0.0f,
+        B::MangroveSwamp);
+
+    // 冻河（冰冻温度，高侵蚀，内陆）
+    addSurfaceBiome(entries,
+        m_frozenRange,
+        m_fullRange,
+        Parameter::span(m_inlandContinentalness, m_farInlandContinentalness),
+        m_erosions[6],
+        weirdness,
+        0.0f,
+        B::FrozenRiver);
+
+    // 低侵蚀内陆（所有温度×湿度）
+    for (i32 i = 0; i < 5; ++i) {
+        const Parameter& temp = m_temperatures[i];
+        for (i32 j = 0; j < 5; ++j) {
+            const Parameter& humid = m_humidities[j];
+            const BiomeId midOrBadlands = pickMiddleBiomeOrBadlandsIfHot(i, j, weirdness);
+            addSurfaceBiome(entries,
+                temp,
+                humid,
+                Parameter::span(m_midInlandContinentalness, m_farInlandContinentalness),
+                Parameter::span(m_erosions[0], m_erosions[1]),
+                weirdness,
+                0.0f,
+                midOrBadlands);
+        }
+    }
+}
+
+// ============================================================================
+// 地下生物群系
+// ============================================================================
+
+void OverworldBiomeBuilder::addUndergroundBiomesEntries(std::vector<ParameterList<BiomeId>::Entry>& entries) const
+{
+    // 滴水石洞：高大陆度
+    addUndergroundBiome(entries,
+        m_fullRange,
+        m_fullRange,
+        Parameter::span(0.8f, 1.0f),
+        m_fullRange,
+        m_fullRange,
+        0.0f,
+        B::DripstoneCaves);
+
+    // 繁茂洞穴：高湿度
+    addUndergroundBiome(
+        entries, m_fullRange, Parameter::span(0.7f, 1.0f), m_fullRange, m_fullRange, m_fullRange, 0.0f, B::LushCaves);
+
+    // 深暗之域：低侵蚀 + 最深层
+    addBottomBiome(entries,
+        m_fullRange,
+        m_fullRange,
+        m_fullRange,
+        Parameter::span(m_erosions[0], m_erosions[1]),
+        m_fullRange,
+        0.0f,
+        B::DeepDark);
 }
 
 // ============================================================================
@@ -385,221 +1162,13 @@ void OverworldBiomeBuilder::addUndergroundBiome(ParameterList<BiomeId>& list,
 
 ParameterList<BiomeId> OverworldBiomeBuilder::buildParameterList() const
 {
-    ParameterList<BiomeId> list;
-    const Parameter fullRange = Parameter::fullRange();
+    std::vector<ParameterList<BiomeId>::Entry> entries;
 
-    // ========== 海洋生物群系 ==========
-    for (i32 temp = 0; temp < 5; ++temp) {
-        // 深海
-        addSurfaceBiome(list,
-            m_temperatures[temp],
-            fullRange,
-            m_mushroomFieldsContinentalness,
-            fullRange,
-            fullRange,
-            0.0,
-            B::MushroomFields);
-        addSurfaceBiome(list,
-            m_temperatures[temp],
-            fullRange,
-            m_deepOceanContinentalness,
-            fullRange,
-            fullRange,
-            0.0,
-            m_oceans[temp][0]);
-        addSurfaceBiome(list,
-            m_temperatures[temp],
-            fullRange,
-            m_oceanContinentalness,
-            fullRange,
-            fullRange,
-            0.0,
-            m_oceans[temp][1]);
-    }
+    addOffCoastBiomes(entries);
+    addInlandBiomes(entries);
+    addUndergroundBiomesEntries(entries);
 
-    // ========== 海岸生物群系 ==========
-    for (i32 temp = 0; temp < 5; ++temp) {
-        const BiomeId beachBiome = pickBeachBiome(temp);
-        addSurfaceBiome(list,
-            m_temperatures[temp],
-            fullRange,
-            m_coastContinentalness,
-            fullRange,
-            m_valleyWeirdness,
-            0.0,
-            beachBiome);
-    }
-
-    // ========== 内陆生物群系 ==========
-    for (i32 temp = 0; temp < 5; ++temp) {
-        for (i32 humid = 0; humid < 5; ++humid) {
-            // 近内陆 - 山谷
-            addSurfaceBiome(list,
-                m_temperatures[temp],
-                m_humidities[humid],
-                m_nearInlandContinentalness,
-                fullRange,
-                m_valleyWeirdness,
-                0.0,
-                pickMiddleBiome(temp, humid, -1.0));
-
-            // 近内陆 - 低坡度
-            addSurfaceBiome(list,
-                m_temperatures[temp],
-                m_humidities[humid],
-                m_nearInlandContinentalness,
-                fullRange,
-                m_lowWeirdness,
-                0.0,
-                pickSlopeBiome(temp, humid, -1.0));
-
-            // 近内陆 - 高坡度
-            addSurfaceBiome(list,
-                m_temperatures[temp],
-                m_humidities[humid],
-                m_nearInlandContinentalness,
-                fullRange,
-                m_highWeirdness,
-                0.0,
-                pickSlopeBiome(temp, humid, 1.0));
-
-            // 近内陆 - 山峰
-            addSurfaceBiome(list,
-                m_temperatures[temp],
-                m_humidities[humid],
-                m_nearInlandContinentalness,
-                fullRange,
-                m_peakWeirdness,
-                0.0,
-                pickPeakBiome(temp, humid, -1.0));
-
-            // 中内陆 - 山谷
-            addSurfaceBiome(list,
-                m_temperatures[temp],
-                m_humidities[humid],
-                m_midInlandContinentalness,
-                fullRange,
-                m_valleyWeirdness,
-                0.0,
-                pickMiddleBiome(temp, humid, -1.0));
-
-            // 中内陆 - 低坡度
-            addSurfaceBiome(list,
-                m_temperatures[temp],
-                m_humidities[humid],
-                m_midInlandContinentalness,
-                fullRange,
-                m_lowWeirdness,
-                0.0,
-                pickPlateauBiome(temp, humid, -1.0));
-
-            // 中内陆 - 高坡度
-            addSurfaceBiome(list,
-                m_temperatures[temp],
-                m_humidities[humid],
-                m_midInlandContinentalness,
-                fullRange,
-                m_highWeirdness,
-                0.0,
-                pickSlopeBiome(temp, humid, 1.0));
-
-            // 中内陆 - 山峰
-            addSurfaceBiome(list,
-                m_temperatures[temp],
-                m_humidities[humid],
-                m_midInlandContinentalness,
-                fullRange,
-                m_peakWeirdness,
-                0.0,
-                pickPeakBiome(temp, humid, -1.0));
-
-            // 远内陆 - 山谷
-            addSurfaceBiome(list,
-                m_temperatures[temp],
-                m_humidities[humid],
-                m_farInlandContinentalness,
-                fullRange,
-                m_valleyWeirdness,
-                0.0,
-                pickMiddleBiome(temp, humid, -1.0));
-
-            // 远内陆 - 低坡度
-            addSurfaceBiome(list,
-                m_temperatures[temp],
-                m_humidities[humid],
-                m_farInlandContinentalness,
-                fullRange,
-                m_lowWeirdness,
-                0.0,
-                pickPlateauBiome(temp, humid, -1.0));
-
-            // 远内陆 - 中坡度
-            addSurfaceBiome(list,
-                m_temperatures[temp],
-                m_humidities[humid],
-                m_farInlandContinentalness,
-                fullRange,
-                m_midWeirdness,
-                0.0,
-                pickPlateauBiome(temp, humid, 1.0));
-
-            // 远内陆 - 高坡度
-            addSurfaceBiome(list,
-                m_temperatures[temp],
-                m_humidities[humid],
-                m_farInlandContinentalness,
-                fullRange,
-                m_highWeirdness,
-                0.0,
-                pickSlopeBiome(temp, humid, 1.0));
-
-            // 远内陆 - 山峰
-            addSurfaceBiome(list,
-                m_temperatures[temp],
-                m_humidities[humid],
-                m_farInlandContinentalness,
-                fullRange,
-                m_peakWeirdness,
-                0.0,
-                pickPeakBiome(temp, humid, -1.0));
-        }
-    }
-
-    // ========== 地下生物群系 ==========
-    // 滴水石洞：高大陆度
-    addUndergroundBiome(list,
-        fullRange,
-        fullRange,
-        Parameter::span(0.8f, 1.0f),
-        fullRange,
-        m_undergroundDepth,
-        fullRange,
-        0.0,
-        B::DripstoneCaves);
-
-    // 繁茂洞穴：高湿度
-    addUndergroundBiome(list,
-        fullRange,
-        Parameter::span(0.7f, 1.0f),
-        fullRange,
-        fullRange,
-        m_undergroundDepth,
-        fullRange,
-        0.0,
-        B::LushCaves);
-
-    // 深暗之域：低侵蚀 + 最深层
-    addUndergroundBiome(list,
-        fullRange,
-        fullRange,
-        fullRange,
-        Parameter::span(m_erosions[0].min, m_erosions[1].max),
-        Parameter::point(1.1f),
-        fullRange,
-        0.0,
-        B::DeepDark);
-
-    return list;
+    return ParameterList<BiomeId>(std::move(entries));
 }
 
 } // namespace mc::world::biome::source

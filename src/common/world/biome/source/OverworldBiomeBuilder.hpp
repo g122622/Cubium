@@ -24,24 +24,25 @@
 
 #include "common/world/biome/Biomes.hpp"
 #include "common/world/biome/climate/Climate.hpp"
+#include <functional>
 #include <vector>
 
 namespace mc::world::biome::source {
 
 /**
- * @brief 主世界生物群系参数构建器（MC 1.21）
+ * @brief 主世界生物群系参数构建器（MC 1.21.11）
  *
  * 定义主世界所有生物群系到 Climate 参数的映射关系。
- * 通过温度×湿度矩阵、大陆度、侵蚀、深度、奇异度等参数
- * 组合确定每个位置应生成的生物群系。
+ * 通过温度×湿度×大陆度×侵蚀×奇异度×深度参数组合确定每个位置应生成的生物群系。
  *
- * 映射规则：
- * - 表面生物群系：根据温度×湿度×大陆度×侵蚀×奇异度选择
- * - 高原生物群系：中等大陆度时的特殊生物群系
- * - 山峰生物群系：高奇异度值时
- * - 山坡生物群系：中高奇异度值时
- * - 海洋生物群系：负大陆度值时
- * - 地下生物群系：高深度值时（滴水石洞、繁茂洞穴、深暗之域）
+ * 13 个奇异度切片将地形分为：
+ * - MidSlice（4个）：中间地形，河流/山谷区域
+ * - HighSlice（4个）：山坡地形
+ * - Peaks（2个）：山峰地形
+ * - LowSlice（2个）：低地地形
+ * - Valleys（1个）：山谷/河流地形
+ *
+ * 每个切片内按 5 温度 × 5 湿度 × 7 侵蚀 × 大陆度组合注册生物群系。
  */
 class OverworldBiomeBuilder {
 public:
@@ -65,31 +66,30 @@ private:
     /// 侵蚀范围（7 档）
     climate::Parameter m_erosions[7];
 
+    /// 全范围参数 [-2, 2]
+    climate::Parameter m_fullRange;
+    /// 冰冻温度范围 = temperatures[0]
+    climate::Parameter m_frozenRange;
+    /// 非冰冻温度范围 = span(temperatures[1], temperatures[4])
+    climate::Parameter m_unfrozenRange;
+
     /// 大陆度范围
     climate::Parameter m_mushroomFieldsContinentalness;
     climate::Parameter m_deepOceanContinentalness;
     climate::Parameter m_oceanContinentalness;
     climate::Parameter m_coastContinentalness;
+    climate::Parameter m_inlandContinentalness;
     climate::Parameter m_nearInlandContinentalness;
     climate::Parameter m_midInlandContinentalness;
     climate::Parameter m_farInlandContinentalness;
 
-    /// 奇异度切片范围
-    climate::Parameter m_valleyWeirdness;
-    climate::Parameter m_lowWeirdness;
-    climate::Parameter m_midWeirdness;
-    climate::Parameter m_highWeirdness;
-    climate::Parameter m_peakWeirdness;
-
-    /// 深度范围
-    climate::Parameter m_surfaceDepth;
-    climate::Parameter m_undergroundDepth;
-
     // ========== 生物群系查找表 ==========
 
+    /// 海洋生物群系[温度][深浅: 0=深海, 1=浅海]
+    BiomeId m_oceans[5][2];
     /// 中部生物群系[温度][湿度]
     BiomeId m_middleBiomes[5][5];
-    /// 中部变体生物群系[温度][湿度]（奇异度>=0时使用，null 表示无变体）
+    /// 中部变体生物群系[温度][湿度]（奇异度>=0时使用，BIOME_NULL 表示无变体）
     BiomeId m_middleBiomesVariant[5][5];
     /// 高原生物群系[温度][湿度]
     BiomeId m_plateauBiomes[5][5];
@@ -97,23 +97,52 @@ private:
     BiomeId m_plateauBiomesVariant[5][5];
     /// 破碎生物群系[温度][湿度]
     BiomeId m_shatteredBiomes[5][5];
-    /// 海洋生物群系[温度][深浅]
-    BiomeId m_oceans[5][2];
 
-    // ========== 辅助方法 ==========
+    // ========== 生物群系注册方法 ==========
+
+    /** 注册近海生物群系（蘑菇岛、深海、浅海） */
+    void addOffCoastBiomes(std::vector<climate::ParameterList<BiomeId>::Entry>& entries) const;
+
+    /** 注册内陆生物群系（13 个奇异度切片） */
+    void addInlandBiomes(std::vector<climate::ParameterList<BiomeId>::Entry>& entries) const;
+
+    /** 注册地下生物群系（滴水石洞、繁茂洞穴、深暗之域） */
+    void addUndergroundBiomesEntries(std::vector<climate::ParameterList<BiomeId>::Entry>& entries) const;
+
+    /** 注册中间切片生物群系 */
+    void addMidSlice(
+        std::vector<climate::ParameterList<BiomeId>::Entry>& entries, const climate::Parameter& weirdness) const;
+
+    /** 注册高切片生物群系 */
+    void addHighSlice(
+        std::vector<climate::ParameterList<BiomeId>::Entry>& entries, const climate::Parameter& weirdness) const;
+
+    /** 注册山峰切片生物群系 */
+    void addPeaks(
+        std::vector<climate::ParameterList<BiomeId>::Entry>& entries, const climate::Parameter& weirdness) const;
+
+    /** 注册低切片生物群系 */
+    void addLowSlice(
+        std::vector<climate::ParameterList<BiomeId>::Entry>& entries, const climate::Parameter& weirdness) const;
+
+    /** 注册山谷切片生物群系（河流、冻河、沼泽等） */
+    void addValleys(
+        std::vector<climate::ParameterList<BiomeId>::Entry>& entries, const climate::Parameter& weirdness) const;
+
+    // ========== 参数添加辅助方法 ==========
 
     /**
      * @brief 添加表面生物群系
      *
      * 同时注册 depth=0 和 depth=1 两个参数点。
      */
-    void addSurfaceBiome(climate::ParameterList<BiomeId>& list,
+    void addSurfaceBiome(std::vector<climate::ParameterList<BiomeId>::Entry>& entries,
         const climate::Parameter& temperature,
         const climate::Parameter& humidity,
         const climate::Parameter& continentalness,
         const climate::Parameter& erosion,
         const climate::Parameter& weirdness,
-        f64 offset,
+        f32 offset,
         BiomeId biome) const;
 
     /**
@@ -121,45 +150,67 @@ private:
      *
      * 使用 depth=[0.2, 0.9] 范围。
      */
-    void addUndergroundBiome(climate::ParameterList<BiomeId>& list,
+    void addUndergroundBiome(std::vector<climate::ParameterList<BiomeId>::Entry>& entries,
         const climate::Parameter& temperature,
         const climate::Parameter& humidity,
         const climate::Parameter& continentalness,
         const climate::Parameter& erosion,
-        const climate::Parameter& depth,
         const climate::Parameter& weirdness,
-        f64 offset,
+        f32 offset,
         BiomeId biome) const;
 
     /**
-     * @brief 选择中部生物群系
+     * @brief 添加底层生物群系
+     *
+     * 使用 depth=1.1 点匹配。
      */
-    [[nodiscard]] BiomeId pickMiddleBiome(i32 temperature, i32 humidity, f64 weirdness) const;
+    void addBottomBiome(std::vector<climate::ParameterList<BiomeId>::Entry>& entries,
+        const climate::Parameter& temperature,
+        const climate::Parameter& humidity,
+        const climate::Parameter& continentalness,
+        const climate::Parameter& erosion,
+        const climate::Parameter& weirdness,
+        f32 offset,
+        BiomeId biome) const;
 
-    /**
-     * @brief 选择高原生物群系
-     */
-    [[nodiscard]] BiomeId pickPlateauBiome(i32 temperature, i32 humidity, f64 weirdness) const;
+    // ========== 生物群系选择方法 ==========
 
-    /**
-     * @brief 选择山峰生物群系
-     */
-    [[nodiscard]] BiomeId pickPeakBiome(i32 temperature, i32 humidity, f64 weirdness) const;
+    /** 选择中部生物群系，根据奇异度选择变体 */
+    [[nodiscard]] BiomeId pickMiddleBiome(i32 temperature, i32 humidity, const climate::Parameter& weirdness) const;
 
-    /**
-     * @brief 选择山坡生物群系
-     */
-    [[nodiscard]] BiomeId pickSlopeBiome(i32 temperature, i32 humidity, f64 weirdness) const;
+    /** 选择高原生物群系，根据奇异度选择变体 */
+    [[nodiscard]] BiomeId pickPlateauBiome(i32 temperature, i32 humidity, const climate::Parameter& weirdness) const;
 
-    /**
-     * @brief 选择恶地生物群系
-     */
-    [[nodiscard]] BiomeId pickBadlandsBiome(i32 humidity, f64 weirdness) const;
+    /** 选择山峰生物群系 */
+    [[nodiscard]] BiomeId pickPeakBiome(i32 temperature, i32 humidity, const climate::Parameter& weirdness) const;
 
-    /**
-     * @brief 选择海滩生物群系
-     */
+    /** 选择山坡生物群系 */
+    [[nodiscard]] BiomeId pickSlopeBiome(i32 temperature, i32 humidity, const climate::Parameter& weirdness) const;
+
+    /** 选择恶地生物群系 */
+    [[nodiscard]] BiomeId pickBadlandsBiome(i32 humidity, const climate::Parameter& weirdness) const;
+
+    /** 选择海滩生物群系 */
     [[nodiscard]] BiomeId pickBeachBiome(i32 temperature) const;
+
+    /** 选择破碎生物群系，null 时回退到 pickMiddleBiome */
+    [[nodiscard]] BiomeId pickShatteredBiome(i32 temperature, i32 humidity, const climate::Parameter& weirdness) const;
+
+    /** 热带时选择恶地，否则选择中部 */
+    [[nodiscard]] BiomeId pickMiddleBiomeOrBadlandsIfHot(
+        i32 temperature, i32 humidity, const climate::Parameter& weirdness) const;
+
+    /** 热带时选择恶地，冰冻时选择山坡，否则选择中部 */
+    [[nodiscard]] BiomeId pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(
+        i32 temperature, i32 humidity, const climate::Parameter& weirdness) const;
+
+    /** 条件性选择风袭热带草原 */
+    [[nodiscard]] BiomeId maybePickWindsweptSavannaBiome(
+        i32 temperature, i32 humidity, const climate::Parameter& weirdness, BiomeId defaultBiome) const;
+
+    /** 选择破碎海岸生物群系 */
+    [[nodiscard]] BiomeId pickShatteredCoastBiome(
+        i32 temperature, i32 humidity, const climate::Parameter& weirdness) const;
 };
 
 } // namespace mc::world::biome::source

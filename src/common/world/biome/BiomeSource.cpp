@@ -21,9 +21,9 @@
  */
 
 #include "common/world/biome/BiomeSource.hpp"
+#include "common/core/Constants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/core/Constants.hpp"
 #include <cmath>
 
 namespace mc::world::biome {
@@ -34,8 +34,7 @@ namespace mc::world::biome {
 
 BiomeSource::BiomeSource(u64 seed)
     : m_seed(seed)
-{
-}
+{}
 
 const Biome& BiomeSource::getBiomeDefinition(BiomeId id) const
 {
@@ -108,6 +107,28 @@ std::optional<BlockPos> BiomeSource::findBiome(i32 centerX,
     }
 
     return std::nullopt;
+}
+
+std::unordered_set<BiomeId> BiomeSource::getBiomesWithin(i32 x, i32 y, i32 z, i32 radius) const
+{
+    const i32 minQuartX = (x - radius) >> 2;
+    const i32 minQuartY = (y - radius) >> 2;
+    const i32 minQuartZ = (z - radius) >> 2;
+    const i32 maxQuartX = (x + radius) >> 2;
+    const i32 maxQuartY = (y + radius) >> 2;
+    const i32 maxQuartZ = (z + radius) >> 2;
+
+    std::unordered_set<BiomeId> result;
+
+    for (i32 qz = minQuartZ; qz <= maxQuartZ; ++qz) {
+        for (i32 qx = minQuartX; qx <= maxQuartX; ++qx) {
+            for (i32 qy = minQuartY; qy <= maxQuartY; ++qy) {
+                result.insert(getNoiseBiome(qx, qy, qz));
+            }
+        }
+    }
+
+    return result;
 }
 
 } // namespace mc::world::biome

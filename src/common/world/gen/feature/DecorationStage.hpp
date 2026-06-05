@@ -33,7 +33,7 @@ namespace mc {
  * @brief 装饰阶段枚举
  *
  * 定义特征生成的顺序阶段。
- * 参考 MC 1.16.5 GenerationStage.Decoration
+ * 参考 MC 1.21.11 GenerationStep.Decoration
  *
  * 生成顺序：
  * 1. RAW_GENERATION - 原始生成（基岩、岛屿）
@@ -44,8 +44,9 @@ namespace mc {
  * 6. STRONGHOLDS - 要塞
  * 7. UNDERGROUND_ORES - 地下矿石
  * 8. UNDERGROUND_DECORATION - 地下装饰（化石）
- * 9. VEGETAL_DECORATION - 植被装饰（树木、花草）
- * 10. TOP_LAYER_MODIFICATION - 顶层修改（雪、冰）
+ * 9. FLUID_SPRINGS - 流体泉（泉水生成）
+ * 10. VEGETAL_DECORATION - 植被装饰（树木、花草）
+ * 11. TOP_LAYER_MODIFICATION - 顶层修改（雪、冰）
  */
 enum class DecorationStage : u8 {
     RawGeneration = 0,     ///< 原始生成
@@ -56,6 +57,7 @@ enum class DecorationStage : u8 {
     Strongholds,           ///< 要塞
     UndergroundOres,       ///< 地下矿石
     UndergroundDecoration, ///< 地下装饰
+    FluidSprings,          ///< 流体泉（MC 1.21.11 新增）
     VegetalDecoration,     ///< 植被装饰
     TopLayerModification,  ///< 顶层修改
 
@@ -82,6 +84,7 @@ struct DecorationStages {
             DecorationStage::Strongholds,
             DecorationStage::UndergroundOres,
             DecorationStage::UndergroundDecoration,
+            DecorationStage::FluidSprings,
             DecorationStage::VegetalDecoration,
             DecorationStage::TopLayerModification};
         return stages;
@@ -111,6 +114,8 @@ struct DecorationStages {
                 return "underground_ores";
             case DecorationStage::UndergroundDecoration:
                 return "underground_decoration";
+            case DecorationStage::FluidSprings:
+                return "fluid_springs";
             case DecorationStage::VegetalDecoration:
                 return "vegetal_decoration";
             case DecorationStage::TopLayerModification:
@@ -123,7 +128,7 @@ struct DecorationStages {
     /**
      * @brief 获取阶段索引
      * @param stage 装饰阶段
-     * @return 索引值（0-9）
+     * @return 索引值（0-10）
      */
     static constexpr u8 getIndex(DecorationStage stage) { return static_cast<u8>(stage); }
 
@@ -155,6 +160,7 @@ struct DecorationStages {
         if (name == "strongholds") return DecorationStage::Strongholds;
         if (name == "underground_ores") return DecorationStage::UndergroundOres;
         if (name == "underground_decoration") return DecorationStage::UndergroundDecoration;
+        if (name == "fluid_springs") return DecorationStage::FluidSprings;
         if (name == "vegetal_decoration") return DecorationStage::VegetalDecoration;
         if (name == "top_layer_modification") return DecorationStage::TopLayerModification;
         return DecorationStage::RawGeneration;

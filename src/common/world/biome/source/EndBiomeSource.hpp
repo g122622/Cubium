@@ -59,6 +59,8 @@ private:
      * @param blockX 方块 X 坐标
      * @param blockZ 方块 Z 坐标
      * @return 如果在中央岛屿范围内返回 true
+     *
+     * MC 1.21 使用区块坐标判断: chunkX² + chunkZ² <= 4096（64区块半径）
      */
     [[nodiscard]] static bool isInCentralIsland(i32 blockX, i32 blockZ);
 

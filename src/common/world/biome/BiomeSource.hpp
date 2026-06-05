@@ -29,6 +29,7 @@
 #include "common/world/chunk/IChunk.hpp"
 #include <functional>
 #include <optional>
+#include <unordered_set>
 #include <vector>
 
 namespace mc::world::biome {
@@ -113,6 +114,20 @@ public:
         const std::function<bool(BiomeId)>& predicate,
         math::Random& random,
         bool stopOnFirst = false) const;
+
+    /**
+     * @brief 获取指定范围内所有不同的生物群系
+     *
+     * MC 1.21.11 BiomeSource.getBiomesWithin()
+     * 在以 (x,y,z) 为中心、radius 为半径的立方体内采样所有生物群系。
+     *
+     * @param x 中心 X 坐标（世界坐标）
+     * @param y 中心 Y 坐标（世界坐标）
+     * @param z 中心 Z 坐标（世界坐标）
+     * @param radius 搜索半径（方块）
+     * @return 范围内所有不同生物群系的集合
+     */
+    [[nodiscard]] std::unordered_set<BiomeId> getBiomesWithin(i32 x, i32 y, i32 z, i32 radius) const;
 
 protected:
     u64 m_seed;
