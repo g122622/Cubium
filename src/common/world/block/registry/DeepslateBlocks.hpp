@@ -75,6 +75,7 @@ struct DeepslateBlocks {
 
     // 其他
     static Block* SMOOTH_BASALT;
+    static Block* INFESTED_DEEPSLATE;
 };
 
 void registerDeepslateBlocks();

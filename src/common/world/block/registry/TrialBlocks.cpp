@@ -56,6 +56,7 @@ void registerTrialBlocks()
             .resistance(1200.0f)
             .harvestTool(HarvestTool::Pickaxe)
             .harvestLevel(2)
+            .requiresTool()
             .soundType(BlockSoundTypes::TRIAL_SPAWNER)
             .notSolid());
 
@@ -67,6 +68,7 @@ void registerTrialBlocks()
             .resistance(1200.0f)
             .harvestTool(HarvestTool::Pickaxe)
             .harvestLevel(2)
+            .requiresTool()
             .soundType(BlockSoundTypes::VAULT)
             .notSolid());
 
@@ -76,6 +78,7 @@ void registerTrialBlocks()
             .hardness(1.5f)
             .resistance(3.5f)
             .harvestTool(HarvestTool::Pickaxe)
+            .requiresTool()
             .soundType(BlockSoundTypes::CRAFTER));
 
     // 重质核心 - 重质盾牌的核心材料
@@ -85,6 +88,7 @@ void registerTrialBlocks()
             .hardness(10.0f)
             .resistance(1200.0f)
             .harvestTool(HarvestTool::Pickaxe)
+            .requiresTool()
             .soundType(BlockSoundTypes::HEAVY_CORE));
 }
 

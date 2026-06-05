@@ -25,6 +25,7 @@
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/HarvestTool.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/vegetation/DoublePlantBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -118,15 +119,16 @@ void registerTrailsBlocks()
 
     // 火把花 - 由监守者发现的古代植物
     TrailsBlocks::TORCHFLOWER = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:torchflower"),
-        BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::TORCHFLOWER));
+        BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::GRASS));
 
     // ============================================================================
     // 瓶草
     // ============================================================================
 
-    // 瓶草 - 由监守者发现的古代植物
-    TrailsBlocks::PITCHER_PLANT = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pitcher_plant"),
-        BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::CROP));
+    // 瓶草 - 双层植物
+    TrailsBlocks::PITCHER_PLANT =
+        &registry.registerBlock<blocks::DoublePlantBlock>(ResourceLocation("minecraft:pitcher_plant"),
+            BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::CROP));
 }
 
 } // namespace block_registry

@@ -29,6 +29,7 @@
 #include "world/block/blocks/building/SlabBlock.hpp"
 #include "world/block/blocks/building/StairsBlock.hpp"
 #include "world/block/blocks/building/WallBlock.hpp"
+#include "world/block/blocks/mob/InfestedBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -77,6 +78,7 @@ Block* DeepslateBlocks::DEEPSLATE_TILE_WALL = nullptr;
 
 // 其他
 Block* DeepslateBlocks::SMOOTH_BASALT = nullptr;
+Block* DeepslateBlocks::INFESTED_DEEPSLATE = nullptr;
 
 void registerDeepslateBlocks()
 {
@@ -377,6 +379,17 @@ void registerDeepslateBlocks()
             .harvestLevel(0)
             .requiresTool()
             .soundType(BlockSoundTypes::BASALT));
+
+    // ========== 虫蚀深板岩 ==========
+    // 虫蚀深板岩 - 蠹虫会从其中生成
+    DeepslateBlocks::INFESTED_DEEPSLATE =
+        &registry.registerBlock<blocks::InfestedBlock>(ResourceLocation("minecraft:infested_deepslate"),
+            DeepslateBlocks::DEEPSLATE->blockId(),
+            BlockProperties(Material::EARTH).hardness(0.0f).resistance(0.75f));
+
+    // 注册虫蚀映射
+    blocks::InfestedBlock::registerInfestedBlock(
+        DeepslateBlocks::DEEPSLATE->blockId(), DeepslateBlocks::INFESTED_DEEPSLATE->blockId());
 }
 
 } // namespace block_registry

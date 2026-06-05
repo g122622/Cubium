@@ -70,6 +70,7 @@ void registerTuffBlocks()
             .hardness(1.5f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
+            .requiresTool()
             .soundType(BlockSoundTypes::TUFF));
 
     // 磨制凝灰岩
@@ -78,6 +79,7 @@ void registerTuffBlocks()
             .hardness(1.5f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
+            .requiresTool()
             .soundType(BlockSoundTypes::POLISHED_TUFF));
 
     // 凝灰岩砖
@@ -86,6 +88,7 @@ void registerTuffBlocks()
             .hardness(1.5f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
+            .requiresTool()
             .soundType(BlockSoundTypes::TUFF_BRICKS));
 
     // 雕刻凝灰岩
