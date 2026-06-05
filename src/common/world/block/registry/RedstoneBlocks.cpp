@@ -74,8 +74,16 @@ Block* RedstoneBlocks::ACACIA_BUTTON = nullptr;
 Block* RedstoneBlocks::DARK_OAK_BUTTON = nullptr;
 Block* RedstoneBlocks::CRIMSON_BUTTON = nullptr;
 Block* RedstoneBlocks::WARPED_BUTTON = nullptr;
+Block* RedstoneBlocks::MANGROVE_BUTTON = nullptr;
+Block* RedstoneBlocks::CHERRY_BUTTON = nullptr;
+Block* RedstoneBlocks::BAMBOO_BUTTON = nullptr;
+Block* RedstoneBlocks::PALE_OAK_BUTTON = nullptr;
 Block* RedstoneBlocks::STONE_PRESSURE_PLATE = nullptr;
 Block* RedstoneBlocks::OAK_PRESSURE_PLATE = nullptr;
+Block* RedstoneBlocks::MANGROVE_PRESSURE_PLATE = nullptr;
+Block* RedstoneBlocks::CHERRY_PRESSURE_PLATE = nullptr;
+Block* RedstoneBlocks::BAMBOO_PRESSURE_PLATE = nullptr;
+Block* RedstoneBlocks::PALE_OAK_PRESSURE_PLATE = nullptr;
 Block* RedstoneBlocks::LIGHT_WEIGHTED_PRESSURE_PLATE = nullptr;
 Block* RedstoneBlocks::HEAVY_WEIGHTED_PRESSURE_PLATE = nullptr;
 Block* RedstoneBlocks::DAYLIGHT_DETECTOR = nullptr;
@@ -175,6 +183,26 @@ void registerRedstoneBlocks()
     RedstoneBlocks::WARPED_BUTTON = &registry.registerBlock<blocks::WoodButtonBlock>(
         ResourceLocation("minecraft:warped_button"), BlockProperties(Material::NETHER_WOOD).noCollision().notSolid());
 
+    // 红树林木按钮
+    RedstoneBlocks::MANGROVE_BUTTON =
+        &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:mangrove_button"),
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+
+    // 樱花木按钮
+    RedstoneBlocks::CHERRY_BUTTON =
+        &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:cherry_button"),
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+
+    // 竹木按钮
+    RedstoneBlocks::BAMBOO_BUTTON =
+        &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:bamboo_button"),
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+
+    // 苍白橡木按钮
+    RedstoneBlocks::PALE_OAK_BUTTON =
+        &registry.registerBlock<blocks::WoodButtonBlock>(ResourceLocation("minecraft:pale_oak_button"),
+            BlockProperties(Material::WOOD).noCollision().notSolid().flammable());
+
     // 石头压力板
     RedstoneBlocks::STONE_PRESSURE_PLATE =
         &registry.registerBlock<blocks::StonePressurePlateBlock>(ResourceLocation("minecraft:stone_pressure_plate"),
@@ -183,6 +211,26 @@ void registerRedstoneBlocks()
     // 橡木压力板
     RedstoneBlocks::OAK_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:oak_pressure_plate"),
+            BlockProperties(Material::WOOD).noCollision().notSolid().hardness(0.5f).flammable());
+
+    // 红树木压力板
+    RedstoneBlocks::MANGROVE_PRESSURE_PLATE =
+        &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:mangrove_pressure_plate"),
+            BlockProperties(Material::WOOD).noCollision().notSolid().hardness(0.5f).flammable());
+
+    // 樱花木压力板
+    RedstoneBlocks::CHERRY_PRESSURE_PLATE =
+        &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:cherry_pressure_plate"),
+            BlockProperties(Material::WOOD).noCollision().notSolid().hardness(0.5f).flammable());
+
+    // 竹木压力板
+    RedstoneBlocks::BAMBOO_PRESSURE_PLATE =
+        &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:bamboo_pressure_plate"),
+            BlockProperties(Material::WOOD).noCollision().notSolid().hardness(0.5f).flammable());
+
+    // 苍白橡木压力板
+    RedstoneBlocks::PALE_OAK_PRESSURE_PLATE =
+        &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:pale_oak_pressure_plate"),
             BlockProperties(Material::WOOD).noCollision().notSolid().hardness(0.5f).flammable());
 
     // 轻质测重压力板

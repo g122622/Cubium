@@ -49,8 +49,16 @@ struct RedstoneBlocks {
     static Block* DARK_OAK_BUTTON;
     static Block* CRIMSON_BUTTON;
     static Block* WARPED_BUTTON;
+    static Block* MANGROVE_BUTTON;
+    static Block* CHERRY_BUTTON;
+    static Block* BAMBOO_BUTTON;
+    static Block* PALE_OAK_BUTTON;
     static Block* STONE_PRESSURE_PLATE;
     static Block* OAK_PRESSURE_PLATE;
+    static Block* MANGROVE_PRESSURE_PLATE;
+    static Block* CHERRY_PRESSURE_PLATE;
+    static Block* BAMBOO_PRESSURE_PLATE;
+    static Block* PALE_OAK_PRESSURE_PLATE;
     static Block* LIGHT_WEIGHTED_PRESSURE_PLATE;
     static Block* HEAVY_WEIGHTED_PRESSURE_PLATE;
     static Block* DAYLIGHT_DETECTOR;

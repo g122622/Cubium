@@ -46,6 +46,14 @@ Block* SignBannerBlocks::CRIMSON_SIGN = nullptr;
 Block* SignBannerBlocks::CRIMSON_WALL_SIGN = nullptr;
 Block* SignBannerBlocks::WARPED_SIGN = nullptr;
 Block* SignBannerBlocks::WARPED_WALL_SIGN = nullptr;
+Block* SignBannerBlocks::MANGROVE_SIGN = nullptr;
+Block* SignBannerBlocks::MANGROVE_WALL_SIGN = nullptr;
+Block* SignBannerBlocks::CHERRY_SIGN = nullptr;
+Block* SignBannerBlocks::CHERRY_WALL_SIGN = nullptr;
+Block* SignBannerBlocks::BAMBOO_SIGN = nullptr;
+Block* SignBannerBlocks::BAMBOO_WALL_SIGN = nullptr;
+Block* SignBannerBlocks::PALE_OAK_SIGN = nullptr;
+Block* SignBannerBlocks::PALE_OAK_WALL_SIGN = nullptr;
 
 // 旗帜 (16色 × 2形态 = 32方块)
 Block* SignBannerBlocks::WHITE_BANNER = nullptr;
@@ -136,6 +144,30 @@ void registerSignBannerBlocks()
         ResourceLocation("minecraft:warped_sign"), signProps, blocks::WoodType::Warped);
     SignBannerBlocks::WARPED_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
         ResourceLocation("minecraft:warped_wall_sign"), signProps, blocks::WoodType::Warped);
+
+    // 红树木（1.19）
+    SignBannerBlocks::MANGROVE_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
+        ResourceLocation("minecraft:mangrove_sign"), signProps, blocks::WoodType::Mangrove);
+    SignBannerBlocks::MANGROVE_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
+        ResourceLocation("minecraft:mangrove_wall_sign"), signProps, blocks::WoodType::Mangrove);
+
+    // 樱花木（1.20）
+    SignBannerBlocks::CHERRY_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
+        ResourceLocation("minecraft:cherry_sign"), signProps, blocks::WoodType::Cherry);
+    SignBannerBlocks::CHERRY_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
+        ResourceLocation("minecraft:cherry_wall_sign"), signProps, blocks::WoodType::Cherry);
+
+    // 竹木（1.20）
+    SignBannerBlocks::BAMBOO_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
+        ResourceLocation("minecraft:bamboo_sign"), signProps, blocks::WoodType::Bamboo);
+    SignBannerBlocks::BAMBOO_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
+        ResourceLocation("minecraft:bamboo_wall_sign"), signProps, blocks::WoodType::Bamboo);
+
+    // 苍白橡木（1.21.2）
+    SignBannerBlocks::PALE_OAK_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
+        ResourceLocation("minecraft:pale_oak_sign"), signProps, blocks::WoodType::PaleOak);
+    SignBannerBlocks::PALE_OAK_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
+        ResourceLocation("minecraft:pale_oak_wall_sign"), signProps, blocks::WoodType::PaleOak);
 
     // ========== 旗帜注册 ==========
     BlockProperties bannerProps =

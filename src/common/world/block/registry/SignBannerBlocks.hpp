@@ -48,6 +48,14 @@ struct SignBannerBlocks {
     static Block* CRIMSON_WALL_SIGN;
     static Block* WARPED_SIGN;
     static Block* WARPED_WALL_SIGN;
+    static Block* MANGROVE_SIGN;
+    static Block* MANGROVE_WALL_SIGN;
+    static Block* CHERRY_SIGN;
+    static Block* CHERRY_WALL_SIGN;
+    static Block* BAMBOO_SIGN;
+    static Block* BAMBOO_WALL_SIGN;
+    static Block* PALE_OAK_SIGN;
+    static Block* PALE_OAK_WALL_SIGN;
 
     // 旗帜 (16色 × 2形态 = 32方块)
     static Block* WHITE_BANNER;
