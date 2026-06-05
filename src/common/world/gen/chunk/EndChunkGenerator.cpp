@@ -51,7 +51,10 @@ constexpr i32 END_HEIGHT = world::MAX_BUILD_HEIGHT;
 constexpr i32 END_MIN_Y = world::MIN_BUILD_HEIGHT;
 
 // 主岛参数
-constexpr i32 MAIN_ISLAND_RADIUS = 96;
+// MC TheEndBiomeSource 在区块坐标空间中判定：距离平方 <= 64^2 = 4096
+// 对应方块坐标半径 = 64 * 16 = 1024
+constexpr i32 MAIN_ISLAND_CHUNK_RADIUS = 64;
+constexpr i32 MAIN_ISLAND_BLOCK_RADIUS = MAIN_ISLAND_CHUNK_RADIUS * world::CHUNK_WIDTH;
 constexpr i32 ISLAND_HEIGHT_BASE = 64;
 constexpr f32 VOID_HEIGHT = -64.0f; // 虚空高度
 
@@ -115,7 +118,7 @@ EndChunkGenerator::EndChunkGenerator(u64 seed, DimensionSettings settings)
 void EndChunkGenerator::_initSettings()
 {
     // 末地特有设置
-    m_mainIslandRadius = MAIN_ISLAND_RADIUS;
+    m_mainIslandRadius = MAIN_ISLAND_BLOCK_RADIUS;
     m_endIslandHeight = ISLAND_HEIGHT_BASE;
 }
 
@@ -370,10 +373,10 @@ bool EndChunkGenerator::isInMainIsland(i32 x, i32 z) const
 
 bool EndChunkGenerator::_isChunkInMainIsland(ChunkCoord chunkX, ChunkCoord chunkZ) const
 {
-    // 检查区块中心是否在主岛范围内
-    const i32 centerX = chunkX * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2;
-    const i32 centerZ = chunkZ * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2;
-    return isInMainIsland(centerX, centerZ);
+    // MC TheEndBiomeSource: 在区块坐标空间中判定，距离平方 <= 64^2
+    const i64 distSq = static_cast<i64>(chunkX) * chunkX + static_cast<i64>(chunkZ) * chunkZ;
+    constexpr i64 chunkRadiusSq = static_cast<i64>(MAIN_ISLAND_CHUNK_RADIUS) * MAIN_ISLAND_CHUNK_RADIUS;
+    return distSq <= chunkRadiusSq;
 }
 
 f32 EndChunkGenerator::_calculateIslandHeight(i32 x, i32 z) const

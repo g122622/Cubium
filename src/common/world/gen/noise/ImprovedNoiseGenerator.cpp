@@ -66,10 +66,10 @@ void ImprovedNoiseGenerator::_initPermutation(math::IRandom& rng)
         m_p[static_cast<size_t>(i + 256)] = m_permutation[static_cast<size_t>(i)];
     }
 
-    // 设置随机偏移
-    m_xOffset = rng.nextFloat(0.0f, 256.0f);
-    m_yOffset = rng.nextFloat(0.0f, 256.0f);
-    m_zOffset = rng.nextFloat(0.0f, 256.0f);
+    // 设置随机偏移（MC 使用 nextDouble() * 256.0）
+    m_xOffset = static_cast<f32>(rng.nextDouble() * 256.0);
+    m_yOffset = static_cast<f32>(rng.nextDouble() * 256.0);
+    m_zOffset = static_cast<f32>(rng.nextDouble() * 256.0);
 }
 
 // ============================================================================
@@ -114,23 +114,23 @@ f32 ImprovedNoiseGenerator::noise(f32 x, f32 y, f32 z, f32 yScale, f32 yBound) c
     const i32 iz = static_cast<i32>(std::floor(z));
 
     // 计算立方体内的小数坐标
-    f32 dy = y - static_cast<f32>(iy);
-
-    // Y 轴缩放
-    if (yScale != 0.0f) {
-        const f32 clampedY = std::min(yBound, dy);
-        dy = std::floor(clampedY / yScale) * yScale;
-    }
-
     const f32 dx = x - static_cast<f32>(ix);
+    const f32 dy = y - static_cast<f32>(iy);
     const f32 dz = z - static_cast<f32>(iz);
+
+    // Y 轴缩放（与 MC ImprovedNoise 一致）
+    f32 adjustedDy = 0.0f;
+    if (yScale != 0.0f) {
+        const f32 clampedY = (yBound >= 0.0f && yBound < dy) ? yBound : dy;
+        adjustedDy = std::floor(clampedY / yScale + 1.0e-7f) * yScale;
+    }
 
     // 计算 fade 曲线值
     const f32 fx = fade(dx);
     const f32 fy = fade(dy);
     const f32 fz = fade(dz);
 
-    return noiseRaw(ix, iy, iz, dx, dy, dz, fx, fy, fz);
+    return noiseRaw(ix, iy, iz, dx, dy - adjustedDy, dz, fx, fy, fz);
 }
 
 f32 ImprovedNoiseGenerator::noiseRaw(
@@ -155,8 +155,8 @@ f32 ImprovedNoiseGenerator::noiseRaw(
     const f32 n011 = grad(_getPermut(j2 + z + 1), deltaX, deltaY - 1.0f, deltaZ - 1.0f);
     const f32 n111 = grad(_getPermut(j3 + z + 1), deltaX - 1.0f, deltaY - 1.0f, deltaZ - 1.0f);
 
-    // 三线性插值
-    return math::lerp3(fadeX, fadeY, fadeZ, n000, n100, n010, n110, n001, n101, n011, n111);
+    // 三线性插值（lerp3 约定：t1=X, t2=Z, t3=Y, 角点按 Y,Z 分组）
+    return math::lerp3(fadeX, fadeZ, fadeY, n000, n100, n001, n101, n010, n110, n011, n111);
 }
 
 // ============================================================================

@@ -82,9 +82,8 @@ i32 PerlinNoise::PerlinLayer::p(i32 index) const
 
 f64 PerlinNoise::PerlinLayer::gradDot(i32 hash, f64 x, f64 y, f64 z)
 {
-    // MC 使用 12 个梯度向量（从 16 个中选择，取模 12）
-    // 与标准 Perlin 噪声一致的梯度表
-    static constexpr f64 GRADIENTS[12][3] = {{1.0, 1.0, 0.0},
+    // MC 使用与 SimplexNoise 共享的 16 条目梯度表，ImprovedNoise.gradDot 使用 & 15
+    static constexpr f64 GRADIENTS[16][3] = {{1.0, 1.0, 0.0},
         {-1.0, 1.0, 0.0},
         {1.0, -1.0, 0.0},
         {-1.0, -1.0, 0.0},
@@ -95,8 +94,12 @@ f64 PerlinNoise::PerlinLayer::gradDot(i32 hash, f64 x, f64 y, f64 z)
         {0.0, 1.0, 1.0},
         {0.0, -1.0, 1.0},
         {0.0, 1.0, -1.0},
+        {0.0, -1.0, -1.0},
+        {1.0, 1.0, 0.0},
+        {0.0, -1.0, 1.0},
+        {-1.0, 1.0, 0.0},
         {0.0, -1.0, -1.0}};
-    const i32 idx = hash % 12;
+    const i32 idx = hash & 15;
     return GRADIENTS[idx][0] * x + GRADIENTS[idx][1] * y + GRADIENTS[idx][2] * z;
 }
 

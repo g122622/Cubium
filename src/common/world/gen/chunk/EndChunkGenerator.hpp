@@ -117,7 +117,7 @@ private:
     std::unique_ptr<world::gen::structure::StructureManager> m_structureManager;
 
     // === 末地特有参数 ===
-    i32 m_mainIslandRadius = 256;      // 主岛半径（方块单位）
+    i32 m_mainIslandRadius = 1024;     // 主岛半径（方块单位，MC 使用 64 区块 = 1024 方块）
     i32 m_endIslandHeight = 64;        // 末地岛高度
     f32 m_islandNoiseThreshold = 1.0f; // 岛屿生成阈值
 

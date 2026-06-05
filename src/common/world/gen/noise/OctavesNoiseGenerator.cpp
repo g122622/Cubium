@@ -165,6 +165,11 @@ void PerlinNoiseGenerator::_initNoiseLevels(math::IRandom& rng)
     m_xFactor = static_cast<f32>(std::pow(2.0, static_cast<f64>(j)));
     m_yFactor = static_cast<f32>(1.0 / (std::pow(2.0, static_cast<f64>(k)) - 1.0));
 
+    // 保存偏移量（firstSimplex 会在 move 后失效）
+    const f32 firstXOffset = firstSimplex->xOffset();
+    const f32 firstYOffset = firstSimplex->yOffset();
+    const f32 firstZOffset = firstSimplex->zOffset();
+
     // 设置第 j 个倍频层（如果 j 在有效范围内）
     if (j >= 0 && j < k) {
         m_noiseLevels[static_cast<size_t>(j)] = std::move(firstSimplex);
@@ -181,9 +186,11 @@ void PerlinNoiseGenerator::_initNoiseLevels(math::IRandom& rng)
 
     // 如果 j > 0，为 0 到 j-1 的倍频层创建新的 Simplex 噪声生成器
     if (j > 0) {
-        // 使用第一个 simplex 在原点的采样结果派生种子
-        const f64 seedNoise = static_cast<f64>(firstSimplex->noise(0.0f, 0.0f, 0.0f));
-        const i64 reseedValue = static_cast<i64>(seedNoise * static_cast<f64>(std::numeric_limits<i64>::max()));
+        // 使用第一个 simplex 在其偏移位置的采样结果派生种子（与 MC PerlinSimplexNoise 一致）
+        // MC: getValue(xo, yo, zo) * 9.223372E18
+        const f64 seedNoise =
+            static_cast<f64>(m_noiseLevels[static_cast<size_t>(j)]->noise(firstXOffset, firstYOffset, firstZOffset));
+        const i64 reseedValue = static_cast<i64>(seedNoise * 9.223372E18);
         math::Random reseedRng(static_cast<u64>(reseedValue));
 
         for (i32 idx = j - 1; idx >= 0; --idx) {
@@ -254,8 +261,8 @@ const SimplexNoiseGenerator* PerlinNoiseGenerator::getOctave(i32 octave) const
 // SimplexNoiseGenerator 实现
 // ============================================================================
 
-// Simplex 噪声的梯度向量
-constexpr f32 SIMPLEX_GRAD[12][3] = {{1.0f, 1.0f, 0.0f},
+// Simplex 噪声的梯度向量（与 ImprovedNoise 共享同一个 16 条目表，MC 1.21 一致）
+constexpr f32 SIMPLEX_GRAD[16][3] = {{1.0f, 1.0f, 0.0f},
     {-1.0f, 1.0f, 0.0f},
     {1.0f, -1.0f, 0.0f},
     {-1.0f, -1.0f, 0.0f},
@@ -266,6 +273,10 @@ constexpr f32 SIMPLEX_GRAD[12][3] = {{1.0f, 1.0f, 0.0f},
     {0.0f, 1.0f, 1.0f},
     {0.0f, -1.0f, 1.0f},
     {0.0f, 1.0f, -1.0f},
+    {0.0f, -1.0f, -1.0f},
+    {1.0f, 1.0f, 0.0f},
+    {0.0f, -1.0f, 1.0f},
+    {-1.0f, 1.0f, 0.0f},
     {0.0f, -1.0f, -1.0f}};
 
 // 2D Simplex 梯度向量
@@ -312,10 +323,10 @@ void SimplexNoiseGenerator::_initPermutation(math::IRandom& rng)
         m_p[static_cast<size_t>(i + 256)] = m_permutation[static_cast<size_t>(i)];
     }
 
-    // 设置随机偏移
-    m_offset[0] = rng.nextFloat(0.0f, 256.0f);
-    m_offset[1] = rng.nextFloat(0.0f, 256.0f);
-    m_offset[2] = rng.nextFloat(0.0f, 256.0f);
+    // 设置随机偏移（MC 使用 nextDouble() * 256.0）
+    m_offset[0] = static_cast<f32>(rng.nextDouble() * 256.0);
+    m_offset[1] = static_cast<f32>(rng.nextDouble() * 256.0);
+    m_offset[2] = static_cast<f32>(rng.nextDouble() * 256.0);
 }
 
 i32 SimplexNoiseGenerator::_fastFloor(f32 x)

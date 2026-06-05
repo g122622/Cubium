@@ -123,7 +123,7 @@ const BlockState* DebugChunkGenerator::getBlockStateFor(i32 x, i32 z)
         i32 gridX = x / 2;
         i32 gridZ = z / 2;
 
-        if (gridX < s_gridWidth && gridZ < s_gridHeight) {
+        if (gridX <= s_gridWidth && gridZ <= s_gridHeight) {
             i32 index = std::abs(gridX * s_gridWidth + gridZ);
             if (index >= 0 && static_cast<size_t>(index) < s_allValidStates.size()) {
                 return s_allValidStates[static_cast<size_t>(index)];
