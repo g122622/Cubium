@@ -41,8 +41,8 @@
 #include "../noise/OctavesNoiseGenerator.hpp"
 #include "../settings/NoiseSettings.hpp"
 #include "../structure/StructureManager.hpp"
-#include "../surface/SurfaceRules.hpp"
 #include "../surface/SurfaceBuilders.hpp"
+#include "../surface/SurfaceRules.hpp"
 #include "IChunkGenerator.hpp"
 #include <array>
 #include <memory>
@@ -162,8 +162,8 @@ private:
     ProbabilityConfig m_canyonConfig;
 
     // === 水下雕刻器 ===
-    std::unique_ptr<world::gen::carver::UnderwaterCaveCarver> m_underwaterCaveCarver;
-    std::unique_ptr<world::gen::carver::UnderwaterCanyonCarver> m_underwaterCanyonCarver;
+    std::unique_ptr<UnderwaterCaveCarver> m_underwaterCaveCarver;
+    std::unique_ptr<UnderwaterCanyonCarver> m_underwaterCanyonCarver;
     // 使用与普通洞穴/峡谷相同的概率配置
 
     // === 结构管理器 ===

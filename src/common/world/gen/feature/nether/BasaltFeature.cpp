@@ -35,11 +35,10 @@ namespace {
 
 /// MC 1.21.11: BasaltColumnsFeature.CANNOT_PLACE_ON
 /// 这些方块上不能放置玄武岩柱
-bool isCannotPlaceOnBlock(const Block* block)
+bool isCannotPlaceOnBlock(const Block& block)
 {
-    if (!block) return true;
-    return block == VanillaBlocks::LAVA || block == VanillaBlocks::BEDROCK || block == VanillaBlocks::MAGMA ||
-        block == VanillaBlocks::SOUL_SAND || block == VanillaBlocks::NETHER_BRICKS || block == VanillaBlocks::MAGMA;
+    return &block == VanillaBlocks::LAVA || &block == VanillaBlocks::BEDROCK || &block == VanillaBlocks::MAGMA ||
+        &block == VanillaBlocks::SOUL_SAND;
 }
 
 /// 检查位置是否为空气或熔岩海洋（海平面及以下的熔岩）

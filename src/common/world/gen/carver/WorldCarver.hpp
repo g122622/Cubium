@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "CarvingContext.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -138,6 +139,7 @@ public:
      * @brief 在区块中执行雕刻
      *
      * @param chunk 要雕刻的区块
+     * @param context 雕刻上下文（含水层引用等）
      * @param biomeSource 生物群系源
      * @param seaLevel 海平面高度
      * @param chunkX 区块 X 坐标
@@ -147,6 +149,7 @@ public:
      * @return 是否雕刻了任何方块
      */
     virtual bool carve(ChunkPrimer& chunk,
+        CarvingContext& context,
         const world::biome::BiomeSource& biomeSource,
         i32 seaLevel,
         ChunkCoord chunkX,
@@ -235,6 +238,7 @@ protected:
      * @brief 雕刻一个椭球区域
      *
      * @param chunk 区块数据
+     * @param context 雕刻上下文（含水层引用等）
      * @param biomeSource 生物群系源
      * @param seaLevel 海平面高度
      * @param chunkX 区块X坐标
@@ -249,6 +253,7 @@ protected:
      * @return 是否雕刻了任何方块
      */
     bool carveEllipsoid(ChunkPrimer& chunk,
+        CarvingContext& context,
         const world::biome::BiomeSource& biomeSource,
         i32 seaLevel,
         ChunkCoord chunkX,
@@ -328,13 +333,14 @@ public:
      * @brief 在区块中执行雕刻
      */
     bool carve(ChunkPrimer& chunk,
+        CarvingContext& context,
         const world::biome::BiomeSource& biomeSource,
         i32 seaLevel,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
         CarvingMask& carvingMask)
     {
-        return m_carver->carve(chunk, biomeSource, seaLevel, chunkX, chunkZ, carvingMask, m_config);
+        return m_carver->carve(chunk, context, biomeSource, seaLevel, chunkX, chunkZ, carvingMask, m_config);
     }
 
     /**

@@ -35,6 +35,11 @@
 
 namespace {
 
+using mc::BlockState;
+using mc::f32;
+using mc::f64;
+using mc::i32;
+
 std::mutex g_lakeFeaturesMutex;
 
 /// 湖泊布尔数组尺寸常量（参考 MC 1.21.11: LakeFeature）
@@ -137,7 +142,7 @@ bool LakeFeature::place(WorldGenRegion& world, math::Random& rng, i32 x, i32 y, 
 
                     // Y < 4 的边界格如果不是固体且不是同种流体，则不能生成
                     if (by < FLUID_SURFACE_Y) {
-                        if (!state->isSolid() && state->getBlock() != m_config.fluidBlock) {
+                        if (!state->isSolid() && !state->is(m_config.fluidBlock)) {
                             return false;
                         }
                     }
@@ -209,13 +214,13 @@ bool LakeFeature::place(WorldGenRegion& world, math::Random& rng, i32 x, i32 y, 
     }
 
     // 6. 水湖冻结检查（Y = FLUID_SURFACE_Y 处的流体表面）
-    if (m_config.fluidBlock == VanillaBlocks::WATER) {
+    if (m_config.fluidBlock != nullptr && m_config.fluidBlock == VanillaBlocks::WATER) {
         for (i32 bx = 0; bx < LAKE_SIZE_X; ++bx) {
             for (i32 bz = 0; bz < LAKE_SIZE_Z; ++bz) {
                 const i32 surfaceY = y + FLUID_SURFACE_Y;
                 const BlockState* state = world.getBlockState(x + bx, surfaceY, z + bz);
 
-                if (state && state->getBlock() == VanillaBlocks::WATER) {
+                if (state && state->is(VanillaBlocks::WATER)) {
                     // 检查生物群系是否足够冷以冻结
                     auto biomeId = world.getBiome(x + bx, surfaceY, z + bz);
                     // 简化：通过高度判断冻结（MC 使用 Biome.shouldFreeze）
@@ -235,7 +240,7 @@ bool LakeFeature::canReplaceBlock(const BlockState& state)
     // MC 1.21.11: !state.is(BlockTags.FEATURES_CANNOT_REPLACE)
     // 当项目添加 FEATURES_CANNOT_REPLACE 标签后替换为标签检查
     // 目前使用简单判断：空气和流体可替换，其他方块需要进一步判断
-    return state.isAir() || state.isLiquid() || (!state.isSolid() && state.getBlock() != VanillaBlocks::BEDROCK);
+    return state.isAir() || state.isLiquid() || (!state.isSolid() && !state.is(VanillaBlocks::BEDROCK));
 }
 
 LakeFeatureConfig LakeFeature::createWaterLake()

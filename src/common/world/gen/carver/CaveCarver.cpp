@@ -46,6 +46,7 @@ bool CaveCarver::shouldCarve(
 }
 
 bool CaveCarver::carve(ChunkPrimer& chunk,
+    CarvingContext& context,
     const world::biome::BiomeSource& biomeSource,
     i32 seaLevel,
     ChunkCoord chunkX,
@@ -83,6 +84,7 @@ bool CaveCarver::carve(ChunkPrimer& chunk,
             // 生成房间
             const f32 roomRadius = rng.nextFloat(1.0f, 7.0f);
             _carveRoom(chunk,
+                context,
                 biomeSource,
                 seaLevel,
                 chunkX,
@@ -108,6 +110,7 @@ bool CaveCarver::carve(ChunkPrimer& chunk,
             const i32 length = tunnelLength - rng.nextInt(tunnelLength / 4 + 1);
 
             _carveTunnel(chunk,
+                context,
                 biomeSource,
                 seaLevel,
                 chunkX,
@@ -161,6 +164,7 @@ f32 CaveCarver::getCaveRadius(math::IRandom& rng) const
 }
 
 void CaveCarver::_carveTunnel(ChunkPrimer& chunk,
+    CarvingContext& context,
     const world::biome::BiomeSource& biomeSource,
     i32 seaLevel,
     ChunkCoord chunkX,
@@ -220,6 +224,7 @@ void CaveCarver::_carveTunnel(ChunkPrimer& chunk,
             const f32 branchRadius = radius * rng.nextFloat(0.5f, 1.0f);
 
             _carveTunnel(chunk,
+                context,
                 biomeSource,
                 seaLevel,
                 chunkX,
@@ -237,6 +242,7 @@ void CaveCarver::_carveTunnel(ChunkPrimer& chunk,
                 carvingMask);
 
             _carveTunnel(chunk,
+                context,
                 biomeSource,
                 seaLevel,
                 chunkX,
@@ -263,6 +269,7 @@ void CaveCarver::_carveTunnel(ChunkPrimer& chunk,
             }
 
             carveEllipsoid(chunk,
+                context,
                 biomeSource,
                 seaLevel,
                 chunkX,
@@ -279,6 +286,7 @@ void CaveCarver::_carveTunnel(ChunkPrimer& chunk,
 }
 
 void CaveCarver::_carveRoom(ChunkPrimer& chunk,
+    CarvingContext& context,
     const world::biome::BiomeSource& biomeSource,
     i32 seaLevel,
     ChunkCoord chunkX,
@@ -296,6 +304,7 @@ void CaveCarver::_carveRoom(ChunkPrimer& chunk,
     const f32 vertRadius = horizontalRadius * verticalScale;
 
     carveEllipsoid(chunk,
+        context,
         biomeSource,
         seaLevel,
         chunkX,

@@ -67,6 +67,7 @@ public:
      * @return 是否雕刻了任何方块
      */
     bool carve(ChunkPrimer& chunk,
+        CarvingContext& context,
         const world::biome::BiomeSource& biomeSource,
         i32 seaLevel,
         ChunkCoord chunkX,
@@ -136,6 +137,7 @@ private:
      * @param carvingMask 雕刻掩码
      */
     void _carveTunnel(ChunkPrimer& chunk,
+        CarvingContext& context,
         const world::biome::BiomeSource& biomeSource,
         i32 seaLevel,
         ChunkCoord chunkX,
@@ -154,21 +156,9 @@ private:
 
     /**
      * @brief 生成圆形洞穴房间
-     *
-     * @param chunk 区块数据
-     * @param biomeSource 生物群系源
-     * @param seaLevel 海平面高度
-     * @param chunkX 区块X坐标
-     * @param chunkZ 区块Z坐标
-     * @param seed 随机种子
-     * @param centerX 中心X坐标
-     * @param centerY 中心Y坐标
-     * @param centerZ 中心Z坐标
-     * @param radius 房间半径
-     * @param verticalScale 垂直缩放
-     * @param carvingMask 雕刻掩码
      */
     void _carveRoom(ChunkPrimer& chunk,
+        CarvingContext& context,
         const world::biome::BiomeSource& biomeSource,
         i32 seaLevel,
         ChunkCoord chunkX,

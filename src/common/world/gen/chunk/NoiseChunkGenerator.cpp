@@ -31,6 +31,7 @@
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../aquifer/Aquifer.hpp"
+#include "../carver/CarvingContext.hpp"
 #include "../carver/UnderwaterCarver.hpp"
 #include "../density/NoiseRouterData.hpp"
 #include "../feature/ConfiguredFeature.hpp"
@@ -324,8 +325,8 @@ void NoiseChunkGenerator::_initCarvers()
     m_canyonConfig = ProbabilityConfig(0.02f);
 
     // 水下雕刻器与普通雕刻阶段共用概率配置
-    m_underwaterCaveCarver = std::make_unique<world::gen::carver::UnderwaterCaveCarver>();
-    m_underwaterCanyonCarver = std::make_unique<world::gen::carver::UnderwaterCanyonCarver>();
+    m_underwaterCaveCarver = std::make_unique<UnderwaterCaveCarver>();
+    m_underwaterCanyonCarver = std::make_unique<UnderwaterCanyonCarver>();
 }
 
 void NoiseChunkGenerator::_initGenerationRegistries()
@@ -1120,15 +1121,22 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
     // MC原版：AIR 和 LIQUID 两个雕刻阶段共享同一个 CarvingMask
     CarvingMask& carvingMask = chunk.carvingMask();
 
+    // MC 1.21: 创建雕刻上下文
+    // 含水层集成：当 ChunkPrimer 存储了 NoiseChunk 引用时，可从中获取 Aquifer
+    // 目前含水层在噪声生成期间创建但尚未持久化到 ChunkPrimer，传入 nullptr 使用回退逻辑
+    // 回退逻辑：Y < getLavaLevel() 填充熔岩，否则填充 CAVE_AIR
+    CarvingContext context(world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT, nullptr);
+
     if (!isLiquid) {
         // 空气雕刻阶段：洞穴和峡谷
         if (m_caveCarver) {
-            m_caveCarver->carve(chunk, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
+            m_caveCarver->carve(
+                chunk, context, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
         }
 
         if (m_canyonCarver) {
             m_canyonCarver->carve(
-                chunk, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_canyonConfig);
+                chunk, context, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_canyonConfig);
         }
 
         chunk.setChunkStatus(ChunkStatuses::CARVERS);
@@ -1136,12 +1144,12 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
         // 液体雕刻阶段：水下洞穴和峡谷（共享 AIR 阶段的掩码）
         if (m_underwaterCaveCarver) {
             m_underwaterCaveCarver->carve(
-                chunk, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
+                chunk, context, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
         }
 
         if (m_underwaterCanyonCarver) {
             m_underwaterCanyonCarver->carve(
-                chunk, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_canyonConfig);
+                chunk, context, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_canyonConfig);
         }
 
         chunk.setChunkStatus(ChunkStatuses::LIQUID_CARVERS);

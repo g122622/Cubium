@@ -64,6 +64,7 @@ bool CanyonCarver::shouldCarve(
 }
 
 bool CanyonCarver::carve(ChunkPrimer& chunk,
+    CarvingContext& context,
     const world::biome::BiomeSource& biomeSource,
     i32 seaLevel,
     ChunkCoord chunkX,
@@ -97,6 +98,7 @@ bool CanyonCarver::carve(ChunkPrimer& chunk,
 
     // 生成蜿蜒峡谷
     _generateCanyon(chunk,
+        context,
         biomeSource,
         seaLevel,
         chunkX,
@@ -133,6 +135,7 @@ bool CanyonCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) co
 }
 
 void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
+    CarvingContext& context,
     const world::biome::BiomeSource& biomeSource,
     i32 seaLevel,
     ChunkCoord chunkX,
@@ -200,6 +203,7 @@ void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
             }
 
             carveEllipsoid(chunk,
+                context,
                 biomeSource,
                 seaLevel,
                 chunkX,

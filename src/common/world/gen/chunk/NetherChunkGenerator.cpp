@@ -27,13 +27,14 @@
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "../carver/CarvingContext.hpp"
 #include "../carver/WorldCarver.hpp"
 #include "../feature/ConfiguredFeature.hpp"
 #include "../spawn/WorldGenSpawner.hpp"
 #include "../structure/Structure.hpp"
 #include "../structure/StructureManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cmath>
 #include <mutex>
@@ -318,9 +319,12 @@ void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chu
     // 共享雕刻掩码
     CarvingMask& carvingMask = chunk.carvingMask();
 
+    // MC 1.21: 创建雕刻上下文（下界暂无含水层，使用回退逻辑）
+    CarvingContext context(world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT, nullptr);
+
     // 下界只使用洞穴雕刻器（不使用峡谷和水下雕刻器）
     if (!isLiquid && m_caveCarver) {
-        m_caveCarver->carve(chunk, *m_biomeSource, m_lavaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
+        m_caveCarver->carve(chunk, context, *m_biomeSource, m_lavaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
     }
 
     chunk.setChunkStatus(isLiquid ? ChunkStatuses::LIQUID_CARVERS : ChunkStatuses::CARVERS);

@@ -71,6 +71,7 @@ public:
      * @return 是否雕刻了任何方块
      */
     bool carve(ChunkPrimer& chunk,
+        CarvingContext& context,
         const world::biome::BiomeSource& biomeSource,
         i32 seaLevel,
         ChunkCoord chunkX,
@@ -121,6 +122,7 @@ private:
      * @param carvingMask 雕刻掩码
      */
     void _generateCanyon(ChunkPrimer& chunk,
+        CarvingContext& context,
         const world::biome::BiomeSource& biomeSource,
         i32 seaLevel,
         ChunkCoord chunkX,

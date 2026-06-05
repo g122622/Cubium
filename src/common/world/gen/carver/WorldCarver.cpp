@@ -22,10 +22,12 @@
  */
 
 #include "WorldCarver.hpp"
+#include "CarvingContext.hpp"
 #include "common/core/Constants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/aquifer/Aquifer.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -139,6 +141,7 @@ bool WorldCarver<Config>::canCarveBlock(const BlockState* state, const BlockStat
 
 template <typename Config>
 bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
+    CarvingContext& context,
     const world::biome::BiomeSource& /*biomeSource*/,
     i32 /*seaLevel*/,
     ChunkCoord chunkX,
@@ -248,17 +251,29 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
                 // 标记为已雕刻
                 carvingMask.setCarved(lx, y, lz);
 
-                // 设置为空气或熔岩
-                const i32 lavaLevel = getLavaLevel();
-                if (y < lavaLevel) {
-                    const BlockState* lava = VanillaBlocks::getState(VanillaBlocks::LAVA);
-                    if (lava) {
-                        chunk.setBlockState(lx, y, lz, lava);
-                    }
+                // MC 1.21: 通过含水层决定雕刻后方块
+                // 如果含水层可用，使用 computeSubstance 替代硬编码熔岩/空气判断
+                const BlockState* carveState = nullptr;
+                if (context.hasAquifer()) {
+                    carveState = context.aquifer()->computeSubstance(worldX, y, worldZ, 0.0);
+                }
+
+                if (carveState) {
+                    // 含水层返回了有效方块状态（水、熔岩或空气）
+                    chunk.setBlockState(lx, y, lz, carveState);
                 } else {
-                    const BlockState* air = getCaveAirState();
-                    if (air) {
-                        chunk.setBlockState(lx, y, lz, air);
+                    // 含水层返回 nullptr（保持默认/石头），使用回退逻辑
+                    const i32 lavaLevel = getLavaLevel();
+                    if (y < lavaLevel) {
+                        const BlockState* lava = VanillaBlocks::getState(VanillaBlocks::LAVA);
+                        if (lava) {
+                            chunk.setBlockState(lx, y, lz, lava);
+                        }
+                    } else {
+                        const BlockState* air = getCaveAirState();
+                        if (air) {
+                            chunk.setBlockState(lx, y, lz, air);
+                        }
                     }
                 }
 

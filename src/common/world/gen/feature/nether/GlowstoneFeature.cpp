@@ -85,9 +85,9 @@ bool GlowstoneFeature::place(
             Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::West, Direction::East};
 
         for (Direction dir : directions) {
-            BlockPos neighbor(candidate.x + Directions::getStepX(dir),
-                candidate.y + Directions::getStepY(dir),
-                candidate.z + Directions::getStepZ(dir));
+            BlockPos neighbor(candidate.x + Directions::xOffset(dir),
+                candidate.y + Directions::yOffset(dir),
+                candidate.z + Directions::zOffset(dir));
 
             const BlockState* neighborState = world.getBlockState(neighbor);
             if (neighborState && neighborState->is(VanillaBlocks::GLOWSTONE)) {
