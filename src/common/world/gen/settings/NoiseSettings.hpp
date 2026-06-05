@@ -62,6 +62,7 @@ struct NoiseSettings {
     bool simplexSurfaceNoise = true; ///< 使用 Simplex 地表噪声
     bool randomDensityOffset = true; ///< 随机密度偏移
     bool isAmplified = false;        ///< 放大化地形
+    bool aquifersEnabled = true;     ///< 是否启用含水层（MC 1.18+ 水下洞穴和地下水）
 
     // === 噪声尺寸计算 ===
     [[nodiscard]] i32 noiseSizeX() const { return world::CHUNK_WIDTH / (sizeHorizontal * 4); }
@@ -122,6 +123,7 @@ struct NoiseSettings {
         settings.bottomSlide = SlideSettings{320, 4, -1};
         settings.simplexSurfaceNoise = false;
         settings.randomDensityOffset = false;
+        settings.aquifersEnabled = false;
         return settings;
     }
 
@@ -140,6 +142,7 @@ struct NoiseSettings {
         settings.densityOffset = 0.0f;
         settings.simplexSurfaceNoise = false;
         settings.randomDensityOffset = false;
+        settings.aquifersEnabled = false;
         return settings;
     }
 };

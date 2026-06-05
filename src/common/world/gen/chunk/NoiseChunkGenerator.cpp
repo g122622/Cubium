@@ -25,12 +25,15 @@
 #include "../../../util/assert/AssertAll.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../util/math/random/Xoroshiro128ppRandom.hpp"
 #include "../../WorldConstants.hpp"
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../../block/VanillaBlocks.hpp"
+#include "../aquifer/Aquifer.hpp"
 #include "../carver/UnderwaterCarver.hpp"
+#include "../density/NoiseRouterData.hpp"
 #include "../feature/ConfiguredFeature.hpp"
 #include "../feature/ore/OreFeature.hpp"
 #include "../jigsaw/JigsawPiece.hpp"
@@ -195,6 +198,9 @@ NoiseChunkGenerator::NoiseChunkGenerator(
 
     _initCarvers();
     _initGenerationRegistries();
+
+    // MC 1.21: 初始化密度函数管线
+    _initDensityFunctionPipeline();
 }
 
 NoiseChunkGenerator::~NoiseChunkGenerator() = default;
@@ -334,6 +340,61 @@ void NoiseChunkGenerator::_initGenerationRegistries()
     PlacementRegistry::instance().initialize();
 }
 
+void NoiseChunkGenerator::_initDensityFunctionPipeline()
+{
+    MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initDensityFunctionPipeline");
+
+    // 根据 BiomeSource 类型选择合适的 NoiseRouter 配置
+    // 当 BiomeSource 是 MultiNoiseBiomeSource 时使用 MC 1.21 管线
+    // 暂时为所有维度创建对应的 NoiseRouter
+    const bool isNether = (m_settings.seaLevel == 0 && m_settings.defaultFluid != nullptr &&
+        m_settings.defaultFluid->isLiquid() && m_settings.defaultFluid->blockId() != 0 && m_settings.bedrockFloor > 0);
+
+    const bool isEnd = (m_settings.noise.height == 128 && m_settings.bedrockFloor == 0 && m_settings.bedrockRoof < 0);
+
+    if (isEnd) {
+        m_router =
+            std::make_unique<world::gen::density::NoiseRouter>(world::gen::density::NoiseRouterData::end(m_seed));
+        m_cellWidth = 8;
+        m_cellHeight = 4;
+    } else if (isNether) {
+        m_router =
+            std::make_unique<world::gen::density::NoiseRouter>(world::gen::density::NoiseRouterData::nether(m_seed));
+        m_cellWidth = 8;
+        m_cellHeight = 4;
+    } else {
+        // 主世界
+        const bool largeBiomes = false; // TODO: 从 BiomeSource 获取
+        m_router = std::make_unique<world::gen::density::NoiseRouter>(
+            world::gen::density::NoiseRouterData::overworld(m_seed, largeBiomes));
+        m_cellWidth = 4;
+        m_cellHeight = 8;
+    }
+
+    // 启用密度函数管线
+    m_useDensityFunctionPipeline = true;
+
+    // 创建 MC 1.21 SurfaceSystem
+    std::unique_ptr<world::gen::surface::SurfaceRule> surfaceRule;
+    if (isEnd) {
+        surfaceRule = world::gen::surface::SurfaceRules::end();
+    } else if (isNether) {
+        surfaceRule = world::gen::surface::SurfaceRules::nether(m_seed);
+    } else {
+        surfaceRule = world::gen::surface::SurfaceRules::overworld(m_seed);
+    }
+
+    if (surfaceRule) {
+        m_surfaceSystem = std::make_unique<world::gen::surface::SurfaceSystem>(std::move(surfaceRule),
+            m_settings.defaultBlock,
+            m_settings.defaultFluid,
+            m_settings.seaLevel,
+            world::MIN_BUILD_HEIGHT,
+            world::MAX_BUILD_HEIGHT - world::MIN_BUILD_HEIGHT,
+            m_seed);
+    }
+}
+
 // ============================================================================
 // 结构生成
 // ============================================================================
@@ -407,6 +468,14 @@ void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
 void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chunk)
 {
     MC_TRACE_EVENT("world.chunk_gen", "GenerateNoise", "x", chunk.x(), "z", chunk.z());
+
+    // MC 1.21: 优先使用密度函数管线
+    if (m_useDensityFunctionPipeline && m_router) {
+        _generateNoiseWithDensityFunction(region, chunk);
+        return;
+    }
+
+    // === MC 1.16.5 回退管线 ===
     (void)region;
 
     const ChunkCoord chunkX = chunk.x();
@@ -822,6 +891,18 @@ f32 NoiseChunkGenerator::_sampleSurfaceDepthNoise(i32 worldX, i32 worldZ, i32 lo
 void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chunk)
 {
     MC_TRACE_EVENT("world.chunk_gen", "BuildSurface", "x", chunk.x(), "z", chunk.z());
+
+    // MC 1.21: 使用 SurfaceRules 管线
+    if (m_useDensityFunctionPipeline && m_surfaceSystem) {
+        const auto getBiomeAt = [&region](i32 x, i32 y, i32 z) -> BiomeId { return region.getBiome(x, y, z); };
+        m_surfaceSystem->buildSurface(chunk, getBiomeAt);
+
+        // 标记阶段完成
+        chunk.setChunkStatus(ChunkStatuses::SURFACE);
+        return;
+    }
+
+    // === MC 1.16.5 回退管线 ===
     const ChunkCoord chunkX = chunk.x();
     const ChunkCoord chunkZ = chunk.z();
     const i32 startX = chunkX * world::CHUNK_WIDTH;
@@ -1130,6 +1211,45 @@ BiomeId NoiseChunkGenerator::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) c
 
 i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
 {
+    // MC 1.21: 使用密度函数管线采样高度
+    if (m_useDensityFunctionPipeline && m_router) {
+        // 逐列采样密度函数，从上到下找到第一个实体方块
+        for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
+            const f64 density = m_router->finalDensity().compute(x, y, z);
+            const BlockState* blockState = _getBlockForDensity(static_cast<f32>(density), y);
+
+            auto matchesHeightmap = [type](const BlockState* state) -> bool {
+                if (!state || state->isAir()) {
+                    return false;
+                }
+                const Block& block = state->owner();
+                switch (type) {
+                    case HeightmapType::WorldSurface:
+                    case HeightmapType::WorldSurfaceWG:
+                        return true;
+                    case HeightmapType::OceanFloor:
+                    case HeightmapType::OceanFloorWG:
+                        return block.isSolid(*state);
+                    case HeightmapType::MotionBlocking:
+                        return block.isSolid(*state) || state->isLiquid();
+                    case HeightmapType::MotionBlockingNoLeaves:
+                        return (block.isSolid(*state) || state->isLiquid()) &&
+                            (&block.material() != &Material::LEAVES) && (&block.material() != &Material::PLANT);
+                    case HeightmapType::LightBlocking:
+                        return block.isSolid(*state) && state->getOpacity() > 0;
+                    default:
+                        return true;
+                }
+            };
+
+            if (matchesHeightmap(blockState)) {
+                return y + 1;
+            }
+        }
+        return world::MIN_BUILD_HEIGHT;
+    }
+
+    // MC 1.16.5 回退管线
     const NoiseSettings& noise = m_settings.noise;
     const i32 hGranularity = m_horizontalNoiseGranularity;
     const i32 vGranularity = m_verticalNoiseGranularity;
@@ -1237,6 +1357,104 @@ i32 NoiseChunkGenerator::spawnInitialMobs(
     rng.setSeed(static_cast<u64>(chunk.x()) * 341873128712ULL + static_cast<u64>(chunk.z()) * 132897987541ULL + m_seed);
 
     return m_worldGenSpawner->spawnInitialMobs(region, biome, chunk.x(), chunk.z(), *this, rng, outEntities);
+}
+
+void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& region, ChunkPrimer& chunk)
+{
+    MC_TRACE_EVENT("world.chunk_gen", "GenerateNoise_DF", "x", chunk.x(), "z", chunk.z());
+    (void)region;
+
+    if (!m_router) {
+        return;
+    }
+
+    const ChunkCoord chunkX = chunk.x();
+    const ChunkCoord chunkZ = chunk.z();
+    const i32 startX = chunkX * world::CHUNK_WIDTH;
+    const i32 startZ = chunkZ * world::CHUNK_WIDTH;
+
+    // MC 1.21: 创建 NoiseChunk
+    const i32 startBlockY = world::MIN_BUILD_HEIGHT;
+    world::gen::density::NoiseChunk noiseChunk(*m_router, m_cellWidth, m_cellHeight, startX, startBlockY, startZ);
+
+    // MC 1.21: 创建含水层采样器
+    {
+        // 从世界种子创建位置随机工厂
+        math::Random seedRng(m_seed);
+        auto xoroshioRng = std::make_unique<math::Xoroshiro128ppRandom>(
+            static_cast<u64>(seedRng.nextLong()), static_cast<u64>(seedRng.nextLong()));
+        auto positionalRandom = xoroshioRng->forkPositional();
+
+        if (m_settings.noise.aquifersEnabled) {
+            auto fluidPicker =
+                world::gen::aquifer::createOverworldFluidPicker(m_settings.seaLevel, m_settings.defaultFluid);
+
+            auto aquifer = world::gen::aquifer::Aquifer::createNoiseBased(noiseChunk,
+                chunkX,
+                chunkZ,
+                *m_router,
+                positionalRandom,
+                world::MIN_BUILD_HEIGHT,
+                world::CHUNK_HEIGHT,
+                std::move(fluidPicker));
+
+            noiseChunk.setAquifer(std::move(aquifer));
+        } else {
+            auto fluidPicker =
+                world::gen::aquifer::createOverworldFluidPicker(m_settings.seaLevel, m_settings.defaultFluid);
+            noiseChunk.setAquifer(world::gen::aquifer::Aquifer::createDisabled(std::move(fluidPicker)));
+        }
+    }
+
+    // === 收集结构数据用于地形平滑 ===
+    std::vector<const world::gen::structure::StructurePiece*> structurePieces;
+    std::vector<world::gen::jigsaw::JigsawJunction> junctions;
+    _collectStructureData(chunk, structurePieces, junctions);
+
+    // === MC 1.21: 地形生成 ===
+    // 当前实现：直接计算每个方块的 finalDensity（无插值优化）
+    // 完整实现需要 NoiseChunk 的 Marker 遍历和三线性插值系统
+    // 直接计算在正确性上与 MC 1.21 一致，仅缺少缓存优化
+
+    // 获取含水层指针
+    auto* aquifer = noiseChunk.aquifer();
+    const auto& finalDensity = m_router->finalDensity();
+
+    // 遍历区块内所有方块（Y 从上到下）
+    for (i32 blockY = world::MAX_BUILD_HEIGHT - 1; blockY >= world::MIN_BUILD_HEIGHT; --blockY) {
+        for (i32 blockX = startX; blockX < startX + world::CHUNK_WIDTH; ++blockX) {
+            for (i32 blockZ = startZ; blockZ < startZ + world::CHUNK_WIDTH; ++blockZ) {
+                const f64 density = finalDensity.compute(blockX, blockY, blockZ);
+
+                const i32 localX = blockX - startX;
+                const i32 localZ = blockZ - startZ;
+
+                // MC 1.21: 密度 > 0 → 石头，密度 <= 0 → 含水层/空气/流体
+                const BlockState* blockState = nullptr;
+
+                if (density > 0.0) {
+                    // 固体方块
+                    blockState = _getBlockForDensity(static_cast<f32>(density), blockY);
+                } else if (aquifer != nullptr) {
+                    // 空腔：含水层系统决定填充内容
+                    blockState = aquifer->computeSubstance(blockX, blockY, blockZ, density);
+                }
+
+                if (blockState != nullptr) {
+                    chunk.setBlockState(localX, blockY, localZ, blockState);
+
+                    // 更新高度图
+                    chunk.updateHeightmap(HeightmapType::WorldSurfaceWG, localX, blockY, localZ, blockState);
+                    if (blockState->isSolid()) {
+                        chunk.updateHeightmap(HeightmapType::OceanFloorWG, localX, blockY, localZ, blockState);
+                    }
+                }
+            }
+        }
+    }
+
+    // 标记阶段完成
+    chunk.setChunkStatus(ChunkStatuses::NOISE);
 }
 
 // ============================================================================

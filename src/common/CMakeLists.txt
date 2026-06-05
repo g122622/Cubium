@@ -781,6 +781,7 @@ add_library(mc_common STATIC
 
     # World - Generation - Density
     world/gen/density/DensityFunctions.cpp
+    world/gen/density/NoiseChunk.cpp
     world/gen/density/NoiseRouter.cpp
     world/gen/density/NoiseRouterData.cpp
 
@@ -834,6 +835,10 @@ add_library(mc_common STATIC
 
     # World - Generation - Surface
     world/gen/surface/SurfaceBuilders.cpp
+    world/gen/surface/SurfaceRules.cpp
+
+    # World - Generation - Aquifer
+    world/gen/aquifer/Aquifer.cpp
 
     # World - Generation - Feature
     world/gen/feature/Feature.cpp

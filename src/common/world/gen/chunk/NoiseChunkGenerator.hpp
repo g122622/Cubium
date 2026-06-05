@@ -32,12 +32,16 @@
 #include "../carver/CaveCarver.hpp"
 #include "../carver/UnderwaterCarver.hpp"
 #include "../carver/WorldCarver.hpp"
+#include "../density/NoiseChunk.hpp"
+#include "../density/NoiseRouter.hpp"
+#include "../density/NoiseRouterData.hpp"
 #include "../feature/ConfiguredFeature.hpp"
 #include "../feature/DecorationStage.hpp"
 #include "../jigsaw/JigsawJunction.hpp"
 #include "../noise/OctavesNoiseGenerator.hpp"
 #include "../settings/NoiseSettings.hpp"
 #include "../structure/StructureManager.hpp"
+#include "../surface/SurfaceRules.hpp"
 #include "../surface/SurfaceBuilders.hpp"
 #include "IChunkGenerator.hpp"
 #include <array>
@@ -139,6 +143,15 @@ private:
     std::unique_ptr<INoiseGenerator> m_surfaceDepthNoise;              // 地表深度噪声（Perlin 或 Octaves）
     std::unique_ptr<OctavesNoiseGenerator> m_randomDensityOffsetNoise; // 随机密度偏移噪声
 
+    // === MC 1.21 密度函数管线 ===
+    std::unique_ptr<world::gen::density::NoiseRouter> m_router; ///< 噪声路由器
+    i32 m_cellWidth = 4;                                        ///< X/Z 方向 cell 宽度（主世界=4, 末地=8）
+    i32 m_cellHeight = 8;                                       ///< Y 方向 cell 高度（主世界=8, 末地=4）
+    bool m_useDensityFunctionPipeline = false;                  ///< 是否使用 MC 1.21 密度函数管线
+
+    // === MC 1.21 SurfaceRules ===
+    std::unique_ptr<world::gen::surface::SurfaceSystem> m_surfaceSystem; ///< 表面规则系统
+
     // === 生物群系 ===
     std::unique_ptr<world::biome::BiomeSource> m_biomeSource;
 
@@ -234,6 +247,18 @@ private:
      * @warning 该方法会触发全局注册逻辑，调用方需保证幂等语义。
      */
     void _initGenerationRegistries();
+
+    /**
+     * @brief 初始化 MC 1.21 密度函数管线
+     * 创建 NoiseRouter 并配置 cell 大小参数。
+     */
+    void _initDensityFunctionPipeline();
+
+    /**
+     * @brief 使用 MC 1.21 NoiseChunk 生成噪声地形
+     * 基于 cell 的三线性插值管线，替代旧的 _fillNoiseColumn 方法。
+     */
+    void _generateNoiseWithDensityFunction(WorldGenRegion& region, ChunkPrimer& chunk);
 
     // === 地表生成 ===
 

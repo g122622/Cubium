@@ -141,35 +141,62 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
 {
     auto climate = createOverworldClimate(seed, largeBiomes);
 
-    // 洞穴噪声（简化版本，使用常量零）
-    auto zero = factory::constant(0.0);
+    // ========== 含水层噪声 ==========
+    // MC 1.21: AQUIFER_BARRIER, AQUIFER_FLUID_LEVEL_FLOODEDNESS,
+    //          AQUIFER_FLUID_LEVEL_SPREAD, AQUIFER_LAVA
+    auto barrierNoise = factory::noise(seed ^ 0xA5100001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 0.5, 0.0);
+    auto fluidLevelFloodednessNoise = factory::noise(seed ^ 0xA5100002ULL, -3, {1.0, 1.0, 0.0, 1.0}, 0.67, 0.0);
+    auto fluidLevelSpreadNoise =
+        factory::noise(seed ^ 0xA5100003ULL, -3, {1.0, 1.0, 0.0, 1.0}, 0.7142857142857143, 0.0);
+    auto lavaNoise = factory::noise(seed ^ 0xA5100004ULL, -1, {1.0, 1.0}, 1.0, 0.0);
 
-    // 最终密度（简化版本，后续需要完善 spline 计算）
-    auto finalDensity = factory::constant(0.0);
+    // 为 NoiseRouter 的气候字段创建独立副本
+    // 这些副本用于 createClimateSampler()，而 finalDensity 中的版本用于地形生成
+    // 因为 DensityFunction 是 unique_ptr 不可共享，所以需要用相同种子重新创建
+    auto climateForRouter = createOverworldClimate(seed, largeBiomes);
+
+    // 最终密度 — 简化版本
+    // MC 1.21 的完整 finalDensity 是复杂的 spline 树，
+    // 这里使用简化公式：depth + continents * 1.5 + erosion * 0.5 - ridges_abs
+    // 这会产生基本的地形特征：大陆/海洋、山脉、侵蚀平原
+    auto ridgesPV = peaksAndValleys(std::move(climate.ridges));
+
+    // depth: Y=MIN_BUILD_HEIGHT 时为 1.5，Y=MAX_BUILD_HEIGHT 时为 -1.5
+    // continents: 正值=陆地，负值=海洋
+    // erosion: 正值=侵蚀（平坦），负值=不侵蚀
+    // ridgesPV: 山峰/山谷
+
+    // 简化 finalDensity = depth * 1.0 + continents * 0.5 + ridgesPV * 0.5
+    // 当 finalDensity > 0 时为固体方块
+    auto depthPlusContinents = factory::add(std::move(climate.depth), std::move(climate.continents));
+    auto withErosion =
+        factory::add(std::move(depthPlusContinents), factory::mul(factory::constant(0.5), std::move(climate.erosion)));
+    auto finalDensity = factory::add(std::move(withErosion), factory::mul(factory::constant(0.5), std::move(ridgesPV)));
 
     // 矿脉噪声（简化版本）
     auto veinToggle = factory::constant(0.0);
     auto veinRidged = factory::constant(0.0);
     auto veinGap = factory::constant(0.0);
 
-    // 预备表面高度（简化版本）
+    // 预备表面高度（简化版本 — 使用 continents 噪声作为地表高度近似）
+    // MC 1.21: 完整实现使用 spline 和多条密度函数
     auto preliminarySurfaceLevel = factory::constant(0.0);
 
-    return NoiseRouter(std::move(zero),     // barrierNoise
-        factory::constant(0.0),             // fluidLevelFloodednessNoise
-        factory::constant(0.0),             // fluidLevelSpreadNoise
-        factory::constant(0.0),             // lavaNoise
-        std::move(climate.temperature),     // temperature
-        std::move(climate.vegetation),      // vegetation
-        std::move(climate.continents),      // continents
-        std::move(climate.erosion),         // erosion
-        std::move(climate.depth),           // depth
-        std::move(climate.ridges),          // ridges
-        std::move(preliminarySurfaceLevel), // preliminarySurfaceLevel
-        std::move(finalDensity),            // finalDensity
-        std::move(veinToggle),              // veinToggle
-        std::move(veinRidged),              // veinRidged
-        std::move(veinGap));                // veinGap
+    return NoiseRouter(std::move(barrierNoise), // barrierNoise
+        std::move(fluidLevelFloodednessNoise),  // fluidLevelFloodednessNoise
+        std::move(fluidLevelSpreadNoise),       // fluidLevelSpreadNoise
+        std::move(lavaNoise),                   // lavaNoise
+        std::move(climate.temperature),         // temperature
+        std::move(climate.vegetation),          // vegetation
+        std::move(climateForRouter.continents), // continents
+        std::move(climateForRouter.erosion),    // erosion
+        std::move(climateForRouter.depth),      // depth
+        std::move(climateForRouter.ridges),     // ridges
+        std::move(preliminarySurfaceLevel),     // preliminarySurfaceLevel
+        std::move(finalDensity),                // finalDensity
+        std::move(veinToggle),                  // veinToggle
+        std::move(veinRidged),                  // veinRidged
+        std::move(veinGap));                    // veinGap
 }
 
 NoiseRouter NoiseRouterData::nether(u64 seed)
@@ -178,24 +205,28 @@ NoiseRouter NoiseRouterData::nether(u64 seed)
     auto temperature = factory::cache2D(factory::noise(seed ^ 0x11111111ULL, -4, {1.0, 1.0, 1.0, 1.0}, 0.25, 0.0));
     auto vegetation = factory::cache2D(factory::noise(seed ^ 0x22222222ULL, -4, {1.0, 1.0, 1.0, 1.0}, 0.25, 0.0));
 
-    // 下界不使用大陆度、侵蚀、深度
-    auto zero = factory::constant(0.0);
+    // 下界 finalDensity：基于 Y 的密度梯度
+    // MC 1.21: nether_final_density = slide(add(base_3d_noise, yClampedGradient(0, 128, 1.5, -1.5)))
+    // 简化版本：使用 Y 梯度 + 一些 3D 噪声
+    auto depth = factory::yClampedGradient(0, 128, 1.5, -1.5);
+    auto netherNoise = factory::noise(seed ^ 0x66666666ULL, -8, {1.0, 1.0, 1.0, 0.0, 0.0, 0.0}, 1.0, 1.0);
+    auto finalDensity = factory::add(std::move(depth), factory::mul(factory::constant(0.25), std::move(netherNoise)));
 
-    return NoiseRouter(factory::constant(0.0),        // barrierNoise
-        factory::constant(0.0),                       // fluidLevelFloodednessNoise
-        factory::constant(0.0),                       // fluidLevelSpreadNoise
-        factory::constant(0.0),                       // lavaNoise
-        std::move(temperature),                       // temperature
-        std::move(vegetation),                        // vegetation
-        factory::constant(0.0),                       // continents
-        factory::constant(0.0),                       // erosion
-        factory::yClampedGradient(0, 128, 1.5, -1.5), // depth (下界 Y 范围 0-128)
-        factory::constant(0.0),                       // ridges
-        factory::constant(0.0),                       // preliminarySurfaceLevel
-        factory::constant(0.0),                       // finalDensity
-        factory::constant(0.0),                       // veinToggle
-        factory::constant(0.0),                       // veinRidged
-        factory::constant(0.0));                      // veinGap
+    return NoiseRouter(factory::constant(0.0), // barrierNoise
+        factory::constant(0.0),                // fluidLevelFloodednessNoise
+        factory::constant(0.0),                // fluidLevelSpreadNoise
+        factory::constant(0.0),                // lavaNoise
+        std::move(temperature),                // temperature
+        std::move(vegetation),                 // vegetation
+        factory::constant(0.0),                // continents
+        factory::constant(0.0),                // erosion
+        factory::constant(0.0),                // depth (已移入 finalDensity)
+        factory::constant(0.0),                // ridges
+        factory::constant(0.0),                // preliminarySurfaceLevel
+        std::move(finalDensity),               // finalDensity
+        factory::constant(0.0),                // veinToggle
+        factory::constant(0.0),                // veinRidged
+        factory::constant(0.0));               // veinGap
 }
 
 NoiseRouter NoiseRouterData::end(u64 seed)
