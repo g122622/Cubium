@@ -44,6 +44,18 @@ void VanillaBlocks::initialize()
         block_registry::registerBuildingBlocks();
     }
     {
+        MC_TRACE_EVENT("client.initialization", "registerCaveBlocks");
+        block_registry::registerCaveBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerDeepslateBlocks");
+        block_registry::registerDeepslateBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerCopperBlocks");
+        block_registry::registerCopperBlocks();
+    }
+    {
         MC_TRACE_EVENT("client.initialization", "registerNetherBlocks");
         block_registry::registerNetherBlocks();
     }
@@ -70,6 +82,50 @@ void VanillaBlocks::initialize()
     {
         MC_TRACE_EVENT("client.initialization", "registerBuildingVariantBlocks");
         block_registry::registerBuildingVariantBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerCherryBlocks");
+        block_registry::registerCherryBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerBambooBlocks");
+        block_registry::registerBambooBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerTrailsBlocks");
+        block_registry::registerTrailsBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerSculkBlocks");
+        block_registry::registerSculkBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerMangroveBlocks");
+        block_registry::registerMangroveBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerMudBlocks");
+        block_registry::registerMudBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerWildBlocks");
+        block_registry::registerWildBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerTuffBlocks");
+        block_registry::registerTuffBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerTrialBlocks");
+        block_registry::registerTrialBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerPaleGardenBlocks");
+        block_registry::registerPaleGardenBlocks();
+    }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerGardenBlocks");
+        block_registry::registerGardenBlocks();
     }
 
     // 初始化方块标签（必须在所有方块注册后）

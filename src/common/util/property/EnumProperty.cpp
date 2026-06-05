@@ -639,4 +639,259 @@ std::optional<BlockStateProperties::StructureMode> EnumProperty<BlockStateProper
     return std::nullopt;
 }
 
+// ============================================================================
+// OxidationLevel Traits 实现 (1.17+)
+// ============================================================================
+
+std::string EnumProperty<BlockStateProperties::OxidationLevel>::Traits::toString(
+    const BlockStateProperties::OxidationLevel& value)
+{
+    switch (value) {
+        case BlockStateProperties::OxidationLevel::Unaffected:
+            return "unaffected";
+        case BlockStateProperties::OxidationLevel::Exposed:
+            return "exposed";
+        case BlockStateProperties::OxidationLevel::Weathered:
+            return "weathered";
+        case BlockStateProperties::OxidationLevel::Oxidized:
+            return "oxidized";
+        default:
+            return "unaffected";
+    }
+}
+
+std::optional<BlockStateProperties::OxidationLevel>
+EnumProperty<BlockStateProperties::OxidationLevel>::Traits::fromName(std::string_view name)
+{
+    if (name == "unaffected") {
+        return BlockStateProperties::OxidationLevel::Unaffected;
+    } else if (name == "exposed") {
+        return BlockStateProperties::OxidationLevel::Exposed;
+    } else if (name == "weathered") {
+        return BlockStateProperties::OxidationLevel::Weathered;
+    } else if (name == "oxidized") {
+        return BlockStateProperties::OxidationLevel::Oxidized;
+    }
+    return std::nullopt;
+}
+
+// ============================================================================
+// DripstoneThickness Traits 实现 (1.17+)
+// ============================================================================
+
+std::string EnumProperty<BlockStateProperties::DripstoneThickness>::Traits::toString(
+    const BlockStateProperties::DripstoneThickness& value)
+{
+    switch (value) {
+        case BlockStateProperties::DripstoneThickness::TipMerge:
+            return "tip_merge";
+        case BlockStateProperties::DripstoneThickness::Tip:
+            return "tip";
+        case BlockStateProperties::DripstoneThickness::Frustum:
+            return "frustum";
+        case BlockStateProperties::DripstoneThickness::Middle:
+            return "middle";
+        case BlockStateProperties::DripstoneThickness::Base:
+            return "base";
+        default:
+            return "tip";
+    }
+}
+
+std::optional<BlockStateProperties::DripstoneThickness>
+EnumProperty<BlockStateProperties::DripstoneThickness>::Traits::fromName(std::string_view name)
+{
+    if (name == "tip_merge") {
+        return BlockStateProperties::DripstoneThickness::TipMerge;
+    } else if (name == "tip") {
+        return BlockStateProperties::DripstoneThickness::Tip;
+    } else if (name == "frustum") {
+        return BlockStateProperties::DripstoneThickness::Frustum;
+    } else if (name == "middle") {
+        return BlockStateProperties::DripstoneThickness::Middle;
+    } else if (name == "base") {
+        return BlockStateProperties::DripstoneThickness::Base;
+    }
+    return std::nullopt;
+}
+
+// ============================================================================
+// Tilt Traits 实现 (1.17+)
+// ============================================================================
+
+std::string EnumProperty<BlockStateProperties::Tilt>::Traits::toString(const BlockStateProperties::Tilt& value)
+{
+    switch (value) {
+        case BlockStateProperties::Tilt::None:
+            return "none";
+        case BlockStateProperties::Tilt::Unstable:
+            return "unstable";
+        case BlockStateProperties::Tilt::Partial:
+            return "partial";
+        case BlockStateProperties::Tilt::Full:
+            return "full";
+        default:
+            return "none";
+    }
+}
+
+std::optional<BlockStateProperties::Tilt> EnumProperty<BlockStateProperties::Tilt>::Traits::fromName(
+    std::string_view name)
+{
+    if (name == "none") {
+        return BlockStateProperties::Tilt::None;
+    } else if (name == "unstable") {
+        return BlockStateProperties::Tilt::Unstable;
+    } else if (name == "partial") {
+        return BlockStateProperties::Tilt::Partial;
+    } else if (name == "full") {
+        return BlockStateProperties::Tilt::Full;
+    }
+    return std::nullopt;
+}
+
+// ============================================================================
+// SculkSensorPhase Traits 实现 (1.19+)
+// ============================================================================
+
+std::string EnumProperty<BlockStateProperties::SculkSensorPhase>::Traits::toString(
+    const BlockStateProperties::SculkSensorPhase& value)
+{
+    switch (value) {
+        case BlockStateProperties::SculkSensorPhase::Inactive:
+            return "inactive";
+        case BlockStateProperties::SculkSensorPhase::Active:
+            return "active";
+        case BlockStateProperties::SculkSensorPhase::Cooldown:
+            return "cooldown";
+        default:
+            return "inactive";
+    }
+}
+
+std::optional<BlockStateProperties::SculkSensorPhase>
+EnumProperty<BlockStateProperties::SculkSensorPhase>::Traits::fromName(std::string_view name)
+{
+    if (name == "inactive") {
+        return BlockStateProperties::SculkSensorPhase::Inactive;
+    } else if (name == "active") {
+        return BlockStateProperties::SculkSensorPhase::Active;
+    } else if (name == "cooldown") {
+        return BlockStateProperties::SculkSensorPhase::Cooldown;
+    }
+    return std::nullopt;
+}
+
+// ============================================================================
+// TrialSpawnerState Traits 实现 (1.21+)
+// ============================================================================
+
+std::string EnumProperty<BlockStateProperties::TrialSpawnerState>::Traits::toString(
+    const BlockStateProperties::TrialSpawnerState& value)
+{
+    switch (value) {
+        case BlockStateProperties::TrialSpawnerState::Inactive:
+            return "inactive";
+        case BlockStateProperties::TrialSpawnerState::WaitingForPlayers:
+            return "waiting_for_players";
+        case BlockStateProperties::TrialSpawnerState::Active:
+            return "active";
+        case BlockStateProperties::TrialSpawnerState::WaitingForRewardEjection:
+            return "waiting_for_reward_ejection";
+        case BlockStateProperties::TrialSpawnerState::EjectingReward:
+            return "ejecting_reward";
+        case BlockStateProperties::TrialSpawnerState::Cooldown:
+            return "cooldown";
+        default:
+            return "inactive";
+    }
+}
+
+std::optional<BlockStateProperties::TrialSpawnerState>
+EnumProperty<BlockStateProperties::TrialSpawnerState>::Traits::fromName(std::string_view name)
+{
+    if (name == "inactive") {
+        return BlockStateProperties::TrialSpawnerState::Inactive;
+    } else if (name == "waiting_for_players") {
+        return BlockStateProperties::TrialSpawnerState::WaitingForPlayers;
+    } else if (name == "active") {
+        return BlockStateProperties::TrialSpawnerState::Active;
+    } else if (name == "waiting_for_reward_ejection") {
+        return BlockStateProperties::TrialSpawnerState::WaitingForRewardEjection;
+    } else if (name == "ejecting_reward") {
+        return BlockStateProperties::TrialSpawnerState::EjectingReward;
+    } else if (name == "cooldown") {
+        return BlockStateProperties::TrialSpawnerState::Cooldown;
+    }
+    return std::nullopt;
+}
+
+// ============================================================================
+// VaultState Traits 实现 (1.21+)
+// ============================================================================
+
+std::string EnumProperty<BlockStateProperties::VaultState>::Traits::toString(
+    const BlockStateProperties::VaultState& value)
+{
+    switch (value) {
+        case BlockStateProperties::VaultState::Inactive:
+            return "inactive";
+        case BlockStateProperties::VaultState::Active:
+            return "active";
+        case BlockStateProperties::VaultState::Unlocking:
+            return "unlocking";
+        case BlockStateProperties::VaultState::Ejecting:
+            return "ejecting";
+        default:
+            return "inactive";
+    }
+}
+
+std::optional<BlockStateProperties::VaultState> EnumProperty<BlockStateProperties::VaultState>::Traits::fromName(
+    std::string_view name)
+{
+    if (name == "inactive") {
+        return BlockStateProperties::VaultState::Inactive;
+    } else if (name == "active") {
+        return BlockStateProperties::VaultState::Active;
+    } else if (name == "unlocking") {
+        return BlockStateProperties::VaultState::Unlocking;
+    } else if (name == "ejecting") {
+        return BlockStateProperties::VaultState::Ejecting;
+    }
+    return std::nullopt;
+}
+
+// ============================================================================
+// CreakingHeartState Traits 实现 (1.21.2+)
+// ============================================================================
+
+std::string EnumProperty<BlockStateProperties::CreakingHeartState>::Traits::toString(
+    const BlockStateProperties::CreakingHeartState& value)
+{
+    switch (value) {
+        case BlockStateProperties::CreakingHeartState::Up:
+            return "up";
+        case BlockStateProperties::CreakingHeartState::UpDown:
+            return "up_down";
+        case BlockStateProperties::CreakingHeartState::Down:
+            return "down";
+        default:
+            return "up";
+    }
+}
+
+std::optional<BlockStateProperties::CreakingHeartState>
+EnumProperty<BlockStateProperties::CreakingHeartState>::Traits::fromName(std::string_view name)
+{
+    if (name == "up") {
+        return BlockStateProperties::CreakingHeartState::Up;
+    } else if (name == "up_down") {
+        return BlockStateProperties::CreakingHeartState::UpDown;
+    } else if (name == "down") {
+        return BlockStateProperties::CreakingHeartState::Down;
+    }
+    return std::nullopt;
+}
+
 } // namespace mc

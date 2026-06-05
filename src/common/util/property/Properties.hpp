@@ -1237,6 +1237,327 @@ public:
     }
 
     // ========================================================================
+    // 铜氧化等级属性 (1.17+)
+    // ========================================================================
+
+    /**
+     * @brief 铜氧化等级枚举
+     *
+     * MC 1.17+: net.minecraft.world.level.block.WeatheringCopper.WeatherState
+     * 表示铜方块的氧化程度。
+     */
+    enum class OxidationLevel : u8 {
+        Unaffected = 0, ///< 未氧化
+        Exposed = 1,    ///< 斑驳
+        Weathered = 2,  ///< 锈蚀
+        Oxidized = 3    ///< 氧化
+    };
+
+    /**
+     * @brief 铜氧化等级属性
+     */
+    static const EnumProperty<OxidationLevel>& OXIDATION()
+    {
+        static auto prop = EnumProperty<OxidationLevel>::create("oxidation",
+            {OxidationLevel::Unaffected, OxidationLevel::Exposed, OxidationLevel::Weathered, OxidationLevel::Oxidized});
+        return *prop;
+    }
+
+    // ========================================================================
+    // 滴石厚度属性 (1.17+)
+    // ========================================================================
+
+    /**
+     * @brief 滴石厚度枚举
+     *
+     * MC 1.17+: net.minecraft.world.level.block.state.properties.DripstoneThickness
+     */
+    enum class DripstoneThickness : u8 {
+        TipMerge = 0, ///< 尖端合并
+        Tip = 1,      ///< 尖端
+        Frustum = 2,  ///< 截锥
+        Middle = 3,   ///< 中间
+        Base = 4      ///< 基座
+    };
+
+    /**
+     * @brief 滴石厚度属性
+     */
+    static const EnumProperty<DripstoneThickness>& DRIPSTONE_THICKNESS()
+    {
+        static auto prop = EnumProperty<DripstoneThickness>::create("thickness",
+            {DripstoneThickness::TipMerge,
+                DripstoneThickness::Tip,
+                DripstoneThickness::Frustum,
+                DripstoneThickness::Middle,
+                DripstoneThickness::Base});
+        return *prop;
+    }
+
+    // ========================================================================
+    // 滴叶倾斜属性 (1.17+)
+    // ========================================================================
+
+    /**
+     * @brief 滴叶倾斜枚举
+     *
+     * MC 1.17+: net.minecraft.world.level.block.state.properties.Tilt
+     */
+    enum class Tilt : u8 {
+        None = 0,     ///< 无倾斜
+        Unstable = 1, ///< 不稳定
+        Partial = 2,  ///< 部分倾斜
+        Full = 3      ///< 完全倾斜
+    };
+
+    /**
+     * @brief 滴叶倾斜属性
+     */
+    static const EnumProperty<Tilt>& TILT()
+    {
+        static auto prop = EnumProperty<Tilt>::create("tilt", {Tilt::None, Tilt::Unstable, Tilt::Partial, Tilt::Full});
+        return *prop;
+    }
+
+    // ========================================================================
+    // 幽匿感应器相位属性 (1.19+)
+    // ========================================================================
+
+    /**
+     * @brief 幽匿感应器相位枚举
+     *
+     * MC 1.19+: net.minecraft.world.level.block.state.properties.SculkSensorPhase
+     */
+    enum class SculkSensorPhase : u8 {
+        Inactive = 0, ///< 不活跃
+        Active = 1,   ///< 活跃
+        Cooldown = 2  ///< 冷却
+    };
+
+    /**
+     * @brief 幽匿感应器相位属性
+     */
+    static const EnumProperty<SculkSensorPhase>& SCULK_SENSOR_PHASE()
+    {
+        static auto prop = EnumProperty<SculkSensorPhase>::create(
+            "sculk_sensor_phase", {SculkSensorPhase::Inactive, SculkSensorPhase::Active, SculkSensorPhase::Cooldown});
+        return *prop;
+    }
+
+    // ========================================================================
+    // 试炼刷怪笼状态属性 (1.21+)
+    // ========================================================================
+
+    /**
+     * @brief 试炼刷怪笼状态枚举
+     *
+     * MC 1.21+: net.minecraft.world.level.block.state.properties.TrialSpawnerState
+     */
+    enum class TrialSpawnerState : u8 {
+        Inactive = 0,                 ///< 不活跃
+        WaitingForPlayers = 1,        ///< 等待玩家
+        Active = 2,                   ///< 活跃
+        WaitingForRewardEjection = 3, ///< 等待奖励弹出
+        EjectingReward = 4,           ///< 弹出奖励
+        Cooldown = 5                  ///< 冷却
+    };
+
+    /**
+     * @brief 试炼刷怪笼状态属性
+     */
+    static const EnumProperty<TrialSpawnerState>& TRIAL_SPAWNER_STATE()
+    {
+        static auto prop = EnumProperty<TrialSpawnerState>::create("trial_spawner_state",
+            {TrialSpawnerState::Inactive,
+                TrialSpawnerState::WaitingForPlayers,
+                TrialSpawnerState::Active,
+                TrialSpawnerState::WaitingForRewardEjection,
+                TrialSpawnerState::EjectingReward,
+                TrialSpawnerState::Cooldown});
+        return *prop;
+    }
+
+    // ========================================================================
+    // 宝库状态属性 (1.21+)
+    // ========================================================================
+
+    /**
+     * @brief 宝库状态枚举
+     *
+     * MC 1.21+: net.minecraft.world.level.block.state.properties.VaultState
+     */
+    enum class VaultState : u8 {
+        Inactive = 0,  ///< 不活跃
+        Active = 1,    ///< 活跃
+        Unlocking = 2, ///< 解锁中
+        Ejecting = 3   ///< 弹出
+    };
+
+    /**
+     * @brief 宝库状态属性
+     */
+    static const EnumProperty<VaultState>& VAULT_STATE()
+    {
+        static auto prop = EnumProperty<VaultState>::create(
+            "vault_state", {VaultState::Inactive, VaultState::Active, VaultState::Unlocking, VaultState::Ejecting});
+        return *prop;
+    }
+
+    // ========================================================================
+    // 嘎枝之心状态属性 (1.21.2+)
+    // ========================================================================
+
+    /**
+     * @brief 嘎枝之心状态枚举
+     *
+     * MC 1.21.2+: net.minecraft.world.level.block.state.properties.CreakingHeartState
+     */
+    enum class CreakingHeartState : u8 {
+        Up = 0,     ///< 仅上方
+        UpDown = 1, ///< 上下
+        Down = 2    ///< 仅下方
+    };
+
+    /**
+     * @brief 嘎枝之心状态属性
+     */
+    static const EnumProperty<CreakingHeartState>& CREAKING_HEART_STATE()
+    {
+        static auto prop = EnumProperty<CreakingHeartState>::create(
+            "creaking_heart_state", {CreakingHeartState::Up, CreakingHeartState::UpDown, CreakingHeartState::Down});
+        return *prop;
+    }
+
+    // ========================================================================
+    // 1.17-1.21 新增布尔属性
+    // ========================================================================
+
+    /**
+     * @brief 是否有浆果（洞穴藤蔓）
+     */
+    static const BooleanProperty& BERRIES()
+    {
+        static auto prop = BooleanProperty::create("berries");
+        return *prop;
+    }
+
+    /**
+     * @brief 是否正在尖叫（幽匿尖啸体）
+     */
+    static const BooleanProperty& SHRIEKING()
+    {
+        static auto prop = BooleanProperty::create("shrieking");
+        return *prop;
+    }
+
+    /**
+     * @brief 是否可召唤（幽匿尖啸体）
+     */
+    static const BooleanProperty& CAN_SUMMON()
+    {
+        static auto prop = BooleanProperty::create("can_summon");
+        return *prop;
+    }
+
+    /**
+     * @brief 是否发光（幽匿催化体）
+     */
+    static const BooleanProperty& BLOOM()
+    {
+        static auto prop = BooleanProperty::create("bloom");
+        return *prop;
+    }
+
+    /**
+     * @brief 是否开裂（装饰陶罐）
+     */
+    static const BooleanProperty& CRACKED()
+    {
+        static auto prop = BooleanProperty::create("cracked");
+        return *prop;
+    }
+
+    /**
+     * @brief 是否正在合成（自动合成器）
+     */
+    static const BooleanProperty& CRAFTING()
+    {
+        static auto prop = BooleanProperty::create("crafting");
+        return *prop;
+    }
+
+    /**
+     * @brief 是否不祥（试炼刷怪笼、宝库）
+     */
+    static const BooleanProperty& OMINOUS()
+    {
+        static auto prop = BooleanProperty::create("ominous");
+        return *prop;
+    }
+
+    /**
+     * @brief 是否涂蜡（铜方块）
+     */
+    static const BooleanProperty& WAXED()
+    {
+        static auto prop = BooleanProperty::create("waxed");
+        return *prop;
+    }
+
+    // ========================================================================
+    // 1.20 可疑方块粉尘属性
+    // ========================================================================
+
+    /**
+     * @brief 粉尘等级 (0-3)，用于可疑沙子和沙砾
+     */
+    static const IntegerProperty& DUSTED()
+    {
+        static auto prop = IntegerProperty::create("dusted", 0, 3);
+        return *prop;
+    }
+
+    // ========================================================================
+    // 凿纹书架槽位占用属性 (1.20+)
+    // ========================================================================
+
+    static const BooleanProperty& SLOT_0_OCCUPIED()
+    {
+        static auto prop = BooleanProperty::create("slot_0_occupied");
+        return *prop;
+    }
+
+    static const BooleanProperty& SLOT_1_OCCUPIED()
+    {
+        static auto prop = BooleanProperty::create("slot_1_occupied");
+        return *prop;
+    }
+
+    static const BooleanProperty& SLOT_2_OCCUPIED()
+    {
+        static auto prop = BooleanProperty::create("slot_2_occupied");
+        return *prop;
+    }
+
+    static const BooleanProperty& SLOT_3_OCCUPIED()
+    {
+        static auto prop = BooleanProperty::create("slot_3_occupied");
+        return *prop;
+    }
+
+    static const BooleanProperty& SLOT_4_OCCUPIED()
+    {
+        static auto prop = BooleanProperty::create("slot_4_occupied");
+        return *prop;
+    }
+
+    static const BooleanProperty& SLOT_5_OCCUPIED()
+    {
+        static auto prop = BooleanProperty::create("slot_5_occupied");
+        return *prop;
+    }
+
+    // ========================================================================
     // 蜂巢蜂蜜等级属性
     // ========================================================================
 
@@ -1399,4 +1720,50 @@ template <>
 struct mc::EnumProperty<mc::BlockStateProperties::StructureMode>::Traits {
     static std::string toString(const mc::BlockStateProperties::StructureMode& value);
     static std::optional<mc::BlockStateProperties::StructureMode> fromName(std::string_view name);
+};
+
+// ============================================================================
+// 1.17-1.21 新增枚举特征特化
+// ============================================================================
+
+template <>
+struct mc::EnumProperty<mc::BlockStateProperties::OxidationLevel>::Traits {
+    static std::string toString(const mc::BlockStateProperties::OxidationLevel& value);
+    static std::optional<mc::BlockStateProperties::OxidationLevel> fromName(std::string_view name);
+};
+
+template <>
+struct mc::EnumProperty<mc::BlockStateProperties::DripstoneThickness>::Traits {
+    static std::string toString(const mc::BlockStateProperties::DripstoneThickness& value);
+    static std::optional<mc::BlockStateProperties::DripstoneThickness> fromName(std::string_view name);
+};
+
+template <>
+struct mc::EnumProperty<mc::BlockStateProperties::Tilt>::Traits {
+    static std::string toString(const mc::BlockStateProperties::Tilt& value);
+    static std::optional<mc::BlockStateProperties::Tilt> fromName(std::string_view name);
+};
+
+template <>
+struct mc::EnumProperty<mc::BlockStateProperties::SculkSensorPhase>::Traits {
+    static std::string toString(const mc::BlockStateProperties::SculkSensorPhase& value);
+    static std::optional<mc::BlockStateProperties::SculkSensorPhase> fromName(std::string_view name);
+};
+
+template <>
+struct mc::EnumProperty<mc::BlockStateProperties::TrialSpawnerState>::Traits {
+    static std::string toString(const mc::BlockStateProperties::TrialSpawnerState& value);
+    static std::optional<mc::BlockStateProperties::TrialSpawnerState> fromName(std::string_view name);
+};
+
+template <>
+struct mc::EnumProperty<mc::BlockStateProperties::VaultState>::Traits {
+    static std::string toString(const mc::BlockStateProperties::VaultState& value);
+    static std::optional<mc::BlockStateProperties::VaultState> fromName(std::string_view name);
+};
+
+template <>
+struct mc::EnumProperty<mc::BlockStateProperties::CreakingHeartState>::Traits {
+    static std::string toString(const mc::BlockStateProperties::CreakingHeartState& value);
+    static std::optional<mc::BlockStateProperties::CreakingHeartState> fromName(std::string_view name);
 };

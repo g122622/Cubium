@@ -356,6 +356,126 @@ extern const BlockSoundType CHAIN;
 // 镶金黑石
 extern const BlockSoundType GILDED_BLACKSTONE;
 
+// ========================================================================
+// 1.17 洞穴与山崖 Part 1
+// ========================================================================
+
+// 深板岩系列
+extern const BlockSoundType DEEPSLATE;
+extern const BlockSoundType COBBLED_DEEPSLATE;
+extern const BlockSoundType POLISHED_DEEPSLATE;
+extern const BlockSoundType DEEPSLATE_BRICKS;
+extern const BlockSoundType DEEPSLATE_TILES;
+
+// 铜系列
+extern const BlockSoundType COPPER;
+extern const BlockSoundType COPPER_BULB;
+extern const BlockSoundType COPPER_GRATE;
+
+// 紫水晶系列
+extern const BlockSoundType AMETHYST;
+extern const BlockSoundType AMETHYST_CLUSTER;
+extern const BlockSoundType SMALL_AMETHYST_BUD;
+extern const BlockSoundType MEDIUM_AMETHYST_BUD;
+extern const BlockSoundType LARGE_AMETHYST_BUD;
+
+// 洞穴装饰
+extern const BlockSoundType MOSS;
+extern const BlockSoundType MOSS_CARPET;
+extern const BlockSoundType AZALEA;
+extern const BlockSoundType AZALEA_LEAVES;
+extern const BlockSoundType CAVE_VINES;
+extern const BlockSoundType SPORE_BLOSSOM;
+extern const BlockSoundType DRIPSTONE_BLOCK;
+extern const BlockSoundType POINTED_DRIPSTONE;
+extern const BlockSoundType CALCITE;
+extern const BlockSoundType POWDER_SNOW;
+extern const BlockSoundType HANGING_ROOTS;
+extern const BlockSoundType ROOTED_DIRT;
+extern const BlockSoundType BIG_DRIPLEAF;
+extern const BlockSoundType SMALL_DRIPLEAF;
+extern const BlockSoundType GLOW_LICHEN;
+extern const BlockSoundType FLOWERING_AZALEA;
+
+// ========================================================================
+// 1.19 荒野更新
+// ========================================================================
+
+// 幽匿系列
+extern const BlockSoundType SCULK;
+extern const BlockSoundType SCULK_CATALYST;
+extern const BlockSoundType SCULK_SENSOR;
+extern const BlockSoundType SCULK_SHRIEKER;
+extern const BlockSoundType SCULK_VEIN;
+
+// 泥巴系列
+extern const BlockSoundType MUD;
+extern const BlockSoundType MUD_BRICKS;
+extern const BlockSoundType PACKED_MUD;
+extern const BlockSoundType MUDDY_MANGROVE_ROOTS;
+
+// 红树林
+extern const BlockSoundType MANGROVE_ROOTS;
+extern const BlockSoundType MANGROVE_WOOD;
+
+// 蛙明灯
+extern const BlockSoundType FROGLIGHT;
+extern const BlockSoundType FROGSPAWN;
+
+// ========================================================================
+// 1.20 足迹与故事
+// ========================================================================
+
+// 樱花系列
+extern const BlockSoundType CHERRY_WOOD;
+extern const BlockSoundType CHERRY_LEAVES;
+extern const BlockSoundType CHERRY_SAPLING;
+
+// 竹木系列
+extern const BlockSoundType BAMBOO_WOOD;
+
+// 考古
+extern const BlockSoundType SUSPICIOUS_SAND;
+extern const BlockSoundType SUSPICIOUS_GRAVEL;
+
+// 装饰
+extern const BlockSoundType DECORATED_POT;
+extern const BlockSoundType CHISELED_BOOKSHELF;
+
+// 植物
+extern const BlockSoundType PINK_PETALS;
+extern const BlockSoundType TORCHFLOWER;
+extern const BlockSoundType PITCHER_CROP;
+extern const BlockSoundType SNIFFER_EGG;
+
+// ========================================================================
+// 1.21 棘巧试炼
+// ========================================================================
+
+// 凝灰岩系列
+extern const BlockSoundType TUFF;
+extern const BlockSoundType POLISHED_TUFF;
+extern const BlockSoundType TUFF_BRICKS;
+
+// 试炼密室
+extern const BlockSoundType TRIAL_SPAWNER;
+extern const BlockSoundType VAULT;
+extern const BlockSoundType CRAFTER;
+
+// ========================================================================
+// 1.21.2+ 苍白花园
+// ========================================================================
+
+extern const BlockSoundType PALE_MOSS;
+extern const BlockSoundType PALE_HANGING_MOSS;
+extern const BlockSoundType CREAKING_HEART;
+extern const BlockSoundType RESIN;
+extern const BlockSoundType RESIN_BRICKS;
+
+// 其他新方块
+extern const BlockSoundType HEAVY_CORE;
+extern const BlockSoundType EYEBLOSSOM;
+
 /**
  * @brief 初始化预定义声音类型
  *

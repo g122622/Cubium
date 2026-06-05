@@ -647,6 +647,535 @@ const BlockSoundType GILDED_BLACKSTONE(ResourceLocation("minecraft:block.gilded_
     1.0f,
     1.0f);
 
+// ============================================================================
+// 1.17 洞穴与山崖 Part 1
+// ============================================================================
+
+// 深板岩系列 - DEEPSLATE 已在前面定义
+const BlockSoundType COBBLED_DEEPSLATE(ResourceLocation("minecraft:block.cobbled_deepslate.break"),
+    ResourceLocation("minecraft:block.cobbled_deepslate.step"),
+    ResourceLocation("minecraft:block.cobbled_deepslate.place"),
+    ResourceLocation("minecraft:block.cobbled_deepslate.hit"),
+    ResourceLocation("minecraft:block.cobbled_deepslate.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType POLISHED_DEEPSLATE(ResourceLocation("minecraft:block.polished_deepslate.break"),
+    ResourceLocation("minecraft:block.polished_deepslate.step"),
+    ResourceLocation("minecraft:block.polished_deepslate.place"),
+    ResourceLocation("minecraft:block.polished_deepslate.hit"),
+    ResourceLocation("minecraft:block.polished_deepslate.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType DEEPSLATE_BRICKS(ResourceLocation("minecraft:block.deepslate_bricks.break"),
+    ResourceLocation("minecraft:block.deepslate_bricks.step"),
+    ResourceLocation("minecraft:block.deepslate_bricks.place"),
+    ResourceLocation("minecraft:block.deepslate_bricks.hit"),
+    ResourceLocation("minecraft:block.deepslate_bricks.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType DEEPSLATE_TILES(ResourceLocation("minecraft:block.deepslate_tiles.break"),
+    ResourceLocation("minecraft:block.deepslate_tiles.step"),
+    ResourceLocation("minecraft:block.deepslate_tiles.place"),
+    ResourceLocation("minecraft:block.deepslate_tiles.hit"),
+    ResourceLocation("minecraft:block.deepslate_tiles.fall"),
+    1.0f,
+    1.0f);
+
+// 铜系列 - COPPER 已在前面定义
+const BlockSoundType COPPER_BULB(ResourceLocation("minecraft:block.copper_bulb.break"),
+    ResourceLocation("minecraft:block.copper_bulb.step"),
+    ResourceLocation("minecraft:block.copper_bulb.place"),
+    ResourceLocation("minecraft:block.copper_bulb.hit"),
+    ResourceLocation("minecraft:block.copper_bulb.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType COPPER_GRATE(ResourceLocation("minecraft:block.copper_grate.break"),
+    ResourceLocation("minecraft:block.copper_grate.step"),
+    ResourceLocation("minecraft:block.copper_grate.place"),
+    ResourceLocation("minecraft:block.copper_grate.hit"),
+    ResourceLocation("minecraft:block.copper_grate.fall"),
+    1.0f,
+    1.0f);
+
+// 紫水晶系列 - AMETHYST 已在前面定义
+const BlockSoundType AMETHYST_CLUSTER(ResourceLocation("minecraft:block.amethyst_cluster.break"),
+    ResourceLocation("minecraft:block.amethyst_cluster.step"),
+    ResourceLocation("minecraft:block.amethyst_cluster.place"),
+    ResourceLocation("minecraft:block.amethyst_cluster.hit"),
+    ResourceLocation("minecraft:block.amethyst_cluster.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType SMALL_AMETHYST_BUD(ResourceLocation("minecraft:block.small_amethyst_bud.break"),
+    ResourceLocation("minecraft:block.small_amethyst_bud.step"),
+    ResourceLocation("minecraft:block.small_amethyst_bud.place"),
+    ResourceLocation("minecraft:block.small_amethyst_bud.hit"),
+    ResourceLocation("minecraft:block.small_amethyst_bud.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType MEDIUM_AMETHYST_BUD(ResourceLocation("minecraft:block.medium_amethyst_bud.break"),
+    ResourceLocation("minecraft:block.medium_amethyst_bud.step"),
+    ResourceLocation("minecraft:block.medium_amethyst_bud.place"),
+    ResourceLocation("minecraft:block.medium_amethyst_bud.hit"),
+    ResourceLocation("minecraft:block.medium_amethyst_bud.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType LARGE_AMETHYST_BUD(ResourceLocation("minecraft:block.large_amethyst_bud.break"),
+    ResourceLocation("minecraft:block.large_amethyst_bud.step"),
+    ResourceLocation("minecraft:block.large_amethyst_bud.place"),
+    ResourceLocation("minecraft:block.large_amethyst_bud.hit"),
+    ResourceLocation("minecraft:block.large_amethyst_bud.fall"),
+    1.0f,
+    1.0f);
+
+// 洞穴装饰
+const BlockSoundType MOSS(ResourceLocation("minecraft:block.moss.break"),
+    ResourceLocation("minecraft:block.moss.step"),
+    ResourceLocation("minecraft:block.moss.place"),
+    ResourceLocation("minecraft:block.moss.hit"),
+    ResourceLocation("minecraft:block.moss.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType MOSS_CARPET(ResourceLocation("minecraft:block.moss_carpet.break"),
+    ResourceLocation("minecraft:block.moss_carpet.step"),
+    ResourceLocation("minecraft:block.moss_carpet.place"),
+    ResourceLocation("minecraft:block.moss_carpet.hit"),
+    ResourceLocation("minecraft:block.moss_carpet.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType AZALEA(ResourceLocation("minecraft:block.azalea.break"),
+    ResourceLocation("minecraft:block.azalea.step"),
+    ResourceLocation("minecraft:block.azalea.place"),
+    ResourceLocation("minecraft:block.azalea.hit"),
+    ResourceLocation("minecraft:block.azalea.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType AZALEA_LEAVES(ResourceLocation("minecraft:block.azalea_leaves.break"),
+    ResourceLocation("minecraft:block.azalea_leaves.step"),
+    ResourceLocation("minecraft:block.azalea_leaves.place"),
+    ResourceLocation("minecraft:block.azalea_leaves.hit"),
+    ResourceLocation("minecraft:block.azalea_leaves.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType CAVE_VINES(ResourceLocation("minecraft:block.cave_vines.break"),
+    ResourceLocation("minecraft:block.cave_vines.step"),
+    ResourceLocation("minecraft:block.cave_vines.place"),
+    ResourceLocation("minecraft:block.cave_vines.hit"),
+    ResourceLocation("minecraft:block.cave_vines.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType SPORE_BLOSSOM(ResourceLocation("minecraft:block.spore_blossom.break"),
+    ResourceLocation("minecraft:block.spore_blossom.step"),
+    ResourceLocation("minecraft:block.spore_blossom.place"),
+    ResourceLocation("minecraft:block.spore_blossom.hit"),
+    ResourceLocation("minecraft:block.spore_blossom.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType DRIPSTONE_BLOCK(ResourceLocation("minecraft:block.dripstone_block.break"),
+    ResourceLocation("minecraft:block.dripstone_block.step"),
+    ResourceLocation("minecraft:block.dripstone_block.place"),
+    ResourceLocation("minecraft:block.dripstone_block.hit"),
+    ResourceLocation("minecraft:block.dripstone_block.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType POINTED_DRIPSTONE(ResourceLocation("minecraft:block.pointed_dripstone.break"),
+    ResourceLocation("minecraft:block.pointed_dripstone.step"),
+    ResourceLocation("minecraft:block.pointed_dripstone.place"),
+    ResourceLocation("minecraft:block.pointed_dripstone.hit"),
+    ResourceLocation("minecraft:block.pointed_dripstone.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType CALCITE(ResourceLocation("minecraft:block.calcite.break"),
+    ResourceLocation("minecraft:block.calcite.step"),
+    ResourceLocation("minecraft:block.calcite.place"),
+    ResourceLocation("minecraft:block.calcite.hit"),
+    ResourceLocation("minecraft:block.calcite.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType POWDER_SNOW(ResourceLocation("minecraft:block.powder_snow.break"),
+    ResourceLocation("minecraft:block.powder_snow.step"),
+    ResourceLocation("minecraft:block.powder_snow.place"),
+    ResourceLocation("minecraft:block.powder_snow.hit"),
+    ResourceLocation("minecraft:block.powder_snow.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType HANGING_ROOTS(ResourceLocation("minecraft:block.hanging_roots.break"),
+    ResourceLocation("minecraft:block.hanging_roots.step"),
+    ResourceLocation("minecraft:block.hanging_roots.place"),
+    ResourceLocation("minecraft:block.hanging_roots.hit"),
+    ResourceLocation("minecraft:block.hanging_roots.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType ROOTED_DIRT(ResourceLocation("minecraft:block.rooted_dirt.break"),
+    ResourceLocation("minecraft:block.rooted_dirt.step"),
+    ResourceLocation("minecraft:block.rooted_dirt.place"),
+    ResourceLocation("minecraft:block.rooted_dirt.hit"),
+    ResourceLocation("minecraft:block.rooted_dirt.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType BIG_DRIPLEAF(ResourceLocation("minecraft:block.big_dripleaf.break"),
+    ResourceLocation("minecraft:block.big_dripleaf.step"),
+    ResourceLocation("minecraft:block.big_dripleaf.place"),
+    ResourceLocation("minecraft:block.big_dripleaf.hit"),
+    ResourceLocation("minecraft:block.big_dripleaf.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType SMALL_DRIPLEAF(ResourceLocation("minecraft:block.small_dripleaf.break"),
+    ResourceLocation("minecraft:block.small_dripleaf.step"),
+    ResourceLocation("minecraft:block.small_dripleaf.place"),
+    ResourceLocation("minecraft:block.small_dripleaf.hit"),
+    ResourceLocation("minecraft:block.small_dripleaf.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType GLOW_LICHEN(ResourceLocation("minecraft:block.glow_lichen.break"),
+    ResourceLocation("minecraft:block.glow_lichen.step"),
+    ResourceLocation("minecraft:block.glow_lichen.place"),
+    ResourceLocation("minecraft:block.glow_lichen.hit"),
+    ResourceLocation("minecraft:block.glow_lichen.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType FLOWERING_AZALEA(ResourceLocation("minecraft:block.flowering_azalea.break"),
+    ResourceLocation("minecraft:block.flowering_azalea.step"),
+    ResourceLocation("minecraft:block.flowering_azalea.place"),
+    ResourceLocation("minecraft:block.flowering_azalea.hit"),
+    ResourceLocation("minecraft:block.flowering_azalea.fall"),
+    1.0f,
+    1.0f);
+
+// ============================================================================
+// 1.19 荒野更新
+// ============================================================================
+
+const BlockSoundType SCULK(ResourceLocation("minecraft:block.sculk.break"),
+    ResourceLocation("minecraft:block.sculk.step"),
+    ResourceLocation("minecraft:block.sculk.place"),
+    ResourceLocation("minecraft:block.sculk.hit"),
+    ResourceLocation("minecraft:block.sculk.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType SCULK_CATALYST(ResourceLocation("minecraft:block.sculk_catalyst.break"),
+    ResourceLocation("minecraft:block.sculk_catalyst.step"),
+    ResourceLocation("minecraft:block.sculk_catalyst.place"),
+    ResourceLocation("minecraft:block.sculk_catalyst.hit"),
+    ResourceLocation("minecraft:block.sculk_catalyst.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType SCULK_SENSOR(ResourceLocation("minecraft:block.sculk_sensor.break"),
+    ResourceLocation("minecraft:block.sculk_sensor.step"),
+    ResourceLocation("minecraft:block.sculk_sensor.place"),
+    ResourceLocation("minecraft:block.sculk_sensor.hit"),
+    ResourceLocation("minecraft:block.sculk_sensor.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType SCULK_SHRIEKER(ResourceLocation("minecraft:block.sculk_shrieker.break"),
+    ResourceLocation("minecraft:block.sculk_shrieker.step"),
+    ResourceLocation("minecraft:block.sculk_shrieker.place"),
+    ResourceLocation("minecraft:block.sculk_shrieker.hit"),
+    ResourceLocation("minecraft:block.sculk_shrieker.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType SCULK_VEIN(ResourceLocation("minecraft:block.sculk_vein.break"),
+    ResourceLocation("minecraft:block.sculk_vein.step"),
+    ResourceLocation("minecraft:block.sculk_vein.place"),
+    ResourceLocation("minecraft:block.sculk_vein.hit"),
+    ResourceLocation("minecraft:block.sculk_vein.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType MUD(ResourceLocation("minecraft:block.mud.break"),
+    ResourceLocation("minecraft:block.mud.step"),
+    ResourceLocation("minecraft:block.mud.place"),
+    ResourceLocation("minecraft:block.mud.hit"),
+    ResourceLocation("minecraft:block.mud.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType MUD_BRICKS(ResourceLocation("minecraft:block.mud_bricks.break"),
+    ResourceLocation("minecraft:block.mud_bricks.step"),
+    ResourceLocation("minecraft:block.mud_bricks.place"),
+    ResourceLocation("minecraft:block.mud_bricks.hit"),
+    ResourceLocation("minecraft:block.mud_bricks.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType PACKED_MUD(ResourceLocation("minecraft:block.packed_mud.break"),
+    ResourceLocation("minecraft:block.packed_mud.step"),
+    ResourceLocation("minecraft:block.packed_mud.place"),
+    ResourceLocation("minecraft:block.packed_mud.hit"),
+    ResourceLocation("minecraft:block.packed_mud.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType MUDDY_MANGROVE_ROOTS(ResourceLocation("minecraft:block.muddy_mangrove_roots.break"),
+    ResourceLocation("minecraft:block.muddy_mangrove_roots.step"),
+    ResourceLocation("minecraft:block.muddy_mangrove_roots.place"),
+    ResourceLocation("minecraft:block.muddy_mangrove_roots.hit"),
+    ResourceLocation("minecraft:block.muddy_mangrove_roots.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType MANGROVE_ROOTS(ResourceLocation("minecraft:block.mangrove_roots.break"),
+    ResourceLocation("minecraft:block.mangrove_roots.step"),
+    ResourceLocation("minecraft:block.mangrove_roots.place"),
+    ResourceLocation("minecraft:block.mangrove_roots.hit"),
+    ResourceLocation("minecraft:block.mangrove_roots.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType MANGROVE_WOOD(ResourceLocation("minecraft:block.mangrove_wood.break"),
+    ResourceLocation("minecraft:block.mangrove_wood.step"),
+    ResourceLocation("minecraft:block.mangrove_wood.place"),
+    ResourceLocation("minecraft:block.mangrove_wood.hit"),
+    ResourceLocation("minecraft:block.mangrove_wood.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType FROGLIGHT(ResourceLocation("minecraft:block.froglight.break"),
+    ResourceLocation("minecraft:block.froglight.step"),
+    ResourceLocation("minecraft:block.froglight.place"),
+    ResourceLocation("minecraft:block.froglight.hit"),
+    ResourceLocation("minecraft:block.froglight.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType FROGSPAWN(ResourceLocation("minecraft:block.frogspawn.break"),
+    ResourceLocation("minecraft:block.frogspawn.step"),
+    ResourceLocation("minecraft:block.frogspawn.place"),
+    ResourceLocation("minecraft:block.frogspawn.hit"),
+    ResourceLocation("minecraft:block.frogspawn.fall"),
+    1.0f,
+    1.0f);
+
+// ============================================================================
+// 1.20 足迹与故事
+// ============================================================================
+
+const BlockSoundType CHERRY_WOOD(ResourceLocation("minecraft:block.cherry_wood.break"),
+    ResourceLocation("minecraft:block.cherry_wood.step"),
+    ResourceLocation("minecraft:block.cherry_wood.place"),
+    ResourceLocation("minecraft:block.cherry_wood.hit"),
+    ResourceLocation("minecraft:block.cherry_wood.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType CHERRY_LEAVES(ResourceLocation("minecraft:block.cherry_leaves.break"),
+    ResourceLocation("minecraft:block.cherry_leaves.step"),
+    ResourceLocation("minecraft:block.cherry_leaves.place"),
+    ResourceLocation("minecraft:block.cherry_leaves.hit"),
+    ResourceLocation("minecraft:block.cherry_leaves.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType CHERRY_SAPLING(ResourceLocation("minecraft:block.cherry_sapling.break"),
+    ResourceLocation("minecraft:block.cherry_sapling.step"),
+    ResourceLocation("minecraft:block.cherry_sapling.place"),
+    ResourceLocation("minecraft:block.cherry_sapling.hit"),
+    ResourceLocation("minecraft:block.cherry_sapling.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType BAMBOO_WOOD(ResourceLocation("minecraft:block.bamboo_wood.break"),
+    ResourceLocation("minecraft:block.bamboo_wood.step"),
+    ResourceLocation("minecraft:block.bamboo_wood.place"),
+    ResourceLocation("minecraft:block.bamboo_wood.hit"),
+    ResourceLocation("minecraft:block.bamboo_wood.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType SUSPICIOUS_SAND(ResourceLocation("minecraft:block.suspicious_sand.break"),
+    ResourceLocation("minecraft:block.suspicious_sand.step"),
+    ResourceLocation("minecraft:block.suspicious_sand.place"),
+    ResourceLocation("minecraft:block.suspicious_sand.hit"),
+    ResourceLocation("minecraft:block.suspicious_sand.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType SUSPICIOUS_GRAVEL(ResourceLocation("minecraft:block.suspicious_gravel.break"),
+    ResourceLocation("minecraft:block.suspicious_gravel.step"),
+    ResourceLocation("minecraft:block.suspicious_gravel.place"),
+    ResourceLocation("minecraft:block.suspicious_gravel.hit"),
+    ResourceLocation("minecraft:block.suspicious_gravel.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType DECORATED_POT(ResourceLocation("minecraft:block.decorated_pot.break"),
+    ResourceLocation("minecraft:block.decorated_pot.step"),
+    ResourceLocation("minecraft:block.decorated_pot.place"),
+    ResourceLocation("minecraft:block.decorated_pot.hit"),
+    ResourceLocation("minecraft:block.decorated_pot.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType CHISELED_BOOKSHELF(ResourceLocation("minecraft:block.chiseled_bookshelf.break"),
+    ResourceLocation("minecraft:block.chiseled_bookshelf.step"),
+    ResourceLocation("minecraft:block.chiseled_bookshelf.place"),
+    ResourceLocation("minecraft:block.chiseled_bookshelf.hit"),
+    ResourceLocation("minecraft:block.chiseled_bookshelf.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType PINK_PETALS(ResourceLocation("minecraft:block.pink_petals.break"),
+    ResourceLocation("minecraft:block.pink_petals.step"),
+    ResourceLocation("minecraft:block.pink_petals.place"),
+    ResourceLocation("minecraft:block.pink_petals.hit"),
+    ResourceLocation("minecraft:block.pink_petals.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType TORCHFLOWER(ResourceLocation("minecraft:block.torchflower.break"),
+    ResourceLocation("minecraft:block.torchflower.step"),
+    ResourceLocation("minecraft:block.torchflower.place"),
+    ResourceLocation("minecraft:block.torchflower.hit"),
+    ResourceLocation("minecraft:block.torchflower.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType PITCHER_CROP(ResourceLocation("minecraft:block.pitcher_crop.break"),
+    ResourceLocation("minecraft:block.pitcher_crop.step"),
+    ResourceLocation("minecraft:block.pitcher_crop.place"),
+    ResourceLocation("minecraft:block.pitcher_crop.hit"),
+    ResourceLocation("minecraft:block.pitcher_crop.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType SNIFFER_EGG(ResourceLocation("minecraft:block.sniffer_egg.break"),
+    ResourceLocation("minecraft:block.sniffer_egg.step"),
+    ResourceLocation("minecraft:block.sniffer_egg.place"),
+    ResourceLocation("minecraft:block.sniffer_egg.hit"),
+    ResourceLocation("minecraft:block.sniffer_egg.fall"),
+    1.0f,
+    1.0f);
+
+// ============================================================================
+// 1.21 棘巧试炼
+// ============================================================================
+
+// TUFF 已在前面定义
+const BlockSoundType POLISHED_TUFF(ResourceLocation("minecraft:block.polished_tuff.break"),
+    ResourceLocation("minecraft:block.polished_tuff.step"),
+    ResourceLocation("minecraft:block.polished_tuff.place"),
+    ResourceLocation("minecraft:block.polished_tuff.hit"),
+    ResourceLocation("minecraft:block.polished_tuff.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType TUFF_BRICKS(ResourceLocation("minecraft:block.tuff_bricks.break"),
+    ResourceLocation("minecraft:block.tuff_bricks.step"),
+    ResourceLocation("minecraft:block.tuff_bricks.place"),
+    ResourceLocation("minecraft:block.tuff_bricks.hit"),
+    ResourceLocation("minecraft:block.tuff_bricks.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType TRIAL_SPAWNER(ResourceLocation("minecraft:block.trial_spawner.break"),
+    ResourceLocation("minecraft:block.trial_spawner.step"),
+    ResourceLocation("minecraft:block.trial_spawner.place"),
+    ResourceLocation("minecraft:block.trial_spawner.hit"),
+    ResourceLocation("minecraft:block.trial_spawner.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType VAULT(ResourceLocation("minecraft:block.vault.break"),
+    ResourceLocation("minecraft:block.vault.step"),
+    ResourceLocation("minecraft:block.vault.place"),
+    ResourceLocation("minecraft:block.vault.hit"),
+    ResourceLocation("minecraft:block.vault.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType CRAFTER(ResourceLocation("minecraft:block.crafter.break"),
+    ResourceLocation("minecraft:block.crafter.step"),
+    ResourceLocation("minecraft:block.crafter.place"),
+    ResourceLocation("minecraft:block.crafter.hit"),
+    ResourceLocation("minecraft:block.crafter.fall"),
+    1.0f,
+    1.0f);
+
+// ============================================================================
+// 1.21.2+ 苍白花园
+// ============================================================================
+
+const BlockSoundType PALE_MOSS(ResourceLocation("minecraft:block.pale_moss.break"),
+    ResourceLocation("minecraft:block.pale_moss.step"),
+    ResourceLocation("minecraft:block.pale_moss.place"),
+    ResourceLocation("minecraft:block.pale_moss.hit"),
+    ResourceLocation("minecraft:block.pale_moss.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType PALE_HANGING_MOSS(ResourceLocation("minecraft:block.pale_hanging_moss.break"),
+    ResourceLocation("minecraft:block.pale_hanging_moss.step"),
+    ResourceLocation("minecraft:block.pale_hanging_moss.place"),
+    ResourceLocation("minecraft:block.pale_hanging_moss.hit"),
+    ResourceLocation("minecraft:block.pale_hanging_moss.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType CREAKING_HEART(ResourceLocation("minecraft:block.creaking_heart.break"),
+    ResourceLocation("minecraft:block.creaking_heart.step"),
+    ResourceLocation("minecraft:block.creaking_heart.place"),
+    ResourceLocation("minecraft:block.creaking_heart.hit"),
+    ResourceLocation("minecraft:block.creaking_heart.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType RESIN(ResourceLocation("minecraft:block.resin.break"),
+    ResourceLocation("minecraft:block.resin.step"),
+    ResourceLocation("minecraft:block.resin.place"),
+    ResourceLocation("minecraft:block.resin.hit"),
+    ResourceLocation("minecraft:block.resin.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType RESIN_BRICKS(ResourceLocation("minecraft:block.resin_bricks.break"),
+    ResourceLocation("minecraft:block.resin_bricks.step"),
+    ResourceLocation("minecraft:block.resin_bricks.place"),
+    ResourceLocation("minecraft:block.resin_bricks.hit"),
+    ResourceLocation("minecraft:block.resin_bricks.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType HEAVY_CORE(ResourceLocation("minecraft:block.heavy_core.break"),
+    ResourceLocation("minecraft:block.heavy_core.step"),
+    ResourceLocation("minecraft:block.heavy_core.place"),
+    ResourceLocation("minecraft:block.heavy_core.hit"),
+    ResourceLocation("minecraft:block.heavy_core.fall"),
+    1.0f,
+    1.0f);
+
+const BlockSoundType EYEBLOSSOM(ResourceLocation("minecraft:block.eyeblossom.break"),
+    ResourceLocation("minecraft:block.eyeblossom.step"),
+    ResourceLocation("minecraft:block.eyeblossom.place"),
+    ResourceLocation("minecraft:block.eyeblossom.hit"),
+    ResourceLocation("minecraft:block.eyeblossom.fall"),
+    1.0f,
+    1.0f);
+
 void initialize()
 {
     // 静态初始化已在全局对象构造时完成

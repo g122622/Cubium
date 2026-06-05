@@ -56,8 +56,12 @@ enum class WoodType : u8 {
     Jungle = 3,
     Acacia = 4,
     DarkOak = 5,
-    Crimson = 6, // 1.16 下界木材
-    Warped = 7   // 1.16 下界木材
+    Crimson = 6,  // 1.16 下界木材
+    Warped = 7,   // 1.16 下界木材
+    Mangrove = 8, // 1.19 红树林木材
+    Cherry = 9,   // 1.20 樱花木材
+    Bamboo = 10,  // 1.20 竹木材
+    PaleOak = 11  // 1.21.2 苍白橡木木材
 };
 
 /**

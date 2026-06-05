@@ -22,15 +22,29 @@
 
 #pragma once
 
+#include "world/block/registry/BambooBlocks.hpp"
 #include "world/block/registry/BaseBlocks.hpp"
 #include "world/block/registry/BuildingBlocks.hpp"
 #include "world/block/registry/BuildingVariantBlocks.hpp"
+#include "world/block/registry/CaveBlocks.hpp"
+#include "world/block/registry/CherryBlocks.hpp"
 #include "world/block/registry/ColoredBlocks.hpp"
+#include "world/block/registry/CopperBlocks.hpp"
+#include "world/block/registry/DeepslateBlocks.hpp"
+#include "world/block/registry/GardenBlocks.hpp"
+#include "world/block/registry/MangroveBlocks.hpp"
+#include "world/block/registry/MudBlocks.hpp"
 #include "world/block/registry/NaturalBlocks.hpp"
 #include "world/block/registry/NetherBlocks.hpp"
+#include "world/block/registry/PaleGardenBlocks.hpp"
 #include "world/block/registry/RedstoneBlocks.hpp"
+#include "world/block/registry/SculkBlocks.hpp"
 #include "world/block/registry/SignBannerBlocks.hpp"
+#include "world/block/registry/TrailsBlocks.hpp"
+#include "world/block/registry/TrialBlocks.hpp"
+#include "world/block/registry/TuffBlocks.hpp"
 #include "world/block/registry/VegetationBlocks.hpp"
+#include "world/block/registry/WildBlocks.hpp"
 
 namespace mc {
 
@@ -42,15 +56,29 @@ namespace mc {
  *
  * 参考: net.minecraft.block.Blocks
  */
-class VanillaBlocks : public block_registry::BaseBlocks,
+class VanillaBlocks : public block_registry::BambooBlocks,
+                      public block_registry::BaseBlocks,
                       public block_registry::BuildingBlocks,
                       public block_registry::BuildingVariantBlocks,
+                      public block_registry::CaveBlocks,
+                      public block_registry::CherryBlocks,
                       public block_registry::ColoredBlocks,
+                      public block_registry::CopperBlocks,
+                      public block_registry::DeepslateBlocks,
+                      public block_registry::GardenBlocks,
+                      public block_registry::MangroveBlocks,
+                      public block_registry::MudBlocks,
                       public block_registry::NaturalBlocks,
                       public block_registry::NetherBlocks,
+                      public block_registry::PaleGardenBlocks,
                       public block_registry::RedstoneBlocks,
                       public block_registry::SignBannerBlocks,
-                      public block_registry::VegetationBlocks {
+                      public block_registry::SculkBlocks,
+                      public block_registry::TrailsBlocks,
+                      public block_registry::TrialBlocks,
+                      public block_registry::TuffBlocks,
+                      public block_registry::VegetationBlocks,
+                      public block_registry::WildBlocks {
 public:
     /**
      * @brief 初始化所有原版方块

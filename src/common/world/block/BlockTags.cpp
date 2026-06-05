@@ -334,6 +334,296 @@ BlockTag& BlockTags::WITHER_IMMUNE()
     return *tag;
 }
 
+// ============================================================================
+// 1.17 Caves & Cliffs
+// ============================================================================
+
+BlockTag& BlockTags::COPPER_ORES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "copper_ores"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::DEEPSLATE_ORE_REPLACEABLES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "deepslate_ore_replaceables"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::BASE_STONE_OVERWORLD()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "base_stone_overworld"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::CRYSTAL_SOUND_BLOCKS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "crystal_sound_blocks"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::CAVE_VINES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "cave_vines"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::MOSS_REPLACEABLE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "moss_replaceable"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::COPPER()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "copper"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::LIGHTNING_RODS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "lightning_rods"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::DAMPENS_VIBRATIONS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "dampens_vibrations"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::OCCLUDES_VIBRATION_SIGNALS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "occludes_vibration_signals"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::OVERWORLD_NATURAL_LOGS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "overworld_natural_logs"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::SNOW()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "snow"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::POWDER_SNOW_WALKABLE_MOVED()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "powder_snow_walkable_moved"));
+    }
+    return *tag;
+}
+
+// ============================================================================
+// 1.19 Wild Update
+// ============================================================================
+
+BlockTag& BlockTags::SCULK_REPLACEABLE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "sculk_replaceable"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::SCULK_REPLACEABLE_WORLD_GEN()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "sculk_replaceable_world_gen"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::ANCIENT_CITY_REPLACEABLE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "ancient_city_replaceable"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::VIBRATION_RESONATORS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "vibration_resonators"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::FROGS_SPAWNABLE_ON()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "frogs_spawnable_on"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::CONVERTABLE_TO_MUD()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "convertable_to_mud"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::MANGROVE_LOGS_CAN_GROW_THROUGH()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "mangrove_logs_can_grow_through"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::MANGROVE_ROOTS_CAN_GROW_THROUGH()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "mangrove_roots_can_grow_through"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::MANGROVE_LOGS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "mangrove_logs"));
+    }
+    return *tag;
+}
+
+// ============================================================================
+// 1.20 Trails & Tales
+// ============================================================================
+
+BlockTag& BlockTags::CHERRY_LOGS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "cherry_logs"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::BAMBOO_BLOCKS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "bamboo_blocks"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::SNIFFER_DIGGABLE_BLOCK()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "sniffer_diggable_block"));
+    }
+    return *tag;
+}
+
+// ============================================================================
+// 1.21 Tricky Trials
+// ============================================================================
+
+BlockTag& BlockTags::FEATURES_CANNOT_REPLACE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "features_cannot_replace"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::ENCHANTMENT_POWER_PROVIDER()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "enchantment_power_provider"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::MAINTAINS_FARMLAND()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "maintains_farmland"));
+    }
+    return *tag;
+}
+
+// ============================================================================
+// 1.21.2+ Garden Awakens
+// ============================================================================
+
+BlockTag& BlockTags::PALE_OAK_LOGS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "pale_oak_logs"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::REPLACEABLE_BY_TREES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "replaceable_by_trees"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize()
 {
     if (s_initialized) {
@@ -681,7 +971,590 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "crimson_stem"),
         ResourceLocation("minecraft", "stripped_crimson_stem"),
         ResourceLocation("minecraft", "warped_stem"),
-        ResourceLocation("minecraft", "stripped_warped_stem")});
+        ResourceLocation("minecraft", "stripped_warped_stem"),
+        // 1.19 红树林原木
+        ResourceLocation("minecraft", "mangrove_log"),
+        ResourceLocation("minecraft", "mangrove_wood"),
+        ResourceLocation("minecraft", "stripped_mangrove_log"),
+        ResourceLocation("minecraft", "stripped_mangrove_wood"),
+        // 1.20 樱花原木
+        ResourceLocation("minecraft", "cherry_log"),
+        ResourceLocation("minecraft", "cherry_wood"),
+        ResourceLocation("minecraft", "stripped_cherry_log"),
+        ResourceLocation("minecraft", "stripped_cherry_wood"),
+        // 1.21.2 苍白橡木原木
+        ResourceLocation("minecraft", "pale_oak_log"),
+        ResourceLocation("minecraft", "pale_oak_wood"),
+        ResourceLocation("minecraft", "stripped_pale_oak_log"),
+        ResourceLocation("minecraft", "stripped_pale_oak_wood")});
+
+    // 更新 LEAVES 标签，添加 1.17-1.21 新叶子
+    BlockTag& leavesTag = *tags.at(ResourceLocation("minecraft", "leaves"));
+    leavesTag.addAll({// 1.19 红树林树叶
+        ResourceLocation("minecraft", "mangrove_leaves"),
+        // 1.20 樱花树叶
+        ResourceLocation("minecraft", "cherry_leaves"),
+        // 1.21.2 苍白橡木树叶
+        ResourceLocation("minecraft", "pale_oak_leaves")});
+
+    // 更新 PLANKS 标签，添加 1.19-1.21 新木板
+    BlockTag& planksTag = *tags.at(ResourceLocation("minecraft", "planks"));
+    planksTag.addAll({// 1.19 红树林木板
+        ResourceLocation("minecraft", "mangrove_planks"),
+        // 1.20 樱花木板
+        ResourceLocation("minecraft", "cherry_planks"),
+        // 1.20 竹木板
+        ResourceLocation("minecraft", "bamboo_planks"),
+        // 1.21.2 苍白橡木木板
+        ResourceLocation("minecraft", "pale_oak_planks")});
+
+    // 更新 DIRT 标签，添加 1.17+ 新泥土类方块
+    BlockTag& dirtTag = *tags.at(ResourceLocation("minecraft", "dirt"));
+    dirtTag.addAll({// 1.17 缠根泥土
+        ResourceLocation("minecraft", "rooted_dirt"),
+        // 1.17 苔藓块
+        ResourceLocation("minecraft", "moss_block"),
+        // 1.19 泥巴
+        ResourceLocation("minecraft", "mud"),
+        // 1.19 泥泞的红树根
+        ResourceLocation("minecraft", "muddy_mangrove_roots"),
+        // 1.21.2 苍白苔藓块
+        ResourceLocation("minecraft", "pale_moss_block")});
+
+    // 更新 STONE 标签，添加深板岩和凝灰岩
+    BlockTag& stoneTag = *tags.at(ResourceLocation("minecraft", "stone"));
+    stoneTag.addAll({// 1.17 深板岩和凝灰岩
+        ResourceLocation("minecraft", "deepslate"),
+        ResourceLocation("minecraft", "tuff")});
+
+    // 更新 SAND 标签，添加细雪和红沙
+    // (red_sand already included)
+
+    // 更新 ENDERMAN_HOLDABLE 标签，添加 1.17+ 新方块
+    BlockTag& endermanTag2 = *tags.at(ResourceLocation("minecraft", "enderman_holdable"));
+    endermanTag2.addAll({// 1.17 深板岩和凝灰岩
+        ResourceLocation("minecraft", "deepslate"),
+        ResourceLocation("minecraft", "cobbled_deepslate"),
+        ResourceLocation("minecraft", "tuff"),
+        // 1.17 苔藓块和苔藓地毯
+        ResourceLocation("minecraft", "moss_block"),
+        ResourceLocation("minecraft", "moss_carpet"),
+        // 1.17 方解石
+        ResourceLocation("minecraft", "calcite"),
+        // 1.19 泥巴和泥砖
+        ResourceLocation("minecraft", "mud"),
+        ResourceLocation("minecraft", "muddy_mangrove_roots"),
+        // 1.17 杜鹃花丛
+        ResourceLocation("minecraft", "azalea"),
+        ResourceLocation("minecraft", "flowering_azalea"),
+        // 1.17 点滴杜鹃
+        ResourceLocation("minecraft", "small_dripleaf"),
+        // 1.17 缠根泥土
+        ResourceLocation("minecraft", "rooted_dirt"),
+        // 1.17 浆果
+        ResourceLocation("minecraft", "glow_lichen"),
+        // 1.21.2 苍白苔藓
+        ResourceLocation("minecraft", "pale_moss_block"),
+        ResourceLocation("minecraft", "pale_moss_carpet")});
+
+    // 更新 WITHER_IMMUNE 标签，添加 1.17+ 新方块
+    BlockTag& witherImmuneTag = *tags.at(ResourceLocation("minecraft", "wither_immune"));
+    witherImmuneTag.addAll({// 1.17 加固深板岩
+        ResourceLocation("minecraft", "reinforced_deepslate"),
+        // 1.21 试炼刷怪笼和宝库
+        ResourceLocation("minecraft", "trial_spawner"),
+        ResourceLocation("minecraft", "vault")});
+
+    // 更新 SMALL_FLOWERS 标签，添加 1.17+ 新花
+    BlockTag& smallFlowersTag = *tags.at(ResourceLocation("minecraft", "small_flowers"));
+    smallFlowersTag.addAll({// 1.20 火把花
+        ResourceLocation("minecraft", "torchflower"),
+        // 1.21.2 睁眼花和闭眼花
+        ResourceLocation("minecraft", "open_eyeblossom"),
+        ResourceLocation("minecraft", "closed_eyeblossom")});
+
+    // 更新 BEE_GROWABLES 标签，添加 1.20 火把花
+    BlockTag& beeGrowablesTag = *tags.at(ResourceLocation("minecraft", "bee_growables"));
+    beeGrowablesTag.addAll(
+        {ResourceLocation("minecraft", "torchflower_crop"), ResourceLocation("minecraft", "pitcher_crop")});
+
+    // ============================================================================
+    // 1.17 Caves & Cliffs - 新标签
+    // ============================================================================
+
+    // 铜矿石标签
+    auto copperOres = std::make_unique<BlockTag>(ResourceLocation("minecraft", "copper_ores"));
+    copperOres->addAll(
+        {ResourceLocation("minecraft", "copper_ore"), ResourceLocation("minecraft", "deepslate_copper_ore")});
+    tags[copperOres->getId()] = std::move(copperOres);
+
+    // 深板岩矿石可替换方块
+    auto deepslateOreReplaceables =
+        std::make_unique<BlockTag>(ResourceLocation("minecraft", "deepslate_ore_replaceables"));
+    deepslateOreReplaceables->addAll(
+        {ResourceLocation("minecraft", "deepslate"), ResourceLocation("minecraft", "tuff")});
+    tags[deepslateOreReplaceables->getId()] = std::move(deepslateOreReplaceables);
+
+    // 主世界基础石头
+    auto baseStoneOverworld = std::make_unique<BlockTag>(ResourceLocation("minecraft", "base_stone_overworld"));
+    baseStoneOverworld->addAll({ResourceLocation("minecraft", "stone"),
+        ResourceLocation("minecraft", "granite"),
+        ResourceLocation("minecraft", "diorite"),
+        ResourceLocation("minecraft", "andesite"),
+        ResourceLocation("minecraft", "tuff"),
+        ResourceLocation("minecraft", "deepslate")});
+    tags[baseStoneOverworld->getId()] = std::move(baseStoneOverworld);
+
+    // 水晶声音方块
+    auto crystalSoundBlocks = std::make_unique<BlockTag>(ResourceLocation("minecraft", "crystal_sound_blocks"));
+    crystalSoundBlocks->addAll(
+        {ResourceLocation("minecraft", "amethyst_block"), ResourceLocation("minecraft", "budding_amethyst")});
+    tags[crystalSoundBlocks->getId()] = std::move(crystalSoundBlocks);
+
+    // 洞穴藤蔓
+    auto caveVines = std::make_unique<BlockTag>(ResourceLocation("minecraft", "cave_vines"));
+    caveVines->addAll({ResourceLocation("minecraft", "cave_vines"), ResourceLocation("minecraft", "cave_vines_plant")});
+    tags[caveVines->getId()] = std::move(caveVines);
+
+    // 苔藓可替换方块
+    auto mossReplaceable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "moss_replaceable"));
+    mossReplaceable->addAll({// 基础石头类
+        ResourceLocation("minecraft", "stone"),
+        ResourceLocation("minecraft", "granite"),
+        ResourceLocation("minecraft", "diorite"),
+        ResourceLocation("minecraft", "andesite"),
+        ResourceLocation("minecraft", "tuff"),
+        ResourceLocation("minecraft", "deepslate"),
+        // 洞穴藤蔓
+        ResourceLocation("minecraft", "cave_vines"),
+        ResourceLocation("minecraft", "cave_vines_plant"),
+        // 泥土类
+        ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "podzol"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "mycelium"),
+        ResourceLocation("minecraft", "farmland")});
+    tags[mossReplaceable->getId()] = std::move(mossReplaceable);
+
+    // 铜块标签（所有铜质方块）
+    auto copper = std::make_unique<BlockTag>(ResourceLocation("minecraft", "copper"));
+    copper->addAll({ResourceLocation("minecraft", "copper_block"),
+        ResourceLocation("minecraft", "exposed_copper"),
+        ResourceLocation("minecraft", "weathered_copper"),
+        ResourceLocation("minecraft", "oxidized_copper"),
+        ResourceLocation("minecraft", "waxed_copper_block"),
+        ResourceLocation("minecraft", "waxed_exposed_copper"),
+        ResourceLocation("minecraft", "waxed_weathered_copper"),
+        ResourceLocation("minecraft", "waxed_oxidized_copper"),
+        ResourceLocation("minecraft", "cut_copper"),
+        ResourceLocation("minecraft", "exposed_cut_copper"),
+        ResourceLocation("minecraft", "weathered_cut_copper"),
+        ResourceLocation("minecraft", "oxidized_cut_copper"),
+        ResourceLocation("minecraft", "waxed_cut_copper"),
+        ResourceLocation("minecraft", "waxed_exposed_cut_copper"),
+        ResourceLocation("minecraft", "waxed_weathered_cut_copper"),
+        ResourceLocation("minecraft", "waxed_oxidized_cut_copper"),
+        ResourceLocation("minecraft", "chiseled_copper"),
+        ResourceLocation("minecraft", "waxed_chiseled_copper"),
+        ResourceLocation("minecraft", "copper_grate"),
+        ResourceLocation("minecraft", "exposed_copper_grate"),
+        ResourceLocation("minecraft", "weathered_copper_grate"),
+        ResourceLocation("minecraft", "oxidized_copper_grate"),
+        ResourceLocation("minecraft", "waxed_copper_grate"),
+        ResourceLocation("minecraft", "waxed_exposed_copper_grate"),
+        ResourceLocation("minecraft", "waxed_weathered_copper_grate"),
+        ResourceLocation("minecraft", "waxed_oxidized_copper_grate"),
+        ResourceLocation("minecraft", "copper_bulb"),
+        ResourceLocation("minecraft", "exposed_copper_bulb"),
+        ResourceLocation("minecraft", "weathered_copper_bulb"),
+        ResourceLocation("minecraft", "oxidized_copper_bulb"),
+        ResourceLocation("minecraft", "waxed_copper_bulb"),
+        ResourceLocation("minecraft", "waxed_exposed_copper_bulb"),
+        ResourceLocation("minecraft", "waxed_weathered_copper_bulb"),
+        ResourceLocation("minecraft", "waxed_oxidized_copper_bulb"),
+        ResourceLocation("minecraft", "copper_door"),
+        ResourceLocation("minecraft", "exposed_copper_door"),
+        ResourceLocation("minecraft", "weathered_copper_door"),
+        ResourceLocation("minecraft", "oxidized_copper_door"),
+        ResourceLocation("minecraft", "waxed_copper_door"),
+        ResourceLocation("minecraft", "waxed_exposed_copper_door"),
+        ResourceLocation("minecraft", "waxed_weathered_copper_door"),
+        ResourceLocation("minecraft", "waxed_oxidized_copper_door"),
+        ResourceLocation("minecraft", "copper_trapdoor"),
+        ResourceLocation("minecraft", "exposed_copper_trapdoor"),
+        ResourceLocation("minecraft", "weathered_copper_trapdoor"),
+        ResourceLocation("minecraft", "oxidized_copper_trapdoor"),
+        ResourceLocation("minecraft", "waxed_copper_trapdoor"),
+        ResourceLocation("minecraft", "waxed_exposed_copper_trapdoor"),
+        ResourceLocation("minecraft", "waxed_weathered_copper_trapdoor"),
+        ResourceLocation("minecraft", "waxed_oxidized_copper_trapdoor")});
+    tags[copper->getId()] = std::move(copper);
+
+    // 避雷针标签
+    auto lightningRods = std::make_unique<BlockTag>(ResourceLocation("minecraft", "lightning_rods"));
+    lightningRods->addAll({ResourceLocation("minecraft", "lightning_rod")});
+    tags[lightningRods->getId()] = std::move(lightningRods);
+
+    // 减振方块标签（羊毛等）
+    auto dampensVibrations = std::make_unique<BlockTag>(ResourceLocation("minecraft", "dampens_vibrations"));
+    dampensVibrations->addAll({// 所有羊毛颜色
+        ResourceLocation("minecraft", "white_wool"),
+        ResourceLocation("minecraft", "orange_wool"),
+        ResourceLocation("minecraft", "magenta_wool"),
+        ResourceLocation("minecraft", "light_blue_wool"),
+        ResourceLocation("minecraft", "yellow_wool"),
+        ResourceLocation("minecraft", "lime_wool"),
+        ResourceLocation("minecraft", "pink_wool"),
+        ResourceLocation("minecraft", "gray_wool"),
+        ResourceLocation("minecraft", "light_gray_wool"),
+        ResourceLocation("minecraft", "cyan_wool"),
+        ResourceLocation("minecraft", "purple_wool"),
+        ResourceLocation("minecraft", "blue_wool"),
+        ResourceLocation("minecraft", "brown_wool"),
+        ResourceLocation("minecraft", "green_wool"),
+        ResourceLocation("minecraft", "red_wool"),
+        ResourceLocation("minecraft", "black_wool")});
+    tags[dampensVibrations->getId()] = std::move(dampensVibrations);
+
+    // 遮挡振动信号方块标签
+    auto occludesVibrationSignals =
+        std::make_unique<BlockTag>(ResourceLocation("minecraft", "occludes_vibration_signals"));
+    occludesVibrationSignals->addAll({// 所有羊毛颜色
+        ResourceLocation("minecraft", "white_wool"),
+        ResourceLocation("minecraft", "orange_wool"),
+        ResourceLocation("minecraft", "magenta_wool"),
+        ResourceLocation("minecraft", "light_blue_wool"),
+        ResourceLocation("minecraft", "yellow_wool"),
+        ResourceLocation("minecraft", "lime_wool"),
+        ResourceLocation("minecraft", "pink_wool"),
+        ResourceLocation("minecraft", "gray_wool"),
+        ResourceLocation("minecraft", "light_gray_wool"),
+        ResourceLocation("minecraft", "cyan_wool"),
+        ResourceLocation("minecraft", "purple_wool"),
+        ResourceLocation("minecraft", "blue_wool"),
+        ResourceLocation("minecraft", "brown_wool"),
+        ResourceLocation("minecraft", "green_wool"),
+        ResourceLocation("minecraft", "red_wool"),
+        ResourceLocation("minecraft", "black_wool")});
+    tags[occludesVibrationSignals->getId()] = std::move(occludesVibrationSignals);
+
+    // 主世界自然原木标签
+    auto overworldNaturalLogs = std::make_unique<BlockTag>(ResourceLocation("minecraft", "overworld_natural_logs"));
+    overworldNaturalLogs->addAll({ResourceLocation("minecraft", "oak_log"),
+        ResourceLocation("minecraft", "spruce_log"),
+        ResourceLocation("minecraft", "birch_log"),
+        ResourceLocation("minecraft", "jungle_log"),
+        ResourceLocation("minecraft", "acacia_log"),
+        ResourceLocation("minecraft", "dark_oak_log"),
+        ResourceLocation("minecraft", "mangrove_log"),
+        ResourceLocation("minecraft", "cherry_log"),
+        ResourceLocation("minecraft", "pale_oak_log")});
+    tags[overworldNaturalLogs->getId()] = std::move(overworldNaturalLogs);
+
+    // 雪标签
+    auto snow = std::make_unique<BlockTag>(ResourceLocation("minecraft", "snow"));
+    snow->addAll({ResourceLocation("minecraft", "snow"),
+        ResourceLocation("minecraft", "snow_block"),
+        ResourceLocation("minecraft", "powder_snow")});
+    tags[snow->getId()] = std::move(snow);
+
+    // 细雪可放置标签（皮革靴子可行走的方块）
+    auto powderSnowWalkableMoved =
+        std::make_unique<BlockTag>(ResourceLocation("minecraft", "powder_snow_walkable_moved"));
+    powderSnowWalkableMoved->addAll({ResourceLocation("minecraft", "powder_snow")});
+    tags[powderSnowWalkableMoved->getId()] = std::move(powderSnowWalkableMoved);
+
+    // ============================================================================
+    // 1.19 Wild Update - 新标签
+    // ============================================================================
+
+    // 幽匿可替换方块
+    auto sculkReplaceable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "sculk_replaceable"));
+    sculkReplaceable->addAll({// 基础石头
+        ResourceLocation("minecraft", "stone"),
+        ResourceLocation("minecraft", "granite"),
+        ResourceLocation("minecraft", "diorite"),
+        ResourceLocation("minecraft", "andesite"),
+        ResourceLocation("minecraft", "tuff"),
+        ResourceLocation("minecraft", "deepslate"),
+        // 泥土类
+        ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "podzol"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "mycelium"),
+        ResourceLocation("minecraft", "farmland"),
+        // 陶瓦
+        ResourceLocation("minecraft", "terracotta"),
+        // 下界
+        ResourceLocation("minecraft", "crimson_nylium"),
+        ResourceLocation("minecraft", "warped_nylium"),
+        ResourceLocation("minecraft", "netherrack"),
+        ResourceLocation("minecraft", "basalt"),
+        ResourceLocation("minecraft", "blackstone"),
+        // 沙子和沙砾
+        ResourceLocation("minecraft", "sand"),
+        ResourceLocation("minecraft", "red_sand"),
+        ResourceLocation("minecraft", "gravel"),
+        ResourceLocation("minecraft", "soul_sand"),
+        ResourceLocation("minecraft", "soul_soil"),
+        // 其他
+        ResourceLocation("minecraft", "calcite"),
+        ResourceLocation("minecraft", "smooth_basalt"),
+        ResourceLocation("minecraft", "clay"),
+        ResourceLocation("minecraft", "dripstone_block"),
+        ResourceLocation("minecraft", "end_stone"),
+        ResourceLocation("minecraft", "red_sandstone"),
+        ResourceLocation("minecraft", "sandstone")});
+    tags[sculkReplaceable->getId()] = std::move(sculkReplaceable);
+
+    // 幽匿世界生成可替换方块
+    auto sculkReplaceableWorldGen =
+        std::make_unique<BlockTag>(ResourceLocation("minecraft", "sculk_replaceable_world_gen"));
+    sculkReplaceableWorldGen->addAll({// 包含 sculk_replaceable 中的所有方块
+        ResourceLocation("minecraft", "stone"),
+        ResourceLocation("minecraft", "granite"),
+        ResourceLocation("minecraft", "diorite"),
+        ResourceLocation("minecraft", "andesite"),
+        ResourceLocation("minecraft", "tuff"),
+        ResourceLocation("minecraft", "deepslate"),
+        ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "podzol"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "mycelium"),
+        ResourceLocation("minecraft", "farmland"),
+        ResourceLocation("minecraft", "terracotta"),
+        ResourceLocation("minecraft", "crimson_nylium"),
+        ResourceLocation("minecraft", "warped_nylium"),
+        ResourceLocation("minecraft", "netherrack"),
+        ResourceLocation("minecraft", "basalt"),
+        ResourceLocation("minecraft", "blackstone"),
+        ResourceLocation("minecraft", "sand"),
+        ResourceLocation("minecraft", "red_sand"),
+        ResourceLocation("minecraft", "gravel"),
+        ResourceLocation("minecraft", "soul_sand"),
+        ResourceLocation("minecraft", "soul_soil"),
+        ResourceLocation("minecraft", "calcite"),
+        ResourceLocation("minecraft", "smooth_basalt"),
+        ResourceLocation("minecraft", "clay"),
+        ResourceLocation("minecraft", "dripstone_block"),
+        ResourceLocation("minecraft", "end_stone"),
+        ResourceLocation("minecraft", "red_sandstone"),
+        ResourceLocation("minecraft", "sandstone"),
+        // 额外的深板岩变种
+        ResourceLocation("minecraft", "deepslate_bricks"),
+        ResourceLocation("minecraft", "deepslate_tiles"),
+        ResourceLocation("minecraft", "cobbled_deepslate"),
+        ResourceLocation("minecraft", "cracked_deepslate_bricks"),
+        ResourceLocation("minecraft", "cracked_deepslate_tiles"),
+        ResourceLocation("minecraft", "polished_deepslate")});
+    tags[sculkReplaceableWorldGen->getId()] = std::move(sculkReplaceableWorldGen);
+
+    // 远古城市可替换方块
+    auto ancientCityReplaceable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "ancient_city_replaceable"));
+    ancientCityReplaceable->addAll({ResourceLocation("minecraft", "deepslate"),
+        ResourceLocation("minecraft", "deepslate_bricks"),
+        ResourceLocation("minecraft", "deepslate_tiles"),
+        ResourceLocation("minecraft", "deepslate_brick_slab"),
+        ResourceLocation("minecraft", "deepslate_tile_slab"),
+        ResourceLocation("minecraft", "deepslate_brick_stairs"),
+        ResourceLocation("minecraft", "deepslate_tile_wall"),
+        ResourceLocation("minecraft", "deepslate_brick_wall"),
+        ResourceLocation("minecraft", "cobbled_deepslate"),
+        ResourceLocation("minecraft", "cracked_deepslate_bricks"),
+        ResourceLocation("minecraft", "cracked_deepslate_tiles"),
+        ResourceLocation("minecraft", "gray_wool")});
+    tags[ancientCityReplaceable->getId()] = std::move(ancientCityReplaceable);
+
+    // 振动共振方块标签
+    auto vibrationResonators = std::make_unique<BlockTag>(ResourceLocation("minecraft", "vibration_resonators"));
+    vibrationResonators->addAll({ResourceLocation("minecraft", "amethyst_block")});
+    tags[vibrationResonators->getId()] = std::move(vibrationResonators);
+
+    // 青蛙可生成标签
+    auto frogsSpawnableOn = std::make_unique<BlockTag>(ResourceLocation("minecraft", "frogs_spawnable_on"));
+    frogsSpawnableOn->addAll({ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "mud"),
+        ResourceLocation("minecraft", "mangrove_roots"),
+        ResourceLocation("minecraft", "muddy_mangrove_roots")});
+    tags[frogsSpawnableOn->getId()] = std::move(frogsSpawnableOn);
+
+    // 可转化为泥巴方块标签
+    auto convertableToMud = std::make_unique<BlockTag>(ResourceLocation("minecraft", "convertable_to_mud"));
+    convertableToMud->addAll({ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "rooted_dirt")});
+    tags[convertableToMud->getId()] = std::move(convertableToMud);
+
+    // 红树林原木可生长标签
+    auto mangroveLogsCanGrowThrough =
+        std::make_unique<BlockTag>(ResourceLocation("minecraft", "mangrove_logs_can_grow_through"));
+    mangroveLogsCanGrowThrough->addAll({ResourceLocation("minecraft", "mud"),
+        ResourceLocation("minecraft", "muddy_mangrove_roots"),
+        ResourceLocation("minecraft", "mangrove_roots"),
+        ResourceLocation("minecraft", "mangrove_leaves"),
+        ResourceLocation("minecraft", "mangrove_log"),
+        ResourceLocation("minecraft", "mangrove_propagule"),
+        ResourceLocation("minecraft", "moss_carpet"),
+        ResourceLocation("minecraft", "vine")});
+    tags[mangroveLogsCanGrowThrough->getId()] = std::move(mangroveLogsCanGrowThrough);
+
+    // 红树林根可生长标签
+    auto mangroveRootsCanGrowThrough =
+        std::make_unique<BlockTag>(ResourceLocation("minecraft", "mangrove_roots_can_grow_through"));
+    mangroveRootsCanGrowThrough->addAll({ResourceLocation("minecraft", "mud"),
+        ResourceLocation("minecraft", "muddy_mangrove_roots"),
+        ResourceLocation("minecraft", "mangrove_roots"),
+        ResourceLocation("minecraft", "moss_carpet"),
+        ResourceLocation("minecraft", "vine"),
+        ResourceLocation("minecraft", "mangrove_propagule"),
+        ResourceLocation("minecraft", "snow")});
+    tags[mangroveRootsCanGrowThrough->getId()] = std::move(mangroveRootsCanGrowThrough);
+
+    // 红树林原木标签
+    auto mangroveLogs = std::make_unique<BlockTag>(ResourceLocation("minecraft", "mangrove_logs"));
+    mangroveLogs->addAll({ResourceLocation("minecraft", "mangrove_log"),
+        ResourceLocation("minecraft", "mangrove_wood"),
+        ResourceLocation("minecraft", "stripped_mangrove_log"),
+        ResourceLocation("minecraft", "stripped_mangrove_wood")});
+    tags[mangroveLogs->getId()] = std::move(mangroveLogs);
+
+    // ============================================================================
+    // 1.20 Trails & Tales - 新标签
+    // ============================================================================
+
+    // 樱花原木标签
+    auto cherryLogs = std::make_unique<BlockTag>(ResourceLocation("minecraft", "cherry_logs"));
+    cherryLogs->addAll({ResourceLocation("minecraft", "cherry_log"),
+        ResourceLocation("minecraft", "cherry_wood"),
+        ResourceLocation("minecraft", "stripped_cherry_log"),
+        ResourceLocation("minecraft", "stripped_cherry_wood")});
+    tags[cherryLogs->getId()] = std::move(cherryLogs);
+
+    // 竹木方块标签
+    auto bambooBlocks = std::make_unique<BlockTag>(ResourceLocation("minecraft", "bamboo_blocks"));
+    bambooBlocks->addAll(
+        {ResourceLocation("minecraft", "bamboo_block"), ResourceLocation("minecraft", "stripped_bamboo_block")});
+    tags[bambooBlocks->getId()] = std::move(bambooBlocks);
+
+    // 嗅探兽可挖掘方块标签
+    auto snifferDiggableBlock = std::make_unique<BlockTag>(ResourceLocation("minecraft", "sniffer_diggable_block"));
+    snifferDiggableBlock->addAll({ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "podzol"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "rooted_dirt"),
+        ResourceLocation("minecraft", "moss_block"),
+        ResourceLocation("minecraft", "pale_moss_block"),
+        ResourceLocation("minecraft", "mud"),
+        ResourceLocation("minecraft", "muddy_mangrove_roots")});
+    tags[snifferDiggableBlock->getId()] = std::move(snifferDiggableBlock);
+
+    // ============================================================================
+    // 1.21 Tricky Trials - 新标签
+    // ============================================================================
+
+    // 不可被特性替换方块
+    auto featuresCannotReplace = std::make_unique<BlockTag>(ResourceLocation("minecraft", "features_cannot_replace"));
+    featuresCannotReplace->addAll({ResourceLocation("minecraft", "bedrock"),
+        ResourceLocation("minecraft", "spawner"),
+        ResourceLocation("minecraft", "chest"),
+        ResourceLocation("minecraft", "end_portal_frame"),
+        ResourceLocation("minecraft", "reinforced_deepslate"),
+        ResourceLocation("minecraft", "trial_spawner"),
+        ResourceLocation("minecraft", "vault")});
+    tags[featuresCannotReplace->getId()] = std::move(featuresCannotReplace);
+
+    // 附魔力量提供者标签
+    auto enchantmentPowerProvider =
+        std::make_unique<BlockTag>(ResourceLocation("minecraft", "enchantment_power_provider"));
+    enchantmentPowerProvider->addAll({ResourceLocation("minecraft", "bookshelf")});
+    tags[enchantmentPowerProvider->getId()] = std::move(enchantmentPowerProvider);
+
+    // 维持耕地标签
+    auto maintainsFarmland = std::make_unique<BlockTag>(ResourceLocation("minecraft", "maintains_farmland"));
+    maintainsFarmland->addAll({ResourceLocation("minecraft", "pumpkin_stem"),
+        ResourceLocation("minecraft", "attached_pumpkin_stem"),
+        ResourceLocation("minecraft", "melon_stem"),
+        ResourceLocation("minecraft", "attached_melon_stem"),
+        ResourceLocation("minecraft", "beetroots"),
+        ResourceLocation("minecraft", "carrots"),
+        ResourceLocation("minecraft", "potatoes"),
+        ResourceLocation("minecraft", "torchflower_crop"),
+        ResourceLocation("minecraft", "torchflower"),
+        ResourceLocation("minecraft", "pitcher_crop"),
+        ResourceLocation("minecraft", "wheat")});
+    tags[maintainsFarmland->getId()] = std::move(maintainsFarmland);
+
+    // ============================================================================
+    // 1.21.2+ Garden Awakens - 新标签
+    // ============================================================================
+
+    // 苍白橡木原木标签
+    auto paleOakLogs = std::make_unique<BlockTag>(ResourceLocation("minecraft", "pale_oak_logs"));
+    paleOakLogs->addAll({ResourceLocation("minecraft", "pale_oak_log"),
+        ResourceLocation("minecraft", "pale_oak_wood"),
+        ResourceLocation("minecraft", "stripped_pale_oak_log"),
+        ResourceLocation("minecraft", "stripped_pale_oak_wood")});
+    tags[paleOakLogs->getId()] = std::move(paleOakLogs);
+
+    // 可被树替换方块标签
+    auto replaceableByTrees = std::make_unique<BlockTag>(ResourceLocation("minecraft", "replaceable_by_trees"));
+    replaceableByTrees->addAll({// 叶子
+        ResourceLocation("minecraft", "oak_leaves"),
+        ResourceLocation("minecraft", "spruce_leaves"),
+        ResourceLocation("minecraft", "birch_leaves"),
+        ResourceLocation("minecraft", "jungle_leaves"),
+        ResourceLocation("minecraft", "acacia_leaves"),
+        ResourceLocation("minecraft", "dark_oak_leaves"),
+        ResourceLocation("minecraft", "azalea_leaves"),
+        ResourceLocation("minecraft", "flowering_azalea_leaves"),
+        ResourceLocation("minecraft", "mangrove_leaves"),
+        ResourceLocation("minecraft", "cherry_leaves"),
+        ResourceLocation("minecraft", "pale_oak_leaves"),
+        // 小花朵
+        ResourceLocation("minecraft", "dandelion"),
+        ResourceLocation("minecraft", "poppy"),
+        ResourceLocation("minecraft", "blue_orchid"),
+        ResourceLocation("minecraft", "allium"),
+        ResourceLocation("minecraft", "azure_bluet"),
+        ResourceLocation("minecraft", "red_tulip"),
+        ResourceLocation("minecraft", "orange_tulip"),
+        ResourceLocation("minecraft", "white_tulip"),
+        ResourceLocation("minecraft", "pink_tulip"),
+        ResourceLocation("minecraft", "oxeye_daisy"),
+        ResourceLocation("minecraft", "cornflower"),
+        ResourceLocation("minecraft", "lily_of_the_valley"),
+        ResourceLocation("minecraft", "wither_rose"),
+        ResourceLocation("minecraft", "torchflower"),
+        ResourceLocation("minecraft", "open_eyeblossom"),
+        ResourceLocation("minecraft", "closed_eyeblossom"),
+        // 苍白苔藓地毯
+        ResourceLocation("minecraft", "pale_moss_carpet"),
+        // 植物
+        ResourceLocation("minecraft", "short_grass"),
+        ResourceLocation("minecraft", "fern"),
+        ResourceLocation("minecraft", "dead_bush"),
+        ResourceLocation("minecraft", "vine"),
+        ResourceLocation("minecraft", "glow_lichen"),
+        ResourceLocation("minecraft", "hanging_roots"),
+        ResourceLocation("minecraft", "pitcher_plant"),
+        // 水
+        ResourceLocation("minecraft", "water"),
+        ResourceLocation("minecraft", "seagrass"),
+        ResourceLocation("minecraft", "tall_seagrass"),
+        // 1.21.2 苍白花园植物
+        ResourceLocation("minecraft", "bush"),
+        ResourceLocation("minecraft", "firefly_bush"),
+        ResourceLocation("minecraft", "warped_roots"),
+        ResourceLocation("minecraft", "nether_sprouts"),
+        ResourceLocation("minecraft", "crimson_roots"),
+        ResourceLocation("minecraft", "leaf_litter"),
+        ResourceLocation("minecraft", "short_dry_grass"),
+        ResourceLocation("minecraft", "tall_dry_grass")});
+    tags[replaceableByTrees->getId()] = std::move(replaceableByTrees);
 
     // 创建 WITHER_IMMUNE 标签（凋灵免疫方块）
     // 凋灵无法破坏这些方块（基岩、屏障、末地传送门、命令方块等）

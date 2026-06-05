@@ -286,6 +286,21 @@ Material makeMossMaterial()
     return MaterialBuilder().solid(false).replaceable().opaque(false).build();
 }
 
+Material makeSculkMaterial()
+{
+    return MaterialBuilder()
+        .solid(false)
+        .replaceable()
+        .opaque(false)
+        .pushReaction(Material::PushReaction::Destroy)
+        .build();
+}
+
+Material makePowderSnowMaterial()
+{
+    return MaterialBuilder().solid(false).replaceable().blocksMovement(false).opaque(false).build();
+}
+
 Material makeOrganicMaterial()
 {
     // 有机材质：用于草方块、干草块、地狱疣块、诡异疣块等
@@ -487,6 +502,16 @@ const Material& Material::CAKE = []() -> const Material& {
 const Material& Material::BARRIER = []() -> const Material& {
     static const Material material =
         MaterialBuilder().solid().opaque().pushReaction(Material::PushReaction::Block).build();
+    return material;
+}();
+
+const Material& Material::SCULK = []() -> const Material& {
+    static Material material = makeSculkMaterial();
+    return material;
+}();
+
+const Material& Material::POWDER_SNOW = []() -> const Material& {
+    static Material material = makePowderSnowMaterial();
     return material;
 }();
 

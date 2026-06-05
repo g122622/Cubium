@@ -222,6 +222,106 @@ public:
     /// 凋灵无法破坏的方块：基岩、屏障、末地传送门、命令方块等
     static BlockTag& WITHER_IMMUNE();
 
+    // ========== 1.17 洞穴与山崖 标签 ==========
+
+    /// 铜矿石标签（铜矿石、深板岩铜矿石）
+    static BlockTag& COPPER_ORES();
+
+    /// 深板岩矿石可替换方块标签（深板岩、凝灰岩）
+    static BlockTag& DEEPSLATE_ORE_REPLACEABLES();
+
+    /// 主世界基础石头标签（石头、花岗岩、闪长岩、安山岩、凝灰岩、深板岩）
+    static BlockTag& BASE_STONE_OVERWORLD();
+
+    /// 水晶声音方块标签（紫水晶块、紫水晶母岩）
+    static BlockTag& CRYSTAL_SOUND_BLOCKS();
+
+    /// 洞穴藤蔓标签
+    static BlockTag& CAVE_VINES();
+
+    /// 苔藓可替换方块标签
+    static BlockTag& MOSS_REPLACEABLE();
+
+    /// 铜块标签（所有铜质方块，含氧化和涂蜡变种）
+    static BlockTag& COPPER();
+
+    /// 避雷针标签
+    static BlockTag& LIGHTNING_RODS();
+
+    /// 减振方块标签（羊毛等，可阻挡幽匿感测体振动）
+    static BlockTag& DAMPENS_VIBRATIONS();
+
+    /// 遮挡振动信号方块标签
+    static BlockTag& OCCLUDES_VIBRATION_SIGNALS();
+
+    /// 主世界自然原木标签
+    static BlockTag& OVERWORLD_NATURAL_LOGS();
+
+    /// 雪标签（雪、雪块、细雪）
+    static BlockTag& SNOW();
+
+    /// 细雪可放置标签
+    static BlockTag& POWDER_SNOW_WALKABLE_MOVED();
+
+    // ========== 1.19 荒野更新 标签 ==========
+
+    /// 幽匿可替换方块标签
+    static BlockTag& SCULK_REPLACEABLE();
+
+    /// 幽匿世界生成可替换方块标签
+    static BlockTag& SCULK_REPLACEABLE_WORLD_GEN();
+
+    /// 远古城市可替换方块标签
+    static BlockTag& ANCIENT_CITY_REPLACEABLE();
+
+    /// 振动共振方块标签（紫水晶块）
+    static BlockTag& VIBRATION_RESONATORS();
+
+    /// 青蛙可生成标签
+    static BlockTag& FROGS_SPAWNABLE_ON();
+
+    /// 可转化为泥巴方块标签（泥土、粗泥、缠根泥土）
+    static BlockTag& CONVERTABLE_TO_MUD();
+
+    /// 红树林原木可生长标签
+    static BlockTag& MANGROVE_LOGS_CAN_GROW_THROUGH();
+
+    /// 红树林根可生长标签
+    static BlockTag& MANGROVE_ROOTS_CAN_GROW_THROUGH();
+
+    /// 红树林原木标签
+    static BlockTag& MANGROVE_LOGS();
+
+    // ========== 1.20 足迹与故事 标签 ==========
+
+    /// 樱花原木标签
+    static BlockTag& CHERRY_LOGS();
+
+    /// 竹木方块标签（竹块、去皮竹块）
+    static BlockTag& BAMBOO_BLOCKS();
+
+    /// 嗅探兽可挖掘方块标签
+    static BlockTag& SNIFFER_DIGGABLE_BLOCK();
+
+    // ========== 1.21 棘巧试炼 标签 ==========
+
+    /// 不可被特性替换方块标签（基岩、刷怪笼、箱子等）
+    static BlockTag& FEATURES_CANNOT_REPLACE();
+
+    /// 附魔力量提供者标签（书架）
+    static BlockTag& ENCHANTMENT_POWER_PROVIDER();
+
+    /// 维持耕地标签
+    static BlockTag& MAINTAINS_FARMLAND();
+
+    // ========== 1.21.2+ 苍白花园 标签 ==========
+
+    /// 苍白橡木原木标签
+    static BlockTag& PALE_OAK_LOGS();
+
+    /// 可被树替换方块标签
+    static BlockTag& REPLACEABLE_BY_TREES();
+
     /**
      * @brief 初始化所有内置标签
      *
