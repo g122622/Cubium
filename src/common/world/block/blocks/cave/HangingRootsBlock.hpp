@@ -61,6 +61,12 @@ public:
         return true;
     }
 
+    /**
+     * @brief 检查是否可以放置（上方必须有实心方块）
+     */
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
     [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
     {

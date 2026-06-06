@@ -14,16 +14,16 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
 #pragma once
 
 #include "../../Block.hpp"
+#include "../../IGrowable.hpp"
 
 namespace mc {
 namespace blocks {
@@ -36,11 +36,30 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.RootedDirtBlock
  */
-class RootedDirtBlock : public Block {
+class RootedDirtBlock : public Block, public IGrowable {
 public:
     explicit RootedDirtBlock(const BlockProperties& properties);
 
     ~RootedDirtBlock() override = default;
+
+    // ========== IGrowable 接口 ==========
+
+    /**
+     * @brief 下方为空气时可以生长垂根
+     */
+    [[nodiscard]] bool canGrow(
+        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
+
+    /**
+     * @brief 骨粉对缠根泥土100%有效
+     */
+    [[nodiscard]] bool canUseBonemeal(
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
+
+    /**
+     * @brief 在下方放置垂根
+     */
+    void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 };
 
 } // namespace blocks

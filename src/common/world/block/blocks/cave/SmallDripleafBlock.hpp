@@ -9,15 +9,14 @@
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * copies of substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
@@ -25,6 +24,7 @@
 
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
+#include "../../IGrowable.hpp"
 #include "../../IWaterLoggable.hpp"
 
 namespace mc {
@@ -35,10 +35,11 @@ namespace blocks {
  *
  * 小型装饰植物，可放置在水下，支持含水。
  * 有上下两部分组成（通过DOUBLE_BLOCK_HALF属性区分）。
+ * 使用骨粉可以生长为大滴叶（1-5格茎+1格叶片）。
  *
  * 参考: net.minecraft.block.SmallDripleafBlock
  */
-class SmallDripleafBlock : public Block, public IWaterLoggable {
+class SmallDripleafBlock : public Block, public IWaterLoggable, public IGrowable {
 public:
     explicit SmallDripleafBlock(const BlockProperties& properties);
 
@@ -69,6 +70,27 @@ public:
 
     [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+
+    // ========== IGrowable 接口 ==========
+
+    /**
+     * @brief 小滴叶上方有足够空间时可以生长
+     */
+    [[nodiscard]] bool canGrow(
+        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
+
+    /**
+     * @brief 骨粉对小滴叶总是有效
+     */
+    [[nodiscard]] bool canUseBonemeal(
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
+
+    /**
+     * @brief 使用骨粉生长为大滴叶
+     *
+     * 移除小滴叶，在原位置放置1-5格大滴叶茎+1格大滴叶叶片
+     */
+    void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;

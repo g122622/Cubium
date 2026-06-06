@@ -24,6 +24,7 @@
 #include "HangingRootsBlock.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 
 namespace mc {
@@ -88,6 +89,17 @@ const CollisionShape& HangingRootsBlock::getShape(const BlockState& state) const
 {
     MC_UNUSED(state);
     return m_shape;
+}
+
+bool HangingRootsBlock::isValidPosition(
+    const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(state);
+
+    // 上方必须有实心方块
+    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
+    return aboveState != nullptr && aboveState->isSolid();
 }
 
 const fluid::FluidState* HangingRootsBlock::getFluidState(const BlockState& state) const

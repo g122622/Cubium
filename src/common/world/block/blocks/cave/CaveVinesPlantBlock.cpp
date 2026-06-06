@@ -14,15 +14,15 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
 #include "CaveVinesPlantBlock.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace blocks {
@@ -55,6 +55,28 @@ const CollisionShape& CaveVinesPlantBlock::getShape(const BlockState& state) con
 {
     MC_UNUSED(state);
     return m_shape;
+}
+
+ActionResultType CaveVinesPlantBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(player);
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    // 浆果存在时，右键收获
+    if (state.get(BlockStateProperties::BERRIES())) {
+        const BlockState& newState = state.with(BlockStateProperties::BERRIES(), false);
+        world.setBlockState(pos, &newState, 3);
+        // TODO: 掉落发光浆果物品（需要LootTable系统支持）
+        return ActionResultType::Success;
+    }
+
+    return ActionResultType::Pass;
 }
 
 } // namespace blocks

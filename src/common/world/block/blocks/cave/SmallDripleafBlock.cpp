@@ -3,21 +3,20 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
+ * in the Software without restriction, including limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * copies of substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, NONINFRINGEMENT OF THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
@@ -25,7 +24,10 @@
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/registry/BaseBlocks.hpp"
+#include "common/world/block/registry/CaveBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -116,6 +118,73 @@ const BlockState& SmallDripleafBlock::mirror(const BlockState& state, Mirror mir
     Rotation rotation = Directions::mirrorToRotation(mirror, facing);
     Direction mirrored = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), mirrored);
+}
+
+bool SmallDripleafBlock::canGrow(
+    IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    MC_UNUSED(isClientSide);
+    return true;
+}
+
+bool SmallDripleafBlock::canUseBonemeal(
+    IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    MC_UNUSED(random);
+    return true;
+}
+
+void SmallDripleafBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state)
+{
+    // 获取朝向
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+
+    // 如果是上半部分，从下半部分位置开始
+    BlockPos basePos = pos;
+    if (state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Upper) {
+        basePos = BlockPos(pos.x, pos.y - 1, pos.z);
+    }
+
+    // 随机茎高度1-5格
+    i32 stemHeight = 1 + random.nextInt(5);
+
+    // 检查上方是否有足够空间（茎 + 叶片）
+    for (i32 i = 0; i <= stemHeight; ++i) {
+        BlockPos checkPos(basePos.x, basePos.y + i, basePos.z);
+        const BlockState* checkState = world.getBlockState(checkPos);
+        if (checkState == nullptr) {
+            return;
+        }
+        // 允许空气和小滴叶自身
+        if (!checkState->isAir() && &checkState->getBlock() != this) {
+            return;
+        }
+    }
+
+    // 移除小滴叶（上下两部分）
+    const BlockState& airState = BaseBlocks::AIR->defaultState();
+    world.setBlockState(basePos, &airState, 3);
+    world.setBlockState(BlockPos(basePos.x, basePos.y + 1, basePos.z), &airState, 3);
+
+    // 放置大滴叶茎
+    const BlockState& stemState = CaveBlocks::BIG_DRIPLEAF_STEM->defaultState()
+                                       .with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+    for (i32 i = 0; i < stemHeight; ++i) {
+        BlockPos stemPos(basePos.x, basePos.y + i, basePos.z);
+        world.setBlockState(stemPos, &stemState, 3);
+    }
+
+    // 放置大滴叶叶片
+    const BlockState& leafState = CaveBlocks::BIG_DRIPLEAF->defaultState()
+                                       .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
+                                       .with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::None);
+    world.setBlockState(leafPos, &leafState, 3);
 }
 
 } // namespace blocks

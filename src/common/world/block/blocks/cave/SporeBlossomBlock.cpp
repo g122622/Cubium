@@ -14,29 +14,43 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE ON AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
 #include "SporeBlossomBlock.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace blocks {
 
 SporeBlossomBlock::SporeBlossomBlock(const BlockProperties& properties)
     : Block(properties)
-{
-    // 碰撞箱: 2x3x2像素（居中，悬挂在天花板）
-    m_shape = CollisionShape::fromPixelBox(2, 13, 2, 14, 16, 14);
-}
+    , m_shape(CollisionShape::fromPixelBox(2, 13, 2, 14, 16, 14))
+{}
 
 const CollisionShape& SporeBlossomBlock::getShape(const BlockState& state) const
 {
     MC_UNUSED(state);
     return m_shape;
+}
+
+bool SporeBlossomBlock::isValidPosition(
+    const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(state);
+
+    // 检查上方是否有坚固面的方块
+    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
+    if (aboveState == nullptr) {
+        return false;
+    }
+
+    // 上方方块必须是实心的（有向下的坚固面）
+    return aboveState->isSolid();
 }
 
 } // namespace blocks

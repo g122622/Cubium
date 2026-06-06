@@ -14,10 +14,9 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE ON AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
@@ -25,10 +24,17 @@
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace blocks {
+
+// 倾斜延迟（MC源码）
+static constexpr i32 TILT_DELAY_UNSTABLE = 10; // NONE→UNSTABLE后等待10tick
+static constexpr i32 TILT_DELAY_PARTIAL = 10;  // UNSTABLE→PARTIAL后等待10tick
+static constexpr i32 TILT_DELAY_FULL = 100;    // PARTIAL→FULL后等待100tick
 
 BigDripleafBlock::BigDripleafBlock(const BlockProperties& properties)
     : Block(properties)
@@ -112,11 +118,42 @@ const fluid::FluidState* BigDripleafBlock::getFluidState(const BlockState& state
 
 void BigDripleafBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
+    MC_UNUSED(random);
+
+    BlockStateProperties::Tilt tilt = state.get(BlockStateProperties::TILT());
+
+    switch (tilt) {
+    case BlockStateProperties::Tilt::Unstable:
+        // UNSTABLE → PARTIAL
+        state = state.with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::Partial);
+        world.setBlockState(pos, &state, 3);
+        _scheduleTiltTick(world, pos, BlockStateProperties::Tilt::Partial);
+        break;
+
+    case BlockStateProperties::Tilt::Partial:
+        // PARTIAL → FULL
+        state = state.with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::Full);
+        world.setBlockState(pos, &state, 3);
+        _scheduleTiltTick(world, pos, BlockStateProperties::Tilt::Full);
+        break;
+
+    case BlockStateProperties::Tilt::Full:
+        // FULL → NONE (自动重置)
+        _resetTilt(world, pos, state);
+        break;
+
+    default:
+        break;
+    }
+}
+
+void BigDripleafBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
     MC_UNUSED(random);
-    // TODO: 实现倾斜进度逻辑
+    // 大滴叶不需要随机刻
 }
 
 void BigDripleafBlock::neighborChanged(
@@ -125,9 +162,19 @@ void BigDripleafBlock::neighborChanged(
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
-    // TODO: 实现红石信号响应，重置倾斜状态
     MC_UNUSED(world);
     MC_UNUSED(pos);
+
+    // TODO: 红石信号检测 - 需要红石系统支持
+    // MC逻辑：当接收到红石信号时，立即重置倾斜状态为NONE
+    // if (world.hasNeighborSignal(pos)) {
+    //     BlockStateProperties::Tilt tilt = world.getBlockState(pos)->get(BlockStateProperties::TILT());
+    //     if (tilt != BlockStateProperties::Tilt::None) {
+    //         BlockState newState =
+    //             world.getBlockState(pos)->with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::None);
+    //         world.setBlockState(pos, &newState, 3);
+    //     }
+    // }
 }
 
 const BlockState& BigDripleafBlock::rotate(const BlockState& state, Rotation rotation) const
@@ -143,6 +190,48 @@ const BlockState& BigDripleafBlock::mirror(const BlockState& state, Mirror mirro
     Rotation rotation = Directions::mirrorToRotation(mirror, facing);
     Direction mirrored = Directions::rotateDirection(facing, rotation);
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), mirrored);
+}
+
+void BigDripleafBlock::onEntityCollision(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
+{
+    MC_UNUSED(entity);
+
+    // 只有NONE状态的叶片才触发倾斜
+    if (state.get(BlockStateProperties::TILT()) == BlockStateProperties::Tilt::None) {
+        // 设置为UNSTABLE并调度tick
+        BlockState newState = state.with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::Unstable);
+        world.setBlockState(pos, &newState, 3);
+        _scheduleTiltTick(world, pos, BlockStateProperties::Tilt::Unstable);
+    }
+}
+
+i32 BigDripleafBlock::_getTiltDelay(BlockStateProperties::Tilt tilt)
+{
+    switch (tilt) {
+    case BlockStateProperties::Tilt::Unstable:
+        return TILT_DELAY_UNSTABLE;
+    case BlockStateProperties::Tilt::Partial:
+        return TILT_DELAY_PARTIAL;
+    case BlockStateProperties::Tilt::Full:
+        return TILT_DELAY_FULL;
+    default:
+        return 0;
+    }
+}
+
+void BigDripleafBlock::_scheduleTiltTick(IWorld& world, const BlockPos& pos, BlockStateProperties::Tilt tilt)
+{
+    i32 delay = _getTiltDelay(tilt);
+    if (delay > 0) {
+        world.tickManager().scheduleBlockTick(pos, *this, delay);
+    }
+}
+
+void BigDripleafBlock::_resetTilt(IWorld& world, const BlockPos& pos, BlockState& state)
+{
+    BlockState newState = state.with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::None);
+    world.setBlockState(pos, &newState, 3);
 }
 
 } // namespace blocks

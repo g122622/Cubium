@@ -14,10 +14,9 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE ON AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
@@ -34,6 +33,7 @@ namespace blocks {
  *
  * 洞穴藤蔓的主体部分，可结果但不生长。
  * 由CaveVinesBlock生长延伸而来。
+ * 有浆果时发出14级光照，右键可收获发光浆果。
  *
  * 参考: net.minecraft.block.CaveVinesPlantBlock
  */
@@ -50,6 +50,27 @@ public:
         MC_UNUSED(state);
         return true;
     }
+
+    /**
+     * @brief 有浆果时发出14级光照
+     */
+    [[nodiscard]] u8 getLightLevel(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
+    {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        return state.get(BlockStateProperties::BERRIES()) ? 14 : 0;
+    }
+
+    /**
+     * @brief 右键收获发光浆果
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
