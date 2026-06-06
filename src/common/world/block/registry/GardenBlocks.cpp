@@ -29,10 +29,6 @@
 namespace mc {
 namespace block_registry {
 
-// 眼花系列（发光花朵）
-Block* GardenBlocks::OPEN_EYEBLOSSOM = nullptr;
-Block* GardenBlocks::CLOSED_EYEBLOSSOM = nullptr;
-
 // 野花
 Block* GardenBlocks::WILDFLOWERS = nullptr;
 
@@ -55,30 +51,6 @@ Block* GardenBlocks::BUSH = nullptr;
 void registerGardenBlocks()
 {
     auto& registry = BlockRegistry::instance();
-
-    // ============================================================================
-    // 眼花系列（1.21.2新增的发光花朵）
-    // ============================================================================
-
-    // 开放的眼花 - 发光15级
-    GardenBlocks::OPEN_EYEBLOSSOM = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:open_eyeblossom"),
-        BlockProperties(Material::PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::EYEBLOSSOM)
-            .lightLevel(15));
-
-    // 闭合的眼花 - 不发光
-    GardenBlocks::CLOSED_EYEBLOSSOM =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:closed_eyeblossom"),
-            BlockProperties(Material::PLANT)
-                .noCollision()
-                .notSolid()
-                .hardness(0.0f)
-                .resistance(0.0f)
-                .soundType(BlockSoundTypes::EYEBLOSSOM));
 
     // ============================================================================
     // 野花和枯叶

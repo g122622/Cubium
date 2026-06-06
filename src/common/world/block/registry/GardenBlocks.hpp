@@ -33,10 +33,6 @@ namespace block_registry {
  * 包含眼花、野花、枯草、仙人掌花、萤火虫灌木等新植被。
  */
 struct GardenBlocks {
-    // 眼花系列（发光花朵）
-    static Block* OPEN_EYEBLOSSOM;
-    static Block* CLOSED_EYEBLOSSOM;
-
     // 野花
     static Block* WILDFLOWERS;
 
