@@ -22,6 +22,7 @@
  */
 
 #include "application/ClientApplication.hpp"
+#include "common/perfetto/PerfettoManager.hpp"
 #include "minecraft-reborn/version.h"
 
 #include <iostream>
@@ -169,6 +170,12 @@ int main(int argc, char* argv[])
     }
     catch (const std::exception& e) {
         spdlog::critical("Fatal error: {}", e.what());
+
+        auto& perfettoManager = mc::perfetto::PerfettoManager::instance();
+        perfettoManager.stopTracing();
+        perfettoManager.shutdown();
+        std::cout << "Perfetto tracing stopped due to runtime exception!" << std::endl;
+
         return 1;
     }
 }
