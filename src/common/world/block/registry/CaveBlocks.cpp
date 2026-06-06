@@ -18,11 +18,32 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 #include "world/block/registry/CaveBlocks.hpp"
 #include "world/block/BlockRegistry.hpp"
+#include "world/block/BlockSoundType.hpp"
+#include "world/block/HarvestTool.hpp"
+#include "world/block/Material.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/cave/AmethystBlock.hpp"
+#include "world/block/blocks/cave/AmethystClusterBlock.hpp"
+#include "world/block/blocks/cave/AzaleaBlock.hpp"
+#include "world/block/blocks/cave/BigDripleafBlock.hpp"
+#include "world/block/blocks/cave/BigDripleafStemBlock.hpp"
+#include "world/block/blocks/cave/BuddingAmethystBlock.hpp"
+#include "world/block/blocks/cave/CaveVinesBlock.hpp"
+#include "world/block/blocks/cave/CaveVinesPlantBlock.hpp"
+#include "world/block/blocks/cave/FrogspawnBlock.hpp"
+#include "world/block/blocks/cave/GlowLichenBlock.hpp"
+#include "world/block/blocks/cave/HangingRootsBlock.hpp"
+#include "world/block/blocks/cave/MossBlock.hpp"
+#include "world/block/blocks/cave/PointedDripstoneBlock.hpp"
+#include "world/block/blocks/cave/PowderSnowBlock.hpp"
+#include "world/block/blocks/cave/RootedDirtBlock.hpp"
+#include "world/block/blocks/cave/SmallDripleafBlock.hpp"
+#include "world/block/blocks/cave/SporeBlossomBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -77,67 +98,78 @@ void registerCaveBlocks()
     // 紫水晶系列
     // ============================================================================
 
-    // 紫水晶块 - 由紫水晶碎片合成
-    CaveBlocks::AMETHYST_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:amethyst_block"),
-        BlockProperties(Material::GLASS)
-            .hardness(1.5f)
-            .resistance(1.5f)
-            .harvestTool(HarvestTool::Pickaxe)
-            .requiresTool()
-            .soundType(BlockSoundTypes::AMETHYST));
+    // 紫水晶块 - 投掷物击中时播放风铃音效
+    CaveBlocks::AMETHYST_BLOCK =
+        &registry.registerBlock<blocks::AmethystBlock>(ResourceLocation("minecraft:amethyst_block"),
+            BlockProperties(Material::GLASS)
+                .hardness(1.5f)
+                .resistance(1.5f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool()
+                .soundType(BlockSoundTypes::AMETHYST));
 
-    // 生成紫水晶的方块 - 随机刻会生长紫水晶簇
-    CaveBlocks::BUDDING_AMETHYST = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:budding_amethyst"),
-        BlockProperties(Material::GLASS)
-            .hardness(1.5f)
-            .resistance(1.5f)
-            .harvestTool(HarvestTool::Pickaxe)
-            .requiresTool()
-            .soundType(BlockSoundTypes::AMETHYST)
-            .tickRandomly());
+    // 紫水晶母岩 - 随机刻下有1/5概率生长紫水晶芽
+    CaveBlocks::BUDDING_AMETHYST =
+        &registry.registerBlock<blocks::BuddingAmethystBlock>(ResourceLocation("minecraft:budding_amethyst"),
+            BlockProperties(Material::GLASS)
+                .hardness(1.5f)
+                .resistance(1.5f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool()
+                .soundType(BlockSoundTypes::AMETHYST)
+                .tickRandomly());
 
-    // 小紫水晶芽 - 发光等级1
+    // 小紫水晶芽 - 发光等级1，FACING+WATERLOGGED，高度2像素宽度4像素
     CaveBlocks::SMALL_AMETHYST_BUD =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:small_amethyst_bud"),
+        &registry.registerBlock<blocks::AmethystClusterBlock>(ResourceLocation("minecraft:small_amethyst_bud"),
             BlockProperties(Material::PLANT)
                 .noCollision()
                 .notSolid()
                 .hardness(0.0f)
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::AMETHYST_CLUSTER)
-                .lightLevel(1));
+                .lightLevel(1),
+            2.0f,
+            4.0f);
 
-    // 中紫水晶芽 - 发光等级2
+    // 中紫水晶芽 - 发光等级2，高度4像素宽度6像素
     CaveBlocks::MEDIUM_AMETHYST_BUD =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:medium_amethyst_bud"),
+        &registry.registerBlock<blocks::AmethystClusterBlock>(ResourceLocation("minecraft:medium_amethyst_bud"),
             BlockProperties(Material::PLANT)
                 .noCollision()
                 .notSolid()
                 .hardness(0.0f)
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::AMETHYST_CLUSTER)
-                .lightLevel(2));
+                .lightLevel(2),
+            4.0f,
+            6.0f);
 
-    // 大紫水晶芽 - 发光等级4
+    // 大紫水晶芽 - 发光等级4，高度5像素宽度8像素
     CaveBlocks::LARGE_AMETHYST_BUD =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:large_amethyst_bud"),
+        &registry.registerBlock<blocks::AmethystClusterBlock>(ResourceLocation("minecraft:large_amethyst_bud"),
             BlockProperties(Material::PLANT)
                 .noCollision()
                 .notSolid()
                 .hardness(0.0f)
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::AMETHYST_CLUSTER)
-                .lightLevel(4));
+                .lightLevel(4),
+            5.0f,
+            8.0f);
 
-    // 紫水晶簇 - 发光等级5，可被破坏获得紫水晶碎片
-    CaveBlocks::AMETHYST_CLUSTER = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:amethyst_cluster"),
-        BlockProperties(Material::PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(1.5f)
-            .resistance(1.5f)
-            .soundType(BlockSoundTypes::AMETHYST_CLUSTER)
-            .lightLevel(5));
+    // 紫水晶簇 - 发光等级5，高度7像素宽度9像素
+    CaveBlocks::AMETHYST_CLUSTER =
+        &registry.registerBlock<blocks::AmethystClusterBlock>(ResourceLocation("minecraft:amethyst_cluster"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .hardness(1.5f)
+                .resistance(1.5f)
+                .soundType(BlockSoundTypes::AMETHYST_CLUSTER)
+                .lightLevel(5),
+            7.0f,
+            9.0f);
 
     // ============================================================================
     // 滴水石系列
@@ -151,21 +183,21 @@ void registerCaveBlocks()
             .harvestTool(HarvestTool::Pickaxe)
             .soundType(BlockSoundTypes::DRIPSTONE_BLOCK));
 
-    // 滴水石锥 - 从钟乳石落下的石锥，可刺穿实体
+    // 滴水石锥 - VERTICAL_DIRECTION + DRIPSTONE_THICKNESS + WATERLOGGED
     CaveBlocks::POINTED_DRIPSTONE =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pointed_dripstone"),
+        &registry.registerBlock<blocks::PointedDripstoneBlock>(ResourceLocation("minecraft:pointed_dripstone"),
             BlockProperties(Material::ROCK)
                 .noCollision()
                 .notSolid()
                 .hardness(1.5f)
                 .resistance(3.0f)
-                .soundType(BlockSoundTypes::POINTED_DRIPSTONE));
+                .soundType(BlockSoundTypes::POINTED_DRIPSTONE)
+                .tickRandomly());
 
     // ============================================================================
     // 方解石
     // ============================================================================
 
-    // 方解石 - 紫晶洞中的白色岩石层
     CaveBlocks::CALCITE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:calcite"),
         BlockProperties(Material::ROCK)
             .hardness(0.75f)
@@ -175,25 +207,18 @@ void registerCaveBlocks()
             .soundType(BlockSoundTypes::CALCITE));
 
     // ============================================================================
-    // 遮光玻璃
+    // 遮光玻璃 - 透明但不透光（阻挡所有光线，不传播天空光）
     // ============================================================================
 
-    // 遮光玻璃 - 不透光但透明的玻璃，由紫水晶碎片和玻璃合成
     CaveBlocks::TINTED_GLASS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:tinted_glass"),
-        BlockProperties(Material::GLASS)
-            .hardness(0.3f)
-            .resistance(0.3f)
-            .notSolid()
-            .opacity(0)
-            .propagatesSkylightDown()
-            .soundType(BlockSoundTypes::GLASS));
+        BlockProperties(Material::GLASS).hardness(0.3f).resistance(0.3f).notSolid().soundType(BlockSoundTypes::GLASS));
 
     // ============================================================================
     // 苔藓系列
     // ============================================================================
 
     // 苔藓块 - 可使用骨粉催生周围苔藓地毯和植物
-    CaveBlocks::MOSS_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:moss_block"),
+    CaveBlocks::MOSS_BLOCK = &registry.registerBlock<blocks::MossBlock>(ResourceLocation("minecraft:moss_block"),
         BlockProperties(Material::MOSS)
             .hardness(0.1f)
             .resistance(0.1f)
@@ -214,15 +239,16 @@ void registerCaveBlocks()
     // 杜鹃花系列
     // ============================================================================
 
-    // 杜鹃花 - 灌木类方块，有碰撞箱
-    CaveBlocks::AZALEA = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:azalea"),
+    // 杜鹃花 - 灌木类方块
+    CaveBlocks::AZALEA = &registry.registerBlock<blocks::AzaleaBlock>(ResourceLocation("minecraft:azalea"),
         BlockProperties(Material::PLANT).hardness(0.0f).resistance(0.0f).soundType(BlockSoundTypes::AZALEA));
 
-    // 开花的杜鹃花 - 灌木类方块，有碰撞箱
-    CaveBlocks::FLOWERING_AZALEA = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:flowering_azalea"),
+    // 开花的杜鹃花
+    CaveBlocks::FLOWERING_AZALEA = &registry.registerBlock<blocks::FloweringAzaleaBlock>(
+        ResourceLocation("minecraft:flowering_azalea"),
         BlockProperties(Material::PLANT).hardness(0.0f).resistance(0.0f).soundType(BlockSoundTypes::FLOWERING_AZALEA));
 
-    // 杜鹃花叶 - 树叶类方块，随机刻可枯萎消失
+    // 杜鹃花叶 - 树叶类方块（使用LeavesBlock更合适，但暂时保持SimpleBlock）
     CaveBlocks::AZALEA_LEAVES = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:azalea_leaves"),
         BlockProperties(Material::LEAVES)
             .hardness(0.2f)
@@ -230,7 +256,7 @@ void registerCaveBlocks()
             .soundType(BlockSoundTypes::AZALEA_LEAVES)
             .tickRandomly());
 
-    // 开花的杜鹃花叶 - 树叶类方块，随机刻可枯萎消失
+    // 开花的杜鹃花叶
     CaveBlocks::FLOWERING_AZALEA_LEAVES =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:flowering_azalea_leaves"),
             BlockProperties(Material::LEAVES)
@@ -243,13 +269,14 @@ void registerCaveBlocks()
     // 大垂滴叶系列
     // ============================================================================
 
-    // 大垂滴叶 - 可站立的倾斜叶片
-    CaveBlocks::BIG_DRIPLEAF = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:big_dripleaf"),
-        BlockProperties(Material::PLANT).hardness(0.1f).resistance(0.1f).soundType(BlockSoundTypes::BIG_DRIPLEAF));
+    // 大垂滴叶 - HORIZONTAL_FACING + TILT + WATERLOGGED
+    CaveBlocks::BIG_DRIPLEAF =
+        &registry.registerBlock<blocks::BigDripleafBlock>(ResourceLocation("minecraft:big_dripleaf"),
+            BlockProperties(Material::PLANT).hardness(0.1f).resistance(0.1f).soundType(BlockSoundTypes::BIG_DRIPLEAF));
 
-    // 大垂滴叶茎 - 支撑茎，无碰撞
+    // 大垂滴叶茎 - HORIZONTAL_FACING + WATERLOGGED，无碰撞
     CaveBlocks::BIG_DRIPLEAF_STEM =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:big_dripleaf_stem"),
+        &registry.registerBlock<blocks::BigDripleafStemBlock>(ResourceLocation("minecraft:big_dripleaf_stem"),
             BlockProperties(Material::PLANT)
                 .noCollision()
                 .notSolid()
@@ -257,78 +284,84 @@ void registerCaveBlocks()
                 .resistance(0.1f)
                 .soundType(BlockSoundTypes::BIG_DRIPLEAF));
 
-    // 小垂滴叶 - 装饰植物，可放置在粘土上
-    CaveBlocks::SMALL_DRIPLEAF = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:small_dripleaf"),
-        BlockProperties(Material::PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::SMALL_DRIPLEAF));
+    // 小垂滴叶 - HORIZONTAL_FACING + DOUBLE_BLOCK_HALF + WATERLOGGED
+    CaveBlocks::SMALL_DRIPLEAF =
+        &registry.registerBlock<blocks::SmallDripleafBlock>(ResourceLocation("minecraft:small_dripleaf"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::SMALL_DRIPLEAF));
 
     // ============================================================================
     // 其他洞穴方块
     // ============================================================================
 
-    // 垂根 - 悬挂的根系装饰
-    CaveBlocks::HANGING_ROOTS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:hanging_roots"),
-        BlockProperties(Material::REPLACEABLE_PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::HANGING_ROOTS));
+    // 垂根 - 悬挂的根系装饰，WATERLOGGED
+    CaveBlocks::HANGING_ROOTS =
+        &registry.registerBlock<blocks::HangingRootsBlock>(ResourceLocation("minecraft:hanging_roots"),
+            BlockProperties(Material::REPLACEABLE_PLANT)
+                .noCollision()
+                .notSolid()
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::HANGING_ROOTS));
 
-    // 缠根泥土 - 骨肥可催生垂根，使用锄可快速挖掘
-    CaveBlocks::ROOTED_DIRT = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:rooted_dirt"),
-        BlockProperties(Material::EARTH).hardness(0.5f).resistance(0.5f).soundType(BlockSoundTypes::ROOTED_DIRT));
+    // 缠根泥土 - 骨粉可催生垂根
+    CaveBlocks::ROOTED_DIRT =
+        &registry.registerBlock<blocks::RootedDirtBlock>(ResourceLocation("minecraft:rooted_dirt"),
+            BlockProperties(Material::EARTH).hardness(0.5f).resistance(0.5f).soundType(BlockSoundTypes::ROOTED_DIRT));
 
-    // 孢子花 - 天花板装饰植物，散发绿色粒子
-    CaveBlocks::SPORE_BLOSSOM = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:spore_blossom"),
-        BlockProperties(Material::PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::SPORE_BLOSSOM));
+    // 孢子花 - 天花板装饰植物
+    CaveBlocks::SPORE_BLOSSOM =
+        &registry.registerBlock<blocks::SporeBlossomBlock>(ResourceLocation("minecraft:spore_blossom"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::SPORE_BLOSSOM));
 
-    // 发光地衣 - 可放置在任意面的发光苔藓类植物
-    CaveBlocks::GLOW_LICHEN = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:glow_lichen"),
-        BlockProperties(Material::PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.2f)
-            .resistance(0.2f)
-            .soundType(BlockSoundTypes::GLOW_LICHEN)
-            .lightLevel(7));
+    // 发光地衣 - 可放置在任意面，6面布尔属性+WATERLOGGED，发光等级7
+    CaveBlocks::GLOW_LICHEN =
+        &registry.registerBlock<blocks::GlowLichenBlock>(ResourceLocation("minecraft:glow_lichen"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .hardness(0.2f)
+                .resistance(0.2f)
+                .soundType(BlockSoundTypes::GLOW_LICHEN));
 
-    // 洞穴藤蔓 - 可长出发光浆果的藤蔓
-    CaveBlocks::CAVE_VINES = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cave_vines"),
+    // 洞穴藤蔓 - AGE_0_25 + BERRIES，有浆果时发光等级14
+    CaveBlocks::CAVE_VINES = &registry.registerBlock<blocks::CaveVinesBlock>(ResourceLocation("minecraft:cave_vines"),
         BlockProperties(Material::PLANT)
             .noCollision()
             .notSolid()
             .hardness(0.0f)
             .resistance(0.0f)
             .soundType(BlockSoundTypes::CAVE_VINES)
-            .lightLevel(14));
+            .tickRandomly());
 
-    // 洞穴藤蔓植株 - 洞穴藤蔓的茎部分
-    CaveBlocks::CAVE_VINES_PLANT = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cave_vines_plant"),
-        BlockProperties(Material::PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::CAVE_VINES));
+    // 洞穴藤蔓植株 - BERRIES属性
+    CaveBlocks::CAVE_VINES_PLANT =
+        &registry.registerBlock<blocks::CaveVinesPlantBlock>(ResourceLocation("minecraft:cave_vines_plant"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::CAVE_VINES));
 
-    // 粉雪 - 可替换的雪类方块，实体会陷入其中
-    CaveBlocks::POWDER_SNOW = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:powder_snow"),
-        BlockProperties(Material::POWDER_SNOW)
-            .notSolid()
-            .replaceable()
-            .hardness(0.25f)
-            .resistance(0.25f)
-            .soundType(BlockSoundTypes::POWDER_SNOW));
+    // 粉雪 - 无碰撞，实体会陷入
+    CaveBlocks::POWDER_SNOW =
+        &registry.registerBlock<blocks::PowderSnowBlock>(ResourceLocation("minecraft:powder_snow"),
+            BlockProperties(Material::POWDER_SNOW)
+                .notSolid()
+                .replaceable()
+                .hardness(0.25f)
+                .resistance(0.25f)
+                .soundType(BlockSoundTypes::POWDER_SNOW));
 }
 
 } // namespace block_registry

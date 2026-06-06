@@ -31,6 +31,7 @@
 #include "world/block/blocks/dirt/SpreadableSnowyDirtBlock.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"
 #include "world/block/blocks/ice/SnowBlock.hpp"
+#include "world/block/blocks/redstone/RedstoneOreBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 #include "world/fluid/FluidTags.hpp"
@@ -82,6 +83,7 @@ Block* BaseBlocks::DIAMOND_BLOCK = nullptr;
 Block* BaseBlocks::EMERALD_ORE = nullptr;
 Block* BaseBlocks::LAPIS_ORE = nullptr;
 Block* BaseBlocks::REDSTONE_ORE = nullptr;
+Block* BaseBlocks::LIT_REDSTONE_ORE = nullptr;
 Block* BaseBlocks::COPPER_ORE = nullptr;
 
 // 下界矿石
@@ -330,8 +332,11 @@ void registerBaseBlocks()
         ResourceLocation("minecraft:emerald_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
     BaseBlocks::LAPIS_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:lapis_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
-    BaseBlocks::REDSTONE_ORE = &registry.registerBlock<SimpleBlock>(
+    BaseBlocks::REDSTONE_ORE = &registry.registerBlock<blocks::RedstoneOreBlock>(
         ResourceLocation("minecraft:redstone_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
+    BaseBlocks::LIT_REDSTONE_ORE =
+        &registry.registerBlock<blocks::RedstoneOreBlock>(ResourceLocation("minecraft:lit_redstone_ore"),
+            BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f).lightLevel(9));
     BaseBlocks::COPPER_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:copper_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
     BaseBlocks::NETHER_QUARTZ_ORE =

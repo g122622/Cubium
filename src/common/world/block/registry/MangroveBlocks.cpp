@@ -32,6 +32,8 @@
 #include "world/block/blocks/building/SlabBlock.hpp"
 #include "world/block/blocks/building/StairsBlock.hpp"
 #include "world/block/blocks/building/TrapDoorBlock.hpp"
+#include "world/block/blocks/mangrove/MangrovePropaguleBlock.hpp"
+#include "world/block/blocks/mangrove/MangroveRootsBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
 
 namespace mc {
@@ -112,26 +114,21 @@ void registerMangroveBlocks()
     MangroveBlocks::MANGROVE_LEAVES = &registry.registerBlock<blocks::LeavesBlock>(
         ResourceLocation("minecraft:mangrove_leaves"), mangroveLeavesProps);
 
-    // 红树胎生苗属性 - PLANT材质, 无碰撞, 非固体, 硬度0.0
-    BlockProperties propaguleProps =
-        BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::PLANT);
-
-    // 红树胎生苗 - 可种植，从红树树叶成熟后掉落
+    // 红树胎生苗 - AGE_0_4 + HANGING + WATERLOGGED，悬挂时可生长
     MangroveBlocks::MANGROVE_PROPAGULE =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:mangrove_propagule"), propaguleProps);
+        &registry.registerBlock<blocks::MangrovePropaguleBlock>(ResourceLocation("minecraft:mangrove_propagule"),
+            BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::PLANT));
 
-    // 红树根属性 - WOOD材质, 非固体, 斧有效, 硬度0.7, 可燃
-    BlockProperties mangroveRootsProps = BlockProperties(Material::WOOD)
-                                             .notSolid()
-                                             .hardness(0.7f)
-                                             .harvestTool(HarvestTool::Axe)
-                                             .soundType(BlockSoundTypes::MANGROVE_ROOTS)
-                                             .flammable()
-                                             .ignitedByLava();
-
-    // 红树根 - 非固体，可透光，可燃
+    // 红树根 - WATERLOGGED属性，非固体，可燃
     MangroveBlocks::MANGROVE_ROOTS =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:mangrove_roots"), mangroveRootsProps);
+        &registry.registerBlock<blocks::MangroveRootsBlock>(ResourceLocation("minecraft:mangrove_roots"),
+            BlockProperties(Material::WOOD)
+                .notSolid()
+                .hardness(0.7f)
+                .harvestTool(HarvestTool::Axe)
+                .soundType(BlockSoundTypes::MANGROVE_ROOTS)
+                .flammable()
+                .ignitedByLava());
 
     // 沾泥红树根属性 - EARTH材质, 锹有效, 硬度0.7, 抗性0.7
     BlockProperties muddyMangroveRootsProps = BlockProperties(Material::EARTH)

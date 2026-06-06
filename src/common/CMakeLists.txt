@@ -702,6 +702,35 @@ add_library(mc_common STATIC
     world/block/blocks/trial/TrialBlocks.cpp
     world/block/blocks/trial/HeavyCoreBlock.cpp
 
+    # World - Block - Cave (Caves & Cliffs)
+    world/block/blocks/cave/AmethystBlock.cpp
+    world/block/blocks/cave/BuddingAmethystBlock.cpp
+    world/block/blocks/cave/AmethystClusterBlock.cpp
+    world/block/blocks/cave/HangingRootsBlock.cpp
+    world/block/blocks/cave/SporeBlossomBlock.cpp
+    world/block/blocks/cave/PointedDripstoneBlock.cpp
+    world/block/blocks/cave/BigDripleafBlock.cpp
+    world/block/blocks/cave/BigDripleafStemBlock.cpp
+    world/block/blocks/cave/SmallDripleafBlock.cpp
+    world/block/blocks/cave/GlowLichenBlock.cpp
+    world/block/blocks/cave/CaveVinesBlock.cpp
+    world/block/blocks/cave/CaveVinesPlantBlock.cpp
+    world/block/blocks/cave/PowderSnowBlock.cpp
+    world/block/blocks/cave/MossBlock.cpp
+    world/block/blocks/cave/AzaleaBlock.cpp
+    world/block/blocks/cave/RootedDirtBlock.cpp
+    world/block/blocks/cave/FrogspawnBlock.cpp
+
+    # World - Block - Redstone
+    world/block/blocks/redstone/RedstoneOreBlock.cpp
+
+    # World - Block - Mangrove
+    world/block/blocks/mangrove/MangrovePropaguleBlock.cpp
+    world/block/blocks/mangrove/MangroveRootsBlock.cpp
+
+    # World - Block - Pale Garden
+    world/block/blocks/pale_garden/CreakingHeartBlock.cpp
+
     # World - Block - Nether
     world/block/blocks/nether/FireBlock.cpp
     world/block/blocks/nether/SoulFireBlock.cpp

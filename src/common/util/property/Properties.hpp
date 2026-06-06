@@ -342,6 +342,20 @@ public:
     }
 
     /**
+     * @brief 垂直方向属性（仅上/下方向）
+     *
+     * 用于滴水石锥等方块。
+     *
+     * 参考: net.minecraft.world.level.block.state.properties.BlockStateProperties.VERTICAL_DIRECTION
+     */
+    static const DirectionProperty& VERTICAL_DIRECTION()
+    {
+        static auto prop = DirectionProperty::create(
+            "vertical_direction", [](Direction d) { return d == Direction::Up || d == Direction::Down; });
+        return *prop;
+    }
+
+    /**
      * @brief 朝向属性（除上之外的所有方向）
      */
     static const DirectionProperty& FACING_EXCEPT_UP()
@@ -1413,9 +1427,9 @@ public:
      * MC 1.21.2+: net.minecraft.world.level.block.state.properties.CreakingHeartState
      */
     enum class CreakingHeartState : u8 {
-        Up = 0,     ///< 仅上方
-        UpDown = 1, ///< 上下
-        Down = 2    ///< 仅下方
+        Uprooted = 0, ///< 被拔出
+        Dormant = 1,  ///< 休眠
+        Awake = 2     ///< 活跃
     };
 
     /**
@@ -1423,8 +1437,8 @@ public:
      */
     static const EnumProperty<CreakingHeartState>& CREAKING_HEART_STATE()
     {
-        static auto prop = EnumProperty<CreakingHeartState>::create(
-            "creaking_heart_state", {CreakingHeartState::Up, CreakingHeartState::UpDown, CreakingHeartState::Down});
+        static auto prop = EnumProperty<CreakingHeartState>::create("creaking_heart_state",
+            {CreakingHeartState::Uprooted, CreakingHeartState::Dormant, CreakingHeartState::Awake});
         return *prop;
     }
 
@@ -1501,6 +1515,17 @@ public:
     static const BooleanProperty& WAXED()
     {
         static auto prop = BooleanProperty::create("waxed");
+        return *prop;
+    }
+
+    /**
+     * @brief 是否自然生成（嘎枝之心）
+     *
+     * 参考: net.minecraft.world.level.block.state.properties.BlockStateProperties.NATURAL
+     */
+    static const BooleanProperty& NATURAL()
+    {
+        static auto prop = BooleanProperty::create("natural");
         return *prop;
     }
 

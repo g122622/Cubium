@@ -30,6 +30,7 @@
 #include "world/block/blocks/building/StairsBlock.hpp"
 #include "world/block/blocks/building/WallBlock.hpp"
 #include "world/block/blocks/mob/InfestedBlock.hpp"
+#include "world/block/blocks/redstone/RedstoneOreBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -266,9 +267,9 @@ void registerDeepslateBlocks()
                 .requiresTool()
                 .soundType(BlockSoundTypes::DEEPSLATE));
 
-    // 深板岩红石矿石 - harvestLevel 2, lightLevel 9
+    // 深板岩红石矿石 - RedstoneOreBlock, LIT属性控制发光
     DeepslateBlocks::DEEPSLATE_REDSTONE_ORE =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:deepslate_redstone_ore"),
+        &registry.registerBlock<blocks::RedstoneOreBlock>(ResourceLocation("minecraft:deepslate_redstone_ore"),
             BlockProperties(Material::ROCK)
                 .hardness(4.5f)
                 .resistance(3.0f)
@@ -277,9 +278,9 @@ void registerDeepslateBlocks()
                 .requiresTool()
                 .soundType(BlockSoundTypes::DEEPSLATE));
 
-    // 点亮的深板岩红石矿石 - harvestLevel 2, lightLevel 9
+    // 点亮的深板岩红石矿石 - RedstoneOreBlock, 默认LIT=true, lightLevel 9
     DeepslateBlocks::DEEPSLATE_LIT_REDSTONE_ORE =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:lit_deepslate_redstone_ore"),
+        &registry.registerBlock<blocks::RedstoneOreBlock>(ResourceLocation("minecraft:lit_deepslate_redstone_ore"),
             BlockProperties(Material::ROCK)
                 .hardness(4.5f)
                 .resistance(3.0f)
@@ -381,11 +382,11 @@ void registerDeepslateBlocks()
             .soundType(BlockSoundTypes::BASALT));
 
     // ========== 虫蚀深板岩 ==========
-    // 虫蚀深板岩 - 蠹虫会从其中生成
+    // 虫蚀深板岩 - 蠹虫会从其中生成，使用深板岩音效
     DeepslateBlocks::INFESTED_DEEPSLATE =
         &registry.registerBlock<blocks::InfestedBlock>(ResourceLocation("minecraft:infested_deepslate"),
             DeepslateBlocks::DEEPSLATE->blockId(),
-            BlockProperties(Material::EARTH).hardness(0.0f).resistance(0.75f));
+            BlockProperties(Material::EARTH).hardness(0.0f).resistance(0.75f).soundType(BlockSoundTypes::DEEPSLATE));
 
     // 注册虫蚀映射
     blocks::InfestedBlock::registerInfestedBlock(

@@ -870,26 +870,26 @@ std::string EnumProperty<BlockStateProperties::CreakingHeartState>::Traits::toSt
     const BlockStateProperties::CreakingHeartState& value)
 {
     switch (value) {
-        case BlockStateProperties::CreakingHeartState::Up:
-            return "up";
-        case BlockStateProperties::CreakingHeartState::UpDown:
-            return "up_down";
-        case BlockStateProperties::CreakingHeartState::Down:
-            return "down";
+        case BlockStateProperties::CreakingHeartState::Uprooted:
+            return "uprooted";
+        case BlockStateProperties::CreakingHeartState::Dormant:
+            return "dormant";
+        case BlockStateProperties::CreakingHeartState::Awake:
+            return "awake";
         default:
-            return "up";
+            return "uprooted";
     }
 }
 
 std::optional<BlockStateProperties::CreakingHeartState>
 EnumProperty<BlockStateProperties::CreakingHeartState>::Traits::fromName(std::string_view name)
 {
-    if (name == "up") {
-        return BlockStateProperties::CreakingHeartState::Up;
-    } else if (name == "up_down") {
-        return BlockStateProperties::CreakingHeartState::UpDown;
-    } else if (name == "down") {
-        return BlockStateProperties::CreakingHeartState::Down;
+    if (name == "uprooted") {
+        return BlockStateProperties::CreakingHeartState::Uprooted;
+    } else if (name == "dormant") {
+        return BlockStateProperties::CreakingHeartState::Dormant;
+    } else if (name == "awake") {
+        return BlockStateProperties::CreakingHeartState::Awake;
     }
     return std::nullopt;
 }

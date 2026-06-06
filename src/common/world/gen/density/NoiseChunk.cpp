@@ -27,6 +27,28 @@
 
 namespace mc::world::gen::density {
 
+namespace {
+
+class DensityFunctionReference final : public DensityFunction {
+public:
+    explicit DensityFunctionReference(const DensityFunction& target)
+        : m_target(target)
+    {}
+
+    [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override
+    {
+        return m_target.compute(blockX, blockY, blockZ);
+    }
+
+    [[nodiscard]] f64 minValue() const override { return m_target.minValue(); }
+    [[nodiscard]] f64 maxValue() const override { return m_target.maxValue(); }
+
+private:
+    const DensityFunction& m_target;
+};
+
+} // namespace
+
 // ============================================================================
 // NoiseInterpolator 实现
 // ============================================================================
@@ -87,35 +109,35 @@ void NoiseInterpolator::selectCellYZ(i32 cellY, i32 cellZ)
 
 void NoiseInterpolator::updateForY(f64 delta)
 {
-    m_valueXZ00 = math::lerp(delta, m_noise000, m_noise010);
-    m_valueXZ10 = math::lerp(delta, m_noise100, m_noise110);
-    m_valueXZ01 = math::lerp(delta, m_noise001, m_noise011);
-    m_valueXZ11 = math::lerp(delta, m_noise101, m_noise111);
+    m_valueXZ00 = math::lerp(m_noise000, m_noise010, delta);
+    m_valueXZ10 = math::lerp(m_noise100, m_noise110, delta);
+    m_valueXZ01 = math::lerp(m_noise001, m_noise011, delta);
+    m_valueXZ11 = math::lerp(m_noise101, m_noise111, delta);
 }
 
 void NoiseInterpolator::updateForX(f64 delta)
 {
-    m_valueZ0 = math::lerp(delta, m_valueXZ00, m_valueXZ10);
-    m_valueZ1 = math::lerp(delta, m_valueXZ01, m_valueXZ11);
+    m_valueZ0 = math::lerp(m_valueXZ00, m_valueXZ10, delta);
+    m_valueZ1 = math::lerp(m_valueXZ01, m_valueXZ11, delta);
 }
 
 f64 NoiseInterpolator::updateForZ(f64 delta)
 {
-    m_value = math::lerp(delta, m_valueZ0, m_valueZ1);
+    m_value = math::lerp(m_valueZ0, m_valueZ1, delta);
     return m_value;
 }
 
 f64 NoiseInterpolator::interpolate(f64 deltaX, f64 deltaY, f64 deltaZ) const
 {
-    const f64 xz00 = math::lerp(deltaY, m_noise000, m_noise010);
-    const f64 xz10 = math::lerp(deltaY, m_noise100, m_noise110);
-    const f64 xz01 = math::lerp(deltaY, m_noise001, m_noise011);
-    const f64 xz11 = math::lerp(deltaY, m_noise101, m_noise111);
+    const f64 xz00 = math::lerp(m_noise000, m_noise010, deltaY);
+    const f64 xz10 = math::lerp(m_noise100, m_noise110, deltaY);
+    const f64 xz01 = math::lerp(m_noise001, m_noise011, deltaY);
+    const f64 xz11 = math::lerp(m_noise101, m_noise111, deltaY);
 
-    const f64 z0 = math::lerp(deltaX, xz00, xz10);
-    const f64 z1 = math::lerp(deltaX, xz01, xz11);
+    const f64 z0 = math::lerp(xz00, xz10, deltaX);
+    const f64 z1 = math::lerp(xz01, xz11, deltaX);
 
-    return math::lerp(deltaZ, z0, z1);
+    return math::lerp(z0, z1, deltaZ);
 }
 
 void NoiseInterpolator::swapSlices()
@@ -211,12 +233,13 @@ NoiseChunk::NoiseChunk(
     m_cellConfig.cellCountXZ = 16 / cellWidth;
     m_cellConfig.cellCountY = (world::MAX_BUILD_HEIGHT - world::MIN_BUILD_HEIGHT) / cellHeight;
 
-    // 为 finalDensity 创建插值器
-    // MC 1.21: NoiseChunk 创建 NoiseInterpolator 包装 Interpolated 标记的密度函数
-    // 当前简化实现：直接为 finalDensity 创建一个插值器
-    // 完整实现需要 Marker 遍历来包装所有 Interpolated/CacheAllInCell/CacheOnce 函数
-    m_wrappedFinalDensity = std::make_unique<Constant>(0.0);
-    m_wrappedPreliminarySurfaceLevel = std::make_unique<Constant>(0.0);
+    auto finalDensityInterpolator =
+        std::make_unique<NoiseInterpolator>(std::make_unique<DensityFunctionReference>(m_router.finalDensity()),
+            m_cellConfig.cellCountXZ,
+            m_cellConfig.cellCountY);
+    m_wrappedFinalDensity = std::make_unique<DensityFunctionReference>(*finalDensityInterpolator);
+    m_interpolators.push_back(std::move(finalDensityInterpolator));
+    m_wrappedPreliminarySurfaceLevel = std::make_unique<DensityFunctionReference>(m_router.preliminarySurfaceLevel());
 }
 
 NoiseChunk::~NoiseChunk() = default;
@@ -258,8 +281,12 @@ void NoiseChunk::advanceCellX(i32 cellX)
     }
 }
 
-void NoiseChunk::selectCellYZ(i32 cellY, i32 cellZ)
+void NoiseChunk::selectCellXYZ(i32 cellX, i32 cellY, i32 cellZ)
 {
+    m_selectedCellX = cellX;
+    m_selectedCellY = cellY;
+    m_selectedCellZ = cellZ;
+
     // 为所有插值器加载 8 个角点值
     for (auto& interp : m_interpolators) {
         interp->selectCellYZ(cellY, cellZ);
@@ -268,9 +295,11 @@ void NoiseChunk::selectCellYZ(i32 cellY, i32 cellZ)
     // 预填充所有 CellCache
     m_fillingCell = true;
 
-    const i32 cellStartBlockX = m_blockX;
+    const i32 firstCellX = m_startBlockX / m_cellConfig.cellWidth;
+    const i32 firstCellZ = m_startBlockZ / m_cellConfig.cellWidth;
+    const i32 cellStartBlockX = (firstCellX + cellX) * m_cellConfig.cellWidth;
     const i32 cellStartBlockY = (m_firstCellY + cellY) * m_cellConfig.cellHeight;
-    const i32 cellStartBlockZ = (m_startBlockZ / m_cellConfig.cellWidth + cellZ) * m_cellConfig.cellWidth;
+    const i32 cellStartBlockZ = (firstCellZ + cellZ) * m_cellConfig.cellWidth;
 
     for (auto& cache : m_cellCaches) {
         cache->fillCell(cellStartBlockX, cellStartBlockY, cellStartBlockZ);
@@ -298,7 +327,7 @@ f64 NoiseChunk::updateForZ(f64 delta)
 {
     f64 result = 0.0;
     for (auto& interp : m_interpolators) {
-        (void)interp->updateForZ(delta);
+        result = interp->updateForZ(delta);
     }
     ++m_interpolationCounter;
     return result;
@@ -313,13 +342,23 @@ void NoiseChunk::swapSlices()
 
 f64 NoiseChunk::sampleFinalDensity(i32 blockX, i32 blockY, i32 blockZ) const
 {
-    return m_router.finalDensity().compute(blockX, blockY, blockZ);
+    return m_wrappedFinalDensity->compute(blockX, blockY, blockZ);
 }
 
 f64 NoiseChunk::samplePreliminarySurfaceLevel(i32 blockX, i32 blockZ) const
 {
-    // Y 坐标不影响 preliminarySurfaceLevel（它本质上是 2D 函数）
-    return m_router.preliminarySurfaceLevel().compute(blockX, 0, blockZ);
+    return m_wrappedPreliminarySurfaceLevel->compute(blockX, 0, blockZ);
+}
+
+void NoiseChunk::setInCellPos(i32 inCellX, i32 inCellY, i32 inCellZ)
+{
+    m_inCellX = inCellX;
+    m_inCellY = inCellY;
+    m_inCellZ = inCellZ;
+
+    for (auto& cache : m_cellCaches) {
+        cache->setInCellPos(inCellX, inCellY, inCellZ);
+    }
 }
 
 } // namespace mc::world::gen::density

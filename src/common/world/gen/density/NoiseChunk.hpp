@@ -282,13 +282,14 @@ public:
     void advanceCellX(i32 cellX);
 
     /**
-     * @brief 选中当前 cell 的 YZ 位置
+     * @brief 选中当前 cell 的 XYZ 位置
      * 加载 8 个角点的密度值到所有插值器，
      * 并预填充所有 CellCache。
+     * @param cellX X 方向 cell 索引
      * @param cellY Y 方向 cell 索引
      * @param cellZ Z 方向 cell 索引
      */
-    void selectCellYZ(i32 cellY, i32 cellZ);
+    void selectCellXYZ(i32 cellX, i32 cellY, i32 cellZ);
 
     /**
      * @brief 更新 Y 方向插值
@@ -385,6 +386,8 @@ public:
     [[nodiscard]] i32 inCellY() const { return m_inCellY; }
     [[nodiscard]] i32 inCellZ() const { return m_inCellZ; }
 
+    void setInCellPos(i32 inCellX, i32 inCellY, i32 inCellZ);
+
     /**
      * @brief 获取所有插值器
      */
@@ -472,6 +475,10 @@ private:
     i32 m_inCellX = 0;
     i32 m_inCellY = 0;
     i32 m_inCellZ = 0;
+
+    i32 m_selectedCellX = 0;
+    i32 m_selectedCellY = 0;
+    i32 m_selectedCellZ = 0;
 
     /// 状态标志
     bool m_interpolating = false;

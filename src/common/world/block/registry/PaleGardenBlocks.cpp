@@ -34,6 +34,7 @@
 #include "world/block/blocks/building/StairsBlock.hpp"
 #include "world/block/blocks/building/TrapDoorBlock.hpp"
 #include "world/block/blocks/building/WallBlock.hpp"
+#include "world/block/blocks/pale_garden/CreakingHeartBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
 
 namespace mc {
@@ -276,9 +277,9 @@ void registerPaleGardenBlocks()
     // 嘎枝之心
     // ============================================================================
 
-    // 嘎枝之心 - 苍白花园中嘎枝怪的核心方块
+    // 嘎枝之心 - AXIS + CREAKING_HEART_STATE + NATURAL属性
     PaleGardenBlocks::CREAKING_HEART =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:creaking_heart"),
+        &registry.registerBlock<blocks::CreakingHeartBlock>(ResourceLocation("minecraft:creaking_heart"),
             BlockProperties(Material::WOOD)
                 .hardness(10.0f)
                 .resistance(1.0f)
