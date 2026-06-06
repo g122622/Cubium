@@ -26,6 +26,7 @@
 #include "world/block/HarvestTool.hpp"
 #include "world/block/Material.hpp"
 #include "world/block/blocks/DoorBlock.hpp"
+#include "world/block/blocks/LightningRodBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/building/SlabBlock.hpp"
 #include "world/block/blocks/building/StairsBlock.hpp"
@@ -33,8 +34,10 @@
 #include "world/block/blocks/copper/CopperBulbBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperDoorBlock.hpp"
+#include "world/block/blocks/copper/WeatheringCopperGrateBlock.hpp"
+#include "world/block/blocks/copper/WeatheringCopperSlabBlock.hpp"
+#include "world/block/blocks/copper/WeatheringCopperStairBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperTrapDoorBlock.hpp"
-#include "world/block/blocks/LightningRodBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -306,71 +309,99 @@ void registerCopperBlocks()
     // 切制铜楼梯（8个）
     // ============================================================================
     CopperBlocks::CUT_COPPER_STAIRS =
-        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:cut_copper_stairs"),
+        &registry.registerBlock<blocks::WeatheringCopperStairBlock>(ResourceLocation("minecraft:cut_copper_stairs"),
             CopperBlocks::CUT_COPPER->defaultState(),
-            copperStairSlabProps);
+            copperStairSlabProps,
+            BlockStateProperties::OxidationLevel::Unaffected);
 
-    CopperBlocks::EXPOSED_CUT_COPPER_STAIRS =
-        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:exposed_cut_copper_stairs"),
-            CopperBlocks::EXPOSED_CUT_COPPER->defaultState(),
-            copperStairSlabProps);
+    CopperBlocks::EXPOSED_CUT_COPPER_STAIRS = &registry.registerBlock<blocks::WeatheringCopperStairBlock>(
+        ResourceLocation("minecraft:exposed_cut_copper_stairs"),
+        CopperBlocks::EXPOSED_CUT_COPPER->defaultState(),
+        copperStairSlabProps,
+        BlockStateProperties::OxidationLevel::Exposed);
 
-    CopperBlocks::WEATHERED_CUT_COPPER_STAIRS =
-        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:weathered_cut_copper_stairs"),
-            CopperBlocks::WEATHERED_CUT_COPPER->defaultState(),
-            copperStairSlabProps);
+    CopperBlocks::WEATHERED_CUT_COPPER_STAIRS = &registry.registerBlock<blocks::WeatheringCopperStairBlock>(
+        ResourceLocation("minecraft:weathered_cut_copper_stairs"),
+        CopperBlocks::WEATHERED_CUT_COPPER->defaultState(),
+        copperStairSlabProps,
+        BlockStateProperties::OxidationLevel::Weathered);
 
-    CopperBlocks::OXIDIZED_CUT_COPPER_STAIRS =
-        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:oxidized_cut_copper_stairs"),
-            CopperBlocks::OXIDIZED_CUT_COPPER->defaultState(),
-            copperStairSlabProps);
+    CopperBlocks::OXIDIZED_CUT_COPPER_STAIRS = &registry.registerBlock<blocks::WeatheringCopperStairBlock>(
+        ResourceLocation("minecraft:oxidized_cut_copper_stairs"),
+        CopperBlocks::OXIDIZED_CUT_COPPER->defaultState(),
+        copperStairSlabProps,
+        BlockStateProperties::OxidationLevel::Oxidized);
 
     CopperBlocks::WAXED_CUT_COPPER_STAIRS =
-        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:waxed_cut_copper_stairs"),
+        &registry.registerBlock<blocks::WaxedCopperStairBlock>(ResourceLocation("minecraft:waxed_cut_copper_stairs"),
             CopperBlocks::WAXED_CUT_COPPER->defaultState(),
             copperStairSlabProps);
 
-    CopperBlocks::WAXED_EXPOSED_CUT_COPPER_STAIRS =
-        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:waxed_exposed_cut_copper_stairs"),
-            CopperBlocks::WAXED_EXPOSED_CUT_COPPER->defaultState(),
-            copperStairSlabProps);
+    CopperBlocks::WAXED_EXPOSED_CUT_COPPER_STAIRS = &registry.registerBlock<blocks::WaxedCopperStairBlock>(
+        ResourceLocation("minecraft:waxed_exposed_cut_copper_stairs"),
+        CopperBlocks::WAXED_EXPOSED_CUT_COPPER->defaultState(),
+        copperStairSlabProps);
 
-    CopperBlocks::WAXED_WEATHERED_CUT_COPPER_STAIRS =
-        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:waxed_weathered_cut_copper_stairs"),
-            CopperBlocks::WAXED_WEATHERED_CUT_COPPER->defaultState(),
-            copperStairSlabProps);
+    CopperBlocks::WAXED_WEATHERED_CUT_COPPER_STAIRS = &registry.registerBlock<blocks::WaxedCopperStairBlock>(
+        ResourceLocation("minecraft:waxed_weathered_cut_copper_stairs"),
+        CopperBlocks::WAXED_WEATHERED_CUT_COPPER->defaultState(),
+        copperStairSlabProps);
 
-    CopperBlocks::WAXED_OXIDIZED_CUT_COPPER_STAIRS =
-        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:waxed_oxidized_cut_copper_stairs"),
-            CopperBlocks::WAXED_OXIDIZED_CUT_COPPER->defaultState(),
-            copperStairSlabProps);
+    CopperBlocks::WAXED_OXIDIZED_CUT_COPPER_STAIRS = &registry.registerBlock<blocks::WaxedCopperStairBlock>(
+        ResourceLocation("minecraft:waxed_oxidized_cut_copper_stairs"),
+        CopperBlocks::WAXED_OXIDIZED_CUT_COPPER->defaultState(),
+        copperStairSlabProps);
 
     // ============================================================================
     // 切制铜台阶（8个）
     // ============================================================================
     CopperBlocks::CUT_COPPER_SLAB =
-        &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:cut_copper_slab"), copperStairSlabProps);
+        &registry.registerBlock<blocks::WeatheringCopperSlabBlock>(ResourceLocation("minecraft:cut_copper_slab"),
+            copperStairSlabProps,
+            BlockStateProperties::OxidationLevel::Unaffected);
 
-    CopperBlocks::EXPOSED_CUT_COPPER_SLAB = &registry.registerBlock<blocks::SlabBlock>(
-        ResourceLocation("minecraft:exposed_cut_copper_slab"), copperStairSlabProps);
+    CopperBlocks::EXPOSED_CUT_COPPER_SLAB = &registry.registerBlock<blocks::WeatheringCopperSlabBlock>(
+        ResourceLocation("minecraft:exposed_cut_copper_slab"),
+        copperStairSlabProps,
+        BlockStateProperties::OxidationLevel::Exposed);
 
-    CopperBlocks::WEATHERED_CUT_COPPER_SLAB = &registry.registerBlock<blocks::SlabBlock>(
-        ResourceLocation("minecraft:weathered_cut_copper_slab"), copperStairSlabProps);
+    CopperBlocks::WEATHERED_CUT_COPPER_SLAB = &registry.registerBlock<blocks::WeatheringCopperSlabBlock>(
+        ResourceLocation("minecraft:weathered_cut_copper_slab"),
+        copperStairSlabProps,
+        BlockStateProperties::OxidationLevel::Weathered);
 
-    CopperBlocks::OXIDIZED_CUT_COPPER_SLAB = &registry.registerBlock<blocks::SlabBlock>(
-        ResourceLocation("minecraft:oxidized_cut_copper_slab"), copperStairSlabProps);
+    CopperBlocks::OXIDIZED_CUT_COPPER_SLAB = &registry.registerBlock<blocks::WeatheringCopperSlabBlock>(
+        ResourceLocation("minecraft:oxidized_cut_copper_slab"),
+        copperStairSlabProps,
+        BlockStateProperties::OxidationLevel::Oxidized);
 
-    CopperBlocks::WAXED_CUT_COPPER_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+    CopperBlocks::WAXED_CUT_COPPER_SLAB = &registry.registerBlock<blocks::WaxedCopperSlabBlock>(
         ResourceLocation("minecraft:waxed_cut_copper_slab"), copperStairSlabProps);
 
-    CopperBlocks::WAXED_EXPOSED_CUT_COPPER_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+    CopperBlocks::WAXED_EXPOSED_CUT_COPPER_SLAB = &registry.registerBlock<blocks::WaxedCopperSlabBlock>(
         ResourceLocation("minecraft:waxed_exposed_cut_copper_slab"), copperStairSlabProps);
 
-    CopperBlocks::WAXED_WEATHERED_CUT_COPPER_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+    CopperBlocks::WAXED_WEATHERED_CUT_COPPER_SLAB = &registry.registerBlock<blocks::WaxedCopperSlabBlock>(
         ResourceLocation("minecraft:waxed_weathered_cut_copper_slab"), copperStairSlabProps);
 
-    CopperBlocks::WAXED_OXIDIZED_CUT_COPPER_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+    CopperBlocks::WAXED_OXIDIZED_CUT_COPPER_SLAB = &registry.registerBlock<blocks::WaxedCopperSlabBlock>(
         ResourceLocation("minecraft:waxed_oxidized_cut_copper_slab"), copperStairSlabProps);
+
+    // 设置切制铜楼梯氧化链
+    static_cast<blocks::WeatheringCopperStairBlock*>(CopperBlocks::CUT_COPPER_STAIRS)
+        ->setNextOxidationBlock(CopperBlocks::EXPOSED_CUT_COPPER_STAIRS);
+    static_cast<blocks::WeatheringCopperStairBlock*>(CopperBlocks::EXPOSED_CUT_COPPER_STAIRS)
+        ->setNextOxidationBlock(CopperBlocks::WEATHERED_CUT_COPPER_STAIRS);
+    static_cast<blocks::WeatheringCopperStairBlock*>(CopperBlocks::WEATHERED_CUT_COPPER_STAIRS)
+        ->setNextOxidationBlock(CopperBlocks::OXIDIZED_CUT_COPPER_STAIRS);
+
+    // 设置切制铜台阶氧化链
+    static_cast<blocks::WeatheringCopperSlabBlock*>(CopperBlocks::CUT_COPPER_SLAB)
+        ->setNextOxidationBlock(CopperBlocks::EXPOSED_CUT_COPPER_SLAB);
+    static_cast<blocks::WeatheringCopperSlabBlock*>(CopperBlocks::EXPOSED_CUT_COPPER_SLAB)
+        ->setNextOxidationBlock(CopperBlocks::WEATHERED_CUT_COPPER_SLAB);
+    static_cast<blocks::WeatheringCopperSlabBlock*>(CopperBlocks::WEATHERED_CUT_COPPER_SLAB)
+        ->setNextOxidationBlock(CopperBlocks::OXIDIZED_CUT_COPPER_SLAB);
 
     // ============================================================================
     // 1.21 铜扩展：铜门（8个）
@@ -379,12 +410,18 @@ void registerCopperBlocks()
     // ============================================================================
     auto* copperDoor = &registry.registerBlock<blocks::WeatheringCopperDoorBlock>(
         ResourceLocation("minecraft:copper_door"), copperDoorProps, BlockStateProperties::OxidationLevel::Unaffected);
-    auto* exposedCopperDoor = &registry.registerBlock<blocks::WeatheringCopperDoorBlock>(
-        ResourceLocation("minecraft:exposed_copper_door"), copperDoorProps, BlockStateProperties::OxidationLevel::Exposed);
-    auto* weatheredCopperDoor = &registry.registerBlock<blocks::WeatheringCopperDoorBlock>(
-        ResourceLocation("minecraft:weathered_copper_door"), copperDoorProps, BlockStateProperties::OxidationLevel::Weathered);
-    auto* oxidizedCopperDoor = &registry.registerBlock<blocks::WeatheringCopperDoorBlock>(
-        ResourceLocation("minecraft:oxidized_copper_door"), copperDoorProps, BlockStateProperties::OxidationLevel::Oxidized);
+    auto* exposedCopperDoor =
+        &registry.registerBlock<blocks::WeatheringCopperDoorBlock>(ResourceLocation("minecraft:exposed_copper_door"),
+            copperDoorProps,
+            BlockStateProperties::OxidationLevel::Exposed);
+    auto* weatheredCopperDoor =
+        &registry.registerBlock<blocks::WeatheringCopperDoorBlock>(ResourceLocation("minecraft:weathered_copper_door"),
+            copperDoorProps,
+            BlockStateProperties::OxidationLevel::Weathered);
+    auto* oxidizedCopperDoor =
+        &registry.registerBlock<blocks::WeatheringCopperDoorBlock>(ResourceLocation("minecraft:oxidized_copper_door"),
+            copperDoorProps,
+            BlockStateProperties::OxidationLevel::Oxidized);
 
     // 设置铜门氧化链
     copperDoor->setNextOxidationBlock(exposedCopperDoor);
@@ -414,20 +451,22 @@ void registerCopperBlocks()
     // 铜活板门只能通过红石控制（类似铁活板门），且可氧化
     // 未涂蜡使用WeatheringCopperTrapDoorBlock，涂蜡使用WaxedCopperTrapDoorBlock
     // ============================================================================
-    auto* copperTrapdoor = &registry.registerBlock<blocks::WeatheringCopperTrapDoorBlock>(
-        ResourceLocation("minecraft:copper_trapdoor"), copperDoorProps, BlockStateProperties::OxidationLevel::Unaffected);
-    auto* exposedCopperTrapdoor =
-        &registry.registerBlock<blocks::WeatheringCopperTrapDoorBlock>(ResourceLocation("minecraft:exposed_copper_trapdoor"),
+    auto* copperTrapdoor =
+        &registry.registerBlock<blocks::WeatheringCopperTrapDoorBlock>(ResourceLocation("minecraft:copper_trapdoor"),
             copperDoorProps,
-            BlockStateProperties::OxidationLevel::Exposed);
-    auto* weatheredCopperTrapdoor =
-        &registry.registerBlock<blocks::WeatheringCopperTrapDoorBlock>(ResourceLocation("minecraft:weathered_copper_trapdoor"),
-            copperDoorProps,
-            BlockStateProperties::OxidationLevel::Weathered);
-    auto* oxidizedCopperTrapdoor =
-        &registry.registerBlock<blocks::WeatheringCopperTrapDoorBlock>(ResourceLocation("minecraft:oxidized_copper_trapdoor"),
-            copperDoorProps,
-            BlockStateProperties::OxidationLevel::Oxidized);
+            BlockStateProperties::OxidationLevel::Unaffected);
+    auto* exposedCopperTrapdoor = &registry.registerBlock<blocks::WeatheringCopperTrapDoorBlock>(
+        ResourceLocation("minecraft:exposed_copper_trapdoor"),
+        copperDoorProps,
+        BlockStateProperties::OxidationLevel::Exposed);
+    auto* weatheredCopperTrapdoor = &registry.registerBlock<blocks::WeatheringCopperTrapDoorBlock>(
+        ResourceLocation("minecraft:weathered_copper_trapdoor"),
+        copperDoorProps,
+        BlockStateProperties::OxidationLevel::Weathered);
+    auto* oxidizedCopperTrapdoor = &registry.registerBlock<blocks::WeatheringCopperTrapDoorBlock>(
+        ResourceLocation("minecraft:oxidized_copper_trapdoor"),
+        copperDoorProps,
+        BlockStateProperties::OxidationLevel::Oxidized);
 
     // 设置铜活板门氧化链
     copperTrapdoor->setNextOxidationBlock(exposedCopperTrapdoor);
@@ -456,18 +495,18 @@ void registerCopperBlocks()
     // 1.21 铜扩展：铜格栅（8个）
     // 铜格栅是半透明方块，类似于铁栏杆但更现代，可氧化
     // ============================================================================
-    auto* copperGrate = &registry.registerBlock<blocks::WeatheringCopperBlock>(
+    auto* copperGrate = &registry.registerBlock<blocks::WeatheringCopperGrateBlock>(
         ResourceLocation("minecraft:copper_grate"), copperGrateProps, BlockStateProperties::OxidationLevel::Unaffected);
     auto* exposedCopperGrate =
-        &registry.registerBlock<blocks::WeatheringCopperBlock>(ResourceLocation("minecraft:exposed_copper_grate"),
+        &registry.registerBlock<blocks::WeatheringCopperGrateBlock>(ResourceLocation("minecraft:exposed_copper_grate"),
             copperGrateProps,
             BlockStateProperties::OxidationLevel::Exposed);
-    auto* weatheredCopperGrate =
-        &registry.registerBlock<blocks::WeatheringCopperBlock>(ResourceLocation("minecraft:weathered_copper_grate"),
-            copperGrateProps,
-            BlockStateProperties::OxidationLevel::Weathered);
+    auto* weatheredCopperGrate = &registry.registerBlock<blocks::WeatheringCopperGrateBlock>(
+        ResourceLocation("minecraft:weathered_copper_grate"),
+        copperGrateProps,
+        BlockStateProperties::OxidationLevel::Weathered);
     auto* oxidizedCopperGrate =
-        &registry.registerBlock<blocks::WeatheringCopperBlock>(ResourceLocation("minecraft:oxidized_copper_grate"),
+        &registry.registerBlock<blocks::WeatheringCopperGrateBlock>(ResourceLocation("minecraft:oxidized_copper_grate"),
             copperGrateProps,
             BlockStateProperties::OxidationLevel::Oxidized);
 
@@ -481,16 +520,16 @@ void registerCopperBlocks()
     CopperBlocks::WEATHERED_COPPER_GRATE = weatheredCopperGrate;
     CopperBlocks::OXIDIZED_COPPER_GRATE = oxidizedCopperGrate;
 
-    CopperBlocks::WAXED_COPPER_GRATE = &registry.registerBlock<blocks::WaxedCopperBlock>(
+    CopperBlocks::WAXED_COPPER_GRATE = &registry.registerBlock<blocks::WaxedCopperGrateBlock>(
         ResourceLocation("minecraft:waxed_copper_grate"), copperGrateProps);
 
-    CopperBlocks::WAXED_EXPOSED_COPPER_GRATE = &registry.registerBlock<blocks::WaxedCopperBlock>(
+    CopperBlocks::WAXED_EXPOSED_COPPER_GRATE = &registry.registerBlock<blocks::WaxedCopperGrateBlock>(
         ResourceLocation("minecraft:waxed_exposed_copper_grate"), copperGrateProps);
 
-    CopperBlocks::WAXED_WEATHERED_COPPER_GRATE = &registry.registerBlock<blocks::WaxedCopperBlock>(
+    CopperBlocks::WAXED_WEATHERED_COPPER_GRATE = &registry.registerBlock<blocks::WaxedCopperGrateBlock>(
         ResourceLocation("minecraft:waxed_weathered_copper_grate"), copperGrateProps);
 
-    CopperBlocks::WAXED_OXIDIZED_COPPER_GRATE = &registry.registerBlock<blocks::WaxedCopperBlock>(
+    CopperBlocks::WAXED_OXIDIZED_COPPER_GRATE = &registry.registerBlock<blocks::WaxedCopperGrateBlock>(
         ResourceLocation("minecraft:waxed_oxidized_copper_grate"), copperGrateProps);
 
     // ============================================================================
@@ -582,15 +621,15 @@ void registerCopperBlocks()
     // 避雷针（1.17）
     // 避雷针是方向性方块，FACING + POWERED + WATERLOGGED，可被闪电激活输出红石信号
     // ============================================================================
-    CopperBlocks::LIGHTNING_ROD = &registry.registerBlock<blocks::LightningRodBlock>(
-        ResourceLocation("minecraft:lightning_rod"),
-        BlockProperties(Material::IRON)
-            .hardness(3.0f)
-            .resistance(6.0f)
-            .harvestTool(HarvestTool::Pickaxe)
-            .requiresTool()
-            .notSolid()
-            .soundType(BlockSoundTypes::COPPER));
+    CopperBlocks::LIGHTNING_ROD =
+        &registry.registerBlock<blocks::LightningRodBlock>(ResourceLocation("minecraft:lightning_rod"),
+            BlockProperties(Material::IRON)
+                .hardness(3.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool()
+                .notSolid()
+                .soundType(BlockSoundTypes::COPPER));
 
     // ============================================================================
     // 粗矿块（1.17）

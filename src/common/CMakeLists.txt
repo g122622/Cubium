@@ -687,6 +687,9 @@ add_library(mc_common STATIC
     world/block/blocks/copper/WeatheringCopperBlock.cpp
     world/block/blocks/copper/WeatheringCopperDoorBlock.cpp
     world/block/blocks/copper/WeatheringCopperTrapDoorBlock.cpp
+    world/block/blocks/copper/WeatheringCopperStairBlock.cpp
+    world/block/blocks/copper/WeatheringCopperSlabBlock.cpp
+    world/block/blocks/copper/WeatheringCopperGrateBlock.cpp
     world/block/blocks/copper/CopperBulbBlock.cpp
 
     # World - Block - Sculk
@@ -697,6 +700,7 @@ add_library(mc_common STATIC
 
     # World - Block - Trial (Tricky Trials)
     world/block/blocks/trial/TrialBlocks.cpp
+    world/block/blocks/trial/HeavyCoreBlock.cpp
 
     # World - Block - Nether
     world/block/blocks/nether/FireBlock.cpp
