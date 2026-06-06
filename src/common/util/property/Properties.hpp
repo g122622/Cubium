@@ -1529,6 +1529,17 @@ public:
         return *prop;
     }
 
+    /**
+     * @brief 是否为末端（苍白苔藓）
+     *
+     * 参考: net.minecraft.world.level.block.state.properties.BlockStateProperties.TIP
+     */
+    static const BooleanProperty& TIP()
+    {
+        static auto prop = BooleanProperty::create("tip");
+        return *prop;
+    }
+
     // ========================================================================
     // 1.20 可疑方块粉尘属性
     // ========================================================================

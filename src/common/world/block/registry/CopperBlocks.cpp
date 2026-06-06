@@ -33,8 +33,10 @@
 #include "world/block/blocks/building/TrapDoorBlock.hpp"
 #include "world/block/blocks/copper/CopperBulbBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperBlock.hpp"
+#include "world/block/blocks/copper/WeatheringCopperChainBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperDoorBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperGrateBlock.hpp"
+#include "world/block/blocks/copper/WeatheringCopperLanternBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperSlabBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperStairBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperTrapDoorBlock.hpp"
@@ -149,6 +151,30 @@ Block* CopperBlocks::WAXED_CHISELED_COPPER = nullptr;
 Block* CopperBlocks::WAXED_EXPOSED_CHISELED_COPPER = nullptr;
 Block* CopperBlocks::WAXED_WEATHERED_CHISELED_COPPER = nullptr;
 Block* CopperBlocks::WAXED_OXIDIZED_CHISELED_COPPER = nullptr;
+
+// ============================================================================
+// 1.21 铜扩展：铜链（8个）
+// ============================================================================
+Block* CopperBlocks::COPPER_CHAIN = nullptr;
+Block* CopperBlocks::EXPOSED_COPPER_CHAIN = nullptr;
+Block* CopperBlocks::WEATHERED_COPPER_CHAIN = nullptr;
+Block* CopperBlocks::OXIDIZED_COPPER_CHAIN = nullptr;
+Block* CopperBlocks::WAXED_COPPER_CHAIN = nullptr;
+Block* CopperBlocks::WAXED_EXPOSED_COPPER_CHAIN = nullptr;
+Block* CopperBlocks::WAXED_WEATHERED_COPPER_CHAIN = nullptr;
+Block* CopperBlocks::WAXED_OXIDIZED_COPPER_CHAIN = nullptr;
+
+// ============================================================================
+// 1.21 铜扩展：铜灯笼（8个）
+// ============================================================================
+Block* CopperBlocks::COPPER_LANTERN = nullptr;
+Block* CopperBlocks::EXPOSED_COPPER_LANTERN = nullptr;
+Block* CopperBlocks::WEATHERED_COPPER_LANTERN = nullptr;
+Block* CopperBlocks::OXIDIZED_COPPER_LANTERN = nullptr;
+Block* CopperBlocks::WAXED_COPPER_LANTERN = nullptr;
+Block* CopperBlocks::WAXED_EXPOSED_COPPER_LANTERN = nullptr;
+Block* CopperBlocks::WAXED_WEATHERED_COPPER_LANTERN = nullptr;
+Block* CopperBlocks::WAXED_OXIDIZED_COPPER_LANTERN = nullptr;
 
 // ============================================================================
 // 避雷针
@@ -616,6 +642,96 @@ void registerCopperBlocks()
 
     CopperBlocks::WAXED_OXIDIZED_CHISELED_COPPER = &registry.registerBlock<blocks::WaxedCopperBlock>(
         ResourceLocation("minecraft:waxed_oxidized_chiseled_copper"), chiseledCopperProps);
+
+    // ============================================================================
+    // 1.21 铜扩展：铜链（8个）
+    // ============================================================================
+    auto copperChainProps =
+        BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid().soundType(BlockSoundTypes::CHAIN);
+
+    auto* copperChain = &registry.registerBlock<blocks::WeatheringCopperChainBlock>(
+        ResourceLocation("minecraft:copper_chain"), copperChainProps, BlockStateProperties::OxidationLevel::Unaffected);
+    auto* exposedCopperChain =
+        &registry.registerBlock<blocks::WeatheringCopperChainBlock>(ResourceLocation("minecraft:exposed_copper_chain"),
+            copperChainProps,
+            BlockStateProperties::OxidationLevel::Exposed);
+    auto* weatheredCopperChain = &registry.registerBlock<blocks::WeatheringCopperChainBlock>(
+        ResourceLocation("minecraft:weathered_copper_chain"),
+        copperChainProps,
+        BlockStateProperties::OxidationLevel::Weathered);
+    auto* oxidizedCopperChain =
+        &registry.registerBlock<blocks::WeatheringCopperChainBlock>(ResourceLocation("minecraft:oxidized_copper_chain"),
+            copperChainProps,
+            BlockStateProperties::OxidationLevel::Oxidized);
+
+    copperChain->setNextOxidationBlock(exposedCopperChain);
+    exposedCopperChain->setNextOxidationBlock(weatheredCopperChain);
+    weatheredCopperChain->setNextOxidationBlock(oxidizedCopperChain);
+
+    CopperBlocks::COPPER_CHAIN = copperChain;
+    CopperBlocks::EXPOSED_COPPER_CHAIN = exposedCopperChain;
+    CopperBlocks::WEATHERED_COPPER_CHAIN = weatheredCopperChain;
+    CopperBlocks::OXIDIZED_COPPER_CHAIN = oxidizedCopperChain;
+
+    CopperBlocks::WAXED_COPPER_CHAIN = &registry.registerBlock<blocks::WaxedCopperChainBlock>(
+        ResourceLocation("minecraft:waxed_copper_chain"), copperChainProps);
+
+    CopperBlocks::WAXED_EXPOSED_COPPER_CHAIN = &registry.registerBlock<blocks::WaxedCopperChainBlock>(
+        ResourceLocation("minecraft:waxed_exposed_copper_chain"), copperChainProps);
+
+    CopperBlocks::WAXED_WEATHERED_COPPER_CHAIN = &registry.registerBlock<blocks::WaxedCopperChainBlock>(
+        ResourceLocation("minecraft:waxed_weathered_copper_chain"), copperChainProps);
+
+    CopperBlocks::WAXED_OXIDIZED_COPPER_CHAIN = &registry.registerBlock<blocks::WaxedCopperChainBlock>(
+        ResourceLocation("minecraft:waxed_oxidized_copper_chain"), copperChainProps);
+
+    // ============================================================================
+    // 1.21 铜扩展：铜灯笼（8个）
+    // ============================================================================
+    auto copperLanternProps =
+        BlockProperties(Material::IRON).hardness(3.5f).resistance(3.5f).notSolid().soundType(BlockSoundTypes::LANTERN);
+
+    auto* copperLantern =
+        &registry.registerBlock<blocks::WeatheringCopperLanternBlock>(ResourceLocation("minecraft:copper_lantern"),
+            copperLanternProps,
+            BlockStateProperties::OxidationLevel::Unaffected,
+            15);
+    auto* exposedCopperLantern = &registry.registerBlock<blocks::WeatheringCopperLanternBlock>(
+        ResourceLocation("minecraft:exposed_copper_lantern"),
+        copperLanternProps,
+        BlockStateProperties::OxidationLevel::Exposed,
+        15);
+    auto* weatheredCopperLantern = &registry.registerBlock<blocks::WeatheringCopperLanternBlock>(
+        ResourceLocation("minecraft:weathered_copper_lantern"),
+        copperLanternProps,
+        BlockStateProperties::OxidationLevel::Weathered,
+        15);
+    auto* oxidizedCopperLantern = &registry.registerBlock<blocks::WeatheringCopperLanternBlock>(
+        ResourceLocation("minecraft:oxidized_copper_lantern"),
+        copperLanternProps,
+        BlockStateProperties::OxidationLevel::Oxidized,
+        15);
+
+    copperLantern->setNextOxidationBlock(exposedCopperLantern);
+    exposedCopperLantern->setNextOxidationBlock(weatheredCopperLantern);
+    weatheredCopperLantern->setNextOxidationBlock(oxidizedCopperLantern);
+
+    CopperBlocks::COPPER_LANTERN = copperLantern;
+    CopperBlocks::EXPOSED_COPPER_LANTERN = exposedCopperLantern;
+    CopperBlocks::WEATHERED_COPPER_LANTERN = weatheredCopperLantern;
+    CopperBlocks::OXIDIZED_COPPER_LANTERN = oxidizedCopperLantern;
+
+    CopperBlocks::WAXED_COPPER_LANTERN = &registry.registerBlock<blocks::WaxedCopperLanternBlock>(
+        ResourceLocation("minecraft:waxed_copper_lantern"), copperLanternProps, 15);
+
+    CopperBlocks::WAXED_EXPOSED_COPPER_LANTERN = &registry.registerBlock<blocks::WaxedCopperLanternBlock>(
+        ResourceLocation("minecraft:waxed_exposed_copper_lantern"), copperLanternProps, 15);
+
+    CopperBlocks::WAXED_WEATHERED_COPPER_LANTERN = &registry.registerBlock<blocks::WaxedCopperLanternBlock>(
+        ResourceLocation("minecraft:waxed_weathered_copper_lantern"), copperLanternProps, 15);
+
+    CopperBlocks::WAXED_OXIDIZED_COPPER_LANTERN = &registry.registerBlock<blocks::WaxedCopperLanternBlock>(
+        ResourceLocation("minecraft:waxed_oxidized_copper_lantern"), copperLanternProps, 15);
 
     // ============================================================================
     // 避雷针（1.17）

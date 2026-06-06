@@ -35,6 +35,8 @@
 #include "world/block/blocks/building/TrapDoorBlock.hpp"
 #include "world/block/blocks/building/WallBlock.hpp"
 #include "world/block/blocks/pale_garden/CreakingHeartBlock.hpp"
+#include "world/block/blocks/pale_garden/EyeblossomBlock.hpp"
+#include "world/block/blocks/pale_garden/PaleHangingMossBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
 
 namespace mc {
@@ -63,6 +65,10 @@ Block* PaleGardenBlocks::PALE_OAK_TRAPDOOR = nullptr;
 Block* PaleGardenBlocks::PALE_MOSS_BLOCK = nullptr;
 Block* PaleGardenBlocks::PALE_MOSS_CARPET = nullptr;
 Block* PaleGardenBlocks::PALE_HANGING_MOSS = nullptr;
+
+// 眼眸花
+Block* PaleGardenBlocks::OPEN_EYEBLOSSOM = nullptr;
+Block* PaleGardenBlocks::CLOSED_EYEBLOSSOM = nullptr;
 
 // 嘎枝之心
 Block* PaleGardenBlocks::CREAKING_HEART = nullptr;
@@ -263,9 +269,9 @@ void registerPaleGardenBlocks()
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::PALE_MOSS));
 
-    // 苍白垂苔
+    // 苍白垂苔 - TIP属性
     PaleGardenBlocks::PALE_HANGING_MOSS =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pale_hanging_moss"),
+        &registry.registerBlock<blocks::PaleHangingMossBlock>(ResourceLocation("minecraft:pale_hanging_moss"),
             BlockProperties(Material::PLANT)
                 .noCollision()
                 .notSolid()
@@ -287,6 +293,32 @@ void registerPaleGardenBlocks()
                 .soundType(BlockSoundTypes::CREAKING_HEART)
                 .flammable()
                 .ignitedByLava());
+
+    // ============================================================================
+    // 眼眸花
+    // ============================================================================
+
+    // 开放的眼眸花 - 发光等级1
+    PaleGardenBlocks::OPEN_EYEBLOSSOM =
+        &registry.registerBlock<blocks::EyeblossomBlock>(ResourceLocation("minecraft:open_eyeblossom"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::GRASS),
+            true); // isOpen = true
+
+    // 闭合的眼眸花
+    PaleGardenBlocks::CLOSED_EYEBLOSSOM =
+        &registry.registerBlock<blocks::EyeblossomBlock>(ResourceLocation("minecraft:closed_eyeblossom"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::GRASS),
+            false); // isOpen = false
 
     // ============================================================================
     // 树脂系列

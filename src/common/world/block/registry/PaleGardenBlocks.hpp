@@ -57,6 +57,10 @@ struct PaleGardenBlocks {
     static Block* PALE_MOSS_CARPET;
     static Block* PALE_HANGING_MOSS;
 
+    // 眼眸花
+    static Block* OPEN_EYEBLOSSOM;
+    static Block* CLOSED_EYEBLOSSOM;
+
     // 嘎枝之心
     static Block* CREAKING_HEART;
 

@@ -84,6 +84,19 @@ void CopperBulbBlock::fillStateContainer(StateContainer<Block, BlockState>& cont
     // 状态已在构造函数中通过 Builder 创建
 }
 
+bool CopperBulbBlock::hasComparatorInputOverride(const BlockState& state) const noexcept
+{
+    MC_UNUSED(state);
+    return true;
+}
+
+i32 CopperBulbBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return state.get(BlockStateProperties::LIT()) ? 15 : 0;
+}
+
 // ========== WaxedCopperBulbBlock ==========
 
 WaxedCopperBulbBlock::WaxedCopperBulbBlock(const BlockProperties& properties)
@@ -133,6 +146,19 @@ BlockState WaxedCopperBulbBlock::updatePostPlacement(const BlockState& state,
 void WaxedCopperBulbBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
 {
     // 状态已在构造函数中通过 Builder 创建
+}
+
+bool WaxedCopperBulbBlock::hasComparatorInputOverride(const BlockState& state) const noexcept
+{
+    MC_UNUSED(state);
+    return true;
+}
+
+i32 WaxedCopperBulbBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return state.get(BlockStateProperties::LIT()) ? 15 : 0;
 }
 
 } // namespace blocks

@@ -85,6 +85,21 @@ public:
      */
     [[nodiscard]] bool hasBlockEntity() const noexcept override { return false; }
 
+    /**
+     * @brief 是否有比较器输入覆盖
+     *
+     * 铜灯支持比较器输出
+     */
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override;
+
+    /**
+     * @brief 获取比较器输入覆盖值
+     *
+     * 点亮时返回15，熄灭时返回0
+     */
+    [[nodiscard]] i32 getComparatorInputOverride(
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
+
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 };
@@ -126,6 +141,21 @@ public:
         MC_UNUSED(pos);
         return state.get(BlockStateProperties::LIT()) ? 15 : 0;
     }
+
+    /**
+     * @brief 是否有比较器输入覆盖
+     *
+     * 涂蜡铜灯支持比较器输出
+     */
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override;
+
+    /**
+     * @brief 获取比较器输入覆盖值
+     *
+     * 点亮时返回15，熄灭时返回0
+     */
+    [[nodiscard]] i32 getComparatorInputOverride(
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
