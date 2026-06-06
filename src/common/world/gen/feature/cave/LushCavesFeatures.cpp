@@ -1,0 +1,544 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#include "LushCavesFeatures.hpp"
+#include "CaveFeatureConfigs.hpp"
+#include "CaveFeatures.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/FeatureIds.hpp"
+#include "common/world/gen/feature/FeatureSpread.hpp"
+#include "common/world/gen/feature/predicate/BlockPredicate.hpp"
+#include "common/world/gen/feature/tree/TreeFeature.hpp"
+#include "common/world/gen/feature/tree/trunk/StraightTrunkPlacer.hpp"
+#include "common/world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
+#include "common/world/gen/placement/Placement.hpp"
+#include "common/world/gen/valueprovider/IntProvider.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
+
+namespace mc {
+
+std::vector<std::unique_ptr<ConfiguredFeatureBase>> LushCavesFeatures::s_features;
+
+// ============================================================================
+// 辅助：创建大型垂滴叶
+// ============================================================================
+
+namespace {
+
+std::unique_ptr<ConfiguredFeatureBase> createBigDripleaf(Direction facing, const char* name)
+{
+    auto config = std::make_unique<BlockColumnConfig>();
+    config->direction = Direction::Up;
+    config->prioritizeTip = true;
+
+    // stem层 - 高度0~4
+    auto stemHeight = std::make_unique<valueprovider::UniformInt>(0, 4);
+    const BlockState* stemState = VanillaBlocks::getState(VanillaBlocks::BIG_DRIPLEAF_STEM);
+    if (stemState != nullptr && stemState->hasProperty(BlockStateProperties::HORIZONTAL_FACING())) {
+        stemState = &stemState->with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+    }
+    config->layers.push_back(BlockColumnLayer(std::move(stemHeight), stemState));
+
+    // leaf层 - 高度1
+    auto leafHeight = std::make_unique<valueprovider::ConstantInt>(1);
+    const BlockState* leafState = VanillaBlocks::getState(VanillaBlocks::BIG_DRIPLEAF);
+    if (leafState != nullptr && leafState->hasProperty(BlockStateProperties::HORIZONTAL_FACING())) {
+        leafState = &leafState->with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+    }
+    config->layers.push_back(BlockColumnLayer(std::move(leafHeight), leafState));
+
+    config->allowedPlacement = std::make_unique<predicate::OnlyInAirPredicate>();
+
+    auto placement = std::make_unique<ConfiguredPlacement>(
+        std::make_unique<CountPlacement>(),
+        std::make_unique<CountPlacementConfig>(1));
+
+    return std::make_unique<cave::ConfiguredBlockColumnFeature>(
+        std::move(config), std::move(placement), name);
+}
+
+} // anonymous namespace
+
+// ============================================================================
+// 子特征创建
+// ============================================================================
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createMossVegetation()
+{
+    // 苔藓植被 - 简单方块放置
+    // MC: WeightedStateProvider(杜鹃花丛4, 开花杜鹃花丛7, 苔藓地毯25, 草50, 高草10)
+    // 简化：使用苔藓地毯作为主要植被
+    auto config = std::make_unique<cave::SimpleBlockConfig>(
+        VanillaBlocks::getState(VanillaBlocks::MOSS_CARPET));
+
+    auto placement = std::make_unique<ConfiguredPlacement>(
+        std::make_unique<CountPlacement>(),
+        std::make_unique<CountPlacementConfig>(1));
+
+    return std::make_unique<cave::ConfiguredSimpleBlockFeature>(
+        std::move(config), std::move(placement), "moss_vegetation");
+}
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createCaveVineInMoss()
+{
+    // 苔藓中的洞穴藤蔓 - 较短的藤蔓
+    auto config = std::make_unique<BlockColumnConfig>();
+    config->direction = Direction::Down;
+    config->prioritizeTip = true;
+
+    // body层 - 高度0~3
+    auto bodyHeight = std::make_unique<valueprovider::UniformInt>(0, 3);
+    config->layers.push_back(BlockColumnLayer(
+        std::move(bodyHeight),
+        VanillaBlocks::getState(VanillaBlocks::CAVE_VINES_PLANT)));
+
+    // tip层 - 高度1
+    auto tipHeight = std::make_unique<valueprovider::ConstantInt>(1);
+    config->layers.push_back(BlockColumnLayer(
+        std::move(tipHeight),
+        VanillaBlocks::getState(VanillaBlocks::CAVE_VINES)));
+
+    config->allowedPlacement = std::make_unique<predicate::OnlyInAirPredicate>();
+
+    auto placement = std::make_unique<ConfiguredPlacement>(
+        std::make_unique<CountPlacement>(),
+        std::make_unique<CountPlacementConfig>(1));
+
+    return std::make_unique<cave::ConfiguredBlockColumnFeature>(
+        std::move(config), std::move(placement), "cave_vine_in_moss");
+}
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createClayWithDripleaves()
+{
+    auto config = std::make_unique<VegetationPatchConfig>(
+        VegetationPatchConfig::floorPatch(
+            "minecraft:lush_ground_replaceable",
+            VanillaBlocks::getState(VanillaBlocks::CLAY),
+            LushCaveFeatureIds::Dripleaf,
+            std::make_unique<valueprovider::ConstantInt>(3),
+            0.8f,
+            2,
+            0.05f,
+            std::make_unique<valueprovider::UniformInt>(4, 7),
+            0.7f));
+
+    auto placement = std::make_unique<ConfiguredPlacement>(
+        std::make_unique<CountPlacement>(),
+        std::make_unique<CountPlacementConfig>(1));
+
+    return std::make_unique<cave::ConfiguredVegetationPatchFeature>(
+        std::move(config), std::move(placement), "clay_with_dripleaves");
+}
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createClayPoolWithDripleaves()
+{
+    auto config = std::make_unique<VegetationPatchConfig>(
+        VegetationPatchConfig::floorPatch(
+            "minecraft:lush_ground_replaceable",
+            VanillaBlocks::getState(VanillaBlocks::CLAY),
+            LushCaveFeatureIds::Dripleaf,
+            std::make_unique<valueprovider::ConstantInt>(3),
+            0.8f,
+            5,
+            0.1f,
+            std::make_unique<valueprovider::UniformInt>(4, 7),
+            0.7f));
+
+    auto placement = std::make_unique<ConfiguredPlacement>(
+        std::make_unique<CountPlacement>(),
+        std::make_unique<CountPlacementConfig>(1));
+
+    return std::make_unique<cave::ConfiguredWaterloggedPatchFeature>(
+        std::move(config), std::move(placement), "clay_pool_with_dripleaves");
+}
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createSmallDripleaf()
+{
+    auto config = std::make_unique<cave::SimpleBlockConfig>(
+        VanillaBlocks::getState(VanillaBlocks::SMALL_DRIPLEAF));
+
+    auto placement = std::make_unique<ConfiguredPlacement>(
+        std::make_unique<CountPlacement>(),
+        std::make_unique<CountPlacementConfig>(1));
+
+    return std::make_unique<cave::ConfiguredSimpleBlockFeature>(
+        std::move(config), std::move(placement), "small_dripleaf");
+}
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createBigDripleafNorth()
+{
+    return createBigDripleaf(Direction::North, "big_dripleaf_north");
+}
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createBigDripleafSouth()
+{
+    return createBigDripleaf(Direction::South, "big_dripleaf_south");
+}
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createBigDripleafWest()
+{
+    return createBigDripleaf(Direction::West, "big_dripleaf_west");
+}
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createBigDripleafEast()
+{
+    return createBigDripleaf(Direction::East, "big_dripleaf_east");
+}
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createDripleaf()
+{
+    auto config = std::make_unique<SimpleRandomFeatureConfig>();
+    config->featureIds.push_back(LushCaveFeatureIds::SmallDripleaf);
+    config->featureIds.push_back(LushCaveFeatureIds::BigDripleafNorth);
+    config->featureIds.push_back(LushCaveFeatureIds::BigDripleafSouth);
+    config->featureIds.push_back(LushCaveFeatureIds::BigDripleafWest);
+    config->featureIds.push_back(LushCaveFeatureIds::BigDripleafEast);
+
+    auto placement = std::make_unique<ConfiguredPlacement>(
+        std::make_unique<CountPlacement>(),
+        std::make_unique<CountPlacementConfig>(1));
+
+    return std::make_unique<cave::ConfiguredSimpleRandomSelectorFeature>(
+        std::move(config), std::move(placement), "dripleaf");
+}
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createAzaleaTree()
+{
+    // 杜鹃树 - 使用StraightTrunkPlacer + BlobFoliagePlacer
+    // MC: BendingTrunkPlacer(4,2,0,3,UniformInt(1,2)) + WeightedFoliage(AzaleaLeaves 3:FloweringAzaleaLeaves 1)
+    //     + RandomSpreadFoliagePlacer(radius=3,offset=0,height=2) + forceDirt=true + dirtBlock=ROOTED_DIRT
+    // TODO: 实现BendingTrunkPlacer后替换
+    auto trunkPlacer = std::make_unique<StraightTrunkPlacer>(4, 2, 0);
+    auto foliagePlacer = std::make_unique<BlobFoliagePlacer>(
+        FeatureSpread::spread(3, 0), FeatureSpread::fixed(0), 2);
+
+    auto config = std::make_unique<TreeFeatureConfig>();
+    config->trunkBlock = VanillaBlocks::getState(VanillaBlocks::OAK_LOG);
+    config->foliageBlock = VanillaBlocks::getState(VanillaBlocks::AZALEA_LEAVES);
+    config->trunkPlacer = std::move(trunkPlacer);
+    config->foliagePlacer = std::move(foliagePlacer);
+    config->forcePlacement = true;
+    config->minHeight = 4;
+
+    auto placement = std::make_unique<ConfiguredPlacement>(
+        std::make_unique<CountPlacement>(),
+        std::make_unique<CountPlacementConfig>(1));
+
+    return std::make_unique<ConfiguredTreeFeature>(
+        std::move(config), std::move(placement), "azalea_tree");
+}
+
+// ============================================================================
+// 主特征创建
+// ============================================================================
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createLushCavesVegetation()
+{
+    // 苔藓地面贴片 - VegetationPatchFeature, FLOOR
+    auto config = std::make_unique<VegetationPatchConfig>(
+        VegetationPatchConfig::floorPatch(
+            "minecraft:moss_replaceable",
+            VanillaBlocks::getState(VanillaBlocks::MOSS_BLOCK),
+            LushCaveFeatureIds::MossVegetation,
+            std::make_unique<valueprovider::ConstantInt>(1),
+            0.0f,
+            5,
+            0.8f,
+            std::make_unique<valueprovider::UniformInt>(4, 7),
+            0.3f));
+
+    // 放置链: Count(125) -> Square -> HeightRange
+    auto heightPlacement = std::make_unique<HeightRangePlacement>();
+    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(-64, 0, 320);
+    auto heightConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(heightPlacement), std::move(heightConfig));
+
+    auto squarePlacement = std::make_unique<SquarePlacement>();
+    auto squareConfig = std::make_unique<EmptyPlacementConfig>();
+    auto squareConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(squarePlacement), std::move(squareConfig));
+    squareConfigured->setNext(std::move(heightConfigured));
+
+    auto countPlacement = std::make_unique<CountPlacement>();
+    auto countConfig = std::make_unique<CountPlacementConfig>(125);
+    auto countConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(countPlacement), std::move(countConfig));
+    countConfigured->setNext(std::move(squareConfigured));
+
+    return std::make_unique<cave::ConfiguredVegetationPatchFeature>(
+        std::move(config), std::move(countConfigured), "lush_caves_vegetation");
+}
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createLushCavesCeilingVegetation()
+{
+    // 苔藓天花板贴片 - VegetationPatchFeature, CEILING
+    auto config = std::make_unique<VegetationPatchConfig>(
+        VegetationPatchConfig::ceilingPatch(
+            "minecraft:moss_replaceable",
+            VanillaBlocks::getState(VanillaBlocks::MOSS_BLOCK),
+            LushCaveFeatureIds::CaveVineInMoss,
+            std::make_unique<valueprovider::UniformInt>(1, 2),
+            0.0f,
+            5,
+            0.08f,
+            std::make_unique<valueprovider::UniformInt>(4, 7),
+            0.3f));
+
+    auto heightPlacement = std::make_unique<HeightRangePlacement>();
+    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(-64, 0, 320);
+    auto heightConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(heightPlacement), std::move(heightConfig));
+
+    auto squarePlacement = std::make_unique<SquarePlacement>();
+    auto squareConfig = std::make_unique<EmptyPlacementConfig>();
+    auto squareConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(squarePlacement), std::move(squareConfig));
+    squareConfigured->setNext(std::move(heightConfigured));
+
+    auto countPlacement = std::make_unique<CountPlacement>();
+    auto countConfig = std::make_unique<CountPlacementConfig>(125);
+    auto countConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(countPlacement), std::move(countConfig));
+    countConfigured->setNext(std::move(squareConfigured));
+
+    return std::make_unique<cave::ConfiguredVegetationPatchFeature>(
+        std::move(config), std::move(countConfigured), "lush_caves_ceiling_vegetation");
+}
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createCaveVines()
+{
+    // 洞穴藤蔓 - BlockColumnFeature, DOWN
+    auto config = std::make_unique<BlockColumnConfig>();
+    config->direction = Direction::Down;
+    config->prioritizeTip = true;
+
+    // body层 - 高度0~19
+    auto bodyHeight = std::make_unique<valueprovider::UniformInt>(0, 19);
+    config->layers.push_back(BlockColumnLayer(
+        std::move(bodyHeight),
+        VanillaBlocks::getState(VanillaBlocks::CAVE_VINES_PLANT)));
+
+    // tip层 - 高度1
+    auto tipHeight = std::make_unique<valueprovider::ConstantInt>(1);
+    config->layers.push_back(BlockColumnLayer(
+        std::move(tipHeight),
+        VanillaBlocks::getState(VanillaBlocks::CAVE_VINES)));
+
+    config->allowedPlacement = std::make_unique<predicate::OnlyInAirPredicate>();
+
+    auto heightPlacement = std::make_unique<HeightRangePlacement>();
+    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(-64, 0, 320);
+    auto heightConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(heightPlacement), std::move(heightConfig));
+
+    auto squarePlacement = std::make_unique<SquarePlacement>();
+    auto squareConfig = std::make_unique<EmptyPlacementConfig>();
+    auto squareConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(squarePlacement), std::move(squareConfig));
+    squareConfigured->setNext(std::move(heightConfigured));
+
+    auto countPlacement = std::make_unique<CountPlacement>();
+    auto countConfig = std::make_unique<CountPlacementConfig>(188);
+    auto countConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(countPlacement), std::move(countConfig));
+    countConfigured->setNext(std::move(squareConfigured));
+
+    return std::make_unique<cave::ConfiguredBlockColumnFeature>(
+        std::move(config), std::move(countConfigured), "cave_vines");
+}
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createLushCavesClay()
+{
+    // 黏土池 - RandomBooleanSelectorFeature
+    auto config = std::make_unique<RandomBooleanFeatureConfig>(
+        LushCaveFeatureIds::ClayWithDripleaves,
+        LushCaveFeatureIds::ClayPoolWithDripleaves);
+
+    auto heightPlacement = std::make_unique<HeightRangePlacement>();
+    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(-64, 0, 320);
+    auto heightConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(heightPlacement), std::move(heightConfig));
+
+    auto squarePlacement = std::make_unique<SquarePlacement>();
+    auto squareConfig = std::make_unique<EmptyPlacementConfig>();
+    auto squareConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(squarePlacement), std::move(squareConfig));
+    squareConfigured->setNext(std::move(heightConfigured));
+
+    auto countPlacement = std::make_unique<CountPlacement>();
+    auto countConfig = std::make_unique<CountPlacementConfig>(8);
+    auto countConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(countPlacement), std::move(countConfig));
+    countConfigured->setNext(std::move(squareConfigured));
+
+    return std::make_unique<cave::ConfiguredRandomBooleanSelectorFeature>(
+        std::move(config), std::move(countConfigured), "lush_caves_clay");
+}
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createRootedAzaleaTree()
+{
+    // 杜鹃树根系统 - RootSystemFeature
+    auto config = std::make_unique<RootSystemConfig>();
+    config->treeFeatureId = LushCaveFeatureIds::AzaleaTree;
+    config->requiredVerticalSpaceForTree = 3;
+    config->rootRadius = 3;
+    config->rootReplaceableTag = "minecraft:azalea_root_replaceable";
+    config->rootState = VanillaBlocks::getState(VanillaBlocks::ROOTED_DIRT);
+    config->rootPlacementAttempts = 20;
+    config->rootColumnMaxHeight = 100;
+    config->hangingRootRadius = 20;
+    config->hangingRootsVerticalSpan = 2;
+    config->hangingRootState = VanillaBlocks::getState(VanillaBlocks::HANGING_ROOTS);
+    config->hangingRootPlacementAttempts = 3;
+    config->allowedVerticalWaterForTree = 2;
+
+    auto heightPlacement = std::make_unique<HeightRangePlacement>();
+    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(-64, 0, 320);
+    auto heightConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(heightPlacement), std::move(heightConfig));
+
+    auto squarePlacement = std::make_unique<SquarePlacement>();
+    auto squareConfig = std::make_unique<EmptyPlacementConfig>();
+    auto squareConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(squarePlacement), std::move(squareConfig));
+    squareConfigured->setNext(std::move(heightConfigured));
+
+    auto countProvider = std::make_unique<valueprovider::UniformInt>(1, 2);
+    auto countPlacement = std::make_unique<CountPlacement>();
+    auto countConfig = std::make_unique<CountWithProviderConfig>(std::move(countProvider));
+    auto countConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(countPlacement), std::move(countConfig));
+    countConfigured->setNext(std::move(squareConfigured));
+
+    return std::make_unique<cave::ConfiguredRootSystemFeature>(
+        std::move(config), std::move(countConfigured), "rooted_azalea_tree");
+}
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createSporeBlossom()
+{
+    // 孢子花 - SimpleBlockFeature
+    auto config = std::make_unique<cave::SimpleBlockConfig>(
+        VanillaBlocks::getState(VanillaBlocks::SPORE_BLOSSOM));
+
+    auto heightPlacement = std::make_unique<HeightRangePlacement>();
+    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(-64, 0, 320);
+    auto heightConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(heightPlacement), std::move(heightConfig));
+
+    auto squarePlacement = std::make_unique<SquarePlacement>();
+    auto squareConfig = std::make_unique<EmptyPlacementConfig>();
+    auto squareConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(squarePlacement), std::move(squareConfig));
+    squareConfigured->setNext(std::move(heightConfigured));
+
+    auto countPlacement = std::make_unique<CountPlacement>();
+    auto countConfig = std::make_unique<CountPlacementConfig>(25);
+    auto countConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(countPlacement), std::move(countConfig));
+    countConfigured->setNext(std::move(squareConfigured));
+
+    return std::make_unique<cave::ConfiguredSimpleBlockFeature>(
+        std::move(config), std::move(countConfigured), "spore_blossom");
+}
+
+std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createClassicVines()
+{
+    // 经典藤蔓 - SimpleBlockFeature
+    const BlockState* vineState = VanillaBlocks::getState(VanillaBlocks::VINE);
+    auto config = std::make_unique<cave::SimpleBlockConfig>(vineState);
+
+    auto heightPlacement = std::make_unique<HeightRangePlacement>();
+    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(-64, 0, 320);
+    auto heightConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(heightPlacement), std::move(heightConfig));
+
+    auto squarePlacement = std::make_unique<SquarePlacement>();
+    auto squareConfig = std::make_unique<EmptyPlacementConfig>();
+    auto squareConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(squarePlacement), std::move(squareConfig));
+    squareConfigured->setNext(std::move(heightConfigured));
+
+    auto countPlacement = std::make_unique<CountPlacement>();
+    auto countConfig = std::make_unique<CountPlacementConfig>(256);
+    auto countConfigured = std::make_unique<ConfiguredPlacement>(
+        std::move(countPlacement), std::move(countConfig));
+    countConfigured->setNext(std::move(squareConfigured));
+
+    return std::make_unique<cave::ConfiguredSimpleBlockFeature>(
+        std::move(config), std::move(countConfigured), "classic_vines");
+}
+
+// ============================================================================
+// 初始化
+// ============================================================================
+
+void LushCavesFeatures::initialize()
+{
+    s_features.clear();
+
+    // 注册顺序必须与 FeatureIds.hpp 中 LushCaveFeatureIds 一致
+    // Offset + 0: MossVegetation
+    s_features.push_back(createMossVegetation());
+    // Offset + 1: CaveVineInMoss
+    s_features.push_back(createCaveVineInMoss());
+    // Offset + 2: ClayWithDripleaves
+    s_features.push_back(createClayWithDripleaves());
+    // Offset + 3: ClayPoolWithDripleaves
+    s_features.push_back(createClayPoolWithDripleaves());
+    // Offset + 4: Dripleaf
+    s_features.push_back(createDripleaf());
+    // Offset + 5: SmallDripleaf
+    s_features.push_back(createSmallDripleaf());
+    // Offset + 6: BigDripleafNorth
+    s_features.push_back(createBigDripleafNorth());
+    // Offset + 7: BigDripleafSouth
+    s_features.push_back(createBigDripleafSouth());
+    // Offset + 8: BigDripleafWest
+    s_features.push_back(createBigDripleafWest());
+    // Offset + 9: BigDripleafEast
+    s_features.push_back(createBigDripleafEast());
+    // Offset + 10: AzaleaTree
+    s_features.push_back(createAzaleaTree());
+    // Offset + 11: SporeBlossom
+    s_features.push_back(createSporeBlossom());
+    // Offset + 12: ClassicVines
+    s_features.push_back(createClassicVines());
+    // Offset + 13: LushCavesVegetation (主特征)
+    s_features.push_back(createLushCavesVegetation());
+    // Offset + 14: LushCavesCeilingVegetation (主特征)
+    s_features.push_back(createLushCavesCeilingVegetation());
+    // Offset + 15: CaveVines (主特征)
+    s_features.push_back(createCaveVines());
+    // Offset + 16: LushCavesClay (主特征)
+    s_features.push_back(createLushCavesClay());
+    // Offset + 17: RootedAzaleaTree (主特征)
+    s_features.push_back(createRootedAzaleaTree());
+}
+
+std::vector<std::unique_ptr<ConfiguredFeatureBase>> LushCavesFeatures::getAllFeaturesAndClear()
+{
+    return std::move(s_features);
+}
+
+} // namespace mc

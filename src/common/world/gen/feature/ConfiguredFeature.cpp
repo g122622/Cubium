@@ -27,6 +27,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/cave/LushCavesFeatures.hpp"
 #include "common/world/gen/feature/gateway/EndGatewayFeature.hpp"
 #include "common/world/gen/feature/lake/LakeFeature.hpp"
 #include "common/world/gen/feature/nether/NetherFeatures.hpp"
@@ -228,6 +229,15 @@ void FeatureRegistry::initialize()
     // 注册下界植被特征（VegetalDecoration 阶段）
     auto netherVegetationFeatures = NetherFeatureRegistry::getAllVegetationFeaturesAndClear();
     for (auto& feature : netherVegetationFeatures) {
+        if (feature) {
+            registerFeature(std::move(feature), DecorationStage::VegetalDecoration);
+        }
+    }
+
+    // 注册繁茂洞穴特征（VegetalDecoration 阶段）
+    LushCavesFeatures::initialize();
+    auto lushCaveFeatures = LushCavesFeatures::getAllFeaturesAndClear();
+    for (auto& feature : lushCaveFeatures) {
         if (feature) {
             registerFeature(std::move(feature), DecorationStage::VegetalDecoration);
         }

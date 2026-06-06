@@ -392,6 +392,24 @@ BlockTag& BlockTags::MOSS_REPLACEABLE()
     return *tag;
 }
 
+BlockTag& BlockTags::LUSH_GROUND_REPLACEABLE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "lush_ground_replaceable"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::AZALEA_ROOT_REPLACEABLE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "azalea_root_replaceable"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::COPPER()
 {
     static BlockTag* tag = nullptr;
@@ -1151,6 +1169,76 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "mycelium"),
         ResourceLocation("minecraft", "farmland")});
     tags[mossReplaceable->getId()] = std::move(mossReplaceable);
+
+    // 繁茂洞穴地面可替换方块（黏土特征替换）
+    // 参考: net.minecraft.tags.BlockTags.LUSH_GROUND_REPLACEABLE
+    auto lushGroundReplaceable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "lush_ground_replaceable"));
+    lushGroundReplaceable->addAll({// 基础石头类
+        ResourceLocation("minecraft", "stone"),
+        ResourceLocation("minecraft", "granite"),
+        ResourceLocation("minecraft", "diorite"),
+        ResourceLocation("minecraft", "andesite"),
+        ResourceLocation("minecraft", "tuff"),
+        ResourceLocation("minecraft", "deepslate"),
+        // 泥土类
+        ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "podzol"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "mycelium"),
+        ResourceLocation("minecraft", "farmland"),
+        // 沙砾和沙子
+        ResourceLocation("minecraft", "gravel"),
+        ResourceLocation("minecraft", "sand"),
+        // 黏土
+        ResourceLocation("minecraft", "clay"),
+        // 苔藓
+        ResourceLocation("minecraft", "moss_block")});
+    tags[lushGroundReplaceable->getId()] = std::move(lushGroundReplaceable);
+
+    // 杜鹃根系可替换方块
+    // 参考: net.minecraft.tags.BlockTags.AZALEA_ROOT_REPLACEABLE
+    auto azaleaRootReplaceable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "azalea_root_replaceable"));
+    azaleaRootReplaceable->addAll({// 基础石头类
+        ResourceLocation("minecraft", "stone"),
+        ResourceLocation("minecraft", "granite"),
+        ResourceLocation("minecraft", "diorite"),
+        ResourceLocation("minecraft", "andesite"),
+        ResourceLocation("minecraft", "tuff"),
+        ResourceLocation("minecraft", "deepslate"),
+        // 泥土类
+        ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "podzol"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "mycelium"),
+        // 沙砾和沙子
+        ResourceLocation("minecraft", "gravel"),
+        ResourceLocation("minecraft", "sand"),
+        // 黏土
+        ResourceLocation("minecraft", "clay"),
+        // 苔藓
+        ResourceLocation("minecraft", "moss_block"),
+        // 基岩（不能替换）
+        // 矿石类
+        ResourceLocation("minecraft", "coal_ore"),
+        ResourceLocation("minecraft", "iron_ore"),
+        ResourceLocation("minecraft", "gold_ore"),
+        ResourceLocation("minecraft", "diamond_ore"),
+        ResourceLocation("minecraft", "lapis_ore"),
+        ResourceLocation("minecraft", "redstone_ore"),
+        ResourceLocation("minecraft", "copper_ore"),
+        ResourceLocation("minecraft", "emerald_ore"),
+        // 深板岩矿石
+        ResourceLocation("minecraft", "deepslate_coal_ore"),
+        ResourceLocation("minecraft", "deepslate_iron_ore"),
+        ResourceLocation("minecraft", "deepslate_gold_ore"),
+        ResourceLocation("minecraft", "deepslate_diamond_ore"),
+        ResourceLocation("minecraft", "deepslate_lapis_ore"),
+        ResourceLocation("minecraft", "deepslate_redstone_ore"),
+        ResourceLocation("minecraft", "deepslate_copper_ore"),
+        ResourceLocation("minecraft", "deepslate_emerald_ore")});
+    tags[azaleaRootReplaceable->getId()] = std::move(azaleaRootReplaceable);
 
     // 铜块标签（所有铜质方块）
     auto copper = std::make_unique<BlockTag>(ResourceLocation("minecraft", "copper"));

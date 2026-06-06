@@ -242,6 +242,12 @@ public:
     /// 苔藓可替换方块标签
     static BlockTag& MOSS_REPLACEABLE();
 
+    /// 繁茂洞穴地面可替换方块标签（黏土、石头、沙砾、泥土等）
+    static BlockTag& LUSH_GROUND_REPLACEABLE();
+
+    /// 杜鹃根系可替换方块标签（泥土、石头、沙砾等）
+    static BlockTag& AZALEA_ROOT_REPLACEABLE();
+
     /// 铜块标签（所有铜质方块，含氧化和涂蜡变种）
     static BlockTag& COPPER();
 

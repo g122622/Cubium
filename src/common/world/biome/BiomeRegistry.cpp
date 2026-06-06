@@ -2006,7 +2006,7 @@ Biome createLushCaves()
             .waterFogColor(0x050533)
             .skyColor(0x78A7FF)
             .build());
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings::createLushCaves());
     return biome;
 }
 

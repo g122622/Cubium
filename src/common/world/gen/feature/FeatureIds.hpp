@@ -282,6 +282,40 @@ constexpr u32 Count = 3;                  // 下界真菌特征总数
 } // namespace NetherFungusIds
 
 // ============================================================================
+// 繁茂洞穴特征ID (VegetalDecoration阶段)
+// ============================================================================
+
+namespace LushCaveFeatureIds {
+// 繁茂洞穴特征（紧接下界真菌之后）
+// 注意：ID顺序必须与 LushCavesFeatures::initialize() 中注册顺序一致
+constexpr u32 Offset = NetherFungusIds::Offset + NetherFungusIds::Count;
+
+// 子特征（被主特征引用）
+constexpr u32 MossVegetation = 0 + Offset;            // 苔藓植被（SimpleBlockFeature）
+constexpr u32 CaveVineInMoss = 1 + Offset;            // 苔藓中的洞穴藤蔓
+constexpr u32 ClayWithDripleaves = 2 + Offset;        // 干黏土配垂滴叶
+constexpr u32 ClayPoolWithDripleaves = 3 + Offset;    // 水黏土池配垂滴叶
+constexpr u32 Dripleaf = 4 + Offset;                  // 垂滴叶选择器
+constexpr u32 SmallDripleaf = 5 + Offset;             // 小型垂滴叶
+constexpr u32 BigDripleafNorth = 6 + Offset;          // 大型垂滴叶（北）
+constexpr u32 BigDripleafSouth = 7 + Offset;          // 大型垂滴叶（南）
+constexpr u32 BigDripleafWest = 8 + Offset;           // 大型垂滴叶（西）
+constexpr u32 BigDripleafEast = 9 + Offset;           // 大型垂滴叶（东）
+constexpr u32 AzaleaTree = 10 + Offset;               // 杜鹃树
+constexpr u32 SporeBlossom = 11 + Offset;             // 孢子花
+constexpr u32 ClassicVines = 12 + Offset;             // 经典藤蔓
+
+// 主特征（直接添加到群系生成设置）
+constexpr u32 LushCavesVegetation = 13 + Offset;      // 苔藓地面贴片
+constexpr u32 LushCavesCeilingVegetation = 14 + Offset; // 苔藓天花板贴片
+constexpr u32 CaveVines = 15 + Offset;                // 洞穴藤蔓
+constexpr u32 LushCavesClay = 16 + Offset;            // 黏土池
+constexpr u32 RootedAzaleaTree = 17 + Offset;         // 杜鹃树根系统
+
+constexpr u32 Count = 18; // 繁茂洞穴特征总数
+} // namespace LushCaveFeatureIds
+
+// ============================================================================
 // 海洋特征总数
 // ============================================================================
 

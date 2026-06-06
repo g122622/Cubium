@@ -634,6 +634,28 @@ BiomeGenerationSettings BiomeGenerationSettings::createBasaltDeltas()
 }
 
 // ============================================================================
+// 洞穴生物群系生成设置
+// ============================================================================
+
+BiomeGenerationSettings BiomeGenerationSettings::createLushCaves()
+{
+    // 繁茂洞穴：矿石 + 苔藓 + 洞穴藤蔓 + 孢子花 + 黏土池 + 垂滴叶 + 杜鹃树 + 藤蔓
+    BiomeGenerationSettings settings = createDefault();
+
+    // VegetalDecoration阶段 - 繁茂洞穴特有特征
+    // 注意：特征ID是全局ID，包含之前所有特征组的偏移量
+    settings.addFeature(DecorationStage::VegetalDecoration, LushCaveFeatureIds::LushCavesCeilingVegetation);
+    settings.addFeature(DecorationStage::VegetalDecoration, LushCaveFeatureIds::CaveVines);
+    settings.addFeature(DecorationStage::VegetalDecoration, LushCaveFeatureIds::LushCavesClay);
+    settings.addFeature(DecorationStage::VegetalDecoration, LushCaveFeatureIds::LushCavesVegetation);
+    settings.addFeature(DecorationStage::VegetalDecoration, LushCaveFeatureIds::RootedAzaleaTree);
+    settings.addFeature(DecorationStage::VegetalDecoration, LushCaveFeatureIds::SporeBlossom);
+    settings.addFeature(DecorationStage::VegetalDecoration, LushCaveFeatureIds::ClassicVines);
+
+    return settings;
+}
+
+// ============================================================================
 // 末地生物群系生成设置
 // ============================================================================
 
