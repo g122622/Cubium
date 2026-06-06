@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
         auto initResult = client.initialize(params);
         if (initResult.failed()) {
             spdlog::error("Failed to initialize client: {}", initResult.error().toString());
-            return 1;
+            goto HANDLE_ERROR;
         }
 
         if (params.benchmarkExitAfterInitialize) {
@@ -162,7 +162,7 @@ int main(int argc, char* argv[])
         auto runResult = client.run();
         if (runResult.failed()) {
             spdlog::error("Client error: {}", runResult.error().toString());
-            return 1;
+            goto HANDLE_ERROR;
         }
 
         spdlog::info("Client exited successfully");
@@ -170,12 +170,14 @@ int main(int argc, char* argv[])
     }
     catch (const std::exception& e) {
         spdlog::critical("Fatal error: {}", e.what());
-
-        auto& perfettoManager = mc::perfetto::PerfettoManager::instance();
-        perfettoManager.stopTracing();
-        perfettoManager.shutdown();
-        std::cout << "Perfetto tracing stopped due to runtime exception!" << std::endl;
-
-        return 1;
+        goto HANDLE_ERROR;
     }
+
+HANDLE_ERROR:
+    auto& perfettoManager = mc::perfetto::PerfettoManager::instance();
+    perfettoManager.stopTracing();
+    perfettoManager.shutdown();
+    std::cout << "Perfetto tracing stopped due to runtime exception!" << std::endl;
+
+    return 1;
 }
