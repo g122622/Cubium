@@ -25,6 +25,8 @@
 
 #include "common/perfetto/TraceEvents.hpp"
 
+#include <spdlog/spdlog.h>
+
 namespace mc {
 
 bool VanillaBlocks::s_initialized = false;
@@ -129,7 +131,12 @@ void VanillaBlocks::initialize()
     }
 
     // 初始化方块标签（必须在所有方块注册后）
-    BlockTags::initialize();
+    {
+        MC_TRACE_EVENT("client.initialization", "InitializeBlockTags");
+        spdlog::info("[VanillaBlocks] Initializing block tags...");
+        BlockTags::initialize();
+        spdlog::info("[VanillaBlocks] Block tags initialized");
+    }
 
     s_initialized = true;
 }
