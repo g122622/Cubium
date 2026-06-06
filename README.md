@@ -1,6 +1,6 @@
 # Cubium
 
-现代 Minecraft 克隆，使用 C++20 和 Vulkan 渲染，采用客户端-服务端架构。
+现代 Minecraft 第三方完整实现，使用 C++20 和 Vulkan 渲染，采用客户端-服务端架构。
 
 一个idea：多world并行
 
