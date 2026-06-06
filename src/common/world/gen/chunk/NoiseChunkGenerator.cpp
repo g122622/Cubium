@@ -33,6 +33,7 @@
 #include "../aquifer/Aquifer.hpp"
 #include "../carver/CarvingContext.hpp"
 #include "../carver/UnderwaterCarver.hpp"
+#include "../density/Beardifier.hpp"
 #include "../density/NoiseRouterData.hpp"
 #include "../feature/ConfiguredFeature.hpp"
 #include "../feature/ore/OreFeature.hpp"
@@ -47,6 +48,7 @@
 #include <algorithm>
 #include <cmath>
 #include <mutex>
+#include <unordered_set>
 
 namespace mc {
 
@@ -345,31 +347,28 @@ void NoiseChunkGenerator::_initDensityFunctionPipeline()
 {
     MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initDensityFunctionPipeline");
 
-    // 根据 BiomeSource 类型选择合适的 NoiseRouter 配置
-    // 当 BiomeSource 是 MultiNoiseBiomeSource 时使用 MC 1.21 管线
-    // 暂时为所有维度创建对应的 NoiseRouter
-    const bool isNether = (m_settings.seaLevel == 0 && m_settings.defaultFluid != nullptr &&
-        m_settings.defaultFluid->isLiquid() && m_settings.defaultFluid->blockId() != 0 && m_settings.bedrockFloor > 0);
-
-    const bool isEnd = (m_settings.noise.height == 128 && m_settings.bedrockFloor == 0 && m_settings.bedrockRoof < 0);
-
-    if (isEnd) {
-        m_router =
-            std::make_unique<world::gen::density::NoiseRouter>(world::gen::density::NoiseRouterData::end(m_seed));
-        m_cellWidth = 8;
-        m_cellHeight = 4;
-    } else if (isNether) {
-        m_router =
-            std::make_unique<world::gen::density::NoiseRouter>(world::gen::density::NoiseRouterData::nether(m_seed));
-        m_cellWidth = 8;
-        m_cellHeight = 4;
-    } else {
-        // 主世界
-        const bool largeBiomes = false; // TODO: 从 BiomeSource 获取
-        m_router = std::make_unique<world::gen::density::NoiseRouter>(
-            world::gen::density::NoiseRouterData::overworld(m_seed, largeBiomes));
-        m_cellWidth = 4;
-        m_cellHeight = 8;
+    switch (m_settings.dimensionKind) {
+        case DimensionKind::End:
+            m_router =
+                std::make_unique<world::gen::density::NoiseRouter>(world::gen::density::NoiseRouterData::end(m_seed));
+            m_cellWidth = 8;
+            m_cellHeight = 4;
+            break;
+        case DimensionKind::Nether:
+            m_router = std::make_unique<world::gen::density::NoiseRouter>(
+                world::gen::density::NoiseRouterData::nether(m_seed));
+            m_cellWidth = 8;
+            m_cellHeight = 4;
+            break;
+        case DimensionKind::Overworld:
+        default: {
+            const bool largeBiomes = false; // TODO: 从 BiomeSource 获取
+            m_router = std::make_unique<world::gen::density::NoiseRouter>(
+                world::gen::density::NoiseRouterData::overworld(m_seed, largeBiomes));
+            m_cellWidth = 4;
+            m_cellHeight = 8;
+            break;
+        }
     }
 
     // 启用密度函数管线
@@ -377,12 +376,17 @@ void NoiseChunkGenerator::_initDensityFunctionPipeline()
 
     // 创建 MC 1.21 SurfaceSystem
     std::unique_ptr<world::gen::surface::SurfaceRule> surfaceRule;
-    if (isEnd) {
-        surfaceRule = world::gen::surface::SurfaceRules::end();
-    } else if (isNether) {
-        surfaceRule = world::gen::surface::SurfaceRules::nether(m_seed);
-    } else {
-        surfaceRule = world::gen::surface::SurfaceRules::overworld(m_seed);
+    switch (m_settings.dimensionKind) {
+        case DimensionKind::End:
+            surfaceRule = world::gen::surface::SurfaceRules::end();
+            break;
+        case DimensionKind::Nether:
+            surfaceRule = world::gen::surface::SurfaceRules::nether(m_seed);
+            break;
+        case DimensionKind::Overworld:
+        default:
+            surfaceRule = world::gen::surface::SurfaceRules::overworld(m_seed);
+            break;
     }
 
     if (surfaceRule) {
@@ -390,8 +394,8 @@ void NoiseChunkGenerator::_initDensityFunctionPipeline()
             m_settings.defaultBlock,
             m_settings.defaultFluid,
             m_settings.seaLevel,
-            world::MIN_BUILD_HEIGHT,
-            world::MAX_BUILD_HEIGHT - world::MIN_BUILD_HEIGHT,
+            m_settings.noise.minY,
+            m_settings.noise.height,
             m_seed);
     }
 }
@@ -995,9 +999,9 @@ void NoiseChunkGenerator::_buildSurfaceForColumn(
     const i32 surfaceDepth = static_cast<i32>(surfaceNoise / 3.0f + 3.0f + random.nextDouble() * 0.25f);
 
     i32 currentDepth = -1;
-    const i32 clampedStartHeight = std::min(startHeight, m_settings.noise.height - 1);
+    const i32 clampedStartHeight = std::min(startHeight, m_settings.noise.minY + m_settings.noise.height - 1);
 
-    for (i32 y = clampedStartHeight; y >= world::MIN_BUILD_HEIGHT; --y) {
+    for (i32 y = clampedStartHeight; y >= m_settings.noise.minY; --y) {
         const BlockState* state = chunk.getBlockState(x, y, z);
 
         if (state == nullptr || state->isAir()) {
@@ -1077,12 +1081,13 @@ void NoiseChunkGenerator::_applyBedrock(ChunkPrimer& chunk, math::Random& random
         return;
     }
 
+    const i32 minY = m_settings.noise.minY;
     const i32 noiseHeight = m_settings.noise.height;
     const i32 floorAnchor = m_settings.bedrockFloor;
     const i32 roofAnchor = m_settings.bedrockRoof;
 
-    const bool hasFloor = floorAnchor + 4 >= world::MIN_BUILD_HEIGHT && floorAnchor < noiseHeight;
-    const bool hasRoof = roofAnchor + 4 >= world::MIN_BUILD_HEIGHT && roofAnchor < noiseHeight;
+    const bool hasFloor = floorAnchor + 4 >= minY && floorAnchor < minY + noiseHeight;
+    const bool hasRoof = roofAnchor + 4 >= minY && roofAnchor < minY + noiseHeight;
     if (!hasFloor && !hasRoof) {
         return;
     }
@@ -1093,7 +1098,7 @@ void NoiseChunkGenerator::_applyBedrock(ChunkPrimer& chunk, math::Random& random
                 for (i32 offset = 0; offset < 5; ++offset) {
                     if (offset <= random.nextInt(5)) {
                         const i32 y = floorAnchor + offset;
-                        if (y >= world::MIN_BUILD_HEIGHT && y < noiseHeight) {
+                        if (y >= minY && y < minY + noiseHeight) {
                             chunk.setBlockState(localX, y, localZ, bedrockState);
                         }
                     }
@@ -1104,7 +1109,7 @@ void NoiseChunkGenerator::_applyBedrock(ChunkPrimer& chunk, math::Random& random
                 for (i32 offset = 0; offset < 5; ++offset) {
                     if (offset <= random.nextInt(5)) {
                         const i32 y = roofAnchor - offset;
-                        if (y >= world::MIN_BUILD_HEIGHT && y < noiseHeight) {
+                        if (y >= minY && y < minY + noiseHeight) {
                             chunk.setBlockState(localX, y, localZ, bedrockState);
                         }
                     }
@@ -1127,11 +1132,12 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
     // MC原版：AIR 和 LIQUID 两个雕刻阶段共享同一个 CarvingMask
     CarvingMask& carvingMask = chunk.carvingMask();
 
-    // MC 1.21: 创建雕刻上下文
-    // 含水层集成：当 ChunkPrimer 存储了 NoiseChunk 引用时，可从中获取 Aquifer
-    // 目前含水层在噪声生成期间创建但尚未持久化到 ChunkPrimer，传入 nullptr 使用回退逻辑
-    // 回退逻辑：Y < getLavaLevel() 填充熔岩，否则填充 CAVE_AIR
-    CarvingContext context(world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT, nullptr);
+    // MC 1.21: 从 ChunkPrimer 缓存的 NoiseChunk 获取 Aquifer
+    world::gen::aquifer::Aquifer* aquifer = nullptr;
+    if (chunk.hasNoiseChunk()) {
+        aquifer = chunk.noiseChunk()->aquifer();
+    }
+    CarvingContext context(m_settings.noise.minY, m_settings.noise.height, aquifer);
 
     if (!isLiquid) {
         // 空气雕刻阶段：洞穴和峡谷
@@ -1194,14 +1200,53 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
     }
 
     // === 阶段 2: 放置生物群系特征 ===
-    // 获取区块中心位置的主要生物群系
-    const BiomeId biomeId = chunk.getBiomeAtBlock(8, 64, 8);
-    const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
-    const BiomeGenerationSettings& biomeSettings = biome.generationSettings();
+    // MC 1.21: 收集区块内所有生物群系的特征（非仅中心生物群系）
+    // 遍历区块 4x4x4 采样网格中的所有生物群系，去重后放置特征
+    std::unordered_set<BiomeId> chunkBiomes;
+    for (i32 y = 0; y < 24; ++y) {
+        for (i32 z = 0; z < 4; ++z) {
+            for (i32 x = 0; x < 4; ++x) {
+                chunkBiomes.insert(chunk.getBiomeAtBlock(x * 4, y * 4, z * 4));
+            }
+        }
+    }
 
     // 按装饰阶段顺序放置特征
     for (DecorationStage stage : DecorationStages::getAll()) {
-        BiomeFeaturePlacer::placeFeaturesForStage(region, chunk, *this, biomeSettings, stage, m_seed);
+        i32 featureIndex = 0;
+        for (BiomeId biomeId : chunkBiomes) {
+            const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
+            const BiomeGenerationSettings& biomeSettings = biome.generationSettings();
+            const auto& featureIds = biomeSettings.getFeatures(stage);
+            if (featureIds.empty()) {
+                continue;
+            }
+
+            // 使用区块中心位置 + 特征索引设置种子（MC: setFeatureSeed）
+            const i32 startX = chunkX * world::CHUNK_WIDTH;
+            const i32 startZ = chunkZ * world::CHUNK_WIDTH;
+            const BlockPos chunkOrigin(startX, 0, startZ);
+
+            FeatureRegistry& registry = FeatureRegistry::instance();
+            const auto& allFeatures = registry.getFeatures(stage);
+
+            for (u32 fid : featureIds) {
+                if (fid < allFeatures.size() && allFeatures[fid]) {
+                    // setDecorationSeed + setFeatureSeed 算法
+                    math::Random decorRng(m_seed);
+                    const u64 i = decorRng.nextLong() | 1ULL;
+                    const u64 j = decorRng.nextLong() | 1ULL;
+                    const u64 decorSeed = (static_cast<u64>(startX) * i + static_cast<u64>(startZ) * j) ^ m_seed;
+                    const i32 stageOrdinal = static_cast<i32>(stage);
+                    const u64 featureSeed =
+                        decorSeed + static_cast<u64>(featureIndex) + static_cast<u64>(10000 * stageOrdinal);
+                    decorRng.setSeed(featureSeed);
+
+                    allFeatures[fid]->place(region, chunk, *this, decorRng, chunkOrigin);
+                    featureIndex++;
+                }
+            }
+        }
     }
 
     chunk.setChunkStatus(ChunkStatuses::FEATURES);
@@ -1213,7 +1258,7 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
 
 BiomeId NoiseChunkGenerator::getBiome(i32 x, i32 y, i32 z) const
 {
-    return m_biomeSource->getNoiseBiome(x >> 2, y >> 2, z >> 2);
+    return m_biomeSource->getNoiseBiome(math::floorDiv(x, 4), math::floorDiv(y, 4), math::floorDiv(z, 4));
 }
 
 BiomeId NoiseChunkGenerator::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const
@@ -1225,8 +1270,10 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
 {
     // MC 1.21: 使用密度函数管线采样高度
     if (m_useDensityFunctionPipeline && m_router) {
+        const i32 minY = m_settings.noise.minY;
+        const i32 maxY = m_settings.noise.minY + m_settings.noise.height;
         // 逐列采样密度函数，从上到下找到第一个实体方块
-        for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
+        for (i32 y = maxY - 1; y >= minY; --y) {
             const f64 density = m_router->finalDensity().compute(x, y, z);
             const BlockState* blockState = _getBlockForDensity(static_cast<f32>(density), y);
 
@@ -1258,7 +1305,7 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
                 return y + 1;
             }
         }
-        return world::MIN_BUILD_HEIGHT;
+        return m_settings.noise.minY;
     }
 
     // MC 1.16.5 回退管线
@@ -1320,7 +1367,7 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
         }
     };
 
-    for (i32 worldY = noise.height - 1; worldY >= world::MIN_BUILD_HEIGHT; --worldY) {
+    for (i32 worldY = noise.height - 1; worldY >= noise.minY; --worldY) {
         const i32 noiseY = worldY / vGranularity;
         const i32 localY = worldY % vGranularity;
 
@@ -1385,43 +1432,45 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
     const i32 startX = chunkX * world::CHUNK_WIDTH;
     const i32 startZ = chunkZ * world::CHUNK_WIDTH;
 
-    // MC 1.21: 创建 NoiseChunk
-    const i32 startBlockY = world::MIN_BUILD_HEIGHT;
-    world::gen::density::NoiseChunk noiseChunk(*m_router, m_cellWidth, m_cellHeight, startX, startBlockY, startZ);
+    // MC 1.21: 通过 ChunkPrimer 缓存 NoiseChunk，确保 biomes/noise/surface/carvers 阶段共享
+    const i32 startBlockY = m_settings.noise.minY;
+    const i32 cellCountY = math::floorDiv(m_settings.noise.height, m_cellHeight);
+    auto& noiseChunk = chunk.getOrCreateNoiseChunk([&]() {
+        auto nc = std::make_unique<world::gen::density::NoiseChunk>(
+            *m_router, m_cellWidth, m_cellHeight, cellCountY, startX, startBlockY, startZ);
 
-    // MC 1.21: 创建含水层采样器
-    {
-        // 从世界种子创建位置随机工厂
-        math::Random seedRng(m_seed);
-        auto xoroshioRng = std::make_unique<math::Xoroshiro128ppRandom>(
-            static_cast<u64>(seedRng.nextLong()), static_cast<u64>(seedRng.nextLong()));
-        auto positionalRandom = xoroshioRng->forkPositional();
+        // MC 1.21: 创建含水层采样器
+        {
+            math::Random seedRng(m_seed);
+            auto xoroshioRng = std::make_unique<math::Xoroshiro128ppRandom>(
+                static_cast<u64>(seedRng.nextLong()), static_cast<u64>(seedRng.nextLong()));
+            auto positionalRandom = xoroshioRng->forkPositional();
 
-        if (m_settings.noise.aquifersEnabled) {
-            auto fluidPicker =
-                world::gen::aquifer::createOverworldFluidPicker(m_settings.seaLevel, m_settings.defaultFluid);
+            if (m_settings.noise.aquifersEnabled) {
+                auto fluidPicker =
+                    world::gen::aquifer::createOverworldFluidPicker(m_settings.seaLevel, m_settings.defaultFluid);
 
-            auto aquifer = world::gen::aquifer::Aquifer::createNoiseBased(noiseChunk,
-                chunkX,
-                chunkZ,
-                *m_router,
-                positionalRandom,
-                world::MIN_BUILD_HEIGHT,
-                world::CHUNK_HEIGHT,
-                std::move(fluidPicker));
+                auto aquifer = world::gen::aquifer::Aquifer::createNoiseBased(*nc,
+                    chunkX,
+                    chunkZ,
+                    *m_router,
+                    positionalRandom,
+                    m_settings.noise.minY,
+                    m_settings.noise.height,
+                    std::move(fluidPicker));
 
-            noiseChunk.setAquifer(std::move(aquifer));
-        } else {
-            auto fluidPicker =
-                world::gen::aquifer::createOverworldFluidPicker(m_settings.seaLevel, m_settings.defaultFluid);
-            noiseChunk.setAquifer(world::gen::aquifer::Aquifer::createDisabled(std::move(fluidPicker)));
+                nc->setAquifer(std::move(aquifer));
+            } else {
+                auto fluidPicker =
+                    world::gen::aquifer::createOverworldFluidPicker(m_settings.seaLevel, m_settings.defaultFluid);
+                nc->setAquifer(world::gen::aquifer::Aquifer::createDisabled(std::move(fluidPicker)));
+            }
         }
-    }
+        return nc;
+    });
 
-    // === 收集结构数据用于地形平滑 ===
-    std::vector<const world::gen::structure::StructurePiece*> structurePieces;
-    std::vector<world::gen::jigsaw::JigsawJunction> junctions;
-    _collectStructureData(chunk, structurePieces, junctions);
+    // MC 1.21: 构建 Beardifier 用于结构地形平滑
+    const auto beardifier = _buildBeardifier(chunk);
 
     auto* aquifer = noiseChunk.aquifer();
 
@@ -1454,7 +1503,8 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
                             noiseChunk.setBlockPos(blockX, blockY, blockZ);
                             noiseChunk.setInCellPos(inCellX, inCellY, inCellZ);
 
-                            const f64 density = noiseChunk.updateForZ(zLerp);
+                            const f64 rawDensity = noiseChunk.updateForZ(zLerp);
+                            const f64 density = rawDensity + beardifier.compute(blockX, blockY, blockZ);
                             const BlockState* blockState = nullptr;
                             if (aquifer != nullptr) {
                                 blockState = aquifer->computeSubstance(blockX, blockY, blockZ, density);
@@ -1538,6 +1588,63 @@ void NoiseChunkGenerator::_collectStructureData(ChunkPrimer& chunk,
             }
         }
     }
+}
+
+world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(ChunkPrimer& chunk) const
+{
+    MC_TRACE_EVENT("world.chunk_gen", "BuildBeardifier", "x", chunk.x(), "z", chunk.z());
+
+    std::vector<world::gen::density::Beardifier::Rigid> pieces;
+    std::vector<world::gen::jigsaw::JigsawJunction> junctions;
+
+    const ChunkCoord chunkX = chunk.x();
+    const ChunkCoord chunkZ = chunk.z();
+    const i32 startX = chunkX * world::CHUNK_WIDTH;
+    const i32 startZ = chunkZ * world::CHUNK_WIDTH;
+
+    for (const auto& [structureName, start] : chunk.structureStarts()) {
+        if (!start || !start->isValid()) {
+            continue;
+        }
+
+        // 获取结构的地形适配类型
+        const auto* structure = world::gen::structure::StructureRegistry::get(structureName);
+        const auto terrainAdaptation =
+            (structure != nullptr) ? structure->terrainAdaptation() : TerrainAdaptation::None;
+
+        for (const auto& piece : start->pieces()) {
+            if (!piece) {
+                continue;
+            }
+
+            // 检查片段是否在区块附近（Beardifier.BEARD_KERNEL_RADIUS = 12 格范围）
+            const auto& box = piece->getBoundingBox();
+            if (box.maxX() < startX - 12 || box.minX() > startX + world::CHUNK_WIDTH - 1 + 12 ||
+                box.maxZ() < startZ - 12 || box.minZ() > startZ + world::CHUNK_WIDTH - 1 + 12) {
+                continue;
+            }
+
+            // MC 1.21: 只有 TerrainAdaptation != None 的结构才影响地形
+            if (terrainAdaptation != TerrainAdaptation::None) {
+                pieces.push_back(
+                    world::gen::density::Beardifier::Rigid{box, terrainAdaptation, piece->getGroundLevelDelta()});
+            }
+
+            // 收集 JigsawJunction（仅 Jigsaw 片段）
+            if (piece->isJigsawPiece()) {
+                for (const auto& junction : piece->getJunctions()) {
+                    const i32 jx = junction.getSourceX();
+                    const i32 jz = junction.getSourceZ();
+                    if (jx > startX - 12 && jx < startX + world::CHUNK_WIDTH - 1 + 12 && jz > startZ - 12 &&
+                        jz < startZ + world::CHUNK_WIDTH - 1 + 12) {
+                        junctions.push_back(junction);
+                    }
+                }
+            }
+        }
+    }
+
+    return world::gen::density::Beardifier(std::move(pieces), std::move(junctions));
 }
 
 } // namespace mc

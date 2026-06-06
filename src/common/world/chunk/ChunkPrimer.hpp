@@ -30,9 +30,14 @@
 #include "common/world/gen/carver/CarvingMask.hpp"
 #include "common/world/gen/spawn/WorldGenSpawner.hpp"
 #include "common/world/gen/structure/Structure.hpp"
+#include <functional>
 #include <memory>
 #include <unordered_map>
 #include <vector>
+
+namespace mc::world::gen::density {
+class NoiseChunk;
+} // namespace mc::world::gen::density
 
 namespace mc {
 
@@ -72,7 +77,7 @@ public:
      */
     explicit ChunkPrimer(std::unique_ptr<ChunkData> data);
 
-    ~ChunkPrimer() override = default;
+    ~ChunkPrimer() override;
 
     // 禁止拷贝
     ChunkPrimer(const ChunkPrimer&) = delete;
@@ -275,6 +280,33 @@ public:
     [[nodiscard]] bool hasCarvingMask() const noexcept { return m_carvingMask != nullptr; }
 
     // ============================================================================
+    // NoiseChunk 缓存
+    // ============================================================================
+
+    /**
+     * @brief 获取或创建 NoiseChunk
+     *
+     * MC 1.21 中，NoiseChunk 在 biomes/noise/surface/carvers 阶段共享。
+     * 第一次调用时使用 factory 创建，后续调用返回缓存实例。
+     *
+     * @param factory 创建 NoiseChunk 的工厂函数
+     * @return NoiseChunk 引用
+     */
+    [[nodiscard]] world::gen::density::NoiseChunk& getOrCreateNoiseChunk(
+        std::function<std::unique_ptr<world::gen::density::NoiseChunk>()> factory);
+
+    /**
+     * @brief 获取 NoiseChunk（可能为 nullptr）
+     */
+    [[nodiscard]] world::gen::density::NoiseChunk* noiseChunk() noexcept { return m_noiseChunk.get(); }
+    [[nodiscard]] const world::gen::density::NoiseChunk* noiseChunk() const noexcept { return m_noiseChunk.get(); }
+
+    /**
+     * @brief 检查是否已有 NoiseChunk
+     */
+    [[nodiscard]] bool hasNoiseChunk() const noexcept { return m_noiseChunk != nullptr; }
+
+    // ============================================================================
     // 转换方法
     // ============================================================================
 
@@ -339,6 +371,9 @@ private:
 
     // 雕刻掩码（AIR 和 LIQUID 两个雕刻阶段共享）
     std::unique_ptr<CarvingMask> m_carvingMask;
+
+    // NoiseChunk 缓存（biomes/noise/surface/carvers 阶段共享）
+    std::unique_ptr<world::gen::density::NoiseChunk> m_noiseChunk;
 
     // 辅助方法
     [[nodiscard]] static bool _isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z) noexcept;

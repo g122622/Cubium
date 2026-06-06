@@ -29,12 +29,12 @@
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../feature/ConfiguredFeature.hpp"
 #include "../spawn/WorldGenSpawner.hpp"
 #include "../structure/Structure.hpp"
 #include "../structure/StructureManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cmath>
 #include <mutex>
@@ -255,7 +255,7 @@ i32 EndChunkGenerator::spawnInitialMobs(
 BiomeId EndChunkGenerator::getBiome(i32 x, i32 y, i32 z) const
 {
     if (m_biomeSource) {
-        return m_biomeSource->getNoiseBiome(x >> 2, y >> 2, z >> 2);
+        return m_biomeSource->getNoiseBiome(math::floorDiv(x, 4), math::floorDiv(y, 4), math::floorDiv(z, 4));
     }
     return m_defaultBiome;
 }

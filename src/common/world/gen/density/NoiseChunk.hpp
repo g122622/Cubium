@@ -248,12 +248,18 @@ public:
      * @param router 噪声路由器
      * @param cellWidth X/Z 方向 cell 宽度（方块数，通常 4 或 8）
      * @param cellHeight Y 方向 cell 高度（方块数，通常 8 或 4）
+     * @param cellCountY Y 方向 cell 数量（由 noiseHeight/cellHeight 计算得出）
      * @param startBlockX 区块起始 X 方块坐标
-     * @param startBlockY 区块起始 Y 方块坐标
+     * @param startBlockY 区块起始 Y 方块坐标（= noiseSettings.minY）
      * @param startBlockZ 区块起始 Z 方块坐标
      */
-    NoiseChunk(
-        const NoiseRouter& router, i32 cellWidth, i32 cellHeight, i32 startBlockX, i32 startBlockY, i32 startBlockZ);
+    NoiseChunk(const NoiseRouter& router,
+        i32 cellWidth,
+        i32 cellHeight,
+        i32 cellCountY,
+        i32 startBlockX,
+        i32 startBlockY,
+        i32 startBlockZ);
 
     ~NoiseChunk();
     NoiseChunk(const NoiseChunk&) = delete;

@@ -40,21 +40,6 @@ namespace gen {
 namespace structure {
 
 /**
- * @brief 地形适配模式
- *
- * 控制结构周围的地形如何适配。
- * ENCAPSULATE 是试炼密室使用的模式，用方块完全包裹结构。
- */
-enum class TerrainAdaptation : u8 {
-    None,        ///< 无地形适配
-    Bury,        ///< 埋入地下，顶部留空
-    BeardThin,   ///< 薄型胡须（如村庄道路）
-    BeardBox,    ///< 方形胡须
-    Encapsulate, ///< 完全包裹（如试炼密室）
-    BuryInterior ///< 埋入内部
-};
-
-/**
  * @brief 液体设置
  *
  * 控制结构生成时如何处理含水方块。
@@ -186,7 +171,7 @@ public:
     /**
      * @brief 获取地形适配模式
      */
-    [[nodiscard]] TerrainAdaptation terrainAdaptation() const noexcept { return m_terrainAdaptation; }
+    [[nodiscard]] TerrainAdaptation terrainAdaptation() const noexcept override { return m_terrainAdaptation; }
 
     /**
      * @brief 检查是否可以在指定位置生成结构

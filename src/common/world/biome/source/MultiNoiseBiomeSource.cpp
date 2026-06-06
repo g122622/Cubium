@@ -22,6 +22,7 @@
 
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/core/Constants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/world/biome/source/NetherBiomeSource.hpp"
 #include "common/world/biome/source/OverworldBiomeBuilder.hpp"
 #include "common/world/chunk/IChunk.hpp"
@@ -76,7 +77,7 @@ void MultiNoiseBiomeSource::fillBiomeContainer(BiomeContainer& container, ChunkC
             for (i32 z = 0; z < HORIZ_SIZE; ++z) {
                 for (i32 x = 0; x < HORIZ_SIZE; ++x) {
                     const i32 quartX = (chunkX * HORIZ_SIZE) + x;
-                    const i32 quartY = (section * VERT_SIZE) + y + (world::MIN_BUILD_HEIGHT >> 2);
+                    const i32 quartY = (section * VERT_SIZE) + y + math::floorDiv(world::MIN_BUILD_HEIGHT, 4);
                     const i32 quartZ = (chunkZ * HORIZ_SIZE) + z;
 
                     const BiomeId biome = getNoiseBiome(quartX, quartY, quartZ);

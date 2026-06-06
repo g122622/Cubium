@@ -26,6 +26,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/gen/carver/WorldCarver.hpp"
+#include "common/world/gen/density/NoiseChunk.hpp"
 
 namespace mc {
 
@@ -314,5 +315,16 @@ CarvingMask& ChunkPrimer::carvingMask()
     }
     return *m_carvingMask;
 }
+
+world::gen::density::NoiseChunk& ChunkPrimer::getOrCreateNoiseChunk(
+    std::function<std::unique_ptr<world::gen::density::NoiseChunk>()> factory)
+{
+    if (!m_noiseChunk) {
+        m_noiseChunk = factory();
+    }
+    return *m_noiseChunk;
+}
+
+ChunkPrimer::~ChunkPrimer() = default;
 
 } // namespace mc

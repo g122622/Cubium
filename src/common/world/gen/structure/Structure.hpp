@@ -44,7 +44,22 @@ class IChunkGenerator;
 class BlockState;
 class BlockPos;
 
-namespace world::gen {
+/**
+ * @brief 地形适配模式
+ *
+ * 控制结构周围的地形如何调整。
+ * MC 1.21 Beardifier 使用此信息决定如何平滑结构周围的地形。
+ */
+enum class TerrainAdaptation : u8 {
+    None,        ///< 无地形适配
+    Bury,        ///< 埋入地下，顶部留空
+    BeardThin,   ///< 薄型胡须（如村庄道路）
+    BeardBox,    ///< 方形胡须
+    Encapsulate, ///< 完全包裹（如试炼密室）
+    BuryInterior ///< 埋入内部
+};
+
+namespace world::gen::structure {
 class StructureBoundingBox;
 }
 
@@ -475,6 +490,15 @@ public:
      * 产生更集中的分布。
      */
     [[nodiscard]] virtual bool useUniformSpacing() const { return true; }
+
+    /**
+     * @brief 获取结构的地形适配模式
+     *
+     * MC 1.21: 控制结构周围的地形如何调整。
+     * 大多数结构返回 None（无适配），Jigsaw 结构可能返回 Bury/BeardThin/BeardBox/Encapsulate。
+     * Beardifier 使用此信息决定如何平滑结构周围的地形。
+     */
+    [[nodiscard]] virtual TerrainAdaptation terrainAdaptation() const { return TerrainAdaptation::None; }
 
     [[nodiscard]] StructureType structureType() const noexcept { return m_type; }
     [[nodiscard]] bool isValidBiome(BiomeId biomeId) const;

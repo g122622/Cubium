@@ -103,18 +103,27 @@ public:
      */
     using PreliminarySurfaceProvider = std::function<i32(i32, i32)>;
 
-    SurfaceRuleContext(i32 seaLevel, i32 minY, i32 height,
+    /**
+     * @brief 高度查询回调（用于 steep 条件计算斜率）
+     * MC 1.21: SurfaceRules.SteepCondition 使用相邻列高度差判断陡峭度。
+     * 参数: (worldX, worldZ) → 高度值（WorldSurfaceWG 高度图 + 1）
+     */
+    using HeightProvider = std::function<i32(i32, i32)>;
+
+    SurfaceRuleContext(i32 seaLevel,
+        i32 minY,
+        i32 height,
         const world::gen::noise::NormalNoise* surfaceDepthNoise,
         const world::gen::noise::NormalNoise* surfaceSecondaryNoise,
         const world::gen::noise::NormalNoise* clayBandsOffsetNoise,
-        PreliminarySurfaceProvider preliminarySurfaceProvider);
+        PreliminarySurfaceProvider preliminarySurfaceProvider,
+        HeightProvider heightProvider = nullptr);
 
     /** 更新 XZ 坐标（每列开始时调用） */
     void updateXZ(i32 blockX, i32 blockZ);
 
     /** 更新 Y 相关状态（每个方块调用） */
-    void updateY(i32 stoneDepthAbove, i32 stoneDepthBelow, i32 waterHeight,
-        i32 blockX, i32 blockY, i32 blockZ);
+    void updateY(i32 stoneDepthAbove, i32 stoneDepthBelow, i32 waterHeight, i32 blockX, i32 blockY, i32 blockZ);
 
     // ========== 访问器 ==========
 
@@ -144,7 +153,11 @@ public:
     /** 判断位置是否陡峭 */
     [[nodiscard]] bool steep() const;
 
-    /** 判断温度是否足够冷以降雪 */
+    /** 判断温度是否足够冷以降雪
+     * MC 1.21: 使用 Climate.Sampler.temperature() 在 quart 坐标采样，
+     * 当 temperature < 0.0 时返回 true。
+     * 当前简化实现基于生物群系判断。
+     */
     [[nodiscard]] bool temperature() const;
 
     /** 判断是否为 hole（surfaceDepth <= 0） */
@@ -162,6 +175,9 @@ private:
     const world::gen::noise::NormalNoise* m_surfaceSecondaryNoise;
     const world::gen::noise::NormalNoise* m_clayBandsOffsetNoise;
     PreliminarySurfaceProvider m_preliminarySurfaceProvider;
+
+    /// 高度查询回调（用于 steep 条件）
+    HeightProvider m_heightProvider;
 
     // 当前位置状态
     i32 m_blockX = 0;
@@ -264,10 +280,7 @@ public:
         : m_condition(std::move(condition))
     {}
 
-    [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const override
-    {
-        return !m_condition->test(ctx);
-    }
+    [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const override { return !m_condition->test(ctx); }
 
 private:
     std::unique_ptr<SurfaceCondition> m_condition;
@@ -276,8 +289,7 @@ private:
 /** 噪声阈值条件（MC: NoiseThresholdConditionSource） */
 class NoiseThresholdCondition final : public SurfaceCondition {
 public:
-    NoiseThresholdCondition(u64 seed, i32 firstOctave, std::vector<f64> amplitudes,
-        f64 minThreshold, f64 maxThreshold)
+    NoiseThresholdCondition(u64 seed, i32 firstOctave, std::vector<f64> amplitudes, f64 minThreshold, f64 maxThreshold)
         : m_noise(seed, firstOctave, std::move(amplitudes))
         , m_minThreshold(minThreshold)
         , m_maxThreshold(maxThreshold)

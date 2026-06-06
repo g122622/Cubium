@@ -34,6 +34,19 @@ class BlockState;
 namespace mc {
 
 /**
+ * @brief 维度类型标识
+ *
+ * 明确标识维度类型，不依赖 seaLevel/bedrockFloor 反推。
+ * 用于选择正确的 NoiseRouter 和 SurfaceRules。
+ */
+enum class DimensionKind : u8 {
+    Overworld, ///< 主世界
+    Nether,    ///< 下界
+    End,       ///< 末地
+    Flat       ///< 超平坦
+};
+
+/**
  * @brief 维度生成设置
  *
  * 包含维度级别的生成配置。
@@ -44,8 +57,9 @@ struct DimensionSettings {
     const BlockState* defaultBlock = nullptr; ///< 默认方块（石头等）
     const BlockState* defaultFluid = nullptr; ///< 默认流体（水/熔岩）
     i32 seaLevel = world::SEA_LEVEL;
-    i32 bedrockRoof = -10; ///< 基岩顶部（下界用）
-    i32 bedrockFloor = 0;  ///< 基岩底部
+    i32 bedrockRoof = -10;                                  ///< 基岩顶部（下界用）
+    i32 bedrockFloor = 0;                                   ///< 基岩底部
+    DimensionKind dimensionKind = DimensionKind::Overworld; ///< 维度类型标识
 
     // === 预设 ===
 

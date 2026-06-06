@@ -22,6 +22,7 @@
 
 #include "common/world/biome/BiomeSource.hpp"
 #include "common/core/Constants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include <cmath>
@@ -50,12 +51,12 @@ std::optional<BlockPos> BiomeSource::findBiome(i32 centerX,
     math::Random& random,
     bool stopOnFirst) const
 {
-    // quart 坐标 = 方块坐标 / 4（每个 quart 单元是 4x4 方块）
-    const i32 quartX = centerX >> 2;
-    const i32 quartZ = centerZ >> 2;
-    const i32 quartRadius = radius >> 2;
-    const i32 quartY = centerY >> 2;
-    const i32 quartStep = step >> 2;
+    // quart 坐标 = floorDiv(方块坐标, 4)，负坐标下 >> 2 不是向下取整
+    const i32 quartX = math::floorDiv(centerX, 4);
+    const i32 quartZ = math::floorDiv(centerZ, 4);
+    const i32 quartRadius = math::floorDiv(radius, 4);
+    const i32 quartY = math::floorDiv(centerY, 4);
+    const i32 quartStep = math::floorDiv(step, 4);
 
     BlockPos result(0, 0, 0);
     i32 matchCount = 0;
@@ -111,12 +112,12 @@ std::optional<BlockPos> BiomeSource::findBiome(i32 centerX,
 
 std::unordered_set<BiomeId> BiomeSource::getBiomesWithin(i32 x, i32 y, i32 z, i32 radius) const
 {
-    const i32 minQuartX = (x - radius) >> 2;
-    const i32 minQuartY = (y - radius) >> 2;
-    const i32 minQuartZ = (z - radius) >> 2;
-    const i32 maxQuartX = (x + radius) >> 2;
-    const i32 maxQuartY = (y + radius) >> 2;
-    const i32 maxQuartZ = (z + radius) >> 2;
+    const i32 minQuartX = math::floorDiv(x - radius, 4);
+    const i32 minQuartY = math::floorDiv(y - radius, 4);
+    const i32 minQuartZ = math::floorDiv(z - radius, 4);
+    const i32 maxQuartX = math::floorDiv(x + radius, 4);
+    const i32 maxQuartY = math::floorDiv(y + radius, 4);
+    const i32 maxQuartZ = math::floorDiv(z + radius, 4);
 
     std::unordered_set<BiomeId> result;
 

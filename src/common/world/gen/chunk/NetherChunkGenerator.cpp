@@ -368,7 +368,7 @@ i32 NetherChunkGenerator::spawnInitialMobs(
 BiomeId NetherChunkGenerator::getBiome(i32 x, i32 y, i32 z) const
 {
     if (m_biomeSource) {
-        return m_biomeSource->getNoiseBiome(x >> 2, y >> 2, z >> 2);
+        return m_biomeSource->getNoiseBiome(math::floorDiv(x, 4), math::floorDiv(y, 4), math::floorDiv(z, 4));
     }
     return m_defaultBiome;
 }

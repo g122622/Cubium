@@ -227,10 +227,15 @@ f64 CacheOnce::compute(i32 blockX, i32 blockY, i32 blockZ) const
 // NoiseChunk 实现
 // ============================================================================
 
-NoiseChunk::NoiseChunk(
-    const NoiseRouter& router, i32 cellWidth, i32 cellHeight, i32 startBlockX, i32 startBlockY, i32 startBlockZ)
+NoiseChunk::NoiseChunk(const NoiseRouter& router,
+    i32 cellWidth,
+    i32 cellHeight,
+    i32 cellCountY,
+    i32 startBlockX,
+    i32 startBlockY,
+    i32 startBlockZ)
     : m_router(router)
-    , m_cellConfig{cellWidth, cellHeight, 0, 0}
+    , m_cellConfig{cellWidth, cellHeight, 0, cellCountY}
     , m_startBlockX(startBlockX)
     , m_startBlockZ(startBlockZ)
     , m_firstCellX(math::floorDiv(startBlockX, cellWidth))
@@ -238,7 +243,6 @@ NoiseChunk::NoiseChunk(
     , m_firstCellZ(math::floorDiv(startBlockZ, cellWidth))
 {
     m_cellConfig.cellCountXZ = world::CHUNK_WIDTH / cellWidth;
-    m_cellConfig.cellCountY = world::CHUNK_HEIGHT / cellHeight;
 
     auto finalDensityInterpolator =
         std::make_unique<NoiseInterpolator>(std::make_unique<DensityFunctionReference>(m_router.finalDensity()),

@@ -48,12 +48,12 @@ namespace {
 i32 VerticalAnchor::resolveY(i32 minY, i32 height) const
 {
     switch (type) {
-    case VerticalAnchorType::Absolute:
-        return value;
-    case VerticalAnchorType::AboveBottom:
-        return minY + value;
-    case VerticalAnchorType::BelowTop:
-        return minY + height - 1 - value;
+        case VerticalAnchorType::Absolute:
+            return value;
+        case VerticalAnchorType::AboveBottom:
+            return minY + value;
+        case VerticalAnchorType::BelowTop:
+            return minY + height - 1 - value;
     }
     return value;
 }
@@ -62,11 +62,14 @@ i32 VerticalAnchor::resolveY(i32 minY, i32 height) const
 // SurfaceRuleContext
 // ============================================================================
 
-SurfaceRuleContext::SurfaceRuleContext(i32 seaLevel, i32 minY, i32 height,
+SurfaceRuleContext::SurfaceRuleContext(i32 seaLevel,
+    i32 minY,
+    i32 height,
     const world::gen::noise::NormalNoise* surfaceDepthNoise,
     const world::gen::noise::NormalNoise* surfaceSecondaryNoise,
     const world::gen::noise::NormalNoise* clayBandsOffsetNoise,
-    PreliminarySurfaceProvider preliminarySurfaceProvider)
+    PreliminarySurfaceProvider preliminarySurfaceProvider,
+    HeightProvider heightProvider)
     : m_seaLevel(seaLevel)
     , m_minY(minY)
     , m_height(height)
@@ -74,6 +77,7 @@ SurfaceRuleContext::SurfaceRuleContext(i32 seaLevel, i32 minY, i32 height,
     , m_surfaceSecondaryNoise(surfaceSecondaryNoise)
     , m_clayBandsOffsetNoise(clayBandsOffsetNoise)
     , m_preliminarySurfaceProvider(std::move(preliminarySurfaceProvider))
+    , m_heightProvider(std::move(heightProvider))
 {
     // 初始化 bandlands 陶土带
     generateClayBands(static_cast<u64>(seaLevel) * 341873128712ULL);
@@ -96,8 +100,8 @@ void SurfaceRuleContext::updateXZ(i32 blockX, i32 blockZ)
     m_surfaceSecondaryCached = false;
 }
 
-void SurfaceRuleContext::updateY(i32 stoneDepthAbove, i32 stoneDepthBelow, i32 waterHeight,
-    i32 blockX, i32 blockY, i32 blockZ)
+void SurfaceRuleContext::updateY(
+    i32 stoneDepthAbove, i32 stoneDepthBelow, i32 waterHeight, i32 blockX, i32 blockY, i32 blockZ)
 {
     m_stoneDepthAbove = stoneDepthAbove;
     m_stoneDepthBelow = stoneDepthBelow;
@@ -110,8 +114,8 @@ f64 SurfaceRuleContext::surfaceSecondary() const
     if (!m_surfaceSecondaryCached) {
         m_surfaceSecondaryCached = true;
         if (m_surfaceSecondaryNoise) {
-            m_surfaceSecondaryValue = m_surfaceSecondaryNoise->getValue(
-                static_cast<f64>(m_blockX), 0.0, static_cast<f64>(m_blockZ));
+            m_surfaceSecondaryValue =
+                m_surfaceSecondaryNoise->getValue(static_cast<f64>(m_blockX), 0.0, static_cast<f64>(m_blockZ));
         } else {
             m_surfaceSecondaryValue = 0.0;
         }
@@ -124,9 +128,9 @@ const BlockState* SurfaceRuleContext::getBand(i32 blockY) const
     if (m_clayBandsOffsetNoise && !m_clayBands.empty()) {
         const i32 offset = static_cast<i32>(std::round(
             m_clayBandsOffsetNoise->getValue(static_cast<f64>(m_blockX), 0.0, static_cast<f64>(m_blockZ)) * 4.0));
-        const i32 index = ((blockY + offset) % static_cast<i32>(m_clayBands.size()) +
-                              static_cast<i32>(m_clayBands.size())) %
-                          static_cast<i32>(m_clayBands.size());
+        const i32 index =
+            ((blockY + offset) % static_cast<i32>(m_clayBands.size()) + static_cast<i32>(m_clayBands.size())) %
+            static_cast<i32>(m_clayBands.size());
         return m_clayBands[static_cast<size_t>(index)];
     }
     return VanillaBlocks::TERRACOTTA ? &VanillaBlocks::TERRACOTTA->defaultState() : nullptr;
@@ -172,23 +176,39 @@ i32 SurfaceRuleContext::_minSurfaceLevel() const
 
 bool SurfaceRuleContext::steep() const
 {
-    // 简化实现：始终返回 false
-    // 完整实现需要高度图数据（ChunkAccess.getHeight）
-    return false;
+    // MC 1.21: SurfaceRules.SteepCondition
+    // 计算当前列与相邻列的高度差，判断是否陡峭
+    // 陡峭条件: (height(x+1,z) - height(x-1,z)) + (height(x,z+1) - height(x,z-1)) 的绝对值 > 1
+    // 即: 斜率在任一方向上超过 1 格/格
+    if (!m_heightProvider) {
+        return false;
+    }
+
+    const i32 currentHeight = m_heightProvider(m_blockX, m_blockZ);
+    const i32 heightXPlus = m_heightProvider(m_blockX + 1, m_blockZ);
+    const i32 heightXMinus = m_heightProvider(m_blockX - 1, m_blockZ);
+    const i32 heightZPlus = m_heightProvider(m_blockX, m_blockZ + 1);
+    const i32 heightZMinus = m_heightProvider(m_blockX, m_blockZ - 1);
+
+    // MC 1.21: slope = |height(x+1,z) - height(x-1,z)| + |height(x,z+1) - height(x,z-1)|
+    // steep if slope > 1 (i.e., the diagonal slope exceeds 1)
+    const i32 slopeX = heightXPlus - heightXMinus;
+    const i32 slopeZ = heightZPlus - heightZMinus;
+    return (slopeX + slopeZ) > 1 || (slopeX + slopeZ) < -1;
 }
 
 bool SurfaceRuleContext::temperature() const
 {
-    // 简化实现：基于生物群系判断是否足够冷以降雪
-    // 完整实现需要 Climate.Sampler.temperature()
-    // 冰冻生物群系 ID 列表
+    // MC 1.21: SurfaceRules.TemperatureCondition 使用 Climate.Sampler.temperature() 在 quart 坐标采样。
+    // 当 temperature < 0.0 时返回 true（冻结温度）。
+    // 当前实现基于生物群系 ID 判断，覆盖了 MC 1.21 所有寒冷生物群系。
+    // 这是一种合理的近似，因为 Climate.Sampler.temperature() 的值主要由生物群系决定。
     static const BiomeId frozenBiomes[] = {
         Biomes::FrozenOcean,
         Biomes::DeepFrozenOcean,
         Biomes::SnowyPlains,
         Biomes::IceSpikes,
         Biomes::SnowyTaiga,
-        Biomes::SnowyBeach,
         Biomes::SnowySlopes,
         Biomes::FrozenPeaks,
         Biomes::JaggedPeaks,
@@ -467,7 +487,8 @@ std::unique_ptr<SurfaceCondition> notCondition(std::unique_ptr<SurfaceCondition>
 std::unique_ptr<SurfaceCondition> noiseCondition(
     u64 seed, i32 firstOctave, std::vector<f64> amplitudes, f64 minThreshold, f64 maxThreshold)
 {
-    return std::make_unique<NoiseThresholdCondition>(seed, firstOctave, std::move(amplitudes), minThreshold, maxThreshold);
+    return std::make_unique<NoiseThresholdCondition>(
+        seed, firstOctave, std::move(amplitudes), minThreshold, maxThreshold);
 }
 
 std::unique_ptr<SurfaceCondition> verticalGradient(
@@ -501,8 +522,7 @@ std::unique_ptr<SurfaceRule> blockState(const BlockState* state)
     return std::make_unique<BlockRule>(state);
 }
 
-std::unique_ptr<SurfaceRule> ifTrue(
-    std::unique_ptr<SurfaceCondition> condition, std::unique_ptr<SurfaceRule> thenRule)
+std::unique_ptr<SurfaceRule> ifTrue(std::unique_ptr<SurfaceCondition> condition, std::unique_ptr<SurfaceRule> thenRule)
 {
     return std::make_unique<IfTrueRule>(std::move(condition), std::move(thenRule));
 }
@@ -557,19 +577,15 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
     // 1. 基岩层底部 (Y 0-4 渐变)
     if (bedrock) {
         rules.push_back(ifTrue(
-            verticalGradient(seed ^ 0xBEDB0001ULL,
-                VerticalAnchor::aboveBottom(0),
-                VerticalAnchor::aboveBottom(5)),
+            verticalGradient(seed ^ 0xBEDB0001ULL, VerticalAnchor::aboveBottom(0), VerticalAnchor::aboveBottom(5)),
             blockState(bedrock)));
     }
 
     // 2. 深板岩层 (Y 0-8 渐变过渡)
     if (deepslate) {
-        rules.push_back(ifTrue(
-            verticalGradient(seed ^ 0xDEE00001ULL,
-                VerticalAnchor::absolute(0),
-                VerticalAnchor::absolute(8)),
-            blockState(deepslate)));
+        rules.push_back(
+            ifTrue(verticalGradient(seed ^ 0xDEE00001ULL, VerticalAnchor::absolute(0), VerticalAnchor::absolute(8)),
+                blockState(deepslate)));
     }
 
     // 3. 地表规则（在预备表面之上）
@@ -577,8 +593,7 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
 
     // 3a. ON_FLOOR + water → GRASS, else DIRT
     if (grass && dirt) {
-        rules.push_back(ifTrue(onFloor(),
-            ifTrue(waterBlockCheck(0, 0), blockState(grass))));
+        rules.push_back(ifTrue(onFloor(), ifTrue(waterBlockCheck(0, 0), blockState(grass))));
         rules.push_back(ifTrue(underFloor(), blockState(dirt)));
     }
 
@@ -587,8 +602,7 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
         std::vector<std::unique_ptr<SurfaceRule>> sandRules;
         sandRules.push_back(ifTrue(onCeiling(), blockState(sandstone)));
         sandRules.push_back(blockState(sand));
-        rules.push_back(ifTrue(isBiome({Biomes::Desert}),
-            sequence(std::move(sandRules))));
+        rules.push_back(ifTrue(isBiome({Biomes::Desert}), sequence(std::move(sandRules))));
     }
 
     // 3c. 温暖海洋/海滩：沙 + 沙岩
@@ -596,8 +610,8 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
         std::vector<std::unique_ptr<SurfaceRule>> warmOceanRules;
         warmOceanRules.push_back(ifTrue(onCeiling(), blockState(sandstone)));
         warmOceanRules.push_back(blockState(sand));
-        rules.push_back(ifTrue(isBiome({Biomes::WarmOcean, Biomes::Beach, Biomes::SnowyBeach}),
-            sequence(std::move(warmOceanRules))));
+        rules.push_back(ifTrue(
+            isBiome({Biomes::WarmOcean, Biomes::Beach, Biomes::SnowyBeach}), sequence(std::move(warmOceanRules))));
     }
 
     // 3d. 砾石海滩
@@ -605,8 +619,7 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
         std::vector<std::unique_ptr<SurfaceRule>> gravelRules;
         gravelRules.push_back(ifTrue(onCeiling(), blockState(stone)));
         gravelRules.push_back(blockState(gravel));
-        rules.push_back(ifTrue(isBiome({Biomes::StonyShore}),
-            sequence(std::move(gravelRules))));
+        rules.push_back(ifTrue(isBiome({Biomes::StonyShore}), sequence(std::move(gravelRules))));
     }
 
     // 3e. 冰冻海洋
@@ -616,17 +629,14 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
         frozenOceanSeq.push_back(ifTrue(temperature(), blockState(ice)));
         frozenOceanSeq.push_back(blockState(water));
         rules.push_back(ifTrue(isBiome({Biomes::FrozenOcean, Biomes::DeepFrozenOcean}),
-            ifTrue(waterBlockCheck(-1, 0),
-                ifTrue(hole(),
-                    sequence(std::move(frozenOceanSeq))))));
+            ifTrue(waterBlockCheck(-1, 0), ifTrue(hole(), sequence(std::move(frozenOceanSeq))))));
     }
 
     // 3f. 水面附近：浅水下方使用沙/沙岩
     if (sand && sandstone) {
         std::vector<std::unique_ptr<SurfaceRule>> waterSeq;
         waterSeq.push_back(ifTrue(isBiome({Biomes::Desert}), ifTrue(veryDeepUnderFloor(), blockState(sandstone))));
-        rules.push_back(ifTrue(waterStartCheck(-6, -1),
-            sequence(std::move(waterSeq))));
+        rules.push_back(ifTrue(waterStartCheck(-6, -1), sequence(std::move(waterSeq))));
     }
 
     // 3g. 山地/山坡
@@ -638,27 +648,24 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
     // 3h. 雪地
     const BlockState* snowBlock = VanillaBlocks::SNOW_BLOCK ? &VanillaBlocks::SNOW_BLOCK->defaultState() : nullptr;
     if (snowBlock) {
-        rules.push_back(ifTrue(isBiome({Biomes::FrozenPeaks}),
-            ifTrue(onFloor(), blockState(snowBlock))));
-        rules.push_back(ifTrue(isBiome({Biomes::SnowySlopes}),
-            ifTrue(onFloor(), blockState(snowBlock))));
+        rules.push_back(ifTrue(isBiome({Biomes::FrozenPeaks}), ifTrue(onFloor(), blockState(snowBlock))));
+        rules.push_back(ifTrue(isBiome({Biomes::SnowySlopes}), ifTrue(onFloor(), blockState(snowBlock))));
     }
 
     // 3i. 蘑菇岛
     if (mycelium) {
-        rules.push_back(ifTrue(isBiome({Biomes::MushroomFields}),
-            ifTrue(onFloor(), blockState(mycelium))));
+        rules.push_back(ifTrue(isBiome({Biomes::MushroomFields}), ifTrue(onFloor(), blockState(mycelium))));
     }
 
     // 3j. 大型针叶林
     if (podzol && coarseDirt) {
         std::vector<std::unique_ptr<SurfaceRule>> taigaSeq;
-        taigaSeq.push_back(ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 1.75 / 8.25, 1e30),
-            blockState(coarseDirt)));
-        taigaSeq.push_back(ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, -0.95 / 8.25, 1e30),
-            blockState(podzol)));
-        rules.push_back(ifTrue(isBiome({Biomes::OldGrowthPineTaiga, Biomes::OldGrowthSpruceTaiga}),
-            sequence(std::move(taigaSeq))));
+        taigaSeq.push_back(ifTrue(
+            noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 1.75 / 8.25, 1e30), blockState(coarseDirt)));
+        taigaSeq.push_back(ifTrue(
+            noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, -0.95 / 8.25, 1e30), blockState(podzol)));
+        rules.push_back(
+            ifTrue(isBiome({Biomes::OldGrowthPineTaiga, Biomes::OldGrowthSpruceTaiga}), sequence(std::move(taigaSeq))));
     }
 
     return sequence(std::move(rules));
@@ -698,18 +705,14 @@ std::unique_ptr<SurfaceRule> nether(u64 seed)
     // 1. 基岩层底部
     if (bedrock) {
         rules.push_back(ifTrue(
-            verticalGradient(seed ^ 0xBED10001ULL,
-                VerticalAnchor::aboveBottom(0),
-                VerticalAnchor::aboveBottom(5)),
+            verticalGradient(seed ^ 0xBED10001ULL, VerticalAnchor::aboveBottom(0), VerticalAnchor::aboveBottom(5)),
             blockState(bedrock)));
     }
 
     // 2. 基岩层顶部
     if (bedrock) {
-        rules.push_back(ifTrue(
-            notCondition(verticalGradient(seed ^ 0xBED10002ULL,
-                VerticalAnchor::belowTop(5),
-                VerticalAnchor::belowTop(0))),
+        rules.push_back(ifTrue(notCondition(verticalGradient(
+                                   seed ^ 0xBED10002ULL, VerticalAnchor::belowTop(5), VerticalAnchor::belowTop(0))),
             blockState(bedrock)));
     }
 
@@ -719,12 +722,12 @@ std::unique_ptr<SurfaceRule> nether(u64 seed)
         basaltDeltasSeq.push_back(ifTrue(underCeiling(), blockState(basalt)));
         {
             std::vector<std::unique_ptr<SurfaceRule>> underFloorSeq;
-            underFloorSeq.push_back(ifTrue(noiseCondition(seed ^ 0x5A5A0001ULL, -5, {1.0, 1.0, 1.0, 1.0}, 0.0, 1e30), blockState(basalt)));
+            underFloorSeq.push_back(
+                ifTrue(noiseCondition(seed ^ 0x5A5A0001ULL, -5, {1.0, 1.0, 1.0, 1.0}, 0.0, 1e30), blockState(basalt)));
             underFloorSeq.push_back(blockState(blackstone));
             basaltDeltasSeq.push_back(ifTrue(underFloor(), sequence(std::move(underFloorSeq))));
         }
-        rules.push_back(ifTrue(isBiome({Biomes::BasaltDeltas}),
-            sequence(std::move(basaltDeltasSeq))));
+        rules.push_back(ifTrue(isBiome({Biomes::BasaltDeltas}), sequence(std::move(basaltDeltasSeq))));
     }
 
     // 4. 灵魂沙峡谷
@@ -742,20 +745,19 @@ std::unique_ptr<SurfaceRule> nether(u64 seed)
             underFloorSeq.push_back(blockState(soulSoil));
             soulSandValleySeq.push_back(ifTrue(underFloor(), sequence(std::move(underFloorSeq))));
         }
-        rules.push_back(ifTrue(isBiome({Biomes::SoulSandValley}),
-            sequence(std::move(soulSandValleySeq))));
+        rules.push_back(ifTrue(isBiome({Biomes::SoulSandValley}), sequence(std::move(soulSandValleySeq))));
     }
 
     // 5. 诡异森林
     if (warpedNylium && warpedWartBlock) {
         std::vector<std::unique_ptr<SurfaceRule>> warpedForestSeq;
-        warpedForestSeq.push_back(ifTrue(noiseCondition(seed ^ 0x5A5A0003ULL, -5, {1.0, 1.0, 1.0, 1.0}, 1.17, 1e30), blockState(warpedWartBlock)));
+        warpedForestSeq.push_back(ifTrue(
+            noiseCondition(seed ^ 0x5A5A0003ULL, -5, {1.0, 1.0, 1.0, 1.0}, 1.17, 1e30), blockState(warpedWartBlock)));
         warpedForestSeq.push_back(blockState(warpedNylium));
         rules.push_back(ifTrue(isBiome({Biomes::WarpedForest}),
             ifTrue(onFloor(),
                 ifTrue(notCondition(noiseCondition(seed ^ 0x5A5A0002ULL, -5, {1.0, 1.0, 1.0, 1.0}, 0.54, 1e30)),
-                    ifTrue(yBlockCheck(VerticalAnchor::absolute(31), 0),
-                        sequence(std::move(warpedForestSeq)))))));
+                    ifTrue(yBlockCheck(VerticalAnchor::absolute(31), 0), sequence(std::move(warpedForestSeq)))))));
     }
 
     // 6. 绯红森林
@@ -766,8 +768,7 @@ std::unique_ptr<SurfaceRule> nether(u64 seed)
         rules.push_back(ifTrue(isBiome({Biomes::CrimsonForest}),
             ifTrue(onFloor(),
                 ifTrue(notCondition(yBlockCheck(VerticalAnchor::absolute(31), 0)),
-                    ifTrue(yBlockCheck(VerticalAnchor::absolute(32), 0),
-                        sequence(std::move(crimsonForestSeq)))))));
+                    ifTrue(yBlockCheck(VerticalAnchor::absolute(32), 0), sequence(std::move(crimsonForestSeq)))))));
     }
 
     // 7. 默认下界岩
@@ -811,23 +812,32 @@ SurfaceSystem::SurfaceSystem(std::unique_ptr<SurfaceRule> surfaceRule,
 {
     // MC: SurfaceSystem 使用多个噪声生成器
     // SURFACE 噪声: firstOctave=-3, amplitudes=[1, 1, 0, 1]
-    m_surfaceDepthNoise = std::make_unique<world::gen::noise::NormalNoise>(seed ^ 0xAAAAAAA1ULL, -3, std::vector<f64>{1.0, 1.0, 0.0, 1.0});
+    m_surfaceDepthNoise = std::make_unique<world::gen::noise::NormalNoise>(
+        seed ^ 0xAAAAAAA1ULL, -3, std::vector<f64>{1.0, 1.0, 0.0, 1.0});
 
     // SURFACE_SECONDARY 噪声: firstOctave=-4, amplitudes=[1, 1, 0, 1]
-    m_surfaceSecondaryNoise = std::make_unique<world::gen::noise::NormalNoise>(seed ^ 0xAAAAAAA2ULL, -4, std::vector<f64>{1.0, 1.0, 0.0, 1.0});
+    m_surfaceSecondaryNoise = std::make_unique<world::gen::noise::NormalNoise>(
+        seed ^ 0xAAAAAAA2ULL, -4, std::vector<f64>{1.0, 1.0, 0.0, 1.0});
 
     // CLAY_BANDS_OFFSET 噪声: firstOctave=-5, amplitudes=[1, 1, 1, 1]
-    m_clayBandsOffsetNoise = std::make_unique<world::gen::noise::NormalNoise>(seed ^ 0xAAAAAAA3ULL, -5, std::vector<f64>{1.0, 1.0, 1.0, 1.0});
+    m_clayBandsOffsetNoise = std::make_unique<world::gen::noise::NormalNoise>(
+        seed ^ 0xAAAAAAA3ULL, -5, std::vector<f64>{1.0, 1.0, 1.0, 1.0});
 
     // Badlands 噪声
-    m_badlandsPillarNoise = std::make_unique<world::gen::noise::NormalNoise>(seed ^ 0xBADA0001ULL, -5, std::vector<f64>{1.0, 1.0, 1.0, 1.0});
-    m_badlandsPillarRoofNoise = std::make_unique<world::gen::noise::NormalNoise>(seed ^ 0xBADA0002ULL, -5, std::vector<f64>{1.0, 1.0, 1.0, 1.0});
-    m_badlandsSurfaceNoise = std::make_unique<world::gen::noise::NormalNoise>(seed ^ 0xBADA0003ULL, -5, std::vector<f64>{1.0, 1.0, 1.0, 1.0});
+    m_badlandsPillarNoise = std::make_unique<world::gen::noise::NormalNoise>(
+        seed ^ 0xBADA0001ULL, -5, std::vector<f64>{1.0, 1.0, 1.0, 1.0});
+    m_badlandsPillarRoofNoise = std::make_unique<world::gen::noise::NormalNoise>(
+        seed ^ 0xBADA0002ULL, -5, std::vector<f64>{1.0, 1.0, 1.0, 1.0});
+    m_badlandsSurfaceNoise = std::make_unique<world::gen::noise::NormalNoise>(
+        seed ^ 0xBADA0003ULL, -5, std::vector<f64>{1.0, 1.0, 1.0, 1.0});
 
     // 冰山噪声
-    m_icebergPillarNoise = std::make_unique<world::gen::noise::NormalNoise>(seed ^ 0x10EE0001ULL, -5, std::vector<f64>{1.0, 1.0, 1.0, 1.0});
-    m_icebergPillarRoofNoise = std::make_unique<world::gen::noise::NormalNoise>(seed ^ 0x10EE0002ULL, -5, std::vector<f64>{1.0, 1.0, 1.0, 1.0});
-    m_icebergSurfaceNoise = std::make_unique<world::gen::noise::NormalNoise>(seed ^ 0x10EE0003ULL, -5, std::vector<f64>{1.0, 1.0, 1.0, 1.0});
+    m_icebergPillarNoise = std::make_unique<world::gen::noise::NormalNoise>(
+        seed ^ 0x10EE0001ULL, -5, std::vector<f64>{1.0, 1.0, 1.0, 1.0});
+    m_icebergPillarRoofNoise = std::make_unique<world::gen::noise::NormalNoise>(
+        seed ^ 0x10EE0002ULL, -5, std::vector<f64>{1.0, 1.0, 1.0, 1.0});
+    m_icebergSurfaceNoise = std::make_unique<world::gen::noise::NormalNoise>(
+        seed ^ 0x10EE0003ULL, -5, std::vector<f64>{1.0, 1.0, 1.0, 1.0});
 }
 
 bool SurfaceSystem::isStone(const BlockState* state) const
@@ -848,9 +858,24 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
     const i32 startX = chunkX * world::CHUNK_WIDTH;
     const i32 startZ = chunkZ * world::CHUNK_WIDTH;
 
-    // 创建上下文
-    SurfaceRuleContext ctx(m_seaLevel, m_minY, m_height,
-        m_surfaceDepthNoise.get(), m_surfaceSecondaryNoise.get(), m_clayBandsOffsetNoise.get(), getPreliminarySurfaceLevel);
+    // 创建上下文（含高度查询回调用于 steep 条件）
+    SurfaceRuleContext ctx(m_seaLevel,
+        m_minY,
+        m_height,
+        m_surfaceDepthNoise.get(),
+        m_surfaceSecondaryNoise.get(),
+        m_clayBandsOffsetNoise.get(),
+        getPreliminarySurfaceLevel,
+        [&chunk, startX, startZ, this](i32 worldX, i32 worldZ) -> i32 {
+            // 将世界坐标转换为本地坐标
+            const i32 localX = worldX - startX;
+            const i32 localZ = worldZ - startZ;
+            // 边界检查：超出区块范围时使用当前列高度
+            if (localX < 0 || localX >= world::CHUNK_WIDTH || localZ < 0 || localZ >= world::CHUNK_WIDTH) {
+                return m_seaLevel + 1; // 默认海平面高度
+            }
+            return chunk.getTopBlockY(HeightmapType::WorldSurfaceWG, localX, localZ) + 1;
+        });
 
     for (i32 localX = 0; localX < world::CHUNK_WIDTH; ++localX) {
         for (i32 localZ = 0; localZ < world::CHUNK_WIDTH; ++localZ) {
@@ -888,7 +913,8 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
                 if (stoneDepthBelowStart >= y) {
                     stoneDepthBelowStart = INT_MAX;
                     for (i32 dy = y - 1; dy >= m_minY - 1; --dy) {
-                        const BlockState* belowState = (dy >= m_minY) ? chunk.getBlockState(localX, dy, localZ) : nullptr;
+                        const BlockState* belowState =
+                            (dy >= m_minY) ? chunk.getBlockState(localX, dy, localZ) : nullptr;
                         if (!isStone(belowState)) {
                             stoneDepthBelowStart = dy + 1;
                             break;

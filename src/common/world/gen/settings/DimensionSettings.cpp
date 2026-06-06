@@ -35,6 +35,7 @@ DimensionSettings DimensionSettings::overworld() noexcept
     settings.defaultBlock = VanillaBlocks::getState(VanillaBlocks::STONE);
     settings.defaultFluid = VanillaBlocks::getState(VanillaBlocks::WATER);
     settings.seaLevel = world::SEA_LEVEL;
+    settings.dimensionKind = DimensionKind::Overworld;
     return settings;
 }
 
@@ -44,9 +45,10 @@ DimensionSettings DimensionSettings::nether() noexcept
     settings.noise = NoiseSettings::nether();
     settings.defaultBlock = VanillaBlocks::getState(VanillaBlocks::NETHERRACK);
     settings.defaultFluid = VanillaBlocks::getState(VanillaBlocks::LAVA);
-    settings.seaLevel = 31; // 熔岩海高度
+    settings.seaLevel = 31;
     settings.bedrockRoof = 127;
     settings.bedrockFloor = 0;
+    settings.dimensionKind = DimensionKind::Nether;
     return settings;
 }
 
@@ -57,6 +59,7 @@ DimensionSettings DimensionSettings::end() noexcept
     settings.defaultBlock = VanillaBlocks::getState(VanillaBlocks::END_STONE);
     settings.defaultFluid = VanillaBlocks::getState(VanillaBlocks::AIR);
     settings.seaLevel = 0;
+    settings.dimensionKind = DimensionKind::End;
     return settings;
 }
 
@@ -69,6 +72,7 @@ DimensionSettings DimensionSettings::flat() noexcept
     settings.defaultBlock = VanillaBlocks::getState(VanillaBlocks::STONE);
     settings.defaultFluid = VanillaBlocks::getState(VanillaBlocks::AIR);
     settings.seaLevel = 0;
+    settings.dimensionKind = DimensionKind::Flat;
     return settings;
 }
 

@@ -454,11 +454,7 @@ private:
  */
 class MappedNoise final : public DensityFunction {
 public:
-    MappedNoise(std::unique_ptr<noise::NormalNoise> noise,
-        f64 xzScale,
-        f64 yScale,
-        f64 fromValue,
-        f64 toValue)
+    MappedNoise(std::unique_ptr<noise::NormalNoise> noise, f64 xzScale, f64 yScale, f64 fromValue, f64 toValue)
         : m_noise(std::move(noise))
         , m_xzScale(xzScale)
         , m_yScale(yScale)
@@ -473,8 +469,7 @@ public:
 
     [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override
     {
-        const f64 noiseVal = m_noise->getValue(
-            static_cast<f64>(blockX) * m_xzScale,
+        const f64 noiseVal = m_noise->getValue(static_cast<f64>(blockX) * m_xzScale,
             static_cast<f64>(blockY) * m_yScale,
             static_cast<f64>(blockZ) * m_xzScale);
         return m_fromValue + noiseVal * (m_toValue - m_fromValue);
@@ -893,9 +888,9 @@ public:
 
     [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override
     {
-        // quart 坐标 = block 坐标 >> 2
-        const i32 quartX = blockX >> 2;
-        const i32 quartZ = blockZ >> 2;
+        // quart 坐标 = floorDiv(block 坐标, 4)，负坐标下 >> 2 不是向下取整
+        const i32 quartX = math::floorDiv(blockX, 4);
+        const i32 quartZ = math::floorDiv(blockZ, 4);
         if (m_valid && quartX == m_cachedQuartX && quartZ == m_cachedQuartZ) {
             return m_cachedValue;
         }
@@ -1006,8 +1001,8 @@ public:
         const f64 inputValue = m_input->compute(blockX, blockY, blockZ);
         const f64 rarityValue = getRarity(inputValue);
         return std::abs(m_noise->getValue(static_cast<f64>(blockX) / rarityValue,
-                       static_cast<f64>(blockY) / rarityValue,
-                       static_cast<f64>(blockZ) / rarityValue)) *
+                   static_cast<f64>(blockY) / rarityValue,
+                   static_cast<f64>(blockZ) / rarityValue)) *
             rarityValue;
     }
 
@@ -1182,8 +1177,7 @@ namespace factory {
  * MC 1.21 的气候参数（temperature, vegetation, continents, erosion, ridges）
  * 均使用此函数。
  */
-[[nodiscard]] std::unique_ptr<DensityFunction> shiftedNoise2d(
-    std::unique_ptr<DensityFunction> shiftX,
+[[nodiscard]] std::unique_ptr<DensityFunction> shiftedNoise2d(std::unique_ptr<DensityFunction> shiftX,
     std::unique_ptr<DensityFunction> shiftZ,
     f64 xzScale,
     u64 seed,
@@ -1196,8 +1190,7 @@ namespace factory {
  * lerp(delta, start, end) = start + delta * (end - start)
  * MC 1.21 用于 BlendAlpha/BlendOffset 混合。
  */
-[[nodiscard]] std::unique_ptr<DensityFunction> lerp(
-    std::unique_ptr<DensityFunction> delta,
+[[nodiscard]] std::unique_ptr<DensityFunction> lerp(std::unique_ptr<DensityFunction> delta,
     std::unique_ptr<DensityFunction> start,
     std::unique_ptr<DensityFunction> end);
 
@@ -1260,13 +1253,8 @@ namespace factory {
  *
  * compute = fromValue + noise(x*xzScale, y*yScale, z*xzScale) * (toValue - fromValue)
  */
-[[nodiscard]] std::unique_ptr<DensityFunction> mappedNoise(u64 seed,
-    i32 firstOctave,
-    std::vector<f64> amplitudes,
-    f64 xzScale,
-    f64 yScale,
-    f64 fromValue,
-    f64 toValue);
+[[nodiscard]] std::unique_ptr<DensityFunction> mappedNoise(
+    u64 seed, i32 firstOctave, std::vector<f64> amplitudes, f64 xzScale, f64 yScale, f64 fromValue, f64 toValue);
 
 /**
  * @brief 创建末地岛屿密度函数

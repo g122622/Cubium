@@ -32,6 +32,7 @@
 #include "../carver/CaveCarver.hpp"
 #include "../carver/UnderwaterCarver.hpp"
 #include "../carver/WorldCarver.hpp"
+#include "../density/Beardifier.hpp"
 #include "../density/NoiseChunk.hpp"
 #include "../density/NoiseRouter.hpp"
 #include "../density/NoiseRouterData.hpp"
@@ -223,6 +224,20 @@ private:
     void _collectStructureData(ChunkPrimer& chunk,
         std::vector<const world::gen::structure::StructurePiece*>& outPieces,
         std::vector<world::gen::jigsaw::JigsawJunction>& outJunctions) const;
+
+    /**
+     * @brief 从区块结构数据构建 Beardifier 密度函数
+     *
+     * MC 1.21: 替代旧版 _collectStructureData + 内联密度偏移计算。
+     * 根据 TerrainAdaptation 类型使用不同的平滑算法：
+     * - Bury: 线性距离衰减
+     * - BeardThin/BeardBox: 高斯核 + 胡须曲线 × 0.8
+     * - Encapsulate: 半分辨率 Bury × 0.8
+     *
+     * @param chunk 区块
+     * @return Beardifier 实例
+     */
+    [[nodiscard]] world::gen::density::Beardifier _buildBeardifier(ChunkPrimer& chunk) const;
 
     /**
      * @brief 初始化高斯查找表
