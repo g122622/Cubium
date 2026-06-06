@@ -22,9 +22,9 @@
  */
 
 #include "BiomeRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "BiomeEffects.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -2073,13 +2073,13 @@ Biome createCherryGrove()
         BiomeClimate(BiomeClimate::Precipitation::Rain, 0.5f, BiomeClimate::TemperatureModifier::None, 0.8f));
     biome.setEffects(world::biome::BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
-            .waterColor(0x3F76E4)
+            .waterColor(0x5D93DF)
             .waterFogColor(0x050533)
             .skyColor(0x78A7FF)
-            .grassColor(0xFFB7C5)
-            .foliageColor(0xFFB7C5)
+            .grassColor(0xB7A6E1)
+            .foliageColor(0xB7A6E1)
             .build());
-    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    biome.setGenerationSettings(BiomeGenerationSettings::createCherryGrove());
     return biome;
 }
 

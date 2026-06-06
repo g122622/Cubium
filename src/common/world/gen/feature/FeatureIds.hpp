@@ -90,7 +90,9 @@ constexpr u32 JungleBush = 11;     // 丛林灌木
 constexpr u32 SwampTree = 12;      // 沼泽橡树
 constexpr u32 MegaPineTree = 13;   // 巨型松树
 constexpr u32 TallBirchTree = 14;  // 高白桦
-constexpr u32 Count = 15;          // 树木特征总数
+constexpr u32 CherryTree = 15;     // 樱花树
+constexpr u32 CherryBeeTree = 16;  // 樱花树（带蜂巢）
+constexpr u32 Count = 17;          // 树木特征总数
 } // namespace TreeFeatureIds
 
 namespace FlowerFeatureIds {
@@ -102,7 +104,8 @@ constexpr u32 ForestFlowers = 1 + Offset;       // 森林花卉
 constexpr u32 FlowerForestFlowers = 2 + Offset; // 繁花森林花卉
 constexpr u32 SwampFlowers = 3 + Offset;        // 沼泽花卉
 constexpr u32 Sunflower = 4 + Offset;           // 向日葵
-constexpr u32 Count = 5;                        // 花卉特征总数
+constexpr u32 CherryGrovePetals = 5 + Offset;   // 樱花树林粉色花瓣
+constexpr u32 Count = 6;                        // 花卉特征总数
 } // namespace FlowerFeatureIds
 
 namespace GrassFeatureIds {

@@ -784,9 +784,9 @@ find_package(LibArchive REQUIRED)
             gen / feature / Feature.cpp world / gen / feature / FeatureSpread.cpp world / gen / feature /
             ConfiguredFeature.cpp world / gen / feature / ore / OreFeature.cpp world / gen / feature / tree /
             TreeFeature.cpp world / gen / feature / tree / trunk / TrunkPlacer.cpp world / gen / feature / tree /
-            trunk / StraightTrunkPlacer.cpp world / gen / feature / tree / trunk / TrunkPlacers.cpp world / gen /
+            trunk / StraightTrunkPlacer.cpp world / gen / feature / tree / trunk / CherryTrunkPlacer.cpp world / gen / feature / tree / trunk / TrunkPlacers.cpp world / gen /
             feature / tree / foliage / FoliagePlacer.cpp world / gen / feature / tree / foliage /
-            BlobFoliagePlacer.cpp world / gen / feature / tree / foliage /
+            BlobFoliagePlacer.cpp world / gen / feature / tree / foliage / CherryFoliagePlacer.cpp world / gen / feature / tree / foliage /
             FoliagePlacers.cpp
 #World - Generation - Feature - Vegetation
                 world /
@@ -1133,4 +1133,4 @@ find_package(LibArchive REQUIRED)
                                 mc_common PUBLIC $<BUILD_INTERFACE : ${CMAKE_CURRENT_SOURCE_DIR}>)
 
 #基岩版Addon兼容模组系统
-                                add_subdirectory(mod / bedrock / addon)
+                                add_subdirectory(mod/bedrock/addon)

@@ -337,6 +337,24 @@ BiomeGenerationSettings BiomeGenerationSettings::createFlowerForest()
     return settings;
 }
 
+BiomeGenerationSettings BiomeGenerationSettings::createCherryGrove()
+{
+    // 樱花树林：矿石 + 樱花树 + 粉色花瓣 + 草丛
+    BiomeGenerationSettings settings = createDefault();
+
+    // 添加樱花树（两次增加密度）
+    settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::CherryTree);
+    settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::CherryTree);
+
+    // 添加粉色花瓣
+    settings.addFeature(DecorationStage::VegetalDecoration, FlowerFeatureIds::CherryGrovePetals);
+
+    // 添加草丛
+    settings.addFeature(DecorationStage::VegetalDecoration, GrassFeatureIds::PlainsGrass);
+
+    return settings;
+}
+
 BiomeGenerationSettings BiomeGenerationSettings::createMountains()
 {
     // 山地：矿石 + 绿宝石 + 云杉树 + 针叶林草丛

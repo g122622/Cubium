@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "CherryFoliagePlacer.hpp"
 #include "FoliagePlacer.hpp"
 #include <memory>
 

@@ -156,6 +156,12 @@ public:
     static BiomeGenerationSettings createFlowerForest();
 
     /**
+     * @brief 创建樱花树林生物群系的生成设置
+     * @return 樱花树林设置
+     */
+    static BiomeGenerationSettings createCherryGrove();
+
+    /**
      * @brief 创建山地生物群系的生成设置
      * @return 山地设置
      */

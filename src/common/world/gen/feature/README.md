@@ -133,7 +133,7 @@ graph LR
 
 **ID 命名空间**:
 - `OreFeatureIds` - 矿石特征（0-7）
-- `TreeFeatureIds` - 树木特征（0-8）
+- `TreeFeatureIds` - 树木特征（0-16）
 - `FlowerFeatureIds` - 花卉特征（带偏移量）
 - `GrassFeatureIds` - 草丛特征（带偏移量）
 - `MushroomFeatureIds` - 蘑菇特征（带偏移量）
@@ -220,6 +220,7 @@ templ->place(world, pos, settings, rng, flags);
 | `ForkyTrunkPlacer` | 分叉树干 | 金合欢树 |
 | `GiantTrunkPlacer` | 2x2 巨型树干 | 巨型云杉 |
 | `MegaJungleTrunkPlacer` | 2x2 巨型丛林树干 | 巨型丛林树 |
+| `CherryTrunkPlacer` | 1-3 分支 + 弯曲概率行走 | 樱花树 |
 
 #### 树叶放置器 (FoliagePlacers)
 
@@ -234,6 +235,7 @@ templ->place(world, pos, settings, rng, flags);
 | `MegaPineFoliagePlacer` | 大型锥形 | 巨型云杉 |
 | `BushFoliagePlacer` | 单层球形 | 灌木 |
 | `FancyFoliagePlacer` | 密集大球形 | 精美橡树 |
+| `CherryFoliagePlacer` | 层叠树冠 + 垂叶 + 角落孔洞 | 樱花树 |
 
 **树木配置示例**:
 ```cpp
@@ -260,6 +262,7 @@ config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(
 - `createFlowerForestFlowers()` - 繁花森林花卉（更多种类）
 - `createSwampFlowers()` - 沼泽花卉（兰花）
 - `createSunflower()` - 向日葵
+- `createCherryGrovePetals()` - 樱花树林粉色花瓣
 
 #### GrassFeature
 

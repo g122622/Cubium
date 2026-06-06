@@ -25,8 +25,9 @@
 #include "../../../../../core/Constants.hpp"
 #include "../../../../../core/Types.hpp"
 #include "../../../../block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../chunk/IChunkGenerator.hpp"
+#include "common/world/block/registry/CherryBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -83,7 +84,7 @@ void FoliagePlacer::placeFoliage(WorldGenRegion& world,
         if (state == nullptr || state->isAir() || state->is(VanillaBlocks::OAK_LEAVES) ||
             state->is(VanillaBlocks::SPRUCE_LEAVES) || state->is(VanillaBlocks::BIRCH_LEAVES) ||
             state->is(VanillaBlocks::JUNGLE_LEAVES) || state->is(VanillaBlocks::ACACIA_LEAVES) ||
-            state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
+            state->is(VanillaBlocks::DARK_OAK_LEAVES) || state->is(CherryBlocks::CHERRY_LEAVES)) {
             world.setBlockState(pos, foliageBlock);
         }
     }
@@ -124,7 +125,8 @@ void FoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
                 // 空气可以放置
             } else if (state->is(VanillaBlocks::OAK_LEAVES) || state->is(VanillaBlocks::SPRUCE_LEAVES) ||
                 state->is(VanillaBlocks::BIRCH_LEAVES) || state->is(VanillaBlocks::JUNGLE_LEAVES) ||
-                state->is(VanillaBlocks::ACACIA_LEAVES) || state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
+                state->is(VanillaBlocks::ACACIA_LEAVES) || state->is(VanillaBlocks::DARK_OAK_LEAVES) ||
+                state->is(CherryBlocks::CHERRY_LEAVES)) {
                 // 树叶可以替换
             } else {
                 continue;

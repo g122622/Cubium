@@ -167,6 +167,9 @@ struct FlowerFeatures {
     /// 创建向日葵
     static std::unique_ptr<ConfiguredFlowerFeature> createSunflower();
 
+    /// 创建樱花树林粉色花瓣
+    static std::unique_ptr<ConfiguredFlowerFeature> createCherryGrovePetals();
+
 private:
     static std::vector<std::unique_ptr<ConfiguredFlowerFeature>> s_features;
 };

@@ -26,11 +26,14 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../placement/PlacementUtils.hpp"
+#include "common/world/block/registry/CherryBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "foliage/BlobFoliagePlacer.hpp"
+#include "foliage/CherryFoliagePlacer.hpp"
 #include "foliage/FoliagePlacers.hpp"
+#include "trunk/CherryTrunkPlacer.hpp"
 #include "trunk/StraightTrunkPlacer.hpp"
 #include "trunk/TrunkPlacers.hpp"
 #include <map>
@@ -118,7 +121,8 @@ bool TreeFeature::isReplaceableAt(WorldGenRegion& world, const BlockPos& pos)
     // 检查是否是树叶
     if (state->is(VanillaBlocks::OAK_LEAVES) || state->is(VanillaBlocks::SPRUCE_LEAVES) ||
         state->is(VanillaBlocks::BIRCH_LEAVES) || state->is(VanillaBlocks::JUNGLE_LEAVES) ||
-        state->is(VanillaBlocks::ACACIA_LEAVES) || state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
+        state->is(VanillaBlocks::ACACIA_LEAVES) || state->is(VanillaBlocks::DARK_OAK_LEAVES) ||
+        state->is(CherryBlocks::CHERRY_LEAVES)) {
         return true;
     }
 
@@ -127,7 +131,8 @@ bool TreeFeature::isReplaceableAt(WorldGenRegion& world, const BlockPos& pos)
         state->is(VanillaBlocks::FERN) || state->is(VanillaBlocks::DANDELION) || state->is(VanillaBlocks::POPPY) ||
         state->is(VanillaBlocks::OAK_SAPLING) || state->is(VanillaBlocks::SPRUCE_SAPLING) ||
         state->is(VanillaBlocks::BIRCH_SAPLING) || state->is(VanillaBlocks::JUNGLE_SAPLING) ||
-        state->is(VanillaBlocks::ACACIA_SAPLING) || state->is(VanillaBlocks::DARK_OAK_SAPLING)) {
+        state->is(VanillaBlocks::ACACIA_SAPLING) || state->is(VanillaBlocks::DARK_OAK_SAPLING) ||
+        state->is(CherryBlocks::CHERRY_SAPLING)) {
         return true;
     }
 
@@ -153,7 +158,8 @@ bool TreeFeature::isAirOrLeavesAt(WorldGenRegion& world, const BlockPos& pos)
     // 检查是否是树叶
     if (state->is(VanillaBlocks::OAK_LEAVES) || state->is(VanillaBlocks::SPRUCE_LEAVES) ||
         state->is(VanillaBlocks::BIRCH_LEAVES) || state->is(VanillaBlocks::JUNGLE_LEAVES) ||
-        state->is(VanillaBlocks::ACACIA_LEAVES) || state->is(VanillaBlocks::DARK_OAK_LEAVES)) {
+        state->is(VanillaBlocks::ACACIA_LEAVES) || state->is(VanillaBlocks::DARK_OAK_LEAVES) ||
+        state->is(CherryBlocks::CHERRY_LEAVES)) {
         return true;
     }
 
@@ -362,6 +368,8 @@ void TreeFeatures::initialize()
     s_features.push_back(createSwampTree());
     s_features.push_back(createMegaPineTree());
     s_features.push_back(createTallBirchTree());
+    s_features.push_back(createCherryTree());
+    s_features.push_back(createCherryBeeTree());
 
     spdlog::info("[TreeFeatures] Initialized {} tree features", s_features.size());
 }
@@ -718,6 +726,52 @@ TreeFeatureConfig TreeFeatures::tallBirchConfig()
     config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(FeatureSpread::spread(2, 1), FeatureSpread::fixed(0), 2);
     config.minHeight = 5;
     return config;
+}
+
+TreeFeatureConfig TreeFeatures::cherryConfig()
+{
+    TreeFeatureConfig config;
+    config.trunkBlock = VanillaBlocks::getState(CherryBlocks::CHERRY_LOG);
+    config.foliageBlock = VanillaBlocks::getState(CherryBlocks::CHERRY_LEAVES);
+    config.trunkPlacer = std::make_unique<CherryTrunkPlacer>(7,
+        1,
+        0, // baseHeight, heightRandA, heightRandB
+        1,
+        3, // branchCountMin, branchCountMax
+        2,
+        4, // branchHorizontalLengthMin, branchHorizontalLengthMax
+        -4,
+        -3, // branchStartOffsetFromTopMin, branchStartOffsetFromTopMax
+        -1,
+        0 // branchEndOffsetFromTopMin, branchEndOffsetFromTopMax
+    );
+    config.foliagePlacer = std::make_unique<CherryFoliagePlacer>(FeatureSpread::fixed(4), // radius
+        FeatureSpread::fixed(0),                                                          // offset
+        5,                                                                                // height
+        0.25f,                                                                            // wideBottomLayerHoleChance
+        0.5f,                                                                             // cornerHoleChance
+        1.0f / 6.0f,                                                                      // hangingLeavesChance
+        1.0f / 3.0f // hangingLeavesExtensionChance
+    );
+    config.ignoreVines = true;
+    config.minHeight = 4;
+    return config;
+}
+
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createCherryTree()
+{
+    auto config = std::make_unique<TreeFeatureConfig>(cherryConfig());
+    auto placement =
+        PlacementUtils::appendBiomePlacement(PlacementUtils::createCountedSurfacePlacement(10), {Biomes::CherryGrove});
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "cherry_tree");
+}
+
+std::unique_ptr<ConfiguredTreeFeature> TreeFeatures::createCherryBeeTree()
+{
+    auto config = std::make_unique<TreeFeatureConfig>(cherryConfig());
+    auto placement =
+        PlacementUtils::appendBiomePlacement(PlacementUtils::createCountedSurfacePlacement(10), {Biomes::CherryGrove});
+    return std::make_unique<ConfiguredTreeFeature>(std::move(config), std::move(placement), "cherry_bee_tree");
 }
 
 } // namespace mc

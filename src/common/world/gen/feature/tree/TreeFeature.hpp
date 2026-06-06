@@ -360,6 +360,12 @@ struct TreeFeatures {
     /// 创建高白桦配置
     static std::unique_ptr<ConfiguredTreeFeature> createTallBirchTree();
 
+    /// 创建樱花树配置
+    static std::unique_ptr<ConfiguredTreeFeature> createCherryTree();
+
+    /// 创建樱花树（带蜂巢）配置
+    static std::unique_ptr<ConfiguredTreeFeature> createCherryBeeTree();
+
 private:
     static std::vector<std::unique_ptr<ConfiguredTreeFeature>> s_features;
 
@@ -378,6 +384,7 @@ private:
     static TreeFeatureConfig swampConfig();
     static TreeFeatureConfig megaPineConfig();
     static TreeFeatureConfig tallBirchConfig();
+    static TreeFeatureConfig cherryConfig();
 };
 
 } // namespace mc

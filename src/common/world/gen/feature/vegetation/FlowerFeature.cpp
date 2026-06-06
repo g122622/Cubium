@@ -24,6 +24,7 @@
 #include "FlowerFeature.hpp"
 
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/registry/TrailsBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
@@ -183,6 +184,7 @@ void FlowerFeatures::initialize()
     s_features.push_back(createFlowerForestFlowers());
     s_features.push_back(createSwampFlowers());
     s_features.push_back(createSunflower());
+    s_features.push_back(createCherryGrovePetals());
 }
 
 const std::vector<std::unique_ptr<ConfiguredFlowerFeature>>& FlowerFeatures::getAllFeatures()
@@ -311,6 +313,20 @@ std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createSunflower()
     }
 
     return std::make_unique<ConfiguredFlowerFeature>(std::move(config), "sunflower");
+}
+
+std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createCherryGrovePetals()
+{
+    auto config = std::make_unique<FlowerFeatureConfig>();
+    config->tries = 96;
+    config->xzSpread = 6;
+
+    // 樱花树林：粉红色花瓣
+    if (block_registry::TrailsBlocks::PINK_PETALS) {
+        config->addFlower(&block_registry::TrailsBlocks::PINK_PETALS->defaultState());
+    }
+
+    return std::make_unique<ConfiguredFlowerFeature>(std::move(config), "cherry_grove_petals");
 }
 
 } // namespace mc

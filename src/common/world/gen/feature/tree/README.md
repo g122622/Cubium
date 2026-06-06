@@ -13,6 +13,8 @@ tree/
 │   ├── TrunkPlacer.cpp      # 基类实现
 │   ├── StraightTrunkPlacer.hpp  # 直树干放置器
 │   ├── StraightTrunkPlacer.cpp
+│   ├── CherryTrunkPlacer.hpp   # 樱花树干放置器
+│   ├── CherryTrunkPlacer.cpp
 │   ├── TrunkPlacers.hpp     # 其他树干放置器声明
 │   └── TrunkPlacers.cpp     # 其他树干放置器实现
 ├── foliage/                 # 树叶放置器
@@ -20,6 +22,8 @@ tree/
 │   ├── FoliagePlacer.cpp    # 基类实现
 │   ├── BlobFoliagePlacer.hpp    # 球形树叶放置器
 │   ├── BlobFoliagePlacer.cpp
+│   ├── CherryFoliagePlacer.hpp # 樱花树叶放置器
+│   ├── CherryFoliagePlacer.cpp
 │   ├── FoliagePlacers.hpp   # 其他树叶放置器声明
 │   └── FoliagePlacers.cpp   # 其他树叶放置器实现
 └── README.md                # 本文档
@@ -178,6 +182,7 @@ class StraightTrunkPlacer : public TrunkPlacer {
 | `ForkyTrunkPlacer` | 金合欢 | 主干 + 随机分叉，末端树叶位置 |
 | `GiantTrunkPlacer` | 巨型云杉 | 2x2 截面，顶部多个树叶位置 |
 | `MegaJungleTrunkPlacer` | 巨型丛林木 | 2x2 截面，简化版（无藤蔓） |
+| `CherryTrunkPlacer` | 樱花树 | 1-3 分支 + 弯曲概率行走，末端树叶位置 |
 
 **树干形状示意：**
 
@@ -186,25 +191,29 @@ graph LR
     subgraph StraightTrunkPlacer
         S1["|"]
     end
-    
+
     subgraph DarkOakTrunkPlacer
         D1["▊"]
     end
-    
+
     subgraph FancyTrunkPlacer
         F1["~"]
     end
-    
+
     subgraph ForkyTrunkPlacer
         K1["Y"]
     end
-    
+
     subgraph GiantTrunkPlacer
         G1["▊"]
     end
-    
+
     subgraph MegaJungleTrunkPlacer
         M1["▊"]
+    end
+
+    subgraph CherryTrunkPlacer
+        C1["🌿"]
     end
 ```
 
@@ -279,6 +288,7 @@ protected:
 | `MegaPineFoliagePlacer` | 巨型云杉 | 大型锥形 |
 | `BushFoliagePlacer` | 灌木 | 单层球形 |
 | `FancyFoliagePlacer` | 精美橡树 | 大型密集球形 |
+| `CherryFoliagePlacer` | 樱花树 | 层叠树冠 + 垂叶 + 角落孔洞 |
 
 **树叶形状示意：**
 
@@ -383,6 +393,7 @@ classDiagram
     TrunkPlacer <|-- ForkyTrunkPlacer
     TrunkPlacer <|-- GiantTrunkPlacer
     TrunkPlacer <|-- MegaJungleTrunkPlacer
+    TrunkPlacer <|-- CherryTrunkPlacer
     
     class BlobFoliagePlacer {
         +placeFoliageInternal() void
@@ -430,11 +441,12 @@ classDiagram
     FoliagePlacer <|-- MegaPineFoliagePlacer
     FoliagePlacer <|-- BushFoliagePlacer
     FoliagePlacer <|-- FancyFoliagePlacer
+    FoliagePlacer <|-- CherryFoliagePlacer
 ```
 
 ## 🌳 预定义树木
 
-`TreeFeatures` 工厂类提供 9 种预定义树木：
+`TreeFeatures` 工厂类提供 11 种预定义树木：
 
 | 方法 | 树木类型 | TrunkPlacer | FoliagePlacer | 适用生物群系 |
 |------|----------|-------------|---------------|--------------|
@@ -447,6 +459,8 @@ classDiagram
 | `createSparseOakTree()` | 稀疏橡树 | StraightTrunkPlacer(4,2,0) | BlobFoliagePlacer(2+1,0,3) | 平原、稀树草原 |
 | `createGiantSpruceTree()` | 巨型云杉 | GiantTrunkPlacer(13,5,3) | MegaPineFoliagePlacer(3+2,0,8) | 大型针叶林 |
 | `createGiantJungleTree()` | 巨型丛林木 | MegaJungleTrunkPlacer(10,8,5) | JungleFoliagePlacer(3+2,0,3) | 丛林 |
+| `createCherryTree()` | 樱花树 | CherryTrunkPlacer(7,1,0) | CherryFoliagePlacer(fixed(4),fixed(0),5) | 樱花树林 |
+| `createCherryBeeTree()` | 樱花树（蜂巢） | CherryTrunkPlacer(7,1,0) | CherryFoliagePlacer(fixed(4),fixed(0),5) | 樱花树林 |
 
 ## 📥 输入和输出
 
