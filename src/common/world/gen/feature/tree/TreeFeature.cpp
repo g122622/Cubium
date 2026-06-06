@@ -122,7 +122,7 @@ bool TreeFeature::isReplaceableAt(WorldGenRegion& world, const BlockPos& pos)
     if (state->is(VanillaBlocks::OAK_LEAVES) || state->is(VanillaBlocks::SPRUCE_LEAVES) ||
         state->is(VanillaBlocks::BIRCH_LEAVES) || state->is(VanillaBlocks::JUNGLE_LEAVES) ||
         state->is(VanillaBlocks::ACACIA_LEAVES) || state->is(VanillaBlocks::DARK_OAK_LEAVES) ||
-        state->is(CherryBlocks::CHERRY_LEAVES)) {
+        state->is(block_registry::CherryBlocks::CHERRY_LEAVES)) {
         return true;
     }
 
@@ -132,7 +132,7 @@ bool TreeFeature::isReplaceableAt(WorldGenRegion& world, const BlockPos& pos)
         state->is(VanillaBlocks::OAK_SAPLING) || state->is(VanillaBlocks::SPRUCE_SAPLING) ||
         state->is(VanillaBlocks::BIRCH_SAPLING) || state->is(VanillaBlocks::JUNGLE_SAPLING) ||
         state->is(VanillaBlocks::ACACIA_SAPLING) || state->is(VanillaBlocks::DARK_OAK_SAPLING) ||
-        state->is(CherryBlocks::CHERRY_SAPLING)) {
+        state->is(block_registry::CherryBlocks::CHERRY_SAPLING)) {
         return true;
     }
 
@@ -159,7 +159,7 @@ bool TreeFeature::isAirOrLeavesAt(WorldGenRegion& world, const BlockPos& pos)
     if (state->is(VanillaBlocks::OAK_LEAVES) || state->is(VanillaBlocks::SPRUCE_LEAVES) ||
         state->is(VanillaBlocks::BIRCH_LEAVES) || state->is(VanillaBlocks::JUNGLE_LEAVES) ||
         state->is(VanillaBlocks::ACACIA_LEAVES) || state->is(VanillaBlocks::DARK_OAK_LEAVES) ||
-        state->is(CherryBlocks::CHERRY_LEAVES)) {
+        state->is(block_registry::CherryBlocks::CHERRY_LEAVES)) {
         return true;
     }
 
@@ -731,8 +731,8 @@ TreeFeatureConfig TreeFeatures::tallBirchConfig()
 TreeFeatureConfig TreeFeatures::cherryConfig()
 {
     TreeFeatureConfig config;
-    config.trunkBlock = VanillaBlocks::getState(CherryBlocks::CHERRY_LOG);
-    config.foliageBlock = VanillaBlocks::getState(CherryBlocks::CHERRY_LEAVES);
+    config.trunkBlock = VanillaBlocks::getState(block_registry::CherryBlocks::CHERRY_LOG);
+    config.foliageBlock = VanillaBlocks::getState(block_registry::CherryBlocks::CHERRY_LEAVES);
     config.trunkPlacer = std::make_unique<CherryTrunkPlacer>(7,
         1,
         0, // baseHeight, heightRandA, heightRandB

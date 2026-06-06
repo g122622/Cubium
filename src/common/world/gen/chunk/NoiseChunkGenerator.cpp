@@ -898,7 +898,13 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chun
     // MC 1.21: 使用 SurfaceRules 管线
     if (m_useDensityFunctionPipeline && m_surfaceSystem) {
         const auto getBiomeAt = [&region](i32 x, i32 y, i32 z) -> BiomeId { return region.getBiome(x, y, z); };
-        m_surfaceSystem->buildSurface(chunk, getBiomeAt);
+        const auto getPreliminarySurfaceLevel = [this](i32 x, i32 z) -> i32 {
+            const i32 quartAlignedX = math::floorDiv(x, 4) * 4;
+            const i32 quartAlignedZ = math::floorDiv(z, 4) * 4;
+            return static_cast<i32>(
+                std::floor(m_router->preliminarySurfaceLevel().compute(quartAlignedX, 0, quartAlignedZ)));
+        };
+        m_surfaceSystem->buildSurface(chunk, getBiomeAt, getPreliminarySurfaceLevel);
 
         // 标记阶段完成
         chunk.setChunkStatus(ChunkStatuses::SURFACE);
@@ -1417,46 +1423,62 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
     std::vector<world::gen::jigsaw::JigsawJunction> junctions;
     _collectStructureData(chunk, structurePieces, junctions);
 
-    // === MC 1.21: 地形生成 ===
-    // 当前实现：直接计算每个方块的 finalDensity（无插值优化）
-    // 完整实现需要 NoiseChunk 的 Marker 遍历和三线性插值系统
-    // 直接计算在正确性上与 MC 1.21 一致，仅缺少缓存优化
-
-    // 获取含水层指针
     auto* aquifer = noiseChunk.aquifer();
-    const auto& finalDensity = m_router->finalDensity();
 
-    // 遍历区块内所有方块（Y 从上到下）
-    for (i32 blockY = world::MAX_BUILD_HEIGHT - 1; blockY >= world::MIN_BUILD_HEIGHT; --blockY) {
-        for (i32 blockX = startX; blockX < startX + world::CHUNK_WIDTH; ++blockX) {
-            for (i32 blockZ = startZ; blockZ < startZ + world::CHUNK_WIDTH; ++blockZ) {
-                const f64 density = finalDensity.compute(blockX, blockY, blockZ);
+    const auto& cellConfig = noiseChunk.cellConfig();
+    noiseChunk.initializeForFirstCellX();
 
-                const i32 localX = blockX - startX;
-                const i32 localZ = blockZ - startZ;
+    for (i32 cellX = 0; cellX < cellConfig.cellCountXZ; ++cellX) {
+        noiseChunk.advanceCellX(cellX);
 
-                // MC 1.21: 密度 > 0 → 石头，密度 <= 0 → 含水层/空气/流体
-                const BlockState* blockState = nullptr;
+        for (i32 cellZ = 0; cellZ < cellConfig.cellCountXZ; ++cellZ) {
+            for (i32 cellY = cellConfig.cellCountY - 1; cellY >= 0; --cellY) {
+                noiseChunk.selectCellXYZ(cellX, cellY, cellZ);
 
-                if (density > 0.0) {
-                    // 固体方块
-                    blockState = _getBlockForDensity(static_cast<f32>(density), blockY);
-                } else if (aquifer != nullptr) {
-                    // 空腔：含水层系统决定填充内容
-                    blockState = aquifer->computeSubstance(blockX, blockY, blockZ, density);
-                }
+                for (i32 inCellY = cellConfig.cellHeight - 1; inCellY >= 0; --inCellY) {
+                    const i32 blockY = (noiseChunk.firstCellY() + cellY) * cellConfig.cellHeight + inCellY;
+                    const f64 yLerp = static_cast<f64>(inCellY) / static_cast<f64>(cellConfig.cellHeight);
+                    noiseChunk.updateForY(yLerp);
 
-                if (blockState != nullptr) {
-                    chunk.setBlockState(localX, blockY, localZ, blockState);
+                    for (i32 inCellX = 0; inCellX < cellConfig.cellWidth; ++inCellX) {
+                        const i32 localX = cellX * cellConfig.cellWidth + inCellX;
+                        const i32 blockX = startX + localX;
+                        const f64 xLerp = static_cast<f64>(inCellX) / static_cast<f64>(cellConfig.cellWidth);
+                        noiseChunk.updateForX(xLerp);
 
-                    // 更新高度图
-                    chunk.updateHeightmap(HeightmapType::WorldSurfaceWG, localX, blockY, localZ, blockState);
-                    if (blockState->isSolid()) {
-                        chunk.updateHeightmap(HeightmapType::OceanFloorWG, localX, blockY, localZ, blockState);
+                        for (i32 inCellZ = 0; inCellZ < cellConfig.cellWidth; ++inCellZ) {
+                            const i32 localZ = cellZ * cellConfig.cellWidth + inCellZ;
+                            const i32 blockZ = startZ + localZ;
+                            const f64 zLerp = static_cast<f64>(inCellZ) / static_cast<f64>(cellConfig.cellWidth);
+
+                            noiseChunk.setBlockPos(blockX, blockY, blockZ);
+                            noiseChunk.setInCellPos(inCellX, inCellY, inCellZ);
+
+                            const f64 density = noiseChunk.updateForZ(zLerp);
+                            const BlockState* blockState = nullptr;
+                            if (aquifer != nullptr) {
+                                blockState = aquifer->computeSubstance(blockX, blockY, blockZ, density);
+                            }
+                            if (blockState == nullptr && density > 0.0) {
+                                blockState = m_settings.defaultBlock;
+                            }
+
+                            if (blockState != nullptr) {
+                                chunk.setBlockState(localX, blockY, localZ, blockState);
+                                chunk.updateHeightmap(
+                                    HeightmapType::WorldSurfaceWG, localX, blockY, localZ, blockState);
+                                if (blockState->isSolid()) {
+                                    chunk.updateHeightmap(
+                                        HeightmapType::OceanFloorWG, localX, blockY, localZ, blockState);
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
+
+        noiseChunk.swapSlices();
     }
 
     // 标记阶段完成

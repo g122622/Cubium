@@ -25,6 +25,7 @@
 #include "common/world/gen/density/DensityFunction.hpp"
 #include "common/world/gen/density/NoiseRouter.hpp"
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 namespace mc::world::gen::aquifer {
@@ -334,7 +335,14 @@ public:
      * @param blockZ 方块 Z 坐标
      * @return 预估表面高度
      */
-    [[nodiscard]] f64 samplePreliminarySurfaceLevel(i32 blockX, i32 blockZ) const;
+    [[nodiscard]] i32 samplePreliminarySurfaceLevel(i32 blockX, i32 blockZ) const;
+
+    /**
+     * @brief 采样范围内最大的预备表面高度。
+     *
+     * 含水层用它决定地表以上跳过详细采样的高度边界。
+     */
+    [[nodiscard]] i32 maxPreliminarySurfaceLevel(i32 minBlockX, i32 minBlockZ, i32 maxBlockX, i32 maxBlockZ) const;
 
     // ========== 访问器 ==========
 
@@ -342,7 +350,9 @@ public:
     [[nodiscard]] const CellConfig& cellConfig() const { return m_cellConfig; }
     [[nodiscard]] i32 startBlockX() const { return m_startBlockX; }
     [[nodiscard]] i32 startBlockZ() const { return m_startBlockZ; }
+    [[nodiscard]] i32 firstCellX() const { return m_firstCellX; }
     [[nodiscard]] i32 firstCellY() const { return m_firstCellY; }
+    [[nodiscard]] i32 firstCellZ() const { return m_firstCellZ; }
 
     /**
      * @brief 获取包装后的 finalDensity（包含 Interpolated/CacheAllInCell 包装）
@@ -462,9 +472,10 @@ private:
     CellConfig m_cellConfig;
 
     i32 m_startBlockX;
-    i32 m_startBlockY;
     i32 m_startBlockZ;
+    i32 m_firstCellX;
     i32 m_firstCellY;
+    i32 m_firstCellZ;
 
     /// 当前方块坐标（插值过程中设置）
     i32 m_blockX = 0;
@@ -498,6 +509,9 @@ private:
 
     /// 包装后的 preliminarySurfaceLevel
     std::unique_ptr<DensityFunction> m_wrappedPreliminarySurfaceLevel;
+
+    /// preliminarySurfaceLevel 按 4 方块网格离散化后缓存
+    mutable std::unordered_map<i64, i32> m_preliminarySurfaceLevelCache;
 
     /// 含水层采样器（可能为 nullptr）
     std::unique_ptr<aquifer::Aquifer> m_aquifer;

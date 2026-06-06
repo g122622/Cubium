@@ -26,6 +26,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
 #include <functional>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -100,10 +101,13 @@ public:
      * @param surfaceDepthNoise 地表深度噪声（MC: Noises.SURFACE）
      * @param surfaceSecondaryNoise 地表次要噪声（MC: Noises.SURFACE_SECONDARY）
      */
+    using PreliminarySurfaceProvider = std::function<i32(i32, i32)>;
+
     SurfaceRuleContext(i32 seaLevel, i32 minY, i32 height,
         const world::gen::noise::NormalNoise* surfaceDepthNoise,
         const world::gen::noise::NormalNoise* surfaceSecondaryNoise,
-        const world::gen::noise::NormalNoise* clayBandsOffsetNoise);
+        const world::gen::noise::NormalNoise* clayBandsOffsetNoise,
+        PreliminarySurfaceProvider preliminarySurfaceProvider);
 
     /** 更新 XZ 坐标（每列开始时调用） */
     void updateXZ(i32 blockX, i32 blockZ);
@@ -147,6 +151,8 @@ public:
     [[nodiscard]] bool hole() const { return m_surfaceDepth <= 0; }
 
 private:
+    [[nodiscard]] i32 _minSurfaceLevel() const;
+
     i32 m_seaLevel;
     i32 m_minY;
     i32 m_height;
@@ -155,6 +161,7 @@ private:
     const world::gen::noise::NormalNoise* m_surfaceDepthNoise;
     const world::gen::noise::NormalNoise* m_surfaceSecondaryNoise;
     const world::gen::noise::NormalNoise* m_clayBandsOffsetNoise;
+    PreliminarySurfaceProvider m_preliminarySurfaceProvider;
 
     // 当前位置状态
     i32 m_blockX = 0;
@@ -170,6 +177,10 @@ private:
     mutable bool m_surfaceSecondaryCached = false;
     mutable f64 m_surfaceSecondaryValue = 0.0;
     mutable i64 m_lastXZ = -1;
+    mutable i64 m_lastPreliminarySurfaceCellOrigin = std::numeric_limits<i64>::min();
+    mutable i64 m_lastMinSurfaceLevelXZ = std::numeric_limits<i64>::min();
+    mutable i32 m_preliminarySurfaceCache[4] = {};
+    mutable i32 m_minSurfaceLevel = 0;
 
     // Bandlands 陶土带
     std::vector<const BlockState*> m_clayBands;
@@ -504,7 +515,8 @@ public:
      * @param getBiomeAt 获取指定位置的生物群系 ID
      */
     void buildSurface(ChunkPrimer& chunk,
-        const std::function<BiomeId(i32, i32, i32)>& getBiomeAt) const;
+        const std::function<BiomeId(i32, i32, i32)>& getBiomeAt,
+        const SurfaceRuleContext::PreliminarySurfaceProvider& getPreliminarySurfaceLevel) const;
 
 private:
     /** 判断方块是否为"石头"（非空气、非流体） */

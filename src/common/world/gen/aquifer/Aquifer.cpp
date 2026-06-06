@@ -102,23 +102,19 @@ NoiseBasedAquifer::NoiseBasedAquifer(const density::NoiseChunk& noiseChunk,
     , m_depth(router.depth())
     , m_positionalRandom(positionalRandom)
     , m_globalFluidPicker(std::move(globalFluidPicker))
-    , m_skipSamplingAboveY(minY + height - 8)
 {
-    const i32 startBlockX = chunkX * 16;
-    const i32 startBlockZ = chunkZ * 16;
+    const i32 minBlockX = chunkX * world::CHUNK_WIDTH;
+    const i32 minBlockZ = chunkZ * world::CHUNK_WIDTH;
+    const i32 maxBlockX = minBlockX + world::CHUNK_WIDTH - 1;
+    const i32 maxBlockZ = minBlockZ + world::CHUNK_WIDTH - 1;
 
-    // 采样起始位置（含水层网格偏移后）
-    const i32 sampleStartX = startBlockX + SAMPLE_OFFSET_X * X_SPACING;
-    const i32 sampleStartY = minY + SAMPLE_OFFSET_Y * Y_SPACING;
-    const i32 sampleStartZ = startBlockZ + SAMPLE_OFFSET_Z * Z_SPACING;
+    m_minGridX = gridX(minBlockX + SAMPLE_OFFSET_X);
+    m_minGridY = gridY(minY + SAMPLE_OFFSET_Y) - 1;
+    m_minGridZ = gridZ(minBlockZ + SAMPLE_OFFSET_Z);
 
-    m_minGridX = gridX(sampleStartX) - 1;
-    m_minGridY = gridY(sampleStartY) - 1;
-    m_minGridZ = gridZ(sampleStartZ) - 1;
-
-    const i32 maxGridX = gridX(startBlockX + 16 + SAMPLE_OFFSET_X * X_SPACING) + 1;
-    const i32 maxGridY = gridY(minY + height + SAMPLE_OFFSET_Y * Y_SPACING) + 1;
-    const i32 maxGridZ = gridZ(startBlockZ + 16 + SAMPLE_OFFSET_Z * Z_SPACING) + 1;
+    const i32 maxGridX = gridX(maxBlockX + SAMPLE_OFFSET_X) + 1;
+    const i32 maxGridY = gridY(minY + height + SAMPLE_OFFSET_Y) + 1;
+    const i32 maxGridZ = gridZ(maxBlockZ + SAMPLE_OFFSET_Z) + 1;
 
     m_gridSizeX = maxGridX - m_minGridX + 1;
     m_gridSizeY = maxGridY - m_minGridY + 1;
@@ -128,6 +124,15 @@ NoiseBasedAquifer::NoiseBasedAquifer(const density::NoiseChunk& noiseChunk,
     m_aquiferLocationCache.resize(totalSize, std::numeric_limits<i64>::max());
     m_aquiferStatusCache.resize(totalSize);
     m_aquiferStatusComputed.resize(totalSize, false);
+
+    const i32 maxSurfaceLevel =
+        m_noiseChunk.maxPreliminarySurfaceLevel(fromGridX(m_minGridX, 0),
+            fromGridZ(m_minGridZ, 0),
+            fromGridX(maxGridX, X_RANGE - 1),
+            fromGridZ(maxGridZ, Z_RANGE - 1)) +
+        8;
+    const i32 skipGridY = gridY(maxSurfaceLevel + 12) + 1;
+    m_skipSamplingAboveY = fromGridY(skipGridY, Y_RANGE + 2) - 1;
 }
 
 const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i32 blockZ, f64 densityValue)
@@ -154,9 +159,9 @@ const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i3
     }
 
     // 计算含水层网格坐标
-    const i32 aquiferGridX = gridX(blockX + SAMPLE_OFFSET_X * X_SPACING);
-    const i32 aquiferGridY = gridY(blockY + SAMPLE_OFFSET_Y * Y_SPACING);
-    const i32 aquiferGridZ = gridZ(blockZ + SAMPLE_OFFSET_Z * Z_SPACING);
+    const i32 aquiferGridX = gridX(blockX + SAMPLE_OFFSET_X);
+    const i32 aquiferGridY = gridY(blockY + SAMPLE_OFFSET_Y);
+    const i32 aquiferGridZ = gridZ(blockZ + SAMPLE_OFFSET_Z);
 
     // 搜索最近的含水层中心（2x3x2 网格范围）
     i32 distSq1 = std::numeric_limits<i32>::max();
@@ -302,7 +307,7 @@ NoiseBasedAquifer::AquiferStatus NoiseBasedAquifer::computeFluid(i32 x, i32 y, i
         const i32 sx = x + offset[0] * 16;
         const i32 sz = z + offset[1] * 16;
 
-        const i32 surfaceLevel = static_cast<i32>(m_noiseChunk.samplePreliminarySurfaceLevel(sx, sz));
+        const i32 surfaceLevel = m_noiseChunk.samplePreliminarySurfaceLevel(sx, sz);
         const i32 adjustedSurface = surfaceLevel + 8;
 
         const bool isCenter = (offset[0] == 0 && offset[1] == 0);

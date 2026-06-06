@@ -99,7 +99,7 @@ std::vector<FoliagePosition> CherryTrunkPlacer::placeTrunk(WorldGenRegion& world
     }
 
     // 选择随机水平方向
-    Direction direction = Directions::horizontalDirections()[random.nextInt(0, 4)];
+    Direction direction = Directions::horizontal()[random.nextInt(0, 4)];
 
     // 生成第一个分支
     foliagePositions.push_back(generateBranch(world,

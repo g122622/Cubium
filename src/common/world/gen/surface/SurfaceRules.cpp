@@ -28,8 +28,18 @@
 #include <algorithm>
 #include <cmath>
 #include <random>
+#include <utility>
 
 namespace mc::world::gen::surface {
+
+namespace {
+
+[[nodiscard]] i64 packXZ(i32 x, i32 z)
+{
+    return static_cast<i64>((static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u32>(z));
+}
+
+} // namespace
 
 // ============================================================================
 // VerticalAnchor
@@ -55,13 +65,15 @@ i32 VerticalAnchor::resolveY(i32 minY, i32 height) const
 SurfaceRuleContext::SurfaceRuleContext(i32 seaLevel, i32 minY, i32 height,
     const world::gen::noise::NormalNoise* surfaceDepthNoise,
     const world::gen::noise::NormalNoise* surfaceSecondaryNoise,
-    const world::gen::noise::NormalNoise* clayBandsOffsetNoise)
+    const world::gen::noise::NormalNoise* clayBandsOffsetNoise,
+    PreliminarySurfaceProvider preliminarySurfaceProvider)
     : m_seaLevel(seaLevel)
     , m_minY(minY)
     , m_height(height)
     , m_surfaceDepthNoise(surfaceDepthNoise)
     , m_surfaceSecondaryNoise(surfaceSecondaryNoise)
     , m_clayBandsOffsetNoise(clayBandsOffsetNoise)
+    , m_preliminarySurfaceProvider(std::move(preliminarySurfaceProvider))
 {
     // 初始化 bandlands 陶土带
     generateClayBands(static_cast<u64>(seaLevel) * 341873128712ULL);
@@ -122,9 +134,40 @@ const BlockState* SurfaceRuleContext::getBand(i32 blockY) const
 
 bool SurfaceRuleContext::abovePreliminarySurface() const
 {
-    // 简化实现：使用海平面作为预估表面
-    // 完整实现需要 NoiseChunk.preliminarySurfaceLevel()
-    return m_blockY >= m_seaLevel - 8;
+    return m_blockY >= _minSurfaceLevel();
+}
+
+i32 SurfaceRuleContext::_minSurfaceLevel() const
+{
+    const i64 currentXZ = packXZ(m_blockX, m_blockZ);
+    if (m_lastMinSurfaceLevelXZ == currentXZ) {
+        return m_minSurfaceLevel;
+    }
+
+    m_lastMinSurfaceLevelXZ = currentXZ;
+
+    const i32 cellX = math::floorDiv(m_blockX, world::CHUNK_WIDTH);
+    const i32 cellZ = math::floorDiv(m_blockZ, world::CHUNK_WIDTH);
+    const i64 cellOrigin = packXZ(cellX, cellZ);
+    if (m_lastPreliminarySurfaceCellOrigin != cellOrigin) {
+        m_lastPreliminarySurfaceCellOrigin = cellOrigin;
+        const i32 blockX0 = cellX * world::CHUNK_WIDTH;
+        const i32 blockZ0 = cellZ * world::CHUNK_WIDTH;
+        m_preliminarySurfaceCache[0] = m_preliminarySurfaceProvider(blockX0, blockZ0);
+        m_preliminarySurfaceCache[1] = m_preliminarySurfaceProvider(blockX0 + world::CHUNK_WIDTH, blockZ0);
+        m_preliminarySurfaceCache[2] = m_preliminarySurfaceProvider(blockX0, blockZ0 + world::CHUNK_WIDTH);
+        m_preliminarySurfaceCache[3] =
+            m_preliminarySurfaceProvider(blockX0 + world::CHUNK_WIDTH, blockZ0 + world::CHUNK_WIDTH);
+    }
+
+    const f64 deltaX = static_cast<f64>(m_blockX & world::CHUNK_MASK) / static_cast<f64>(world::CHUNK_WIDTH);
+    const f64 deltaZ = static_cast<f64>(m_blockZ & world::CHUNK_MASK) / static_cast<f64>(world::CHUNK_WIDTH);
+    const f64 z0 = math::lerp(
+        static_cast<f64>(m_preliminarySurfaceCache[0]), static_cast<f64>(m_preliminarySurfaceCache[1]), deltaX);
+    const f64 z1 = math::lerp(
+        static_cast<f64>(m_preliminarySurfaceCache[2]), static_cast<f64>(m_preliminarySurfaceCache[3]), deltaX);
+    m_minSurfaceLevel = static_cast<i32>(std::floor(math::lerp(z0, z1, deltaZ))) + m_surfaceDepth - 8;
+    return m_minSurfaceLevel;
 }
 
 bool SurfaceRuleContext::steep() const
@@ -793,7 +836,8 @@ bool SurfaceSystem::isStone(const BlockState* state) const
 }
 
 void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
-    const std::function<BiomeId(i32, i32, i32)>& getBiomeAt) const
+    const std::function<BiomeId(i32, i32, i32)>& getBiomeAt,
+    const SurfaceRuleContext::PreliminarySurfaceProvider& getPreliminarySurfaceLevel) const
 {
     if (!m_surfaceRule) {
         return;
@@ -806,7 +850,7 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
 
     // 创建上下文
     SurfaceRuleContext ctx(m_seaLevel, m_minY, m_height,
-        m_surfaceDepthNoise.get(), m_surfaceSecondaryNoise.get(), m_clayBandsOffsetNoise.get());
+        m_surfaceDepthNoise.get(), m_surfaceSecondaryNoise.get(), m_clayBandsOffsetNoise.get(), getPreliminarySurfaceLevel);
 
     for (i32 localX = 0; localX < world::CHUNK_WIDTH; ++localX) {
         for (i32 localZ = 0; localZ < world::CHUNK_WIDTH; ++localZ) {

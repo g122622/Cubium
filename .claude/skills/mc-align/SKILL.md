@@ -60,7 +60,7 @@ macos环境源码位于 `～/MC_Dev/Minecraft1.21.11源码`
 7. 需要使用命名空间隔离各个子系统的标识符。下面是最佳实践：
 
 ```cpp
-namespace mr {
+namespace mc {
 namespace entity {
 namespace attribute {
 

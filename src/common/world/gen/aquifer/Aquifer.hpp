@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
@@ -222,12 +223,12 @@ private:
     static constexpr i32 WAY_BELOW_MIN_Y = -1000;
 
     // ========== 网格坐标转换 ==========
-    [[nodiscard]] static i32 gridX(i32 x) { return x >> 4; }
+    [[nodiscard]] static i32 gridX(i32 x) { return math::floorDiv(x, world::CHUNK_WIDTH); }
     [[nodiscard]] static i32 gridY(i32 y) { return math::floorDiv(y, Y_SPACING); }
-    [[nodiscard]] static i32 gridZ(i32 z) { return z >> 4; }
-    [[nodiscard]] static i32 fromGridX(i32 gridX, i32 offset) { return (gridX << 4) + offset; }
+    [[nodiscard]] static i32 gridZ(i32 z) { return math::floorDiv(z, world::CHUNK_WIDTH); }
+    [[nodiscard]] static i32 fromGridX(i32 gridX, i32 offset) { return gridX * world::CHUNK_WIDTH + offset; }
     [[nodiscard]] static i32 fromGridY(i32 gridY, i32 offset) { return gridY * Y_SPACING + offset; }
-    [[nodiscard]] static i32 fromGridZ(i32 gridZ, i32 offset) { return (gridZ << 4) + offset; }
+    [[nodiscard]] static i32 fromGridZ(i32 gridZ, i32 offset) { return gridZ * world::CHUNK_WIDTH + offset; }
 
     // ========== 含水层状态缓存 ==========
     /**

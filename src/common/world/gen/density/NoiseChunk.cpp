@@ -24,10 +24,17 @@
 #include "common/core/Constants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/gen/aquifer/Aquifer.hpp"
+#include <algorithm>
+#include <limits>
 
 namespace mc::world::gen::density {
 
 namespace {
+
+[[nodiscard]] i64 packXZ(i32 x, i32 z)
+{
+    return static_cast<i64>((static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u32>(z));
+}
 
 class DensityFunctionReference final : public DensityFunction {
 public:
@@ -225,13 +232,13 @@ NoiseChunk::NoiseChunk(
     : m_router(router)
     , m_cellConfig{cellWidth, cellHeight, 0, 0}
     , m_startBlockX(startBlockX)
-    , m_startBlockY(startBlockY)
     , m_startBlockZ(startBlockZ)
-    , m_firstCellY(startBlockY / cellHeight)
+    , m_firstCellX(math::floorDiv(startBlockX, cellWidth))
+    , m_firstCellY(math::floorDiv(startBlockY, cellHeight))
+    , m_firstCellZ(math::floorDiv(startBlockZ, cellWidth))
 {
-    // MC 1.21: 区块大小 = 16 方块
-    m_cellConfig.cellCountXZ = 16 / cellWidth;
-    m_cellConfig.cellCountY = (world::MAX_BUILD_HEIGHT - world::MIN_BUILD_HEIGHT) / cellHeight;
+    m_cellConfig.cellCountXZ = world::CHUNK_WIDTH / cellWidth;
+    m_cellConfig.cellCountY = world::CHUNK_HEIGHT / cellHeight;
 
     auto finalDensityInterpolator =
         std::make_unique<NoiseInterpolator>(std::make_unique<DensityFunctionReference>(m_router.finalDensity()),
@@ -262,22 +269,22 @@ std::unique_ptr<DensityFunction> NoiseChunk::wrap(std::unique_ptr<DensityFunctio
 void NoiseChunk::initializeForFirstCellX()
 {
     m_interpolating = true;
-    const i32 firstCellX = m_startBlockX / m_cellConfig.cellWidth;
-    const i32 firstCellZ = m_startBlockZ / m_cellConfig.cellWidth;
 
-    // 填充所有插值器的 slice0
     for (auto& interp : m_interpolators) {
-        interp->fillSlice(true, firstCellX, firstCellZ, m_firstCellY, m_cellConfig.cellWidth, m_cellConfig.cellHeight);
+        interp->fillSlice(
+            true, m_firstCellX, m_firstCellZ, m_firstCellY, m_cellConfig.cellWidth, m_cellConfig.cellHeight);
     }
 }
 
 void NoiseChunk::advanceCellX(i32 cellX)
 {
-    const i32 firstCellZ = m_startBlockZ / m_cellConfig.cellWidth;
-
-    // 填充所有插值器的 slice1
     for (auto& interp : m_interpolators) {
-        interp->fillSlice(false, cellX + 1, firstCellZ, m_firstCellY, m_cellConfig.cellWidth, m_cellConfig.cellHeight);
+        interp->fillSlice(false,
+            m_firstCellX + cellX + 1,
+            m_firstCellZ,
+            m_firstCellY,
+            m_cellConfig.cellWidth,
+            m_cellConfig.cellHeight);
     }
 }
 
@@ -295,11 +302,9 @@ void NoiseChunk::selectCellXYZ(i32 cellX, i32 cellY, i32 cellZ)
     // 预填充所有 CellCache
     m_fillingCell = true;
 
-    const i32 firstCellX = m_startBlockX / m_cellConfig.cellWidth;
-    const i32 firstCellZ = m_startBlockZ / m_cellConfig.cellWidth;
-    const i32 cellStartBlockX = (firstCellX + cellX) * m_cellConfig.cellWidth;
+    const i32 cellStartBlockX = (m_firstCellX + cellX) * m_cellConfig.cellWidth;
     const i32 cellStartBlockY = (m_firstCellY + cellY) * m_cellConfig.cellHeight;
-    const i32 cellStartBlockZ = (firstCellZ + cellZ) * m_cellConfig.cellWidth;
+    const i32 cellStartBlockZ = (m_firstCellZ + cellZ) * m_cellConfig.cellWidth;
 
     for (auto& cache : m_cellCaches) {
         cache->fillCell(cellStartBlockX, cellStartBlockY, cellStartBlockZ);
@@ -345,9 +350,32 @@ f64 NoiseChunk::sampleFinalDensity(i32 blockX, i32 blockY, i32 blockZ) const
     return m_wrappedFinalDensity->compute(blockX, blockY, blockZ);
 }
 
-f64 NoiseChunk::samplePreliminarySurfaceLevel(i32 blockX, i32 blockZ) const
+i32 NoiseChunk::samplePreliminarySurfaceLevel(i32 blockX, i32 blockZ) const
 {
-    return m_wrappedPreliminarySurfaceLevel->compute(blockX, 0, blockZ);
+    const i32 quartAlignedX = math::floorDiv(blockX, 4) * 4;
+    const i32 quartAlignedZ = math::floorDiv(blockZ, 4) * 4;
+    const i64 cacheKey = packXZ(quartAlignedX, quartAlignedZ);
+
+    const auto found = m_preliminarySurfaceLevelCache.find(cacheKey);
+    if (found != m_preliminarySurfaceLevelCache.end()) {
+        return found->second;
+    }
+
+    const i32 surfaceLevel =
+        static_cast<i32>(std::floor(m_wrappedPreliminarySurfaceLevel->compute(quartAlignedX, 0, quartAlignedZ)));
+    m_preliminarySurfaceLevelCache.emplace(cacheKey, surfaceLevel);
+    return surfaceLevel;
+}
+
+i32 NoiseChunk::maxPreliminarySurfaceLevel(i32 minBlockX, i32 minBlockZ, i32 maxBlockX, i32 maxBlockZ) const
+{
+    i32 result = std::numeric_limits<i32>::min();
+    for (i32 z = minBlockZ; z <= maxBlockZ; z += 4) {
+        for (i32 x = minBlockX; x <= maxBlockX; x += 4) {
+            result = std::max(result, samplePreliminarySurfaceLevel(x, z));
+        }
+    }
+    return result;
 }
 
 void NoiseChunk::setInCellPos(i32 inCellX, i32 inCellY, i32 inCellZ)

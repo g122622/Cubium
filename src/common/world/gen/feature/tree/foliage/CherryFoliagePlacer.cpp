@@ -24,6 +24,7 @@
 #include "CherryFoliagePlacer.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <algorithm>
 #include <cmath>
 
