@@ -70,7 +70,8 @@ void registerCherryBlocks()
             .hardness(2.0f)
             .resistance(2.0f)
             .soundType(BlockSoundTypes::CHERRY_WOOD)
-            .flammable());
+            .flammable()
+            .ignitedByLava());
 
     // 樱花木材
     CherryBlocks::CHERRY_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:cherry_wood"),
@@ -78,7 +79,8 @@ void registerCherryBlocks()
             .hardness(2.0f)
             .resistance(2.0f)
             .soundType(BlockSoundTypes::CHERRY_WOOD)
-            .flammable());
+            .flammable()
+            .ignitedByLava());
 
     // 去皮樱花原木
     CherryBlocks::STRIPPED_CHERRY_LOG =
@@ -87,7 +89,8 @@ void registerCherryBlocks()
                 .hardness(2.0f)
                 .resistance(2.0f)
                 .soundType(BlockSoundTypes::CHERRY_WOOD)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // 去皮樱花木材
     CherryBlocks::STRIPPED_CHERRY_WOOD =
@@ -96,7 +99,8 @@ void registerCherryBlocks()
                 .hardness(2.0f)
                 .resistance(2.0f)
                 .soundType(BlockSoundTypes::CHERRY_WOOD)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // ============================================================================
     // 樱花木板系列
@@ -108,7 +112,8 @@ void registerCherryBlocks()
             .hardness(2.0f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::CHERRY_WOOD)
-            .flammable());
+            .flammable()
+            .ignitedByLava());
 
     // 樱花楼梯
     CherryBlocks::CHERRY_STAIRS =
@@ -118,7 +123,8 @@ void registerCherryBlocks()
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::CHERRY_WOOD)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // 樱花台阶
     CherryBlocks::CHERRY_SLAB = &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:cherry_slab"),
@@ -126,7 +132,8 @@ void registerCherryBlocks()
             .hardness(2.0f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::CHERRY_WOOD)
-            .flammable());
+            .flammable()
+            .ignitedByLava());
 
     // 樱花栅栏
     CherryBlocks::CHERRY_FENCE = &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:cherry_fence"),
@@ -134,7 +141,8 @@ void registerCherryBlocks()
             .hardness(2.0f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::CHERRY_WOOD)
-            .flammable());
+            .flammable()
+            .ignitedByLava());
 
     // 樱花栅栏门
     CherryBlocks::CHERRY_FENCE_GATE =
@@ -144,7 +152,8 @@ void registerCherryBlocks()
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::CHERRY_WOOD)
                 .notSolid()
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // 樱花门
     CherryBlocks::CHERRY_DOOR = &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:cherry_door"),
@@ -153,7 +162,8 @@ void registerCherryBlocks()
             .resistance(3.0f)
             .soundType(BlockSoundTypes::CHERRY_WOOD)
             .notSolid()
-            .flammable(),
+            .flammable()
+            .ignitedByLava(),
         false // 不是铁门
     );
 
@@ -164,7 +174,8 @@ void registerCherryBlocks()
                 .hardness(3.0f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::CHERRY_WOOD)
-                .flammable(),
+                .flammable()
+                .ignitedByLava(),
             false // 不是铁活板门
         );
 

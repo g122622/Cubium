@@ -32,6 +32,9 @@
 #include "world/block/blocks/building/TrapDoorBlock.hpp"
 #include "world/block/blocks/copper/CopperBulbBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperBlock.hpp"
+#include "world/block/blocks/copper/WeatheringCopperDoorBlock.hpp"
+#include "world/block/blocks/copper/WeatheringCopperTrapDoorBlock.hpp"
+#include "world/block/blocks/LightningRodBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -371,59 +374,83 @@ void registerCopperBlocks()
 
     // ============================================================================
     // 1.21 铜扩展：铜门（8个）
-    // 铜门只能通过红石控制（类似铁门），所以第二个参数传 true
+    // 铜门只能通过红石控制（类似铁门），且可氧化
+    // 未涂蜡使用WeatheringCopperDoorBlock，涂蜡使用WaxedCopperDoorBlock
     // ============================================================================
-    CopperBlocks::COPPER_DOOR =
-        &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:copper_door"), copperDoorProps, true);
+    auto* copperDoor = &registry.registerBlock<blocks::WeatheringCopperDoorBlock>(
+        ResourceLocation("minecraft:copper_door"), copperDoorProps, BlockStateProperties::OxidationLevel::Unaffected);
+    auto* exposedCopperDoor = &registry.registerBlock<blocks::WeatheringCopperDoorBlock>(
+        ResourceLocation("minecraft:exposed_copper_door"), copperDoorProps, BlockStateProperties::OxidationLevel::Exposed);
+    auto* weatheredCopperDoor = &registry.registerBlock<blocks::WeatheringCopperDoorBlock>(
+        ResourceLocation("minecraft:weathered_copper_door"), copperDoorProps, BlockStateProperties::OxidationLevel::Weathered);
+    auto* oxidizedCopperDoor = &registry.registerBlock<blocks::WeatheringCopperDoorBlock>(
+        ResourceLocation("minecraft:oxidized_copper_door"), copperDoorProps, BlockStateProperties::OxidationLevel::Oxidized);
 
-    CopperBlocks::EXPOSED_COPPER_DOOR = &registry.registerBlock<blocks::DoorBlock>(
-        ResourceLocation("minecraft:exposed_copper_door"), copperDoorProps, true);
+    // 设置铜门氧化链
+    copperDoor->setNextOxidationBlock(exposedCopperDoor);
+    exposedCopperDoor->setNextOxidationBlock(weatheredCopperDoor);
+    weatheredCopperDoor->setNextOxidationBlock(oxidizedCopperDoor);
 
-    CopperBlocks::WEATHERED_COPPER_DOOR = &registry.registerBlock<blocks::DoorBlock>(
-        ResourceLocation("minecraft:weathered_copper_door"), copperDoorProps, true);
+    CopperBlocks::COPPER_DOOR = copperDoor;
+    CopperBlocks::EXPOSED_COPPER_DOOR = exposedCopperDoor;
+    CopperBlocks::WEATHERED_COPPER_DOOR = weatheredCopperDoor;
+    CopperBlocks::OXIDIZED_COPPER_DOOR = oxidizedCopperDoor;
 
-    CopperBlocks::OXIDIZED_COPPER_DOOR = &registry.registerBlock<blocks::DoorBlock>(
-        ResourceLocation("minecraft:oxidized_copper_door"), copperDoorProps, true);
+    // 涂蜡铜门
+    CopperBlocks::WAXED_COPPER_DOOR = &registry.registerBlock<blocks::WaxedCopperDoorBlock>(
+        ResourceLocation("minecraft:waxed_copper_door"), copperDoorProps);
 
-    CopperBlocks::WAXED_COPPER_DOOR = &registry.registerBlock<blocks::DoorBlock>(
-        ResourceLocation("minecraft:waxed_copper_door"), copperDoorProps, true);
+    CopperBlocks::WAXED_EXPOSED_COPPER_DOOR = &registry.registerBlock<blocks::WaxedCopperDoorBlock>(
+        ResourceLocation("minecraft:waxed_exposed_copper_door"), copperDoorProps);
 
-    CopperBlocks::WAXED_EXPOSED_COPPER_DOOR = &registry.registerBlock<blocks::DoorBlock>(
-        ResourceLocation("minecraft:waxed_exposed_copper_door"), copperDoorProps, true);
+    CopperBlocks::WAXED_WEATHERED_COPPER_DOOR = &registry.registerBlock<blocks::WaxedCopperDoorBlock>(
+        ResourceLocation("minecraft:waxed_weathered_copper_door"), copperDoorProps);
 
-    CopperBlocks::WAXED_WEATHERED_COPPER_DOOR = &registry.registerBlock<blocks::DoorBlock>(
-        ResourceLocation("minecraft:waxed_weathered_copper_door"), copperDoorProps, true);
-
-    CopperBlocks::WAXED_OXIDIZED_COPPER_DOOR = &registry.registerBlock<blocks::DoorBlock>(
-        ResourceLocation("minecraft:waxed_oxidized_copper_door"), copperDoorProps, true);
+    CopperBlocks::WAXED_OXIDIZED_COPPER_DOOR = &registry.registerBlock<blocks::WaxedCopperDoorBlock>(
+        ResourceLocation("minecraft:waxed_oxidized_copper_door"), copperDoorProps);
 
     // ============================================================================
     // 1.21 铜扩展：铜活板门（8个）
-    // 铜活板门只能通过红石控制（类似铁活板门），所以第二个参数传 true
+    // 铜活板门只能通过红石控制（类似铁活板门），且可氧化
+    // 未涂蜡使用WeatheringCopperTrapDoorBlock，涂蜡使用WaxedCopperTrapDoorBlock
     // ============================================================================
-    CopperBlocks::COPPER_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
-        ResourceLocation("minecraft:copper_trapdoor"), copperDoorProps, true);
+    auto* copperTrapdoor = &registry.registerBlock<blocks::WeatheringCopperTrapDoorBlock>(
+        ResourceLocation("minecraft:copper_trapdoor"), copperDoorProps, BlockStateProperties::OxidationLevel::Unaffected);
+    auto* exposedCopperTrapdoor =
+        &registry.registerBlock<blocks::WeatheringCopperTrapDoorBlock>(ResourceLocation("minecraft:exposed_copper_trapdoor"),
+            copperDoorProps,
+            BlockStateProperties::OxidationLevel::Exposed);
+    auto* weatheredCopperTrapdoor =
+        &registry.registerBlock<blocks::WeatheringCopperTrapDoorBlock>(ResourceLocation("minecraft:weathered_copper_trapdoor"),
+            copperDoorProps,
+            BlockStateProperties::OxidationLevel::Weathered);
+    auto* oxidizedCopperTrapdoor =
+        &registry.registerBlock<blocks::WeatheringCopperTrapDoorBlock>(ResourceLocation("minecraft:oxidized_copper_trapdoor"),
+            copperDoorProps,
+            BlockStateProperties::OxidationLevel::Oxidized);
 
-    CopperBlocks::EXPOSED_COPPER_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
-        ResourceLocation("minecraft:exposed_copper_trapdoor"), copperDoorProps, true);
+    // 设置铜活板门氧化链
+    copperTrapdoor->setNextOxidationBlock(exposedCopperTrapdoor);
+    exposedCopperTrapdoor->setNextOxidationBlock(weatheredCopperTrapdoor);
+    weatheredCopperTrapdoor->setNextOxidationBlock(oxidizedCopperTrapdoor);
 
-    CopperBlocks::WEATHERED_COPPER_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
-        ResourceLocation("minecraft:weathered_copper_trapdoor"), copperDoorProps, true);
+    CopperBlocks::COPPER_TRAPDOOR = copperTrapdoor;
+    CopperBlocks::EXPOSED_COPPER_TRAPDOOR = exposedCopperTrapdoor;
+    CopperBlocks::WEATHERED_COPPER_TRAPDOOR = weatheredCopperTrapdoor;
+    CopperBlocks::OXIDIZED_COPPER_TRAPDOOR = oxidizedCopperTrapdoor;
 
-    CopperBlocks::OXIDIZED_COPPER_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
-        ResourceLocation("minecraft:oxidized_copper_trapdoor"), copperDoorProps, true);
+    // 涂蜡铜活板门
+    CopperBlocks::WAXED_COPPER_TRAPDOOR = &registry.registerBlock<blocks::WaxedCopperTrapDoorBlock>(
+        ResourceLocation("minecraft:waxed_copper_trapdoor"), copperDoorProps);
 
-    CopperBlocks::WAXED_COPPER_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
-        ResourceLocation("minecraft:waxed_copper_trapdoor"), copperDoorProps, true);
+    CopperBlocks::WAXED_EXPOSED_COPPER_TRAPDOOR = &registry.registerBlock<blocks::WaxedCopperTrapDoorBlock>(
+        ResourceLocation("minecraft:waxed_exposed_copper_trapdoor"), copperDoorProps);
 
-    CopperBlocks::WAXED_EXPOSED_COPPER_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
-        ResourceLocation("minecraft:waxed_exposed_copper_trapdoor"), copperDoorProps, true);
+    CopperBlocks::WAXED_WEATHERED_COPPER_TRAPDOOR = &registry.registerBlock<blocks::WaxedCopperTrapDoorBlock>(
+        ResourceLocation("minecraft:waxed_weathered_copper_trapdoor"), copperDoorProps);
 
-    CopperBlocks::WAXED_WEATHERED_COPPER_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
-        ResourceLocation("minecraft:waxed_weathered_copper_trapdoor"), copperDoorProps, true);
-
-    CopperBlocks::WAXED_OXIDIZED_COPPER_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
-        ResourceLocation("minecraft:waxed_oxidized_copper_trapdoor"), copperDoorProps, true);
+    CopperBlocks::WAXED_OXIDIZED_COPPER_TRAPDOOR = &registry.registerBlock<blocks::WaxedCopperTrapDoorBlock>(
+        ResourceLocation("minecraft:waxed_oxidized_copper_trapdoor"), copperDoorProps);
 
     // ============================================================================
     // 1.21 铜扩展：铜格栅（8个）
@@ -553,10 +580,10 @@ void registerCopperBlocks()
 
     // ============================================================================
     // 避雷针（1.17）
-    // 避雷针是方向性方块，后续需要添加 FACING 属性和 WATERLOGGED 属性
-    // 目前先用 SimpleBlock 占位
+    // 避雷针是方向性方块，FACING + POWERED + WATERLOGGED，可被闪电激活输出红石信号
     // ============================================================================
-    CopperBlocks::LIGHTNING_ROD = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:lightning_rod"),
+    CopperBlocks::LIGHTNING_ROD = &registry.registerBlock<blocks::LightningRodBlock>(
+        ResourceLocation("minecraft:lightning_rod"),
         BlockProperties(Material::IRON)
             .hardness(3.0f)
             .resistance(6.0f)

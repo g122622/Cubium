@@ -91,7 +91,8 @@ void registerPaleGardenBlocks()
                 .resistance(2.0f)
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::WOOD)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // 苍白橡木木材（全皮）
     PaleGardenBlocks::PALE_OAK_WOOD =
@@ -101,7 +102,8 @@ void registerPaleGardenBlocks()
                 .resistance(2.0f)
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::WOOD)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // 去皮苍白橡木原木
     PaleGardenBlocks::STRIPPED_PALE_OAK_LOG =
@@ -111,7 +113,8 @@ void registerPaleGardenBlocks()
                 .resistance(2.0f)
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::WOOD)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // 去皮苍白橡木木材
     PaleGardenBlocks::STRIPPED_PALE_OAK_WOOD =
@@ -121,7 +124,8 @@ void registerPaleGardenBlocks()
                 .resistance(2.0f)
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::WOOD)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // ============================================================================
     // 苍白橡木木板和树叶
@@ -135,7 +139,8 @@ void registerPaleGardenBlocks()
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::WOOD)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // 苍白橡树树叶
     PaleGardenBlocks::PALE_OAK_LEAVES =
@@ -169,7 +174,8 @@ void registerPaleGardenBlocks()
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::WOOD)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // 苍白橡木台阶
     PaleGardenBlocks::PALE_OAK_SLAB =
@@ -179,7 +185,8 @@ void registerPaleGardenBlocks()
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::WOOD)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // 苍白橡木栅栏
     PaleGardenBlocks::PALE_OAK_FENCE =
@@ -189,7 +196,8 @@ void registerPaleGardenBlocks()
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::WOOD)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // 苍白橡木栅栏门
     PaleGardenBlocks::PALE_OAK_FENCE_GATE =
@@ -200,7 +208,8 @@ void registerPaleGardenBlocks()
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::WOOD)
                 .notSolid()
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // 苍白橡木门
     PaleGardenBlocks::PALE_OAK_DOOR =
@@ -211,7 +220,8 @@ void registerPaleGardenBlocks()
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::WOOD)
                 .notSolid()
-                .flammable(),
+                .flammable()
+                .ignitedByLava(),
             false // isIron = false，木门可手动开关
         );
 
@@ -224,7 +234,8 @@ void registerPaleGardenBlocks()
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::WOOD)
                 .notSolid()
-                .flammable(),
+                .flammable()
+                .ignitedByLava(),
             false // isIron = false，木活板门可手动开关
         );
 
@@ -273,7 +284,8 @@ void registerPaleGardenBlocks()
                 .resistance(1.0f)
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::CREAKING_HEART)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // ============================================================================
     // 树脂系列

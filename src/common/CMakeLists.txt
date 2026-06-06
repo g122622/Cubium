@@ -681,10 +681,22 @@ add_library(mc_common STATIC
     world/block/blocks/ocean/ConduitBlock.cpp
     world/block/blocks/SignBlock.cpp
     world/block/blocks/HangingSignBlock.cpp
+    world/block/blocks/LightningRodBlock.cpp
 
     # World - Block - Copper
     world/block/blocks/copper/WeatheringCopperBlock.cpp
+    world/block/blocks/copper/WeatheringCopperDoorBlock.cpp
+    world/block/blocks/copper/WeatheringCopperTrapDoorBlock.cpp
     world/block/blocks/copper/CopperBulbBlock.cpp
+
+    # World - Block - Sculk
+    world/block/blocks/sculk/SculkBlocks.cpp
+
+    # World - Block - Functional (Trails & Tales)
+    world/block/blocks/functional/TrailsBlocks.cpp
+
+    # World - Block - Trial (Tricky Trials)
+    world/block/blocks/trial/TrialBlocks.cpp
 
     # World - Block - Nether
     world/block/blocks/nether/FireBlock.cpp

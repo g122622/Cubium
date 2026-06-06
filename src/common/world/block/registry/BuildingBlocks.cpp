@@ -28,7 +28,6 @@
 #include "world/block/blocks/ChestBlock.hpp"
 #include "world/block/blocks/EnchantingTableBlock.hpp"
 #include "world/block/blocks/FallingBlock.hpp"
-#include "world/block/blocks/decorative/LadderBlock.hpp"
 #include "world/block/blocks/LiquidBlock.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"
 #include "world/block/blocks/ShulkerBoxBlock.hpp"
@@ -39,6 +38,7 @@
 #include "world/block/blocks/building/StairsBlock.hpp"
 #include "world/block/blocks/building/WallBlock.hpp"
 #include "world/block/blocks/decorative/ChainBlock.hpp"
+#include "world/block/blocks/decorative/LadderBlock.hpp"
 #include "world/block/blocks/decorative/LanternBlock.hpp"
 #include "world/block/blocks/decorative/PaneBlock.hpp"
 #include "world/block/blocks/decorative/ScaffoldingBlock.hpp"
@@ -146,12 +146,13 @@ void registerBuildingBlocks()
         ResourceLocation("minecraft:bricks"), BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
 
     // 苔石圆石
-    BuildingBlocks::MOSSY_COBBLESTONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:mossy_cobblestone"),
-        BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
+    BuildingBlocks::MOSSY_COBBLESTONE =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:mossy_cobblestone"),
+            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
 
     // 书架
-    BuildingBlocks::BOOKSHELF = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:bookshelf"), BlockProperties(Material::WOOD).hardness(1.5f).flammable());
+    BuildingBlocks::BOOKSHELF = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:bookshelf"),
+        BlockProperties(Material::WOOD).hardness(1.5f).flammable().ignitedByLava());
 
     // 海绵
     BuildingBlocks::SPONGE = &registry.registerBlock<blocks::SpongeBlock>(
@@ -163,7 +164,7 @@ void registerBuildingBlocks()
 
     // 工作台
     BuildingBlocks::CRAFTING_TABLE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:crafting_table"),
-        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable());
+        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
 
     // 炼药锅
     BuildingBlocks::CAULDRON = &registry.registerBlock<blocks::CauldronBlock>(ResourceLocation("minecraft:cauldron"),
@@ -176,11 +177,11 @@ void registerBuildingBlocks()
 
     // 箱子 - 含水方块
     BuildingBlocks::CHEST = &registry.registerBlock<blocks::ChestBlock>(ResourceLocation("minecraft:chest"),
-        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).notSolid().flammable());
+        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).notSolid().flammable().ignitedByLava());
 
     // 梯子 - 含水方块
-    BuildingBlocks::LADDER = &registry.registerBlock<blocks::LadderBlock>(
-        ResourceLocation("minecraft:ladder"), BlockProperties(Material::WOOD).hardness(0.4f).notSolid().flammable());
+    BuildingBlocks::LADDER = &registry.registerBlock<blocks::LadderBlock>(ResourceLocation("minecraft:ladder"),
+        BlockProperties(Material::WOOD).hardness(0.4f).notSolid().flammable().ignitedByLava());
 
     // 锁链 - 含水方块
     BuildingBlocks::CHAIN = &registry.registerBlock<blocks::ChainBlock>(ResourceLocation("minecraft:chain"),
@@ -199,38 +200,41 @@ void registerBuildingBlocks()
         ResourceLocation("minecraft:iron_bars"), BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f));
 
     // 陷阱箱 - 含水方块
-    BuildingBlocks::TRAPPED_CHEST = &registry.registerBlock<blocks::TrappedChestBlock>(ResourceLocation("minecraft:trapped_chest"),
-        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).notSolid().flammable());
+    BuildingBlocks::TRAPPED_CHEST =
+        &registry.registerBlock<blocks::TrappedChestBlock>(ResourceLocation("minecraft:trapped_chest"),
+            BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).notSolid().flammable().ignitedByLava());
 
     // 潜影盒
-    BuildingBlocks::SHULKER_BOX = &registry.registerBlock<blocks::ShulkerBoxBlock>(ResourceLocation("minecraft:shulker_box"),
-        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid());
+    BuildingBlocks::SHULKER_BOX =
+        &registry.registerBlock<blocks::ShulkerBoxBlock>(ResourceLocation("minecraft:shulker_box"),
+            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid());
 
     // 织布机
     BuildingBlocks::LOOM = &registry.registerBlock<blocks::LoomBlock>(ResourceLocation("minecraft:loom"),
-        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable());
+        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
 
     // 木桶
     BuildingBlocks::BARREL = &registry.registerBlock<blocks::BarrelBlock>(ResourceLocation("minecraft:barrel"),
-        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable());
+        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
 
     // 制图台
     BuildingBlocks::CARTOGRAPHY_TABLE =
         &registry.registerBlock<blocks::CartographyTableBlock>(ResourceLocation("minecraft:cartography_table"),
-            BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable());
+            BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
 
     // 制箭台
     BuildingBlocks::FLETCHING_TABLE =
         &registry.registerBlock<blocks::FletchingTableBlock>(ResourceLocation("minecraft:fletching_table"),
-            BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable());
+            BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
 
     // 锻造台
-    BuildingBlocks::SMITHING_TABLE = &registry.registerBlock<blocks::SmithingTableBlock>(ResourceLocation("minecraft:smithing_table"),
-        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable());
+    BuildingBlocks::SMITHING_TABLE =
+        &registry.registerBlock<blocks::SmithingTableBlock>(ResourceLocation("minecraft:smithing_table"),
+            BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
 
     // 堆肥桶
-    BuildingBlocks::COMPOSTER = &registry.registerBlock<blocks::ComposterBlock>(
-        ResourceLocation("minecraft:composter"), BlockProperties(Material::WOOD).hardness(0.6f).flammable());
+    BuildingBlocks::COMPOSTER = &registry.registerBlock<blocks::ComposterBlock>(ResourceLocation("minecraft:composter"),
+        BlockProperties(Material::WOOD).hardness(0.6f).flammable().ignitedByLava());
 
     // 蛋糕
     BuildingBlocks::CAKE = &registry.registerBlock<blocks::CakeBlock>(
@@ -238,11 +242,11 @@ void registerBuildingBlocks()
 
     // 讲台
     BuildingBlocks::LECTERN = &registry.registerBlock<blocks::LecternBlock>(ResourceLocation("minecraft:lectern"),
-        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable());
+        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
 
     // 唱片机
     BuildingBlocks::JUKEBOX = &registry.registerBlock<blocks::JukeboxBlock>(ResourceLocation("minecraft:jukebox"),
-        BlockProperties(Material::WOOD).hardness(2.0f).resistance(6.0f).flammable());
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(6.0f).flammable().ignitedByLava());
 
     // TNT
     BuildingBlocks::TNT = &registry.registerBlock<blocks::TNTBlock>(
@@ -251,7 +255,8 @@ void registerBuildingBlocks()
     // ========== 石砖系列 ==========
     BlockProperties stoneBrickProps = BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f);
 
-    BuildingBlocks::STONE_BRICKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:stone_bricks"), stoneBrickProps);
+    BuildingBlocks::STONE_BRICKS =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:stone_bricks"), stoneBrickProps);
     BuildingBlocks::MOSSY_STONE_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:mossy_stone_bricks"), stoneBrickProps);
     BuildingBlocks::CRACKED_STONE_BRICKS =
@@ -260,15 +265,19 @@ void registerBuildingBlocks()
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_stone_bricks"), stoneBrickProps);
 
     // 石砖楼梯和台阶
-    BuildingBlocks::STONE_BRICK_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
-        ResourceLocation("minecraft:stone_brick_stairs"), BuildingBlocks::STONE_BRICKS->defaultState(), stoneBrickProps);
+    BuildingBlocks::STONE_BRICK_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:stone_brick_stairs"),
+            BuildingBlocks::STONE_BRICKS->defaultState(),
+            stoneBrickProps);
 
     BuildingBlocks::STONE_BRICK_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:stone_brick_slab"), stoneBrickProps);
 
     // 苔藓石砖楼梯、台阶、墙
-    BuildingBlocks::MOSSY_STONE_BRICK_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
-        ResourceLocation("minecraft:mossy_stone_brick_stairs"), BuildingBlocks::MOSSY_STONE_BRICKS->defaultState(), stoneBrickProps);
+    BuildingBlocks::MOSSY_STONE_BRICK_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:mossy_stone_brick_stairs"),
+            BuildingBlocks::MOSSY_STONE_BRICKS->defaultState(),
+            stoneBrickProps);
 
     BuildingBlocks::MOSSY_STONE_BRICK_SLAB = &registry.registerBlock<blocks::SlabBlock>(
         ResourceLocation("minecraft:mossy_stone_brick_slab"), stoneBrickProps);
@@ -285,18 +294,28 @@ void registerBuildingBlocks()
         ResourceLocation("minecraft:infested_cobblestone"), BaseBlocks::COBBLESTONE->blockId(), infestedProps);
     BuildingBlocks::INFESTED_STONE_BRICKS = &registry.registerBlock<blocks::InfestedBlock>(
         ResourceLocation("minecraft:infested_stone_bricks"), BuildingBlocks::STONE_BRICKS->blockId(), infestedProps);
-    BuildingBlocks::INFESTED_MOSSY_STONE_BRICKS = &registry.registerBlock<blocks::InfestedBlock>(
-        ResourceLocation("minecraft:infested_mossy_stone_bricks"), BuildingBlocks::MOSSY_STONE_BRICKS->blockId(), infestedProps);
-    BuildingBlocks::INFESTED_CRACKED_STONE_BRICKS = &registry.registerBlock<blocks::InfestedBlock>(
-        ResourceLocation("minecraft:infested_cracked_stone_bricks"), BuildingBlocks::CRACKED_STONE_BRICKS->blockId(), infestedProps);
-    BuildingBlocks::INFESTED_CHISELED_STONE_BRICKS = &registry.registerBlock<blocks::InfestedBlock>(
-        ResourceLocation("minecraft:infested_chiseled_stone_bricks"), BuildingBlocks::CHISELED_STONE_BRICKS->blockId(), infestedProps);
+    BuildingBlocks::INFESTED_MOSSY_STONE_BRICKS =
+        &registry.registerBlock<blocks::InfestedBlock>(ResourceLocation("minecraft:infested_mossy_stone_bricks"),
+            BuildingBlocks::MOSSY_STONE_BRICKS->blockId(),
+            infestedProps);
+    BuildingBlocks::INFESTED_CRACKED_STONE_BRICKS =
+        &registry.registerBlock<blocks::InfestedBlock>(ResourceLocation("minecraft:infested_cracked_stone_bricks"),
+            BuildingBlocks::CRACKED_STONE_BRICKS->blockId(),
+            infestedProps);
+    BuildingBlocks::INFESTED_CHISELED_STONE_BRICKS =
+        &registry.registerBlock<blocks::InfestedBlock>(ResourceLocation("minecraft:infested_chiseled_stone_bricks"),
+            BuildingBlocks::CHISELED_STONE_BRICKS->blockId(),
+            infestedProps);
 
     // 注册虫蚀方块映射
-    blocks::InfestedBlock::registerInfestedBlock(BaseBlocks::STONE->blockId(), BuildingBlocks::INFESTED_STONE->blockId());
-    blocks::InfestedBlock::registerInfestedBlock(BaseBlocks::COBBLESTONE->blockId(), BuildingBlocks::INFESTED_COBBLESTONE->blockId());
-    blocks::InfestedBlock::registerInfestedBlock(BuildingBlocks::STONE_BRICKS->blockId(), BuildingBlocks::INFESTED_STONE_BRICKS->blockId());
-    blocks::InfestedBlock::registerInfestedBlock(BuildingBlocks::MOSSY_STONE_BRICKS->blockId(), BuildingBlocks::INFESTED_MOSSY_STONE_BRICKS->blockId());
+    blocks::InfestedBlock::registerInfestedBlock(
+        BaseBlocks::STONE->blockId(), BuildingBlocks::INFESTED_STONE->blockId());
+    blocks::InfestedBlock::registerInfestedBlock(
+        BaseBlocks::COBBLESTONE->blockId(), BuildingBlocks::INFESTED_COBBLESTONE->blockId());
+    blocks::InfestedBlock::registerInfestedBlock(
+        BuildingBlocks::STONE_BRICKS->blockId(), BuildingBlocks::INFESTED_STONE_BRICKS->blockId());
+    blocks::InfestedBlock::registerInfestedBlock(
+        BuildingBlocks::MOSSY_STONE_BRICKS->blockId(), BuildingBlocks::INFESTED_MOSSY_STONE_BRICKS->blockId());
     blocks::InfestedBlock::registerInfestedBlock(
         BuildingBlocks::CRACKED_STONE_BRICKS->blockId(), BuildingBlocks::INFESTED_CRACKED_STONE_BRICKS->blockId());
     blocks::InfestedBlock::registerInfestedBlock(
@@ -308,7 +327,8 @@ void registerBuildingBlocks()
     // ========== 石英系列 ==========
     BlockProperties quartzProps = BlockProperties(Material::ROCK).hardness(0.8f);
 
-    BuildingBlocks::QUARTZ_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:quartz_block"), quartzProps);
+    BuildingBlocks::QUARTZ_BLOCK =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:quartz_block"), quartzProps);
     BuildingBlocks::CHISELED_QUARTZ_BLOCK =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_quartz_block"), quartzProps);
 
@@ -319,16 +339,18 @@ void registerBuildingBlocks()
     // ========== 海晶系列 ==========
     BlockProperties prismarineProps = BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f);
 
-    BuildingBlocks::PRISMARINE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:prismarine"), prismarineProps);
+    BuildingBlocks::PRISMARINE =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:prismarine"), prismarineProps);
     BuildingBlocks::PRISMARINE_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:prismarine_bricks"), prismarineProps);
     BuildingBlocks::DARK_PRISMARINE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:dark_prismarine"), prismarineProps);
 
     // 海晶楼梯
-    BuildingBlocks::PRISMARINE_STAIRS = &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:prismarine_stairs"),
-        BuildingBlocks::PRISMARINE->defaultState(),
-        BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+    BuildingBlocks::PRISMARINE_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:prismarine_stairs"),
+            BuildingBlocks::PRISMARINE->defaultState(),
+            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
     BuildingBlocks::PRISMARINE_BRICK_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:prismarine_brick_stairs"),
             BuildingBlocks::PRISMARINE_BRICKS->defaultState(),
@@ -339,8 +361,9 @@ void registerBuildingBlocks()
             BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
     // 海晶台阶
-    BuildingBlocks::PRISMARINE_SLAB = &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:prismarine_slab"),
-        BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+    BuildingBlocks::PRISMARINE_SLAB =
+        &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:prismarine_slab"),
+            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
     BuildingBlocks::PRISMARINE_BRICK_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:prismarine_brick_slab"),
             BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
@@ -355,7 +378,8 @@ void registerBuildingBlocks()
     // ========== 紫珀系列 ==========
     BlockProperties purpurProps = BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f);
 
-    BuildingBlocks::PURPUR_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:purpur_block"), purpurProps);
+    BuildingBlocks::PURPUR_BLOCK =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:purpur_block"), purpurProps);
 
     // 紫珀柱 - 有轴属性
     BuildingBlocks::PURPUR_PILLAR =
@@ -367,8 +391,8 @@ void registerBuildingBlocks()
         ResourceLocation("minecraft:bone_block"), BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
 
     // 干草块 - 有轴属性
-    BuildingBlocks::HAY_BLOCK = &registry.registerBlock<RotatedPillarBlock>(
-        ResourceLocation("minecraft:hay_block"), BlockProperties(Material::EARTH).hardness(0.5f).flammable());
+    BuildingBlocks::HAY_BLOCK = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:hay_block"),
+        BlockProperties(Material::EARTH).hardness(0.5f).flammable().ignitedByLava());
 }
 
 } // namespace block_registry

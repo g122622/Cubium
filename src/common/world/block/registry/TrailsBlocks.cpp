@@ -18,6 +18,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 #include "world/block/registry/TrailsBlocks.hpp"
@@ -25,6 +26,7 @@
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/HarvestTool.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/functional/TrailsBlocks.hpp"
 #include "world/block/blocks/vegetation/DoublePlantBlock.hpp"
 
 namespace mc {
@@ -64,13 +66,14 @@ void registerTrailsBlocks()
     // 可疑方块（考古）
     // ============================================================================
 
-    // 可疑的沙 - 受重力影响，可以被刷子刷出物品
-    TrailsBlocks::SUSPICIOUS_SAND = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:suspicious_sand"),
+    // 可疑的沙 - 受重力影响，可以被刷子刷出物品，DUSTED属性(0-3)
+    TrailsBlocks::SUSPICIOUS_SAND = &registry.registerBlock<blocks::BrushableBlock>(
+        ResourceLocation("minecraft:suspicious_sand"),
         BlockProperties(Material::SAND).hardness(0.25f).resistance(0.25f).soundType(BlockSoundTypes::SUSPICIOUS_SAND));
 
-    // 可疑的沙砾 - 受重力影响，可以被刷子刷出物品
+    // 可疑的沙砾 - 受重力影响，可以被刷子刷出物品，DUSTED属性(0-3)
     TrailsBlocks::SUSPICIOUS_GRAVEL =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:suspicious_gravel"),
+        &registry.registerBlock<blocks::BrushableBlock>(ResourceLocation("minecraft:suspicious_gravel"),
             BlockProperties(Material::SAND)
                 .hardness(0.25f)
                 .resistance(0.25f)
@@ -80,34 +83,39 @@ void registerTrailsBlocks()
     // 雕书架
     // ============================================================================
 
-    // 雕书架 - 可以放置书，可被红石比较器检测
+    // 雕书架 - 可以放置6本书，可被红石比较器检测
+    // FACING + SLOT_0~5_OCCUPIED
     TrailsBlocks::CHISELED_BOOKSHELF =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_bookshelf"),
+        &registry.registerBlock<blocks::ChiseledBookshelfBlock>(ResourceLocation("minecraft:chiseled_bookshelf"),
             BlockProperties(Material::WOOD)
                 .hardness(1.5f)
                 .resistance(1.5f)
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::CHISELED_BOOKSHELF)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // ============================================================================
     // 饰纹陶罐
     // ============================================================================
 
     // 饰纹陶罐 - 由陶片合成，无碰撞箱
-    TrailsBlocks::DECORATED_POT = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:decorated_pot"),
-        BlockProperties(Material::DECORATION)
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::DECORATED_POT)
-            .noCollision());
+    // FACING + CRACKED + WATERLOGGED
+    TrailsBlocks::DECORATED_POT =
+        &registry.registerBlock<blocks::DecoratedPotBlock>(ResourceLocation("minecraft:decorated_pot"),
+            BlockProperties(Material::DECORATION)
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::DECORATED_POT)
+                .noCollision());
 
     // ============================================================================
     // 监守者蛋
     // ============================================================================
 
-    // 监守者蛋 - 可孵化出监守者生物
-    TrailsBlocks::SNIFFER_EGG = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:sniffer_egg"),
+    // 监守者蛋 - 可孵化出嗅探兽生物，HATCH属性(0-2)
+    TrailsBlocks::SNIFFER_EGG = &registry.registerBlock<blocks::SnifferEggBlock>(
+        ResourceLocation("minecraft:sniffer_egg"),
         BlockProperties(Material::EARTH).hardness(0.5f).resistance(0.5f).soundType(BlockSoundTypes::SNIFFER_EGG));
 
     // ============================================================================
@@ -122,7 +130,7 @@ void registerTrailsBlocks()
     // 火把花
     // ============================================================================
 
-    // 火把花 - 由监守者发现的古代植物
+    // 火把花 - 由嗅探兽发现的古代植物
     TrailsBlocks::TORCHFLOWER = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:torchflower"),
         BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::GRASS));
 

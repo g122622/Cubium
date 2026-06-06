@@ -25,9 +25,9 @@
 #include "world/block/HarvestTool.hpp"
 #include "world/block/blocks/AirBlock.hpp"
 #include "world/block/blocks/FallingBlock.hpp"
+#include "world/block/blocks/LiquidBlock.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
-#include "world/block/blocks/LiquidBlock.hpp"
 #include "world/block/blocks/dirt/SpreadableSnowyDirtBlock.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"
 #include "world/block/blocks/ice/SnowBlock.hpp"
@@ -206,7 +206,7 @@ void registerBaseBlocks()
 
     // 橡木木板
     BaseBlocks::OAK_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:oak_planks"),
-        BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable());
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable().ignitedByLava());
 
     // 水
     {
@@ -214,9 +214,10 @@ void registerBaseBlocks()
         if (waterFluid != nullptr) {
             auto* flowingWater = dynamic_cast<fluid::FlowingFluid*>(waterFluid);
             if (flowingWater != nullptr) {
-                BaseBlocks::WATER = &registry.registerBlock<::mc::block::LiquidBlock>(ResourceLocation("minecraft:water"),
-                    *flowingWater,
-                    BlockProperties(Material::WATER).noCollision().notSolid().opacity(0));
+                BaseBlocks::WATER =
+                    &registry.registerBlock<::mc::block::LiquidBlock>(ResourceLocation("minecraft:water"),
+                        *flowingWater,
+                        BlockProperties(Material::WATER).noCollision().notSolid().opacity(0));
             }
         }
     }
@@ -289,8 +290,9 @@ void registerBaseBlocks()
         BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
     BaseBlocks::ANDESITE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:andesite"), BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
-    BaseBlocks::POLISHED_ANDESITE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_andesite"),
-        BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
+    BaseBlocks::POLISHED_ANDESITE =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_andesite"),
+            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
 
     // ========== 泥土变种 ==========
     BaseBlocks::COARSE_DIRT = &registry.registerBlock<SimpleBlock>(
@@ -332,8 +334,9 @@ void registerBaseBlocks()
         ResourceLocation("minecraft:redstone_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
     BaseBlocks::COPPER_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:copper_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
-    BaseBlocks::NETHER_QUARTZ_ORE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:nether_quartz_ore"),
-        BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
+    BaseBlocks::NETHER_QUARTZ_ORE =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:nether_quartz_ore"),
+            BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
     BaseBlocks::NETHER_GOLD_ORE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:nether_gold_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
     BaseBlocks::ANCIENT_DEBRIS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:ancient_debris"),
@@ -366,18 +369,31 @@ void registerBaseBlocks()
             .requiresTool());
 
     // ========== 原木和树叶 ==========
-    BlockProperties logProps = BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable();
-    BlockProperties leavesProps =
-        BlockProperties(Material::LEAVES).hardness(0.2f).flammable().notSolid().opacity(1).propagatesSkylightDown();
+    BlockProperties logProps =
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava();
+    BlockProperties leavesProps = BlockProperties(Material::LEAVES)
+                                      .hardness(0.2f)
+                                      .flammable()
+                                      .ignitedByLava()
+                                      .notSolid()
+                                      .opacity(1)
+                                      .propagatesSkylightDown();
 
     BaseBlocks::OAK_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:oak_log"), logProps);
-    BaseBlocks::OAK_LEAVES = &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:oak_leaves"), leavesProps);
-    BaseBlocks::OAK_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:oak_wood"), logProps);
-    BaseBlocks::SPRUCE_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:spruce_wood"), logProps);
-    BaseBlocks::BIRCH_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:birch_wood"), logProps);
-    BaseBlocks::JUNGLE_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:jungle_wood"), logProps);
-    BaseBlocks::ACACIA_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:acacia_wood"), logProps);
-    BaseBlocks::DARK_OAK_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:dark_oak_wood"), logProps);
+    BaseBlocks::OAK_LEAVES =
+        &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:oak_leaves"), leavesProps);
+    BaseBlocks::OAK_WOOD =
+        &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:oak_wood"), logProps);
+    BaseBlocks::SPRUCE_WOOD =
+        &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:spruce_wood"), logProps);
+    BaseBlocks::BIRCH_WOOD =
+        &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:birch_wood"), logProps);
+    BaseBlocks::JUNGLE_WOOD =
+        &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:jungle_wood"), logProps);
+    BaseBlocks::ACACIA_WOOD =
+        &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:acacia_wood"), logProps);
+    BaseBlocks::DARK_OAK_WOOD =
+        &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:dark_oak_wood"), logProps);
 
     BaseBlocks::STRIPPED_OAK_LOG =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_oak_log"), logProps);
@@ -405,29 +421,40 @@ void registerBaseBlocks()
     BaseBlocks::STRIPPED_DARK_OAK_WOOD =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_dark_oak_wood"), logProps);
 
-    BaseBlocks::SPRUCE_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:spruce_log"), logProps);
+    BaseBlocks::SPRUCE_LOG =
+        &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:spruce_log"), logProps);
     BaseBlocks::SPRUCE_LEAVES =
         &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:spruce_leaves"), leavesProps);
-    BaseBlocks::BIRCH_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:birch_log"), logProps);
+    BaseBlocks::BIRCH_LOG =
+        &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:birch_log"), logProps);
     BaseBlocks::BIRCH_LEAVES =
         &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:birch_leaves"), leavesProps);
-    BaseBlocks::JUNGLE_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:jungle_log"), logProps);
+    BaseBlocks::JUNGLE_LOG =
+        &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:jungle_log"), logProps);
     BaseBlocks::JUNGLE_LEAVES =
         &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:jungle_leaves"), leavesProps);
-    BaseBlocks::ACACIA_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:acacia_log"), logProps);
+    BaseBlocks::ACACIA_LOG =
+        &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:acacia_log"), logProps);
     BaseBlocks::ACACIA_LEAVES =
         &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:acacia_leaves"), leavesProps);
-    BaseBlocks::DARK_OAK_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:dark_oak_log"), logProps);
+    BaseBlocks::DARK_OAK_LOG =
+        &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:dark_oak_log"), logProps);
     BaseBlocks::DARK_OAK_LEAVES =
         &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:dark_oak_leaves"), leavesProps);
 
     // ========== 木板变种 ==========
-    BlockProperties planksProps = BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable();
-    BaseBlocks::SPRUCE_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:spruce_planks"), planksProps);
-    BaseBlocks::BIRCH_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:birch_planks"), planksProps);
-    BaseBlocks::JUNGLE_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:jungle_planks"), planksProps);
-    BaseBlocks::ACACIA_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:acacia_planks"), planksProps);
-    BaseBlocks::DARK_OAK_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:dark_oak_planks"), planksProps);
+    BlockProperties planksProps =
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable().ignitedByLava();
+    BaseBlocks::SPRUCE_PLANKS =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:spruce_planks"), planksProps);
+    BaseBlocks::BIRCH_PLANKS =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:birch_planks"), planksProps);
+    BaseBlocks::JUNGLE_PLANKS =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:jungle_planks"), planksProps);
+    BaseBlocks::ACACIA_PLANKS =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:acacia_planks"), planksProps);
+    BaseBlocks::DARK_OAK_PLANKS =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:dark_oak_planks"), planksProps);
 }
 
 } // namespace block_registry

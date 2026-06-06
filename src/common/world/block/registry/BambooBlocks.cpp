@@ -72,7 +72,8 @@ void registerBambooBlocks()
             .hardness(2.0f)
             .resistance(2.0f)
             .soundType(BlockSoundTypes::BAMBOO_WOOD)
-            .flammable());
+            .flammable()
+            .ignitedByLava());
 
     // 去皮竹块
     BambooBlocks::STRIPPED_BAMBOO_BLOCK =
@@ -81,7 +82,8 @@ void registerBambooBlocks()
                 .hardness(2.0f)
                 .resistance(2.0f)
                 .soundType(BlockSoundTypes::BAMBOO_WOOD)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // ============================================================================
     // 竹木木板系列
@@ -93,7 +95,8 @@ void registerBambooBlocks()
             .hardness(2.0f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::BAMBOO_WOOD)
-            .flammable());
+            .flammable()
+            .ignitedByLava());
 
     // 竹马赛克
     BambooBlocks::BAMBOO_MOSAIC = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:bamboo_mosaic"),
@@ -101,7 +104,8 @@ void registerBambooBlocks()
             .hardness(2.0f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::BAMBOO_WOOD)
-            .flammable());
+            .flammable()
+            .ignitedByLava());
 
     // ============================================================================
     // 竹木楼梯
@@ -115,7 +119,8 @@ void registerBambooBlocks()
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::BAMBOO_WOOD)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // 竹马赛克楼梯
     BambooBlocks::BAMBOO_MOSAIC_STAIRS =
@@ -125,7 +130,8 @@ void registerBambooBlocks()
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::BAMBOO_WOOD)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // ============================================================================
     // 竹木台阶
@@ -137,7 +143,8 @@ void registerBambooBlocks()
             .hardness(2.0f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::BAMBOO_WOOD)
-            .flammable());
+            .flammable()
+            .ignitedByLava());
 
     // 竹马赛克台阶
     BambooBlocks::BAMBOO_MOSAIC_SLAB =
@@ -146,7 +153,8 @@ void registerBambooBlocks()
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::BAMBOO_WOOD)
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // ============================================================================
     // 竹木栅栏和门
@@ -158,7 +166,8 @@ void registerBambooBlocks()
             .hardness(2.0f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::BAMBOO_WOOD)
-            .flammable());
+            .flammable()
+            .ignitedByLava());
 
     // 竹栅栏门
     BambooBlocks::BAMBOO_FENCE_GATE =
@@ -168,7 +177,8 @@ void registerBambooBlocks()
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::BAMBOO_WOOD)
                 .notSolid()
-                .flammable());
+                .flammable()
+                .ignitedByLava());
 
     // 竹门
     BambooBlocks::BAMBOO_DOOR = &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:bamboo_door"),
@@ -177,7 +187,8 @@ void registerBambooBlocks()
             .resistance(3.0f)
             .soundType(BlockSoundTypes::BAMBOO_WOOD)
             .notSolid()
-            .flammable(),
+            .flammable()
+            .ignitedByLava(),
         false // 不是铁门
     );
 
@@ -188,7 +199,8 @@ void registerBambooBlocks()
                 .hardness(3.0f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::BAMBOO_WOOD)
-                .flammable(),
+                .flammable()
+                .ignitedByLava(),
             false // 不是铁活板门
         );
 }

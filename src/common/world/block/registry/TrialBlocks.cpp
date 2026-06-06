@@ -9,15 +9,16 @@
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * copies of substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, INCLUDING BY NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 #include "world/block/registry/TrialBlocks.hpp"
@@ -26,6 +27,7 @@
 #include "world/block/HarvestTool.hpp"
 #include "world/block/Material.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/trial/TrialBlocks.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -49,8 +51,9 @@ void registerTrialBlocks()
     // ============================================================================
 
     // 试炼刷怪笼 - 试炼密室的核心，根据玩家战斗生成怪物
-    // 硬度50，抗爆1200，需要铁镐以上才能挖掘
-    TrialBlocks::TRIAL_SPAWNER = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:trial_spawner"),
+    // TRIAL_SPAWNER_STATE + OMINOUS
+    TrialBlocks::TRIAL_SPAWNER = &registry.registerBlock<blocks::TrialSpawnerBlock>(
+        ResourceLocation("minecraft:trial_spawner"),
         BlockProperties(Material::ROCK)
             .hardness(50.0f)
             .resistance(1200.0f)
@@ -61,8 +64,8 @@ void registerTrialBlocks()
             .notSolid());
 
     // 宝库 - 试炼密室的奖励容器，需要特定钥匙才能打开
-    // 硬度50，抗爆1200，需要铁镐以上才能挖掘
-    TrialBlocks::VAULT = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:vault"),
+    // VAULT_STATE + FACING + OMINOUS
+    TrialBlocks::VAULT = &registry.registerBlock<blocks::VaultBlock>(ResourceLocation("minecraft:vault"),
         BlockProperties(Material::ROCK)
             .hardness(50.0f)
             .resistance(1200.0f)
@@ -73,7 +76,8 @@ void registerTrialBlocks()
             .notSolid());
 
     // 合成器 - 自动合成方块，可通过红石控制
-    TrialBlocks::CRAFTER = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:crafter"),
+    // FACING + TRIGGERED + CRAFTING
+    TrialBlocks::CRAFTER = &registry.registerBlock<blocks::CrafterBlock>(ResourceLocation("minecraft:crafter"),
         BlockProperties(Material::ROCK)
             .hardness(1.5f)
             .resistance(3.5f)
