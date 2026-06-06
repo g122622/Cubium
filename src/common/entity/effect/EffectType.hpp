@@ -72,6 +72,11 @@ enum class EffectType : u8 {
     BadOmen = 31,          // 不祥之兆
     HeroOfTheVillage = 32, // 村庄英雄
 
+    // MC 1.21 试炼密室效果
+    TrialOmen = 33,   // 试炼之兆
+    WindCharged = 34, // 风充能
+    RaidOmen = 35,    // 袭击之兆
+
     // 数量
     Count
 };

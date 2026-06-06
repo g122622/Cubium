@@ -25,8 +25,12 @@
 
 #include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/HorizontalBlock.hpp"
+#include <memory>
 
 namespace mc {
+
+class BlockPos;
+class BlockEntity;
 namespace blocks {
 
 /**
@@ -42,6 +46,10 @@ public:
     explicit TrialSpawnerBlock(const BlockProperties& properties);
 
     ~TrialSpawnerBlock() override = default;
+
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
@@ -71,6 +79,10 @@ public:
     explicit VaultBlock(const BlockProperties& properties);
 
     ~VaultBlock() override = default;
+
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 

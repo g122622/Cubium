@@ -1,0 +1,232 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#pragma once
+
+#include "common/core/Types.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include <unordered_set>
+#include <vector>
+
+namespace mc {
+
+class Player;
+class LivingEntity;
+
+/**
+ * @brief 试炼刷怪笼方块实体
+ *
+ * 试炼密室核心机制方块，具有6种状态的有限状态机。
+ * 检测附近玩家后激活，生成怪物，击杀所有怪物后弹出奖励。
+ * 不祥变体增加怪物数量和更强的掉落物。
+ *
+ * 状态机：
+ *   INACTIVE → WAITING_FOR_PLAYERS → ACTIVE → WAITING_FOR_REWARD_EJECTION
+ *                                     ↓                        ↓
+ *                                EJECTING_REWARD ←─────────────┘
+ *                                     ↓
+ *                                COOLDOWN → WAITING_FOR_PLAYERS
+ *
+ * 配置（根据刷怪笼类型）：
+ *   旋风人:   baseTotalMobs=2,  baseSimultaneousMobs=1, ticksBetweenSpawn=20
+ *   近战型:   baseTotalMobs=6,  baseSimultaneousMobs=3, ticksBetweenSpawn=40
+ *   远程型:   baseTotalMobs=6,  baseSimultaneousMobs=3, ticksBetweenSpawn=40
+ *   小型近战: baseTotalMobs=12, baseSimultaneousMobs=4, ticksBetweenSpawn=20
+ *
+ * 红石比较器输出：
+ *   Inactive=0, WaitingForPlayers=1, Active=2,
+ *   WaitingForRewardEjection=3, EjectingReward=4, Cooldown=4
+ *
+ * 参考: net.minecraft.block.entity.TrialSpawnerBlockEntity
+ */
+class TrialSpawnerBlockEntity : public BlockEntity {
+public:
+    /**
+     * @brief 试炼刷怪笼状态
+     */
+    enum class State : u8 {
+        Inactive = 0,
+        WaitingForPlayers = 1,
+        Active = 2,
+        WaitingForRewardEjection = 3,
+        EjectingReward = 4,
+        Cooldown = 5
+    };
+
+    /**
+     * @brief 刷怪笼类型配置
+     */
+    struct Config {
+        /// 基础总怪物数
+        i32 baseTotalMobs = 6;
+        /// 每个玩家增加的总怪物数（不祥变体）
+        i32 totalMobsAddedPerPlayer = 2;
+        /// 基础同时存在怪物数
+        i32 baseSimultaneousMobs = 3;
+        /// 每个玩家增加的同时怪物数（不祥变体）
+        i32 simultaneousMobsAddedPerPlayer = 1;
+        /// 生成间隔（ticks）
+        i32 ticksBetweenSpawn = 40;
+        /// 玩家检测范围
+        f32 detectionRange = 14.0f;
+        /// 生成范围
+        f32 spawnRange = 4.0f;
+        /// 冷却时间（ticks）
+        i32 cooldownTicks = 3600; // 3分钟
+        /// 奖励弹出持续时间（ticks）
+        i32 ejectingRewardTicks = 80; // 4秒
+        /// 补给战利品表
+        ResourceLocation supplyLootTable;
+        /// 钥匙战利品表
+        ResourceLocation keyLootTable;
+        /// 不祥补给战利品表
+        ResourceLocation ominousSupplyLootTable;
+        /// 不祥钥匙战利品表
+        ResourceLocation ominousKeyLootTable;
+    };
+
+    /**
+     * @brief 获取各类型刷怪笼的默认配置
+     */
+    static Config getBreezeConfig();
+    static Config getMeleeConfig();
+    static Config getSmallMeleeConfig();
+    static Config getRangedConfig();
+    static Config getSlowRangedConfig();
+
+    explicit TrialSpawnerBlockEntity(const BlockPos& pos);
+
+    // ========== BlockEntity 接口 ==========
+
+    void tick(IWorld& world) override;
+    [[nodiscard]] bool needsTick() const noexcept override { return true; }
+    bool load(const nlohmann::json& data) override;
+    void save(nlohmann::json& data) const override;
+    [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
+
+    // ========== 状态访问 ==========
+
+    [[nodiscard]] State getState() const noexcept { return m_state; }
+    void setState(State state);
+
+    [[nodiscard]] bool isOminous() const noexcept { return m_ominous; }
+    void setOminous(bool ominous);
+
+    [[nodiscard]] const Config& getConfig() const noexcept { return m_config; }
+    void setConfig(const Config& config);
+
+    // ========== 玩家检测 ==========
+
+    /**
+     * @brief 检测范围内的玩家
+     * @return 范围内的玩家列表
+     */
+    std::vector<Player*> detectPlayers(IWorld& world);
+
+    // ========== 红石比较器 ==========
+
+    /**
+     * @brief 获取红石比较器输出信号
+     */
+    [[nodiscard]] i32 getComparatorOutput() const;
+
+    // ========== 不祥变体 ==========
+
+    /**
+     * @brief 将不祥之兆转化为试炼之兆
+     *
+     * 当持有不祥之兆效果的玩家进入试炼刷怪笼范围时，
+     * 消耗不祥之兆，给予试炼之兆效果，并将刷怪笼转为不祥变体。
+     */
+    void applyOminous(Player& player);
+
+private:
+    // ========== 状态机方法 ==========
+
+    void tickInactive(IWorld& world);
+    void tickWaitingForPlayers(IWorld& world);
+    void tickActive(IWorld& world);
+    void tickWaitingForRewardEjection(IWorld& world);
+    void tickEjectingReward(IWorld& world);
+    void tickCooldown(IWorld& world);
+
+    // ========== 生成逻辑 ==========
+
+    /**
+     * @brief 尝试生成一个怪物
+     */
+    void spawnMob(IWorld& world);
+
+    /**
+     * @brief 弹出奖励物品
+     *
+     * 50%概率补给/50%概率钥匙
+     * 不祥变体：70%概率补给/30%概率钥匙
+     */
+    void ejectReward(IWorld& world);
+
+    /**
+     * @brief 检查已追踪的怪物是否还活着
+     */
+    void updateTrackedMobs(IWorld& world);
+
+    // ========== 数据成员 ==========
+
+    /// 当前状态
+    State m_state = State::Inactive;
+
+    /// 是否为不祥变体
+    bool m_ominous = false;
+
+    /// 刷怪笼配置
+    Config m_config;
+
+    /// 冷却结束tick
+    i64 m_cooldownEndsAt = 0;
+
+    /// 奖励弹出结束tick
+    i64 m_ejectingRewardEndsAt = 0;
+
+    /// 上次生成tick
+    i64 m_lastSpawnTick = 0;
+
+    /// 已追踪的玩家UUID
+    std::unordered_set<std::string> m_trackedPlayers;
+
+    /// 已生成的怪物UUID
+    std::unordered_set<std::string> m_trackedMobs;
+
+    /// 已生成的怪物总数
+    i32 m_spawnedMobsCount = 0;
+
+    /// 当前存活的怪物数
+    i32 m_currentMobsCount = 0;
+
+    /// 需要生成的总怪物数（根据玩家数量动态计算）
+    i32 m_totalMobsToSpawn = 0;
+
+    /// 最大同时存在的怪物数（根据玩家数量动态计算）
+    i32 m_maxSimultaneousMobs = 0;
+};
+
+} // namespace mc

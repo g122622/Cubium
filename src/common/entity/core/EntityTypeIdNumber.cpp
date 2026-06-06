@@ -150,6 +150,9 @@ EntityTypeId PILLAGER = 0;
 EntityTypeId RAVAGER = 0;
 EntityTypeId VEX = 0;
 
+// 试炼密室
+EntityTypeId BREEZE = 0;
+
 // ============================================================================
 // Boss
 // ============================================================================
@@ -195,9 +198,7 @@ EntityTypeId EVOKER_FANGS = 0;
 EntityTypeId FISHING_BOBBER = 0;
 EntityTypeId EYE_OF_ENDER = 0;
 EntityTypeId FIREWORK_ROCKET = 0;
-
-// ============================================================================
-// 交通工具
+EntityTypeId WIND_CHARGE = 0;
 // ============================================================================
 
 EntityTypeId BOAT = 0;
@@ -217,8 +218,7 @@ EntityTypeId END_CRYSTAL = 0;
 EntityTypeId LIGHTNING_BOLT = 0;
 EntityTypeId AREA_EFFECT_CLOUD = 0;
 EntityTypeId ARMOR_STAND = 0;
-
-// 悬挂实体
+EntityTypeId OMINOUS_ITEM_SPAWNER = 0;
 EntityTypeId PAINTING = 0;
 EntityTypeId ITEM_FRAME = 0;
 EntityTypeId LEASH_KNOT = 0;
@@ -326,6 +326,9 @@ void initialize()
     RAVAGER = safeGetId(registry, EntityTypes::RAVAGER);
     VEX = safeGetId(registry, EntityTypes::VEX);
 
+    // 试炼密室
+    BREEZE = safeGetId(registry, EntityTypes::BREEZE);
+
     // Boss
     ENDER_DRAGON = safeGetId(registry, EntityTypes::ENDER_DRAGON);
     WITHER = safeGetId(registry, EntityTypes::WITHER);
@@ -358,8 +361,7 @@ void initialize()
     FISHING_BOBBER = safeGetId(registry, EntityTypes::FISHING_BOBBER);
     EYE_OF_ENDER = safeGetId(registry, EntityTypes::EYE_OF_ENDER);
     FIREWORK_ROCKET = safeGetId(registry, EntityTypes::FIREWORK_ROCKET);
-
-    // 交通工具
+    WIND_CHARGE = safeGetId(registry, EntityTypes::WIND_CHARGE);
     BOAT = safeGetId(registry, EntityTypes::BOAT);
     MINECART = safeGetId(registry, EntityTypes::MINECART);
     CHEST_MINECART = safeGetId(registry, EntityTypes::CHEST_MINECART);
@@ -374,8 +376,7 @@ void initialize()
     LIGHTNING_BOLT = safeGetId(registry, EntityTypes::LIGHTNING_BOLT);
     AREA_EFFECT_CLOUD = safeGetId(registry, EntityTypes::AREA_EFFECT_CLOUD);
     ARMOR_STAND = safeGetId(registry, EntityTypes::ARMOR_STAND);
-
-    // 悬挂实体
+    OMINOUS_ITEM_SPAWNER = safeGetId(registry, EntityTypes::OMINOUS_ITEM_SPAWNER);
     PAINTING = safeGetId(registry, EntityTypes::PAINTING);
     ITEM_FRAME = safeGetId(registry, EntityTypes::ITEM_FRAME);
     LEASH_KNOT = safeGetId(registry, EntityTypes::LEASH_KNOT);

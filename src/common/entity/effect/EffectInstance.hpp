@@ -147,6 +147,36 @@ public:
      */
     [[nodiscard]] static EffectInstance heroOfTheVillage(i32 level = 1);
 
+    /**
+     * @brief 创建试炼之兆效果
+     *
+     * 由不祥之兆在试炼刷怪笼范围内转化而来。
+     * 持续时间 = 不祥之兆等级 × 15000 ticks
+     *
+     * @param level 等级（1-5）
+     */
+    [[nodiscard]] static EffectInstance trialOmen(i32 level = 1);
+
+    /**
+     * @brief 创建风充能效果
+     *
+     * 实体死亡时产生小型风爆效果。
+     * 由旋风人的风弹命中或风爆魔咒触发。
+     *
+     * @param level 等级（1-1）
+     */
+    [[nodiscard]] static EffectInstance windCharged(i32 level = 1);
+
+    /**
+     * @brief 创建袭击之兆效果
+     *
+     * 不祥之兆在村庄范围内转化为袭击之兆，
+     * 随后触发袭击。持续时间与不祥之兆等级相关。
+     *
+     * @param level 等级（1-5）
+     */
+    [[nodiscard]] static EffectInstance raidOmen(i32 level = 1);
+
     // ========== 序列化 ==========
 
     /**

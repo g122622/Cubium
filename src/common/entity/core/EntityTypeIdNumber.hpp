@@ -147,8 +147,8 @@ extern EntityTypeId PILLAGER;
 extern EntityTypeId RAVAGER;
 extern EntityTypeId VEX;
 
-// ============================================================================
-// Boss
+// 试炼密室
+extern EntityTypeId BREEZE;
 // ============================================================================
 
 extern EntityTypeId ENDER_DRAGON;
@@ -192,9 +192,7 @@ extern EntityTypeId EVOKER_FANGS;
 extern EntityTypeId FISHING_BOBBER;
 extern EntityTypeId EYE_OF_ENDER;
 extern EntityTypeId FIREWORK_ROCKET;
-
-// ============================================================================
-// 交通工具
+extern EntityTypeId WIND_CHARGE;
 // ============================================================================
 
 extern EntityTypeId BOAT;
@@ -214,8 +212,7 @@ extern EntityTypeId END_CRYSTAL;
 extern EntityTypeId LIGHTNING_BOLT;
 extern EntityTypeId AREA_EFFECT_CLOUD;
 extern EntityTypeId ARMOR_STAND;
-
-// 悬挂实体
+extern EntityTypeId OMINOUS_ITEM_SPAWNER;
 extern EntityTypeId PAINTING;
 extern EntityTypeId ITEM_FRAME;
 extern EntityTypeId LEASH_KNOT;

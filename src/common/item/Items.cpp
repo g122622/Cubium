@@ -57,6 +57,11 @@
 #include "common/item/items/tool/ShearsItem.hpp"
 #include "common/item/items/tool/ShovelItem.hpp"
 #include "common/item/items/tool/SwordItem.hpp"
+#include "common/item/items/trial/MaceItem.hpp"
+#include "common/item/items/trial/OminousBottleItem.hpp"
+#include "common/item/items/trial/OminousTrialKeyItem.hpp"
+#include "common/item/items/trial/TrialKeyItem.hpp"
+#include "common/item/items/trial/WindChargeItem.hpp"
 #include "common/item/items/vehicle/BoatItem.hpp"
 #include "common/item/items/vehicle/MinecartItem.hpp"
 #include "common/item/items/weapon/ArrowItem.hpp"
@@ -898,6 +903,23 @@ Item* Items::DEAD_BUBBLE_CORAL_FAN = nullptr;
 Item* Items::DEAD_FIRE_CORAL_FAN = nullptr;
 Item* Items::DEAD_HORN_CORAL_FAN = nullptr;
 
+// 试炼密室物品
+Item* Items::TRIAL_KEY = nullptr;
+Item* Items::OMINOUS_TRIAL_KEY = nullptr;
+Item* Items::OMINOUS_BOTTLE = nullptr;
+Item* Items::WIND_CHARGE = nullptr;
+Item* Items::MACE = nullptr;
+Item* Items::GUSTER_BANNER_PATTERN = nullptr;
+Item* Items::FLOW_BANNER_PATTERN = nullptr;
+Item* Items::RIB_ARMOR_TRIM_SMITHING_TEMPLATE = nullptr;
+Item* Items::FLOW_ARMOR_TRIM_SMITHING_TEMPLATE = nullptr;
+Item* Items::FLOW_POTTERY_SHERD = nullptr;
+Item* Items::GUSTER_POTTERY_SHERD = nullptr;
+Item* Items::SCRAPE_POTTERY_SHERD = nullptr;
+Item* Items::MUSIC_DISC_CREATOR = nullptr;
+Item* Items::MUSIC_DISC_CREATOR_MUSIC_BOX = nullptr;
+Item* Items::MUSIC_DISC_PRECIPICE = nullptr;
+
 // 旗帜物品（16色）
 Item* Items::WHITE_BANNER = nullptr;
 Item* Items::ORANGE_BANNER = nullptr;
@@ -980,6 +1002,7 @@ void Items::initialize()
     _registerRedstone();
     _registerCoral();
     _registerDoorsFencesStairs();
+    _registerTrialChamberItems(); // 试炼密室物品
 
     s_initialized = true;
 }
@@ -2036,10 +2059,9 @@ void Items::_registerBuckets()
             ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
     // 美西螈桶
-    AXOLOTL_BUCKET =
-        &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:axolotl_bucket"),
-            mc::entity::EntityTypes::AXOLOTL,
-            ItemProperties().maxStackSize(1).containerItem(BUCKET));
+    AXOLOTL_BUCKET = &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:axolotl_bucket"),
+        mc::entity::EntityTypes::AXOLOTL,
+        ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
     // 牛奶桶 - 清除所有药水效果
     // 参考: new MilkBucketItem(new Item.Properties().containerItem(BUCKET))
@@ -3148,6 +3170,121 @@ void Items::_registerDoorsFencesStairs()
         registry, VanillaBlocks::STONE_BRICK_WALL, "stone_brick_wall", ItemProperties().maxStackSize(64));
     MOSSY_STONE_BRICK_WALL = &registerBlockBackedItem(
         registry, VanillaBlocks::MOSSY_STONE_BRICK_WALL, "mossy_stone_brick_wall", ItemProperties().maxStackSize(64));
+}
+
+void Items::_registerTrialChamberItems()
+{
+    auto& registry = ItemRegistry::instance();
+
+    // ========================================================================
+    // 试炼钥匙和不祥试炼钥匙
+    // ========================================================================
+
+    // 试炼钥匙 - 右键宝库时消耗，解锁普通宝库战利品
+    // 试炼刷怪笼击杀所有怪物后50%概率弹出
+    TRIAL_KEY = &registry.registerItem<item::TrialKeyItem>(
+        ResourceLocation("minecraft:trial_key"), ItemProperties().maxStackSize(64));
+
+    // 不祥试炼钥匙 - 右键不祥宝库时消耗，解锁不祥宝库战利品
+    // 不祥试炼刷怪笼击杀所有怪物后30%概率弹出
+    OMINOUS_TRIAL_KEY = &registry.registerItem<item::OminousTrialKeyItem>(
+        ResourceLocation("minecraft:ominous_trial_key"), ItemProperties().maxStackSize(64));
+
+    // ========================================================================
+    // 不祥之瓶
+    // ========================================================================
+
+    // 不祥之瓶 - 可饮用，饮用后给予不祥之兆效果（等级I-V由damage值0-4决定）
+    // 饮用后返还玻璃瓶
+    OMINOUS_BOTTLE = &registry.registerItem<item::OminousBottleItem>(ResourceLocation("minecraft:ominous_bottle"),
+        ItemProperties().maxStackSize(64).maxDamage(item::OminousBottleItem::MAX_DAMAGE));
+
+    // ========================================================================
+    // 风弹
+    // ========================================================================
+
+    // 风弹 - 右键投掷风弹弹射物实体，命中时产生风爆效果
+    // 旋风人掉落（0-1，受抢夺影响），试炼刷怪笼补给
+    WIND_CHARGE = &registry.registerItem<item::WindChargeItem>(
+        ResourceLocation("minecraft:wind_charge"), ItemProperties().maxStackSize(64));
+
+    // ========================================================================
+    // 重锤
+    // ========================================================================
+
+    // 重锤 - MC 1.21 新增重型近战武器
+    // 攻击伤害5，攻击速度-2.4，下落攻击加成3/格，最大额外伤害40
+    // 支持魔咒：破甲、致密、风爆
+    MACE = &registry.registerItem<item::MaceItem>(ResourceLocation("minecraft:mace"),
+        ItemProperties().maxDamage(item::MaceItem::MAX_DURABILITY).rarity(ItemRarity::Rare));
+
+    // ========================================================================
+    // 旗帜图案物品
+    // ========================================================================
+
+    // 旋风旗帜图案 - 试炼密室宝库独有战利品
+    GUSTER_BANNER_PATTERN =
+        &registry.registerItem<item::BannerPatternItem>(ResourceLocation("minecraft:guster_banner_pattern"),
+            blockentity::BannerPatternType::Guster,
+            ItemProperties().maxStackSize(1));
+
+    // 涡流旗帜图案 - 不祥宝库独有战利品
+    FLOW_BANNER_PATTERN =
+        &registry.registerItem<item::BannerPatternItem>(ResourceLocation("minecraft:flow_banner_pattern"),
+            blockentity::BannerPatternType::Flow,
+            ItemProperties().maxStackSize(1));
+
+    // ========================================================================
+    // 锻造模板物品
+    // ========================================================================
+
+    // 镶铆盔甲纹饰锻造模板 - 试炼密室宝库独有战利品
+    // TODO(trial_chambers): 实现锻造模板系统后替换为专用SmithingTemplateItem类
+    RIB_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem(
+        ResourceLocation("minecraft:rib_armor_trim_smithing_template"), ItemProperties().maxStackSize(64));
+
+    // 涡流盔甲纹饰锻造模板 - 不祥宝库独有战利品
+    // TODO(trial_chambers): 实现锻造模板系统后替换为专用SmithingTemplateItem类
+    FLOW_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem(
+        ResourceLocation("minecraft:flow_armor_trim_smithing_template"), ItemProperties().maxStackSize(64));
+
+    // ========================================================================
+    // 陶片物品
+    // ========================================================================
+
+    // 涡流纹样陶片 - 试炼密室饰纹陶罐掉落
+    // TODO(trial_chambers): 实现陶片/饰纹陶罐系统后替换为专用PotterySherdItem类
+    FLOW_POTTERY_SHERD =
+        &registry.registerItem(ResourceLocation("minecraft:flow_pottery_sherd"), ItemProperties().maxStackSize(64));
+
+    // 旋风纹样陶片 - 试炼密室饰纹陶罐掉落
+    // TODO(trial_chambers): 实现陶片/饰纹陶罐系统后替换为专用PotterySherdItem类
+    GUSTER_POTTERY_SHERD =
+        &registry.registerItem(ResourceLocation("minecraft:guster_pottery_sherd"), ItemProperties().maxStackSize(64));
+
+    // 刮削纹样陶片 - 试炼密室饰纹陶罐掉落
+    // TODO(trial_chambers): 实现陶片/饰纹陶罐系统后替换为专用PotterySherdItem类
+    SCRAPE_POTTERY_SHERD =
+        &registry.registerItem(ResourceLocation("minecraft:scrape_pottery_sherd"), ItemProperties().maxStackSize(64));
+
+    // ========================================================================
+    // 音乐唱片
+    // ========================================================================
+
+    // 音乐唱片 (Creator) - 不祥宝库独有战利品
+    // TODO(trial_chambers): 实现音乐唱片播放逻辑
+    MUSIC_DISC_CREATOR = &registry.registerItem(
+        ResourceLocation("minecraft:music_disc_creator"), ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare));
+
+    // 音乐唱片 (Creator 八音盒) - 试炼密室柱廊陶罐掉落
+    // TODO(trial_chambers): 实现音乐唱片播放逻辑
+    MUSIC_DISC_CREATOR_MUSIC_BOX = &registry.registerItem(ResourceLocation("minecraft:music_disc_creator_music_box"),
+        ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare));
+
+    // 音乐唱片 (Precipice) - 试炼密室宝库独有战利品
+    // TODO(trial_chambers): 实现音乐唱片播放逻辑
+    MUSIC_DISC_PRECIPICE = &registry.registerItem(
+        ResourceLocation("minecraft:music_disc_precipice"), ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare));
 }
 
 } // namespace mc

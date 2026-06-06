@@ -69,6 +69,9 @@ const std::unordered_map<std::string, EffectType> s_effectResourceNameMap = {
     {"dolphins_grace", EffectType::DolphinsGrace},
     {"bad_omen", EffectType::BadOmen},
     {"hero_of_the_village", EffectType::HeroOfTheVillage},
+    {"trial_omen", EffectType::TrialOmen},
+    {"wind_charged", EffectType::WindCharged},
+    {"raid_omen", EffectType::RaidOmen},
 };
 
 /// 效果类型到资源名称的映射
@@ -106,10 +109,13 @@ const char* s_effectResourceNames[] = {
     "dolphins_grace",      // 30
     "bad_omen",            // 31
     "hero_of_the_village", // 32
+    "trial_omen",          // 33
+    "wind_charged",        // 34
+    "raid_omen",           // 35
 };
 
 /// 效果类型数量（不包括 0）
-constexpr i32 EFFECT_COUNT = 32;
+constexpr i32 EFFECT_COUNT = 35;
 
 } // namespace
 
@@ -184,6 +190,12 @@ const char* getEffectName(EffectType type) noexcept
             return "Bad Omen";
         case EffectType::HeroOfTheVillage:
             return "Hero of the Village";
+        case EffectType::TrialOmen:
+            return "Trial Omen";
+        case EffectType::WindCharged:
+            return "Wind Charged";
+        case EffectType::RaidOmen:
+            return "Raid Omen";
         default:
             return "Unknown";
     }
@@ -211,6 +223,8 @@ bool isBeneficialEffect(EffectType type) noexcept
         case EffectType::ConduitPower:
         case EffectType::DolphinsGrace:
         case EffectType::HeroOfTheVillage:
+            return true;
+        case EffectType::WindCharged:
             return true;
         default:
             return false;
@@ -284,6 +298,12 @@ u32 getEffectColor(EffectType type) noexcept
             return 0x0B0B0B;
         case EffectType::HeroOfTheVillage:
             return 0x44FF44;
+        case EffectType::TrialOmen:
+            return 0x2D6A4F; // 深绿色 - 试炼之兆
+        case EffectType::WindCharged:
+            return 0x77FFD4; // 浅青色 - 风充能
+        case EffectType::RaidOmen:
+            return 0x5B0B0B; // 深红色 - 袭击之兆
         default:
             return 0xFFFFFF;
     }

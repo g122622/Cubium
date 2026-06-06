@@ -43,6 +43,15 @@ constexpr i32 BAD_OMEN_DURATION = 120000;
 /// 村庄英雄持续时间（约40分钟）
 constexpr i32 HERO_DURATION = 48000;
 
+/// 试炼之兆基础持续时间（15000 ticks × 等级）
+constexpr i32 TRIAL_OMEN_DURATION_PER_LEVEL = 15000;
+
+/// 风充能持续时间（与风弹效果同步）
+constexpr i32 WIND_CHARGED_DURATION = 200;
+
+/// 袭击之兆持续时间（30000 ticks）
+constexpr i32 RAID_OMEN_DURATION = 30000;
+
 // NBT key constants
 namespace nbt_keys {
 constexpr const char* ID = "Id";
@@ -316,6 +325,47 @@ EffectInstance EffectInstance::heroOfTheVillage(i32 level)
     i32 amplifier = std::max(0, std::min(level - 1, 4));
     return EffectInstance(EffectType::HeroOfTheVillage,
         HERO_DURATION,
+        amplifier,
+        false, // 不是环境效果
+        true,  // 显示粒子
+        true   // 显示图标
+    );
+}
+
+EffectInstance EffectInstance::trialOmen(i32 level)
+{
+    // 试炼之兆等级范围 1-5
+    i32 amplifier = std::max(0, std::min(level - 1, 4));
+    // 持续时间 = 等级 × 15000 ticks
+    i32 duration = level * TRIAL_OMEN_DURATION_PER_LEVEL;
+    return EffectInstance(EffectType::TrialOmen,
+        duration,
+        amplifier,
+        false, // 不是环境效果
+        true,  // 显示粒子
+        true   // 显示图标
+    );
+}
+
+EffectInstance EffectInstance::windCharged(i32 level)
+{
+    // 风充能等级范围 1-1（目前只有I级）
+    i32 amplifier = std::max(0, std::min(level - 1, 0));
+    return EffectInstance(EffectType::WindCharged,
+        WIND_CHARGED_DURATION,
+        amplifier,
+        false, // 不是环境效果
+        true,  // 显示粒子
+        true   // 显示图标
+    );
+}
+
+EffectInstance EffectInstance::raidOmen(i32 level)
+{
+    // 袭击之兆等级范围 1-5
+    i32 amplifier = std::max(0, std::min(level - 1, 4));
+    return EffectInstance(EffectType::RaidOmen,
+        RAID_OMEN_DURATION,
         amplifier,
         false, // 不是环境效果
         true,  // 显示粒子

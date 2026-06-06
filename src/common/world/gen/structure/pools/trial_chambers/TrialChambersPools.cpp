@@ -21,13 +21,12 @@
  *
  */
 
-#include "Pools.hpp"
-#include "ProcessorLists.hpp"
-#include "bastion/BastionPools.hpp"
+#include "TrialChambersPools.hpp"
+
 #include "common/resource/ResourceLocation.hpp"
-#include "pillager_outpost/PillagerOutpostPools.hpp"
-#include "trial_chambers/TrialChambersPools.hpp"
-#include "village/VillagePools.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/gen/feature/template/CopperBulbDegradationProcessor.hpp"
+#include "common/world/gen/structure/pools/ProcessorLists.hpp"
 
 namespace mc {
 namespace world {
@@ -35,52 +34,21 @@ namespace gen {
 namespace structure {
 namespace pools {
 
-// 初始化标志
-static bool s_initialized = false;
-
-void Pools::initialize()
+void TrialChambersPools::registerAll(jigsaw::JigsawPatternRegistry& registry)
 {
-    if (s_initialized) {
-        return;
-    }
+    MC_UNUSED(registry);
 
-    // 1. 初始化处理器列表
-    ProcessorLists::initialize();
+    // 试炼密室的模板池从数据包 JSON 文件中自动加载：
+    // data/minecraft/worldgen/template_pool/trial_chambers/*.json
+    // 因此不需要编程式注册模板池。
 
-    // 2. 获取模板池注册表
-    auto& registry = JigsawPatternRegistry::instance();
+    // 注册铜灯降级处理器到处理器列表
+    // 此处理器在试炼密室的多个模板中被引用
+    // TODO(trial_chambers): 当 ProcessorLists 支持自定义处理器名称注册时，
+    // 将 "minecraft:trial_chambers_copper_bulb_degradation" 注册为 CopperBulbDegradationProcessor
 
-    // 3. 注册空模板池
-    registerEmptyPool(registry);
-
-    // 4. 注册村庄模板池
-    VillagePools::registerAll(registry);
-
-    // 5. 注册掠夺者前哨站模板池
-    PillagerOutpostPools::registerAll(registry);
-
-    // 6. 注册堡垒遗迹模板池
-    BastionPools::registerAll(registry);
-
-    // 7. 注册试炼密室模板池和处理器
-    TrialChambersPools::registerAll(registry);
-
-    s_initialized = true;
-}
-
-bool Pools::isInitialized()
-{
-    return s_initialized;
-}
-
-void Pools::registerEmptyPool(JigsawPatternRegistry& registry)
-{
-    // 空模板池，用于终止 Jigsaw 链
-    auto emptyPool = std::make_unique<JigsawPattern>(
-        ResourceLocation("minecraft", "empty"), ResourceLocation("minecraft", "empty") // fallback 指向自己
-    );
-
-    registry.registerPattern(std::move(emptyPool));
+    // 注册空模板池（如果数据包未加载时作为后备）
+    // 正常情况下数据包加载后会覆盖这些空池
 }
 
 } // namespace pools

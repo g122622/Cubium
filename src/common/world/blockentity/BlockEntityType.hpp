@@ -89,6 +89,10 @@ enum class BlockEntityType : u16 {
     Lectern,         ///< 讲台
     Jukebox,         ///< 唱片机
 
+    // 试炼密室
+    TrialSpawner, ///< 试炼刷怪笼
+    Vault,        ///< 宝库
+
     Count ///< 类型数量
 };
 

@@ -98,12 +98,18 @@ namespace structure {
 const std::string JigsawStructure::m_name = "jigsaw";
 const std::vector<BiomeId> JigsawStructure::m_validBiomes;
 
-JigsawStructure::JigsawStructure(const JigsawConfig& config, i32 startY, bool nearTerrain, bool adjustForTerrain)
-    : Structure(StructureType::Village)
-    , m_config(config)
+JigsawStructure::JigsawStructure(StructureType type,
+    JigsawConfig config,
+    i32 startY,
+    bool nearTerrain,
+    bool adjustForTerrain,
+    TerrainAdaptation terrainAdaptation)
+    : Structure(type)
+    , m_config(std::move(config))
     , m_startY(startY)
     , m_nearTerrain(nearTerrain)
     , m_adjustForTerrain(adjustForTerrain)
+    , m_terrainAdaptation(terrainAdaptation)
 {}
 
 bool JigsawStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
@@ -147,7 +153,11 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
 
     // 计算起始位置
     i32 startY = m_startY;
-    if (m_nearTerrain) {
+    if (m_config.startHeight) {
+        // 使用高度提供者计算起始高度
+        valueprovider::WorldGenerationContext context(MIN_BUILD_HEIGHT, CHUNK_HEIGHT);
+        startY = m_config.startHeight->sample(rng, context);
+    } else if (m_nearTerrain) {
         // 如果需要贴合地形，查询地面高度
         const i32 centerX = chunkX * CHUNK_WIDTH + CHUNK_WIDTH / 2;
         const i32 centerZ = chunkZ * CHUNK_WIDTH + CHUNK_WIDTH / 2;

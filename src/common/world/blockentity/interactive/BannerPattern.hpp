@@ -103,7 +103,11 @@ enum class BannerPatternType : u8 {
     Mojang = 39,  // mojang - Mojang 标志（特殊图案卷）
     Piglin = 40,  // piglin - 猪灵（特殊图案卷）
 
-    Count = 41 // 图案总数
+    // MC 1.21 试炼密室图案
+    Flow = 41,   // flow - 涡流（试炼密室旗帜图案）
+    Guster = 42, // guster - 旋风（试炼密室旗帜图案）
+
+    Count = 43 // 图案总数
 };
 
 /**

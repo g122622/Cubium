@@ -292,6 +292,8 @@ constexpr const char* ILLUSIONER = "minecraft:illusioner";
 constexpr const char* PILLAGER = "minecraft:pillager";
 constexpr const char* RAVAGER = "minecraft:ravager";
 constexpr const char* VEX = "minecraft:vex";
+// 试炼密室
+constexpr const char* BREEZE = "minecraft:breeze";
 // Boss
 constexpr const char* ENDER_DRAGON = "minecraft:ender_dragon";
 constexpr const char* WITHER = "minecraft:wither";
@@ -322,6 +324,7 @@ constexpr const char* EVOKER_FANGS = "minecraft:evoker_fangs";
 constexpr const char* FISHING_BOBBER = "minecraft:fishing_bobber";
 constexpr const char* EYE_OF_ENDER = "minecraft:eye_of_ender";
 constexpr const char* FIREWORK_ROCKET = "minecraft:firework_rocket";
+constexpr const char* WIND_CHARGE = "minecraft:wind_charge";
 // 交通工具
 constexpr const char* BOAT = "minecraft:boat";
 constexpr const char* MINECART = "minecraft:minecart";
@@ -336,6 +339,7 @@ constexpr const char* END_CRYSTAL = "minecraft:end_crystal";
 constexpr const char* LIGHTNING_BOLT = "minecraft:lightning_bolt";
 constexpr const char* AREA_EFFECT_CLOUD = "minecraft:area_effect_cloud";
 constexpr const char* ARMOR_STAND = "minecraft:armor_stand";
+constexpr const char* OMINOUS_ITEM_SPAWNER = "minecraft:ominous_item_spawner";
 // 悬挂实体
 constexpr const char* PAINTING = "minecraft:painting";
 constexpr const char* ITEM_FRAME = "minecraft:item_frame";

@@ -33,6 +33,7 @@
 #include "common/entity/entities/hanging/HangingEntity.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
+#include "common/entity/entities/misc/OminousItemSpawnerEntity.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/monster/arthropod/CaveSpiderEntity.hpp"
 #include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
@@ -41,6 +42,7 @@
 #include "common/entity/entities/monster/basic/GiantEntity.hpp"
 #include "common/entity/entities/monster/basic/PhantomEntity.hpp"
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp"
+#include "common/entity/entities/monster/breeze/BreezeEntity.hpp"
 #include "common/entity/entities/monster/end/EndermanEntity.hpp"
 #include "common/entity/entities/monster/end/ShulkerEntity.hpp"
 #include "common/entity/entities/monster/illager/EvokerEntity.hpp"
@@ -95,8 +97,8 @@
 #include "common/entity/entities/passive/tamable/OcelotEntity.hpp"
 #include "common/entity/entities/passive/tamable/ParrotEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
-#include "common/entity/entities/passive/water/DolphinEntity.hpp"
 #include "common/entity/entities/passive/water/AxolotlEntity.hpp"
+#include "common/entity/entities/passive/water/DolphinEntity.hpp"
 #include "common/entity/entities/passive/water/SquidEntity.hpp"
 #include "common/entity/entities/passive/water/WaterMobEntity.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
@@ -104,6 +106,7 @@
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "common/entity/entities/projectile/TridentEntity.hpp"
+#include "common/entity/entities/projectile/WindChargeEntity.hpp"
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
 #include "common/entity/entities/vehicle/MinecartEntity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
@@ -820,6 +823,15 @@ private:
                 .canSummon(true)
                 .build());
 
+        // 旋风人
+        registry.registerType(EntityTypes::BREEZE,
+            EntityType::Builder(&BreezeEntity::create, EntityClassification::Monster)
+                .size(0.6f, 1.77f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build());
+
         // 唤魔者尖牙
         registry.registerType(EntityTypes::EVOKER_FANGS,
             EntityType::Builder(&entity::EvokerFangsEntity::create, EntityClassification::Misc)
@@ -1006,6 +1018,14 @@ private:
                 .updateInterval(1)
                 .build());
 
+        // 风弹
+        registry.registerType(EntityTypes::WIND_CHARGE,
+            EntityType::Builder(&WindChargeEntity::create, EntityClassification::Misc)
+                .size(0.3125f, 0.3125f)
+                .trackingRange(4)
+                .updateInterval(1)
+                .build());
+
         // ========== 交通工具 ==========
         // 船
         registry.registerType(EntityTypes::BOAT,
@@ -1086,6 +1106,14 @@ private:
                 .size(0.5f, 1.975f)
                 .trackingRange(10)
                 .updateInterval(3)
+                .build());
+
+        // 不祥物品生成器
+        registry.registerType(EntityTypes::OMINOUS_ITEM_SPAWNER,
+            EntityType::Builder(&OminousItemSpawnerEntity::create, EntityClassification::Misc)
+                .size(0.25f, 0.25f)
+                .trackingRange(8)
+                .updateInterval(1)
                 .build());
 
         // ========== 悬挂实体 ==========

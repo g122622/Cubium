@@ -49,6 +49,8 @@
 #include "world/blockentity/storage/ShulkerBoxEntity.hpp"
 #include "world/blockentity/storage/TrappedChestEntity.hpp"
 #include "world/blockentity/transport/HopperEntity.hpp"
+#include "world/blockentity/trial/TrialSpawnerBlockEntity.hpp"
+#include "world/blockentity/trial/VaultBlockEntity.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -158,6 +160,11 @@ void BlockEntityRegistry::registerBuiltinTypes()
 
     // 注册旗帜方块实体
     registerType(BlockEntityType::Banner, [](const BlockPos& pos) { return std::make_unique<BannerEntity>(pos); });
+
+    // 注册试炼密室方块实体
+    registerType(BlockEntityType::TrialSpawner,
+        [](const BlockPos& pos) { return std::make_unique<TrialSpawnerBlockEntity>(pos); });
+    registerType(BlockEntityType::Vault, [](const BlockPos& pos) { return std::make_unique<VaultBlockEntity>(pos); });
 }
 
 std::unique_ptr<BlockEntity> BlockEntityRegistry::create(BlockEntityType type, const BlockPos& pos) const

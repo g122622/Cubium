@@ -77,7 +77,9 @@ const char* const HASH_NAMES[] = {
     "sku", // Skull
     "flo", // Flower
     "moj", // Mojang
-    "pig"  // Piglin
+    "pig", // Piglin
+    "flw", // Flow
+    "gus"  // Guster
 };
 
 /**
@@ -126,7 +128,9 @@ const char* const FILE_NAMES[] = {
     "skull",                  // Skull
     "flower",                 // Flower
     "mojang",                 // Mojang
-    "piglin"                  // Piglin
+    "piglin",                 // Piglin
+    "flow",                   // Flow
+    "guster"                  // Guster
 };
 
 /**
@@ -173,7 +177,9 @@ constexpr bool HAS_PATTERN_ITEM[] = {
     true,  // Skull
     true,  // Flower
     true,  // Mojang
-    true   // Piglin
+    true,  // Piglin
+    true,  // Flow
+    true   // Guster
 };
 
 constexpr size_t PATTERN_COUNT = static_cast<size_t>(BannerPatternType::Count);

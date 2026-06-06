@@ -2066,6 +2066,7 @@ namespace {
 
 /**
  * @brief 将 StructureType 转换为结构名称
+ * TODO 这个函数需要移到src\common\world\gen\structure\Structure.hpp
  */
 const char* structureTypeToName(world::gen::structure::StructureType type)
 {
@@ -2097,7 +2098,12 @@ const char* structureTypeToName(world::gen::structure::StructureType type)
             return "bastion";
         case StructureType::EndCity:
             return "end_city";
+        case StructureType::PillagerOutpost:
+            return "pillager_outpost";
+        case StructureType::TrialChambers:
+            return "trial_chambers";
         default:
+            MC_ASSERT_RELEASE(false);
             return nullptr;
     }
 }

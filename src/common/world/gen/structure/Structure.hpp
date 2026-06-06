@@ -68,7 +68,9 @@ enum class StructureType : u8 {
     WoodlandMansion, ///< 林地府邸
     Bastion,         ///< 堡垒遗迹
     Fortress,        ///< 下界要塞
-    EndCity          ///< 末地城
+    EndCity,         ///< 末地城
+    PillagerOutpost, ///< 掠夺者前哨站
+    TrialChambers    ///< 试炼密室
 };
 
 /**

@@ -46,6 +46,7 @@
 #include "common/world/gen/structure/structures/SwampHutStructure.hpp"
 #include "common/world/gen/structure/structures/VillageStructure.hpp"
 #include "common/world/gen/structure/structures/WoodlandMansionStructure.hpp"
+#include "structures/TrialChambersStructure.hpp"
 
 namespace mc::world::gen::structure {
 
@@ -90,6 +91,7 @@ void StructureRegistry::initialize()
     registerStructure(std::make_unique<WoodlandMansionStructure>());
     registerStructure(std::make_unique<EndCityStructure>());
     registerStructure(std::make_unique<BastionRemnantStructure>());
+    registerStructure(std::make_unique<TrialChambersStructure>());
 
     s_initialized = true;
 }

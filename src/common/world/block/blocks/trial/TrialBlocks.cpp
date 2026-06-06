@@ -24,6 +24,8 @@
 #include "TrialBlocks.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include "util/property/Properties.hpp"
+#include "world/blockentity/trial/TrialSpawnerBlockEntity.hpp"
+#include "world/blockentity/trial/VaultBlockEntity.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
 #include "world/tick/manager/TickManager.hpp"
 
@@ -53,6 +55,11 @@ TrialSpawnerBlock::TrialSpawnerBlock(const BlockProperties& properties)
     setDefaultState(defaultState()
             .with(BlockStateProperties::TRIAL_SPAWNER_STATE(), BlockStateProperties::TrialSpawnerState::Inactive)
             .with(BlockStateProperties::OMINOUS(), false));
+}
+
+std::unique_ptr<BlockEntity> TrialSpawnerBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<TrialSpawnerBlockEntity>(pos);
 }
 
 void TrialSpawnerBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
@@ -114,6 +121,11 @@ VaultBlock::VaultBlock(const BlockProperties& properties)
             .with(FACING(), Direction::North)
             .with(BlockStateProperties::VAULT_STATE(), BlockStateProperties::VaultState::Inactive)
             .with(BlockStateProperties::OMINOUS(), false));
+}
+
+std::unique_ptr<BlockEntity> VaultBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<VaultBlockEntity>(pos);
 }
 
 void VaultBlock::fillStateContainer(StateContainer<Block, BlockState>& container)

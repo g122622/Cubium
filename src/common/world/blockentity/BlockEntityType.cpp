@@ -67,7 +67,9 @@ const std::unordered_map<BlockEntityType, ResourceLocation> typeToIdMap = {
     {BlockEntityType::Campfire, ResourceLocation("minecraft", "campfire")},
     {BlockEntityType::Conduit, ResourceLocation("minecraft", "conduit")},
     {BlockEntityType::Lectern, ResourceLocation("minecraft", "lectern")},
-    {BlockEntityType::Jukebox, ResourceLocation("minecraft", "jukebox")}};
+    {BlockEntityType::Jukebox, ResourceLocation("minecraft", "jukebox")},
+    {BlockEntityType::TrialSpawner, ResourceLocation("minecraft", "trial_spawner")},
+    {BlockEntityType::Vault, ResourceLocation("minecraft", "vault")}};
 
 const std::unordered_map<std::string, BlockEntityType> idToTypeMap = {{"minecraft:chest", BlockEntityType::Chest},
     {"minecraft:trapped_chest", BlockEntityType::TrappedChest},
@@ -110,6 +112,8 @@ const std::unordered_map<std::string, BlockEntityType> idToTypeMap = {{"minecraf
     {"minecraft:conduit", BlockEntityType::Conduit},
     {"minecraft:lectern", BlockEntityType::Lectern},
     {"minecraft:jukebox", BlockEntityType::Jukebox},
+    {"minecraft:trial_spawner", BlockEntityType::TrialSpawner},
+    {"minecraft:vault", BlockEntityType::Vault},
     // 简写形式
     {"chest", BlockEntityType::Chest},
     {"crafting_table", BlockEntityType::CraftingTable},

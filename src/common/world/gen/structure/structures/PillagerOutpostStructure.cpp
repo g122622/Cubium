@@ -54,7 +54,11 @@ const std::vector<BiomeId> PillagerOutpostStructure::s_validBiomes = {Plains,
     GiantTreeTaigaHills};
 
 PillagerOutpostStructure::PillagerOutpostStructure()
-    : JigsawStructure(JigsawConfig(ResourceLocation("minecraft", "pillager_outpost/base_plates"), 7), 0, true, true)
+    : JigsawStructure(StructureType::PillagerOutpost,
+          JigsawConfig(ResourceLocation("minecraft", "pillager_outpost/base_plates"), 7),
+          0,
+          true,
+          true)
 {}
 
 bool PillagerOutpostStructure::canGenerate(

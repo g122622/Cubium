@@ -1005,6 +1005,25 @@ public:
     static Item* DEAD_FIRE_CORAL_FAN;   // 死火珊瑚扇
     static Item* DEAD_HORN_CORAL_FAN;   // 死角珊瑚扇
 
+    // ========================================================================
+    // 试炼密室 (Trial Chambers)
+    // ========================================================================
+    static Item* TRIAL_KEY;                         // 试炼钥匙
+    static Item* OMINOUS_TRIAL_KEY;                 // 不祥试炼钥匙
+    static Item* OMINOUS_BOTTLE;                    // 不祥之瓶
+    static Item* WIND_CHARGE;                       // 风弹
+    static Item* MACE;                              // 重锤
+    static Item* GUSTER_BANNER_PATTERN;             // 旋风旗帜图案
+    static Item* FLOW_BANNER_PATTERN;               // 涡流旗帜图案
+    static Item* RIB_ARMOR_TRIM_SMITHING_TEMPLATE;  // 镶铆盔甲纹饰
+    static Item* FLOW_ARMOR_TRIM_SMITHING_TEMPLATE; // 涡流盔甲纹饰
+    static Item* FLOW_POTTERY_SHERD;                // 涡流纹样陶片
+    static Item* GUSTER_POTTERY_SHERD;              // 旋风纹样陶片
+    static Item* SCRAPE_POTTERY_SHERD;              // 刮削纹样陶片
+    static Item* MUSIC_DISC_CREATOR;                // 音乐唱片 - Creator
+    static Item* MUSIC_DISC_CREATOR_MUSIC_BOX;      // 音乐唱片 - Creator (八音盒)
+    static Item* MUSIC_DISC_PRECIPICE;              // 音乐唱片 - Precipice
+
 private:
     static bool s_initialized;
 
@@ -1039,6 +1058,7 @@ private:
     static void _registerRedstone();
     static void _registerCoral();
     static void _registerDoorsFencesStairs();
+    static void _registerTrialChamberItems();
 };
 
 } // namespace mc
