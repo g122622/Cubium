@@ -732,6 +732,17 @@ const ResourceLocation ENTITY_DOLPHIN_PLAY("minecraft:entity.dolphin.play");
 const ResourceLocation ENTITY_DOLPHIN_SPLASH("minecraft:entity.dolphin.splash");
 const ResourceLocation ENTITY_DOLPHIN_SWIM("minecraft:entity.dolphin.swim");
 
+// 美西螈
+const ResourceLocation ENTITY_AXOLOTL_ATTACK("minecraft:entity.axolotl.attack");
+const ResourceLocation ENTITY_AXOLOTL_DEATH("minecraft:entity.axolotl.death");
+const ResourceLocation ENTITY_AXOLOTL_HURT("minecraft:entity.axolotl.hurt");
+const ResourceLocation ENTITY_AXOLOTL_IDLE_AIR("minecraft:entity.axolotl.idle_air");
+const ResourceLocation ENTITY_AXOLOTL_IDLE_WATER("minecraft:entity.axolotl.idle_water");
+const ResourceLocation ENTITY_AXOLOTL_SPLASH("minecraft:entity.axolotl.splash");
+const ResourceLocation ENTITY_AXOLOTL_SWIM("minecraft:entity.axolotl.swim");
+const ResourceLocation ITEM_BUCKET_FILL_AXOLOTL("minecraft:item.bucket.fill_axolotl");
+const ResourceLocation ITEM_BUCKET_EMPTY_AXOLOTL("minecraft:item.bucket.empty_axolotl");
+
 // 鱿鱼
 const ResourceLocation ENTITY_SQUID_AMBIENT("minecraft:entity.squid.ambient");
 const ResourceLocation ENTITY_SQUID_DEATH("minecraft:entity.squid.death");

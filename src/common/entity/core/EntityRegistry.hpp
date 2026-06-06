@@ -242,6 +242,7 @@ constexpr const char* PUFFERFISH = "minecraft:pufferfish";
 constexpr const char* TROPICAL_FISH = "minecraft:tropical_fish";
 constexpr const char* SQUID = "minecraft:squid";
 constexpr const char* DOLPHIN = "minecraft:dolphin";
+constexpr const char* AXOLOTL = "minecraft:axolotl";
 
 // 环境生物
 constexpr const char* BAT = "minecraft:bat";

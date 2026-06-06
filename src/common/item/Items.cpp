@@ -423,6 +423,7 @@ Item* Items::COD_BUCKET = nullptr;
 Item* Items::SALMON_BUCKET = nullptr;
 Item* Items::PUFFERFISH_BUCKET = nullptr;
 Item* Items::TROPICAL_FISH_BUCKET = nullptr;
+Item* Items::AXOLOTL_BUCKET = nullptr;
 Item* Items::MILK_BUCKET = nullptr;
 
 // ============================================================================
@@ -2032,6 +2033,12 @@ void Items::_registerBuckets()
     TROPICAL_FISH_BUCKET =
         &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:tropical_fish_bucket"),
             mc::entity::EntityTypes::TROPICAL_FISH,
+            ItemProperties().maxStackSize(1).containerItem(BUCKET));
+
+    // 美西螈桶
+    AXOLOTL_BUCKET =
+        &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:axolotl_bucket"),
+            mc::entity::EntityTypes::AXOLOTL,
             ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
     // 牛奶桶 - 清除所有药水效果

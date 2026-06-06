@@ -155,6 +155,8 @@ void initializeRendererRegistration()
         []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<aquatic::SalmonRenderer>(); });
     f.registerRenderer(ET::DOLPHIN,
         []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<aquatic::DolphinRenderer>(); });
+    f.registerRenderer(ET::AXOLOTL,
+        []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<aquatic::AxolotlRenderer>(); });
     f.registerRenderer(ET::TROPICAL_FISH,
         []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<aquatic::TropicalFishARenderer>(); });
     f.registerRenderer(ET::PUFFERFISH,

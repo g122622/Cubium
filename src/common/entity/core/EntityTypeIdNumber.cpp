@@ -89,6 +89,7 @@ EntityTypeId PUFFERFISH = 0;
 EntityTypeId TROPICAL_FISH = 0;
 EntityTypeId SQUID = 0;
 EntityTypeId DOLPHIN = 0;
+EntityTypeId AXOLOTL = 0;
 
 // 环境生物
 EntityTypeId BAT = 0;
@@ -268,6 +269,7 @@ void initialize()
     TROPICAL_FISH = safeGetId(registry, EntityTypes::TROPICAL_FISH);
     SQUID = safeGetId(registry, EntityTypes::SQUID);
     DOLPHIN = safeGetId(registry, EntityTypes::DOLPHIN);
+    AXOLOTL = safeGetId(registry, EntityTypes::AXOLOTL);
 
     // 被动生物 - 环境生物
     BAT = safeGetId(registry, EntityTypes::BAT);

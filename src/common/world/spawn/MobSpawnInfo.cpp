@@ -570,4 +570,38 @@ MobSpawnInfo MobSpawnInfo::createTheEnd()
     return info;
 }
 
+// ============================================================================
+// 洞穴生物群系生成信息
+// ============================================================================
+
+MobSpawnInfo MobSpawnInfo::createLushCaves()
+{
+    MobSpawnInfo info;
+    info.m_creatureSpawnProbability = 0.1f;
+
+    // 怪物（普通洞穴怪物）
+    info.setMaxMonsterInstances(70);
+    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
+    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
+
+    // 水生生物：美西螈
+    info.setMaxWaterCreatureInstances(5);
+    info.addWaterCreatureSpawn(SpawnEntry("minecraft:axolotl", 10, 4, 6));
+
+    // 水生环境生物：热带鱼
+    info.setMaxWaterAmbientInstances(20);
+    info.addWaterAmbientSpawn(SpawnEntry("minecraft:tropical_fish", 25, 8, 8));
+
+    // 环境生物：蝙蝠
+    info.setMaxAmbientInstances(15);
+    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
+
+    return info;
+}
+
 } // namespace mc::world::spawn

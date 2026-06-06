@@ -120,6 +120,7 @@ add_library(mc_common STATIC
     entity/entities/passive/water/WaterMobEntity.cpp
     entity/entities/passive/water/SquidEntity.cpp
     entity/entities/passive/water/DolphinEntity.cpp
+    entity/entities/passive/water/AxolotlEntity.cpp
     # Entity - Passive Animals (fish)
     entity/entities/passive/fish/AbstractFishEntity.cpp
     entity/entities/passive/fish/AbstractGroupFishEntity.cpp
@@ -321,6 +322,7 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/SlimeGoals.cpp
     entity/ai/goal/goals/special/BatGoals.cpp
     entity/ai/goal/goals/special/DolphinGoals.cpp
+    entity/ai/goal/goals/special/AxolotlGoals.cpp
     entity/ai/goal/goals/special/GuardianAttackGoal.cpp
     entity/ai/goal/goals/special/BlazeFireballAttackGoal.cpp
     entity/ai/goal/goals/special/PhantomGoals.cpp

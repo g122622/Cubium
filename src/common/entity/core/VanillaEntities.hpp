@@ -96,6 +96,7 @@
 #include "common/entity/entities/passive/tamable/ParrotEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/passive/water/DolphinEntity.hpp"
+#include "common/entity/entities/passive/water/AxolotlEntity.hpp"
 #include "common/entity/entities/passive/water/SquidEntity.hpp"
 #include "common/entity/entities/passive/water/WaterMobEntity.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
@@ -319,6 +320,15 @@ private:
         registry.registerType(EntityTypes::DOLPHIN,
             EntityType::Builder(&DolphinEntity::create, EntityClassification::WaterCreature)
                 .size(0.9f, 0.6f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .canSummon(true)
+                .build());
+
+        // 美西螈
+        registry.registerType(EntityTypes::AXOLOTL,
+            EntityType::Builder(&AxolotlEntity::create, EntityClassification::WaterCreature)
+                .size(0.75f, 0.42f)
                 .trackingRange(10)
                 .updateInterval(3)
                 .canSummon(true)

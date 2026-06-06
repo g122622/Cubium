@@ -313,4 +313,56 @@ private:
     static f64 _getAgeInTicks(::mc::LivingEntity& entity) { return static_cast<f64>(entity.ticksExisted()); }
 };
 
+/**
+ * @brief 美西螈渲染器
+ *
+ * 支持5种颜色变体：Lucy(白化/粉色), Wild(野生/棕色), Gold(金色), Cyan(青色), Blue(蓝色-稀有)
+ * 根据 AxolotlEntity 的变体数据选择纹理。
+ */
+class AxolotlRenderer : public core::LivingRenderer<::mc::LivingEntity, model::aquatic::AxolotlModel> {
+public:
+    AxolotlRenderer() { m_shadowSize = 0.5f; }
+    ~AxolotlRenderer() override = default;
+
+    [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
+    {
+        i32 variant = _getVariant(entity);
+        return _getTextureForVariant(variant);
+    }
+    [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
+    {
+        // const版本使用默认变体
+        (void)entity;
+        return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_lucy.png");
+    }
+
+private:
+    /**
+     * @brief 从实体读取变体数据
+     */
+    static i32 _getVariant(Entity& entity)
+    {
+        auto* clientEntity = dynamic_cast<::mc::client::ClientEntity*>(&entity);
+        if (clientEntity != nullptr) {
+            return clientEntity->axolotlVariant();
+        }
+        return 0;
+    }
+
+    /**
+     * @brief 根据变体获取纹理路径
+     */
+    static ResourceLocation _getTextureForVariant(i32 variant)
+    {
+        switch (variant) {
+            case 0: return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_lucy.png");
+            case 1: return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_wild.png");
+            case 2: return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_gold.png");
+            case 3: return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_cyan.png");
+            case 4: return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_blue.png");
+            default: return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_lucy.png");
+        }
+    }
+};
+
 } // namespace mc::client::renderer::entity::renderer::aquatic

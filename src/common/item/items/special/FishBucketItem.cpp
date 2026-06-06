@@ -27,6 +27,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/passive/fish/AbstractFishEntity.hpp"
+#include "common/entity/entities/passive/water/AxolotlEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
@@ -133,6 +134,12 @@ bool FishBucketItem::_spawnFish(IWorld& world, const BlockPos& pos) const
     auto* abstractFish = dynamic_cast<AbstractFishEntity*>(fish.get());
     if (abstractFish != nullptr) {
         abstractFish->setFromBucket(true);
+    }
+
+    // 美西螈也有类似的 FromBucket 标记
+    auto* axolotl = dynamic_cast<AxolotlEntity*>(fish.get());
+    if (axolotl != nullptr) {
+        axolotl->setFromBucket(true);
     }
 
     // 生成实体

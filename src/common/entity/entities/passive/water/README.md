@@ -10,6 +10,8 @@ src/common/entity/entities/passive/water/
 ├── WaterMobEntity.cpp  # 水生生物实现
 ├── DolphinEntity.hpp   # 海豚实体
 ├── DolphinEntity.cpp   # 海豚实现
+├── AxolotlEntity.hpp   # 美西螈实体
+├── AxolotlEntity.cpp   # 美西螈实现
 ├── SquidEntity.hpp     # 鱿鱼实体
 ├── SquidEntity.cpp     # 鱿鱼实现
 └── README.md           # 本文档
@@ -144,6 +146,58 @@ dolphin.tryMoveToEntity(targetEntity, speed);
 - AI 目标：随机游泳 (SquidMoveRandomGoal) 和逃跑 (SquidFleeGoal)
 - 掉落：墨囊
 
+### AxolotlEntity
+
+美西螈实体，繁茂洞穴中的两栖动物：
+
+- 五种颜色变体：Lucy(白化/粉色)、Wild(野生/棕色)、Gold(金色)、Cyan(青色)、Blue(蓝色-稀有1/1200)
+- 装死行为：在水中受击33%概率装死，持续200tick，期间获得再生I效果
+- 攻击行为：攻击溺尸、守卫者、远古守卫者、鱼类、鱿鱼
+- 支援效果：击杀目标后给予20格内玩家再生I效果(100+tick，上限2400tick)
+- 繁殖食物：热带鱼桶
+- 可桶装：水桶可拾起美西螈，保存变体和年龄
+- 空气储备：6000 tick (5分钟)
+
+**AI 目标（MC 1.17+ 优先级）**:
+
+| 优先级 | 目标 | 说明 |
+|--------|------|------|
+| 0 | SwimGoal | 水中浮起 |
+| 0 | FindWaterGoal | 寻找水源 |
+| 1 | AxolotlPlayDeadGoal | 装死 |
+| 2 | PanicGoal | 恐慌逃跑 |
+| 3 | BreedGoal | 繁殖 |
+| 3 | TemptGoal | 跟随食物（热带鱼桶） |
+| 3 | FollowParentGoal | 幼体跟随成体 |
+| 4 | MeleeAttackGoal | 近战攻击 |
+| 5 | RandomSwimmingGoal | 随机游泳 |
+| 6 | LookAtGoal | 看向玩家 |
+| 7 | LookRandomlyGoal | 随机看向 |
+
+**目标选择器**:
+
+| 优先级 | 目标 | 说明 |
+|--------|------|------|
+| 1 | HurtByTargetGoal | 被攻击后反击 |
+| 2 | AxolotlTargetGoal | 攻击水生敌对生物和鱼类 |
+
+**狩猎冷却系统**:
+
+击杀目标后进入2分钟(2400tick)狩猎冷却，期间不会攻击鱼类和鱿鱼，但仍会攻击溺尸和守卫者。
+
+**变体系统**:
+
+```cpp
+// 获取变体
+AxolotlVariant variant = axolotl.getVariant();
+
+// 设置变体
+axolotl.setVariant(AxolotlVariant::Blue);
+
+// 随机选择普通变体
+axolotl.randomizeVariant();
+```
+
 **移动向量系统**:
 
 鱿鱼使用自定义的移动向量系统进行游泳，而不是标准的导航系统。
@@ -172,6 +226,7 @@ Entity
         └── CreatureEntity
             └── WaterMobEntity      ← 水生生物基类（反逻辑溺水）
                 ├── DolphinEntity   ← 海豚
+                ├── AxolotlEntity   ← 美西螈
                 ├── SquidEntity     ← 鱿鱼
                 └── fish/
                     └── AbstractFishEntity  ← 鱼类（更长的空气储备）
@@ -220,8 +275,21 @@ Entity
 - ✅ `SquidMoveRandomGoal`: 随机游泳目标
 - ✅ `SquidFleeGoal`: 受攻击时逃跑目标
 
+### AxolotlEntity（2026-06-06）
+- ✅ 五种变体：Lucy/Wild/Gold/Cyan/Blue
+- ✅ 装死行为：水中受击33%概率触发，持续200tick
+- ✅ 攻击行为：溺尸、守卫者、远古守卫者、鱼类、鱿鱼
+- ✅ 支援效果：击杀后给予附近玩家再生I效果
+- ✅ 繁殖：热带鱼桶
+- ✅ 桶装：水桶拾起，保存变体
+- ✅ 空气储备：6000 tick (5分钟)
+- ✅ 狩猎冷却：击杀后2分钟不攻击鱼类
+- ✅ 音效：水中/陆地环境音、攻击、受伤、死亡、溅水、游泳
+- ✅ 渲染：5种变体纹理、水中/陆地/装死动画
+
 ## 参考
 
 - MC 1.16.5 WaterMobEntity / WaterCreatureEntity
 - MC 1.16.5 DolphinEntity
 - MC 1.16.5 SquidEntity
+- MC 1.17+ AxolotlEntity

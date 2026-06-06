@@ -2007,6 +2007,7 @@ Biome createLushCaves()
             .skyColor(0x78A7FF)
             .build());
     biome.setGenerationSettings(BiomeGenerationSettings::createLushCaves());
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createLushCaves());
     return biome;
 }
 

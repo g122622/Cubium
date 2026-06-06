@@ -282,4 +282,60 @@ private:
     bool m_isInWater = true;
 };
 
+/**
+ * @brief 美西螈模型
+ *
+ * 纹理尺寸: 64x64
+ * 结构: 身体 + 头部 + 尾巴 + 四条腿 + 鳃（3对）
+ * 支持变体纹理选择和水中/陆地动画
+ */
+class AxolotlModel : public EntityModel {
+public:
+    AxolotlModel();
+    ~AxolotlModel() override = default;
+
+    void render(f64 scale = 1.0f / 16.0f) override;
+    void setAngles(
+        f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
+
+    /**
+     * @brief 设置是否在水中
+     */
+    void setInWater(bool inWater) { m_isInWater = inWater; }
+
+    /**
+     * @brief 设置是否在地面
+     */
+    void setOnGround(bool onGround) { m_isOnGround = onGround; }
+
+    /**
+     * @brief 设置是否正在装死
+     */
+    void setPlayingDead(bool playingDead) { m_isPlayingDead = playingDead; }
+
+    /**
+     * @brief 设置是否为幼体
+     */
+    void setChild(bool isChild) { m_isChild = isChild; }
+
+private:
+    void _setupParts();
+
+    std::shared_ptr<ModelRenderer> m_body;          // 身体
+    std::shared_ptr<ModelRenderer> m_head;           // 头部
+    std::shared_ptr<ModelRenderer> m_tail;           // 尾巴
+    std::shared_ptr<ModelRenderer> m_leftHindLeg;    // 左后腿
+    std::shared_ptr<ModelRenderer> m_rightHindLeg;   // 右后腿
+    std::shared_ptr<ModelRenderer> m_leftFrontLeg;   // 左前腿
+    std::shared_ptr<ModelRenderer> m_rightFrontLeg;  // 右前腿
+    std::shared_ptr<ModelRenderer> m_topGills;       // 顶部鳃
+    std::shared_ptr<ModelRenderer> m_leftGills;      // 左侧鳃
+    std::shared_ptr<ModelRenderer> m_rightGills;     // 右侧鳃
+
+    bool m_isInWater = true;
+    bool m_isOnGround = false;
+    bool m_isPlayingDead = false;
+    bool m_isChild = false;
+};
+
 } // namespace mc::client::renderer::entity::model::aquatic

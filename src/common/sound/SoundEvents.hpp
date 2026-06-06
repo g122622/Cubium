@@ -844,6 +844,17 @@ extern const ResourceLocation ENTITY_DOLPHIN_PLAY;
 extern const ResourceLocation ENTITY_DOLPHIN_SPLASH;
 extern const ResourceLocation ENTITY_DOLPHIN_SWIM;
 
+/// 美西螈
+extern const ResourceLocation ENTITY_AXOLOTL_ATTACK;
+extern const ResourceLocation ENTITY_AXOLOTL_DEATH;
+extern const ResourceLocation ENTITY_AXOLOTL_HURT;
+extern const ResourceLocation ENTITY_AXOLOTL_IDLE_AIR;
+extern const ResourceLocation ENTITY_AXOLOTL_IDLE_WATER;
+extern const ResourceLocation ENTITY_AXOLOTL_SPLASH;
+extern const ResourceLocation ENTITY_AXOLOTL_SWIM;
+extern const ResourceLocation ITEM_BUCKET_FILL_AXOLOTL;
+extern const ResourceLocation ITEM_BUCKET_EMPTY_AXOLOTL;
+
 /// 鱿鱼
 extern const ResourceLocation ENTITY_SQUID_AMBIENT;
 extern const ResourceLocation ENTITY_SQUID_DEATH;

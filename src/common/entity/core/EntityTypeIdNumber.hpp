@@ -86,6 +86,7 @@ extern EntityTypeId PUFFERFISH;
 extern EntityTypeId TROPICAL_FISH;
 extern EntityTypeId SQUID;
 extern EntityTypeId DOLPHIN;
+extern EntityTypeId AXOLOTL;
 
 // 环境生物
 extern EntityTypeId BAT;

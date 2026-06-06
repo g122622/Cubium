@@ -549,4 +549,153 @@ void TropicalFishBModel::setAngles(
     (void)scale;
 }
 
+// ============================================================================
+// AxolotlModel
+// ============================================================================
+
+AxolotlModel::AxolotlModel()
+    : EntityModel()
+{
+    setTextureSize(64, 64);
+    _setupParts();
+}
+
+void AxolotlModel::_setupParts()
+{
+    // 身体
+    m_body = std::make_shared<ModelRenderer>("body");
+    m_body->setTextureOffset(0, 0);
+    m_body->addBox(-4.0, -3.0, -7.0, 8.0, 6.0, 14.0);
+    m_body->setRotationPoint(0.0, 20.0, 1.0);
+
+    // 头部（身体子部件）
+    m_head = std::make_shared<ModelRenderer>("head");
+    m_head->setTextureOffset(0, 20);
+    m_head->addBox(-4.0, -3.0, -5.0, 8.0, 5.0, 5.0);
+    m_head->setRotationPoint(0.0, -1.0, -7.0);
+    m_body->addChild(m_head);
+
+    // 尾巴
+    m_tail = std::make_shared<ModelRenderer>("tail");
+    m_tail->setTextureOffset(44, 0);
+    m_tail->addBox(-2.0, -2.0, 0.0, 4.0, 4.0, 7.0);
+    m_tail->setRotationPoint(0.0, 0.0, 7.0);
+    m_body->addChild(m_tail);
+
+    // 左后腿
+    m_leftHindLeg = std::make_shared<ModelRenderer>("leftHindLeg");
+    m_leftHindLeg->setTextureOffset(30, 20);
+    m_leftHindLeg->addBox(-1.0, 0.0, -1.0, 2.0, 4.0, 2.0);
+    m_leftHindLeg->setRotationPoint(2.0, 3.0, 4.0);
+    m_leftHindLeg->setMirror(true);
+    m_body->addChild(m_leftHindLeg);
+
+    // 右后腿
+    m_rightHindLeg = std::make_shared<ModelRenderer>("rightHindLeg");
+    m_rightHindLeg->setTextureOffset(30, 20);
+    m_rightHindLeg->addBox(-1.0, 0.0, -1.0, 2.0, 4.0, 2.0);
+    m_rightHindLeg->setRotationPoint(-2.0, 3.0, 4.0);
+    m_body->addChild(m_rightHindLeg);
+
+    // 左前腿
+    m_leftFrontLeg = std::make_shared<ModelRenderer>("leftFrontLeg");
+    m_leftFrontLeg->setTextureOffset(30, 20);
+    m_leftFrontLeg->addBox(-1.0, 0.0, -1.0, 2.0, 4.0, 2.0);
+    m_leftFrontLeg->setRotationPoint(2.0, 3.0, -4.0);
+    m_leftFrontLeg->setMirror(true);
+    m_body->addChild(m_leftFrontLeg);
+
+    // 右前腿
+    m_rightFrontLeg = std::make_shared<ModelRenderer>("rightFrontLeg");
+    m_rightFrontLeg->setTextureOffset(30, 20);
+    m_rightFrontLeg->addBox(-1.0, 0.0, -1.0, 2.0, 4.0, 2.0);
+    m_rightFrontLeg->setRotationPoint(-2.0, 3.0, -4.0);
+    m_body->addChild(m_rightFrontLeg);
+
+    // 顶部鳃（头部子部件）
+    m_topGills = std::make_shared<ModelRenderer>("topGills");
+    m_topGills->setTextureOffset(0, 30);
+    m_topGills->addBox(-3.0, -4.0, -2.0, 6.0, 1.0, 4.0);
+    m_topGills->setRotationPoint(0.0, -3.0, -2.0);
+    m_head->addChild(m_topGills);
+
+    // 左侧鳃（头部子部件）
+    m_leftGills = std::make_shared<ModelRenderer>("leftGills");
+    m_leftGills->setTextureOffset(20, 30);
+    m_leftGills->addBox(0.0, -2.0, -2.0, 1.0, 4.0, 4.0);
+    m_leftGills->setRotationPoint(4.0, -1.0, -2.0);
+    m_leftGills->setMirror(true);
+    m_head->addChild(m_leftGills);
+
+    // 右侧鳃（头部子部件）
+    m_rightGills = std::make_shared<ModelRenderer>("rightGills");
+    m_rightGills->setTextureOffset(20, 30);
+    m_rightGills->addBox(-1.0, -2.0, -2.0, 1.0, 4.0, 4.0);
+    m_rightGills->setRotationPoint(-4.0, -1.0, -2.0);
+    m_head->addChild(m_rightGills);
+
+    // 添加所有部件到渲染列表
+    m_parts.push_back(m_body);
+}
+
+void AxolotlModel::render(f64 scale)
+{
+    // 幼体缩放
+    f64 actualScale = scale;
+    if (m_isChild) {
+        actualScale = scale * 0.5;
+    }
+    EntityModel::render(actualScale);
+}
+
+void AxolotlModel::setAngles(
+    f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
+{
+    // 头部旋转
+    m_head->setRotateAngleY(static_cast<f32>(netHeadYaw) * 0.017453292f);
+    m_head->setRotateAngleX(static_cast<f32>(headPitch) * 0.017453292f);
+
+    if (m_isPlayingDead) {
+        // 装死时翻转
+        m_body->setRotateAngleZ(1.5708f); // 90度
+        m_tail->setRotateAngleY(0.0f);
+        m_leftHindLeg->setRotateAngleX(0.0f);
+        m_rightHindLeg->setRotateAngleX(0.0f);
+        m_leftFrontLeg->setRotateAngleX(0.0f);
+        m_rightFrontLeg->setRotateAngleX(0.0f);
+    } else if (m_isInWater) {
+        // 水中游泳动画
+        f32 swimSpeed = 0.45f;
+        f32 swimFreq = static_cast<f32>(std::sin(0.6 * ageInTicks));
+        m_tail->setRotateAngleY(-swimSpeed * swimFreq);
+
+        // 鳃的摆动
+        m_topGills->setRotateAngleZ(0.05f * static_cast<f32>(std::sin(1.2 * ageInTicks)));
+        m_leftGills->setRotateAngleZ(0.05f * static_cast<f32>(std::sin(1.2 * ageInTicks)));
+        m_rightGills->setRotateAngleZ(-0.05f * static_cast<f32>(std::sin(1.2 * ageInTicks)));
+
+        // 腿向后伸展
+        m_leftHindLeg->setRotateAngleX(-0.5f);
+        m_rightHindLeg->setRotateAngleX(-0.5f);
+        m_leftFrontLeg->setRotateAngleX(-0.5f);
+        m_rightFrontLeg->setRotateAngleX(-0.5f);
+
+        m_body->setRotateAngleZ(0.0f);
+    } else {
+        // 陆地行走动画
+        f32 walkSpeed = static_cast<f32>(limbSwing);
+        f32 walkAmount = static_cast<f32>(limbSwingAmount);
+
+        m_tail->setRotateAngleY(-0.15f * walkAmount * static_cast<f32>(std::sin(walkSpeed * 0.5)));
+
+        // 腿部行走摆动
+        m_leftHindLeg->setRotateAngleX(walkAmount * 0.6f * static_cast<f32>(std::sin(walkSpeed)));
+        m_rightHindLeg->setRotateAngleX(walkAmount * 0.6f * static_cast<f32>(std::sin(walkSpeed + 3.14159f)));
+        m_leftFrontLeg->setRotateAngleX(walkAmount * 0.6f * static_cast<f32>(std::sin(walkSpeed + 3.14159f)));
+        m_rightFrontLeg->setRotateAngleX(walkAmount * 0.6f * static_cast<f32>(std::sin(walkSpeed)));
+
+        m_body->setRotateAngleZ(0.0f);
+    }
+}
+
 } // namespace mc::client::renderer::entity::model::aquatic

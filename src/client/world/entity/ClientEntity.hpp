@@ -555,6 +555,21 @@ public:
     [[nodiscard]] i32 puffState() const { return m_puffState; }
     void setPuffState(i32 state) { m_puffState = std::clamp(state, 0, 2); }
 
+    // ========== 美西螈状态 ==========
+
+    /**
+     * @brief 获取美西螈变体
+     * 0=Lucy(白化), 1=Wild(野生), 2=Gold(金色), 3=Cyan(青色), 4=Blue(蓝色)
+     */
+    [[nodiscard]] i32 axolotlVariant() const { return m_axolotlVariant; }
+    void setAxolotlVariant(i32 variant) { m_axolotlVariant = std::clamp(variant, 0, 4); }
+
+    /**
+     * @brief 获取美西螈装死状态
+     */
+    [[nodiscard]] bool axolotlPlayingDead() const { return m_axolotlPlayingDead; }
+    void setAxolotlPlayingDead(bool playingDead) { m_axolotlPlayingDead = playingDead; }
+
     // ========== 装备（用于层渲染） ==========
 
     /**
@@ -774,6 +789,12 @@ private:
 
     // 河豚膨胀状态 (0=Deflated, 1=SemiPuffed, 2=FullyPuffed)
     i32 m_puffState = 0;
+
+    // 美西螈变体 (0=Lucy, 1=Wild, 2=Gold, 3=Cyan, 4=Blue)
+    i32 m_axolotlVariant = 0;
+
+    // 美西螈装死状态
+    bool m_axolotlPlayingDead = false;
 
     // 装备（用于层渲染）
     std::unique_ptr<ItemStack> m_mainHandItem;

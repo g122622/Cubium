@@ -434,6 +434,7 @@ public:
     static Item* SALMON_BUCKET;        // 鲑鱼桶
     static Item* PUFFERFISH_BUCKET;    // 河豚桶
     static Item* TROPICAL_FISH_BUCKET; // 热带鱼桶
+    static Item* AXOLOTL_BUCKET;       // 美西螈桶
     static Item* MILK_BUCKET;          // 牛奶桶
 
     // ========================================================================
