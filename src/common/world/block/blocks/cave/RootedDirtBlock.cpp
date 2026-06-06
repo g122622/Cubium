@@ -22,7 +22,7 @@
 
 #include "RootedDirtBlock.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/registry/CaveBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -65,7 +65,7 @@ void RootedDirtBlock::grow(IWorld& world, math::IRandom& random, const BlockPos&
     }
 
     // 在下方放置垂根
-    const BlockState& hangingRootsState = CaveBlocks::HANGING_ROOTS->defaultState();
+    const BlockState& hangingRootsState = VanillaBlocks::HANGING_ROOTS->defaultState();
     world.setBlockState(belowPos, &hangingRootsState, 3);
 }
 

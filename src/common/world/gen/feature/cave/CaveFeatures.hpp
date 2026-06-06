@@ -51,7 +51,8 @@ public:
      * @param config 简单方块配置
      * @return 是否成功放置
      */
-    static bool place(WorldGenRegion& region, math::Random& random, const BlockPos& pos, const SimpleBlockConfig& config);
+    static bool place(
+        WorldGenRegion& region, math::Random& random, const BlockPos& pos, const SimpleBlockConfig& config);
 };
 
 // ============================================================================
@@ -68,8 +69,12 @@ public:
  */
 class RandomBooleanSelectorFeature {
 public:
-    static bool place(WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator,
-        math::Random& random, const BlockPos& pos, const RandomBooleanFeatureConfig& config);
+    static bool place(WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const BlockPos& pos,
+        const RandomBooleanFeatureConfig& config);
 };
 
 // ============================================================================
@@ -86,8 +91,12 @@ public:
  */
 class SimpleRandomSelectorFeature {
 public:
-    static bool place(WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator,
-        math::Random& random, const BlockPos& pos, const SimpleRandomFeatureConfig& config);
+    static bool place(WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const BlockPos& pos,
+        const SimpleRandomFeatureConfig& config);
 };
 
 // ============================================================================
@@ -112,7 +121,8 @@ public:
      * @param config 方块柱配置
      * @return 是否成功放置
      */
-    static bool place(WorldGenRegion& region, math::Random& random, const BlockPos& pos, const BlockColumnConfig& config);
+    static bool place(
+        WorldGenRegion& region, math::Random& random, const BlockPos& pos, const BlockColumnConfig& config);
 };
 
 // ============================================================================
@@ -140,30 +150,41 @@ public:
      * @param config 植被贴片配置
      * @return 是否成功放置
      */
-    static bool place(WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator,
-        math::Random& random, const BlockPos& pos, const VegetationPatchConfig& config);
+    static bool place(WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const BlockPos& pos,
+        const VegetationPatchConfig& config);
 
-private:
     /**
      * @brief 放置地面贴片
      * @return 成功放置的地面位置集合
      */
-    static std::vector<BlockPos> placeGroundPatch(WorldGenRegion& region, math::Random& random,
-        const BlockPos& pos, const VegetationPatchConfig& config);
+    static std::vector<BlockPos> placeGroundPatch(
+        WorldGenRegion& region, math::Random& random, const BlockPos& pos, const VegetationPatchConfig& config);
 
+private:
     /**
      * @brief 在地面上放置一个方块列
      * @return 是否放置了至少一个方块
      */
-    static bool placeGround(WorldGenRegion& region, math::Random& random, const BlockPos& pos,
-        const VegetationPatchConfig& config, Direction surfaceDir, i32 depth);
+    static bool placeGround(WorldGenRegion& region,
+        math::Random& random,
+        const BlockPos& pos,
+        const VegetationPatchConfig& config,
+        Direction surfaceDir,
+        i32 depth);
 
     /**
      * @brief 在地面贴片上分布植被
      */
-    static void distributeVegetation(WorldGenRegion& region, ChunkPrimer& chunk,
-        IChunkGenerator& generator, math::Random& random,
-        const std::vector<BlockPos>& groundPositions, const VegetationPatchConfig& config);
+    static void distributeVegetation(WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const std::vector<BlockPos>& groundPositions,
+        const VegetationPatchConfig& config);
 };
 
 // ============================================================================
@@ -181,8 +202,12 @@ private:
  */
 class WaterloggedVegetationPatchFeature {
 public:
-    static bool place(WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator,
-        math::Random& random, const BlockPos& pos, const VegetationPatchConfig& config);
+    static bool place(WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const BlockPos& pos,
+        const VegetationPatchConfig& config);
 
 private:
     /**
@@ -206,27 +231,33 @@ private:
  */
 class RootSystemFeature {
 public:
-    static bool place(WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator,
-        math::Random& random, const BlockPos& pos, const RootSystemConfig& config);
+    static bool place(WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const BlockPos& pos,
+        const RootSystemConfig& config);
 
 private:
     /**
      * @brief 检查树木是否有足够的垂直空间
      */
-    static bool spaceForTree(WorldGenRegion& region, const BlockPos& pos,
-        i32 requiredSpace, i32 allowedWater);
+    static bool spaceForTree(WorldGenRegion& region, const BlockPos& pos, i32 requiredSpace, i32 allowedWater);
 
     /**
      * @brief 放置缠根泥土柱
      */
-    static void placeRootedDirtColumn(WorldGenRegion& region, math::Random& random,
-        const BlockPos& origin, i32 targetY, const RootSystemConfig& config);
+    static void placeRootedDirtColumn(WorldGenRegion& region,
+        math::Random& random,
+        const BlockPos& origin,
+        i32 targetY,
+        const RootSystemConfig& config);
 
     /**
      * @brief 放置垂根
      */
-    static void placeHangingRoots(WorldGenRegion& region, math::Random& random,
-        const BlockPos& rootCenter, const RootSystemConfig& config);
+    static void placeHangingRoots(
+        WorldGenRegion& region, math::Random& random, const BlockPos& rootCenter, const RootSystemConfig& config);
 };
 
 // ============================================================================
@@ -239,10 +270,14 @@ private:
 class ConfiguredSimpleBlockFeature : public ConfiguredFeatureBase {
 public:
     ConfiguredSimpleBlockFeature(std::unique_ptr<SimpleBlockConfig> config,
-        std::unique_ptr<ConfiguredPlacement> placement, const char* featureName);
+        std::unique_ptr<ConfiguredPlacement> placement,
+        const char* featureName);
 
-    bool place(WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator,
-        math::Random& random, const BlockPos& pos) override;
+    bool place(WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const BlockPos& pos) override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 
@@ -258,10 +293,14 @@ private:
 class ConfiguredVegetationPatchFeature : public ConfiguredFeatureBase {
 public:
     ConfiguredVegetationPatchFeature(std::unique_ptr<VegetationPatchConfig> config,
-        std::unique_ptr<ConfiguredPlacement> placement, const char* featureName);
+        std::unique_ptr<ConfiguredPlacement> placement,
+        const char* featureName);
 
-    bool place(WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator,
-        math::Random& random, const BlockPos& pos) override;
+    bool place(WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const BlockPos& pos) override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 
@@ -277,10 +316,14 @@ private:
 class ConfiguredWaterloggedPatchFeature : public ConfiguredFeatureBase {
 public:
     ConfiguredWaterloggedPatchFeature(std::unique_ptr<VegetationPatchConfig> config,
-        std::unique_ptr<ConfiguredPlacement> placement, const char* featureName);
+        std::unique_ptr<ConfiguredPlacement> placement,
+        const char* featureName);
 
-    bool place(WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator,
-        math::Random& random, const BlockPos& pos) override;
+    bool place(WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const BlockPos& pos) override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 
@@ -296,10 +339,14 @@ private:
 class ConfiguredBlockColumnFeature : public ConfiguredFeatureBase {
 public:
     ConfiguredBlockColumnFeature(std::unique_ptr<BlockColumnConfig> config,
-        std::unique_ptr<ConfiguredPlacement> placement, const char* featureName);
+        std::unique_ptr<ConfiguredPlacement> placement,
+        const char* featureName);
 
-    bool place(WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator,
-        math::Random& random, const BlockPos& pos) override;
+    bool place(WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const BlockPos& pos) override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 
@@ -315,10 +362,14 @@ private:
 class ConfiguredRootSystemFeature : public ConfiguredFeatureBase {
 public:
     ConfiguredRootSystemFeature(std::unique_ptr<RootSystemConfig> config,
-        std::unique_ptr<ConfiguredPlacement> placement, const char* featureName);
+        std::unique_ptr<ConfiguredPlacement> placement,
+        const char* featureName);
 
-    bool place(WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator,
-        math::Random& random, const BlockPos& pos) override;
+    bool place(WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const BlockPos& pos) override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 
@@ -334,10 +385,14 @@ private:
 class ConfiguredRandomBooleanSelectorFeature : public ConfiguredFeatureBase {
 public:
     ConfiguredRandomBooleanSelectorFeature(std::unique_ptr<RandomBooleanFeatureConfig> config,
-        std::unique_ptr<ConfiguredPlacement> placement, const char* featureName);
+        std::unique_ptr<ConfiguredPlacement> placement,
+        const char* featureName);
 
-    bool place(WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator,
-        math::Random& random, const BlockPos& pos) override;
+    bool place(WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const BlockPos& pos) override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 
@@ -353,10 +408,14 @@ private:
 class ConfiguredSimpleRandomSelectorFeature : public ConfiguredFeatureBase {
 public:
     ConfiguredSimpleRandomSelectorFeature(std::unique_ptr<SimpleRandomFeatureConfig> config,
-        std::unique_ptr<ConfiguredPlacement> placement, const char* featureName);
+        std::unique_ptr<ConfiguredPlacement> placement,
+        const char* featureName);
 
-    bool place(WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator,
-        math::Random& random, const BlockPos& pos) override;
+    bool place(WorldGenRegion& region,
+        ChunkPrimer& chunk,
+        IChunkGenerator& generator,
+        math::Random& random,
+        const BlockPos& pos) override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
 

@@ -964,6 +964,11 @@ add_library(mc_common STATIC
     world/gen/feature/nether/MagmaPatchFeature.cpp
     world/gen/feature/nether/NetherFeatures.cpp
 
+    # World - Generation - Feature - Cave
+    world/gen/feature/cave/CaveFeatures.cpp
+    world/gen/feature/cave/LushCavesFeatures.cpp
+    world/gen/feature/predicate/BlockPredicate.cpp
+
     # World - Generation - Feature - Lake
     world/gen/feature/lake/LakeFeature.cpp
 

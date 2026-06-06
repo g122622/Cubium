@@ -26,8 +26,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
-#include "common/world/block/registry/BaseBlocks.hpp"
-#include "common/world/block/registry/CaveBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -168,23 +167,24 @@ void SmallDripleafBlock::grow(IWorld& world, math::IRandom& random, const BlockP
     }
 
     // 移除小滴叶（上下两部分）
-    const BlockState& airState = BaseBlocks::AIR->defaultState();
+    const BlockState& airState = VanillaBlocks::AIR->defaultState();
     world.setBlockState(basePos, &airState, 3);
     world.setBlockState(BlockPos(basePos.x, basePos.y + 1, basePos.z), &airState, 3);
 
     // 放置大滴叶茎
-    const BlockState& stemState = CaveBlocks::BIG_DRIPLEAF_STEM->defaultState()
-                                       .with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+    const BlockState& stemState =
+        VanillaBlocks::BIG_DRIPLEAF_STEM->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
     for (i32 i = 0; i < stemHeight; ++i) {
         BlockPos stemPos(basePos.x, basePos.y + i, basePos.z);
         world.setBlockState(stemPos, &stemState, 3);
     }
 
     // 放置大滴叶叶片
-    const BlockState& leafState = CaveBlocks::BIG_DRIPLEAF->defaultState()
-                                       .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
-                                       .with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::None);
-    world.setBlockState(leafPos, &leafState, 3);
+    const BlockState& leafState = VanillaBlocks::BIG_DRIPLEAF->defaultState()
+                                      .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
+                                      .with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::None);
+    BlockPos leafPosition(basePos.x, basePos.y + stemHeight, basePos.z);
+    world.setBlockState(leafPosition, &leafState, 3);
 }
 
 } // namespace blocks

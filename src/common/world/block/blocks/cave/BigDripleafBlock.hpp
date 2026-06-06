@@ -129,8 +129,7 @@ public:
      *
      * 检测到实体站在上面时，将TILT设为UNSTABLE并调度tick
      */
-    void onEntityCollision(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
@@ -146,7 +145,7 @@ private:
     /**
      * @brief 调度下一次倾斜tick
      */
-    void _scheduleTiltTick(IWorld& world, const BlockPos& pos, BlockStateProperties::Tilt tilt);
+    void _scheduleTiltTick(IWorld& world, const BlockPos& pos, BlockStateProperties::Tilt tilt) const;
 
     /**
      * @brief 重置倾斜状态为NONE

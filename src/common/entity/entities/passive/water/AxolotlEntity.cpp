@@ -24,9 +24,7 @@
 
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
-#include "common/entity/ai/goal/goals/BreedGoal.hpp"
 #include "common/entity/ai/goal/goals/FindWaterGoal.hpp"
-#include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
 #include "common/entity/ai/goal/goals/PanicGoal.hpp"
@@ -165,11 +163,15 @@ void AxolotlEntity::registerGoals()
     // 优先级 2: 恐慌逃跑
     m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::PanicGoal>(this, 2.0));
 
-    // 优先级 3: 繁殖、跟随食物、跟随父母
-    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::BreedGoal>(this, 0.2));
-    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::TemptGoal>(
-                                  this, 1.0, [](const ItemStack& stack) -> bool { return stack.getItem() == Items::TROPICAL_FISH_BUCKET; }, false));
-    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 1.0));
+    // 优先级 3: 跟随食物（热带鱼桶）
+    // 注意：BreedGoal 和 FollowParentGoal 需要 AnimalEntity，美西螈继承自 WaterMobEntity
+    // 繁殖通过水桶交互机制实现，而非 BreedGoal
+    m_goalSelector.addGoal(3,
+        std::make_unique<entity::ai::goal::TemptGoal>(
+            this,
+            1.0,
+            [](const ItemStack& stack) -> bool { return stack.getItem() == Items::TROPICAL_FISH_BUCKET; },
+            false));
 
     // 优先级 4: 近战攻击
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.5, true));
@@ -178,10 +180,10 @@ void AxolotlEntity::registerGoals()
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::RandomSwimmingGoal>(this, 1.0, 40));
 
     // 优先级 6: 看向玩家
-    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::LookAtGoal>(
-                                  this, 6.0f, 0.02f, [](const LivingEntity* entity) -> bool {
-                                      return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
-                                  }));
+    m_goalSelector.addGoal(
+        6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 6.0f, 0.02f, [](const LivingEntity* entity) -> bool {
+            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
+        }));
 
     // 优先级 7: 随机看向
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
@@ -214,8 +216,8 @@ bool AxolotlEntity::hurt(DamageSource& source, f32 amount)
     if (result && isInWater() && !isPlayingDead()) {
         // 在水中受击时有概率触发装死
         // 条件：在水中 + 攻击者存在 + 33%概率 + 伤害不超过当前生命值
-        f32 health = getHealth();
-        if (health > 0.0f && amount < health) {
+        f32 healthAmount = health();
+        if (healthAmount > 0.0f && amount < healthAmount) {
             math::Random rng = getRandom();
             if (rng.nextInt(3) == 0) {
                 // 检查攻击者是否存在

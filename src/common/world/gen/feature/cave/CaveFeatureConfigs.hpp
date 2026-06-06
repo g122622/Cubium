@@ -82,8 +82,7 @@ struct VegetationPatchConfig {
     /**
      * @brief 构造地面贴片配置
      */
-    static VegetationPatchConfig floorPatch(
-        const std::string& replaceableTag,
+    static VegetationPatchConfig floorPatch(const std::string& replaceableTag,
         const BlockState* groundState,
         u32 vegetationFeatureId,
         std::unique_ptr<valueprovider::IntProvider> depth,
@@ -96,8 +95,7 @@ struct VegetationPatchConfig {
     /**
      * @brief 构造天花板贴片配置
      */
-    static VegetationPatchConfig ceilingPatch(
-        const std::string& replaceableTag,
+    static VegetationPatchConfig ceilingPatch(const std::string& replaceableTag,
         const BlockState* groundState,
         u32 vegetationFeatureId,
         std::unique_ptr<valueprovider::IntProvider> depth,
@@ -126,8 +124,7 @@ struct BlockColumnLayer {
     BlockColumnLayer(std::unique_ptr<valueprovider::IntProvider> h, const BlockState* s)
         : height(std::move(h))
         , state(s)
-    {
-    }
+    {}
 };
 
 /**
@@ -218,8 +215,7 @@ struct SimpleBlockConfig {
     explicit SimpleBlockConfig(const BlockState* state, bool tick = false)
         : toPlace(state)
         , scheduleTick(tick)
-    {
-    }
+    {}
 };
 
 /**
@@ -240,8 +236,7 @@ struct RandomBooleanFeatureConfig {
     RandomBooleanFeatureConfig(u32 trueId, u32 falseId)
         : featureTrueId(trueId)
         , featureFalseId(falseId)
-    {
-    }
+    {}
 };
 
 /**
@@ -258,8 +253,7 @@ struct SimpleRandomFeatureConfig {
     SimpleRandomFeatureConfig() = default;
     explicit SimpleRandomFeatureConfig(std::vector<u32> ids)
         : featureIds(std::move(ids))
-    {
-    }
+    {}
 };
 
 } // namespace mc::world::gen::feature::cave

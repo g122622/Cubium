@@ -123,27 +123,27 @@ void BigDripleafBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
     BlockStateProperties::Tilt tilt = state.get(BlockStateProperties::TILT());
 
     switch (tilt) {
-    case BlockStateProperties::Tilt::Unstable:
-        // UNSTABLE → PARTIAL
-        state = state.with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::Partial);
-        world.setBlockState(pos, &state, 3);
-        _scheduleTiltTick(world, pos, BlockStateProperties::Tilt::Partial);
-        break;
+        case BlockStateProperties::Tilt::Unstable:
+            // UNSTABLE → PARTIAL
+            state = state.with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::Partial);
+            world.setBlockState(pos, &state, 3);
+            _scheduleTiltTick(world, pos, BlockStateProperties::Tilt::Partial);
+            break;
 
-    case BlockStateProperties::Tilt::Partial:
-        // PARTIAL → FULL
-        state = state.with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::Full);
-        world.setBlockState(pos, &state, 3);
-        _scheduleTiltTick(world, pos, BlockStateProperties::Tilt::Full);
-        break;
+        case BlockStateProperties::Tilt::Partial:
+            // PARTIAL → FULL
+            state = state.with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::Full);
+            world.setBlockState(pos, &state, 3);
+            _scheduleTiltTick(world, pos, BlockStateProperties::Tilt::Full);
+            break;
 
-    case BlockStateProperties::Tilt::Full:
-        // FULL → NONE (自动重置)
-        _resetTilt(world, pos, state);
-        break;
+        case BlockStateProperties::Tilt::Full:
+            // FULL → NONE (自动重置)
+            _resetTilt(world, pos, state);
+            break;
 
-    default:
-        break;
+        default:
+            break;
     }
 }
 
@@ -209,22 +209,23 @@ void BigDripleafBlock::onEntityCollision(
 i32 BigDripleafBlock::_getTiltDelay(BlockStateProperties::Tilt tilt)
 {
     switch (tilt) {
-    case BlockStateProperties::Tilt::Unstable:
-        return TILT_DELAY_UNSTABLE;
-    case BlockStateProperties::Tilt::Partial:
-        return TILT_DELAY_PARTIAL;
-    case BlockStateProperties::Tilt::Full:
-        return TILT_DELAY_FULL;
-    default:
-        return 0;
+        case BlockStateProperties::Tilt::Unstable:
+            return TILT_DELAY_UNSTABLE;
+        case BlockStateProperties::Tilt::Partial:
+            return TILT_DELAY_PARTIAL;
+        case BlockStateProperties::Tilt::Full:
+            return TILT_DELAY_FULL;
+        default:
+            return 0;
     }
 }
 
-void BigDripleafBlock::_scheduleTiltTick(IWorld& world, const BlockPos& pos, BlockStateProperties::Tilt tilt)
+void BigDripleafBlock::_scheduleTiltTick(IWorld& world, const BlockPos& pos, BlockStateProperties::Tilt tilt) const
 {
     i32 delay = _getTiltDelay(tilt);
     if (delay > 0) {
-        world.tickManager().scheduleBlockTick(pos, *this, delay);
+        // const方法中需要移除const以匹配scheduleBlockTick的非常量Block&参数
+        world.tickManager().scheduleBlockTick(pos, const_cast<BigDripleafBlock&>(*this), delay);
     }
 }
 

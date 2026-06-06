@@ -60,6 +60,24 @@ public:
     [[nodiscard]] bool isValidPosition(
         const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
+    /**
+     * @brief 客户端方块动画 tick
+     *
+     * 在客户端每 tick 调用，用于生成孢子花粒子效果。
+     * 生成两种粒子：
+     * - falling_spore_blossom: 从花正下方掉落的绿色孢子粒子
+     * - spore_blossom_air: 在花周围漂浮的环境粒子
+     *
+     * 注意：此方法需要由客户端 animateTick 系统调用，
+     * 当前该系统尚未实现，因此粒子暂不会自动生成。
+     *
+     * @param world 世界实例
+     * @param pos 方块位置
+     * @param state 方块状态
+     * @param random 随机数生成器
+     */
+    void animateTick(IWorld& world, const BlockPos& pos, const BlockState& state, math::IRandom& random);
+
 private:
     CollisionShape m_shape;
 };

@@ -53,6 +53,10 @@ const ResourceLocation AMBIENT_WARPED_FOREST_ADDITIONS("minecraft:ambient.warped
 const ResourceLocation AMBIENT_WARPED_FOREST_LOOP("minecraft:ambient.warped_forest.loop");
 const ResourceLocation AMBIENT_WARPED_FOREST_MOOD("minecraft:ambient.warped_forest.mood");
 
+const ResourceLocation AMBIENT_LUSH_CAVES_ADDITIONS("minecraft:ambient.lush_caves.additions");
+const ResourceLocation AMBIENT_LUSH_CAVES_LOOP("minecraft:ambient.lush_caves.loop");
+const ResourceLocation AMBIENT_LUSH_CAVES_MOOD("minecraft:ambient.lush_caves.mood");
+
 const ResourceLocation AMBIENT_UNDERWATER_ENTER("minecraft:ambient.underwater.enter");
 const ResourceLocation AMBIENT_UNDERWATER_EXIT("minecraft:ambient.underwater.exit");
 const ResourceLocation AMBIENT_UNDERWATER_LOOP("minecraft:ambient.underwater.loop");

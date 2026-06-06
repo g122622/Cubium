@@ -23,9 +23,10 @@
 #include "AxolotlGoals.hpp"
 
 #include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/passive/water/AxolotlEntity.hpp"
 
 namespace mc {
@@ -82,8 +83,7 @@ void AxolotlPlayDeadGoal::tick()
 // ============================================================================
 
 AxolotlTargetGoal::AxolotlTargetGoal(AxolotlEntity* axolotl)
-    : NearestAttackableTargetGoal<LivingEntity>(
-          axolotl,
+    : NearestAttackableTargetGoal<LivingEntity>(axolotl,
           true, // checkSight
           10,   // chance - 每10tick检查一次
           // 目标筛选谓词
@@ -95,16 +95,17 @@ AxolotlTargetGoal::AxolotlTargetGoal(AxolotlEntity* axolotl)
               auto typeId = target->typeId();
 
               // 始终攻击的敌对目标：溺尸、守卫者、远古守卫者
-              if (typeId == entity::EntityTypeIdNumber::DROWNED || typeId == entity::EntityTypeIdNumber::GUARDIAN
-                  || typeId == entity::EntityTypeIdNumber::ELDER_GUARDIAN) {
+              if (typeId == entity::EntityTypeIdNumber::DROWNED || typeId == entity::EntityTypeIdNumber::GUARDIAN ||
+                  typeId == entity::EntityTypeIdNumber::ELDER_GUARDIAN) {
                   return true;
               }
 
               // 狩猎目标（无冷却时）：鱼类和鱿鱼
               if (axolotl != nullptr && !axolotl->hasHuntingCooldown()) {
-                  if (typeId == entity::EntityTypeIdNumber::TROPICAL_FISH || typeId == entity::EntityTypeIdNumber::PUFFERFISH
-                      || typeId == entity::EntityTypeIdNumber::SALMON || typeId == entity::EntityTypeIdNumber::COD
-                      || typeId == entity::EntityTypeIdNumber::SQUID) {
+                  if (typeId == entity::EntityTypeIdNumber::TROPICAL_FISH ||
+                      typeId == entity::EntityTypeIdNumber::PUFFERFISH ||
+                      typeId == entity::EntityTypeIdNumber::SALMON || typeId == entity::EntityTypeIdNumber::COD ||
+                      typeId == entity::EntityTypeIdNumber::SQUID) {
                       return true;
                   }
               }
@@ -112,8 +113,7 @@ AxolotlTargetGoal::AxolotlTargetGoal(AxolotlEntity* axolotl)
               return false;
           })
     , m_axolotl(axolotl)
-{
-}
+{}
 
 bool AxolotlTargetGoal::shouldExecute()
 {

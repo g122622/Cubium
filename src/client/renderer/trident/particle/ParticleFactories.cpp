@@ -29,6 +29,7 @@
 #include "particles/SnowParticle.hpp"
 #include "particles/ambient/BubbleParticle.hpp"
 #include "particles/ambient/CloudParticle.hpp"
+#include "particles/ambient/SporeBlossomParticle.hpp"
 #include "particles/ambient/UnderwaterParticle.hpp"
 #include "particles/block/DiggingParticle.hpp"
 #include "particles/effect/CampfireParticle.hpp"
@@ -82,6 +83,23 @@ void registerBuiltinParticleFactories()
         UnderwaterParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         30.0f,
+        false,
+        false);
+
+    // 孢子花粒子
+    registry.registerType(ParticleTypeId::FallingSporeBlossom,
+        "minecraft:falling_spore_blossom",
+        FallingSporeBlossomParticle::create,
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        60.0f,
+        false,
+        false);
+
+    registry.registerType(ParticleTypeId::SporeBlossomAir,
+        "minecraft:spore_blossom_air",
+        SporeBlossomAirParticle::create,
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        100.0f,
         false,
         false);
 

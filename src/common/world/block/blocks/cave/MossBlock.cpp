@@ -25,7 +25,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/CaveBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -34,8 +34,7 @@ MossBlock::MossBlock(const BlockProperties& properties)
     : Block(properties)
 {}
 
-bool MossBlock::canGrow(
-    IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
+bool MossBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -44,8 +43,7 @@ bool MossBlock::canGrow(
     return true;
 }
 
-bool MossBlock::canUseBonemeal(
-    IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const
+bool MossBlock::canUseBonemeal(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -84,7 +82,7 @@ void MossBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, 
                 }
 
                 // 替换为苔藓块
-                const BlockState& mossState = CaveBlocks::MOSS_BLOCK->defaultState();
+                const BlockState& mossState = VanillaBlocks::MOSS_BLOCK->defaultState();
                 world.setBlockState(targetPos, &mossState, 3);
 
                 // 在苔藓块上方的空气位置放置植被
@@ -98,7 +96,7 @@ void MossBlock::_placeMossVegetation(IWorld& world, math::IRandom& random, const
 {
     // 50%概率放置苔藓地毯
     if (random.nextInt(4) == 0) {
-        const BlockState& carpetState = CaveBlocks::MOSS_CARPET->defaultState();
+        const BlockState& carpetState = VanillaBlocks::MOSS_CARPET->defaultState();
         world.setBlockState(pos, &carpetState, 3);
         return;
     }
@@ -107,10 +105,10 @@ void MossBlock::_placeMossVegetation(IWorld& world, math::IRandom& random, const
     if (random.nextInt(10) == 0) {
         // 2/3概率普通杜鹃，1/3概率开花杜鹃
         if (random.nextInt(3) < 2) {
-            const BlockState& azaleaState = CaveBlocks::AZALEA->defaultState();
+            const BlockState& azaleaState = VanillaBlocks::AZALEA->defaultState();
             world.setBlockState(pos, &azaleaState, 3);
         } else {
-            const BlockState& floweringState = CaveBlocks::FLOWERING_AZALEA->defaultState();
+            const BlockState& floweringState = VanillaBlocks::FLOWERING_AZALEA->defaultState();
             world.setBlockState(pos, &floweringState, 3);
         }
     }

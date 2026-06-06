@@ -65,6 +65,7 @@ add_executable(minecraft-client
     renderer/trident/particle/particles/ambient/BubbleParticle.cpp
     renderer/trident/particle/particles/ambient/UnderwaterParticle.cpp
     renderer/trident/particle/particles/ambient/CloudParticle.cpp
+    renderer/trident/particle/particles/ambient/SporeBlossomParticle.cpp
     # 粒子实现 - 效果
     renderer/trident/particle/particles/effect/FlameParticle.cpp
     renderer/trident/particle/particles/effect/SmokeParticle.cpp

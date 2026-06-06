@@ -26,28 +26,28 @@
 
 namespace mc::world::gen::feature::predicate {
 
-bool OnlyInAirPredicate::test(const IBlockReader& world, const BlockPos& pos) const
+bool OnlyInAirPredicate::test(const IWorld& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     return state == nullptr || state->isAir();
 }
 
-bool SolidBlockPredicate::test(const IBlockReader& world, const BlockPos& pos) const
+bool SolidBlockPredicate::test(const IWorld& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
-    return state != nullptr && state->isSolidRender();
+    return state != nullptr && state->isSolid();
 }
 
-bool HasSturdyFacePredicate::test(const IBlockReader& world, const BlockPos& pos) const
+bool HasSturdyFacePredicate::test(const IWorld& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
         return false;
     }
-    return state->isFaceSturdy(m_direction);
+    return state->isSolid();
 }
 
-bool MatchingBlockPredicate::test(const IBlockReader& world, const BlockPos& pos) const
+bool MatchingBlockPredicate::test(const IWorld& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
@@ -56,7 +56,7 @@ bool MatchingBlockPredicate::test(const IBlockReader& world, const BlockPos& pos
     return &state->getBlock() == m_block;
 }
 
-bool TagMatchPredicate::test(const IBlockReader& world, const BlockPos& pos) const
+bool TagMatchPredicate::test(const IWorld& world, const BlockPos& pos) const
 {
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
@@ -66,7 +66,7 @@ bool TagMatchPredicate::test(const IBlockReader& world, const BlockPos& pos) con
     return tag != nullptr && tag->contains(*state);
 }
 
-bool EnvironmentScanPredicate::scan(const IBlockReader& world, BlockPos& startPos) const
+bool EnvironmentScanPredicate::scan(const IWorld& world, BlockPos& startPos) const
 {
     BlockPos current = startPos;
     for (i32 i = 0; i < m_maxSteps; ++i) {

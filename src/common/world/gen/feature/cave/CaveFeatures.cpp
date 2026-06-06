@@ -21,14 +21,15 @@
  */
 
 #include "CaveFeatures.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/core/Constants.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
-#include "common/world/gen/ConfiguredFeature.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/placement/Placement.hpp"
-#include "common/world/region/WorldGenRegion.hpp"
-#include "common/util/property/Properties.hpp"
 
 namespace mc::world::gen::feature::cave {
 
@@ -47,36 +48,14 @@ bool matchesTag(const BlockState& state, const std::string& tagName)
     return tag != nullptr && tag->contains(state);
 }
 
-/**
- * @brief 检查位置是否在区块内
- */
-bool isInChunk(i32 x, i32 y, i32 z, const ChunkPrimer& chunk)
-{
-    const i32 minX = chunk.pos().x * 16;
-    const i32 minZ = chunk.pos().z * 16;
-    const i32 maxX = minX + 15;
-    const i32 maxZ = minZ + 15;
-    const i32 minY = chunk.getMinBuildHeight();
-    const i32 maxY = chunk.getMaxBuildHeight() - 1;
-    return x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ;
-}
-
-/**
- * @brief 获取区块内相对坐标
- */
-BlockPos toChunkLocal(const BlockPos& pos, const ChunkPrimer& chunk)
-{
-    return BlockPos(pos.x - chunk.pos().x * 16, pos.y, pos.z - chunk.pos().z * 16);
-}
-
 } // anonymous namespace
 
 // ============================================================================
 // SimpleBlockFeature
 // ============================================================================
 
-bool SimpleBlockFeature::place(WorldGenRegion& region, math::Random& random,
-    const BlockPos& pos, const SimpleBlockConfig& config)
+bool SimpleBlockFeature::place(
+    WorldGenRegion& region, math::Random& random, const BlockPos& pos, const SimpleBlockConfig& config)
 {
     MC_UNUSED(random);
 
@@ -104,8 +83,11 @@ bool SimpleBlockFeature::place(WorldGenRegion& region, math::Random& random,
 // RandomBooleanSelectorFeature
 // ============================================================================
 
-bool RandomBooleanSelectorFeature::place(WorldGenRegion& region, ChunkPrimer& chunk,
-    IChunkGenerator& generator, math::Random& random, const BlockPos& pos,
+bool RandomBooleanSelectorFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos,
     const RandomBooleanFeatureConfig& config)
 {
     FeatureRegistry& registry = FeatureRegistry::instance();
@@ -124,8 +106,11 @@ bool RandomBooleanSelectorFeature::place(WorldGenRegion& region, ChunkPrimer& ch
 // SimpleRandomSelectorFeature
 // ============================================================================
 
-bool SimpleRandomSelectorFeature::place(WorldGenRegion& region, ChunkPrimer& chunk,
-    IChunkGenerator& generator, math::Random& random, const BlockPos& pos,
+bool SimpleRandomSelectorFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos,
     const SimpleRandomFeatureConfig& config)
 {
     if (config.featureIds.empty()) {
@@ -149,8 +134,8 @@ bool SimpleRandomSelectorFeature::place(WorldGenRegion& region, ChunkPrimer& chu
 // BlockColumnFeature
 // ============================================================================
 
-bool BlockColumnFeature::place(WorldGenRegion& region, math::Random& random,
-    const BlockPos& pos, const BlockColumnConfig& config)
+bool BlockColumnFeature::place(
+    WorldGenRegion& region, math::Random& random, const BlockPos& pos, const BlockColumnConfig& config)
 {
     if (config.layers.empty()) {
         return false;
@@ -236,8 +221,8 @@ bool BlockColumnFeature::place(WorldGenRegion& region, math::Random& random,
 // VegetationPatchFeature
 // ============================================================================
 
-std::vector<BlockPos> VegetationPatchFeature::placeGroundPatch(WorldGenRegion& region,
-    math::Random& random, const BlockPos& pos, const VegetationPatchConfig& config)
+std::vector<BlockPos> VegetationPatchFeature::placeGroundPatch(
+    WorldGenRegion& region, math::Random& random, const BlockPos& pos, const VegetationPatchConfig& config)
 {
     std::vector<BlockPos> groundPositions;
 
@@ -246,7 +231,7 @@ std::vector<BlockPos> VegetationPatchFeature::placeGroundPatch(WorldGenRegion& r
     i32 radiusZ = config.xzRadius ? config.xzRadius->sample(random) + 1 : 2;
 
     Direction scanDir = getScanDirection(config.surface);
-    Direction placeDir = scanDir; // 扫描方向
+    Direction placeDir = scanDir;                          // 扫描方向
     Direction oppositeDir = Directions::opposite(scanDir); // 放置方向（反方向）
 
     for (i32 x = -radiusX; x <= radiusX; ++x) {
@@ -268,13 +253,13 @@ std::vector<BlockPos> VegetationPatchFeature::placeGroundPatch(WorldGenRegion& r
             }
 
             // 沿扫描方向寻找实心面
-            BlockPos scanPos = pos.offset(x, 0, z);
+            BlockPos scanPos(pos.x + x, pos.y, pos.z + z);
             bool foundSurface = false;
 
             // 先沿扫描方向找实心
             for (i32 i = 0; i < config.verticalRange; ++i) {
                 const BlockState* state = region.getBlockState(scanPos);
-                if (state != nullptr && state->isSolidRender()) {
+                if (state != nullptr && state->isSolid()) {
                     foundSurface = true;
                     break;
                 }
@@ -292,7 +277,7 @@ std::vector<BlockPos> VegetationPatchFeature::placeGroundPatch(WorldGenRegion& r
                 if (state != nullptr && (state->isAir() || state->getMaterial().isReplaceable())) {
                     // 检查扫描方向相邻的方块是否有坚固面
                     const BlockState* supportState = region.getBlockState(scanPos.offset(scanDir));
-                    if (supportState != nullptr && supportState->isFaceSturdy(scanDir)) {
+                    if (supportState != nullptr && supportState->isSolid()) {
                         foundSurface = true;
                         break;
                     }
@@ -320,8 +305,12 @@ std::vector<BlockPos> VegetationPatchFeature::placeGroundPatch(WorldGenRegion& r
     return groundPositions;
 }
 
-bool VegetationPatchFeature::placeGround(WorldGenRegion& region, math::Random& random,
-    const BlockPos& pos, const VegetationPatchConfig& config, Direction surfaceDir, i32 depth)
+bool VegetationPatchFeature::placeGround(WorldGenRegion& region,
+    math::Random& random,
+    const BlockPos& pos,
+    const VegetationPatchConfig& config,
+    Direction surfaceDir,
+    i32 depth)
 {
     MC_UNUSED(random);
 
@@ -353,9 +342,12 @@ bool VegetationPatchFeature::placeGround(WorldGenRegion& region, math::Random& r
     return placedAny;
 }
 
-void VegetationPatchFeature::distributeVegetation(WorldGenRegion& region, ChunkPrimer& chunk,
-    IChunkGenerator& generator, math::Random& random,
-    const std::vector<BlockPos>& groundPositions, const VegetationPatchConfig& config)
+void VegetationPatchFeature::distributeVegetation(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const std::vector<BlockPos>& groundPositions,
+    const VegetationPatchConfig& config)
 {
     if (config.vegetationFeatureId == 0 || groundPositions.empty()) {
         return;
@@ -382,8 +374,11 @@ void VegetationPatchFeature::distributeVegetation(WorldGenRegion& region, ChunkP
     }
 }
 
-bool VegetationPatchFeature::place(WorldGenRegion& region, ChunkPrimer& chunk,
-    IChunkGenerator& generator, math::Random& random, const BlockPos& pos,
+bool VegetationPatchFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos,
     const VegetationPatchConfig& config)
 {
     if (config.groundState == nullptr) {
@@ -410,20 +405,24 @@ bool VegetationPatchFeature::place(WorldGenRegion& region, ChunkPrimer& chunk,
 bool WaterloggedVegetationPatchFeature::isExposed(WorldGenRegion& region, const BlockPos& pos)
 {
     // 检查四个水平方向和下方是否有非实心面
-    static const Direction checkDirs[] = {Direction::North, Direction::East, Direction::South, Direction::West, Direction::Down};
+    static const Direction checkDirs[] = {
+        Direction::North, Direction::East, Direction::South, Direction::West, Direction::Down};
 
     for (Direction dir : checkDirs) {
         BlockPos neighborPos = pos.offset(dir);
         const BlockState* neighborState = region.getBlockState(neighborPos);
-        if (neighborState == nullptr || !neighborState->isSolidRender()) {
+        if (neighborState == nullptr || !neighborState->isSolid()) {
             return true;
         }
     }
     return false;
 }
 
-bool WaterloggedVegetationPatchFeature::place(WorldGenRegion& region, ChunkPrimer& chunk,
-    IChunkGenerator& generator, math::Random& random, const BlockPos& pos,
+bool WaterloggedVegetationPatchFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos,
     const VegetationPatchConfig& config)
 {
     if (config.groundState == nullptr) {
@@ -484,8 +483,7 @@ bool WaterloggedVegetationPatchFeature::place(WorldGenRegion& region, ChunkPrime
 // RootSystemFeature
 // ============================================================================
 
-bool RootSystemFeature::spaceForTree(WorldGenRegion& region, const BlockPos& pos,
-    i32 requiredSpace, i32 allowedWater)
+bool RootSystemFeature::spaceForTree(WorldGenRegion& region, const BlockPos& pos, i32 requiredSpace, i32 allowedWater)
 {
     i32 waterCount = 0;
     for (i32 i = 1; i <= requiredSpace; ++i) {
@@ -511,8 +509,8 @@ bool RootSystemFeature::spaceForTree(WorldGenRegion& region, const BlockPos& pos
     return true;
 }
 
-void RootSystemFeature::placeRootedDirtColumn(WorldGenRegion& region, math::Random& random,
-    const BlockPos& origin, i32 targetY, const RootSystemConfig& config)
+void RootSystemFeature::placeRootedDirtColumn(
+    WorldGenRegion& region, math::Random& random, const BlockPos& origin, i32 targetY, const RootSystemConfig& config)
 {
     MC_UNUSED(random);
 
@@ -538,8 +536,8 @@ void RootSystemFeature::placeRootedDirtColumn(WorldGenRegion& region, math::Rand
     }
 }
 
-void RootSystemFeature::placeHangingRoots(WorldGenRegion& region, math::Random& random,
-    const BlockPos& rootCenter, const RootSystemConfig& config)
+void RootSystemFeature::placeHangingRoots(
+    WorldGenRegion& region, math::Random& random, const BlockPos& rootCenter, const RootSystemConfig& config)
 {
     if (config.hangingRootState == nullptr) {
         return;
@@ -561,14 +559,17 @@ void RootSystemFeature::placeHangingRoots(WorldGenRegion& region, math::Random& 
         // 检查上方是否有坚固面
         BlockPos abovePos = rootPos.offset(Direction::Up);
         const BlockState* aboveState = region.getBlockState(abovePos);
-        if (aboveState != nullptr && aboveState->isFaceSturdy(Direction::Down)) {
+        if (aboveState != nullptr && aboveState->isSolid()) {
             region.setBlockState(rootPos, config.hangingRootState, 3);
         }
     }
 }
 
-bool RootSystemFeature::place(WorldGenRegion& region, ChunkPrimer& chunk,
-    IChunkGenerator& generator, math::Random& random, const BlockPos& pos,
+bool RootSystemFeature::place(WorldGenRegion& region,
+    ChunkPrimer& chunk,
+    IChunkGenerator& generator,
+    math::Random& random,
+    const BlockPos& pos,
     const RootSystemConfig& config)
 {
     // 检查起始位置是否为空气
@@ -629,16 +630,15 @@ bool RootSystemFeature::place(WorldGenRegion& region, ChunkPrimer& chunk,
 // ConfiguredSimpleBlockFeature
 // ============================================================================
 
-ConfiguredSimpleBlockFeature::ConfiguredSimpleBlockFeature(std::unique_ptr<SimpleBlockConfig> config,
-    std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
+ConfiguredSimpleBlockFeature::ConfiguredSimpleBlockFeature(
+    std::unique_ptr<SimpleBlockConfig> config, std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
     : m_config(std::move(config))
     , m_placement(std::move(placement))
     , m_name(featureName)
-{
-}
+{}
 
-bool ConfiguredSimpleBlockFeature::place(WorldGenRegion& region, ChunkPrimer& chunk,
-    IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredSimpleBlockFeature::place(
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     // 获取放置位置
     std::vector<BlockPos> positions;
@@ -661,17 +661,16 @@ bool ConfiguredSimpleBlockFeature::place(WorldGenRegion& region, ChunkPrimer& ch
 // ConfiguredVegetationPatchFeature
 // ============================================================================
 
-ConfiguredVegetationPatchFeature::ConfiguredVegetationPatchFeature(
-    std::unique_ptr<VegetationPatchConfig> config,
-    std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
+ConfiguredVegetationPatchFeature::ConfiguredVegetationPatchFeature(std::unique_ptr<VegetationPatchConfig> config,
+    std::unique_ptr<ConfiguredPlacement> placement,
+    const char* featureName)
     : m_config(std::move(config))
     , m_placement(std::move(placement))
     , m_name(featureName)
-{
-}
+{}
 
-bool ConfiguredVegetationPatchFeature::place(WorldGenRegion& region, ChunkPrimer& chunk,
-    IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredVegetationPatchFeature::place(
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     std::vector<BlockPos> positions;
     if (m_placement) {
@@ -693,17 +692,16 @@ bool ConfiguredVegetationPatchFeature::place(WorldGenRegion& region, ChunkPrimer
 // ConfiguredWaterloggedPatchFeature
 // ============================================================================
 
-ConfiguredWaterloggedPatchFeature::ConfiguredWaterloggedPatchFeature(
-    std::unique_ptr<VegetationPatchConfig> config,
-    std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
+ConfiguredWaterloggedPatchFeature::ConfiguredWaterloggedPatchFeature(std::unique_ptr<VegetationPatchConfig> config,
+    std::unique_ptr<ConfiguredPlacement> placement,
+    const char* featureName)
     : m_config(std::move(config))
     , m_placement(std::move(placement))
     , m_name(featureName)
-{
-}
+{}
 
-bool ConfiguredWaterloggedPatchFeature::place(WorldGenRegion& region, ChunkPrimer& chunk,
-    IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredWaterloggedPatchFeature::place(
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     std::vector<BlockPos> positions;
     if (m_placement) {
@@ -725,16 +723,15 @@ bool ConfiguredWaterloggedPatchFeature::place(WorldGenRegion& region, ChunkPrime
 // ConfiguredBlockColumnFeature
 // ============================================================================
 
-ConfiguredBlockColumnFeature::ConfiguredBlockColumnFeature(std::unique_ptr<BlockColumnConfig> config,
-    std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
+ConfiguredBlockColumnFeature::ConfiguredBlockColumnFeature(
+    std::unique_ptr<BlockColumnConfig> config, std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
     : m_config(std::move(config))
     , m_placement(std::move(placement))
     , m_name(featureName)
-{
-}
+{}
 
-bool ConfiguredBlockColumnFeature::place(WorldGenRegion& region, ChunkPrimer& chunk,
-    IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredBlockColumnFeature::place(
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     MC_UNUSED(chunk);
     MC_UNUSED(generator);
@@ -759,16 +756,15 @@ bool ConfiguredBlockColumnFeature::place(WorldGenRegion& region, ChunkPrimer& ch
 // ConfiguredRootSystemFeature
 // ============================================================================
 
-ConfiguredRootSystemFeature::ConfiguredRootSystemFeature(std::unique_ptr<RootSystemConfig> config,
-    std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
+ConfiguredRootSystemFeature::ConfiguredRootSystemFeature(
+    std::unique_ptr<RootSystemConfig> config, std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
     : m_config(std::move(config))
     , m_placement(std::move(placement))
     , m_name(featureName)
-{
-}
+{}
 
-bool ConfiguredRootSystemFeature::place(WorldGenRegion& region, ChunkPrimer& chunk,
-    IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredRootSystemFeature::place(
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     std::vector<BlockPos> positions;
     if (m_placement) {
@@ -790,8 +786,7 @@ bool ConfiguredRootSystemFeature::place(WorldGenRegion& region, ChunkPrimer& chu
 // 静态工厂方法
 // ============================================================================
 
-VegetationPatchConfig VegetationPatchConfig::floorPatch(
-    const std::string& replaceableTag,
+VegetationPatchConfig VegetationPatchConfig::floorPatch(const std::string& replaceableTag,
     const BlockState* groundState,
     u32 vegetationFeatureId,
     std::unique_ptr<valueprovider::IntProvider> depth,
@@ -815,8 +810,7 @@ VegetationPatchConfig VegetationPatchConfig::floorPatch(
     return config;
 }
 
-VegetationPatchConfig VegetationPatchConfig::ceilingPatch(
-    const std::string& replaceableTag,
+VegetationPatchConfig VegetationPatchConfig::ceilingPatch(const std::string& replaceableTag,
     const BlockState* groundState,
     u32 vegetationFeatureId,
     std::unique_ptr<valueprovider::IntProvider> depth,
@@ -846,15 +840,15 @@ VegetationPatchConfig VegetationPatchConfig::ceilingPatch(
 
 ConfiguredRandomBooleanSelectorFeature::ConfiguredRandomBooleanSelectorFeature(
     std::unique_ptr<RandomBooleanFeatureConfig> config,
-    std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
+    std::unique_ptr<ConfiguredPlacement> placement,
+    const char* featureName)
     : m_config(std::move(config))
     , m_placement(std::move(placement))
     , m_name(featureName)
-{
-}
+{}
 
-bool ConfiguredRandomBooleanSelectorFeature::place(WorldGenRegion& region, ChunkPrimer& chunk,
-    IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredRandomBooleanSelectorFeature::place(
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     std::vector<BlockPos> positions;
     if (m_placement) {
@@ -878,15 +872,15 @@ bool ConfiguredRandomBooleanSelectorFeature::place(WorldGenRegion& region, Chunk
 
 ConfiguredSimpleRandomSelectorFeature::ConfiguredSimpleRandomSelectorFeature(
     std::unique_ptr<SimpleRandomFeatureConfig> config,
-    std::unique_ptr<ConfiguredPlacement> placement, const char* featureName)
+    std::unique_ptr<ConfiguredPlacement> placement,
+    const char* featureName)
     : m_config(std::move(config))
     , m_placement(std::move(placement))
     , m_name(featureName)
-{
-}
+{}
 
-bool ConfiguredSimpleRandomSelectorFeature::place(WorldGenRegion& region, ChunkPrimer& chunk,
-    IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
+bool ConfiguredSimpleRandomSelectorFeature::place(
+    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
 {
     std::vector<BlockPos> positions;
     if (m_placement) {

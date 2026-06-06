@@ -52,7 +52,7 @@ public:
      * @param pos 方块位置
      * @return 是否满足条件
      */
-    [[nodiscard]] virtual bool test(const IBlockReader& world, const BlockPos& pos) const = 0;
+    [[nodiscard]] virtual bool test(const IWorld& world, const BlockPos& pos) const = 0;
 
     /**
      * @brief 克隆谓词
@@ -65,10 +65,7 @@ public:
  */
 class TrueBlockPredicate : public BlockPredicate {
 public:
-    [[nodiscard]] bool test(const IBlockReader& /*world*/, const BlockPos& /*pos*/) const override
-    {
-        return true;
-    }
+    [[nodiscard]] bool test(const IWorld& /*world*/, const BlockPos& /*pos*/) const override { return true; }
     [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
     {
         return std::make_unique<TrueBlockPredicate>();
@@ -80,10 +77,7 @@ public:
  */
 class FalseBlockPredicate : public BlockPredicate {
 public:
-    [[nodiscard]] bool test(const IBlockReader& /*world*/, const BlockPos& /*pos*/) const override
-    {
-        return false;
-    }
+    [[nodiscard]] bool test(const IWorld& /*world*/, const BlockPos& /*pos*/) const override { return false; }
     [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
     {
         return std::make_unique<FalseBlockPredicate>();
@@ -99,7 +93,7 @@ public:
  */
 class OnlyInAirPredicate : public BlockPredicate {
 public:
-    [[nodiscard]] bool test(const IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
     [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
     {
         return std::make_unique<OnlyInAirPredicate>();
@@ -113,7 +107,7 @@ public:
  */
 class SolidBlockPredicate : public BlockPredicate {
 public:
-    [[nodiscard]] bool test(const IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
     [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
     {
         return std::make_unique<SolidBlockPredicate>();
@@ -135,10 +129,9 @@ public:
      */
     explicit HasSturdyFacePredicate(Direction direction)
         : m_direction(direction)
-    {
-    }
+    {}
 
-    [[nodiscard]] bool test(const IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
     [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
     {
         return std::make_unique<HasSturdyFacePredicate>(m_direction);
@@ -157,10 +150,9 @@ class MatchingBlockPredicate : public BlockPredicate {
 public:
     explicit MatchingBlockPredicate(const Block* block)
         : m_block(block)
-    {
-    }
+    {}
 
-    [[nodiscard]] bool test(const IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
     [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
     {
         return std::make_unique<MatchingBlockPredicate>(m_block);
@@ -177,10 +169,9 @@ class TagMatchPredicate : public BlockPredicate {
 public:
     explicit TagMatchPredicate(const std::string& tagName)
         : m_tagName(tagName)
-    {
-    }
+    {}
 
-    [[nodiscard]] bool test(const IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
     [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
     {
         return std::make_unique<TagMatchPredicate>(m_tagName);
@@ -217,8 +208,7 @@ public:
         , m_targetCondition(std::move(targetCondition))
         , m_abortCondition(std::move(abortCondition))
         , m_maxSteps(maxSteps)
-    {
-    }
+    {}
 
     /**
      * @brief 执行环境扫描
@@ -226,7 +216,7 @@ public:
      * @param startPos 起始位置（输出：扫描结果位置）
      * @return 是否找到满足条件的位置
      */
-    [[nodiscard]] bool scan(const IBlockReader& world, BlockPos& startPos) const;
+    [[nodiscard]] bool scan(const IWorld& world, BlockPos& startPos) const;
 
 private:
     Direction m_direction;

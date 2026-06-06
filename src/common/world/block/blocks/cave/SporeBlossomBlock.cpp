@@ -21,6 +21,8 @@
  */
 
 #include "SporeBlossomBlock.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 
 namespace mc {
@@ -37,8 +39,7 @@ const CollisionShape& SporeBlossomBlock::getShape(const BlockState& state) const
     return m_shape;
 }
 
-bool SporeBlossomBlock::isValidPosition(
-    const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+bool SporeBlossomBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);
 
@@ -51,6 +52,33 @@ bool SporeBlossomBlock::isValidPosition(
 
     // 上方方块必须是实心的（有向下的坚固面）
     return aboveState->isSolid();
+}
+
+void SporeBlossomBlock::animateTick(IWorld& world, const BlockPos& pos, const BlockState& state, math::IRandom& random)
+{
+    MC_UNUSED(state);
+
+    // 生成掉落孢子粒子：从花正下方掉落
+    // MC中每tick 2个粒子概率掉落
+    if (random.nextInt(5) == 0) {
+        f32 x = static_cast<f32>(pos.x) + 0.5f + (random.nextFloat() - 0.5f) * 0.8f;
+        f32 y = static_cast<f32>(pos.y) - 0.1f;
+        f32 z = static_cast<f32>(pos.z) + 0.5f + (random.nextFloat() - 0.5f) * 0.8f;
+        world.addParticle(client::renderer::trident::particle::ParticleTypeId::FallingSporeBlossom,
+            Vector3(x, y, z),
+            Vector3(0.0f, -0.01f, 0.0f));
+    }
+
+    // 生成空气漂浮粒子：在花周围21x10x21区域内漂浮
+    if (random.nextInt(10) == 0) {
+        // 在花下方 1-10 格、水平 10 格范围内随机位置
+        f32 x = static_cast<f32>(pos.x) + random.nextFloat() * 21.0f - 10.0f;
+        f32 y = static_cast<f32>(pos.y) - random.nextFloat() * 10.0f;
+        f32 z = static_cast<f32>(pos.z) + random.nextFloat() * 21.0f - 10.0f;
+        world.addParticle(client::renderer::trident::particle::ParticleTypeId::SporeBlossomAir,
+            Vector3(x, y, z),
+            Vector3(0.0f, 0.0f, 0.0f));
+    }
 }
 
 } // namespace blocks

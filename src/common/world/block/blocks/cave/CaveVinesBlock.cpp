@@ -24,7 +24,7 @@
 #include "CaveVinesPlantBlock.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/registry/CaveBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -83,18 +83,17 @@ void CaveVinesBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
     }
 
     // 在下方放置洞穴藤蔓植物体（CaveVinesPlantBlock）
-    const BlockState& plantState = CaveBlocks::CAVE_VINES_PLANT->defaultState()
-                                       .with(BlockStateProperties::BERRIES(), state.get(BlockStateProperties::BERRIES()));
+    const BlockState& plantState = VanillaBlocks::CAVE_VINES_PLANT->defaultState().with(
+        BlockStateProperties::BERRIES(), state.get(BlockStateProperties::BERRIES()));
     world.setBlockState(belowPos, &plantState, 3);
 
     // 当前尖端增长年龄，且重置浆果状态
-    const BlockState& newState = state.with(BlockStateProperties::AGE_0_25(), age + 1)
-                                     .with(BlockStateProperties::BERRIES(), false);
+    const BlockState& newState =
+        state.with(BlockStateProperties::AGE_0_25(), age + 1).with(BlockStateProperties::BERRIES(), false);
     world.setBlockState(pos, &newState, 3);
 }
 
-bool CaveVinesBlock::canGrow(
-    IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
+bool CaveVinesBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);

@@ -68,13 +68,14 @@ enum class AxolotlVariant : i32 {
  * - 0: FindWaterGoal - 寻找水源
  * - 1: AxolotlPlayDeadGoal - 装死
  * - 2: PanicGoal - 恐慌逃跑
- * - 3: BreedGoal - 繁殖
- * - 3: TemptGoal - 跟随食物
- * - 3: FollowParentGoal - 幼体跟随成体
+ * - 3: TemptGoal - 跟随食物（热带鱼桶）
  * - 4: MeleeAttackGoal - 近战攻击
  * - 5: RandomSwimmingGoal - 随机游泳
  * - 6: LookAtGoal - 看向玩家
  * - 7: LookRandomlyGoal - 随机看向
+ *
+ * 注意：BreedGoal 和 FollowParentGoal 需要 AnimalEntity，美西螈继承自
+ * WaterMobEntity 而非 AnimalEntity，繁殖通过水桶交互机制实现。
  *
  * 参考: net.minecraft.world.entity.animal.axolotl.Axolotl
  */
@@ -200,7 +201,7 @@ public:
     /**
      * @brief 是否可以被拴绳牵引
      */
-    [[nodiscard]] bool canBeLeashed() const override { return true; }
+    [[nodiscard]] bool canBeLeashed() const { return true; }
 
     /**
      * @brief 是否会被水流推动
@@ -212,7 +213,7 @@ public:
      * @brief 是否可以被作为敌人看到
      * 装死时不能被作为敌人看到
      */
-    [[nodiscard]] bool canBeSeenAsEnemy() const override;
+    [[nodiscard]] bool canBeSeenAsEnemy() const;
 
     /**
      * @brief 检查是否应消失
@@ -288,12 +289,12 @@ private:
     i32 m_huntingCooldown = 0;
 
     // 常量
-    static constexpr i32 MAX_AIR_SUPPLY = 6000;                ///< 5分钟空气储备 (ticks)
-    static constexpr i32 PLAY_DEAD_DURATION = 200;             ///< 装死持续时间 (ticks)
-    static constexpr i32 REGEN_BUFF_BASE_DURATION = 100;       ///< 再生效果基础持续时间 (ticks)
-    static constexpr i32 REGEN_BUFF_MAX_DURATION = 2400;       ///< 再生效果最大持续时间 (ticks)
-    static constexpr f64 PLAYER_REGEN_DETECTION_RANGE = 20.0;  ///< 再生效果检测玩家范围 (方块)
-    static constexpr i32 HUNTING_COOLDOWN_DURATION = 2400;     ///< 狩猎冷却持续时间 (ticks)
+    static constexpr i32 MAX_AIR_SUPPLY = 6000;               ///< 5分钟空气储备 (ticks)
+    static constexpr i32 PLAY_DEAD_DURATION = 200;            ///< 装死持续时间 (ticks)
+    static constexpr i32 REGEN_BUFF_BASE_DURATION = 100;      ///< 再生效果基础持续时间 (ticks)
+    static constexpr i32 REGEN_BUFF_MAX_DURATION = 2400;      ///< 再生效果最大持续时间 (ticks)
+    static constexpr f64 PLAYER_REGEN_DETECTION_RANGE = 20.0; ///< 再生效果检测玩家范围 (方块)
+    static constexpr i32 HUNTING_COOLDOWN_DURATION = 2400;    ///< 狩猎冷却持续时间 (ticks)
 
     /**
      * @brief 更新装死状态

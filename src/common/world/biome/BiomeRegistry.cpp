@@ -2008,6 +2008,16 @@ Biome createLushCaves()
             .build());
     biome.setGenerationSettings(BiomeGenerationSettings::createLushCaves());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createLushCaves());
+
+    // 繁茂洞穴环境音效：循环音、心境音、随机附加音
+    world::biome::BiomeAmbientSounds sounds;
+    sounds.setLoopSound(ResourceLocation("minecraft:ambient.lush_caves.loop"));
+    sounds.setMoodSound(
+        world::biome::MoodSoundAmbience(ResourceLocation("minecraft:ambient.lush_caves.mood"), 6000, 8, 2.0));
+    sounds.setAdditionsSound(
+        world::biome::SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.lush_caves.additions"), 0.0111));
+    biome.setAmbientSounds(sounds);
+
     return biome;
 }
 

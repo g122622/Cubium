@@ -176,6 +176,14 @@ void ParticleRegistry::_registerBuiltinTypes()
         "minecraft:underwater",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::FallingSporeBlossom,
+        "minecraft:falling_spore_blossom",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::SporeBlossomAir,
+        "minecraft:spore_blossom_air",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(
         ParticleTypeId::Barrier, "minecraft:barrier", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_OPAQUE);
     registerSimpleType(
