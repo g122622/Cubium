@@ -874,7 +874,6 @@ add_library(mc_common STATIC
     world/gen/density/NoiseChunk.cpp
     world/gen/density/NoiseRouter.cpp
     world/gen/density/NoiseRouterData.cpp
-    world/gen/density/RandomState.cpp
     world/gen/density/Beardifier.cpp
 
     # World - Generation - Chunk Generators
