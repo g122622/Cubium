@@ -1317,6 +1317,15 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
         auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(
             m_randomState->createRouterCopy(), cellWidth, cellHeight, cellCountY, alignedX, minY, alignedZ);
 
+        // MC 1.21: 设置 DisabledAquiferFiller（高度查询不需要实际含水层计算，
+        // 但需要正确判断海平面以下的流体方块）
+        {
+            std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
+            fillers.push_back(std::make_unique<world::gen::density::DisabledAquiferFiller>(
+                m_settings.defaultFluid, m_settings.seaLevel));
+            noiseChunk->setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
+        }
+
         noiseChunk->initializeForFirstCellX();
         noiseChunk->advanceCellX(0);
 
@@ -1354,7 +1363,13 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
                 noiseChunk->updateForX(deltaX);
 
                 const f64 density = noiseChunk->updateForZ(deltaZ);
-                const BlockState* blockState = _getBlockForDensity(static_cast<f32>(density), blockY);
+                noiseChunk->setBlockPos(x, blockY, z);
+
+                // MC 1.21: 使用 BlockStateFiller 链确定方块状态
+                const BlockState* blockState = noiseChunk->getInterpolatedState(density);
+                if (blockState == nullptr && density > 0.0) {
+                    blockState = m_settings.defaultBlock;
+                }
 
                 if (matchesHeightmap(blockState)) {
                     return blockY + 1;
@@ -1529,9 +1544,22 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
                     m_settings.noise.height,
                     std::move(fluidPicker));
 
+                // MC 1.21: 构建 BlockStateFiller 链
+                // AquiferFiller: 传入密度值，aquifer 确定流体/空气
+                auto* aquiferPtr = aquifer.get();
                 nc->setAquifer(std::move(aquifer));
+
+                std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
+                fillers.push_back(std::make_unique<world::gen::density::AquiferFiller>(*aquiferPtr));
+                nc->setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
             } else {
                 nc->setAquifer(world::gen::aquifer::Aquifer::createDisabled(std::move(fluidPicker)));
+
+                // 禁用含水层时: density > 0 → nullptr(density > 0 → defaultBlock outside), density <= 0 → check fluid
+                std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
+                fillers.push_back(std::make_unique<world::gen::density::DisabledAquiferFiller>(
+                    m_settings.defaultFluid, m_settings.seaLevel));
+                nc->setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
             }
         }
         return nc;
@@ -1539,8 +1567,6 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
 
     // MC 1.21: 构建 Beardifier 用于结构地形平滑
     const auto beardifier = _buildBeardifier(chunk);
-
-    auto* aquifer = noiseChunk.aquifer();
 
     const auto& cellConfig = noiseChunk.cellConfig();
     noiseChunk.initializeForFirstCellX();
@@ -1573,10 +1599,10 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
 
                             const f64 rawDensity = noiseChunk.updateForZ(zLerp);
                             const f64 density = rawDensity + beardifier.compute(blockX, blockY, blockZ);
-                            const BlockState* blockState = nullptr;
-                            if (aquifer != nullptr) {
-                                blockState = aquifer->computeSubstance(blockX, blockY, blockZ, density);
-                            }
+
+                            // MC 1.21: 通过 BlockStateFiller 链确定方块状态
+                            // AquiferFiller 在 density <= 0 时返回流体/空气，density > 0 返回 nullptr
+                            const BlockState* blockState = noiseChunk.getInterpolatedState(density);
                             if (blockState == nullptr && density > 0.0) {
                                 blockState = m_settings.defaultBlock;
                             }

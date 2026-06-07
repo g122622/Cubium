@@ -393,6 +393,7 @@ f64 NoiseChunk::updateForZ(f64 delta)
         result = interp->updateForZ(delta);
     }
     ++m_interpolationCounter;
+    m_interpolatedDensity = result;
     return result;
 }
 

@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include "common/world/block/BlockState.hpp"
+#include "common/world/gen/aquifer/Aquifer.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
 #include "common/world/gen/density/DensityFunctions.hpp"
 #include "common/world/gen/density/NoiseRouter.hpp"
@@ -29,11 +31,107 @@
 #include <unordered_map>
 #include <vector>
 
-namespace mc::world::gen::aquifer {
-class Aquifer;
-} // namespace mc::world::gen::aquifer
-
 namespace mc::world::gen::density {
+
+// ============================================================================
+// BlockStateFiller — MC 1.21 NoiseChunk.BlockStateFiller
+// ============================================================================
+
+/**
+ * @brief 方块状态填充器接口
+ *
+ * MC 1.21 对应 NoiseChunk.BlockStateFiller。
+ * 在 NoiseChunk 的插值循环中，对每个方块位置调用 calculate() 确定最终方块状态。
+ * 链式调用：MaterialRuleList 依次调用 AquiferFiller → OreVeinifier → default block。
+ */
+class BlockStateFiller {
+public:
+    virtual ~BlockStateFiller() = default;
+
+    /**
+     * @brief 计算指定位置的方块状态
+     * @param blockX 方块 X 坐标
+     * @param blockY 方块 Y 坐标
+     * @param blockZ 方块 Z 坐标
+     * @param density 当前方块的最终密度值（已含 beardifier 贡献）
+     * @return 方块状态指针，nullptr 表示不替换（使用默认方块）
+     */
+    [[nodiscard]] virtual const BlockState* calculate(i32 blockX, i32 blockY, i32 blockZ, f64 density) = 0;
+};
+
+/**
+ * @brief 方块状态规则链 — MC 1.21 MaterialRuleList
+ *
+ * 持有多个 BlockStateFiller，依次调用直到返回非 nullptr。
+ * 对应 MC 的 DensityAquiferFiller + OreVeinifier 链。
+ */
+class MaterialRuleList final : public BlockStateFiller {
+public:
+    explicit MaterialRuleList(std::vector<std::unique_ptr<BlockStateFiller>> rules)
+        : m_rules(std::move(rules))
+    {}
+
+    [[nodiscard]] const BlockState* calculate(i32 blockX, i32 blockY, i32 blockZ, f64 density) override
+    {
+        for (auto& rule : m_rules) {
+            if (const BlockState* state = rule->calculate(blockX, blockY, blockZ, density)) {
+                return state;
+            }
+        }
+        return nullptr;
+    }
+
+private:
+    std::vector<std::unique_ptr<BlockStateFiller>> m_rules;
+};
+
+/**
+ * @brief 含水层方块状态填充器 — MC 1.21 DensityAquiferFiller
+ *
+ * 在 density <= 0 时查询含水层系统确定流体/空气。
+ * 在 density > 0 时返回 nullptr（保持默认方块）。
+ */
+class AquiferFiller final : public BlockStateFiller {
+public:
+    AquiferFiller(aquifer::Aquifer& aquifer)
+        : m_aquifer(aquifer)
+    {}
+
+    [[nodiscard]] const BlockState* calculate(i32 blockX, i32 blockY, i32 blockZ, f64 density) override
+    {
+        return m_aquifer.computeSubstance(blockX, blockY, blockZ, density);
+    }
+
+private:
+    aquifer::Aquifer& m_aquifer;
+};
+
+/** disabled aquifer filler — density > 0 → nullptr, density <= 0 → check default fluid */
+class DisabledAquiferFiller final : public BlockStateFiller {
+public:
+    DisabledAquiferFiller(const BlockState* defaultFluid, i32 seaLevel)
+        : m_defaultFluid(defaultFluid)
+        , m_seaLevel(seaLevel)
+    {}
+
+    [[nodiscard]] const BlockState* calculate(i32 blockX, i32 blockY, i32 blockZ, f64 density) override
+    {
+        (void)blockX;
+        (void)blockZ;
+        if (density > 0.0) {
+            return nullptr;
+        }
+        // density <= 0: empty space — check if below sea level for fluid
+        if (m_defaultFluid && blockY < m_seaLevel) {
+            return m_defaultFluid;
+        }
+        return nullptr;
+    }
+
+private:
+    const BlockState* m_defaultFluid;
+    i32 m_seaLevel;
+};
 
 /**
  * @brief 三线性插值器 — MC 1.21 NoiseChunk.NoiseInterpolator
@@ -468,6 +566,40 @@ public:
      */
     void setAquifer(std::unique_ptr<aquifer::Aquifer> aq);
 
+    // ========== 方块状态查询 ==========
+
+    /**
+     * @brief 获取当前插值位置的方块状态 — MC 1.21 NoiseChunk.getInterpolatedState()
+     *
+     * 在插值循环中，对每个方块位置调用此方法。
+     * 通过 BlockStateFiller 链（AquiferFiller + 矿脉等）确定最终方块状态。
+     *
+     * @param density 当前方块的最终密度值（已含 beardifier 贡献）
+     * @return 方块状态指针，nullptr 表示使用默认方块（石头等）
+     */
+    [[nodiscard]] const BlockState* getInterpolatedState(f64 density) const
+    {
+        if (m_blockStateRule) {
+            return m_blockStateRule->calculate(m_blockX, m_blockY, m_blockZ, density);
+        }
+        return nullptr;
+    }
+
+    /**
+     * @brief 获取当前插值位置的密度值
+     *
+     * 在插值循环中，updateForZ() 之后调用此方法获取最终密度值。
+     */
+    [[nodiscard]] f64 interpolatedDensity() const { return m_interpolatedDensity; }
+
+    /**
+     * @brief 设置方块状态规则链
+     *
+     * 在 NoiseChunk 构造后、插值循环前调用。
+     * 构建 MaterialRuleList（AquiferFiller + OreVeinifier 等）。
+     */
+    void setBlockStateRule(std::unique_ptr<BlockStateFiller> rule) { m_blockStateRule = std::move(rule); }
+
 private:
     CellConfig m_cellConfig;
 
@@ -514,6 +646,12 @@ private:
 
     /// 含水层采样器（可能为 nullptr）
     std::unique_ptr<aquifer::Aquifer> m_aquifer;
+
+    /// 方块状态规则链（AquiferFiller + 矿脉等）
+    std::unique_ptr<BlockStateFiller> m_blockStateRule;
+
+    /// 最近一次 updateForZ() 的插值密度值
+    f64 m_interpolatedDensity = 0.0;
 };
 
 } // namespace mc::world::gen::density
