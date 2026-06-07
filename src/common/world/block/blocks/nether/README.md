@@ -6,13 +6,15 @@
 
 ```
 nether/
-├── README.md              # 本文档
-├── FireBlock.hpp/cpp      # 普通火焰方块
-├── SoulFireBlock.hpp/cpp  # 灵魂火焰方块（蓝色火焰）
-├── NetherPortalBlock.hpp/cpp  # 下界传送门方块
-├── NetherWartBlock.hpp/cpp    # 下界疣方块
-├── NyliumBlock.hpp/cpp    # 绯红/诡异菌岩方块
-└── MagmaBlock.hpp/cpp     # 岩浆块方块
+├── README.md                   # 本文档
+├── FireBlock.hpp               # 普通火焰方块（可蔓延）
+├── SoulFireBlock.hpp           # 灵魂火焰方块（蓝色火焰，更高伤害）
+├── NetherPortalBlock.hpp       # 下界传送门方块
+├── NetherWartBlock.hpp         # 下界疣方块（可生长）
+├── NyliumBlock.hpp             # 绯红/诡异菌岩方块
+├── MagmaBlock.hpp              # 岩浆块方块
+├── NetherSproutsBlock.hpp      # 下界苗方块（小型装饰植物）
+└── NetherRootsBlock.hpp        # 下界菌索方块（绯红/诡异根须）
 ```
 
 ## 方块类型
@@ -20,301 +22,83 @@ nether/
 | 类名 | 说明 | 状态属性 |
 |------|------|----------|
 | `FireBlock` | 普通火焰，可蔓延 | AGE_0_15, NORTH/SOUTH/EAST/WEST/UP |
-| `SoulFireBlock` | 灵魂火焰（蓝色，更高伤害） | 同 FireBlock |
+| `SoulFireBlock` | 灵魂火焰（继承 FireBlock） | 同 FireBlock |
 | `NetherPortalBlock` | 下界传送门 | HORIZONTAL_AXIS |
 | `NetherWartBlock` | 下界疣（可生长） | AGE_0_3 |
 | `NyliumBlock` | 绯红/诡异菌岩 | 无 |
 | `MagmaBlock` | 岩浆块 | 无 |
+| `NetherSproutsBlock` | 下界苗（继承 BushBlock） | 无 |
+| `NetherRootsBlock` | 下界菌索（继承 BushBlock） | 无 |
 
-## 核心机制
+## 内部模块关系
 
-### 火焰碰撞伤害（MC 1.16.5 对齐）
+```
+FireBlock (基类)
+    └── SoulFireBlock (继承 FireBlock，限制只能放在灵魂沙/灵魂土上)
 
-当实体与火焰方块碰撞时，`FireBlock::onEntityCollision` 执行以下逻辑：
-
-1. **火焰免疫检查**：调用 `entity.isImmuneToFire()` 检查实体是否免疫火焰
-   - 免疫实体（烈焰人、恶魂、岩浆怪、猪灵等）跳过所有火焰效果
-
-2. **火焰计时器递增**：`entity.forceFireTicks(entity.getFireTimer() + 1)`
-   - 每次碰撞 tick 都增加计时器
-
-3. **点燃实体**：当 `fireTimer == 0` 时调用 `entity.setFire(8)`
-   - 设置燃烧 8 秒（160 ticks）
-   - `setFire` 方法只在当前值较小时更新
-
-4. **造成伤害**：对 `LivingEntity` 造成 `m_fireDamage` 点火焰伤害
-   - 普通火焰：1.0 伤害
-   - 灵魂火：2.0 伤害（继承自 FireBlock，构造时传入 2）
-   - 使用 `DamageSources::inFire()` 创建伤害源
-
-```cpp
-void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) {
-    if (entity.isImmuneToFire()) {
-        return;
-    }
-    entity.forceFireTicks(entity.getFireTimer() + 1);
-    if (entity.getFireTimer() == 0) {
-        entity.setFire(8);
-    }
-    auto* livingEntity = dynamic_cast<LivingEntity*>(&entity);
-    if (livingEntity != nullptr) {
-        livingEntity->hurt(DamageSources::inFire(), static_cast<f32>(m_fireDamage));
-    }
-}
+BushBlock (来自 agricultural/ 模块)
+    ├── NetherSproutsBlock (可放置在菌岩、灵魂土上)
+    └── NetherRootsBlock (可放置在菌岩、灵魂土上)
 ```
 
-### 火焰蔓延
+- `FireBlock`：火焰基类，实现蔓延、点燃、实体碰撞伤害等核心逻辑
+- `SoulFireBlock`：继承 FireBlock，重写 `isValidPosition()` 限制基座，重写 `canBurn()` 禁止蔓延
+- `NetherWartBlock`：独立方块，4阶段生长，只能种在灵魂沙上
+- `NyliumBlock`：独立方块，光照过高时退化为下界岩
+- `MagmaBlock`：独立方块，水中生成气泡柱
+- `NetherPortalBlock`：独立方块，检测框架有效性、实体传送
+- `NetherSproutsBlock` / `NetherRootsBlock`：继承 BushBlock，扩展 `canSustain()` 支持菌岩和灵魂土
 
-火焰蔓延机制已完整实现，参考 MC 1.16.5 `FireBlock.tick()` 和 `FireBlock.trySpread()`。
+## 上下游外部依赖关系
 
-#### 火焰年龄
+### 上游依赖
 
-- 火焰有年龄（AGE_0_15），范围 0-15
-- 年龄越大越稳定，越不容易熄灭
-- 每次 randomTick 有概率增加年龄
+| 依赖模块 | 用途 |
+|----------|------|
+| `world/block/Block` | 方块基类 |
+| `world/block/Material` | 材质系统 |
+| `world/block/BlockTags` | 方块标签（SOUL_FIRE_BASE_BLOCKS、FIRE 等） |
+| `world/IWorld` | 世界接口 |
+| `util/property/Properties` | 方块属性（AGE_0_15、HORIZONTAL_AXIS 等） |
+| `physics/collision/CollisionShape` | 碰撞形状 |
+| `blocks/agricultural/BushBlock` | 植物基类（NetherSproutsBlock、NetherRootsBlock 继承） |
+| `entity/Entity` / `entity/LivingEntity` | 实体交互（火焰伤害） |
 
-#### 火焰 Tick 逻辑
-
-```cpp
-void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
-    // 1. 检查位置有效性
-    // 2. 检查游戏规则 doFireTick
-    // 3. 检查是否为无限火源（如下界岩）
-    // 4. 下雨熄灭检查
-    // 5. 火焰年龄增长
-    // 6. 无可燃邻居时检查支撑
-    // 7. 尝试蔓延
-}
-```
-
-#### 蔓延算法
-
-**直接相邻燃烧**（6个方向）：
-- 垂直方向：chance = 250 + humidityPenalty
-- 水平方向：chance = 300 + humidityPenalty
-- 点燃概率：`(flammability / chance) * (5 / (age + 10))`
-
-**远距离蔓延**（3x6 区域）：
-- 范围：x: -1~1, z: -1~1, y: -1~4
-- 蔓延概率：`(encouragement + 40 + difficulty * 7) / (age + 30)`
-- 高度惩罚：每向上一层 +100
-
-**环境因素**：
-- 下雨：增加熄灭概率，降低蔓延概率 50%
-- 难度：影响蔓延速度（Peaceful=0, Easy=7, Normal=14, Hard=21）
-- 高湿度：蔓延概率减半
-
-#### 核心方法
-
-| 方法 | 功能 |
-|------|------|
-| `canBurn()` | 检查周围是否有可燃方块 |
-| `trySpread()` | 尝试蔓延到周围方块 |
-| `canDie()` | 检查是否会被雨淋灭 |
-| `canCatchFire()` | 检查指定位置是否可被点燃 |
-| `tryCatchFire()` | 尝试点燃指定位置 |
-| `getNeighborEncouragement()` | 获取周围火焰蔓延加速值 |
-| `areNeighborsFlammable()` | 检查周围是否有可燃方块 |
-
-#### 火焰信息注册表
-
-`FireInfoRegistry` 管理所有方块的燃烧参数：
-
-```cpp
-struct FireInfo {
-    i32 encouragement;  // 火焰蔓延速度
-    i32 flammability;   // 可燃性 (0-300)
-};
-```
-
-部分方块燃烧参数：
-
-| 方块 | encouragement | flammability |
-|------|--------------|--------------|
-| 木板/栅栏/楼梯 | 5 | 20 |
-| 原木 | 5 | 5 |
-| 树叶 | 30 | 60 |
-| 羊毛 | 30 | 60 |
-| TNT | 15 | 100 |
-| 藤蔓 | 15 | 100 |
-| 草/花 | 60 | 100 |
-
-### 灵魂火系统
-
-**灵魂火特性**：
-- 只能在灵魂沙（soul_sand）或灵魂土（soul_soil）上方存在
-- 伤害更高（2点，普通火为1点）
-- 光照等级较低（10，普通火为15）
-- 不会蔓延燃烧其他方块
-
-**放置逻辑**：
-1. `FlintAndSteelItem::getFireForPlacement()` 检查目标位置下方方块
-2. 如果下方方块在 `BlockTags::SOUL_FIRE_BASE_BLOCKS()` 标签中，返回 `SOUL_FIRE`
-3. 否则返回普通 `FIRE`
-
-**灵魂火基座方块**（`SOUL_FIRE_BASE_BLOCKS` 标签）：
-- `minecraft:soul_sand` - 灵魂沙
-- `minecraft:soul_soil` - 灵魂土
-
-**关键方法**：
-```cpp
-// 检查方块是否可作为灵魂火基座
-bool SoulFireBlock::isSoulFireBase(const Block* block);
-
-// 检查灵魂火是否可以放置在指定位置
-bool SoulFireBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const;
-
-// 当下方不再是灵魂基座时移除火焰
-BlockState SoulFireBlock::updatePostPlacement(...);
-```
-
-### 下界传送门
-
-**状态属性**:
-```cpp
-- HORIZONTAL_AXIS: Axis (X, Z)  // 传送门轴向
-```
-
-**核心机制**:
-1. 由黑曜石框架组成
-2. 通过点火激活
-3. 实体碰撞后传送
-4. 水平轴向（X 或 Z）
-
-**位置有效性检查** (`isValidPosition`):
-- 检查传送门方块六个方向是否有传送门方块或黑曜石框架
-- 上/下方向检查：传送门方块或黑曜石
-- 宽度方向（X轴传送门检查东西，Z轴传送门检查南北）：传送门方块或黑曜石
-- 深度方向（X轴传送门检查南北，Z轴传送门检查东西）：传送门方块或黑曜石
-- 如果没有任何连接，传送门方块将变为空气
-
-**邻居更新** (`updatePostPlacement`):
-- 当邻居方块改变时，检查传送门是否仍然有效
-- 无效时传送门方块变为空气
-
-**辅助方法**:
-```cpp
-// 检查方块状态是否连接到传送门（传送门方块或黑曜石）
-[[nodiscard]] bool isConnectedToPortal(const BlockState& state) const;
-```
-
-**参考**: MC 1.16.5 `net.minecraft.block.NetherPortalBlock`
-
-### 下界疣生长
-
-1. 只能种在灵魂沙上
-2. 4个生长阶段（AGE_0_3）
-3. 随机 tick 生长
-
-### 菌岩退化
-
-绯红菌岩和诡异菌岩在光照过亮时会退化为下界岩：
-
-```cpp
-void NyliumBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
-    if (!isDarkEnough(world, pos, state)) {
-        world.setBlockState(pos, &VanillaBlocks::NETHERRACK->defaultState());
-    }
-}
-```
-
-### 岩浆块
-
-岩浆块在水中会产生气泡柱：
-
-**MC 1.16.5 对齐**：
-- 当上方是水源方块时，自动生成下拖气泡柱 (DRAG=true)
-- 延迟 20 tick 后生成气泡柱
-- 邻居更新时检测上方是否变为水
-
-```cpp
-void MagmaBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) {
-    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-
-    // 调用 BubbleColumnBlock 的静态方法放置气泡柱
-    // true = DRAG（下拖气泡柱，由岩浆块产生）
-    BubbleColumnBlock::placeBubbleColumn(world, abovePos, true);
-}
-
-void MagmaBlock::neighborChanged(IWorld& world, const BlockPos& pos, Block& neighborBlock,
-                                  const BlockPos& neighborPos, bool isMoving) {
-    // 当上方有水时调度 tick
-    if (neighborPos.x == pos.x && neighborPos.y == pos.y + 1 && neighborPos.z == pos.z) {
-        const BlockState* aboveState = world.getBlockState(neighborPos);
-        if (aboveState != nullptr) {
-            const fluid::FluidState* fluidState = aboveState->getFluidState();
-            if (fluidState != nullptr && !fluidState->isEmpty() &&
-                fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
-                world.tickManager().scheduleBlockTick(pos, *this, 20);
-            }
-        }
-    }
-}
-```
-
-## 使用方法
-
-```cpp
-// 创建火焰
-auto fire = std::make_unique<FireBlock>(
-    BlockProperties(Materials::FIRE)
-        .hardness(0.0f)
-        .noCollision()
-        .lightLevel(15)
-);
-
-// 创建灵魂火
-auto soulFire = std::make_unique<SoulFireBlock>(
-    BlockProperties(Materials::FIRE)
-        .hardness(0.0f)
-        .noCollision()
-        .lightLevel(10)
-);
-
-// 检查是否可放置灵魂火
-const BlockState* belowState = world.getBlockState(pos.down());
-if (SoulFireBlock::isSoulFireBase(belowState->getBlock())) {
-    // 可以放置灵魂火
-    world.setBlockState(pos, &VanillaBlocks::SOUL_FIRE->defaultState(), 11);
-}
-
-// 检查方块是否在灵魂火基座标签中
-if (BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(*belowState)) {
-    // 方块是灵魂沙或灵魂土
-}
-
-// 创建下界传送门
-auto portal = std::make_unique<NetherPortalBlock>(
-    BlockProperties(Materials::PORTAL)
-        .hardness(0.0f)
-        .noCollision()
-        .lightLevel(11)
-);
-
-// 创建下界疣
-auto netherWart = std::make_unique<NetherWartBlock>(
-    BlockProperties(Materials::PLANTS)
-        .hardness(0.0f)
-        .noCollision()
-);
-```
-
-## 依赖项
+### 下游依赖
 
 | 模块 | 用途 |
 |------|------|
-| `world/block/Block` | 方块基类 |
-| `world/block/Material` | 材质系统 |
-| `world/block/BlockTags` | 方块标签系统 |
-| `world/IWorld` | 世界接口 |
-| `util/property/Properties` | 方块属性 |
+| `VanillaBlocks` | 注册原版下界方块实例 |
+| `BlockRegistry` | 方块注册表 |
+| `item/FlintAndSteelItem` | 打火石决定生成普通火还是灵魂火 |
+| 世界生成 | 下界生物群系生成 |
 
-## 测试
+## 容易踩的坑
 
-测试文件：`tests/common/world/block/blocks/SoulFireBlockTest.cpp`
+### 1. 火焰蔓延必须检查游戏规则
 
-测试覆盖：
-- `SOUL_FIRE_BASE_BLOCKS` 标签包含 `soul_sand` 和 `soul_soil`
-- `SoulFireBlock::isSoulFireBase()` 方法
-- `SoulFireBlock::isValidPosition()` 在不同基座上的行为
-- `FIRE` 标签包含普通火和灵魂火
+`FireBlock::tick()` 必须先检查 `doFireTick` 游戏规则，否则禁用火焰蔓延时仍会蔓延。
+
+### 2. 灵魂火不能蔓延
+
+`SoulFireBlock::canBurn()` 返回 false，禁止蔓延到其他方块。普通火可以通过 `FireInfoRegistry` 配置蔓延参数，灵魂火则完全跳过。
+
+### 3. 下界疣只能种在灵魂沙
+
+`NetherWartBlock::isValidPosition()` 检查下方是否为灵魂沙（`soul_sand`），不是 `soul_soil`。这与灵魂火的基座不同。
+
+### 4. 菌岩退化条件
+
+`NyliumBlock` 只在随机 tick 时检查光照，不是每个 tick 都检查。退化使用 `randomTick()`，需要确保 `ticksRandomly()` 返回 true。
+
+### 5. 岩浆块气泡柱延迟
+
+`MagmaBlock::neighborChanged()` 检测到上方有水后，调度 20 tick 延迟才生成气泡柱，不是立即生成。这是 MC 1.16.5 的行为。
+
+### 6. 下界苗/菌索的支撑面
+
+`NetherSproutsBlock` 和 `NetherRootsBlock` 继承自 `BushBlock`，需要重写 `canSustain()` 以支持菌岩和灵魂土，否则只能放在 BushBlock 默认支持的地面（草地、泥土等）。
+
+### 7. 传送门框架检测
+
+`NetherPortalBlock::isValidPosition()` 检查六个方向是否有传送门方块或黑曜石，如果检测逻辑不完整，传送门方块可能意外消失或残留。

@@ -1,238 +1,63 @@
 # 袭击系统 (Raid System)
 
-本目录实现村庄袭击事件系统，包括掠夺者生成、波次管理和Boss栏显示。
+本目录实现村庄袭击事件系统，包括掠夺者生成、波次管理和英雄追踪。
 
 ## 目录结构
 
 ```
 raid/
-├── RaiderType.hpp/cpp    # 掠夺者类型枚举和工具
-├── Raid.hpp/cpp          # 袭击事件
-├── RaidManager.hpp/cpp   # 袭击管理器
+├── RaiderType.hpp/cpp    # 掠夺者类型枚举和工具函数
+├── Raid.hpp/cpp          # 单次袭击事件管理（波次、生成、胜负判定）
+├── RaidManager.hpp/cpp   # 世界级袭击管理器（创建、tick、查询）
 └── README.md             # 本文档
 ```
 
-## 核心类
-
-### RaiderType - 掠夺者类型
-
-```cpp
-enum class RaiderType : u8 {
-    Pillager,   // 掠夺者（持弩）
-    Vindicator, // 灾厄村民（持铁斧）
-    Evoker,     // 唤魔者（召唤恼鬼和尖牙）
-    Ravager,    // 劫掠兽（巨型野兽）
-    Witch       // 女巫（在袭击中会参与）
-};
-```
-
-### Raid - 袭击事件
-
-单个村庄的袭击事件管理：
-
-```cpp
-// 创建袭击
-Raid raid(id, village);
-raid.setBadOmenLevel(2); // 不祥之兆等级
-
-// 更新袭击
-raid.tick(world);
-
-// 检查状态
-if (raid.status() == RaidStatus::Victory) {
-    // 玩家胜利
-}
-
-// 英雄追踪
-raid.addHero(playerUuid, entityId);
-bool isHero = raid.isHero(playerUuid);
-```
-
-### RaidManager - 袭击管理器
-
-世界级别的袭击管理：
-
-```cpp
-// 创建管理器
-RaidManager manager(world, villageManager);
-
-// 设置回调
-RaidCallbacks callbacks;
-callbacks.onRaidStarted = [](const Raid& raid, BlockPos center) {
-    // 播放号角声、发送消息
-};
-callbacks.onRaidVictory = [](const Raid& raid, const std::vector<Uuid>& heroes, i32 level) {
-    // 给予英雄效果
-};
-callbacks.onRaidLoss = [](const Raid& raid) {
-    // 处理村庄损失
-};
-manager.setCallbacks(std::move(callbacks));
-
-// 触发袭击
-Raid* raid = manager.tryStartRaid(pos, badOmenLevel);
-
-// 查询袭击
-Raid* raid = manager.getRaidAt(pos);
-bool hasRaid = manager.hasRaidAt(pos);
-
-// 每tick更新
-manager.tick();
-```
-
-## 袭击流程
-
-```
-玩家携带不祥之兆进入村庄
-        ↓
-触发袭击（RaidManager.tryStartRaid）
-        ↓
-生成第1波掠夺者（Raid.startNextWave）
-        ↓
-玩家击败掠夺者
-        ↓
-等待60秒后生成下一波
-        ↓
-重复直到所有波次完成
-        ↓
-玩家胜利 → 获得英雄效果
-或
-掠夺者胜利 → 村庄被摧毁
-```
-
-## 波次配置
-
-| 难度 | 波次数 |
-|------|--------|
-| 简单 | 3 |
-| 普通 | 5 |
-| 困难 | 7 |
-
-不祥之兆等级每增加1级，额外增加1波。
-
-## 掠夺者生成
-
-每波生成的掠夺者类型取决于波次：
-
-| 波次 | 可能出现的类型 |
-|------|----------------|
-| 1-2 | 掠夺者 |
-| 3-4 | 掠夺者、灾厄村民、女巫 |
-| 5-6 | + 唤魔者 |
-| 7+ | + 劫掠兽 |
-
-## 英雄系统
-
-袭击期间击杀掠夺者的玩家会被记录为英雄：
-
-```cpp
-// 在 Raid 类中
-void addHero(Uuid playerUuid, EntityId entityId);  // 添加英雄
-bool isHero(Uuid playerUuid) const;                // 检查是否为英雄
-void addContribution(Uuid playerUuid, i32 amount); // 增加贡献值
-const std::unordered_set<Uuid, UuidHash>& heroes() const; // 获取所有英雄
-```
-
-袭击胜利时，所有英雄玩家将获得"村庄英雄"效果。
-
-## 回调机制
-
-`RaidManager` 提供回调机制来通知外部系统：
-
-### RaidCallbacks 结构体
-
-```cpp
-struct RaidCallbacks {
-    // 袭击开始时调用
-    std::function<void(const Raid& raid, BlockPos center)> onRaidStarted;
-    
-    // 袭击胜利时调用
-    std::function<void(const Raid& raid, const std::vector<Uuid>& heroes, i32 badOmenLevel)> onRaidVictory;
-    
-    // 袭击失败时调用
-    std::function<void(const Raid& raid)> onRaidLoss;
-    
-    // 波次开始时调用
-    std::function<void(const Raid& raid, i32 wave, BlockPos spawnPos)> onWaveStarted;
-};
-```
-
-### 使用示例
-
-```cpp
-// 在 ServerWorld 初始化后设置回调
-auto raidManager = world->raidManager();
-RaidCallbacks callbacks;
-
-callbacks.onRaidStarted = [this](const Raid& raid, BlockPos center) {
-    // 播放号角声
-    broadcastSound(SoundEvents::EVENT_RAID_HORN, SoundCategory::Neutral,
-                   Vector3(center.x + 0.5f, center.y, center.z + 0.5f),
-                   64.0f, 1.0f);
-    // 发送聊天消息
-    broadcastChatMessage("袭击开始了！");
-};
-
-callbacks.onRaidVictory = [this](const Raid& raid, const std::vector<Uuid>& heroes, i32 level) {
-    // 给予英雄效果
-    for (const auto& uuid : heroes) {
-        ServerPlayer* player = getPlayerByUuid(uuid);
-        if (player) {
-            player->addEffect(EffectInstance::heroOfTheVillage(level));
-        }
-    }
-};
-
-raidManager->setCallbacks(std::move(callbacks));
-```
-
-## 依赖关系
+## 内部模块关系
 
 ```
 RaidManager
-    ├── IWorld (世界引用)
-    ├── VillageManager (村庄关联)
-    └── Raid (袭击事件)
-         ├── RaiderType (掠夺者类型)
-         └── EntityRegistry (实体生成)
+    └── Raid（多个实例）
+           ├── RaiderType（掠夺者类型枚举）
+           ├── RaidWave（波次运行时数据，定义在Raid.hpp中）
+           └── RaidParticipant（参与者贡献记录）
 ```
 
-## 与其他系统集成
+`RaidManager` 负责世界级别的袭击生命周期管理，每个 `Raid` 实例管理单次袭击的波次推进和袭击者追踪。**RaidWave 是 Raid.hpp 内定义的结构体，不是独立文件。**
 
-### 村庄系统
-- 袭击需要村庄作为目标
-- 袭击失败可能导致村民死亡
-- 袭击胜利增加村庄声誉
+## 上下游外部依赖关系
 
-### 效果系统
-- 不祥之兆效果触发袭击
-- 英雄效果作为奖励
+**上游依赖（本目录依赖）：**
+- `IWorld` - 世界接口（实体生成、tick、难度查询）
+- `Village` / `VillageManager` - 村庄系统和村庄查询
+- `AbstractRaiderEntity` 及其子类 - 掠夺者实体（`PillagerEntity`、`VindicatorEntity`、`EvokerEntity`、`RavagerEntity`、`WitchEntity`）
+- `Player` - 玩家实体（不祥之兆检测）
+- `DifficultyHelper` - 难度相关计算（波次数、是否允许生成）
+- `math::Random` - 随机数生成
 
-### 实体系统
-- 掠夺者实体生成
-- 劫掠兽骑乘系统
+**下游依赖（被依赖）：**
+- `ServerWorld` - 持有 `RaidManager` 实例，每 tick 调用
+- `StandaloneServer` / `IntegratedServer` - 设置 `RaidCallbacks` 回调（号角声、英雄效果）
 
-### 声音系统
-- 号角声播放（`minecraft:event.raid_horn`）
+## 容易踩的坑
 
-## 已实现功能
+### 村庄指针可能为空
+`Raid` 构造时传入的 `village` 指针可能为 `nullptr`，调用方必须在关键操作前检查 `isValid()` 或在实现中做防御性判断。当村庄被销毁时，关联的袭击会自动失效。
 
-- [x] 袭击创建和管理
-- [x] 波次生成逻辑
-- [x] 掠夺者类型选择
-- [x] 英雄追踪系统
-- [x] 回调机制（onRaidStarted, onRaidVictory, onRaidLoss, onWaveStarted）
-- [x] 袭击开始时设置村庄状态
-- [x] 号角声播放（集成到 StandaloneServer 和 IntegratedServer）
-- [x] 英雄效果赋予（集成到服务器初始化）
+### 袭击者实体追踪不保证实体存活
+`Raid::raiders()` 返回的 `EntityId` 列表只表示追踪 ID，不保证实体仍存在于世界中。使用前需通过 `IWorld::getEntity()` 验证。
 
-## 待实现功能
+### 英雄追踪与贡献值分离
+`addHero()` 会同时添加到 `m_heroes` 集合和 `m_participants` 列表，但 `addContribution()` 不会自动添加英雄——必须先调用 `addHero()`。
 
-- [ ] Boss栏显示
-- [ ] 掠夺者庆祝/失败行为
-- [ ] 袭击序列化/存档
+### 波次间隔使用 tick 而非秒
+`RaidConfig::WAVE_INTERVAL = 1200` 表示 1200 tick（约 60 秒），不是毫秒或秒。
 
-## 参考
+### 难度和平滑影响袭击行为
+- 和平难度下袭击会直接 `stop()`（`DifficultyHelper::allowsMobSpawning` 返回 false）
+- 波次数由 `DifficultyHelper::getRaidWaves()` 决定：简单 3 波、普通 5 波、困难 7 波
 
-- MC 1.16.5 `net.minecraft.world.raid.Raid`
-- MC 1.16.5 `net.minecraft.world.raid.RaidManager`
+### 不祥之兆等级影响总波次
+总波次 = 基础波次 + `max(0, badOmenLevel - 1)`。等级 1 不增加波次，等级 2+ 才会增加。
+
+### 回调在袭击 tick 内触发
+`onRaidStarted`、`onRaidVictory`、`onRaidLoss` 等回调在 `RaidManager::tick()` 内部触发，回调内不应执行耗时操作或修改袭击状态。

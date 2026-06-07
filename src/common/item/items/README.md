@@ -6,87 +6,137 @@
 
 ```text
 items/
-├── armor/        # 盔甲物品：ArmorItem、DyeableArmorItem、ElytraItem
-├── block/        # 方块物品：各类可放置方块的 Item 实现
-├── food/         # 食物物品：可食用 Item 实现
-├── tool/         # 工具物品：镐、斧、锹、锄、剑等
-├── weapon/       # 武器物品：弓、弩、三叉戟、盾等
-├── special/      # 特殊物品：指南针、时钟、钓鱼竿、蛋等
-└── README.md     # 本文件
+├── BannerPatternItem.hpp/cpp    # 旗帜图案物品
+├── README.md                    # 本文件
+├── armor/                       # 盔甲物品
+│   ├── ArmorItem.hpp/cpp        # 盔甲基类（防御值、韧性、装备槽位）
+│   ├── DyeableArmorItem.hpp/cpp # 可染色盔甲（皮革套装）
+│   ├── ElytraItem.hpp/cpp       # 鞘翅（滑翔飞行）
+│   └── HorseArmorItem.hpp/cpp   # 马铠（马匹装备）
+├── block/                       # 方块物品
+│   ├── BannerItem.hpp/cpp       # 旗帜物品
+│   ├── BlockItem.hpp/cpp        # 方块物品基类（放置逻辑、碰撞检查）
+│   ├── BlockItemRegistry.hpp/cpp # 方块物品注册表
+│   └── WallOrFloorItem.hpp/cpp  # 墙上/地面放置物品（按钮、压力板等）
+├── food/                        # 食物物品
+│   ├── ChorusFruitItem.hpp/cpp  # 紫颂果（传送效果）
+│   ├── FoodItem.hpp/cpp         # 食物基类（饥饿值、饱和度、狼食性）
+│   ├── GoldenAppleItem.hpp/cpp  # 金苹果（增益效果）
+│   └── HoneyBottleItem.hpp/cpp  # 蜂蜜瓶（解毒、可饮用）
+├── map/                         # 地图物品
+│   ├── AbstractMapItem.hpp/cpp  # 地图物品抽象基类
+│   ├── EmptyMapItem.hpp/cpp     # 空地图
+│   └── FilledMapItem.hpp/cpp    # 已填充地图（渲染、更新、玩家标记）
+├── potion/                      # 药水物品
+│   ├── GlassBottleItem.hpp/cpp  # 玻璃瓶（装水、装蜂蜜）
+│   ├── LingeringPotionItem.hpp/cpp # 滞留药水（区域云雾效果）
+│   ├── PotionItem.hpp/cpp       # 饮用药水
+│   ├── SplashPotionItem.hpp/cpp # 喷溅药水
+│   └── ThrowablePotionItem.hpp/cpp # 投掷药水基类
+├── special/                     # 特殊物品
+│   ├── BoneMealItem.hpp/cpp     # 骨粉（催熟、染色）
+│   ├── BucketItem.hpp/cpp       # 桶（装水、岩浆、鱼）
+│   ├── EnchantedBookItem.hpp/cpp # 附魔书
+│   ├── FishBucketItem.hpp/cpp   # 鱼桶（桶装鱼实体）
+│   ├── FlintAndSteelItem.hpp/cpp # 打火石
+│   ├── MilkBucketItem.hpp/cpp   # 奶桶（清除效果）
+│   ├── NameTagItem.hpp/cpp      # 命名牌
+│   ├── OnAStickItem.hpp/cpp     # 钓鱼竿类物品基类
+│   ├── SaddleItem.hpp/cpp       # 鞍
+│   ├── SpawnEggItem.hpp/cpp     # 刷怪蛋
+│   └── StickItems.hpp/cpp       # 各类棍状物品（胡萝卜钓竿等）
+├── tool/                        # 工具物品
+│   ├── AxeItem.hpp/cpp          # 斧（砍伐、攻击）
+│   ├── HoeItem.hpp/cpp          # 锄（耕地）
+│   ├── PickaxeItem.hpp/cpp      # 镐（挖掘石质方块）
+│   ├── ShearsItem.hpp/cpp       # 剪刀（剪羊毛、树叶）
+│   ├── ShovelItem.hpp/cpp       # 锹（挖掘土质方块）
+│   ├── SwordItem.hpp/cpp        # 剑（近战武器）
+│   ├── TieredItem.hpp/cpp       # 材质分级物品基类
+│   ├── ToolItem.hpp/cpp         # 工具基类
+│   └── ToolType.hpp/cpp         # 工具类型枚举
+├── trial/                       # 试炼密室物品（1.21+）
+│   ├── MaceItem.hpp/cpp         # 重锤（重击伤害）
+│   ├── OminousBottleItem.hpp/cpp # 不祥之瓶
+│   ├── OminousTrialKeyItem.hpp/cpp # 不祥试炼钥匙
+│   ├── TrialChamberSpecialItems.hpp # 试炼密室物品汇总头文件
+│   ├── TrialKeyItem.hpp/cpp     # 试炼钥匙
+│   └── WindChargeItem.hpp/cpp   # 风弹（击退效果）
+├── vehicle/                     # 载具物品
+│   ├── BoatItem.hpp/cpp         # 船（水域交通工具）
+│   └── MinecartItem.hpp/cpp     # 矿车（轨道交通工具）
+└── weapon/                      # 武器物品
+    ├── ArrowItem.hpp/cpp        # 箭矢
+    ├── BowItem.hpp/cpp          # 弓
+    ├── CrossbowItem.hpp/cpp     # 弩（多箭、烟花）
+    ├── FishingRodItem.hpp/cpp   # 钓鱼竿
+    ├── ShieldItem.hpp/cpp       # 盾牌（格挡伤害）
+    ├── ThrowableItem.hpp/cpp    # 投掷物基类
+    ├── ThrowableItems.hpp/cpp   # 各类投掷物（雪球、鸡蛋等）
+    ├── TippedArrowItem.hpp/cpp  # 药水箭
+    └── TridentItem.hpp/cpp      # 三叉戟（近战+投掷）
 ```
 
-## 文件介绍
-
-- `armor/`：负责盔甲穿戴、染色、属性统计和装备槽位适配。
-- `block/`：负责方块物品与世界放置交互，包含实体碰撞检查。
-- `food/`：负责食物恢复、饱和度与使用动作。
-- `tool/`：负责工具挖掘速度、材质加成和攻击行为。
-- `weapon/`、`special/`：预留给尚未完全展开的专用物品子类。
-
-## 模块关系
-
-`items/` 依赖 `item/core/` 提供的 `Item`、`ItemStack` 和注册机制，同时向上层世界、实体、容器和渲染系统暴露具体行为。具体物品实现不应反向耦合到同级目录中的其他实现类，跨类协作应尽量回到核心抽象层。
-
-## 整体职责
-
-这个目录的职责是承载”可实例化的物品行为”，把共性留在 `item/core/`，把领域逻辑拆分到各个子目录，确保新增物品类型时不会污染核心接口。
-
-## 输入 / 输出
-
-输入通常是 `ItemProperties`、`ItemStack`、`Player`、`IWorld` 和各类上下文对象；输出通常是动作结果、物品堆变化、属性修正、状态写回或容器交互结果。
-
-## 依赖项
-
-内部依赖主要是 `item/core/`、`item/armor/`、`item/tier/`、`entity/` 和 `world/`。外部依赖主要是 C++20 标准库，以及少量第三方库用于序列化和测试。
-
-## 使用方法
-
-新增物品实现时，优先在对应子目录下创建头文件和源文件，再在 `Items.hpp/cpp` 中注册。例如盔甲类物品应放在 `items/armor/`，而不是直接放进 `items/` 根目录。
-
-## 容易踩的坑
-
-- 不要把所有物品都塞到一个目录里，这会让注册、测试和导航迅速失控。
-- 不要让具体物品直接依赖另一个具体物品的实现细节，应该回退到共享抽象。
-- 新增物品后如果涉及测试或注册表，必须同步更新 `Items::initialize()` 和相关单测。
-
-## 方块物品放置检查 (BlockItem)
-
-`BlockItem::canPlace()` 实现了完整的放置检查逻辑：
-
-1. **位置有效性检查** - 验证放置位置在世界边界内
-2. **方块状态有效性** - 调用 `Block::isValidPosition()` 检查方块特定条件
-3. **材质可替换性** - 检查当前方块是否可被替换
-4. **实体碰撞检查** - 检查方块碰撞箱是否与实体相交
-
-实体碰撞检查使用 `IWorld::hasEntityCollision()` 方法，会排除放置者实体本身，避免玩家阻止自己放置方块。对无碰撞箱的方块（如水、空气）跳过此检查。
-
-## 测试用例
-
-- `tests/common/test_item.cpp`：物品注册、材质和基础物品行为。
-- `tests/common/test_inventory.cpp`：盔甲槽位、装备和右键穿戴行为。
-- `tests/common/test_item_entity.cpp`：物品实体测试。
-- `tests/common/test_block_item.cpp`：方块物品放置测试，包括实体碰撞检查测试。
-
-## Mermaid 图表
+## 内部模块关系
 
 ```mermaid
 flowchart TD
-    core[Item Core] --> items[items/]
-    items --> armor[armor/]
-    items --> block[block/]
-    items --> food[food/]
-    items --> tool[tool/]
-    armor --> dyeable[DyeableArmorItem]
-    armor --> armorItem[ArmorItem]
-    block --> blockItem[BlockItem]
+    subgraph core["item/core/ (外部依赖)"]
+        Item["Item 基类"]
+        ItemStack["ItemStack"]
+        ItemProperties["ItemProperties"]
+    end
 
-    style core fill:#8ecae6,stroke:#1d4ed8,color:#111
-    style items fill:#cdb4db,stroke:#6d28d9,color:#111
-    style armor fill:#90be6d,stroke:#2f6f3e,color:#111
-    style block fill:#f4a261,stroke:#b45309,color:#111
-    style food fill:#ffe066,stroke:#a16207,color:#111
-    style tool fill:#bde0fe,stroke:#2563eb,color:#111
-    style dyeable fill:#ffcad4,stroke:#be123c,color:#111
-    style armorItem fill:#caffbf,stroke:#166534,color:#111
-    style blockItem fill:#ffd6a5,stroke:#c2410c,color:#111
+    subgraph tier["item/tier/ (外部依赖)"]
+        Tier["ToolTier 材质等级"]
+    end
+
+    subgraph items["items/"]
+        direction TB
+        armor["armor/"]
+        block["block/"]
+        food["food/"]
+        map["map/"]
+        potion["potion/"]
+        special["special/"]
+        tool["tool/"]
+        trial["trial/"]
+        vehicle["vehicle/"]
+        weapon["weapon/"]
+    end
+
+    core --> items
+    tier --> tool
+    tier --> weapon
+
+    tool --> weapon
+    potion --> weapon
+    special --> vehicle
+    block --> special
 ```
+
+各子目录间的依赖极少，具体物品实现应通过 `item/core/` 的抽象层协作，避免直接耦合同级实现。
+
+## 上下游外部依赖关系
+
+**依赖上游（本目录依赖）：**
+- `item/core/` - Item 基类、ItemStack、ItemProperties、注册机制
+- `item/tier/` - ToolTier 材质等级定义（工具、武器使用）
+- `entity/` - 实体交互、玩家、物品实体
+- `world/` - 方块放置、世界交互
+- `block/` - BlockItem 关联的方块定义
+- `util/math/` - 随机数、数学工具
+
+**被下游依赖（依赖本目录）：**
+- `server/` - 服务端物品注册、玩家物品管理
+- `client/` - 客户端物品渲染、模型加载
+- `recipe/` - 配方系统引用物品类型
+- `inventory/` - 容器、物品栏管理
+
+## 容易踩的坑
+
+- 不要把所有物品都塞到一个目录里，这会让注册、测试和导航迅速失控
+- 不要让具体物品直接依赖另一个具体物品的实现细节，应该回退到 `item/core/` 共享抽象
+- 新增物品后必须同步更新 `Items::initialize()` 注册表
+- BlockItem 放置时会排除放置者实体进行碰撞检查，无碰撞箱方块（水、空气）跳过此检查
+- 投掷类物品（药水、箭矢、雪球等）都继承自 ThrowableItem 或 ThrowablePotionItem，不要重复实现投掷逻辑

@@ -6,470 +6,81 @@
 
 ```
 src/common/entity/entities/monster/nether/
-├── BlazeEntity.hpp/cpp      # 烈焰人
-├── NetherEntities.hpp/cpp   # 其他下界怪物（恶魂、岩浆怪、猪灵等）
+├── BlazeEntity.hpp/cpp      # 烈焰人实体（火球攻击、飞行）
+├── NetherEntities.hpp/cpp   # 其他下界怪物：恶魂、岩浆怪、猪灵、猪灵蛮兵、僵尸猪灵、疣猪兽、僵尸疣兽
 └── README.md
 ```
 
-## 怪物列表
-
-### BlazeEntity（烈焰人）
-
-生活在下界的火焰怪物，可以飞行并发射火球。
-
-**继承层次**：
-```
-Entity → LivingEntity → MobEntity → MonsterEntity → BlazeEntity
-                                            ↓
-                                    IRangedAttackMob（接口）
-```
-
-**特性**：
-- **飞行能力**：可以飞行并悬浮
-- **火球攻击**：发射小火球攻击目标
-- **火焰免疫**：免疫火焰伤害
-- **弱水性**：接触水会受伤
-- **发光效果**：亮度始终为 1.0
-
-**核心属性**（MC 1.16.5）：
-| 属性 | 值 |
-|------|-----|
-| 生命值 | 20.0 |
-| 移动速度 | 0.23 |
-| 攻击伤害 | 6.0 |
-| 追踪范围 | 48.0 |
-| 经验值 | 10 |
-
-**AI 目标系统**（MC 1.16.5）：
-| 优先级 | 目标类型 | 目标类 | 说明 |
-|--------|----------|--------|------|
-| 4 | 攻击 | BlazeFireballAttackGoal | 火球攻击 |
-| 7 | 移动 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
-| 8 | 看向 | LookAtGoal | 看向玩家 |
-| 8 | 看向 | LookRandomlyGoal | 随机看向 |
-
-**目标选择器**：
-| 优先级 | 目标类型 | 目标类 | 说明 |
-|--------|----------|--------|------|
-| 1 | 反击 | HurtByTargetGoal | 被攻击后反击，呼唤同伴 |
-| 2 | 目标选择 | NearestAttackableTargetGoal<Player> | 攻击玩家 |
-
-### GhastEntity（恶魂）
-
-下界的飞行敌对生物，发射火球。
-
-**继承层次**：
-```
-Entity → LivingEntity → MobEntity → MonsterEntity → GhastEntity
-```
-
-**特性**：
-- **飞行能力**：在下界中自由飞行
-- **火球攻击**：发射爆炸火球
-- **极远追踪**：追踪范围 100 格
-
-**核心属性**（MC 1.16.5）：
-| 属性 | 值 |
-|------|-----|
-| 生命值 | 10.0 |
-| 移动速度 | 0.0 |
-| 飞行速度 | 0.9 |
-| 追踪范围 | 100.0 |
-| 火球爆炸威力 | 1 |
-
-**AI 目标系统**：
-| 优先级 | 目标类型 | 目标类 | 说明 |
-|--------|----------|--------|------|
-| 5 | 移动 | GhastRandomFlyGoal | 随机飞行 |
-| 7 | 看向 | GhastLookAroundGoal | 环顾四周 |
-| 7 | 攻击 | GhastFireballAttackGoal | 火球攻击 |
-
-### MagmaCubeEntity（岩浆怪）
-
-下界的史莱姆变种，继承自 SlimeEntity。
-
-**继承层次**：
-```
-Entity → LivingEntity → MobEntity → CreatureEntity → MonsterEntity → SlimeEntity → MagmaCubeEntity
-```
-
-**与史莱姆的差异**：
-
-| 特性 | 史莱姆 | 岩浆怪 |
-|------|--------|--------|
-| 跳跃延迟 | 10-30 tick | 40-120 tick（4倍） |
-| 挤压动画衰减 | 0.6 | 0.9（更慢） |
-| 护甲 | 0 | size * 3 |
-| 攻击伤害 | size | 属性值 + 2.0 |
-| 小型伤害玩家 | ❌ 否 | ✅ 是 |
-| 着地粒子 | ItemSlime | Flame |
-| 火焰免疫 | ❌ 否 | ✅ 是 |
-
-**重写的虚函数**：
-
-| 虚函数 | 说明 | 岩浆怪实现 |
-|--------|------|------------|
-| `setSlimeSize(size, resetHealth)` | 设置尺寸 | 调用父类 + 设置护甲 = size * 3 |
-| `canDamagePlayer()` | 是否可伤害玩家 | `world() != nullptr && !world()->isClientSide()` |
-| `getJumpDelay()` | 获取跳跃延迟 | 父类值 * 4 |
-| `alterSquishAmount()` | 更新挤压动画 | `squishAmount *= 0.9f` |
-| `getSquishParticle()` | 获取着地粒子类型 | `ParticleTypeId::Flame` |
-| `getHurtSound(source)` | 获取受伤声音 | ENTITY_MAGMA_CUBE_HURT[_SMALL] |
-| `getDeathSound()` | 获取死亡声音 | ENTITY_MAGMA_CUBE_DEATH[_SMALL] |
-| `getSquishSound()` | 获取挤压声音 | ENTITY_MAGMA_CUBE_SQUISH[_SMALL] |
-| `getJumpSound()` | 获取跳跃声音 | ENTITY_MAGMA_CUBE_JUMP |
-| `isImmuneToFire()` | 火焰免疫 | `true` |
-| `registerAttributes()` | 注册属性 | 调用父类 + 注册护甲属性 |
-
-**尺寸与属性对应**（MC 1.16.5）：
-
-| 尺寸 | 生命值 | 护甲 | 移动速度 | 攻击伤害 |
-|------|--------|------|----------|----------|
-| 1 | 1 | 3 | 0.3 | 3 |
-| 2 | 4 | 6 | 0.4 | 4 |
-| 4 | 16 | 12 | 0.6 | 6 |
-
-**实现示例**：
-
-```cpp
-// 创建岩浆怪
-auto magmaCube = std::make_unique<MagmaCubeEntity>(EntityId(0));
-magmaCube->setWorld(&world);
-magmaCube->setSlimeSize(4, true);  // 设置为大岩浆怪
-
-// 检查属性
-i32 size = magmaCube->getSlimeSize();        // 4
-f64 armor = magmaCube->getAttributeValue(Attributes::ARMOR, 0.0);  // 12.0
-bool immuneToFire = magmaCube->isImmuneToFire();  // true
-
-// 小型岩浆怪也能伤害玩家
-bool canDamage = magmaCube->canDamagePlayer();  // true（只要在服务端）
-```
-
-### AbstractPiglinEntity（猪灵基类）
-
-猪灵和猪灵蛮兵的共同基类。
-
-**继承层次**：
-```
-Entity → LivingEntity → MobEntity → MonsterEntity → AbstractPiglinEntity
-```
-
-**特性**：
-- **火焰免疫**：默认火焰免疫
-- **转化机制**：在主世界会转化为僵尸猪灵
-
-**AI 目标系统**（MC 1.16.5）：
-| 优先级 | 目标类型 | 目标类 | 说明 |
-|--------|----------|--------|------|
-| 0 | 行为 | SwimGoal | 游泳 |
-| 1 | 目标选择 | HurtByTargetGoal | 被攻击后反击 |
-
-### PiglinEntity（猪灵）
-
-下界的敌对/中立生物，可进行交易。
-
-**继承层次**：
-```
-Entity → LivingEntity → MobEntity → MonsterEntity → AbstractPiglinEntity → PiglinEntity
-                                                                    ↓
-                                                            ICrossbowUser（接口）
-```
-
-**核心属性**（MC 1.16.5）：
-| 属性 | 值 |
-|------|-----|
-| 生命值 | 16.0 |
-| 移动速度 | 0.35 |
-| 攻击伤害 | 5.0 |
-| 追踪范围 | 16.0 |
-
-**AI 目标系统**（MC 1.16.5）：
-| 优先级 | 目标类型 | 目标类 | 说明 |
-|--------|----------|--------|------|
-| 0 | 行为 | SwimGoal | 游泳 |
-| 1 | 目标选择 | HurtByTargetGoal | 被攻击后反击 |
-| 2 | 攻击 | RangedCrossbowAttackGoal | 弩远程攻击（仅成年） |
-| 3 | 攻击 | MeleeAttackGoal | 近战攻击（仅成年） |
-| 5 | 行为 | AvoidEntityGoal | 避开僵尸猪灵和僵尸疣兽 |
-| 7 | 移动 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
-| 8 | 看向 | LookAtGoal | 看向玩家 |
-| 9 | 看向 | LookRandomlyGoal | 随机看向 |
-
-**目标选择器**（仅成年）：
-| 优先级 | 目标类型 | 目标类 | 说明 |
-|--------|----------|--------|------|
-| 2 | 目标选择 | NearestAttackableTargetGoal<Player> | 攻击未穿金装的玩家 |
-
-**特性**：
-- 使用弩进行远程攻击
-- 幼年猪灵不攻击玩家
-- 对金装备有特殊兴趣
-- 避开僵尸猪灵和僵尸疣兽
-- 攻击未穿戴金装备的玩家
-
-### PiglinBruteEntity（猪灵蛮兵）
-
-下界堡垒的强力敌对生物。
-
-**继承层次**：
-```
-Entity → LivingEntity → MobEntity → MonsterEntity → AbstractPiglinEntity → PiglinBruteEntity
-```
-
-**核心属性**（MC 1.16.5）：
-| 属性 | 值 |
-|------|-----|
-| 生命值 | 50.0 |
-| 移动速度 | 0.35 |
-| 攻击伤害 | 7.0（金斧额外 +4） |
-
-**AI 目标系统**（MC 1.16.5）：
-| 优先级 | 目标类型 | 目标类 | 说明 |
-|--------|----------|--------|------|
-| 0 | 行为 | SwimGoal | 游泳 |
-| 1 | 目标选择 | HurtByTargetGoal | 被攻击后反击并呼叫支援 |
-| 2 | 攻击 | MeleeAttackGoal | 近战攻击 |
-| 7 | 移动 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
-| 8 | 看向 | LookAtGoal | 看向玩家 |
-| 9 | 看向 | LookRandomlyGoal | 随机看向 |
-
-**目标选择器**：
-| 优先级 | 目标类型 | 目标类 | 说明 |
-|--------|----------|--------|------|
-| 2 | 目标选择 | HurtByTargetGoal | 被攻击后反击并呼叫支援 |
-| 3 | 目标选择 | NearestAttackableTargetGoal<Player> | 攻击玩家（不检查金装备） |
-
-**特性**：
-- 不使用弩，近战攻击
-- 更高的生命值和攻击力
-- 攻击玩家不检查金装备（与普通猪灵不同）
-
-### ZombifiedPiglinEntity（僵尸猪灵）
-
-下界的中立生物，被攻击后会激怒所有附近的僵尸猪灵。
-
-**继承层次**：
-```
-Entity → LivingEntity → MobEntity → MonsterEntity → ZombifiedPiglinEntity
-```
-
-**核心属性**（MC 1.16.5）：
-| 属性 | 值 |
-|------|-----|
-| 生命值 | 20.0 |
-| 移动速度 | 0.23 |
-| 攻击伤害 | 5.0 |
-
-**AI 目标系统**（MC 1.16.5）：
-| 优先级 | 目标类型 | 目标类 | 说明 |
-|--------|----------|--------|------|
-| 0 | 行为 | SwimGoal | 游泳 |
-| 1 | 目标选择 | HurtByTargetGoal | 被攻击后反击并呼叫支援 |
-| 2 | 攻击 | MeleeAttackGoal | 近战攻击 |
-| 7 | 移动 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
-| 8 | 看向 | LookAtGoal | 看向玩家 |
-| 9 | 看向 | LookRandomlyGoal | 随机看向 |
-
-**特性**：
-- **愤怒机制**：被攻击后激怒附近所有僵尸猪灵
-- **火焰免疫**：免疫火焰伤害
-- **中立性**：默认不攻击玩家，仅被攻击后敌对
-
-### HoglinEntity（疣猪兽）
-
-下界的敌对生物（成年）或中立生物（幼年）。
-
-**继承层次**：
-```
-Entity → LivingEntity → MobEntity → MonsterEntity → HoglinEntity
-                                            ↓
-                                    IFlinging（接口）
-```
-
-**核心属性**（MC 1.16.5）：
-| 属性 | 成年疣猪兽 | 幼年疣猪兽 |
-|------|------------|------------|
-| 生命值 | 40.0 | - |
-| 移动速度 | 0.3 | - |
-| 击退抗性 | 0.6 | - |
-| 攻击击退 | 1.0 | - |
-| 攻击伤害 | 6.0 | - |
-
-**AI 目标系统**（MC 1.16.5）：
-| 优先级 | 目标类型 | 目标类 | 说明 |
-|--------|----------|--------|------|
-| 0 | 行为 | SwimGoal | 游泳 |
-| 2 | 攻击 | MeleeAttackGoal | 近战攻击（仅成年） |
-| 7 | 移动 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
-| 8 | 看向 | LookAtGoal | 看向玩家 |
-| 9 | 看向 | LookRandomlyGoal | 随机看向 |
-
-**目标选择器**（仅成年）：
-| 优先级 | 目标类型 | 目标类 | 说明 |
-|--------|----------|--------|------|
-| 1 | 目标选择 | HurtByTargetGoal | 被攻击后反击 |
-| 2 | 目标选择 | NearestAttackableTargetGoal<Player> | 攻击玩家 |
-
-**特性**：
-- **击退攻击**：攻击时击退目标
-- **攻击动画**：有攻击动画 ticks
-- **火焰免疫**：免疫火焰伤害
-- **可被猎杀**：成年疣猪兽可被猎杀（isHuntable()）
-
-### ZoglinEntity（僵尸疣兽）
-
-疣猪兽在主世界的僵尸化变体。
-
-**继承层次**：
-```
-Entity → LivingEntity → MobEntity → MonsterEntity → ZoglinEntity
-                                            ↓
-                                    IFlinging（接口）
-```
-
-**核心属性**（MC 1.16.5）：
-| 属性 | 成年僵尸疣兽 | 幼年僵尸疣兽 |
-|------|--------------|--------------|
-| 生命值 | 40.0 | - |
-| 移动速度 | 0.3 | - |
-| 击退抗性 | 0.6 | - |
-| 攻击击退 | 1.0 | - |
-| 攻击伤害 | 6.0 | - |
-
-**AI 目标系统**（MC 1.16.5）：
-| 优先级 | 目标类型 | 目标类 | 说明 |
-|--------|----------|--------|------|
-| 0 | 行为 | SwimGoal | 游泳 |
-| 2 | 攻击 | MeleeAttackGoal | 近战攻击（仅成年） |
-| 7 | 移动 | WaterAvoidingRandomWalkingGoal | 避水随机行走 |
-| 8 | 看向 | LookAtGoal | 看向玩家 |
-| 9 | 看向 | LookRandomlyGoal | 随机看向 |
-
-**目标选择器**（仅成年）：
-| 优先级 | 目标类型 | 目标类 | 说明 |
-|--------|----------|--------|------|
-| 1 | 目标选择 | HurtByTargetGoal | 被攻击后反击 |
-| 2 | 目标选择 | NearestAttackableTargetGoal<Player> | 攻击玩家 |
-| 3 | 目标选择 | NearestAttackableTargetGoal<LivingEntity> | 攻击其他生物 |
-
-**特性**：
-- **击退攻击**：攻击时击退目标
-- **敌对性**：攻击几乎所有生物（不含僵尸疣兽自己）
-
-## 实现状态
-
-| 实体 | 基础结构 | 属性系统 | AI 目标 | 特殊行为 |
-|------|----------|----------|---------|----------|
-| 烈焰人 | ✅ | ✅ | ✅ | 🔄 火球攻击 |
-| 恶魂 | ✅ | ✅ | ✅ | 🔄 火球攻击 |
-| 岩浆怪 | ✅ | ✅ | ✅（继承） | ✅ |
-| 猪灵 | ✅ | ✅ | 🔄 | 🔄 |
-| 猪灵蛮兵 | ✅ | ✅ | 🔄 | 🔄 |
-| 僵尸猪灵 | ✅ | ✅ | 🔄 | 🔄 |
-| 疣猪兽 | ✅ | ✅ | 🔄 | 🔄 |
-| 僵尸疣兽 | ✅ | ✅ | 🔄 | 🔄 |
-
-## 依赖关系
+## 内部模块关系
 
 ```
-MonsterEntity（基类）
-    ├── attribute/Attributes.hpp    # 属性系统
-    ├── damage/DamageSource.hpp     # 伤害系统
-    ├── world/IWorld.hpp            # 世界接口
-    ├── sound/SoundEvents.hpp       # 音效事件
-    ├── util/math/Random.hpp        # 随机数生成
-    ├── interfaces/IRangedAttackMob.hpp  # 远程攻击接口
-    ├── interfaces/ICrossbowUser.hpp     # 弩使用者接口
-    ├── interfaces/IFlinging.hpp         # 击退攻击接口
-    └── basic/SlimeEntity.hpp        # 史莱姆基类（岩浆怪继承）
+MonsterEntity (基类，来自 ../MonsterEntity.hpp)
+    │
+    ├── BlazeEntity ─────────────────── IRangedAttackMob (远程攻击接口)
+    │
+    ├── GhastEntity ─────────────────── GhastMovementController (恶魂移动控制器)
+    │
+    ├── MagmaCubeEntity ─────────────── SlimeEntity (来自 ../basic/SlimeEntity.hpp)
+    │
+    ├── AbstractPiglinEntity ────────── 猪灵基类，提供火焰免疫、主世界转化机制
+    │   ├── PiglinEntity ────────────── ICrossbowUser (弩使用者接口)
+    │   └── PiglinBruteEntity
+    │
+    ├── ZombifiedPiglinEntity ───────── 愤怒机制（激怒附近同类）
+    │
+    ├── HoglinEntity ────────────────── IFlinging (击退攻击接口)
+    │
+    └── ZoglinEntity ────────────────── IFlinging (击退攻击接口)
 ```
 
-## 使用示例
+## 上下游外部依赖关系
 
-```cpp
-// 创建烈焰人
-auto blaze = std::make_unique<BlazeEntity>(EntityId(0));
-blaze->setWorld(&world);
+### 上游依赖（本目录依赖的模块）
 
-// 创建岩浆怪
-auto magmaCube = std::make_unique<MagmaCubeEntity>(EntityId(0));
-magmaCube->setWorld(&world);
-magmaCube->setSlimeSize(4, true);  // 设置为大岩浆怪
+- `../MonsterEntity.hpp` - 敌对生物基类
+- `../basic/SlimeEntity.hpp` - 史莱姆基类（岩浆怪继承）
+- `../../interfaces/IRangedAttackMob.hpp` - 远程攻击接口（烈焰人）
+- `../../interfaces/ICrossbowUser.hpp` - 弩使用者接口（猪灵）
+- `../../interfaces/IFlinging.hpp` - 击退攻击接口（疣猪兽、僵尸疣兽）
+- `../../ai/goal/goals/special/BlazeFireballAttackGoal.hpp` - 烈焰人火球攻击目标
+- `../../ai/goal/goals/special/GhastGoals.hpp` - 恶魂AI目标
+- `../../ai/controller/GhastMovementController.hpp` - 恶魂移动控制器
 
-// 创建恶魂
-auto ghast = std::make_unique<GhastEntity>(EntityId(0));
-ghast->setWorld(&world);
-ghast->setFireballStrength(1);  // 设置火球爆炸威力
-```
+### 下游依赖（依赖本目录的模块）
+
+- `VanillaEntities.hpp` - 注册所有原版实体
+- `ProjectileItemEntity.cpp` - 投掷物判断烈焰人火焰免疫
+- `TargetGoals.cpp` - 目标选择器（猪灵相关目标）
+- `WitherSkeletonEntity.cpp` - 凋灵骷髅（引用猪灵相关类型）
 
 ## 容易踩的坑
 
-### 1. 岩浆怪继承史莱姆
+### 1. 岩浆怪继承史莱姆的AI注册
 
 ```cpp
-// 错误：重复注册 AI 目标
+// ❌ 错误：重复注册 AI 目标
 void MagmaCubeEntity::registerGoals() {
-    // SlimeEntity::registerGoals() 已经注册了史莱姆 AI
-    // 不需要重新注册跳跃、攻击等目标
-    MonsterEntity::registerGoals();  // 错误！应该调用 SlimeEntity::registerGoals()
+    MonsterEntity::registerGoals();  // 错误！会导致重复注册
 }
 
-// 正确：调用父类注册
+// ✅ 正确：调用直接父类
 void MagmaCubeEntity::registerGoals() {
     SlimeEntity::registerGoals();  // 复用史莱姆 AI
-    // 如果需要添加岩浆怪特有 AI，在这里添加
 }
 ```
 
-### 2. 护甲属性注册
+### 2. 护甲属性注册顺序
 
-```cpp
-// 错误：在 setSlimeSize 中注册护甲属性
-void MagmaCubeEntity::setSlimeSize(i32 size, bool resetHealth) {
-    SlimeEntity::setSlimeSize(size, resetHealth);
-    // 护甲属性可能未注册
-    m_attributes.setBaseValue(Attributes::ARMOR, size * 3);  // 可能崩溃！
-}
-
-// 正确：在 registerAttributes 中注册护甲属性
-void MagmaCubeEntity::registerAttributes() {
-    SlimeEntity::registerAttributes();
-    // 先注册护甲属性
-    m_attributes.registerAttribute(*Attributes::armor());
-    m_attributes.setBaseValue(Attributes::ARMOR, 3.0);
-}
-```
+岩浆怪的护甲属性必须在`registerAttributes()`中注册后才能在`setSlimeSize()`中设置值，否则会崩溃。
 
 ### 3. isClientSide() const 问题
 
-```cpp
-// 错误：isClientSide() 不是 const 方法
-bool MagmaCubeEntity::canDamagePlayer() const {
-    return world() != nullptr && !world()->isClientSide();  // 编译错误！
-}
+`IWorld::isClientSide()`不是const方法，在const成员函数中调用需要使用`const_cast`。
 
-// 正确：使用 const_cast
-bool MagmaCubeEntity::canDamagePlayer() const {
-    auto* nonConstWorld = const_cast<IWorld*>(world());
-    return nonConstWorld != nullptr && !nonConstWorld->isClientSide();
-}
-```
+### 4. 猪灵蛮兵 vs 普通猪灵的目标选择差异
 
-## 测试用例
+猪灵蛮兵攻击玩家时不检查金装备，普通猪灵会检查。这是MC 1.16.5的正确行为。
 
-- `tests/common/entity/entities/monster/SlimeEntityTest.cpp` - 史莱姆测试（岩浆怪继承测试）
-- `tests/common/entity/entities/monster/MagmaCubeEntityTest.cpp` - 岩浆怪专用测试
-- `tests/common/entity/entities/monster/BlazeEntityTest.cpp` - 烈焰人测试
+### 5. 僵尸猪灵愤怒机制
 
-## 参考
-
-- MC 1.16.5 `net.minecraft.entity.monster.BlazeEntity`
-- MC 1.16.5 `net.minecraft.entity.monster.GhastEntity`
-- MC 1.16.5 `net.minecraft.entity.monster.MagmaCubeEntity`
-- MC 1.16.5 `net.minecraft.entity.monster.AbstractPiglinEntity`
-- MC 1.16.5 `net.minecraft.entity.monster.PiglinEntity`
-- MC 1.16.5 `net.minecraft.entity.monster.PiglinBruteEntity`
-- MC 1.16.5 `net.minecraft.entity.monster.ZombifiedPiglinEntity`
-- MC 1.16.5 `net.minecraft.entity.monster.HoglinEntity`
-- MC 1.16.5 `net.minecraft.entity.monster.ZoglinEntity`
+僵尸猪灵被攻击后会激怒附近所有僵尸猪灵，需要在`HurtByTargetGoal`中设置`setCallsForHelp(true)`。

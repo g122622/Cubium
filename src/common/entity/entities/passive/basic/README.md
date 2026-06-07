@@ -1,133 +1,81 @@
 # 普通动物
 
-基础被动动物实体。
+基础被动动物实体，继承自 `AgeableEntity`，支持繁殖行为。
 
-## 文件列表
-
-| 文件 | 说明 |
-|------|------|
-| AnimalEntity.hpp/cpp | 动物基类 |
-| PigEntity.hpp/cpp | 猪 |
-| CowEntity.hpp/cpp | 牛 |
-| SheepEntity.hpp/cpp | 羊 |
-| ChickenEntity.hpp/cpp | 鸡 |
-| MooshroomEntity.hpp/cpp | 哞菇 |
-
-## 继承
+## 目录结构
 
 ```
-MobEntity
-└── CreatureEntity
-    └── AgeableEntity
-        └── AnimalEntity
-            ├── PigEntity
-            ├── CowEntity
-            ├── SheepEntity
-            ├── ChickenEntity
-            └── MooshroomEntity (implements IShearable)
+basic/
+├── AnimalEntity.hpp/cpp       # 动物基类，定义繁殖系统核心逻辑
+├── PigEntity.hpp/cpp          # 猪（可实现 IRideable/IEquipable 接口）
+├── CowEntity.hpp/cpp          # 牛（可被空桶挤奶）
+├── SheepEntity.hpp/cpp        # 羊（实现 IShearable 接口，16 种颜色）
+├── ChickenEntity.hpp/cpp      # 鸡（自动下蛋、无摔落伤害）
+├── RabbitEntity.hpp/cpp       # 兔子（8 种皮肤，含杀手兔变种）
+└── MooshroomEntity.hpp/cpp    # 哞菇（继承 CowEntity，实现 IShearable）
 ```
 
-## 动物特性
+## 内部模块关系
 
-### 猪 (PigEntity)
-- 生命值：10
-- 繁殖物品：胡萝卜、马铃薯、甜菜根
-- 可骑乘（鞍 + 胡萝卜钓竿）
-- **实现接口**：IRideable, IEquipable
-- **鞍系统**：
-  - 存储：不存储实际 ItemStack，只存储布尔值（MC 1.16.5 设计）
-  - getEquipment(0)：有鞍时返回 `ItemStack(Items::SADDLE, 1)`
-  - setEquipment(0, saddle)：设置鞍布尔状态
-  - canEquip(saddle, 0)：只能装备鞍到槽位 0
-  - 死亡掉落：die() 中检查 hasSaddle() 并掉落鞍物品
-- **骑乘速度设置**：
-  - 基础速度：`MOVEMENT_SPEED = 0.25`
-  - 骑乘速度：`speed * 0.225 = 0.05625`
-  - 加速时使用正弦函数：`speed += speed * 1.15 * sin(progress * PI)`
-  - 在 `travel()` 中调用 `setAIMoveSpeed()` 设置 AI 移动速度
-  - 通过 `IRideable::ride()` 处理骑乘移动逻辑
-
-### 牛 (CowEntity)
-- 生命值：10
-- 繁殖物品：小麦
-- 可挤奶（空桶 → 牛奶桶）
-
-### 羊 (SheepEntity)
-- 生命值：8
-- 繁殖物品：小麦
-- 可剪羊毛（剪刀 → 1-3个对应颜色羊毛）
-- 16种颜色（通过 DyeColor 枚举）
-- 实现 IShearable 接口
-- 剪毛后需吃草重新长出羊毛
-- **颜色混合**：繁殖时幼羊颜色由父母颜色混合决定
-  - 白色 + 红色 = 粉红色
-  - 红色 + 黄色 = 橙色
-  - 白色 + 蓝色 = 淡蓝色
-  - 蓝色 + 绿色 = 青色
-  - 蓝色 + 红色 = 紫色
-  - 白色 + 绿色 = 黄绿色
-  - 白色 + 黑色 = 灰色
-  - 灰色 + 白色 = 淡灰色
-  - 无配方时随机选择父母颜色
-- **吃草行为**：通过 EatGrassGoal 实现
-  - 概率触发（幼年 1/50，成年 1/1000）
-  - 吃草后重新长出羊毛（如果被剪过）
-  - 幼羊吃草加速成长 60 ticks
-
-### 鸡 (ChickenEntity)
-- 生命值：4
-- 繁殖物品：种子
-- 每5-10分钟下蛋
-- 计时归零时会生成鸡蛋物品实体并重置计时器
-- 不会摔伤（滑翔）
-
-### 哞菇 (MooshroomEntity)
-- 生命值：10
-- 繁殖物品：小麦
-- 两种皮肤：红色哞菇（默认）、棕色哞菇
-- 实现 IShearable 接口
-- **剪毛行为** (shear)：
-  - 返回 5 个对应颜色的蘑菇（红色哞菇 → 红蘑菇，棕色哞菇 → 棕蘑菇）
-  - 播放 `ENTITY_MOOSHROOM_SHEAR` 音效（音量 1.0，音调 1.0）
-  - 服务端生成 20 个 `Explosion` 粒子
-  - 转换为普通牛实体，继承位置、朝向、生命值、自定义名称、持久性、无敌状态
-- **碗交互** (canBeStewed/getStew)：
-  - canBeStewed()：检查物品是否为空碗且哞菇为成年
-  - getStew()：返回蘑菇汤物品（Items::MUSHROOM_STEW）
-- **繁殖行为** (spawnBaby)：
-  - 创建小哞菇实体
-  - 类型遗传：随机继承父母一方类型
-  - 变异机制：双亲类型相同时有 1/1024 概率变异为另一种类型
-- **雷击转换** (onStruckByLightning)：
-  - 红色哞菇 + 雷击 → 棕色哞菇
-  - 棕色哞菇 + 雷击 → 红色哞菇
-  - 播放 `ENTITY_MOOSHROOM_CONVERT` 音效（音量 2.0，音调 1.0）
-  - 客户端生成 20 个 `Explosion` 粒子（环形分布，位于实体碰撞箱内）
-
-## 繁殖系统
-
-```cpp
-// 喂食
-if (animal->isBreedingItem(item) && !animal->isInLove()) {
-    animal->setInLove(playerId);
-    item.shrink(1);
-}
-
-// 繁殖
-if (animal1->isInLove() && animal2->isInLove() && animal1->canMateWith(animal2)) {
-    auto baby = animal1->spawnBaby(animal2);
-    world.spawnEntity(std::move(baby));
-    animal1->resetLove();
-    animal2->resetLove();
-}
+```
+AgeableEntity (父类)
+    │
+    └── AnimalEntity (本目录基类)
+            │  提供：繁殖系统（isBreedingItem、canMateWith、spawnBaby）
+            │  提供：爱心状态管理（setInLove、resetInLove）
+            │  注册基础属性（MAX_HEALTH=10, MOVEMENT_SPEED=0.2）
+            │
+            ├── CowEntity ──────────┬── MooshroomEntity (继承 CowEntity)
+            │   (挤奶在 BucketItem)  │      └── IShearable (剪毛返回蘑菇)
+            │                        │
+            ├── SheepEntity          │
+            │   └── IShearable       │
+            │                        │
+            ├── PigEntity            │
+            │   ├── IRideable        │
+            │   └── IEquipable       │
+            │                        │
+            ├── ChickenEntity        │
+            │   └── 翅膀动画/下蛋    │
+            │                        │
+            └── RabbitEntity ────────┘
+                └── 8 种皮肤/杀手兔变种
 ```
 
-## 测试用例
+## 上下游外部依赖关系
 
-| 文件 | 说明 |
-|------|------|
-| `tests/common/entity/entities/passive/basic/ChickenEntityTest.cpp` | 验证鸡蛋生成与计时器重置 |
-| `tests/common/entity/entities/passive/basic/RabbitEntityTest.cpp` | 兔子行为测试 |
-| `tests/common/entity/entities/passive/basic/MooshroomEntityTest.cpp` | 哞菇完整测试：类型系统、雷击转换、音效播放、粒子生成、剪毛返回蘑菇、碗交互、繁殖类型遗传与变异（22个测试用例） |
-| `tests/entity/EatGrassGoalTest.cpp` | 验证羊颜色混合和吃草行为 |
-| `tests/entity/PigEntityTest.cpp` | 猪实体测试：IEquipable 接口（鞍存储）、IRideable 接口（骑乘同步）|
+**上游依赖（本目录使用）：**
+- `entity/core/AgeableEntity` - 年龄系统基类
+- `entity/ai/goal/goals/` - AI 目标：BreedGoal、FollowParentGoal、TemptGoal、PanicGoal、SwimGoal
+- `entity/interfaces/IShearable` - 剪毛接口（SheepEntity、MooshroomEntity）
+- `entity/interfaces/IRideable` - 骑乘接口（PigEntity）
+- `entity/interfaces/IEquipable` - 装备接口（PigEntity）
+- `entity/core/BoostHelper` - 猪加速辅助
+- `util/color/DyeColor` - 羊毛颜色枚举
+- `item/Items` - 物品检查（小麦、胡萝卜等）
+
+**下游依赖（使用本目录）：**
+- `entity/core/VanillaEntities.hpp` - 注册所有实体类型
+- `item/items/special/BucketItem` - 挤奶交互（牛）
+- `item/crafting/special/ArmorDyeRecipe` - 羊毛染色
+- `entity/ai/goal/goals/BreedGoal` - 繁殖目标
+- `entity/ai/goal/goals/FollowParentGoal` - 幼体跟随父母
+- `client/renderer/.../SheepWoolLayer` - 羊毛渲染层
+
+## 容易踩的坑
+
+1. **猪的鞍存储**：猪不存储实际 ItemStack，只存储布尔值。`getEquipment(0)` 有鞍时返回 `ItemStack(Items::SADDLE, 1)`，`setEquipment(0, saddle)` 只设置布尔状态。
+
+2. **羊的颜色混合**：繁殖时幼羊颜色由父母颜色按配方混合，无配方时随机选择父母颜色。配方如：白+红=粉红、蓝+红=紫等。
+
+3. **羊的剪毛冷却**：`SheepEntity` 有 `m_shearCooldown` 字段，剪毛后需等待才能再次剪毛。
+
+4. **哞菇剪毛后转换**：剪毛会生成 5 个蘑菇并转换为普通牛，继承位置、朝向、生命值、自定义名称等状态。
+
+5. **哞菇繁殖变异**：双亲类型相同时有 1/1024 概率变异为另一种类型（红↔棕）。
+
+6. **鸡骑士标记**：`m_chickenJockey = true` 时不下蛋。
+
+7. **兔子类型值**：`RabbitType::Killer = 99`，不是按顺序排列的枚举值。
+
+8. **AnimalEntity::registerGoals() 是空的**：子类必须自己注册完整的 AI 目标列表，不能依赖基类注册。

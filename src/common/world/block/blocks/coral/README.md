@@ -1,91 +1,80 @@
 # 珊瑚方块模块 (Coral Blocks)
 
-珊瑚方块模块提供水下珊瑚类方块的实现。
+水下珊瑚类方块的实现，包括珊瑚、珊瑚扇、墙珊瑚扇和珊瑚块。
 
 ## 目录结构
 
 ```
 coral/
 ├── README.md           # 本文档
-├── CoralBlock.hpp/cpp  # 珊瑚方块（水下固体方块）
+├── CoralBlock.hpp/cpp  # 珊瑚方块和珊瑚扇类定义（CoralBlock、CoralFanBlock、CoralWallFanBlock、CoralBlockBlock）
 ```
 
-## 方块类型
+## 内部模块关系
 
-| 类名 | 说明 | 状态属性 |
-|------|------|----------|
-| `CoralBlock` | 珊瑚块（水下，离开水变死珊瑚） | WATERLOGGED |
-| `CoralFanBlock` | 珊瑚扇（地面放置） | WATERLOGGED, HORIZONTAL_FACING |
-| `CoralWallFanBlock` | 墙珊瑚扇（墙面放置） | WATERLOGGED, FACING |
-| `CoralBlockBlock` | 珊瑚块（固体，不死亡） | 无 |
-
-## VanillaBlocks 注册
-
-以下珊瑚相关方块已接入 `VanillaBlocks::registerNaturalBlocks()`：
-
-- `minecraft:tube_coral_block` ~ `minecraft:horn_coral_block`
-- `minecraft:tube_coral_fan` ~ `minecraft:horn_coral_fan`
-- `minecraft:tube_coral_wall_fan` ~ `minecraft:horn_coral_wall_fan`
-
-## 珊瑚颜色
-
-```cpp
-enum class CoralColor : u8 {
-    Tube = 0,      // 管状珊瑚（蓝色）
-    Brain = 1,     // 脑珊瑚（粉色）
-    Bubble = 2,    // 气泡珊瑚（紫色）
-    Fire = 3,      // 火焰珊瑚（红色）
-    Horn = 4       // 角珊瑚（黄色）
-};
+```
+CoralColor (枚举)
+    ↓ 共享
+┌───────────────────────────────────────────────────────────┐
+│  CoralBlock          → 活珊瑚（含水，离水死亡）            │
+│  CoralFanBlock       → 珊瑚扇（地面放置，需附着面）        │
+│  CoralWallFanBlock   → 墙珊瑚扇（墙面放置）                │
+│  CoralBlockBlock     → 珊瑚块（固体，不会死亡）            │
+└───────────────────────────────────────────────────────────┘
+    ↓ 都实现（除CoralBlockBlock）
+IWaterLoggable 接口
 ```
 
-## 核心机制
+**类继承关系**：
+- `CoralBlock` → `Block`, `IWaterLoggable`
+- `CoralFanBlock` → `Block`, `IWaterLoggable`
+- `CoralWallFanBlock` → `Block`, `IWaterLoggable`
+- `CoralBlockBlock` → `Block`（无含水功能）
 
-### 珊瑚死亡
-1. 检查是否在水中（WATERLOGGED 或周围有水）
-2. 如果离开水，变成死珊瑚（灰色版本）
-3. 死珊瑚不能恢复
+**珊瑚死亡机制**：
+- `CoralBlock`、`CoralFanBlock`、`CoralWallFanBlock` 在 `updatePostPlacement()` 中检测周围是否有水
+- 无水时转换为对应的死珊瑚方块（通过 `m_deadBlock` ID 查找）
 
-### 放置规则
-1. 珊瑚扇需要附着在固体表面
-2. 墙珊瑚扇只能附着在水平墙面
-3. 珊瑚块可以独立放置
+## 上下游外部依赖关系
 
-## 使用方法
-
-```cpp
-// 创建蓝色珊瑚
-auto tubeCoral = std::make_unique<CoralBlock>(
-    CoralColor::Tube,
-    deadTubeCoralBlockId,  // 死珊瑚方块ID
-    BlockProperties(Materials::CORAL)
-        .hardness(0.0f)
-        .noCollision()
-);
-
-// 创建珊瑚扇
-auto tubeCoralFan = std::make_unique<CoralFanBlock>(
-    CoralColor::Tube,
-    deadTubeCoralFanBlockId,
-    BlockProperties(Materials::CORAL)
-        .hardness(0.0f)
-        .noCollision()
-);
-
-// 创建珊瑚块
-auto tubeCoralBlock = std::make_unique<CoralBlockBlock>(
-    CoralColor::Tube,
-    BlockProperties(Materials::CORAL)
-        .hardness(1.5f)
-        .resistance(6.0f)
-);
-```
-
-## 依赖项
+### 上游依赖（本模块依赖）
 
 | 模块 | 用途 |
 |------|------|
 | `world/block/Block` | 方块基类 |
-| `world/block/Material` | 材质系统 |
-| `world/IWorld` | 世界接口 |
-| `util/property/Properties` | 方块属性 |
+| `world/block/IWaterLoggable` | 含水方块接口 |
+| `world/block/Material` | 材质系统（`Material::CORAL`） |
+| `world/block/WaterLoggableHelpers` | 含水工具函数（`shouldWaterlogAt`、`scheduleWaterTick`） |
+| `util/property/Properties` | 方块属性（`WATERLOGGED`、`HORIZONTAL_FACING`、`FACING`） |
+| `physics/collision/CollisionShape` | 碰撞形状 |
+| `util/Direction` | 方向枚举 |
+
+### 下游依赖（谁依赖本模块）
+
+| 模块 | 用途 |
+|------|------|
+| `world/block/registry/NaturalBlocks` | 注册所有珊瑚方块（5种颜色 × 4种类型 = 20种活珊瑚 + 20种死珊瑚） |
+| `world/block/BlockTags` | `WALL_CORALS` 标签（10种墙珊瑚扇）、`UNDERWATER_BONEMEALS` 标签（5种珊瑚扇） |
+| `item/BoneMealItem` | 水下骨粉可能使用珊瑚扇 |
+
+## 容易踩的坑
+
+### 1. 珊瑚死亡检测需要周围6个方向都有水
+
+`hasNearbyWater()` 检测上下左右前后6个方向的流体状态，只要有一个方向有水就不会死亡。不仅是自身 `WATERLOGGED` 状态。
+
+### 2. 死珊瑚是不同的方块类型
+
+活珊瑚和死珊瑚是不同的方块实例，通过构造函数传入的 `m_deadBlock` ID 关联。珊瑚死亡时返回死珊瑚的 `BlockState`，而不是修改自身状态。
+
+### 3. 珊瑚扇需要有效附着面
+
+`CoralFanBlock` 和 `CoralWallFanBlock` 在 `isValidPosition()` 中检查附着面是否有效。如果附着面失效（如被移除），方块会在 `updatePostPlacement()` 中变成空气。
+
+### 4. 墙珊瑚扇只能附着水平面
+
+`CoralWallFanBlock::isValidPosition()` 明确拒绝 `Direction::Up` 和 `Direction::Down`，只能附着在四个水平方向的墙面上。
+
+### 5. CoralBlockBlock 不实现含水功能
+
+`CoralBlockBlock` 是固体珊瑚块，不会因缺水死亡，也不需要 `WATERLOGGED` 属性。它只有颜色属性，用于渲染。

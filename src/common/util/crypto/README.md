@@ -6,122 +6,60 @@
 
 ```
 crypto/
-├── Sha256.hpp       # SHA-256 哈希算法头文件
-├── Sha256.cpp       # SHA-256 哈希算法实现
-├── Md5.hpp          # MD5 哈希算法头文件
-├── Md5.cpp          # MD5 哈希算法实现
-└── README.md        # 本文档
+├── Sha256.hpp             # SHA-256 哈希算法（用于世界种子哈希）
+├── Sha256.cpp             # SHA-256 实现
+├── Md5.hpp                # MD5 哈希算法（用于离线UUID生成）
+├── Md5.cpp                # MD5 实现
+└── README.md              # 本文档
 ```
 
-## 模块详解
+## 内部模块关系
 
-### Sha256 - SHA-256 哈希算法
+```
+┌─────────────────────────────────────────────────────────┐
+│                     crypto 模块                          │
+├─────────────────────────────────────────────────────────┤
+│  Sha256（FIPS 180-4 标准）    Md5（RFC 1321 标准）       │
+│  - 世界种子 hashedSeed        - 离线模式 UUID 生成       │
+│  - 通用哈希计算               - 通用哈希计算             │
+└─────────────────────────────────────────────────────────┘
+```
 
-符合 FIPS 180-4 标准的 SHA-256 哈希计算器，主要用于 Minecraft 协议中的种子哈希计算。
+两个模块相互独立，无内部依赖。
 
-#### 主要功能
+## 上下游外部依赖关系
 
-| 方法 | 说明 |
+### 上游依赖（本模块依赖的）
+
+| 依赖 | 用途 |
 |------|------|
-| `hash(std::span<const u8>)` | 计算字节数组的 SHA-256 哈希 |
-| `hash(std::string_view)` | 计算字符串的 SHA-256 哈希 |
-| `hashUint64(u64)` | 计算 64 位整数的 SHA-256 哈希 |
-| `hashWorldSeed(u64)` | 计算世界种子的 hashedSeed |
-| `toHexString(const Digest&)` | 将哈希结果转换为十六进制字符串 |
-| `bytesToU64LE(std::span<const u8, 8>)` | 小端序字节转 u64 |
-| `bytesToU64BE(std::span<const u8, 8>)` | 大端序字节转 u64 |
+| `common/core/Types.hpp` | 基础类型定义（u8, u32, u64 等） |
+| C++ 标准库 | `<array>`, `<span>`, `<string>`, `<vector>` |
 
-### Md5 - MD5 哈希算法
+### 下游依赖（依赖本模块的）
 
-符合 RFC 1321 标准的 MD5 哈希计算器，主要用于 Minecraft 离线模式 UUID 生成。
+目前暂无其他模块直接使用此加密模块。预期使用场景：
+- **网络协议层**：计算 `hashedSeed` 用于维度切换包
+- **玩家系统**：生成离线模式 UUID
 
-**注意：MD5 不应用于安全敏感的场景，仅用于 UUID 生成等兼容性需求。**
+## 容易踩的坑
 
-#### 主要功能
+### 1. MD5 安全性问题
 
-| 方法 | 说明 |
-|------|------|
-| `hash(std::span<const u8>)` | 计算字节数组的 MD5 哈希 |
-| `hash(std::string_view)` | 计算字符串的 MD5 哈希 |
-| `toHexString(const Digest&)` | 将哈希结果转换为十六进制字符串 |
+MD5 已被证明不安全，**仅用于兼容性需求**（如 Minecraft 离线 UUID 生成），切勿用于密码存储或安全验证。
 
-#### Minecraft 离线 UUID 生成
+### 2. hashWorldSeed 字节序
 
-```cpp
-#include "common/util/crypto/Md5.hpp"
-#include "common/util/UuidUtils.hpp"
+`Sha256::hashWorldSeed` 的实现遵循 Guava 的 `Hashing.sha256().hashLong(seed).asLong()`：
+- 输入：种子以**大端序**转换为 8 字节
+- 输出：哈希前 8 字节以**小端序**解释为 u64
 
-// 生成 Minecraft 离线模式 UUID
-std::string input = "OfflinePlayer:Steve";
-Md5::Digest md5 = Md5::hash(input);
-Uuid uuid = uuidFromMd5(md5);  // 设置版本和变体
-```
+输入输出字节序不同，这是 Minecraft 协议的标准行为。
 
-#### 使用示例
+### 3. 与 Java 版一致性
 
-```cpp
-#include "common/util/crypto/Sha256.hpp"
+`hashWorldSeed` 结果必须与 Java 版 `BiomeManager.func_235200_a_` 完全一致，修改此函数需同步验证跨版本兼容性。
 
-using namespace mc::util::crypto;
+### 4. 十六进制输出格式
 
-// 计算世界种子的 hashedSeed（MC 1.16.5 协议）
-u64 worldSeed = 12345678901234ULL;
-u64 hashedSeed = Sha256::hashWorldSeed(worldSeed);
-
-// 计算字符串的 SHA-256 哈希
-Sha256::Digest hash = Sha256::hash("Hello, World!");
-std::string hexString = Sha256::toHexString(hash);
-// 输出: "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f"
-
-// 计算字节数组的哈希
-std::vector<u8> data = {0x01, 0x02, 0x03, 0x04};
-Sha256::Digest dataHash = Sha256::hash(std::span<const u8>(data.data(), data.size()));
-```
-
-#### Minecraft 协议中的使用
-
-在 Minecraft 1.16.5+ 协议中，`hashedSeed` 是世界种子的 SHA-256 哈希前 8 字节：
-
-```cpp
-// 服务端：发送维度切换包时计算 hashedSeed
-void ServerDimensionManager::sendDimensionChangePacket(PlayerId playerId, DimensionId newDim, const Vector3d& pos) {
-    network::RespawnPacket packet;
-    packet.setHashedSeed(Sha256::hashWorldSeed(m_seed));
-    // ...
-}
-
-// 客户端：接收 hashedSeed 用于验证世界
-void onRespawn(u64 hashedSeed) {
-    if (hashedSeed != Sha256::hashWorldSeed(expectedSeed)) {
-        // 世界种子不匹配
-    }
-}
-```
-
-#### 算法细节
-
-1. **hashWorldSeed** 实现遵循 Guava 的 `Hashing.sha256().hashLong(seed).asLong()`:
-   - 将 `u64` 种子以大端序转换为 8 字节
-   - 计算 SHA-256 哈希得到 32 字节
-   - 取前 8 字节以小端序解释为 `u64` 返回
-
-2. **SHA-256 核心算法**:
-   - 消息填充：添加 1 bit、0 bits 和 64 位长度
-   - 消息调度：64 个 32 位字的扩展
-   - 压缩函数：64 轮处理
-
-## 依赖项
-
-无外部依赖，纯 C++17 实现。
-
-## 测试用例
-
-| 测试文件 | 覆盖内容 |
-|---------|---------|
-| `tests/common/util/crypto/Sha256Test.cpp` | 标准测试向量、边界情况、种子哈希验证 |
-
-## 参考资料
-
-- [FIPS 180-4](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf) - SHA-256 标准规范
-- [Minecraft Wiki - Protocol](https://wiki.vg/Protocol) - Minecraft 协议文档
-- [Guava Hashing](https://github.com/google/guava/blob/master/guava/src/com/google/common/hash/Hashing.java) - 参考实现
+`toHexString` 输出小写十六进制字符串，如需大写需自行转换。

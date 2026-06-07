@@ -2,68 +2,92 @@
 
 Java 版 Minecraft 存档读取器，支持 Java 1.16.5+ 的 Anvil 区域文件格式。
 
-## 文件说明
+## 目录结构
 
-- **RegionFile** (.hpp/.cpp) - `.mca` 区域文件读取器，负责偏移表解析、区块定位、数据解压
-- **JavaWorldReader** (.hpp/.cpp) - world 级读取器，负责 region 目录定位、region 缓存、列数据入口
-- **JavaColumnReader** (.hpp/.cpp) - column 级读取器，负责 `Status` 过滤、`xPos/zPos` 校验、biome / heightmap / entities / block entities 路径分派
-- **JavaChunkReader** (.hpp/.cpp) - section 级读取器，只负责方块 palette、方块状态、光照，以及 1.18 biome palette 的局部解包辅助
-- **JavaBlockStateMapper** (.hpp/.cpp) - 方块状态映射器，将 Java 版方块状态字符串映射到内部 `stateId`
-- **JavaBiomeMapper** (.hpp/.cpp) - 生物群系映射器，将 Java 版生物群系名称/ID 映射到内部 `BiomeId`
-- **JavaLevelDatReader** (.hpp/.cpp) - `level.dat` 读取器，解析 Java 版世界元数据（gzip + 大端序 NBT）
-- `JavaLevelDatReader` 现在还负责按 `Chunker` 语义从 `Data.Player` 读取本地玩家，并供统一门面 `loadPlayer("~local_player")` 复用
-
-## 分层关系
-
-当前 Java 读取链已按 `Chunker` 的 world / column / chunk 三层职责拆开：
-
-```text
-JavaAnvilBackend
-  -> JavaWorldReader
-      -> RegionFile
-      -> JavaColumnReader
-          -> JavaChunkReader
+```
+java/
+├── RegionFile.hpp/.cpp              # .mca 区域文件读取，偏移表解析、区块定位、数据解压
+├── JavaWorldReader.hpp/.cpp         # world 级读取器，region 目录定位、region 缓存、1.17+ entities 合并
+├── JavaColumnReader.hpp/.cpp        # column 级读取器，Status 过滤、xPos/zPos 校验、biome/heightmap/entities 分派
+├── JavaChunkReader.hpp/.cpp         # section 级读取器，方块 palette、方块状态、光照、1.18 biome palette 解包
+├── JavaBlockStateMapper.hpp/.cpp    # 方块状态映射器，Java 版方块状态字符串→内部 stateId
+├── JavaBiomeMapper.hpp/.cpp         # 生物群系映射器，Java 版生物群系名称/ID→内部 BiomeId
+└── JavaLevelDatReader.hpp/.cpp      # level.dat 读取器，gzip+大端序 NBT、本地玩家解析
 ```
 
-- `JavaWorldReader` 不再解析 chunk NBT 内容，只负责“到哪里找列数据”
-- `JavaColumnReader` 负责列级字段与版本分支，包括旧版 `Biomes` 数组和 1.18 `sections[].biomes`
-- `JavaChunkReader` 不再负责 root / Level / sections 遍历，只负责“单个 section 如何解码”
+## 内部模块关系
 
-## 当前阶段边界
+```
+JavaWorldReader
+    ├── RegionFile          （.mca 文件读取）
+    └── JavaColumnReader    （列级 NBT 解析）
+            └── JavaChunkReader    （section 解码）
+                    ├── JavaBlockStateMapper  （方块状态映射）
+                    └── JavaBiomeMapper       （生物群系映射）
+```
 
-- 已完成 world / column / chunk 分层，以及 1.17+ `entities/` world 级合并
-- 已补 Java biome 主路径，并把 heightmap / block entity 恢复接到现有 `ChunkData` / `BlockEntityRegistry`
-- `Entities` 现在也会复用统一 `EntityDeserializer` 反序列化为运行时实体实例，但当前阶段先无副作用地挂在 `ChunkData` 上，尚未在 reader/backend 层直接注入 `EntityManager`
-- `level.dat` 的本地玩家路径也已补齐：Java 外来存档通过 `loadPlayer("~local_player")` 读取 `Data.Player`
-- 因此这里的边界是：Java 实体 NBT 已不再停留在原始字节层，但“何时进入世界运行时”仍属于服务器集成职责
+调用链：`JavaWorldReader` 打开 region 文件，读取原始 NBT 字节流 → `JavaColumnReader` 解析列级字段并分发 → `JavaChunkReader` 解码单个 section。
 
-## 1.17+ entities 区域合并
+## 上下游依赖关系
 
-当前已补上 `P1-2` 的 world 级合并入口：
+### 上游依赖（本目录依赖的外部模块）
 
-- `JavaWorldReader` 在 `SaveFormatInfo.dataVersion >= 2724` 时，同时扫描 `region/` 与 `entities/`
-- 如果主 region 和 entities region 同时存在，会把 entities 文件中的 `Entities` 列表合并回主列 NBT
-- 如果只存在 entities region，会按 `Position` 构造最小列 NBT，并把 `Entities` 挂回列根
+- `common/core/Result.hpp` - 错误处理
+- `common/core/Types.hpp` - 基础类型（ChunkCoord, DimensionId 等）
+- `common/util/nbt/Nbt.hpp` - NBT 解析（大端序 Java 格式）
+- `common/util/NibbleArray.hpp` - 光照数据（4 位紧凑存储）
+- `common/world/chunk/ChunkData.hpp` - 区块数据结构
+- `common/world/biome/Biome.hpp` - 生物群系定义
+- `common/world/blockentity/BlockEntityRegistry.hpp` - 方块实体注册表
+- `common/entity/serialization/EntityDeserializer.hpp` - 实体反序列化
+- `common/world/storage/core/SaveFormat.hpp` - 存档格式信息
 
-这和 `Chunker` 的分层保持一致：`entities/` 合并职责属于 world 层，而不是 `JavaColumnReader` / `JavaChunkReader`
+### 下游依赖（谁使用了本目录）
 
-## 关键技术细节
+- `SingleLevelStorageManager` - 通过 `JavaAnvilBackend` 间接调用本目录的读取器
+- 外来存档读取流程：`SaveFormatDetector` 检测格式 → `SingleLevelStorageManager::open()` 创建 backend → backend 调用本目录读取器
+
+## 容易踩的坑
 
 ### 区域文件格式 (.mca)
+
 - 8192 字节头部：1024 条偏移记录 + 1024 条时间戳记录
-- 每条偏移记录 4 字节：3 字节扇区偏移 + 1 字节扇区数
+- 偏移记录 4 字节：3 字节扇区偏移（大端序）+ 1 字节扇区数
 - 区块数据格式：4 字节长度 + 1 字节压缩类型 + 压缩数据
-- 压缩类型：1=GZip, 2=ZLib, 3=Uncompressed
+- 压缩类型：1=GZip, 2=ZLib, 3=Uncompressed，**ZLib 最常见**
 
 ### Java 位压缩格式
-- 使用 `long[]` 数组（64 位）存储位压缩索引
-- `bitsPerEntry = max(4, ceil(log2(palette.size())))`
-- 每个 long 存储 `64 / bitsPerEntry` 个索引
-- 解包：`index[i] = (data[i / valuesPerLong] >> ((i % valuesPerLong) * bitsPerEntry)) & mask`
 
-### Java 生物群系路径
-- 旧版路径支持 `ByteArray Biomes`
-- 1.15+ 支持 `Biomes[1024]`
-- 兼容 `Biomes[256]`
-- 1.18+ 主路径为 `sections[].biomes.palette + data`
-- 这些列级 biome 分支统一由 `JavaColumnReader` 选择，`JavaChunkReader` 仅保留 1.18 section biome palette 的解包辅助
+- 使用 `long[]` 数组（64 位有符号）存储位压缩索引
+- `bitsPerEntry = max(4, ceil(log2(palette.size())))`
+- 解包公式：`index[i] = (data[i / valuesPerLong] >> ((i % valuesPerLong) * bitsPerEntry)) & mask`
+- **注意**：Java 1.13+ 使用 padded 格式（每个 long 独立），旧版使用 compact 格式
+
+### Java 生物群系路径分支
+
+`JavaColumnReader` 需要处理多版本路径：
+- 旧版 `ByteArray Biomes`（256 字节，2D）
+- 1.15+ `Biomes[1024]`（int 数组，3D 采样）
+- 1.18+ `sections[].biomes.palette + data`（section 级 palette）
+
+### 1.17+ 实体分离
+
+- `DATA_VERSION_ENTITIES_SEPARATED = 2724`（21w43a）起实体数据独立存储于 `entities/` 目录
+- `JavaWorldReader` 负责在 world 层合并 `region/` 与 `entities/` 数据
+- 合并逻辑：同时存在时合并 Entities 列表；仅 entities region 时构造最小列 NBT
+
+### 区块坐标校验
+
+- `JavaColumnReader` 会校验 NBT 中的 `xPos/zPos` 与请求坐标是否一致
+- 不一致时仅警告不拒绝，因为某些工具导出的存档可能存在偏移
+
+### Status 过滤
+
+- 未完成的区块（Status 为 `empty`、`structure_starts` 等低级状态）会被跳过
+- 返回空 `optional` 表示该区块不应加载
+
+### 高度图格式
+
+- Java 版使用 9 位编码每个高度值（支持 -512 到 2047 范围）
+- 解包后需要加上 `MIN_BUILD_HEIGHT` 偏移
+- 高度图类型：`WORLD_SURFACE`、`OCEAN_FLOOR`、`MOTION_BLOCKING`、`MOTION_BLOCKING_NO_LEAVES`、`LIGHT_BLOCKING`

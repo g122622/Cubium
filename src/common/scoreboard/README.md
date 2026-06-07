@@ -4,262 +4,135 @@
 
 ```
 scoreboard/
-├── core/                           # 核心数据类型
-│   ├── Scoreboard.hpp/cpp          # 记分板管理器
-│   ├── ScoreObjective.hpp/cpp      # 目标类
-│   ├── Score.hpp/cpp               # 分数类
-│   ├── ScoreCriteria.hpp/cpp       # 判据基类和注册表
-│   ├── ScoreCriteriaRenderType.hpp/cpp  # 渲染类型枚举
-│   ├── Team.hpp                    # 队伍抽象类
-│   ├── ScorePlayerTeam.hpp/cpp     # 队伍实现类
-│   └── TeamEnums.hpp               # 队伍枚举类型
-├── criteria/                       # 判据实现
-│   ├── DummyCriteria.hpp/cpp       # 手动设置判据
-│   ├── TriggerCriteria.hpp/cpp     # 触发器判据
-│   ├── DeathCountCriteria.hpp/cpp  # 死亡计数判据
-│   ├── KillCountCriteria.hpp/cpp   # 击杀计数判据
-│   ├── ReadOnlyCriteria.hpp/cpp    # 只读判据（health、food 等）
-│   └── TeamKillCriteria.hpp/cpp    # 队伍击杀判据
-├── network/                        # 网络同步
-│   └── ScoreboardPackets.hpp/cpp   # 记分板网络数据包
-└── storage/                        # 持久化
-    ├── ScoreboardSaveData.hpp/cpp  # 数据序列化结构
-    └── ScoreboardDataManager.hpp/cpp  # 数据管理器
+├── core/                                # 核心数据类型
+│   ├── Scoreboard.hpp/cpp               # 记分板管理器（管理目标、分数、队伍）
+│   ├── ScoreObjective.hpp/cpp           # 目标类（判据+显示名称+渲染类型）
+│   ├── Score.hpp/cpp                    # 分数类（玩家名+分数值+锁定状态）
+│   ├── ScoreCriteria.hpp/cpp            # 判据基类和注册表（ScoreCriteriaRegistry 单例）
+│   ├── ScoreCriteriaRenderType.hpp/cpp  # 渲染类型枚举（Integer/Hearts）和显示槽位枚举
+│   ├── Team.hpp                         # 队伍抽象接口
+│   ├── ScorePlayerTeam.hpp/cpp          # 队伍实现类（成员管理、颜色、前后缀、可见性）
+│   └── TeamEnums.hpp                    # 队伍枚举（TeamVisibility、TeamCollisionRule）
+├── criteria/                            # 判据实现
+│   ├── DummyCriteria.hpp/cpp            # 手动设置判据（dummy）
+│   ├── TriggerCriteria.hpp/cpp          # 触发器判据（trigger，玩家可通过命令触发）
+│   ├── DeathCountCriteria.hpp/cpp       # 死亡计数判据（deathCount）
+│   ├── KillCountCriteria.hpp/cpp        # 击杀计数判据（playerKillCount/totalKillCount）
+│   ├── ReadOnlyCriteria.hpp/cpp         # 只读判据基类及实现（health/food/air/armor/xp/level）
+│   └── TeamKillCriteria.hpp/cpp         # 队伍击杀判据（teamkill.{color}/killedByTeam.{color}）
+├── network/                             # 网络同步
+│   └── ScoreboardPackets.hpp/cpp        # 记分板网络数据包（目标/分数/显示/队伍同步）
+└── storage/                             # 持久化
+    ├── ScoreboardSaveData.hpp/cpp       # 数据序列化结构（ObjectiveData/ScoreData/TeamData）
+    └── ScoreboardDataManager.hpp/cpp    # 数据管理器（缓存+脏标记，依赖 SingleLevelStorageManager）
 ```
 
-## 核心类
+## 内部模块关系
 
-### Scoreboard
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                            Scoreboard                                │
+│  （核心管理器：持有目标、分数、队伍、显示槽位）                        │
+│  ├── m_objectives: map<string, unique_ptr<ScoreObjective>>          │
+│  ├── m_playerScores: map<string, map<string, unique_ptr<Score>>>    │
+│  ├── m_teams: map<string, unique_ptr<ScorePlayerTeam>>              │
+│  └── m_displaySlots: array<ScoreObjective*, 19>                     │
+└─────────────────────────────────────────────────────────────────────┘
+         │                    │                    │
+         ▼                    ▼                    ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│ ScoreObjective  │  │     Score       │  │ ScorePlayerTeam │
+│ - name          │  │ - playerName    │  │ - name          │
+│ - criteria*     │  │ - score         │  │ - members       │
+│ - displayName   │  │ - locked        │  │ - color/prefix/ │
+│ - renderType    │  │ - objective*    │  │   suffix        │
+└─────────────────┘  └─────────────────┘  └─────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         ScoreCriteria                                │
+│  （判据基类，定义分数更新方式）                                        │
+│  ├── DummyCriteria        - 手动设置                                  │
+│  ├── TriggerCriteria      - 玩家可触发（需 enable）                    │
+│  ├── DeathCountCriteria   - 死亡时 +1                                 │
+│  ├── KillCountCriteria    - 击杀时 +1（玩家/全部）                      │
+│  ├── ReadOnlyCriteria     - 只读（health/food/air/armor/xp/level）    │
+│  └── TeamKillCriteria     - 队伍击杀（teamkill.{color}/killedByTeam）  │
+└─────────────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     ScoreCriteriaRegistry                            │
+│  （单例，管理所有判据类型的注册和查找）                                │
+│  - registerBuiltinCriteria() 注册所有内置判据                         │
+│  - getCriteria(name)        获取判据                                  │
+└─────────────────────────────────────────────────────────────────────┘
 
-记分板核心管理器，负责管理目标、分数和队伍。
-
-```cpp
-#include "scoreboard/core/Scoreboard.hpp"
-#include "scoreboard/core/ScoreCriteria.hpp"
-
-mc::scoreboard::Scoreboard scoreboard;
-
-// 创建目标
-auto* criteria = mc::scoreboard::ScoreCriteriaRegistry::instance().getCriteria("dummy");
-auto* objective = scoreboard.addObjective("kills", *criteria);
-
-// 设置分数
-auto* score = scoreboard.getOrCreateScore("Steve", *objective);
-score->setScorePoints(10);
-
-// 创建队伍
-auto* team = scoreboard.createTeam("red");
-team->addMember("Steve");
-team->setColor(mc::TextFormatting::Red);
-
-// 设置显示槽位
-scoreboard.setObjectiveInDisplaySlot(mc::scoreboard::DisplaySlot::Sidebar, objective);
+【数据流】
+ScoreCriteria.onPlayerDeath/onPlayerKill → Scoreboard.forAllObjectives → Score.setScorePoints
 ```
 
-### ScoreCriteriaRegistry
+## 上下游外部依赖关系
 
-判据注册表单例，管理所有判据类型。
+### 本模块依赖的外部模块
 
-```cpp
-#include "scoreboard/core/ScoreCriteria.hpp"
+| 依赖模块 | 依赖内容 | 使用位置 |
+|---------|---------|---------|
+| `common/core/Types.hpp` | i32、u8 等基础类型 | 全模块 |
+| `common/core/Result.hpp` | Result<T> 错误处理 | ScoreCriteria、ScoreboardSaveData、ScoreboardDataManager |
+| `common/util/text/ITextComponent.hpp` | 文本组件（显示名称、前缀后缀） | Team、ScoreObjective、ScorePlayerTeam |
+| `common/util/nbt/Nbt.hpp` | NBT 序列化 | ScoreboardSaveData |
+| `common/network/packet/PacketSerializer.hpp` | 网络序列化 | ScoreboardPackets |
+| `world/storage/SingleLevelStorageManager` | 世界存储门面 | ScoreboardDataManager |
 
-// 初始化时注册内置判据
-mc::scoreboard::ScoreCriteriaRegistry::instance().registerBuiltinCriteria();
+### 被哪些模块依赖
 
-// 获取判据
-auto* criteria = mc::scoreboard::ScoreCriteriaRegistry::instance().getCriteria("dummy");
+目前本模块是独立的记分板系统实现，预计被以下模块依赖（待集成）：
+- `server/world/ServerWorld` - 世界持有记分板实例
+- `server/player/ServerPlayer` - 玩家死亡/击杀事件触发判据更新
+- `server/command/ScoreboardCommand` - 记分板命令处理
+- `server/command/TriggerCommand` - 触发器命令处理
+- `client/gui/GuiManager` - 客户端显示记分板
 
-// 检查判据是否存在
-bool exists = mc::scoreboard::ScoreCriteriaRegistry::instance().hasCriteria("deathCount");
-```
+## 容易踩的坑
 
-## 内置判据
+### 目标/队伍名称限制
 
-| 判据名 | 类 | 只读 | 说明 |
-|--------|-----|------|------|
-| `dummy` | DummyCriteria | 否 | 手动设置分数 |
-| `trigger` | TriggerCriteria | 否 | 玩家可触发（需 enable） |
-| `deathCount` | DeathCountCriteria | 否 | 死亡时自动 +1 |
-| `playerKillCount` | PlayerKillCountCriteria | 否 | 击杀玩家时自动 +1 |
-| `totalKillCount` | TotalKillCountCriteria | 否 | 击杀任何实体时自动 +1 |
-| `health` | HealthCriteria | 是 | 显示生命值（心形） |
-| `food` | FoodCriteria | 是 | 显示饥饿值 |
-| `air` | AirCriteria | 是 | 显示氧气值 |
-| `armor` | ArmorCriteria | 是 | 显示护甲值 |
-| `xp` | XpCriteria | 是 | 显示经验值 |
-| `level` | LevelCriteria | 是 | 显示等级 |
-| `teamkill.{color}` | TeamKillCriteria | 否 | 击杀指定颜色队伍玩家 |
-| `killedByTeam.{color}` | TeamKillCriteria | 否 | 被指定颜色队伍玩家击杀 |
+- **目标名称**：最大 16 字符，仅允许字母、数字、下划线、连字符
+- **队伍名称**：最大 16 字符，仅允许字母、数字、下划线、连字符
+- **玩家名称**：最大 40 字符
+- **分数范围**：INT32_MIN ~ INT32_MAX（-2147483648 ~ 2147483647）
 
-## 触发器系统
+### Trigger 判据的锁定机制
 
-触发器（Trigger）是一种特殊的判据类型，允许普通玩家修改自己的分数。
+触发器判据的分数在玩家触发后**自动锁定**，需要管理员通过 `/scoreboard players enable` 再次启用才能继续修改。Score 类通过 `isLocked()`/`setLocked()` 管理此状态。
 
-### 工作流程
+### 只读判据不能通过命令修改
 
-1. **创建目标**：管理员使用 `/scoreboard objectives add <name> trigger` 创建 trigger 类型目标
-2. **启用触发器**：管理员使用 `/scoreboard players enable <player> <objective>` 为玩家启用触发器
-   - 这会创建一个初始分数（如果不存在）并解锁分数
-3. **玩家触发**：玩家使用 `/trigger <objective>` 命令修改自己的分数
-   - `/trigger <objective>` - 分数 +1
-   - `/trigger <objective> add <value>` - 增加指定值
-   - `/trigger <objective> set <value>` - 设置为指定值
-4. **自动锁定**：触发后分数自动锁定，需要管理员再次启用才能继续修改
+`health`、`food`、`air`、`armor`、`xp`、`level` 这些判据的 `isReadOnly()` 返回 true，分数由游戏自动更新，命令设置分数会被忽略。
 
-### 分数锁定机制
+### 显示槽位映射
 
-`Score` 类提供了锁定机制：
-
-```cpp
-// 检查是否锁定
-bool locked = score->isLocked();
-
-// 锁定分数
-score->setLocked(true);
-
-// 解锁分数（用于启用触发器）
-score->setLocked(false);
-```
-
-### TriggerCriteria
-
-```cpp
-#include "scoreboard/criteria/TriggerCriteria.hpp"
-
-// 判据名称常量
-constexpr const char* NAME = "trigger";
-
-// 检查目标是否为 trigger 类型
-if (objective->getCriteria().getName() == mc::scoreboard::TriggerCriteria::NAME) {
-    // 可以用作触发器
-}
-```
-
-### 与命令系统的集成
-
-- `/trigger` 命令由 `TriggerCommand` 实现
-- `/scoreboard players enable` 由 `ScoreboardCommand::_enableTrigger()` 实现
-- 详细实现见 `src/server/command/commands/TriggerCommand.cpp`
-
-## 显示槽位
-
-```cpp
-enum class DisplaySlot : u8 {
-    List = 0,           // Tab 列表
-    Sidebar = 1,        // 侧边栏
-    BelowName = 2,      // 名称下方
-    SidebarTeamBlack = 3,   // 队伍侧边栏（16种颜色）
-    // ...
-    SidebarTeamWhite = 18
-};
-```
-
-## 队伍属性
+共 19 个显示槽位：
+- 0: list（Tab 列表）
+- 1: sidebar（侧边栏）
+- 2: belowName（名称下方）
+- 3-18: sidebar.team.{color}（16 种颜色的队伍专属侧边栏）
 
 ### 队伍名称格式化
 
-`ScorePlayerTeam::formatName()` 方法用于格式化队员名称，将前缀、名称、后缀组合并应用队伍颜色：
+`ScorePlayerTeam::formatName()` 方法返回的是**新创建的组件**，不是修改原组件。队伍颜色应用到根组件，子组件保留各自样式可覆盖继承的颜色。
 
-```cpp
-// 设置队伍颜色和前缀后缀
-team->setColor(TextFormatting::Gold);
-team->setPrefix(std::make_unique<StringTextComponent>("[ADMIN] "));
-team->setSuffix(std::make_unique<StringTextComponent>(" ★"));
+### ScoreCriteriaRegistry 初始化
 
-// 格式化名称
-StringTextComponent playerName("Steve");
-auto formatted = team->formatName(playerName);
+必须在服务器启动时调用 `registerBuiltinCriteria()` 注册所有内置判据，否则 `getCriteria()` 返回 nullptr。判据实例由注册表持有唯一所有权。
 
-// 结果: "[ADMIN] Steve ★"（金色）
-// 前缀、名称、后缀作为子组件追加到空根组件
-// 队伍颜色应用到根组件，子组件通过样式继承
-```
+### ScoreboardDataManager 键前缀
 
-**实现要点**：
-- 创建空 `StringTextComponent` 作为根组件
-- 依次追加前缀、名称、后缀的深拷贝
-- 队伍颜色应用到根组件（`Reset` 颜色不应用）
-- 子组件保留各自样式，可覆盖继承的颜色
+持久化键格式：
+- `"obj:{name}"` - 目标
+- `"score:{objective}:{player}"` - 分数
+- `"team:{name}"` - 队伍
+- `"displayslots"` - 显示槽位
 
-### 可见性
-
-- `Always` - 总是显示
-- `Never` - 从不显示
-- `HideForOtherTeams` - 对其他队伍隐藏
-- `HideForOwnTeam` - 对自己队伍隐藏
-
-### 碰撞规则
-
-- `Always` - 总是碰撞
-- `Never` - 从不碰撞
-- `PushOtherTeams` - 推动其他队伍
-- `PushOwnTeam` - 推动自己队伍
-
-## 集成指南
-
-### 1. 初始化
-
-在服务器启动时注册内置判据：
-
-```cpp
-#include "scoreboard/core/ScoreCriteria.hpp"
-#include "scoreboard/criteria/DummyCriteria.hpp"
-// ... 其他判据头文件
-
-void initScoreboard() {
-    auto& registry = mc::scoreboard::ScoreCriteriaRegistry::instance();
-    registry.registerCriteria(std::make_unique<mc::scoreboard::DummyCriteria>());
-    registry.registerCriteria(std::make_unique<mc::scoreboard::TriggerCriteria>());
-    // ... 注册其他判据
-}
-```
-
-### 2. 事件集成
-
-在玩家死亡、击杀实体等事件中更新分数：
-
-```cpp
-void onPlayerDeath(mc::ServerPlayer& player) {
-    auto* scoreboard = player.getWorld().getScoreboard();
-    if (!scoreboard) return;
-
-    auto& registry = mc::scoreboard::ScoreCriteriaRegistry::instance();
-    auto* deathCount = registry.getCriteria("deathCount");
-    if (deathCount) {
-        deathCount->onPlayerDeath(player.getName(), *scoreboard);
-    }
-}
-```
-
-### 3. 只读判据更新
-
-在玩家 tick 中更新只读判据分数：
-
-```cpp
-void onPlayerTick(mc::ServerPlayer& player) {
-    auto* scoreboard = player.getWorld().getScoreboard();
-    if (!scoreboard) return;
-
-    // 更新生命值
-    updateReadOnlyScore(*scoreboard, "health", player.getName(), 
-                        static_cast<i32>(player.getHealth()));
-
-    // 更新饥饿值
-    updateReadOnlyScore(*scoreboard, "food", player.getName(),
-                        player.getFoodLevel());
-
-    // ... 其他只读判据
-}
-```
-
-## 测试
-
-单元测试位于 `tests/server/scoreboard/`：
-
-- `ScoreboardTest.cpp` - 核心逻辑测试
-- `ScoreCriteriaTest.cpp` - 判据测试
-- `TeamTest.cpp` - 队伍测试
-
-## 参考
-
-- Minecraft 1.16.5: `net.minecraft.scoreboard.*`
+不要直接拼接字符串，使用 `makeObjectiveKey()`/`makeScoreKey()`/`makeTeamKey()` 方法。

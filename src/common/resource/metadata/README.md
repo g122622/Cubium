@@ -6,66 +6,28 @@
 
 ```text
 src/common/resource/metadata/
-└── AnimationMetadata.hpp/cpp   # 动画纹理元数据
+└── AnimationMetadata.hpp/cpp   # 动画纹理元数据（.png.mcmeta解析）
 ```
 
-## 文件介绍
+## 内部模块关系
 
-### AnimationMetadata
+模块仅包含 `AnimationMetadata` 一个组件，负责从 JSON 解析动画配置（帧时间、帧尺寸、帧序列、插值设置）。
 
-解析`.png.mcmeta`文件中的动画配置。
+## 上下游依赖关系
 
-**mcmeta文件格式示例**：
-```json
-{
-  "animation": {
-    "frametime": 5,
-    "width": 16,
-    "height": 16,
-    "interpolate": true,
-    "frames": [
-      0,
-      {"index": 1, "time": 10},
-      2,
-      3
-    ]
-  }
-}
-```
+**下游依赖（谁使用了这个模块）**：
+- `AnimatedSprite` - 动画精灵，消费 AnimationMetadata 进行帧播放
+- `TextureAtlasBuilder` - 纹理图集构建器，读取 mcmeta 数据
+- `ItemTextureAtlas` - 物品纹理图集
+- `ParticleTextureAtlas` - 粒子纹理图集
 
-**主要字段**：
-- `frametime`：每帧默认持续时间（游戏tick），默认1
-- `width`/`height`：单帧尺寸，-1自动检测
-- `interpolate`：是否启用帧间颜色插值，默认false
-- `frames`：自定义帧序列，可指定每帧的索引和时间
+**上游依赖（这个模块依赖了谁）**：
+- `nlohmann-json` - JSON 解析
+- `common/core/Types.hpp` - 基础类型定义（i32, u32, Size 等）
 
-## 使用方法
+## 容易踩的坑
 
-```cpp
-using namespace mc::resource::metadata;
-
-// 从mcmeta数据解析
-AnimationMetadata metadata = AnimationMetadata::fromMcmeta(mcmetaData, 16, 64);
-
-// 获取帧信息
-i32 frameCount = metadata.getFrameCount();
-i32 frameIndex = metadata.getFrameIndex(0);  // 获取第一帧索引
-i32 frameTime = metadata.getFrameTime(0);     // 获取第一帧时间
-
-// 检查是否为有效动画
-if (metadata.isValidAnimation()) {
-    // 启用动画精灵
-}
-```
-
-## 与MC 1.16.5的对应关系
-
-| 本模块类 | MC 1.16.5 对应类 |
-|---------|-----------------|
-| `AnimationFrame` | `net.minecraft.client.resources.data.AnimationFrame` |
-| `AnimationMetadata` | `net.minecraft.client.resources.data.AnimationMetadataSection` |
-
-## 依赖项
-
-- `nlohmann-json`：JSON解析
-- `common/core/Types.hpp`：基础类型定义
+- `width`/`height` 为 -1 表示自动检测，需要在调用 `fromMcmeta()` 时传入图像尺寸才能正确计算
+- `getFrameCount()` 返回自定义帧序列长度，若无自定义帧则返回 0，实际帧数需从图像高度计算
+- `getFrameIndex()` 和 `getFrameTime()` 的 position 参数会自动取模，无需调用方处理循环
+- JSON 解析失败时返回空 AnimationMetadata，`isValidAnimation()` 返回 false，需调用方检查

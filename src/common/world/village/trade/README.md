@@ -6,102 +6,53 @@
 
 ```
 trade/
-├── Merchant.hpp              # 商人接口
-├── MerchantOffer.hpp/cpp     # 单个交易优惠
-├── MerchantOffers.hpp/cpp    # 交易列表（在Merchant.hpp中定义）
-├── VillagerTrades.hpp/cpp    # 村民交易配方表（已完成）
-├── WanderingTraderTrades.hpp/cpp # 流浪商人交易表（已完成）
-└── README.md                 # 本文档
+├── Merchant.hpp               # 商人接口 IMerchant 及交易列表管理类 MerchantOffers
+├── MerchantOffer.hpp/cpp      # 单个交易项（买入/卖出物品、使用次数、价格调整、NBT序列化）
+├── MerchantOffers.cpp         # MerchantOffers 类实现（批量补货、价格更新）
+├── VillagerTrades.hpp/cpp     # 村民交易配方表（按职业和等级分组，静态工厂方法生成交易）
+├── WanderingTraderTrades.hpp/cpp # 流浪商人交易表（普通/稀有交易池，随机选取）
+└── README.md                  # 本文档
 ```
 
-## 核心类
+## 内部模块关系
 
-### MerchantOffer
+```
+IMerchant（商人接口）
+    └── 持有 MerchantOffers（交易列表管理）
+           └── 持有多个 MerchantOffer（单个交易项）
 
-单个交易项：
-
-```cpp
-// 创建交易：1个绿宝石 → 1个面包
-MerchantOffer offer(
-    ItemStack(Items::EMERALD, 1),
-    ItemStack(Items::BREAD, 1),
-    12,   // 最大使用次数
-    2,    // 经验
-    1.0f  // 价格乘数
-);
-
-// 检查是否可交易
-if (offer.canAccept(playerItem)) {
-    offer.apply(player, villager);
-}
-
-// 补货
-offer.restock();
+VillagerTrades / WanderingTraderTrades
+    └── 静态工厂方法，生成 MerchantOffers 实例
 ```
 
-### MerchantOffers
+`MerchantOffer` 是核心数据结构，封装单笔交易；`MerchantOffers` 管理交易列表；`VillagerTrades` 和 `WanderingTraderTrades` 提供各职业/商人的交易配方工厂。
 
-交易列表：
+## 上下游外部依赖关系
 
-```cpp
-MerchantOffers offers;
-offers.addOffer(std::make_unique<MerchantOffer>(...));
+**上游依赖（本目录依赖）：**
+- `common/core/Types.hpp` - 基础类型（i32、u64、f32 等）
+- `common/item/core/ItemStack.hpp` - 物品堆
+- `common/util/nbt/Nbt.hpp` - NBT 序列化
+- `common/entity/entities/villager/AbstractVillagerEntity.hpp` - 村民实体基类（VillagerTrades 依赖）
 
-// 获取交易
-MerchantOffer* offer = offers.getOffer(0);
+**下游依赖（被依赖）：**
+- `entity/entities/villager/VillagerEntity.cpp` - 村民交易
+- `entity/entities/wandering_trader/WanderingTraderEntity.cpp` - 流浪商人交易
+- `server/network/` - 交易数据包
 
-// 批量补货
-offers.restockAll();
+## 容易踩的坑
 
-// 基于声誉调整价格
-offers.updatePrices(0.8f);  // 20%折扣
-```
+### 价格调整公式
+最终价格 = 基础价格 + 特殊价格修正（来自流言/需求）。`getAdjustedBuyPrice()` 返回调整后的买入价格。
 
-## NBT 序列化
+### 每日补货限制
+每日最多补货 2 次。补货时机由村民 AI 控制，不是自动的。
 
-MerchantOffer 支持 NBT 序列化，格式参考 MC 1.16.5：
+### 需求系统
+需求会动态影响价格。`applyDemand()` 应用需求调整，需求值来自交易次数统计。
 
-| NBT 键 | 类型 | 说明 |
-|--------|------|------|
-| `buy` | Compound | 第一买入物品 |
-| `buyB` | Compound | 第二买入物品（可选） |
-| `sell` | Compound | 卖出物品 |
-| `uses` | Int | 已使用次数 |
-| `maxUses` | Int | 最大使用次数 |
-| `xp` | Int | 交易经验 |
-| `priceMultiplier` | Float | 价格乘数 |
-| `specialPrice` | Int | 特殊价格修正 |
-| `demand` | Int | 需求修正 |
-| `restocksToday` | Int | 今日补货次数 |
-| `lastRestock` | Long | 上次补货时间 |
+### NBT 字段
+MerchantOffer 的 NBT 字段包括：`buy`、`buyB`（可选第二买入）、`sell`、`uses`、`maxUses`、`xp`、`priceMultiplier`、`specialPrice`、`demand`、`restocksToday`、`lastRestock`。
 
-```cpp
-// 序列化
-nbt::tags::compound_tag tag;
-offer.serialize(tag);
-
-// 反序列化
-MerchantOffer offer = MerchantOffer::deserialize(tag);
-```
-
-## 交易价格计算
-
-最终价格 = 基础价格 + 特殊价格修正
-
-- `getAdjustedBuyPrice()` - 获取调整后的买入价格
-- `setSpecialPrice(price)` - 设置特殊价格修正（来自流言）
-- `applyDemand(demandBonus)` - 应用需求调整
-
-## 与MC Java对齐
-
-- 参考 MC 1.16.5 `MerchantOffer`, `MerchantOffers`
-- 每日补货限制：2次
-- 需求系统：动态价格调整
-- 经验系统：交易给村民增加经验
-
-## TODO
-
-- [x] 实现VillagerTrades（所有职业的交易配方）
-- [x] 实现WanderingTraderTrades
-- [ ] 集成到VillagerEntity
-- [ ] 实现交易UI
+### 交易工厂模式
+`VillagerTrades` 和 `WanderingTraderTrades` 使用工厂函数而非静态配方，以支持动态价格调整。工厂函数签名不同：村民交易需要 `demand` 参数，流浪商人不需要。

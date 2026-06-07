@@ -7,13 +7,13 @@
 ```
 redstone/
 ├── README.md              # 本文档
-├── RedstoneSystem.hpp     # 红石系统管理器
+├── RedstoneSystem.hpp     # 红石系统管理器（单例，协调信号更新与火把烧毁）
 ├── RedstoneSystem.cpp
-├── RedstonePower.hpp      # 信号强度计算
+├── RedstonePower.hpp      # 信号强度计算工具类（强/弱信号、充能检测）
 ├── RedstonePower.cpp
-├── RedstoneContext.hpp    # 递归防护上下文
+├── RedstoneContext.hpp    # 递归防护上下文（防止红石更新无限循环）
 ├── RedstoneContext.cpp
-├── RedstoneHelper.hpp     # 辅助函数
+├── RedstoneHelper.hpp     # 辅助函数（衰减计算、导体检测、连接判断）
 └── RedstoneHelper.cpp
 ```
 
@@ -44,74 +44,34 @@ flowchart LR
 | 强信号 | 红石火把、中继器输出端、比较器输出端 | 可充能实体方块 | 充能方块、激活机械 |
 | 弱信号 | 被充能的方块、红石线 | 仅传导 | 信号传输 |
 
-## 类设计
-
-### RedstoneSystem（红石系统管理器）
-
-单例模式，协调所有红石操作：
-
-```cpp
-auto& redstone = RedstoneSystem::instance();
-
-// 更新相邻方块
-redstone.updateNeighbors(world, pos, block);
-
-// 调度延迟更新
-redstone.scheduleUpdate(world, pos, block, 2, TickPriority::High);
-
-// 防递归保护
-if (!redstone.isUpdating(pos)) {
-    redstone.beginUpdate(pos);
-    // 执行红石计算...
-    redstone.endUpdate(pos);
-}
-```
-
-### RedstonePower（信号计算）
-
-静态工具类，计算信号强度：
-
-```cpp
-// 获取强信号
-i32 strongPower = RedstonePower::getStrongPower(world, pos, Direction::North);
-
-// 获取弱信号
-i32 weakPower = RedstonePower::getWeakPower(world, pos);
-
-// 检查是否被充能
-bool powered = RedstonePower::isPowered(world, pos);
-
-// 获取红石线输入信号
-i32 inputPower = RedstonePower::getWireInputPower(world, pos);
-
-// 获取比较器输入信号
-i32 comparatorInput = RedstonePower::getComparatorInput(world, pos, facing);
-```
-
-### RedstoneContext（递归防护）
-
-防止红石更新无限递归：
-
-```cpp
-RedstoneContext ctx;
-
-// 最大更新深度限制
-constexpr i32 MAX_DEPTH = 512;
-
-// 检查并开始更新
-if (!ctx.isUpdating(pos) && ctx.canPushDepth()) {
-    ctx.beginUpdate(pos);
-    ctx.pushDepth();
-    // 执行更新...
-    ctx.popDepth();
-    ctx.endUpdate(pos);
-}
-```
-
-## 与其他模块的关系
+## 内部模块关系
 
 ```mermaid
 graph TB
+    subgraph 红石系统
+        RS[RedstoneSystem<br/>系统管理器]
+        RP[RedstonePower<br/>信号计算]
+        RC[RedstoneContext<br/>递归防护]
+        RH[RedstoneHelper<br/>辅助函数]
+    end
+
+    RS --> RP
+    RS --> RC
+    RP --> RH
+```
+
+## 上下游外部依赖关系
+
+```mermaid
+graph TB
+    subgraph 上游依赖
+        IW[IWorld<br/>世界接口]
+        BL[Block/BlockState<br/>方块系统]
+        BP[BlockPos<br/>位置类型]
+        DIR[Direction<br/>方向枚举]
+        TP[TickPriority<br/>tick优先级]
+    end
+
     subgraph 红石系统
         RS[RedstoneSystem]
         RP[RedstonePower]
@@ -119,161 +79,40 @@ graph TB
         RH[RedstoneHelper]
     end
 
-    subgraph 方块系统
-        BL[Block]
-        BS[BlockState]
+    subgraph 下游被依赖
+        RW[红石组件方块<br/>RedstoneWire/Torch/Repeater/Comparator]
     end
 
-    subgraph 世界系统
-        IW[IWorld]
-        TM[TickManager]
-    end
-
-    subgraph 红石组件
-        RW[RedstoneWireBlock]
-        RT[RedstoneTorchBlock]
-        RR[RedstoneRepeaterBlock]
-        RC2[RedstoneComparatorBlock]
-    end
-
-    RS --> RP
-    RS --> RC
-    RS --> TM
-    RP --> BL
-    RP --> BS
-    RP --> IW
-    RW --> RS
-    RT --> RS
-    RR --> RS
-    RC2 --> RS
-```
-
-## 输入/输出
-
-### 输入
-
-| 来源 | 数据 | 说明 |
-|------|------|------|
-| IWorld | 方块状态、方块实体 | 读取世界数据 |
-| Block | 信号输出接口 | getWeakPower/getStrongPower |
-| TickManager | 计划tick | 延迟更新调度 |
-
-### 输出
-
-| 目标 | 数据 | 说明 |
-|------|------|------|
-| Block | neighborChanged回调 | 触发方块更新 |
-| TickManager | 延迟tick | 调度红石更新 |
-| BlockState | 方块状态变化 | 信号强度改变 |
-
-## 性能优化
-
-### 批量更新
-
-```cpp
-// 待实现：将多个更新合并处理
-RedstoneUpdateBatch batch;
-batch.addUpdate(pos1, delay1);
-batch.addUpdate(pos2, delay2);
-batch.execute(world);
-```
-
-### 信号缓存
-
-```cpp
-// 待实现：缓存计算结果
-RedstoneCache cache;
-i32 power = cache.getCachedPower(pos);
-if (power < 0) {
-    power = RedstonePower::getStrongPower(world, pos);
-    cache.cachePower(pos, power);
-}
-```
-
-### 更新抑制
-
-```cpp
-// 防止无限递归
-if (depth > MAX_DEPTH) {
-    return; // 停止更新
-}
+    IW --> RS
+    IW --> RP
+    IW --> RH
+    BL --> RS
+    BL --> RP
+    BL --> RH
+    BP --> RS
+    BP --> RC
+    BP --> RP
+    DIR --> RP
+    DIR --> RH
+    TP --> RS
+    RS --> RW
+    RP --> RW
 ```
 
 ## 容易踩的坑
 
-### 1. 无限递归
+### 无限递归
 
-**问题**：红石火把更新可能触发反馈循环。
+红石火把更新可能触发反馈循环。**解决方案**：使用 `RedstoneSystem::isUpdating()` 检查位置是否正在更新，配合 `beginUpdate/endUpdate` 防止递归。或者使用 `RedstoneContext` 的深度限制（MAX_DEPTH=512）。
 
-**解决方案**：使用 RedstoneContext 跟踪正在更新的位置。
+### 更新顺序
 
-```cpp
-// 错误：可能无限递归
-void updateNeighbors(World& world, BlockPos pos) {
-    for (auto dir : Directions::all()) {
-        neighborChanged(world, pos.offset(dir));
-    }
-}
+中继器面向另一个中继器时，更新顺序影响结果。**解决方案**：使用 `scheduleExtremelyHighPriorityUpdate` 确保正确的更新顺序。
 
-// 正确：使用递归保护
-void updateNeighbors(World& world, BlockPos pos) {
-    auto& ctx = RedstoneSystem::instance();
-    if (ctx.isUpdating(pos)) return;
-    ctx.beginUpdate(pos);
-    // 更新...
-    ctx.endUpdate(pos);
-}
-```
+### 强弱信号混淆
 
-### 2. 更新顺序
+`isPowered()` 检查是否被充能（包括间接充能），`getStrongPower()` 获取直接输出的强信号，`getWeakPower()` 获取通过方块传导的弱信号。三者在 MC 中的语义不同，使用时需区分。
 
-**问题**：中继器面向另一个中继器时，更新顺序影响结果。
+### 信号衰减
 
-**解决方案**：使用正确的 TickPriority。
-
-```cpp
-// 面向其他二极管时使用极优先级
-if (isFacingTowardsRepeater(world, pos, state)) {
-    scheduleUpdate(world, pos, block, delay, TickPriority::ExtremelyHigh);
-}
-```
-
-### 3. 强弱信号混淆
-
-**问题**：错误区分强信号和弱信号导致逻辑错误。
-
-**解决方案**：使用正确的方法。
-
-```cpp
-// 检查方块是否被充能（间接充能）
-bool powered = RedstonePower::isPowered(world, pos);
-
-// 获取强信号（直接输出）
-i32 strongPower = RedstonePower::getStrongPower(world, pos, side);
-
-// 获取弱信号（通过方块传导）
-i32 weakPower = RedstonePower::getWeakPower(world, pos, side);
-```
-
-### 4. 信号衰减计算
-
-**问题**：忘记红石线信号衰减。
-
-**解决方案**：使用 RedstoneHelper::attenuate。
-
-```cpp
-i32 newPower = RedstoneHelper::attenuate(sourcePower, distance);
-```
-
-## 测试用例
-
-测试文件位于：`tests/common/world/redstone/`
-
-- `RedstonePowerTest.cpp` - 信号计算测试
-- `RedstoneSystemTest.cpp` - 系统管理测试
-- `RedstoneContextTest.cpp` - 递归防护测试
-
-## 参考文档
-
-- [Minecraft Wiki - Redstone](https://minecraft.fandom.com/wiki/Redstone)
-- [MC 1.16.5 Source - RedstonePowerLogic](net/minecraft/world/World.java)
+红石线信号每传输一格衰减 1。使用 `RedstoneHelper::attenuate(strength, distance)` 计算衰减后强度。

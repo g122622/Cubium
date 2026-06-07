@@ -1,49 +1,62 @@
 # 载具渲染器 (Vehicle Renderers)
 
-## 概述
+本目录包含船和矿车等可乘坐实体的渲染器实现。
 
-载具渲染器负责渲染船、矿车等可乘坐实体。
+## 目录结构
 
-## 文件说明
+```
+vehicle/
+├── VehicleRenderers.hpp     # 船和矿车的模型与渲染器定义
+└── VehicleRenderers.cpp     # 船和矿车的模型与渲染器实现
+```
 
-| 文件 | 描述 |
+## 内部模块关系
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     VehicleRenderers                         │
+├─────────────────────────────────────────────────────────────┤
+│  BoatModel          │  MinecartModel                         │
+│  (船体模型部件)      │  (矿车六面模型)                         │
+│  BoatRenderer       │  MinecartRenderer                      │
+│  (船渲染+纹理选择)   │  (矿车渲染)                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 上下游外部依赖关系
+
+### 上游依赖（本模块依赖）
+
+| 模块 | 用途 |
 |------|------|
-| `VehicleRenderers.hpp` | 载具渲染器头文件 |
-| `VehicleRenderers.cpp` | 载具渲染器实现 |
+| `core/EntityRenderer.hpp` | 实体渲染器基类 |
+| `model/core/ModelRenderer.hpp` | 模型部件渲染器 |
+| `common/util/math/MathConstants.hpp` | 数学常量（PI、PI_DOUBLE） |
+| `common/resource/ResourceLocation.hpp` | 资源路径 |
+| `common/entity/BoatEntity` | 船实体类（前向声明） |
+| `common/entity/AbstractMinecartEntity` | 矿车实体基类（前向声明） |
 
-## 支持的载具
+### 下游依赖（依赖本模块）
 
-### 船 (Boat)
-- 橡木船 (Oak Boat)
-- 云杉木船 (Spruce Boat)
-- 白桦木船 (Birch Boat)
-- 丛林木船 (Jungle Boat)
-- 金合欢木船 (Acacia Boat)
-- 深色橡木船 (Dark Oak Boat)
+| 模块 | 用途 |
+|------|------|
+| `renderer/RendererRegistration.cpp` | 通过工厂注册船和矿车渲染器 |
+| `core/EntityRendererManager.cpp` | 通过工厂创建渲染器实例 |
 
-### 矿车 (Minecart)
-- 普通矿车
-- 运输矿车
-- 动力矿车
-- 漏斗矿车
-- TNT矿车
+## 容易踩的坑
 
-## 渲染特性
+### 1. 船的木材类型纹理
 
-### 船
-- 水面晃动动画
-- 受损抖动效果
-- 划桨动画
-- 不同木材类型的纹理
+船有 6 种木材类型（橡木、云杉、白桦、丛林、金合欢、深色橡木），每种对应不同的纹理。`BoatRenderer::getTexture()` 通过 `BoatType` 枚举索引静态纹理数组，确保枚举值与数组索引一致。
 
-### 矿车
-- 沿轨道方向对齐
-- 内容物渲染（箱子、TNT等）
-- 受损抖动效果
+### 2. ModelRenderer 的纹理尺寸
 
-## 参考
+`BoatModel` 使用 128×64 纹理，`MinecartModel` 使用 64×32 纹理。调用 `setTextureSize()` 设置正确的纹理尺寸，否则 UV 坐标会计算错误。
 
-- Minecraft 1.16.5 `net.minecraft.client.renderer.entity.BoatRenderer`
-- Minecraft 1.16.5 `net.minecraft.client.renderer.entity.MinecartRenderer`
-- Minecraft 1.16.5 `net.minecraft.client.renderer.entity.model.BoatModel`
-- Minecraft 1.16.5 `net.minecraft.client.renderer.entity.model.MinecartModel`
+### 3. 模型旋转角度单位
+
+`ModelRenderer::setRotateAngleX/Y/Z()` 接受弧度值。代码中使用 `PI_DOUBLE`（即 2π）来计算旋转角度，例如 `PI_DOUBLE / 2.0` 表示 90°，`PI_DOUBLE * 1.5` 表示 270°。
+
+### 4. 矿车内部底板偏移
+
+`MinecartModel::setInsideOffset()` 用于调整内部底板的 Y 偏移，当乘客乘坐时需要调整此值。矿车的 6 个面存储在 `m_sides[5]` 数组中，第 6 个元素（索引 5）是内部底板。

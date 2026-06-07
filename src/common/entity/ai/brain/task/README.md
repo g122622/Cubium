@@ -4,77 +4,23 @@
 
 ```
 task/
-├── Task.hpp                    # 任务基类
-├── tasks/                      # 具体任务实现
-│   ├── movement/               # 移动相关任务
-│   │   └── MovementTasks.hpp   # 移动、追逐、避险任务
-│   ├── action/                 # 行动相关任务
-│   │   └── ActionTasks.hpp     # 攻击、繁殖、进食任务
-│   └── interact/               # 互动相关任务
-│       └── InteractTasks.hpp   # 门、玩家、物品互动任务
-└── README.md                   # 本文档
+├── Task.hpp                    # 任务基类，定义核心接口
+├── README.md
+└── tasks/                      # 具体任务实现
+    ├── movement/
+    │   └── MovementTasks.hpp   # 移动、追逐、避险任务
+    ├── action/
+    │   └── ActionTasks.hpp     # 攻击、繁殖、进食任务
+    └── interact/
+        └── InteractTasks.hpp   # 门、玩家、物品互动任务
 ```
 
-## 文件介绍
-
-### Task.hpp
-
-任务基类，定义了 Brain 系统中任务的核心接口：
-
-- **TaskStatus**: 任务状态枚举 (STOPPED, RUNNING)
-- **Task<E>**: 模板基类，E 为实体类型
-  - `shouldExecute()`: 判断是否应该执行
-  - `shouldContinueExecuting()`: 判断是否继续执行
-  - `startExecuting()`: 开始执行回调
-  - `updateTask()`: 每帧更新
-  - `resetTask()`: 重置任务
-
-### MovementTasks.hpp
-
-移动相关任务：
-
-| 任务 | 说明 | 参考 |
-|------|------|------|
-| `MoveToTargetTask` | 移动到目标位置 | MC MoveToTargetTask |
-| `StrollTask` | 随机游走 | MC StrollTask |
-| `LookAtEntityTask` | 看向实体 | MC LookAtEntityTask |
-| `FindHiddenBlockTask` | 寻找隐蔽点 | MC FindHiddenBlockTask |
-| `ChaseTask` | 追逐目标 | MC ChaseTask |
-| `FleeTask` | 避险逃离 | MC FleeTask |
-
-### ActionTasks.hpp
-
-行动相关任务：
-
-| 任务 | 说明 | 参考 |
-|------|------|------|
-| `AttackTask` | 攻击目标 | MC AttackTask |
-| `BreedTask` | 繁殖行为 | MC BreedTask |
-| `EatTask` | 进食行为 | MC EatTask |
-| `PlayDeadTask` | 装死行为 | MC PlayDeadTask |
-| `JumpTask` | 跳跃行为 | MC JumpTask |
-| `KickTask` | 踢攻击 | MC KickTask |
-
-### InteractTasks.hpp
-
-互动相关任务：
-
-| 任务 | 说明 | 参考 |
-|------|------|------|
-| `VillagerInteractTask` | 村民互动 | MC VillagerInteractTask |
-| `InteractWithDoorTask` | 门互动 | MC InteractWithDoorTask |
-| `FollowOwnerTask` | 跟随主人 | MC FollowOwnerTask |
-| `ProtectOwnerTask` | 保护主人 | MC ProtectOwnerTask |
-| `PickupItemTask` | 拾取物品 | MC PickupItemTask |
-| `FollowParentTask` | 跟随父母 | MC FollowParentTask |
-| `TemptTask` | 诱惑行为 | MC TemptTask |
-
-## 模块关系
+## 内部模块关系
 
 ```
-Task (基类)
+Task<E> (基类)
     │
-    ├── memory::MemoryModuleType (读取/写入记忆)
+    ├── 依赖 memory::MemoryModuleType (读取/写入记忆)
     │
     ├── E (实体模板参数)
     │     ├── MobEntity
@@ -82,27 +28,36 @@ Task (基类)
     │     └── AgeableEntity
     │
     └── ServerWorld (世界访问)
+
+数据流：Sensor 更新 Memory → Schedule 选择 Activity → Task 根据 Memory 执行行为
 ```
 
-## 使用方法
+## 上下游外部依赖关系
 
-```cpp
-// 创建任务
-auto chaseTask = std::make_unique<ChaseTask<MobEntity>>(1.5f, 2.0f);
+**被依赖（下游）**：
+- 暂无直接使用者（Task 系统框架已就绪，待具体实体集成）
 
-// 任务由 Brain 系统自动调度
-// 当记忆模块满足条件时自动启动
-```
+**依赖（上游）**：
+- `brain/Brain.hpp` - Brain 主控制器
+- `brain/memory/` - 记忆模块系统
+- `entity/core/MobEntity.hpp` - 生物实体基类
+- `server/world/ServerWorld.hpp` - 服务端世界
 
-## 任务状态转换
+## 容易踩的坑
 
-```
-STOPPED ──start()──> RUNNING
-    ↑                    │
-    └─────stop()─────────┘
-```
+### 1. 记忆模块依赖
 
-## 与 Goal 系统的区别
+任务启动前必须确保所需记忆模块已设置。Task 基类通过 `m_requiredMemoryState` 检查记忆状态，若记忆不存在或状态不匹配，任务不会启动。
+
+### 2. 生命周期管理
+
+任务可能被中断，必须在 `resetTask()` 中清理状态。典型问题：导航路径未清理、攻击目标未清除等。
+
+### 3. 模板实例化
+
+每个实体类型需要单独实例化任务模板：`ChaseTask<MobEntity>`、`ChaseTask<VillagerEntity>` 等。
+
+### 4. 与 Goal 系统的区别
 
 | 特性 | Goal 系统 | Brain Task 系统 |
 |------|-----------|-----------------|
@@ -111,17 +66,6 @@ STOPPED ──start()──> RUNNING
 | 复杂度 | 简单行为 | 复杂行为链 |
 | 适用场景 | 基础生物 | 村民、铁傀儡等 |
 
-## 容易踩的坑
+### 5. 任务超时机制
 
-1. **记忆模块依赖**: 任务启动前必须确保所需记忆模块已设置
-2. **生命周期管理**: 任务可能被中断，需要在 `resetTask()` 中清理状态
-3. **模板实例化**: 每个实体类型需要单独实例化任务模板
-
-## 实现状态
-
-| 组件 | 状态 |
-|------|------|
-| Task 基类 | ✅ 完成 |
-| MovementTasks | ⚠️ 框架完成，TODO 需填充 |
-| ActionTasks | ⚠️ 框架完成，TODO 需填充 |
-| InteractTasks | ⚠️ 框架完成，TODO 需填充 |
+Task 基类内置持续时间机制 (`m_durationMin`, `m_durationMax`)，任务会在超时后自动停止。不要在 `shouldContinueExecuting()` 中忽略超时逻辑。

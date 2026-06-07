@@ -2,145 +2,53 @@
 
 本目录包含动物实体的渲染器实现。
 
-## 文件列表
+## 目录结构
 
-| 文件 | 描述 |
-|------|------|
-| `AnimalRenderers.hpp` | 猪、牛、羊、鸡渲染器 |
-| `LlamaRenderer.hpp/cpp` | 羊驼渲染器 |
-
-## 渲染器类
-
-### PigRenderer（猪渲染器）
-
-```cpp
-class PigRenderer : public LivingRenderer<LivingEntity, PigModel> {
-public:
-    PigRenderer() {
-        m_shadowSize = 0.7f;
-    }
-};
+```
+animal/
+├── AnimalRenderers.hpp/cpp      # 猪、牛、羊、哞菇、鸡、兔子、蝙蝠、鱿鱼渲染器
+├── CatRenderer.hpp/cpp          # 猫渲染器（11种皮肤）
+├── HorseRenderer.hpp/cpp        # 马渲染器（含驴、骡、骷髅马、僵尸马）
+├── LlamaRenderer.hpp/cpp        # 羊驼渲染器（4种颜色变体）
+├── OcelotRenderer.hpp/cpp       # 豹猫渲染器
+├── VillagerRenderer.hpp/cpp     # 村民渲染器（多层纹理：类型+职业+等级）
+├── WolfRenderer.hpp/cpp         # 狼渲染器
+└── README.md
 ```
 
-**特性**：
-- 阴影大小：0.7
-- 可添加鞍层（用于骑乘）
+## 内部模块关系
 
-### CowRenderer（牛渲染器）
+所有渲染器继承自 `core/` 下的基类：
 
-```cpp
-class CowRenderer : public LivingRenderer<LivingEntity, CowModel> {
-public:
-    CowRenderer() {
-        m_shadowSize = 0.7f;
-    }
-};
-```
+- `LivingRenderer<EntityT, ModelT>` — 生物渲染器基类，提供动画计算、层渲染器管理
+- `EntityRenderer` — 实体渲染器基类，提供渲染接口
 
-**特性**：
-- 阴影大小：0.7
-- 可添加蘑菇层（哞菇）
+继承关系：
+- PigRenderer、CowRenderer、SheepRenderer、MooshroomRenderer、ChickenRenderer、RabbitRenderer、BatRenderer、SquidRenderer → `LivingRenderer<LivingEntity, ModelT>`（定义在 AnimalRenderers.hpp）
+- VillagerRenderer → `LivingRenderer<VillagerEntity, VillagerModel>`
+- CatRenderer、HorseRenderer、LlamaRenderer、OcelotRenderer、WolfRenderer → `EntityRenderer`（自行管理模型和渲染）
 
-### SheepRenderer（羊渲染器）
+## 上下游外部依赖关系
 
-```cpp
-class SheepRenderer : public LivingRenderer<LivingEntity, SheepModel> {
-public:
-    SheepRenderer() {
-        m_shadowSize = 0.7f;
-    }
-    
-    void render(Entity& entity, f64 partialTicks) override;
-};
-```
+**上游依赖：**
+- `core/EntityRenderer.hpp` — 实体渲染器基类
+- `core/LivingRenderer.hpp` — 生物渲染器基类
+- `core/EntityRendererManager.hpp` — 渲染器注册管理
+- `model/animal/*` — 对应的动物模型
+- `layer/entity/VillagerLayer.hpp` — 村民层渲染器
 
-**特性**：
-- 阴影大小：0.7
-- 支持羊毛层渲染
-- 可被剪毛
+**下游使用：**
+- `core/EntityRendererManager.cpp` — 渲染器注册
+- `renderer/RendererRegistration.cpp` — 统一注册入口
 
-### ChickenRenderer（鸡渲染器）
+## 容易踩的坑
 
-```cpp
-class ChickenRenderer : public LivingRenderer<LivingEntity, ChickenModel> {
-public:
-    ChickenRenderer() {
-        m_shadowSize = 0.3f;
-    }
-};
-```
+1. **AnimalRenderers.hpp 中的渲染器是内联实现**：这些渲染器的 `getEntityTexture()` 直接在类定义中实现，不需要额外的 cpp 文件。注册函数已移至 `RendererRegistration.cpp` 统一管理。
 
-**特性**：
-- 阴影大小：0.3
-- 翅膀拍动动画
-- 喙和鸡冠渲染
+2. **VillagerRenderer 多层纹理**：村民外观由 4 层纹理叠加实现（基础层、类型层、职业层、等级徽章层），需要调用 `setTextureAtlas()` 设置纹理图集才能正确渲染层。
 
-### LlamaRenderer（羊驼渲染器）
+3. **CatRenderer/LlamaRenderer/HorseRenderer 需要幼体模型**：这些渲染器有 `m_model` 和 `m_modelBaby` 两个模型实例，渲染时需要根据实体年龄选择。
 
-```cpp
-class LlamaRenderer : public EntityRenderer {
-public:
-    LlamaRenderer();
-    
-    void render(Entity& entity, f64 partialTicks) override;
-    ResourceLocation getEntityTexture(LlamaEntity& entity);
-    
-private:
-    LlamaModel m_model;
-    LlamaModel m_modelBaby;
-};
+4. **HorseModel 变体**：同一模型支持马、驴、骡、骷髅马、僵尸马，通过纹理路径区分，需要在 `getEntityTexture()` 中根据实体类型返回正确的纹理。
 
-void registerLlamaRenderer(EntityRendererManager& manager);
-```
-
-**特性**：
-- 阴影大小：0.7
-- 支持 4 种颜色变体：Creamy、White、Brown、Gray
-- 支持成年体和幼体渲染
-- 支持箱子装饰显示（通过 LlamaModel::setHasChest）
-
-**纹理选择逻辑**：
-```cpp
-static const char* colorNames[] = {"creamy", "white", "brown", "gray"};
-i32 variant = static_cast<i32>(entity.getColor());
-std::string textureName = "textures/entity/llama/" + colorNames[variant] + ".png";
-```
-
-## 使用方法
-
-```cpp
-// 注册动物渲染器
-EntityRendererManager manager;
-manager.registerRenderer("minecraft:pig", []() {
-    return std::make_unique<PigRenderer>();
-});
-manager.registerRenderer("minecraft:cow", []() {
-    return std::make_unique<CowRenderer>();
-});
-manager.registerRenderer("minecraft:sheep", []() {
-    return std::make_unique<SheepRenderer>();
-});
-manager.registerRenderer("minecraft:chicken", []() {
-    return std::make_unique<ChickenRenderer>();
-});
-```
-
-## 命名空间
-
-```cpp
-namespace mc::client::renderer::entity::renderer::animal {
-    class PigRenderer;
-    class CowRenderer;
-    class SheepRenderer;
-    class ChickenRenderer;
-    class LlamaRenderer;
-}
-```
-
-## 参考
-
-- MC 1.16.5 PigRenderer
-- MC 1.16.5 CowRenderer
-- MC 1.16.5 SheepRenderer
-- MC 1.16.5 ChickenRenderer
-- MC 1.16.5 LlamaRenderer
+5. **阴影大小不同**：不同动物的阴影大小不同，需要在构造函数中设置 `m_shadowSize`。例如：鸡/兔子/蝙蝠为 0.3，猪/牛/羊/鱿鱼/马为 0.7。

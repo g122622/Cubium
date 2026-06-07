@@ -1,85 +1,36 @@
 # 天气粒子 (Weather Particles)
 
-## 概述
+天气和水体相关的粒子效果，包括溅射、钓鱼涟漪等。
 
-天气粒子用于雨、雪、溅射、钓鱼等天气和水体效果。
+## 目录结构
 
-## 文件
-
-| 文件 | 描述 |
-|------|------|
-| RainParticle.hpp/cpp | 雨滴粒子 - 雨天效果 |
-| SnowParticle.hpp/cpp | 雪花粒子 - 雪天效果 |
-| SplashParticle.hpp/cpp | 溅射粒子 - 雨滴落地效果 |
-| FishingParticle.hpp/cpp | 钓鱼粒子 - 水面涟漪效果 |
-
-## 特性
-
-### RainParticle（雨滴粒子）
-
-- **渲染类型**：PARTICLE_SHEET_TRANSLUCENT
-- **生命周期**：约 8 ticks
-- **行为**：
-  - 受重力影响快速下落
-  - 有终端速度限制
-  - 落地后有概率消失
-- **颜色**：淡蓝色半透明
-
-### SnowParticle（雪花粒子）
-
-- **渲染类型**：PARTICLE_SHEET_TRANSLUCENT
-- **生命周期**：约 200 ticks
-- **行为**：
-  - 受重力缓慢下落
-  - 水平摇摆效果
-  - 淡出消失
-- **颜色**：白色几乎不透明
-
-### SplashParticle（溅射粒子）
-
-- **渲染类型**：PARTICLE_SHEET_TRANSLUCENT
-- **生命周期**：约 15 ticks
-- **行为**：
-  - 受重力影响
-  - 从碰撞点向上喷射
-  - 淡出消失
-- **颜色**：淡蓝色半透明
-
-### FishingParticle（钓鱼粒子）
-
-- **渲染类型**：PARTICLE_SHEET_TRANSLUCENT
-- **生命周期**：约 8 ticks（随机变化）
-- **行为**：
-  - 无重力（漂浮在水面）
-  - 向下移动形成涟漪效果
-  - 生命周期后半段淡出
-- **颜色**：淡蓝色半透明
-- **用途**：
-  - 钓鱼浮标水面涟漪
-  - 鱼接近浮标时的水面波纹
-- **参考**：MC 1.16.5 `FishingBobberEntity.catchingFish()`
-
-## 用法
-
-```cpp
-// 创建溅射粒子
-auto splash = std::make_unique<SplashParticle>(
-    position,
-    glm::vec3(0.0f, 0.1f, 0.0f)  // 初始向上速度
-);
-particleManager.addParticle(std::move(splash));
-
-// 创建钓鱼涟漪粒子
-auto fishing = std::make_unique<FishingParticle>(
-    position,
-    glm::vec3(0.01f, 0.0f, 0.01f)  // 水平漂移
-);
-particleManager.addParticle(std::move(fishing));
+```
+weather/
+├── SplashParticle.hpp/cpp    # 溅射粒子 - 雨滴落地/实体落水时向上喷射
+└── FishingParticle.hpp/cpp   # 钓鱼粒子 - 水面涟漪效果
 ```
 
-## 参考
+## 内部模块关系
 
-- Minecraft Java 1.16.5 `net.minecraft.client.particle.RainParticle`
-- Minecraft Java 1.16.5 `net.minecraft.client.particle.SnowParticle`
-- Minecraft Java 1.16.5 `net.minecraft.client.particle.SplashParticle`
-- Minecraft Java 1.16.5 `net.minecraft.client.particle.FishingParticle`
+- `SplashParticle`：独立的溅射粒子，由雨滴落地或实体落水触发
+- `FishingParticle`：独立的钓鱼涟漪粒子，由钓鱼浮标触发
+
+两个粒子类相互独立，均继承自 `Particle` 基类。
+
+## 上下游外部依赖关系
+
+**上游依赖**：
+- `Particle`（`client/renderer/trident/particle/Particle.hpp`）：粒子基类
+- `Random`（`common/util/math/random/Random.hpp`）：随机数生成
+- `ClientWorld`（`client/ClientWorld.hpp`）：客户端世界接口
+
+**下游调用者**：
+- `ParticleManager`：通过 `ParticleRegistry` 创建和管理粒子实例
+- `RainParticle`（未实现）：落地时生成 `SplashParticle`
+- 钓鱼系统：生成 `FishingParticle` 用于浮标水面效果
+
+## 容易踩的坑
+
+1. **生命周期管理**：`tick()` 方法中必须手动增加 `m_age`，父类不会自动增加
+2. **渲染类型**：天气粒子使用 `PARTICLE_SHEET_TRANSLUCENT`，需要正确的混合状态
+3. **纹理位置**：纹理路径为 `minecraft:particle/splash` 和 `minecraft:particle/fishing`

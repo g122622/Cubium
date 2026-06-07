@@ -1,110 +1,66 @@
 # Food 系统
 
-本目录实现了食物系统，包括食物属性定义和食物物品类。
+本目录实现了食物属性定义，包括 Food 类和原版食物常量。
 
-## 文件说明
-
-| 文件 | 职责 |
-|------|------|
-| `Food.hpp/cpp` | 食物属性类，定义饥饿值、饱和度、药水效果等 |
-| `Foods.hpp/cpp` | 原版食物定义常量，包含所有MC 1.16.5食物 |
-| `README.md` | 本文件 |
-
-## 食物属性
-
-### 基本属性
-
-| 属性 | 类型 | 说明 |
-|------|------|------|
-| hunger | i32 | 恢复的饥饿值 (0-20) |
-| saturation | f32 | 恢复的饱和度 |
-| isMeat | bool | 是否为肉类（可喂狼） |
-| fastEat | bool | 是否快速食用（16ticks vs 32ticks） |
-| alwaysEdible | bool | 是否可在饱食时食用 |
-| effects | vector | 药水效果列表 |
-
-### 使用示例
-
-```cpp
-// 创建简单食物
-Food apple(4, 0.3f);
-
-// 创建肉类食物
-Food cookedBeef(8, 0.8f).setMeat();
-
-// 创建可随时食用的食物
-Food goldenApple(4, 1.2f).setAlwaysEdible();
-
-// 创建带效果的食物
-Food pufferfish(1, 0.1f);
-pufferfish.addEffect(&Effects::POISON, 1.0f);
-```
-
-## FoodItem 类
-
-食物物品基类，继承自 Item。
-
-### 主要方法
-
-| 方法 | 说明 |
-|------|------|
-| `getUseDuration()` | 获取食用时间（16或32ticks） |
-| `getUseAction()` | 获取使用动作（Eat/Drink） |
-| `onItemRightClick()` | 右键使用，设置玩家正在食用 |
-| `onItemUseFinish()` | 食用完成，恢复饥饿值、应用效果 |
-| `canEat()` | 检查是否可以食用 |
-
-### 注册食物
-
-```cpp
-// 注册苹果
-auto& apple = ItemRegistry::instance().registerItem<FoodItem>(
-    ResourceLocation("minecraft:apple"),
-    ItemProperties().maxStackSize(64).food(&Foods::APPLE)
-);
-```
-
-## 依赖关系
+## 目录结构
 
 ```
-Food
-  ├── 依赖 entity/effect/PotionEffect (药水效果)
-  └── 被 FoodItem 使用
-
-FoodItem
-  ├── 继承 Item
-  ├── 使用 Food
-  └── 依赖 Player, LivingEntity, World
+src/common/item/food/
+├── Food.hpp              # 食物属性类（饥饿值、饱和度、药水效果）
+├── Food.cpp              # 食物属性实现
+├── Foods.hpp             # 原版食物定义常量（MC 1.16.5 全部食物）
+├── Foods.cpp             # 原版食物定义实现
+└── README.md             # 本文件
 ```
 
-## MC 1.16.5 食物列表
+## 内部模块关系
 
-### 基础食物 (22种)
-APPLE, BAKED_POTATO, BEETROOT, BREAD, CARROT, CHORUS_FRUIT,
-COOKED_CHICKEN, COOKED_COD, COOKED_MUTTON, COOKED_PORKCHOP,
-COOKED_RABBIT, COOKED_SALMON, COOKIE, DRIED_KELP, HONEY_BOTTLE,
-MELON_SLICE, MUSHROOM_STEW, POISONOUS_POTATO, BEEF, CHICKEN,
-COD, MUTTON, PORKCHOP, RABBIT, SALMON, ROTTEN_FLESH, SPIDER_EYE,
-SWEET_BERRIES
+```
+Food.hpp ─────────────────────────────────────┐
+│ 食物属性数据类                               │
+│ - 饥饿值、饱和度修正值                        │
+│ - isMeat/fastEat/alwaysEdible 标记          │
+│ - 药水效果列表                               │
+└─────────────────────────────────────────────┘
+                    │
+                    ▼
+Foods.hpp ────────────────────────────────────┐
+│ 原版食物常量定义                             │
+│ - 基础食物（苹果、面包、肉类等）              │
+│ - 金苹果、附魔金苹果                         │
+│ - 汤类（蘑菇汤、甜菜汤等）                   │
+│ - 特殊鱼类（河豚、热带鱼）                   │
+│ - 需要 initialize() 初始化                  │
+└─────────────────────────────────────────────┘
+```
 
-### 金苹果 (2种)
-GOLDEN_APPLE, ENCHANTED_GOLDEN_APPLE
+## 上下游外部依赖关系
 
-### 汤类 (3种)
-BEETROOT_SOUP, RABBIT_STEW, SUSPICIOUS_STEW
+### 上游依赖（本模块依赖）
 
-### 特殊鱼类 (2种)
-PUFFERFISH, TROPICAL_FISH
+- `common/core/Types.hpp` - 基础类型（i32, f32）
+- `common/entity/effect/EffectType.hpp` - 药水效果类型
+- `common/entity/effect/EffectInstance.hpp` - 药水效果实例（前向声明）
 
-## 注意事项
+### 下游依赖（依赖本模块）
 
-1. **食物效果应用**：在 `FoodItem::onItemUseFinish()` 中调用 `player.foodStats().addStats()`
-2. **容器物品**：蘑菇汤等返回碗，蜂蜜瓶返回玻璃瓶（需实现 `hasContainerItem()`）
-3. **药水效果**：已实现，通过 `Food::addEffect()` 添加效果
-4. **玩家饥饿系统**：已实现 `FoodStats` 类（`src/common/entity/food/FoodStats.hpp`）
-5. **声音效果**：已实现进食和打嗝音效（`SoundEvents::ENTITY_GENERIC_EAT`, `ENTITY_PLAYER_BURP`）
+- `item/items/food/FoodItem.hpp` - 食物物品基类，使用 Food* 构造
+- `item/Items.cpp` - 注册食物物品时引用 Foods 常量
+- `entity/entities/passive/tamable/WolfEntity.cpp` - 狼是否可喂食（isMeat 检查）
+- `entity/entities/passive/water/DolphinEntity.cpp` - 海豚喂食
+- `entity/entities/passive/tamable/CatEntity.cpp` - 猫喂食
+- `entity/entities/passive/horse/AbstractHorseEntity.cpp` - 马匹喂食
 
-## 测试用例
+## 容易踩的坑
 
-相关测试文件：
-- `tests/common/test_entity.cpp` - 包含 FoodStats 基础测试
+1. **饱和度计算公式**：实际饱和度 = `food * saturationModifier * 2.0`，不是直接使用 modifier 值。例如苹果（food=4, modifier=0.3）提供 4 × 0.3 × 2 = 2.4 饱和度。
+
+2. **Foods 需要初始化**：`Foods::initialize()` 必须在 `Items::initialize()` 之前调用，否则食物物品注册时会访问未初始化的常量。
+
+3. **FoodItem 不在本目录**：食物物品类 `FoodItem` 位于 `item/items/food/`，本目录只定义食物属性数据。
+
+4. **isMeat 不影响进食动作**：`isMeat` 标记仅用于判断狼是否能食用，所有食物的 `getUseAction()` 都返回 `Eat`。
+
+5. **药水效果概率**：通过 `Food::addEffect()` 添加效果时可指定概率（0.0-1.0），食用时需随机判定是否触发。
+
+6. **容器物品返回**：蘑菇汤、甜菜汤、兔肉汤返回碗，蜂蜜瓶返回玻璃瓶——这是 FoodItem 的逻辑，不是 Food 类的职责。

@@ -361,40 +361,9 @@ TCP 网络通信实现。
 | `common/` | 核心类型、世界生成、网络协议、实体系统 |
 | `vcpkg` | asio（网络）、spdlog（日志）、glm（数学） |
 
-### 使用方法
+### 命令注册
 
-**独立服务器**：
-```cpp
-#include "server/application/StandaloneServer.hpp"
-
-mc::server::StandaloneServer server;
-mc::server::StandaloneServerParams params;
-params.configPath = "C:/games/minecraft_reborn/server_options.json";
-
-auto result = server.initialize(params);
-if (result.success()) {
-    server.run();  // 阻塞运行
-}
-```
-
-**内置服务器**（单机模式）：
-```cpp
-#include "server/application/IntegratedServer.hpp"
-
-mc::server::IntegratedServerParams config;
-config.worldName = "singleplayer";
-config.gameDirectoryRoot = "C:/games/minecraft_reborn";
-config.seed = 12345;
-config.viewDistance = 6;
-
-mc::server::IntegratedServer server;
-auto result = server.initialize(config);
-if (result.success()) {
-    // 获取客户端连接端点
-    auto* clientEndpoint = server.getClientEndpoint();
-    // 客户端使用 clientEndpoint 进行通信
-}
-```
+命令在 `CommandRegistry::registerDefaults()` 中自动注册。自定义命令需通过 `CommandRegistry` 注册。
 
 ## 容易踩的坑
 
@@ -463,44 +432,6 @@ server.commandRegistry().dispatcher().registerCommand(
         })
 );
 ```
-
-### 8. 实体追踪距离
-
-默认追踪距离为 10 区块，可通过 `EntityTracker::setTrackingDistance()` 调整。
-
-## 测试用例
-
-测试文件位于 `tests/server/` 目录：
-
-| 文件 | 测试内容 |
-|------|----------|
-| `core/PlayerManagerTest.cpp` | 玩家生命周期、会话映射、线程安全 |
-| `core/ConnectionManagerTest.cpp` | 消息发送、广播、断开连接 |
-| `core/TimeManagerTest.cpp` | 游戏时间、日光周期 |
-| `core/TeleportManagerTest.cpp` | 传送请求、确认 |
-| `core/KeepAliveManagerTest.cpp` | 心跳计时、超时检测 |
-| `core/PositionTrackerTest.cpp` | 位置更新、区块订阅 |
-| `ServerWorldTest.cpp` | 世界操作、方块设置 |
-| `ServerWorldCollisionTests.cpp` | 碰撞检测 |
-| `world/EntityTrackerTest.cpp` | 实体追踪范围、可见性 |
-| `world/ItemPickupManagerTest.cpp` | 物品拾取逻辑 |
-| `world/spawn/NaturalSpawnerTest.cpp` | 自然生成条件 |
-| `weather/WeatherManagerTest.cpp` | 天气周期、命令 |
-| `LightSyncTests.cpp` | 光照同步 |
-| `BlockUpdateSyncManagerTest.cpp` | 方块更新 pending 去重、追踪玩家过滤、tick flush |
-| `ServerWorldBlockUpdateCallbackTest.cpp` | ServerWorld 方块变化回调触发 |
-| `test_chunk_worker_pool.cpp` | Worker 线程池 |
-| `test_server_chunk_manager.cpp` | 区块管理器 |
-| `ServerChunkManagerCallbackTest.cpp` | 区块回调 |
-| `test_integrated_server.cpp` | 内置服务器 |
-| `BlockDropHandlerTest.cpp` | 方块掉落 |
-| `MiningManagerTest.cpp` | 挖掘速度计算（急迫、挖掘疲劳、工具材质、空中惩罚等） |
-
-运行测试：
-```powershell
-./build/bin/Release/mc_tests.exe --gtest_filter="Server*"
-```
-
 
 ## Mermaid 图
 

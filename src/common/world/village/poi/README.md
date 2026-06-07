@@ -6,86 +6,47 @@
 
 ```
 poi/
-├── PointOfInterestType.hpp/cpp   # POI类型枚举和辅助函数
-├── PointOfInterest.hpp/cpp       # POI数据结构
-├── PointOfInterestStorage.hpp/cpp # POI存储和查询
+├── PointOfInterestType.hpp/cpp   # POI类型枚举和辅助函数（床位、工作站、其他POI）
+├── PointOfInterest.hpp/cpp       # POI数据结构（位置、类型、票据/占用状态）
+├── PointOfInterestStorage.hpp/cpp # POI存储和查询（区块级索引、空间查询、线程安全）
 └── README.md                      # 本文档
 ```
 
-## 核心类
+## 内部模块关系
 
-### PointOfInterestType
-
-POI类型枚举，定义所有可作为兴趣点的方块类型：
-
-- **床位类型** (16种颜色的床) - 用于村民睡眠和重生
-- **工作站类型** (12种) - 对应村民职业
-- **其他类型** - 钟、下界传送门、磁石、避雷针
-
-### PointOfInterest
-
-表示单个POI的数据结构：
-
-```cpp
-PointOfInterest poi(BlockPos(100, 64, 200), PointOfInterestType::Smoker);
-poi.acquire(villagerId, gameTime);  // 村民占用
-poi.release(villagerId);             // 村民释放
+```
+PointOfInterestType  ←──  PointOfInterest  ←──  PointOfInterestStorage
+     (枚举基础)              (数据结构)                (存储管理)
 ```
 
-### PointOfInterestStorage
+- **PointOfInterestType**：定义所有 POI 类型的枚举（床位16种、工作站12种、其他4种）
+- **PointOfInterest**：单个 POI 实例，包含位置、类型、票据列表（占用状态）
+- **PointOfInterestStorage**：管理所有 POI 的注册/注销/查询，使用区块级索引实现高效空间查询
 
-POI存储和查询管理器，提供：
+## 上下游外部依赖关系
 
-- **注册/注销** POI
-- **空间查询** - 最近POI、范围内所有POI
-- **占用管理** - 票据系统
-- **区块级索引** - 高效的空间查询
+**本目录依赖**：
+- `common/core/Types.hpp` - 基础类型（u8/u16/u32/u64/i32/i64/f32 等）
+- `common/world/block/BlockPos.hpp` - 方块位置
+- `common/world/chunk/ChunkPos.hpp` - 区块坐标
+- `common/util/nbt/` - NBT 序列化
 
-## 使用方法
+**被依赖方**：
+- `world/village/Village.hpp/cpp` - 村庄类，使用 POI 计算边界和统计
+- `world/village/VillageManager.hpp/cpp` - 村庄管理器，管理 POI 注册
+- `entity/entities/villager/VillagerEntity.cpp` - 村民实体，查找床位和工作站
+- `entity/entities/villager/ProfessionMapping.hpp` - 职业与工作站映射
+- `entity/ai/goal/goals/villager/VillagerGoals.cpp` - 村民 AI 目标
+- `entity/ai/brain/sensor/Sensors.cpp` - 传感器
 
-### 注册POI
+## 容易踩的坑
 
-```cpp
-PointOfInterestStorage storage;
+1. **线程安全**：`PointOfInterestStorage` 所有公共方法都是线程安全的（内部使用 `std::mutex`），可在多线程环境下直接调用。
 
-// 当方块被放置时注册POI
-storage.registerPOI(BlockPos(100, 64, 200), PointOfInterestType::Smoker);
+2. **票据系统**：POI 使用票据(tickets)管理占用，而非简单的布尔标志。一个 POI 可被多个实体占用（取决于 `maxTickets`），例如钟可以多个村民共享。调用 `acquire()` 前应先检查 `canAcquire()`。
 
-// 当方块被破坏时注销POI
-storage.unregisterPOI(BlockPos(100, 64, 200));
-```
+3. **区块级索引**：POI 按区块分组存储，空间查询会优先按区块过滤。使用 `onChunkLoaded()`/`onChunkUnloaded()` 通知 Storage 区块状态变化。
 
-### 查询POI
+4. **POI 类型与职业映射**：`PointOfInterestType` 中的工作站类型与村民职业的映射关系由 `ProfessionMapping` 类统一管理，不要在此处添加新的映射逻辑。
 
-```cpp
-// 查找最近的未占用烟熏炉
-auto bedPos = storage.findNearestFree(
-    villagerPos,
-    PointOfInterestType::Smoker,
-    48.0f  // 最大搜索距离
-);
-
-if (bedPos.has_value()) {
-    // 找到了，村民可以前往工作
-}
-```
-
-### 占用POI
-
-```cpp
-// 村民占用工作站点
-storage.acquirePOI(jobSite, villagerId, gameTime);
-
-// 村民释放工作站点（离开或被解雇）
-storage.releasePOI(jobSite, villagerId);
-```
-
-## 线程安全
-
-所有公共方法都是线程安全的，使用内部互斥锁保护。
-
-## 与MC Java对齐
-
-- 参考 MC 1.16.5 `PointOfInterestType`, `PointOfInterest`, `PointOfInterestStorage`
-- 票据系统(tickets)用于管理POI占用
-- 区块级索引用于高效空间查询
+5. **NBT 序列化**：`PointOfInterest` 和 `PointOfInterestStorage` 都支持 NBT 序列化，用于存档保存。区块卸载时 POI 数据不会自动保存，需由上层 `VillageManager` 处理。

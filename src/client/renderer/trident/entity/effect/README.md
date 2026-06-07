@@ -6,157 +6,74 @@
 
 ```
 effect/
-├── glow/              # 发光效果
-│   ├── GlowEffect.hpp
-│   ├── GlowEffect.cpp
-│   └── README.md
-├── fire/              # 着火效果
-│   ├── FireEffect.hpp
-│   ├── FireEffect.cpp
-│   └── README.md
-├── hurt/              # 受伤闪烁
-│   ├── HurtFlashEffect.hpp
-│   ├── HurtFlashEffect.cpp
-│   └── README.md
-└── README.md          # 本文档
+├── glow/                        # 发光效果
+│   ├── GlowEffect.hpp           # 发光效果管理器（静态工具类）
+│   ├── GlowEffect.cpp           # 发光效果实现
+│   └── README.md                # 发光效果文档
+├── fire/                        # 着火效果
+│   ├── FireEffect.hpp           # 着火效果渲染器
+│   ├── FireEffect.cpp           # 纹理加载、billboard 渲染实现
+│   └── README.md                # 着火效果文档
+├── hurt/                        # 受伤闪烁效果
+│   ├── HurtFlashEffect.hpp      # 受伤闪烁效果头文件
+│   ├── HurtFlashEffect.cpp      # 受伤闪烁效果实现
+│   └── README.md                # 受伤闪烁文档
+└── README.md                    # 本文档
 ```
 
-## 特效详解
+## 内部模块关系
 
-### GlowEffect（发光效果）
-
-用于渲染实体的发光轮廓。
-
-**用途**：
-- 发光鱿鱼（Glow Squid）
-- 发光药水效果（Glowing Effect）
-- 团队发光颜色
-
-**渲染流程**：
-1. 渲染实体到发光缓冲区
-2. 应用模糊和膨胀效果
-3. 将轮廓合成到主画面
-
-**命名空间**：`mc::client::renderer::entity::effect::glow`
-
-### FireEffect（着火效果）
-
-用于渲染实体身上的火焰效果。
-
-**火焰位置**：
-- 底部：实体边界框底部
-- 两侧：实体边界框两侧
-
-**动画效果**：
-- UV 动画：火焰纹理滚动
-- 位置偏移：火焰摇曳
-
-**命名空间**：`mc::client::renderer::entity::effect::fire`
-
-### HurtFlashEffect（受伤闪烁）
-
-用于渲染实体受伤时的红色闪烁效果。
-
-**覆盖层UV计算**：
-```
-U = hurtTime / 10.0 * 16.0
-V = 0
-道德影响时 U = 3.0
-```
-
-**命名空间**：`mc::client::renderer::entity::effect::hurt`
-
-## 使用示例
-
-```cpp
-#include "glow/GlowEffect.hpp"
-#include "fire/FireEffect.hpp"
-#include "hurt/HurtFlashEffect.hpp"
-
-// 初始化所有特效
-GlowEffect::initialize();
-FireEffect::initialize();
-HurtFlashEffect::initialize();
-
-// 渲染循环中
-void renderEntity(Entity& entity, f64 partialTicks) {
-    // 检查受伤闪烁
-    if (auto* living = dynamic_cast<LivingEntity*>(&entity)) {
-        if (HurtFlashEffect::isHurt(*living)) {
-            i32 overlay = HurtFlashEffect::getPackedOverlay(*living);
-            // 应用覆盖层到渲染
-        }
-    }
-
-    // 渲染实体模型
-    // ...
-
-    // 检查燃烧效果
-    if (FireEffect::isBurning(entity)) {
-        FireEffect::renderFire(entity, partialTicks);
-    }
-
-    // 检查发光效果
-    if (GlowEffect::hasGlowEffect(entity)) {
-        Vector4f color = GlowEffect::getGlowColor(entity);
-        GlowEffect::renderGlow(entity, partialTicks, color);
-    }
-}
-
-// 清理
-GlowEffect::cleanup();
-FireEffect::cleanup();
-HurtFlashEffect::cleanup();
-```
-
-## 渲染顺序
-
-实体特效的推荐渲染顺序：
-
-1. **主体渲染**：渲染实体模型
-2. **受伤闪烁**：在模型渲染时应用覆盖层
-3. **着火效果**：在实体底部渲染火焰
-4. **发光效果**：后处理生成发光轮廓
-
-## 依赖关系
+三个特效模块相互独立，各自为静态工具类：
 
 ```
 effect/
-├── glow/
-│   ├── Types.hpp
-│   ├── Vector3.hpp
-│   └── Entity.hpp
-├── fire/
-│   ├── Types.hpp
-│   ├── Vector3.hpp
-│   └── Entity.hpp
-└── hurt/
-    ├── Types.hpp
-    └── LivingEntity.hpp
+├── glow/GlowEffect     # 发光轮廓（依赖后处理管线，待完善）
+├── fire/FireEffect     # 火焰 billboard 渲染（完整实现）
+└── hurt/HurtFlashEffect # 受伤红色闪烁（着色器方案）
 ```
 
-## 扩展特效
+渲染调用顺序：实体主体渲染 → 受伤闪烁（覆盖层）→ 着火效果 → 发光效果（后处理）
 
-添加新特效的步骤：
+## 上下游外部依赖关系
 
-1. 在 `effect/` 下创建新目录（如 `freeze/`）
-2. 创建特效类头文件和实现文件
-3. 实现静态方法：
-   - `initialize()` - 初始化资源
-   - `cleanup()` - 清理资源
-   - `render()` - 渲染特效
-4. 创建 `README.md` 文档
-5. 在主渲染流程中集成新特效
+**本目录依赖的上游模块**：
+- `client/renderer/trident/entity/model/core/ModelRenderer.hpp` - 模型顶点类型
+- `client/renderer/trident/entity/pipeline/EntityPipeline.hpp` - 实体渲染管线
+- `client/world/entity/ClientEntity.hpp` - 客户端实体
+- `common/entity/core/Entity.hpp` - 实体基类
+- `common/entity/core/LivingEntity.hpp` - 生物实体
+- `common/resource/IResourcePack.hpp` - 资源包接口
 
-## 性能考虑
+**依赖本目录的下游模块**：
+- `client/renderer/trident/core/TridentEngine.cpp` - 初始化/清理调用
+- `client/renderer/trident/entity/core/EntityRendererManager.cpp` - 渲染时调用
 
-- **发光效果**：需要额外的帧缓冲区，开销较大
-- **着火效果**：粒子动画，需要限制火焰数量
-- **受伤闪烁**：仅修改UV，开销最小
+## 容易踩的坑
 
-## 参考
+### 1. 发光鱿鱼不存在于 MC 1.16.5
 
-所有特效参考 MC 1.16.5 对应实现：
-- 发光效果：`RenderType.getOutline()`
-- 着火效果：`EntityRenderer.renderFire()`
-- 受伤闪烁：`LivingRenderer.getPackedOverlay()`
+发光鱿鱼（Glow Squid）是 MC 1.17+ 添加的实体，本项目目标版本为 MC 1.16.5，不要错误引用。
+
+### 2. 发光效果后处理管线尚未完成
+
+当前 `GlowEffect::renderGlow()` 和 `renderAllGlowing()` 仅有框架代码，等待渲染管线支持多渲染目标(MRT)和模糊着色器后才能完整实现。
+
+### 3. 团队颜色获取链
+
+`Entity::getTeam()` 在基类中默认返回 `nullptr`，只有 `ServerPlayer` 重写了该方法。客户端实体需要通过其他方式获取团队信息。
+
+### 4. hurtTime 递减方向
+
+hurtTime 从 10 递减到 0，受伤开始时 hurtTime=10，结束时 hurtTime=0。进度计算应为 `1.0 - (hurtTime / 10.0)`。
+
+### 5. 着色器方案 vs 纹理方案
+
+本项目受伤闪烁采用着色器内置计算，而非 MC 1.16.5 的 OverlayTexture 纹理采样方式。`getPackedOverlay()` 方法保留用于兼容性，但当前着色器不使用此值。
+
+### 6. FireEffect 的 Vulkan 资源生命周期
+
+`FireEffect` 持有 Vulkan 资源（Image、ImageView、Sampler、Memory），必须在 `cleanup()` 中正确销毁。初始化和清理必须配对调用，否则会泄漏 GPU 资源。
+
+### 7. 火焰纹理后备机制
+
+火焰纹理从资源包加载 `textures/block/fire_0.png` 和 `fire_1.png`，如果不存在会自动生成程序化纹理作为后备。初始化不会失败，但纹理质量可能不符合预期。

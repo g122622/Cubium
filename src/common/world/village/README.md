@@ -6,154 +6,112 @@
 
 ```
 village/
-├── Village.hpp/cpp              # 村庄数据管理
-├── VillageManager.hpp/cpp       # 村庄管理器（世界级）
-├── VillageGossip.hpp/cpp        # 流言系统
+├── Village.hpp/cpp              # 村庄数据管理（边界、村民、声誉、tick更新）
+├── VillageManager.hpp/cpp       # 村庄管理器（世界级，生命周期管理）
+├── VillageGossip.hpp/cpp        # 流言管理器（声誉系统）
 ├── VillageGossipType.hpp/cpp    # 流言类型枚举
 ├── README.md                     # 本文档
 │
 ├── poi/                          # POI子系统
-│   ├── PointOfInterest.hpp/cpp   # POI数据
-│   ├── PointOfInterestType.hpp/cpp # POI类型
-│   ├── PointOfInterestStorage.hpp/cpp # POI存储
+│   ├── PointOfInterest.hpp/cpp   # POI数据（位置、类型、票据）
+│   ├── PointOfInterestType.hpp/cpp # POI类型枚举（床位、工作站、钟）
+│   ├── PointOfInterestStorage.hpp/cpp # POI存储（区块级索引、空间查询）
 │   └── README.md
 │
 ├── raid/                         # 袭击子系统
-│   ├── Raid.hpp/cpp
-│   ├── RaidManager.hpp/cpp
-│   ├── RaidWave.hpp/cpp
-│   ├── RaiderType.hpp
-│   └── README.md
+│   ├── RaiderType.hpp/cpp        # 掠夺者类型枚举
+│   ├── Raid.hpp/cpp              # 单次袭击事件（波次、生成、胜负判定）
+│   ├── RaidManager.hpp/cpp       # 世界级袭击管理器
+│   └── README.md                 # 注：RaidWave是Raid.hpp内定义的结构体
 │
 └── trade/                        # 交易子系统
-    ├── Merchant.hpp
-    ├── MerchantOffer.hpp/cpp     # ✅ NBT序列化已实现
-    ├── MerchantOffers.hpp/cpp
-    ├── VillagerTrades.hpp/cpp    # ✅ 所有职业交易配方已实现
+    ├── Merchant.hpp              # 商人接口
+    ├── MerchantOffer.hpp/cpp     # 单个交易项
+    ├── MerchantOffers.hpp/cpp    # 交易列表
+    ├── VillagerTrades.hpp/cpp    # 村民交易配方表
+    ├── WanderingTraderTrades.hpp/cpp # 流浪商人交易表
     └── README.md
 ```
 
 **注意**: 僵尸围村系统 (VillageSiege) 位于 `src/server/world/spawn/VillageSiege.hpp/cpp`
 
-## 核心类型
+## 内部模块关系
 
-### VillageId
+```
+VillageManager
+    ├── Village（多个实例）
+    │       ├── VillageGossipManager（声誉系统）
+    │       └── 依赖 poi::PointOfInterestStorage（查询床位/工作站）
+    ├── poi::PointOfInterestStorage
+    └── 与 raid::RaidManager 协作（袭击触发时）
 
-村庄唯一标识符类型：
+raid::RaidManager
+    └── Raid（多个实例）
+           ├── RaiderType（掠夺者类型枚举）
+           ├── RaidWave（波次运行时数据，定义在Raid.hpp中）
+           └── RaidParticipant（参与者贡献记录）
 
-```cpp
-using VillageId = u64;
+trade::（独立模块，被VillagerEntity使用）
+    ├── MerchantOffer
+    ├── MerchantOffers
+    └── VillagerTrades / WanderingTraderTrades（交易配方表）
 ```
 
-- 用于 `Village` 类的 `m_id` 字段
-- 由 `VillageManager` 自动分配（`m_nextVillageId` 递增）
-- 支持 NBT 序列化（`Id` 字段）
+**核心数据流**：
+- `VillageManager` 持有全局唯一的 `PointOfInterestStorage`
+- `Village` 通过 POI 存储计算边界、统计床位/工作站
+- `VillageGossipManager` 管理 `Village` 内的玩家声誉
+- `RaidManager` 独立运行，但通过 `Village` 获取袭击位置和状态
 
-## 核心类
+## 上下游外部依赖关系
 
-### Village
+**上游依赖（本目录依赖）：**
+- `common/core/Types.hpp` - 基础类型（u8/u16/u32/u64/i32/i64/f32、EntityId、Uuid）
+- `common/world/block/BlockPos.hpp` - 方块位置
+- `common/world/chunk/ChunkPos.hpp` - 区块坐标
+- `common/world/IWorld.hpp` - 世界接口（实体生成、tick、难度查询）
+- `common/util/nbt/` - NBT 序列化
+- `common/util/math/random/Random.hpp` - 随机数生成
+- `entity/ai/brain/sensor/Sensors.hpp` - 村民传感器
 
-村庄数据管理类，负责：
-- **村庄ID**：唯一标识符，用于村庄管理和区块映射
-- 村庄边界计算（基于床位和工作站分布）
-- 村民列表管理
-- 床位和工作站计数
-- 流言/声誉系统
-- 铃铛（聚集点）管理
-- **tick更新**：村民范围检查、POI统计更新、袭击状态检查
+**下游依赖（被依赖）：**
+- `server/world/ServerWorld.hpp` - 持有 `VillageManager` 和 `RaidManager` 实例
+- `server/world/spawn/VillageSiege.hpp` - 僵尸围村，查询村庄位置
+- `entity/entities/villager/VillagerEntity.cpp` - 村民实体，查找床位和工作站
+- `entity/ai/goal/goals/villager/VillagerGoals.cpp` - 村民 AI 目标
+- `server/advancement/AdvancementEventHandler.hpp` - 英雄成就触发
 
-```cpp
-Village village(centerPos);
-village.addVillager(villagerId);
-village.recalculateBounds(poiStorage);
-bool canBreed = village.canBreed();  // 是否有足够床位繁殖
+## 容易踩的坑
 
-// tick 更新（每游戏刻调用）
-village.tick(world, gameTime, &poiStorage);
+### Village ID 管理
+`Village::setId()` 仅由 `VillageManager` 调用。创建村庄后必须先设置 ID 才能进行后续操作。
 
-// 村庄 ID 管理
-VillageId id = village.getId();
-village.setId(newId);
-```
+### 村庄指针可能为空
+`Raid` 构造时传入的 `Village*` 可能为 `nullptr`，调用方必须在关键操作前检查 `isValid()` 或做防御性判断。村庄被销毁时关联的袭击会自动失效。
 
-#### Village::tick() 实现细节
+### POI 统计更新间隔
+`VillageConfig::POI_STAT_UPDATE_INTERVAL = 1200` tick（约 1 分钟），POI 计数不是实时的，刚放置的床位可能需要等待下一个更新周期。
 
-村庄的 `tick()` 方法每游戏刻执行以下操作：
+### 村民超时机制
+`VillageConfig::VILLAGER_TIMEOUT = 6000` tick（5 分钟），村民离开村庄范围后不会立即被移除，而是等待超时。
 
-1. **流言衰减** - 通过 `VillageGossipManager::tick()` 更新流言系统
-2. **村民范围检查** - 移除离开村庄范围超过5分钟的村民
-3. **POI统计更新** - 每分钟更新床位、工作站计数和聚集点（钟）
-4. **袭击状态检查** - 检查袭击是否结束（当村庄处于袭击状态时）
+### 流言衰减与声誉范围
+声誉范围是 `[-1000, +1000]`，流言会随时间衰减。声誉 +1000 对应价格 0.5 倍，声誉 -1000 对应价格 1.5 倍。
 
-### VillageManager
+### 价格修正因子计算
+`getPriceModifier()` 返回 `[0.5, 1.5]` 范围，高声誉 = 低价格。计算公式：`clamp(1.0 - reputation/1000.0, 0.5, 1.5)`
 
-世界级村庄管理器，负责：
-- 村庄生命周期管理（自动分配唯一ID）
-- 村民与村庄的关联
-- POI注册和管理
-- 区块加载/卸载回调
-- 区块到村庄映射（用于快速查找）
+### 区块到村庄映射
+`VillageManager::m_chunkToVillages` 用于快速查找区块内的村庄。村民加入/区块加载/卸载时需要正确更新此映射。
 
-```cpp
-VillageManager manager(serverWorld);
+### 袭击者实体追踪
+`Raid::raiders()` 返回的 `EntityId` 列表只表示追踪 ID，不保证实体仍存在于世界中。使用前需通过 `IWorld::getEntity()` 验证。
 
-// 村庄创建时自动分配 ID
-Village* village = manager.createVillage(centerPos);
-VillageId id = village->getId();
+### 波次间隔单位
+`RaidConfig::WAVE_INTERVAL = 1200` 是 tick 数（约 60 秒），不是毫秒或秒。
 
-// 区块加载时
-manager.onChunkLoaded(x, z);
+### 难度影响袭击行为
+和平难度下袭击直接停止。波次数由难度决定：简单 3 波、普通 5 波、困难 7 波。
 
-// 村民加入时（更新区块映射）
-manager.onVillagerJoin(villagerId, pos);
-
-// 方块放置时（可能创建新POI）
-manager.onBlockPlaced(pos, blockId);
-
-// 区块到村庄映射查询
-auto villages = manager.getVillagesInChunk(chunkX, chunkZ);
-```
-
-#### 区块到村庄映射
-
-`VillageManager` 维护 `m_chunkToVillages` 映射，用于：
-- 快速查找区块内的所有村庄
-- 村民加入时更新映射关系
-- 区块卸载时清理映射
-
-### VillageGossipManager
-
-流言管理器，影响交易价格：
-- 正面流言（交易、治愈）降低价格
-- 负面流言（攻击村民）提高价格
-- 流言随时间衰减
-
-```cpp
-// 治愈僵尸村民
-village.addGossip(playerId, VillageGossipType::MajorPositive, 1);
-
-// 获取价格修正（声誉+1000 → 价格0.5倍）
-f32 modifier = village.getPriceModifier(playerId);
-```
-
-## 与MC Java对齐
-
-- 参考 MC 1.16.5 `Village`, `VillageManager`, `GossipContainer`
-- 声誉范围：[-1000, +1000]
-- 价格修正：[0.5, 1.5]
-- 流言衰减：每日衰减一定比例
-- 村民超时：6000 tick (5分钟) 离开村庄范围后移除
-- POI统计更新：每1200 tick (1分钟)
-
-## TODO
-
-- [x] 实现 Village::tick() 村民范围检查
-- [x] 实现 Village::tick() POI统计更新
-- [x] 实现 Village::tick() 袭击状态检查
-- [x] 实现袭击系统 (raid/)
-- [x] 实现交易系统 (trade/) - MerchantOffer NBT序列化已完成
-- [x] 实现僵尸围村 (VillageSiege) - 位于 `src/server/world/spawn/`
-- [x] 集成 VillageSiege 到 ServerWorld
-- [x] 实现 Village ID 系统和区块映射
-- [x] 编写单元测试 - tests/server/world/spawn/VillageSiegeTest.cpp (26个测试用例)
-- [x] 编写 Village ID 单元测试 - tests/common/world/village/VillageTest.cpp
+### 不祥之兆等级与波次
+总波次 = 基础波次 + `max(0, badOmenLevel - 1)`。等级 1 不增加波次，等级 2+ 才会增加。

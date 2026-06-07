@@ -8,241 +8,70 @@
 storage/
 ├── ScoreboardSaveData.hpp       # 记分板数据序列化结构
 ├── ScoreboardSaveData.cpp       # 序列化实现
-├── ScoreboardDataManager.hpp    # 数据管理器接口
+├── ScoreboardDataManager.hpp    # 数据管理器接口（缓存+脏标记）
 ├── ScoreboardDataManager.cpp    # 数据管理器实现
 └── README.md                    # 本文件
 ```
 
-## 文件说明
+## 内部模块关系
 
-### ScoreboardSaveData
-
-记分板数据的序列化结构，包含：
-
-#### ObjectiveData
-
-目标持久化数据（名称、判据、显示名、渲染类型）
-
-- **displayName**: JSON 格式的 ITextComponent 序列化结果，例如 `{"text":"Deaths","color":"red"}`
-
-#### ScoreData
-
-分数持久化数据（玩家名、目标名、分数值、锁定状态）
-
-#### TeamData
-
-队伍持久化数据（名称、颜色、前缀后缀、成员列表等）
-
-- **displayName**: JSON 格式的 ITextComponent
-- **prefix**: JSON 格式的 ITextComponent（队伍前缀）
-- **suffix**: JSON 格式的 ITextComponent（队伍后缀）
-
-#### DisplaySlotData
-
-显示槽位数据（槽位索引、目标名）
-
-支持 NBT 格式的序列化/反序列化，兼容 MC 1.16.5 存档格式。
-
-### ScoreboardDataManager
-
-负责记分板数据的持久化存储和加载：
-
-- **缓存机制**: 内存缓存 + 脏标记，减少磁盘 I/O
-- **线程安全**: 使用互斥锁保护缓存访问
-- **自动保存**: 析构时自动保存脏数据
-
-#### 键设计
-
-底层仍使用 RocksDB 列族 `scoreboard`，但对外必须经由 `SingleLevelStorageManager` 进入，键格式：
-
-- `obj:{name}` - 目标数据
-- `score:{objective}:{player}` - 分数数据
-- `team:{name}` - 队伍数据
-- `displayslots` - 显示槽位数据
-
-## ITextComponent JSON 序列化
-
-本模块支持 ITextComponent 的完整 JSON 序列化和反序列化，实现富文本的持久化存储。
-
-### 序列化（保存时）
-
-当保存记分板数据时，ITextComponent 对象会被转换为 JSON 字符串：
-
-```cpp
-// 目标显示名称
-if (auto* displayName = objective->getDisplayName()) {
-    objData.displayName = displayName->toJson().dump();
-}
-
-// 队伍前缀
-if (auto* prefix = team->getPrefix()) {
-    teamData.prefix = prefix->toJson().dump();
-}
-
-// 队伍后缀
-if (auto* suffix = team->getSuffix()) {
-    teamData.suffix = suffix->toJson().dump();
-}
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        ScoreboardSaveData                            │
+│  （数据序列化结构：ObjectiveData/ScoreData/TeamData/DisplaySlotData）│
+│  - toNbt()/fromNbt() NBT 序列化                                      │
+│  - serialize()/deserialize() 二进制序列化                            │
+│  - fromScoreboard()/applyToScoreboard() 批量转换                      │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     ScoreboardDataManager                            │
+│  （数据管理器：持久化存储和加载）                                      │
+│  - 缓存机制：内存缓存 + 脏标记，减少磁盘 I/O                           │
+│  - 线程安全：互斥锁保护缓存访问                                        │
+│  - 自动保存：析构时保存脏数据                                          │
+│  - 键设计：obj:{name}/score:{obj}:{player}/team:{name}/displayslots   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### 反序列化（加载时）
+## 上下游外部依赖关系
 
-当加载记分板数据时，JSON 字符串会被解析为 ITextComponent 对象：
+### 本模块依赖的外部模块
 
-```cpp
-// 从 JSON 创建显示名称
-if (!objData.displayName.empty()) {
-    try {
-        nlohmann::json json = nlohmann::json::parse(objData.displayName);
-        auto displayName = text::ITextComponent::fromJson(json);
-        if (displayName) {
-            objective->setDisplayName(std::move(displayName));
-        }
-    } catch (const nlohmann::json::exception&) {
-        // JSON 解析失败，回退到纯文本
-        objective->setDisplayName(std::make_unique<text::StringTextComponent>(objData.displayName));
-    }
-}
+| 依赖模块 | 依赖内容 | 使用位置 |
+|---------|---------|---------|
+| `common/core/Result.hpp` | Result<T> 错误处理 | ScoreboardSaveData、ScoreboardDataManager |
+| `common/scoreboard/core/` | Scoreboard、ScoreObjective、ScorePlayerTeam | ScoreboardSaveData |
+| `common/util/nbt/Nbt.hpp` | NBT 序列化 | ScoreboardSaveData |
+| `common/util/text/ITextComponent.hpp` | 文本组件 JSON 序列化 | ScoreboardSaveData |
+| `world/storage/SingleLevelStorageManager` | 世界存储门面 | ScoreboardDataManager |
 
-// 从 JSON 创建队伍前缀
-if (!teamData.prefix.empty()) {
-    try {
-        nlohmann::json json = nlohmann::json::parse(teamData.prefix);
-        auto prefix = text::ITextComponent::fromJson(json);
-        if (prefix) {
-            team->setPrefix(std::move(prefix));
-        }
-    } catch (const nlohmann::json::exception&) {
-        team->setPrefix(std::make_unique<text::StringTextComponent>(teamData.prefix));
-    }
-}
-```
+### 被哪些模块依赖
 
-### JSON 格式示例
+| 依赖模块 | 依赖方式 | 使用场景 |
+|---------|---------|---------|
+| `server/scoreboard/ServerScoreboard` | setDataManager() | 服务端记分板持久化 |
+| `server/world/ServerWorld` | 持有实例 | 世界级别的记分板管理 |
 
-```json
-{
-    "text": "Player Kills",
-    "color": "red",
-    "bold": true,
-    "extra": [
-        {"text": " [", "color": "gray"},
-        {"text": "50", "color": "gold"},
-        {"text": "]", "color": "gray"}
-    ]
-}
-```
+## 容易踩的坑
 
-翻译组件示例：
+### ITextComponent JSON 序列化
 
-```json
-{
-    "translate": "chat.type.announcement",
-    "with": [
-        {"text": "Server"},
-        {"text": "Welcome!"}
-    ],
-    "color": "yellow"
-}
-```
+目标显示名、队伍前缀后缀都是 JSON 格式的 ITextComponent。保存时调用 `toJson().dump()`，加载时需要 try-catch 处理 JSON 解析失败的情况，回退到纯文本。
 
-## 使用方法
+### ScoreboardDataManager 键格式
 
-### 初始化
+不要直接拼接字符串，使用 `makeObjectiveKey()`/`makeScoreKey()`/`makeTeamKey()` 方法生成键，避免格式错误。
 
-```cpp
-#include "scoreboard/storage/ScoreboardDataManager.hpp"
-#include "world/storage/SingleLevelStorageManager.hpp"
+### 必须通过 SingleLevelStorageManager 访问
 
-// 在 SingleLevelStorageManager 中
-m_scoreboardDataManager = std::make_unique<scoreboard::ScoreboardDataManager>(*this);
-```
+底层 RocksDB 列族 `scoreboard` 不对外直接暴露，必须经由 `SingleLevelStorageManager` 进入。ScoreboardDataManager 在构造时接收 storage 引用。
 
-### 保存记分板
+### displayName 可能为空
 
-```cpp
-// 保存整个记分板
-auto result = m_scoreboardDataManager->saveScoreboard(m_scoreboard);
-if (result.failed()) {
-    spdlog::error("Failed to save scoreboard: {}", result.error().message());
-}
+目标/队伍的 displayName 是可选的，加载时需要检查是否为空再解析 JSON，避免解析空字符串导致异常。
 
-// 或只保存单个目标
-ScoreboardSaveData::ObjectiveData objData;
-objData.name = "deaths";
-objData.criteriaName = "deathCount";
-objData.displayName = "{\"text\":\"Deaths\",\"color\":\"red\"}";  // JSON 格式
-objData.renderType = "integer";
-m_scoreboardDataManager->saveObjective(objData);
-```
+### 分数键的 playerName 可能包含冒号
 
-### 加载记分板
-
-```cpp
-// 加载整个记分板
-auto result = m_scoreboardDataManager->loadScoreboard(m_scoreboard);
-if (result.failed()) {
-    spdlog::error("Failed to load scoreboard: {}", result.error().message());
-}
-```
-
-### 集成到 ServerScoreboard
-
-```cpp
-void ServerScoreboard::save() {
-    if (m_dirty && m_dataManager) {
-        auto result = m_dataManager->saveScoreboard(*this);
-        if (result.success()) {
-            m_dirty = false;
-        } else {
-            spdlog::error("ServerScoreboard: Failed to save scoreboard: {}", result.error().message());
-        }
-    }
-}
-
-void ServerScoreboard::load() {
-    if (m_dataManager) {
-        auto result = m_dataManager->loadScoreboard(*this);
-        if (result.success()) {
-            // 加载完成
-        } else {
-            spdlog::error("ServerScoreboard: Failed to load scoreboard: {}", result.error().message());
-        }
-    }
-}
-```
-
-## 测试
-
-位于 `tests/server/scoreboard/ScoreboardPersistenceTest.cpp`：
-
-- **ObjectiveData_Serialize/Deserialize**: 目标数据序列化测试
-- **ScoreData_Serialize/Deserialize**: 分数数据序列化测试
-- **TeamData_Serialize/Deserialize**: 队伍数据序列化测试
-- **DisplaySlotData_Serialize/Deserialize**: 显示槽数据测试
-- **Scoreboard_RoundTrip**: 完整记分板往返测试
-- **Objective_DisplayName_JsonSerialization**: 目标显示名 JSON 序列化测试
-- **Team_DisplayName_JsonSerialization**: 队伍显示名 JSON 序列化测试
-- **Team_PrefixSuffix_JsonSerialization**: 队伍前缀后缀 JSON 序列化测试
-- **ITextComponent_RoundTrip**: ITextComponent 完整往返测试
-- **InvalidJson_FallbackToPlainText**: 无效 JSON 回退测试
-
-运行测试：
-
-```powershell
-./build/bin/Release/mc_tests.exe --gtest_filter="ScoreboardPersistence*"
-```
-
-## 依赖关系
-
-- **SingleLevelStorageManager**: 单存档门面入口，ScoreboardDataManager 通过它访问底层数据库
-- **NBT 序列化**: 使用 `util/nbt/NBT.hpp`
-- **ITextComponent**: 使用 `util/text/ITextComponent.hpp` 进行 JSON 序列化
-- **Scoreboard**: 核心记分板类
-
-## 相关文件
-
-- `src/common/world/storage/db/ColumnFamilies.hpp` - 列族定义（包含 `SCOREBOARD`）
-- `src/common/world/storage/SingleLevelStorageManager.hpp` - 存储服务集成点
-- `src/server/scoreboard/ServerScoreboard.hpp` - 服务端记分板
-- `src/common/util/text/ITextComponent.hpp` - 文本组件接口
+玩家名理论上可以包含冒号，但当前键格式使用冒号分隔 `score:{objective}:{player}`。如果玩家名包含冒号会导致 `parseScoreKey()` 解析错误。目前 MC 玩家名不允许冒号，但自定义记分板实体名可能触发此问题。

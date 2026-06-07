@@ -6,212 +6,81 @@ Brain系统是Minecraft 1.16.5引入的高级AI控制框架，用于更复杂的
 
 ```
 brain/
-├── Brain.hpp                    # Brain主类 - 高级AI控制器
+├── Brain.hpp                    # Brain主类 - 高级AI控制器（模板类）
 ├── memory/                      # 记忆模块
 │   ├── Memory.hpp               # 内存存储容器(带TTL)
 │   ├── MemoryModuleStatus.hpp   # 内存状态枚举
-│   ├── MemoryModuleType.hpp     # 内存类型定义 (85+种)
-│   ├── MemoryModuleType.cpp     # 内存类型注册
-│   ├── IPositionTarget.hpp      # 位置目标接口
-│   ├── WalkTarget.hpp           # 行走目标
-│   └── BlockPosTarget.hpp       # 方块位置目标
+│   ├── MemoryModuleType.hpp     # 记忆类型定义模板
+│   ├── MemoryModuleType.cpp     # 记忆类型注册（85+种）
+│   ├── MemoryModules.hpp        # 村民记忆模块便捷别名
+│   ├── IPositionTarget.hpp      # 位置目标抽象接口
+│   ├── BlockPosTarget.hpp       # 方块位置目标实现
+│   ├── WalkTarget.hpp           # 行走目标封装
+│   └── README.md                # Memory模块说明
 ├── schedule/                    # 日程系统
-│   ├── Activity.hpp             # 活动类型定义 (15种)
+│   ├── Activity.hpp             # 活动类型定义（15种）
 │   ├── Activity.cpp             # 活动类型实现
 │   ├── Schedule.hpp             # 日程安排
-│   ├── Schedule.cpp             # 日程实现 (4种预定义日程)
-│   └── DutyTime.hpp             # 值班时间定义
+│   ├── Schedule.cpp             # 日程实现（4种预定义日程）
+│   └── DutyTime.hpp             # 值班时间定义（离散duty时间片）
 ├── sensor/                      # 传感器系统
 │   ├── Sensor.hpp               # 传感器基类
-│   ├── SensorType.hpp           # 传感器类型
-│   ├── Sensors.hpp              # 传感器声明 (8种)
+│   ├── SensorType.hpp           # 传感器类型工厂
+│   ├── Sensors.hpp              # 传感器声明（8种）
 │   └── Sensors.cpp              # 传感器实现
 ├── task/                        # 任务系统
 │   ├── Task.hpp                 # 任务基类
+│   ├── README.md                # Task模块说明
 │   └── tasks/                   # 具体任务实现
 │       ├── movement/            # 移动相关任务
+│       │   └── MovementTasks.hpp
 │       ├── action/              # 行动相关任务
+│       │   └── ActionTasks.hpp
 │       └── interact/            # 互动相关任务
+│           └── InteractTasks.hpp
 └── README.md
 ```
 
-## 实现状态
+## 内部模块关系
 
-### ✅ 已完成
-| 组件 | 状态 | 说明 |
-|------|------|------|
-| Brain | ✅ | 模板类，支持记忆、传感器、任务、日程 |
-| Memory | ✅ | 支持永久记忆和带TTL的临时记忆 |
-| MemoryModuleType | ✅ | 85+种记忆类型 |
-| Activity | ✅ | 15种活动类型 |
-| Schedule | ✅ | 4种预定义日程 |
-| Sensor | ✅ | 8种传感器，已完整实现 |
-| Task | ✅ | 基类完成 |
-| Task实现 | ⚠️ | 20种任务，框架完成，TODO需填充 |
-
-### ✅ 传感器实现状态
-| 传感器 | 状态 | 说明 |
-|--------|------|------|
-| NearestPlayersSensor | ✅ | 检测附近玩家，设置 NEAREST_PLAYERS、NEAREST_VISIBLE_PLAYER、NEAREST_VISIBLE_TARGETABLE_PLAYER 记忆 |
-| NearestVisibleLivingEntitySensor | ✅ | 检测可见生物，设置 VISIBLE_MOBS 记忆 |
-| HurtBySensor | ✅ | 检测伤害来源，设置 HURT_BY、HURT_BY_ENTITY 记忆 |
-| MobSensor | ✅ | 检测附近生物和敌对目标，设置 MOBS、NEAREST_HOSTILE 记忆 |
-| WorkStationSensor | ✅ | 检测工作站点，设置 JOB_SITE、POTENTIAL_JOB_SITE 记忆 |
-| VillagePoiSensor | ✅ | 检测床和集会点，设置 HOME、MEETING_POINT、NEAREST_BED 记忆 |
-| BabySensor | ✅ | 检测幼年和成年实体，设置 VISIBLE_VILLAGER_BABIES、NEAREST_VISIBLE_ADULT 记忆 |
-| AvoidEntitySensor | ✅ | 检测避险目标，设置 AVOID_TARGET 记忆 |
-
-### ⚠️ 待完善
-| 问题 | 说明 |
-|------|------|
-| Task实现 | 所有任务的update()方法只有TODO注释 |
-| 实体集成 | PiglinEntity未使用Brain |
-
-## 核心组件
-
-### 1. Memory (记忆模块)
-
-存储实体的"记忆"，支持TTL(生存时间)：
-
-```cpp
-// 创建永久记忆
-auto memory = Memory<Player*>::permanent(player);
-
-// 创建临时记忆(100 ticks后过期)
-auto tempMemory = Memory<BlockPos>::timed(pos, 100);
-
-// 每tick调用
-memory.tick();
-
-// 检查是否过期
-if (memory.isExpired()) {
-    // 记忆已过期
-}
+```
+Brain.hpp (主控制器)
+    ├── memory/ (记忆存储)
+    │   ├── Memory.hpp (基础值包装)
+    │   ├── MemoryModuleType.hpp (类型标识)
+    │   ├── IPositionTarget.hpp → BlockPosTarget.hpp → WalkTarget.hpp (位置目标链)
+    │   └── MemoryModules.hpp (便捷别名)
+    │
+    ├── schedule/ (日程调度)
+    │   ├── Activity.hpp (活动枚举)
+    │   ├── DutyTime.hpp (时间片)
+    │   └── Schedule.hpp (日程表)
+    │
+    ├── sensor/ (环境感知)
+    │   ├── Sensor.hpp (基类)
+    │   └── Sensors.hpp (具体传感器)
+    │
+    └── task/ (行为执行)
+        ├── Task.hpp (基类)
+        └── tasks/ (具体任务)
 ```
 
-### 2. MemoryModuleType (内存类型)
+数据流：`Sensor` 更新 `Memory` → `Schedule` 选择 `Activity` → `Task` 根据 `Memory` 执行行为
 
-定义不同类型的内存：
+## 上下游外部依赖关系
 
-```cpp
-// 常用内存类型
-MemoryModuleTypes::ATTACK_TARGET   // 攻击目标
-MemoryModuleTypes::HOME            // 家的位置
-MemoryModuleTypes::WALK_TARGET     // 行走目标
-MemoryModuleTypes::NEAREST_HOSTILE // 最近敌对生物
-```
+**被依赖（下游）**：
+- `entity/entities/villager/VillagerEntity.hpp` - 村民使用 Brain 系统
+- `entity/entities/monster/nether/PiglinEntity.hpp` - 猪灵使用 Brain 系统（框架就绪，待集成）
 
-### 3. Activity (活动)
+**依赖（上游）**：
+- `entity/core/MobEntity.hpp` - 生物实体基类
+- `entity/core/LivingEntity.hpp` - 活体实体基类
+- `world/IWorld.hpp` / `server/world/ServerWorld.hpp` - 世界访问
+- `world/GlobalPos.hpp` - 全局位置（记忆存储）
+- `world/village/poi/` - 兴趣点系统（工作站点、床等）
 
-定义实体的行为状态：
-
-```cpp
-Activity::IDLE      // 空闲
-Activity::WORK      // 工作
-Activity::PLAY      // 玩耍
-Activity::REST      // 休息
-Activity::PANIC     // 恐慌
-Activity::FIGHT     // 战斗
-Activity::AVOID     // 逃避
-```
-
-### 4. Schedule (日程)
-
-基于时间的活动安排：
-
-```cpp
-// 创建村民日程
-Schedule schedule;
-schedule.add(0, Activity::IDLE)
-        .add(2000, Activity::WORK)
-        .add(9000, Activity::MEET)
-        .add(12000, Activity::REST);
-
-// 获取当前时间的活动
-Activity current = schedule.getScheduledActivity(dayTime);
-```
-
-### 5. Sensor (传感器)
-
-自动感知环境并更新记忆：
-
-```cpp
-class NearestPlayersSensor : public Sensor<VillagerEntity> {
-public:
-    void update(ServerWorld* world, VillagerEntity* entity) override {
-        // 感知附近玩家并更新记忆
-        auto players = findNearbyPlayers(world, entity);
-        entity->getBrain().setMemory(MemoryModuleTypes::NEAREST_PLAYERS, players);
-    }
-
-    std::unordered_set<const MemoryModuleTypeBase*> getUsedMemories() const override {
-        return { MemoryModuleTypes::NEAREST_PLAYERS };
-    }
-};
-```
-
-### 6. Task (任务)
-
-Brain任务类似于Goal，但使用记忆系统：
-
-```cpp
-class MoveToTargetTask : public Task<VillagerEntity> {
-public:
-    MoveToTargetTask()
-        : Task({
-            {MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::VALUE_PRESENT}
-        }, 150, 200) {}
-
-protected:
-    bool shouldExecute(ServerWorld* world, VillagerEntity* entity) override {
-        auto target = entity->getBrain().getMemory(MemoryModuleTypes::WALK_TARGET);
-        return target.has_value();
-    }
-
-    void updateTask(ServerWorld* world, VillagerEntity* entity, i64 gameTime) override {
-        // 移动逻辑
-    }
-};
-```
-
-## 使用示例
-
-### 创建Brain
-
-```cpp
-class VillagerEntity : public CreatureEntity {
-public:
-    VillagerEntity() {
-        // 注册内存模块
-        m_brain.registerMemory(MemoryModuleTypes::HOME);
-        m_brain.registerMemory(MemoryModuleTypes::JOB_SITE);
-        m_brain.registerMemory(MemoryModuleTypes::NEAREST_PLAYERS);
-
-        // 注册传感器
-        m_brain.registerSensor(std::make_unique<NearestPlayersSensor>());
-
-        // 设置日程
-        m_brain.setSchedule(Schedule::VILLAGER_DEFAULT);
-
-        // 注册活动
-        m_brain.registerActivity(
-            Activity::WORK, 1,
-            {std::make_unique<WorkTask>()},
-            {{MemoryModuleTypes::JOB_SITE, MemoryModuleStatus::VALUE_PRESENT}}
-        );
-    }
-
-    void tick() override {
-        CreatureEntity::tick();
-        m_brain.tick(world, this, gameTime, dayTime);
-    }
-
-private:
-    Brain<VillagerEntity> m_brain;
-};
-```
-
-## 与Goal系统的区别
+## 与 Goal 系统的区别
 
 | 特性 | Goal系统 | Brain系统 |
 |------|----------|-----------|
@@ -221,25 +90,44 @@ private:
 | 日程 | 无 | 有(时间活动) |
 | 适用实体 | 大多数生物 | 村民、猪灵等 |
 
-## 依赖关系
+## 容易踩的坑
 
-```
-Brain.hpp
-    ├── memory/Memory.hpp
-    ├── memory/MemoryModuleType.hpp
-    ├── schedule/Activity.hpp
-    ├── schedule/Schedule.hpp
-    ├── sensor/Sensor.hpp
-    └── task/Task.hpp
-```
+### 1. 记忆类型必须先初始化
 
-## 参考
+使用任何记忆类型前必须调用 `MemoryModuleTypes::initialize()`，否则所有指针都是 nullptr。这是全局单例注册模式。
 
-- Minecraft 1.16.5 `net.minecraft.entity.ai.brain`
- 
-## 近期补全
+### 2. 记忆类型不匹配
 
-- 已新增 `schedule/DutyTime.hpp`，并将 `Schedule` / `ScheduleDuties` 修正为 MC 1.16.5 的离散 duty 时间片语义，不再使用错误的连续插值语义。
-- 已新增 `memory/IPositionTarget.hpp`、`memory/BlockPosTarget.hpp`、`memory/WalkTarget.hpp`，用于承接 `LOOK_TARGET` / `WALK_TARGET` 的真实位置目标类型。
-- `MemoryModuleTypes::WALK_TARGET` 现为 `WalkTarget`，`MemoryModuleTypes::LOOK_TARGET` 现为 `std::shared_ptr<IPositionTarget>`，不再是 `void` 占位。
-- 回归测试位于 `tests/entity/BrainScheduleTests.cpp`，覆盖 schedule 边界、target 中心点和 typed memory 存取。
+获取记忆时类型必须与注册时完全匹配。`HOME` 是 `GlobalPos` 类型，不能用 `BlockPos` 获取。
+
+### 3. 记忆类型使用指针作为键
+
+必须使用全局注册的类型指针（如 `MemoryModuleTypes::HOME`），不能创建局部实例。
+
+### 4. hasRequiredMemories 返回 false 的情况
+
+当活动没有配置记忆要求时，`hasRequiredMemories()` 返回 `false`（与 MC 1.16.5 一致）。所有需要条件启动的活动都必须显式配置记忆要求。
+
+### 5. OPENED_DOORS 类型
+
+类型是 `std::unordered_set<GlobalPos>`，不是 `std::vector<GlobalPos>`。
+
+### 6. WalkTarget 构造断言
+
+WalkTarget 构造时会断言 target 非空，确保传入有效的 PositionTargetPtr。
+
+### 7. Schedule 使用离散时间片
+
+`Schedule` / `ScheduleDuties` 使用离散 duty 时间片语义，不是连续插值。参考 MC 1.16.5 的 `Schedule` 类。
+
+### 8. 传感器更新频率
+
+传感器的构造参数是更新间隔（tick），不要设置过小。例如 `NearestPlayersSensor` 默认 20tick 更新一次。
+
+### 9. 任务生命周期
+
+任务可能被中断，必须在 `resetTask()` 中清理状态。任务状态只有 STOPPED 和 RUNNING 两种。
+
+### 10. Brain 模板实例化
+
+每个实体类型需要单独实例化 Brain 模板：`Brain<VillagerEntity>`、`Brain<PiglinEntity>` 等。

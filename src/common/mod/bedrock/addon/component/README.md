@@ -7,11 +7,11 @@
 ```
 component/
 ├── README.md                          # 本文件
-├── BlockComponentRegistry.hpp/cpp     # 方块组件注册表
-├── BlockComponentEvents.hpp           # 方块组件事件数据结构
-├── ItemComponentRegistry.hpp/cpp      # 物品组件注册表
-├── ItemComponentEvents.hpp            # 物品组件事件数据结构
-└── CustomComponentParameters.hpp      # 组件参数容器
+├── BlockComponentRegistry.hpp/cpp     # 方块组件注册表（单例，管理方块自定义组件的注册和事件派发）
+├── BlockComponentEvents.hpp           # 方块组件事件数据结构（StepOn/Place/Break等12种事件）
+├── ItemComponentRegistry.hpp/cpp      # 物品组件注册表（单例，管理物品自定义组件的注册和事件派发）
+├── ItemComponentEvents.hpp            # 物品组件事件数据结构（Use/HitEntity/Consume等7种事件）
+└── CustomComponentParameters.hpp      # 组件参数容器（从JSON定义传入，使用std::any存储）
 ```
 
 ## 组件注册表
@@ -62,42 +62,6 @@ component/
 | CompleteUse | onCompleteUse | 否 | 物品使用动画完成 | LivingEntity::updateActiveItem |
 | Consume | onConsume | 否 | 物品被消耗 | FoodItem::onItemUseFinish |
 
-## JS绑定
-
-自定义组件通过`@minecraft/server`模块导出的`blockComponentRegistry`和`itemComponentRegistry`全局对象注册。
-
-```javascript
-import { world, blockComponentRegistry, itemComponentRegistry } from "@minecraft/server";
-
-// 注册方块自定义组件
-blockComponentRegistry.registerCustomComponent("minecraft:my_block", {
-    onStepOn: (event) => {
-        console.log(`Entity stepped on block at ${event.x}, ${event.y}, ${event.z}`);
-    },
-    onPlace: (event) => {
-        console.log(`Block placed at ${event.x}, ${event.y}, ${event.z}`);
-    },
-    beforeOnPlayerPlace: (event) => {
-        // 可取消放置
-        event.cancel = true;
-    }
-});
-
-// 注册物品自定义组件
-itemComponentRegistry.registerCustomComponent("minecraft:my_item", {
-    onUse: (event) => {
-        console.log(`Item used by entity ${event.sourceId}`);
-    },
-    onHitEntity: (event) => {
-        console.log(`Item hit entity ${event.hitEntityId}`);
-    },
-    beforeDurabilityDamage: (event) => {
-        // 可修改耐久伤害
-        event.durabilityDamage = 0; // 不消耗耐久
-    }
-});
-```
-
 ## 内部模块关系
 
 ```
@@ -122,3 +86,13 @@ ItemComponentRegistry ←── 同上
 
 - **被依赖者：** `modules/MinecraftModuleFactory.cpp`（JS绑定），`modules/ScriptCustomComponentBinding.cpp`（JS→C++回调桥接）
 - **依赖：** `core/Types.hpp`，`spdlog`
+
+## 容易踩的坑
+
+1. **组件名称必须包含命名空间前缀**：如`my_pack:custom_behavior`，否则会输出警告日志
+2. **hasXxxCallback是性能优化**：派发事件前必须先调用对应的`hasXxxCallback()`检查，避免不必要的锁竞争和组件遍历
+3. **线程安全**：注册表使用`shared_mutex`，读操作用共享锁，写操作用独占锁；派发时持有共享锁，回调内不可再调用注册方法（会死锁）
+4. **beforeOnPlayerPlace的cancel传播**：所有回调都会执行，但任一回调设置`event.cancel = true`会导致最终返回true（取消放置）
+5. **派发返回值含义**：`dispatchXxx()`返回true表示至少有一个组件处理了该事件，非取消含义
+6. **RedstoneUpdate/BlockStateChange事件未接入**：表格中标注"(待接入)"的事件目前派发位置为空，调用dispatch方法永远不会触发回调
+7. **CustomComponentParameters不可拷贝**：使用`std::any`存储，拷贝可能昂贵，仅支持移动语义

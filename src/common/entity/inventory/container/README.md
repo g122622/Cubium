@@ -2,328 +2,58 @@
 
 提供GUI容器（Container/Menu）的实现，用于客户端-服务端同步玩家与方块实体的交互。
 
-所有容器类已统一迁移到 `AbstractContainerMenu` 基类，提供一致的槽位管理、点击处理和同步机制。
-
-## MC 1.16.5 对齐状态
-
-- ✅ **槽位坐标** - 所有容器槽位坐标已与 MC 1.16.5 对齐
-- ✅ **stillValid距离检查** - 所有容器都实现了距离检查，验证玩家是否在方块附近（8格范围内）
-- ✅ **特殊槽位类型** - ArmorSlot、ResultSlot、FurnaceFuelSlot、FurnaceResultSlot 已实现
-- ✅ **槽位回调** - onTake、onSwapCraft、onCrafting 回调已实现
-- ✅ **快速移动** - Shift+点击快速移动物品已实现
-- ✅ **创造模式特殊权限** - 铁砧和附魔台的创造模式玩家特殊权限已实现
+所有容器类统一继承 `AbstractContainerMenu` 基类，提供一致的槽位管理、点击处理和同步机制。
 
 ## 目录结构
 
 ```
 container/
-├── ChestContainer.hpp/cpp        # 箱子菜单（单箱27格/双箱54格，基于 AbstractContainerMenu）
-├── FurnaceContainer.hpp/cpp      # 熔炉菜单（输入/燃料/输出槽，基于 AbstractContainerMenu）
-├── EnchantmentContainer.hpp/cpp  # 附魔台菜单（物品槽/青金石槽，附魔选项生成）
-├── BrewingStandContainer.hpp/cpp # 酿造台菜单（3药水槽/材料槽/燃料槽）
-├── AnvilContainer.hpp/cpp        # 铁砧菜单（2输入槽/输出槽，修复/重命名/附魔合并）
+├── AnvilContainer.hpp/cpp        # 铁砧容器（修复/重命名/附魔合并）
+├── BrewingStandContainer.hpp/cpp # 酿造台容器（3药水槽/材料槽/燃料槽）
+├── CartographyContainer.hpp/cpp  # 制图台容器（地图扩展/锁定/复制）
+├── ChestContainer.hpp/cpp        # 箱子容器（单箱27格/双箱54格）
+├── EnchantmentContainer.hpp/cpp  # 附魔台容器（物品槽/青金石槽）
+├── FurnaceContainer.hpp/cpp      # 熔炉容器（输入/燃料/输出槽）
 ├── HopperContainer.hpp/cpp       # 漏斗容器（5格）
+├── LoomContainer.hpp/cpp         # 织布机容器（旗帜图案染色）
 └── README.md
 ```
 
-## 文件详解
+## 内部模块关系
 
-### ChestContainer.hpp/cpp
-
-**职责**：箱子GUI菜单，处理玩家与箱子之间的物品交换，并与客户端/服务端菜单同步层对齐。
-
-**主要功能**：
-- 单箱模式：27格存储
-- 双箱模式：54格存储（合并两个箱子）
-- 玩家物品栏同步
-- 打开/关闭计数管理
-
-**槽位布局**：
 ```
-单箱 (27格):
-+----------------------------------+
-| 0  1  2  3  4  5  6  7  8        |
-| 9  10 11 12 13 14 15 16 17      |
-| 18 19 20 21 22 23 24 25 26      |
-+----------------------------------+
-
-双箱 (54格):
-+----------------------------------+
-| 上半部分（LEFT箱子）              |
-| 0-26                             |
-+----------------------------------+
-| 下半部分（RIGHT箱子）             |
-| 27-53                            |
-+----------------------------------+
+AbstractContainerMenu (基类，定义在 inventory/ 目录)
+        │
+        ├── ChestContainer ──关联──> ChestEntity
+        ├── FurnaceContainer ──关联──> AbstractFurnaceEntity
+        ├── EnchantmentContainer ──关联──> EnchantingTableEntity（位置）
+        ├── BrewingStandContainer ──关联──> BrewingStandEntity
+        ├── AnvilContainer ──关联──> 铁砧方块位置
+        ├── HopperContainer ──关联──> HopperEntity
+        ├── CartographyContainer ──关联──> 制图台方块位置
+        └── LoomContainer ──关联──> 织布机方块位置
 ```
 
-### FurnaceContainer.hpp/cpp
+所有容器都通过 `PlayerInventory` 同步玩家背包状态。
 
-**职责**：熔炉GUI菜单，处理玩家与熔炉之间的物品交换，并与客户端/服务端菜单同步层对齐。
+## 上下游外部依赖关系
 
-**主要功能**：
-- 3槽熔炉背包（输入/燃料/输出）
-- 熔炼进度显示
-- 燃烧时间显示
-- 快速移动支持
+### 上游依赖（谁依赖了这个目录）
 
-**槽位布局**：
-```
-熔炉容器:
-+------------+
-| 输入 (0)   |
-| 燃料 (1)   |
-| 输出 (2)   |
-+------------+
-```
+- `client/ui/screen/` - 客户端 Screen 类（ChestScreen、FurnaceScreen、CartographyScreen、LoomScreen 等）
+- 服务端方块交互逻辑 - 创建容器实例并绑定到玩家
 
-### EnchantmentContainer.hpp/cpp
+### 下游依赖（这个目录依赖了谁）
 
-**职责**：附魔台GUI菜单，处理附魔选项生成和青金石消耗。
-
-**主要功能**：
-- 物品槽：放置待附魔物品
-- 青金石槽：消耗青金石作为附魔材料
-- 附魔选项生成：基于书架力量和随机种子
-- 附魔等级计算：MC 1.16.5 公式
-- **创造模式特殊权限**
-
-**槽位布局**：
-```
-附魔台容器:
-+------------+
-| 物品 (0)   |
-| 青金石 (1) |
-+------------+
-```
-
-**书架力量计算**（MC 1.16.5对齐）：
-- 检测附魔台周围5x5区域内的书架
-- 书架必须距离附魔台2格，中间有空气
-- 最大书架力量：15
-
-**附魔等级公式**（MC 1.16.5对齐）：
-- 基础值：`j = rand(1-8) + 1 + floor(power/2) + rand(0-power)`
-- 槽位0：`max(j/3, 1)` - 最便宜
-- 槽位1：`j * 2/3 + 1` - 中等
-- 槽位2：`max(j, power*2)` - 最贵
-
-**附魔列表生成**（MC 1.16.5对齐）：
-- 第一个附魔：加权随机选择
-- 后续附魔：`rand(50) < level` 概率添加
-- 每添加一个附魔，等级减半
-- 移除与已选附魔不兼容的选项
-
-**创造模式特殊权限**（MC 1.16.5 `EnchantmentContainer`）：
-| 功能 | 生存模式 | 创造模式 |
-|------|----------|----------|
-| 经验消耗 | 扣除经验等级 | 不消耗经验 |
-| 青金石消耗 | 扣除青金石 | 扣除青金石（与MC一致）|
-
-### BrewingStandContainer.hpp/cpp
-
-**职责**：酿造台GUI菜单，处理药水酿造。
-
-**主要功能**：
-- 3个药水槽：放置药水瓶
-- 材料槽：放置酿造材料
-- 燃料槽：放置烈焰粉（每次酿造消耗1点，共20点）
-- 酿造状态同步
-
-**槽位布局**：
-```
-酿造台容器:
-+------------------+
-| 材料 (3)  燃料(4)|
-| 药水(0)          |
-| 药水(1)          |
-| 药水(2)          |
-+------------------+
-```
-
-### AnvilContainer.hpp/cpp
-
-**职责**：铁砧GUI菜单，处理物品修复、重命名和附魔合并。
-
-**主要功能**：
-- 输入槽1：待修复/重命名的物品
-- 输入槽2：修复材料或附魔书
-- 输出槽：修复/合并后的结果
-- 修复成本计算（最大40级）
-- 附魔合并逻辑
-- **创造模式特殊权限**
-
-**槽位布局**：
-```
-铁砧容器:
-+------------------+
-| 输入1(0) 输入2(1)|
-|    输出 (2)      |
-+------------------+
-```
-
-**修复成本规则**：
-- 基础成本：输入物品修复成本之和
-- 重命名：+1级
-- 附魔合并：根据附魔稀有度计算
-- 修复耐久：+2级
-- 最大成本：40级（超过则"太贵"）
-
-**创造模式特殊权限**（MC 1.16.5 `RepairContainer`）：
-| 功能 | 生存模式 | 创造模式 |
-|------|----------|----------|
-| 取出物品权限 | 需要足够经验等级 | 无视经验等级要求 |
-| 费用上限 | 超过40级无法操作 | 绕过40级费用上限 |
-| 附魔物品限制 | 仅限附魔书或兼容物品 | 可给任何物品应用任何附魔 |
-| 铁砧损坏 | 12%概率损坏 | 永不损坏 |
-| 经验消耗 | 扣除经验等级 | 不消耗 |
-
-### HopperContainer.hpp/cpp
-
-**职责**：漏斗GUI容器，处理玩家与漏斗之间的物品交换。
-
-**主要功能**：
-- 5格漏斗背包
-- 快速移动支持
-- 基于AbstractContainerMenu
-
-**槽位布局** (MC 1.16.5):
-```
-漏斗容器 (5格):
-+---------------------+
-| 0  1  2  3  4       |  (Y=20, X从44开始)
-+---------------------+
-```
-
-## 模块关系
-
-```mermaid
-graph TB
-    IInventory[IInventory 背包接口]
-    AbstractContainerMenu[AbstractContainerMenu 菜单基类]
-    Container[Container 旧式容器基类]
-    ChestContainer[ChestContainer]
-    FurnaceContainer[FurnaceContainer]
-    EnchantmentContainer[EnchantmentContainer]
-    BrewingStandContainer[BrewingStandContainer]
-    AnvilContainer[AnvilContainer]
-    HopperContainer[HopperContainer]
-    ChestEntity[ChestEntity]
-    FurnaceEntity[AbstractFurnaceEntity]
-    EnchantingTableEntity[EnchantingTableEntity]
-    BrewingStandEntity[BrewingStandEntity]
-    PlayerInventory[PlayerInventory]
-
-    AbstractContainerMenu --> ChestContainer
-    AbstractContainerMenu --> FurnaceContainer
-    AbstractContainerMenu --> EnchantmentContainer
-    AbstractContainerMenu --> BrewingStandContainer
-    AbstractContainerMenu --> AnvilContainer
-    Container --> HopperContainer
-    ChestContainer -.关联.-> ChestEntity
-    FurnaceContainer -.关联.-> FurnaceEntity
-    EnchantmentContainer -.关联.-> EnchantingTableEntity
-    BrewingStandContainer -.关联.-> BrewingStandEntity
-    ChestContainer -.同步.-> PlayerInventory
-    FurnaceContainer -.同步.-> PlayerInventory
-    EnchantmentContainer -.同步.-> PlayerInventory
-    BrewingStandContainer -.同步.-> PlayerInventory
-    AnvilContainer -.同步.-> PlayerInventory
-    HopperContainer -.同步.-> PlayerInventory
-```
-
-## 依赖项
-
-### 内部依赖
+- `entity/inventory/AbstractContainerMenu.hpp` - 容器菜单基类
 - `entity/inventory/IInventory.hpp` - 背包接口
-- `entity/inventory/PlayerInventory.hpp` - 玩家背包
 - `entity/inventory/Slot.hpp` - 槽位类
-- `world/blockentity/storage/ChestEntity.hpp` - 箱子实体
-- `world/blockentity/processing/AbstractFurnaceEntity.hpp` - 熔炉实体
-- `world/blockentity/processing/BrewingStandEntity.hpp` - 酿造台实体
-- `world/blockentity/transport/HopperEntity.hpp` - 漏斗实体
+- `entity/inventory/PlayerInventory.hpp` - 玩家背包
+- `world/blockentity/` - 方块实体（ChestEntity、AbstractFurnaceEntity、BrewingStandEntity、HopperEntity）
 - `item/enchantment/EnchantmentHelper.hpp` - 附魔工具类
 - `item/potion/PotionBrewing.hpp` - 酿造配方管理
-
-### 外部依赖
+- `world/block/BlockPos.hpp` - 方块位置
 - `<memory>` - 智能指针
-- `<vector>` - 动态数组
-- `<array>` - 固定数组
-
-## 使用方法
-
-### 创建箱子容器
-
-```cpp
-// 单箱
-mc::PlayerInventory playerInventory(nullptr);
-auto chestContainer = std::make_unique<ChestContainer>(
-    containerId,
-    &playerInventory,
-    chestEntity->getInventory()
-);
-
-// 双箱
-auto doubleContainer = std::make_unique<ChestContainer>(
-    containerId,
-    &playerInventory,
-    chestA->getInventory(),
-    chestB->getInventory()
-);
-```
-
-### 创建熔炉容器
-
-```cpp
-auto furnaceContainer = std::make_unique<FurnaceContainer>(
-    containerId,
-    &playerInventory,
-    furnaceEntity->getFurnaceInventory()
-);
-```
-
-### 创建附魔台容器
-
-```cpp
-auto enchantmentContainer = std::make_unique<EnchantmentContainer>(
-    containerId,
-    &playerInventory,
-    enchantingTablePos,
-    &world
-);
-```
-
-### 创建酿造台容器
-
-```cpp
-auto brewingContainer = std::make_unique<BrewingStandContainer>(
-    containerId,
-    &playerInventory,
-    brewingStandEntity->getInventory(),
-    brewingStandEntity
-);
-```
-
-### 创建铁砧容器
-
-```cpp
-auto anvilContainer = std::make_unique<AnvilContainer>(
-    containerId,
-    &playerInventory,
-    anvilPos,
-    &world
-);
-```
-
-### 创建漏斗容器
-
-```cpp
-auto hopperContainer = std::make_unique<HopperContainer>(
-    containerId,
-    playerInventory,
-    hopperEntity->getInventory()
-);
-```
 
 ## 容易踩的坑
 
@@ -357,185 +87,32 @@ if (containerId != expectedId) {
 }
 ```
 
-### 3. 玩家背包同步
+### 3. stillValid 距离检查
 
-打开容器时需要同步玩家背包状态：
+所有容器都必须实现 `stillValid()` 方法，检查玩家是否仍在方块附近（8格范围内）：
 
-```cpp
-void onContainerOpen(Player& player) {
-    // 添加玩家背包槽位到容器
-    for (int i = 0; i < 36; ++i) {
-        addSlot(new PlayerInventorySlot(player.getInventory(), i));
-    }
-}
-```
+- **方块实体关联的容器**（如熔炉、酿造台）：通过 `BlockEntity::getPos()` 获取位置并计算距离
+- **位置关联的容器**（如附魔台、铁砧、制图台、织布机）：通过存储的位置计算距离
+- **距离检查规则**：有效距离 8 格（距离平方 ≤ 64），检查点为方块中心（x+0.5, y+0.5, z+0.5）
 
-### 4. 容器关闭处理
+### 4. 铁砧修复成本限制
 
-关闭容器时需要正确处理物品返回：
-
-```cpp
-void onContainerClose(Player& player) {
-    // 返回容器中的物品
-    for (auto& slot : m_slots) {
-        if (!slot.getItem().isEmpty()) {
-            player.getInventory().addItem(slot.getItem());
-        }
-    }
-}
-```
+修复成本超过40级时操作不可用（显示"太贵"提示）。创造模式玩家绕过此限制。
 
 ### 5. 附魔台书架力量计算
 
-书架必须在附魔台周围2格范围内，且中间必须有空气：
+书架必须在附魔台周围2格范围内，且中间必须有空气。最大书架力量为15。
 
-```cpp
-// 检查书架与附魔台之间的空气
-BlockPos airPos1 = tablePos.offset(dx > 0 ? 1 : (dx < 0 ? -1 : 0), 0, ...);
-BlockPos airPos2 = tablePos.offset(..., 1, ...);
-if (world->isAirBlock(airPos1) && world->isAirBlock(airPos2)) {
-    power++;
-}
-```
+### 6. 容器关闭处理
 
-### 6. 铁砧修复成本限制
+关闭容器时需要正确处理物品返回，确保无法放入玩家背包的物品被丢弃到世界中。
 
-修复成本超过40级时操作不可用：
+### 7. 创造模式特殊权限
 
-```cpp
-if (repairCost >= 40) {
-    // 显示"太贵"提示
-    return;
-}
-```
+铁砧和附魔台容器有创造模式玩家特殊权限：
+- 铁砧：无视经验等级要求、绕过40级费用上限、可给任何物品应用任何附魔、铁砧永不损坏
+- 附魔台：不消耗经验（但仍消耗青金石）
 
-### 7. stillValid 距离检查
+### 8. 熔炉输出槽经验发放
 
-所有容器都需要实现 `stillValid()` 方法，检查玩家是否仍在方块附近：
-
-**实现方式**：
-
-1. **方块实体关联的容器**（如熔炉、酿造台）：通过 `BlockEntity::getPos()` 获取位置并计算距离
-
-```cpp
-bool BrewingStandContainer::stillValid(const Player& player) const {
-    if (m_brewingStandEntity == nullptr) {
-        return true;  // 无方块实体时始终有效
-    }
-    const BlockPos pos = m_brewingStandEntity->getPos();
-    return player.distanceSqTo(
-               static_cast<f32>(pos.x) + 0.5f,
-               static_cast<f32>(pos.y) + 0.5f,
-               static_cast<f32>(pos.z) + 0.5f) <= 64.0f;  // 8^2 = 64
-}
-```
-
-2. **方块实体关联的容器**（如箱子、漏斗）：通过可选的方块实体参数实现距离检查
-
-```cpp
-// ChestContainer 支持单箱和双箱的距离检查
-bool ChestContainer::stillValid(const Player& player) const {
-    // 如果没有关联的箱子实体，使用背包的 isUsableByPlayer 方法
-    if (m_chestEntityA == nullptr && m_chestEntityB == nullptr) {
-        return m_chestInventory->isUsableByPlayer(player);
-    }
-
-    // 检查第一个箱子实体的距离
-    if (m_chestEntityA != nullptr) {
-        if (m_chestEntityA->isRemoved()) {
-            return false;
-        }
-        const BlockPos posA = m_chestEntityA->getPos();
-        if (player.distanceSqTo(...) <= 64.0f) {
-            return true;
-        }
-    }
-
-    // 检查第二个箱子实体（双箱情况）
-    if (m_chestEntityB != nullptr) {
-        if (m_chestEntityB->isRemoved()) {
-            return false;
-        }
-        const BlockPos posB = m_chestEntityB->getPos();
-        if (player.distanceSqTo(...) <= 64.0f) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-// HopperContainer 同样支持距离检查
-bool HopperContainer::stillValid(const Player& player) const {
-    if (m_hopperEntity == nullptr) {
-        return m_hopperInventory->isUsableByPlayer(player);
-    }
-    const BlockPos pos = m_hopperEntity->getPos();
-    return player.distanceSqTo(
-               static_cast<f32>(pos.x) + 0.5f,
-               static_cast<f32>(pos.y) + 0.5f,
-               static_cast<f32>(pos.z) + 0.5f) <= 64.0f;
-}
-```
-
-3. **位置关联的容器**（如附魔台、铁砧）：通过存储的位置计算距离
-
-```cpp
-bool EnchantmentContainer::stillValid(const Player& player) const {
-    return isWithinDistance(player, m_position);
-}
-```
-
-**ContainerBlockEntity::isUsableByPlayer()**：
-
-`ContainerBlockEntity` 提供了通用的距离检查方法：
-
-```cpp
-bool ContainerBlockEntity::isUsableByPlayer(const Player& player, f32 maxDistanceSq) const {
-    if (isRemoved()) {
-        return false;
-    }
-    const BlockPos pos = getPos();
-    return player.distanceSqTo(
-               static_cast<f32>(pos.x) + 0.5f,
-               static_cast<f32>(pos.y) + 0.5f,
-               static_cast<f32>(pos.z) + 0.5f) <= maxDistanceSq;
-}
-```
-
-**距离检查规则**（MC 1.16.5）：
-- 有效距离：8格（距离平方 ≤ 64）
-- 检查点：方块中心（x+0.5, y+0.5, z+0.5）
-- 方块实体被移除时返回 false
-
-## 测试用例
-
-测试文件位于 `tests/common/entity/inventory/container/`：
-
-- `ChestContainerTest.cpp` - 箱子菜单测试，覆盖槽位布局和快速移动
-- `FurnaceContainerTest.cpp` - 熔炉菜单测试，覆盖槽位布局和快速移动
-- `HopperContainerTest.cpp` - 漏斗容器测试
-- `EnchantmentContainerTest.cpp` - 附魔台菜单测试，覆盖槽位布局、附魔选项API、创造模式检查
-- `BrewingStandContainerTest.cpp` - 酿造台菜单测试，覆盖槽位布局、酿造状态API
-- `AnvilContainerTest.cpp` - 铁砧菜单测试，覆盖槽位布局、修复成本API、创造模式检查
-
-### 测试覆盖
-
-- 槽位访问和修改
-- 双箱槽位映射
-- 快速移动（Shift+点击）
-- 物品交换和堆叠
-- 容器打开/关闭
-- 网络同步
-- 附魔选项生成
-- 书架力量计算
-- 酿造台燃料消耗
-- 铁砧修复成本计算
-- 附魔合并逻辑
-- **创造模式特殊权限检查**
-  - AnvilContainer: isPlayerCreative() 方法（含生存/创造/观察者/冒险模式测试）
-  - AnvilContainer: 结果槽取出权限检查
-  - AnvilContainer: 40级费用上限绕过
-  - AnvilContainer: 附魔物品限制绕过
-  - EnchantmentContainer: isPlayerCreative() 方法（含生存/创造/观察者/冒险模式测试）
-  - EnchantmentContainer: 经验消耗豁免
+`FurnaceResultSlot` 在取出物品时自动发放熔炼累积的经验。经验值向下取整后发放。

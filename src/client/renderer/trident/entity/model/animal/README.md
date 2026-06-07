@@ -2,240 +2,65 @@
 
 本目录包含动物实体的模型实现。
 
-## 文件列表
+## 目录结构
 
-| 文件 | 描述 |
-|------|------|
-| `AnimalModels.hpp/cpp` | 猪、牛、羊、鸡模型 |
-| `BatModel.hpp/cpp` | 蝙蝠模型 |
-| `CatModel.hpp/cpp` | 猫模型 |
-| `HorseModel.hpp/cpp` | 马模型（含驴、骡、骷髅马、僵尸马） |
-| `LlamaModel.hpp/cpp` | 羊驼模型 |
-| `OcelotModel.hpp/cpp` | 豹猫模型 |
-| `PolarBearModel.hpp/cpp` | 北极熊模型 |
-| `RabbitModel.hpp/cpp` | 兔子模型 |
-| `SquidModel.hpp/cpp` | 鱿鱼模型 |
-| `VillagerModel.hpp/cpp` | 村民模型 |
-| `WolfModel.hpp/cpp` | 狼模型 |
-
-## 模型类
-
-### PigModel（猪模型）
-
-```cpp
-class PigModel : public QuadrupedModel {
-public:
-    PigModel();
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
-};
+```
+animal/
+├── AnimalModels.hpp/cpp         # 猪、牛、羊、鸡模型
+├── BatModel.hpp/cpp             # 蝙蝠模型
+├── CatModel.hpp/cpp             # 猫模型
+├── HorseModel.hpp/cpp           # 马模型（含驴、骡、骷髅马、僵尸马）
+├── LlamaModel.hpp/cpp           # 羊驼模型
+├── OcelotModel.hpp/cpp          # 豹猫模型
+├── PolarBearModel.hpp/cpp       # 北极熊模型
+├── RabbitModel.hpp/cpp          # 兔子模型
+├── SquidModel.hpp/cpp           # 鱿鱼模型
+├── VillagerModel.hpp/cpp        # 村民模型
+├── WolfModel.hpp/cpp            # 狼模型
+└── README.md
 ```
 
-**纹理布局**（64x32）：
-- 头部：0,0（8x8x8）
-- 身体：28,8（10x16x8）
-- 腿部：各 6x8
+## 内部模块关系
 
-### CowModel（牛模型）
+所有动物模型均继承自 `core/` 和 `base/` 下的基类：
 
-```cpp
-class CowModel : public QuadrupedModel {
-public:
-    CowModel();
-    void setAngles(...) override;
-};
-```
+- `EntityModel` — 模型基类，定义动画和渲染接口
+- `AgeableModel` — 可成长模型基类（支持成年/幼体渲染），继承自 EntityModel
+- `QuadrupedModel` — 四足模型基类，继承自 AgeableModel
+- `ModelRenderer` — 模型部件类，代表模型的一个部分
 
-**纹理布局**（64x32）：
-- 头部：0,0（8x8x8）
-- 身体：18,4（12x18x10）
-- 腿部：各 4x12
+继承关系：
+- PigModel、CowModel、SheepModel、HorseModel、WolfModel、OcelotModel、PolarBearModel → QuadrupedModel
+- ChickenModel、LlamaModel、RabbitModel、CatModel、BatModel、SquidModel、VillagerModel → AgeableModel
 
-### SheepModel（羊模型）
+## 上下游外部依赖关系
 
-```cpp
-class SheepModel : public QuadrupedModel {
-public:
-    SheepModel();
-    void setAngles(...) override;
-    
-    void setWool(bool hasWool);  // 设置是否有羊毛
-    
-private:
-    bool m_hasWool = true;
-};
-```
+**上游依赖：**
+- `core/EntityModel.hpp` — 模型基类
+- `core/AgeableModel.hpp` — 可成长模型基类
+- `core/ModelRenderer.hpp` — 模型部件渲染器
+- `base/QuadrupedModel.hpp` — 四足模型基类
 
-**纹理布局**（64x32）：
-- 头部：0,0（8x8x8）
-- 身体：28,8（12x18x10）
-- 腿部：各 4x12
-- 羊毛：单独纹理层
+**下游使用：**
+- `model/ModelRegistration.cpp` — 注册所有模型到 ModelFactory
+- `renderer/animal/*Renderer.hpp/cpp` — 各动物渲染器使用对应模型
+- `core/EntityRendererManager.cpp` — 实体渲染管理器
+- `layer/entity/VillagerLayer.hpp` — 村民渲染层
 
-### ChickenModel（鸡模型）
+## 容易踩的坑
 
-```cpp
-class ChickenModel : public EntityModel {
-public:
-    ChickenModel();
-    void render(f64 scale) override;
-    void setAngles(...) override;
-    
-private:
-    std::shared_ptr<ModelRenderer> m_head;
-    std::shared_ptr<ModelRenderer> m_body;
-    std::shared_ptr<ModelRenderer> m_rightWing;
-    std::shared_ptr<ModelRenderer> m_leftWing;
-    std::shared_ptr<ModelRenderer> m_rightLeg;
-    std::shared_ptr<ModelRenderer> m_leftLeg;
-    std::shared_ptr<ModelRenderer> m_beak;    // 喙
-    std::shared_ptr<ModelRenderer> m_wattle;  // 肉垂
-    std::shared_ptr<ModelRenderer> m_comb;    // 鸡冠
-};
-```
+1. **动画参数理解**：`limbSwing` 是步态动画周期（0-2π），`limbSwingAmount` 是步态强度（0-1），`ageInTicks` 用于空闲动画，这些参数由 LivingRenderer 计算并传入。
 
-**纹理布局**（64x32）：
-- 头部：0,0（2x2x2）
-- 喙：14,0（2x1x1）
-- 肉垂：14,1（1x1x1）
-- 鸡冠：14,2（1x1x1）
-- 身体：8,8（4x6x3）
-- 翅膀：各 4x3
-- 腿部：各 1x3
+2. **SheepModel 羊毛状态**：必须调用 `setWool(bool)` 设置羊毛状态，否则可能显示错误。同时支持 `setEatingGrass()` 和 `setHeadRotation()` 用于吃草动画。
 
-### LlamaModel（羊驼模型）
+3. **PolarBearModel 站立动画**：需要调用 `setStandingProgress(f32)` 设置站立进度（0=四足，1=后腿站立），并调用 `setLivingAnimations()` 更新动画。
 
-```cpp
-class LlamaModel : public AgeableModel {
-public:
-    explicit LlamaModel(f32 scale = 0.0f);
-    
-    void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
-    
-    void setHasChest(bool hasChest);  // 设置是否装备箱子
-    
-protected:
-    std::vector<std::shared_ptr<ModelRenderer>> getHeadParts() const override;
-    std::vector<std::shared_ptr<ModelRenderer>> getBodyParts() const override;
-    
-private:
-    std::shared_ptr<ModelRenderer> m_body;
-    std::shared_ptr<ModelRenderer> m_head;
-    std::shared_ptr<ModelRenderer> m_backRightLeg;
-    std::shared_ptr<ModelRenderer> m_backLeftLeg;
-    std::shared_ptr<ModelRenderer> m_frontRightLeg;
-    std::shared_ptr<ModelRenderer> m_frontLeftLeg;
-    std::shared_ptr<ModelRenderer> m_chest1;  // 左侧箱子
-    std::shared_ptr<ModelRenderer> m_chest2;  // 右侧箱子
-};
-```
+4. **LlamaModel 箱子装饰**：需要调用 `setHasChest(bool)` 设置是否装备箱子。
 
-**纹理布局**（128x64）：
-- 头部主体：0,0（4x4x9）
-- 头部延伸：0,14（8x18x6）
-- 耳朵：17,0（3x3x2）x2
-- 身体：29,0（12x18x10）
-- 腿部：29,29（4x14x4）x4
-- 箱子：45,28（8x8x3）和 45,41（8x8x3）
-
-**颜色变体**：
-- Creamy（奶油色）：textures/entity/llama/creamy.png
-- White（白色）：textures/entity/llama/white.png
-- Brown（棕色）：textures/entity/llama/brown.png
-- Gray（灰色）：textures/entity/llama/gray.png
-
-**特性**：
-- 继承 AgeableModel，支持成年体和幼体渲染
-- 支持箱子装饰显示（成年且有箱子时）
-- 箱子部件使用身体作为父部件
-
-### PolarBearModel（北极熊模型）
-
-```cpp
-class PolarBearModel : public QuadrupedModel {
-public:
-    PolarBearModel();
-    
-    void render(f64 scale = 1.0f / 16.0f) override;
-    void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                   f64 ageInTicks, f64 netHeadYaw,
-                   f64 headPitch, f64 scale) override;
-    
-    void setStandingProgress(f32 standingProgress);
-    void setLivingAnimations(f64 limbSwing, f64 limbSwingAmount,
-                             f64 partialTick) override;
-    
-protected:
-    void setupParts() override;
-    std::vector<std::shared_ptr<ModelRenderer>> getHeadParts() const override;
-    std::vector<std::shared_ptr<ModelRenderer>> getBodyParts() const override;
-    
-private:
-    f32 m_standingProgress = 0.0f;
-};
-```
-
-**纹理布局**（128x64）：
-- 头部主体：0,0（7x7x7）
-- 鼻子：0,44（5x3x3）
-- 耳朵：26,0（2x2x1）x2
-- 身体上部：0,19（14x14x11）
-- 身体下部：39,0（12x12x10）
-- 后腿：50,22（4x10x8）x2
-- 前腿：50,40（4x10x6）x2
-
-**站立动画**：
-- 参考 MC 1.16.5 PolarBearModel.setRotationAngles
-- 站立进度范围 [0, 1]，0 为四足站立，1 为后腿站立
-- 身体旋转：PI/2 - progress * PI * 0.35
-- 前腿移动：Y 和 Z 偏移，X 旋转增加
-- 头部移动：成年/幼体有不同的 Y 和 Z 偏移
-
-**特性**：
-- 继承 QuadrupedModel，支持四足动物基础动画
-- 支持成年体和幼体渲染（AgeableModel）
-- 支持后腿站立动画
-- 纹理与 MC 1.16.5 完全一致
-
-## 动画特性
-
-### 四足动物步态
-
-```cpp
-// 四足动物的腿部交替动画
-m_rightFrontLeg->setRotateAngleX(std::sin(limbSwing) * limbSwingAmount);
-m_leftFrontLeg->setRotateAngleX(-std::sin(limbSwing) * limbSwingAmount);
-m_rightBackLeg->setRotateAngleX(-std::sin(limbSwing) * limbSwingAmount);
-m_leftBackLeg->setRotateAngleX(std::sin(limbSwing) * limbSwingAmount);
-```
-
-### 鸡的翅膀动画
-
-```cpp
-// 翅膀拍动
-f32 wingAngle = std::sin(ageInTicks * 0.3f) * 0.2f;
-m_rightWing->setRotateAngleZ(wingAngle);
-m_leftWing->setRotateAngleZ(-wingAngle);
-```
+5. ** HorseModel 变体**：同一模型支持马、驴、骡、骷髅马、僵尸马，通过纹理区分。
 
 ## 命名空间
 
 ```cpp
-namespace mc::client::renderer::entity::model::animal {
-    class PigModel;
-    class CowModel;
-    class SheepModel;
-    class ChickenModel;
-}
+namespace mc::client::renderer::entity::model::animal
 ```
-
-## 参考
-
-- MC 1.16.5 PigModel
-- MC 1.16.5 CowModel
-- MC 1.16.5 SheepModel
-- MC 1.16.5 ChickenModel

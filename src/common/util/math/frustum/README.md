@@ -6,175 +6,54 @@
 
 ```
 frustum/
-├── Frustum.hpp         # 视锥类定义
-├── Frustum.cpp         # 视锥类实现
+├── Frustum.hpp         # 视锥类定义，包含 FrustumPlane 结构体、Frustum 类和 FrustumUtils 命名空间
+├── Frustum.cpp         # 视锥类实现，包含 Gribb-Hartmann 平面提取算法和 p-vertex AABB 测试
 └── README.md           # 本文档
 ```
 
-## 核心概念
+## 内部模块关系
 
-### 视锥体（Frustum）
-
-视锥体是由 6 个平面围成的截头锥体，定义了相机可见的空间范围：
-
-- **Left/Right**: 左右裁剪面
-- **Top/Bottom**: 上下裁剪面
-- **Near/Far**: 近远裁剪面
-
-### 平面方程
-
-每个平面由方程 `Ax + By + Cz + D = 0` 表示，其中：
-- `(A, B, C)` 是平面法向量（归一化后指向视锥内部）
-- `D` 是平面到原点的距离
-
-### p-vertex 优化
-
-对于 AABB-视锥相交测试，使用 p-vertex（正向极值点）优化：
-- 对每个平面，找到 AABB 上离平面法向量方向最远的顶点
-- 如果 p-vertex 在平面外侧，则整个 AABB 在平面外侧
-- 只需计算一个顶点而非 8 个角点
-
-## 使用方法
-
-### 基本用法
-
-```cpp
-#include "common/util/math/frustum/Frustum.hpp"
-
-using namespace mc::math::frustum;
-
-// 创建视锥体
-Frustum frustum;
-
-// 从视图-投影矩阵提取平面（每帧调用一次）
-frustum.extractFromMatrix(viewProjectionMatrix);
-
-// 设置相机位置（用于世界坐标测试）
-frustum.setCameraPosition(cameraPosition);
-
-// 测试点可见性
-if (frustum.isPointVisible(point)) {
-    // 点在视锥内
-}
-
-// 测试球可见性（适用于粒子、小物体）
-if (frustum.isSphereVisible(center, radius)) {
-    // 球与视锥相交
-}
-
-// 测试 AABB 可见性（适用于区块、实体）
-AxisAlignedBB aabb = FrustumUtils::createChunkAABB(chunkX, chunkZ, minY, maxY);
-if (frustum.isAABBVisibleWorld(aabb)) {
-    // AABB 与视锥相交
-}
-
-// 直接测试区块可见性
-if (frustum.isChunkVisible(chunkX, chunkZ, minY, maxY)) {
-    // 区块可见
-}
+```
+FrustumPlane (结构体)
+     │
+     └─存储于─> Frustum (类)
+                    │
+                    └─使用──> FrustumUtils (命名空间)
+                                    │
+                                    └─创建 AABB 辅助函数
 ```
 
-### 与渲染器集成
+- **FrustumPlane**：存储平面方程 `Ax + By + Cz + D = 0`，提供 `distanceToPoint()` 和 `normalize()` 方法
+- **Frustum**：核心视锥类，存储 6 个裁剪平面，提供点/球/AABB/区块可见性测试
+- **FrustumUtils**：AABB 创建工具函数，用于快速创建区块/区块段/实体/方块的 AABB
 
-```cpp
-// 每帧更新视锥
-void Renderer::renderFrame(const Camera& camera) {
-    // 更新视锥
-    m_frustum.extractFromMatrix(camera.viewProjectionMatrix());
-    m_frustum.setCameraPosition(camera.position());
+## 上下游外部依赖关系
 
-    // 渲染可见区块
-    for (const auto& [chunkId, buffer] : m_chunkBuffers) {
-        if (m_frustum.isChunkVisible(chunkId.x, chunkId.z, m_minY, m_maxY)) {
-            drawChunk(buffer);
-        }
-    }
+### 本模块依赖
 
-    // 渲染可见实体
-    for (Entity* entity : m_entities) {
-        if (m_frustum.isAABBVisibleWorld(entity->boundingBox())) {
-            drawEntity(entity);
-        }
-    }
+| 依赖项 | 用途 |
+|--------|------|
+| `glm::mat4` | VP 矩阵输入类型 |
+| `Vector3` | 向量类型 |
+| `AxisAlignedBB` | AABB 碰撞盒类型 |
+| `CHUNK_WIDTH`, `CHUNK_SECTION_HEIGHT` | 区块尺寸常量 |
 
-    // 渲染可见粒子
-    for (const auto& particle : m_particles) {
-        if (m_frustum.isSphereVisible(particle->position(), particle->size() * 0.5f)) {
-            drawParticle(particle);
-        }
-    }
-}
-```
+### 被依赖（上游模块）
 
-## API 参考
-
-### FrustumPlane
-
-```cpp
-struct FrustumPlane {
-    Vector3f normal;   // 平面法向量（归一化，指向视锥内部）
-    f32 distance;     // 平面到原点的距离
-
-    f32 distanceToPoint(const Vector3f& point) const;  // 计算点到平面的距离
-    void normalize();                                  // 归一化平面方程
-};
-```
-
-### Frustum
-
-```cpp
-class Frustum {
-public:
-    enum PlaneIndex { Left, Right, Bottom, Top, Near, Far };
-
-    // 平面提取
-    void extractFromMatrix(const glm::mat4& viewProjectionMatrix);
-    void extractFromMatrices(const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix);
-
-    // 相机位置设置
-    void setCameraPosition(const Vector3f& position);
-    void setCameraPosition(const glm::vec3& position);
-
-    // 可见性测试
-    bool isPointVisible(const Vector3f& point) const;
-    bool isSphereVisible(const Vector3f& center, f32 radius) const;
-    bool isAABBVisible(const AxisAlignedBB& aabb) const;          // 相机相对坐标
-    bool isAABBVisibleWorld(const AxisAlignedBB& aabb) const;     // 世界坐标
-    bool isChunkVisible(i32 chunkX, i32 chunkZ, i32 minY, i32 maxY) const;
-    bool isChunkSectionVisible(i32 chunkX, i32 sectionY, i32 chunkZ) const;
-
-    // 访问器
-    const FrustumPlane& getPlane(PlaneIndex index) const;
-    const Vector3f& getCameraPosition() const;
-    bool isValid() const;
-};
-```
-
-### FrustumUtils
-
-```cpp
-namespace FrustumUtils {
-    AxisAlignedBB createChunkAABB(i32 chunkX, i32 chunkZ, i32 minY, i32 maxY);
-    AxisAlignedBB createSectionAABB(i32 chunkX, i32 sectionY, i32 chunkZ, i32 sectionHeight = 16);
-    AxisAlignedBB createEntityAABB(const Vector3f& position, f32 width, f32 height);
-    AxisAlignedBB createBlockAABB(i32 x, i32 y, i32 z);
-    AxisAlignedBB expandAABB(const AxisAlignedBB& aabb, f32 margin);
-}
-```
-
-## 性能提示
-
-1. **每帧只提取一次**：`extractFromMatrix()` 每帧调用一次即可
-2. **使用正确的测试方法**：
-   - 点测试：最精确，适合小物体
-   - 球测试：快速，适合粒子和圆形物体
-   - AABB 测试：适合区块和实体
-3. **相机相对坐标**：`isAABBVisibleWorld()` 自动转换，提高大坐标精度
-4. **提前退出**：测试从左平面开始，依次测试所有平面
+| 模块 | 使用方式 |
+|------|----------|
+| `ChunkRenderer` | 区块渲染剔除 |
+| `EntityRendererManager` | 实体渲染剔除 |
+| `ParticleManager` | 粒子渲染剔除 |
+| `WeatherRenderer` | 天气效果剔除 |
+| `NameTagRenderer`, `WorldTextRenderer` | 文字渲染剔除 |
+| `ClientWorld` | 世界可见性查询 |
+| `MeshBuildScheduler` | 网格构建剔除 |
+| `TridentEngine` | 持有视锥实例 |
 
 ## 容易踩的坑
 
-### 1. 矩阵顺序
+### 1. 矩阵顺序错误
 
 ```cpp
 // 错误：矩阵顺序不对
@@ -186,25 +65,19 @@ frustum.extractFromMatrix(projectionMatrix * viewMatrix);  // 正确
 frustum.extractFromMatrix(camera.viewProjectionMatrix());  // 推荐
 ```
 
-### 2. 坐标系
+### 2. 坐标系混淆
+
+- `isAABBVisible()` 期望**相机相对坐标**，需要手动转换
+- `isAABBVisibleWorld()` 自动转换为相机相对坐标，使用前必须调用 `setCameraPosition()`
 
 ```cpp
-// isAABBVisible() 期望相机相对坐标
-AxisAlignedBB relativeAABB(
-    worldAABB.minX - cameraPos.x,
-    worldAABB.minY - cameraPos.y,
-    worldAABB.minZ - cameraPos.z,
-    ...
-);
-
-// isAABBVisibleWorld() 自动处理转换
+// 推荐：使用 World 版本，自动处理坐标转换
 frustum.setCameraPosition(cameraPos);
 frustum.isAABBVisibleWorld(worldAABB);  // 自动转换
 ```
 
-### 3. 保守测试
+### 3. 视锥剔除是保守测试
 
-视锥剔除是保守测试：
 - 可能报告可见但实际不可见（false positive）
 - 不会报告不可见但实际可见（false negative）
 
@@ -212,10 +85,14 @@ frustum.isAABBVisibleWorld(worldAABB);  // 自动转换
 
 ### 4. 平面归一化
 
-平面方程必须归一化才能正确计算距离。`extractFromMatrix()` 会自动调用 `normalize()`。
+平面方程必须归一化才能正确计算距离。`extractFromMatrix()` 会自动调用 `normalize()`，手动构造平面时需要自行归一化。
+
+### 5. 每帧更新
+
+相机移动后必须调用 `extractFromMatrix()` 更新视锥平面，否则剔除结果会过时。
 
 ## 算法参考
 
 - **Gribb-Hartmann 方法**：从 VP 矩阵提取视锥平面
-- **p-vertex 优化**：快速 AABB-平面相交测试
+- **p-vertex 优化**：快速 AABB-平面相交测试，只需计算一个顶点而非 8 个角点
 - 参考：Minecraft 1.16.5 `ClippingHelper.java`

@@ -1,242 +1,73 @@
 # GameRule 模块
 
-游戏规则系统，用于控制 Minecraft 世界的行为参数。
+游戏规则系统，用于控制 Minecraft 世界的行为参数（如 mobGriefing、doDaylightCycle 等）。
 
 ## 目录结构
 
 ```
 gamerule/
-├── GameRule.hpp/cpp     # 游戏规则基础类型（RuleKey, RuleType, RuleValue）
-├── GameRules.hpp/cpp    # 游戏规则容器类和所有规则定义
+├── GameRule.hpp/cpp     # 游戏规则基础类型：RuleKey（键）、RuleType（类型定义）、RuleValue（运行时值）
+├── GameRules.hpp/cpp    # 游戏规则容器类，管理所有规则的运行时值，支持 NBT 序列化
 └── README.md            # 本文件
 ```
 
-## 核心类型
+## 内部模块关系
 
-### GameRuleKey\<T\>
-
-游戏规则键，唯一标识一个规则。
-
-```cpp
-// 获取规则名称
-const std::string& getName() const;
-
-// 获取规则分类
-GameRuleCategory getCategory() const;
-
-// 获取本地化键
-std::string getTranslationKey() const;  // 返回 "gamerule.mobGriefing" 等
+```
+GameRule.hpp (基础类型定义)
+    │
+    ├── GameRuleKey<T> ──── 规则唯一标识符（名称 + 分类）
+    │
+    ├── GameRuleType<T> ─── 规则类型定义（默认值 + 变更监听器）
+    │
+    └── GameRuleValue<T> ── 规则运行时值（支持序列化）
+           │
+           ▼
+GameRules.hpp (容器类)
+    │
+    ├── 持有所有 BooleanGameRuleValue 实例
+    ├── 持有所有 IntegerGameRuleValue 实例
+    ├── 提供统一的 get/set API
+    └── NBT 序列化/反序列化
 ```
 
-### GameRuleType\<T\>
+## 上下游外部依赖关系
 
-规则类型定义，包含默认值和变更监听器。
+### 本模块依赖
 
-```cpp
-// 创建规则类型
-BooleanGameRuleType mobGriefingType(true);  // 默认值 true
-IntegerGameRuleType tickSpeedType(3);       // 默认值 3
+- `common/core/Types.hpp` - 基础类型定义（i32, u8 等）
+- `common/util/nbt/Nbt.hpp` - NBT 序列化支持
 
-// 创建带监听器的规则类型
-BooleanGameRuleType type(true, [](MinecraftServer* server, bool newValue) {
-    // 规则变更时触发
-});
+### 依赖本模块的模块
 
-// 创建规则值实例
-GameRuleValue<bool> value = type.createValue();
-```
+- `common/world/IWorld.hpp` - 世界接口提供 `getGameRules()` 访问入口
+- `server/world/ServerWorld.hpp` - 服务端世界持有 GameRules 实例
+- `server/command/commands/GameRuleCommand` - `/gamerule` 命令实现
+- **实体行为** - 检查 mobGriefing、doMobLoot 等规则：
+  - `entity/ai/goal/goals/EatGrassGoal` - 草食行为检查 mobGriefing
+  - `entity/ai/goal/goals/special/EndermanGoals` - 末影人搬方块检查 mobGriefing
+  - `entity/ai/goal/goals/special/SilverfishGoals` - 蠹虫钻方块检查 mobGriefing
+  - `entity/entities/boss/WitherEntity` - 凋灵破坏检查 mobGriefing
+  - `entity/entities/monster/basic/CreeperEntity` - 苦力怕爆炸检查 mobGriefing
+  - `entity/entities/monster/illager/RavagerEntity` - 劫掠兽破坏检查 mobGriefing
+  - `entity/entities/passive/golem/SnowGolemEntity` - 雪傀儡放置雪检查 mobGriefing
+  - `entity/entities/projectile/AbstractFireballEntity` - 火球点燃检查 mobGriefing
+  - `entity/entities/misc/MiscEntities` - 实体掉落检查 doEntityDrops
+  - `entity/entities/passive/special/PandaEntity` - 熊猫掉落检查 doMobLoot
+  - `entity/entities/player/Player` - 玩家自然回血检查 naturalRegeneration
+  - `entity/inventory/IRecipeHolder` - 限制合成检查 doLimitedCrafting
+- **方块行为** - `block/blocks/mob/TurtleEggBlock` 检查 mobGriefing
 
-### GameRuleValue\<T\>
+## 容易踩的坑
 
-规则的运行时值。
+1. **规则值的字符串解析不严格**：`GameRuleValue::fromString()` 对布尔值接受 "true"/"TRUE"/"1" 和 "false"/"FALSE"/"0"，解析失败时会默认设为 false 并返回 false，调用方需要检查返回值。
 
-```cpp
-// 获取/设置值
-bool value = ruleValue.get();
-ruleValue.set(false, server);  // server 可为 nullptr
+2. **变更监听器需要 server 参数**：`GameRuleValue::set()` 只有在传入 `MinecraftServer*` 时才会触发变更监听器，单机模式下通过 `IWorld::getGameRules()` 获取的规则容器在设置时需要确保能获取到 server 实例。
 
-// 重置为默认值
-ruleValue.reset(server);
+3. **GameRules 容器的默认构造**：`IWorld` 基类提供了默认的 `getGameRules()` 实现（返回静态默认实例），派生类（如 `ServerWorld`）需要持有自己的 `GameRules` 成员并 override 这两个方法。
 
-// 序列化
-std::string str = ruleValue.toString();   // "true" / "3"
-ruleValue.fromString("false");            // 解析字符串
-```
+4. **规则键的唯一性**：`GameRuleKey` 通过名称字符串判等，不同规则键的名称不能重复，否则会覆盖。
 
-### GameRules
+5. **整数规则无范围校验**：`IntegerGameRuleValue` 的 `fromString()` 只做 `std::stoi` 解析，不做值域校验，负数或超大值都可能被接受。
 
-游戏规则容器类，管理所有规则。
-
-```cpp
-// 创建实例（使用默认值）
-GameRules rules;
-
-// 获取规则值
-bool mobGriefing = rules.getBoolean(GameRuleKeys::MOB_GRIEFING);
-i32 tickSpeed = rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED);
-
-// 设置规则值
-rules.setBoolean(GameRuleKeys::MOB_GRIEFING, false, server);
-rules.setInt(GameRuleKeys::RANDOM_TICK_SPEED, 6, server);
-
-// 从字符串设置（用于命令）
-rules.setFromString("mobGriefing", "false", server);
-
-// 序列化到 NBT
-auto nbt = rules.write();
-
-// 从 NBT 加载
-rules.read(*nbt);
-
-// 重置所有规则
-rules.resetAll();
-
-// 重置指定规则
-rules.reset("mobGriefing", server);
-```
-
-## 预定义规则
-
-### 玩家相关 (Player)
-
-| 规则名 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| keepInventory | Boolean | false | 玩家死亡后保留物品栏 |
-| naturalRegeneration | Boolean | true | 玩家自然恢复生命值 |
-| spawnRadius | Integer | 10 | 玩家重生半径 |
-| spectatorsGenerateChunks | Boolean | true | 旁观者生成区块 |
-| disableElytraMovementCheck | Boolean | false | 禁用鞘翅移动检查 |
-| doImmediateRespawn | Boolean | false | 立即重生 |
-| drowningDamage | Boolean | true | 溺水受伤 |
-| fallDamage | Boolean | true | 摔落受伤 |
-| fireDamage | Boolean | true | 火焰受伤 |
-| doLimitedCrafting | Boolean | false | 限制合成 |
-
-### 生物相关 (Mobs)
-
-| 规则名 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| mobGriefing | Boolean | true | 生物破坏方块 |
-| maxEntityCramming | Integer | 24 | 实体挤压上限 |
-| disableRaids | Boolean | false | 禁用袭击 |
-| forgiveDeadPlayers | Boolean | true | 中立生物原谅死亡玩家 |
-| universalAnger | Boolean | false | 通用愤怒机制 |
-
-### 生成相关 (Spawning)
-
-| 规则名 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| doMobSpawning | Boolean | true | 生物生成 |
-| doInsomnia | Boolean | true | 幻翼生成 |
-| doPatrolSpawning | Boolean | true | 巡逻队生成 |
-| doTraderSpawning | Boolean | true | 流浪商人生成 |
-
-### 掉落相关 (Drops)
-
-| 规则名 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| doMobLoot | Boolean | true | 生物掉落物品 |
-| doTileDrops | Boolean | true | 方块掉落物品 |
-| doEntityDrops | Boolean | true | 实体掉落物品 |
-
-### 更新相关 (Updates)
-
-| 规则名 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| doFireTick | Boolean | true | 火焰蔓延 |
-| doDaylightCycle | Boolean | true | 日照循环 |
-| randomTickSpeed | Integer | 3 | 随机刻速度 |
-| doWeatherCycle | Boolean | true | 天气循环 |
-
-### 聊天相关 (Chat)
-
-| 规则名 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| commandBlockOutput | Boolean | true | 命令方块输出 |
-| logAdminCommands | Boolean | true | 记录管理员命令 |
-| showDeathMessages | Boolean | true | 显示死亡消息 |
-| sendCommandFeedback | Boolean | true | 发送命令反馈 |
-| announceAdvancements | Boolean | true | 公布成就 |
-
-### 杂项 (Misc)
-
-| 规则名 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| reducedDebugInfo | Boolean | false | 减少调试信息 |
-| maxCommandChainLength | Integer | 65536 | 最大命令链长度 |
-
-## 使用示例
-
-### 在实体行为中检查规则
-
-```cpp
-// EatGrassGoal.cpp
-void EatGrassGoal::eatGrass() {
-    if (!m_world || !m_mob) {
-        return;
-    }
-
-    // 检查 mobGriefing 游戏规则
-    if (!m_world->getGameRules().getBoolean(GameRuleKeys::MOB_GRIEFING)) {
-        // 只调用 eatGrassBonus，不破坏方块
-        if (m_onEatGrass) {
-            m_onEatGrass();
-        }
-        return;
-    }
-
-    // 破坏草方块...
-}
-```
-
-### 在玩家 tick 中检查规则
-
-```cpp
-// Player.cpp
-void Player::tick() {
-    // ...
-    if (m_gameMode == GameMode::Survival || m_gameMode == GameMode::Adventure) {
-        bool naturalRegeneration = m_world->getGameRules().getBoolean(
-            GameRuleKeys::NATURAL_REGENERATION
-        );
-        m_foodStats.tick(*this, difficulty(), naturalRegeneration);
-    }
-    // ...
-}
-```
-
-### 在命令中设置规则
-
-```cpp
-// GameRuleCommand.cpp
-i32 GameRuleCommand::execute(CommandContext<ServerCommandSource>& context) {
-    std::string ruleName = context.getArgument<std::string>("rule");
-    std::string value = context.getArgument<std::string>("value");
-
-    auto& gameRules = context.getSource().getWorld().getGameRules();
-
-    if (gameRules.setFromString(ruleName, value, context.getSource().getServer())) {
-        context.getSource().sendFeedback("Game rule " + ruleName + " has been updated to " + value);
-        return 1;
-    } else {
-        context.getSource().sendError("Unknown game rule: " + ruleName);
-        return 0;
-    }
-}
-```
-
-## 与原版 MC 1.16.5 的对应关系
-
-| 原版规则 | 本项目规则键 |
-|---------|-------------|
-| GameRules.MOB_GRIEFING | GameRuleKeys::MOB_GRIEFING |
-| GameRules.NATURAL_REGENERATION | GameRuleKeys::NATURAL_REGENERATION |
-| GameRules.DO_DAYLIGHT_CYCLE | GameRuleKeys::DO_DAYLIGHT_CYCLE |
-| GameRules.RANDOM_TICK_SPEED | GameRuleKeys::RANDOM_TICK_SPEED |
-| ... | ... |
-
-## 参考
-
-- MC 1.16.5: `net.minecraft.world.GameRules`
-- MC 1.16.5: `net.minecraft.world.GameRules.BooleanValue`
-- MC 1.16.5: `net.minecraft.world.GameRules.IntegerValue`
+6. **模板特化在 cpp 中**：`GameRuleValue<bool>` 和 `GameRuleValue<i32>` 的 `toString()`/`fromString()` 特化在 `GameRule.cpp` 中实现，链接时需要确保该编译单元被正确链接。

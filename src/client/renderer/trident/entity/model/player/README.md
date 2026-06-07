@@ -2,184 +2,43 @@
 
 本目录包含玩家实体的模型实现。
 
-## 文件列表
+## 目录结构
 
-| 文件 | 描述 |
-|------|------|
-| `PlayerModel.hpp/cpp` | 玩家模型 |
-
-## 模型详解
-
-### PlayerModel（玩家模型）
-
-继承自 `BipedModel`，支持标准手臂和纤细手臂两种模式。
-
-**特点**：
-- 纹理尺寸：64x64（包含外层）
-- 支持标准手臂（4x12x4）和纤细手臂（3x12x4）
-- 包含外层皮肤渲染
-
-**部件**：
-
-#### 基础部件（继承自 BipedModel）
-
-| 部件 | 尺寸 | 纹理位置 | 旋转点 |
-|------|------|----------|--------|
-| 头部 | 8x8x8 | (0, 0) | (0, 0, 0) |
-| 头套 | 8x8x8 | (32, 0) | (0, 0, 0) |
-| 身体 | 8x12x4 | (16, 16) | (0, 0, 0) |
-| 右臂 | 4x12x4 或 3x12x4 | (40, 16) | (-5, 2, 0) |
-| 左臂 | 4x12x4 或 3x12x4 | (32, 48) | (5, 2, 0) |
-| 右腿 | 4x12x4 | (0, 16) | (-1.9, 12, 0) |
-| 左腿 | 4x12x4 | (16, 48) | (1.9, 12, 0) |
-
-#### 外观层部件
-
-| 部件 | 尺寸 | 纹理位置 | 膨胀 |
-|------|------|----------|------|
-| 右臂外层 | 同主部件 | (40, 32) | +0.25 |
-| 左臂外层 | 同主部件 | (48, 48) | +0.25 |
-| 右腿外层 | 4x12x4 | (0, 32) | +0.25 |
-| 左腿外层 | 4x12x4 | (0, 48) | +0.25 |
-| 身体外层 | 8x12x4 | (16, 32) | +0.25 |
-
-#### 特殊部件
-
-| 部件 | 尺寸 | 纹理位置 | 说明 |
-|------|------|----------|------|
-| 斗篷 | 10x16x1 | (0, 0) | 斗篷渲染，纹理尺寸 64x32 |
-| 耳朵 | 6x6x1 | (24, 0) | Deadmau5 皮肤专用 |
-
-**手臂姿态**：
-
-```cpp
-enum class ArmPose {
-    Empty,          // 空手
-    Item,           // 持有物品
-    Block,          // 格挡
-    BowAndArrow,    // 拉弓
-    ThrowSpear,     // 投掷三叉戟
-    CrossbowCharge, // 装填弩
-    CrossbowHold    // 持有弩
-};
+```
+player/
+├── PlayerModel.hpp     # 玩家模型类定义
+├── PlayerModel.cpp     # 玩家模型实现
+└── README.md           # 本文档
 ```
 
-**特殊状态**：
-- `crouching` - 蹲伏状态，影响斗篷位置
-- `swimming` - 游泳状态
-- `sprinting` - 疾跑状态
+## 内部模块关系
 
-**斗篷位置调整**：
-
-```cpp
-// 无胸甲蹲伏
-cape.rotationPointZ = 1.4F;
-cape.rotationPointY = 1.85F;
-
-// 无胸甲站立
-cape.rotationPointZ = 0.0F;
-cape.rotationPointY = 0.0F;
-
-// 穿胸甲蹲伏
-cape.rotationPointZ = 0.3F;
-cape.rotationPointY = 0.8F;
-
-// 穿胸甲站立
-cape.rotationPointZ = -1.1F;
-cape.rotationPointY = -0.85F;
+```
+PlayerModel
+├── 继承自 BipedModel（双足模型基类）
+│   ├── 头部、头套、身体、手臂、腿部等基础部件
+│   └── 基础动画（走路、游泳、蹲伏等）
+├── 外观层部件（外层皮肤）
+│   ├── m_leftArmwear / m_rightArmwear（袖子）
+│   ├── m_leftLegwear / m_rightLegwear（裤腿）
+│   └── m_bodywear（外套）
+├── 特殊部件
+│   ├── m_cape（斗篷）
+│   └── m_ears（耳朵，Deadmau5 皮肤专用）
+└── 手臂姿态控制
+    └── ArmPose 枚举（空手、持物品、拉弓、弩等）
 ```
 
-**参考**：MC 1.16.5 PlayerModel
+## 上下游外部依赖关系
 
-## 手臂单独渲染
+**本目录依赖：**
+- `model/base/BipedModel.hpp` - 双足模型基类
+- `model/core/ModelRenderer.hpp` - 模型渲染器（通过基类间接依赖）
+- `common/entity/entities/player/PlayerModelPart.hpp` - 玩家皮肤部件枚举
 
-### renderRightArm / renderLeftArm
-
-用于第三人称视角的手臂渲染（如玩家皮肤预览、纸娃娃等）。
-
-```cpp
-// 渲染右手臂（仅手臂和袖子）
-playerModel->renderRightArm(1.0 / 16.0);
-
-// 渲染左手臂（仅手臂和袖子）
-playerModel->renderLeftArm(1.0 / 16.0);
-```
-
-**实现逻辑**（参考 MC 1.16.5 PlayerRenderer.renderItem）：
-
-1. 保存当前可见性状态
-2. 隐藏所有部件 (`setVisible(false)`)
-3. 仅显示目标手臂和袖子
-4. 重置手臂 X 轴旋转角度 (`rotateAngleX = 0.0F`)
-5. 渲染内层皮肤（手臂）
-6. 渲染外层皮肤（袖子）
-7. 恢复原始可见性状态
-
-**特点**：
-- 渲染时手臂水平伸出（X 轴旋转归零）
-- 同时渲染内层和外层皮肤
-- 自动恢复可见性状态，不影响后续渲染
-
-## 皮肤部件可见性控制
-
-### setPartVisible / isPartVisible
-
-根据 `PlayerModelPart` 枚举设置/查询皮肤部件的可见性。参考 MC 1.16.5 `PlayerRenderer.setModelVisibilities`。
-
-```cpp
-// 设置单个部件可见性
-playerModel->setPartVisible(PlayerModelPart::Hat, true);      // 显示帽子
-playerModel->setPartVisible(PlayerModelPart::Jacket, false);  // 隐藏外套
-playerModel->setPartVisible(PlayerModelPart::Cape, true);     // 显示斗篷
-
-// 查询部件可见性
-bool hasHat = playerModel->isPartVisible(PlayerModelPart::Hat);
-```
-
-**PlayerModelPart 与模型部件对应关系**：
-
-| PlayerModelPart | 模型部件 | 说明 |
-|-----------------|----------|------|
-| Cape | m_cape | 斗篷 |
-| Jacket | m_bodywear | 外套外层 |
-| LeftSleeve | m_leftArmwear | 左袖外层 |
-| RightSleeve | m_rightArmwear | 右袖外层 |
-| LeftPantsLeg | m_leftLegwear | 左裤腿外层 |
-| RightPantsLeg | m_rightLegwear | 右裤腿外层 |
-| Hat | m_headwear | 帽子/头部外层 |
-
-### setModelVisibilitiesFromFlags
-
-根据玩家皮肤部件位掩码批量设置所有外层皮肤部件的可见性。
-
-```cpp
-// 使用玩家设置设置所有部件可见性
-u8 modelParts = player.playerModelParts();  // 从玩家获取位掩码
-playerModel->setModelVisibilitiesFromFlags(modelParts);
-```
-
-**位掩码计算**（参考 `PlayerModelPart.hpp`）：
-- Cape = 0x01
-- Jacket = 0x02
-- LeftSleeve = 0x04
-- RightSleeve = 0x08
-- LeftPantsLeg = 0x10
-- RightPantsLeg = 0x20
-- Hat = 0x40
-
-**注意**：Cape（斗篷）由 `CapeLayer` 单独处理，`setModelVisibilitiesFromFlags` 不会修改其可见性。
-
-### setVisible
-
-设置所有部件（基础部件 + 外观层部件 + 斗篷 + 耳朵）的可见性。
-
-```cpp
-// 显示所有部件
-playerModel->setVisible(true);
-
-// 隐藏所有部件（用于旁观者模式）
-playerModel->setVisible(false);
-```
+**被依赖：**
+- 玩家渲染器层（PlayerRenderer / PlayerLayer）使用 PlayerModel
+- 皮肤预览界面、纸娃娃渲染等 UI 场景
 
 ## 命名空间
 
@@ -187,40 +46,42 @@ playerModel->setVisible(false);
 namespace mc::client::renderer::entity::model::player {
     class PlayerModel;
     enum class ArmPose;
+    enum class HandSide;
 }
 ```
 
-## 使用示例
+## 容易踩的坑
 
-```cpp
-// 创建标准手臂玩家模型
-auto playerModel = std::make_shared<PlayerModel>(0.0f, false);
+### 纤细手臂模型差异
 
-// 创建纤细手臂玩家模型
-auto slimModel = std::make_shared<PlayerModel>(0.0f, true);
+纤细手臂（Slim Arms）与标准手臂的尺寸和纹理坐标不同：
+- 标准手臂：4x12x4，旋转点 Y=2.0
+- 纤细手臂：3x12x4，旋转点 Y=2.5
 
-// 设置手臂姿态
-playerModel->setArmPose(ArmPose::Empty, ArmPose::BowAndArrow);
+创建 PlayerModel 时必须正确传入 `slimArms` 参数，否则手臂渲染位置会偏移。
 
-// 渲染
-playerModel->setAngles(limbSwing, limbSwingAmount, ageInTicks, headYaw, headPitch, scale);
-playerModel->render(scale);
+### 外观层部件角度同步
 
-// 渲染斗篷
-playerModel->renderCape(scale);
+调用 `setAngles()` 后必须调用 `copyAnglesToWear()` 将主部件角度复制到外观层，否则外层皮肤不会跟随动画。当前实现已在 `setAngles()` 中自动调用。
 
-// 渲染耳朵（Deadmau5 皮肤）
-playerModel->renderEars(scale);
-```
+### 斗篷可见性控制
 
-## 依赖关系
+`setModelVisibilitiesFromFlags()` 不会设置斗篷（Cape）的可见性，斗篷由 `CapeLayer` 单独处理。如需控制斗篷可见性，需直接调用 `setPartVisible(PlayerModelPart::Cape, ...)`。
 
-```
-PlayerModel.hpp
-├── base/BipedModel.hpp
-└── ModelRenderer.hpp
+### 手臂单独渲染
 
-PlayerModel.cpp
-├── PlayerModel.hpp
-└── <cmath>
-```
+`renderRightArm()` / `renderLeftArm()` 会临时修改可见性状态，渲染后自动恢复。但它们会重置手臂 X 轴旋转为 0（水平伸出），适用于皮肤预览等场景。
+
+### translateHand 签名问题
+
+当前 `translateHand(i32 side)` 的签名与基类 `BipedModel::translateHand(HandSide, array<f64,16>&)` 不一致，需要后续统一。
+
+### 未完成的动画实现
+
+以下私有方法已定义但尚未被调用：
+- `_animateBow()` - 弓箭姿态动画
+- `_animateCrossbowCharge()` - 弩装填动画
+- `_animateCrossbowHold()` - 弩持有动画
+- `_updateCapePosition()` - 斗篷位置动态调整
+
+这些功能需要等待手臂姿态动画系统和斗篷动画系统集成后才能启用。

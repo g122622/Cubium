@@ -1,269 +1,73 @@
-# 末影人实体模块
+# 末地怪物模块
 
-末影人（Enderman）是末地的中立型怪物，具有瞬移、搬运方块和被注视时激怒的特性。
+末地（End）维度的怪物实现，包含末影人和潜影贝。
 
 ## 目录结构
 
 ```text
 src/common/entity/entities/monster/end/
-├── EndermanEntity.hpp    # 末影人实体声明
-├── EndermanEntity.cpp    # 末影人实体实现
-├── ShulkerEntity.hpp     # 潜影贝实体声明
-├── ShulkerEntity.cpp     # 潜影贝实体实现
-└── README.md             # 本文档
+├── EndermanEntity.hpp       # 末影人实体声明
+├── EndermanEntity.cpp       # 末影人实体实现
+├── ShulkerEntity.hpp        # 潜影贝实体声明
+├── ShulkerEntity.cpp        # 潜影贝实体实现
+└── README.md                # 本文档
 ```
 
-## 文件介绍
+## 内部模块关系
 
-### EndermanEntity.hpp
-
-声明 `EndermanEntity` 类以及末影人专用接口：
-
-- **IAngerable 接口实现**:
-  - `getAttackTarget()` / `setAttackTarget()` - 攻击目标管理
-  - `getRevengeTarget()` / `setRevengeTarget()` - 复仇目标管理
-  - `isAngry()` / `setAngry()` - 愤怒状态管理
-  - `getAngerTime()` / `setAngerTime()` - 愤怒计时器
-
-- **注视检测**:
-  - `isScreaming()` / `setScreaming()` - 被注视状态
-  - `shouldAttackPlayer(player)` - 检查玩家是否正在注视末影人
-
-- **瞬移系统**:
-  - `teleport()` - 随机瞬移
-  - `teleportToTarget()` - 瞬移到目标附近
-  - `teleportAwayFromWater()` - 瞬移避开水
-
-- **搬方块系统**:
-  - `isHoldingBlock()` - 是否拿着方块
-  - `getHeldBlockState()` / `setHeldBlockState()` - 拿着的方块状态
-  - `placeHeldBlock()` - 放下方块
-  - `pickUpBlock()` - 拾取方块
-
-### EndermanEntity.cpp
-
-实现末影人的核心行为：
-
-- **AI 目标注册**:
-  - EndermanStareGoal (优先级 1) - 注视玩家
-  - MeleeAttackGoal (优先级 2) - 近战攻击
-  - WaterAvoidingRandomWalkingGoal (优先级 5) - 避水随机行走
-  - LookAtGoal (优先级 7) - 看向玩家
-  - LookRandomlyGoal (优先级 8) - 随机看向
-  - EndermanPlaceBlockGoal (优先级 10) - 放置方块
-  - EndermanTakeBlockGoal (优先级 11) - 拾取方块
-  - EndermanFindPlayerGoal (目标选择器优先级 1) - 查找注视玩家
-  - NearestAttackableTargetGoal<EndermiteEntity> (目标选择器优先级 3) - 攻击末影螨
-  - ResetAngerGoal<EndermanEntity> (目标选择器优先级 4) - 重置愤怒
-
-- **注视检测逻辑**:
-  - 检查玩家是否戴着南瓜头
-  - 计算玩家视线与玩家到末影人向量的点积
-  - 根据距离调整阈值
-  - 检查视线是否被方块阻挡
-
-- **水伤害逻辑**:
-  - 在水中或雨中受到伤害
-  - 自动瞬移避开水
-
-## 模块关系
-
-- `EndermanEntity` 继承自 `MonsterEntity` 并实现 `IAngerable` 接口
-- `EndermanStareGoal` 和 `EndermanFindPlayerGoal` 在 `ai/goal/goals/special/EndermanGoals.cpp` 中实现
-- 依赖 `Player::isLookingAt()` 和 `Player::isWearingPumpkin()` 进行注视检测
-
-## 整体职责
-
-1. **中立行为**: 默认不攻击玩家
-2. **注视激怒**: 玩家注视眼睛时被激怒
-3. **瞬移能力**: 受攻击或特定条件下瞬移
-4. **方块搬运**: 可以拾取和放置方块
-5. **水敏感**: 在水中或雨中受到伤害并瞬移
-
-## 注视检测机制
-
-### 触发条件
-
-1. 玩家未戴南瓜头
-2. 玩家视线指向末影人眼睛
-3. 视线无方块阻挡
-
-### 点积计算
-
-```cpp
-// 玩家视线方向向量
-Vector3 lookVec = player.getLookVector();
-
-// 玩家眼睛到末影人眼睛的向量
-Vector3 toTarget = endermanEyePos - playerEyePos;
-toTarget = toTarget.normalized();
-
-// 点积计算
-f32 dotProduct = lookVec.dot(toTarget);
-
-// 根据距离调整阈值：距离越远，阈值越高
-f32 threshold = 1.0f - 0.025f / distance;
-bool isLooking = dotProduct > threshold;
+```
+MonsterEntity (敌对生物基类)
+    ├── EndermanEntity (末影人)
+    │       └── 实现 IAngerable 接口（愤怒管理）
+    │       └── 依赖 EndermanGoals（AI 目标，在 ai/goal/goals/special/ 中）
+    │       └── 依赖 Player::isLookingAt()（注视检测）
+    └── ShulkerEntity (潜影贝)
+            └── 发射 ShulkerBulletEntity（在 entities/projectile/ 中）
 ```
 
-### MC 1.16.5 参考
+### EndermanEntity 核心特性
 
-- `EndermanEntity.shouldAttackPlayer()` - 注视检测
-- `Entity.getLook()` - 视线方向计算
-- `ItemStack.isEnderMask()` - 南瓜头检测
+- **中立行为**：默认不攻击玩家，被注视眼睛时激怒
+- **瞬移能力**：受攻击或特定条件下瞬移（64格范围）
+- **方块搬运**：可拾取和放置方块
+- **水敏感**：在水中或雨中受伤并瞬移逃离
 
-## 常量
+### ShulkerEntity 核心特性
 
-| 常量 | 值 | 说明 |
-|------|-----|------|
-| TELEPORT_COOLDOWN | 50 | 瞬移冷却 (ticks) |
-| ANGER_DURATION | 600 | 愤怒持续时间 (ticks, 30秒) |
-| TELEPORT_RANGE | 64.0 | 瞬移范围 |
-| WATER_DAMAGE | 1.0 | 水伤害值 |
-| TELEPORT_PROJECTILE_ATTEMPTS | 64 | 投射物伤害时瞬移尝试次数 |
+- **贝壳防御**：闭合时免疫投射物，获得 +20 护甲
+- **悬浮攻击**：发射追踪子弹造成悬浮效果
+- **附着方块**：固定在方块表面不移动
+- **瞬移**：受伤时概率瞬移寻找新附着点
 
-## 属性
+## 上下游外部依赖关系
 
-| 属性 | 值 | 说明 |
-|------|-----|------|
-| MAX_HEALTH | 40.0 | 最大生命值 |
-| MOVEMENT_SPEED | 0.3 | 移动速度 |
-| ATTACK_DAMAGE | 7.0 | 攻击伤害 |
-| FOLLOW_RANGE | 64.0 | 追踪范围 |
+### 上游依赖（本模块依赖的外部模块）
 
-## 使用方法
+| 模块 | 说明 |
+|------|------|
+| `entity/core/MonsterEntity` | 敌对生物基类，提供敌对行为基础设施 |
+| `entity/interfaces/IAngerable` | 愤怒接口，末影人实现此接口 |
+| `entity/ai/goal/goals/special/EndermanGoals` | 末影人专用 AI 目标（注视、放方块、拾方块） |
+| `entity/entities/projectile/ShulkerBulletEntity` | 潜影贝子弹，由潜影贝发射 |
+| `world/World` | 世界接口，用于瞬移位置验证 |
+| `Player` | 玩家类，提供注视检测方法 |
+| `BlockState` | 方块状态，末影人搬运方块时使用 |
 
-```cpp
-// 创建末影人
-auto enderman = std::make_unique<EndermanEntity>(entityId);
+### 下游依赖（依赖本模块的外部模块）
 
-// 检查玩家是否激怒末影人
-if (enderman->shouldAttackPlayer(player)) {
-    // 玩家正在注视末影人
-}
-
-// 设置愤怒状态
-enderman->setAngry(true);
-enderman->setAttackTarget(&player);
-
-// 触发瞬移
-enderman->teleport();
-```
+| 模块 | 说明 |
+|------|------|
+| `entity/core/VanillaEntities` | 注册实体类型，创建末影人/潜影贝实例 |
+| `world/spawn/MobSpawner` | 末地维度的怪物生成 |
+| `client/renderer/entity/` | 客户端渲染器，渲染末影人和潜影贝模型 |
 
 ## 容易踩的坑
 
-- **注视检测需要完整的世界环境**: `canSee()` 方法需要世界支持，测试时需要 mock
-- **眼睛高度差异**: 玩家眼睛高度 (1.62) 和末影人眼睛高度 (2.55) 不同，计算注视向量时需要使用眼睛位置
-- **瞬移冷却**: 瞬移后需要等待冷却时间才能再次瞬移
-- **愤怒状态同步**: `setScreaming()` 和 `setAngry()` 需要同步设置
-
-## 测试用例
-
-- [tests/common/entity/entities/monster/end/EndermanStareDetectionTest.cpp](../../../../../../../tests/common/entity/entities/monster/end/EndermanStareDetectionTest.cpp)
-- [tests/common/entity/entities/monster/end/EndermanBlockGoalsTest.cpp](../../../../../../../tests/common/entity/entities/monster/end/EndermanBlockGoalsTest.cpp)
-- [tests/entity/EndermanHurtTeleportTest.cpp](../../../../../../../tests/entity/EndermanHurtTeleportTest.cpp)
-- [tests/entity/EndermanAIGoalsTest.cpp](../../../../../../../tests/entity/EndermanAIGoalsTest.cpp) - WaterAvoidingRandomWalkingGoal 和 ResetAngerGoal 测试
-- `PlayerLookVectorTest` - 视线方向向量计算测试
-- `PlayerEyePositionTest` - 眼睛位置测试
-- `PlayerPumpkinTest` - 南瓜头检测测试
-- `PlayerLookingAtTest` - 注视目标检测测试
-- `EndermanStareGoalTest` - 注视目标 AI 测试
-- `EndermanFindPlayerGoalTest` - 查找玩家目标选择器测试
-- `EndermanShouldAttackPlayerTest` - 激怒条件测试
-- `EndermanConstantsTest` - 常量验证测试
-- `LookVectorPrecisionTest` - 精度测试
-- `EndermanHurtTeleportTest` - 受伤后瞬移逻辑测试
-- `ResetAngerGoalTest` - 重置愤怒目标测试
-- `WaterAvoidingRandomWalkingGoalTest` - 避水随机行走目标测试
-
-## 近期补全
-
-- **已实现注视检测**（2026-05-16）：
-  - `Player::getLookVector()` - 根据yaw/pitch计算视线方向
-  - `Player::getEyePosition()` - 获取眼睛位置
-  - `Player::isWearingPumpkin()` - 检查南瓜头
-  - `Player::isLookingAt()` - 注视目标检测
-  - `EndermanEntity::shouldAttackPlayer()` - 综合判断激怒条件
-  - `EndermanStareGoal` - 注视玩家目标
-  - `EndermanFindPlayerGoal` - 查找注视玩家目标选择器
-  - 参考 MC 1.16.5 `EndermanEntity.shouldAttackPlayer()` 和 `Entity.getLook()`
-
-- **已实现受伤后瞬移逻辑**（2026-05-16）：
-  - 投射物伤害处理：尝试64次随机瞬移，成功则躲避伤害不受伤
-  - 非生物伤害处理：正常受伤后90%概率随机瞬移
-  - 使用 `DamageSource::isProjectile()` 检测投射物伤害
-  - 使用 `source.getTrueSource()` + `dynamic_cast<LivingEntity*>` 检测生物来源
-  - 参考 MC 1.16.5 `EndermanEntity.attackEntityFrom()`
-
-## 受伤后瞬移逻辑 (MC 1.16.5)
-
-### 伤害类型检测
-
-末影人对不同类型的伤害有不同的反应：
-
-1. **无敌状态**: 首先检查 `isInvulnerableTo(source)`
-
-2. **投射物伤害**: 使用 `source.isProjectile()` 检测
-   - 箭矢 (Arrow)
-   - 三叉戟 (Trident)
-   - 生物投射物 (MobProjectile)
-   - 火球 (Fireball)
-
-3. **非生物伤害**: 通过 `source.getTrueSource()` 检测
-   - 摔落伤害
-   - 窒息伤害
-   - 岩浆伤害
-   - 火焰伤害
-   - 溺水伤害
-   - 虚空伤害
-
-### 瞬移概率
-
-| 伤害类型 | 行为 | 瞬移概率 |
-|---------|------|---------|
-| 投射物 | 尝试瞬移躲避 | 100%（最多64次尝试） |
-| 非生物伤害 | 受伤后瞬移 | 90% |
-| 生物伤害 | 受伤后不瞬移 | 0% |
-
-### 实现代码
-
-```cpp
-bool EndermanEntity::hurt(DamageSource& source, f32 amount)
-{
-    // 检查无敌状态
-    if (isInvulnerableTo(source)) {
-        return false;
-    }
-
-    // 投射物伤害：尝试64次随机瞬移
-    if (source.isProjectile()) {
-        for (i32 i = 0; i < TELEPORT_PROJECTILE_ATTEMPTS; ++i) {
-            if (teleport()) {
-                return true; // 成功瞬移后不受伤
-            }
-        }
-        return false; // 64次都失败，不受伤
-    }
-
-    // 调用父类处理实际伤害
-    bool hurtResult = MonsterEntity::hurt(source, amount);
-
-    if (hurtResult) {
-        // 非生物伤害：90%概率瞬移
-        if (m_world != nullptr && !m_world->isClientSide()) {
-            Entity* trueSource = source.getTrueSource();
-            bool isLivingSource = (trueSource != nullptr && 
-                dynamic_cast<LivingEntity*>(trueSource) != nullptr);
-
-            if (!isLivingSource) {
-                math::Random rng = getRandom();
-                if (rng.nextInt(10) != 0) {  // 90%概率
-                    teleport();
-                }
-            }
-        }
-    }
-
-    return hurtResult;
-}
-```
+- **注视检测需要完整世界环境**：`shouldAttackPlayer()` 使用 `world.canSee()`，单元测试需要 mock
+- **眼睛高度差异**：玩家眼睛高度 1.62，末影人眼睛高度 2.55，计算注视向量时务必使用 `getEyePosition()`
+- **瞬移冷却**：瞬移后需等待 50 ticks 冷却，连续调用 `teleport()` 可能失败
+- **愤怒状态同步**：`setScreaming()` 和 `setAngry()` 需要同步设置，否则客户端状态不一致
+- **投射物伤害特殊处理**：末影人对投射物伤害尝试瞬移躲避（最多 64 次），成功则不受伤
+- **非生物伤害瞬移**：末影人受非生物伤害（摔落、窒息、岩浆）后 90% 概率瞬移，受生物伤害不瞬移
+- **潜影贝护甲计算**：闭合时额外 +20 护甲，需要在伤害计算时考虑
+- **潜影贝碰撞箱**：会随开壳程度扩展，`getCollisionBorderSize()` 返回 0 需特殊处理

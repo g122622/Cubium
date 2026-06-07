@@ -6,53 +6,103 @@
 
 ```
 registry/
-├── VanillaBlocks.hpp       # 主入口，VanillaBlocks 类继承所有分类结构体
-├── VanillaBlocks.cpp       # initialize() 实现，调用各分类注册函数
-├── BaseBlocks.hpp/.cpp     # 基础方块、矿石、矿物、原木、木板、冰、玻璃等
-├── BuildingBlocks.hpp/.cpp # 建筑、功能、含水、石砖、虫蚀、石英、海晶、紫珀、骨块等
+├── VanillaBlocks.hpp/.cpp       # 主入口，VanillaBlocks 类继承所有分类结构体
+├── BaseBlocks.hpp/.cpp          # 基础方块、矿石、矿物、原木、木板、冰、玻璃等
+├── BuildingBlocks.hpp/.cpp      # 建筑、功能、含水、石砖、虫蚀、石英、海晶、紫珀、骨块等
 ├── BuildingVariantBlocks.hpp/.cpp # 楼梯、台阶、墙、门、栅栏门、活板门、染色玻璃板、特殊方块
-├── ColoredBlocks.hpp/.cpp  # 染色方块：羊毛、地毯、染色玻璃、混凝土、陶瓦
-├── NaturalBlocks.hpp/.cpp  # 自然方块：冰变种、粘液、珊瑚、海洋方块、仙人掌等
-├── NetherBlocks.hpp/.cpp   # 下界方块、末地方块、下界扩展植物
-├── RedstoneBlocks.hpp/.cpp # 红石方块、铁轨方块
-├── SignBannerBlocks.hpp/.cpp # 告示牌、旗帜
-├── VegetationBlocks.hpp/.cpp # 植被：草、花、蘑菇、树苗、南瓜西瓜、竹子
+├── BambooBlocks.hpp/.cpp        # 竹子方块系列
+├── CaveBlocks.hpp/.cpp          # 洞穴方块（紫水晶、滴水石、苔藓等）
+├── CherryBlocks.hpp/.cpp        # 樱花木系列
+├── ColoredBlocks.hpp/.cpp       # 染色方块：羊毛、地毯、染色玻璃、混凝土、陶瓦
+├── CopperBlocks.hpp/.cpp        # 铜方块系列（含氧化阶段）
+├── DeepslateBlocks.hpp/.cpp     # 深板岩系列
+├── GardenBlocks.hpp/.cpp        # 花园方块
+├── MangroveBlocks.hpp/.cpp      # 红树林系列
+├── MudBlocks.hpp/.cpp           # 泥土系列
+├── NaturalBlocks.hpp/.cpp       # 自然方块：冰变种、粘液、珊瑚、海洋方块、仙人掌等
+├── NetherBlocks.hpp/.cpp        # 下界方块、末地方块、下界扩展植物
+├── PaleGardenBlocks.hpp/.cpp    # 苍白花园系列
+├── RedstoneBlocks.hpp/.cpp      # 红石方块、铁轨方块
+├── SculkBlocks.hpp/.cpp         # 幽匿系列
+├── SignBannerBlocks.hpp/.cpp    # 告示牌、旗帜
+├── TrailsBlocks.hpp/.cpp        # 足迹方块
+├── TrialBlocks.hpp/.cpp         # 试炼密室方块
+├── TuffBlocks.hpp/.cpp          # 凝灰岩系列
+├── VegetationBlocks.hpp/.cpp    # 植被：草、花、蘑菇、树苗、南瓜西瓜
+├── WildBlocks.hpp/.cpp          # 野生方块
 └── README.md
 ```
 
-## 设计说明
+## 内部模块关系
 
 `VanillaBlocks` 类通过多重继承组合所有分类结构体，每个结构体位于 `mc::block_registry` 命名空间中：
 
-- `BaseBlocks` - 基础方块（空气、石头、泥土、水、岩浆等）、矿石、矿物方块、原木、木板
-- `BuildingBlocks` - 建筑方块（砖块、书架等）、功能方块（工作台、箱子等）、石砖系列、虫蚀方块、石英、海晶、紫珀
-- `BuildingVariantBlocks` - 楼梯/台阶/墙/门/栅栏门/活板门/染色玻璃板、特殊方块（刷怪笼、屏障等）
-- `ColoredBlocks` - 16色方块系列（羊毛、地毯、染色玻璃、混凝土、混凝土粉末、陶瓦）
-- `NaturalBlocks` - 自然扩展方块（冰变种、珊瑚、海洋方块、粘液块、蜂蜜块等）
-- `NetherBlocks` - 下界方块、下界扩展植物、末地方块、传送门、信标等
-- `RedstoneBlocks` - 红石机械、按钮、压力板、活塞、铁轨
-- `SignBannerBlocks` - 告示牌（8种木材×2形态）、旗帜（16色×2形态）
-- `VegetationBlocks` - 植被（草、花、蘑菇、树苗）、南瓜西瓜系列、竹子
+```
+VanillaBlocks
+├── 继承所有分类结构体（BaseBlocks, BuildingBlocks, NetherBlocks 等）
+├── 静态 Block* 指针 → 指向 BlockRegistry 中注册的方块实例
+└── initialize() → 按顺序调用各 registerXxxBlocks() 函数
+```
 
-## 初始化顺序
+各分类结构体相互独立，仅通过 `BlockRegistry` 单例进行方块注册和存储。
 
-`VanillaBlocks::initialize()` 按以下顺序调用各注册函数，确保依赖关系正确：
+## 上下游依赖关系
 
-1. `registerBaseBlocks()` - 必须最先，注册流体和基础方块
-2. `registerBuildingBlocks()` - 石砖等被后续引用
-3. `registerNetherBlocks()` - 末地方块、下界扩展
-4. `registerVegetationBlocks()` - 植被、南瓜西瓜
-5. `registerNaturalBlocks()` - 珊瑚引用 AIR（来自 BaseBlocks）
-6. `registerColoredBlocks()` - 独立的颜色方块
-7. `registerRedstoneBlocks()` - 红石机械
-8. `registerSignBannerBlocks()` - 告示牌和旗帜
-9. `registerBuildingVariantBlocks()` - 引用 BaseBlocks 和 BuildingBlocks 的方块状态
+### 上游依赖（本模块依赖）
 
-最后初始化 `BlockTags`。
+| 模块 | 用途 |
+|------|------|
+| `world/block/Block.hpp` | 方块基类定义 |
+| `world/block/BlockRegistry.hpp` | 方块注册表单例 |
+| `world/block/blocks/` | 具体方块类型实现 |
+| `world/fluid/` | 流体注册（WATER, LAVA） |
 
-## 外部依赖
+### 下游依赖（谁依赖本模块）
 
-- 被整个项目引用：约 250+ 文件通过 `#include "world/block/VanillaBlocks.hpp"` 使用
-- 依赖 `BlockRegistry` 进行方块注册
-- 依赖各 `blocks/` 子目录的具体方块类型
-- 依赖 `fluid/` 子目录的流体注册
+| 模块 | 用途 |
+|------|------|
+| 世界生成 (`world/gen/`) | 生成器放置方块（158+ 文件引用） |
+| 物品系统 (`item/`) | 物品与方块对应 |
+| 实体系统 (`entity/`) | 实体与方块交互 |
+| 服务器启动 (`MinecraftServer.cpp`) | 初始化时调用 `VanillaBlocks::initialize()` |
+| 渲染器 (`renderer/`) | 方块渲染 |
+| 红石系统 (`world/redstone/`) | 红石信号计算 |
+
+## 容易踩的坑
+
+### 1. 初始化顺序依赖
+
+`VanillaBlocks::initialize()` 调用顺序有依赖关系，不可随意调整：
+- `registerBaseBlocks()` 必须最先调用（AIR、WATER、LAVA 等基础方块被后续引用）
+- `registerBuildingBlocks()` 在 `registerBuildingVariantBlocks()` 之前（楼梯/台阶引用原方块）
+- `BlockTags::initialize()` 必须在所有方块注册后调用
+
+### 2. 静态指针初始化
+
+所有 `Block*` 静态成员在 `initialize()` 前为 `nullptr`，访问前必须确保已初始化：
+
+```cpp
+// 危险：可能在初始化前访问
+static Block* block = VanillaBlocks::STONE;  // nullptr!
+
+// 安全：在 initialize() 后访问
+void foo() {
+    Block* block = VanillaBlocks::STONE;  // OK
+}
+```
+
+### 3. 重复注册静默返回
+
+重复注册同一资源位置的方块会返回已存在的方块，新属性被忽略。调试时注意日志中的警告。
+
+### 4. 跨分类引用
+
+部分方块引用其他分类的方块状态，例如：
+- 珊瑚方块引用 `AIR`（来自 BaseBlocks）
+- 楼梯/台阶引用基础方块状态
+
+新增分类时需确认依赖关系并在正确位置注册。
+
+### 5. BlockTags 初始化时机
+
+`BlockTags::initialize()` 在 `VanillaBlocks::initialize()` 末尾调用，方块标签查询必须在之后进行。

@@ -1,118 +1,93 @@
 # 层渲染器系统
 
-本目录包含实体层渲染器，用于在基础模型上添加额外渲染层。
+本目录包含实体层渲染器，用于在基础模型上添加额外渲染层（盔甲、手持物品、披风、特效等）。
 
 ## 目录结构
 
 ```
 layer/
-├── core/                   # 层渲染器核心
-│   ├── LayerRenderer.hpp   # 层渲染器基类
+├── core/                      # 层渲染器核心
+│   ├── LayerRenderer.hpp      # 层渲染器基类模板
 │   └── README.md
-├── equipment/              # 装备层
-│   ├── ArmorLayer.hpp/cpp  # 盔甲层
-│   ├── HeldItemLayer.hpp/cpp # 手持物品层
-│   ├── HeadLayer.hpp/cpp   # 头部物品层
+├── equipment/                 # 装备层渲染器
+│   ├── ArmorLayer.hpp/cpp     # 盔甲层（支持皮革染色）
+│   ├── HeldItemLayer.hpp/cpp  # 手持物品层（主手/副手）
+│   ├── HeadLayer.hpp/cpp      # 头部物品层（头盔、南瓜等）
 │   └── README.md
-├── cosmetic/               # 外观层
-│   ├── CapeLayer.hpp/cpp   # 斗篷层
-│   ├── ElytraLayer.hpp/cpp # 鞘翅层
+├── cosmetic/                  # 外观层渲染器
+│   ├── CapeLayer.hpp/cpp      # 斗篷层（动态摆动动画）
+│   ├── ElytraLayer.hpp/cpp    # 鞘翅层（滑翔展开动画）
 │   └── README.md
-├── entity/                 # 实体特性层
-│   ├── SaddleLayer.hpp/cpp # 鞍层
-│   ├── SheepWoolLayer.hpp/cpp # 羊毛层
-│   ├── VillagerLayer.hpp   # 村民多层纹理层
-│   ├── ArrowLayer.hpp/cpp  # 箭矢附着层
+├── entity/                    # 实体特性层渲染器
+│   ├── ArrowLayer.hpp/cpp     # 箭矢附着层
+│   ├── HeldBlockLayer.hpp/cpp # 方块持有层（末影人）
+│   ├── SaddleLayer.hpp/cpp    # 鞍层（可骑乘实体）
+│   ├── SheepWoolLayer.hpp/cpp # 羊毛层（支持染色和彩虹羊）
+│   ├── VillagerLayer.hpp      # 村民多层纹理层
+│   ├── WolfCollarLayer.hpp/cpp # 狼项圈层
 │   └── README.md
-└── effect/                 # 效果层
+└── effect/                    # 效果层渲染器
     ├── EnergyGlintLayer.hpp/cpp # 附魔光效层
-    ├── EyesLayer.hpp/cpp    # 发光眼睛层
+    ├── EyesLayer.hpp/cpp      # 发光眼睛层（蜘蛛、末影人等）
     └── README.md
 ```
 
-## LayerRenderer 基类
+## 内部模块关系
 
-层渲染器基类，用于在基础实体模型上添加额外渲染层。
-
-```cpp
-template<typename TEntity>
-class LayerRenderer {
-public:
-    virtual ~LayerRenderer() = default;
-    
-    virtual void render(
-        TEntity& entity,
-        f32 limbSwing,
-        f32 limbSwingAmount,
-        f32 partialTicks,
-        f32 ageInTicks,
-        f32 netHeadYaw,
-        f32 headPitch,
-        f32 scale
-    ) = 0;
-    
-    virtual bool shouldRender(const TEntity& entity) const { return true; }
-};
+```
+core::LayerRenderer<TEntity> (基类)
+        ↑
+   ┌────┼────────────┬────────────┬────────────┐
+   │    │            │            │            │
+equipment/       cosmetic/     entity/      effect/
+ArmorLayer       CapeLayer     SaddleLayer   EnergyGlintLayer
+HeldItemLayer    ElytraLayer   SheepWoolLayer EyesLayer
+HeadLayer                      VillagerLayer
+                               ArrowLayer
+                               HeldBlockLayer
+                               WolfCollarLayer
 ```
 
-## 层渲染器类型
+所有层渲染器均继承自 `core::LayerRenderer<TEntity>` 基类：
+- `renderPipeline()` - GPU 管线路径渲染（主要方法）
+- `render()` - CPU 路径渲染（已废弃，保留向后兼容）
+- `shouldRender()` - 条件渲染检查
 
-### 装备层 (equipment/)
-- **ArmorLayer**: 盔甲渲染，支持皮革染色
-- **HeldItemLayer**: 手持物品渲染，支持手臂动画跟随
-  - 通过 `BipedModel::translateHand()` 获取手臂变换矩阵
-  - 物品正确跟随手臂动画旋转和平移
-  - 参考 MC 1.16.5 `HeldItemLayer.func_229135_a_`
-- **HeadLayer**: 头部物品渲染（头盔、南瓜等）
-  - `shouldRender()` 检查头部槽位是否有物品
-  - 使用父模型的 `getModelHead()` 获取头部变换
-  - 参考 MC 1.16.5 `HeadLayer`
+## 上下游外部依赖关系
 
-### 外观层 (cosmetic/)
-- **CapeLayer**: 斗篷渲染
-  - `shouldRender()` 检查条件：
-    1. 玩家开启了 PlayerModelPart::Cape
-    2. 有披风纹理
-    3. 未穿戴鞘翅（鞘翅覆盖披风）
-  - 参考 MC 1.16.5 `CapeLayer`
-- **ElytraLayer**: 鞘翅渲染
-  - `shouldRender()` 检查条件：
-    1. 胸甲槽装备了鞘翅物品
-    2. 有鞘翅或披风纹理
-  - 动态角度计算：滑翔时根据俯仰角调整展开角度
-  - 参考 MC 1.16.5 `ElytraLayer`
+**依赖了谁（上游）：**
+- `core/LayerRenderer.hpp` - 所有层渲染器的基类
+- `core/AnimationContext.hpp` - 动画上下文（骨骼动画数据）
+- `core/IEntityRenderer.hpp` - 实体渲染器接口（获取父模型）
+- `pipeline/EntityPipeline.hpp` - 实体渲染管线（GPU 网格创建和绘制）
+- `model/core/ModelRenderer.hpp` - 模型渲染器（ModelVertex）
+- 各实体类：`LivingEntity`, `Player`, `SheepEntity`, `WolfEntity` 等
 
-### 实体特性层 (entity/)
-- **SaddleLayer**: 鞍渲染（马、猪等）
-- **SheepWoolLayer**: 羊毛渲染（羊），支持染色羊毛和 jeb_ 彩虹羊
-- **VillagerLayer**: 村民多层纹理渲染，根据职业和生物群系叠加纹理
-- **ArrowLayer**: 箭矢附着渲染
-- **HeldBlockLayer**: 方块持有渲染（末影人），使用 `ChunkMesher::getDefaultBlockTintColor()` 获取方块默认着色颜色
-
-### 效果层 (effect/)
-- **EnergyGlintLayer**: 附魔光效渲染
-- **EyesLayer**: 发光眼睛渲染（蜘蛛、末影人等）
+**被谁依赖（下游）：**
+- `LivingRenderer` 及其子类 - 在 `_setupLayers()` 中添加层渲染器
+- `PlayerRenderer` - 添加 HeldItemLayer、HeadLayer、CapeLayer、ElytraLayer、ArmorLayer
+- `SheepRenderer` - 添加 SheepWoolLayer
+- `WolfRenderer` - 添加 WolfCollarLayer
+- `VillagerRenderer` - 添加 VillagerLayer
+- `EndermanRenderer` - 添加 HeldBlockLayer、EyesLayer
+- `CreeperRenderer` - 添加 EnergyGlintLayer
+- `SpiderRenderer` - 添加 EyesLayer
 
 ## 渲染顺序
 
-层渲染器按添加顺序依次渲染：
-1. 基础模型
-2. 装备层（盔甲、手持物品、头部物品）
-3. 外观层（斗篷、鞘翅）
-4. 实体特性层（鞍、羊毛）
-5. 效果层（附魔光效、发光眼睛）
+层渲染器按添加顺序依次渲染，MC 1.16.5 PlayerRenderer 层顺序：
+1. HeldItemLayer → 2. HeadLayer → 3. CapeLayer → 4. ElytraLayer
 
-MC 1.16.5 PlayerRenderer 层渲染器顺序：
-1. HeldItemLayer - 手持物品
-2. HeadLayer - 头部物品
-3. CapeLayer - 披风
-4. ElytraLayer - 鞘翅
+**注意**：披风在鞘翅之前渲染，这样鞘翅可以正确覆盖披风。
 
-注意：披风在鞘翅之前渲染，这样鞘翅可以正确覆盖披风。
+## 容易踩的坑
 
-## 参考
+1. **CPU 路径已废弃**：所有层渲染器的 `render()` 方法已废弃，新代码应实现 `renderPipeline()` 方法使用 GPU 管线路径。
 
-- MC 1.16.5 LayerRenderer
-- MC 1.16.5 ArmorLayer
-- MC 1.16.5 ElytraLayer
-- MC 1.16.5 HeadLayer
+2. **模板类显式实例化**：`ElytraLayer`、`SaddleLayer`、`SheepWoolLayer`、`ArrowLayer`、`HeldBlockLayer`、`EnergyGlintLayer`、`EyesLayer` 均为模板类，需在 cpp 末尾显式实例化。
+
+3. **shouldRender 条件检查**：层渲染器必须重写 `shouldRender()` 来检查渲染条件（如装备槽位是否有物品、是否开启了特定选项），避免不必要的渲染调用。
+
+4. **叠加混合模式必须恢复**：`EnergyGlintLayer` 和 `EyesLayer` 使用 `BlendMode::Additive`，渲染完成后必须恢复 `BlendMode::Alpha`。
+
+5. **更多细节**：各子目录的 README.md 有更详细的坑点说明，开发前务必阅读。

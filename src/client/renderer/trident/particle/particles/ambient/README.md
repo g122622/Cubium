@@ -1,84 +1,45 @@
 # 环境粒子 (Ambient Particles)
 
-## 概述
+## 目录结构
 
-环境粒子用于水下、气泡、孢子花等环境效果。
-
-## 文件
-
-| 文件 | 描述 |
-|------|------|
-| BubbleParticle.hpp/cpp | 气泡粒子 - 在水中向上升起 |
-| UnderwaterParticle.hpp/cpp | 水下悬浮粒子 - 水下环境效果 |
-| SporeBlossomParticle.hpp/cpp | 孢子花粒子 - 掉落孢子和空气漂浮效果 |
-
-## 特性
-
-### BubbleParticle（气泡粒子）
-
-- **渲染类型**：PARTICLE_SHEET_TRANSLUCENT
-- **生命周期**：约 2 秒
-- **行为**：
-  - 负重力（向上升起）
-  - 随机水平漂移
-  - 到达水面后消失
-- **颜色**：淡蓝色半透明
-
-### UnderwaterParticle（水下悬浮粒子）
-
-- **渲染类型**：PARTICLE_SHEET_TRANSLUCENT
-- **生命周期**：约 3 秒
-- **行为**：
-  - 无重力
-  - 缓慢随机漂移
-  - 淡出消失
-- **颜色**：淡蓝色半透明
-
-### FallingSporeBlossomParticle（孢子花掉落粒子）
-
-- **渲染类型**：PARTICLE_SHEET_TRANSLUCENT
-- **生命周期**：约 3-4 秒（随机化）
-- **行为**：
-  - 微弱重力（缓慢下落）
-  - 轻微水平漂移
-  - 生命周期后期淡出
-- **颜色**：绿色调半透明 (0.32, 0.50, 0.22)
-- **纹理**：minecraft:particle/spore_blossom
-
-### SporeBlossomAirParticle（孢子花空气粒子）
-
-- **渲染类型**：PARTICLE_SHEET_TRANSLUCENT
-- **生命周期**：约 5-7 秒（随机化）
-- **行为**：
-  - 无重力（漂浮）
-  - 缓慢三轴随机漂移
-  - 渐入淡出效果
-- **颜色**：绿色调半透明 (0.32, 0.50, 0.22)
-- **纹理**：minecraft:particle/spore_blossom_air
-
-## 用法
-
-```cpp
-// 创建气泡粒子
-auto bubble = std::make_unique<BubbleParticle>(position, velocity);
-particleManager.addParticle(std::move(bubble));
-
-// 创建水下悬浮粒子
-auto underwater = std::make_unique<UnderwaterParticle>(position, velocity);
-particleManager.addParticle(std::move(underwater));
-
-// 创建孢子花掉落粒子
-auto falling = std::make_unique<FallingSporeBlossomParticle>(position, velocity);
-particleManager.addParticle(std::move(falling));
-
-// 创建孢子花空气粒子
-auto air = std::make_unique<SporeBlossomAirParticle>(position, velocity);
-particleManager.addParticle(std::move(air));
+```
+ambient/
+├── BubbleParticle.hpp/cpp        # 水下气泡粒子
+├── CloudParticle.hpp/cpp         # 云朵、屏障、水花、海豚粒子
+├── SporeBlossomParticle.hpp/cpp  # 孢子花粒子（掉落+空气漂浮）
+└── UnderwaterParticle.hpp/cpp    # 水下悬浮粒子
 ```
 
-## 参考
+**CloudParticle.hpp 包含的粒子类：**
+- `CloudParticle` - 云朵粒子
+- `BarrierParticle` - 屏障粒子
+- `WaterWakeParticle` - 水花粒子
+- `DolphinParticle` - 海豚粒子
 
-- Minecraft Java 1.16.5 `net.minecraft.client.particle.BubbleParticle`
-- Minecraft Java 1.16.5 `net.minecraft.client.particle.UnderwaterParticle`
-- Minecraft Java 1.17+ `net.minecraft.client.particle.SuspendedParticle` (spore_blossom_air)
-- Minecraft Java 1.17+ `net.minecraft.client.particle.FallingSporeBlossomParticle`
+**SporeBlossomParticle.hpp 包含的粒子类：**
+- `FallingSporeBlossomParticle` - 孢子花掉落粒子
+- `SporeBlossomAirParticle` - 孢子花空气粒子
+
+## 内部模块关系
+
+本目录下的粒子相互独立，无内部依赖关系。
+
+## 上下游外部依赖关系
+
+**依赖：**
+- `Particle` 基类 (`client/renderer/trident/particle/Particle.hpp`)
+- `ClientWorld` (`client/world/ClientWorld.hpp`)
+- `Random` (`common/util/math/random/Random.hpp`)
+- `FluidTags` (`common/world/fluid/FluidTags.hpp`) - BubbleParticle 用于水面检测
+
+**被依赖：**
+- `ParticleRegistry` - 注册和创建粒子实例
+- `ParticleManager` - 管理粒子生命周期
+
+## 容易踩的坑
+
+1. **BubbleParticle 水面检测**：必须使用 `FluidTags::WATER()` 而非 `isWaterAt()`，因为后者可能不识别流体标签。
+
+2. **SporeBlossomAirParticle 生成区域**：孢子花空气粒子在孢子花下方 21x10x21 区域内随机生成，不是直接从方块位置生成。
+
+3. **淡出计算**：多个粒子使用 `FADE_START_RATIO` 和 `FADE_RANGE` 计算淡出，需确保 alpha 值在 0-1 范围内。

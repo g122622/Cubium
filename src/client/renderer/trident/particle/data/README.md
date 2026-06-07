@@ -8,95 +8,57 @@
 
 ```
 data/
-├── ParticleData.hpp           # 粒子数据基类
-├── BasicParticleData.hpp/cpp  # 无参数粒子数据
-├── BlockParticleData.hpp/cpp  # 方块粒子数据
-├── ItemParticleData.hpp/cpp   # 物品粒子数据
-├── RedstoneParticleData.hpp/cpp # 红石粒子数据
+├── ParticleData.hpp           # 粒子数据基类，定义 getType()/getTypeName()/getParameters()/clone() 接口
+├── BasicParticleData.hpp/cpp  # 无参数粒子数据（火焰、烟雾等）
+├── BlockParticleData.hpp/cpp  # 方块粒子数据，携带 BlockState 参数
+├── ItemParticleData.hpp/cpp   # 物品粒子数据，携带 ItemStack 参数
+├── RedstoneParticleData.hpp/cpp # 红石粒子数据，携带 RGB 颜色参数
 └── README.md
 ```
 
-## 类设计
-
-### ParticleData（基类）
-
-```cpp
-class ParticleData {
-public:
-    virtual ~ParticleData() = default;
-
-    [[nodiscard]] virtual ParticleTypeId getType() const = 0;
-    [[nodiscard]] virtual std::string getTypeName() const = 0;
-    [[nodiscard]] virtual std::string getParameters() const { return ""; }
-    [[nodiscard]] virtual std::unique_ptr<ParticleData> clone() const = 0;
-};
-```
-
-### 数据类型对应关系
-
-| 粒子类型 | 数据类 | 参数 |
-|----------|--------|------|
-| Flame, Smoke 等 | BasicParticleData | 无 |
-| Block, Breaking | BlockParticleData | BlockState |
-| Item | ItemParticleData | ItemStack |
-| Redstone | RedstoneParticleData | RGB 颜色 |
-| DustColorTransition | DustColorTransitionData | 起始色 + 终止色 |
-
-## 使用示例
-
-```cpp
-// 创建基础粒子数据
-auto flameData = std::make_unique<BasicParticleData>(ParticleTypeId::Flame);
-
-// 创建方块粒子数据
-BlockState state = BlockRegistry::get(BlockId::Stone).getDefaultState();
-auto blockData = std::make_unique<BlockParticleData>(ParticleTypeId::Block, state);
-
-// 创建物品粒子数据
-ItemStack stack(ItemId::Diamond, 1);
-auto itemData = std::make_unique<ItemParticleData>(ParticleTypeId::Item, stack);
-
-// 创建红石粒子数据（自定义颜色）
-auto redstoneData = std::make_unique<RedstoneParticleData>(glm::vec3(1.0f, 0.5f, 0.0f));
-
-// 通过注册表创建粒子
-auto particle = ParticleRegistry::instance().createParticle(
-    flameData->getType(),
-    position,
-    velocity
-);
-```
-
-## 网络序列化
-
-粒子数据用于网络包传输，支持从服务端发送粒子效果到客户端：
-
-```cpp
-// 服务端发送粒子效果
-void sendParticleEffect(PacketSerializer& serializer, const ParticleData& data) {
-    serializer.writeVarInt(static_cast<i32>(data.getType()));
-    data.serialize(serializer);
-}
-
-// 客户端接收粒子效果
-std::unique_ptr<ParticleData> receiveParticleEffect(PacketDeserializer& deserializer) {
-    ParticleTypeId type = static_cast<ParticleTypeId>(deserializer.readVarInt());
-    return ParticleDataFactory::createFromType(type, deserializer);
-}
-```
-
-## 命令行解析
-
-粒子数据用于 `/particle` 命令的参数解析：
+## 内部模块关系
 
 ```
-/particle minecraft:block minecraft:stone ~ ~ ~ 0.5 0.5 0.5 10
-/particle minecraft:redstone 1.0 0.0 0.0 ~ ~ ~ 0.5 0.5 0.5 10
+ParticleData (基类)
+    ├── BasicParticleData (无参数粒子)
+    ├── BlockParticleData (方块粒子，依赖 BlockState)
+    ├── ItemParticleData (物品粒子，依赖 ItemStack)
+    └── RedstoneParticleData (红石粒子，依赖 glm::vec3 颜色)
 ```
 
-## 参考
+所有具体粒子数据类都继承自 `ParticleData` 基类，实现 `getType()`、`getTypeName()`、`getParameters()`、`clone()` 接口。
 
-- Minecraft Java 1.16.5 `net.minecraft.particles.IParticleData`
-- Minecraft Java 1.16.5 `net.minecraft.particles.BlockParticleData`
-- Minecraft Java 1.16.5 `net.minecraft.particles.ItemParticleData`
-- Minecraft Java 1.16.5 `net.minecraft.particles.RedstoneParticleData`
+## 上下游外部依赖关系
+
+### 依赖的上游模块
+
+| 模块 | 用途 |
+|------|------|
+| `common/world/block/Block.hpp` | BlockState 类型（BlockParticleData） |
+| `common/item/core/ItemStack.hpp` | ItemStack 类型（ItemParticleData） |
+| `client/renderer/trident/particle/ParticleTypes.hpp` | ParticleTypeId 枚举 |
+| `client/renderer/trident/particle/ParticleRegistry.hpp` | 类型名称查找 |
+| `common/util/assert/AssertAll.hpp` | 断言检查 |
+| `glm/glm.hpp` | glm::vec3 颜色类型（RedstoneParticleData） |
+
+### 被哪些下游模块依赖
+
+| 模块 | 用途 |
+|------|------|
+| `client/renderer/trident/particle/ParticleRegistry.hpp` | 根据类型创建粒子数据 |
+| `client/renderer/trident/particle/particles/` | 具体粒子实现（如 DiggingParticle 使用 BlockParticleData） |
+| 服务端粒子包序列化 | 网络同步粒子效果 |
+| `/particle` 命令解析 | 命令行参数解析 |
+
+## 容易踩的坑
+
+1. **粒子类型与数据类匹配**：创建粒子数据时必须使用正确的类型，否则会触发断言失败
+   - `BlockParticleData` 必须使用 `ParticleTypeId::Block`、`Breaking`、`FallingDust`
+   - `ItemParticleData` 必须使用 `ParticleTypeId::Item`、`ItemSlime`、`ItemSnowball`
+   - 使用 `requiresBlockState()` / `requiresItemData()` / `requiresDustColor()` 辅助函数检查
+
+2. **颜色范围**：`RedstoneParticleData` 的颜色分量会在构造函数中被 clamp 到 [0, 1] 范围，传入时注意不需要手动 clamp
+
+3. **类型名称解析**：通过 `BasicParticleData(const std::string& typeName)` 构造时，如果名称无效会得到 `ParticleTypeId::Invalid`，需要调用方检查 `isValidParticleType()`
+
+4. **BlockState 的 modelKey**：`BlockParticleData::getParameters()` 会输出方块状态的属性参数，格式如 `minecraft:stone[variant=stone]`

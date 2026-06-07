@@ -6,381 +6,102 @@
 
 ```
 decorative/
-├── PaneBlock.hpp/cpp           # 玻璃板/铁栏杆基类
+├── PaneBlock.hpp/cpp           # 玻璃板/铁栏杆基类（连接逻辑、含水支持）
 ├── StainedGlassBlock.hpp/cpp   # 染色玻璃（信标光束颜色提供者）
-├── CarpetBlock.hpp/cpp         # 地毯
-├── GlazedTerracottaBlock.hpp/cpp # 釉面陶瓦
-├── FlowerPotBlock.hpp/cpp      # 花盆
-├── LanternBlock.hpp/cpp        # 灯笼
-├── ChainBlock.hpp/cpp          # 锁链
-├── LadderBlock.hpp/cpp         # 梯子
-├── ScaffoldingBlock.hpp/cpp    # 脚手架
-├── CampfireBlock.hpp/cpp       # 营火
-├── BannerBlock.hpp/cpp         # 旗帜（站立+墙壁）
+├── CarpetBlock.hpp/cpp         # 地毯（单层高度、需支撑）
+├── GlazedTerracottaBlock.hpp/cpp # 釉面陶瓦（可旋转、不可被活塞拉动）
+├── FlowerPotBlock.hpp/cpp      # 花盆（可容纳植物内容）
+├── LanternBlock.hpp/cpp        # 灯笼（悬挂/站立、含水支持）
+├── ChainBlock.hpp/cpp          # 锁链（轴向放置、含水支持）
+├── LadderBlock.hpp/cpp         # 梯子（攀爬、需背面支撑）
+├── ScaffoldingBlock.hpp/cpp    # 脚手架（攀爬、距离支撑计算、含水支持）
+├── CampfireBlock.hpp/cpp       # 营火（烹饪、光照、信号火、含水支持）
+├── BannerBlock.hpp/cpp         # 旗帜（站立式+墙壁式、含水支持）
 └── README.md
 ```
 
-## 文件详解
+## 内部模块关系
 
-### PaneBlock.hpp/cpp
-
-**职责**：玻璃板和铁栏杆基类。
-
-**状态属性**:
-```cpp
-- NORTH/WEST/EAST/SOUTH: bool  // 各方向连接
-- WATERLOGGED: bool
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Block (基类)                            │
+└─────────────────────────────────────────────────────────────┘
+                              │
+       ┌──────────────────────┼──────────────────────┐
+       │                      │                      │
+       ▼                      ▼                      ▼
+IWaterLoggable        IBeaconBeamColorProvider   (无接口)
+       │                      │                      │
+       ├──────────────────────┼──────────────────────┤
+       │                      │                      │
+       ▼                      ▼                      ▼
+┌─────────────┐      ┌─────────────────┐    ┌───────────────┐
+│ PaneBlock   │      │ StainedGlassBlock│   │ CarpetBlock   │
+│ LanternBlock│      └─────────────────┘    │ FlowerPotBlock│
+│ ChainBlock  │                               │ GlazedTerraco │
+│ LadderBlock │                               │ ttaBlock      │
+│ ScaffoldBlock│                              └───────────────┘
+│ CampfireBlock│
+│ BannerBlock  │
+└─────────────┘
 ```
 
-**实现要点**:
-- 形状按 4 位连接掩码缓存为 16 种组合，避免每次重算
-- 连接判定接受同类 Pane、墙方块和有实体面的相邻方块
-- `WATERLOGGED` 会直接回传水流体状态，并在邻居更新时调度水 tick
+- **PaneBlock**: 玻璃板/铁栏杆共享连接逻辑，形状按4位连接掩码缓存为16种组合
+- **BannerBlock**: 抽象基类 `AbstractBannerBlock` 派生 `StandingBannerBlock`（16方向旋转）和 `WallBannerBlock`（4方向水平朝向）
+- **CampfireBlock**: 派生 `SoulCampfireBlock`（灵魂营火，光照10 vs 普通15）
 
-**衍生方块**:
-- GLASS_PANE（玻璃板）
-- WHITE_STAINED_GLASS_PANE ~ BLACK_STAINED_GLASS_PANE（染色玻璃板）
-- IRON_BARS（铁栏杆）
+## 上下游外部依赖关系
 
-### StainedGlassBlock.hpp/cpp
-
-**职责**：染色玻璃方块。
-
-**特性**:
-- 实现 `IBeaconBeamColorProvider` 接口
-- 为信标光束提供颜色
-- 16种染料颜色
-
-**接口实现**:
-```cpp
-class StainedGlassBlock : public Block, public IBeaconBeamColorProvider {
-public:
-    // 返回此染色玻璃的染料颜色
-    [[nodiscard]] DyeColor getBeaconColor() const override;
-
-    // 返回 RGB 颜色数组用于信标光束渲染
-    [[nodiscard]] const std::array<f32, 3>* getBeaconColorMultiplier(
-        const BlockState& state,
-        IWorld* world = nullptr,
-        const BlockPos* pos = nullptr,
-        const BlockPos* beaconPos = nullptr) const override;
-
-    // 玻璃非固体
-    [[nodiscard]] bool isSolid(const BlockState& state) const override;
-};
-```
-
-**信标光束颜色混合**:
-- 信标光束穿过染色玻璃时，颜色会与当前光束颜色平均混合
-- 混合算法: `newColor = (currentColor + blockColor) / 2.0`
-- 多层染色玻璃会依次混合
-
-**衍生方块**: 16种染色玻璃
-- WHITE_STAINED_GLASS, ORANGE_STAINED_GLASS, MAGENTA_STAINED_GLASS
-- LIGHT_BLUE_STAINED_GLASS, YELLOW_STAINED_GLASS, LIME_STAINED_GLASS
-- PINK_STAINED_GLASS, GRAY_STAINED_GLASS, LIGHT_GRAY_STAINED_GLASS
-- CYAN_STAINED_GLASS, PURPLE_STAINED_GLASS, BLUE_STAINED_GLASS
-- BROWN_STAINED_GLASS, GREEN_STAINED_GLASS, RED_STAINED_GLASS, BLACK_STAINED_GLASS
-
-### CarpetBlock.hpp/cpp
-
-**职责**：地毯方块。
-
-**特性**:
-- 单层高度（1/16格）
-- 可放置在任何非空气方块上
-- 16种颜色
-
-**放置逻辑**:
-- `isValidPosition()`: 检查下方是否为非空气方块
-- `updatePostPlacement()`: 下方方块被移除时，地毯自动变为空气
-
-### GlazedTerracottaBlock.hpp/cpp
-
-**职责**：釉面陶瓦。
-
-**状态属性**:
-```cpp
-- FACING: Direction (NORTH, SOUTH, EAST, WEST)  // 图案方向
-```
-
-**衍生方块**: 16种颜色的釉面陶瓦
-
-### FlowerPotBlock.hpp/cpp
-
-**职责**：花盆方块。
-
-**方块实体**: `FlowerPotEntity`（存储植物内容）
-
-**放置逻辑**:
-- `isValidPosition()`: 花盆可放置在任何完整方块上（默认返回 true）
-- `updatePostPlacement()`: 下方方块被移除时，花盆自动变为空气
-
-**衍生方块**:
-- 空花盆
-- 盆栽树苗（6种）
-- 盆栽花（多种）
-- 盆栽蘑菇
-- 盆栽仙人掌
-
-### LanternBlock.hpp/cpp
-
-**职责**：灯笼方块。
-
-**状态属性**:
-```cpp
-- HANGING: bool  // 是否悬挂
-- WATERLOGGED: bool
-```
-
-**放置逻辑**:
-- `isValidPosition()`: 根据悬挂状态检查支撑
-  - 悬挂时检查上方方块是否有实体底面
-  - 站立时检查下方方块是否有实体顶面
-- `updatePostPlacement()`: 支撑方块被移除时，灯笼自动变为空气
-
-**衍生方块**:
-- LANTERN（灯笼）
-- SOUL_LANTERN（灵魂灯笼）
-
-### ChainBlock.hpp/cpp
-
-**职责**：锁链方块。
-
-**状态属性**:
-```cpp
-- AXIS: Axis (X, Y, Z)  // 锁链方向
-- WATERLOGGED: bool
-```
-
-### LadderBlock.hpp/cpp
-
-**职责**：梯子方块。
-
-**状态属性**:
-```cpp
-- HORIZONTAL_FACING: Direction (NORTH, SOUTH, EAST, WEST)  // 附着方向
-- WATERLOGGED: bool
-```
-
-**放置逻辑**:
-- `isValidPosition()`: 检查背面是否有固体方块（使用 `isSolidSide()` 判断）
-- `updatePostPlacement()`: 背面方块被移除时，梯子自动变为空气
-
-**特性**:
-- 可攀爬（`isLadder()` 始终返回 true）
-- 无碰撞箱
-
-### ScaffoldingBlock.hpp/cpp
-
-**职责**：脚手架方块。
-
-**状态属性**:
-```cpp
-- DISTANCE_0_7: IntegerProperty(0-7)  // 距离支撑点的距离，0=直接支撑，7=过远需掉落
-- BOTTOM: bool  // 是否显示底部支撑柱
-- WATERLOGGED: bool  // 是否含水
-```
-
-**特性**:
-- 可攀爬（`isLadder()` 始终返回 true）
-- 距离支撑过远时会掉落
-- 支持含水
-
-**距离计算** (`calculateDistance` 静态方法):
-- 检查下方方块：
-  - 若为固体方块顶面，返回 0（直接支撑）
-  - 若为脚手架，继承其距离值
-- 检查下方水平方向的脚手架：
-  - 遍历北东南西四个方向
-  - 若 `pos.down().offset(dir)` 位置有脚手架，取其距离+1
-- 返回最小距离值（最大为 7）
-
-**底部支撑柱显示** (`shouldShowBottom` 静态方法):
-- 当 `distance > 0` 且下方不是脚手架时返回 true
-- 用于渲染脚手架底部的站立平台
-
-**Tick 更新机制**:
-- `onBlockAdded`: 方块放置时调度 1 tick 延迟的 tick
-- `updatePostPlacement`: 邻居更新时调度 tick
-- `tick`: 
-  - 重新计算距离和底部状态
-  - 若 `distance == 7`：
-    - 如果之前 `distance == 7`：破坏方块并掉落脚手架物品（使用 `ItemDropHelper`）
-    - 如果之前 `distance != 7`：创建 `FallingBlockEntity` 下落实体
-  - 若状态改变：更新方块状态
-
-**放置检测** (`isValidPosition`):
-- 只有当 `calculateDistance(world, pos) < 7` 时才能放置
-
-**碰撞形状** (`getCollisionShape`):
-- `distance == 0`: 无碰撞（玩家可穿过）
-- `distance != 0 && bottom == true`: 底部平台碰撞（玩家可站立）
-- 其他情况: 无碰撞（玩家可穿过）
-
-**渲染形状** (`getShape`):
-- `bottom == true`: 完整形状（含角支柱和底部平台）
-- `bottom == false`: 顶部平台形状
-
-**参考**: MC 1.16.5 `net.minecraft.block.ScaffoldingBlock`
-
-**测试**: `tests/common/world/block/blocks/decorative/ScaffoldingBlockTest.cpp`
-
-### CampfireBlock.hpp/cpp
-
-**职责**：营火方块。
-
-**状态属性**:
-```cpp
-- LIT: bool           // 是否点燃
-- SIGNAL_FIRE: bool   // 是否为信号火（添加烟雾高度）
-- WATERLOGGED: bool   // 是否被水淹没
-```
-
-**重要说明**（MC 1.16.5 对齐）:
-- 营火 **没有** AGE 属性
-- 营火 **不会** 因为雨天而熄灭（这是 FireBlock 的行为）
-- 营火的熄灭方式只有：
-  1. 水接触（含水）
-  2. 铲子右键
-  3. 喷溅型水瓶
-
-**光照等级**:
-- 普通营火：15（点燃时）
-- 灵魂营火：10（点燃时）
-
-**特性**:
-- 实现 `IWaterLoggable` 接口支持含水功能
-- 点燃时发出光照，熄灭时不发光
-- 含水时自动熄灭
-
-**核心方法**:
-| 方法 | 功能 |
-|------|------|
-| `isLit()` | 检查是否点燃 |
-| `isSignalFire()` | 检查是否为信号火 |
-| `light()` | 点燃营火 |
-| `extinguish()` | 熄灭营火（播放音效） |
-| `getLightLevel()` | 获取动态光照等级 |
-| `getFluidState()` | 获取流体状态（含水支持） |
-
-**衍生方块**:
-- CAMPFIRE（普通营火）
-- SOUL_CAMPFIRE（灵魂营火）
-
-**参考**: MC 1.16.5 `net.minecraft.block.CampfireBlock`
-
-### BannerBlock.hpp/cpp
-
-**职责**：旗帜方块（站立式+墙壁式）。
-
-**类层次**:
-```
-Block
-└── AbstractBannerBlock (implements IWaterLoggable)
-    ├── StandingBannerBlock  (ROTATION_0_15, 16方向旋转)
-    └── WallBannerBlock      (HORIZONTAL_FACING, 4方向水平朝向)
-```
-
-**AbstractBannerBlock 状态属性**:
-```cpp
-- WATERLOGGED: bool  // 是否含水
-```
-
-**StandingBannerBlock 状态属性**:
-```cpp
-- ROTATION_0_15: IntegerProperty(0-15)  // 16方向旋转，每22.5°
-```
-
-**WallBannerBlock 状态属性**:
-```cpp
-- HORIZONTAL_FACING: Direction (NORTH, SOUTH, EAST, WEST)  // 墙壁朝向
-```
-
-**实现要点**:
-- `AbstractBannerBlock`: 持有 `DyeColor m_color`，创建 `BannerEntity` 方块实体
-- `onBlockPlacedBy()`: 从物品NBT读取自定义名称，设置到BannerEntity
-- `getItem()`: 从BannerEntity读取图案数据写回ItemStack的BlockEntityTag
-- `StandingBannerBlock`: 放置时根据玩家朝向计算旋转值 `floor((180 + yaw) * 16 / 360 + 0.5) & 15`
-- `StandingBannerBlock.isValidPosition()`: 下方方块需为实心
-- `WallBannerBlock.isValidPosition()`: 背面方块需有实心面支撑
-- 两者均实现 `updatePostPlacement()`: 支撑方块移除时自动变为空气
-- 两者均实现 `rotate()`/`mirror()`: 支持旋转和镜像变换
-- 碰撞箱: 站立 `(4,0,4,12,16,12)`；墙壁按方向贴墙薄板
-
-**衍生方块**: 16色×2=32方块
-- WHITE_BANNER ~ BLACK_BANNER（站立式，16色）
-- WHITE_WALL_BANNER ~ BLACK_WALL_BANNER（墙壁式，16色）
-
-**关联组件**:
-- `BannerEntity` - 旗帜方块实体（存储图案层数据）
-- `BannerItem` - 旗帜物品（WallOrFloorItem，处理站立/墙壁放置）
-- `LoomBlock` - 织布机（添加图案的交互方块）
-- `LoomContainer` - 织布机容器（图案选择和输出）
-
-**参考**: MC 1.16.5 `net.minecraft.block.BannerBlock`, `net.minecraft.block.WallBannerBlock`
-
-## 依赖项
-
-### 内部依赖
+### 上游依赖（本模块依赖）
 - `world/block/Block.hpp` - 方块基类
 - `world/block/BlockState.hpp` - 方块状态
 - `world/block/BlockProperties.hpp` - 方块属性构建器
+- `world/block/BlockStateProperties.hpp` - 标准方块属性（FACING, WATERLOGGED, LIT 等）
+- `world/block/IWaterLoggable.hpp` - 含水接口
+- `world/block/IBeaconBeamColorProvider.hpp` - 信标光束颜色接口
+- `world/block/Material.hpp` - 材料定义
 - `world/block/VanillaBlocks.hpp` - 空气方块常量
+- `physics/collision/CollisionShape.hpp` - 碰撞形状
+- `util/property/Properties.hpp` - 属性系统
+- `util/color/DyeColor.hpp` - 染料颜色枚举
+- `blockentity/BlockEntity.hpp` - 方块实体基类
+- `blockentity/interactive/BannerEntity.hpp` - 旗帜方块实体
+- `entity/utils/ItemDropHelper.hpp` - 物品掉落工具（ScaffoldingBlock 使用）
 
-### 外部依赖
-- `<memory>` - 智能指针
+### 下游依赖（依赖本模块）
+- `world/block/VanillaBlocks.hpp` - 注册所有方块实例
+- `world/block/BlockRegistry.hpp` - 方块注册表
+- `blockentity/BlockEntityRegistry.hpp` - 方块实体注册（Banner、Campfire）
+- `item/Item.hpp` - 对应物品（BannerItem 等处理站立/墙壁放置）
 
-## 使用方法
+## 容易踩的坑
 
-### 创建玻璃板
+### ScaffoldingBlock 距离计算
+- **坑**: `distance == 7` 时脚手架掉落，但需要区分"新变成7"和"已经是7"两种情况
+- **解**: 新变成7时创建 `FallingBlockEntity`，已经是7时直接掉落物品
+- **参考**: MC 1.16.5 `ScaffoldingBlock.tick()`
 
-```cpp
-// 创建玻璃板
-auto glassPane = std::make_unique<PaneBlock>(
-    BlockProperties::create()
-        .mapColor(MapColor::WHITE)
-        .solid(false)
-);
+### CampfireBlock 熄灭逻辑
+- **坑**: 营火 **没有** AGE 属性，也 **不会** 因雨天而熄灭
+- **解**: 熄灭方式只有三种：水接触、铲子右键、喷溅型水瓶
+- **参考**: MC 1.16.5 `CampfireBlock`
 
-// 检查连接状态
-bool connectedNorth = state.get(BlockStateProperties::NORTH());
-```
+### BannerBlock 放置逻辑
+- **坑**: 站立式旗帜根据玩家yaw计算旋转值：`floor((180 + yaw) * 16 / 360 + 0.5) & 15`
+- **解**: 不是简单的yaw/22.5，需要正确的四舍五入和取模
 
-### 创建地毯
+### PaneBlock 连接判定
+- **坑**: 连接判定不仅检查同类Pane，还要检查墙方块和有实体面的方块
+- **解**: 使用 `shouldConnectTo()` 方法统一处理连接逻辑
 
-```cpp
-// 创建红色地毯
-auto redCarpet = std::make_unique<CarpetBlock>(
-    BlockProperties::create()
-        .mapColor(MapColor::RED)
-        .solid(false)
-);
-```
+### LanternBlock 支撑检测
+- **坑**: 悬挂状态检查上方方块的实体底面，站立状态检查下方方块的实体顶面
+- **解**: 支撑方块移除时通过 `updatePostPlacement()` 自动变为空气
 
-## 测试用例
+### StainedGlassBlock 光束混合
+- **坑**: 信标光束穿过染色玻璃时，颜色是**平均混合**而非覆盖
+- **解**: 混合算法 `newColor = (currentColor + blockColor) / 2.0`
 
-测试文件位于 `tests/common/world/block/blocks/decorative/`：
-
-- `PaneBlockTest.cpp` - 玻璃板测试
-- `CarpetBlockTest.cpp` - 地毯测试
-- `LanternBlockTest.cpp` - 灯笼测试
-- `DecorativeBlockTest.cpp` - 梯子、花盆等装饰性方块测试
-- `StainedGlassBlockTest.cpp` - 染色玻璃和信标颜色工具类测试
-  - `BeaconColorsTest` - BeaconColors 工具类测试（16种颜色的 RGB 值验证）
-  - `StainedGlassBlockTest` - StainedGlassBlock 功能测试
-    - 构造和属性验证
-    - `isSolid()` 返回 false
-    - `getBeaconColor()` 返回正确的 DyeColor
-    - `getBeaconColorMultiplier()` 返回正确的 RGB 值
-    - IBeaconBeamColorProvider 接口验证
-- `ScaffoldingBlockTest.cpp` - 脚手架方块测试
-  - 构造和默认状态验证
-  - 攀爬属性 (`isLadder` 始终返回 true)
-  - 形状和碰撞形状测试
-  - 含水状态测试
-  - DISTANCE_0_7 属性范围测试
-  - BOTTOM 属性切换测试
-  - Tick 行为测试（distance=7 物品掉落、FallingBlockEntity 创建、状态更新）
-  - 距离计算测试（直接支撑、无支撑、水平支撑）
-  - spawnEntity 失败恢复测试
+### IWaterLoggable 实现
+- **坑**: 所有含水方块必须在 `updatePostPlacement` 中处理水流体状态变化
+- **解**: 调用 `getFluidState()` 返回水状态，并在邻居更新时调度水 tick

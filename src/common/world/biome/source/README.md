@@ -20,61 +20,6 @@ source/
 └── README.md                  — 本文件
 ```
 
-## 文件介绍
-
-### MultiNoiseBiomeSource
-
-基于 Climate 参数的多噪声生物群系源，支持主世界和下界：
-
-1. 接收 quart 坐标 (x, y, z)
-2. 使用 Climate.Sampler 采样 6 个气候参数
-3. 在 ParameterList 中查找最近邻生物群系
-
-工厂方法：
-- `createOverworld(seed, largeBiomes)` — 创建主世界生物群系源
-- `createNether(seed)` — 创建下界生物群系源
-
-### OverworldBiomeBuilder
-
-主世界生物群系到气候参数的映射：
-
-- **温度** 5 档：冰冻/冷/温和/暖/热
-- **湿度** 5 档：干旱/干燥/中性/湿润/潮湿
-- **大陆度** 7 档：蘑菇岛/深海/海洋/海岸/近内陆/中内陆/远内陆
-- **侵蚀** 7 档
-- **深度**：表面/地下
-- **奇异度**：山谷/低坡/中坡/高坡/山峰
-
-生物群系选择逻辑：
-- 海洋区域：`OCEANS[温度][深浅]`
-- 海岸区域：`pickBeachBiome(温度)`
-- 近内陆/中内陆/远内陆：根据奇异度选择中部/高原/山坡/山峰
-- 地下：滴水石洞、繁茂洞穴、深暗之域
-
-### NetherBiomeSource
-
-下界使用简化的气候参数映射，仅 temperature 和 humidity 有效：
-
-| 生物群系 | Temperature | Humidity | Offset |
-|----------|-------------|----------|--------|
-| 下界荒地 | 0.0 | 0.0 | 0.0 |
-| 灵魂沙峡谷 | 0.0 | -0.5 | 0.0 |
-| 绯红森林 | 0.4 | 0.0 | 0.0 |
-| 诡异森林 | 0.0 | 0.5 | 0.375 |
-| 玄武岩三角洲 | -0.5 | 0.0 | 0.175 |
-
-### EndBiomeSource
-
-末地使用专用算法（非 MultiNoise）：
-
-| 条件 | 生物群系 |
-|------|---------|
-| x²+z² ≤ 4096（距原点64格内） | TheEnd |
-| erosion > 0.25 | EndHighlands |
-| erosion ≥ -0.0625 | EndMidlands |
-| erosion < -0.21875 | SmallEndIslands |
-| -0.21875 ≤ erosion < -0.0625 | EndBarrens |
-
 ## 内部模块关系
 
 ```

@@ -1,107 +1,63 @@
 # 发光效果
 
-本目录包含发光轮廓效果实现。
+本目录实现实体发光轮廓效果，用于发光药水效果和团队发光颜色渲染。
 
-## 文件列表
+## 目录结构
 
-| 文件 | 描述 |
-|------|------|
-| `GlowEffect.hpp` | 发光效果头文件 |
-| `GlowEffect.cpp` | 发光效果实现 |
-
-## 功能详解
-
-### GlowEffect（发光效果）
-
-用于渲染实体的发光轮廓，如：
-- 发光药水效果（Glowing Effect）
-- 团队发光颜色
-
-**注意**：发光鱿鱼（Glow Squid）是 MC 1.17+ 添加的实体，MC 1.16.5 中不存在。
-
-**发光效果来源检测**：
-
-```cpp
-bool GlowEffect::hasGlowEffect(Entity& entity) {
-    // 1. 检查 Entity 的发光标志
-    if (entity.isGlowing()) return true;
-
-    // 2. 检查发光药水效果（仅 LivingEntity）
-    if (auto* living = dynamic_cast<LivingEntity*>(&entity)) {
-        if (living->hasEffect(::mc::entity::effect::EffectType::Glowing)) return true;
-    }
-
-    return false;
-}
+```
+glow/
+├── GlowEffect.hpp     # 发光效果管理器（静态工具类）
+├── GlowEffect.cpp     # 发光效果实现
+└── README.md          # 本文档
 ```
 
-**发光效果来源**：
-1. `Entity::setGlowing(true)` - 直接设置发光标志
-2. 发光药水效果（`EffectType::Glowing`）
-3. 团队发光规则（通过 `Entity::getTeam()` 获取队伍颜色）
+## 内部模块关系
 
-**发光颜色获取**：
+`GlowEffect` 是纯静态工具类，无法实例化，所有方法均为静态方法：
 
-```cpp
-math::Vector4f GlowEffect::getGlowColor(Entity& entity) {
-    // 1. 检查实体是否在队伍中，使用团队颜色
-    scoreboard::Team* team = entity.getTeam();
-    if (team != nullptr) {
-        text::TextFormatting teamColor = team->getColor();
-        u32 argb = text::getFormattingColor(teamColor);
-        if (argb != 0xFFFFFFFF && text::isColor(teamColor)) {
-            return math::Vector4f(
-                static_cast<f32>((argb >> 16) & 0xFF) / 255.0f, // R
-                static_cast<f32>((argb >> 8) & 0xFF) / 255.0f,  // G
-                static_cast<f32>(argb & 0xFF) / 255.0f,         // B
-                1.0f                                              // A
-            );
-        }
-    }
-
-    // 2. 默认白色
-    return math::Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
-}
+```
+GlowEffect（静态工具类）
+├── initialize()           # 初始化发光效果系统
+├── cleanup()              # 清理发光效果系统
+├── hasGlowEffect()        # 检测实体是否发光
+├── getGlowColor()         # 获取发光颜色
+├── renderGlow()           # 渲染单个实体发光轮廓
+├── renderAllGlowing()     # 渲染所有发光实体
+└── _generateGlowMesh()    # 生成发光轮廓网格（内部方法）
 ```
 
-**使用方法**：
+## 上下游外部依赖关系
 
-```cpp
-// 初始化
-GlowEffect::initialize();
+### 上游依赖（谁依赖了这个目录）
 
-// 检查实体是否发光
-if (GlowEffect::hasGlowEffect(entity)) {
-    // 获取发光颜色
-    Vector4f color = GlowEffect::getGlowColor(entity);
+- `entity/effect/` 父目录的特效系统集成
+- 实体渲染循环调用 `hasGlowEffect()` 和 `renderGlow()`
 
-    // 渲染发光轮廓
-    GlowEffect::renderGlow(entity, partialTicks, color);
-}
+### 下游依赖（这个目录依赖了谁）
 
-// 渲染所有发光实体
-GlowEffect::renderAllGlowing(partialTicks);
+```
+GlowEffect.hpp
+├── ModelRenderer.hpp      # 模型顶点类型
+├── Types.hpp              # 基础类型（f64等）
+└── Vector4.hpp            # 颜色向量
 
-// 清理
-GlowEffect::cleanup();
+GlowEffect.cpp
+├── Entity.hpp             # 实体基类（isGlowing(), getTeam()）
+├── LivingEntity.hpp       # 生物实体（hasEffect()）
+├── EffectType.hpp         # 效果类型枚举（Glowing）
+├── Team.hpp               # 团队类（getColor()）
+└── TextStyle.hpp          # 颜色转换（getFormattingColor(), isColor()）
 ```
 
-**发光颜色**：
-- 默认：白色 (1, 1, 1, 1)
-- 团队成员：团队颜色（通过 `Entity::getTeam()` 获取）
+## 容易踩的坑
 
-**团队颜色系统**：
-- `Entity::getTeam()` - 基类默认返回 nullptr
-- `ServerPlayer::getTeam()` - 重写，通过服务器记分板获取玩家所在队伍
-- `Team::getColor()` - 获取队伍颜色（TextFormatting 枚举）
-- `getFormattingColor()` - 将 TextFormatting 转换为 ARGB 颜色值
+1. **发光鱿鱼不存在于 MC 1.16.5**：发光鱿鱼（Glow Squid）是 MC 1.17+ 添加的实体，本项目目标版本为 MC 1.16.5，不要错误引用。
 
-**渲染流程**：
-1. 渲染实体到发光缓冲区
-2. 应用模糊和膨胀效果
-3. 将轮廓合成到主画面
+2. **团队颜色获取链**：`Entity::getTeam()` 在基类中默认返回 `nullptr`，只有 `ServerPlayer` 重写了该方法。客户端实体需要通过其他方式获取团队信息。
 
-**参考**：MC 1.16.5 发光轮廓渲染系统
+3. **后处理管线尚未完成**：当前 `renderGlow()` 和 `renderAllGlowing()` 仅有框架代码，等待渲染管线支持多渲染目标(MRT)和模糊着色器后才能完整实现。
+
+4. **初始化必须在使用前调用**：调用任何渲染方法前必须先调用 `initialize()`，否则不会生效。
 
 ## 命名空间
 
@@ -110,28 +66,3 @@ namespace mc::client::renderer::entity::effect::glow {
     class GlowEffect;
 }
 ```
-
-## 依赖关系
-
-```
-GlowEffect.hpp
-├── Types.hpp
-└── Vector3.hpp
-
-GlowEffect.cpp
-├── GlowEffect.hpp
-├── Entity.hpp
-├── Team.hpp
-└── TextStyle.hpp
-```
-
-## 测试用例
-
-相关测试位于 `tests/server/scoreboard/GetTeamTest.cpp`：
-
-- `EntityBaseClassGetTeamReturnsNullptr` - Entity 基类 getTeam() 返回 nullptr
-- `ServerPlayerGetTeamWithoutServerReturnsNullptr` - ServerPlayer 无服务器时返回 nullptr
-- `ScoreboardGetPlayersTeamReturnsTeam` - 记分板正确返回玩家队伍
-- `TeamGetColor` - 队伍颜色获取和设置
-- `TeamColorToVector4f` - 颜色转换测试
-- `MultiplePlayersMultipleTeams` - 多玩家多队伍测试

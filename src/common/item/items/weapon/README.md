@@ -2,249 +2,82 @@
 
 本目录包含所有武器类物品的实现。
 
-## 文件结构
+## 目录结构
 
 ```
 weapon/
-├── BowItem.hpp/cpp       # 弓物品 (完整实现)
-├── CrossbowItem.hpp/cpp  # 弩物品 (完整实现)
-├── TridentItem.hpp/cpp   # 三叉戟物品 (完整实现)
-├── ThrowableItem.hpp/cpp # 投掷物品基类
-├── ThrowableItems.hpp/cpp # 具体投掷物品(雪球/鸡蛋/末影珍珠等)
-├── ArrowItem.hpp/cpp     # 箭矢物品
-├── TippedArrowItem.hpp/cpp # 药水箭物品 (完整实现)
-├── ShieldItem.hpp/cpp    # 盾牌物品 (框架实现)
-├── FishingRodItem.hpp/cpp # 钓鱼竿 (完整实现)
-└── README.md             # 本文件
+├── ArrowItem.hpp/cpp           # 普通箭矢物品，用于弓和弩的弹药
+├── BowItem.hpp/cpp             # 弓物品，可蓄力远程武器
+├── CrossbowItem.hpp/cpp        # 弩物品，可预装填的远程武器
+├── FishingRodItem.hpp/cpp      # 钓鱼竿物品
+├── ShieldItem.hpp/cpp          # 盾牌物品，格挡攻击（框架实现）
+├── ThrowableItem.hpp/cpp       # 投掷物品基类
+├── ThrowableItems.hpp/cpp      # 具体投掷物品（雪球/鸡蛋/末影珍珠/经验瓶）
+├── TippedArrowItem.hpp/cpp     # 药水箭物品，带药水效果的箭矢
+├── TridentItem.hpp/cpp         # 三叉戟物品，近战与投掷结合
+└── README.md                   # 本文件
 ```
 
-## 已实现的物品
-
-### BowItem（弓）- 完整实现
-
-弓是可蓄力的远程武器，蓄力时间影响箭矢速度和伤害。
-
-**蓄力机制：**
-- 最小发射阈值: 速度 >= 0.1（约 3 tick）
-- 满蓄力时间: 20 tick（1 秒）
-- 最大速度: 3.0（满蓄力时）
-
-**速度计算公式（MC 1.16.5）：**
-```
-f = charge / 20.0
-velocity = (f * f + f * 2.0) / 3.0
-```
-
-**附魔支持：**
-| 附魔 | 效果 |
-|------|------|
-| 力量 Power | 每级 +0.5 伤害 + 0.5 基础 |
-| 冲击 Punch | 每级 +1 击退等级 |
-| 火矢 Flame | 箭矢点燃目标 5 秒（100 tick） |
-| 无限 Infinity | 不消耗普通箭矢（光灵箭/药水箭除外） |
-
-**音效支持：** 完整实现 ENTITY_ARROW_SHOOT
-
-**关键方法：**
-- `getArrowVelocity(int chargeTicks)` - 计算箭矢速度因子
-- `onItemRightClick()` - 开始蓄力
-- `onPlayerStoppedUse()` - 发射箭矢
-- `findAmmo()` - 查找箭矢（副手 → 主手 → 背包）
-- `isInfiniteArrow()` - 检查箭矢是否无限
-
-### CrossbowItem（弩）- 完整实现
-
-弩是可以预先装填箭矢的远程武器。
-
-**装填机制：**
-- 基础装填时间: 25 tick（1.25秒）
-- 快速装填附魔: 每级减少 5 tick
-- 装填过程中播放音效（开始、中间、结束）
-
-**发射机制：**
-- 箭矢速度: 3.15（烟花 1.6）
-- 支持多重射击: 发射 3 支箭矢
-- 支持穿透: 箭矢可穿透实体
-- 支持烟花火箭: 作为弹药
-
-**附魔支持：**
-- 多重射击 (Multishot): 同时发射 3 支箭矢
-- 穿透 (Piercing): 箭矢可穿透实体
-- 快速装填 (Quick Charge): 减少装填时间
-
-**音效支持：**
-- ITEM_CROSSBOW_LOADING_END - 装填完成音效
-- ITEM_CROSSBOW_SHOOT - 箭矢发射音效
-- ITEM_CROSSBOW_ROCKET - 烟花发射音效
-
-**关键方法：**
-- `isCharged()` / `setCharged()` - 装填状态管理
-- `getChargeTime()` - 计算装填时间
-- `findAmmo()` - 查找弹药（箭矢/烟花）
-- `loadProjectiles()` - 装填弹丸
-- `fireProjectiles()` - 发射弹丸
-- `getChargedProjectiles()` - 获取已装填弹丸
-
-**NBT 结构：**
-- `Charged`: 布尔值，是否已装填
-- `ChargedProjectiles`: 数组，存储装填的弹丸
-
-### TridentItem（三叉戟）- 完整实现
-
-**已实现功能：**
-- 近战攻击（耐久消耗）
-- 投掷逻辑（实体生成）
-- 激流冲刺计算
-- 忠诚附魔设置
-- 附魔能力返回值
-- 方块硬度检测（onBlockDestroyed）
-- isWet 检测（水中或雨中）
-
-**音效支持：**
-- ITEM_TRIDENT_THROW - 投掷音效
-- ITEM_TRIDENT_RIPTIDE_1/2/3 - 激流音效（按等级）
-
-**关键方法：**
-- `onItemRightClick()` - 检查湿润状态，开始蓄力
-- `onPlayerStoppedUse()` - 投掷或激流冲刺
-- `isWet()` - 检测玩家是否湿润（水中或雨中）
-
-### ShieldItem（盾牌）- 框架实现
-
-**已实现功能：**
-- 格挡状态（UseAction::Block）
-- 使用时间（72000 tick）
-- 盾牌检测方法 `isShield()`
-
-**待完善功能：**
-- 盾牌格挡伤害计算
-- 斧头破盾机制（100 tick 冷却）
-- 盾牌修复（木板）
-- 旗帜染色支持
-
-### FishingRodItem（钓鱼竿）- 完整实现
-
-**已实现功能：**
-- 抛杆/收杆逻辑
-- FishingBobberEntity 钓鱼浮标实体
-- 钓鱼附魔支持（海之眷顾、饵钓）
-- 开放水域检测
-- 咬钩状态机
-- Player.fishingBobber 字段集成
-
-**音效支持：**
-- ENTITY_FISHING_BOBBER_THROW - 抛杆音效
-- ENTITY_FISHING_BOBBER_RETRIEVE - 收杆音效
-
-**钓鱼机制：**
-- 等待时间: 100-600 tick（5-30秒）
-- 饵钓附魔: 每级减少 100 tick（5秒）
-- 咬钩窗口: 20-40 tick（1-2秒）
-- 开放水域: 增加宝藏概率
-
-**关键方法：**
-- `hasBobber()` - 检查是否有浮标
-- `getBobber()` - 获取浮标实体
-- `onItemRightClick()` - 抛杆/收杆
-
-### ThrowableItems（投掷物品）- 完整实现
-
-| 物品 | 功能 |
-|------|------|
-| SnowballItem | 雪球，对烈焰人造成3点伤害 |
-| EggItem | 鸡蛋，12.5%概率孵化小鸡 |
-| EnderPearlItem | 末影珍珠，传送并造成5点摔落伤害 |
-| ExperienceBottleItem | 经验瓶，生成3-11个经验球 |
-| PotionItem | 药水（待完善药水系统） |
-
-### ArrowItem（箭矢）- 完整实现
-
-普通箭矢物品，用于弓和弩的弹药。
-
-**关键方法：**
-- `createArrow()` - 创建箭矢实体
-- `isInfinite()` - 检查箭矢是否无限（受无限附魔影响）
-
-### TippedArrowItem（药水箭）- 完整实现
-
-带有药水效果的箭矢，命中生物时应用效果。
-
-**MC 1.16.5 特性：**
-- 药水箭不受益于无限附魔（仅创造模式无限）
-- 命中时应用药水效果到目标
-- 箭矢颜色由药水效果决定
-
-**关键方法：**
-- `createArrow()` - 创建带药水效果的ArrowEntity
-- `getPotion()` - 获取药水类型
-- `getEffects()` - 获取药水效果列表
-- `setPotion()` - 设置药水类型
-- `isInfinite()` - 总是返回false（非创造模式）
-
-## 依赖关系
+## 内部模块关系
 
 ```
-BowItem
-├── Item (基类)
-├── ItemStack
-├── Player
-├── PlayerInventory
-├── AbstractArrowEntity (箭矢实体)
-├── EnchantmentHelper (附魔辅助)
-├── SoundEvents (音效)
-└── IWorld
+ThrowableItem (基类)
+└── ThrowableItems (SnowballItem/EggItem/EnderPearlItem/ExperienceBottleItem)
 
-CrossbowItem
-├── Item (基类)
-├── ItemStack
-├── Player
-├── PlayerInventory
-├── AbstractArrowEntity
-├── FireworkRocketEntity (烟花实体)
-├── EnchantmentHelper
-├── SoundEvents (音效)
-└── IWorld
+ArrowItem (基类)
+└── TippedArrowItem (继承 ArrowItem)
 
-TridentItem
-├── Item (基类)
-├── TridentEntity (三叉戟实体)
-├── EnchantmentHelper
-├── Entity (isWet方法)
-├── SoundEvents (音效)
-└── Player
-
-ShieldItem
-├── Item (基类)
-├── Player
-└── LivingEntity
-
-FishingRodItem
-├── Item (基类)
-├── Player (fishingBobber 字段)
-├── FishingBobberEntity (钓鱼浮标实体)
-├── EnchantmentHelper
-├── SoundEvents (音效)
-└── IWorld
-
-ThrowableItem
-├── Item (基类)
-├── ProjectileItemEntity (投掷物实体)
-└── Player
+BowItem ──────→ AbstractArrowEntity (创建箭矢实体)
+CrossbowItem ─→ AbstractArrowEntity / FireworkRocketEntity
+TridentItem ──→ TridentEntity
+FishingRodItem → FishingBobberEntity
 ```
 
-## 测试覆盖
+## 上下游外部依赖关系
 
-- `tests/common/item/weapon/WeaponItemTest.cpp` - 武器物品测试（19个测试用例）
-  - BowItem: 注册检查、使用时间、使用动作、箭矢速度计算、弹药检测
-  - CrossbowItem: 注册检查、装填时间、装填状态、弹药检测
-  - ArrowItem: 注册检查、耐久度
-  - TridentItem: 使用动作、使用时间、耐久度
+**本目录依赖：**
+- `item/core/` - Item 基类、ItemStack、ActionResult、UseAction
+- `item/tag/ItemTags.hpp` - ARROWS 标签（箭矢检测）
+- `item/enchantment/EnchantmentHelper.hpp` - 附魔查询
+- `entity/projectile/` - AbstractArrowEntity、TridentEntity、FishingBobberEntity、ProjectileItemEntity
+- `entity/Entity.hpp` - LivingEntity、Player
+- `entity/effect/` - EffectInstance（药水箭）
+- `potion/Potion.hpp` - 药水系统（药水箭）
+- `world/IWorld.hpp` - 世界接口
+- `sound/SoundEvents.hpp` - 音效事件
 
-## 参考
+**被依赖：**
+- `item/Items.hpp` - 注册所有武器物品
+- `entity/player/PlayerInventory.hpp` - 弹药查找
+- `entity/player/Player.hpp` - fishingBobber 字段（钓鱼浮标）
+- `tests/common/item/weapon/` - 武器物品测试
 
-- MC 1.16.5: `net.minecraft.item.BowItem`
-- MC 1.16.5: `net.minecraft.item.CrossbowItem`
-- MC 1.16.5: `net.minecraft.item.TridentItem`
-- MC 1.16.5: `net.minecraft.item.ShieldItem`
-- MC 1.16.5: `net.minecraft.item.FishingRodItem`
-- MC 1.16.5: `net.minecraft.entity.projectile.FishingBobberEntity`
+## 容易踩的坑
+
+### 1. 弓蓄力阈值
+
+弓的最小发射阈值是速度 >= 0.1（约 3 tick），而不是 0。过早松开右键不会发射箭矢。速度计算公式 `f = charge / 20.0; velocity = (f * f + f * 2.0) / 3.0`。
+
+### 2. 弩 NBT 结构
+
+弩使用 `Charged` 布尔值存储装填状态，使用 `ChargedProjectiles` 数组存储已装填的弹丸。发射后需要清除这些标签，否则会残留旧数据。
+
+### 3. 三叉戟激流条件
+
+激流附魔只有在玩家潮湿（水中或雨中）时才能触发投掷。`_isWet()` 方法检测玩家是否在水中或雨中。不在水中时，有激流附魔的三叉戟无法投掷。
+
+### 4. 药水箭不受益于无限附魔
+
+MC 1.16.5 中，药水箭（TippedArrowItem）总是返回 `isInfinite() = false`，即使玩家拥有无限附魔也会消耗箭矢。只有普通箭受益于无限附魔。
+
+### 5. 钓鱼竿不重写 getUseDuration/getUseAction
+
+钓鱼竿是即时使用物品，不重写 `getUseDuration()`（默认返回 0）和 `getUseAction()`（默认返回 NONE）。这与弓/弩/三叉戟不同，它们都有使用动画。
+
+### 6. 盾牌格挡逻辑未完全实现
+
+ShieldItem 目前只有框架实现：`getUseDuration()` 返回 72000，`getUseAction()` 返回 `UseAction::Block`。格挡伤害计算、斧头破盾机制、盾牌修复等功能待完善。
+
+### 7. 投掷物品速度参数
+
+`ThrowableItem` 的 `getThrowVelocity()` 默认返回 1.5f，`getThrowInaccuracy()` 默认返回 0.0f。子类可以重写这些方法调整投掷参数。

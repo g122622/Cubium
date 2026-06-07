@@ -1,4 +1,4 @@
-# AI 控制器模块 (Controller)
+# AI 控制器模块 (controller)
 
 本模块实现了 Minecraft 生物 AI 的底层控制器系统，负责管理实体的视线、移动和跳跃行为。
 
@@ -6,453 +6,74 @@
 
 ```
 controller/
-├── LookController.hpp      # 视线控制器头文件
-├── LookController.cpp      # 视线控制器实现
-├── MovementController.hpp  # 移动控制器头文件
-├── MovementController.cpp  # 移动控制器实现
-├── VexMovementController.hpp  # 恼鬼飞行移动控制器头文件
-├── VexMovementController.cpp  # 恼鬼飞行移动控制器实现
-├── JumpController.hpp      # 跳跃控制器头文件
-├── JumpController.cpp      # 跳跃控制器实现
-└── README.md               # 本文档
+├── LookController.hpp/cpp          # 视线控制器，控制实体头部旋转
+├── MovementController.hpp/cpp      # 移动控制器，控制地面移动行为
+├── JumpController.hpp/cpp          # 跳跃控制器，管理跳跃状态
+├── VexMovementController.hpp/cpp   # 恼鬼飞行控制器，穿墙飞行
+├── GhastMovementController.hpp/cpp # 恶魂飞行控制器，带碰撞检测飞行
+└── README.md
 ```
 
-## 文件详解
-
-### LookController（视线控制器）
-
-**文件**: `LookController.hpp` / `LookController.cpp`
-
-**职责**: 控制实体的头部旋转，使其平滑地看向指定位置。
-
-**核心功能**:
-- 设置目标看向位置（世界坐标）
-- 计算目标偏航角（yaw）和俯仰角（pitch）
-- 限制旋转速度，实现平滑转头效果
-- 每tick更新实体朝向
-
-**关键方法**:
-
-| 方法 | 说明 |
-|------|------|
-| `setLookPosition(x, y, z)` | 设置看向目标位置 |
-| `setLookPosition(x, y, z, deltaYaw, deltaPitch)` | 设置看向位置并指定旋转速度 |
-| `tick()` | 每tick更新，执行实际旋转 |
-| `isLooking()` | 是否正在看向某处 |
-| `getTargetYaw()` | 计算目标偏航角 |
-| `getTargetPitch()` | 计算目标俯仰角 |
-
-**旋转计算公式**:
-```cpp
-// 偏航角（yaw）: atan2(dz, dx) * RAD_TO_DEG - 90
-// 俯仰角（pitch）: -atan2(dy, horizontalDist) * RAD_TO_DEG
-```
-
----
-
-### MovementController（移动控制器）
-
-**文件**: `MovementController.hpp` / `MovementController.cpp`
-
-**职责**: 控制实体的移动行为，包括移动到目标位置和横向移动。
-
-**核心功能**:
-- 设置移动目标位置和速度
-- 自动计算朝向并旋转实体
-- 检测并处理跳跃（目标位置较高时）
-- 支持横向移动（strafe）模式
-
-**动作状态枚举**:
-
-| 状态 | 说明 |
-|------|------|
-| `Wait` | 等待状态，不移动 |
-| `MoveTo` | 移动到目标位置 |
-| `Strafe` | 横向移动模式 |
-| `Jumping` | 跳跃中 |
-
-**关键方法**:
-
-| 方法 | 说明 |
-|------|------|
-| `setMoveTo(x, y, z, speed)` | 设置移动目标位置和速度 |
-| `strafe(forward, strafe)` | 设置横向移动 |
-| `tick()` | 每tick更新，执行实际移动 |
-| `isUpdating()` | 是否正在移动（MoveTo状态） |
-
-**移动逻辑**:
-1. 计算当前位置到目标的水平距离
-2. 如果距离小于阈值（0.5格），停止移动
-3. 否则计算目标偏航角并限制旋转速度
-4. 根据速度属性设置移动方向
-5. 检测是否需要跳跃（目标高度 > stepHeight 且距离近）
-
----
-
-### JumpController（跳跃控制器）
-
-**文件**: `JumpController.hpp` / `JumpController.cpp`
-
-**职责**: 管理实体的跳跃状态，作为简单的跳跃命令缓冲。
-
-**核心功能**:
-- 接收跳跃请求
-- 在下一tick将跳跃状态应用到实体
-- 自动重置跳跃状态
-
-**关键方法**:
-
-| 方法 | 说明 |
-|------|------|
-| `setJumping()` | 请求跳跃 |
-| `tick()` | 每tick应用跳跃状态到实体 |
-| `isJumping()` | 是否有待处理的跳跃请求 |
-
-**工作流程**:
-```
-AI Goal → setJumping() → m_isJumping = true
-                ↓
-           tick() → m_mob->setJumping(true)
-                ↓
-           m_isJumping = false（自动重置）
-```
-
----
-
-### VexMovementController（恼鬼飞行移动控制器）
-
-**文件**: `VexMovementController.hpp` / `VexMovementController.cpp`
-
-**职责**: 恼鬼专用的飞行移动控制器，直接修改 velocity 实现穿墙飞行。
-
-**核心功能**:
-- 直接修改 velocity 向量实现三维飞行
-- 不依赖路径导航，直接飞向目标
-- 根据是否有攻击目标调整旋转行为
-
-**与标准控制器的区别**:
-
-| 特性 | MovementController | VexMovementController |
-|------|-------------------|----------------------|
-| 移动方式 | 地面移动，依赖路径导航 | 直接飞行，穿墙 |
-| 速度控制 | 通过属性和移动方向 | 直接修改 velocity |
-| 跳跃处理 | 触发 JumpController | 无需跳跃 |
-| 到达检测 | 水平距离 < 阈值 | 3D 距离 < 碰撞箱平均边长 |
-
-**关键参数**:
-
-| 参数 | 值 | 说明 |
-|------|-----|------|
-| 速度因子 | speed * 0.05 / distance | MC 1.16.5 公式 |
-| 到达阈值 | 碰撞箱平均边长 | (width + height + width) / 3 |
-| 减速因子 | 0.5 | 到达目标后速度减半 |
-
-**飞行逻辑**:
-```cpp
-void VexMovementController::tick() {
-    if (m_action == MoveAction::MoveTo) {
-        // 计算到目标的向量
-        f64 dx = m_posX - m_vex->x();
-        f64 dy = m_posY - m_vex->y();
-        f64 dz = m_posZ - m_vex->z();
-        f64 distance = std::sqrt(dx * dx + dy * dy + dz * dz);
-
-        f32 avgEdgeLength = (m_vex->width() + m_vex->height() + m_vex->width()) / 3.0f;
-
-        if (distance < static_cast<f64>(avgEdgeLength)) {
-            // 到达目标，减速停止
-            m_action = MoveAction::Wait;
-            m_vex->setVelocity(velocity * 0.5);
-        } else {
-            // 添加速度向量，实现飞行
-            f64 speedFactor = m_speed * 0.05 / distance;
-            velocity += Vector3(dx, dy, dz) * speedFactor;
-            m_vex->setVelocity(velocity);
-
-            // 更新朝向
-            if (attackTarget) {
-                // 有攻击目标：朝向目标
-                yaw = atan2(targetDx, targetDz) * RAD_TO_DEG;
-            } else {
-                // 无攻击目标：朝向运动方向
-                yaw = atan2(velocity.x, velocity.z) * RAD_TO_DEG;
-            }
-        }
-    }
-}
-```
-
-**使用场景**:
-- VexEntity 在构造函数中创建 VexMovementController 替代标准控制器
-- VexChargeAttackGoal 设置移动目标为敌人眼睛位置
-- VexMoveRandomGoal 设置移动目标为随机空气方块位置
-
----
-
-## 模块整体架构
-
-```mermaid
-graph TB
-    subgraph "AI 系统"
-        GoalSelector[GoalSelector<br/>目标选择器]
-        Goals[Goals<br/>AI目标]
-    end
-    
-    subgraph "控制器模块"
-        LookController[LookController<br/>视线控制器]
-        MovementController[MovementController<br/>移动控制器]
-        JumpController[JumpController<br/>跳跃控制器]
-    end
-    
-    subgraph "实体"
-        MobEntity[MobEntity<br/>生物实体]
-        LivingEntity[LivingEntity<br/>生物实体基类]
-    end
-    
-    subgraph "寻路"
-        PathNavigator[PathNavigator<br/>路径导航器]
-    end
-    
-    Goals -->|"设置目标位置"| LookController
-    Goals -->|"设置移动目标"| MovementController
-    Goals -->|"请求跳跃"| JumpController
-    
-    MovementController -->|"触发跳跃"| JumpController
-    
-    MobEntity -->|"每tick调用"| LookController
-    MobEntity -->|"每tick调用"| MovementController
-    MobEntity -->|"每tick调用"| JumpController
-    
-    LookController -->|"设置朝向"| MobEntity
-    MovementController -->|"设置移动方向"| MobEntity
-    JumpController -->|"设置跳跃状态"| MobEntity
-    
-    PathNavigator -->|"提供路径"| MovementController
-    
-    MobEntity -->|"继承"| LivingEntity
-```
-
----
-
-## 模块职责
-
-### 整体职责
-
-控制器模块是 AI 系统的**执行层**，负责：
-
-1. **抽象化底层操作**: 将复杂的旋转计算、移动逻辑封装为简单接口
-2. **平滑过渡**: 实现平滑的转头和移动效果，避免瞬移
-3. **状态管理**: 管理移动和跳跃的状态转换
-4. **解耦 AI 与物理**: AI Goal 只需设置目标，控制器负责具体执行
-
-### 输入和输出
-
-```mermaid
-flowchart LR
-    subgraph 输入
-        A1[目标位置坐标]
-        A2[移动速度]
-        A3[旋转速度限制]
-        A4[跳跃请求]
-    end
-    
-    subgraph "控制器模块"
-        B[Controller]
-    end
-    
-    subgraph 输出
-        C1[实体朝向 yaw/pitch]
-        C2[移动方向 forward/strafe]
-        C3[跳跃状态]
-    end
-    
-    A1 --> B
-    A2 --> B
-    A3 --> B
-    A4 --> B
-    
-    B --> C1
-    B --> C2
-    B --> C3
-```
-
-**输入**:
-- 目标位置（世界坐标）
-- 移动速度倍率
-- 旋转速度限制（偏航角/俯仰角）
-- 跳跃请求信号
-
-**输出**:
-- 实体朝向（yaw/pitch）
-- 移动方向（forward/strafe）
-- 跳跃状态标志
-
----
-
-## 依赖项
-
-### 内部依赖
+## 内部模块关系
 
 ```
-controller/
-├── 依赖 mob/MobEntity.hpp       # 实体访问和操作
-├── 依赖 living/LivingEntity.hpp # 属性访问（移动速度等）
-├── 依赖 attribute/Attributes.hpp # 属性系统
-└── 依赖 util/math/MathUtils.hpp  # 数学工具（角度限制等）
+┌─────────────────────────────────────────────────────────────┐
+│                      MobEntity (生物实体)                    │
+│   ┌─────────────┐  ┌──────────────────┐  ┌─────────────┐   │
+│   │LookController│  │MovementController│  │JumpController│  │
+│   └──────┬──────┘  └────────┬─────────┘  └──────┬──────┘   │
+│          │                  │ (触发跳跃)          │          │
+│          └──────────────────┼────────────────────┘          │
+│                             ▼                                │
+│                    ┌─────────────────┐                       │
+│                    │  PathNavigator  │ (提供移动路径)        │
+│                    └─────────────────┘                       │
+└─────────────────────────────────────────────────────────────┘
+
+继承关系：
+- VexMovementController ──继承──> MovementController
+- GhastMovementController ──继承──> MovementController
 ```
 
-### 被依赖
+**控制器调用顺序**（在 MobEntity::tick() 中）：
+1. GoalSelector.tick() - AI 决策，设置控制器目标
+2. LookController.tick() - 更新头部旋转
+3. MovementController.tick() - 更新移动方向
+4. JumpController.tick() - 应用跳跃状态
+5. aiStep() - 执行物理移动
 
-```mermaid
-graph BT
-    subgraph "控制器模块"
-        LC[LookController]
-        MC[MovementController]
-        JC[JumpController]
-    end
-    
-    subgraph "使用者"
-        ME[MobEntity]
-        LG[LookAtGoal]
-        RWG[RandomWalkingGoal]
-        MAG[MeleeAttackGoal]
-        TG[TemptGoal]
-        BG[BreedGoal]
-        SG[SwimGoal]
-        PN[PathNavigator]
-        CE[CreatureEntity]
-    end
-    
-    ME --> LC
-    ME --> MC
-    ME --> JC
-    
-    LG --> LC
-    RWG --> MC
-    MAG --> LC
-    MAG --> MC
-    TG --> LC
-    TG --> MC
-    BG --> MC
-    SG --> JC
-    PN --> MC
-    CE --> MC
-```
+## 上下游外部依赖关系
 
----
+### 上游依赖（本模块使用）
+- `mc::entity::MobEntity` - 生物实体基类
+- `mc::entity::LivingEntity` - 生物实体基类（属性访问）
+- `mc::entity::attribute::Attributes` - 属性系统（移动速度等）
+- `mc::util::math` - 数学工具（角度计算、clamp 等）
 
-## 使用方法
-
-### 基本使用
-
-控制器由 `MobEntity` 自动创建和管理，AI Goal 通过 `MobEntity` 访问：
-
-```cpp
-// 在 MobEntity 构造函数中创建
-MobEntity::MobEntity(EntityId id)
-    : LivingEntity(id)
-    , m_lookController(std::make_unique<LookController>(this))
-    , m_moveController(std::make_unique<MovementController>(this))
-    , m_jumpController(std::make_unique<JumpController>(this))
-{
-}
-
-// 在 tick() 中更新
-void MobEntity::tick() {
-    LivingEntity::tick();
-    // ...
-    if (m_lookController) m_lookController->tick();
-    if (m_moveController) m_moveController->tick();
-    if (m_jumpController) m_jumpController->tick();
-}
-```
-
-### 在 AI Goal 中使用
-
-```cpp
-// 看向目标实体
-void LookAtGoal::tick() {
-    if (m_mob && m_lookTarget) {
-        // 使用便捷方法
-        m_mob->lookAt(*m_lookTarget);
-        
-        // 或直接访问控制器
-        auto* lookCtrl = m_mob->lookController();
-        if (lookCtrl) {
-            lookCtrl->setLookPosition(
-                m_lookTarget->x(),
-                m_lookTarget->y() + m_lookTarget->eyeHeight(),
-                m_lookTarget->z(),
-                10.0f,  // deltaYaw
-                10.0f   // deltaPitch
-            );
-        }
-    }
-}
-
-// 移动到目标位置
-void RandomWalkingGoal::startExecuting() {
-    if (m_creature) {
-        m_creature->tryMoveTo(m_targetX, m_targetY, m_targetZ, m_speed);
-    }
-}
-
-// 触发跳跃
-void SwimGoal::tick() {
-    if (m_mob && m_mob->isInWater()) {
-        auto* jumpCtrl = m_mob->jumpController();
-        if (jumpCtrl) {
-            jumpCtrl->setJumping();
-        }
-    }
-}
-```
-
-### 控制器协同工作
-
-```cpp
-// MovementController 自动触发 JumpController
-void MovementController::tick() {
-    // ...
-    // 检查是否需要跳跃（目标位置比当前位置高，且水平距离较近）
-    if (m_action == MoveAction::MoveTo && dy > m_mob->stepHeight() && distSq < 1.0) {
-        if (auto* jumpCtrl = m_mob->jumpController()) {
-            jumpCtrl->setJumping();
-        }
-        m_action = MoveAction::Jumping;
-    }
-}
-```
-
----
+### 下游依赖（使用本模块）
+- `MobEntity` - 持有并管理控制器实例
+- AI Goal 系统 - 通过控制器执行行为：
+  - `LookAtGoal` / `LookRandomlyGoal` → LookController
+  - `RandomWalkingGoal` / `MeleeAttackGoal` / `TemptGoal` → MovementController
+  - `SwimGoal` → JumpController
+  - `VexEntity` → VexMovementController
+  - `GhastEntity` → GhastMovementController
+- `PathNavigator` - 通过 MovementController 执行路径移动
 
 ## 容易踩的坑
 
-### 1. 控制器更新顺序
+### 1. 控制器 tick() 调用顺序
 
-**问题**: 控制器的 `tick()` 调用顺序影响行为。
+控制器的 `tick()` 调用顺序影响行为。正确顺序：
+1. GoalSelector.tick() - AI 决策先执行，设置目标
+2. 各控制器 tick() - 执行目标
+3. aiStep() - 物理移动
 
-**正确顺序**:
-```cpp
-void MobEntity::tick() {
-    LivingEntity::tick();
-    // 1. 先更新 AI Goal（设置目标）
-    m_goalSelector.tick();
-    m_targetSelector.tick();
-    // 2. 再更新控制器（执行目标）
-    m_lookController->tick();
-    m_moveController->tick();
-    m_jumpController->tick();
-    // 3. 最后执行物理移动
-    aiStep();
-}
-```
+如果顺序错误，可能导致 AI 目标设置的目标位置未被正确执行。
 
-### 2. 跳跃状态重置
+### 2. JumpController 跳跃状态重置
 
-**问题**: `JumpController::tick()` 会自动重置跳跃状态。
-
-**注意**: 每次跳跃请求只在一帧内有效，AI Goal 需要在跳跃完成前持续请求：
+`JumpController::tick()` 会自动重置跳跃状态。每次跳跃请求只在一帧内有效，AI Goal 需要在跳跃完成前持续请求：
 
 ```cpp
 // 错误：只请求一次
@@ -470,175 +91,41 @@ void SwimGoal::tick() {
 
 ### 3. 旋转速度限制
 
-**问题**: 过大的旋转速度会导致实体瞬移视角。
-
-**建议值**:
+过大的旋转速度会导致实体瞬移视角。建议值：
 - 默认转头速度：`10.0f`（度/tick）
 - 快速转头：`30.0f`（度/tick）
 - 缓慢转头：`5.0f`（度/tick）
 
-### 4. 移动控制器状态
+### 4. MoveAction::Jumping 状态转换
 
-**问题**: `MoveAction::Jumping` 状态需要正确转换回 `MoveTo`。
-
-**当前实现**:
-```cpp
-// 检查跳跃状态
-if (m_action == MoveAction::Jumping && m_mob->onGround()) {
-    m_action = MoveAction::MoveTo;  // 着陆后继续移动
-}
-```
+`MoveAction::Jumping` 状态需要正确转换回 `MoveTo`。当前实现：着陆后（onGround）才转换回 MoveTo 状态。
 
 ### 5. 空指针检查
 
-**问题**: 控制器可能为 `nullptr`（如果实体未正确初始化）。
-
-**建议**: 始终检查控制器指针：
+控制器可能为 `nullptr`（实体未正确初始化）。始终检查控制器指针：
 ```cpp
 if (auto* ctrl = m_mob->lookController()) {
     ctrl->setLookPosition(x, y, z);
 }
 ```
 
----
+### 6. VexMovementController vs GhastMovementController
 
-## 测试覆盖
+两者都是飞行控制器，但有关键区别：
+- **VexMovementController**：可穿墙飞行，无碰撞检测
+- **GhastMovementController**：有碰撞检测，路径不安全时停止移动
 
-### 当前状态
+使用场景：VexEntity 使用前者，GhastEntity 使用后者。
 
-**测试文件**: 暂无专用测试文件
+### 7. MovementController 到达检测
 
-### 建议的测试用例
+地面移动控制器使用**水平距离**检测到达（忽略 Y 轴），阈值为 0.5 格。
+飞行控制器使用 **3D 距离**检测到达，阈值为碰撞箱平均边长。
 
-#### LookController 测试
+### 8. MovementController 不直接修改 velocity
 
-| 测试用例 | 说明 |
-|----------|------|
-| `testSetLookPosition` | 设置看向位置，验证目标坐标存储 |
-| `testGetTargetYaw` | 验证偏航角计算正确性 |
-| `testGetTargetPitch` | 验证俯仰角计算正确性 |
-| `testClampedRotate` | 验证旋转速度限制 |
-| `testTickUpdatesRotation` | 验证tick正确更新实体朝向 |
+地面移动控制器通过设置 `moveForward`/`moveStrafe` 间接影响移动，由 `LivingEntity::aiStep()` 实际执行物理移动。飞行控制器才直接修改 velocity。
 
-#### MovementController 测试
+### 9. LookController 的 shouldResetPitch()
 
-| 测试用例 | 说明 |
-|----------|------|
-| `testSetMoveTo` | 设置移动目标，验证状态转换 |
-| `testStrafe` | 验证横向移动模式 |
-| `testArrival` | 验证到达目标后停止移动 |
-| `testJumpTrigger` | 验证高目标位置触发跳跃 |
-| `testRotationTowardTarget` | 验证移动时朝向目标旋转 |
-
-#### JumpController 测试
-
-| 测试用例 | 说明 |
-|----------|------|
-| `testSetJumping` | 验证跳跃请求设置 |
-| `testTickAppliesJump` | 验证tick应用跳跃状态 |
-| `testAutoReset` | 验证跳跃状态自动重置 |
-
-#### 集成测试
-
-| 测试用例 | 说明 |
-|----------|------|
-| `testLookAtGoalIntegration` | 验证LookAtGoal正确使用LookController |
-| `testRandomWalkingIntegration` | 验证RandomWalkingGoal正确使用MovementController |
-| `testMeleeAttackIntegration` | 验证MeleeAttackGoal同时使用多个控制器 |
-
----
-
-### GhastMovementController（恶魂飞行移动控制器）
-
-**文件**: `GhastMovementController.hpp` / `GhastMovementController.cpp`
-
-**职责**: 恶魂专用的飞行移动控制器，直接修改 velocity 实现三维空间飞行。
-
-**核心功能**:
-- 直接修改 velocity 向量实现飞行（不依赖路径导航）
-- 检查飞行路径碰撞安全性
-- 随机冷却机制避免频繁调整方向
-
-**关键方法**:
-
-| 方法 | 说明 |
-|------|------|
-| `tick()` | 每tick更新，执行飞行移动 |
-| `isPathSafe(direction, distance)` | 检查飞行路径是否安全（无碰撞） |
-
-**飞行逻辑**:
-```cpp
-void GhastMovementController::tick()
-{
-    if (m_action == MoveAction::MoveTo) {
-        // 计算到目标位置的向量
-        f64 dx = m_posX - m_ghast->x();
-        f64 dy = m_posY - m_ghast->y();
-        f64 dz = m_posZ - m_ghast->z();
-        f64 distance = std::sqrt(dx * dx + dy * dy + dz * dz);
-
-        if (distance < 0.0001) {
-            // 已到达目标，停止移动
-            m_action = MoveAction::Wait;
-            return;
-        }
-
-        // 归一化方向向量
-        Vector3f direction = ...;
-
-        // 检查飞行路径是否安全
-        if (isPathSafe(direction, stepsToCheck)) {
-            // 路径安全，添加速度
-            velocity += direction * 0.1f;
-            m_ghast->setVelocity(velocity);
-        } else {
-            // 路径不安全，停止移动
-            m_action = MoveAction::Wait;
-        }
-    }
-}
-```
-
-**碰撞检测**:
-```cpp
-bool GhastMovementController::isPathSafe(const Vector3f& direction, i32 distance) const
-{
-    AxisAlignedBB currentBox = m_ghast->boundingBox();
-
-    for (i32 i = 1; i <= distance; ++i) {
-        AxisAlignedBB nextBox = currentBox;
-        nextBox.offset(direction.x, direction.y, direction.z);
-
-        if (!world->hasNoCollisions(nextBox)) {
-            return false; // 路径不安全
-        }
-        currentBox = nextBox;
-    }
-    return true; // 路径安全
-}
-```
-
-**使用场景**:
-- GhastEntity 在构造函数中创建 GhastMovementController 替代标准控制器
-- GhastRandomFlyGoal 设置随机飞行目标位置
-
-**与 VexMovementController 的区别**:
-
-| 特性 | GhastMovementController | VexMovementController |
-|------|------------------------|----------------------|
-| 碰撞检测 | 有，路径不安全时停止 | 无，可穿墙飞行 |
-| 冷却机制 | 有，随机2-6 ticks冷却 | 无 |
-| 到达检测 | 距离 < 0.0001 | 碰撞箱平均边长 |
-| 用途 | 下界恶魂飞行 | 恼鬼穿墙飞行 |
-
-**参考**: MC 1.16.5 `net.minecraft.entity.monster.GhastEntity.MoveHelperController`
-
----
-
-## 更新历史
-
-| 日期 | 变更 |
-|------|------|
-| 2024-XX-XX | 初始实现三个控制器 |
-| 2026-03-26 | 创建 README.md 文档 |
-| 2026-05-16 | 添加 GhastMovementController 恶魂飞行控制器 |
+默认实现返回 true，俯仰角会在某些情况下重置。子类可重写此方法改变行为。

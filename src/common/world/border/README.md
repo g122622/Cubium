@@ -6,86 +6,44 @@
 
 ```
 border/
-├── WorldBorder.hpp       # 世界边界类定义
-├── WorldBorder.cpp       # 世界边界实现
+├── WorldBorder.hpp       # 世界边界类定义，包含 IBorderListener/IBorderState 接口
+├── WorldBorder.cpp       # 世界边界实现，含 StationaryBorderState/MovingBorderState
 └── README.md             # 本文件
 ```
 
-## 核心类
+## 内部模块关系
 
-### WorldBorder
-
-世界边界管理类，支持：
-
-- **边界大小**：立即设置或渐变过渡
-- **边界中心**：设置边界中心坐标
-- **伤害参数**：每格伤害量、伤害缓冲距离
-- **警告参数**：警告时间、警告距离
-- **边界检测**：点检测、AABB检测、区块检测
-
-```cpp
-#include "common/world/border/WorldBorder.hpp"
-
-mc::world::border::WorldBorder border;
-
-// 设置边界大小
-border.setSize(1000.0);  // 立即设置为 1000 格
-
-// 渐变设置边界大小
-border.setSizeLerp(1000.0, 500.0, 60000);  // 60秒内从 1000 缩小到 500
-
-// 设置边界中心
-border.setCenter(100.0, 200.0);
-
-// 设置伤害参数
-border.setDamagePerBlock(0.2);  // 每格 0.2 伤害
-border.setDamageBuffer(5.0);    // 5 格缓冲区
-
-// 设置警告参数
-border.setWarningTime(15);      // 15 秒警告时间
-border.setWarningDistance(5);   // 5 格警告距离
-
-// 检测点是否在边界内
-bool inside = border.contains(x, z);
-
-// 获取点到边界的距离（正数=在内，负数=在外）
-double distance = border.getClosestDistance(x, z);
+```
+WorldBorder
+    │
+    ├── IBorderState（状态模式）
+    │       ├── StationaryBorderState  // 静止边界，固定大小
+    │       └── MovingBorderState      // 移动边界，线性插值过渡
+    │
+    └── IBorderListener（监听器）
+            └── 用于网络同步，通知边界变化事件
 ```
 
-### IBorderState（状态模式）
-
-边界大小使用状态模式实现：
-
-- **StationaryBorderState**：静止边界，固定大小
-- **MovingBorderState**：移动边界，线性插值过渡
-
-状态转换：
+**状态转换：**
 - `setSize()` 创建静止状态
 - `setSizeLerp()` 创建移动状态
 - `tick()` 更新移动状态，过渡完成后转为静止状态
 
-### IBorderListener（监听器）
+## 上下游外部依赖关系
 
-边界变化监听器接口，用于网络同步：
+**上游依赖（本模块依赖）：**
+- `common/core/Types.hpp` - 基础类型定义
+- `common/util/AxisAlignedBB.hpp` - AABB 碰撞检测
+- `common/world/block/BlockPos.hpp` - 方块位置
+- `common/world/chunk/ChunkPos.hpp` - 区块位置
+- `common/world/WorldConstants.hpp` - 世界常量（CHUNK_WIDTH）
 
-```cpp
-class MyListener : public IBorderListener {
-    void onSizeChanged(double newSize) override {
-        // 发送 WorldBorderPacket(SetSize)
-    }
-    void onTransitionStarted(double oldSize, double newSize, u64 timeMs) override {
-        // 发送 WorldBorderPacket(LerpSize)
-    }
-    void onCenterChanged(double x, double z) override {
-        // 发送 WorldBorderPacket(SetCenter)
-    }
-    // ...
-};
-```
+**下游依赖（被谁使用）：**
+- `ServerWorld` - 持有 WorldBorder 实例，每 tick 调用 `border.tick()`
+- `WorldBorderPacket` - 网络同步包，实现 `IBorderListener` 接口
+- `WorldBorderCommand` - `/worldborder` 命令处理
 
 ## 边界参数
-
-### 默认值（MC 1.16.5 兼容）
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
@@ -96,64 +54,30 @@ class MyListener : public IBorderListener {
 | 警告时间 | 15 秒 | 边界收缩前警告时间 |
 | 警告距离 | 5 格 | 接近边界时警告距离 |
 
-### 伤害计算公式
+## 容易踩的坑
 
-```
-距离 = getClosestDistance(entity) + damageBuffer
-如果 距离 < 0:
-    伤害 = max(1, floor(-距离 * damagePerBlock))
-```
+### 1. contains() 与 intersects() 语义不同
 
-示例：
-- 越界 3 格，damageBuffer = 5：距离 = -3 + 5 = 2，不受伤
-- 越界 10 格，damageBuffer = 5，damagePerBlock = 0.2：距离 = -10 + 5 = -5，伤害 = max(1, floor(5 * 0.2)) = 1
+`contains(x, z)` 使用严格不等式（`>` 和 `<`），点在边界上返回 false。`intersects()` 使用非严格不等式，边界接触即返回 true。在玩家位置检测时，应使用 `contains()`；在区块加载判断时，应使用 `intersectsChunk()`。
 
-## 使用方法
+### 2. 伤害计算需加 damageBuffer
 
-### 在 ServerWorld 中使用
+伤害公式：`伤害 = max(1, floor(-(distance + damageBuffer) * damagePerBlock))`
 
-```cpp
-// ServerWorld 已集成 WorldBorder
-ServerWorld world;
-auto& border = world.worldBorder();
+其中 `distance` 是 `getClosestDistance()` 的返回值（边界内为正，边界外为负）。damageBuffer 是缓冲距离，玩家越界在 buffer 距离内不受伤。参考 MC 1.16.5 `LivingEntity.baseTick()` 第306-318行。
 
-// 设置边界
-border.setSize(1000.0);
-border.setCenter(0.0, 0.0);
+### 3. 监听器使用 weak_ptr
 
-// 在 tick 中更新（自动处理过渡动画）
-world.tick();  // 内部调用 border.tick()
-```
+`addListener()` 接受 `shared_ptr` 但内部存储 `weak_ptr`，监听器生命周期由调用方管理。调用方必须确保监听器对象在 WorldBorder 生命周期内有效，并在适当时机调用 `removeListener()`。
 
-### 命令系统
+### 4. MovingBorderState 使用缓存延迟计算
 
-```cpp
-/worldborder set <size> [time]     // 设置边界大小
-/worldborder add <distance> [time] // 增加边界大小
-/worldborder center <x> <z>        // 设置边界中心
-/worldborder get                   // 获取边界大小
-/worldborder damage amount <value> // 设置每格伤害
-/worldborder damage buffer <value> // 设置伤害缓冲
-/worldborder warning time <seconds>  // 设置警告时间
-/worldborder warning distance <blocks> // 设置警告距离
-```
+`MovingBorderState` 使用 `m_dirty` 标志和缓存变量延迟计算边界值，仅在需要时重新计算。调用 `tick()` 后会标记 dirty，下次查询时才更新缓存。不要在 tick 后立即假设缓存已更新。
 
-## 网络同步
+### 5. 序列化需处理过渡状态
 
-通过 `WorldBorderPacket` 同步到客户端：
+`serialize()` 和 `deserialize()` 支持过渡状态的保存和恢复。如果 `timeUntilTarget > 0` 且 `size != targetSize`，`deserialize()` 会恢复为移动状态。否则恢复为静止状态。
 
-| Action | 说明 | 数据 |
-|--------|------|------|
-| SetSize | 立即设置大小 | size |
-| LerpSize | 渐变设置大小 | oldSize, newSize, timeMs |
-| SetCenter | 设置中心 | x, z |
-| Initialize | 完整初始化 | 所有参数 |
-| SetWarningTime | 设置警告时间 | warningTime |
-| SetWarningDistance | 设置警告距离 | warningDistance |
-| SetDamageBuffer | 设置伤害缓冲 | damageBuffer |
-| SetDamagePerBlock | 设置每格伤害 | damagePerBlock |
+### 6. BlockPos contains 检测使用方块边界
 
-## 参考
-
-- MC 1.16.5 `net.minecraft.world.border.WorldBorder`
-- MC 1.16.5 `net.minecraft.network.play.server.SWorldBorderPacket`
+`contains(const BlockPos&)` 重载检测方块是否完全在边界内，使用 `pos.x + 1.0` 和 `pos.z + 1.0` 作为方块最大边界。这与点检测 `contains(x, z)` 不同。

@@ -11,96 +11,70 @@ spawn/
 └── README.md                # 本文件
 ```
 
-## 核心类型
+## 内部模块关系
 
-### SpawnedEntityData
+本目录只有一个核心类 `WorldGenSpawner`，无内部子模块。
 
-生成实体数据结构，用于记录区块生成时应该放置的实体信息。
+## 上下游外部依赖关系
+
+### 上游依赖
+
+| 模块 | 用途 |
+|------|------|
+| `entity/core/EntitySpawnPlacementRegistry.hpp` | 位置验证、SpawnReason 枚举、PlacementType 枚举 |
+| `entity/core/EntityRegistry.hpp` | 实体类型查询 |
+| `entity/core/EntityClassification.hpp` | 实体分类（Creature、Monster 等） |
+| `world/biome/Biome.hpp` | 生物群系生成配置（MobSpawnInfo） |
+| `world/spawn/MobSpawnInfo.hpp` | 生成条目定义（SpawnEntry、SpawnCosts） |
+| `world/gen/chunk/IChunkGenerator.hpp` | 区块生成器接口 |
+| `world/block/BlockRegistry.hpp` | 方块状态检查 |
+
+### 下游依赖
+
+| 模块 | 用途 |
+|------|------|
+| `world/gen/chunk/NoiseChunkGenerator` | 区块生成时调用 `spawnInitialMobs` |
+| `server/world/ServerWorld` | 接收 `SpawnedEntityData` 列表并创建实体 |
+
+## 容易踩的坑
+
+### 1. WorldGenSpawner 只生成被动动物
+
+仅处理 `EntityClassification::Creature` 分类（猪、牛、羊等）。怪物通过 `NaturalSpawner` 在夜间/黑暗环境生成，水生生物有单独的生成逻辑。
+
+### 2. WorldGenRegion 不是 ISpawnWorldReader
+
+`WorldGenRegion` 不直接实现 `ISpawnWorldReader` 接口。需要使用 `WorldGenRegionAdapter` 适配器来调用 `EntitySpawnPlacementRegistry::canSpawnEntity()` 等方法。
+
+### 3. 生成位置必须在区块边界内
+
+`_spawnGroup` 中使用 `std::clamp` 确保实体生成位置不会超出区块边界，考虑实体宽度：
 
 ```cpp
-struct SpawnedEntityData {
-    std::string entityTypeId;      // 实体类型ID（如 "minecraft:pig"）
-    f32 x, y, z;                   // 生成位置
-    world::spawn::SpawnReason spawnReason;  // 生成原因（默认 ChunkGeneration）
-};
+spawnX = std::clamp(spawnX, chunkStartX + width, chunkStartX + CHUNK_WIDTH - width);
 ```
 
-### SpawnReason 枚举
+### 4. 生物群系生成概率控制生成次数
 
-定义实体生成的各种原因。完整定义见 `entity/core/EntitySpawnPlacementRegistry.hpp`。
+`biome.creatureSpawnProbability()` 返回值决定生成循环次数。每次循环有该概率尝试生成一组动物，平原等生物群系概率较高。
 
-常用值：
-- `ChunkGeneration` - 区块生成时放置（WorldGenSpawner 使用）
-- `Natural` - 自然刷新生成
-- `SpawnEgg` - 刷怪蛋
-- `Spawner` - 刷怪笼
-- `Breeding` - 繁殖
+### 5. 马和驴对地形平坦度有特殊要求
 
-## WorldGenSpawner
+`_checkSpawnRules` 中对马和驴额外检查周围 3x3 区域的高度差不超过 1 格，否则拒绝生成。
 
-区块生成时的生物放置器，参考 MC 1.16.5 `WorldEntitySpawner.performWorldGenSpawning`。
+### 6. 必须检查 canSummon()
 
-### 功能特点
+在 `_spawnGroup` 中首先检查 `entityType.canSummon()`，某些实体类型（如末影龙）不能通过生成器生成。
 
-1. **仅生成被动动物**：只处理 `Creature` 分类的实体
-2. **生物群系感知**：根据生物群系的生成配置选择动物类型
-3. **加权随机选择**：根据配置权重随机选择动物种类
-4. **群体生成**：支持一次生成多个同类型动物
-5. **位置验证**：使用 `EntitySpawnPlacementRegistry` 验证生成位置
+### 7. 高度图类型因实体而异
 
-### 使用方式
+不同实体使用不同的高度图类型（通过 `EntitySpawnPlacementRegistry::getHeightmapType` 获取）。例如，飞行生物可能使用不同的高度图。
 
-```cpp
-WorldGenSpawner spawner;
-std::vector<SpawnedEntityData> entities;
-
-// 区块生成时调用
-i32 count = spawner.spawnInitialMobs(
-    region,      // WorldGenRegion
-    biome,        // 区块中心的主要生物群系
-    chunkX, chunkZ,
-    generator,    // 区块生成器
-    random,
-    entities      // 输出：生成的实体数据
-);
-
-// 之后由 ServerWorld 创建实际实体
-world.spawnEntitiesFromChunkGeneration(entities);
-```
-
-### 生成流程
-
-1. 获取生物群系的 Creature 生成列表
-2. 计算总权重并加权随机选择动物类型
-3. 根据生物群系生成概率决定是否生成
-4. 随机选择区块内位置并查找地面高度
-5. 使用 `EntitySpawnPlacementRegistry` 验证位置
-6. 在组内随机偏移生成多个个体
-7. 将实体数据存入 `SpawnedEntityData` 列表
-
-## 与 NaturalSpawner 的区别
+### 8. 与 NaturalSpawner 的区别
 
 | 特性 | WorldGenSpawner | NaturalSpawner |
 |------|-----------------|----------------|
 | 触发时机 | 区块首次生成 | 运行时定期 tick |
 | 生成分类 | 仅 Creature | Monster、Creature、Ambient 等 |
-| 生成条件 | 不需要光照条件 | 需要检查光照、玩家距离等 |
+| 生成条件 | 不检查光照、玩家距离 | 需检查光照、玩家距离等 |
 | 数据流 | 输出 SpawnedEntityData | 直接创建实体 |
-
-## 依赖关系
-
-- `entity/core/EntitySpawnPlacementRegistry.hpp` - 位置验证、SpawnReason 枚举
-- `entity/core/EntityRegistry.hpp` - 实体类型查询
-- `entity/core/EntityClassification.hpp` - 实体分类
-- `world/biome/Biome.hpp` - 生物群系生成配置
-- `world/spawn/MobSpawnInfo.hpp` - 生成条目定义
-
-## 测试用例
-
-- [tests/common/world/gen/ChunkSpawnIntegrationTest.cpp](../../../../tests/common/world/gen/ChunkSpawnIntegrationTest.cpp) - 集成测试
-- [tests/common/entity/EntitySpawnPlacementRegistryTest.cpp](../../../../tests/common/entity/EntitySpawnPlacementRegistryTest.cpp) - SpawnReason 枚举测试
-
-## 参考
-
-- MC 1.16.5 `net.minecraft.world.spawner.WorldEntitySpawner`
-- MC 1.16.5 `net.minecraft.entity.SpawnReason`

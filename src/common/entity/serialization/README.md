@@ -9,70 +9,8 @@ src/common/entity/serialization/
 ├── EntityDeserializer.hpp/cpp   # 实体反序列化器
 ├── EntityNbtKeys.hpp            # NBT 键名常量
 ├── NbtHelper.hpp/cpp            # NBT 辅助工具函数
-└── README.md                    # 本文件
+└── README.md
 ```
-
-## 文件介绍
-
-### EntityDeserializer.hpp/cpp
-
-实体反序列化器，从 NBT 数据创建实体实例。
-
-**核心功能**：
-- `deserialize(tag, world)` - 从 NBT 复合标签反序列化实体
-- `deserializeFromBinary(data, world)` - 从压缩二进制数据反序列化实体
-- `serializeToBinary(entity)` - 将实体序列化为压缩二进制数据
-
-**反序列化流程**（参考 MC 1.16.5 `EntityType.loadEntityAndExecute()`）：
-1. 读取 "id" 标签获取实体类型字符串
-2. 通过 `EntityRegistry` 查找 `EntityType`
-3. 调用 `EntityType::create()` 创建实例
-4. 调用 `Entity::readFromNBT()` 填充数据
-5. 处理 "Passengers" 列表递归加载乘客实体
-
-**序列化流程**：
-1. 创建 NBT 复合标签
-2. 写入 "id" 标签（实体类型字符串）
-3. 调用 `Entity::writeToNBT()` 写入实体数据
-4. 使用 Java 版 NBT 上下文序列化
-5. 使用 zlib 压缩为二进制数据
-
-### EntityNbtKeys.hpp
-
-NBT 键名常量定义，与 MC 1.16.5 Java 版保持一致。
-
-**键名分类**：
-- Entity 基础键：id, UUIDMost, UUIDLeast, Pos, Motion, Rotation 等
-- LivingEntity 键：Health, AbsorptionAmount, ActiveEffects, Attributes 等
-- MobEntity 键：CanPickUpLoot, PersistenceRequired, NoAI 等
-- ItemEntity 键：Item, Age, PickupDelay 等
-- ItemStack 子键：id, Count, tag
-
-### NbtHelper.hpp/cpp
-
-NBT 辅助工具函数，提供安全的 NBT 读写操作。
-
-**安全读取函数**：
-- `tryGetByte()` - 安全读取 i8 值
-- `tryGetShort()` - 安全读取 i16 值
-- `tryGetInt()` - 安全读取 i32 值
-- `tryGetLong()` - 安全读取 i64 值
-- `tryGetFloat()` - 安全读取 f32 值
-- `tryGetDouble()` - 安全读取 f64 值
-- `tryGetString()` - 安全读取字符串值
-- `tryGetBool()` - 安全读取 bool 值
-- `tryGetCompound()` - 安全获取 compound_tag 指针
-- `tryGetList()` - 安全获取 list_tag 指针
-
-**MC 格式列表读写**：
-- `putDoubleList()` - 写入 double 列表（Pos、Motion 等）
-- `putFloatList()` - 写入 float 列表（Rotation 等）
-- `getDoubleList()` - 读取 double 列表
-- `getFloatList()` - 读取 float 列表
-
-**UUID 读写**：
-- `putUuid()` - 写入 UUID（UUIDMost + UUIDLeast 格式）
-- `getUuid()` - 读取 UUID
 
 ## 内部模块关系
 

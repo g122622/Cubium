@@ -6,142 +6,71 @@
 
 ```
 data/
-├── DataAccessor.hpp    # 数据访问器接口和实现
+├── DataAccessor.hpp    # 数据访问器接口（IDataAccessor）和三个实现类
 └── DataAccessor.cpp    # 数据访问器实现
 ```
 
-## 核心类
-
-### IDataAccessor
-
-数据访问器的抽象接口，定义了所有数据访问器必须实现的方法：
-
-```cpp
-class IDataAccessor {
-public:
-    virtual ~IDataAccessor() = default;
-
-    // 获取完整 NBT 数据
-    virtual std::unique_ptr<nbt::tags::compound_tag> getData() const = 0;
-
-    // 合并 NBT 数据
-    virtual void mergeData(const nbt::tags::compound_tag& data) = 0;
-
-    // 获取显示名称
-    virtual std::string getDisplayName() const = 0;
-
-    // 获取修改消息
-    virtual std::string getModifiedMessage() const = 0;
-
-    // 获取查询消息
-    virtual std::string getQueryMessage(const nbt::tags::tag& nbt) const = 0;
-
-    // 获取获取消息
-    virtual std::string getGetMessage(const NbtPath& path, double scale, i32 value) const = 0;
-};
-```
-
-### BlockDataAccessor
-
-方块实体数据访问器，用于访问容器、告示牌等方块实体的 NBT 数据。
-
-**功能：**
-- 从 `BlockEntity` 读取 NBT 数据
-- 将 NBT 数据合并到 `BlockEntity`
-- 处理 JSON 到 NBT 的转换
-
-**使用示例：**
-```cpp
-BlockPos pos(10, 64, 20);
-BlockDataAccessor accessor(world, pos);
-auto data = accessor.getData();
-```
-
-### EntityDataAccessor
-
-实体数据访问器，用于访问实体的 NBT 数据。
-
-**功能：**
-- 从 `Entity` 读取 NBT 数据（位置、UUID、标签、生命值等）
-- 合并 NBT 数据到实体（玩家除外）
-- 处理 `LivingEntity` 特有数据
-
-**使用示例：**
-```cpp
-EntityDataAccessor accessor(entity);
-auto data = accessor.getData();
-accessor.mergeData(nbtData);
-```
-
-### StorageDataAccessor
-
-命令存储数据访问器，用于访问持久化命令存储。
-
-**功能：**
-- 读取/写入命令存储数据
-- 支持命名空间存储 ID
-
-**使用示例：**
-```cpp
-ResourceLocation storageId("minecraft", "my_storage");
-StorageDataAccessor accessor(&commandStorage, storageId);
-auto data = accessor.getData();
-accessor.mergeData(nbtData);
-```
-
-### CommandStorage
-
-命令存储管理器，管理所有 `/data` 命令的持久化存储。
-
-**功能：**
-- `get(id)` - 获取存储数据
-- `set(id, data)` - 设置存储数据
-- `exists(id)` - 检查存储是否存在
-- `listAll()` - 列出所有存储
-- `clear(id)` - 清除存储
-- `save(json)` / `load(json)` - 序列化/反序列化
-
-## 与 DataCommand 的集成
-
-这些数据访问器被 `DataCommand` 使用，支持以下命令：
-
-- `/data get block <pos> [<path>] [<scale>]`
-- `/data get entity <target> [<path>] [<scale>]`
-- `/data get storage <id> [<path>] [<scale>]`
-- `/data set block <pos> <path> <value>`
-- `/data set entity <target> <path> <value>`
-- `/data set storage <id> <path> <value>`
-- `/data merge block <pos> <nbt>`
-- `/data merge entity <target> <nbt>`
-- `/data merge storage <id> <nbt>`
-- `/data remove block <pos> <path>`
-- `/data remove entity <target> <path>`
-- `/data remove storage <id> <path>`
-
-## 数据流
+## 内部模块关系
 
 ```
-┌─────────────────┐    getData()    ┌─────────────────┐
-│  Data Source    │ ──────────────> │  IDataAccessor  │ ──> NBT Compound
-│ (Block/Entity/  │                 │                 │
-│    Storage)     │ <────────────── │                 │ <── NBT Compound
-└─────────────────┘   mergeData()   └─────────────────┘
+┌─────────────────────┐
+│   IDataAccessor     │  ← 抽象接口
+│  (抽象接口)          │
+└──────────┬──────────┘
+           │ 继承
+     ┌─────┼─────────────┐
+     │     │             │
+     ▼     ▼             ▼
+┌────────┐ ┌────────┐ ┌────────┐
+│ Block  │ │ Entity │ │Storage │
+│DataAc- │ │DataAc- │ │DataAc- │
+│ cessor │ │ cessor │ │ cessor │
+└────────┘ └────────┘ └────────┘
+     │          │          │
+     └──────────┼──────────┘
+                │
+                ▼
+        ┌───────────────┐
+        │CommandStorage │  ← 独立的存储管理类
+        └───────────────┘
 ```
 
-## 注意事项
+- `IDataAccessor`：数据访问器的抽象接口，定义 getData/mergeData 等方法
+- `BlockDataAccessor`：方块实体数据访问，通过 `IWorld::getBlockEntity()` 获取 BlockEntity
+- `EntityDataAccessor`：实体数据访问，直接持有 Entity 指针
+- `StorageDataAccessor`：命令存储数据访问，通过 `CommandStorage` 管理持久化数据
+- `CommandStorage`：独立的存储管理类，被 `StorageDataAccessor` 使用
 
-1. **玩家数据保护**：`EntityDataAccessor` 不允许直接修改玩家数据，会抛出异常
-2. **方块实体检测**：`BlockDataAccessor` 会检测方块实体是否存在，不存在则抛出异常
-3. **存储持久化**：`CommandStorage` 数据需要显式调用 `save()` 和 `load()` 进行持久化
-4. **JSON 转换**：`BlockDataAccessor` 使用 JSON 作为中间格式，可能存在精度损失
+## 上下游外部依赖关系
 
-## 依赖关系
+### 上游依赖（本模块依赖的外部模块）
 
-- `NbtPath` - NBT 路径解析和操作
-- `BlockEntity` - 方块实体基类
-- `Entity` / `LivingEntity` - 实体基类
-- `ResourceLocation` - 资源位置标识符
-- `IWorld` - 世界接口
+- `common/command/arguments/NbtPath.hpp` - NBT 路径解析
+- `common/command/exceptions/CommandExceptions.hpp` - 命令异常类型
+- `common/resource/ResourceLocation.hpp` - 资源位置标识符
+- `common/util/nbt/Nbt.hpp` - NBT 标签系统
+- `common/world/block/BlockPos.hpp` - 方块位置
+- `common/world/IWorld.hpp` - 世界接口（用于获取 BlockEntity）
+- `common/world/blockentity/BlockEntity.hpp` - 方块实体基类
+- `common/entity/core/Entity.hpp` - 实体基类
+- `common/entity/core/LivingEntity.hpp` - 生物实体（用于生命值等数据）
+- `common/entity/entities/player/Player.hpp` - 玩家实体（用于判断是否为玩家）
+
+### 下游依赖（依赖本模块的外部模块）
+
+- `src/server/command/commands/DataCommand.hpp` - `/data` 命令实现，使用本模块的访问器
+
+## 容易踩的坑
+
+1. **玩家数据保护**：`EntityDataAccessor::mergeData()` 会检查是否为玩家实体，玩家数据不允许直接修改，会抛出 `CommandException`。这是 MC 1.16.5 的行为。
+
+2. **方块实体检测**：`BlockDataAccessor::getData()` 和 `mergeData()` 会检测 `m_blockEntity` 是否为空，不存在则抛出异常。调用前应使用 `isValid()` 检查。
+
+3. **JSON 转换精度损失**：`BlockDataAccessor` 使用 JSON 作为中间格式（BlockEntity 的 save/load 接口），JSON 与 NBT 之间的转换可能存在精度损失，特别是浮点数。
+
+4. **存储持久化**：`CommandStorage` 的数据需要显式调用 `save()` 和 `load()` 进行持久化，不会自动保存。服务器关闭前必须调用 `save()`。
+
+5. **存储深拷贝**：`CommandStorage::get()` 返回的是深拷贝，修改返回值不会影响存储中的数据，必须通过 `set()` 或 `mergeData()` 写回。
 
 ## 参考
 

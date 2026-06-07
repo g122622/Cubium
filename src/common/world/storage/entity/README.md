@@ -4,54 +4,11 @@
 
 ```
 src/common/world/storage/entity/
-├── EntityKey.hpp              # 实体存储键格式定义
-├── EntityStorageManager.hpp  # 实体存储管理器
-├── EntityStorageManager.cpp  # 实体存储管理器实现
-└── README.md                 # 本文档
+├── EntityKey.hpp              # 实体存储键格式定义（键格式：`{chunkX}:{chunkZ}:{uuid}`）
+├── EntityStorageManager.hpp   # 实体存储管理器（使用 RocksDB 持久化，gzip 压缩的 NBT 数据）
+├── EntityStorageManager.cpp   # 实体存储管理器实现
+└── README.md                  # 本文档
 ```
-
-## 文件详解
-
-### EntityKey.hpp
-
-实体存储键结构体，定义了 RocksDB 中实体数据的键格式。
-
-**键格式**: `{chunkX}:{chunkZ}:{uuid}`
-
-- `chunkX` - 区块 X 坐标（i32）
-- `chunkZ` - 区块 Z 坐标（i32）
-- `uuid` - 实体 UUID（32位十六进制字符串）
-
-**设计理由**：
-- 前缀扫描：同一区块的实体键具有相同前缀，可用 `Seek` + 范围扫描高效加载
-- 唯一性：UUID 保证每个实体键全局唯一
-- 字典序：RocksDB 按字典序排列，同区块实体自然聚集
-
-### EntityStorageManager.hpp/cpp
-
-实体存储管理器，负责实体的持久化存储。
-
-**主要方法**：
-
-| 方法 | 说明 |
-|------|------|
-| `saveEntity()` | 保存单个实体 |
-| `loadEntity()` | 加载单个实体 |
-| `deleteEntity()` | 删除单个实体 |
-| `loadEntitiesInChunk()` | 加载区块内所有实体 |
-| `saveEntitiesInChunk()` | 批量保存区块内实体 |
-| `deleteEntitiesInChunk()` | 删除区块内所有实体 |
-
-**序列化格式**：
-- 键：字符串格式 `{chunkX}:{chunkZ}:{uuid}`
-- 值：gzip 压缩的 NBT 二进制数据（Java 版格式）
-
-**列族映射**：
-| 列族 | 维度 |
-|------|------|
-| `entities_overworld` | 主世界 (0) |
-| `entities_nether` | 下界 (-1) |
-| `entities_the_end` | 末地 (1) |
 
 ## 内部模块关系
 

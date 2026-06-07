@@ -6,187 +6,91 @@
 
 ```
 storage/
-├── ChestEntity.hpp/cpp          # 箱子实体
-├── TrappedChestEntity.hpp/cpp   # 陷阱箱实体
-├── DoubleSidedInventory.hpp/cpp # 双箱合并容器
-├── EnderChestEntity.hpp/cpp     # 末影箱实体
-├── ShulkerBoxEntity.hpp/cpp     # 潜影盒实体
-├── BarrelEntity.hpp/cpp         # 木桶实体
+├── ChestEntity.hpp/cpp          # 箱子实体（27格存储、双箱合并、盖子动画）
+├── TrappedChestEntity.hpp/cpp   # 陷阱箱实体（继承ChestEntity、红石信号输出）
+├── DoubleSidedInventory.hpp/cpp # 双箱合并容器（54格、委托模式）
+├── EnderChestEntity.hpp/cpp     # 末影箱实体（玩家独立存储、打开动画）
+├── ShulkerBoxEntity.hpp/cpp     # 潜影盒实体（保留物品、防递归嵌套、ISidedInventory）
+├── BarrelEntity.hpp/cpp         # 木桶实体（27格、无上方方块限制、状态切换）
 └── README.md
 ```
 
-## 文件详解
-
-### ChestEntity.hpp/cpp
-
-**职责**：箱子方块实体，存储27格物品。
-
-**主要功能**：
-- 27格物品存储
-- 打开计数和盖子动画
-- 双箱检测与合并
-- 红石比较器信号
-- 锁定功能（继承自LockableBlockEntity）
-
-### TrappedChestEntity.hpp/cpp
-
-**职责**：陷阱箱实体，输出红石信号。
-
-**主要功能**：
-- 继承自ChestEntity
-- 红石信号输出 = 打开玩家数（最大15）
-- 打开/关闭时通知邻居更新
-
-### EnderChestEntity.hpp/cpp
-
-**职责**：末影箱方块实体。
-
-**主要功能**：
-- 不存储实际物品（物品在玩家数据中）
-- 打开动画与普通箱子相同
-- 爆破抗性高（600）
-- 每个玩家有独立的物品存储
-- **打开/关闭音效**（MC 1.16.5 对齐）
-
-**MC 1.16.5 音效对齐**：
-- `openContainer()`: 当打开计数从 0→1 时播放 `BLOCK_ENDER_CHEST_OPEN`
-- `tick()`: 当盖子角度从 >0.5 变为 ≤0.5 时播放 `BLOCK_ENDER_CHEST_CLOSE`
-
-### ShulkerBoxEntity.hpp/cpp
-
-**职责**：潜影盒方块实体。
-
-**主要功能**：
-- 27格物品存储（SHULKER_BOX_SIZE = 27）
-- 被破坏时保留物品（不掉落）
-- 可以被锁定（需要正确名称的物品打开）
-- 打开时有动画效果（AnimationStatus: Closed, Opening, Opened, Closing）
-- **ISidedInventory 接口支持**（漏斗可从任意方向访问所有槽位）
-- **红石比较器信号输出**（基于填充比例计算）
-- **防递归嵌套**（不能将潜影盒放入另一个潜影盒）
-
-**MC 1.16.5 对齐**：
-- 实体推动逻辑：打开/关闭时推动附近实体
-- FACING 属性缓存：避免每帧查询方块状态
-- 同步间隔：与原版一致
-- ISidedInventory：所有方向可访问所有槽位，但不能插入另一个潜影盒
-- 比较器信号：`signal = floor(填充槽位数 / 27 * 14) + (有物品 ? 1 : 0)`
-
-**关键方法**：
-- `getComparatorSignal(IWorld&)` - 计算红石比较器信号强度
-- `canInsertItem(slot, stack, direction)` - 检查物品是否可插入（含递归保护）
-- `canOpen(IWorld&)` - 检查是否可以打开（空间检测）
-- `tick(IWorld&)` - 更新动画状态和推动实体
-
-### BarrelEntity.hpp/cpp
-
-**职责**：木桶方块实体。
-
-**主要功能**：
-- 27格物品存储（与箱子相同）
-- 可以在上方有方块时打开（与箱子不同）
-- 没有双箱合并功能
-- 可以面向任意六个方向放置
-
-**MC 1.16.5 对齐**：
-- 使用基类 ContainerBlockEntity 的 openContainer/closeContainer
-- 观察者模式玩家不计入打开计数
-
-### DoubleSidedInventory.hpp/cpp
-
-**职责**：双箱合并容器，将两个27格箱子合并为54格。
-
-**主要功能**：
-- 委托模式，操作转发到底层两个箱子
-- 54格容器（27+27）
-- 槽位映射：前27格→上半部分，后27格→下半部分
-
-## 类继承关系
+## 内部模块关系
 
 ```
-BlockEntity (基类)
-│
-├── ContainerBlockEntity (容器基类)
-│   │
-│   ├── LockableBlockEntity (可锁定容器基类)
-│   │   │
-│   │   ├── ChestEntity (箱子)
-│   │   │   └── TrappedChestEntity (陷阱箱)
-│   │   │
-│   │   ├── ShulkerBoxEntity (潜影盒)
-│   │   │
-│   │   └── BarrelEntity (木桶)
-│   │
-│   └── DoubleSidedInventory (双箱容器)
-│
-└── EnderChestEntity (末影箱)
+BlockEntity (父模块基类)
+       ↑
+       │
+ContainerBlockEntity (父模块容器基类)
+       ↑
+       │
+LockableBlockEntity (core/ 可锁定容器基类，mc::blockentity 命名空间)
+       ↑
+       │
+LootableContainerBlockEntity (core/ 可填充战利品表的容器基类)
+       ↑
+       ├──────────────────┬──────────────────┐
+       │                  │                  │
+   ChestEntity       BarrelEntity     ShulkerBoxEntity
+       ↑              (木桶)          (多重继承 ISidedInventory)
+       │
+TrappedChestEntity
+   (陷阱箱)
+
+EnderChestEntity (末影箱，独立继承 BlockEntity，无容器功能)
+DoubleSidedInventory (双箱容器，非 BlockEntity，用于合并两个箱子)
 ```
 
-## 依赖项
+## 上下游外部依赖关系
 
-### 内部依赖
+### 上游依赖（谁使用了这个模块）
+
+- `world/block/blocks/storage/` - 箱子方块、陷阱箱方块、木桶方块、潜影盒方块等
+- `world/chunk/` - 区块加载时反序列化方块实体
+- `entity/inventory/container/` - 背包 GUI 容器类
+- `client/renderer/` - 箱子盖子动画渲染
+
+### 下游依赖（这个模块依赖了谁）
+
+- `world/blockentity/BlockEntity.hpp` - 方块实体基类
+- `world/blockentity/ContainerBlockEntity.hpp` - 容器方块实体基类
 - `world/blockentity/core/LockableBlockEntity.hpp` - 可锁定基类
-- `world/blockentity/core/SimpleInventory.hpp` - 简单背包
+- `world/blockentity/core/LootableContainerBlockEntity.hpp` - 战利品表容器基类
+- `world/blockentity/core/SimpleInventory.hpp` - 简单背包实现
 - `entity/inventory/IInventory.hpp` - 背包接口
+- `entity/inventory/ISidedInventory.hpp` - 分面背包接口（潜影盒）
+- `entity/loot/LootTableManager.hpp` - 战利品表管理器
 
-### 外部依赖
-- `<memory>` - 智能指针
-- `<array>` - 静态数组
-- `<functional>` - 回调函数
+## 容易踩的坑
 
-## 使用方法
+### 1. ChestEntity 双箱合并
 
-### 创建箱子实体
+两个箱子相邻放置时会自动合并为 54 格容器。使用 `getDoubleInventory()` 获取合并容器。注意：`DoubleSidedInventory` 是委托模式，操作会转发到底层两个箱子。
 
-```cpp
-// 创建箱子
-auto chest = std::make_unique<ChestEntity>(BlockPos(0, 0, 0));
+### 2. TrappedChestEntity 红石信号
 
-// 设置物品
-chest->getInventory()->setItem(0, ItemStack(Items::DIAMOND, 64));
+陷阱箱的红石信号输出 = 打开的玩家数（最大 15）。每次 open/close 都会通知邻居方块更新红石信号。
 
-// 打开箱子
-chest->openContainer();
+### 3. EnderChestEntity 不存储物品
 
-// 获取红石信号
-i32 signal = chest->getComparatorSignal(world);
-```
+末影箱不存储实际物品，物品存储在玩家数据中。`EnderChestEntity` 只负责打开/关闭动画和音效。
 
-### 双箱合并
+### 4. ShulkerBoxEntity 防递归嵌套
 
-```cpp
-// 检查双箱
-if (chest.isDoubleChest(world)) {
-    // 获取合并容器
-    auto doubleInv = chest.getDoubleInventory(world);
+`canInsertItem()` 会检查物品是否为潜影盒，防止潜影盒放入另一个潜影盒。这是通过检查物品类型实现的。
 
-    // 操作54格容器
-    doubleInv->setItem(0, ItemStack(Items::DIAMOND, 32));
-    doubleInv->setItem(27, ItemStack(Items::IRON, 64));
-}
-```
+### 5. ShulkerBoxEntity 动画状态
 
-### 创建潜影盒
+潜影盒有 4 种动画状态：Closed, Opening, Opened, Closing。`tick()` 方法更新动画进度，`getProgress()` 返回插值后的进度（0.0-1.0）。
 
-```cpp
-// 创建潜影盒
-auto shulker = std::make_unique<ShulkerBoxEntity>(BlockPos(0, 0, 0));
+### 6. BarrelEntity 无双箱功能
 
-// 设置物品
-shulker->getInventory()->setItem(0, ItemStack(Items::DIAMOND, 64));
+木桶不能像箱子一样合并为双箱，每个木桶都是独立的 27 格容器。
 
-// 检查动画状态
-if (shulker->getAnimationStatus() == ShulkerBoxEntity::AnimationStatus::Opened) {
-    // 潜影盒已打开
-}
-```
+### 7. 战利品表填充时机
 
-## 测试用例
+继承自 `LootableContainerBlockEntity`，`isEmpty()` 和 `openContainer()` 会自动触发填充。只有 ServerWorld 的 `lootTableManager()` 返回有效指针。
 
-测试文件位于 `tests/common/world/blockentity/`：
+### 8. DoubleSidedInventory 非拥有指针
 
-- `ChestEntityTest.cpp` - 箱子实体测试
-- `DoubleSidedInventoryTest.cpp` - 双箱容器测试
-- `TrappedChestTest.cpp` - 陷阱箱测试
-- `ShulkerBoxEntityTest.cpp` - 潜影盒测试
-- `BarrelEntityTest.cpp` - 木桶测试
+`DoubleSidedInventory` 持有两个 `ChestEntity*` 原始指针，不拥有它们的生命周期。确保两个箱子在 `DoubleSidedInventory` 使用期间有效。

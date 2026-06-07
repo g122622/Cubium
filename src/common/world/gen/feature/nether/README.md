@@ -4,80 +4,46 @@
 
 ```text
 nether/
-├── BasaltFeature.hpp
+├── BasaltFeature.hpp          # 玄武岩柱与玄武岩三角洲特征
 ├── BasaltFeature.cpp
-├── GlowstoneFeature.hpp
+├── GlowstoneFeature.hpp       # 萤石簇特征
 ├── GlowstoneFeature.cpp
-├── MagmaPatchFeature.hpp
+├── MagmaPatchFeature.hpp      # 岩浆池与下界火焰特征
 ├── MagmaPatchFeature.cpp
-├── NetherFeatures.hpp
+├── NetherFeatures.hpp         # 下界特征聚合注册入口
 ├── NetherFeatures.cpp
 └── README.md
 ```
 
-## 2. 文件介绍
+## 2. 内部模块关系
 
-| 文件 | 职责 |
-|---|---|
-| BasaltFeature.hpp/.cpp | 玄武岩柱与玄武岩三角洲特征实现与配置化封装 |
-| GlowstoneFeature.hpp/.cpp | 萤石簇特征实现与配置化封装 |
-| MagmaPatchFeature.hpp/.cpp | 岩浆地表斑块与下界火焰特征实现与配置化封装 |
-| NetherFeatures.hpp/.cpp | 下界特征聚合注册入口，向外提供按阶段打包后的特征集合 |
+- `NetherFeatureRegistry` 聚合各子特征模块，按 `DecorationStage` 分类返回特征集合
+- 各特征类（`GlowstoneFeature`、`BasaltColumnFeature` 等）负责单特征算法
+- 配置化包装类（`ConfiguredXxxFeature`）与 `ConfiguredFeatureBase` 接口对接
 
-## 3. 模块关系
+## 3. 上下游外部依赖关系
 
-- 该目录下的具体特征类负责“单特征算法”。
-- 配置化包装类负责与 ConfiguredFeatureBase 接口对接。
-- NetherFeatureRegistry 负责聚合各子特征并按阶段返回给 FeatureRegistry。
-- FeatureRegistry 再被 ChunkGenerator 的特征阶段调用。
+**上游依赖（本模块依赖）：**
+- `ConfiguredFeature` / `ConfiguredFeatureBase` - 配置化特征基类
+- `FeatureIds` - 特征 ID 定义
+- `DecorationStage` - 装饰阶段枚举
+- `VanillaBlocks` - 原版方块定义
+- `WorldGenRegion` - 世界访问接口
+- `math::Random` - 随机数生成
+- `IChunkGenerator` - 区块生成器接口
+- `fungus/HugeFungusFeature` - 巨型真菌特征（通过 NetherFeatures.hpp 聚合）
 
-## 4. 整体职责
+**下游依赖（依赖本模块）：**
+- `FeatureRegistry` - 统一特征注册入口
+- `ChunkGenerator` - 通过特征阶段调度调用
+- `BiomeGenerationSettings::createNether*` - 下界生物群系生成设置
 
-- 提供下界专属装饰特征（萤石、玄武岩、岩浆斑块、下界火焰）。
-- 保证这些特征可被统一特征管线按 DecorationStage 调度。
-- 为下界生物群系生成设置（BiomeGenerationSettings::createNether*）提供可执行特征 ID 目标。
+## 4. 容易踩的坑
 
-## 5. 输入/输出
-
-- 输入：WorldGenRegion、ChunkPrimer、IChunkGenerator、Random、BlockPos、对应配置对象。
-- 输出：
-  - 对区块/邻域方块写入（放置玄武岩、萤石、岩浆、火焰）。
-  - 返回 bool 表示本次特征放置是否成功。
-
-## 6. 依赖项
-
-- 内部依赖：ConfiguredFeature、FeatureIds、DecorationStage、VanillaBlocks。
-- 外部依赖：
-  - 世界访问接口：WorldGenRegion
-  - 随机数：math::Random
-  - 生成器上下文：IChunkGenerator
-
-## 7. 使用方法
-
-```cpp
-#include "common/world/gen/feature/nether/NetherFeatures.hpp"
-
-// 初始化并收集下界特征
-mc::NetherFeatureRegistry::initialize();
-auto underground = mc::NetherFeatureRegistry::getAllUndergroundFeaturesAndClear();
-auto vegetation = mc::NetherFeatureRegistry::getAllVegetationFeaturesAndClear();
-
-// 通常由 FeatureRegistry::initialize() 统一接管，无需业务层重复调用
-```
-
-## 8. 容易踩的坑
-
-- `getAllFeaturesAndClear()` 是“转移所有权”语义，调用后对应容器会被清空。
-- 如果聚合注册层做了“一次性初始化”且不允许重复初始化，容易在二次构建时拿到空特征列表。
-- VegetalDecoration 阶段 ID 必须与 FeatureRegistry 注册顺序一致，否则会出现“生物群系配置指向错误特征槽位”的错配。
-
-## 9. 测试用例
-
-- tests/common/world/gen/feature/NetherFeatureTest.cpp：下界特征模块与阶段校验。
-- tests/common/world/gen/test_vegetation_features.cpp：特征 ID 偏移与 FeatureRegistry 槽位映射校验。
-- tests/common/world/gen/NetherSurfaceParityTest.cpp：下界地表与基岩策略回归（间接覆盖下界生成链路）。
-
-## 10. Mermaid 图表
+- `getAllFeaturesAndClear()` 是"转移所有权"语义，调用后对应容器会被清空
+- 如果聚合注册层做了"一次性初始化"且不允许重复初始化，容易在二次构建时拿到空特征列表
+- VegetalDecoration 阶段 ID 必须与 FeatureRegistry 注册顺序一致，否则会出现"生物群系配置指向错误特征槽位"的错配
+- `HugeFungusFeatures` 位于 `fungus/` 子目录而非本目录，但通过 `NetherFeatures.hpp` 统一聚合
 
 ```mermaid
 flowchart LR
@@ -86,7 +52,7 @@ flowchart LR
     A --> D[BasaltDeltaFeatures]
     A --> E[MagmaPatchFeatures]
     A --> F[NetherFireFeatures]
-    A --> G[HugeFungusFeatures]
+    A --> G[HugeFungusFeatures<br/>fungus/目录]
     A --> H[FeatureRegistry]
     H --> I[ChunkGenerator 特征阶段]
 

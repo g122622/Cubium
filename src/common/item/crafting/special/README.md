@@ -6,200 +6,96 @@
 
 ```
 src/common/item/crafting/special/
-├── SpecialRecipe.hpp        # 特殊配方基类
-├── SpecialRecipe.cpp        # 特殊配方基类实现
-├── RepairItemRecipe.hpp     # 物品修复配方
-├── RepairItemRecipe.cpp     # 物品修复配方实现
-├── ArmorDyeRecipe.hpp       # 盔甲染色配方
-├── ArmorDyeRecipe.cpp       # 盔甲染色配方实现
-├── BookCloningRecipe.hpp    # 书复制配方
-├── BookCloningRecipe.cpp    # 书复制配方实现
-├── MapCloningRecipe.hpp     # 地图复制配方
-├── MapCloningRecipe.cpp     # 地图复制配方实现
-├── MapExtendingRecipe.hpp   # 地图扩展配方
-├── MapExtendingRecipe.cpp   # 地图扩展配方实现
-├── TippedArrowRecipe.hpp    # 药水箭配方
-├── TippedArrowRecipe.cpp    # 药水箭配方实现
-└── README.md                # 本文档
+├── SpecialRecipe.hpp           # 特殊配方基类（无固定合成图案）
+├── SpecialRecipe.cpp
+├── RepairItemRecipe.hpp        # 物品修复配方（两相同物品合并）
+├── RepairItemRecipe.cpp
+├── ArmorDyeRecipe.hpp          # 盔甲染色配方（皮革盔甲+染料）
+├── ArmorDyeRecipe.cpp
+├── BookCloningRecipe.hpp       # 书复制配方（成书+书与笔）
+├── BookCloningRecipe.cpp
+├── MapCloningRecipe.hpp        # 地图复制配方（已填充地图+空地图）
+├── MapCloningRecipe.cpp
+├── MapExtendingRecipe.hpp      # 地图扩展配方（地图+纸）
+├── MapExtendingRecipe.cpp
+├── BannerDuplicateRecipe.hpp   # 旗帜复制配方（复制旗帜图案）
+├── BannerDuplicateRecipe.cpp
+├── ShieldDecorationRecipe.hpp  # 盾牌装饰配方（盾牌+旗帜）
+├── ShieldDecorationRecipe.cpp
+├── TippedArrowRecipe.hpp       # 药水箭配方（滞留药水+箭）
+├── TippedArrowRecipe.cpp
+└── README.md
 ```
 
-## 配方说明
+## 内部模块关系
 
-### SpecialRecipe（基类）
-
-所有特殊配方的基类，继承自 `IRecipe<CraftingInventory>`。
-
-**特点**：
-- 无固定合成图案
-- 动态匹配物品组合
-- 结果物品可能带有 NBT 数据
-- 动态配方（`isDynamic()` 返回 true），不会出现在配方书中
-
-### RepairItemRecipe（物品修复）
-
-**功能**：在工作台中修复两个相同类型的可损坏物品。
-
-**合成逻辑**：
-- 两个相同类型的可损坏物品
-- 结果物品耐久度 = min(剩余耐久度1 + 剩余耐久度2 + 最大耐久度 × 5%, 最大耐久度)
-- 结果物品**只继承诅咒附魔**（绑定诅咒、消失诅咒），普通附魔会丢失
-- 注意：铁砧修复的耐久度奖励为12%且会合并附魔，与工作台修复不同
-
-### ArmorDyeRecipe（盔甲染色）
-
-**功能**：为可染色的盔甲物品上色。
-
-**支持的染料**（MC 1.16.5）：
-- 墨囊 (INK_SAC) - 黑色
-- 红色染料 (RED_DYE)
-- 绿色染料 (GREEN_DYE)
-- 可可豆 (COCOA_BEANS) - 棕色
-- 青金石 (LAPIS_LAZULI_DYE) - 蓝色
-- 紫色染料 (PURPLE_DYE)
-- 青色染料 (CYAN_DYE)
-- 淡灰色染料 (LIGHT_GRAY_DYE)
-- 灰色染料 (GRAY_DYE)
-- 粉红色染料 (PINK_DYE)
-- 黄绿色染料 (LIME_DYE)
-- 黄色染料 (YELLOW_DYE)
-- 淡蓝色染料 (LIGHT_BLUE_DYE)
-- 品红色染料 (MAGENTA_DYE)
-- 橙色染料 (ORANGE_DYE)
-- 白色染料 (WHITE_DYE)
-
-**合成逻辑**：
-- 1 个可染色盔甲 + 任意数量染料
-- 颜色混合使用 RGB 平均算法
-- 支持皮革盔甲、皮革马铠等
-
-### BookCloningRecipe（书复制）
-
-**功能**：复制成书（Written Book）。
-
-**合成逻辑**：
-- 1 本成书 + 任意数量书与笔
-- 结果物品数量 = 书与笔数量
-- 代数递增（原版最多复制到第二代）
-- 保留原书的 NBT 数据（内容、作者、标题等）
-
-**限制**：
-- 最大代数为 2（第三代无法再复制）
-- 需要成书和书与笔两种物品
-
-### MapCloningRecipe（地图复制）
-
-**功能**：复制已填充的地图。
-
-**合成逻辑**：
-- 1 张已填充地图 + 任意数量空地图
-- 结果物品数量 = 空地图数量 + 1（原地图保留）
-- 复制的地图与原地图共享数据
-
-### MapExtendingRecipe（地图扩展）
-
-**功能**：扩展地图（缩小比例，增大覆盖范围）。
-
-**合成逻辑**：
-- 1 张已填充地图（缩放级别 < 4）+ 纸
-- 合成台：1 张地图 + 8 张纸（3x3 环绕）
-- 制图台：1 张地图 + 1 张纸
-- 结果为缩放级别 +1 的新地图
-- 探险地图不可扩展
-
-**限制**：
-- 地图缩放级别最大为 4
-- `map_scale_direction` NBT 标签标记缩放方向
-
-### TippedArrowRecipe（药水箭）
-
-**功能**：使用滞留药水和箭合成药水箭。
-
-**合成逻辑**：
-- 中心格子：滞留药水（LINGERING_POTION）
-- 周围格子：箭（ARROW，至少1支，最多8支）
-- 每支箭变成一支药水箭，继承滞留药水的效果
-- 最多产出 8 支药水箭
-
-**特点**：
-- 保留滞留药水的自定义效果和颜色
-- 结果药水箭与输入药水效果相同
-
-## 使用方法
-
-特殊配方通过 `RecipeManager` 注册，与普通配方一样使用：
-
-```cpp
-#include "item/crafting/special/ArmorDyeRecipe.hpp"
-
-// 注册盔甲染色配方
-auto recipe = std::make_unique<ArmorDyeRecipe>(
-    ResourceLocation("minecraft", "armor_dye")
-);
-RecipeManager::instance().registerRecipe(std::move(recipe));
+```
+                    ┌─────────────────────┐
+                    │   SpecialRecipe     │ 基类（继承 IRecipe）
+                    │   (SpecialRecipe.*) │
+                    └──────────┬──────────┘
+                               │ 继承
+        ┌──────────────────────┼──────────────────────┐
+        │                      │                      │
+        ▼                      ▼                      ▼
+┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐
+│ RepairItemRecipe  │  │  ArmorDyeRecipe   │  │ BookCloningRecipe │
+└───────────────────┘  └───────────────────┘  └───────────────────┘
+        │                      │                      │
+        │                      │                      │
+        ▼                      ▼                      ▼
+┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐
+│ MapCloningRecipe  │  │ MapExtendingRecipe│  │BannerDuplicateRecipe│
+└───────────────────┘  └───────────────────┘  └───────────────────┘
+        │                      │                      │
+        │                      │                      │
+        ▼                      ▼                      ▼
+┌───────────────────┐  ┌───────────────────┐
+│ShieldDecoration   │  │ TippedArrowRecipe │
+│     Recipe        │  │                   │
+└───────────────────┘  └───────────────────┘
 ```
 
-## 注册位置
+所有特殊配方类都继承自 `SpecialRecipe` 基类，基类提供：
+- `isDynamic()` 返回 true（不显示在配方书中）
+- 统一的 `IRecipe<CraftingInventory>` 接口
 
-特殊配方在 `MinecraftServer::registerSpecialRecipes()` 中统一注册：
+## 上下游外部依赖关系
 
-```cpp
-void MinecraftServer::registerSpecialRecipes()
-{
-    using namespace crafting;
-
-    RecipeManager::instance().registerRecipe(
-        std::make_unique<RepairItemRecipe>(ResourceLocation("minecraft", "repair_item")));
-    RecipeManager::instance().registerRecipe(
-        std::make_unique<ArmorDyeRecipe>(ResourceLocation("minecraft", "armor_dye")));
-    RecipeManager::instance().registerRecipe(
-        std::make_unique<BookCloningRecipe>(ResourceLocation("minecraft", "book_cloning")));
-    RecipeManager::instance().registerRecipe(
-        std::make_unique<MapCloningRecipe>(ResourceLocation("minecraft", "map_cloning")));
-    RecipeManager::instance().registerRecipe(
-        std::make_unique<TippedArrowRecipe>(ResourceLocation("minecraft", "tipped_arrow")));
-}
-```
-
-## 匹配逻辑
-
-特殊配方的 `matches()` 方法实现自定义匹配逻辑：
-
-```cpp
-bool ArmorDyeRecipe::matches(const CraftingInventory& inventory) const override {
-    int armorCount = 0;
-    int dyeCount = 0;
-
-    for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
-        ItemStack stack = inventory.getItem(i);
-        if (stack.isEmpty()) continue;
-
-        if (isDyeableArmor(stack)) ++armorCount;
-        else if (isDye(stack)) ++dyeCount;
-        else return false;  // 有其他物品，不匹配
-    }
-
-    return armorCount == 1 && dyeCount >= 1;
-}
-```
-
-## 容易踩的坑
-
-1. **物品检测**：使用 `Items::XXX` 指针比较，而非字符串比较
-2. **染料物品**：需要检查所有 16 种染料 + 墨囊 + 可可豆
-3. **剩余物品**：使用 `getRemainingItems()` 返回不消耗的物品
-4. **NBT 复制**：复制 NBT 数据时注意深拷贝
-5. **动态配方**：特殊配方的 `isDynamic()` 返回 true，不会出现在配方书中
-
-## 测试用例
-
-测试文件位于 `tests/common/item/crafting/` 目录。
-
-## 依赖项
+**上游依赖（本模块使用的模块）**:
 
 | 模块 | 用途 |
 |------|------|
+| `item/crafting/SpecialRecipe.hpp` | 基类定义 |
+| `item/core/Item.hpp` | 物品类型判断 |
+| `item/core/ItemStack.hpp` | 物品堆操作、NBT 数据 |
 | `item/Items.hpp` | 物品静态引用 |
-| `item/core/ItemStack.hpp` | 物品堆操作 |
-| `item/items/armor/DyeableArmorItem.hpp` | 可染色盔甲 |
-| `entity/inventory/CraftingInventory.hpp` | 合成容器 |
-| `item/potion/PotionUtils.hpp` | 药水工具类（药水箭配方） |
+| `entity/inventory/CraftingInventory.hpp` | 合成容器接口 |
+| `util/color/DyeColor.hpp` | 染料颜色枚举（BannerDuplicateRecipe） |
+
+**下游依赖（使用本模块的模块）**:
+
+| 模块 | 用途 |
+|------|------|
+| `server/core/MinecraftServer` | 注册特殊配方 |
+| `item/crafting/RecipeManager` | 配方注册表管理 |
+
+## 容易踩的坑
+
+1. **物品检测**：使用 `Items::XXX` 指针比较，而非字符串比较。染料需要检查所有 16 种 + 墨囊 + 可可豆。
+
+2. **剩余物品处理**：不同配方的剩余物品行为不同：
+   - `BookCloningRecipe`、`MapCloningRecipe`：原物品保留（通过 `getRemainingItems()` 返回）
+   - `ArmorDyeRecipe`、`TippedArrowRecipe`：所有物品被消耗
+
+3. **NBT 复制**：复制 NBT 数据时注意深拷贝，避免多个物品共享同一 NBT 对象。
+
+4. **动态配方特性**：特殊配方的 `isDynamic()` 返回 true，不会出现在配方书中。
+
+5. **配方匹配顺序**：`RecipeManager::findMatchingRecipe()` 会按注册顺序检查，特殊配方应在普通配方之后注册。
+
+6. **代数限制**：`BookCloningRecipe` 最大代数为 2（第三代无法再复制），`MapExtendingRecipe` 最大缩放级别为 4。
+
+7. **旗帜图案层数限制**：`BannerDuplicateRecipe` 要求源旗帜图案不超过 6 层。
+
+8. **盾牌装饰前置条件**：`ShieldDecorationRecipe` 要求盾牌无现有图案（无 BlockEntityTag）。

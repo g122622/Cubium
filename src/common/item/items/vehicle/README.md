@@ -1,119 +1,70 @@
-# 车辆物品
+# 载具物品
 
-本目录包含车辆相关的物品类。
+本目录包含载具相关的物品类，用于放置矿车和船实体。
 
 ## 目录结构
 
 ```
 vehicle/
-├── MinecartItem.hpp/cpp   # 矿车物品
-├── BoatItem.hpp/cpp       # 船物品
+├── BoatItem.hpp/cpp       # 船物品（放置船实体）
+├── MinecartItem.hpp/cpp   # 矿车物品（放置各类矿车实体）
 └── README.md              # 本文档
 ```
 
-## 物品列表
+## 内部模块关系
 
-### 矿车物品
-
-| 物品 | 说明 | 注册名称 |
-|------|------|----------|
-| MinecartItem | 普通矿车 | minecraft:minecart |
-| MinecartItem | 箱子矿车 | minecraft:chest_minecart |
-| MinecartItem | 熔炉矿车 | minecraft:furnace_minecart |
-| MinecartItem | TNT矿车 | minecraft:tnt_minecart |
-| MinecartItem | 漏斗矿车 | minecraft:hopper_minecart |
-| MinecartItem | 命令方块矿车 | minecraft:command_block_minecart |
-
-### 船物品
-
-| 物品 | 说明 | 注册名称 |
-|------|------|----------|
-| BoatItem | 橡木船 | minecraft:oak_boat |
-| BoatItem | 云杉木船 | minecraft:spruce_boat |
-| BoatItem | 桦木船 | minecraft:birch_boat |
-| BoatItem | 丛林木船 | minecraft:jungle_boat |
-| BoatItem | 金合欢木船 | minecraft:acacia_boat |
-| BoatItem | 深色橡木船 | minecraft:dark_oak_boat |
-
-## MinecartItem
-
-矿车物品用于在铁轨上放置矿车实体。
-
-### 功能
-- 检测铁轨方块（AbstractRailBlock）
-- 计算正确的放置位置
-  - 平轨：Y + 0.0625
-  - 斜轨：Y + 0.5625
-- 创建对应类型的矿车实体
-- 设置自定义名称
-
-### 使用示例
-
-```cpp
-// 矿车物品注册（Items.cpp）
-MINECART = &registry.registerItem<item::MinecartItem>(
-    ResourceLocation("minecraft:minecart"),
-    entity::AbstractMinecartEntity::Type::Rideable,
-    ItemProperties().maxStackSize(1)
-);
+```
+┌────────────────┐
+│  MinecartItem  │──── 依赖 ────→ AbstractMinecartEntity (6种矿车类型)
+└────────────────┘
+┌────────────────┐
+│   BoatItem     │──── 依赖 ────→ BoatEntity (6种木材类型)
+└────────────────┘
+        │
+        └──── 两者均依赖 ────→ Item 基类、ItemUseContext、IWorld
 ```
 
-## BoatItem
+两个物品类相互独立，无直接依赖关系。
 
-船物品用于在水面或陆地上放置船实体。
+## 上下游外部依赖关系
 
-### 功能
-- 检测水面或陆地位置
-- 计算正确的放置位置
-  - 水面：方块顶部
-  - 陆地：击中位置
-- 创建对应木材类型的船实体
-- 设置船的朝向为玩家朝向
-- 碰撞检测确保船可以放置
+**依赖上游（本目录依赖）：**
+- `item/core/` - Item 基类、ItemStack
+- `item/context/` - ItemUseContext 物品使用上下文
+- `entity/entities/vehicle/` - AbstractMinecartEntity、BoatEntity
+- `world/` - IWorld、BlockPos、BlockState
+- `world/block/blocks/redstone/` - AbstractRailBlock 铁轨方块
+- `util/AxisAlignedBB.hpp` - 碰撞箱
 
-### 使用示例
+**被下游依赖（依赖本目录）：**
+- `item/Items.cpp` - 物品注册（注册矿车和船的各变体）
 
-```cpp
-// 船物品注册（Items.cpp）
-OAK_BOAT = &registry.registerItem<item::BoatItem>(
-    ResourceLocation("minecraft:oak_boat"),
-    entity::BoatEntity::Type::OAK,
-    ItemProperties().maxStackSize(1)
-);
-```
+## 容易踩的坑
 
-## 依赖
+### 矿车物品放置高度
 
-### MinecartItem
-- `AbstractMinecartEntity`: 矿车实体基类
-- `AbstractRailBlock`: 铁轨方块基类
-- `ItemUseContext`: 物品使用上下文
-- `IWorld`: 世界接口
+- 平轨放置：Y + 0.0625（1/16格）
+- 斜轨放置：Y + 0.5625（额外+0.5）
+- 必须通过 `RailShape` 判断是否为斜坡，否则矿车位置会不对
 
-### BoatItem
-- `BoatEntity`: 船实体类
-- `ItemUseContext`: 物品使用上下文
-- `IWorld`: 世界接口
-- `AxisAlignedBB`: 碰撞箱
+### 铁轨检测逻辑
 
-## 实现状态
+- 点击铁轨直接放置
+- 点击铁轨下方方块时，会尝试在下方一格寻找铁轨
+- 必须使用 `dynamic_cast<AbstractRailBlock*>` 检测方块类型
 
-### MinecartItem
+### 船物品碰撞检测
 
-| 功能 | 状态 |
-|------|------|
-| 放置检测 | ✅ 完成 |
-| 斜坡高度调整 | ✅ 完成 |
-| 实体创建 | ✅ 完成 |
-| 自定义名称 | ✅ 完成 |
-| 物品消耗 | ✅ 完成 |
+- 放置前必须检查碰撞：`boat->boundingBox().grow(-0.1f)`
+- 缩小碰撞箱 0.1 格是为了避免边界问题
+- 使用 `IWorld::hasNoCollisions()` 检测
 
-### BoatItem
+### 船生成位置
 
-| 功能 | 状态 |
-|------|------|
-| 水面放置检测 | ✅ 完成 |
-| 陆地放置检测 | ✅ 完成 |
-| 实体创建 | ✅ 完成 |
-| 碰撞检测 | ✅ 完成 |
-| 物品消耗 | ✅ 完成 |
+- 船生成在玩家视线击中点，而非方块中心
+- 船朝向自动设置为玩家朝向（`context.getPlayerYaw()`）
+
+### Spawner Minecart 未实现
+
+- `AbstractMinecartEntity::Type::Spawner` 暂未实现
+- 当前使用普通矿车作为降级处理，后续需补充刷怪笼矿车

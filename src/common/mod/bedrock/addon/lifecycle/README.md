@@ -2,13 +2,16 @@
 
 管理脚本系统的整体生命周期，包括初始化、tick驱动、调度、看门狗和日志。
 
-## 文件结构
+## 目录结构
 
-- `ScriptManager.hpp/.cpp` — 顶层脚本管理器，协调引擎、插件管理器、事件总线、看门狗、调度器等组件
-- `ScriptTickListener.hpp/.cpp` — 每tick驱动脚本系统（beginTick→tick(currentTick)→endTick）
-- `ScriptScheduler.hpp/.cpp` — 脚本调度器，实现system.run/runInterval/runTimeout/clearRun
-- `ScriptWatchdog.hpp/.cpp` — 脚本超时看门狗，检测执行时间超限和内存越限
-- `ScriptLogger.hpp/.cpp` — 脚本日志桥接，将脚本输出转发到spdlog
+```
+src/common/mod/bedrock/addon/lifecycle/
+├── ScriptManager.hpp/.cpp       # 顶层脚本管理器，协调引擎、插件管理器、事件总线、看门狗、调度器等
+├── ScriptTickListener.hpp/.cpp  # 每tick驱动脚本系统（beginTick→tick→endTick）
+├── ScriptScheduler.hpp/.cpp     # 脚本调度器，实现system.run/runInterval/runTimeout/clearRun
+├── ScriptWatchdog.hpp/.cpp      # 脚本超时看门狗，检测执行时间超限和内存越限
+└── ScriptLogger.hpp/.cpp        # 脚本日志桥接，将脚本输出转发到spdlog
+```
 
 ## 内部模块关系
 

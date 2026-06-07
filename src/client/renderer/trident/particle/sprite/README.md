@@ -1,151 +1,49 @@
 # 精灵动画系统 (Sprite Animation System)
 
-## 概述
-
-精灵系统用于管理粒子纹理的 UV 坐标和动画帧。支持静态精灵和动画精灵。
-
 ## 目录结构
 
 ```
 sprite/
-├── ISprite.hpp          # 精灵接口
-├── SimpleSprite.hpp/cpp # 简单精灵（单帧）
-├── AnimatedSprite.hpp/cpp # 动画精灵（多帧）
+├── ISprite.hpp          # 精灵接口（静态/动画精灵的统一抽象）
+├── SimpleSprite.hpp/cpp # 简单精灵（单帧静态纹理）
+├── AnimatedSprite.hpp/cpp # 动画精灵（多帧动画纹理，帧按垂直方向排列）
 └── README.md
 ```
 
-## 类设计
-
-### ISprite（接口）
-
-```cpp
-class ISprite {
-public:
-    virtual ~ISprite() = default;
-
-    // 获取 UV 坐标
-    [[nodiscard]] virtual glm::vec4 getFrameUV(f64 age, f64 maxAge) const = 0;
-    [[nodiscard]] virtual glm::vec4 getRandomFrameUV(u32 seed) const = 0;
-
-    // 属性查询
-    [[nodiscard]] virtual bool isAnimated() const = 0;
-    [[nodiscard]] virtual u32 frameCount() const = 0;
-    [[nodiscard]] virtual f64 frameTime() const = 0;
-};
-```
-
-### SimpleSprite（简单精灵）
-
-单帧静态纹理精灵：
-
-```cpp
-// 创建简单精灵
-SimpleSprite sprite(
-    glm::vec2(0.0f, 0.0f),  // UV 左上角
-    glm::vec2(0.125f, 0.125f) // UV 右下角
-);
-
-// 获取 UV（对于静态精灵，age 和 maxAge 被忽略）
-glm::vec4 uv = sprite.getFrameUV(age, maxAge);
-```
-
-### AnimatedSprite（动画精灵）
-
-多帧动画纹理精灵，帧按垂直方向排列：
-
-```cpp
-// 创建动画精灵（8 帧，每帧 0.1 秒）
-AnimatedSprite sprite(
-    glm::vec2(0.0f, 0.0f),   // UV 左上角
-    glm::vec2(0.125f, 1.0f), // UV 右下角（高度包含所有帧）
-    8,                       // 帧数
-    0.1f                     // 每帧时间
-);
-
-// 基于年龄获取当前帧 UV
-glm::vec4 uv = sprite.getFrameUV(age, maxAge);
-
-// 随机选择帧
-glm::vec4 randomUv = sprite.getRandomFrameUV(seed);
-```
-
-## 纹理布局
-
-### 静态纹理
+## 内部模块关系
 
 ```
-┌──────────┐
-│   帧 1   │  UV: (u0, v0) - (u1, v1)
-│          │
-└──────────┘
+ISprite（接口）
+    │
+    ├── SimpleSprite      # 单帧实现，age/maxAge/seed 被忽略
+    │
+    └── AnimatedSprite    # 多帧实现，基于 age/maxAge 计算当前帧
 ```
 
-### 动画纹理（垂直帧条）
+## 上下游外部依赖关系
 
-```
-┌──────────┐
-│   帧 1   │  V: v0 - v0+height
-├──────────┤
-│   帧 2   │  V: v0+height - v0+2*height
-├──────────┤
-│   帧 3   │
-├──────────┤
-│   帧 4   │
-├──────────┤
-│   ...    │
-├──────────┤
-│   帧 N   │  V: v0+(N-1)*height - v1
-└──────────┘
-```
+### 上游依赖
 
-## 与 ParticleTextureAtlas 集成
+| 依赖模块 | 用途 |
+|---------|------|
+| `common/core/Types.hpp` | 基础类型（f64, u32） |
+| `glm` | glm::vec2、glm::vec4 向量类型 |
 
-```cpp
-// 从 ParticleTextureAtlas 获取精灵信息
-const SpriteInfo* info = atlas.getSprite(location);
-if (info) {
-    if (info->isAnimated()) {
-        auto sprite = std::make_unique<AnimatedSprite>(
-            info->uvMin, info->uvMax,
-            info->frameCount, info->frameTime
-        );
-    } else {
-        auto sprite = std::make_unique<SimpleSprite>(
-            info->uvMin, info->uvMax
-        );
-    }
-}
-```
+### 下游依赖
 
-## 动画模式
+| 使用模块 | 用途 |
+|---------|------|
+| `ParticleTextureAtlas` | 创建 ISprite 实例（根据 SpriteInfo 创建 SimpleSprite 或 AnimatedSprite） |
+| `TextureAtlasTicker` | 纹理图集动画驱动 |
 
-### 基于生命周期的动画
+## 容易踩的坑
 
-粒子从出生到死亡，帧从第一帧到最后一帧：
+1. **帧排列方向**：AnimatedSprite 要求帧在纹理中按**垂直方向**排列（从上到下），水平排列的帧条无法正确工作。
 
-```cpp
-glm::vec4 uv = sprite->getFrameUV(particle.age(), particle.maxAge());
-```
+2. **UV 坐标语义**：`uvMin` 是左上角，`uvMax` 是右下角。对于 AnimatedSprite，`uvMax.y` 是整个动画条底部的 V 坐标，不是单帧底部。
 
-### 随机帧
+3. **帧时间单位**：AnimatedSprite 的 `frameTime` 参数单位是**秒**，不是 ticks。
 
-粒子随机选择一帧并保持：
+4. **getFrameUV 的帧选择**：基于 `age / maxAge` 的进度来选择帧，粒子生命周期结束时播放到最后一帧。如需循环动画，应使用 `getRandomFrameUV` 或自行计算帧索引。
 
-```cpp
-u32 seed = static_cast<u32>(particle.age() * 1000);
-glm::vec4 uv = sprite->getRandomFrameUV(seed);
-```
-
-### 基于时间的循环动画
-
-基于游戏时间循环播放：
-
-```cpp
-f64 time = GameTime::ticks() / 20.0f;  // 秒
-u32 frame = static_cast<u32>(time / sprite->frameTime()) % sprite->frameCount();
-```
-
-## 参考
-
-- Minecraft Java 1.16.5 `net.minecraft.client.renderer.texture.TextureAtlasSprite`
-- Minecraft 资源包动画元数据格式（.mcmeta）
+5. **帧数保护**：AnimatedSprite 构造函数会自动将 `frameCount < 1` 修正为 1，不会崩溃但行为可能不符合预期。

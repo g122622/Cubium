@@ -2,50 +2,52 @@
 
 本目录包含外观相关的层渲染器。
 
-## 文件说明
+## 目录结构
 
-| 文件 | 描述 |
-|------|------|
-| `CapeLayer.hpp/cpp` | 斗篷层渲染器 |
-| `ElytraLayer.hpp/cpp` | 鞘翅层渲染器 |
-
-## CapeLayer
-
-渲染玩家的斗篷：
-- 根据玩家移动产生摆动动画
-- 支持自定义斗篷纹理
-
-## ElytraLayer
-
-渲染玩家装备的鞘翅：
-- 检测胸甲槽是否装备鞘翅物品（Items::ELYTRA）
-- 使用 `Entity::isElytraFlying()` 检测滑翔状态
-- 根据滑翔时的速度向量计算鞘翅展开角度
-- 支持蹲伏姿态的角度调整
-
-### 滑翔检测
-
-```cpp
-// 使用 EntityFlags::FallFlying 标志位检测
-isGliding = entity.isElytraFlying();
+```
+cosmetic/
+├── CapeLayer.hpp/cpp    # 斗篷层渲染器（动态摆动动画）
+├── ElytraLayer.hpp/cpp  # 鞘翅层渲染器（滑翔展开动画）
+└── README.md
 ```
 
-### 角度计算
+## 内部模块关系
 
-| 状态 | X轴角度 | Z轴角度 |
-|------|---------|---------|
-| 默认 | ~15° | ~-15° |
-| 滑翔 | ~20° (动态) | ~-90° (动态) |
-| 蹲伏 | ~40° | ~-45° |
+两个层渲染器相互独立，都继承自 `core::LayerRenderer` 基类：
+- 使用 `pipeline::EntityPipeline` 进行 GPU 管线渲染
+- 使用 `model::ModelVertex` 构建网格顶点
+- 使用角度分桶缓存网格，避免每帧重建
 
-### 平滑角度插值（待实现）
+## 上下游外部依赖关系
 
-MC 1.16.5 中 `AbstractClientPlayerEntity` 有 `rotateElytraX/Y/Z` 字段用于平滑插值。
-当前项目的 `ClientEntity` 已有这些字段和 `updateElytraAngles()` 方法，但渲染层使用的是
-`Player/LivingEntity` 实体。完整实现需要架构调整，将 `ClientEntity` 与渲染层关联。
+**上游依赖：**
+- `core/LayerRenderer.hpp` - 层渲染器基类
+- `pipeline/EntityPipeline.hpp` - 实体渲染管线
+- `core/AnimationContext.hpp` - 动画上下文
+- `model/core/ModelRenderer.hpp` - 模型渲染器
+- `common/entity/entities/player/Player.hpp` - 玩家实体
+- `common/entity/core/LivingEntity.hpp` - 生物实体基类
+- `common/entity/entities/player/PlayerModelPart.hpp` - 玩家模型部件
+- `common/item/Items.hpp` - 物品定义（Items::ELYTRA）
+
+**下游依赖：**
+- `renderer/player/PlayerRenderer.cpp` - 注册并使用这两个层渲染器
+
+## 容易踩的坑
+
+1. **ElytraLayer 是模板类**：支持 `LivingEntity` 和 `Player` 两种类型，需在 cpp 末尾显式实例化。
+
+2. **shouldRender() 检查条件**：
+   - CapeLayer：需检查玩家是否开启 `PlayerModelPart::Cape`、是否有披风纹理、胸甲槽是否装备鞘翅（鞘翅覆盖披风）
+   - ElytraLayer：需检查胸甲槽是否装备 `Items::ELYTRA`、是否有鞘翅或披风纹理
+
+3. **渲染顺序**：披风必须在鞘翅之前渲染，这样鞘翅才能正确覆盖披风（见上层 README.md）。
+
+4. **纹理设置**：两层都支持自定义纹理设置（`setCapeTexture()`/`setElytraTexture()`），由 `PlayerRenderer` 在渲染前通过 `dynamic_cast` 设置。
+
+5. **CPU 路径已废弃**：`render()` 方法保留仅为向后兼容，实际渲染使用 `renderPipeline()` 方法。
 
 ## 参考
 
 - MC 1.16.5 CapeLayer
 - MC 1.16.5 ElytraLayer
-- MC 1.16.5 ElytraModel.setRotationAngles()

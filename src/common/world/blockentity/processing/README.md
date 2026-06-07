@@ -1,330 +1,103 @@
 # 加工类方块实体模块
 
-提供熔炉、高炉、烟熏炉、信标、潮涌核心、营火等加工类方块实体的实现。
+提供熔炉、高炉、烟熏炉、酿造台、信标、潮涌核心、营火等加工类方块实体的实现。
 
 ## 目录结构
 
 ```
 processing/
-├── AbstractFurnaceEntity.hpp/cpp  # 熔炉基类
-├── FurnaceEntity.hpp/cpp          # 普通熔炉
-├── BlastFurnaceEntity.hpp/cpp     # 高炉
-├── SmokerEntity.hpp/cpp           # 烟熏炉
-├── FurnaceInventory.hpp/cpp       # 熔炉背包
-├── BrewingStandEntity.hpp/cpp     # 酿造台
-├── BeaconEntity.hpp/cpp           # 信标
-├── ConduitEntity.hpp/cpp          # 潮涌核心
-├── CampfireBlockEntity.hpp/cpp    # 营火方块实体
+├── AbstractFurnaceEntity.hpp/cpp  # 熔炉基类（燃烧/熔炼逻辑、ISidedInventory）
+├── FurnaceEntity.hpp/cpp          # 普通熔炉（200tick熔炼）
+├── BlastFurnaceEntity.hpp/cpp     # 高炉（100tick、仅矿石/金属）
+├── SmokerEntity.hpp/cpp           # 烟熏炉（100tick、仅食物）
+├── FurnaceInventory.hpp/cpp       # 熔炉专用3槽背包
+├── BrewingStandEntity.hpp/cpp     # 酿造台（药水酿造、ISidedInventory）
+├── BeaconEntity.hpp/cpp           # 信标（金字塔效果、光束渲染）
+├── ConduitEntity.hpp/cpp          # 潮涌核心（水下信标、攻击敌对生物）
+├── CampfireBlockEntity.hpp/cpp    # 营火（食物烹饪、4槽位）
 └── README.md
 ```
 
-## 文件详解
+## 内部模块关系
 
-### AbstractFurnaceEntity.hpp/cpp
+```
+BlockEntity (父模块基类)
+       ↑
+       │
+ContainerBlockEntity (父模块容器基类)
+       ↑
+       ├──────────────────────┬──────────────────────┐
+       │                      │                      │
+LockableBlockEntity    BrewingStandEntity    CampfireBlockEntity
+(core/ 可锁定容器基类)   (多重继承 ISidedInventory)
+       ↑
+       │
+AbstractFurnaceEntity (熔炉基类，多重继承 ISidedInventory)
+       ↑
+       ├──────────────────┬──────────────────┐
+       │                  │                  │
+FurnaceEntity    BlastFurnaceEntity   SmokerEntity
+(普通熔炉)         (高炉)              (烟熏炉)
 
-**职责**：熔炉方块实体基类，提供燃烧和熔炼的通用逻辑。
-
-**主要功能**：
-- 燃烧管理（燃烧时间、燃料消耗）
-- 熔炼进度（熔炼时间、配方匹配）
-- 红石比较器信号
-- 锁定功能（继承自LockableBlockEntity）
-- **ISidedInventory 接口支持**
-- **火苗噼啪音效**（燃烧时 1/20 概率播放）
-
-**火苗噼啪音效（MC 1.16.5 对齐）**：
-```cpp
-// AbstractFurnaceEntity::tick() 中实现
-if (isBurning()) {
-    if (!world.isClientSide() && world.getRandom().nextInt(20) == 0) {
-        world.playSound(getFireCrackleSound(), SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
-    }
-}
+BeaconEntity (信标，独立继承 BlockEntity)
+ConduitEntity (潮涌核心，独立继承 BlockEntity)
+FurnaceInventory (熔炉背包，非 BlockEntity，被 AbstractFurnaceEntity 组合)
 ```
 
-**槽位访问规则（ISidedInventory）**：
-- 上方 (Direction::Up)：输入槽（槽位 0）
-- 下方 (Direction::Down)：输出槽（槽位 2）、燃料槽（槽位 1）
+## 上下游外部依赖关系
+
+### 上游依赖（谁使用了这个模块）
+
+- `world/block/blocks/` - 熔炉方块、酿造台方块、信标方块等创建和访问方块实体
+- `world/chunk/` - 区块加载时反序列化方块实体
+- `entity/inventory/container/` - 熔炉 GUI 容器、酿造台 GUI 容器
+- `client/renderer/` - 信标光束渲染、熔炉火焰渲染
+
+### 下游依赖（这个模块依赖了谁）
+
+- `world/blockentity/BlockEntity.hpp` - 方块实体基类
+- `world/blockentity/ContainerBlockEntity.hpp` - 容器方块实体基类
+- `world/blockentity/core/LockableBlockEntity.hpp` - 可锁定基类
+- `world/blockentity/core/SimpleInventory.hpp` - 简单背包实现
+- `entity/inventory/IInventory.hpp` - 背包接口
+- `entity/inventory/ISidedInventory.hpp` - 分面背包接口
+- `item/crafting/SmeltingRecipe.hpp` - 熔炼配方
+- `item/crafting/CampfireCookingRecipe.hpp` - 营火烹饪配方
+- `item/potion/PotionBrewing.hpp` - 药水酿造
+- `entity/effect/EffectType.hpp` - 效果类型（信标、潮涌核心）
+- `entity/interfaces/IMob.hpp` - 敌对生物接口（潮涌核心攻击目标）
+
+## 容易踩的坑
+
+### 1. 熔炼进度回退
+
+不燃烧时进度应该回退 2，而非清零。这是 MC 1.16.5 的行为。
+
+### 2. 高炉/烟熏炉燃料消耗速度
+
+高炉和烟熏炉的 `getBurnTimeForFuel()` 返回基础燃烧时间的一半，即燃料消耗速度是普通熔炉的 2 倍。
+
+### 3. 输出槽满检查
+
+熔炼前必须检查输出槽是否可以接受产物，检查条件包括：输出槽为空，或输出槽物品可以堆叠且堆叠后不超过最大堆叠数。
+
+### 4. 配方缓存
+
+每次输入变化时重新查询配方，避免每 tick 重复查询。`m_lastRecipe` 缓存上次使用的配方。
+
+### 5. ISidedInventory 槽位访问规则
+
+熔炉：
+- 上方 (Up)：输入槽（槽位 0）
+- 下方 (Down)：输出槽（槽位 2）、燃料槽（槽位 1）
 - 侧面：燃料槽（槽位 1）
 
-**熔炼状态机** (参考 MC 1.16.5)：
-```
-每tick:
-1. 如果燃烧中: burnTime--
-
-2. 如果可以熔炼:
-   if (burnTime <= 0 && 有燃料):
-       消耗燃料
-       burnTime = burnTimeTotal
-       cookTimeTotal = 配方.熔炼时间
-
-   if (burnTime > 0):
-       cookTime++
-       if (cookTime >= cookTimeTotal):
-           执行熔炼
-           cookTime = 0
-
-3. 如果不燃烧但有进度:
-   cookTime -= 2  // 进度回退，而非清零
-```
-
-**关键方法**：
-- `tick()` - 每tick更新
-- `isBurning()` - 检查是否正在燃烧
-- `getComparatorSignal()` - 红石比较器信号
-- `isFuel()` - 检查物品是否为燃料
-- `getBurnTime()` - 获取燃料燃烧时间
-
-### FurnaceEntity.hpp/cpp
-
-**职责**：普通熔炉实体。
-
-**特性**：
-- 熔炼时间：200 tick
-- 配方类型：SMELTING
-- 经验倍率：1.0
-
-### BlastFurnaceEntity.hpp/cpp
-
-**职责**：高炉实体，冶炼矿石和金属。
-
-**特性**：
-- 熔炼时间：100 tick（2倍速度）
-- 配方类型：BLASTING
-- 经验倍率：0.5
-- 仅能熔炼矿石和金属物品
-- **燃料消耗速度是普通熔炉的2倍**（同样燃料只能燃烧一半时间）
-
-**MC 1.16.5 对齐**：
-- `canSmelt()` 仅接受 BLASTING 类型配方
-- `getBurnTimeForFuel()` 返回基础燃烧时间的一半
-
-### SmokerEntity.hpp/cpp
-
-**职责**：烟熏炉实体，烹饪食物。
-
-**特性**：
-- 熔炼时间：100 tick（2倍速度）
-- 配方类型：SMOKING
-- 经验倍率：0.5
-- 仅能烹饪食物
-- **燃料消耗速度是普通熔炉的2倍**（同样燃料只能燃烧一半时间）
-
-**MC 1.16.5 对齐**：
-- `canSmelt()` 仅接受 SMOKING 类型配方
-- `getBurnTimeForFuel()` 返回基础燃烧时间的一半
-
-### FurnaceInventory.hpp/cpp
-
-**职责**：熔炉专用的3槽背包。
-
-**槽位定义**：
-```cpp
-static constexpr i32 SLOT_INPUT = 0;   // 输入槽
-static constexpr i32 SLOT_FUEL = 1;    // 燃料槽
-static constexpr i32 SLOT_OUTPUT = 2;  // 输出槽
-```
-
-**便捷方法**：
-- `getInputItem()` / `setInputItem()` - 输入槽操作
-- `getFuelItem()` / `setFuelItem()` - 燃料槽操作
-- `getOutputItem()` / `setOutputItem()` - 输出槽操作
-- `consumeInput()` / `consumeFuel()` - 消耗物品
-- `addToOutput()` - 向输出槽添加物品
-
-### BrewingStandEntity.hpp/cpp
-
-**职责**：酿造台方块实体，用于酿造药水。
-
-**特性**：
-- 5个槽位：3个药水瓶槽（0-2）、1个材料槽（3）、1个燃料槽（4）
-- 燃料系统：烈焰粉，每次酿造消耗1点燃料（共20点）
-- 酿造时间：400 tick（20秒）
-- **ISidedInventory 接口支持**
-- **红石比较器信号输出**
-
-**槽位访问规则（ISidedInventory）**：
-- 上方 (Direction::Up)：材料槽（槽位 3）
-- 下方 (Direction::Down)：药水瓶槽 + 材料槽（槽位 0, 1, 2, 3）
+酿造台：
+- 上方 (Up)：材料槽（槽位 3）
+- 下方 (Down)：药水瓶槽 + 材料槽（槽位 0, 1, 2, 3）
 - 侧面：药水瓶槽 + 燃料槽（槽位 0, 1, 2, 4）
 
-**红石比较器信号**（2026-05-15 实现）：
-```cpp
-// 参考 MC 1.16.5 Container.calcRedstoneFromInventory
-i32 getComparatorSignal() const;
-// 信号强度 = floor(平均填充率 * 14) + (有非空槽位 ? 1 : 0)
-// 槽位填充率 = 物品数量 / min(容器堆叠上限, 物品最大堆叠数)
-// 信号范围：0-15
-```
-
-**关键方法**：
-- `tick()` - 每tick更新酿造进度
-- `canBrew()` - 检查是否可以酿造
-- `doBrew()` - 执行酿造
-- `getComparatorSignal()` - 红石比较器信号
-- `hasBottle(slot)` - 检查指定槽位是否有药水瓶
-
-### BeaconEntity.hpp/cpp
-
-**职责**：信标方块实体，提供金字塔效果。
-
-**特性**：
-- 金字塔等级检测（1-4层）
-- 主效果：速度、急迫、抗性提升、跳跃提升、力量
-- 辅助效果：生命恢复（4层金字塔）
-- 效果范围：等级 × 10 + 10 格
-- 支付物品：铁锭、金锭、钻石、绿宝石、下界合金锭
-- 光束渲染：支持染色玻璃颜色叠加
-- **红石比较器信号**（2026-05-15 实现）
-
-**红石比较器信号**（2026-05-15 实现）：
-```cpp
-// 参考 MC 1.16.5: 信标的比较器输出等于金字塔等级
-// BeaconBlock::getComparatorInputOverride() 实现
-// 1层金字塔 = 信号强度 1
-// 2层金字塔 = 信号强度 2
-// 3层金字塔 = 信号强度 3
-// 4层金字塔 = 信号强度 4
-// 未激活信标 = 信号强度 0
-```
-
-**MC 1.16.5 对齐**：
-- 每 80 tick 检测金字塔结构
-- 每 80 tick 应用效果
-- 光束颜色混合算法
-
-### ConduitEntity.hpp/cpp
-
-**职责**：潮涌核心方块实体，水下信标。
-
-**特性**：
-- 水包围检测：中心周围 3x3x3 必须全部是水
-- 框架检测：海晶石、海晶石砖、暗海晶石、海晶灯
-- 激活条件：至少 16 个框架方块
-- 效果范围：(框架数 / 7) × 16 格
-- 攻击能力：42+ 框架方块时可攻击敌对生物
-- 目标追踪：通过 UUID 持久化攻击目标
-
-**效果机制**：
-- 潮涌能量：持续 260 tick
-- 每 40 tick 检测结构和应用效果
-- 仅对在水中（isWet）的玩家生效
-
-**目标追踪与恢复**：
-- `m_target`：运行时的攻击目标指针
-- `m_targetUuid`：持久化的目标 UUID（用于存档恢复）
-- `findExistingTarget()`：在攻击范围内搜索匹配 UUID 的实体
-
-**MC 1.16.5 对齐**：
-- 框架检测位置计算
-- 敌对生物攻击逻辑（使用 `IMob` 接口识别敌对生物）
-- 目标追踪和持久化（参考 `ConduitTileEntity.findExistingTarget()`）
-- 使用范围查询而非全局 UUID 查找（因为只能攻击 8 格内目标）
-
-### CampfireBlockEntity.hpp/cpp
-
-**职责**：营火方块实体，实现食物烹饪功能。
-
-**特性**：
-- 4个烹饪槽位
-- 默认烹饪时间：600 tick（30秒）
-- 点燃时烹饪，熄灭时冷却（每tick冷却进度减少2）
-- 支持序列化保存/加载
-- 物品掉落功能（营火被破坏时）
-
-**状态管理**：
-- `m_inventory`：4个槽位的简单背包
-- `m_cookTimes`：每个槽位的已烹饪时间
-- `m_cookTimesTotal`：每个槽位的总烹饪时间
-
-**关键方法**：
-- `tick()` - 每tick更新（点燃时烹饪，熄灭时冷却）
-- `cookAndDrop()` - 烹饪食物并掉落完成的物品
-- `coolDown()` - 熄灭时冷却进度
-- `findMatchingRecipe()` - 查找匹配的营火烹饪配方
-- `addItem()` - 添加物品开始烹饪
-- `dropAllItems()` - 掉落所有物品
-- `getCookProgress()` - 获取烹饪进度（0.0 - 1.0）
-
-**MC 1.16.5 对齐**：
-- 参考 `CampfireTileEntity.cookAndDrop()`
-- 烹饪时间 600 tick（30秒）
-- 熄灭时冷却速度：每tick减少2
-- 与 CampfireCookingRecipe 配方系统集成
-
-## 模块关系
-
-```mermaid
-graph TB
-    BlockEntity[BlockEntity]
-    ContainerBlockEntity[ContainerBlockEntity]
-    LockableBlockEntity[LockableBlockEntity]
-    AbstractFurnaceEntity[AbstractFurnaceEntity]
-    FurnaceEntity[FurnaceEntity]
-    BlastFurnaceEntity[BlastFurnaceEntity]
-    SmokerEntity[SmokerEntity]
-    FurnaceInventory[FurnaceInventory]
-    SmeltingRecipe[SmeltingRecipe]
-    IInventory[IInventory]
-
-    BlockEntity --> ContainerBlockEntity
-    ContainerBlockEntity --> LockableBlockEntity
-    LockableBlockEntity --> AbstractFurnaceEntity
-    AbstractFurnaceEntity --> FurnaceEntity
-    AbstractFurnaceEntity --> BlastFurnaceEntity
-    AbstractFurnaceEntity --> SmokerEntity
-    AbstractFurnaceEntity -.组合.-> FurnaceInventory
-    FurnaceInventory -.实现.-> IInventory
-    AbstractFurnaceEntity -.依赖.-> SmeltingRecipe
-```
-
-## 依赖项
-
-### 内部依赖
-- `world/blockentity/core/LockableBlockEntity.hpp` - 可锁定基类
-- `entity/inventory/IInventory.hpp` - 背包接口
-- `item/crafting/SmeltingRecipe.hpp` - 熔炼配方
-
-### 外部依赖
-- `<memory>` - 智能指针
-- `<array>` - 静态数组
-
-## 使用方法
-
-### 创建熔炉实体
-
-```cpp
-// 创建普通熔炉
-auto furnace = std::make_unique<FurnaceEntity>(BlockPos(0, 0, 0));
-
-// 设置输入物品
-furnace->getFurnaceInventory().setInputItem(ItemStack(Items::IRON_ORE, 32));
-
-// 设置燃料
-furnace->getFurnaceInventory().setFuelItem(ItemStack(Items::COAL, 64));
-
-// 检查燃烧状态
-if (furnace->isBurning()) {
-    i32 remaining = furnace->getBurnTime();
-    i32 progress = furnace->getCookTime();
-}
-```
-
-### 创建高炉
-
-```cpp
-auto blastFurnace = std::make_unique<BlastFurnaceEntity>(BlockPos(0, 0, 0));
-// 高炉只能熔炼矿石和金属
-```
-
-### 创建烟熏炉
-
-```cpp
-auto smoker = std::make_unique<SmokerEntity>(BlockPos(0, 0, 0));
-// 烟熏炉只能烹饪食物
-```
-
-## 三种熔炉对比
+### 6. 熔炉类型对比
 
 | 特性 | 普通熔炉 | 高炉 | 烟熏炉 |
 |-----|---------|------|-------|
@@ -332,162 +105,20 @@ auto smoker = std::make_unique<SmokerEntity>(BlockPos(0, 0, 0));
 | 配方类型 | SMELTING | BLASTING | SMOKING |
 | 可熔炼物 | 全部 | 仅矿石/金属 | 仅食物 |
 | 经验倍率 | 1.0 | 0.5 | 0.5 |
+| 燃料消耗 | 正常 | 2倍速度 | 2倍速度 |
 
-## 容易踩的坑
+### 7. 信标效果范围
 
-### 1. 熔炼进度回退
+效果范围 = `level * 10 + 10` 格，需要正确计算金字塔等级。
 
-不燃烧时进度应该回退2，而非清零：
+### 8. 潮涌核心目标追踪
 
-```cpp
-// 错误：清零进度
-if (!isBurning()) {
-    m_cookTime = 0;
-}
+`m_target` 是运行时指针，`m_targetUuid` 用于持久化。恢复时使用 `_findExistingTarget()` 在攻击范围内搜索。
 
-// 正确：回退进度
-if (!isBurning() && m_cookTime > 0) {
-    m_cookTime -= 2;
-}
-```
+### 9. 营火冷却速度
 
-### 2. 燃料消耗时机
+熄灭时烹饪进度每 tick 减少 2，而非清零。点燃后从上次进度继续。
 
-燃料应该在燃烧时间耗尽且需要继续熔炼时才消耗：
+### 10. 酿造台材料槽提取限制
 
-```cpp
-// 错误：每次都消耗燃料
-if (canSmelt()) {
-    burnFuel();
-}
-
-// 正确：燃烧时间耗尽时才消耗
-if (m_burnTime <= 0 && canSmelt() && hasFuel()) {
-    burnFuel();
-}
-```
-
-### 3. 输出槽满检查
-
-熔炼前必须检查输出槽是否可以接受产物：
-
-```cpp
-// 错误：未检查输出槽
-if (!m_inventory.isInputEmpty()) {
-    smelt();
-}
-
-// 正确：检查输出槽
-if (canSmelt()) {
-    smelt();
-}
-
-bool canSmelt() const {
-    ItemStack output = getRecipeOutput();
-    ItemStack current = m_inventory.getOutputItem();
-    return current.isEmpty() ||
-           (current.canStackWith(output) &&
-            current.getCount() + output.getCount() <= current.getMaxStackSize());
-}
-```
-
-### 4. 配方缓存
-
-每次输入变化时重新查询配方：
-
-```cpp
-void tick() {
-    // 检查输入是否变化
-    ItemStack input = m_inventory.getInputItem();
-    if (input != m_lastInput) {
-        m_lastRecipe = findRecipe(input);
-        m_lastInput = input;
-    }
-}
-```
-
-## 测试用例
-
-测试文件位于 `tests/common/world/blockentity/`：
-
-- `FurnaceEntityTest.cpp` - 熔炉实体测试（含燃烧时间测试）
-- `FurnaceInventoryTest.cpp` - 熔炉背包测试
-- `BrewingStandEntityTest.cpp` - 酿造台实体测试（含红石信号测试）
-- `BeaconEntityTest.cpp` - 信标实体测试（含红石信号测试）
-- `CampfireBlockEntityTest.cpp` - 营火方块实体测试
-- `SmeltingRecipeTest.cpp` - 熔炼配方测试
-
-### 测试覆盖
-
-- 燃烧时间管理
-- 熔炼进度
-- 配方匹配
-- 输出槽满处理
-- 红石比较器信号
-- 锁定功能
-- 序列化和反序列化
-
-### 酿造台测试覆盖（BrewingStandEntityTest）
-
-- 基础测试：创建、类型、位置、槽位、燃料、酿造时间
-- 红石信号测试：空酿造台、单物品、多物品、满载情况
-- ISidedInventory 测试：各方向的槽位访问规则
-
-### 信标测试覆盖（BeaconEntityTest）
-
-- 基础测试：创建、类型、位置、等级、效果、支付物品、光束
-- 激活状态测试：等级+效果组合
-- 效果范围测试：`level * 10 + 10`
-- 序列化测试：保存/加载
-- 克隆测试
-- 红石比较器信号测试：等级0-4对应信号0-4
-- 共 32 个测试用例
-
-### 营火测试覆盖（CampfireBlockEntityTest）
-
-- 基础测试：创建、类型、位置、槽位数量、烹饪时间
-- 添加物品测试：空物品堆、成功添加、默认烹饪时间、填满槽位、满载拒绝
-- 配方查找测试：空物品堆、满载营火
-- 清空测试：重置所有槽位和烹饪时间
-- 烹饪进度测试：进度计算、空槽位
-- 序列化测试：保存/加载数据
-- 克隆测试：深拷贝验证
-- 共 26 个测试用例
-
-## 燃烧时间数据（MC 1.16.5 对齐）
-
-### 燃烧时间表
-
-| 燃料 | 燃烧时间 (tick) | 燃烧时间 (秒) |
-|-----|----------------|--------------|
-| **岩浆桶** | 20000 | 1000 |
-| **煤炭块** | 16000 | 800 |
-| **烈焰棒** | 2400 | 120 |
-| **煤炭/木炭** | 1600 | 80 |
-| **干海带块** | 4001 | ~200 |
-| **脚手架** | 400 | 20 |
-| **原木/木板/木头/去皮原木/去皮木头** | 300 | 15 |
-| **木质楼梯/栅栏/栅栏门/门/活板门/压力板** | 300 | 15 |
-| **书架/音符盒/合成台/光照探测器** | 300 | 15 |
-| **弓/钓鱼竿/弩** | 300 | 15 |
-| **木质台阶** | 150 | 7.5 |
-| **木制工具（镐/斧/锹/锄/剑）** | 200 | 10 |
-| **木棍/碗/树苗/木质按钮/羊毛** | 100 | 5 |
-| **地毯** | 67 | ~3.3 |
-| **竹子** | 50 | 2.5 |
-
-### 实现细节
-
-燃烧时间数据在 `AbstractFurnaceEntity.cpp` 的 `getBurnTimeByItem()` 函数中实现。
-
-**物品识别方式**：
-- 已注册物品（如煤炭、木棍）：通过 `Items::XXX` 静态指针比较
-- 方块物品（如原木、木板）：通过 `BlockItemRegistry` 获取对应物品
-
-**添加新燃料的步骤**：
-1. 确保物品/方块已在 `Items.hpp` 或 `VanillaBlocks.hpp` 中声明
-2. 确保物品/方块已在 `Items.cpp` 或 `VanillaBlocks.cpp` 中注册
-3. 确保方块物品已在 `BlockItemRegistry.cpp` 中注册
-4. 在 `getBurnTimeByItem()` 中添加燃烧时间判断
-
-**参考**：MC 1.16.5 `AbstractFurnaceTileEntity.getBurnTimes()`
+`canExtractItem()` 对材料槽（槽位 3）只允许提取玻璃瓶，其他物品不能提取。

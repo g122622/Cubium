@@ -2,13 +2,6 @@
 
 公共模块 (`mc_common`) 是 Cubium 项目的核心共享库，包含客户端和服务端共用的所有代码。
 
-## 当前重点
-
-- `resource/` 里的 `ResourcePackList` 现在会被客户端主线程和音频线程共享。
-- 资源包查询采用读写锁分离，查询结果尽量返回拷贝，避免长期持有内部元素地址。
-- `AudioService` 依赖这套共享资源语义来读取 `sounds.json` 和音频文件。
-- 共享资源体系的变更会通过 `onChange` 通知上层重新加载资源或声音定义。
-
 ## 目录结构
 
 ```
@@ -426,96 +419,9 @@ src/common/
         └── WeatherUtils.hpp
 ```
 
-## 子目录职责
+区块系统已经把”票据 → 生命周期 → 调度 → 取消”这条链路拆开：`ChunkLoadTicketManager` 负责汇聚不同来源的加载票据，`SingleChunkLifecycleManager` 负责每个区块的生命周期和请求代际，服务端再据此决定是否继续排队、生成或丢弃过期结果。
 
-### core/
-核心类型定义和基础工具：
-- **Types.hpp**: 基础类型别名 (i8, i16, i32, u8, std::string, Optional 等)
-- **Result.hpp**: 错误处理系统 (Result<T>, Error, ErrorCode)
-- **EnumSet.hpp**: 类型安全的枚举集合
-- **settings/**: 设置系统基类和选项类型
-
-### command/
-命令系统，支持游戏内命令的解析、执行和 Tab 补全：
-- 命令分发和节点树结构
-- 参数类型解析 (实体、游戏模式、物品等)
-- 命令异常和建议系统
-
-### entity/
-实体系统，包含所有游戏实体的基类和实现：
-- **Entity.hpp**: 实体基类，位置、速度、旋转、玩家交互（processInitialInteract、applyPlayerInteraction）
-- **ai/**: AI 系统 (控制器、目标、寻路)
-- **animal/**: 动物实体 (猪、牛、羊、鸡)
-- **attribute/**: 属性系统 (生命值、移动速度等)
-- **combat/**: 战斗系统
-- **damage/**: 伤害追踪
-- **inventory/**: 背包和容器
-- **living/**: 生物实体基类
-- **loot/**: 战利品表系统
-- **mob/**: 生物实体
-- **movement/**: 移动系统 (自动跳跃)
-
-### item/
-物品系统：
-- 物品基类、物品堆、物品注册表
-- **crafting/**: 合成配方 (有序、无序)
-- **enchantment/**: 附魔系统
-- **tier/**: 工具等级 (木质、石质、铁质等)
-- **tool/**: 工具物品 (镐、斧、锹、锄、剑)
-
-### network/
-网络通信系统：
-- **connection/**: 连接管理 (本地连接用于集成服务器)
-- **packet/**: 数据包序列化和处理
-- **sync/**: 区块同步
-
-### perfetto/
-性能追踪系统 (Perfetto SDK 集成)：
-- 追踪管理器、配置、事件宏、追踪类别
-
-### physics/
-物理引擎：
-- 碰撞检测和碰撞缓存
-- AABB 碰撞箱
-
-### resource/
-资源包系统，支持 MC 1.12-1.19+ 资源包格式：
-- 资源定位符、资源包接口
-- 文件夹/ZIP/内存资源包实现
-
-### screen/
-屏幕类型定义 (主菜单、背包、暂停等)
-
-### input/
-输入系统，按键绑定
-
-### util/
-工具库：
-- **assert/**: 断言库 (支持堆栈跟踪)
-- **cache/**: LRU 缓存实现
-- **math/**: 数学工具和随机数生成器
-- **nbt/**: NBT 序列化
-- **property/**: 方块状态属性系统
-
-### world/
-世界系统，最大的子系统：
-
-- **biome/**: 生物群系 (170 种群系，层式生成)
-- **block/**: 方块系统 (方块状态、材质、注册表)
-- **blockentity/**: 方块实体 (工作台、箱子等)
-- **chunk/**: 区块系统 (数据、生命周期、加载票、取消调度)
-- **fluid/**: 流体系统 (水、岩浆)
-- **gen/**: 世界生成 (噪声、雕刻器、地物、结构)
-- **lighting/**: 光照系统 (方块光、天空光)
-- **redstone/**: 红石系统 (信号传输、逻辑运算)
-- **spawn/**: 生物生成信息
-- **tick/**: Tick 调度系统
-- **time/**: 游戏时间 (昼夜循环)
-- **weather/**: 天气系统
-
-区块系统已经把“票据 → 生命周期 → 调度 → 取消”这条链路拆开：`ChunkLoadTicketManager` 负责汇聚不同来源的加载票据，`SingleChunkLifecycleManager` 负责每个区块的生命周期和请求代际，服务端再据此决定是否继续排队、生成或丢弃过期结果。
-
-## 子目录之间的关系
+## 模块间依赖关系
 
 ```
                     ┌─────────┐
@@ -559,36 +465,7 @@ src/common/
 - `physics` 依赖 `world` (碰撞检测)
 - `command` 依赖 `entity` 和 `world` (命令执行)
 
-## 模块职责
-
-### 整体职责
-
-`mc_common` 库是项目的共享核心，提供：
-
-1. **类型系统**: 统一的基础类型、错误处理、常量定义
-2. **游戏逻辑**: 实体、物品、方块、群系等核心游戏机制
-3. **世界生成**: 完整的 MC 1.16.5 兼容地形生成系统
-4. **网络通信**: 数据包序列化和本地连接
-5. **资源加载**: 资源包解析和版本兼容
-6. **性能追踪**: Perfetto 集成
-
-### 输入和输出
-
-**输入**:
-- 资源包文件 (ZIP/文件夹)
-- NBT 数据文件
-- 配置文件 (设置)
-- 网络数据包
-
-**输出**:
-- 游戏状态更新
-- 网络数据包
-- 性能追踪数据
-- 序列化的世界数据
-
-### 依赖项
-
-**外部依赖** (通过 vcpkg):
+## 外部依赖
 - `glm` - 数学库
 - `spdlog` - 日志
 - `nlohmann_json` - JSON 解析
@@ -596,25 +473,11 @@ src/common/
 - `ZLIB` - 压缩
 - `perfetto` - 性能追踪
 
-**内部依赖**:
-- 无 (这是最底层模块)
+**下游模块**:
+- `mc_client` - 客户端
+- `mc_server` - 服务端
 
-### 使用方法
-
-在 CMake 中链接:
-```cmake
-target_link_libraries(your_target mc_common)
-```
-
-包含头文件:
-```cpp
-#include "common/core/Types.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/entity/Entity.hpp"
-// ... 其他头文件
-```
-
-### 容易踩的坑
+## 容易踩的坑
 
 1. **命名空间**: 所有类型在 `mc` 命名空间下
    ```cpp
@@ -649,76 +512,6 @@ target_link_libraries(your_target mc_common)
    ResourceLocation loc("stone");             // 也可以，自动补全
    ```
 
-7. **流体系统未完成**: 参考 `world/fluid/FLUID_TODO.md`
+7. **流体系统**: 参考 `world/fluid/FLUID_TODO.md`
 
 8. **性能追踪**: 需要编译时启用 `-DMC_ENABLE_TRACING=ON`
-
-## 测试用例
-
-测试文件位于 `tests/common/`，共 56 个测试文件:
-
-| 测试文件 | 测试内容 |
-|---------|---------|
-| `test_core.cpp` | 核心类型、Result、EnumSet |
-| `test_math.cpp` | 数学工具、向量运算 |
-| `test_block.cpp` | 方块系统、方块状态、属性 |
-| `test_item.cpp` | 物品系统、物品堆 |
-| `test_block_item.cpp` | 方块物品 |
-| `test_inventory.cpp` | 背包系统 |
-| `test_container.cpp` | 容器系统 |
-| `test_entity.cpp` | 实体系统 |
-| `test_world.cpp` | 世界系统 |
-| `test_biome.cpp` | 生物群系 |
-| `test_chunk_generation.cpp` | 区块生成 |
-| `test_chunkloadticket.cpp` | 区块加载票 |
-| `test_chunksync.cpp` | 区块同步 |
-| `test_carver.cpp` | 洞穴雕刻 |
-| `test_surface.cpp` | 地表构建 |
-| `test_tree_feature.cpp` | 树木生成 |
-| `test_ore_feature.cpp` | 矿石生成 |
-| `test_decoration_stage.cpp` | 装饰阶段 |
-| `test_time.cpp` | 游戏时间 |
-| `test_tick_manager.cpp` | Tick 管理器 |
-| `test_localconnection.cpp` | 本地连接 |
-| `test_network.cpp` | 网络数据包 |
-| `test_property.cpp` | 属性系统 |
-| `test_fluid.cpp` | 流体系统 |
-| `entity/PlayerMovementTest.cpp` | 玩家移动 |
-| `entity/inventory/CraftingInventoryTest.cpp` | 合成背包 |
-| `entity/loot/LootTest.cpp` | 战利品表 |
-| `entity/movement/AutoJumpTest.cpp` | 自动跳跃 |
-| `item/crafting/*.cpp` | 合成配方测试 |
-| `item/enchantment/EnchantmentTest.cpp` | 附魔系统 |
-| `item/tool/ToolTests.cpp` | 工具测试 |
-| `util/assert/AssertTest.cpp` | 断言库 |
-| `util/cache/CacheBenchmark.cpp` | 缓存性能测试 |
-| `world/biome/layer/*.cpp` | 群系层生成 |
-| `world/fluid/FluidTest.cpp` | 流体系统 |
-| `world/lighting/*.cpp` | 光照系统 |
-| `world/tick/ServerTickListTest.cpp` | 服务器 Tick 列表 |
-| `world/gen/*.cpp` | 世界生成测试 |
-
-运行测试:
-```powershell
-./build/bin/Release/mc_tests.exe
-```
-
-## 构建配置
-
-```cmake
-# 启用性能追踪
-cmake -B build -DMC_ENABLE_TRACING=ON ...
-
-# 启用 Vulkan 验证层 (仅客户端)
-cmake -B build -DMC_ENABLE_VULKAN_VALIDATION=ON ...
-
-# 启用 Sanitizer
-cmake -B build -DMC_ENABLE_SANITIZERS=ON ...
-```
-
-## 相关文档
-
-- [CLAUDE.md](../../CLAUDE.md) - 项目整体文档
-- [world/fluid/FLUID_TODO.md](world/fluid/FLUID_TODO.md) - 流体系统待完成计划
-- [util/assert/README.md](util/assert/README.md) - 断言库使用说明
-- [util/nbt/README.md](util/nbt/README.md) - NBT 库说明

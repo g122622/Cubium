@@ -6,74 +6,80 @@
 
 ```
 valueprovider/
-├── IntProvider.hpp      # 整数值提供器（IntProvider 系列）
-├── HeightProvider.hpp   # 高度提供器（HeightProvider 系列）
+├── IntProvider.hpp      # 整数值提供器（Uniform/Biased/Clamped/Normal/WeightedList）
+├── HeightProvider.hpp   # 高度提供器（Uniform/Biased/Trapezoid）+ WorldGenerationContext
 └── README.md            # 本文档
 ```
 
-## IntProvider 系列
+## 内部模块关系
 
-参考 MC 1.21.11: `net.minecraft.util.valueproviders`
-
-| 类名 | 说明 | 关键参数 |
-|------|------|----------|
-| `IntProvider` | 抽象基类 | `sample(rng)`, `getMinValue()`, `getMaxValue()` |
-| `ConstantInt` | 固定值 | `value` |
-| `UniformInt` | 均匀分布 | `minInclusive`, `maxInclusive` |
-| `BiasedToBottomInt` | 偏向底部 | `minInclusive`, `maxInclusive` |
-| `ClampedInt` | 钳位 | `source`, `minInclusive`, `maxInclusive` |
-| `ClampedNormalInt` | 正态分布钳位 | `mean`, `deviation`, `minInclusive`, `maxInclusive` |
-| `WeightedListInt` | 加权列表 | `entries[]` (provider + weight) |
-
-## HeightProvider 系列
-
-参考 MC 1.21.11: `net.minecraft.world.level.levelgen.heightproviders`
-
-| 类名 | 说明 | 关键参数 |
-|------|------|----------|
-| `HeightProvider` | 抽象基类 | `sample(rng, context)` |
-| `ConstantHeight` | 固定高度 | `value` (VerticalAnchor) |
-| `UniformHeight` | 均匀分布 | `minInclusive`, `maxInclusive` (VerticalAnchor) |
-| `BiasedToBottomHeight` | 偏向底部 | `minInclusive`, `maxInclusive`, `inner` |
-| `VeryBiasedToBottomHeight` | 强烈偏向底部 | `minInclusive`, `maxInclusive`, `inner` |
-| `TrapezoidHeight` | 梯形/三角形分布 | `minInclusive`, `maxInclusive`, `plateau` |
-
-## WorldGenerationContext
-
-提供高度解析所需的世界信息：
-- `getMinGenY()`: 最低生成 Y 坐标（主世界 -64，下界 0）
-- `getGenDepth()`: 生成深度（主世界 384，下界 128）
-
-## 使用方法
-
-```cpp
-using namespace mc::world::gen::valueprovider;
-
-// IntProvider 示例
-auto uniform = UniformInt::create(0, 16);
-i32 value = uniform->sample(rng);  // [0, 16] 均匀随机
-
-auto biased = BiasedToBottomInt::create(5, 30);
-i32 biasedValue = biased->sample(rng);  // 偏向 5
-
-auto normal = ClampedNormalInt::create(64.0, 10.0, 0, 128);
-i32 normalValue = normal->sample(rng);  // 正态分布，钳位到 [0, 128]
-
-// HeightProvider 示例
-WorldGenerationContext ctx(-64, 384);  // 主世界
-
-auto height = UniformHeight::create(
-    VerticalAnchor::absolute(0),
-    VerticalAnchor::absolute(128)
-);
-i32 y = height->sample(rng, ctx);  // [0, 128] 均匀随机
-
-auto seaLevel = ConstantHeight::create(VerticalAnchor::absolute(63));
-i32 seaY = seaLevel->sample(rng, ctx);  // 始终 63
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                       WorldGenerationContext                        │
+│               （世界高度上下文，提供 minY/depth 信息）                 │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                          HeightProvider                             │
+│    ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐    │
+│    │ConstantHeight│  │ UniformHeight│  │BiasedToBottomHeight  │    │
+│    └──────────────┘  └──────────────┘  └──────────────────────┘    │
+│    ┌──────────────────────┐  ┌────────────────────────────────┐    │
+│    │VeryBiasedToBottomHeight│  │      TrapezoidHeight          │    │
+│    └──────────────────────┘  └────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ (使用 VerticalAnchor)
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                           IntProvider                               │
+│  ┌───────────┐  ┌────────────┐  ┌─────────────┐  ┌──────────────┐  │
+│  │ConstantInt│  │ UniformInt │  │BiasedToBottom│  │  ClampedInt  │  │
+│  └───────────┘  └────────────┘  └─────────────┘  └──────────────┘  │
+│  ┌───────────────────┐  ┌────────────────────────────────────────┐ │
+│  │ ClampedNormalInt  │  │          WeightedListInt               │ │
+│  └───────────────────┘  └────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-## 依赖
+HeightProvider 依赖 VerticalAnchor（来自 `surface/SurfaceRules.hpp`）解析相对高度。
 
-- `common/core/Types.hpp` — 基础类型
-- `common/util/math/random/IRandom.hpp` — 随机数接口
-- `common/world/gen/surface/SurfaceRules.hpp` — VerticalAnchor
+## 上下游外部依赖关系
+
+### 上游依赖（本模块依赖）
+
+| 模块 | 用途 |
+|------|------|
+| `common/core/Types.hpp` | 基础类型（i32, f64 等） |
+| `common/util/math/random/IRandom.hpp` | 随机数接口 |
+| `common/world/gen/surface/SurfaceRules.hpp` | VerticalAnchor |
+
+### 下游依赖（依赖本模块）
+
+目前暂无下游依赖。未来可用于：
+- 特征放置器（Placement）的高度范围
+- 密度函数的噪声参数
+- 矿石生成的大小/数量随机化
+
+## 容易踩的坑
+
+### 1. IntProvider 的 min >= max 边界情况
+
+`sample()` 方法在 `min >= max` 时直接返回 min，不会崩溃但可能产生非预期结果。构造时务必确保 `min < max`。
+
+### 2. HeightProvider 必须通过 WorldGenerationContext 解析
+
+`HeightProvider::sample()` 需要 `WorldGenerationContext` 参数来解析 `VerticalAnchor`。主世界使用 `WorldGenerationContext(-64, 384)`，下界使用 `WorldGenerationContext(0, 128)`。
+
+### 3. VerticalAnchor 的三种类型
+
+- `absolute(y)`：绝对 Y 坐标
+- `aboveBottom(offset)`：从世界底部向上偏移
+- `belowTop(offset)`：从世界顶部向下偏移
+
+使用 `belowTop` 时要特别注意世界高度变化的影响。
+
+### 4. WeightedListInt 的空列表处理
+
+`WeightedListInt::sample()` 在空列表时返回 0，`getMinValue()/getMaxValue()` 也返回 0。构造时确保至少有一个 entry。

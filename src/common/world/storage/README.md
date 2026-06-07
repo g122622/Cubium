@@ -8,649 +8,176 @@
 2. **RocksDB 存储层**：高性能 Section 级区块存储
 3. **会话锁和命名规范化**：防止多进程访问冲突
 4. **双层门面接口**：`GlobalStorageManager` 负责跨存档能力，`SingleLevelStorageManager` 负责单存档运行时
-5. **保存协调**：`flushAllDirty()` 仅用于 Section/玩家增量落盘，`saveAll()` 用于全量落盘；运行时实体与方块实体通过世界层的区块卸载保存和显式 `saveAll()` 接入
-6. **外来存档只读接入**：自动识别 Java Anvil / Bedrock LevelDB，并通过统一门面暴露已完整接入主流程的区块、玩家与 `level.dat` 读取能力
+5. **保存协调**：`flushAllDirty()` 仅用于 Section/玩家增量落盘，`saveAll()` 用于全量落盘
+6. **外来存档只读接入**：自动识别 Java Anvil / Bedrock LevelDB，统一门面暴露区块、玩家与 level.dat 读取能力
 
-遵循 Minecraft Java 1.16.5 的 level.dat 格式规范，同时提供高性能的自有存储格式。
+遵循 Minecraft Java 1.16.5 的 level.dat 格式规范。
 
 ## 目录结构
 
 ```
 storage/
-├── GlobalStorageManager.hpp/cpp      # [核心] 跨存档全局门面
-├── SingleLevelStorageManager.hpp/cpp # [核心] 单存档运行时门面
-├── core/                        # 核心存储基础设施
-│   ├── LevelDatCodec.hpp/cpp    # level.dat NBT 编解码器
-│   ├── WorldStoragePaths.hpp/cpp # 存档路径配置
-│   └── WorldSessionLock.hpp/cpp # 会话锁（RAII）
-├── list/                        # 世界列表管理
-│   ├── WorldListEntry.hpp/cpp   # 世界列表条目数据模型
-│   ├── WorldListService.hpp/cpp # 世界列表服务
-│   └── WorldNameSanitizer.hpp/cpp # 名称规范化
-├── request/                     # 请求/响应结构体
-│   └── WorldRequests.hpp/cpp    # 世界操作请求
-├── db/                          # RocksDB 存储层
-│   ├── RocksDBConfig.hpp        # RocksDB 配置
-│   ├── RocksDBDatabase.hpp/cpp  # 数据库封装
-│   ├── ColumnFamilies.hpp       # 列族定义
-│   ├── SectionKey.hpp           # Section 键结构
-│   ├── SectionCodec.hpp/cpp     # Section 序列化
-│   └── ConsistencyMode.hpp      # 一致性模式枚举
-├── section/                     # Section 数据管理
-│   ├── SectionCache.hpp/cpp     # LRU 缓存
-│   └── SectionManager.hpp/cpp   # Section 加载/保存/缓存
-├── snapshot/                    # 快照系统
-│   └── BackupManager.hpp/cpp    # 快照管理
-├── save/                        # 保存管理
-│   ├── DirtyTracker.hpp/cpp     # 脏Section追踪
-│   ├── AutoSave.hpp/cpp         # 自动保存
-├── player/                      # 玩家数据存储
-│   ├── PlayerSaveData.hpp/cpp   # 玩家数据结构和NBT序列化
-│   ├── PlayerDataManager.hpp/cpp # 玩家数据管理器（缓存+持久化）
-│   └── README.md                # 玩家存储模块文档
-└── README.md
+├── GlobalStorageManager.hpp/cpp      # 跨存档全局门面（世界列表、打开存档）
+├── SingleLevelStorageManager.hpp/cpp # 单存档运行时门面（区块/玩家/实体读写）
+├── backend/                          # 外来存档只读后端
+│   ├── IStorageBackend.hpp           # 存储后端接口
+│   ├── JavaAnvilBackend.hpp/cpp      # Java Anvil 格式后端
+│   ├── BedrockLDBBackend.hpp/cpp     # 基岩版 LevelDB 格式后端
+│   └── README.md
+├── core/                             # 核心存储基础设施
+│   ├── LevelDatCodec.hpp/cpp         # level.dat NBT 编解码器
+│   ├── WorldStoragePaths.hpp/cpp     # 存档路径配置
+│   ├── WorldSessionLock.hpp/cpp      # 会话锁（RAII）
+│   └── SaveFormat.hpp/cpp            # 存档格式检测
+├── list/                             # 世界列表管理
+│   ├── WorldListEntry.hpp/cpp        # 世界列表条目数据模型
+│   ├── WorldListService.hpp/cpp      # 世界列表服务
+│   └── WorldNameSanitizer.hpp/cpp    # 名称规范化
+├── request/                          # 请求/响应结构体
+│   └── WorldRequests.hpp/cpp         # 世界操作请求
+├── db/                               # RocksDB 存储层
+│   ├── RocksDBConfig.hpp             # RocksDB 配置
+│   ├── RocksDBDatabase.hpp/cpp       # 数据库封装
+│   ├── ColumnFamilies.hpp            # 列族定义
+│   ├── SectionKey.hpp                # Section 键结构（13字节）
+│   ├── SectionCodec.hpp/cpp          # Section 序列化（ZSTD 压缩）
+│   └── ConsistencyMode.hpp           # 一致性模式枚举
+├── section/                          # Section 数据管理
+│   ├── SectionCache.hpp/cpp          # LRU 缓存
+│   ├── SectionManager.hpp/cpp        # Section 加载/保存/缓存
+│   └── README.md
+├── snapshot/                         # 快照系统
+│   └── BackupManager.hpp/cpp         # 快照管理
+├── save/                             # 保存管理
+│   ├── DirtyTracker.hpp/cpp          # 脏 Section 追踪
+│   └── AutoSave.hpp/cpp              # 自动保存
+├── player/                           # 玩家数据存储
+│   ├── PlayerSaveData.hpp/cpp        # 玩家数据结构和 NBT 序列化
+│   ├── PlayerDataManager.hpp/cpp     # 玩家数据管理器（缓存+持久化）
+│   └── README.md
+├── entity/                           # 实体存储
+│   ├── EntityKey.hpp                 # 实体存储键格式
+│   ├── EntityStorageManager.hpp/cpp  # 实体存储管理器
+│   └── README.md
+├── blockentity/                      # 方块实体存储
+│   └── BlockEntityStorageManager.hpp/cpp
+├── task/                             # 存储异步任务
+│   ├── StorageTask.hpp/cpp           # 存储任务封装
+│   └── StorageTaskManager.hpp/cpp    # 任务调度门面
+└── reader/                           # 外来存档读取器
+    ├── java/                         # Java Anvil 读取器链
+    │   ├── JavaWorldReader.hpp/cpp   # region 目录定位
+    │   ├── JavaColumnReader.hpp/cpp  # 列级数据聚合
+    │   ├── JavaChunkReader.hpp/cpp   # section 级解码
+    │   ├── JavaBlockStateMapper.hpp/cpp
+    │   ├── JavaBiomeMapper.hpp/cpp
+    │   ├── JavaLevelDatReader.hpp/cpp
+    │   ├── RegionFile.hpp/cpp        # region 文件解析
+    │   └── README.md
+    └── bedrock/                      # 基岩版 LevelDB 读取器链
+        ├── BedrockWorldReader.hpp/cpp
+        ├── BedrockColumnReader.hpp/cpp
+        ├── BedrockChunkReader.hpp/cpp
+        ├── BedrockLevelDb.hpp/cpp    # LevelDB 只读接口
+        ├── BedrockBiomeMapper.hpp/cpp
+        ├── BedrockLevelDatReader.hpp/cpp
+        ├── LevelDBKey.hpp/cpp        # LevelDB 键格式
+        ├── PaletteUtil.hpp/cpp       # palette 解码工具
+        └── README.md
 ```
 
-## 核心设计
+## 内部模块关系
 
-### 访问控制原则
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           Game Layer                                     │
+│  ServerWorld / ServerChunkManager / PlayerManager / MinecraftServer      │
+└───────────────────────────────────┬─────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      GlobalStorageManager                                │
+│  世界列表、存档创建、打开存档 → 返回 SingleLevelStorageManager            │
+└───────────────────────────────────┬─────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    SingleLevelStorageManager                             │
+│  单存档运行时门面：区块/玩家/实体/方块实体读写、保存协调                   │
+│                                                                         │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐    │
+│  │SectionManager│ │PlayerDataManager│ │EntityStorage│ │BackupManager│   │
+│  │  (每维度)    │ │              │ │  Manager     │ │              │    │
+│  └──────┬───────┘ └──────────────┘ └──────────────┘ └──────────────┘    │
+│         │                                                               │
+│         ▼                                                               │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐                     │
+│  │SectionCache  │ │SectionCodec  │ │StorageTaskMgr│                     │
+│  └──────────────┘ └──────────────┘ └──────────────┘                     │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+            ┌───────────────────────┼───────────────────────┐
+            ▼                       ▼                       ▼
+    ┌──────────────┐       ┌──────────────┐       ┌──────────────┐
+    │RocksDBDatabase│      │IStorageBackend│      │LevelDatCodec │
+    │  (Native)    │       │  (外来格式)   │       │              │
+    └──────────────┘       └──────┬───────┘       └──────────────┘
+                                   │
+                   ┌───────────────┼───────────────┐
+                   ▼                               ▼
+           ┌──────────────┐               ┌──────────────┐
+           │JavaAnvilBackend│             │BedrockLDBBackend│
+           └──────────────┘               └──────────────┘
+```
+
+## 上下游外部依赖关系
+
+### 上游（谁依赖了这个模块）
+
+- `ServerWorld` - 世界运行时通过 `SingleLevelStorageManager` 进行区块/玩家/实体持久化
+- `ServerChunkManager` - 区块加载/保存通过 `loadChunk()` / `saveChunk()`
+- `PlayerManager` - 玩家加入/退出/保存通过 `PlayerDataManager`
+- `MinecraftServer` - 服务器启动时通过 `GlobalStorageManager` 打开存档，关闭时调用 `saveAll()`
+- `/save-all` 命令 - 触发全量保存
+- 世界选择界面 - 通过 `GlobalStorageManager::listWorlds()` 枚举存档
+
+### 下游（这个模块依赖了谁）
+
+- `common/core/Result.hpp` - 错误处理
+- `common/util/nbt/Nbt.hpp` - NBT 解析
+- `common/core/Types.hpp` - 基础类型（ChunkCoord, DimensionId 等）
+- `common/perfetto/TraceEvents.hpp` - 性能追踪
+- `rocksdb` - 键值存储（Native 格式）
+- `zstd` - Section 压缩
+- `zlib` - gzip 压缩/解压
+- `LibArchive` - zip 备份
+- `spdlog` - 日志
+- `reader/java/` - Java Anvil 读取器链
+- `reader/bedrock/` - 基岩版 LevelDB 读取器链
+
+## 访问控制原则
 
 **重要**：存储模块对外分成两层门面。
 
 - **跨存档调用方**（世界选择、存档创建、路径解析）只能访问 `GlobalStorageManager`
 - **单存档运行时调用方**（如 ServerWorld、MinecraftServer）只能访问 `SingleLevelStorageManager`
-- **内部模块**（如 SectionManager、RocksDBDatabase、SectionCache）不允许被外部直接访问
-- `SingleLevelStorageManager` 通过 getter 方法暴露单存档子服务
+- **内部模块**（如 SectionManager、RocksDBDatabase、SectionCache、backend/）不允许被外部直接访问
+- `SingleLevelStorageManager` 通过 getter 方法暴露单存档子服务（`playerDataManager()`、`entityStorage()` 等）
 - 区块运行时不应再直接依赖 `SectionCodec`、`SectionKey`、`RocksDBDatabase`、`WorldStoragePaths`
 - 区块持久化细节统一收口到 `SingleLevelStorageManager::saveChunk()` / `loadChunk()`
-- 存档发现与路径细节统一收口到 `GlobalStorageManager::listWorlds()` / `openLevel()` / `savesDirectory()`
-
-### 使用示例
-
-```cpp
-// 通过 GlobalStorageManager 打开单个存档
-storage::GlobalStorageManager globalStorage;
-auto storageResult = globalStorage.openLevel("world", storageConfig);
-if (!storageResult.success()) {
-    // 处理错误
-}
-auto storage = std::move(storageResult.value());
-
-// 直接通过门面读写完整区块
-auto loadResult = storage->loadChunk(chunkX, chunkZ, dimension);
-auto saveResult = storage->saveChunk(chunk, dimension);
-
-// 对外来存档同样可通过统一门面读取单个玩家与 level.dat
-auto playerResult = storage->loadPlayer("~local_player");
-auto levelDataResult = storage->loadLevelData();
-
-// 全量保存（/save-all 或服务器关闭时使用）
-auto fullSaveResult = m_storage.saveAll();
-if (!fullSaveResult.success()) {
-    // 处理错误
-}
-
-// 关闭前由上层显式决定是否保存，close() 只负责释放资源
-storage->flushAllDirty();
-storage->close();
-```
-
-## 存储架构
-
-### 设计决策
-
-| 决策项 | 选择 | 理由 |
-|--------|------|------|
-| 存储粒度 | Section (16x16x16) | 支持增量更新和快照去重 |
-| Key 语义 | SectionKey (13字节) | dimensionId + chunkX + chunkZ + sectionY |
-| 列族设计 | 每维度每数据类型一个 CF | 隔离查询、独立压缩配置 |
-| 一致性模式 | 可配置三档 | 平衡性能与安全性 |
-| 快照机制 | RocksDB BackupEngine | 原生增量备份支持 |
-
-### 列族布局
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      RocksDB Database                        │
-├─────────────────────────────────────────────────────────────┤
-│ CF: default          │ 元数据                               │
-│ CF: sections_overworld  │ 主世界 Section 数据              │
-│ CF: sections_nether     │ 下界 Section 数据                │
-│ CF: sections_the_end    │ 末地 Section 数据                │
-│ CF: entities_overworld  │ 主世界实体数据                   │
-│ CF: entities_nether     │ 下界实体数据                     │
-│ CF: entities_the_end    │ 末地实体数据                     │
-│ CF: poi_overworld       │ 主世界 POI 数据                  │
-│ CF: poi_nether          │ 下界 POI 数据                    │
-│ CF: poi_the_end         │ 末地 POI 数据                    │
-│ CF: snapshots           │ 快照元数据                       │
-│ CF: players             │ 玩家数据                         │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### SectionKey 布局 (13 字节)
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ dimensionId (i16, BE) │ chunkX (i32, BE) │ chunkZ (i32, BE) │
-│     2 bytes           │     4 bytes      │     4 bytes      │
-├─────────────────────────────────────────────────────────────┤
-│ sectionY (i8)         │ padding (u16)                         │
-│     1 byte            │     2 bytes                           │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 一致性模式
-
-| 模式 | sync | WAL | 适用场景 |
-|------|------|-----|----------|
-| Strong | true | 启用 | 服务器关闭、重要操作 |
-| Eventual | false | 启用 | 正常游戏运行 |
-| Strongest | true | sync | 崩溃测试、开发调试 |
-
-## 核心组件
-
-### RocksDBDatabase
-
-RocksDB 数据库封装，提供多列族操作。
-
-```cpp
-// 打开数据库
-auto dbResult = RocksDBDatabase::open("/path/to/db", config);
-if (!dbResult.success()) { /* 处理错误 */ }
-auto db = std::move(dbResult.value());
-
-// 读写操作
-Result<std::vector<u8>> get(const std::string& cfName, const std::vector<u8>& key);
-Result<void> put(const std::string& cfName, const std::vector<u8>& key, 
-                 const std::vector<u8>& value, bool sync = false);
-Result<void> del(const std::string& cfName, const std::vector<u8>& key);
-
-// 批量写入
-Result<void> writeBatch(rocksdb::WriteBatch& batch, bool sync = false);
-
-// 范围操作
-std::unique_ptr<rocksdb::Iterator> newIterator(const std::string& cfName);
-Result<void> deleteRange(const std::string& cfName, 
-                         const std::vector<u8>& startKey, 
-                         const std::vector<u8>& endKey);
-
-// 快照
-const rocksdb::Snapshot* createSnapshot();
-void releaseSnapshot(const rocksdb::Snapshot* snapshot);
-
-// 备份
-Result<u64> createBackup(const std::filesystem::path& backupDir, 
-                         const std::string& metadata = "");
-Result<void> restoreFromBackup(const std::filesystem::path& backupDir, 
-                               u64 backupId, 
-                               const std::filesystem::path& targetDir);
-```
-
-### SectionManager
-
-Section 数据管理器，提供加载、保存、缓存功能。
-
-```cpp
-// 创建管理器
-SectionManager manager(db, DimensionId::Overworld, config);
-
-// 同步加载（返回共享快照，避免缓存驱逐后悬空）
-Result<std::shared_ptr<const SectionData>> loadSection(const SectionKey& key);
-
-// 异步加载
-std::future<Result<std::shared_ptr<const SectionData>>> loadSectionAsync(
-    const SectionKey& key, 
-    TaskPriority priority = TaskPriority::Normal);
-
-// 保存
-Result<void> saveSection(const SectionKey& key, const SectionData& data, 
-                         bool immediate = false);
-
-// 批量保存脏 Section
-Result<size_t> flushDirtySections();
-
-// 保存所有缓存 Section
-Result<size_t> saveAll();
-
-// 脏标记管理
-bool markDirty(const SectionKey& key);
-std::vector<SectionKey> getDirtyKeys() const;
-```
-
-### StorageTask / StorageTaskManager
-
-**职责**：把存储相关的异步工作单元显式包装成任务，并统一提交到存储 IO Worker 池。
-
-**主要功能**：
-- 统一封装 Section 读写/刷盘任务
-- 提供 Perfetto 追踪类别，便于区分 load/save/flush
-- 由 `StorageTaskManager` 统一转发到 `ServerWorkerPool`
-
-**使用示例**：
-```cpp
-StorageTaskManager` 由 `SingleLevelStorageManager` 内部持有并分发给 `SectionManager`，
-外部运行时代码不再直接访问它。
-```
-
-**模块关系**：
-- `SingleLevelStorageManager` 负责创建和销毁 `StorageTaskManager`
-- `SectionManager` 通过 `StorageTaskManager` 提交异步任务
-- `StorageTask` 只负责执行逻辑，不直接管理线程
-
-## 文件介绍
-
-### `task/StorageTask.hpp` / `StorageTask.cpp`
-
-存储任务的轻量封装，当前支持：
-- `SectionLoad`
-- `SectionSave`
-- `SectionFlush`
-
-任务会在执行时写入 `storage.task.*` 追踪类别，方便定位存储卡顿点。
-
-### `task/StorageTaskManager.hpp` / `StorageTaskManager.cpp`
-
-存储任务调度门面，内部仅保存一个 `ServerWorkerPool*`，用于：
-- 提交任务
-- 取消任务
-- 等待所有任务完成
-
-该类不拥有线程池，线程池生命周期由 `MinecraftServer` 持有并注入 `SingleLevelStorageManager`。
-
-## 模块关系
-
-```mermaid
-flowchart LR
-    A[SingleLevelStorageManager] --> B[StorageTaskManager]
-    B --> C[ServerWorkerPool]
-    D[SectionManager] --> B
-    D --> E[RocksDBDatabase]
-    D --> F[SectionCache]
-```
-
-## 整体职责
-
-本模块现在不仅负责持久化数据，还负责把存储工作拆分为可追踪、可调度的异步任务，避免继续依赖零散的 `std::async`。
-
-## 输入 / 输出
-
-- **输入**：`SectionKey`、`SectionData`、保存配置、世界路径
-- **输出**：Section 缓存、磁盘数据、快照、任务完成回调
-
-## 依赖项
-
-- 内部：`SectionManager`、`SectionCache`、`RocksDBDatabase`、`SingleLevelStorageManager`、`StorageTaskManager`
-- 外部：`rocksdb`、`fmt`、`spdlog`、`GTest`
-
-## 使用方法
-
-```cpp
-GlobalStorageManager globalStorage;
-auto storageResult = globalStorage.openLevel("world", config);
-auto storage = std::move(storageResult.value());
-
-区块运行时应通过 `saveChunk()` / `loadChunk()` 访问持久化数据，
-而不是直接取得 `SectionManager`。
-```
 
 ## 容易踩的坑
 
-- `StorageTaskManager` 不拥有线程池，必须先由 `SingleLevelStorageManager::open()` 建立存储上下文，并在外部注入 IO 池。
-- 异步接口当前仍然通过 `promise/future` 回传结果，调用方必须等待 future。
-- `SectionManager` 的异步任务是共享同一个任务池，不要在外部重复启动额外线程。
-
-## 测试用例
-
-- `tests/common/world/storage/SingleLevelStorageManagerTest.cpp`
-- `tests/common/world/storage/SectionCodecTest.cpp`
-- `tests/common/world/storage/StorageTaskTest.cpp`
-
-## Mermaid 图表
-
-```mermaid
-flowchart TD
-    A[SectionManager] --> B[StorageTaskManager]
-    B --> C[ServerWorkerPool]
-    C --> D[StorageTask]
-    D --> E[RocksDBDatabase]
-```
-
-### SectionCache
-
-LRU 缓存实现，自动淘汰未使用的 Section。
-
-```cpp
-SectionCache cache(1024);  // 缓存 1024 个 Section
-
-// 放入和获取
-std::shared_ptr<SectionData> get(const SectionKey& key);
-std::shared_ptr<SectionData> put(const SectionKey& key, 
-                                  std::shared_ptr<SectionData> data, 
-                                  bool dirty = false);
-
-// 脏标记
-bool markDirty(const SectionKey& key);
-std::vector<SectionKey> getDirtyKeys() const;
-
-// 枚举所有缓存
-std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>> getAllSections() const;
-
-// 统计
-CacheStats getStats() const;
-```
-
-### SectionCodec
-
-Section 数据序列化，支持 ZSTD 压缩。
-
-```cpp
-// 序列化格式：
-// - Header (12字节): version, flags, blockCount, reserved, contentHash
-// - Block States: ZSTD 压缩的 4096 个 u32
-// - Biomes: 64 个 BiomeId
-// - Sky Light: 可选，2048 字节 NibbleArray
-// - Block Light: 可选，2048 字节 NibbleArray
-
-Result<std::vector<u8>> SectionData::serialize() const;
-Result<SectionData> SectionData::deserialize(const u8* data, size_t size);
-
-// ChunkSection 转换
-Result<SectionData> SectionCodec::fromChunkSection(
-    const ChunkSection& section, 
-    const SectionKey& key, 
-    const std::vector<BiomeId>& biomes = {});
-Result<void> SectionCodec::toChunkSection(
-    const SectionData& data, 
-    ChunkSection& section);
-```
-
-## 文件介绍
-
-### LevelDatCodec.hpp/.cpp
-
-`LevelDatCodec` 负责 `level.dat` 文件的读写。Minecraft 使用 gzip 压缩的 NBT 格式。
-
-**核心类型：**
-
-- `LevelSummaryData` - 世界摘要数据（用于世界列表显示）
-- `LevelRuntimeData` - 世界运行时数据（用于创建新世界）
-
-**核心方法：**
-
-```cpp
-static Result<LevelSummaryData> parseSummary(const std::filesystem::path& levelDatPath);
-static Result<void> writeInitial(const std::filesystem::path& levelDatPath, 
-                                 const LevelRuntimeData& data);
-static Result<void> updateDisplayName(const std::filesystem::path& levelDatPath, 
-                                       const std::string& newDisplayName);
-static Result<void> updateLastPlayed(const std::filesystem::path& levelDatPath, 
-                                      i64 lastPlayedMs);
-```
-
-### WorldSessionLock.hpp/.cpp
-
-会话锁 RAII 包装，防止多进程同时访问同一世界。
-
-```cpp
-// 获取锁
-auto lockResult = WorldSessionLock::acquire(worldDir);
-if (!lockResult.success()) {
-    // 世界已被锁定
-    return;
-}
-
-// 锁获取成功，可以安全访问世界
-WorldSessionLock lock = std::move(lockResult.value());
-
-// ... 世界操作 ...
-
-// 析构时自动释放锁
-```
-
-### WorldStoragePaths.hpp/.cpp
-
-存档路径配置，定义世界存储的目录结构。
-
-```
-saves/
-└── {levelId}/
-    ├── level.dat              # 世界元数据（NBT格式）
-    ├── level.dat_old          # 备份
-    ├── session.lock           # 会话锁
-    ├── icon.png               # 世界图标
-    ├── db/                    # RocksDB数据库目录
-    │   ├── *.sst              # SST 文件
-    │   └── ...                # 其他 RocksDB 文件
-    ├── backups/               # RocksDB 备份目录
-    └── import/                # 导入临时目录
-```
-
-### 保存协调层
-
-- `SingleLevelStorageManager::flushAllDirty()`：仅刷新所有脏 Section 与玩家数据，供自动保存和显式关闭前收尾使用。
-- `SingleLevelStorageManager::saveAll()`：保存所有已缓存 Section；运行时实体和方块实体由 `ServerWorld::saveAll()` 在调用前先显式写入。
-- `AutoSave`：定时触发脏数据保存，并可选创建快照。
-
-## 数据流向
-
-### Section 加载流程
-
-```mermaid
-sequenceDiagram
-    participant Game as 游戏逻辑
-    participant Manager as SectionManager
-    participant Cache as SectionCache
-    participant DB as RocksDBDatabase
-    participant Codec as SectionCodec
-
-    Game->>Manager: loadSection(key)
-    Manager->>Cache: get(key)
-    alt 缓存命中
-        Cache-->>Manager: shared_ptr<const SectionData>
-    else 缓存未命中
-        Manager->>DB: get(cfName, key.toKey())
-        DB-->>Manager: serialized data
-        Manager->>Codec: deserialize(data)
-        Codec-->>Manager: shared_ptr<const SectionData>
-        Manager->>Cache: put(key, data)
-        Manager-->>Game: shared_ptr<const SectionData>
-    end
-```
-
-### Section 保存流程
-
-```mermaid
-sequenceDiagram
-    participant Game as 游戏逻辑
-    participant Manager as SectionManager
-    participant Cache as SectionCache
-    participant DB as RocksDBDatabase
-    participant Codec as SectionCodec
-
-    Game->>Manager: saveSection(key, data)
-    Manager->>Codec: serialize(data)
-    Codec-->>Manager: serialized data
-    Manager->>DB: put(cfName, key.toKey(), data)
-    Manager->>Cache: put(key, data, dirty=false)
-    Manager->>Manager: removeFromDirtySet(key)
-    Manager-->>Game: success
-```
-
-### 全量保存流程
-
-```mermaid
-sequenceDiagram
-    participant Game as 游戏逻辑
-    participant World as ServerWorld
-    participant Storage as SingleLevelStorageManager
-    participant Manager as SectionManager
-
-    Game->>World: saveAll()
-    World->>Storage: saveAll()
-    Storage->>Manager: saveAll()
-    Manager-->>Storage: 保存所有缓存 Section 数量
-    Storage-->>World: 汇总结果
-    World-->>Game: Result<size_t>
-```
-
-## 依赖项
-
-- **内部依赖**
-  - `common/core/Result.hpp` - 错误处理
-  - `common/util/nbt/Nbt.hpp` - NBT 解析
-  - `common/core/Types.hpp` - 基础类型
-  - `common/perfetto/TraceEvents.hpp` - 性能追踪
-
-- **外部依赖**
-  - `rocksdb` - 键值存储
-  - `zstd` - 压缩
-  - `zlib` - gzip 压缩/解压
-  - `LibArchive` - zip 备份
-  - `spdlog` - 日志
-  - `std::filesystem` - 文件系统操作
-
-## 性能优化
-
-### RocksDB 配置
-
-- **块缓存**: 256MB（缓存热数据块）
-- **行缓存**: 64MB（缓存行数据）
-- **MemTable**: 64MB x 4（内存写入缓冲）
-- **压缩**: 当前禁用（需要链接 Snappy/ZSTD 库）
-- **Bloom 过滤器**: 10 bits/key（减少读取放大）
-
-### Section 缓存
-
-- 默认缓存 1024 个 Section
-- LRU 淘汰策略
-- 脏标记追踪，支持批量保存
-
-### 异步 IO
-
-- 使用 ServerWorkerPool 进行后台 IO 操作
-- 支持优先级调度（区块加载优先于保存）
-
-### 保存行为说明
-
-- `flushDirtySections()` 只处理脏 Section，适合常规 tick 保存。
-- `saveAll()` 会遍历所有缓存的 Section，适合 `/save-all`、崩溃前落盘和关闭流程；实体/方块实体需由世界层先显式保存。
-- `ServerChunkManager` 在保存区块时会保留生物群系 4x4x4 采样；读取时会恢复到 `BiomeContainer`。
-
-## 与区块系统集成
-
-存储系统已与 `ServerChunkManager` 集成，区块运行时现在只通过 `SingleLevelStorageManager` 访问完整区块持久化：
-
-```cpp
-auto loadResult = m_world.storage().loadChunk(x, z, dimension);
-if (loadResult.success() && loadResult.value().has_value()) {
-    auto chunk = std::make_unique<ChunkData>(std::move(loadResult.value().value()));
-}
-
-auto saveResult = m_world.storage().saveChunk(chunk, dimension);
-if (saveResult.failed()) {
-    spdlog::error("Failed to save chunk: {}", saveResult.error().message());
-}
-```
-
-对于 Java / Bedrock 外来存档，上层仍走同一个 `loadChunk()` 调用点；`SingleLevelStorageManager` 会在 `open()` 时自动检测格式并切换到只读 backend。
-
-## 外来存档读取
-
-- `SaveFormatDetector`：识别 `Native`、`JavaAnvil`、`BedrockLDB`
-- `SingleLevelStorageManager::formatInfo()`：暴露检测结果
-- `SingleLevelStorageManager::loadChunk()`：统一读取完整区块
-- `SingleLevelStorageManager::loadPlayer()`：统一读取单个玩家数据
-- `SingleLevelStorageManager::loadLevelData()`：统一读取 `level.dat`
-- 外来格式检测职责只在 `SingleLevelStorageManager::open()` 执行一次，backend 只消费已确定的 `SaveFormatInfo`
-- 外来存档强制只读：`saveChunk()`、`flushAllDirty()`、`saveAll()`、`saveLevelData()` 静默成功但不落盘
-- `listChunks()`、`listPlayerUuids()` 这类枚举能力暂未在 Native 与外来格式之间形成一致契约，因此不再暴露在统一门面，避免上层误把半成品能力当稳定 API
-
-## 容易踩的坑
-
-1. **Section 索引计算**: `index = y * 256 + z * 16 + x`，注意 Y 是高位
-2. **生物群系采样**: 4x4x4 采样，共 64 个值
-3. **光照数据**: NibbleArray，每方块 4 位
-4. **列族必须预先创建**: 打开数据库时会自动创建缺失的列族
-5. **RocksDB 快照**: 内存中的 sequence number，不持久化
-6. **全量保存与增量保存不同**: `flushAllDirty()` 不会写入干净缓存，且当前不覆盖运行时实体/方块实体；`saveAll()` 才会在世界层配合下完整落盘
-7. **`close()` 不负责保存**: 关闭存储前必须由上层显式调用 `flushAllDirty()` 或 `saveAll()`，析构/close 只做资源释放
-8. **外来格式 detect 不要下沉到 backend**: backend 只负责按门面层已确认的格式打开和读取，避免 detector 规则在两层分叉
-
-## 玩家数据存储
-
-玩家数据存储在 `players` 列族中，使用 `PlayerDataManager` 管理：
-
-```cpp
-// 通过 SingleLevelStorageManager 获取玩家数据管理器
-auto* playerDataManager = storage.playerDataManager();
-
-// 保存玩家数据
-PlayerSaveData data;
-data.uuid = "player-uuid";
-data.username = "Steve";
-data.posX = 100.0;
-// ... 设置其他属性
-playerDataManager->savePlayerImmediate(data);
-
-// 加载玩家数据
-auto dataResult = playerDataManager->loadPlayer("player-uuid");
-if (dataResult.success() && dataResult.value()) {
-    PlayerSaveData& data = *dataResult.value();
-    // 使用数据
-}
-```
-
-玩家数据在 `/save-all` 命令执行时自动保存。
-
-## 测试用例
-
-- `tests/common/world/storage/SingleLevelStorageManagerTest.cpp` - 单存档存储门面、打开/关闭、缓存刷新与回读
-- `tests/common/world/storage/SectionCodecTest.cpp` - 序列化/反序列化、区块数据 round-trip
-- `tests/server/test_server_chunk_manager.cpp` - 区块与存储集成
-- `tests/server/ServerWorldTest.cpp` - 世界生命周期和保存流
-
-建议补充：
-
-- `saveAll()` 与 `flushAllDirty()` 的差异覆盖
-- 生物群系 4x4x4 采样 round-trip
-- 快照创建与清理
-- 一致性模式对写入路径的影响
-- `AutoSave` 的服务器级单点触发路径
-
-## 架构图
-
-```mermaid
-graph TB
-    subgraph "Game Layer"
-        World[ServerWorld]
-        ChunkManager[ChunkManager]
-    end
-
-    subgraph "Storage Layer"
-        Manager[SectionManager<br/>加载/保存/缓存]
-        Cache[SectionCache<br/>LRU 缓存]
-        Codec[SectionCodec<br/>序列化]
-    end
-
-    subgraph "Database Layer"
-        DB[RocksDBDatabase<br/>RocksDB 封装]
-        CF[ColumnFamilies<br/>列族定义]
-    end
-
-    subgraph "Core"
-        Paths[WorldStoragePaths]
-        Lock[WorldSessionLock]
-        Codec2[LevelDatCodec]
-    end
-
-    World --> Manager
-    ChunkManager --> Manager
-    Manager --> Cache
-    Manager --> DB
-    Manager --> Codec
-    DB --> CF
-    World --> Lock
-    World --> Paths
-    World --> Codec2
-```
+1. **Section 索引计算**：`index = y * 256 + z * 16 + x`，注意 Y 是高位
+2. **生物群系采样**：4x4x4 采样，共 64 个值
+3. **光照数据**：NibbleArray，每方块 4 位
+4. **列族必须预先创建**：打开数据库时会自动创建缺失的列族
+5. **RocksDB 快照**：内存中的 sequence number，不持久化
+6. **全量保存与增量保存不同**：`flushAllDirty()` 不会写入干净缓存，且当前不覆盖运行时实体/方块实体；`saveAll()` 才会在世界层配合下完整落盘
+7. **`close()` 不负责保存**：关闭存储前必须由上层显式调用 `flushAllDirty()` 或 `saveAll()`，析构/close 只做资源释放
+8. **外来格式 detect 不要下沉到 backend**：backend 只负责按门面层已确认的格式打开和读取
+9. **外来存档强制只读**：`saveChunk()`、`flushAllDirty()`、`saveAll()`、`saveLevelData()` 在外来格式下静默成功但不落盘
+10. **`StorageTaskManager` 不拥有线程池**：必须由外部注入 `ServerWorkerPool`
+11. **缓存命中和批量读取必须分开处理**：先查缓存，只把 miss 交给数据库，不要把所有 key 都无脑送进 `MultiGet`
+12. **批量读取返回顺序必须稳定**：上层 `loadChunk()` 依赖返回顺序与 `sectionY` 顺序一致
+13. **`loadPlayer("~local_player")` 是约定**：本地玩家通过这个特殊字符串读取，Java 从 `Data.Player`，Bedrock 从 `~local_player` 键

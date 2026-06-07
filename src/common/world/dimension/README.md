@@ -6,13 +6,14 @@
 
 ```
 dimension/
-├── DimensionType.hpp            # 维度类型定义
+├── DimensionType.hpp            # 维度类型定义（坐标缩放、环境特性、高度限制等固有属性）
 ├── DimensionType.cpp            # 维度类型实现
-├── Dimension.hpp                # 维度实例类
+├── Dimension.hpp                # 维度实例类（组合维度类型与区块生成器）
 ├── Dimension.cpp                # 维度实例实现
-├── DimensionManager.hpp         # 维度管理器
+├── DimensionManager.hpp         # 维度管理器（维度实例注册表）
 ├── DimensionManager.cpp         # 维度管理器实现
-├── DimensionRenderSettings.hpp  # 维度渲染设置
+├── DimensionRenderSettings.hpp  # 维度渲染设置（云高度、雾类型、天空、天花板等）
+├── MapDimensionId.hpp           # 维度ID映射工具
 ├── teleport/                    # 传送系统
 │   ├── PortalSize.hpp           # 传送门尺寸检测
 │   ├── PortalSize.cpp           # 传送门尺寸检测实现
@@ -22,311 +23,93 @@ dimension/
 └── README.md                    # 本文档
 ```
 
-## 文件详解
+## 内部模块关系
 
-### DimensionType.hpp/cpp
-
-**职责**: 定义维度类型的固有属性，如坐标缩放、环境特性、高度限制等。
-
-参考 MC 1.16.5 DimensionType。
-
-**主要属性**:
-
-| 属性 | 类型 | 说明 |
-|------|------|------|
-| `m_id` | `DimensionId` | 维度ID |
-| `m_name` | `std::string` | 维度名称 |
-| `m_hasCeiling` | `bool` | 是否有天花板（下界） |
-| `m_hasSkyLight` | `bool` | 是否有天空光照 |
-| `m_ultraWarm` | `bool` | 是否超热（水蒸发） |
-| `m_natural` | `bool` | 是否自然维度 |
-| `m_bedWorks` | `bool` | 床是否可用 |
-| `m_respawnAnchorWorks` | `bool` | 重生锚是否可用 |
-| `m_coordinateScale` | `f32` | 坐标缩放比例（下界=8） |
-| `m_minHeight` | `i32` | 最低建筑高度 |
-| `m_maxHeight` | `i32` | 最高建筑高度 |
-| `m_logicalHeight` | `i32` | 逻辑高度上限 |
-| `m_ambientLight` | `f32` | 环境光照强度 |
-| `m_fixedTime` | `std::optional<i64>` | 固定时间值 |
-
-**静态工厂方法**:
-- `overworld()` - 主世界类型
-- `nether()` - 下界类型
-- `theEnd()` - 末地类型
-
-**坐标转换方法**:
-- `scaleFromOverworld(pos)` - 从主世界坐标转换
-- `scaleToOverworld(pos)` - 转换到主世界坐标
-- `transformPosition(pos, from, to)` - 通用坐标转换
-
-**使用示例**:
-```cpp
-// 获取下界维度类型
-auto nether = DimensionType::nether();
-
-// 检查属性
-if (nether.ultraWarm()) {
-    // 水会蒸发
-}
-
-// 坐标转换
-Vector3d netherPos(800, 64, 200);
-Vector3d overworldPos = nether.scaleToOverworld(netherPos);
-// overworldPos = (6400, 64, 1600)
-
-// 检查床是否可用
-if (!nether.bedWorks()) {
-    // 床会爆炸
-}
+```
+DimensionType ←─── Dimension ←─── DimensionManager
+     │                 │                  │
+     │                 ↓                  ↓
+     │          IChunkGenerator      ServerWorld/MinecraftServer
+     │
+     ↓
+DimensionRenderSettings ──→ CloudRenderer / 天空渲染器 / 雾渲染器
 ```
 
-### Dimension.hpp/cpp
+- **DimensionType**: 定义维度的固有属性（坐标缩放、环境特性等），是值类型
+- **Dimension**: 组合维度类型与区块生成器，代表一个具体的维度实例
+- **DimensionManager**: 管理所有维度实例的注册表，提供维度访问和遍历接口
+- **DimensionRenderSettings**: 渲染参数，供客户端渲染器使用
 
-**职责**: 维度实例类，组合维度类型与区块生成器；生物群系提供者现在归属于区块生成器。
+## 上下游外部依赖关系
 
-**主要成员**:
+### 本模块依赖的外部模块
 
-| 成员 | 类型 | 说明 |
-|------|------|------|
-| `m_id` | `DimensionId` | 维度ID |
-| `m_type` | `DimensionType` | 维度类型 |
-| `m_generator` | `IChunkGenerator*` | 区块生成器 |
-| `m_spawnPoint` | `Vector3d` | 出生点位置 |
+| 外部模块 | 用途 |
+|----------|------|
+| `common/core/Types.hpp` | 基础类型定义（`f32`, `u8`, `bool` 等） |
+| `world/chunk/` | 区块生成器接口（`IChunkGenerator`） |
+| `world/gen/settings/` | 维度生成参数（`DimensionSettings`，注意与本模块的 `DimensionRenderSettings` 区分） |
 
-**工厂方法**:
-- `createOverworld(seed)` - 创建主世界维度
-- `createNether(seed)` - 创建下界维度
-- `createTheEnd(seed)` - 创建末地维度
+### 依赖本模块的外部模块
 
-**使用示例**:
-```cpp
-auto overworld = Dimension::createOverworld(seed);
-auto biome = overworld->generator()->getBiomeProvider()->getBiome(x, y, z);
-auto spawnPoint = overworld->spawnPoint();
-```
+| 外部模块 | 用途 |
+|----------|------|
+| `server/core/MinecraftServer` | 维度管理器初始化和维度访问 |
+| `server/world/ServerWorld` | 服务端世界维度操作 |
+| `client/renderer/` | 客户端渲染器使用 `DimensionRenderSettings` |
+| `entity/` | 实体传送、维度切换 |
 
-### DimensionManager.hpp/cpp
+## 容易踩的坑
 
-**职责**: 维度管理器，管理所有维度实例的注册表。
-
-### 维度ID常量 (MC 1.16.5 兼容)
+### 1. 维度ID与 MC 1.16.5 保持一致
 
 | 维度 | ID | 说明 |
 |------|-----|------|
-| `OVERWORLD` | 0 | 主世界 |
-| `NETHER` | -1 | 下界（注意：MC 1.16.5 使用 -1，而非 1 或其他值） |
-| `THE_END` | 1 | 末地（注意：MC 1.16.5 使用 1，而非 2 或其他值） |
+| 主世界 | 0 | `DimensionManager::OVERWORLD` |
+| 下界 | -1 | `DimensionManager::NETHER`（注意是 -1，不是 1） |
+| 末地 | 1 | `DimensionManager::THE_END` |
 
-> **重要**: 维度ID与 MC 1.16.5 保持一致，下界=-1，末地=1。这对存档兼容性至关重要。
+这对存档兼容性至关重要。
 
-**主要方法**:
-- `initialize(seed)` - 初始化维度管理器
-- `shutdown()` - 关闭维度管理器
-- `getDimension(id)` - 获取维度
-- `getOverworld()` - 获取主世界
-- `getNether()` - 获取下界
-- `getTheEnd()` - 获取末地
-- `forEachDimension(func)` - 遍历所有维度
+### 2. -ffast-math 与 NaN 检测
 
-**使用示例**:
+项目使用 `-ffast-math` 编译选项，会破坏 IEEE 754 NaN 语义：
 ```cpp
-DimensionManager manager;
-manager.initialize(seed);
+// 错误！NaN 检测在 -ffast-math 下不可靠
+if (!std::isnan(settings.cloudHeight)) { ... }
 
-// 访问维度
-Dimension* overworld = manager.getDimension(DimensionManager::OVERWORLD);
-
-// 遍历所有维度
-manager.forEachDimension([](Dimension& dim) {
-    dim.tick();
-});
+// 正确！使用显式的 hasClouds 布尔字段
+if (settings.hasClouds) { ... }
 ```
 
-### DimensionRenderSettings.hpp
-
-**职责**: 定义维度的渲染相关参数，包括云高度、天空、天花板、雾类型等设置。
-
-**主要内容**:
-
-#### FogType 枚举
-定义雾类型，参考 MC 1.16.5 DimensionRenderInfo.FogType：
-- `None` (0): 无雾
-- `Normal` (1): 普通雾
-- `End` (2): 末地雾
-
-#### DimensionRenderSettings 结构体
-定义维度渲染参数：
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `cloudHeight` | `f32` | 云高度（仅当 hasClouds 为 true 时有效） |
-| `hasClouds` | `bool` | 是否有云（下界和末地为 false） |
-| `hasSky` | `bool` | 是否有天空 |
-| `hasCeiling` | `bool` | 是否有天花板（下界为 true） |
-| `fogType` | `FogType` | 雾类型 |
-| `hasNaturalLight` | `bool` | 是否有自然光照 |
-| `name` | `const char*` | 维度名称（调试用） |
-
-**静态工厂方法**:
-- `overworld()` - 主世界设置（云高度 192，有天空，普通雾）
-- `nether()` - 下界设置（无云，有天花板，无自然光）
-- `end()` - 末地设置（无云，末地雾）
-- `getDefault()` - 默认设置（返回主世界）
-
-**注意事项**:
-- 由于项目使用 `-ffast-math` 编译选项，NaN 检测不可靠
-- 因此使用显式的 `hasClouds` 布尔字段而非 NaN 来表示是否有云
-
-## 文件关系图
-
-```
-                    ┌──────────────────────────────────┐
-                    │     DimensionRenderSettings.hpp  │
-                    │         (维度渲染设置)            │
-                    └──────────────────────────────────┘
-                                    │
-                    ┌───────────────┼───────────────┐
-                    │               │               │
-                    ▼               ▼               ▼
-           ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐
-           │ CloudRenderer│  │  其他渲染器  │  │  测试用例        │
-           │ (客户端渲染)  │  │ (天空/雾等)  │  │ test_cloud_     │
-           └─────────────┘  └─────────────┘  │ renderer.cpp    │
-                                               └─────────────────┘
-```
-
-## 与相关模块的关系
-
-### 与 DimensionSettings.hpp 的区别
+### 3. DimensionRenderSettings 与 DimensionSettings 混淆
 
 | 模块 | 位置 | 用途 |
 |------|------|------|
 | **DimensionRenderSettings** | `world/dimension/` | 渲染参数（云高度、雾类型等） |
 | **DimensionSettings** | `world/gen/settings/` | 生成参数（噪声设置、默认方块、海平面等） |
 
-- `DimensionSettings` 用于世界生成阶段
-- `DimensionRenderSettings` 用于客户端渲染阶段
+### 4. CHUNK_HEIGHT 与 MAX_BUILD_HEIGHT 的区别
 
-## 模块概述
+两者当前值相同但语义不同：
+- `MAX_BUILD_HEIGHT`: 世界最大建筑高度
+- `CHUNK_HEIGHT`: 区块高度 = `MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT`
 
-### 整体职责
+未来 `MIN_BUILD_HEIGHT` 可能扩展到 -64，届时 `CHUNK_HEIGHT` 将不等于 `MAX_BUILD_HEIGHT`。
 
-定义各维度（主世界、下界、末地）的渲染相关参数，供客户端渲染器使用。
-
-### 输入
-
-- 无运行时输入，所有设置通过静态工厂方法预定义
-
-### 输出
-
-- `DimensionRenderSettings` 结构体实例，包含维度的渲染参数
-
-### 依赖项
-
-| 依赖 | 用途 |
-|------|------|
-| `common/core/Types.hpp` | 基础类型定义（`f32`, `u8`, `bool` 等） |
-
-### 使用方法
-
-```cpp
-#include "common/world/dimension/DimensionRenderSettings.hpp"
-
-// 获取主世界渲染设置
-auto settings = DimensionRenderSettings::overworld();
-
-// 检查是否有云（使用 hasClouds 字段，而非 NaN 检查）
-if (settings.hasClouds) {
-    // 在 settings.cloudHeight 高度渲染云
-    renderClouds(settings.cloudHeight);
-}
-
-// 检查是否有天空
-if (settings.hasSky) {
-    renderSky();
-}
-
-// 根据雾类型设置渲染
-switch (settings.fogType) {
-    case FogType::None:
-        disableFog();
-        break;
-    case FogType::Normal:
-        enableNormalFog();
-        break;
-    case FogType::End:
-        enableEndFog();
-        break;
-}
-
-// 检查自然光照
-if (settings.hasNaturalLight) {
-    updateSkyLight();
-}
-```
-
-### 容易踩的坑
-
-1. **-ffast-math 与 NaN 检测**: 项目使用 `-ffast-math` 编译选项，会破坏 IEEE 754 NaN 语义
-   ```cpp
-   // 错误！NaN 检测在 -ffast-math 下不可靠
-   if (!std::isnan(settings.cloudHeight)) { ... }
-
-   // 正确！使用显式的 hasClouds 布尔字段
-   if (settings.hasClouds) { ... }
-   ```
-
-2. **与 DimensionSettings 混淆**: 注意区分 `DimensionRenderSettings`（渲染）和 `DimensionSettings`（生成）
-
-3. **指针类型**: `name` 字段是 `const char*`，指向静态字符串常量，不要尝试修改或释放
-
-4. **预设值不可变**: 工厂方法返回的是临时对象，如果需要持久化请复制
-   ```cpp
-   // 每次调用都创建新对象
-   auto settings1 = DimensionRenderSettings::overworld();
-   auto settings2 = DimensionRenderSettings::overworld();
-   // settings1 和 settings2 是独立的副本
-   ```
-
-## 涉及的测试用例
-
-测试文件位置: `tests/client/renderer/test_cloud_renderer.cpp`
-
-| 测试用例 | 说明 |
-|----------|------|
-| `DimensionRenderSettingsTest.OverworldSettings` | 测试主世界设置（云高度、天空、雾类型等） |
-| `DimensionRenderSettingsTest.NetherSettings` | 测试下界设置（无云、有天花板、无自然光） |
-| `DimensionRenderSettingsTest.EndSettings` | 测试末地设置（无云、末地雾） |
-| `DimensionRenderSettingsTest.DefaultSettings` | 测试 `getDefault()` 返回主世界设置 |
-| `DimensionRenderSettingsTest.HasCloudsField` | 测试 `hasClouds` 字段正确性 |
-| `DimensionRenderSettingsTest.FogTypeEnumValues` | 测试雾类型枚举值正确 |
-
-## 传送系统
-
-### 传送门触发时序
-
-实体通过传送门传送的时序遵循 MC 1.16.5 规则：
+### 5. 传送门触发时序（MC 1.16.5）
 
 | 实体类型 | 传送时间 | 说明 |
 |----------|----------|------|
-| 玩家 | 80 ticks (4秒) | `Player::getMaxInPortalTime()` 返回 80 |
-| 其他实体 | 1 tick | `Entity::getMaxInPortalTime()` 默认返回 1 |
+| 玩家 | 80 ticks (4秒) | 创造模式下仅 1 tick |
+| 其他实体 | 1 tick | 默认值 |
 
-### 传送冷却
+### 6. 传送冷却
 
-传送后有冷却时间：
-- **玩家**: 10 ticks (MC 1.16.5 `Player::getPortalCooldown()`)
-- **其他实体**: 300 ticks (15秒) (`Entity::getPortalCooldown()` 默认值)
-- 冷却期间 `canTeleport()` 返回 false
+- **玩家**: 10 ticks
+- **其他实体**: 300 ticks (15秒)
 
-### 创造模式传送
-
-玩家在创造模式（无敌状态）下通过传送门的时间仅为 1 tick：
-- `Player::getMaxInPortalTime()` 返回 `invulnerable ? 1 : 80`
-
-### 坐标转换
-
-使用 `Teleporter` 类进行坐标转换：
+### 7. 坐标转换比例
 
 | 转换方向 | 缩放比例 |
 |----------|----------|
@@ -334,79 +117,11 @@ if (settings.hasNaturalLight) {
 | 下界 → 主世界 | 坐标 × 8 |
 | 末地 → 主世界 | 固定出生点 (100, 49, 0) |
 
-```cpp
-// 使用 Teleporter 进行坐标转换
-Vector3d targetPos = Teleporter::transformPosition(
-    currentPos,
-    DimensionType::fromId(currentDim),
-    DimensionType::fromId(targetDim));
+### 8. 传送门点燃时机
 
-// 获取末地出生点
-Vector3d endSpawn = Teleporter::getEndSpawnPosition(); // (100, 49, 0)
-```
+传送门点燃在 `FireBlock::onBlockAdded()` 中处理，而非 `tick()` 中，避免每 tick 检测以提高性能。
 
-### 服务端维度切换
+### 9. 传送门尺寸限制
 
-`ServerPlayer::changeDimension()` 负责处理玩家的维度切换：
-
-```cpp
-bool ServerPlayer::changeDimension(DimensionId targetDim) {
-    // 1. 检查骑乘状态，下骑乘
-    // 2. 计算目标坐标（使用 Teleporter::transformPosition）
-    // 3. 搜索或创建目标维度的传送门（下界传送）
-    // 4. 重置传送门状态和触发冷却
-    // 5. 调用 ServerDimensionManager::transferPlayerToDimension()
-    // 6. 更新实体维度属性和位置
-}
-```
-
-### 传送门检测算法
-
-`PortalSize` 类实现了 MC 1.16.5 的传送门检测算法：
-
-**核心方法**:
-- `findNetherPortal(world, pos, preferXAxis)` - 在指定位置寻找有效的下界传送门框架
-- `lightNetherPortal(world, portal)` - 点燃下界传送门（放置传送门方块）
-- `canConnect(state)` - 检查方块是否可作为传送门内部（空气/火/传送门方块）
-- `isPortalFrame(state)` - 检查方块是否为框架方块（黑曜石）
-
-**检测流程**:
-1. 从火焰位置向下搜索最多21格找到内部底部
-2. 向左搜索找到左边框架
-3. 计算宽度和高度
-4. 验证顶部框架
-5. 返回传送门位置和尺寸
-
-**传送门尺寸限制**:
-- 最小宽度: 2 格
-- 最大宽度: 21 格
-- 最小高度: 3 格
-- 最大高度: 21 格
-
-### 传送门点燃时机
-
-参考 MC 1.16.5，传送门点燃在 `FireBlock::onBlockAdded()` 中处理，而非 `tick()` 中：
-
-```cpp
-void FireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) {
-    // 维度检查：只允许在主世界和下界点燃下界传送门
-    DimensionId dimensionId = world.dimension();
-    if (dimensionId != DimensionManager::OVERWORLD && 
-        dimensionId != DimensionManager::NETHER) {
-        return;
-    }
-    // 尝试点燃传送门
-    tryLightNetherPortal(world, pos);
-}
-```
-
-这样避免了每 tick 都检测传送门，提高了性能。
-
-## 未来扩展
-
-当前维度系统已实现核心框架，后续计划：
-
-- 完善传送门搜索算法（寻找或创建目标维度的传送门）
-- 生物群系提供者目录隔离（provider/overworld, provider/nether, provider/end）
-- 专用区块生成器（NetherChunkGenerator, EndChunkGenerator）
-- 服务端维度管理集成到 MinecraftServer
+- 最小宽度: 2 格，最大宽度: 21 格
+- 最小高度: 3 格，最大高度: 21 格

@@ -1,49 +1,40 @@
 # 生物粒子 (Mob Particles)
 
-## 概述
+## 目录结构树
 
-生物粒子用于与生物相关的视觉效果，如爱心、愤怒、开心等。
-
-## 文件
-
-| 文件 | 描述 |
-|------|------|
-| HeartParticle.hpp/cpp | 爱心粒子 - 生物繁殖或驯服时显示 |
-
-## 特性
-
-### HeartParticle（爱心粒子）
-
-- **渲染类型**：PARTICLE_SHEET_TRANSLUCENT
-- **生命周期**：约 1 秒
-- **行为**：
-  - 向上飘动（无重力）
-  - 速度逐渐减慢
-  - 后半生命周期淡出
-- **颜色**：红色心形
-- **用途**：
-  - 生物繁殖时
-  - 驯服动物时
-  - 玩家喂食动物时
-
-## 用法
-
-```cpp
-// 创建爱心粒子
-auto heart = std::make_unique<HeartParticle>(
-    position,
-    glm::vec3(0.0f, 0.02f, 0.0f)
-);
-particleManager.addParticle(std::move(heart));
+```
+mob/
+├── HeartParticle.hpp             # 爱心粒子 - 繁殖/驯服时显示
+├── HeartParticle.cpp
+├── VillagerParticle.hpp          # 村民粒子 - 愤怒/开心/喷嚏
+├── VillagerParticle.cpp
+└── README.md
 ```
 
-## 扩展粒子
+## 内部模块关系
 
-后续可添加的其他生物粒子：
-- **AngryVillagerParticle**：愤怒村民（灰色烟雾）
-- **HappyVillagerParticle**：开心村民（绿色星星）
-- **DamageIndicatorParticle**：伤害指示器
+```
+HeartParticle          → 独立粒子类，无子模块
+VillagerParticle.hpp   → 包含 AngryVillagerParticle、HappyVillagerParticle、SneezeParticle
+```
 
-## 参考
+所有粒子类继承自 `Particle` 基类 (`client/renderer/trident/particle/Particle.hpp`)。
 
-- Minecraft Java 1.16.5 `net.minecraft.client.particle.HeartParticle`
+## 上下游外部依赖关系
+
+**依赖方（上游）**：
+- `Particle` 基类 - 提供生命周期、渲染接口
+- `ParticleRegistry` - 粒子类型注册
+- `ParticleTextureAtlas` - 纹理图集
+- `mc::math::Random` - 随机数生成
+
+**被依赖方（下游）**：
+- 实体系统 - 在生物繁殖、驯服、交易等事件中创建粒子
+- 网络同步 - 通过 `ParticlePacket` 接收服务端粒子事件
+
+## 容易踩的坑
+
+1. **生命周期管理**：`tick()` 方法中需要手动增加 `m_age`，父类不会自动增加
+2. **颜色设置**：使用 `setColor(glm::vec4)` 设置 RGBA，alpha 用于淡出效果
+3. **摩擦力系数**：`setFriction()` 影响速度衰减，不同粒子类型系数不同
+4. **物理碰撞**：村民粒子通常 `setHasPhysics(false)`，不受方块碰撞影响

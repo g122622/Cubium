@@ -2,34 +2,80 @@
 
 本目录包含投掷物类实体的渲染器实现。
 
-## 文件列表
+## 目录结构
 
-| 文件 | 描述 |
-|------|------|
-| `ItemEntityRenderer.hpp/cpp` | 物品实体渲染器 |
-| `ExperienceOrbRenderer.hpp/cpp` | 经验球渲染器 |
-| `ProjectileRenderers.hpp/cpp` | 箭矢/三叉戟渲染器 |
+```
+projectile/
+├── BillboardRenderers.hpp/cpp        # Billboard 渲染器基类及物品投掷物（雪球、鸡蛋、末影珍珠等）
+├── ExperienceOrbRenderer.hpp/cpp     # 经验球渲染器
+├── FireballRenderers.hpp/cpp         # 火球渲染器（恶魂火球、烈焰人小火球）
+├── FishingBobberRenderer.hpp/cpp     # 钓鱼浮标渲染器
+├── ItemEntityRenderer.hpp/cpp        # 物品实体渲染器（掉落物）
+├── ProjectileRenderers.hpp/cpp       # 箭矢、光灵箭、三叉戟渲染器
+└── README.md
+```
 
-## 渲染器类
+## 内部模块关系
 
-### ItemEntityRenderer（物品实体渲染器）
-渲染掉落在世界中的物品实体。物品以 3D 方式浮动渲染，浮动高度按 `sin((age + partialTick) / 10 + hoverStart) * 0.1 + 0.1` 计算，并叠加原版 ground transform 的 0.25 高度；Y 轴旋转按 `((age + partialTick) / 20 + hoverStart)` 弧度计算。
+```
+                    ┌─────────────────┐
+                    │  EntityRenderer │ ← core/EntityRenderer.hpp (基类)
+                    │  (抽象基类)      │
+                    └────────┬────────┘
+                             │
+         ┌───────────────────┼───────────────────┐
+         │                   │                   │
+         ▼                   ▼                   ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│ItemEntityRenderer│ │ExperienceOrb    │ │ItemBillboard    │
+│                 │ │Renderer         │ │Renderer         │
+│ (掉落物3D渲染)   │ │ (经验球Billboard)│ │ (抽象基类)       │
+└─────────────────┘ └─────────────────┘ └────────┬────────┘
+                                                │
+                     ┌──────────────────────────┴──────────────────────┐
+                     │                     │                           │
+                     ▼                     ▼                           ▼
+          ┌──────────────────┐   ┌──────────────────┐   ┌──────────────────┐
+          │SnowballRenderer  │   │EyeOfEnderRenderer│   │FireballRenderer  │
+          │EggRenderer       │   │(fullbright=true) │   │SmallFireball     │
+          │EnderPearlRenderer│   └──────────────────┘   │Renderer         │
+          │PotionRenderer    │                          │(fullbright=true)│
+          │ExperienceBottle  │                          └──────────────────┘
+          │(均继承自         │
+          │ItemBillboard)    │
+          └──────────────────┘
 
-### ExperienceOrbRenderer（经验球渲染器）
-渲染世界中的经验球实体，带绿色发光效果和浮动动画。
+ArrowRenderer / SpectralArrowRenderer / TridentRenderer：独立实现，直接继承 EntityRenderer
+FishingBobberRenderer：独立实现，使用 LINE_LIST 拓扑渲染浮标和钓线
+```
 
-### ArrowRenderer（箭矢渲染器）
-渲染普通箭矢，带抖动动画和朝向旋转。
+## 上下游外部依赖关系
 
-### SpectralArrowRenderer（光灵箭渲染器）
-渲染光灵箭，带发光效果。
+**上游（本目录依赖）：**
+- `core/EntityRenderer.hpp` - 渲染器基类
+- `core/PipelineMeshProvider` - 自定义网格生成接口（FishingBobber、ItemBillboard 使用）
+- `pipeline/EntityTextureAtlas.hpp` - 实体纹理图集
+- `model/core/ModelRenderer.hpp` - 模型渲染器
 
-### TridentRenderer（三叉戟渲染器）
-渲染投掷的三叉戟。
+**下游（依赖本目录）：**
+- `core/EntityRendererManager.cpp` - 渲染器注册与管理
+- `renderer/RendererRegistration.cpp` - 渲染器注册入口
+
+## 容易踩的坑
+
+1. **ItemEntityRenderer 需要设置纹理图集**：使用前必须调用 `setItemTextureAtlas()` 设置物品纹理图集，否则无法获取物品纹理
+
+2. **经验球光照是固定的**：`ExperienceOrbRenderer` 使用固定光照（blockLight=15, skyLight=15），不会受环境光照影响
+
+3. **Billboard 渲染器的 fullbright 参数**：继承 `ItemBillboardRenderer` 时需注意 fullbright 参数，末影之眼、火球等发光实体需要 `fullbright=true`
+
+4. **FishingBobberRenderer 使用 LINE_LIST 拓扑**：与其他渲染器不同，钓线使用线段而非三角形渲染，需注意管线配置
+
+5. **ItemEntity 动画参数是硬编码的**：浮动周期 `/10`、旋转周期 `/20`、基础偏移 `0.25` 等常量在 ItemEntityRenderer 中定义，修改需同步 MC 原版
 
 ## 参考
 
 - MC 1.16.5 ItemEntityRenderer
 - MC 1.16.5 ExperienceOrbRenderer
-- MC 1.16.5 ArrowRenderer
-- MC 1.16.5 TridentRenderer
+- MC 1.16.5 ArrowRenderer / TridentRenderer
+- MC 1.16.5 FishingBobberRenderer

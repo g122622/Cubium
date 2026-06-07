@@ -6,260 +6,78 @@
 
 ```
 effect/
-├── EffectEntities.hpp/cpp   # 效果实体定义
-└── README.md                # 本文档
+├── EffectEntities.hpp     # 效果实体定义（末影水晶、闪电、区域效果云、盔甲架）
+├── EffectEntities.cpp     # 效果实体实现
+└── README.md              # 本文档
 ```
+
+> **注意**: ExperienceOrbEntity（经验球）已移动到独立的 `orb/` 目录。
 
 ## 实体列表
 
-| 实体 | 说明 | 特性 |
-|------|------|------|
-| EnderCrystalEntity | 末影水晶 | 治愈末影龙、光束、爆炸 |
-| LightningBoltEntity | 闪电 | 伤害实体、生成火焰 |
-| AreaEffectCloudEntity | 区域效果云 | 滞留药水效果 |
-| ExperienceOrbEntity | 经验球 | 玩家拾取获得经验 |
-| ArmorStandEntity | 盔甲架 | 展示盔甲、可摆姿势 |
-
-## 末影水晶
-
-### MC 1.16.5 对齐
-
-EnderCrystalEntity 已完整实现以下功能：
-
-| 功能 | 状态 |
+| 实体 | 说明 |
 |------|------|
-| 光束目标设置 | ✅ 完成 |
-| 光束粒子效果 | ✅ 完成 |
-| 底座显示控制 | ✅ 完成 |
-| 爆炸机制 | ✅ 完成 |
-| 治愈末影龙 | ✅ 完成 |
-| 内部旋转动画 | ✅ 完成 |
+| EnderCrystalEntity | 末影水晶，治愈末影龙、光束、爆炸 |
+| LightningBoltEntity | 闪电，伤害实体、生成火焰 |
+| AreaEffectCloudEntity | 区域效果云，滞留药水效果 |
+| ArmorStandEntity | 盔甲架，展示盔甲、可摆姿势 |
 
-#### 治愈末影龙 (healDragon)
+## 内部模块关系
 
-当末影水晶调用 `healDragon()` 方法时：
-
-1. **冷却检查**: 如果 `m_healCooldown > 0`，直接返回
-2. **范围搜索**: 在 32 格范围内搜索末影龙实体
-3. **距离验证**: 找到最近的存活末影龙
-4. **治愈逻辑**: 对末影龙造成负伤害（`hurt(fireDamage, -1.0f)`）
-5. **光束目标**: 设置光束指向末影龙位置
-6. **冷却设置**: 设置 `m_healCooldown = HEAL_COOLDOWN (10 ticks)`
-7. **末影龙引用**: 设置末影龙的 `closestEnderCrystal` 为当前水晶
-
-参考 MC 1.16.5 `EnderCrystalEntity.healDragon()`
-
-#### 常量
-
-| 常量 | 值 | 说明 |
-|------|-----|------|
-| `HEAL_COOLDOWN` | 10 | 治愈冷却时间 (ticks) |
-| `EXPLOSION_RADIUS` | 6.0f | 爆炸半径 (方块) |
-| `HEAL_RANGE` | 32.0f | 治愈搜索范围 (方块) |
-
-### 光束粒子效果
-
-当末影水晶有光束目标（指向末地传送门）时，客户端每 tick 生成 EndRod 粒子：
-- 粒子类型：`ParticleTypeId::EndRod`
-- 粒子位置：水晶中心上方（y+1），带随机偏移
-- 粒子速度：向光束目标方向移动（速度 0.1~0.15）
-- 旋转值：`m_innerRotation` 在构造时随机初始化（0-99999），每 tick 递增用于渲染动画
-
-### 爆炸
-
-当末影水晶被摧毁时（`explode()` 方法）：
-- 爆炸半径：6.0 格
-- 爆炸模式：`Destroy`（破坏方块并掉落物品）
-- 不生成火焰
-- 爆炸位置：水晶当前位置
-- 参考 MC 1.16.5: `this.world.createExplosion((Entity)null, this.getPosX(), this.getPosY(), this.getPosZ(), 6.0F, Explosion.Mode.DESTROY);`
-
-## 闪电
-
-### MC 1.16.5 对齐
-
-LightningBoltEntity 已完整实现以下功能：
-
-| 功能 | 状态 |
-|------|------|
-| 伤害范围内实体 | ✅ 完成 |
-| 点燃方块 | ✅ 完成 |
-| 播放雷声音效 | ✅ 完成 |
-| 生成火焰（根据难度） | ✅ 完成 |
-| 随机闪烁效果 | ✅ 完成 |
-| 客户端天空闪烁 | ✅ 完成 |
-
-### 核心机制
-
-当闪电击中时（`lightningState == 2`）：
-
-1. **服务端**：
-   - 根据难度点燃周围方块（NORMAL/HARD: 4 格，EASY/PEACEFUL: 0 格）
-   - 播放雷声音效（音量 10000，音调 0.8-1.0）
-   - 对 3x6x3 范围内的 LivingEntity 造成 5 点闪电伤害
-
-2. **客户端**：
-   - 调用 `world.setTimeLightningFlash(2)` 设置天空闪烁
-   - 渲染器将天空颜色向白色混合，产生闪烁效果
-
-### 闪电闪烁效果
-
-客户端实现：
-- `ClientWeather::setTimeLightningFlash(i32 time)` - 设置闪烁时间
-- `ClientWeather::tickLightningFlash()` - 每 tick 递减闪烁时间
-- `ClientWeather::lightningFlashBrightness()` - 返回亮度因子 (0.0 或 1.0)
-- `SkyRenderer::setLightningFlashBrightness(f64)` - 设置渲染器闪烁亮度
-
-参考 MC 1.16.5:
-- `LightningBoltEntity.tick()`: `world.setTimeLightningFlash(2)`
-- `Minecraft.runTick()`: `world.setTimeLightningFlash(time - 1)`
-- `WorldRenderer.renderSky()`: 天空颜色向白色混合
-
-### 常量
-
-| 常量 | 值 | 说明 |
-|------|-----|------|
-| DAMAGE_RANGE | 3.0f | 伤害范围半径 |
-| DAMAGE_AMOUNT | 5.0f | 伤害值 |
-| FIRE_IGNITION_NORMAL_HARD | 4 | NORMAL/HARD 难度点燃数 |
-| FIRE_IGNITION_EASY_PEACEFUL | 0 | EASY/PEACEFUL 难度点燃数 |
-
-### 随机闪烁
-
-闪电会在生命周期内多次闪烁：
-- `boltLivingTime`: 1-3 次闪烁
-- `boltVertex`: 随机种子，控制闪烁间隔
-- 每次"复活"时生成新的随机种子用于渲染
-
-## 区域效果云
-
-### MC 1.16.5 对齐
-
-AreaEffectCloudEntity 已完整实现以下功能：
-
-| 功能 | 状态 |
-|------|------|
-| 效果列表存储 | ✅ 完成 |
-| 效果应用到范围内实体 | ✅ 完成 |
-| 半径随时间衰减 | ✅ 完成 |
-| 半径使用时衰减 | ✅ 完成 |
-| 等待时间机制 | ✅ 完成 |
-| 重应用延迟映射 | ✅ 完成 |
-| 颜色自动计算 | ✅ 完成 |
-| 拥有者追踪 | ✅ 完成 |
-
-### 关键参数
-
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| radius | 3.0F | 初始半径 |
-| duration | 600 ticks | 持续时间（30秒） |
-| waitTime | 20 ticks | 等待时间（1秒） |
-| reapplicationDelay | 20 ticks | 重应用延迟 |
-| radiusOnUse | 0.0F | 每次应用效果时半径变化 |
-| radiusPerTick | 0.0F | 每tick半径变化 |
-| durationOnUse | 0 | 每次应用效果时持续时间变化 |
-
-### 苦力怕药水云参数
-
-当苦力怕身上有药水效果时，爆炸后会生成滞留药水云：
-
-| 参数 | 值 |
-|------|-----|
-| 初始半径 | 2.5F |
-| radiusOnUse | -0.5F |
-| waitTime | 10 ticks |
-| duration | 300 ticks |
-| radiusPerTick | -2.5/300 |
-
-参考 MC 1.16.5 CreeperEntity.spawnLingeringCloud()
-
-### 瞬间效果处理（MC 1.16.5）
-
-药水云对瞬间效果（瞬间治疗、瞬间伤害、饱和）有特殊处理：
-
-**效果乘数**：
-- 药水云效果乘数：`0.5`（效果强度为原效果的一半）
-- 喷溅药水效果乘数：`1.0`（完整效果强度）
-
-**亡灵生物反转**：
-- 瞬间治疗：对普通生物治疗，对亡灵生物造成魔法伤害
-- 瞬间伤害：对普通生物造成魔法伤害，对亡灵生物治疗
-
-**饱和效果**：
-- 目前通过治疗模拟（待玩家饥饿系统完善后恢复饥饿值）
-
-**实现代码** (`EffectEntities.cpp`)：
-
-```cpp
-// 瞬间效果应用
-if (effect::isInstantEffect(effect.type())) {
-    applyInstantEffect(effect.type(), *living, effect.amplifier(), 0.5f);
-} else {
-    // 持续效果
-    living->addEffect(effect);
-}
+```
+EffectEntities.hpp/cpp
+├── EnderCrystalEntity
+│   └── 依赖 EnderDragonEntity（治愈目标）
+├── LightningBoltEntity
+│   └── 依赖 DamageSource、FlintAndSteelItem（点燃）
+├── AreaEffectCloudEntity
+│   └── 依赖 EffectInstance、LivingEntity
+└── ArmorStandEntity
+    └── 独立实现，无特殊依赖
 ```
 
-**参考 MC 1.16.5**：
-- `AreaEffectCloudEntity.affectEntity()`
-- `EffectInstant.affectEntity()`
+## 上下游外部依赖关系
 
-### canBeHitWithPotion 检查（MC 1.16.5）
+**上游依赖（本目录依赖）**：
+- `core/Entity.hpp` - 实体基类
+- `core/LivingEntity.hpp` - 生物实体基类（效果应用）
+- `effect/EffectInstance.hpp` - 药水效果实例
+- `damage/DamageSource.hpp` - 伤害来源
+- `world/IWorld.hpp` - 世界接口
+- `boss/EnderDragonEntity.hpp` - 末影龙（治愈目标）
 
-药水云在应用效果前会检查 `canBeHitWithPotion()`：
+**下游依赖（依赖本目录）**：
+- `monster/CreeperEntity.hpp` - 苦力怕爆炸时创建 AreaEffectCloudEntity
+- `item/ThrowablePotionEntity.hpp` - 喷溅药水创建 AreaEffectCloudEntity
+- `world/WeatherManager.hpp` - 雷暴天气创建 LightningBoltEntity
+- `world/DragonFightManager.hpp` - 末地战斗管理器创建 EnderCrystalEntity
 
-```cpp
-// MC 1.16.5: 检查实体是否可以被药水影响
-if (!living->canBeHitWithPotion()) {
-    continue;
-}
-```
+## 容易踩的坑
 
-**默认行为**：
-- `LivingEntity::canBeHitWithPotion()` 返回 `true`
-- `ArmorStandEntity` 返回 `false`（盔甲架不受药水影响）
+### 1. 末影水晶治愈末影龙
 
-## 实现状态
+- `healDragon()` 需要在服务端执行，客户端调用无效
+- 治愈冷却 `HEAL_COOLDOWN` 为 10 ticks，需要每 tick 检查
+- 爆炸时使用 `ExplosionMode::Destroy` 会破坏方块并掉落物品
 
-| 经验值范围 | 颜色 |
-|-----------|------|
-| 1-5 | 黄色 |
-| 6-20 | 绿色 |
-| 21-100 | 青色 |
-| 100+ | 红色 |
+### 2. 闪电点燃方块
 
-- 追踪附近玩家
-- 自动消失时间6000tick
-- 最大经验值2477
+- 点燃方块需要检查游戏规则 `doFireTick`
+- NORMAL/HARD 难度点燃 4 个额外方块，EASY/PEACEFUL 不点燃
+- 客户端需要调用 `world->setTimeLightningFlash(2)` 实现天空闪烁
 
-## 盔甲架
+### 3. 区域效果云效果应用
 
-### 属性
+- 瞬间效果（瞬间治疗、瞬间伤害、饱和）使用 `applyInstantEffect()` 并乘以 0.5
+- 持续效果直接使用 `living->addEffect()`
+- 需要检查 `canBeHitWithPotion()`，盔甲架返回 false
 
-| 属性 | 默认值 | 说明 |
-|------|--------|------|
-| hasGravity | true | 是否受重力 |
-| marker | false | 标记模式 |
-| basePlate | true | 是否有底座 |
-| arms | false | 是否显示手臂 |
-| small | false | 是否小型 |
+### 4. 盔甲架标记模式
 
-### 身体部位旋转
+- 标记模式（`marker = true`）下盔甲架无碰撞箱
+- 重力默认开启，标记模式下自动禁用
 
-- 头部
-- 身体
-- 左臂
-- 右臂
-- 左腿
-- 右腿
+### 5. 经验球已移动
 
-## 实现状态
-
-| 组件 | 状态 |
-|------|------|
-| EnderCrystalEntity | ✅ 完成 - 光束粒子效果、爆炸实现 |
-| LightningBoltEntity | ✅ 完成 - 伤害实体、点燃方块、音效 |
-| AreaEffectCloudEntity | ✅ 完成 - 效果应用、半径衰减、苦力怕药水云 |
-| ExperienceOrbEntity | ⚠️ 框架完成，TODO需填充 |
-| ArmorStandEntity | ⚠️ 框架完成，TODO需填充 |
+- `ExperienceOrbEntity` 已移动到 `entities/orb/` 目录
+- 不要在本目录引用经验球相关代码

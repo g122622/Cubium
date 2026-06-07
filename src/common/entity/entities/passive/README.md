@@ -6,183 +6,140 @@
 
 ```
 passive/
-├── basic/          # 普通动物（猪、牛、羊、鸡等）
-├── tamable/        # 可驯服动物（狼、猫、鹦鹉等）
-├── special/        # 特殊动物（狐狸、熊猫、北极熊等）
-├── horse/          # 马类（马、驴、骡、羊驼等）
-├── fish/           # 鱼类（鳕鱼、鲑鱼、河豚、热带鱼）
-├── water/          # 水生生物（鱿鱼、海豚）
-├── ambient/        # 环境生物（蝙蝠）
-└── golem/          # 傀儡（铁傀儡、雪傀儡）
+├── basic/                    # 普通动物（猪、牛、羊、鸡、兔、哞菇）
+│   ├── AnimalEntity.hpp/cpp  # 动物基类，支持繁殖、喂食、跟随父母
+│   ├── PigEntity.hpp/cpp     # 猪（可骑乘）
+│   ├── CowEntity.hpp/cpp     # 牛
+│   ├── SheepEntity.hpp/cpp   # 羊（可剪毛）
+│   ├── ChickenEntity.hpp/cpp # 鸡（下蛋）
+│   ├── RabbitEntity.hpp/cpp  # 兔子（多种毛色）
+│   └── MooshroomEntity.hpp/cpp # 哞菇（可碗取蘑菇汤）
+├── tamable/                  # 可驯服动物（狼、猫、豹猫、鹦鹉）
+│   ├── TameableEntity.hpp/cpp    # 可驯服基类（IAngerable 接口）
+│   ├── ShoulderRidingEntity.hpp  # 肩膀乘坐基类
+│   ├── WolfEntity.hpp/cpp    # 狼
+│   ├── CatEntity.hpp/cpp     # 猫（11种皮肤）
+│   ├── OcelotEntity.hpp/cpp  # 豹猫（信任机制，非驯服）
+│   └── ParrotEntity.hpp/cpp  # 鹦鹉（可站肩膀，不可繁殖）
+├── special/                  # 特殊动物（狐狸、熊猫、北极熊、海龟、蜜蜂、炽足兽）
+│   ├── FoxEntity.hpp/cpp     # 狐狸（信任机制、叼物品）
+│   ├── PandaEntity.hpp/cpp   # 熊猫（7种性格基因）
+│   ├── PolarBearEntity.hpp/cpp # 北极熊（保护幼崽）
+│   ├── TurtleEntity.hpp/cpp  # 海龟（出生地记忆、产卵）
+│   ├── BeeEntity.hpp/cpp     # 蜜蜂（授粉、蜂巢记忆、螫刺后死亡）
+│   └── StriderEntity.hpp/cpp # 炽足兽（熔岩行走、可骑乘）
+├── horse/                    # 马类（马、驴、骡、羊驼等）
+│   ├── AbstractHorseEntity.hpp/cpp    # 马类基类（IJumpingMount, IEquipable）
+│   ├── AbstractChestedHorseEntity.hpp # 箱子马基类
+│   ├── CoatColors.hpp        # 马匹毛色
+│   ├── CoatTypes.hpp         # 马匹花纹
+│   ├── HorseEntity.hpp/cpp   # 马
+│   ├── DonkeyEntity.hpp/cpp  # 驴
+│   ├── MuleEntity.hpp/cpp    # 骡
+│   ├── SkeletonHorseEntity.hpp/cpp # 骷髅马
+│   ├── ZombieHorseEntity.hpp/cpp   # 僵尸马
+│   ├── LlamaEntity.hpp/cpp   # 羊驼（可 spit 攻击）
+│   └── TraderLlamaEntity.hpp # 流浪商人的羊驼
+├── fish/                     # 鱼类（鳕鱼、鲑鱼、河豚、热带鱼）
+│   ├── AbstractFishEntity.hpp/cpp    # 鱼类基类（桶装鱼支持）
+│   ├── AbstractGroupFishEntity.hpp/cpp # 群游鱼类基类
+│   ├── CodEntity.hpp/cpp     # 鳕鱼
+│   ├── SalmonEntity.hpp/cpp  # 鲑鱼
+│   ├── PufferfishEntity.hpp/cpp # 河豚（膨胀防御）
+│   └── TropicalFishEntity.hpp/cpp # 热带鱼（多种变体）
+├── water/                    # 水生生物（鱿鱼、海豚、美西螈）
+│   ├── WaterMobEntity.hpp/cpp # 水生生物基类（反逻辑溺水：陆地消耗空气）
+│   ├── SquidEntity.hpp/cpp   # 鱿鱼（喷墨）
+│   ├── DolphinEntity.hpp/cpp # 海豚（宝藏寻找、海豚恩惠）
+│   └── AxolotlEntity.hpp/cpp # 美西螈（装死、支援效果）
+├── ambient/                  # 环境生物
+│   ├── AmbientEntity.hpp/cpp # 环境生物基类
+│   └── BatEntity.hpp/cpp     # 蝙蝠（昼夜检测、倒挂休息）
+└── golem/                    # 傀儡
+    ├── GolemEntity.hpp/cpp   # 傀儡基类（IAngerable）
+    ├── IronGolemEntity.hpp/cpp # 铁傀儡（保护村民）
+    └── SnowGolemEntity.hpp/cpp # 雪傀儡（发射雪球、留下雪径）
 ```
 
-## 继承层次
+## 内部模块关系
 
 ```
-MobEntity
-└── CreatureEntity
-    └── AgeableEntity
-        └── AnimalEntity
-            ├── TameableEntity (可驯服)
-            │   ├── WolfEntity (狼)
-            │   ├── CatEntity (猫)
-            │   ├── OcelotEntity (豹猫)
-            │   └── ParrotEntity (鹦鹉)
-            ├── PigEntity (猪)
-            ├── CowEntity (牛)
-            ├── SheepEntity (羊)
-            ├── ChickenEntity (鸡)
-            └── ...
+Entity
+└── LivingEntity
+    └── MobEntity
+        └── CreatureEntity
+            ├── AgeableEntity
+            │   └── AnimalEntity
+            │       ├── basic/ (Pig, Cow, Sheep, Chicken, Rabbit, Mooshroom)
+            │       ├── TameableEntity (+ IAngerable)
+            │       │   ├── WolfEntity
+            │       │   ├── CatEntity
+            │       │   ├── OcelotEntity
+            │       │   └── ParrotEntity (+ IFlyingAnimal, ShoulderRidingEntity)
+            │       ├── special/ (Fox, Panda, PolarBear, Turtle, Bee, Strider)
+            │       └── AbstractHorseEntity (+ IJumpingMount, IEquipable)
+            │           ├── HorseEntity
+            │           ├── DonkeyEntity / MuleEntity
+            │           ├── SkeletonHorseEntity / ZombieHorseEntity
+            │           └── LlamaEntity
+            ├── WaterMobEntity
+            │   ├── DolphinEntity
+            │   ├── AxolotlEntity
+            │   ├── SquidEntity
+            │   └── AbstractFishEntity
+            │       └── fish/ (Cod, Salmon, Pufferfish, TropicalFish)
+            ├── AmbientEntity
+            │   └── BatEntity
+            └── GolemEntity (+ IAngerable)
+                ├── IronGolemEntity
+                └── SnowGolemEntity
 ```
 
-## 动物行为
+## 上下游外部依赖关系
 
-### 基础行为优先级
-| 优先级 | Goal | 说明 |
-|--------|------|------|
-| 0 | SwimGoal | 在水中游泳 |
-| 1 | PanicGoal | 受伤/着火时逃跑 |
-| 2 | BreedGoal | 繁殖 |
-| 3 | TemptGoal | 被食物诱惑 |
-| 4 | FollowParentGoal | 幼体跟随父母 |
-| 5 | WaterAvoidingRandomWalkingGoal | 避开水随机行走 |
-| 6 | LookAtGoal | 看向玩家 |
-| 7 | LookRandomlyGoal | 随机看向 |
+### 依赖的上游模块
+- `entity/core/` - Entity, LivingEntity, MobEntity, CreatureEntity, AgeableEntity 基类
+- `entity/interfaces/` - IAngerable, IRideable, IJumpingMount, IEquipable, IShearable, IFlyingAnimal 接口
+- `entity/ai/` - Goal 系统（SwimGoal, PanicGoal, BreedGoal, TemptGoal, FollowParentGoal 等）
+- `entity/attributes/` - 属性系统（MAX_HEALTH, MOVEMENT_SPEED 等）
+- `world/IWorld.hpp` - 世界接口
+- `item/Items.hpp` - 物品定义
+- `block/Blocks.hpp` - 方块定义
 
-### 可驯服动物额外行为
-| 优先级 | Goal | 说明 |
-|--------|------|------|
-| 1 | SitGoal | 坐下（当被命令时） |
-| 3 | FollowOwnerGoal | 跟随主人 |
+### 被下游模块依赖
+- `server/` - 服务器端实体生成、AI 调度
+- `client/` - 客户端实体渲染
+- `world/spawn/` - 生物群系生成时的实体放置
+- `entity/VanillaEntities.hpp` - 实体类型注册
 
-## 子目录详细说明
+## 容易踩的坑
 
-### basic/ - 普通动物
-| 实体 | 说明 | 繁殖物品 | 接口 |
-|------|------|----------|------|
-| AnimalEntity | 动物基类 | - | - |
-| PigEntity | 猪 | 胡萝卜 | IRideable |
-| CowEntity | 牛 | 小麦 | - |
-| SheepEntity | 羊 | 小麦 | IShearable |
-| ChickenEntity | 鸡 | 种子 | - |
-| RabbitEntity | 兔子 | 胡萝卜/蒲公英 | - |
-| MooshroomEntity | 哞菇 | 小麦 | IShearable |
+### 继承层次陷阱
+1. **AbstractHorseEntity 不实现 IRideable**：MC 1.16.5 中马的控制逻辑通过 MobEntity 的乘客系统实现，不是像猪/炽足兽那样通过 IRideable::ride() 方法。马只实现 IJumpingMount 接口。
 
-### tamable/ - 可驯服动物
-| 实体 | 说明 | 驯服物品 | 繁殖物品 | 接口 |
-|------|------|----------|----------|------|
-| TameableEntity | 可驯服基类 | - | - | IAngerable |
-| WolfEntity | 狼 | 骨头 | 肉类 | - |
-| CatEntity | 猫 | 生鱼 | 生鱼 | - |
-| OcelotEntity | 豹猫 | 生鱼(信任) | 生鳕鱼/生鲑鱼 | - |
-| ParrotEntity | 鹦鹉 | 种子 | 不可繁殖 | IFlyingAnimal |
+2. **WaterMobEntity 的反逻辑溺水**：水生生物在陆地上消耗空气、在水中恢复空气，与陆地生物相反。实现新的水生生物时务必正确调用基类的 `updateAirSupply()`。
 
-**注意**：豹猫使用信任机制而非传统驯服，详见 `tamable/README.md`。
+3. **TameableEntity vs 信任机制**：豹猫使用信任机制（`isTrusting()`）而非 TameableEntity 的驯服系统，不继承 TameableEntity。狐狸也使用独立的信任系统。
 
-### special/ - 特殊动物
-| 实体 | 说明 | 繁殖物品 | 特殊行为 | 接口 |
-|------|------|----------|----------|------|
-| FoxEntity | 狐狸 | 甜浆果 | 叼物品、信任机制 | - |
-| PandaEntity | 熊猫 | 竹子 | 7种性格基因 | - |
-| PolarBearEntity | 北极熊 | 不可繁殖 | 保护幼崽 | - |
-| TurtleEntity | 海龟 | 海草 | 出生地记忆、产卵 | - |
-| BeeEntity | 蜜蜂 | 花朵 | 授粉、蜂巢记忆、螫刺后死亡 | IFlyingAnimal |
-| StriderEntity | 炽足兽 | 诡异菌 | 熔岩行走、可骑乘 | IRideable |
+### AI 目标注册顺序
+1. **优先级数字越小越优先**：注册 Goal 时优先级参数是整数，0 最高优先。
+2. **子类必须调用父类 registerGoals()**：否则会丢失基础行为（如 SwimGoal, PanicGoal）。
+3. **动态 AI 管理**：部分实体（猫、豹猫）需要根据驯服/信任状态动态添加移除 Goal，参考 `setupTamedAI()` 模式。
 
-### horse/ - 马类
-| 实体 | 说明 | 状态 |
-|------|------|------|
-| AbstractHorseEntity | 马类基类 | ✅ 已实现 |
-| HorseEntity | 马 | ✅ 已实现 |
-| DonkeyEntity | 驴 | ✅ 已实现 |
-| MuleEntity | 骡 | ✅ 已实现 |
-| SkeletonHorseEntity | 骷髅马 | ✅ 已实现 |
-| ZombieHorseEntity | 僵尸马 | ✅ 已实现 |
-| LlamaEntity | 羊驼 | ✅ 已实现 |
+### 数据参数同步
+1. **DataParameter 必须在类内静态声明**：如 `static DataParameter<bool> DATA_TAMED;`
+2. **数据参数注册顺序**：子类注册时必须先调用父类的 `registerDataParameters()`，再注册自己的参数。
 
-### 马类源码缺口
+### 繁殖物品检查
+1. **使用 isBreedingItem() 而非硬编码**：繁殖物品判断必须重写 `isBreedingItem()` 方法，不要在交互逻辑中硬编码物品类型。
+2. **狼的特殊食物**：狼可以吃腐肉繁殖和治疗，且不会获得饥饿效果。
 
-1. 仍缺 `AbstractChestedHorseEntity`、`TraderLlamaEntity`、`ShoulderRidingEntity`、`CoatColors`、`CoatTypes` 这些 1.16.5 侧的支撑类型。
-2. 羊驼商队和箱子马类的语义需要补到和源码一致。
-3. 当前父目录 README 对马类状态的描述应以本节为准。
+### 消失条件
+1. **被动生物默认不消失**：`canDespawn()` 返回 false。
+2. **桶装鱼不消失**：从桶放出的鱼 `preventDespawn()` 返回 true。
+3. **有名称的实体不消失**：检查 `hasCustomName()`。
 
-### fish/ - 鱼类
-| 实体 | 说明 |
-|------|------|
-| AbstractFishEntity | 鱼类基类 |
-| CodEntity | 鳕鱼 |
-| SalmonEntity | 鲑鱼 |
-| PufferfishEntity | 河豚 |
-| TropicalFishEntity | 热带鱼 |
-
-### water/ - 水生生物
-| 实体 | 说明 |
-|------|------|
-| WaterMobEntity | 水生生物基类 |
-| SquidEntity | 鱿鱼 |
-| DolphinEntity | 海豚 |
-
-#### SquidEntity 行为详情
-
-鱿鱼是水生生物，具有喷墨和游泳行为。
-
-**喷墨行为**
-- 触发：`sprayInk()` 方法
-- 持续时间：`SPRAY_INK_DURATION` tick
-- 粒子效果：生成 30 个 `ParticleTypeId::SquidInk` 粒子
-- 粒子分布：在鱿鱼周围随机分布，形成云状墨汁效果
-- 粒子速度：向外扩散，轻微向上飘动
-
-```cpp
-void sprayInk() {
-    if (!m_sprayingInk) {
-        m_sprayingInk = true;
-        m_sprayTimer = SPRAY_INK_DURATION;
-        // 生成墨汁粒子...
-    }
-}
-```
-
-| 方法 | MC 1.16.5 | 项目 | 状态 |
-|------|-----------|------|------|
-| sprayInk() | 喷墨粒子效果 | 30个SquidInk粒子 | ✅ 已实现 |
-| tick() | 游泳状态更新 | 方向改变、推进 | ✅ 已实现 |
-| isInWater() | 检查是否在水中 | 父类方法 | ✅ 已实现 |
-
-### ambient/ - 环境生物
-| 实体 | 说明 | 特殊行为 | 实现状态 |
-|------|------|----------|---------|
-| AmbientEntity | 环境生物基类 | - | ✅ 框架完成 |
-| BatEntity | 蝙蝠 | 昼夜检测、倒挂休息 | ✅ 已实现 |
-
-#### BatEntity 行为详情
-
-蝙蝠是唯一的环境生物，具有独特的行为模式：
-
-**昼夜检测**
-```cpp
-i64 timeOfDay = world->dayTime() % 24000;
-bool isDay = timeOfDay < 12000;  // 0-12000: 白天, 12000-24000: 夜晚
-```
-
-**倒挂休息**
-- 蝙蝠在白天时寻找上方有固体方块的位置倒挂休息
-- `canRest()` 方法检查上方方块是否为固体
-- 休息时蝙蝠保持静止，不进行飞行
-
-**夜间飞行**
-- 夜晚蝙蝠会苏醒并开始飞行
-- 使用随机飞行目标进行移动
-
-| 方法 | MC 1.16.5 | 项目 | 状态 |
-|------|-----------|------|------|
-| canRest() | 检查上方固体方块 | 上方方块检测 | ✅ 已实现 |
-| tick() | 昼夜检测切换状态 | dayTime() % 24000 | ✅ 已实现 |
-| restState | 倒挂休息状态 | m_resting | ✅ 已实现 |
-
-### golem/ - 傀儡
-| 实体 | 说明 | 接口 |
-|------|------|------|
-| GolemEntity | 傀儡基类 | IAngerable |
-| IronGolemEntity | 铁傀儡 | - |
-| SnowGolemEntity | 雪傀儡 | IShearable |
+### 马类实现注意事项
+1. **AbstractChestedHorseEntity 只有头文件**：目前只有声明无实现，需要在 .cpp 文件中补充。
+2. **TraderLlamaEntity 只有头文件**：目前只有声明无实现，需要在 .cpp 文件中补充。
+3. **ShoulderRidingEntity 只有头文件**：目前只有声明无实现，需要在 .cpp 文件中补充。

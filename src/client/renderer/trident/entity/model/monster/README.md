@@ -2,113 +2,158 @@
 
 本目录包含怪物实体的模型实现。
 
-## 文件列表
+## 目录结构
 
-| 文件 | 描述 |
-|------|------|
-| `ZombieModel.hpp/cpp` | 僵尸模型 |
-| `SkeletonModel.hpp/cpp` | 骷髅模型 |
-| `CreeperModel.hpp/cpp` | 苦力怕模型 |
-| `SpiderModel.hpp/cpp` | 蜘蛛模型 |
-| `EndermanModel.hpp/cpp` | 末影人模型 |
-
-## 模型详解
-
-### ZombieModel（僵尸模型）
-
-继承自 `BipedModel`，僵尸是双足生物，手臂向前伸。
-
-**特点**：
-- 纹理尺寸：64x64
-- 手臂向前伸 90 度
-- 攻击时有摆动动画
-
-**参考**：MC 1.16.5 ZombieModel
-
-### SkeletonModel（骷髅模型）
-
-继承自 `BipedModel`，骷髅是双足生物，手臂和腿更细。
-
-**特点**：
-- 纹理尺寸：64x32
-- 手臂尺寸：2x12x2（玩家是 4x12x4）
-- 腿部尺寸：2x12x2（玩家是 4x12x4）
-- 支持弓箭姿态
-
-**手臂姿态**：
-```cpp
-enum class ArmPose {
-    Empty,          // 空手
-    BowAndArrow,    // 拉弓
-    ThrowSpear,     // 投掷三叉戟
-    CrossbowCharge, // 装填弩
-    CrossbowHold    // 持有弩
-};
+```
+monster/
+├── ZombieModel.hpp                  # 僵尸模型（继承 BipedModel）
+├── ZombieModel.cpp
+├── SkeletonModel.hpp                # 骷髅模型（继承 BipedModel，支持弓箭姿态）
+├── SkeletonModel.cpp
+├── CreeperModel.hpp                 # 苦力怕模型（四足结构，含充能盔甲层）
+├── CreeperModel.cpp
+├── SpiderModel.hpp                  # 蜘蛛模型（8条腿）
+├── SpiderModel.cpp
+├── EndermanModel.hpp                # 末影人模型（继承 BipedModel，高瘦身材）
+├── EndermanModel.cpp
+├── BlazeModel.hpp                   # 烈焰人模型（漂浮头部 + 12根烟雾棒）
+├── BlazeModel.cpp
+├── MonsterVariantModels.hpp         # 怪物变体模型（僵尸村民、溺尸、流浪者、尸壳、洞穴蜘蛛、巨人）
+├── MonsterVariantModels.cpp
+├── MoreMonsterModels.hpp            # 更多怪物模型（灾厄村民、恼鬼、铁傀儡、雪傀儡、蜜蜂、狐狸、熊猫、鹦鹉、幻翼、劫掠兽）
+├── MoreMonsterModels.cpp
+├── SpecialMonsterModels.hpp         # 特殊怪物模型（凋灵、史莱姆、守卫者、远古守卫者、潜影贝、蠹虫、末影螨）
+├── SpecialMonsterModels.cpp
+└── README.md
 ```
 
-**参考**：MC 1.16.5 SkeletonModel
+## 内部模块关系
 
-### CreeperModel（苦力怕模型）
+### 继承体系
 
-继承自 `EntityModel`，苦力怕有独特的四足结构。
+```
+EntityModel（基类，定义于 model/core/）
+├── BipedModel（双足模型，定义于 model/base/）
+│   ├── ZombieModel        → 僵尸，手臂前伸
+│   ├── SkeletonModel      → 骷髅，细臂细腿，支持弓箭姿态
+│   ├── EndermanModel      → 末影人，高瘦身材，长臂长腿
+│   ├── ZombieVillagerModel → 僵尸村民（带鼻子部件）
+│   ├── DrownedModel       → 溺尸
+│   ├── StrayModel         → 流浪者（与骷髅结构相同）
+│   ├── HuskModel          → 尸壳（与僵尸结构相同）
+│   ├── GiantModel         → 巨人（与僵尸结构相同，缩放更大）
+│   ├── VexModel           → 恼鬼（带翅膀）
+│   └── IllagerModel       → 灾厄村民基类
+├── SpiderModel
+│   └── CaveSpiderModel    → 洞穴蜘蛛（复用蜘蛛模型，缩放0.7倍）
+├── CreeperModel           → 苦力怕（独立实现，四足）
+├── BlazeModel             → 烈焰人（独立实现，漂浮结构）
+├── IronGolemModel         → 铁傀儡（独立实现）
+├── SnowGolemModel         → 雪傀儡（独立实现）
+├── BeeModel               → 蜜蜂（独立实现）
+├── FoxModel               → 狐狸（独立实现）
+├── PandaModel             → 熊猫（独立实现）
+├── ParrotModel            → 鹦鹉（独立实现）
+├── PhantomModel           → 幻翼（独立实现）
+├── RavagerModel           → 劫掠兽（独立实现）
+├── WitherModel            → 凋灵（独立实现，3个头）
+├── SlimeModel             → 史莱姆（独立实现）
+├── GuardianModel          → 守卫者（独立实现）
+│   └── ElderGuardianModel → 远古守卫者（复用守卫者模型）
+├── ShulkerModel           → 潜影贝（独立实现）
+├── SilverfishModel        → 蠹虫（独立实现）
+└── EndermiteModel         → 末影螨（独立实现）
+```
 
-**部件**：
-- 头部：8x8x8，位置 (0, 6, 0)
-- 身体：8x12x4，位置 (0, 6, 0)
-- 四条腿：4x6x4，各位置不同
+### 模型分类
 
-**动画**：
-- 腿部交替摆动：`cos(limbSwing * 0.6662) * 1.4 * limbSwingAmount`
-- 对角腿同步
+| 分类 | 模型 | 特点 |
+|------|------|------|
+| 双足类 | Zombie, Skeleton, Enderman 等 | 继承 BipedModel，复用双足动画 |
+| 四足类 | Creeper | 独立实现四足动画 |
+| 节肢类 | Spider, Silverfish, Endermite | 多腿/分节身体 |
+| 特殊类 | Blaze, Guardian, Shulker 等 | 独特结构，需单独实现动画 |
 
-**参考**：MC 1.16.5 CreeperModel
+## 上下游外部依赖关系
 
-### SpiderModel（蜘蛛模型）
+### 上游依赖（本目录依赖的模块）
 
-继承自 `EntityModel`，蜘蛛有 8 条腿。
+```
+model/core/
+├── EntityModel.hpp      # 模型基类
+└── ModelRenderer.hpp    # 模型部件渲染
 
-**部件**：
-- 头部：8x8x8，位置 (0, 15, -3)
-- 颈部：6x6x6，位置 (0, 15, 0)
-- 身体：10x8x12，位置 (0, 15, 9)
-- 8 条腿：16x2x2
+model/base/
+└── BipedModel.hpp       # 双足模型基类
+```
 
-**腿部动画**：
-- Z 轴旋转：基础角度 + 摆动
-- Y 轴旋转：基础角度 + 摆动
+### 下游依赖（依赖本目录的模块）
 
-**参考**：MC 1.16.5 SpiderModel
+```
+renderer/monster/
+├── MonsterRenderers.hpp       # 基础怪物渲染器（Zombie, Skeleton, Creeper, Spider, Enderman, Blaze）
+├── MonsterVariantRenderers.hpp # 变体渲染器（僵尸村民、溺尸、流浪者、尸壳、洞穴蜘蛛）
+├── SpecialMonsterRenderers.hpp # 特殊怪物渲染器（凋灵、史莱姆、守卫者等）
+└── MoreMonsterRenderers.hpp   # 更多怪物渲染器（灾厄村民、铁傀儡等）
 
-### EndermanModel（末影人模型）
+layer/
+├── effect/EyesLayer.cpp       # 发光眼睛层（蜘蛛、末影人）
+├── effect/EnergyGlintLayer.cpp # 附魔光效层（充能苦力怕）
+└── entity/HeldBlockLayer.cpp  # 手持方块层（末影人）
+```
 
-继承自 `BipedModel`，末影人身材高大，手臂和腿很长。
+## 容易踩的坑
 
-**特点**：
-- 纹理尺寸：64x32
-- Y 偏移：-14（比普通生物高）
-- 手臂长度：30（玩家是 12）
-- 腿部长度：30（玩家是 12）
-- 手臂限制：±0.4 弧度
+### 1. 纹理尺寸差异
 
-**部件**：
-- 头部：8x8x8，纹理 (0, 0)，旋转点 (0, -14, 0)
-- 头套：8x8x8，纹理 (0, 16)，旋转点 (0, -14, 0)
-- 身体：8x12x4，纹理 (32, 16)，旋转点 (0, -14, 0)
-- 右臂：2x30x2，纹理 (56, 0)，旋转点 (-3, -12, 0)
-- 左臂：2x30x2，纹理 (56, 0)，旋转点 (5, -12, 0)，镜像
-- 右腿：2x30x2，纹理 (56, 0)，旋转点 (-2, -2, 0)
-- 左腿：2x30x2，纹理 (56, 0)，旋转点 (2, -2, 0)，镜像
+不同怪物使用不同的纹理尺寸，设置错误会导致纹理错乱：
+- **64x64**：普通僵尸、巨人
+- **64x32**：骷髅、末影人、尸壳、溺尸
+- 苦力怕、蜘蛛等有各自独特的纹理布局
 
-**特殊状态**：
-- `isCarrying`：携带方块时手臂姿态
-- `isAttacking`：攻击/尖叫时头部下移
+### 2. 模型状态同步
 
-**动画**：
-- 手臂和腿角度限制在 ±0.4 弧度
-- 携带方块：手臂 X=-0.5, Z=±0.05
-- 尖叫：头部 Y 位置 -5
+渲染前必须正确设置模型状态，否则动画不正确：
+- `ZombieModel.setAggressive()` - 攻击状态（影响手臂动画）
+- `SkeletonModel.setRightArmPose()/setLeftArmPose()` - 手臂姿态（拉弓、持弩等）
+- `EndermanModel.setCarrying()/setAttacking()` - 携带方块/尖叫状态
+- `CreeperModel` 的充能状态通过 `renderArmor()` 单独渲染
+- `GuardianModel.setSpikeAnimation()/setTailAnimation()` - 尖刺和尾巴动画
 
-**参考**：MC 1.16.5 EndermanModel
+### 3. 变体模型复用
+
+部分变体模型直接继承基础模型，仅改变纹理或缩放：
+- `CaveSpiderModel` 继承 `SpiderModel`，渲染时缩放 0.7 倍
+- `StrayModel`/`HuskModel`/`GiantModel` 继承 `BipedModel`，结构与骷髅/僵尸相同
+- `ElderGuardianModel` 继承 `GuardianModel`，仅纹理不同
+
+### 4. BipedModel 基类接口
+
+继承 `BipedModel` 的模型会自动获得：
+- `m_head`, `m_body`, `m_rightArm`, `m_leftArm`, `m_rightLeg`, `m_leftLeg` 部件引用
+- `setSwingProgress()` - 挥动动画进度
+- `setSneaking()/setSitting()` - 蹲伏/坐下状态
+- `translateHand()` - 手持物品渲染时获取手臂变换矩阵
+
+### 5. 动画参数含义
+
+`setAngles()` 参数说明：
+- `limbSwing` - 步态周期（0-2π 循环）
+- `limbSwingAmount` - 步态强度（0-1，静止为0）
+- `ageInTicks` - 年龄 tick（用于空闲动画，如手臂抖动）
+- `netHeadYaw` - 头部偏航角（相对身体）
+- `headPitch` - 头部俯仰角
+
+### 6. 模型部件命名
+
+子类使用基类部件时的别名：
+```cpp
+// BipedModel 中的别名引用
+std::shared_ptr<ModelRenderer>& m_head = m_bipedHead;
+std::shared_ptr<ModelRenderer>& m_rightArm = m_bipedRightArm;
+// ...
+```
+子类可直接使用 `m_head`, `m_rightArm` 等简短名称。
 
 ## 命名空间
 
@@ -119,5 +164,32 @@ namespace mc::client::renderer::entity::model::monster {
     class CreeperModel;
     class SpiderModel;
     class EndermanModel;
+    class BlazeModel;
+    // 变体模型
+    class ZombieVillagerModel;
+    class DrownedModel;
+    class StrayModel;
+    class HuskModel;
+    class CaveSpiderModel;
+    class GiantModel;
+    // 更多怪物模型
+    class IllagerModel;
+    class VexModel;
+    class IronGolemModel;
+    class SnowGolemModel;
+    class BeeModel;
+    class FoxModel;
+    class PandaModel;
+    class ParrotModel;
+    class PhantomModel;
+    class RavagerModel;
+    // 特殊怪物模型
+    class WitherModel;
+    class SlimeModel;
+    class GuardianModel;
+    class ElderGuardianModel;
+    class ShulkerModel;
+    class SilverfishModel;
+    class EndermiteModel;
 }
 ```

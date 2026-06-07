@@ -1,215 +1,95 @@
 # 基础模型
 
-本目录包含实体模型的基础模板类。
+本目录包含实体模型的基础模板类，为具体实体模型提供通用骨架结构。
 
-## 文件列表
+## 目录结构
 
-| 文件 | 描述 |
+```
+base/
+├── BipedModel.hpp           # 双足模型基类（玩家、僵尸、骷髅等）
+├── BipedModel.cpp           # 双足模型实现
+├── QuadrupedModel.hpp       # 四足模型基类（猪、牛、羊等）
+└── QuadrupedModel.cpp       # 四足模型实现
+```
+
+## 内部模块关系
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         base/                               │
+│  ┌─────────────────┐      ┌───────────────────┐            │
+│  │   BipedModel    │      │  QuadrupedModel   │            │
+│  │ (双足模型基类)   │      │  (四足模型基类)    │            │
+│  └────────┬────────┘      └────────┬──────────┘            │
+│           │                        │                        │
+│           └──────────┬─────────────┘                        │
+│                      │                                      │
+│                      ▼                                      │
+│           ┌─────────────────────┐                           │
+│           │    AgeableModel     │  (core/ 可成长模型基类)    │
+│           │  (支持幼体/成年体)   │                           │
+│           └──────────┬──────────┘                           │
+│                      │                                      │
+│                      ▼                                      │
+│           ┌─────────────────────┐                           │
+│           │    EntityModel      │  (core/ 实体模型基类)      │
+│           │  (模型渲染接口)      │                           │
+│           └─────────────────────┘                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 上下游外部依赖关系
+
+### 本目录依赖的外部模块
+
+| 模块 | 用途 |
 |------|------|
-| `BipedModel.hpp/cpp` | 双足模型基类 |
-| `QuadrupedModel.hpp/cpp` | 四足模型基类 |
+| `core/AgeableModel` | 父类，提供幼体/成年体缩放支持 |
+| `core/ModelRenderer` | 模型部件渲染器 |
+| `common/util/math/Vector3` | 数学向量类型 |
 
-## BipedModel
+### 依赖本目录的外部模块
 
-双足动物模型基类，用于玩家、僵尸、骷髅等双足生物。
+| 模块 | 用途 |
+|------|------|
+| `model/player/PlayerModel` | 玩家模型，继承 BipedModel |
+| `model/monster/ZombieModel` | 僵尸模型，继承 BipedModel |
+| `model/monster/SkeletonModel` | 骷髅模型，继承 BipedModel |
+| `model/monster/EndermanModel` | 末影人模型，继承 BipedModel |
+| `model/animal/AnimalModels` | 猪、牛、羊模型，继承 QuadrupedModel |
+| `model/aquatic/AquaticModels` | 水生生物模型 |
+| `layer/equipment/ArmorLayer` | 盔甲渲染层，使用 BipedModel 部件可见性 |
+| `layer/equipment/HeldItemLayer` | 手持物品渲染层，使用 translateHand 方法 |
 
-### 模型部件
+## 容易踩的坑
 
-```cpp
-class BipedModel : public EntityModel {
-protected:
-    std::shared_ptr<ModelRenderer> m_bipedHead;      // 头部
-    std::shared_ptr<ModelRenderer> m_bipedHeadwear;  // 帽子层（第二层）
-    std::shared_ptr<ModelRenderer> m_bipedBody;      // 身体
-    std::shared_ptr<ModelRenderer> m_bipedRightArm;  // 右臂
-    std::shared_ptr<ModelRenderer> m_bipedLeftArm;   // 左臂
-    std::shared_ptr<ModelRenderer> m_bipedRightLeg;  // 右腿
-    std::shared_ptr<ModelRenderer> m_bipedLeftLeg;   // 左腿
+### BipedModel 部件命名别名
 
-    // 兼容性别名
-    std::shared_ptr<ModelRenderer>& m_head = m_bipedHead;
-    std::shared_ptr<ModelRenderer>& m_headwear = m_bipedHeadwear;
-    std::shared_ptr<ModelRenderer>& m_body = m_bipedBody;
-    std::shared_ptr<ModelRenderer>& m_rightArm = m_bipedRightArm;
-    std::shared_ptr<ModelRenderer>& m_leftArm = m_bipedLeftArm;
-    std::shared_ptr<ModelRenderer>& m_rightLeg = m_bipedRightLeg;
-    std::shared_ptr<ModelRenderer>& m_leftLeg = m_bipedLeftLeg;
-};
-```
+BipedModel 有两套部件命名：`m_bipedXxx`（原名）和 `m_xxx`（别名引用）。子类应使用 `m_head`、`m_body` 等简短别名，避免直接访问 `m_bipedHead` 等原名称。
 
-### 部件访问器
+### translateHand 矩阵变换顺序
 
-BipedModel 提供以下访问器方法获取模型部件：
+`translateHand()` 的变换顺序为：平移到旋转点 → Z轴旋转 → Y轴旋转 → X轴旋转。HeldItemLayer 组合物品变换时需遵循此顺序。
 
-```cpp
-std::shared_ptr<ModelRenderer> getModelHead();      // 获取头部
-std::shared_ptr<ModelRenderer> getModelHeadwear();  // 获取帽子层
-std::shared_ptr<ModelRenderer> getModelBody();      // 获取身体
-std::shared_ptr<ModelRenderer> getLeftArm();        // 获取左臂
-std::shared_ptr<ModelRenderer> getRightArm();       // 获取右臂
-std::shared_ptr<ModelRenderer> getLeftLeg();        // 获取左腿
-std::shared_ptr<ModelRenderer> getRightLeg();       // 获取右腿
-std::shared_ptr<ModelRenderer> getArmForSide(HandSide side); // 根据边获取手臂
-```
+### 幼体模型缩放
 
-### 可见性控制
+AgeableModel 父类通过 `m_isChild` 控制幼体渲染，幼体会对头部和身体应用不同的缩放矩阵。子类构造时需正确传入 `childHeadScale`、`childBodyScale` 等参数，否则幼体渲染会错位。
 
-```cpp
-// 设置所有部件可见性
-void setVisible(bool visible);
+### 盔甲槽位可见性
 
-// 设置所有部件可见性（EntityModel 接口）
-void setAllVisible(bool visible);
+BipedModel 的盔甲槽位可见性设置需参考 MC 1.16.5 `BipedArmorLayer.setModelSlotVisible`：
+- Head 槽位：显示头部 + 帽子层
+- Chest 槽位：显示身体 + 双臂
+- Legs 槽位：显示身体 + 双腿
+- Feet 槽位：显示双腿
 
-// 单个部件可见性
-model.getModelHead()->setVisible(true);
-model.getLeftArm()->setVisible(false);
-```
+### 动画参数来源
 
-### 盔甲槽位可见性（参考 MC 1.16.5 BipedArmorLayer.setModelSlotVisible）
+`setAngles()` 的参数由 LivingRenderer 计算：
+- `limbSwing`：步态周期（插值后的 prevLimbSwing → limbSwing）
+- `netHeadYaw`：头部偏航角（rotationYawHead - renderYawOffset）
+- 不要在模型内部重新计算这些值，应直接使用传入参数
 
-```cpp
-void setArmorSlotVisibility(BipedModel& model, ArmorSlot slot) {
-    model.setAllVisible(false);
-    
-    switch (slot) {
-        case ArmorSlot::Head:
-            model.getModelHead()->setVisible(true);
-            model.getModelHeadwear()->setVisible(true);
-            break;
-        case ArmorSlot::Chest:
-            model.getModelBody()->setVisible(true);
-            model.getLeftArm()->setVisible(true);
-            model.getRightArm()->setVisible(true);
-            break;
-        case ArmorSlot::Legs:
-            model.getModelBody()->setVisible(true);
-            model.getLeftLeg()->setVisible(true);
-            model.getRightLeg()->setVisible(true);
-            break;
-        case ArmorSlot::Feet:
-            model.getLeftLeg()->setVisible(true);
-            model.getRightLeg()->setVisible(true);
-            break;
-    }
-}
-```
+### 命名空间
 
-### 纹理布局
-
-标准玩家纹理布局（64x64）：
-
-```
-+--------+--------+
-|  Head  |  Body  |  行 0-15
-+--------+--------+
-| Right  |  Left  |  行 16-31
-|  Arm   |  Arm   |
-+--------+--------+
-| Right  |  Left  |  行 32-47
-|  Leg   |  Leg   |
-+--------+--------+
-| Head   |  Body  |  行 48-63 (第二层)
-| Layer  | Layer  |
-+--------+--------+
-```
-
-### 使用方法
-
-```cpp
-class ZombieModel : public BipedModel {
-public:
-    ZombieModel() {
-        // 设置纹理尺寸
-        setTextureSize(64, 64);
-        
-        // 自定义部件（如果需要）
-        m_rightArm->setRotation(-90.0f * DEG_TO_RAD, 0.0f, 0.0f);
-        m_leftArm->setRotation(-90.0f * DEG_TO_RAD, 0.0f, 0.0f);
-    }
-    
-    void setAngles(f64 limbSwing, ...) override {
-        // 调用基类
-        BipedModel::setAngles(limbSwing, ...);
-        
-        // 自定义动画
-        // 僵尸手臂向前伸
-    }
-};
-```
-
-## QuadrupedModel
-
-四足动物模型基类，用于猪、牛、羊等四足生物。
-
-### 模型部件
-
-```cpp
-class QuadrupedModel : public EntityModel {
-protected:
-    std::shared_ptr<ModelRenderer> m_head;           // 头部
-    std::shared_ptr<ModelRenderer> m_body;           // 身体
-    std::shared_ptr<ModelRenderer> m_rightFrontLeg;  // 右前腿
-    std::shared_ptr<ModelRenderer> m_leftFrontLeg;   // 左前腿
-    std::shared_ptr<ModelRenderer> m_rightBackLeg;   // 右后腿
-    std::shared_ptr<ModelRenderer> m_leftBackLeg;    // 左后腿
-};
-```
-
-### 使用方法
-
-```cpp
-class PigModel : public QuadrupedModel {
-public:
-    PigModel() {
-        setTextureSize(64, 32);
-        
-        // 设置头部
-        m_head = std::make_shared<ModelRenderer>("head");
-        m_head->setTextureOffset(0, 0)
-               .addBox(-4.0f, -4.0f, -8.0f, 8, 8, 8);
-        m_head->setRotationPoint(0.0f, 12.0f, -6.0f);
-        m_parts.push_back(m_head);
-        
-        // 设置身体
-        m_body = std::make_shared<ModelRenderer>("body");
-        m_body->setTextureOffset(28, 8)
-               .addBox(-5.0f, -10.0f, -7.0f, 10, 16, 8);
-        m_body->setRotationPoint(0.0f, 11.0f, 2.0f);
-        m_parts.push_back(m_body);
-        
-        // 设置腿部...
-    }
-};
-```
-
-## 动画参数
-
-### 步态动画
-
-```cpp
-// 腿部动画
-f32 legAngle = std::sin(limbSwing) * limbSwingAmount;
-m_rightLeg->setRotateAngleX(legAngle);
-m_leftLeg->setRotateAngleX(-legAngle);
-
-// 手臂动画（双足）
-m_rightArm->setRotateAngleX(legAngle);
-m_leftArm->setRotateAngleX(-legAngle);
-```
-
-### 头部动画
-
-```cpp
-m_head->setRotateAngleX(headPitch * DEG_TO_RAD);
-m_head->setRotateAngleY(netHeadYaw * DEG_TO_RAD);
-```
-
-## 命名空间
-
-```cpp
-namespace mc::client::renderer::entity::model {
-    class BipedModel;
-    class QuadrupedModel;
-}
-```
+所有模型类位于 `mc::client::renderer::entity::model` 命名空间（注意：不是 `model::base` 子命名空间）。

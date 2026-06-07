@@ -6,245 +6,62 @@
 
 ```
 mob/
-├── README.md              # 本文档
-├── BeehiveBlock.hpp/cpp   # 蜂巢/蜂箱方块
-├── TurtleEggBlock.hpp/cpp # 海龟蛋方块
-├── InfestedBlock.hpp/cpp  # 被感染方块（蠹虫方块）
-├── SpawnerBlock.hpp/cpp   # 刷怪笼方块
-└── DragonBreathBlock.hpp/cpp # 龙息方块
+├── BeehiveBlock.hpp/cpp      # 蜂巢/蜂箱方块（有方块实体）
+├── TurtleEggBlock.hpp/cpp    # 海龟蛋方块（可孵化、可被踩破）
+├── InfestedBlock.hpp/cpp     # 被感染方块（破坏时生成蠹虫）
+├── SpawnerBlock.hpp/cpp      # 刷怪笼方块（有方块实体）
+└── DragonBreathBlock.hpp/cpp # 龙息方块（碰撞伤害）
 ```
 
-## 方块类型
+## 内部模块关系
 
-| 类名 | 说明 | 状态属性 | 实现进度 |
-|------|------|----------|----------|
-| `BeehiveBlock` | 蜂巢/蜂箱 | HONEY_LEVEL_0_5, FACING | 基础框架 |
-| `TurtleEggBlock` | 海龟蛋 | EGGS_1_4, HATCH_0_2 | 完整实现 |
-| `InfestedBlock` | 被感染方块 | 无 | 完整实现 |
-| `SpawnerBlock` | 刷怪笼 | 无 | 基础框架 |
-| `DragonBreathBlock` | 龙息 | 无 | **完整实现** |
-
-## 核心机制
-
-### 蜂巢
-- 存储蜜蜂
-- 收集蜂蜜（需要剪刀）
-- 蜂蜜等级 0-5
-- 满时可以用玻璃瓶收集
-
-### 海龟蛋 (MC 1.16.5 对齐) - 已完成
-
-#### 状态属性
-- `EGGS_1_4`: 蛋数量 (1-4)
-- `HATCH_0_2`: 孵化阶段 (0-2)
-
-#### 放置规则
-- 只能放置在沙子类方块上 (BlockTags::SAND)
-- 放置在已有海龟蛋上时增加蛋数量（最大4个）
-
-#### 孵化逻辑
-- 随机 tick 触发孵化检查
-- 白天（日光）或 1/500 随机概率时可孵化
-- 孵化阶段 0 → 1 → 2 → 破壳
-- 破壳时生成小海龟：
-  - 调用 `TurtleEntity::setChild(true)` 设置为幼体
-  - 调用 `TurtleEntity::setHomePos(pos)` 记住出生位置
-  - 每个蛋生成一只小海龟
-
-#### 踩踏机制 (MC 1.16.5 完整实现)
-- `onEntityWalk`: 实体走过时有概率踩破蛋
-- `onFallenUpon`: 实体摔落时有概率踩破蛋
-- 实体类型检查 (`canTrample`):
-  - **海龟和蝙蝠**: 不能踩破蛋
-  - **非生物实体**: 不能踩破蛋（需要 LivingEntity）
-  - **玩家**: 总是可以踩破
-  - **其他生物**: 根据 mobGriefing 游戏规则
-- 僵尸类实体 (`isZombieType`):
-  - Zombie、Husk、Drowned 不会踩破蛋
-  - 走过海龟蛋时直接无视
-
-#### 音效
-- ENTITY_TURTLE_EGG_CRACK: 孵化进度增加
-- ENTITY_TURTLE_EGG_HATCH: 孵化完成
-- ENTITY_TURTLE_EGG_BREAK: 蛋被踩破
-
-### 被感染方块 (InfestedBlock) - 已完成
-
-#### 特性
-- 外观与普通方块相同
-- 被破坏时生成蠹虫
-- 更容易被破坏（硬度0.75）
-
-#### 生成蠹虫逻辑 (`onBlockRemoved`)
-- 仅在服务端生成（客户端跳过）
-- 在方块中心位置生成蠹虫
-- 位置计算：`x + 0.5, y, z + 0.5`
-
-#### 静态方法 (MC 1.16.5)
-
-**`canContainSilverfish(const BlockState& state)`**:
-- 检查方块状态是否是虫蚀方块
-- 使用 `dynamic_cast` 检查是否为 `InfestedBlock` 类型
-- 返回 `true` 表示是虫蚀方块
-
-**`infest(const Block& block)`**:
-- 获取普通方块对应的虫蚀方块状态
-- 使用静态映射表 `s_hostToInfestedMap`
-- 返回 `nullptr` 表示该方块不能被虫蚀
-
-**`registerInfestedBlock(u32 hostBlock, u32 infestedBlock)`**:
-- 注册普通方块与虫蚀方块的映射关系
-- 由 `VanillaBlocks::registerInfestedBlocks()` 调用
-
-**`initializeMappings()`**:
-- 初始化静态映射表
-- 在 `BlockRegistry::initialize()` 中调用
-
-#### 虫蚀方块映射表
-| 原版方块 | 虫蚀方块 |
-|----------|----------|
-| STONE | INFESTED_STONE |
-| COBBLESTONE | INFESTED_COBBLESTONE |
-| STONE_BRICKS | INFESTED_STONE_BRICKS |
-| CRACKED_STONE_BRICKS | INFESTED_CRACKED_STONE_BRICKS |
-| MOSSY_STONE_BRICKS | INFESTED_MOSSY_STONE_BRICKS |
-| CHISELED_STONE_BRICKS | INFESTED_CHISELED_STONE_BRICKS |
-
-#### 使用示例
-```cpp
-// 检查方块是否是虫蚀方块
-const BlockState* state = world->getBlockState(pos);
-if (blocks::InfestedBlock::canContainSilverfish(*state)) {
-    // 这是虫蚀方块
-}
-
-// 检查方块是否可以被虫蚀
-const Block& block = state->getBlock();
-const BlockState* infestedState = blocks::InfestedBlock::infest(block);
-if (infestedState != nullptr) {
-    // 可以将此方块转换为虫蚀方块
-    world->setBlockState(pos, infestedState, 3);
-}
+```
+Block (基类)
+    ├── BeehiveBlock      → 需要 BeehiveBlockEntity（待实现蜜蜂存储）
+    ├── TurtleEggBlock    → 状态属性: EGGS_1_4, HATCH_0_2
+    ├── InfestedBlock     → 静态映射表管理虫蚀方块关系
+    ├── SpawnerBlock      → 需要 SpawnerBlockEntity（待实现生物生成）
+    └── DragonBreathBlock → 碰撞时对 LivingEntity 造成龙息伤害
 ```
 
-### 刷怪笼
-- 自动生成生物
-- 需要方块实体存储配置
-- 创造模式可编辑
+## 上下游外部依赖关系
 
-### 龙息
-- 无碰撞体积
-- 实体经过时造成伤害
+**上游依赖（本模块使用的）：**
+- `Block` / `BlockState` / `StateContainer` - 方块基类和状态系统
+- `BlockStateProperties` - 属性定义（EGGS_1_4、HATCH_0_2、HONEY_LEVEL_0_5）
+- `BlockTags` - 方块标签（SAND 用于海龟蛋放置检测）
+- `IWorld` / `IBlockReader` - 世界接口
+- `Entity` / `LivingEntity` - 实体基类
+- `TurtleEntity` - 海龟实体（孵化生成）
+- `SilverfishEntity` - 蠹虫实体（虫蚀方块破坏生成）
+- `DamageSources` - 伤害来源（龙息伤害）
+- `GameRules` - 游戏规则（mobGriefing）
+- `SoundEvents` - 音效播放
 
-## 实现状态
+**下游依赖（使用本模块的）：**
+- `VanillaBlocks` - 注册所有方块实例
+- `BlockRegistry` - 方块注册表
+- `ItemStack` / `BlockItem` - 方块物品形式
 
-### TurtleEggBlock (已完成)
-- [x] 状态属性: EGGS_1_4 (蛋数量), HATCH_0_2 (孵化阶段)
-- [x] 放置检查: 只能在沙子上
-- [x] 蛋堆叠: 放置时增加蛋数量
-- [x] 孵化逻辑: 随机 tick 增加孵化阶段
-- [x] 孵化生成小海龟: 设置幼体状态和出生位置
-- [x] 踩踏机制: onEntityWalk, onFallenUpon
-- [x] 实体类型检查: canTrample, isZombieType
-- [x] 沙子检查: BlockTags::SAND
-- [x] 音效: ENTITY_TURTLE_EGG_CRACK, ENTITY_TURTLE_EGG_HATCH, ENTITY_TURTLE_EGG_BREAK
+## 容易踩的坑
 
-### InfestedBlock (已完成)
-- [x] 宿主方块ID存储
-- [x] 破坏时生成蠹虫 (SilverfishEntity)
-- [x] 服务端生成检查
+### TurtleEggBlock
+- **孵化条件**：`randomTick` 只在 `ticksRandomly() == true` 时被调用，确保方块注册时启用了随机 tick
+- **沙子检测**：`isValidPosition` 和 `_hasProperHabitat` 都需要检查 `BlockTags::SAND`，不能硬编码方块 ID
+- **孵化生成小海龟**：必须调用 `setChild(true)` 设置为幼体，并调用 `setHomePos(pos)` 设置出生位置
+- **踩踏检查**：`_canTrample` 需要检查 `mobGriefing` 游戏规则，玩家例外（总是可踩破）
+- **僵尸类特殊处理**：Zombie、Husk、Drowned 在 `onFallenUpon` 中直接返回不踩破，但在 `onEntityWalk` 中正常处理
 
-### BeehiveBlock (基础框架)
-- [x] 状态属性: HONEY_LEVEL_0_5 (蜂蜜等级 0-5), HORIZONTAL_FACING (朝向)
-- [x] getHoneyLevel()/withHoneyLevel() 方法
-- [x] 状态旋转/镜像支持
-- [ ] 蜂蜜等级变化
-- [ ] 蜜蜂存储/释放
-- [ ] 与玻璃瓶/剪刀交互
+### InfestedBlock
+- **映射表初始化**：必须在使用 `canContainSilverfish` 或 `infest` 前调用 `initializeMappings()`，由 `VanillaBlocks::initialize()` 自动调用
+- **映射注册**：通过 `registerInfestedBlock()` 注册普通方块与虫蚀方块的映射关系
+- **服务端检查**：蠹虫只在服务端生成，需要 `world.isClientSide()` 检查
+- **精准采集**：当前未实现精准采集附魔检查，破坏时总是生成蠹虫
 
-### DragonBreathBlock (已完成)
-- [x] onEntityCollision: 对碰撞的 LivingEntity 造成龙息伤害
-- [x] 服务端检查: 仅在服务端执行伤害逻辑
-- [x] 伤害类型: DamageSources::dragonBreath() (绕过护甲)
-- [x] 单元测试: 实体碰撞伤害、客户端不伤害、多类型实体测试
+### DragonBreathBlock
+- **碰撞伤害**：只对 `LivingEntity` 造成伤害，使用 `dynamic_cast` 检查实体类型
+- **服务端检查**：伤害逻辑只在服务端执行
+- **伤害类型**：使用 `DamageSources::dragonBreath()` 绕过护甲
 
-## 使用方法
-
-```cpp
-// 创建蜂巢
-auto beehive = std::make_unique<BeehiveBlock>(
-    BlockProperties(Materials::WOOD)
-        .hardness(0.6f)
-);
-
-// 创建海龟蛋
-auto turtleEgg = std::make_unique<TurtleEggBlock>(
-    BlockProperties(Materials::SAND)
-        .hardness(0.5f)
-);
-
-// 创建刷怪笼
-auto spawner = std::make_unique<SpawnerBlock>(
-    BlockProperties(Materials.STONE)
-        .hardness(5.0f)
-);
-
-// 创建被感染石头
-auto infestedStone = std::make_unique<InfestedBlock>(
-    stoneBlockId,  // 被感染的方块ID
-    BlockProperties(Materials.CLAY)
-        .hardness(0.0f)
-);
-```
-
-## 依赖项
-
-| 模块 | 用途 |
-|------|------|
-| `world/block/Block` | 方块基类 |
-| `world/block/Material` | 材质系统 |
-| `world/block/BlockTags` | 方块标签 (SAND等) |
-| `world/IWorld` | 世界接口 |
-| `util/property/Properties` | 方块属性 |
-| `entity/core/Entity` | 实体接口 (踩踏检测) |
-| `entity/core/LivingEntity` | 生物实体基类 (踩踏检测) |
-| `entity/entities/passive/special/TurtleEntity` | 海龟实体 |
-| `entity/entities/monster/arthropod/EndermiteEntity` | 蠹虫实体 |
-
-## 测试覆盖
-
-测试文件位于 `tests/common/world/block/blocks/MobBlocksTest.cpp`：
-
-### BeehiveBlock 测试
-- 创建和属性验证
-- 蜂蜜等级设置和范围限制
-- 朝向旋转和镜像
-
-### TurtleEggBlock 测试
-- 状态属性验证
-- 形状获取
-- 随机 tick 标记
-
-### TurtleEggBlock 踩踏测试
-- 玩家踩踏验证
-- 海龟不能踩破蛋
-- 僵尸类不踩破蛋（Zombie, Husk, Drowned）
-- 蝙蝠不能踩破蛋
-- 非生物实体不能踩破蛋
-
-### TurtleEggBlock 孵化测试
-- 孵化进度逻辑
-- 无沙子时不孵化
-- 客户端不生成实体
-
-### InfestedBlock 测试
-- 蠹虫生成验证
-- 客户端不生成实体
-- 蠹虫位置正确性
-
-## 参考
-
-- MC 1.16.5: net.minecraft.block.TurtleEggBlock
-- MC 1.16.5: net.minecraft.block.BeehiveBlock
-- MC 1.16.5: net.minecraft.block.InfestedBlock (SilverfishBlock)
-- MC 1.16.5: net.minecraft.block.SpawnerBlock
+### BeehiveBlock / SpawnerBlock
+- **方块实体**：`hasBlockEntity()` 返回 `true`，需要配套的 BlockEntity 实现完整功能

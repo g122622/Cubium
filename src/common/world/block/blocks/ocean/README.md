@@ -6,162 +6,115 @@
 
 ```
 ocean/
-├── README.md              # 本文档
-├── SeaPickleBlock.hpp/cpp # 海泡菜方块
-├── KelpBlock.hpp/cpp      # 海带方块
-├── SeagrassBlock.hpp/cpp  # 海草方块
-├── TallSeagrassBlock.hpp/cpp # 高海草方块
-├── BubbleColumnBlock.hpp/cpp # 气泡柱方块
-├── DriedKelpBlock.hpp/cpp # 干海带块
-└── ConduitBlock.hpp/cpp   # 潮涌核心
+├── SeaPickleBlock.hpp/cpp    # 海泡菜方块（可堆叠1-4个，水下发光）
+├── KelpBlock.hpp/cpp         # 海带方块（可生长的水下植物，AGE_0_25）
+├── SeagrassBlock.hpp/cpp     # 海草方块（单格水下植物，实现IGrowable接口）
+├── TallSeagrassBlock.hpp/cpp # 高海草方块（双格水下植物，HALF属性）
+├── BubbleColumnBlock.hpp/cpp # 气泡柱方块（推动实体，DRAG属性）
+├── DriedKelpBlock.hpp/cpp    # 干海带块（装饰性方块，可作为燃料）
+└── ConduitBlock.hpp/cpp      # 潮涌核心（水下信标，需要框架激活）
 ```
 
-## 方块类型
+## 内部模块关系
 
-| 类名 | 说明 | 状态属性 |
-|------|------|----------|
-| `SeaPickleBlock` | 海泡菜（可堆叠1-4个，水下发光） | PICKLES_1_4, WATERLOGGED |
-| `KelpBlock` | 海带（可生长到很高） | AGE_0_25, WATERLOGGED |
-| `SeagrassBlock` | 海草（单格水下植物，可骨粉催熟） | 无 |
-| `TallSeagrassBlock` | 高海草（双格水下植物） | HALF, WATERLOGGED |
-| `BubbleColumnBlock` | 气泡柱（推动实体） | DRAG |
-| `DriedKelpBlock` | 干海带块（装饰性方块） | 无 |
-| `ConduitBlock` | 潮涌核心（水下信标） | WATERLOGGED, ACTIVE |
+```
+┌─────────────────┐
+│  SeagrassBlock  │ ──骨粉催熟──▶ ┌───────────────────┐
+│   (单格海草)    │              │ TallSeagrassBlock │
+└─────────────────┘              │    (双格海草)     │
+        │                        └───────────────────┘
+        │ 实现
+        ▼
+   IGrowable 接口
 
-## 核心机制
-
-### VanillaBlocks 注册
-
-以下方块已在 `VanillaBlocks::registerNaturalBlocks()` 中注册并可被世界生成直接使用：
-
-- `minecraft:sea_pickle`
-- `minecraft:kelp`
-- `minecraft:kelp_plant`
-- `minecraft:seagrass`
-- `minecraft:tall_seagrass`
-- `minecraft:bubble_column`
-- `minecraft:dried_kelp_block`
-- `minecraft:conduit`
-
-### 海草骨粉催熟 (MC 1.16.5 对齐)
-
-`SeagrassBlock` 实现了 `IGrowable` 接口，支持骨粉催熟：
-
-- **canGrow()**: 检查上方是否有水源方块（流体等级=8）
-- **canUseBonemeal()**: 总是返回 true
-- **grow()**: 将海草变成高海草（双格植物）
-
-```cpp
-// 骨粉对海草使用时会变成高海草
-SeagrassBlock seagrass(...);
-if (seagrass.canGrow(world, pos, state, false)) {
-    seagrass.grow(world, random, pos, state);
-    // 海草变成高海草（LOWER + UPPER 两部分）
-}
+┌─────────────────┐  产生上推   ┌───────────────────┐
+│    灵魂沙       │ ─────────▶ │ BubbleColumnBlock │
+└─────────────────┘            │   (DRAG=false)    │
+                               │                   │
+┌─────────────────┐  产生下拖   │   向上传播机制    │
+│    岩浆块       │ ─────────▶ │   (tick方法)      │
+└─────────────────┘            └───────────────────┘
 ```
 
-### 海泡菜发光
+- **SeagrassBlock ↔ TallSeagrassBlock**：海草通过骨粉催熟变成高海草，两者通过 `VanillaBlocks::TALL_SEAGRASS` 关联
+- **BubbleColumnBlock**：独立方块，由灵魂沙/岩浆块触发，通过静态方法 `placeBubbleColumn()` 和 `getDrag()` 与其他方块交互
 
-- 在水中时发光
-- 亮度随数量增加：1个=6, 2个=9, 3个=12, 4个=15
-- 离开水不发光
+## 上下游外部依赖关系
 
-### 海带生长
+### 上游依赖
 
-- 通过随机 tick 生长
-- 高度限制基于 AGE_0_25 (最大 25 格)
-- 只能在水中生长
-- 生长概率约 14%
-
-### 海草骨粉催熟 (MC 1.16.5)
-
-- 海草实现 `IGrowable` 接口，可被骨粉催熟
-- `canGrow()`: 检查上方是否有水源方块
-- `canUseBonemeal()`: 总是返回 true
-- `grow()`: 将海草转换为高海草（双格方块）
-- 高海草由 `TallSeagrassBlock` 实现，使用 `DOUBLE_BLOCK_HALF` 属性
-- 放置条件：需要固体支撑和水源方块（流体等级 == 8）
-
-### 气泡柱 (MC 1.16.5 对齐)
-
-- 灵魂沙产生上推气泡柱 (DRAG=false)
-- 岩浆块产生下拖气泡柱 (DRAG=true)
-- 推动实体:
-  - 上推: 速度 +0.1 Y方向 (灵魂沙)
-  - 下拖: 速度 -0.03 Y方向 (岩浆块)
-- 重置摔落距离
-- tick 传播: 上方是水时转换为气泡柱
-
-#### 静态方法
-
-**placeBubbleColumn(IWorld, BlockPos, bool)**：
-- 在指定位置放置气泡柱方块
-- 自动检查位置是否为水源方块
-- 继承 DRAG 状态（true=下拖，false=上推）
-
-**canHoldBubbleColumn(IWorld, BlockPos)**：
-- 检查位置是否可以放置气泡柱
-- 条件：是水方块 + 流体等级 >= 8 + 是水源
-
-**getDrag(IBlockReader, BlockPos)**：
-- 获取指定位置下方方块的 DRAG 状态
-- 岩浆块 → true（下拖）
-- 灵魂沙 → false（上推）
-- 气泡柱 → 继承其 DRAG 状态
-- 其他 → true（默认下拖）
-
-#### 传播机制
-
-1. **MagmaBlock.tick()** → 调用 `placeBubbleColumn(world, pos.up(), true)`
-2. **BubbleColumnBlock.tick()** → 向上传播气泡柱
-3. **BubbleColumnBlock.onBlockAdded()** → 立即向上传播
-4. **BubbleColumnBlock.updatePostPlacement()** → 上方有水时调度 tick（延迟 5 tick）
-
-```cpp
-// 在岩浆块上方放置下拖气泡柱
-BubbleColumnBlock::placeBubbleColumn(world, magmaPos.up(), true);
-
-// 在灵魂沙上方放置上推气泡柱
-BubbleColumnBlock::placeBubbleColumn(world, soulSandPos.up(), false);
-
-// 检查是否可以放置气泡柱
-if (BubbleColumnBlock::canHoldBubbleColumn(world, pos)) {
-    // 该位置是水源，可以放置气泡柱
-}
-```
-
-## 使用方法
-
-```cpp
-// 创建海泡菜
-auto seaPickle = std::make_unique<SeaPickleBlock>(
-    BlockProperties(Materials::UNDERWATER_PLANT())
-        .hardness(0.0f)
-        .noCollision()
-        .lightLevel(6)  // 基础亮度
-);
-
-// 创建海带
-auto kelp = std::make_unique<KelpBlock>(
-    BlockProperties(Materials::UNDERWATER_PLANT())
-        .hardness(0.0f)
-        .noCollision()
-);
-
-// 创建气泡柱
-auto bubbleColumn = std::make_unique<BubbleColumnBlock>(
-    BlockProperties(Materials::BUBBLE_COLUMN())
-        .hardness(0.0f)
-        .noCollision()
-);
-```
-
-## 依赖项
-
-| 模块 | 用途 |
-|------|------|
+| 依赖模块 | 用途 |
+|----------|------|
 | `world/block/Block` | 方块基类 |
+| `world/block/IGrowable` | 生长接口（SeagrassBlock） |
+| `world/block/IWaterLoggable` | 含水接口（SeaPickleBlock） |
 | `world/block/Material` | 材质系统 |
 | `world/IWorld` | 世界接口 |
-| `util/property/Properties` | 方块属性 |
+| `world/fluid/FluidRegistry` | 流体注册表（获取水流体） |
+| `world/fluid/FluidTags` | 流体标签（检查是否为水） |
+| `util/property/Properties` | 方块属性（PICKLES_1_4, AGE_0_25, DRAG, DOUBLE_BLOCK_HALF等） |
 | `physics/collision/CollisionShape` | 碰撞形状 |
+| `block/registry/VanillaBlocks` | 原版方块注册表（获取TALL_SEAGRASS等） |
+
+### 下游依赖
+
+| 依赖模块 | 用途 |
+|----------|------|
+| `block/registry/VanillaBlocks` | 注册海洋方块实例 |
+| `world/gen/feature` | 世界生成特性（海带、海草生成） |
+| `entity/Entity` | 实体交互（气泡柱推动实体） |
+| `block/blocks/MagmaBlock` | 岩浆块触发气泡柱 |
+| `block/blocks/SoulSandBlock` | 灵魂沙触发气泡柱 |
+
+## 容易踩的坑
+
+### 1. 水源方块检测
+
+**问题**：海草、高海草放置时需要检测水源方块，容易误用流体等级判断。
+
+**解决方案**：必须检查流体等级是否为 8（完整水源），同时检查流体标签是否为水：
+```cpp
+// 正确做法
+if (fluidState->getLevel() != 8) return false;
+if (!fluidState->getFluid().isIn(fluid::FluidTags::WATER())) return false;
+```
+
+### 2. 高海草上下半部分关联
+
+**问题**：高海草由上下两个方块组成，破坏下半部分时需要同时处理上半部分。
+
+**解决方案**：`updatePostPlacement()` 中检查邻居状态，当下半部分失去上方支撑或上半部分失去下方连接时，正确处理方块移除。
+
+### 3. 气泡柱 DRAG 状态继承
+
+**问题**：气泡柱向上延伸时需要正确继承 DRAG 状态。
+
+**解决方案**：使用 `BubbleColumnBlock::getDrag()` 静态方法，它会递归检查下方方块类型：
+- 岩浆块 → `true`（下拖）
+- 灵魂沙 → `false`（上推）
+- 气泡柱 → 继承其 DRAG 状态
+
+### 4. VanillaBlocks 依赖时序
+
+**问题**：`SeagrassBlock::grow()` 中访问 `VanillaBlocks::TALL_SEAGRASS`，可能在方块注册完成前被调用。
+
+**解决方案**：使用前检查指针是否为空：
+```cpp
+if (VanillaBlocks::TALL_SEAGRASS == nullptr) {
+    return;
+}
+```
+
+### 5. 海泡菜发光等级
+
+**问题**：海泡菜只有在水中才发光，离开水不发光。
+
+**解决方案**：`getLightLevel()` 需要检查 `WATERLOGGED` 属性，而非仅检查数量：
+- 检查 `isWaterlogged(state)` 是否为 true
+- 根据数量返回对应亮度（1=6, 2=9, 3=12, 4=15）
+
+### 6. 海带生长上限
+
+**问题**：海带通过 `AGE_0_25` 属性控制生长，最大值为 25，超出会导致状态无效。
+
+**解决方案**：在 `randomTick()` 中检查年龄是否已达到上限再决定是否生长。

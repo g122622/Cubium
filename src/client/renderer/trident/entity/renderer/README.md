@@ -1,237 +1,133 @@
 # 渲染器
 
-本目录包含具体实体类型的渲染器实现。
+本目录包含具体实体类型的渲染器实现，所有渲染器通过 `RendererRegistration.cpp` 统一注册到 `RendererFactory`。
 
 ## 目录结构
 
 ```
 renderer/
-├── animal/                 # 动物渲染器
-│   └── AnimalRenderers.hpp # 猪、牛、羊、鸡渲染器
-├── monster/                # 怪物渲染器
-│   ├── ZombieRenderer.hpp  # 僵尸渲染器
-│   ├── SkeletonRenderer.hpp # 骷髅渲染器
-│   ├── CreeperRenderer.hpp # 苦力怕渲染器
-│   ├── SpiderRenderer.hpp  # 蜘蛛渲染器
-│   └── EndermanRenderer.hpp # 末影人渲染器
-├── player/                 # 玩家渲染器
-│   └── PlayerRenderer.hpp  # 玩家渲染器
-├── projectile/             # 投掷物渲染器
-│   ├── ItemEntityRenderer.hpp # 物品实体渲染器
-│   └── ExperienceOrbRenderer.hpp # 经验球渲染器
-└── vehicle/                # 载具渲染器
-    ├── BoatRenderer.hpp    # 船渲染器
-    └── MinecartRenderer.hpp # 矿车渲染器
+├── RendererRegistration.hpp/cpp  # 渲染器注册入口（统一注册所有实体渲染器到工厂）
+├── animal/                        # 动物渲染器
+│   ├── AnimalRenderers.hpp/cpp    # 猪、牛、羊、哞菇、鸡、兔子、蝙蝠、鱿鱼（简单渲染器）
+│   ├── CatRenderer.hpp/cpp        # 猫渲染器（11种皮肤变体）
+│   ├── HorseRenderer.hpp/cpp      # 马渲染器（马、驴、骡、骷髅马、僵尸马）
+│   ├── LlamaRenderer.hpp/cpp      # 羊驼渲染器（4种颜色变体）
+│   ├── OcelotRenderer.hpp/cpp     # 豹猫渲染器
+│   ├── VillagerRenderer.hpp/cpp   # 村民渲染器（多层纹理：类型+职业+等级）
+│   └── WolfRenderer.hpp/cpp       # 狼渲染器
+├── aquatic/                       # 水生生物渲染器
+│   └── AquaticRenderers.hpp/cpp   # 河豚、热带鱼、鳕鱼、鲑鱼、海豚、海龟等
+├── monster/                       # 怪物渲染器
+│   ├── MonsterRenderers.hpp/cpp   # 基础怪物（僵尸、骷髅、苦力怕、蜘蛛、末影人、烈焰人）
+│   ├── MonsterVariantRenderers.hpp/cpp  # 变体怪物（僵尸村民、溺尸、尸壳、流浪者、洞穴蜘蛛、巨人）
+│   └── SpecialMonsterRenderers.hpp/cpp  # 特殊怪物（凋灵、史莱姆、守卫者、潜影贝、蠹虫、末影螨、灾厄村民等）
+├── nether/                        # 下界生物渲染器
+│   └── NetherRenderers.hpp/cpp    # 恶魂、岩浆怪、炽足兽、猪灵、猪灵蛮兵、疣猪兽等
+├── player/                        # 玩家渲染器
+│   └── PlayerRenderer.hpp/cpp     # 玩家渲染器（支持标准/纤细手臂、层渲染器）
+├── projectile/                    # 投掷物渲染器
+│   ├── BillboardRenderers.hpp/cpp # Billboard渲染器（雪球、鸡蛋、末影珍珠、药水等）
+│   ├── ExperienceOrbRenderer.hpp/cpp   # 经验球渲染器
+│   ├── FireballRenderers.hpp/cpp  # 火球渲染器（小火球、恶魂火球、龙息）
+│   ├── FishingBobberRenderer.hpp/cpp   # 钓鱼浮漂渲染器
+│   ├── ItemEntityRenderer.hpp/cpp # 物品实体渲染器
+│   └── ProjectileRenderers.hpp/cpp # 箭、三叉戟等投射物
+├── special/                       # 特殊实体渲染器
+│   └── SpecialEntityRenderers.hpp/cpp  # 铁傀儡、雪傀儡、末影龙、幻翼、蜜蜂、狐狸等
+└── vehicle/                       # 载具渲染器
+    └── VehicleRenderers.hpp/cpp   # 船、矿车渲染器
 ```
 
-## 渲染器类
+## 内部模块关系
 
-### 动物渲染器 (animal/)
-
-```cpp
-// 猪渲染器
-class PigRenderer : public LivingRenderer<LivingEntity, PigModel> {
-public:
-    PigRenderer() { m_shadowSize = 0.5f; }
-};
-
-// 牛渲染器
-class CowRenderer : public LivingRenderer<LivingEntity, CowModel> {
-public:
-    CowRenderer() { m_shadowSize = 0.7f; }
-};
-
-// 羊渲染器
-class SheepRenderer : public LivingRenderer<LivingEntity, SheepModel> {
-public:
-    SheepRenderer() { m_shadowSize = 0.7f; }
-};
-
-// 鸡渲染器
-class ChickenRenderer : public LivingRenderer<LivingEntity, ChickenModel> {
-public:
-    ChickenRenderer() { m_shadowSize = 0.3f; }
-};
+```
+                        ┌────────────────────┐
+                        │ RendererFactory    │ （core/）
+                        │ (注册表模式)        │
+                        └─────────┬──────────┘
+                                  │ 注册
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           RendererRegistration                               │
+│  initializeRendererRegistration()                                           │
+│    ├── animal/*   (动物渲染器)                                               │
+│    ├── aquatic/*  (水生生物渲染器)                                           │
+│    ├── monster/*  (怪物渲染器)                                               │
+│    ├── nether/*   (下界生物渲染器)                                           │
+│    ├── player/*   (玩家渲染器)                                               │
+│    ├── projectile/* (投掷物渲染器)                                           │
+│    ├── special/*  (特殊实体渲染器)                                           │
+│    └── vehicle/*  (载具渲染器)                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼ 继承
+        ┌─────────────────────────┴─────────────────────────┐
+        │                                                   │
+        ▼                                                   ▼
+┌───────────────────┐                            ┌───────────────────┐
+│ LivingRenderer    │ (core/)                     │ EntityRenderer    │ (core/)
+│ <TEntity, TModel> │                             │ (基类)            │
+└─────────┬─────────┘                            └─────────┬─────────┘
+          │ 继承                                           │ 继承
+          ▼                                                ▼
+  animal/, monster/,                             projectile/*,
+  nether/, aquatic/                              vehicle/*, player/
+  (大多数生物)                                    (投掷物、载具、玩家)
 ```
 
-### 投掷物渲染器 (projectile/)
+## 上下游外部依赖关系
 
-```cpp
-// 物品实体渲染器
-class ItemEntityRenderer : public EntityRenderer {
-public:
-    void render(Entity& entity, f64 partialTicks) override;
-    void setItemTextureAtlas(EntityTextureAtlas* atlas);
-};
+### 上游依赖（本模块依赖）
 
-// 经验球渲染器
-class ExperienceOrbRenderer : public EntityRenderer {
-public:
-    void render(Entity& entity, f64 partialTicks) override;
-};
-```
+| 模块 | 用途 |
+|------|------|
+| `core/EntityRenderer.hpp` | 实体渲染器基类 |
+| `core/LivingRenderer.hpp` | 生物渲染器基类（动画参数计算、层渲染器管理） |
+| `core/RendererFactory.hpp` | 渲染器工厂（注册表模式） |
+| `core/AnimationContext.hpp` | 动画上下文（limbSwing、headYaw等参数） |
+| `model/animal/*` | 动物模型 |
+| `model/monster/*` | 怪物模型 |
+| `model/player/*` | 玩家模型 |
+| `model/projectile/*` | 投掷物模型 |
+| `layer/core/LayerRenderer.hpp` | 层渲染器基类 |
+| `layer/equipment/*` | 装备层渲染器（手持物品、头盔、盔甲） |
+| `layer/cosmetic/*` | 外观层渲染器（披风、鞘翅） |
+| `layer/entity/*` | 实体特性层渲染器（羊毛、狼项圈等） |
+| `common/entity/core/EntityRegistry.hpp` | 实体类型常量（ET::PIG 等） |
 
-### 玩家渲染器 (player/)
+### 下游依赖（依赖本模块）
 
-玩家渲染器支持标准手臂和纤细手臂两种模式，并集成了多个层渲染器。
+| 模块 | 用途 |
+|------|------|
+| `core/EntityRendererManager.cpp` | 通过 RendererFactory 创建渲染器实例 |
+| `ClientApplication` | 启动时调用 `initializeRendererRegistration()` |
 
-```cpp
-class PlayerRenderer : public EntityRenderer,
-                        public IEntityRenderer<Player, PlayerModel> {
-public:
-    explicit PlayerRenderer(bool slimArms = false);
-    
-    // IEntityRenderer 接口
-    PlayerModel& getModel() override;
-    ResourceLocation getEntityTexture(Player& entity) override;
-    
-    // 纹理设置
-    void setSkinTexture(const TextureRegion* region);
-    void setCapeTexture(const TextureRegion* region);
-    void setElytraTexture(const TextureRegion* region);
-    
-    // 层渲染器支持
-    bool supportsLayers() const override { return true; }
-    void renderLayersPipeline(Entity& entity, VkCommandBuffer cmd,
-        const AnimationContext& context, EntityPipeline& pipeline) override;
-    
-private:
-    void setupLayers();  // 初始化层渲染器
-};
-```
+## 容易踩的坑
 
-#### 层渲染器配置
+### 1. 渲染器注册必须在启动时完成
 
-MC 1.16.5 PlayerRenderer 按以下顺序设置层渲染器：
+`initializeRendererRegistration()` 必须在 `RendererFactory` 初始化后、任何实体渲染前调用。如果渲染器未注册，`RendererFactory::createRenderer()` 会返回 `nullptr`，导致实体不渲染。
 
-```cpp
-void PlayerRenderer::setupLayers() {
-    // 1. 手持物品层
-    m_layers.push_back(std::make_unique<HeldItemLayer<Player>>());
-    
-    // 2. 头部物品层（头盔、南瓜等）
-    m_layers.push_back(std::make_unique<HeadLayer<Player, PlayerModel>>(*this));
-    
-    // 3. 披风层
-    m_layers.push_back(std::make_unique<CapeLayer>());
-    
-    // 4. 鞘翅层
-    m_layers.push_back(std::make_unique<ElytraLayer<Player>>());
-}
-```
+### 2. LivingRenderer 模板参数约束
 
-#### 纹理传递
+`LivingRenderer<TEntity, TModel>` 的 `TEntity` 必须继承自 `LivingEntity`，`TModel` 必须继承自 `EntityModel`。如果实体不继承 `LivingEntity`（如 `Player`），应直接继承 `EntityRenderer` 并实现 `IEntityRenderer` 接口。
 
-在 `renderLayersPipeline()` 中，纹理通过 `dynamic_cast` 传递给对应的层渲染器：
+### 3. 阴影大小设置
 
-```cpp
-void PlayerRenderer::renderLayersPipeline(...) {
-    for (auto& layer : m_layers) {
-        if (layer && layer->shouldRender(player)) {
-            // 传递披风纹理
-            if (m_capeRegion) {
-                auto* capeLayer = dynamic_cast<CapeLayer*>(layer.get());
-                if (capeLayer) capeLayer->setCapeTexture(m_capeRegion);
-            }
-            // 传递鞘翅纹理
-            if (m_elytraRegion || m_capeRegion) {
-                auto* elytraLayer = dynamic_cast<ElytraLayer<Player>*>(layer.get());
-                if (elytraLayer) {
-                    if (m_elytraRegion) elytraLayer->setElytraTexture(m_elytraRegion);
-                    if (m_capeRegion) elytraLayer->setCapeTexture(m_capeRegion);
-                }
-            }
-            layer->renderPipeline(player, cmd, context, pipeline);
-        }
-    }
-}
-```
+不同实体的阴影大小不同，需要在渲染器构造函数中设置 `m_shadowSize`。例如：鸡/兔子/蝙蝠为 0.3，猪/牛/羊/马/鱿鱼为 0.7，蜘蛛 0.7，史莱姆 0.25，潜影贝/蠹虫/末影螨为 0。
 
-#### 参考文件
-- `PlayerRenderer.hpp/cpp` - 玩家渲染器实现
-- `tests/client/renderer/entity/test_player_layers.cpp` - 层渲染器单元测试
+### 4. 层渲染器添加顺序
 
-### 怪物渲染器 (monster/)
+层渲染器的渲染顺序就是 `addLayer()` 的调用顺序。某些层（如 `EnergyGlintLayer`）需要在其他层之后渲染才能正确显示。
 
-```cpp
-// 僵尸渲染器
-class ZombieRenderer : public LivingRenderer<ZombieEntity, ZombieModel> {
-public:
-    ZombieRenderer();
-};
+### 5. PlayerRenderer 不继承 LivingRenderer
 
-// 骷髅渲染器
-class SkeletonRenderer : public LivingRenderer<SkeletonEntity, SkeletonModel> {
-public:
-    SkeletonRenderer();
-};
+`Player` 类不继承 `LivingEntity`，因此 `PlayerRenderer` 直接继承 `EntityRenderer` 并手动实现 `IEntityRenderer` 接口和层渲染器支持。
 
-// 苦力怕渲染器
-class CreeperRenderer : public LivingRenderer<CreeperEntity, CreeperModel> {
-public:
-    CreeperRenderer();
-};
+### 6. 渲染器复用同一模型但不同纹理
 
-// 蜘蛛渲染器
-class SpiderRenderer : public LivingRenderer<SpiderEntity, SpiderModel> {
-public:
-    SpiderRenderer();
-};
+部分渲染器可复用同一模型类但通过不同的纹理路径区分。例如 `WitherSkeletonRenderer` 复用 `SkeletonModel`，`MooshroomRenderer` 复用 `CowModel`。
 
-// 末影人渲染器
-class EndermanRenderer : public LivingRenderer<EndermanEntity, EndermanModel> {
-public:
-    EndermanRenderer();
-};
-```
+### 7. AnimalRenderers.hpp 中的简单渲染器是内联实现
 
-## 渲染器注册
-
-```cpp
-void EntityRendererManager::initializeDefaults() {
-    registerRenderer("minecraft:pig", []() {
-        return std::make_unique<PigRenderer>();
-    });
-    registerRenderer("minecraft:cow", []() {
-        return std::make_unique<CowRenderer>();
-    });
-    // ...
-}
-```
-
-## 命名空间
-
-```cpp
-namespace mc::client::renderer::entity::renderer {
-    namespace animal {
-        class PigRenderer;
-        class CowRenderer;
-        class SheepRenderer;
-        class ChickenRenderer;
-    }
-    namespace projectile {
-        class ItemEntityRenderer;
-        class ExperienceOrbRenderer;
-    }
-    namespace player {
-        class PlayerRenderer;
-    }
-    namespace monster {
-        class ZombieRenderer;
-        class SkeletonRenderer;
-        class CreeperRenderer;
-        class SpiderRenderer;
-        class EndermanRenderer;
-    }
-    namespace vehicle {
-        class BoatRenderer;
-        class MinecartRenderer;
-    }
-}
-```
-
-## 参考
-
-- MC 1.16.5 EntityRenderer
-- MC 1.16.5 LivingRenderer
-- MC 1.16.5 MobRenderer
+`AnimalRenderers.hpp` 中的简单渲染器（猪、牛、羊等）的 `getEntityTexture()` 直接在类定义中实现，不需要额外 cpp 文件。

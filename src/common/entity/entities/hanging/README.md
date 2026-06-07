@@ -6,96 +6,65 @@
 
 ```
 hanging/
-├── HangingEntity.hpp/cpp    # 悬挂实体基类
+├── HangingEntity.hpp/cpp    # 悬挂实体基类 + PaintingEntity、ItemFrameEntity、LeashKnotEntity
 └── README.md                # 本文档
 ```
 
-## 实体列表
-
-| 实体 | 说明 | 特性 |
-|------|------|------|
-| HangingEntity | 悬挂实体基类 | 管理悬挂位置和方向 |
-| PaintingEntity | 画作 | 25种画作，多种尺寸 |
-| ItemFrameEntity | 物品展示框 | 展示物品，可旋转，红石信号输出 |
-| LeashKnotEntity | 拴绳结 | 连接多条拴绳 |
-
-## 悬挂方向
-
-```cpp
-enum class Direction : u8 {
-    SOUTH = 0,  // 南
-    WEST = 1,   // 西
-    NORTH = 2,  // 北
-    EAST = 3    // 东
-};
-```
-
-## 画作类型
-
-| 名称 | 尺寸 | 名称 | 尺寸 |
-|------|------|------|------|
-| Kebab | 1x1 | Pointer | 4x4 |
-| Aztec | 1x1 | Pigscene | 4x4 |
-| Alban | 1x1 | BurningSkull | 4x4 |
-| Wanderer | 1x2 | Skeleton | 4x3 |
-| Graham | 1x2 | DonkeyKong | 4x3 |
-| Match | 2x2 | Fighters | 4x2 |
-| Bust | 2x2 | Pool | 2x1 |
-| Stage | 2x2 | Sunset | 2x1 |
-| Void | 2x2 | Creebet | 2x1 |
-| SkullAndRoses | 2x2 | Courbet | 2x1 |
-| Wither | 2x2 | Sea | 2x1 |
-
-## 物品展示框
-
-### 基本功能
-- 可放置物品（使用 ItemStack 存储）
-- 8个旋转角度（每45度一个位置，rotation 值 0-7）
-- 发光物品展示框变体（Glow Item Frame）
-
-### 红石信号输出
-物品展示框可以向红石比较器输出模拟信号：
-
-| 条件 | 信号强度 |
-|------|----------|
-| 无物品 | 0 |
-| 有物品，rotation=0 | 1 |
-| 有物品，rotation=1 | 2 |
-| ... | ... |
-| 有物品，rotation=7 | 8 |
-
-**关键方法**：
-- `getAnalogOutput()` - 返回红石比较器信号强度（0-8）
-- `getHorizontalFacing()` - 返回物品展示框朝向（mc::Direction）
-- `setDisplayedItem(const ItemStack&)` - 设置展示物品
-- `getDisplayedItem()` - 获取展示物品
-- `hasItem()` - 检查是否有展示物品
-- `rotateItem()` - 旋转物品（右键交互）
-
-### 比较器检测规则
-参考 MC 1.16.5，红石比较器检测物品展示框的位置关系：
+## 内部模块关系
 
 ```
-[物品展示框] --> [完整方块] --> [比较器]
-      ↑              ↑            ↑
-   朝向相同      普通方块      检测方向
+Entity (core/Entity.hpp)
+    └── HangingEntity        # 悬挂实体基类，管理位置、方向、有效检测
+        ├── PaintingEntity   # 画作实体（多种尺寸）
+        ├── ItemFrameEntity  # 物品展示框（可旋转，红石信号输出）
+        └── LeashKnotEntity  # 拴绳结（连接多条拴绳）
 ```
 
-- 物品展示框必须附着在比较器前方完整方块的另一侧
-- 物品展示框的朝向必须与比较器的朝向相同
-- 该位置只能有一个物品展示框
+**HangingEntity 基类职责**：
+- 管理 `m_hangingPos`（悬挂位置）和 `m_direction`（悬挂方向）
+- 定期检查 `isValidPosition()` / `canPlaceOn()` 验证支撑方块
+- 被 `onAttacked()` 时调用 `dropItem()` 并移除
 
-## 拴绳结
+**子类实现**：
+- `PaintingEntity`：画作尺寸由 `PAINTING_TYPES` 静态数组定义
+- `ItemFrameEntity`：存储 `ItemStack`，支持旋转（0-7），提供 `getAnalogOutput()` 红石信号
+- `LeashKnotEntity`：管理 `m_leashedEntities` 向量，无绑定时自动消失
 
-- 连接多条拴绳
-- 无绑定时自动消失
-- 可被玩家交互
+## 上下游外部依赖关系
 
-## 实现状态
+**本目录依赖**：
+- `common/entity/core/Entity.hpp` - 实体基类
+- `common/entity/entities/item/ItemEntity.hpp` - 物品掉落
+- `common/entity/utils/ItemDropHelper.hpp` - 物品掉落工具
+- `common/item/Items.hpp` - 物品注册表（PAINTING、LEAD）
+- `common/util/Direction.hpp` - 方向枚举和工具
+- `common/util/math/random/Random.hpp` - 随机数
+- `common/world/IWorld.hpp` - 世界接口
+- `common/world/block/Block.hpp` - 方块检测（hasEnoughSolidSide）
 
-| 组件 | 状态 |
-|------|------|
-| HangingEntity | ✅ 基本功能完成 |
-| PaintingEntity | ⚠️ 框架完成，TODO需填充 |
-| ItemFrameEntity | ✅ 红石信号功能完成 |
-| LeashKnotEntity | ⚠️ 框架完成，TODO需填充 |
+**被谁依赖**：
+- `common/entity/core/VanillaEntities.hpp` - 实体类型注册
+- 服务端世界（实体生成、tick调度）
+- 红石系统（ItemFrameEntity 的 `getAnalogOutput()`）
+
+## 容易踩的坑
+
+### 1. HangingEntity::Direction 与 mc::Direction 的映射
+
+`HangingEntity::Direction` 枚举值（SOUTH=0, WEST=1, NORTH=2, EAST=3）与 `mc::Direction`（North=2, South=3, West=4, East=5）不同，转换时需使用 `ItemFrameEntity::getHorizontalFacing()` 中的映射逻辑。
+
+### 2. 支撑方块检测
+
+`canPlaceOn()` 计算支撑方块位置时，需要根据悬挂实体的面向方向计算背面方向（悬挂实体面向 SOUTH 时，背面是 NORTH），然后使用 `Block::hasEnoughSolidSide()` 检测支撑。
+
+### 3. LeashKnotEntity 生命周期
+
+LeashKnotEntity 在 `tick()` 中检查绑定的实体列表，当列表为空时自动调用 `dropItem()` 和 `remove()`。不要忘记维护 `m_leashedEntities` 列表。
+
+### 4. PaintingEntity 尺寸与碰撞箱
+
+画作的碰撞箱需要根据 `getWidth()` / `getHeight()` 动态计算，不同尺寸的画作占用不同的方块空间。
+
+### 5. ItemFrameEntity 红石信号
+
+`getAnalogOutput()` 返回 `rotation % 8 + 1`（有物品时范围 1-8），无物品返回 0。红石比较器检测时需检查朝向是否一致。

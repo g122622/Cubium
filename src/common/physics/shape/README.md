@@ -1,139 +1,67 @@
 # VoxelShape 系统
 
-本目录实现了完整的体素形状系统，用于方块碰撞检测、光照遮挡检测等功能。
+本目录实现了完整的体素形状系统，用于方块碰撞检测、实体碰撞、光照遮挡检测等功能。
 
-## 架构概览
+## 目录结构
 
 ```
 shape/
-├── BooleanOp.hpp       # 布尔运算接口
-├── DiscreteVoxelShape.hpp/cpp  # 离散体素形状
-├── VoxelShape.hpp/cpp  # 体素形状主类
-└── Shapes.hpp/cpp      # 形状工厂类
+├── BooleanOp.hpp             # 布尔运算函数对象（并集、交集、差集等）
+├── DiscreteVoxelShape.hpp/cpp # 离散体素形状，使用位图存储体素占用状态
+├── VoxelShape.hpp/cpp        # 体素形状主类，包含离散网格和浮点坐标点列表
+└── Shapes.hpp/cpp            # 形状工厂类，提供创建和操作 VoxelShape 的静态方法
 ```
 
-## 核心类
+## 内部模块关系
 
-### BooleanOp
-
-布尔运算函数对象，用于形状之间的布尔运算：
-
-- `And()` - 交集 (a && b)
-- `Or()` - 并集 (a || b)
-- `OnlyFirst()` - 仅第一个 (a && !b)
-- `OnlySecond()` - 仅第二个 (!a && b)
-- `NotSame()` - 不等 (a != b)
-
-### DiscreteVoxelShape
-
-离散体素形状，使用位图存储体素占用状态：
-
-- 支持 3D 体素网格
-- 高效的位存储
-- 支持填充、清除、遍历等操作
-- 边界缓存优化
-- **盒子合并算法**：`forAllBoxes(consumer, simplify=true)` 可将相邻体素合并为更大的盒子
-
-关键方法：
-
-- `isFull(x, y, z)` / `fill(x, y, z)` / `clear(x, y, z)` - 体素操作
-- `firstFull(axis)` / `lastFull(axis)` - 边界查询
-- `forAllBoxes(consumer, simplify)` - 遍历所有盒子（支持合并）
-- `forAllFaces(consumer)` - 遍历所有面
-- `forAllEdges(consumer, simplify)` - 遍历所有边
-- `isZAxisLineFull(fromZ, toZ, x, y)` - 检查 Z 轴线段是否完全填充
-- `setZAxisLine(fromZ, toZ, x, y, filled)` - 设置 Z 轴线段填充状态
-- `isXZRectangleFull(fromX, toX, fromZ, toZ, y)` - 检查 XZ 矩形是否完全填充
-
-### VoxelShape
-
-体素形状主类，包含：
-
-- 离散体素网格
-- 浮点坐标点列表
-- 面形状缓存
-
-关键方法：
-- `min(axis)` / `max(axis)` - 边界查询
-- `isEmpty()` - 空检查
-- `getFaceShape(direction)` - 获取面形状（用于光照遮挡）
-- `collide(axis, entityBox, movement)` - 碰撞检测
-- `move(dx, dy, dz)` - 移动形状
-- `optimize()` - 优化形状
-
-### Shapes
-
-形状工厂类，提供：
-
-- `empty()` - 空形状
-- `block()` - 完整方块
-- `box(minX, minY, minZ, maxX, maxY, maxZ)` - 创建盒子
-- `join(a, b, op)` - 布尔运算
-- `or_(a, b)` - 并集
-- `faceShapeOccludes(shape1, shape2)` - 面遮挡检测
-- `blockOccludes(sourceShape, targetShape, direction)` - 方块面遮挡检测
-- `slice(shape, axis, index)` - 切片操作
-
-## 光照系统集成
-
-面遮挡检测是光照系统的核心：
-
-```cpp
-// 检查两个面形状是否互相遮挡
-bool occluded = Shapes::faceShapeOccludes(faceShape1, faceShape2);
-
-// 检查两个方块之间的面是否遮挡
-bool blocked = Shapes::blockOccludes(sourceShape, targetShape, Direction::North);
-
-// 检查合并面是否遮挡
-bool mergedBlocked = Shapes::mergedFaceOccludes(sourceShape, targetShape, direction);
+```
+BooleanOp ──┐
+            ▼
+DiscreteVoxelShape ◄──────────────────────────────┐
+            │                                      │
+            ▼                                      │
+       VoxelShape ◄────────────────────────────────┤
+            │                                      │
+            ▼                                      │
+          Shapes ──(join操作)──► BooleanOp ────────┘
+              │                   (布尔运算)
+              └──(创建/操作)──► VoxelShape
 ```
 
-## 使用示例
+- **BooleanOp**：布尔运算函数对象，无依赖
+- **DiscreteVoxelShape**：底层数据结构，使用位图存储，被 VoxelShape 组合使用
+- **VoxelShape**：主类，包含 `shared_ptr<DiscreteVoxelShape>` 和浮点坐标点列表
+- **Shapes**：工厂类，创建/操作 VoxelShape，执行布尔运算
 
-### 创建形状
+## 上下游外部依赖关系
 
-```cpp
-// 完整方块
-auto fullBlock = Shapes::block();
+**上游依赖（本目录依赖）：**
+- `common/core/Types.hpp` - 基础类型（i32, f64 等）
+- `common/util/Direction.hpp` - Axis, AxisCycle, Direction 枚举
+- `common/util/AxisAlignedBB.hpp` - 碰撞箱类
+- `common/util/math/Vector3.hpp` - 3D 向量
+- `common/world/block/BlockPos.hpp` - 方块位置
 
-// 空形状
-auto empty = Shapes::empty();
+**下游依赖（依赖本目录）：**
+- `common/physics/collision/CollisionShape.hpp` - 简化版碰撞形状
+- `common/physics/PhysicsEngine.hpp` - 物理引擎，使用 VoxelShape 进行碰撞检测
+- `common/physics/CollisionCache.hpp` - 碰撞缓存
+- `common/world/block/Block.hpp` - 方块类，使用 VoxelShape 定义形状
+- `common/world/block/blocks/*.cpp` - 各方块实现，定义碰撞/遮挡形状
+- `common/world/lighting/engine/*.cpp` - 光照引擎，使用面遮挡检测
+- `common/entity/entities/*.cpp` - 实体，使用碰撞检测
+- `client/renderer/trident/chunk/ChunkMesher.cpp` - 区块网格生成
 
-// 自定义盒子
-auto box = Shapes::box(0.0, 0.0, 0.0, 0.5, 1.0, 0.5);  // 半砖
-```
+## 容易踩的坑
 
-### 面形状获取
+1. **坐标范围**：VoxelShape 使用方块本地坐标（0-1 范围），不是世界坐标。`Shapes::box(0, 0, 0, 0.5, 1, 0.5)` 表示方块的左下半部分。
 
-```cpp
-// 获取北面的面形状（用于光照遮挡检测）
-VoxelShape northFace = shape.getFaceShape(Direction::North);
-```
+2. **面形状缓存**：`VoxelShape::getFaceShape()` 有内部缓存，首次调用会计算并缓存。如果形状变化后需要重新获取面形状，应使用新对象。
 
-### 碰撞检测
+3. **布尔运算性能**：`Shapes::join()` 执行布尔运算时会产生新的离散网格和坐标点列表，复杂形状运算开销较大，应缓存结果。
 
-```cpp
-// 计算实体在Y轴方向的碰撞偏移
-f64 actualMovement = shape.collide(Axis::Y, entityBox, desiredMovement);
-```
+4. **空形状 vs 非空判断**：`Shapes::empty()` 返回单例空形状，不要用 `VoxelShape()` 默认构造（行为可能不同）。检查空形状用 `isEmpty()`，不要用 `shape.shape().isEmpty()`。
 
-## 参考
+5. **contains() 半开区间**：`VoxelShape::contains(x, y, z)` 使用半开区间 `[min, max)`，边界判断需注意。
 
-本实现参考 Minecraft 1.21.11 的 VoxelShape 系统：
-
-- `net.minecraft.world.phys.shapes.VoxelShape`
-- `net.minecraft.world.phys.shapes.Shapes`
-- `net.minecraft.world.phys.shapes.DiscreteVoxelShape`
-- `net.minecraft.world.phys.shapes.BooleanOp`
-
-## 与光照系统的关系
-
-VoxelShape 的面遮挡检测用于确定光线是否可以通过两个相邻方块之间的边界：
-
-1. 每个方块有一个遮挡形状 (`getOcclusionShape()`)
-2. 通过 `getFaceShape(direction)` 获取特定方向的投影形状
-3. 使用 `faceShapeOccludes()` 检查两个投影形状是否完全遮挡单位正方形
-4. 如果遮挡，光线无法通过该边界
-
-这支持条件透明方块的正确光照传播（如台阶、楼梯、栅栏等）。
+6. **DiscreteVoxelShape 边界缓存**：内部有边界缓存（m_xMin/m_xMax 等），修改体素后会标记 dirty。频繁修改后查询边界会触发重算。

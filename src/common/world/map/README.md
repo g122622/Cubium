@@ -6,56 +6,99 @@
 
 ```
 map/
-├── README.md               # 本文件
-├── MaterialColor.hpp/cpp   # 地图颜色系统 - 61种颜色定义和阴影计算
-├── MapData.hpp/cpp         # 地图数据核心 - 128x128像素数据、装饰物、旗帜标记
-├── MapDecoration.hpp/cpp   # 地图装饰物 - 玩家标记、旗帜图标等
-├── MapBanner.hpp           # 旗帜标记 - 记录旗帜位置和颜色
-├── MapFrame.hpp            # 展示框标记 - 记录展示框位置和旋转
-├── MapIdTracker.hpp/cpp    # 地图ID追踪器 - 分配唯一地图ID
-└── MapDataManager.hpp/cpp  # 地图数据管理器 - CRUD、持久化、tick更新
+├── MaterialColor.hpp/cpp   # 地图颜色系统 - 59种颜色定义和阴影计算
+├── MapData.hpp/cpp         # 地图数据核心 - 128x128像素、装饰物、旗帜、展示框标记
+├── MapDecoration.hpp/cpp   # 地图装饰物 - 27种装饰类型定义和序列化
+├── MapBanner.hpp/cpp       # 旗帜标记 - 旗帜位置/颜色记录和装饰映射
+├── MapFrame.hpp/cpp        # 展示框标记 - 展示框位置/旋转记录
+├── MapIdTracker.hpp/cpp    # 地图ID追踪器 - 自增ID分配
+└── MapDataManager.hpp/cpp  # 地图数据管理器 - CRUD、tick更新
 ```
 
-## 核心概念
+## 内部模块关系
 
-### 地图颜色编码
+```
+MapDataManager (管理器门面)
+    ├── MapData (核心数据)
+    │   ├── MapDecoration[] (装饰物集合)
+    │   ├── MapBanner[] (旗帜标记集合)
+    │   ├── MapFrame[] (展示框标记集合)
+    │   └── MapInfo[] (玩家追踪信息)
+    └── MapIdTracker (ID分配器)
 
-每个地图像素占用1字节，编码为 `colorIndex * 4 + shadeIndex`：
-- `colorIndex` (0-58): MaterialColorId 枚举值，对应61种颜色
-- `shadeIndex` (0-3): 阴影级别
-  - 0: 中等偏暗 (亮度 180/255)
-  - 1: 中等偏亮 (亮度 220/255)
-  - 2: 最亮 (亮度 255/255)
-  - 3: 最暗 (亮度 135/255)
+MaterialColor (独立工具类，被MapData渲染时使用)
+    └── 颜色查找表 + 阴影计算
 
-### 缩放级别
+依赖关系：
+- MapBanner → MapDecoration (通过DyeColor映射到DecorationType)
+- MapFrame → MapDecoration (生成FRAME类型装饰)
+- MapData → MaterialColor, MapDecoration, MapBanner, MapFrame
+- MapDataManager → MapData, MapIdTracker
+```
 
-| scale | 覆盖范围 (blocks) | 每像素代表 (blocks) |
-|-------|-------------------|-------------------|
-| 0     | 128×128           | 1                 |
-| 1     | 256×256           | 2                 |
-| 2     | 512×512           | 4                 |
-| 3     | 1024×1024         | 8                 |
-| 4     | 2048×2048         | 16                |
+## 上下游外部依赖关系
 
-### 装饰物类型
+### 本模块依赖
 
-27种装饰类型，包括玩家标记、旗帜、结构图标等。部分类型有地图颜色用于物品栏显示。
+```
+core/Types.hpp              - 基础类型定义 (i8/u8/i32/f32/f64等)
+util/nbt/Nbt.hpp            - NBT序列化
+util/assert/AssertMacros.hpp - 断言宏
+util/text/ITextComponent.hpp - 文本组件 (装饰物自定义名称)
+util/color/DyeColor.hpp     - 染料颜色枚举 (旗帜颜色映射)
+world/block/BlockPos.hpp    - 方块坐标 (旗帜/展示框位置)
+world/dimension/MapDimensionId.hpp - 维度ID (地图所属维度)
+network/packet/PacketSerializer.hpp - 网络序列化 (MapDecoration)
+network/packet/PacketDeserializer.hpp - 网络反序列化
+entity/serialization/NbtHelper.hpp - NBT辅助读取
+```
 
-### 持久化
+### 外部对本模块的依赖
 
-地图数据通过 MapDataManager 管理，使用 RocksDB 存储。每个地图以 `map_{id}` 为键存储NBT格式数据。ID追踪器存储在 `idcounts` 键下。
+```
+ServerWorld                 - 持有MapDataManager实例，每tick调用更新
+FilledMapItem               - 创建/更新地图数据，更新地形像素
+ItemFrameEntity             - 添加/移除MapFrame标记
+BannerBlockEntity           - 添加/移除MapBanner标记
+MapItemSavedData (网络同步) - 读取MapData发送给客户端
+存档系统                    - 通过NBT持久化地图数据
+```
 
-## 命名空间
+## 容易踩的坑
 
+### MaterialColor初始化
+
+`MaterialColor::initialize()` **必须在使用任何颜色API之前调用**，否则断言失败。颜色查找表是静态填充的，未初始化时访问会导致 MC_ASSERT 失败。
+
+### 颜色编码格式
+
+地图像素字节编码为 `colorIndex * 4 + shadeIndex`：
+- `colorIndex` (高6位): MaterialColorId 枚举值 (0-58)
+- `shadeIndex` (低2位): 阴影级别 (0-3)
+
+**注意**：`MaterialColor::pixelToArgb()` 会自动解析这个格式，不要手动解析。
+
+### 地图中心对齐规则
+
+`MapData::calculateMapCenter()` 将地图中心**对齐到缩放网格**，不是简单的坐标取整：
+```
+centerX = floor((x + 64) / (128 * (1 << scale))) * (128 * (1 << scale)) + (64 * (1 << scale)) - 64
+```
+不同缩放级别的地图覆盖区域不同，但网格对齐确保相邻地图无缝衔接。
+
+### 装饰物坐标范围
+
+`MapDecoration` 的坐标是 `i8` 类型 (-128 ~ 127)，地图有效范围是 -63 ~ 63：
+- 范围外但 < 320 单位：使用 `PLAYER_OFF_MAP` 类型
+- 范围外且 >= 320 单位：使用 `PLAYER_OFF_LIMITS` 类型（需要 `unlimitedTracking`）
+
+### 地图锁定机制
+
+`MapData::lockFrom()` 会**完全复制**源地图的颜色数据并设置 `locked=true`，锁定后的地图不能再更新地形，但可以更新装饰物。用于地图复制物品。
+
+### MapIdTracker持久化
+
+`MapIdTracker` 的数据应存储在 `data/idcounts.dat` 的 `map` 字段中。**读取时需要 +1** 因为存储的是"已分配的最大ID"，而不是"下一个ID"：
 ```cpp
-namespace mc::world::map {
-    class MaterialColor;
-    class MapData;
-    class MapDecoration;
-    class MapBanner;
-    class MapFrame;
-    class MapIdTracker;
-    class MapDataManager;
-}
+m_nextMapId = nbt_helper::tryGetInt(tag, "map").value_or(-1) + 1;
 ```

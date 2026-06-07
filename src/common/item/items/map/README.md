@@ -1,57 +1,61 @@
-# 地图物品 (Map Items)
+# 地图物品模块 (Map Items)
 
-地图物品模块实现了 Minecraft 1.16.5 的地图系统物品层。
+地图物品模块实现了 Minecraft 1.16.5 的地图系统物品层，包括空地图和已填充地图。
 
-## 文件说明
+## 目录结构
 
-| 文件 | 描述 |
-|------|------|
-| `AbstractMapItem.hpp/cpp` | 地图物品基类，标记为复杂物品（需要网络同步） |
-| `EmptyMapItem.hpp/cpp` | 空地图物品，右键使用创建已填充地图 |
-| `FilledMapItem.hpp/cpp` | 已填充地图物品，包含地形数据和玩家追踪 |
+```
+map/
+├── AbstractMapItem.hpp/cpp   # 地图物品抽象基类，标记为复杂物品
+├── EmptyMapItem.hpp/cpp      # 空地图物品，右键创建已填充地图
+└── FilledMapItem.hpp/cpp     # 已填充地图物品，包含地形数据和玩家追踪
+```
 
-## 地图物品层次
+## 内部模块关系
 
 ```
 Item
-  └─ AbstractMapItem         (isComplex = true)
+  └─ AbstractMapItem         (isComplex = true，需要服务端主动推送更新)
        ├─ EmptyMapItem       (minecraft:map)
        └─ FilledMapItem      (minecraft:filled_map)
 ```
 
-## 核心功能
+**调用关系**：
+- `EmptyMapItem::onItemRightClick()` 调用 `FilledMapItem::setupNewMap()` 创建新地图
+- `FilledMapItem` 通过 `MapDataManager` 访问和修改 `MapData`
+- `FilledMapItem::inventoryTick()` 更新玩家位置标记和地形数据
 
-### EmptyMapItem（空地图）
-- 右键使用：消耗空地图，在玩家当前位置创建 `FilledMapItem`
-- 初始缩放级别为 0（1:1）
-- 创造模式不消耗物品
-- 可堆叠（64个）
+## 上下游外部依赖关系
 
-### FilledMapItem（已填充地图）
-- `inventoryTick()`：更新玩家位置标记和地形数据
-- `onItemRightClick()`：打开地图界面
-- `onItemUse()`：支持旗帜标记（在旗帜方块上使用）
-- 不可堆叠（maxStackSize = 1）
-- 支持缩放（0-4级）、锁定、探险地图装饰
+**上游依赖（本目录依赖）**：
+- `mc::world::map::MapData` - 地图数据存储
+- `mc::world::map::MapDataManager` - 地图数据管理器（CRUD、持久化）
+- `mc::world::map::MapDecoration` / `DecorationType` - 装饰物定义
+- `mc::world::map::MaterialColorId` - 地图颜色系统
+- `mc::item::core::Item` / `ItemStack` / `ItemRegistry` - 物品基类和注册
+- `mc::entity::Player` / `IWorld` - 玩家和世界接口
 
-## 物品NBT
+**下游依赖（依赖本目录）**：
+- `MapCloningRecipe` - 地图复制配方
+- `MapExtendingRecipe` - 地图扩展配方
+- `CartographyMenu` - 制图台菜单
+- `ExplorationMapFunction` - 战利品表中的探险地图生成
+- `MapDataPacket` - 网络同步（服务端→客户端）
 
-### FilledMapItem
-- `map` (int): 地图ID，关联到 MapDataManager 中的 MapData
-- `map_scale_direction` (int): 缩放方向（1=放大，仅在合成时临时存在）
-- `Decorations` (list): 装饰列表（探险地图用）
-- `display.MapColor` (int): 物品栏显示颜色
+## 容易踩的坑
 
-## 相关配方
+### 1. 地图物品不可堆叠
 
-| 配方 | 类 | 输入 | 输出 |
-|------|-----|------|------|
-| 地图复制 | `MapCloningRecipe` | 已填充地图 + 空地图 | 复制的地图 |
-| 地图扩展 | `MapExtendingRecipe` | 已填充地图 + 纸 | 缩放+1的地图 |
+`FilledMapItem` 的 `getMaxStackSize()` 返回 1，每张地图都是独特的。创建地图物品堆时需注意。
 
-## 相关系统
+### 2. 地图ID存储在物品NBT中
 
-- **地图数据**: `src/common/world/map/` - MapData, MapDataManager, MapDecoration 等
-- **制图台**: `CartographyMenu` - 扩展/锁定/复制地图
-- **探险地图**: `ExplorationMapFunction` - 战利品表中生成探险地图
-- **网络同步**: `MapDataPacket` - 服务端→客户端地图数据同步
+`FilledMapItem` 通过 `stack.getTag()["map"]` 存储地图ID，关联到 `MapDataManager` 中的 `MapData`。访问地图数据前必须检查NBT和MapDataManager是否有效。
+
+### 3. inventoryTick 仅在服务端更新地形
+
+`FilledMapItem::inventoryTick()` 在客户端直接返回，地形更新和玩家追踪仅在服务端执行。客户端通过 `MapDataPacket` 接收更新。
+
+### 4. 锁定地图创建新副本
+
+`lockMap()` 不是简单设置标志，而是创建一个新的锁定副本（新地图ID）。锁定操作会改变物品的地图ID。

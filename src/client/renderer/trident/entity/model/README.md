@@ -6,199 +6,98 @@
 
 ```
 model/
-├── core/                   # 模型核心
-│   ├── EntityModel.hpp     # 模型基类
-│   ├── ModelRenderer.hpp   # 模型部件渲染
-│   └── AgeableModel.hpp    # 可成长模型基类
-├── base/                   # 基础模型
-│   ├── BipedModel.hpp      # 双足模型
-│   └── QuadrupedModel.hpp  # 四足模型
-├── animal/                 # 动物模型
-│   └── AnimalModels.hpp    # 猪、牛、羊、鸡模型
-├── monster/                # 怪物模型
-│   ├── ZombieModel.hpp     # 僵尸模型
-│   ├── SkeletonModel.hpp   # 骷髅模型
-│   ├── CreeperModel.hpp    # 苦力怕模型
-│   ├── SpiderModel.hpp     # 蜘蛛模型
-│   └── EndermanModel.hpp   # 末影人模型
-├── player/                 # 玩家模型
-│   └── PlayerModel.hpp     # 玩家模型
-├── projectile/             # 投掷物模型
-│   └── ProjectileModels.hpp
-└── vehicle/                # 载具模型
-    └── VehicleModels.hpp
+├── core/                       # 模型核心
+│   ├── EntityModel.hpp         # 模型基类，定义动画和渲染接口
+│   ├── ModelRenderer.hpp       # 模型部件类，代表模型的一个部分
+│   ├── AgeableModel.hpp        # 可成长模型基类（幼体/成年）
+│   ├── SegmentedModel.hpp      # 分段模型基类（用于复杂实体如末影龙）
+│   └── ModelFactory.hpp        # 模型工厂，注册表模式管理模型创建
+├── base/                       # 基础模型基类
+│   ├── BipedModel.hpp          # 双足模型基类（玩家、僵尸、骷髅等）
+│   └── QuadrupedModel.hpp      # 四足模型基类（猪、牛、羊等）
+├── animal/                     # 动物模型
+│   ├── AnimalModels.hpp        # 猪、牛、羊、鸡模型（待拆分）
+│   ├── WolfModel.hpp           # 狼模型
+│   ├── HorseModel.hpp          # 马模型
+│   ├── LlamaModel.hpp          # 羊驼模型
+│   ├── OcelotModel.hpp         # 豹猫模型
+│   ├── CatModel.hpp            # 猫模型
+│   ├── RabbitModel.hpp         # 兔子模型
+│   ├── PolarBearModel.hpp      # 北极熊模型
+│   ├── SquidModel.hpp          # 鱿鱼模型
+│   ├── BatModel.hpp            # 蝙蝠模型
+│   └── VillagerModel.hpp       # 村民模型
+├── monster/                    # 怪物模型
+│   ├── ZombieModel.hpp         # 僵尸模型
+│   ├── SkeletonModel.hpp       # 骷髅模型
+│   ├── CreeperModel.hpp        # 苦力怕模型
+│   ├── SpiderModel.hpp         # 蜘蛛模型
+│   ├── EndermanModel.hpp       # 末影人模型
+│   ├── BlazeModel.hpp          # 烈焰人模型
+│   ├── MonsterVariantModels.hpp # 怪物变体模型
+│   ├── MoreMonsterModels.hpp   # 更多怪物模型
+│   └── SpecialMonsterModels.hpp # 特殊怪物模型
+├── player/                     # 玩家模型
+│   └── PlayerModel.hpp         # 玩家模型
+├── projectile/                 # 投掷物模型
+│   └── ProjectileModels.hpp    # 投掷物模型集合
+├── aquatic/                    # 水生生物模型
+│   ├── AquaticModels.hpp       # 水生生物模型集合
+│   └── PufferfishModel.hpp     # 河豚模型
+├── nether/                     # 下界生物模型
+│   └── NetherModels.hpp        # 下界生物模型集合
+└── ModelRegistration.hpp       # 模型注册初始化入口
 ```
 
-## 核心类
-
-### EntityModel
-
-所有实体模型的基类，定义动画和渲染接口。
-
-```cpp
-class EntityModel {
-public:
-    virtual void render(f64 scale = 1.0f / 16.0f);
-    virtual void generateMesh(std::vector<ModelVertex>& vertices,
-                              std::vector<u32>& indices,
-                              f64 scale) const;
-    virtual void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                          f64 ageInTicks, f64 netHeadYaw,
-                          f64 headPitch, f64 scale);
-    
-    void setTextureSize(i32 width, i32 height);
-    const std::vector<std::shared_ptr<ModelRenderer>>& getParts() const;
-};
-```
-
-### ModelRenderer
-
-模型部件类，代表模型的一个部分（如头部、身体、腿等）。
-
-```cpp
-class ModelRenderer {
-public:
-    ModelRenderer& addBox(f64 x, f64 y, f64 z, f64 width, f64 height, f64 depth);
-    ModelRenderer& setTextureOffset(i32 x, i32 y);
-    void setRotation(f64 x, f64 y, f64 z);
-    void setRotationPoint(f64 x, f64 y, f64 z);
-    void addChild(std::shared_ptr<ModelRenderer> child);
-    void generateMesh(std::vector<ModelVertex>& vertices, std::vector<u32>& indices) const;
-};
-```
-
-### BipedModel
-
-双足动物模型基类，用于玩家、僵尸、骷髅等。
-
-```cpp
-class BipedModel : public EntityModel {
-protected:
-    std::shared_ptr<ModelRenderer> m_head;
-    std::shared_ptr<ModelRenderer> m_headwear;
-    std::shared_ptr<ModelRenderer> m_body;
-    std::shared_ptr<ModelRenderer> m_rightArm;
-    std::shared_ptr<ModelRenderer> m_leftArm;
-    std::shared_ptr<ModelRenderer> m_rightLeg;
-    std::shared_ptr<ModelRenderer> m_leftLeg;
-};
-```
-
-#### translateHand 方法
-
-用于手持物品渲染，获取手臂的变换矩阵：
-
-```cpp
-void translateHand(HandSide handSide, std::array<f64, 16>& outMatrix) const;
-```
-
-**参数：**
-- `handSide`：手侧（`HandSide::Left` 或 `HandSide::Right`）
-- `outMatrix`：输出变换矩阵（4x4 行主序）
-
-**功能：**
-- 返回手臂的旋转点和旋转角度的组合变换矩阵
-- 参考 MC 1.16.5 `BipedModel.translateHand`
-- 用于 `HeldItemLayer` 计算手持物品的最终位置
-
-**使用示例：**
-```cpp
-// 在 HeldItemLayer 中使用
-std::array<f64, 16> armMatrix;
-model->translateHand(HandSide::Right, armMatrix);
-// 组合物品固定变换后得到最终矩阵
-```
-
-**变换顺序：**
-1. 平移到旋转点
-2. 应用 Z 轴旋转
-3. 应用 Y 轴旋转
-4. 应用 X 轴旋转
-
-### QuadrupedModel
-
-四足动物模型基类，用于猪、牛、羊等。
-
-```cpp
-class QuadrupedModel : public EntityModel {
-protected:
-    std::shared_ptr<ModelRenderer> m_head;
-    std::shared_ptr<ModelRenderer> m_body;
-    std::shared_ptr<ModelRenderer> m_rightFrontLeg;
-    std::shared_ptr<ModelRenderer> m_leftFrontLeg;
-    std::shared_ptr<ModelRenderer> m_rightBackLeg;
-    std::shared_ptr<ModelRenderer> m_leftBackLeg;
-};
-```
-
-## 动画系统
-
-动画参数说明：
-
-| 参数 | 说明 |
-|------|------|
-| `limbSwing` | 步态动画周期（0-2π） |
-| `limbSwingAmount` | 步态动画强度（0-1） |
-| `ageInTicks` | 年龄 tick（用于空闲动画） |
-| `netHeadYaw` | 头部偏航角（相对身体） |
-| `headPitch` | 头部俯仰角 |
-| `scale` | 缩放因子 |
-
-### 动画参数计算
-
-```cpp
-// LivingRenderer 中的动画参数计算
-f64 getLimbSwing(TEntity& entity, f64 partialTicks) const {
-    f64 prevLimbSwing = entity.prevLimbSwing();
-    f64 limbSwing = entity.limbSwing();
-    return prevLimbSwing + (limbSwing - prevLimbSwing) * partialTicks;
-}
-
-f64 getHeadYaw(TEntity& entity, f64 partialTicks) const {
-    f64 bodyYaw = entity.prevRenderYawOffset() + 
-                  (entity.renderYawOffset() - entity.prevRenderYawOffset()) * partialTicks;
-    f64 headYaw = entity.prevRotationYawHead() + 
-                  (entity.rotationYawHead() - entity.prevRotationYawHead()) * partialTicks;
-    return headYaw - bodyYaw;
-}
-```
-
-## 纹理布局
-
-实体纹理通常为 64x64 或 64x32 像素，按照特定布局排列：
+## 内部模块关系
 
 ```
-+--------+--------+
-|  Head  |  Body  |
-+--------+--------+
-| Right  |  Left  |
-|  Arm   |  Arm   |
-+--------+--------+
-| Right  |  Left  |
-|  Leg   |  Leg   |
-+--------+--------+
+EntityModel (基类)
+    ├── AgeableModel (可成长模型，支持幼体/成年)
+    │     ├── BipedModel (双足模型)
+    │     │     ├── PlayerModel
+    │     │     ├── ZombieModel
+    │     │     └── SkeletonModel 等
+    │     ├── QuadrupedModel (四足模型)
+    │     │     ├── PigModel
+    │     │     ├── CowModel
+    │     │     └── SheepModel 等
+    │     └── ChickenModel 等
+    └── SegmentedModel (分段模型)
+          └── EnderDragonModel 等
+
+ModelRenderer：模型部件类，被所有模型类组合使用
+
+ModelFactory：模型工厂，统一创建所有实体模型实例
 ```
 
-## 命名空间
+## 上下游外部依赖关系
 
-```cpp
-namespace mc::client::renderer::entity::model {
-    class EntityModel;
-    class ModelRenderer;
-    struct ModelVertex;
-    struct TexturedQuad;
-    struct ModelBox;
-}
+**上游依赖（本目录依赖的模块）：**
+- `common/core/Types.hpp` - 基础类型定义（i32, f32, f64 等）
+- `common/util/math/Vector2.hpp`, `Vector3.hpp` - 数学向量类型
 
-namespace mc::client::renderer::entity::model::base {
-    class BipedModel;
-    class QuadrupedModel;
-}
+**下游依赖（依赖本目录的模块）：**
+- `entity/renderer/` - 所有实体渲染器通过 ModelFactory 创建模型
+- `entity/layer/` - 层渲染器（HeldItemLayer, ArmorLayer 等）访问模型部件
+- `entity/core/LivingRenderer.hpp` - 生物渲染器模板持有模型实例
+- `firstperson/PlayerModel.hpp` - 第一人称玩家模型
+- `blockentity/model/` - 方块实体模型复用 ModelRenderer
 
-namespace mc::client::renderer::entity::model::animal {
-    class PigModel;
-    class CowModel;
-    class SheepModel;
-    class ChickenModel;
-}
-```
+## 容易踩的坑
+
+1. **幼体模型缩放**：AgeableModel 的 `m_isChild` 默认为 `true`，新建模型实例时需显式调用 `setChild(false)` 设置为成年状态，否则会按幼体缩放渲染
+
+2. **纹理尺寸**：不同模型使用不同的纹理尺寸（64x32 或 64x64），在 `addBox` 前必须确保 `setTextureSize` 正确设置，否则 UV 坐标会错误
+
+3. **镜像模式**：ModelRenderer 的 `setMirror(true)` 会影响顶点顺序和 UV 映射，用于左右对称部件（如左臂/右臂），忘记设置会导致渲染异常
+
+4. **动画参数单位**：`limbSwing` 是弧度制的步态周期（0-2π），`limbSwingAmount` 是 0-1 的插值系数，`netHeadYaw` 和 `headPitch` 是弧度制角度
+
+5. **translateHand 变换顺序**：BipedModel::translateHand 的变换顺序是 平移→Z轴旋转→Y轴旋转→X轴旋转，与直觉可能相反，在 HeldItemLayer 中计算手持物品位置时需注意
+
+6. **ModelFactory 注册**：新模型必须在 `ModelRegistration.cpp` 中通过 `REGISTER_ENTITY_MODEL` 宏注册，否则 ModelFactory::createModel 会返回 nullptr
+
+7. **ModelRenderer::render 已废弃**：项目已改用 GPU 管线路径，应使用 `generateMesh()` 生成网格数据，然后通过 EntityPipeline 提交到 GPU，不应再调用 `render()` 方法
+
+8. **AnimalModels.hpp 待拆分**：该文件包含多个模型类（PigModel, CowModel, SheepModel, ChickenModel），每个模型应拆分为独立文件

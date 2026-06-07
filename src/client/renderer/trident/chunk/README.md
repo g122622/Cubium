@@ -12,41 +12,10 @@ src/client/renderer/trident/chunk/
 └── README.md
 ```
 
-## 2. 文件介绍
-
-### AmbientOcclusionCalculator
-
-职责：
-- 按面和顶点采样周边方块遮挡关系。
-- 输出 AO 系数并参与最终顶点颜色/亮度。
-
-### ChunkMesher
-
-职责：
-- 把 `ChunkData` 转换为 `MeshData`。
-- 支持 `generateMesh` 与 `generateSplitMesh`。
-- `generateMesh` 内部按 section 复用 `generateSectionMesh`。
-- 在简单网格与贪婪网格路径中处理透明层、液体面、AO、光照采样。
-- 统一通过生物群系混色路径解析方块着色，避免液体与普通方块维护两套 tint 逻辑。
-- 新增协作取消信号参数：
-  - `generateMesh(..., neighbors, cancelSignal)`
-  - `generateSplitMesh(..., neighbors, cancelSignal)`
-  - `generateSectionMesh(..., neighbors, cancelSignal)`
-- 提供静态方法 `getDefaultBlockTintColor(blockState)` 获取方块的默认着色颜色：
-  - 用于没有世界/位置信息时的颜色解析（如末影人持有方块）
-  - 参考 MC 1.16.5 `BlockColors.getColor(state, null, null, 0)`
-  - 返回打包的 RGBA 颜色值
-
-### ChunkRenderer
-
-职责：
-- 管理每个区块的 VBO/IBO 生命周期。
-- 接收 `ClientWorld` 标记的 dirty mesh，上传 GPU 并参与绘制。
-
-## 3. 模块关系
+## 2. 内部模块关系
 
 ```mermaid
-graph LR
+flowchart TD
     A[ChunkData] --> B[ChunkMesher]
     B --> C[MeshData solid/transparent]
     C --> D[ChunkRenderer]
@@ -60,87 +29,25 @@ graph LR
     style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#111
 ```
 
-## 4. 整体职责
+## 3. 上下游外部依赖关系
 
-目录整体负责：
-- 将区块逻辑数据映射到可渲染几何。
-- 控制区块绘制的性能质量平衡（简单/贪婪网格）。
-- 支持异步构建场景下的可取消中断。
-
-## 5. 输入/输出
-
-输入：
-- 当前区块 `ChunkData`。
-- 邻居区块数组（用于边界面剔除与跨区块光照采样）。
-- 可选取消信号。
-
-输出：
-- `MeshData`（实心层和透明层）。
-- 供 `ChunkRenderer` 上传的顶点/索引数据。
-
-## 6. 依赖项
-
-内部依赖：
+**上游依赖**（本目录依赖）：
 - `src/client/renderer/MeshTypes.*`
 - `src/client/resource/BlockModelCache.*`
 - `src/client/world/color/blend/*`
 - `src/common/world/chunk/ChunkData.*`
+- `spdlog`, `glm`
 
-外部依赖：
-- `spdlog`
-- `glm`
+**下游依赖**（依赖本目录）：
+- `src/client/renderer/trident/core/TridentEngine.*` - 主渲染引擎持有 ChunkRenderer
+- `src/client/renderer/trident/particle/particles/block/DiggingParticle.cpp` - 使用 ChunkMesher::modelCache() 获取模型
+- `src/client/renderer/trident/entity/layer/entity/HeldBlockLayer.cpp` - 使用 ChunkMesher 获取方块着色
 
-## 7. 使用方法
+## 4. 容易踩的坑
 
-```cpp
-const ChunkData* neighbors[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-
-MeshData solidMesh;
-MeshData transparentMesh;
-
-std::atomic<bool> cancelSignal{false};
-
-ChunkMesher::generateSplitMesh(
-    chunk,
-    solidMesh,
-    transparentMesh,
-    neighbors,
-    &cancelSignal
-);
-
-if (!cancelSignal.load(std::memory_order_acquire)) {
-    chunkRenderer.updateChunk(chunkId, solidMesh, transparentMesh);
-}
-```
-
-## 8. 容易踩的坑
-
-- 忘记传递取消信号会导致长任务无法及时终止。
-- 邻居数组顺序固定：`-X, +X, -Z, +Z, -Y, +Y`。
-- 在没有 `BlockModelCache` 时，`ChunkMesher` 不会生成有效几何。
-- 贪婪网格在平滑 AO 路径会回退到逐面路径，这是预期行为。
-- 液体面剔除不能只看透明度；像海草、海带茎这类没有实体碰撞体积的水下植物也要吞掉相邻水面，否则会出现多余的水贴图边缘。
-
-## 9. 测试用例
-
-相关测试：
-- `tests/client/renderer/test_renderer.cpp`
-  - 覆盖 `ChunkMesher` 的简单/贪婪、透明层、液体、形状回退等行为。
-- `tests/client/test_mesh_worker_pool.cpp`
-  - 间接验证 mesher 在异步线程池中的执行路径。
-
-## 10. Mermaid 图表
-
-```mermaid
-flowchart TD
-    A[ChunkMesher.generateSplitMesh] --> B[实心层 pass]
-    A --> C[透明层 pass]
-    B --> D[ChunkRenderer.updateChunk]
-    C --> D
-    E[cancelSignal] --> A
-    F[AO/光照采样] --> A
-
-    style A fill:#fff8e1,stroke:#f9a825,stroke-width:2px,color:#111
-    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#111
-    style E fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#111
-```
+- **取消信号必传**：忘记传递取消信号会导致长任务无法及时终止，在异步构建场景下造成资源浪费。
+- **邻居数组顺序**：邻居数组顺序固定为 `-X, +X, -Z, +Z, -Y, +Y`，顺序错误会导致边界面剔除和跨区块光照采样出错。
+- **BlockModelCache 依赖**：在没有 `BlockModelCache` 时，`ChunkMesher` 不会生成有效几何。
+- **贪婪网格 AO 回退**：贪婪网格在平滑 AO 路径会回退到逐面路径，这是预期行为，不是 bug。
+- **液体面剔除逻辑**：液体面剔除不能只看透明度；像海草、海带茎这类没有实体碰撞体积的水下植物也要吞掉相邻水面，否则会出现多余的水贴图边缘。
+- **默认着色颜色**：`ChunkMesher::getDefaultBlockTintColor()` 用于没有世界/位置信息时的颜色解析（如末馆人持有方块），参考 MC 1.16.5 `BlockColors.getColor(state, null, null, 0)`。

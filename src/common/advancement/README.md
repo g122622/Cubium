@@ -1,389 +1,149 @@
 # 成就系统 (Advancement System)
 
-## 概述
-
-本模块实现了 Minecraft 1.16.5 的成就系统核心架构，包括：
-- 成就定义和 JSON 加载
-- 条件触发器系统框架
-- 进度追踪
-- 触发器条件谓词
-
-## 目录结构
+## 目录结构树
 
 ```
 advancement/
-├── Advancement.hpp/cpp           # 成就定义（不可变）
-├── AdvancementDisplay.hpp/cpp    # 显示信息（图标、标题、描述）
+├── Advancement.hpp/cpp           # 成就定义（不可变对象，Builder 模式构建）
+├── AdvancementDisplay.hpp/cpp    # 显示信息（图标、标题、描述、框架类型）
 ├── AdvancementFrame.hpp          # 框架类型枚举（Task/Challenge/Goal）
-├── AdvancementList.hpp/cpp       # 成就列表管理（父子关系）
-├── AdvancementLoader.hpp/cpp     # JSON 加载器
+├── AdvancementList.hpp/cpp       # 成就列表管理（父子关系维护）
+├── AdvancementLoader.hpp/cpp     # JSON 加载器（从数据包加载成就）
 ├── AdvancementManager.hpp/cpp    # 成就注册表（单例）
-├── AdvancementProgress.hpp/cpp   # 进度追踪
-├── AdvancementRewards.hpp/cpp    # 奖励定义
-├── Criterion.hpp/cpp             # 条件定义
-├── MinMaxBounds.hpp              # 范围谓词（IntBounds, DoubleBounds 等）
+├── AdvancementProgress.hpp/cpp   # 进度追踪（条件完成状态、序列化）
+├── AdvancementRewards.hpp/cpp    # 奖励定义（经验、战利品、功能、配方）
+├── Criterion.hpp/cpp             # 条件定义（触发器实例引用）
+├── MinMaxBounds.hpp              # 范围谓词（IntBounds、DoubleBounds 等）
 ├── README.md                     # 本文件
 │
 └── trigger/                      # 触发器系统
-    ├── CriterionTrigger.hpp      # 触发器接口（ICriterionTrigger, AbstractCriterionTrigger）
-    ├── CriterionTriggers.hpp/cpp # 触发器注册表
+    ├── CriterionTrigger.hpp/cpp  # 触发器接口（ICriterionTrigger、AbstractCriterionTrigger）
+    ├── CriterionTriggers.hpp/cpp # 触发器注册表（单例，管理所有触发器）
     │
-    ├── conditions/               # 触发器条件谓词
-    │   ├── ItemPredicate.hpp/cpp     # 物品匹配
-    │   ├── EntityPredicate.hpp/cpp   # 实体匹配 + 伤害源匹配
-    │   ├── EntityFlagsPredicate.hpp/cpp # 实体标志匹配（燃烧、潜行等）
-    │   ├── EntityEquipmentPredicate.hpp/cpp # 装备匹配（头盔、胸甲等）
-    │   ├── NBTPredicate.hpp/cpp      # NBT数据匹配
-    │   ├── LocationPredicate.hpp/cpp # 位置匹配
-    │   ├── BlockPredicate.hpp/cpp    # 方块匹配 + 流体匹配
-    │   └── MobEffectsPredicate.hpp/cpp # 效果匹配
+    ├── conditions/               # 触发器条件谓词（用于匹配特定游戏状态）
+    │   ├── ItemPredicate.hpp/cpp         # 物品匹配（ID、数量、耐久、药水等）
+    │   ├── EntityPredicate.hpp/cpp       # 实体匹配 + DamageSourcePredicate
+    │   ├── EntityFlagsPredicate.hpp/cpp  # 实体标志匹配（燃烧、潜行、疾跑等）
+    │   ├── EntityEquipmentPredicate.hpp/cpp  # 装备匹配（头盔、胸甲、护腿、靴子、主手、副手）
+    │   ├── NBTPredicate.hpp/cpp          # NBT 数据匹配（递归比较）
+    │   ├── LocationPredicate.hpp/cpp     # 位置匹配（坐标、维度、生物群系）
+    │   ├── BlockPredicate.hpp/cpp        # 方块匹配 + FluidPredicate
+    │   ├── MobEffectsPredicate.hpp/cpp   # 效果匹配（效果类型、等级、持续时间）
+    │   └── README.md
     │
     └── impl/                     # 触发器实现
         ├── ImpossibleTrigger.hpp      # 不可能触发器（手动授予）
-        └── InventoryChangedTrigger.hpp/cpp  # 物品栏变化触发器
+        ├── TickTrigger.hpp/cpp        # Tick 触发器（每 tick 触发）
+        ├── InventoryChangedTrigger.hpp/cpp  # 物品栏变化触发器
+        ├── LocationTrigger.hpp/cpp          # 位置触发器（维度、生物群系检测）
+        ├── PlayerKilledEntityTrigger.hpp/cpp # 玩家击杀实体触发器
+        ├── BlockTriggers.hpp/cpp           # 方块相关触发器（放置、进入、滑落、蜂巢破坏）
+        ├── ItemTriggers.hpp/cpp            # 物品相关触发器（消耗、耐久变化、附魔、装桶）
+        ├── EntityTriggers.hpp/cpp          # 实体相关触发器（驯服、繁殖、交易、治愈等）
+        ├── EffectTriggers.hpp/cpp          # 效果相关触发器（效果变化）
+        └── ChanneledLightningTrigger.hpp/cpp # 引雷附魔触发器
 ```
 
-## 核心类
+## 内部模块关系
 
-### Advancement
-
-成就定义，不可变对象。包含：
-- ID（ResourceLocation）
-- 父成就ID（可选）
-- 显示信息（可选）
-- 奖励（可选）
-- 条件映射
-- 需求矩阵
-
-使用 Builder 模式构建：
-```cpp
-auto advancement = Advancement::Builder(id)
-    .parent(parentId)
-    .display(displayInfo)
-    .criterion("diamond", triggerInstance)
-    .build();
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        AdvancementManager                           │
+│                     （成就注册表，单例）                              │
+└───────────────────────────┬─────────────────────────────────────────┘
+                            │ 管理
+                            ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         AdvancementList                             │
+│                    （成就列表，父子关系）                             │
+└───────────────────────────┬─────────────────────────────────────────┘
+                            │ 包含
+                            ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                          Advancement                                │
+│                （成就定义，不可变对象）                               │
+│  ┌─────────────────┬─────────────────┬─────────────────┐           │
+│  │ AdvancementDisplay│ AdvancementRewards│   Criterion   │           │
+│  │   （显示信息）    │    （奖励）      │  （条件定义）   │           │
+│  └─────────────────┴─────────────────┴────────┬────────┘           │
+└────────────────────────────────────────────────┼────────────────────┘
+                                                 │ 引用
+                                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                       CriterionTriggers                             │
+│                    （触发器注册表，单例）                             │
+└───────────────────────────┬─────────────────────────────────────────┘
+                            │ 管理
+                            ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                       ICriterionTrigger<T>                          │
+│                         （触发器接口）                               │
+└───────────────────────────┬─────────────────────────────────────────┘
+                            │ 实现
+                            ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                  AbstractCriterionTrigger<T>                        │
+│                    （监听器管理基类）                                │
+└───────────────────────────┬─────────────────────────────────────────┘
+                            │ 派生
+                            ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     具体触发器实现                                   │
+│  InventoryChangedTrigger │ LocationTrigger │ PlayerKilledEntityTrigger │ ...
+└───────────────────────────┬─────────────────────────────────────────┘
+                            │ 使用
+                            ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         条件谓词                                    │
+│  ItemPredicate │ EntityPredicate │ BlockPredicate │ LocationPredicate │ ...
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### AdvancementProgress
+## 上下游外部依赖关系
 
-追踪玩家在特定成就上的进度：
-- 条件完成状态
-- 完成时间戳
-- 百分比计算
-- JSON 序列化/反序列化
+### 本模块依赖的外部模块
 
-### CriterionTrigger
+- `common/core/ResourceLocation.hpp` - 资源位置（成就 ID、触发器 ID）
+- `common/util/nbt/` - NBT 系统（NBTPredicate）
+- `common/entity/` - 实体系统（EntityPredicate、EntityFlagsPredicate、EntityEquipmentPredicate）
+- `common/entity/effect/` - 效果系统（MobEffectsPredicate）
+- `common/entity/damage/` - 伤害系统（DamageSourcePredicate）
+- `common/world/` - 世界接口（LocationPredicate、BlockPredicate）
+- `common/world/biome/` - 生物群系注册表（LocationPredicate）
+- `common/item/` - 物品系统（ItemPredicate）
+- `common/item/loot/StatePropertiesPredicate.hpp` - 状态属性谓词（BlockPredicate 复用）
+- `nlohmann/json.hpp` - JSON 解析
 
-触发器系统采用模板设计：
-- `ICriterionInstance` - 触发器实例基类
-- `ICriterionTrigger<T>` - 触发器接口
-- `AbstractCriterionTrigger<T>` - 监听器管理基类
+### 依赖本模块的外部模块
 
-创建新触发器：
-```cpp
-// 1. 定义触发器实例
-class MyTriggerInstance : public CriterionInstance<MyTriggerInstance> {
-public:
-    static constexpr const char* TRIGGER_ID = "minecraft:my_trigger";
-    
-    Result<void> fromJson(const nlohmann::json& json) override;
-    nlohmann::json conditionsToJson() const override;
-    bool test(...) const;  // 条件检测
-};
+- `server/advancement/` - 服务端成就系统
+  - `PlayerAdvancements` - 玩家进度管理
+  - `AdvancementEventHandler` - 事件处理器
+  - `TriggerInstantiation` - 触发器实例化工具
+- `common/network/packet/AdvancementPackets.hpp` - 成就网络数据包
+- `common/item/loot/conditions/` - 战利品条件复用谓词
+  - `EntityPropertiesCondition` - 复用 EntityPredicate
+  - `LocationCheckCondition` - 复用 LocationPredicate
+  - `DamageSourcePropertiesCondition` - 复用 DamageSourcePredicate
 
-// 2. 定义触发器
-class MyTrigger : public AbstractCriterionTrigger<MyTriggerInstance> {
-public:
-    static constexpr const char* TRIGGER_ID = "minecraft:my_trigger";
-    
-    ResourceLocation getId() const override;
-    Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) override;
-    void trigger(ServerPlayer& player, ...);  // 触发检测
-};
+## 容易踩的坑
 
-// 3. 注册
-CriterionTriggers::instance().registerTrigger(std::make_unique<MyTrigger>());
-```
+1. **触发器注册**：所有触发器必须在 `CriterionTriggers::registerBuiltinTriggers()` 中注册，否则无法从 JSON 加载。新增触发器后记得在此方法中添加注册代码。
 
-### AdvancementManager
+2. **谓词为空语义**：大多数谓词的默认构造（空状态）表示"匹配任意"，而非"不匹配"。检查谓词时需注意 `isAny()` 的语义。
 
-全局成就注册表（单例）：
-- 管理成就列表
-- 提供查询接口
-- 支持热重载
+3. **实体类型检查**：`EntityEquipmentPredicate` 和 `MobEffectsPredicate` 只对 `LivingEntity` 有效，非 `LivingEntity` 对这些谓词返回 `false`（除非谓词为空）。
 
-## 已实现的触发器
+4. **伤害源标志**：`EnvironmentalDamage` 的 `isProjectile()` 和 `isExplosion()` 始终返回 `false`，投射物和爆炸伤害需使用 `EntityDamageSource` 或 `IndirectEntityDamageSource`。
 
-| 触发器 | ID | 状态 |
-|--------|-----|------|
-| ImpossibleTrigger | `minecraft:impossible` | 完整实现 |
-| InventoryChangedTrigger | `minecraft:inventory_changed` | 完整实现（含服务端集成） |
-| TameAnimalTrigger | `minecraft:tame_animal` | 完整实现（含服务端集成） |
-| PlayerKilledEntityTrigger | `minecraft:player_killed_entity` | 完整实现（含服务端集成） |
-| EntityKilledPlayerTrigger | `minecraft:entity_killed_player` | 完整实现 |
-| PlayerInteractedWithEntityTrigger | `minecraft:player_interacted_with_entity` | 完整实现（含服务端集成） |
-| LocationTrigger | `minecraft:location` | 完整实现（含服务端集成） |
-| SleptInBedTrigger | `minecraft:slept_in_bed` | 完整实现（含服务端集成） |
-| HeroOfTheVillageTrigger | `minecraft:hero_of_the_village` | 完整实现（含服务端集成） |
-| VoluntaryExileTrigger | `minecraft:voluntary_exile` | 完整实现（含服务端集成） |
-| ConsumeItemTrigger | `minecraft:consume_item` | 完整实现 |
-| ItemDurabilityTrigger | `minecraft:item_durability_changed` | 完整实现 |
-| EnchantedItemTrigger | `minecraft:enchanted_item` | 完整实现 |
-| FilledBucketTrigger | `minecraft:filled_bucket` | 完整实现 |
-| PlacedBlockTrigger | `minecraft:placed_block` | 完整实现（含服务端集成） |
-| EnterBlockTrigger | `minecraft:enter_block` | 完整实现（含服务端集成） |
-| SlideDownBlockTrigger | `minecraft:slide_down_block` | 完整实现（事件处理已集成，蜂蜜块滑动待实现） |
-| BeeNestDestroyedTrigger | `minecraft:bee_nest_destroyed` | 完整实现（事件处理已集成，蜂巢破坏待实现） |
-| CuredZombieVillagerTrigger | `minecraft:cured_zombie_villager` | 完整实现（含服务端集成） |
-| EffectsChangedTrigger | `minecraft:effects_changed` | 完整实现（含服务端集成） |
-| ChanneledLightningTrigger | `minecraft:channeled_lightning` | 完整实现（含服务端集成） |
-| BredAnimalsTrigger | `minecraft:bred_animals` | 完整实现（含服务端集成） |
+5. **维度名称**：维度检查使用 `ResourceLocation` 的路径部分（如 `overworld`），不是完整字符串。
 
-## 条件谓词
+6. **效果类型解析**：使用 `getEffectByResourceLocation()` 解析效果类型，未知效果会被跳过并输出警告日志。
 
-### ItemPredicate
+7. **流体等效性**：`FluidPredicate` 使用 `Fluid::isEquivalentTo()` 比较，`minecraft:water` 同时匹配水源和流动水。
 
-物品匹配条件：
-- 物品ID
-- 数量范围
-- 耐久范围
-- 药水类型
+8. **状态属性复用**：`BlockPredicate` 复用 `mc::StatePropertiesPredicate`（位于 `common/entity/loot/`），而非重新实现。
 
-### EntityPredicate
+9. **触发器模板模式**：创建新触发器需继承 `AbstractCriterionTrigger<T>`，其中 `T` 是触发器实例类型。`CriterionInstance<T>` 提供条件检测的 `test()` 方法。
 
-实体匹配条件，支持丰富的实体属性检测。参考 MC 1.16.5: `net.minecraft.advancements.criterion.EntityPredicate`
-
-**主要字段：**
-
-| 字段 | JSON 键 | 说明 |
-|------|---------|------|
-| 实体类型 | `type` | 实体类型ID（如 `minecraft:zombie`） |
-| 距离 | `distance` | 与参考点的距离范围 |
-| 位置 | `location` | 位置条件（生物群系、维度等） |
-| 效果 | `effects` | MobEffectsPredicate |
-| NBT | `nbt` | NBT数据匹配 |
-| 标志 | `flags` | EntityFlagsPredicate（燃烧、潜行等） |
-| 装备 | `equipment` | EntityEquipmentPredicate |
-
-**检查方法：**
-- `test(const Entity& entity)` - 基础检查（不含距离和位置）
-- `test(const IWorld& world, f64 x, f64 y, f64 z, const Entity& entity)` - 完整检查
-- `test(const Entity& entity, const DamageSource& source)` - 带伤害源的检查
-
-### EntityFlagsPredicate
-
-实体标志匹配条件，检查实体的状态标志：
-
-| 字段 | JSON 键 | 说明 |
-|------|---------|------|
-| 燃烧 | `is_on_fire` | 是否燃烧 |
-| 潜行 | `is_sneaking` | 是否潜行 |
-| 疾跑 | `is_sprinting` | 是否疾跑（仅玩家） |
-| 游泳 | `is_swimming` | 是否游泳（仅玩家） |
-| 幼年 | `is_baby` | 是否幼年 |
-
-### EntityEquipmentPredicate
-
-装备匹配条件，检查实体的装备（仅 `LivingEntity` 有效）：
-
-| 字段 | JSON 键 | 说明 |
-|------|---------|------|
-| 头盔 | `head` | ItemPredicate |
-| 胸甲 | `chest` | ItemPredicate |
-| 护腿 | `legs` | ItemPredicate |
-| 靴子 | `feet` | ItemPredicate |
-| 主手 | `mainhand` | ItemPredicate |
-| 副手 | `offhand` | ItemPredicate |
-
-### NBTPredicate
-
-NBT数据匹配条件，用于匹配实体或物品的NBT数据：
-- 支持实体NBT匹配
-- 支持物品NBT匹配
-- 递归比较NBT标签
-- 期望标签必须是实际标签的子集
-
-### DamageSourcePredicate
-
-伤害源匹配条件（定义在 `EntityPredicate.hpp/cpp` 中）：
-- 投射物标志（is_projectile）- 箭矢、三叉戟等
-- 爆炸标志（is_explosion）- TNT、苦力怕等
-- 火焰标志（is_fire）- 火焰、岩浆等
-- 魔法标志（is_magic）- 药水、凋零等
-- 闪电标志（is_lightning）- 闪电伤害
-- 护甲穿透（bypasses_armor）- 溺水、摔落等
-- 无敌穿透（bypasses_invulnerability）- 虚空伤害
-- 魔法穿透（bypasses_magic）- 饥饿伤害
-
-```cpp
-// JSON 示例
-{
-  "is_fire": true,
-  "bypasses_armor": false
-}
-
-// 代码示例
-auto result = DamageSourcePredicate::fromJson(json);
-if (result.success() && result.value().test(damageSource)) {
-    // 伤害源匹配
-}
-```
-
-**注意**：`EnvironmentalDamage` 的 `isProjectile()` 和 `isExplosion()` 始终返回 false，
-投射物和爆炸伤害需要使用 `EntityDamageSource` 或 `IndirectEntityDamageSource`。
-
-### LocationPredicate
-
-位置匹配条件：
-- 坐标范围
-- 维度
-- 生物群系
-
-### BlockPredicate
-
-方块匹配条件：
-- 方块ID（通过 BlockRegistry 查找）
-- 方块标签（通过 BlockTags 检查）
-- 状态属性（复用 `mc::StatePropertiesPredicate`）
-
-**注意**：BlockPredicate 复用了 `mc::StatePropertiesPredicate`（位于 `common/entity/loot/StatePropertiesPredicate.hpp`）
-来实现状态属性匹配，避免代码重复。该类支持精确匹配和范围匹配。
-
-### FluidPredicate
-
-流体匹配条件（定义在 `BlockPredicate.hpp/cpp` 中）：
-- 流体ID（通过 `Fluid::getFluid()` 获取）
-- 状态属性（复用 `mc::StatePropertiesPredicate`）
-
-流体匹配使用 `Fluid::isEquivalentTo()` 方法比较流体等效性，这意味着：
-- `minecraft:water` 谓词同时匹配水源方块和流动水方块
-- `minecraft:lava` 谓词同时匹配岩浆源方块和流动岩浆方块
-
-```cpp
-// JSON 示例
-{
-    "fluid": "minecraft:water"
-}
-
-// 代码示例
-auto predicate = FluidPredicate::fromJson(json);
-if (predicate.test(blockState)) {
-    // 方块包含水
-}
-```
-
-### MobEffectsPredicate
-
-效果匹配条件（位于 `trigger/conditions/MobEffectsPredicate.hpp/cpp`）：
-- 效果类型（如 `minecraft:speed`）
-- 效果等级范围（amplifier）
-- 持续时间范围（duration）
-- 是否为环境效果（ambient）
-- 是否显示粒子（visible）
-
-```cpp
-// JSON 示例
-{
-    "minecraft:speed": {
-        "amplifier": {"min": 1},
-        "duration": {"min": 200}
-    },
-    "minecraft:regeneration": {}
-}
-
-// 代码示例
-auto result = MobEffectsPredicate::fromJson(json);
-if (result.success() && result.value().test(livingEntity)) {
-    // 实体拥有所需的效果
-}
-```
-
-**注意**：只有 `LivingEntity` 有效果，非 `LivingEntity` 对效果谓词返回 false（除非谓词为空）。
-
-## JSON 格式
-
-成就 JSON 格式示例：
-
-```json
-{
-  "parent": "minecraft:story/root",
-  "display": {
-    "icon": {
-      "item": "minecraft:diamond"
-    },
-    "title": "Diamonds!",
-    "description": "Acquire diamonds",
-    "frame": "task",
-    "show_toast": true,
-    "announce_to_chat": true
-  },
-  "rewards": {
-    "experience": 100
-  },
-  "criteria": {
-    "diamond": {
-      "trigger": "minecraft:inventory_changed",
-      "conditions": {
-        "items": [
-          { "item": "minecraft:diamond" }
-        ]
-      }
-    }
-  },
-  "requirements": [
-    ["diamond"]
-  ]
-}
-```
-
-## 使用示例
-
-### 加载成就
-
-```cpp
-AdvancementLoader loader;
-auto result = loader.loadFromDirectory("data/minecraft/advancements");
-if (result.success()) {
-    spdlog::info("Loaded {} advancements", result.value().successCount);
-}
-```
-
-### 查询成就
-
-```cpp
-auto& manager = AdvancementManager::instance();
-auto advancement = manager.get(ResourceLocation("minecraft:story/mine_stone"));
-if (advancement) {
-    spdlog::info("Found: {}", advancement->getId().toString());
-}
-```
-
-### 进度追踪
-
-```cpp
-AdvancementProgress progress(advancement);
-progress.grantCriterion("diamond");
-if (progress.isDone()) {
-    spdlog::info("Advancement completed!");
-}
-```
-
-## 待实现功能
-
-1. **更多触发器** - LocationTrigger, PlayerKilledEntityTrigger 等
-2. **网络同步** - AdvancementInfoPacket, SeenAdvancementsPacket
-3. **客户端 UI** - AdvancementsScreen, AdvancementToast
-
-## 服务端集成
-
-服务端成就系统位于 `src/server/advancement/`，包含：
-- **PlayerAdvancements** - 玩家成就进度管理
-- **TriggerInstantiation** - 触发器实例化工具
-- **AdvancementEventHandler** - 事件处理器，订阅服务端事件触发成就
-
-详见 `src/server/advancement/README.md`。
-
-## 设计参考
-
-- Minecraft 1.16.5: `net.minecraft.advancements.*`
-- Minecraft Wiki: https://minecraft.fandom.com/wiki/Advancement
+10. **服务端触发路径**：服务端触发成就需通过 `AdvancementEventHandler` 订阅事件，然后调用 `trigger->trigger(*advancements, predicate)`。直接调用触发器不会生效，因为没有监听器上下文。

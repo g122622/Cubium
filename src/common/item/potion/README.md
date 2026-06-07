@@ -1,205 +1,109 @@
 # 药水系统 (Potion System)
 
-## 概述
-
-此模块实现了 Minecraft 1.16.5 的药水系统，包括药水类型、效果、酿造配方等。
+Minecraft 1.16.5 药水系统，包括药水类型定义、注册表、酿造配方和工具类。
 
 ## 目录结构
 
 ```
-src/common/potion/
-├── Potion.hpp/cpp           # 药水类型类
-├── PotionType.hpp           # 药水ID枚举
-├── PotionRegistry.hpp/cpp   # 药水注册表
-├── Potions.hpp/cpp          # 原版药水定义
-├── PotionBrewing.hpp/cpp    # 酿造配方管理
-├── PotionUtils.hpp/cpp      # 药水工具类
-└── README.md                # 本文件
+src/common/item/potion/
+├── Potion.hpp/cpp           # 药水类型类（效果组合）
+├── PotionType.hpp           # 药水ID枚举和前缀类型
+├── PotionRegistry.hpp/cpp   # 药水注册表（单例，管理所有药水类型）
+├── Potions.hpp/cpp          # 原版药水静态引用（便捷访问指针）
+├── PotionBrewing.hpp/cpp    # 酿造配方管理（药水类型转换、容器转换）
+├── PotionUtils.hpp/cpp      # 药水工具类（物品堆操作、颜色计算）
+└── README.md
 ```
 
-## 核心类
+## 内部模块关系
 
-### Potion
-药水类型类，定义一种药水的效果组合。
+```
+PotionType (枚举)
+     ↓
+Potion (药水类型，包含效果列表)
+     ↓
+PotionRegistry (注册表，管理所有药水)
+     ↓
+Potions (静态引用，便捷访问原版药水)
 
-```cpp
-// 创建药水
-Potion nightVision("", {EffectInstance(EffectType::NightVision, 3600)});
+PotionBrewing (酿造配方)
+     ├── PotionMix (药水类型转换配方)
+     └── ItemMix (容器转换配方：药水→喷溅药水→滞留药水)
 
-// 创建延长版药水
-Potion longNightVision("night_vision", {EffectInstance(EffectType::NightVision, 9600)});
-
-// 创建多效果药水
-Potion turtleMaster("turtle_master", {
-    EffectInstance(EffectType::Slowness, 400, 3),
-    EffectInstance(EffectType::Resistance, 400, 2)
-});
+PotionUtils (工具类)
+     ├── 依赖 PotionRegistry
+     └── 依赖 ItemStack NBT 操作
 ```
 
-### PotionRegistry
-药水注册表，管理所有药水类型的注册和查找。
+## 上下游外部依赖关系
 
-```cpp
-// 注册药水
-auto* potion = PotionRegistry::instance().registerPotion(
-    ResourceLocation("minecraft:night_vision"),
-    Potion("", {EffectInstance(EffectType::NightVision, 3600)})
-);
+### 上游依赖（本模块依赖的）
 
-// 通过ID查找药水
-const Potion* potion = PotionRegistry::instance().getPotion(
-    ResourceLocation("minecraft:night_vision")
-);
-```
-
-### Potions
-原版药水静态引用，提供所有原版药水的快速访问。
-
-```cpp
-// 初始化
-Potions::initialize();
-
-// 使用
-const Potion* nightVision = Potions::NIGHT_VISION;
-auto effects = nightVision->effects();
-```
-
-### PotionBrewing
-酿造配方管理，处理药水酿造逻辑。
-
-```cpp
-// 初始化
-PotionBrewing::initialize();
-
-// 检查是否可酿造
-bool can = PotionBrewing::canBrew(potionStack, reagentStack);
-
-// 执行酿造
-ItemStack result = PotionBrewing::brew(potionStack, reagentStack);
-```
-
-### PotionUtils
-药水工具类，提供药水物品操作。
-
-```cpp
-// 获取药水
-const Potion* potion = PotionUtils::getPotion(stack);
-
-// 获取效果（基础效果 + 自定义效果）
-auto effects = PotionUtils::getEffects(stack);
-
-// 获取仅自定义效果
-auto customEffects = PotionUtils::getCustomEffects(stack);
-
-// 设置自定义效果
-std::vector<EffectInstance> effects;
-effects.emplace_back(EffectType::Speed, 600, 0);
-PotionUtils::setCustomEffects(stack, effects);
-
-// 添加单个自定义效果（会自动合并同类型效果）
-EffectInstance speedEffect(EffectType::Speed, 600, 1);
-PotionUtils::addCustomEffect(stack, speedEffect);
-
-// 移除所有自定义效果
-PotionUtils::removeCustomEffects(stack);
-
-// 检查是否有自定义效果
-bool hasCustom = PotionUtils::hasCustomEffects(stack);
-
-// 获取/设置自定义颜色
-auto color = PotionUtils::getCustomPotionColor(stack);
-PotionUtils::setCustomPotionColor(stack, 0xFF00FF00);
-PotionUtils::setCustomPotionColor(stack, std::nullopt);  // 移除自定义颜色
-
-// 获取物品堆的颜色（优先自定义颜色）
-u32 color = PotionUtils::getColor(stack);
-
-// 创建药水物品
-ItemStack potionItem = PotionUtils::createPotionItem(Potions::NIGHT_VISION);
-ItemStack splashItem = PotionUtils::createSplashPotionItem(Potions::HEALING);
-ItemStack lingeringItem = PotionUtils::createLingeringPotionItem(Potions::POISON);
-
-// 获取颜色
-u32 color = PotionUtils::getColor(potion);
-```
-
-### GlassBottleItem
-玻璃瓶会沿玩家视线采样，并优先识别可装瓶的水源方块与已装水的炼药锅；命中后返回水瓶。
-
-## 药水效果持续时间
-
-| 药水类型 | 普通 (tick) | 延长 (tick) | 加强 (tick) |
-|---------|-------------|-------------|-------------|
-| 夜视 | 3600 (3:00) | 9600 (8:00) | - |
-| 隐身 | 3600 | 9600 | - |
-| 跳跃提升 | 3600 | 9600 | 1800 (1:30) |
-| 防火 | 3600 | 9600 | - |
-| 速度 | 3600 | 9600 | 1800 |
-| 缓慢 | 1800 (1:30) | 4800 (4:00) | 400 (0:20) |
-| 水下呼吸 | 3600 | 9600 | - |
-| 中毒 | 900 (0:45) | 1800 (1:30) | 432 (0:21) |
-| 生命恢复 | 900 | 1800 | 450 (0:22) |
-| 力量 | 3600 | 9600 | 1800 |
-| 虚弱 | 1800 | 4800 | - |
-| 缓降 | 1800 | 4800 | - |
-| 海龟大师 | 400 (0:20) | 800 (0:40) | 400 |
-
-## 酿造配方
-
-### 基础药水
-- 水瓶 + 下界疣 → 尴尬的药水
-- 水瓶 + 荧石粉 → 浓稠的药水
-- 水瓶 + 红石 → 平凡的药水
-- 水瓶 + 其他材料 → 平凡的药水
-
-### 效果药水
-从尴尬的药水酿造：
-- 尴尬的药水 + 金胡萝卜 → 夜视药水
-- 夜视药水 + 红石 → 长效夜视药水
-- 夜视药水 + 发酵蛛眼 → 隐身药水
-- 尴尬的药水 + 岩浆膏 → 防火药水
-- 尴尬的药水 + 兔子脚 → 跳跃提升药水
-- 尴尬的药水 + 糖 → 速度药水
-- 尴尬的药水 + 河豚 → 水下呼吸药水
-- 尴尬的药水 + 闪烁的西瓜 → 瞬间治疗药水
-- 尴尬的药水 + 蜘蛛眼 → 中毒药水
-- 尴尬的药水 + 恶魂之泪 → 生命恢复药水
-- 尴尬的药水 + 烈焰粉 → 力量药水
-- 尴尬的药水 + 幻翼膜 → 缓降药水
-
-### 升级
-- 任意药水 + 红石 → 延长版
-- 任意药水 + 荧石粉 → 加强版（不适用于所有药水）
-
-### 容器转换
-- 药水 + 火药 → 喷溅药水
-- 喷溅药水 + 龙息 → 滞留药水
-- 玻璃瓶 + 水源/装水炼药锅 → 水瓶
-
-## 与外部系统的集成
-
-### 物品系统
-- `PotionItem`: 普通药水物品
-- `SplashPotionItem`: 喷溅药水物品
-- `LingeringPotionItem`: 滞留药水物品
-- `GlassBottleItem`: 玻璃瓶物品
-
-### 方块实体
-- `BrewingStandEntity`: 酿造台方块实体
-
-### 效果系统
-- `EffectInstance`: 效果实例类
-- `EffectType`: 效果类型枚举
-
-## 参考
-- net.minecraft.potion.Potion
-- net.minecraft.potion.Potions
-- net.minecraft.potion.PotionBrewing
-- net.minecraft.potion.PotionUtils
-
-## 测试用例
-
-| 文件 | 说明 |
+| 模块 | 用途 |
 |------|------|
-| `tests/common/item/potion/GlassBottleItemTest.cpp` | 验证玻璃瓶对水源和炼药锅的装水逻辑 |
-| `tests/common/item/potion/PotionUtilsTest.cpp` | 验证药水工具类的自定义效果、颜色等功能 |
+| `entity/effect/EffectInstance` | 药水效果实例 |
+| `entity/effect/EffectType` | 效果类型枚举 |
+| `item/core/ItemStack` | 物品堆（药水物品存储） |
+| `item/crafting/Ingredient` | 酿造材料匹配 |
+| `resource/ResourceLocation` | 资源位置 ID |
+| `core/Types.hpp` | 基础类型（PotionId 枚举定义） |
+
+### 下游依赖（依赖本模块的）
+
+| 模块 | 用途 |
+|------|------|
+| `item/items/potion/` | 药水物品实现（PotionItem、SplashPotionItem、LingeringPotionItem、GlassBottleItem） |
+| `item/Items.cpp` | 原版物品注册 |
+| `world/blockentity/BrewingStandEntity` | 酿造台方块实体 |
+| `entity/inventory/container/BrewingStandContainer` | 酿造台容器 |
+| `world/block/CauldronBlock` | 炼药锅（装水瓶） |
+| `world/block/dispense/DispenseItemBehaviorRegistry` | 发射器行为（喷溅药水） |
+| `item/items/weapon/TippedArrowItem` | 药水箭 |
+| `item/crafting/special/TippedArrowRecipe` | 药水箭配方 |
+| `entity/entities/projectile/ProjectileItemEntity` | 投掷药水实体 |
+| `entity/entities/monster/illager/WitchEntity` | 女巫（使用药水） |
+| `advancement/trigger/conditions/ItemPredicate` | 物品谓词（药水匹配） |
+
+## 容易踩的坑
+
+### 1. PotionRegistry 指针稳定性
+
+**问题**：`PotionRegistry` 使用 `unique_ptr` 存储药水对象，确保指针稳定。但不要存储裸指针到本地变量长期持有，注册新药水可能改变内部结构。
+
+**解决方案**：使用 `Potions::XXX` 静态引用或每次从注册表获取。
+
+### 2. PotionUtils 颜色计算
+
+**问题**：药水颜色有两种来源——药水效果计算的颜色和 `CustomPotionColor` 标签设置的自定义颜色。
+
+**解决方案**：`PotionUtils::getColor(stack)` 会优先使用自定义颜色，没有自定义颜色才计算效果颜色平均值。
+
+### 3. PotionBrewing 初始化顺序
+
+**问题**：`PotionBrewing::initialize()` 必须在 `Potions::initialize()` 之后调用，否则配方中的药水指针为空。
+
+**解决方案**：确保初始化顺序为 `Potions::initialize()` → `PotionBrewing::initialize()`。
+
+### 4. 酿造配方中的 Ingredient 依赖
+
+**问题**：`PotionBrewing` 的配方使用 `Ingredient` 匹配材料，依赖物品注册完成。
+
+**解决方案**：酿造配方注册必须在 `Items::initialize()` 之后。
+
+### 5. 自定义效果的合并规则
+
+**问题**：`PotionUtils::addCustomEffect()` 添加效果时会合并同类型效果（取较强者），不会简单叠加。
+
+**解决方案**：如需强制覆盖，先用 `removeCustomEffects()` 清除再添加，或使用 `setCustomEffects()` 替换全部。
+
+### 6. 瞬间药水的特殊处理
+
+**问题**：瞬间治疗、瞬间伤害等瞬间药水的 `hasInstantEffect()` 返回 true，喷溅药水和滞留药水的处理逻辑不同。
+
+**解决方案**：`PotionEntity` 需要根据 `hasInstantEffect()` 区分瞬间效果和持续效果的应用方式。
+
+### 7. 玻璃瓶装水检测
+
+**问题**：`GlassBottleItem` 需要检测水源方块和装水的炼药锅，液体方块没有碰撞形状。
+
+**解决方案**：通过流体状态检测（`Fluids::WATER` 且 `level == 0`），而非碰撞检测。详见 `items/potion/README.md`。

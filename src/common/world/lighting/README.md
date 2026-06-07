@@ -6,168 +6,60 @@
 
 ```
 lighting/
-├── LightType.hpp                 # 光源类型枚举
-├── IChunkLightProvider.hpp       # 区块光照提供者接口
-├── InternalLightUtils.hpp/cpp    # 内部光照工具函数
+├── LightType.hpp                 # 光源类型枚举（Sky/Block）
+├── IChunkLightProvider.hpp       # 区块光照提供者接口（ServerWorld/ClientWorld 实现）
+├── InternalLightUtils.hpp/cpp    # 内部光照工具函数（天体角度、天空减暗、月相等）
 ├── engine/                       # 光照引擎
-│   ├── LightEngineUtils.hpp/cpp  # 光照引擎工具
-│   ├── BaseLightEngine.hpp/cpp   # 光照引擎基类
-│   ├── BlockLightEngine.hpp/cpp  # 方块光引擎
-│   └── SkyLightEngine.hpp/cpp    # 天空光引擎
+│   ├── LightEngineUtils.hpp/cpp  # 光照引擎工具（坐标转换、方向枚举等）
+│   ├── BaseLightEngine.hpp/cpp   # 光照引擎基类（StarLightEngine，FIFO 波前传播）
+│   ├── BlockLightEngine.hpp/cpp  # 方块光引擎（发光方块传播）
+│   └── SkyLightEngine.hpp/cpp    # 天空光引擎（天空光向下传播）
 ├── manager/                      # 光照管理
-│   └── WorldLightManager.hpp/cpp # 世界光照管理器
+│   └── WorldLightManager.hpp/cpp # 世界光照管理器（协调双引擎）
 └── storage/                      # 光照存储
-    ├── SWMRNibbleArray.hpp/cpp   # 单写多读 Nibble 数组
-    └── EmptinessMap.hpp/cpp      # 空隙图
+    ├── SWMRNibbleArray.hpp/cpp   # 单写多读 Nibble 数组（支持 Copy-on-Write）
+    └── EmptinessMap.hpp/cpp      # 空隙图（优化空区块段检测）
 ```
 
 ---
 
-## 模块详解
+## 内部模块关系
 
-### 1. 光源类型 (`LightType.hpp`)
-
-定义两种光源类型：
-
-```cpp
-enum class LightType : u8 {
-    Sky = 0,    // 天空光（来自太阳/月亮）
-    Block = 1   // 方块光（来自发光方块）
-};
 ```
+WorldLightManager
+    ├── BlockStarLightEngine (方块光引擎)
+    │       └── StarLightEngine (基类)
+    │               └── LightEngineUtils (工具函数)
+    └── SkyStarLightEngine (天空光引擎)
+            └── StarLightEngine (基类)
+                    └── LightEngineUtils (工具函数)
 
-### 2. 光照引擎基类 (`BaseLightEngine`)
+StarLightEngine (基类)
+    ├── SWMRNibbleArray (光照数据存储)
+    └── EmptinessMap (空隙图)
 
-实现光照传播的核心算法：
-
-- **FIFO 波前传播**：使用队列进行广度优先传播
-- **级别存储**：天空光使用反转级别（0 = 最亮，15 = 最暗）
-- **增量更新**：支持单个方块变更后的局部重算
-
-### 3. 方块光引擎 (`BlockLightEngine`)
-
-处理发光方块（火把、岩浆等）产生的光照：
-
-- 从光源向外传播，亮度逐级衰减
-- 不透明方块阻挡光线
-- 支持动态光源更新
-
-### 4. 天空光引擎 (`SkyLightEngine`)
-
-处理来自天空的光照：
-
-- 从天空向下传播
-- 受不透明方块遮挡
-- 使用"最低 Y"优化减少传播计算
-
-### 5. 世界光照管理器 (`WorldLightManager`)
-
-协调天空光和方块光引擎：
-
-```cpp
-WorldLightManager lightManager(provider, hasBlockLight, hasSkyLight);
-
-// 方块变更时触发重算
-lightManager.checkBlock(pos);
-
-// 每 tick 处理光照更新
-lightManager.tick(maxUpdates, updateSky, updateBlock);
+InternalLightUtils (独立工具模块，无依赖其他 lighting 模块)
 ```
-
-### 6. 光照存储 (`SWMRNibbleArray`)
-
-单写多读的 Nibble 数组：
-
-- 4 位值存储（0-15 光照等级）
-- 线程安全的读取
-- 写入需要同步
 
 ---
 
-## 整体职责
+## 上下游外部依赖关系
 
-本模块负责 Minecraft 世界的光照计算：
+### 本模块依赖的外部模块
 
-1. **光照传播**：从光源向外传播光照
-2. **增量更新**：方块变更后局部重算
-3. **多线程支持**：读取可在任意线程进行
-4. **性能优化**：预算控制、传播限制
+- `common/world/chunk/ChunkData.hpp` - 区块数据（IChunk、ChunkSection）
+- `common/world/block/BlockState.hpp` - 方块状态查询
+- `common/world/block/Block.hpp` - 方块发光等级、透明度查询
+- `common/util/NibbleArray.hpp` - 基础 4 位数组
+- `common/core/Constants.hpp` - 世界高度常量（MIN_BUILD_HEIGHT、MAX_BUILD_HEIGHT 等）
 
----
+### 依赖本模块的外部模块
 
-## 输入和输出
-
-### 输入
-
-| 输入项 | 类型 | 来源 | 说明 |
-|--------|------|------|------|
-| 方块变更 | `BlockPos` | 世界管理器 | 触发光照更新 |
-| 光照预算 | `i32` | 游戏循环 | 每 tick 最大更新数 |
-| 区块数据 | `ChunkData` | 区块管理器 | 方块状态查询 |
-
-### 输出
-
-| 输出项 | 类型 | 目标 | 说明 |
-|--------|------|------|------|
-| 天空光 | `NibbleArray` | 区块数据 | 天空光照等级 |
-| 方块光 | `NibbleArray` | 区块数据 | 方块光照等级 |
-| 更新计数 | `i32` | 统计 | 本 tick 处理的更新数 |
-
----
-
-## 依赖项
-
-### 内部依赖
-
-- `common/world/chunk/ChunkData.hpp` - 区块数据
-- `common/world/block/BlockState.hpp` - 方块状态
-- `common/util/NibbleArray.hpp` - 4 位数组
-
-### 外部依赖
-
-- `spdlog` - 日志
-- 标准库
-
----
-
-## 使用方法
-
-### 初始化光照管理器
-
-```cpp
-#include "lighting/manager/WorldLightManager.hpp"
-
-// 创建光照管理器
-mc::world::lighting::WorldLightManager lightManager(
-    chunkProvider,
-    true,   // 启用方块光
-    true    // 启用天空光
-);
-```
-
-### 处理方块变更
-
-```cpp
-// 当方块变更时
-lightManager.checkBlock(pos);
-
-// 每 tick 处理更新
-void tick() {
-    lightManager.tick(
-        500,   // maxUpdates: 每 tick 最大更新数
-        true,  // updateSky: 更新天空光
-        true   // updateBlock: 更新方块光
-    );
-}
-```
-
-### 查询光照等级
-
-```cpp
-// 通过区块数据查询
-u8 skyLight = chunkData->getSkyLight(x, y, z);
-u8 blockLight = chunkData->getBlockLight(x, y, z);
-```
+- `common/world/IWorld.hpp` - 使用 `InternalLightUtils::calculateSkyDarkening()` 计算天空减暗
+- `common/world/dimension/Dimension.hpp` - 持有 `WorldLightManager` 实例
+- `common/world/block/blocks/mob/TurtleEggBlock.cpp` - 使用 `getCelestialAngleMC()` 判断黎明
+- `common/world/block/blocks/redstone/DaylightDetectorBlock.cpp` - 使用天体角度计算日光探测器输出
+- `client/renderer/trident/entity/util/ShadowRenderer.cpp` - 使用天体角度计算阴影
 
 ---
 
@@ -183,7 +75,7 @@ u8 blockLight = chunkData->getBlockLight(x, y, z);
 
 **问题**：使用 LIFO（后进先出）处理光照队列会导致复杂遮挡下的振荡和延迟收敛。
 
-**解决**：`BaseLightEngine` 队列处理必须使用 FIFO（先进先出）。不要切换回 LIFO（`--length` 弹出末尾）。
+**解决**：`StarLightEngine` 队列处理必须使用 FIFO（先进先出）。不要切换回 LIFO（`--length` 弹出末尾）。
 
 ### 3. 未初始化区块的光照引导
 
@@ -233,7 +125,7 @@ u8 blockLight = chunkData->getBlockLight(x, y, z);
 
 ### 10. 队列条目坐标
 
-**问题**：旧的 BaseLightEngine 队列使用 6 位 X/Z 截断，在远离原点时会导致天空/方块光严重不同步。
+**问题**：旧的队列使用 6 位 X/Z 截断，在远离原点时会导致天空/方块光严重不同步。
 
 **解决**：光照队列条目现在携带完整的世界坐标；不要重新引入截断坐标的旧语义。
 
@@ -241,19 +133,19 @@ u8 blockLight = chunkData->getBlockLight(x, y, z);
 
 **问题**：将客户端光包视为立即网格重建触发器，会导致重复的网格重建任务。
 
-**解决**：`ClientWorld` 现在使用 `meshRebuildPending` 来合并同一区块的重复 `onLightUpdate()` 调用，而任务仍处于活动状态。
+**解决**：`ClientWorld` 使用 `meshRebuildPending` 合并同一区块的重复 `onLightUpdate()` 调用。
 
 ### 12. WorldLightManager tick 预算消耗
 
 **问题**：天空光和方块光预算分配不当会导致某一类更新饥饿。
 
-**解决**：`WorldLightManager::tick(...)` 现在依赖有序的预算消耗。除非重新设计预算模型并匹配测试，否则不要恢复之前的五五开分配。
+**解决**：`tick(...)` 依赖有序的预算消耗，不要恢复五五开分配。
 
 ### 13. BlockPos 包装器重载
 
 **问题**：在 `WorldLightManager` 方块更新或光照查询入口点上重新引入 `BlockPos` 包装器重载，会导致接口膨胀。
 
-**解决**：原始坐标现在是光照调度的规范接口。不要添加 `BlockPos` 重载。
+**解决**：原始坐标现在是光照调度的规范接口，不要添加 `BlockPos` 重载。
 
 ### 14. 测试未初始化世界
 
@@ -261,66 +153,11 @@ u8 blockLight = chunkData->getBlockLight(x, y, z);
 
 **解决**：测试前先初始化世界。
 
----
+### 15. 两种天体角度函数
 
-## 涉及的测试用例
+`InternalLightUtils` 提供两种天体角度计算，用途不同：
 
-| 测试文件 | 测试内容 |
-|----------|----------|
-| `tests/common/world/lighting/InternalLightUtilsTest.cpp` | 内部光照工具测试（天体角度、天空减暗、月相等） |
-| `LightEngineTest.cpp` | 光照传播基础测试 |
-| `SkyLightTest.cpp` | 天空光传播测试 |
-| `BlockLightTest.cpp` | 方块光传播测试 |
+- `getCelestialAngle()` - 简化线性映射，用于光照计算
+- `getCelestialAngleMC()` - MC 1.16.5 原版公式，用于游戏机制（如海龟蛋孵化判断黎明）
 
----
-
-## 天体角度计算
-
-### 两种天体角度函数
-
-项目中提供了两种天体角度计算函数，用于不同的场景：
-
-#### 1. `getCelestialAngle()` - 简化版本
-
-线性映射，用于光照计算：
-- `dayTime = 0` (日出) → `angle = 0.0`
-- `dayTime = 6000` (正午) → `angle = 0.25`
-- `dayTime = 12000` (日落) → `angle = 0.5`
-- `dayTime = 18000` (午夜) → `angle = 0.75`
-
-#### 2. `getCelestialAngleMC()` - MC 1.16.5 原版公式
-
-使用原版公式，用于游戏机制：
-- `dayTime = 0` (日出) → `angle ≈ 0.75`
-- `dayTime = 6000` (正午) → `angle = 0.0`
-- `dayTime = 12000` (日落) → `angle ≈ 0.25`
-- `dayTime = 18000` (午夜) → `angle = 0.5`
-- `dayTime = 22000-22600` (黎明) → `angle ≈ 0.65-0.69`
-
-**MC 1.16.5 公式** (参考 `DimensionType.func_236032_b_()`):
-```
-d0 = frac(dayTime / 24000.0 - 0.25)
-d1 = 0.5 - cos(d0 * π) / 2.0
-result = (d0 * 2.0 + d1) / 3.0
-```
-
-**使用场景**：
-- 海龟蛋孵化 (`TurtleEggBlock::canGrow()`)：检查天体角度是否在 0.65-0.69 范围内（黎明时分）
-- 村庄围攻 (`VillageSiege::isMidnight()`)：检查 `dayTime == 18000`（午夜）
-- 日光探测器 (`DaylightDetectorBlock`)：使用天体角度计算输出信号
-
----
-
-## 参考资料
-
-- Minecraft 1.16.5 源码：`D:\Minecraft\MC研究\Minecraft1.21.11源码\net\minecraft\world\light`
-- Starlight 光照引擎优化
-- MC Wiki 光照：https://minecraft.fandom.com/wiki/Light
-
----
-
-## 版本历史
-
-| 版本 | 日期 | 变更 |
-|------|------|------|
-| 1.0.0 | 2025-04 | 初始版本，实现 Starlight 风格光照引擎 |
+**坑**：两者返回值在相同 `dayTime` 下不同，使用时需确认场景。

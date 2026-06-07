@@ -1,125 +1,83 @@
 # 泥土方块模块 (Dirt Blocks)
 
-泥土方块模块提供各种泥土类方块的实现。
+泥土方块模块提供各种泥土类方块的实现，主要是可蔓延的雪覆盖泥土基类及其子类。
 
 ## 目录结构
 
 ```
 dirt/
-├── README.md                   # 本文档
-├── SpreadableSnowyDirtBlock.hpp/cpp  # 可蔓延泥土基类
+├── README.md                        # 本文档
+├── SpreadableSnowyDirtBlock.hpp     # 可蔓延泥土基类定义（草方块、菌丝的基类）
+└── SpreadableSnowyDirtBlock.cpp     # 可蔓延泥土基类实现
 ```
 
-## 类层次结构
+## 内部模块关系
 
 ```
 Block
-└── SpreadableSnowyDirtBlock   # 可蔓延的雪覆盖泥土基类（带 SNOWY 属性）
-    ├── GrassBlock             # 草方块（蔓延和退化机制）
-    └── MyceliumBlock           # 菌丝方块（蔓延和退化机制）
+└── SpreadableSnowyDirtBlock         # 可蔓延的雪覆盖泥土基类（带 SNOWY 属性）
+    ├── GrassBlock                   # 草方块（蔓延和退化机制）
+    └── MyceliumBlock                # 菌丝方块（蔓延和退化机制）
 ```
 
-## 核心机制
+**SpreadableSnowyDirtBlock 核心职责**：
+- 管理 SNOWY 属性（表示顶部是否覆盖雪）
+- 实现蔓延机制（光照充足时向周围泥土蔓延）
+- 实现退化机制（光照不足时退化成泥土）
 
-### SNOWY 属性
+**子类差异**：GrassBlock 和 MyceliumBlock 仅在构造函数传入不同的 BlockProperties，核心逻辑完全继承自基类。
 
-SpreadableSnowyDirtBlock 实现了 MC 1.16.5 的 SNOWY 属性：
+## 上下游外部依赖关系
 
-- **属性定义**: `BlockStateProperties::SNOWY()` - 布尔属性，表示顶部是否覆盖雪
-- **默认值**: `false` - 默认无雪
+### 上游依赖
 
-#### 属性更新时机
+| 依赖 | 用途 |
+|------|------|
+| `world/block/Block` | 方块基类 |
+| `world/IWorld` | 世界接口（获取方块状态、光照、设置方块） |
+| `world/block/BlockRegistry` | 方块注册表（获取 DIRT 方块） |
+| `world/block/blocks/ice/SnowBlock` | 雪层方块（用于 LAYERS 属性检查） |
+| `world/fluid/Fluid` | 流体系统（检测水源） |
+| `world/lighting/engine/LightEngineUtils` | 光照引擎工具 |
+| `util/property/Properties.hpp` | SNOWY 属性定义 |
+| `util/Direction.hpp` | 方向定义 |
+| `item/context/BlockItemUseContext.hpp` | 放置上下文 |
+| `common/world/block/registry/VanillaBlocks.hpp` | 原版方块引用（DIRT, SNOW, SNOW_BLOCK） |
 
-1. **放置时** (`getStateForPlacement`):
-   - 检查放置位置上方是否有雪块 (`SNOW_BLOCK`) 或雪层 (`SNOW`)
-   - 如果有则设置 `SNOWY = true`
+### 下游依赖
 
-2. **邻居更新时** (`updatePostPlacement`):
-   - 只有上方 (`Direction::Up`) 方块变化时才更新
-   - 检查上方是否为雪块或雪层（任意层数）
-   - 更新 SNOWY 属性以反映当前状态
+| 模块 | 用途 |
+|------|------|
+| `VanillaBlocks` | 注册 GRASS_BLOCK、MYCELIUM 方块 |
+| 世界生成 | 草方块和菌丝的生物群系生成 |
+| 渲染系统 | 草方块和菌丝的模型渲染（SNOWY 属性影响纹理） |
 
-3. **蔓延时** (`randomTick`):
-   - 当草方块蔓延到目标泥土位置时
-   - 检查目标位置上方是否有雪层 (`SNOW`)
-   - 注意：蔓延时只检查雪层，不检查雪块（与 MC 1.16.5 一致）
+## 容易踩的坑
 
-### 蔓延和退化
+### 1. SNOWY 属性更新时机
 
-SpreadableSnowyDirtBlock 实现了 MC 1.16.5 的蔓延和退化机制：
+SNOWY 属性有三个更新时机，逻辑各有不同：
+- **放置时**：检查 SNOW_BLOCK 或 SNOW（任意层数）
+- **邻居更新时**：只响应上方方块变化，检查 SNOW_BLOCK 或 SNOW
+- **蔓延时**：只检查 SNOW（雪层），不检查 SNOW_BLOCK
 
-1. **退化条件**：当上方光照不足或被非雪方块遮挡时，退化成泥土
-2. **蔓延条件**：当光照 >= 9 且上方无水源时，向周围泥土蔓延
+这个差异是 MC 1.16.5 的原版行为，蔓延时雪块下方不会设置 SNOWY=true。
 
-### 光照检测
+### 2. 蔓延目标位置的水源检测
 
-- 使用 `getSkyLight()` 和 `getBlockLight()` 计算综合光照
-- 检查上方是否有雪层且层数为 1（`LAYERS == 1`）
-- 检查上方是否有完整水源（level == 8）
+`isSnowyAndNotUnderwater()` 检查目标位置上方是否有流体，有流体则不蔓延。这是防止草方块在水下蔓延的机制。
 
-### isSnowyConditions 详细逻辑
+### 3. 单层雪的光照条件判断
 
-参考 MC 1.16.5 `SpreadableSnowyDirtBlock.isSnowyConditions()`:
+`isSnowyConditions()` 对单层雪（LAYERS == 1）直接返回 true，跳过光照检测。只有多层雪才会进入光照检查逻辑。
 
-1. **单层雪**: 如果上方是雪层且只有 1 层 (`LAYERS == 1`)，直接返回 `true`
-2. **满水流**: 如果上方是满水流 (`fluidState.getLevel() == 8`)，返回 `false`
-3. **光照检查**: 计算上方光照，如果光照 < 15 则满足条件
+### 4. 蔓延随机范围
 
-## 使用方法
+蔓延时偏移范围为：dx/dz ∈ [-1, 1]，dy ∈ [-3, 1]。这意味着草方块可以向下蔓延最多3格，向上蔓延最多1格。
 
-### 创建草方块
+### 5. 蔓延光照阈值硬编码
 
-```cpp
-auto grassBlock = std::make_unique<GrassBlock>(
-    BlockProperties(Material::EARTH())
-        .hardness(0.6f)
-        .ticksRandomly()
-);
-```
-
-### 创建菌丝
-
-```cpp
-auto mycelium = std::make_unique<MyceliumBlock>(
-    BlockProperties(Materials::EARTH())
-        .hardness(0.6f)
-        .ticksRandomly()
-);
-```
-
-### 检查 SNOWY 属性
-
-```cpp
-#include "world/block/blocks/dirt/SpreadableSnowyDirtBlock.hpp"
-
-// 检查方块是否积雪
-bool isSnowy = state.get(SpreadableSnowyDirtBlock::SNOWY());
-
-// 设置 SNOWY 属性
-const BlockState& newState = state.with(SpreadableSnowyDirtBlock::SNOWY(), true);
-```
-
-## 方块 ID 映射
-
-| 方块 | MC ID |
-|------|-------|
-| GrassBlock | minecraft:grass_block |
-| MyceliumBlock | minecraft:mycelium |
-
-## 状态数量
-
-每个子类有 2 个状态（`SNOWY` 为布尔属性）：
-- `snowy=false` - 无雪状态
-- `snowy=true` - 积雪状态
-
-## 依赖项
-
-- `world/block/Block` - 方块基类
-- `world/IWorld` - 世界接口
-- `world/block/BlockRegistry` - 方块注册表
-- `world/block/blocks/ice/SnowBlock` - 雪层方块（用于 LAYERS 属性检查）
-- `util/property/Properties.hpp` - SNOWY 属性定义
-- `item/context/BlockItemUseContext.hpp` - 放置上下文
+当前蔓延光照阈值（>= 9）和流体源等级（== 8）为硬编码值，后续需要替换为常量。相关代码中有 TODO 注释。
 
 ## 参考文档
 

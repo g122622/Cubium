@@ -1,127 +1,62 @@
 # texture/ - 纹理模块
 
-纹理模块负责纹理图集、动画精灵和纹理上传管理。
+纹理模块负责 Vulkan 纹理创建、纹理图集和动画精灵管理。
 
 ## 目录结构
 
-```text
+```
 texture/
-├── TridentTexture.hpp/cpp       # Vulkan 纹理封装
-├── TridentTextureAtlas.hpp/cpp  # 纹理图集
-├── AnimatedSprite.hpp/cpp       # 动画精灵
-├── TextureAtlasTicker.hpp/cpp   # 动画更新管理器
+├── TridentTexture.hpp/cpp       # Vulkan 纹理和纹理图集实现
+├── AnimatedSprite.hpp/cpp       # 动画精灵（帧动画管理）
+├── TextureAtlasTicker.hpp/cpp   # 动画精灵更新管理器
 └── README.md                     # 本文件
 ```
 
-## 动画系统架构
+## 内部模块关系
 
-### AnimatedSprite
+```
+TridentTexture（Vulkan 纹理封装，实现 ITexture 接口）
+├── 图像创建/销毁（VkImage/VkImageView/VkSampler）
+├── 数据上传（upload/uploadRegion）
+└── 布局转换和 mipmap 生成
 
-管理单张动画纹理的帧数据和播放状态。
+TridentTextureAtlas（纹理图集）
+├── 持有一个 TridentTexture
+├── 提供瓦片级别的区域查询（getRegion）
+└── 支持子区域上传（uploadRegion，用于动画帧更新）
 
-**MC 1.16.5 对齐要点**：
+AnimatedSprite（动画精灵）
+├── 依赖 AnimationMetadata（来自 resource/metadata）
+├── 管理帧数据和播放状态
+└── 上传帧数据到图集（uploadCurrentFrame）
 
-1. **帧切换逻辑**（参考 `TextureAtlasSprite.updateAnimation()`）：
-   - `++tickCounter`，检查是否 `>= frameTime`
-   - 切换帧：`frameCounter = (frameCounter + 1) % frameCount`
-   - 重置 `tickCounter = 0`
-   - 只有帧索引变化时才标记 `needsUpload = true`
-
-2. **插值模式**：
-   - 如果 `interpolate = true`，每个 tick 都需要上传插值帧
-   - 插值公式：`mix(ratio, currentColor, nextColor)`
-
-### TextureAtlasTicker
-
-管理所有动画精灵，在游戏 tick 中更新动画状态。
-
-**使用方式**：
-```cpp
-// 每游戏 tick 调用
-textureAtlasTicker.tick();
-
-// 渲染前上传待更新帧
-textureAtlasTicker.uploadPendingFrames(context, atlas);
+TextureAtlasTicker（动画管理器）
+├── 持有多个 AnimatedSprite 共享指针
+├── 每 tick 更新动画状态
+└── 批量上传待更新帧到图集
 ```
 
-### AnimationMetadata
+## 上下游外部依赖关系
 
-解析 `.mcmeta` 文件中的动画配置。
+**上游依赖（本模块依赖）：**
+- `api/ITexture`、`api/ITextureAtlas` - 平台无关的渲染抽象接口
+- `common/resource/metadata/AnimationMetadata` - 动画元数据解析
+- `common/core/Result` - 错误处理
+- Vulkan SDK - 图形 API
 
-**字段映射**：
-| mcmeta 字段 | C++ 字段 | 说明 |
-|------------|----------|------|
-| `frametime` | `frametime` | 默认帧时间（tick） |
-| `width` | `width` | 帧宽度（-1 = 自动检测） |
-| `height` | `height` | 帧高度（-1 = 自动检测） |
-| `interpolate` | `interpolate` | 是否启用帧间插值 |
-| `frames[]` | `frames` | 自定义帧序列 |
+**下游依赖（被谁使用）：**
+- `TridentEngine` - 持有 `TextureAtlasTicker` 实例管理方块/物品图集动画
+- `TextureAtlasBuilder` - 构建图集后生成 `AnimationDescriptor`，用于创建 `AnimatedSprite`
+- `BlockEntityRenderer` - 使用纹理相关功能
 
-**自动帧尺寸计算**：
-- 如果 width 和 height 都为 -1，使用 `min(imageWidth, imageHeight)`
-- 参考 MC 1.16.5 `AnimationMetadataSection.getFrameSize()`
+## 容易踩的坑
 
-## 与 MC 1.16.5 的对齐验证
+1. **动画纹理生命周期**：动画纹理需要在主线程每 tick 调用 `TextureAtlasTicker::tick()` 更新帧状态，在渲染前调用 `uploadPendingFrames()` 上传到 GPU。如果忘记调用会导致动画卡住或闪烁。
 
-| 功能 | MC 1.16.5 实现 | 当前实现 | 状态 |
-|------|----------------|----------|------|
-| 帧计数器递增 | `frameCounter = (frameCounter + 1) % j` | ✅ 一致 | ✅ |
-| 帧时间获取 | `getFrameTimeSingle(frameCounter)` | ✅ 一致 | ✅ |
-| 插值帧上传 | `InterpolationData.uploadInterpolated()` | ✅ 已实现 | ✅ |
-| 纹理子区域上传 | `uploadTextureSub()` | ✅ 已实现 | ✅ |
+2. **纹理子区域上传**：`uploadRegion()` 的 `rowLength` 参数用于精灵表场景，0 表示紧密排列。如果源数据行长度与目标区域宽度不同，必须正确设置，否则会出现纹理错位。
 
-## TridentTexture 和 TridentTextureAtlas
+3. **插值模式性能开销**：启用 `interpolate = true` 时，每个 tick 都需要上传插值帧，GPU 计算开销也会增加。对性能敏感场景慎用。
 
-### 纹理子区域上传
+4. **图集尺寸限制**：`TridentTextureAtlas` 创建时指定的 `tileSize` 必须与实际纹理瓦片尺寸匹配，否则 `getRegion()` 返回的 UV 坐标会出错。
 
-参考 MC 1.16.5 `TextureAtlasSprite.uploadFrames()` 和 `NativeImage.uploadTextureSub()`，实现了纹理子区域上传功能：
-
-**TridentTexture::uploadRegion()**：
-```cpp
-Result<void> uploadRegion(const void* data, u64 size,
-    u32 offsetX, u32 offsetY, u32 width, u32 height,
-    u32 level = 0, u32 rowLength = 0);
-```
-
-**TridentTextureAtlas::uploadRegion()**：
-```cpp
-Result<void> uploadRegion(const void* data, u64 size,
-    u32 offsetX, u32 offsetY, u32 width, u32 height,
-    u32 rowLength = 0);
-```
-
-**参数说明**：
-| 参数 | 说明 |
-|------|------|
-| `offsetX`, `offsetY` | 目标区域在纹理/图集中的偏移（像素） |
-| `width`, `height` | 上传区域尺寸（像素） |
-| `rowLength` | 源数据行长度（像素），0 表示紧密排列，用于精灵表场景 |
-
-**实现细节**：
-1. 使用 `vkCmdCopyBufferToImage` 上传数据到纹理子区域
-2. 通过 `VkBufferImageCopy.imageOffset` 和 `imageExtent` 指定目标区域
-3. `bufferRowLength` 参数对应 OpenGL 的 `GL_UNPACK_ROW_LENGTH`
-4. 正确处理图像布局转换（SHADER_READ_ONLY ↔ TRANSFER_DST）
-5. 完整的边界验证确保上传区域不超出纹理范围
-
-**使用示例**（动画纹理帧更新）：
-```cpp
-// AnimatedSprite::uploadFrame() 实现
-Result<void> AnimatedSprite::uploadFrame(TridentContext* context,
-    TridentTextureAtlas& atlas, const FrameData& frame)
-{
-    // 验证帧数据
-    // ...
-
-    // 上传帧数据到图集的指定位置
-    return atlas.uploadRegion(frame.pixels.data(), frame.pixels.size(),
-        m_atlasX, m_atlasY, m_frameWidth, m_frameHeight, 0);
-}
-```
-
-## 测试覆盖
-
-动画元数据解析和帧切换逻辑需要单元测试覆盖：
-- `AnimationMetadata.fromJson()` 解析测试
-- `AnimatedSprite.tick()` 帧切换测试
-- `AnimatedSprite.getInterpolatedFrame()` 插值测试
+5. **线程安全**：`AnimatedSprite` 和 `TextureAtlasTicker` 不是线程安全的。`tick()` 应在主线程调用，`uploadCurrentFrame()` 和 `uploadPendingFrames()` 应在渲染线程调用。

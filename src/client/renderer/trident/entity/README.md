@@ -6,276 +6,168 @@
 
 ```
 entity/
-├── core/                   # 核心渲染器
-│   ├── IEntityRenderer.hpp # 实体渲染器接口
-│   ├── EntityRenderer.hpp  # 实体渲染器基类
-│   ├── LivingRenderer.hpp  # 生物渲染器模板
-│   ├── EntityRendererManager.hpp # 渲染器管理器
-│   └── AgeableModel.hpp    # 可成长模型基类
-├── pipeline/               # 渲染管线
-│   ├── EntityPipeline.hpp  # Vulkan渲染管线
-│   └── EntityTextureAtlas.hpp # 实体纹理图集
-├── util/                   # 工具类
-│   ├── ShadowRenderer.hpp  # 阴影渲染器
-│   └── NameTagRenderer.hpp # 名称标签渲染器
-├── renderer/               # 具体渲染器
-│   ├── animal/             # 动物渲染器
-│   ├── monster/            # 怪物渲染器
-│   ├── player/             # 玩家渲染器
-│   ├── projectile/         # 投掷物渲染器
-│   └── vehicle/            # 载具渲染器
-├── model/                  # 模型系统
-│   ├── core/               # 模型核心
-│   ├── base/               # 基础模型
-│   ├── player/             # 玩家模型
-│   ├── animal/             # 动物模型
-│   ├── monster/            # 怪物模型
-│   ├── projectile/         # 投掷物模型
-│   └── vehicle/            # 载具模型
-├── layer/                  # 层渲染器系统
-│   ├── core/               # 层渲染器核心
-│   ├── equipment/          # 装备层
-│   ├── cosmetic/           # 外观层
-│   ├── entity/             # 实体特性层
-│   └── effect/             # 效果层
-└── effect/                 # 特效系统
-    ├── glow/               # 发光效果
-    ├── fire/               # 着火效果
-    └── hurt/               # 受伤效果
+├── core/                           # 核心渲染器
+│   ├── AnimatedMeshCache.hpp/cpp   # 动画网格缓存（避免每帧重建网格）
+│   ├── AnimationContext.hpp/cpp    # 动画上下文（limbSwing、headYaw等参数）
+│   ├── EntityRenderer.hpp/cpp      # 实体渲染器基类
+│   ├── EntityRendererManager.hpp/cpp # 渲染器管理器（渲染器注册、网格缓存、渲染分发）
+│   ├── IEntityRenderer.hpp         # 实体渲染器接口（模板：将渲染器与模型类型解耦）
+│   ├── LivingRenderer.hpp          # 生物渲染器模板（支持层渲染器系统）
+│   ├── README.md                   # 模块文档
+│   ├── RendererFactory.hpp/cpp     # 渲染器工厂（注册表模式，替代巨型 if-else）
+├── pipeline/                       # 渲染管线
+│   ├── EntityPipeline.hpp/cpp      # Vulkan 渲染管线（管理管线状态、缓冲区、描述符集）
+│   └── EntityTextureAtlas.hpp/cpp  # 实体纹理图集（UV 映射、多路径格式支持）
+├── util/                           # 工具类
+│   ├── NameTagRenderer.hpp/cpp     # 名称标签渲染器
+│   ├── ShadowRenderer.hpp/cpp      # 阴影渲染器
+│   └── WorldTextRenderer.hpp/cpp   # 世界空间文本渲染器
+├── renderer/                       # 具体渲染器（按实体类型分类）
+│   ├── animal/                     # 动物渲染器（猪、牛、羊、鸡、狼、猫等）
+│   ├── aquatic/                    # 水生生物渲染器（河豚、鱿鱼等）
+│   ├── monster/                    # 怪物渲染器（僵尸、骷髅、苦力怕等）
+│   ├── nether/                     # 下界生物渲染器
+│   ├── player/                     # 玩家渲染器
+│   ├── projectile/                 # 投掷物渲染器（雪球、鸡蛋、末影珍珠、药水等）
+│   ├── special/                    # 特殊实体渲染器
+│   ├── vehicle/                    # 载具渲染器（船、矿车等）
+│   ├── RendererRegistration.hpp/cpp # 渲染器注册入口
+├── model/                          # 模型系统
+│   ├── core/                       # 模型核心
+│   │   ├── AgeableModel.hpp/cpp    # 可成长模型基类（幼体/成年状态切换）
+│   │   ├── EntityModel.hpp/cpp     # 模型基类（定义动画和渲染接口）
+│   │   ├── ModelFactory.hpp/cpp    # 模型工厂（注册表模式）
+│   │   ├── ModelRenderer.hpp/cpp   # 模型部件渲染（头、身体、腿等）
+│   │   └── SegmentedModel.hpp/cpp  # 分段模型基类
+│   ├── base/                       # 基础模型
+│   │   ├── BipedModel.hpp/cpp      # 双足模型（玩家、僵尸、骷髅）
+│   │   └── QuadrupedModel.hpp/cpp  # 四足模型（猪、牛、羊）
+│   ├── player/                     # 玩家模型
+│   ├── animal/                     # 动物模型
+│   ├── aquatic/                    # 水生生物模型
+│   ├── monster/                    # 怪物模型
+│   ├── nether/                     # 下界生物模型
+│   ├── projectile/                 # 投掷物模型
+│   ├── ModelRegistration.hpp/cpp   # 模型注册入口
+├── layer/                          # 层渲染器系统
+│   ├── core/                       # 层渲染器核心
+│   │   └── LayerRenderer.hpp       # 层渲染器基类模板
+│   ├── equipment/                  # 装备层（手持物品、头盔、盔甲）
+│   ├── cosmetic/                   # 外观层（披风、鞘翅）
+│   ├── entity/                     # 实体特性层（鞍、羊毛、狼项圈、箭）
+│   └── effect/                     # 效果层（附魔光效、眼睛发光）
+└── effect/                         # 特效系统
+    ├── glow/                       # 发光效果
+    ├── fire/                       # 着火效果
+    └── hurt/                       # 受伤闪烁效果
 ```
 
-## 核心组件
-
-### IEntityRenderer 接口
-
-实体渲染器接口，将渲染器与模型类型解耦。
-
-```cpp
-template<typename TEntity, typename TModel>
-class IEntityRenderer {
-public:
-    virtual ~IEntityRenderer() = default;
-    virtual TModel& getModel() = 0;
-    virtual const TModel& getModel() const = 0;
-    virtual ResourceLocation getEntityTexture(TEntity& entity) = 0;
-};
-```
-
-### EntityRenderer
-
-所有实体渲染器的基类，定义渲染接口。
-
-### LivingRenderer
-
-生物渲染器模板类，支持层渲染器系统。
-
-```cpp
-template<typename TEntity, typename TModel>
-class LivingRenderer : public EntityRenderer,
-                        public IEntityRenderer<TEntity, TModel> {
-public:
-    template<typename TLayer, typename... TArgs>
-    void addLayer(TArgs&&... args);
-};
-```
-
-### LayerRenderer
-
-层渲染器基类，用于在基础模型上添加额外渲染层（盔甲、鞍等）。
-
-```cpp
-template<typename TEntity>
-class LayerRenderer {
-public:
-    virtual void render(TEntity& entity, f32 limbSwing, ...) = 0;
-    virtual void renderPipeline(TEntity& entity, VkCommandBuffer cmd,
-        const AnimationContext& context, EntityPipeline& pipeline) = 0;
-    virtual bool shouldRender(const TEntity& entity) const { return true; }
-};
-```
-
-主要层渲染器：
-
-| 层渲染器 | 类型 | 描述 |
-|---------|------|------|
-| HeldItemLayer | equipment | 手持物品渲染 |
-| HeadLayer | equipment | 头部物品（头盔、南瓜）渲染 |
-| ArmorLayer | equipment | 盔甲渲染 |
-| CapeLayer | cosmetic | 披风渲染 |
-| ElytraLayer | cosmetic | 鞘翅渲染 |
-| SaddleLayer | entity | 鞍渲染 |
-| EnergyGlintLayer | effect | 附魔光效 |
-
-### AgeableModel
-
-可成长模型基类，支持幼体和成年两种状态。
-
-```cpp
-class AgeableModel : public EntityModel {
-public:
-    void setChild(bool isChild);
-    f64 getChildScale(f64 baseScale) const;
-};
-```
-
-## 命名空间
-
-```cpp
-namespace mc::client::renderer::entity {
-    namespace core { }      // 核心渲染器
-    namespace pipeline { }  // 渲染管线
-    namespace model { }     // 模型系统
-    namespace layer { }     // 层渲染器
-    namespace effect { }    // 特效系统
-    
-    namespace renderer {
-        namespace animal { }    // 动物渲染器
-        namespace monster { }   // 怪物渲染器
-        namespace player { }    // 玩家渲染器
-        namespace projectile { } // 投掷物渲染器
-        namespace vehicle { }   // 载具渲染器
-    }
-}
-```
-
-## 实体渲染决策流程
-
-实体渲染器根据实体类型和可用数据选择渲染方式，决策顺序如下：
+## 内部模块关系
 
 ```
-1. ItemEntity Billboard 渲染
-   ↓ (非 ItemEntity)
-2. ModelFactory 动画模型渲染
-   ↓ (无模型)
-3. PipelineMeshProvider 自定义网格渲染
-   ↓ (无 Provider)
-4. 默认渲染（空/错误标记）
+┌─────────────────────────────────────────────────────────────────────┐
+│                        EntityRendererManager                         │
+│  ┌────────────────┐  ┌──────────────────┐  ┌───────────────────┐   │
+│  │ RendererFactory│  │ AnimatedMeshCache│  │ EntityPipeline    │   │
+│  │ (创建渲染器)    │  │ (动画网格缓存)    │  │ (Vulkan管线)      │   │
+│  └────────┬───────┘  └──────────────────┘  └───────────────────┘   │
+│           │                                                          │
+│           ▼                                                          │
+│  ┌────────────────────────────────────────────────────────────┐    │
+│  │                    EntityRenderer (基类)                    │    │
+│  │  ┌──────────────────────────────────────────────────────┐  │    │
+│  │  │ LivingRenderer<TEntity, TModel> (生物渲染器模板)      │  │    │
+│  │  │   ├── IEntityRenderer 接口                            │  │    │
+│  │  │   ├── TModel 模型实例                                 │  │    │
+│  │  │   └── LayerRenderer[] 层渲染器列表                    │  │    │
+│  │  └──────────────────────────────────────────────────────┘  │    │
+│  │  ┌──────────────────────────────────────────────────────┐  │    │
+│  │  │ PipelineMeshProvider (接口，投掷物等自定义网格)       │  │    │
+│  │  └──────────────────────────────────────────────────────┘  │    │
+│  └────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────┘
+           │                              │
+           ▼                              ▼
+┌────────────────────┐      ┌────────────────────────────────┐
+│    ModelFactory    │      │      LayerRenderer[]           │
+│  ┌──────────────┐  │      │  ├── HeldItemLayer (手持物品)  │
+│  │ EntityModel  │◄─┼──────┼──├── HeadLayer (头盔/南瓜)     │
+│  │  ├── Ageable │  │      │  ├── ArmorLayer (盔甲)         │
+│  │  ├── Biped   │  │      │  ├── CapeLayer (披风)          │
+│  │  └── Quadru. │  │      │  └── EnergyGlintLayer (附魔光) │
+│  └──────────────┘  │      └────────────────────────────────┘
+└────────────────────┘
 ```
 
-### 渲染决策详解
+**渲染决策流程：**
 
-| 优先级 | 渲染方式 | 适用实体 | 描述 |
-|--------|----------|----------|------|
-| 1 | ItemEntity Billboard | 物品实体 | 使用物品纹理的 Billboard 渲染 |
-| 2 | ModelFactory 动画模型 | 大多数生物 | 通过 ModelFactory 创建的动画模型 |
-| 3 | PipelineMeshProvider | 投掷物等 | 自定义网格渲染器 |
-
-### PipelineMeshProvider 接口
-
-用于提供自定义渲染网格的接口，适用于投掷物、特殊效果等不需要完整模型的实体。
-
-```cpp
-class PipelineMeshProvider {
-public:
-    virtual ~PipelineMeshProvider() = default;
-    
-    // 获取渲染网格
-    virtual MeshData getMesh(const Entity& entity, f32 partialTicks) = 0;
-    
-    // 获取纹理区域
-    virtual TextureRegion getTexture() const = 0;
-    
-    // 是否应该渲染
-    virtual bool shouldRender(const Entity& entity) const { return true; }
-};
+```
+EntityRendererManager.renderWithPipeline(entity)
+    │
+    ├── ItemEntity? ─────────────────────────────────► Billboard 渲染
+    │
+    ├── ModelFactory.hasModel(entityType)?
+    │   ├── Yes ──► 创建模型 → 设置动画 → 生成网格 → AnimatedMeshCache 缓存
+    │   └── No
+    │
+    ├── renderer.getPipelineMeshProvider()?
+    │   ├── Yes ──► PipelineMeshProvider.generateMesh() 自定义网格
+    │   └── No ──► 跳过/错误标记
+    │
+    └── EntityPipeline.drawMesh() + renderLayersPipeline()
 ```
 
-### 新增渲染器
+## 上下游外部依赖关系
 
-| 渲染器 | 实体类型 | 渲染方式 | 描述 |
-|--------|----------|----------|------|
-| SnowballRenderer | 雪球 | Billboard | 投掷物 Billboard 渲染 |
-| EggRenderer | 鸡蛋 | Billboard | 投掷物 Billboard 渲染 |
-| EnderPearlRenderer | 末影珍珠 | Billboard | 投掷物 Billboard 渲染 |
-| PotionRenderer | 药水 | Billboard | 投掷物 Billboard 渲染 |
-| ExperienceBottleRenderer | 附魔之瓶 | Billboard | 投掷物 Billboard 渲染 |
-| EyeOfEnderRenderer | 末影之眼 | Billboard + Particle | 带粒子效果的投掷物 |
-| FireballRenderer | 火球 | Billboard | 大火球渲染 |
-| SmallFireballRenderer | 小火球 | Billboard | 小火球渲染（烈焰人火球等） |
-| FishingBobberRenderer | 钓鱼浮漂 | Billboard + Line | 带线渲染的浮漂 |
+### 上游依赖（本模块依赖）
 
-### PufferfishRenderer 河豚状态切换
+| 模块 | 用途 |
+|------|------|
+| `common/entity` | 实体数据结构（Entity、LivingEntity、AgeableEntity 等） |
+| `common/resource` | ResourceLocation 纹理路径 |
+| `common/core` | 基础类型（Vector3、Result 等） |
+| `common/util/math` | 数学工具（矩阵、视锥体剔除） |
+| `client/renderer/trident/core` | Vulkan 上下文、管线、纹理 |
+| `client/renderer/trident/firstperson` | 第一人称渲染（共享 PlayerModel） |
 
-河豚渲染器根据河豚的膨胀状态动态切换模型：
+### 下游依赖（依赖本模块）
 
-```cpp
-class PufferfishRenderer : public LivingRenderer<Pufferfish, PufferfishModel> {
-public:
-    PufferfishRenderer() {
-        // 根据膨胀状态选择模型
-        // puffState: 0 = 未膨胀, 1 = 中等膨胀, 2 = 完全膨胀
-    }
-    
-    PufferfishModel& getModel(Pufferfish& entity) override {
-        i32 puffState = entity.getPuffState();
-        switch (puffState) {
-            case 0: return m_smallModel;    // 未膨胀
-            case 1: return m_mediumModel;   // 中等膨胀
-            case 2: return m_largeModel;    // 完全膨胀
-        }
-    }
-};
-```
+| 模块 | 用途 |
+|------|------|
+| `client/world/ClientWorld` | 渲染世界中的所有实体 |
+| `client/ClientApplication` | 初始化实体渲染系统 |
 
-### BlendMode::Lines 线条渲染
+## 容易踩的坑
 
-用于 `LINE_LIST` 拓扑的特殊混合模式：
+### 1. 幼体模型的头身分离渲染
 
-```cpp
-enum class BlendMode {
-    None,       // 无混合
-    Alpha,      // Alpha 混合
-    Additive,   // 加法混合
-    Lines,      // 线条渲染（LINE_LIST 拓扑）
-};
-```
+AgeableModel 在幼体状态下会将头身分离渲染（头部和身体使用不同的变换矩阵）。如果新增可成长实体，必须正确实现 `getHeadParts()` 和 `getBodyParts()` 方法，否则幼体渲染会出错。
 
-`BlendMode::Lines` 特性：
-- 使用 `LINE_LIST` 图元拓扑
-- 适用于 FishingBobberRenderer 的钓鱼线
-- 不写入深度缓冲区
-- 支持颜色混合
+### 2. 动画网格缓存失效
 
-## 使用方法
+AnimatedMeshCache 使用 AnimationContext 的哈希值判断是否需要重建网格。如果实体的动画状态改变但哈希未更新，会导致渲染不正确。修改动画参数时确保调用 `context.computeHash()`。
 
-### 创建自定义渲染器
+### 3. 层渲染器注册顺序
 
-```cpp
-class MyRenderer : public LivingRenderer<MyEntity, MyModel> {
-public:
-    MyRenderer() {
-        m_shadowSize = 0.5f;
-        // 添加层渲染器
-        addLayer<MyLayer>(*this);
-    }
-};
-```
+层渲染器的渲染顺序就是 `addLayer()` 的调用顺序。某些层（如 EnergyGlintLayer）需要在其他层之后渲染才能正确显示。
 
-### 创建自定义层渲染器
+### 4. BlendMode::Lines 的特殊处理
 
-```cpp
-class MyLayer : public LayerRenderer<MyEntity> {
-public:
-    void render(MyEntity& entity, f32 limbSwing, ...) override {
-        // 渲染额外层
-    }
-};
-```
+`BlendMode::Lines` 使用 `VK_PRIMITIVE_TOPOLOGY_LINE_LIST` 拓扑，适用于钓鱼线等线段渲染。绑定管线时必须指定正确的 blendMode。
 
-### 创建可成长实体
+### 5. 河豚模型动态切换
 
-```cpp
-class MyAgeableModel : public AgeableModel {
-public:
-    void render(f64 scale) override {
-        // 根据幼体状态调整渲染
-        AgeableModel::render(scale);
-    }
-};
+PufferfishRenderer 根据膨胀状态（puffState 0/1/2）动态切换模型。类似需求不要在 `getModel()` 中创建新模型，应该预先创建所有模型实例。
 
-// 在渲染器中设置幼体状态
-void MyRenderer::render(Entity& entity, f64 partialTicks) {
-    m_model.setChild(entity.isChild());
-    LivingRenderer::render(entity, partialTicks);
-}
-```
+### 6. PipelineMeshProvider 与 ModelFactory 的选择
+
+- 使用 ModelFactory：需要完整骨骼动画的实体（大多数生物）
+- 使用 PipelineMeshProvider：自定义几何体（箭、船、矿车、钓鱼浮漂等）
+
+### 7. 纹理图集 UV 重映射
+
+EntityTextureAtlas 支持 MC 1.12 和 1.13+ 两种路径格式。新增实体纹理时确保路径格式正确，否则 UV 重映射会失败。
+
+### 8. 阴影渲染条件
+
+`EntityRenderer::shouldRenderShadow()` 会检查实体的地面接触状态。如果自定义实体没有正确设置地面接触状态，阴影可能不显示。

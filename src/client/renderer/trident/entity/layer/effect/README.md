@@ -2,86 +2,66 @@
 
 本目录包含效果相关的层渲染器。
 
-## 文件说明
+## 目录结构
 
-| 文件 | 描述 |
-|------|------|
-| `EnergyGlintLayer.hpp/cpp` | 附魔光效层渲染器 |
-| `EyesLayer.hpp/cpp` | 发光眼睛层渲染器 |
-
-## EnergyGlintLayer
-
-渲染附魔物品的紫色光效：
-- 检查实体所有装备槽位（主手、副手、头盔、胸甲、护腿、靴子）是否有附魔物品
-- 使用 `EnchantmentHelper::hasEnchantments()` 检测附魔
-- UV 滚动动画效果（通过 `calculateGlintOffset` 计算）
-- **叠加混合模式（Additive Blending）实现发光效果**
-
-### shouldRender 逻辑
-
-```cpp
-// 检查所有装备槽位
-if constexpr (std::is_base_of_v<LivingEntity, TEntity>) {
-    // 检查主手物品
-    if (!mainHand.isEmpty() && EnchantmentHelper::hasEnchantments(mainHand)) {
-        return true;
-    }
-    // 检查副手、头盔、胸甲、护腿、靴子...
-}
-return false;
+```
+effect/
+├── EnergyGlintLayer.hpp    # 附魔光效层渲染器模板类
+├── EnergyGlintLayer.cpp    # 附魔光效层实现（仅 include）
+├── EyesLayer.hpp           # 发光眼睛层渲染器模板类
+├── EyesLayer.cpp           # 发光眼睛层实现（含显式实例化）
+└── README.md
 ```
 
-### renderPipeline 渲染流程
+## 内部模块关系
 
-```cpp
-// 1. 计算光效滚动偏移
-f32 glintOffset = calculateGlintOffset(static_cast<f32>(context.ageInTicks));
+```
+EnergyGlintLayer<TEntity>
+├── 继承 LayerRenderer<TEntity>
+├── 依赖 EnchantmentHelper（检测附魔）
+└── 依赖 EntityPipeline（叠加混合渲染）
 
-// 2. 构建光效网格（立方体包围盒，UV 随 offset 滚动）
-buildGlintMesh(glintOffset, vertices, indices);
-
-// 3. 切换到叠加混合模式
-pipeline.bind(cmd, pipeline::BlendMode::Additive);
-
-// 4. 绘制光效网格（紫色叠加效果）
-pipeline.drawMesh(cmd, mesh, glintTransform, entityPos, 1.0, overlayColor, 0.0f, 0.0f);
-
-// 5. 恢复 Alpha 混合模式
-pipeline.bind(cmd, pipeline::BlendMode::Alpha);
+EyesLayer<TEntity, TModel>
+├── 继承 LayerRenderer<TEntity>
+├── 依赖 IEntityRenderer<TEntity, TModel>（获取模型）
+├── 依赖 ModelRenderer（获取头部变换）
+└── 依赖 EntityPipeline（叠加混合渲染）
 ```
 
-### 混合模式说明
+两个层渲染器都使用**叠加混合模式**实现发光效果，渲染后需要恢复 Alpha 混合模式。
 
-| 模式 | 公式 | 用途 |
-|------|------|------|
-| Additive | `src * srcAlpha + dst * 1` | 发光效果、附魔光效 |
-| Alpha | `src * srcAlpha + dst * (1 - srcAlpha)` | 标准半透明 |
+## 上下游外部依赖关系
 
-### 光效参数
+**被谁依赖（下游）：**
+- `LivingRenderer` 子类在 `_setupLayers()` 中添加这些层：
+  - `CreeperRenderer` → 添加 `EnergyGlintLayer`
+  - `SpiderRenderer` → 添加 `EyesLayer`
+  - `EndermanRenderer` → 添加 `EyesLayer`
 
-- **颜色**: 紫色 `(0.5, 0.0, 1.0, 0.5)` - 参考 MC 1.16.5 附魔光效
-- **缩放**: 1.01 倍避免 z-fighting
-- **滚动速度**: `offset = fmod(ageInTicks * 0.01, 1.0)`
+**依赖了谁（上游）：**
+- `core/LayerRenderer.hpp` - 层渲染器基类模板
+- `core/AnimationContext.hpp` - 动画上下文（包含 ageInTicks）
+- `pipeline/EntityPipeline.hpp` - 实体渲染管线（createMesh、bind、drawMesh）
+- `model/core/ModelRenderer.hpp` - 模型渲染器（ModelVertex）
+- `common/entity/core/LivingEntity.hpp` - 生物实体基类
+- `common/item/enchantment/EnchantmentHelper.hpp` - 附魔检测工具（EnergyGlintLayer 使用）
 
-### 参考
+## 容易踩的坑
 
-- MC 1.16.5 `ItemStack.hasEffect()` -> `ItemStack.isEnchanted()`
-- MC 1.16.5 `BipedArmorLayer` - 盔甲附魔光效
-- MC 1.16.5 `ElytraLayer` - 鞘翅附魔光效
-- MC 1.16.5 `RenderType.getEnergySwirl()` - 能量光效渲染类型
+1. **叠加混合模式必须恢复**：两个层渲染器都使用 `BlendMode::Additive`，渲染完成后必须恢复 `BlendMode::Alpha`，否则后续渲染会出现颜色异常。
 
-## EyesLayer
+2. **EnergyGlintLayer 应该只检查装备槽**：当前实现检查所有装备槽（主手、副手、头盔、胸甲、护腿、靴子），但 MC 1.16.5 中不同实体类型可能有不同的附魔光效渲染逻辑（如盔甲层的光效只渲染盔甲部分）。
 
-渲染实体的发光眼睛：
-- 末影人（紫色）
-- 蜘蛛/洞穴蜘蛛（红色）
-- 幻翼（绿色）
+3. **EyesLayer 需要父模型引用**：构造时必须传入 `IEntityRenderer` 引用以获取父模型的头部部件，否则无法正确定位眼睛位置。
 
-使用叠加混合模式实现发光效果。
+4. **EyesLayer 眼睛纹理未应用**：当前实现使用叠加颜色渲染，`getEyesTexture()` 获取的纹理尚未绑定到管线，这是一个待完善的功能。
+
+5. **CPU 路径已废弃**：`render()` 方法保留用于向后兼容，但实际渲染逻辑应在 `renderPipeline()` 中实现。
 
 ## 参考
 
-- MC 1.16.5 EnergyLayer
-- MC 1.16.5 AbstractEyesLayer
-- MC 1.16.5 EndermanEyesLayer
-- MC 1.16.5 SpiderEyesLayer
+- MC 1.16.5 `LayerRenderer`
+- MC 1.16.5 `EnergyLayer` - 能量光效基类
+- MC 1.16.5 `EndermanEyesLayer` - 末影人眼睛
+- MC 1.16.5 `SpiderEyesLayer` - 蜘蛛眼睛
+- MC 1.16.5 `RenderType.getEnergySwirl()` - 能量光效渲染类型

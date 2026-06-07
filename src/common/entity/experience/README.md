@@ -6,238 +6,93 @@
 
 ```
 experience/
-├── ExperienceConstants.hpp    # 经验常量定义
-├── ExperienceManager.hpp/cpp  # 经验管理器
-├── ExperienceUtils.hpp        # 经验工具函数
+├── ExperienceConstants.hpp    # 经验系统常量（经验球参数、分割表、矿石/生物经验掉落）
+├── ExperienceManager.hpp/cpp  # 经验管理器（等级、进度、升级、附魔消耗）
+├── ExperienceUtils.hpp        # 经验工具函数（分割、颜色计算、死亡掉落）
 └── README.md                  # 本文档
 ```
 
-## 核心组件
+## 内部模块关系
 
-### ExperienceConstants.hpp
+```
+ExperienceManager（经验管理器）
+    ├── 依赖 ExperienceConstants（常量）
+    ├── 依赖 ExperienceUtils（工具函数）
+    └── 关联 Player（玩家实体）
 
-定义经验系统的所有常量：
+ExperienceUtils（工具函数）
+    └── 依赖 ExperienceConstants（常量）
 
-| 常量类型 | 内容 |
-|---------|------|
-| 经验球常量 | 最大存活时间、追踪范围、拾取延迟等 |
-| 经验值分割 | 11档分割值表 (2477, 1237, 617, ...) |
-| 玩家经验 | 拾取冷却、死亡掉落上限等 |
-| 矿石经验 | 各矿石的经验掉落范围 |
-| 生物经验 | 各生物的经验掉落值 |
-
-### ExperienceManager
-
-管理玩家的经验值和等级。
-
-```cpp
-// 创建经验管理器
-ExperienceManager xpManager(player);
-
-// 添加经验（支持负值降级）
-xpManager.addExperience(100);
-xpManager.addExperience(-50);  // 降级处理
-
-// 消耗等级（附魔用）
-xpManager.consumeLevels(30);
-
-// 查询
-i32 level = xpManager.getLevel();
-f32 progress = xpManager.getProgress();
-i32 total = xpManager.getTotalExperience();
-
-// 附魔处理（MC 1.16.5：直接消耗等级，始终返回 true）
-xpManager.onEnchant(levels, random);
+ExperienceConstants（常量）
+    └── 独立模块，无依赖
 ```
 
-#### 升级音效
+**职责划分：**
+- **ExperienceConstants**：定义经验球存活时间、追踪范围、拾取延迟、分割值表、矿石/生物经验掉落范围等常量
+- **ExperienceManager**：管理玩家经验状态（等级、进度、总经验），处理升级/降级、附魔消耗、死亡掉落计算
+- **ExperienceUtils**：提供经验分割、经验球大小/颜色计算、矿石/生物经验随机生成等工具函数
 
-玩家升级时会播放升级音效，遵循 MC 1.16.5 的逻辑：
+## 上下游外部依赖关系
 
-- **音效事件**: `entity.player.levelup`
-- **触发条件**:
-  1. 等级是 5 的倍数（5, 10, 15, 20...）
-  2. 距离上次播放至少 100 tick（5 秒）
-- **音量计算**:
-  - 等级 ≤ 30: `(level / 30.0) * 0.75`
-  - 等级 > 30: `1.0 * 0.75 = 0.75`
-- **音调**: 固定 1.0
+### 本模块依赖的外部模块
 
-```cpp
-// 音效播放实现（在 handleLevelUp 中）
-if (m_level % 5 == 0) {
-    u32 currentTick = m_player.ticksExisted();
-    if (m_lastXpSoundTick < currentTick - 100.0f) {
-        m_lastXpSoundTick = currentTick;
-        f32 volume = (m_level > 30 ? 1.0f : m_level / 30.0f) * 0.75f;
-        m_player.playSound(SoundEvents::ENTITY_PLAYER_LEVELUP, volume, 1.0f);
-    }
-}
-```
+- `common/entity/entities/player/Player.hpp` - 玩家实体（升级音效播放）
+- `common/core/Types.hpp` - 基础类型定义
+- `common/sound/SoundEvents.hpp` - 音效事件常量
+- `common/util/math/random/Random.hpp` - 随机数生成器
+- `common/util/math/MathConstants.hpp` - 数学常量
 
-#### 关键算法
+### 依赖本模块的外部模块
 
-**多级升级算法**（MC 1.16.5 准确复刻）：
-- 升级时使用"乘旧容量、除新容量"算法保持经验进度
-- 避免因容量变化导致的经验丢失或溢出
+- `entities/player/Player.hpp/cpp` - 玩家实体持有 ExperienceManager 实例
+- `entities/orb/ExperienceOrbEntity.hpp/cpp` - 经验球实体使用 ExperienceUtils 分割经验、计算颜色
+- `entities/boss/EnderDragonEntity.cpp` - 末影龙死亡时使用 ExperienceUtils 分割大量经验
+- `entities/core/MobEntity.cpp` - 生物死亡时掉落经验
+- `server/world/drop/BlockDropHandler.cpp` - 方块掉落时生成经验
+- `world/storage/player/PlayerDataManager.cpp` - 玩家数据序列化/反序列化经验状态
+- `client/renderer/trident/entity/renderer/projectile/ExperienceOrbRenderer.cpp` - 经验球渲染使用颜色计算
 
-```cpp
-// 升级时
-f32 excessProgress = m_progress - 1.0f;
-i32 oldCapacity = getExperienceForNextLevel();
-m_level++;
-i32 newCapacity = getExperienceForNextLevel();
-m_progress = excessProgress * oldCapacity / newCapacity;
-```
+## 容易踩的坑
 
-**负经验处理**：
-- 添加负经验会触发降级逻辑
-- 等级为 0 时进度归零
+### 1. 经验进度条容量公式
 
-**附魔消耗**：
-- `onEnchant()` 直接消耗等级，不检查是否足够
-- 等级变为负数时重置为 0
+经验进度条容量（升级所需经验）随等级变化：
+- 等级 0-14：`7 + level * 2`（范围 7-35）
+- 等级 15-29：`37 + (level - 15) * 5`（范围 37-107）
+- 等级 30+：`112 + (level - 30) * 9`（范围 112-382）
 
-### ExperienceUtils
+**注意**：容量随等级变化，升级时必须用"乘旧容量、除新容量"算法保持进度，否则会丢失或溢出经验。
 
-提供经验系统的工具函数：
+### 2. 负经验处理
 
-```cpp
-// 分割经验值
-std::vector<i32> orbValues;
-utils::splitExperience(5000, orbValues);  // 分割成多个经验球
+`addExperience()` 支持负值，会触发降级逻辑。但等级为 0 时进度归零，不会出现负等级。`onEnchant()` 直接消耗等级不检查是否足够，等级变负时会重置为 0。
 
-// 获取经验球大小等级
-i32 size = utils::getOrbSize(100);  // 返回 0-10
+### 3. 升级音效触发条件
 
-// 计算经验球颜色
-u32 color = utils::calculateOrbColor(xpValue, time);
+升级音效仅在等级是 5 的倍数（5, 10, 15...）且距离上次播放至少 100 tick（5 秒）时播放。音量根据等级计算，等级 > 30 时固定最大值。
 
-// 矿石经验
-i32 xp = utils::randomOreExperience(rng, 1);  // 钻石矿
+### 4. 经验球分割值
 
-// 死亡掉落
-i32 dropXp = utils::calculateDeathDropXp(level);
-```
+经验分割使用固定的 11 档值表：`{2477, 1237, 617, 307, 149, 73, 37, 17, 7, 3, 1}`。单个经验球最大值为 2477，大量经验会被分割成多个经验球。
 
-## 经验公式
+### 5. 死亡掉落经验上限
 
-### 升级所需经验
+玩家死亡掉落经验 = `min(level * 7, 100)`，上限 100 点。这意味着等级 15 以上的玩家死亡都只掉落 100 点经验。
 
-| 等级范围 | 公式 | 范围 |
-|---------|------|------|
-| 0-14 | 7 + level * 2 | 7-35 |
-| 15-29 | 37 + (level - 15) * 5 | 37-107 |
-| 30+ | 112 + (level - 30) * 9 | 112-382 |
+### 6. 经验修补比例
 
-### 累计经验计算
+经验修补附魔：每 2 点经验修复 1 点耐久。`durabilityToXp()` 和 `xpToDurability()` 进行双向转换。
 
-```cpp
-i32 getExperienceForLevel(i32 level) {
-    if (level <= 0) return 0;
-    if (level <= 15) return level * (level + 6);
-    if (level <= 30) {
-        i32 levelsAfter15 = level - 15;
-        return 315 + 37 * levelsAfter15 + 5 * levelsAfter15 * (levelsAfter15 - 1) / 2;
-    }
-    i32 levelsAfter30 = level - 30;
-    return 1395 + 112 * levelsAfter30 + 9 * levelsAfter30 * (levelsAfter30 - 1) / 2;
-}
-```
+### 7. 附魔种子重置
 
-## 经验值来源
+每次附魔后必须调用 `resetXpSeed()` 生成新的随机种子，用于随机化附魔选项。`onEnchant()` 会自动处理。
 
-### 生物掉落
+### 8. 同步状态
 
-| 生物 | 经验值 |
-|------|--------|
-| 被动动物（猪/牛/羊/鸡） | 1-3 |
-| 普通怪物（僵尸/骷髅/苦力怕） | 5 |
-| 凋灵 | 50 |
-| 末影龙 | 12000 |
-| 玩家死亡 | min(level * 7, 100) |
-
-### 矿石
-
-| 方块 | 经验范围 |
-|------|---------|
-| 煤矿 | 0-2 |
-| 钻石矿 | 3-7 |
-| 绿宝石矿 | 3-7 |
-| 青金石矿 | 2-5 |
-| 下界石英矿 | 2-5 |
-| 下界金矿 | 0-1 |
-| 红石矿 | 1-5 |
-| 刷怪笼 | 15-44 |
-
-### 其他
-
-| 来源 | 经验值 |
-|------|--------|
-| 烧炼 | 配方定义 |
-| 钓鱼 | 1-6 |
-| 交易 | 村民等级 |
-
-## 类图
-
-```mermaid
-classDiagram
-    class ExperienceManager {
-        -m_level: i32
-        -m_progress: f32
-        -m_totalExperience: i32
-        -m_xpSeed: i32
-        -m_lastXpSoundTick: u32
-        -m_player: Player&
-        +addExperience(amount: i32)
-        +consumeExperience(amount: i32) bool
-        +consumeLevels(levels: i32) bool
-        +getLevel() i32
-        +getProgress() f32
-        +getTotalExperience() i32
-        +getExperienceForNextLevel() i32
-        +onEnchant(levels: i32, rng: Random) bool
-        +calculateBarCapacity(level: i32)$ i32
-        +getExperienceForLevel(level: i32)$ i32
-        +getLevelFromExperience(totalXp: i32)$ i32
-        -handleLevelUp()
-        -handleLevelDown()
-    }
-
-    class ExperienceUtils {
-        +getXPSplit(totalXp: i32)$ i32
-        +splitExperience(totalXp: i32, result: vector~i32~)$
-        +getOrbSize(xpValue: i32)$ i32
-        +calculateOrbColor(xpValue: i32, time: f32)$ u32
-        +randomOreExperience(rng: Random, oreType: i32)$ i32
-        +calculateDeathDropXp(level: i32)$ i32
-        +durabilityToXp(durability: i32)$ i32
-        +xpToDurability(xp: i32)$ i32
-    }
-
-    class ExperienceConstants {
-        <<namespace>>
-        +MAX_ORB_AGE: i32
-        +DEFAULT_PICKUP_DELAY: i32
-        +ORB_TRACKING_RANGE: f32
-        +MAX_ORB_VALUE: i32
-        +XP_SPLIT_VALUES: i32[]
-        +...
-    }
-
-    ExperienceManager --> ExperienceConstants : uses
-    ExperienceManager --> Player : manages
-    ExperienceUtils --> ExperienceConstants : uses
-```
-
-## 依赖项
-
-- `../entities/player/Player.hpp` - 玩家实体
-- `../../../core/Types.hpp` - 基础类型
-- `../../../sound/SoundEvents.hpp` - 音效事件常量
-- `../../../util/math/random/Random.hpp` - 随机数生成
+`ExperienceManager` 维护 `m_dirty` 标志，经验变化后需要同步到客户端。使用 `isDirty()` 检查，同步后调用 `clearDirty()`。
 
 ## 参考
 
-- Minecraft 1.16.5: `net.minecraft.entity.player.PlayerEntity` (经验相关)
+- Minecraft 1.16.5: `net.minecraft.entity.player.PlayerEntity`（经验相关逻辑）
+- Minecraft 1.16.5: `net.minecraft.entity.item.ExperienceOrbEntity`（经验球实体）
 - Minecraft Wiki: [Experience](https://minecraft.fandom.com/wiki/Experience)

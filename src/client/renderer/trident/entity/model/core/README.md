@@ -1,175 +1,76 @@
 # 模型核心
 
-本目录包含实体模型系统的核心类。
+本目录包含实体模型系统的核心类，是整个实体模型系统的基础设施。
 
-## 文件列表
+## 目录结构
 
-| 文件 | 描述 |
-|------|------|
-| `EntityModel.hpp/cpp` | 实体模型基类 |
-| `ModelRenderer.hpp/cpp` | 模型部件渲染器 |
-| `AgeableModel.hpp/cpp` | 可成长模型基类 |
-
-## EntityModel
-
-所有实体模型的基类，定义动画和渲染接口。
-
-```cpp
-class EntityModel {
-public:
-    EntityModel();
-    virtual ~EntityModel() = default;
-    
-    // 渲染
-    virtual void render(f64 scale = 1.0f / 16.0f);
-    virtual void generateMesh(std::vector<ModelVertex>& vertices,
-                              std::vector<u32>& indices,
-                              f64 scale) const;
-    
-    // 动画
-    virtual void setAngles(f64 limbSwing, f64 limbSwingAmount,
-                          f64 ageInTicks, f64 netHeadYaw,
-                          f64 headPitch, f64 scale);
-    virtual void copyAnglesTo(EntityModel& target) const;
-    virtual void copyAnglesFrom(const EntityModel& source);
-    
-    // 纹理
-    i32 textureWidth() const;
-    i32 textureHeight() const;
-    void setTextureSize(i32 width, i32 height);
-    
-    // 部件访问
-    const std::vector<std::shared_ptr<ModelRenderer>>& getParts() const;
-    
-protected:
-    i32 m_textureWidth = 64;
-    i32 m_textureHeight = 32;
-    std::vector<std::shared_ptr<ModelRenderer>> m_parts;
-};
+```
+core/
+├── EntityModel.hpp/cpp       # 实体模型基类，定义动画和渲染接口
+├── ModelRenderer.hpp/cpp     # 模型部件渲染器，管理盒子、旋转和子部件
+├── AgeableModel.hpp/cpp      # 可成长模型基类，支持幼体/成年状态切换
+├── SegmentedModel.hpp/cpp    # 分段模型基类，用于复杂实体（如末影龙）的分段渲染
+├── ModelFactory.hpp/cpp      # 模型工厂，注册表模式管理模型创建
+└── README.md
 ```
 
-## ModelRenderer
+## 内部模块关系
 
-模型部件类，代表模型的一个部分（如头部、身体、腿等）。
+```
+ModelRenderer          ← 基础构件，无依赖
+    ↓
+EntityModel            ← 持有 ModelRenderer 列表
+    ↓
+AgeableModel           ← 继承 EntityModel，添加幼体缩放逻辑
+SegmentedModel         ← 继承 EntityModel，添加分段渲染
 
-### 主要功能
-
-- 添加立方体盒子
-- 设置旋转和位置
-- 管理子部件
-- 生成网格（盒子局部顶点按 `scale` 从 MC 1/16 模型单位转换，旋转点同样按 `scale` 平移）
-
-```cpp
-class ModelRenderer {
-public:
-    explicit ModelRenderer(const std::string& name = "");
-    
-    // 纹理
-    void setTextureSize(i32 width, i32 height);
-    ModelRenderer& setTextureOffset(i32 offsetX, i32 offsetY);
-    
-    // 变换
-    void setOffset(f64 x, f64 y, f64 z);
-    void setRotationPoint(f64 x, f64 y, f64 z);
-    void setRotation(f64 x, f64 y, f64 z);
-    void setScale(f64 x, f64 y, f64 z);
-    
-    // 盒子
-    ModelRenderer& addBox(f64 x, f64 y, f64 z, f64 width, f64 height, f64 depth);
-    ModelRenderer& addBox(i32 texX, i32 texY, f64 x, f64 y, f64 z,
-                         f64 width, f64 height, f64 depth);
-    
-    // 镜像
-    void setMirror(bool mirror);
-    
-    // 子部件
-    void addChild(std::shared_ptr<ModelRenderer> child);
-    std::shared_ptr<ModelRenderer> createChild(const std::string& name = "");
-    
-    // 网格生成
-    void generateMesh(std::vector<ModelVertex>& vertices,
-                     std::vector<u32>& indices,
-                     f64 scale) const;
-    void generateMesh(std::vector<ModelVertex>& vertices,
-                     std::vector<u32>& indices,
-                     const std::array<f64, 16>& parentMatrix,
-                     f64 scale) const;
-    
-    // 可见性
-    bool isVisible() const;
-    void setVisible(bool visible);
-    
-    // 旋转访问器
-    f64 rotateAngleX() const;
-    f64 rotateAngleY() const;
-    f64 rotateAngleZ() const;
-    void setRotateAngleX(f64 angle);
-    void setRotateAngleY(f64 angle);
-    void setRotateAngleZ(f64 angle);
-    
-    // 复制旋转
-    void copyModelAngles(const ModelRenderer& other);
-};
+ModelFactory           ← 创建 EntityModel 实例（依赖所有模型类）
 ```
 
-## AgeableModel
+## 上下游外部依赖关系
 
-可成长模型基类，支持幼体和成年两种状态。
+**本目录依赖：**
+- `common/core/Types.hpp` - 基础类型定义（i32, f32, f64 等）
+- `common/util/math/Vector2.hpp` - 2D 向量（UV 坐标）
+- `common/util/math/Vector3.hpp` - 3D 向量（位置、法线）
+- `common/util/assert/AssertAll.hpp` - 断言宏
 
-```cpp
-class AgeableModel : public EntityModel {
-public:
-    void setChild(bool isChild);
-    bool isChild() const;
-    void generateMesh(std::vector<ModelVertex>& vertices,
-                      std::vector<u32>& indices,
-                      f64 scale) const override;
-    
-protected:
-    bool m_isChild = false;
-    f32 m_childHeadScale = 2.0f;
-    f32 m_childBodyScale = 2.0f;
-    f32 m_childHeadOffsetY = 5.0f;
-    f32 m_childBodyOffsetY = 24.0f;
-};
-```
+**依赖本目录：**
+- `model/base/` - BipedModel、QuadrupedModel 继承 EntityModel
+- `model/animal/` - 各种动物模型继承 AgeableModel
+- `model/monster/` - 各种怪物模型继承 EntityModel
+- `model/player/` - PlayerModel 继承 BipedModel
+- `model/projectile/` - 投掷物模型继承 EntityModel
+- `model/nether/` - 下界生物模型
+- `model/aquatic/` - 水生生物模型
+- `renderer/core/LivingRenderer.hpp` - 使用 EntityModel 接口
+- `layer/` - 各种层渲染器使用 ModelRenderer 访问模型部件
 
-## 数据结构
+## 容易踩的坑
 
-### ModelVertex
+### 1. ModelRenderer::render() 已废弃
 
-模型顶点，包含位置、纹理坐标和法线。
+项目已改用 GPU 管线路径，`render()` 方法为遗留的 CPU 立即模式接口。应使用 `generateMesh()` 生成网格数据，然后通过 EntityPipeline 提交到 GPU。
 
-```cpp
-struct ModelVertex {
-    Vector3f position;   // 顶点位置
-    Vector2f texCoord;   // UV 坐标
-    Vector3f normal;     // 法线
-};
-```
+### 2. 幼体模型缩放逻辑
 
-### TexturedQuad
+`AgeableModel` 的幼体渲染需要分离头身矩阵变换，子类必须实现 `getHeadParts()` 和 `getBodyParts()` 以正确缩放头部和身体。默认 `getHeadParts()` 返回空列表，`getBodyParts()` 返回 `m_parts`。
 
-纹理四边形，代表一个四边形面。
+### 3. 坐标单位和缩放
 
-```cpp
-struct TexturedQuad {
-    std::array<ModelVertex, 4> vertices;
-    Vector3f normal;
-};
-```
+模型坐标使用 MC 1/16 单位，默认 `scale = 1.0 / 16.0` 将其转换为渲染坐标。盒子顶点按 scale 缩放，旋转点也按 scale 平移。
 
-### ModelBox
+### 4. copyAnglesTo/copyAnglesFrom 的前提条件
 
-模型盒子，每个盒子有6个面。
+这两个方法要求源模型和目标模型的 `m_parts` 数量相同，否则会触发断言失败。用于模型动画同步（如盔甲架与玩家模型）。
 
-```cpp
-struct ModelBox {
-    f64 posX1, posY1, posZ1;  // 最小角
-    f64 posX2, posY2, posZ2;  // 最大角
-    std::array<TexturedQuad, 6> quads;  // 6个面
-};
-```
+### 5. EntityModel 的默认 m_isChild 值
+
+`EntityModel::m_isChild` 默认为 `true`，这可能不符合预期。使用前应显式调用 `setChild(false)` 设置成年状态。
+
+### 6. ModelFactory 实体类型 ID 规范化
+
+ModelFactory 会自动规范化实体类型 ID，确保有命名空间前缀（如 `pig` → `minecraft:pig`）。注册和查询时使用规范形式更安全。
 
 ## 命名空间
 
@@ -178,6 +79,8 @@ namespace mc::client::renderer::entity::model {
     class EntityModel;
     class ModelRenderer;
     class AgeableModel;
+    class SegmentedModel;
+    class ModelFactory;
     struct ModelVertex;
     struct TexturedQuad;
     struct ModelBox;

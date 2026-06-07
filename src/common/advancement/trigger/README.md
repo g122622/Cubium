@@ -1,641 +1,98 @@
 # 触发器系统 (Trigger System)
 
-## 概述
-
-本模块实现了 Minecraft 1.16.5 的成就触发器系统，用于检测游戏事件并授予成就进度。
-
-## 目录结构
+## 目录结构树
 
 ```
 trigger/
-├── CriterionTrigger.hpp           # 触发器接口和基类
-├── CriterionTrigger.cpp           # 实现
-├── CriterionTriggers.hpp          # 触发器注册表
-├── CriterionTriggers.cpp          # 注册表实现
+├── CriterionTrigger.hpp           # 触发器接口和基类（ICriterionTrigger、AbstractCriterionTrigger）
+├── CriterionTrigger.cpp           # 触发器基类实现
+├── CriterionTriggers.hpp          # 触发器注册表（单例，管理所有触发器实例）
+├── CriterionTriggers.cpp          # 注册表实现，包含内置触发器注册
 │
-├── conditions/                    # 条件谓词
-│   ├── ItemPredicate.hpp/cpp      # 物品匹配条件
-│   ├── EntityPredicate.hpp/cpp    # 实体匹配条件 + 伤害源匹配条件
-│   ├── EntityFlagsPredicate.hpp/cpp # 实体标志匹配条件
-│   ├── EntityEquipmentPredicate.hpp/cpp # 装备匹配条件
-│   ├── NBTPredicate.hpp/cpp       # NBT数据匹配条件
-│   ├── LocationPredicate.hpp/cpp  # 位置匹配条件
-│   ├── BlockPredicate.hpp/cpp     # 方块匹配条件 + 流体匹配条件
-│   ├── MobEffectsPredicate.hpp/cpp # 效果匹配条件
-│   └── DistancePredicate.hpp      # 距离匹配条件（在LocationPredicate中）
+├── conditions/                    # 条件谓词（用于匹配特定游戏状态）
+│   ├── ItemPredicate.hpp/cpp      # 物品匹配（ID、数量、耐久、药水、附魔、NBT）
+│   ├── EntityPredicate.hpp/cpp    # 实体匹配（类型、位置、效果、NBT、装备、标志）+ DamageSourcePredicate
+│   ├── EntityFlagsPredicate.hpp/cpp   # 实体标志匹配（燃烧、潜行、疾跑、游泳、幼年）
+│   ├── EntityEquipmentPredicate.hpp/cpp   # 装备匹配（头盔、胸甲、护腿、靴子、主手、副手）
+│   ├── NBTPredicate.hpp/cpp       # NBT 数据匹配（递归比较，期望标签是实际标签的子集）
+│   ├── LocationPredicate.hpp/cpp  # 位置匹配（坐标、维度、生物群系、结构、流体）
+│   ├── BlockPredicate.hpp/cpp     # 方块匹配 + FluidPredicate（流体匹配）
+│   └── MobEffectsPredicate.hpp/cpp    # 效果匹配（效果类型、等级、持续时间、环境标志）
 │
 └── impl/                          # 触发器实现
-    ├── ImpossibleTrigger.hpp      # 不可能触发器
-    ├── TickTrigger.hpp/cpp        # Tick触发器
-    ├── InventoryChangedTrigger.hpp/cpp  # 物品栏变化
-    ├── LocationTrigger.hpp/cpp          # 位置触发器
-    ├── PlayerKilledEntityTrigger.hpp/cpp # 玩家击杀实体
-    ├── BlockTriggers.hpp/cpp           # 方块相关触发器
-    ├── ItemTriggers.hpp/cpp            # 物品相关触发器
-    ├── EntityTriggers.hpp/cpp          # 实体相关触发器
-    ├── EffectTriggers.hpp/cpp          # 效果相关触发器
+    ├── ImpossibleTrigger.hpp      # 不可能触发器（只能手动授予）
+    ├── TickTrigger.hpp/cpp        # Tick 触发器（每 tick 触发）
+    ├── InventoryChangedTrigger.hpp/cpp  # 物品栏变化触发器
+    ├── LocationTrigger.hpp/cpp          # 位置触发器（维度、生物群系检测）
+    ├── PlayerKilledEntityTrigger.hpp/cpp # 玩家击杀实体触发器
+    ├── BlockTriggers.hpp/cpp           # 方块触发器（放置、进入、滑落、蜂巢破坏、目标击中）
+    ├── ItemTriggers.hpp/cpp            # 物品触发器（消耗、耐久变化、附魔、装桶）
+    ├── EntityTriggers.hpp/cpp          # 实体触发器（驯服、繁殖、交易、治愈、召唤、互动）
+    ├── EffectTriggers.hpp/cpp          # 效果触发器（效果变化、酿造药水）
     └── ChanneledLightningTrigger.hpp/cpp # 引雷附魔触发器
 ```
 
-## 核心接口
-
-### ICriterionTrigger
-
-```cpp
-template<typename T>
-class ICriterionTrigger : public ICriterionTriggerBase {
-public:
-    using Listener = CriterionListener<T>;
-    
-    virtual void addListener(mc::server::PlayerAdvancements& advancements, const Listener& listener) = 0;
-    virtual void removeListener(mc::server::PlayerAdvancements& advancements, const Listener& listener) = 0;
-    virtual void removeAllListeners(mc::server::PlayerAdvancements& advancements) = 0;
-};
-```
-
-### AbstractCriterionTrigger
-
-提供监听器管理的通用实现：
-
-```cpp
-template<typename T>
-class AbstractCriterionTrigger : public ICriterionTrigger<T> {
-protected:
-    template<typename PredicateT>
-    void trigger(mc::server::PlayerAdvancements& advancements, PredicateT&& predicate);
-    
-    const std::set<Listener>& getListeners(mc::server::PlayerAdvancements& advancements) const;
-    bool hasListeners(mc::server::PlayerAdvancements& advancements) const;
-};
-```
-
-## 已实现的触发器
-
-### 基础触发器
-
-| 触发器 | ID | 说明 | 状态 |
-|--------|-----|------|------|
-| `ImpossibleTrigger` | `minecraft:impossible` | 无法自动完成，需手动授予 | ✅ 完整实现 |
-| `InventoryChangedTrigger` | `minecraft:inventory_changed` | 物品栏变化 | ✅ 条件检测完成，待服务端事件集成 |
-| `TickTrigger` | `minecraft:tick` | 每tick触发 | ✅ 完整实现 |
-
-### InventoryChangedTrigger 详细说明
-
-`InventoryChangedTrigger` 用于检测玩家物品栏变化，支持以下条件：
-
-- `slots.occupied`: 占用槽位数量范围
-- `slots.full`: 满槽位数量范围
-- `slots.empty`: 空槽位数量范围
-- `items`: 物品谓词列表
-
-```cpp
-// 条件检测示例
-InventoryChangedTriggerInstance instance = ...;
-
-// 使用 testWithInventory 方法检测
-bool matches = instance.testWithInventory(
-    PlayerInventory::TOTAL_SIZE,  // 41
-    [&inventory](i32 slot) -> const ItemStack& {
-        return inventory.getItem(slot);
-    }
-);
-```
-
-**服务端集成**：触发器的实际触发需要在服务端事件系统中完成。
-详见 `src/server/advancement/TriggerInstantiation.hpp` 和事件系统集成文档。
-
-### 位置触发器
-
-| 触发器 | ID | 说明 |
-|--------|-----|------|
-| `LocationTrigger` | `minecraft:location` | 位置检测 |
-| `SleptInBedTrigger` | `minecraft:slept_in_bed` | 睡觉 |
-| `HeroOfTheVillageTrigger` | `minecraft:hero_of_the_village` | 村庄英雄 |
-| `VoluntaryExileTrigger` | `minecraft:voluntary_exile` | 不祥之兆 |
-
-### 实体触发器
-
-| 触发器 | ID | 说明 | 状态 |
-|--------|-----|------|------|
-| `PlayerKilledEntityTrigger` | `minecraft:player_killed_entity` | 玩家击杀实体 | ✅ 完整实现，已注册 |
-| `EntityKilledPlayerTrigger` | `minecraft:entity_killed_player` | 实体击杀玩家 | ✅ 完整实现，已注册 |
-| `TameAnimalTrigger` | `minecraft:tame_animal` | 驯服动物 | ✅ 完整实现 |
-| `BredAnimalsTrigger` | `minecraft:bred_animals` | 繁殖动物 | ⏳ 条件检测完成，待事件集成 |
-| `SummonedEntityTrigger` | `minecraft:summoned_entity` | 召唤实体 | ⏳ 条件检测完成，待事件集成 |
-| `CuredZombieVillagerTrigger` | `minecraft:cured_zombie_villager` | 治愈僵尸村民 | ⏳ 条件检测完成，待事件集成 |
-| `VillagerTradeTrigger` | `minecraft:villager_trade` | 村民交易 | ⏳ 条件检测完成，待事件集成 |
-| `PlayerInteractedWithEntityTrigger` | `minecraft:player_interacted_with_entity` | 玩家与实体交互 | ✅ 完整实现，已注册 |
-| `ChanneledLightningTrigger` | `minecraft:channeled_lightning` | 引雷附魔 | ✅ 完整实现，已注册 |
-
-#### PlayerKilledEntityTrigger 详细说明
-
-`PlayerKilledEntityTrigger` 用于检测玩家击杀实体的事件，支持以下条件：
-
-- `entity`: 实体谓词，匹配被击杀的实体类型
-- `killing_blow`: 伤害源谓词，匹配击杀方式
-
-```cpp
-// 触发检测（服务端）
-void onPlayerKillEntity(const PlayerKillEntityEvent& e) {
-    auto* trigger = CriterionTriggers::instance().getTrigger<PlayerKilledEntityTrigger>();
-    if (trigger && e.victim && e.cause) {
-        trigger->AbstractCriterionTrigger<PlayerKilledEntityTriggerInstance>::trigger(
-            *player.getAdvancements(),
-            [&e](const PlayerKilledEntityTriggerInstance& instance) {
-                return instance.test(*e.victim, *e.cause);
-            }
-        );
-    }
-}
-```
-
-**使用示例** (JSON 成就条件):
-```json
-{
-    "criteria": {
-        "killed_zombie": {
-            "trigger": "minecraft:player_killed_entity",
-            "conditions": {
-                "entity": {
-                    "type": "minecraft:zombie"
-                }
-            }
-        }
-    }
-}
-```
-
-#### TameAnimalTrigger 详细说明
-
-`TameAnimalTrigger` 用于检测玩家驯服动物的事件，支持条件检测：
-
-- `entity`: 实体谓词，匹配被驯服的动物类型
-
-```cpp
-// 触发驯服事件（服务端）
-void onAnimalTamed(ServerPlayer& player, AnimalEntity* animal) {
-    auto* trigger = CriterionTriggers::instance().getTrigger<TameAnimalTrigger>();
-    if (trigger && trigger->hasListeners(*player.getAdvancements())) {
-        trigger->trigger(*player.getAdvancements(), animal);
-    }
-}
-```
-
-**使用示例** (JSON 成就条件):
-```json
-{
-    "criteria": {
-        "tamed_horse": {
-            "trigger": "minecraft:tame_animal",
-            "conditions": {
-                "entity": {
-                    "type": "minecraft:horse"
-                }
-            }
-        }
-    }
-}
-```
-
-### 方块触发器
-
-| 触发器 | ID | 说明 |
-|--------|-----|------|
-| `EnterBlockTrigger` | `minecraft:enter_block` | 进入方块 |
-| `PlacedBlockTrigger` | `minecraft:placed_block` | 放置方块 |
-| `SlideDownBlockTrigger` | `minecraft:slide_down_block` | 滑落方块 |
-| `BeeNestDestroyedTrigger` | `minecraft:bee_nest_destroyed` | 破坏蜂巢 |
-
-### 物品触发器
-
-| 触发器 | ID | 说明 | 状态 |
-|--------|-----|------|------|
-| `ConsumeItemTrigger` | `minecraft:consume_item` | 消耗物品（吃食物、喝药水） | ✅ 完整实现，已集成事件 |
-| `ItemDurabilityTrigger` | `minecraft:item_durability_changed` | 物品耐久变化 | ✅ 完整实现，已集成事件 |
-| `EnchantedItemTrigger` | `minecraft:enchanted_item` | 附魔物品 | ✅ 完整实现，已集成事件 |
-| `FilledBucketTrigger` | `minecraft:filled_bucket` | 填充桶 | ✅ 完整实现，已集成事件 |
-
-#### ItemTriggers 事件集成说明
-
-物品相关触发器已完整集成到服务端事件系统：
-
-| 触发器 | 事件 | 触发位置 |
-|--------|------|----------|
-| `ConsumeItemTrigger` | `ConsumeItemEvent` | `FoodItem::onItemUseFinish()` |
-| `ItemDurabilityTrigger` | `ItemDurabilityEvent` | `ItemStack::attemptDamageItem()` |
-| `EnchantedItemTrigger` | `EnchantItemEvent` | `EnchantmentContainer::enchantItem()` |
-| `FilledBucketTrigger` | `FilledBucketEvent` | `BucketItem::onItemUse()` |
-
-**事件流程：**
+## 内部模块关系
 
 ```
-游戏逻辑触发
-       │
-       ▼
-IWorld::onConsumeItem() / onItemDurabilityChange() / etc.
-       │
-       ▼
-ServerWorld 发布事件到 ServerEventBus
-       │
-       ▼
-AdvancementEventHandler::onConsumeItem() / onItemDurability() / etc.
-       │
-       ▼
-CriterionTriggers::getTrigger<T>()
-       │
-       ▼
-trigger->trigger(*advancements, predicate)
-       │
-       ▼
-检查玩家的成就监听器，条件满足时授予成就
+CriterionTriggers（注册表）
+    │ 管理
+    ▼
+ICriterionTrigger<T>（接口）
+    │ 派生
+    ▼
+AbstractCriterionTrigger<T>（监听器管理基类）
+    │ 派生
+    ▼
+具体触发器实现（InventoryChangedTrigger、PlayerKilledEntityTrigger 等）
+    │ 使用
+    ▼
+条件谓词（ItemPredicate、EntityPredicate、BlockPredicate 等）
 ```
 
-## 条件谓词
-
-### ItemPredicate
-
-匹配物品的条件：
-
-```cpp
-ItemPredicate predicate = ItemPredicate::fromJson({
-    {"item", "minecraft:diamond"},
-    {"count", 5},
-    {"durability", {"min", 100}}
-});
-
-if (predicate.test(itemStack)) {
-    // 条件满足
-}
-```
-
-ItemPredicate 支持以下字段：
-- `item`: 物品ID（如 `minecraft:diamond`）
-- `count`: 数量（精确值或范围）
-- `durability`: 耐久度范围
-- `potion`: 药水类型
-- `nbt`: NBT数据匹配
-- `enchantments`: 附魔匹配
-
-### EntityPredicate
-
-匹配实体的条件，支持丰富的实体属性检测。参考 MC 1.16.5: `net.minecraft.advancements.criterion.EntityPredicate`
-
-**主要字段：**
-
-| 字段 | JSON 键 | 说明 |
-|------|---------|------|
-| `m_type` | `type` | 实体类型（如 `minecraft:zombie`） |
-| `m_distance` | `distance` | 距离谓词（与参考点的距离） |
-| `m_location` | `location` | 位置谓词（生物群系、维度等） |
-| `m_effects` | `effects` | 效果谓词（MobEffectsPredicate） |
-| `m_nbt` | `nbt` | NBT谓词 |
-| `m_flags` | `flags` | 标志谓词（燃烧、潜行等） |
-| `m_equipment` | `equipment` | 装备谓词 |
-
-**检查方法：**
-- `test(const Entity& entity)` - 基础检查（不含距离和位置）
-- `test(const IWorld& world, f64 x, f64 y, f64 z, const Entity& entity)` - 完整检查（包含距离和位置）
-- `test(const Entity& entity, const DamageSource& source)` - 带伤害源的检查
-
-```cpp
-// 从 JSON 解析
-nlohmann::json json = R"({
-  "type": "minecraft:zombie",
-  "distance": {"max": 30.0},
-  "flags": {"is_baby": true},
-  "equipment": {
-    "head": {"item": "minecraft:diamond_helmet"}
-  }
-})"_json;
-
-auto result = EntityPredicate::fromJson(json);
-```
-
-### EntityFlagsPredicate
-
-实体标志谓词，用于匹配实体的状态标志。参考 MC 1.16.5: `net.minecraft.advancements.criterion.EntityFlagsPredicate`
-
-**主要字段：**
-
-| 字段 | JSON 键 | 说明 |
-|------|---------|------|
-| `m_isOnFire` | `is_on_fire` | 是否燃烧 |
-| `m_isSneaking` | `is_sneaking` | 是否潜行 |
-| `m_isSprinting` | `is_sprinting` | 是否疾跑（仅玩家） |
-| `m_isSwimming` | `is_swimming` | 是否游泳（仅玩家） |
-| `m_isBaby` | `is_baby` | 是否幼年 |
-
-```cpp
-// 从 JSON 解析
-nlohmann::json json = R"({
-  "is_on_fire": true,
-  "is_baby": false
-})"_json;
-
-auto result = EntityFlagsPredicate::fromJson(json);
-if (result.success()) {
-    EntityFlagsPredicate predicate = result.value();
-    bool matches = predicate.test(entity);
-}
-```
-
-### EntityEquipmentPredicate
-
-装备谓词，用于匹配实体的装备。参考 MC 1.16.5: `net.minecraft.advancements.criterion.EntityEquipmentPredicate`
-
-**主要字段：**
-
-| 字段 | JSON 键 | 说明 |
-|------|---------|------|
-| `m_head` | `head` | 头盔 |
-| `m_chest` | `chest` | 胸甲 |
-| `m_legs` | `legs` | 护腿 |
-| `m_feet` | `feet` | 靴子 |
-| `m_mainHand` | `mainhand` | 主手物品 |
-| `m_offHand` | `offhand` | 副手物品 |
-
-**注意**：只有 `LivingEntity` 才有装备，非 `LivingEntity` 对装备谓词返回 false（除非谓词为空）。
-
-```cpp
-// 从 JSON 解析
-nlohmann::json json = R"({
-  "head": {"item": "minecraft:diamond_helmet"},
-  "mainhand": {"item": "minecraft:diamond_sword"}
-})"_json;
-
-auto result = EntityEquipmentPredicate::fromJson(json);
-if (result.success()) {
-    EntityEquipmentPredicate predicate = result.value();
-    bool matches = predicate.test(livingEntity);
-}
-```
-
-### NBTPredicate
-
-NBT谓词，用于匹配实体或物品的NBT数据。参考 MC 1.16.5: `net.minecraft.advancements.criterion.NBTPredicate`
-
-**主要功能：**
-- 支持实体NBT匹配
-- 支持物品NBT匹配
-- 递归比较NBT标签（compound_tag、list_tag、数值标签等）
-- 期望标签必须是实际标签的子集
-
-```cpp
-// 从 JSON 解析（Mojangson 格式）
-nlohmann::json json = "{CustomName:'{\"text\":\"Test\"}'}";
-
-auto result = NBTPredicate::fromJson(json);
-if (result.success()) {
-    NBTPredicate predicate = result.value();
-    bool matches = predicate.test(entity);
-}
-```
-
-**匹配规则：**
-- 如果期望NBT为空（`isAny()`），匹配任意NBT
-- 如果实际NBT为空，不匹配（除非期望也为空）
-- 递归比较：期望标签中的所有字段必须在实际标签中存在且值相等
-- 实际标签可以包含额外的字段
-
-### LocationPredicate
-
-匹配位置的条件：
-
-```cpp
-LocationPredicate predicate = LocationPredicate::fromJson({
-    {"biome", "minecraft:plains"},
-    {"dimension", "minecraft:overworld"},
-    {"position", {
-        {"x", {"min", 100, "max", 200}},
-        {"y", {"min", 60, "max", 80}}
-    }}
-});
-```
-
-### BlockPredicate
-
-匹配方块的条件：
-
-```cpp
-BlockPredicate predicate = BlockPredicate::fromJson({
-    {"block", "minecraft:stone"},
-    {"state", {{"facing", "north"}}}
-});
-```
-
-### FluidPredicate
-
-匹配流体的条件（定义在 `BlockPredicate.hpp/cpp` 中）：
-
-```cpp
-FluidPredicate predicate = FluidPredicate::fromJson({
-    {"fluid", "minecraft:water"}
-});
-
-// 检查方块是否包含指定流体
-if (predicate.test(blockState)) {
-    // 方块包含水（包括水源和流动水）
-}
-```
-
-FluidPredicate 使用 `Fluid::isEquivalentTo()` 比较流体等效性：
-- `minecraft:water` 同时匹配水源 (`minecraft:water`) 和流动水 (`minecraft:flowing_water`)
-- `minecraft:lava` 同时匹配岩浆源 (`minecraft:lava`) 和流动岩浆 (`minecraft:flowing_lava`)
-
-**实现细节**：
-- 通过 `BlockState::getFluidState()` 获取方块的流体状态
-- 使用 `FluidState::isEmpty()` 检查是否为空流体
-- 使用 `Fluid::getFluid(ResourceLocation)` 获取期望的流体
-- 使用 `Fluid::isEquivalentTo()` 进行等效比较
-
-### MobEffectsPredicate
-
-匹配实体效果状态的条件：
-
-```cpp
-MobEffectsPredicate predicate = MobEffectsPredicate::fromJson({
-    {"minecraft:speed", {{"amplifier", {"min", 1}}}},
-    {"minecraft:regeneration", {}}
-});
-
-// 检查实体是否有效果
-if (predicate.test(livingEntity)) {
-    // 实体拥有所需的效果
-}
-```
-
-MobEffectsPredicate 包含两个类：
-
-#### EffectInstancePredicate
-
-匹配单个效果实例的条件，检查：
-- `amplifier`: 效果等级范围（0 = I级，1 = II级，以此类推）
-- `duration`: 持续时间范围（tick）
-- `ambient`: 是否为环境效果（如信标）
-- `visible`: 是否显示粒子
-
-```cpp
-// 创建效果实例谓词
-IntBounds amplifier = IntBounds::between(0, 2);  // 等级 I-III
-IntBounds duration = IntBounds::atLeast(100);     // 至少 100 tick
-EffectInstancePredicate predicate(amplifier, duration, false, std::nullopt);
-
-// 检查效果实例
-const EffectInstance* effect = entity.getEffect(EffectType::Speed);
-bool matches = predicate.test(effect);
-```
-
-#### MobEffectsPredicate
-
-检查实体身上的效果状态组合：
-
-```cpp
-// 从 JSON 解析
-auto result = MobEffectsPredicate::fromJson(json);
-if (result.success()) {
-    MobEffectsPredicate predicate = result.value();
-    bool matches = predicate.test(livingEntity);
-}
-```
-
-**使用示例** (JSON 成就条件):
-```json
-{
-    "criteria": {
-        "have_speed": {
-            "trigger": "minecraft:effects_changed",
-            "conditions": {
-                "effects": {
-                    "minecraft:speed": {
-                        "amplifier": {"min": 1},
-                        "duration": {"min": 200}
-                    }
-                }
-            }
-        }
-    }
-}
-```
-
-**实现细节**：
-- 使用 `getEffectByResourceLocation()` 解析效果类型，未知效果会被跳过并输出警告
-- 只有 `LivingEntity` 有效果，非 `LivingEntity` 对效果谓词返回 false（除非谓词为空）
-- 效果ID 必须使用完整的 `minecraft:` 命名空间前缀
-
-## 使用示例
-
-### 注册触发器
-
-```cpp
-// 在服务器初始化时注册所有内置触发器
-CriterionTriggers::instance().registerBuiltinTriggers();
-```
-
-### 创建成就条件
-
-```cpp
-// JSON格式
-{
-    "criteria": {
-        "diamond": {
-            "trigger": "minecraft:inventory_changed",
-            "conditions": {
-                "items": [
-                    {"item": "minecraft:diamond"}
-                ]
-            }
-        }
-    }
-}
-```
-
-### 触发检测（服务端）
-
-在服务端模块中，使用 `TriggerInstantiation.hpp` 来完成触发：
-
-```cpp
-#include "server/advancement/TriggerInstantiation.hpp"
-
-// 当玩家物品栏变化时
-void onInventoryChanged(ServerPlayer& player, const PlayerInventory& inventory) {
-    auto* trigger = CriterionTriggers::instance().getTrigger<InventoryChangedTrigger>();
-    if (trigger && trigger->hasListeners(*player.getAdvancements())) {
-        // 使用模板方法触发
-        trigger->trigger(*player.getAdvancements(), [&](const auto& instance) {
-            return instance.testWithInventory(
-                PlayerInventory::TOTAL_SIZE,
-                [&inventory](i32 slot) -> const ItemStack& {
-                    return inventory.getItem(slot);
-                }
-            );
-        });
-    }
-}
-```
-
-## 扩展指南
-
-### 添加新触发器
-
-1. 创建新的触发器类，继承 `AbstractCriterionTrigger<T>`：
-
-```cpp
-class MyTrigger : public AbstractCriterionTrigger<MyTrigger> {
-public:
-    static constexpr const char* TRIGGER_ID = "minecraft:my_trigger";
-    
-    class Instance : public CriterionInstance<Instance> {
-        // 条件字段
-        Result<void> fromJson(const nlohmann::json& json) override;
-        nlohmann::json conditionsToJson() const override;
-        
-        // 条件检测
-        bool test(...) const;
-    };
-    
-    ResourceLocation getId() const override;
-    Result<std::shared_ptr<Instance>> fromJson(const nlohmann::json& json) override;
-    
-    void trigger(ServerPlayer& player, ...);
-};
-```
-
-2. 在 `CriterionTriggers::registerBuiltinTriggers()` 中注册：
-
-```cpp
-registerTrigger(std::make_unique<MyTrigger>());
-```
-
-3. 在 `triggers` 命名空间中添加 ID 常量：
-
-```cpp
-constexpr const char* MY_TRIGGER = "minecraft:my_trigger";
-```
-
-## 架构说明
-
-### 模块划分
-
-触发器系统分为两个模块：
-
-1. **Common 模块** (`mc::advancement`)
-   - 触发器接口和基类定义
-   - 条件谓词实现
-   - JSON 解析和序列化
-   - `test()` 方法实现
-
-2. **Server 模块** (`mc::server`)
-   - `PlayerAdvancements`: 玩家进度管理
-   - `TriggerInstantiation.hpp`: 模板方法实例化
-   - 事件系统集成
-
-### 命名空间注意事项
-
-- `mc::advancement::PlayerAdvancements` 是前向声明，实际定义在 `mc::server::PlayerAdvancements`
-- 所有触发器接口使用 `mc::server::PlayerAdvancements&` 作为参数类型
-- 服务端集成代码必须包含 `server/advancement/TriggerInstantiation.hpp`
-
-## 参考
-
-- Minecraft 1.16.5: `net.minecraft.advancements.criterion.*`
-- Minecraft Wiki: https://minecraft.fandom.com/wiki/Advancement/JSON_format
+## 上下游外部依赖关系
+
+### 本模块依赖的外部模块
+
+- `common/core/ResourceLocation.hpp` - 资源位置（成就 ID、触发器 ID）
+- `common/util/nbt/` - NBT 系统（NBTPredicate）
+- `common/entity/` - 实体系统（EntityPredicate）
+- `common/entity/effect/` - 效果系统（MobEffectsPredicate）
+- `common/entity/damage/` - 伤害系统（DamageSourcePredicate）
+- `common/world/` - 世界接口（LocationPredicate、BlockPredicate）
+- `common/world/biome/` - 生物群系注册表（LocationPredicate）
+- `common/item/` - 物品系统（ItemPredicate）
+- `common/item/loot/StatePropertiesPredicate.hpp` - 状态属性谓词（BlockPredicate 复用）
+- `nlohmann/json.hpp` - JSON 解析
+
+### 依赖本模块的外部模块
+
+- `server/advancement/` - 服务端成就系统（PlayerAdvancements、AdvancementEventHandler、TriggerInstantiation）
+- `common/network/packet/AdvancementPackets.hpp` - 成就网络数据包
+- `common/item/loot/conditions/` - 战利品条件复用谓词（EntityPropertiesCondition、LocationCheckCondition、DamageSourcePropertiesCondition）
+
+## 容易踩的坑
+
+1. **触发器注册**：所有触发器必须在 `CriterionTriggers::registerBuiltinTriggers()` 中注册，否则无法从 JSON 加载。新增触发器后记得在此方法中添加注册代码。
+
+2. **谓词为空语义**：大多数谓词的默认构造（空状态）表示"匹配任意"，而非"不匹配"。检查谓词时需注意 `isAny()` 的语义。
+
+3. **实体类型检查**：`EntityEquipmentPredicate` 和 `MobEffectsPredicate` 只对 `LivingEntity` 有效，非 `LivingEntity` 对这些谓词返回 `false`（除非谓词为空）。
+
+4. **伤害源标志**：`EnvironmentalDamage` 的 `isProjectile()` 和 `isExplosion()` 始终返回 `false`，投射物和爆炸伤害需使用 `EntityDamageSource` 或 `IndirectEntityDamageSource`。
+
+5. **维度名称**：维度检查使用 `ResourceLocation` 的路径部分（如 `overworld`），不是完整字符串。
+
+6. **效果类型解析**：使用 `getEffectByResourceLocation()` 解析效果类型，未知效果会被跳过并输出警告日志。
+
+7. **流体等效性**：`FluidPredicate` 使用 `Fluid::isEquivalentTo()` 比较，`minecraft:water` 同时匹配水源和流动水。
+
+8. **状态属性复用**：`BlockPredicate` 复用 `mc::StatePropertiesPredicate`（位于 `common/entity/loot/`），而非重新实现。
+
+9. **触发器模板模式**：创建新触发器需继承 `AbstractCriterionTrigger<T>`，其中 `T` 是触发器实例类型。`CriterionInstance<T>` 提供条件检测的 `test()` 方法。
+
+10. **服务端触发路径**：服务端触发成就需通过 `AdvancementEventHandler` 订阅事件，然后调用 `trigger->trigger(*advancements, predicate)`。直接调用触发器不会生效，因为没有监听器上下文。
+
+11. **命名空间注意**：`mc::advancement::PlayerAdvancements` 是前向声明，实际定义在 `mc::server::PlayerAdvancements`。触发器接口使用 `mc::server::PlayerAdvancements&` 作为参数类型。
+
+12. **触发器 ID 常量**：所有触发器 ID 常量定义在 `mc::advancement::triggers` 命名空间中（如 `triggers::INVENTORY_CHANGED`），新增触发器时需同步添加常量。
