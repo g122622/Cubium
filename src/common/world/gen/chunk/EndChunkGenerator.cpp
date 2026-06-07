@@ -56,7 +56,7 @@ constexpr i32 END_MIN_Y = world::MIN_BUILD_HEIGHT;
 constexpr i32 MAIN_ISLAND_CHUNK_RADIUS = 64;
 constexpr i32 MAIN_ISLAND_BLOCK_RADIUS = MAIN_ISLAND_CHUNK_RADIUS * world::CHUNK_WIDTH;
 constexpr i32 ISLAND_HEIGHT_BASE = 64;
-constexpr f32 VOID_HEIGHT = -64.0f; // 虚空高度
+constexpr f32 VOID_HEIGHT = static_cast<f32>(world::MIN_BUILD_HEIGHT); // 虚空高度
 
 // 黑曜石柱参数
 constexpr i32 PILLAR_COUNT = 10;

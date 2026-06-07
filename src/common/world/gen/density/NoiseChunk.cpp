@@ -50,6 +50,15 @@ public:
     [[nodiscard]] f64 minValue() const override { return m_target.minValue(); }
     [[nodiscard]] f64 maxValue() const override { return m_target.maxValue(); }
 
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        // DensityFunctionReference 只是持有对目标函数的引用，
+        // 不能 clone 目标，应该让 visitor 决定如何处理。
+        // 由于它只是转发调用，实际上 visitor 无法替换引用目标。
+        // 返回一个新的引用包装器指向同一个目标。
+        return visitor.apply(std::make_unique<DensityFunctionReference>(m_target));
+    }
+
 private:
     const DensityFunction& m_target;
 };
@@ -217,9 +226,19 @@ CacheOnce::CacheOnce(std::unique_ptr<DensityFunction> input)
 
 f64 CacheOnce::compute(i32 blockX, i32 blockY, i32 blockZ) const
 {
-    // CacheOnce 需要与 NoiseChunk 的 interpolationCounter 配合
-    // 在当前简化实现中，暂不使用计数器缓存，直接委托
-    // 完整实现需要 NoiseChunk 传递计数器
+    // MC 1.21: 如果绑定了 NoiseChunk 的 interpolationCounter，
+    // 在同一插值步骤内直接返回缓存值
+    if (m_interpolationCounter != nullptr) {
+        const u64 currentCounter = *m_interpolationCounter;
+        if (currentCounter == m_lastCounter) {
+            return m_lastValue;
+        }
+        const f64 value = m_input->compute(blockX, blockY, blockZ);
+        m_lastCounter = currentCounter;
+        m_lastValue = value;
+        return value;
+    }
+    // 未绑定计数器时直接委托（不应发生，但作为安全回退）
     return m_input->compute(blockX, blockY, blockZ);
 }
 
@@ -227,30 +246,27 @@ f64 CacheOnce::compute(i32 blockX, i32 blockY, i32 blockZ) const
 // NoiseChunk 实现
 // ============================================================================
 
-NoiseChunk::NoiseChunk(const NoiseRouter& router,
+NoiseChunk::NoiseChunk(NoiseRouter router,
     i32 cellWidth,
     i32 cellHeight,
     i32 cellCountY,
     i32 startBlockX,
     i32 startBlockY,
     i32 startBlockZ)
-    : m_router(router)
-    , m_cellConfig{cellWidth, cellHeight, 0, cellCountY}
+    : m_cellConfig{cellWidth, cellHeight, 0, cellCountY}
     , m_startBlockX(startBlockX)
     , m_startBlockZ(startBlockZ)
     , m_firstCellX(math::floorDiv(startBlockX, cellWidth))
     , m_firstCellY(math::floorDiv(startBlockY, cellHeight))
     , m_firstCellZ(math::floorDiv(startBlockZ, cellWidth))
+    , m_router(std::move(router))
 {
     m_cellConfig.cellCountXZ = world::CHUNK_WIDTH / cellWidth;
 
-    auto finalDensityInterpolator =
-        std::make_unique<NoiseInterpolator>(std::make_unique<DensityFunctionReference>(m_router.finalDensity()),
-            m_cellConfig.cellCountXZ,
-            m_cellConfig.cellCountY);
-    m_wrappedFinalDensity = std::make_unique<DensityFunctionReference>(*finalDensityInterpolator);
-    m_interpolators.push_back(std::move(finalDensityInterpolator));
-    m_wrappedPreliminarySurfaceLevel = std::make_unique<DensityFunctionReference>(m_router.preliminarySurfaceLevel());
+    // MC 1.21: 使用 mapAll(*this) 遍历密度函数树，将 Marker 替换为 NoiseChunk 特定实现
+    // 对所有 15 个密度函数执行 mapAll，将 Interpolated → NoiseInterpolator，
+    // CacheAllInCell → CellCache，CacheOnce/FlatCache/Cache2D 保持原样
+    m_router.mapAll(*this);
 }
 
 NoiseChunk::~NoiseChunk() = default;
@@ -261,12 +277,50 @@ void NoiseChunk::setAquifer(std::unique_ptr<aquifer::Aquifer> aq)
     m_aquifer = std::move(aq);
 }
 
-std::unique_ptr<DensityFunction> NoiseChunk::wrap(std::unique_ptr<DensityFunction> function)
+std::unique_ptr<DensityFunction> NoiseChunk::apply(std::unique_ptr<DensityFunction> function)
 {
-    // MC 1.21 中 Marker 类型会被替换为 NoiseChunk 特定实现
-    // 当前实现中，Marker 类型不在 DensityFunction 类层次中，
-    // 而是在 NoiseRouterData 中由工厂函数决定包装方式。
-    // 这里保留接口以备将来实现 Marker 遍历时使用。
+    // MC 1.21: 根据 Marker 类型替换为 NoiseChunk 特定实现
+    if (auto* marker = dynamic_cast<Marker*>(function.get())) {
+        switch (marker->markerType()) {
+            case MarkerType::Interpolated: {
+                // Interpolated → NoiseInterpolator
+                auto filler = marker->releaseWrapped();
+                auto interpolator = std::make_unique<NoiseInterpolator>(
+                    std::move(filler), m_cellConfig.cellCountXZ, m_cellConfig.cellCountY);
+                // 注册到插值器列表，以便 fillSlice/selectCellYZ/updateForXYZ 驱动
+                auto* rawPtr = interpolator.get();
+                m_interpolators.push_back(std::move(interpolator));
+                // 返回 NoiseInterpolator 的引用（不拥有，interpolators 列表拥有）
+                return std::make_unique<DensityFunctionReference>(*rawPtr);
+            }
+            case MarkerType::CacheAllInCell: {
+                // CacheAllInCell → CellCache（在 selectCellYZ 时预填充）
+                auto filler = marker->releaseWrapped();
+                auto cache =
+                    std::make_unique<CellCache>(std::move(filler), m_cellConfig.cellWidth, m_cellConfig.cellHeight);
+                m_cellCaches.push_back(std::move(cache));
+                // 返回最后一个 CellCache 的引用
+                return std::make_unique<DensityFunctionReference>(*m_cellCaches.back());
+            }
+            case MarkerType::CacheOnce: {
+                // CacheOnce → 替换为绑定 interpolationCounter 的 CacheOnce
+                auto filler = marker->releaseWrapped();
+                auto cacheOnce = std::make_unique<CacheOnce>(std::move(filler));
+                cacheOnce->bindInterpolationCounter(&m_interpolationCounter);
+                return cacheOnce;
+            }
+            case MarkerType::FlatCache: {
+                // FlatCache → 替换为区块级扁平缓存实例
+                auto filler = marker->releaseWrapped();
+                return std::make_unique<FlatCache>(std::move(filler));
+            }
+            case MarkerType::Cache2D: {
+                // Cache2D → 替换为 XZ 位置缓存实例
+                auto filler = marker->releaseWrapped();
+                return std::make_unique<Cache2D>(std::move(filler));
+            }
+        }
+    }
     return function;
 }
 
@@ -349,11 +403,6 @@ void NoiseChunk::swapSlices()
     }
 }
 
-f64 NoiseChunk::sampleFinalDensity(i32 blockX, i32 blockY, i32 blockZ) const
-{
-    return m_wrappedFinalDensity->compute(blockX, blockY, blockZ);
-}
-
 i32 NoiseChunk::samplePreliminarySurfaceLevel(i32 blockX, i32 blockZ) const
 {
     const i32 quartAlignedX = math::floorDiv(blockX, 4) * 4;
@@ -366,7 +415,7 @@ i32 NoiseChunk::samplePreliminarySurfaceLevel(i32 blockX, i32 blockZ) const
     }
 
     const i32 surfaceLevel =
-        static_cast<i32>(std::floor(m_wrappedPreliminarySurfaceLevel->compute(quartAlignedX, 0, quartAlignedZ)));
+        static_cast<i32>(std::floor(m_router.preliminarySurfaceLevel().compute(quartAlignedX, 0, quartAlignedZ)));
     m_preliminarySurfaceLevelCache.emplace(cacheKey, surfaceLevel);
     return surfaceLevel;
 }

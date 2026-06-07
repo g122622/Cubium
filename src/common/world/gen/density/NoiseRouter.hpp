@@ -106,6 +106,17 @@ public:
      */
     [[nodiscard]] mc::world::biome::climate::Sampler createClimateSampler() const;
 
+    /**
+     * @brief 对所有 15 个密度函数递归应用 visitor
+     *
+     * MC 1.21 对应 NoiseRouter.mapAll(Visitor)。
+     * 对每个密度函数调用 mapAll(visitor)，将结果写回路由器。
+     * 用于 NoiseChunk 构造时将 Marker 类型替换为特定实现。
+     *
+     * @param visitor 访问者
+     */
+    void mapAll(DensityFunction::Visitor& visitor);
+
 private:
     // 洞穴
     std::unique_ptr<DensityFunction> m_barrierNoise;

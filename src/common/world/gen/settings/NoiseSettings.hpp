@@ -84,8 +84,8 @@ struct NoiseSettings {
     static NoiseSettings overworld()
     {
         NoiseSettings settings;
-        settings.minY = -64;
-        settings.height = 384;
+        settings.minY = world::MIN_BUILD_HEIGHT;
+        settings.height = world::CHUNK_HEIGHT;
         settings.sizeHorizontal = 1;
         settings.sizeVertical = 2;
         settings.densityFactor = 1.0f;

@@ -32,7 +32,9 @@ namespace mc::world::gen::density {
 // ============================================================================
 
 EndIslands::EndIslands(u64 seed)
-    : m_islandNoise(std::make_unique<noise::NormalNoise>(seed ^ 0x9E3779B97F4A7C15ULL, -4, std::vector<f64>{1.0, 1.0, 1.0, 1.0}))
+    : m_seed(seed)
+    , m_islandNoise(
+          std::make_unique<noise::NormalNoise>(seed ^ 0x9E3779B97F4A7C15ULL, -4, std::vector<f64>{1.0, 1.0, 1.0, 1.0}))
 {}
 
 f64 EndIslands::compute(i32 blockX, i32 blockY, i32 blockZ) const
@@ -75,7 +77,8 @@ f64 EndIslands::getHeightValue(i32 x, i32 z) const
             if (noiseVal < -0.9) {
                 // 计算此岛屿对此位置的高度贡献
                 const f64 f1 =
-                    std::fmod(std::abs(static_cast<f64>(k1)) * 3439.0 + std::abs(static_cast<f64>(l1)) * 147.0, 13.0) + 9.0;
+                    std::fmod(std::abs(static_cast<f64>(k1)) * 3439.0 + std::abs(static_cast<f64>(l1)) * 147.0, 13.0) +
+                    9.0;
                 const f64 f2 = static_cast<f64>(k) - i1 * 2;
                 const f64 f3 = static_cast<f64>(l) - j1 * 2;
                 f64 f4 = 100.0 - std::sqrt(f2 * f2 + f3 * f3) * f1;
@@ -184,8 +187,7 @@ std::unique_ptr<DensityFunction> shiftedNoise(u64 seed,
         std::move(normalNoise), xzScale, yScale, std::move(shiftX), std::move(shiftY), std::move(shiftZ));
 }
 
-std::unique_ptr<DensityFunction> shiftedNoise2d(
-    std::unique_ptr<DensityFunction> shiftX,
+std::unique_ptr<DensityFunction> shiftedNoise2d(std::unique_ptr<DensityFunction> shiftX,
     std::unique_ptr<DensityFunction> shiftZ,
     f64 xzScale,
     u64 seed,
@@ -198,8 +200,7 @@ std::unique_ptr<DensityFunction> shiftedNoise2d(
         std::move(normalNoise), xzScale, 0.0, std::move(shiftX), std::move(zero), std::move(shiftZ));
 }
 
-std::unique_ptr<DensityFunction> lerp(
-    std::unique_ptr<DensityFunction> delta,
+std::unique_ptr<DensityFunction> lerp(std::unique_ptr<DensityFunction> delta,
     std::unique_ptr<DensityFunction> start,
     std::unique_ptr<DensityFunction> end)
 {
@@ -269,16 +270,36 @@ std::unique_ptr<DensityFunction> endIslands(u64 seed)
     return std::make_unique<EndIslands>(seed);
 }
 
-std::unique_ptr<DensityFunction> mappedNoise(u64 seed,
-    i32 firstOctave,
-    std::vector<f64> amplitudes,
-    f64 xzScale,
-    f64 yScale,
-    f64 fromValue,
-    f64 toValue)
+std::unique_ptr<DensityFunction> mappedNoise(
+    u64 seed, i32 firstOctave, std::vector<f64> amplitudes, f64 xzScale, f64 yScale, f64 fromValue, f64 toValue)
 {
     auto normalNoise = std::make_unique<noise::NormalNoise>(seed, firstOctave, std::move(amplitudes));
     return std::make_unique<MappedNoise>(std::move(normalNoise), xzScale, yScale, fromValue, toValue);
+}
+
+std::unique_ptr<DensityFunction> interpolated(std::unique_ptr<DensityFunction> wrapped)
+{
+    return std::make_unique<Marker>(MarkerType::Interpolated, std::move(wrapped));
+}
+
+std::unique_ptr<DensityFunction> cacheOnce(std::unique_ptr<DensityFunction> wrapped)
+{
+    return std::make_unique<Marker>(MarkerType::CacheOnce, std::move(wrapped));
+}
+
+std::unique_ptr<DensityFunction> cacheAllInCellMarker(std::unique_ptr<DensityFunction> wrapped)
+{
+    return std::make_unique<Marker>(MarkerType::CacheAllInCell, std::move(wrapped));
+}
+
+std::unique_ptr<DensityFunction> flatCacheMarker(std::unique_ptr<DensityFunction> wrapped)
+{
+    return std::make_unique<Marker>(MarkerType::FlatCache, std::move(wrapped));
+}
+
+std::unique_ptr<DensityFunction> cache2DMarker(std::unique_ptr<DensityFunction> wrapped)
+{
+    return std::make_unique<Marker>(MarkerType::Cache2D, std::move(wrapped));
 }
 
 } // namespace factory

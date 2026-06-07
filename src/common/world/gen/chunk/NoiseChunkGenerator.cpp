@@ -347,57 +347,25 @@ void NoiseChunkGenerator::_initDensityFunctionPipeline()
 {
     MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initDensityFunctionPipeline");
 
+    // 创建 RandomState，统一持有 NoiseRouter、SurfaceSystem、随机工厂等
+    m_randomState = world::gen::RandomState::create(m_settings, static_cast<u64>(m_seed));
+
+    // 设置 cell 大小参数（根据维度类型）
     switch (m_settings.dimensionKind) {
         case DimensionKind::End:
-            m_router =
-                std::make_unique<world::gen::density::NoiseRouter>(world::gen::density::NoiseRouterData::end(m_seed));
-            m_cellWidth = 8;
-            m_cellHeight = 4;
-            break;
         case DimensionKind::Nether:
-            m_router = std::make_unique<world::gen::density::NoiseRouter>(
-                world::gen::density::NoiseRouterData::nether(m_seed));
             m_cellWidth = 8;
             m_cellHeight = 4;
             break;
         case DimensionKind::Overworld:
-        default: {
-            const bool largeBiomes = false; // TODO: 从 BiomeSource 获取
-            m_router = std::make_unique<world::gen::density::NoiseRouter>(
-                world::gen::density::NoiseRouterData::overworld(m_seed, largeBiomes));
+        default:
             m_cellWidth = 4;
             m_cellHeight = 8;
             break;
-        }
     }
 
     // 启用密度函数管线
     m_useDensityFunctionPipeline = true;
-
-    // 创建 MC 1.21 SurfaceSystem
-    std::unique_ptr<world::gen::surface::SurfaceRule> surfaceRule;
-    switch (m_settings.dimensionKind) {
-        case DimensionKind::End:
-            surfaceRule = world::gen::surface::SurfaceRules::end();
-            break;
-        case DimensionKind::Nether:
-            surfaceRule = world::gen::surface::SurfaceRules::nether(m_seed);
-            break;
-        case DimensionKind::Overworld:
-        default:
-            surfaceRule = world::gen::surface::SurfaceRules::overworld(m_seed);
-            break;
-    }
-
-    if (surfaceRule) {
-        m_surfaceSystem = std::make_unique<world::gen::surface::SurfaceSystem>(std::move(surfaceRule),
-            m_settings.defaultBlock,
-            m_settings.defaultFluid,
-            m_settings.seaLevel,
-            m_settings.noise.minY,
-            m_settings.noise.height,
-            m_seed);
-    }
 }
 
 // ============================================================================
@@ -475,7 +443,7 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
     MC_TRACE_EVENT("world.chunk_gen", "GenerateNoise", "x", chunk.x(), "z", chunk.z());
 
     // MC 1.21: 优先使用密度函数管线
-    if (m_useDensityFunctionPipeline && m_router) {
+    if (m_useDensityFunctionPipeline && m_randomState) {
         _generateNoiseWithDensityFunction(region, chunk);
         return;
     }
@@ -900,15 +868,15 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chun
     MC_TRACE_EVENT("world.chunk_gen", "BuildSurface", "x", chunk.x(), "z", chunk.z());
 
     // MC 1.21: 使用 SurfaceRules 管线
-    if (m_useDensityFunctionPipeline && m_surfaceSystem) {
+    if (m_useDensityFunctionPipeline && m_randomState) {
         const auto getBiomeAt = [&region](i32 x, i32 y, i32 z) -> BiomeId { return region.getBiome(x, y, z); };
         const auto getPreliminarySurfaceLevel = [this](i32 x, i32 z) -> i32 {
             const i32 quartAlignedX = math::floorDiv(x, 4) * 4;
             const i32 quartAlignedZ = math::floorDiv(z, 4) * 4;
             return static_cast<i32>(
-                std::floor(m_router->preliminarySurfaceLevel().compute(quartAlignedX, 0, quartAlignedZ)));
+                std::floor(m_randomState->router().preliminarySurfaceLevel().compute(quartAlignedX, 0, quartAlignedZ)));
         };
-        m_surfaceSystem->buildSurface(chunk, getBiomeAt, getPreliminarySurfaceLevel);
+        m_randomState->surfaceSystem().buildSurface(chunk, getBiomeAt, getPreliminarySurfaceLevel);
 
         // 标记阶段完成
         chunk.setChunkStatus(ChunkStatuses::SURFACE);
@@ -1262,7 +1230,7 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
     // MC 1.21: 收集区块内所有生物群系的特征（非仅中心生物群系）
     // 遍历区块 4x4x4 采样网格中的所有生物群系，去重后放置特征
     std::unordered_set<BiomeId> chunkBiomes;
-    for (i32 y = 0; y < 24; ++y) {
+    for (i32 y = 0; y < world::CHUNK_SECTIONS; ++y) {
         for (i32 z = 0; z < 4; ++z) {
             for (i32 x = 0; x < 4; ++x) {
                 chunkBiomes.insert(chunk.getBiomeAtBlock(x * 4, y * 4, z * 4));
@@ -1328,7 +1296,7 @@ BiomeId NoiseChunkGenerator::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) c
 i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
 {
     // MC 1.21: 使用密度函数管线采样高度
-    if (m_useDensityFunctionPipeline && m_router) {
+    if (m_useDensityFunctionPipeline && m_randomState) {
         // MC 1.21: iterateNoiseColumn — 创建单列 NoiseChunk 采样高度
         // 与直接逐方块采样相比，cell 插值方式与实际区块生成管线完全一致
         const NoiseSettings& noise = m_settings.noise;
@@ -1347,7 +1315,7 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
 
         // 创建单列 NoiseChunk（cellCountXZ=1）
         auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(
-            *m_router, cellWidth, cellHeight, cellCountY, alignedX, minY, alignedZ);
+            m_randomState->createRouterCopy(), cellWidth, cellHeight, cellCountY, alignedX, minY, alignedZ);
 
         noiseChunk->initializeForFirstCellX();
         noiseChunk->advanceCellX(0);
@@ -1512,7 +1480,7 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
     MC_TRACE_EVENT("world.chunk_gen", "GenerateNoise_DF", "x", chunk.x(), "z", chunk.z());
     (void)region;
 
-    if (!m_router) {
+    if (!m_randomState) {
         return;
     }
 
@@ -1525,33 +1493,44 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
     const i32 startBlockY = m_settings.noise.minY;
     const i32 cellCountY = math::floorDiv(m_settings.noise.height, m_cellHeight);
     auto& noiseChunk = chunk.getOrCreateNoiseChunk([&]() {
+        // MC 1.21: NoiseChunk 拥有自己的路由器副本，mapAll() 会将 Marker 替换为区块特定实现
         auto nc = std::make_unique<world::gen::density::NoiseChunk>(
-            *m_router, m_cellWidth, m_cellHeight, cellCountY, startX, startBlockY, startZ);
+            m_randomState->createRouterCopy(), m_cellWidth, m_cellHeight, cellCountY, startX, startBlockY, startZ);
 
         // MC 1.21: 创建含水层采样器
         {
-            math::Random seedRng(m_seed);
-            auto xoroshioRng = std::make_unique<math::Xoroshiro128ppRandom>(
-                static_cast<u64>(seedRng.nextLong()), static_cast<u64>(seedRng.nextLong()));
-            auto positionalRandom = xoroshioRng->forkPositional();
+            // 使用 RandomState 中的 aquiferRandom（与 MC 1.21 RandomState.aquiferRandom() 对应）
+            auto positionalRandom = std::make_unique<math::PositionalRandomFactory>(
+                m_randomState->aquiferRandom().seedLo(), m_randomState->aquiferRandom().seedHi());
+
+            // 根据维度选择 FluidPicker
+            world::gen::aquifer::FluidPicker fluidPicker;
+            switch (m_settings.dimensionKind) {
+                case DimensionKind::Nether:
+                    fluidPicker = world::gen::aquifer::createNetherFluidPicker();
+                    break;
+                case DimensionKind::End:
+                    fluidPicker = world::gen::aquifer::createEndFluidPicker();
+                    break;
+                case DimensionKind::Overworld:
+                default:
+                    fluidPicker =
+                        world::gen::aquifer::createOverworldFluidPicker(m_settings.seaLevel, m_settings.defaultFluid);
+                    break;
+            }
 
             if (m_settings.noise.aquifersEnabled) {
-                auto fluidPicker =
-                    world::gen::aquifer::createOverworldFluidPicker(m_settings.seaLevel, m_settings.defaultFluid);
-
                 auto aquifer = world::gen::aquifer::Aquifer::createNoiseBased(*nc,
                     chunkX,
                     chunkZ,
-                    *m_router,
-                    positionalRandom,
+                    nc->router(),
+                    *positionalRandom,
                     m_settings.noise.minY,
                     m_settings.noise.height,
                     std::move(fluidPicker));
 
                 nc->setAquifer(std::move(aquifer));
             } else {
-                auto fluidPicker =
-                    world::gen::aquifer::createOverworldFluidPicker(m_settings.seaLevel, m_settings.defaultFluid);
                 nc->setAquifer(world::gen::aquifer::Aquifer::createDisabled(std::move(fluidPicker)));
             }
         }

@@ -45,12 +45,12 @@ NoiseRouterData::ClimateFunctions NoiseRouterData::createOverworldClimate(u64 se
 
     // MC 1.21: SHIFT_X = flatCache(cache2D(shiftA(SHIFT)))
     // MC 1.21: SHIFT_Z = flatCache(cache2D(shiftB(SHIFT)))
-    // 两者都使用相同的 SHIFT 噪声参数: firstOctave=-3, amplitudes=[1, 1, 1, 0]
+    // 使用 Marker 包装器而非具体缓存实现，NoiseChunk 构造时会替换为区块特定实现
     const i32 shiftSeed = static_cast<i32>(seed ^ 0x66666666ULL);
-    auto shiftX = factory::flatCache(
-        factory::cache2D(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
-    auto shiftZ = factory::flatCache(
-        factory::cache2D(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftX = factory::flatCacheMarker(
+        factory::cache2DMarker(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftZ = factory::flatCacheMarker(
+        factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
     // 根据是否大型生物群系选择参数
     const i32 tempOctave = largeBiomes ? TEMPERATURE_LARGE_FIRST_OCTAVE : TEMPERATURE_FIRST_OCTAVE;
@@ -70,7 +70,7 @@ NoiseRouterData::ClimateFunctions NoiseRouterData::createOverworldClimate(u64 se
     // shiftedNoise2d(shiftX, shiftZ, xzScale=0.25, seed, firstOctave, amplitudes)
     // 这确保相邻区块的气候参数平滑过渡
 
-    climate.temperature = factory::cache2D(factory::shiftedNoise2d(
+    climate.temperature = factory::cache2DMarker(factory::shiftedNoise2d(
         std::move(shiftX), std::move(shiftZ), 0.25, seed ^ 0x11111111ULL, tempOctave, tempAmps));
 
     // 需要重新创建 shift 噪声实例用于后续参数
@@ -81,28 +81,28 @@ NoiseRouterData::ClimateFunctions NoiseRouterData::createOverworldClimate(u64 se
     // 所以需要重新创建用于后续的 climate 参数
 
     // 为后续气候参数重新创建偏移
-    auto shiftX2 = factory::flatCache(
-        factory::cache2D(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
-    auto shiftZ2 = factory::flatCache(
-        factory::cache2D(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftX2 = factory::flatCacheMarker(
+        factory::cache2DMarker(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftZ2 = factory::flatCacheMarker(
+        factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
-    climate.vegetation = factory::cache2D(factory::shiftedNoise2d(
+    climate.vegetation = factory::cache2DMarker(factory::shiftedNoise2d(
         std::move(shiftX2), std::move(shiftZ2), 0.25, seed ^ 0x22222222ULL, vegOctave, vegAmps));
 
-    auto shiftX3 = factory::flatCache(
-        factory::cache2D(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
-    auto shiftZ3 = factory::flatCache(
-        factory::cache2D(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftX3 = factory::flatCacheMarker(
+        factory::cache2DMarker(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftZ3 = factory::flatCacheMarker(
+        factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
-    climate.continents = factory::cache2D(factory::shiftedNoise2d(
+    climate.continents = factory::cache2DMarker(factory::shiftedNoise2d(
         std::move(shiftX3), std::move(shiftZ3), 0.25, seed ^ 0x33333333ULL, contOctave, contAmps));
 
-    auto shiftX4 = factory::flatCache(
-        factory::cache2D(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
-    auto shiftZ4 = factory::flatCache(
-        factory::cache2D(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftX4 = factory::flatCacheMarker(
+        factory::cache2DMarker(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftZ4 = factory::flatCacheMarker(
+        factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
-    climate.erosion = factory::cache2D(factory::shiftedNoise2d(
+    climate.erosion = factory::cache2DMarker(factory::shiftedNoise2d(
         std::move(shiftX4), std::move(shiftZ4), 0.25, seed ^ 0x44444444ULL, eroOctave, eroAmps));
 
     // depth 使用 YClampedGradient（Y 轴线性映射）
@@ -111,12 +111,12 @@ NoiseRouterData::ClimateFunctions NoiseRouterData::createOverworldClimate(u64 se
     climate.depth = factory::yClampedGradient(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT - 1, 1.5, -1.5);
 
     // ridges（奇异度）使用 shiftedNoise2d
-    auto shiftX5 = factory::flatCache(
-        factory::cache2D(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
-    auto shiftZ5 = factory::flatCache(
-        factory::cache2D(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftX5 = factory::flatCacheMarker(
+        factory::cache2DMarker(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftZ5 = factory::flatCacheMarker(
+        factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
-    climate.ridges = factory::cache2D(factory::shiftedNoise2d(std::move(shiftX5),
+    climate.ridges = factory::cache2DMarker(factory::shiftedNoise2d(std::move(shiftX5),
         std::move(shiftZ5),
         0.25,
         seed ^ 0x55555555ULL,
@@ -202,8 +202,9 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
 NoiseRouter NoiseRouterData::nether(u64 seed)
 {
     // 下界使用简单的温度和湿度噪声
-    auto temperature = factory::cache2D(factory::noise(seed ^ 0x11111111ULL, -4, {1.0, 1.0, 1.0, 1.0}, 0.25, 0.0));
-    auto vegetation = factory::cache2D(factory::noise(seed ^ 0x22222222ULL, -4, {1.0, 1.0, 1.0, 1.0}, 0.25, 0.0));
+    auto temperature =
+        factory::cache2DMarker(factory::noise(seed ^ 0x11111111ULL, -4, {1.0, 1.0, 1.0, 1.0}, 0.25, 0.0));
+    auto vegetation = factory::cache2DMarker(factory::noise(seed ^ 0x22222222ULL, -4, {1.0, 1.0, 1.0, 1.0}, 0.25, 0.0));
 
     // 下界 finalDensity：基于 Y 的密度梯度
     // MC 1.21: nether_final_density = slide(add(base_3d_noise, yClampedGradient(0, 128, 1.5, -1.5)))

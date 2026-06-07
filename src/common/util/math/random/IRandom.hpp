@@ -206,6 +206,66 @@ public:
     }
 
     /**
+     * @brief 设置装饰种子（MC: WorldgenRandom.setDecorationSeed）
+     *
+     * MC 1.21 区块特征放置的初始种子。每个区块调用一次，
+     * 返回的 decorSeed 供 setFeatureSeed 使用。
+     *
+     * 公式: seed RNG with worldSeed, then k = chunkX * i + chunkZ * j ^ worldSeed
+     *
+     * @param worldSeed 世界种子
+     * @param chunkX 区块 X 坐标（方块坐标，通常是 chunkX * 16）
+     * @param chunkZ 区块 Z 坐标（方块坐标，通常是 chunkZ * 16）
+     * @return 装饰种子，供后续 setFeatureSeed 使用
+     */
+    u64 setDecorationSeed(u64 worldSeed, i32 chunkX, i32 chunkZ)
+    {
+        setSeed(worldSeed);
+        const u64 i = static_cast<u64>(nextLong()) | 1ULL;
+        const u64 j = static_cast<u64>(nextLong()) | 1ULL;
+        const u64 k = (static_cast<u64>(chunkX) * i + static_cast<u64>(chunkZ) * j) ^ worldSeed;
+        setSeed(k);
+        return k;
+    }
+
+    /**
+     * @brief 设置特征种子（MC: WorldgenRandom.setFeatureSeed）
+     *
+     * MC 1.21 单个特征放置的种子。每个特征调用一次。
+     *
+     * 公式: decorSeed + featureIndex + 10000 * stageOrdinal
+     *
+     * @param decorSeed 装饰种子（由 setDecorationSeed 返回）
+     * @param featureIndex 特征在排序后列表中的索引
+     * @param stageOrdinal 装饰阶段序号
+     */
+    void setFeatureSeed(u64 decorSeed, i32 featureIndex, i32 stageOrdinal)
+    {
+        setSeed(decorSeed + static_cast<u64>(featureIndex) + static_cast<u64>(10000) * static_cast<u64>(stageOrdinal));
+    }
+
+    /**
+     * @brief 设置带盐的大型特征种子（MC: WorldgenRandom.setLargeFeatureWithSalt）
+     *
+     * MC 1.21 带盐值的结构种子计算方式，用于结构定位等场景。
+     *
+     * 公式: chunkX * 341873128712 + chunkZ * 132897987541 + seed + salt
+     *
+     * @param seed 基础种子
+     * @param chunkX 区块 X 坐标
+     * @param chunkZ 区块 Z 坐标
+     * @param salt 额外盐值
+     */
+    void setLargeFeatureWithSalt(i64 seed, i32 chunkX, i32 chunkZ, i64 salt)
+    {
+        const u64 k = static_cast<u64>(chunkX) * 341873128712ULL
+            + static_cast<u64>(chunkZ) * 132897987541ULL
+            + static_cast<u64>(seed)
+            + static_cast<u64>(salt);
+        setSeed(k);
+    }
+
+    /**
      * @brief 跳过指定数量的随机数
      * @param count 要跳过的随机数数量
      *

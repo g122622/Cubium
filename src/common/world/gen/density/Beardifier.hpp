@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "common/core/Constants.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
 #include "common/world/gen/jigsaw/JigsawJunction.hpp"
 #include "common/world/gen/structure/Structure.hpp"
@@ -75,6 +76,11 @@ public:
     /** 是否有结构数据 */
     [[nodiscard]] bool isEmpty() const { return m_pieces.empty() && m_junctions.empty(); }
 
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        return visitor.apply(std::make_unique<Beardifier>(m_pieces, m_junctions));
+    }
+
     // ========== 静态工具方法 ==========
 
     /**
@@ -95,7 +101,7 @@ public:
     [[nodiscard]] static f64 computeBeardContribution(i32 dx, i32 dy, i32 dz);
 
 private:
-    static constexpr f64 MAX_CONTRIBUTION = 320.0;
+    static constexpr f64 MAX_CONTRIBUTION = static_cast<f64>(world::MAX_BUILD_HEIGHT);
 
     std::vector<Rigid> m_pieces;
     std::vector<jigsaw::JigsawJunction> m_junctions;
@@ -115,6 +121,11 @@ public:
     [[nodiscard]] f64 compute(i32, i32, i32) const override { return 0.0; }
     [[nodiscard]] f64 minValue() const override { return 0.0; }
     [[nodiscard]] f64 maxValue() const override { return 0.0; }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        return visitor.apply(std::make_unique<BeardifierMarker>());
+    }
 };
 
 } // namespace mc::world::gen::density

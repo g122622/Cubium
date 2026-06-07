@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "common/core/Constants.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
@@ -39,8 +40,8 @@ namespace mc::world::gen::density {
 // ============================================================================
 
 /// YClampedGradient 的默认范围常量（MC 1.21 主世界）
-inline constexpr i32 OVERWORLD_MIN_Y = -64;
-inline constexpr i32 OVERWORLD_MAX_Y = 320;
+inline constexpr i32 OVERWORLD_MIN_Y = world::MIN_BUILD_HEIGHT;
+inline constexpr i32 OVERWORLD_MAX_Y = world::MAX_BUILD_HEIGHT;
 
 // ============================================================================
 // Constant — 常量密度函数
@@ -62,6 +63,8 @@ public:
     [[nodiscard]] f64 maxValue() const override { return m_value; }
 
     [[nodiscard]] f64 value() const { return m_value; }
+
+    DENSITY_FUNCTION_MAP_ALL_LEAF(Constant, m_value)
 
 private:
     f64 m_value;
@@ -102,6 +105,8 @@ public:
     [[nodiscard]] i32 toY() const { return m_toY; }
     [[nodiscard]] f64 fromValue() const { return m_fromValue; }
     [[nodiscard]] f64 toValue() const { return m_toValue; }
+
+    DENSITY_FUNCTION_MAP_ALL_LEAF(YClampedGradient, m_fromY, m_toY, m_fromValue, m_toValue)
 
 private:
     i32 m_fromY;
@@ -153,6 +158,12 @@ public:
 
     [[nodiscard]] const DensityFunction& input() const { return *m_input; }
 
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newInput = m_input->mapAll(visitor);
+        return visitor.apply(std::make_unique<Clamp>(std::move(newInput), m_minValue, m_maxValue));
+    }
+
 private:
     std::unique_ptr<DensityFunction> m_input;
     f64 m_minValue;
@@ -199,6 +210,12 @@ public:
 
     [[nodiscard]] MappedType type() const { return m_type; }
     [[nodiscard]] const DensityFunction& input() const { return *m_input; }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newInput = m_input->mapAll(visitor);
+        return visitor.apply(std::make_unique<Mapped>(std::move(newInput), m_type));
+    }
 
 private:
     std::unique_ptr<DensityFunction> m_input;
@@ -337,6 +354,13 @@ public:
     [[nodiscard]] const DensityFunction& arg1() const { return *m_arg1; }
     [[nodiscard]] const DensityFunction& arg2() const { return *m_arg2; }
 
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newArg1 = m_arg1->mapAll(visitor);
+        auto newArg2 = m_arg2->mapAll(visitor);
+        return visitor.apply(std::make_unique<TwoArgument>(std::move(newArg1), std::move(newArg2), m_type));
+    }
+
 private:
     std::unique_ptr<DensityFunction> m_arg1;
     std::unique_ptr<DensityFunction> m_arg2;
@@ -424,6 +448,14 @@ public:
     [[nodiscard]] const DensityFunction& start() const { return *m_start; }
     [[nodiscard]] const DensityFunction& end() const { return *m_end; }
 
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newDelta = m_delta->mapAll(visitor);
+        auto newStart = m_start->mapAll(visitor);
+        auto newEnd = m_end->mapAll(visitor);
+        return visitor.apply(std::make_unique<Lerp>(std::move(newDelta), std::move(newStart), std::move(newEnd)));
+    }
+
 private:
     std::unique_ptr<DensityFunction> m_delta;
     std::unique_ptr<DensityFunction> m_start;
@@ -478,6 +510,8 @@ public:
     [[nodiscard]] f64 minValue() const override { return m_minValue; }
     [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
 
+    DENSITY_FUNCTION_MAP_ALL_LEAF(MappedNoise, m_noise->clone(), m_xzScale, m_yScale, m_fromValue, m_toValue)
+
 private:
     std::unique_ptr<noise::NormalNoise> m_noise;
     f64 m_xzScale;
@@ -516,6 +550,8 @@ public:
     [[nodiscard]] const noise::NormalNoise& noise() const { return *m_noise; }
     [[nodiscard]] f64 xzScale() const { return m_xzScale; }
     [[nodiscard]] f64 yScale() const { return m_yScale; }
+
+    DENSITY_FUNCTION_MAP_ALL_LEAF(NoiseDensity, m_noise->clone(), m_xzScale, m_yScale)
 
 private:
     std::unique_ptr<noise::NormalNoise> m_noise;
@@ -570,6 +606,15 @@ public:
     [[nodiscard]] const DensityFunction& shiftX() const { return *m_shiftX; }
     [[nodiscard]] const DensityFunction& shiftY() const { return *m_shiftY; }
     [[nodiscard]] const DensityFunction& shiftZ() const { return *m_shiftZ; }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newShiftX = m_shiftX->mapAll(visitor);
+        auto newShiftY = m_shiftY->mapAll(visitor);
+        auto newShiftZ = m_shiftZ->mapAll(visitor);
+        return visitor.apply(std::make_unique<ShiftedNoise>(
+            m_noise->clone(), m_xzScale, m_yScale, std::move(newShiftX), std::move(newShiftY), std::move(newShiftZ)));
+    }
 
 private:
     std::unique_ptr<noise::NormalNoise> m_noise;
@@ -632,6 +677,8 @@ public:
     [[nodiscard]] ShiftType type() const { return m_type; }
     [[nodiscard]] const noise::NormalNoise& noise() const { return *m_noise; }
 
+    DENSITY_FUNCTION_MAP_ALL_LEAF(ShiftNoise, m_noise->clone(), m_type)
+
 private:
     std::unique_ptr<noise::NormalNoise> m_noise;
     ShiftType m_type;
@@ -682,6 +729,18 @@ public:
     [[nodiscard]] f64 maxExclusive() const { return m_maxExclusive; }
     [[nodiscard]] const DensityFunction& whenInRange() const { return *m_whenInRange; }
     [[nodiscard]] const DensityFunction& whenOutOfRange() const { return *m_whenOutOfRange; }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newInput = m_input->mapAll(visitor);
+        auto newWhenInRange = m_whenInRange->mapAll(visitor);
+        auto newWhenOutOfRange = m_whenOutOfRange->mapAll(visitor);
+        return visitor.apply(std::make_unique<RangeChoice>(std::move(newInput),
+            m_minInclusive,
+            m_maxExclusive,
+            std::move(newWhenInRange),
+            std::move(newWhenOutOfRange)));
+    }
 
 private:
     std::unique_ptr<DensityFunction> m_input;
@@ -740,6 +799,12 @@ public:
 
     [[nodiscard]] const DensityFunction& input() const { return *m_input; }
     [[nodiscard]] const std::vector<SplinePoint>& points() const { return m_points; }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newInput = m_input->mapAll(visitor);
+        return visitor.apply(std::make_unique<Spline>(std::move(newInput), m_points));
+    }
 
 private:
     std::unique_ptr<DensityFunction> m_input;
@@ -857,6 +922,12 @@ public:
 
     [[nodiscard]] const DensityFunction& input() const { return *m_input; }
 
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newInput = m_input->mapAll(visitor);
+        return visitor.apply(std::make_unique<Cache2D>(std::move(newInput)));
+    }
+
 private:
     std::unique_ptr<DensityFunction> m_input;
     mutable i32 m_cachedX;
@@ -905,6 +976,12 @@ public:
     [[nodiscard]] f64 maxValue() const override { return m_input->maxValue(); }
 
     [[nodiscard]] const DensityFunction& input() const { return *m_input; }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newInput = m_input->mapAll(visitor);
+        return visitor.apply(std::make_unique<FlatCache>(std::move(newInput)));
+    }
 
 private:
     std::unique_ptr<DensityFunction> m_input;
@@ -955,6 +1032,12 @@ public:
      * @brief 清除缓存（每个新区块开始时调用）
      */
     void clearCache() const { m_cache.clear(); }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newInput = m_input->mapAll(visitor);
+        return visitor.apply(std::make_unique<CacheAllInCell>(std::move(newInput)));
+    }
 
 private:
     struct CacheEntry {
@@ -1013,6 +1096,12 @@ public:
     [[nodiscard]] const noise::NormalNoise& noise() const { return *m_noise; }
     [[nodiscard]] WeirdScaledSamplerType type() const { return m_type; }
 
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newInput = m_input->mapAll(visitor);
+        return visitor.apply(std::make_unique<WeirdScaledSampler>(std::move(newInput), m_noise->clone(), m_type));
+    }
+
 private:
     std::unique_ptr<DensityFunction> m_input;
     std::unique_ptr<noise::NormalNoise> m_noise;
@@ -1047,6 +1136,71 @@ private:
 };
 
 // ============================================================================
+// Marker — MC 1.21 DensityFunctions.Marker
+//
+// 标记密度函数，用于在 NoiseChunk 构造时替换为特定实现。
+// NoiseChunk::wrap() 遍历密度函数树，将 Marker 替换为：
+// - Interpolated → NoiseInterpolator
+// - CacheOnce → 带 interpolationCounter 的缓存
+// - CacheAllInCell → CellCache
+// - FlatCache → 区块级扁平缓存
+// - Cache2D → 2D 位置缓存
+// ============================================================================
+
+/**
+ * @brief 标记类型枚举
+ *
+ * MC 1.21 对应 DensityFunctions.Marker.Type。
+ * 每种标记类型对应 NoiseChunk 中的特定替换实现。
+ */
+enum class MarkerType : u8 {
+    Interpolated,   ///< 替换为 NoiseInterpolator（三线性插值）
+    CacheOnce,      ///< 绑定 interpolationCounter 缓存
+    CacheAllInCell, ///< 替换为 CellCache（selectCellYZ 时预填充）
+    FlatCache,      ///< 区块级扁平缓存（Y=0 的 2D 缓存）
+    Cache2D         ///< XZ 位置缓存
+};
+
+/**
+ * @brief 标记密度函数 — MC 1.21 DensityFunctions.Marker
+ *
+ * 包装一个子函数并标记其类型。
+ * 在 NoiseRouterData 工厂函数中使用 Marker 代替具体缓存实现，
+ * NoiseChunk 构造时通过 wrap() 将 Marker 替换为 NoiseChunk 特定实现。
+ */
+class Marker final : public DensityFunction {
+public:
+    Marker(MarkerType type, std::unique_ptr<DensityFunction> wrapped)
+        : m_type(type)
+        , m_wrapped(std::move(wrapped))
+    {}
+
+    [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override
+    {
+        return m_wrapped->compute(blockX, blockY, blockZ);
+    }
+
+    [[nodiscard]] f64 minValue() const override { return m_wrapped->minValue(); }
+    [[nodiscard]] f64 maxValue() const override { return m_wrapped->maxValue(); }
+
+    [[nodiscard]] MarkerType markerType() const { return m_type; }
+    [[nodiscard]] const DensityFunction& wrapped() const { return *m_wrapped; }
+
+    /** 释放被包装的函数（用于 NoiseChunk::wrap 替换时取出子函数） */
+    [[nodiscard]] std::unique_ptr<DensityFunction> releaseWrapped() { return std::move(m_wrapped); }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newWrapped = m_wrapped->mapAll(visitor);
+        return visitor.apply(std::make_unique<Marker>(m_type, std::move(newWrapped)));
+    }
+
+private:
+    MarkerType m_type;
+    std::unique_ptr<DensityFunction> m_wrapped;
+};
+
+// ============================================================================
 // EndIslands — 末地岛屿密度函数
 // ============================================================================
 
@@ -1065,10 +1219,15 @@ public:
     [[nodiscard]] f64 minValue() const override { return -0.84375; }
     [[nodiscard]] f64 maxValue() const override { return 0.5625; }
 
+    [[nodiscard]] u64 seed() const { return m_seed; }
+
+    DENSITY_FUNCTION_MAP_ALL_LEAF(EndIslands, m_seed)
+
 private:
     /// MC 1.21: 检测岛屿高度值
     [[nodiscard]] f64 getHeightValue(i32 x, i32 z) const;
 
+    u64 m_seed;
     std::unique_ptr<noise::NormalNoise> m_islandNoise;
 };
 
@@ -1260,6 +1419,46 @@ namespace factory {
  * @brief 创建末地岛屿密度函数
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> endIslands(u64 seed);
+
+/**
+ * @brief 创建标记密度函数（Interpolated 类型）
+ *
+ * MC 1.21: NoiseRouterData 使用 Marker 代替直接创建 NoiseInterpolator。
+ * NoiseChunk::wrap() 在构造时替换为 NoiseInterpolator。
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> interpolated(std::unique_ptr<DensityFunction> wrapped);
+
+/**
+ * @brief 创建标记密度函数（CacheOnce 类型）
+ *
+ * MC 1.21: NoiseRouterData 使用 Marker 代替直接创建 CacheOnce。
+ * NoiseChunk::wrap() 在构造时替换为带 interpolationCounter 的缓存。
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> cacheOnce(std::unique_ptr<DensityFunction> wrapped);
+
+/**
+ * @brief 创建标记密度函数（CacheAllInCell 类型）
+ *
+ * MC 1.21: NoiseRouterData 使用 Marker 代替直接创建 CellCache。
+ * NoiseChunk::wrap() 在构造时替换为 CellCache。
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> cacheAllInCellMarker(std::unique_ptr<DensityFunction> wrapped);
+
+/**
+ * @brief 创建标记密度函数（FlatCache 类型）
+ *
+ * MC 1.21: NoiseRouterData 使用 Marker 代替直接创建 FlatCache。
+ * NoiseChunk::wrap() 在构造时替换为区块级扁平缓存。
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> flatCacheMarker(std::unique_ptr<DensityFunction> wrapped);
+
+/**
+ * @brief 创建标记密度函数（Cache2D 类型）
+ *
+ * MC 1.21: NoiseRouterData 使用 Marker 代替直接创建 Cache2D。
+ * NoiseChunk::wrap() 在构造时替换为 2D 位置缓存。
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> cache2DMarker(std::unique_ptr<DensityFunction> wrapped);
 
 } // namespace factory
 

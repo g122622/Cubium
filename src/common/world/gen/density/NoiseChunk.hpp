@@ -23,6 +23,7 @@
 #pragma once
 
 #include "common/world/gen/density/DensityFunction.hpp"
+#include "common/world/gen/density/DensityFunctions.hpp"
 #include "common/world/gen/density/NoiseRouter.hpp"
 #include <memory>
 #include <unordered_map>
@@ -59,6 +60,12 @@ public:
 
     /** 被包装的原始密度函数 */
     [[nodiscard]] const DensityFunction& filler() const { return *m_filler; }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newFiller = m_filler->mapAll(visitor);
+        return visitor.apply(std::make_unique<NoiseInterpolator>(std::move(newFiller), m_cellCountZ, m_cellCountY));
+    }
 
     /**
      * @brief 采样密度函数填充指定 X 列的 slice 数据
@@ -177,6 +184,12 @@ public:
      */
     [[nodiscard]] f64 getCachedValue() const;
 
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newFiller = m_filler->mapAll(visitor);
+        return visitor.apply(std::make_unique<CellCache>(std::move(newFiller), m_cellWidth, m_cellHeight));
+    }
+
 private:
     std::unique_ptr<DensityFunction> m_filler;
     i32 m_cellWidth;
@@ -192,7 +205,7 @@ private:
  * @brief CacheOnce 包装器 — MC 1.21 NoiseChunk.CacheOnce
  *
  * 在同一次插值步骤内缓存计算结果。
- * 使用 interpolationCounter 检测是否在同一插值位置。
+ * 使用 NoiseChunk 的 interpolationCounter 检测是否在同一插值位置。
  */
 class CacheOnce final : public DensityFunction {
 public:
@@ -204,8 +217,21 @@ public:
 
     [[nodiscard]] const DensityFunction& input() const { return *m_input; }
 
+    /**
+     * @brief 绑定到 NoiseChunk 的插值计数器
+     * 在 NoiseChunk::apply() 中替换 Marker::CacheOnce 时调用。
+     */
+    void bindInterpolationCounter(const u64* counter) { m_interpolationCounter = counter; }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newInput = m_input->mapAll(visitor);
+        return visitor.apply(std::make_unique<CacheOnce>(std::move(newInput)));
+    }
+
 private:
     std::unique_ptr<DensityFunction> m_input;
+    const u64* m_interpolationCounter = nullptr;
     mutable u64 m_lastCounter = 0;
     mutable f64 m_lastValue = 0.0;
 };
@@ -224,14 +250,14 @@ private:
  * 末地 cell 大小: 8×4×8
  *
  * 工作流程：
- * 1. 构造时通过 wrap() 包装所有 Marker 类型的密度函数
+ * 1. 构造时通过 apply()（DensityFunction::Visitor）包装所有 Marker 类型的密度函数
  * 2. initializeForFirstCellX() — 填充第一个 X 列的 slice0
  * 3. advanceCellX() — 填充下一个 X 列到 slice1
  * 4. selectCellYZ() — 选择当前 cell，预填充 CellCache
  * 5. updateForY/X/Z() — 增量式三线性插值
  * 6. swapSlices() — 切换 slice 缓冲区
  */
-class NoiseChunk {
+class NoiseChunk : public DensityFunction::Visitor {
 public:
     /**
      * @brief cell 配置参数
@@ -245,7 +271,7 @@ public:
 
     /**
      * @brief 构造 NoiseChunk
-     * @param router 噪声路由器
+     * @param router 噪声路由器（将内部移动，mapAll 会修改所有密度函数）
      * @param cellWidth X/Z 方向 cell 宽度（方块数，通常 4 或 8）
      * @param cellHeight Y 方向 cell 高度（方块数，通常 8 或 4）
      * @param cellCountY Y 方向 cell 数量（由 noiseHeight/cellHeight 计算得出）
@@ -253,7 +279,7 @@ public:
      * @param startBlockY 区块起始 Y 方块坐标（= noiseSettings.minY）
      * @param startBlockZ 区块起始 Z 方块坐标
      */
-    NoiseChunk(const NoiseRouter& router,
+    NoiseChunk(NoiseRouter router,
         i32 cellWidth,
         i32 cellHeight,
         i32 cellCountY,
@@ -261,11 +287,24 @@ public:
         i32 startBlockY,
         i32 startBlockZ);
 
-    ~NoiseChunk();
+    ~NoiseChunk() override;
     NoiseChunk(const NoiseChunk&) = delete;
     NoiseChunk& operator=(const NoiseChunk&) = delete;
     NoiseChunk(NoiseChunk&&) noexcept;
     NoiseChunk& operator=(NoiseChunk&&) = delete;
+
+    // ========== DensityFunction::Visitor 接口 ==========
+
+    /**
+     * @brief NoiseChunk 的密度函数包装 Visitor
+     *
+     * 将 Marker 类型替换为 NoiseChunk 特定实现：
+     * - Interpolated → NoiseInterpolator
+     * - CacheAllInCell → CellCache
+     * - CacheOnce → 保持原样（后续绑定 interpolationCounter）
+     * - FlatCache/Cache2D → 保持原样
+     */
+    [[nodiscard]] std::unique_ptr<DensityFunction> apply(std::unique_ptr<DensityFunction> function) override;
 
     // ========== 坐标查询（充当 FunctionContext）==========
 
@@ -328,14 +367,17 @@ public:
     /**
      * @brief 直接采样 finalDensity 在指定方块坐标
      * 不使用插值，直接计算。用于精确查询。
+     * mapAll 后的 finalDensity 已包含 Interpolated/CacheAllInCell 包装。
      */
-    [[nodiscard]] f64 sampleFinalDensity(i32 blockX, i32 blockY, i32 blockZ) const;
+    [[nodiscard]] f64 sampleFinalDensity(i32 blockX, i32 blockY, i32 blockZ) const
+    {
+        return m_router.finalDensity().compute(blockX, blockY, blockZ);
+    }
 
     /**
      * @brief 采样预备表面高度（MC 1.21 NoiseChunk.preliminarySurfaceLevel）
      *
      * 用于含水层系统判断地下水位高度。
-     * 直接调用路由器的 preliminarySurfaceLevel 密度函数。
      *
      * @param blockX 方块 X 坐标
      * @param blockZ 方块 Z 坐标
@@ -359,11 +401,6 @@ public:
     [[nodiscard]] i32 firstCellX() const { return m_firstCellX; }
     [[nodiscard]] i32 firstCellY() const { return m_firstCellY; }
     [[nodiscard]] i32 firstCellZ() const { return m_firstCellZ; }
-
-    /**
-     * @brief 获取包装后的 finalDensity（包含 Interpolated/CacheAllInCell 包装）
-     */
-    [[nodiscard]] const DensityFunction& wrappedFinalDensity() const { return *m_wrappedFinalDensity; }
 
     /**
      * @brief 获取插值计数器（用于 CacheOnce）
@@ -417,37 +454,6 @@ public:
      */
     [[nodiscard]] const std::vector<std::unique_ptr<CellCache>>& cellCaches() const { return m_cellCaches; }
 
-    /**
-     * @brief 注册一个插值器
-     * 在构造后调用，将 NoiseInterpolator 添加到插值器列表。
-     */
-    void addInterpolator(std::unique_ptr<NoiseInterpolator> interpolator)
-    {
-        m_interpolators.push_back(std::move(interpolator));
-    }
-
-    /**
-     * @brief 注册一个 CellCache
-     * 在构造后调用，将 CellCache 添加到缓存列表。
-     */
-    void addCellCache(std::unique_ptr<CellCache> cache) { m_cellCaches.push_back(std::move(cache)); }
-
-    /**
-     * @brief 设置包装后的 finalDensity
-     */
-    void setWrappedFinalDensity(std::unique_ptr<DensityFunction> density)
-    {
-        m_wrappedFinalDensity = std::move(density);
-    }
-
-    /**
-     * @brief 设置包装后的 preliminarySurfaceLevel
-     */
-    void setWrappedPreliminarySurfaceLevel(std::unique_ptr<DensityFunction> density)
-    {
-        m_wrappedPreliminarySurfaceLevel = std::move(density);
-    }
-
     // ========== 含水层 ==========
 
     /**
@@ -463,18 +469,6 @@ public:
     void setAquifer(std::unique_ptr<aquifer::Aquifer> aq);
 
 private:
-    /**
-     * @brief 包装密度函数，将 Marker 类型替换为 NoiseChunk 特定实现
-     *
-     * 将 Interpolated → NoiseInterpolator
-     * 将 CacheAllInCell → CellCache（在 selectCellYZ 时预填充）
-     * 将 CacheOnce → CacheOnce（使用 interpolationCounter 缓存）
-     * 将 Cache2D → 保持原样（已有实现）
-     * 将 FlatCache → 保持原样（已有实现）
-     */
-    std::unique_ptr<DensityFunction> wrap(std::unique_ptr<DensityFunction> function);
-
-    const NoiseRouter& m_router;
     CellConfig m_cellConfig;
 
     i32 m_startBlockX;
@@ -504,17 +498,16 @@ private:
     /// 插值计数器（CacheOnce 使用）
     u64 m_interpolationCounter = 0;
 
-    /// 所有 NoiseInterpolator 实例（由 wrap() 注册）
+    /// 所有 NoiseInterpolator 实例（由 apply() 注册）
     std::vector<std::unique_ptr<NoiseInterpolator>> m_interpolators;
 
-    /// 所有 CellCache 实例（由 wrap() 注册）
+    /// 所有 CellCache 实例（由 apply() 注册）
     std::vector<std::unique_ptr<CellCache>> m_cellCaches;
 
-    /// 包装后的 finalDensity
-    std::unique_ptr<DensityFunction> m_wrappedFinalDensity;
-
-    /// 包装后的 preliminarySurfaceLevel
-    std::unique_ptr<DensityFunction> m_wrappedPreliminarySurfaceLevel;
+    /// 噪声路由器（放在 interpolators/cellCaches 之后，确保析构顺序正确：
+    /// router 中的 DensityFunctionReference 引用 interpolators/cellCaches 中的对象，
+    /// 必须先销毁 router 再销毁这些容器）
+    NoiseRouter m_router;
 
     /// preliminarySurfaceLevel 按 4 方块网格离散化后缓存
     mutable std::unordered_map<i64, i32> m_preliminarySurfaceLevelCache;

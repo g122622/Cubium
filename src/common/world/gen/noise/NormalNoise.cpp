@@ -28,7 +28,8 @@
 namespace mc::world::gen::noise {
 
 NormalNoise::NormalNoise(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
-    : m_firstOctave(firstOctave)
+    : m_seed(seed)
+    , m_firstOctave(firstOctave)
     , m_amplitudes(std::move(amplitudes))
 {
     // MC 1.21: 两个 PerlinNoise 共享同一个 RandomSource
@@ -43,7 +44,8 @@ NormalNoise::NormalNoise(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
 }
 
 NormalNoise::NormalNoise(math::Random& rng, i32 firstOctave, std::vector<f64> amplitudes)
-    : m_firstOctave(firstOctave)
+    : m_seed(0) // Cannot determine seed from Random
+    , m_firstOctave(firstOctave)
     , m_amplitudes(std::move(amplitudes))
 {
     // MC 1.21: 两次调用 forkPositional() 获取不同的 PositionalRandomFactory
@@ -85,6 +87,11 @@ void NormalNoise::computeValueFactor()
     const i32 octaveRange = maxNonZero - minNonZero;
     m_valueFactor = VALUE_FACTOR_BASE / expectedDeviation(octaveRange);
     m_maxValue = (m_first->maxValue() + m_second->maxValue()) * m_valueFactor;
+}
+
+std::unique_ptr<NormalNoise> NormalNoise::clone() const
+{
+    return std::make_unique<NormalNoise>(m_seed, m_firstOctave, m_amplitudes);
 }
 
 } // namespace mc::world::gen::noise

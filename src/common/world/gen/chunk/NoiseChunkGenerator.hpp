@@ -28,6 +28,7 @@
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../biome/BiomeSource.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
+#include "../RandomState.hpp"
 #include "../carver/CanyonCarver.hpp"
 #include "../carver/CaveCarver.hpp"
 #include "../carver/UnderwaterCarver.hpp"
@@ -35,7 +36,6 @@
 #include "../density/Beardifier.hpp"
 #include "../density/NoiseChunk.hpp"
 #include "../density/NoiseRouter.hpp"
-#include "../density/NoiseRouterData.hpp"
 #include "../feature/ConfiguredFeature.hpp"
 #include "../feature/DecorationStage.hpp"
 #include "../jigsaw/JigsawJunction.hpp"
@@ -145,13 +145,10 @@ private:
     std::unique_ptr<OctavesNoiseGenerator> m_randomDensityOffsetNoise; // 随机密度偏移噪声
 
     // === MC 1.21 密度函数管线 ===
-    std::unique_ptr<world::gen::density::NoiseRouter> m_router; ///< 噪声路由器
-    i32 m_cellWidth = 4;                                        ///< X/Z 方向 cell 宽度（主世界=4, 末地=8）
-    i32 m_cellHeight = 8;                                       ///< Y 方向 cell 高度（主世界=8, 末地=4）
-    bool m_useDensityFunctionPipeline = false;                  ///< 是否使用 MC 1.21 密度函数管线
-
-    // === MC 1.21 SurfaceRules ===
-    std::unique_ptr<world::gen::surface::SurfaceSystem> m_surfaceSystem; ///< 表面规则系统
+    std::unique_ptr<world::gen::RandomState> m_randomState; ///< 随机状态（持有 NoiseRouter、SurfaceSystem 等）
+    i32 m_cellWidth = 4;                                    ///< X/Z 方向 cell 宽度（主世界=4, 末地=8）
+    i32 m_cellHeight = 8;                                   ///< Y 方向 cell 高度（主世界=8, 末地=4）
+    bool m_useDensityFunctionPipeline = false;              ///< 是否使用 MC 1.21 密度函数管线
 
     // === 生物群系 ===
     std::unique_ptr<world::biome::BiomeSource> m_biomeSource;

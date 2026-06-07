@@ -60,6 +60,7 @@ struct DimensionSettings {
     i32 bedrockRoof = -10;                                  ///< 基岩顶部（下界用）
     i32 bedrockFloor = 0;                                   ///< 基岩底部
     DimensionKind dimensionKind = DimensionKind::Overworld; ///< 维度类型标识
+    bool largeBiomes = false;                               ///< 是否使用大型生物群系预设
 
     // === 预设 ===
 

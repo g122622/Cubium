@@ -76,6 +76,14 @@ public:
     NormalNoise& operator=(NormalNoise&&) noexcept = default;
 
     /**
+     * @brief 克隆噪声实例
+     *
+     * 创建一个具有相同配置的新 NormalNoise 实例。
+     * 用于密度函数的 mapAll 克隆操作。
+     */
+    [[nodiscard]] std::unique_ptr<NormalNoise> clone() const;
+
+    /**
      * @brief 采样 3D 噪声值
      *
      * 两个 Perlin 噪声采样取平均值，第二个使用缩放坐标。
@@ -102,6 +110,11 @@ public:
      */
     [[nodiscard]] const std::vector<f64>& amplitudes() const { return m_amplitudes; }
 
+    /**
+     * @brief 构造时使用的种子
+     */
+    [[nodiscard]] u64 seed() const { return m_seed; }
+
 private:
     /**
      * @brief 计算期望标准差，用于归一化
@@ -117,6 +130,7 @@ private:
     static constexpr f64 INPUT_FACTOR = 1.0181268882175227;
     static constexpr f64 VALUE_FACTOR_BASE = 1.0 / 6.0;
 
+    u64 m_seed = 0;
     i32 m_firstOctave;
     std::vector<f64> m_amplitudes;
     std::unique_ptr<PerlinNoise> m_first;

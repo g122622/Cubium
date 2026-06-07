@@ -79,4 +79,23 @@ mc::world::biome::climate::Sampler NoiseRouter::createClimateSampler() const
         *m_temperature, *m_vegetation, *m_continents, *m_erosion, *m_depth, *m_ridges);
 }
 
+void NoiseRouter::mapAll(DensityFunction::Visitor& visitor)
+{
+    DensityFunction::applyInPlace(m_barrierNoise, visitor);
+    DensityFunction::applyInPlace(m_fluidLevelFloodednessNoise, visitor);
+    DensityFunction::applyInPlace(m_fluidLevelSpreadNoise, visitor);
+    DensityFunction::applyInPlace(m_lavaNoise, visitor);
+    DensityFunction::applyInPlace(m_temperature, visitor);
+    DensityFunction::applyInPlace(m_vegetation, visitor);
+    DensityFunction::applyInPlace(m_continents, visitor);
+    DensityFunction::applyInPlace(m_erosion, visitor);
+    DensityFunction::applyInPlace(m_depth, visitor);
+    DensityFunction::applyInPlace(m_ridges, visitor);
+    DensityFunction::applyInPlace(m_preliminarySurfaceLevel, visitor);
+    DensityFunction::applyInPlace(m_finalDensity, visitor);
+    DensityFunction::applyInPlace(m_veinToggle, visitor);
+    DensityFunction::applyInPlace(m_veinRidged, visitor);
+    DensityFunction::applyInPlace(m_veinGap, visitor);
+}
+
 } // namespace mc::world::gen::density
