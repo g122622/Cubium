@@ -234,6 +234,19 @@ public:
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 };
 
+/**
+ * @brief 匹配深板岩类方块的规则测试
+ *
+ * 匹配深板岩和凝灰岩（MC 1.21: DEEPSLATE_ORE_REPLACEABLES 标签）。
+ * 用于深层矿石生成，使深层矿石变体在深板岩区域正确替换。
+ */
+class DeepslateRuleTest : public RuleTest {
+public:
+    [[nodiscard]] bool test(const BlockState& state, math::Random& random) const override;
+    [[nodiscard]] const char* name() const override { return "deepslate"; }
+    [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
+};
+
 // ============================================================================
 // BlockStateProvider - 方块状态提供者
 // ============================================================================
@@ -283,17 +296,39 @@ struct IFeatureConfig {
 };
 
 /**
+ * @brief 矿石目标（目标规则 + 对应矿石方块）
+ *
+ * MC 1.21: 对应 OreConfiguration.TargetBlockState。
+ * 每个目标定义了"匹配哪些方块 → 放置什么矿石"。
+ * 例如：石头区域放铁矿，深板岩区域放深层铁矿。
+ */
+struct OreTarget {
+    /// 目标方块规则（哪些方块可被替换）
+    std::unique_ptr<RuleTest> target;
+
+    /// 匹配目标时放置的矿石方块状态
+    const BlockState* state = nullptr;
+
+    OreTarget(std::unique_ptr<RuleTest> targetRule, const BlockState* oreState)
+        : target(std::move(targetRule))
+        , state(oreState)
+    {}
+};
+
+/**
  * @brief 矿石特征配置
  *
  * 定义矿石生成的参数。
  * 参考 MC 1.21.11: OreConfiguration
+ *
+ * 支持多目标列表：遍历 targets，使用第一个匹配的目标放置对应矿石。
+ * 例如：铁矿配置 targets[0]=(石头→铁矿), targets[1]=(深板岩→深层铁矿)。
+ * 当矿石生成在石头中时匹配 targets[0] 放置铁矿，
+ * 生成在深板岩中时匹配 targets[1] 放置深层铁矿。
  */
 struct OreFeatureConfig : public IFeatureConfig {
-    /// 目标方块规则（哪些方块可被替换为矿石）
-    std::unique_ptr<RuleTest> target;
-
-    /// 矿石方块状态
-    const BlockState* state = nullptr;
+    /// 多目标列表（MC 1.21: targetStates）
+    std::vector<OreTarget> targets;
 
     /// 矿脉大小（方块数量）
     i32 size;
@@ -304,14 +339,19 @@ struct OreFeatureConfig : public IFeatureConfig {
      * 当矿石方块相邻有空气时，以此概率跳过放置。
      * 0.0 = 不丢弃（默认），1.0 = 总是丢弃暴露在空气中的矿石。
      * 参考 MC 1.21.11: OreConfiguration.discardChanceOnAirExposure
-     * 例如：铜矿使用 0.0，深板铜矿使用 0.0，煤矿使用 0.0
-     *      钻石矿使用 0.0，绿宝石矿使用 0.0
-     *      花岗岩/闪长岩/安山岩矿使用 0.2
      */
     f32 discardChanceOnAirExposure = 0.0f;
 
     /**
-     * @brief 构造矿石配置
+     * @brief 构造矿石配置（多目标）
+     * @param oreTargets 目标列表
+     * @param veinSize 矿脉大小
+     * @param discardChance 空气暴露丢弃概率（默认 0.0）
+     */
+    OreFeatureConfig(std::vector<OreTarget> oreTargets, i32 veinSize, f32 discardChance = 0.0f);
+
+    /**
+     * @brief 构造矿石配置（单目标，向后兼容）
      * @param targetRule 目标方块规则
      * @param oreState 矿石方块状态
      * @param veinSize 矿脉大小
@@ -324,6 +364,18 @@ struct OreFeatureConfig : public IFeatureConfig {
      * @brief 创建自然石头目标配置（用于主世界矿石）
      */
     static std::unique_ptr<RuleTest> naturalStone();
+
+    /**
+     * @brief 创建深板岩目标配置（用于主世界深层矿石）
+     */
+    static std::unique_ptr<RuleTest> deepslateStone();
+
+    /**
+     * @brief 创建同时匹配石头和深板岩的矿石目标列表
+     * @param stoneOre 石头区域的矿石方块
+     * @param deepslateOre 深板岩区域的矿石方块
+     */
+    static std::vector<OreTarget> stoneAndDeepslateOre(const BlockState* stoneOre, const BlockState* deepslateOre);
 };
 
 /**
@@ -333,6 +385,7 @@ struct OreFeatureConfig : public IFeatureConfig {
  */
 enum class OreTargetType {
     NaturalStone, ///< 石头、花岗岩、闪长岩、安山岩
+    Deepslate,    ///< 深板岩、凝灰岩
     Netherrack,   ///< 下界岩
     Basalt        ///< 玄武岩
 };

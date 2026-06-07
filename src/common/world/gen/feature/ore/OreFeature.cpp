@@ -26,6 +26,7 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/registry/DeepslateBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/Feature.hpp"
@@ -174,9 +175,8 @@ void OreFeature::_generateSphere(ChunkPrimer& chunk,
         }
     }
 
-    // 获取目标方块状态
-    const BlockState* oreState = config.state;
-    if (!oreState) {
+    // 如果没有目标则直接返回
+    if (config.targets.empty()) {
         return;
     }
 
@@ -235,39 +235,49 @@ void OreFeature::_generateSphere(ChunkPrimer& chunk,
 
                     processed[static_cast<size_t>(index)] = true;
 
-                    // 获取当前方块并检查是否可以替换
+                    // 获取当前方块
                     const BlockState* currentState = chunk.getBlockState(static_cast<BlockCoord>(bx & CHUNK_MASK),
                         static_cast<BlockCoord>(by),
                         static_cast<BlockCoord>(bz & CHUNK_MASK));
 
-                    if (currentState && config.target->test(*currentState, random)) {
-                        // MC 1.21: 检查空气暴露丢弃概率
-                        if (config.discardChanceOnAirExposure > 0.0f) {
-                            // 检查 6 个相邻方块是否有空气
-                            bool exposedToAir = false;
-                            static constexpr i32 offsets[6][3] = {
-                                {1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
-                            for (i32 d = 0; d < 6; ++d) {
-                                const BlockState* neighbor =
-                                    chunk.getBlockState(static_cast<BlockCoord>((bx + offsets[d][0]) & CHUNK_MASK),
-                                        static_cast<BlockCoord>(by + offsets[d][1]),
-                                        static_cast<BlockCoord>((bz + offsets[d][2]) & CHUNK_MASK));
-                                if (neighbor == nullptr || neighbor->isAir()) {
-                                    exposedToAir = true;
-                                    break;
-                                }
-                            }
-                            if (exposedToAir && random.nextFloat() < config.discardChanceOnAirExposure) {
-                                continue;
+                    // MC 1.21: 遍历所有目标，使用第一个匹配的目标放置对应矿石
+                    const BlockState* oreState = nullptr;
+                    for (const auto& target : config.targets) {
+                        if (currentState && target.target && target.target->test(*currentState, random)) {
+                            oreState = target.state;
+                            break;
+                        }
+                    }
+
+                    if (oreState == nullptr) {
+                        continue;
+                    }
+
+                    // MC 1.21: 检查空气暴露丢弃概率
+                    if (config.discardChanceOnAirExposure > 0.0f) {
+                        bool exposedToAir = false;
+                        static constexpr i32 offsets[6][3] = {
+                            {1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
+                        for (i32 d = 0; d < 6; ++d) {
+                            const BlockState* neighbor =
+                                chunk.getBlockState(static_cast<BlockCoord>((bx + offsets[d][0]) & CHUNK_MASK),
+                                    static_cast<BlockCoord>(by + offsets[d][1]),
+                                    static_cast<BlockCoord>((bz + offsets[d][2]) & CHUNK_MASK));
+                            if (neighbor == nullptr || neighbor->isAir()) {
+                                exposedToAir = true;
+                                break;
                             }
                         }
-
-                        chunk.setBlockState(static_cast<BlockCoord>(bx & CHUNK_MASK),
-                            static_cast<BlockCoord>(by),
-                            static_cast<BlockCoord>(bz & CHUNK_MASK),
-                            oreState);
-                        ++placedCount;
+                        if (exposedToAir && random.nextFloat() < config.discardChanceOnAirExposure) {
+                            continue;
+                        }
                     }
+
+                    chunk.setBlockState(static_cast<BlockCoord>(bx & CHUNK_MASK),
+                        static_cast<BlockCoord>(by),
+                        static_cast<BlockCoord>(bz & CHUNK_MASK),
+                        oreState);
+                    ++placedCount;
                 }
             }
         }
@@ -372,12 +382,16 @@ std::vector<std::unique_ptr<ConfiguredOreFeature>> OreFeatures::getAllFeaturesAn
 std::unique_ptr<ConfiguredOreFeature> OreFeatures::createCoalOre()
 {
     // 煤矿：Y 0-127，每区块20个，矿脉大小17
+    // MC 1.21: 石头→煤矿，深板岩→深层煤矿
     auto config = std::make_unique<OreFeatureConfig>(
-        createOreTarget(OreTargetType::NaturalStone), VanillaBlocks::getState(VanillaBlocks::COAL_ORE), 17);
+        OreFeatureConfig::stoneAndDeepslateOre(VanillaBlocks::getState(VanillaBlocks::COAL_ORE),
+            block_registry::DeepslateBlocks::DEEPSLATE_COAL_ORE
+                ? &block_registry::DeepslateBlocks::DEEPSLATE_COAL_ORE->defaultState()
+                : nullptr),
+        17);
 
-    // 创建链式放置：Count -> Square -> HeightRange
     auto heightPlacement = std::make_unique<HeightRangePlacement>();
-    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(0, 0, 128); // Y 0-127
+    auto heightConfig = std::make_unique<HeightRangePlacementConfig>(0, 0, 128);
 
     auto squarePlacement = std::make_unique<SquarePlacement>();
     auto squareConfig = std::make_unique<EmptyPlacementConfig>();
@@ -385,12 +399,10 @@ std::unique_ptr<ConfiguredOreFeature> OreFeatures::createCoalOre()
     auto countPlacement = std::make_unique<CountPlacement>();
     auto countConfig = std::make_unique<CountPlacementConfig>(20);
 
-    // 构建链：Count -> Square -> HeightRange
     auto heightConfigured = std::make_unique<ConfiguredPlacement>(std::move(heightPlacement), std::move(heightConfig));
     auto squareConfigured = std::make_unique<ConfiguredPlacement>(std::move(squarePlacement), std::move(squareConfig));
     auto countConfigured = std::make_unique<ConfiguredPlacement>(std::move(countPlacement), std::move(countConfig));
 
-    // 链接：count -> square -> height
     squareConfigured->setNext(std::move(heightConfigured));
     countConfigured->setNext(std::move(squareConfigured));
 
@@ -401,7 +413,11 @@ std::unique_ptr<ConfiguredOreFeature> OreFeatures::createIronOre()
 {
     // 铁矿：Y 0-63，每区块20个，矿脉大小9
     auto config = std::make_unique<OreFeatureConfig>(
-        createOreTarget(OreTargetType::NaturalStone), VanillaBlocks::getState(VanillaBlocks::IRON_ORE), 9);
+        OreFeatureConfig::stoneAndDeepslateOre(VanillaBlocks::getState(VanillaBlocks::IRON_ORE),
+            block_registry::DeepslateBlocks::DEEPSLATE_IRON_ORE
+                ? &block_registry::DeepslateBlocks::DEEPSLATE_IRON_ORE->defaultState()
+                : nullptr),
+        9);
 
     auto heightPlacement = std::make_unique<HeightRangePlacement>();
     auto heightConfig = std::make_unique<HeightRangePlacementConfig>(0, 0, 64); // Y 0-63
@@ -426,7 +442,11 @@ std::unique_ptr<ConfiguredOreFeature> OreFeatures::createGoldOre()
 {
     // 金矿：Y 0-31，每区块2个，矿脉大小9
     auto config = std::make_unique<OreFeatureConfig>(
-        createOreTarget(OreTargetType::NaturalStone), VanillaBlocks::getState(VanillaBlocks::GOLD_ORE), 9);
+        OreFeatureConfig::stoneAndDeepslateOre(VanillaBlocks::getState(VanillaBlocks::GOLD_ORE),
+            block_registry::DeepslateBlocks::DEEPSLATE_GOLD_ORE
+                ? &block_registry::DeepslateBlocks::DEEPSLATE_GOLD_ORE->defaultState()
+                : nullptr),
+        9);
 
     auto heightPlacement = std::make_unique<HeightRangePlacement>();
     auto heightConfig = std::make_unique<HeightRangePlacementConfig>(0, 0, 32); // Y 0-31
@@ -451,7 +471,11 @@ std::unique_ptr<ConfiguredOreFeature> OreFeatures::createRedstoneOre()
 {
     // 红石：Y 0-15，每区块8个，矿脉大小8
     auto config = std::make_unique<OreFeatureConfig>(
-        createOreTarget(OreTargetType::NaturalStone), VanillaBlocks::getState(VanillaBlocks::REDSTONE_ORE), 8);
+        OreFeatureConfig::stoneAndDeepslateOre(VanillaBlocks::getState(VanillaBlocks::REDSTONE_ORE),
+            block_registry::DeepslateBlocks::DEEPSLATE_REDSTONE_ORE
+                ? &block_registry::DeepslateBlocks::DEEPSLATE_REDSTONE_ORE->defaultState()
+                : nullptr),
+        8);
 
     auto heightPlacement = std::make_unique<HeightRangePlacement>();
     auto heightConfig = std::make_unique<HeightRangePlacementConfig>(0, 0, 16); // Y 0-15
@@ -476,7 +500,11 @@ std::unique_ptr<ConfiguredOreFeature> OreFeatures::createDiamondOre()
 {
     // 钻石：Y 0-15，每区块1个，矿脉大小8
     auto config = std::make_unique<OreFeatureConfig>(
-        createOreTarget(OreTargetType::NaturalStone), VanillaBlocks::getState(VanillaBlocks::DIAMOND_ORE), 8);
+        OreFeatureConfig::stoneAndDeepslateOre(VanillaBlocks::getState(VanillaBlocks::DIAMOND_ORE),
+            block_registry::DeepslateBlocks::DEEPSLATE_DIAMOND_ORE
+                ? &block_registry::DeepslateBlocks::DEEPSLATE_DIAMOND_ORE->defaultState()
+                : nullptr),
+        8);
 
     auto heightPlacement = std::make_unique<HeightRangePlacement>();
     auto heightConfig = std::make_unique<HeightRangePlacementConfig>(0, 0, 16); // Y 0-15
@@ -501,7 +529,11 @@ std::unique_ptr<ConfiguredOreFeature> OreFeatures::createLapisOre()
 {
     // 青金石：Y 0-30，每区块1个，矿脉大小7
     auto config = std::make_unique<OreFeatureConfig>(
-        createOreTarget(OreTargetType::NaturalStone), VanillaBlocks::getState(VanillaBlocks::LAPIS_ORE), 7);
+        OreFeatureConfig::stoneAndDeepslateOre(VanillaBlocks::getState(VanillaBlocks::LAPIS_ORE),
+            block_registry::DeepslateBlocks::DEEPSLATE_LAPIS_ORE
+                ? &block_registry::DeepslateBlocks::DEEPSLATE_LAPIS_ORE->defaultState()
+                : nullptr),
+        7);
 
     auto heightPlacement = std::make_unique<HeightRangePlacement>();
     auto heightConfig = std::make_unique<HeightRangePlacementConfig>(0, 0, 31); // Y 0-30
@@ -526,7 +558,11 @@ std::unique_ptr<ConfiguredOreFeature> OreFeatures::createEmeraldOre()
 {
     // 绿宝石：Y 4-31，每区块1个，矿脉大小1（山地生物群系特有）
     auto config = std::make_unique<OreFeatureConfig>(
-        createOreTarget(OreTargetType::NaturalStone), VanillaBlocks::getState(VanillaBlocks::EMERALD_ORE), 1);
+        OreFeatureConfig::stoneAndDeepslateOre(VanillaBlocks::getState(VanillaBlocks::EMERALD_ORE),
+            block_registry::DeepslateBlocks::DEEPSLATE_EMERALD_ORE
+                ? &block_registry::DeepslateBlocks::DEEPSLATE_EMERALD_ORE->defaultState()
+                : nullptr),
+        1);
 
     auto heightPlacement = std::make_unique<HeightRangePlacement>();
     auto heightConfig = std::make_unique<HeightRangePlacementConfig>(4, 0, 32); // Y 4-31
@@ -552,9 +588,13 @@ std::unique_ptr<ConfiguredOreFeature> OreFeatures::createEmeraldOre()
 
 std::unique_ptr<ConfiguredOreFeature> OreFeatures::createCopperOre()
 {
-    // 铜矿：Y 0-96，每区块6个，矿脉大小10（1.17+新增）
+    // 铜矿：Y 0-96，每区块6个，矿脉大小10
     auto config = std::make_unique<OreFeatureConfig>(
-        createOreTarget(OreTargetType::NaturalStone), VanillaBlocks::getState(VanillaBlocks::COPPER_ORE), 10);
+        OreFeatureConfig::stoneAndDeepslateOre(VanillaBlocks::getState(VanillaBlocks::COPPER_ORE),
+            block_registry::DeepslateBlocks::DEEPSLATE_COPPER_ORE
+                ? &block_registry::DeepslateBlocks::DEEPSLATE_COPPER_ORE->defaultState()
+                : nullptr),
+        10);
 
     auto heightPlacement = std::make_unique<HeightRangePlacement>();
     auto heightConfig = std::make_unique<HeightRangePlacementConfig>(0, 0, 96); // Y 0-95

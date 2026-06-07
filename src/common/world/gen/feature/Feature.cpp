@@ -24,6 +24,8 @@
 #include "Feature.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/registry/DeepslateBlocks.hpp"
+#include "common/world/block/registry/TuffBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
@@ -170,6 +172,28 @@ std::unique_ptr<RuleTest> StoneRuleTest::clone() const
 }
 
 // ============================================================================
+// DeepslateRuleTest 实现
+// ============================================================================
+
+bool DeepslateRuleTest::test(const BlockState& state, math::Random& random) const
+{
+    (void)random;
+    // 匹配深板岩和凝灰岩（MC 1.21: DEEPSLATE_ORE_REPLACEABLES 标签）
+    if (block_registry::DeepslateBlocks::DEEPSLATE && state.is(block_registry::DeepslateBlocks::DEEPSLATE)) {
+        return true;
+    }
+    if (block_registry::TuffBlocks::TUFF && state.is(block_registry::TuffBlocks::TUFF)) {
+        return true;
+    }
+    return false;
+}
+
+std::unique_ptr<RuleTest> DeepslateRuleTest::clone() const
+{
+    return std::make_unique<DeepslateRuleTest>();
+}
+
+// ============================================================================
 // SimpleBlockStateProvider 实现
 // ============================================================================
 
@@ -190,17 +214,44 @@ const BlockState* SimpleBlockStateProvider::getState(math::Random& random, i32 x
 // OreFeatureConfig 实现
 // ============================================================================
 
-OreFeatureConfig::OreFeatureConfig(
-    std::unique_ptr<RuleTest> targetRule, const BlockState* oreState, i32 veinSize, f32 discardChance)
-    : target(std::move(targetRule))
-    , state(oreState)
+OreFeatureConfig::OreFeatureConfig(std::vector<OreTarget> oreTargets, i32 veinSize, f32 discardChance)
+    : targets(std::move(oreTargets))
     , size(veinSize)
     , discardChanceOnAirExposure(discardChance)
 {}
 
+OreFeatureConfig::OreFeatureConfig(
+    std::unique_ptr<RuleTest> targetRule, const BlockState* oreState, i32 veinSize, f32 discardChance)
+    : size(veinSize)
+    , discardChanceOnAirExposure(discardChance)
+{
+    if (targetRule && oreState) {
+        targets.emplace_back(std::move(targetRule), oreState);
+    }
+}
+
 std::unique_ptr<RuleTest> OreFeatureConfig::naturalStone()
 {
     return std::make_unique<StoneRuleTest>();
+}
+
+std::unique_ptr<RuleTest> OreFeatureConfig::deepslateStone()
+{
+    return std::make_unique<DeepslateRuleTest>();
+}
+
+std::vector<OreTarget> OreFeatureConfig::stoneAndDeepslateOre(
+    const BlockState* stoneOre, const BlockState* deepslateOre)
+{
+    std::vector<OreTarget> result;
+    result.reserve(2);
+    if (stoneOre) {
+        result.emplace_back(naturalStone(), stoneOre);
+    }
+    if (deepslateOre) {
+        result.emplace_back(deepslateStone(), deepslateOre);
+    }
+    return result;
 }
 
 // ============================================================================
@@ -212,6 +263,8 @@ std::unique_ptr<RuleTest> createOreTarget(OreTargetType type)
     switch (type) {
         case OreTargetType::NaturalStone:
             return std::make_unique<StoneRuleTest>();
+        case OreTargetType::Deepslate:
+            return std::make_unique<DeepslateRuleTest>();
         case OreTargetType::Netherrack:
             if (VanillaBlocks::NETHERRACK) {
                 return std::make_unique<BlockMatchRuleTest>(VanillaBlocks::NETHERRACK);

@@ -24,6 +24,7 @@
 #include "common/core/Constants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/registry/DeepslateBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/density/NoiseChunk.hpp"
@@ -546,7 +547,9 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
 {
     // 方块状态快捷获取
     const BlockState* stone = VanillaBlocks::STONE ? &VanillaBlocks::STONE->defaultState() : nullptr;
-    const BlockState* deepslate = nullptr; // TODO: VanillaBlocks::DEEPSLATE
+    const BlockState* deepslate = block_registry::DeepslateBlocks::DEEPSLATE
+        ? &block_registry::DeepslateBlocks::DEEPSLATE->defaultState()
+        : nullptr;
     const BlockState* grass = VanillaBlocks::GRASS_BLOCK ? &VanillaBlocks::GRASS_BLOCK->defaultState() : nullptr;
     const BlockState* dirt = VanillaBlocks::DIRT ? &VanillaBlocks::DIRT->defaultState() : nullptr;
     const BlockState* water = VanillaBlocks::WATER ? &VanillaBlocks::WATER->defaultState() : nullptr;

@@ -24,6 +24,7 @@
 #include "common/core/Constants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/registry/DeepslateBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/feature/Feature.hpp"
@@ -89,9 +90,10 @@ TEST_F(OreFeatureConfigTest, CreateConfig)
     auto config = std::make_unique<OreFeatureConfig>(
         createOreTarget(OreTargetType::NaturalStone), &VanillaBlocks::COAL_ORE->defaultState(), 17);
 
-    EXPECT_TRUE(config->state->is(VanillaBlocks::COAL_ORE));
+    EXPECT_FALSE(config->targets.empty());
+    EXPECT_TRUE(config->targets[0].state->is(VanillaBlocks::COAL_ORE));
     EXPECT_EQ(config->size, 17);
-    EXPECT_NE(config->target, nullptr);
+    EXPECT_NE(config->targets[0].target, nullptr);
 }
 
 TEST_F(OreFeatureConfigTest, NaturalStoneTarget)
@@ -253,7 +255,8 @@ TEST_F(OreFeatureTest, PlaceSmallOre)
 
     // 注意：WorldGenRegion 需要完整实现才能测试 place 方法
     // 这里只验证配置正确创建
-    EXPECT_TRUE(config->state->is(VanillaBlocks::COAL_ORE));
+    EXPECT_FALSE(config->targets.empty());
+    EXPECT_TRUE(config->targets[0].state->is(VanillaBlocks::COAL_ORE));
     EXPECT_EQ(config->size, 8);
 }
 
@@ -281,7 +284,8 @@ TEST_F(OreFeaturesTest, CreateCoalOre)
     ASSERT_NE(feature, nullptr);
 
     const auto& config = feature->getConfig();
-    EXPECT_TRUE(config.state->is(VanillaBlocks::COAL_ORE));
+    EXPECT_FALSE(config.targets.empty());
+    EXPECT_TRUE(config.targets[0].state->is(VanillaBlocks::COAL_ORE));
     EXPECT_EQ(config.size, 17);
 }
 
@@ -291,7 +295,8 @@ TEST_F(OreFeaturesTest, CreateIronOre)
     ASSERT_NE(feature, nullptr);
 
     const auto& config = feature->getConfig();
-    EXPECT_TRUE(config.state->is(VanillaBlocks::IRON_ORE));
+    EXPECT_FALSE(config.targets.empty());
+    EXPECT_TRUE(config.targets[0].state->is(VanillaBlocks::IRON_ORE));
     EXPECT_EQ(config.size, 9);
 }
 
@@ -301,7 +306,8 @@ TEST_F(OreFeaturesTest, CreateGoldOre)
     ASSERT_NE(feature, nullptr);
 
     const auto& config = feature->getConfig();
-    EXPECT_TRUE(config.state->is(VanillaBlocks::GOLD_ORE));
+    EXPECT_FALSE(config.targets.empty());
+    EXPECT_TRUE(config.targets[0].state->is(VanillaBlocks::GOLD_ORE));
     EXPECT_EQ(config.size, 9);
 }
 
@@ -311,7 +317,8 @@ TEST_F(OreFeaturesTest, CreateDiamondOre)
     ASSERT_NE(feature, nullptr);
 
     const auto& config = feature->getConfig();
-    EXPECT_TRUE(config.state->is(VanillaBlocks::DIAMOND_ORE));
+    EXPECT_FALSE(config.targets.empty());
+    EXPECT_TRUE(config.targets[0].state->is(VanillaBlocks::DIAMOND_ORE));
     EXPECT_EQ(config.size, 8);
 }
 
@@ -321,7 +328,8 @@ TEST_F(OreFeaturesTest, CreateRedstoneOre)
     ASSERT_NE(feature, nullptr);
 
     const auto& config = feature->getConfig();
-    EXPECT_TRUE(config.state->is(VanillaBlocks::REDSTONE_ORE));
+    EXPECT_FALSE(config.targets.empty());
+    EXPECT_TRUE(config.targets[0].state->is(VanillaBlocks::REDSTONE_ORE));
     EXPECT_EQ(config.size, 8);
 }
 
@@ -331,7 +339,8 @@ TEST_F(OreFeaturesTest, CreateLapisOre)
     ASSERT_NE(feature, nullptr);
 
     const auto& config = feature->getConfig();
-    EXPECT_TRUE(config.state->is(VanillaBlocks::LAPIS_ORE));
+    EXPECT_FALSE(config.targets.empty());
+    EXPECT_TRUE(config.targets[0].state->is(VanillaBlocks::LAPIS_ORE));
     EXPECT_EQ(config.size, 7);
 }
 
@@ -341,7 +350,8 @@ TEST_F(OreFeaturesTest, CreateEmeraldOre)
     ASSERT_NE(feature, nullptr);
 
     const auto& config = feature->getConfig();
-    EXPECT_TRUE(config.state->is(VanillaBlocks::EMERALD_ORE));
+    EXPECT_FALSE(config.targets.empty());
+    EXPECT_TRUE(config.targets[0].state->is(VanillaBlocks::EMERALD_ORE));
     EXPECT_EQ(config.size, 1); // 绿宝石是单个方块
 }
 
@@ -351,7 +361,8 @@ TEST_F(OreFeaturesTest, CreateCopperOre)
     ASSERT_NE(feature, nullptr);
 
     const auto& config = feature->getConfig();
-    EXPECT_TRUE(config.state->is(VanillaBlocks::COPPER_ORE));
+    EXPECT_FALSE(config.targets.empty());
+    EXPECT_TRUE(config.targets[0].state->is(VanillaBlocks::COPPER_ORE));
     EXPECT_EQ(config.size, 10);
 }
 
@@ -390,4 +401,102 @@ TEST_F(OreFeaturesTest, OreDistributionParameters)
     // 绿宝石：Y 4-31，每区块1个，矿脉大小1（山地生物群系特有）
     auto emerald = OreFeatures::createEmeraldOre();
     EXPECT_EQ(emerald->getConfig().size, 1);
+}
+
+// ============================================================================
+// 多目标矿石配置测试（深板岩变体）
+// ============================================================================
+
+TEST_F(OreFeaturesTest, CoalOreHasDeepslateVariant)
+{
+    auto feature = OreFeatures::createCoalOre();
+    const auto& config = feature->getConfig();
+
+    // 主世界矿石应有至少2个目标：石头变体和深板岩变体
+    EXPECT_GE(config.targets.size(), 2u);
+
+    // 第一个目标应该是石头→煤矿
+    EXPECT_TRUE(config.targets[0].state->is(VanillaBlocks::COAL_ORE));
+    EXPECT_NE(config.targets[0].target, nullptr);
+
+    // 第二个目标应该是深板岩→深层煤矿
+    if (block_registry::DeepslateBlocks::DEEPSLATE_COAL_ORE) {
+        EXPECT_TRUE(config.targets[1].state->is(block_registry::DeepslateBlocks::DEEPSLATE_COAL_ORE));
+        EXPECT_NE(config.targets[1].target, nullptr);
+    }
+}
+
+TEST_F(OreFeaturesTest, IronOreHasDeepslateVariant)
+{
+    auto feature = OreFeatures::createIronOre();
+    const auto& config = feature->getConfig();
+
+    EXPECT_GE(config.targets.size(), 2u);
+    EXPECT_TRUE(config.targets[0].state->is(VanillaBlocks::IRON_ORE));
+
+    if (block_registry::DeepslateBlocks::DEEPSLATE_IRON_ORE) {
+        EXPECT_TRUE(config.targets[1].state->is(block_registry::DeepslateBlocks::DEEPSLATE_IRON_ORE));
+    }
+}
+
+TEST_F(OreFeaturesTest, DeepslateRuleTestMatchesDeepslate)
+{
+    auto rule = createOreTarget(OreTargetType::Deepslate);
+    math::Random random(12345);
+
+    // 深板岩应该匹配
+    if (block_registry::DeepslateBlocks::DEEPSLATE) {
+        const BlockState* deepslate = &block_registry::DeepslateBlocks::DEEPSLATE->defaultState();
+        EXPECT_TRUE(rule->test(*deepslate, random));
+    }
+
+    // 石头不应该匹配深板岩规则
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+    EXPECT_FALSE(rule->test(*stone, random));
+}
+
+TEST_F(OreFeatureConfigTest, StoneAndDeepslateOreTargets)
+{
+    auto targets = OreFeatureConfig::stoneAndDeepslateOre(&VanillaBlocks::IRON_ORE->defaultState(),
+        block_registry::DeepslateBlocks::DEEPSLATE_IRON_ORE
+            ? &block_registry::DeepslateBlocks::DEEPSLATE_IRON_ORE->defaultState()
+            : nullptr);
+
+    EXPECT_EQ(targets.size(), 2u);
+
+    // 第一个目标是石头规则
+    EXPECT_NE(targets[0].target, nullptr);
+    EXPECT_TRUE(targets[0].state->is(VanillaBlocks::IRON_ORE));
+
+    // 第二个目标是深板岩规则
+    EXPECT_NE(targets[1].target, nullptr);
+    if (block_registry::DeepslateBlocks::DEEPSLATE_IRON_ORE) {
+        EXPECT_TRUE(targets[1].state->is(block_registry::DeepslateBlocks::DEEPSLATE_IRON_ORE));
+    }
+}
+
+TEST_F(OreFeatureConfigTest, MultiTargetOreConfig)
+{
+    auto config = std::make_unique<OreFeatureConfig>(
+        OreFeatureConfig::stoneAndDeepslateOre(&VanillaBlocks::DIAMOND_ORE->defaultState(),
+            block_registry::DeepslateBlocks::DEEPSLATE_DIAMOND_ORE
+                ? &block_registry::DeepslateBlocks::DEEPSLATE_DIAMOND_ORE->defaultState()
+                : nullptr),
+        8);
+
+    EXPECT_EQ(config->targets.size(), 2u);
+    EXPECT_EQ(config->size, 8);
+
+    // 石头应该匹配第一个目标
+    math::Random random(42);
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+    EXPECT_TRUE(config->targets[0].target->test(*stone, random));
+    EXPECT_TRUE(config->targets[0].state->is(VanillaBlocks::DIAMOND_ORE));
+
+    // 深板岩应该匹配第二个目标
+    if (block_registry::DeepslateBlocks::DEEPSLATE) {
+        const BlockState* deepslate = &block_registry::DeepslateBlocks::DEEPSLATE->defaultState();
+        EXPECT_FALSE(config->targets[0].target->test(*deepslate, random)); // 石头规则不匹配深板岩
+        EXPECT_TRUE(config->targets[1].target->test(*deepslate, random));  // 深板岩规则匹配深板岩
+    }
 }
