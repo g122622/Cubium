@@ -26,6 +26,7 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/gen/density/NoiseChunk.hpp"
 #include <algorithm>
 #include <cmath>
 #include <random>
@@ -69,7 +70,7 @@ SurfaceRuleContext::SurfaceRuleContext(i32 seaLevel,
     const world::gen::noise::NormalNoise* surfaceDepthNoise,
     const world::gen::noise::NormalNoise* surfaceSecondaryNoise,
     const world::gen::noise::NormalNoise* clayBandsOffsetNoise,
-    PreliminarySurfaceProvider preliminarySurfaceProvider,
+    const density::NoiseChunk& noiseChunk,
     HeightProvider heightProvider)
     : m_seaLevel(seaLevel)
     , m_minY(minY)
@@ -77,7 +78,7 @@ SurfaceRuleContext::SurfaceRuleContext(i32 seaLevel,
     , m_surfaceDepthNoise(surfaceDepthNoise)
     , m_surfaceSecondaryNoise(surfaceSecondaryNoise)
     , m_clayBandsOffsetNoise(clayBandsOffsetNoise)
-    , m_preliminarySurfaceProvider(std::move(preliminarySurfaceProvider))
+    , m_noiseChunk(noiseChunk)
     , m_heightProvider(std::move(heightProvider))
 {
     // 初始化 bandlands 陶土带
@@ -144,6 +145,8 @@ bool SurfaceRuleContext::abovePreliminarySurface() const
 
 i32 SurfaceRuleContext::_minSurfaceLevel() const
 {
+    // MC 1.21: SurfaceRules.Context.getMinSurfaceLevel()
+    // 使用 16 方块网格（SURFACE_CELL_SIZE=16, SURFACE_CELL_BITS=4）缓存 preliminarySurfaceLevel
     const i64 currentXZ = packXZ(m_blockX, m_blockZ);
     if (m_lastMinSurfaceLevelXZ == currentXZ) {
         return m_minSurfaceLevel;
@@ -151,22 +154,23 @@ i32 SurfaceRuleContext::_minSurfaceLevel() const
 
     m_lastMinSurfaceLevelXZ = currentXZ;
 
-    const i32 cellX = math::floorDiv(m_blockX, world::CHUNK_WIDTH);
-    const i32 cellZ = math::floorDiv(m_blockZ, world::CHUNK_WIDTH);
+    const i32 cellX = m_blockX >> 4; // blockCoordToSurfaceCell
+    const i32 cellZ = m_blockZ >> 4;
     const i64 cellOrigin = packXZ(cellX, cellZ);
     if (m_lastPreliminarySurfaceCellOrigin != cellOrigin) {
         m_lastPreliminarySurfaceCellOrigin = cellOrigin;
-        const i32 blockX0 = cellX * world::CHUNK_WIDTH;
-        const i32 blockZ0 = cellZ * world::CHUNK_WIDTH;
-        m_preliminarySurfaceCache[0] = m_preliminarySurfaceProvider(blockX0, blockZ0);
-        m_preliminarySurfaceCache[1] = m_preliminarySurfaceProvider(blockX0 + world::CHUNK_WIDTH, blockZ0);
-        m_preliminarySurfaceCache[2] = m_preliminarySurfaceProvider(blockX0, blockZ0 + world::CHUNK_WIDTH);
-        m_preliminarySurfaceCache[3] =
-            m_preliminarySurfaceProvider(blockX0 + world::CHUNK_WIDTH, blockZ0 + world::CHUNK_WIDTH);
+        // MC 1.21: 通过 NoiseChunk.preliminarySurfaceLevel() 查询，内部有 4 方块网格缓存
+        const i32 blockX0 = cellX << 4; // surfaceCellToBlockCoord
+        const i32 blockZ0 = cellZ << 4;
+        m_preliminarySurfaceCache[0] = m_noiseChunk.samplePreliminarySurfaceLevel(blockX0, blockZ0);
+        m_preliminarySurfaceCache[1] = m_noiseChunk.samplePreliminarySurfaceLevel(blockX0 + 16, blockZ0);
+        m_preliminarySurfaceCache[2] = m_noiseChunk.samplePreliminarySurfaceLevel(blockX0, blockZ0 + 16);
+        m_preliminarySurfaceCache[3] = m_noiseChunk.samplePreliminarySurfaceLevel(blockX0 + 16, blockZ0 + 16);
     }
 
-    const f64 deltaX = static_cast<f64>(m_blockX & world::CHUNK_MASK) / static_cast<f64>(world::CHUNK_WIDTH);
-    const f64 deltaZ = static_cast<f64>(m_blockZ & world::CHUNK_MASK) / static_cast<f64>(world::CHUNK_WIDTH);
+    // MC 1.21: Mth.lerp2 在 16 方块网格内双线性插值
+    const f64 deltaX = static_cast<f64>(m_blockX & 15) / 16.0;
+    const f64 deltaZ = static_cast<f64>(m_blockZ & 15) / 16.0;
     const f64 z0 = math::lerp(
         static_cast<f64>(m_preliminarySurfaceCache[0]), static_cast<f64>(m_preliminarySurfaceCache[1]), deltaX);
     const f64 z1 = math::lerp(
@@ -832,7 +836,7 @@ bool SurfaceSystem::isStone(const BlockState* state) const
 
 void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
     const std::function<BiomeId(i32, i32, i32)>& getBiomeAt,
-    const SurfaceRuleContext::PreliminarySurfaceProvider& getPreliminarySurfaceLevel) const
+    const density::NoiseChunk& noiseChunk) const
 {
     if (!m_surfaceRule) {
         return;
@@ -850,7 +854,7 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
         m_surfaceDepthNoise.get(),
         m_surfaceSecondaryNoise.get(),
         m_clayBandsOffsetNoise.get(),
-        getPreliminarySurfaceLevel,
+        noiseChunk,
         [&chunk, startX, startZ, this](i32 worldX, i32 worldZ) -> i32 {
             // 将世界坐标转换为本地坐标
             const i32 localX = worldX - startX;

@@ -30,6 +30,10 @@
 #include <memory>
 #include <vector>
 
+namespace mc::world::gen::density {
+class NoiseChunk;
+}
+
 namespace mc::world::gen::surface {
 
 // Forward declarations
@@ -94,29 +98,30 @@ public:
 class SurfaceRuleContext {
 public:
     /**
-     * @brief 构建表面规则上下文
-     * @param seaLevel 海平面高度
-     * @param minY 世界最低 Y
-     * @param height 世界高度
-     * @param surfaceDepthNoise 地表深度噪声（MC: Noises.SURFACE）
-     * @param surfaceSecondaryNoise 地表次要噪声（MC: Noises.SURFACE_SECONDARY）
-     */
-    using PreliminarySurfaceProvider = std::function<i32(i32, i32)>;
-
-    /**
      * @brief 高度查询回调（用于 steep 条件计算斜率）
      * MC 1.21: SurfaceRules.SteepCondition 使用相邻列高度差判断陡峭度。
      * 参数: (worldX, worldZ) → 高度值（WorldSurfaceWG 高度图 + 1）
      */
     using HeightProvider = std::function<i32(i32, i32)>;
 
+    /**
+     * @brief 构建表面规则上下文
+     * @param seaLevel 海平面高度
+     * @param minY 世界最低 Y
+     * @param height 世界高度
+     * @param surfaceDepthNoise 地表深度噪声（MC: Noises.SURFACE）
+     * @param surfaceSecondaryNoise 地表次要噪声（MC: Noises.SURFACE_SECONDARY）
+     * @param clayBandsOffsetNoise 陶土带偏移噪声
+     * @param noiseChunk NoiseChunk 引用，用于查询 preliminarySurfaceLevel
+     * @param heightProvider 高度查询回调（用于 steep 条件）
+     */
     SurfaceRuleContext(i32 seaLevel,
         i32 minY,
         i32 height,
         const world::gen::noise::NormalNoise* surfaceDepthNoise,
         const world::gen::noise::NormalNoise* surfaceSecondaryNoise,
         const world::gen::noise::NormalNoise* clayBandsOffsetNoise,
-        PreliminarySurfaceProvider preliminarySurfaceProvider,
+        const density::NoiseChunk& noiseChunk,
         HeightProvider heightProvider = nullptr);
 
     /** 更新 XZ 坐标（每列开始时调用） */
@@ -174,7 +179,9 @@ private:
     const world::gen::noise::NormalNoise* m_surfaceDepthNoise;
     const world::gen::noise::NormalNoise* m_surfaceSecondaryNoise;
     const world::gen::noise::NormalNoise* m_clayBandsOffsetNoise;
-    PreliminarySurfaceProvider m_preliminarySurfaceProvider;
+
+    /// NoiseChunk 引用，用于查询 preliminarySurfaceLevel（MC 1.21: SurfaceRules.Context.noiseChunk）
+    const density::NoiseChunk& m_noiseChunk;
 
     /// 高度查询回调（用于 steep 条件）
     HeightProvider m_heightProvider;
@@ -525,10 +532,11 @@ public:
      * @brief 构建整个区块的表面
      * @param chunk 区块数据
      * @param getBiomeAt 获取指定位置的生物群系 ID
+     * @param noiseChunk NoiseChunk 引用，用于 preliminarySurfaceLevel 查询
      */
     void buildSurface(ChunkPrimer& chunk,
         const std::function<BiomeId(i32, i32, i32)>& getBiomeAt,
-        const SurfaceRuleContext::PreliminarySurfaceProvider& getPreliminarySurfaceLevel) const;
+        const density::NoiseChunk& noiseChunk) const;
 
 private:
     /** 判断方块是否为"石头"（非空气、非流体） */

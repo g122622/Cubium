@@ -443,4 +443,25 @@ void NoiseChunk::setInCellPos(i32 inCellX, i32 inCellY, i32 inCellZ)
     }
 }
 
+biome::climate::Sampler NoiseChunk::cachedClimateSampler(const std::vector<biome::climate::ParameterPoint>& spawnTarget)
+{
+    // MC 1.21: NoiseChunk.cachedClimateSampler()
+    // 使用经过 mapAll(this::wrap) 包装的密度函数创建 Climate::Sampler。
+    // 这些密度函数已被 NoiseInterpolator/CacheOnce/CellCache 包装，
+    // 在区块生成上下文中采样时使用插值缓存。
+    (void)spawnTarget; // TODO: spawnTarget 用于 findSpawnPosition，暂不实现
+
+    if (!m_cachedSampler) {
+        m_cachedSampler = std::make_unique<biome::climate::Sampler>(m_router.temperature(),
+            m_router.vegetation(),
+            m_router.continents(),
+            m_router.erosion(),
+            m_router.depth(),
+            m_router.ridges());
+    }
+
+    // 返回采样器副本（Sampler 只持有指针，拷贝是廉价的）
+    return *m_cachedSampler;
+}
+
 } // namespace mc::world::gen::density

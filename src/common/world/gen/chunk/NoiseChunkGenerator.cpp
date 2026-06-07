@@ -29,6 +29,7 @@
 #include "../../WorldConstants.hpp"
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../biome/BiomeRegistry.hpp"
+#include "../../biome/source/MultiNoiseBiomeSource.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../aquifer/Aquifer.hpp"
 #include "../carver/CarvingContext.hpp"
@@ -47,6 +48,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cmath>
+#include <map>
 #include <mutex>
 #include <unordered_set>
 
@@ -428,7 +430,55 @@ void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
     const ChunkCoord chunkX = chunk.x();
     const ChunkCoord chunkZ = chunk.z();
 
-    m_biomeSource->fillBiomeContainer(biomes, chunkX, chunkZ);
+    // MC 1.21: 使用 NoiseChunk 的缓存气候采样器填充生物群系
+    // NoiseChunk.cachedClimateSampler() 使用经过 mapAll 包装的密度函数，
+    // 在插值上下文中采样时利用缓存和插值优化。
+    if (m_useDensityFunctionPipeline && m_randomState) {
+        // 创建或获取 NoiseChunk（与 generateNoise 共享）
+        const i32 startX = chunkX * world::CHUNK_WIDTH;
+        const i32 startZ = chunkZ * world::CHUNK_WIDTH;
+        const i32 startBlockY = m_settings.noise.minY;
+        const i32 cellCountY = math::floorDiv(m_settings.noise.height, m_cellHeight);
+        auto& noiseChunk = chunk.getOrCreateNoiseChunk([&]() {
+            auto nc = std::make_unique<world::gen::density::NoiseChunk>(
+                m_randomState->createRouterCopy(), m_cellWidth, m_cellHeight, cellCountY, startX, startBlockY, startZ);
+            return nc;
+        });
+
+        // 获取缓存气候采样器
+        auto sampler = noiseChunk.cachedClimateSampler();
+
+        // 获取 BiomeSource 的参数列表用于生物群系查找
+        auto* multiNoiseSource = dynamic_cast<world::biome::source::MultiNoiseBiomeSource*>(m_biomeSource.get());
+        if (multiNoiseSource != nullptr) {
+            const auto& parameters = multiNoiseSource->parameters();
+            constexpr i32 HORIZ_SIZE = 4;
+            constexpr i32 VERT_SIZE = 4;
+            constexpr i32 SECTION_COUNT = 24;
+
+            for (i32 section = 0; section < SECTION_COUNT; ++section) {
+                for (i32 y = 0; y < VERT_SIZE; ++y) {
+                    for (i32 z = 0; z < HORIZ_SIZE; ++z) {
+                        for (i32 x = 0; x < HORIZ_SIZE; ++x) {
+                            const i32 quartX = (chunkX * HORIZ_SIZE) + x;
+                            const i32 quartY = (section * VERT_SIZE) + y + math::floorDiv(world::MIN_BUILD_HEIGHT, 4);
+                            const i32 quartZ = (chunkZ * HORIZ_SIZE) + z;
+
+                            const auto target = sampler.sample(quartX, quartY, quartZ);
+                            const BiomeId biome = parameters.findValue(target);
+                            biomes.setBiome(section, x, y, z, biome);
+                        }
+                    }
+                }
+            }
+        } else {
+            // 非 MultiNoiseBiomeSource（如 EndBiomeSource），使用传统路径
+            m_biomeSource->fillBiomeContainer(biomes, chunkX, chunkZ);
+        }
+    } else {
+        // 回退路径：使用 BiomeSource 的原始采样器
+        m_biomeSource->fillBiomeContainer(biomes, chunkX, chunkZ);
+    }
 
     // 标记阶段完成
     chunk.setChunkStatus(ChunkStatuses::BIOMES);
@@ -870,13 +920,13 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chun
     // MC 1.21: 使用 SurfaceRules 管线
     if (m_useDensityFunctionPipeline && m_randomState) {
         const auto getBiomeAt = [&region](i32 x, i32 y, i32 z) -> BiomeId { return region.getBiome(x, y, z); };
-        const auto getPreliminarySurfaceLevel = [this](i32 x, i32 z) -> i32 {
-            const i32 quartAlignedX = math::floorDiv(x, 4) * 4;
-            const i32 quartAlignedZ = math::floorDiv(z, 4) * 4;
-            return static_cast<i32>(
-                std::floor(m_randomState->router().preliminarySurfaceLevel().compute(quartAlignedX, 0, quartAlignedZ)));
-        };
-        m_randomState->surfaceSystem().buildSurface(chunk, getBiomeAt, getPreliminarySurfaceLevel);
+        // MC 1.21: SurfaceRules.Context 直接持有 NoiseChunk 引用，
+        // 通过 NoiseChunk.samplePreliminarySurfaceLevel() 查询预备表面高度
+        // NoiseChunk 在 generateNoise 阶段已创建，此处直接获取
+        auto* noiseChunkPtr = chunk.noiseChunk();
+        if (noiseChunkPtr != nullptr) {
+            m_randomState->surfaceSystem().buildSurface(chunk, getBiomeAt, *noiseChunkPtr);
+        }
 
         // 标记阶段完成
         chunk.setChunkStatus(ChunkStatuses::SURFACE);
@@ -1227,52 +1277,58 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
     }
 
     // === 阶段 2: 放置生物群系特征 ===
-    // MC 1.21: 收集区块内所有生物群系的特征（非仅中心生物群系）
-    // 遍历区块 4x4x4 采样网格中的所有生物群系，去重后放置特征
-    std::unordered_set<BiomeId> chunkBiomes;
+    // MC 1.21: 收集区块内所有 section biomes，去重后排序确保确定性遍历顺序
+    // TODO: MC 使用 3x3 邻域 section biomes（ChunkGenerator.createStructures），
+    // 但当前 region 无法安全获取邻近区块，暂用当前区块
+    std::unordered_set<BiomeId> sectionBiomes;
     for (i32 y = 0; y < world::CHUNK_SECTIONS; ++y) {
         for (i32 z = 0; z < 4; ++z) {
             for (i32 x = 0; x < 4; ++x) {
-                chunkBiomes.insert(chunk.getBiomeAtBlock(x * 4, y * 4, z * 4));
+                sectionBiomes.insert(chunk.getBiomeAtBlock(x * 4, y * 4, z * 4));
             }
         }
     }
+    // 排序以确保确定性遍历顺序（MC 1.21: FeatureSorter 维护排序后的特征列表）
+    std::vector<BiomeId> sortedBiomes(sectionBiomes.begin(), sectionBiomes.end());
+    std::sort(sortedBiomes.begin(), sortedBiomes.end());
+
+    // MC 1.21: 使用 setDecorationSeed / setFeatureSeed 计算确定性种子
+    const i32 startX = chunkX * world::CHUNK_WIDTH;
+    const i32 startZ = chunkZ * world::CHUNK_WIDTH;
+
+    math::Random worldgenRandom;
+    const u64 decorSeed = worldgenRandom.setDecorationSeed(m_seed, startX, startZ);
 
     // 按装饰阶段顺序放置特征
     for (DecorationStage stage : DecorationStages::getAll()) {
-        i32 featureIndex = 0;
-        for (BiomeId biomeId : chunkBiomes) {
+        const i32 stageOrdinal = static_cast<i32>(stage);
+
+        // MC 1.21: 对每个 stage，收集所有生物群系的特征并去重
+        // 使用 map 保持 featureIndex → feature 的有序映射
+        std::map<u32, ConfiguredFeatureBase*> stageFeatures;
+        FeatureRegistry& registry = FeatureRegistry::instance();
+        const auto& allFeatures = registry.getFeatures(stage);
+
+        for (BiomeId biomeId : sortedBiomes) {
             const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
             const BiomeGenerationSettings& biomeSettings = biome.generationSettings();
             const auto& featureIds = biomeSettings.getFeatures(stage);
-            if (featureIds.empty()) {
-                continue;
-            }
-
-            // 使用区块中心位置 + 特征索引设置种子（MC: setFeatureSeed）
-            const i32 startX = chunkX * world::CHUNK_WIDTH;
-            const i32 startZ = chunkZ * world::CHUNK_WIDTH;
-            const BlockPos chunkOrigin(startX, 0, startZ);
-
-            FeatureRegistry& registry = FeatureRegistry::instance();
-            const auto& allFeatures = registry.getFeatures(stage);
-
             for (u32 fid : featureIds) {
-                if (fid < allFeatures.size() && allFeatures[fid]) {
-                    // setDecorationSeed + setFeatureSeed 算法
-                    math::Random decorRng(m_seed);
-                    const u64 i = decorRng.nextLong() | 1ULL;
-                    const u64 j = decorRng.nextLong() | 1ULL;
-                    const u64 decorSeed = (static_cast<u64>(startX) * i + static_cast<u64>(startZ) * j) ^ m_seed;
-                    const i32 stageOrdinal = static_cast<i32>(stage);
-                    const u64 featureSeed =
-                        decorSeed + static_cast<u64>(featureIndex) + static_cast<u64>(10000 * stageOrdinal);
-                    decorRng.setSeed(featureSeed);
-
-                    allFeatures[fid]->place(region, chunk, *this, decorRng, chunkOrigin);
-                    featureIndex++;
+                if (fid < allFeatures.size() && allFeatures[fid] != nullptr) {
+                    // 去重：同一 feature ID 只添加一次
+                    stageFeatures.emplace(fid, allFeatures[fid]);
                 }
             }
+        }
+
+        // MC 1.21: 按排序后的 feature ID 顺序放置
+        i32 featureIndex = 0;
+        for (const auto& [fid, feature] : stageFeatures) {
+            worldgenRandom.setFeatureSeed(decorSeed, featureIndex, stageOrdinal);
+
+            const BlockPos chunkOrigin(startX, 0, startZ);
+            feature->place(region, chunk, *this, worldgenRandom, chunkOrigin);
+            ++featureIndex;
         }
     }
 

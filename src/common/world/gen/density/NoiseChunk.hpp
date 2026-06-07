@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "common/world/biome/climate/Climate.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/aquifer/Aquifer.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
@@ -490,6 +491,19 @@ public:
      */
     [[nodiscard]] i32 maxPreliminarySurfaceLevel(i32 minBlockX, i32 minBlockZ, i32 maxBlockX, i32 maxBlockZ) const;
 
+    /**
+     * @brief 获取缓存气候采样器 — MC 1.21 NoiseChunk.cachedClimateSampler()
+     *
+     * 使用 NoiseChunk 内部经过 mapAll 包装的密度函数创建 Climate::Sampler。
+     * 这些密度函数已被 NoiseInterpolator/CacheOnce/CellCache 包装，
+     * 在区块生成上下文中采样时使用插值缓存，性能优于原始采样器。
+     *
+     * @param spawnTarget 生物群系生成目标点（用于 findSpawnPosition，可以为空）
+     * @return 缓存的气候采样器
+     */
+    [[nodiscard]] biome::climate::Sampler cachedClimateSampler(
+        const std::vector<biome::climate::ParameterPoint>& spawnTarget = {});
+
     // ========== 访问器 ==========
 
     [[nodiscard]] const NoiseRouter& router() const { return m_router; }
@@ -649,6 +663,9 @@ private:
 
     /// 方块状态规则链（AquiferFiller + 矿脉等）
     std::unique_ptr<BlockStateFiller> m_blockStateRule;
+
+    /// 缓存气候采样器（首次调用 cachedClimateSampler 时创建）
+    std::unique_ptr<biome::climate::Sampler> m_cachedSampler;
 
     /// 最近一次 updateForZ() 的插值密度值
     f64 m_interpolatedDensity = 0.0;
