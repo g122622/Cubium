@@ -104,7 +104,6 @@ void LiquidBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
 
 void LiquidBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 参考: net.minecraft.block.FlowingFluidBlock#onBlockAdded
     // 只有当 reactWithNeighbors 返回 true 时才调度流体 tick
     // 如果岩浆放置时旁边有水，会先反应变成石头/黑曜石，返回 false，不再调度 tick
     if (reactWithNeighbors(world, pos, state)) {
@@ -119,17 +118,18 @@ void LiquidBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockSt
 void LiquidBlock::neighborChanged(
     IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
 {
-    // 参考: net.minecraft.block.LiquidBlock#neighborChanged
     // 只有当 reactWithNeighbors 返回 true 时才调度流体 tick
     const BlockState* currentState = world.getBlockState(pos);
-    if (currentState != nullptr) {
-        // 首先检查是否发生了反应（岩浆+水）
-        if (reactWithNeighbors(world, pos, *currentState)) {
-            const fluid::FluidState* fluidState = currentState->getFluidState();
-            if (fluidState != nullptr && !fluidState->isEmpty()) {
-                fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
-                world.tickManager().scheduleFluidTick(pos, fluidRef, fluidRef.getTickDelay(world));
-            }
+    if (currentState == nullptr || !currentState->is(this)) {
+        return;
+    }
+
+    // 首先检查是否发生了反应（岩浆+水）
+    if (reactWithNeighbors(world, pos, *currentState)) {
+        const fluid::FluidState* fluidState = currentState->getFluidState();
+        if (fluidState != nullptr && !fluidState->isEmpty()) {
+            fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
+            world.tickManager().scheduleFluidTick(pos, fluidRef, fluidRef.getTickDelay(world));
         }
     }
 
@@ -139,7 +139,6 @@ void LiquidBlock::neighborChanged(
 }
 
 // 注意: LiquidBlock 不应该有 tick() 方法
-// MC 1.16.5 中 FlowingFluidBlock 没有 tick 方法
 // 流体 tick 由 TickManager 的 fluidTicks 列表直接调用 Fluid.tick()
 
 BlockState LiquidBlock::updatePostPlacement(const BlockState& state,
@@ -149,8 +148,7 @@ BlockState LiquidBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-    // 参考: net.minecraft.block.FlowingFluidBlock#updatePostPlacement
-    // MC行为：只有当当前流体是源头或邻居流体是源头时才调度tick
+    // 只有当当前流体是源头或邻居流体是源头时才调度tick
     // 如果反应发生则不调度
 
     (void)facingPos;
@@ -181,7 +179,6 @@ BlockState LiquidBlock::updatePostPlacement(const BlockState& state,
 
 bool LiquidBlock::reactWithNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 参考: net.minecraft.block.LiquidBlock#reactWithNeighbors
     // 只处理岩浆方块
 
     const fluid::FluidState* fluidState = getFluidState(state);
@@ -249,7 +246,6 @@ bool LiquidBlock::reactWithNeighbors(IWorld& world, const BlockPos& pos, const B
 
 void LiquidBlock::triggerMixEffects(IWorld& world, const BlockPos& pos)
 {
-    // 参考: net.minecraft.block.LiquidBlock#triggerMixEffects
     // 播放嘶嘶声和烟雾粒子效果
 
     // 播放嘶嘶声
@@ -274,7 +270,6 @@ void LiquidBlock::triggerMixEffects(IWorld& world, const BlockPos& pos)
 
 fluid::Fluid* LiquidBlock::pickupFluid(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 参考: net.minecraft.block.LiquidBlock#pickupFluid
     // 只有源头方块可以被舀起
 
     i32 blockLevel = state.get(LEVEL_0_15());

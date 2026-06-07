@@ -460,7 +460,7 @@ void Player::tick()
         }
         std::stringstream ss;
         ss << "Block at y=" << i << " is " << bs->getBlock().toString();
-        spdlog::warn(ss.str());
+        // spdlog::warn(ss.str());
     }
 
     // 更新 XP 冷却

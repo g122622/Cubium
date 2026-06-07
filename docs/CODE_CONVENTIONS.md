@@ -362,8 +362,10 @@ float alpha = smoothstep(0.0f, 1.0f, deltaTime * 5.0f);
     // 参考 MC 1.16.5 Minecraft.runTick() 中闪电闪烁的处理 ❌这行注释要删了
     m_renderer->setLightningFlashBrightness(m_world.weather().lightningFlashBrightness());
 
-    // 对齐 MC 1.16.5 FirstPersonRenderer::renderArmFirstPerson。 ❌这行注释要删了
+    // 对齐 MC 1.21.11 FirstPersonRenderer::renderArmFirstPerson。 ❌这行注释要删了
     const f32 sqrtSwing = std::sqrt(swingProgress);
+
+    // 参考: net.minecraft.block.LiquidBlock#reactWithNeighbors   ❌这行注释要删了
 
 /**
  * @brief 基于方块坐标的位置目标

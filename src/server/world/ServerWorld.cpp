@@ -65,6 +65,7 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <string>
 #include <spdlog/spdlog.h>
 
 #pragma pop_macro("BYTE_SIZE")
@@ -431,6 +432,8 @@ const BlockState* ServerWorld::getBlockState(i32 x, i32 y, i32 z) const
 // ============================================================================
 bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
 {
+    const BlockPos changedPos(x, y, z);
+
     MC_TRACE_EVENT("server.world",
         "ServerWorld::setBlockState",
         "x",
@@ -440,11 +443,9 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         "z",
         z,
         "state",
-        state->toString(),
+        state != nullptr ? state->toString() : std::string("null"),
         [flow = ::perfetto::Flow::ProcessScoped(BlockPos(x, y, z).toId())](
             ::perfetto::EventContext ctx) { flow(ctx); });
-
-    const BlockPos changedPos(x, y, z);
 
     {
         MC_TRACE_EVENT("server.world", "ServerWorld::setBlockState::DebugWorldCheck", "x", x, "y", y, "z", z);
@@ -628,6 +629,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
 
                 if (neighborState != nullptr && !neighborState->isAir() && newState != nullptr) {
                     Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+                    const BlockState* stateBeforeUpdate = neighborState;
                     BlockState updatedStateValue = neighborBlock.updatePostPlacement(*neighborState,
                         Directions::opposite(neighbor.direction),
                         *newState,
@@ -635,9 +637,14 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
                         neighborPos,
                         changedPos);
 
-                    updatedState = blockRegistry.getBlockState(updatedStateValue.stateId());
-                    if (updatedState == nullptr && updatedStateValue.isAir()) {
-                        updatedState = airState;
+                    const BlockState* stateAfterUpdate = canonicalizeState(getBlockState(neighborPos));
+                    if (stateAfterUpdate != stateBeforeUpdate) {
+                        neighborState = stateAfterUpdate;
+                    } else {
+                        updatedState = blockRegistry.getBlockState(updatedStateValue.stateId());
+                        if (updatedState == nullptr && updatedStateValue.isAir()) {
+                            updatedState = airState;
+                        }
                     }
                 }
             }
