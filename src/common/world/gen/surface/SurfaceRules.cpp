@@ -23,6 +23,7 @@
 #include "common/world/gen/surface/SurfaceRules.hpp"
 #include "common/core/Constants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include <algorithm>
@@ -199,28 +200,12 @@ bool SurfaceRuleContext::steep() const
 
 bool SurfaceRuleContext::temperature() const
 {
-    // MC 1.21: SurfaceRules.TemperatureCondition 使用 Climate.Sampler.temperature() 在 quart 坐标采样。
-    // 当 temperature < 0.0 时返回 true（冻结温度）。
-    // 当前实现基于生物群系 ID 判断，覆盖了 MC 1.21 所有寒冷生物群系。
-    // 这是一种合理的近似，因为 Climate.Sampler.temperature() 的值主要由生物群系决定。
-    static const BiomeId frozenBiomes[] = {
-        Biomes::FrozenOcean,
-        Biomes::DeepFrozenOcean,
-        Biomes::SnowyPlains,
-        Biomes::IceSpikes,
-        Biomes::SnowyTaiga,
-        Biomes::SnowySlopes,
-        Biomes::FrozenPeaks,
-        Biomes::JaggedPeaks,
-        Biomes::Grove,
-    };
-
-    for (const auto& id : frozenBiomes) {
-        if (m_biome == id) {
-            return true;
-        }
-    }
-    return false;
+    // MC 1.21: SurfaceRules.TemperatureCondition uses Biome.coldEnoughToSnow(pos, seaLevel).
+    // Biome.getTemperature(y) applies height-based modification: temperature decreases
+    // above (seaLevel + 17). coldEnoughToSnow checks temperature < 0.15F.
+    // Use Biome::doesSnowGenerate(y) which wraps this logic.
+    const Biome& biome = BiomeRegistry::instance().get(m_biome);
+    return biome.doesSnowGenerate(m_blockY);
 }
 
 void SurfaceRuleContext::generateClayBands(u64 seed)

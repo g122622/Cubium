@@ -313,8 +313,8 @@ void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chu
     MC_TRACE_EVENT("world.gen.nether", "ApplyCarvers");
     MC_UNUSED(region);
 
-    const ChunkCoord chunkX = chunk.x();
-    const ChunkCoord chunkZ = chunk.z();
+    const ChunkCoord targetChunkX = chunk.x();
+    const ChunkCoord targetChunkZ = chunk.z();
 
     // 共享雕刻掩码
     CarvingMask& carvingMask = chunk.carvingMask();
@@ -322,9 +322,29 @@ void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chu
     // MC 1.21: 创建雕刻上下文（下界暂无含水层，使用回退逻辑）
     CarvingContext context(world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT, nullptr);
 
-    // 下界只使用洞穴雕刻器（不使用峡谷和水下雕刻器）
+    // MC 1.21: 遍历 [-8, +8] 范围内的起始区块坐标
+    math::Random worldgenRandom;
+
     if (!isLiquid && m_caveCarver) {
-        m_caveCarver->carve(chunk, context, *m_biomeSource, m_lavaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
+        for (i32 dx = -8; dx <= 8; ++dx) {
+            for (i32 dz = -8; dz <= 8; ++dz) {
+                const ChunkCoord startChunkX = targetChunkX + dx;
+                const ChunkCoord startChunkZ = targetChunkZ + dz;
+
+                worldgenRandom.setLargeFeatureSeed(m_seed, startChunkX, startChunkZ);
+                if (m_caveCarver->shouldCarve(worldgenRandom, startChunkX, startChunkZ, m_caveConfig)) {
+                    m_caveCarver->carve(chunk,
+                        context,
+                        *m_biomeSource,
+                        m_lavaLevel,
+                        startChunkX,
+                        startChunkZ,
+                        carvingMask,
+                        worldgenRandom,
+                        m_caveConfig);
+                }
+            }
+        }
     }
 
     chunk.setChunkStatus(isLiquid ? ChunkStatuses::LIQUID_CARVERS : ChunkStatuses::CARVERS);

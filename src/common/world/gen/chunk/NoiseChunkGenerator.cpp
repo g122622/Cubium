@@ -1126,8 +1126,8 @@ void NoiseChunkGenerator::_applyBedrock(ChunkPrimer& chunk, math::Random& random
 void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& chunk, bool isLiquid)
 {
     MC_TRACE_EVENT("world.chunk_gen", "ApplyCarvers", "x", chunk.x(), "z", chunk.z());
-    const ChunkCoord chunkX = chunk.x();
-    const ChunkCoord chunkZ = chunk.z();
+    const ChunkCoord targetChunkX = chunk.x();
+    const ChunkCoord targetChunkZ = chunk.z();
 
     // MC原版：AIR 和 LIQUID 两个雕刻阶段共享同一个 CarvingMask
     CarvingMask& carvingMask = chunk.carvingMask();
@@ -1139,31 +1139,90 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
     }
     CarvingContext context(m_settings.noise.minY, m_settings.noise.height, aquifer);
 
+    // MC 1.21: 遍历 [-8, +8] 范围内的起始区块坐标
+    // 洞穴/峡谷可能从相邻区块起始并延伸到当前区块
+    // 参考: NoiseBasedChunkGenerator.applyCarvers — 迭代 chunkpos.x-8..+8, chunkpos.z-8..+8
+    math::Random worldgenRandom;
+
+    for (i32 dx = -8; dx <= 8; ++dx) {
+        for (i32 dz = -8; dz <= 8; ++dz) {
+            const ChunkCoord startChunkX = targetChunkX + dx;
+            const ChunkCoord startChunkZ = targetChunkZ + dz;
+
+            if (!isLiquid) {
+                // 空气雕刻阶段
+                if (m_caveCarver) {
+                    // MC 1.21: setLargeFeatureSeed(worldSeed + carverIndex, startChunkX, startChunkZ)
+                    worldgenRandom.setLargeFeatureSeed(m_seed, startChunkX, startChunkZ);
+                    if (m_caveCarver->shouldCarve(worldgenRandom, startChunkX, startChunkZ, m_caveConfig)) {
+                        m_caveCarver->carve(chunk,
+                            context,
+                            *m_biomeSource,
+                            m_settings.seaLevel,
+                            startChunkX,
+                            startChunkZ,
+                            carvingMask,
+                            worldgenRandom,
+                            m_caveConfig);
+                    }
+                }
+
+                if (m_canyonCarver) {
+                    // 峡谷使用 carverIndex=1 来区分种子
+                    worldgenRandom.setLargeFeatureSeed(m_seed + 1, startChunkX, startChunkZ);
+                    if (m_canyonCarver->shouldCarve(worldgenRandom, startChunkX, startChunkZ, m_canyonConfig)) {
+                        m_canyonCarver->carve(chunk,
+                            context,
+                            *m_biomeSource,
+                            m_settings.seaLevel,
+                            startChunkX,
+                            startChunkZ,
+                            carvingMask,
+                            worldgenRandom,
+                            m_canyonConfig);
+                    }
+                }
+            } else {
+                // 液体雕刻阶段
+                if (m_underwaterCaveCarver) {
+                    // 水下洞穴使用 carverIndex=2
+                    worldgenRandom.setLargeFeatureSeed(m_seed + 2, startChunkX, startChunkZ);
+                    if (m_underwaterCaveCarver->shouldCarve(worldgenRandom, startChunkX, startChunkZ, m_caveConfig)) {
+                        m_underwaterCaveCarver->carve(chunk,
+                            context,
+                            *m_biomeSource,
+                            m_settings.seaLevel,
+                            startChunkX,
+                            startChunkZ,
+                            carvingMask,
+                            worldgenRandom,
+                            m_caveConfig);
+                    }
+                }
+
+                if (m_underwaterCanyonCarver) {
+                    // 水下峡谷使用 carverIndex=3
+                    worldgenRandom.setLargeFeatureSeed(m_seed + 3, startChunkX, startChunkZ);
+                    if (m_underwaterCanyonCarver->shouldCarve(
+                            worldgenRandom, startChunkX, startChunkZ, m_canyonConfig)) {
+                        m_underwaterCanyonCarver->carve(chunk,
+                            context,
+                            *m_biomeSource,
+                            m_settings.seaLevel,
+                            startChunkX,
+                            startChunkZ,
+                            carvingMask,
+                            worldgenRandom,
+                            m_canyonConfig);
+                    }
+                }
+            }
+        }
+    }
+
     if (!isLiquid) {
-        // 空气雕刻阶段：洞穴和峡谷
-        if (m_caveCarver) {
-            m_caveCarver->carve(
-                chunk, context, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
-        }
-
-        if (m_canyonCarver) {
-            m_canyonCarver->carve(
-                chunk, context, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_canyonConfig);
-        }
-
         chunk.setChunkStatus(ChunkStatuses::CARVERS);
     } else {
-        // 液体雕刻阶段：水下洞穴和峡谷（共享 AIR 阶段的掩码）
-        if (m_underwaterCaveCarver) {
-            m_underwaterCaveCarver->carve(
-                chunk, context, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_caveConfig);
-        }
-
-        if (m_underwaterCanyonCarver) {
-            m_underwaterCanyonCarver->carve(
-                chunk, context, *m_biomeSource, m_settings.seaLevel, chunkX, chunkZ, carvingMask, m_canyonConfig);
-        }
-
         chunk.setChunkStatus(ChunkStatuses::LIQUID_CARVERS);
     }
 }
@@ -1270,42 +1329,72 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
 {
     // MC 1.21: 使用密度函数管线采样高度
     if (m_useDensityFunctionPipeline && m_router) {
-        const i32 minY = m_settings.noise.minY;
-        const i32 maxY = m_settings.noise.minY + m_settings.noise.height;
-        // 逐列采样密度函数，从上到下找到第一个实体方块
-        for (i32 y = maxY - 1; y >= minY; --y) {
-            const f64 density = m_router->finalDensity().compute(x, y, z);
-            const BlockState* blockState = _getBlockForDensity(static_cast<f32>(density), y);
+        // MC 1.21: iterateNoiseColumn — 创建单列 NoiseChunk 采样高度
+        // 与直接逐方块采样相比，cell 插值方式与实际区块生成管线完全一致
+        const NoiseSettings& noise = m_settings.noise;
+        const i32 minY = noise.minY;
+        const i32 cellHeight = m_cellHeight;
+        const i32 cellWidth = m_cellWidth;
+        const i32 cellCountY = math::floorDiv(noise.height, cellHeight);
 
-            auto matchesHeightmap = [type](const BlockState* state) -> bool {
-                if (!state || state->isAir()) {
-                    return false;
-                }
-                const Block& block = state->owner();
-                switch (type) {
-                    case HeightmapType::WorldSurface:
-                    case HeightmapType::WorldSurfaceWG:
-                        return true;
-                    case HeightmapType::OceanFloor:
-                    case HeightmapType::OceanFloorWG:
-                        return block.isSolid(*state);
-                    case HeightmapType::MotionBlocking:
-                        return block.isSolid(*state) || state->isLiquid();
-                    case HeightmapType::MotionBlockingNoLeaves:
-                        return (block.isSolid(*state) || state->isLiquid()) &&
-                            (&block.material() != &Material::LEAVES) && (&block.material() != &Material::PLANT);
-                    case HeightmapType::LightBlocking:
-                        return block.isSolid(*state) && state->getOpacity() > 0;
-                    default:
-                        return true;
-                }
-            };
+        // 对齐坐标到 cell 网格
+        const i32 cellX = math::floorDiv(x, cellWidth);
+        const i32 cellZ = math::floorDiv(z, cellWidth);
+        const i32 alignedX = cellX * cellWidth;
+        const i32 alignedZ = cellZ * cellWidth;
+        const f64 deltaX = static_cast<f64>(x - alignedX) / static_cast<f64>(cellWidth);
+        const f64 deltaZ = static_cast<f64>(z - alignedZ) / static_cast<f64>(cellWidth);
 
-            if (matchesHeightmap(blockState)) {
-                return y + 1;
+        // 创建单列 NoiseChunk（cellCountXZ=1）
+        auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(
+            *m_router, cellWidth, cellHeight, cellCountY, alignedX, minY, alignedZ);
+
+        noiseChunk->initializeForFirstCellX();
+        noiseChunk->advanceCellX(0);
+
+        auto matchesHeightmap = [type](const BlockState* state) -> bool {
+            if (!state || state->isAir()) {
+                return false;
+            }
+            const Block& block = state->owner();
+            switch (type) {
+                case HeightmapType::WorldSurface:
+                case HeightmapType::WorldSurfaceWG:
+                    return true;
+                case HeightmapType::OceanFloor:
+                case HeightmapType::OceanFloorWG:
+                    return block.isSolid(*state);
+                case HeightmapType::MotionBlocking:
+                    return block.isSolid(*state) || state->isLiquid();
+                case HeightmapType::MotionBlockingNoLeaves:
+                    return (block.isSolid(*state) || state->isLiquid()) && (&block.material() != &Material::LEAVES) &&
+                        (&block.material() != &Material::PLANT);
+                case HeightmapType::LightBlocking:
+                    return block.isSolid(*state) && state->getOpacity() > 0;
+                default:
+                    return true;
+            }
+        };
+
+        for (i32 cellY = cellCountY - 1; cellY >= 0; --cellY) {
+            noiseChunk->selectCellXYZ(0, cellY, 0);
+
+            for (i32 inCellY = cellHeight - 1; inCellY >= 0; --inCellY) {
+                const i32 blockY = (math::floorDiv(minY, cellHeight) + cellY) * cellHeight + inCellY;
+                const f64 yLerp = static_cast<f64>(inCellY) / static_cast<f64>(cellHeight);
+                noiseChunk->updateForY(yLerp);
+                noiseChunk->updateForX(deltaX);
+
+                const f64 density = noiseChunk->updateForZ(deltaZ);
+                const BlockState* blockState = _getBlockForDensity(static_cast<f32>(density), blockY);
+
+                if (matchesHeightmap(blockState)) {
+                    return blockY + 1;
+                }
             }
         }
-        return m_settings.noise.minY;
+
+        return minY;
     }
 
     // MC 1.16.5 回退管线

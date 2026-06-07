@@ -60,9 +60,10 @@ public:
      * @param chunk 要雕刻的区块
      * @param biomeSource 生物群系源（用于获取地表方块）
      * @param seaLevel 海平面高度
-     * @param chunkX 区块 X 坐标
-     * @param chunkZ 区块 Z 坐标
+     * @param chunkX 雕刻起始区块 X 坐标
+     * @param chunkZ 雕刻起始区块 Z 坐标
      * @param carvingMask 雕刻掩码
+     * @param rng 已初始化的随机数生成器（由 applyCarvers 通过 setLargeFeatureSeed 初始化）
      * @param config 配置
      * @return 是否雕刻了任何方块
      */
@@ -73,6 +74,7 @@ public:
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
         CarvingMask& carvingMask,
+        math::IRandom& rng,
         const ProbabilityConfig& config) override;
 
     /**

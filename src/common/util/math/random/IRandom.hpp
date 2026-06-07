@@ -184,6 +184,28 @@ public:
     void setSeedWithHash(i64 seed);
 
     /**
+     * @brief 设置大型特征种子（MC: WorldgenRandom.setLargeFeatureSeed）
+     *
+     * MC 1.21 雕刻器和结构使用的种子计算方式：
+     * 1. 用输入 seed 初始化 RNG
+     * 2. 生成两个随机 long 值 i, j
+     * 3. 计算最终种子: chunkX * i ^ chunkZ * j ^ seed
+     * 4. 用最终种子设置 RNG
+     *
+     * @param seed 基础种子（通常是 worldSeed + carverIndex）
+     * @param chunkX 区块 X 坐标
+     * @param chunkZ 区块 Z 坐标
+     */
+    void setLargeFeatureSeed(i64 seed, i32 chunkX, i32 chunkZ)
+    {
+        setSeed(static_cast<u64>(seed));
+        const i64 i = nextLong();
+        const i64 j = nextLong();
+        const i64 k = static_cast<i64>(chunkX) * i ^ static_cast<i64>(chunkZ) * j ^ seed;
+        setSeed(static_cast<u64>(k));
+    }
+
+    /**
      * @brief 跳过指定数量的随机数
      * @param count 要跳过的随机数数量
      *

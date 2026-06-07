@@ -52,14 +52,11 @@ bool CaveCarver::carve(ChunkPrimer& chunk,
     ChunkCoord chunkX,
     ChunkCoord chunkZ,
     CarvingMask& carvingMask,
-    const ProbabilityConfig& config)
+    math::IRandom& rng,
+    const ProbabilityConfig& /*config*/)
 {
-    math::Random rng(static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL +
-        static_cast<u64>(m_maxHeight));
-
-    if (!shouldCarve(rng, chunkX, chunkZ, config)) {
-        return false;
-    }
+    // MC 1.21: shouldCarve (isStartChunk) 已由 applyCarvers 通过 setLargeFeatureSeed 完成
+    // RNG 已正确初始化，直接使用
 
     // 隧道长度范围
     const i32 tunnelLength = (getRange() * 2 - 1) * world::CHUNK_WIDTH;

@@ -197,7 +197,7 @@ TEST_F(CaveCarverTest, CarveCreatesHoles)
                     }
                 }
             }
-            if (carver->carve(testChunk, *context, *biomeSource, 63, cx, cz, testMask, config)) {
+            if (carver->carve(testChunk, *context, *biomeSource, 63, cx, cz, testMask, rng, config)) {
                 carved = true;
             }
         }
@@ -223,7 +223,8 @@ TEST_F(CaveCarverTest, CarveRespectsMask)
     mask->setCarved(8, 32, 8);
 
     ProbabilityConfig config(1.0f);
-    carver->carve(*chunk, *context, *biomeSource, 63, 0, 0, *mask, config);
+    math::Random rng(54321);
+    carver->carve(*chunk, *context, *biomeSource, 63, 0, 0, *mask, rng, config);
 
     // 已标记的位置不应该被重复雕刻
     // （虽然我们无法直接验证，但掩码应该阻止重复雕刻）
@@ -306,7 +307,7 @@ TEST_F(CanyonCarverTest, CarveCreatesCanyon)
                     }
                 }
             }
-            if (carver->carve(testChunk, *context, *biomeSource, 63, cx, cz, testMask, config)) {
+            if (carver->carve(testChunk, *context, *biomeSource, 63, cx, cz, testMask, rng, config)) {
                 carved = true;
             }
         }

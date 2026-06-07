@@ -87,13 +87,17 @@ public:
     /**
      * @brief 在区块中执行雕刻
      *
+     * MC 1.21: RNG 由调用方通过 setLargeFeatureSeed 初始化，
+     * shouldCarve 已在调用方完成，carve 直接使用传入的 RNG。
+     *
      * @param chunk 要雕刻的区块
      * @param context 雕刻上下文（含水层引用等）
      * @param biomeSource 生物群系源
      * @param seaLevel 海平面高度
-     * @param chunkX 区块 X 坐标
-     * @param chunkZ 区块 Z 坐标
+     * @param chunkX 雕刻起始区块 X 坐标（可能不是目标区块）
+     * @param chunkZ 雕刻起始区块 Z 坐标（可能不是目标区块）
      * @param carvingMask 雕刻掩码
+     * @param rng 已初始化的随机数生成器（由 applyCarvers 通过 setLargeFeatureSeed 初始化）
      * @param config 配置
      * @return 是否雕刻了任何方块
      */
@@ -104,6 +108,7 @@ public:
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
         CarvingMask& carvingMask,
+        math::IRandom& rng,
         const Config& config) = 0;
 
     /**
@@ -287,9 +292,10 @@ public:
         i32 seaLevel,
         ChunkCoord chunkX,
         ChunkCoord chunkZ,
-        CarvingMask& carvingMask)
+        CarvingMask& carvingMask,
+        math::IRandom& rng)
     {
-        return m_carver->carve(chunk, context, biomeSource, seaLevel, chunkX, chunkZ, carvingMask, m_config);
+        return m_carver->carve(chunk, context, biomeSource, seaLevel, chunkX, chunkZ, carvingMask, rng, m_config);
     }
 
     /**
