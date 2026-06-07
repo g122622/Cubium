@@ -587,7 +587,7 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
     }
 
     // 2. 深板岩层 (Y 0-8 渐变过渡)
-    // MC 1.21: verticalGradient("deepslate", absolute(-64), absolute(0)) → Y<=0 完全深板岩, Y=0~8 渐变
+    // MC 1.21: verticalGradient("deepslate", absolute(0), absolute(8)) → Y<=0 完全深板岩, Y=0~8 渐变
     if (deepslate) {
         rules.push_back(
             ifTrue(verticalGradient(seed ^ 0xDEE00001ULL, VerticalAnchor::absolute(0), VerticalAnchor::absolute(8)),
@@ -682,7 +682,7 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
     // 7. 冰冻海洋 hole 处理（水面上方放置空气/冰/水）
     if (water && ice && air) {
         rules.push_back(ifTrue(isBiome({Biomes::FrozenOcean, Biomes::DeepFrozenOcean}),
-            ifTrue(waterBlockCheck(0, 0),
+            ifTrue(waterBlockCheck(-1, 0),
                 ifTrue(hole(),
                     sequence(ifTrue(onFloor(), blockState(air)),
                         ifTrue(temperature(), blockState(ice)),
@@ -823,10 +823,9 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
             ifTrue(waterStartCheck(-6, -1), ifTrue(veryDeepUnderFloor(), blockState(sandstone)))));
     }
 
-    // 12. ON_FLOOR: 冰冻峰/尖峭山峰 → STONE
+    // 12. ON_FLOOR: 尖峭山峰 → STONE（冰冻峰由规则15的详细packed_ice/ice/snow_block规则处理）
     if (stone) {
-        rules.push_back(
-            ifTrue(isBiome({Biomes::FrozenPeaks, Biomes::JaggedPeaks}), ifTrue(onFloor(), blockState(stone))));
+        rules.push_back(ifTrue(isBiome({Biomes::JaggedPeaks}), ifTrue(onFloor(), blockState(stone))));
     }
 
     // 13. ON_FLOOR: 温暖海洋/温水海洋 → sand/sandstone
@@ -976,7 +975,7 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
         }
 
         if (!topRules.empty()) {
-            rules.push_back(ifTrue(waterBlockCheck(0, 0), sequence(std::move(topRules))));
+            rules.push_back(ifTrue(onFloor(), ifTrue(waterBlockCheck(-1, 0), sequence(std::move(topRules)))));
         }
     }
 
@@ -994,11 +993,6 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
                              blockState(coarseDirt)),
                     ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, -0.95 / 8.25, 1e30),
                         blockState(podzol))))));
-    }
-
-    // 18. ON_FLOOR: 蘑菇岛 MYCELIUM
-    if (mycelium) {
-        rules.push_back(ifTrue(isBiome({Biomes::MushroomFields}), ifTrue(onFloor(), blockState(mycelium))));
     }
 
     return sequence(std::move(rules));
