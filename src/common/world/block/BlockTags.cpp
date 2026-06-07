@@ -1090,14 +1090,6 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "pale_moss_block"),
         ResourceLocation("minecraft", "pale_moss_carpet")});
 
-    // 更新 WITHER_IMMUNE 标签，添加 1.17+ 新方块
-    BlockTag& witherImmuneTag = *tags.at(ResourceLocation("minecraft", "wither_immune"));
-    witherImmuneTag.addAll({// 1.17 加固深板岩
-        ResourceLocation("minecraft", "reinforced_deepslate"),
-        // 1.21 试炼刷怪笼和宝库
-        ResourceLocation("minecraft", "trial_spawner"),
-        ResourceLocation("minecraft", "vault")});
-
     // 更新 SMALL_FLOWERS 标签，添加 1.17+ 新花
     BlockTag& smallFlowersTag = *tags.at(ResourceLocation("minecraft", "small_flowers"));
     smallFlowersTag.addAll({// 1.20 火把花
@@ -1680,7 +1672,12 @@ void BlockTags::initialize()
         // 活塞移动中的方块
         ResourceLocation("minecraft", "moving_piston"),
         // 光源方块
-        ResourceLocation("minecraft", "light")});
+        ResourceLocation("minecraft", "light"),
+        // 1.17 加固深板岩
+        ResourceLocation("minecraft", "reinforced_deepslate"),
+        // 1.21 试炼刷怪笼和宝库
+        ResourceLocation("minecraft", "trial_spawner"),
+        ResourceLocation("minecraft", "vault")});
     tags[witherImmune->getId()] = std::move(witherImmune);
 
     // ============================================================================
