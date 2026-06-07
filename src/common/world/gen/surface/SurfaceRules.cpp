@@ -562,8 +562,21 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
     const BlockState* podzol = VanillaBlocks::PODZOL ? &VanillaBlocks::PODZOL->defaultState() : nullptr;
     const BlockState* mycelium = VanillaBlocks::MYCELIUM ? &VanillaBlocks::MYCELIUM->defaultState() : nullptr;
     const BlockState* air = VanillaBlocks::AIR ? &VanillaBlocks::AIR->defaultState() : nullptr;
+    const BlockState* calcite = VanillaBlocks::CALCITE ? &VanillaBlocks::CALCITE->defaultState() : nullptr;
+    const BlockState* packedIce = VanillaBlocks::PACKED_ICE ? &VanillaBlocks::PACKED_ICE->defaultState() : nullptr;
+    const BlockState* snowBlock = VanillaBlocks::SNOW_BLOCK ? &VanillaBlocks::SNOW_BLOCK->defaultState() : nullptr;
+    const BlockState* powderSnow = VanillaBlocks::POWDER_SNOW ? &VanillaBlocks::POWDER_SNOW->defaultState() : nullptr;
+    const BlockState* mud = VanillaBlocks::MUD ? &VanillaBlocks::MUD->defaultState() : nullptr;
+    const BlockState* redSand = VanillaBlocks::RED_SAND ? &VanillaBlocks::RED_SAND->defaultState() : nullptr;
+    const BlockState* redSandstone =
+        VanillaBlocks::RED_SANDSTONE ? &VanillaBlocks::RED_SANDSTONE->defaultState() : nullptr;
+    const BlockState* orangeTerracotta =
+        VanillaBlocks::ORANGE_TERRACOTTA ? &VanillaBlocks::ORANGE_TERRACOTTA->defaultState() : nullptr;
+    const BlockState* whiteTerracotta =
+        VanillaBlocks::WHITE_TERRACOTTA ? &VanillaBlocks::WHITE_TERRACOTTA->defaultState() : nullptr;
 
-    // ========== 构建规则树 ==========
+    // ========== 构建主规则树 ==========
+    // MC 1.21 SurfaceRuleData.overworld() — 完整规则树
     std::vector<std::unique_ptr<SurfaceRule>> rules;
 
     // 1. 基岩层底部 (Y 0-4 渐变)
@@ -574,90 +587,418 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
     }
 
     // 2. 深板岩层 (Y 0-8 渐变过渡)
+    // MC 1.21: verticalGradient("deepslate", absolute(-64), absolute(0)) → Y<=0 完全深板岩, Y=0~8 渐变
     if (deepslate) {
         rules.push_back(
             ifTrue(verticalGradient(seed ^ 0xDEE00001ULL, VerticalAnchor::absolute(0), VerticalAnchor::absolute(8)),
                 blockState(deepslate)));
     }
 
-    // 3. 地表规则（在预备表面之上）
-    // MC 1.21 overworld() 规则树简化版
+    // 3. ON_FLOOR: 恶地树林高层（Y>=97+surfaceDepth*2 时粗糙泥土/草/泥土）
+    if (coarseDirt && grass && dirt) {
+        rules.push_back(ifTrue(isBiome({Biomes::WoodedBadlands}),
+            ifTrue(onFloor(),
+                ifTrue(yBlockCheck(VerticalAnchor::absolute(97), 2),
+                    sequence(ifTrue(noiseCondition(
+                                        seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, -0.909 / 8.25, -0.5454 / 8.25),
+                                 blockState(coarseDirt)),
+                        ifTrue(noiseCondition(
+                                   seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, -0.1818 / 8.25, 0.1818 / 8.25),
+                            blockState(coarseDirt)),
+                        ifTrue(
+                            noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 0.5454 / 8.25, 0.909 / 8.25),
+                            blockState(coarseDirt)),
+                        ifTrue(waterBlockCheck(0, 0), blockState(grass)),
+                        blockState(dirt))))));
+    }
 
-    // 3a. ON_FLOOR + water → GRASS, else DIRT
+    // 4. ON_FLOOR: 沼泽水面（Y>=62 且 Y<63，噪声触发时放水）
+    if (water) {
+        rules.push_back(ifTrue(isBiome({Biomes::Swamp}),
+            ifTrue(onFloor(),
+                ifTrue(yBlockCheck(VerticalAnchor::absolute(62), 0),
+                    ifTrue(yStartCheck(VerticalAnchor::absolute(63), -1),
+                        ifTrue(noiseCondition(seed ^ 0x5EA00001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 0.0, 1e30),
+                            blockState(water)))))));
+    }
+
+    // 5. ON_FLOOR: 红树林沼泽水面（Y>=60 且 Y<63）
+    if (water) {
+        rules.push_back(ifTrue(isBiome({Biomes::MangroveSwamp}),
+            ifTrue(onFloor(),
+                ifTrue(yBlockCheck(VerticalAnchor::absolute(60), 0),
+                    ifTrue(yStartCheck(VerticalAnchor::absolute(63), -1),
+                        ifTrue(noiseCondition(seed ^ 0x5EA00001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 0.0, 1e30),
+                            blockState(water)))))));
+    }
+
+    // 6. 恶地家族 ON_FLOOR/UNDER_FLOOR/VERY_DEEP_UNDER_FLOOR
+    if (orangeTerracotta && redSand && whiteTerracotta && gravel && stone) {
+        rules.push_back(ifTrue(isBiome({Biomes::Badlands, Biomes::ErodedBadlands, Biomes::WoodedBadlands}),
+            sequence(
+                // ON_FLOOR
+                ifTrue(onFloor(),
+                    sequence(
+                        // Y >= 256: 橙色陶土
+                        ifTrue(yBlockCheck(VerticalAnchor::absolute(256), 0), blockState(orangeTerracotta)),
+                        // Y <= 74+surfaceDepth: 噪声陶土带
+                        ifTrue(yStartCheck(VerticalAnchor::absolute(74), 1),
+                            sequence(
+                                ifTrue(
+                                    noiseCondition(
+                                        seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, -0.909 / 8.25, -0.5454 / 8.25),
+                                    blockState(orangeTerracotta)),
+                                ifTrue(
+                                    noiseCondition(
+                                        seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, -0.1818 / 8.25, 0.1818 / 8.25),
+                                    blockState(orangeTerracotta)),
+                                ifTrue(noiseCondition(
+                                           seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 0.5454 / 8.25, 0.909 / 8.25),
+                                    blockState(orangeTerracotta)),
+                                bandlands())),
+                        // !hole && waterCheck(-1): 红沙（含红砂岩天花板）
+                        ifTrue(waterBlockCheck(-1, 0),
+                            sequence(ifTrue(onCeiling(), blockState(redSandstone)), blockState(redSand))),
+                        // !hole: 橙色陶土
+                        ifTrue(notCondition(hole()), blockState(orangeTerracotta)),
+                        // waterStartCheck(-6, -1): 白色陶土
+                        ifTrue(waterStartCheck(-6, -1), blockState(whiteTerracotta)),
+                        // 兜底: 砾石/石头
+                        sequence(ifTrue(onCeiling(), blockState(stone)), blockState(gravel)))),
+                // UNDER_FLOOR: Y <= 63-surfaceDepth
+                ifTrue(underFloor(),
+                    ifTrue(yStartCheck(VerticalAnchor::absolute(63), -1),
+                        sequence(
+                            // Y >= 63 且不在 bandlands 范围: 橙色陶土
+                            ifTrue(yBlockCheck(VerticalAnchor::absolute(63), 0),
+                                ifTrue(notCondition(yStartCheck(VerticalAnchor::absolute(74), 1)),
+                                    blockState(orangeTerracotta))),
+                            // bandlands
+                            bandlands()))),
+                // VERY_DEEP_UNDER_FLOOR: waterStartCheck → 白色陶土
+                ifTrue(veryDeepUnderFloor(), ifTrue(waterStartCheck(-6, -1), blockState(whiteTerracotta))))));
+    }
+
+    // 7. 冰冻海洋 hole 处理（水面上方放置空气/冰/水）
+    if (water && ice && air) {
+        rules.push_back(ifTrue(isBiome({Biomes::FrozenOcean, Biomes::DeepFrozenOcean}),
+            ifTrue(waterBlockCheck(0, 0),
+                ifTrue(hole(),
+                    sequence(ifTrue(onFloor(), blockState(air)),
+                        ifTrue(temperature(), blockState(ice)),
+                        blockState(water))))));
+    }
+
+    // 8. 水旁 onFloor: 冰冻海洋 hole → 水
+    if (water) {
+        rules.push_back(ifTrue(isBiome({Biomes::FrozenOcean, Biomes::DeepFrozenOcean}),
+            ifTrue(waterStartCheck(-6, -1), ifTrue(onFloor(), ifTrue(hole(), blockState(water))))));
+    }
+
+    // 9. 水旁 underFloor: 地表材料层
+    {
+        std::vector<std::unique_ptr<SurfaceRule>> matRules;
+
+        // 冰冻峰: steep→PACKED_ICE, noise→PACKED_ICE/ICE, !water→SNOW_BLOCK
+        if (packedIce && ice && snowBlock) {
+            matRules.push_back(ifTrue(isBiome({Biomes::FrozenPeaks}),
+                sequence(ifTrue(steep(), blockState(packedIce)),
+                    ifTrue(noiseCondition(seed ^ 0xAC100001ULL, -4, {1.0, 1.0}, 0.0, 0.2), blockState(packedIce)),
+                    ifTrue(noiseCondition(seed ^ 0x1CE00001ULL, -4, {1.0, 1.0}, 0.0, 0.025), blockState(ice)),
+                    ifTrue(waterBlockCheck(0, 0), blockState(snowBlock)))));
+        }
+
+        // 雪山斜坡: steep→STONE, powderSnow, !water→SNOW_BLOCK
+        if (stone && snowBlock) {
+            std::vector<std::unique_ptr<SurfaceRule>> snowySlopesSeq;
+            snowySlopesSeq.push_back(ifTrue(steep(), blockState(stone)));
+            if (powderSnow) {
+                snowySlopesSeq.push_back(
+                    ifTrue(noiseCondition(seed ^ 0xB0D00001ULL, -5, {1.0, 1.0, 1.0, 1.0}, 0.45, 0.58),
+                        ifTrue(waterBlockCheck(0, 0), blockState(powderSnow))));
+            }
+            snowySlopesSeq.push_back(ifTrue(waterBlockCheck(0, 0), blockState(snowBlock)));
+            matRules.push_back(ifTrue(isBiome({Biomes::SnowySlopes}), sequence(std::move(snowySlopesSeq))));
+        }
+
+        // 尖峭山峰: STONE
+        if (stone) {
+            matRules.push_back(ifTrue(isBiome({Biomes::JaggedPeaks}), blockState(stone)));
+        }
+
+        // 树林: powderSnow, DIRT
+        if (dirt) {
+            std::vector<std::unique_ptr<SurfaceRule>> groveSeq;
+            if (powderSnow) {
+                groveSeq.push_back(ifTrue(noiseCondition(seed ^ 0xB0D00001ULL, -5, {1.0, 1.0, 1.0, 1.0}, 0.45, 0.58),
+                    ifTrue(waterBlockCheck(0, 0), blockState(powderSnow))));
+            }
+            groveSeq.push_back(blockState(dirt));
+            matRules.push_back(ifTrue(isBiome({Biomes::Grove}), sequence(std::move(groveSeq))));
+        }
+
+        // 石峰: calcite noise → CALCITE, else STONE
+        if (calcite && stone) {
+            matRules.push_back(ifTrue(isBiome({Biomes::StonyPeaks}),
+                sequence(
+                    ifTrue(noiseCondition(seed ^ 0xCA1C0001ULL, -4, {1.0, 1.0}, -0.0125, 0.0125), blockState(calcite)),
+                    blockState(stone))));
+        }
+
+        // 石岸: gravel noise → gravel/stone, else STONE
+        if (gravel && stone) {
+            matRules.push_back(ifTrue(isBiome({Biomes::StonyShore}),
+                sequence(ifTrue(noiseCondition(seed ^ 0x6AA50001ULL, -4, {1.0, 1.0}, -0.05, 0.05),
+                             sequence(ifTrue(onCeiling(), blockState(stone)), blockState(gravel))),
+                    blockState(stone))));
+        }
+
+        // 风蚀丘陵: surfaceNoiseAbove(1.0) → STONE
+        if (stone) {
+            matRules.push_back(ifTrue(isBiome({Biomes::WindsweptHills}),
+                ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 1.0 / 8.25, 1e30),
+                    blockState(stone))));
+        }
+
+        // 温暖海洋/海滩/雪岸: sand/sandstone
+        if (sand && sandstone) {
+            matRules.push_back(ifTrue(isBiome({Biomes::WarmOcean, Biomes::Beach, Biomes::SnowyBeach}),
+                sequence(ifTrue(onCeiling(), blockState(sandstone)), blockState(sand))));
+        }
+
+        // 沙漠: sand/sandstone
+        if (sand && sandstone) {
+            matRules.push_back(ifTrue(
+                isBiome({Biomes::Desert}), sequence(ifTrue(onCeiling(), blockState(sandstone)), blockState(sand))));
+        }
+
+        // 钟乳石洞: STONE
+        if (stone) {
+            matRules.push_back(ifTrue(isBiome({Biomes::DripstoneCaves}), blockState(stone)));
+        }
+
+        // 风蚀萨凡纳: surfaceNoiseAbove(1.75) → STONE
+        if (stone) {
+            matRules.push_back(ifTrue(isBiome({Biomes::WindsweptSavanna}),
+                ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 1.75 / 8.25, 1e30),
+                    blockState(stone))));
+        }
+
+        // 风蚀砾石丘陵: noise分层 → gravel/stone/dirt/gravel
+        if (gravel && stone && dirt && grass) {
+            matRules.push_back(ifTrue(isBiome({Biomes::WindsweptGravellyHills}),
+                sequence(ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 2.0 / 8.25, 1e30),
+                             sequence(ifTrue(onCeiling(), blockState(stone)), blockState(gravel))),
+                    ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 1.0 / 8.25, 1e30),
+                        blockState(stone)),
+                    ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, -1.0 / 8.25, 1e30),
+                        sequence(ifTrue(waterBlockCheck(0, 0), blockState(grass)), blockState(dirt))),
+                    sequence(ifTrue(onCeiling(), blockState(stone)), blockState(gravel)))));
+        }
+
+        // 红树林沼泽: MUD
+        if (mud) {
+            matRules.push_back(ifTrue(isBiome({Biomes::MangroveSwamp}), blockState(mud)));
+        }
+
+        // 兜底: DIRT
+        if (dirt) {
+            matRules.push_back(blockState(dirt));
+        }
+
+        if (!matRules.empty()) {
+            rules.push_back(ifTrue(waterStartCheck(-6, -1), ifTrue(underFloor(), sequence(std::move(matRules)))));
+        }
+    }
+
+    // 10. 水旁 deepUnderFloor: 温暖海洋/海滩 → sandstone
+    if (sandstone) {
+        rules.push_back(ifTrue(isBiome({Biomes::WarmOcean, Biomes::Beach, Biomes::SnowyBeach}),
+            ifTrue(waterStartCheck(-6, -1), ifTrue(deepUnderFloor(), blockState(sandstone)))));
+    }
+
+    // 11. 水旁 veryDeepUnderFloor: 沙漠 → sandstone
+    if (sandstone) {
+        rules.push_back(ifTrue(isBiome({Biomes::Desert}),
+            ifTrue(waterStartCheck(-6, -1), ifTrue(veryDeepUnderFloor(), blockState(sandstone)))));
+    }
+
+    // 12. ON_FLOOR: 冰冻峰/尖峭山峰 → STONE
+    if (stone) {
+        rules.push_back(
+            ifTrue(isBiome({Biomes::FrozenPeaks, Biomes::JaggedPeaks}), ifTrue(onFloor(), blockState(stone))));
+    }
+
+    // 13. ON_FLOOR: 温暖海洋/温水海洋 → sand/sandstone
+    if (sand && sandstone) {
+        rules.push_back(ifTrue(isBiome({Biomes::WarmOcean, Biomes::LukewarmOcean, Biomes::DeepLukewarmOcean}),
+            ifTrue(onFloor(), sequence(ifTrue(onCeiling(), blockState(sandstone)), blockState(sand)))));
+    }
+
+    // 14. ON_FLOOR: 默认 → gravel/stone
+    if (gravel && stone) {
+        rules.push_back(ifTrue(onFloor(), sequence(ifTrue(onCeiling(), blockState(stone)), blockState(gravel))));
+    }
+
+    // 15. waterBlockCheck + ON_FLOOR: 地表顶层
+    {
+        std::vector<std::unique_ptr<SurfaceRule>> topRules;
+
+        // 冰冻峰: steep→PACKED_ICE, noise→PACKED_ICE/ICE, !water→SNOW_BLOCK
+        if (packedIce && ice && snowBlock) {
+            topRules.push_back(ifTrue(isBiome({Biomes::FrozenPeaks}),
+                sequence(ifTrue(steep(), blockState(packedIce)),
+                    ifTrue(noiseCondition(seed ^ 0xAC100001ULL, -4, {1.0, 1.0}, 0.0, 0.2), blockState(packedIce)),
+                    ifTrue(noiseCondition(seed ^ 0x1CE00001ULL, -4, {1.0, 1.0}, 0.0, 0.025), blockState(ice)),
+                    ifTrue(waterBlockCheck(0, 0), blockState(snowBlock)))));
+        }
+
+        // 雪山斜坡: steep→STONE, powderSnow(高阈值), !water→SNOW_BLOCK
+        if (stone && snowBlock) {
+            std::vector<std::unique_ptr<SurfaceRule>> snowySlopesSeq;
+            snowySlopesSeq.push_back(ifTrue(steep(), blockState(stone)));
+            if (powderSnow) {
+                snowySlopesSeq.push_back(
+                    ifTrue(noiseCondition(seed ^ 0xB0D00002ULL, -5, {1.0, 1.0, 1.0, 1.0}, 0.35, 0.6),
+                        ifTrue(waterBlockCheck(0, 0), blockState(powderSnow))));
+            }
+            snowySlopesSeq.push_back(ifTrue(waterBlockCheck(0, 0), blockState(snowBlock)));
+            topRules.push_back(ifTrue(isBiome({Biomes::SnowySlopes}), sequence(std::move(snowySlopesSeq))));
+        }
+
+        // 尖峭山峰: steep→STONE, !water→SNOW_BLOCK
+        if (stone && snowBlock) {
+            topRules.push_back(ifTrue(isBiome({Biomes::JaggedPeaks}),
+                sequence(ifTrue(steep(), blockState(stone)), ifTrue(waterBlockCheck(0, 0), blockState(snowBlock)))));
+        }
+
+        // 树林: powderSnow(高阈值), !water→SNOW_BLOCK
+        if (snowBlock) {
+            std::vector<std::unique_ptr<SurfaceRule>> groveSeq;
+            if (powderSnow) {
+                groveSeq.push_back(ifTrue(noiseCondition(seed ^ 0xB0D00002ULL, -5, {1.0, 1.0, 1.0, 1.0}, 0.35, 0.6),
+                    ifTrue(waterBlockCheck(0, 0), blockState(powderSnow))));
+            }
+            groveSeq.push_back(ifTrue(waterBlockCheck(0, 0), blockState(snowBlock)));
+            topRules.push_back(ifTrue(isBiome({Biomes::Grove}), sequence(std::move(groveSeq))));
+        }
+
+        // 石峰: calcite noise → CALCITE, else STONE
+        if (calcite && stone) {
+            topRules.push_back(ifTrue(isBiome({Biomes::StonyPeaks}),
+                sequence(
+                    ifTrue(noiseCondition(seed ^ 0xCA1C0001ULL, -4, {1.0, 1.0}, -0.0125, 0.0125), blockState(calcite)),
+                    blockState(stone))));
+        }
+
+        // 石岸: gravel noise → gravel/stone, else STONE
+        if (gravel && stone) {
+            topRules.push_back(ifTrue(isBiome({Biomes::StonyShore}),
+                sequence(ifTrue(noiseCondition(seed ^ 0x6AA50001ULL, -4, {1.0, 1.0}, -0.05, 0.05),
+                             sequence(ifTrue(onCeiling(), blockState(stone)), blockState(gravel))),
+                    blockState(stone))));
+        }
+
+        // 风蚀丘陵: surfaceNoiseAbove(1.0) → STONE
+        if (stone) {
+            topRules.push_back(ifTrue(isBiome({Biomes::WindsweptHills}),
+                ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 1.0 / 8.25, 1e30),
+                    blockState(stone))));
+        }
+
+        // 温暖海洋/海滩/雪岸: sand/sandstone
+        if (sand && sandstone) {
+            topRules.push_back(ifTrue(isBiome({Biomes::WarmOcean, Biomes::Beach, Biomes::SnowyBeach}),
+                sequence(ifTrue(onCeiling(), blockState(sandstone)), blockState(sand))));
+        }
+
+        // 沙漠: sand/sandstone
+        if (sand && sandstone) {
+            topRules.push_back(ifTrue(
+                isBiome({Biomes::Desert}), sequence(ifTrue(onCeiling(), blockState(sandstone)), blockState(sand))));
+        }
+
+        // 钟乳石洞: STONE
+        if (stone) {
+            topRules.push_back(ifTrue(isBiome({Biomes::DripstoneCaves}), blockState(stone)));
+        }
+
+        // 风蚀萨凡纳: noise→STONE or COARSE_DIRT
+        if (stone && coarseDirt) {
+            topRules.push_back(ifTrue(isBiome({Biomes::WindsweptSavanna}),
+                sequence(ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 1.75 / 8.25, 1e30),
+                             blockState(stone)),
+                    ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, -0.5 / 8.25, 1e30),
+                        blockState(coarseDirt)))));
+        }
+
+        // 风蚀砾石丘陵: noise分层
+        if (gravel && stone && grass && dirt) {
+            topRules.push_back(ifTrue(isBiome({Biomes::WindsweptGravellyHills}),
+                sequence(ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 2.0 / 8.25, 1e30),
+                             sequence(ifTrue(onCeiling(), blockState(stone)), blockState(gravel))),
+                    ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 1.0 / 8.25, 1e30),
+                        blockState(stone)),
+                    ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, -1.0 / 8.25, 1e30),
+                        sequence(ifTrue(waterBlockCheck(0, 0), blockState(grass)), blockState(dirt))),
+                    sequence(ifTrue(onCeiling(), blockState(stone)), blockState(gravel)))));
+        }
+
+        // 大型针叶林: noise→coarseDirt/podzol
+        if (podzol && coarseDirt) {
+            topRules.push_back(ifTrue(isBiome({Biomes::OldGrowthPineTaiga, Biomes::OldGrowthSpruceTaiga}),
+                sequence(ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 1.75 / 8.25, 1e30),
+                             blockState(coarseDirt)),
+                    ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, -0.95 / 8.25, 1e30),
+                        blockState(podzol)))));
+        }
+
+        // 冰刺平原: !water→SNOW_BLOCK
+        if (snowBlock) {
+            topRules.push_back(
+                ifTrue(isBiome({Biomes::IceSpikes}), ifTrue(waterBlockCheck(0, 0), blockState(snowBlock))));
+        }
+
+        // 红树林沼泽: MUD
+        if (mud) {
+            topRules.push_back(ifTrue(isBiome({Biomes::MangroveSwamp}), blockState(mud)));
+        }
+
+        // 蘑菇岛: MYCELIUM
+        if (mycelium) {
+            topRules.push_back(ifTrue(isBiome({Biomes::MushroomFields}), ifTrue(onFloor(), blockState(mycelium))));
+        }
+
+        // 默认: grass(water)/dirt
+        if (grass && dirt) {
+            topRules.push_back(ifTrue(waterBlockCheck(0, 0), blockState(grass)));
+            topRules.push_back(blockState(dirt));
+        }
+
+        if (!topRules.empty()) {
+            rules.push_back(ifTrue(waterBlockCheck(0, 0), sequence(std::move(topRules))));
+        }
+    }
+
+    // 16. UNDER_FLOOR: grass(water)/dirt
     if (grass && dirt) {
-        rules.push_back(ifTrue(onFloor(), ifTrue(waterBlockCheck(0, 0), blockState(grass))));
+        rules.push_back(ifTrue(underFloor(), ifTrue(waterBlockCheck(0, 0), blockState(grass))));
         rules.push_back(ifTrue(underFloor(), blockState(dirt)));
     }
 
-    // 3b. 沙漠：沙 + 沙岩
-    if (sand && sandstone) {
-        std::vector<std::unique_ptr<SurfaceRule>> sandRules;
-        sandRules.push_back(ifTrue(onCeiling(), blockState(sandstone)));
-        sandRules.push_back(blockState(sand));
-        rules.push_back(ifTrue(isBiome({Biomes::Desert}), sequence(std::move(sandRules))));
+    // 17. UNDER_FLOOR: 大型针叶林 coarseDirt/podzol
+    if (podzol && coarseDirt) {
+        rules.push_back(ifTrue(isBiome({Biomes::OldGrowthPineTaiga, Biomes::OldGrowthSpruceTaiga}),
+            ifTrue(underFloor(),
+                sequence(ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 1.75 / 8.25, 1e30),
+                             blockState(coarseDirt)),
+                    ifTrue(noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, -0.95 / 8.25, 1e30),
+                        blockState(podzol))))));
     }
 
-    // 3c. 温暖海洋/海滩：沙 + 沙岩
-    if (sand && sandstone) {
-        std::vector<std::unique_ptr<SurfaceRule>> warmOceanRules;
-        warmOceanRules.push_back(ifTrue(onCeiling(), blockState(sandstone)));
-        warmOceanRules.push_back(blockState(sand));
-        rules.push_back(ifTrue(
-            isBiome({Biomes::WarmOcean, Biomes::Beach, Biomes::SnowyBeach}), sequence(std::move(warmOceanRules))));
-    }
-
-    // 3d. 砾石海滩
-    if (gravel) {
-        std::vector<std::unique_ptr<SurfaceRule>> gravelRules;
-        gravelRules.push_back(ifTrue(onCeiling(), blockState(stone)));
-        gravelRules.push_back(blockState(gravel));
-        rules.push_back(ifTrue(isBiome({Biomes::StonyShore}), sequence(std::move(gravelRules))));
-    }
-
-    // 3e. 冰冻海洋
-    if (ice && water && air) {
-        std::vector<std::unique_ptr<SurfaceRule>> frozenOceanSeq;
-        frozenOceanSeq.push_back(ifTrue(onFloor(), blockState(air)));
-        frozenOceanSeq.push_back(ifTrue(temperature(), blockState(ice)));
-        frozenOceanSeq.push_back(blockState(water));
-        rules.push_back(ifTrue(isBiome({Biomes::FrozenOcean, Biomes::DeepFrozenOcean}),
-            ifTrue(waterBlockCheck(-1, 0), ifTrue(hole(), sequence(std::move(frozenOceanSeq))))));
-    }
-
-    // 3f. 水面附近：浅水下方使用沙/沙岩
-    if (sand && sandstone) {
-        std::vector<std::unique_ptr<SurfaceRule>> waterSeq;
-        waterSeq.push_back(ifTrue(isBiome({Biomes::Desert}), ifTrue(veryDeepUnderFloor(), blockState(sandstone))));
-        rules.push_back(ifTrue(waterStartCheck(-6, -1), sequence(std::move(waterSeq))));
-    }
-
-    // 3g. 山地/山坡
-    if (stone) {
-        rules.push_back(ifTrue(isBiome({Biomes::StonyPeaks}), blockState(stone)));
-        rules.push_back(ifTrue(isBiome({Biomes::JaggedPeaks}), blockState(stone)));
-    }
-
-    // 3h. 雪地
-    const BlockState* snowBlock = VanillaBlocks::SNOW_BLOCK ? &VanillaBlocks::SNOW_BLOCK->defaultState() : nullptr;
-    if (snowBlock) {
-        rules.push_back(ifTrue(isBiome({Biomes::FrozenPeaks}), ifTrue(onFloor(), blockState(snowBlock))));
-        rules.push_back(ifTrue(isBiome({Biomes::SnowySlopes}), ifTrue(onFloor(), blockState(snowBlock))));
-    }
-
-    // 3i. 蘑菇岛
+    // 18. ON_FLOOR: 蘑菇岛 MYCELIUM
     if (mycelium) {
         rules.push_back(ifTrue(isBiome({Biomes::MushroomFields}), ifTrue(onFloor(), blockState(mycelium))));
-    }
-
-    // 3j. 大型针叶林
-    if (podzol && coarseDirt) {
-        std::vector<std::unique_ptr<SurfaceRule>> taigaSeq;
-        taigaSeq.push_back(ifTrue(
-            noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 1.75 / 8.25, 1e30), blockState(coarseDirt)));
-        taigaSeq.push_back(ifTrue(
-            noiseCondition(seed ^ 0x5B5B0001ULL, -3, {1.0, 1.0, 0.0, 1.0}, -0.95 / 8.25, 1e30), blockState(podzol)));
-        rules.push_back(
-            ifTrue(isBiome({Biomes::OldGrowthPineTaiga, Biomes::OldGrowthSpruceTaiga}), sequence(std::move(taigaSeq))));
     }
 
     return sequence(std::move(rules));

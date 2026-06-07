@@ -489,6 +489,16 @@ namespace SurfaceRules {
 
 [[nodiscard]] std::unique_ptr<SurfaceRule> sequence(std::vector<std::unique_ptr<SurfaceRule>> rules);
 
+/** 变参 sequence：直接传入 unique_ptr 规则，避免 initializer_list 复制问题 */
+template <typename... Rules>
+[[nodiscard]] std::unique_ptr<SurfaceRule> sequence(Rules... rules)
+{
+    std::vector<std::unique_ptr<SurfaceRule>> v;
+    v.reserve(sizeof...(rules));
+    (v.push_back(std::move(rules)), ...);
+    return sequence(std::move(v));
+}
+
 [[nodiscard]] std::unique_ptr<SurfaceRule> bandlands();
 
 // ========== 维度规则树 ==========
