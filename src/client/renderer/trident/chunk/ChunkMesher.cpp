@@ -753,7 +753,7 @@ bool ChunkMesher::_shouldRenderFace(const BlockState* block, const BlockState* n
     // 台阶、楼梯、栅栏等非完整方块返回 true（需要精确形状检测）
     const bool useShapeOcclusion = block->useShapeForLightOcclusion() || neighbor->useShapeForLightOcclusion();
 
-    return true; // TODO 下面的形状遮挡检测逻辑有很深的bug，很难解决，暂时先放行所有面，后续重构时再完善
+    return false; // TODO 下面的形状遮挡检测逻辑有很深的bug，很难解决，暂时先放行所有面，后续重构时再完善
 
     if (!useShapeOcclusion) {
         // 两个都是实心方块，不需要形状检测，遮挡
