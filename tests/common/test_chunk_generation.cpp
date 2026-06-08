@@ -57,8 +57,8 @@ TEST(ChunkStatus, BasicProperties)
 
     // FULL 是最后一个
     EXPECT_EQ(ChunkStatuses::FULL.name(), "full");
-    EXPECT_EQ(ChunkStatuses::FULL.ordinal(), 12);
-    EXPECT_EQ(ChunkStatuses::FULL.parent(), &ChunkStatuses::HEIGHTMAPS);
+    EXPECT_EQ(ChunkStatuses::FULL.ordinal(), 11);
+    EXPECT_EQ(ChunkStatuses::FULL.parent(), &ChunkStatuses::SPAWN);
 }
 
 TEST(ChunkStatus, Ordering)
@@ -102,7 +102,7 @@ TEST(ChunkStatus, TaskRange)
 TEST(ChunkStatus, GetAll)
 {
     const auto& all = ChunkStatus::getAll();
-    EXPECT_EQ(all.size(), 13u); // 13个阶段
+    EXPECT_EQ(all.size(), 12u); // 12个阶段
 
     // 验证顺序
     EXPECT_EQ(all[0], ChunkStatuses::EMPTY);
@@ -113,9 +113,9 @@ TEST(ChunkStatus, GetAll)
     EXPECT_EQ(all[5], ChunkStatuses::SURFACE);
     EXPECT_EQ(all[6], ChunkStatuses::CARVERS);
     EXPECT_EQ(all[7], ChunkStatuses::FEATURES);
-    EXPECT_EQ(all[8], ChunkStatuses::LIGHT);
-    EXPECT_EQ(all[9], ChunkStatuses::SPAWN);
-    EXPECT_EQ(all[10], ChunkStatuses::HEIGHTMAPS);
+    EXPECT_EQ(all[8], ChunkStatuses::INITIALIZE_LIGHT);
+    EXPECT_EQ(all[9], ChunkStatuses::LIGHT);
+    EXPECT_EQ(all[10], ChunkStatuses::SPAWN);
     EXPECT_EQ(all[11], ChunkStatuses::FULL);
 }
 
@@ -131,8 +131,9 @@ TEST(ChunkStatus, NewStages)
     EXPECT_TRUE(ChunkStatuses::STRUCTURE_STARTS.isBefore(ChunkStatuses::STRUCTURE_REFERENCES));
     EXPECT_TRUE(ChunkStatuses::STRUCTURE_REFERENCES.isBefore(ChunkStatuses::BIOMES));
     EXPECT_TRUE(ChunkStatuses::CARVERS.isBefore(ChunkStatuses::FEATURES));
+    EXPECT_TRUE(ChunkStatuses::INITIALIZE_LIGHT.isBefore(ChunkStatuses::LIGHT));
     EXPECT_TRUE(ChunkStatuses::LIGHT.isBefore(ChunkStatuses::SPAWN));
-    EXPECT_TRUE(ChunkStatuses::SPAWN.isBefore(ChunkStatuses::HEIGHTMAPS));
+    EXPECT_TRUE(ChunkStatuses::SPAWN.isBefore(ChunkStatuses::FULL));
 }
 
 TEST(ChunkStatus, HeightmapFlags)
@@ -141,10 +142,17 @@ TEST(ChunkStatus, HeightmapFlags)
     EXPECT_TRUE(hasFlag(ChunkStatuses::EMPTY.heightmaps(), HeightmapFlag::PRE_FEATURES));
     EXPECT_TRUE(hasFlag(ChunkStatuses::BIOMES.heightmaps(), HeightmapFlag::PRE_FEATURES));
     EXPECT_TRUE(hasFlag(ChunkStatuses::NOISE.heightmaps(), HeightmapFlag::PRE_FEATURES));
+    EXPECT_TRUE(hasFlag(ChunkStatuses::SURFACE.heightmaps(), HeightmapFlag::PRE_FEATURES));
 
+    // CARVERS 及之后使用 POST_FEATURES
+    EXPECT_TRUE(hasFlag(ChunkStatuses::CARVERS.heightmaps(), HeightmapFlag::POST_FEATURES));
     EXPECT_TRUE(hasFlag(ChunkStatuses::FEATURES.heightmaps(), HeightmapFlag::POST_FEATURES));
+    EXPECT_TRUE(hasFlag(ChunkStatuses::INITIALIZE_LIGHT.heightmaps(), HeightmapFlag::POST_FEATURES));
     EXPECT_TRUE(hasFlag(ChunkStatuses::LIGHT.heightmaps(), HeightmapFlag::POST_FEATURES));
     EXPECT_TRUE(hasFlag(ChunkStatuses::FULL.heightmaps(), HeightmapFlag::POST_FEATURES));
+
+    // POST_FEATURES 不包含 LIGHT_BLOCKING
+    EXPECT_FALSE(hasFlag(ChunkStatuses::CARVERS.heightmaps(), HeightmapFlag::LIGHT_BLOCKING));
 }
 
 TEST(ChunkStatus, ChunkType)
@@ -178,7 +186,7 @@ TEST(ChunkStatus, ByNameAndOrdinal)
     ASSERT_NE(status, nullptr);
     EXPECT_EQ(*status, ChunkStatuses::EMPTY);
 
-    status = ChunkStatus::byOrdinal(12);
+    status = ChunkStatus::byOrdinal(11);
     ASSERT_NE(status, nullptr);
     EXPECT_EQ(*status, ChunkStatuses::FULL);
 

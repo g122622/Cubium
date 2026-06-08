@@ -60,10 +60,11 @@ struct NoiseSettings {
     f32 densityOffset = -0.46875f; ///< 密度偏移
 
     // === 噪声选项 ===
-    bool simplexSurfaceNoise = true; ///< 使用 Simplex 地表噪声
-    bool randomDensityOffset = true; ///< 随机密度偏移
-    bool isAmplified = false;        ///< 放大化地形
-    bool aquifersEnabled = true;     ///< 是否启用含水层（MC 1.18+ 水下洞穴和地下水）
+    bool simplexSurfaceNoise = true;    ///< 使用 Simplex 地表噪声
+    bool randomDensityOffset = true;    ///< 随机密度偏移
+    bool isAmplified = false;           ///< 放大化地形
+    bool aquifersEnabled = true;        ///< 是否启用含水层（MC 1.18+ 水下洞穴和地下水）
+    bool useLegacyRandomSource = false; ///< MC 1.21.11: 下界/末地使用旧版随机源
 
     // === 噪声尺寸计算 ===
     [[nodiscard]] i32 noiseSizeX() const { return world::CHUNK_WIDTH / (sizeHorizontal * 4); }
@@ -125,6 +126,7 @@ struct NoiseSettings {
         settings.simplexSurfaceNoise = false;
         settings.randomDensityOffset = false;
         settings.aquifersEnabled = false;
+        settings.useLegacyRandomSource = true; // MC 1.21.11: 下界使用旧版随机源
         return settings;
     }
 
@@ -143,6 +145,7 @@ struct NoiseSettings {
         settings.simplexSurfaceNoise = false;
         settings.randomDensityOffset = false;
         settings.aquifersEnabled = false;
+        settings.useLegacyRandomSource = true; // MC 1.21.11: 末地使用旧版随机源
         return settings;
     }
 };

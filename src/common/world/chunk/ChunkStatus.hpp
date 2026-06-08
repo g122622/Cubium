@@ -72,9 +72,11 @@ enum class HeightmapFlag : u32 {
     MOTION_BLOCKING_NO_LEAVES = 1 << 5, // 阻挡运动（不含树叶）
     LIGHT_BLOCKING = 1 << 6,            // 光照阻挡
 
-    // 预定义组合
+    // 预定义组合（对齐 MC 1.21.11）
+    // EMPTY~SURFACE 阶段使用 PRE_FEATURES（WORLD_SURFACE_WG | OCEAN_FLOOR_WG）
+    // CARVERS~FULL 阶段使用 POST_FEATURES（不含 LIGHT_BLOCKING）
     PRE_FEATURES = WORLD_SURFACE_WG | OCEAN_FLOOR_WG,
-    POST_FEATURES = WORLD_SURFACE | OCEAN_FLOOR | MOTION_BLOCKING | MOTION_BLOCKING_NO_LEAVES | LIGHT_BLOCKING
+    POST_FEATURES = WORLD_SURFACE | OCEAN_FLOOR | MOTION_BLOCKING | MOTION_BLOCKING_NO_LEAVES
 };
 
 // 位运算操作符
@@ -110,7 +112,7 @@ inline constexpr bool hasFlag(HeightmapFlag flags, HeightmapFlag flag)
  *
  * 生成流程（MC 1.21.11）：
  * EMPTY → STRUCTURE_STARTS → STRUCTURE_REFERENCES → BIOMES → NOISE →
- * SURFACE → CARVERS → FEATURES → LIGHT → SPAWN → HEIGHTMAPS → FULL
+ * SURFACE → CARVERS → FEATURES → INITIALIZE_LIGHT → LIGHT → SPAWN → FULL
  */
 class ChunkStatus {
 public:
@@ -254,9 +256,9 @@ constexpr i32 NOISE_ORDINAL = 4;
 constexpr i32 SURFACE_ORDINAL = 5;
 constexpr i32 CARVERS_ORDINAL = 6;
 constexpr i32 FEATURES_ORDINAL = 7;
-constexpr i32 LIGHT_ORDINAL = 8;
-constexpr i32 SPAWN_ORDINAL = 9;
-constexpr i32 HEIGHTMAPS_ORDINAL = 10;
+constexpr i32 INITIALIZE_LIGHT_ORDINAL = 8;
+constexpr i32 LIGHT_ORDINAL = 9;
+constexpr i32 SPAWN_ORDINAL = 10;
 constexpr i32 FULL_ORDINAL = 11;
 
 // 总阶段数
@@ -279,9 +281,9 @@ extern const ChunkStatus NOISE;
 extern const ChunkStatus SURFACE;
 extern const ChunkStatus CARVERS;
 extern const ChunkStatus FEATURES;
+extern const ChunkStatus INITIALIZE_LIGHT;
 extern const ChunkStatus LIGHT;
 extern const ChunkStatus SPAWN;
-extern const ChunkStatus HEIGHTMAPS;
 extern const ChunkStatus FULL;
 
 } // namespace ChunkStatuses

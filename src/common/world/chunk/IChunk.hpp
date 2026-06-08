@@ -270,6 +270,11 @@ public:
     void setData(const std::array<BlockCoord, SIZE>& data);
 
     /**
+     * @brief 将所有高度值设为指定值
+     */
+    void setAll(BlockCoord value) { m_heights.fill(value); }
+
+    /**
      * @brief 获取高度数据
      */
     [[nodiscard]] const std::array<BlockCoord, SIZE>& getData() const { return m_heights; }

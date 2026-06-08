@@ -572,6 +572,7 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
         VanillaBlocks::RED_SANDSTONE ? &VanillaBlocks::RED_SANDSTONE->defaultState() : nullptr;
     const BlockState* orangeTerracotta =
         VanillaBlocks::ORANGE_TERRACOTTA ? &VanillaBlocks::ORANGE_TERRACOTTA->defaultState() : nullptr;
+    const BlockState* terracotta = VanillaBlocks::TERRACOTTA ? &VanillaBlocks::TERRACOTTA->defaultState() : nullptr;
     const BlockState* whiteTerracotta =
         VanillaBlocks::WHITE_TERRACOTTA ? &VanillaBlocks::WHITE_TERRACOTTA->defaultState() : nullptr;
 
@@ -659,8 +660,8 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
                         // !hole && waterCheck(-1): 红沙（含红砂岩天花板）
                         ifTrue(waterBlockCheck(-1, 0),
                             sequence(ifTrue(onCeiling(), blockState(redSandstone)), blockState(redSand))),
-                        // !hole: 橙色陶土
-                        ifTrue(notCondition(hole()), blockState(orangeTerracotta)),
+                        // !hole: 陶土（MC 1.21.11 使用 TERRACOTTA）
+                        ifTrue(notCondition(hole()), blockState(terracotta)),
                         // waterStartCheck(-6, -1): 白色陶土
                         ifTrue(waterStartCheck(-6, -1), blockState(whiteTerracotta)),
                         // 兜底: 砾石/石头
@@ -669,10 +670,10 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
                 ifTrue(underFloor(),
                     ifTrue(yStartCheck(VerticalAnchor::absolute(63), -1),
                         sequence(
-                            // Y >= 63 且不在 bandlands 范围: 橙色陶土
+                            // Y >= 63 且不在 bandlands 范围: 陶土（MC 1.21.11 使用 TERRACOTTA，非 ORANGE_TERRACOTTA）
                             ifTrue(yBlockCheck(VerticalAnchor::absolute(63), 0),
                                 ifTrue(notCondition(yStartCheck(VerticalAnchor::absolute(74), 1)),
-                                    blockState(orangeTerracotta))),
+                                    blockState(terracotta))),
                             // bandlands
                             bandlands()))),
                 // VERY_DEEP_UNDER_FLOOR: waterStartCheck → 白色陶土
@@ -700,11 +701,12 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
         std::vector<std::unique_ptr<SurfaceRule>> matRules;
 
         // 冰冻峰: steep→PACKED_ICE, noise→PACKED_ICE/ICE, !water→SNOW_BLOCK
+        // MC 1.21.11: PACKED_ICE 噪声范围 [-0.5, 0.2], ICE 噪声范围 [-0.0625, 0.025]
         if (packedIce && ice && snowBlock) {
             matRules.push_back(ifTrue(isBiome({Biomes::FrozenPeaks}),
                 sequence(ifTrue(steep(), blockState(packedIce)),
-                    ifTrue(noiseCondition(seed ^ 0xAC100001ULL, -4, {1.0, 1.0}, 0.0, 0.2), blockState(packedIce)),
-                    ifTrue(noiseCondition(seed ^ 0x1CE00001ULL, -4, {1.0, 1.0}, 0.0, 0.025), blockState(ice)),
+                    ifTrue(noiseCondition(seed ^ 0xAC100001ULL, -4, {1.0, 1.0}, -0.5, 0.2), blockState(packedIce)),
+                    ifTrue(noiseCondition(seed ^ 0x1CE00001ULL, -4, {1.0, 1.0}, -0.0625, 0.025), blockState(ice)),
                     ifTrue(waterBlockCheck(0, 0), blockState(snowBlock)))));
         }
 
@@ -844,11 +846,12 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
         std::vector<std::unique_ptr<SurfaceRule>> topRules;
 
         // 冰冻峰: steep→PACKED_ICE, noise→PACKED_ICE/ICE, !water→SNOW_BLOCK
+        // MC 1.21.11: PACKED_ICE 噪声范围 [-0.5, 0.2], ICE 噪声范围 [-0.0625, 0.025]
         if (packedIce && ice && snowBlock) {
             topRules.push_back(ifTrue(isBiome({Biomes::FrozenPeaks}),
                 sequence(ifTrue(steep(), blockState(packedIce)),
-                    ifTrue(noiseCondition(seed ^ 0xAC100001ULL, -4, {1.0, 1.0}, 0.0, 0.2), blockState(packedIce)),
-                    ifTrue(noiseCondition(seed ^ 0x1CE00001ULL, -4, {1.0, 1.0}, 0.0, 0.025), blockState(ice)),
+                    ifTrue(noiseCondition(seed ^ 0xAC100001ULL, -4, {1.0, 1.0}, -0.5, 0.2), blockState(packedIce)),
+                    ifTrue(noiseCondition(seed ^ 0x1CE00001ULL, -4, {1.0, 1.0}, -0.0625, 0.025), blockState(ice)),
                     ifTrue(waterBlockCheck(0, 0), blockState(snowBlock)))));
         }
 
@@ -1088,14 +1091,15 @@ std::unique_ptr<SurfaceRule> nether(u64 seed)
     }
 
     // 6. 绯红森林
+    // MC 1.21.11: not(yBlockCheck(32, 0)) + yBlockCheck(31, 0) → Y == 31 时触发
     if (crimsonNylium && netherWartBlock) {
         std::vector<std::unique_ptr<SurfaceRule>> crimsonForestSeq;
         crimsonForestSeq.push_back(blockState(netherWartBlock));
         crimsonForestSeq.push_back(blockState(crimsonNylium));
         rules.push_back(ifTrue(isBiome({Biomes::CrimsonForest}),
             ifTrue(onFloor(),
-                ifTrue(notCondition(yBlockCheck(VerticalAnchor::absolute(31), 0)),
-                    ifTrue(yBlockCheck(VerticalAnchor::absolute(32), 0), sequence(std::move(crimsonForestSeq)))))));
+                ifTrue(notCondition(yBlockCheck(VerticalAnchor::absolute(32), 0)),
+                    ifTrue(yBlockCheck(VerticalAnchor::absolute(31), 0), sequence(std::move(crimsonForestSeq)))))));
     }
 
     // 7. 默认下界岩

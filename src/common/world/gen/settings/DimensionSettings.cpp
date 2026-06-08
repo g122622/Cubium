@@ -36,6 +36,8 @@ DimensionSettings DimensionSettings::overworld() noexcept
     settings.defaultFluid = VanillaBlocks::getState(VanillaBlocks::WATER);
     settings.seaLevel = world::SEA_LEVEL;
     settings.dimensionKind = DimensionKind::Overworld;
+    settings.oreVeinsEnabled = true;
+    settings.disableMobGeneration = false;
     return settings;
 }
 
@@ -45,10 +47,12 @@ DimensionSettings DimensionSettings::nether() noexcept
     settings.noise = NoiseSettings::nether();
     settings.defaultBlock = VanillaBlocks::getState(VanillaBlocks::NETHERRACK);
     settings.defaultFluid = VanillaBlocks::getState(VanillaBlocks::LAVA);
-    settings.seaLevel = 31;
+    settings.seaLevel = 32; // MC 1.21.11: nether seaLevel = 32
     settings.bedrockRoof = 127;
     settings.bedrockFloor = 0;
     settings.dimensionKind = DimensionKind::Nether;
+    settings.oreVeinsEnabled = false;
+    settings.disableMobGeneration = false;
     return settings;
 }
 
@@ -60,6 +64,8 @@ DimensionSettings DimensionSettings::end() noexcept
     settings.defaultFluid = VanillaBlocks::getState(VanillaBlocks::AIR);
     settings.seaLevel = 0;
     settings.dimensionKind = DimensionKind::End;
+    settings.oreVeinsEnabled = false;
+    settings.disableMobGeneration = true;
     return settings;
 }
 

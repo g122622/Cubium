@@ -49,7 +49,7 @@ enum class DimensionKind : u8 {
 /**
  * @brief 维度生成设置
  *
- * 包含维度级别的生成配置。
+ * 包含维度级别的生成配置（对齐 MC 1.21.11 NoiseGeneratorSettings）。
  * 使用 BlockState* 替代固定 BlockId，支持动态方块注册。
  */
 struct DimensionSettings {
@@ -61,6 +61,8 @@ struct DimensionSettings {
     i32 bedrockFloor = 0;                                   ///< 基岩底部
     DimensionKind dimensionKind = DimensionKind::Overworld; ///< 维度类型标识
     bool largeBiomes = false;                               ///< 是否使用大型生物群系预设
+    bool oreVeinsEnabled = true;                            ///< 是否启用矿脉生成（主世界=true，下界/末地=false）
+    bool disableMobGeneration = false;                      ///< 是否禁用生物生成（末地=true）
 
     // === 预设 ===
 

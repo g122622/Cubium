@@ -224,6 +224,29 @@ public:
     [[nodiscard]] const IChunk* getChunkAt(i32 relX, i32 relZ) const;
 
     /**
+     * @brief 获取指定世界坐标的区块（MC 1.21.11 对齐）
+     *
+     * MC 中 WorldGenRegion.getChunk() 返回 ChunkAccess（对应 IChunk）。
+     * 这是特性放置和雕刻器使用的主要区块访问方法。
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @return IChunk 指针，如果区块不在区域内则返回 nullptr
+     */
+    [[nodiscard]] IChunk* getIChunk(ChunkCoord x, ChunkCoord z)
+    {
+        const i32 relX = x - m_mainX;
+        const i32 relZ = z - m_mainZ;
+        return getChunkAt(relX, relZ);
+    }
+    [[nodiscard]] const IChunk* getIChunk(ChunkCoord x, ChunkCoord z) const
+    {
+        const i32 relX = x - m_mainX;
+        const i32 relZ = z - m_mainZ;
+        return getChunkAt(relX, relZ);
+    }
+
+    /**
      * @brief 获取主区块坐标
      */
     [[nodiscard]] ChunkCoord mainX() const { return m_mainX; }
@@ -265,13 +288,17 @@ public:
 
     /**
      * @brief 获取流体状态
-     * @note 生成区域暂不支持流体查询，返回空流体
+     *
+     * MC 1.21.11: 从区块获取方块状态，再获取流体状态。
+     * 雕刻器通过此方法判断当前位置是否有水/熔岩等流体。
      */
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override;
 
     /**
      * @brief 获取区块数据（IWorld 接口）
-     * @note 生成区域不存储 ChunkData，返回 nullptr
+     *
+     * MC 1.21.11: 从区块数组获取 ChunkPrimer 底层的 ChunkData。
+     * 如果区块不在区域内或不是 ChunkPrimer，返回 nullptr。
      */
     [[nodiscard]] const ChunkData* getChunk(ChunkCoord x, ChunkCoord z) const override;
 

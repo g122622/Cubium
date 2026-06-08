@@ -81,7 +81,7 @@ TEST_F(NetherSurfaceTest, NetherUsesNoiseChunkGenerator)
     NoiseChunkGenerator generator(seed, std::move(settings), std::move(biomeSource));
 
     // 验证生成器可以正确创建（不应崩溃）
-    // 下界维度高度为 0-128，seaLevel=31
+    // 下界维度高度为 0-128，seaLevel=32（MC 1.21.11）
     const i32 height = generator.getHeight(0, 0, HeightmapType::WorldSurfaceWG);
     (void)height; // 只需确认调用不会崩溃
 }

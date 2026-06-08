@@ -32,16 +32,18 @@ namespace mc {
 
 namespace ChunkStatuses {
 
-// 阶段定义（按顺序）
+// 阶段定义（按顺序，对齐 MC 1.21.11）
 //
 // taskRange 参数说明：
-// - 0: 不需要邻居区块
-// - 8: 需要周围8个区块（FEATURES阶段）
-// - 1: 只需要相邻区块（LIGHT阶段）
+// -1: 不执行任务（EMPTY）
+//  0: 不需要邻居区块
+//  1: 需要直接相邻区块
+//  8: 需要较大范围邻居区块
 //
 // heightmaps 参数说明：
-// - PRE_FEATURES: WORLD_SURFACE_WG | OCEAN_FLOOR_WG（生成前高度图）
-// - POST_FEATURES: WORLD_SURFACE | OCEAN_FLOOR | MOTION_BLOCKING | MOTION_BLOCKING_NO_LEAVES（生成后高度图）
+// - PRE_FEATURES: WORLD_SURFACE_WG | OCEAN_FLOOR_WG（生成时高度图，EMPTY~SURFACE 阶段）
+// - POST_FEATURES: WORLD_SURFACE | OCEAN_FLOOR | MOTION_BLOCKING | MOTION_BLOCKING_NO_LEAVES
+//   （最终高度图，CARVERS~FULL 阶段，不含 LIGHT_BLOCKING）
 
 // EMPTY: 空区块，刚创建
 const ChunkStatus EMPTY("empty",
@@ -52,77 +54,54 @@ const ChunkStatus EMPTY("empty",
     ChunkType::PROTOCHUNK);
 
 // STRUCTURE_STARTS: 结构起点生成
-// 生成结构（村庄、神殿等）的起点位置
 const ChunkStatus STRUCTURE_STARTS(
     "structure_starts", STRUCTURE_STARTS_ORDINAL, &EMPTY, 0, HeightmapFlag::PRE_FEATURES, ChunkType::PROTOCHUNK);
 
 // STRUCTURE_REFERENCES: 结构引用计算
-// 计算结构之间的引用关系
 const ChunkStatus STRUCTURE_REFERENCES("structure_references",
     STRUCTURE_REFERENCES_ORDINAL,
     &STRUCTURE_STARTS,
-    8, // 需要邻居区块来确定结构引用
+    8,
     HeightmapFlag::PRE_FEATURES,
     ChunkType::PROTOCHUNK);
 
 // BIOMES: 生物群系生成
-// 为区块生成生物群系数据
 const ChunkStatus BIOMES(
     "biomes", BIOMES_ORDINAL, &STRUCTURE_REFERENCES, 0, HeightmapFlag::PRE_FEATURES, ChunkType::PROTOCHUNK);
 
 // NOISE: 噪声地形生成
-// 使用噪声生成基础地形
-const ChunkStatus NOISE("noise",
-    NOISE_ORDINAL,
-    &BIOMES,
-    8, // 需要邻居区块以获取平滑的生物群系过渡
-    HeightmapFlag::PRE_FEATURES,
-    ChunkType::PROTOCHUNK);
+const ChunkStatus NOISE("noise", NOISE_ORDINAL, &BIOMES, 8, HeightmapFlag::PRE_FEATURES, ChunkType::PROTOCHUNK);
 
 // SURFACE: 地表生成
-// 生成地表方块（草地、沙子等）
-const ChunkStatus SURFACE("surface", SURFACE_ORDINAL, &NOISE, 0, HeightmapFlag::PRE_FEATURES, ChunkType::PROTOCHUNK);
+// MC 1.21.11 directDependencies: [STRUCTURE_STARTS(8), BIOMES(1)]
+// 需要邻居生物群系数据来正确生成地表
+const ChunkStatus SURFACE("surface", SURFACE_ORDINAL, &NOISE, 1, HeightmapFlag::PRE_FEATURES, ChunkType::PROTOCHUNK);
 
 // CARVERS: 雕刻（洞穴、峡谷）
-// MC 1.21.11: 合并了 AIR 和 LIQUID 雕刻阶段，含水层系统决定填充内容
-const ChunkStatus CARVERS("carvers", CARVERS_ORDINAL, &SURFACE, 0, HeightmapFlag::PRE_FEATURES, ChunkType::PROTOCHUNK);
+// MC 1.21.11: CARVERS 阶段切换到 FINAL_HEIGHTMAPS（POST_FEATURES）
+const ChunkStatus CARVERS("carvers", CARVERS_ORDINAL, &SURFACE, 0, HeightmapFlag::POST_FEATURES, ChunkType::PROTOCHUNK);
 
 // FEATURES: 特性放置
-// 放置树木、矿石、花草等地物
-const ChunkStatus FEATURES("features",
-    FEATURES_ORDINAL,
-    &CARVERS,
-    8, // 需要邻居区块以正确连接特性
-    HeightmapFlag::POST_FEATURES,
-    ChunkType::PROTOCHUNK);
+// MC 1.21.11 directDependencies: [STRUCTURE_STARTS(8), CARVERS(1)]
+const ChunkStatus FEATURES(
+    "features", FEATURES_ORDINAL, &CARVERS, 8, HeightmapFlag::POST_FEATURES, ChunkType::PROTOCHUNK);
 
-// LIGHT: 光照计算
-// 计算区块光照
-const ChunkStatus LIGHT("light",
-    LIGHT_ORDINAL,
-    &FEATURES,
-    1, // 需要相邻区块的光照数据
-    HeightmapFlag::POST_FEATURES,
-    ChunkType::PROTOCHUNK);
+// INITIALIZE_LIGHT: 初始化光源
+// MC 1.21.11: 将区块中已有光源注册到光照引擎，关联光照引擎
+const ChunkStatus INITIALIZE_LIGHT(
+    "initialize_light", INITIALIZE_LIGHT_ORDINAL, &FEATURES, 0, HeightmapFlag::POST_FEATURES, ChunkType::PROTOCHUNK);
+
+// LIGHT: 光照传播计算
+// MC 1.21.11 directDependencies: [INITIALIZE_LIGHT(1)]
+const ChunkStatus LIGHT(
+    "light", LIGHT_ORDINAL, &INITIALIZE_LIGHT, 1, HeightmapFlag::POST_FEATURES, ChunkType::PROTOCHUNK);
 
 // SPAWN: 生物生成点计算
-// 计算生物的合法生成点
-const ChunkStatus SPAWN("spawn", SPAWN_ORDINAL, &LIGHT, 0, HeightmapFlag::POST_FEATURES, ChunkType::PROTOCHUNK);
-
-// HEIGHTMAPS: 高度图更新
-// 更新最终高度图
-const ChunkStatus HEIGHTMAPS(
-    "heightmaps", HEIGHTMAPS_ORDINAL, &SPAWN, 0, HeightmapFlag::POST_FEATURES, ChunkType::PROTOCHUNK);
+// MC 1.21.11 directDependencies: [BIOMES(1)]
+const ChunkStatus SPAWN("spawn", SPAWN_ORDINAL, &LIGHT, 1, HeightmapFlag::POST_FEATURES, ChunkType::PROTOCHUNK);
 
 // FULL: 完整区块
-// 区块完全生成完成，可以加载到世界
-const ChunkStatus FULL("full",
-    FULL_ORDINAL,
-    &HEIGHTMAPS,
-    0,
-    HeightmapFlag::POST_FEATURES,
-    ChunkType::LEVELCHUNK // 标记为可加载区块
-);
+const ChunkStatus FULL("full", FULL_ORDINAL, &SPAWN, 0, HeightmapFlag::POST_FEATURES, ChunkType::LEVELCHUNK);
 
 } // namespace ChunkStatuses
 
@@ -132,7 +111,11 @@ const ChunkStatus FULL("full",
 
 namespace {
 
-// 用于将距离值映射到对应的状态
+// 用于将距离值映射到对应的状态（对齐 MC 1.21.11 ChunkPyramid.GENERATION_PYRAMID）
+// distance 0: FULL
+// distance 1: FEATURES (需要 CARVERS 完成)
+// distance 2: CARVERS (需要 STRUCTURE_STARTS 完成)
+// distance 3+: STRUCTURE_STARTS
 const std::vector<const ChunkStatus*> STATUS_BY_RANGE = {&ChunkStatuses::FULL,
     &ChunkStatuses::FEATURES,
     &ChunkStatuses::CARVERS,
@@ -196,9 +179,9 @@ const std::vector<ChunkStatus>& ChunkStatus::getAll()
         ChunkStatuses::SURFACE,
         ChunkStatuses::CARVERS,
         ChunkStatuses::FEATURES,
+        ChunkStatuses::INITIALIZE_LIGHT,
         ChunkStatuses::LIGHT,
         ChunkStatuses::SPAWN,
-        ChunkStatuses::HEIGHTMAPS,
         ChunkStatuses::FULL};
     return allStatuses;
 }

@@ -192,6 +192,22 @@ public:
      */
     void updateAllHeightmaps();
 
+    /**
+     * @brief 初始化光源列表
+     *
+     * INITIALIZE_LIGHT 阶段调用：遍历区块中所有方块，
+     * 找到亮度 > 0 的方块（火把、荧石等），注册到光照引擎。
+     */
+    void initializeLightSources();
+
+    /**
+     * @brief 从已有方块数据初始化指定高度图
+     *
+     * FEATURES 阶段开始前调用，从已放置的方块数据重新计算
+     * FINAL_HEIGHTMAPS（OCEAN_FLOOR, WORLD_SURFACE, MOTION_BLOCKING, MOTION_BLOCKING_NO_LEAVES）。
+     */
+    void primeHeightmaps(HeightmapFlag types);
+
     // ============================================================================
     // 生成的实体
     // ============================================================================
@@ -377,6 +393,15 @@ private:
 
     // 辅助方法
     [[nodiscard]] static bool _isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z) noexcept;
+
+    /**
+     * @brief 根据当前 ChunkStatus 的 heightmapsAfter 自动更新高度图
+     *
+     * MC 1.21.11: ProtoChunk.setBlockState 在设置方块后，
+     * 根据 persistedStatus.heightmapsAfter() 决定更新哪些高度图。
+     * 对于尚未创建的高度图类型，先 prime（从方块数据初始化）再增量更新。
+     */
+    void _updateHeightmapsForCurrentStatus(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state);
 };
 
 } // namespace mc

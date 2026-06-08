@@ -512,8 +512,16 @@ void ServerChunkManager::_doGenerateChunkToTargetStatus(ChunkPrimer& chunk, cons
             m_generator->applyCarvers(*context.region, chunk);
         } else if (status == ChunkStatuses::FEATURES) {
             m_generator->placeFeatures(*context.region, chunk);
-        } else if (status == ChunkStatuses::HEIGHTMAPS) {
-            chunk.updateAllHeightmaps();
+        } else if (status == ChunkStatuses::INITIALIZE_LIGHT) {
+            chunk.initializeLightSources();
+        } else if (status == ChunkStatuses::LIGHT) {
+            // 光照传播由光照引擎异步处理，此处标记状态
+        } else if (status == ChunkStatuses::SPAWN) {
+            std::vector<SpawnedEntityData> entities;
+            m_generator->spawnInitialMobs(*context.region, chunk, entities);
+            for (auto& entityData : entities) {
+                chunk.addSpawnedEntity(std::move(entityData));
+            }
         }
 
         chunk.setChunkStatus(status);
@@ -522,17 +530,8 @@ void ServerChunkManager::_doGenerateChunkToTargetStatus(ChunkPrimer& chunk, cons
 
 void ServerChunkManager::_doSpawnInitialMobs(ChunkPrimer& chunk)
 {
-    if (!chunk.hasCompletedStatus(ChunkStatuses::HEIGHTMAPS)) {
-        return;
-    }
-
-    std::vector<SpawnedEntityData> entities;
-    auto context = _doCreateWorldGenRegion(chunk, 1);
-    m_generator->spawnInitialMobs(*context.region, chunk, entities);
-
-    for (auto& entityData : entities) {
-        chunk.addSpawnedEntity(std::move(entityData));
-    }
+    // SPAWN 阶段已移入 _doGenerateChunkToTargetStatus 循环中
+    // 此方法保留为兼容性入口，不再执行实际生成逻辑
 }
 
 bool ServerChunkManager::_areNeighborsReady(ChunkCoord x, ChunkCoord z, const ChunkStatus& prerequisiteStatus) const

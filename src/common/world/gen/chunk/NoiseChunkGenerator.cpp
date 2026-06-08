@@ -327,6 +327,11 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
 void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk)
 {
     MC_TRACE_EVENT("world.chunk_gen", "PlaceFeatures", "x", chunk.x(), "z", chunk.z());
+
+    // MC 1.21.11: 在 FEATURES 阶段开始前，从已有方块数据初始化 FINAL_HEIGHTMAPS
+    // CARVERS 阶段切换到 FINAL_HEIGHTMAPS 后，需要从 NOISE + SURFACE 阶段的方块重新计算
+    chunk.primeHeightmaps(HeightmapFlag::POST_FEATURES);
+
     // 初始化特征注册表（线程安全，仅初始化一次）
     static std::once_flag s_featureRegistryInitFlag;
     std::call_once(s_featureRegistryInitFlag, []() { FeatureRegistry::instance().initialize(); });

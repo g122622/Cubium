@@ -27,6 +27,7 @@
 #include "../../WorldConstants.hpp"
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../block/BlockRegistry.hpp"
+#include "../../chunk/ChunkPrimer.hpp"
 #include "../../fluid/FluidRegistry.hpp"
 #include "../spawn/WorldGenSpawner.hpp"
 
@@ -181,24 +182,29 @@ void WorldGenRegion::_worldToLocal(i32 worldX, i32 worldZ, i32& localX, i32& loc
 
 const fluid::FluidState* WorldGenRegion::getFluidState(i32 x, i32 y, i32 z) const
 {
-    // 生成区域暂不支持流体查询，返回空流体状态
-    // TODO: 从区块获取流体状态
-    (void)x;
-    (void)y;
-    (void)z;
-    // 返回空流体的默认状态
-    static const fluid::FluidState emptyState = fluid::FluidRegistry::instance().getFluid(0)->defaultState();
-    return &emptyState;
+    // MC 1.21.11: WorldGenRegion 从区块获取方块状态，再获取流体状态
+    const BlockState* blockState = getBlockState(x, y, z);
+    if (!blockState || blockState->isAir()) {
+        static const fluid::FluidState emptyState = fluid::FluidRegistry::instance().getFluid(0)->defaultState();
+        return &emptyState;
+    }
+    return blockState->getFluidState();
 }
 
 const ChunkData* WorldGenRegion::getChunk(ChunkCoord x, ChunkCoord z) const
 {
+    // MC 1.21.11: WorldGenRegion 从区块数组获取区块数据
     const i32 relX = x - m_mainX;
     const i32 relZ = z - m_mainZ;
     const IChunk* chunk = getChunkAt(relX, relZ);
-    // IChunk* 不能直接转换为 ChunkData*，这里返回 nullptr
-    // TODO: 如果需要访问 ChunkData，需要更改接口设计
-    (void)chunk;
+    if (!chunk) {
+        return nullptr;
+    }
+    // ChunkPrimer 继承自 IChunk，可通过 getChunkData() 获取底层 ChunkData
+    const auto* primer = dynamic_cast<const ChunkPrimer*>(chunk);
+    if (primer) {
+        return primer->getChunkData();
+    }
     return nullptr;
 }
 

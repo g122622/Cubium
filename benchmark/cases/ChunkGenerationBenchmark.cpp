@@ -136,38 +136,20 @@ public:
                 m_generator->applyCarvers(region, *chunk);
             } else if (status == ChunkStatuses::FEATURES) {
                 m_generator->placeFeatures(region, *chunk);
-            } else if (status == ChunkStatuses::HEIGHTMAPS) {
-                chunk->updateAllHeightmaps();
+            } else if (status == ChunkStatuses::INITIALIZE_LIGHT) {
+                chunk->initializeLightSources();
+            } else if (status == ChunkStatuses::LIGHT) {
+                // 光照传播由光照引擎异步处理
+            } else if (status == ChunkStatuses::SPAWN) {
+                std::vector<SpawnedEntityData> entities;
+                m_generator->spawnInitialMobs(region, *chunk, entities);
+                for (auto& entityData : entities) {
+                    chunk->addSpawnedEntity(std::move(entityData));
+                }
             }
 
             chunk->setChunkStatus(status);
         }
-
-        // 最后执行生物生成（spawnInitialMobs）
-        constexpr i32 spawnRegionRadius = 1;
-        const i32 spawnDiameter = spawnRegionRadius * 2 + 1;
-        const size_t spawnRegionSize = static_cast<size_t>(spawnDiameter * spawnDiameter);
-        std::vector<IChunk*> spawnNeighbors(spawnRegionSize, nullptr);
-        std::vector<std::unique_ptr<ChunkPrimer>> spawnNeighborPrimers(spawnRegionSize);
-
-        for (i32 dz = -spawnRegionRadius; dz <= spawnRegionRadius; ++dz) {
-            for (i32 dx = -spawnRegionRadius; dx <= spawnRegionRadius; ++dx) {
-                const size_t index =
-                    static_cast<size_t>((dz + spawnRegionRadius) * spawnDiameter + (dx + spawnRegionRadius));
-                if (dx == 0 && dz == 0) {
-                    spawnNeighbors[index] = chunk.get();
-                } else {
-                    spawnNeighborPrimers[index] = std::make_unique<ChunkPrimer>(m_chunkX + dx, m_chunkZ + dz);
-                    spawnNeighbors[index] = spawnNeighborPrimers[index].get();
-                }
-            }
-        }
-
-        WorldGenRegion spawnRegion(m_chunkX, m_chunkZ, spawnRegionRadius, std::move(spawnNeighbors));
-        spawnRegion.setSeed(m_random->nextLong());
-
-        std::vector<SpawnedEntityData> entities;
-        m_generator->spawnInitialMobs(spawnRegion, *chunk, entities);
 
         return Result<void>::ok();
     }
