@@ -194,9 +194,7 @@ Result<std::unique_ptr<JigsawPattern>> TemplatePoolLoader::loadFromJson(
         std::unique_ptr<JigsawPiece> piece;
         i32 weight = 1;
         if (_parseElement(element, piece, weight) && piece) {
-            pattern->addPiece(std::move(piece), weight);
-
-            // 统计元素类型
+            // 统计元素类型（必须在 addPiece/std::move 之前，因为 move 后 piece 变为 nullptr）
             const auto& typeName = piece->getTypeName();
             if (typeName == "legacy_single_pool_element") {
                 ++legacyCount;
@@ -209,6 +207,8 @@ Result<std::unique_ptr<JigsawPattern>> TemplatePoolLoader::loadFromJson(
             } else if (typeName == "empty_pool_element") {
                 ++emptyCount;
             }
+
+            pattern->addPiece(std::move(piece), weight);
         }
     }
 
