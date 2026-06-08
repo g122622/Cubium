@@ -361,14 +361,37 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
     }
 
     // === 阶段 2: 放置生物群系特征 ===
-    // MC 1.21: 收集区块内所有 section biomes，去重后排序确保确定性遍历顺序
-    // TODO: MC 使用 3x3 邻域 section biomes（ChunkGenerator.createStructures），
-    // 但当前 region 无法安全获取邻近区块，暂用当前区块
+    // MC 1.21.11: 收集 3x3 区块邻域内所有 section biomes（BiomeGenerationSettings.getFeatures）
+    // 这确保生物群系边界的特征也能被放置
     std::unordered_set<BiomeId> sectionBiomes;
-    for (i32 y = 0; y < world::CHUNK_SECTIONS; ++y) {
-        for (i32 z = 0; z < 4; ++z) {
-            for (i32 x = 0; x < 4; ++x) {
-                sectionBiomes.insert(chunk.getBiomeAtBlock(x * 4, y * 4, z * 4));
+    for (ChunkCoord dz = -1; dz <= 1; ++dz) {
+        for (ChunkCoord dx = -1; dx <= 1; ++dx) {
+            const IChunk* neighborChunk = region.getIChunk(chunkX + dx, chunkZ + dz);
+            if (!neighborChunk) {
+                // 当前区块不可用通过 region 时，回退到直接采样
+                if (dx == 0 && dz == 0) {
+                    for (i32 y = 0; y < world::CHUNK_SECTIONS; ++y) {
+                        const i32 sectionY = y * world::CHUNK_SECTION_HEIGHT + world::MIN_BUILD_HEIGHT + 8;
+                        for (i32 sz = 0; sz < 4; ++sz) {
+                            for (i32 sx = 0; sx < 4; ++sx) {
+                                sectionBiomes.insert(chunk.getBiomeAtBlock(sx * 4 + 2, sectionY, sz * 4 + 2));
+                            }
+                        }
+                    }
+                }
+                continue;
+            }
+
+            // MC 1.21: 从每个邻域区块的 section biomes 中采样
+            // section grid: 4x4x4 = 每个 section 占 4 个方块
+            // 采样点: section 中心 (sx*4 + 2, sectionY*16 + minY + 8, sz*4 + 2)
+            for (i32 y = 0; y < world::CHUNK_SECTIONS; ++y) {
+                const i32 sectionY = y * world::CHUNK_SECTION_HEIGHT + world::MIN_BUILD_HEIGHT + 8;
+                for (i32 sz = 0; sz < 4; ++sz) {
+                    for (i32 sx = 0; sx < 4; ++sx) {
+                        sectionBiomes.insert(neighborChunk->getBiomeAtBlock(sx * 4 + 2, sectionY, sz * 4 + 2));
+                    }
+                }
             }
         }
     }
