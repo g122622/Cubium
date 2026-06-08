@@ -183,25 +183,18 @@ i32 SurfaceRuleContext::_minSurfaceLevel() const
 
 bool SurfaceRuleContext::steep() const
 {
-    // MC 1.21: SurfaceRules.SteepCondition
-    // 计算当前列与相邻列的高度差，判断是否陡峭
-    // 陡峭条件: (height(x+1,z) - height(x-1,z)) + (height(x,z+1) - height(x,z-1)) 的绝对值 > 1
-    // 即: 斜率在任一方向上超过 1 格/格
+    // MC 1.21.11: SurfaceRules.SteepCondition
+    // 比较当前列与 (x+1,z) 和 (x,z+1) 列的 WORLD_SURFACE_WG 高度差
+    // 陡峭条件: height(x+1,z) - height(x,z) >= 4 || height(x,z+1) - height(x,z) >= 4
     if (!m_heightProvider) {
         return false;
     }
 
     const i32 currentHeight = m_heightProvider(m_blockX, m_blockZ);
     const i32 heightXPlus = m_heightProvider(m_blockX + 1, m_blockZ);
-    const i32 heightXMinus = m_heightProvider(m_blockX - 1, m_blockZ);
     const i32 heightZPlus = m_heightProvider(m_blockX, m_blockZ + 1);
-    const i32 heightZMinus = m_heightProvider(m_blockX, m_blockZ - 1);
 
-    // MC 1.21: slope = |height(x+1,z) - height(x-1,z)| + |height(x,z+1) - height(x,z-1)|
-    // steep if slope > 1 (i.e., the diagonal slope exceeds 1)
-    const i32 slopeX = heightXPlus - heightXMinus;
-    const i32 slopeZ = heightZPlus - heightZMinus;
-    return (slopeX + slopeZ) > 1 || (slopeX + slopeZ) < -1;
+    return (heightXPlus - currentHeight >= 4) || (heightZPlus - currentHeight >= 4);
 }
 
 bool SurfaceRuleContext::temperature() const
@@ -997,11 +990,10 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
                         blockState(podzol))))));
     }
 
-    return sequence(std::move(rules));
+    // MC 1.21.11: 主世界规则树被 abovePreliminarySurface() 包裹
+    // 确保只有初步表面以上的区域才应用地表规则
+    return ifTrue(abovePreliminarySurface(), sequence(std::move(rules)));
 }
-
-// ============================================================================
-// 下界表面规则 — MC 1.21 SurfaceRuleData.nether()
 // ============================================================================
 
 std::unique_ptr<SurfaceRule> nether(u64 seed)
