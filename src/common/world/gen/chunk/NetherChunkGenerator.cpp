@@ -27,9 +27,8 @@
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../block/BlockRegistry.hpp"
-#include "../../block/BlockTags.hpp"
-#include "../carver/CarverConfiguration.hpp"
 #include "../carver/CarvingContext.hpp"
+#include "../carver/WorldCarver.hpp"
 #include "../feature/ConfiguredFeature.hpp"
 #include "../spawn/WorldGenSpawner.hpp"
 #include "../structure/Structure.hpp"
@@ -146,13 +145,6 @@ void NetherChunkGenerator::_initNoiseGenerators()
 
     // Simplex 噪声（用于下界地形变化）
     m_simplexNoise = std::make_unique<SimplexNoiseGenerator>(rng);
-
-    // 初始化下界洞穴雕刻器
-    // MC 1.21.11: 使用 BlockTag 配置
-    using namespace world::gen::carver;
-    const BlockTag* netherReplaceable = &BlockTags::NETHER_CARVER_REPLACEABLES();
-    m_caveCarver = std::make_unique<NetherCaveCarver>();
-    m_caveConfig = ConfiguredCarvers::createNetherCaveConfig(netherReplaceable);
 }
 
 // ============================================================================
@@ -325,18 +317,33 @@ void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chu
     // MC 1.21: 创建雕刻上下文（下界暂无含水层，使用回退逻辑）
     CarvingContext context(world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT, nullptr);
 
-    // MC 1.21: 遍历 [-8, +8] 范围内的起始区块坐标
+    // MC 1.21.11: 按生物群系选择雕刻器
     math::Random worldgenRandom;
 
-    if (m_caveCarver) {
-        for (i32 dx = -8; dx <= 8; ++dx) {
-            for (i32 dz = -8; dz <= 8; ++dz) {
-                const ChunkCoord originChunkX = targetChunkX + dx;
-                const ChunkCoord originChunkZ = targetChunkZ + dz;
+    for (i32 dx = -8; dx <= 8; ++dx) {
+        for (i32 dz = -8; dz <= 8; ++dz) {
+            const ChunkCoord originChunkX = targetChunkX + dx;
+            const ChunkCoord originChunkZ = targetChunkZ + dz;
 
-                worldgenRandom.setLargeFeatureSeed(m_seed, originChunkX, originChunkZ);
-                if (m_caveCarver->shouldCarve(worldgenRandom, originChunkX, originChunkZ, m_caveConfig)) {
-                    m_caveCarver->carve(chunk,
+            // 采样起始区块中心位置的四分位生物群系
+            const i32 originBlockX = (originChunkX << 4) + 8;
+            const i32 originBlockZ = (originChunkZ << 4) + 8;
+            const BiomeId biomeId = m_biomeSource->getNoiseBiome(originBlockX >> 2, 32 >> 2, originBlockZ >> 2);
+            const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
+            const BiomeGenerationSettings& biomeSettings = biome.generationSettings();
+
+            // 遍历该生物群系的所有雕刻器
+            const auto& carvers = biomeSettings.getCarvers();
+            for (size_t carverIndex = 0; carverIndex < carvers.size(); ++carverIndex) {
+                const auto& configuredCarver = carvers[carverIndex];
+                if (!configuredCarver) {
+                    continue;
+                }
+
+                worldgenRandom.setLargeFeatureSeed(m_seed + static_cast<u64>(carverIndex), originChunkX, originChunkZ);
+
+                if (configuredCarver->shouldCarve(worldgenRandom, originChunkX, originChunkZ)) {
+                    configuredCarver->carve(chunk,
                         context,
                         *m_biomeSource,
                         targetChunkX,
@@ -344,8 +351,7 @@ void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chu
                         originChunkX,
                         originChunkZ,
                         carvingMask,
-                        worldgenRandom,
-                        m_caveConfig);
+                        worldgenRandom);
                 }
             }
         }

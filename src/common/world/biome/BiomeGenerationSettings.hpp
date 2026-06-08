@@ -31,7 +31,7 @@
 namespace mc {
 
 // 前向声明
-class ConfiguredFeatureBase;
+class ConfiguredCarverBase;
 class WorldGenRegion;
 class ChunkPrimer;
 class IChunkGenerator;
@@ -46,6 +46,11 @@ class BiomeGenerationSettings {
 public:
     BiomeGenerationSettings();
     ~BiomeGenerationSettings();
+
+    BiomeGenerationSettings(BiomeGenerationSettings&&) noexcept;
+    BiomeGenerationSettings& operator=(BiomeGenerationSettings&&) noexcept;
+    BiomeGenerationSettings(const BiomeGenerationSettings&) = delete;
+    BiomeGenerationSettings& operator=(const BiomeGenerationSettings&) = delete;
 
     /**
      * @brief 添加特征到指定阶段
@@ -67,9 +72,26 @@ public:
     [[nodiscard]] bool hasFeatures() const noexcept;
 
     /**
-     * @brief 清除所有特征
+     * @brief 清除所有特征和雕刻器
      */
     void clear() noexcept;
+
+    /**
+     * @brief 添加配置化雕刻器
+     * @param carver 配置化雕刻器（所有权转移）
+     */
+    void addCarver(std::unique_ptr<ConfiguredCarverBase> carver);
+
+    /**
+     * @brief 获取雕刻器列表
+     * @return 雕刻器引用列表
+     */
+    [[nodiscard]] const std::vector<std::unique_ptr<ConfiguredCarverBase>>& getCarvers() const noexcept;
+
+    /**
+     * @brief 检查是否有雕刻器
+     */
+    [[nodiscard]] bool hasCarvers() const noexcept;
 
     /**
      * @brief 创建默认的生物群系生成设置
@@ -300,6 +322,9 @@ private:
     // 按阶段存储特征ID列表
     // 使用特征ID而不是直接存储特征对象，以减少内存占用
     std::vector<std::vector<u32>> m_featuresByStage;
+
+    // 配置化雕刻器列表
+    std::vector<std::unique_ptr<ConfiguredCarverBase>> m_carvers;
 };
 
 /**

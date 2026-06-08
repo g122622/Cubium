@@ -31,6 +31,7 @@
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include <memory>
 #include <string>
+#include <utility>
 
 namespace mc {
 
@@ -226,7 +227,7 @@ public:
     // === 生成设置 ===
     [[nodiscard]] const BiomeGenerationSettings& generationSettings() const { return m_generationSettings; }
     [[nodiscard]] BiomeGenerationSettings& generationSettings() { return m_generationSettings; }
-    void setGenerationSettings(const BiomeGenerationSettings& settings) { m_generationSettings = settings; }
+    void setGenerationSettings(BiomeGenerationSettings settings) { m_generationSettings = std::move(settings); }
 
     // === 生物生成设置 ===
     [[nodiscard]] const world::spawn::MobSpawnInfo& spawnInfo() const { return m_spawnInfo; }

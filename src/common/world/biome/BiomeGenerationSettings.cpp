@@ -24,7 +24,13 @@
 #include "BiomeGenerationSettings.hpp"
 #include "../../core/Constants.hpp"
 #include "../../util/math/random/Random.hpp"
+#include "../block/BlockTags.hpp"
 #include "../chunk/ChunkPrimer.hpp"
+#include "../gen/carver/CanyonCarver.hpp"
+#include "../gen/carver/CarverConfiguration.hpp"
+#include "../gen/carver/CaveCarver.hpp"
+#include "../gen/carver/NetherCaveCarver.hpp"
+#include "../gen/carver/WorldCarver.hpp"
 #include "../gen/chunk/IChunkGenerator.hpp"
 #include "../gen/feature/ConfiguredFeature.hpp"
 #include "../gen/feature/FeatureIds.hpp"
@@ -51,6 +57,70 @@ void addDefaultOverworldOres(BiomeGenerationSettings& settings)
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CopperOre);
 }
 
+/**
+ * @brief 为主世界生物群系添加标准雕刻器（洞穴 + 额外地下洞穴 + 峡谷）
+ *
+ * MC 1.21.11: 所有主世界非海洋生物群系都有这三种雕刻器。
+ * 参考: NoiseBasedChunkGenerator 中的 carver 列表注册。
+ */
+void addOverworldCarvers(BiomeGenerationSettings& settings)
+{
+    using namespace world::gen::carver;
+    const BlockTag* replaceable = &BlockTags::OVERWORLD_CARVER_REPLACEABLES();
+
+    auto caveCarver = std::make_unique<CaveCarver>();
+    auto caveConfig = ConfiguredCarvers::createOverworldCaveConfig(replaceable);
+    settings.addCarver(std::make_unique<ConfiguredCarver<CaveCarver, CaveCarverConfiguration>>(
+        std::move(caveCarver), std::move(caveConfig)));
+
+    auto caveExtraCarver = std::make_unique<CaveCarver>();
+    auto caveExtraConfig = ConfiguredCarvers::createOverworldCaveExtraConfig(replaceable);
+    settings.addCarver(std::make_unique<ConfiguredCarver<CaveCarver, CaveCarverConfiguration>>(
+        std::move(caveExtraCarver), std::move(caveExtraConfig)));
+
+    auto canyonCarver = std::make_unique<CanyonCarver>();
+    auto canyonConfig = ConfiguredCarvers::createOverworldCanyonConfig(replaceable);
+    settings.addCarver(std::make_unique<ConfiguredCarver<CanyonCarver, CanyonCarverConfiguration>>(
+        std::move(canyonCarver), std::move(canyonConfig)));
+}
+
+/**
+ * @brief 为主世界海洋生物群系添加雕刻器（洞穴 + 峡谷，无额外地下洞穴）
+ *
+ * MC 1.21.11: 海洋生物群系只有 cave + canyon，没有 cave_extra_underground。
+ */
+void addOverworldOceanCarvers(BiomeGenerationSettings& settings)
+{
+    using namespace world::gen::carver;
+    const BlockTag* replaceable = &BlockTags::OVERWORLD_CARVER_REPLACEABLES();
+
+    auto caveCarver = std::make_unique<CaveCarver>();
+    auto caveConfig = ConfiguredCarvers::createOverworldCaveConfig(replaceable);
+    settings.addCarver(std::make_unique<ConfiguredCarver<CaveCarver, CaveCarverConfiguration>>(
+        std::move(caveCarver), std::move(caveConfig)));
+
+    auto canyonCarver = std::make_unique<CanyonCarver>();
+    auto canyonConfig = ConfiguredCarvers::createOverworldCanyonConfig(replaceable);
+    settings.addCarver(std::make_unique<ConfiguredCarver<CanyonCarver, CanyonCarverConfiguration>>(
+        std::move(canyonCarver), std::move(canyonConfig)));
+}
+
+/**
+ * @brief 为下界生物群系添加雕刻器（下界洞穴）
+ *
+ * MC 1.21.11: 所有下界生物群系都只有 nether_cave。
+ */
+void addNetherCarvers(BiomeGenerationSettings& settings)
+{
+    using namespace world::gen::carver;
+    const BlockTag* replaceable = &BlockTags::NETHER_CARVER_REPLACEABLES();
+
+    auto netherCaveCarver = std::make_unique<NetherCaveCarver>();
+    auto netherConfig = ConfiguredCarvers::createNetherCaveConfig(replaceable);
+    settings.addCarver(std::make_unique<ConfiguredCarver<NetherCaveCarver, CaveCarverConfiguration>>(
+        std::move(netherCaveCarver), std::move(netherConfig)));
+}
+
 } // namespace
 
 // ============================================================================
@@ -64,6 +134,20 @@ BiomeGenerationSettings::BiomeGenerationSettings()
 }
 
 BiomeGenerationSettings::~BiomeGenerationSettings() = default;
+
+BiomeGenerationSettings::BiomeGenerationSettings(BiomeGenerationSettings&& other) noexcept
+    : m_featuresByStage(std::move(other.m_featuresByStage))
+    , m_carvers(std::move(other.m_carvers))
+{}
+
+BiomeGenerationSettings& BiomeGenerationSettings::operator=(BiomeGenerationSettings&& other) noexcept
+{
+    if (this != &other) {
+        m_featuresByStage = std::move(other.m_featuresByStage);
+        m_carvers = std::move(other.m_carvers);
+    }
+    return *this;
+}
 
 void BiomeGenerationSettings::addFeature(DecorationStage stage, u32 featureId)
 {
@@ -99,12 +183,33 @@ void BiomeGenerationSettings::clear() noexcept
     for (auto& features : m_featuresByStage) {
         features.clear();
     }
+    m_carvers.clear();
+}
+
+void BiomeGenerationSettings::addCarver(std::unique_ptr<ConfiguredCarverBase> carver)
+{
+    if (carver) {
+        m_carvers.push_back(std::move(carver));
+    }
+}
+
+const std::vector<std::unique_ptr<ConfiguredCarverBase>>& BiomeGenerationSettings::getCarvers() const noexcept
+{
+    return m_carvers;
+}
+
+bool BiomeGenerationSettings::hasCarvers() const noexcept
+{
+    return !m_carvers.empty();
 }
 
 BiomeGenerationSettings BiomeGenerationSettings::createDefault()
 {
     // 默认设置：包含主世界矿石与基础湖泊
     BiomeGenerationSettings settings;
+
+    // 主世界默认雕刻器
+    addOverworldCarvers(settings);
 
     // 添加湖泊（LAKES 阶段）
     settings.addFeature(DecorationStage::Lakes, LakeFeatureIds::WaterLake);
@@ -246,6 +351,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createRiver()
     // 河流：矿石 + 河岸甘蔗 + 浅水海草（不额外生成湖泊）
     BiomeGenerationSettings settings;
 
+    addOverworldCarvers(settings);
+
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CoalOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::IronOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::GoldOre);
@@ -265,6 +372,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createFrozenRiver()
 {
     // 冻河：保留基础矿石，不放置温暖水域植被
     BiomeGenerationSettings settings;
+
+    addOverworldCarvers(settings);
 
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CoalOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::IronOre);
@@ -377,6 +486,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createOcean()
     // 常温海洋：海草 + 海带（参考原版普通海洋组合）
     BiomeGenerationSettings settings;
 
+    addOverworldOceanCarvers(settings);
+
     addDefaultOverworldOres(settings);
     settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Simple);
     settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Cold);
@@ -390,6 +501,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepOcean()
     // 深海：深海草 + 海带（参考原版深海组合）
     BiomeGenerationSettings settings;
 
+    addOverworldOceanCarvers(settings);
+
     addDefaultOverworldOres(settings);
     settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Mixed);
     settings.addFeature(DecorationStage::VegetalDecoration, KelpFeatureIds::Cold);
@@ -402,6 +515,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createWarmOcean()
 {
     // 暖水海洋：珊瑚植被 + 暖水海草 + 海泡菜
     BiomeGenerationSettings settings;
+
+    addOverworldOceanCarvers(settings);
 
     addDefaultOverworldOres(settings);
 
@@ -427,6 +542,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createLukewarmOcean()
     // 温水海洋：海带 + 常规海草
     BiomeGenerationSettings settings;
 
+    addOverworldOceanCarvers(settings);
+
     addDefaultOverworldOres(settings);
 
     settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Normal);
@@ -442,6 +559,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createColdOcean()
     // 冷水海洋：海带 + 冷水海草
     BiomeGenerationSettings settings;
 
+    addOverworldOceanCarvers(settings);
+
     addDefaultOverworldOres(settings);
 
     settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Cold);
@@ -455,6 +574,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createFrozenOcean()
 {
     // 冻洋：冷水植被 + 蓝冰（参考原版 frozen ocean 特征）
     BiomeGenerationSettings settings;
+
+    addOverworldOceanCarvers(settings);
 
     addDefaultOverworldOres(settings);
 
@@ -471,6 +592,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepWarmOcean()
 {
     // 深暖水海洋：深海草 + 常规海草（原版无海带）
     BiomeGenerationSettings settings;
+
+    addOverworldOceanCarvers(settings);
 
     addDefaultOverworldOres(settings);
 
@@ -492,6 +615,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepLukewarmOcean()
     // 注意：深海温水海洋没有珊瑚，珊瑚只在暖水海洋生成
     BiomeGenerationSettings settings;
 
+    addOverworldOceanCarvers(settings);
+
     addDefaultOverworldOres(settings);
 
     // 无珊瑚特征 - 珊瑚只在暖水海洋生成
@@ -508,6 +633,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepColdOcean()
     // 深冷水海洋：深海草 + 海带
     BiomeGenerationSettings settings;
 
+    addOverworldOceanCarvers(settings);
+
     addDefaultOverworldOres(settings);
 
     settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::DeepCold);
@@ -521,6 +648,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createDeepFrozenOcean()
 {
     // 深冻洋：冷水植被 + 蓝冰
     BiomeGenerationSettings settings;
+
+    addOverworldOceanCarvers(settings);
 
     addDefaultOverworldOres(settings);
 
@@ -540,6 +669,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createNether()
 {
     // 下界荒地：下界石英矿石 + 下界金矿石 + 萤石 + 岩浆池
     BiomeGenerationSettings settings;
+
+    addNetherCarvers(settings);
 
     // 下界矿石
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherQuartzOre);
@@ -562,6 +693,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createSoulSandValley()
     // 灵魂沙谷：下界矿石 + 玄武岩柱 + 火焰
     BiomeGenerationSettings settings;
 
+    addNetherCarvers(settings);
+
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherQuartzOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);
 
@@ -582,6 +715,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createCrimsonForest()
     // 绯红森林：下界矿石 + 绯红巨型真菌 + 岩浆池
     BiomeGenerationSettings settings;
 
+    addNetherCarvers(settings);
+
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherQuartzOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);
 
@@ -600,6 +735,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createWarpedForest()
     // 诡异森林：下界矿石 + 诡异巨型真菌
     BiomeGenerationSettings settings;
 
+    addNetherCarvers(settings);
+
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherQuartzOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);
 
@@ -614,6 +751,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createBasaltDeltas()
 {
     // 玄武岩三角洲：下界矿石 + 玄武岩柱 + 玄武岩地面 + 岩浆池
     BiomeGenerationSettings settings;
+
+    addNetherCarvers(settings);
 
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherQuartzOre);
     settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::NetherGoldOre);

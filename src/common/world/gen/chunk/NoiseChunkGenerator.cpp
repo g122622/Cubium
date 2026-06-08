@@ -31,10 +31,11 @@
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../biome/source/MultiNoiseBiomeSource.hpp"
 #include "../../block/BlockRegistry.hpp"
-#include "../../block/BlockTags.hpp"
 #include "../aquifer/Aquifer.hpp"
 #include "../carver/CarverConfiguration.hpp"
 #include "../carver/CarvingContext.hpp"
+#include "../carver/CarvingMask.hpp"
+#include "../carver/WorldCarver.hpp"
 #include "../density/Beardifier.hpp"
 #include "../density/NoiseRouterData.hpp"
 #include "../feature/ConfiguredFeature.hpp"
@@ -202,7 +203,6 @@ NoiseChunkGenerator::NoiseChunkGenerator(
 
     MC_ASSERT_RELEASE(m_biomeSource != nullptr);
 
-    _initCarvers();
     _initGenerationRegistries();
 
     // MC 1.21: 初始化密度函数管线
@@ -315,26 +315,6 @@ f64 NoiseChunkGenerator::calculateStructureDensityOffset(i32 dx, i32 dy, i32 dz)
     const f64 d4 = -d1 * math::fastInverseSqrt(static_cast<f32>((d2 / 2.0 + d0 / 2.0))) / 2.0;
 
     return d4 * d3;
-}
-
-void NoiseChunkGenerator::_initCarvers()
-{
-    MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initCarvers");
-
-    // MC 1.21.11: 使用 BlockTag 配置的雕刻器
-    using namespace world::gen::carver;
-    const BlockTag* overworldReplaceable = &BlockTags::OVERWORLD_CARVER_REPLACEABLES();
-
-    // 主世界洞穴：prob=0.15
-    m_caveCarver = std::make_unique<CaveCarver>();
-    m_caveConfig = ConfiguredCarvers::createOverworldCaveConfig(overworldReplaceable);
-
-    // 额外地下洞穴：prob=0.07
-    m_caveExtraConfig = ConfiguredCarvers::createOverworldCaveExtraConfig(overworldReplaceable);
-
-    // 峡谷：prob=0.01
-    m_canyonCarver = std::make_unique<CanyonCarver>();
-    m_canyonConfig = ConfiguredCarvers::createOverworldCanyonConfig(overworldReplaceable);
 }
 
 void NoiseChunkGenerator::_initGenerationRegistries()
@@ -1161,9 +1141,10 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
     }
     CarvingContext context(m_settings.noise.minY, m_settings.noise.height, aquifer);
 
-    // MC 1.21.11: 遍历 [-8, +8] 范围内的起始区块坐标
-    // 洞穴/峡谷可能从相邻区块起始并延伸到当前区块
-    // 参考: NoiseBasedChunkGenerator.applyCarvers — 迭代 chunkpos.x-8..+8, chunkpos.z-8..+8
+    // MC 1.21.11: 按生物群系选择雕刻器
+    // 遍历 [-8, +8] 范围内的起始区块坐标
+    // 对于每个起始区块，采样其中心生物群系的雕刻器列表
+    // 参考: NoiseBasedChunkGenerator.applyCarvers
     math::Random worldgenRandom;
 
     for (i32 dx = -8; dx <= 8; ++dx) {
@@ -1171,46 +1152,26 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
             const ChunkCoord originChunkX = targetChunkX + dx;
             const ChunkCoord originChunkZ = targetChunkZ + dz;
 
-            // MC 1.21.11: carverIndex 0 = 洞穴, 1 = 额外地下洞穴, 2 = 峡谷
-            if (m_caveCarver) {
-                // carverIndex=0
-                worldgenRandom.setLargeFeatureSeed(m_seed, originChunkX, originChunkZ);
-                if (m_caveCarver->shouldCarve(worldgenRandom, originChunkX, originChunkZ, m_caveConfig)) {
-                    m_caveCarver->carve(chunk,
-                        context,
-                        *m_biomeSource,
-                        targetChunkX,
-                        targetChunkZ,
-                        originChunkX,
-                        originChunkZ,
-                        carvingMask,
-                        worldgenRandom,
-                        m_caveConfig);
-                }
-            }
+            // 采样起始区块中心位置的四分位生物群系
+            const i32 originBlockX = (originChunkX << 4) + 8;
+            const i32 originBlockZ = (originChunkZ << 4) + 8;
+            const BiomeId biomeId = m_biomeSource->getNoiseBiome(originBlockX >> 2, 64 >> 2, originBlockZ >> 2);
+            const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
+            const BiomeGenerationSettings& biomeSettings = biome.generationSettings();
 
-            // 额外地下洞穴 carverIndex=1
-            {
-                worldgenRandom.setLargeFeatureSeed(m_seed + 1, originChunkX, originChunkZ);
-                if (m_caveCarver->shouldCarve(worldgenRandom, originChunkX, originChunkZ, m_caveExtraConfig)) {
-                    m_caveCarver->carve(chunk,
-                        context,
-                        *m_biomeSource,
-                        targetChunkX,
-                        targetChunkZ,
-                        originChunkX,
-                        originChunkZ,
-                        carvingMask,
-                        worldgenRandom,
-                        m_caveExtraConfig);
+            // 遍历该生物群系的所有雕刻器
+            const auto& carvers = biomeSettings.getCarvers();
+            for (size_t carverIndex = 0; carverIndex < carvers.size(); ++carverIndex) {
+                const auto& configuredCarver = carvers[carverIndex];
+                if (!configuredCarver) {
+                    continue;
                 }
-            }
 
-            if (m_canyonCarver) {
-                // carverIndex=2
-                worldgenRandom.setLargeFeatureSeed(m_seed + 2, originChunkX, originChunkZ);
-                if (m_canyonCarver->shouldCarve(worldgenRandom, originChunkX, originChunkZ, m_canyonConfig)) {
-                    m_canyonCarver->carve(chunk,
+                // MC 1.21.11: 每个雕刻器使用 carverIndex 偏移的种子
+                worldgenRandom.setLargeFeatureSeed(m_seed + static_cast<u64>(carverIndex), originChunkX, originChunkZ);
+
+                if (configuredCarver->shouldCarve(worldgenRandom, originChunkX, originChunkZ)) {
+                    configuredCarver->carve(chunk,
                         context,
                         *m_biomeSource,
                         targetChunkX,
@@ -1218,8 +1179,7 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
                         originChunkX,
                         originChunkZ,
                         carvingMask,
-                        worldgenRandom,
-                        m_canyonConfig);
+                        worldgenRandom);
                 }
             }
         }

@@ -205,13 +205,37 @@ protected:
 };
 
 /**
+ * @brief 配置化雕刻器的类型擦除基类
+ *
+ * 允许在生物群系生成设置中存储不同类型的 ConfiguredCarver。
+ * 参考 MC 1.21.11: net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
+ */
+class ConfiguredCarverBase {
+public:
+    virtual ~ConfiguredCarverBase() = default;
+
+    virtual bool carve(ChunkPrimer& chunk,
+        CarvingContext& context,
+        const world::biome::BiomeSource& biomeSource,
+        ChunkCoord targetChunkX,
+        ChunkCoord targetChunkZ,
+        ChunkCoord originChunkX,
+        ChunkCoord originChunkZ,
+        CarvingMask& carvingMask,
+        math::IRandom& rng)
+        = 0;
+
+    [[nodiscard]] virtual bool shouldCarve(math::IRandom& rng, ChunkCoord chunkX, ChunkCoord chunkZ) const = 0;
+};
+
+/**
  * @brief 配置化的雕刻器
  *
  * 组合雕刻器和配置，方便注册和使用。
  * 参考 MC 1.21.11: net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
  */
 template <typename Carver, typename Config>
-class ConfiguredCarver {
+class ConfiguredCarver : public ConfiguredCarverBase {
 public:
     ConfiguredCarver(std::unique_ptr<Carver> carver, Config config)
         : m_carver(std::move(carver))
@@ -226,7 +250,7 @@ public:
         ChunkCoord originChunkX,
         ChunkCoord originChunkZ,
         CarvingMask& carvingMask,
-        math::IRandom& rng)
+        math::IRandom& rng) override
     {
         return m_carver->carve(chunk,
             context,
@@ -240,7 +264,7 @@ public:
             m_config);
     }
 
-    [[nodiscard]] bool shouldCarve(math::IRandom& rng, ChunkCoord chunkX, ChunkCoord chunkZ) const
+    [[nodiscard]] bool shouldCarve(math::IRandom& rng, ChunkCoord chunkX, ChunkCoord chunkZ) const override
     {
         return m_carver->shouldCarve(rng, chunkX, chunkZ, m_config);
     }

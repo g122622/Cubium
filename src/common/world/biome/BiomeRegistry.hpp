@@ -54,7 +54,7 @@ public:
      * @brief 注册生物群系
      * @param biome 生物群系定义
      */
-    void registerBiome(const Biome& biome);
+    void registerBiome(Biome biome);
 
     /**
      * @brief 获取生物群系定义

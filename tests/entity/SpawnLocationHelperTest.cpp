@@ -172,7 +172,7 @@ TEST_F(SpawnLocationHelperTest, HonorsBiomeSurfaceBlockMatch)
     SpawnLocationTestWorld world;
     Biome customBiome(CUSTOM_BIOME_ID, "spawn_helper_test");
     customBiome.setSurfaceBlock(&VanillaBlocks::SAND->defaultState());
-    BiomeRegistry::instance().registerBiome(customBiome);
+    BiomeRegistry::instance().registerBiome(std::move(customBiome));
 
     ChunkData& chunk = world.ensureChunk(0, 0);
     world.fillBiome(chunk, CUSTOM_BIOME_ID);

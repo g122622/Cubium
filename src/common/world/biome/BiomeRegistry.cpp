@@ -55,14 +55,14 @@ void BiomeRegistry::initialize()
     _registerDefaultBiomes();
 }
 
-void BiomeRegistry::registerBiome(const Biome& biome)
+void BiomeRegistry::registerBiome(Biome biome)
 {
     const BiomeId id = biome.id();
     if (id >= m_biomes.size()) {
         m_biomes.resize(id + 1);
         m_registered.resize(id + 1, false);
     }
-    m_biomes[id] = biome;
+    m_biomes[id] = std::move(biome);
     m_registered[id] = true;
 }
 

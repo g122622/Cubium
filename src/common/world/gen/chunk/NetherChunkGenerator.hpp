@@ -26,8 +26,8 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../biome/source/MultiNoiseBiomeSource.hpp"
 #include "../../biome/source/NetherBiomeSource.hpp"
-#include "../carver/CarverConfiguration.hpp"
-#include "../carver/NetherCaveCarver.hpp"
+#include "../carver/CarvingContext.hpp"
+#include "../carver/CarvingMask.hpp"
 #include "../noise/OctavesNoiseGenerator.hpp"
 #include "../settings/NoiseSettings.hpp"
 #include "../structure/StructureManager.hpp"
@@ -123,10 +123,6 @@ private:
 
     // === 结构管理器 ===
     std::unique_ptr<world::gen::structure::StructureManager> m_structureManager;
-
-    // === 雕刻器 ===
-    std::unique_ptr<NetherCaveCarver> m_caveCarver;
-    world::gen::carver::CaveCarverConfiguration m_caveConfig;
 
     // === 下界特有参数 ===
     i32 m_lavaLevel = 31;       // 熔岩海高度

@@ -29,10 +29,8 @@
 #include "../../biome/BiomeSource.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../RandomState.hpp"
-#include "../carver/CanyonCarver.hpp"
 #include "../carver/CarverConfiguration.hpp"
-#include "../carver/CaveCarver.hpp"
-#include "../carver/WorldCarver.hpp"
+#include "../carver/CarvingContext.hpp"
 #include "../density/Beardifier.hpp"
 #include "../density/NoiseChunk.hpp"
 #include "../density/NoiseRouter.hpp"
@@ -153,13 +151,6 @@ private:
     // === 生物群系 ===
     std::unique_ptr<world::biome::BiomeSource> m_biomeSource;
 
-    // === 洞穴雕刻器 ===
-    std::unique_ptr<CaveCarver> m_caveCarver;
-    std::unique_ptr<CanyonCarver> m_canyonCarver;
-    world::gen::carver::CaveCarverConfiguration m_caveConfig;
-    world::gen::carver::CaveCarverConfiguration m_caveExtraConfig;
-    world::gen::carver::CanyonCarverConfiguration m_canyonConfig;
-
     // === 结构管理器 ===
     std::unique_ptr<world::gen::structure::StructureManager> m_structureManager;
 
@@ -241,13 +232,6 @@ private:
 
     void _initNoiseGenerators();
     void _initBiomeWeights();
-
-    /**
-     * @brief 初始化洞穴/峡谷雕刻器与概率配置
-     *
-     * @note 该方法必须在所有构造路径中调用，避免生成阶段出现行为分叉。
-     */
-    void _initCarvers();
 
     /**
      * @brief 初始化结构与放置器注册表

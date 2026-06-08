@@ -332,7 +332,7 @@ TEST_F(FeatureRegistryTest, FeatureGeneratorUsesMcStyleFeatureSeed)
     BiomeGenerationSettings settings;
     settings.addFeature(DecorationStage::VegetalDecoration, 0);
     settings.addFeature(DecorationStage::VegetalDecoration, 1);
-    biome.setGenerationSettings(settings);
+    biome.setGenerationSettings(std::move(settings));
 
     ChunkPrimer chunk(7, -3);
     std::vector<IChunk*> chunks(9, &chunk);
