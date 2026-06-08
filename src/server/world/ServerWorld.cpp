@@ -42,6 +42,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/util/core/CoordConverter.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -1724,7 +1725,7 @@ void ServerWorld::_syncLightDataToChunk(LightType type, const SectionPos& pos)
         return;
     }
 
-    const i32 sectionIndex = pos.y;
+    const i32 sectionIndex = world::sectionCoordToIndex(pos.y);
     if (sectionIndex < 0 || sectionIndex >= world::CHUNK_SECTIONS) {
         return;
     }

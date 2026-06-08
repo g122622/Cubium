@@ -52,7 +52,7 @@ public:
     static size_t calculateSectionSize(const ChunkSection& section);
 
     // 区块段位掩码计算
-    static u16 calculateSectionMask(const ChunkData& chunk);
+    static u32 calculateSectionMask(const ChunkData& chunk);
 };
 
 // ============================================================================

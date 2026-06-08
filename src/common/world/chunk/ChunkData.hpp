@@ -249,7 +249,7 @@ public:
     // ========================================================================
 
     // 光照段数量（包含上下缓冲区）
-    static constexpr i32 LIGHT_SECTIONS = world::CHUNK_SECTIONS + 2; // -1 到 16 段
+    static constexpr i32 LIGHT_SECTIONS = world::CHUNK_SECTIONS + 2; // CHUNK_SECTIONS + 2 缓冲段
 
     /**
      * @brief 获取天空光照空映射

@@ -23,6 +23,7 @@
 
 #include "Frustum.hpp"
 #include "common/core/Constants.hpp"
+#include "common/world/WorldConstants.hpp"
 #include <cmath>
 
 namespace mc::math::frustum {
@@ -197,9 +198,9 @@ bool Frustum::isChunkVisible(i32 chunkX, i32 chunkZ, i32 minY, i32 maxY) const n
 
 bool Frustum::isChunkSectionVisible(i32 chunkX, i32 sectionY, i32 chunkZ) const noexcept
 {
-    // 创建区块段 AABB（世界坐标）
+    // 创建区块段 AABB（世界坐标），sectionY 是段索引（0..CHUNK_SECTIONS-1）
     const f32 worldX = static_cast<f32>(chunkX * CHUNK_WIDTH);
-    const f32 worldY = static_cast<f32>(sectionY * CHUNK_SECTION_HEIGHT);
+    const f32 worldY = static_cast<f32>(world::sectionToY(sectionY));
     const f32 worldZ = static_cast<f32>(chunkZ * CHUNK_WIDTH);
 
     const AxisAlignedBB aabb(worldX,
@@ -232,7 +233,7 @@ AxisAlignedBB createChunkAABB(i32 chunkX, i32 chunkZ, i32 minY, i32 maxY) noexce
 AxisAlignedBB createSectionAABB(i32 chunkX, i32 sectionY, i32 chunkZ, i32 sectionHeight) noexcept
 {
     const f32 worldX = static_cast<f32>(chunkX * CHUNK_WIDTH);
-    const f32 worldY = static_cast<f32>(sectionY * sectionHeight);
+    const f32 worldY = static_cast<f32>(world::MIN_BUILD_HEIGHT + sectionY * sectionHeight);
     const f32 worldZ = static_cast<f32>(chunkZ * CHUNK_WIDTH);
 
     return AxisAlignedBB(worldX,

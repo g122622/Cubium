@@ -51,7 +51,7 @@ struct SectionKey {
     /// 区块Z坐标
     i32 chunkZ = 0;
 
-    /// Section Y坐标（-4到19，对应Y=-64到320）
+    /// Section Y坐标（世界段坐标，MIN_SECTION_Y..MAX_SECTION_Y 即 -4..19，非数组索引）
     i8 sectionY = 0;
 
     /// 维度ID（0=主世界，1=下界，2=末地）

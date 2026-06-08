@@ -224,7 +224,7 @@ void NetherChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& ch
                 const f32 d7 = noiseCache[1][noiseZ + 1][noiseY + 1];
 
                 for (i32 localY = verticalNoiseGranularity - 1; localY >= 0; --localY) {
-                    const i32 worldY = noiseY * verticalNoiseGranularity + localY;
+                    const i32 worldY = m_settings.noise.minY + noiseY * verticalNoiseGranularity + localY;
                     const f32 yLerp = static_cast<f32>(localY) / static_cast<f32>(verticalNoiseGranularity);
 
                     const f32 y0 = math::lerp(d0, d4, yLerp);

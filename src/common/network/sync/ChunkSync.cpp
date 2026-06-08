@@ -44,12 +44,12 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
             ::perfetto::EventContext ctx) { flow(ctx); });
 
     const auto biomeData = chunk.getBiomes().serialize();
-    const u16 sectionMask = calculateSectionMask(chunk);
+    const u32 sectionMask = calculateSectionMask(chunk);
 
     constexpr size_t heightmapSize = static_cast<size_t>(world::CHUNK_WIDTH) * world::CHUNK_WIDTH;
-    size_t expectedSize = 4 + 4 + 2 + heightmapSize + 4 + biomeData.size();
+    size_t expectedSize = 4 + 4 + 4 + heightmapSize + 4 + biomeData.size();
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
-        if ((sectionMask & (1 << i)) == 0) continue;
+        if ((sectionMask & (1U << i)) == 0) continue;
 
         const ChunkSection* section = chunk.getSection(i);
         if (!section) continue;
@@ -64,7 +64,7 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
     ser.writeI32(chunk.z());
 
     // 写入区块段位掩码
-    ser.writeU16(sectionMask);
+    ser.writeU32(sectionMask);
 
     // 写入高度图
     std::array<u8, world::CHUNK_WIDTH * world::CHUNK_WIDTH> heightmapData{};
@@ -82,7 +82,7 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
 
     // 写入区块段数据
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
-        if ((sectionMask & (1 << i)) == 0) continue;
+        if ((sectionMask & (1U << i)) == 0) continue;
 
         const ChunkSection* section = chunk.getSection(i);
         if (!section) continue;
@@ -133,11 +133,11 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
     }
 
     // 读取区块段位掩码
-    auto maskResult = deser.readU16();
+    auto maskResult = deser.readU32();
     if (maskResult.failed()) {
         return maskResult.error();
     }
-    u16 sectionMask = maskResult.value();
+    u32 sectionMask = maskResult.value();
 
     // 跳过高度图 (256 bytes)
     std::array<u8, world::CHUNK_WIDTH * world::CHUNK_WIDTH> heightmapData{};
@@ -174,7 +174,7 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
         MC_TRACE_EVENT("client.network", "ChunkSerializer::deserializeChunk.section");
 
-        if ((sectionMask & (1 << i)) == 0) continue;
+        if ((sectionMask & (1U << i)) == 0) continue;
 
         auto sizeResult = deser.readU16();
         if (sizeResult.failed()) {
@@ -235,13 +235,13 @@ size_t ChunkSerializer::calculateSectionSize(const ChunkSection& section)
     return 2 + ChunkSection::VOLUME * sizeof(u32) + NibbleArray::BYTE_SIZE * 2;
 }
 
-u16 ChunkSerializer::calculateSectionMask(const ChunkData& chunk)
+u32 ChunkSerializer::calculateSectionMask(const ChunkData& chunk)
 {
-    u16 mask = 0;
+    u32 mask = 0;
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
         const ChunkSection* section = chunk.getSection(i);
         if (section && !section->isEmpty()) {
-            mask |= (1 << i);
+            mask |= (1U << i);
         }
     }
     return mask;

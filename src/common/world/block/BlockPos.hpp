@@ -231,8 +231,8 @@ public:
     [[nodiscard]] BlockCoord localX() const noexcept { return math::toLocalCoord(x); }
     [[nodiscard]] BlockCoord localZ() const noexcept { return math::toLocalCoord(z); }
 
-    // 区块段索引 (Y / 16)
-    [[nodiscard]] i32 sectionIndex() const noexcept { return y / world::CHUNK_SECTION_HEIGHT; }
+    // 段坐标 (Y >> SECTION_SHIFT)，范围 [MIN_SECTION_Y, MAX_SECTION_Y]
+    [[nodiscard]] i32 sectionCoord() const noexcept { return y >> world::SECTION_SHIFT; }
 
     // 转为字符串
     [[nodiscard]] std::string toString() const

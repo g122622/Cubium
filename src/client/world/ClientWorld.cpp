@@ -800,7 +800,7 @@ void ClientWorld::onLightUpdate(i32 chunkX,
         return;
     }
 
-    ChunkSection* section = chunk->data->getSection(sectionY);
+    ChunkSection* section = chunk->data->getSection(world::sectionCoordToIndex(sectionY));
     if (!section) {
         return;
     }

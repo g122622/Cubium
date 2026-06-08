@@ -438,7 +438,7 @@ void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
             const auto& parameters = multiNoiseSource->parameters();
             constexpr i32 HORIZ_SIZE = 4;
             constexpr i32 VERT_SIZE = 4;
-            constexpr i32 SECTION_COUNT = 24;
+            constexpr i32 SECTION_COUNT = world::CHUNK_SECTIONS;
 
             for (i32 section = 0; section < SECTION_COUNT; ++section) {
                 for (i32 y = 0; y < VERT_SIZE; ++y) {
@@ -539,7 +539,7 @@ void NoiseChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
 
                     // Y 轴细分
                     for (i32 localY = m_verticalNoiseGranularity - 1; localY >= 0; --localY) {
-                        const i32 worldY = noiseY * m_verticalNoiseGranularity + localY;
+                        const i32 worldY = m_settings.noise.minY + noiseY * m_verticalNoiseGranularity + localY;
                         const f32 yLerp = static_cast<f32>(localY) / static_cast<f32>(m_verticalNoiseGranularity);
 
                         // Y 轴插值

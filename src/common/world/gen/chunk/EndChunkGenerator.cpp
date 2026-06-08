@@ -26,6 +26,7 @@
 #include "../../../util/math/MathConstants.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../WorldConstants.hpp"
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../block/BlockRegistry.hpp"
@@ -457,7 +458,7 @@ void EndChunkGenerator::_generateMainIsland(ChunkPrimer& chunk)
                 }
 
                 ChunkSection* section = chunk.getSection(sectionY);
-                const i32 worldY = sectionY * world::CHUNK_SECTION_HEIGHT;
+                const i32 worldY = world::sectionToY(sectionY);
 
                 for (i32 ly = 0; ly < world::CHUNK_SECTION_HEIGHT; ++ly) {
                     const i32 globalY = worldY + ly;
@@ -525,7 +526,7 @@ void EndChunkGenerator::_generateOuterIslands(ChunkPrimer& chunk)
                 }
 
                 ChunkSection* section = chunk.getSection(sectionY);
-                const i32 worldY = sectionY * world::CHUNK_SECTION_HEIGHT;
+                const i32 worldY = world::sectionToY(sectionY);
 
                 for (i32 ly = 0; ly < world::CHUNK_SECTION_HEIGHT; ++ly) {
                     const i32 globalY = worldY + ly;
@@ -587,7 +588,7 @@ void EndChunkGenerator::_generateObsidianPillars(ChunkPrimer& chunk)
                         }
 
                         ChunkSection* section = chunk.getSection(sectionY);
-                        const i32 worldY = sectionY * world::CHUNK_SECTION_HEIGHT;
+                        const i32 worldY = world::sectionToY(sectionY);
 
                         for (i32 ly = 0; ly < world::CHUNK_SECTION_HEIGHT; ++ly) {
                             const i32 globalY = worldY + ly;

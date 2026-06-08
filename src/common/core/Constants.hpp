@@ -108,7 +108,7 @@ constexpr u32 MAX_LOGIN_ATTEMPTS = 5;
 } // namespace network
 
 // ============================================================================
-// 世界常量
+// 世界常量 TODO 移动到\src\common\world\WorldConstants.hpp中
 // ============================================================================
 
 namespace world {
@@ -127,6 +127,10 @@ constexpr i32 CHUNK_VOLUME = CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH;
 constexpr i32 CHUNK_SHIFT = 4; // log2(16) = 4
 constexpr i32 SECTION_SHIFT = 4;
 constexpr i32 CHUNK_MASK = CHUNK_WIDTH - 1;
+
+// 段坐标范围（段坐标 = worldY >> SECTION_SHIFT，区别于段索引 0..CHUNK_SECTIONS-1）
+constexpr i32 MIN_SECTION_Y = MIN_BUILD_HEIGHT >> SECTION_SHIFT;       // -4
+constexpr i32 MAX_SECTION_Y = (MAX_BUILD_HEIGHT - 1) >> SECTION_SHIFT; // 19
 
 // 海平面高度 (MC 1.16.5 DimensionSettings.java:114)
 constexpr i32 SEA_LEVEL = 63;

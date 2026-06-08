@@ -157,6 +157,26 @@ inline i32 sectionToY(i32 sectionIndex) noexcept
 }
 
 /**
+ * @brief 将段索引（0..CHUNK_SECTIONS-1）转换为段坐标（MIN_SECTION_Y..MAX_SECTION_Y）
+ * @param sectionIndex 段索引
+ * @return 段坐标
+ */
+inline i32 sectionIndexToCoord(i32 sectionIndex) noexcept
+{
+    return sectionIndex + (MIN_BUILD_HEIGHT >> SECTION_SHIFT);
+}
+
+/**
+ * @brief 将段坐标（MIN_SECTION_Y..MAX_SECTION_Y）转换为段索引（0..CHUNK_SECTIONS-1）
+ * @param sectionCoord 段坐标
+ * @return 段索引
+ */
+inline i32 sectionCoordToIndex(i32 sectionCoord) noexcept
+{
+    return sectionCoord - (MIN_BUILD_HEIGHT >> SECTION_SHIFT);
+}
+
+/**
  * @brief 检查区块坐标是否有效
  * @param chunkX 区块X坐标
  * @param chunkZ 区块Z坐标

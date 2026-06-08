@@ -263,7 +263,7 @@ public:
      * 区块段是 16x16x16 的立方体。
      *
      * @param chunkX 区块 X 坐标
-     * @param sectionY 区块段 Y 索引（0-15 对应世界高度）
+     * @param sectionY 区块段索引（0..CHUNK_SECTIONS-1）
      * @param chunkZ 区块 Z 坐标
      * @return true 如果区块段与视锥相交或在视锥内
      */

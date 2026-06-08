@@ -43,7 +43,7 @@ namespace mc {
 class SectionPos {
 public:
     ChunkCoord x;
-    i32 y; // 段Y坐标
+    i32 y; // 段Y坐标（世界段坐标，范围 MIN_SECTION_Y..MAX_SECTION_Y，非数组索引）
     ChunkCoord z;
 
     SectionPos() noexcept
@@ -60,7 +60,7 @@ public:
 
     explicit SectionPos(const BlockPos& pos) noexcept
         : x(pos.chunkX())
-        , y(pos.sectionIndex())
+        , y(pos.sectionCoord())
         , z(pos.chunkZ())
     {}
 
@@ -69,7 +69,7 @@ public:
      */
     [[nodiscard]] static SectionPos fromBlockPos(const BlockPos& pos) noexcept
     {
-        return SectionPos(pos.chunkX(), pos.sectionIndex(), pos.chunkZ());
+        return SectionPos(pos.chunkX(), pos.sectionCoord(), pos.chunkZ());
     }
 
     /**

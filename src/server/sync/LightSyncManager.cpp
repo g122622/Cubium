@@ -104,7 +104,7 @@ void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
 
         for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
             const ChunkSection* section = (sections != nullptr) ? sections[sectionY] : nullptr;
-            SectionPos sectionPos(x, sectionY, z);
+            SectionPos sectionPos(x, world::sectionIndexToCoord(sectionY), z);
             bool isEmpty = (section == nullptr || section->isEmpty());
             m_lightManager.updateSectionStatus(sectionPos, isEmpty);
         }
@@ -157,7 +157,7 @@ void LightSyncManager::syncLightDataToChunk(LightType type, const SectionPos& po
 
     ChunkData* chunkData = chunk.get();
 
-    const i32 sectionIndex = pos.y;
+    const i32 sectionIndex = world::sectionCoordToIndex(pos.y);
     if (sectionIndex < 0 || sectionIndex >= world::CHUNK_SECTIONS) {
         return;
     }

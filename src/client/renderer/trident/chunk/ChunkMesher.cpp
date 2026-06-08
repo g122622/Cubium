@@ -1691,7 +1691,7 @@ void ChunkMesher::_simpleMeshSection(const ChunkData& chunk,
     }
 
     constexpr i32 SIZE = world::CHUNK_SECTION_HEIGHT;
-    const i32 baseY = sectionIndex * SIZE;
+    const i32 baseY = world::sectionToY(sectionIndex);
 
     // 获取当前段
     const ChunkSection* section = chunk.getSection(sectionIndex);
@@ -1914,7 +1914,7 @@ void ChunkMesher::_greedyMeshSection(const ChunkData& chunk,
     }
 
     constexpr i32 SIZE = world::CHUNK_SECTION_HEIGHT;
-    const i32 baseY = sectionIndex * SIZE;
+    const i32 baseY = world::sectionToY(sectionIndex);
 
     const ChunkSection* section = chunk.getSection(sectionIndex);
     if (!section || section->isEmpty()) {

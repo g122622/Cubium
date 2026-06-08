@@ -561,8 +561,7 @@ protected:
     bool m_isClientSide = false;
 
     // 世界高度范围（从世界高度常量计算）
-    // 区块段索引：Y >> SECTION_SHIFT，所以 MIN_BUILD_HEIGHT=0 -> section 0，MAX_BUILD_HEIGHT=256 -> section
-    // 15（包含Y=240-255）
+    // 段坐标范围：Y >> SECTION_SHIFT，MIN_BUILD_HEIGHT=-64 -> section -4，MAX_BUILD_HEIGHT=320 -> section 19
     i32 m_minSection = world::MIN_BUILD_HEIGHT >> world::SECTION_SHIFT;
     i32 m_maxSection = (world::MAX_BUILD_HEIGHT - 1) >> world::SECTION_SHIFT;
     // 光照段需要额外缓冲段（上方和下方各一个）

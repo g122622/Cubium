@@ -576,13 +576,15 @@ std::vector<u8> ChunkData::serialize() const
     data.push_back(flags);
 
     // 区块段掩码
-    u16 sectionMask = 0;
+    u32 sectionMask = 0;
     for (size_t i = 0; i < world::CHUNK_SECTIONS; ++i) {
         if (m_sections[i]) {
-            sectionMask |= (1 << i);
+            sectionMask |= (1U << i);
         }
     }
-    data.push_back(static_cast<u8>(sectionMask >> 8));
+    data.push_back(static_cast<u8>(sectionMask >> 24));
+    data.push_back(static_cast<u8>((sectionMask >> 16) & 0xFF));
+    data.push_back(static_cast<u8>((sectionMask >> 8) & 0xFF));
     data.push_back(static_cast<u8>(sectionMask & 0xFF));
 
     // 生物群系数据
@@ -640,8 +642,9 @@ Result<std::unique_ptr<ChunkData>> ChunkData::deserialize(const u8* data, size_t
     chunk->m_dirty = (flags & 0x02) != 0;
 
     // 区块段掩码
-    u16 sectionMask = (static_cast<u16>(data[offset]) << 8) | data[offset + 1];
-    offset += 2;
+    u32 sectionMask = (static_cast<u32>(data[offset]) << 24) | (static_cast<u32>(data[offset + 1]) << 16) |
+        (static_cast<u32>(data[offset + 2]) << 8) | data[offset + 3];
+    offset += 4;
 
     // 生物群系数据
     if (offset + 2 > size) {
@@ -665,7 +668,7 @@ Result<std::unique_ptr<ChunkData>> ChunkData::deserialize(const u8* data, size_t
 
     // 读取每个段
     for (size_t i = 0; i < world::CHUNK_SECTIONS; ++i) {
-        if (sectionMask & (1 << i)) {
+        if (sectionMask & (1U << i)) {
             if (offset + 4 > size) {
                 return Error(ErrorCode::InvalidArgument, "Invalid section size");
             }
@@ -703,7 +706,7 @@ Result<std::unique_ptr<ChunkData>> ChunkData::deserialize(const u8* data, size_t
 void ChunkData::fill(BlockCoord minY, BlockCoord maxY, u32 stateId)
 {
     for (BlockCoord y = minY; y < maxY; y += world::CHUNK_SECTION_HEIGHT) {
-        i32 sectionIndex = y / world::CHUNK_SECTION_HEIGHT;
+        i32 sectionIndex = world::toSectionIndex(y);
         if (sectionIndex >= 0 && sectionIndex < world::CHUNK_SECTIONS) {
             auto* section = createSection(sectionIndex);
             if (section) {

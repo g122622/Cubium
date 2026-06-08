@@ -22,6 +22,7 @@
  */
 
 #include "SingleLevelStorageManager.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "perfetto/TraceEvents.hpp"
 #include "scoreboard/storage/ScoreboardDataManager.hpp"
 #include "world/storage/backend/BedrockLDBBackend.hpp"
@@ -372,7 +373,7 @@ Result<void> SingleLevelStorageManager::saveChunk(const ChunkData& chunk, Dimens
             continue;
         }
 
-        SectionKey key(chunk.x(), chunk.z(), sectionY, dimension);
+        SectionKey key(chunk.x(), chunk.z(), static_cast<i8>(world::sectionIndexToCoord(sectionY)), dimension);
         auto sectionDataResult = SectionCodec::fromChunkSection(*section, key, biomes);
         if (sectionDataResult.failed()) {
             return sectionDataResult.error();
@@ -421,7 +422,7 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
     std::vector<SectionKey> keys;
     keys.reserve(world::CHUNK_SECTIONS);
     for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
-        keys.emplace_back(x, z, sectionY, dimension);
+        keys.emplace_back(x, z, static_cast<i8>(world::sectionIndexToCoord(sectionY)), dimension);
     }
 
     auto loadResult = manager.loadSectionsSync(keys);

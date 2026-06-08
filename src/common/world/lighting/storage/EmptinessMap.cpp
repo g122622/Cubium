@@ -53,7 +53,7 @@ bool EmptinessMap::updateFromChunk(const IChunk& chunk)
         }
 
         // 检查区块段是否为空
-        const ChunkSection* section = chunk.getSection(sectionY);
+        const ChunkSection* section = chunk.getSection(sectionY - m_minSection);
         bool isEmpty = (section == nullptr) || section->isEmpty();
 
         size_t idx = static_cast<size_t>(index);
