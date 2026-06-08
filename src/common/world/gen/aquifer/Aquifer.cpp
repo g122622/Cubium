@@ -125,11 +125,10 @@ NoiseBasedAquifer::NoiseBasedAquifer(const density::NoiseChunk& noiseChunk,
     m_aquiferStatusCache.resize(totalSize);
     m_aquiferStatusComputed.resize(totalSize, false);
 
-    const i32 maxSurfaceLevel =
-        m_noiseChunk.maxPreliminarySurfaceLevel(fromGridX(m_minGridX, 0),
-            fromGridZ(m_minGridZ, 0),
-            fromGridX(maxGridX, X_RANGE - 1),
-            fromGridZ(maxGridZ, Z_RANGE - 1)) +
+    const i32 maxSurfaceLevel = m_noiseChunk.maxPreliminarySurfaceLevel(fromGridX(m_minGridX, 0),
+                                    fromGridZ(m_minGridZ, 0),
+                                    fromGridX(maxGridX, X_RANGE - 1),
+                                    fromGridZ(maxGridZ, Z_RANGE - 1)) +
         8;
     const i32 skipGridY = gridY(maxSurfaceLevel + 12) + 1;
     m_skipSamplingAboveY = fromGridY(skipGridY, Y_RANGE + 2) - 1;
@@ -163,15 +162,16 @@ const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i3
     const i32 aquiferGridY = gridY(blockY + SAMPLE_OFFSET_Y);
     const i32 aquiferGridZ = gridZ(blockZ + SAMPLE_OFFSET_Z);
 
-    // 搜索最近的含水层中心（2x3x2 网格范围）
-    i32 distSq1 = std::numeric_limits<i32>::max();
-    i32 distSq2 = std::numeric_limits<i32>::max();
-    i32 nearestGridX = 0;
-    i32 nearestGridY = 0;
-    i32 nearestGridZ = 0;
-    i32 secondNearestGridX = 0;
-    i32 secondNearestGridY = 0;
-    i32 secondNearestGridZ = 0;
+    // MC 1.21: 搜索最近的 4 个含水层中心（2x3x2 = 12 格网格）
+    // k1/l1/i2/j2: 4个最近距离（平方），k2/l2/i3/j3: 对应的网格索引
+    i32 distSq1 = std::numeric_limits<i32>::max(); // 1st nearest (smallest)
+    i32 distSq2 = std::numeric_limits<i32>::max(); // 2nd nearest
+    i32 distSq3 = std::numeric_limits<i32>::max(); // 3rd nearest
+    i32 distSq4 = std::numeric_limits<i32>::max(); // 4th nearest
+    i32 gridIdx1X = 0, gridIdx1Y = 0, gridIdx1Z = 0;
+    i32 gridIdx2X = 0, gridIdx2Y = 0, gridIdx2Z = 0;
+    i32 gridIdx3X = 0, gridIdx3Y = 0, gridIdx3Z = 0;
+    i32 gridIdx4X = 0, gridIdx4Y = 0, gridIdx4Z = 0;
 
     for (i32 dx = 0; dx <= 1; ++dx) {
         for (i32 dy = -1; dy <= 1; ++dy) {
@@ -190,51 +190,134 @@ const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i3
                 const i32 ddz = blockZ - az;
                 const i32 dSq = ddx * ddx + ddy * ddy + ddz * ddz;
 
-                if (dSq < distSq1) {
-                    distSq2 = distSq1;
-                    secondNearestGridX = nearestGridX;
-                    secondNearestGridY = nearestGridY;
-                    secondNearestGridZ = nearestGridZ;
-                    distSq1 = dSq;
-                    nearestGridX = gx;
-                    nearestGridY = gy;
-                    nearestGridZ = gz;
-                } else if (dSq < distSq2) {
-                    distSq2 = dSq;
-                    secondNearestGridX = gx;
-                    secondNearestGridY = gy;
-                    secondNearestGridZ = gz;
+                // 级联插入排序：保持 4 个最小距离
+                if (dSq < distSq4) {
+                    if (dSq < distSq1) {
+                        distSq4 = distSq3;
+                        gridIdx4X = gridIdx3X;
+                        gridIdx4Y = gridIdx3Y;
+                        gridIdx4Z = gridIdx3Z;
+                        distSq3 = distSq2;
+                        gridIdx3X = gridIdx2X;
+                        gridIdx3Y = gridIdx2Y;
+                        gridIdx3Z = gridIdx2Z;
+                        distSq2 = distSq1;
+                        gridIdx2X = gridIdx1X;
+                        gridIdx2Y = gridIdx1Y;
+                        gridIdx2Z = gridIdx1Z;
+                        distSq1 = dSq;
+                        gridIdx1X = gx;
+                        gridIdx1Y = gy;
+                        gridIdx1Z = gz;
+                    } else if (dSq < distSq2) {
+                        distSq4 = distSq3;
+                        gridIdx4X = gridIdx3X;
+                        gridIdx4Y = gridIdx3Y;
+                        gridIdx4Z = gridIdx3Z;
+                        distSq3 = distSq2;
+                        gridIdx3X = gridIdx2X;
+                        gridIdx3Y = gridIdx2Y;
+                        gridIdx3Z = gridIdx2Z;
+                        distSq2 = dSq;
+                        gridIdx2X = gx;
+                        gridIdx2Y = gy;
+                        gridIdx2Z = gz;
+                    } else if (dSq < distSq3) {
+                        distSq4 = distSq3;
+                        gridIdx4X = gridIdx3X;
+                        gridIdx4Y = gridIdx3Y;
+                        gridIdx4Z = gridIdx3Z;
+                        distSq3 = dSq;
+                        gridIdx3X = gx;
+                        gridIdx3Y = gy;
+                        gridIdx3Z = gz;
+                    } else {
+                        distSq4 = dSq;
+                        gridIdx4X = gx;
+                        gridIdx4Y = gy;
+                        gridIdx4Z = gz;
+                    }
                 }
             }
         }
     }
 
     // 获取最近含水层的状态
-    AquiferStatus aquifer1 = getAquiferStatus(nearestGridX, nearestGridY, nearestGridZ);
+    AquiferStatus aquifer1 = getAquiferStatus(gridIdx1X, gridIdx1Y, gridIdx1Z);
 
-    // 计算相似度
-    const f64 sim = similarity(distSq1, distSq2);
+    // 计算 1st-2nd 相似度
+    const f64 d1 = similarity(distSq1, distSq2);
 
-    // 在含水层内部
-    if (sim <= 0.0) {
+    // MC 1.21: d1 <= 0 时，完全在含水层内部
+    if (d1 <= 0.0) {
+        // MC 1.21: 检查流体更新调度
+        if (d1 >= FLOWING_UPDATE_SIMULARITY) {
+            AquiferStatus aquifer2 = getAquiferStatus(gridIdx2X, gridIdx2Y, gridIdx2Z);
+            if (aquifer1 != aquifer2) {
+                m_shouldScheduleFluidUpdate = true;
+            }
+        }
         if (blockY < aquifer1.fluidLevel) {
             return aquifer1.fluidType;
         }
         return nullptr; // 空气
     }
 
-    // 过渡区域：使用压力计算
-    AquiferStatus aquifer2 = getAquiferStatus(secondNearestGridX, secondNearestGridY, secondNearestGridZ);
-
-    const f64 pressure = sim * calculatePressure(blockX, blockY, blockZ, aquifer1, aquifer2);
-
-    // 检查是否需要安排流体更新（MC 1.21: 比较 FluidStatus 的 fluidLevel 和 fluidType）
-    if (sim > FLOWING_UPDATE_SIMULARITY && aquifer1 != aquifer2) {
-        m_shouldScheduleFluidUpdate = true;
+    // MC 1.21: 水在熔岩上方时触发流体更新
+    AquiferStatus aquifer2 = getAquiferStatus(gridIdx2X, gridIdx2Y, gridIdx2Z);
+    {
+        const BlockState* blockAtY =
+            (aquifer1.fluidType != nullptr && blockY < aquifer1.fluidLevel) ? aquifer1.fluidType : nullptr;
+        if (blockAtY != nullptr && &blockAtY->getBlock() == VanillaBlocks::WATER) {
+            // 检查下方是否为熔岩
+            const BlockState* blockBelow =
+                (aquifer1.fluidType != nullptr && (blockY - 1) < aquifer1.fluidLevel) ? aquifer1.fluidType : nullptr;
+            if (blockBelow != nullptr && &blockBelow->getBlock() == VanillaBlocks::LAVA) {
+                m_shouldScheduleFluidUpdate = true;
+                return blockAtY;
+            }
+        }
     }
 
-    if (densityValue + pressure > 0.0) {
+    // MC 1.21: 三阶段压力计算
+    // 第一阶段: 1st 和 2nd 最近点的压力
+    const f64 pressure1 = d1 * calculatePressure(blockX, blockY, blockZ, aquifer1, aquifer2);
+    if (densityValue + pressure1 > 0.0) {
         return nullptr; // 压力使该位置保持固体
+    }
+
+    // 第二阶段: 1st 和 3rd 最近点的压力
+    AquiferStatus aquifer3 = getAquiferStatus(gridIdx3X, gridIdx3Y, gridIdx3Z);
+    const f64 d0 = similarity(distSq1, distSq3); // 1st vs 3rd
+    if (d0 > 0.0) {
+        const f64 pressure2 = d1 * d0 * calculatePressure(blockX, blockY, blockZ, aquifer1, aquifer3);
+        if (densityValue + pressure2 > 0.0) {
+            return nullptr;
+        }
+    }
+
+    // 第三阶段: 2nd 和 3rd 最近点的压力
+    const f64 d4 = similarity(distSq2, distSq3); // 2nd vs 3rd
+    if (d4 > 0.0) {
+        const f64 pressure3 = d1 * d4 * calculatePressure(blockX, blockY, blockZ, aquifer2, aquifer3);
+        if (densityValue + pressure3 > 0.0) {
+            return nullptr;
+        }
+    }
+
+    // MC 1.21: 多条件流体更新调度
+    const bool flag2 = (aquifer1 != aquifer2);                                      // 1st != 2nd
+    const bool flag = (d4 >= FLOWING_UPDATE_SIMULARITY) && (aquifer2 != aquifer3);  // 2nd-3rd close and different
+    const bool flag1 = (d0 >= FLOWING_UPDATE_SIMULARITY) && (aquifer1 != aquifer3); // 1st-3rd close and different
+
+    if (!flag2 && !flag && !flag1) {
+        // 只有当前三个含水层状态一致时，才检查第4个
+        AquiferStatus aquifer4 = getAquiferStatus(gridIdx4X, gridIdx4Y, gridIdx4Z);
+        const f64 d5 = similarity(distSq1, distSq4); // 1st vs 4th
+        m_shouldScheduleFluidUpdate =
+            (d0 >= FLOWING_UPDATE_SIMULARITY) && (d5 >= FLOWING_UPDATE_SIMULARITY) && (aquifer1 != aquifer4);
+    } else {
+        m_shouldScheduleFluidUpdate = true;
     }
 
     // 返回含水层流体

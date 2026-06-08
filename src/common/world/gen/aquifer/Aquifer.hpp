@@ -176,7 +176,7 @@ public:
  * 核心算法：
  * 1. 将世界划分为 16×12×16 的网格（含水层网格）
  * 2. 每个网格单元随机生成一个含水层中心位置
- * 3. 对每个空腔方块，找到最近的 2 个含水层中心
+ * 3. 对每个空腔方块，找到最近的 4 个含水层中心
  * 4. 根据距离相似度（similarity）和屏障噪声（barrier noise）判断：
  *    - similarity <= 0：完全在含水层内，返回流体
  *    - similarity > 0：过渡区域，使用压力计算
@@ -220,15 +220,18 @@ private:
     static constexpr i32 SAMPLE_OFFSET_X = -5;
     static constexpr i32 SAMPLE_OFFSET_Y = 1;
     static constexpr i32 SAMPLE_OFFSET_Z = -5;
-    static constexpr i32 WAY_BELOW_MIN_Y = -1000;
+    /// MC 1.21: MIN_Y << 4 where MIN_Y = -2032 → -32512
+    static constexpr i32 WAY_BELOW_MIN_Y = -32512;
 
     // ========== 网格坐标转换 ==========
-    [[nodiscard]] static i32 gridX(i32 x) { return math::floorDiv(x, world::CHUNK_WIDTH); }
+    /// MC 1.21: gridX 使用 >> 4（算术右移，等效于 floorDiv(x, 16)）
+    [[nodiscard]] static i32 gridX(i32 x) { return x >> 4; }
     [[nodiscard]] static i32 gridY(i32 y) { return math::floorDiv(y, Y_SPACING); }
-    [[nodiscard]] static i32 gridZ(i32 z) { return math::floorDiv(z, world::CHUNK_WIDTH); }
-    [[nodiscard]] static i32 fromGridX(i32 gridX, i32 offset) { return gridX * world::CHUNK_WIDTH + offset; }
+    /// MC 1.21: gridZ 使用 >> 4（算术右移，等效于 floorDiv(z, 16)）
+    [[nodiscard]] static i32 gridZ(i32 z) { return z >> 4; }
+    [[nodiscard]] static i32 fromGridX(i32 gridX, i32 offset) { return (gridX << 4) + offset; }
     [[nodiscard]] static i32 fromGridY(i32 gridY, i32 offset) { return gridY * Y_SPACING + offset; }
-    [[nodiscard]] static i32 fromGridZ(i32 gridZ, i32 offset) { return gridZ * world::CHUNK_WIDTH + offset; }
+    [[nodiscard]] static i32 fromGridZ(i32 gridZ, i32 offset) { return (gridZ << 4) + offset; }
 
     // ========== 含水层状态缓存 ==========
     /**
