@@ -272,9 +272,73 @@ public:
     }
 
     /**
+     * @brief 获取与指定区块相交的结构引用
+     *
+     * 遍历此区块上的所有结构起点，返回边界框与指定区块相交的结构。
+     */
+    [[nodiscard]] std::vector<std::tuple<std::string, ChunkCoord, ChunkCoord>> getIntersectingStructures(
+        ChunkCoord cx, ChunkCoord cz) const override
+    {
+        std::vector<std::tuple<std::string, ChunkCoord, ChunkCoord>> result;
+        for (const auto& [name, start] : m_structureStarts) {
+            if (start && start->isValid() && start->getBoundingBox().intersectsChunk(cx, cz)) {
+                result.emplace_back(name, m_x, m_z);
+            }
+        }
+        return result;
+    }
+
+    /**
      * @brief 检查是否有结构起点
      */
     [[nodiscard]] bool hasStructureStarts() const noexcept { return !m_structureStarts.empty(); }
+
+    // ============================================================================
+    // 结构引用管理
+    // ============================================================================
+
+    /**
+     * @brief 添加结构引用
+     *
+     * MC 1.21: StructureReferences 存储"哪些结构可能与此区块相交"的信息。
+     * 在 STRUCTURE_REFERENCES 阶段，扫描周围区块的 StructureStart，
+     * 如果其边界框与此区块相交，则添加引用。
+     *
+     * @param structureName 结构名称
+     * @param referenceChunkX 被引用结构所在区块的 X 坐标
+     * @param referenceChunkZ 被引用结构所在区块的 Z 坐标
+     */
+    void addStructureReference(const std::string& structureName, ChunkCoord referenceChunkX, ChunkCoord referenceChunkZ)
+    {
+        m_structureReferences[structureName].emplace_back(referenceChunkX, referenceChunkZ);
+    }
+
+    /**
+     * @brief 获取指定结构的所有引用
+     * @param structureName 结构名称
+     * @return 引用列表（区块坐标），如果不存在返回空列表
+     */
+    [[nodiscard]] const std::vector<std::pair<ChunkCoord, ChunkCoord>>& getStructureReferences(
+        const std::string& structureName) const
+    {
+        static const std::vector<std::pair<ChunkCoord, ChunkCoord>> empty;
+        auto it = m_structureReferences.find(structureName);
+        return it != m_structureReferences.end() ? it->second : empty;
+    }
+
+    /**
+     * @brief 获取所有结构引用
+     */
+    [[nodiscard]] const std::unordered_map<std::string, std::vector<std::pair<ChunkCoord, ChunkCoord>>>&
+    structureReferences() const noexcept
+    {
+        return m_structureReferences;
+    }
+
+    /**
+     * @brief 检查是否有结构引用
+     */
+    [[nodiscard]] bool hasStructureReferences() const noexcept { return !m_structureReferences.empty(); }
 
     // ============================================================================
     // 后处理位置
@@ -410,6 +474,9 @@ private:
 
     // 结构起点（用于结构生成）
     std::unordered_map<std::string, std::unique_ptr<world::gen::structure::StructureStart>> m_structureStarts;
+
+    // 结构引用（哪些结构的边界框与此区块相交）
+    std::unordered_map<std::string, std::vector<std::pair<ChunkCoord, ChunkCoord>>> m_structureReferences;
 
     // 雕刻掩码（AIR 和 LIQUID 两个雕刻阶段共享）
     std::unique_ptr<CarvingMask> m_carvingMask;

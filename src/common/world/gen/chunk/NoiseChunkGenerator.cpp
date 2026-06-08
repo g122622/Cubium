@@ -148,12 +148,33 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
     chunk.setChunkStatus(ChunkStatuses::STRUCTURE_STARTS);
 }
 
-void NoiseChunkGenerator::generateStructureReferences(WorldGenRegion& /*region*/, ChunkPrimer& chunk)
+void NoiseChunkGenerator::generateStructureReferences(WorldGenRegion& region, ChunkPrimer& chunk)
 {
     MC_TRACE_EVENT("world.chunk_gen", "GenerateStructureReferences", "x", chunk.x(), "z", chunk.z());
 
-    // 结构引用阶段：计算结构之间的引用关系
-    // 这主要用于结构之间的连接（如要塞、村庄道路等）
+    // MC 1.21: StructureReferences 阶段
+    // 扫描以当前区块为中心的 17x17 区块范围（taskRange=8），
+    // 找到所有与当前区块相交的 StructureStart，将引用添加到当前区块。
+    const ChunkCoord cx = chunk.x();
+    const ChunkCoord cz = chunk.z();
+
+    for (i32 dx = -8; dx <= 8; ++dx) {
+        for (i32 dz = -8; dz <= 8; ++dz) {
+            const ChunkCoord ncx = cx + dx;
+            const ChunkCoord ncz = cz + dz;
+
+            const IChunk* neighbor = region.getIChunk(ncx, ncz);
+            if (!neighbor) {
+                continue;
+            }
+
+            // 获取邻居区块中与当前区块相交的结构起点
+            auto intersecting = neighbor->getIntersectingStructures(cx, cz);
+            for (auto& [name, srcX, srcZ] : intersecting) {
+                chunk.addStructureReference(name, srcX, srcZ);
+            }
+        }
+    }
 
     chunk.setChunkStatus(ChunkStatuses::STRUCTURE_REFERENCES);
 }

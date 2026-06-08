@@ -172,6 +172,27 @@ public:
      * @brief 设置区块光照正确状态
      */
     virtual void setLightCorrect(bool correct) { (void)correct; }
+
+    // === 结构引用 ===
+
+    /**
+     * @brief 获取与指定区块相交的结构名称和区块坐标列表
+     *
+     * MC 1.21: 用于 STRUCTURE_REFERENCES 阶段。
+     * 返回一个 (structureName, sourceChunkX, sourceChunkZ) 的列表，
+     * 表示哪些区块的结构起点与此区块相交。
+     *
+     * @param cx 要检查相交性的区块 X 坐标
+     * @param cz 要检查相交性的区块 Z 坐标
+     * @return 相交的结构引用列表
+     */
+    [[nodiscard]] virtual std::vector<std::tuple<std::string, ChunkCoord, ChunkCoord>> getIntersectingStructures(
+        ChunkCoord cx, ChunkCoord cz) const
+    {
+        (void)cx;
+        (void)cz;
+        return {};
+    }
 };
 
 // ============================================================================
