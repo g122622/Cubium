@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/world/biome/Biomes.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
@@ -113,6 +114,7 @@ public:
      * @param surfaceSecondaryNoise 地表次要噪声（MC: Noises.SURFACE_SECONDARY）
      * @param clayBandsOffsetNoise 陶土带偏移噪声
      * @param noiseChunk NoiseChunk 引用，用于查询 preliminarySurfaceLevel
+     * @param positionalRandom 位置随机工厂（MC: noiseRandom，用于 getSurfaceDepth 抖动和 clayBands 种子）
      * @param heightProvider 高度查询回调（用于 steep 条件）
      */
     SurfaceRuleContext(i32 seaLevel,
@@ -122,6 +124,7 @@ public:
         const world::gen::noise::NormalNoise* surfaceSecondaryNoise,
         const world::gen::noise::NormalNoise* clayBandsOffsetNoise,
         const density::NoiseChunk& noiseChunk,
+        const math::PositionalRandomFactory& positionalRandom,
         HeightProvider heightProvider = nullptr);
 
     /** 更新 XZ 坐标（每列开始时调用） */
@@ -168,6 +171,9 @@ public:
     /** 判断是否为 hole（surfaceDepth <= 0） */
     [[nodiscard]] bool hole() const { return m_surfaceDepth <= 0; }
 
+    /** 获取最小表面高度（MC: SurfaceRules.Context.getMinSurfaceLevel） */
+    [[nodiscard]] i32 minSurfaceLevel() const { return _minSurfaceLevel(); }
+
 private:
     [[nodiscard]] i32 _minSurfaceLevel() const;
 
@@ -182,6 +188,9 @@ private:
 
     /// NoiseChunk 引用，用于查询 preliminarySurfaceLevel（MC 1.21: SurfaceRules.Context.noiseChunk）
     const density::NoiseChunk& m_noiseChunk;
+
+    /// 位置随机工厂（MC: noiseRandom），用于 getSurfaceDepth 抖动等
+    const math::PositionalRandomFactory& m_positionalRandom;
 
     /// 高度查询回调（用于 steep 条件）
     HeightProvider m_heightProvider;
@@ -207,7 +216,7 @@ private:
 
     // Bandlands 陶土带
     std::vector<const BlockState*> m_clayBands;
-    void generateClayBands(u64 seed);
+    void generateClayBands(const math::PositionalRandomFactory& random);
 };
 
 // ============================================================================
@@ -529,6 +538,7 @@ public:
      * @param minY 世界最低 Y
      * @param height 世界高度
      * @param seed 世界种子
+     * @param positionalRandom 位置随机工厂（MC: noiseRandom，用于 getSurfaceDepth、clayBands、扩展等）
      */
     SurfaceSystem(std::unique_ptr<SurfaceRule> surfaceRule,
         const BlockState* defaultBlock,
@@ -536,7 +546,8 @@ public:
         i32 seaLevel,
         i32 minY,
         i32 height,
-        u64 seed);
+        u64 seed,
+        const math::PositionalRandomFactory& positionalRandom);
 
     /**
      * @brief 构建整个区块的表面
@@ -552,6 +563,26 @@ private:
     /** 判断方块是否为"石头"（非空气、非流体） */
     bool isStone(const BlockState* state) const;
 
+    /**
+     * @brief 风蚀恶地地柱扩展（MC: SurfaceSystem.erodedBadlandsExtension）
+     * 在 Eroded Badlands 生物群系中生成高耸的石柱/方山地貌。
+     */
+    void erodedBadlandsExtension(
+        ChunkPrimer& chunk, i32 worldX, i32 worldZ, i32 surfaceY, i32 localX, i32 localZ) const;
+
+    /**
+     * @brief 冻洋冰山扩展（MC: SurfaceSystem.frozenOceanExtension）
+     * 在 Frozen Ocean / Deep Frozen Ocean 生物群系中生成冰山。
+     */
+    void frozenOceanExtension(ChunkPrimer& chunk,
+        i32 worldX,
+        i32 worldZ,
+        i32 surfaceY,
+        i32 localX,
+        i32 localZ,
+        i32 minSurfaceLevel,
+        bool isColdOcean) const;
+
     std::unique_ptr<SurfaceRule> m_surfaceRule;
     const BlockState* m_defaultBlock;
     const BlockState* m_defaultFluid;
@@ -559,6 +590,9 @@ private:
     i32 m_minY;
     i32 m_height;
     u64 m_seed;
+
+    // 位置随机工厂（MC: noiseRandom）
+    math::PositionalRandomFactory m_positionalRandom;
 
     // 噪声生成器（用于 SurfaceRuleContext）
     std::unique_ptr<world::gen::noise::NormalNoise> m_surfaceDepthNoise;

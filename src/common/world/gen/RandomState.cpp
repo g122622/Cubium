@@ -70,13 +70,19 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
     }
 
     if (surfaceRule) {
+        // MC 1.21: SurfaceSystem 构造接收 PositionalRandomFactory（noiseRandom）
+        // 由 RandomState.random（worldSeed forkPositional）创建
+        ::mc::math::Xoroshiro128ppRandom surfaceRng(worldSeed);
+        auto surfacePositionalRandom = surfaceRng.forkPositional();
+
         state->m_surfaceSystem = std::make_unique<surface::SurfaceSystem>(std::move(surfaceRule),
             settings.defaultBlock,
             settings.defaultFluid,
             settings.seaLevel,
             settings.noise.minY,
             settings.noise.height,
-            worldSeed);
+            worldSeed,
+            surfacePositionalRandom);
     }
 
     // 创建 PositionalRandomFactory（含水层随机源）
