@@ -21,6 +21,8 @@ Checks: >-
   modernize-make-shared,
   modernize-make-unique,
   modernize-pass-by-value,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-misplaced-widening-cast,
   misc-misplaced-const,
   misc-redundant-expression,
   misc-static-assert,
@@ -34,7 +36,6 @@ WarningsAsErrors: >-
   misc-redundant-expression,
   readability-misleading-indentation
 HeaderFilterRegex: '^(src|include)/'
-AnalyzeTemporaryDtors: false
 FormatStyle: file
 CheckOptions:
   - key: bugprone-argument-comment.StrictMode
