@@ -86,7 +86,7 @@ void EndBiomeSource::fillBiomeContainer(BiomeContainer& container, ChunkCoord ch
 {
     constexpr i32 HORIZ_SIZE = 4;
     constexpr i32 VERT_SIZE = 4;
-    constexpr i32 SECTION_COUNT = 24;
+    constexpr i32 SECTION_COUNT = world::CHUNK_SECTIONS;
 
     for (i32 section = 0; section < SECTION_COUNT; ++section) {
         for (i32 y = 0; y < VERT_SIZE; ++y) {

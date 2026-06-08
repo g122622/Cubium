@@ -214,7 +214,12 @@ Result<void> JavaChunkReader::readBlockStates(const compound_tag& sectionNbt, Ch
     }
 
     // 创建 ChunkSection 并填充方块状态
-    ChunkSection* section = chunk.createSection(sectionY);
+    const i32 sectionIndex = world::sectionCoordToIndex(sectionY);
+    if (sectionIndex < 0 || sectionIndex >= world::CHUNK_SECTIONS) {
+        return Error(ErrorCode::ChunkCorrupted,
+            fmt::format("Java section Y {} maps outside chunk section range [0, {})", sectionY, world::CHUNK_SECTIONS));
+    }
+    ChunkSection* section = chunk.createSection(sectionIndex);
     if (!section) {
         return Error(ErrorCode::ChunkCorrupted, fmt::format("Failed to create section {} for chunk", sectionY));
     }

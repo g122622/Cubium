@@ -440,8 +440,8 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
         }
 
         if (sectionData->biomes.size() == SectionData::BIOME_COUNT) {
-            const i32 sectionIndex = static_cast<i32>(keys[i].sectionY) - (world::MIN_BUILD_HEIGHT >> 4);
-            if (sectionIndex >= 0 && sectionIndex < BiomeContainer::SECTION_COUNT) {
+            const i32 biomeSectionIndex = world::sectionCoordToIndex(static_cast<i32>(keys[i].sectionY));
+            if (biomeSectionIndex >= 0 && biomeSectionIndex < BiomeContainer::SECTION_COUNT) {
                 for (i32 biomeY = 0; biomeY < BiomeContainer::VERT_SIZE; ++biomeY) {
                     for (i32 biomeZ = 0; biomeZ < BiomeContainer::HORIZ_SIZE; ++biomeZ) {
                         for (i32 biomeX = 0; biomeX < BiomeContainer::HORIZ_SIZE; ++biomeX) {
@@ -449,7 +449,7 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
                                 static_cast<size_t>(biomeY * BiomeContainer::HORIZ_SIZE * BiomeContainer::HORIZ_SIZE +
                                     biomeZ * BiomeContainer::HORIZ_SIZE + biomeX);
                             biomeContainer.setBiome(
-                                sectionIndex, biomeX, biomeY, biomeZ, sectionData->biomes[biomeIndex]);
+                                biomeSectionIndex, biomeX, biomeY, biomeZ, sectionData->biomes[biomeIndex]);
                         }
                     }
                 }
@@ -457,8 +457,15 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
             }
         }
 
-        const i8 sectionY = keys[i].sectionY;
-        ChunkSection* section = chunk.createSection(sectionY);
+        const i32 sectionIndex = world::sectionCoordToIndex(static_cast<i32>(keys[i].sectionY));
+        if (sectionIndex < 0 || sectionIndex >= world::CHUNK_SECTIONS) {
+            return Error(ErrorCode::ChunkCorrupted,
+                fmt::format("Section coord {} maps outside chunk section range [0, {})",
+                    static_cast<i32>(keys[i].sectionY),
+                    world::CHUNK_SECTIONS));
+        }
+
+        ChunkSection* section = chunk.createSection(sectionIndex);
         MC_ASSERT_RELEASE(section != nullptr);
         auto applyResult = SectionCodec::toChunkSection(*sectionData, *section);
         if (applyResult.failed()) {

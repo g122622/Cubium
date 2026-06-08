@@ -246,7 +246,6 @@ Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkD
     const list_tag* sections = getList(columnNbt, "sections");
     if (sections != nullptr) {
         BiomeContainer biomeContainer;
-        const i32 baseSectionY = world::MIN_BUILD_HEIGHT / world::CHUNK_SECTION_HEIGHT;
 
         for (size_t i = 0; i < sections->size(); ++i) {
             auto entry = (*sections)[i];
@@ -264,7 +263,7 @@ Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkD
             }
 
             const auto& sectionBiomes = *sectionBiomesResult.value();
-            const i32 sectionIndex = sectionBiomes.sectionY - baseSectionY;
+            const i32 sectionIndex = world::sectionCoordToIndex(sectionBiomes.sectionY);
             if (sectionIndex < 0 || sectionIndex >= BiomeContainer::SECTION_COUNT) {
                 continue;
             }

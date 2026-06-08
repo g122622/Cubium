@@ -189,8 +189,8 @@ public:
     static constexpr i32 HORIZ_SIZE = 4;                                           // 水平方向采样点
     static constexpr i32 VERT_SIZE = 4;                                            // 每段垂直采样点
     static constexpr i32 SECTION_BIOME_SIZE = HORIZ_SIZE * VERT_SIZE * HORIZ_SIZE; // 64
-    static constexpr i32 SECTION_COUNT = 24;                                       // -64~320, 384/16=24
-    static constexpr i32 TOTAL_SIZE = SECTION_BIOME_SIZE * SECTION_COUNT;          // 1536
+    static constexpr i32 SECTION_COUNT = world::CHUNK_SECTIONS;
+    static constexpr i32 TOTAL_SIZE = SECTION_BIOME_SIZE * SECTION_COUNT; // 1536
 
     BiomeContainer() = default;
 
