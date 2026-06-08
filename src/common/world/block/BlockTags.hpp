@@ -328,6 +328,14 @@ public:
     /// 可被树替换方块标签
     static BlockTag& REPLACEABLE_BY_TREES();
 
+    // ========== 雕刻器标签 ==========
+
+    /// 主世界可雕刻方块标签（石头变种、泥土类、深板岩、凝灰岩、方解石、沙砾等）
+    static BlockTag& OVERWORLD_CARVER_REPLACEABLES();
+
+    /// 下界可雕刻方块标签（下界岩、灵魂沙、灵魂土、玄武岩、黑石等）
+    static BlockTag& NETHER_CARVER_REPLACEABLES();
+
     /**
      * @brief 初始化所有内置标签
      *

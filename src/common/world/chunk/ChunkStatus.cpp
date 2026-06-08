@@ -83,24 +83,15 @@ const ChunkStatus NOISE("noise",
 // 生成地表方块（草地、沙子等）
 const ChunkStatus SURFACE("surface", SURFACE_ORDINAL, &NOISE, 0, HeightmapFlag::PRE_FEATURES, ChunkType::PROTOCHUNK);
 
-// CARVERS: 空气雕刻
-// 生成洞穴和峡谷（空气填充）
+// CARVERS: 雕刻（洞穴、峡谷）
+// MC 1.21.11: 合并了 AIR 和 LIQUID 雕刻阶段，含水层系统决定填充内容
 const ChunkStatus CARVERS("carvers", CARVERS_ORDINAL, &SURFACE, 0, HeightmapFlag::PRE_FEATURES, ChunkType::PROTOCHUNK);
-
-// LIQUID_CARVERS: 液体雕刻
-// 生成水下洞穴（水/熔岩填充）
-const ChunkStatus LIQUID_CARVERS("liquid_carvers",
-    LIQUID_CARVERS_ORDINAL,
-    &CARVERS,
-    0,
-    HeightmapFlag::POST_FEATURES, // 切换到生成后高度图
-    ChunkType::PROTOCHUNK);
 
 // FEATURES: 特性放置
 // 放置树木、矿石、花草等地物
 const ChunkStatus FEATURES("features",
     FEATURES_ORDINAL,
-    &LIQUID_CARVERS,
+    &CARVERS,
     8, // 需要邻居区块以正确连接特性
     HeightmapFlag::POST_FEATURES,
     ChunkType::PROTOCHUNK);
@@ -144,7 +135,7 @@ namespace {
 // 用于将距离值映射到对应的状态
 const std::vector<const ChunkStatus*> STATUS_BY_RANGE = {&ChunkStatuses::FULL,
     &ChunkStatuses::FEATURES,
-    &ChunkStatuses::LIQUID_CARVERS,
+    &ChunkStatuses::CARVERS,
     &ChunkStatuses::STRUCTURE_STARTS,
     &ChunkStatuses::STRUCTURE_STARTS,
     &ChunkStatuses::STRUCTURE_STARTS,
@@ -204,7 +195,6 @@ const std::vector<ChunkStatus>& ChunkStatus::getAll()
         ChunkStatuses::NOISE,
         ChunkStatuses::SURFACE,
         ChunkStatuses::CARVERS,
-        ChunkStatuses::LIQUID_CARVERS,
         ChunkStatuses::FEATURES,
         ChunkStatuses::LIGHT,
         ChunkStatuses::SPAWN,

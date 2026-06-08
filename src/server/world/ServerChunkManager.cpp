@@ -509,9 +509,7 @@ void ServerChunkManager::_doGenerateChunkToTargetStatus(ChunkPrimer& chunk, cons
         } else if (status == ChunkStatuses::SURFACE) {
             m_generator->buildSurface(*context.region, chunk);
         } else if (status == ChunkStatuses::CARVERS) {
-            m_generator->applyCarvers(*context.region, chunk, false);
-        } else if (status == ChunkStatuses::LIQUID_CARVERS) {
-            m_generator->applyCarvers(*context.region, chunk, true);
+            m_generator->applyCarvers(*context.region, chunk);
         } else if (status == ChunkStatuses::FEATURES) {
             m_generator->placeFeatures(*context.region, chunk);
         } else if (status == ChunkStatuses::HEIGHTMAPS) {

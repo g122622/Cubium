@@ -26,7 +26,7 @@
 // 雕刻器模块
 
 #include "CanyonCarver.hpp"
+#include "CarverConfiguration.hpp"
 #include "CaveCarver.hpp"
 #include "NetherCaveCarver.hpp"
-#include "UnderwaterCarver.hpp"
 #include "WorldCarver.hpp"

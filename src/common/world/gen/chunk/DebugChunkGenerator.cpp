@@ -210,12 +210,11 @@ void DebugChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chun
     MC_UNUSED(chunk);
 }
 
-void DebugChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid)
+void DebugChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk)
 {
     // 调试模式不应用雕刻器
     MC_UNUSED(region);
     MC_UNUSED(chunk);
-    MC_UNUSED(isLiquid);
 }
 
 void DebugChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk)

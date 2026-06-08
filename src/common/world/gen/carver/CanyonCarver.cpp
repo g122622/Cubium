@@ -22,10 +22,12 @@
  */
 
 #include "CanyonCarver.hpp"
-#include "../../../core/Constants.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../block/BlockRegistry.hpp"
-#include <algorithm>
+#include "CarvingContext.hpp"
+#include "common/core/Constants.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 
 namespace mc {
@@ -35,30 +37,11 @@ namespace mc {
 // ============================================================================
 
 CanyonCarver::CanyonCarver(i32 maxHeight)
-    : WorldCarver<ProbabilityConfig>(maxHeight)
-    , m_heightThresholds(static_cast<size_t>(world::CHUNK_HEIGHT), 1.0f)
-{
-    _initializeHeightThresholds();
-}
-
-void CanyonCarver::_initializeHeightThresholds()
-{
-    // MC: initWidthFactors — 为每个高度预计算半径变化因子
-    // 使用 widthSmoothness = 3（MC 默认值）
-    math::Random rng(0);
-
-    f32 currentThreshold = 1.0f;
-    for (size_t i = 0; i < m_heightThresholds.size(); ++i) {
-        if (i == 0 || rng.nextInt(3) == 0) {
-            currentThreshold = 1.0f + rng.nextFloat() * rng.nextFloat();
-            currentThreshold = currentThreshold * currentThreshold;
-        }
-        m_heightThresholds[i] = currentThreshold;
-    }
-}
+    : WorldCarver<CanyonCarverConfiguration>(maxHeight)
+{}
 
 bool CanyonCarver::shouldCarve(
-    math::IRandom& rng, ChunkCoord /*chunkX*/, ChunkCoord /*chunkZ*/, const ProbabilityConfig& config) const
+    math::IRandom& rng, ChunkCoord /*chunkX*/, ChunkCoord /*chunkZ*/, const CanyonCarverConfiguration& config) const
 {
     return rng.nextFloat() <= config.probability;
 }
@@ -66,119 +49,135 @@ bool CanyonCarver::shouldCarve(
 bool CanyonCarver::carve(ChunkPrimer& chunk,
     CarvingContext& context,
     const world::biome::BiomeSource& biomeSource,
-    i32 seaLevel,
-    ChunkCoord chunkX,
-    ChunkCoord chunkZ,
+    ChunkCoord targetChunkX,
+    ChunkCoord targetChunkZ,
+    ChunkCoord originChunkX,
+    ChunkCoord originChunkZ,
     CarvingMask& carvingMask,
     math::IRandom& rng,
-    const ProbabilityConfig& /*config*/)
+    const CanyonCarverConfiguration& config)
 {
-    // MC 1.21: shouldCarve (isStartChunk) 已由 applyCarvers 通过 setLargeFeatureSeed 完成
-    // RNG 已正确初始化，直接使用
+    // MC 1.21.11: CanyonWorldCarver.carve
+    const i32 range = getRange() * 2 - 1;
+    const i32 tunnelLength = range * world::CHUNK_WIDTH;
 
-    const i32 tunnelLength = (getRange() * 2 - 1) * world::CHUNK_WIDTH;
-    const i32 startX = world::toWorldCoord(chunkX);
-    const i32 startZ = world::toWorldCoord(chunkZ);
-
-    // 峡谷起点
-    const f32 canyonX = static_cast<f32>(startX) + rng.nextFloat(0.0f, static_cast<f32>(world::CHUNK_WIDTH));
-    const f32 canyonY = static_cast<f32>(rng.nextInt(rng.nextInt(40) + 8) + 20);
-    const f32 canyonZ = static_cast<f32>(startZ) + rng.nextFloat(0.0f, static_cast<f32>(world::CHUNK_WIDTH));
+    // 起始位置：在起始区块内的随机位置
+    const f32 startX =
+        static_cast<f32>(world::toWorldCoord(originChunkX)) + static_cast<f32>(rng.nextInt(world::CHUNK_WIDTH));
+    const i32 startY = config.y->sample(rng, context);
+    const f32 startZ =
+        static_cast<f32>(world::toWorldCoord(originChunkZ)) + static_cast<f32>(rng.nextInt(world::CHUNK_WIDTH));
 
     // 峡谷方向和尺寸
-    const f32 yaw = rng.nextFloat(0.0f, math::TWO_PI);
-    const f32 pitch = (rng.nextFloat() - 0.5f) * 2.0f / 8.0f;
-    const f32 radius = (rng.nextFloat() * 2.0f + rng.nextFloat()) * 2.0f;
-
-    // 峡谷长度
-    const i32 length = tunnelLength - rng.nextInt(tunnelLength / 4 + 1);
+    const f32 yaw = rng.nextFloat() * math::TWO_PI;
+    const f32 pitch = config.verticalRotation->sample(rng);
+    const f32 yScale = config.yScale->sample(rng);
+    const f32 thickness = config.shape.thickness->sample(rng);
+    const i32 length = static_cast<i32>(static_cast<f32>(tunnelLength) * config.shape.distanceFactor->sample(rng));
 
     // 生成蜿蜒峡谷
     _generateCanyon(chunk,
         context,
         biomeSource,
-        seaLevel,
-        chunkX,
-        chunkZ,
-        static_cast<i64>(rng.nextU64()),
-        canyonX,
-        canyonY,
-        canyonZ,
-        radius,
+        targetChunkX,
+        targetChunkZ,
+        rng.nextLong(),
+        startX,
+        static_cast<f32>(startY),
+        startZ,
+        thickness,
         yaw,
         pitch,
         0,
         length,
-        3.0f,
-        carvingMask);
+        yScale,
+        carvingMask,
+        config);
 
     return true;
 }
 
-bool CanyonCarver::shouldSkipEllipsoidPosition(f32 dx, f32 dy, f32 dz, i32 y) const
+std::vector<f32> CanyonCarver::_initWidthFactors(
+    CarvingContext& context, const CanyonCarverConfiguration& config, math::IRandom& rng) const
 {
-    // MC: shouldSkip — 使用高度阈值表进行厚度检测
-    // 索引方式: i = y - getMinGenY() = y - MIN_BUILD_HEIGHT
-    const i32 index = y - world::MIN_BUILD_HEIGHT;
+    // MC: initWidthFactors
+    const i32 genDepth = context.getGenDepth();
+    std::vector<f32> factors(static_cast<size_t>(genDepth));
 
-    if (index <= 0 || index > static_cast<i32>(m_heightThresholds.size())) {
-        // 超出范围时使用标准椭球检测
-        return dx * dx + dy * dy + dz * dz >= 1.0f;
+    f32 currentFactor = 1.0f;
+    for (i32 j = 0; j < genDepth; ++j) {
+        if (j == 0 || rng.nextInt(config.shape.widthSmoothness) == 0) {
+            currentFactor = 1.0f + rng.nextFloat() * rng.nextFloat();
+        }
+        factors[static_cast<size_t>(j)] = currentFactor * currentFactor;
     }
 
-    // MC: (dx*dx + dz*dz) * afloat[index - 1] + dy*dy / 6.0 >= 1.0
-    const f32 threshold = m_heightThresholds[static_cast<size_t>(index - 1)];
-    return (dx * dx + dz * dz) * threshold + dy * dy / 6.0f >= 1.0f;
+    return factors;
+}
+
+f32 CanyonCarver::_updateVerticalRadius(
+    const CanyonCarverConfiguration& config, math::IRandom& rng, f32 baseRadius, f32 totalSteps, f32 currentStep) const
+{
+    // MC: updateVerticalRadius
+    // f = 1.0 - abs(0.5 - progress) * 2.0
+    //   -> 0 at edges (progress=0,1), 1 at center (progress=0.5)
+    const f32 progress = currentStep / totalSteps;
+    const f32 f = 1.0f - std::abs(0.5f - progress) * 2.0f;
+    const f32 f1 = config.shape.verticalRadiusDefaultFactor + config.shape.verticalRadiusCenterFactor * f;
+
+    // MC: randomBetween(rng, 0.75, 1.0)
+    const f32 randomFactor = rng.nextFloat() * 0.25f + 0.75f;
+    return f1 * baseRadius * randomFactor;
 }
 
 void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
     CarvingContext& context,
     const world::biome::BiomeSource& biomeSource,
-    i32 seaLevel,
-    ChunkCoord chunkX,
-    ChunkCoord chunkZ,
+    ChunkCoord targetChunkX,
+    ChunkCoord targetChunkZ,
     i64 seed,
     f32 startX,
     f32 startY,
     f32 startZ,
-    f32 radius,
+    f32 thickness,
     f32 yaw,
     f32 pitch,
     i32 startIndex,
     i32 endIndex,
-    f32 horizontalScale,
-    CarvingMask& carvingMask)
+    f32 yScale,
+    CarvingMask& carvingMask,
+    const CanyonCarverConfiguration& config)
 {
     math::Random rng(static_cast<u64>(seed));
 
-    // MC: initWidthFactors — 使用 widthSmoothness = 3（默认值）
-    // 注意：MC 中每个峡谷调用都会重新生成阈值表
-    std::vector<f32> heightThresholds(static_cast<size_t>(world::CHUNK_HEIGHT));
-    f32 currentThreshold = 1.0f;
-    for (size_t i = 0; i < heightThresholds.size(); ++i) {
-        if (i == 0 || rng.nextInt(3) == 0) {
-            currentThreshold = 1.0f + rng.nextFloat() * rng.nextFloat();
-            currentThreshold = currentThreshold * currentThreshold;
-        }
-        heightThresholds[i] = currentThreshold;
-    }
+    // 初始化宽度因子数组
+    const std::vector<f32> heightThresholds = _initWidthFactors(context, config, rng);
+
+    // 创建跳过检查器（捕获 heightThresholds）
+    const CarveSkipChecker skipChecker = _createSkipChecker(context, heightThresholds);
 
     f32 yawModifier = 0.0f;
     f32 pitchModifier = 0.0f;
 
     for (i32 i = startIndex; i < endIndex; ++i) {
         // MC: d0 = 1.5 + sin(i * PI / endIndex) * thickness
-        const f32 progress = static_cast<f32>(i) / static_cast<f32>(endIndex);
-        const f32 horizontalRadius = 1.5f + radius * std::sin(progress * math::PI);
-        f32 verticalRadius = horizontalRadius * horizontalScale;
+        const f32 horizontalRadius =
+            1.5 + std::sin(static_cast<f32>(i) * math::PI / static_cast<f32>(endIndex)) * thickness;
+        f32 verticalRadius = horizontalRadius * yScale;
 
-        // MC: 只对垂直半径应用 updateVerticalRadius
-        verticalRadius = _updateVerticalRadius(verticalRadius, progress, rng);
+        // 应用水平半径因子
+        const f32 horizontalRadiusFactor = config.shape.horizontalRadiusFactor->sample(rng);
+        const f32 scaledHorizontalRadius = horizontalRadius * horizontalRadiusFactor;
+
+        // 更新垂直半径
+        verticalRadius =
+            _updateVerticalRadius(config, rng, verticalRadius, static_cast<f32>(endIndex), static_cast<f32>(i));
 
         // 更新位置
         const f32 cosPitch = std::cos(pitch);
+        const f32 sinPitch = std::sin(pitch);
         startX += std::cos(yaw) * cosPitch;
-        startY += std::sin(pitch);
+        startY += sinPitch;
         startZ += std::sin(yaw) * cosPitch;
 
         // 更新角度
@@ -195,41 +194,43 @@ void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
         // MC: 随机跳过一些点（75% 概率雕刻）
         if (rng.nextInt(4) != 0) {
             // MC: canReach 检查失败时终止整个峡谷
-            if (!isInCarvingRange(chunkX, chunkZ, startX, startZ, i, endIndex, radius)) {
+            if (!isInCarvingRange(targetChunkX, targetChunkZ, startX, startZ, i, endIndex, thickness)) {
                 return;
             }
 
             carveEllipsoid(chunk,
                 context,
                 biomeSource,
-                seaLevel,
-                chunkX,
-                chunkZ,
+                targetChunkX,
+                targetChunkZ,
                 startX,
                 startY,
                 startZ,
-                horizontalRadius,
+                scaledHorizontalRadius,
                 verticalRadius,
                 carvingMask,
-                static_cast<i64>(rng.nextU64()));
+                skipChecker,
+                config);
         }
     }
 }
 
-f32 CanyonCarver::_updateVerticalRadius(f32 baseRadius, f32 progress, math::IRandom& rng) const
+CarveSkipChecker CanyonCarver::_createSkipChecker(
+    CarvingContext& context, const std::vector<f32>& heightThresholds) const
 {
-    // MC: updateVerticalRadius
-    // f = 1.0 - abs(0.5 - progress) * 2.0
-    //   → 0 at edges (progress=0,1), 1 at center (progress=0.5)
-    // f1 = verticalRadiusDefaultFactor + verticalRadiusCenterFactor * f
-    // 默认值: verticalRadiusDefaultFactor = 0.0, verticalRadiusCenterFactor = 1.0
-    // result = f1 * baseRadius * randomBetween(0.75, 1.0)
-    const f32 f = 1.0f - std::abs(0.5f - progress) * 2.0f;
-    const f32 verticalRadiusDefaultFactor = 0.0f;
-    const f32 verticalRadiusCenterFactor = 1.0f;
-    const f32 f1 = verticalRadiusDefaultFactor + verticalRadiusCenterFactor * f;
-    const f32 randomFactor = rng.nextFloat() * 0.25f + 0.75f; // randomBetween(0.75, 1.0)
-    return f1 * baseRadius * randomFactor;
+    // MC: shouldSkip
+    // (dx*dx + dz*dz) * heightThresholds[y - minGenY - 1] + dy*dy/6.0 >= 1.0
+    const i32 minGenY = context.getMinGenY();
+
+    return [&heightThresholds, minGenY](f32 dx, f32 dy, f32 dz, i32 y) -> bool {
+        const i32 index = y - minGenY - 1;
+        if (index < 0 || index >= static_cast<i32>(heightThresholds.size())) {
+            // 超出范围时使用标准椭球检测
+            return dx * dx + dy * dy + dz * dz >= 1.0f;
+        }
+        const f32 threshold = heightThresholds[static_cast<size_t>(index)];
+        return (dx * dx + dz * dz) * threshold + dy * dy / 6.0f >= 1.0f;
+    };
 }
 
 } // namespace mc

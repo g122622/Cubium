@@ -150,7 +150,7 @@ public:
     void generateBiomes(WorldGenRegion&, ChunkPrimer&) override {}
     void generateNoise(WorldGenRegion&, ChunkPrimer&) override {}
     void buildSurface(WorldGenRegion&, ChunkPrimer&) override {}
-    void applyCarvers(WorldGenRegion&, ChunkPrimer&, bool) override {}
+    void applyCarvers(WorldGenRegion&, ChunkPrimer&) override {}
     void placeFeatures(WorldGenRegion&, ChunkPrimer&) override {}
     i32 spawnInitialMobs(WorldGenRegion&, ChunkPrimer&, std::vector<SpawnedEntityData>&) override { return 0; }
 

@@ -642,6 +642,24 @@ BlockTag& BlockTags::REPLACEABLE_BY_TREES()
     return *tag;
 }
 
+BlockTag& BlockTags::OVERWORLD_CARVER_REPLACEABLES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "overworld_carver_replaceables"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::NETHER_CARVER_REPLACEABLES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "nether_carver_replaceables"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize()
 {
     if (s_initialized) {
@@ -1707,6 +1725,71 @@ void BlockTags::initialize()
     auto lodestoneTag = std::make_unique<BlockTag>(ResourceLocation("minecraft", "lodestone"));
     lodestoneTag->addAll({ResourceLocation("minecraft", "lodestone")});
     tags[lodestoneTag->getId()] = std::move(lodestoneTag);
+
+    // 主世界可雕刻方块标签
+    auto overworldCarverReplaceables =
+        std::make_unique<BlockTag>(ResourceLocation("minecraft", "overworld_carver_replaceables"));
+    overworldCarverReplaceables->addAll({
+        ResourceLocation("minecraft", "stone"),
+        ResourceLocation("minecraft", "granite"),
+        ResourceLocation("minecraft", "diorite"),
+        ResourceLocation("minecraft", "andesite"),
+        ResourceLocation("minecraft", "deepslate"),
+        ResourceLocation("minecraft", "tuff"),
+        ResourceLocation("minecraft", "calcite"),
+        ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "podzol"),
+        ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "moss_block"),
+        ResourceLocation("minecraft", "terracotta"),
+        ResourceLocation("minecraft", "white_terracotta"),
+        ResourceLocation("minecraft", "orange_terracotta"),
+        ResourceLocation("minecraft", "magenta_terracotta"),
+        ResourceLocation("minecraft", "light_blue_terracotta"),
+        ResourceLocation("minecraft", "yellow_terracotta"),
+        ResourceLocation("minecraft", "lime_terracotta"),
+        ResourceLocation("minecraft", "pink_terracotta"),
+        ResourceLocation("minecraft", "gray_terracotta"),
+        ResourceLocation("minecraft", "light_gray_terracotta"),
+        ResourceLocation("minecraft", "cyan_terracotta"),
+        ResourceLocation("minecraft", "purple_terracotta"),
+        ResourceLocation("minecraft", "blue_terracotta"),
+        ResourceLocation("minecraft", "brown_terracotta"),
+        ResourceLocation("minecraft", "green_terracotta"),
+        ResourceLocation("minecraft", "red_terracotta"),
+        ResourceLocation("minecraft", "black_terracotta"),
+        ResourceLocation("minecraft", "sand"),
+        ResourceLocation("minecraft", "red_sand"),
+        ResourceLocation("minecraft", "sandstone"),
+        ResourceLocation("minecraft", "red_sandstone"),
+        ResourceLocation("minecraft", "gravel"),
+        ResourceLocation("minecraft", "packed_ice"),
+        ResourceLocation("minecraft", "mycelium"),
+        ResourceLocation("minecraft", "snow_block"),
+        ResourceLocation("minecraft", "clay"),
+        ResourceLocation("minecraft", "dripstone_block"),
+        ResourceLocation("minecraft", "pointed_dripstone"),
+    });
+    tags[overworldCarverReplaceables->getId()] = std::move(overworldCarverReplaceables);
+
+    // 下界可雕刻方块标签
+    auto netherCarverReplaceables =
+        std::make_unique<BlockTag>(ResourceLocation("minecraft", "nether_carver_replaceables"));
+    netherCarverReplaceables->addAll({
+        ResourceLocation("minecraft", "netherrack"),
+        ResourceLocation("minecraft", "soul_sand"),
+        ResourceLocation("minecraft", "soul_soil"),
+        ResourceLocation("minecraft", "crimson_nylium"),
+        ResourceLocation("minecraft", "warped_nylium"),
+        ResourceLocation("minecraft", "nether_wart_block"),
+        ResourceLocation("minecraft", "warped_wart_block"),
+        ResourceLocation("minecraft", "basalt"),
+        ResourceLocation("minecraft", "blackstone"),
+        ResourceLocation("minecraft", "gravel"),
+        ResourceLocation("minecraft", "magma"),
+    });
+    tags[netherCarverReplaceables->getId()] = std::move(netherCarverReplaceables);
 
     s_initialized = true;
 }

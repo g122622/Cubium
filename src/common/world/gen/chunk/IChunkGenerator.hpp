@@ -104,11 +104,11 @@ public:
 
     /**
      * @brief 应用雕刻器（洞穴、峡谷等）
+     * MC 1.21.11: 不再有单独的液体雕刻阶段，含水层系统决定填充内容
      * @param region 世界生成区域
      * @param chunk 区块生成器
-     * @param isLiquid 是否是液体雕刻
      */
-    virtual void applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid) = 0;
+    virtual void applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk) = 0;
 
     /**
      * @brief 放置特性（树木、矿石等）
@@ -464,7 +464,7 @@ public:
     void generateStructureStarts(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void generateStructureReferences(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void generateBiomes(WorldGenRegion& region, ChunkPrimer& chunk) override;
-    void applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid) override;
+    void applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) override;
     i32 spawnInitialMobs(
         WorldGenRegion& region, ChunkPrimer& chunk, std::vector<SpawnedEntityData>& outEntities) override;

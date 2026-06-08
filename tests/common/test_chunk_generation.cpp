@@ -112,12 +112,11 @@ TEST(ChunkStatus, GetAll)
     EXPECT_EQ(all[4], ChunkStatuses::NOISE);
     EXPECT_EQ(all[5], ChunkStatuses::SURFACE);
     EXPECT_EQ(all[6], ChunkStatuses::CARVERS);
-    EXPECT_EQ(all[7], ChunkStatuses::LIQUID_CARVERS);
-    EXPECT_EQ(all[8], ChunkStatuses::FEATURES);
-    EXPECT_EQ(all[9], ChunkStatuses::LIGHT);
-    EXPECT_EQ(all[10], ChunkStatuses::SPAWN);
-    EXPECT_EQ(all[11], ChunkStatuses::HEIGHTMAPS);
-    EXPECT_EQ(all[12], ChunkStatuses::FULL);
+    EXPECT_EQ(all[7], ChunkStatuses::FEATURES);
+    EXPECT_EQ(all[8], ChunkStatuses::LIGHT);
+    EXPECT_EQ(all[9], ChunkStatuses::SPAWN);
+    EXPECT_EQ(all[10], ChunkStatuses::HEIGHTMAPS);
+    EXPECT_EQ(all[11], ChunkStatuses::FULL);
 }
 
 TEST(ChunkStatus, NewStages)
@@ -125,13 +124,13 @@ TEST(ChunkStatus, NewStages)
     // 验证新增的阶段
     EXPECT_EQ(ChunkStatuses::STRUCTURE_STARTS.name(), "structure_starts");
     EXPECT_EQ(ChunkStatuses::STRUCTURE_REFERENCES.name(), "structure_references");
-    EXPECT_EQ(ChunkStatuses::LIQUID_CARVERS.name(), "liquid_carvers");
+    EXPECT_EQ(ChunkStatuses::CARVERS.name(), "carvers");
     EXPECT_EQ(ChunkStatuses::SPAWN.name(), "spawn");
 
     // 验证阶段顺序
     EXPECT_TRUE(ChunkStatuses::STRUCTURE_STARTS.isBefore(ChunkStatuses::STRUCTURE_REFERENCES));
     EXPECT_TRUE(ChunkStatuses::STRUCTURE_REFERENCES.isBefore(ChunkStatuses::BIOMES));
-    EXPECT_TRUE(ChunkStatuses::CARVERS.isBefore(ChunkStatuses::LIQUID_CARVERS));
+    EXPECT_TRUE(ChunkStatuses::CARVERS.isBefore(ChunkStatuses::FEATURES));
     EXPECT_TRUE(ChunkStatuses::LIGHT.isBefore(ChunkStatuses::SPAWN));
     EXPECT_TRUE(ChunkStatuses::SPAWN.isBefore(ChunkStatuses::HEIGHTMAPS));
 }

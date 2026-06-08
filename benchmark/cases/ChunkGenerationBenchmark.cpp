@@ -133,9 +133,7 @@ public:
             } else if (status == ChunkStatuses::SURFACE) {
                 m_generator->buildSurface(region, *chunk);
             } else if (status == ChunkStatuses::CARVERS) {
-                m_generator->applyCarvers(region, *chunk, false);
-            } else if (status == ChunkStatuses::LIQUID_CARVERS) {
-                m_generator->applyCarvers(region, *chunk, true);
+                m_generator->applyCarvers(region, *chunk);
             } else if (status == ChunkStatuses::FEATURES) {
                 m_generator->placeFeatures(region, *chunk);
             } else if (status == ChunkStatuses::HEIGHTMAPS) {

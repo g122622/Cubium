@@ -27,8 +27,9 @@
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../block/BlockRegistry.hpp"
+#include "../../block/BlockTags.hpp"
+#include "../carver/CarverConfiguration.hpp"
 #include "../carver/CarvingContext.hpp"
-#include "../carver/WorldCarver.hpp"
 #include "../feature/ConfiguredFeature.hpp"
 #include "../spawn/WorldGenSpawner.hpp"
 #include "../structure/Structure.hpp"
@@ -147,9 +148,11 @@ void NetherChunkGenerator::_initNoiseGenerators()
     m_simplexNoise = std::make_unique<SimplexNoiseGenerator>(rng);
 
     // 初始化下界洞穴雕刻器
-    // 下界洞穴概率较高，约 1/5
+    // MC 1.21.11: 使用 BlockTag 配置
+    using namespace world::gen::carver;
+    const BlockTag* netherReplaceable = &BlockTags::NETHER_CARVER_REPLACEABLES();
     m_caveCarver = std::make_unique<NetherCaveCarver>();
-    m_caveConfig = ProbabilityConfig(0.2f);
+    m_caveConfig = ConfiguredCarvers::createNetherCaveConfig(netherReplaceable);
 }
 
 // ============================================================================
@@ -308,7 +311,7 @@ void NetherChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chu
     chunk.setChunkStatus(ChunkStatuses::SURFACE);
 }
 
-void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid)
+void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk)
 {
     MC_TRACE_EVENT("world.gen.nether", "ApplyCarvers");
     MC_UNUSED(region);
@@ -316,7 +319,7 @@ void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chu
     const ChunkCoord targetChunkX = chunk.x();
     const ChunkCoord targetChunkZ = chunk.z();
 
-    // 共享雕刻掩码
+    // MC 1.21.11: 单一雕刻阶段（无 LIQUID_CARVERS）
     CarvingMask& carvingMask = chunk.carvingMask();
 
     // MC 1.21: 创建雕刻上下文（下界暂无含水层，使用回退逻辑）
@@ -325,20 +328,21 @@ void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chu
     // MC 1.21: 遍历 [-8, +8] 范围内的起始区块坐标
     math::Random worldgenRandom;
 
-    if (!isLiquid && m_caveCarver) {
+    if (m_caveCarver) {
         for (i32 dx = -8; dx <= 8; ++dx) {
             for (i32 dz = -8; dz <= 8; ++dz) {
-                const ChunkCoord startChunkX = targetChunkX + dx;
-                const ChunkCoord startChunkZ = targetChunkZ + dz;
+                const ChunkCoord originChunkX = targetChunkX + dx;
+                const ChunkCoord originChunkZ = targetChunkZ + dz;
 
-                worldgenRandom.setLargeFeatureSeed(m_seed, startChunkX, startChunkZ);
-                if (m_caveCarver->shouldCarve(worldgenRandom, startChunkX, startChunkZ, m_caveConfig)) {
+                worldgenRandom.setLargeFeatureSeed(m_seed, originChunkX, originChunkZ);
+                if (m_caveCarver->shouldCarve(worldgenRandom, originChunkX, originChunkZ, m_caveConfig)) {
                     m_caveCarver->carve(chunk,
                         context,
                         *m_biomeSource,
-                        m_lavaLevel,
-                        startChunkX,
-                        startChunkZ,
+                        targetChunkX,
+                        targetChunkZ,
+                        originChunkX,
+                        originChunkZ,
                         carvingMask,
                         worldgenRandom,
                         m_caveConfig);
@@ -347,7 +351,7 @@ void NetherChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chu
         }
     }
 
-    chunk.setChunkStatus(isLiquid ? ChunkStatuses::LIQUID_CARVERS : ChunkStatuses::CARVERS);
+    chunk.setChunkStatus(ChunkStatuses::CARVERS);
 }
 
 void NetherChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk)

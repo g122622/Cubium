@@ -209,13 +209,13 @@ void EndChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chunk)
     chunk.setChunkStatus(ChunkStatuses::SURFACE);
 }
 
-void EndChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid)
+void EndChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk)
 {
     MC_TRACE_EVENT("world.gen.end", "ApplyCarvers");
     // 末地无洞穴雕刻
     MC_UNUSED(region);
 
-    chunk.setChunkStatus(isLiquid ? ChunkStatuses::LIQUID_CARVERS : ChunkStatuses::CARVERS);
+    chunk.setChunkStatus(ChunkStatuses::CARVERS);
 }
 
 void EndChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk)

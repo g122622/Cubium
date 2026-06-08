@@ -190,7 +190,7 @@ TEST_F(DebugChunkGeneratorTest, NoOpMethods)
     EXPECT_NO_THROW(
         generator.buildSurface(*static_cast<WorldGenRegion*>(nullptr), *static_cast<ChunkPrimer*>(nullptr)));
     EXPECT_NO_THROW(
-        generator.applyCarvers(*static_cast<WorldGenRegion*>(nullptr), *static_cast<ChunkPrimer*>(nullptr), true));
+        generator.applyCarvers(*static_cast<WorldGenRegion*>(nullptr), *static_cast<ChunkPrimer*>(nullptr)));
     EXPECT_NO_THROW(
         generator.placeFeatures(*static_cast<WorldGenRegion*>(nullptr), *static_cast<ChunkPrimer*>(nullptr)));
 

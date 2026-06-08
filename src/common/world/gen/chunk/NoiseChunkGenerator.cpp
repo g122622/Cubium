@@ -31,9 +31,10 @@
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../biome/source/MultiNoiseBiomeSource.hpp"
 #include "../../block/BlockRegistry.hpp"
+#include "../../block/BlockTags.hpp"
 #include "../aquifer/Aquifer.hpp"
+#include "../carver/CarverConfiguration.hpp"
 #include "../carver/CarvingContext.hpp"
-#include "../carver/UnderwaterCarver.hpp"
 #include "../density/Beardifier.hpp"
 #include "../density/NoiseRouterData.hpp"
 #include "../feature/ConfiguredFeature.hpp"
@@ -320,17 +321,20 @@ void NoiseChunkGenerator::_initCarvers()
 {
     MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initCarvers");
 
-    // 洞穴概率: 1/7 ≈ 0.14285715
-    m_caveCarver = std::make_unique<CaveCarver>(world::MAX_BUILD_HEIGHT);
-    m_caveConfig = ProbabilityConfig(0.14285715f);
+    // MC 1.21.11: 使用 BlockTag 配置的雕刻器
+    using namespace world::gen::carver;
+    const BlockTag* overworldReplaceable = &BlockTags::OVERWORLD_CARVER_REPLACEABLES();
 
-    // 峡谷概率更低
-    m_canyonCarver = std::make_unique<CanyonCarver>(world::MAX_BUILD_HEIGHT);
-    m_canyonConfig = ProbabilityConfig(0.02f);
+    // 主世界洞穴：prob=0.15
+    m_caveCarver = std::make_unique<CaveCarver>();
+    m_caveConfig = ConfiguredCarvers::createOverworldCaveConfig(overworldReplaceable);
 
-    // 水下雕刻器与普通雕刻阶段共用概率配置
-    m_underwaterCaveCarver = std::make_unique<UnderwaterCaveCarver>();
-    m_underwaterCanyonCarver = std::make_unique<UnderwaterCanyonCarver>();
+    // 额外地下洞穴：prob=0.07
+    m_caveExtraConfig = ConfiguredCarvers::createOverworldCaveExtraConfig(overworldReplaceable);
+
+    // 峡谷：prob=0.01
+    m_canyonCarver = std::make_unique<CanyonCarver>();
+    m_canyonConfig = ConfiguredCarvers::createOverworldCanyonConfig(overworldReplaceable);
 }
 
 void NoiseChunkGenerator::_initGenerationRegistries()
@@ -1141,108 +1145,87 @@ void NoiseChunkGenerator::_applyBedrock(ChunkPrimer& chunk, math::Random& random
 // 雕刻和特性
 // ============================================================================
 
-void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& chunk, bool isLiquid)
+void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& chunk)
 {
     MC_TRACE_EVENT("world.chunk_gen", "ApplyCarvers", "x", chunk.x(), "z", chunk.z());
     const ChunkCoord targetChunkX = chunk.x();
     const ChunkCoord targetChunkZ = chunk.z();
 
-    // MC原版：AIR 和 LIQUID 两个雕刻阶段共享同一个 CarvingMask
+    // MC 1.21.11: 单一雕刻阶段（无 LIQUID_CARVERS），含水层系统决定填充内容
     CarvingMask& carvingMask = chunk.carvingMask();
 
-    // MC 1.21: 从 ChunkPrimer 缓存的 NoiseChunk 获取 Aquifer
+    // 从 ChunkPrimer 缓存的 NoiseChunk 获取 Aquifer
     world::gen::aquifer::Aquifer* aquifer = nullptr;
     if (chunk.hasNoiseChunk()) {
         aquifer = chunk.noiseChunk()->aquifer();
     }
     CarvingContext context(m_settings.noise.minY, m_settings.noise.height, aquifer);
 
-    // MC 1.21: 遍历 [-8, +8] 范围内的起始区块坐标
+    // MC 1.21.11: 遍历 [-8, +8] 范围内的起始区块坐标
     // 洞穴/峡谷可能从相邻区块起始并延伸到当前区块
     // 参考: NoiseBasedChunkGenerator.applyCarvers — 迭代 chunkpos.x-8..+8, chunkpos.z-8..+8
     math::Random worldgenRandom;
 
     for (i32 dx = -8; dx <= 8; ++dx) {
         for (i32 dz = -8; dz <= 8; ++dz) {
-            const ChunkCoord startChunkX = targetChunkX + dx;
-            const ChunkCoord startChunkZ = targetChunkZ + dz;
+            const ChunkCoord originChunkX = targetChunkX + dx;
+            const ChunkCoord originChunkZ = targetChunkZ + dz;
 
-            if (!isLiquid) {
-                // 空气雕刻阶段
-                if (m_caveCarver) {
-                    // MC 1.21: setLargeFeatureSeed(worldSeed + carverIndex, startChunkX, startChunkZ)
-                    worldgenRandom.setLargeFeatureSeed(m_seed, startChunkX, startChunkZ);
-                    if (m_caveCarver->shouldCarve(worldgenRandom, startChunkX, startChunkZ, m_caveConfig)) {
-                        m_caveCarver->carve(chunk,
-                            context,
-                            *m_biomeSource,
-                            m_settings.seaLevel,
-                            startChunkX,
-                            startChunkZ,
-                            carvingMask,
-                            worldgenRandom,
-                            m_caveConfig);
-                    }
+            // MC 1.21.11: carverIndex 0 = 洞穴, 1 = 额外地下洞穴, 2 = 峡谷
+            if (m_caveCarver) {
+                // carverIndex=0
+                worldgenRandom.setLargeFeatureSeed(m_seed, originChunkX, originChunkZ);
+                if (m_caveCarver->shouldCarve(worldgenRandom, originChunkX, originChunkZ, m_caveConfig)) {
+                    m_caveCarver->carve(chunk,
+                        context,
+                        *m_biomeSource,
+                        targetChunkX,
+                        targetChunkZ,
+                        originChunkX,
+                        originChunkZ,
+                        carvingMask,
+                        worldgenRandom,
+                        m_caveConfig);
                 }
+            }
 
-                if (m_canyonCarver) {
-                    // 峡谷使用 carverIndex=1 来区分种子
-                    worldgenRandom.setLargeFeatureSeed(m_seed + 1, startChunkX, startChunkZ);
-                    if (m_canyonCarver->shouldCarve(worldgenRandom, startChunkX, startChunkZ, m_canyonConfig)) {
-                        m_canyonCarver->carve(chunk,
-                            context,
-                            *m_biomeSource,
-                            m_settings.seaLevel,
-                            startChunkX,
-                            startChunkZ,
-                            carvingMask,
-                            worldgenRandom,
-                            m_canyonConfig);
-                    }
+            // 额外地下洞穴 carverIndex=1
+            {
+                worldgenRandom.setLargeFeatureSeed(m_seed + 1, originChunkX, originChunkZ);
+                if (m_caveCarver->shouldCarve(worldgenRandom, originChunkX, originChunkZ, m_caveExtraConfig)) {
+                    m_caveCarver->carve(chunk,
+                        context,
+                        *m_biomeSource,
+                        targetChunkX,
+                        targetChunkZ,
+                        originChunkX,
+                        originChunkZ,
+                        carvingMask,
+                        worldgenRandom,
+                        m_caveExtraConfig);
                 }
-            } else {
-                // 液体雕刻阶段
-                if (m_underwaterCaveCarver) {
-                    // 水下洞穴使用 carverIndex=2
-                    worldgenRandom.setLargeFeatureSeed(m_seed + 2, startChunkX, startChunkZ);
-                    if (m_underwaterCaveCarver->shouldCarve(worldgenRandom, startChunkX, startChunkZ, m_caveConfig)) {
-                        m_underwaterCaveCarver->carve(chunk,
-                            context,
-                            *m_biomeSource,
-                            m_settings.seaLevel,
-                            startChunkX,
-                            startChunkZ,
-                            carvingMask,
-                            worldgenRandom,
-                            m_caveConfig);
-                    }
-                }
+            }
 
-                if (m_underwaterCanyonCarver) {
-                    // 水下峡谷使用 carverIndex=3
-                    worldgenRandom.setLargeFeatureSeed(m_seed + 3, startChunkX, startChunkZ);
-                    if (m_underwaterCanyonCarver->shouldCarve(
-                            worldgenRandom, startChunkX, startChunkZ, m_canyonConfig)) {
-                        m_underwaterCanyonCarver->carve(chunk,
-                            context,
-                            *m_biomeSource,
-                            m_settings.seaLevel,
-                            startChunkX,
-                            startChunkZ,
-                            carvingMask,
-                            worldgenRandom,
-                            m_canyonConfig);
-                    }
+            if (m_canyonCarver) {
+                // carverIndex=2
+                worldgenRandom.setLargeFeatureSeed(m_seed + 2, originChunkX, originChunkZ);
+                if (m_canyonCarver->shouldCarve(worldgenRandom, originChunkX, originChunkZ, m_canyonConfig)) {
+                    m_canyonCarver->carve(chunk,
+                        context,
+                        *m_biomeSource,
+                        targetChunkX,
+                        targetChunkZ,
+                        originChunkX,
+                        originChunkZ,
+                        carvingMask,
+                        worldgenRandom,
+                        m_canyonConfig);
                 }
             }
         }
     }
 
-    if (!isLiquid) {
-        chunk.setChunkStatus(ChunkStatuses::CARVERS);
-    } else {
-        chunk.setChunkStatus(ChunkStatuses::LIQUID_CARVERS);
-    }
+    chunk.setChunkStatus(ChunkStatuses::CARVERS);
 }
 
 void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk)

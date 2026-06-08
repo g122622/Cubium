@@ -26,6 +26,7 @@
 #include "common/core/Constants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/aquifer/Aquifer.hpp"
 #include <algorithm>
@@ -37,29 +38,29 @@ namespace mc {
 // CarvingMask 实现
 // ============================================================================
 
-CarvingMask::CarvingMask(ChunkCoord chunkX, ChunkCoord chunkZ)
+CarvingMask::CarvingMask(ChunkCoord chunkX, ChunkCoord chunkZ, i32 minY, i32 height)
     : m_chunkX(chunkX)
     , m_chunkZ(chunkZ)
-    , m_mask(static_cast<size_t>(world::CHUNK_WIDTH) * world::CHUNK_WIDTH * world::CHUNK_HEIGHT, false)
+    , m_minY(minY)
+    , m_height(height)
+    , m_mask(static_cast<size_t>(world::CHUNK_WIDTH) * world::CHUNK_WIDTH * static_cast<size_t>(height), false)
 {}
 
 bool CarvingMask::isCarved(BlockCoord x, i32 y, BlockCoord z) const
 {
-    if (x < 0 || x >= world::CHUNK_WIDTH || z < 0 || z >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT ||
-        y >= world::MAX_BUILD_HEIGHT) {
+    if (x < 0 || x >= world::CHUNK_WIDTH || z < 0 || z >= world::CHUNK_WIDTH || y < m_minY || y >= m_minY + m_height) {
         return false;
     }
-    i32 index = getIndex(x, y, z);
+    const i32 index = (x) | ((z) << world::CHUNK_SHIFT) | ((y - m_minY) << (world::CHUNK_SHIFT + world::SECTION_SHIFT));
     return m_mask[static_cast<size_t>(index)];
 }
 
 void CarvingMask::setCarved(BlockCoord x, i32 y, BlockCoord z)
 {
-    if (x < 0 || x >= world::CHUNK_WIDTH || z < 0 || z >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT ||
-        y >= world::MAX_BUILD_HEIGHT) {
+    if (x < 0 || x >= world::CHUNK_WIDTH || z < 0 || z >= world::CHUNK_WIDTH || y < m_minY || y >= m_minY + m_height) {
         return;
     }
-    i32 index = getIndex(x, y, z);
+    const i32 index = (x) | ((z) << world::CHUNK_SHIFT) | ((y - m_minY) << (world::CHUNK_SHIFT + world::SECTION_SHIFT));
     m_mask[static_cast<size_t>(index)] = true;
 }
 
@@ -70,89 +71,58 @@ void CarvingMask::setCarved(BlockCoord x, i32 y, BlockCoord z)
 template <typename Config>
 const BlockState* WorldCarver<Config>::getCaveAirState() const
 {
-    // 洞穴空气 - 用于洞穴、峡谷等地下结构生成
     return VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
 }
 
 template <typename Config>
-bool WorldCarver<Config>::isCarvable(const BlockState& state)
+bool WorldCarver<Config>::canReplaceBlock(const BlockState& state, const Config& config) const
 {
-    // 可雕刻方块列表：石头变种、泥土类、陶瓦、砂岩等
-
-    // 石头变种
-    if (state.is(VanillaBlocks::STONE) || state.is(VanillaBlocks::GRANITE) || state.is(VanillaBlocks::DIORITE) ||
-        state.is(VanillaBlocks::ANDESITE)) {
-        return true;
+    if (config.replaceable) {
+        return config.replaceable->contains(state);
     }
-
-    // 泥土类
-    if (state.is(VanillaBlocks::DIRT) || state.is(VanillaBlocks::COARSE_DIRT) || state.is(VanillaBlocks::PODZOL) ||
-        state.is(VanillaBlocks::GRASS_BLOCK)) {
-        return true;
-    }
-
-    // 陶瓦（包括染色陶瓦）
-    if (state.is(VanillaBlocks::TERRACOTTA) || state.is(VanillaBlocks::WHITE_TERRACOTTA) ||
-        state.is(VanillaBlocks::ORANGE_TERRACOTTA) || state.is(VanillaBlocks::MAGENTA_TERRACOTTA) ||
-        state.is(VanillaBlocks::LIGHT_BLUE_TERRACOTTA) || state.is(VanillaBlocks::YELLOW_TERRACOTTA) ||
-        state.is(VanillaBlocks::LIME_TERRACOTTA) || state.is(VanillaBlocks::PINK_TERRACOTTA) ||
-        state.is(VanillaBlocks::GRAY_TERRACOTTA) || state.is(VanillaBlocks::LIGHT_GRAY_TERRACOTTA) ||
-        state.is(VanillaBlocks::CYAN_TERRACOTTA) || state.is(VanillaBlocks::PURPLE_TERRACOTTA) ||
-        state.is(VanillaBlocks::BLUE_TERRACOTTA) || state.is(VanillaBlocks::BROWN_TERRACOTTA) ||
-        state.is(VanillaBlocks::GREEN_TERRACOTTA) || state.is(VanillaBlocks::RED_TERRACOTTA) ||
-        state.is(VanillaBlocks::BLACK_TERRACOTTA)) {
-        return true;
-    }
-
-    // 沙子和砂岩
-    if (state.is(VanillaBlocks::SAND) || state.is(VanillaBlocks::RED_SAND) || state.is(VanillaBlocks::SANDSTONE) ||
-        state.is(VanillaBlocks::RED_SANDSTONE)) {
-        return true;
-    }
-
-    // 其他可雕刻方块
-    if (state.is(VanillaBlocks::MYCELIUM) || state.is(VanillaBlocks::SNOW) || state.is(VanillaBlocks::PACKED_ICE)) {
-        return true;
-    }
-
-    return false;
+    // 回退：无 tag 时使用基础方块列表
+    return state.is(VanillaBlocks::STONE) || state.is(VanillaBlocks::GRANITE) || state.is(VanillaBlocks::DIORITE) ||
+        state.is(VanillaBlocks::ANDESITE) || state.is(VanillaBlocks::DIRT) || state.is(VanillaBlocks::GRASS_BLOCK);
 }
 
 template <typename Config>
-bool WorldCarver<Config>::canCarveBlock(const BlockState* state, const BlockState* aboveState) const
+const BlockState* WorldCarver<Config>::getCarveState(
+    CarvingContext& context, i32 worldX, i32 worldY, i32 worldZ, const Config& config) const
 {
-    if (!state) {
-        return false;
+    // MC 1.21.11: 先检查 lavaLevel
+    const i32 lavaLevel = config.lavaLevel.resolveY(context.getMinGenY(), context.getGenDepth());
+    if (worldY <= lavaLevel) {
+        return VanillaBlocks::getState(VanillaBlocks::LAVA);
     }
 
-    // 检查是否可雕刻
-    if (isCarvable(*state)) {
-        return true;
+    // 含水层决策
+    if (context.hasAquifer()) {
+        const BlockState* aquiferState = context.aquifer()->computeSubstance(worldX, worldY, worldZ, 0.0);
+        if (aquiferState) {
+            return aquiferState;
+        }
+        // 含水层返回 nullptr → 不雕刻
+        return nullptr;
     }
 
-    // 沙子和沙砾可以在特定条件下雕刻
-    bool isSandOrGravel = state->is(VanillaBlocks::SAND) || state->is(VanillaBlocks::GRAVEL);
-    if (isSandOrGravel && aboveState) {
-        return !aboveState->isLiquid();
-    }
-
-    return false;
+    // 无含水层时的回退逻辑
+    return getCaveAirState();
 }
 
 template <typename Config>
 bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
     CarvingContext& context,
     const world::biome::BiomeSource& /*biomeSource*/,
-    i32 /*seaLevel*/,
-    ChunkCoord chunkX,
-    ChunkCoord chunkZ,
+    ChunkCoord targetChunkX,
+    ChunkCoord targetChunkZ,
     f32 centerX,
     f32 centerY,
     f32 centerZ,
     f32 horizontalRadius,
     f32 verticalRadius,
     CarvingMask& carvingMask,
-    i64 seed)
+    const CarveSkipChecker& skipChecker,
+    const Config& config)
 {
     const i32 startX = static_cast<i32>(std::floor(centerX - horizontalRadius)) - 1;
     const i32 endX = static_cast<i32>(std::floor(centerX + horizontalRadius));
@@ -161,11 +131,11 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
     const i32 startZ = static_cast<i32>(std::floor(centerZ - horizontalRadius)) - 1;
     const i32 endZ = static_cast<i32>(std::floor(centerZ + horizontalRadius));
 
-    // 区块边界
-    const i32 chunkStartX = chunkX * world::CHUNK_WIDTH;
-    const i32 chunkStartZ = chunkZ * world::CHUNK_WIDTH;
+    // MC: 使用目标区块坐标计算边界
+    const i32 chunkStartX = targetChunkX * world::CHUNK_WIDTH;
+    const i32 chunkStartZ = targetChunkZ * world::CHUNK_WIDTH;
 
-    // 检查椭球是否在区块范围外
+    // 检查椭球是否在目标区块范围外
     const f32 distLimit = horizontalRadius + 2.0f + static_cast<f32>(world::CHUNK_WIDTH);
     const f32 dxC = centerX - static_cast<f32>(chunkStartX + world::CHUNK_WIDTH / 2);
     const f32 dzC = centerZ - static_cast<f32>(chunkStartZ + world::CHUNK_WIDTH / 2);
@@ -173,55 +143,55 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
         return false;
     }
 
-    // MC: 计算区块内有效范围
+    // MC: 计算目标区块内有效范围
     const i32 localMinX = std::max(0, startX - chunkStartX);
     const i32 localMaxX = std::min(world::CHUNK_WIDTH - 1, endX - chunkStartX);
     const i32 localMinZ = std::max(0, startZ - chunkStartZ);
     const i32 localMaxZ = std::min(world::CHUNK_WIDTH - 1, endZ - chunkStartZ);
 
-    // 检查是否有流体（水下/下界雕刻器跳过此检查）
+    // MC: Y 范围使用 CarvingContext
+    const i32 minGenY = context.getMinGenY();
+    const i32 genDepth = context.getGenDepth();
+
+    // 检查是否有流体
     if (shouldCheckForFluid() &&
         checkAreaForFluid(chunk,
-            chunkX,
-            chunkZ,
+            targetChunkX,
+            targetChunkZ,
             localMinX,
             localMaxX + 1,
-            std::max(world::MIN_BUILD_HEIGHT + 1, startY_world),
-            std::min(world::MIN_BUILD_HEIGHT + world::CHUNK_HEIGHT - 8, endY_world),
+            std::max(minGenY + 1, startY_world),
+            std::min(minGenY + genDepth - 8, endY_world),
             localMinZ,
             localMaxZ + 1)) {
         return false;
     }
 
-    math::Random rng(static_cast<u64>(seed) + static_cast<u64>(chunkX) + static_cast<u64>(chunkZ));
     bool carved = false;
 
     for (i32 lx = localMinX; lx <= localMaxX; ++lx) {
-        const i32 worldX = chunkX * world::CHUNK_WIDTH + lx;
+        const i32 worldX = targetChunkX * world::CHUNK_WIDTH + lx;
         const f32 dx = (static_cast<f32>(worldX) + 0.5f - centerX) / horizontalRadius;
         const f32 dxSq = dx * dx;
 
         for (i32 lz = localMinZ; lz <= localMaxZ; ++lz) {
-            const i32 worldZ = chunkZ * world::CHUNK_WIDTH + lz;
+            const i32 worldZ = targetChunkZ * world::CHUNK_WIDTH + lz;
             const f32 dz = (static_cast<f32>(worldZ) + 0.5f - centerZ) / horizontalRadius;
             const f32 dzSq = dz * dz;
 
-            // 检查是否在椭球投影范围内
             if (dxSq + dzSq >= 1.0f) {
                 continue;
             }
 
-            // MC: Y 范围 [max(floor(centerY-vertRadius)-1, minGenY+1), min(floor(centerY+vertRadius)+1,
-            // minGenY+genDepth-8)] 从 topY 向下迭代到 bottomY（不含 bottomY，即 y > bottomY）
-            const i32 bottomY = std::max(world::MIN_BUILD_HEIGHT + 1, startY_world);
-            const i32 topY = std::min(world::MIN_BUILD_HEIGHT + world::CHUNK_HEIGHT - 8, endY_world);
+            // MC: Y 范围从 minGenY+1 到 minGenY+genDepth-8，从 topY 向下迭代
+            const i32 bottomY = std::max(minGenY + 1, startY_world);
+            const i32 topY = std::min(minGenY + genDepth - 8, endY_world);
 
             for (i32 y = topY; y > bottomY; --y) {
-
                 const f32 dy = (static_cast<f32>(y) - 0.5f - centerY) / verticalRadius;
 
-                // 检查是否应该跳过
-                if (shouldSkipEllipsoidPosition(dx, dy, dz, y)) {
+                // MC: 使用回调检查是否跳过（洞穴/峡谷各有不同逻辑）
+                if (skipChecker(dx, dy, dz, y)) {
                     continue;
                 }
 
@@ -238,52 +208,31 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
 
                 // 获取上方方块
                 const BlockState* aboveState =
-                    (y < world::MAX_BUILD_HEIGHT - 1) ? chunk.getBlockState(lx, y + 1, lz) : nullptr;
+                    (y < minGenY + genDepth - 1) ? chunk.getBlockState(lx, y + 1, lz) : nullptr;
 
-                // 检查是否可以雕刻
-                if (!canCarveBlock(state, aboveState)) {
+                // MC: 检查方块是否可雕刻（使用配置中的 replaceable tag）
+                if (!canReplaceBlock(*state, config)) {
                     continue;
                 }
 
                 // MC: 标记当前方块是否为草地或菌丝
                 bool hasGrassOrMycelium = state->is(VanillaBlocks::GRASS_BLOCK) || state->is(VanillaBlocks::MYCELIUM);
 
+                // MC 1.21.11: 获取雕刻后方块状态
+                const BlockState* carveState = getCarveState(context, worldX, y, worldZ, config);
+                if (!carveState) {
+                    // 含水层返回 nullptr → 不雕刻
+                    continue;
+                }
+
                 // 标记为已雕刻
                 carvingMask.setCarved(lx, y, lz);
+                chunk.setBlockState(lx, y, lz, carveState);
 
-                // MC 1.21: 通过含水层决定雕刻后方块
-                // 如果含水层可用，使用 computeSubstance 替代硬编码熔岩/空气判断
-                const BlockState* carveState = nullptr;
-                if (context.hasAquifer()) {
-                    carveState = context.aquifer()->computeSubstance(worldX, y, worldZ, 0.0);
-                }
-
-                if (carveState) {
-                    // 含水层返回了有效方块状态（水、熔岩或空气）
-                    chunk.setBlockState(lx, y, lz, carveState);
-                } else {
-                    // 含水层返回 nullptr（保持默认/石头），使用回退逻辑
-                    const i32 lavaLevel = getLavaLevel();
-                    if (y < lavaLevel) {
-                        const BlockState* lava = VanillaBlocks::getState(VanillaBlocks::LAVA);
-                        if (lava) {
-                            chunk.setBlockState(lx, y, lz, lava);
-                        }
-                    } else {
-                        const BlockState* air = getCaveAirState();
-                        if (air) {
-                            chunk.setBlockState(lx, y, lz, air);
-                        }
-                    }
-                }
-
-                // MC: 如果之前雕刻到了草地/菌丝，检查下方方块是否为泥土
-                // 如果是，替换为泥土（后续接入生物群系系统后应替换为生物群系表层材料）
-                // NetherWorldCarver 不执行此替换
-                if (handlesSurfaceReplacement() && hasGrassOrMycelium && y > world::MIN_BUILD_HEIGHT) {
+                // MC: 草地/菌丝表面替换
+                if (handlesSurfaceReplacement() && hasGrassOrMycelium && y > minGenY) {
                     const BlockState* belowState = chunk.getBlockState(lx, y - 1, lz);
                     if (belowState && belowState->is(VanillaBlocks::DIRT)) {
-                        // TODO: 应替换为生物群系的 topMaterial，暂时使用泥土
                         const BlockState* dirt = VanillaBlocks::getState(VanillaBlocks::DIRT);
                         if (dirt) {
                             chunk.setBlockState(lx, y - 1, lz, dirt);
@@ -301,10 +250,11 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
 
 template <typename Config>
 bool WorldCarver<Config>::isInCarvingRange(
-    ChunkCoord chunkX, ChunkCoord chunkZ, f32 x, f32 z, i32 step, i32 maxSteps, f32 radius)
+    ChunkCoord targetChunkX, ChunkCoord targetChunkZ, f32 x, f32 z, i32 step, i32 maxSteps, f32 radius)
 {
-    const f32 chunkCenterX = static_cast<f32>(chunkX * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2);
-    const f32 chunkCenterZ = static_cast<f32>(chunkZ * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2);
+    // MC: 使用目标区块坐标计算 canReach
+    const f32 chunkCenterX = static_cast<f32>(targetChunkX * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2);
+    const f32 chunkCenterZ = static_cast<f32>(targetChunkZ * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2);
 
     const f32 dx = x - chunkCenterX;
     const f32 dz = z - chunkCenterZ;
@@ -317,8 +267,8 @@ bool WorldCarver<Config>::isInCarvingRange(
 
 template <typename Config>
 bool WorldCarver<Config>::checkAreaForFluid(ChunkPrimer& chunk,
-    ChunkCoord /*chunkX*/,
-    ChunkCoord /*chunkZ*/,
+    ChunkCoord /*targetChunkX*/,
+    ChunkCoord /*targetChunkZ*/,
     i32 minX,
     i32 maxX,
     i32 minY,
@@ -326,7 +276,6 @@ bool WorldCarver<Config>::checkAreaForFluid(ChunkPrimer& chunk,
     i32 minZ,
     i32 maxZ) const
 {
-    // 检查区域内是否有液体（水/熔岩）
     for (i32 lx = minX; lx < maxX; ++lx) {
         for (i32 lz = minZ; lz < maxZ; ++lz) {
             for (i32 y = minY - 1; y <= maxY + 1; ++y) {
@@ -336,7 +285,6 @@ bool WorldCarver<Config>::checkAreaForFluid(ChunkPrimer& chunk,
 
                 const BlockState* state = chunk.getBlockState(lx, y, lz);
                 if (state) {
-                    // 检查是否是水或熔岩
                     if (state->is(VanillaBlocks::WATER) || state->is(VanillaBlocks::LAVA)) {
                         return true;
                     }
@@ -354,6 +302,7 @@ bool WorldCarver<Config>::checkAreaForFluid(ChunkPrimer& chunk,
 }
 
 // 显式实例化常用模板
-template class WorldCarver<ProbabilityConfig>;
+template class WorldCarver<CaveCarverConfiguration>;
+template class WorldCarver<CanyonCarverConfiguration>;
 
 } // namespace mc

@@ -26,6 +26,7 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../biome/source/MultiNoiseBiomeSource.hpp"
 #include "../../biome/source/NetherBiomeSource.hpp"
+#include "../carver/CarverConfiguration.hpp"
 #include "../carver/NetherCaveCarver.hpp"
 #include "../noise/OctavesNoiseGenerator.hpp"
 #include "../settings/NoiseSettings.hpp"
@@ -79,7 +80,7 @@ public:
     void generateBiomes(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void generateNoise(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void buildSurface(WorldGenRegion& region, ChunkPrimer& chunk) override;
-    void applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid) override;
+    void applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) override;
     i32 spawnInitialMobs(
         WorldGenRegion& region, ChunkPrimer& chunk, std::vector<SpawnedEntityData>& outEntities) override;
@@ -125,7 +126,7 @@ private:
 
     // === 雕刻器 ===
     std::unique_ptr<NetherCaveCarver> m_caveCarver;
-    ProbabilityConfig m_caveConfig{0.2f}; // 下界洞穴概率较高
+    world::gen::carver::CaveCarverConfiguration m_caveConfig;
 
     // === 下界特有参数 ===
     i32 m_lavaLevel = 31;       // 熔岩海高度

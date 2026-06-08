@@ -78,7 +78,7 @@ public:
     void generateBiomes(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void generateNoise(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void buildSurface(WorldGenRegion& region, ChunkPrimer& chunk) override;
-    void applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid) override;
+    void applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) override;
     i32 spawnInitialMobs(
         WorldGenRegion& region, ChunkPrimer& chunk, std::vector<SpawnedEntityData>& outEntities) override;

@@ -33,6 +33,7 @@ namespace mc {
  * @brief 雕刻掩码
  *
  * 用于追踪哪些位置已被雕刻，防止重复雕刻。
+ * MC 1.21.11: 掩码大小基于 minY 和 height（生成范围），不硬编码世界常量。
  */
 class CarvingMask {
 public:
@@ -40,45 +41,30 @@ public:
      * @brief 构造雕刻掩码
      * @param chunkX 区块X坐标
      * @param chunkZ 区块Z坐标
+     * @param minY 最小生成Y坐标（如 -64）
+     * @param height 生成高度（如 384）
      */
-    CarvingMask(ChunkCoord chunkX, ChunkCoord chunkZ);
+    CarvingMask(
+        ChunkCoord chunkX, ChunkCoord chunkZ, i32 minY = world::MIN_BUILD_HEIGHT, i32 height = world::CHUNK_HEIGHT);
 
-    /**
-     * @brief 检查指定位置是否已被雕刻
-     * @param x 区块内X坐标 (0-15)
-     * @param y Y坐标
-     * @param z 区块内Z坐标 (0-15)
-     * @return 是否已被雕刻
-     */
+    /** @brief 检查指定位置是否已被雕刻 */
     [[nodiscard]] bool isCarved(BlockCoord x, i32 y, BlockCoord z) const;
 
-    /**
-     * @brief 标记指定位置为已雕刻
-     * @param x 区块内X坐标 (0-15)
-     * @param y Y坐标
-     * @param z 区块内Z坐标 (0-15)
-     */
+    /** @brief 标记指定位置为已雕刻 */
     void setCarved(BlockCoord x, i32 y, BlockCoord z);
 
-    /**
-     * @brief 获取掩码索引
-     * @param x 区块内X坐标 (0-15)
-     * @param y Y坐标
-     * @param z 区块内Z坐标 (0-15)
-     * @return 位索引
-     */
-    [[nodiscard]] static constexpr i32 getIndex(BlockCoord x, i32 y, BlockCoord z)
-    {
-        // y 需要转换为相对于 MIN_BUILD_HEIGHT 的偏移量
-        const i32 relativeY = y - world::MIN_BUILD_HEIGHT;
-        return static_cast<i32>(x) | (static_cast<i32>(z) << world::CHUNK_SHIFT) |
-            (relativeY << (world::CHUNK_SHIFT + world::SECTION_SHIFT));
-    }
+    /** @brief 获取最小Y坐标 */
+    [[nodiscard]] i32 getMinY() const { return m_minY; }
+
+    /** @brief 获取高度 */
+    [[nodiscard]] i32 getHeight() const { return m_height; }
 
 private:
     ChunkCoord m_chunkX;
     ChunkCoord m_chunkZ;
-    std::vector<bool> m_mask; // 使用 vector<bool> 作为 BitSet
+    i32 m_minY;
+    i32 m_height;
+    std::vector<bool> m_mask;
 };
 
 } // namespace mc

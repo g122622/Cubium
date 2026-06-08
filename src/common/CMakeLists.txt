@@ -907,7 +907,7 @@ add_library(mc_common STATIC
     world/gen/carver/WorldCarver.cpp
     world/gen/carver/CaveCarver.cpp
     world/gen/carver/CanyonCarver.cpp
-    world/gen/carver/UnderwaterCarver.cpp
+    world/gen/carver/CarverConfiguration.cpp
     world/gen/carver/NetherCaveCarver.cpp
 
     # World - Biome

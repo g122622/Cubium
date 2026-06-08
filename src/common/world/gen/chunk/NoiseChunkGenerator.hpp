@@ -30,8 +30,8 @@
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../RandomState.hpp"
 #include "../carver/CanyonCarver.hpp"
+#include "../carver/CarverConfiguration.hpp"
 #include "../carver/CaveCarver.hpp"
-#include "../carver/UnderwaterCarver.hpp"
 #include "../carver/WorldCarver.hpp"
 #include "../density/Beardifier.hpp"
 #include "../density/NoiseChunk.hpp"
@@ -87,7 +87,7 @@ public:
     void generateBiomes(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void generateNoise(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void buildSurface(WorldGenRegion& region, ChunkPrimer& chunk) override;
-    void applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk, bool isLiquid) override;
+    void applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) override;
     i32 spawnInitialMobs(
         WorldGenRegion& region, ChunkPrimer& chunk, std::vector<SpawnedEntityData>& outEntities) override;
@@ -156,13 +156,9 @@ private:
     // === 洞穴雕刻器 ===
     std::unique_ptr<CaveCarver> m_caveCarver;
     std::unique_ptr<CanyonCarver> m_canyonCarver;
-    ProbabilityConfig m_caveConfig;
-    ProbabilityConfig m_canyonConfig;
-
-    // === 水下雕刻器 ===
-    std::unique_ptr<UnderwaterCaveCarver> m_underwaterCaveCarver;
-    std::unique_ptr<UnderwaterCanyonCarver> m_underwaterCanyonCarver;
-    // 使用与普通洞穴/峡谷相同的概率配置
+    world::gen::carver::CaveCarverConfiguration m_caveConfig;
+    world::gen::carver::CaveCarverConfiguration m_caveExtraConfig;
+    world::gen::carver::CanyonCarverConfiguration m_canyonConfig;
 
     // === 结构管理器 ===
     std::unique_ptr<world::gen::structure::StructureManager> m_structureManager;

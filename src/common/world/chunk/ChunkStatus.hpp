@@ -108,10 +108,9 @@ inline constexpr bool hasFlag(HeightmapFlag flags, HeightmapFlag flag)
  *
  * 定义区块生成的各个阶段，每个阶段有特定的生成任务。
  *
- * 生成流程：
+ * 生成流程（MC 1.21.11）：
  * EMPTY → STRUCTURE_STARTS → STRUCTURE_REFERENCES → BIOMES → NOISE →
- * SURFACE → CARVERS → LIQUID_CARVERS → FEATURES → LIGHT → SPAWN →
- * HEIGHTMAPS → FULL
+ * SURFACE → CARVERS → FEATURES → LIGHT → SPAWN → HEIGHTMAPS → FULL
  */
 class ChunkStatus {
 public:
@@ -246,7 +245,7 @@ private:
 
 namespace ChunkStatuses {
 
-// 生成阶段序号常量（与 MC 1.16.5 一致）
+// 生成阶段序号常量（对齐 MC 1.21.11）
 constexpr i32 EMPTY_ORDINAL = 0;
 constexpr i32 STRUCTURE_STARTS_ORDINAL = 1;
 constexpr i32 STRUCTURE_REFERENCES_ORDINAL = 2;
@@ -254,15 +253,14 @@ constexpr i32 BIOMES_ORDINAL = 3;
 constexpr i32 NOISE_ORDINAL = 4;
 constexpr i32 SURFACE_ORDINAL = 5;
 constexpr i32 CARVERS_ORDINAL = 6;
-constexpr i32 LIQUID_CARVERS_ORDINAL = 7;
-constexpr i32 FEATURES_ORDINAL = 8;
-constexpr i32 LIGHT_ORDINAL = 9;
-constexpr i32 SPAWN_ORDINAL = 10;
-constexpr i32 HEIGHTMAPS_ORDINAL = 11;
-constexpr i32 FULL_ORDINAL = 12;
+constexpr i32 FEATURES_ORDINAL = 7;
+constexpr i32 LIGHT_ORDINAL = 8;
+constexpr i32 SPAWN_ORDINAL = 9;
+constexpr i32 HEIGHTMAPS_ORDINAL = 10;
+constexpr i32 FULL_ORDINAL = 11;
 
 // 总阶段数
-constexpr i32 COUNT = 13;
+constexpr i32 COUNT = 12;
 
 } // namespace ChunkStatuses
 
@@ -280,7 +278,6 @@ extern const ChunkStatus BIOMES;
 extern const ChunkStatus NOISE;
 extern const ChunkStatus SURFACE;
 extern const ChunkStatus CARVERS;
-extern const ChunkStatus LIQUID_CARVERS;
 extern const ChunkStatus FEATURES;
 extern const ChunkStatus LIGHT;
 extern const ChunkStatus SPAWN;

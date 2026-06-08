@@ -162,8 +162,9 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, InjectedBiomeSourceKeepsCarverPipeli
     constexpr u64 seed = 0x4D435245424F524EULL;
 
     DimensionSettings defaultSettings = DimensionSettings::overworld();
-    NoiseChunkGenerator defaultGenerator(
-        seed, std::move(defaultSettings), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false));
+    NoiseChunkGenerator defaultGenerator(seed,
+        std::move(defaultSettings),
+        mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false));
 
     DimensionSettings injectedSettings = DimensionSettings::overworld();
     auto injectedSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
@@ -177,7 +178,7 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, InjectedBiomeSourceKeepsCarverPipeli
             auto defaultChunks = makeRegionChunks(defaultChunk.get());
             WorldGenRegion defaultRegion(chunkX, chunkZ, 1, std::move(defaultChunks));
 
-            defaultGenerator.applyCarvers(defaultRegion, *defaultChunk, false);
+            defaultGenerator.applyCarvers(defaultRegion, *defaultChunk);
             const i32 defaultCarved = countNonStoneBlocks(*defaultChunk);
             if (defaultCarved <= 0) {
                 continue;
@@ -187,7 +188,7 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, InjectedBiomeSourceKeepsCarverPipeli
             auto injectedChunks = makeRegionChunks(injectedChunk.get());
             WorldGenRegion injectedRegion(chunkX, chunkZ, 1, std::move(injectedChunks));
 
-            injectedGenerator.applyCarvers(injectedRegion, *injectedChunk, false);
+            injectedGenerator.applyCarvers(injectedRegion, *injectedChunk);
             const i32 injectedCarved = countNonStoneBlocks(*injectedChunk);
 
             EXPECT_EQ(defaultCarved, injectedCarved)
@@ -213,13 +214,15 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, GaussianLUTInitialization)
     // 创建生成器时高斯查找表应该被初始化
     constexpr u64 seed = 12345ULL;
     DimensionSettings settings = DimensionSettings::overworld();
-    NoiseChunkGenerator generator(seed, std::move(settings), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false));
+    NoiseChunkGenerator generator(
+        seed, std::move(settings), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false));
 
     // 验证生成器成功创建（高斯查找表作为静态成员初始化）
     // 如果初始化失败，会有编译或运行时错误
     EXPECT_NO_THROW({
         DimensionSettings settings2 = DimensionSettings::overworld();
-        NoiseChunkGenerator generator2(seed, std::move(settings2), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false));
+        NoiseChunkGenerator generator2(
+            seed, std::move(settings2), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false));
     });
 }
 
