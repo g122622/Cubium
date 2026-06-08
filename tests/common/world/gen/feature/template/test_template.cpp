@@ -532,7 +532,9 @@ TEST_F(TemplateTest, Template_GetBoundingBox_WithRotation)
 
 TEST_F(TemplateTest, StructureProcessor_DefaultProcess)
 {
-    StructureProcessor processor;
+    // StructureProcessor is now abstract (has clone() = 0),
+    // use NopStructureProcessor for testing the default pass-through behavior
+    NopStructureProcessor processor;
     BlockInfo blockInfo(BlockPos(10, 20, 30), 42);
     PlacementSettings settings;
     math::Random rng(12345);

@@ -25,6 +25,7 @@
 
 #include "JigsawOrientation.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
@@ -142,6 +143,14 @@ public:
     virtual bool isEmpty() const { return false; }
 
     /**
+     * @brief 是否为 legacy 类型拼图块
+     *
+     * Legacy 拼图块使用 STRUCTURE_AND_AIR 忽略策略（忽略空气方块），
+     * 而标准拼图块只忽略 STRUCTURE_BLOCK。
+     */
+    virtual bool isLegacy() const { return false; }
+
+    /**
      * @brief 获取拼图块大小
      */
     virtual BlockPos getSize() const { return BlockPos(1, 1, 1); }
@@ -195,14 +204,26 @@ private:
  */
 class SingleJigsawPiece : public JigsawPiece {
 public:
-    explicit SingleJigsawPiece(
-        const std::string& templateName, JigsawPlacementBehaviour behaviour = JigsawPlacementBehaviour::Rigid);
+    explicit SingleJigsawPiece(const std::string& templateName,
+        JigsawPlacementBehaviour behaviour = JigsawPlacementBehaviour::Rigid,
+        const std::optional<ResourceLocation>& processorListId = std::nullopt);
 
     const std::string& getTypeName() const override { return s_typeName; }
     const std::string& getTemplateName() const { return m_templateName; }
+
+    /**
+     * @brief 获取处理器列表资源位置
+     *
+     * 模板池元素可通过 processors 字段引用一个已注册的处理器列表，
+     * 如 "minecraft:mossify_10_percent"、"minecraft:street_plains" 等。
+     */
+    const std::optional<ResourceLocation>& getProcessorListId() const { return m_processorListId; }
+    void setProcessorListId(const ResourceLocation& id) { m_processorListId = id; }
+    bool hasProcessors() const { return m_processorListId.has_value(); }
+
     std::unique_ptr<JigsawPiece> clone() const override
     {
-        auto piece = std::make_unique<SingleJigsawPiece>(m_templateName, getPlacementBehaviour());
+        auto piece = std::make_unique<SingleJigsawPiece>(m_templateName, getPlacementBehaviour(), m_processorListId);
         piece->setGroundLevelDelta(getGroundLevelDelta());
         for (const auto& joint : m_joints) {
             piece->addJoint(joint);
@@ -213,9 +234,10 @@ public:
     BlockPos getSize() const override { return m_size; }
     void setSize(const BlockPos& size) { m_size = size; }
 
-private:
+protected:
     std::string m_templateName;
     BlockPos m_size;
+    std::optional<ResourceLocation> m_processorListId;
     static std::string s_typeName;
 };
 
@@ -235,6 +257,63 @@ public:
 
 private:
     std::vector<std::unique_ptr<JigsawPiece>> m_pieces;
+    static std::string s_typeName;
+};
+
+/**
+ * @brief Legacy 单模板拼图块
+ *
+ * 与 SingleJigsawPiece 的区别：放置时使用 BlockIgnoreProcessor.STRUCTURE_AND_AIR
+ * （忽略结构方块和空气方块），而标准 SingleJigsawPiece 只忽略 STRUCTURE_BLOCK。
+ * 这是因为旧版结构模板中空气方块是显式放置的，legacy 模式需要忽略它们
+ * 以避免覆盖已有地形。
+ */
+class LegacySingleJigsawPiece : public SingleJigsawPiece {
+public:
+    explicit LegacySingleJigsawPiece(const std::string& templateName,
+        JigsawPlacementBehaviour behaviour = JigsawPlacementBehaviour::Rigid,
+        const std::optional<ResourceLocation>& processorListId = std::nullopt);
+
+    const std::string& getTypeName() const override { return s_typeName; }
+    std::unique_ptr<JigsawPiece> clone() const override
+    {
+        auto piece =
+            std::make_unique<LegacySingleJigsawPiece>(m_templateName, getPlacementBehaviour(), m_processorListId);
+        piece->setGroundLevelDelta(getGroundLevelDelta());
+        for (const auto& joint : m_joints) {
+            piece->addJoint(joint);
+        }
+        return piece;
+    }
+    bool isLegacy() const override { return true; }
+
+private:
+    static std::string s_typeName;
+};
+
+/**
+ * @brief 地物拼图块
+ *
+ * 在拼图结构中放置一个配置化地物（如树木、仙人掌、干草堆等）。
+ * 不应用方块处理器和重力处理器，直接在地物位置调用 feature.place()。
+ */
+class FeatureJigsawPiece : public JigsawPiece {
+public:
+    explicit FeatureJigsawPiece(
+        const std::string& featureId, JigsawPlacementBehaviour behaviour = JigsawPlacementBehaviour::Rigid);
+
+    const std::string& getTypeName() const override { return s_typeName; }
+    const std::string& getFeatureId() const { return m_featureId; }
+    std::unique_ptr<JigsawPiece> clone() const override
+    {
+        auto piece = std::make_unique<FeatureJigsawPiece>(m_featureId, getPlacementBehaviour());
+        piece->setGroundLevelDelta(getGroundLevelDelta());
+        return piece;
+    }
+    bool isEmpty() const override { return false; }
+
+private:
+    std::string m_featureId;
     static std::string s_typeName;
 };
 

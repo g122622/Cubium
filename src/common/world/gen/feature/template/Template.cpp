@@ -1313,6 +1313,18 @@ std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(const BlockPos
     return ProcessedBlockInfo::fromBlockInfo(blockInfo);
 }
 
+std::unique_ptr<StructureProcessor> RuleStructureProcessor::clone() const
+{
+    std::vector<std::unique_ptr<RuleEntry>> clonedRules;
+    clonedRules.reserve(m_rules.size());
+    for (const auto& rule : m_rules) {
+        if (rule) {
+            clonedRules.push_back(rule->clone());
+        }
+    }
+    return std::make_unique<RuleStructureProcessor>(std::move(clonedRules));
+}
+
 // ============================================================================
 // NopStructureProcessor
 // ============================================================================
@@ -1818,6 +1830,17 @@ std::optional<ProcessedBlockInfo> StructureProcessorList::process(const BlockPos
     }
 
     return current;
+}
+
+std::unique_ptr<StructureProcessorList> StructureProcessorList::clone() const
+{
+    auto list = std::make_unique<StructureProcessorList>();
+    for (const auto& proc : m_processors) {
+        if (proc) {
+            list->addProcessor(proc->clone());
+        }
+    }
+    return list;
 }
 
 namespace ProcessorLists {

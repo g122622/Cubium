@@ -183,18 +183,47 @@ Result<std::unique_ptr<JigsawPattern>> TemplatePoolLoader::loadFromJson(
         return Error(ErrorCode::InvalidData, "Template pool missing 'elements' array");
     }
 
+    i32 legacyCount = 0;
+    i32 featureCount = 0;
+    i32 singleCount = 0;
+    i32 listCount = 0;
+    i32 emptyCount = 0;
+
     const auto& elements = jsonObj["elements"];
     for (const auto& element : elements) {
         std::unique_ptr<JigsawPiece> piece;
         i32 weight = 1;
         if (_parseElement(element, piece, weight) && piece) {
             pattern->addPiece(std::move(piece), weight);
+
+            // 统计元素类型
+            const auto& typeName = piece->getTypeName();
+            if (typeName == "legacy_single_pool_element") {
+                ++legacyCount;
+            } else if (typeName == "single_pool_element") {
+                ++singleCount;
+            } else if (typeName == "list_pool_element") {
+                ++listCount;
+            } else if (typeName == "feature_pool_element") {
+                ++featureCount;
+            } else if (typeName == "empty_pool_element") {
+                ++emptyCount;
+            }
         }
     }
 
     if (pattern->isEmpty()) {
         return Error(ErrorCode::InvalidData, "Template pool has no valid elements");
     }
+
+    spdlog::info("Template pool '{}': {} elements (legacy={}, single={}, list={}, feature={}, empty={})",
+        name.toString(),
+        pattern->getNumberOfPieces(),
+        legacyCount,
+        singleCount,
+        listCount,
+        featureCount,
+        emptyCount);
 
     return pattern;
 }
@@ -239,6 +268,8 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseElementType(const nlohman
     // 根据类型分发解析
     if (elementType == "single_pool_element") {
         return _parseSinglePoolElement(elementObj);
+    } else if (elementType == "legacy_single_pool_element") {
+        return _parseLegacySinglePoolElement(elementObj);
     } else if (elementType == "list_pool_element") {
         return _parseListPoolElement(elementObj);
     } else if (elementType == "empty_pool_element") {
@@ -247,7 +278,7 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseElementType(const nlohman
         return _parseFeaturePoolElement(elementObj);
     } else {
         // 未知类型，返回空元素
-        spdlog::warn("Unknown pool element type: {}, using empty element", elementType);
+        spdlog::warn("Unknown pool element type: '{}', using empty element", elementType);
         return EmptyJigsawPiece::instance().clone();
     }
 }
@@ -268,8 +299,35 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseSinglePoolElement(const n
         projection = _parseProjection(elementObj["projection"].get<std::string>());
     }
 
+    // 解析处理器列表引用
+    auto processorId = _parseProcessors(elementObj);
+
     // 创建单个拼图块
-    std::unique_ptr<JigsawPiece> piece = std::make_unique<SingleJigsawPiece>(location, projection);
+    auto piece = std::make_unique<SingleJigsawPiece>(location, projection, processorId);
+    return piece;
+}
+
+std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseLegacySinglePoolElement(const nlohmann::json& elementObj)
+{
+    // 解析模板位置
+    if (!elementObj.contains("location") || !elementObj["location"].is_string()) {
+        spdlog::warn("legacy_single_pool_element missing 'location' string");
+        return nullptr;
+    }
+
+    std::string location = elementObj["location"].get<std::string>();
+
+    // 解析投影类型
+    JigsawPlacementBehaviour projection = JigsawPlacementBehaviour::Rigid;
+    if (elementObj.contains("projection") && elementObj["projection"].is_string()) {
+        projection = _parseProjection(elementObj["projection"].get<std::string>());
+    }
+
+    // 解析处理器列表引用
+    auto processorId = _parseProcessors(elementObj);
+
+    // 创建 legacy 拼图块（放置时忽略空气方块）
+    auto piece = std::make_unique<LegacySingleJigsawPiece>(location, projection, processorId);
     return piece;
 }
 
@@ -308,9 +366,23 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseEmptyPoolElement(const nl
 
 std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseFeaturePoolElement(const nlohmann::json& elementObj)
 {
-    // TODO: feature_pool_element 用于生成地物，当前实现为空元素，待地物系统完善后实现
-    MC_UNUSED(elementObj);
-    return EmptyJigsawPiece::instance().clone();
+    // 解析 feature 引用
+    std::string featureId;
+    if (elementObj.contains("feature") && elementObj["feature"].is_string()) {
+        featureId = elementObj["feature"].get<std::string>();
+    } else {
+        spdlog::warn("feature_pool_element missing 'feature' string, using empty element");
+        return EmptyJigsawPiece::instance().clone();
+    }
+
+    // 解析投影类型
+    JigsawPlacementBehaviour projection = JigsawPlacementBehaviour::Rigid;
+    if (elementObj.contains("projection") && elementObj["projection"].is_string()) {
+        projection = _parseProjection(elementObj["projection"].get<std::string>());
+    }
+
+    // 创建 feature 拼图块
+    return std::make_unique<FeatureJigsawPiece>(featureId, projection);
 }
 
 JigsawPlacementBehaviour TemplatePoolLoader::_parseProjection(const std::string& projectionStr)
@@ -320,6 +392,45 @@ JigsawPlacementBehaviour TemplatePoolLoader::_parseProjection(const std::string&
     } else {
         return JigsawPlacementBehaviour::Rigid;
     }
+}
+
+std::optional<ResourceLocation> TemplatePoolLoader::_parseProcessors(const nlohmann::json& elementObj)
+{
+    if (!elementObj.contains("processors")) {
+        return std::nullopt;
+    }
+
+    const auto& procs = elementObj["processors"];
+
+    // 字符串形式: "minecraft:mossify_10_percent" — 处理器列表引用
+    if (procs.is_string()) {
+        return ResourceLocation(procs.get<std::string>());
+    }
+
+    // 对象形式: {"processors": []} — 内联处理器列表
+    if (procs.is_object()) {
+        if (procs.contains("processors") && procs["processors"].is_array()) {
+            if (procs["processors"].empty()) {
+                return ResourceLocation("minecraft", "empty");
+            }
+            // 后续支持内联处理器列表
+            spdlog::warn("Inline processor list not yet supported, using empty");
+            return ResourceLocation("minecraft", "empty");
+        }
+        return ResourceLocation("minecraft", "empty");
+    }
+
+    // 数组形式: [] — 空列表
+    if (procs.is_array()) {
+        if (procs.empty()) {
+            return ResourceLocation("minecraft", "empty");
+        }
+        // 后续支持内联处理器数组
+        spdlog::warn("Inline processor array not yet supported, using empty");
+        return ResourceLocation("minecraft", "empty");
+    }
+
+    return std::nullopt;
 }
 
 } // namespace jigsaw

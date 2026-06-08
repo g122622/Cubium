@@ -134,6 +134,13 @@ public:
     static std::unique_ptr<JigsawPiece> _parseSinglePoolElement(const nlohmann::json& elementObj);
 
     /**
+     * @brief 解析 legacy_single_pool_element 类型
+     *
+     * 与 single_pool_element 相同，但放置时使用 STRUCTURE_AND_AIR 忽略策略。
+     */
+    static std::unique_ptr<JigsawPiece> _parseLegacySinglePoolElement(const nlohmann::json& elementObj);
+
+    /**
      * @brief 解析 list_pool_element 类型
      */
     static std::unique_ptr<JigsawPiece> _parseListPoolElement(const nlohmann::json& elementObj);
@@ -147,6 +154,19 @@ public:
      * @brief 解析 feature_pool_element 类型
      */
     static std::unique_ptr<JigsawPiece> _parseFeaturePoolElement(const nlohmann::json& elementObj);
+
+    /**
+     * @brief 解析 processors 字段
+     *
+     * processors 字段可以是：
+     * - 字符串："minecraft:mossify_10_percent"（处理器列表引用）
+     * - 对象：{"processors": []}（内联空列表）
+     * - 数组：[]（内联空列表）
+     *
+     * @param elementObj 包含 processors 字段的 JSON 对象
+     * @return 处理器列表资源位置，无处理器则返回 nullopt
+     */
+    static std::optional<ResourceLocation> _parseProcessors(const nlohmann::json& elementObj);
 
     /**
      * @brief 解析投影类型

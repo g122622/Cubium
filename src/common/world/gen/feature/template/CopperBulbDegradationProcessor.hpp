@@ -51,6 +51,11 @@ public:
         const BlockInfo& blockInfo,
         const PlacementSettings& settings) override;
 
+    [[nodiscard]] std::unique_ptr<StructureProcessor> clone() const override
+    {
+        return std::make_unique<CopperBulbDegradationProcessor>();
+    }
+
 private:
     /**
      * @brief 根据位置哈希确定铜灯的氧化等级

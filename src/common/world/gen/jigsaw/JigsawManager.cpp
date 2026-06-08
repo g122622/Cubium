@@ -27,10 +27,13 @@
 #include "../../../world/IWorldWriter.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include "../feature/template/TemplateLoader.hpp"
-#include "../feature/template/TemplateManager.hpp"
 #include "JigsawPiece.hpp"
+#include "ProcessorListRegistry.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/feature/template/TemplateLoader.hpp"
+#include "common/world/gen/feature/template/TemplateManager.hpp"
+
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace world {
@@ -38,7 +41,9 @@ namespace gen {
 namespace jigsaw {
 
 // 使用 template_ 命名空间中的类型
+using feature::template_::BlockIgnoreStructureProcessor;
 using feature::template_::GravityStructureProcessor;
+using feature::template_::JigsawReplacementStructureProcessor;
 using feature::template_::PlacementSettings;
 using feature::template_::StructureProcessorList;
 using feature::template_::Template;
@@ -155,7 +160,7 @@ bool JigsawManager::assembleAndPlace(IWorldWriter& world,
 
 void JigsawManager::placePieceRecursive(IWorldWriter& world, const PlacedPiece& placed, math::Random& rng)
 {
-    // 尝试加载模板（如果是 SingleJigsawPiece）
+    // 处理 SingleJigsawPiece 和 LegacySingleJigsawPiece
     const SingleJigsawPiece* singlePiece = dynamic_cast<const SingleJigsawPiece*>(placed.piece.get());
     if (singlePiece) {
         const std::string& templateName = singlePiece->getTemplateName();
@@ -169,18 +174,49 @@ void JigsawManager::placePieceRecursive(IWorldWriter& world, const PlacedPiece& 
                 settings.setRotation(placed.rotation);
                 settings.setMirror(placed.mirror);
 
-                // 对于 TerrainMatching 放置行为，自动添加 GravityStructureProcessor
-                // 添加 GravityStructureProcessor(Heightmap.Type.WORLD_SURFACE_WG, -1)
-                // WORLD_SURFACE_WG 对应高度图类型 0（世界表面高度图，用于世界生成）
+                // 构建处理器链（按 MC 源码 SinglePoolElement.getSettings() 的顺序）：
+                // 1. BlockIgnoreStructureProcessor — legacy 用 STRUCTURE_AND_AIR，standard 用 STRUCTURE_BLOCK
+                // 2. JigsawReplacementStructureProcessor — 替换 jigsaw 方块
+                // 3. Piece 自带 processor list — 从 ProcessorListRegistry 查找
+                // 4. GravityStructureProcessor — terrain_matching 投影时添加
                 StructureProcessorList processorList;
+
+                // 1. BlockIgnore: legacy 忽略 structure_block + air，standard 只忽略 structure_block
+                if (singlePiece->isLegacy()) {
+                    processorList.addProcessor(
+                        std::make_unique<BlockIgnoreStructureProcessor>(_getStructureAndAirIds()));
+                } else {
+                    processorList.addProcessor(
+                        std::make_unique<BlockIgnoreStructureProcessor>(_getStructureBlockIds()));
+                }
+
+                // 2. JigsawReplacement: 替换 jigsaw 方块为 final_state
+                processorList.addProcessor(std::make_unique<JigsawReplacementStructureProcessor>());
+
+                // 3. Piece 自带处理器列表
+                if (singlePiece->hasProcessors()) {
+                    const auto* pieceProcessors =
+                        ProcessorListRegistry::instance().getList(*singlePiece->getProcessorListId());
+                    if (pieceProcessors) {
+                        for (const auto& proc : pieceProcessors->getProcessors()) {
+                            if (proc) {
+                                processorList.addProcessor(proc->clone());
+                            }
+                        }
+                    } else {
+                        spdlog::warn(
+                            "Processor list '{}' not found in registry", singlePiece->getProcessorListId()->toString());
+                    }
+                }
+
+                // 4. 投影处理器（terrain_matching → GravityStructureProcessor）
                 if (placed.piece->getPlacementBehaviour() == JigsawPlacementBehaviour::TerrainMatching) {
-                    // 添加重力处理器，使结构贴合地形
-                    // offset = -1 表示将结构底部放在地面以下一格，使其更牢固地嵌入地面
                     processorList.addProcessor(std::make_unique<GravityStructureProcessor>(0, -1));
                 }
+
                 settings.setProcessors(&processorList);
 
-                // 如果 world 实现了 IWorld 接口，设置它以便 GravityStructureProcessor 可以查询高度
+                // 设置世界引用（GravityStructureProcessor 需要）
                 const IWorld* iworld = dynamic_cast<const IWorld*>(&world);
                 if (iworld) {
                     settings.setWorld(iworld);
@@ -219,8 +255,44 @@ void JigsawManager::placePieceRecursive(IWorldWriter& world, const PlacedPiece& 
         return;
     }
 
+    // 处理 FeatureJigsawPiece
+    const FeatureJigsawPiece* featurePiece = dynamic_cast<const FeatureJigsawPiece*>(placed.piece.get());
+    if (featurePiece) {
+        // FeatureJigsawPiece 在 MC 中不应用任何处理器（包括 gravity），
+        // 直接调用 configured feature 的 place() 方法。
+        // 当前 FeatureRegistry 不支持按名称查找 feature，暂时跳过实际放置。
+        spdlog::info("FeatureJigsawPiece '{}' placement deferred (feature registry not yet available by name)",
+            featurePiece->getFeatureId());
+        return;
+    }
+
     // 处理其他类型的拼图块（使用回退方块）
     _placeFallbackBlocks(world, placed, rng);
+}
+
+std::vector<u32> JigsawManager::_getStructureBlockIds()
+{
+    static std::vector<u32> ids;
+    if (ids.empty()) {
+        if (auto* state = VanillaBlocks::getState(VanillaBlocks::STRUCTURE_BLOCK)) {
+            ids.push_back(state->blockId());
+        }
+    }
+    return ids;
+}
+
+std::vector<u32> JigsawManager::_getStructureAndAirIds()
+{
+    static std::vector<u32> ids;
+    if (ids.empty()) {
+        if (auto* state = VanillaBlocks::getState(VanillaBlocks::STRUCTURE_BLOCK)) {
+            ids.push_back(state->blockId());
+        }
+        if (auto* state = VanillaBlocks::getState(VanillaBlocks::AIR)) {
+            ids.push_back(state->blockId());
+        }
+    }
+    return ids;
 }
 
 void JigsawManager::_placeFallbackBlocks(IWorldWriter& world, const PlacedPiece& placed, math::Random& rng)

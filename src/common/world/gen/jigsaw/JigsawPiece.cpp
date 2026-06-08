@@ -42,6 +42,8 @@ using feature::template_::TemplateManager;
 std::string EmptyJigsawPiece::s_typeName = "empty_pool_element";
 std::string SingleJigsawPiece::s_typeName = "single_pool_element";
 std::string ListJigsawPiece::s_typeName = "list_pool_element";
+std::string LegacySingleJigsawPiece::s_typeName = "legacy_single_pool_element";
+std::string FeatureJigsawPiece::s_typeName = "feature_pool_element";
 
 EmptyJigsawPiece& EmptyJigsawPiece::instance()
 {
@@ -101,13 +103,27 @@ bool JigsawPiece::loadJointsFromTemplate(
     return true;
 }
 
-SingleJigsawPiece::SingleJigsawPiece(const std::string& templateName, JigsawPlacementBehaviour behaviour)
+SingleJigsawPiece::SingleJigsawPiece(const std::string& templateName,
+    JigsawPlacementBehaviour behaviour,
+    const std::optional<ResourceLocation>& processorListId)
     : JigsawPiece(behaviour)
     , m_templateName(templateName)
+    , m_processorListId(processorListId)
 {
     // 尝试加载模板并填充连接点
     loadJointsFromTemplate(templateName, m_joints, m_size);
 }
+
+LegacySingleJigsawPiece::LegacySingleJigsawPiece(const std::string& templateName,
+    JigsawPlacementBehaviour behaviour,
+    const std::optional<ResourceLocation>& processorListId)
+    : SingleJigsawPiece(templateName, behaviour, processorListId)
+{}
+
+FeatureJigsawPiece::FeatureJigsawPiece(const std::string& featureId, JigsawPlacementBehaviour behaviour)
+    : JigsawPiece(behaviour)
+    , m_featureId(featureId)
+{}
 
 ListJigsawPiece::ListJigsawPiece(JigsawPlacementBehaviour behaviour)
     : JigsawPiece(behaviour)

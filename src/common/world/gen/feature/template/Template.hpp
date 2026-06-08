@@ -208,6 +208,13 @@ public:
         const PlacementSettings& settings);
 
     /**
+     * @brief 克隆处理器
+     *
+     * 用于在放置链路中组合多个处理器列表时深拷贝处理器。
+     */
+    [[nodiscard]] virtual std::unique_ptr<StructureProcessor> clone() const = 0;
+
+    /**
      * @brief 获取处理器类型ID
      */
     [[nodiscard]] virtual u32 getProcessorType() const { return 0; }
@@ -223,6 +230,21 @@ public:
     void addProcessor(std::unique_ptr<StructureProcessor> processor);
     [[nodiscard]] size_t size() const { return m_processors.size(); }
     [[nodiscard]] bool empty() const { return m_processors.empty(); }
+
+    /**
+     * @brief 深拷贝处理器列表
+     *
+     * 用于在放置链路中组合多个处理器列表时创建独立副本，
+     * 避免修改原始注册表中的处理器。
+     */
+    [[nodiscard]] std::unique_ptr<StructureProcessorList> clone() const;
+
+    /**
+     * @brief 获取处理器列表的只读引用
+     *
+     * 用于遍历处理器进行克隆或查询。
+     */
+    [[nodiscard]] const std::vector<std::unique_ptr<StructureProcessor>>& getProcessors() const { return m_processors; }
 
     // 迭代器支持
     [[nodiscard]] std::vector<std::unique_ptr<StructureProcessor>>::const_iterator begin() const
@@ -447,6 +469,11 @@ public:
         const BlockInfo& blockInfo,
         const PlacementSettings& settings) override;
 
+    [[nodiscard]] std::unique_ptr<StructureProcessor> clone() const override
+    {
+        return std::make_unique<GravityStructureProcessor>(m_heightmapType, m_offset);
+    }
+
     [[nodiscard]] i32 heightmapType() const { return m_heightmapType; }
     [[nodiscard]] i32 offset() const { return m_offset; }
 
@@ -467,6 +494,12 @@ public:
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
         const PlacementSettings& settings) override;
+
+    [[nodiscard]] std::unique_ptr<StructureProcessor> clone() const override
+    {
+        return std::make_unique<BlockIgnoreStructureProcessor>(
+            std::vector<u32>(m_blocksToIgnore.begin(), m_blocksToIgnore.end()));
+    }
 
     [[nodiscard]] const std::unordered_set<u32>& blocksToIgnore() const { return m_blocksToIgnore; }
 
@@ -490,6 +523,11 @@ public:
         const BlockInfo& blockInfo,
         const PlacementSettings& settings) override;
 
+    [[nodiscard]] std::unique_ptr<StructureProcessor> clone() const override
+    {
+        return std::make_unique<JigsawReplacementStructureProcessor>();
+    }
+
 private:
     /**
      * @brief 解析方块状态字符串
@@ -511,6 +549,11 @@ public:
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
         const PlacementSettings& settings) override;
+
+    [[nodiscard]] std::unique_ptr<StructureProcessor> clone() const override
+    {
+        return std::make_unique<IntegrityProcessor>(m_integrity);
+    }
 
 private:
     f32 m_integrity;
@@ -538,6 +581,8 @@ public:
         const BlockInfo& blockInfo,
         const PlacementSettings& settings) override;
 
+    [[nodiscard]] std::unique_ptr<StructureProcessor> clone() const override;
+
     [[nodiscard]] const std::vector<std::unique_ptr<RuleEntry>>& rules() const { return m_rules; }
 
 private:
@@ -558,6 +603,11 @@ public:
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
         const PlacementSettings& settings) override;
+
+    [[nodiscard]] std::unique_ptr<StructureProcessor> clone() const override
+    {
+        return std::make_unique<NopStructureProcessor>();
+    }
 };
 
 /**
@@ -574,6 +624,11 @@ public:
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
         const PlacementSettings& settings) override;
+
+    [[nodiscard]] std::unique_ptr<StructureProcessor> clone() const override
+    {
+        return std::make_unique<LavaSubmergingProcessor>();
+    }
 };
 
 /**
@@ -594,6 +649,11 @@ public:
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
         const PlacementSettings& settings) override;
+
+    [[nodiscard]] std::unique_ptr<StructureProcessor> clone() const override
+    {
+        return std::make_unique<BlockAgeProcessor>(m_mossiness);
+    }
 
     [[nodiscard]] f32 mossiness() const { return m_mossiness; }
 
@@ -619,6 +679,11 @@ public:
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
         const PlacementSettings& settings) override;
+
+    [[nodiscard]] std::unique_ptr<StructureProcessor> clone() const override
+    {
+        return std::make_unique<BlackstoneReplacementProcessor>();
+    }
 
 private:
     // 方块替换映射表：输入方块ID -> 输出方块ID

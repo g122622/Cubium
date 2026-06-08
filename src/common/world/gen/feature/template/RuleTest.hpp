@@ -382,6 +382,11 @@ public:
     [[nodiscard]] const PosRuleTest* posPredicate() const { return m_posPredicate.get(); }
     [[nodiscard]] const std::optional<nbt::tags::compound_tag>& outputNbt() const { return m_outputNbt; }
 
+    /**
+     * @brief 深拷贝规则条目
+     */
+    [[nodiscard]] std::unique_ptr<RuleEntry> clone() const;
+
 private:
     std::unique_ptr<RuleTest> m_inputPredicate;
     std::unique_ptr<RuleTest> m_locationPredicate;

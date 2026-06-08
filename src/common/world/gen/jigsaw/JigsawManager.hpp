@@ -293,6 +293,21 @@ private:
     static void _placeFallbackBlocks(IWorldWriter& world, const PlacedPiece& placed, math::Random& rng);
 
     /**
+     * @brief 获取 Structure Block 方块 ID 列表（用于 BlockIgnore 处理器）
+     *
+     * 延迟初始化，因为 BlockRegistry 可能尚未就绪。
+     */
+    static std::vector<u32> _getStructureBlockIds();
+
+    /**
+     * @brief 获取 Structure Block + Air 方块 ID 列表（用于 Legacy BlockIgnore 处理器）
+     *
+     * Legacy 拼图块使用此列表，因为旧版结构模板中空气方块是显式放置的，
+     * 需要忽略它们以避免覆盖已有地形。
+     */
+    static std::vector<u32> _getStructureAndAirIds();
+
+    /**
      * @brief 处理单个连接点
      */
     static bool _processJoint(JigsawPatternRegistry& patternRegistry,

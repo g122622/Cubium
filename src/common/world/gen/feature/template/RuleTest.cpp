@@ -259,6 +259,15 @@ bool RuleEntry::matches(const BlockState* inputState,
     return true;
 }
 
+std::unique_ptr<RuleEntry> RuleEntry::clone() const
+{
+    auto clonedInput = m_inputPredicate ? m_inputPredicate->clone() : nullptr;
+    auto clonedLocation = m_locationPredicate ? m_locationPredicate->clone() : nullptr;
+    auto clonedPos = m_posPredicate ? m_posPredicate->clone() : nullptr;
+    return std::make_unique<RuleEntry>(
+        std::move(clonedInput), std::move(clonedLocation), std::move(clonedPos), m_outputStateId, m_outputNbt);
+}
+
 } // namespace template_
 } // namespace feature
 } // namespace gen

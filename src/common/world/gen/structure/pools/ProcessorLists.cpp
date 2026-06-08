@@ -27,8 +27,10 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/jigsaw/ProcessorListRegistry.hpp"
 
 #include <unordered_map>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace world {
@@ -286,6 +288,46 @@ void ProcessorLists::initialize()
 
     // 高城墙
     BASTION_HIGH_RAMPART = createBastionProcessor(0.85f, true);
+
+    // ========================================================================
+    // 注册到 ProcessorListRegistry
+    // ========================================================================
+
+    auto& registry = jigsaw::ProcessorListRegistry::instance();
+
+    registry.registerList(ResourceLocation("minecraft", "empty"), EMPTY);
+    registry.registerList(ResourceLocation("minecraft", "mossify_10_percent"), MOSSIFY_10_PERCENT);
+    registry.registerList(ResourceLocation("minecraft", "mossify_20_percent"), MOSSIFY_20_PERCENT);
+    registry.registerList(ResourceLocation("minecraft", "mossify_70_percent"), MOSSIFY_70_PERCENT);
+    registry.registerList(ResourceLocation("minecraft", "street_plains"), STREET_PLAINS);
+    registry.registerList(ResourceLocation("minecraft", "street_savanna"), STREET_SAVANNA);
+    registry.registerList(ResourceLocation("minecraft", "street_snowy_or_taiga"), STREET_SNOWY_TAIGA);
+    registry.registerList(ResourceLocation("minecraft", "farm_plains"), FARM_PLAINS);
+    registry.registerList(ResourceLocation("minecraft", "farm_savanna"), FARM_SAVANNA);
+    registry.registerList(ResourceLocation("minecraft", "farm_snowy"), FARM_SNOWY);
+    registry.registerList(ResourceLocation("minecraft", "farm_taiga"), FARM_TAIGA);
+    registry.registerList(ResourceLocation("minecraft", "farm_desert"), FARM_DESERT);
+    registry.registerList(ResourceLocation("minecraft", "zombie_plains"), ZOMBIE_PLAINS);
+    registry.registerList(ResourceLocation("minecraft", "zombie_desert"), ZOMBIE_DESERT);
+    registry.registerList(ResourceLocation("minecraft", "zombie_savanna"), ZOMBIE_SAVANNA);
+    registry.registerList(ResourceLocation("minecraft", "zombie_snowy"), ZOMBIE_SNOWY);
+    registry.registerList(ResourceLocation("minecraft", "zombie_taiga"), ZOMBIE_TAIGA);
+    registry.registerList(ResourceLocation("minecraft", "outpost_rot"), OUTPOST_ROT);
+    registry.registerList(ResourceLocation("minecraft", "bastion_bottom_rampart"), BASTION_BOTTOM_RAMPART);
+    registry.registerList(ResourceLocation("minecraft", "bastion_treasure_rooms"), BASTION_TREASURE_ROOMS);
+    registry.registerList(ResourceLocation("minecraft", "bastion_housing"), BASTION_HOUSING);
+    registry.registerList(
+        ResourceLocation("minecraft", "bastion_side_wall_degradation"), BASTION_SIDE_WALL_DEGRADATION);
+    registry.registerList(ResourceLocation("minecraft", "bastion_stable_degradation"), BASTION_STABLE_DEGRADATION);
+    registry.registerList(ResourceLocation("minecraft", "bastion_generic_degradation"), BASTION_GENERIC_DEGRADATION);
+    registry.registerList(ResourceLocation("minecraft", "bastion_rampart_degradation"), BASTION_RAMPART_DEGRADATION);
+    registry.registerList(ResourceLocation("minecraft", "bastion_entrance_replacement"), BASTION_ENTRANCE_REPLACEMENT);
+    registry.registerList(ResourceLocation("minecraft", "bastion_bridge"), BASTION_BRIDGE);
+    registry.registerList(ResourceLocation("minecraft", "bastion_roof"), BASTION_ROOF);
+    registry.registerList(ResourceLocation("minecraft", "bastion_high_wall"), BASTION_HIGH_WALL);
+    registry.registerList(ResourceLocation("minecraft", "bastion_high_rampart"), BASTION_HIGH_RAMPART);
+
+    spdlog::info("Registered {} processor lists in ProcessorListRegistry", 31);
 }
 
 bool ProcessorLists::isInitialized()

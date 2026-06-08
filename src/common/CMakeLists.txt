@@ -1026,6 +1026,7 @@ add_library(mc_common STATIC
     world/gen/jigsaw/JigsawPattern.cpp
     world/gen/jigsaw/JigsawManager.cpp
     world/gen/jigsaw/TemplatePoolLoader.cpp
+    world/gen/jigsaw/ProcessorListRegistry.cpp
     world/gen/jigsaw/PoolAliasBinding.cpp
 
     # World - Generation - Structure - Pools
