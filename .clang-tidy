@@ -3,6 +3,7 @@ Checks: >-
   -*,
   bugprone-*,
   clang-analyzer-*,
+  concurrency-*,
   performance-*,
   readability-avoid-const-params-in-decls,
   readability-container-size-empty,
@@ -20,7 +21,6 @@ Checks: >-
   modernize-make-shared,
   modernize-make-unique,
   modernize-pass-by-value,
-  misc-unused-parameters,
   misc-misplaced-const,
   misc-redundant-expression,
   misc-static-assert,
@@ -28,6 +28,7 @@ Checks: >-
 WarningsAsErrors: >-
   bugprone-*,
   clang-analyzer-*,
+  concurrency-*,
   performance-*,
   misc-unused-parameters,
   misc-redundant-expression,
@@ -56,6 +57,14 @@ CheckOptions:
     value: 'false'
   - key: readability-else-after-return.WarnOnConditionVariables
     value: 'false'
+  - key: bugprone-assignment-in-if-condition.WarnForUnconditionalStatement
+    value: 'true'
+  - key: bugprone-dangling-handle.Classes
+    value: 'std::string_view,std::span,std::wstring_view'
+  - key: bugprone-use-after-move.SpuriousUseFlags
+    value: 'false'
+  - key: bugprone-suspicious-enum-usage.StrictMode
+    value: 'true'
   - key: readability-function-cognitive-complexity.Threshold
     value: '40'
 ...
