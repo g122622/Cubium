@@ -86,6 +86,19 @@ protected:
      * 即在熔岩和水区域都可以雕刻
      */
     [[nodiscard]] bool shouldCheckForFluid() const noexcept override { return false; }
+
+    /**
+     * @brief 获取雕刻后方块状态（下界重写）
+     *
+     * MC 1.21: NetherWorldCarver 不使用含水层系统，直接判断：
+     * - Y <= minY + 31: 返回熔岩
+     * - Y > minY + 31: 返回洞穴空气
+     */
+    [[nodiscard]] const BlockState* getCarveState(CarvingContext& context,
+        i32 worldX,
+        i32 worldY,
+        i32 worldZ,
+        const CaveCarverConfiguration& config) const override;
 };
 
 } // namespace mc

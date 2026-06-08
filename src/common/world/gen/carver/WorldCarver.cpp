@@ -229,6 +229,14 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
                 carvingMask.setCarved(lx, y, lz);
                 chunk.setBlockState(lx, y, lz, carveState);
 
+                // MC 1.21: 含水层流体更新调度
+                // 当含水层请求流体更新且当前方块有流体状态时，标记后处理
+                if (context.hasAquifer() && context.aquifer()->shouldScheduleFluidUpdate()) {
+                    if (carveState && carveState->isLiquid()) {
+                        chunk.markPosForPostprocessing(lx, y, lz);
+                    }
+                }
+
                 // MC: 草地/菌丝表面替换
                 if (handlesSurfaceReplacement() && hasGrassOrMycelium && y > minGenY) {
                     const BlockState* belowState = chunk.getBlockState(lx, y - 1, lz);

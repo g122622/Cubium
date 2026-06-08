@@ -259,6 +259,11 @@ void ChunkPrimer::updateAllHeightmaps()
     }
 }
 
+void ChunkPrimer::markPosForPostprocessing(BlockCoord x, BlockCoord y, BlockCoord z)
+{
+    m_postProcessingPositions.emplace_back(x, y, z);
+}
+
 void ChunkPrimer::initializeLightSources()
 {
     // INITIALIZE_LIGHT 阶段：遍历区块中所有方块，找到亮度 > 0 的方块

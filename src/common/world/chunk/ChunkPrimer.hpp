@@ -277,6 +277,32 @@ public:
     [[nodiscard]] bool hasStructureStarts() const noexcept { return !m_structureStarts.empty(); }
 
     // ============================================================================
+    // 后处理位置
+    // ============================================================================
+
+    /**
+     * @brief 标记方块位置为需要后处理
+     *
+     * MC 1.21: ProtoChunk.markPosForPostprocessing(BlockPos)
+     * 用于含水层流体更新调度：当含水层判断需要流体更新时，
+     * 雕刻器将位置标记为后处理，后续光照阶段会触发流体流动。
+     *
+     * @param x 区块内 X 坐标 (0-15)
+     * @param y 方块 Y 坐标
+     * @param z 区块内 Z 坐标 (0-15)
+     */
+    void markPosForPostprocessing(BlockCoord x, BlockCoord y, BlockCoord z);
+
+    /**
+     * @brief 获取所有需要后处理的位置
+     */
+    [[nodiscard]] const std::vector<std::tuple<BlockCoord, BlockCoord, BlockCoord>>&
+    postProcessingPositions() const noexcept
+    {
+        return m_postProcessingPositions;
+    }
+
+    // ============================================================================
     // 雕刻掩码
     // ============================================================================
 
@@ -387,6 +413,9 @@ private:
 
     // 雕刻掩码（AIR 和 LIQUID 两个雕刻阶段共享）
     std::unique_ptr<CarvingMask> m_carvingMask;
+
+    /// 后处理位置列表（含水层流体更新调度等）
+    std::vector<std::tuple<BlockCoord, BlockCoord, BlockCoord>> m_postProcessingPositions;
 
     // NoiseChunk 缓存（biomes/noise/surface/carvers 阶段共享）
     std::unique_ptr<world::gen::density::NoiseChunk> m_noiseChunk;

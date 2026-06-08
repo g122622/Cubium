@@ -198,9 +198,11 @@ protected:
      * 2. 否则如果含水层可用 → aquifer.computeSubstance()
      * 3. 如果含水层返回 nullptr → 不雕刻
      *
+     * 下界雕刻器重写此方法以跳过含水层逻辑。
+     *
      * @return 雕刻后方块状态，nullptr 表示不雕刻
      */
-    [[nodiscard]] const BlockState* getCarveState(
+    [[nodiscard]] virtual const BlockState* getCarveState(
         CarvingContext& context, i32 worldX, i32 worldY, i32 worldZ, const Config& config) const;
 };
 
@@ -222,8 +224,7 @@ public:
         ChunkCoord originChunkX,
         ChunkCoord originChunkZ,
         CarvingMask& carvingMask,
-        math::IRandom& rng)
-        = 0;
+        math::IRandom& rng) = 0;
 
     [[nodiscard]] virtual bool shouldCarve(math::IRandom& rng, ChunkCoord chunkX, ChunkCoord chunkZ) const = 0;
 };
