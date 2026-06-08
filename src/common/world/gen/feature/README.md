@@ -118,7 +118,7 @@ const u64 chunkSeed = seed
 
 ### 6. 模板加载路径
 
-NBT 模板文件路径格式：`assets/<namespace>/structures/<path>.nbt`
+NBT 模板文件路径格式：`data/<namespace>/structure/<path>.nbt`
 
 ### 7. 高度常量使用
 

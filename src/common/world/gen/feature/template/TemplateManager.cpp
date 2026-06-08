@@ -109,7 +109,7 @@ std::unique_ptr<Template> TemplateManager::_loadTemplate(const ResourceLocation&
     // 优先从 DataPackList 加载（支持多数据包优先级）
     if (m_dataPackList) {
         std::string resourcePath =
-            std::string(location.namespace_()) + "/structures/" + std::string(location.path()) + ".nbt";
+            std::string(location.namespace_()) + "/structure/" + std::string(location.path()) + ".nbt";
         auto result = m_dataPackList->readResource(resourcePath);
         if (result.success() && !result.value().empty()) {
             auto templ = TemplateLoader::loadFromCompressedNbt(result.value());

@@ -329,12 +329,12 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
 std::unique_ptr<Template> TemplateLoader::loadFromResourcePack(
     const IResourcePack& pack, const ResourceLocation& location)
 {
-    // 构建资源路径: <namespace>/structures/<path>.nbt
-    const std::string basePath = location.namespace_() + "/structures/" + location.path();
+    // 构建资源路径: <namespace>/structure/<path>.nbt
+    const std::string basePath = location.namespace_() + "/structure/" + location.path();
     std::string path = basePath + ".nbt";
 
     // 尝试读取资源
-    // 结构模板位于数据包路径 data/<namespace>/structures/<path>.nbt
+    // 结构模板位于数据包路径 data/<namespace>/structure/<path>.nbt
     auto result = pack.readResource(resource::PackType::ServerData, path);
     if (!result.success() || result.value().empty()) {
         // 尝试不带 .nbt 后缀
