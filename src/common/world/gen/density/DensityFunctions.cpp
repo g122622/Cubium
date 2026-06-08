@@ -94,6 +94,141 @@ f64 EndIslands::getHeightValue(i32 x, i32 z) const
 }
 
 // ============================================================================
+// CubicSpline 实现
+// ============================================================================
+
+CubicSpline::CubicSpline(std::shared_ptr<DensityFunction> input, std::vector<SplinePoint> points)
+    : m_input(std::move(input))
+    , m_points(std::move(points))
+{
+    MC_ASSERT_RELEASE(!m_points.empty());
+    MC_ASSERT_RELEASE(m_input != nullptr);
+    computeBounds();
+}
+
+f64 CubicSpline::compute(i32 blockX, i32 blockY, i32 blockZ) const
+{
+    const f64 coordinate = m_input->compute(blockX, blockY, blockZ);
+    return apply(coordinate, blockX, blockY, blockZ);
+}
+
+f64 CubicSpline::apply(f64 coordinate, i32 blockX, i32 blockY, i32 blockZ) const
+{
+    const size_t n = m_points.size();
+
+    // 在第一个点之前 - 线性外推
+    if (coordinate <= m_points[0].location) {
+        const f64 value0 = resolvePointValue(0, blockX, blockY, blockZ);
+        return linearExtend(coordinate, m_points[0].location, value0, m_points[0].derivative);
+    }
+
+    // 在最后一个点之后 - 线性外推
+    if (coordinate >= m_points[n - 1].location) {
+        const f64 valueN = resolvePointValue(n - 1, blockX, blockY, blockZ);
+        return linearExtend(coordinate, m_points[n - 1].location, valueN, m_points[n - 1].derivative);
+    }
+
+    // 二分查找区间
+    size_t lo = 0;
+    size_t hi = n - 2;
+    while (lo < hi) {
+        const size_t mid = (lo + hi + 1) / 2;
+        if (m_points[mid].location <= coordinate) {
+            lo = mid;
+        } else {
+            hi = mid - 1;
+        }
+    }
+
+    // 三次 Hermite 插值（MC 1.21 CubicSpline.Multipoint.apply）
+    const f64 loc0 = m_points[lo].location;
+    const f64 loc1 = m_points[lo + 1].location;
+    const f64 val0 = resolvePointValue(lo, blockX, blockY, blockZ);
+    const f64 val1 = resolvePointValue(lo + 1, blockX, blockY, blockZ);
+    const f64 der0 = m_points[lo].derivative;
+    const f64 der1 = m_points[lo + 1].derivative;
+
+    const f64 width = loc1 - loc0;
+    const f64 t = (coordinate - loc0) / width;
+
+    // MC 1.21: f4 = der0 * width - (val1 - val0), f5 = -der1 * width + (val1 - val0)
+    const f64 f4 = der0 * width - (val1 - val0);
+    const f64 f5 = -der1 * width + (val1 - val0);
+
+    // lerp(t, val0, val1) + t * (1 - t) * lerp(t, f4, f5)
+    return val0 + t * (val1 - val0) + t * (1.0 - t) * (f4 * (1.0 - t) + f5 * t);
+}
+
+f64 CubicSpline::resolvePointValue(size_t index, i32 blockX, i32 blockY, i32 blockZ) const
+{
+    const auto& point = m_points[index];
+    if (std::holds_alternative<f64>(point.value)) {
+        return std::get<f64>(point.value);
+    }
+    // 嵌套样条：递归计算
+    return std::get<std::shared_ptr<CubicSpline>>(point.value)->compute(blockX, blockY, blockZ);
+}
+
+std::unique_ptr<DensityFunction> CubicSpline::mapAll(Visitor& visitor) const
+{
+    auto newInput = m_input->mapAll(visitor);
+    auto sharedInput = std::shared_ptr<DensityFunction>(std::move(newInput));
+
+    // 递归 mapAll 子样条
+    std::vector<SplinePoint> newPoints;
+    newPoints.reserve(m_points.size());
+    for (const auto& point : m_points) {
+        SplinePoint newPoint;
+        newPoint.location = point.location;
+        newPoint.derivative = point.derivative;
+        if (std::holds_alternative<f64>(point.value)) {
+            newPoint.value = std::get<f64>(point.value);
+        } else {
+            auto& childSpline = std::get<std::shared_ptr<CubicSpline>>(point.value);
+            auto mappedChild = childSpline->mapAll(visitor);
+            newPoint.value = std::shared_ptr<CubicSpline>(dynamic_cast<CubicSpline*>(mappedChild.release()));
+        }
+        newPoints.push_back(std::move(newPoint));
+    }
+
+    return visitor.apply(std::make_unique<CubicSpline>(std::move(sharedInput), std::move(newPoints)));
+}
+
+f64 CubicSpline::linearExtend(f64 coordinate, f64 location, f64 value, f64 derivative)
+{
+    if (derivative == 0.0) {
+        return value;
+    }
+    return value + derivative * (coordinate - location);
+}
+
+void CubicSpline::computeBounds()
+{
+    // 递归计算所有控制点的值范围
+    m_minValue = std::numeric_limits<f64>::max();
+    m_maxValue = std::numeric_limits<f64>::lowest();
+
+    for (const auto& point : m_points) {
+        if (std::holds_alternative<f64>(point.value)) {
+            m_minValue = std::min(m_minValue, std::get<f64>(point.value));
+            m_maxValue = std::max(m_maxValue, std::get<f64>(point.value));
+        } else {
+            const auto& child = std::get<std::shared_ptr<CubicSpline>>(point.value);
+            m_minValue = std::min(m_minValue, child->minValue());
+            m_maxValue = std::max(m_maxValue, child->maxValue());
+        }
+    }
+
+    // 考虑导数导致的外推超出范围
+    const f64 inputMin = m_input->minValue();
+    const f64 inputMax = m_input->maxValue();
+    const f64 valAtMin = apply(inputMin, 0, 0, 0);
+    const f64 valAtMax = apply(inputMax, 0, 0, 0);
+    m_minValue = std::min({m_minValue, valAtMin, valAtMax});
+    m_maxValue = std::max({m_maxValue, valAtMin, valAtMax});
+}
+
+// ============================================================================
 // 工厂函数实现
 // ============================================================================
 
@@ -237,9 +372,30 @@ std::unique_ptr<DensityFunction> rangeChoice(std::unique_ptr<DensityFunction> in
         std::move(input), minInclusive, maxExclusive, std::move(whenInRange), std::move(whenOutOfRange));
 }
 
-std::unique_ptr<DensityFunction> spline(std::unique_ptr<DensityFunction> input, std::vector<SplinePoint> points)
+std::unique_ptr<DensityFunction> cubicSpline(std::shared_ptr<DensityFunction> input, std::vector<SplinePoint> points)
 {
-    return std::make_unique<Spline>(std::move(input), std::move(points));
+    return std::make_unique<CubicSpline>(std::move(input), std::move(points));
+}
+
+std::unique_ptr<DensityFunction> spline(std::shared_ptr<DensityFunction> input, std::vector<FlatSplinePoint> flatPoints)
+{
+    // 将扁平样条点转换为嵌套样条点（value 全部为 f64 常量）
+    std::vector<SplinePoint> points;
+    points.reserve(flatPoints.size());
+    for (const auto& fp : flatPoints) {
+        SplinePoint sp;
+        sp.location = fp.location;
+        sp.value = fp.value;
+        sp.derivative = fp.derivative;
+        points.push_back(std::move(sp));
+    }
+    return std::make_unique<CubicSpline>(std::move(input), std::move(points));
+}
+
+std::unique_ptr<DensityFunction> spline(std::unique_ptr<DensityFunction> input, std::vector<FlatSplinePoint> flatPoints)
+{
+    auto sharedInput = std::shared_ptr<DensityFunction>(std::move(input));
+    return spline(std::move(sharedInput), std::move(flatPoints));
 }
 
 std::unique_ptr<DensityFunction> cache2D(std::unique_ptr<DensityFunction> input)

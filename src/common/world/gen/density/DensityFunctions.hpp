@@ -33,6 +33,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <variant>
 #include <vector>
 
 namespace mc::world::gen::density {
@@ -755,46 +756,78 @@ private:
 };
 
 // ============================================================================
-// Spline — 样条插值密度函数
+// CubicSpline — 支持嵌套的三次样条密度函数
+//
+// MC 1.21 CubicSpline<Point, Coordinate> 实现:
+// 每个控制点的 value 可以是 f64 常量，也可以是嵌套的 CubicSpline
+// （以另一个输入密度函数为坐标轴），从而支持多维度样条树。
+//
+// 例如主世界地形 offset spline 的结构为:
+// CubicSpline(continentalness) -> points -> CubicSpline(erosion) -> points -> CubicSpline(ridges)
+// 实现了 (continentalness, erosion, ridges) -> offset 的多维度映射。
 // ============================================================================
 
 /**
- * @brief 样条点
+ * @brief 样条点（支持嵌套子样条）
  *
- * 定义样条插值的一个控制点，包含位置、值和导数。
+ * 每个控制点的 value 可以是常量值（f64）或嵌套的 CubicSpline。
+ * MC 1.21 CubicSpline.Multipoint 的每个坐标点。
+ */
+class CubicSpline;
+
+/**
+ * @brief 样条点（支持嵌套子样条）
+ *
+ * 每个控制点的 value 可以是常量值（f64）或嵌套的 CubicSpline。
+ * MC 1.21 CubicSpline.Multipoint 的每个坐标点。
+ * 使用 shared_ptr<CubicSpline> 以支持多个控制点共享子样条。
  */
 struct SplinePoint {
-    f64 location;
-    f64 value;
-    f64 derivative;
+    f64 location = 0.0;                                         ///< 控制点位置（升序排列）
+    std::variant<f64, std::shared_ptr<CubicSpline>> value{0.0}; ///< 常量值或嵌套子样条
+    f64 derivative = 0.0;                                       ///< 控制点导数
+
+    SplinePoint() = default;
+
+    /** 便利构造: 常量值控制点 */
+    SplinePoint(f64 loc, f64 val, f64 der = 0.0)
+        : location(loc)
+        , value(val)
+        , derivative(der)
+    {}
+
+    /** 便利构造: 嵌套子样条控制点 */
+    SplinePoint(f64 loc, std::shared_ptr<CubicSpline> spline, f64 der = 0.0)
+        : location(loc)
+        , value(std::move(spline))
+        , derivative(der)
+    {}
 };
 
 /**
- * @brief 样条密度函数
+ * @brief 支持嵌套的三次样条密度函数
  *
- * 使用三次 Hermite 样条插值，根据输入密度函数的输出值计算结果。
- * MC 1.21 用于地形高度和气候参数的精细控制。
+ * MC 1.21 对应 CubicSpline<Multipoint> 实现:
+ * - 使用三次 Hermite 插值
+ * - 控制点的 value 可以是 f64 或嵌套 CubicSpline（递归）
+ * - 用于主世界地形的 offset/factor/jaggedness 计算
+ *
+ * 算法:
+ * 1. 根据输入密度函数值查找所在区间 [i, i+1]
+ * 2. 计算区间内归一化位置 t
+ * 3. 递归计算左/右端点的值（如果是嵌套样条则递归 compute）
+ * 4. 应用三次 Hermite 插值公式
  */
-class Spline final : public DensityFunction {
+class CubicSpline final : public DensityFunction {
 public:
     /**
      * @brief 使用样条点列表构造
-     * @param input 输入密度函数
+     * @param input 输入密度函数（坐标轴），使用 shared_ptr 以支持多个子样条共享同一输入
      * @param points 样条控制点（必须按 location 升序排列）
      */
-    Spline(std::unique_ptr<DensityFunction> input, std::vector<SplinePoint> points)
-        : m_input(std::move(input))
-        , m_points(std::move(points))
-    {
-        MC_ASSERT_RELEASE(!m_points.empty());
-        computeBounds();
-    }
+    CubicSpline(std::shared_ptr<DensityFunction> input, std::vector<SplinePoint> points);
 
-    [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override
-    {
-        const f64 coordinate = m_input->compute(blockX, blockY, blockZ);
-        return applySpline(coordinate);
-    }
+    [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override;
 
     [[nodiscard]] f64 minValue() const override { return m_minValue; }
     [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
@@ -802,88 +835,43 @@ public:
     [[nodiscard]] const DensityFunction& input() const { return *m_input; }
     [[nodiscard]] const std::vector<SplinePoint>& points() const { return m_points; }
 
-    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
-    {
-        auto newInput = m_input->mapAll(visitor);
-        return visitor.apply(std::make_unique<Spline>(std::move(newInput), m_points));
-    }
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override;
+
+    /**
+     * @brief 在给定坐标处计算样条值（内部使用，支持递归嵌套）
+     */
+    [[nodiscard]] f64 apply(f64 coordinate, i32 blockX, i32 blockY, i32 blockZ) const;
+
+    /**
+     * @brief 计算样条点的值（处理嵌套）
+     */
+    [[nodiscard]] f64 resolvePointValue(size_t index, i32 blockX, i32 blockY, i32 blockZ) const;
 
 private:
-    std::unique_ptr<DensityFunction> m_input;
+    std::shared_ptr<DensityFunction> m_input;
     std::vector<SplinePoint> m_points;
     f64 m_minValue = 0.0;
     f64 m_maxValue = 0.0;
 
-    [[nodiscard]] f64 applySpline(f64 coordinate) const
-    {
-        const size_t n = m_points.size();
+    void computeBounds();
 
-        // 在第一个点之前 - 线性外推
-        if (coordinate <= m_points[0].location) {
-            const f64 slope = m_points[0].derivative;
-            return m_points[0].value + slope * (coordinate - m_points[0].location);
-        }
+    /// 线性外推（超出样条范围时使用）
+    [[nodiscard]] static f64 linearExtend(f64 coordinate, f64 location, f64 value, f64 derivative);
+};
 
-        // 在最后一个点之后 - 线性外推
-        if (coordinate >= m_points[n - 1].location) {
-            const f64 slope = m_points[n - 1].derivative;
-            return m_points[n - 1].value + slope * (coordinate - m_points[n - 1].location);
-        }
+// ============================================================================
+// 保留旧 Spline 类型别名以兼容（使用 CubicSpline 的单层简化版本）
+// ============================================================================
 
-        // 二分查找区间
-        size_t lo = 0;
-        size_t hi = n - 2;
-        while (lo < hi) {
-            const size_t mid = (lo + hi + 1) / 2;
-            if (m_points[mid].location <= coordinate) {
-                lo = mid;
-            } else {
-                hi = mid - 1;
-            }
-        }
-
-        // 三次 Hermite 插值
-        const f64 loc0 = m_points[lo].location;
-        const f64 loc1 = m_points[lo + 1].location;
-        const f64 val0 = m_points[lo].value;
-        const f64 val1 = m_points[lo + 1].value;
-        const f64 der0 = m_points[lo].derivative;
-        const f64 der1 = m_points[lo + 1].derivative;
-
-        const f64 width = loc1 - loc0;
-        const f64 t = (coordinate - loc0) / width;
-
-        // 缩放导数到区间宽度
-        const f64 d0 = der0 * width;
-        const f64 d1 = der1 * width;
-
-        // Hermite 基函数
-        const f64 a = d0 - (val1 - val0);
-        const f64 b = -d1 + (val1 - val0);
-
-        return val0 * (1.0 - t) + val1 * t + t * (1.0 - t) * (a * (1.0 - t) + b * t);
-    }
-
-    void computeBounds()
-    {
-        // 保守估计：遍历样条点计算值范围
-        m_minValue = std::numeric_limits<f64>::max();
-        m_maxValue = std::numeric_limits<f64>::lowest();
-
-        for (const auto& point : m_points) {
-            m_minValue = std::min(m_minValue, point.value);
-            m_maxValue = std::max(m_maxValue, point.value);
-        }
-
-        // 考虑导数导致的超出范围
-        // 简化处理：使用输入范围的首尾样条值
-        const f64 inputMin = m_input->minValue();
-        const f64 inputMax = m_input->maxValue();
-        const f64 valAtMin = applySpline(inputMin);
-        const f64 valAtMax = applySpline(inputMax);
-        m_minValue = std::min({m_minValue, valAtMin, valAtMax});
-        m_maxValue = std::max({m_maxValue, valAtMin, valAtMax});
-    }
+/**
+ * @brief 旧式样条点（仅常量值，不嵌套）
+ *
+ * 为保持向后兼容保留，新建代码应使用 SplinePoint + CubicSpline。
+ */
+struct FlatSplinePoint {
+    f64 location;
+    f64 value;
+    f64 derivative;
 };
 
 // ============================================================================
@@ -1386,10 +1374,31 @@ namespace factory {
     std::unique_ptr<DensityFunction> whenOutOfRange);
 
 /**
- * @brief 创建样条密度函数
+ * @brief 创建嵌套样条密度函数（CubicSpline）
+ *
+ * 每个控制点的 value 可以是 f64 常量或嵌套 CubicSpline。
+ * 这是 MC 1.21 多维度样条树的核心构建方式。
+ * 输入密度函数使用 shared_ptr，以支持多个子样条共享同一输入。
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> cubicSpline(
+    std::shared_ptr<DensityFunction> input, std::vector<SplinePoint> points);
+
+/**
+ * @brief 创建扁平样条密度函数（兼容旧接口）
+ *
+ * 所有控制点的 value 都是 f64 常量，无嵌套。
+ * 输入密度函数使用 shared_ptr。
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> spline(
-    std::unique_ptr<DensityFunction> input, std::vector<SplinePoint> points);
+    std::shared_ptr<DensityFunction> input, std::vector<FlatSplinePoint> points);
+
+/**
+ * @brief 创建扁平样条密度函数（unique_ptr 输入版本）
+ *
+ * 输入密度函数使用 unique_ptr，内部转换为 shared_ptr。
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> spline(
+    std::unique_ptr<DensityFunction> input, std::vector<FlatSplinePoint> points);
 
 /**
  * @brief 创建 2D 缓存

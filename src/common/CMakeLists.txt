@@ -870,10 +870,12 @@ add_library(mc_common STATIC
 
     # World - Generation - Density
     world/gen/density/BlendedNoise.cpp
+    world/gen/density/CaveDensityFunctions.cpp
     world/gen/density/DensityFunctions.cpp
     world/gen/density/NoiseChunk.cpp
     world/gen/density/NoiseRouter.cpp
     world/gen/density/NoiseRouterData.cpp
+    world/gen/density/TerrainProvider.cpp
     world/gen/density/Beardifier.cpp
     world/gen/RandomState.cpp
 
