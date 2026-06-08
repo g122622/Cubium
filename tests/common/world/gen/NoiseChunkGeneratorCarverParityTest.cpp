@@ -29,6 +29,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/density/Beardifier.hpp"
 
 #include <memory>
 #include <vector>
@@ -229,28 +230,28 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, GaussianLUTInitialization)
 /**
  * @brief NoiseChunkGenerator 结构密度偏移计算测试
  *
- * 验证 calculateStructureDensityOffset 产生正确的高斯衰减值。
+ * 验证 Beardifier::computeBeardContribution 产生正确的高斯衰减值。
  *
- * 参考 MC 1.16.5 NoiseChunkGenerator.func_222554_b:
+ * 参考 MC NoiseChunkGenerator.func_222554_b:
  * 该函数产生负密度值来平滑结构边界地形。
  * 中心点有最大的负偏移（向下凹陷），边缘趋于零。
  */
 TEST(NoiseChunkGeneratorDensityTest, StructureDensityOffsetValues)
 {
     // 中心点应该有最大的负偏移（用于向下平滑地形）
-    f64 centerOffset = NoiseChunkGenerator::calculateStructureDensityOffset(0, 0, 0);
+    f64 centerOffset = world::gen::density::Beardifier::computeBeardContribution(0, 0, 0);
     EXPECT_LT(centerOffset, 0.0) << "Center should have negative density offset for terrain smoothing";
-    EXPECT_NEAR(centerOffset, -0.696, 0.01) << "Center offset should match MC 1.16.5 value";
+    EXPECT_NEAR(centerOffset, -0.696, 0.01) << "Center offset should match MC value";
 
     // 远距离点应该趋近于零
-    f64 farOffset = NoiseChunkGenerator::calculateStructureDensityOffset(50, 50, 50);
+    f64 farOffset = world::gen::density::Beardifier::computeBeardContribution(50, 50, 50);
     EXPECT_NEAR(farOffset, 0.0, 0.001) << "Far distance should have near-zero offset";
 
     // 对称性：相同距离的点应该产生相同的影响（X和Z轴对称）
-    f64 offset1 = NoiseChunkGenerator::calculateStructureDensityOffset(5, 3, 7);
-    f64 offset2 = NoiseChunkGenerator::calculateStructureDensityOffset(-5, 3, 7);
-    f64 offset3 = NoiseChunkGenerator::calculateStructureDensityOffset(5, 3, -7);
-    f64 offset4 = NoiseChunkGenerator::calculateStructureDensityOffset(-5, 3, -7);
+    f64 offset1 = world::gen::density::Beardifier::computeBeardContribution(5, 3, 7);
+    f64 offset2 = world::gen::density::Beardifier::computeBeardContribution(-5, 3, 7);
+    f64 offset3 = world::gen::density::Beardifier::computeBeardContribution(5, 3, -7);
+    f64 offset4 = world::gen::density::Beardifier::computeBeardContribution(-5, 3, -7);
 
     // X 和 Z 的对称性
     EXPECT_NEAR(offset1, offset2, 0.0001) << "X-axis symmetry should hold";
@@ -259,12 +260,12 @@ TEST(NoiseChunkGeneratorDensityTest, StructureDensityOffsetValues)
 
     // Y 轴行为验证：Y 偏移为负时（结构下方），偏移应为正
     // 这用于在结构下方抬升地形
-    f64 belowOffset = NoiseChunkGenerator::calculateStructureDensityOffset(0, -5, 0);
+    f64 belowOffset = world::gen::density::Beardifier::computeBeardContribution(0, -5, 0);
     EXPECT_GT(belowOffset, 0.0) << "Below structure should have positive offset (terrain raised)";
 
     // Y 偏移为正时（结构上方），偏移应为负
     // 这用于在结构上方降低地形
-    f64 aboveOffset = NoiseChunkGenerator::calculateStructureDensityOffset(0, 5, 0);
+    f64 aboveOffset = world::gen::density::Beardifier::computeBeardContribution(0, 5, 0);
     EXPECT_LT(aboveOffset, 0.0) << "Above structure should have negative offset (terrain lowered)";
 }
 
@@ -280,16 +281,15 @@ TEST(NoiseChunkGeneratorDensityTest, GaussianLUTBoundaryCheck)
         for (i32 dy = -12; dy < 12; ++dy) {
             for (i32 dz = -12; dz < 12; ++dz) {
                 // 应该不崩溃
-                f64 offset = NoiseChunkGenerator::calculateStructureDensityOffset(dx, dy, dz);
+                f64 offset = world::gen::density::Beardifier::computeBeardContribution(dx, dy, dz);
                 (void)offset; // 仅验证计算能完成
             }
         }
     }
 
-    // 边界外点应该返回零（在 generateNoise 中处理，这里验证函数行为）
-    f64 outsideOffset = NoiseChunkGenerator::calculateStructureDensityOffset(15, 15, 15);
-    // 注意：calculateStructureDensityOffset 本身不检查边界，边界检查在 generateNoise 中
-    // 这里只验证函数能正常执行
+    // 边界外点应该返回接近零的值
+    f64 outsideOffset = world::gen::density::Beardifier::computeBeardContribution(15, 15, 15);
+    // computeBeardContribution 在远处自然衰减，这里只验证函数能正常执行
     (void)outsideOffset;
     SUCCEED() << "Boundary calculations completed without crash";
 }

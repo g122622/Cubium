@@ -27,6 +27,8 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "common/world/gen/noise/NormalNoise.hpp"
+#include "common/world/gen/noise/PerlinNoise.hpp"
 #include <array>
 #include <cmath>
 #include <limits>
@@ -34,6 +36,8 @@
 #include <gtest/gtest.h>
 
 namespace mc {
+
+using namespace world::gen::noise;
 namespace {
 
 /**
@@ -258,95 +262,50 @@ TEST_F(WorldGenDeterminismTest, SurfaceGenerationSeedDeterminism)
 }
 
 /**
- * @brief 测试噪声生成器的确定性
+ * @brief 测试 PerlinNoise 生成器的确定性
  */
-TEST_F(WorldGenDeterminismTest, NoiseGeneratorDeterminism)
+TEST_F(WorldGenDeterminismTest, PerlinNoiseDeterminism)
 {
     const u64 seed = 12345;
 
-    // 创建两个 OctavesNoiseGenerator
-    math::Random rng1(seed);
-    math::Random rng2(seed);
-
-    OctavesNoiseGenerator noise1(rng1, -15, 0);
-    OctavesNoiseGenerator noise2(rng2, -15, 0);
+    // 创建两个 PerlinNoise 实例（MC 1.18+ 新噪声系统）
+    noise::PerlinNoise noise1(seed, -3, {1.0, 1.0, 1.0, 1.0});
+    noise::PerlinNoise noise2(seed, -3, {1.0, 1.0, 1.0, 1.0});
 
     // 测试噪声值是否相同
     for (int i = 0; i < 100; ++i) {
-        f32 x = static_cast<f32>(i * 17.3f);
-        f32 y = static_cast<f32>(i * 31.7f);
-        f32 z = static_cast<f32>(i * 53.1f);
+        f64 x = static_cast<f64>(i * 17.3);
+        f64 y = static_cast<f64>(i * 31.7);
+        f64 z = static_cast<f64>(i * 53.1);
 
-        f32 n1 = noise1.noise(x, y, z);
-        f32 n2 = noise2.noise(x, y, z);
+        f64 n1 = noise1.getValue(x, y, z);
+        f64 n2 = noise2.getValue(x, y, z);
 
-        EXPECT_NEAR(n1, n2, 1e-6f) << "Noise mismatch at sample " << i;
+        EXPECT_NEAR(n1, n2, 1e-10) << "PerlinNoise mismatch at sample " << i;
     }
 }
 
 /**
- * @brief 测试 PerlinNoiseGenerator 的倍频叠加与偏移轴一致性
- *
- * 该测试手动重建 MC 风格的 noiseAt 叠加流程，确保：
- * 1. 使用 yOffset 作为第二坐标偏移（而非 zOffset）
- * 2. 每层频率/振幅缩放顺序正确
- * 3. useNoiseOffsets 开关行为稳定
+ * @brief 测试 NormalNoise 生成器的确定性
  */
-TEST_F(WorldGenDeterminismTest, PerlinNoiseManualBlendParity)
+TEST_F(WorldGenDeterminismTest, NormalNoiseDeterminism)
 {
-    constexpr u64 seed = 0x20260404ULL;
-    constexpr i32 minOctave = -3;
-    constexpr i32 maxOctave = 0;
+    const u64 seed = 54321;
 
-    math::Random rng(seed);
-    PerlinNoiseGenerator perlin(rng, minOctave, maxOctave);
+    // 创建两个 NormalNoise 实例
+    noise::NormalNoise noise1(seed, -3, {1.0, 1.0, 1.0, 1.0});
+    noise::NormalNoise noise2(seed, -3, {1.0, 1.0, 1.0, 1.0});
 
-    auto manualNoiseAt = [&perlin](f32 x, f32 y, bool useNoiseOffsets) -> f64 {
-        constexpr i32 minOct = -3;
-        constexpr i32 maxOct = 0;
-        constexpr i32 octaveCount = (-minOct) + maxOct + 1;
+    // 测试噪声值是否相同
+    for (int i = 0; i < 100; ++i) {
+        f64 x = static_cast<f64>(i * 17.3);
+        f64 y = static_cast<f64>(i * 31.7);
+        f64 z = static_cast<f64>(i * 53.1);
 
-        f64 result = 0.0;
-        f64 xFactor = std::pow(2.0, static_cast<f64>(maxOct));
-        f64 yFactor = 1.0 / (std::pow(2.0, static_cast<f64>(octaveCount)) - 1.0);
+        f64 n1 = noise1.getValue(x, y, z);
+        f64 n2 = noise2.getValue(x, y, z);
 
-        for (i32 octave = maxOct; octave >= minOct; --octave) {
-            const SimplexNoiseGenerator* level = perlin.getOctave(octave);
-            if (level != nullptr) {
-                const f64 offsetX = useNoiseOffsets ? static_cast<f64>(level->xOffset()) : 0.0;
-                const f64 offsetY = useNoiseOffsets ? static_cast<f64>(level->yOffset()) : 0.0;
-
-                result +=
-                    level->getValue(static_cast<f64>(x) * xFactor + offsetX, static_cast<f64>(y) * xFactor + offsetY) *
-                    yFactor;
-            }
-
-            xFactor /= 2.0;
-            yFactor *= 2.0;
-        }
-
-        return result;
-    };
-
-    const std::array<std::pair<f32, f32>, 5> samples{{
-        {0.0f, 0.0f},
-        {12.5f, -7.25f},
-        {-128.75f, 64.125f},
-        {333.0f, -999.0f},
-        {2048.5f, 1024.25f},
-    }};
-
-    for (const auto& [x, y] : samples) {
-        const f64 expectedWithOffsets = manualNoiseAt(x, y, true);
-        const f64 expectedWithoutOffsets = manualNoiseAt(x, y, false);
-
-        const f64 actualWithOffsets = static_cast<f64>(perlin.noiseAt(x, y, true));
-        const f64 actualWithoutOffsets = static_cast<f64>(perlin.noiseAt(x, y, false));
-
-        EXPECT_NEAR(actualWithOffsets, expectedWithOffsets, 1e-6)
-            << "Perlin noiseAt(useOffsets=true) mismatch at (" << x << ", " << y << ")";
-        EXPECT_NEAR(actualWithoutOffsets, expectedWithoutOffsets, 1e-6)
-            << "Perlin noiseAt(useOffsets=false) mismatch at (" << x << ", " << y << ")";
+        EXPECT_NEAR(n1, n2, 1e-10) << "NormalNoise mismatch at sample " << i;
     }
 }
 
@@ -436,7 +395,8 @@ TEST_F(WorldGenDeterminismTest, OverworldTerrainHasTallReliefInSampleWindow)
 
     for (u64 seed : seeds) {
         DimensionSettings settings = DimensionSettings::overworld();
-        NoiseChunkGenerator generator(seed, std::move(settings), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false));
+        NoiseChunkGenerator generator(
+            seed, std::move(settings), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false));
 
         for (i32 z = -512; z <= 512; z += 32) {
             for (i32 x = -512; x <= 512; x += 32) {

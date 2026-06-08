@@ -112,14 +112,14 @@ world/
 │   │   ├── tree/               # 树生成
 │   │   └── vegetation/         # 植被
 │   ├── jigsaw/                 # 拼图结构组装
-│   ├── noise/                  # 噪声生成器
+│   ├── noise/                  # MC 1.18+ 噪声生成器
 │   ├── placement/              # 特性放置
 │   ├── settings/               # 生成设置
 │   ├── spawn/                  # 世界出生点
 │   ├── structure/              # 结构生成
 │   │   ├── pools/              # 结构池
 │   │   └── structures/         # 具体结构
-│   ├── surface/                # 地表构建器
+│   ├── surface/                # MC 1.21 地表规则系统
 │   └── valueprovider/          # 值提供器
 ├── lighting/                   # 光照系统
 │   ├── IChunkLightProvider.hpp # 区块光照提供接口

@@ -864,12 +864,12 @@ add_library(mc_common STATIC
     world/chunk/SingleChunkLifecycleManager.cpp
 
     # World - Generation - Noise
-    world/gen/noise/ImprovedNoiseGenerator.cpp
-    world/gen/noise/OctavesNoiseGenerator.cpp
     world/gen/noise/PerlinNoise.cpp
     world/gen/noise/NormalNoise.cpp
+    world/gen/noise/SimplexNoise.cpp
 
     # World - Generation - Density
+    world/gen/density/BlendedNoise.cpp
     world/gen/density/DensityFunctions.cpp
     world/gen/density/NoiseChunk.cpp
     world/gen/density/NoiseRouter.cpp
@@ -880,8 +880,6 @@ add_library(mc_common STATIC
     # World - Generation - Chunk Generators
     world/gen/chunk/IChunkGenerator.cpp
     world/gen/chunk/NoiseChunkGenerator.cpp
-    world/gen/chunk/NetherChunkGenerator.cpp
-    world/gen/chunk/EndChunkGenerator.cpp
     world/gen/chunk/DebugChunkGenerator.cpp
 
     # World - Dimension
@@ -926,7 +924,6 @@ add_library(mc_common STATIC
     world/biome/source/EndBiomeSource.cpp
 
     # World - Generation - Surface
-    world/gen/surface/SurfaceBuilders.cpp
     world/gen/surface/SurfaceRules.cpp
 
     # World - Generation - Aquifer

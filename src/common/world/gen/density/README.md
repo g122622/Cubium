@@ -14,6 +14,8 @@ density/
 ├── DensityFunction.hpp    — 密度函数核心接口
 ├── DensityFunctions.hpp   — 所有密度函数实现类 + 工厂函数
 ├── DensityFunctions.cpp   — 实现
+├── BlendedNoise.hpp       — MC 1.18+ 混合噪声密度函数（旧式三层 Perlin）
+├── BlendedNoise.cpp       — 实现
 ├── NoiseRouter.hpp        — 噪声路由器（持有 15 个密度函数）
 ├── NoiseRouter.cpp        — 实现
 ├── NoiseRouterData.hpp    — 预定义噪声配置（主世界/下界/末地）
@@ -42,6 +44,8 @@ NoiseChunk ──包装──→ DensityFunction (Interpolated/CacheAllInCell/Ca
 DensityFunction 实现链:
 NoiseDensity ──持有──→ NormalNoise ──持有──→ 2 × PerlinNoise ──持有──→ PerlinLayer[]
 ShiftedNoise ──持有──→ NormalNoise + 3 × DensityFunction (shiftX/Y/Z)
+BlendedNoise ──持有──→ 3 × PerlinNoise (minLimit/maxLimit/main) + PerlinLayer[]
+EndIslands ──持有──→ SimplexNoise
 ```
 
 ## 外部依赖关系
@@ -50,6 +54,7 @@ ShiftedNoise ──持有──→ NormalNoise + 3 × DensityFunction (shiftX/Y/
 
 - `common/world/gen/noise/NormalNoise.hpp` — 噪声采样
 - `common/world/gen/noise/PerlinNoise.hpp` — Perlin 噪声
+- `common/world/gen/noise/SimplexNoise.hpp` — Simplex 噪声（EndIslands）
 - `common/world/biome/climate/Climate.hpp` — Climate.Sampler 创建
 - `common/core/Constants.hpp` — MIN_BUILD_HEIGHT, MAX_BUILD_HEIGHT
 - `common/util/math/MathUtils.hpp` — 数学工具
@@ -57,7 +62,21 @@ ShiftedNoise ──持有──→ NormalNoise + 3 × DensityFunction (shiftX/Y/
 ### 被依赖
 
 - `common/world/biome/source/MultiNoiseBiomeSource` — 使用 NoiseRouter.createClimateSampler()
+- `common/world/biome/source/EndBiomeSource` — 使用 Climate.Sampler.erosion 区分末地生物群系
 - `common/world/gen/chunk/NoiseChunkGenerator` — 使用 finalDensity 地形生成
+
+## 维度密度函数配置
+
+| 维度 | finalDensity 管线 |
+|------|-------------------|
+| 主世界 | `slideOverworld(postProcess(depth + continents + 0.5*erosion + 0.5*ridgesPV))` |
+| 下界 | `noNewCaves(slideNetherLike(blendedNoise + yClampedGradient(0,128,1.5,-1.5)))` |
+| 末地 | `postProcess(slideEndLike(cache2d(endIslands) + blendedNoise_end))` |
+
+其中 BlendedNoise 参数：
+- 主世界: xzScale=0.25, yScale=0.125, xzFactor=80, yFactor=160, smear=8
+- 下界: xzScale=0.25, yScale=0.375, xzFactor=80, yFactor=60, smear=8
+- 末地: xzScale=0.25, yScale=0.25, xzFactor=80, yFactor=160, smear=4
 
 ## 容易踩的坑
 
@@ -73,3 +92,7 @@ ShiftedNoise ──持有──→ NormalNoise + 3 × DensityFunction (shiftX/Y/
 8. **NoiseChunk slice 交换**：advanceCellX 后必须调用 swapSlices() 切换缓冲区
 9. **NoiseInterpolator 双缓冲**：slice0/slice1 分别存储当前列和下一列的角点数据，
    初始化时需要先填充 slice0
+10. **BlendedNoise 涂抹效果**：使用 `PerlinNoise::getValueWithSmear()` 对 Y 轴应用涂抹，
+    涂抹参数影响地形条纹结构
+11. **EndIslands 种子**：使用 `LegacyRandomSource(seed).consumeCount(17292)` 初始化 SimplexNoise，
+    确保与 Java 版生成相同的世界

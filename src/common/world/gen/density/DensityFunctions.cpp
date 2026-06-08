@@ -33,15 +33,21 @@ namespace mc::world::gen::density {
 
 EndIslands::EndIslands(u64 seed)
     : m_seed(seed)
-    , m_islandNoise(
-          std::make_unique<noise::NormalNoise>(seed ^ 0x9E3779B97F4A7C15ULL, -4, std::vector<f64>{1.0, 1.0, 1.0, 1.0}))
-{}
+{
+    // MC 1.21.11: LegacyRandomSource(seed).consumeCount(17292) 后创建 SimplexNoise
+    // consumeCount 等价于调用 nextLong() 17292 次来推进随机状态
+    math::Random rng(seed);
+    for (i32 i = 0; i < 17292; ++i) {
+        static_cast<void>(rng.nextLong());
+    }
+    m_islandNoise = std::make_unique<noise::SimplexNoise>(rng);
+}
 
 f64 EndIslands::compute(i32 blockX, i32 blockY, i32 blockZ) const
 {
     MC_UNUSED(blockY);
 
-    // MC 1.21: 采样网格为 8 格间距（不是 100）
+    // MC 1.21: 采样网格为 8 格间距
     const i32 sx = blockX >> 3; // blockX / 8
     const i32 sz = blockZ >> 3; // blockZ / 8
 
@@ -51,11 +57,11 @@ f64 EndIslands::compute(i32 blockX, i32 blockY, i32 blockZ) const
 
 f64 EndIslands::getHeightValue(i32 x, i32 z) const
 {
-    // MC 1.21 EndIslands.getHeightValue
-    const i32 i = x >> 1;
-    const i32 j = z >> 1;
-    const i32 k = x & 1; // x % 2
-    const i32 l = z & 1; // z % 2
+    // MC 1.21.11 EndIslandDensityFunction.getHeightValue
+    const i32 i = x >> 1; // x / 2
+    const i32 j = z >> 1; // z / 2
+    const i32 k = x & 1;  // x % 2
+    const i32 l = z & 1;  // z % 2
 
     // 基础高度：根据到原点的距离
     f64 f = 100.0 - std::sqrt(static_cast<f64>(x * x + z * z)) * 8.0;
@@ -67,14 +73,10 @@ f64 EndIslands::getHeightValue(i32 x, i32 z) const
             const i64 k1 = static_cast<i64>(i) + i1;
             const i64 l1 = static_cast<i64>(j) + j1;
 
-            // 跳过中心区域（主岛）和太远的区域
-            if (k1 * k1 + l1 * l1 > 4096L) {
-                continue;
-            }
-
-            // 检查此位置是否有岛屿（噪声阈值 < -0.9）
-            const f64 noiseVal = m_islandNoise->getValue(static_cast<f64>(k1), 0.0, static_cast<f64>(l1));
-            if (noiseVal < -0.9) {
+            // MC 1.21.11: 只在外岛区域（距中心 > 64 区块半径）且噪声 < -0.9 时处理
+            // 原代码错误地将此条件反转（continue 跳过了外岛区域）
+            if (k1 * k1 + l1 * l1 > 4096L &&
+                m_islandNoise->getValue(static_cast<f64>(k1), static_cast<f64>(l1)) < -0.9) {
                 // 计算此岛屿对此位置的高度贡献
                 const f64 f1 =
                     std::fmod(std::abs(static_cast<f64>(k1)) * 3439.0 + std::abs(static_cast<f64>(l1)) * 147.0, 13.0) +
@@ -268,6 +270,12 @@ std::unique_ptr<DensityFunction> weirdScaledSampler(std::unique_ptr<DensityFunct
 std::unique_ptr<DensityFunction> endIslands(u64 seed)
 {
     return std::make_unique<EndIslands>(seed);
+}
+
+std::unique_ptr<DensityFunction> blendedNoise(
+    u64 seed, f64 xzScale, f64 yScale, f64 xzFactor, f64 yFactor, f64 smearScaleMultiplier)
+{
+    return std::make_unique<BlendedNoise>(seed, xzScale, yScale, xzFactor, yFactor, smearScaleMultiplier);
 }
 
 std::unique_ptr<DensityFunction> mappedNoise(

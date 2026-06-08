@@ -23,6 +23,8 @@
 
 #pragma once
 
-// 噪声生成器
-#include "ImprovedNoiseGenerator.hpp"
-#include "OctavesNoiseGenerator.hpp"
+// MC 1.18+ 噪声生成器聚合头文件
+
+#include "NormalNoise.hpp"
+#include "PerlinNoise.hpp"
+#include "SimplexNoise.hpp"

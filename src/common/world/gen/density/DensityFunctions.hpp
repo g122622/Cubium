@@ -25,8 +25,10 @@
 #include "common/core/Constants.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/world/gen/density/BlendedNoise.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
+#include "common/world/gen/noise/SimplexNoise.hpp"
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -1207,8 +1209,14 @@ private:
 /**
  * @brief 末地岛屿密度函数
  *
- * MC 1.21 的末地岛屿密度函数。
- * 在 8x8 区块网格上检测岛屿，使用 SimplexNoise 生成外岛。
+ * 参考 MC 1.21.11: DensityFunctions.EndIslandDensityFunction
+ * 在 8 格间距网格上检测岛屿，使用 SimplexNoise 生成外岛。
+ *
+ * 算法流程：
+ * 1. 将方块坐标缩放到 8 格间距网格
+ * 2. 计算基础高度值（基于到原点距离）
+ * 3. 遍历周围的 25x25 网格，检测外岛（距中心 > 64 区块 且 噪声 < -0.9）
+ * 4. 返回 (height - 8.0) / 128.0
  */
 class EndIslands final : public DensityFunction {
 public:
@@ -1228,7 +1236,7 @@ private:
     [[nodiscard]] f64 getHeightValue(i32 x, i32 z) const;
 
     u64 m_seed;
-    std::unique_ptr<noise::NormalNoise> m_islandNoise;
+    std::unique_ptr<noise::SimplexNoise> m_islandNoise;
 };
 
 // ============================================================================
@@ -1419,6 +1427,24 @@ namespace factory {
  * @brief 创建末地岛屿密度函数
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> endIslands(u64 seed);
+
+/**
+ * @brief 创建混合噪声密度函数（旧式三层 Perlin 噪声）
+ *
+ * MC 1.21: BlendedNoise 密度函数，用于 BASE_3D_NOISE。
+ * 主世界参数: (0.25, 0.125, 80.0, 160.0, 8.0)
+ * 下界参数:   (0.25, 0.375, 80.0, 60.0, 8.0)
+ * 末地参数:   (0.25, 0.25, 80.0, 160.0, 4.0)
+ *
+ * @param seed 世界种子
+ * @param xzScale XZ 方向缩放因子
+ * @param yScale Y 方向缩放因子
+ * @param xzFactor XZ 方向因子
+ * @param yFactor Y 方向因子
+ * @param smearScaleMultiplier Y 方向涂抹缩放乘数
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> blendedNoise(
+    u64 seed, f64 xzScale, f64 yScale, f64 xzFactor, f64 yFactor, f64 smearScaleMultiplier);
 
 /**
  * @brief 创建标记密度函数（Interpolated 类型）

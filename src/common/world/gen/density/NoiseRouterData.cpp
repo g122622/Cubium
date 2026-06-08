@@ -137,6 +137,124 @@ std::unique_ptr<DensityFunction> NoiseRouterData::peaksAndValleys(std::unique_pt
     return factory::mul(factory::constant(-3.0), std::move(sub));
 }
 
+// ============================================================================
+// slide / postProcess / noNewCaves
+// ============================================================================
+
+std::unique_ptr<DensityFunction> NoiseRouterData::slide(std::unique_ptr<DensityFunction> input,
+    i32 startY,
+    i32 height,
+    i32 topSlideFromTop,
+    i32 topSlideToTop,
+    f64 topSlideTarget,
+    i32 bottomSlideFromBottom,
+    i32 bottomSlideToBottom,
+    f64 bottomSlideTarget)
+{
+    // MC 1.21: slide 函数在维度顶部和底部应用 Y 方向渐变
+    // 顶部: Y 从 (startY+height-topSlideFromTop) 到 (startY+height-topSlideToTop) 从 1.0 渐变到 0.0
+    // 底部: Y 从 (startY+bottomSlideFromBottom) 到 (startY+bottomSlideToBottom) 从 0.0 渐变到 1.0
+
+    auto topGradient =
+        factory::yClampedGradient(startY + height - topSlideFromTop, startY + height - topSlideToTop, 1.0, 0.0);
+    auto afterTop = factory::lerp(std::move(topGradient), factory::constant(topSlideTarget), std::move(input));
+
+    auto bottomGradient =
+        factory::yClampedGradient(startY + bottomSlideFromBottom, startY + bottomSlideToBottom, 0.0, 1.0);
+    return factory::lerp(std::move(bottomGradient), factory::constant(bottomSlideTarget), std::move(afterTop));
+}
+
+std::unique_ptr<DensityFunction> NoiseRouterData::slideOverworld(std::unique_ptr<DensityFunction> input, bool amplified)
+{
+    // MC 1.21: overworld slide 参数
+    // startY=-64, height=384
+    // topSlide: fromTop=80, toTop=64, target=-0.078125
+    // bottomSlide: fromBottom=0, toBottom=24, target=0.1171875
+    // amplified 时 toTop=64→64 (不变), 但实际 MC amplified 只修改噪声参数
+    (void)amplified; // amplified 通过噪声参数体现，slide 参数不变
+    return slide(std::move(input),
+        world::MIN_BUILD_HEIGHT,
+        world::MAX_BUILD_HEIGHT - world::MIN_BUILD_HEIGHT,
+        80,
+        64,
+        -0.078125,
+        0,
+        24,
+        0.1171875);
+}
+
+std::unique_ptr<DensityFunction> NoiseRouterData::slideNetherLike(
+    std::unique_ptr<DensityFunction> input, i32 startY, i32 height)
+{
+    // MC 1.21: nether slide 参数
+    // topSlide: fromTop=24, toTop=0, target=0.9375
+    // bottomSlide: fromBottom=-8, toBottom=24, target=2.5
+    return slide(std::move(input), startY, height, 24, 0, 0.9375, -8, 24, 2.5);
+}
+
+std::unique_ptr<DensityFunction> NoiseRouterData::slideEndLike(
+    std::unique_ptr<DensityFunction> input, i32 startY, i32 height)
+{
+    // MC 1.21: end slide 参数
+    // topSlide: fromTop=72, toTop=-184, target=-23.4375
+    // bottomSlide: fromBottom=4, toBottom=32, target=-0.234375
+    return slide(std::move(input), startY, height, 72, -184, -23.4375, 4, 32, -0.234375);
+}
+
+std::unique_ptr<DensityFunction> NoiseRouterData::postProcess(std::unique_ptr<DensityFunction> input)
+{
+    // MC 1.21: postProcess(x) = squeeze(interpolated(blendDensity(x)) * 0.64)
+    // blendDensity 暂时为恒等函数（旧区块混合未实现）
+    auto blended = std::move(input); // blendDensity = identity for now
+    auto interpolated = factory::interpolated(std::move(blended));
+    auto scaled = factory::mul(factory::constant(0.64), std::move(interpolated));
+    return factory::squeeze(std::move(scaled));
+}
+
+NoiseRouter NoiseRouterData::noNewCaves(u64 seed, std::unique_ptr<DensityFunction> finalDensity)
+{
+    // MC 1.21: noNewCaves 路由器
+    // temperature/vegetation 使用 shiftedNoise2d
+    // 其余通道为 constant(0.0)
+    // finalDensity 经过 postProcess
+
+    auto processedDensity = postProcess(std::move(finalDensity));
+
+    // 偏移噪声（与主世界共享 SHIFT 参数）
+    const i32 shiftSeed = static_cast<i32>(seed ^ 0x66666666ULL);
+    auto shiftX = factory::flatCacheMarker(
+        factory::cache2DMarker(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftZ = factory::flatCacheMarker(
+        factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+
+    auto temperature = factory::cache2DMarker(factory::shiftedNoise2d(
+        std::move(shiftX), std::move(shiftZ), 0.25, seed ^ 0x11111111ULL, -4, {1.0, 1.0, 1.0, 1.0}));
+
+    auto shiftX2 = factory::flatCacheMarker(
+        factory::cache2DMarker(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+    auto shiftZ2 = factory::flatCacheMarker(
+        factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
+
+    auto vegetation = factory::cache2DMarker(factory::shiftedNoise2d(
+        std::move(shiftX2), std::move(shiftZ2), 0.25, seed ^ 0x22222222ULL, -4, {1.0, 1.0, 1.0, 1.0}));
+
+    return NoiseRouter(factory::constant(0.0), // barrierNoise
+        factory::constant(0.0),                // fluidLevelFloodednessNoise
+        factory::constant(0.0),                // fluidLevelSpreadNoise
+        factory::constant(0.0),                // lavaNoise
+        std::move(temperature),                // temperature
+        std::move(vegetation),                 // vegetation
+        factory::constant(0.0),                // continents
+        factory::constant(0.0),                // erosion
+        factory::constant(0.0),                // depth
+        factory::constant(0.0),                // ridges
+        factory::constant(0.0),                // preliminarySurfaceLevel
+        std::move(processedDensity),           // finalDensity
+        factory::constant(0.0),                // veinToggle
+        factory::constant(0.0),                // veinRidged
+        factory::constant(0.0));               // veinGap
+}
+
 NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
 {
     auto climate = createOverworldClimate(seed, largeBiomes);
@@ -171,7 +289,12 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     auto depthPlusContinents = factory::add(std::move(climate.depth), std::move(climate.continents));
     auto withErosion =
         factory::add(std::move(depthPlusContinents), factory::mul(factory::constant(0.5), std::move(climate.erosion)));
-    auto finalDensity = factory::add(std::move(withErosion), factory::mul(factory::constant(0.5), std::move(ridgesPV)));
+    auto finalDensityUnslid =
+        factory::add(std::move(withErosion), factory::mul(factory::constant(0.5), std::move(ridgesPV)));
+
+    // 应用主世界 slide 和 postProcess
+    auto slid = slideOverworld(std::move(finalDensityUnslid));
+    auto finalDensity = postProcess(std::move(slid));
 
     // 矿脉噪声（简化版本）
     auto veinToggle = factory::constant(0.0);
@@ -201,58 +324,42 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
 
 NoiseRouter NoiseRouterData::nether(u64 seed)
 {
-    // 下界使用简单的温度和湿度噪声
-    auto temperature =
-        factory::cache2DMarker(factory::noise(seed ^ 0x11111111ULL, -4, {1.0, 1.0, 1.0, 1.0}, 0.25, 0.0));
-    auto vegetation = factory::cache2DMarker(factory::noise(seed ^ 0x22222222ULL, -4, {1.0, 1.0, 1.0, 1.0}, 0.25, 0.0));
-
-    // 下界 finalDensity：基于 Y 的密度梯度
-    // MC 1.21: nether_final_density = slide(add(base_3d_noise, yClampedGradient(0, 128, 1.5, -1.5)))
-    // 简化版本：使用 Y 梯度 + 一些 3D 噪声
+    // MC 1.21: nether finalDensity = postProcess(slideNetherLike(add(blendedNoise, yClampedGradient(0, 128, 1.5,
+    // -1.5))))
+    auto base3dNoise = factory::blendedNoise(seed, 0.25, 0.375, 80.0, 60.0, 8.0);
     auto depth = factory::yClampedGradient(0, 128, 1.5, -1.5);
-    auto netherNoise = factory::noise(seed ^ 0x66666666ULL, -8, {1.0, 1.0, 1.0, 0.0, 0.0, 0.0}, 1.0, 1.0);
-    auto finalDensity = factory::add(std::move(depth), factory::mul(factory::constant(0.25), std::move(netherNoise)));
+    auto density = factory::add(std::move(base3dNoise), std::move(depth));
+    auto slid = slideNetherLike(std::move(density), 0, 128);
+    return noNewCaves(seed, std::move(slid));
+}
+
+NoiseRouter NoiseRouterData::end(u64 seed)
+{
+    // MC 1.21: end finalDensity = postProcess(slideEndLike(add(cache2d(endIslands), blendedNoise_end)))
+    // erosion 槽位使用 endIslands，用于 EndBiomeSource 选择生物群系
+    auto endIslandsNoise = factory::endIslands(seed);
+    auto endIslands2d = factory::cache2DMarker(factory::endIslands(seed));
+
+    auto base3dNoise = factory::blendedNoise(seed, 0.25, 0.25, 80.0, 160.0, 4.0);
+    auto slopedCheese = factory::add(std::move(endIslands2d), std::move(base3dNoise));
+    auto slid = slideEndLike(std::move(slopedCheese), 0, 128);
+    auto finalDensity = postProcess(std::move(slid));
 
     return NoiseRouter(factory::constant(0.0), // barrierNoise
         factory::constant(0.0),                // fluidLevelFloodednessNoise
         factory::constant(0.0),                // fluidLevelSpreadNoise
         factory::constant(0.0),                // lavaNoise
-        std::move(temperature),                // temperature
-        std::move(vegetation),                 // vegetation
+        factory::constant(0.0),                // temperature
+        factory::constant(0.0),                // vegetation
         factory::constant(0.0),                // continents
-        factory::constant(0.0),                // erosion
-        factory::constant(0.0),                // depth (已移入 finalDensity)
+        std::move(endIslandsNoise),            // erosion（用于 EndBiomeSource）
+        factory::constant(0.0),                // depth
         factory::constant(0.0),                // ridges
         factory::constant(0.0),                // preliminarySurfaceLevel
         std::move(finalDensity),               // finalDensity
         factory::constant(0.0),                // veinToggle
         factory::constant(0.0),                // veinRidged
         factory::constant(0.0));               // veinGap
-}
-
-NoiseRouter NoiseRouterData::end(u64 seed)
-{
-    // 末地使用岛屿噪声
-    auto endIslands = factory::endIslands(seed);
-
-    // 末地气候参数全部为零
-    auto zero = factory::constant(0.0);
-
-    return NoiseRouter(factory::constant(0.0),        // barrierNoise
-        factory::constant(0.0),                       // fluidLevelFloodednessNoise
-        factory::constant(0.0),                       // fluidLevelSpreadNoise
-        factory::constant(0.0),                       // lavaNoise
-        factory::constant(0.0),                       // temperature
-        factory::constant(0.0),                       // vegetation
-        factory::constant(0.0),                       // continents
-        factory::constant(0.0),                       // erosion
-        factory::yClampedGradient(0, 128, 1.5, -1.5), // depth (末地 Y 范围 0-128)
-        factory::constant(0.0),                       // ridges
-        factory::constant(0.0),                       // preliminarySurfaceLevel
-        std::move(endIslands),                        // finalDensity
-        factory::constant(0.0),                       // veinToggle
-        factory::constant(0.0),                       // veinRidged
-        factory::constant(0.0));                      // veinGap
 }
 
 } // namespace mc::world::gen::density

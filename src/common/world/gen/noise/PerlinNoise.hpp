@@ -36,7 +36,7 @@ namespace mc::world::gen::noise {
 /**
  * @brief MC 1.18+ 多倍频 Perlin 噪声
  *
- * 与旧版 OctavesNoiseGenerator 不同，PerlinNoise 支持：
+ * PerlinNoise 是 MC 1.18+ 的多倍频 Perlin 噪声实现，支持：
  * - 任意 firstOctave（负数表示更低频率）
  * - 振幅列表（每个倍频可独立设置振幅）
  * - 坐标环绕（防止大坐标精度丢失）
@@ -95,9 +95,42 @@ public:
     [[nodiscard]] f64 getValue(f64 x, f64 y, f64 z) const;
 
     /**
+     * @brief 采样带涂抹效果的 3D 噪声值
+     *
+     * 参考 MC 1.21.11: BlendedNoise 使用 ImprovedNoise.noise(x, y, z, yOffset, y)
+     * 对每个倍频层应用 Y 轴涂抹，产生条纹状结构。
+     *
+     * @param x X 坐标
+     * @param y Y 坐标
+     * @param z Z 坐标
+     * @param smearScaleMultiplier 涂抹缩放乘数（smearScaleMultiplier * yMultiplier / yFactor）
+     * @return 噪声值
+     */
+    [[nodiscard]] f64 getValueWithSmear(f64 x, f64 y, f64 z, f64 smearScaleMultiplier) const;
+
+    /**
      * @brief 噪声最大可能输出值
      */
     [[nodiscard]] f64 maxValue() const { return m_maxValue; }
+
+    /**
+     * @brief 计算给定 Y 输入范围下的最大可能输出值
+     *
+     * 参考 MC 1.21.11: PerlinNoise.maxBrokenValue(maxInputValue)
+     * 用于 BlendedNoise 计算 maxValue。
+     * 与 edgeValue 不同，此方法假设输入坐标完全在边缘上，
+     * 因此每个倍频的最大值为 |amplitude| * maxInputValue。
+     *
+     * @param maxInputValue 最大输入值（对于 BlendedNoise 是 yMultiplier）
+     * @return 最大可能输出值
+     */
+    [[nodiscard]] f64 maxBrokenValue(f64 maxInputValue) const;
+
+    /**
+     * @brief 坐标环绕，防止大坐标精度丢失
+     * MC 使用 2^25 = 33554432.0 作为环绕周期
+     */
+    [[nodiscard]] static f64 wrap(f64 value);
 
     /**
      * @brief 首个倍频索引
@@ -121,8 +154,25 @@ public:
 
         [[nodiscard]] f64 noise(f64 x, f64 y, f64 z) const;
 
+        /**
+         * @brief 带涂抹效果的 Perlin 噪声采样
+         *
+         * 参考 MC 1.21.11: ImprovedNoise.noise(x, y, z, yOffset, y)
+         * 在 Y 轴方向应用"涂抹"效果：将 Y 分数吸附到 yOffset 间隔的网格线上，
+         * 使 Y 方向出现条纹状结构，用于 BlendedNoise 的地形高度拉伸。
+         *
+         * @param x X 坐标
+         * @param y Y 坐标
+         * @param z Z 坐标
+         * @param yOffset Y 轴涂抹间隔（0 表示不涂抹）
+         * @param yFraction Y 方向原始分数坐标（用于 smoothstep 插值）
+         * @return 噪声值
+         */
+        [[nodiscard]] f64 noiseWithSmear(f64 x, f64 y, f64 z, f64 yOffset, f64 yFraction) const;
+
     private:
-        [[nodiscard]] f64 sampleAndLerp(i32 cellX, i32 cellY, i32 cellZ, f64 deltaX, f64 deltaY, f64 deltaZ) const;
+        [[nodiscard]] f64 sampleAndLerp(
+            i32 cellX, i32 cellY, i32 cellZ, f64 deltaX, f64 deltaY, f64 deltaZ, f64 smoothstepY = -1.0) const;
 
         [[nodiscard]] i32 p(i32 index) const;
 
@@ -154,12 +204,6 @@ public:
     }
 
 private:
-    /**
-     * @brief 坐标环绕，防止大坐标精度丢失
-     * MC 使用 2^25 = 33554432.0 作为环绕周期
-     */
-    [[nodiscard]] static f64 wrap(f64 value);
-
     /**
      * @brief 根据最大单倍频输出值计算总最大值
      */

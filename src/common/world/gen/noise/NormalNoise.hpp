@@ -34,9 +34,9 @@ namespace mc::world::gen::noise {
  * 第二个的坐标乘以 INPUT_FACTOR ≈ 1.018，取平均值后乘以 valueFactor。
  * 这是 MC 1.18+ 地形生成和气候参数采样的基础噪声。
  *
- * 与旧版 OctavesNoiseGenerator 的区别：
+ * NormalNoise 使用双 PerlinNoise 实现，具有以下特性：
  * - 支持任意倍频振幅列表
- - 使用 INPUT_FACTOR 偏移第二个噪声避免相关性
+ * - 使用 INPUT_FACTOR 偏移第二个噪声避免相关性
  * - 归一化系数保证输出范围
  */
 class NormalNoise {

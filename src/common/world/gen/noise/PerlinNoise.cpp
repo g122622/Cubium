@@ -75,6 +75,38 @@ f64 PerlinNoise::PerlinLayer::noise(f64 x, f64 y, f64 z) const
     return sampleAndLerp(cellX, cellY, cellZ, fracX, fracY, fracZ);
 }
 
+f64 PerlinNoise::PerlinLayer::noiseWithSmear(f64 x, f64 y, f64 z, f64 yOffset, f64 yFraction) const
+{
+    const f64 dx = x + m_xOffset;
+    const f64 dy = y + m_yOffset;
+    const f64 dz = z + m_zOffset;
+
+    const i32 cellX = math::floorTo<i32>(dx);
+    const i32 cellY = math::floorTo<i32>(dy);
+    const i32 cellZ = math::floorTo<i32>(dz);
+
+    f64 fracX = dx - static_cast<f64>(cellX);
+    f64 fracY = dy - static_cast<f64>(cellY);
+    const f64 fracZ = dz - static_cast<f64>(cellZ);
+
+    // MC 1.21.11: ImprovedNoise.noise(x, y, z, yOffset, yFraction)
+    // 涂抹效果：将 Y 分数吸附到 yOffset 间隔的网格线上
+    f64 smearOffset = 0.0;
+    if (yOffset != 0.0) {
+        f64 clampedY = yFraction;
+        if (yFraction >= 0.0 && yFraction < fracY) {
+            clampedY = yFraction;
+        } else {
+            clampedY = fracY;
+        }
+        smearOffset = std::floor(clampedY / yOffset + 1.0e-7) * yOffset;
+    }
+
+    // 注意：梯度计算使用修改后的 fracY (fracY - smearOffset)，
+    // 但 smoothstep 插值使用原始 fracY
+    return sampleAndLerp(cellX, cellY, cellZ, fracX, fracY - smearOffset, fracZ, fracY);
+}
+
 i32 PerlinNoise::PerlinLayer::p(i32 index) const
 {
     return m_p[static_cast<size_t>(index & 255)];
@@ -103,11 +135,15 @@ f64 PerlinNoise::PerlinLayer::gradDot(i32 hash, f64 x, f64 y, f64 z)
     return GRADIENTS[idx][0] * x + GRADIENTS[idx][1] * y + GRADIENTS[idx][2] * z;
 }
 
-f64 PerlinNoise::PerlinLayer::sampleAndLerp(i32 cellX, i32 cellY, i32 cellZ, f64 fracX, f64 fracY, f64 fracZ) const
+f64 PerlinNoise::PerlinLayer::sampleAndLerp(
+    i32 cellX, i32 cellY, i32 cellZ, f64 fracX, f64 fracY, f64 fracZ, f64 smoothstepY) const
 {
     // Smoothstep 插值因子
+    // 当 smoothstepY >= 0 时（涂抹模式），Y 轴 smoothstep 使用原始分数，
+    // 而 fracY 是修改后的分数用于梯度计算
     const f64 sx = fracX * fracX * fracX * (fracX * (fracX * 6.0 - 15.0) + 10.0);
-    const f64 sy = fracY * fracY * fracY * (fracY * (fracY * 6.0 - 15.0) + 10.0);
+    const f64 syRaw = (smoothstepY >= 0.0) ? smoothstepY : fracY;
+    const f64 sy = syRaw * syRaw * syRaw * (syRaw * (syRaw * 6.0 - 15.0) + 10.0);
     const f64 sz = fracZ * fracZ * fracZ * (fracZ * (fracZ * 6.0 - 15.0) + 10.0);
 
     // 8 个角的梯度计算
@@ -240,6 +276,44 @@ f64 PerlinNoise::edgeValue(f64 maxInputValue) const
         if (m_layers[i] != nullptr) {
             result += std::abs(m_amplitudes[i]) * maxInputValue * valueFactor;
         }
+        valueFactor /= 2.0;
+    }
+
+    return result;
+}
+
+f64 PerlinNoise::maxBrokenValue(f64 maxInputValue) const
+{
+    f64 result = 0.0;
+    f64 valueFactor = m_lowestFreqValueFactor;
+
+    for (size_t i = 0; i < m_amplitudes.size(); ++i) {
+        if (m_layers[i] != nullptr) {
+            result += std::abs(m_amplitudes[i]) * maxInputValue * valueFactor;
+        }
+        valueFactor /= 2.0;
+    }
+
+    return result;
+}
+
+f64 PerlinNoise::getValueWithSmear(f64 x, f64 y, f64 z, f64 smearScaleMultiplier) const
+{
+    f64 result = 0.0;
+    f64 inputFactor = m_lowestFreqInputFactor;
+    f64 valueFactor = m_lowestFreqValueFactor;
+
+    for (size_t i = 0; i < m_layers.size(); ++i) {
+        if (m_layers[i] != nullptr) {
+            const f64 amplitude = m_amplitudes[i];
+            const f64 nx = wrap(x * inputFactor);
+            const f64 ny = wrap(y * inputFactor);
+            const f64 nz = wrap(z * inputFactor);
+            const f64 yOffset = smearScaleMultiplier * inputFactor;
+            const f64 yFraction = y * inputFactor;
+            result += amplitude * m_layers[i]->noiseWithSmear(nx, ny, nz, yOffset, yFraction) * valueFactor;
+        }
+        inputFactor *= 2.0;
         valueFactor /= 2.0;
     }
 

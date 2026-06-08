@@ -37,11 +37,10 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `BiomeProvider` - 生物群系分布基类
 - `LayerBiomeProvider` - 基于层的生物群系生成（MC 1.16.5）
 
-### 噪声类型
-- `INoiseGenerator` - 噪声接口
-- `ImprovedNoiseGenerator` - MC 风格柏林噪声
-- `OctavesNoiseGenerator` - 多倍频噪声（最多 16 个倍频）
-- `PerlinNoiseGenerator`, `SimplexNoiseGenerator` - 其他噪声类型
+### 噪声类型（MC 1.18+ 噪声系统）
+- `PerlinNoise` - 多倍频 Perlin 噪声（支持任意振幅列表和涂抹效果）
+- `NormalNoise` - 双 Perlin 噪声（地形生成核心）
+- `SimplexNoise` - Simplex 噪声（末地岛屿生成）
 
 ### 渲染器类型
 - `Vertex`, `ModelVertex`, `GuiVertex` - 顶点类型

@@ -37,7 +37,6 @@ add_executable(mc_tests
     common/test_block.cpp
     common/test_chunk_generation.cpp
     common/test_biome.cpp
-    common/test_surface.cpp
     common/test_ore_feature.cpp
     common/test_carver.cpp
     common/test_tree_feature.cpp
@@ -963,8 +962,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/RaiderType.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/MerchantOffer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/MerchantOffers.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/gen/noise/ImprovedNoiseGenerator.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/gen/noise/OctavesNoiseGenerator.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/chunk/IChunkGenerator.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/chunk/NoiseChunkGenerator.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/chunk/DebugChunkGenerator.cpp
@@ -981,7 +978,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/NetherBiomeSource.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/EndBiomeSource.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/climate/Climate.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/gen/surface/SurfaceBuilders.cpp
         # 生物群系颜色解析器
         ${CMAKE_SOURCE_DIR}/src/client/world/color/BiomeColors.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorCache.cpp

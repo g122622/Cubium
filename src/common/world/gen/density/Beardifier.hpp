@@ -42,7 +42,6 @@ namespace mc::world::gen::density {
  * - JigsawJunction: 胡须曲线 + 0.4 衰减，连接结构片段
  *
  * 预计算的 BEARD_KERNEL[24x24x24] = computeBeardContribution(j-12, k-12, i-12)
- * 与 NoiseChunkGenerator::s_gaussianLUT 相同，但这里使用 MC 1.21 的精确公式。
  */
 class Beardifier final : public DensityFunction {
 public:

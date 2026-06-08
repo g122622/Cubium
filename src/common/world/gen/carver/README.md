@@ -121,8 +121,7 @@ classDiagram
 
 | 依赖方 | 用途 |
 |--------|------|
-| `NoiseChunkGenerator` | 主世界区块生成器，在 CARVERS 阶段调用雕刻器 |
-| `NetherChunkGenerator` | 下界区块生成器，使用 `NetherCaveCarver` |
+| `NoiseChunkGenerator` | 区块生成器（主世界/下界/末地），在 CARVERS 阶段调用雕刻器 |
 | `ChunkPrimer` | 包含 `CarvingMask` 头文件 |
 
 ---

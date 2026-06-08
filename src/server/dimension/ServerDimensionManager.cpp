@@ -33,11 +33,9 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/crypto/Sha256.hpp"
-#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/biome/source/EndBiomeSource.hpp"
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
-#include "common/world/gen/chunk/EndChunkGenerator.hpp"
-#include "common/world/gen/chunk/NetherChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 
@@ -403,18 +401,19 @@ std::unique_ptr<ServerDimension> ServerDimensionManager::_createServerDimension(
             }
 
             auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, isLargeBiomes);
-            generator = std::make_unique<NoiseChunkGenerator>(
-                seed, std::move(settings), std::move(biomeSource));
+            generator = std::make_unique<NoiseChunkGenerator>(seed, std::move(settings), std::move(biomeSource));
             break;
         }
         case NETHER: {
             auto settings = DimensionSettings::nether();
-            generator = std::make_unique<NetherChunkGenerator>(seed, std::move(settings));
+            auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createNether(seed);
+            generator = std::make_unique<NoiseChunkGenerator>(seed, std::move(settings), std::move(biomeSource));
             break;
         }
         case THE_END: {
             auto settings = DimensionSettings::end();
-            generator = std::make_unique<EndChunkGenerator>(seed, std::move(settings));
+            auto biomeSource = std::make_unique<mc::world::biome::source::EndBiomeSource>(seed);
+            generator = std::make_unique<NoiseChunkGenerator>(seed, std::move(settings), std::move(biomeSource));
             break;
         }
         default:

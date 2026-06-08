@@ -1,6 +1,6 @@
 # 世界生成系统 (World Generation System)
 
-本目录实现了 Minecraft 1.16.5 的完整世界生成系统，包括地形生成、生物群系分布、结构生成、特征放置等核心功能。
+本目录实现了 Minecraft 1.21 的完整世界生成系统，包括地形生成、生物群系分布、结构生成、特征放置等核心功能。所有维度（主世界、下界、末地）统一使用 NoiseChunkGenerator + 密度函数管线。
 
 ## 目录结构
 
@@ -19,13 +19,12 @@ gen/
 │   └── Carvers.hpp              # 雕刻器常量
 ├── chunk/                       # 区块生成器
 │   ├── IChunkGenerator.hpp/cpp  # 区块生成器接口
-│   ├── NoiseChunkGenerator.hpp/cpp # 主世界/下界噪声生成器
-│   ├── NetherChunkGenerator.hpp/cpp # 下界专用生成器
-│   ├── EndChunkGenerator.hpp/cpp    # 末地专用生成器
-│   └── DebugChunkGenerator.hpp/cpp  # 调试平坦生成器
+│   ├── NoiseChunkGenerator.hpp/cpp # 统一噪声生成器（主世界/下界/末地）
+│   └── DebugChunkGenerator.hpp/cpp # 调试平坦生成器
 ├── density/                     # 密度函数系统
 │   ├── DensityFunction.hpp      # 密度函数接口
-│   ├── DensityFunctions.hpp/cpp # 密度函数实现
+│   ├── DensityFunctions.hpp/cpp # 密度函数实现（含 BlendedNoise、EndIslands）
+│   ├── BlendedNoise.hpp/cpp     # MC 1.18+ 混合噪声密度函数
 │   ├── NoiseChunk.hpp/cpp       # 噪声区块数据
 │   ├── NoiseRouter.hpp/cpp      # 噪声路由器
 │   ├── NoiseRouterData.hpp/cpp  # 噪声路由数据
@@ -56,11 +55,12 @@ gen/
 │   ├── JigsawPattern.hpp/cpp    # 模板池
 │   ├── JigsawPiece.hpp/cpp      # 拼图块
 │   └── JigsawJunction.hpp       # 连接点信息
-├── noise/                       # 噪声生成器
-│   ├── INoiseGenerator.hpp      # 噪声接口
-│   ├── Noise.hpp                # 噪声常量
-│   ├── ImprovedNoiseGenerator.hpp/cpp # Perlin 噪声
-│   └── OctavesNoiseGenerator.hpp/cpp  # 多倍频噪声
+├── noise/                       # MC 1.18+ 噪声生成器
+│   ├── PerlinNoise.hpp/cpp      # 多倍频 Perlin 噪声
+│   ├── NormalNoise.hpp/cpp      # 双 Perlin 噪声（地形生成核心）
+│   ├── SimplexNoise.hpp/cpp     # Simplex 噪声（末地岛屿）
+│   ├── Noise.hpp                # 统一头文件
+│   └── README.md
 ├── placement/                   # 放置器系统
 │   ├── Placement.hpp/cpp        # 放置器基类
 │   ├── PlacementRegistry.hpp/cpp # 放置器注册
@@ -95,10 +95,12 @@ gen/
 │       ├── EndCityStructure.hpp/cpp
 │       ├── FortressStructure.hpp/cpp
 │       └── ...（其他结构）
-└── surface/                     # 地表构建器
-    ├── Surface.hpp              # 地表类型枚举
-    ├── SurfaceBuilder.hpp       # 地表构建器基类
-    └── SurfaceBuilders.hpp/cpp  # 12种地表构建器实现
+├── surface/                     # MC 1.21 地表规则系统
+│   ├── Surface.hpp              # 聚合头文件
+│   ├── SurfaceRules.hpp         # SurfaceRules 条件/规则系统
+│   ├── SurfaceRules.cpp         # SurfaceRules 实现
+│   └── README.md
+└── valueprovider/               # 值提供器
 ```
 
 ## 内部模块关系
@@ -154,8 +156,8 @@ gen/
         ▼                       ▼                       ▼
 ┌───────────────┐       ┌───────────────┐       ┌───────────────┐
 │   structure/  │       │    jigsaw/    │       │    surface/   │
-│ 结构生成系统   │───────│ Jigsaw组装    │       │ 地表构建器    │
-│ (村庄/神殿等)  │       │ (村庄组装算法) │       │ (草地/沙子等) │
+│ 结构生成系统   │───────│ Jigsaw组装    │       │ SurfaceRules  │
+│ (村庄/神殿等)  │       │ (村庄组装算法) │       │ (地表规则树)  │
 └───────────────┘       └───────────────┘       └───────────────┘
         │
         ▼
@@ -190,16 +192,7 @@ gen/
 
 ### 1. 噪声种子一致性
 
-相同种子应产生相同的世界，但噪声参数不同会导致不一致。
-
-```cpp
-// 错误：每次调用创建新的随机数
-f32 value = ImprovedNoiseGenerator(Random(seed)).noise(x, y, z);
-
-// 正确：复用噪声生成器
-ImprovedNoiseGenerator noise(seed);
-f32 value = noise.noise(x, y, z);
-```
+相同种子应产生相同的世界。使用 `PositionalRandomFactory` 和固定种子偏移（如 `seed ^ 0x11111111ULL`）确保不同噪声通道使用不同随机序列。
 
 ### 2. 区块边界处理
 

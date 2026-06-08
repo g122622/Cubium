@@ -325,10 +325,10 @@ src/common/
     │       ├── WaterFluid.hpp
     │       └── LavaFluid.hpp
     ├── gen/                  # 世界生成
-    │   ├── noise/            # 噪声生成器
-    │   │   ├── INoiseGenerator.hpp
-    │   │   ├── ImprovedNoiseGenerator.hpp
-    │   │   └── OctavesNoiseGenerator.hpp
+    │   ├── noise/            # MC 1.18+ 噪声生成器
+    │   │   ├── PerlinNoise.hpp
+    │   │   ├── NormalNoise.hpp
+    │   │   └── SimplexNoise.hpp
     │   ├── chunk/            # 区块生成器
     │   │   ├── IChunkGenerator.hpp
     │   │   └── NoiseChunkGenerator.hpp
@@ -337,8 +337,8 @@ src/common/
     │   │   ├── NoiseSettings.hpp
     │   │   ├── ScalingSettings.hpp
     │   │   └── SlideSettings.hpp
-    │   ├── surface/          # 地表构建器
-    │   │   └── SurfaceBuilders.hpp
+    │   ├── surface/          # MC 1.21 地表规则系统
+    │   │   └── SurfaceRules.hpp
     │   ├── carver/           # 洞穴雕刻
     │   │   ├── WorldCarver.hpp
     │   │   ├── CaveCarver.hpp

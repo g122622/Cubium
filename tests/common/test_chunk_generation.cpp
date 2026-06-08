@@ -33,8 +33,8 @@
 #include "common/world/chunk/SingleChunkLifecycleManager.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/gen/noise/ImprovedNoiseGenerator.hpp"
-#include "common/world/gen/noise/OctavesNoiseGenerator.hpp"
+#include "common/world/gen/noise/NormalNoise.hpp"
+#include "common/world/gen/noise/PerlinNoise.hpp"
 #include "common/world/gen/settings/NoiseSettings.hpp"
 
 using namespace mc;
