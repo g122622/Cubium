@@ -23,7 +23,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/util/math/random/IRandom.hpp"
 #include <cmath>
 
 namespace mc::world::gen::noise {
@@ -47,7 +47,7 @@ public:
      *
      * @param rng 随机源（调用者应先 consumeCount(17292) 用于 EndIslands）
      */
-    explicit SimplexNoise(math::Random& rng);
+    explicit SimplexNoise(math::IRandom& rng);
 
     /**
      * @brief 采样 2D Simplex 噪声值
@@ -63,6 +63,10 @@ public:
      * 参考 MC 1.21.11: SimplexNoise.getValue(double, double, double)
      */
     [[nodiscard]] f64 getValue(f64 x, f64 y, f64 z) const;
+
+    [[nodiscard]] f64 xOffset() const { return m_xOffset; }
+    [[nodiscard]] f64 yOffset() const { return m_yOffset; }
+    [[nodiscard]] f64 zOffset() const { return m_zOffset; }
 
 private:
     [[nodiscard]] i32 p(i32 index) const;

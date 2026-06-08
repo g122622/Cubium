@@ -27,7 +27,9 @@
 #include "BiomeEffects.hpp"
 #include "BiomeGenerationSettings.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/LcgRandom.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/gen/noise/PerlinSimplexNoise.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include <memory>
 #include <string>
@@ -43,20 +45,51 @@ class BlockPos;
 // 生物群系气候常量
 // ============================================================================
 
-/// 温度变化起始高度（海拔超过此高度时温度开始降低）
-inline constexpr i32 TEMPERATURE_HEIGHT_BASE = 64;
-
 /// 降雪温度阈值（温度低于此值时生成雪）
 inline constexpr f32 SNOW_TEMPERATURE_THRESHOLD = 0.15f;
 
 /// 结冰温度阈值（温度低于此值时水结冰）
 inline constexpr f32 FREEZE_TEMPERATURE_THRESHOLD = 0.15f;
 
-/// 温度高度因子系数（温度随高度降低的系数）
-inline constexpr f32 TEMPERATURE_HEIGHT_FACTOR = 0.05f;
+// ============================================================================
+// 生物群系温度噪声（MC 1.21.11: Biome.java 中的静态噪声实例）
+//
+// 这些噪声实例使用 LegacyRandomSource 和硬编码种子构造，
+// 与世界种子无关，确保所有世界的温度噪声模式一致。
+// ============================================================================
 
-/// 温度高度因子除数（温度随高度降低的除数）
-inline constexpr f32 TEMPERATURE_HEIGHT_DIVISOR = 30.0f;
+/// 温度高度调整噪声（MC: TEMPERATURE_NOISE）
+/// 种子 1234L，单倍频 [0]，用于 Y > seaLevel+17 时的高度温度调整
+inline const world::gen::noise::PerlinSimplexNoise& temperatureNoise()
+{
+    static const auto instance = [] {
+        math::LcgRandom rng(1234ULL);
+        return std::make_unique<world::gen::noise::PerlinSimplexNoise>(rng, std::vector<i32>{0});
+    }();
+    return *instance;
+}
+
+/// 冻结温度噪声（MC: FROZEN_TEMPERATURE_NOISE）
+/// 种子 3456L，倍频 [-2, -1, 0]，用于 TemperatureModifier::Frozen
+inline const world::gen::noise::PerlinSimplexNoise& frozenTemperatureNoise()
+{
+    static const auto instance = [] {
+        math::LcgRandom rng(3456ULL);
+        return std::make_unique<world::gen::noise::PerlinSimplexNoise>(rng, std::vector<i32>{-2, -1, 0});
+    }();
+    return *instance;
+}
+
+/// 生物群系信息噪声（MC: BIOME_INFO_NOISE）
+/// 种子 2345L，单倍频 [0]，用于 TemperatureModifier::Frozen 和其他生物群系逻辑
+inline const world::gen::noise::PerlinSimplexNoise& biomeInfoNoise()
+{
+    static const auto instance = [] {
+        math::LcgRandom rng(2345ULL);
+        return std::make_unique<world::gen::noise::PerlinSimplexNoise>(rng, std::vector<i32>{0});
+    }();
+    return *instance;
+}
 
 // ============================================================================
 // 生物群系气候设置
@@ -157,52 +190,87 @@ public:
     [[nodiscard]] f32 erosion() const { return m_erosion; }
 
     /**
-     * @brief 获取指定位置的温度
+     * @brief 获取指定位置的高度调整温度
      *
-     * 海拔不超过基准高度时返回基础温度，超过时温度随海拔降低。
+     * MC 1.21.11: Biome.getHeightAdjustedTemperature(BlockPos, int)
      *
-     * @param y Y坐标（高度）
-     * @return 位置相关温度
+     * 算法：
+     * 1. 先应用 TemperatureModifier（None 或 Frozen）
+     * 2. 如果 Y > seaLevel + 17，应用高度降温
+     *    降温公式: temperature - (noiseValue * 8.0 + y - seaLevel - 17) * 0.00125
+     *    其中 noiseValue = TEMPERATURE_NOISE.getValue(x / 8.0, z / 8.0, false)
+     *
+     * @param x 方块 X 坐标（世界坐标）
+     * @param y 方块 Y 坐标
+     * @param z 方块 Z 坐标（世界坐标）
+     * @param seaLevel 海平面高度
+     * @return 高度调整后的温度
      */
-    [[nodiscard]] f32 getTemperature(i32 y) const
+    [[nodiscard]] f32 getHeightAdjustedTemperature(i32 x, i32 y, i32 z, i32 seaLevel) const
     {
-        f32 temp = m_climate.temperature;
+        // MC: 先应用 TemperatureModifier
+        f32 temp = applyTemperatureModifier(x, z, m_climate.temperature);
 
-        // 海拔超过基准高度时降温
-        if (y > TEMPERATURE_HEIGHT_BASE) {
-            // 温度随高度线性降低
-            // TODO: 和原版保持一致需要引入噪声函数，增加温度变化的随机性
-            f32 heightFactor =
-                static_cast<f32>(y - TEMPERATURE_HEIGHT_BASE) * TEMPERATURE_HEIGHT_FACTOR / TEMPERATURE_HEIGHT_DIVISOR;
-            temp = std::max(0.0f, temp - heightFactor);
+        // MC: 高度降温
+        const i32 threshold = seaLevel + 17;
+        if (y > threshold) {
+            const f64 noiseValue =
+                temperatureNoise().getValue(static_cast<f64>(x) / 8.0, static_cast<f64>(z) / 8.0, false);
+            temp -= static_cast<f32>((noiseValue * 8.0 + static_cast<f64>(y - threshold)) * 0.05 / 40.0);
         }
 
         return temp;
     }
 
     /**
-     * @brief 获取指定位置的温度（BlockPos版本）
+     * @brief 获取指定位置的温度（BlockPos 版本）
      *
-     * @param pos 方块位置
+     * @param x 方块 X 坐标
+     * @param y 方块 Y 坐标
+     * @param z 方块 Z 坐标
+     * @param seaLevel 海平面高度
      * @return 位置相关温度
      */
-    [[nodiscard]] f32 getTemperature(const BlockPos& pos) const { return getTemperature(pos.y); }
+    [[nodiscard]] f32 getTemperature(i32 x, i32 y, i32 z, i32 seaLevel) const
+    {
+        return getHeightAdjustedTemperature(x, y, z, seaLevel);
+    }
+
+    /**
+     * @brief 获取基础温度（不含高度调整）
+     *
+     * MC 1.21.11: Biome.getBaseTemperature()
+     * 返回 BiomeClimate 中的原始温度值，已经过 TemperatureModifier 处理。
+     */
+    [[nodiscard]] f32 getBaseTemperature() const { return applyTemperatureModifier(0, 0, m_climate.temperature); }
 
     /**
      * @brief 判断是否应该降雪
      *
-     * @param y Y坐标
+     * @param x 方块 X 坐标
+     * @param y 方块 Y 坐标
+     * @param z 方块 Z 坐标
+     * @param seaLevel 海平面高度
      * @return 是否应该降雪
      */
-    [[nodiscard]] bool doesSnowGenerate(i32 y) const { return getTemperature(y) < SNOW_TEMPERATURE_THRESHOLD; }
+    [[nodiscard]] bool doesSnowGenerate(i32 x, i32 y, i32 z, i32 seaLevel) const
+    {
+        return getHeightAdjustedTemperature(x, y, z, seaLevel) < SNOW_TEMPERATURE_THRESHOLD;
+    }
 
     /**
      * @brief 判断水是否应该结冰
      *
-     * @param y Y坐标
+     * @param x 方块 X 坐标
+     * @param y 方块 Y 坐标
+     * @param z 方块 Z 坐标
+     * @param seaLevel 海平面高度
      * @return 是否应该结冰
      */
-    [[nodiscard]] bool doesWaterFreeze(i32 y) const { return getTemperature(y) < FREEZE_TEMPERATURE_THRESHOLD; }
+    [[nodiscard]] bool doesWaterFreeze(i32 x, i32 y, i32 z, i32 seaLevel) const
+    {
+        return getHeightAdjustedTemperature(x, y, z, seaLevel) < FREEZE_TEMPERATURE_THRESHOLD;
+    }
 
     // === 方块设置 ===
     [[nodiscard]] const BlockState* surfaceBlock() const { return m_surfaceBlock; }
@@ -304,6 +372,34 @@ public:
     [[nodiscard]] const std::optional<world::biome::BiomeMusic>& getMusic() const { return m_ambientSounds.music(); }
 
 private:
+    /**
+     * @brief 应用温度修改器
+     *
+     * MC 1.21.11: TemperatureModifier.modifyTemperature(BlockPos, float)
+     * - None: 返回原始温度
+     * - Frozen: 根据位置噪声决定是否将温度覆盖为 0.2（冰冻模式）
+     */
+    [[nodiscard]] f32 applyTemperatureModifier(i32 x, i32 z, f32 baseTemperature) const
+    {
+        if (m_climate.temperatureModifier != BiomeClimate::TemperatureModifier::Frozen) {
+            return baseTemperature;
+        }
+
+        // MC 1.21: TemperatureModifier.FROZEN
+        const f64 d0 =
+            frozenTemperatureNoise().getValue(static_cast<f64>(x) * 0.05, static_cast<f64>(z) * 0.05, false) * 7.0;
+        const f64 d1 = biomeInfoNoise().getValue(static_cast<f64>(x) * 0.2, static_cast<f64>(z) * 0.2, false);
+        const f64 d2 = d0 + d1;
+
+        if (d2 < 0.3) {
+            const f64 d3 = biomeInfoNoise().getValue(static_cast<f64>(x) * 0.09, static_cast<f64>(z) * 0.09, false);
+            if (d3 < 0.8) {
+                return 0.2f;
+            }
+        }
+
+        return baseTemperature;
+    }
     BiomeId m_id = 0;
     std::string m_name;
     Category m_category = Category::None;

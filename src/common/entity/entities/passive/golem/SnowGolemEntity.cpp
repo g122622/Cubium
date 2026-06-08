@@ -39,6 +39,7 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -135,8 +136,8 @@ bool SnowGolemEntity::willMelt() const
     BiomeId biomeId = chunk->getBiomeAtBlock(pos.localX(), pos.y, pos.localZ());
     const Biome& biome = BiomeRegistry::instance().get(biomeId);
 
-    // 注意：getTemperature() 方法会考虑高度因素
-    f32 temperature = biome.getTemperature(pos.y);
+    // MC 1.21: getTemperature 使用位置噪声和高度调整
+    f32 temperature = biome.getTemperature(pos.x, pos.y, pos.z, world::SEA_LEVEL);
 
     return temperature > MELT_TEMPERATURE;
 }
@@ -355,7 +356,7 @@ void SnowGolemEntity::_placeSnowLayer()
         BiomeId biomeId = chunk->getBiomeAtBlock(pos.localX(), pos.y, pos.localZ());
         const Biome& biome = BiomeRegistry::instance().get(biomeId);
 
-        f32 temperature = biome.getTemperature(pos.y);
+        f32 temperature = biome.getTemperature(pos.x, pos.y, pos.z, world::SEA_LEVEL);
         if (temperature >= SNOW_TEMPERATURE) {
             continue;
         }

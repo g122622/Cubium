@@ -552,11 +552,11 @@ void WeatherRenderer::_generateWeatherGeometry(mc::client::ClientWorld* world)
             i32 l2 = groundY;
             if (groundY < camY) l2 = camY;
 
-            // 使用位置相关温度（考虑海拔影响）
+            // MC 1.21: 使用位置相关温度（噪声 + 海拔调整）
             if (world) {
                 const mc::Biome* biome = world->getBiomeAtBlock(x, camY, z);
                 if (biome) {
-                    temperature = biome->getTemperature(l2);
+                    temperature = biome->getTemperature(x, l2, z, mc::world::SEA_LEVEL);
                 }
             }
 

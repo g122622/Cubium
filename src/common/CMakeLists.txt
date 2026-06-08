@@ -865,6 +865,7 @@ add_library(mc_common STATIC
 
     # World - Generation - Noise
     world/gen/noise/PerlinNoise.cpp
+    world/gen/noise/PerlinSimplexNoise.cpp
     world/gen/noise/NormalNoise.cpp
     world/gen/noise/SimplexNoise.cpp
 

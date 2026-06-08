@@ -25,7 +25,7 @@
 
 namespace mc::world::gen::noise {
 
-SimplexNoise::SimplexNoise(math::Random& rng)
+SimplexNoise::SimplexNoise(math::IRandom& rng)
 {
     m_xOffset = rng.nextDouble() * 256.0;
     m_yOffset = rng.nextDouble() * 256.0;

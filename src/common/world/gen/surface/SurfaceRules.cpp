@@ -23,6 +23,7 @@
 #include "common/world/gen/surface/SurfaceRules.hpp"
 #include "common/core/Constants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/DeepslateBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -206,11 +207,9 @@ bool SurfaceRuleContext::steep() const
 bool SurfaceRuleContext::temperature() const
 {
     // MC 1.21: SurfaceRules.TemperatureCondition uses Biome.coldEnoughToSnow(pos, seaLevel).
-    // Biome.getTemperature(y) applies height-based modification: temperature decreases
-    // above (seaLevel + 17). coldEnoughToSnow checks temperature < 0.15F.
-    // Use Biome::doesSnowGenerate(y) which wraps this logic.
+    // getTemperature 使用噪声 + 高度调整，coldEnoughToSnow 检查 temperature < 0.15F。
     const Biome& biome = BiomeRegistry::instance().get(m_biome);
-    return biome.doesSnowGenerate(m_blockY);
+    return biome.doesSnowGenerate(m_blockX, m_blockY, m_blockZ, world::SEA_LEVEL);
 }
 
 void SurfaceRuleContext::generateClayBands(u64 seed)
