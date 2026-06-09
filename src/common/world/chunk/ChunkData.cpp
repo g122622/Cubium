@@ -1108,4 +1108,33 @@ std::vector<std::unique_ptr<Entity>> ChunkData::takeLoadedEntities()
     return std::move(m_loadedEntities);
 }
 
+// ============================================================================
+// 后处理位置
+// ============================================================================
+
+void ChunkData::addPackedPostProcessing(const std::vector<u16>* sections)
+{
+    for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
+        if (!sections[i].empty()) {
+            auto& section = m_postProcessingSections[i];
+            section.reserve(section.size() + sections[i].size());
+            section.insert(section.end(), sections[i].begin(), sections[i].end());
+        }
+    }
+}
+
+void ChunkData::clearPostProcessingForSection(i32 sectionIndex)
+{
+    if (sectionIndex >= 0 && sectionIndex < world::CHUNK_SECTIONS) {
+        m_postProcessingSections[sectionIndex].clear();
+    }
+}
+
+void ChunkData::clearAllPostProcessing()
+{
+    for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
+        m_postProcessingSections[i].clear();
+    }
+}
+
 } // namespace mc

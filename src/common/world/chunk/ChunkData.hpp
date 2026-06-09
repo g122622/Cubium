@@ -391,6 +391,48 @@ public:
     [[nodiscard]] size_t loadedEntityCount() const { return m_loadedEntities.size(); }
     std::vector<std::unique_ptr<Entity>> takeLoadedEntities();
 
+    // ========================================================================
+    // 后处理位置
+    // ========================================================================
+
+    /**
+     * @brief 获取后处理位置（按区块段索引）
+     *
+     * MC 1.21: LevelChunk.postProcessing
+     * 每个 ShortList 存储打包的段内本地坐标。
+     *
+     * @return 后处理位置数组的常指针，大小为 CHUNK_SECTIONS
+     */
+    [[nodiscard]] const std::vector<u16>* postProcessingSections() const noexcept { return m_postProcessingSections; }
+
+    /**
+     * @brief 获取后处理位置（可变版本）
+     */
+    [[nodiscard]] std::vector<u16>* postProcessingSections() noexcept { return m_postProcessingSections; }
+
+    /**
+     * @brief 从 ChunkPrimer 合并后处理位置
+     *
+     * MC 1.21: LevelChunk 构造函数中从 ProtoChunk 复制 postProcessing
+     *
+     * @param sections 源后处理位置数组（按段索引）
+     */
+    void addPackedPostProcessing(const std::vector<u16>* sections);
+
+    /**
+     * @brief 清空指定段的后处理位置
+     *
+     * MC 1.21: postProcessGeneration 处理完毕后清空
+     *
+     * @param sectionIndex 区块段索引
+     */
+    void clearPostProcessingForSection(i32 sectionIndex);
+
+    /**
+     * @brief 清空所有段的后处理位置
+     */
+    void clearAllPostProcessing();
+
 private:
     ChunkCoord m_x = 0;
     ChunkCoord m_z = 0;
@@ -449,6 +491,10 @@ private:
 
     // 从存储加载出的运行时实体，先挂在 chunk 上，后续由世界层统一注入 EntityManager
     std::vector<std::unique_ptr<Entity>> m_loadedEntities;
+
+    // 后处理位置（按区块段索引存储，MC 1.21: ShortList[] postProcessing）
+    // 每个短整型编码段内本地坐标：bits[3:0]=x, bits[7:4]=y, bits[11:8]=z
+    std::vector<u16> m_postProcessingSections[world::CHUNK_SECTIONS];
 
     /**
      * @brief 初始化 Nibble 指针数组

@@ -691,6 +691,17 @@ private:
     [[nodiscard]] ChunkData* _finalizeGeneratedChunkSync(ChunkCoord x, ChunkCoord z, ChunkPrimer& primer);
 
     /**
+     * @brief 对已完成的区块执行后处理生成
+     *
+     * MC 1.21: LevelChunk.postProcessGeneration(ServerLevel)
+     * 遍历区块的后处理位置，对流体方块调度流体 tick，
+     * 对需要形状更新的方块执行 updateFromNeighbourShapes。
+     *
+     * @param chunk 已完成的区块数据
+     */
+    void _postProcessChunk(ChunkData& chunk);
+
+    /**
      * @brief 把已生成区块放入内存缓存
      *
      * @param x 区块 X 坐标

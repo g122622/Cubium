@@ -261,7 +261,22 @@ void ChunkPrimer::updateAllHeightmaps()
 
 void ChunkPrimer::markPosForPostprocessing(BlockCoord x, BlockCoord y, BlockCoord z)
 {
-    m_postProcessingPositions.emplace_back(x, y, z);
+    // MC 1.21: ProtoChunk.markPosForPostprocessing
+    // 将位置打包为短整型并按区块段索引存储
+    const i32 sectionIndex = world::toSectionIndex(y);
+    if (sectionIndex >= 0 && sectionIndex < world::CHUNK_SECTIONS) {
+        const u16 packed = packToLocal(x, y, z);
+        m_postProcessingSections[sectionIndex].push_back(packed);
+    }
+}
+
+void ChunkPrimer::addPackedPostProcessing(const std::vector<u16>& packedPositions, i32 sectionIndex)
+{
+    if (sectionIndex >= 0 && sectionIndex < world::CHUNK_SECTIONS) {
+        auto& section = m_postProcessingSections[sectionIndex];
+        section.reserve(section.size() + packedPositions.size());
+        section.insert(section.end(), packedPositions.begin(), packedPositions.end());
+    }
 }
 
 void ChunkPrimer::initializeLightSources()
@@ -351,6 +366,9 @@ std::unique_ptr<ChunkData> ChunkPrimer::toChunkData()
     m_data->setBiomes(m_biomes);
     m_data->setFullyGenerated(true);
     m_data->setStatus(ChunkLoadStatus::Generated); // 设置 ChunkData 的状态
+
+    // MC 1.21: 将后处理位置从 ProtoChunk 传输到 LevelChunk
+    m_data->addPackedPostProcessing(m_postProcessingSections);
 
     // 设置状态
     m_status = ChunkLoadStatus::Generated;

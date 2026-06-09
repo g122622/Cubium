@@ -31,6 +31,12 @@
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/gen/surface/SurfaceRules.hpp"
 #include <memory>
+#include <string>
+#include <unordered_map>
+
+namespace mc::world::gen::noise {
+class NormalNoise;
+} // namespace mc::world::gen::noise
 
 namespace mc::world::gen {
 
@@ -97,6 +103,31 @@ public:
     /** 世界种子 */
     [[nodiscard]] u64 worldSeed() const { return m_worldSeed; }
 
+    // === MC 1.21 噪声/随机工厂缓存 ===
+
+    /**
+     * @brief 获取或创建命名噪声实例
+     *
+     * MC 1.21: RandomState.getOrCreateNoise(Holder<NormalNoise.NoiseParameters>)
+     * 首次调用时从 Noises 注册表取参数，用 fromHashOf(name).forkPositional() 创建 NormalNoise。
+     * 后续调用返回缓存实例。
+     *
+     * @param name 噪声名称（如 "minecraft:surface"）
+     * @return 噪声实例引用
+     */
+    [[nodiscard]] noise::NormalNoise& getOrCreateNoise(const std::string& name);
+
+    /**
+     * @brief 获取或创建命名位置随机工厂
+     *
+     * MC 1.21: RandomState.getOrCreateRandomFactory(Identifier)
+     * 首次调用时用 fromHashOf(name).forkPositional() 创建，后续调用返回缓存。
+     *
+     * @param name 随机工厂名称（如 "minecraft:bedrock_floor"）
+     * @return 位置随机工厂引用
+     */
+    [[nodiscard]] ::mc::math::PositionalRandomFactory& getOrCreateRandomFactory(const std::string& name);
+
 private:
     RandomState(u64 worldSeed, const DimensionSettings& settings);
 
@@ -109,6 +140,12 @@ private:
     std::unique_ptr<::mc::math::PositionalRandomFactory> m_aquiferRandom;
     std::unique_ptr<::mc::math::PositionalRandomFactory> m_oreRandom;
     std::unique_ptr<::mc::math::PositionalRandomFactory> m_positionalRandom;
+
+    // MC 1.21: 噪声实例缓存（name → NormalNoise）
+    std::unordered_map<std::string, std::unique_ptr<noise::NormalNoise>> m_noiseCache;
+
+    // MC 1.21: 位置随机工厂缓存（name → PositionalRandomFactory）
+    std::unordered_map<std::string, std::unique_ptr<::mc::math::PositionalRandomFactory>> m_randomFactoryCache;
 };
 
 } // namespace mc::world::gen

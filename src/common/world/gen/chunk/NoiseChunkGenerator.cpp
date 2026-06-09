@@ -712,6 +712,12 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
                                     chunk.updateHeightmap(
                                         HeightmapType::OceanFloorWG, localX, blockY, localZ, blockState);
                                 }
+                                // MC 1.21: 含水层边界处流体方块需标记后处理
+                                if (noiseChunk.aquifer() != nullptr &&
+                                    noiseChunk.aquifer()->shouldScheduleFluidUpdate() &&
+                                    blockState->isLiquid()) {
+                                    chunk.markPosForPostprocessing(localX, blockY, localZ);
+                                }
                             }
                         }
                     }

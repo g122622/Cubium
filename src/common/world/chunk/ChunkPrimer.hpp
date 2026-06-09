@@ -348,8 +348,11 @@ public:
      * @brief 标记方块位置为需要后处理
      *
      * MC 1.21: ProtoChunk.markPosForPostprocessing(BlockPos)
-     * 用于含水层流体更新调度：当含水层判断需要流体更新时，
-     * 雕刻器将位置标记为后处理，后续光照阶段会触发流体流动。
+     * 将位置打包为短整型并按区块段索引存储。
+     * 用于含水层流体更新调度、地表流体方块、雕刻器流体方块等。
+     * 在区块发布后由 postProcessGeneration 遍历这些位置：
+     * - 流体方块：调度流体 tick
+     * - 非液体方块：通过 updateFromNeighbourShapes 更新方块形状
      *
      * @param x 区块内 X 坐标 (0-15)
      * @param y 方块 Y 坐标
@@ -358,13 +361,25 @@ public:
     void markPosForPostprocessing(BlockCoord x, BlockCoord y, BlockCoord z);
 
     /**
-     * @brief 获取所有需要后处理的位置
+     * @brief 获取后处理位置（按区块段索引）
+     *
+     * MC 1.21: ProtoChunk.getPostProcessing()
+     * 返回按区块段索引组织的打包位置列表数组。
+     * 每个短整型编码了段内本地坐标：bits[3:0]=x, bits[7:4]=y, bits[11:8]=z。
+     *
+     * @return 后处理位置数组的常引用，大小为 CHUNK_SECTIONS
      */
-    [[nodiscard]] const std::vector<std::tuple<BlockCoord, BlockCoord, BlockCoord>>&
-    postProcessingPositions() const noexcept
-    {
-        return m_postProcessingPositions;
-    }
+    [[nodiscard]] const std::vector<u16>* postProcessingSections() const noexcept { return m_postProcessingSections; }
+
+    /**
+     * @brief 从另一个来源合并后处理位置
+     *
+     * MC 1.21: ChunkAccess.addPackedPostProcess()
+     *
+     * @param packedPositions 打包位置列表
+     * @param sectionIndex 区块段索引
+     */
+    void addPackedPostProcessing(const std::vector<u16>& packedPositions, i32 sectionIndex);
 
     // ============================================================================
     // 雕刻掩码
@@ -481,8 +496,9 @@ private:
     // 雕刻掩码（AIR 和 LIQUID 两个雕刻阶段共享）
     std::unique_ptr<CarvingMask> m_carvingMask;
 
-    /// 后处理位置列表（含水层流体更新调度等）
-    std::vector<std::tuple<BlockCoord, BlockCoord, BlockCoord>> m_postProcessingPositions;
+    /// 后处理位置（按区块段索引存储，MC 1.21: ShortList[] postProcessing）
+    /// 每个短整型编码段内本地坐标：bits[3:0]=x, bits[7:4]=y, bits[11:8]=z
+    std::vector<u16> m_postProcessingSections[world::CHUNK_SECTIONS];
 
     // NoiseChunk 缓存（biomes/noise/surface/carvers 阶段共享）
     std::unique_ptr<world::gen::density::NoiseChunk> m_noiseChunk;

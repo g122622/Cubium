@@ -667,10 +667,10 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
                 ifTrue(underFloor(),
                     ifTrue(yStartCheck(VerticalAnchor::absolute(63), -1),
                         sequence(
-                            // Y >= 63 且不在 bandlands 范围: 陶土（MC 1.21.11 使用 TERRACOTTA，非 ORANGE_TERRACOTTA）
+                            // Y >= 63 且不在 badlands 范围: 橙色陶土
                             ifTrue(yBlockCheck(VerticalAnchor::absolute(63), 0),
                                 ifTrue(notCondition(yStartCheck(VerticalAnchor::absolute(74), 1)),
-                                    blockState(terracotta))),
+                                    blockState(orangeTerracotta))),
                             // bandlands
                             bandlands()))),
                 // VERY_DEEP_UNDER_FLOOR: waterStartCheck → 白色陶土
@@ -842,13 +842,14 @@ std::unique_ptr<SurfaceRule> overworld(u64 seed)
     {
         std::vector<std::unique_ptr<SurfaceRule>> topRules;
 
-        // 冰冻峰: steep→PACKED_ICE, noise→PACKED_ICE/ICE, !water→SNOW_BLOCK
-        // MC 1.21.11: PACKED_ICE 噪声范围 [-0.5, 0.2], ICE 噪声范围 [-0.0625, 0.025]
+        // 冰冻峰 ON_FLOOR: steep→PACKED_ICE, noise→PACKED_ICE/ICE, !water→SNOW_BLOCK
+        // MC 1.21.11 ON_FLOOR: PACKED_ICE 噪声范围 [0.0, 0.2], ICE 噪声范围 [0.0, 0.025]
+        // 注意：UNDER_FLOOR 使用 [-0.5, 0.2] 和 [-0.0625, 0.025]，ON_FLOOR 不同
         if (packedIce && ice && snowBlock) {
             topRules.push_back(ifTrue(isBiome({Biomes::FrozenPeaks}),
                 sequence(ifTrue(steep(), blockState(packedIce)),
-                    ifTrue(noiseCondition(seed ^ 0xAC100001ULL, -4, {1.0, 1.0}, -0.5, 0.2), blockState(packedIce)),
-                    ifTrue(noiseCondition(seed ^ 0x1CE00001ULL, -4, {1.0, 1.0}, -0.0625, 0.025), blockState(ice)),
+                    ifTrue(noiseCondition(seed ^ 0xAC100001ULL, -4, {1.0, 1.0}, 0.0, 0.2), blockState(packedIce)),
+                    ifTrue(noiseCondition(seed ^ 0x1CE00001ULL, -4, {1.0, 1.0}, 0.0, 0.025), blockState(ice)),
                     ifTrue(waterBlockCheck(0, 0), blockState(snowBlock)))));
         }
 
@@ -1382,12 +1383,16 @@ void SurfaceSystem::frozenOceanExtension(ChunkPrimer& chunk,
             (static_cast<f64>(y) <= static_cast<f64>(m_seaLevel) && static_cast<f64>(y) >= icebergBottom);
 
         if (isAir || isWaterOrBelow) {
-            // 概率检查：空气中 99% 概率，水中 85% 概率
+            // MC 1.21: 空气在冰山顶部以下 99% 放置，水在冰山范围内 85% 放置
+            // Java 的条件是放置条件（true = 放置），不是跳过条件
             const f64 rand = rng->nextDouble();
-            if (isAir && rand > 0.01) {
-                continue;
+            bool shouldPlace = false;
+            if (isAir && static_cast<f64>(y) < icebergTop && rand > 0.01) {
+                shouldPlace = true;
+            } else if (!isAir && icebergBottom != 0.0 && rand > 0.15) {
+                shouldPlace = true;
             }
-            if (!isAir && rand > 0.15) {
+            if (!shouldPlace) {
                 continue;
             }
 
@@ -1474,6 +1479,7 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
 
                 if (currentState == nullptr || currentState->isAir()) {
                     stoneDepthAbove = 0;
+                    waterHeight = std::numeric_limits<i32>::min();
                     continue;
                 }
 
@@ -1519,6 +1525,10 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
 
                 if (replacement != nullptr && replacement->blockId() != currentState->blockId()) {
                     chunk.setBlockState(localX, y, localZ, replacement);
+                    // MC 1.21: SurfaceSystem — 写入流体方块时标记后处理
+                    if (replacement->isLiquid()) {
+                        chunk.markPosForPostprocessing(localX, y, localZ);
+                    }
                 }
             }
 

@@ -264,15 +264,16 @@ const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i3
     }
 
     // MC 1.21: 水在熔岩上方时触发流体更新
+    // Java: blockstate.is(Blocks.WATER) && globalFluidPicker.computeFluid(x, y-1, z).at(y-1).is(Blocks.LAVA)
     AquiferStatus aquifer2 = getAquiferStatus(gridIdx2X, gridIdx2Y, gridIdx2Z);
     {
         const BlockState* blockAtY =
             (aquifer1.fluidType != nullptr && blockY < aquifer1.fluidLevel) ? aquifer1.fluidType : nullptr;
         if (blockAtY != nullptr && &blockAtY->getBlock() == VanillaBlocks::WATER) {
-            // 检查下方是否为熔岩
-            const BlockState* blockBelow =
-                (aquifer1.fluidType != nullptr && (blockY - 1) < aquifer1.fluidLevel) ? aquifer1.fluidType : nullptr;
-            if (blockBelow != nullptr && &blockBelow->getBlock() == VanillaBlocks::LAVA) {
+            // 检查全局流体选择器在下方位置的熔岩状态
+            FluidStatus globalBelow = m_globalFluidPicker(blockX, blockY - 1, blockZ);
+            const BlockState* belowFluid = globalBelow.at(blockY - 1);
+            if (belowFluid != nullptr && &belowFluid->getBlock() == VanillaBlocks::LAVA) {
                 m_shouldScheduleFluidUpdate = true;
                 return blockAtY;
             }
@@ -329,7 +330,8 @@ const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i3
 
 NoiseBasedAquifer::AquiferStatus NoiseBasedAquifer::getAquiferStatus(i32 gridX, i32 gridY, i32 gridZ)
 {
-    const i32 idx = (gridX - m_minGridX) + m_gridSizeX * ((gridY - m_minGridY) + m_gridSizeY * (gridZ - m_minGridZ));
+    const i32 idx =
+        (gridY - m_minGridY) * m_gridSizeZ * m_gridSizeX + (gridZ - m_minGridZ) * m_gridSizeX + (gridX - m_minGridX);
 
     if (idx < 0 || idx >= static_cast<i32>(m_aquiferStatusComputed.size())) {
         return {WAY_BELOW_MIN_Y, nullptr};
@@ -353,7 +355,8 @@ NoiseBasedAquifer::AquiferStatus NoiseBasedAquifer::getAquiferStatus(i32 gridX, 
 
 i64 NoiseBasedAquifer::getAquiferLocation(i32 gridX, i32 gridY, i32 gridZ)
 {
-    const i32 idx = (gridX - m_minGridX) + m_gridSizeX * ((gridY - m_minGridY) + m_gridSizeY * (gridZ - m_minGridZ));
+    const i32 idx =
+        (gridY - m_minGridY) * m_gridSizeZ * m_gridSizeX + (gridZ - m_minGridZ) * m_gridSizeX + (gridX - m_minGridX);
 
     if (idx < 0 || idx >= static_cast<i32>(m_aquiferLocationCache.size())) {
         return encodeBlockPos(

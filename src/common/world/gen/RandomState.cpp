@@ -23,6 +23,8 @@
 
 #include "RandomState.hpp"
 #include "common/util/math/random/Xoroshiro128ppRandom.hpp"
+#include "common/world/gen/noise/Noises.hpp"
+#include "common/world/gen/noise/NormalNoise.hpp"
 #include "density/NoiseRouterData.hpp"
 
 namespace mc::world::gen {
@@ -90,13 +92,19 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
     ::mc::math::Xoroshiro128ppRandom mainRng(worldSeed);
     state->m_positionalRandom = std::make_unique<::mc::math::PositionalRandomFactory>(mainRng.forkPositional());
 
-    // 含水层随机工厂（独立种子偏移）
-    ::mc::math::Xoroshiro128ppRandom aquiferRng(worldSeed ^ 0x9E3779B97F4A7C15ULL);
-    state->m_aquiferRandom = std::make_unique<::mc::math::PositionalRandomFactory>(aquiferRng.forkPositional());
+    // 含水层随机工厂
+    // MC 1.21: RandomState 构造时从 noiseRandom.fromHashOf("minecraft:aquifer").forkPositional() 创建
+    {
+        auto aquiferRng = state->m_positionalRandom->fromHashOf("minecraft:aquifer");
+        state->m_aquiferRandom = std::make_unique<::mc::math::PositionalRandomFactory>(aquiferRng->forkPositional());
+    }
 
-    // 矿石脉随机工厂（独立种子偏移）
-    ::mc::math::Xoroshiro128ppRandom oreRng(worldSeed ^ 0x6A09E667F3BCC909ULL);
-    state->m_oreRandom = std::make_unique<::mc::math::PositionalRandomFactory>(oreRng.forkPositional());
+    // 矿石脉随机工厂
+    // MC 1.21: RandomState 构造时从 noiseRandom.fromHashOf("minecraft:ore").forkPositional() 创建
+    {
+        auto oreRng = state->m_positionalRandom->fromHashOf("minecraft:ore");
+        state->m_oreRandom = std::make_unique<::mc::math::PositionalRandomFactory>(oreRng->forkPositional());
+    }
 
     return state;
 }
@@ -114,6 +122,45 @@ density::NoiseRouter RandomState::createRouterCopy() const
         default:
             return density::NoiseRouterData::overworld(m_worldSeed, m_settings.largeBiomes);
     }
+}
+
+noise::NormalNoise& RandomState::getOrCreateNoise(const std::string& name)
+{
+    auto it = m_noiseCache.find(name);
+    if (it != m_noiseCache.end()) {
+        return *it->second;
+    }
+
+    // MC 1.21: RandomState.getOrCreateNoise()
+    // 1. 从 Noises 注册表获取参数
+    const noise::NoiseParameters& params = noise::Noises::get(name);
+
+    // 2. 使用 fromHashOf(name) 创建随机源
+    //    NormalNoise 构造函数会调用 rng.forkPositional() 两次来创建两个 PerlinNoise
+    auto rng = m_positionalRandom->fromHashOf(name);
+
+    // 3. 创建 NormalNoise
+    auto noise = std::make_unique<noise::NormalNoise>(*rng, params.firstOctave, params.amplitudes);
+
+    auto& ref = *noise;
+    m_noiseCache.emplace(name, std::move(noise));
+    return ref;
+}
+
+::mc::math::PositionalRandomFactory& RandomState::getOrCreateRandomFactory(const std::string& name)
+{
+    auto it = m_randomFactoryCache.find(name);
+    if (it != m_randomFactoryCache.end()) {
+        return *it->second;
+    }
+
+    // MC 1.21: RandomState.getOrCreateRandomFactory()
+    auto rng = m_positionalRandom->fromHashOf(name);
+    auto factory = std::make_unique<::mc::math::PositionalRandomFactory>(rng->forkPositional());
+
+    auto& ref = *factory;
+    m_randomFactoryCache.emplace(name, std::move(factory));
+    return ref;
 }
 
 } // namespace mc::world::gen

@@ -26,6 +26,8 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include <algorithm>
@@ -720,7 +722,68 @@ ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(ChunkCoord x, ChunkCo
         }
     }
 
+    // MC 1.21: LevelChunk.postProcessGeneration — 处理含水层流体更新和方块形状更新
+    if (stored && m_world) {
+        _postProcessChunk(*stored);
+    }
+
     return stored;
+}
+
+void ServerChunkManager::_postProcessChunk(ChunkData& chunk)
+{
+    // MC 1.21: LevelChunk.postProcessGeneration(ServerLevel)
+    // 遍历所有后处理位置，调度流体 tick 和方块形状更新
+    const ChunkCoord chunkX = chunk.x();
+    const ChunkCoord chunkZ = chunk.z();
+    const i32 startX = chunkX * world::CHUNK_WIDTH;
+    const i32 startZ = chunkZ * world::CHUNK_WIDTH;
+
+    for (i32 sectionIdx = 0; sectionIdx < world::CHUNK_SECTIONS; ++sectionIdx) {
+        const auto& packedPositions = chunk.postProcessingSections()[sectionIdx];
+        if (packedPositions.empty()) {
+            continue;
+        }
+
+        for (u16 packed : packedPositions) {
+            // 解包段内本地坐标
+            const i32 localX = packed & world::CHUNK_MASK;
+            const i32 localY = (packed >> world::SECTION_SHIFT) & world::CHUNK_MASK;
+            const i32 localZ = (packed >> (world::SECTION_SHIFT * 2)) & world::CHUNK_MASK;
+
+            // 重建世界坐标
+            const i32 worldX = localX + startX;
+            const i32 worldY = localY + (sectionIdx * world::CHUNK_SECTION_HEIGHT + world::MIN_BUILD_HEIGHT);
+            const i32 worldZ = localZ + startZ;
+
+            const BlockPos pos(worldX, worldY, worldZ);
+            const BlockState* blockState = chunk.getBlockState(localX, worldY, localZ);
+            if (blockState == nullptr) {
+                continue;
+            }
+
+            // MC 1.21: 流体方块 → 调度流体 tick
+            if (blockState->isLiquid()) {
+                const auto* fluidState = blockState->getFluidState();
+                if (fluidState != nullptr && !fluidState->isEmpty()) {
+                    // scheduleFluidTick 需要 Fluid&，但 Fluid 是注册表单例，const_cast 安全
+                    auto& fluid = const_cast<fluid::Fluid&>(fluidState->getFluid());
+                    m_world->tickManager().scheduleFluidTick(pos, fluid, fluidState->getFluid().getTickDelay(*m_world));
+                }
+            }
+
+            // MC 1.21: 非液体方块 → updateFromNeighbourShapes
+            // TODO 当 Block.updateFromNeighbourShapes 实现后启用此分支
+            // if (!blockState->getBlock().isLiquidBlock()) {
+            //     BlockState updated = Block::updateFromNeighbourShapes(...);
+            //     if (updated != *blockState) {
+            //         m_world->setBlock(pos, updated, 276);
+            //     }
+            // }
+        }
+
+        chunk.clearPostProcessingForSection(sectionIdx);
+    }
 }
 
 void ServerChunkManager::_saveChunkSectionsSync(const ChunkData& chunk)
