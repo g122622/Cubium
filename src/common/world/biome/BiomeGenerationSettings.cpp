@@ -23,15 +23,12 @@
 
 #include "BiomeGenerationSettings.hpp"
 #include "../../core/Constants.hpp"
-#include "../../util/math/random/Random.hpp"
 #include "../block/BlockTags.hpp"
-#include "../chunk/ChunkPrimer.hpp"
 #include "../gen/carver/CanyonCarver.hpp"
 #include "../gen/carver/CarverConfiguration.hpp"
 #include "../gen/carver/CaveCarver.hpp"
 #include "../gen/carver/NetherCaveCarver.hpp"
 #include "../gen/carver/WorldCarver.hpp"
-#include "../gen/chunk/IChunkGenerator.hpp"
 #include "../gen/feature/ConfiguredFeature.hpp"
 #include "../gen/feature/FeatureIds.hpp"
 #include <algorithm>
@@ -849,84 +846,6 @@ BiomeGenerationSettings BiomeGenerationSettings::createEndBarrens()
     BiomeGenerationSettings settings;
 
     return settings;
-}
-
-// ============================================================================
-// BiomeFeaturePlacer 实现
-// ============================================================================
-
-void BiomeFeaturePlacer::placeAllFeatures(WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    const BiomeGenerationSettings& settings,
-    u64 seed)
-{
-    // 按顺序放置每个阶段的特征
-    for (DecorationStage stage : DecorationStages::getAll()) {
-        placeFeaturesForStage(region, chunk, generator, settings, stage, seed);
-    }
-}
-
-void BiomeFeaturePlacer::placeFeaturesForStage(WorldGenRegion& region,
-    ChunkPrimer& chunk,
-    IChunkGenerator& generator,
-    const BiomeGenerationSettings& settings,
-    DecorationStage stage,
-    u64 seed)
-{
-    const auto& featureIds = settings.getFeatures(stage);
-    if (featureIds.empty()) {
-        return;
-    }
-
-    const i32 chunkX = chunk.x();
-    const i32 chunkZ = chunk.z();
-    const i32 startX = chunkX * world::CHUNK_WIDTH;
-    const i32 startZ = chunkZ * world::CHUNK_WIDTH;
-
-    // 使用 setDecorationSeed 算法计算装饰种子
-    // setDecorationSeed(baseSeed, x, z):
-    //   setSeed(baseSeed)
-    //   i = nextLong() | 1
-    //   j = nextLong() | 1
-    //   k = x * i + z * j ^ baseSeed
-    //   setSeed(k)
-    //   return k
-    math::Random decorRng(seed);
-    const u64 i = decorRng.nextLong() | 1ULL;
-    const u64 j = decorRng.nextLong() | 1ULL;
-    const u64 decorSeed = (static_cast<u64>(startX) * i + static_cast<u64>(startZ) * j) ^ seed;
-    decorRng.setSeed(decorSeed);
-
-    // 区块原点位置
-    const BlockPos chunkOrigin(startX, 0, startZ);
-
-    // 获取特征注册表中的特征
-    FeatureRegistry& registry = FeatureRegistry::instance();
-    const auto& allFeatures = registry.getFeatures(stage);
-
-    // 特征索引计数器
-    i32 featureIndex = 0;
-
-    // 放置每个特征
-    // 使用 setFeatureSeed 算法设置特征种子
-    // setFeatureSeed(baseSeed, x, z):
-    //   i = baseSeed + x + 10000 * z
-    //   setSeed(i)
-    const i32 stageOrdinal = static_cast<i32>(stage);
-
-    for (u32 featureId : featureIds) {
-        if (featureId < allFeatures.size() && allFeatures[featureId]) {
-            ConfiguredFeatureBase* feature = allFeatures[featureId];
-
-            // 使用 setFeatureSeed 算法设置特征种子
-            const u64 featureSeed = decorSeed + static_cast<u64>(featureIndex) + static_cast<u64>(10000 * stageOrdinal);
-            decorRng.setSeed(featureSeed);
-
-            feature->place(region, chunk, generator, decorRng, chunkOrigin);
-            featureIndex++;
-        }
-    }
 }
 
 } // namespace mc

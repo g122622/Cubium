@@ -939,6 +939,7 @@ add_library(mc_common STATIC
     world/gen/feature/Feature.cpp
     world/gen/feature/FeatureSpread.cpp
     world/gen/feature/ConfiguredFeature.cpp
+    world/gen/feature/FeatureSorter.cpp
     world/gen/feature/ore/OreFeature.cpp
     world/gen/feature/tree/TreeFeature.cpp
     world/gen/feature/tree/trunk/TrunkPlacer.cpp

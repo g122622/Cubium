@@ -65,6 +65,7 @@ public:
     [[nodiscard]] const std::string& name() const override { return m_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
+    [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundDecoration; }
 
     /**
      * @brief 检查是否可以生成

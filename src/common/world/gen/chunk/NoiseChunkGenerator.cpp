@@ -37,6 +37,7 @@
 #include "../density/Beardifier.hpp"
 #include "../density/NoiseRouterData.hpp"
 #include "../feature/ConfiguredFeature.hpp"
+#include "../feature/FeatureSorter.hpp"
 #include "../feature/ore/OreFeature.hpp"
 #include "../jigsaw/JigsawPiece.hpp"
 #include "../placement/PlacementRegistry.hpp"
@@ -47,6 +48,7 @@
 #include <algorithm>
 #include <map>
 #include <mutex>
+#include <set>
 #include <unordered_set>
 
 namespace mc {
@@ -359,37 +361,29 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
 
     const ChunkCoord chunkX = chunk.x();
     const ChunkCoord chunkZ = chunk.z();
+    const i32 startX = chunkX * world::CHUNK_WIDTH;
+    const i32 startZ = chunkZ * world::CHUNK_WIDTH;
 
-    // === 阶段 1: 放置结构片段 ===
-    // 结构起点在 STRUCTURE_STARTS 阶段已经计算并存储到 chunk 中
-    // 现在需要将结构片段放置到世界中
-    if (m_structureManager && chunk.hasStructureStarts()) {
-        MC_TRACE_EVENT("world.chunk_gen", "PlaceFeatures_Structures", "x", chunkX, "z", chunkZ);
-        for (const auto& [structureName, start] : chunk.structureStarts()) {
-            if (!start || !start->isValid()) {
-                continue;
-            }
+    // === MC 1.21: FeatureSorter 懒初始化 ===
+    // 构建所有可能生物群系的拓扑排序特征列表
+    std::call_once(m_featuresPerStepFlag, [this]() {
+        const std::vector<BiomeId>& possibleBiomes = m_biomeSource->possibleBiomes();
+        m_featuresPerStep = FeatureSorter::buildFeaturesPerStep(
+            possibleBiomes,
+            [](BiomeId biomeId, DecorationStage stage) -> const std::vector<u32>& {
+                const Biome& biome = BiomeRegistry::instance().get(biomeId);
+                return biome.generationSettings().getFeatures(stage);
+            },
+            FeatureRegistry::instance());
+    });
 
-            const world::gen::structure::Structure* structure =
-                world::gen::structure::StructureRegistry::get(structureName);
-            if (!structure) {
-                continue;
-            }
-
-            // 放置结构片段到当前区块
-            structure->placeInChunk(region, chunk, *start, chunkX, chunkZ);
-        }
-    }
-
-    // === 阶段 2: 放置生物群系特征 ===
-    // MC 1.21.11: 收集 3x3 区块邻域内所有 section biomes（BiomeGenerationSettings.getFeatures）
-    // 这确保生物群系边界的特征也能被放置
+    // === MC 1.21: 收集 3x3 区块邻域内的 section biomes ===
+    // 对应 Java: ChunkPos.rangeClosed(sectionpos.chunk(), 1)
     std::unordered_set<BiomeId> sectionBiomes;
     for (ChunkCoord dz = -1; dz <= 1; ++dz) {
         for (ChunkCoord dx = -1; dx <= 1; ++dx) {
             const IChunk* neighborChunk = region.getIChunk(chunkX + dx, chunkZ + dz);
             if (!neighborChunk) {
-                // 当前区块不可用通过 region 时，回退到直接采样
                 if (dx == 0 && dz == 0) {
                     for (i32 y = 0; y < world::CHUNK_SECTIONS; ++y) {
                         const i32 sectionY = y * world::CHUNK_SECTION_HEIGHT + world::MIN_BUILD_HEIGHT + 8;
@@ -403,9 +397,6 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
                 continue;
             }
 
-            // MC 1.21: 从每个邻域区块的 section biomes 中采样
-            // section grid: 4x4x4 = 每个 section 占 4 个方块
-            // 采样点: section 中心 (sx*4 + 2, sectionY*16 + minY + 8, sz*4 + 2)
             for (i32 y = 0; y < world::CHUNK_SECTIONS; ++y) {
                 const i32 sectionY = y * world::CHUNK_SECTION_HEIGHT + world::MIN_BUILD_HEIGHT + 8;
                 for (i32 sz = 0; sz < 4; ++sz) {
@@ -416,47 +407,94 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
             }
         }
     }
-    // 排序以确保确定性遍历顺序（MC 1.21: FeatureSorter 维护排序后的特征列表）
-    std::vector<BiomeId> sortedBiomes(sectionBiomes.begin(), sectionBiomes.end());
-    std::sort(sortedBiomes.begin(), sortedBiomes.end());
 
-    // MC 1.21: 使用 setDecorationSeed / setFeatureSeed 计算确定性种子
-    const i32 startX = chunkX * world::CHUNK_WIDTH;
-    const i32 startZ = chunkZ * world::CHUNK_WIDTH;
+    // 只保留生物群系源中实际存在的生物群系（对应 Java: set.retainAll(biomeSource.possibleBiomes())）
+    const std::vector<BiomeId>& possibleBiomes = m_biomeSource->possibleBiomes();
+    std::unordered_set<BiomeId> possibleSet(possibleBiomes.begin(), possibleBiomes.end());
+    for (auto it = sectionBiomes.begin(); it != sectionBiomes.end();) {
+        if (possibleSet.find(*it) == possibleSet.end()) {
+            it = sectionBiomes.erase(it);
+        } else {
+            ++it;
+        }
+    }
 
+    // === MC 1.21: 按装饰阶段交错放置结构和特征 ===
+    // 对应 Java: ChunkGenerator.applyBiomeDecoration()
+    // 每个阶段：先放结构，再放特征
     math::Random worldgenRandom;
     const u64 decorSeed = worldgenRandom.setDecorationSeed(m_seed, startX, startZ);
+    const BlockPos chunkOrigin(startX, 0, startZ);
 
-    // 按装饰阶段顺序放置特征
-    for (DecorationStage stage : DecorationStages::getAll()) {
-        const i32 stageOrdinal = static_cast<i32>(stage);
+    // 按结构装饰阶段分组
+    // 对应 Java: registry.stream().collect(Collectors.groupingBy(structure -> structure.step().ordinal()))
+    std::map<i32, std::vector<std::pair<const world::gen::structure::Structure*, world::gen::structure::StructureStart*>>>
+        structuresByStage;
+    if (m_structureManager && chunk.hasStructureStarts()) {
+        for (const auto& [structureName, start] : chunk.structureStarts()) {
+            if (!start || !start->isValid()) {
+                continue;
+            }
+            const world::gen::structure::Structure* structure =
+                world::gen::structure::StructureRegistry::get(structureName);
+            if (!structure) {
+                continue;
+            }
+            const i32 stageOrdinal = static_cast<i32>(structure->decorationStage());
+            structuresByStage[stageOrdinal].emplace_back(structure, start.get());
+        }
+    }
 
-        // MC 1.21: 对每个 stage，收集所有生物群系的特征并去重
-        // 使用 map 保持 featureIndex → feature 的有序映射
-        std::map<u32, ConfiguredFeatureBase*> stageFeatures;
-        FeatureRegistry& registry = FeatureRegistry::instance();
-        const auto& allFeatures = registry.getFeatures(stage);
+    const i32 featureSteps = static_cast<i32>(m_featuresPerStep.size());
+    const i32 totalSteps = std::max(static_cast<i32>(DecorationStage::Count), featureSteps);
 
-        for (BiomeId biomeId : sortedBiomes) {
-            const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
-            const BiomeGenerationSettings& biomeSettings = biome.generationSettings();
-            const auto& featureIds = biomeSettings.getFeatures(stage);
-            for (u32 fid : featureIds) {
-                if (fid < allFeatures.size() && allFeatures[fid] != nullptr) {
-                    // 去重：同一 feature ID 只添加一次
-                    stageFeatures.emplace(fid, allFeatures[fid]);
-                }
+    for (i32 stepIndex = 0; stepIndex < totalSteps; ++stepIndex) {
+        const DecorationStage stage = DecorationStages::fromIndex(static_cast<u8>(stepIndex));
+        const i32 stageOrdinal = stepIndex;
+
+        // === 放置该阶段的结构的特征 ===
+        // 对应 Java: for (Structure structure : map.getOrDefault(k, Collections.emptyList()))
+        i32 structureIndex = 0;
+        auto structIt = structuresByStage.find(stageOrdinal);
+        if (structIt != structuresByStage.end()) {
+            for (const auto& [structure, start] : structIt->second) {
+                worldgenRandom.setFeatureSeed(decorSeed, structureIndex, stageOrdinal);
+                structure->placeInChunk(region, chunk, *start, chunkX, chunkZ);
+                ++structureIndex;
             }
         }
 
-        // MC 1.21: 按排序后的 feature ID 顺序放置
-        i32 featureIndex = 0;
-        for (const auto& [fid, feature] : stageFeatures) {
-            worldgenRandom.setFeatureSeed(decorSeed, featureIndex, stageOrdinal);
+        // === 放置该阶段的生物群系特征 ===
+        // 对应 Java: IntSet intset = new IntArraySet(); ... for each biome add feature indices
+        if (stepIndex < featureSteps) {
+            const FeatureSorter::StepFeatureData& stepData = m_featuresPerStep[static_cast<size_t>(stepIndex)];
+            if (stepData.features.empty()) {
+                continue;
+            }
 
-            const BlockPos chunkOrigin(startX, 0, startZ);
-            feature->place(region, chunk, *this, worldgenRandom, chunkOrigin);
-            ++featureIndex;
+            // 收集所有出现的生物群系中该阶段的特征拓扑索引
+            // 对应 Java: holderset.stream().map(Holder::value).forEach(p -> intset.add(indexMapping.applyAsInt(p)))
+            std::set<i32> featureIndices;
+            for (BiomeId biomeId : sectionBiomes) {
+                const Biome& biome = BiomeRegistry::instance().get(biomeId);
+                const BiomeGenerationSettings& biomeSettings = biome.generationSettings();
+                const auto& featureIds = biomeSettings.getFeatures(stage);
+                for (u32 fid : featureIds) {
+                    const i32 topoIndex = stepData.getIndex(fid);
+                    if (topoIndex >= 0) {
+                        featureIndices.insert(topoIndex);
+                    }
+                }
+            }
+
+            // 按拓扑索引排序放置特征
+            // 对应 Java: int[] aint = intset.toIntArray(); Arrays.sort(aint);
+            for (i32 topoIndex : featureIndices) {
+                if (topoIndex < static_cast<i32>(stepData.features.size()) && stepData.features[topoIndex] != nullptr) {
+                    worldgenRandom.setFeatureSeed(decorSeed, topoIndex, stageOrdinal);
+                    stepData.features[topoIndex]->place(region, chunk, *this, worldgenRandom, chunkOrigin);
+                }
+            }
         }
     }
 
@@ -714,8 +752,7 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
                                 }
                                 // MC 1.21: 含水层边界处流体方块需标记后处理
                                 if (noiseChunk.aquifer() != nullptr &&
-                                    noiseChunk.aquifer()->shouldScheduleFluidUpdate() &&
-                                    blockState->isLiquid()) {
+                                    noiseChunk.aquifer()->shouldScheduleFluidUpdate() && blockState->isLiquid()) {
                                     chunk.markPosForPostprocessing(localX, blockY, localZ);
                                 }
                             }

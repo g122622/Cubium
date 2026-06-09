@@ -87,6 +87,7 @@ public:
     [[nodiscard]] const std::string& name() const override { return s_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
+    [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundDecoration; }
 
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;

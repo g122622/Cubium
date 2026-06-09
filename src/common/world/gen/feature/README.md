@@ -8,6 +8,7 @@ Cubium 世界生成特征系统，负责在地形生成后添加各种装饰性�
 feature/
 ├── Feature.hpp/cpp           # 特征基类和配置（RuleTest、BlockStateProvider等）
 ├── ConfiguredFeature.hpp/cpp # 配置化特征和特征注册表
+├── FeatureSorter.hpp/cpp     # MC 1.21 特征拓扑排序器（跨生物群系确定性排序）
 ├── DecorationStage.hpp       # 装饰阶段枚举
 ├── FeatureIds.hpp            # 特征ID常量定义
 ├── FeatureSpread.hpp/cpp     # 特征扩散配置
@@ -61,6 +62,7 @@ graph TB
 - `Feature` 是所有特征的抽象基类，定义 `place()` 接口
 - `ConfiguredFeature` 组合特征与放置配置，由 `FeatureRegistry` 管理
 - `DecorationStage` 控制特征生成顺序（RawGeneration → Lakes → ... → TopLayerModification）
+- `FeatureSorter` 对所有可能生物群系的特征进行拓扑排序，确保跨生物群系边界的确定性放置
 - `TreeFeature` 依赖 `TrunkPlacer` + `FoliagePlacer` 组合
 
 ## 上下游外部依赖关系

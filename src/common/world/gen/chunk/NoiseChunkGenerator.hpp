@@ -36,12 +36,14 @@
 #include "../density/NoiseRouter.hpp"
 #include "../feature/ConfiguredFeature.hpp"
 #include "../feature/DecorationStage.hpp"
+#include "../feature/FeatureSorter.hpp"
 #include "../jigsaw/JigsawJunction.hpp"
 #include "../settings/NoiseSettings.hpp"
 #include "../structure/StructureManager.hpp"
 #include "../surface/SurfaceRules.hpp"
 #include "IChunkGenerator.hpp"
 #include <memory>
+#include <mutex>
 #include <vector>
 
 namespace mc {
@@ -114,6 +116,11 @@ private:
 
     // === 结构管理器 ===
     std::unique_ptr<world::gen::structure::StructureManager> m_structureManager;
+
+    // === 特征拓扑排序（MC 1.21 FeatureSorter）===
+    /// 懒初始化：首次调用 placeFeatures 时构建
+    std::vector<FeatureSorter::StepFeatureData> m_featuresPerStep;
+    std::once_flag m_featuresPerStepFlag;
 
     // === 核心生成方法 ===
 

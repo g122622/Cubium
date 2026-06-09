@@ -28,6 +28,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/Biome.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/gen/jigsaw/JigsawJunction.hpp"
 #include <functional>
 #include <memory>
@@ -499,6 +500,20 @@ public:
      * Beardifier 使用此信息决定如何平滑结构周围的地形。
      */
     [[nodiscard]] virtual TerrainAdaptation terrainAdaptation() const { return TerrainAdaptation::None; }
+
+    /**
+     * @brief 获取结构的装饰阶段
+     *
+     * MC 1.21: 对应 Structure.StructureSettings.generationStep()。
+     * 用于在 applyBiomeDecoration 中按装饰阶段交错放置结构。
+     *
+     * 默认返回 SurfaceStructures（MC 1.21 默认值）。
+     * 子类覆盖以返回不同的阶段：
+     * - UndergroundStructures: 废弃矿井、埋藏宝藏、试炼密室
+     * - UndergroundDecoration: 下界要塞、下界化石
+     * - SurfaceStructures: 所有其他结构（村庄、神殿、末地城等）
+     */
+    [[nodiscard]] virtual DecorationStage decorationStage() const { return DecorationStage::SurfaceStructures; }
 
     [[nodiscard]] StructureType structureType() const noexcept { return m_type; }
     [[nodiscard]] bool isValidBiome(BiomeId biomeId) const;

@@ -313,6 +313,8 @@ public:
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
+    [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundStructures; }
+
     /**
      * @brief 废弃矿井使用非均匀间距分布
      *

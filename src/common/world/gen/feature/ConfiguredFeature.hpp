@@ -143,28 +143,4 @@ private:
     std::vector<std::vector<ConfiguredFeatureBase*>> m_featuresByStage;
 };
 
-/**
- * @brief 特征生成器
- *
- * 在区块中生成特征。
- */
-class FeatureGenerator {
-public:
-    /**
-     * @brief 在区块中放置特征
-     * @param region 世界生成区域
-     * @param chunk 区块数据
-     * @param generator 区块生成器
-     * @param biome 生物群系
-     * @param stage 装饰阶段
-     * @param seed 世界种子
-     */
-    static void placeFeatures(WorldGenRegion& region,
-        ChunkPrimer& chunk,
-        IChunkGenerator& generator,
-        const Biome& biome,
-        DecorationStage stage,
-        u64 seed);
-};
-
 } // namespace mc

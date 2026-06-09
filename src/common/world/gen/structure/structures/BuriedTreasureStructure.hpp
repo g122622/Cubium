@@ -66,6 +66,8 @@ public:
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
+    [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundStructures; }
+
     /**
      * @brief 检查是否可以生成
      * 埋藏的宝藏只在沙滩类生物群系生成，且概率较低

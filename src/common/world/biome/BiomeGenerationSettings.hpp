@@ -327,42 +327,4 @@ private:
     std::vector<std::unique_ptr<ConfiguredCarverBase>> m_carvers;
 };
 
-/**
- * @brief 生物群系特征放置器
- *
- * 在区块中放置生物群系特有的特征。
- */
-class BiomeFeaturePlacer {
-public:
-    /**
-     * @brief 在区块中放置所有阶段的特征
-     * @param region 世界生成区域
-     * @param chunk 区块数据
-     * @param generator 区块生成器
-     * @param settings 生物群系生成设置
-     * @param seed 世界种子
-     */
-    static void placeAllFeatures(WorldGenRegion& region,
-        ChunkPrimer& chunk,
-        IChunkGenerator& generator,
-        const BiomeGenerationSettings& settings,
-        u64 seed);
-
-    /**
-     * @brief 在区块中放置指定阶段的特征
-     * @param region 世界生成区域
-     * @param chunk 区块数据
-     * @param generator 区块生成器
-     * @param settings 生物群系生成设置
-     * @param stage 装饰阶段
-     * @param seed 世界种子
-     */
-    static void placeFeaturesForStage(WorldGenRegion& region,
-        ChunkPrimer& chunk,
-        IChunkGenerator& generator,
-        const BiomeGenerationSettings& settings,
-        DecorationStage stage,
-        u64 seed);
-};
-
 } // namespace mc
