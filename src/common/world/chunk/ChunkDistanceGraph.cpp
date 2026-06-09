@@ -89,23 +89,17 @@ i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess)
         const i32 currentLevel = getLevel(x, z);
 
         // 重新计算该区块的最优级别：
-        // min(自身源级别, 四邻居级别 + 1)
+        // min(自身源级别, 八邻居级别 + 1)
         i32 recomputedLevel = getSourceLevel(x, z);
-        struct Neighbor {
-            ChunkCoord x, z;
-        };
-        const Neighbor neighbors[4] = {
-            {x, z - 1}, // 北
-            {x, z + 1}, // 南
-            {x + 1, z}, // 东
-            {x - 1, z}  // 西
-        };
 
-        for (const auto& neighbor : neighbors) {
-            const i32 neighborLevel = getLevel(neighbor.x, neighbor.z);
-            const i32 propagatedLevel = (neighborLevel >= MAX_LEVEL) ? MAX_LEVEL : (neighborLevel + 1);
-            if (propagatedLevel < recomputedLevel) {
-                recomputedLevel = propagatedLevel;
+        for (i32 dz = -1; dz <= 1; ++dz) {
+            for (i32 dx = -1; dx <= 1; ++dx) {
+                if (dx == 0 && dz == 0) continue;
+                const i32 neighborLevel = getLevel(x + dx, z + dz);
+                const i32 propagatedLevel = (neighborLevel >= MAX_LEVEL) ? MAX_LEVEL : (neighborLevel + 1);
+                if (propagatedLevel < recomputedLevel) {
+                    recomputedLevel = propagatedLevel;
+                }
             }
         }
 
@@ -182,34 +176,25 @@ void ChunkDistanceGraph::onLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel
 
 void ChunkDistanceGraph::_propagateToNeighbors(ChunkCoord x, ChunkCoord z, i32 level, bool isDecreasing)
 {
-    // 4个相邻区块：北、南、东、西
-    struct Neighbor {
-        ChunkCoord x, z;
-    };
-    Neighbor neighbors[4] = {
-        {x, z - 1}, // 北
-        {x, z + 1}, // 南
-        {x + 1, z}, // 东
-        {x - 1, z}  // 西
-    };
+    // 八方向传播（棋盘距离/Chebyshev），与 MC 一致
+    for (i32 dz = -1; dz <= 1; ++dz) {
+        for (i32 dx = -1; dx <= 1; ++dx) {
+            if (dx == 0 && dz == 0) continue;
 
-    i32 propagatedLevel = _computePropagatedLevel(level);
-    if (propagatedLevel > MAX_LEVEL) {
-        propagatedLevel = MAX_LEVEL;
+            ChunkCoord nx = x + dx;
+            ChunkCoord nz = z + dz;
+
+            // 无论升/降级，邻居都可能依赖当前节点，统一触发重计算。
+            _enqueueUpdate(nx, nz);
+        }
     }
 
-    // TODO: propagatedLevel 和 isDecreasing 参数暂时未使用，后续可用于优化传播逻辑
-    // 当前统一触发邻居重计算，未来可根据这两个值进行更细粒度的传播控制
-    (void)propagatedLevel;
+    // 当前节点级别变化后，邻居的最优值可能也会变化。
+    // isDecreasing 和 propagatedLevel 参数保留供后续优化：
+    // 当 isDecreasing=true 时，只需传播到当前级别 +1 以上的邻居。
+    // 当 isDecreasing=false 时，只需传播到当前级别以下的邻居。
+    (void)level;
     (void)isDecreasing;
-
-    for (i32 i = 0; i < 4; ++i) {
-        ChunkCoord nx = neighbors[i].x;
-        ChunkCoord nz = neighbors[i].z;
-
-        // 无论升/降级，邻居都可能依赖当前节点，统一触发重计算。
-        _enqueueUpdate(nx, nz);
-    }
 }
 
 void ChunkDistanceGraph::_enqueueUpdate(ChunkCoord x, ChunkCoord z)

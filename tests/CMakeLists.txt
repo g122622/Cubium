@@ -36,6 +36,7 @@ add_executable(mc_tests
     common/BaseTestServer.cpp
     common/test_block.cpp
     common/test_chunk_generation.cpp
+    common/test_chunk_level.cpp
     common/test_biome.cpp
     common/test_ore_feature.cpp
     common/test_carver.cpp
@@ -434,6 +435,7 @@ add_executable(mc_tests
     server/menu/CraftingMenuTest.cpp
     server/BlockUpdateSyncManagerTest.cpp
     server/test_chunk_worker_pool.cpp
+    server/test_generation_chunk_cache.cpp
     server/test_server_chunk_manager.cpp
     server/core/TimeManagerTest.cpp
     server/core/PlayerManagerTest.cpp
@@ -760,6 +762,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/OpListManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/GenerationChunkCache.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
@@ -1578,6 +1581,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/event/ServerEventBus.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/GenerationChunkCache.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp

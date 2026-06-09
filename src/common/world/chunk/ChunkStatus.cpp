@@ -32,7 +32,7 @@ namespace mc {
 
 namespace ChunkStatuses {
 
-// 阶段定义（按顺序，对齐 MC 1.21.11）
+// 阶段定义（按顺序）
 //
 // taskRange 参数说明：
 // -1: 不执行任务（EMPTY）
@@ -73,31 +73,30 @@ const ChunkStatus BIOMES(
 const ChunkStatus NOISE("noise", NOISE_ORDINAL, &BIOMES, 8, HeightmapFlag::PRE_FEATURES, ChunkType::PROTOCHUNK);
 
 // SURFACE: 地表生成
-// MC 1.21.11 directDependencies: [STRUCTURE_STARTS(8), BIOMES(1)]
 // 需要邻居生物群系数据来正确生成地表
 const ChunkStatus SURFACE("surface", SURFACE_ORDINAL, &NOISE, 1, HeightmapFlag::PRE_FEATURES, ChunkType::PROTOCHUNK);
 
 // CARVERS: 雕刻（洞穴、峡谷）
-// MC 1.21.11: CARVERS 阶段切换到 FINAL_HEIGHTMAPS（POST_FEATURES）
+// CARVERS 阶段切换到 POST_FEATURES 高度图
 const ChunkStatus CARVERS("carvers", CARVERS_ORDINAL, &SURFACE, 0, HeightmapFlag::POST_FEATURES, ChunkType::PROTOCHUNK);
 
 // FEATURES: 特性放置
-// MC 1.21.11 directDependencies: [STRUCTURE_STARTS(8), CARVERS(1)]
+// directDependencies: [STRUCTURE_STARTS(8), CARVERS(1)]
 const ChunkStatus FEATURES(
     "features", FEATURES_ORDINAL, &CARVERS, 8, HeightmapFlag::POST_FEATURES, ChunkType::PROTOCHUNK);
 
 // INITIALIZE_LIGHT: 初始化光源
-// MC 1.21.11: 将区块中已有光源注册到光照引擎，关联光照引擎
+// 将区块中已有光源注册到光照引擎
 const ChunkStatus INITIALIZE_LIGHT(
     "initialize_light", INITIALIZE_LIGHT_ORDINAL, &FEATURES, 0, HeightmapFlag::POST_FEATURES, ChunkType::PROTOCHUNK);
 
 // LIGHT: 光照传播计算
-// MC 1.21.11 directDependencies: [INITIALIZE_LIGHT(1)]
+// directDependencies: [INITIALIZE_LIGHT(1)]
 const ChunkStatus LIGHT(
     "light", LIGHT_ORDINAL, &INITIALIZE_LIGHT, 1, HeightmapFlag::POST_FEATURES, ChunkType::PROTOCHUNK);
 
 // SPAWN: 生物生成点计算
-// MC 1.21.11 directDependencies: [BIOMES(1)]
+// directDependencies: [BIOMES(1)]
 const ChunkStatus SPAWN("spawn", SPAWN_ORDINAL, &LIGHT, 1, HeightmapFlag::POST_FEATURES, ChunkType::PROTOCHUNK);
 
 // FULL: 完整区块
@@ -111,7 +110,7 @@ const ChunkStatus FULL("full", FULL_ORDINAL, &SPAWN, 0, HeightmapFlag::POST_FEAT
 
 namespace {
 
-// 用于将距离值映射到对应的状态（对齐 MC 1.21.11 ChunkPyramid.GENERATION_PYRAMID）
+// 用于将距离值映射到对应的状态
 // distance 0: FULL
 // distance 1: FEATURES (需要 CARVERS 完成)
 // distance 2: CARVERS (需要 STRUCTURE_STARTS 完成)

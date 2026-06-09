@@ -144,13 +144,12 @@ public:
     }
 
     // ============================================================================
-    // 持久化状态（MC 1.21 ProtoChunk.persistedStatus）
+    // 持久化状态
     // ============================================================================
 
     /**
      * @brief 获取持久化状态
      *
-     * MC 1.21: ProtoChunk.getPersistedStatus()
      * persistedStatus 记录已完成持久化的阶段，用于决定高度图更新范围。
      * 与 chunkStatus 分离：chunkStatus 是当前正在执行的目标阶段，
      * persistedStatus 是已经确认完成的阶段。
@@ -160,7 +159,6 @@ public:
     /**
      * @brief 推进持久化状态到目标阶段
      *
-     * MC 1.21: ProtoChunk.setPersistedStatus()
      * 只允许向前推进（新状态的 ordinal 必须 >= 当前 persistedStatus）。
      * 同时推进 chunkStatus。
      *
@@ -325,7 +323,7 @@ public:
     /**
      * @brief 添加结构引用
      *
-     * MC 1.21: StructureReferences 存储"哪些结构可能与此区块相交"的信息。
+     * 存储"哪些结构可能与此区块相交"的信息。
      * 在 STRUCTURE_REFERENCES 阶段，扫描周围区块的 StructureStart，
      * 如果其边界框与此区块相交，则添加引用。
      *
@@ -372,7 +370,6 @@ public:
     /**
      * @brief 标记方块位置为需要后处理
      *
-     * MC 1.21: ProtoChunk.markPosForPostprocessing(BlockPos)
      * 将位置打包为短整型并按区块段索引存储。
      * 用于含水层流体更新调度、地表流体方块、雕刻器流体方块等。
      * 在区块发布后由 postProcessGeneration 遍历这些位置：
@@ -388,7 +385,6 @@ public:
     /**
      * @brief 获取后处理位置（按区块段索引）
      *
-     * MC 1.21: ProtoChunk.getPostProcessing()
      * 返回按区块段索引组织的打包位置列表数组。
      * 每个短整型编码了段内本地坐标：bits[3:0]=x, bits[7:4]=y, bits[11:8]=z。
      *
@@ -398,8 +394,6 @@ public:
 
     /**
      * @brief 从另一个来源合并后处理位置
-     *
-     * MC 1.21: ChunkAccess.addPackedPostProcess()
      *
      * @param packedPositions 打包位置列表
      * @param sectionIndex 区块段索引
@@ -432,7 +426,7 @@ public:
     /**
      * @brief 获取或创建 NoiseChunk
      *
-     * MC 1.21 中，NoiseChunk 在 biomes/noise/surface/carvers 阶段共享。
+     * NoiseChunk 在 biomes/noise/surface/carvers 阶段共享。
      * 第一次调用时使用 factory 创建，后续调用返回缓存实例。
      *
      * @param factory 创建 NoiseChunk 的工厂函数
@@ -522,7 +516,7 @@ private:
     // 雕刻掩码（AIR 和 LIQUID 两个雕刻阶段共享）
     std::unique_ptr<CarvingMask> m_carvingMask;
 
-    /// 后处理位置（按区块段索引存储，MC 1.21: ShortList[] postProcessing）
+    /// 后处理位置（按区块段索引存储）
     /// 每个短整型编码段内本地坐标：bits[3:0]=x, bits[7:4]=y, bits[11:8]=z
     std::vector<u16> m_postProcessingSections[world::CHUNK_SECTIONS];
 
@@ -535,8 +529,7 @@ private:
     /**
      * @brief 根据当前 ChunkStatus 的 heightmapsAfter 自动更新高度图
      *
-     * MC 1.21.11: ProtoChunk.setBlockState 在设置方块后，
-     * 根据 persistedStatus.heightmapsAfter() 决定更新哪些高度图。
+     * 在设置方块后，根据 persistedStatus.heightmapsAfter() 决定更新哪些高度图。
      * 对于尚未创建的高度图类型，先 prime（从方块数据初始化）再增量更新。
      */
     void _updateHeightmapsForCurrentStatus(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state);

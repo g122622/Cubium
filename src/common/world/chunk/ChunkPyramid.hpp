@@ -29,14 +29,13 @@
 namespace mc {
 
 // ============================================================================
-// 区块生成金字塔（MC 1.21 ChunkPyramid）
+// 区块生成金字塔
 // ============================================================================
 
 /**
  * @brief 区块生成金字塔
  *
- * 对应 MC 1.21 的 ChunkPyramid record。
- * 定义区块生成的完整步骤序列和依赖关系。
+ * 区块生成金字塔，定义区块生成的完整步骤序列和依赖关系。
  *
  * GENERATION_PYRAMID 定义了从 EMPTY 到 FULL 的 12 个步骤：
  *
@@ -81,12 +80,23 @@ public:
     }
 
     /**
-     * @brief 获取生成金字塔（MC 1.21 GENERATION_PYRAMID）
+     * @brief 获取生成金字塔（GENERATION_PYRAMID）
      *
-     * 对应 Java 的 ChunkPyramid.GENERATION_PYRAMID。
      * 首次调用时构建，后续调用返回缓存实例。
      */
     [[nodiscard]] static const ChunkPyramid& generationPyramid();
+
+    /**
+     * @brief 获取加载金字塔（LOADING_PYRAMID）
+     *
+     * 用于从存档加载区块的步骤序列。与 GENERATION_PYRAMID 的关键区别：
+     * - 大多数步骤的直接依赖仅为前一步（半径 0）
+     * - 只有 LIGHT 依赖 INITIALIZE_LIGHT(1)
+     * - 所有步骤的 blockStateWriteRadius = -1（不写方块）
+     *
+     * 首次调用时构建，后续调用返回缓存实例。
+     */
+    [[nodiscard]] static const ChunkPyramid& loadingPyramid();
 
 private:
     std::vector<ChunkStep> m_steps;

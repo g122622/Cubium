@@ -1,22 +1,22 @@
 # Chunk 模块
 
-本目录包含 Minecraft 区块系统的核心实现，对齐 MC 1.21.11 的区块生成依赖模型。
+本目录包含 Minecraft 区块系统的核心实现。
 
 ## 目录结构
 
 ```
 src/common/world/chunk/
 ├── ChunkData.hpp/cpp              # 区块数据存储（ChunkSection、ChunkData、ChunkDataRef）
-├── ChunkDependencies.hpp/cpp     # 区块依赖关系（MC 1.21 ChunkDependencies）
+├── ChunkDependencies.hpp/cpp     # 区块依赖关系
 ├── ChunkDistanceGraph.hpp/cpp     # 区块距离图（BFS 级别传播算法）
 ├── ChunkId.hpp                    # 区块唯一标识符（包含维度）
 ├── ChunkLoadTicket.hpp            # 显式 ticket 类型与集合定义
 ├── ChunkLoadTicketManager.hpp/cpp # 票据管理器与玩家来源聚合器
 ├── ChunkPos.hpp                   # 区块位置类型
 ├── ChunkPrimer.hpp/cpp            # 区块生成中间状态
-├── ChunkPyramid.hpp/cpp           # 区块生成金字塔（MC 1.21 ChunkPyramid）
+├── ChunkPyramid.hpp/cpp           # 区块生成金字塔
 ├── ChunkStatus.hpp/cpp            # 区块生成阶段定义
-├── ChunkStep.hpp                  # 区块生成步骤（MC 1.21 ChunkStep）
+├── ChunkStep.hpp                  # 区块生成步骤
 ├── IChunk.hpp/cpp                 # 区块接口和基础类型
 ├── SectionPos.hpp                 # 区块段位置类型
 └── SingleChunkLifecycleManager.hpp/cpp  # 单区块生命周期管理
@@ -57,9 +57,9 @@ flowchart LR
 - **ChunkLoadTicketManager**：聚合显式 ticket 和玩家 source，依赖 ChunkLoadTicket、ChunkDistanceGraph
 - **SingleChunkLifecycleManager**：单区块生命周期管理，依赖 ChunkPrimer、ChunkData、ChunkStatus
 
-## 生成依赖模型（MC 1.21 对齐）
+## 生成依赖模型
 
-MC 1.21 使用 `ChunkPyramid.GENERATION_PYRAMID` 定义区块生成阶段的依赖关系：
+使用 `ChunkPyramid.GENERATION_PYRAMID` 定义区块生成阶段的依赖关系：
 
 | 阶段 | 直接依赖 | 可写半径 |
 |------|---------|---------|

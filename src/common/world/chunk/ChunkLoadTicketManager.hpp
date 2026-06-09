@@ -83,8 +83,10 @@ class SingleChunkLifecycleManager;
  */
 class ChunkLoadTicketManager {
 public:
-    /// 最大加载级别（Level <= 33 的区块会被加载）
-    static constexpr i32 MAX_LOADED_LEVEL = 33;
+    /// 最大加载级别（Level <= BORDER 的区块会被加载）
+    /// BORDER = 34，对应完全加载区块的外围
+    /// 未加载级别 = ChunkLoadLevel::MaxLevel = 46
+    static constexpr i32 MAX_LOADED_LEVEL = static_cast<i32>(ChunkLoadLevel::Border);
 
     ChunkLoadTicketManager();
     ~ChunkLoadTicketManager() = default;
@@ -178,7 +180,7 @@ public:
      * @param z 区块 Z 坐标
      * @return 区块级别，越小优先级越高
      *
-     * @note 级别 <= 33 的区块应该被加载
+     * @note 级别 <= 34 (Border) 的区块应该被加载
      */
     [[nodiscard]] i32 getChunkLevel(ChunkCoord x, ChunkCoord z) const;
 
@@ -248,8 +250,8 @@ public:
      * - oldLevel: 旧级别
      * - newLevel: 新级别
      *
-     * 当 newLevel <= 33 且 oldLevel > 33 时，区块应该被加载
-     * 当 newLevel > 33 且 oldLevel <= 33 时，区块应该被卸载
+     * 当 newLevel <= 34 且 oldLevel > 34 时，区块应该被加载
+     * 当 newLevel > 34 且 oldLevel <= 34 时，区块应该被卸载
      */
     using LevelChangeCallback = std::function<void(ChunkCoord, ChunkCoord, i32, i32)>;
 

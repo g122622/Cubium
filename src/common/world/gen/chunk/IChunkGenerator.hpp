@@ -29,6 +29,7 @@
 #include "../../border/WorldBorder.hpp"
 #include "../../chunk/ChunkPrimer.hpp"
 #include "../../chunk/ChunkStatus.hpp"
+#include "../../chunk/ChunkStep.hpp"
 #include "../settings/DimensionSettings.hpp"
 #include <cstddef>
 #include <functional>
@@ -190,8 +191,8 @@ public:
  * @brief 世界生成区域
  *
  * 提供有限的世界视图给生成器。
- * 访问范围由生成阶段的 taskRange 决定，常见窗口包括 0、1、8。
- * TODO 移到单独文件中
+ * 访问范围由生成阶段的依赖半径决定。
+ * 持有 ChunkStep 以验证读写权限。
  */
 class WorldGenRegion : public IWorld {
 public:
@@ -199,13 +200,22 @@ public:
     using IWorld::setBlockState;
 
     /**
-     * @brief 构造世界生成区域
+     * @brief 构造世界生成区域（无步骤校验模式）
      * @param mainX 主区块 X
      * @param mainZ 主区块 Z
      * @param chunkRadius 区块半径（0 表示只有中心区块，1 表示 3x3 区域，8 表示 17x17 区域）
      * @param chunks 区块数组（按从左上到右下的顺序排列，数量为 (2*chunkRadius+1)^2）
      */
     WorldGenRegion(ChunkCoord mainX, ChunkCoord mainZ, i32 chunkRadius, std::vector<IChunk*> chunks);
+
+    /**
+     * @brief 构造世界生成区域（带步骤校验模式）
+     * @param mainX 主区块 X
+     * @param mainZ 主区块 Z
+     * @param generatingStep 当前正在执行的生成步骤
+     * @param chunks 区块数组（按从左上到右下的顺序排列）
+     */
+    WorldGenRegion(ChunkCoord mainX, ChunkCoord mainZ, const ChunkStep& generatingStep, std::vector<IChunk*> chunks);
 
     // === 区块访问 ===
 
@@ -447,12 +457,34 @@ public:
      */
     void setDayTime(i64 dayTime) { m_dayTime = dayTime; }
 
+    /**
+     * @brief 获取当前生成步骤
+     *
+     * 返回构造时传入的 ChunkStep。如果使用无步骤构造函数，返回 nullptr。
+     */
+    [[nodiscard]] const ChunkStep* generatingStep() const { return m_generatingStep; }
+
+    /**
+     * @brief 获取区块写半径
+     *
+     * 返回当前生成步骤允许写方块状态的半径。
+     * -1 = 不写方块（EMPTY, STRUCTURE_STARTS 等）
+     * 0 = 只写中心区块（NOISE, SURFACE, CARVERS）
+     * 1 = 写中心区块及 1 格邻居（FEATURES）
+     * 如果没有生成步骤，返回 -1。
+     */
+    [[nodiscard]] i32 blockStateWriteRadius() const
+    {
+        return m_generatingStep ? m_generatingStep->blockStateWriteRadius() : -1;
+    }
+
 private:
     ChunkCoord m_mainX;
     ChunkCoord m_mainZ;
     i32 m_chunkRadius;
     i32 m_chunkDiameter;
     std::vector<IChunk*> m_chunks; // 按行优先顺序存储的动态方阵
+    const ChunkStep* m_generatingStep = nullptr;
 
     // IWorld 所需的状态
     u64 m_seed = 0;

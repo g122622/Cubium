@@ -24,6 +24,7 @@
 #pragma once
 
 #include "ChunkGenerateTask.hpp"
+#include "GenerationChunkCache.hpp"
 #include "common/util/thread/ServerWorkerPool.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/chunk/ChunkLoadTicketManager.hpp"
@@ -372,6 +373,17 @@ public:
     }
 
     /**
+     * @brief 获取指定位置的生成中 ChunkPrimer
+     *
+     * 用于在生成过程中访问邻居区块的中间态。
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @return 生成中的 ChunkPrimer 指针；若不存在则返回 nullptr
+     */
+    [[nodiscard]] ChunkPrimer* getGeneratingPrimer(ChunkCoord x, ChunkCoord z);
+
+    /**
      * @brief 显式处理票据系统积压更新
      */
     void processTicketUpdatesSync() { m_ticketManager.processUpdates(); }
@@ -435,6 +447,13 @@ public:
      * - 保持区块状态机持续前进
      */
     void tick();
+
+    /**
+     * @brief 检查是否仍持有正在生成的 ChunkPrimer
+     *
+     * 用于卸载判断：如果仍有 Primer 在生成中，不应卸载该区块。
+     */
+    [[nodiscard]] bool hasGeneratingPrimer(ChunkCoord x, ChunkCoord z) const;
 
     /**
      * @brief 获取当前已加载区块数量
@@ -595,7 +614,7 @@ private:
     /**
      * @brief 根据目标阶段计算需要先满足的邻居前置条件
      *
-     * 基于 MC 1.21 ChunkPyramid 的直接依赖模型。
+     * 基于 ChunkPyramid 的直接依赖模型。
      * 对于给定的目标状态，查找其 ChunkStep 的 directDependencies，
      * 返回所需的最大依赖半径和对应的前置状态。
      *
@@ -607,7 +626,7 @@ private:
     /**
      * @brief 检查给定区块的邻居依赖是否满足
      *
-     * 基于 MC 1.21 ChunkStep.directDependencies：
+     * 基于 ChunkStep.directDependencies：
      * 对每个半径级别，检查对应半径内的所有邻居是否达到所需状态。
      *
      * @param x 区块 X 坐标
@@ -615,14 +634,14 @@ private:
      * @param step 目标阶段的 ChunkStep
      * @return 若所有依赖邻居均已满足则返回 true
      */
-    [[nodiscard]] bool _areNeighborsReady(ChunkCoord x,
-        ChunkCoord z,
-        const ChunkStep& step) const; /**
-                                       * @brief 在区块完成推进后，唤醒其影响范围内阻塞的邻居请求
-                                       *
-                                       * @param x 已推进区块的 X 坐标
-                                       * @param z 已推进区块的 Z 坐标
-                                       */
+    [[nodiscard]] bool _areNeighborsReady(ChunkCoord x, ChunkCoord z, const ChunkStep& step) const;
+
+    /**
+     * @brief 在区块完成推进后，唤醒其影响范围内阻塞的邻居请求
+     *
+     * @param x 已推进区块的 X 坐标
+     * @param z 已推进区块的 Z 坐标
+     */
     void _wakeBlockedNeighborsAsync(ChunkCoord x, ChunkCoord z);
 
     /**
@@ -638,6 +657,8 @@ private:
     /**
      * @brief 获取某阶段生成所需的邻居区块窗口
      *
+     * 优先从生成缓存和内存缓存获取区块，不再创建空 ChunkPrimer 作为占位。
+     *
      * @param x 中心区块 X 坐标
      * @param z 中心区块 Z 坐标
      * @param radius 邻域半径
@@ -645,6 +666,7 @@ private:
      * @param neighbors 输出区块窗口
      * @param loadedNeighbors 已加载邻居区块的共享持有容器
      * @param missingNeighbors 缺失邻居区块的临时占位容器
+     * @param cache 生成缓存（可选）；若提供则优先从中获取
      */
     void _collectNeighborChunks(ChunkCoord x,
         ChunkCoord z,
@@ -652,7 +674,8 @@ private:
         IChunk* centerChunk,
         std::vector<IChunk*>& neighbors,
         std::vector<std::shared_ptr<ChunkData>>& loadedNeighbors,
-        std::vector<std::unique_ptr<ChunkPrimer>>& missingNeighbors);
+        std::vector<std::unique_ptr<ChunkPrimer>>& missingNeighbors,
+        GenerationChunkCache* cache);
 
     /**
      * @brief WorldGenRegion 构造所需的邻居窗口
@@ -669,17 +692,34 @@ private:
      *
      * @param centerChunk 中心区块
      * @param radius 邻域半径
+     * @param cache 生成缓存（可选）
+     * @param step 当前生成步骤（可选）；若提供则启用读写校验
      * @return 邻居窗口上下文
      */
-    [[nodiscard]] NeighborRegionContext _doCreateWorldGenRegion(IChunk& centerChunk, i32 radius);
+    [[nodiscard]] NeighborRegionContext _doCreateWorldGenRegion(
+        IChunk& centerChunk, i32 radius, GenerationChunkCache* cache, const ChunkStep* step = nullptr);
 
     /**
      * @brief 在给定 Primer 上推进到目标生成阶段
      *
+     * 逐层调度：对每个生成阶段，先确保依赖环内区块完成前置状态，
+     * 然后执行当前阶段的生成任务。
+     *
      * @param chunk 目标区块 Primer
      * @param targetStatus 目标生成阶段
+     * @param cache 生成缓存
      */
-    void _doGenerateChunkToTargetStatus(ChunkPrimer& chunk, const ChunkStatus& targetStatus);
+    void _doGenerateChunkToTargetStatus(
+        ChunkPrimer& chunk, const ChunkStatus& targetStatus, GenerationChunkCache& cache);
+
+    /**
+     * @brief 对单个区块执行单个生成阶段的任务
+     *
+     * @param chunk 目标区块 Primer
+     * @param status 当前要执行的生成阶段
+     * @param region 世界生成区域
+     */
+    void _executeStepTask(ChunkPrimer& chunk, const ChunkStatus& status, WorldGenRegion& region);
 
     /**
      * @brief 在 HEIGHTMAPS 完成后执行初始生物生成
@@ -711,7 +751,6 @@ private:
     /**
      * @brief 对已完成的区块执行后处理生成
      *
-     * MC 1.21: LevelChunk.postProcessGeneration(ServerLevel)
      * 遍历区块的后处理位置，对流体方块调度流体 tick，
      * 对需要形状更新的方块执行 updateFromNeighbourShapes。
      *
@@ -770,6 +809,15 @@ private:
 
     std::unordered_map<u64, std::shared_ptr<ChunkData>> m_chunks;
     mutable std::mutex m_chunksMutex;
+
+    /**
+     * @brief 生成中的 ChunkPrimer 暂存
+     *
+     * 存储正在生成过程中但尚未转为 ChunkData 的 ChunkPrimer。
+     * 用于邻居区块在生成过程中访问中间态数据。
+     */
+    std::unordered_map<u64, ChunkPrimer*> m_generatingPrimers;
+    mutable std::mutex m_generatingPrimersMutex;
 
     mutable std::mutex m_syncGenerationMutex;
     world::ChunkLoadTicketManager m_ticketManager;

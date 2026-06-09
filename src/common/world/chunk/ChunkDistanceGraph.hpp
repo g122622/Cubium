@@ -48,9 +48,9 @@ namespace mc::world {
  *
  * // 设置回调函数
  * graph.setLevelChangeCallback([](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
- *     if (newLevel <= 33 && oldLevel > 33) {
+ *     if (newLevel <= 34 && oldLevel > 34) {
  *         // 区块被加载
- *     } else if (newLevel > 33 && oldLevel <= 33) {
+ *     } else if (newLevel > 34 && oldLevel <= 34) {
  *         // 区块被卸载
  *     }
  * });
@@ -68,8 +68,10 @@ class ChunkDistanceGraph {
 public:
     using ChunkCallback = std::function<void(ChunkCoord, ChunkCoord, i32, i32)>;
 
-    /// 最大级别（未加载）
-    static constexpr i32 MAX_LEVEL = 34;
+    /// 最大级别（未加载）= ChunkLevel::maxLevel() + 1 = 45
+    /// 此值在初始化时由 ChunkLevel 动态计算，静态常量用于编译期初始化。
+    /// 实际值通过 maxLevel() 方法获取。
+    static constexpr i32 MAX_LEVEL = 45;
 
     ChunkDistanceGraph() noexcept = default;
     virtual ~ChunkDistanceGraph() = default;

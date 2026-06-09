@@ -32,7 +32,6 @@ namespace {
 /**
  * @brief 构建累积依赖
  *
- * 对应 Java ChunkStep.Builder.buildAccumulatedDependencies()。
  * 将前序步骤的累积依赖与当前步骤的直接依赖合并，
  * 对每个半径取两者中较高的状态。
  *
@@ -51,7 +50,7 @@ std::vector<const ChunkStatus*> buildAccumulatedDependencies(const std::vector<c
     }
 
     // 计算父状态在直接依赖中的半径
-    // 对应 Java: getRadiusOfParent(parent.targetStatus())
+    // 计算父状态在直接依赖中的半径
     i32 radiusOfParent = 0;
     for (i32 i = static_cast<i32>(directDeps.size()) - 1; i >= 0; --i) {
         if (directDeps[static_cast<size_t>(i)] != nullptr &&
@@ -96,7 +95,6 @@ std::vector<const ChunkStatus*> buildAccumulatedDependencies(const std::vector<c
 /**
  * @brief 向直接依赖列表添加需求
  *
- * 对应 Java ChunkStep.Builder.addRequirement(ChunkStatus status, int radius)。
  * 扩展列表到 radius+1 长度，并将 [0..radius] 范围内每个位置
  * 设置为 max(existing, status)。
  *
@@ -133,7 +131,6 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
         steps.reserve(12);
 
         // === EMPTY ===
-        // Java: step(EMPTY, identity)
         // 无直接依赖，无累积依赖
         {
             std::vector<const ChunkStatus*> directDeps;
@@ -145,7 +142,6 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
         }
 
         // === STRUCTURE_STARTS ===
-        // Java: step(STRUCTURE_STARTS, identity.setTask(...))
         // 直接依赖 = [EMPTY]（继承自父步骤）
         {
             const ChunkStep& parent = steps.back();
@@ -159,7 +155,6 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
         }
 
         // === STRUCTURE_REFERENCES ===
-        // Java: addRequirement(STRUCTURE_STARTS, 8)
         // directDeps = [STRUCTURE_STARTS] * 9 (radius 0-8)
         {
             const ChunkStep& parent = steps.back();
@@ -174,7 +169,6 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
         }
 
         // === BIOMES ===
-        // Java: addRequirement(STRUCTURE_STARTS, 8)
         // directDeps = [STRUCTURE_STARTS] * 9
         {
             const ChunkStep& parent = steps.back();
@@ -189,7 +183,6 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
         }
 
         // === NOISE ===
-        // Java: addRequirement(STRUCTURE_STARTS, 8).addRequirement(BIOMES, 1).blockStateWriteRadius(0)
         // directDeps = [BIOMES, STRUCTURE_STARTS, STRUCTURE_STARTS, ..., STRUCTURE_STARTS]
         //   index 0: BIOMES, index 1-8: max(BIOMES, STRUCTURE_STARTS) = STRUCTURE_STARTS
         {
@@ -206,7 +199,6 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
         }
 
         // === SURFACE ===
-        // Java: addRequirement(STRUCTURE_STARTS, 8).addRequirement(BIOMES, 1).blockStateWriteRadius(0)
         // 同 NOISE
         {
             const ChunkStep& parent = steps.back();
@@ -222,7 +214,6 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
         }
 
         // === CARVERS ===
-        // Java: addRequirement(STRUCTURE_STARTS, 8).blockStateWriteRadius(0)
         // directDeps = [SURFACE, STRUCTURE_STARTS, STRUCTURE_STARTS, ..., STRUCTURE_STARTS]
         {
             const ChunkStep& parent = steps.back();
@@ -237,7 +228,6 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
         }
 
         // === FEATURES ===
-        // Java: addRequirement(STRUCTURE_STARTS, 8).addRequirement(CARVERS, 1).blockStateWriteRadius(1)
         // directDeps = [CARVERS, STRUCTURE_STARTS, STRUCTURE_STARTS, ..., STRUCTURE_STARTS]
         {
             const ChunkStep& parent = steps.back();
@@ -253,7 +243,7 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
         }
 
         // === INITIALIZE_LIGHT ===
-        // Java: identity（仅前一步）
+        // 仅前一步
         {
             const ChunkStep& parent = steps.back();
             std::vector<const ChunkStatus*> directDeps = {parent.targetStatus()};
@@ -266,7 +256,6 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
         }
 
         // === LIGHT ===
-        // Java: addRequirement(INITIALIZE_LIGHT, 1)
         // directDeps = [INITIALIZE_LIGHT, INITIALIZE_LIGHT]
         {
             const ChunkStep& parent = steps.back();
@@ -281,7 +270,6 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
         }
 
         // === SPAWN ===
-        // Java: addRequirement(BIOMES, 1)
         // directDeps = [LIGHT, BIOMES]
         {
             const ChunkStep& parent = steps.back();
@@ -296,7 +284,175 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
         }
 
         // === FULL ===
-        // Java: identity（仅前一步）
+        // 仅前一步
+        {
+            const ChunkStep& parent = steps.back();
+            std::vector<const ChunkStatus*> directDeps = {parent.targetStatus()};
+            auto accumulated =
+                buildAccumulatedDependencies(directDeps, &parent.accumulatedDependencies(), parent.targetStatus());
+            steps.emplace_back(&ChunkStatuses::FULL,
+                ChunkDependencies(std::vector<const ChunkStatus*>(directDeps)),
+                ChunkDependencies(std::move(accumulated)),
+                -1);
+        }
+
+        return ChunkPyramid(std::move(steps));
+    }();
+
+    return pyramid;
+}
+
+const ChunkPyramid& ChunkPyramid::loadingPyramid()
+{
+    static const ChunkPyramid pyramid = []() {
+        std::vector<ChunkStep> steps;
+        steps.reserve(12);
+
+        // === EMPTY ===
+        // 加载路径：从存档加载数据，无直接依赖
+        {
+            std::vector<const ChunkStatus*> directDeps;
+            auto accumulated = buildAccumulatedDependencies(directDeps, nullptr, nullptr);
+            steps.emplace_back(&ChunkStatuses::EMPTY,
+                ChunkDependencies(std::vector<const ChunkStatus*>(directDeps)),
+                ChunkDependencies(std::move(accumulated)),
+                -1);
+        }
+
+        // === STRUCTURE_STARTS ===
+        // 加载路径：从存档恢复结构起点，仅依赖前一步
+        {
+            const ChunkStep& parent = steps.back();
+            std::vector<const ChunkStatus*> directDeps = {parent.targetStatus()};
+            auto accumulated =
+                buildAccumulatedDependencies(directDeps, &parent.accumulatedDependencies(), parent.targetStatus());
+            steps.emplace_back(&ChunkStatuses::STRUCTURE_STARTS,
+                ChunkDependencies(std::vector<const ChunkStatus*>(directDeps)),
+                ChunkDependencies(std::move(accumulated)),
+                -1);
+        }
+
+        // === STRUCTURE_REFERENCES ===
+        // 加载路径：空操作，仅依赖前一步
+        {
+            const ChunkStep& parent = steps.back();
+            std::vector<const ChunkStatus*> directDeps = {parent.targetStatus()};
+            auto accumulated =
+                buildAccumulatedDependencies(directDeps, &parent.accumulatedDependencies(), parent.targetStatus());
+            steps.emplace_back(&ChunkStatuses::STRUCTURE_REFERENCES,
+                ChunkDependencies(std::vector<const ChunkStatus*>(directDeps)),
+                ChunkDependencies(std::move(accumulated)),
+                -1);
+        }
+
+        // === BIOMES ===
+        // 加载路径：空操作，仅依赖前一步
+        {
+            const ChunkStep& parent = steps.back();
+            std::vector<const ChunkStatus*> directDeps = {parent.targetStatus()};
+            auto accumulated =
+                buildAccumulatedDependencies(directDeps, &parent.accumulatedDependencies(), parent.targetStatus());
+            steps.emplace_back(&ChunkStatuses::BIOMES,
+                ChunkDependencies(std::vector<const ChunkStatus*>(directDeps)),
+                ChunkDependencies(std::move(accumulated)),
+                -1);
+        }
+
+        // === NOISE ===
+        // 加载路径：空操作，仅依赖前一步
+        {
+            const ChunkStep& parent = steps.back();
+            std::vector<const ChunkStatus*> directDeps = {parent.targetStatus()};
+            auto accumulated =
+                buildAccumulatedDependencies(directDeps, &parent.accumulatedDependencies(), parent.targetStatus());
+            steps.emplace_back(&ChunkStatuses::NOISE,
+                ChunkDependencies(std::vector<const ChunkStatus*>(directDeps)),
+                ChunkDependencies(std::move(accumulated)),
+                -1);
+        }
+
+        // === SURFACE ===
+        // 加载路径：空操作，仅依赖前一步
+        {
+            const ChunkStep& parent = steps.back();
+            std::vector<const ChunkStatus*> directDeps = {parent.targetStatus()};
+            auto accumulated =
+                buildAccumulatedDependencies(directDeps, &parent.accumulatedDependencies(), parent.targetStatus());
+            steps.emplace_back(&ChunkStatuses::SURFACE,
+                ChunkDependencies(std::vector<const ChunkStatus*>(directDeps)),
+                ChunkDependencies(std::move(accumulated)),
+                -1);
+        }
+
+        // === CARVERS ===
+        // 加载路径：空操作，仅依赖前一步
+        {
+            const ChunkStep& parent = steps.back();
+            std::vector<const ChunkStatus*> directDeps = {parent.targetStatus()};
+            auto accumulated =
+                buildAccumulatedDependencies(directDeps, &parent.accumulatedDependencies(), parent.targetStatus());
+            steps.emplace_back(&ChunkStatuses::CARVERS,
+                ChunkDependencies(std::vector<const ChunkStatus*>(directDeps)),
+                ChunkDependencies(std::move(accumulated)),
+                -1);
+        }
+
+        // === FEATURES ===
+        // 加载路径：空操作，仅依赖前一步
+        {
+            const ChunkStep& parent = steps.back();
+            std::vector<const ChunkStatus*> directDeps = {parent.targetStatus()};
+            auto accumulated =
+                buildAccumulatedDependencies(directDeps, &parent.accumulatedDependencies(), parent.targetStatus());
+            steps.emplace_back(&ChunkStatuses::FEATURES,
+                ChunkDependencies(std::vector<const ChunkStatus*>(directDeps)),
+                ChunkDependencies(std::move(accumulated)),
+                -1);
+        }
+
+        // === INITIALIZE_LIGHT ===
+        // 加载路径：初始化光照，仅依赖前一步
+        {
+            const ChunkStep& parent = steps.back();
+            std::vector<const ChunkStatus*> directDeps = {parent.targetStatus()};
+            auto accumulated =
+                buildAccumulatedDependencies(directDeps, &parent.accumulatedDependencies(), parent.targetStatus());
+            steps.emplace_back(&ChunkStatuses::INITIALIZE_LIGHT,
+                ChunkDependencies(std::vector<const ChunkStatus*>(directDeps)),
+                ChunkDependencies(std::move(accumulated)),
+                -1);
+        }
+
+        // === LIGHT ===
+        // 加载路径：光照传播，依赖 INITIALIZE_LIGHT(1)
+        // directDeps = [INITIALIZE_LIGHT, INITIALIZE_LIGHT]
+        {
+            const ChunkStep& parent = steps.back();
+            std::vector<const ChunkStatus*> directDeps = {parent.targetStatus()};
+            addRequirement(directDeps, &ChunkStatuses::INITIALIZE_LIGHT, 1);
+            auto accumulated =
+                buildAccumulatedDependencies(directDeps, &parent.accumulatedDependencies(), parent.targetStatus());
+            steps.emplace_back(&ChunkStatuses::LIGHT,
+                ChunkDependencies(std::vector<const ChunkStatus*>(directDeps)),
+                ChunkDependencies(std::move(accumulated)),
+                -1);
+        }
+
+        // === SPAWN ===
+        // 加载路径：空操作，仅依赖前一步
+        {
+            const ChunkStep& parent = steps.back();
+            std::vector<const ChunkStatus*> directDeps = {parent.targetStatus()};
+            auto accumulated =
+                buildAccumulatedDependencies(directDeps, &parent.accumulatedDependencies(), parent.targetStatus());
+            steps.emplace_back(&ChunkStatuses::SPAWN,
+                ChunkDependencies(std::vector<const ChunkStatus*>(directDeps)),
+                ChunkDependencies(std::move(accumulated)),
+                -1);
+        }
+
+        // === FULL ===
+        // 加载路径：ProtoChunk→LevelChunk 转换，仅依赖前一步
         {
             const ChunkStep& parent = steps.back();
             std::vector<const ChunkStatus*> directDeps = {parent.targetStatus()};

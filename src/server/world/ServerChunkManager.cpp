@@ -27,6 +27,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/ChunkLevel.hpp"
 #include "common/world/chunk/ChunkPyramid.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
@@ -274,7 +275,7 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
         return;
     }
 
-    // MC 1.21: 使用 ChunkPyramid 的直接依赖模型检查邻居是否就绪
+    // 使用 ChunkPyramid 的直接依赖模型检查邻居是否就绪
     const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
     const ChunkStep& step = pyramid.getStepTo(lifecycleManager.requestedStatus());
     ChunkStepDependencyInfo depInfo = _getDirectDependencyInfo(lifecycleManager.requestedStatus());
@@ -309,13 +310,50 @@ void ServerChunkManager::_enqueueChunkGenerationAsync(
 
     lifecycleManager.noteGenerationQueued(decision.generation);
 
+    // 计算生成缓存半径
+    const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
+    const ChunkStep& targetStep = pyramid.getStepTo(*decision.targetStatus);
+    const i32 cacheRadius = targetStep.accumulatedRadius();
+
     auto task = std::make_unique<ChunkGenerateTask>(x,
         z,
         *decision.targetStatus,
-        [this](ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
-            _doGenerateChunkToTargetStatus(chunk, targetStatus);
+        [this, cacheRadius](
+            ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
+            // 注册到生成中 Primer 缓存
+            {
+                std::lock_guard<std::mutex> lock(m_generatingPrimersMutex);
+                m_generatingPrimers[posToKey(chunk.x(), chunk.z())] = &chunk;
+            }
+
+            // 创建生成缓存
+            GenerationChunkCache cache(chunk.x(), chunk.z(), cacheRadius);
+            cache.set(chunk.x(), chunk.z(), &chunk);
+
+            // 将已加载邻居和生成中的 Primer 加入缓存
+            for (i32 dz = -cacheRadius; dz <= cacheRadius; ++dz) {
+                for (i32 dx = -cacheRadius; dx <= cacheRadius; ++dx) {
+                    if (dx == 0 && dz == 0) {
+                        continue;
+                    }
+                    const ChunkCoord nx = chunk.x() + dx;
+                    const ChunkCoord nz = chunk.z() + dz;
+                    ChunkPrimer* neighborPrimer = getGeneratingPrimer(nx, nz);
+                    if (neighborPrimer != nullptr) {
+                        cache.set(nx, nz, neighborPrimer);
+                    }
+                }
+            }
+
+            _doGenerateChunkToTargetStatus(chunk, targetStatus, cache);
             if (!cancelSignal.load(std::memory_order_acquire)) {
                 _doSpawnInitialMobs(chunk);
+            }
+
+            // 从生成中缓存移除
+            {
+                std::lock_guard<std::mutex> lock(m_generatingPrimersMutex);
+                m_generatingPrimers.erase(posToKey(chunk.x(), chunk.z()));
             }
         });
 
@@ -406,6 +444,21 @@ SingleChunkLifecycleManager* ServerChunkManager::_doFindLifecycleManager(ChunkCo
     return it != m_lifecycleManagers.end() ? it->second.get() : nullptr;
 }
 
+ChunkPrimer* ServerChunkManager::getGeneratingPrimer(ChunkCoord x, ChunkCoord z)
+{
+    const u64 key = posToKey(x, z);
+    std::lock_guard<std::mutex> lock(m_generatingPrimersMutex);
+    auto it = m_generatingPrimers.find(key);
+    return it != m_generatingPrimers.end() ? it->second : nullptr;
+}
+
+bool ServerChunkManager::hasGeneratingPrimer(ChunkCoord x, ChunkCoord z) const
+{
+    const u64 key = posToKey(x, z);
+    std::lock_guard<std::mutex> lock(m_generatingPrimersMutex);
+    return m_generatingPrimers.find(key) != m_generatingPrimers.end();
+}
+
 // ============================================================================
 // 票据与唤醒
 // ============================================================================
@@ -428,10 +481,17 @@ void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 o
     lifecycleManager.setLevel(newLevel);
 
     if (newLevel <= world::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
-        const ChunkStatus& targetStatus = lifecycleManager.requestedStatus().ordinal() > ChunkStatuses::EMPTY.ordinal()
-            ? lifecycleManager.requestedStatus()
+        // 根据票据级别推导目标生成状态
+        const ChunkStatus* levelStatus = world::chunk::ChunkLevel::generationStatus(newLevel);
+        const ChunkStatus& targetStatus = (levelStatus && levelStatus->ordinal() > ChunkStatuses::EMPTY.ordinal())
+            ? *levelStatus
             : ChunkStatuses::FULL;
-        _submitChunkRequest(x, z, targetStatus, {}, {});
+
+        // 如果已请求更高状态，保持更高状态
+        const ChunkStatus& existingRequested = lifecycleManager.requestedStatus();
+        const ChunkStatus& effectiveTarget =
+            (existingRequested.ordinal() > targetStatus.ordinal()) ? existingRequested : targetStatus;
+        _submitChunkRequest(x, z, effectiveTarget, {}, {});
         return;
     }
 
@@ -443,7 +503,7 @@ void ServerChunkManager::_wakeBlockedNeighborsAsync(ChunkCoord x, ChunkCoord z)
 {
     MC_TRACE_EVENT("server.chunk", "ServerChunkManager::wakeBlockedNeighborsAsync");
 
-    // MC 1.21: 唤醒范围使用 ChunkPyramid 的最大累积依赖半径
+    // 唤醒范围使用 ChunkPyramid 的最大累积依赖半径
     const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
     i32 maxRadius = 0;
     for (const auto& step : pyramid.steps()) {
@@ -491,8 +551,43 @@ void ServerChunkManager::_executeGenerationSync(
 {
     ChunkPrimer* primer = lifecycleManager.createGeneratingChunk();
     MC_ASSERT_RELEASE(primer != nullptr);
-    _doGenerateChunkToTargetStatus(*primer, targetStatus);
+
+    // 注册到生成中 Primer 缓存，供邻居区块访问
+    {
+        std::lock_guard<std::mutex> lock(m_generatingPrimersMutex);
+        m_generatingPrimers[posToKey(lifecycleManager.x(), lifecycleManager.z())] = primer;
+    }
+
+    // 创建生成缓存，半径为目标步骤的累积依赖半径
+    const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
+    const ChunkStep& targetStep = pyramid.getStepTo(targetStatus);
+    const i32 cacheRadius = targetStep.accumulatedRadius();
+    GenerationChunkCache cache(lifecycleManager.x(), lifecycleManager.z(), cacheRadius);
+
+    // 将中心区块和已加载邻居加入缓存
+    cache.set(lifecycleManager.x(), lifecycleManager.z(), primer);
+    for (i32 dz = -cacheRadius; dz <= cacheRadius; ++dz) {
+        for (i32 dx = -cacheRadius; dx <= cacheRadius; ++dx) {
+            if (dx == 0 && dz == 0) {
+                continue;
+            }
+            const ChunkCoord nx = lifecycleManager.x() + dx;
+            const ChunkCoord nz = lifecycleManager.z() + dz;
+            ChunkPrimer* neighborPrimer = getGeneratingPrimer(nx, nz);
+            if (neighborPrimer != nullptr) {
+                cache.set(nx, nz, neighborPrimer);
+            }
+        }
+    }
+
+    _doGenerateChunkToTargetStatus(*primer, targetStatus, cache);
     _doSpawnInitialMobs(*primer);
+
+    // 从生成中缓存移除
+    {
+        std::lock_guard<std::mutex> lock(m_generatingPrimersMutex);
+        m_generatingPrimers.erase(posToKey(lifecycleManager.x(), lifecycleManager.z()));
+    }
 
     auto data = lifecycleManager.completeGeneration();
     MC_ASSERT_RELEASE(data != nullptr);
@@ -500,7 +595,8 @@ void ServerChunkManager::_executeGenerationSync(
     MC_ASSERT_RELEASE(stored != nullptr);
 }
 
-void ServerChunkManager::_doGenerateChunkToTargetStatus(ChunkPrimer& chunk, const ChunkStatus& targetStatus)
+void ServerChunkManager::_doGenerateChunkToTargetStatus(
+    ChunkPrimer& chunk, const ChunkStatus& targetStatus, GenerationChunkCache& cache)
 {
     const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
     const auto& allStatuses = ChunkStatus::getAll();
@@ -514,40 +610,47 @@ void ServerChunkManager::_doGenerateChunkToTargetStatus(ChunkPrimer& chunk, cons
 
         const ChunkStep& step = pyramid.getStepTo(status);
 
-        // MC 1.21: WorldGenRegion 半径使用累积依赖半径
-        // 至少为 0（仅中心区块自身），且与 blockStateWriteRadius 关联
+        // WorldGenRegion 半径使用累积依赖半径
         const i32 regionRadius = step.accumulatedRadius() > 0 ? step.accumulatedRadius() : 0;
-        auto context = _doCreateWorldGenRegion(chunk, regionRadius);
+        auto context = _doCreateWorldGenRegion(chunk, regionRadius, &cache, &step);
 
-        if (status == ChunkStatuses::STRUCTURE_STARTS) {
-            m_generator->generateStructureStarts(*context.region, chunk);
-        } else if (status == ChunkStatuses::STRUCTURE_REFERENCES) {
-            m_generator->generateStructureReferences(*context.region, chunk);
-        } else if (status == ChunkStatuses::BIOMES) {
-            m_generator->generateBiomes(*context.region, chunk);
-        } else if (status == ChunkStatuses::NOISE) {
-            m_generator->generateNoise(*context.region, chunk);
-        } else if (status == ChunkStatuses::SURFACE) {
-            m_generator->buildSurface(*context.region, chunk);
-        } else if (status == ChunkStatuses::CARVERS) {
-            m_generator->applyCarvers(*context.region, chunk);
-        } else if (status == ChunkStatuses::FEATURES) {
-            m_generator->placeFeatures(*context.region, chunk);
-        } else if (status == ChunkStatuses::INITIALIZE_LIGHT) {
-            chunk.initializeLightSources();
-        } else if (status == ChunkStatuses::LIGHT) {
-            // 光照传播由光照引擎异步处理，此处标记状态
-        } else if (status == ChunkStatuses::SPAWN) {
-            std::vector<SpawnedEntityData> entities;
-            m_generator->spawnInitialMobs(*context.region, chunk, entities);
-            for (auto& entityData : entities) {
-                chunk.addSpawnedEntity(std::move(entityData));
-            }
-        }
+        _executeStepTask(chunk, status, *context.region);
 
-        // MC 1.21: ChunkStep.apply() 完成后设置 persistedStatus
+        // 设置 persistedStatus 和 chunkStatus
         chunk.setPersistedStatus(status);
         chunk.setChunkStatus(status);
+    }
+}
+
+void ServerChunkManager::_executeStepTask(ChunkPrimer& chunk, const ChunkStatus& status, WorldGenRegion& region)
+{
+    if (status == ChunkStatuses::STRUCTURE_STARTS) {
+        m_generator->generateStructureStarts(region, chunk);
+    } else if (status == ChunkStatuses::STRUCTURE_REFERENCES) {
+        m_generator->generateStructureReferences(region, chunk);
+    } else if (status == ChunkStatuses::BIOMES) {
+        m_generator->generateBiomes(region, chunk);
+    } else if (status == ChunkStatuses::NOISE) {
+        m_generator->generateNoise(region, chunk);
+    } else if (status == ChunkStatuses::SURFACE) {
+        m_generator->buildSurface(region, chunk);
+    } else if (status == ChunkStatuses::CARVERS) {
+        m_generator->applyCarvers(region, chunk);
+    } else if (status == ChunkStatuses::FEATURES) {
+        // 在特性放置前 prime POST_FEATURES 高度图
+        // CARVERS 完成后方块数据已就绪，但 POST_FEATURES 高度图尚未创建
+        chunk.primeHeightmaps(HeightmapFlag::POST_FEATURES);
+        m_generator->placeFeatures(region, chunk);
+    } else if (status == ChunkStatuses::INITIALIZE_LIGHT) {
+        chunk.initializeLightSources();
+    } else if (status == ChunkStatuses::LIGHT) {
+        // 光照传播由光照引擎异步处理，此处标记状态
+    } else if (status == ChunkStatuses::SPAWN) {
+        std::vector<SpawnedEntityData> entities;
+        m_generator->spawnInitialMobs(region, chunk, entities);
+        for (auto& entityData : entities) {
+            chunk.addSpawnedEntity(std::move(entityData));
+        }
     }
 }
 
@@ -587,11 +690,19 @@ bool ServerChunkManager::_areNeighborsReady(ChunkCoord x, ChunkCoord z, const Ch
                     continue; // 跳过中心区块自身
                 }
 
-                // 检查此邻居是否在当前半径的边界上
-                // 内层半径的邻居已经被更小的半径检查过了，
-                // 但由于不同半径可能要求不同状态，需要检查所有位置
                 const SingleChunkLifecycleManager* neighbor = _findLifecycleManager(x + dx, z + dz);
                 if (!neighbor || !neighbor->hasCompletedStatus(*requiredStatus)) {
+                    // 额外检查：生成中的 Primer 可能已完成所需状态
+                    // 但 lifecycle manager 尚未更新
+                    {
+                        std::lock_guard<std::mutex> lock(m_generatingPrimersMutex);
+                        auto it = m_generatingPrimers.find(posToKey(x + dx, z + dz));
+                        if (it != m_generatingPrimers.end() && it->second != nullptr) {
+                            if (it->second->hasCompletedStatus(*requiredStatus)) {
+                                continue;
+                            }
+                        }
+                    }
                     return false;
                 }
             }
@@ -620,7 +731,8 @@ void ServerChunkManager::_collectNeighborChunks(ChunkCoord x,
     IChunk* centerChunk,
     std::vector<IChunk*>& neighbors,
     std::vector<std::shared_ptr<ChunkData>>& loadedNeighbors,
-    std::vector<std::unique_ptr<ChunkPrimer>>& missingNeighbors)
+    std::vector<std::unique_ptr<ChunkPrimer>>& missingNeighbors,
+    GenerationChunkCache* cache)
 {
     const i32 diameter = radius * 2 + 1;
     MC_ASSERT_RELEASE(centerChunk != nullptr);
@@ -637,19 +749,42 @@ void ServerChunkManager::_collectNeighborChunks(ChunkCoord x,
                 continue;
             }
 
-            if (auto loadedChunk = tryToGetChunkSharedInMem(x + dx, z + dz)) {
+            const ChunkCoord nx = x + dx;
+            const ChunkCoord nz = z + dz;
+
+            // 优先从生成缓存获取
+            if (cache != nullptr) {
+                ChunkPrimer* cachedPrimer = cache->get(nx, nz);
+                if (cachedPrimer != nullptr) {
+                    neighbors[index] = cachedPrimer;
+                    continue;
+                }
+            }
+
+            // 其次从生成中 Primer 缓存获取
+            ChunkPrimer* generatingPrimer = getGeneratingPrimer(nx, nz);
+            if (generatingPrimer != nullptr) {
+                neighbors[index] = generatingPrimer;
+                continue;
+            }
+
+            // 再从内存缓存获取
+            if (auto loadedChunk = tryToGetChunkSharedInMem(nx, nz)) {
                 loadedNeighbors[index] = std::move(loadedChunk);
                 neighbors[index] = loadedNeighbors[index].get();
                 continue;
             }
 
-            missingNeighbors[index] = std::make_unique<ChunkPrimer>(x + dx, z + dz);
+            // 仍然找不到时创建空 Primer 作为后备
+            // 注意：这种情况下邻居数据可能不正确，仅在边缘情况使用
+            missingNeighbors[index] = std::make_unique<ChunkPrimer>(nx, nz);
             neighbors[index] = missingNeighbors[index].get();
         }
     }
 }
 
-ServerChunkManager::NeighborRegionContext ServerChunkManager::_doCreateWorldGenRegion(IChunk& centerChunk, i32 radius)
+ServerChunkManager::NeighborRegionContext ServerChunkManager::_doCreateWorldGenRegion(
+    IChunk& centerChunk, i32 radius, GenerationChunkCache* cache, const ChunkStep* step)
 {
     const size_t chunkCount = static_cast<size_t>((radius * 2 + 1) * (radius * 2 + 1));
 
@@ -663,9 +798,15 @@ ServerChunkManager::NeighborRegionContext ServerChunkManager::_doCreateWorldGenR
         &centerChunk,
         context.neighbors,
         context.loadedNeighbors,
-        context.missingNeighbors);
-    context.region =
-        std::make_unique<WorldGenRegion>(centerChunk.x(), centerChunk.z(), radius, std::move(context.neighbors));
+        context.missingNeighbors,
+        cache);
+    if (step != nullptr) {
+        context.region =
+            std::make_unique<WorldGenRegion>(centerChunk.x(), centerChunk.z(), *step, std::move(context.neighbors));
+    } else {
+        context.region =
+            std::make_unique<WorldGenRegion>(centerChunk.x(), centerChunk.z(), radius, std::move(context.neighbors));
+    }
     return context;
 }
 
@@ -722,6 +863,12 @@ ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(ChunkCoord x, ChunkCo
         lifecycleManager->markGenerationReady();
     }
 
+    // 确保从生成中缓存移除（可能在异步路径中已被清理）
+    {
+        std::lock_guard<std::mutex> lock(m_generatingPrimersMutex);
+        m_generatingPrimers.erase(posToKey(x, z));
+    }
+
     ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(data));
     if (stored && !spawnedEntities.empty()) {
         if (m_world) {
@@ -731,7 +878,7 @@ ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(ChunkCoord x, ChunkCo
         }
     }
 
-    // MC 1.21: LevelChunk.postProcessGeneration — 处理含水层流体更新和方块形状更新
+    // LevelChunk.postProcessGeneration — 处理含水层流体更新和方块形状更新
     if (stored && m_world) {
         _postProcessChunk(*stored);
     }
@@ -741,7 +888,7 @@ ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(ChunkCoord x, ChunkCo
 
 void ServerChunkManager::_postProcessChunk(ChunkData& chunk)
 {
-    // MC 1.21: LevelChunk.postProcessGeneration(ServerLevel)
+    // LevelChunk.postProcessGeneration(ServerLevel)
     // 遍历所有后处理位置，调度流体 tick 和方块形状更新
     const ChunkCoord chunkX = chunk.x();
     const ChunkCoord chunkZ = chunk.z();
@@ -771,7 +918,7 @@ void ServerChunkManager::_postProcessChunk(ChunkData& chunk)
                 continue;
             }
 
-            // MC 1.21: 流体方块 → 调度流体 tick
+            // 流体方块 → 调度流体 tick
             if (blockState->isLiquid()) {
                 const auto* fluidState = blockState->getFluidState();
                 if (fluidState != nullptr && !fluidState->isEmpty()) {
@@ -781,7 +928,7 @@ void ServerChunkManager::_postProcessChunk(ChunkData& chunk)
                 }
             }
 
-            // MC 1.21: 非液体方块 → updateFromNeighbourShapes
+            // 非液体方块 → updateFromNeighbourShapes
             // TODO 当 Block.updateFromNeighbourShapes 实现后启用此分支
             // if (!blockState->getBlock().isLiquidBlock()) {
             //     BlockState updated = Block::updateFromNeighbourShapes(...);
@@ -894,7 +1041,8 @@ void ServerChunkManager::_checkChunkUnloading()
             }
 
             if (!lifecycleManager->shouldLoad() && !m_ticketManager.hasTrackingPlayers(key) &&
-                !lifecycleManager->hasGeneratingChunk()) {
+                !lifecycleManager->hasGeneratingChunk() &&
+                !hasGeneratingPrimer(ChunkId::fromId(key).x, ChunkId::fromId(key).z)) {
                 toUnload.push_back(key);
             }
         }

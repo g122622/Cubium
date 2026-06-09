@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../../core/Types.hpp"
+#include <algorithm>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -33,13 +34,12 @@ namespace mc {
 class ChunkStatus;
 
 // ============================================================================
-// 区块依赖关系（MC 1.21 ChunkDependencies）
+// 区块依赖关系
 // ============================================================================
 
 /**
  * @brief 区块生成阶段的依赖关系
  *
- * 对应 MC 1.21 的 ChunkDependencies 类。
  * 将依赖关系按半径索引存储：dependencyByRadius[radius] = 所需的 ChunkStatus。
  * 同时提供反向查找：给定 ChunkStatus，返回所需的最小半径。
  *

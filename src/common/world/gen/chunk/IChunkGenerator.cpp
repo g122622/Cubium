@@ -46,6 +46,20 @@ WorldGenRegion::WorldGenRegion(ChunkCoord mainX, ChunkCoord mainZ, i32 chunkRadi
     , m_chunkRadius(chunkRadius)
     , m_chunkDiameter(chunkRadius * 2 + 1)
     , m_chunks(std::move(chunks))
+    , m_generatingStep(nullptr)
+{
+    MC_ASSERT_RELEASE(m_chunkRadius >= 0);
+    MC_ASSERT_RELEASE(static_cast<i32>(m_chunks.size()) == m_chunkDiameter * m_chunkDiameter);
+}
+
+WorldGenRegion::WorldGenRegion(
+    ChunkCoord mainX, ChunkCoord mainZ, const ChunkStep& generatingStep, std::vector<IChunk*> chunks)
+    : m_mainX(mainX)
+    , m_mainZ(mainZ)
+    , m_chunkRadius(generatingStep.accumulatedRadius())
+    , m_chunkDiameter(m_chunkRadius * 2 + 1)
+    , m_chunks(std::move(chunks))
+    , m_generatingStep(&generatingStep)
 {
     MC_ASSERT_RELEASE(m_chunkRadius >= 0);
     MC_ASSERT_RELEASE(static_cast<i32>(m_chunks.size()) == m_chunkDiameter * m_chunkDiameter);
@@ -107,6 +121,21 @@ bool WorldGenRegion::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     const ChunkCoord chunkZ = world::toChunkCoord(z);
     const i32 relX = chunkX - m_mainX;
     const i32 relZ = chunkZ - m_mainZ;
+
+    // 检查写入半径限制
+    if (m_generatingStep != nullptr) {
+        const i32 writeRadius = m_generatingStep->blockStateWriteRadius();
+        const i32 dx = std::abs(relX);
+        const i32 dz = std::abs(relZ);
+        if (writeRadius < 0) {
+            // 此步骤不允许写方块
+            return false;
+        }
+        if (dx > writeRadius || dz > writeRadius) {
+            // 超出写入半径
+            return false;
+        }
+    }
 
     IChunk* chunk = getChunkAt(relX, relZ);
     if (!chunk) {
@@ -182,7 +211,7 @@ void WorldGenRegion::_worldToLocal(i32 worldX, i32 worldZ, i32& localX, i32& loc
 
 const fluid::FluidState* WorldGenRegion::getFluidState(i32 x, i32 y, i32 z) const
 {
-    // MC 1.21.11: WorldGenRegion 从区块获取方块状态，再获取流体状态
+    // 从区块获取方块状态，再获取流体状态
     const BlockState* blockState = getBlockState(x, y, z);
     if (!blockState || blockState->isAir()) {
         static const fluid::FluidState emptyState = fluid::FluidRegistry::instance().getFluid(0)->defaultState();
@@ -193,7 +222,7 @@ const fluid::FluidState* WorldGenRegion::getFluidState(i32 x, i32 y, i32 z) cons
 
 const ChunkData* WorldGenRegion::getChunk(ChunkCoord x, ChunkCoord z) const
 {
-    // MC 1.21.11: WorldGenRegion 从区块数组获取区块数据
+    // 从区块数组获取区块数据
     const i32 relX = x - m_mainX;
     const i32 relZ = z - m_mainZ;
     const IChunk* chunk = getChunkAt(relX, relZ);

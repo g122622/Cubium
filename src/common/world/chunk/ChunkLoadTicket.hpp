@@ -33,6 +33,38 @@
 namespace mc::world {
 
 // ============================================================================
+// 区块加载级别
+// ============================================================================
+
+/**
+ * @brief 区块加载级别
+ *
+ * Level 越小，优先级越高。
+ *
+ * 级别说明：
+ * - EntityTicking (31): 实体可以 tick 的完全加载区块
+ * - BlockTicking (32): 方块可 tick 的完全加载区块
+ * - Full (33): 完全加载区块（无 tick）
+ * - Border (34): 边界区块（加载但无 tick）
+ * - 35-44: 生成中间状态，由 ChunkLevel::generationStatus() 查询
+ *   35 → SPAWN, 36 → LIGHT, 37 → INITIALIZE_LIGHT, 38 → FEATURES, ...
+ * - Unloaded (46): 区块未加载
+ *
+ * @note 级别 31-33 对应 MC 的 FullChunkStatus，级别 34 对应 Border，
+ *       级别 35-44 对应生成状态梯度。
+ *       MAX_LEVEL = 33 + RADIUS_AROUND_FULL_CHUNK = 44，Unloaded = MAX_LEVEL + 2 = 46。
+ */
+enum class ChunkLoadLevel : i32 {
+    EntityTicking = 31,  ///< 实体可以 tick 的完全加载区块
+    BlockTicking = 32,   ///< 方块可 tick 的完全加载区块
+    Full = 33,           ///< 完全加载区块（无 tick）
+    Border = 34,         ///< 边界区块（加载但无 tick）
+    // 35-44: 生成中间状态，由 ChunkLevel::generationStatus() 查询
+    Unloaded = 46,       ///< 未加载 = ChunkLevel::maxLevel() + 2
+    MaxLevel = 46        ///< 最大级别
+};
+
+// ============================================================================
 // 显式 Ticket 类型 - 定义非玩家来源的区块加载请求
 // ============================================================================
 
@@ -215,9 +247,11 @@ void initializeTicketTypes();
  * 票据级别说明：
  * - Level 越小，优先级越高
  * - Level <= 31：完全加载（实体可以 tick）
- * - Level == 32：边界区块（加载但实体不 tick）
- * - Level == 33：加载边界
- * - Level >= 34：未加载
+ * - Level == 32：方块 tick 区块
+ * - Level == 33：完全加载区块（Full）
+ * - Level == 34：边界区块（加载但无 tick）
+ * - Level 35-45：生成中间状态
+ * - Level >= 46：未加载
  *
  * @note 显式 ticket 是不可变的，创建后无法修改
  */
@@ -321,7 +355,7 @@ public:
 
 private:
     std::string m_typeName;
-    i32 m_level = 34; // 默认为未加载级别
+    i32 m_level = static_cast<i32>(ChunkLoadLevel::MaxLevel); // 默认为未加载级别
     u64 m_timestamp = 0;
     u32 m_lifespan = 0;
     bool m_forceTicks = false;
@@ -385,61 +419,46 @@ private:
     std::vector<ChunkLoadTicket> m_tickets;
 };
 
-// ============================================================================
-// 区块加载级别
-// ============================================================================
-
-/**
- * @brief 区块加载级别
- *
- * Level 越小，优先级越高。
- *
- * 级别说明：
- * - Unloaded (34): 区块未加载
- * - Border (33): 边界区块，加载但实体不 tick
- * - EntityTicking (32): 实体可以 tick
- * - Full (31): 完全加载
- */
-enum class ChunkLoadLevel : i32 {
-    Unloaded = 34,      ///< 未加载
-    Border = 33,        ///< 边界区块（实体不 tick）
-    EntityTicking = 32, ///< 实体可以 tick
-    Full = 31,          ///< 完全加载
-    MaxLevel = 34       ///< 最大级别
-};
-
 /**
  * @brief 将视距转换为票据级别
  * @param viewDistance 视距（区块数）
  * @return 票据级别
  *
- * 公式: level = 33 - viewDistance
+ * 公式: level = FULL_CHUNK_LEVEL - viewDistance
  * 例如: viewDistance = 10 -> level = 23
  *
  * @note 视距越大，票据级别越小，加载范围越大
  */
 inline i32 viewDistanceToLevel(i32 viewDistance)
 {
-    return 33 - viewDistance;
+    return static_cast<i32>(ChunkLoadLevel::Full) - viewDistance;
 }
 
 /**
  * @brief 将票据级别转换为加载状态
  * @param level 票据级别
  * @return 加载级别枚举
+ *
+ * 级别 31 及以下 → EntityTicking
+ * 级别 32 → BlockTicking
+ * 级别 33 → Full
+ * 级别 34 → Border
+ * 级别 35-45 → 生成中间状态
+ * 级别 46+ → Unloaded
  */
 inline ChunkLoadLevel levelToLoadLevel(i32 level)
 {
-    if (level <= 31) return ChunkLoadLevel::Full;
-    if (level == 32) return ChunkLoadLevel::EntityTicking;
-    if (level == 33) return ChunkLoadLevel::Border;
+    if (level <= static_cast<i32>(ChunkLoadLevel::EntityTicking)) return ChunkLoadLevel::EntityTicking;
+    if (level == static_cast<i32>(ChunkLoadLevel::BlockTicking)) return ChunkLoadLevel::BlockTicking;
+    if (level == static_cast<i32>(ChunkLoadLevel::Full)) return ChunkLoadLevel::Full;
+    if (level <= static_cast<i32>(ChunkLoadLevel::Border)) return ChunkLoadLevel::Border;
     return ChunkLoadLevel::Unloaded;
 }
 
 /**
  * @brief 检查区块是否应该加载
  * @param level 票据级别
- * @return true 表示区块应该加载
+ * @return true 表示区块应该加载（级别 <= Border = 34）
  */
 inline bool shouldChunkLoad(i32 level)
 {

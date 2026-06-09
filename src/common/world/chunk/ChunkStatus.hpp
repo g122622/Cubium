@@ -72,7 +72,7 @@ enum class HeightmapFlag : u32 {
     MOTION_BLOCKING_NO_LEAVES = 1 << 5, // 阻挡运动（不含树叶）
     LIGHT_BLOCKING = 1 << 6,            // 光照阻挡
 
-    // 预定义组合（对齐 MC 1.21.11）
+    // 预定义组合
     // EMPTY~SURFACE 阶段使用 PRE_FEATURES（WORLD_SURFACE_WG | OCEAN_FLOOR_WG）
     // CARVERS~FULL 阶段使用 POST_FEATURES（不含 LIGHT_BLOCKING）
     PRE_FEATURES = WORLD_SURFACE_WG | OCEAN_FLOOR_WG,
@@ -110,7 +110,7 @@ inline constexpr bool hasFlag(HeightmapFlag flags, HeightmapFlag flag)
  *
  * 定义区块生成的各个阶段，每个阶段有特定的生成任务。
  *
- * 生成流程（MC 1.21.11）：
+ * 生成流程：
  * EMPTY → STRUCTURE_STARTS → STRUCTURE_REFERENCES → BIOMES → NOISE →
  * SURFACE → CARVERS → FEATURES → INITIALIZE_LIGHT → LIGHT → SPAWN → FULL
  */
@@ -175,7 +175,6 @@ public:
     /**
      * @brief 获取此阶段完成后需要更新的高度图类型
      *
-     * MC 1.21: ChunkStatus.heightmapsAfter()
      * EMPTY~SURFACE: PRE_FEATURES (WORLD_SURFACE_WG | OCEAN_FLOOR_WG)
      * CARVERS~FULL: POST_FEATURES (WORLD_SURFACE | OCEAN_FLOOR | MOTION_BLOCKING | MOTION_BLOCKING_NO_LEAVES)
      */
@@ -190,15 +189,11 @@ public:
 
     /**
      * @brief 检查此状态是否严格大于指定状态
-     *
-     * MC 1.21: ChunkStatus.isAfter(other)
      */
     [[nodiscard]] bool isAfter(const ChunkStatus& status) const { return m_ordinal > status.m_ordinal; }
 
     /**
      * @brief 检查此状态是否小于或等于指定状态
-     *
-     * MC 1.21: ChunkStatus.isOrBefore(other)
      */
     [[nodiscard]] bool isOrBefore(const ChunkStatus& status) const { return m_ordinal <= status.m_ordinal; }
 
@@ -209,8 +204,6 @@ public:
 
     /**
      * @brief 返回两个状态中较高的那个
-     *
-     * MC 1.21: ChunkStatus.max(a, b)
      */
     [[nodiscard]] static const ChunkStatus& max(const ChunkStatus& a, const ChunkStatus& b)
     {
@@ -286,7 +279,7 @@ private:
 
 namespace ChunkStatuses {
 
-// 生成阶段序号常量（对齐 MC 1.21.11）
+// 生成阶段序号常量
 constexpr i32 EMPTY_ORDINAL = 0;
 constexpr i32 STRUCTURE_STARTS_ORDINAL = 1;
 constexpr i32 STRUCTURE_REFERENCES_ORDINAL = 2;

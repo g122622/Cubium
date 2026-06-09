@@ -276,7 +276,7 @@ TEST(SingleChunkLifecycleManagerTest, Creation)
     EXPECT_EQ(holder.x(), 5);
     EXPECT_EQ(holder.z(), 10);
     EXPECT_EQ(holder.getStatus(), ChunkStatuses::EMPTY);
-    EXPECT_EQ(holder.getLevel(), 33); // 默认级别
+    EXPECT_EQ(holder.getLevel(), static_cast<i32>(mc::world::ChunkLoadLevel::MaxLevel)); // 默认级别（未加载）
 }
 
 TEST(SingleChunkLifecycleManagerTest, SetStatus)
@@ -291,4 +291,75 @@ TEST(SingleChunkLifecycleManagerTest, SetStatus)
     EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::STRUCTURE_STARTS));
     EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::BIOMES));
     EXPECT_FALSE(holder.hasCompletedStatus(ChunkStatuses::FEATURES));
+}
+
+TEST(SingleChunkLifecycleManagerTest, AcquireStatusBump)
+{
+    SingleChunkLifecycleManager holder(0, 0);
+
+    // 初始状态为 EMPTY
+    EXPECT_EQ(holder.getStatus(), ChunkStatuses::EMPTY);
+
+    // 成功推进：EMPTY → STRUCTURE_STARTS（parent = EMPTY）
+    EXPECT_TRUE(holder.acquireStatusBump(ChunkStatuses::STRUCTURE_STARTS));
+    EXPECT_EQ(holder.getStatus(), ChunkStatuses::STRUCTURE_STARTS);
+    EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::EMPTY));
+    EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::STRUCTURE_STARTS));
+    EXPECT_FALSE(holder.hasCompletedStatus(ChunkStatuses::STRUCTURE_REFERENCES));
+
+    // 重复推进同一阶段失败
+    EXPECT_FALSE(holder.acquireStatusBump(ChunkStatuses::STRUCTURE_STARTS));
+
+    // 跳跃推进失败：STRUCTURE_STARTS → NOISE（parent = BIOMES，不是 STRUCTURE_STARTS）
+    EXPECT_FALSE(holder.acquireStatusBump(ChunkStatuses::NOISE));
+    EXPECT_EQ(holder.getStatus(), ChunkStatuses::STRUCTURE_STARTS);
+
+    // 逐步推进成功
+    EXPECT_TRUE(holder.acquireStatusBump(ChunkStatuses::STRUCTURE_REFERENCES));
+    EXPECT_TRUE(holder.acquireStatusBump(ChunkStatuses::BIOMES));
+    EXPECT_TRUE(holder.acquireStatusBump(ChunkStatuses::NOISE));
+    EXPECT_EQ(holder.getStatus(), ChunkStatuses::NOISE);
+    EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::STRUCTURE_STARTS));
+    EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::BIOMES));
+    EXPECT_FALSE(holder.hasCompletedStatus(ChunkStatuses::SURFACE));
+}
+
+TEST(SingleChunkLifecycleManagerTest, CompleteStatusTo)
+{
+    SingleChunkLifecycleManager holder(0, 0);
+
+    // 可以跳跃设置到任意阶段
+    holder.completeStatusTo(ChunkStatuses::FULL);
+    EXPECT_EQ(holder.getStatus(), ChunkStatuses::FULL);
+    EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::EMPTY));
+    EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::NOISE));
+    EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::FULL));
+
+    // 不允许回退
+    holder.completeStatusTo(ChunkStatuses::EMPTY);
+    EXPECT_EQ(holder.getStatus(), ChunkStatuses::FULL);
+
+    // 存档恢复可以跳到中间阶段
+    SingleChunkLifecycleManager holder2(0, 0);
+    holder2.completeStatusTo(ChunkStatuses::CARVERS);
+    EXPECT_EQ(holder2.getStatus(), ChunkStatuses::CARVERS);
+    EXPECT_TRUE(holder2.hasCompletedStatus(ChunkStatuses::BIOMES));
+    EXPECT_FALSE(holder2.hasCompletedStatus(ChunkStatuses::FEATURES));
+}
+
+TEST(SingleChunkLifecycleManagerTest, SetStatusOnlyAdvances)
+{
+    SingleChunkLifecycleManager holder(0, 0);
+
+    // setStatus 只向前推进
+    holder.setStatus(ChunkStatuses::SURFACE);
+    EXPECT_EQ(holder.getStatus(), ChunkStatuses::SURFACE);
+
+    // 不允许回退
+    holder.setStatus(ChunkStatuses::EMPTY);
+    EXPECT_EQ(holder.getStatus(), ChunkStatuses::SURFACE);
+
+    // 允许继续前进
+    holder.setStatus(ChunkStatuses::FULL);
+    EXPECT_EQ(holder.getStatus(), ChunkStatuses::FULL);
 }

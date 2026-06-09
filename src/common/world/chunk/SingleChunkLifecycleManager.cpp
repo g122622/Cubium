@@ -49,13 +49,37 @@ SingleChunkLifecycleManager::SingleChunkLifecycleManager(ChunkCoord x, ChunkCoor
 const ChunkStatus& SingleChunkLifecycleManager::status() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-    return *m_status;
+    return *m_completedStatus;
 }
 
 bool SingleChunkLifecycleManager::hasCompletedStatus(const ChunkStatus& status) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-    return m_status->isAtLeast(status);
+    return m_completedStatus->isAtLeast(status);
+}
+
+bool SingleChunkLifecycleManager::acquireStatusBump(const ChunkStatus& target)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    // target 的父阶段必须与当前已完成阶段匹配，才能推进
+    const ChunkStatus* parent = target.parent();
+    if (parent == nullptr || !m_completedStatus->isAtLeast(*parent)) {
+        return false;
+    }
+    // 已经达到或超过目标，无需推进
+    if (m_completedStatus->isAtLeast(target)) {
+        return false;
+    }
+    m_completedStatus = &target;
+    return true;
+}
+
+void SingleChunkLifecycleManager::completeStatusTo(const ChunkStatus& target)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (target.isAfter(*m_completedStatus)) {
+        m_completedStatus = &target;
+    }
 }
 
 SingleChunkLifecycleManager::SourceState SingleChunkLifecycleManager::sourceState() const
@@ -164,7 +188,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::submit
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // 已经就绪时直接把等待者挂上，后续由调用方立即完成，不再走任何调度路径。
-    if (m_sourceState == SourceState::Ready && m_status->isAtLeast(targetStatus)) {
+    if (m_sourceState == SourceState::Ready && m_completedStatus->isAtLeast(targetStatus)) {
         if (callback || promise) {
             m_waiters.push_back(Waiter{std::move(callback), std::move(promise)});
         }
@@ -223,6 +247,19 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteNe
     }
 
     m_executionState = neighborsReady ? ExecutionState::Queued : ExecutionState::WaitingForNeighbors;
+    return _buildDecisionLocked();
+}
+
+SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteNeighborStatusCompleted(
+    ChunkCoord neighborX, ChunkCoord neighborZ, const ChunkStatus& completedStatus)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    MC_UNUSED(neighborX);
+    MC_UNUSED(neighborZ);
+    MC_UNUSED(completedStatus);
+
+    // 邻居阶段完成事件暂不触发调度决策变更，
+    // 由 ServerChunkManager 统一重新评估邻居依赖后调用 noteNeighborProgress。
     return _buildDecisionLocked();
 }
 
@@ -333,36 +370,42 @@ ChunkPrimer* SingleChunkLifecycleManager::createGeneratingChunk()
     return m_generatingChunk.get();
 }
 
-std::unique_ptr<ChunkData> SingleChunkLifecycleManager::completeGeneration()
+std::unique_ptr<ChunkData> SingleChunkLifecycleManager::completeGeneration(const ChunkStatus& completedStatus)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     MC_ASSERT_RELEASE(m_generatingChunk != nullptr);
 
     auto chunkData = m_generatingChunk->toChunkData();
     m_generatingChunk.reset();
-    m_status = &ChunkStatuses::FULL;
+    if (completedStatus.isAfter(*m_completedStatus)) {
+        m_completedStatus = &completedStatus;
+    }
     m_sourceState = SourceState::Ready;
     m_executionState = ExecutionState::Idle;
     m_requestPriority = std::numeric_limits<i32>::max();
     return chunkData;
 }
 
-void SingleChunkLifecycleManager::markGenerationReady()
+void SingleChunkLifecycleManager::markGenerationReady(const ChunkStatus& completedStatus)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_generatingChunk.reset();
-    m_status = &ChunkStatuses::FULL;
+    if (completedStatus.isAfter(*m_completedStatus)) {
+        m_completedStatus = &completedStatus;
+    }
     m_sourceState = SourceState::Ready;
     m_executionState = ExecutionState::Idle;
     m_requestPriority = std::numeric_limits<i32>::max();
 }
 
-void SingleChunkLifecycleManager::markLoadedFromStorageReady()
+void SingleChunkLifecycleManager::markLoadedFromStorageReady(const ChunkStatus& persistedStatus)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     // 存档恢复完成后，真正的 ChunkData 所有权由外层缓存持有；
     // lifecycle manager 这里只记录"来源已解析并且区块已经就绪"。
-    m_status = &ChunkStatuses::FULL;
+    if (persistedStatus.isAfter(*m_completedStatus)) {
+        m_completedStatus = &persistedStatus;
+    }
     m_sourceState = SourceState::Ready;
     m_executionState = ExecutionState::Idle;
     m_requestPriority = std::numeric_limits<i32>::max();
@@ -371,7 +414,9 @@ void SingleChunkLifecycleManager::markLoadedFromStorageReady()
 void SingleChunkLifecycleManager::setStatus(const ChunkStatus& status)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-    m_status = &status;
+    if (status.isAfter(*m_completedStatus)) {
+        m_completedStatus = &status;
+    }
 }
 
 bool SingleChunkLifecycleManager::isGenerationCurrent(u64 generation) const

@@ -106,6 +106,7 @@ public:
         u64 generation = 0;                             ///< 当前请求代际，用于丢弃过期 worker 结果
         i32 priority = 0;                               ///< 当前收敛后的最高优先级
         const ChunkStatus* targetStatus = nullptr;      ///< 当前请求目标状态
+        const ChunkStatus* completedStatus = nullptr;   ///< 本次刚完成到的阶段（可为 nullptr）
         std::shared_ptr<std::atomic<bool>> cancelToken; ///< 当前代际对应的取消令牌
     };
 
@@ -159,15 +160,16 @@ public:
     [[nodiscard]] u64 id() const { return ChunkId(m_x, m_z, 0).toId(); }
 
     /**
-     * @brief 获取当前已完成的区块状态
+     * @brief 获取当前已完成的最高区块生成阶段
      *
-     * 返回值表示该区块在"内容生成阶段"上的实际完成进度，
-     * 与请求目标状态不是同一个概念。
+     * 返回值表示该区块在生成流水线上的实际完成进度，
+     * 与请求目标阶段不是同一个概念。
+     * 单调递增：一旦某个阶段完成，不会被回退。
      */
     [[nodiscard]] const ChunkStatus& status() const;
 
     /**
-     * @brief 获取当前已完成的区块状态
+     * @brief 获取当前已完成的最高区块生成阶段
      *
      * 这是只读访问器的兼容命名别名，语义与 `status()` 完全一致。
      */
@@ -180,6 +182,28 @@ public:
      * @return 如果当前完成阶段不低于目标阶段，返回 true
      */
     [[nodiscard]] bool hasCompletedStatus(const ChunkStatus& status) const;
+
+    /**
+     * @brief 尝试推进区块生成阶段
+     *
+     * 原子性地将完成状态从 target 的父阶段推进到 target。
+     * 只有当当前完成状态恰好是 target 的直接前驱时才会成功。
+     * 成功后，hasCompletedStatus(target) 返回 true。
+     *
+     * @param target 目标阶段（必须严格大于当前已完成阶段）
+     * @return true 表示推进成功，false 表示当前完成状态不满足前置条件
+     */
+    bool acquireStatusBump(const ChunkStatus& target);
+
+    /**
+     * @brief 直接设置完成阶段到指定状态
+     *
+     * 用于存档恢复等可以跳过中间阶段的场景。
+     * 只允许向前推进（target 必须 >= 当前完成阶段）。
+     *
+     * @param target 要设置的目标阶段
+     */
+    void completeStatusTo(const ChunkStatus& target);
 
     /**
      * @brief 获取当前加载级别
@@ -203,9 +227,9 @@ public:
     /**
      * @brief 判断该区块当前是否应当保持加载
      *
-     * @return 当 level <= 33 时返回 true
+     * @return 当 level <= Border (34) 时返回 true
      */
-    [[nodiscard]] bool shouldLoad() const { return level() <= 33; }
+    [[nodiscard]] bool shouldLoad() const { return level() <= static_cast<i32>(world::ChunkLoadLevel::Border); }
 
     /**
      * @brief 获取区块来源解析状态
@@ -318,6 +342,20 @@ public:
     EnqueueDecision noteNeighborProgress(bool neighborsReady);
 
     /**
+     * @brief 记录邻居完成到指定阶段的事件
+     *
+     * 当邻居区块完成了某个生成阶段时调用。
+     * 当前区块可以据此判断自己的依赖是否已满足。
+     *
+     * @param neighborX 邻居区块 X 坐标
+     * @param neighborZ 邻居区块 Z 坐标
+     * @param completedStatus 邻居完成到的阶段
+     * @return 调度器下一步应执行的动作决策
+     */
+    EnqueueDecision noteNeighborStatusCompleted(
+        ChunkCoord neighborX, ChunkCoord neighborZ, const ChunkStatus& completedStatus);
+
+    /**
      * @brief 记录一次存档来源解析结果
      *
      * @param foundInStorage 是否在存档中找到了区块数据
@@ -393,33 +431,37 @@ public:
      * @brief 完成生成并提取最终 ChunkData
      *
      * 该函数会把内部 ChunkPrimer 转换为 ChunkData，
-     * 同时把来源状态推进到 Ready。
+     * 同时把完成状态推进到指定阶段（通常为 FULL）。
      *
+     * @param completedStatus 本次生成完成到的阶段
      * @return 新生成的 ChunkData 所有权
      */
-    std::unique_ptr<ChunkData> completeGeneration();
+    std::unique_ptr<ChunkData> completeGeneration(const ChunkStatus& completedStatus = ChunkStatuses::FULL);
 
     /**
-     * @brief 标记异步生成已成功完成
+     * @brief 标记异步生成已成功完成到指定阶段
      *
      * 当生成工作在线程池内使用外部 `ChunkPrimer` 完成时，
      * 生命周期管理器内部并不一定持有 `m_generatingChunk`。
      * 这种情况下使用该接口只推进状态，不再尝试提取内部生成结果。
+     *
+     * @param completedStatus 本次生成完成到的阶段
      */
-    void markGenerationReady();
+    void markGenerationReady(const ChunkStatus& completedStatus = ChunkStatuses::FULL);
 
     /**
      * @brief 接管从存档恢复出来的区块数据
      *
-     * @param data 已成功恢复的区块数据
+     * @param persistedStatus 存档区块的持久化阶段
      */
-    void markLoadedFromStorageReady();
+    void markLoadedFromStorageReady(const ChunkStatus& persistedStatus = ChunkStatuses::FULL);
 
     /**
      * @brief 直接设置当前完成阶段
      *
      * 该函数仅用于区块已经就绪后同步修正内部状态，
      * 不承担调度或回调语义。
+     * 只允许向前推进（status 必须 >= 当前完成阶段）。
      *
      * @param status 新的完成阶段
      */
@@ -470,8 +512,8 @@ private:
     ChunkCoord m_x;
     ChunkCoord m_z;
 
-    const ChunkStatus* m_status = &ChunkStatuses::EMPTY;
-    std::atomic<i32> m_level{33};
+    const ChunkStatus* m_completedStatus = &ChunkStatuses::EMPTY;
+    std::atomic<i32> m_level{static_cast<i32>(world::ChunkLoadLevel::MaxLevel)};
 
     SourceState m_sourceState = SourceState::Unknown;
     ExecutionState m_executionState = ExecutionState::Idle;

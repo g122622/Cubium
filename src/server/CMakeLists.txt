@@ -29,6 +29,7 @@ add_executable(minecraft-server
     # 世界模块
     world/ServerWorld.cpp
     world/ChunkGenerateTask.cpp
+    world/GenerationChunkCache.cpp
     world/ServerChunkManager.cpp
     world/drop/BlockDropHandler.cpp
     world/spawn/NaturalSpawner.cpp
