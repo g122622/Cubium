@@ -27,6 +27,7 @@
 #include "common/util/thread/ServerWorkerPool.hpp"
 #include "common/world/chunk/ChunkData.hpp"
 #include "common/world/chunk/ChunkLoadTicketManager.hpp"
+#include "common/world/chunk/ChunkPyramid.hpp"
 #include "common/world/chunk/SingleChunkLifecycleManager.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <atomic>
@@ -43,6 +44,16 @@ class ServerWorld;
 namespace sync {
 class ChunkSendManager;
 }
+
+/**
+ * @brief 区块步骤依赖信息
+ *
+ * 用于缓存 ChunkStep 的直接依赖查询结果。
+ */
+struct ChunkStepDependencyInfo {
+    bool hasDependencies = false; ///< 是否有任何邻居依赖
+    i32 maxDirectRadius = 0;      ///< 直接依赖的最大半径
+};
 
 /**
  * @brief 服务端区块管理器
@@ -582,29 +593,36 @@ private:
         ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus, i32 ticketLevel) const;
 
     /**
-     * @brief 根据目标阶段计算需要先满足的邻居前置阶段
+     * @brief 根据目标阶段计算需要先满足的邻居前置条件
+     *
+     * 基于 MC 1.21 ChunkPyramid 的直接依赖模型。
+     * 对于给定的目标状态，查找其 ChunkStep 的 directDependencies，
+     * 返回所需的最大依赖半径和对应的前置状态。
      *
      * @param targetStatus 请求目标阶段
-     * @return 邻居必须达到的前置阶段；若无邻居依赖则返回 nullptr
+     * @return 依赖信息；若无邻居依赖则 directRadius <= 0
      */
-    [[nodiscard]] const ChunkStatus* _getNeighborPrerequisiteStatus(const ChunkStatus& targetStatus) const;
+    [[nodiscard]] ChunkStepDependencyInfo _getDirectDependencyInfo(const ChunkStatus& targetStatus) const;
 
     /**
      * @brief 检查给定区块的邻居依赖是否满足
      *
+     * 基于 MC 1.21 ChunkStep.directDependencies：
+     * 对每个半径级别，检查对应半径内的所有邻居是否达到所需状态。
+     *
      * @param x 区块 X 坐标
      * @param z 区块 Z 坐标
-     * @param prerequisiteStatus 邻居必须达到的前置阶段
+     * @param step 目标阶段的 ChunkStep
      * @return 若所有依赖邻居均已满足则返回 true
      */
-    [[nodiscard]] bool _areNeighborsReady(ChunkCoord x, ChunkCoord z, const ChunkStatus& prerequisiteStatus) const;
-
-    /**
-     * @brief 在区块完成推进后，唤醒其影响范围内阻塞的邻居请求
-     *
-     * @param x 已推进区块的 X 坐标
-     * @param z 已推进区块的 Z 坐标
-     */
+    [[nodiscard]] bool _areNeighborsReady(ChunkCoord x,
+        ChunkCoord z,
+        const ChunkStep& step) const; /**
+                                       * @brief 在区块完成推进后，唤醒其影响范围内阻塞的邻居请求
+                                       *
+                                       * @param x 已推进区块的 X 坐标
+                                       * @param z 已推进区块的 Z 坐标
+                                       */
     void _wakeBlockedNeighborsAsync(ChunkCoord x, ChunkCoord z);
 
     /**

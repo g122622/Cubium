@@ -144,6 +144,31 @@ public:
     }
 
     // ============================================================================
+    // 持久化状态（MC 1.21 ProtoChunk.persistedStatus）
+    // ============================================================================
+
+    /**
+     * @brief 获取持久化状态
+     *
+     * MC 1.21: ProtoChunk.getPersistedStatus()
+     * persistedStatus 记录已完成持久化的阶段，用于决定高度图更新范围。
+     * 与 chunkStatus 分离：chunkStatus 是当前正在执行的目标阶段，
+     * persistedStatus 是已经确认完成的阶段。
+     */
+    [[nodiscard]] const ChunkStatus& getPersistedStatus() const noexcept { return *m_persistedStatus; }
+
+    /**
+     * @brief 推进持久化状态到目标阶段
+     *
+     * MC 1.21: ProtoChunk.setPersistedStatus()
+     * 只允许向前推进（新状态的 ordinal 必须 >= 当前 persistedStatus）。
+     * 同时推进 chunkStatus。
+     *
+     * @param target 目标阶段
+     */
+    void setPersistedStatus(const ChunkStatus& target);
+
+    // ============================================================================
     // 生物群系管理
     // ============================================================================
 
@@ -472,6 +497,7 @@ private:
 
     // 生成状态
     const ChunkStatus* m_chunkStatus = &ChunkStatuses::EMPTY;
+    const ChunkStatus* m_persistedStatus = &ChunkStatuses::EMPTY;
     ChunkLoadStatus m_status = ChunkLoadStatus::Empty;
     bool m_modified = false;
 

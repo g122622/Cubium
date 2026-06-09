@@ -27,6 +27,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/ChunkPyramid.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
@@ -273,8 +274,13 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
         return;
     }
 
-    if (const ChunkStatus* prerequisiteStatus = _getNeighborPrerequisiteStatus(lifecycleManager.requestedStatus())) {
-        decision = lifecycleManager.noteNeighborProgress(_areNeighborsReady(x, z, *prerequisiteStatus));
+    // MC 1.21: 使用 ChunkPyramid 的直接依赖模型检查邻居是否就绪
+    const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
+    const ChunkStep& step = pyramid.getStepTo(lifecycleManager.requestedStatus());
+    ChunkStepDependencyInfo depInfo = _getDirectDependencyInfo(lifecycleManager.requestedStatus());
+
+    if (depInfo.hasDependencies) {
+        decision = lifecycleManager.noteNeighborProgress(_areNeighborsReady(x, z, step));
     } else {
         decision = lifecycleManager.noteNeighborProgress(true);
     }
@@ -437,7 +443,14 @@ void ServerChunkManager::_wakeBlockedNeighborsAsync(ChunkCoord x, ChunkCoord z)
 {
     MC_TRACE_EVENT("server.chunk", "ServerChunkManager::wakeBlockedNeighborsAsync");
 
-    static constexpr i32 retryRadius = 8;
+    // MC 1.21: 唤醒范围使用 ChunkPyramid 的最大累积依赖半径
+    const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
+    i32 maxRadius = 0;
+    for (const auto& step : pyramid.steps()) {
+        maxRadius = std::max(maxRadius, step.accumulatedRadius());
+    }
+    const i32 retryRadius = maxRadius;
+
     std::vector<SingleChunkLifecycleManager*> neighbors;
 
     {
@@ -461,10 +474,10 @@ void ServerChunkManager::_wakeBlockedNeighborsAsync(ChunkCoord x, ChunkCoord z)
             continue;
         }
 
-        const ChunkStatus* prerequisiteStatus = _getNeighborPrerequisiteStatus(neighbor->requestedStatus());
-        const bool neighborsReady = prerequisiteStatus == nullptr
-            ? true
-            : _areNeighborsReady(neighbor->x(), neighbor->z(), *prerequisiteStatus);
+        const ChunkStep& step = pyramid.getStepTo(neighbor->requestedStatus());
+        ChunkStepDependencyInfo depInfo = _getDirectDependencyInfo(neighbor->requestedStatus());
+        const bool neighborsReady =
+            depInfo.hasDependencies ? _areNeighborsReady(neighbor->x(), neighbor->z(), step) : true;
         _advanceChunkState(*neighbor, neighbor->noteNeighborProgress(neighborsReady));
     }
 }
@@ -489,6 +502,7 @@ void ServerChunkManager::_executeGenerationSync(
 
 void ServerChunkManager::_doGenerateChunkToTargetStatus(ChunkPrimer& chunk, const ChunkStatus& targetStatus)
 {
+    const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
     const auto& allStatuses = ChunkStatus::getAll();
     for (const auto& status : allStatuses) {
         if (status.ordinal() > targetStatus.ordinal()) {
@@ -498,7 +512,12 @@ void ServerChunkManager::_doGenerateChunkToTargetStatus(ChunkPrimer& chunk, cons
             continue;
         }
 
-        auto context = _doCreateWorldGenRegion(chunk, std::max(0, status.taskRange()));
+        const ChunkStep& step = pyramid.getStepTo(status);
+
+        // MC 1.21: WorldGenRegion 半径使用累积依赖半径
+        // 至少为 0（仅中心区块自身），且与 blockStateWriteRadius 关联
+        const i32 regionRadius = step.accumulatedRadius() > 0 ? step.accumulatedRadius() : 0;
+        auto context = _doCreateWorldGenRegion(chunk, regionRadius);
 
         if (status == ChunkStatuses::STRUCTURE_STARTS) {
             m_generator->generateStructureStarts(*context.region, chunk);
@@ -526,6 +545,8 @@ void ServerChunkManager::_doGenerateChunkToTargetStatus(ChunkPrimer& chunk, cons
             }
         }
 
+        // MC 1.21: ChunkStep.apply() 完成后设置 persistedStatus
+        chunk.setPersistedStatus(status);
         chunk.setChunkStatus(status);
     }
 }
@@ -536,60 +557,48 @@ void ServerChunkManager::_doSpawnInitialMobs(ChunkPrimer& chunk)
     // 此方法保留为兼容性入口，不再执行实际生成逻辑
 }
 
-bool ServerChunkManager::_areNeighborsReady(ChunkCoord x, ChunkCoord z, const ChunkStatus& prerequisiteStatus) const
+ChunkStepDependencyInfo ServerChunkManager::_getDirectDependencyInfo(const ChunkStatus& targetStatus) const
 {
-    if (prerequisiteStatus.taskRange() <= 0) {
-        return true;
-    }
+    const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
+    const ChunkStep& step = pyramid.getStepTo(targetStatus);
+    const ChunkDependencies& deps = step.directDependencies();
 
-    const ChunkStatus* requiredStatus = prerequisiteStatus.parent();
-    if (!requiredStatus) {
-        requiredStatus = &prerequisiteStatus;
-    }
+    ChunkStepDependencyInfo info;
+    info.maxDirectRadius = deps.getRadius();
+    info.hasDependencies = info.maxDirectRadius > 0;
+    return info;
+}
 
-    const i32 range = prerequisiteStatus.taskRange();
-    for (i32 dz = -range; dz <= range; ++dz) {
-        for (i32 dx = -range; dx <= range; ++dx) {
-            if (dx == 0 && dz == 0) {
-                continue;
-            }
+bool ServerChunkManager::_areNeighborsReady(ChunkCoord x, ChunkCoord z, const ChunkStep& step) const
+{
+    const ChunkDependencies& deps = step.directDependencies();
 
-            const SingleChunkLifecycleManager* neighbor = _findLifecycleManager(x + dx, z + dz);
-            if (!neighbor || !neighbor->hasCompletedStatus(*requiredStatus)) {
-                return false;
+    // 对每个半径级别检查对应邻居是否达到所需状态
+    for (i32 radius = 0; radius < deps.size(); ++radius) {
+        const ChunkStatus* requiredStatus = deps.get(radius);
+        if (requiredStatus == nullptr) {
+            continue;
+        }
+
+        // 遍历此半径级别的所有邻居位置
+        for (i32 dz = -radius; dz <= radius; ++dz) {
+            for (i32 dx = -radius; dx <= radius; ++dx) {
+                if (dx == 0 && dz == 0) {
+                    continue; // 跳过中心区块自身
+                }
+
+                // 检查此邻居是否在当前半径的边界上
+                // 内层半径的邻居已经被更小的半径检查过了，
+                // 但由于不同半径可能要求不同状态，需要检查所有位置
+                const SingleChunkLifecycleManager* neighbor = _findLifecycleManager(x + dx, z + dz);
+                if (!neighbor || !neighbor->hasCompletedStatus(*requiredStatus)) {
+                    return false;
+                }
             }
         }
     }
 
     return true;
-}
-
-const ChunkStatus* ServerChunkManager::_getNeighborPrerequisiteStatus(const ChunkStatus& targetStatus) const
-{
-    const auto& allStatuses = ChunkStatus::getAll();
-    const ChunkStatus* prerequisiteStage = nullptr;
-    i32 prerequisiteRange = 0;
-
-    for (const auto& status : allStatuses) {
-        if (status.ordinal() > targetStatus.ordinal()) {
-            break;
-        }
-
-        const i32 statusRange = status.taskRange();
-        if (statusRange > prerequisiteRange ||
-            (statusRange == prerequisiteRange && prerequisiteStage &&
-                status.ordinal() > prerequisiteStage->ordinal())) {
-            prerequisiteRange = statusRange;
-            prerequisiteStage = &status;
-        }
-    }
-
-    if (prerequisiteRange <= 0) {
-        return nullptr;
-    }
-
-    const ChunkStatus* prerequisiteStatus = prerequisiteStage ? prerequisiteStage->parent() : nullptr;
-    return prerequisiteStatus ? prerequisiteStatus : prerequisiteStage;
 }
 
 i32 ServerChunkManager::_computeSchedulePriority(

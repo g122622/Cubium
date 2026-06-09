@@ -1,19 +1,22 @@
 # Chunk 模块
 
-本目录包含 Minecraft 区块系统的核心实现，参考 Minecraft Java Edition 1.16.5 的架构设计。
+本目录包含 Minecraft 区块系统的核心实现，对齐 MC 1.21.11 的区块生成依赖模型。
 
 ## 目录结构
 
 ```
 src/common/world/chunk/
 ├── ChunkData.hpp/cpp              # 区块数据存储（ChunkSection、ChunkData、ChunkDataRef）
+├── ChunkDependencies.hpp/cpp     # 区块依赖关系（MC 1.21 ChunkDependencies）
 ├── ChunkDistanceGraph.hpp/cpp     # 区块距离图（BFS 级别传播算法）
 ├── ChunkId.hpp                    # 区块唯一标识符（包含维度）
 ├── ChunkLoadTicket.hpp            # 显式 ticket 类型与集合定义
 ├── ChunkLoadTicketManager.hpp/cpp # 票据管理器与玩家来源聚合器
 ├── ChunkPos.hpp                   # 区块位置类型
 ├── ChunkPrimer.hpp/cpp            # 区块生成中间状态
+├── ChunkPyramid.hpp/cpp           # 区块生成金字塔（MC 1.21 ChunkPyramid）
 ├── ChunkStatus.hpp/cpp            # 区块生成阶段定义
+├── ChunkStep.hpp                  # 区块生成步骤（MC 1.21 ChunkStep）
 ├── IChunk.hpp/cpp                 # 区块接口和基础类型
 ├── SectionPos.hpp                 # 区块段位置类型
 └── SingleChunkLifecycleManager.hpp/cpp  # 单区块生命周期管理
@@ -42,7 +45,10 @@ flowchart LR
 ## 内部模块关系
 
 - **ChunkPos / SectionPos / ChunkId**：位置和标识类型，无依赖
-- **ChunkStatus**：生成阶段定义，无依赖
+- **ChunkStatus**：生成阶段定义（12 阶段链），无依赖
+- **ChunkDependencies**：区块生成阶段的依赖关系（按半径索引），依赖 ChunkStatus
+- **ChunkStep**：区块生成步骤（目标状态 + 直接依赖 + 累积依赖 + 可写半径），依赖 ChunkDependencies
+- **ChunkPyramid**：区块生成金字塔（GENERATION_PYRAMID 常量），依赖 ChunkStep
 - **IChunk**：区块接口，依赖 BlockState、BiomeContainer、Heightmap
 - **ChunkData**：完整区块数据（实现 IChunk），依赖 ChunkSection、NibbleArray、BlockEntity
 - **ChunkPrimer**：生成中间状态，依赖 ChunkData、ChunkStatus、Heightmap、StructureStart
@@ -50,6 +56,30 @@ flowchart LR
 - **ChunkDistanceGraph**：BFS 级别传播算法，无依赖
 - **ChunkLoadTicketManager**：聚合显式 ticket 和玩家 source，依赖 ChunkLoadTicket、ChunkDistanceGraph
 - **SingleChunkLifecycleManager**：单区块生命周期管理，依赖 ChunkPrimer、ChunkData、ChunkStatus
+
+## 生成依赖模型（MC 1.21 对齐）
+
+MC 1.21 使用 `ChunkPyramid.GENERATION_PYRAMID` 定义区块生成阶段的依赖关系：
+
+| 阶段 | 直接依赖 | 可写半径 |
+|------|---------|---------|
+| EMPTY | — | -1 |
+| STRUCTURE_STARTS | [EMPTY] | -1 |
+| STRUCTURE_REFERENCES | [STRUCTURE_STARTS(8)] | -1 |
+| BIOMES | [STRUCTURE_STARTS(8)] | -1 |
+| NOISE | [STRUCTURE_STARTS(8), BIOMES(1)] | 0 |
+| SURFACE | [STRUCTURE_STARTS(8), BIOMES(1)] | 0 |
+| CARVERS | [STRUCTURE_STARTS(8)] | 0 |
+| FEATURES | [STRUCTURE_STARTS(8), CARVERS(1)] | 1 |
+| INITIALIZE_LIGHT | [FEATURES] | -1 |
+| LIGHT | [INITIALIZE_LIGHT(1)] | -1 |
+| SPAWN | [BIOMES(1)] | -1 |
+| FULL | [SPAWN] | -1 |
+
+直接依赖表示：`[STATUS(radius)]` 表示半径内的邻居区块必须达到 STATUS。
+累积依赖通过合并所有前序步骤的直接依赖自动计算。
+
+**关键变化**：旧 `taskRange` 用单一整数表示邻居依赖范围，无法表达"同时需要 STRUCTURE_STARTS(8) 和 BIOMES(1)"等多半径多状态依赖。新的 `ChunkDependencies` 模型精确表达了每个半径级别所需的最低状态。
 
 ## 上下游依赖关系
 

@@ -856,8 +856,10 @@ add_library(mc_common STATIC
 
     # World - Chunk
     world/chunk/ChunkData.cpp
+    world/chunk/ChunkDependencies.cpp
     world/chunk/ChunkDistanceGraph.cpp
     world/chunk/ChunkLoadTicketManager.cpp
+    world/chunk/ChunkPyramid.cpp
     world/chunk/ChunkStatus.cpp
     world/chunk/ChunkPrimer.cpp
     world/chunk/IChunk.cpp

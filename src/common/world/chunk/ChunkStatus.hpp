@@ -164,9 +164,22 @@ public:
     [[nodiscard]] const std::string& name() const { return m_name; }
     [[nodiscard]] i32 ordinal() const { return m_ordinal; }
     [[nodiscard]] const ChunkStatus* parent() const { return m_parent; }
+    /**
+     * @brief 获取邻居区块范围
+     * @deprecated 使用 ChunkPyramid::generationPyramid().getStepTo(status).directDependencies() 替代
+     */
     [[nodiscard]] i32 taskRange() const { return m_taskRange; }
     [[nodiscard]] HeightmapFlag heightmaps() const { return m_heightmaps; }
     [[nodiscard]] ChunkType type() const { return m_type; }
+
+    /**
+     * @brief 获取此阶段完成后需要更新的高度图类型
+     *
+     * MC 1.21: ChunkStatus.heightmapsAfter()
+     * EMPTY~SURFACE: PRE_FEATURES (WORLD_SURFACE_WG | OCEAN_FLOOR_WG)
+     * CARVERS~FULL: POST_FEATURES (WORLD_SURFACE | OCEAN_FLOOR | MOTION_BLOCKING | MOTION_BLOCKING_NO_LEAVES)
+     */
+    [[nodiscard]] HeightmapFlag heightmapsAfter() const { return m_heightmaps; }
 
     // === 比较操作 ===
 
@@ -176,9 +189,33 @@ public:
     [[nodiscard]] bool isAtLeast(const ChunkStatus& status) const { return m_ordinal >= status.m_ordinal; }
 
     /**
+     * @brief 检查此状态是否严格大于指定状态
+     *
+     * MC 1.21: ChunkStatus.isAfter(other)
+     */
+    [[nodiscard]] bool isAfter(const ChunkStatus& status) const { return m_ordinal > status.m_ordinal; }
+
+    /**
+     * @brief 检查此状态是否小于或等于指定状态
+     *
+     * MC 1.21: ChunkStatus.isOrBefore(other)
+     */
+    [[nodiscard]] bool isOrBefore(const ChunkStatus& status) const { return m_ordinal <= status.m_ordinal; }
+
+    /**
      * @brief 检查此状态是否低于指定状态
      */
     [[nodiscard]] bool isBefore(const ChunkStatus& status) const { return m_ordinal < status.m_ordinal; }
+
+    /**
+     * @brief 返回两个状态中较高的那个
+     *
+     * MC 1.21: ChunkStatus.max(a, b)
+     */
+    [[nodiscard]] static const ChunkStatus& max(const ChunkStatus& a, const ChunkStatus& b)
+    {
+        return a.isAfter(b) ? a : b;
+    }
 
     // === 静态方法 ===
 
@@ -204,17 +241,19 @@ public:
 
     /**
      * @brief 根据距离获取状态
-     * @param distance 距离值
+     * @deprecated 使用 ChunkPyramid::generationPyramid().steps() 替代
      */
     [[nodiscard]] static const ChunkStatus& getStatus(i32 distance);
 
     /**
      * @brief 获取状态的距离值
+     * @deprecated 使用 ChunkStep::accumulatedRadius() 替代
      */
     [[nodiscard]] static i32 getDistance(const ChunkStatus& status);
 
     /**
      * @brief 获取最大距离
+     * @deprecated 使用 ChunkPyramid::generationPyramid().steps() 替代
      */
     [[nodiscard]] static i32 maxDistance();
 

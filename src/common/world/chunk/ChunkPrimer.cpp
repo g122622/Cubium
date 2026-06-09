@@ -183,6 +183,20 @@ void ChunkPrimer::setChunkStatus(const ChunkStatus& status)
     m_modified = true;
 }
 
+void ChunkPrimer::setPersistedStatus(const ChunkStatus& target)
+{
+    // MC 1.21: ProtoChunk.setPersistedStatus()
+    // 只允许向前推进
+    if (target.isAfter(*m_persistedStatus)) {
+        m_persistedStatus = &target;
+    }
+    // 同时推进 chunkStatus（如果 chunkStatus 落后于 persistedStatus）
+    if (m_chunkStatus->isBefore(target)) {
+        m_chunkStatus = &target;
+    }
+    m_modified = true;
+}
+
 // ============================================================================
 // 生物群系
 // ============================================================================
@@ -412,7 +426,7 @@ void ChunkPrimer::_updateHeightmapsForCurrentStatus(BlockCoord x, BlockCoord y, 
 {
     // MC 1.21.11: ProtoChunk.setBlockState 在设置方块后，
     // 根据 persistedStatus.heightmapsAfter() 决定更新哪些高度图。
-    const HeightmapFlag flags = m_chunkStatus->heightmaps();
+    const HeightmapFlag flags = m_persistedStatus->heightmaps();
 
     struct TypeAndFlag {
         HeightmapType type;
