@@ -42,7 +42,9 @@ const BlockState* FluidStatus::at(i32 y) const
     if (y < fluidLevel) {
         return fluidType;
     }
-    return nullptr; // 空气
+    // MC 1.21: 返回空气 BlockState 而非 nullptr
+    // Java 中 FluidStatus.at() 返回空气方块状态
+    return VanillaBlocks::AIR ? &VanillaBlocks::AIR->defaultState() : nullptr;
 }
 
 // ============================================================================
@@ -142,6 +144,9 @@ const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i3
     if (densityValue > 0.0) {
         return nullptr;
     }
+
+    // MC 1.21: 在 computeSubstance 开头计算 barrierNoise 一次，供 calculatePressure 复用
+    const f64 barrierNoise = m_barrierNoise.compute(blockX, blockY, blockZ);
 
     // 获取全局流体
     FluidStatus globalFluid = m_globalFluidPicker(blockX, blockY, blockZ);
@@ -282,7 +287,7 @@ const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i3
 
     // MC 1.21: 三阶段压力计算
     // 第一阶段: 1st 和 2nd 最近点的压力
-    const f64 pressure1 = d1 * calculatePressure(blockX, blockY, blockZ, aquifer1, aquifer2);
+    const f64 pressure1 = d1 * calculatePressure(blockX, blockY, blockZ, aquifer1, aquifer2, barrierNoise);
     if (densityValue + pressure1 > 0.0) {
         return nullptr; // 压力使该位置保持固体
     }
@@ -291,7 +296,7 @@ const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i3
     AquiferStatus aquifer3 = getAquiferStatus(gridIdx3X, gridIdx3Y, gridIdx3Z);
     const f64 d0 = similarity(distSq1, distSq3); // 1st vs 3rd
     if (d0 > 0.0) {
-        const f64 pressure2 = d1 * d0 * calculatePressure(blockX, blockY, blockZ, aquifer1, aquifer3);
+        const f64 pressure2 = d1 * d0 * calculatePressure(blockX, blockY, blockZ, aquifer1, aquifer3, barrierNoise);
         if (densityValue + pressure2 > 0.0) {
             return nullptr;
         }
@@ -300,7 +305,7 @@ const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i3
     // 第三阶段: 2nd 和 3rd 最近点的压力
     const f64 d4 = similarity(distSq2, distSq3); // 2nd vs 3rd
     if (d4 > 0.0) {
-        const f64 pressure3 = d1 * d4 * calculatePressure(blockX, blockY, blockZ, aquifer2, aquifer3);
+        const f64 pressure3 = d1 * d4 * calculatePressure(blockX, blockY, blockZ, aquifer2, aquifer3, barrierNoise);
         if (densityValue + pressure3 > 0.0) {
             return nullptr;
         }
@@ -489,7 +494,7 @@ const BlockState* NoiseBasedAquifer::computeFluidType(i32 x, i32 y, i32 z, const
 }
 
 f64 NoiseBasedAquifer::calculatePressure(
-    i32 blockX, i32 blockY, i32 blockZ, const AquiferStatus& a, const AquiferStatus& b)
+    i32 blockX, i32 blockY, i32 blockZ, const AquiferStatus& a, const AquiferStatus& b, f64 cachedBarrierNoise)
 {
     const BlockState* stateA = (a.fluidType != nullptr && blockY < a.fluidLevel) ? a.fluidType : nullptr;
     const BlockState* stateB = (b.fluidType != nullptr && blockY < b.fluidLevel) ? b.fluidType : nullptr;
@@ -523,10 +528,9 @@ f64 NoiseBasedAquifer::calculatePressure(
         pressure = v > 0 ? v / 3.0 : v / 10.0;
     }
 
-    // 只在屏障附近使用 barrierNoise
+    // MC 1.21: 只在屏障附近使用 barrierNoise（值已缓存）
     if (pressure >= -2.0 && pressure <= 2.0) {
-        const f64 barrierValue = m_barrierNoise.compute(blockX, blockY, blockZ);
-        return 2.0 * (barrierValue + pressure);
+        return 2.0 * (cachedBarrierNoise + pressure);
     }
 
     return 2.0 * pressure;
@@ -569,7 +573,9 @@ FluidPicker createNetherFluidPicker()
 
 FluidPicker createEndFluidPicker()
 {
-    return [](i32, i32, i32) -> FluidStatus { return {std::numeric_limits<i32>::min(), nullptr}; };
+    // MC 1.21: End 没有流体，FluidStatus 返回空气方块状态
+    const BlockState* airState = VanillaBlocks::AIR ? &VanillaBlocks::AIR->defaultState() : nullptr;
+    return [airState](i32, i32, i32) -> FluidStatus { return {std::numeric_limits<i32>::min(), airState}; };
 }
 
 } // namespace mc::world::gen::aquifer

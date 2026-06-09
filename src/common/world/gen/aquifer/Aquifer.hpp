@@ -300,9 +300,16 @@ private:
      *
      * 对应 MC 1.21 NoiseBasedAquifer.calculatePressure()。
      * 使用 barrierNoise 在含水层边界创建屏障。
+     *
+     * @param blockX 方块 X 坐标
+     * @param blockY 方块 Y 坐标
+     * @param blockZ 方块 Z 坐标
+     * @param a 第一个含水层状态
+     * @param b 第二个含水层状态
+     * @param cachedBarrierNoise 预计算的屏障噪声值（MC 1.21: 在 computeSubstance 开头计算一次）
      */
     [[nodiscard]] f64 calculatePressure(
-        i32 blockX, i32 blockY, i32 blockZ, const AquiferStatus& a, const AquiferStatus& b);
+        i32 blockX, i32 blockY, i32 blockZ, const AquiferStatus& a, const AquiferStatus& b, f64 cachedBarrierNoise);
 
     /**
      * @brief 计算两个距离之间的相似度
