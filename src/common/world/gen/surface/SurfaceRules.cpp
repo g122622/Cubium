@@ -208,9 +208,9 @@ bool SurfaceRuleContext::steep() const
 bool SurfaceRuleContext::temperature() const
 {
     // MC 1.21: SurfaceRules.TemperatureCondition uses Biome.coldEnoughToSnow(pos, seaLevel).
-    // getTemperature 使用噪声 + 高度调整，coldEnoughToSnow 检查 temperature < 0.15F。
+    // 使用 SurfaceRuleContext 中的 seaLevel 而非硬编码的 SEA_LEVEL
     const Biome& biome = BiomeRegistry::instance().get(m_biome);
-    return biome.doesSnowGenerate(m_blockX, m_blockY, m_blockZ, world::SEA_LEVEL);
+    return biome.doesSnowGenerate(m_blockX, m_blockY, m_blockZ, m_seaLevel);
 }
 
 void SurfaceRuleContext::generateClayBands(const math::PositionalRandomFactory& random)
@@ -1243,8 +1243,9 @@ void SurfaceSystem::erodedBadlandsExtension(
             foundStone = true;
             break;
         }
-        if (state != nullptr && state->isLiquid()) {
-            return; // 水中不生成石柱
+        // MC 1.21: 只有水方块阻止石柱生成，其他流体（如熔岩）不阻止
+        if (state != nullptr && &state->getBlock() == VanillaBlocks::WATER) {
+            return;
         }
     }
     if (!foundStone) {
@@ -1269,7 +1270,8 @@ void SurfaceSystem::frozenOceanExtension(ChunkPrimer& chunk,
     i32 localX,
     i32 localZ,
     i32 minSurfaceLevel,
-    bool isDeepFrozenOcean) const
+    bool isDeepFrozenOcean,
+    BiomeId biomeId) const
 {
     // MC 1.21: SurfaceSystem.frozenOceanExtension()
     // 在 Frozen Ocean / Deep Frozen Ocean 中生成冰山
@@ -1286,12 +1288,14 @@ void SurfaceSystem::frozenOceanExtension(ChunkPrimer& chunk,
         m_icebergPillarRoofNoise->getValue(static_cast<f64>(worldX) * 1.17, 0.0, static_cast<f64>(worldZ) * 1.17) * 1.5;
     f64 d6 = std::min(d1 * d1 * 1.2, std::ceil(d5 * 40.0) + 14.0);
 
-    // MC: 如果生物群系温度导致冰面会融化，减少高度
-    // FrozenOcean 的温度为 0.0，深海冻洋的温度也为 0.0
-    // 简化处理：冻洋有轻微融化效果
-    // 实际 MC 检查 biome.shouldMeltIce()，即 biome.getTemperature(pos, seaLevel) >= 0.15f 的一小部分区域
-    // 但 frozenOceanExtension 使用的是 biome.hasTemperatureAdjustment() 和温度噪声
-    // 简化为：不融化（因为只有 Frozen Ocean/Deep Frozen Ocean 才进入此函数）
+    // MC 1.21: SurfaceSystem.shouldMeltFrozenOceanIcebergSlightly()
+    // 检查生物群系温度是否 > 0.15，如果是则减少冰山高度 2.0
+    // FrozenOcean 的基础温度为 0.0，但温度噪声可以在部分区域使温度 > 0.15
+    const Biome& biome = BiomeRegistry::instance().get(biomeId);
+    if (biome.doesSnowGenerate(worldX, surfaceY, worldZ, m_seaLevel) == false) {
+        // 温度足够高使冰面融化，减少冰山高度
+        d6 -= 2.0;
+    }
 
     f64 icebergTop;
     f64 icebergBottom;
@@ -1486,7 +1490,8 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
                     localX,
                     localZ,
                     ctx.minSurfaceLevel(),
-                    biomeId == Biomes::DeepFrozenOcean);
+                    biomeId == Biomes::DeepFrozenOcean,
+                    biomeId);
             }
         }
     }

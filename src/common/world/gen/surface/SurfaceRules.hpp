@@ -597,7 +597,8 @@ private:
         i32 localX,
         i32 localZ,
         i32 minSurfaceLevel,
-        bool isColdOcean) const;
+        bool isColdOcean,
+        BiomeId biomeId) const;
 
     std::unique_ptr<SurfaceRule> m_surfaceRule;
     const BlockState* m_defaultBlock;
