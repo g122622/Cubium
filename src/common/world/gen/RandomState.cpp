@@ -56,24 +56,30 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
     // 创建 Climate::Sampler（从 NoiseRouter 的 6 个气候函数）
     state->m_sampler = std::make_unique<biome::climate::Sampler>(state->m_router->createClimateSampler());
 
+    // 创建 PositionalRandomFactory（必须在 SurfaceSystem 之前，因为 getOrCreateNoise 需要它）
+    // MC 1.21: RandomState 构造时从 worldSeed fork 出位置随机工厂
+    ::mc::math::Xoroshiro128ppRandom mainRng(worldSeed);
+    state->m_positionalRandom = std::make_unique<::mc::math::PositionalRandomFactory>(mainRng.forkPositional());
+
     // 创建 SurfaceSystem（根据维度选择表面规则）
+    // MC 1.21: 表面规则不再需要 seed — 噪声名称通过 RandomState 查找
     std::unique_ptr<surface::SurfaceRule> surfaceRule;
     switch (settings.dimensionKind) {
         case DimensionKind::End:
             surfaceRule = surface::SurfaceRules::end();
             break;
         case DimensionKind::Nether:
-            surfaceRule = surface::SurfaceRules::nether(worldSeed);
+            surfaceRule = surface::SurfaceRules::nether();
             break;
         case DimensionKind::Overworld:
         default:
-            surfaceRule = surface::SurfaceRules::overworld(worldSeed);
+            surfaceRule = surface::SurfaceRules::overworld();
             break;
     }
 
     if (surfaceRule) {
-        // MC 1.21: SurfaceSystem 构造接收 PositionalRandomFactory（noiseRandom）
-        // 由 RandomState.random（worldSeed forkPositional）创建
+        // MC 1.21: SurfaceSystem 构造接收 RandomState 和 PositionalRandomFactory
+        // SurfaceSystem 从 RandomState 获取噪声实例，PositionalRandomFactory 用于 getSurfaceDepth 和 clayBands
         ::mc::math::Xoroshiro128ppRandom surfaceRng(worldSeed);
         auto surfacePositionalRandom = surfaceRng.forkPositional();
 
@@ -83,14 +89,9 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
             settings.seaLevel,
             settings.noise.minY,
             settings.noise.height,
-            worldSeed,
+            *state,
             surfacePositionalRandom);
     }
-
-    // 创建 PositionalRandomFactory（含水层随机源）
-    // MC 1.21: RandomState 构造时从 worldSeed fork 出位置随机工厂
-    ::mc::math::Xoroshiro128ppRandom mainRng(worldSeed);
-    state->m_positionalRandom = std::make_unique<::mc::math::PositionalRandomFactory>(mainRng.forkPositional());
 
     // 含水层随机工厂
     // MC 1.21: RandomState 构造时从 noiseRandom.fromHashOf("minecraft:aquifer").forkPositional() 创建

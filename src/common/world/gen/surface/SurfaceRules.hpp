@@ -29,10 +29,15 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc::world::gen::density {
 class NoiseChunk;
+}
+
+namespace mc::world::gen {
+class RandomState;
 }
 
 namespace mc::world::gen::surface {
@@ -115,6 +120,7 @@ public:
      * @param clayBandsOffsetNoise 陶土带偏移噪声
      * @param noiseChunk NoiseChunk 引用，用于查询 preliminarySurfaceLevel
      * @param positionalRandom 位置随机工厂（MC: noiseRandom，用于 getSurfaceDepth 抖动和 clayBands 种子）
+     * @param randomState RandomState 引用，用于噪声名称查找和随机工厂查找
      * @param heightProvider 高度查询回调（用于 steep 条件）
      */
     SurfaceRuleContext(i32 seaLevel,
@@ -125,6 +131,7 @@ public:
         const world::gen::noise::NormalNoise* clayBandsOffsetNoise,
         const density::NoiseChunk& noiseChunk,
         const math::PositionalRandomFactory& positionalRandom,
+        world::gen::RandomState* randomState,
         HeightProvider heightProvider = nullptr);
 
     /** 更新 XZ 坐标（每列开始时调用） */
@@ -146,6 +153,7 @@ public:
     [[nodiscard]] i32 minY() const { return m_minY; }
     [[nodiscard]] i32 height() const { return m_height; }
     [[nodiscard]] BiomeId biome() const { return m_biome; }
+    [[nodiscard]] world::gen::RandomState* randomState() const { return m_randomState; }
 
     void setBiome(BiomeId biome) { m_biome = biome; }
 
@@ -191,6 +199,10 @@ private:
 
     /// 位置随机工厂（MC: noiseRandom），用于 getSurfaceDepth 抖动等
     const math::PositionalRandomFactory& m_positionalRandom;
+
+    /// RandomState 引用，用于噪声名称查找和随机工厂查找（MC 1.21）
+    /// 非const：NoiseThresholdCondition::test() 需要通过 getOrCreateNoise() 填充缓存
+    world::gen::RandomState* m_randomState;
 
     /// 高度查询回调（用于 steep 条件）
     HeightProvider m_heightProvider;
@@ -302,11 +314,13 @@ private:
     std::unique_ptr<SurfaceCondition> m_condition;
 };
 
-/** 噪声阈值条件（MC: NoiseThresholdConditionSource） */
+/** 噪声阈值条件（MC: NoiseThresholdConditionSource）
+ *  MC 1.21: 存储噪声名称，在 test() 时通过 RandomState 查找缓存实例。
+ */
 class NoiseThresholdCondition final : public SurfaceCondition {
 public:
-    NoiseThresholdCondition(u64 seed, i32 firstOctave, std::vector<f64> amplitudes, f64 minThreshold, f64 maxThreshold)
-        : m_noise(seed, firstOctave, std::move(amplitudes))
+    NoiseThresholdCondition(std::string noiseName, f64 minThreshold, f64 maxThreshold)
+        : m_noiseName(std::move(noiseName))
         , m_minThreshold(minThreshold)
         , m_maxThreshold(maxThreshold)
     {}
@@ -314,16 +328,18 @@ public:
     [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const override;
 
 private:
-    world::gen::noise::NormalNoise m_noise;
+    std::string m_noiseName;
     f64 m_minThreshold;
     f64 m_maxThreshold;
 };
 
-/** 垂直梯度条件（MC: VerticalGradientConditionSource）— 用于基岩层等 */
+/** 垂直梯度条件（MC: VerticalGradientConditionSource）— 用于基岩层等
+ *  MC 1.21: 存储随机工厂名称，通过 RandomState 查找 PositionalRandomFactory。
+ */
 class VerticalGradientCondition final : public SurfaceCondition {
 public:
-    VerticalGradientCondition(u64 seed, VerticalAnchor trueAtAndBelow, VerticalAnchor falseAtAndAbove)
-        : m_seed(seed)
+    VerticalGradientCondition(std::string randomName, VerticalAnchor trueAtAndBelow, VerticalAnchor falseAtAndAbove)
+        : m_randomName(std::move(randomName))
         , m_trueAtAndBelow(trueAtAndBelow)
         , m_falseAtAndAbove(falseAtAndAbove)
     {}
@@ -331,7 +347,7 @@ public:
     [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const override;
 
 private:
-    u64 m_seed;
+    std::string m_randomName;
     VerticalAnchor m_trueAtAndBelow;
     VerticalAnchor m_falseAtAndAbove;
 };
@@ -476,10 +492,10 @@ namespace SurfaceRules {
 [[nodiscard]] std::unique_ptr<SurfaceCondition> notCondition(std::unique_ptr<SurfaceCondition> condition);
 
 [[nodiscard]] std::unique_ptr<SurfaceCondition> noiseCondition(
-    u64 seed, i32 firstOctave, std::vector<f64> amplitudes, f64 minThreshold, f64 maxThreshold = 1e30);
+    std::string noiseName, f64 minThreshold, f64 maxThreshold = 1e30);
 
 [[nodiscard]] std::unique_ptr<SurfaceCondition> verticalGradient(
-    u64 seed, VerticalAnchor trueAtAndBelow, VerticalAnchor falseAtAndAbove);
+    std::string randomName, VerticalAnchor trueAtAndBelow, VerticalAnchor falseAtAndAbove);
 
 [[nodiscard]] std::unique_ptr<SurfaceCondition> steep();
 
@@ -513,10 +529,10 @@ template <typename... Rules>
 // ========== 维度规则树 ==========
 
 /** 创建主世界表面规则（MC 1.21 SurfaceRuleData.overworld()） */
-[[nodiscard]] std::unique_ptr<SurfaceRule> overworld(u64 seed);
+[[nodiscard]] std::unique_ptr<SurfaceRule> overworld();
 
 /** 创建下界表面规则 */
-[[nodiscard]] std::unique_ptr<SurfaceRule> nether(u64 seed);
+[[nodiscard]] std::unique_ptr<SurfaceRule> nether();
 
 /** 创建末地表面规则 */
 [[nodiscard]] std::unique_ptr<SurfaceRule> end();
@@ -537,7 +553,7 @@ public:
      * @param seaLevel 海平面高度
      * @param minY 世界最低 Y
      * @param height 世界高度
-     * @param seed 世界种子
+     * @param randomState RandomState 引用，用于噪声查找和随机工厂
      * @param positionalRandom 位置随机工厂（MC: noiseRandom，用于 getSurfaceDepth、clayBands、扩展等）
      */
     SurfaceSystem(std::unique_ptr<SurfaceRule> surfaceRule,
@@ -546,7 +562,7 @@ public:
         i32 seaLevel,
         i32 minY,
         i32 height,
-        u64 seed,
+        world::gen::RandomState& randomState,
         const math::PositionalRandomFactory& positionalRandom);
 
     /**
@@ -589,23 +605,25 @@ private:
     i32 m_seaLevel;
     i32 m_minY;
     i32 m_height;
-    u64 m_seed;
+
+    // MC 1.21: RandomState 引用，用于噪声查找
+    world::gen::RandomState& m_randomState;
 
     // 位置随机工厂（MC: noiseRandom）
     math::PositionalRandomFactory m_positionalRandom;
 
-    // 噪声生成器（用于 SurfaceRuleContext）
-    std::unique_ptr<world::gen::noise::NormalNoise> m_surfaceDepthNoise;
-    std::unique_ptr<world::gen::noise::NormalNoise> m_surfaceSecondaryNoise;
-    std::unique_ptr<world::gen::noise::NormalNoise> m_clayBandsOffsetNoise;
+    // MC 1.21: 噪声生成器（从 RandomState 获取，不拥有）
+    const world::gen::noise::NormalNoise* m_surfaceDepthNoise = nullptr;
+    const world::gen::noise::NormalNoise* m_surfaceSecondaryNoise = nullptr;
+    const world::gen::noise::NormalNoise* m_clayBandsOffsetNoise = nullptr;
 
-    // Badlands 和冰山噪声
-    std::unique_ptr<world::gen::noise::NormalNoise> m_badlandsPillarNoise;
-    std::unique_ptr<world::gen::noise::NormalNoise> m_badlandsPillarRoofNoise;
-    std::unique_ptr<world::gen::noise::NormalNoise> m_badlandsSurfaceNoise;
-    std::unique_ptr<world::gen::noise::NormalNoise> m_icebergPillarNoise;
-    std::unique_ptr<world::gen::noise::NormalNoise> m_icebergPillarRoofNoise;
-    std::unique_ptr<world::gen::noise::NormalNoise> m_icebergSurfaceNoise;
+    // Badlands 和冰山噪声（从 RandomState 获取，不拥有）
+    const world::gen::noise::NormalNoise* m_badlandsPillarNoise = nullptr;
+    const world::gen::noise::NormalNoise* m_badlandsPillarRoofNoise = nullptr;
+    const world::gen::noise::NormalNoise* m_badlandsSurfaceNoise = nullptr;
+    const world::gen::noise::NormalNoise* m_icebergPillarNoise = nullptr;
+    const world::gen::noise::NormalNoise* m_icebergPillarRoofNoise = nullptr;
+    const world::gen::noise::NormalNoise* m_icebergSurfaceNoise = nullptr;
 };
 
 } // namespace mc::world::gen::surface
