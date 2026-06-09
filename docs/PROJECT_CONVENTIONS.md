@@ -83,6 +83,59 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 
 ## 可复用基础设施
 
+这些文件/目录提供了大量丰富的基础设施以供复用，包括但不限于：
+
+```
+src/common/core/
+├── Types.hpp                    # 基础类型定义（i8/u8/f32等、游戏类型、枚举）
+├── Result.hpp                   # 错误处理系统（Result<T>、Error、ErrorCode）
+├── Result.cpp                   # Result 实现
+├── Constants.hpp                # 游戏常量（命名空间组织：game/network/world/entity/capacity）
+├── EnumSet.hpp                  # 枚举集合工具（基于 std::bitset）
+├── BlockRaycastResult.hpp       # 方块射线投射结果类型
+├── GameDirectory.hpp/cpp        # 游戏目录管理器（统一管理所有游戏路径）
+├── DefaultValues.hpp            # 集中默认值定义
+└── settings/                    # 设置系统
+    ├── SettingsBase.hpp/cpp     # 设置基类（JSON 持久化、变更通知）
+    ├── SettingsTypes.hpp        # 设置选项类型（Boolean/Range/Float/Enum/String）
+    └── ResourcePackListOption.hpp  # 资源包列表选项
+
+src/common/world/
+├── IWorld.hpp/cpp              # 世界访问接口
+├── IWorldWriter.hpp            # 世界写入接口（生成用）
+├── WorldConstants.hpp          # 世界常量和坐标转换工具，如世界高度限制、区块尺寸等
+├── WorldConfig.hpp             # 世界配置
+├── WorldEvents.hpp             # 世界事件ID常量
+├── GlobalPos.hpp               # 全局位置类型
+
+src/common/world/chunk/
+├── ChunkData.hpp/cpp              # 区块数据存储（ChunkSection、ChunkData、ChunkDataRef）
+├── ChunkId.hpp                    # 区块唯一标识符（包含维度）
+├── ChunkPos.hpp                   # 区块位置类型
+├── ChunkStatus.hpp/cpp            # 区块生成阶段定义
+├── IChunk.hpp/cpp                 # 区块接口和基础类型
+├── SectionPos.hpp                 # 区块段位置类型
+
+block/
+├── Block.hpp/cpp                   # 方块基类，定义核心属性和行为
+├── BlockState.hpp/cpp              # 方块状态类，不可变状态对象
+├── BlockPos.hpp                    # 方块位置坐标类
+├── BlockRegistry.hpp/cpp           # 方块注册表（单例）
+├── BlockSoundType.hpp/cpp          # 方块声音类型定义
+├── BlockTags.hpp/cpp               # 方块标签系统（分组判断）
+├── FireInfoRegistry.hpp/cpp        # 火焰信息注册表（燃烧/蔓延属性）
+├── HarvestTool.hpp                 # 挖掘工具类型定义
+├── IBeaconBeamColorProvider.hpp    # 信标光束颜色提供者接口
+├── IBucketPickupHandler.hpp        # 桶提取接口
+├── IGrowable.hpp                   # 可生长方块接口
+├── ILiquidContainer.hpp            # 液体容器接口
+├── IWaterLoggable.hpp/cpp          # 含水方块接口
+├── Material.hpp/cpp                # 材质系统（物理属性）
+├── PlantType.hpp                   # 植物类型定义
+├── WaterLoggableHelpers.hpp        # 含水方块工具函数
+
+```
+
 以下列出了项目中可复用的基础类型、工具类和系统组件，应在开发时优先使用。
 
 ### 数学工具
@@ -313,41 +366,11 @@ tag.put("value", 42);
 auto& str = tag.get<mc::nbt::tags::string_tag>("name");
 ```
 
-### 服务器/客户端架构 (`src/server/`, `src/client/`)
-
-**服务器端**
-- `IServer` - 服务器接口
-- `MinecraftServer` - 服务器抽象基类
-- `IntegratedServer` - 内置服务器（单机模式）
-- `StandaloneServer` - 独立服务器（多人模式）
-- `ServerWorld` - 服务端世界管理器
-- `ServerPlayer` - 服务端玩家实体
-
-**客户端端**
-- `ClientApplication` - 客户端应用主类
-- `ClientWorld` - 客户端世界管理器
-- `NetworkClient` - 网络客户端
-- `ClientPlayerPredictor` - 客户端玩家预测器
-
-**管理器** (`src/server/core/`)
-- `PlayerManager` - 玩家管理
-- `ConnectionManager` - 连接管理
-- `TimeManager` - 时间管理
-- `TeleportManager` - 传送管理
-- `KeepAliveManager` - 心跳管理
-- `PositionTracker` - 位置追踪
-- `PacketHandler` - 数据包处理
-
 ### 性能追踪（Perfetto）
 
 ### 追踪类别
 
-- `rendering.*` - 帧、Vulkan、区块网格、实体、GUI、天空等
-- `game.*` - Tick、实体、物理、AI
-- `world.*` - 区块、生物群系、生成阶段
-- `network.*` - 数据包、同步、连接
-- `server.*` - 服务器 tick、玩家、世界、实体
-- 更多类别，参见 `src\common\perfetto\TraceCategories.hpp`
+追踪类别参见 `src\common\perfetto\TraceCategories.hpp`，你只能使用这个文件中定义好的类别。
 
 ### 用法
 
@@ -394,18 +417,7 @@ if (result.success()) {
 }
 ```
 
-### 错误码
-
-| 类别 | 错误码 |
-|------|--------|
-| 通用 | Unknown, InvalidArgument, NullPointer, OutOfRange, Overflow, OutOfBounds, InvalidState, InvalidData, NotInitialized |
-| 资源 | NotFound, AlreadyExists, ResourceExhausted, OutOfMemory |
-| 文件 | FileNotFound, FileOpenFailed, FileReadFailed, FileWriteFailed, FileCorrupted, DecompressionFailed |
-| 网络 | ConnectionFailed, ConnectionClosed, ConnectionTimeout, InvalidPacket, ProtocolError |
-| 游戏 | InvalidBlock, InvalidItem, InvalidEntity, InvalidPlayer, InvalidWorld |
-| 渲染 | InitializationFailed, OperationFailed, CapacityExceeded, Unsupported |
-| 权限 | PermissionDenied, Unauthorized |
-| 资源包 | ResourcePackNotFound, ResourcePackInvalid, ResourceNotFound, ResourceParseError, TextureLoadFailed, TextureAtlasFull, ModelNotFound, BlockStateNotFound |
+若要使用错误码，必须参照相关定义文件。
 
 ## 断言库
 
@@ -429,17 +441,11 @@ MC_UNUSED(unusedParam);
 
 ## 依赖项
 
-通过 vcpkg 管理：
-- **glm** - 数学库
 - **spdlog** - 日志。注意：spdlog::debug和spdlog::trace的日志级别不允许使用，它们会降低性能。只允许用info以及以上级别的日志。
 - **nlohmann-json** - JSON 解析
-- **glfw3** - 窗口/输入
-- **Vulkan** - 图形 API
-- **VulkanMemoryAllocator** - GPU 内存管理
 - **asio** - 网络（异步 I/O）
 - **GTest** - 测试框架
 - **stb** - 图像加载
-- **perfetto** - 性能追踪
 
 ## 随机模块
 
