@@ -21,6 +21,9 @@
  */
 
 #include "BlockPredicate.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 
@@ -40,11 +43,14 @@ bool SolidBlockPredicate::test(const IWorld& world, const BlockPos& pos) const
 
 bool HasSturdyFacePredicate::test(const IWorld& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlockState(pos);
+    BlockPos checkPos = pos + m_offset;
+    const BlockState* state = world.getBlockState(checkPos);
     if (state == nullptr) {
         return false;
     }
-    return state->isSolid();
+    // hasSturdyFace 检查方块自身某面是否坚固
+    // isSolidSide 检查的是从 side 方向看该面是否坚固，因此需要取反方向
+    return state->isSolidSide(const_cast<IWorld&>(world), checkPos, Directions::opposite(m_direction));
 }
 
 bool MatchingBlockPredicate::test(const IWorld& world, const BlockPos& pos) const
@@ -83,6 +89,117 @@ bool EnvironmentScanPredicate::scan(const IWorld& world, BlockPos& startPos) con
         current = current.offset(m_direction);
     }
     return false;
+}
+
+// ============================================================================
+// AllOfPredicate
+// ============================================================================
+
+bool AllOfPredicate::test(const IWorld& world, const BlockPos& pos) const
+{
+    for (const auto& pred : m_predicates) {
+        if (!pred->test(world, pos)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::unique_ptr<BlockPredicate> AllOfPredicate::clone() const
+{
+    std::vector<std::unique_ptr<BlockPredicate>> cloned;
+    cloned.reserve(m_predicates.size());
+    for (const auto& pred : m_predicates) {
+        cloned.push_back(pred->clone());
+    }
+    return std::make_unique<AllOfPredicate>(std::move(cloned));
+}
+
+// ============================================================================
+// AnyOfPredicate
+// ============================================================================
+
+bool AnyOfPredicate::test(const IWorld& world, const BlockPos& pos) const
+{
+    for (const auto& pred : m_predicates) {
+        if (pred->test(world, pos)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::unique_ptr<BlockPredicate> AnyOfPredicate::clone() const
+{
+    std::vector<std::unique_ptr<BlockPredicate>> cloned;
+    cloned.reserve(m_predicates.size());
+    for (const auto& pred : m_predicates) {
+        cloned.push_back(pred->clone());
+    }
+    return std::make_unique<AnyOfPredicate>(std::move(cloned));
+}
+
+// ============================================================================
+// NotPredicate
+// ============================================================================
+
+bool NotPredicate::test(const IWorld& world, const BlockPos& pos) const
+{
+    return !m_predicate->test(world, pos);
+}
+
+std::unique_ptr<BlockPredicate> NotPredicate::clone() const
+{
+    return std::make_unique<NotPredicate>(m_predicate->clone());
+}
+
+// ============================================================================
+// ReplaceablePredicate
+// ============================================================================
+
+bool ReplaceablePredicate::test(const IWorld& world, const BlockPos& pos) const
+{
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr) {
+        return true;
+    }
+    // TODO: BlockState 缺少 canBeReplaced / canBeReplacedByFluid 方法，
+    // 暂时使用 isAir() || getMaterial().isReplaceable() 作为近似实现
+    return state->isAir() || state->getMaterial().isReplaceable();
+}
+
+// ============================================================================
+// WouldSurvivePredicate
+// ============================================================================
+
+bool WouldSurvivePredicate::test(const IWorld& world, const BlockPos& pos) const
+{
+    if (m_state == nullptr) {
+        return false;
+    }
+    BlockPos checkPos = pos + m_offset;
+    // isValidPosition 接收 IBlockReader&（继承自 IWorld），需要 const_cast + static_cast
+    auto& blockReader = static_cast<IBlockReader&>(const_cast<IWorld&>(world));
+    return m_state->getBlock().isValidPosition(*m_state, blockReader, checkPos);
+}
+
+// ============================================================================
+// InsideWorldBoundsPredicate
+// ============================================================================
+
+bool InsideWorldBoundsPredicate::test(const IWorld& /*world*/, const BlockPos& pos) const
+{
+    return pos.y >= mc::world::MIN_BUILD_HEIGHT && pos.y < mc::world::MAX_BUILD_HEIGHT;
+}
+
+// ============================================================================
+// OnlyInAirOrWaterPredicate
+// ============================================================================
+
+bool OnlyInAirOrWaterPredicate::test(const IWorld& world, const BlockPos& pos) const
+{
+    const BlockState* state = world.getBlockState(pos);
+    return state == nullptr || state->isAir() || state->isLiquid();
 }
 
 } // namespace mc::world::gen::feature::predicate

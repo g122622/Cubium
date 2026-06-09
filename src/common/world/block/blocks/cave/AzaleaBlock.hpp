@@ -31,11 +31,12 @@ namespace blocks {
 /**
  * @brief 杜鹃花丛方块
  *
- * 生长在苔藓上的装饰性植物，可以种植在泥土和苔藓上。
- * 使用骨粉可以使其生长为杜鹃树。
- * 碰撞箱比普通方块略小。
+ * MC 1.21.11: 继承自 VegetationBlock，只能种植在黏土或可种植面上。
+ * 碰撞箱为双层：上半部分16x8像素 + 底部茎干4x8像素。
+ * 骨粉效果：45%概率生长为杜鹃树。
+ * isValidBonemealTarget 检查上方无流体。
  *
- * 参考: net.minecraft.block.AzaleaBlock
+ * 参考: net.minecraft.world.level.block.AzaleaBlock (MC 1.21.11)
  */
 class AzaleaBlock : public Block, public IGrowable {
 public:
@@ -45,24 +46,44 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
+    /**
+     * @brief 检查是否可以放置
+     *
+     * MC 1.21.11: mayPlaceOn 检查下方是黏土或可种植面
+     */
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
     // ========== IGrowable 接口 ==========
 
     /**
-     * @brief 杜鹃花丛始终可以生长
+     * @brief 检查骨粉是否可用
+     *
+     * MC 1.21.11: isValidBonemealTarget 检查上方无流体
      */
     [[nodiscard]] bool canGrow(
         IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
 
     /**
-     * @brief 骨粉45%概率有效（MC源码：random.nextInt(5) == 0）
+     * @brief 骨粉是否成功（45%概率）
+     *
+     * MC 1.21.11: isBonemealSuccess 返回 random.nextFloat() < 0.45
      */
     [[nodiscard]] bool canUseBonemeal(
         IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
 
     /**
-     * @brief 在上方放置杜鹃树
+     * @brief 生长为杜鹃树
      */
     void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
+
+protected:
+    /**
+     * @brief 检查下方方块是否适合种植杜鹃花
+     *
+     * MC 1.21.11: mayPlaceOn 检查 CLAY 或 super.mayPlaceOn
+     */
+    [[nodiscard]] virtual bool mayPlaceOn(const BlockState& state, IBlockReader& world, const BlockPos& pos) const;
 
 private:
     CollisionShape m_shape;
@@ -71,31 +92,16 @@ private:
 /**
  * @brief 开花的杜鹃花丛方块
  *
- * 杜鹃花丛的开花变体，会开出粉红色的花朵。
  * 与普通杜鹃花丛功能相同，但具有不同的外观。
+ * 碰撞箱与 AzaleaBlock 相同。
  *
- * 参考: net.minecraft.block.FloweringAzaleaBlock
+ * 参考: net.minecraft.world.level.block.FloweringAzaleaBlock (MC 1.21.11)
  */
-class FloweringAzaleaBlock : public Block, public IGrowable {
+class FloweringAzaleaBlock : public AzaleaBlock {
 public:
     explicit FloweringAzaleaBlock(const BlockProperties& properties);
 
     ~FloweringAzaleaBlock() override = default;
-
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    // ========== IGrowable 接口 ==========
-
-    [[nodiscard]] bool canGrow(
-        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
-
-    [[nodiscard]] bool canUseBonemeal(
-        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
-
-    void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
-
-private:
-    CollisionShape m_shape;
 };
 
 } // namespace blocks

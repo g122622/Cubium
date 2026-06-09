@@ -110,6 +110,7 @@ struct VegetationPatchConfig {
  * @brief 方块柱层配置
  *
  * 定义方块柱的一层（高度+方块状态）。
+ * 支持固定方块状态和加权随机方块状态提供者。
  *
  * 参考: net.minecraft.world.level.levelgen.feature.configurations.BlockColumnConfiguration.Layer
  */
@@ -117,14 +118,35 @@ struct BlockColumnLayer {
     /// 层高度提供者
     std::unique_ptr<valueprovider::IntProvider> height;
 
-    /// 层方块状态提供者
+    /// 层方块状态（固定状态，当 stateProvider 为空时使用）
     const BlockState* state = nullptr;
+
+    /// 层方块状态提供者（加权随机，优先于 state）
+    std::unique_ptr<state::WeightedBlockStateProvider> stateProvider;
 
     BlockColumnLayer() = default;
     BlockColumnLayer(std::unique_ptr<valueprovider::IntProvider> h, const BlockState* s)
         : height(std::move(h))
         , state(s)
     {}
+    BlockColumnLayer(
+        std::unique_ptr<valueprovider::IntProvider> h, std::unique_ptr<state::WeightedBlockStateProvider> sp)
+        : height(std::move(h))
+        , stateProvider(std::move(sp))
+    {}
+
+    /**
+     * @brief 获取当前层在指定位置的方块状态
+     *
+     * 如果有 stateProvider 则使用随机选择，否则返回固定 state
+     */
+    [[nodiscard]] const BlockState* getState(math::IRandom& rng) const
+    {
+        if (stateProvider && !stateProvider->empty()) {
+            return stateProvider->getState(rng);
+        }
+        return state;
+    }
 };
 
 /**

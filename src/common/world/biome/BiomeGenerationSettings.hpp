@@ -72,6 +72,17 @@ public:
     [[nodiscard]] bool hasFeatures() const noexcept;
 
     /**
+     * @brief 检查是否包含指定特征ID
+     *
+     * 遍历所有装饰阶段的特征列表，查找是否存在匹配的特征ID。
+     * 用于 BiomeFilterPlacement 的反向查询。
+     *
+     * @param featureId 特征ID
+     * @return 是否包含该特征
+     */
+    [[nodiscard]] bool hasFeature(u32 featureId) const noexcept;
+
+    /**
      * @brief 清除所有特征和雕刻器
      */
     void clear() noexcept;

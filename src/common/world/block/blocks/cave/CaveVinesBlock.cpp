@@ -14,10 +14,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 #include "CaveVinesBlock.hpp"
@@ -29,9 +29,15 @@
 namespace mc {
 namespace blocks {
 
+using namespace mc; // Bring BlockStateProperties into scope
+
 CaveVinesBlock::CaveVinesBlock(const BlockProperties& properties)
-    : Block(properties)
-    , m_shape(CollisionShape::fromPixelBox(1, 0, 1, 15, 16, 15))
+    : GrowingPlantHeadBlock(properties,
+          Direction::Down,
+          CollisionShape::fromPixelBox(1, 0, 1, 15, 16, 15),
+          0.1f // MC 1.21.11: growPerTickProbability = 0.1 (10%)
+          )
+    , IGrowable()
 {
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
@@ -55,42 +61,37 @@ void CaveVinesBlock::fillStateContainer(StateContainer<Block, BlockState>& conta
     MC_UNUSED(container);
 }
 
-const CollisionShape& CaveVinesBlock::getShape(const BlockState& state) const
+const Block* CaveVinesBlock::getHeadBlock() const
 {
-    MC_UNUSED(state);
-    return m_shape;
+    return VanillaBlocks::CAVE_VINES;
 }
 
-void CaveVinesBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+const Block* CaveVinesBlock::getBodyBlock() const
 {
-    i32 age = static_cast<i32>(state.get(BlockStateProperties::AGE_0_25()));
+    return VanillaBlocks::CAVE_VINES_PLANT;
+}
 
-    // 已达最大年龄则不再生长
-    if (age >= MAX_AGE) {
-        return;
+BlockState CaveVinesBlock::getGrowIntoState(
+    IWorld& world, const BlockPos& pos, BlockState& currentState, math::IRandom& random)
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+
+    // 新生长的头部：年龄递增 + 11%概率有浆果
+    const i32 age = getAge(currentState);
+    const bool hasBerries = random.nextFloat() < CHANCE_OF_BERRIES_ON_GROWTH;
+    return withAge(age + 1).with(BlockStateProperties::BERRIES(), hasBerries);
+}
+
+BlockState CaveVinesBlock::updateBodyAfterConvertedFromHead(const BlockState& headState) const
+{
+    // 当头部变成身体时，传递 BERRIES 状态
+    const Block* bodyBlock = getBodyBlock();
+    if (bodyBlock) {
+        return bodyBlock->defaultState().with(
+            BlockStateProperties::BERRIES(), headState.get(BlockStateProperties::BERRIES()));
     }
-
-    // 11%概率生长（MC源码：random.nextInt(9) == 0）
-    if (random.nextInt(9) != 0) {
-        return;
-    }
-
-    // 检查下方是否有空间生长
-    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos);
-    if (belowState == nullptr || !belowState->isAir()) {
-        return;
-    }
-
-    // 在下方放置洞穴藤蔓植物体（CaveVinesPlantBlock）
-    const BlockState& plantState = VanillaBlocks::CAVE_VINES_PLANT->defaultState().with(
-        BlockStateProperties::BERRIES(), state.get(BlockStateProperties::BERRIES()));
-    world.setBlockState(belowPos, &plantState, 3);
-
-    // 当前尖端增长年龄，且重置浆果状态
-    const BlockState& newState =
-        state.with(BlockStateProperties::AGE_0_25(), age + 1).with(BlockStateProperties::BERRIES(), false);
-    world.setBlockState(pos, &newState, 3);
+    return headState;
 }
 
 bool CaveVinesBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
@@ -98,8 +99,9 @@ bool CaveVinesBlock::canGrow(IBlockReader& world, const BlockPos& pos, const Blo
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(isClientSide);
-    i32 age = static_cast<i32>(state.get(BlockStateProperties::AGE_0_25()));
-    return age < MAX_AGE;
+    // MC 1.21.11: CaveVines canGrow 检查 !hasBerries，而不是年龄
+    // 骨粉的效果是让藤蔓长出浆果
+    return !state.get(BlockStateProperties::BERRIES());
 }
 
 bool CaveVinesBlock::canUseBonemeal(
@@ -115,15 +117,11 @@ bool CaveVinesBlock::canUseBonemeal(
 void CaveVinesBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state)
 {
     MC_UNUSED(random);
-
-    i32 age = static_cast<i32>(state.get(BlockStateProperties::AGE_0_25()));
-    if (age >= MAX_AGE) {
-        return;
+    // MC 1.21.11: 骨粉对洞穴藤蔓的效果是设置 BERRIES=true
+    if (!state.get(BlockStateProperties::BERRIES())) {
+        const BlockState& newState = state.with(BlockStateProperties::BERRIES(), true);
+        world.setBlockState(pos, &newState, 3);
     }
-
-    // 骨粉直接生长到最大年龄
-    const BlockState& newState = state.with(BlockStateProperties::AGE_0_25(), MAX_AGE);
-    world.setBlockState(pos, &newState, 3);
 }
 
 ActionResultType CaveVinesBlock::onBlockActivated(const BlockState& state,
@@ -146,11 +144,6 @@ ActionResultType CaveVinesBlock::onBlockActivated(const BlockState& state,
     }
 
     return ActionResultType::Pass;
-}
-
-bool CaveVinesBlock::_hasBerries(const BlockState& state)
-{
-    return state.get(BlockStateProperties::BERRIES());
 }
 
 } // namespace blocks

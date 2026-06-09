@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "BiomeFilterPlacement.hpp"
+#include "EnvironmentScanPlacement.hpp"
 #include "Placement.hpp"
 #include "Placements.hpp"
 #include <memory>
@@ -182,6 +184,21 @@ std::unique_ptr<Placement> seaLevel();
  * @brief 创建扩散放置器
  */
 std::unique_ptr<Placement> spread();
+
+/**
+ * @brief 创建生物群系过滤放置器
+ *
+ * 检查当前位置生物群系的生成设置中是否包含当前特征。
+ */
+std::unique_ptr<Placement> biomeFilter();
+
+/**
+ * @brief 创建环境扫描放置器
+ *
+ * 参考 MC 1.21.11: EnvironmentScanPlacement
+ * 沿指定方向扫描，寻找满足目标条件的位置。
+ */
+std::unique_ptr<Placement> environmentScan();
 
 } // namespace Placements
 

@@ -212,16 +212,15 @@ std::vector<BlockPos> CarvingMaskPlacement::getPositions(
 std::vector<BlockPos> RandomOffsetPlacement::getPositions(
     WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
+    (void)region;
     const auto* offsetConfig = dynamic_cast<const RandomOffsetConfig*>(&config);
-    if (!offsetConfig) {
+    if (!offsetConfig || !offsetConfig->xzSpread || !offsetConfig->ySpread) {
         return {basePos};
     }
 
-    (void)region;
-
-    i32 dx = random.nextInt(offsetConfig->xzSpread * 2) - offsetConfig->xzSpread;
-    i32 dy = random.nextInt(offsetConfig->ySpread * 2) - offsetConfig->ySpread;
-    i32 dz = random.nextInt(offsetConfig->xzSpread * 2) - offsetConfig->xzSpread;
+    i32 dx = offsetConfig->xzSpread->sample(random);
+    i32 dy = offsetConfig->ySpread->sample(random);
+    i32 dz = offsetConfig->xzSpread->sample(random);
 
     std::vector<BlockPos> positions;
     positions.emplace_back(basePos.x + dx, basePos.y + dy, basePos.z + dz);

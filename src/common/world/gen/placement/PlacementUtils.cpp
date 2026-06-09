@@ -22,9 +22,31 @@
  */
 
 #include "PlacementUtils.hpp"
+#include "Placements.hpp"
+#include "common/world/gen/feature/predicate/BlockPredicate.hpp"
 
 namespace mc {
+
+namespace predicate = world::gen::feature::predicate;
+
 namespace PlacementUtils {
+
+namespace {
+
+/** 在放置链末尾追加一个配置化放置器 */
+void appendToEnd(ConfiguredPlacement& root, std::unique_ptr<ConfiguredPlacement> next)
+{
+    if (!next) {
+        return;
+    }
+    ConfiguredPlacement* current = &root;
+    while (current->next() != nullptr) {
+        current = current->next();
+    }
+    current->setNext(std::move(next));
+}
+
+} // namespace
 
 std::unique_ptr<ConfiguredPlacement> appendBiomePlacement(
     std::unique_ptr<ConfiguredPlacement> root, std::vector<u32> allowedBiomes)
@@ -36,11 +58,69 @@ std::unique_ptr<ConfiguredPlacement> appendBiomePlacement(
     auto biomeConfigured = std::make_unique<ConfiguredPlacement>(
         std::make_unique<BiomePlacement>(), std::make_unique<BiomePlacementConfig>(std::move(allowedBiomes)));
 
-    ConfiguredPlacement* current = root.get();
-    while (current->next() != nullptr) {
-        current = current->next();
+    appendToEnd(*root, std::move(biomeConfigured));
+    return root;
+}
+
+std::unique_ptr<ConfiguredPlacement> appendBiomeFilter(std::unique_ptr<ConfiguredPlacement> root, u32 featureId)
+{
+    if (!root) {
+        return root;
     }
-    current->setNext(std::move(biomeConfigured));
+
+    auto filterConfigured = std::make_unique<ConfiguredPlacement>(
+        std::make_unique<BiomeFilterPlacement>(), std::make_unique<BiomeFilterConfig>(featureId));
+
+    appendToEnd(*root, std::move(filterConfigured));
+    return root;
+}
+
+std::unique_ptr<ConfiguredPlacement> appendEnvironmentScanUp(std::unique_ptr<ConfiguredPlacement> root, i32 maxSteps)
+{
+    if (!root) {
+        return root;
+    }
+
+    auto config = std::make_unique<EnvironmentScanConfig>(Direction::Up,
+        std::make_unique<predicate::HasSturdyFacePredicate>(Direction::Down),
+        std::make_unique<predicate::OnlyInAirPredicate>(),
+        maxSteps);
+
+    auto scanConfigured =
+        std::make_unique<ConfiguredPlacement>(std::make_unique<EnvironmentScanPlacement>(), std::move(config));
+
+    appendToEnd(*root, std::move(scanConfigured));
+    return root;
+}
+
+std::unique_ptr<ConfiguredPlacement> appendEnvironmentScanDown(std::unique_ptr<ConfiguredPlacement> root, i32 maxSteps)
+{
+    if (!root) {
+        return root;
+    }
+
+    auto config = std::make_unique<EnvironmentScanConfig>(Direction::Down,
+        std::make_unique<predicate::HasSturdyFacePredicate>(Direction::Up),
+        std::make_unique<predicate::OnlyInAirPredicate>(),
+        maxSteps);
+
+    auto scanConfigured =
+        std::make_unique<ConfiguredPlacement>(std::make_unique<EnvironmentScanPlacement>(), std::move(config));
+
+    appendToEnd(*root, std::move(scanConfigured));
+    return root;
+}
+
+std::unique_ptr<ConfiguredPlacement> appendVerticalOffset(std::unique_ptr<ConfiguredPlacement> root, i32 offset)
+{
+    if (!root) {
+        return root;
+    }
+
+    auto offsetConfigured = std::make_unique<ConfiguredPlacement>(
+        std::make_unique<RandomOffsetPlacement>(), RandomOffsetConfig::vertical(offset));
+
+    appendToEnd(*root, std::move(offsetConfigured));
     return root;
 }
 

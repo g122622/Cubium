@@ -31,12 +31,10 @@ namespace blocks {
  * @brief 孢子花方块
  *
  * 一种悬挂在天花板上的装饰性植物，会向下滴落孢子粒子。
- * 只能放置在天花板下方（上方必须有坚固面的方块）。
- * 客户端会生成两种粒子效果：
- * - falling_spore_blossom: 从花正下方掉落的粒子
- * - spore_blossom_air: 在花周围21x10x21区域内漂浮的粒子
+ * 只能放置在天花板下方（上方方块必须有向下的坚固面），且不能放置在水中。
+ * 当上方支撑丢失时自动脱落变为空气。
  *
- * 参考: net.minecraft.block.SporeBlossomBlock
+ * 参考: net.minecraft.world.level.block.SporeBlossomBlock (MC 1.21.11)
  */
 class SporeBlossomBlock : public Block {
 public:
@@ -55,26 +53,30 @@ public:
     /**
      * @brief 检查是否可以放置在指定位置
      *
-     * 孢子花只能放置在上方有坚固面的方块下方
+     * MC 1.21.11: canSupportCenter(world, above, DOWN) && !isWaterAt(pos)
+     * 上方方块必须有向下的坚固面（isSolidSide），且当前位置不在水中
      */
     [[nodiscard]] bool isValidPosition(
         const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     /**
+     * @brief 邻居方块更新时检查支撑
+     *
+     * MC 1.21.11: 当上方方块变化时，如果不再满足 canSurvive 则变为空气
+     */
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
+
+    /**
      * @brief 客户端方块动画 tick
      *
-     * 在客户端每 tick 调用，用于生成孢子花粒子效果。
-     * 生成两种粒子：
+     * MC 1.21.11: 生成两种粒子效果：
      * - falling_spore_blossom: 从花正下方掉落的绿色孢子粒子
-     * - spore_blossom_air: 在花周围漂浮的环境粒子
-     *
-     * 注意：此方法需要由客户端 animateTick 系统调用，
-     * 当前该系统尚未实现，因此粒子暂不会自动生成。
-     *
-     * @param world 世界实例
-     * @param pos 方块位置
-     * @param state 方块状态
-     * @param random 随机数生成器
+     * - spore_blossom_air: 在花周围10格半径内漂浮的环境粒子（14次尝试）
      */
     void animateTick(IWorld& world, const BlockPos& pos, const BlockState& state, math::IRandom& random);
 

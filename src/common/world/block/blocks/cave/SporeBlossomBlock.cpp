@@ -14,16 +14,18 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE ON AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 #include "SporeBlossomBlock.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -43,41 +45,67 @@ bool SporeBlossomBlock::isValidPosition(const BlockState& state, IBlockReader& w
 {
     MC_UNUSED(state);
 
-    // 检查上方是否有坚固面的方块
-    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    // MC 1.21.11: canSupportCenter(world, above, DOWN) && !isWaterAt(pos)
+    // 上方方块必须有向下的坚固面，且当前位置不在水中
+    const BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
-    if (aboveState == nullptr) {
+    if (!aboveState) {
         return false;
     }
 
-    // 上方方块必须是实心的（有向下的坚固面）
-    return aboveState->isSolid();
+    if (!aboveState->isSolidSide(world, abovePos, Direction::Down)) {
+        return false;
+    }
+
+    return !world.isWaterAt(pos);
+}
+
+BlockState SporeBlossomBlock::updatePostPlacement(const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos)
+{
+    // MC 1.21.11: 当上方方块变化时，如果不再满足 canSurvive 则变为空气
+    if (facing == Direction::Up && !isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
+        // 返回空气方块默认状态
+        if (auto* airBlock = VanillaBlocks::AIR) {
+            return airBlock->defaultState();
+        }
+        return Block::defaultState();
+    }
+    return Block::updatePostPlacement(state, facing, facingState, world, currentPos, facingPos);
 }
 
 void SporeBlossomBlock::animateTick(IWorld& world, const BlockPos& pos, const BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(state);
 
-    // 生成掉落孢子粒子：从花正下方掉落
-    // MC中每tick 2个粒子概率掉落
-    if (random.nextInt(5) == 0) {
-        f32 x = static_cast<f32>(pos.x) + 0.5f + (random.nextFloat() - 0.5f) * 0.8f;
-        f32 y = static_cast<f32>(pos.y) - 0.1f;
-        f32 z = static_cast<f32>(pos.z) + 0.5f + (random.nextFloat() - 0.5f) * 0.8f;
-        world.addParticle(client::renderer::trident::particle::ParticleTypeId::FallingSporeBlossom,
-            Vector3(x, y, z),
-            Vector3(0.0f, -0.01f, 0.0f));
-    }
+    // MC 1.21.11 对齐：falling_spore_blossom 粒子从花底部中心附近掉落
+    const f32 x = static_cast<f32>(pos.x) + 0.5f + (random.nextFloat() - 0.5f) * 0.8f;
+    const f32 y = static_cast<f32>(pos.y) + 0.7f;
+    const f32 z = static_cast<f32>(pos.z) + 0.5f + (random.nextFloat() - 0.5f) * 0.8f;
+    world.addParticle(client::renderer::trident::particle::ParticleTypeId::FallingSporeBlossom,
+        Vector3(x, y, z),
+        Vector3(0.0f, 0.0f, 0.0f));
 
-    // 生成空气漂浮粒子：在花周围21x10x21区域内漂浮
-    if (random.nextInt(10) == 0) {
-        // 在花下方 1-10 格、水平 10 格范围内随机位置
-        f32 x = static_cast<f32>(pos.x) + random.nextFloat() * 21.0f - 10.0f;
-        f32 y = static_cast<f32>(pos.y) - random.nextFloat() * 10.0f;
-        f32 z = static_cast<f32>(pos.z) + random.nextFloat() * 21.0f - 10.0f;
-        world.addParticle(client::renderer::trident::particle::ParticleTypeId::SporeBlossomAir,
-            Vector3(x, y, z),
-            Vector3(0.0f, 0.0f, 0.0f));
+    // MC 1.21.11 对齐：spore_blossom_air 粒子在花周围尝试14次
+    // 在 xz[-10,10] y[-10,0] 范围内随机选点，只在非完整碰撞箱的位置生成
+    for (int i = 0; i < 14; ++i) {
+        const int px = pos.x + random.nextInt(21) - 10;
+        const int py = pos.y - random.nextInt(10);
+        const int pz = pos.z + random.nextInt(21) - 10;
+        const BlockPos particlePos(px, py, pz);
+        const BlockState* blockState = world.getBlockState(particlePos);
+        if (blockState && !blockState->isSolid()) {
+            const f32 ppx = static_cast<f32>(px) + random.nextFloat();
+            const f32 ppy = static_cast<f32>(py) + random.nextFloat();
+            const f32 ppz = static_cast<f32>(pz) + random.nextFloat();
+            world.addParticle(client::renderer::trident::particle::ParticleTypeId::SporeBlossomAir,
+                Vector3(ppx, ppy, ppz),
+                Vector3(0.0f, 0.0f, 0.0f));
+        }
     }
 }
 

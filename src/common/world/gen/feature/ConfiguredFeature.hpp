@@ -73,6 +73,22 @@ public:
      * @brief 获取装饰阶段
      */
     [[nodiscard]] virtual DecorationStage stage() const = 0;
+
+    /**
+     * @brief 获取特征ID
+     *
+     * 由 FeatureRegistry 在注册时自动赋值。
+     * 用于 BiomeFilterPlacement 反向查询生物群系是否包含此特征。
+     */
+    [[nodiscard]] u32 featureId() const noexcept { return m_featureId; }
+
+    /**
+     * @brief 设置特征ID（仅由 FeatureRegistry 调用）
+     */
+    void setFeatureId(u32 id) noexcept { m_featureId = id; }
+
+private:
+    u32 m_featureId = 0;
 };
 
 /**

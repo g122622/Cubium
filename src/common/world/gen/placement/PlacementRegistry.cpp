@@ -59,6 +59,8 @@ void PlacementRegistry::initialize()
     registerPlacement("water_depth_threshold", Placements::waterDepthThreshold());
     registerPlacement("sea_level", Placements::seaLevel());
     registerPlacement("spread", Placements::spread());
+    registerPlacement("biome_filter", Placements::biomeFilter());
+    registerPlacement("environment_scan", Placements::environmentScan());
 
     m_initialized = true;
 }
@@ -177,6 +179,16 @@ std::unique_ptr<Placement> seaLevel()
 std::unique_ptr<Placement> spread()
 {
     return std::make_unique<SpreadPlacement>();
+}
+
+std::unique_ptr<Placement> biomeFilter()
+{
+    return std::make_unique<BiomeFilterPlacement>();
+}
+
+std::unique_ptr<Placement> environmentScan()
+{
+    return std::make_unique<EnvironmentScanPlacement>();
 }
 
 } // namespace Placements

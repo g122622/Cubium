@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "BiomeFilterPlacement.hpp"
+#include "EnvironmentScanPlacement.hpp"
 #include "Placement.hpp"
 #include <memory>
 #include <vector>
@@ -37,7 +39,7 @@ namespace mc {
 namespace PlacementUtils {
 
 /**
- * @brief 在放置链末尾添加生物群系过滤
+ * @brief 在放置链末尾添加生物群系过滤（白名单模式）
  *
  * @param root 放置链根节点
  * @param allowedBiomes 允许的生物群系ID列表
@@ -45,6 +47,56 @@ namespace PlacementUtils {
  */
 [[nodiscard]] std::unique_ptr<ConfiguredPlacement> appendBiomePlacement(
     std::unique_ptr<ConfiguredPlacement> root, std::vector<u32> allowedBiomes);
+
+/**
+ * @brief 在放置链末尾添加生物群系过滤（原版 BiomeFilter 模式）
+ *
+ * 通过反向查询生物群系的生成设置判断是否允许放置。
+ *
+ * @param root 放置链根节点
+ * @param featureId 当前配置化特征的ID
+ * @return 带有生物群系过滤的放置链
+ */
+[[nodiscard]] std::unique_ptr<ConfiguredPlacement> appendBiomeFilter(
+    std::unique_ptr<ConfiguredPlacement> root, u32 featureId);
+
+/**
+ * @brief 在放置链末尾添加环境扫描（向上扫描寻找实心面）
+ *
+ * 参考 MC 1.21.11: EnvironmentScanPlacement.upward()
+ * 扫描方向 UP，目标条件为 hasSturdyFace(DOWN)，允许搜索条件为 onlyInAir。
+ *
+ * @param root 放置链根节点
+ * @param maxSteps 最大扫描步数（1~32，默认12）
+ * @return 带有向上环境扫描的放置链
+ */
+[[nodiscard]] std::unique_ptr<ConfiguredPlacement> appendEnvironmentScanUp(
+    std::unique_ptr<ConfiguredPlacement> root, i32 maxSteps = 12);
+
+/**
+ * @brief 在放置链末尾添加环境扫描（向下扫描寻找实心面）
+ *
+ * 参考 MC 1.21.11: EnvironmentScanPlacement.downward()
+ * 扫描方向 DOWN，目标条件为 hasSturdyFace(UP)，允许搜索条件为 onlyInAir。
+ *
+ * @param root 放置链根节点
+ * @param maxSteps 最大扫描步数（1~32，默认12）
+ * @return 带有向下环境扫描的放置链
+ */
+[[nodiscard]] std::unique_ptr<ConfiguredPlacement> appendEnvironmentScanDown(
+    std::unique_ptr<ConfiguredPlacement> root, i32 maxSteps = 12);
+
+/**
+ * @brief 在放置链末尾添加垂直随机偏移
+ *
+ * 参考 MC 1.21.11: RandomOffsetPlacement.vertical(ConstantInt(offset))
+ *
+ * @param root 放置链根节点
+ * @param offset Y轴偏移量（正值向上，负值向下）
+ * @return 带有垂直偏移的放置链
+ */
+[[nodiscard]] std::unique_ptr<ConfiguredPlacement> appendVerticalOffset(
+    std::unique_ptr<ConfiguredPlacement> root, i32 offset);
 
 /**
  * @brief 创建地表放置链（带数量）

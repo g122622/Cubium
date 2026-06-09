@@ -159,19 +159,23 @@ bool BlockColumnFeature::place(
     // 检查放置位置
     Direction dir = config.direction;
     BlockPos current = pos;
-    i32 failPosition = 0;
+    i32 failPosition = -1; // -1 表示没有失败
 
-    // 先验证路径是否可放置
+    // 先验证路径是否可放置（MC 1.21.11: 从 pos 开始验证）
     if (config.allowedPlacement) {
-        BlockPos checkPos = pos.offset(dir);
+        BlockPos checkPos = pos;
         for (i32 i = 0; i < totalHeight; ++i) {
             if (!config.allowedPlacement->test(region, checkPos)) {
-                // 需要截断
                 failPosition = i;
                 break;
             }
             checkPos = checkPos.offset(dir);
         }
+    }
+
+    // 如果第一个位置就不允许放置，直接返回
+    if (failPosition == 0) {
+        return false;
     }
 
     // 截断超出可放置范围的层
@@ -199,14 +203,14 @@ bool BlockColumnFeature::place(
     bool placedAny = false;
 
     for (size_t layerIdx = 0; layerIdx < config.layers.size(); ++layerIdx) {
-        const BlockState* state = config.layers[layerIdx].state;
+        const BlockState* layerState = config.layers[layerIdx].getState(random);
         i32 height = layerHeights[layerIdx];
 
         for (i32 h = 0; h < height; ++h) {
-            if (state != nullptr) {
+            if (layerState != nullptr) {
                 const BlockState* existing = region.getBlockState(current);
                 if (existing == nullptr || existing->isAir() || existing->getMaterial().isReplaceable()) {
-                    region.setBlockState(current, state, 3);
+                    region.setBlockState(current, layerState, 3);
                     placedAny = true;
                 }
             }

@@ -716,6 +716,9 @@ add_library(mc_common STATIC
     world/block/blocks/cave/CaveVinesBlock.cpp
     world/block/blocks/cave/CaveVinesPlantBlock.cpp
     world/block/blocks/cave/FrogspawnBlock.cpp
+    world/block/blocks/growing_plant/GrowingPlantBlock.cpp
+    world/block/blocks/growing_plant/GrowingPlantHeadBlock.cpp
+    world/block/blocks/growing_plant/GrowingPlantBodyBlock.cpp
     world/block/blocks/cave/GlowLichenBlock.cpp
     world/block/blocks/cave/HangingRootsBlock.cpp
     world/block/blocks/cave/MossBlock.cpp
@@ -1043,6 +1046,8 @@ add_library(mc_common STATIC
     world/gen/structure/pools/trial_chambers/TrialChambersPools.cpp
 
     # World - Generation - Placement
+    world/gen/placement/BiomeFilterPlacement.cpp
+    world/gen/placement/EnvironmentScanPlacement.cpp
     world/gen/placement/Placement.cpp
     world/gen/placement/PlacementUtils.cpp
     world/gen/placement/Placements.cpp

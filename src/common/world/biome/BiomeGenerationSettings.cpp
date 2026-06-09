@@ -175,6 +175,18 @@ bool BiomeGenerationSettings::hasFeatures() const noexcept
     return false;
 }
 
+bool BiomeGenerationSettings::hasFeature(u32 featureId) const noexcept
+{
+    for (const auto& features : m_featuresByStage) {
+        for (u32 id : features) {
+            if (id == featureId) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void BiomeGenerationSettings::clear() noexcept
 {
     for (auto& features : m_featuresByStage) {

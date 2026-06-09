@@ -24,11 +24,9 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
-#include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
-#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -39,8 +37,6 @@ namespace mc::world::gen::feature::predicate {
  * @brief 方块谓词基类
  *
  * 用于特征生成中判断方块位置是否满足特定条件。
- *
- * 参考: net.minecraft.world.level.levelgen.blockpredicates.BlockPredicate
  */
 class BlockPredicate {
 public:
@@ -88,8 +84,6 @@ public:
  * @brief 检查位置是否为空气的谓词
  *
  * 当方块状态为空气时返回true。
- *
- * 参考: net.minecraft.world.level.levelgen.blockpredicates.BlockPredicate#ONLY_IN_AIR_PREDICATE
  */
 class OnlyInAirPredicate : public BlockPredicate {
 public:
@@ -102,8 +96,6 @@ public:
 
 /**
  * @brief 检查方块是否为实心的谓词
- *
- * 参考: net.minecraft.world.level.levelgen.blockpredicates.SolidPredicate
  */
 class SolidBlockPredicate : public BlockPredicate {
 public:
@@ -118,29 +110,33 @@ public:
  * @brief 检查相邻方块是否有指定方向的坚固面的谓词
  *
  * 扫描指定位置，判断某个方向上是否有实心方块的坚固面。
- *
- * 参考: net.minecraft.world.level.levelgen.blockpredicates.HasSturdyFacePredicate
+ * 使用 isSolidSide 判断方块的指定面是否坚固，检查方向取反
+ * （即检查 pos 处方块在 direction 方向的面，需要查询该面相邻方块的反方向）。
  */
 class HasSturdyFacePredicate : public BlockPredicate {
 public:
     /**
      * @brief 构造谓词
      * @param direction 检查的方向（检查pos处方块在direction方向的面）
+     * @param offset 相对偏移量（默认为零偏移）
      */
-    explicit HasSturdyFacePredicate(Direction direction)
+    explicit HasSturdyFacePredicate(Direction direction, BlockPos offset = BlockPos())
         : m_direction(direction)
+        , m_offset(offset)
     {}
 
     [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
     [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
     {
-        return std::make_unique<HasSturdyFacePredicate>(m_direction);
+        return std::make_unique<HasSturdyFacePredicate>(m_direction, m_offset);
     }
 
     [[nodiscard]] Direction getDirection() const { return m_direction; }
+    [[nodiscard]] const BlockPos& getOffset() const { return m_offset; }
 
 private:
     Direction m_direction;
+    BlockPos m_offset;
 };
 
 /**
@@ -184,12 +180,146 @@ private:
 };
 
 /**
+ * @brief 所有子条件都满足时返回true的谓词
+ *
+ * 逻辑与（AND）组合：所有子谓词都满足时返回true，空列表返回true。
+ */
+class AllOfPredicate : public BlockPredicate {
+public:
+    /**
+     * @brief 构造谓词
+     * @param predicates 子谓词列表
+     */
+    explicit AllOfPredicate(std::vector<std::unique_ptr<BlockPredicate>> predicates)
+        : m_predicates(std::move(predicates))
+    {}
+
+    [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
+    [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override;
+
+private:
+    std::vector<std::unique_ptr<BlockPredicate>> m_predicates;
+};
+
+/**
+ * @brief 任一子条件满足时返回true的谓词
+ *
+ * 逻辑或（OR）组合：任一子谓词满足时返回true，空列表返回false。
+ */
+class AnyOfPredicate : public BlockPredicate {
+public:
+    /**
+     * @brief 构造谓词
+     * @param predicates 子谓词列表
+     */
+    explicit AnyOfPredicate(std::vector<std::unique_ptr<BlockPredicate>> predicates)
+        : m_predicates(std::move(predicates))
+    {}
+
+    [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
+    [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override;
+
+private:
+    std::vector<std::unique_ptr<BlockPredicate>> m_predicates;
+};
+
+/**
+ * @brief 条件取反谓词
+ *
+ * 对子谓词的结果取反。
+ */
+class NotPredicate : public BlockPredicate {
+public:
+    /**
+     * @brief 构造谓词
+     * @param predicate 被取反的子谓词
+     */
+    explicit NotPredicate(std::unique_ptr<BlockPredicate> predicate)
+        : m_predicate(std::move(predicate))
+    {}
+
+    [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
+    [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override;
+
+private:
+    std::unique_ptr<BlockPredicate> m_predicate;
+};
+
+/**
+ * @brief 检查方块是否可替换的谓词
+ *
+ * 当方块为空气或材质标记为可替换时返回true。
+ */
+class ReplaceablePredicate : public BlockPredicate {
+public:
+    [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
+    [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
+    {
+        return std::make_unique<ReplaceablePredicate>();
+    }
+};
+
+/**
+ * @brief 检查方块能否在指定位置存活的谓词
+ *
+ * 调用 Block::isValidPosition 判断方块是否可以放置在目标位置。
+ */
+class WouldSurvivePredicate : public BlockPredicate {
+public:
+    /**
+     * @brief 构造谓词
+     * @param state 要检查的方块状态
+     * @param offset 相对偏移量（默认为零偏移）
+     */
+    WouldSurvivePredicate(const BlockState* state, BlockPos offset = BlockPos())
+        : m_state(state)
+        , m_offset(offset)
+    {}
+
+    [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
+    [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
+    {
+        return std::make_unique<WouldSurvivePredicate>(m_state, m_offset);
+    }
+
+private:
+    const BlockState* m_state;
+    BlockPos m_offset;
+};
+
+/**
+ * @brief 检查位置是否在世界高度范围内的谓词
+ *
+ * 当 pos.y 在 [MIN_BUILD_HEIGHT, MAX_BUILD_HEIGHT) 范围内时返回true。
+ */
+class InsideWorldBoundsPredicate : public BlockPredicate {
+public:
+    [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
+    [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
+    {
+        return std::make_unique<InsideWorldBoundsPredicate>();
+    }
+};
+
+/**
+ * @brief 检查位置是否为空气或水的谓词
+ *
+ * 当方块状态为空、空气或液体时返回true。
+ */
+class OnlyInAirOrWaterPredicate : public BlockPredicate {
+public:
+    [[nodiscard]] bool test(const IWorld& world, const BlockPos& pos) const override;
+    [[nodiscard]] std::unique_ptr<BlockPredicate> clone() const override
+    {
+        return std::make_unique<OnlyInAirOrWaterPredicate>();
+    }
+};
+
+/**
  * @brief 环境扫描谓词
  *
  * 从起始位置沿指定方向扫描，寻找满足条件的方块面。
  * 用于洞穴植被放置中寻找天花板/地面。
- *
- * 参考: net.minecraft.world.level.levelgen.placement.EnvironmentScanPlacement
  */
 class EnvironmentScanPredicate {
 public:

@@ -262,6 +262,10 @@ void FeatureRegistry::registerFeature(std::unique_ptr<ConfiguredFeatureBase> fea
         return;
     }
 
+    // 自动分配递增的特征ID
+    const u32 featureId = static_cast<u32>(m_ownedFeatures.size());
+    feature->setFeatureId(featureId);
+
     ConfiguredFeatureBase* ptr = feature.get();
     m_ownedFeatures.push_back(std::move(feature));
     m_featuresByStage[stageIndex].push_back(ptr);

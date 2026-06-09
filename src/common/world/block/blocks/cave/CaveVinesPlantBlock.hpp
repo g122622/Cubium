@@ -14,36 +14,37 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE ON AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 #pragma once
 
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
+#include "../growing_plant/GrowingPlantBodyBlock.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/IGrowable.hpp"
 
 namespace mc {
 namespace blocks {
 
 /**
- * @brief 洞穴藤蔓植物方块
+ * @brief 洞穴藤蔓身体方块
  *
- * 洞穴藤蔓的主体部分，可结果但不生长。
- * 由CaveVinesBlock生长延伸而来。
+ * 参考 MC 1.21.11: CaveVinesPlantBlock (继承自 GrowingPlantBodyBlock)
+ * 向下生长藤蔓的身体部分，不具有独立生长能力。
  * 有浆果时发出14级光照，右键可收获发光浆果。
- *
- * 参考: net.minecraft.block.CaveVinesPlantBlock
+ * 当上方头部方块被移除时，自动变成新的头部方块。
  */
-class CaveVinesPlantBlock : public Block {
+class CaveVinesPlantBlock : public GrowingPlantBodyBlock, public IGrowable {
 public:
     explicit CaveVinesPlantBlock(const BlockProperties& properties);
-
     ~CaveVinesPlantBlock() override = default;
 
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+    // ========== 形状与光照 ==========
 
     [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
     {
@@ -51,9 +52,6 @@ public:
         return true;
     }
 
-    /**
-     * @brief 有浆果时发出14级光照
-     */
     [[nodiscard]] u8 getLightLevel(
         const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
     {
@@ -62,9 +60,25 @@ public:
         return state.get(BlockStateProperties::BERRIES()) ? 14 : 0;
     }
 
-    /**
-     * @brief 右键收获发光浆果
-     */
+    // ========== GrowingPlantBodyBlock 覆盖 ==========
+
+    [[nodiscard]] const Block* getHeadBlock() const override;
+    [[nodiscard]] const Block* getBodyBlock() const override;
+
+    [[nodiscard]] BlockState updateHeadAfterConvertedFromBody(const BlockState& bodyState) const override;
+
+    // ========== IGrowable 接口 ==========
+
+    [[nodiscard]] bool canGrow(
+        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
+
+    [[nodiscard]] bool canUseBonemeal(
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
+
+    void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
+
+    // ========== 交互 ==========
+
     [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
@@ -74,9 +88,6 @@ public:
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
-
-private:
-    CollisionShape m_shape;
 };
 
 } // namespace blocks

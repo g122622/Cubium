@@ -95,16 +95,49 @@ struct DepthAverageConfig : public IPlacementConfig {
 /**
  * @brief 随机偏移放置配置
  *
- * 随机偏移放置位置。
+ * 参考 MC 1.21.11: RandomOffsetPlacement
+ * 使用 IntProvider 采样偏移量，支持动态范围。
  */
 struct RandomOffsetConfig : public IPlacementConfig {
-    i32 xzSpread; ///< XZ平面扩散
-    i32 ySpread;  ///< Y轴扩散
+    /// XZ平面偏移量提供者
+    std::unique_ptr<world::gen::valueprovider::IntProvider> xzSpread;
 
-    RandomOffsetConfig(i32 xz, i32 y)
-        : xzSpread(xz)
-        , ySpread(y)
+    /// Y轴偏移量提供者
+    std::unique_ptr<world::gen::valueprovider::IntProvider> ySpread;
+
+    RandomOffsetConfig(std::unique_ptr<world::gen::valueprovider::IntProvider> xz,
+        std::unique_ptr<world::gen::valueprovider::IntProvider> y)
+        : xzSpread(std::move(xz))
+        , ySpread(std::move(y))
     {}
+
+    /**
+     * @brief 便捷构造：固定偏移
+     */
+    RandomOffsetConfig(i32 xz, i32 y)
+        : xzSpread(std::make_unique<world::gen::valueprovider::ConstantInt>(xz))
+        , ySpread(std::make_unique<world::gen::valueprovider::ConstantInt>(y))
+    {}
+
+    /**
+     * @brief 便捷构造：仅垂直偏移（XZ为0）
+     */
+    static std::unique_ptr<RandomOffsetConfig> vertical(i32 y) { return std::make_unique<RandomOffsetConfig>(0, y); }
+
+    static std::unique_ptr<RandomOffsetConfig> vertical(
+        std::unique_ptr<world::gen::valueprovider::IntProvider> yProvider)
+    {
+        return std::make_unique<RandomOffsetConfig>(
+            std::make_unique<world::gen::valueprovider::ConstantInt>(0), std::move(yProvider));
+    }
+
+    /**
+     * @brief 便捷构造：仅水平偏移（Y为0）
+     */
+    static std::unique_ptr<RandomOffsetConfig> horizontal(i32 xz)
+    {
+        return std::make_unique<RandomOffsetConfig>(xz, 0);
+    }
 };
 
 /**
