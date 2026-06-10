@@ -36,7 +36,7 @@
 #include "world/gen/feature/ConfiguredFeature.hpp"
 #include "world/gen/feature/FeatureIds.hpp"
 #include "world/gen/feature/FeatureSpread.hpp"
-#include "world/gen/feature/fungus/HugeFungusFeature.hpp"
+#include "world/gen/feature/nether/HugeFungusFeature.hpp"
 #include "world/gen/feature/ore/OreFeature.hpp"
 #include "world/gen/feature/tree/TreeFeature.hpp"
 #include "world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"

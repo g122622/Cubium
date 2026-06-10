@@ -1,0 +1,80 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#include "JungleFoliagePlacer.hpp"
+#include <cmath>
+
+namespace mc {
+
+JungleFoliagePlacer::JungleFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset, i32 height)
+    : FoliagePlacer(radius, offset)
+    , m_height(height)
+{}
+
+i32 JungleFoliagePlacer::getFoliageHeight(math::Random& random, i32 /*trunkHeight*/) const
+{
+    return m_height + random.nextInt(2);
+}
+
+void JungleFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
+    math::Random& random,
+    i32 /*trunkHeight*/,
+    const FoliagePosition& foliagePos,
+    i32 foliageHeight,
+    i32 radius,
+    i32 /*offset*/,
+    std::set<BlockPos>& foliageBlocks,
+    const BlockState* foliageBlock)
+{
+    // 丛林木：较稀疏的单层树叶
+    for (i32 y = 0; y < foliageHeight; ++y) {
+        for (i32 dx = -radius; dx <= radius; ++dx) {
+            for (i32 dz = -radius; dz <= radius; ++dz) {
+                if (shouldSkip(random, dx, y, dz, radius, foliagePos.trunkTop)) {
+                    continue;
+                }
+
+                BlockPos pos(foliagePos.pos.x + dx, foliagePos.pos.y + y, foliagePos.pos.z + dz);
+                foliageBlocks.insert(pos);
+            }
+        }
+    }
+}
+
+bool JungleFoliagePlacer::shouldSkip(math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool /*trunkTop*/) const
+{
+    // 第一个条件：曼哈顿距离 >= 7 时跳过（防止过大的树叶）
+    if (std::abs(dx) + std::abs(dz) >= 7) {
+        return true;
+    }
+
+    // 第二个条件：使用欧几里得距离平方比较（圆形判定）
+    return dx * dx + dz * dz > radius * radius;
+}
+
+std::unique_ptr<FoliagePlacer> JungleFoliagePlacer::clone() const
+{
+    return std::make_unique<JungleFoliagePlacer>(m_radius, m_offset, m_height);
+}
+
+} // namespace mc

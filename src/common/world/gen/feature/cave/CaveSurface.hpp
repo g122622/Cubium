@@ -23,6 +23,9 @@
 #pragma once
 
 #include "common/util/Direction.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include <string>
 
 namespace mc::world::gen::feature::cave {
 
@@ -58,6 +61,15 @@ enum class CaveSurface : u8 {
 [[nodiscard]] inline i32 getVegetationYOffset(CaveSurface surface)
 {
     return surface == CaveSurface::Floor ? 1 : -1;
+}
+
+/**
+ * @brief 检查方块是否匹配标签
+ */
+[[nodiscard]] inline bool matchesTag(const BlockState& state, const std::string& tagName)
+{
+    auto* tag = mc::BlockTags::getTag(mc::ResourceLocation(tagName));
+    return tag != nullptr && tag->contains(state);
 }
 
 } // namespace mc::world::gen::feature::cave

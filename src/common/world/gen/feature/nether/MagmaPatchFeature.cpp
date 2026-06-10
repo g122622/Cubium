@@ -23,9 +23,9 @@
 
 #include "MagmaPatchFeature.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../chunk/IChunkGenerator.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 #include <cmath>
 
 namespace mc {
@@ -182,98 +182,6 @@ std::unique_ptr<ConfiguredMagmaPatchFeature> MagmaPatchFeatures::createDense()
         4                                                      // maxDepth
     );
     return std::make_unique<ConfiguredMagmaPatchFeature>(std::move(config), "magma_patch_dense");
-}
-
-// ============================================================================
-// NetherFireFeature 实现
-// ============================================================================
-
-bool NetherFireFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const NetherFireFeatureConfig& config)
-{
-    const BlockState* fire = VanillaBlocks::getState(VanillaBlocks::FIRE);
-    if (!fire) {
-        return false;
-    }
-
-    bool placed = false;
-
-    // 在范围内随机放置火焰
-    for (i32 i = 0; i < config.spread * config.spread; ++i) {
-        i32 dx = random.nextInt(config.spread * 2 + 1) - config.spread;
-        i32 dz = random.nextInt(config.spread * 2 + 1) - config.spread;
-
-        BlockPos firePos(pos.x + dx, pos.y, pos.z + dz);
-
-        // 检查位置是否有效（在下界岩上）
-        const BlockState* belowState = world.getBlockState(firePos.x, firePos.y - 1, firePos.z);
-        if (!belowState || !belowState->is(VanillaBlocks::NETHERRACK)) {
-            continue;
-        }
-
-        // 检查上方是否有空间
-        const BlockState* current = world.getBlockState(firePos);
-        if (current && !current->isAir()) {
-            continue;
-        }
-
-        // 放置火焰
-        world.setBlockState(firePos, fire);
-        placed = true;
-    }
-
-    return placed;
-}
-
-// ============================================================================
-// ConfiguredNetherFireFeature 实现
-// ============================================================================
-
-ConfiguredNetherFireFeature::ConfiguredNetherFireFeature(
-    std::unique_ptr<NetherFireFeatureConfig> config, const char* featureName)
-    : m_config(std::move(config))
-    , m_name(featureName)
-{}
-
-bool ConfiguredNetherFireFeature::place(
-    WorldGenRegion& region, ChunkPrimer& chunk, IChunkGenerator& generator, math::Random& random, const BlockPos& pos)
-{
-    (void)chunk;
-    (void)generator;
-    return m_feature.place(region, random, pos, *m_config);
-}
-
-// ============================================================================
-// NetherFireFeatures 实现
-// ============================================================================
-
-std::vector<std::unique_ptr<ConfiguredNetherFireFeature>> NetherFireFeatures::s_features;
-
-void NetherFireFeatures::initialize()
-{
-    if (!s_features.empty()) return;
-    s_features.push_back(createNormal());
-}
-
-const std::vector<std::unique_ptr<ConfiguredNetherFireFeature>>& NetherFireFeatures::getAllFeatures()
-{
-    return s_features;
-}
-
-std::vector<std::unique_ptr<ConfiguredNetherFireFeature>> NetherFireFeatures::getAllFeaturesAndClear()
-{
-    auto result = std::move(s_features);
-    s_features.clear();
-    return result;
-}
-
-std::unique_ptr<ConfiguredNetherFireFeature> NetherFireFeatures::createNormal()
-{
-    auto config = std::make_unique<NetherFireFeatureConfig>(4, // spread
-        1,                                                     // minHeight
-        3                                                      // maxHeight
-    );
-    return std::make_unique<ConfiguredNetherFireFeature>(std::move(config), "nether_fire");
 }
 
 } // namespace mc

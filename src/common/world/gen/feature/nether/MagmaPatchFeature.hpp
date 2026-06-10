@@ -23,6 +23,9 @@
 
 #pragma once
 
+// 岩浆池特征聚合头文件（包含岩浆池 + 下界火焰）
+#include "NetherFireFeature.hpp"
+
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
 #include <memory>
@@ -114,73 +117,6 @@ struct MagmaPatchFeatures {
 
 private:
     static std::vector<std::unique_ptr<ConfiguredMagmaPatchFeature>> s_features;
-};
-
-/**
- * @brief 下界火焰特征配置
- */
-struct NetherFireFeatureConfig : public IFeatureConfig {
-    /// 火焰蔓延范围
-    i32 spread = 4;
-
-    /// 每个火焰的高度范围
-    // TODO: minHeight 和 maxHeight 尚未在生成逻辑中使用，待实现火焰高度变化
-    i32 minHeight = 1;
-    i32 maxHeight = 3;
-
-    NetherFireFeatureConfig() = default;
-
-    explicit NetherFireFeatureConfig(i32 s, i32 minH, i32 maxH)
-        : spread(s)
-        , minHeight(minH)
-        , maxHeight(maxH)
-    {}
-};
-
-/**
- * @brief 下界火焰特征
- *
- * 在下界生成火焰。
- */
-class NetherFireFeature {
-public:
-    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const NetherFireFeatureConfig& config);
-};
-
-/**
- * @brief 配置化下界火焰特征
- */
-class ConfiguredNetherFireFeature : public ConfiguredFeatureBase {
-public:
-    ConfiguredNetherFireFeature(std::unique_ptr<NetherFireFeatureConfig> config, const char* featureName);
-
-    bool place(WorldGenRegion& region,
-        ChunkPrimer& chunk,
-        IChunkGenerator& generator,
-        math::Random& random,
-        const BlockPos& pos) override;
-
-    [[nodiscard]] const char* name() const override { return m_name.c_str(); }
-    [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
-
-private:
-    std::unique_ptr<NetherFireFeatureConfig> m_config;
-    std::string m_name;
-    NetherFireFeature m_feature;
-};
-
-/**
- * @brief 预定义下界火焰特征
- */
-struct NetherFireFeatures {
-    static void initialize();
-    [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredNetherFireFeature>>& getAllFeatures();
-    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredNetherFireFeature>> getAllFeaturesAndClear();
-
-    static std::unique_ptr<ConfiguredNetherFireFeature> createNormal();
-
-private:
-    static std::vector<std::unique_ptr<ConfiguredNetherFireFeature>> s_features;
 };
 
 } // namespace mc

@@ -52,6 +52,26 @@ struct CoralFeatureConfig : public IFeatureConfig {
     {}
 };
 
+// 珊瑚辅助函数（公共，供 CoralTree/Mushroom/Claw 使用）
+[[nodiscard]] const BlockState* getCoralBlockState(blocks::CoralColor color, bool isDead);
+[[nodiscard]] const BlockState* getCoralFanState(blocks::CoralColor color, bool isDead);
+[[nodiscard]] const BlockState* getCoralWallFanState(blocks::CoralColor color, Direction supportDirection, bool isDead);
+[[nodiscard]] bool isWaterAt(WorldGenRegion& world, const BlockPos& pos);
+[[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z);
+[[nodiscard]] bool placeCoralBase(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, bool isDead);
+void placeCoralDecorations(WorldGenRegion& world,
+    math::Random& random,
+    const BlockPos& pos,
+    blocks::CoralColor color,
+    bool isDead,
+    bool includeDecorations);
+[[nodiscard]] bool placeCoralWithDecorations(WorldGenRegion& world,
+    math::Random& random,
+    const BlockPos& pos,
+    blocks::CoralColor color,
+    bool isDead,
+    bool includeDecorations);
+
 /**
  * @brief 珊瑚特征基类
  *
@@ -60,37 +80,13 @@ struct CoralFeatureConfig : public IFeatureConfig {
  */
 class CoralFeature {
 public:
-    /**
-     * @brief 放置珊瑚特征
-     * @param world 世界区域
-     * @param random 随机数生成器
-     * @param pos 起始位置
-     * @param config 珊瑚配置
-     * @return 是否成功放置
-     */
     bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config);
 
 protected:
-    /**
-     * @brief 检查珊瑚是否可以放置在指定位置
-     */
     [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
-
-    /**
-     * @brief 检查位置是否为水
-     */
     [[nodiscard]] bool _isWater(WorldGenRegion& world, const BlockPos& pos) const;
-
-    /**
-     * @brief 放置珊瑚方块
-     */
     void _placeCoralBlock(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color) const;
-
-    /**
-     * @brief 放置珊瑚扇
-     */
-    void _placeCoralFan(
-        WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, Direction direction) const;
+    void _placeCoralFan(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, Direction direction) const;
 };
 
 /**
@@ -117,104 +113,22 @@ private:
 };
 
 /**
- * @brief 珊瑚树特征
- *
- * 生成垂直向上的珊瑚结构。
- */
-class CoralTreeFeature {
-public:
-    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config);
-
-private:
-    void _generateBranch(WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        blocks::CoralColor color,
-        bool isDead,
-        Direction direction,
-        i32 length,
-        bool includeDecorations);
-};
-
-/**
- * @brief 珊瑚蘑菇特征
- *
- * 生成蘑菇形状的珊瑚结构。
- */
-class CoralMushroomFeature {
-public:
-    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config);
-
-private:
-    void _generateCap(WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        blocks::CoralColor color,
-        bool isDead,
-        i32 radius,
-        bool includeDecorations);
-};
-
-/**
- * @brief 珊瑚爪特征
- *
- * 生成爪形的珊瑚结构。
- */
-class CoralClawFeature {
-public:
-    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config);
-
-private:
-    void _generateClaw(WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& pos,
-        blocks::CoralColor color,
-        bool isDead,
-        Direction direction,
-        bool includeDecorations);
-};
-
-/**
  * @brief 预定义珊瑚配置
  */
 struct CoralFeatures {
-    /// 初始化所有珊瑚特征
     static void initialize();
-
-    /// 获取所有珊瑚特征
     [[nodiscard]] static const std::vector<std::unique_ptr<ConfiguredCoralFeature>>& getAllFeatures();
-
-    /// 获取所有珊瑚特征并清空（转移所有权）
     [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredCoralFeature>> getAllFeaturesAndClear();
 
-    /// 创建管状珊瑚
     static std::unique_ptr<ConfiguredCoralFeature> createTubeCoral();
-
-    /// 创建脑珊瑚
     static std::unique_ptr<ConfiguredCoralFeature> createBrainCoral();
-
-    /// 创建气泡珊瑚
     static std::unique_ptr<ConfiguredCoralFeature> createBubbleCoral();
-
-    /// 创建火焰珊瑚
     static std::unique_ptr<ConfiguredCoralFeature> createFireCoral();
-
-    /// 创建角珊瑚
     static std::unique_ptr<ConfiguredCoralFeature> createHornCoral();
-
-    /// 创建失活管状珊瑚
     static std::unique_ptr<ConfiguredCoralFeature> createDeadTubeCoral();
-
-    /// 创建失活脑珊瑚
     static std::unique_ptr<ConfiguredCoralFeature> createDeadBrainCoral();
-
-    /// 创建失活气泡珊瑚
     static std::unique_ptr<ConfiguredCoralFeature> createDeadBubbleCoral();
-
-    /// 创建失活火焰珊瑚
     static std::unique_ptr<ConfiguredCoralFeature> createDeadFireCoral();
-
-    /// 创建失活角珊瑚
     static std::unique_ptr<ConfiguredCoralFeature> createDeadHornCoral();
 
 private:

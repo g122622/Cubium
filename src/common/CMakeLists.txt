@@ -965,7 +965,6 @@ add_library(mc_common STATIC
     world/gen/feature/vegetation/BigMushroomFeature.cpp
     world/gen/feature/vegetation/CactusFeature.cpp
     world/gen/feature/vegetation/SugarCaneFeature.cpp
-    world/gen/feature/vegetation/IceSpikeFeature.cpp
 
     # World - Generation - Feature - Cave
     world/gen/feature/cave/CaveFeatures.cpp
@@ -976,26 +975,31 @@ add_library(mc_common STATIC
     world/gen/feature/ocean/SeagrassFeature.cpp
     world/gen/feature/ocean/SeaPickleFeature.cpp
     world/gen/feature/ocean/CoralFeature.cpp
+    world/gen/feature/ocean/CoralTreeFeature.cpp
+    world/gen/feature/ocean/CoralMushroomFeature.cpp
+    world/gen/feature/ocean/CoralClawFeature.cpp
     world/gen/feature/ocean/OceanDecorationFeature.cpp
     world/gen/feature/ocean/BlueIceFeature.cpp
 
-    # World - Generation - Feature - Spike
-    world/gen/feature/spike/EndSpikeFeature.cpp
+    # World - Generation - Feature - End
+    world/gen/feature/end/EndSpikeFeature.cpp
+    world/gen/feature/end/EndGatewayFeature.cpp
+    world/gen/feature/end/IceSpikeFeature.cpp
+    world/gen/feature/end/EndFeatures.cpp
 
-    # World - Generation - Feature - Gateway
-    world/gen/feature/gateway/EndGatewayFeature.cpp
-
-    # World - Generation - Feature - Fungus
-    world/gen/feature/fungus/HugeFungusFeature.cpp
+    # World - Generation - Feature - Nether
+    world/gen/feature/nether/HugeFungusFeature.cpp
 
     # World - Generation - Feature - Nether
     world/gen/feature/nether/GlowstoneFeature.cpp
     world/gen/feature/nether/BasaltFeature.cpp
+    world/gen/feature/nether/BasaltDeltaFeature.cpp
     world/gen/feature/nether/MagmaPatchFeature.cpp
+    world/gen/feature/nether/NetherFireFeature.cpp
     world/gen/feature/nether/NetherFeatures.cpp
 
     # World - Generation - Feature - Lake
-    world/gen/feature/lake/LakeFeature.cpp
+    world/gen/feature/LakeFeature.cpp
 
     # World - Generation - Feature - Predicate
     world/gen/feature/predicate/BlockPredicate.cpp

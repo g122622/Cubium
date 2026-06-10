@@ -36,11 +36,11 @@
  * - IceSpikeFeature: 冰刺生成
  */
 
+#include "../end/IceSpikeFeature.hpp"
 #include "BigMushroomFeature.hpp"
 #include "CactusFeature.hpp"
 #include "FlowerFeature.hpp"
 #include "GrassFeature.hpp"
-#include "IceSpikeFeature.hpp"
 #include "SugarCaneFeature.hpp"
 #include <memory>
 #include <vector>

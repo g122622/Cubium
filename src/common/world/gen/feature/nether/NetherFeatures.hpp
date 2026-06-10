@@ -39,7 +39,7 @@
 #include <memory>
 #include <vector>
 
-#include "common/world/gen/feature/fungus/HugeFungusFeature.hpp"
+#include "HugeFungusFeature.hpp"
 #include "common/world/gen/feature/nether/BasaltFeature.hpp"
 #include "common/world/gen/feature/nether/GlowstoneFeature.hpp"
 #include "common/world/gen/feature/nether/MagmaPatchFeature.hpp"
