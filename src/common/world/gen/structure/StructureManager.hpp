@@ -23,11 +23,13 @@
 
 #pragma once
 
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -49,13 +51,31 @@ namespace world::gen::structure {
 /**
  * @brief 结构注册表
  *
- * 管理所有已注册的结构类型。
+ * 管理所有已注册的结构类型。按 ResourceLocation 索引结构。
  */
 class StructureRegistry {
 public:
     static void initialize();
     static void registerStructure(std::unique_ptr<Structure> structure);
+
+    /**
+     * @brief 按资源位置获取结构
+     *
+     * @param id 结构资源位置
+     * @return 结构指针，未找到返回 nullptr
+     */
+    [[nodiscard]] static const Structure* get(const ResourceLocation& id);
+
+    /**
+     * @brief 按名称字符串获取结构（兼容旧接口）
+     *
+     * 内部将字符串转换为 ResourceLocation 进行查找。
+     *
+     * @param name 结构名称（如 "minecraft:village_plains" 或 "village_plains"）
+     * @return 结构指针，未找到返回 nullptr
+     */
     [[nodiscard]] static const Structure* get(const std::string& name);
+
     [[nodiscard]] static const std::vector<const Structure*>& getAll();
     [[nodiscard]] static bool isInitialized() { return s_initialized; }
 
@@ -71,7 +91,7 @@ public:
     static size_t loadTemplatePoolsFromDataPacks(const resource::DataPackList& dataPackList);
 
 private:
-    static std::unordered_map<std::string, std::unique_ptr<Structure>>& getStructures();
+    static std::unordered_map<ResourceLocation, std::unique_ptr<Structure>>& getStructures();
     static std::vector<const Structure*>& getStructureList();
     static bool s_initialized;
 };

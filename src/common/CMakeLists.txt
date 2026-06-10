@@ -924,6 +924,9 @@ add_library(mc_common STATIC
     world/biome/BiomeSource.cpp
     world/biome/BiomeRegistry.cpp
     world/biome/BiomeGenerationSettings.cpp
+    world/biome/BiomeTag.cpp
+    world/biome/BiomeTags.cpp
+    world/biome/BiomeTagLoader.cpp
 
     # World - Biome - Climate
     world/biome/climate/Climate.cpp

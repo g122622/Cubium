@@ -25,9 +25,10 @@
 
 #include "StructureBoundingBox.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeTag.hpp"
 #include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/gen/jigsaw/JigsawJunction.hpp"
 #include <functional>
@@ -52,15 +53,14 @@ class BlockPos;
  * @brief 地形适配模式
  *
  * 控制结构周围的地形如何调整。
- * MC 1.21 Beardifier 使用此信息决定如何平滑结构周围的地形。
+ * Beardifier 使用此信息决定如何平滑结构周围的地形。
  */
 enum class TerrainAdaptation : u8 {
-    None,        ///< 无地形适配
-    Bury,        ///< 埋入地下，顶部留空
-    BeardThin,   ///< 薄型胡须（如村庄道路）
-    BeardBox,    ///< 方形胡须
-    Encapsulate, ///< 完全包裹（如试炼密室）
-    BuryInterior ///< 埋入内部
+    None,       ///< 无地形适配
+    Bury,       ///< 埋入地下，顶部留空
+    BeardThin,  ///< 薄型胡须（如村庄道路）
+    BeardBox,   ///< 方形胡须
+    Encapsulate ///< 完全包裹（如试炼密室）
 };
 
 namespace world::gen::structure {
@@ -72,7 +72,10 @@ namespace world::gen::structure {
 // Direction.hpp 中已定义 Direction, Axis, Rotation, Mirror, Directions 等
 
 /**
- * @brief 结构类型枚举
+ * @brief 结构类型枚举（兼容旧代码）
+ *
+ * TODO: 所有子类迁移到 ResourceLocation 后删除此枚举。
+ * 新代码应使用 Structure(ResourceLocation) 构造函数。
  */
 enum class StructureType : u8 {
     Temple,          ///< 神殿/神庙结构（沙漠神殿、丛林神庙等）
@@ -93,7 +96,10 @@ enum class StructureType : u8 {
 };
 
 /**
- * @brief 结构间距设置
+ * @brief 结构间距设置（兼容旧代码）
+ *
+ * TODO: 所有子类迁移到 StructurePlacement 后删除此结构。
+ * 新代码应使用 placement::RandomSpreadStructurePlacement 或 placement::ConcentricRingsStructurePlacement。
  */
 struct StructureSeparationSettings {
     i32 spacing;    ///< 平均间距（区块）
@@ -105,6 +111,38 @@ struct StructureSeparationSettings {
         , separation(sep)
         , salt(st)
     {}
+};
+
+/**
+ * @brief 生物生成覆盖类型
+ *
+ * 控制结构内生物生成时使用的边界框类型。
+ */
+enum class SpawnOverrideType : u8 {
+    Full, ///< 使用完整结构边界框
+    Piece ///< 使用单个结构片段边界框
+};
+
+/**
+ * @brief 生物生成覆盖条目
+ *
+ * 描述结构内特定类别生物的生成规则覆盖。
+ */
+struct SpawnOverrideEntry {
+    std::string mobCategory; ///< 生物类别（如 "monster", "creature"）
+    i32 minCount;            ///< 最小生成数量
+    i32 maxCount;            ///< 最大生成数量
+};
+
+/**
+ * @brief 结构生物生成覆盖
+ *
+ * 允许结构覆盖其边界框内的默认生物生成规则。
+ * 例如海洋纪念碑覆盖守卫者生成。
+ */
+struct SpawnOverrides {
+    SpawnOverrideType boundingBoxType = SpawnOverrideType::Full; ///< 边界框类型
+    std::vector<SpawnOverrideEntry> entries;                     ///< 生成覆盖条目列表
 };
 
 /**
@@ -476,29 +514,49 @@ private:
 /**
  * @brief 结构基类
  *
- * 所有世界结构的基类。
+ * 所有世界结构的基类。结构通过 ResourceLocation 标识，
+ * 生物群系判断使用 BiomeTag，放置逻辑由 StructurePlacement 处理。
  */
 class Structure {
 public:
     virtual ~Structure() = default;
 
-    [[nodiscard]] virtual const std::string& name() const = 0;
-    [[nodiscard]] virtual StructureSeparationSettings separationSettings() const = 0;
-    [[nodiscard]] virtual const std::vector<BiomeId>& validBiomes() const = 0;
+    /**
+     * @brief 获取结构的资源位置 ID
+     *
+     * 使用 MC 标准命名空间格式，如 minecraft:village_plains。
+     */
+    [[nodiscard]] const ResourceLocation& id() const noexcept { return m_id; }
 
     /**
-     * @brief 是否使用均匀间距分布
+     * @brief 获取结构的名称字符串（兼容旧接口）
      *
-     * 大多数结构返回 true（均匀分布）。
-     * 废弃矿井等结构返回 false，使用两次随机平均值作为偏移，
-     * 产生更集中的分布。
+     * 返回 id 的完整字符串表示。
      */
-    [[nodiscard]] virtual bool useUniformSpacing() const { return true; }
+    [[nodiscard]] virtual const std::string& name() const = 0;
+
+    /**
+     * @brief 获取结构关联的生物群系标签
+     *
+     * 返回此结构可生成的生物群系标签指针。
+     * 如果标签尚未加载则返回 nullptr。
+     */
+    [[nodiscard]] virtual const biome::BiomeTag* biomeTag() const { return nullptr; }
+
+    /**
+     * @brief 检查生物群系是否在此结构的有效生物群系中
+     *
+     * 优先使用 biomeTag() 判断，如果标签未加载则回退到线性搜索。
+     *
+     * @param biomeId 生物群系 ID
+     * @return 是否有效
+     */
+    [[nodiscard]] bool isValidBiome(BiomeId biomeId) const;
 
     /**
      * @brief 获取结构的地形适配模式
      *
-     * MC 1.21: 控制结构周围的地形如何调整。
+     * 控制结构周围的地形如何调整。
      * 大多数结构返回 None（无适配），Jigsaw 结构可能返回 Bury/BeardThin/BeardBox/Encapsulate。
      * Beardifier 使用此信息决定如何平滑结构周围的地形。
      */
@@ -507,10 +565,10 @@ public:
     /**
      * @brief 获取结构的装饰阶段
      *
-     * MC 1.21: 对应 Structure.StructureSettings.generationStep()。
+     * 对应 Structure.StructureSettings.generationStep()。
      * 用于在 applyBiomeDecoration 中按装饰阶段交错放置结构。
      *
-     * 默认返回 SurfaceStructures（MC 1.21 默认值）。
+     * 默认返回 SurfaceStructures。
      * 子类覆盖以返回不同的阶段：
      * - UndergroundStructures: 废弃矿井、埋藏宝藏、试炼密室
      * - UndergroundDecoration: 下界要塞、下界化石
@@ -518,8 +576,14 @@ public:
      */
     [[nodiscard]] virtual DecorationStage decorationStage() const { return DecorationStage::SurfaceStructures; }
 
-    [[nodiscard]] StructureType structureType() const noexcept { return m_type; }
-    [[nodiscard]] bool isValidBiome(BiomeId biomeId) const;
+    /**
+     * @brief 获取结构的生物生成覆盖
+     *
+     * 返回此结构边界框内的生物生成覆盖规则。
+     * 例如海洋纪念碑覆盖守卫者生成。
+     * 默认返回 nullptr（无覆盖）。
+     */
+    [[nodiscard]] virtual const SpawnOverrides* spawnOverrides() const { return nullptr; }
 
     /**
      * @brief 检查是否可以在指定位置生成结构
@@ -556,6 +620,110 @@ public:
     virtual void placeInChunk(
         IWorldWriter& world, ChunkPrimer& chunk, StructureStart& start, i32 chunkX, i32 chunkZ) const;
 
+    /**
+     * @brief 结构放置完成后的钩子
+     *
+     * 在所有片段都放置到区块后调用。
+     * 用于海洋纪念碑等需要在放置后生成实体的结构。
+     *
+     * @param world 世界写入器
+     * @param start 结构起点
+     * @param chunkX 区块 X 坐标
+     * @param chunkZ 区块 Z 坐标
+     */
+    virtual void afterPlace(IWorldWriter& world, StructureStart& start, i32 chunkX, i32 chunkZ) const;
+
+protected:
+    /**
+     * @brief 构造结构
+     * @param id 结构资源位置 ID
+     */
+    explicit Structure(ResourceLocation id)
+        : m_id(std::move(id))
+    {}
+
+    /**
+     * @brief 兼容旧代码的构造函数
+     *
+     * TODO: 所有子类迁移到 ResourceLocation 构造函数后删除。
+     * 将 StructureType 转换为 ResourceLocation。
+     *
+     * @param type 结构类型枚举
+     */
+    explicit Structure(StructureType type)
+        : m_id(_typeToId(type))
+        , m_legacyType(type)
+    {}
+
+    /**
+     * @brief 创建结构随机数生成器
+     *
+     * 使用世界种子、区块坐标和盐值生成确定性的随机数序列。
+     *
+     * @param seed 世界种子
+     * @param chunkX 区块 X 坐标
+     * @param chunkZ 区块 Z 坐标
+     * @param salt 盐值
+     * @return 随机数生成器
+     */
+    [[nodiscard]] static math::Random createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt);
+
+    ResourceLocation m_id;                                        ///< 结构资源位置 ID
+    StructureType m_legacyType = static_cast<StructureType>(255); ///< 兼容旧代码的结构类型（无效值标记）
+
+    /**
+     * @brief 将 StructureType 转换为 ResourceLocation
+     *
+     * TODO: 所有子类迁移后删除。
+     */
+    [[nodiscard]] static ResourceLocation _typeToId(StructureType type);
+
+public:
+    // ========== 兼容旧代码接口 ==========
+    // TODO: 所有子类迁移完成后删除以下方法
+
+    /**
+     * @brief 获取结构类型枚举（兼容旧代码）
+     *
+     * TODO: 迁移完成后删除，使用 id() 替代。
+     */
+    [[nodiscard]] StructureType structureType() const noexcept { return m_legacyType; }
+
+    /**
+     * @brief 获取结构间距设置（兼容旧代码）
+     *
+     * TODO: 迁移完成后删除，间距设置现在由 StructurePlacement 管理。
+     * 子类仍需覆盖此方法直到迁移完成。
+     */
+    [[nodiscard]] virtual StructureSeparationSettings separationSettings() const
+    {
+        return StructureSeparationSettings{};
+    }
+
+    /**
+     * @brief 获取有效生物群系列表（兼容旧代码）
+     *
+     * TODO: 迁移完成后删除，使用 biomeTag() 替代。
+     * 子类仍需覆盖此方法直到迁移完成。
+     */
+    [[nodiscard]] virtual const std::vector<BiomeId>& validBiomes() const
+    {
+        static const std::vector<BiomeId> empty;
+        return empty;
+    }
+
+    /**
+     * @brief 是否使用均匀间距分布（兼容旧代码）
+     *
+     * TODO: 迁移完成后删除，分布类型现在由 RandomSpreadStructurePlacement 管理。
+     */
+    [[nodiscard]] virtual bool useUniformSpacing() const { return true; }
+
+    /**
+     * @brief 查找结构起始位置（兼容旧代码）
+     *
+     * TODO: 迁移完成后删除，放置逻辑现在由 StructurePlacement::isStructureChunk() 管理。
+     */
     [[nodiscard]] static bool findStructureStart(i64 seed,
         i32 chunkX,
         i32 chunkZ,
@@ -565,13 +733,6 @@ public:
         bool useUniformSpacing = true);
 
 protected:
-    explicit Structure(StructureType type)
-        : m_type(type)
-    {}
-
-    [[nodiscard]] static math::Random createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt);
-
-    StructureType m_type;
 };
 
 // 片段类型常量

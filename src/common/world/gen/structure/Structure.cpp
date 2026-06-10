@@ -371,6 +371,12 @@ StructurePiece* StructurePiece::findIntersecting(
 
 bool Structure::isValidBiome(BiomeId biomeId) const
 {
+    // 优先使用 BiomeTag 进行 O(1) 查找
+    const biome::BiomeTag* tag = biomeTag();
+    if (tag) {
+        return tag->contains(biomeId);
+    }
+    // 标签未加载时，回退到线性搜索（兼容旧代码）
     const auto& biomes = validBiomes();
     return std::find(biomes.begin(), biomes.end(), biomeId) != biomes.end();
 }
@@ -402,6 +408,56 @@ void Structure::placeInChunk(
     }
 }
 
+void Structure::afterPlace(IWorldWriter& /*world*/, StructureStart& /*start*/, i32 /*chunkX*/, i32 /*chunkZ*/) const
+{
+    // 默认实现为空，子类可以覆盖以在放置后执行额外操作
+}
+
+math::Random Structure::createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt)
+{
+    u64 combinedSeed = static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL +
+        static_cast<u64>(seed) + static_cast<u64>(salt);
+    return math::Random(static_cast<i64>(combinedSeed));
+}
+
+ResourceLocation Structure::_typeToId(StructureType type)
+{
+    switch (type) {
+        case StructureType::Temple:
+            return ResourceLocation("minecraft", "temple");
+        case StructureType::Monument:
+            return ResourceLocation("minecraft", "ocean_monument");
+        case StructureType::Stronghold:
+            return ResourceLocation("minecraft", "stronghold");
+        case StructureType::Village:
+            return ResourceLocation("minecraft", "village");
+        case StructureType::Mineshaft:
+            return ResourceLocation("minecraft", "mineshaft");
+        case StructureType::RuinedPortal:
+            return ResourceLocation("minecraft", "ruined_portal");
+        case StructureType::BuriedTreasure:
+            return ResourceLocation("minecraft", "buried_treasure");
+        case StructureType::Shipwreck:
+            return ResourceLocation("minecraft", "shipwreck");
+        case StructureType::OceanRuin:
+            return ResourceLocation("minecraft", "ocean_ruin");
+        case StructureType::WoodlandMansion:
+            return ResourceLocation("minecraft", "woodland_mansion");
+        case StructureType::Bastion:
+            return ResourceLocation("minecraft", "bastion_remnant");
+        case StructureType::Fortress:
+            return ResourceLocation("minecraft", "fortress");
+        case StructureType::EndCity:
+            return ResourceLocation("minecraft", "end_city");
+        case StructureType::PillagerOutpost:
+            return ResourceLocation("minecraft", "pillager_outpost");
+        case StructureType::TrialChambers:
+            return ResourceLocation("minecraft", "trial_chambers");
+        default:
+            return ResourceLocation("minecraft", "unknown");
+    }
+}
+
 bool Structure::findStructureStart(i64 seed,
     i32 chunkX,
     i32 chunkZ,
@@ -426,13 +482,12 @@ bool Structure::findStructureStart(i64 seed,
 
     i32 offsetRange = spacing - separation;
 
-    // 均匀分布 vs 非均匀分布（两次随机取平均，产生更集中的分布）
+    // 均匀分布 vs 三角分布（两次随机取平均，产生更集中的分布）
     i32 offsetX, offsetZ;
     if (useUniformSpacing) {
         offsetX = rng.nextInt(offsetRange);
         offsetZ = rng.nextInt(offsetRange);
     } else {
-        // 非均匀分布：两次随机取平均，产生更集中的分布
         offsetX = (rng.nextInt(offsetRange) + rng.nextInt(offsetRange)) / 2;
         offsetZ = (rng.nextInt(offsetRange) + rng.nextInt(offsetRange)) / 2;
     }
@@ -441,13 +496,6 @@ bool Structure::findStructureStart(i64 seed,
     outStartZ = gridZ * spacing + offsetZ;
 
     return outStartX == chunkX && outStartZ == chunkZ;
-}
-
-math::Random Structure::createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt)
-{
-    u64 combinedSeed = static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL +
-        static_cast<u64>(seed) + static_cast<u64>(salt);
-    return math::Random(static_cast<i64>(combinedSeed));
 }
 
 // ========== StructureStart ==========
@@ -468,7 +516,7 @@ void StructureStart::addPiece(std::unique_ptr<StructurePiece> piece)
 
 void StructureStart::recalculateStructureSize()
 {
-    m_boundingBox = StructureBoundingBox(); // Reset to invalid state
+    m_boundingBox = StructureBoundingBox(); // 重置为无效状态
     for (const auto& piece : m_pieces) {
         m_boundingBox.expandToInclude(piece->minX(), piece->minY(), piece->minZ());
         m_boundingBox.expandToInclude(piece->maxX(), piece->maxY(), piece->maxZ());

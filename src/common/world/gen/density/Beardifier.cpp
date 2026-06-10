@@ -97,11 +97,6 @@ f64 Beardifier::compute(i32 blockX, i32 blockY, i32 blockZ) const
                     0.8;
                 break;
             }
-
-            case TerrainAdaptation::BuryInterior:
-                // MC 1.21.4+ 新增，与 Bury 类似但只影响内部
-                d0 += getBuryContribution(static_cast<f64>(dx), static_cast<f64>(dy) / 2.0, static_cast<f64>(dz));
-                break;
         }
     }
 

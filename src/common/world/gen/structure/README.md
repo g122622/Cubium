@@ -8,10 +8,23 @@ structure/
 ├── Structure.cpp                      # 结构基类实现
 ├── StructureBoundingBox.hpp           # 结构边界框（用于判断片段与区块交集）
 ├── StructureBoundingBox.cpp
+├── StructureSet.hpp                   # 结构集合模型（加权条目 + 放置规则）
+├── StructureSet.cpp
+├── StructureSetLoader.hpp             # 结构集合 JSON 加载器（数据包）
+├── StructureSetLoader.cpp
+├── StructureDefinitionLoader.hpp      # 结构定义 JSON 加载器（数据包）
+├── StructureDefinitionLoader.cpp
 ├── JigsawStructure.hpp                # Jigsaw 拼图结构基类
 ├── JigsawStructure.cpp
 ├── StructureManager.hpp               # 结构管理器（注册、查询、生成协调）
 ├── StructureManager.cpp
+├── placement/                         # 结构放置策略（决定结构在世界中的空间分布）
+│   ├── StructurePlacement.hpp         # 放置基类、枚举（RandomSpreadType/FrequencyReductionMethod/ExclusionZone）
+│   ├── StructurePlacement.cpp
+│   ├── RandomSpreadStructurePlacement.hpp  # 网格随机分布（村庄、神殿等大多数结构）
+│   ├── RandomSpreadStructurePlacement.cpp
+│   ├── ConcentricRingsStructurePlacement.hpp  # 同心环分布（要塞）
+│   └── ConcentricRingsStructurePlacement.cpp
 ├── pools/                             # Jigsaw 模板池
 │   ├── Pools.hpp                      # 模板池注册入口
 │   ├── Pools.cpp
@@ -61,7 +74,19 @@ structure/
 │   (基类)    │      │   (基类)    │      │     Box         │
 └──────┬──────┘      └──────┬──────┘      └─────────────────┘
        │                    │
+       │                    │            ┌──────────────────────┐
+       │                    │            │   placement/          │
+       │                    │            │ StructurePlacement    │
+       │                    │            │ ├─ RandomSpread       │
+       │                    │            │ └─ ConcentricRings    │
+       │                    │            └──────────────────────┘
        │                    │
+       │                    │            ┌──────────────────────┐
+       │                    │            │ StructureSet          │
+       │                    │            │ (加权条目+放置规则)   │
+       │                    │            │ StructureSetLoader    │
+       │                    │            │ StructureDefLoader    │
+       │                    │            └──────────────────────┘
        ▼                    ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                      structures/                              │

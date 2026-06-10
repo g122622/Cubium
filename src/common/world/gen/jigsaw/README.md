@@ -18,6 +18,8 @@ jigsaw/
 ├── JigsawManager.cpp            # 拼图组装实现
 ├── ProcessorListRegistry.hpp    # 处理器列表注册表（按 ResourceLocation 查找 StructureProcessorList）
 ├── ProcessorListRegistry.cpp    # 处理器列表注册表实现
+├── ProcessorListLoader.hpp      # 处理器列表 JSON 加载器（数据包）
+├── ProcessorListLoader.cpp      # 从数据包加载处理器列表
 ├── PoolAliasBinding.hpp         # 池别名绑定基类和实现（Random/RandomGroup）
 ├── PoolAliasBinding.cpp         # 池别名绑定实现
 ├── TemplatePoolLoader.hpp       # 模板池 JSON 加载器
@@ -47,6 +49,7 @@ JigsawPiece ──包含──> JigsawJoint ──使用──> JigsawOrientatio
 - **ProcessorListRegistry**：按 ResourceLocation 注册和查找 StructureProcessorList
 - **PoolAliasBinding**：池别名绑定，实现结构生成时的池随机化（如试炼密室刷怪笼类型）
 - **TemplatePoolLoader**：从数据包 JSON 加载模板池，支持所有原版元素类型
+- **ProcessorListLoader**：从数据包 JSON 加载处理器列表，支持所有原版处理器类型
 
 ## 拼图块类型
 

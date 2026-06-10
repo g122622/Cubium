@@ -47,15 +47,16 @@
 #include "common/world/gen/structure/structures/VillageStructure.hpp"
 #include "common/world/gen/structure/structures/WoodlandMansionStructure.hpp"
 #include "structures/TrialChambersStructure.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc::world::gen::structure {
 
 // StructureRegistry 实现
 bool StructureRegistry::s_initialized = false;
 
-std::unordered_map<std::string, std::unique_ptr<Structure>>& StructureRegistry::getStructures()
+std::unordered_map<ResourceLocation, std::unique_ptr<Structure>>& StructureRegistry::getStructures()
 {
-    static std::unordered_map<std::string, std::unique_ptr<Structure>> structures;
+    static std::unordered_map<ResourceLocation, std::unique_ptr<Structure>> structures;
     return structures;
 }
 
@@ -73,6 +74,8 @@ void StructureRegistry::initialize()
     pools::Pools::initialize();
 
     // 注册原版结构
+    // TODO: 子类构造函数需要更新为接受 ResourceLocation 参数
+    // 当前阶段先保持旧的构造方式，后续逐步迁移
     registerStructure(std::make_unique<RuinedPortalStructure>());
     registerStructure(std::make_unique<BuriedTreasureStructure>());
     registerStructure(std::make_unique<MineshaftStructure>());
@@ -100,21 +103,30 @@ void StructureRegistry::registerStructure(std::unique_ptr<Structure> structure)
 {
     if (!structure) return;
 
-    const std::string name = structure->name();
+    const ResourceLocation& id = structure->id();
     auto& structures = getStructures();
     auto& list = getStructureList();
 
-    if (structures.find(name) == structures.end()) {
+    if (structures.find(id) == structures.end()) {
         list.push_back(structure.get());
-        structures[name] = std::move(structure);
+        structures[id] = std::move(structure);
+    } else {
+        spdlog::warn("StructureRegistry: 重复注册结构 {}", id.toString());
     }
+}
+
+const Structure* StructureRegistry::get(const ResourceLocation& id)
+{
+    auto& structures = getStructures();
+    auto it = structures.find(id);
+    return it != structures.end() ? it->second.get() : nullptr;
 }
 
 const Structure* StructureRegistry::get(const std::string& name)
 {
-    auto& structures = getStructures();
-    auto it = structures.find(name);
-    return it != structures.end() ? it->second.get() : nullptr;
+    // 兼容旧接口：将字符串名称转换为 ResourceLocation
+    ResourceLocation id = ResourceLocation::parse(name);
+    return get(id);
 }
 
 const std::vector<const Structure*>& StructureRegistry::getAll()
@@ -129,9 +141,11 @@ StructureManager::StructureManager(i64 seed)
 
 bool StructureManager::shouldGenerateStructureStart(const Structure& structure, i32 chunkX, i32 chunkZ) const
 {
-    // 使用结构的间距设置检查是否应该在此位置生成
+    // 使用兼容的间距设置检查是否应该在此位置生成
+    // TODO: 迁移到使用 StructurePlacement::isStructureChunk() 判断
     i32 startX, startZ;
-    return Structure::findStructureStart(m_seed, chunkX, chunkZ, structure.separationSettings(), startX, startZ);
+    return Structure::findStructureStart(
+        m_seed, chunkX, chunkZ, structure.separationSettings(), startX, startZ, structure.useUniformSpacing());
 }
 
 std::unique_ptr<StructureStart> StructureManager::generateStructureStart(const Structure& structure,
@@ -150,6 +164,9 @@ void StructureManager::placeStructureInChunk(
 {
     // 调用结构的放置方法
     structure.placeInChunk(world, chunk, start, chunkX, chunkZ);
+
+    // 调用放置后的钩子
+    structure.afterPlace(world, start, chunkX, chunkZ);
 }
 
 void StructureManager::clearCache()

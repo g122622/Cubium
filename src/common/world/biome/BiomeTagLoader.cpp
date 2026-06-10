@@ -1,0 +1,308 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#include "BiomeTagLoader.hpp"
+#include "BiomeRegistry.hpp"
+#include "BiomeTags.hpp"
+#include "common/resource/DataPackList.hpp"
+#include "common/resource/IResourcePack.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/util/assert/AssertAll.hpp"
+
+#include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
+
+namespace mc::world::biome {
+
+// ============================================================================
+// 内部辅助函数
+// ============================================================================
+
+/**
+ * @brief 根据生物群系名称解析 BiomeId
+ *
+ * 遍历 BiomeRegistry 中的所有已注册生物群系，
+ * 找到名称匹配的生物群系并返回其 ID。
+ *
+ * @param biomeName 生物群系名称（如 "minecraft:desert" 或 "desert"）
+ * @return 对应的 BiomeId，未找到则返回空
+ */
+static std::optional<BiomeId> resolveBiomeId(const std::string& biomeName)
+{
+    // 提取路径部分（去掉命名空间前缀）
+    std::string name = biomeName;
+    const std::string prefix = "minecraft:";
+    if (name.size() > prefix.size() && name.substr(0, prefix.size()) == prefix) {
+        name = name.substr(prefix.size());
+    }
+
+    // 在注册表中查找匹配名称的生物群系
+    const auto& allBiomes = BiomeRegistry::instance().allBiomes();
+    for (const auto& biome : allBiomes) {
+        if (biome.name() == name) {
+            return biome.id();
+        }
+    }
+
+    return std::nullopt;
+}
+
+/**
+ * @brief 解析标签值列表中的单个条目
+ *
+ * 支持两种格式：
+ * - 直接生物群系名称: "minecraft:desert"
+ * - 标签引用: "#minecraft:is_jungle"（解析引用标签中的所有生物群系）
+ *
+ * @param entry 值条目字符串
+ * @param biomeIds 输出参数：收集的 BiomeId 集合
+ * @param visitedTags 已访问的标签集合（防止循环引用）
+ */
+static void resolveTagEntry(
+    const std::string& entry, std::vector<BiomeId>& biomeIds, std::unordered_set<ResourceLocation>& visitedTags)
+{
+    if (entry.empty()) {
+        return;
+    }
+
+    if (entry[0] == '#') {
+        // 标签引用: #namespace:path
+        std::string tagRef = entry.substr(1);
+        ResourceLocation tagLocation = ResourceLocation::parse(tagRef);
+
+        // 防止循环引用
+        if (visitedTags.count(tagLocation) > 0) {
+            spdlog::warn("BiomeTagLoader: 循环标签引用 '{}', 跳过", entry);
+            return;
+        }
+        visitedTags.insert(tagLocation);
+
+        // 查找被引用的标签
+        auto* referencedTag = BiomeTags::getTag(tagLocation);
+        if (referencedTag != nullptr) {
+            for (BiomeId id : referencedTag->getBiomeIds()) {
+                biomeIds.push_back(id);
+            }
+        } else {
+            spdlog::warn("BiomeTagLoader: 引用的标签 '{}' 未找到, 跳过", entry);
+        }
+    } else {
+        // 直接生物群系名称
+        auto biomeId = resolveBiomeId(entry);
+        if (biomeId.has_value()) {
+            biomeIds.push_back(biomeId.value());
+        } else {
+            spdlog::warn("BiomeTagLoader: 未知的生物群系 '{}', 跳过", entry);
+        }
+    }
+}
+
+// ============================================================================
+// BiomeTagLoader 实现
+// ============================================================================
+
+Result<size_t> BiomeTagLoader::loadFromDataPackList(const resource::DataPackList& dataPackList)
+{
+    size_t loadedCount = 0;
+
+    // 获取所有命名空间
+    auto namespacesResult = dataPackList.getResourceNamespaces();
+    if (!namespacesResult.success()) {
+        return loadedCount;
+    }
+
+    for (const auto& namespace_ : namespacesResult.value()) {
+        // 列出 tags/worldgen/biome/ 目录下的所有 JSON 文件
+        std::string directory = namespace_ + "/tags/worldgen/biome";
+        auto listResult = dataPackList.listResources(directory, ".json");
+
+        if (!listResult.success()) {
+            continue;
+        }
+
+        for (const auto& resourcePath : listResult.value()) {
+            // 从路径提取标签名称
+            // 路径格式: namespace/tags/worldgen/biome/has_structure/xxx.json
+            std::string tagName = namespace_ + ":" + resourcePath.substr(directory.length() + 1);
+            // 移除 .json 扩展名
+            if (tagName.size() >= 5 && tagName.substr(tagName.size() - 5) == ".json") {
+                tagName = tagName.substr(0, tagName.size() - 5);
+            }
+
+            ResourceLocation location(tagName);
+
+            // 读取 JSON 内容
+            auto readResult = dataPackList.readTextResource(resourcePath);
+            if (!readResult.success()) {
+                spdlog::warn("BiomeTagLoader: 无法读取标签文件: {}", resourcePath);
+                continue;
+            }
+
+            // 解析 JSON
+            auto parseResult = loadFromJson(readResult.value(), location);
+            if (!parseResult.success()) {
+                spdlog::warn("BiomeTagLoader: 无法解析标签 {}: {}", tagName, parseResult.error().message());
+                continue;
+            }
+
+            // 将解析结果合并到 BiomeTags 注册表
+            std::unique_ptr<BiomeTag> parsedTag = std::move(parseResult.value());
+            auto* existingTag = BiomeTags::getTag(parsedTag->getId());
+            if (existingTag != nullptr) {
+                // 数据包覆盖：将新生物群系添加到现有标签
+                for (BiomeId id : parsedTag->getBiomeIds()) {
+                    existingTag->add(id);
+                }
+            }
+            // 注意：如果标签在 BiomeTags::initialize() 中尚未注册，
+            // 数据包中的标签会被丢弃，因为 BiomeTags 使用静态注册表。
+            // 数据包加载应在 initialize() 之后执行。
+
+            ++loadedCount;
+        }
+    }
+
+    if (loadedCount > 0) {
+        spdlog::info("BiomeTagLoader: 从数据包加载了 {} 个生物群系标签", loadedCount);
+    }
+
+    return loadedCount;
+}
+
+Result<size_t> BiomeTagLoader::loadFromResourcePack(const resource::IResourcePack& pack)
+{
+    size_t loadedCount = 0;
+
+    // 获取所有命名空间
+    auto namespacesResult = pack.getResourceNamespaces(resource::PackType::ServerData);
+    if (!namespacesResult.success()) {
+        return loadedCount;
+    }
+
+    for (const auto& namespace_ : namespacesResult.value()) {
+        // 列出 tags/worldgen/biome/ 目录下的所有 JSON 文件
+        std::string directory = namespace_ + "/tags/worldgen/biome";
+        auto listResult = pack.listResources(resource::PackType::ServerData, directory, ".json");
+
+        if (!listResult.success()) {
+            continue;
+        }
+
+        for (const auto& resourcePath : listResult.value()) {
+            // 从路径提取标签名称
+            std::string tagName = namespace_ + ":" + resourcePath.substr(directory.length() + 1);
+            if (tagName.size() >= 5 && tagName.substr(tagName.size() - 5) == ".json") {
+                tagName = tagName.substr(0, tagName.size() - 5);
+            }
+
+            ResourceLocation location(tagName);
+
+            // 读取 JSON 内容
+            auto readResult = pack.readTextResource(resource::PackType::ServerData, resourcePath);
+            if (!readResult.success()) {
+                spdlog::warn("BiomeTagLoader: 无法读取标签文件: {}", resourcePath);
+                continue;
+            }
+
+            // 解析 JSON
+            auto parseResult = loadFromJson(readResult.value(), location);
+            if (!parseResult.success()) {
+                spdlog::warn("BiomeTagLoader: 无法解析标签 {}: {}", tagName, parseResult.error().message());
+                continue;
+            }
+
+            // 将解析结果合并到 BiomeTags 注册表
+            std::unique_ptr<BiomeTag> parsedTag = std::move(parseResult.value());
+            auto* existingTag = BiomeTags::getTag(parsedTag->getId());
+            if (existingTag != nullptr) {
+                for (BiomeId id : parsedTag->getBiomeIds()) {
+                    existingTag->add(id);
+                }
+            }
+
+            ++loadedCount;
+        }
+    }
+
+    return loadedCount;
+}
+
+Result<std::unique_ptr<BiomeTag>> BiomeTagLoader::loadFromJson(
+    const std::string& json, const ResourceLocation& location)
+{
+    try {
+        nlohmann::json jsonObj = nlohmann::json::parse(json);
+
+        // 创建标签
+        auto tag = std::make_unique<BiomeTag>(location);
+
+        // 解析 replace 字段（如果为 true，清空已有标签内容）
+        // 注意：replace 仅在数据包覆盖场景有意义，这里先解析但不影响初始化逻辑
+        bool replace = false;
+        if (jsonObj.contains("replace") && jsonObj["replace"].is_boolean()) {
+            replace = jsonObj["replace"].get<bool>();
+        }
+
+        // 解析 values 数组
+        if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
+            return Error(ErrorCode::InvalidData, "生物群系标签缺少 'values' 数组");
+        }
+
+        std::vector<BiomeId> biomeIds;
+        std::unordered_set<ResourceLocation> visitedTags;
+        visitedTags.insert(location); // 防止自引用
+
+        for (const auto& value : jsonObj["values"]) {
+            if (!value.is_string()) {
+                spdlog::warn("BiomeTagLoader: 标签 '{}' 中的值不是字符串, 跳过", location.toString());
+                continue;
+            }
+
+            std::string entry = value.get<std::string>();
+            resolveTagEntry(entry, biomeIds, visitedTags);
+        }
+
+        if (replace) {
+            // replace=true 时，数据包要完全替换此标签
+            // 对于新标签，直接添加所有值
+            tag->addAll(biomeIds);
+        } else {
+            // 默认追加模式
+            tag->addAll(biomeIds);
+        }
+
+        if (biomeIds.empty()) {
+            spdlog::info("BiomeTagLoader: 标签 '{}' 没有解析到有效的生物群系ID", location.toString());
+        }
+
+        return tag;
+    }
+    catch (const nlohmann::json::parse_error& e) {
+        return Error(ErrorCode::InvalidData, std::string("JSON 解析错误: ") + e.what());
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::InvalidData, std::string("解析 JSON 失败: ") + e.what());
+    }
+}
+
+} // namespace mc::world::biome
