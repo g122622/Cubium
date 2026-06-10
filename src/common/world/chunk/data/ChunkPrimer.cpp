@@ -42,6 +42,21 @@ constexpr std::array<HeightmapType, 7> ALL_HEIGHTMAP_TYPES = {
     HeightmapType::LightBlocking,
 };
 
+struct TypeAndFlag {
+    HeightmapType type;
+    HeightmapFlag flag;
+};
+
+static const TypeAndFlag HEIGHTMAP_MAPPINGS[] = {
+    {HeightmapType::WorldSurfaceWG, HeightmapFlag::WORLD_SURFACE_WG},
+    {HeightmapType::OceanFloorWG, HeightmapFlag::OCEAN_FLOOR_WG},
+    {HeightmapType::WorldSurface, HeightmapFlag::WORLD_SURFACE},
+    {HeightmapType::OceanFloor, HeightmapFlag::OCEAN_FLOOR},
+    {HeightmapType::MotionBlocking, HeightmapFlag::MOTION_BLOCKING},
+    {HeightmapType::MotionBlockingNoLeaves, HeightmapFlag::MOTION_BLOCKING_NO_LEAVES},
+    {HeightmapType::LightBlocking, HeightmapFlag::LIGHT_BLOCKING},
+};
+
 void initializeAllHeightmaps(std::unordered_map<HeightmapType, Heightmap>& heightmaps)
 {
     for (HeightmapType type : ALL_HEIGHTMAP_TYPES) {
@@ -316,26 +331,8 @@ void ChunkPrimer::initializeLightSources()
 
 void ChunkPrimer::primeHeightmaps(HeightmapFlag types)
 {
-    // Heightmap.primeHeightmaps
-    // 在 FEATURES 阶段开始前调用，从已有方块数据重新计算指定类型的高度图。
-    // 只更新 types 中指定的高度图，不重置其他高度图。
-
-    // 确定需要更新的高度图类型列表
-    struct TypeAndFlag {
-        HeightmapType type;
-        HeightmapFlag flag;
-    };
-    static const TypeAndFlag mappings[] = {
-        {HeightmapType::WorldSurfaceWG, HeightmapFlag::WORLD_SURFACE_WG},
-        {HeightmapType::OceanFloorWG, HeightmapFlag::OCEAN_FLOOR_WG},
-        {HeightmapType::WorldSurface, HeightmapFlag::WORLD_SURFACE},
-        {HeightmapType::OceanFloor, HeightmapFlag::OCEAN_FLOOR},
-        {HeightmapType::MotionBlocking, HeightmapFlag::MOTION_BLOCKING},
-        {HeightmapType::MotionBlockingNoLeaves, HeightmapFlag::MOTION_BLOCKING_NO_LEAVES},
-    };
-
     // 先重置指定类型的高度图
-    for (const auto& [type, flag] : mappings) {
+    for (const auto& [type, flag] : HEIGHTMAP_MAPPINGS) {
         if (hasFlag(types, flag)) {
             auto it = m_heightmaps.find(type);
             if (it != m_heightmaps.end()) {
@@ -353,7 +350,7 @@ void ChunkPrimer::primeHeightmaps(HeightmapFlag types)
                     continue;
                 }
 
-                for (const auto& [type, flag] : mappings) {
+                for (const auto& [type, flag] : HEIGHTMAP_MAPPINGS) {
                     if (!hasFlag(types, flag)) {
                         continue;
                     }
@@ -424,26 +421,11 @@ bool ChunkPrimer::_isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z) n
 
 void ChunkPrimer::_updateHeightmapsForCurrentStatus(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
-    // ProtoChunk.setBlockState 在设置方块后，
-    // 根据 persistedStatus.heightmapsAfter() 决定更新哪些高度图。
     const HeightmapFlag flags = m_persistedStatus->heightmaps();
-
-    struct TypeAndFlag {
-        HeightmapType type;
-        HeightmapFlag flag;
-    };
-    static const TypeAndFlag mappings[] = {
-        {HeightmapType::WorldSurfaceWG, HeightmapFlag::WORLD_SURFACE_WG},
-        {HeightmapType::OceanFloorWG, HeightmapFlag::OCEAN_FLOOR_WG},
-        {HeightmapType::WorldSurface, HeightmapFlag::WORLD_SURFACE},
-        {HeightmapType::OceanFloor, HeightmapFlag::OCEAN_FLOOR},
-        {HeightmapType::MotionBlocking, HeightmapFlag::MOTION_BLOCKING},
-        {HeightmapType::MotionBlockingNoLeaves, HeightmapFlag::MOTION_BLOCKING_NO_LEAVES},
-    };
 
     // 检查是否有尚未创建的高度图需要先 prime
     bool needsPrime = false;
-    for (const auto& [type, flag] : mappings) {
+    for (const auto& [type, flag] : HEIGHTMAP_MAPPINGS) {
         if (hasFlag(flags, flag) && m_heightmaps.find(type) == m_heightmaps.end()) {
             needsPrime = true;
             break;
@@ -457,7 +439,7 @@ void ChunkPrimer::_updateHeightmapsForCurrentStatus(BlockCoord x, BlockCoord y, 
     }
 
     // 增量更新已存在的高度图
-    for (const auto& [type, flag] : mappings) {
+    for (const auto& [type, flag] : HEIGHTMAP_MAPPINGS) {
         if (!hasFlag(flags, flag)) {
             continue;
         }

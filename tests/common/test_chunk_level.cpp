@@ -36,8 +36,8 @@ using namespace mc::world::chunk;
 
 TEST(ChunkPyramid, Constants)
 {
-    EXPECT_EQ(ENTITY_TICKING_LEVEL, 31);
-    EXPECT_EQ(BLOCK_TICKING_LEVEL, 32);
+    EXPECT_EQ(static_cast<i32>(ChunkLoadLevel::EntityTicking), 31);
+    EXPECT_EQ(static_cast<i32>(ChunkLoadLevel::BlockTicking), 32);
     EXPECT_EQ(FULL_CHUNK_LEVEL, 33);
 }
 

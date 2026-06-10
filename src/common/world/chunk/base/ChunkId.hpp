@@ -45,9 +45,7 @@ struct ChunkId {
         , z(0)
         , dimension(0)
     {}
-    // TODO: 构造函数的默认参数违反项目规范（函数参数不允许使用默认值），
-    // 但移除会影响 ClientWorld.cpp 等文件，待统一修改
-    ChunkId(ChunkCoord x, ChunkCoord z, i32 dim = 0)
+    ChunkId(ChunkCoord x, ChunkCoord z, i32 dim)
         : x(x)
         , z(z)
         , dimension(dim)
@@ -105,9 +103,8 @@ struct ChunkId {
 
 } // namespace mc::world::chunk
 
-// 向后兼容的命名空间别名
 namespace mc {
-using ChunkId = mc::world::chunk::ChunkId;
+using ChunkId = world::chunk::ChunkId;
 } // namespace mc
 
 // 哈希支持

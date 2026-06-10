@@ -48,24 +48,10 @@ ChunkSection::ChunkSection()
     , m_blockLight()                      // 默认方块光照无光（空数组，返回0）
 {}
 
-u32 ChunkSection::getBlockStateId(i32 x, i32 y, i32 z) const
+void ChunkSection::_updateCounters(u32 oldStateId, u32 newStateId)
 {
-    if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
-        return 0; // 空气
-    }
-    return m_blockStates[blockIndex(x, y, z)];
-}
-
-void ChunkSection::setBlockStateIdFast(i32 index, u32 stateId)
-{
-    if (index < 0 || index >= static_cast<i32>(m_blockStates.size())) {
-        return;
-    }
-
-    const size_t actualIndex = static_cast<size_t>(index);
-    u32 oldStateId = m_blockStates[actualIndex];
     const BlockState* oldState = Block::getBlockState(oldStateId);
-    const BlockState* newState = Block::getBlockState(stateId);
+    const BlockState* newState = Block::getBlockState(newStateId);
 
     bool oldIsAir = oldState ? oldState->isAir() : true;
     bool newIsAir = newState ? newState->isAir() : true;
@@ -95,8 +81,25 @@ void ChunkSection::setBlockStateIdFast(i32 index, u32 stateId)
             ++m_fluidRefCount;
         }
     }
+}
 
-    m_blockStates[actualIndex] = stateId;
+u32 ChunkSection::getBlockStateId(i32 x, i32 y, i32 z) const
+{
+    if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
+        return 0; // 空气
+    }
+    return m_blockStates[blockIndex(x, y, z)];
+}
+
+void ChunkSection::setBlockStateIdFast(i32 index, u32 stateId)
+{
+    if (index < 0 || index >= static_cast<i32>(m_blockStates.size())) {
+        return;
+    }
+
+    u32 oldStateId = m_blockStates[static_cast<size_t>(index)];
+    _updateCounters(oldStateId, stateId);
+    m_blockStates[static_cast<size_t>(index)] = stateId;
 }
 
 void ChunkSection::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId)
@@ -107,40 +110,7 @@ void ChunkSection::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId)
     i32 index = blockIndex(x, y, z);
     u32 oldStateId = m_blockStates[index];
 
-    // 获取旧状态和新状态来判断是否是空气
-    const BlockState* oldState = Block::getBlockState(oldStateId);
-    const BlockState* newState = Block::getBlockState(stateId);
-
-    bool oldIsAir = oldState ? oldState->isAir() : true;
-    bool newIsAir = newState ? newState->isAir() : true;
-
-    if (oldIsAir && !newIsAir) {
-        m_blockCount++;
-    } else if (!oldIsAir && newIsAir) {
-        m_blockCount--;
-    }
-
-    // 更新随机刻计数器
-    if (oldState && oldState->getBlock().ticksRandomly()) {
-        --m_blockTickRefCount;
-    }
-    if (newState && newState->getBlock().ticksRandomly()) {
-        ++m_blockTickRefCount;
-    }
-
-    // 更新流体计数器
-    if (oldState) {
-        const fluid::FluidState* oldFluid = oldState->getFluidState();
-        if (oldFluid && !oldFluid->isEmpty()) {
-            --m_fluidRefCount;
-        }
-    }
-    if (newState) {
-        const fluid::FluidState* newFluid = newState->getFluidState();
-        if (newFluid && !newFluid->isEmpty()) {
-            ++m_fluidRefCount;
-        }
-    }
+    _updateCounters(oldStateId, stateId);
 
     m_blockStates[index] = stateId;
     m_needsRecalculate = true;

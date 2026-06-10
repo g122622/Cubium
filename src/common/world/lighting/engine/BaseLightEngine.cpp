@@ -690,7 +690,7 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
         for (i32 sectionY = m_minSection; sectionY <= m_maxSection; ++sectionY) {
             const ChunkSection* section =
                 (sections == nullptr) ? nullptr : sections[static_cast<size_t>(sectionY - m_minSection)];
-            emptySections[static_cast<size_t>(sectionY - m_minSection)] = (section == nullptr || section->hasOnlyAir());
+            emptySections[static_cast<size_t>(sectionY - m_minSection)] = (section == nullptr || section->isEmpty());
         }
 
         std::vector<bool> emptinessUpdate = handleEmptySectionChanges(lightAccess, chunk, emptySections, true);

@@ -350,14 +350,14 @@ const BlockState* ChunkData::getBlockState(BlockCoord x, BlockCoord y, BlockCoor
         return nullptr; // 空气
     }
 
-    i32 sectionIndex = (y - mc::world::MIN_BUILD_HEIGHT) / mc::world::CHUNK_SECTION_HEIGHT;
+    i32 sectionIndex = mc::world::toSectionIndex(y);
     const auto& section = m_sections[sectionIndex];
 
     if (!section) {
         return nullptr; // 空气
     }
 
-    i32 localY = (y - mc::world::MIN_BUILD_HEIGHT) % mc::world::CHUNK_SECTION_HEIGHT;
+    i32 localY = mc::world::toSectionLocalY(y);
     return section->getBlockState(x, localY, z);
 }
 
@@ -368,7 +368,7 @@ void ChunkData::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const Bl
         return;
     }
 
-    i32 sectionIndex = (y - mc::world::MIN_BUILD_HEIGHT) / mc::world::CHUNK_SECTION_HEIGHT;
+    i32 sectionIndex = mc::world::toSectionIndex(y);
     auto& section = m_sections[sectionIndex];
 
     if (!section) {
@@ -378,7 +378,7 @@ void ChunkData::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const Bl
         section = std::make_unique<ChunkSection>();
     }
 
-    i32 localY = (y - mc::world::MIN_BUILD_HEIGHT) % mc::world::CHUNK_SECTION_HEIGHT;
+    i32 localY = mc::world::toSectionLocalY(y);
     section->setBlockState(x, localY, z, state);
     m_dirty = true;
 
@@ -395,14 +395,14 @@ u32 ChunkData::getBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z) const
         return 0; // 空气
     }
 
-    i32 sectionIndex = (y - mc::world::MIN_BUILD_HEIGHT) / mc::world::CHUNK_SECTION_HEIGHT;
+    i32 sectionIndex = mc::world::toSectionIndex(y);
     const auto& section = m_sections[sectionIndex];
 
     if (!section) {
         return 0; // 空气
     }
 
-    i32 localY = (y - mc::world::MIN_BUILD_HEIGHT) % mc::world::CHUNK_SECTION_HEIGHT;
+    i32 localY = mc::world::toSectionLocalY(y);
     return section->getBlockStateId(x, localY, z);
 }
 
@@ -413,7 +413,7 @@ void ChunkData::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 st
         return;
     }
 
-    i32 sectionIndex = (y - mc::world::MIN_BUILD_HEIGHT) / mc::world::CHUNK_SECTION_HEIGHT;
+    i32 sectionIndex = mc::world::toSectionIndex(y);
     auto& section = m_sections[sectionIndex];
 
     if (!section) {
@@ -423,7 +423,7 @@ void ChunkData::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 st
         section = std::make_unique<ChunkSection>();
     }
 
-    i32 localY = (y - mc::world::MIN_BUILD_HEIGHT) % mc::world::CHUNK_SECTION_HEIGHT;
+    i32 localY = mc::world::toSectionLocalY(y);
     section->setBlockStateId(x, localY, z, stateId);
     m_dirty = true;
 
@@ -444,7 +444,7 @@ BlockCoord ChunkData::getHighestBlock(BlockCoord x, BlockCoord z) const
 BlockCoord ChunkData::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const
 {
     if (x < 0 || x >= mc::world::CHUNK_WIDTH || z < 0 || z >= mc::world::CHUNK_WIDTH) {
-        MC_ASSERT_RELEASE(false);
+        return mc::world::MIN_BUILD_HEIGHT;
     }
 
     // 检查是否有特定类型的高度图
@@ -719,14 +719,14 @@ u8 ChunkData::getSkyLight(BlockCoord x, BlockCoord y, BlockCoord z) const
         return 15; // 边界外默认全亮
     }
 
-    i32 sectionIndex = (y - mc::world::MIN_BUILD_HEIGHT) / mc::world::CHUNK_SECTION_HEIGHT;
+    i32 sectionIndex = mc::world::toSectionIndex(y);
     const auto& section = m_sections[sectionIndex];
 
     if (!section) {
         return 15; // 未创建的段默认全亮
     }
 
-    i32 localY = (y - mc::world::MIN_BUILD_HEIGHT) % mc::world::CHUNK_SECTION_HEIGHT;
+    i32 localY = mc::world::toSectionLocalY(y);
     return section->getSkyLight(x, localY, z);
 }
 
@@ -737,7 +737,7 @@ void ChunkData::setSkyLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light)
         return;
     }
 
-    i32 sectionIndex = (y - mc::world::MIN_BUILD_HEIGHT) / mc::world::CHUNK_SECTION_HEIGHT;
+    i32 sectionIndex = mc::world::toSectionIndex(y);
     auto& section = m_sections[sectionIndex];
 
     if (!section) {
@@ -747,7 +747,7 @@ void ChunkData::setSkyLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light)
         section = std::make_unique<ChunkSection>();
     }
 
-    i32 localY = (y - mc::world::MIN_BUILD_HEIGHT) % mc::world::CHUNK_SECTION_HEIGHT;
+    i32 localY = mc::world::toSectionLocalY(y);
     section->setSkyLight(x, localY, z, light);
 }
 
@@ -758,14 +758,14 @@ u8 ChunkData::getBlockLight(BlockCoord x, BlockCoord y, BlockCoord z) const
         return 0; // 边界外默认无光
     }
 
-    i32 sectionIndex = (y - mc::world::MIN_BUILD_HEIGHT) / mc::world::CHUNK_SECTION_HEIGHT;
+    i32 sectionIndex = mc::world::toSectionIndex(y);
     const auto& section = m_sections[sectionIndex];
 
     if (!section) {
         return 0; // 未创建的段默认无光
     }
 
-    i32 localY = (y - mc::world::MIN_BUILD_HEIGHT) % mc::world::CHUNK_SECTION_HEIGHT;
+    i32 localY = mc::world::toSectionLocalY(y);
     return section->getBlockLight(x, localY, z);
 }
 
@@ -776,7 +776,7 @@ void ChunkData::setBlockLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light
         return;
     }
 
-    i32 sectionIndex = (y - mc::world::MIN_BUILD_HEIGHT) / mc::world::CHUNK_SECTION_HEIGHT;
+    i32 sectionIndex = mc::world::toSectionIndex(y);
     auto& section = m_sections[sectionIndex];
 
     if (!section) {
@@ -786,7 +786,7 @@ void ChunkData::setBlockLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light
         section = std::make_unique<ChunkSection>();
     }
 
-    i32 localY = (y - mc::world::MIN_BUILD_HEIGHT) % mc::world::CHUNK_SECTION_HEIGHT;
+    i32 localY = mc::world::toSectionLocalY(y);
     section->setBlockLight(x, localY, z, light);
 }
 
@@ -946,33 +946,17 @@ void ChunkData::setBlockNibbles(SWMRNibbleArray* const* nibbles)
 
 namespace {
 
-/**
- * @brief 将方块位置转换为唯一的64位键
- * @param pos 方块位置
- * @return 64位键
- */
-i64 posToKey(const BlockPos& pos)
+[[nodiscard]] i64 posToKey(const BlockPos& pos)
 {
-    // 使用 21 位存储 x 和 z，22 位存储 y（支持 -64 到 319 的范围）
-    // 总共 64 位: x(21) | y(22) | z(21)
-    u32 x = static_cast<u32>(pos.x) & 0x1FFFFF; // 21 位
-    u32 y = static_cast<u32>(pos.y) & 0x3FFFFF; // 22 位
-    u32 z = static_cast<u32>(pos.z) & 0x1FFFFF; // 21 位
+    const u32 x = static_cast<u32>(pos.x) & 0x1FFFFF;
+    const u32 y = static_cast<u32>(pos.y) & 0x3FFFFF;
+    const u32 z = static_cast<u32>(pos.z) & 0x1FFFFF;
     return (static_cast<i64>(x) << 43) | (static_cast<i64>(y) << 21) | static_cast<i64>(z);
 }
 
-/**
- * @brief 检查位置是否在当前区块内
- * @param chunkX 区块 X 坐标
- * @param chunkZ 区块 Z 坐标
- * @param pos 方块位置
- * @return 如果位置在区块内返回 true
- */
 bool isPosInChunk(ChunkCoord chunkX, ChunkCoord chunkZ, const BlockPos& pos)
 {
-    ChunkCoord posChunkX = pos.x >> 4;
-    ChunkCoord posChunkZ = pos.z >> 4;
-    return posChunkX == chunkX && posChunkZ == chunkZ;
+    return pos.chunkX() == chunkX && pos.chunkZ() == chunkZ;
 }
 
 } // namespace

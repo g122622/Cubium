@@ -61,7 +61,7 @@ void waitUntilCompletedAtLeast(MeshWorkerPool& pool, size_t expectedCount)
 MeshWorkerTask makeTask(ChunkCoord x, ChunkCoord z)
 {
     MeshWorkerTask task;
-    task.chunkId = ChunkId(x, z);
+    task.chunkId = ChunkId(x, z, 0);
     task.taskId = static_cast<u64>((x + 2048) * 4096 + (z + 2048));
     task.chunkData = createTestChunkData(x, z);
     task.neighbors = {};
@@ -100,7 +100,7 @@ TEST_F(MeshWorkerPoolTest, SubmitAndDrainSingleTask)
     i32 callbackCount = 0;
     pool.drainCompleted(
         [&callbackCount](MeshWorkerResult&& result) {
-            EXPECT_EQ(result.chunkId, ChunkId(0, 0));
+            EXPECT_EQ(result.chunkId, ChunkId(0, 0, 0));
             ++callbackCount;
         },
         8);

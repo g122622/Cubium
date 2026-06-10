@@ -190,4 +190,16 @@ inline bool isValidChunkCoord(i32 chunkX, i32 chunkZ) noexcept
     return chunkX >= MIN_CHUNK && chunkX <= MAX_CHUNK && chunkZ >= MIN_CHUNK && chunkZ <= MAX_CHUNK;
 }
 
+// 检查方块坐标是否在区块范围内
+inline bool isValidBlockInChunk(i32 x, i32 y, i32 z) noexcept
+{
+    return x >= 0 && x < CHUNK_WIDTH && y >= MIN_BUILD_HEIGHT && y < MAX_BUILD_HEIGHT && z >= 0 && z < CHUNK_WIDTH;
+}
+
+// 将Y坐标转换为区块段内本地Y坐标
+inline i32 toSectionLocalY(i32 y) noexcept
+{
+    return (y - MIN_BUILD_HEIGHT) % CHUNK_SECTION_HEIGHT;
+}
+
 } // namespace mc::world

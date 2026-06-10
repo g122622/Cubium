@@ -427,7 +427,6 @@ private:
 
 } // namespace mc::world::chunk
 
-// 向后兼容的命名空间别名
 namespace mc {
 using ChunkData = mc::world::chunk::ChunkData;
 using ChunkSection = mc::world::chunk::ChunkSection;

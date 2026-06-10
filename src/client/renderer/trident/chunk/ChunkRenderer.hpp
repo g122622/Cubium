@@ -53,7 +53,7 @@ struct ChunkGpuBuffer {
     VkDeviceMemory indexMemory = VK_NULL_HANDLE;
     u32 indexCount = 0;
     u32 vertexCount = 0;
-    ChunkId chunkId{0, 0};
+    ChunkId chunkId{0, 0, 0};
     ChunkRenderLayer layer = ChunkRenderLayer::Solid;
     bool isValid = false;
 

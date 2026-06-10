@@ -655,7 +655,7 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, cons
     // 找到最高非空区块段
     i32 highestNonEmptySection = m_maxSection;
     while (highestNonEmptySection == (m_minSection - 1) || sections[highestNonEmptySection - m_minSection] == nullptr ||
-        sections[highestNonEmptySection - m_minSection]->hasOnlyAir()) {
+        sections[highestNonEmptySection - m_minSection]->isEmpty()) {
         checkNullSection(chunkX, highestNonEmptySection, chunkZ, false);
 
         // 尝试向邻居传播全亮（空区块段需要将全亮传播到邻居）

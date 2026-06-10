@@ -93,7 +93,6 @@ private:
 
 } // namespace mc::world::chunk
 
-// 向后兼容的命名空间别名
 namespace mc {
-using BiomeContainer = mc::world::chunk::BiomeContainer;
+using BiomeContainer = world::chunk::BiomeContainer;
 } // namespace mc

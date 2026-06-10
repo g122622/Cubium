@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include <functional>
 #include <queue>
@@ -153,23 +154,13 @@ protected:
     virtual void onLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel);
 
     /// 区块位置转换为键（供子类使用）
-    [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z)
-    {
-        return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u32>(z);
-    }
+    [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z) { return mc::math::chunkPosToId(x, z); }
 
     /// 键转换为区块位置（供子类使用）
-    static void keyToPos(u64 key, ChunkCoord& x, ChunkCoord& z)
-    {
-        x = static_cast<ChunkCoord>(key >> 32);
-        z = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
-    }
+    static void keyToPos(u64 key, ChunkCoord& x, ChunkCoord& z) { mc::math::idToChunkPos(key, x, z); }
 
 private:
     void _enqueueUpdate(ChunkCoord x, ChunkCoord z);
-
-    /// 计算传播后的级别
-    [[nodiscard]] static i32 _computePropagatedLevel(i32 sourceLevel) { return sourceLevel + 1; }
 
     /// 传播级别到相邻区块
     void _propagateToNeighbors(ChunkCoord x, ChunkCoord z, i32 level, bool isDecreasing);

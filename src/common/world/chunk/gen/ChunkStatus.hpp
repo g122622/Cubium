@@ -157,7 +157,6 @@ extern const ChunkStatus FULL;
 
 } // namespace mc::world::chunk
 
-// 向后兼容的命名空间别名
 namespace mc {
 using ChunkType = mc::world::chunk::ChunkType;
 using HeightmapFlag = mc::world::chunk::HeightmapFlag;

@@ -53,7 +53,7 @@ std::shared_ptr<ChunkData> createTestChunkData(ChunkCoord x, ChunkCoord z)
 MeshBuildRequest makeRequest(ChunkCoord x, ChunkCoord z)
 {
     MeshBuildRequest request;
-    request.chunkId = ChunkId(x, z);
+    request.chunkId = ChunkId(x, z, 0);
     request.chunkData = createTestChunkData(x, z);
     request.neighbors = {};
     return request;
@@ -132,8 +132,8 @@ TEST_F(MeshBuildSchedulerTest, FrustumVisibleChunkHasHigherPriority)
     MeshBuildScheduler scheduler(pool, createSchedulerConfig(1));
     scheduler.setViewState(createViewState(12));
 
-    const ChunkId behindChunk(0, -1);
-    const ChunkId frontChunk(0, 1);
+    const ChunkId behindChunk(0, -1, 0);
+    const ChunkId frontChunk(0, 1, 0);
 
     scheduler.submit(makeRequest(behindChunk.x, behindChunk.z));
     scheduler.submit(makeRequest(frontChunk.x, frontChunk.z));

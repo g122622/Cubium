@@ -88,10 +88,6 @@ inline bool shouldChunkLoad(i32 level)
 // 区块加载级别常量（从 ChunkLevel 合并）
 // ============================================================================
 
-/// 实体 tick 级别（与 ChunkLoadLevel::EntityTicking 相同）
-constexpr i32 ENTITY_TICKING_LEVEL = 31;
-/// 方块 tick 级别（与 ChunkLoadLevel::BlockTicking 相同）
-constexpr i32 BLOCK_TICKING_LEVEL = 32;
 /// 完全加载级别（与 ChunkLoadLevel::Full 相同）
 constexpr i32 FULL_CHUNK_LEVEL = 33;
 

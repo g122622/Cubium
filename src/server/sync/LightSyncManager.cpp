@@ -79,7 +79,7 @@ void LightSyncManager::initializeChunkLighting(ChunkCoord x, ChunkCoord z)
 
     for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
         const ChunkSection* section = (sections != nullptr) ? sections[sectionY] : nullptr;
-        emptySections[static_cast<size_t>(sectionY)] = (section == nullptr || section->hasOnlyAir());
+        emptySections[static_cast<size_t>(sectionY)] = (section == nullptr || section->isEmpty());
     }
 
     // 检查区块是否已正确光照

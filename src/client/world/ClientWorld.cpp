@@ -152,7 +152,7 @@ const BlockState* ClientWorld::getBlockState(i32 x, i32 y, i32 z) const
 
     const i32 chunkX = toChunkCoord(x);
     const i32 chunkZ = toChunkCoord(z);
-    const ChunkId id(chunkX, chunkZ);
+    const ChunkId id(chunkX, chunkZ, 0);
 
     const ClientChunk* chunk = getChunk(id);
     if (!chunk || !chunk->data) {
@@ -173,7 +173,7 @@ const Biome* ClientWorld::getBiomeAtBlock(i32 x, i32 y, i32 z) const
 
     const i32 chunkX = toChunkCoord(x);
     const i32 chunkZ = toChunkCoord(z);
-    const ChunkId id(chunkX, chunkZ);
+    const ChunkId id(chunkX, chunkZ, 0);
 
     const ClientChunk* chunk = getChunk(id);
     if (!chunk || !chunk->data) {
@@ -195,7 +195,7 @@ u8 ClientWorld::getSkyLight(i32 x, i32 y, i32 z) const
 
     const i32 chunkX = toChunkCoord(x);
     const i32 chunkZ = toChunkCoord(z);
-    const ChunkId id(chunkX, chunkZ);
+    const ChunkId id(chunkX, chunkZ, 0);
 
     const ClientChunk* chunk = getChunk(id);
     if (!chunk || !chunk->data) {
@@ -223,7 +223,7 @@ u8 ClientWorld::getBlockLight(i32 x, i32 y, i32 z) const
 
     const i32 chunkX = toChunkCoord(x);
     const i32 chunkZ = toChunkCoord(z);
-    const ChunkId id(chunkX, chunkZ);
+    const ChunkId id(chunkX, chunkZ, 0);
 
     const ClientChunk* chunk = getChunk(id);
     if (!chunk || !chunk->data) {
@@ -260,7 +260,7 @@ void ClientWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
 
     const i32 chunkX = toChunkCoord(x);
     const i32 chunkZ = toChunkCoord(z);
-    const ChunkId id(chunkX, chunkZ);
+    const ChunkId id(chunkX, chunkZ, 0);
 
     ClientChunk* chunk = getChunk(id);
     if (!chunk || !chunk->data) {
@@ -277,22 +277,22 @@ void ClientWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     _scheduleChunkMeshRebuild(id);
 
     if (localX == 0) {
-        _scheduleChunkMeshRebuild(ChunkId(chunkX - 1, chunkZ));
+        _scheduleChunkMeshRebuild(ChunkId(chunkX - 1, chunkZ, 0));
     }
     if (localX == CHUNK_WIDTH - 1) {
-        _scheduleChunkMeshRebuild(ChunkId(chunkX + 1, chunkZ));
+        _scheduleChunkMeshRebuild(ChunkId(chunkX + 1, chunkZ, 0));
     }
     if (localZ == 0) {
-        _scheduleChunkMeshRebuild(ChunkId(chunkX, chunkZ - 1));
+        _scheduleChunkMeshRebuild(ChunkId(chunkX, chunkZ - 1, 0));
     }
     if (localZ == CHUNK_WIDTH - 1) {
-        _scheduleChunkMeshRebuild(ChunkId(chunkX, chunkZ + 1));
+        _scheduleChunkMeshRebuild(ChunkId(chunkX, chunkZ + 1, 0));
     }
 }
 
 const ChunkData* ClientWorld::getChunkAt(ChunkCoord x, ChunkCoord z) const
 {
-    const ChunkId id(x, z);
+    const ChunkId id(x, z, 0);
     const ClientChunk* chunk = getChunk(id);
     if (chunk && chunk->data) {
         return chunk->data.get();
@@ -304,7 +304,7 @@ i32 ClientWorld::getHeight(i32 x, i32 z) const
 {
     const ChunkCoord chunkX = toChunkCoord(x);
     const ChunkCoord chunkZ = toChunkCoord(z);
-    const ChunkId id(chunkX, chunkZ);
+    const ChunkId id(chunkX, chunkZ, 0);
 
     const ClientChunk* chunk = getChunk(id);
     if (!chunk || !chunk->data) {
@@ -421,7 +421,7 @@ void ClientWorld::_requestChunkMeshRebuild(const ChunkId& id)
 void ClientWorld::_scheduleNeighborMeshRebuild(const ChunkId& id)
 {
     const ChunkId neighborIds[4] = {
-        ChunkId(id.x - 1, id.z), ChunkId(id.x + 1, id.z), ChunkId(id.x, id.z - 1), ChunkId(id.x, id.z + 1)};
+        ChunkId(id.x - 1, id.z, 0), ChunkId(id.x + 1, id.z, 0), ChunkId(id.x, id.z - 1, 0), ChunkId(id.x, id.z + 1, 0)};
 
     for (const ChunkId& neighborId : neighborIds) {
         ClientChunk* neighbor = getChunk(neighborId);
@@ -478,16 +478,16 @@ std::array<std::shared_ptr<const ChunkData>, 6> ClientWorld::_getNeighborChunkDa
 {
     std::array<std::shared_ptr<const ChunkData>, 6> neighbors;
 
-    ClientChunk* neighbor = getChunk(ChunkId(id.x - 1, id.z));
+    ClientChunk* neighbor = getChunk(ChunkId(id.x - 1, id.z, 0));
     neighbors[0] = (neighbor && neighbor->data) ? neighbor->data : nullptr;
 
-    neighbor = getChunk(ChunkId(id.x + 1, id.z));
+    neighbor = getChunk(ChunkId(id.x + 1, id.z, 0));
     neighbors[1] = (neighbor && neighbor->data) ? neighbor->data : nullptr;
 
-    neighbor = getChunk(ChunkId(id.x, id.z - 1));
+    neighbor = getChunk(ChunkId(id.x, id.z - 1, 0));
     neighbors[2] = (neighbor && neighbor->data) ? neighbor->data : nullptr;
 
-    neighbor = getChunk(ChunkId(id.x, id.z + 1));
+    neighbor = getChunk(ChunkId(id.x, id.z + 1, 0));
     neighbors[3] = (neighbor && neighbor->data) ? neighbor->data : nullptr;
 
     neighbors[4] = nullptr;
@@ -498,16 +498,16 @@ std::array<std::shared_ptr<const ChunkData>, 6> ClientWorld::_getNeighborChunkDa
 
 void ClientWorld::_getNeighborChunks(const ChunkId& id, const ChunkData* neighbors[6])
 {
-    ClientChunk* neighbor = getChunk(ChunkId(id.x - 1, id.z));
+    ClientChunk* neighbor = getChunk(ChunkId(id.x - 1, id.z, 0));
     neighbors[0] = (neighbor && neighbor->data) ? neighbor->data.get() : nullptr;
 
-    neighbor = getChunk(ChunkId(id.x + 1, id.z));
+    neighbor = getChunk(ChunkId(id.x + 1, id.z, 0));
     neighbors[1] = (neighbor && neighbor->data) ? neighbor->data.get() : nullptr;
 
-    neighbor = getChunk(ChunkId(id.x, id.z - 1));
+    neighbor = getChunk(ChunkId(id.x, id.z - 1, 0));
     neighbors[2] = (neighbor && neighbor->data) ? neighbor->data.get() : nullptr;
 
-    neighbor = getChunk(ChunkId(id.x, id.z + 1));
+    neighbor = getChunk(ChunkId(id.x, id.z + 1, 0));
     neighbors[3] = (neighbor && neighbor->data) ? neighbor->data.get() : nullptr;
 
     neighbors[4] = nullptr;
@@ -536,7 +536,7 @@ void ClientWorld::onChunkData(ChunkCoord x, ChunkCoord z, DimensionId dimension,
         return;
     }
 
-    const ChunkId id(x, z);
+    const ChunkId id(x, z, 0);
 
     auto result = network::ChunkSerializer::deserializeChunk(x, z, data);
     if (result.failed()) {
@@ -581,7 +581,7 @@ void ClientWorld::onChunkUnload(ChunkCoord x, ChunkCoord z, DimensionId dimensio
         return;
     }
 
-    const ChunkId id(x, z);
+    const ChunkId id(x, z, 0);
 
     if (m_meshBuildScheduler) {
         m_meshBuildScheduler->cancelChunk(id);
@@ -795,7 +795,7 @@ void ClientWorld::onLightUpdate(i32 chunkX,
         [flow = ::perfetto::Flow::ProcessScoped(SectionPos(chunkX, sectionY, chunkZ).toLong())](
             ::perfetto::EventContext ctx) { flow(ctx); });
 
-    const ChunkId id(chunkX, chunkZ);
+    const ChunkId id(chunkX, chunkZ, 0);
     ClientChunk* chunk = getChunk(id);
     if (!chunk || !chunk->data) {
         return;

@@ -74,7 +74,6 @@ public:
 
     // 段信息
     [[nodiscard]] bool isEmpty() const { return m_blockCount == 0; }
-    [[nodiscard]] bool hasOnlyAir() const { return m_blockCount == 0; } // 与 isEmpty 等价，但语义更明确
     [[nodiscard]] u16 getBlockCount() const { return m_blockCount; }
     void setBlockCount(u16 count) { m_blockCount = count; }
     void rebuildTickCounters();
@@ -143,6 +142,9 @@ private:
     // 随机刻计数器（用于性能优化）
     u16 m_blockTickRefCount = 0; // ticksRandomly 方块数量
     u16 m_fluidRefCount = 0;     // 流体方块数量
+
+    // 更新方块计数器（blockCount、blockTickRefCount、fluidRefCount）
+    void _updateCounters(u32 oldStateId, u32 newStateId);
 };
 
 } // namespace mc::world::chunk

@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/load/ChunkDistanceGraph.hpp"
 #include "common/world/chunk/load/ChunkLoadTicket.hpp"
@@ -380,10 +381,7 @@ private:
     void _rebuildAllPlayerSources();
 
     /// 区块位置转键
-    [[nodiscard]] static u64 _posToKey(ChunkCoord x, ChunkCoord z)
-    {
-        return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u32>(z);
-    }
+    [[nodiscard]] static u64 _posToKey(ChunkCoord x, ChunkCoord z) { return mc::math::chunkPosToId(x, z); }
 
     /// 每个区块的票据集合
     std::unordered_map<u64, ChunkTicketSet> m_chunkTickets;

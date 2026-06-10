@@ -101,7 +101,7 @@ TEST_F(ClientWorldLightUpdateTest, LightUpdateBurstDoesNotResubmitPendingChunkMe
     ASSERT_EQ(initialStats.submittedTaskCount, 1u);
     ASSERT_EQ(initialStats.trackedTaskCount, 1u);
 
-    ClientChunk* chunk = world.getChunk(ChunkId(0, 0));
+    ClientChunk* chunk = world.getChunk(ChunkId(0, 0, 0));
     ASSERT_NE(chunk, nullptr);
 
     const u64 initialTaskId = chunk->activeMeshTaskId;
@@ -117,7 +117,7 @@ TEST_F(ClientWorldLightUpdateTest, LightUpdateBurstDoesNotResubmitPendingChunkMe
     const MeshSchedulerStats afterStats = scheduler->stats();
     EXPECT_EQ(afterStats.submittedTaskCount, initialStats.submittedTaskCount);
     EXPECT_EQ(afterStats.trackedTaskCount, initialStats.trackedTaskCount);
-    EXPECT_EQ(world.getChunk(ChunkId(0, 0))->activeMeshTaskId, initialTaskId);
+    EXPECT_EQ(world.getChunk(ChunkId(0, 0, 0))->activeMeshTaskId, initialTaskId);
 
     world.shutdownMeshSystem();
 }
