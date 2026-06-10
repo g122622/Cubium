@@ -29,7 +29,7 @@
 namespace mc {
 
 /**
- * @brief 下界洞穴雕刻器
+ * @brief 下界雕刻器
  *
  * 专门用于下界维度的洞穴生成。
  * 与主世界洞穴的主要区别：
@@ -39,60 +39,32 @@ namespace mc {
  * - getYScale() 返回 5.0（洞穴更扁平）
  * - 不执行草地/菌丝表面替换（handlesSurfaceReplacement = false）
  * - 不检查流体（shouldCheckForFluid = false，下界有熔岩）
- *
- * 参考 MC 1.21.11: net.minecraft.world.level.levelgen.carver.NetherWorldCarver
+ * - getCarveState() 不使用含水层系统，直接判断 Y 阈值填充熔岩或空气
  */
-class NetherCaveCarver : public CaveCarver {
+class NetherWorldCarver : public CaveCarver {
 public:
-    /**
-     * @brief 构造下界洞穴雕刻器
-     */
-    NetherCaveCarver();
+    NetherWorldCarver();
 
-    ~NetherCaveCarver() override = default;
+    ~NetherWorldCarver() override = default;
 
 protected:
-    /**
-     * @brief 获取洞穴最大数量上限
-     * 下界洞穴更少但更大
-     * @return 10
-     */
+    /** @brief 下界洞穴最大数量上限为 10 */
     [[nodiscard]] i32 getCaveBound() const noexcept override { return 10; }
 
-    /**
-     * @brief 获取洞穴厚度（半径基础值）
-     * 下界洞穴半径更大：(nextFloat() * 2.0 + nextFloat()) * 2.0
-     * @param rng 随机数生成器
-     * @return 厚度值
-     */
+    /** @brief 下界洞穴半径更大：(nextFloat() * 2.0 + nextFloat()) * 2.0 */
     [[nodiscard]] f32 getThickness(math::IRandom& rng) const override;
 
-    /**
-     * @brief 获取 Y 缩放因子
-     * 下界洞穴更扁平
-     * @return 5.0
-     */
+    /** @brief 下界洞穴更扁平，Y 缩放因子为 5.0 */
     [[nodiscard]] f64 getYScale() const noexcept override { return 5.0; }
 
-    /**
-     * @brief 不执行草地/菌丝表面替换
-     * MC原版 NetherWorldCarver 重写 carveBlock 时不做此处理
-     */
+    /** @brief 下界不执行草地/菌丝表面替换 */
     [[nodiscard]] bool handlesSurfaceReplacement() const noexcept override { return false; }
 
-    /**
-     * @brief 不检查流体
-     * MC原版 NetherWorldCarver 设置 liquids = {LAVA, WATER}，
-     * 即在熔岩和水区域都可以雕刻
-     */
+    /** @brief 下界不检查流体（有熔岩） */
     [[nodiscard]] bool shouldCheckForFluid() const noexcept override { return false; }
 
     /**
-     * @brief 获取雕刻后方块状态（下界重写）
-     *
-     * MC 1.21: NetherWorldCarver 不使用含水层系统，直接判断：
-     * - Y <= minY + 31: 返回熔岩
-     * - Y > minY + 31: 返回洞穴空气
+     * @brief 下界雕刻后方块状态：Y <= minY + 31 填充熔岩，否则填充空气
      */
     [[nodiscard]] const BlockState* getCarveState(CarvingContext& context,
         i32 worldX,

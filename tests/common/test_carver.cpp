@@ -28,7 +28,7 @@
 #include "common/world/gen/carver/CarvingContext.hpp"
 #include "common/world/gen/carver/CarvingMask.hpp"
 #include "common/world/gen/carver/CaveCarver.hpp"
-#include "common/world/gen/carver/NetherCaveCarver.hpp"
+#include "common/world/gen/carver/NetherWorldCarver.hpp"
 #include "common/world/gen/carver/WorldCarver.hpp"
 #include "common/world/gen/surface/SurfaceRules.hpp"
 #include "common/world/gen/valueprovider/FloatProvider.hpp"
@@ -45,7 +45,6 @@
 using namespace mc;
 using namespace mc::world::gen::valueprovider;
 using namespace mc::world::gen::surface;
-using namespace mc::world::gen::carver;
 
 // ============================================================================
 // CarvingMask 测试
@@ -303,13 +302,13 @@ TEST_F(CanyonCarverTest, GetRange)
 }
 
 // ============================================================================
-// NetherCaveCarver 测试
+// NetherWorldCarver 测试
 // ============================================================================
 
-TEST(NetherCaveCarverTest, Construction)
+TEST(NetherWorldCarverTest, Construction)
 {
     VanillaBlocks::initialize();
-    NetherCaveCarver carver;
+    NetherWorldCarver carver;
     // 验证下界雕刻器可以正常构造
     EXPECT_EQ(carver.getRange(), 4);
 }

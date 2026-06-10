@@ -21,35 +21,33 @@
  *
  */
 
-#include "NetherCaveCarver.hpp"
+#include "NetherWorldCarver.hpp"
 #include "CarvingContext.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 
+// 下界熔岩填充高度偏移：Y <= minY + 31 填充熔岩
+constexpr i32 NETHER_LAVA_LEVEL_OFFSET = 31;
+
 // ============================================================================
-// NetherCaveCarver 实现
+// NetherWorldCarver 实现
 // ============================================================================
 
-NetherCaveCarver::NetherCaveCarver()
+NetherWorldCarver::NetherWorldCarver()
     : CaveCarver()
 {}
 
-f32 NetherCaveCarver::getThickness(math::IRandom& rng) const
+f32 NetherWorldCarver::getThickness(math::IRandom& rng) const
 {
-    // MC 1.21.11: 下界洞穴半径更大
-    // return (random.nextFloat() * 2.0F + random.nextFloat()) * 2.0F;
     return (rng.nextFloat() * 2.0f + rng.nextFloat()) * 2.0f;
 }
 
-const BlockState* NetherCaveCarver::getCarveState(
-    CarvingContext& context, i32 worldX, i32 worldY, i32 worldZ, const CaveCarverConfiguration& config) const
+const BlockState* NetherWorldCarver::getCarveState(
+    CarvingContext& context, i32 /*worldX*/, i32 worldY, i32 /*worldZ*/, const CaveCarverConfiguration& config) const
 {
-    // MC 1.21: NetherWorldCarver 不使用含水层系统，直接判断 Y 阈值
-    // Y <= minY + 31: 返回熔岩（下界海平面以下填充熔岩）
-    // Y > minY + 31: 返回洞穴空气
-    if (worldY <= context.getMinGenY() + 31) {
+    if (worldY <= context.getMinGenY() + NETHER_LAVA_LEVEL_OFFSET) {
         return VanillaBlocks::getState(VanillaBlocks::LAVA);
     }
     return getCaveAirState();

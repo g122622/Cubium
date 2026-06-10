@@ -38,30 +38,33 @@
 
 namespace mc {
 
-// 引入 carver 命名空间中的配置类型到 mc 命名空间
-using world::gen::carver::CanyonCarverConfiguration;
-using world::gen::carver::CanyonShapeConfiguration;
-using world::gen::carver::CarverConfiguration;
-using world::gen::carver::CaveCarverConfiguration;
-
 // 前向声明
 namespace world::biome {
 class BiomeSource;
 }
 
 /**
+ * @brief 雕刻椭球位置参数
+ *
+ * 用于 CarveSkipChecker 回调，提供类型安全的参数传递。
+ */
+struct CarverEllipsePos {
+    f32 dx;
+    f32 dy;
+    f32 dz;
+    i32 y;
+};
+
+/**
  * @brief 椭球跳过检查回调
  *
  * 用于不同类型雕刻器的椭球内位置过滤逻辑。
- * 洞穴使用简单的 dy/floorLevel 检查，峡谷使用高度相关的宽度因子。
- * 参考 MC 1.21.11: net.minecraft.world.level.levelgen.carver.CarveSkipChecker
+ * 洞穴使用基于 floorLevel 的 dy 检查，峡谷使用高度相关的宽度因子。
  */
-using CarveSkipChecker = std::function<bool(f32 dx, f32 dy, f32 dz, i32 y)>;
+using CarveSkipChecker = std::function<bool(const CarverEllipsePos&)>;
 
 /**
  * @brief 世界雕刻器基类
- *
- * 参考 MC 1.21.11: net.minecraft.world.level.levelgen.carver.WorldCarver
  *
  * @tparam Config 配置类型（CarverConfiguration 或其子类）
  */
@@ -117,8 +120,6 @@ public:
 
     /**
      * @brief 检查方块是否可被雕刻（基于配置中的 replaceable tag）
-     *
-     * 使用配置中的 replaceable BlockTag 判断，而不是硬编码方块列表。
      */
     [[nodiscard]] virtual bool canReplaceBlock(const BlockState& state, const Config& config) const;
 
@@ -133,21 +134,6 @@ protected:
 
     /**
      * @brief 雕刻一个椭球区域
-     *
-     * @param chunk 目标区块
-     * @param context 雕刻上下文
-     * @param biomeSource 生物群系源
-     * @param targetChunkX 目标区块 X 坐标
-     * @param targetChunkZ 目标区块 Z 坐标
-     * @param centerX 椭球中心X（世界坐标）
-     * @param centerY 椭球中心Y
-     * @param centerZ 椭球中心Z（世界坐标）
-     * @param horizontalRadius 水平半径
-     * @param verticalRadius 垂直半径
-     * @param carvingMask 雕刻掩码
-     * @param skipChecker 椭球位置过滤回调
-     * @param config 配置
-     * @return 是否雕刻了任何方块
      */
     bool carveEllipsoid(ChunkPrimer& chunk,
         CarvingContext& context,
@@ -165,14 +151,6 @@ protected:
 
     /**
      * @brief 检查椭球是否在雕刻范围内
-     *
-     * @param targetChunkX 目标区块 X 坐标
-     * @param targetChunkZ 目标区块 Z 坐标
-     * @param x 当前X位置
-     * @param z 当前Z位置
-     * @param step 当前步数
-     * @param maxSteps 最大步数
-     * @param radius 当前半径
      */
     [[nodiscard]] static bool isInCarvingRange(
         ChunkCoord targetChunkX, ChunkCoord targetChunkZ, f32 x, f32 z, i32 step, i32 maxSteps, f32 radius);
@@ -193,12 +171,9 @@ protected:
     /**
      * @brief 获取雕刻后方块状态
      *
-     * MC 1.21.11 逻辑：
      * 1. 如果 y <= lavaLevel → LAVA
      * 2. 否则如果含水层可用 → aquifer.computeSubstance()
      * 3. 如果含水层返回 nullptr → 不雕刻
-     *
-     * 下界雕刻器重写此方法以跳过含水层逻辑。
      *
      * @return 雕刻后方块状态，nullptr 表示不雕刻
      */
@@ -208,9 +183,6 @@ protected:
 
 /**
  * @brief 配置化雕刻器的类型擦除基类
- *
- * 允许在生物群系生成设置中存储不同类型的 ConfiguredCarver。
- * 参考 MC 1.21.11: net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
  */
 class ConfiguredCarverBase {
 public:
@@ -233,7 +205,6 @@ public:
  * @brief 配置化的雕刻器
  *
  * 组合雕刻器和配置，方便注册和使用。
- * 参考 MC 1.21.11: net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
  */
 template <typename Carver, typename Config>
 class ConfiguredCarver : public ConfiguredCarverBase {

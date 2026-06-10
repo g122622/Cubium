@@ -914,10 +914,11 @@ add_library(mc_common STATIC
 
     # World - Generation - Carvers
     world/gen/carver/WorldCarver.cpp
+    world/gen/carver/CarvingMask.cpp
     world/gen/carver/CaveCarver.cpp
     world/gen/carver/CanyonCarver.cpp
     world/gen/carver/CarverConfiguration.cpp
-    world/gen/carver/NetherCaveCarver.cpp
+    world/gen/carver/NetherWorldCarver.cpp
 
     # World - Biome
     world/biome/Biome.cpp

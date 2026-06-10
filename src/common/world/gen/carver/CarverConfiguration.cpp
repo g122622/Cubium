@@ -25,7 +25,9 @@
 #include "common/world/block/BlockTags.hpp"
 
 namespace mc {
-namespace world::gen::carver {
+
+namespace valueprovider = world::gen::valueprovider;
+namespace surface = world::gen::surface;
 
 namespace ConfiguredCarvers {
 
@@ -87,5 +89,4 @@ CaveCarverConfiguration createNetherCaveConfig(const BlockTag* replaceable)
 
 } // namespace ConfiguredCarvers
 
-} // namespace world::gen::carver
 } // namespace mc

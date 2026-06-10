@@ -57,25 +57,21 @@ bool CanyonCarver::carve(ChunkPrimer& chunk,
     math::IRandom& rng,
     const CanyonCarverConfiguration& config)
 {
-    // MC 1.21.11: CanyonWorldCarver.carve
     const i32 range = getRange() * 2 - 1;
     const i32 tunnelLength = range * world::CHUNK_WIDTH;
 
-    // 起始位置：在起始区块内的随机位置
     const f32 startX =
         static_cast<f32>(world::toWorldCoord(originChunkX)) + static_cast<f32>(rng.nextInt(world::CHUNK_WIDTH));
     const i32 startY = config.y->sample(rng, context);
     const f32 startZ =
         static_cast<f32>(world::toWorldCoord(originChunkZ)) + static_cast<f32>(rng.nextInt(world::CHUNK_WIDTH));
 
-    // 峡谷方向和尺寸
     const f32 yaw = rng.nextFloat() * math::TWO_PI;
     const f32 pitch = config.verticalRotation->sample(rng);
     const f32 yScale = config.yScale->sample(rng);
     const f32 thickness = config.shape.thickness->sample(rng);
     const i32 length = static_cast<i32>(static_cast<f32>(tunnelLength) * config.shape.distanceFactor->sample(rng));
 
-    // 生成蜿蜒峡谷
     _generateCanyon(chunk,
         context,
         biomeSource,
@@ -100,7 +96,6 @@ bool CanyonCarver::carve(ChunkPrimer& chunk,
 std::vector<f32> CanyonCarver::_initWidthFactors(
     CarvingContext& context, const CanyonCarverConfiguration& config, math::IRandom& rng) const
 {
-    // MC: initWidthFactors
     const i32 genDepth = context.getGenDepth();
     std::vector<f32> factors(static_cast<size_t>(genDepth));
 
@@ -118,14 +113,10 @@ std::vector<f32> CanyonCarver::_initWidthFactors(
 f32 CanyonCarver::_updateVerticalRadius(
     const CanyonCarverConfiguration& config, math::IRandom& rng, f32 baseRadius, f32 totalSteps, f32 currentStep) const
 {
-    // MC: updateVerticalRadius
-    // f = 1.0 - abs(0.5 - progress) * 2.0
-    //   -> 0 at edges (progress=0,1), 1 at center (progress=0.5)
     const f32 progress = currentStep / totalSteps;
     const f32 f = 1.0f - std::abs(0.5f - progress) * 2.0f;
     const f32 f1 = config.shape.verticalRadiusDefaultFactor + config.shape.verticalRadiusCenterFactor * f;
 
-    // MC: randomBetween(rng, 0.75, 1.0)
     const f32 randomFactor = rng.nextFloat() * 0.25f + 0.75f;
     return f1 * baseRadius * randomFactor;
 }
@@ -150,50 +141,40 @@ void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
 {
     math::Random rng(static_cast<u64>(seed));
 
-    // 初始化宽度因子数组
     const std::vector<f32> heightThresholds = _initWidthFactors(context, config, rng);
 
-    // 创建跳过检查器（捕获 heightThresholds）
     const CarveSkipChecker skipChecker = _createSkipChecker(context, heightThresholds);
 
     f32 yawModifier = 0.0f;
     f32 pitchModifier = 0.0f;
 
     for (i32 i = startIndex; i < endIndex; ++i) {
-        // MC: d0 = 1.5 + sin(i * PI / endIndex) * thickness
         const f32 horizontalRadius =
             1.5 + std::sin(static_cast<f32>(i) * math::PI / static_cast<f32>(endIndex)) * thickness;
         f32 verticalRadius = horizontalRadius * yScale;
 
-        // 应用水平半径因子
         const f32 horizontalRadiusFactor = config.shape.horizontalRadiusFactor->sample(rng);
         const f32 scaledHorizontalRadius = horizontalRadius * horizontalRadiusFactor;
 
-        // 更新垂直半径
         verticalRadius =
             _updateVerticalRadius(config, rng, verticalRadius, static_cast<f32>(endIndex), static_cast<f32>(i));
 
-        // 更新位置
         const f32 cosPitch = std::cos(pitch);
         const f32 sinPitch = std::sin(pitch);
         startX += std::cos(yaw) * cosPitch;
         startY += sinPitch;
         startZ += std::sin(yaw) * cosPitch;
 
-        // 更新角度
         pitch *= 0.7f;
         pitch += pitchModifier * 0.05f;
         yaw += yawModifier * 0.05f;
 
-        // 衰减和随机扰动
         pitchModifier *= 0.8f;
         yawModifier *= 0.5f;
         pitchModifier += (rng.nextFloat() - rng.nextFloat()) * rng.nextFloat() * 2.0f;
         yawModifier += (rng.nextFloat() - rng.nextFloat()) * rng.nextFloat() * 4.0f;
 
-        // MC: 随机跳过一些点（75% 概率雕刻）
         if (rng.nextInt(4) != 0) {
-            // MC: canReach 检查失败时终止整个峡谷
             if (!isInCarvingRange(targetChunkX, targetChunkZ, startX, startZ, i, endIndex, thickness)) {
                 return;
             }
@@ -218,18 +199,16 @@ void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
 CarveSkipChecker CanyonCarver::_createSkipChecker(
     CarvingContext& context, const std::vector<f32>& heightThresholds) const
 {
-    // MC: shouldSkip
-    // (dx*dx + dz*dz) * heightThresholds[y - minGenY - 1] + dy*dy/6.0 >= 1.0
     const i32 minGenY = context.getMinGenY();
 
-    return [&heightThresholds, minGenY](f32 dx, f32 dy, f32 dz, i32 y) -> bool {
-        const i32 index = y - minGenY - 1;
+    return [&heightThresholds, minGenY](const CarverEllipsePos& pos) -> bool {
+        const i32 index = pos.y - minGenY - 1;
         if (index < 0 || index >= static_cast<i32>(heightThresholds.size())) {
             // 超出范围时使用标准椭球检测
-            return dx * dx + dy * dy + dz * dz >= 1.0f;
+            return pos.dx * pos.dx + pos.dy * pos.dy + pos.dz * pos.dz >= 1.0f;
         }
         const f32 threshold = heightThresholds[static_cast<size_t>(index)];
-        return (dx * dx + dz * dz) * threshold + dy * dy / 6.0f >= 1.0f;
+        return (pos.dx * pos.dx + pos.dz * pos.dz) * threshold + pos.dy * pos.dy / 6.0f >= 1.0f;
     };
 }
 

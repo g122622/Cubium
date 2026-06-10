@@ -27,7 +27,7 @@
 #include "../gen/carver/CanyonCarver.hpp"
 #include "../gen/carver/CarverConfiguration.hpp"
 #include "../gen/carver/CaveCarver.hpp"
-#include "../gen/carver/NetherCaveCarver.hpp"
+#include "../gen/carver/NetherWorldCarver.hpp"
 #include "../gen/carver/WorldCarver.hpp"
 #include "../gen/feature/ConfiguredFeature.hpp"
 #include "../gen/feature/FeatureIds.hpp"
@@ -62,7 +62,6 @@ void addDefaultOverworldOres(BiomeGenerationSettings& settings)
  */
 void addOverworldCarvers(BiomeGenerationSettings& settings)
 {
-    using namespace world::gen::carver;
     const BlockTag* replaceable = &BlockTags::OVERWORLD_CARVER_REPLACEABLES();
 
     auto caveCarver = std::make_unique<CaveCarver>();
@@ -88,7 +87,6 @@ void addOverworldCarvers(BiomeGenerationSettings& settings)
  */
 void addOverworldOceanCarvers(BiomeGenerationSettings& settings)
 {
-    using namespace world::gen::carver;
     const BlockTag* replaceable = &BlockTags::OVERWORLD_CARVER_REPLACEABLES();
 
     auto caveCarver = std::make_unique<CaveCarver>();
@@ -109,13 +107,12 @@ void addOverworldOceanCarvers(BiomeGenerationSettings& settings)
  */
 void addNetherCarvers(BiomeGenerationSettings& settings)
 {
-    using namespace world::gen::carver;
     const BlockTag* replaceable = &BlockTags::NETHER_CARVER_REPLACEABLES();
 
-    auto netherCaveCarver = std::make_unique<NetherCaveCarver>();
+    auto netherCarver = std::make_unique<NetherWorldCarver>();
     auto netherConfig = ConfiguredCarvers::createNetherCaveConfig(replaceable);
-    settings.addCarver(std::make_unique<ConfiguredCarver<NetherCaveCarver, CaveCarverConfiguration>>(
-        std::move(netherCaveCarver), std::move(netherConfig)));
+    settings.addCarver(std::make_unique<ConfiguredCarver<NetherWorldCarver, CaveCarverConfiguration>>(
+        std::move(netherCarver), std::move(netherConfig)));
 }
 
 } // namespace
