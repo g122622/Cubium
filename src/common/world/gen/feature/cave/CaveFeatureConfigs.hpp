@@ -23,9 +23,9 @@
 #pragma once
 
 // 配置结构体聚合头文件
-#include "BlockColumnFeature.hpp"
-#include "RandomBooleanSelectorFeature.hpp"
+#include "../BlockColumnFeature.hpp"
+#include "../RandomBooleanSelectorFeature.hpp"
 #include "RootSystemFeature.hpp"
-#include "SimpleBlockFeature.hpp"
-#include "SimpleRandomSelectorFeature.hpp"
+#include "../SimpleBlockFeature.hpp"
+#include "../SimpleRandomSelectorFeature.hpp"
 #include "VegetationPatchFeature.hpp"

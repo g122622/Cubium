@@ -6,22 +6,58 @@ Cubium 世界生成特征系统，负责在地形生成后添加各种装饰性�
 
 ```
 feature/
-├── Feature.hpp/cpp           # 特征基类和配置（RuleTest、BlockStateProvider等）
-├── ConfiguredFeature.hpp/cpp # 配置化特征和特征注册表
-├── FeatureSorter.hpp/cpp     # MC 1.21 特征拓扑排序器（跨生物群系确定性排序）
-├── DecorationStage.hpp       # 装饰阶段枚举
-├── FeatureIds.hpp            # 特征ID常量定义
-├── FeatureSpread.hpp/cpp     # 特征扩散配置
-├── nether/                   # 下界特征（萤石/玄武岩/岩浆/火焰）
-├── fungus/                   # 下界巨型菌类特征
-├── spike/                    # 末地黑曜石柱特征
-├── gateway/                  # 末地折跃门特征
-├── lake/                     # 湖泊特征（水湖/熔岩湖）
-├── ore/                      # 矿石特征
-├── template/                 # 结构模板系统（Template/TemplateLoader/TemplateManager）
-├── tree/                     # 树木特征（TrunkPlacer/FoliagePlacer）
-├── ocean/                    # 海洋特征（海带/海草/珊瑚/蓝冰等）
-└── vegetation/               # 植被特征（花卉/草丛/蘑菇/仙人掌/冰刺/甘蔗）
+├── Feature.hpp/cpp                   # 特征基类和配置
+├── ConfiguredFeature.hpp/cpp         # 配置化特征和特征注册表
+├── FeatureSorter.hpp/cpp             # MC 1.21 特征拓扑排序器
+├── DecorationStage.hpp               # 装饰阶段枚举
+├── FeatureIds.hpp                    # 特征ID常量定义
+├── FeatureSpread.hpp/cpp             # 特征扩散配置
+├── LakeFeature.hpp/cpp               # 湖泊特征（水湖/熔岩湖）
+├── SimpleBlockFeature.hpp/cpp        # 简单方块放置特征
+├── BlockColumnFeature.hpp/cpp        # 方块柱特征
+├── RandomBooleanSelectorFeature.hpp/cpp  # 随机布尔选择器特征
+├── SimpleRandomSelectorFeature.hpp/cpp   # 简单随机选择器特征
+├── cave/                             # 洞穴特征（繁茂洞穴/根系/植被贴片）
+│   ├── CaveFeatureConfigs.hpp        # 配置结构体聚合头文件
+│   ├── CaveFeatures.hpp/cpp          # 洞穴特征聚合
+│   ├── CaveSurface.hpp               # 洞穴表面辅助
+│   ├── LushCavesFeatures.hpp/cpp     # 繁茂洞穴特征
+│   ├── RootSystemFeature.hpp/cpp     # 根系特征
+│   └── VegetationPatchFeature.hpp/cpp # 植被贴片特征
+├── end/                              # 末地特征（黑曜石柱/折跃门/冰刺）
+│   ├── EndSpikeFeature.hpp/cpp       # 黑曜石柱
+│   ├── EndGatewayFeature.hpp/cpp     # 末地折跃门
+│   ├── IceSpikeFeature.hpp/cpp       # 冰刺
+│   └── EndFeatures.hpp/cpp           # 末地特征注册
+├── nether/                           # 下界特征（萤石/玄武岩/岩浆/火焰/巨型菌类）
+│   ├── GlowstoneFeature.hpp/cpp      # 萤石簇
+│   ├── BasaltColumnFeature.hpp/cpp   # 玄武岩柱
+│   ├── BasaltDeltaFeature.hpp/cpp    # 玄武岩三角洲
+│   ├── BasaltFeature.hpp             # 玄武岩聚合头文件
+│   ├── MagmaPatchFeature.hpp/cpp     # 岩浆池
+│   ├── NetherFireFeature.hpp/cpp     # 下界火焰
+│   ├── HugeFungusFeature.hpp/cpp     # 巨型菌类
+│   └── NetherFeatures.hpp/cpp        # 下界特征注册
+├── ocean/                            # 海洋特征（海带/海草/珊瑚/蓝冰等）
+│   ├── KelpFeature.hpp/cpp           # 海带
+│   ├── SeagrassFeature.hpp/cpp       # 海草
+│   ├── SeaPickleFeature.hpp/cpp      # 海泡菜
+│   ├── CoralFeature.hpp/cpp          # 珊瑚基类
+│   ├── CoralTreeFeature.hpp/cpp      # 珊瑚树变体
+│   ├── CoralMushroomFeature.hpp/cpp  # 珊瑚蘑菇变体
+│   ├── CoralClawFeature.hpp/cpp      # 珊瑚爪变体
+│   ├── OceanDecorationFeature.hpp/cpp # 海洋装饰
+│   └── BlueIceFeature.hpp/cpp        # 蓝冰
+├── ore/                              # 矿石特征
+├── predicate/                        # 方块谓词（条件判断）
+│   ├── BlockPredicate.hpp            # 谓词基类
+│   ├── Predicates.hpp                # 聚合头文件
+│   └── ...（各谓词独立文件）
+├── ruletest/                         # 规则测试（矿石匹配条件）
+├── state/                            # 方块状态提供者
+├── template/                         # 结构模板系统
+├── tree/                             # 树木特征（TrunkPlacer/FoliagePlacer）
+└── vegetation/                       # 植被特征（花卉/草丛/蘑菇/仙人掌/甘蔗）
 ```
 
 ## 内部模块关系

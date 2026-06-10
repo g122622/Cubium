@@ -20,10 +20,6 @@
  * SOFTWARE.
  */
 
-// 洞穴特征聚合源文件（包含所有实现）
-#include "BlockColumnFeature.cpp"
-#include "RandomBooleanSelectorFeature.cpp"
+// 洞穴特征聚合源文件（包含洞穴专属特征实现）
 #include "RootSystemFeature.cpp"
-#include "SimpleBlockFeature.cpp"
-#include "SimpleRandomSelectorFeature.cpp"
 #include "VegetationPatchFeature.cpp"

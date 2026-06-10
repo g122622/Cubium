@@ -949,6 +949,10 @@ add_library(mc_common STATIC
     world/gen/feature/FeatureSpread.cpp
     world/gen/feature/ConfiguredFeature.cpp
     world/gen/feature/FeatureSorter.cpp
+    world/gen/feature/BlockColumnFeature.cpp
+    world/gen/feature/SimpleBlockFeature.cpp
+    world/gen/feature/RandomBooleanSelectorFeature.cpp
+    world/gen/feature/SimpleRandomSelectorFeature.cpp
     world/gen/feature/ore/OreFeature.cpp
     world/gen/feature/tree/TreeFeature.cpp
     world/gen/feature/tree/trunk/TrunkPlacer.cpp
