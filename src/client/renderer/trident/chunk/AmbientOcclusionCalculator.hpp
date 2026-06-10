@@ -30,7 +30,10 @@
 namespace mc {
 
 // 前向声明
+namespace world::chunk {
 class ChunkData;
+}
+using world::chunk::ChunkData;
 class BlockState;
 
 namespace client {

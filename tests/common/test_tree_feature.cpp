@@ -21,10 +21,10 @@
  *
  */
 
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "util/math/MathUtils.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include "world/chunk/ChunkPrimer.hpp"
+#include "world/chunk/data/ChunkPrimer.hpp"
 #include "world/gen/chunk/IChunkGenerator.hpp"
 #include "world/gen/feature/FeatureSpread.hpp"
 #include "world/gen/feature/tree/TreeFeature.hpp"

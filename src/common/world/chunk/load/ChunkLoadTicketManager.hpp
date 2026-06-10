@@ -23,18 +23,18 @@
 
 #pragma once
 
-#include "ChunkDistanceGraph.hpp"
-#include "ChunkLoadTicket.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/load/ChunkDistanceGraph.hpp"
+#include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
-namespace mc::world {
+namespace mc::world::chunk {
 
 // 前向声明
 class SingleChunkLifecycleManager;
@@ -421,4 +421,4 @@ private:
     std::unordered_set<u64> m_dirtyChunks;
 };
 
-} // namespace mc::world
+} // namespace mc::world::chunk

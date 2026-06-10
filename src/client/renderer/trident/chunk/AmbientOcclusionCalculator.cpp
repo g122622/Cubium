@@ -25,7 +25,7 @@
 #include "common/core/Constants.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include <algorithm>
 
 namespace mc {

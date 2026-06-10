@@ -22,7 +22,7 @@
  */
 
 #include "common/util/NibbleArray.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/engine/BaseLightEngine.hpp"

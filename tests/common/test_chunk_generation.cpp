@@ -27,17 +27,18 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/chunk/ChunkPrimer.hpp"
-#include "common/world/chunk/ChunkStatus.hpp"
-#include "common/world/chunk/SingleChunkLifecycleManager.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
 #include "common/world/gen/noise/PerlinNoise.hpp"
 #include "common/world/gen/settings/NoiseSettings.hpp"
+#include "server/world/SingleChunkLifecycleManager.hpp"
 
 using namespace mc;
+using namespace mc::world::chunk;
 
 // ============================================================================
 // ChunkStatus 测试
@@ -80,23 +81,6 @@ TEST(ChunkStatus, Ordering)
     EXPECT_TRUE(ChunkStatuses::EMPTY < ChunkStatuses::FULL);
     EXPECT_TRUE(ChunkStatuses::BIOMES <= ChunkStatuses::BIOMES);
     EXPECT_TRUE(ChunkStatuses::FULL > ChunkStatuses::EMPTY);
-}
-
-TEST(ChunkStatus, TaskRange)
-{
-    // STRUCTURE_REFERENCES 阶段需要邻居区块
-    EXPECT_EQ(ChunkStatuses::STRUCTURE_REFERENCES.taskRange(), 8);
-
-    // NOISE 阶段需要邻居区块（用于生物群系平滑）
-    EXPECT_EQ(ChunkStatuses::NOISE.taskRange(), 8);
-
-    // FEATURES 阶段需要邻居区块
-    EXPECT_EQ(ChunkStatuses::FEATURES.taskRange(), 8);
-
-    // 其他阶段不需要邻居或需要较少邻居
-    EXPECT_EQ(ChunkStatuses::EMPTY.taskRange(), -1); // 特殊值
-    EXPECT_EQ(ChunkStatuses::BIOMES.taskRange(), 0);
-    EXPECT_EQ(ChunkStatuses::FULL.taskRange(), 0);
 }
 
 TEST(ChunkStatus, GetAll)
@@ -275,8 +259,8 @@ TEST(SingleChunkLifecycleManagerTest, Creation)
     SingleChunkLifecycleManager holder(5, 10);
     EXPECT_EQ(holder.x(), 5);
     EXPECT_EQ(holder.z(), 10);
-    EXPECT_EQ(holder.getStatus(), ChunkStatuses::EMPTY);
-    EXPECT_EQ(holder.getLevel(), static_cast<i32>(mc::world::ChunkLoadLevel::MaxLevel)); // 默认级别（未加载）
+    EXPECT_EQ(holder.status(), ChunkStatuses::EMPTY);
+    EXPECT_EQ(holder.level(), static_cast<i32>(mc::world::chunk::ChunkLoadLevel::MaxLevel)); // 默认级别（未加载）
 }
 
 TEST(SingleChunkLifecycleManagerTest, SetStatus)
@@ -284,10 +268,10 @@ TEST(SingleChunkLifecycleManagerTest, SetStatus)
     SingleChunkLifecycleManager holder(0, 0);
 
     holder.setStatus(ChunkStatuses::STRUCTURE_STARTS);
-    EXPECT_EQ(holder.getStatus(), ChunkStatuses::STRUCTURE_STARTS);
+    EXPECT_EQ(holder.status(), ChunkStatuses::STRUCTURE_STARTS);
 
     holder.setStatus(ChunkStatuses::NOISE);
-    EXPECT_EQ(holder.getStatus(), ChunkStatuses::NOISE);
+    EXPECT_EQ(holder.status(), ChunkStatuses::NOISE);
     EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::STRUCTURE_STARTS));
     EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::BIOMES));
     EXPECT_FALSE(holder.hasCompletedStatus(ChunkStatuses::FEATURES));
@@ -298,11 +282,11 @@ TEST(SingleChunkLifecycleManagerTest, AcquireStatusBump)
     SingleChunkLifecycleManager holder(0, 0);
 
     // 初始状态为 EMPTY
-    EXPECT_EQ(holder.getStatus(), ChunkStatuses::EMPTY);
+    EXPECT_EQ(holder.status(), ChunkStatuses::EMPTY);
 
     // 成功推进：EMPTY → STRUCTURE_STARTS（parent = EMPTY）
     EXPECT_TRUE(holder.acquireStatusBump(ChunkStatuses::STRUCTURE_STARTS));
-    EXPECT_EQ(holder.getStatus(), ChunkStatuses::STRUCTURE_STARTS);
+    EXPECT_EQ(holder.status(), ChunkStatuses::STRUCTURE_STARTS);
     EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::EMPTY));
     EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::STRUCTURE_STARTS));
     EXPECT_FALSE(holder.hasCompletedStatus(ChunkStatuses::STRUCTURE_REFERENCES));
@@ -312,13 +296,13 @@ TEST(SingleChunkLifecycleManagerTest, AcquireStatusBump)
 
     // 跳跃推进失败：STRUCTURE_STARTS → NOISE（parent = BIOMES，不是 STRUCTURE_STARTS）
     EXPECT_FALSE(holder.acquireStatusBump(ChunkStatuses::NOISE));
-    EXPECT_EQ(holder.getStatus(), ChunkStatuses::STRUCTURE_STARTS);
+    EXPECT_EQ(holder.status(), ChunkStatuses::STRUCTURE_STARTS);
 
     // 逐步推进成功
     EXPECT_TRUE(holder.acquireStatusBump(ChunkStatuses::STRUCTURE_REFERENCES));
     EXPECT_TRUE(holder.acquireStatusBump(ChunkStatuses::BIOMES));
     EXPECT_TRUE(holder.acquireStatusBump(ChunkStatuses::NOISE));
-    EXPECT_EQ(holder.getStatus(), ChunkStatuses::NOISE);
+    EXPECT_EQ(holder.status(), ChunkStatuses::NOISE);
     EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::STRUCTURE_STARTS));
     EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::BIOMES));
     EXPECT_FALSE(holder.hasCompletedStatus(ChunkStatuses::SURFACE));
@@ -330,19 +314,19 @@ TEST(SingleChunkLifecycleManagerTest, CompleteStatusTo)
 
     // 可以跳跃设置到任意阶段
     holder.completeStatusTo(ChunkStatuses::FULL);
-    EXPECT_EQ(holder.getStatus(), ChunkStatuses::FULL);
+    EXPECT_EQ(holder.status(), ChunkStatuses::FULL);
     EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::EMPTY));
     EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::NOISE));
     EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::FULL));
 
     // 不允许回退
     holder.completeStatusTo(ChunkStatuses::EMPTY);
-    EXPECT_EQ(holder.getStatus(), ChunkStatuses::FULL);
+    EXPECT_EQ(holder.status(), ChunkStatuses::FULL);
 
     // 存档恢复可以跳到中间阶段
     SingleChunkLifecycleManager holder2(0, 0);
     holder2.completeStatusTo(ChunkStatuses::CARVERS);
-    EXPECT_EQ(holder2.getStatus(), ChunkStatuses::CARVERS);
+    EXPECT_EQ(holder2.status(), ChunkStatuses::CARVERS);
     EXPECT_TRUE(holder2.hasCompletedStatus(ChunkStatuses::BIOMES));
     EXPECT_FALSE(holder2.hasCompletedStatus(ChunkStatuses::FEATURES));
 }
@@ -353,13 +337,13 @@ TEST(SingleChunkLifecycleManagerTest, SetStatusOnlyAdvances)
 
     // setStatus 只向前推进
     holder.setStatus(ChunkStatuses::SURFACE);
-    EXPECT_EQ(holder.getStatus(), ChunkStatuses::SURFACE);
+    EXPECT_EQ(holder.status(), ChunkStatuses::SURFACE);
 
     // 不允许回退
     holder.setStatus(ChunkStatuses::EMPTY);
-    EXPECT_EQ(holder.getStatus(), ChunkStatuses::SURFACE);
+    EXPECT_EQ(holder.status(), ChunkStatuses::SURFACE);
 
     // 允许继续前进
     holder.setStatus(ChunkStatuses::FULL);
-    EXPECT_EQ(holder.getStatus(), ChunkStatuses::FULL);
+    EXPECT_EQ(holder.status(), ChunkStatuses::FULL);
 }

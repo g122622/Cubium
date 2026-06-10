@@ -23,7 +23,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include <vector>
 
 namespace mc::server {

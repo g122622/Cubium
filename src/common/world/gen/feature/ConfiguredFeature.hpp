@@ -26,7 +26,7 @@
 #include "DecorationStage.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include <memory>
 #include <vector>
 
@@ -34,7 +34,10 @@ namespace mc {
 
 // 前向声明
 class WorldGenRegion;
+namespace world::chunk {
 class ChunkPrimer;
+}
+using world::chunk::ChunkPrimer;
 class IChunkGenerator;
 class Biome;
 class ConfiguredPlacement;

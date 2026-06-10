@@ -39,7 +39,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/fluids/WaterFluid.hpp"

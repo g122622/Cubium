@@ -41,7 +41,7 @@
 #include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 
 namespace mc::benchmark {
 namespace {

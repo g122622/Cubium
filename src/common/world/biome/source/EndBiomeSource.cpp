@@ -23,7 +23,7 @@
 #include "common/world/biome/source/EndBiomeSource.hpp"
 #include "common/core/Constants.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/world/chunk/IChunk.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/gen/density/DensityFunctions.hpp"
 
 namespace mc::world::biome::source {

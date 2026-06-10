@@ -25,11 +25,11 @@
 
 #include "ChunkGenerateTask.hpp"
 #include "GenerationChunkCache.hpp"
+#include "SingleChunkLifecycleManager.hpp"
 #include "common/util/thread/ServerWorkerPool.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/chunk/ChunkLoadTicketManager.hpp"
-#include "common/world/chunk/ChunkPyramid.hpp"
-#include "common/world/chunk/SingleChunkLifecycleManager.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/gen/ChunkPyramid.hpp"
+#include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <atomic>
 #include <functional>
@@ -63,7 +63,7 @@ struct ChunkStepDependencyInfo {
  * 明确拆成统一的状态机推进流程：
  *
  * 1. 外部通过 `requestChunkAsync()` / `requestChunkSync()` 提交需求
- * 2. `SingleChunkLifecycleManager` 合并请求并产出下一步动作
+ * 2. `mc::world::chunk::SingleChunkLifecycleManager` 合并请求并产出下一步动作
  * 3. `ServerChunkManager` 按动作执行一次性存档解析或异步生成
  * 4. 邻居区块状态推进后，只唤醒受影响的阻塞请求，不再重新走完整请求入口
  *
@@ -355,7 +355,7 @@ public:
      *
      * @param callback 票据级别变化回调
      */
-    void setTicketLevelChangeCallback(world::ChunkLoadTicketManager::LevelChangeCallback callback)
+    void setTicketLevelChangeCallback(mc::world::chunk::ChunkLoadTicketManager::LevelChangeCallback callback)
     {
         m_ticketManager.setLevelChangeCallback(std::move(callback));
     }
@@ -391,12 +391,12 @@ public:
     /**
      * @brief 获取票据管理器
      */
-    [[nodiscard]] world::ChunkLoadTicketManager& ticketManager() { return m_ticketManager; }
+    [[nodiscard]] mc::world::chunk::ChunkLoadTicketManager& ticketManager() { return m_ticketManager; }
 
     /**
      * @brief 获取票据管理器（const 版本）
      */
-    [[nodiscard]] const world::ChunkLoadTicketManager& ticketManager() const { return m_ticketManager; }
+    [[nodiscard]] const mc::world::chunk::ChunkLoadTicketManager& ticketManager() const { return m_ticketManager; }
 
     /**
      * @brief 获取当前视距
@@ -511,7 +511,8 @@ private:
      * @param z 区块 Z 坐标
      * @return 对应区块的生命周期管理器
      */
-    [[nodiscard]] SingleChunkLifecycleManager& _getOrCreateLifecycleManager(ChunkCoord x, ChunkCoord z);
+    [[nodiscard]] mc::world::chunk::SingleChunkLifecycleManager& _getOrCreateLifecycleManager(
+        ChunkCoord x, ChunkCoord z);
 
     /**
      * @brief 查询现有单区块生命周期管理器
@@ -520,7 +521,7 @@ private:
      * @param z 区块 Z 坐标
      * @return 若存在则返回指针，否则返回 nullptr
      */
-    [[nodiscard]] SingleChunkLifecycleManager* _findLifecycleManager(ChunkCoord x, ChunkCoord z);
+    [[nodiscard]] mc::world::chunk::SingleChunkLifecycleManager* _findLifecycleManager(ChunkCoord x, ChunkCoord z);
 
     /**
      * @brief 查询现有单区块生命周期管理器（const 版本）
@@ -529,7 +530,8 @@ private:
      * @param z 区块 Z 坐标
      * @return 若存在则返回指针，否则返回 nullptr
      */
-    [[nodiscard]] const SingleChunkLifecycleManager* _findLifecycleManager(ChunkCoord x, ChunkCoord z) const;
+    [[nodiscard]] const mc::world::chunk::SingleChunkLifecycleManager* _findLifecycleManager(
+        ChunkCoord x, ChunkCoord z) const;
 
     /**
      * @brief 查询现有单区块生命周期管理器的共享实现
@@ -538,7 +540,8 @@ private:
      * @param z 区块 Z 坐标
      * @return 若存在则返回指针，否则返回 nullptr
      */
-    [[nodiscard]] SingleChunkLifecycleManager* _doFindLifecycleManager(ChunkCoord x, ChunkCoord z) const;
+    [[nodiscard]] mc::world::chunk::SingleChunkLifecycleManager* _doFindLifecycleManager(
+        ChunkCoord x, ChunkCoord z) const;
 
     /**
      * @brief 统一提交区块请求
@@ -566,15 +569,15 @@ private:
      * @param lifecycleManager 要推进的单区块状态机
      * @param decision 生命周期管理器产出的动作决策
      */
-    void _advanceChunkState(
-        SingleChunkLifecycleManager& lifecycleManager, const SingleChunkLifecycleManager::EnqueueDecision& decision);
+    void _advanceChunkState(mc::world::chunk::SingleChunkLifecycleManager& lifecycleManager,
+        const mc::world::chunk::SingleChunkLifecycleManager::EnqueueDecision& decision);
 
     /**
      * @brief 执行一次存档来源解析
      *
      * @param lifecycleManager 目标区块的生命周期管理器
      */
-    void _resolveChunkSourceSync(SingleChunkLifecycleManager& lifecycleManager);
+    void _resolveChunkSourceSync(mc::world::chunk::SingleChunkLifecycleManager& lifecycleManager);
 
     /**
      * @brief 尝试排队一个异步区块生成任务
@@ -582,22 +585,22 @@ private:
      * @param lifecycleManager 目标区块的生命周期管理器
      * @param decision 当前调度决策
      */
-    void _enqueueChunkGenerationAsync(
-        SingleChunkLifecycleManager& lifecycleManager, const SingleChunkLifecycleManager::EnqueueDecision& decision);
+    void _enqueueChunkGenerationAsync(mc::world::chunk::SingleChunkLifecycleManager& lifecycleManager,
+        const mc::world::chunk::SingleChunkLifecycleManager::EnqueueDecision& decision);
 
     /**
      * @brief 完成所有已就绪等待者
      *
      * @param lifecycleManager 目标区块的生命周期管理器
      */
-    void _completeReadyWaiters(SingleChunkLifecycleManager& lifecycleManager);
+    void _completeReadyWaiters(mc::world::chunk::SingleChunkLifecycleManager& lifecycleManager);
 
     /**
      * @brief 以失败方式完成指定等待者集合
      *
      * @param waiters 等待者集合
      */
-    void _failWaiters(std::vector<SingleChunkLifecycleManager::Waiter> waiters);
+    void _failWaiters(std::vector<mc::world::chunk::SingleChunkLifecycleManager::Waiter> waiters);
 
     /**
      * @brief 计算给定区块当前调度优先级
@@ -736,7 +739,8 @@ private:
      * @param lifecycleManager 目标区块的生命周期管理器
      * @param targetStatus 目标生成阶段
      */
-    void _executeGenerationSync(SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus);
+    void _executeGenerationSync(
+        mc::world::chunk::SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus);
 
     /**
      * @brief 完成一次异步生成结果并写入内存缓存
@@ -804,7 +808,7 @@ private:
     ChunkLoadedCallback m_chunkLoadedCallback;
     ChunkLoadedCallback m_chunkUnloadedCallback;
 
-    std::unordered_map<u64, std::unique_ptr<SingleChunkLifecycleManager>> m_lifecycleManagers;
+    std::unordered_map<u64, std::unique_ptr<mc::world::chunk::SingleChunkLifecycleManager>> m_lifecycleManagers;
     mutable std::mutex m_lifecycleManagersMutex;
 
     std::unordered_map<u64, std::shared_ptr<ChunkData>> m_chunks;
@@ -820,7 +824,7 @@ private:
     mutable std::mutex m_generatingPrimersMutex;
 
     mutable std::mutex m_syncGenerationMutex;
-    world::ChunkLoadTicketManager m_ticketManager;
+    mc::world::chunk::ChunkLoadTicketManager m_ticketManager;
     sync::ChunkSendManager* m_chunkSendManager = nullptr;
     util::ServerWorkerPool* m_workerPool = nullptr;
 

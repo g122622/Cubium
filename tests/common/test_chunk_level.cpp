@@ -23,9 +23,9 @@
 
 #include <gtest/gtest.h>
 
-#include "common/world/chunk/ChunkLevel.hpp"
-#include "common/world/chunk/ChunkPyramid.hpp"
-#include "common/world/chunk/ChunkStatus.hpp"
+#include "common/world/chunk/gen/ChunkPyramid.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/world/chunk/load/ChunkLoadLevel.hpp"
 
 using namespace mc;
 using namespace mc::world::chunk;
@@ -34,101 +34,101 @@ using namespace mc::world::chunk;
 // ChunkLevel 测试
 // ============================================================================
 
-TEST(ChunkLevel, Constants)
+TEST(ChunkPyramid, Constants)
 {
-    EXPECT_EQ(ChunkLevel::ENTITY_TICKING_LEVEL, 31);
-    EXPECT_EQ(ChunkLevel::BLOCK_TICKING_LEVEL, 32);
-    EXPECT_EQ(ChunkLevel::FULL_CHUNK_LEVEL, 33);
+    EXPECT_EQ(ENTITY_TICKING_LEVEL, 31);
+    EXPECT_EQ(BLOCK_TICKING_LEVEL, 32);
+    EXPECT_EQ(FULL_CHUNK_LEVEL, 33);
 }
 
-TEST(ChunkLevel, RadiusAroundFullChunk)
+TEST(ChunkPyramid, RadiusAroundFullChunk)
 {
     // FULL 步骤的累积依赖半径 = 11（由 buildAccumulatedDependencies 的偏移合并计算得出）
-    EXPECT_EQ(ChunkLevel::radiusAroundFullChunk(), 11);
+    EXPECT_EQ(ChunkPyramid::radiusAroundFullChunk(), 11);
 }
 
-TEST(ChunkLevel, MaxLevel)
+TEST(ChunkPyramid, MaxLevel)
 {
     // MAX_LEVEL = 33 + 11 = 44
-    EXPECT_EQ(ChunkLevel::maxLevel(), 44);
+    EXPECT_EQ(ChunkPyramid::maxLevel(), 44);
 }
 
-TEST(ChunkLevel, GenerationStatusFromLevel)
+TEST(ChunkPyramid, GenerationStatusFromLevel)
 {
     // 级别 <= 33 → FULL
-    EXPECT_EQ(ChunkLevel::generationStatus(33), &ChunkStatuses::FULL);
-    EXPECT_EQ(ChunkLevel::generationStatus(31), &ChunkStatuses::FULL);
-    EXPECT_EQ(ChunkLevel::generationStatus(0), &ChunkStatuses::FULL);
+    EXPECT_EQ(ChunkPyramid::generationStatus(33), &ChunkStatuses::FULL);
+    EXPECT_EQ(ChunkPyramid::generationStatus(31), &ChunkStatuses::FULL);
+    EXPECT_EQ(ChunkPyramid::generationStatus(0), &ChunkStatuses::FULL);
 
     // FULL 的 accumulatedDependencies = [SPAWN, IL, CARVERS, BIOMES, SS, SS, SS, SS, SS, SS, SS, SS]
     // 级别 34 → accumulatedDependencies[1] = INITIALIZE_LIGHT
-    EXPECT_EQ(ChunkLevel::generationStatus(34), &ChunkStatuses::INITIALIZE_LIGHT);
+    EXPECT_EQ(ChunkPyramid::generationStatus(34), &ChunkStatuses::INITIALIZE_LIGHT);
 
     // 级别 35 → accumulatedDependencies[2] = CARVERS
-    EXPECT_EQ(ChunkLevel::generationStatus(35), &ChunkStatuses::CARVERS);
+    EXPECT_EQ(ChunkPyramid::generationStatus(35), &ChunkStatuses::CARVERS);
 
     // 级别 36 → accumulatedDependencies[3] = BIOMES
-    EXPECT_EQ(ChunkLevel::generationStatus(36), &ChunkStatuses::BIOMES);
+    EXPECT_EQ(ChunkPyramid::generationStatus(36), &ChunkStatuses::BIOMES);
 
     // 级别 37-44 → STRUCTURE_STARTS
-    EXPECT_EQ(ChunkLevel::generationStatus(37), &ChunkStatuses::STRUCTURE_STARTS);
-    EXPECT_EQ(ChunkLevel::generationStatus(44), &ChunkStatuses::STRUCTURE_STARTS);
+    EXPECT_EQ(ChunkPyramid::generationStatus(37), &ChunkStatuses::STRUCTURE_STARTS);
+    EXPECT_EQ(ChunkPyramid::generationStatus(44), &ChunkStatuses::STRUCTURE_STARTS);
 
     // 超过 maxLevel → nullptr
-    EXPECT_EQ(ChunkLevel::generationStatus(45), nullptr);
-    EXPECT_EQ(ChunkLevel::generationStatus(46), nullptr);
+    EXPECT_EQ(ChunkPyramid::generationStatus(45), nullptr);
+    EXPECT_EQ(ChunkPyramid::generationStatus(46), nullptr);
 }
 
-TEST(ChunkLevel, ByStatus)
+TEST(ChunkPyramid, ByStatus)
 {
     // FULL → 33（特殊情况，返回 0 半径）
-    EXPECT_EQ(ChunkLevel::byStatus(ChunkStatuses::FULL), 33);
+    EXPECT_EQ(ChunkPyramid::byStatus(ChunkStatuses::FULL), 33);
 
     // SPAWN → 33 + 0 = 33
-    EXPECT_EQ(ChunkLevel::byStatus(ChunkStatuses::SPAWN), 33);
+    EXPECT_EQ(ChunkPyramid::byStatus(ChunkStatuses::SPAWN), 33);
 
     // LIGHT → 33 + 0 = 33
-    EXPECT_EQ(ChunkLevel::byStatus(ChunkStatuses::LIGHT), 33);
+    EXPECT_EQ(ChunkPyramid::byStatus(ChunkStatuses::LIGHT), 33);
 
     // INITIALIZE_LIGHT → 33 + 1 = 34
-    EXPECT_EQ(ChunkLevel::byStatus(ChunkStatuses::INITIALIZE_LIGHT), 34);
+    EXPECT_EQ(ChunkPyramid::byStatus(ChunkStatuses::INITIALIZE_LIGHT), 34);
 
     // FEATURES → 33 + 1 = 34
-    EXPECT_EQ(ChunkLevel::byStatus(ChunkStatuses::FEATURES), 34);
+    EXPECT_EQ(ChunkPyramid::byStatus(ChunkStatuses::FEATURES), 34);
 
     // CARVERS → 33 + 2 = 35
-    EXPECT_EQ(ChunkLevel::byStatus(ChunkStatuses::CARVERS), 35);
+    EXPECT_EQ(ChunkPyramid::byStatus(ChunkStatuses::CARVERS), 35);
 
     // SURFACE → 33 + 2 = 35
-    EXPECT_EQ(ChunkLevel::byStatus(ChunkStatuses::SURFACE), 35);
+    EXPECT_EQ(ChunkPyramid::byStatus(ChunkStatuses::SURFACE), 35);
 
     // NOISE → 33 + 2 = 35
-    EXPECT_EQ(ChunkLevel::byStatus(ChunkStatuses::NOISE), 35);
+    EXPECT_EQ(ChunkPyramid::byStatus(ChunkStatuses::NOISE), 35);
 
     // BIOMES → 33 + 3 = 36
-    EXPECT_EQ(ChunkLevel::byStatus(ChunkStatuses::BIOMES), 36);
+    EXPECT_EQ(ChunkPyramid::byStatus(ChunkStatuses::BIOMES), 36);
 
     // STRUCTURE_REFERENCES → 33 + 3 = 36
-    EXPECT_EQ(ChunkLevel::byStatus(ChunkStatuses::STRUCTURE_REFERENCES), 36);
+    EXPECT_EQ(ChunkPyramid::byStatus(ChunkStatuses::STRUCTURE_REFERENCES), 36);
 
     // STRUCTURE_STARTS → 33 + 11 = 44
-    EXPECT_EQ(ChunkLevel::byStatus(ChunkStatuses::STRUCTURE_STARTS), 44);
+    EXPECT_EQ(ChunkPyramid::byStatus(ChunkStatuses::STRUCTURE_STARTS), 44);
 
     // EMPTY → 33 + 11 = 44
-    EXPECT_EQ(ChunkLevel::byStatus(ChunkStatuses::EMPTY), 44);
+    EXPECT_EQ(ChunkPyramid::byStatus(ChunkStatuses::EMPTY), 44);
 }
 
-TEST(ChunkLevel, RoundTrip)
+TEST(ChunkPyramid, RoundTrip)
 {
     // byStatus(*generationStatus(n)) 的语义：多个级别可能映射到同一状态，
     // byStatus 返回该状态所需的最低级别的最大半径对应级别。
     // 验证：generationStatus(byStatus(generationStatus(n))) == generationStatus(n)
     for (i32 level = 33; level <= 44; ++level) {
-        const ChunkStatus* status = ChunkLevel::generationStatus(level);
+        const ChunkStatus* status = ChunkPyramid::generationStatus(level);
         ASSERT_NE(status, nullptr) << "generationStatus(" << level << ") returned nullptr";
-        i32 roundTripLevel = ChunkLevel::byStatus(*status);
+        i32 roundTripLevel = ChunkPyramid::byStatus(*status);
         // roundTripLevel 必须指向同一状态
-        EXPECT_EQ(ChunkLevel::generationStatus(roundTripLevel), status)
+        EXPECT_EQ(ChunkPyramid::generationStatus(roundTripLevel), status)
             << "generationStatus(byStatus(generationStatus(" << level << "))) != generationStatus(" << level << ")";
         // roundTripLevel >= level：因为 byStatus 返回覆盖该状态的最远级别
         EXPECT_GE(roundTripLevel, level) << "byStatus(generationStatus(" << level << ")) = " << roundTripLevel << " < "
@@ -136,27 +136,27 @@ TEST(ChunkLevel, RoundTrip)
     }
 }
 
-TEST(ChunkLevel, GetStatusAroundFullChunk)
+TEST(ChunkPyramid, GetStatusAroundFullChunk)
 {
     // 距离 0 → FULL
-    EXPECT_EQ(ChunkLevel::getStatusAroundFullChunk(0), &ChunkStatuses::FULL);
+    EXPECT_EQ(ChunkPyramid::getStatusAroundFullChunk(0), &ChunkStatuses::FULL);
 
     // 距离 1 → INITIALIZE_LIGHT
-    EXPECT_EQ(ChunkLevel::getStatusAroundFullChunk(1), &ChunkStatuses::INITIALIZE_LIGHT);
+    EXPECT_EQ(ChunkPyramid::getStatusAroundFullChunk(1), &ChunkStatuses::INITIALIZE_LIGHT);
 
     // 距离 2 → CARVERS
-    EXPECT_EQ(ChunkLevel::getStatusAroundFullChunk(2), &ChunkStatuses::CARVERS);
+    EXPECT_EQ(ChunkPyramid::getStatusAroundFullChunk(2), &ChunkStatuses::CARVERS);
 
     // 距离 3 → BIOMES
-    EXPECT_EQ(ChunkLevel::getStatusAroundFullChunk(3), &ChunkStatuses::BIOMES);
+    EXPECT_EQ(ChunkPyramid::getStatusAroundFullChunk(3), &ChunkStatuses::BIOMES);
 
     // 距离 4-11 → STRUCTURE_STARTS
-    EXPECT_EQ(ChunkLevel::getStatusAroundFullChunk(4), &ChunkStatuses::STRUCTURE_STARTS);
-    EXPECT_EQ(ChunkLevel::getStatusAroundFullChunk(11), &ChunkStatuses::STRUCTURE_STARTS);
+    EXPECT_EQ(ChunkPyramid::getStatusAroundFullChunk(4), &ChunkStatuses::STRUCTURE_STARTS);
+    EXPECT_EQ(ChunkPyramid::getStatusAroundFullChunk(11), &ChunkStatuses::STRUCTURE_STARTS);
 
     // 超出范围 → nullptr
-    EXPECT_EQ(ChunkLevel::getStatusAroundFullChunk(12), nullptr);
-    EXPECT_EQ(ChunkLevel::getStatusAroundFullChunk(-1), &ChunkStatuses::FULL);
+    EXPECT_EQ(ChunkPyramid::getStatusAroundFullChunk(12), nullptr);
+    EXPECT_EQ(ChunkPyramid::getStatusAroundFullChunk(-1), &ChunkStatuses::FULL);
 }
 
 // ============================================================================

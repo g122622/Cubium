@@ -28,8 +28,8 @@
 #include "../../../world/biome/BiomeRegistry.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockPos.hpp"
-#include "../../../world/chunk/ChunkData.hpp"
-#include "../../../world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include "../../../world/fluid/Fluid.hpp"
 
 #include <optional>

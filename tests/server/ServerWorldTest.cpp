@@ -32,7 +32,7 @@
 #include "common/world/blockentity/processing/FurnaceEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/blockentity/transport/HopperEntity.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
@@ -87,8 +87,9 @@ protected:
     static std::unique_ptr<ServerWorld> createTestWorld(const ServerWorldConfig& config)
     {
         auto world = std::make_unique<ServerWorld>(config);
-        auto generator = std::make_unique<NoiseChunkGenerator>(
-            config.seed, DimensionSettings::overworld(), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(config.seed, false));
+        auto generator = std::make_unique<NoiseChunkGenerator>(config.seed,
+            DimensionSettings::overworld(),
+            mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(config.seed, false));
         auto chunkManager = std::make_unique<ServerChunkManager>(*world, std::move(generator));
         world->setChunkManager(std::move(chunkManager));
         return world;

@@ -23,8 +23,8 @@
 
 #include "common/core/Constants.hpp"
 #include "common/util/NibbleArray.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"

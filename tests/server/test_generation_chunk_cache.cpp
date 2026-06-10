@@ -22,7 +22,7 @@
 
 #include <gtest/gtest.h>
 
-#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "server/world/GenerationChunkCache.hpp"
 
 using namespace mc;

@@ -31,7 +31,10 @@
 namespace mc {
 
 // 前向声明
+namespace world::chunk {
 class IChunk;
+}
+using world::chunk::IChunk;
 
 /**
  * @brief 空区块段映射

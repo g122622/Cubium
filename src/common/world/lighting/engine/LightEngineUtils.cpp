@@ -25,8 +25,9 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
-#include "common/world/chunk/IChunk.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/base/SectionPos.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include <climits>
 
 namespace mc {

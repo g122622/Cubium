@@ -29,8 +29,8 @@
 #include "common/entity/core/EntityType.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/spawn/WorldGenSpawner.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 

@@ -43,7 +43,7 @@
 #include "common/world/blockentity/interactive/EnchantingTableEntity.hpp"
 #include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"

@@ -1,0 +1,542 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#pragma once
+
+#include "common/world/block/Block.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/world/gen/carver/CarvingMask.hpp"
+#include "common/world/gen/spawn/WorldGenSpawner.hpp"
+#include "common/world/gen/structure/Structure.hpp"
+#include <functional>
+#include <memory>
+#include <unordered_map>
+#include <vector>
+
+namespace mc::world::gen::density {
+class NoiseChunk;
+} // namespace mc::world::gen::density
+
+namespace mc::world::chunk {
+
+// ============================================================================
+// 区块生成器 (中间状态)
+// ============================================================================
+
+/**
+ * @brief 区块生成器 (ChunkPrimer)
+ *
+ * 区块生成过程中的中间状态类。
+ * 在区块完全生成之前，使用此类存储临时数据。
+ * 生成完成后转换为 ChunkData。
+ *
+ * 使用方法：
+ * 1. 创建 ChunkPrimer
+ * 2. 按阶段生成：BIOMES -> NOISE -> SURFACE -> CARVERS -> FEATURES -> HEIGHTMAPS
+ * 3. 转换为 ChunkData
+ *
+ * @note 此类不是线程安全的，应该在单个线程中操作
+ */
+class ChunkPrimer : public IChunk {
+public:
+    // ============================================================================
+    // 构造函数
+    // ============================================================================
+
+    /**
+     * @brief 创建空区块生成器
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     */
+    explicit ChunkPrimer(ChunkCoord x, ChunkCoord z);
+
+    /**
+     * @brief 从现有 ChunkData 创建（用于加载）
+     */
+    explicit ChunkPrimer(std::unique_ptr<ChunkData> data);
+
+    ~ChunkPrimer() override;
+
+    // 禁止拷贝
+    ChunkPrimer(const ChunkPrimer&) = delete;
+    ChunkPrimer& operator=(const ChunkPrimer&) = delete;
+
+    // 允许移动
+    ChunkPrimer(ChunkPrimer&&) noexcept = default;
+    ChunkPrimer& operator=(ChunkPrimer&&) noexcept = default;
+
+    // ============================================================================
+    // IChunk 接口实现
+    // ============================================================================
+
+    [[nodiscard]] ChunkCoord x() const override { return m_x; }
+    [[nodiscard]] ChunkCoord z() const override { return m_z; }
+    [[nodiscard]] ChunkPos pos() const override { return ChunkPos(m_x, m_z); }
+
+    // 方块访问
+    [[nodiscard]] const BlockState* getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const override;
+    void setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override;
+    [[nodiscard]] u32 getBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z) const override;
+    void setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId) override;
+
+    // 区块段访问
+    [[nodiscard]] ChunkSection* getSection(i32 index) override;
+    [[nodiscard]] const ChunkSection* getSection(i32 index) const override;
+    [[nodiscard]] bool hasSection(i32 index) const override;
+    ChunkSection* createSection(i32 index) override;
+    [[nodiscard]] const ChunkSection* const* getSections() const override;
+
+    // 高度图
+    [[nodiscard]] BlockCoord getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const override;
+    void updateHeightmap(
+        HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state) override;
+
+    // 状态
+    [[nodiscard]] ChunkLoadStatus getStatus() const override { return m_status; }
+    void setStatus(ChunkLoadStatus status) override { m_status = status; }
+
+    // 标记
+    [[nodiscard]] bool isModified() const override { return m_modified; }
+    void setModified(bool modified) override { m_modified = modified; }
+
+    // ============================================================================
+    // 生成阶段管理
+    // ============================================================================
+
+    /**
+     * @brief 获取当前生成阶段
+     */
+    [[nodiscard]] const ChunkStatus& getChunkStatus() const noexcept { return *m_chunkStatus; }
+
+    /**
+     * @brief 设置当前生成阶段
+     */
+    void setChunkStatus(const ChunkStatus& status);
+
+    /**
+     * @brief 检查是否已完成指定阶段
+     */
+    [[nodiscard]] bool hasCompletedStatus(const ChunkStatus& status) const noexcept
+    {
+        return m_chunkStatus->isAtLeast(status);
+    }
+
+    // ============================================================================
+    // 持久化状态
+    // ============================================================================
+
+    /**
+     * @brief 获取持久化状态
+     *
+     * persistedStatus 记录已完成持久化的阶段，用于决定高度图更新范围。
+     * 与 chunkStatus 分离：chunkStatus 是当前正在执行的目标阶段，
+     * persistedStatus 是已经确认完成的阶段。
+     */
+    [[nodiscard]] const ChunkStatus& getPersistedStatus() const noexcept { return *m_persistedStatus; }
+
+    /**
+     * @brief 推进持久化状态到目标阶段
+     *
+     * 只允许向前推进（新状态的 ordinal 必须 >= 当前 persistedStatus）。
+     * 同时推进 chunkStatus。
+     *
+     * @param target 目标阶段
+     */
+    void setPersistedStatus(const ChunkStatus& target);
+
+    // ============================================================================
+    // 生物群系管理
+    // ============================================================================
+
+    /**
+     * @brief 设置生物群系容器
+     */
+    void setBiomes(BiomeContainer biomes) noexcept { m_biomes = std::move(biomes); }
+
+    /**
+     * @brief 获取生物群系容器
+     */
+    [[nodiscard]] const BiomeContainer& getBiomes() const noexcept { return m_biomes; }
+    [[nodiscard]] BiomeContainer& getBiomes() noexcept { return m_biomes; }
+
+    /**
+     * @brief 获取方块位置的生物群系
+     */
+    [[nodiscard]] BiomeId getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const override;
+
+    // ============================================================================
+    // 光源位置
+    // ============================================================================
+
+    /**
+     * @brief 添加光源位置（用于光照计算）
+     */
+    void addLightPosition(BlockCoord x, BlockCoord y, BlockCoord z);
+
+    /**
+     * @brief 获取所有光源位置
+     */
+    [[nodiscard]] const std::vector<BlockCoord>& getLightPositions() const noexcept { return m_lightPositions; }
+
+    // ============================================================================
+    // 高度图管理
+    // ============================================================================
+
+    /**
+     * @brief 获取高度图
+     */
+    [[nodiscard]] Heightmap& getHeightmap(HeightmapType type);
+    [[nodiscard]] const Heightmap& getHeightmap(HeightmapType type) const;
+
+    /**
+     * @brief 更新所有高度图
+     */
+    void updateAllHeightmaps();
+
+    /**
+     * @brief 初始化光源列表
+     *
+     * INITIALIZE_LIGHT 阶段调用：遍历区块中所有方块，
+     * 找到亮度 > 0 的方块（火把、荧石等），注册到光照引擎。
+     */
+    void initializeLightSources();
+
+    /**
+     * @brief 从已有方块数据初始化指定高度图
+     *
+     * FEATURES 阶段开始前调用，从已放置的方块数据重新计算
+     * FINAL_HEIGHTMAPS（OCEAN_FLOOR, WORLD_SURFACE, MOTION_BLOCKING, MOTION_BLOCKING_NO_LEAVES）。
+     */
+    void primeHeightmaps(HeightmapFlag types);
+
+    // ============================================================================
+    // 生成的实体
+    // ============================================================================
+
+    /**
+     * @brief 获取区块生成时生成的实体列表
+     *
+     * 区块生成过程中调用 WorldGenSpawner 生成的被动动物会存储在这里。
+     * 在区块生成完成后，由 ServerWorld 将这些实体真正创建到世界中。
+     */
+    [[nodiscard]] std::vector<SpawnedEntityData>& spawnedEntities() { return m_spawnedEntities; }
+    [[nodiscard]] const std::vector<SpawnedEntityData>& spawnedEntities() const { return m_spawnedEntities; }
+
+    /**
+     * @brief 添加生成的实体数据
+     */
+    void addSpawnedEntity(SpawnedEntityData data) { m_spawnedEntities.push_back(std::move(data)); }
+
+    /**
+     * @brief 清空生成的实体列表
+     */
+    void clearSpawnedEntities() noexcept { m_spawnedEntities.clear(); }
+
+    /**
+     * @brief 获取生成的实体数量
+     */
+    [[nodiscard]] size_t spawnedEntityCount() const noexcept { return m_spawnedEntities.size(); }
+
+    // ============================================================================
+    // 结构起点管理
+    // ============================================================================
+
+    /**
+     * @brief 添加结构起点
+     * @param structureName 结构名称
+     * @param start 结构起点实例
+     */
+    void addStructureStart(
+        const std::string& structureName, std::unique_ptr<mc::world::gen::structure::StructureStart> start)
+    {
+        m_structureStarts[structureName] = std::move(start);
+    }
+
+    /**
+     * @brief 获取结构起点
+     * @param structureName 结构名称
+     * @return 结构起点指针，如果不存在则返回 nullptr
+     */
+    [[nodiscard]] mc::world::gen::structure::StructureStart* getStructureStart(
+        const std::string& structureName) noexcept
+    {
+        auto it = m_structureStarts.find(structureName);
+        return it != m_structureStarts.end() ? it->second.get() : nullptr;
+    }
+
+    /**
+     * @brief 获取所有结构起点
+     */
+    [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<mc::world::gen::structure::StructureStart>>&
+    structureStarts() const noexcept
+    {
+        return m_structureStarts;
+    }
+
+    /**
+     * @brief 获取与指定区块相交的结构引用
+     *
+     * 遍历此区块上的所有结构起点，返回边界框与指定区块相交的结构。
+     */
+    [[nodiscard]] std::vector<std::tuple<std::string, ChunkCoord, ChunkCoord>> getIntersectingStructures(
+        ChunkCoord cx, ChunkCoord cz) const override
+    {
+        std::vector<std::tuple<std::string, ChunkCoord, ChunkCoord>> result;
+        for (const auto& [name, start] : m_structureStarts) {
+            if (start && start->isValid() && start->getBoundingBox().intersectsChunk(cx, cz)) {
+                result.emplace_back(name, m_x, m_z);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * @brief 检查是否有结构起点
+     */
+    [[nodiscard]] bool hasStructureStarts() const noexcept { return !m_structureStarts.empty(); }
+
+    // ============================================================================
+    // 结构引用管理
+    // ============================================================================
+
+    /**
+     * @brief 添加结构引用
+     *
+     * 存储"哪些结构可能与此区块相交"的信息。
+     * 在 STRUCTURE_REFERENCES 阶段，扫描周围区块的 StructureStart，
+     * 如果其边界框与此区块相交，则添加引用。
+     *
+     * @param structureName 结构名称
+     * @param referenceChunkX 被引用结构所在区块的 X 坐标
+     * @param referenceChunkZ 被引用结构所在区块的 Z 坐标
+     */
+    void addStructureReference(const std::string& structureName, ChunkCoord referenceChunkX, ChunkCoord referenceChunkZ)
+    {
+        m_structureReferences[structureName].emplace_back(referenceChunkX, referenceChunkZ);
+    }
+
+    /**
+     * @brief 获取指定结构的所有引用
+     * @param structureName 结构名称
+     * @return 引用列表（区块坐标），如果不存在返回空列表
+     */
+    [[nodiscard]] const std::vector<std::pair<ChunkCoord, ChunkCoord>>& getStructureReferences(
+        const std::string& structureName) const
+    {
+        static const std::vector<std::pair<ChunkCoord, ChunkCoord>> empty;
+        auto it = m_structureReferences.find(structureName);
+        return it != m_structureReferences.end() ? it->second : empty;
+    }
+
+    /**
+     * @brief 获取所有结构引用
+     */
+    [[nodiscard]] const std::unordered_map<std::string, std::vector<std::pair<ChunkCoord, ChunkCoord>>>&
+    structureReferences() const noexcept
+    {
+        return m_structureReferences;
+    }
+
+    /**
+     * @brief 检查是否有结构引用
+     */
+    [[nodiscard]] bool hasStructureReferences() const noexcept { return !m_structureReferences.empty(); }
+
+    // ============================================================================
+    // 后处理位置
+    // ============================================================================
+
+    /**
+     * @brief 标记方块位置为需要后处理
+     *
+     * 将位置打包为短整型并按区块段索引存储。
+     * 用于含水层流体更新调度、地表流体方块、雕刻器流体方块等。
+     * 在区块发布后由 postProcessGeneration 遍历这些位置：
+     * - 流体方块：调度流体 tick
+     * - 非液体方块：通过 updateFromNeighbourShapes 更新方块形状
+     *
+     * @param x 区块内 X 坐标 (0-15)
+     * @param y 方块 Y 坐标
+     * @param z 区块内 Z 坐标 (0-15)
+     */
+    void markPosForPostprocessing(BlockCoord x, BlockCoord y, BlockCoord z);
+
+    /**
+     * @brief 获取后处理位置（按区块段索引）
+     *
+     * 返回按区块段索引组织的打包位置列表数组。
+     * 每个短整型编码了段内本地坐标：bits[3:0]=x, bits[7:4]=y, bits[11:8]=z。
+     *
+     * @return 后处理位置数组的常引用，大小为 CHUNK_SECTIONS
+     */
+    [[nodiscard]] const std::array<std::vector<u16>, mc::world::CHUNK_SECTIONS>& postProcessingSections() const noexcept
+    {
+        return m_postProcessingSections;
+    }
+
+    /**
+     * @brief 从另一个来源合并后处理位置
+     *
+     * @param packedPositions 打包位置列表
+     * @param sectionIndex 区块段索引
+     */
+    void addPackedPostProcessing(const std::vector<u16>& packedPositions, i32 sectionIndex);
+
+    // ============================================================================
+    // 雕刻掩码
+    // ============================================================================
+
+    /**
+     * @brief 获取雕刻掩码
+     *
+     * MC原版中，CarvingMask 在 AIR 和 LIQUID 两个雕刻阶段之间共享。
+     * 第一次调用时自动创建掩码。
+     *
+     * @return 雕刻掩码引用
+     */
+    [[nodiscard]] CarvingMask& carvingMask();
+
+    /**
+     * @brief 检查是否已有雕刻掩码
+     */
+    [[nodiscard]] bool hasCarvingMask() const noexcept { return m_carvingMask != nullptr; }
+
+    // ============================================================================
+    // NoiseChunk 缓存
+    // ============================================================================
+
+    /**
+     * @brief 获取或创建 NoiseChunk
+     *
+     * NoiseChunk 在 biomes/noise/surface/carvers 阶段共享。
+     * 第一次调用时使用 factory 创建，后续调用返回缓存实例。
+     *
+     * @param factory 创建 NoiseChunk 的工厂函数
+     * @return NoiseChunk 引用
+     */
+    [[nodiscard]] mc::world::gen::density::NoiseChunk& getOrCreateNoiseChunk(
+        std::function<std::unique_ptr<mc::world::gen::density::NoiseChunk>()> factory);
+
+    /**
+     * @brief 获取 NoiseChunk（可能为 nullptr）
+     */
+    [[nodiscard]] mc::world::gen::density::NoiseChunk* noiseChunk() noexcept { return m_noiseChunk.get(); }
+    [[nodiscard]] const mc::world::gen::density::NoiseChunk* noiseChunk() const noexcept { return m_noiseChunk.get(); }
+
+    /**
+     * @brief 检查是否已有 NoiseChunk
+     */
+    [[nodiscard]] bool hasNoiseChunk() const noexcept { return m_noiseChunk != nullptr; }
+
+    // ============================================================================
+    // 转换方法
+    // ============================================================================
+
+    /**
+     * @brief 转换为 ChunkData
+     * @return 完成的区块数据
+     */
+    [[nodiscard]] std::unique_ptr<ChunkData> toChunkData();
+
+    /**
+     * @brief 获取底层 ChunkData（如果存在）
+     */
+    [[nodiscard]] ChunkData* getChunkData() noexcept { return m_data.get(); }
+    [[nodiscard]] const ChunkData* getChunkData() const noexcept { return m_data.get(); }
+
+    // ============================================================================
+    // 静态工具方法
+    // ============================================================================
+
+    /**
+     * @brief 将方块坐标打包为短整型
+     */
+    [[nodiscard]] static u16 packToLocal(BlockCoord x, BlockCoord y, BlockCoord z) noexcept;
+
+    /**
+     * @brief 将短整型解包为方块坐标
+     */
+    static void unpackFromLocal(u16 packed,
+        i32 yOffset,
+        ChunkCoord chunkX,
+        ChunkCoord chunkZ,
+        BlockCoord& x,
+        BlockCoord& y,
+        BlockCoord& z) noexcept;
+
+private:
+    ChunkCoord m_x;
+    ChunkCoord m_z;
+
+    // 底层数据
+    std::unique_ptr<ChunkData> m_data;
+
+    // 生成状态
+    const ChunkStatus* m_chunkStatus = &ChunkStatuses::EMPTY;
+    const ChunkStatus* m_persistedStatus = &ChunkStatuses::EMPTY;
+    ChunkLoadStatus m_status = ChunkLoadStatus::Empty;
+    bool m_modified = false;
+
+    // 生物群系
+    BiomeContainer m_biomes;
+
+    // 高度图
+    std::unordered_map<HeightmapType, Heightmap> m_heightmaps;
+
+    // 光源位置
+    std::vector<BlockCoord> m_lightPositions;
+
+    // 区块生成时生成的实体
+    std::vector<SpawnedEntityData> m_spawnedEntities;
+
+    // 结构起点（用于结构生成）
+    std::unordered_map<std::string, std::unique_ptr<mc::world::gen::structure::StructureStart>> m_structureStarts;
+
+    // 结构引用（哪些结构的边界框与此区块相交）
+    std::unordered_map<std::string, std::vector<std::pair<ChunkCoord, ChunkCoord>>> m_structureReferences;
+
+    // 雕刻掩码（AIR 和 LIQUID 两个雕刻阶段共享）
+    std::unique_ptr<CarvingMask> m_carvingMask;
+
+    /// 后处理位置（按区块段索引存储）
+    /// 每个短整型编码段内本地坐标：bits[3:0]=x, bits[7:4]=y, bits[11:8]=z
+    std::array<std::vector<u16>, mc::world::CHUNK_SECTIONS> m_postProcessingSections;
+
+    // NoiseChunk 缓存（biomes/noise/surface/carvers 阶段共享）
+    std::unique_ptr<mc::world::gen::density::NoiseChunk> m_noiseChunk;
+
+    // 辅助方法
+    [[nodiscard]] static bool _isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z) noexcept;
+
+    /**
+     * @brief 根据当前 ChunkStatus 的 heightmapsAfter 自动更新高度图
+     *
+     * 在设置方块后，根据 persistedStatus.heightmapsAfter() 决定更新哪些高度图。
+     * 对于尚未创建的高度图类型，先 prime（从方块数据初始化）再增量更新。
+     */
+    void _updateHeightmapsForCurrentStatus(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state);
+};
+
+} // namespace mc::world::chunk

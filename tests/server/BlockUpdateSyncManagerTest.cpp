@@ -24,7 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/chunk/ChunkLoadTicketManager.hpp"
+#include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
 
 #include <algorithm>
@@ -65,7 +65,7 @@ protected:
     }
 
 protected:
-    world::ChunkLoadTicketManager m_ticketManager;
+    mc::world::chunk::ChunkLoadTicketManager m_ticketManager;
     std::unique_ptr<BlockUpdateSyncManager> m_manager;
     std::vector<SentBlockUpdate> m_sentUpdates;
 };

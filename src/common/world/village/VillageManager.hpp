@@ -26,7 +26,7 @@
 #include "Village.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include "poi/PointOfInterestStorage.hpp"
 #include <functional>
 #include <memory>

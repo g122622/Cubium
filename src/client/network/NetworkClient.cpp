@@ -39,7 +39,8 @@
 #include "common/sound/network/SoundPackets.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/base/SectionPos.hpp"
 #include <chrono>
 #include <spdlog/spdlog.h>
 

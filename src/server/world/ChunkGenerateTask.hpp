@@ -25,8 +25,8 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/thread/ITask.hpp"
-#include "common/world/chunk/ChunkPrimer.hpp"
-#include "common/world/chunk/ChunkStatus.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include <functional>
 #include <memory>
 

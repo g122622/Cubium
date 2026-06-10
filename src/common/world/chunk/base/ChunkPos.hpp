@@ -33,7 +33,7 @@
 #include <functional>
 #include <tuple>
 
-namespace mc {
+namespace mc::world::chunk {
 
 /**
  * @brief 区块位置
@@ -86,15 +86,15 @@ public:
     }
 
     // 区块在世界中的原点坐标
-    [[nodiscard]] BlockCoord worldX() const noexcept { return x * world::CHUNK_WIDTH; }
-    [[nodiscard]] BlockCoord worldZ() const noexcept { return z * world::CHUNK_WIDTH; }
+    [[nodiscard]] BlockCoord worldX() const noexcept { return x * mc::world::CHUNK_WIDTH; }
+    [[nodiscard]] BlockCoord worldZ() const noexcept { return z * mc::world::CHUNK_WIDTH; }
 
     // 区块中心坐标
     [[nodiscard]] Vector3 center(f32 y = 0.0f) const noexcept
     {
-        return {static_cast<f32>(worldX()) + world::CHUNK_WIDTH / 2.0f,
+        return {static_cast<f32>(worldX()) + mc::world::CHUNK_WIDTH / 2.0f,
             y,
-            static_cast<f32>(worldZ()) + world::CHUNK_WIDTH / 2.0f};
+            static_cast<f32>(worldZ()) + mc::world::CHUNK_WIDTH / 2.0f};
     }
 
     // 转换为64位唯一ID
@@ -133,15 +133,17 @@ public:
     [[nodiscard]] ChunkPos west() const noexcept { return {x - 1, z}; }
 };
 
+} // namespace mc::world::chunk
+
+// 向后兼容的命名空间别名
+namespace mc {
+using ChunkPos = mc::world::chunk::ChunkPos;
 } // namespace mc
 
 // 哈希函数支持
 namespace std {
 template <>
-struct hash<mc::ChunkPos> {
-    size_t operator()(const mc::ChunkPos& pos) const noexcept { return static_cast<size_t>(pos.toId()); }
+struct hash<mc::world::chunk::ChunkPos> {
+    size_t operator()(const mc::world::chunk::ChunkPos& pos) const noexcept { return static_cast<size_t>(pos.toId()); }
 };
 } // namespace std
-
-// 包含 SectionPos（已迁移到单独文件）
-#include "SectionPos.hpp"

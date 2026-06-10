@@ -24,8 +24,8 @@
 #pragma once
 
 #include "../../core/Result.hpp"
-#include "../../world/chunk/ChunkData.hpp"
-#include "../../world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include "../packet/ProtocolPackets.hpp"
 #include <memory>
 #include <unordered_map>

@@ -29,8 +29,8 @@
 #include "common/physics/shape/VoxelShape.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/chunk/IChunk.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 
 #include <algorithm>

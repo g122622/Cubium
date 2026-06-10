@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "ChunkData.hpp"
-#include "ChunkLoadTicket.hpp"
-#include "ChunkPrimer.hpp"
-#include "ChunkStatus.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include <atomic>
 #include <functional>
 #include <future>
@@ -37,9 +37,7 @@
 #include <unordered_set>
 #include <vector>
 
-namespace mc {
-
-using ChunkLoadTicket = world::ChunkLoadTicket;
+namespace mc::world::chunk {
 
 class SingleChunkLifecycleManager {
 public:
@@ -111,17 +109,6 @@ public:
     };
 
     /**
-     * @brief 存档解析结果
-     *
-     * 该结构预留给来源解析步骤返回完整结果，
-     * 便于后续继续扩展为更丰富的来源决策。
-     */
-    struct StorageResolution {
-        bool loadedFromStorage = false;
-        std::unique_ptr<ChunkData> loadedChunk;
-    };
-
-    /**
      * @brief 创建单区块生命周期管理器
      *
      * @param x 区块 X 坐标
@@ -169,13 +156,6 @@ public:
     [[nodiscard]] const ChunkStatus& status() const;
 
     /**
-     * @brief 获取当前已完成的最高区块生成阶段
-     *
-     * 这是只读访问器的兼容命名别名，语义与 `status()` 完全一致。
-     */
-    [[nodiscard]] const ChunkStatus& getStatus() const { return status(); }
-
-    /**
      * @brief 检查当前区块是否至少完成到指定阶段
      *
      * @param status 目标阶段
@@ -211,13 +191,6 @@ public:
     [[nodiscard]] i32 level() const { return m_level.load(std::memory_order_acquire); }
 
     /**
-     * @brief 获取当前加载级别
-     *
-     * 这是只读访问器的兼容命名别名，语义与 `level()` 完全一致。
-     */
-    [[nodiscard]] i32 getLevel() const { return level(); }
-
-    /**
      * @brief 设置当前加载级别
      *
      * @param level 新的加载级别
@@ -229,7 +202,7 @@ public:
      *
      * @return 当 level <= Border (34) 时返回 true
      */
-    [[nodiscard]] bool shouldLoad() const { return level() <= static_cast<i32>(world::ChunkLoadLevel::Border); }
+    [[nodiscard]] bool shouldLoad() const { return level() <= static_cast<i32>(ChunkLoadLevel::Border); }
 
     /**
      * @brief 获取区块来源解析状态
@@ -250,20 +223,6 @@ public:
      * @brief 判断是否已创建生成中的 ChunkPrimer
      */
     [[nodiscard]] bool hasGeneratingChunk() const;
-
-    /**
-     * @brief 获取已就绪的区块数据
-     *
-     * @return 内存中的 ChunkData 指针；若尚未就绪则返回 nullptr
-     */
-    [[nodiscard]] ChunkData* chunkData();
-
-    /**
-     * @brief 获取已就绪的区块数据（const 版本）
-     *
-     * @return 内存中的 ChunkData 指针；若尚未就绪则返回 nullptr
-     */
-    [[nodiscard]] const ChunkData* chunkData() const;
 
     /**
      * @brief 添加一个加载票据
@@ -340,20 +299,6 @@ public:
      * @return 调度器下一步应执行的动作决策
      */
     EnqueueDecision noteNeighborProgress(bool neighborsReady);
-
-    /**
-     * @brief 记录邻居完成到指定阶段的事件
-     *
-     * 当邻居区块完成了某个生成阶段时调用。
-     * 当前区块可以据此判断自己的依赖是否已满足。
-     *
-     * @param neighborX 邻居区块 X 坐标
-     * @param neighborZ 邻居区块 Z 坐标
-     * @param completedStatus 邻居完成到的阶段
-     * @return 调度器下一步应执行的动作决策
-     */
-    EnqueueDecision noteNeighborStatusCompleted(
-        ChunkCoord neighborX, ChunkCoord neighborZ, const ChunkStatus& completedStatus);
 
     /**
      * @brief 记录一次存档来源解析结果
@@ -513,7 +458,7 @@ private:
     ChunkCoord m_z;
 
     const ChunkStatus* m_completedStatus = &ChunkStatuses::EMPTY;
-    std::atomic<i32> m_level{static_cast<i32>(world::ChunkLoadLevel::MaxLevel)};
+    std::atomic<i32> m_level{static_cast<i32>(ChunkLoadLevel::MaxLevel)};
 
     SourceState m_sourceState = SourceState::Unknown;
     ExecutionState m_executionState = ExecutionState::Idle;
@@ -532,4 +477,4 @@ private:
     mutable std::mutex m_mutex;
 };
 
-} // namespace mc
+} // namespace mc::world::chunk

@@ -34,7 +34,10 @@ namespace mc {
 
 // 前向声明
 class IWorld;
+namespace world::chunk {
 class IChunk;
+}
+using world::chunk::IChunk;
 class BlockState;
 class CollisionShape;
 

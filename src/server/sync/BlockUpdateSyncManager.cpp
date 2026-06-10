@@ -25,14 +25,14 @@
 
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/chunk/ChunkLoadTicketManager.hpp"
+#include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 
 #include <algorithm>
 #include <vector>
 
 namespace mc::server::sync {
 
-BlockUpdateSyncManager::BlockUpdateSyncManager(world::ChunkLoadTicketManager& ticketManager)
+BlockUpdateSyncManager::BlockUpdateSyncManager(world::chunk::ChunkLoadTicketManager& ticketManager)
     : m_ticketManager(ticketManager)
 {}
 

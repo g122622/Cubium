@@ -858,16 +858,17 @@ add_library(mc_common STATIC
     world/blockentity/trial/VaultBlockEntity.cpp
 
     # World - Chunk
-    world/chunk/ChunkData.cpp
-    world/chunk/ChunkDependencies.cpp
-    world/chunk/ChunkDistanceGraph.cpp
-    world/chunk/ChunkLevel.cpp
-    world/chunk/ChunkLoadTicketManager.cpp
-    world/chunk/ChunkPyramid.cpp
-    world/chunk/ChunkStatus.cpp
-    world/chunk/ChunkPrimer.cpp
-    world/chunk/IChunk.cpp
-    world/chunk/SingleChunkLifecycleManager.cpp
+    world/chunk/data/BiomeContainer.cpp
+    world/chunk/data/ChunkData.cpp
+    world/chunk/data/ChunkPrimer.cpp
+    world/chunk/data/ChunkSection.cpp
+    world/chunk/data/Heightmap.cpp
+    world/chunk/data/IChunk.cpp
+    world/chunk/gen/ChunkDependencies.cpp
+    world/chunk/gen/ChunkPyramid.cpp
+    world/chunk/gen/ChunkStatus.cpp
+    world/chunk/load/ChunkDistanceGraph.cpp
+    world/chunk/load/ChunkLoadTicketManager.cpp
 
     # World - Generation - Noise
     world/gen/noise/PerlinNoise.cpp

@@ -26,7 +26,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/chunk/IChunk.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include <functional>
 #include <optional>
 #include <unordered_set>

@@ -25,7 +25,7 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/chunk/IChunk.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include <algorithm>
 
 namespace mc {

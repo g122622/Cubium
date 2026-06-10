@@ -29,7 +29,7 @@
 #include "client/world/color/blend/blend.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include <array>
 #include <functional>
 #include <memory>

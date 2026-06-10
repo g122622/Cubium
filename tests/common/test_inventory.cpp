@@ -42,7 +42,7 @@
 #include "../src/common/world/block/registry/VanillaBlocks.hpp"
 #include "../src/common/world/blockentity/core/SimpleInventory.hpp"
 #include "../src/common/world/border/WorldBorder.hpp"
-#include "../src/common/world/chunk/ChunkData.hpp"
+#include "../src/common/world/chunk/data/ChunkData.hpp"
 #include "../src/common/world/fluid/Fluid.hpp"
 #include "../src/common/world/tick/manager/TickManager.hpp"
 #include "common/TestWorldHelper.hpp"

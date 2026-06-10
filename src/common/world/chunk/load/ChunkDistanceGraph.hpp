@@ -24,13 +24,13 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include <functional>
 #include <queue>
 #include <unordered_map>
 #include <unordered_set>
 
-namespace mc::world {
+namespace mc::world::chunk {
 
 /**
  * @brief 区块距离图 - 管理 BFS 级别传播
@@ -68,8 +68,8 @@ class ChunkDistanceGraph {
 public:
     using ChunkCallback = std::function<void(ChunkCoord, ChunkCoord, i32, i32)>;
 
-    /// 最大级别（未加载）= ChunkLevel::maxLevel() + 1 = 45
-    /// 此值在初始化时由 ChunkLevel 动态计算，静态常量用于编译期初始化。
+    /// 最大级别（未加载）= ChunkPyramid::maxLevel() + 1 = 45
+    /// 此值在初始化时由 ChunkPyramid 动态计算，静态常量用于编译期初始化。
     /// 实际值通过 maxLevel() 方法获取。
     static constexpr i32 MAX_LEVEL = 45;
 
@@ -134,15 +134,6 @@ public:
      */
     void clear();
 
-    /**
-     * @brief 获取所有已知区块
-     * @return 区块级别映射
-     */
-    [[nodiscard]] const std::unordered_map<u64, i32>& allLevels() const { return m_levels; }
-
-    /** @brief 区块数量 */
-    [[nodiscard]] size_t size() const { return m_levels.size(); }
-
 protected:
     /**
      * @brief 获取源级别
@@ -199,4 +190,4 @@ private:
     ChunkCallback m_levelChangeCallback;
 };
 
-} // namespace mc::world
+} // namespace mc::world::chunk

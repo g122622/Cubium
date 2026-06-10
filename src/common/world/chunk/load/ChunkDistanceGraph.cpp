@@ -21,13 +21,13 @@
  *
  */
 
-#include "ChunkDistanceGraph.hpp"
-#include "ChunkLoadTicket.hpp"
+#include "common/world/chunk/load/ChunkDistanceGraph.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include <algorithm>
 #include <cmath>
 
-namespace mc::world {
+namespace mc::world::chunk {
 
 namespace {
 inline i32 clampLevel(i32 level)
@@ -205,4 +205,4 @@ void ChunkDistanceGraph::_enqueueUpdate(ChunkCoord x, ChunkCoord z)
     }
 }
 
-} // namespace mc::world
+} // namespace mc::world::chunk

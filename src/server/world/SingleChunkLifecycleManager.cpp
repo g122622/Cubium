@@ -26,7 +26,7 @@
 #include <algorithm>
 #include <limits>
 
-namespace mc {
+namespace mc::world::chunk {
 
 namespace {
 
@@ -104,16 +104,6 @@ bool SingleChunkLifecycleManager::hasGeneratingChunk() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_generatingChunk != nullptr;
-}
-
-ChunkData* SingleChunkLifecycleManager::chunkData()
-{
-    return nullptr;
-}
-
-const ChunkData* SingleChunkLifecycleManager::chunkData() const
-{
-    return nullptr;
 }
 
 // ============================================================================
@@ -247,19 +237,6 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteNe
     }
 
     m_executionState = neighborsReady ? ExecutionState::Queued : ExecutionState::WaitingForNeighbors;
-    return _buildDecisionLocked();
-}
-
-SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteNeighborStatusCompleted(
-    ChunkCoord neighborX, ChunkCoord neighborZ, const ChunkStatus& completedStatus)
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    MC_UNUSED(neighborX);
-    MC_UNUSED(neighborZ);
-    MC_UNUSED(completedStatus);
-
-    // 邻居阶段完成事件暂不触发调度决策变更，
-    // 由 ServerChunkManager 统一重新评估邻居依赖后调用 noteNeighborProgress。
     return _buildDecisionLocked();
 }
 
@@ -489,4 +466,4 @@ void SingleChunkLifecycleManager::_clearActiveGenerationLocked()
     m_requestPriority = std::numeric_limits<i32>::max();
 }
 
-} // namespace mc
+} // namespace mc::world::chunk

@@ -25,7 +25,7 @@
 
 #include "../../../core/Types.hpp"
 #include "../../../world/block/BlockPos.hpp"
-#include "../../../world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include "PointOfInterest.hpp"
 #include <functional>
 #include <list>

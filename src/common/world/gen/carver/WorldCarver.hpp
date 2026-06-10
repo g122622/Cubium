@@ -30,7 +30,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include <bitset>
 #include <functional>
 #include <memory>

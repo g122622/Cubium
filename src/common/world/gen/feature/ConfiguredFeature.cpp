@@ -25,7 +25,7 @@
 #include "common/core/Constants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/cave/LushCavesFeatures.hpp"
 #include "common/world/gen/feature/gateway/EndGatewayFeature.hpp"

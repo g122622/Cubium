@@ -22,6 +22,7 @@
  */
 
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/player/Player.hpp"
@@ -43,10 +44,9 @@
 #include "util/math/random/RandomRanges.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"
 #include "world/border/WorldBorder.hpp"
-#include "world/chunk/ChunkData.hpp"
+#include "world/chunk/data/ChunkData.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/tick/manager/TickManager.hpp"
 #include <gtest/gtest.h>

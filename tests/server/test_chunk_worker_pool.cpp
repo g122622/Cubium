@@ -22,8 +22,8 @@
  */
 
 #include "common/util/thread/ServerWorkerPool.hpp"
-#include "common/world/chunk/ChunkPrimer.hpp"
-#include "common/world/chunk/ChunkStatus.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "server/world/ChunkGenerateTask.hpp"
 #include <atomic>
 #include <chrono>

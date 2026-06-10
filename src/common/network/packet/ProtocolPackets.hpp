@@ -30,7 +30,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include <memory>
 
 namespace mc::network {
@@ -847,7 +847,7 @@ public:
 
         MC_TRACE_INSTANT("client.network",
             "readChunkCoordinates",
-            [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(packet.m_x, packet.m_z).toId())](
+            [flow = ::perfetto::Flow::ProcessScoped(mc::world::chunk::ChunkPos(packet.m_x, packet.m_z).toId())](
                 ::perfetto::EventContext ctx) { flow(ctx); });
 
         auto dimResult = deser.readI32();

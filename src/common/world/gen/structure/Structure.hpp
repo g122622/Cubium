@@ -40,7 +40,10 @@ namespace mc {
 // 前向声明
 class IWorld;
 class IWorldWriter;
+namespace world::chunk {
 class ChunkPrimer;
+}
+using world::chunk::ChunkPrimer;
 class IChunkGenerator;
 class BlockState;
 class BlockPos;

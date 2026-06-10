@@ -27,10 +27,10 @@
 #include "../../IWorld.hpp"
 #include "../../biome/Biome.hpp"
 #include "../../border/WorldBorder.hpp"
-#include "../../chunk/ChunkPrimer.hpp"
-#include "../../chunk/ChunkStatus.hpp"
-#include "../../chunk/ChunkStep.hpp"
 #include "../settings/DimensionSettings.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/world/chunk/gen/ChunkStep.hpp"
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -41,6 +41,11 @@ namespace mc {
 // 前向声明
 class WorldGenRegion;
 class WorldGenSpawner;
+
+namespace world::chunk {
+class ChunkStep;
+}
+using world::chunk::ChunkStep;
 
 namespace world::biome {
 class BiomeSource;

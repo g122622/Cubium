@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/Items.hpp"
@@ -34,7 +35,6 @@
 #include "world/WorldConstants.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/ChestBlock.hpp"
 #include "world/block/blocks/HopperBlock.hpp"
 #include "world/block/blocks/TrappedChestBlock.hpp"
@@ -51,7 +51,7 @@
 #include "world/blockentity/storage/TrappedChestEntity.hpp"
 #include "world/blockentity/transport/HopperEntity.hpp"
 #include "world/border/WorldBorder.hpp"
-#include "world/chunk/ChunkData.hpp"
+#include "world/chunk/data/ChunkData.hpp"
 
 #include <unordered_map>
 

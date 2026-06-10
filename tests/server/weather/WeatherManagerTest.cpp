@@ -28,7 +28,7 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/border/WorldBorder.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/world/weather/WeatherConstants.hpp"
 #include "common/world/weather/WeatherState.hpp"

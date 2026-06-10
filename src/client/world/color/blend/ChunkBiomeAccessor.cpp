@@ -23,7 +23,7 @@
 
 #include "ChunkBiomeAccessor.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 
 namespace mc::client {
 

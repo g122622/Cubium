@@ -25,7 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include <array>
 #include <cstdint>
 

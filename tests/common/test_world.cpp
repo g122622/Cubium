@@ -25,7 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 
 using namespace mc;
 using namespace mc::world;

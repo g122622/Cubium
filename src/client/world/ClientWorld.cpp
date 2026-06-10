@@ -40,6 +40,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/chunk/base/SectionPos.hpp"
 #include <algorithm>
 #include <cmath>
 #include <glm/geometric.hpp>

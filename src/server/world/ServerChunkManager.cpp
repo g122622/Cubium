@@ -27,8 +27,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/chunk/ChunkLevel.hpp"
-#include "common/world/chunk/ChunkPyramid.hpp"
+#include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
@@ -38,6 +37,12 @@
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
+
+using mc::world::chunk::ChunkDependencies;
+using mc::world::chunk::ChunkPyramid;
+using mc::world::chunk::ChunkStatus;
+namespace ChunkStatuses = mc::world::chunk::ChunkStatuses;
+using mc::world::chunk::SingleChunkLifecycleManager;
 
 namespace {
 
@@ -396,9 +401,6 @@ void ServerChunkManager::_enqueueChunkGenerationAsync(
 void ServerChunkManager::_completeReadyWaiters(SingleChunkLifecycleManager& lifecycleManager)
 {
     ChunkData* chunk = tryToGetChunkInMem(lifecycleManager.x(), lifecycleManager.z());
-    if (!chunk) {
-        chunk = lifecycleManager.chunkData();
-    }
     fulfillWaiters(lifecycleManager.takeReadyWaiters(), chunk != nullptr, chunk);
 }
 
@@ -480,9 +482,9 @@ void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 o
     SingleChunkLifecycleManager& lifecycleManager = _getOrCreateLifecycleManager(x, z);
     lifecycleManager.setLevel(newLevel);
 
-    if (newLevel <= world::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
+    if (newLevel <= world::chunk::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
         // 根据票据级别推导目标生成状态
-        const ChunkStatus* levelStatus = world::chunk::ChunkLevel::generationStatus(newLevel);
+        const ChunkStatus* levelStatus = ChunkPyramid::generationStatus(newLevel);
         const ChunkStatus& targetStatus = (levelStatus && levelStatus->ordinal() > ChunkStatuses::EMPTY.ordinal())
             ? *levelStatus
             : ChunkStatuses::FULL;
@@ -715,7 +717,7 @@ bool ServerChunkManager::_areNeighborsReady(ChunkCoord x, ChunkCoord z, const Ch
 i32 ServerChunkManager::_computeSchedulePriority(
     ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus, i32 ticketLevel) const
 {
-    const i32 normalizedLevel = std::clamp(ticketLevel, 0, world::ChunkDistanceGraph::MAX_LEVEL);
+    const i32 normalizedLevel = std::clamp(ticketLevel, 0, world::chunk::ChunkDistanceGraph::MAX_LEVEL);
     const i32 statusPenalty = std::max(0, ChunkStatuses::FULL.ordinal() - targetStatus.ordinal());
     const i32 spatialPenalty = static_cast<i32>((std::abs(x) + std::abs(z)) & 0xFF);
     return normalizedLevel * 1024 + statusPenalty * 32 + spatialPenalty;

@@ -36,7 +36,10 @@ namespace mc {
 // 前向声明
 class IWorld;
 class CollisionShape;
+namespace world::chunk {
 class ChunkSection;
+}
+using world::chunk::ChunkSection;
 
 /**
  * @brief 天空光照引擎

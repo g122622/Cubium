@@ -27,13 +27,22 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/ChunkPrimer.hpp"
-#include "common/world/chunk/ChunkStatus.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/chunk/gen/ChunkPyramid.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/world/chunk/gen/ChunkStep.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 
 namespace mc::benchmark {
+
+using mc::world::chunk::ChunkPrimer;
+using mc::world::chunk::ChunkPyramid;
+using mc::world::chunk::ChunkStatus;
+using mc::world::chunk::ChunkStep;
+namespace ChunkStatuses = mc::world::chunk::ChunkStatuses;
+using mc::world::chunk::IChunk;
 namespace {
 
 class ChunkGenerationBenchmark final : public IBenchmarkCase {
@@ -92,8 +101,9 @@ public:
                 continue;
             }
 
-            // 根据 taskRange 创建合适大小的 WorldGenRegion
-            const i32 regionRadius = std::max(0, status.taskRange());
+            // 根据 accumulatedRadius 创建合适大小的 WorldGenRegion
+            const ChunkStep& step = ChunkPyramid::generationPyramid().getStepTo(status);
+            const i32 regionRadius = std::max(0, step.accumulatedRadius());
             const i32 diameter = regionRadius * 2 + 1;
             const size_t regionSize = static_cast<size_t>(diameter * diameter);
             std::vector<IChunk*> neighbors(regionSize, nullptr);

@@ -25,7 +25,7 @@
 
 #include "../util/Direction.hpp"
 #include "../util/math/Vector3.hpp"
-#include "../world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 
 namespace mc {
 

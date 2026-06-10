@@ -26,7 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include <memory>
 #include <vector>
 
@@ -34,7 +34,10 @@ namespace mc {
 
 // 前向声明
 class BlockState;
+namespace world::chunk {
 class ChunkPrimer;
+}
+using world::chunk::ChunkPrimer;
 class Biome;
 class WorldGenRegion;
 class IChunkGenerator;

@@ -26,7 +26,7 @@
 #include "BedrockChunkReader.hpp"
 #include "BedrockLevelDb.hpp"
 #include "common/core/Result.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include <memory>
 
 namespace mc::world::storage::reader::bedrock {

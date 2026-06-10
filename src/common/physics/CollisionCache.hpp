@@ -25,7 +25,7 @@
 
 #include "../core/Types.hpp"
 #include "../util/AxisAlignedBB.hpp"
-#include "../world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include <atomic>
 #include <optional>
 #include <shared_mutex>

@@ -29,7 +29,7 @@
 #include <functional>
 #include <unordered_map>
 
-namespace mc::world {
+namespace mc::world::chunk {
 class ChunkLoadTicketManager;
 }
 
@@ -47,7 +47,7 @@ public:
      * @brief 构造函数
      * @param ticketManager 区块追踪票据管理器
      */
-    explicit BlockUpdateSyncManager(world::ChunkLoadTicketManager& ticketManager);
+    explicit BlockUpdateSyncManager(world::chunk::ChunkLoadTicketManager& ticketManager);
 
     /**
      * @brief 记录方块更新
@@ -85,7 +85,7 @@ private:
     [[nodiscard]] static u64 _chunkKey(ChunkCoord x, ChunkCoord z);
 
 private:
-    world::ChunkLoadTicketManager& m_ticketManager;
+    world::chunk::ChunkLoadTicketManager& m_ticketManager;
     std::unordered_map<BlockPos, u32> m_pendingBlockUpdates;
     std::function<void(PlayerId, i32, i32, i32, u32)> m_onBlockUpdate;
 };

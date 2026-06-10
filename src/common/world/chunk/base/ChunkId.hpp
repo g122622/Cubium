@@ -24,13 +24,12 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 
 #include <cstdint>
 #include <functional>
 
-namespace mc {
-
+namespace mc::world::chunk {
 /**
  * @brief 区块唯一标识符
  *
@@ -104,12 +103,17 @@ struct ChunkId {
     }
 };
 
+} // namespace mc::world::chunk
+
+// 向后兼容的命名空间别名
+namespace mc {
+using ChunkId = mc::world::chunk::ChunkId;
 } // namespace mc
 
 // 哈希支持
 namespace std {
 template <>
-struct hash<mc::ChunkId> {
-    size_t operator()(const mc::ChunkId& id) const noexcept { return static_cast<size_t>(id.toId()); }
+struct hash<mc::world::chunk::ChunkId> {
+    size_t operator()(const mc::world::chunk::ChunkId& id) const noexcept { return static_cast<size_t>(id.toId()); }
 };
 } // namespace std

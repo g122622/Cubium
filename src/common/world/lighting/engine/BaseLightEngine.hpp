@@ -28,7 +28,8 @@
 #include "common/core/Types.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include <array>
 #include <cstdint>
@@ -40,8 +41,14 @@ namespace mc {
 class StarLightLightingProvider;
 class BlockState;
 class CollisionShape;
+namespace world::chunk {
 class IChunk;
+}
+using world::chunk::IChunk;
+namespace world::chunk {
 class ChunkSection;
+}
+using world::chunk::ChunkSection;
 
 // ============================================================================
 // 方向枚举与工具（参考 Starlight 的 AxisDirection）

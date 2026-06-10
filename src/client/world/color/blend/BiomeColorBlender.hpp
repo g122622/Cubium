@@ -31,7 +31,10 @@
 #include <functional>
 
 namespace mc {
+namespace world::chunk {
 class ChunkData;
+}
+using world::chunk::ChunkData;
 class BiomeRegistry;
 
 namespace client {

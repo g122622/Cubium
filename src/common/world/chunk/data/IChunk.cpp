@@ -21,13 +21,13 @@
  *
  */
 
-#include "IChunk.hpp"
-#include "ChunkData.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include "common/core/Constants.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include <algorithm>
 
-namespace mc {
+namespace mc::world::chunk {
 
 // ============================================================================
 // BiomeContainer 实现
@@ -37,10 +37,7 @@ void BiomeContainer::setBiome(i32 sectionIndex, i32 x, i32 y, i32 z, BiomeId bio
 {
     MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < SECTION_COUNT);
     if (x >= 0 && x < HORIZ_SIZE && y >= 0 && y < VERT_SIZE && z >= 0 && z < HORIZ_SIZE) {
-        const i32 index = sectionIndex * SECTION_BIOME_SIZE
-            + y * HORIZ_SIZE * HORIZ_SIZE
-            + z * HORIZ_SIZE
-            + x;
+        const i32 index = sectionIndex * SECTION_BIOME_SIZE + y * HORIZ_SIZE * HORIZ_SIZE + z * HORIZ_SIZE + x;
         m_biomes[static_cast<size_t>(index)] = biome;
     }
 }
@@ -49,10 +46,7 @@ BiomeId BiomeContainer::getBiome(i32 sectionIndex, i32 x, i32 y, i32 z) const
 {
     MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < SECTION_COUNT);
     if (x >= 0 && x < HORIZ_SIZE && y >= 0 && y < VERT_SIZE && z >= 0 && z < HORIZ_SIZE) {
-        const i32 index = sectionIndex * SECTION_BIOME_SIZE
-            + y * HORIZ_SIZE * HORIZ_SIZE
-            + z * HORIZ_SIZE
-            + x;
+        const i32 index = sectionIndex * SECTION_BIOME_SIZE + y * HORIZ_SIZE * HORIZ_SIZE + z * HORIZ_SIZE + x;
         return m_biomes[static_cast<size_t>(index)];
     }
     return 0;
@@ -68,13 +62,13 @@ BiomeId BiomeContainer::getBiomeAtBlock(i32 x, i32 y, i32 z) const
     // Y：需要计算正确的 section 索引和 biome Y 索引
     // section 索引 = (y - MIN_BUILD_HEIGHT) / CHUNK_SECTION_HEIGHT
     // biome Y 索引 = ((y - MIN_BUILD_HEIGHT) % CHUNK_SECTION_HEIGHT) / 4
-    const i32 yOffset = y - world::MIN_BUILD_HEIGHT;
-    if (yOffset < 0 || yOffset >= world::CHUNK_HEIGHT) {
+    const i32 yOffset = y - mc::world::MIN_BUILD_HEIGHT;
+    if (yOffset < 0 || yOffset >= mc::world::CHUNK_HEIGHT) {
         return 0;
     }
 
-    const i32 sectionIndex = yOffset / world::CHUNK_SECTION_HEIGHT;
-    const i32 biomeY = (yOffset % world::CHUNK_SECTION_HEIGHT) >> 2;
+    const i32 sectionIndex = yOffset / mc::world::CHUNK_SECTION_HEIGHT;
+    const i32 biomeY = (yOffset % mc::world::CHUNK_SECTION_HEIGHT) >> 2;
 
     return getBiome(sectionIndex, biomeX, biomeY, biomeZ);
 }
@@ -186,4 +180,4 @@ bool Heightmap::_isOpaque(const BlockState* state) const
     }
 }
 
-} // namespace mc
+} // namespace mc::world::chunk

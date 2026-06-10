@@ -33,7 +33,10 @@
 
 namespace mc {
 class Biome;
+namespace world::chunk {
 class ChunkData;
+}
+using world::chunk::ChunkData;
 
 namespace client {
 

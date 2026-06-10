@@ -20,13 +20,13 @@
  * SOFTWARE.
  */
 
-#include "ChunkPyramid.hpp"
-#include "ChunkStatus.hpp"
+#include "common/world/chunk/gen/ChunkPyramid.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/world/chunk/load/ChunkLoadLevel.hpp"
 #include <algorithm>
 #include <array>
 
-namespace mc {
-
+namespace mc::world::chunk {
 namespace {
 
 /**
@@ -470,4 +470,49 @@ const ChunkPyramid& ChunkPyramid::loadingPyramid()
     return pyramid;
 }
 
-} // namespace mc
+// ============================================================================
+// ChunkLevel 合并的方法
+// ============================================================================
+
+i32 ChunkPyramid::radiusAroundFullChunk()
+{
+    static const i32 s_radius =
+        generationPyramid().getStepTo(ChunkStatuses::FULL).accumulatedDependencies().getRadius();
+    return s_radius;
+}
+
+i32 ChunkPyramid::maxLevel()
+{
+    static const i32 s_maxLevel = FULL_CHUNK_LEVEL + radiusAroundFullChunk();
+    return s_maxLevel;
+}
+
+const ChunkStatus* ChunkPyramid::generationStatus(i32 level)
+{
+    if (level <= FULL_CHUNK_LEVEL) {
+        return &ChunkStatuses::FULL;
+    }
+    const i32 distance = level - FULL_CHUNK_LEVEL;
+    return getStatusAroundFullChunk(distance);
+}
+
+i32 ChunkPyramid::byStatus(const ChunkStatus& status)
+{
+    if (status == ChunkStatuses::FULL) {
+        return FULL_CHUNK_LEVEL;
+    }
+    return FULL_CHUNK_LEVEL + generationPyramid().getStepTo(ChunkStatuses::FULL).getAccumulatedRadiusOf(status);
+}
+
+const ChunkStatus* ChunkPyramid::getStatusAroundFullChunk(i32 distance)
+{
+    if (distance <= 0) {
+        return &ChunkStatuses::FULL;
+    }
+    if (distance > radiusAroundFullChunk()) {
+        return nullptr;
+    }
+    return generationPyramid().getStepTo(ChunkStatuses::FULL).accumulatedDependencies().get(distance);
+}
+
+} // namespace mc::world::chunk

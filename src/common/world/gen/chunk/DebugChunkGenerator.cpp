@@ -26,7 +26,7 @@
 #include "common/core/Constants.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/biome/Biomes.hpp"
-#include "common/world/chunk/IChunk.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 
 #include <cmath>
 

@@ -46,8 +46,8 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/chunk/IChunk.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -73,15 +73,15 @@
 
 namespace mc::server {
 
-using mc::ChunkPos;
-using mc::ChunkSection;
-using mc::IChunk;
 using mc::LightType;
 using mc::NibbleArray;
-using mc::SectionPos;
 using mc::StarLightLightingProvider;
 using mc::WorldLightManager;
 using mc::util::core::CoordConverter;
+using mc::world::chunk::ChunkPos;
+using mc::world::chunk::ChunkSection;
+using mc::world::chunk::IChunk;
+using mc::world::chunk::SectionPos;
 
 // ============================================================================
 // ServerWorld 实现

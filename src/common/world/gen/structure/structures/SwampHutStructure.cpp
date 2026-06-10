@@ -29,7 +29,7 @@
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/IChunk.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 

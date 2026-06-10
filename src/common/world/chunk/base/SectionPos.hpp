@@ -27,13 +27,13 @@
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 
 #include <cstdint>
 #include <functional>
 #include <tuple>
 
-namespace mc {
+namespace mc::world::chunk {
 
 /**
  * @brief 区块段位置
@@ -126,14 +126,14 @@ public:
     /**
      * @brief 转换为世界坐标
      */
-    [[nodiscard]] i32 worldX() const noexcept { return x << world::CHUNK_SHIFT; }
-    [[nodiscard]] i32 worldY() const noexcept { return y << world::SECTION_SHIFT; }
-    [[nodiscard]] i32 worldZ() const noexcept { return z << world::CHUNK_SHIFT; }
+    [[nodiscard]] i32 worldX() const noexcept { return x << mc::world::CHUNK_SHIFT; }
+    [[nodiscard]] i32 worldY() const noexcept { return y << mc::world::SECTION_SHIFT; }
+    [[nodiscard]] i32 worldZ() const noexcept { return z << mc::world::CHUNK_SHIFT; }
 
     /**
      * @brief 获取区块段内的局部坐标
      */
-    [[nodiscard]] static i32 mask(i32 coord) noexcept { return coord & world::CHUNK_MASK; }
+    [[nodiscard]] static i32 mask(i32 coord) noexcept { return coord & mc::world::CHUNK_MASK; }
 
     /**
      * @brief 向指定方向偏移
@@ -179,12 +179,12 @@ public:
     /**
      * @brief 获取该段的最小世界Y坐标
      */
-    [[nodiscard]] i32 minY() const noexcept { return y * world::CHUNK_SECTION_HEIGHT; }
+    [[nodiscard]] i32 minY() const noexcept { return y * mc::world::CHUNK_SECTION_HEIGHT; }
 
     /**
      * @brief 获取该段的最大世界Y坐标
      */
-    [[nodiscard]] i32 maxY() const noexcept { return (y + 1) * world::CHUNK_SECTION_HEIGHT - 1; }
+    [[nodiscard]] i32 maxY() const noexcept { return (y + 1) * mc::world::CHUNK_SECTION_HEIGHT - 1; }
 
     /**
      * @brief 获取区块位置（不含Y坐标）
@@ -192,13 +192,18 @@ public:
     [[nodiscard]] ChunkPos chunkPos() const noexcept { return {x, z}; }
 };
 
+} // namespace mc::world::chunk
+
+// 向后兼容的命名空间别名
+namespace mc {
+using SectionPos = mc::world::chunk::SectionPos;
 } // namespace mc
 
 // 哈希函数支持
 namespace std {
 template <>
-struct hash<mc::SectionPos> {
-    size_t operator()(const mc::SectionPos& pos) const noexcept
+struct hash<mc::world::chunk::SectionPos> {
+    size_t operator()(const mc::world::chunk::SectionPos& pos) const noexcept
     {
         size_t h1 = std::hash<mc::ChunkCoord>{}(pos.x);
         size_t h2 = std::hash<mc::i32>{}(pos.y);

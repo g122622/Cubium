@@ -33,7 +33,10 @@ namespace mc {
 // 前向声明
 class ConfiguredCarverBase;
 class WorldGenRegion;
+namespace world::chunk {
 class ChunkPrimer;
+}
+using world::chunk::ChunkPrimer;
 class IChunkGenerator;
 class Random;
 

@@ -24,14 +24,15 @@
 #include "ChunkSendManager.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/perfetto/TraceEvents.hpp"
-#include "common/world/chunk/ChunkLoadTicketManager.hpp"
+#include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
 namespace mc::server::sync {
 
-ChunkSendManager::ChunkSendManager(ServerChunkManager& chunkManager, world::ChunkLoadTicketManager& ticketManager)
+ChunkSendManager::ChunkSendManager(
+    ServerChunkManager& chunkManager, world::chunk::ChunkLoadTicketManager& ticketManager)
     : m_chunkManager(chunkManager)
     , m_ticketManager(ticketManager)
 {}

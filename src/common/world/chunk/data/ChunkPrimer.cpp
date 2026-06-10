@@ -21,14 +21,14 @@
  *
  */
 
-#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/gen/carver/WorldCarver.hpp"
 #include "common/world/gen/density/NoiseChunk.hpp"
 
-namespace mc {
+namespace mc::world::chunk {
 
 namespace {
 
@@ -97,7 +97,7 @@ void ChunkPrimer::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const 
     m_data->setBlockState(x, y, z, state);
     m_modified = true;
 
-    // MC 1.21.11: ProtoChunk.setBlockState 根据当前 ChunkStatus.heightmapsAfter() 自动更新高度图
+    // setBlockState 根据当前 ChunkStatus.heightmapsAfter() 自动更新高度图
     _updateHeightmapsForCurrentStatus(x, y, z, state);
 }
 
@@ -117,7 +117,7 @@ void ChunkPrimer::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 
     m_data->setBlockStateId(x, y, z, stateId);
     m_modified = true;
 
-    // MC 1.21.11: 与 setBlockState 相同，需要根据当前状态更新高度图
+    // 与 setBlockState 相同，需要根据当前状态更新高度图
     const BlockState* state = m_data->getBlockState(x, y, z);
     _updateHeightmapsForCurrentStatus(x, y, z, state);
 }
@@ -185,7 +185,7 @@ void ChunkPrimer::setChunkStatus(const ChunkStatus& status)
 
 void ChunkPrimer::setPersistedStatus(const ChunkStatus& target)
 {
-    // MC 1.21: ProtoChunk.setPersistedStatus()
+    // ProtoChunk.setPersistedStatus()
     // 只允许向前推进
     if (target.isAfter(*m_persistedStatus)) {
         m_persistedStatus = &target;
@@ -242,12 +242,12 @@ void ChunkPrimer::updateAllHeightmaps()
     // 每次重建前先重置所有高度图，避免雕刻/替换方块后残留旧高度。
     initializeAllHeightmaps(m_heightmaps);
 
-    for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
-        for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+    for (i32 x = 0; x < mc::world::CHUNK_WIDTH; ++x) {
+        for (i32 z = 0; z < mc::world::CHUNK_WIDTH; ++z) {
             std::array<bool, ALL_HEIGHTMAP_TYPES.size()> resolved{};
             i32 unresolvedCount = static_cast<i32>(ALL_HEIGHTMAP_TYPES.size());
 
-            for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
+            for (i32 y = mc::world::MAX_BUILD_HEIGHT - 1; y >= mc::world::MIN_BUILD_HEIGHT; --y) {
                 if (unresolvedCount <= 0) {
                     break;
                 }
@@ -275,10 +275,10 @@ void ChunkPrimer::updateAllHeightmaps()
 
 void ChunkPrimer::markPosForPostprocessing(BlockCoord x, BlockCoord y, BlockCoord z)
 {
-    // MC 1.21: ProtoChunk.markPosForPostprocessing
+    // ProtoChunk.markPosForPostprocessing
     // 将位置打包为短整型并按区块段索引存储
-    const i32 sectionIndex = world::toSectionIndex(y);
-    if (sectionIndex >= 0 && sectionIndex < world::CHUNK_SECTIONS) {
+    const i32 sectionIndex = mc::world::toSectionIndex(y);
+    if (sectionIndex >= 0 && sectionIndex < mc::world::CHUNK_SECTIONS) {
         const u16 packed = packToLocal(x, y, z);
         m_postProcessingSections[sectionIndex].push_back(packed);
     }
@@ -286,7 +286,7 @@ void ChunkPrimer::markPosForPostprocessing(BlockCoord x, BlockCoord y, BlockCoor
 
 void ChunkPrimer::addPackedPostProcessing(const std::vector<u16>& packedPositions, i32 sectionIndex)
 {
-    if (sectionIndex >= 0 && sectionIndex < world::CHUNK_SECTIONS) {
+    if (sectionIndex >= 0 && sectionIndex < mc::world::CHUNK_SECTIONS) {
         auto& section = m_postProcessingSections[sectionIndex];
         section.reserve(section.size() + packedPositions.size());
         section.insert(section.end(), packedPositions.begin(), packedPositions.end());
@@ -298,11 +298,11 @@ void ChunkPrimer::initializeLightSources()
     // INITIALIZE_LIGHT 阶段：遍历区块中所有方块，找到亮度 > 0 的方块
     // 注册到光照引擎。光照系统完整集成后，此处应将光源位置注册到 WorldLightManager。
     // 当前实现：标记方块级光源位置到 ChunkData 的 nibble array 中
-    for (i32 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
-        for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
-            for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
-                for (i32 y = 0; y < world::CHUNK_SECTION_HEIGHT; ++y) {
-                    const i32 worldY = sectionY * world::CHUNK_SECTION_HEIGHT + y + world::MIN_BUILD_HEIGHT;
+    for (i32 sectionY = 0; sectionY < mc::world::CHUNK_SECTIONS; ++sectionY) {
+        for (i32 x = 0; x < mc::world::CHUNK_WIDTH; ++x) {
+            for (i32 z = 0; z < mc::world::CHUNK_WIDTH; ++z) {
+                for (i32 y = 0; y < mc::world::CHUNK_SECTION_HEIGHT; ++y) {
+                    const i32 worldY = sectionY * mc::world::CHUNK_SECTION_HEIGHT + y + mc::world::MIN_BUILD_HEIGHT;
                     const BlockState* state = m_data->getBlockState(x, worldY, z);
                     if (state && state->lightLevel() > 0) {
                         // 标记此位置的方块光照到区块光照数据
@@ -316,7 +316,7 @@ void ChunkPrimer::initializeLightSources()
 
 void ChunkPrimer::primeHeightmaps(HeightmapFlag types)
 {
-    // MC 1.21.11: Heightmap.primeHeightmaps
+    // Heightmap.primeHeightmaps
     // 在 FEATURES 阶段开始前调用，从已有方块数据重新计算指定类型的高度图。
     // 只更新 types 中指定的高度图，不重置其他高度图。
 
@@ -339,15 +339,15 @@ void ChunkPrimer::primeHeightmaps(HeightmapFlag types)
         if (hasFlag(types, flag)) {
             auto it = m_heightmaps.find(type);
             if (it != m_heightmaps.end()) {
-                it->second.setAll(world::MAX_BUILD_HEIGHT);
+                it->second.setAll(mc::world::MAX_BUILD_HEIGHT);
             }
         }
     }
 
     // 从方块数据重新计算
-    for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
-        for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
-            for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
+    for (i32 x = 0; x < mc::world::CHUNK_WIDTH; ++x) {
+        for (i32 z = 0; z < mc::world::CHUNK_WIDTH; ++z) {
+            for (i32 y = mc::world::MAX_BUILD_HEIGHT - 1; y >= mc::world::MIN_BUILD_HEIGHT; --y) {
                 const BlockState* state = m_data->getBlockState(x, y, z);
                 if (!state || state->isAir()) {
                     continue;
@@ -381,7 +381,7 @@ std::unique_ptr<ChunkData> ChunkPrimer::toChunkData()
     m_data->setFullyGenerated(true);
     m_data->setStatus(ChunkLoadStatus::Generated); // 设置 ChunkData 的状态
 
-    // MC 1.21: 将后处理位置从 ProtoChunk 传输到 LevelChunk
+    // 将后处理位置从 ProtoChunk 传输到 LevelChunk
     m_data->addPackedPostProcessing(m_postProcessingSections);
 
     // 设置状态
@@ -400,16 +400,16 @@ std::unique_ptr<ChunkData> ChunkPrimer::toChunkData()
 
 u16 ChunkPrimer::packToLocal(BlockCoord x, BlockCoord y, BlockCoord z) noexcept
 {
-    return static_cast<u16>((x & world::CHUNK_MASK) | ((y & world::CHUNK_MASK) << world::SECTION_SHIFT) |
-        ((z & world::CHUNK_MASK) << (world::SECTION_SHIFT * 2)));
+    return static_cast<u16>((x & mc::world::CHUNK_MASK) | ((y & mc::world::CHUNK_MASK) << mc::world::SECTION_SHIFT) |
+        ((z & mc::world::CHUNK_MASK) << (mc::world::SECTION_SHIFT * 2)));
 }
 
 void ChunkPrimer::unpackFromLocal(
     u16 packed, i32 yOffset, ChunkCoord chunkX, ChunkCoord chunkZ, BlockCoord& x, BlockCoord& y, BlockCoord& z) noexcept
 {
-    x = (packed & world::CHUNK_MASK) + (chunkX << world::CHUNK_SHIFT);
-    y = ((packed >> world::SECTION_SHIFT) & world::CHUNK_MASK) + (yOffset << world::SECTION_SHIFT);
-    z = ((packed >> (world::SECTION_SHIFT * 2)) & world::CHUNK_MASK) + (chunkZ << world::CHUNK_SHIFT);
+    x = (packed & mc::world::CHUNK_MASK) + (chunkX << mc::world::CHUNK_SHIFT);
+    y = ((packed >> mc::world::SECTION_SHIFT) & mc::world::CHUNK_MASK) + (yOffset << mc::world::SECTION_SHIFT);
+    z = ((packed >> (mc::world::SECTION_SHIFT * 2)) & mc::world::CHUNK_MASK) + (chunkZ << mc::world::CHUNK_SHIFT);
 }
 
 // ============================================================================
@@ -418,13 +418,13 @@ void ChunkPrimer::unpackFromLocal(
 
 bool ChunkPrimer::_isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z) noexcept
 {
-    return x >= 0 && x < world::CHUNK_WIDTH && y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT && z >= 0 &&
-        z < world::CHUNK_WIDTH;
+    return x >= 0 && x < mc::world::CHUNK_WIDTH && y >= mc::world::MIN_BUILD_HEIGHT &&
+        y < mc::world::MAX_BUILD_HEIGHT && z >= 0 && z < mc::world::CHUNK_WIDTH;
 }
 
 void ChunkPrimer::_updateHeightmapsForCurrentStatus(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
-    // MC 1.21.11: ProtoChunk.setBlockState 在设置方块后，
+    // ProtoChunk.setBlockState 在设置方块后，
     // 根据 persistedStatus.heightmapsAfter() 决定更新哪些高度图。
     const HeightmapFlag flags = m_persistedStatus->heightmaps();
 
@@ -480,8 +480,8 @@ CarvingMask& ChunkPrimer::carvingMask()
     return *m_carvingMask;
 }
 
-world::gen::density::NoiseChunk& ChunkPrimer::getOrCreateNoiseChunk(
-    std::function<std::unique_ptr<world::gen::density::NoiseChunk>()> factory)
+mc::world::gen::density::NoiseChunk& ChunkPrimer::getOrCreateNoiseChunk(
+    std::function<std::unique_ptr<mc::world::gen::density::NoiseChunk>()> factory)
 {
     if (!m_noiseChunk) {
         m_noiseChunk = factory();
@@ -491,4 +491,4 @@ world::gen::density::NoiseChunk& ChunkPrimer::getOrCreateNoiseChunk(
 
 ChunkPrimer::~ChunkPrimer() = default;
 
-} // namespace mc
+} // namespace mc::world::chunk

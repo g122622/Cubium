@@ -23,7 +23,7 @@
 
 #include "world/storage/db/SectionCodec.hpp"
 #include "core/Types.hpp"
-#include "world/chunk/ChunkData.hpp"
+#include "world/chunk/data/ChunkData.hpp"
 #include "world/storage/db/SectionKey.hpp"
 #include <gtest/gtest.h>
 

@@ -36,7 +36,7 @@
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/village/Village.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "server/world/ServerWorld.hpp"

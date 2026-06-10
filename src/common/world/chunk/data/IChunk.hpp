@@ -23,22 +23,32 @@
 
 #pragma once
 
-#include "ChunkPos.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include <array>
 #include <vector>
 
+// BlockState 在 mc 命名空间中定义
 namespace mc {
+class BlockState;
+} // namespace mc
+
+// SWMRNibbleArray 在 mc 命名空间中定义
+namespace mc {
+class SWMRNibbleArray;
+} // namespace mc
+
+namespace mc::world::chunk {
 
 // 前向声明
-class BlockState;
 class ChunkSection;
-class SWMRNibbleArray;
 
 // ============================================================================
-// 区块状态枚举 (简化版)
+// 区块状态枚举
 // ============================================================================
 
 enum class ChunkLoadStatus : u8 {
@@ -47,20 +57,6 @@ enum class ChunkLoadStatus : u8 {
     Generated,  // 已生成，完整
     Loaded,     // 已加载到内存
     Unloaded    // 已卸载
-};
-
-// ============================================================================
-// 区块高度图类型
-// ============================================================================
-
-enum class HeightmapType : u8 {
-    WorldSurface,           // 最高非空气方块
-    OceanFloor,             // 最高固体方块
-    MotionBlocking,         // 最高阻挡运动方块
-    MotionBlockingNoLeaves, // 最高阻挡运动方块（不含树叶）
-    WorldSurfaceWG,         // 世界表面（生成时）
-    OceanFloorWG,           // 海底（生成时）
-    LightBlocking           // 最高阻挡光照方块
 };
 
 // ============================================================================
@@ -195,121 +191,10 @@ public:
     }
 };
 
-// ============================================================================
-// 生物群系容器
-// ============================================================================
+} // namespace mc::world::chunk
 
-/**
- * @brief 生物群系容器
- *
- * 存储区块内的生物群系信息。每个区块有 4x4x4 的生物群系采样点。
- */
-class BiomeContainer {
-public:
-    // 生物群系采样尺寸（每个区块段的生物群系采样点数量）
-    static constexpr i32 HORIZ_SIZE = 4;                                           // 水平方向采样点
-    static constexpr i32 VERT_SIZE = 4;                                            // 每段垂直采样点
-    static constexpr i32 SECTION_BIOME_SIZE = HORIZ_SIZE * VERT_SIZE * HORIZ_SIZE; // 64
-    static constexpr i32 SECTION_COUNT = world::CHUNK_SECTIONS;
-    static constexpr i32 TOTAL_SIZE = SECTION_BIOME_SIZE * SECTION_COUNT; // 1536
-
-    BiomeContainer() = default;
-
-    /**
-     * @brief 设置指定区块段的生物群系
-     * @param sectionIndex 区块段索引 (0-23)
-     * @param x X 采样位置 (0-3)
-     * @param y Y 采样位置 (0-3)
-     * @param z Z 采样位置 (0-3)
-     * @param biome 生物群系 ID
-     */
-    void setBiome(i32 sectionIndex, i32 x, i32 y, i32 z, BiomeId biome);
-
-    /**
-     * @brief 获取指定区块段的生物群系
-     * @param sectionIndex 区块段索引 (0-23)
-     * @param x X 采样位置 (0-3)
-     * @param y Y 采样位置 (0-3)
-     * @param z Z 采样位置 (0-3)
-     */
-    [[nodiscard]] BiomeId getBiome(i32 sectionIndex, i32 x, i32 y, i32 z) const;
-
-    /**
-     * @brief 获取方块位置的生物群系（3D 插值）
-     * @param x 方块 X 坐标（世界坐标，相对区块 0-15）
-     * @param y 方块 Y 坐标（世界坐标）
-     * @param z 方块 Z 坐标（世界坐标，相对区块 0-15）
-     *
-     * 自动将世界 Y 坐标映射到正确的 section 和 biome Y 索引。
-     */
-    [[nodiscard]] BiomeId getBiomeAtBlock(i32 x, i32 y, i32 z) const;
-
-    /**
-     * @brief 序列化
-     */
-    [[nodiscard]] std::vector<u8> serialize() const;
-    static Result<BiomeContainer> deserialize(const u8* data, size_t size);
-
-private:
-    // 存储所有 section 的生物群系 ID，初始化为 0
-    std::array<BiomeId, TOTAL_SIZE> m_biomes{};
-};
-
-// ============================================================================
-// 高度图
-// ============================================================================
-
-/**
- * @brief 高度图
- *
- * 存储每个 XZ 位置的最高方块 Y 坐标。
- */
-class Heightmap {
-public:
-    static constexpr i32 SIZE = mc::world::CHUNK_WIDTH * mc::world::CHUNK_WIDTH;
-
-    explicit Heightmap(HeightmapType type = HeightmapType::WorldSurface);
-
-    /**
-     * @brief 更新高度图
-     * @param x 区块内 X 坐标 (0-15)
-     * @param y 方块 Y 坐标
-     * @param z 区块内 Z 坐标 (0-15)
-     * @param state 方块状态
-     * @return true 如果高度更新
-     */
-    bool update(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state);
-
-    /**
-     * @brief 获取高度
-     */
-    [[nodiscard]] BlockCoord getHeight(BlockCoord x, BlockCoord z) const;
-
-    /**
-     * @brief 设置高度数据（从存档加载）
-     */
-    void setData(const std::array<BlockCoord, SIZE>& data);
-
-    /**
-     * @brief 将所有高度值设为指定值
-     */
-    void setAll(BlockCoord value) { m_heights.fill(value); }
-
-    /**
-     * @brief 获取高度数据
-     */
-    [[nodiscard]] const std::array<BlockCoord, SIZE>& getData() const { return m_heights; }
-
-    [[nodiscard]] HeightmapType getType() const { return m_type; }
-
-private:
-    HeightmapType m_type;
-    std::array<BlockCoord, SIZE> m_heights;
-
-    /**
-     * @brief 检查方块是否影响此高度图
-     */
-    [[nodiscard]] bool _isOpaque(const BlockState* state) const;
-};
-
+// 向后兼容的命名空间别名
+namespace mc {
+using ChunkLoadStatus = mc::world::chunk::ChunkLoadStatus;
+using IChunk = mc::world::chunk::IChunk;
 } // namespace mc

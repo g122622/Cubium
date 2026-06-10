@@ -27,11 +27,13 @@
 #include "../util/AxisAlignedBB.hpp"
 #include "../util/math/Vector3.hpp"
 #include "../world/block/Block.hpp"
-#include "../world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "PhysicsConstants.hpp"
 #include <vector>
 
 namespace mc {
+
+using world::chunk::ChunkData;
 
 /**
  * @brief 碰撞世界接口

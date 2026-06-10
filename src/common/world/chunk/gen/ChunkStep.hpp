@@ -22,10 +22,10 @@
 
 #pragma once
 
-#include "ChunkDependencies.hpp"
-#include "ChunkStatus.hpp"
+#include "common/world/chunk/gen/ChunkDependencies.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
 
-namespace mc {
+namespace mc::world::chunk {
 
 // ============================================================================
 // 区块生成步骤
@@ -113,4 +113,4 @@ private:
     i32 m_blockStateWriteRadius = -1;
 };
 
-} // namespace mc
+} // namespace mc::world::chunk

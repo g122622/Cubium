@@ -24,7 +24,7 @@
 #pragma once
 
 #include "common/util/math/random/Random.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/placement/Placement.hpp"
 #include <memory>

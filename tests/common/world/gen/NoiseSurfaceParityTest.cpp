@@ -27,7 +27,7 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/ChunkPrimer.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 
@@ -110,8 +110,9 @@ TEST_F(NoiseSurfaceParityTest, PlainsSurfaceUsesDirtUnderTopLayer)
     ASSERT_NE(m_centerChunk, nullptr);
 
     DimensionSettings settings = DimensionSettings::overworld();
-    NoiseChunkGenerator generator(
-        123456789ULL, std::move(settings), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(123456789ULL, false));
+    NoiseChunkGenerator generator(123456789ULL,
+        std::move(settings),
+        mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(123456789ULL, false));
 
     generator.buildSurface(*m_region, *m_centerChunk);
 

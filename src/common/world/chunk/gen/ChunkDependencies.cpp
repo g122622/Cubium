@@ -20,10 +20,11 @@
  * SOFTWARE.
  */
 
-#include "ChunkDependencies.hpp"
-#include "ChunkStatus.hpp"
+#include "common/world/chunk/gen/ChunkDependencies.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
 
-namespace mc {
+namespace mc::world::chunk {
 
 ChunkDependencies::ChunkDependencies(std::vector<const ChunkStatus*> dependencyByRadius)
     : m_dependencyByRadius(std::move(dependencyByRadius))
@@ -69,9 +70,9 @@ i32 ChunkDependencies::getRadiusOf(const ChunkStatus& status) const
 {
     i32 index = status.ordinal();
     if (index < 0 || index >= static_cast<i32>(m_radiusByDependency.size())) {
-        throw std::invalid_argument("Requesting a ChunkStatus(" + status.name() + ") outside of dependency range");
+        MC_ASSERT_RELEASE(false && "Requesting a ChunkStatus outside of dependency range");
     }
     return m_radiusByDependency[static_cast<size_t>(index)];
 }
 
-} // namespace mc
+} // namespace mc::world::chunk

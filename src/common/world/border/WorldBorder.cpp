@@ -25,7 +25,7 @@
 #include "common/core/Constants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>

@@ -21,17 +21,16 @@
  *
  */
 
-// TODO: include 路径应改为不使用 ../ 的形式，但这会影响其他文件，暂时保持现状
 // 在macOS系统头文件中，BYTE_SIZE被定义为宏，会与NibbleArray的静态常数冲突
 // 使用pragma push_macro/pop_macro来暂时屏蔽系统宏
 #pragma push_macro("BYTE_SIZE")
 #undef BYTE_SIZE
 
-#include "ChunkData.hpp"
-#include "../biome/Biome.hpp"
-#include "../block/BlockRegistry.hpp"
-#include "../blockentity/BlockEntity.hpp"
-#include "../fluid/Fluid.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include <algorithm>
 #include <cstring>
 #include <sstream>
@@ -39,7 +38,7 @@
 
 #pragma pop_macro("BYTE_SIZE")
 
-namespace mc {
+namespace mc::world::chunk {
 
 // ============================================================================
 // ChunkSection 实现
@@ -346,30 +345,30 @@ ChunkData::~ChunkData() = default;
 
 const BlockState* ChunkData::getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const
 {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
-        z >= world::CHUNK_WIDTH) {
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
+        z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return nullptr; // 空气
     }
 
-    i32 sectionIndex = (y - world::MIN_BUILD_HEIGHT) / world::CHUNK_SECTION_HEIGHT;
+    i32 sectionIndex = (y - mc::world::MIN_BUILD_HEIGHT) / mc::world::CHUNK_SECTION_HEIGHT;
     const auto& section = m_sections[sectionIndex];
 
     if (!section) {
         return nullptr; // 空气
     }
 
-    i32 localY = (y - world::MIN_BUILD_HEIGHT) % world::CHUNK_SECTION_HEIGHT;
+    i32 localY = (y - mc::world::MIN_BUILD_HEIGHT) % mc::world::CHUNK_SECTION_HEIGHT;
     return section->getBlockState(x, localY, z);
 }
 
 void ChunkData::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
-        z >= world::CHUNK_WIDTH) {
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
+        z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return;
     }
 
-    i32 sectionIndex = (y - world::MIN_BUILD_HEIGHT) / world::CHUNK_SECTION_HEIGHT;
+    i32 sectionIndex = (y - mc::world::MIN_BUILD_HEIGHT) / mc::world::CHUNK_SECTION_HEIGHT;
     auto& section = m_sections[sectionIndex];
 
     if (!section) {
@@ -379,42 +378,42 @@ void ChunkData::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const Bl
         section = std::make_unique<ChunkSection>();
     }
 
-    i32 localY = (y - world::MIN_BUILD_HEIGHT) % world::CHUNK_SECTION_HEIGHT;
+    i32 localY = (y - mc::world::MIN_BUILD_HEIGHT) % mc::world::CHUNK_SECTION_HEIGHT;
     section->setBlockState(x, localY, z, state);
     m_dirty = true;
 
     // 更新高度图
-    if (y >= m_heightMap[x * world::CHUNK_WIDTH + z]) {
+    if (y >= m_heightMap[x * mc::world::CHUNK_WIDTH + z]) {
         updateHeightMap(x, z);
     }
 }
 
 u32 ChunkData::getBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z) const
 {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
-        z >= world::CHUNK_WIDTH) {
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
+        z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return 0; // 空气
     }
 
-    i32 sectionIndex = (y - world::MIN_BUILD_HEIGHT) / world::CHUNK_SECTION_HEIGHT;
+    i32 sectionIndex = (y - mc::world::MIN_BUILD_HEIGHT) / mc::world::CHUNK_SECTION_HEIGHT;
     const auto& section = m_sections[sectionIndex];
 
     if (!section) {
         return 0; // 空气
     }
 
-    i32 localY = (y - world::MIN_BUILD_HEIGHT) % world::CHUNK_SECTION_HEIGHT;
+    i32 localY = (y - mc::world::MIN_BUILD_HEIGHT) % mc::world::CHUNK_SECTION_HEIGHT;
     return section->getBlockStateId(x, localY, z);
 }
 
 void ChunkData::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId)
 {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
-        z >= world::CHUNK_WIDTH) {
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
+        z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return;
     }
 
-    i32 sectionIndex = (y - world::MIN_BUILD_HEIGHT) / world::CHUNK_SECTION_HEIGHT;
+    i32 sectionIndex = (y - mc::world::MIN_BUILD_HEIGHT) / mc::world::CHUNK_SECTION_HEIGHT;
     auto& section = m_sections[sectionIndex];
 
     if (!section) {
@@ -424,27 +423,27 @@ void ChunkData::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 st
         section = std::make_unique<ChunkSection>();
     }
 
-    i32 localY = (y - world::MIN_BUILD_HEIGHT) % world::CHUNK_SECTION_HEIGHT;
+    i32 localY = (y - mc::world::MIN_BUILD_HEIGHT) % mc::world::CHUNK_SECTION_HEIGHT;
     section->setBlockStateId(x, localY, z, stateId);
     m_dirty = true;
 
     // 更新高度图
-    if (y >= m_heightMap[x * world::CHUNK_WIDTH + z]) {
+    if (y >= m_heightMap[x * mc::world::CHUNK_WIDTH + z]) {
         updateHeightMap(x, z);
     }
 }
 
 BlockCoord ChunkData::getHighestBlock(BlockCoord x, BlockCoord z) const
 {
-    if (x < 0 || x >= world::CHUNK_WIDTH || z < 0 || z >= world::CHUNK_WIDTH) {
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return -1;
     }
-    return m_heightMap[x * world::CHUNK_WIDTH + z];
+    return m_heightMap[x * mc::world::CHUNK_WIDTH + z];
 }
 
 BlockCoord ChunkData::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const
 {
-    if (x < 0 || x >= world::CHUNK_WIDTH || z < 0 || z >= world::CHUNK_WIDTH) {
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || z < 0 || z >= mc::world::CHUNK_WIDTH) {
         MC_ASSERT_RELEASE(false);
     }
 
@@ -455,12 +454,12 @@ BlockCoord ChunkData::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord 
     }
 
     // 默认使用基本高度图
-    return m_heightMap[x * world::CHUNK_WIDTH + z];
+    return m_heightMap[x * mc::world::CHUNK_WIDTH + z];
 }
 
 void ChunkData::updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
-    if (x < 0 || x >= world::CHUNK_WIDTH || z < 0 || z >= world::CHUNK_WIDTH) {
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return;
     }
 
@@ -475,14 +474,14 @@ void ChunkData::updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, 
     // 同时更新基本高度图（WorldSurface 类型）
     if (type == HeightmapType::WorldSurface || type == HeightmapType::WorldSurfaceWG) {
         const BlockCoord height = heightmap.getHeight(x, z);
-        m_heightMap[x * world::CHUNK_WIDTH + z] = height > 0 ? height - 1 : 0;
+        m_heightMap[x * mc::world::CHUNK_WIDTH + z] = height > 0 ? height - 1 : 0;
     }
 }
 
 BiomeId ChunkData::getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const
 {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
-        z >= world::CHUNK_WIDTH) {
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
+        z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return Biomes::Plains;
     }
 
@@ -492,19 +491,19 @@ BiomeId ChunkData::getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) con
 void ChunkData::updateHeightMap(BlockCoord x, BlockCoord z)
 {
     // 从上向下查找最高的非空气方块
-    for (BlockCoord y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
+    for (BlockCoord y = mc::world::MAX_BUILD_HEIGHT - 1; y >= mc::world::MIN_BUILD_HEIGHT; --y) {
         const BlockState* state = getBlockState(x, y, z);
         if (state && !state->isAir()) {
-            m_heightMap[x * world::CHUNK_WIDTH + z] = y;
+            m_heightMap[x * mc::world::CHUNK_WIDTH + z] = y;
             return;
         }
     }
-    m_heightMap[x * world::CHUNK_WIDTH + z] = world::MIN_BUILD_HEIGHT;
+    m_heightMap[x * mc::world::CHUNK_WIDTH + z] = mc::world::MIN_BUILD_HEIGHT;
 }
 
 ChunkSection* ChunkData::getSection(i32 index)
 {
-    if (index < 0 || index >= world::CHUNK_SECTIONS) {
+    if (index < 0 || index >= mc::world::CHUNK_SECTIONS) {
         return nullptr;
     }
     return m_sections[index].get();
@@ -512,7 +511,7 @@ ChunkSection* ChunkData::getSection(i32 index)
 
 const ChunkSection* ChunkData::getSection(i32 index) const
 {
-    if (index < 0 || index >= world::CHUNK_SECTIONS) {
+    if (index < 0 || index >= mc::world::CHUNK_SECTIONS) {
         return nullptr;
     }
     return m_sections[index].get();
@@ -520,7 +519,7 @@ const ChunkSection* ChunkData::getSection(i32 index) const
 
 bool ChunkData::hasSection(i32 index) const
 {
-    if (index < 0 || index >= world::CHUNK_SECTIONS) {
+    if (index < 0 || index >= mc::world::CHUNK_SECTIONS) {
         return false;
     }
     return m_sections[index] != nullptr;
@@ -528,7 +527,7 @@ bool ChunkData::hasSection(i32 index) const
 
 ChunkSection* ChunkData::createSection(i32 index)
 {
-    if (index < 0 || index >= world::CHUNK_SECTIONS) {
+    if (index < 0 || index >= mc::world::CHUNK_SECTIONS) {
         return nullptr;
     }
     if (!m_sections[index]) {
@@ -538,18 +537,10 @@ ChunkSection* ChunkData::createSection(i32 index)
     return m_sections[index].get();
 }
 
-void ChunkData::removeSection(i32 index)
-{
-    if (index >= 0 && index < world::CHUNK_SECTIONS) {
-        m_sections[index].reset();
-        m_dirty = true;
-    }
-}
-
 const ChunkSection* const* ChunkData::getSections() const
 {
     // 更新指针数组
-    for (size_t i = 0; i < world::CHUNK_SECTIONS; ++i) {
+    for (size_t i = 0; i < mc::world::CHUNK_SECTIONS; ++i) {
         m_sectionPtrs[i] = m_sections[i].get();
     }
     return m_sectionPtrs.data();
@@ -577,7 +568,7 @@ std::vector<u8> ChunkData::serialize() const
 
     // 区块段掩码
     u32 sectionMask = 0;
-    for (size_t i = 0; i < world::CHUNK_SECTIONS; ++i) {
+    for (size_t i = 0; i < mc::world::CHUNK_SECTIONS; ++i) {
         if (m_sections[i]) {
             sectionMask |= (1U << i);
         }
@@ -595,7 +586,7 @@ std::vector<u8> ChunkData::serialize() const
     data.insert(data.end(), biomeData.begin(), biomeData.end());
 
     // 序列化每个段
-    for (size_t i = 0; i < world::CHUNK_SECTIONS; ++i) {
+    for (size_t i = 0; i < mc::world::CHUNK_SECTIONS; ++i) {
         if (m_sections[i]) {
             auto sectionData = m_sections[i]->serialize();
             // 写入段大小
@@ -667,7 +658,7 @@ Result<std::unique_ptr<ChunkData>> ChunkData::deserialize(const u8* data, size_t
     offset += biomeSize;
 
     // 读取每个段
-    for (size_t i = 0; i < world::CHUNK_SECTIONS; ++i) {
+    for (size_t i = 0; i < mc::world::CHUNK_SECTIONS; ++i) {
         if (sectionMask & (1U << i)) {
             if (offset + 4 > size) {
                 return Error(ErrorCode::InvalidArgument, "Invalid section size");
@@ -690,10 +681,10 @@ Result<std::unique_ptr<ChunkData>> ChunkData::deserialize(const u8* data, size_t
     }
 
     // 高度图
-    if (offset + world::CHUNK_WIDTH * world::CHUNK_WIDTH * 2 > size) {
+    if (offset + mc::world::CHUNK_WIDTH * mc::world::CHUNK_WIDTH * 2 > size) {
         return Error(ErrorCode::InvalidArgument, "Height map data missing");
     }
-    for (size_t i = 0; i < world::CHUNK_WIDTH * world::CHUNK_WIDTH; ++i) {
+    for (size_t i = 0; i < mc::world::CHUNK_WIDTH * mc::world::CHUNK_WIDTH; ++i) {
         chunk->m_heightMap[i] =
             (static_cast<BlockCoord>(data[offset]) << 8) | static_cast<BlockCoord>(data[offset + 1]);
         offset += 2;
@@ -705,9 +696,9 @@ Result<std::unique_ptr<ChunkData>> ChunkData::deserialize(const u8* data, size_t
 
 void ChunkData::fill(BlockCoord minY, BlockCoord maxY, u32 stateId)
 {
-    for (BlockCoord y = minY; y < maxY; y += world::CHUNK_SECTION_HEIGHT) {
-        i32 sectionIndex = world::toSectionIndex(y);
-        if (sectionIndex >= 0 && sectionIndex < world::CHUNK_SECTIONS) {
+    for (BlockCoord y = minY; y < maxY; y += mc::world::CHUNK_SECTION_HEIGHT) {
+        i32 sectionIndex = mc::world::toSectionIndex(y);
+        if (sectionIndex >= 0 && sectionIndex < mc::world::CHUNK_SECTIONS) {
             auto* section = createSection(sectionIndex);
             if (section) {
                 section->fill(stateId);
@@ -723,30 +714,30 @@ void ChunkData::fill(BlockCoord minY, BlockCoord maxY, u32 stateId)
 
 u8 ChunkData::getSkyLight(BlockCoord x, BlockCoord y, BlockCoord z) const
 {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
-        z >= world::CHUNK_WIDTH) {
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
+        z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return 15; // 边界外默认全亮
     }
 
-    i32 sectionIndex = (y - world::MIN_BUILD_HEIGHT) / world::CHUNK_SECTION_HEIGHT;
+    i32 sectionIndex = (y - mc::world::MIN_BUILD_HEIGHT) / mc::world::CHUNK_SECTION_HEIGHT;
     const auto& section = m_sections[sectionIndex];
 
     if (!section) {
         return 15; // 未创建的段默认全亮
     }
 
-    i32 localY = (y - world::MIN_BUILD_HEIGHT) % world::CHUNK_SECTION_HEIGHT;
+    i32 localY = (y - mc::world::MIN_BUILD_HEIGHT) % mc::world::CHUNK_SECTION_HEIGHT;
     return section->getSkyLight(x, localY, z);
 }
 
 void ChunkData::setSkyLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light)
 {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
-        z >= world::CHUNK_WIDTH) {
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
+        z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return;
     }
 
-    i32 sectionIndex = (y - world::MIN_BUILD_HEIGHT) / world::CHUNK_SECTION_HEIGHT;
+    i32 sectionIndex = (y - mc::world::MIN_BUILD_HEIGHT) / mc::world::CHUNK_SECTION_HEIGHT;
     auto& section = m_sections[sectionIndex];
 
     if (!section) {
@@ -756,36 +747,36 @@ void ChunkData::setSkyLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light)
         section = std::make_unique<ChunkSection>();
     }
 
-    i32 localY = (y - world::MIN_BUILD_HEIGHT) % world::CHUNK_SECTION_HEIGHT;
+    i32 localY = (y - mc::world::MIN_BUILD_HEIGHT) % mc::world::CHUNK_SECTION_HEIGHT;
     section->setSkyLight(x, localY, z, light);
 }
 
 u8 ChunkData::getBlockLight(BlockCoord x, BlockCoord y, BlockCoord z) const
 {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
-        z >= world::CHUNK_WIDTH) {
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
+        z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return 0; // 边界外默认无光
     }
 
-    i32 sectionIndex = (y - world::MIN_BUILD_HEIGHT) / world::CHUNK_SECTION_HEIGHT;
+    i32 sectionIndex = (y - mc::world::MIN_BUILD_HEIGHT) / mc::world::CHUNK_SECTION_HEIGHT;
     const auto& section = m_sections[sectionIndex];
 
     if (!section) {
         return 0; // 未创建的段默认无光
     }
 
-    i32 localY = (y - world::MIN_BUILD_HEIGHT) % world::CHUNK_SECTION_HEIGHT;
+    i32 localY = (y - mc::world::MIN_BUILD_HEIGHT) % mc::world::CHUNK_SECTION_HEIGHT;
     return section->getBlockLight(x, localY, z);
 }
 
 void ChunkData::setBlockLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light)
 {
-    if (x < 0 || x >= world::CHUNK_WIDTH || y < world::MIN_BUILD_HEIGHT || y >= world::MAX_BUILD_HEIGHT || z < 0 ||
-        z >= world::CHUNK_WIDTH) {
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
+        z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return;
     }
 
-    i32 sectionIndex = (y - world::MIN_BUILD_HEIGHT) / world::CHUNK_SECTION_HEIGHT;
+    i32 sectionIndex = (y - mc::world::MIN_BUILD_HEIGHT) / mc::world::CHUNK_SECTION_HEIGHT;
     auto& section = m_sections[sectionIndex];
 
     if (!section) {
@@ -795,7 +786,7 @@ void ChunkData::setBlockLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light
         section = std::make_unique<ChunkSection>();
     }
 
-    i32 localY = (y - world::MIN_BUILD_HEIGHT) % world::CHUNK_SECTION_HEIGHT;
+    i32 localY = (y - mc::world::MIN_BUILD_HEIGHT) % mc::world::CHUNK_SECTION_HEIGHT;
     section->setBlockLight(x, localY, z, light);
 }
 
@@ -1112,9 +1103,9 @@ std::vector<std::unique_ptr<Entity>> ChunkData::takeLoadedEntities()
 // 后处理位置
 // ============================================================================
 
-void ChunkData::addPackedPostProcessing(const std::vector<u16>* sections)
+void ChunkData::addPackedPostProcessing(const std::array<std::vector<u16>, mc::world::CHUNK_SECTIONS>& sections)
 {
-    for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
+    for (i32 i = 0; i < mc::world::CHUNK_SECTIONS; ++i) {
         if (!sections[i].empty()) {
             auto& section = m_postProcessingSections[i];
             section.reserve(section.size() + sections[i].size());
@@ -1125,16 +1116,16 @@ void ChunkData::addPackedPostProcessing(const std::vector<u16>* sections)
 
 void ChunkData::clearPostProcessingForSection(i32 sectionIndex)
 {
-    if (sectionIndex >= 0 && sectionIndex < world::CHUNK_SECTIONS) {
+    if (sectionIndex >= 0 && sectionIndex < mc::world::CHUNK_SECTIONS) {
         m_postProcessingSections[sectionIndex].clear();
     }
 }
 
 void ChunkData::clearAllPostProcessing()
 {
-    for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
+    for (i32 i = 0; i < mc::world::CHUNK_SECTIONS; ++i) {
         m_postProcessingSections[i].clear();
     }
 }
 
-} // namespace mc
+} // namespace mc::world::chunk

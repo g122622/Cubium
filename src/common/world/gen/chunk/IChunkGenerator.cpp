@@ -27,9 +27,9 @@
 #include "../../WorldConstants.hpp"
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../block/BlockRegistry.hpp"
-#include "../../chunk/ChunkPrimer.hpp"
 #include "../../fluid/FluidRegistry.hpp"
 #include "../spawn/WorldGenSpawner.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
 
 #include <algorithm>
 #include <stdexcept>

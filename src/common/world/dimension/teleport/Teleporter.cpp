@@ -39,7 +39,7 @@
 #include "../../../util/property/Properties.hpp"
 #include "../../IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "../../chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include <algorithm>
 #include <cmath>
 

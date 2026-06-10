@@ -24,7 +24,7 @@
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/chunk/IChunk.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 
 namespace mc {
 namespace blocks {

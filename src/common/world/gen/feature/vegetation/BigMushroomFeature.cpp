@@ -28,7 +28,7 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "../../../chunk/ChunkPrimer.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 
 namespace mc {

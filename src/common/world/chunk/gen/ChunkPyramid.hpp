@@ -22,11 +22,11 @@
 
 #pragma once
 
-#include "ChunkStatus.hpp"
-#include "ChunkStep.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/world/chunk/gen/ChunkStep.hpp"
 #include <vector>
 
-namespace mc {
+namespace mc::world::chunk {
 
 // ============================================================================
 // 区块生成金字塔
@@ -98,8 +98,38 @@ public:
      */
     [[nodiscard]] static const ChunkPyramid& loadingPyramid();
 
+    // === ChunkLevel 合并的方法 ===
+
+    /**
+     * @brief FULL 区块周围的最大依赖半径
+     *
+     * 从 GENERATION_PYRAMID 中 FULL 步骤的 accumulatedDependencies 计算得出。
+     * 当前值为 11（STRUCTURE_STARTS 的累积半径，由依赖偏移合并扩展）。
+     */
+    static i32 radiusAroundFullChunk();
+
+    /**
+     * @brief 最大区块级别 (= FULL_CHUNK_LEVEL + radiusAroundFullChunk() = 44)
+     */
+    static i32 maxLevel();
+
+    /**
+     * @brief 从票据级别推导需要的生成状态
+     */
+    static const ChunkStatus* generationStatus(i32 level);
+
+    /**
+     * @brief 从生成状态推导对应的票据级别
+     */
+    static i32 byStatus(const ChunkStatus& status);
+
+    /**
+     * @brief 从距离推导 FULL 区块周围所需的生成状态
+     */
+    static const ChunkStatus* getStatusAroundFullChunk(i32 distance);
+
 private:
     std::vector<ChunkStep> m_steps;
 };
 
-} // namespace mc
+} // namespace mc::world::chunk

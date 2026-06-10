@@ -25,7 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/storage/core/LevelDatCodec.hpp"
 #include "common/world/storage/core/SaveFormat.hpp"
 #include "common/world/storage/player/PlayerSaveData.hpp"

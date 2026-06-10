@@ -26,7 +26,7 @@
 #include "core/Types.hpp"
 #include "util/math/Vector3.hpp"
 #include "util/math/random/Random.hpp"
-#include "world/chunk/IChunk.hpp"
+#include "world/chunk/data/IChunk.hpp"
 #include <functional>
 #include <unordered_map>
 

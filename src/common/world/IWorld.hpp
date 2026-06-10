@@ -45,7 +45,10 @@ namespace mc {
 // 前向声明
 class Entity;
 class BlockState;
+namespace world::chunk {
 class ChunkData;
+}
+using world::chunk::ChunkData;
 class BlockPos;
 class PhysicsEngine;
 class Block;

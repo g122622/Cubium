@@ -428,7 +428,8 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
 
     // 按结构装饰阶段分组
     // 对应 Java: registry.stream().collect(Collectors.groupingBy(structure -> structure.step().ordinal()))
-    std::map<i32, std::vector<std::pair<const world::gen::structure::Structure*, world::gen::structure::StructureStart*>>>
+    std::map<i32,
+        std::vector<std::pair<const world::gen::structure::Structure*, world::gen::structure::StructureStart*>>>
         structuresByStage;
     if (m_structureManager && chunk.hasStructureStarts()) {
         for (const auto& [structureName, start] : chunk.structureStarts()) {

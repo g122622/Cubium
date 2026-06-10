@@ -25,7 +25,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/biome/source/NetherBiomeSource.hpp"
 #include "common/world/biome/source/OverworldBiomeBuilder.hpp"
-#include "common/world/chunk/IChunk.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/gen/density/NoiseRouterData.hpp"
 
 namespace mc::world::biome::source {

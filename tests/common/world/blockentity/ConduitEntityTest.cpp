@@ -27,16 +27,16 @@
 #include "common/command/ICommandSource.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include "entity/entities/monster/MonsterEntity.hpp"
 #include "entity/interfaces/IMob.hpp"
 #include "world/IWorld.hpp"
 #include "world/WorldConstants.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/blockentity/processing/ConduitEntity.hpp"
 #include "world/border/WorldBorder.hpp"
-#include "world/chunk/ChunkData.hpp"
+#include "world/chunk/data/ChunkData.hpp"
 #include <unordered_map>
 #include <unordered_set>
 

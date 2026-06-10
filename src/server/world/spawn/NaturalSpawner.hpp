@@ -27,9 +27,9 @@
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
-#include "common/world/chunk/IChunk.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include <functional>
 #include <memory>

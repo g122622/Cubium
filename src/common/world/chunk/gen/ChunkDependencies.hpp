@@ -22,13 +22,12 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
-namespace mc {
+namespace mc::world::chunk {
 
 // 前向声明
 class ChunkStatus;
@@ -82,7 +81,6 @@ public:
      * @brief 获取指定状态所需的最低半径
      * @param status 要查找的 ChunkStatus
      * @return 该状态所需的最低半径
-     * @throws std::invalid_argument 如果状态不在依赖范围内
      */
     [[nodiscard]] i32 getRadiusOf(const ChunkStatus& status) const;
 
@@ -99,4 +97,4 @@ private:
     std::vector<i32> m_radiusByDependency;
 };
 
-} // namespace mc
+} // namespace mc::world::chunk

@@ -25,16 +25,18 @@
 
 #include "common/core/Types.hpp"
 #include "common/network/sync/ChunkSync.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include <functional>
 #include <mutex>
 #include <vector>
 
 namespace mc {
+namespace world::chunk {
 class ChunkData;
 }
+} // namespace mc
 
-namespace mc::world {
+namespace mc::world::chunk {
 class ChunkLoadTicketManager;
 }
 
@@ -67,7 +69,7 @@ public:
      * @param chunkManager 区块管理器引用
      * @param ticketManager 票据管理器引用（用于查询追踪玩家）
      */
-    ChunkSendManager(ServerChunkManager& chunkManager, world::ChunkLoadTicketManager& ticketManager);
+    ChunkSendManager(ServerChunkManager& chunkManager, world::chunk::ChunkLoadTicketManager& ticketManager);
 
     /**
      * @brief 发送区块给指定玩家列表
@@ -185,7 +187,7 @@ private:
     };
 
     ServerChunkManager& m_chunkManager;
-    world::ChunkLoadTicketManager& m_ticketManager;
+    world::chunk::ChunkLoadTicketManager& m_ticketManager;
 
     // 准备好的区块数据队列（包含目标玩家列表）
     std::vector<ReadyChunkData> m_readyChunks;

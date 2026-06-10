@@ -33,8 +33,8 @@
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/chunk/ChunkData.hpp"
-#include "common/world/chunk/IChunk.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include <algorithm>
 
 namespace mc::server {

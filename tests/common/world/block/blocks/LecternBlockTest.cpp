@@ -33,7 +33,7 @@
 #include "world/block/blocks/functional/LecternBlock.hpp"
 #include "world/blockentity/interactive/LecternEntity.hpp"
 #include "world/border/WorldBorder.hpp"
-#include "world/chunk/ChunkData.hpp"
+#include "world/chunk/data/ChunkData.hpp"
 #include "world/tick/manager/TickManager.hpp"
 
 #include <memory>

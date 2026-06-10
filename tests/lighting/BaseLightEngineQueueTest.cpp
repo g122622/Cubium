@@ -24,7 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/core/Constants.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/engine/BaseLightEngine.hpp"
 #include "common/world/lighting/engine/BlockLightEngine.hpp"

@@ -29,7 +29,7 @@
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/NibbleArray.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 
 using namespace mc::network;
 using namespace mc;

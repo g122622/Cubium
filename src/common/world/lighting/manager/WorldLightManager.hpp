@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/engine/BlockLightEngine.hpp"
 #include "common/world/lighting/engine/SkyLightEngine.hpp"
@@ -34,8 +34,14 @@
 namespace mc {
 
 // 前向声明
+namespace world::chunk {
 class IChunk;
+}
+using world::chunk::IChunk;
+namespace world::chunk {
 class ChunkData;
+}
+using world::chunk::ChunkData;
 
 /**
  * @brief 世界光照管理器

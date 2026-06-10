@@ -25,13 +25,17 @@
 
 #include "../../core/Types.hpp"
 #include "../block/BlockPos.hpp"
-#include "../chunk/ChunkPos.hpp"
 #include "LightType.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/base/SectionPos.hpp"
 
 namespace mc {
 
 // 前向声明
+namespace world::chunk {
 class IChunk;
+}
+using world::chunk::IChunk;
 class IWorld;
 class BlockState;
 

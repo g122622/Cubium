@@ -24,7 +24,7 @@
 #include "client/renderer/mesh/MeshBuildScheduler.hpp"
 #include "common/core/Constants.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include <chrono>
 #include <thread>
 #include <vector>

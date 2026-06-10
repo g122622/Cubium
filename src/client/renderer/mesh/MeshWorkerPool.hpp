@@ -25,7 +25,7 @@
 
 #include "client/renderer/MeshTypes.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include <array>
 #include <atomic>
 #include <condition_variable>

@@ -40,7 +40,7 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
-#include "common/world/chunk/ChunkLoadTicketManager.hpp"
+#include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include <algorithm>

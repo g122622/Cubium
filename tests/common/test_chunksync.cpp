@@ -26,7 +26,7 @@
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 
 using namespace mc;
 using namespace mc::network;

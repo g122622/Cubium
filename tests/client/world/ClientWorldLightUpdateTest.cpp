@@ -32,7 +32,7 @@
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 
 #pragma pop_macro("BYTE_SIZE")
 

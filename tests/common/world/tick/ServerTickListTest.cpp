@@ -27,7 +27,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/border/WorldBorder.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/tick/base/ScheduledTick.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/list/EmptyTickList.hpp"

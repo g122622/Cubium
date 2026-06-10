@@ -765,6 +765,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/GenerationChunkCache.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityChunkTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
@@ -915,14 +916,14 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/network/packet/PacketDeserializer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/packet/Packet.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/packet/EntityPackets.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkData.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/ChunkData.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/NibbleArray.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkDistanceGraph.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkLoadTicketManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkStatus.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/ChunkPrimer.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/IChunk.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/SingleChunkLifecycleManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/load/ChunkDistanceGraph.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/load/ChunkLoadTicketManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/gen/ChunkStatus.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/ChunkPrimer.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/IChunk.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
         # 存储系统
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/GlobalStorageManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/SingleLevelStorageManager.cpp
@@ -1584,6 +1585,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/GenerationChunkCache.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityChunkTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp

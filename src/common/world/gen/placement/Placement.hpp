@@ -26,7 +26,7 @@
 #include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../block/Block.hpp"
-#include "../../chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include "../valueprovider/HeightProvider.hpp"
 #include "../valueprovider/IntProvider.hpp"
 #include <memory>
@@ -35,7 +35,10 @@
 namespace mc {
 
 // 前向声明
+namespace world::chunk {
 class ChunkPrimer;
+}
+using world::chunk::ChunkPrimer;
 class WorldGenRegion;
 class IChunkGenerator;
 class ConfiguredFeature;

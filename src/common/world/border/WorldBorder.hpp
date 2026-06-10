@@ -32,7 +32,10 @@
 namespace mc {
 
 class BlockPos;
+namespace world::chunk {
 class ChunkPos;
+}
+using world::chunk::ChunkPos;
 class AxisAlignedBB;
 
 namespace world {

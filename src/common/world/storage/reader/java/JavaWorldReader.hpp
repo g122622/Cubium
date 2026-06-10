@@ -27,7 +27,7 @@
 #include "RegionFile.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/chunk/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/storage/core/SaveFormat.hpp"
 #include <filesystem>
 #include <memory>

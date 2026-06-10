@@ -24,7 +24,8 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/lighting/LightType.hpp"
 
 namespace mc {

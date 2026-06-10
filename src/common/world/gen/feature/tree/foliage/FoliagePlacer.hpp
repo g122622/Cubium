@@ -25,7 +25,7 @@
 
 #include "../../../../../core/Types.hpp"
 #include "../../../../../util/math/random/Random.hpp"
-#include "../../../../chunk/ChunkPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include "../../FeatureSpread.hpp"
 #include "../trunk/TrunkPlacer.hpp"
 #include <memory>

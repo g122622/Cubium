@@ -32,7 +32,7 @@
 #include "world/blockentity/interactive/JukeboxEntity.hpp"
 #include "world/blockentity/interactive/LecternEntity.hpp"
 #include "world/border/WorldBorder.hpp"
-#include "world/chunk/ChunkData.hpp"
+#include "world/chunk/data/ChunkData.hpp"
 #include "world/tick/manager/TickManager.hpp"
 
 using namespace mc;

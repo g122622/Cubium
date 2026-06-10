@@ -374,6 +374,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/GenerationChunkCache.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp

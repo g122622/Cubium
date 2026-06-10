@@ -21,9 +21,9 @@
  *
  */
 
-#include "ChunkLoadTicketManager.hpp"
-#include "ChunkLoadTicket.hpp"
+#include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include <algorithm>
 #include <mutex>
 #include <optional>
@@ -40,7 +40,7 @@ struct TrackingChangeEvent {
 
 } // namespace
 
-namespace mc::world {
+namespace mc::world::chunk {
 
 // ============================================================================
 // 预定义票据类型
@@ -68,10 +68,6 @@ const ChunkLoadTicketType<Unit> DRAGON = ChunkLoadTicketType<Unit>::create("drag
 // 光照计算票据
 const ChunkLoadTicketType<ChunkPos> LIGHT = ChunkLoadTicketType<ChunkPos>::create("light");
 
-void initializeTicketTypes()
-{
-    // 票据类型已在静态初始化时创建，此函数保留用于未来扩展
-}
 } // namespace TicketTypes
 
 // ============================================================================
@@ -509,4 +505,4 @@ bool ChunkLoadTicketManager::isForcedChunk(ChunkCoord x, ChunkCoord z) const
     return false;
 }
 
-} // namespace mc::world
+} // namespace mc::world::chunk
