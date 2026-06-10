@@ -39,6 +39,10 @@ using namespace mc::Biomes;
 using namespace mc::world;
 
 const std::string PillagerOutpostStructure::s_name = "Pillager_Outpost";
+
+const SpawnOverrides PillagerOutpostStructure::s_spawnOverrides = {
+    SpawnOverrideType::Full, {SpawnOverrideEntry{"monster", 1, 1}}};
+
 const std::vector<BiomeId> PillagerOutpostStructure::s_validBiomes = {Plains,
     Desert,
     Savanna,

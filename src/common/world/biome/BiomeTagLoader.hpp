@@ -32,9 +32,10 @@
 
 namespace mc {
 
+class IResourcePack;
+
 namespace resource {
 class DataPackList;
-class IResourcePack;
 } // namespace resource
 
 namespace world::biome {
@@ -56,7 +57,7 @@ namespace world::biome {
  *
  * values 中以 # 开头的条目表示引用其他标签。
  *
- * 加载路径: data/<namespace>/tags/worldgen/biome/has_structure/*.json
+ * 加载路径: data/<namespace>/tags/worldgen/biome/has_structure/
  */
 class BiomeTagLoader {
 public:
@@ -77,7 +78,7 @@ public:
      * @param pack 资源包
      * @return 加载的标签数量
      */
-    [[nodiscard]] static Result<size_t> loadFromResourcePack(const resource::IResourcePack& pack);
+    [[nodiscard]] static Result<size_t> loadFromResourcePack(const IResourcePack& pack);
 
     /**
      * @brief 从 JSON 字符串加载单个生物群系标签

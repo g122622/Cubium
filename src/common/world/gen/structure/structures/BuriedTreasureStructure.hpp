@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../Structure.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <memory>
 
 namespace mc::world::gen::structure {
@@ -65,6 +66,14 @@ public:
     [[nodiscard]] const std::string& name() const override { return m_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
+
+    /**
+     * @brief 埋藏宝藏的定位偏移
+     *
+     * MC 1.21.11 中埋藏宝藏使用 (9, 0, 9) 偏移，
+     * 使得 /locate 命令指向区块内偏移 9 格的位置而非默认的 8 格。
+     */
+    [[nodiscard]] math::Vector3i locateOffset() const { return math::Vector3i(9, 0, 9); }
 
     [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundStructures; }
 

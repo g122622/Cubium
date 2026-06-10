@@ -98,7 +98,7 @@ Result<size_t> StructureDefinitionLoader::loadFromDataPackList(const resource::D
     return loadedCount;
 }
 
-Result<size_t> StructureDefinitionLoader::loadFromResourcePack(const resource::IResourcePack& pack)
+Result<size_t> StructureDefinitionLoader::loadFromResourcePack(const IResourcePack& pack)
 {
     size_t loadedCount = 0;
 
@@ -196,7 +196,7 @@ Result<void> StructureDefinitionLoader::loadFromJson(const std::string& json, co
         }
 
         if (jsonObj.contains("max_distance_from_center") && jsonObj["max_distance_from_center"].is_number_integer()) {
-            def->maxDistanceFromCenter = JigsawStructure::MaxDistance(jsonObj["max_distance_from_center"].get<i32>());
+            def->maxDistanceFromCenter = MaxDistance(jsonObj["max_distance_from_center"].get<i32>());
         }
 
         if (jsonObj.contains("start_jigsaw_name") && jsonObj["start_jigsaw_name"].is_string()) {
@@ -324,20 +324,20 @@ std::unique_ptr<valueprovider::HeightProvider> StructureDefinitionLoader::_parse
     }
 
     // 绝对高度: { "absolute": N }
-    if (jsonObj.contains("absolute") && jsonObj["absolute"].is_number_integer()) {
-        i32 absoluteValue = jsonObj["absolute"].get<i32>();
+    if (jsonObj.contains("absolute") && jsonObj.at("absolute").is_number_integer()) {
+        i32 absoluteValue = jsonObj.at("absolute").get<i32>();
         return std::make_unique<valueprovider::ConstantHeight>(surface::VerticalAnchor::absolute(absoluteValue));
     }
 
     // 底部偏移: { "above_bottom": N }
-    if (jsonObj.contains("above_bottom") && jsonObj["above_bottom"].is_number_integer()) {
-        i32 offset = jsonObj["above_bottom"].get<i32>();
+    if (jsonObj.contains("above_bottom") && jsonObj.at("above_bottom").is_number_integer()) {
+        i32 offset = jsonObj.at("above_bottom").get<i32>();
         return std::make_unique<valueprovider::ConstantHeight>(surface::VerticalAnchor::aboveBottom(offset));
     }
 
     // 顶部偏移: { "below_top": N }
-    if (jsonObj.contains("below_top") && jsonObj["below_top"].is_number_integer()) {
-        i32 offset = jsonObj["below_top"].get<i32>();
+    if (jsonObj.contains("below_top") && jsonObj.at("below_top").is_number_integer()) {
+        i32 offset = jsonObj.at("below_top").get<i32>();
         return std::make_unique<valueprovider::ConstantHeight>(surface::VerticalAnchor::belowTop(offset));
     }
 

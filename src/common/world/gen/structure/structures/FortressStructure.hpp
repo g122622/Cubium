@@ -66,6 +66,7 @@ public:
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
     [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundDecoration; }
+    [[nodiscard]] const SpawnOverrides* spawnOverrides() const override { return &s_spawnOverrides; }
 
     /**
      * @brief 检查是否可以生成
@@ -87,6 +88,7 @@ private:
     static constexpr StructureSeparationSettings m_settings{27, 4, 30084232};
     static const std::string m_name;
     std::vector<BiomeId> m_validBiomes;
+    static const SpawnOverrides s_spawnOverrides;
 };
 
 // ============================================================================

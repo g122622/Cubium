@@ -94,7 +94,7 @@ Result<size_t> StructureSetLoader::loadFromDataPackList(const resource::DataPack
     return loadedCount;
 }
 
-Result<size_t> StructureSetLoader::loadFromResourcePack(const resource::IResourcePack& pack)
+Result<size_t> StructureSetLoader::loadFromResourcePack(const IResourcePack& pack)
 {
     size_t loadedCount = 0;
 

@@ -29,12 +29,16 @@
 #include "common/world/gen/feature/template/Template.hpp"
 
 #include <string>
-
-namespace nlohmann {
-class json;
-}
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
+
+class IResourcePack;
+
+namespace resource {
+class DataPackList;
+} // namespace resource
+
 namespace world {
 namespace gen {
 namespace jigsaw {
@@ -71,7 +75,7 @@ public:
      * @param pack 资源包
      * @return 加载的处理器列表数量，或错误
      */
-    [[nodiscard]] static Result<size_t> loadFromResourcePack(const resource::IResourcePack& pack);
+    [[nodiscard]] static Result<size_t> loadFromResourcePack(const IResourcePack& pack);
 
     /**
      * @brief 从 JSON 字符串加载单个处理器列表

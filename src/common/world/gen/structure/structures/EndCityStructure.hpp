@@ -68,6 +68,14 @@ public:
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
 
+    /**
+     * @brief 末地城使用三角分布（非均匀间距）
+     *
+     * MC 1.21.11 中末地城使用 TRIANGULAR 分布类型，
+     * 对应 useUniformSpacing = false。
+     */
+    [[nodiscard]] bool useUniformSpacing() const override { return false; }
+
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 

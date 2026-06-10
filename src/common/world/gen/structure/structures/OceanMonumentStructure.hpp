@@ -60,6 +60,13 @@ public:
     [[nodiscard]] bool useUniformSpacing() const override { return false; }
 
     /**
+     * @brief 海洋纪念碑的生成覆盖
+     *
+     * 守卫者在完整结构边界框内生成（4 只守卫者）。
+     */
+    [[nodiscard]] const SpawnOverrides* spawnOverrides() const override { return &m_spawnOverrides; }
+
+    /**
      * @brief 检查是否可以生成
      */
     [[nodiscard]] bool canGenerate(
@@ -81,6 +88,7 @@ private:
 
     static constexpr StructureSeparationSettings m_settings{32, 5, 10387313};
     static const std::string m_name;
+    static const SpawnOverrides m_spawnOverrides;
     std::vector<BiomeId> m_validBiomes;
 };
 

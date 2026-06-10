@@ -104,7 +104,7 @@ Result<size_t> ProcessorListLoader::loadFromDataPackList(const resource::DataPac
     return loadedCount;
 }
 
-Result<size_t> ProcessorListLoader::loadFromResourcePack(const resource::IResourcePack& pack)
+Result<size_t> ProcessorListLoader::loadFromResourcePack(const IResourcePack& pack)
 {
     size_t loadedCount = 0;
 
@@ -246,8 +246,8 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseBlockIgnoreProces
             if (blockEntry.is_string()) {
                 // 方块名称字符串，后续需要通过注册表解析为 ID
                 // 目前记录为 0（空气），等待方块注册表完善后替换
-                spdlog::info("block_ignore: block '{}' parsing deferred to block registry",
-                    blockEntry.get<std::string>());
+                spdlog::info(
+                    "block_ignore: block '{}' parsing deferred to block registry", blockEntry.get<std::string>());
             } else if (blockEntry.is_object()) {
                 // 完整方块状态对象，后续解析
                 spdlog::info("block_ignore: block state object parsing deferred");
@@ -318,8 +318,7 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseRuleProcessor(con
     std::vector<std::unique_ptr<feature::template_::RuleEntry>> rules;
 
     if (processorObj.contains("rules") && processorObj["rules"].is_array()) {
-        spdlog::info("rule processor: {} rules skipped (parsing not yet implemented)",
-            processorObj["rules"].size());
+        spdlog::info("rule processor: {} rules skipped (parsing not yet implemented)", processorObj["rules"].size());
     }
 
     return std::make_unique<RuleStructureProcessor>(std::move(rules));

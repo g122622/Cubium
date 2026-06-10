@@ -27,7 +27,6 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../biome/BiomeSource.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "../RandomState.hpp"
 #include "../carver/CarverConfiguration.hpp"
 #include "../carver/CarvingContext.hpp"
@@ -42,6 +41,7 @@
 #include "../structure/StructureManager.hpp"
 #include "../surface/SurfaceRules.hpp"
 #include "IChunkGenerator.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include <memory>
 #include <mutex>
 #include <vector>

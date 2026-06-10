@@ -53,7 +53,7 @@ constexpr i32 DEFAULT_START_Y = 64;
  */
 class JigsawPlacedPieceAdapter final : public mc::world::gen::structure::StructurePiece {
 public:
-    explicit JigsawPlacedPieceAdapter(const mc::world::gen::jigsaw::PlacedPiece& placed) noexcept
+    explicit JigsawPlacedPieceAdapter(mc::world::gen::jigsaw::PlacedPiece placed) noexcept
         : StructurePiece(90,
               placed.boundingBox.minX(),
               placed.boundingBox.minY(),
@@ -61,17 +61,21 @@ public:
               placed.boundingBox.maxX(),
               placed.boundingBox.maxY(),
               placed.boundingBox.maxZ())
-        , m_groundLevelDelta(placed.groundLevelDelta)
-        , m_junctions(placed.junctions)
+        , m_placed(std::move(placed))
+        , m_groundLevelDelta(m_placed.groundLevelDelta)
+        , m_junctions(m_placed.junctions)
     {}
 
-    void generate(mc::IWorldWriter&,
-        mc::math::Random&,
-        mc::i32,
-        mc::i32,
-        const mc::world::gen::structure::StructureBoundingBox&) override
+    void generate(mc::IWorldWriter& world,
+        mc::math::Random& rng,
+        mc::i32 chunkX,
+        mc::i32 chunkZ,
+        const mc::world::gen::structure::StructureBoundingBox& chunkBounds) override
     {
-        // 实际方块放置已在 JigsawManager::assembleAndPlace 中完成
+        // MC 1.21.11: 方块放置在 FEATURES 阶段通过 placeInChunk → generate 调用
+        if (m_placed.piece && !m_placed.piece->isEmpty()) {
+            mc::world::gen::jigsaw::JigsawManager::placePieceRecursive(world, m_placed, rng);
+        }
     }
 
     [[nodiscard]] mc::i32 getGroundLevelDelta() const noexcept override { return m_groundLevelDelta; }
@@ -84,6 +88,7 @@ public:
     [[nodiscard]] bool isJigsawPiece() const noexcept override { return true; }
 
 private:
+    mc::world::gen::jigsaw::PlacedPiece m_placed;
     mc::i32 m_groundLevelDelta;
     std::vector<mc::world::gen::jigsaw::JigsawJunction> m_junctions;
 };
@@ -139,7 +144,7 @@ bool JigsawStructure::canGenerate(IWorld& world, IChunkGenerator& generator, mat
 }
 
 std::unique_ptr<StructureStart> JigsawStructure::generate(
-    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IWorldWriter& /*world*/, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -177,17 +182,11 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
     auto placedPieces = jigsaw::JigsawManager::assemble(patternRegistry, *startPool, m_config.size, startPos, rng);
 
     // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
-    // 这样 NoiseChunkGenerator::collectStructureData 可以收集 Junction 信息
-    for (const auto& placed : placedPieces) {
+    // MC 1.21.11: 结构起点只创建片段，不写入方块
+    // 方块放置延迟到 FEATURES 阶段，由 placeInChunk() 调用 generate() 执行
+    for (auto& placed : placedPieces) {
         if (placed.piece && !placed.piece->isEmpty()) {
-            start->addPiece(std::make_unique<JigsawPlacedPieceAdapter>(placed));
-        }
-    }
-
-    // 放置方块到世界
-    for (const auto& placed : placedPieces) {
-        if (placed.piece && !placed.piece->isEmpty()) {
-            jigsaw::JigsawManager::placePieceRecursive(world, placed, rng);
+            start->addPiece(std::make_unique<JigsawPlacedPieceAdapter>(std::move(placed)));
         }
     }
 

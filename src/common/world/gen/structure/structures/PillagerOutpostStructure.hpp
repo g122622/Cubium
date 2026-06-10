@@ -47,6 +47,13 @@ public:
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
 
+    /**
+     * @brief 掠夺者前哨站的生成覆盖
+     *
+     * 掠夺者在完整结构边界框内生成（1 只掠夺者）。
+     */
+    [[nodiscard]] const SpawnOverrides* spawnOverrides() const override { return &s_spawnOverrides; }
+
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 
@@ -62,6 +69,7 @@ private:
     static const std::string s_name;
     static constexpr StructureSeparationSettings s_settings{32, 8, 165745296};
     static const std::vector<BiomeId> s_validBiomes;
+    static const SpawnOverrides s_spawnOverrides;
 };
 
 } // namespace structure

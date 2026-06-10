@@ -131,21 +131,18 @@ void StructureSetRegistry::initialize()
         entries.emplace_back(ResourceLocation("minecraft", "village_snowy"), 1);
         entries.emplace_back(ResourceLocation("minecraft", "village_taiga"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            34, // spacing
-            8,  // separation
-            10387312, // salt
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(34, // spacing
+            8,                                                                           // separation
+            10387312,                                                                    // salt
             placement::RandomSpreadType::Linear,
             placement::FrequencyReductionMethod::Default,
-            1.0f, // frequency
+            1.0f,                    // frequency
             math::Vector3i(0, 0, 0), // locateOffset
-            std::nullopt // exclusionZone
+            std::nullopt             // exclusionZone
         );
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "villages"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "villages"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -155,16 +152,17 @@ void StructureSetRegistry::initialize()
         std::vector<StructureSelectionEntry> entries;
         entries.emplace_back(ResourceLocation("minecraft", "desert_pyramid"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            32, 8, 14357617,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(32,
+            8,
+            14357617,
             placement::RandomSpreadType::Linear,
             placement::FrequencyReductionMethod::Default,
-            1.0f, math::Vector3i(0, 0, 0), std::nullopt);
+            1.0f,
+            math::Vector3i(0, 0, 0),
+            std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "desert_pyramids"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "desert_pyramids"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -174,16 +172,17 @@ void StructureSetRegistry::initialize()
         std::vector<StructureSelectionEntry> entries;
         entries.emplace_back(ResourceLocation("minecraft", "igloo"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            32, 8, 14357618,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(32,
+            8,
+            14357618,
             placement::RandomSpreadType::Linear,
             placement::FrequencyReductionMethod::Default,
-            1.0f, math::Vector3i(0, 0, 0), std::nullopt);
+            1.0f,
+            math::Vector3i(0, 0, 0),
+            std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "igloos"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "igloos"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -193,16 +192,17 @@ void StructureSetRegistry::initialize()
         std::vector<StructureSelectionEntry> entries;
         entries.emplace_back(ResourceLocation("minecraft", "jungle_pyramid"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            32, 8, 14357619,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(32,
+            8,
+            14357619,
             placement::RandomSpreadType::Linear,
             placement::FrequencyReductionMethod::Default,
-            1.0f, math::Vector3i(0, 0, 0), std::nullopt);
+            1.0f,
+            math::Vector3i(0, 0, 0),
+            std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "jungle_temples"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "jungle_temples"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -212,16 +212,17 @@ void StructureSetRegistry::initialize()
         std::vector<StructureSelectionEntry> entries;
         entries.emplace_back(ResourceLocation("minecraft", "swamp_hut"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            32, 8, 14357620,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(32,
+            8,
+            14357620,
             placement::RandomSpreadType::Linear,
             placement::FrequencyReductionMethod::Default,
-            1.0f, math::Vector3i(0, 0, 0), std::nullopt);
+            1.0f,
+            math::Vector3i(0, 0, 0),
+            std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "swamp_huts"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "swamp_huts"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -236,17 +237,17 @@ void StructureSetRegistry::initialize()
             10 // chunkCount
         };
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            32, 8, 165745296,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(32,
+            8,
+            165745296,
             placement::RandomSpreadType::Linear,
             placement::FrequencyReductionMethod::LegacyType1,
-            0.2f, math::Vector3i(0, 0, 0),
+            0.2f,
+            math::Vector3i(0, 0, 0),
             std::move(exclusionZone));
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "pillager_outposts"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "pillager_outposts"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -256,16 +257,17 @@ void StructureSetRegistry::initialize()
         std::vector<StructureSelectionEntry> entries;
         entries.emplace_back(ResourceLocation("minecraft", "ancient_city"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            24, 8, 20083232,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(24,
+            8,
+            20083232,
             placement::RandomSpreadType::Linear,
             placement::FrequencyReductionMethod::Default,
-            1.0f, math::Vector3i(0, 0, 0), std::nullopt);
+            1.0f,
+            math::Vector3i(0, 0, 0),
+            std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "ancient_cities"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "ancient_cities"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -275,16 +277,17 @@ void StructureSetRegistry::initialize()
         std::vector<StructureSelectionEntry> entries;
         entries.emplace_back(ResourceLocation("minecraft", "monument"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            32, 5, 10387313,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(32,
+            5,
+            10387313,
             placement::RandomSpreadType::Triangular,
             placement::FrequencyReductionMethod::Default,
-            1.0f, math::Vector3i(0, 0, 0), std::nullopt);
+            1.0f,
+            math::Vector3i(0, 0, 0),
+            std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "ocean_monuments"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "ocean_monuments"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -294,16 +297,17 @@ void StructureSetRegistry::initialize()
         std::vector<StructureSelectionEntry> entries;
         entries.emplace_back(ResourceLocation("minecraft", "mansion"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            80, 20, 10387319,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(80,
+            20,
+            10387319,
             placement::RandomSpreadType::Triangular,
             placement::FrequencyReductionMethod::Default,
-            1.0f, math::Vector3i(0, 0, 0), std::nullopt);
+            1.0f,
+            math::Vector3i(0, 0, 0),
+            std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "woodland_mansions"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "woodland_mansions"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -313,8 +317,9 @@ void StructureSetRegistry::initialize()
         std::vector<StructureSelectionEntry> entries;
         entries.emplace_back(ResourceLocation("minecraft", "buried_treasure"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            1, 0, 0,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(1,
+            0,
+            0,
             placement::RandomSpreadType::Linear,
             placement::FrequencyReductionMethod::LegacyType2,
             0.01f,
@@ -322,9 +327,7 @@ void StructureSetRegistry::initialize()
             std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "buried_treasures"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "buried_treasures"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -335,16 +338,17 @@ void StructureSetRegistry::initialize()
         entries.emplace_back(ResourceLocation("minecraft", "mineshaft"), 1);
         entries.emplace_back(ResourceLocation("minecraft", "mineshaft_mesa"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            1, 0, 0,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(1,
+            0,
+            0,
             placement::RandomSpreadType::Linear,
             placement::FrequencyReductionMethod::LegacyType3,
-            0.004f, math::Vector3i(0, 0, 0), std::nullopt);
+            0.004f,
+            math::Vector3i(0, 0, 0),
+            std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "mineshafts"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "mineshafts"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -360,16 +364,17 @@ void StructureSetRegistry::initialize()
         entries.emplace_back(ResourceLocation("minecraft", "ruined_portal_swamp"), 1);
         entries.emplace_back(ResourceLocation("minecraft", "ruined_portal_mountain_cracked"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            40, 15, 34222645,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(40,
+            15,
+            34222645,
             placement::RandomSpreadType::Linear,
             placement::FrequencyReductionMethod::Default,
-            1.0f, math::Vector3i(0, 0, 0), std::nullopt);
+            1.0f,
+            math::Vector3i(0, 0, 0),
+            std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "ruined_portals"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "ruined_portals"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -380,16 +385,17 @@ void StructureSetRegistry::initialize()
         entries.emplace_back(ResourceLocation("minecraft", "shipwreck"), 1);
         entries.emplace_back(ResourceLocation("minecraft", "shipwreck_beached"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            24, 4, 165745295,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(24,
+            4,
+            165745295,
             placement::RandomSpreadType::Linear,
             placement::FrequencyReductionMethod::Default,
-            1.0f, math::Vector3i(0, 0, 0), std::nullopt);
+            1.0f,
+            math::Vector3i(0, 0, 0),
+            std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "shipwrecks"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "shipwrecks"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -400,16 +406,17 @@ void StructureSetRegistry::initialize()
         entries.emplace_back(ResourceLocation("minecraft", "ocean_ruin_cold"), 1);
         entries.emplace_back(ResourceLocation("minecraft", "ocean_ruin_warm"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            20, 8, 14357621,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(20,
+            8,
+            14357621,
             placement::RandomSpreadType::Linear,
             placement::FrequencyReductionMethod::Default,
-            1.0f, math::Vector3i(0, 0, 0), std::nullopt);
+            1.0f,
+            math::Vector3i(0, 0, 0),
+            std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "ocean_ruins"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "ocean_ruins"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -420,16 +427,17 @@ void StructureSetRegistry::initialize()
         entries.emplace_back(ResourceLocation("minecraft", "fortress"), 2);
         entries.emplace_back(ResourceLocation("minecraft", "bastion_remnant"), 3);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            27, 4, 30084232,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(27,
+            4,
+            30084232,
             placement::RandomSpreadType::Linear,
             placement::FrequencyReductionMethod::Default,
-            1.0f, math::Vector3i(0, 0, 0), std::nullopt);
+            1.0f,
+            math::Vector3i(0, 0, 0),
+            std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "nether_complexes"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "nether_complexes"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -439,16 +447,17 @@ void StructureSetRegistry::initialize()
         std::vector<StructureSelectionEntry> entries;
         entries.emplace_back(ResourceLocation("minecraft", "nether_fossil"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            2, 1, 14357921,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(2,
+            1,
+            14357921,
             placement::RandomSpreadType::Linear,
             placement::FrequencyReductionMethod::Default,
-            1.0f, math::Vector3i(0, 0, 0), std::nullopt);
+            1.0f,
+            math::Vector3i(0, 0, 0),
+            std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "nether_fossils"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "nether_fossils"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -458,16 +467,17 @@ void StructureSetRegistry::initialize()
         std::vector<StructureSelectionEntry> entries;
         entries.emplace_back(ResourceLocation("minecraft", "end_city"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            20, 11, 10387313,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(20,
+            11,
+            10387313,
             placement::RandomSpreadType::Triangular,
             placement::FrequencyReductionMethod::Default,
-            1.0f, math::Vector3i(0, 0, 0), std::nullopt);
+            1.0f,
+            math::Vector3i(0, 0, 0),
+            std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "end_cities"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "end_cities"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -477,19 +487,16 @@ void StructureSetRegistry::initialize()
         std::vector<StructureSelectionEntry> entries;
         entries.emplace_back(ResourceLocation("minecraft", "stronghold"), 1);
 
-        auto placement = std::make_unique<placement::ConcentricRingsStructurePlacement>(
-            32, // distance
-            3,  // spread
-            128, // count
+        auto placement = std::make_unique<placement::ConcentricRingsStructurePlacement>(32, // distance
+            3,                                                                              // spread
+            128,                                                                            // count
             std::vector<BiomeId>{}, // preferredBiomes（后续通过标签解析填充）
-            0, // salt
+            0,                      // salt
             math::Vector3i(0, 0, 0) // locateOffset
         );
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "strongholds"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "strongholds"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -499,16 +506,17 @@ void StructureSetRegistry::initialize()
         std::vector<StructureSelectionEntry> entries;
         entries.emplace_back(ResourceLocation("minecraft", "trail_ruins"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            34, 8, 83469867,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(34,
+            8,
+            83469867,
             placement::RandomSpreadType::Linear,
             placement::FrequencyReductionMethod::Default,
-            1.0f, math::Vector3i(0, 0, 0), std::nullopt);
+            1.0f,
+            math::Vector3i(0, 0, 0),
+            std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "trail_ruins"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "trail_ruins"), std::move(entries), std::move(placement)));
     }
 
     // ============================================================================
@@ -518,16 +526,17 @@ void StructureSetRegistry::initialize()
         std::vector<StructureSelectionEntry> entries;
         entries.emplace_back(ResourceLocation("minecraft", "trial_chambers"), 1);
 
-        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(
-            34, 12, 94251327,
+        auto placement = std::make_unique<placement::RandomSpreadStructurePlacement>(34,
+            12,
+            94251327,
             placement::RandomSpreadType::Linear,
             placement::FrequencyReductionMethod::Default,
-            1.0f, math::Vector3i(0, 0, 0), std::nullopt);
+            1.0f,
+            math::Vector3i(0, 0, 0),
+            std::nullopt);
 
         registerSet(std::make_unique<StructureSet>(
-            ResourceLocation("minecraft", "trial_chambers"),
-            std::move(entries),
-            std::move(placement)));
+            ResourceLocation("minecraft", "trial_chambers"), std::move(entries), std::move(placement)));
     }
 
     spdlog::info("Initialized {} vanilla structure sets", m_sets.size());

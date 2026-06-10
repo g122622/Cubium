@@ -11,6 +11,9 @@ using namespace mc::Biomes;
 
 const std::string OceanMonumentStructure::m_name = "ocean_monument";
 
+const SpawnOverrides OceanMonumentStructure::m_spawnOverrides = {
+    SpawnOverrideType::Full, {SpawnOverrideEntry{"monster", 4, 4}}};
+
 OceanMonumentStructure::OceanMonumentStructure()
     : Structure(StructureType::Monument)
 {
@@ -60,7 +63,13 @@ std::unique_ptr<StructureStart> OceanMonumentStructure::generate(
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
     const i32 startX = chunkX * CHUNK_WIDTH - 29;
     const i32 startZ = chunkZ * CHUNK_WIDTH - 29;
-    auto building = std::make_unique<OceanMonumentBuilding>(rng, startX, startZ, Direction::North);
+
+    // MC 1.21.11: 海洋纪念碑使用随机水平方向，而非固定朝北
+    static const Direction horizontalDirections[] = {
+        Direction::North, Direction::South, Direction::East, Direction::West};
+    Direction direction = horizontalDirections[rng.nextInt(4)];
+
+    auto building = std::make_unique<OceanMonumentBuilding>(rng, startX, startZ, direction);
 
     StructureBoundingBox boundingBox = building->boundingBox();
     const i32 minChunkX = boundingBox.minX() >> CHUNK_SHIFT;

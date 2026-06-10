@@ -29,7 +29,7 @@
 namespace mc::world::biome {
 
 // 使用 mc::Biomes 命名空间中的生物群系 ID 常量
-using mc::Biomes;
+using namespace mc::Biomes;
 
 // ============================================================================
 // BiomeTags 实现

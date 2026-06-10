@@ -26,6 +26,7 @@
 #include "common/core/Constants.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/data/BiomeContainer.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
@@ -182,8 +183,8 @@ public:
      * @param cz 要检查相交性的区块 Z 坐标
      * @return 相交的结构引用列表
      */
-    [[nodiscard]] virtual std::vector<std::tuple<std::string, ChunkCoord, ChunkCoord>> getIntersectingStructures(
-        ChunkCoord cx, ChunkCoord cz) const
+    [[nodiscard]] virtual std::vector<std::tuple<mc::ResourceLocation, ChunkCoord, ChunkCoord>>
+    getIntersectingStructures(ChunkCoord cx, ChunkCoord cz) const
     {
         (void)cx;
         (void)cz;

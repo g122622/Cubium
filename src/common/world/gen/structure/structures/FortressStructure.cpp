@@ -43,6 +43,9 @@ using namespace mc::Biomes;
 
 const std::string FortressStructure::m_name = "fortress";
 
+const SpawnOverrides FortressStructure::s_spawnOverrides = {
+    SpawnOverrideType::Piece, {SpawnOverrideEntry{"monster", 2, 4}}};
+
 FortressStructure::FortressStructure()
     : Structure(StructureType::Fortress)
 {

@@ -114,7 +114,7 @@ private:
 
     VillageConfig m_config;
     // 村庄结构生成间距设置
-    static constexpr StructureSeparationSettings m_settings{32, 8, 10387312};
+    static constexpr StructureSeparationSettings m_settings{34, 8, 10387312};
     static const std::string m_name;
     std::vector<BiomeId> m_validBiomes;
 };

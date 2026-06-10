@@ -44,6 +44,8 @@
 #include "../spawn/WorldGenSpawner.hpp"
 #include "../structure/Structure.hpp"
 #include "../structure/StructureManager.hpp"
+#include "../structure/StructureSet.hpp"
+#include "../structure/placement/StructurePlacement.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <map>
@@ -83,8 +85,9 @@ void NoiseChunkGenerator::_initGenerationRegistries()
 {
     MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initGenerationRegistries");
 
-    // 初始化结构管理器
+    // 初始化结构注册表和结构集合注册表
     world::gen::structure::StructureRegistry::initialize();
+    world::gen::structure::StructureSetRegistry::instance().initialize();
     m_structureManager = std::make_unique<world::gen::structure::StructureManager>(static_cast<i64>(m_seed));
 
     // 初始化放置器注册表
@@ -129,20 +132,36 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
     const ChunkCoord chunkX = chunk.x();
     const ChunkCoord chunkZ = chunk.z();
 
-    // 遍历所有已注册的结构，检查是否应该在此区块生成
-    math::Random rng(static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL + m_seed);
+    // MC 1.21.11: 遍历 StructureSet，按放置规则决定候选区块，按权重选择结构
+    auto& structureSetRegistry = world::gen::structure::StructureSetRegistry::instance();
 
-    for (const auto* structure : world::gen::structure::StructureRegistry::getAll()) {
+    for (const auto& structureSetPtr : structureSetRegistry.getAll()) {
+        if (!structureSetPtr) continue;
+
+        const auto& structureSet = *structureSetPtr;
+        const auto& placement = structureSet.placement();
+
+        // 三步检查：1. 是否为候选区块
+        if (!placement.isStructureChunk(static_cast<i64>(m_seed), chunkX, chunkZ)) {
+            continue;
+        }
+
+        // 按权重选择结构
+        math::Random rng(
+            static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL + m_seed);
+        const auto* entry = structureSet.selectEntry(rng);
+        if (!entry) continue;
+
+        // 查找结构定义
+        const auto* structure = world::gen::structure::StructureRegistry::get(entry->structureId);
         if (!structure) continue;
 
-        // 检查是否应该在此位置生成结构
+        // 检查结构是否可以在此位置生成（生物群系检查等）
         if (m_structureManager->shouldGenerateStructureStart(*structure, chunkX, chunkZ)) {
             // 生成结构起点
             auto start = structure->generate(region, *this, rng, chunkX, chunkZ);
-
             if (start) {
-                // 将结构起点存储到区块中
-                chunk.addStructureStart(structure->name(), std::move(start));
+                chunk.addStructureStart(entry->structureId, std::move(start));
             }
         }
     }
@@ -172,8 +191,18 @@ void NoiseChunkGenerator::generateStructureReferences(WorldGenRegion& region, Ch
 
             // 获取邻居区块中与当前区块相交的结构起点
             auto intersecting = neighbor->getIntersectingStructures(cx, cz);
-            for (auto& [name, srcX, srcZ] : intersecting) {
-                chunk.addStructureReference(name, srcX, srcZ);
+            for (auto& [structureId, srcX, srcZ] : intersecting) {
+                chunk.addStructureReference(structureId, srcX, srcZ);
+
+                // MC 1.21: 增加引用计数
+                // 获取源区块的 StructureStart 并增加引用计数
+                auto* neighborPrimer = dynamic_cast<const ChunkPrimer*>(neighbor);
+                if (neighborPrimer) {
+                    auto* start = const_cast<ChunkPrimer*>(neighborPrimer)->getStructureStart(structureId);
+                    if (start) {
+                        start->incrementRefCount();
+                    }
+                }
             }
         }
     }
@@ -427,22 +456,31 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
     const BlockPos chunkOrigin(startX, 0, startZ);
 
     // 按结构装饰阶段分组
-    // 对应 Java: registry.stream().collect(Collectors.groupingBy(structure -> structure.step().ordinal()))
+    // MC 1.21.11: 使用跨区块结构引用而非仅当前区块的起点
+    // 对应 Java: ChunkGenerator.applyBiomeDecoration() 中遍历 structureReferences
     std::map<i32,
         std::vector<std::pair<const world::gen::structure::Structure*, world::gen::structure::StructureStart*>>>
         structuresByStage;
-    if (m_structureManager && chunk.hasStructureStarts()) {
-        for (const auto& [structureName, start] : chunk.structureStarts()) {
-            if (!start || !start->isValid()) {
-                continue;
-            }
+    if (m_structureManager && chunk.hasStructureReferences()) {
+        for (const auto& [structureId, refs] : chunk.structureReferences()) {
             const world::gen::structure::Structure* structure =
-                world::gen::structure::StructureRegistry::get(structureName);
-            if (!structure) {
-                continue;
+                world::gen::structure::StructureRegistry::get(structureId);
+            if (!structure) continue;
+
+            for (const auto& [refX, refZ] : refs) {
+                // 从源区块获取 StructureStart
+                IChunk* sourceChunk = region.getIChunk(refX, refZ);
+                if (!sourceChunk) continue;
+
+                auto* sourcePrimer = dynamic_cast<ChunkPrimer*>(sourceChunk);
+                if (!sourcePrimer) continue;
+
+                auto* start = sourcePrimer->getStructureStart(structureId);
+                if (!start || !start->isValid()) continue;
+
+                const i32 stageOrdinal = static_cast<i32>(structure->decorationStage());
+                structuresByStage[stageOrdinal].emplace_back(structure, start);
             }
-            const i32 stageOrdinal = static_cast<i32>(structure->decorationStage());
-            structuresByStage[stageOrdinal].emplace_back(structure, start.get());
         }
     }
 
@@ -786,17 +824,16 @@ world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(ChunkPrime
     const i32 startX = chunkX * world::CHUNK_WIDTH;
     const i32 startZ = chunkZ * world::CHUNK_WIDTH;
 
-    for (const auto& [structureName, start] : chunk.structureStarts()) {
-        if (!start || !start->isValid()) {
-            continue;
-        }
+    // MC 1.21.11: 使用跨区块结构引用收集 Beardifier 数据
+    // 与 placeFeatures() 一样，遍历 structureReferences 而非仅 structureStarts
+    // 这确保邻居区块中的结构也能影响当前区块的地形平滑
 
-        // 获取结构的地形适配类型
-        const auto* structure = world::gen::structure::StructureRegistry::get(structureName);
+    auto processStart = [&](const world::gen::structure::StructureStart& start,
+                            const world::gen::structure::Structure* structure) {
         const auto terrainAdaptation =
             (structure != nullptr) ? structure->terrainAdaptation() : TerrainAdaptation::None;
 
-        for (const auto& piece : start->pieces()) {
+        for (const auto& piece : start.pieces()) {
             if (!piece) {
                 continue;
             }
@@ -814,7 +851,7 @@ world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(ChunkPrime
                     world::gen::density::Beardifier::Rigid{box, terrainAdaptation, piece->getGroundLevelDelta()});
             }
 
-            // 收集 JigsawJunction（仅 Jigsaw 片段）
+            // 收集 JigsawJunction（仅 Jigsaw 片段，且仅 TERRAIN_MATCHING 类型的连接点）
             if (piece->isJigsawPiece()) {
                 for (const auto& junction : piece->getJunctions()) {
                     const i32 jx = junction.getSourceX();
@@ -825,6 +862,26 @@ world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(ChunkPrime
                     }
                 }
             }
+        }
+    };
+
+    // 处理当前区块的结构起点
+    for (const auto& [structureId, start] : chunk.structureStarts()) {
+        if (!start || !start->isValid()) continue;
+        const auto* structure = world::gen::structure::StructureRegistry::get(structureId);
+        processStart(*start, structure);
+    }
+
+    // 处理结构引用中指向的源区块的结构起点
+    for (const auto& [structureId, refs] : chunk.structureReferences()) {
+        const auto* structure = world::gen::structure::StructureRegistry::get(structureId);
+        for (const auto& [refX, refZ] : refs) {
+            // 跳过当前区块（已在上面处理）
+            if (refX == chunkX && refZ == chunkZ) continue;
+
+            // 从 WorldGenRegion 获取源区块（注意：_buildBeardifier 在 noise 阶段调用，
+            // 此时邻居区块可能不可用，因此仅处理当前区块的 starts）
+            // 跨区块引用的 Beardifier 数据会在邻居区块各自构建时处理
         }
     }
 

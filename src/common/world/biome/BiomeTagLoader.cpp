@@ -166,7 +166,7 @@ Result<size_t> BiomeTagLoader::loadFromDataPackList(const resource::DataPackList
             }
 
             // 将解析结果合并到 BiomeTags 注册表
-            std::unique_ptr<BiomeTag> parsedTag = std::move(parseResult.value());
+            std::unique_ptr<BiomeTag> parsedTag = parseResult.value();
             auto* existingTag = BiomeTags::getTag(parsedTag->getId());
             if (existingTag != nullptr) {
                 // 数据包覆盖：将新生物群系添加到现有标签
@@ -189,7 +189,7 @@ Result<size_t> BiomeTagLoader::loadFromDataPackList(const resource::DataPackList
     return loadedCount;
 }
 
-Result<size_t> BiomeTagLoader::loadFromResourcePack(const resource::IResourcePack& pack)
+Result<size_t> BiomeTagLoader::loadFromResourcePack(const IResourcePack& pack)
 {
     size_t loadedCount = 0;
 
@@ -232,7 +232,7 @@ Result<size_t> BiomeTagLoader::loadFromResourcePack(const resource::IResourcePac
             }
 
             // 将解析结果合并到 BiomeTags 注册表
-            std::unique_ptr<BiomeTag> parsedTag = std::move(parseResult.value());
+            std::unique_ptr<BiomeTag> parsedTag = parseResult.value();
             auto* existingTag = BiomeTags::getTag(parsedTag->getId());
             if (existingTag != nullptr) {
                 for (BiomeId id : parsedTag->getBiomeIds()) {

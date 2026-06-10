@@ -27,6 +27,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 
 #include <functional>
@@ -106,7 +107,7 @@ public:
      * @param chunkPos 结构所在区块坐标
      * @return 定位位置（方块坐标）
      */
-    virtual math::BlockPos getLocatePos(const world::chunk::ChunkPos& chunkPos) const;
+    virtual BlockPos getLocatePos(const world::chunk::ChunkPos& chunkPos) const;
 
     /**
      * @brief 克隆此放置策略

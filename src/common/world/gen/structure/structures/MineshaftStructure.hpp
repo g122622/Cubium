@@ -316,11 +316,12 @@ public:
     [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundStructures; }
 
     /**
-     * @brief 废弃矿井使用非均匀间距分布
+     * @brief 废弃矿井使用均匀间距分布
      *
-     * 这使得偏移量使用两次随机值的平均值，产生更集中的分布
+     * MC 1.21.11 中废弃矿井使用 LegacyType3 频率缩减方法，
+     * 分布类型为 LINEAR，对应 useUniformSpacing = true。
      */
-    [[nodiscard]] bool useUniformSpacing() const override { return false; }
+    [[nodiscard]] bool useUniformSpacing() const override { return true; }
 
     /**
      * @brief 检查是否可以生成

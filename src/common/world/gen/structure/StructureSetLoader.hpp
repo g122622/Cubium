@@ -27,18 +27,17 @@
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <memory>
 #include <string>
 
-namespace nlohmann {
-class json;
-}
-
 namespace mc {
+
+class IResourcePack;
 
 namespace resource {
 class DataPackList;
-class IResourcePack;
 } // namespace resource
 
 namespace world::gen::structure {
@@ -98,7 +97,7 @@ public:
      * @param pack 资源包
      * @return 加载的结构集合数量，或错误
      */
-    [[nodiscard]] static Result<size_t> loadFromResourcePack(const resource::IResourcePack& pack);
+    [[nodiscard]] static Result<size_t> loadFromResourcePack(const IResourcePack& pack);
 
     /**
      * @brief 从 JSON 字符串加载单个结构集合
@@ -157,5 +156,5 @@ private:
     static std::optional<placement::ExclusionZone> _parseExclusionZone(const nlohmann::json& placementObj);
 };
 
-} // namespace mc::world::gen::structure
+} // namespace world::gen::structure
 } // namespace mc

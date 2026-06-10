@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
@@ -265,31 +266,44 @@ public:
 
     /**
      * @brief 添加结构起点
-     * @param structureName 结构名称
+     * @param structureId 结构资源位置 ID
      * @param start 结构起点实例
      */
     void addStructureStart(
-        const std::string& structureName, std::unique_ptr<mc::world::gen::structure::StructureStart> start)
+        const ResourceLocation& structureId, std::unique_ptr<mc::world::gen::structure::StructureStart> start)
     {
-        m_structureStarts[structureName] = std::move(start);
+        m_structureStarts[structureId] = std::move(start);
     }
 
     /**
      * @brief 获取结构起点
-     * @param structureName 结构名称
+     * @param structureId 结构资源位置 ID
      * @return 结构起点指针，如果不存在则返回 nullptr
      */
     [[nodiscard]] mc::world::gen::structure::StructureStart* getStructureStart(
-        const std::string& structureName) noexcept
+        const ResourceLocation& structureId) noexcept
     {
-        auto it = m_structureStarts.find(structureName);
+        auto it = m_structureStarts.find(structureId);
+        return it != m_structureStarts.end() ? it->second.get() : nullptr;
+    }
+
+    /**
+     * @brief 获取结构起点（const 版本）
+     * @param structureId 结构资源位置 ID
+     * @return 结构起点指针，如果不存在则返回 nullptr
+     */
+    [[nodiscard]] const mc::world::gen::structure::StructureStart* getStructureStart(
+        const ResourceLocation& structureId) const noexcept
+    {
+        auto it = m_structureStarts.find(structureId);
         return it != m_structureStarts.end() ? it->second.get() : nullptr;
     }
 
     /**
      * @brief 获取所有结构起点
      */
-    [[nodiscard]] const std::unordered_map<std::string, std::unique_ptr<mc::world::gen::structure::StructureStart>>&
+    [[nodiscard]] const std::unordered_map<ResourceLocation,
+        std::unique_ptr<mc::world::gen::structure::StructureStart>>&
     structureStarts() const noexcept
     {
         return m_structureStarts;
@@ -300,13 +314,13 @@ public:
      *
      * 遍历此区块上的所有结构起点，返回边界框与指定区块相交的结构。
      */
-    [[nodiscard]] std::vector<std::tuple<std::string, ChunkCoord, ChunkCoord>> getIntersectingStructures(
+    [[nodiscard]] std::vector<std::tuple<ResourceLocation, ChunkCoord, ChunkCoord>> getIntersectingStructures(
         ChunkCoord cx, ChunkCoord cz) const override
     {
-        std::vector<std::tuple<std::string, ChunkCoord, ChunkCoord>> result;
-        for (const auto& [name, start] : m_structureStarts) {
+        std::vector<std::tuple<ResourceLocation, ChunkCoord, ChunkCoord>> result;
+        for (const auto& [id, start] : m_structureStarts) {
             if (start && start->isValid() && start->getBoundingBox().intersectsChunk(cx, cz)) {
-                result.emplace_back(name, m_x, m_z);
+                result.emplace_back(id, m_x, m_z);
             }
         }
         return result;
@@ -328,32 +342,33 @@ public:
      * 在 STRUCTURE_REFERENCES 阶段，扫描周围区块的 StructureStart，
      * 如果其边界框与此区块相交，则添加引用。
      *
-     * @param structureName 结构名称
+     * @param structureId 结构资源位置 ID
      * @param referenceChunkX 被引用结构所在区块的 X 坐标
      * @param referenceChunkZ 被引用结构所在区块的 Z 坐标
      */
-    void addStructureReference(const std::string& structureName, ChunkCoord referenceChunkX, ChunkCoord referenceChunkZ)
+    void addStructureReference(
+        const ResourceLocation& structureId, ChunkCoord referenceChunkX, ChunkCoord referenceChunkZ)
     {
-        m_structureReferences[structureName].emplace_back(referenceChunkX, referenceChunkZ);
+        m_structureReferences[structureId].emplace_back(referenceChunkX, referenceChunkZ);
     }
 
     /**
      * @brief 获取指定结构的所有引用
-     * @param structureName 结构名称
+     * @param structureId 结构资源位置 ID
      * @return 引用列表（区块坐标），如果不存在返回空列表
      */
     [[nodiscard]] const std::vector<std::pair<ChunkCoord, ChunkCoord>>& getStructureReferences(
-        const std::string& structureName) const
+        const ResourceLocation& structureId) const
     {
         static const std::vector<std::pair<ChunkCoord, ChunkCoord>> empty;
-        auto it = m_structureReferences.find(structureName);
+        auto it = m_structureReferences.find(structureId);
         return it != m_structureReferences.end() ? it->second : empty;
     }
 
     /**
      * @brief 获取所有结构引用
      */
-    [[nodiscard]] const std::unordered_map<std::string, std::vector<std::pair<ChunkCoord, ChunkCoord>>>&
+    [[nodiscard]] const std::unordered_map<ResourceLocation, std::vector<std::pair<ChunkCoord, ChunkCoord>>>&
     structureReferences() const noexcept
     {
         return m_structureReferences;
@@ -512,10 +527,10 @@ private:
     std::vector<SpawnedEntityData> m_spawnedEntities;
 
     // 结构起点（用于结构生成）
-    std::unordered_map<std::string, std::unique_ptr<mc::world::gen::structure::StructureStart>> m_structureStarts;
+    std::unordered_map<ResourceLocation, std::unique_ptr<mc::world::gen::structure::StructureStart>> m_structureStarts;
 
     // 结构引用（哪些结构的边界框与此区块相交）
-    std::unordered_map<std::string, std::vector<std::pair<ChunkCoord, ChunkCoord>>> m_structureReferences;
+    std::unordered_map<ResourceLocation, std::vector<std::pair<ChunkCoord, ChunkCoord>>> m_structureReferences;
 
     // 雕刻掩码（AIR 和 LIQUID 两个雕刻阶段共享）
     std::unique_ptr<CarvingMask> m_carvingMask;

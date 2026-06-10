@@ -43,6 +43,10 @@ namespace structure {
 using namespace mc::Biomes;
 
 const std::string SwampHutStructure::s_name = "Swamp_Hut";
+
+const SpawnOverrides SwampHutStructure::s_spawnOverrides = {
+    SpawnOverrideType::Full, {SpawnOverrideEntry{"monster", 1, 1}}};
+
 const std::vector<BiomeId> SwampHutStructure::s_validBiomes = {Swamp, SwampHills};
 
 SwampHutStructure::SwampHutStructure()

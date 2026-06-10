@@ -43,7 +43,7 @@ namespace mc::world::gen::structure {
  */
 struct StructureSelectionEntry {
     ResourceLocation structureId; ///< 结构资源位置（如 minecraft:village_plains）
-    i32 weight;                    ///< 权重（用于加权随机选择）
+    i32 weight;                   ///< 权重（用于加权随机选择）
 
     StructureSelectionEntry(ResourceLocation id, i32 w)
         : structureId(std::move(id))

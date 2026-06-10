@@ -41,6 +41,9 @@ using namespace mc::Biomes;
 
 const std::string BastionRemnantStructure::s_name = "bastion_remnant";
 
+const SpawnOverrides BastionRemnantStructure::s_spawnOverrides = {
+    SpawnOverrideType::Piece, {SpawnOverrideEntry{"monster", 2, 4}, SpawnOverrideEntry{"creature", 2, 4}}};
+
 const std::vector<BiomeId> BastionRemnantStructure::s_validBiomes = {
     NetherWastes, CrimsonForest, WarpedForest, SoulSandValley};
 

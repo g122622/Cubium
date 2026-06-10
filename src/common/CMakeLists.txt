@@ -925,8 +925,8 @@ add_library(mc_common STATIC
     world/biome/BiomeRegistry.cpp
     world/biome/BiomeGenerationSettings.cpp
     world/biome/BiomeTag.cpp
-    world/biome/BiomeTags.cpp
     world/biome/BiomeTagLoader.cpp
+    world/biome/BiomeTags.cpp
 
     # World - Biome - Climate
     world/biome/climate/Climate.cpp
@@ -1009,7 +1009,13 @@ add_library(mc_common STATIC
     # World - Generation - Structure
     world/gen/structure/Structure.cpp
     world/gen/structure/StructureBoundingBox.cpp
+    world/gen/structure/StructureDefinitionLoader.cpp
     world/gen/structure/StructureManager.cpp
+    world/gen/structure/StructureSet.cpp
+    world/gen/structure/StructureSetLoader.cpp
+    world/gen/structure/placement/StructurePlacement.cpp
+    world/gen/structure/placement/RandomSpreadStructurePlacement.cpp
+    world/gen/structure/placement/ConcentricRingsStructurePlacement.cpp
     world/gen/structure/structures/RuinedPortalStructure.cpp
     world/gen/structure/structures/BuriedTreasureStructure.cpp
     world/gen/structure/structures/MineshaftStructure.cpp
@@ -1037,6 +1043,7 @@ add_library(mc_common STATIC
     world/gen/jigsaw/JigsawPiece.cpp
     world/gen/jigsaw/JigsawPattern.cpp
     world/gen/jigsaw/JigsawManager.cpp
+    world/gen/jigsaw/ProcessorListLoader.cpp
     world/gen/jigsaw/TemplatePoolLoader.cpp
     world/gen/jigsaw/ProcessorListRegistry.cpp
     world/gen/jigsaw/PoolAliasBinding.cpp

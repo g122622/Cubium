@@ -31,11 +31,10 @@ namespace mc::world::gen::structure::placement {
 // StructurePlacement
 // ============================================================================
 
-math::BlockPos StructurePlacement::getLocatePos(const world::chunk::ChunkPos& chunkPos) const
+BlockPos StructurePlacement::getLocatePos(const world::chunk::ChunkPos& chunkPos) const
 {
     // 区块原点（左上角）加上 8（区块中心偏移）再加上 locateOffset
-    return math::BlockPos(
-        chunkPos.x * 16 + 8 + m_locateOffset.x, m_locateOffset.y, chunkPos.z * 16 + 8 + m_locateOffset.z);
+    return BlockPos(chunkPos.x * 16 + 8 + m_locateOffset.x, m_locateOffset.y, chunkPos.z * 16 + 8 + m_locateOffset.z);
 }
 
 bool StructurePlacement::applyAdditionalChunkRestrictions(i32 chunkX, i32 chunkZ, i64 worldSeed) const

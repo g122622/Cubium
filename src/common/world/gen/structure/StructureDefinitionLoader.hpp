@@ -32,19 +32,18 @@
 #include "common/world/gen/jigsaw/PoolAliasBinding.hpp"
 #include "common/world/gen/valueprovider/HeightProvider.hpp"
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <optional>
 #include <string>
 #include <vector>
 
-namespace nlohmann {
-class json;
-}
-
 namespace mc {
+
+class IResourcePack;
 
 namespace resource {
 class DataPackList;
-class IResourcePack;
 } // namespace resource
 
 namespace world::gen::structure {
@@ -56,24 +55,24 @@ namespace world::gen::structure {
  * 对应 MC 1.21.11 的 Structure 结构。
  */
 struct StructureDefinition {
-    ResourceLocation id;                  ///< 结构资源位置
-    std::string type;                     ///< 结构类型（如 "minecraft:jigsaw"）
-    ResourceLocation biomes;              ///< 生物群系标签引用
-    DecorationStage step = DecorationStage::SurfaceStructures; ///< 生成阶段
+    ResourceLocation id;                                           ///< 结构资源位置
+    std::string type;                                              ///< 结构类型（如 "minecraft:jigsaw"）
+    ResourceLocation biomes;                                       ///< 生物群系标签引用
+    DecorationStage step = DecorationStage::SurfaceStructures;     ///< 生成阶段
     TerrainAdaptation terrainAdaptation = TerrainAdaptation::None; ///< 地形适配模式
 
     // Jigsaw 结构专用参数
-    ResourceLocation startPool;                                    ///< 起始模板池
-    i32 size = 7;                                                  ///< 递归深度
-    std::unique_ptr<valueprovider::HeightProvider> startHeight;     ///< 起始高度提供者
-    bool projectStartToHeightmap = false;                          ///< 是否投影到高度图
-    std::string heightmapName;                                     ///< 高度图名称（如 "WORLD_SURFACE_WG"）
-    std::optional<JigsawStructure::MaxDistance> maxDistanceFromCenter; ///< 距中心最大距离
-    std::optional<ResourceLocation> startJigsawName;               ///< 起始 Jigsaw 名称
-    jigsaw::PoolAliasBindings poolAliases;                         ///< 池别名绑定
-    JigsawStructure::DimensionPadding dimensionPadding;            ///< 维度填充
+    ResourceLocation startPool;                                        ///< 起始模板池
+    i32 size = 7;                                                      ///< 递归深度
+    std::unique_ptr<valueprovider::HeightProvider> startHeight;        ///< 起始高度提供者
+    bool projectStartToHeightmap = false;                              ///< 是否投影到高度图
+    std::string heightmapName;                                         ///< 高度图名称（如 "WORLD_SURFACE_WG"）
+    std::optional<MaxDistance> maxDistanceFromCenter;                  ///< 距中心最大距离
+    std::optional<ResourceLocation> startJigsawName;                   ///< 起始 Jigsaw 名称
+    jigsaw::PoolAliasBindings poolAliases;                             ///< 池别名绑定
+    DimensionPadding dimensionPadding;                                 ///< 维度填充
     LiquidSettings liquidSettings = LiquidSettings::ApplyWaterlogging; ///< 液体设置
-    bool useExpansionHack = false;                                 ///< 是否使用扩展技巧
+    bool useExpansionHack = false;                                     ///< 是否使用扩展技巧
 
     StructureDefinition() = default;
     StructureDefinition(const StructureDefinition&) = delete;
@@ -124,7 +123,7 @@ public:
      * @param pack 资源包
      * @return 加载的结构定义数量，或错误
      */
-    [[nodiscard]] static Result<size_t> loadFromResourcePack(const resource::IResourcePack& pack);
+    [[nodiscard]] static Result<size_t> loadFromResourcePack(const IResourcePack& pack);
 
     /**
      * @brief 从 JSON 字符串加载单个结构定义
@@ -179,5 +178,5 @@ private:
     static std::unordered_map<ResourceLocation, StructureDefinition*> s_byId;
 };
 
-} // namespace mc::world::gen::structure
+} // namespace world::gen::structure
 } // namespace mc
