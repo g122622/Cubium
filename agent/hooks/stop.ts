@@ -24,7 +24,8 @@
 import { query, HookCallback, StopHookInput, PreToolUseHookInput } from "@anthropic-ai/claude-agent-sdk";
 import { cleanJsonlFile } from "../utils/cleanJsonlFile";
 
-const STOP_HOOK_PROMPT = `You are evaluating whether Claude should stop working.
+const TASK_DESCRIPTION = `
+You are evaluating whether Claude should stop working.
 
 请严格根据当前会话上下文，逐项检查以下完工标准：
 1. 功能完整性：所有用户请求的任务是否已完全实现？任务列表是否彻底清空？计划是否全部实现？
@@ -32,12 +33,14 @@ const STOP_HOOK_PROMPT = `You are evaluating whether Claude should stop working.
 3. 测试用例：测试是否完备、逻辑合理，且包含足够的边界/异常场景，足以暴露潜在缺陷？
 4. 代码清理：已废弃的旧逻辑、死代码、调试输出或临时文件是否已彻底清除？
 5. 文档同步：相关模块及路径下的各级 README 是否已按最新实现更新？
+6. 是否严格遵循了 docs/CODE_CONVENTIONS.md 和 docs/PROJECT_CONVENTIONS.md 中的代码规范？
  如果你拿不准，无法完整确定上述是否全部完成，请你保守地返回false，并在reason中指出需要复查的地方
 
 例外情况：如果编译命令出现的错误不是编译或链接错误，而是工具链错误，如cmake、ninja、vcpkg等，则你无需修复，直接停下来等我处理就行了。
 
 请仅返回标准 JSON，严禁包含 markdown 格式或额外解释，并且注意尽量不要在json的reason字段中出现特殊字符，如果无法避免出现特殊字符，记得增加转义：
-{"ok": true} 或 {"ok": false, "reason": "未达标的具体项及下一步明确操作指令"}`;
+{"ok": true} 或 {"ok": false, "reason": "未达标的具体项及下一步明确操作指令"}
+`;
 
 interface StopEvaluationResult {
     ok: boolean;
@@ -53,9 +56,9 @@ async function evaluateShouldStop(
 
     // 构建评估上下文
     const evaluationPrompt =
-        `
+`
 ## 你的任务
-${STOP_HOOK_PROMPT}
+${TASK_DESCRIPTION}
 
 ## 当前会话上下文
 - 会话 ID: ${sessionId}
@@ -69,7 +72,7 @@ ${lastAssistantMessage ? lastAssistantMessage : "无"}
 </LastAssistantMessage>
 
 ## 你的任务
-${STOP_HOOK_PROMPT}
+${TASK_DESCRIPTION}
 `;
 
     console.log(`📋 评估提示语:\n${evaluationPrompt}...\n`);
@@ -82,6 +85,7 @@ ${STOP_HOOK_PROMPT}
             prompt: evaluationPrompt,
             options: {
                 permissionMode: "bypassPermissions",
+                model: "glm-5.1",
                 // 不带 hook，避免递归
             },
         })) {

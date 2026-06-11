@@ -6,25 +6,14 @@
 
 本规范旨在确保项目代码的**一致性**、**可维护性**、**可读性**和**安全性**，降低团队协作成本，提高代码质量。
 
-### 1.2 八荣八耻
-
-以瞎猜接口为耻，以认真查询为荣。
-以模糊执行为耻，以寻求确认为荣。
-以臆想业务为耻，以人类确认为荣。
-以自造轮子为耻，以复用现有为荣。
-以跳过验证为耻，以主动测试为荣。
-以破坏架构为耻，以遵循规范为荣，
-以假装理解为耻，以诚实无知为荣。
-以盲目修改为耻，以谨慎重构为荣。
-
-### 1.3 例外处理
+### 1.2 例外处理
 
 如有特殊情况需要违反本规范，必须：
 1. 立即停止，向用户询问，征得同意之后方可继续
 2. 在代码中添加明确注释说明原因
 3. 结束任务之后给用户明确反馈
 
-### 1.4 有关防御性编程
+### 1.3 有关防御性编程
 
 不要过度防御性编程，这会导致代码臃肿、不易发现真正的bug和架构缺陷。只在必要的边界和不受信任的输入处进行防御性检查，其他地方可以假设前置条件已经满足。
 
@@ -108,13 +97,6 @@ int arr[10];
 // ✅ 推荐：std::array或std::vector
 std::array<int, 10> arr;
 std::vector<int> vec;
-
-// ❌ 禁止：裸指针管理内存
-int* ptr = new int(5);
-delete ptr;
-
-// ✅ 推荐：智能指针
-auto ptr = std::make_unique<int>(5);
 
 // ❌ 禁止：宏定义常量
 #define MAX_PLAYERS 100
@@ -288,19 +270,27 @@ enum class BlockType {
 
 ### 3.5 命名空间规范
 
+需要使用命名空间隔离各个子系统的标识符。下面是最佳实践：
+
 ```cpp
-// ✅ 推荐：小写命名空间
 namespace mc {
-namespace client {
-namespace renderer {
-}}}
+namespace entity {
+namespace attribute {
+
+/**
+ * @brief 属性修改器操作类型
+ *
+ * 定义属性修改器如何影响基础值
+ */
+enum class Operation : u8 {
+    // ...
+}}}}
 
 // ❌ 禁止：不允许使用 using namespace std！
 using namespace std;  // ❌
-
 ```
 
-【重要】对于只在单个 .cpp 文件中使用的类、函数、全局变量等，应放入匿名 namespace，避免污染，而不是使用static或全局命名空间。
+【重要】对于只在单个 .cpp 文件中使用的类、函数、全局变量等，应放入匿名 namespace，避免污染，**并在其命名前加上下划线prefix**，而不是使用static或全局命名空间。
 
 ---
 
@@ -343,6 +333,8 @@ float alpha = smoothstep(0.0f, 1.0f, deltaTime * 5.0f);
 // TODO: 临时解决方案，等待其他模块完成后重构
 // NOTE: 此处性能关键，不要随意修改
 ```
+
+【重要】暂时的简化实现、不完整实现、因为未实现等开发进度原因而导致暂时未使用的代码、函数和变量等，必须加上TODO注释（注释中要有明文`TODO`，便于全文搜索），如果对应逻辑缺少TODO注释则需要补上TODO注释，以便未来的开发者知道哪里需要完善实现。
 
 ### 5.3 代码区域标记
 
@@ -397,11 +389,7 @@ std::unique_ptr<Chunk> chunk = std::make_unique<Chunk>();
 // ✅ 推荐：共享所有权使用std::shared_ptr
 std::shared_ptr<Texture> texture = std::make_shared<Texture>();
 
-// ✅ 推荐：使用make函数
-auto ptr = std::make_unique<Type>(args...);
-auto ptr = std::make_shared<Type>(args...);
-
-// ❌ 禁止：裸new/delete
+// ❌ 严禁：裸new/delete
 Type* ptr = new Type();  // ❌ 尽可能不要使用裸指针
 delete ptr;              // ❌
 ```
@@ -410,21 +398,10 @@ delete ptr;              // ❌
 
 ```cpp
 // ✅ 推荐：预分配容量
-std::vector<Block> blocks;
 blocks.reserve(16 * 256 * 16);  // 区块大小
-
 // ✅ 推荐：使用emplace_back代替push_back
-vec.emplace_back(args...);  // ✅ 原地构造
-vec.push_back(Type(args...)); // ❌ 可能产生临时对象
-
 // ✅ 推荐：使用string_view避免拷贝
 void processString(std::string_view str);
-
-// ✅ 推荐：预先分配
-vec.reserve(1000);
-for (int i = 0; i < 1000; i++) {
-    vec.push_back(i);  // ✅
-}
 ```
 
 ---
