@@ -76,8 +76,8 @@ AgeableEntity (父类)
 
 6. **鸡骑士标记**：`m_chickenJockey = true` 时不下蛋。
 
-7. **兔子类型值**：`RabbitType::Killer = 99`，不是按顺序排列的枚举值。
+7. **兔子类型值**：`RabbitType::Killer = 99`，不是按顺序排列的枚举值。MC 1.21.11 中杀手兔不再自然生成，只能通过命令或刷怪蛋指定 ID 99 生成。
 
 8. **AnimalEntity::registerGoals() 是空的**：子类必须自己注册完整的 AI 目标列表，不能依赖基类注册。
 
-9. **兔子类型与群系**：`setRandomRabbitType()` 根据生成位置的群系决定类型——雪地群系（白色/白色斑点）、沙漠群系（金色）、其他群系（棕色/椒盐色/黑色），杀手兔有 1/1000 概率覆盖。
+9. **兔子类型与群系**：`setRandomRabbitType()` 根据生成位置的群系决定类型——雪地群系（白色/白色斑点）、沙漠群系（金色）、其他群系（棕色/椒盐色/黑色）。`getDefaultRabbitTypeForBiome()` 可用于繁殖时获取群系类型。

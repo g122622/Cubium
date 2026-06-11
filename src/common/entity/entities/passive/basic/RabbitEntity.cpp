@@ -71,15 +71,9 @@ std::unique_ptr<Entity> RabbitEntity::create(IWorld* /*world*/)
 
 void RabbitEntity::setRandomRabbitType()
 {
-    math::Random rng = getRandom();
-
-    // 杀手兔有极小概率生成（1/1000）
-    if (rng.nextInt(0, 999) == 0) {
-        m_rabbitType = RabbitType::Killer;
-        return;
-    }
-
     // 根据当前群系确定兔子类型
+    // 参考 MC 1.21.11 Rabbit.getRandomRabbitVariant：杀手兔不再自然生成，
+    // 自然生成的兔子类型完全由群系决定
     m_rabbitType = getDefaultRabbitTypeForBiome();
 }
 
@@ -101,6 +95,11 @@ RabbitEntity::RabbitType RabbitEntity::getDefaultRabbitTypeForBiome() const
 
     BiomeId biomeId = chunk->getBiomeAtBlock(pos.localX(), pos.y, pos.localZ());
 
+    // 参考 MC 1.21.11 Rabbit.getRandomRabbitVariant：
+    // 使用一次随机调用来决定类型，与 MC 的随机种子消费方式一致
+    math::Random rng = getRandom();
+    i32 i = rng.nextInt(100);
+
     // 雪地群系：生成白色/白色斑点兔子
     // 参考 MC BiomeTags.SPAWNS_WHITE_RABBITS
     if (biomeId == Biomes::SnowyPlains || biomeId == Biomes::SnowyMountains || biomeId == Biomes::IceSpikes ||
@@ -108,8 +107,7 @@ RabbitEntity::RabbitType RabbitEntity::getDefaultRabbitTypeForBiome() const
         biomeId == Biomes::SnowyBeach || biomeId == Biomes::SnowyTaiga || biomeId == Biomes::SnowyTaigaHills ||
         biomeId == Biomes::SnowyTaigaMountains || biomeId == Biomes::FrozenPeaks || biomeId == Biomes::JaggedPeaks ||
         biomeId == Biomes::SnowySlopes || biomeId == Biomes::Grove) {
-        math::Random rng = getRandom();
-        return rng.nextInt(100) < 80 ? RabbitType::White : RabbitType::WhiteSpotted;
+        return i < 80 ? RabbitType::White : RabbitType::WhiteSpotted;
     }
 
     // 沙漠群系：生成金色兔子
@@ -119,8 +117,6 @@ RabbitEntity::RabbitType RabbitEntity::getDefaultRabbitTypeForBiome() const
     }
 
     // 其他群系：棕色/椒盐色/黑色
-    math::Random rng = getRandom();
-    i32 i = rng.nextInt(100);
     if (i < 50) {
         return RabbitType::Brown;
     }
