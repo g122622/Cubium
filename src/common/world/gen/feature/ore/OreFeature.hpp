@@ -82,7 +82,7 @@ private:
      * @param sizeZ 范围大小Z
      * @param placedCount 已放置计数（输出）
      */
-    void _generateSphere(ChunkPrimer& chunk,
+    void _generateSphere(WorldGenRegion& region,
         math::Random& random,
         const OreFeatureConfig& config,
         f32 x1,

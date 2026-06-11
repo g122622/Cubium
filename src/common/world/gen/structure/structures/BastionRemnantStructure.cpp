@@ -57,7 +57,7 @@ namespace {
  */
 class BastionPlacedPieceAdapter final : public StructurePiece {
 public:
-    explicit BastionPlacedPieceAdapter(const jigsaw::PlacedPiece& placed)
+    explicit BastionPlacedPieceAdapter(jigsaw::PlacedPiece placed)
         : StructurePiece(90,
               placed.boundingBox.minX(),
               placed.boundingBox.minY(),
@@ -65,13 +65,14 @@ public:
               placed.boundingBox.maxX(),
               placed.boundingBox.maxY(),
               placed.boundingBox.maxZ())
-        , m_groundLevelDelta(placed.groundLevelDelta)
-        , m_junctions(placed.junctions)
+        , m_placed(std::move(placed))
+        , m_groundLevelDelta(m_placed.groundLevelDelta)
+        , m_junctions(m_placed.junctions)
     {}
 
-    void generate(IWorldWriter&, math::Random&, i32, i32, const StructureBoundingBox&) override
+    void generate(IWorldWriter& world, math::Random& rng, i32, i32, const StructureBoundingBox& chunkBounds) override
     {
-        // 实际方块放置已在 JigsawManager::placePieceRecursive 中完成
+        jigsaw::JigsawManager::placePieceRecursive(world, m_placed, rng, &chunkBounds);
     }
 
     [[nodiscard]] i32 getGroundLevelDelta() const override { return m_groundLevelDelta; }
@@ -81,6 +82,7 @@ public:
     [[nodiscard]] bool isJigsawPiece() const override { return true; }
 
 private:
+    jigsaw::PlacedPiece m_placed;
     i32 m_groundLevelDelta;
     std::vector<jigsaw::JigsawJunction> m_junctions;
 };
@@ -121,6 +123,7 @@ bool BastionRemnantStructure::canGenerate(
 std::unique_ptr<StructureStart> BastionRemnantStructure::generate(
     IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
+    MC_UNUSED(world);
     MC_UNUSED(generator);
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -161,16 +164,9 @@ std::unique_ptr<StructureStart> BastionRemnantStructure::generate(
     auto placedPieces = jigsaw::JigsawManager::assemble(patternRegistry, *startPool, 7, startPos, rng);
 
     // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
-    for (const auto& placed : placedPieces) {
+    for (auto& placed : placedPieces) {
         if (placed.piece && !placed.piece->isEmpty()) {
-            start->addPiece(std::make_unique<BastionPlacedPieceAdapter>(placed));
-        }
-    }
-
-    // 放置方块到世界
-    for (const auto& placed : placedPieces) {
-        if (placed.piece && !placed.piece->isEmpty()) {
-            jigsaw::JigsawManager::placePieceRecursive(world, placed, rng);
+            start->addPiece(std::make_unique<BastionPlacedPieceAdapter>(std::move(placed)));
         }
     }
 

@@ -152,13 +152,14 @@ bool JigsawManager::assembleAndPlace(IWorldWriter& world,
             continue;
         }
 
-        placePieceRecursive(world, placed, rng);
+        placePieceRecursive(world, placed, rng, nullptr);
     }
 
     return true;
 }
 
-void JigsawManager::placePieceRecursive(IWorldWriter& world, const PlacedPiece& placed, math::Random& rng)
+void JigsawManager::placePieceRecursive(
+    IWorldWriter& world, const PlacedPiece& placed, math::Random& rng, const StructureBoundingBox* bounds)
 {
     // 处理 SingleJigsawPiece 和 LegacySingleJigsawPiece
     const SingleJigsawPiece* singlePiece = dynamic_cast<const SingleJigsawPiece*>(placed.piece.get());
@@ -173,6 +174,7 @@ void JigsawManager::placePieceRecursive(IWorldWriter& world, const PlacedPiece& 
                 PlacementSettings settings;
                 settings.setRotation(placed.rotation);
                 settings.setMirror(placed.mirror);
+                settings.setBoundingBox(bounds);
 
                 // 构建处理器链（按 MC 源码 SinglePoolElement.getSettings() 的顺序）：
                 // 1. BlockIgnoreStructureProcessor — legacy 用 STRUCTURE_AND_AIR，standard 用 STRUCTURE_BLOCK
@@ -226,7 +228,7 @@ void JigsawManager::placePieceRecursive(IWorldWriter& world, const PlacedPiece& 
                 templ->place(world, placed.position, settings, rng, 18);
             } else {
                 // 模板未找到，创建简单的占位方块
-                _placeFallbackBlocks(world, placed, rng);
+                _placeFallbackBlocks(world, placed, rng, bounds);
             }
         }
         return;
@@ -250,7 +252,7 @@ void JigsawManager::placePieceRecursive(IWorldWriter& world, const PlacedPiece& 
             childPlaced.groundLevelDelta = child->getGroundLevelDelta();
             childPlaced.boundingBox = calculateBoundingBox(*child, placed.position, placed.rotation);
 
-            placePieceRecursive(world, childPlaced, rng);
+            placePieceRecursive(world, childPlaced, rng, bounds);
         }
         return;
     }
@@ -267,7 +269,7 @@ void JigsawManager::placePieceRecursive(IWorldWriter& world, const PlacedPiece& 
     }
 
     // 处理其他类型的拼图块（使用回退方块）
-    _placeFallbackBlocks(world, placed, rng);
+    _placeFallbackBlocks(world, placed, rng, bounds);
 }
 
 std::vector<u32> JigsawManager::_getStructureBlockIds()
@@ -295,7 +297,8 @@ std::vector<u32> JigsawManager::_getStructureAndAirIds()
     return ids;
 }
 
-void JigsawManager::_placeFallbackBlocks(IWorldWriter& world, const PlacedPiece& placed, math::Random& rng)
+void JigsawManager::_placeFallbackBlocks(
+    IWorldWriter& world, const PlacedPiece& placed, math::Random& rng, const StructureBoundingBox* bounds)
 {
     // 当模板未找到时，放置简单的方块来标记结构位置
     const BlockState* markerBlock = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
@@ -313,6 +316,10 @@ void JigsawManager::_placeFallbackBlocks(IWorldWriter& world, const PlacedPiece&
     for (i32 y = box.minY(); y <= box.maxY(); ++y) {
         for (i32 x = box.minX(); x <= box.maxX(); ++x) {
             for (i32 z = box.minZ(); z <= box.maxZ(); ++z) {
+                if (bounds != nullptr && !bounds->contains(x, y, z)) {
+                    continue;
+                }
+
                 // 只在边缘放置方块（创建框架）
                 if (y == box.minY() || y == box.maxY() || x == box.minX() || x == box.maxX() || z == box.minZ() ||
                     z == box.maxZ()) {

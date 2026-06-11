@@ -668,7 +668,7 @@ private:
      * @param centerChunk 中心区块视图
      * @param neighbors 输出区块窗口
      * @param loadedNeighbors 已加载邻居区块的共享持有容器
-     * @param missingNeighbors 缺失邻居区块的临时占位容器
+     * @param missingNeighbors 保留的临时持有容器，当前不再用于创建缺失邻区
      * @param cache 生成缓存（可选）；若提供则优先从中获取
      */
     void _collectNeighborChunks(ChunkCoord x,
@@ -714,6 +714,18 @@ private:
      */
     void _doGenerateChunkToTargetStatus(
         ChunkPrimer& chunk, const ChunkStatus& targetStatus, GenerationChunkCache& cache);
+
+    /**
+     * @brief 推进当前步骤所需的直接邻区依赖
+     *
+     * 对 directDependencies 中的每个邻区，复用生成缓存内的中间态并递归推进到
+     * 要求状态。调用完成后，当前步骤允许访问的所有邻区都已达到对应状态。
+     *
+     * @param chunk 当前中心区块
+     * @param step 即将执行的生成步骤
+     * @param cache 本次生成任务的累计依赖缓存
+     */
+    void _prepareStepDependencies(ChunkPrimer& chunk, const ChunkStep& step, GenerationChunkCache& cache);
 
     /**
      * @brief 对单个区块执行单个生成阶段的任务

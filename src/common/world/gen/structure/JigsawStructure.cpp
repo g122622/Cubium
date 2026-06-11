@@ -74,7 +74,7 @@ public:
     {
         // MC 1.21.11: 方块放置在 FEATURES 阶段通过 placeInChunk → generate 调用
         if (m_placed.piece && !m_placed.piece->isEmpty()) {
-            mc::world::gen::jigsaw::JigsawManager::placePieceRecursive(world, m_placed, rng);
+            mc::world::gen::jigsaw::JigsawManager::placePieceRecursive(world, m_placed, rng, &chunkBounds);
         }
     }
 

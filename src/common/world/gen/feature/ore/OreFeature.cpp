@@ -85,7 +85,7 @@ bool OreFeature::place(WorldGenRegion& region,
             if (minY <= topY) {
                 i32 placedCount = 0;
                 _generateSphere(
-                    chunk, random, config, x1, y1, z1, x2, y2, z2, minX, minY, minZ, sizeX, sizeY, sizeZ, placedCount);
+                    region, random, config, x1, y1, z1, x2, y2, z2, minX, minY, minZ, sizeX, sizeY, sizeZ, placedCount);
                 return placedCount > 0;
             }
         }
@@ -94,7 +94,7 @@ bool OreFeature::place(WorldGenRegion& region,
     return false;
 }
 
-void OreFeature::_generateSphere(ChunkPrimer& chunk,
+void OreFeature::_generateSphere(WorldGenRegion& region,
     math::Random& random,
     const OreFeatureConfig& config,
     f32 x1,
@@ -236,9 +236,7 @@ void OreFeature::_generateSphere(ChunkPrimer& chunk,
                     processed[static_cast<size_t>(index)] = true;
 
                     // 获取当前方块
-                    const BlockState* currentState = chunk.getBlockState(static_cast<BlockCoord>(bx & CHUNK_MASK),
-                        static_cast<BlockCoord>(by),
-                        static_cast<BlockCoord>(bz & CHUNK_MASK));
+                    const BlockState* currentState = region.getBlockState(bx, by, bz);
 
                     // MC 1.21: 遍历所有目标，使用第一个匹配的目标放置对应矿石
                     const BlockState* oreState = nullptr;
@@ -260,9 +258,7 @@ void OreFeature::_generateSphere(ChunkPrimer& chunk,
                             {1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
                         for (i32 d = 0; d < 6; ++d) {
                             const BlockState* neighbor =
-                                chunk.getBlockState(static_cast<BlockCoord>((bx + offsets[d][0]) & CHUNK_MASK),
-                                    static_cast<BlockCoord>(by + offsets[d][1]),
-                                    static_cast<BlockCoord>((bz + offsets[d][2]) & CHUNK_MASK));
+                                region.getBlockState(bx + offsets[d][0], by + offsets[d][1], bz + offsets[d][2]);
                             if (neighbor == nullptr || neighbor->isAir()) {
                                 exposedToAir = true;
                                 break;
@@ -273,11 +269,9 @@ void OreFeature::_generateSphere(ChunkPrimer& chunk,
                         }
                     }
 
-                    chunk.setBlockState(static_cast<BlockCoord>(bx & CHUNK_MASK),
-                        static_cast<BlockCoord>(by),
-                        static_cast<BlockCoord>(bz & CHUNK_MASK),
-                        oreState);
-                    ++placedCount;
+                    if (region.setBlockState(bx, by, bz, oreState)) {
+                        ++placedCount;
+                    }
                 }
             }
         }

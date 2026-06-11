@@ -134,6 +134,24 @@ TEST_F(ServerChunkManagerTest, GetChunkSync_CreatesChunk)
     EXPECT_TRUE(m_manager->hasChunkInMem(0, 0));
 }
 
+TEST_F(ServerChunkManagerTest, RequestFullChunkSync_GeneratesStructureReferenceDependencies)
+{
+    ChunkData* chunk = m_manager->requestChunkSync(0, 0, ChunkStatuses::FULL);
+
+    ASSERT_NE(chunk, nullptr);
+    EXPECT_EQ(chunk->x(), 0);
+    EXPECT_EQ(chunk->z(), 0);
+    EXPECT_TRUE(chunk->isFullyGenerated());
+}
+
+TEST_F(ServerChunkManagerTest, RequestStructureReferencesSync_GeneratesDirectDependencies)
+{
+    ChunkData* chunk = m_manager->requestChunkSync(0, 0, ChunkStatuses::STRUCTURE_REFERENCES);
+
+    ASSERT_NE(chunk, nullptr);
+    EXPECT_TRUE(m_manager->hasChunkInMem(0, 0));
+}
+
 TEST_F(ServerChunkManagerTest, GetChunkSync_ReturnsSameChunk)
 {
     ChunkData* chunk1 = m_manager->getChunkSync(5, 10);

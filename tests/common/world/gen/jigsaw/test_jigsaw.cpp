@@ -28,15 +28,46 @@
 
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/jigsaw/JigsawJunction.hpp"
 #include "common/world/gen/jigsaw/JigsawManager.hpp"
 #include "common/world/gen/jigsaw/JigsawPattern.hpp"
 #include "common/world/gen/jigsaw/JigsawPiece.hpp"
 #include <gtest/gtest.h>
 
+#include <vector>
+
 using namespace mc::world::gen::jigsaw;
 using namespace mc::math;
 using namespace mc;
+
+namespace {
+
+class RecordingWorldWriter final : public IWorldWriter {
+public:
+    struct Write {
+        BlockPos pos;
+        const BlockState* state;
+        i32 flags;
+    };
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        writes.push_back({BlockPos(x, y, z), state, 0});
+        return true;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
+        writes.push_back({BlockPos(x, y, z), state, flags});
+        return true;
+    }
+
+    std::vector<Write> writes;
+};
+
+} // namespace
 
 /**
  * @brief 测试 JigsawPattern 权重随机选择
@@ -350,6 +381,27 @@ TEST(JigsawManagerTest, BoundingBoxOverlap)
     // 测试相邻但不重叠
     mc::world::gen::structure::StructureBoundingBox adjacent(10, 0, 0, 20, 9, 9);
     EXPECT_FALSE(JigsawManager::boxesIntersect(placedPieces, adjacent));
+}
+
+TEST(JigsawManagerTest, FallbackPlacementRespectsChunkBounds)
+{
+    VanillaBlocks::initialize();
+
+    auto piece = std::make_unique<SingleJigsawPiece>("minecraft:missing_template_for_bounds_test");
+    piece->setSize(BlockPos(3, 3, 3));
+
+    PlacedPiece placed;
+    placed.piece = std::move(piece);
+    placed.position = BlockPos(0, 64, 0);
+    placed.boundingBox = mc::world::gen::structure::StructureBoundingBox(0, 64, 0, 2, 66, 2);
+
+    RecordingWorldWriter world;
+    Random rng(12345);
+    mc::world::gen::structure::StructureBoundingBox bounds(10, 64, 10, 12, 66, 12);
+
+    JigsawManager::placePieceRecursive(world, placed, rng, &bounds);
+
+    EXPECT_TRUE(world.writes.empty());
 }
 
 /**

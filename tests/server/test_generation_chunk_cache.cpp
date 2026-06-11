@@ -118,6 +118,32 @@ TEST(GenerationChunkCache, GetOrFallback)
     EXPECT_EQ(cache.getOrFallback(1, 0, nullptr), nullptr);
 }
 
+TEST(GenerationChunkCache, GetOrCreateOwned)
+{
+    GenerationChunkCache cache(0, 0, 1);
+
+    ChunkPrimer& west = cache.getOrCreateOwned(-1, 0);
+    ChunkPrimer& westAgain = cache.getOrCreateOwned(-1, 0);
+
+    EXPECT_EQ(&west, &westAgain);
+    EXPECT_EQ(cache.get(-1, 0), &west);
+    EXPECT_TRUE(cache.owns(-1, 0));
+    EXPECT_FALSE(cache.owns(0, 0));
+    EXPECT_EQ(west.x(), -1);
+    EXPECT_EQ(west.z(), 0);
+}
+
+TEST(GenerationChunkCache, ExternalPrimerIsNotOwned)
+{
+    GenerationChunkCache cache(0, 0, 1);
+    ChunkPrimer primer(0, 0);
+
+    cache.set(0, 0, &primer);
+
+    EXPECT_EQ(cache.get(0, 0), &primer);
+    EXPECT_FALSE(cache.owns(0, 0));
+}
+
 TEST(GenerationChunkCache, LargeRadius)
 {
     GenerationChunkCache cache(0, 0, 8);

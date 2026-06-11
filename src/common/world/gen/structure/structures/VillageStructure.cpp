@@ -58,7 +58,7 @@ constexpr i32 SAMPLE_OFFSET_DISTANCE = 8;        // 采样点偏移距离（区�
  */
 class VillagePlacedPieceAdapter final : public StructurePiece {
 public:
-    explicit VillagePlacedPieceAdapter(const jigsaw::PlacedPiece& placed)
+    explicit VillagePlacedPieceAdapter(jigsaw::PlacedPiece placed)
         : StructurePiece(90,
               placed.boundingBox.minX(),
               placed.boundingBox.minY(),
@@ -66,13 +66,14 @@ public:
               placed.boundingBox.maxX(),
               placed.boundingBox.maxY(),
               placed.boundingBox.maxZ())
-        , m_groundLevelDelta(placed.groundLevelDelta)
-        , m_junctions(placed.junctions)
+        , m_placed(std::move(placed))
+        , m_groundLevelDelta(m_placed.groundLevelDelta)
+        , m_junctions(m_placed.junctions)
     {}
 
-    void generate(IWorldWriter&, math::Random&, i32, i32, const StructureBoundingBox&) override
+    void generate(IWorldWriter& world, math::Random& rng, i32, i32, const StructureBoundingBox& chunkBounds) override
     {
-        // 实际方块放置已在 JigsawManager::placePieceRecursive 中完成
+        jigsaw::JigsawManager::placePieceRecursive(world, m_placed, rng, &chunkBounds);
     }
 
     [[nodiscard]] i32 getGroundLevelDelta() const override { return m_groundLevelDelta; }
@@ -82,6 +83,7 @@ public:
     [[nodiscard]] bool isJigsawPiece() const override { return true; }
 
 private:
+    jigsaw::PlacedPiece m_placed;
     i32 m_groundLevelDelta;
     std::vector<jigsaw::JigsawJunction> m_junctions;
 };
@@ -176,6 +178,7 @@ bool VillageStructure::canGenerate(IWorld& world, IChunkGenerator& generator, ma
 std::unique_ptr<StructureStart> VillageStructure::generate(
     IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
+    MC_UNUSED(world);
     using namespace mc::world;
 
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
@@ -186,26 +189,6 @@ std::unique_ptr<StructureStart> VillageStructure::generate(
     const jigsaw::JigsawPattern* startPool = patternRegistry.getPattern(startPoolLocation);
 
     if (!startPool || startPool->isEmpty()) {
-        // TODO 移除下面的简化代码，找不到模板池时应该立即报错
-        // 如果模板池不存在，创建一个简单的村庄标记
-        // 放置一个简单的平台作为占位符
-        const BlockState* cobblestone = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE);
-        const BlockState* oakPlanks = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
-
-        i32 baseX = chunkX * CHUNK_WIDTH + SAMPLE_OFFSET_DISTANCE;
-        i32 baseZ = chunkZ * CHUNK_WIDTH + SAMPLE_OFFSET_DISTANCE;
-        i32 baseY = generator.getHeight(baseX, baseZ, HeightmapType::WorldSurfaceWG);
-        if (baseY < VILLAGE_MIN_SURFACE_HEIGHT) baseY = VILLAGE_DEFAULT_HEIGHT;
-
-        // 简单的 5x5 平台
-        for (i32 x = -2; x <= 2; ++x) {
-            for (i32 z = -2; z <= 2; ++z) {
-                world.setBlockState(baseX + x, baseY - 1, baseZ + z, cobblestone, 18);
-            }
-        }
-        // 中心标记
-        world.setBlockState(baseX, baseY, baseZ, oakPlanks, 18);
-
         return start;
     }
 
@@ -223,16 +206,9 @@ std::unique_ptr<StructureStart> VillageStructure::generate(
 
     // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
     // 这样 NoiseChunkGenerator::collectStructureData 可以收集 Junction 信息
-    for (const auto& placed : placedPieces) {
+    for (auto& placed : placedPieces) {
         if (placed.piece && !placed.piece->isEmpty()) {
-            start->addPiece(std::make_unique<VillagePlacedPieceAdapter>(placed));
-        }
-    }
-
-    // 放置方块到世界
-    for (const auto& placed : placedPieces) {
-        if (placed.piece && !placed.piece->isEmpty()) {
-            jigsaw::JigsawManager::placePieceRecursive(world, placed, rng);
+            start->addPiece(std::make_unique<VillagePlacedPieceAdapter>(std::move(placed)));
         }
     }
 

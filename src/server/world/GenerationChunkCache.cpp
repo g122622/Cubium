@@ -21,6 +21,8 @@
  */
 
 #include "GenerationChunkCache.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include <algorithm>
 
 namespace mc::server {
 
@@ -42,10 +44,35 @@ ChunkPrimer* GenerationChunkCache::get(ChunkCoord x, ChunkCoord z) const
 
 void GenerationChunkCache::set(ChunkCoord x, ChunkCoord z, ChunkPrimer* primer)
 {
-    if (!_inBounds(x, z)) {
-        return;
-    }
+    MC_ASSERT_RELEASE(_inBounds(x, z));
+    MC_ASSERT_RELEASE(primer != nullptr);
     m_entries[static_cast<size_t>(_index(x, z))] = primer;
+}
+
+ChunkPrimer& GenerationChunkCache::getOrCreateOwned(ChunkCoord x, ChunkCoord z)
+{
+    MC_ASSERT_RELEASE(_inBounds(x, z));
+    const size_t index = static_cast<size_t>(_index(x, z));
+    if (m_entries[index] != nullptr) {
+        return *m_entries[index];
+    }
+
+    auto primer = std::make_unique<ChunkPrimer>(x, z);
+    ChunkPrimer* result = primer.get();
+    m_ownedEntries.push_back(std::move(primer));
+    m_entries[index] = result;
+    return *result;
+}
+
+bool GenerationChunkCache::owns(ChunkCoord x, ChunkCoord z) const
+{
+    if (!_inBounds(x, z)) {
+        return false;
+    }
+    const ChunkPrimer* primer = m_entries[static_cast<size_t>(_index(x, z))];
+    return std::any_of(m_ownedEntries.begin(), m_ownedEntries.end(), [primer](const auto& owned) {
+        return owned.get() == primer;
+    });
 }
 
 bool GenerationChunkCache::contains(ChunkCoord x, ChunkCoord z) const

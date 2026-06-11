@@ -280,8 +280,12 @@ public:
      * @param world 世界写入器
      * @param placed 已放置的拼图块信息
      * @param rng 随机数生成器
+     * @param bounds 方块放置裁剪边界；无需裁剪时传入 nullptr
      */
-    static void placePieceRecursive(IWorldWriter& world, const PlacedPiece& placed, math::Random& rng);
+    static void placePieceRecursive(IWorldWriter& world,
+        const PlacedPiece& placed,
+        math::Random& rng,
+        const structure::StructureBoundingBox* bounds);
 
 private:
     /**
@@ -289,8 +293,12 @@ private:
      * @param world 世界写入器
      * @param placed 已放置的拼图块信息
      * @param rng 随机数生成器
+     * @param bounds 方块放置裁剪边界；无需裁剪时传入 nullptr
      */
-    static void _placeFallbackBlocks(IWorldWriter& world, const PlacedPiece& placed, math::Random& rng);
+    static void _placeFallbackBlocks(IWorldWriter& world,
+        const PlacedPiece& placed,
+        math::Random& rng,
+        const structure::StructureBoundingBox* bounds);
 
     /**
      * @brief 获取 Structure Block 方块 ID 列表（用于 BlockIgnore 处理器）

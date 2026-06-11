@@ -24,6 +24,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
+#include <memory>
 #include <vector>
 
 namespace mc::server {
@@ -72,6 +73,23 @@ public:
     void set(ChunkCoord x, ChunkCoord z, ChunkPrimer* primer);
 
     /**
+     * @brief 获取或创建由缓存持有的区块中间态
+     *
+     * 该接口用于构建一次生成任务所需的完整依赖闭包。新建 Primer 的生命周期
+     * 与缓存一致，确保 WorldGenRegion 在阶段执行期间始终引用有效对象。
+     *
+     * @param x 区块 X 坐标（世界坐标）
+     * @param z 区块 Z 坐标（世界坐标）
+     * @return 缓存中的 ChunkPrimer；坐标超出缓存范围时触发断言
+     */
+    [[nodiscard]] ChunkPrimer& getOrCreateOwned(ChunkCoord x, ChunkCoord z);
+
+    /**
+     * @brief 判断指定位置的 Primer 是否由缓存持有
+     */
+    [[nodiscard]] bool owns(ChunkCoord x, ChunkCoord z) const;
+
+    /**
      * @brief 检查指定位置是否在缓存范围内
      */
     [[nodiscard]] bool contains(ChunkCoord x, ChunkCoord z) const;
@@ -102,6 +120,7 @@ private:
     i32 m_radius;
     i32 m_diameter;
     std::vector<ChunkPrimer*> m_entries;
+    std::vector<std::unique_ptr<ChunkPrimer>> m_ownedEntries;
 };
 
 } // namespace mc::server
