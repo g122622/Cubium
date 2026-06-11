@@ -37,8 +37,8 @@ namespace mc {
  * 存储单根黑曜石柱的生成状态
  */
 struct EndSpike {
-    i32 centerX;  ///< 中心X坐标
-    i32 centerZ;  ///< 中心Z坐标
+    i32 centerX;  ///< 中心X坐标（方块坐标）
+    i32 centerZ;  ///< 中心Z坐标（方块坐标）
     i32 radius;   ///< 半径（2-5）
     i32 height;   ///< 高度（76-103）
     bool guarded; ///< 是否有铁栏杆笼子
@@ -50,6 +50,17 @@ struct EndSpike {
         , height(h)
         , guarded(g)
     {}
+
+    /**
+     * @brief 检查柱子中心是否在指定区块内
+     * @param chunkX 区块X坐标
+     * @param chunkZ 区块Z坐标
+     * @return 中心是否在该区块范围内
+     */
+    [[nodiscard]] bool isCenterWithinChunk(i32 chunkX, i32 chunkZ) const
+    {
+        return (centerX >> 4) == chunkX && (centerZ >> 4) == chunkZ;
+    }
 };
 
 /**
@@ -100,7 +111,8 @@ public:
      * @param config 黑曜石柱配置
      * @return 是否成功放置
      */
-    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const EndSpikeFeatureConfig& config);
+    bool place(
+        WorldGenRegion& world, math::Random& random, i32 chunkX, i32 chunkZ, const EndSpikeFeatureConfig& config);
 
 private:
     /**

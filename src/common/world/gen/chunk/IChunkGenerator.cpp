@@ -233,7 +233,7 @@ bool WorldGenRegion::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         const i32 dx = std::abs(relX);
         const i32 dz = std::abs(relZ);
         if (writeRadius < 0 || dx > writeRadius || dz > writeRadius) {
-            spdlog::warn("[WorldGenRegion] blocked setBlockState outside write radius: pos=({}, {}, {}), chunk=({}, "
+            spdlog::error("[WorldGenRegion] blocked setBlockState outside write radius: pos=({}, {}, {}), chunk=({}, "
                          "{}), center=({}, {}), writeRadius={}, generatingStatus={}",
                 x,
                 y,
@@ -244,6 +244,7 @@ bool WorldGenRegion::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
                 m_mainZ,
                 writeRadius,
                 statusName(m_generatingStep->targetStatus()));
+            MC_ASSERT_RELEASE_MSG(false, "WorldGenRegion setBlockState outside of ChunkStep write radius");
             return false;
         }
     }

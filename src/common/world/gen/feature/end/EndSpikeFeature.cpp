@@ -37,29 +37,6 @@
 
 namespace mc {
 
-namespace {
-
-[[nodiscard]] bool intersectsWorldGenRegion(
-    const EndSpike& spike, const WorldGenRegion& world, i32 centerX, i32 centerZ)
-{
-    const i32 minX = world.minChunkX() * mc::world::CHUNK_WIDTH;
-    const i32 maxX = (world.maxChunkX() + 1) * mc::world::CHUNK_WIDTH - 1;
-    const i32 minZ = world.minChunkZ() * mc::world::CHUNK_WIDTH;
-    const i32 maxZ = (world.maxChunkZ() + 1) * mc::world::CHUNK_WIDTH - 1;
-
-    if (centerX + spike.radius < minX || centerX - spike.radius > maxX) {
-        return false;
-    }
-
-    if (centerZ + spike.radius < minZ || centerZ - spike.radius > maxZ) {
-        return false;
-    }
-
-    return true;
-}
-
-} // namespace
-
 // ============================================================================
 // EndSpikeFeatureConfig 实现
 // ============================================================================
@@ -105,7 +82,7 @@ std::vector<EndSpike> EndSpikeFeatureConfig::generateSpikes(u64 worldSeed)
 // ============================================================================
 
 bool EndSpikeFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const EndSpikeFeatureConfig& config)
+    WorldGenRegion& world, math::Random& random, i32 chunkX, i32 chunkZ, const EndSpikeFeatureConfig& config)
 {
     // 获取黑曜石柱列表
     const std::vector<EndSpike>& spikes = config.spikes;
@@ -114,7 +91,8 @@ bool EndSpikeFeature::place(
     if (config.destroying) {
         const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
         for (const auto& spike : spikes) {
-            if (!intersectsWorldGenRegion(spike, world, pos.x + spike.centerX, pos.z + spike.centerZ)) {
+            // MC 1.21.11: 只有柱子中心在当前区块时才处理
+            if (!spike.isCenterWithinChunk(chunkX, chunkZ)) {
                 continue;
             }
 
@@ -124,7 +102,7 @@ bool EndSpikeFeature::place(
                     for (i32 z = -spike.radius; z <= spike.radius; ++z) {
                         // 圆形截面
                         if (x * x + z * z <= spike.radius * spike.radius) {
-                            world.setBlockState(pos.x + spike.centerX + x, y, pos.z + spike.centerZ + z, air);
+                            world.setBlockState(spike.centerX + x, y, spike.centerZ + z, air);
                         }
                     }
                 }
@@ -135,7 +113,9 @@ bool EndSpikeFeature::place(
 
     // 生成每根柱子
     for (const auto& spike : spikes) {
-        if (!intersectsWorldGenRegion(spike, world, spike.centerX, spike.centerZ)) {
+        // MC 1.21.11: 只有柱子中心在当前区块时才生成
+        // 这确保每个 spike 只在一个区块的 feature 放置阶段生成，不会超出 writeRadius
+        if (!spike.isCenterWithinChunk(chunkX, chunkZ)) {
             continue;
         }
 
@@ -255,7 +235,7 @@ bool ConfiguredEndSpikeFeature::place(
         runtimeConfig.spikes = EndSpikeFeatureConfig::generateSpikes(generator.seed());
     }
 
-    return m_feature.place(region, random, pos, runtimeConfig);
+    return m_feature.place(region, random, chunk.x(), chunk.z(), runtimeConfig);
 }
 
 // ============================================================================
