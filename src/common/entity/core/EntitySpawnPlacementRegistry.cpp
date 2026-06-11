@@ -28,6 +28,7 @@
 #include "world/biome/BiomeTags.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/Material.hpp"
+#include "world/lighting/InternalLightUtils.hpp"
 #include "world/spawn/SlimeChunkChecker.hpp"
 
 namespace mc::world::spawn {
@@ -134,7 +135,7 @@ bool EntitySpawnPlacementRegistry::canSpawnEntity(const std::string& entityTypeI
 
     // 检查自定义谓词
     if (entry->predicate) {
-        return entry->predicate(world, pos, entityTypeId);
+        return entry->predicate(world, pos, entityTypeId, random);
     }
 
     return true;
@@ -292,13 +293,15 @@ namespace {
  * @brief 蝙蝠生成条件检查
  *
  * 蝙蝠只能在光照等级 < 4 的地方生成。
- * 注意：光照检查需要 Random 参数，在 NaturalSpawner 中通过 MonsterEntity::isValidLightLevel() 进行
- * 这里的谓词仅做基础检查，光照检查在调用链下游处理。
+ * 光照检查在 NaturalSpawner 中通过 MonsterEntity::isValidLightLevel() 进行，
+ * 这里的谓词仅做基础检查。
  */
-bool canBatSpawn(const ISpawnWorldReader& /*world*/, const Vector3i& /*pos*/, const std::string& /*entityTypeId*/)
+bool canBatSpawn(const ISpawnWorldReader& /*world*/,
+    const Vector3i& /*pos*/,
+    const std::string& /*entityTypeId*/,
+    math::Random& /*random*/)
 {
-    // 光照检查需要 Random 参数和 IWorld 接口，在 NaturalSpawner 中进行
-    // 这里返回 true，让下游检查处理
+    // 光照检查在 NaturalSpawner 中进行，这里返回 true
     return true;
 }
 
@@ -306,27 +309,27 @@ bool canBatSpawn(const ISpawnWorldReader& /*world*/, const Vector3i& /*pos*/, co
  * @brief 怪物生成条件检查（带光照）
  *
  * 怪物需要光照等级满足 isValidLightLevel() 条件。
+ * 光照检查在 NaturalSpawner 中进行。
  */
-bool canMonsterSpawnInLightPredicate(
-    const ISpawnWorldReader& /*world*/, const Vector3i& /*pos*/, const std::string& /*entityTypeId*/)
+bool canMonsterSpawnInLightPredicate(const ISpawnWorldReader& /*world*/,
+    const Vector3i& /*pos*/,
+    const std::string& /*entityTypeId*/,
+    math::Random& /*random*/)
 {
-    // 注意：这个谓词需要 Random 参数，但当前接口不支持
-    // 光照检查应该在 NaturalSpawner 中进行，这里返回 true
-    // 实际的光照检查在 MonsterEntity::isValidLightLevel 中
+    // 光照检查在 NaturalSpawner 中进行，这里返回 true
     return true;
 }
 
 /**
  * @brief 史莱姆生成条件检查
  *
- * 史莱姆需要在史莱姆区块或允许地表史莱姆生成的生物群系中生成。
+ * 完整复刻 MC 原版 Slime.checkSlimeSpawnRules 逻辑。
  *
- * 地下史莱姆区块生成条件（MC 原版 Slime.checkSlimeSpawnRules）：
+ * 地下史莱姆区块生成条件：
  * 1. 非和平难度
- * 2. 非刷怪笼生成
- * 3. 区块是史莱姆区块（使用世界种子确定性计算，10% 概率）
- * 4. 额外 10% 随机概率
- * 5. Y < 40
+ * 2. 区块是史莱姆区块（使用世界种子确定性计算，10% 概率）
+ * 3. 额外 10% 随机概率
+ * 4. Y < 40
  *
  * 地表沼泽史莱姆生成条件：
  * 1. 生物群系带有 ALLOWS_SURFACE_SLIME_SPAWNS 标签（沼泽、红树林沼泽）
@@ -334,7 +337,8 @@ bool canMonsterSpawnInLightPredicate(
  * 3. 生成概率受月相影响（满月 50%，新月 0%）
  * 4. 光照等级 <= 随机值(0-7)
  */
-bool canSlimeSpawn(const ISpawnWorldReader& world, const Vector3i& pos, const std::string& /*entityTypeId*/)
+bool canSlimeSpawn(
+    const ISpawnWorldReader& world, const Vector3i& pos, const std::string& /*entityTypeId*/, math::Random& random)
 {
     // 和平难度不生成史莱姆
     if (world.difficulty() == Difficulty::Peaceful) {
@@ -346,9 +350,12 @@ bool canSlimeSpawn(const ISpawnWorldReader& world, const Vector3i& pos, const st
         const i32 chunkX = pos.x >> world::CHUNK_SHIFT;
         const i32 chunkZ = pos.z >> world::CHUNK_SHIFT;
 
-        // 使用世界种子确定性判断是否为史莱姆区块
+        // 使用世界种子确定性判断是否为史莱姆区块（10% 概率）
         if (SlimeChunkChecker::isSlimeChunk(world.seed(), chunkX, chunkZ)) {
-            return true;
+            // 额外 10% 随机概率通过
+            if (random.nextInt(10) == 0) {
+                return true;
+            }
         }
     }
 
@@ -357,7 +364,16 @@ bool canSlimeSpawn(const ISpawnWorldReader& world, const Vector3i& pos, const st
     if (biome::BiomeTags::ALLOWS_SURFACE_SLIME_SPAWNS().contains(biome)) {
         // Y 需要在 (50, 70) 开区间内
         if (pos.y > 50 && pos.y < 70) {
-            return true;
+            // 生成概率受月相影响
+            const i32 moonPhase = InternalLightUtils::getMoonPhase(world.dayTime());
+            const f32 spawnChance = SlimeChunkChecker::getSurfaceSlimeSpawnChance(moonPhase);
+            if (random.nextFloat() < spawnChance) {
+                // 光照等级 <= 随机值(0-7)
+                const i32 brightness = world.getMaxLocalRawBrightness(pos.x, pos.y, pos.z);
+                if (brightness <= random.nextInt(8)) {
+                    return true;
+                }
+            }
         }
     }
 
@@ -367,7 +383,10 @@ bool canSlimeSpawn(const ISpawnWorldReader& world, const Vector3i& pos, const st
 /**
  * @brief 岩浆怪生成条件检查
  */
-bool canMagmaCubeSpawn(const ISpawnWorldReader& /*world*/, const Vector3i& /*pos*/, const std::string& /*entityTypeId*/)
+bool canMagmaCubeSpawn(const ISpawnWorldReader& /*world*/,
+    const Vector3i& /*pos*/,
+    const std::string& /*entityTypeId*/,
+    math::Random& /*random*/)
 {
     // 岩浆怪在下界生成，无特殊条件
     return true;
@@ -378,7 +397,8 @@ bool canMagmaCubeSpawn(const ISpawnWorldReader& /*world*/, const Vector3i& /*pos
  *
  * 恶魂需要有足够的生成空间。
  */
-bool canGhastSpawn(const ISpawnWorldReader& world, const Vector3i& pos, const std::string& /*entityTypeId*/)
+bool canGhastSpawn(
+    const ISpawnWorldReader& world, const Vector3i& pos, const std::string& /*entityTypeId*/, math::Random& /*random*/)
 {
     // 恶魂需要 4x4x4 的空间
     // 检查周围是否有足够空间

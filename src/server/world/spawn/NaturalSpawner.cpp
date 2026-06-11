@@ -22,7 +22,6 @@
  */
 
 #include "NaturalSpawner.hpp"
-#include "../ServerChunkManager.hpp"
 #include "../ServerWorld.hpp"
 #include "SpawnConditions.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
@@ -42,6 +41,7 @@
 #include "common/world/block/Material.hpp"
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include <algorithm>
 #include <chrono>
@@ -657,6 +657,17 @@ bool NaturalSpawner::_canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i
         [[nodiscard]] u64 seed() const override { return m_world.seed(); }
 
         [[nodiscard]] Difficulty difficulty() const override { return m_world.difficulty(); }
+
+        [[nodiscard]] i64 dayTime() const override { return m_world.dayTime(); }
+
+        [[nodiscard]] i32 getMaxLocalRawBrightness(i32 bx, i32 by, i32 bz) const override
+        {
+            const u8 blockLight = m_world.getBlockLight(bx, by, bz);
+            const u8 skyLight = m_world.getSkyLight(bx, by, bz);
+            const i32 skyDarkening = InternalLightUtils::calculateSkyDarkening(
+                m_world.dayTimeOfDay(), m_world.isRaining(), m_world.isThundering());
+            return InternalLightUtils::calculateRawBrightness(blockLight, skyLight, skyDarkening);
+        }
 
     private:
         mc::server::ServerWorld& m_world;

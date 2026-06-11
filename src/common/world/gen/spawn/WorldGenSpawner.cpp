@@ -29,6 +29,7 @@
 #include "../../../util/AxisAlignedBB.hpp"
 #include "../../WorldConstants.hpp"
 #include "../../block/BlockRegistry.hpp"
+#include "../../lighting/InternalLightUtils.hpp"
 #include "../chunk/IChunkGenerator.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
@@ -70,6 +71,17 @@ public:
     [[nodiscard]] u64 seed() const override { return m_region.seed(); }
 
     [[nodiscard]] Difficulty difficulty() const override { return m_region.difficulty(); }
+
+    [[nodiscard]] i64 dayTime() const override { return m_region.dayTime(); }
+
+    [[nodiscard]] i32 getMaxLocalRawBrightness(i32 x, i32 y, i32 z) const override
+    {
+        const u8 blockLight = m_region.getBlockLight(x, y, z);
+        const u8 skyLight = m_region.getSkyLight(x, y, z);
+        const i32 skyDarkening = InternalLightUtils::calculateSkyDarkening(
+            m_region.dayTimeOfDay(), m_region.isRaining(), m_region.isThundering());
+        return InternalLightUtils::calculateRawBrightness(blockLight, skyLight, skyDarkening);
+    }
 
 private:
     WorldGenRegion& m_region;

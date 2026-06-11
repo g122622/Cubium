@@ -231,6 +231,21 @@ public:
      * @brief 获取世界难度
      */
     [[nodiscard]] virtual Difficulty difficulty() const = 0;
+
+    /**
+     * @brief 获取游戏日时间（ticks）
+     *
+     * 用于月相计算等基于时间的生成条件。
+     */
+    [[nodiscard]] virtual i64 dayTime() const = 0;
+
+    /**
+     * @brief 获取指定位置的最大原始亮度
+     *
+     * 等效于 MC 的 World.getMaxLocalRawBrightness()，
+     * 返回方块光照和有效天空光照中的最大值。
+     */
+    [[nodiscard]] virtual i32 getMaxLocalRawBrightness(i32 x, i32 y, i32 z) const = 0;
 };
 
 /**
@@ -258,11 +273,12 @@ public:
      * 检查指定位置是否可以生成特定实体类型。
      * @param world 世界读取器
      * @param pos 生成位置
-     * @param entityType 实体类型（用于类型检查）
+     * @param entityTypeId 实体类型（用于类型检查）
+     * @param random 随机数生成器（用于需要概率判断的生成条件）
      * @return 是否可以生成
      */
-    using PlacementPredicate =
-        std::function<bool(const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId)>;
+    using PlacementPredicate = std::function<bool(
+        const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId, math::Random& random)>;
 
     /**
      * @brief 放置条目

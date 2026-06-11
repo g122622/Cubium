@@ -22,11 +22,11 @@
  */
 
 #include "entity/core/EntitySpawnPlacementRegistry.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/special/SpecialBlocks.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"
@@ -144,6 +144,8 @@ public:
     [[nodiscard]] bool isHardcore() const override { return false; }
 
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+
+    [[nodiscard]] i32 getMaxLocalRawBrightness(i32, i32, i32) const override { return 15; }
 
     [[nodiscard]] bool isClientSide() override { return false; }
 
