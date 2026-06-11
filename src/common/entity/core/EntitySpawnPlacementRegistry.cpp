@@ -336,6 +336,18 @@ bool canMonsterSpawnInLightPredicate(const ISpawnWorldReader& /*world*/,
  * 2. Y 在 50-70 之间（开区间，即 51-69）
  * 3. 生成概率受月相影响（满月 50%，新月 0%）
  * 4. 光照等级 <= 随机值(0-7)
+ *
+ * TODO: 已知与 MC 原版行为差异：
+ * 1. 刷怪笼生成（SpawnReason::Spawner）应跳过史莱姆区块和沼泽条件检查，
+ *    直接使用通用怪物生成规则，但当前 PlacementPredicate 签名不包含 SpawnReason
+ *    参数，canSlimeSpawn 无法区分生成来源，导致刷怪笼在非史莱姆区块中无法生成
+ *    史莱姆。需要扩展 PlacementPredicate 签名以传入 SpawnReason，并在刷怪笼场景
+ *    下直接返回 true。
+ * 2. 地下史莱姆（Y<40 的史莱姆区块路径）在 MC 1.21.11 中只在区块生成阶段
+ *    （SpawnReason::ChunkGeneration）生成，自然生成阶段（SpawnReason::Natural）
+ *    不生成地下史莱姆。当前实现两个阶段都会走地下路径，导致自然生成阶段也能在
+ *    史莱姆区块生成史莱姆，与原版行为不一致。需要在地下路径中检查 SpawnReason
+ *    仅在 ChunkGeneration 时才走此路径（依赖第1点的 PlacementPredicate 签名扩展）。
  */
 bool canSlimeSpawn(
     const ISpawnWorldReader& world, const Vector3i& pos, const std::string& /*entityTypeId*/, math::Random& random)
