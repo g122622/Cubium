@@ -54,7 +54,7 @@ src/server/application/
 - `server/sync/` - EntitySyncManager, ChunkSendManager 等（由 ServerDimension 持有）
 - `server/world/` - ServerWorld, ServerChunkManager, WeatherManager
 - `server/network/` - TcpServer, TcpSession
-- `server/command/` - CommandRegistry
+- `server/command/` - CommandRegistry, CommandStorage
 - `server/menu/` - CraftingMenu
 - `common/entity/inventory/container/` - 容器菜单实现
 - `common/network/` - Packets, LocalConnection
@@ -82,7 +82,7 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 1. `initializeRegistries()` - 方块、物品、配方
 2. `initializeCoreManagers()` - PlayerManager, ConnectionManager 等
 3. 创建 World, ChunkManager, LightManager
-4. `initializeWorld()` - 命令注册
+4. `initializeWorld()` - 命令注册、CommandStorage 初始化
 5. `initializeInteractionManagers()` - 交互管理器
 6. `ServerDimension::initialize()` - 创建同步管理器和刷怪管理器
 7. `setupWorldCallbacks()` - 世界事件回调

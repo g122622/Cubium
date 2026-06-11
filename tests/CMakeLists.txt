@@ -1556,6 +1556,7 @@ endif()
 add_executable(mc_command_tests
     common/BaseTestServer.cpp
     server/command/CommandRegistryTest.cpp
+    server/command/CommandStorageTest.cpp
     server/command/PlayerResolverTest.cpp
     server/command/TeamCommandTest.cpp
     server/command/TriggerCommandTest.cpp

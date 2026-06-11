@@ -72,6 +72,8 @@ data/
 
 5. **存储深拷贝**：`CommandStorage::get()` 返回的是深拷贝，修改返回值不会影响存储中的数据，必须通过 `set()` 或 `mergeData()` 写回。
 
+6. **统一存储实例**：`CommandStorage` 由 `IServer::commandStorage()` 管理，通过 `server->commandStorage()` 获取。不要使用局部 `static CommandStorage`，否则不同 storage 子命令的数据互不共享。
+
 ## 参考
 
 MC 1.16.5: `net.minecraft.command.data.DataAccessor` 及其实现类
