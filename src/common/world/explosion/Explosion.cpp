@@ -43,6 +43,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 
@@ -535,14 +536,9 @@ void Explosion::_spawnFire()
             const BlockState* belowState = m_world.getBlockState(belowPos);
 
             if (belowState && belowState->isOpaqueCube(m_world, belowPos)) {
-                // TODO: 根据下方方块类型选择火焰种类
-                // 如果下方是灵魂沙/灵魂土，应生成灵魂火；否则生成普通火
-                // 当前简化实现：直接使用普通火
-                Block* fireBlock = VanillaBlocks::FIRE;
-                if (fireBlock) {
-                    const BlockState& fireState = fireBlock->defaultState();
-                    m_world.setBlockState(pos, &fireState, 11);
-                }
+                // 根据下方方块类型选择火焰种类：灵魂沙/灵魂土上方生成灵魂火，否则生成普通火
+                const BlockState& fireState = blocks::FireBlock::getFireState(m_world, pos);
+                m_world.setBlockState(pos, &fireState, 11);
             }
         }
     }

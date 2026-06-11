@@ -31,6 +31,7 @@
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -178,11 +179,9 @@ void SmallFireballEntity::onBlockHit(const RayTraceResult& result)
 
         // 检查目标位置是否为空气
         if (placeState != nullptr && placeState->isAir()) {
-            // 放置火焰方块（火焰方块会在 tick 时自动检查是否可以维持）
-            if (VanillaBlocks::FIRE != nullptr) {
-                const BlockState& fireState = VanillaBlocks::FIRE->defaultState();
-                worldPtr->setBlockState(placePos, &fireState, 3);
-            }
+            // 根据环境选择正确的火焰类型（灵魂火或普通火）
+            const BlockState& fireState = blocks::FireBlock::getFireState(*worldPtr, placePos);
+            worldPtr->setBlockState(placePos, &fireState, 3);
         }
     }
 

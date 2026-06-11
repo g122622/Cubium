@@ -58,6 +58,18 @@ public:
 
     // ========== 放置逻辑 ==========
 
+    /**
+     * @brief 根据环境选择正确的火焰状态
+     *
+     * 如果目标位置下方是灵魂沙或灵魂土，返回灵魂火状态；否则返回普通火状态。
+     * 对应 MC 原版 BaseFireBlock.getState()。
+     *
+     * @param world 世界引用
+     * @param pos 要放置火焰的位置
+     * @return 应该放置的火焰方块状态
+     */
+    [[nodiscard]] static const BlockState& getFireState(IWorld& world, const BlockPos& pos);
+
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(

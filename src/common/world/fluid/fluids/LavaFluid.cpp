@@ -32,6 +32,7 @@
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
+#include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"
@@ -120,10 +121,6 @@ void LavaFluid::randomTick(IWorld& world, const BlockPos& pos, const FluidState&
 
     (void)state;
 
-    if (VanillaBlocks::FIRE == nullptr) {
-        return;
-    }
-
     i32 i = random.nextInt(3);
 
     if (i > 0) {
@@ -144,7 +141,8 @@ void LavaFluid::randomTick(IWorld& world, const BlockPos& pos, const FluidState&
             if (blockState->isAir()) {
                 // 检查周围是否有可燃方块
                 if (_isSurroundingBlockFlammable(world, checkPos)) {
-                    world.setBlockState(checkPos, &VanillaBlocks::FIRE->defaultState());
+                    const BlockState& fireState = blocks::FireBlock::getFireState(world, checkPos);
+                    world.setBlockState(checkPos, &fireState, 3);
                     return;
                 }
             } else if (blockState->owner().material().blocksMovement()) {
@@ -174,7 +172,8 @@ void LavaFluid::randomTick(IWorld& world, const BlockPos& pos, const FluidState&
 
             const BlockState* aboveState = world.getBlockState(abovePos);
             if (aboveState != nullptr && aboveState->isAir() && _isBlockFlammable(world, checkPos)) {
-                world.setBlockState(abovePos, &VanillaBlocks::FIRE->defaultState());
+                const BlockState& fireState = blocks::FireBlock::getFireState(world, abovePos);
+                world.setBlockState(abovePos, &fireState, 3);
             }
         }
     }

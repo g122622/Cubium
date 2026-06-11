@@ -36,6 +36,7 @@
 #include "../../BlockRegistry.hpp"
 #include "../../BlockTags.hpp"
 #include "../../FireInfoRegistry.hpp"
+#include "SoulFireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
@@ -87,6 +88,16 @@ i32 FireBlock::getAge(const BlockState& state) const
 BlockState FireBlock::withAge(i32 age) const
 {
     return defaultState().with(BlockStateProperties::AGE_0_15(), std::min(age, 15));
+}
+
+const BlockState& FireBlock::getFireState(IWorld& world, const BlockPos& pos)
+{
+    // 检查目标位置下方是否为灵魂火基座方块（灵魂沙/灵魂土）
+    const BlockState* belowState = world.getBlockState(pos.down());
+    if (belowState != nullptr && SoulFireBlock::isSoulFireBase(&belowState->getBlock())) {
+        return VanillaBlocks::SOUL_FIRE->defaultState();
+    }
+    return VanillaBlocks::FIRE->defaultState();
 }
 
 BlockState FireBlock::getStateForPlacement(BlockItemUseContext& context)
