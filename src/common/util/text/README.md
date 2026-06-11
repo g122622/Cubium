@@ -12,6 +12,7 @@ text/
 ├── ITextComponentFwd.hpp   # 前向声明（避免循环依赖）
 ├── StringTextComponent.hpp # 纯文本组件实现
 ├── TranslationTextComponent.hpp/cpp  # 翻译键组件（支持多语言）
+├── ComponentUtils.hpp      # 文本组件工具函数（wrapInSquareBrackets 等）
 └── TextParser.hpp/cpp      # § 代码解析器（传统格式转 ITextComponent）
 ```
 
@@ -28,6 +29,8 @@ ITextComponent.hpp (依赖 TextStyle)
 │                   │                        │
 StringTextComponent.hpp   TranslationTextComponent.hpp
 │                        (依赖 LanguageManager)
+│
+├── ComponentUtils.hpp (依赖 ITextComponent + TranslationTextComponent)
 │
 TextParser.hpp (依赖 ITextComponent, TextStyle)
 ```

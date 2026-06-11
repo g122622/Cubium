@@ -68,9 +68,9 @@ public:
     ScoreObjective(const ScoreObjective&) = delete;
     ScoreObjective& operator=(const ScoreObjective&) = delete;
 
-    // 允许移动构造，禁止移动赋值（有引用成员）
-    ScoreObjective(ScoreObjective&&) noexcept = default;
-    ScoreObjective& operator=(ScoreObjective&&) noexcept = delete;
+    // 禁止移动（含缓存字段，重新计算需访问成员）
+    ScoreObjective(ScoreObjective&&) = delete;
+    ScoreObjective& operator=(ScoreObjective&&) = delete;
 
     // ========== 基本信息 ==========
 
@@ -100,11 +100,12 @@ public:
     /**
      * @brief 获取格式化后的显示名称
      *
-     * 返回带格式化（名称+悬浮提示）的显示名称。
+     * 返回带方括号包裹和悬浮提示的显示名称（使用翻译键 "chat.square_brackets"）。
+     * 结果已缓存，仅在显示名称变更时重新计算。
      *
-     * @return 格式化显示名称
+     * @return 格式化显示名称的常引用
      */
-    [[nodiscard]] std::unique_ptr<text::ITextComponent> getFormattedDisplayName() const;
+    [[nodiscard]] const text::ITextComponent& getFormattedDisplayName() const noexcept;
 
     /**
      * @brief 设置显示名称
@@ -139,10 +140,20 @@ public:
     [[nodiscard]] Scoreboard& getScoreboard() const noexcept { return m_scoreboard; }
 
 private:
+    /**
+     * @brief 创建格式化显示名称
+     *
+     * 使用 wrapInSquareBrackets 包裹显示名称，并设置悬停事件显示目标内部名称。
+     *
+     * @return 格式化显示名称
+     */
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> createFormattedDisplayName() const;
+
     Scoreboard& m_scoreboard;
     std::string m_name;
     ScoreCriteria* m_criteria;
     std::unique_ptr<text::ITextComponent> m_displayName;
+    std::unique_ptr<text::ITextComponent> m_formattedDisplayName;
     RenderType m_renderType;
 };
 

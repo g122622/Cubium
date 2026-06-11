@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/resource/LanguageManager.hpp"
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/scoreboard/core/ScoreObjective.hpp"
@@ -37,6 +38,7 @@
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextEvents.hpp"
 #include "common/util/text/TextStyle.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 
 using namespace mc;
 using namespace mc::scoreboard;
@@ -57,6 +59,10 @@ protected:
     {
         // 注册内置判据
         ScoreCriteriaRegistry::instance().registerBuiltinCriteria();
+
+        // 注册翻译键供 TranslationTextComponent 使用
+        mc::text::TranslationTextComponent::setLanguageManager(&mc::LanguageManager::instance());
+        mc::LanguageManager::instance().loadFromJson("{\"chat.square_brackets\":\"[%s]\"}");
     }
 
     void TearDown() override
@@ -172,19 +178,11 @@ TEST_F(ScoreboardTest, Objective_GetFormattedDisplayName)
         ASSERT_NE(objective, nullptr);
 
         // 获取格式化显示名称
-        auto formatted = objective->getFormattedDisplayName();
-        ASSERT_NE(formatted, nullptr);
+        const auto& formatted = objective->getFormattedDisplayName();
 
-        // 应该包含方括号
-        // getUnformattedText() 应返回 "[Player Kills]"
-        std::string text = formatted->getUnformattedText();
+        // getUnformattedText() 应返回 "[Player Kills]"（通过翻译键 "chat.square_brackets"）
+        std::string text = formatted.getUnformattedText();
         EXPECT_EQ(text, "[Player Kills]");
-
-        // 验证悬停事件存在
-        const text::Style& style = formatted->getStyle();
-        const text::HoverEvent* hoverEvent = style.getHoverEvent();
-        // 注意：悬停事件设置在内部组件上，不是外部的方括号组件
-        // 所以需要检查子组件的样式
     }
 
     // 测试 2: 没有显示名称的目标（使用目标名称）
@@ -198,9 +196,8 @@ TEST_F(ScoreboardTest, Objective_GetFormattedDisplayName)
         EXPECT_EQ(display->getUnformattedText(), "deaths");
 
         // 格式化显示名称应该包含方括号
-        auto formatted = objective->getFormattedDisplayName();
-        ASSERT_NE(formatted, nullptr);
-        EXPECT_EQ(formatted->getUnformattedText(), "[deaths]");
+        const auto& formatted = objective->getFormattedDisplayName();
+        EXPECT_EQ(formatted.getUnformattedText(), "[deaths]");
     }
 
     // 测试 3: 验证悬停事件显示目标名称
@@ -209,18 +206,15 @@ TEST_F(ScoreboardTest, Objective_GetFormattedDisplayName)
         auto* objective = scoreboard.addObjective("points", *criteria, std::move(displayName));
         ASSERT_NE(objective, nullptr);
 
-        auto formatted = objective->getFormattedDisplayName();
-        ASSERT_NE(formatted, nullptr);
+        const auto& formatted = objective->getFormattedDisplayName();
 
-        // 检查子组件中的悬停事件
-        const auto& siblings = formatted->getSiblings();
-        ASSERT_GE(siblings.size(), 1);
+        // TranslationTextComponent 的参数作为 m_params 存储，
+        // 悬停事件设置在参数组件（即 displayName 的深拷贝）上
+        const auto& params = static_cast<const mc::text::TranslationTextComponent&>(formatted).getParams();
+        ASSERT_EQ(params.size(), 1);
+        ASSERT_NE(params[0], nullptr);
 
-        // 第一个子组件应该是 "Player Kills"（带悬停事件）
-        const auto& contentComponent = siblings[0];
-        ASSERT_NE(contentComponent, nullptr);
-
-        const text::Style& contentStyle = contentComponent->getStyle();
+        const text::Style& contentStyle = params[0]->getStyle();
         const text::HoverEvent* hoverEvent = contentStyle.getHoverEvent();
         ASSERT_NE(hoverEvent, nullptr);
         EXPECT_EQ(hoverEvent->getAction(), text::HoverAction::ShowText);

@@ -22,9 +22,11 @@
  */
 
 #include "ScorePlayerTeam.hpp"
-#include "../../util/text/StringTextComponent.hpp"
-#include "../../util/text/TextStyle.hpp"
 #include "Scoreboard.hpp"
+#include "common/util/text/ComponentUtils.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TextEvents.hpp"
+#include "common/util/text/TextStyle.hpp"
 #include <algorithm>
 
 namespace mc::scoreboard {
@@ -150,6 +152,27 @@ void ScorePlayerTeam::setCollisionRule(TeamCollisionRule rule)
         m_collisionRule = rule;
         m_scoreboard.onTeamChanged(*this);
     }
+}
+
+std::unique_ptr<text::ITextComponent> ScorePlayerTeam::getFormattedDisplayName() const
+{
+    // 深拷贝显示名称，设置悬停事件显示队伍内部名称
+    auto displayNameCopy = m_displayName->deepCopy();
+    text::Style style = displayNameCopy->getStyle();
+    style.setHoverEvent(text::HoverEvent::showText(m_name));
+    displayNameCopy->setStyle(style);
+
+    // 用方括号包裹
+    auto result = text::ComponentUtils::wrapInSquareBrackets(std::move(displayNameCopy));
+
+    // 如果颜色不是 Reset，将队伍颜色应用到包裹后的组件
+    if (m_color != TextFormatting::Reset) {
+        text::Style resultStyle = result->getStyle();
+        resultStyle.setColor(m_color);
+        result->setStyle(resultStyle);
+    }
+
+    return result;
 }
 
 std::unique_ptr<text::ITextComponent> ScorePlayerTeam::formatName(const text::ITextComponent& name) const

@@ -102,6 +102,16 @@ public:
 
     [[nodiscard]] std::unique_ptr<text::ITextComponent> formatName(const text::ITextComponent& name) const override;
 
+    /**
+     * @brief 获取格式化后的显示名称
+     *
+     * 将队伍显示名称用方括号包裹，设置悬停事件显示队伍内部名称，
+     * 并应用队伍颜色样式。
+     *
+     * @return 格式化显示名称
+     */
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getFormattedDisplayName() const override;
+
     // ========== 额外方法 ==========
 
     /**

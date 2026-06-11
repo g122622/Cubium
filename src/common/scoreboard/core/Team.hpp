@@ -227,6 +227,16 @@ public:
     // ========== 格式化 ==========
 
     /**
+     * @brief 获取格式化后的显示名称
+     *
+     * 返回带方括号包裹和悬停提示的显示名称（使用翻译键 "chat.square_brackets"），
+     * 并应用队伍颜色。
+     *
+     * @return 格式化显示名称
+     */
+    [[nodiscard]] virtual std::unique_ptr<text::ITextComponent> getFormattedDisplayName() const = 0;
+
+    /**
      * @brief 格式化成员名称
      *
      * 应用队伍颜色、前缀和后缀格式化玩家名称。

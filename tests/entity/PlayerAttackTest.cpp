@@ -88,6 +88,8 @@ public:
         return nullptr;
     }
 
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getFormattedDisplayName() const override { return nullptr; }
+
 private:
     std::string m_name;
 };

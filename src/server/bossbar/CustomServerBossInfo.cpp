@@ -24,6 +24,7 @@
 #include "CustomServerBossInfo.hpp"
 #include "CustomServerBossInfoManager.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/text/ComponentUtils.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextEvents.hpp"
 #include "common/util/text/TextStyle.hpp"
@@ -200,13 +201,8 @@ std::unique_ptr<text::ITextComponent> CustomServerBossInfo::formattedName() cons
 
     formatted->setStyle(style);
 
-    // 包裹在方括号中
-    auto result = std::make_unique<text::StringTextComponent>("");
-    result->appendText("[");
-    result->append(std::move(formatted));
-    result->appendText("]");
-
-    return result;
+    // 用方括号包裹（使用翻译键 "chat.square_brackets"）
+    return text::ComponentUtils::wrapInSquareBrackets(std::move(formatted));
 }
 
 void CustomServerBossInfo::onPlayerLogin(::mc::ServerPlayer& player)

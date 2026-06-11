@@ -24,6 +24,7 @@
 #include "common/scoreboard/core/ScoreObjective.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
+#include "common/util/text/ComponentUtils.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextEvents.hpp"
 #include "common/util/text/TextStyle.hpp"
@@ -39,6 +40,7 @@ ScoreObjective::ScoreObjective(Scoreboard& scoreboard,
     , m_name(name)
     , m_criteria(&criteria)
     , m_displayName(displayName ? std::move(displayName) : std::make_unique<text::StringTextComponent>(name))
+    , m_formattedDisplayName(createFormattedDisplayName())
     , m_renderType(renderType)
 {}
 
@@ -47,49 +49,26 @@ text::ITextComponent* ScoreObjective::getDisplayName() const noexcept
     return m_displayName.get();
 }
 
-std::unique_ptr<text::ITextComponent> ScoreObjective::getFormattedDisplayName() const
+const text::ITextComponent& ScoreObjective::getFormattedDisplayName() const noexcept
 {
-    // 1. 深拷贝显示名称
-    // 2. 添加悬停事件，悬停时显示目标内部名称
-    // 3. 用方括号包裹
+    return *m_formattedDisplayName;
+}
 
-    if (!m_displayName) {
-        // 如果没有显示名称，创建一个使用目标名称的组件
-        auto displayName = std::make_unique<text::StringTextComponent>(m_name);
-
-        // 设置悬停事件
-        text::Style style;
-        style.setHoverEvent(text::HoverEvent::showText(m_name));
-        displayName->setStyle(style);
-
-        // 用方括号包裹
-        auto result = std::make_unique<text::StringTextComponent>("[");
-        result->append(std::move(displayName));
-        result->append(std::make_unique<text::StringTextComponent>("]"));
-
-        return result;
-    }
-
-    // 深拷贝显示名称
+std::unique_ptr<text::ITextComponent> ScoreObjective::createFormattedDisplayName() const
+{
+    // 深拷贝显示名称，设置悬停事件显示目标内部名称，然后用方括号包裹
     auto displayNameCopy = m_displayName->deepCopy();
-
-    // 获取当前样式并设置悬停事件
     text::Style style = displayNameCopy->getStyle();
     style.setHoverEvent(text::HoverEvent::showText(m_name));
     displayNameCopy->setStyle(style);
 
-    // 用方括号包裹：创建 "[" 组件，追加带悬停的显示名称，追加 "]"
-    // TODO: 翻译系统完成后，改用翻译键 "chat.square_brackets"（即 "[%s]"）
-    auto result = std::make_unique<text::StringTextComponent>("[");
-    result->append(std::move(displayNameCopy));
-    result->append(std::make_unique<text::StringTextComponent>("]"));
-
-    return result;
+    return text::ComponentUtils::wrapInSquareBrackets(std::move(displayNameCopy));
 }
 
 void ScoreObjective::setDisplayName(std::unique_ptr<text::ITextComponent> displayName)
 {
     m_displayName = std::move(displayName);
+    m_formattedDisplayName = createFormattedDisplayName();
     m_scoreboard.onObjectiveChanged(*this);
 }
 
