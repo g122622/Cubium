@@ -45,6 +45,8 @@ bool MagmaPatchFeature::place(
     // 获取方块状态
     const BlockState* magma = VanillaBlocks::getState(VanillaBlocks::MAGMA);
     const BlockState* lava = VanillaBlocks::getState(VanillaBlocks::LAVA);
+    // TODO: 应使用 FireBlock::getFireState() 根据下方方块类型选择火焰种类，
+    // 当前直接使用普通火，在灵魂沙/灵魂土上方不会生成灵魂火
     const BlockState* fire = VanillaBlocks::getState(VanillaBlocks::FIRE);
 
     if (!magma) {

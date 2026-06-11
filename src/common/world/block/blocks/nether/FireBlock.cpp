@@ -102,7 +102,8 @@ const BlockState& FireBlock::getFireState(IWorld& world, const BlockPos& pos)
 
 BlockState FireBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    return defaultState();
+    // 根据环境选择正确的火焰类型
+    return FireBlock::getFireState(context.getWorld(), context.placementPos());
 }
 
 bool FireBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const

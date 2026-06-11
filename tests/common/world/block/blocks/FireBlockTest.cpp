@@ -23,12 +23,12 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/combat/DifficultyHelper.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/FireInfoRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
 #include "world/block/blocks/nether/SoulFireBlock.hpp"
 #include "world/border/WorldBorder.hpp"
@@ -602,6 +602,91 @@ TEST_F(FireBlockTest, BlockState_IsFireSource_Stone)
     // 石头不应该作为火源
     bool isFireSource = state->isFireSource(world, pos, Direction::Up);
     EXPECT_FALSE(isFireSource);
+}
+
+// ============================================================================
+// FireBlock::getFireState() 测试
+// ============================================================================
+
+TEST_F(FireBlockTest, GetFireState_ReturnsNormalFireOnStone)
+{
+    ASSERT_NE(VanillaBlocks::FIRE, nullptr);
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+
+    FireSpreadTestWorld world;
+
+    // 在石头上方放置火焰，应返回普通火
+    const BlockPos firePos(0, 64, 0);
+    const BlockPos stonePos(0, 63, 0);
+
+    world.setBlockAt(stonePos, &VanillaBlocks::STONE->defaultState());
+
+    const BlockState& fireState = FireBlock::getFireState(world, firePos);
+    EXPECT_EQ(&fireState.getBlock(), VanillaBlocks::FIRE);
+}
+
+TEST_F(FireBlockTest, GetFireState_ReturnsSoulFireOnSoulSand)
+{
+    ASSERT_NE(VanillaBlocks::SOUL_FIRE, nullptr);
+    ASSERT_NE(VanillaBlocks::SOUL_SAND, nullptr);
+
+    FireSpreadTestWorld world;
+
+    // 在灵魂沙上方放置火焰，应返回灵魂火
+    const BlockPos firePos(5, 64, 5);
+    const BlockPos sandPos(5, 63, 5);
+
+    world.setBlockAt(sandPos, &VanillaBlocks::SOUL_SAND->defaultState());
+
+    const BlockState& fireState = FireBlock::getFireState(world, firePos);
+    EXPECT_EQ(&fireState.getBlock(), VanillaBlocks::SOUL_FIRE);
+}
+
+TEST_F(FireBlockTest, GetFireState_ReturnsSoulFireOnSoulSoil)
+{
+    ASSERT_NE(VanillaBlocks::SOUL_FIRE, nullptr);
+    ASSERT_NE(VanillaBlocks::SOUL_SOIL, nullptr);
+
+    FireSpreadTestWorld world;
+
+    // 在灵魂土上方放置火焰，应返回灵魂火
+    const BlockPos firePos(7, 64, 7);
+    const BlockPos soilPos(7, 63, 7);
+
+    world.setBlockAt(soilPos, &VanillaBlocks::SOUL_SOIL->defaultState());
+
+    const BlockState& fireState = FireBlock::getFireState(world, firePos);
+    EXPECT_EQ(&fireState.getBlock(), VanillaBlocks::SOUL_FIRE);
+}
+
+TEST_F(FireBlockTest, GetFireState_ReturnsNormalFireOnAir)
+{
+    ASSERT_NE(VanillaBlocks::FIRE, nullptr);
+
+    FireSpreadTestWorld world;
+
+    // 下方为空气（无方块），应返回普通火
+    const BlockPos firePos(10, 64, 10);
+
+    const BlockState& fireState = FireBlock::getFireState(world, firePos);
+    EXPECT_EQ(&fireState.getBlock(), VanillaBlocks::FIRE);
+}
+
+TEST_F(FireBlockTest, GetFireState_ReturnsNormalFireOnDirt)
+{
+    ASSERT_NE(VanillaBlocks::FIRE, nullptr);
+    ASSERT_NE(VanillaBlocks::DIRT, nullptr);
+
+    FireSpreadTestWorld world;
+
+    // 在泥土上方放置火焰，应返回普通火
+    const BlockPos firePos(15, 64, 15);
+    const BlockPos dirtPos(15, 63, 15);
+
+    world.setBlockAt(dirtPos, &VanillaBlocks::DIRT->defaultState());
+
+    const BlockState& fireState = FireBlock::getFireState(world, firePos);
+    EXPECT_EQ(&fireState.getBlock(), VanillaBlocks::FIRE);
 }
 
 } // namespace

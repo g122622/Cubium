@@ -41,7 +41,7 @@ BushBlock (来自 agricultural/ 模块)
     └── NetherRootsBlock (可放置在菌岩、灵魂土上)
 ```
 
-- `FireBlock`：火焰基类，实现蔓延、点燃、实体碰撞伤害等核心逻辑
+- `FireBlock`：火焰基类，实现蔓延、点燃、实体碰撞伤害等核心逻辑。提供静态方法 `getFireState()` 根据下方方块自动选择火焰类型
 - `SoulFireBlock`：继承 FireBlock，重写 `isValidPosition()` 限制基座，重写 `canBurn()` 禁止蔓延
 - `NetherWartBlock`：独立方块，4阶段生长，只能种在灵魂沙上
 - `NyliumBlock`：独立方块，光照过高时退化为下界岩
@@ -71,6 +71,9 @@ BushBlock (来自 agricultural/ 模块)
 | `VanillaBlocks` | 注册原版下界方块实例 |
 | `BlockRegistry` | 方块注册表 |
 | `item/FlintAndSteelItem` | 打火石决定生成普通火还是灵魂火 |
+| `world/explosion/Explosion` | 爆炸生成火焰时选择类型 |
+| `world/fluid/fluids/LavaFluid` | 岩浆点燃火焰时选择类型 |
+| `entity/entities/projectile/AbstractFireballEntity` | 火球放置火焰时选择类型 |
 | 世界生成 | 下界生物群系生成 |
 
 ## 容易踩的坑
@@ -99,6 +102,8 @@ BushBlock (来自 agricultural/ 模块)
 
 `NetherSproutsBlock` 和 `NetherRootsBlock` 继承自 `BushBlock`，需要重写 `canSustain()` 以支持菌岩和灵魂土，否则只能放在 BushBlock 默认支持的地面（草地、泥土等）。
 
-### 7. 传送门框架检测
+### 8. 火焰类型选择必须使用 FireBlock::getFireState()
+
+所有需要放置火焰的场景（爆炸、岩浆点火、火球、打火石等）必须使用 `FireBlock::getFireState(world, pos)` 而非直接使用 `VanillaBlocks::FIRE->defaultState()`。该方法根据下方方块是否为灵魂沙/灵魂土自动返回普通火或灵魂火，对应 MC 原版 `BaseFireBlock.getState()`。
 
 `NetherPortalBlock::isValidPosition()` 检查六个方向是否有传送门方块或黑曜石，如果检测逻辑不完整，传送门方块可能意外消失或残留。
