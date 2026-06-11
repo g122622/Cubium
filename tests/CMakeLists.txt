@@ -177,6 +177,8 @@ add_executable(mc_tests
     common/entity/core/BoostHelperTest.cpp
     # LivingEntity 箭矢计数和发光效果测试
     common/entity/core/LivingEntityArrowCountTest.cpp
+    # LivingEntity 吸收值 getter/setter 和边界 clamping 测试
+    common/entity/core/LivingEntityAbsorptionTest.cpp
     # StepHeight 步高系统测试（Entity、LivingEntity、特定实体步高设置）
     common/entity/core/StepHeightTest.cpp
     # Entity::isInRain() 双位置检测和 EndermanEntity::isInWaterOrRain() 测试

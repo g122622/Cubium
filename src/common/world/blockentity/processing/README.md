@@ -115,6 +115,10 @@ FurnaceInventory (熔炉背包，非 BlockEntity，被 AbstractFurnaceEntity 组
 
 `m_target` 是运行时指针，`m_targetUuid` 用于持久化。恢复时使用 `_findExistingTarget()` 在攻击范围内搜索。
 
+### 9. 潮涌核心含水检测
+
+`_isWaterAt()` 使用 `IWorld::isWaterAt(pos)` 进行流体状态检查（而非仅检查水方块），因此正确覆盖水方块和含水方块两种情况。不要改为 `BlockState::is(VanillaBlocks::WATER)`，那会遗漏含水方块。
+
 ### 9. 营火冷却速度
 
 熄灭时烹饪进度每 tick 减少 2，而非清零。点燃后从上次进度继续。

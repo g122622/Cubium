@@ -353,6 +353,7 @@ void LivingEntity::registerAttributes()
     m_attributes.registerAttribute(*entity::attribute::Attributes::movementSpeed());
     m_attributes.registerAttribute(*entity::attribute::Attributes::armor());
     m_attributes.registerAttribute(*entity::attribute::Attributes::armorToughness());
+    m_attributes.registerAttribute(*entity::attribute::Attributes::maxAbsorption());
 
     // 注意：以下属性不在基类中注册：
     // - FOLLOW_RANGE: 由 MobEntity 设置默认值 16.0

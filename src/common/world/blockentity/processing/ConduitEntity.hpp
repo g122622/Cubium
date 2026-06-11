@@ -145,14 +145,6 @@ private:
     void _attackMobs(IWorld& world);
 
     /**
-     * @brief 检查位置是否在水中
-     * @param world 世界引用
-     * @param pos 方块位置
-     * @return 如果在水中返回true
-     */
-    [[nodiscard]] bool _isWaterAt(IWorld& world, const BlockPos& pos) const;
-
-    /**
      * @brief 检查方块是否为有效的框架方块
      * @param world 世界引用
      * @param pos 方块位置
@@ -190,6 +182,15 @@ protected:
      * @return 找到的目标实体，如果未找到返回nullptr
      */
     [[nodiscard]] LivingEntity* _findExistingTarget(IWorld& world);
+
+    /**
+     * @brief 检查位置是否在水中
+     * 使用 IWorld::isWaterAt() 同时检测水方块和含水方块
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @return 如果在水中返回true
+     */
+    [[nodiscard]] bool _isWaterAt(IWorld& world, const BlockPos& pos) const;
 
     // ========== 状态数据 ==========
 

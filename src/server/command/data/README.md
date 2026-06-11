@@ -53,7 +53,7 @@ data/
 - `common/world/IWorld.hpp` - 世界接口（用于获取 BlockEntity）
 - `common/world/blockentity/BlockEntity.hpp` - 方块实体基类
 - `common/entity/core/Entity.hpp` - 实体基类
-- `common/entity/core/LivingEntity.hpp` - 生物实体（用于生命值等数据）
+- `common/entity/core/LivingEntity.hpp` - 生物实体（用于生命值、吸收值等数据）
 - `common/entity/entities/player/Player.hpp` - 玩家实体（用于判断是否为玩家）
 
 ### 下游依赖（依赖本模块的外部模块）
@@ -73,6 +73,8 @@ data/
 5. **存储深拷贝**：`CommandStorage::get()` 返回的是深拷贝，修改返回值不会影响存储中的数据，必须通过 `set()` 或 `mergeData()` 写回。
 
 6. **统一存储实例**：`CommandStorage` 由 `IServer::commandStorage()` 管理，通过 `server->commandStorage()` 获取。不要使用局部 `static CommandStorage`，否则不同 storage 子命令的数据互不共享。
+
+7. **LivingEntity 吸收值**：`EntityDataAccessor` 通过 `LivingEntity::absorptionAmount()` 和 `setAbsorptionAmount()` 读写 `"AbsorptionAmount"` NBT 键。`setAbsorptionAmount` 会将值限制在 `[0, maxAbsorption]` 范围内，因此合并 NBT 数据时不需要额外的值域检查。
 
 ## 参考
 

@@ -28,6 +28,7 @@
 #include "common/util/UuidUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include "entity/entities/monster/MonsterEntity.hpp"
@@ -385,6 +386,9 @@ public:
     // Expose protected method for testing
     LivingEntity* testFindExistingTarget(IWorld& world) { return _findExistingTarget(world); }
 
+    // Expose _isWaterAt for testing
+    bool testIsWaterAt(IWorld& world, const BlockPos& pos) const { return _isWaterAt(world, pos); }
+
     void setTargetUuidForTest(const std::string& uuid)
     {
         nlohmann::json data;
@@ -578,4 +582,160 @@ TEST(ConduitEntityFindTargetTest, SaveDoesNotWriteTargetUuidWhenNull)
 
     // target_uuid should not be in the saved data
     EXPECT_FALSE(data.contains("target_uuid"));
+}
+
+// ============================================================================
+// ConduitEntity::_isWaterAt Tests - 含水检测（使用流体状态而非方块检查）
+// ============================================================================
+
+// 支持 getFluidState 重写的测试世界
+class ConduitWaterTestWorld final : public test::BaseTestWorld {
+public:
+    using IWorld::getBlockState;
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const BlockPos pos(x, y, z);
+        const auto it = m_statesByPos.find(pos);
+        if (it != m_statesByPos.end()) {
+            return it->second;
+        }
+        return &VanillaBlocks::WATER->defaultState();
+    }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
+        const BlockPos pos(x, y, z);
+        const auto it = m_fluidStatesByPos.find(pos);
+        if (it != m_fluidStatesByPos.end()) {
+            return it->second;
+        }
+        // 默认返回空流体
+        return fluid::Fluid::getFluidState(fluid::FluidRegistry::EMPTY_ID);
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        m_statesByPos[BlockPos(x, y, z)] = state;
+        return true;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
+        MC_UNUSED(flags);
+        return setBlockState(x, y, z, state);
+    }
+
+    void setFluidDirectly(const BlockPos& pos, const fluid::FluidState* state) { m_fluidStatesByPos[pos] = state; }
+
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return {};
+    }
+
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos&) override { return nullptr; }
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos&) const override { return nullptr; }
+    void setBlockEntity(const BlockPos&, BlockEntity*) override {}
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("ConduitWaterTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        throw std::runtime_error("ConduitWaterTestWorld::tickManager not implemented");
+    }
+
+private:
+    std::unordered_map<BlockPos, const BlockState*> m_statesByPos;
+    std::unordered_map<BlockPos, const fluid::FluidState*> m_fluidStatesByPos;
+};
+
+class ConduitIsWaterAtTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        // 初始化方块和流体注册表
+        VanillaBlocks::initialize();
+        fluid::FluidRegistry::instance().initialize();
+    }
+};
+
+// 测试：有水流体状态的位置应返回 true
+TEST_F(ConduitIsWaterAtTest, ReturnsTrueWhenWaterFluidPresent)
+{
+    ConduitWaterTestWorld world;
+    TestConduitEntity conduit(BlockPos(0, 0, 0));
+
+    // 设置水源流体状态
+    fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+    ASSERT_NE(waterFluid, nullptr);
+    world.setFluidDirectly(BlockPos(0, 0, 0), &waterFluid->defaultState());
+
+    // 有水源时 isWaterAt 应返回 true
+    EXPECT_TRUE(conduit.testIsWaterAt(world, BlockPos(0, 0, 0)));
+}
+
+// 测试：无流体状态的位置应返回 false
+TEST_F(ConduitIsWaterAtTest, ReturnsFalseWhenNoFluidPresent)
+{
+    ConduitWaterTestWorld world;
+    TestConduitEntity conduit(BlockPos(0, 0, 0));
+
+    // 无流体状态（默认为空流体）时应返回 false
+    EXPECT_FALSE(conduit.testIsWaterAt(world, BlockPos(0, 0, 0)));
+}
+
+// 测试：有流动水流体状态的位置应返回 true
+TEST_F(ConduitIsWaterAtTest, ReturnsTrueWhenFlowingWaterFluidPresent)
+{
+    ConduitWaterTestWorld world;
+    TestConduitEntity conduit(BlockPos(0, 0, 0));
+
+    // 设置流动水流体状态
+    fluid::Fluid* flowingWater = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::FLOWING_WATER_ID);
+    ASSERT_NE(flowingWater, nullptr);
+    world.setFluidDirectly(BlockPos(0, 0, 0), &flowingWater->defaultState());
+
+    // 流动水的默认状态也应返回 true（IWorld::isWaterAt 同时检测 water 和 flowing_water）
+    EXPECT_TRUE(conduit.testIsWaterAt(world, BlockPos(0, 0, 0)));
+}
+
+// 测试：有岩浆流体状态的位置应返回 false
+TEST_F(ConduitIsWaterAtTest, ReturnsFalseWhenLavaFluidPresent)
+{
+    ConduitWaterTestWorld world;
+    TestConduitEntity conduit(BlockPos(0, 0, 0));
+
+    // 设置岩浆流体状态
+    fluid::Fluid* lavaFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::LAVA_ID);
+    ASSERT_NE(lavaFluid, nullptr);
+    world.setFluidDirectly(BlockPos(0, 0, 0), &lavaFluid->defaultState());
+
+    // 岩浆不应被视为水
+    EXPECT_FALSE(conduit.testIsWaterAt(world, BlockPos(0, 0, 0)));
+}
+
+// 测试：不同位置有不同的流体状态
+TEST_F(ConduitIsWaterAtTest, DifferentPositionsHaveDifferentFluids)
+{
+    ConduitWaterTestWorld world;
+    TestConduitEntity conduit(BlockPos(5, 10, 5));
+
+    // 在不同位置设置不同流体
+    fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+    ASSERT_NE(waterFluid, nullptr);
+
+    world.setFluidDirectly(BlockPos(5, 10, 5), &waterFluid->defaultState());
+    // BlockPos(6, 10, 5) 没有流体（默认空流体）
+
+    EXPECT_TRUE(conduit.testIsWaterAt(world, BlockPos(5, 10, 5)));
+    EXPECT_FALSE(conduit.testIsWaterAt(world, BlockPos(6, 10, 5)));
 }

@@ -7,7 +7,7 @@
 ```
 src/common/entity/core/
 ├── Entity.hpp/cpp                  # 所有实体的基类（位置、运动、碰撞、火焰等）
-├── LivingEntity.hpp/cpp            # 有生命值的生物实体基类（生命值、装备、药水效果）
+├── LivingEntity.hpp/cpp            # 有生命值的生物实体基类（生命值、吸收值、装备、药水效果）
 ├── MobEntity.hpp/cpp               # 有AI的生物实体基类（AI系统、目标选择）
 ├── CreatureEntity.hpp/cpp          # 陆地生物基类（寻路、步进）
 ├── FlyingEntity.hpp/cpp            # 飞行生物基类
@@ -162,3 +162,11 @@ Entity（基类：位置、运动、碰撞、火焰、流体检测）
 - 箭矢数量越多，脱落越快
 - 脱落计时器公式：`20 * (30 - arrowCount)` ticks
 - 箭矢计数仅用于渲染，不影响游戏逻辑
+
+### 吸收值（金苹果额外生命）
+- 使用 `absorptionAmount()` 获取吸收值，`setAbsorptionAmount(f32)` 设置吸收值
+- `setAbsorptionAmount` 会将值限制在 `[0, maxAbsorption]` 范围内（与 MC 原版一致）
+- `maxAbsorption` 来自 `generic.max_absorption` 属性，默认值为 0.0
+- Player 不再需要单独定义吸收值方法，统一使用 LivingEntity 基类的实现
+- 吸收值在 `actuallyHurt` 中通过 `setAbsorptionAmount` 消耗，确保限制逻辑生效
+- NBT 序列化键为 `"AbsorptionAmount"`，反序列化也使用 `setAbsorptionAmount`
