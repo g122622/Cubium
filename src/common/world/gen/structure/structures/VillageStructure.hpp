@@ -94,7 +94,7 @@ public:
      * @brief 生成村庄
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
     /**
      * @brief 获取村庄类型的起始模板池

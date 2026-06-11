@@ -182,7 +182,7 @@ public:
      * @brief 生成 Jigsaw 结构
      */
     std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 protected:
     JigsawConfig m_config;                 ///< Jigsaw 配置

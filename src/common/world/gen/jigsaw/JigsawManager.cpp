@@ -159,7 +159,7 @@ bool JigsawManager::assembleAndPlace(IWorldWriter& world,
 }
 
 void JigsawManager::placePieceRecursive(
-    IWorldWriter& world, const PlacedPiece& placed, math::Random& rng, const StructureBoundingBox* bounds)
+    IWorldWriter& world, const PlacedPiece& placed, math::Random& rng, const structure::StructureBoundingBox* bounds)
 {
     // 处理 SingleJigsawPiece 和 LegacySingleJigsawPiece
     const SingleJigsawPiece* singlePiece = dynamic_cast<const SingleJigsawPiece*>(placed.piece.get());
@@ -298,7 +298,7 @@ std::vector<u32> JigsawManager::_getStructureAndAirIds()
 }
 
 void JigsawManager::_placeFallbackBlocks(
-    IWorldWriter& world, const PlacedPiece& placed, math::Random& rng, const StructureBoundingBox* bounds)
+    IWorldWriter& world, const PlacedPiece& placed, math::Random& rng, const structure::StructureBoundingBox* bounds)
 {
     // 当模板未找到时，放置简单的方块来标记结构位置
     const BlockState* markerBlock = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);

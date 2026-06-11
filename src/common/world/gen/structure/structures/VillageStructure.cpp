@@ -176,9 +176,8 @@ bool VillageStructure::canGenerate(IWorld& world, IChunkGenerator& generator, ma
 }
 
 std::unique_ptr<StructureStart> VillageStructure::generate(
-    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
-    MC_UNUSED(world);
     using namespace mc::world;
 
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);

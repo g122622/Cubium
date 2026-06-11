@@ -33,6 +33,26 @@ namespace gen {
 namespace structure {
 
 /**
+ * @brief 丛林神庙结构片段
+ *
+ * 在 FEATURES 阶段由 placeInChunk() 调用 generate() 写入方块。
+ */
+class JungleTemplePiece final : public StructurePiece {
+public:
+    explicit JungleTemplePiece(const BlockPos& startPos);
+
+    void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32 chunkX,
+        i32 chunkZ,
+        const StructureBoundingBox& chunkBounds) override;
+
+private:
+    BlockPos m_startPos;
+    void _generateTemple(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
+};
+
+/**
  * @brief 丛林神庙结构
  *
  * 丛林神庙是生成在丛林生物群系的结构，包含陷阱和谜题。
@@ -59,14 +79,13 @@ public:
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 
     /**
-     * @brief 生成丛林神庙
+     * @brief 生成丛林神庙起点（仅创建 StructurePiece，禁止写方块）
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
     void _initializeBiomes() noexcept;
-    void _generateTemple(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const;
 
     // spacing=32, separation=8, salt=14357619
     static constexpr StructureSeparationSettings m_settings{32, 8, 14357619};

@@ -333,7 +333,7 @@ public:
      * @brief 生成废弃矿井
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
     // spacing=1, separation=0, salt=0 (每个区块都可能生成)

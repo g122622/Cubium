@@ -23,14 +23,12 @@
 
 #include "BuriedTreasureStructure.hpp"
 
-#include "common/util/math/random/Random.hpp"
 #include "common/core/Constants.hpp"
-#include "common/world/IWorldWriter.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/structure/Structure.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 
 namespace mc::world::gen::structure {
 
@@ -93,7 +91,7 @@ bool BuriedTreasureStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> BuriedTreasureStructure::generate(
-    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -113,15 +111,10 @@ std::unique_ptr<StructureStart> BuriedTreasureStructure::generate(
         treasureY = world::MIN_BUILD_HEIGHT;
     }
 
-    // 创建并添加片段
+    // 创建并添加片段（方块写入延迟到 FEATURES 阶段由 placeInChunk() 执行）
     auto piece = std::make_unique<BuriedTreasurePiece>(baseX, treasureY, baseZ);
     start->addPiece(std::move(piece));
-
-    // 立即在区块中生成（用于简单结构）
-    StructureBoundingBox chunkBounds = StructureBoundingBox::fromChunk(chunkX, chunkZ);
-    for (const auto& p : start->pieces()) {
-        p->generate(world, rng, chunkX, chunkZ, chunkBounds);
-    }
+    start->recalculateStructureSize();
 
     return start;
 }

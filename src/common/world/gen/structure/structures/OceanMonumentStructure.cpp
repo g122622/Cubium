@@ -54,7 +54,7 @@ bool OceanMonumentStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> OceanMonumentStructure::generate(
-    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     MC_UNUSED(generator);
 
@@ -64,26 +64,15 @@ std::unique_ptr<StructureStart> OceanMonumentStructure::generate(
     const i32 startX = chunkX * CHUNK_WIDTH - 29;
     const i32 startZ = chunkZ * CHUNK_WIDTH - 29;
 
-    // MC 1.21.11: 海洋纪念碑使用随机水平方向，而非固定朝北
+    // 随机水平方向
     static const Direction horizontalDirections[] = {
         Direction::North, Direction::South, Direction::East, Direction::West};
     Direction direction = horizontalDirections[rng.nextInt(4)];
 
     auto building = std::make_unique<OceanMonumentBuilding>(rng, startX, startZ, direction);
 
-    StructureBoundingBox boundingBox = building->boundingBox();
-    const i32 minChunkX = boundingBox.minX() >> CHUNK_SHIFT;
-    const i32 maxChunkX = boundingBox.maxX() >> CHUNK_SHIFT;
-    const i32 minChunkZ = boundingBox.minZ() >> CHUNK_SHIFT;
-    const i32 maxChunkZ = boundingBox.maxZ() >> CHUNK_SHIFT;
-
-    for (i32 targetChunkX = minChunkX; targetChunkX <= maxChunkX; ++targetChunkX) {
-        for (i32 targetChunkZ = minChunkZ; targetChunkZ <= maxChunkZ; ++targetChunkZ) {
-            const StructureBoundingBox chunkBounds = StructureBoundingBox::fromChunk(targetChunkX, targetChunkZ);
-            building->generate(world, rng, targetChunkX, targetChunkZ, chunkBounds);
-        }
-    }
-
+    // 只添加片段到 StructureStart；方块写入延迟到 FEATURES 阶段由 placeInChunk() 执行
+    // OceanMonumentBuilding::generate() 会在 FEATURES 阶段被调用，并分发给其子片段
     start->addPiece(std::move(building));
     start->recalculateStructureSize();
     return start;

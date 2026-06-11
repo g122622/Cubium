@@ -28,8 +28,8 @@
 #include "../../../IWorldWriter.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../StructureBoundingBox.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace world {
@@ -56,48 +56,25 @@ constexpr i32 VINE_DECORATION_COUNT = 20;
 
 } // namespace
 
-const std::string JungleTempleStructure::m_name = "jungle_temple";
+// ============================================================================
+// JungleTemplePiece
+// ============================================================================
 
-JungleTempleStructure::JungleTempleStructure() noexcept
-    : Structure(StructureType::Temple)
+JungleTemplePiece::JungleTemplePiece(const BlockPos& pos)
+    : StructurePiece(StructurePieceTypes::JUNGLE_TEMPLE, pos.x, pos.y, pos.z, pos.x + 11, pos.y + 13, pos.z + 14)
+    , m_startPos(pos)
+{}
+
+void JungleTemplePiece::generate(
+    IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
 {
-    _initializeBiomes();
+    if (!getBoundingBox().intersects(chunkBounds)) {
+        return;
+    }
+    _generateTemple(world, rng, chunkBounds);
 }
 
-void JungleTempleStructure::_initializeBiomes() noexcept
-{
-    m_validBiomes = {Jungle, JungleHills, JungleEdge, ModifiedJungle, ModifiedJungleEdge};
-}
-
-bool JungleTempleStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
-{
-    // TODO: 实现生物群系检查逻辑
-    return true;
-}
-
-std::unique_ptr<StructureStart> JungleTempleStructure::generate(
-    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
-{
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
-
-    // 计算起始位置
-    i32 startX = chunkX * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
-    i32 startZ = chunkZ * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
-
-    // 获取地表高度
-    i32 startY = generator.getHeight(startX, startZ, HeightmapType::WorldSurfaceWG);
-    if (startY < MIN_GENERATION_HEIGHT) startY = FALLBACK_HEIGHT;
-
-    BlockPos startPos(startX, startY, startZ);
-
-    // 生成丛林神庙
-    _generateTemple(world, rng, startPos);
-
-    return start;
-}
-
-void JungleTempleStructure::_generateTemple(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const
+void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds)
 {
     const BlockState* cobblestone = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE);
     const BlockState* mossyCobblestone = VanillaBlocks::getState(VanillaBlocks::MOSSY_COBBLESTONE);
@@ -111,9 +88,9 @@ void JungleTempleStructure::_generateTemple(IWorldWriter& world, math::Random& r
     const BlockState* dispenser = VanillaBlocks::getState(VanillaBlocks::DISPENSER);
 
     // 基础参数
-    i32 baseX = startPos.x;
-    i32 baseY = startPos.y;
-    i32 baseZ = startPos.z;
+    i32 baseX = m_startPos.x;
+    i32 baseY = m_startPos.y;
+    i32 baseZ = m_startPos.z;
     i32 width = TEMPLE_WIDTH;
     i32 length = TEMPLE_LENGTH;
     i32 height = TEMPLE_HEIGHT;
@@ -133,7 +110,10 @@ void JungleTempleStructure::_generateTemple(IWorldWriter& world, math::Random& r
     for (i32 y = 0; y < 2; ++y) {
         for (i32 x = 0; x < width; ++x) {
             for (i32 z = 0; z < length; ++z) {
-                world.setBlockState(baseX + x, baseY + y, baseZ + z, randomCobble(), 18);
+                i32 wx = baseX + x, wy = baseY + y, wz = baseZ + z;
+                if (bounds.contains(wx, wy, wz)) {
+                    world.setBlockState(wx, wy, wz, randomCobble(), 18);
+                }
             }
         }
     }
@@ -142,83 +122,194 @@ void JungleTempleStructure::_generateTemple(IWorldWriter& world, math::Random& r
     for (i32 y = 2; y < height; ++y) {
         for (i32 x = 0; x < width; ++x) {
             // 前后墙
-            world.setBlockState(baseX + x, baseY + y, baseZ, randomBrick(), 18);
-            world.setBlockState(baseX + x, baseY + y, baseZ + length - 1, randomBrick(), 18);
+            {
+                i32 wx = baseX + x, wy = baseY + y, wz = baseZ;
+                if (bounds.contains(wx, wy, wz)) {
+                    world.setBlockState(wx, wy, wz, randomBrick(), 18);
+                }
+            }
+            {
+                i32 wx = baseX + x, wy = baseY + y, wz = baseZ + length - 1;
+                if (bounds.contains(wx, wy, wz)) {
+                    world.setBlockState(wx, wy, wz, randomBrick(), 18);
+                }
+            }
         }
         for (i32 z = 0; z < length; ++z) {
             // 左右墙
-            world.setBlockState(baseX, baseY + y, baseZ + z, randomBrick(), 18);
-            world.setBlockState(baseX + width - 1, baseY + y, baseZ + z, randomBrick(), 18);
+            {
+                i32 wx = baseX, wy = baseY + y, wz = baseZ + z;
+                if (bounds.contains(wx, wy, wz)) {
+                    world.setBlockState(wx, wy, wz, randomBrick(), 18);
+                }
+            }
+            {
+                i32 wx = baseX + width - 1, wy = baseY + y, wz = baseZ + z;
+                if (bounds.contains(wx, wy, wz)) {
+                    world.setBlockState(wx, wy, wz, randomBrick(), 18);
+                }
+            }
         }
     }
 
     // 生成入口（南面中央）
     i32 entranceX = width / 2;
     for (i32 y = 2; y < 5; ++y) {
-        world.setBlockState(baseX + entranceX - 1, baseY + y, baseZ, air, 18);
-        world.setBlockState(baseX + entranceX, baseY + y, baseZ, air, 18);
-        world.setBlockState(baseX + entranceX + 1, baseY + y, baseZ, air, 18);
+        {
+            i32 wx = baseX + entranceX - 1, wy = baseY + y, wz = baseZ;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, air, 18);
+            }
+        }
+        {
+            i32 wx = baseX + entranceX, wy = baseY + y, wz = baseZ;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, air, 18);
+            }
+        }
+        {
+            i32 wx = baseX + entranceX + 1, wy = baseY + y, wz = baseZ;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, air, 18);
+            }
+        }
     }
 
     // 入口台阶
     for (i32 step = 0; step < 3; ++step) {
         for (i32 x = entranceX - 1; x <= entranceX + 1; ++x) {
-            world.setBlockState(baseX + x, baseY + 2 - step, baseZ - step - 1, cobblestone, 18);
+            i32 wx = baseX + x, wy = baseY + 2 - step, wz = baseZ - step - 1;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, cobblestone, 18);
+            }
         }
     }
 
     // 内部地板
     for (i32 x = 1; x < width - 1; ++x) {
         for (i32 z = 1; z < length - 1; ++z) {
-            world.setBlockState(baseX + x, baseY + 2, baseZ + z, stoneBricks, 18);
+            i32 wx = baseX + x, wy = baseY + 2, wz = baseZ + z;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, stoneBricks, 18);
+            }
         }
     }
 
     // 中央走廊 - 被墙分隔
     i32 corridorZ = length / 2;
     for (i32 x = 1; x < width - 1; ++x) {
-        world.setBlockState(baseX + x, baseY + 3, baseZ + corridorZ, stoneBricks, 18);
-        world.setBlockState(baseX + x, baseY + 4, baseZ + corridorZ, stoneBricks, 18);
+        {
+            i32 wx = baseX + x, wy = baseY + 3, wz = baseZ + corridorZ;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, stoneBricks, 18);
+            }
+        }
+        {
+            i32 wx = baseX + x, wy = baseY + 4, wz = baseZ + corridorZ;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, stoneBricks, 18);
+            }
+        }
     }
 
     // 走廊门洞
-    world.setBlockState(baseX + entranceX, baseY + 3, baseZ + corridorZ, air, 18);
-    world.setBlockState(baseX + entranceX, baseY + 4, baseZ + corridorZ, air, 18);
+    {
+        i32 wx = baseX + entranceX, wy = baseY + 3, wz = baseZ + corridorZ;
+        if (bounds.contains(wx, wy, wz)) {
+            world.setBlockState(wx, wy, wz, air, 18);
+        }
+    }
+    {
+        i32 wx = baseX + entranceX, wy = baseY + 4, wz = baseZ + corridorZ;
+        if (bounds.contains(wx, wy, wz)) {
+            world.setBlockState(wx, wy, wz, air, 18);
+        }
+    }
 
     // 拉杆谜题房间（西侧）
     i32 puzzleX = 2;
     i32 puzzleZ = 3;
     // 隐藏机关墙
     for (i32 y = 3; y < 6; ++y) {
-        world.setBlockState(baseX + puzzleX, baseY + y, baseZ + puzzleZ, chiseledStoneBricks, 18);
-        world.setBlockState(baseX + puzzleX + 1, baseY + y, baseZ + puzzleZ, chiseledStoneBricks, 18);
+        {
+            i32 wx = baseX + puzzleX, wy = baseY + y, wz = baseZ + puzzleZ;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, chiseledStoneBricks, 18);
+            }
+        }
+        {
+            i32 wx = baseX + puzzleX + 1, wy = baseY + y, wz = baseZ + puzzleZ;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, chiseledStoneBricks, 18);
+            }
+        }
     }
 
     // 箭矢陷阱走廊（东侧）
     i32 trapX = width - 3;
     for (i32 z = 2; z < 6; ++z) {
-        world.setBlockState(baseX + trapX, baseY + 3, baseZ + z, air, 18);
-        world.setBlockState(baseX + trapX + 1, baseY + 3, baseZ + z, air, 18);
+        {
+            i32 wx = baseX + trapX, wy = baseY + 3, wz = baseZ + z;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, air, 18);
+            }
+        }
+        {
+            i32 wx = baseX + trapX + 1, wy = baseY + 3, wz = baseZ + z;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, air, 18);
+            }
+        }
     }
 
     // 绊线陷阱
     if (tripwire && tripwireHook) {
         // 绊线钩在墙上
-        world.setBlockState(baseX + trapX + 2, baseY + 3, baseZ + 3, tripwireHook, 18);
-        world.setBlockState(baseX + trapX + 2, baseY + 3, baseZ + 4, tripwireHook, 18);
+        {
+            i32 wx = baseX + trapX + 2, wy = baseY + 3, wz = baseZ + 3;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, tripwireHook, 18);
+            }
+        }
+        {
+            i32 wx = baseX + trapX + 2, wy = baseY + 3, wz = baseZ + 4;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, tripwireHook, 18);
+            }
+        }
 
         // 绊线连接
         for (i32 z = 3; z <= 4; ++z) {
-            world.setBlockState(baseX + trapX, baseY + 3, baseZ + z, tripwire, 18);
-            world.setBlockState(baseX + trapX + 1, baseY + 3, baseZ + z, tripwire, 18);
+            {
+                i32 wx = baseX + trapX, wy = baseY + 3, wz = baseZ + z;
+                if (bounds.contains(wx, wy, wz)) {
+                    world.setBlockState(wx, wy, wz, tripwire, 18);
+                }
+            }
+            {
+                i32 wx = baseX + trapX + 1, wy = baseY + 3, wz = baseZ + z;
+                if (bounds.contains(wx, wy, wz)) {
+                    world.setBlockState(wx, wy, wz, tripwire, 18);
+                }
+            }
         }
     }
 
     // 发射器陷阱（天花板）
     if (dispenser) {
         // 在天花板上放置发射器，朝下
-        world.setBlockState(baseX + trapX, baseY + 5, baseZ + 3, dispenser, 18);
-        world.setBlockState(baseX + trapX, baseY + 5, baseZ + 4, dispenser, 18);
+        {
+            i32 wx = baseX + trapX, wy = baseY + 5, wz = baseZ + 3;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, dispenser, 18);
+            }
+        }
+        {
+            i32 wx = baseX + trapX, wy = baseY + 5, wz = baseZ + 4;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, dispenser, 18);
+            }
+        }
 
         // TODO: 发射器内放置箭（需要物品容器支持）
     }
@@ -229,15 +320,33 @@ void JungleTempleStructure::_generateTemple(IWorldWriter& world, math::Random& r
 
     // 宝箱房间入口（需要机关开启）
     for (i32 y = 3; y < 6; ++y) {
-        world.setBlockState(baseX + chestX - 1, baseY + y, baseZ + chestZ, mossyStoneBricks, 18);
-        world.setBlockState(baseX + chestX, baseY + y, baseZ + chestZ, mossyStoneBricks, 18);
-        world.setBlockState(baseX + chestX + 1, baseY + y, baseZ + chestZ, mossyStoneBricks, 18);
+        {
+            i32 wx = baseX + chestX - 1, wy = baseY + y, wz = baseZ + chestZ;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, mossyStoneBricks, 18);
+            }
+        }
+        {
+            i32 wx = baseX + chestX, wy = baseY + y, wz = baseZ + chestZ;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, mossyStoneBricks, 18);
+            }
+        }
+        {
+            i32 wx = baseX + chestX + 1, wy = baseY + y, wz = baseZ + chestZ;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, mossyStoneBricks, 18);
+            }
+        }
     }
 
     // 宝箱房间内部
     for (i32 x = chestX - 1; x <= chestX + 1; ++x) {
         for (i32 z = chestZ + 1; z < length - 1; ++z) {
-            world.setBlockState(baseX + x, baseY + 3, baseZ + z, stoneBricks, 18);
+            i32 wx = baseX + x, wy = baseY + 3, wz = baseZ + z;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, stoneBricks, 18);
+            }
         }
     }
 
@@ -245,7 +354,10 @@ void JungleTempleStructure::_generateTemple(IWorldWriter& world, math::Random& r
     if (rng.nextInt(100) < 70) {
         // TODO: 放置真正的宝箱（当前用金块占位）
         const BlockState* goldBlock = VanillaBlocks::getState(VanillaBlocks::GOLD_BLOCK);
-        world.setBlockState(baseX + chestX, baseY + 3, baseZ + chestZ + 2, goldBlock, 18);
+        i32 wx = baseX + chestX, wy = baseY + 3, wz = baseZ + chestZ + 2;
+        if (goldBlock && bounds.contains(wx, wy, wz)) {
+            world.setBlockState(wx, wy, wz, goldBlock, 18);
+        }
     }
 
     // 三层塔楼（四角）
@@ -255,17 +367,28 @@ void JungleTempleStructure::_generateTemple(IWorldWriter& world, math::Random& r
 
         // 塔楼高度额外增加
         for (i32 y = height; y < height + TOWER_EXTRA_HEIGHT; ++y) {
-            world.setBlockState(baseX + cx, baseY + y, baseZ + cz, randomBrick(), 18);
+            i32 wx = baseX + cx, wy = baseY + y, wz = baseZ + cz;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, randomBrick(), 18);
+            }
         }
 
         // 塔楼顶部装饰
-        world.setBlockState(baseX + cx, baseY + height + TOWER_EXTRA_HEIGHT, baseZ + cz, chiseledStoneBricks, 18);
+        {
+            i32 wx = baseX + cx, wy = baseY + height + TOWER_EXTRA_HEIGHT, wz = baseZ + cz;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, chiseledStoneBricks, 18);
+            }
+        }
     }
 
     // 屋顶平台
     for (i32 x = 1; x < width - 1; ++x) {
         for (i32 z = 1; z < length - 1; ++z) {
-            world.setBlockState(baseX + x, baseY + height, baseZ + z, stoneBricks, 18);
+            i32 wx = baseX + x, wy = baseY + height, wz = baseZ + z;
+            if (bounds.contains(wx, wy, wz)) {
+                world.setBlockState(wx, wy, wz, stoneBricks, 18);
+            }
         }
     }
 
@@ -294,9 +417,59 @@ void JungleTempleStructure::_generateTemple(IWorldWriter& world, math::Random& r
 
         // 放置藤蔓
         if (rng.nextInt(100) < 40) {
-            world.setBlockState(baseX + wx, baseY + vy, baseZ + wz, vine, 18);
+            i32 wwx = baseX + wx, wwy = baseY + vy, wwz = baseZ + wz;
+            if (bounds.contains(wwx, wwy, wwz)) {
+                world.setBlockState(wwx, wwy, wwz, vine, 18);
+            }
         }
     }
+}
+
+// ============================================================================
+// JungleTempleStructure
+// ============================================================================
+
+const std::string JungleTempleStructure::m_name = "jungle_temple";
+
+JungleTempleStructure::JungleTempleStructure() noexcept
+    : Structure(StructureType::Temple)
+{
+    _initializeBiomes();
+}
+
+void JungleTempleStructure::_initializeBiomes() noexcept
+{
+    m_validBiomes = {Jungle, JungleHills, JungleEdge, ModifiedJungle, ModifiedJungleEdge};
+}
+
+bool JungleTempleStructure::canGenerate(
+    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+{
+    // TODO: 实现生物群系检查逻辑
+    return true;
+}
+
+std::unique_ptr<StructureStart> JungleTempleStructure::generate(
+    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+{
+    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+
+    // 计算起始位置
+    i32 startX = chunkX * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
+    i32 startZ = chunkZ * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
+
+    // 获取地表高度
+    i32 startY = generator.getHeight(startX, startZ, HeightmapType::WorldSurfaceWG);
+    if (startY < MIN_GENERATION_HEIGHT) startY = FALLBACK_HEIGHT;
+
+    BlockPos startPos(startX, startY, startZ);
+
+    // 创建片段（方块写入延迟到 FEATURES 阶段由 placeInChunk() 执行）
+    auto piece = std::make_unique<JungleTemplePiece>(startPos);
+    start->addPiece(std::move(piece));
+    start->recalculateStructureSize();
+
+    return start;
 }
 
 } // namespace structure

@@ -85,11 +85,10 @@ public:
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 
     /**
-     * @brief 生成埋藏的宝藏
-     * 在区块中心生成一个宝藏箱子
+     * @brief 生成埋藏的宝藏起点（仅创建 StructurePiece，禁止写方块）
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
     // spacing=1, separation=0, salt=0

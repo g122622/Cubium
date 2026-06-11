@@ -213,7 +213,7 @@ std::string ShipwreckStructure::_getRandomTemplateName(math::Random& rng, bool i
 }
 
 std::unique_ptr<StructureStart> ShipwreckStructure::generate(
-    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 

@@ -30,13 +30,13 @@
 #include "../../../IWorldWriter.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../feature/template/Template.hpp"
 #include "../../feature/template/TemplateLoader.hpp"
 #include "../../feature/template/TemplateManager.hpp"
 #include "../../jigsaw/JigsawManager.hpp"
 #include "../StructureBoundingBox.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::world::gen::structure {
@@ -400,10 +400,8 @@ RuinedPortalLocation RuinedPortalStructure::determineLocation(RuinedPortalType t
 }
 
 std::unique_ptr<StructureStart> RuinedPortalStructure::generate(
-    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
-    MC_UNUSED(world);
-
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 计算生成位置

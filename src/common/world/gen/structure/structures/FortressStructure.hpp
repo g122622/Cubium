@@ -34,6 +34,27 @@ namespace gen {
 namespace structure {
 
 /**
+ * @brief 下界要塞回退片段
+ *
+ * 在 Jigsaw 系统不可用时生成简单的要塞结构。
+ * 在 FEATURES 阶段由 placeInChunk() 调用 generate() 写入方块。
+ */
+class FortressFallbackPiece final : public StructurePiece {
+public:
+    explicit FortressFallbackPiece(const BlockPos& startPos);
+
+    void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32 chunkX,
+        i32 chunkZ,
+        const StructureBoundingBox& chunkBounds) override;
+
+private:
+    BlockPos m_startPos;
+    void _generateFallbackFortress(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
+};
+
+/**
  * @brief 下界要塞结构
  *
  * 下界要塞是生成在下界的大型结构，包含烈焰人刷怪笼和地狱疣房间。
@@ -75,14 +96,13 @@ public:
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 
     /**
-     * @brief 生成下界要塞
+     * @brief 生成下界要塞起点（仅创建 StructurePiece，禁止写方块）
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
     void _initializeBiomes();
-    void _generateFallbackFortress(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const;
 
     Config m_config;
     static constexpr StructureSeparationSettings m_settings{27, 4, 30084232};

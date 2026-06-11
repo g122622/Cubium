@@ -23,9 +23,9 @@
 
 #include "OceanRuinStructure.hpp"
 
+#include "common/core/Constants.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/core/Constants.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/biome/Biome.hpp"
@@ -226,7 +226,7 @@ bool OceanRuinStructure::canGenerate([[maybe_unused]] IWorld& world,
 }
 
 std::unique_ptr<StructureStart> OceanRuinStructure::generate(
-    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 

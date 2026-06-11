@@ -1,68 +1,70 @@
-# 结构生成系统 (Structure Generation System)
+#结构生成系统(Structure Generation System)
 
 本模块实现 MC 1.21.11 的数据驱动结构生成管线，包括结构定义、结构集合、放置策略和 Jigsaw 组装。
 
-## 目录结构树
+        ##目录结构树
 
-```text
-structure/
-├── Structure.hpp                      # 结构基类定义（含 SpawnOverrides、BiomeTag 引用）
-├── Structure.cpp                      # 结构基类实现
-├── StructureBoundingBox.hpp           # 结构边界框（用于判断片段与区块交集）
+```text structure /
+├── Structure.hpp #结构基类定义（含 SpawnOverrides、BiomeTag 引用）
+├── Structure.cpp #结构基类实现
+├── StructureBoundingBox.hpp #结构边界框（用于判断片段与区块交集）
 ├── StructureBoundingBox.cpp
-├── StructureSet.hpp                   # 结构集合模型（加权条目 + 放置规则）
-├── StructureSet.cpp                   # 20 个原版 StructureSet 注册
-├── StructureSetLoader.hpp             # 结构集合 JSON 加载器（数据包）
+├── StructureSet.hpp #结构集合模型（加权条目 +
+    放置规则）
+├── StructureSet.cpp #20 个原版 StructureSet 注册
+├── StructureSetLoader.hpp #结构集合 JSON 加载器（数据包）
 ├── StructureSetLoader.cpp
-├── StructureDefinitionLoader.hpp      # 结构定义 JSON 加载器（数据包）
+├── StructureDefinitionLoader.hpp #结构定义 JSON 加载器（数据包）
 ├── StructureDefinitionLoader.cpp
-├── JigsawStructure.hpp                # Jigsaw 拼图结构基类
+├── JigsawStructure.hpp #Jigsaw 拼图结构基类
 ├── JigsawStructure.cpp
-├── StructureManager.hpp               # 结构管理器（注册、查询、生成协调）
+├── StructureManager.hpp #结构管理器（注册、查询、生成协调）
 ├── StructureManager.cpp
-├── placement/                         # 结构放置策略（MC 1.21.11 对齐）
-│   ├── StructurePlacement.hpp         # 放置基类、FrequencyReductionMethod、ExclusionZone
-│   ├── StructurePlacement.cpp         # 频率缩减检查、排斥区检查
-│   ├── RandomSpreadStructurePlacement.hpp  # 网格随机/三角分布（大多数结构）
+├── placement / #结构放置策略（MC 1.21.11 对齐）
+│   ├── StructurePlacement.hpp #放置基类、FrequencyReductionMethod、ExclusionZone
+│   ├── StructurePlacement.cpp #频率缩减检查、排斥区检查
+│   ├── RandomSpreadStructurePlacement.hpp #网格随机 / 三角分布（大多数结构）
 │   ├── RandomSpreadStructurePlacement.cpp
-│   ├── ConcentricRingsStructurePlacement.hpp  # 同心环分布（要塞）
+│   ├── ConcentricRingsStructurePlacement.hpp #同心环分布（要塞）
 │   ├── ConcentricRingsStructurePlacement.cpp
 │   └── README.md
-├── pools/                             # Jigsaw 模板池
-│   ├── Pools.hpp/cpp                  # 模板池注册入口
-│   ├── ProcessorLists.hpp/cpp         # 结构处理器列表
-│   ├── bastion/                       # 堡垒遗迹模板池
-│   ├── pillager_outpost/              # 掠夺者前哨站模板池
-│   ├── trial_chambers/                # 试炼密室模板池
-│   └── village/                       # 村庄模板池
-└── structures/                        # 具体结构实现
-    ├── BastionRemnantStructure.*      # 堡垒遗迹（Jigsaw）
-    ├── BuriedTreasureStructure.*      # 埋藏宝藏（程序化）
-    ├── DesertPyramidStructure.*       # 沙漠神殿（程序化）
-    ├── EndCityStructure.*             # 末地城（递归模板）
-    ├── FortressStructure.*            # 下界要塞（程序化）
-    ├── IglooStructure.*               # 雪屋（模板堆叠）
-    ├── JungleTempleStructure.*        # 丛林神庙（程序化）
-    ├── MineshaftStructure.*           # 废弃矿井（程序化片段）
-    ├── NetherFossilStructure.*        # 下界化石（模板）
-    ├── OceanMonumentPieces.*          # 海洋纪念碑片段
-    ├── OceanMonumentStructure.*       # 海洋纪念碑（程序化）
-    ├── OceanRuinStructure.*           # 海底废墟（模板+IntegrityProcessor）
-    ├── PillagerOutpostStructure.*     # 掠夺者前哨站（Jigsaw）
-    ├── RuinedPortalStructure.*        # 废弃传送门（模板）
-    ├── ShipwreckStructure.*           # 沉船（模板）
-    ├── StrongholdPieces.*             # 要塞片段（走廊、房间、传送门室等）
-    ├── StrongholdStructure.*          # 要塞（递归片段系统）
-    ├── SwampHutStructure.*            # 沼泽小屋（程序化）
-    ├── TrialChambersStructure.*       # 试炼密室（Jigsaw）
-    ├── VillageStructure.*             # 村庄（Jigsaw）
-    └── WoodlandMansionStructure.*     # 林地府邸（程序化房间布局）
+├── pools / #Jigsaw 模板池
+│   ├── Pools.hpp / cpp #模板池注册入口
+│   ├── ProcessorLists.hpp / cpp #结构处理器列表
+│   ├── bastion / #堡垒遗迹模板池
+│   ├── pillager_outpost / #掠夺者前哨站模板池
+│   ├── trial_chambers / #试炼密室模板池
+│   └── village / #村庄模板池
+└── structures / #具体结构实现
+    ├── BastionRemnantStructure.*#堡垒遗迹（Jigsaw）
+    ├── BuriedTreasureStructure.*#埋藏宝藏（程序化）
+    ├── DesertPyramidStructure.*#沙漠神殿（程序化）
+    ├── EndCityStructure.*#末地城（递归模板）
+    ├── FortressStructure.*#下界要塞（程序化）
+    ├── IglooStructure.*#雪屋（模板堆叠）
+    ├── JungleTempleStructure.*#丛林神庙（程序化）
+    ├── MineshaftStructure.*#废弃矿井（程序化片段）
+    ├── NetherFossilStructure.*#下界化石（模板）
+    ├── OceanMonumentPieces.*#海洋纪念碑片段
+    ├── OceanMonumentStructure.*#海洋纪念碑（程序化）
+    ├── OceanRuinStructure.*#海底废墟（模板 +
+    IntegrityProcessor）
+    ├── PillagerOutpostStructure.*#掠夺者前哨站（Jigsaw）
+    ├── RuinedPortalStructure.*#废弃传送门（模板）
+    ├── ShipwreckStructure.*#沉船（模板）
+    ├── StrongholdPieces.*#要塞片段（走廊、房间、传送门室等）
+    ├── StrongholdStructure.*#要塞（递归片段系统）
+    ├── SwampHutStructure.*#沼泽小屋（程序化）
+    ├── TrialChambersStructure.*#试炼密室（Jigsaw）
+    ├── VillageStructure.*#村庄（Jigsaw）
+    └── WoodlandMansionStructure.*
+            #林地府邸（程序化房间布局）
 ```
 
-## MC 1.21.11 数据驱动管线
+            ##MC 1.21.11 数据驱动管线
 
-```
-worldgen/structure/*.json     → Structure (定义结构类型、生物群系标签、装饰阶段)
+``` worldgen /
+        structure/*.json     → Structure (定义结构类型、生物群系标签、装饰阶段)
 worldgen/structure_set/*.json → StructureSet (加权条目 + StructurePlacement)
 tags/worldgen/biome/*.json    → BiomeTag (has_structure/* 标签)
 worldgen/processor_list/*.json→ ProcessorList (方块替换处理器)
@@ -162,14 +164,14 @@ worldgen/processor_list/*.json→ ProcessorList (方块替换处理器)
 
 ## 容易踩的坑
 
-### 1. 结构生成阶段顺序
+### 1. 结构生成阶段顺序（编译期强制保证）
 
 结构必须严格按 MC 1.21.11 管线执行：
-- `STRUCTURE_STARTS`: 只创建 StructureStart，**不写方块**
+- `STRUCTURE_STARTS`: 只创建 StructureStart，**禁止写方块**（`Structure::generate()` 不接受 `IWorldWriter&` 参数，编译期保证）
 - `STRUCTURE_REFERENCES`: 收集跨区块引用，incrementRefCount()
-- `FEATURES`: 通过 placeInChunk() 写入方块
+- `FEATURES`: 通过 `placeInChunk()` → `StructurePiece::generate()` 写入方块
 
-JigsawStructure::generate() 已修改为只创建片段，方块写入延迟到 JigsawPlacedPieceAdapter::generate()。
+`Structure::generate()` 签名为 `generate(IChunkGenerator&, Random&, chunkX, chunkZ)`，不接受 `IWorldWriter&`，确保结构起点阶段不可能写入方块。所有方块写入必须通过 `StructurePiece::generate()` 在 FEATURES 阶段执行。
 
 ### 2. 跨区块结构引用
 

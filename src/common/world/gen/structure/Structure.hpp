@@ -598,16 +598,20 @@ public:
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ);
 
     /**
-     * @brief 生成结构
-     * @param world 世界写入器
-     * @param generator 区块生成器
+     * @brief 生成结构起点（仅创建 StructurePiece，禁止写方块）
+     *
+     * 此方法在 STRUCTURE_STARTS 阶段调用，只能创建 StructureStart 和
+     * StructurePiece 对象。所有方块写入必须延迟到 FEATURES 阶段，
+     * 由 StructurePiece::generate() 通过 placeInChunk() 执行。
+     *
+     * @param generator 区块生成器（用于查询高度、生物群系等只读信息）
      * @param rng 随机数生成器
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标
-     * @return 生成的结构实例，如果无法生成则返回 nullptr
+     * @return 生成的结构实例
      */
     [[nodiscard]] virtual std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const;
+        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const;
 
     /**
      * @brief 在区块中放置结构片段
@@ -756,6 +760,12 @@ constexpr i32 MINESHAFT_ROOM = 60;
 constexpr i32 MINESHAFT_CORRIDOR = 61;
 constexpr i32 MINESHAFT_CROSS = 62;
 constexpr i32 MINESHAFT_STAIRS = 63;
+// 沙漠神殿
+constexpr i32 DESERT_PYRAMID = 64;
+// 丛林神庙
+constexpr i32 JUNGLE_TEMPLE = 65;
+// 下界要塞（回退方案）
+constexpr i32 FORTRESS_FALLBACK = 66;
 } // namespace StructurePieceTypes
 
 } // namespace world::gen::structure

@@ -25,14 +25,12 @@
 #include "../../../../core/Constants.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorldWriter.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../feature/template/TemplateManager.hpp"
 #include "../../jigsaw/JigsawManager.hpp"
-#include "../StructureBoundingBox.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -105,7 +103,7 @@ bool EndCityStructure::canGenerate(IWorld& world, IChunkGenerator& generator, ma
 }
 
 std::unique_ptr<StructureStart> EndCityStructure::generate(
-    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -130,26 +128,12 @@ std::unique_ptr<StructureStart> EndCityStructure::generate(
     // 启动房屋塔生成
     startHouseTower(templateManager, BlockPos(x, y, z), rotation, pieces, rng);
 
-    // 将所有片段添加到 StructureStart
+    // 将所有片段添加到 StructureStart（方块写入延迟到 FEATURES 阶段由 placeInChunk() 执行）
     for (auto& piece : pieces) {
         start->addPiece(std::move(piece));
     }
 
-    // 放置方块到世界
-    for (const auto& piece : start->pieces()) {
-        if (piece) {
-            StructureBoundingBox chunkBounds(chunkX * world::CHUNK_WIDTH,
-                world::MIN_BUILD_HEIGHT,
-                chunkZ * world::CHUNK_WIDTH,
-                chunkX * world::CHUNK_WIDTH + world::CHUNK_MASK,
-                world::MAX_BUILD_HEIGHT - 1,
-                chunkZ * world::CHUNK_WIDTH + world::CHUNK_MASK);
-            // 创建临时随机数生成器
-            math::Random localRng(rng.nextU64());
-            const_cast<StructurePiece*>(piece.get())->generate(world, localRng, chunkX, chunkZ, chunkBounds);
-        }
-    }
-
+    start->recalculateStructureSize();
     return start;
 }
 

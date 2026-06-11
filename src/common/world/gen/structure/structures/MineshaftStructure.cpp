@@ -25,8 +25,8 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorldWriter.hpp"
 #include "../../../WorldConstants.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../StructureBoundingBox.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 
 namespace mc::world::gen::structure {
@@ -800,7 +800,7 @@ bool MineshaftStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> MineshaftStructure::generate(
-    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 

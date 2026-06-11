@@ -149,14 +149,14 @@ bool StructureManager::shouldGenerateStructureStart(const Structure& structure, 
 }
 
 std::unique_ptr<StructureStart> StructureManager::generateStructureStart(const Structure& structure,
-    IWorldWriter& world,
+    IWorldWriter& /*world*/,
     IChunkGenerator& generator,
     math::Random& rng,
     i32 chunkX,
     i32 chunkZ)
 {
-    // 调用结构的生成方法
-    return structure.generate(world, generator, rng, chunkX, chunkZ);
+    // 调用结构的生成方法（不写方块，方块写入延迟到 FEATURES 阶段）
+    return structure.generate(generator, rng, chunkX, chunkZ);
 }
 
 void StructureManager::placeStructureInChunk(

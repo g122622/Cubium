@@ -27,11 +27,10 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/MathConstants.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorldWriter.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../StructureBoundingBox.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <cmath>
 
@@ -146,8 +145,10 @@ bool StrongholdStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> StrongholdStructure::generate(
-    IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
+    MC_UNUSED(generator);
+
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 计算起始位置
@@ -160,17 +161,15 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
     BlockPos startPos(startX, startY, startZ);
 
     // 使用 StrongholdPieces 系统生成要塞
-    _generateStrongholdPieces(world, rng, startPos, start->pieces());
+    _generateStrongholdPieces(rng, startPos, start->pieces());
 
     start->recalculateStructureSize();
 
     return start;
 }
 
-void StrongholdStructure::_generateStrongholdPieces(IWorldWriter& world,
-    math::Random& rng,
-    const BlockPos& startPos,
-    std::vector<std::unique_ptr<StructurePiece>>& pieces) const
+void StrongholdStructure::_generateStrongholdPieces(
+    math::Random& rng, const BlockPos& startPos, std::vector<std::unique_ptr<StructurePiece>>& pieces) const
 {
     // 生成起始楼梯
     auto startStairs = std::make_unique<StrongholdStartStairs>(rng, startPos.x, startPos.z);

@@ -33,6 +33,26 @@ namespace gen {
 namespace structure {
 
 /**
+ * @brief 沙漠神殿结构片段
+ *
+ * 在 FEATURES 阶段由 placeInChunk() 调用 generate() 写入方块。
+ */
+class DesertPyramidPiece final : public StructurePiece {
+public:
+    explicit DesertPyramidPiece(const BlockPos& startPos);
+
+    void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32 chunkX,
+        i32 chunkZ,
+        const StructureBoundingBox& chunkBounds) override;
+
+private:
+    BlockPos m_startPos;
+    void _generatePyramid(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
+};
+
+/**
  * @brief 沙漠神殿结构
  *
  * 沙漠神殿是生成在沙漠生物群系的结构，包含隐藏的宝藏室。
@@ -58,14 +78,13 @@ public:
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 
     /**
-     * @brief 生成沙漠神殿
+     * @brief 生成沙漠神殿起点（仅创建 StructurePiece，禁止写方块）
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IWorldWriter& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
     void _initializeBiomes();
-    void _generatePyramid(IWorldWriter& world, math::Random& rng, const BlockPos& startPos) const;
 
     // 结构间距设置：spacing=32, separation=8, salt=14357617
     static constexpr StructureSeparationSettings m_settings{32, 8, 14357617};

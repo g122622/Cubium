@@ -144,7 +144,7 @@ bool JigsawStructure::canGenerate(IWorld& world, IChunkGenerator& generator, mat
 }
 
 std::unique_ptr<StructureStart> JigsawStructure::generate(
-    IWorldWriter& /*world*/, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 

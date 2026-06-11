@@ -1159,6 +1159,17 @@ OceanMonumentBuilding::OceanMonumentBuilding(math::Random& rng, i32 x, i32 z, Di
     m_coreRoom = coreRoom;
     m_childPieces.emplace_back(std::make_unique<OceanMonumentCoreRoom>(direction, coreRoom));
 
+    // MC 1.21.11: 将房间子片段的边界框从网格相对坐标偏移到世界坐标
+    // 原版中 Room/EntryRoom/CoreRoom 使用 createRoomBox() 生成网格相对坐标，
+    // 需要通过 getWorldPos(9, 0, 22) 偏移到世界坐标，使 intersectsChunk() 正确工作。
+    // WingRoom 和 Penthouse 使用 minX()+offset 已经是世界坐标，不需要偏移。
+    const i32 offsetX = getXWithOffset(9, 22);
+    const i32 offsetY = getYWithOffset(0);
+    const i32 offsetZ = getZWithOffset(9, 22);
+    for (auto& childPiece : m_childPieces) {
+        childPiece->offset(offsetX, offsetY, offsetZ);
+    }
+
     StructureBoundingBox leftWingBox(minX() + 8, minY() + 4, minZ() + 29, minX() + 24, minY() + 11, minZ() + 49);
     StructureBoundingBox rightWingBox(minX() + 33, minY() + 4, minZ() + 29, minX() + 49, minY() + 11, minZ() + 49);
     StructureBoundingBox penthouseBox(minX() + 21, minY() + 13, minZ() + 21, minX() + 36, minY() + 16, minZ() + 36);

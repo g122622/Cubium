@@ -388,7 +388,7 @@ bool Structure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> Structure::generate(
-    IWorldWriter& /*world*/, IChunkGenerator& /*generator*/, math::Random& /*rng*/, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& /*generator*/, math::Random& /*rng*/, i32 chunkX, i32 chunkZ) const
 {
     return std::make_unique<StructureStart>(chunkX, chunkZ);
 }
