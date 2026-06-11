@@ -37,6 +37,7 @@ BossInfo (基类)
 - `common/core/Types.hpp` - 基础类型（u64, f32, i32, PlayerId 等）
 - `common/resource/ResourceLocation.hpp` - 资源位置 ID
 - `common/util/text/ITextComponent.hpp` - 文本组件
+- `common/util/text/ComponentUtils.hpp` - wrapInSquareBrackets 方括号包裹工具（formattedName 使用）
 - `common/util/nbt/Nbt.hpp` - NBT 序列化
 
 ### 被谁依赖

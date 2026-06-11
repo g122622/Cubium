@@ -23,10 +23,15 @@
 
 #include <gtest/gtest.h>
 
+#include "common/resource/LanguageManager.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ComponentUtils.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TextEvents.hpp"
+#include "common/util/text/TextStyle.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 #include "server/bossbar/BossInfo.hpp"
 #include "server/bossbar/CustomServerBossInfo.hpp"
 #include "server/bossbar/CustomServerBossInfoManager.hpp"
@@ -45,7 +50,12 @@ using namespace mc::server;
  */
 class BossBarTest : public ::testing::Test {
 protected:
-    void SetUp() override {}
+    void SetUp() override
+    {
+        // 注册翻译键供 TranslationTextComponent 使用
+        mc::text::TranslationTextComponent::setLanguageManager(&mc::LanguageManager::instance());
+        mc::LanguageManager::instance().loadFromJson("{\"chat.square_brackets\":\"[%s]\"}");
+    }
 
     void TearDown() override {}
 };
@@ -237,4 +247,67 @@ TEST_F(BossBarTest, NbtString_RoundTrip)
     auto maxIt = tag.value.find("Max");
     ASSERT_NE(maxIt, tag.value.end());
     EXPECT_EQ(dynamic_cast<const nbt::tags::int_tag&>(*maxIt->second).value, 100);
+}
+
+// ========== ComponentUtils::wrapInSquareBrackets 测试 ==========
+// 此测试验证 CustomServerBossInfo::formattedName() 使用的核心工具函数
+
+TEST_F(BossBarTest, WrapInSquareBrackets_PlainText)
+{
+    auto component = std::make_unique<text::StringTextComponent>("Dragon");
+    auto wrapped = text::ComponentUtils::wrapInSquareBrackets(std::move(component));
+
+    ASSERT_NE(wrapped, nullptr);
+    EXPECT_EQ(wrapped->getUnformattedText(), "[Dragon]");
+
+    // 验证返回的是 TranslationTextComponent
+    auto* translation = dynamic_cast<const text::TranslationTextComponent*>(wrapped.get());
+    ASSERT_NE(translation, nullptr);
+    EXPECT_EQ(translation->getKey(), "chat.square_brackets");
+}
+
+TEST_F(BossBarTest, WrapInSquareBrackets_WithHoverEvent)
+{
+    auto component = std::make_unique<text::StringTextComponent>("Wither");
+    text::Style style;
+    style.setHoverEvent(text::HoverEvent::showText("minecraft:wither"));
+    component->setStyle(style);
+
+    auto wrapped = text::ComponentUtils::wrapInSquareBrackets(std::move(component));
+
+    ASSERT_NE(wrapped, nullptr);
+    EXPECT_EQ(wrapped->getUnformattedText(), "[Wither]");
+
+    // 悬停事件保留在参数组件上
+    const auto& params = static_cast<const text::TranslationTextComponent&>(*wrapped).getParams();
+    ASSERT_EQ(params.size(), 1);
+    ASSERT_NE(params[0], nullptr);
+
+    const text::Style& contentStyle = params[0]->getStyle();
+    const text::HoverEvent* hoverEvent = contentStyle.getHoverEvent();
+    ASSERT_NE(hoverEvent, nullptr);
+    EXPECT_EQ(hoverEvent->getAction(), text::HoverAction::ShowText);
+    EXPECT_EQ(hoverEvent->getValue(), "minecraft:wither");
+}
+
+TEST_F(BossBarTest, WrapInSquareBrackets_WithColor)
+{
+    auto component = std::make_unique<text::StringTextComponent>("Ender Dragon");
+    text::Style style;
+    style.setColor(text::TextFormatting::DarkPurple);
+    component->setStyle(style);
+
+    auto wrapped = text::ComponentUtils::wrapInSquareBrackets(std::move(component));
+
+    ASSERT_NE(wrapped, nullptr);
+    EXPECT_EQ(wrapped->getUnformattedText(), "[Ender Dragon]");
+
+    // 颜色保留在参数组件上
+    const auto& params = static_cast<const text::TranslationTextComponent&>(*wrapped).getParams();
+    ASSERT_EQ(params.size(), 1);
+    ASSERT_NE(params[0], nullptr);
+
+    const text::Style& contentStyle = params[0]->getStyle();
+    ASSERT_TRUE(contentStyle.getColor().has_value());
+    EXPECT_EQ(contentStyle.getColor().value(), text::TextFormatting::DarkPurple);
 }

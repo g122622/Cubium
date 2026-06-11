@@ -592,6 +592,101 @@ TEST_F(ScoreboardTest, Team_NameValidation)
     EXPECT_EQ(scoreboard.createTeam(longName), nullptr);
 }
 
+// ========== 队伍格式化显示名称测试 ==========
+
+TEST_F(ScoreboardTest, Team_GetFormattedDisplayName_DefaultName)
+{
+    Scoreboard scoreboard;
+    auto* team = scoreboard.createTeam("red");
+    ASSERT_NE(team, nullptr);
+
+    // 默认显示名称为队伍名称
+    auto formatted = team->getFormattedDisplayName();
+    ASSERT_NE(formatted, nullptr);
+
+    // getUnformattedText() 应返回 "[red]"（通过翻译键 "chat.square_brackets"）
+    EXPECT_EQ(formatted->getUnformattedText(), "[red]");
+}
+
+TEST_F(ScoreboardTest, Team_GetFormattedDisplayName_CustomName)
+{
+    Scoreboard scoreboard;
+    auto* team = scoreboard.createTeam("blue");
+    ASSERT_NE(team, nullptr);
+
+    // 设置自定义显示名称
+    team->setDisplayName(std::make_unique<text::StringTextComponent>("Blue Team"));
+    auto formatted = team->getFormattedDisplayName();
+    ASSERT_NE(formatted, nullptr);
+
+    // 应返回 "[Blue Team]"
+    EXPECT_EQ(formatted->getUnformattedText(), "[Blue Team]");
+}
+
+TEST_F(ScoreboardTest, Team_GetFormattedDisplayName_WithColor)
+{
+    Scoreboard scoreboard;
+    auto* team = scoreboard.createTeam("green");
+    ASSERT_NE(team, nullptr);
+
+    team->setDisplayName(std::make_unique<text::StringTextComponent>("Green Team"));
+    team->setColor(text::TextFormatting::Green);
+
+    auto formatted = team->getFormattedDisplayName();
+    ASSERT_NE(formatted, nullptr);
+
+    // 应返回 "[Green Team]"
+    EXPECT_EQ(formatted->getUnformattedText(), "[Green Team]");
+
+    // 方括号组件本身应有颜色样式
+    const text::Style& style = formatted->getStyle();
+    ASSERT_TRUE(style.getColor().has_value());
+    EXPECT_EQ(style.getColor().value(), text::TextFormatting::Green);
+}
+
+TEST_F(ScoreboardTest, Team_GetFormattedDisplayName_ResetColorNoStyle)
+{
+    Scoreboard scoreboard;
+    auto* team = scoreboard.createTeam("yellow");
+    ASSERT_NE(team, nullptr);
+
+    team->setDisplayName(std::make_unique<text::StringTextComponent>("Yellow Team"));
+    team->setColor(text::TextFormatting::Reset);
+
+    auto formatted = team->getFormattedDisplayName();
+    ASSERT_NE(formatted, nullptr);
+
+    EXPECT_EQ(formatted->getUnformattedText(), "[Yellow Team]");
+
+    // Reset 颜色时不应在方括号组件上设置颜色样式
+    const text::Style& style = formatted->getStyle();
+    EXPECT_FALSE(style.getColor().has_value());
+}
+
+TEST_F(ScoreboardTest, Team_GetFormattedDisplayName_HoverEvent)
+{
+    Scoreboard scoreboard;
+    auto* team = scoreboard.createTeam("purple");
+    ASSERT_NE(team, nullptr);
+
+    team->setDisplayName(std::make_unique<text::StringTextComponent>("Purple Squad"));
+
+    auto formatted = team->getFormattedDisplayName();
+    ASSERT_NE(formatted, nullptr);
+
+    // 悬停事件设置在参数组件上（TranslationTextComponent 的 m_params）
+    const auto& params = static_cast<const mc::text::TranslationTextComponent&>(*formatted).getParams();
+    ASSERT_EQ(params.size(), 1);
+    ASSERT_NE(params[0], nullptr);
+
+    const text::Style& contentStyle = params[0]->getStyle();
+    const text::HoverEvent* hoverEvent = contentStyle.getHoverEvent();
+    ASSERT_NE(hoverEvent, nullptr);
+    EXPECT_EQ(hoverEvent->getAction(), text::HoverAction::ShowText);
+    // 悬停显示的是队伍内部名称（"purple"），不是显示名称（"Purple Squad"）
+    EXPECT_EQ(hoverEvent->getValue(), "purple");
+}
+
 // ========== 集成测试 ==========
 
 TEST_F(ScoreboardTest, FullWorkflow)

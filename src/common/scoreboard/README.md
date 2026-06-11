@@ -6,12 +6,12 @@
 scoreboard/
 ├── core/                                # 核心数据类型
 │   ├── Scoreboard.hpp/cpp               # 记分板管理器（管理目标、分数、队伍）
-│   ├── ScoreObjective.hpp/cpp           # 目标类（判据+显示名称+渲染类型）
+│   ├── ScoreObjective.hpp/cpp           # 目标类（判据+显示名称+渲染类型，缓存格式化名称）
 │   ├── Score.hpp/cpp                    # 分数类（玩家名+分数值+锁定状态）
 │   ├── ScoreCriteria.hpp/cpp            # 判据基类和注册表（ScoreCriteriaRegistry 单例）
 │   ├── ScoreCriteriaRenderType.hpp/cpp  # 渲染类型枚举（Integer/Hearts）和显示槽位枚举
-│   ├── Team.hpp                         # 队伍抽象接口
-│   ├── ScorePlayerTeam.hpp/cpp          # 队伍实现类（成员管理、颜色、前后缀、可见性）
+│   ├── Team.hpp                         # 队伍抽象接口（含 getFormattedDisplayName 虚方法）
+│   ├── ScorePlayerTeam.hpp/cpp          # 队伍实现类（成员管理、颜色、前后缀、可见性、格式化名称）
 │   └── TeamEnums.hpp                    # 队伍枚举（TeamVisibility、TeamCollisionRule）
 ├── criteria/                            # 判据实现
 │   ├── DummyCriteria.hpp/cpp            # 手动设置判据（dummy）
@@ -81,6 +81,7 @@ ScoreCriteria.onPlayerDeath/onPlayerKill → Scoreboard.forAllObjectives → Sco
 | `common/core/Types.hpp` | i32、u8 等基础类型 | 全模块 |
 | `common/core/Result.hpp` | Result<T> 错误处理 | ScoreCriteria、ScoreboardSaveData、ScoreboardDataManager |
 | `common/util/text/ITextComponent.hpp` | 文本组件（显示名称、前缀后缀） | Team、ScoreObjective、ScorePlayerTeam |
+| `common/util/text/ComponentUtils.hpp` | wrapInSquareBrackets 方括号包裹工具 | ScoreObjective、ScorePlayerTeam |
 | `common/util/nbt/Nbt.hpp` | NBT 序列化 | ScoreboardSaveData |
 | `common/network/packet/PacketSerializer.hpp` | 网络序列化 | ScoreboardPackets |
 | `world/storage/SingleLevelStorageManager` | 世界存储门面 | ScoreboardDataManager |
@@ -122,6 +123,8 @@ ScoreCriteria.onPlayerDeath/onPlayerKill → Scoreboard.forAllObjectives → Sco
 ### 队伍名称格式化
 
 `ScorePlayerTeam::formatName()` 方法返回的是**新创建的组件**，不是修改原组件。队伍颜色应用到根组件，子组件保留各自样式可覆盖继承的颜色。
+
+`ScorePlayerTeam::getFormattedDisplayName()` 和 `ScoreObjective::getFormattedDisplayName()` 均使用 `ComponentUtils::wrapInSquareBrackets()` 包裹显示名称（翻译键 `chat.square_brackets`），悬停事件显示内部名称。`ScoreObjective` 会缓存格式化结果，在 `setDisplayName` 时自动更新。
 
 ### ScoreCriteriaRegistry 初始化
 
