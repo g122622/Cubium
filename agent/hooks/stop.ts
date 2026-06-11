@@ -34,6 +34,7 @@ You are evaluating whether Claude should stop working.
 4. 代码清理：已废弃的旧逻辑、死代码、调试输出或临时文件是否已彻底清除？
 5. 文档同步：相关模块及路径下的各级 README 是否已按最新实现更新？
 6. 是否严格遵循了 docs/CODE_CONVENTIONS.md 和 docs/PROJECT_CONVENTIONS.md 中的代码规范？
+7. 是否在短时间难以完成的地方，完整、诚实、不遗漏地留下了新的 TODO 注释（注释中必须有明文"TODO"，便于全文搜索）？
  如果你拿不准，无法完整确定上述是否全部完成，请你保守地返回false，并在reason中指出需要复查的地方
 
 例外情况：如果编译命令出现的错误不是编译或链接错误，而是工具链错误，如cmake、ninja、vcpkg等，则你无需修复，直接停下来等我处理就行了。
