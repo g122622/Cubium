@@ -466,6 +466,16 @@ std::unique_ptr<DensityFunction> cache2DMarker(std::unique_ptr<DensityFunction> 
     return std::make_unique<Marker>(MarkerType::Cache2D, std::move(wrapped));
 }
 
+std::unique_ptr<DensityFunction> sharedHolder(std::unique_ptr<DensityFunction> input)
+{
+    return std::make_unique<SharedHolder>(std::shared_ptr<DensityFunction>(std::move(input)));
+}
+
+std::unique_ptr<DensityFunction> sharedHolder(std::shared_ptr<DensityFunction> shared)
+{
+    return std::make_unique<SharedHolder>(std::move(shared));
+}
+
 } // namespace factory
 
 } // namespace mc::world::gen::density

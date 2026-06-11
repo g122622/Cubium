@@ -1190,6 +1190,46 @@ private:
     std::unique_ptr<DensityFunction> m_wrapped;
 };
 
+/**
+ * @brief 共享持有密度函数 — 允许同一密度函数被多个父节点引用
+ *
+ * MC 1.21 使用 Holder<DensityFunction> 实现引用共享。
+ * C++ 使用 unique_ptr 管理密度函数树的所有权，
+ * 但 slopedCheese 等函数需要被多个父节点引用（caveCheeseFactor 和 rangeChoice）。
+ *
+ * SharedHolder 包装 shared_ptr<DensityFunction>，使得多个 SharedHolder 实例
+ * 可以指向同一个底层密度函数。compute() 调用委托给共享的子函数。
+ * mapAll() 递归到共享的子函数，并创建新的 SharedHolder 指向替换后的结果。
+ *
+ * 注意：NoiseChunk::apply() 不会对 SharedHolder 做特殊处理，
+ * 因为 shared_ptr 指向的子函数在 mapAll 后已经是替换后的版本。
+ */
+class SharedHolder final : public DensityFunction {
+public:
+    explicit SharedHolder(std::shared_ptr<DensityFunction> shared)
+        : m_shared(std::move(shared))
+    {}
+
+    [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override
+    {
+        return m_shared->compute(blockX, blockY, blockZ);
+    }
+
+    [[nodiscard]] f64 minValue() const override { return m_shared->minValue(); }
+    [[nodiscard]] f64 maxValue() const override { return m_shared->maxValue(); }
+
+    [[nodiscard]] const DensityFunction& inner() const { return *m_shared; }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        auto newInner = m_shared->mapAll(visitor);
+        return visitor.apply(std::make_unique<SharedHolder>(std::shared_ptr<DensityFunction>(std::move(newInner))));
+    }
+
+private:
+    std::shared_ptr<DensityFunction> m_shared;
+};
+
 // ============================================================================
 // EndIslands — 末地岛屿密度函数
 // ============================================================================
@@ -1399,6 +1439,19 @@ namespace factory {
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> spline(
     std::unique_ptr<DensityFunction> input, std::vector<FlatSplinePoint> points);
+
+/**
+ * @brief 创建共享持有密度函数
+ *
+ * 将 unique_ptr 转换为 shared_ptr 包装的 SharedHolder，
+ * 允许同一密度函数被多个父节点引用。
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> sharedHolder(std::unique_ptr<DensityFunction> input);
+
+/**
+ * @brief 创建共享持有密度函数（从已有 shared_ptr）
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> sharedHolder(std::shared_ptr<DensityFunction> shared);
 
 /**
  * @brief 创建 2D 缓存

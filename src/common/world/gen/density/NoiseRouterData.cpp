@@ -404,6 +404,12 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
 
     auto slopedCheese = factory::add(std::move(slopedCheeseDensity), std::move(base3dNoise));
 
+    // MC 1.21: slopedCheese 需要被 caveCheeseFactor 和 rangeChoice 同时引用。
+    // 使用 SharedHolder（类似 MC 的 Holder 机制）实现引用共享。
+    // 先用 cacheAllInCellMarker(interpolated(...)) 包裹，确保在同一 cell 内只计算一次。
+    auto slopedCheeseShared = std::shared_ptr<DensityFunction>(
+        factory::cacheAllInCellMarker(factory::interpolated(std::move(slopedCheese))));
+
     // --- 洞穴密度 ---
     auto entrancesFunc = CaveDensityFunctions::entrances(seed);
     auto pillarsFunc = CaveDensityFunctions::pillars(seed);
@@ -424,19 +430,19 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
         0.6666666666666666);
 
     // caveCheeseFactor = clamp(0.27 + caveCheese, -1, 1) + clamp(1.5 - 0.64*slopedCheese, 0, 0.5)
+    // slopedCheese 通过 SharedHolder 引用，与 rangeChoice 共享
     auto caveCheeseFactor =
         factory::add(factory::clamp(factory::add(factory::constant(0.27), std::move(caveCheese)), -1.0, 1.0),
             factory::clamp(factory::add(factory::constant(1.5),
                                factory::mul(factory::constant(-0.64),
-                                   factory::cacheAllInCellMarker(factory::interpolated(std::move(slopedCheese))))),
+                                   factory::sharedHolder(slopedCheeseShared))),
                 0.0,
                 0.5));
 
     // caveDensity = caveLayer + caveCheeseFactor
     auto caveDensity = factory::add(std::move(caveLayer), std::move(caveCheeseFactor));
 
-    // underground = max(min(min(caveDensity, entrances), add(spaghetti2d, roughness)), rangeChoice(pillars, -1e6, 0.03,
-    // -1e6, pillars))
+    // underground = max(min(min(caveDensity, entrances), add(spaghetti2d, roughness)), rangeChoice(pillars, ...))
     auto spag2d = CaveDensityFunctions::spaghetti2d(seed);
     auto spagRoughness = CaveDensityFunctions::spaghettiRoughness(seed);
 
@@ -447,28 +453,25 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
         std::move(pillarsFunc), -1000000.0, 0.03, factory::constant(-1000000.0), CaveDensityFunctions::pillars(seed));
     auto underground = factory::max(std::move(minSpaghettiRoughness), std::move(pillarCheck));
 
+    // underground 也需要被 whenInRange 和 whenOutOfRange 同时引用
+    // 使用 SharedHolder 实现共享
+    auto undergroundShared = std::shared_ptr<DensityFunction>(std::move(underground));
+
     // --- noodle ---
     auto noodle = CaveDensityFunctions::noodle(seed, world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT - 1);
 
     // --- noCavesOrNoodle = rangeChoice(slopedCheese, -1e6, 1.5625, min(slopedCheese + 5*entrances, underground),
-    // underground) --- 注意: slopedCheese 已被 move 到 caveCheeseFactor 中 需要重建 slopedCheese 用于 rangeChoice MC
-    // 实际做法: slopedCheese 是通过 getFunction 获取的共享引用 我们的实现需要使用 cacheOnce 来避免重复计算
+    // underground) ---
+    // MC 1.21: 当 slopedCheese < 1.5625 时（地表附近），密度由 slopedCheese + 5*entrances 与 underground
+    // 的较小值决定 当 slopedCheese >= 1.5625 时（深层），直接使用 underground
+    // slopedCheese 和 underground 均通过 SharedHolder 引用
+    auto entrancesForRange = CaveDensityFunctions::entrances(seed);
+    auto slopedCheesePlus5Entrances =
+        factory::add(factory::sharedHolder(slopedCheeseShared), factory::mul(factory::constant(5.0), std::move(entrancesForRange)));
+    auto whenInRange = factory::min(std::move(slopedCheesePlus5Entrances), factory::sharedHolder(undergroundShared));
 
-    // 重建 slopedCheese 用于最终组合
-    // 在 MC 中 slopedCheese 只计算一次，通过 NoiseChunk 的缓存机制复用
-    // 我们用 cacheAllInCellMarker 包裹以确保缓存
-    // 但上面的 slopedCheese 已经被 move 了，需要重构流程
-
-    // 简化方案: 使用 rangeChoice 分割
-    // 当 slopedCheese < 1.5625 时（地表附近）使用 min(slopedCheese + 5*entrances, underground)
-    // 当 slopedCheese >= 1.5625 时（深层）使用 underground
-    // 但由于 slopedCheese 被 move，我们使用简化的 finalDensity 组装
-
-    // MC 1.21 finalDensity = min(postProcess(slideOverworld(noCavesOrNoodle)), noodle)
-    // 简化: 直接使用 underground 作为洞穴密度，不再做 rangeChoice 分割
-    // TODO: 完整实现 rangeChoice 分割
-
-    auto noCavesOrNoodle = std::move(underground);
+    auto noCavesOrNoodle = factory::rangeChoice(
+        factory::sharedHolder(slopedCheeseShared), -1000000.0, 1.5625, std::move(whenInRange), factory::sharedHolder(undergroundShared));
 
     // 应用主世界 slide 和 postProcess
     auto slid = slideOverworld(std::move(noCavesOrNoodle));
