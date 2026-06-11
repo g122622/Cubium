@@ -24,9 +24,11 @@
 #include "VillageSiege.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -235,21 +237,14 @@ bool VillageSiege::_spawnZombie(server::ServerWorld& world)
     entity->setPosition(posX, posY, posZ);
     entity->setRotation(yaw, 0.0f);
 
-    // 初始化僵尸属性
-    auto* zombie = dynamic_cast<ZombieEntity*>(entity.get());
-    if (zombie != nullptr) {
-        // 获取区域难度
-        const f32 regionalDifficulty = entity::combat::DifficultyHelper::getRegionalDifficultyBase(world.difficulty());
-
-        // 设置破门能力
-        // 概率 = regionalDifficulty * 0.1
-        if (m_random.nextFloat() < regionalDifficulty * 0.1f) {
-            zombie->setBreakDoorsAbility(true);
-        }
-
-        // TODO: 需要实现装备设置方法
-        // setEquipmentBasedOnDifficulty(difficulty)
-        // setEnchantmentBasedOnDifficulty(difficulty)
+    // 调用 finalizeSpawn 进行完整初始化
+    // 包括基于难度的装备设置、破门能力、附魔等
+    auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+    if (mobEntity != nullptr) {
+        // 创建区域难度实例
+        entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+        // 调用 finalizeSpawn（由 MobEntity 提供，ZombieEntity 重写以添加僵尸特有逻辑）
+        mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
     }
 
     // 生成实体到世界

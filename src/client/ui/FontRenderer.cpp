@@ -183,12 +183,10 @@ f32 FontRenderer::_addTextComponent(const ITextComponent& component, f32 x, f32 
     const auto& siblings = component.getSiblings();
     for (const auto& sibling : siblings) {
         // 子组件继承父组件的样式作为基础
-        x += _addTextComponent(*sibling, x, y, renderStyle) - startX;
-        startX = x; // 更新起始位置
+        x += _addTextComponent(*sibling, x, y, renderStyle);
     }
 
-    // TODO: 返回值计算可能有误，当前表达式始终返回0，需要确认语义
-    return x - startX + (startX - x); // 返回总宽度
+    return x - startX;
 }
 
 TextStyle FontRenderer::_mergeStyles(const text::Style& style, const TextStyle& baseStyle) const

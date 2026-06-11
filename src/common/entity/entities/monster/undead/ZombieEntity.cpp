@@ -30,11 +30,14 @@
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -441,6 +444,59 @@ Result<void> ZombieEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
     }
 
     return Result<void>::ok();
+}
+
+// ============================================================================
+// 生成初始化
+// ============================================================================
+
+void ZombieEntity::finalizeSpawn(
+    IWorld& world, const entity::combat::DifficultyInstance& difficulty, world::spawn::SpawnReason spawnReason)
+{
+    // 调用父类 finalizeSpawn，处理拾取物品能力、默认装备和附魔
+    MonsterEntity::finalizeSpawn(world, difficulty, spawnReason);
+
+    f32 specialMultiplier = difficulty.getSpecialMultiplier();
+
+    // 设置破门能力：概率 = specialMultiplier * 0.1
+    math::Random rng = getRandom();
+    if (rng.nextFloat() < specialMultiplier * 0.1f) {
+        setBreakDoorsAbility(true);
+    }
+
+    // 僵尸特有的装备已在 populateDefaultEquipmentSlots 覆写中处理
+
+    // 万圣节南瓜头：10月31日，25% 概率
+    // TODO: 实现日期检查和南瓜头装备（需要 SpecialDates 工具类）
+    // if (SpecialDates::isHalloween() && rng.nextFloat() < 0.25f) {
+    //     if (getEquipment(EquipmentSlot::Head).isEmpty()) {
+    //         ItemStack pumpkin(rng.nextFloat() < 0.1f ? Items::JACK_O_LANTERN : Items::CARVED_PUMPKIN, 1);
+    //         setEquipment(EquipmentSlot::Head, pumpkin);
+    //     }
+    // }
+}
+
+void ZombieEntity::populateDefaultEquipmentSlots(
+    math::Random& random, const entity::combat::DifficultyInstance& difficulty)
+{
+    // 先调用父类方法：基于难度填充护甲
+    MonsterEntity::populateDefaultEquipmentSlots(random, difficulty);
+
+    // 僵尸特有：主手武器
+    // Hard 难度: 5% 概率，其他难度: 1% 概率
+    f32 weaponChance = (difficulty.getDifficulty() == Difficulty::Hard) ? 0.05f : 0.01f;
+    if (random.nextFloat() < weaponChance) {
+        i32 weaponType = random.nextInt(6);
+        const Item* weapon = nullptr;
+        if (weaponType == 0) {
+            weapon = Items::IRON_SWORD;
+        } else {
+            weapon = Items::IRON_SHOVEL;
+        }
+        if (weapon != nullptr) {
+            setEquipment(EquipmentSlot::MainHand, ItemStack(*weapon, 1));
+        }
+    }
 }
 
 } // namespace mc

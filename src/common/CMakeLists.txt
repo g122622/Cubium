@@ -290,6 +290,7 @@ add_library(mc_common STATIC
     entity/combat/AttackContext.cpp
     entity/combat/PlayerAttackHelper.cpp
     entity/combat/DifficultyHelper.cpp
+    entity/combat/DifficultyInstance.cpp
     entity/combat/CombatRules.cpp
     entity/damage/CombatEntry.cpp
     entity/damage/CombatTracker.cpp

@@ -23,7 +23,9 @@
 
 #include "MobEntity.hpp"
 #include "../../core/Types.hpp"
+#include "../../item/Items.hpp"
 #include "../../item/core/ActionResult.hpp"
+#include "../../item/core/Item.hpp"
 #include "../../item/core/ItemStack.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../item/enchantment/enchantments/AllEnchantments.hpp"
@@ -36,6 +38,7 @@
 #include "../ai/controller/MovementController.hpp"
 #include "../ai/pathfinding/PathNavigator.hpp"
 #include "../attribute/Attributes.hpp"
+#include "../combat/DifficultyHelper.hpp"
 #include "../combat/PlayerAttackHelper.hpp"
 #include "../damage/DamageSource.hpp"
 #include "../entities/player/Player.hpp"
@@ -43,6 +46,7 @@
 #include "../experience/ExperienceDropHandler.hpp"
 #include "../serialization/EntityNbtKeys.hpp"
 #include "../serialization/NbtHelper.hpp"
+#include "EntitySpawnPlacementRegistry.hpp"
 
 namespace mc {
 
@@ -492,6 +496,210 @@ Result<void> MobEntity::readAdditionalSaveData(const nbt::tags::compound_tag& ta
     // TODO: 实现拴绳反序列化
 
     return Result<void>::ok();
+}
+
+// ============================================================================
+// 生成初始化
+// ============================================================================
+
+void MobEntity::finalizeSpawn(
+    IWorld& world, const entity::combat::DifficultyInstance& difficulty, world::spawn::SpawnReason spawnReason)
+{
+    (void)world;
+    (void)spawnReason;
+
+    // 根据区域难度设置拾取物品能力
+    f32 specialMultiplier = difficulty.getSpecialMultiplier();
+    math::Random rng = getRandom();
+    if (rng.nextFloat() < 0.55f * specialMultiplier) {
+        // TODO: 设置 canPickUpLoot 标志，当前 MobEntity 尚未实现 canPickUpLoot setter
+        // m_canPickUpLoot = true;
+    }
+
+    // 填充默认装备（基于难度）
+    populateDefaultEquipmentSlots(rng, difficulty);
+
+    // 附魔默认装备（基于难度）
+    populateDefaultEquipmentEnchantments(rng, difficulty);
+}
+
+void MobEntity::populateDefaultEquipmentSlots(
+    math::Random& random, const entity::combat::DifficultyInstance& difficulty)
+{
+    f32 specialMultiplier = difficulty.getSpecialMultiplier();
+
+    // 概率 = 0.15 * specialMultiplier，决定是否穿戴任何护甲
+    if (random.nextFloat() >= 0.15f * specialMultiplier) {
+        return;
+    }
+
+    // 随机生成护甲等级 (0~2 为基础，最多+3)
+    i32 armorLevel = random.nextInt(3);
+    for (i32 j = 1; j <= 3; ++j) {
+        if (random.nextFloat() < 0.1087f) {
+            ++armorLevel;
+        }
+    }
+
+    // 根据 Hard 难度决定中断概率
+    // Hard: 0.1 (更可能填满全身护甲)
+    // 其他: 0.25
+    f32 skipChance = (difficulty.getDifficulty() == Difficulty::Hard) ? 0.1f : 0.25f;
+
+    // 按 Head -> Chest -> Legs -> Feet 顺序填充护甲
+    // 对应 MC 原版的 EQUIPMENT_POPULATION_ORDER
+    static constexpr EquipmentSlot armorSlots[] = {
+        EquipmentSlot::Head,
+        EquipmentSlot::Chest,
+        EquipmentSlot::Legs,
+        EquipmentSlot::Feet,
+    };
+
+    bool firstSlot = true;
+    for (EquipmentSlot slot : armorSlots) {
+        // 第一个槽位必定尝试填充，之后的槽位有一定概率跳过
+        if (!firstSlot && random.nextFloat() < skipChance) {
+            break;
+        }
+        firstSlot = false;
+
+        // 只在槽位为空时填充
+        if (getEquipment(slot).isEmpty()) {
+            const Item* item = getEquipmentForSlot(slot, armorLevel);
+            if (item != nullptr) {
+                setEquipment(slot, ItemStack(*item, 1));
+            }
+        }
+    }
+}
+
+void MobEntity::populateDefaultEquipmentEnchantments(
+    math::Random& random, const entity::combat::DifficultyInstance& difficulty)
+{
+    f32 specialMultiplier = difficulty.getSpecialMultiplier();
+
+    // 附魔主手武器（概率 = 0.25 * specialMultiplier）
+    enchantSpawnedWeapon(random, difficulty, specialMultiplier);
+
+    // 附魔护甲（每个护甲槽位独立检定，概率 = 0.5 * specialMultiplier）
+    enchantSpawnedArmor(random, difficulty, specialMultiplier);
+}
+
+const Item* MobEntity::getEquipmentForSlot(EquipmentSlot slot, i32 armorLevel)
+{
+    // 对应 Minecraft 原版 Mob.getEquipmentForSlot()
+    // armorLevel: 0=皮革, 1=铁(原版1.21.11中为铜), 2=金, 3=锁链, 4=铁, 5=钻石
+    // 注意：原版 MC 1.21.11 中 level 1 是铜护甲，但当前项目尚未实现铜护甲，
+    // 因此 level 1 使用铁护甲作为替代
+
+    switch (slot) {
+        case EquipmentSlot::Head:
+            switch (armorLevel) {
+                case 0:
+                    return Items::LEATHER_HELMET;
+                case 1:
+                    return Items::IRON_HELMET; // TODO: 替换为 COPPER_HELMET 当铜护甲实现后
+                case 2:
+                    return Items::GOLDEN_HELMET;
+                case 3:
+                    return Items::CHAINMAIL_HELMET;
+                case 4:
+                    return Items::IRON_HELMET;
+                case 5:
+                    return Items::DIAMOND_HELMET;
+                default:
+                    return nullptr;
+            }
+        case EquipmentSlot::Chest:
+            switch (armorLevel) {
+                case 0:
+                    return Items::LEATHER_CHESTPLATE;
+                case 1:
+                    return Items::IRON_CHESTPLATE; // TODO: 替换为 COPPER_CHESTPLATE
+                case 2:
+                    return Items::GOLDEN_CHESTPLATE;
+                case 3:
+                    return Items::CHAINMAIL_CHESTPLATE;
+                case 4:
+                    return Items::IRON_CHESTPLATE;
+                case 5:
+                    return Items::DIAMOND_CHESTPLATE;
+                default:
+                    return nullptr;
+            }
+        case EquipmentSlot::Legs:
+            switch (armorLevel) {
+                case 0:
+                    return Items::LEATHER_LEGGINGS;
+                case 1:
+                    return Items::IRON_LEGGINGS; // TODO: 替换为 COPPER_LEGGINGS
+                case 2:
+                    return Items::GOLDEN_LEGGINGS;
+                case 3:
+                    return Items::CHAINMAIL_LEGGINGS;
+                case 4:
+                    return Items::IRON_LEGGINGS;
+                case 5:
+                    return Items::DIAMOND_LEGGINGS;
+                default:
+                    return nullptr;
+            }
+        case EquipmentSlot::Feet:
+            switch (armorLevel) {
+                case 0:
+                    return Items::LEATHER_BOOTS;
+                case 1:
+                    return Items::IRON_BOOTS; // TODO: 替换为 COPPER_BOOTS
+                case 2:
+                    return Items::GOLDEN_BOOTS;
+                case 3:
+                    return Items::CHAINMAIL_BOOTS;
+                case 4:
+                    return Items::IRON_BOOTS;
+                case 5:
+                    return Items::DIAMOND_BOOTS;
+                default:
+                    return nullptr;
+            }
+        default:
+            return nullptr;
+    }
+}
+
+void MobEntity::enchantSpawnedWeapon(
+    math::Random& random, const entity::combat::DifficultyInstance& difficulty, f32 specialMultiplier)
+{
+    (void)difficulty;
+    ItemStack mainHand = getEquipment(EquipmentSlot::MainHand);
+    if (!mainHand.isEmpty() && random.nextFloat() < 0.25f * specialMultiplier) {
+        // 附魔等级范围：5~17，对应 MC 原版 VanillaEnchantmentProviders.MOB_SPAWN_EQUIPMENT
+        i32 level = 5 + random.nextInt(13);
+        mainHand = item::enchant::EnchantmentHelper::addRandomEnchantment(random, mainHand, level, false);
+        setEquipment(EquipmentSlot::MainHand, mainHand);
+    }
+}
+
+void MobEntity::enchantSpawnedArmor(
+    math::Random& random, const entity::combat::DifficultyInstance& difficulty, f32 specialMultiplier)
+{
+    (void)difficulty;
+    // 对每个护甲槽位独立检定
+    static constexpr EquipmentSlot armorSlots[] = {
+        EquipmentSlot::Head,
+        EquipmentSlot::Chest,
+        EquipmentSlot::Legs,
+        EquipmentSlot::Feet,
+    };
+
+    for (EquipmentSlot slot : armorSlots) {
+        ItemStack armor = getEquipment(slot);
+        if (!armor.isEmpty() && random.nextFloat() < 0.5f * specialMultiplier) {
+            // 附魔等级范围：5~17
+            i32 level = 5 + random.nextInt(13);
+            armor = item::enchant::EnchantmentHelper::addRandomEnchantment(random, armor, level, false);
+            setEquipment(slot, armor);
+        }
+    }
 }
 
 } // namespace mc

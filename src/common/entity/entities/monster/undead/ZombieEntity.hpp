@@ -25,6 +25,8 @@
 
 #include "../MonsterEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <memory>
 
 namespace mc {
@@ -206,6 +208,39 @@ public:
     // ========== 生命周期 ==========
 
     void tick() override;
+
+    // ========== 生成初始化 ==========
+
+    /**
+     * @brief 完成僵尸的生成初始化
+     *
+     * 重写 MobEntity::finalizeSpawn() 以实现僵尸特有的初始化：
+     * - 设置拾取物品能力 (0.55 * specialMultiplier)
+     * - 设置破门能力 (specialMultiplier * 0.1)
+     * - 调用父类的装备填充和附魔逻辑
+     * - 僵尸特有主手武器（铁剑/铁锹，Hard 难度下概率 5%，其他难度 1%）
+     * - 万圣节南瓜头（10月31日，25% 概率）
+     *
+     * @param world 世界引用
+     * @param difficulty 区域难度实例
+     * @param spawnReason 生成原因
+     */
+    void finalizeSpawn(mc::IWorld& world,
+        const mc::entity::combat::DifficultyInstance& difficulty,
+        mc::world::spawn::SpawnReason spawnReason) override;
+
+    /**
+     * @brief 根据难度填充僵尸的默认装备
+     *
+     * 重写以添加僵尸特有的主手武器：
+     * - Hard 难度: 5% 概率生成铁剑/铁锹
+     * - 其他难度: 1% 概率生成铁剑/铁锹
+     *
+     * @param random 随机数生成器
+     * @param difficulty 区域难度实例
+     */
+    void populateDefaultEquipmentSlots(
+        math::Random& random, const mc::entity::combat::DifficultyInstance& difficulty) override;
 
     // ========== NBT 序列化 ==========
 

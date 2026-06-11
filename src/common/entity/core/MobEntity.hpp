@@ -26,6 +26,8 @@
 #include "../../util/math/random/Random.hpp"
 #include "../../world/block/BlockPos.hpp"
 #include "../ai/goal/GoalSelector.hpp"
+#include "../combat/DifficultyInstance.hpp"
+#include "EntitySpawnPlacementRegistry.hpp"
 #include "LivingEntity.hpp"
 #include <memory>
 
@@ -33,6 +35,7 @@ namespace mc {
 
 // 前向声明
 class Player;
+class Item;
 
 namespace entity::ai::controller {
 class LookController;
@@ -284,6 +287,69 @@ public:
      */
     void setExperienceValue(i32 value) { m_experienceValue = value; }
 
+    // ========== 生成初始化 ==========
+
+    /**
+     * @brief 完成生成初始化
+     *
+     * 对应 Minecraft 原版的 Mob.finalizeSpawn()。
+     * 在实体被创建并设置好位置后调用，用于根据难度和生成原因
+     * 进行初始化，包括：
+     * - 设置拾取物品能力
+     * - 设置破门能力
+     * - 填充默认装备（基于难度）
+     * - 附魔默认装备（基于难度）
+     * - 子类特定的初始化（如僵尸的武器、万圣节南瓜头等）
+     *
+     * @param world 世界引用
+     * @param difficulty 区域难度实例
+     * @param spawnReason 生成原因
+     */
+    virtual void finalizeSpawn(
+        IWorld& world, const entity::combat::DifficultyInstance& difficulty, world::spawn::SpawnReason spawnReason);
+
+    /**
+     * @brief 根据难度填充默认装备槽位
+     *
+     * 对应 Minecraft 原版的 Mob.populateDefaultEquipmentSlots()。
+     * 基础实现根据区域难度的 specialMultiplier 决定是否生成护甲，
+     * 并根据护甲等级选择护甲材质。
+     *
+     * 子类可重写此方法以添加实体特定的装备（如僵尸的铁剑/铁锹）。
+     *
+     * @param random 随机数生成器
+     * @param difficulty 区域难度实例
+     */
+    virtual void populateDefaultEquipmentSlots(
+        math::Random& random, const entity::combat::DifficultyInstance& difficulty);
+
+    /**
+     * @brief 根据难度附魔默认装备
+     *
+     * 对应 Minecraft 原版的 Mob.populateDefaultEquipmentEnchantments()。
+     * 对主手武器和护甲进行附魔，概率取决于区域难度的 specialMultiplier：
+     * - 武器附魔概率: 0.25 * specialMultiplier
+     * - 护甲附魔概率: 0.5 * specialMultiplier（每个护甲槽位独立检定）
+     *
+     * @param random 随机数生成器
+     * @param difficulty 区域难度实例
+     */
+    virtual void populateDefaultEquipmentEnchantments(
+        math::Random& random, const entity::combat::DifficultyInstance& difficulty);
+
+    /**
+     * @brief 根据装备槽位和护甲等级获取对应的装备物品
+     *
+     * 对应 Minecraft 原版的 Mob.getEquipmentForSlot()。
+     * 护甲等级 0-5 对应的材质：
+     * 0 = 皮革, 1 = 铜色(铁), 2 = 金, 3 = 锁链, 4 = 铁, 5 = 钻石
+     *
+     * @param slot 装备槽位（Head/Chest/Legs/Feet）
+     * @param armorLevel 护甲等级 (0-5)
+     * @return 对应的物品指针，如果无对应物品则返回 nullptr
+     */
+    [[nodiscard]] static const Item* getEquipmentForSlot(EquipmentSlot slot, i32 armorLevel);
+
     // ========== 家范围系统 (Home Position) ==========
 
     /**
@@ -533,6 +599,32 @@ protected:
 
     // 持久化系统
     bool m_persistenceRequired = false; // 是否需要持久化（不消失）
+
+    // ========== 装备附魔辅助方法 ==========
+
+    /**
+     * @brief 附魔生成的武器
+     *
+     * 概率 = 0.25 * specialMultiplier，附魔等级范围 5~17
+     *
+     * @param random 随机数生成器
+     * @param difficulty 区域难度实例
+     * @param specialMultiplier 区域难度特殊乘数
+     */
+    void enchantSpawnedWeapon(
+        math::Random& random, const entity::combat::DifficultyInstance& difficulty, f32 specialMultiplier);
+
+    /**
+     * @brief 附魔生成的护甲
+     *
+     * 每个护甲槽位独立检定，概率 = 0.5 * specialMultiplier
+     *
+     * @param random 随机数生成器
+     * @param difficulty 区域难度实例
+     * @param specialMultiplier 区域难度特殊乘数
+     */
+    void enchantSpawnedArmor(
+        math::Random& random, const entity::combat::DifficultyInstance& difficulty, f32 specialMultiplier);
 };
 
 } // namespace mc
