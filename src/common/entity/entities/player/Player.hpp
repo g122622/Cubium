@@ -1057,12 +1057,6 @@ public:
     void setCreativeModeInventory();
 
     /**
-     * @brief 获取吸收伤害值（金苹果效果）
-     */
-    [[nodiscard]] f32 absorptionAmount() const { return m_absorption; }
-    void setAbsorptionAmount(f32 amount) { m_absorption = amount; }
-
-    /**
      * @brief 获取护甲值
      */
     [[nodiscard]] i32 armorValue() const;

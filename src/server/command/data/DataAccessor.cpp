@@ -246,8 +246,7 @@ std::unique_ptr<nbt::tags::compound_tag> EntityDataAccessor::getData() const
     auto* livingEntity = dynamic_cast<const LivingEntity*>(m_entity);
     if (livingEntity != nullptr) {
         compound->put("Health", livingEntity->health());
-        // TODO: 添加吸收值 getter/setter 到 LivingEntity
-        // compound->put("AbsorptionAmount", livingEntity->absorption());
+        compound->put("AbsorptionAmount", livingEntity->absorptionAmount());
 
         // 效果
         // TODO: 添加药水效果
@@ -295,11 +294,10 @@ void EntityDataAccessor::mergeData(const nbt::tags::compound_tag& data)
             livingEntity->setHealth(dynamic_cast<const nbt::tags::float_tag&>(*it->second).value);
         }
 
-        // TODO: 添加吸收值 setter 到 LivingEntity
-        // it = data.value.find("AbsorptionAmount");
-        // if (it != data.value.end() && it->second->id() == nbt::TagId::Float) {
-        //     livingEntity->setAbsorption(dynamic_cast<const nbt::tags::float_tag&>(*it->second).value);
-        // }
+        it = data.value.find("AbsorptionAmount");
+        if (it != data.value.end() && it->second->id() == nbt::TagId::Float) {
+            livingEntity->setAbsorptionAmount(dynamic_cast<const nbt::tags::float_tag&>(*it->second).value);
+        }
     }
 }
 

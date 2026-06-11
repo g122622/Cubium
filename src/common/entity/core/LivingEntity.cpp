@@ -112,6 +112,13 @@ void LivingEntity::setHealth(f32 health)
     m_dataManager.set(HEALTH_PARAM, m_health);
 }
 
+void LivingEntity::setAbsorptionAmount(f32 amount)
+{
+    // 与 MC 原版一致：吸收值限制在 [0, maxAbsorption] 范围内
+    const f32 maxAbsorption = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::MAX_ABSORPTION, 0.0));
+    m_absorption = std::max(0.0f, std::min(amount, maxAbsorption));
+}
+
 void LivingEntity::heal(f32 amount)
 {
     if (amount > 0.0f && !isDead()) {
@@ -176,7 +183,7 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     // 4. 吸收值处理（金苹果额外生命）
     if (m_absorption > 0.0f) {
         const f32 absorbed = std::min(m_absorption, amount);
-        m_absorption -= absorbed;
+        setAbsorptionAmount(m_absorption - absorbed);
         amount -= absorbed;
     }
 
@@ -1412,7 +1419,7 @@ Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
 
     // AbsorptionAmount (f32)
     if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::ABSORPTION_AMOUNT)) {
-        m_absorption = *val;
+        setAbsorptionAmount(*val);
     }
 
     // HurtTime (i16)

@@ -124,6 +124,17 @@ public:
     void setHealth(f32 health);
 
     /**
+     * @brief 获取吸收伤害值（金苹果效果）
+     */
+    [[nodiscard]] f32 absorptionAmount() const { return m_absorption; }
+
+    /**
+     * @brief 设置吸收伤害值
+     * @param amount 新的吸收值，会被限制在 [0, maxAbsorption] 范围内
+     */
+    void setAbsorptionAmount(f32 amount);
+
+    /**
      * @brief 治疗实体
      * @param amount 治疗量
      */

@@ -25,6 +25,7 @@
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/damage/DamageSource.hpp"
@@ -36,7 +37,6 @@
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -325,14 +325,9 @@ void ConduitEntity::_attackMobs(IWorld& world)
 
 bool ConduitEntity::_isWaterAt(IWorld& world, const BlockPos& pos) const
 {
-    const BlockState* state = world.getBlockState(pos);
-    if (state == nullptr) {
-        return false;
-    }
-
-    // 检查是否为水方块或含水的流体状态
-    // TODO: 当前简化实现只检查是否为水方块，需要完善为检查流体状态（含水方块）
-    return state->is(VanillaBlocks::WATER);
+    // 使用流体状态检查，同时覆盖水方块和含水方块
+    // 与 MC 原版 LevelReader.isWaterAt() 逻辑一致：getFluidState(pos).is(FluidTags.WATER)
+    return world.isWaterAt(pos);
 }
 
 bool ConduitEntity::_isValidFrameBlock(IWorld& world, const BlockPos& pos) const
