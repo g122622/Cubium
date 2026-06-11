@@ -448,6 +448,9 @@ void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // 先调用基类实现
     LivingEntity::addAdditionalSaveData(tag);
 
+    // CanPickUpLoot (byte) - 是否可以拾取物品
+    tag.put(nbt_keys::CAN_PICK_UP_LOOT, static_cast<i8>(m_canPickUpLoot ? 1 : 0));
+
     // PersistenceRequired (byte) - 是否需要持久化
     tag.put(nbt_keys::PERSISTENCE_REQUIRED, static_cast<i8>(m_persistenceRequired ? 1 : 0));
 
@@ -475,7 +478,9 @@ Result<void> MobEntity::readAdditionalSaveData(const nbt::tags::compound_tag& ta
     MC_TRY(LivingEntity::readAdditionalSaveData(tag));
 
     // CanPickUpLoot (byte)
-    // TODO: 实现 canPickUpLoot setter
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::CAN_PICK_UP_LOOT)) {
+        m_canPickUpLoot = *val;
+    }
 
     // PersistenceRequired (byte)
     if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::PERSISTENCE_REQUIRED)) {
@@ -512,8 +517,7 @@ void MobEntity::finalizeSpawn(
     f32 specialMultiplier = difficulty.getSpecialMultiplier();
     math::Random rng = getRandom();
     if (rng.nextFloat() < 0.55f * specialMultiplier) {
-        // TODO: 设置 canPickUpLoot 标志，当前 MobEntity 尚未实现 canPickUpLoot setter
-        // m_canPickUpLoot = true;
+        setCanPickUpLoot(true);
     }
 
     // 填充默认装备（基于难度）

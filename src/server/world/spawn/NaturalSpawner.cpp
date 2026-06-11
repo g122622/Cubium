@@ -25,10 +25,12 @@
 #include "../ServerWorld.hpp"
 #include "SpawnConditions.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -553,6 +555,13 @@ i32 NaturalSpawner::_trySpawnAt(
         // 设置实体位置和旋转
         entity->setPosition(spawnX, static_cast<f32>(y), spawnZ);
         entity->setRotation(random.nextFloat() * 360.0f, 0.0f);
+
+        // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+        auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+        if (mobEntity != nullptr) {
+            entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+            mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Natural);
+        }
 
         // 生成实体到世界
         EntityId entityId = world.spawnEntity(std::move(entity));

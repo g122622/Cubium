@@ -27,8 +27,10 @@
 #include "common/entity/ai/controller/LookController.hpp"
 #include "common/entity/ai/goal/GoalConstants.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -152,6 +154,13 @@ void BreedGoal::spawnBaby()
 
             // 设置幼体年龄
             baby->setGrowingAge(AgeableEntity::BABY_AGE);
+
+            // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+            auto* babyMob = dynamic_cast<MobEntity*>(baby.get());
+            if (babyMob != nullptr) {
+                entity::combat::DifficultyInstance difficultyInstance(world->difficulty());
+                babyMob->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::Breeding);
+            }
 
             // 获取繁殖发起者玩家（优先从第一个动物获取 loveCause，如果为空则从第二个动物获取）
             u64 loveCause = m_animal->getLoveCause();

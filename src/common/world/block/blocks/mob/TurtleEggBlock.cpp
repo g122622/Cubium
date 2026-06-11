@@ -25,6 +25,8 @@
 
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
@@ -200,6 +202,10 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
                     static_cast<f32>(pos.y),
                     static_cast<f32>(pos.z) + 0.3f);
                 turtle->setRotation(0.0f, 0.0f);
+
+                // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+                entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+                turtle->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Natural);
 
                 // 生成到世界
                 world.spawnEntity(std::move(turtle));

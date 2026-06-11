@@ -30,8 +30,11 @@
 #include "ServerChunkManager.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/player/SpawnLocationHelper.hpp"
 #include "common/entity/inventory/INamedContainerProvider.hpp"
@@ -1483,6 +1486,13 @@ i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntit
 
         entity->setWorld(this);
         entity->setPosition(Vector3(entityData.x, entityData.y, entityData.z));
+
+        // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+        auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+        if (mobEntity != nullptr) {
+            entity::combat::DifficultyInstance difficultyInstance(difficulty());
+            mobEntity->finalizeSpawn(*this, difficultyInstance, world::spawn::SpawnReason::ChunkGeneration);
+        }
 
         EntityId entityId = m_entityManager.addEntity(std::move(entity));
         if (entityId != 0) {

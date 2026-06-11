@@ -23,9 +23,12 @@
 
 #include "Template.hpp"
 #include "RuleTest.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
@@ -962,6 +965,13 @@ bool Template::placeInWorld(
                         // 当前 Entity 系统暂不支持 NBT 加载，完整实现需要：
                         // 1. Entity::loadFromNBT(nbt) 方法
                         // 2. 实体数据参数的 NBT 反序列化
+
+                        // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+                        auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+                        if (mobEntity != nullptr) {
+                            entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+                            mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Structure);
+                        }
 
                         // 生成实体
                         world.spawnEntity(std::move(entity));

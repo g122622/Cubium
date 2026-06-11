@@ -33,7 +33,9 @@
 #include "common/entity/ai/goal/goals/special/EvokerGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
@@ -210,6 +212,10 @@ void EvokerEntity::summonVex()
         // 设置有限生命（30-120秒）
         vex->setLimitedLife(true);
         vex->setLifeTime(20 * (30 + rng.nextInt(90)));
+
+        // 对恼鬼调用 finalizeSpawn 进行基于难度的初始化
+        entity::combat::DifficultyInstance difficultyInstance(m_world->difficulty());
+        vex->finalizeSpawn(*m_world, difficultyInstance, world::spawn::SpawnReason::MobSummons);
 
         // 将实体添加到世界
         m_world->spawnEntity(std::move(vex));

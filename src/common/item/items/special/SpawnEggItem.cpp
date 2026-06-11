@@ -23,9 +23,12 @@
 
 #include "SpawnEggItem.hpp"
 
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/Direction.hpp"
@@ -109,6 +112,13 @@ bool SpawnEggItem::spawnEntity(IWorld& world, const BlockPos& pos, entity::Spawn
     f32 y = static_cast<f32>(pos.y);
     f32 z = static_cast<f32>(pos.z) + 0.5f;
     entity->setPosition(x, y, z);
+
+    // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+    auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+    if (mobEntity != nullptr) {
+        entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+        mobEntity->finalizeSpawn(world, difficultyInstance, spawnReason);
+    }
 
     // 生成实体
     world.spawnEntity(std::move(entity));

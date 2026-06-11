@@ -24,7 +24,10 @@
 #include "Raid.hpp"
 
 #include "common/entity/combat/DifficultyHelper.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/illager/EvokerEntity.hpp"
 #include "common/entity/entities/monster/illager/IllagerEntities.hpp"
 #include "common/entity/entities/monster/illager/RavagerEntity.hpp"
@@ -430,6 +433,13 @@ EntityId Raid::_spawnRaider(IWorld& world, RaiderType type, BlockPos pos)
     }
 
     entity->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
+
+    // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+    auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+    if (mobEntity != nullptr) {
+        entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+        mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
+    }
 
     const EntityId id = world.spawnEntity(std::move(entity));
     if (id != 0) {

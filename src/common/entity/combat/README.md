@@ -6,11 +6,11 @@
 
 ```
 src/common/entity/combat/
-├── AttackContext.hpp/cpp      # 攻击上下文（封装攻击者、目标、伤害类型、伤害计算）
-├── CombatRules.hpp/cpp        # 战斗规则工具类（护甲减伤、附魔保护、抗性减伤、吸收值计算）
-├── PlayerAttackHelper.hpp/cpp # 玩家攻击辅助（暴击判定、伤害计算、击退、冷却、附魔加成）
-├── DifficultyHelper.hpp/cpp   # 难度工具类（难度伤害缩放、饥饿伤害限制、特殊机制）
-└── README.md                  # 本文档
+├── AttackContext.hpp/cpp        # 攻击上下文（封装攻击者、目标、伤害类型、伤害计算）
+├── CombatRules.hpp/cpp          # 战斗规则工具类（护甲减伤、附魔保护、抗性减伤、吸收值计算）
+├── DifficultyHelper.hpp/cpp     # 难度工具类（难度伤害缩放、饥饿伤害限制、特殊机制）
+├── DifficultyInstance.hpp/cpp   # 区域难度实例（位置感知的难度计算，specialMultiplier）
+└── README.md                    # 本文档
 ```
 
 ## 模块关系
@@ -28,7 +28,12 @@ src/common/entity/combat/
 │         │                         ▼                         │
 │         └────────────────► DamageSource (damage 模块)       │
 │                                                             │
-│  DifficultyHelper (独立工具类)                              │
+│  DifficultyHelper (全局难度工具)                             │
+│  DifficultyInstance (位置感知区域难度)                        │
+│         │                                                   │
+│         └──────► MobEntity::finalizeSpawn() (装备生成)      │
+│                   ZombieEntity::finalizeSpawn() (僵尸装备)  │
+│                   VillageSiege (村庄围攻装备)                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -52,8 +57,11 @@ src/common/entity/combat/
 | 模块 | 使用方式 |
 |------|----------|
 | `entity/core/LivingEntity` | 受伤计算调用 `CombatRules` |
-| `entity/entities/player/Player` | 攻击逻辑使用 `PlayerAttackHelper`、`AttackContext` |
+| `entity/core/MobEntity` | `finalizeSpawn()` 使用 `DifficultyInstance` 进行装备生成 |
 | `entity/entities/monster/*` | 攻击伤害使用 `DifficultyHelper` |
+| `entity/entities/monster/undead/ZombieEntity` | `finalizeSpawn()` 使用 `DifficultyInstance` 设置破门能力和装备 |
+| `server/world/spawn/VillageSiege` | 生成僵尸时调用 `finalizeSpawn()` |
+| `server/world/spawn/NaturalSpawner` | 自然生成时调用 `finalizeSpawn()` |
 
 ## 容易踩的坑
 
@@ -80,7 +88,24 @@ f32 damage = DifficultyHelper::adjustPlayerDamage(Difficulty::Easy, baseDamage);
 // 例如：damage=10 -> min(5+1, 10) = 6，而不是 5
 ```
 
-### 3. 暴击判定的 6 个条件必须全部满足
+### 3. DifficultyInstance 的简化构造 vs 完整构造
+
+```cpp
+// 简化构造：仅基于全局难度，不考虑位置和时间因素
+DifficultyInstance diff(Difficulty::Hard);
+// 适用于 VillageSiege、NaturalSpawner 等不需要精确位置感知的场景
+
+// 完整构造：考虑世界时间、区块居住时间和月相
+DifficultyInstance diff(Difficulty::Hard, worldTime, chunkInhabitedTime, moonPhase);
+// 适用于需要精确区域难度的场景
+```
+
+简化构造的 effectiveDifficulty = DifficultyHelper::getRegionalDifficultyBase(difficulty) * difficultyId：
+- Peaceful=0.0, Easy=0.75, Normal=2.0, Hard=3.0
+- Normal 的 specialMultiplier=0.0（因为 2.0 不小于 2.0），导致 Normal 难度不会生成装备！
+- 这是预期行为：MC 原版中，刚创建的世界（时间=0）确实不会生成装备。
+
+### 4. 暴击判定的 6 个条件必须全部满足
 
 暴击条件缺一不可：
 1. 玩家正在下落（velocity.y < 0）
@@ -92,7 +117,7 @@ f32 damage = DifficultyHelper::adjustPlayerDamage(Difficulty::Easy, baseDamage);
 
 使用 `PlayerAttackHelper::isCriticalHit(player)` 而非手动判断。
 
-### 4. 护甲减伤公式有韧性参数
+### 5. 护甲减伤公式有韧性参数
 
 ```cpp
 // 错误：忽略韧性参数
@@ -105,15 +130,15 @@ f32 reduced = CombatRules::getDamageAfterAbsorb(damage, armor, toughness);
 //       final = damage * (1 - g/25)
 ```
 
-### 5. 击退附魔加成使用 KnockbackEnchantment 方法
+### 6. 击退附魔加成使用 KnockbackEnchantment 方法
 
 击退附魔加成不是硬编码的，应该使用 `KnockbackEnchantment::getKnockbackBonus()` 方法。
 
-### 6. DifficultyHelper 中玩家伤害与怪物伤害的计算不同
+### 7. DifficultyHelper 中玩家伤害与怪物伤害的计算不同
 
 - 玩家受伤：使用 `adjustPlayerDamage()` - 倍率计算
 - 怪物攻击：使用 `getMobDamageAdjustment()` - 固定调整值（-2/0/+2）
 
-### 7. 冷却阈值判断
+### 8. 冷却阈值判断
 
 只有冷却进度 >= 0.9 才算"完全充能"，使用 `PlayerAttackHelper::isCooldownReady(cooldownProgress)` 判断。

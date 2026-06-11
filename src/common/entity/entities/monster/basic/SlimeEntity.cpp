@@ -31,7 +31,9 @@
 #include "../../../ai/goal/goals/special/SlimeGoals.hpp"
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../combat/DifficultyInstance.hpp"
 #include "../../../core/EntityRegistry.hpp"
+#include "../../../core/EntitySpawnPlacementRegistry.hpp"
 #include "../../../core/EntityType.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../passive/golem/IronGolemEntity.hpp"
@@ -392,6 +394,10 @@ void SlimeEntity::performSplit()
 
         smallSlime->setPosition(spawnX, spawnY, spawnZ);
         smallSlime->setRotation(spawnYaw, 0.0f);
+
+        // 对分裂生成的小史莱姆调用 finalizeSpawn
+        entity::combat::DifficultyInstance difficultyInstance(world()->difficulty());
+        smallSlime->finalizeSpawn(*world(), difficultyInstance, world::spawn::SpawnReason::Reinforcement);
 
         // 设置随机速度
         smallSlime->setVelocity(

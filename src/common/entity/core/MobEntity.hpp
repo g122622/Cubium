@@ -416,6 +416,25 @@ public:
      */
     void clearHome() { m_maximumHomeDistance = -1.0f; }
 
+    // ========== 拾取物品 (CanPickUpLoot) ==========
+
+    /**
+     * @brief 检查生物是否可以拾取物品
+     *
+     * 当 canPickUpLoot 为 true 时，生物会拾取地上的装备和物品。
+     * 由区域难度决定：概率 = 0.55 * specialMultiplier
+     *
+     * @return 如果生物可以拾取物品返回 true
+     */
+    [[nodiscard]] bool canPickUpLoot() const { return m_canPickUpLoot; }
+
+    /**
+     * @brief 设置生物是否可以拾取物品
+     *
+     * @param canPickUp 是否可以拾取物品
+     */
+    void setCanPickUpLoot(bool canPickUp) { m_canPickUpLoot = canPickUp; }
+
     // ========== 持久化系统 (Persistence) ==========
 
     /**
@@ -599,6 +618,9 @@ protected:
 
     // 持久化系统
     bool m_persistenceRequired = false; // 是否需要持久化（不消失）
+
+    // 拾取物品
+    bool m_canPickUpLoot = false; // 是否可以拾取物品
 
     // ========== 装备附魔辅助方法 ==========
 

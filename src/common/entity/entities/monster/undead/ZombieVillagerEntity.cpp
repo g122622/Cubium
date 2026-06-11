@@ -28,14 +28,16 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../../world/block/blocks/functional/BedBlock.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../combat/DifficultyInstance.hpp"
 #include "../../../core/EntityRegistry.hpp"
+#include "../../../core/EntitySpawnPlacementRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../effect/EffectInstance.hpp"
 #include "../../../effect/EffectType.hpp"
 #include "../../../utils/ItemDropHelper.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <memory>
 #include <spdlog/spdlog.h>
 
@@ -300,6 +302,12 @@ void ZombieVillagerEntity::finishConverting()
 
     // 设置婴儿状态
     villager->setChild(isBaby());
+
+    // 对村民调用 finalizeSpawn 进行基于难度的初始化
+    {
+        entity::combat::DifficultyInstance difficultyInstance(m_world->difficulty());
+        villager->finalizeSpawn(*m_world, difficultyInstance, world::spawn::SpawnReason::Conversion);
+    }
 
     // 释放所有权并生成到世界
     newEntity.release();

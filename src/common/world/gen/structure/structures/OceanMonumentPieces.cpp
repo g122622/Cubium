@@ -1,5 +1,8 @@
 #include "common/world/gen/structure/structures/OceanMonumentPieces.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/ocean/ElderGuardianEntity.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
@@ -254,6 +257,14 @@ bool OceanMonumentPiece::spawnElderGuardian(
     }
     entity->setPosition(worldX, worldY, worldZ);
     entity->setRotation(0.0f, 0.0f);
+
+    // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+    auto* mobEntity = dynamic_cast<MobEntity*>(elder.get());
+    if (mobEntity != nullptr) {
+        entity::combat::DifficultyInstance difficultyInstance(fullWorld->difficulty());
+        mobEntity->finalizeSpawn(*fullWorld, difficultyInstance, world::spawn::SpawnReason::Structure);
+    }
+
     return fullWorld->spawnEntity(std::move(elder)) != EntityId(0);
 }
 

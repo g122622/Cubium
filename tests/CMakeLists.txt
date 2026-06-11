@@ -240,6 +240,8 @@ add_executable(mc_tests
     common/entity/ArrowEntityTest.cpp
     # 难度系统测试
     common/entity/combat/DifficultyHelperTest.cpp
+    # DifficultyInstance 区域难度测试
+    common/entity/combat/DifficultyInstanceTest.cpp
     # 战斗追踪器测试
     common/entity/combat/CombatTrackerTest.cpp
     # CombatRules EPF 测试

@@ -25,7 +25,10 @@
 #include "common/core/Constants.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/schedule/Schedule.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
@@ -870,6 +873,14 @@ void MinecraftServer::setupWorldCallbacks()
                 if (world->physicsEngine()) {
                     entity->setPhysicsEngine(world->physicsEngine());
                 }
+
+                // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+                auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+                if (mobEntity != nullptr) {
+                    entity::combat::DifficultyInstance difficultyInstance(world->difficulty());
+                    mobEntity->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::ChunkGeneration);
+                }
+
                 const EntityId spawnedId = world->spawnEntity(std::move(entity));
                 MC_UNUSED(spawnedId);
             }

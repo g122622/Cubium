@@ -25,9 +25,12 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
@@ -104,6 +107,13 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
     entity->setPosition(
         Vector3(static_cast<f32>(position.x), static_cast<f32>(position.y), static_cast<f32>(position.z)));
 
+    // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+    auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+    if (mobEntity != nullptr) {
+        entity::combat::DifficultyInstance difficultyInstance(world->difficulty());
+        mobEntity->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::Command);
+    }
+
     // 生成实体
     EntityId spawnedId = world->spawnEntity(std::move(entity));
     if (spawnedId == 0) {
@@ -160,6 +170,13 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
     // 设置位置
     entity->setPosition(
         Vector3(static_cast<f32>(position.x), static_cast<f32>(position.y), static_cast<f32>(position.z)));
+
+    // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+    auto* mobEntity2 = dynamic_cast<MobEntity*>(entity.get());
+    if (mobEntity2 != nullptr) {
+        entity::combat::DifficultyInstance difficultyInstance(world->difficulty());
+        mobEntity2->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::Command);
+    }
 
     // 生成实体
     EntityId spawnedId = world->spawnEntity(std::move(entity));

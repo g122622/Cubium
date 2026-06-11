@@ -24,8 +24,11 @@
 #include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp"
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -130,13 +133,19 @@ void SkeletonHorseEntity::triggerTrap()
             mobEntity->enablePersistence();
         }
 
-        // 装备铁头盔
+        // 调用 finalizeSpawn 进行基于难度的初始化
+        if (mobEntity != nullptr) {
+            entity::combat::DifficultyInstance difficultyInstance(world->difficulty());
+            mobEntity->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::Trigger);
+        }
+
+        // 装备铁头盔（finalizeSpawn 可能已填充头盔，这里只在空槽位时覆盖）
         if (skeletonEntity->getEquipment(EquipmentSlot::Head).isEmpty()) {
             ItemStack helmet(Items::IRON_HELMET, 1);
             skeletonEntity->setEquipment(EquipmentSlot::Head, helmet);
         }
 
-        // 装备弓
+        // 装备弓（覆盖 finalizeSpawn 设置的武器，因为陷阱骷髅必须持弓）
         ItemStack bow(Items::BOW, 1);
         skeletonEntity->setMainHandItem(bow);
 
@@ -187,6 +196,12 @@ void SkeletonHorseEntity::triggerTrap()
             extraHorseMob->enablePersistence();
         }
 
+        // 对额外骷髅马调用 finalizeSpawn
+        if (extraHorseMob != nullptr) {
+            entity::combat::DifficultyInstance difficultyInstance(world->difficulty());
+            extraHorseMob->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::Trigger);
+        }
+
         // 设置无敌帧
         LivingEntity* extraHorseLiving = dynamic_cast<LivingEntity*>(extraHorse.get());
         if (extraHorseLiving != nullptr) {
@@ -212,13 +227,19 @@ void SkeletonHorseEntity::triggerTrap()
             extraSkeletonMob->enablePersistence();
         }
 
-        // 装备铁头盔
+        // 对额外骷髅骑手调用 finalizeSpawn
+        if (extraSkeletonMob != nullptr) {
+            entity::combat::DifficultyInstance difficultyInstance(world->difficulty());
+            extraSkeletonMob->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::Trigger);
+        }
+
+        // 装备铁头盔（finalizeSpawn 可能已填充头盔，这里只在空槽位时覆盖）
         if (extraSkeletonEntity->getEquipment(EquipmentSlot::Head).isEmpty()) {
             ItemStack helmet(Items::IRON_HELMET, 1);
             extraSkeletonEntity->setEquipment(EquipmentSlot::Head, helmet);
         }
 
-        // 装备弓
+        // 装备弓（覆盖 finalizeSpawn 设置的武器，因为陷阱骷髅必须持弓）
         ItemStack extraBow(Items::BOW, 1);
         extraSkeletonEntity->setMainHandItem(extraBow);
 

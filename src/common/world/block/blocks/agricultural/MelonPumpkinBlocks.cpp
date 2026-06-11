@@ -22,7 +22,10 @@
  */
 
 #include "MelonPumpkinBlocks.hpp"
+#include "../../../../entity/combat/DifficultyInstance.hpp"
 #include "../../../../entity/core/EntityRegistry.hpp"
+#include "../../../../entity/core/EntitySpawnPlacementRegistry.hpp"
+#include "../../../../entity/core/MobEntity.hpp"
 #include "../../../../entity/core/VanillaEntities.hpp"
 #include "../../../../entity/entities/item/ItemEntity.hpp"
 #include "../../../../entity/entities/passive/golem/IronGolemEntity.hpp"
@@ -262,6 +265,13 @@ bool CarvedPumpkinBlock::_trySpawnGolem(IWorld& world, const BlockPos& pos)
                     static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.05f, static_cast<f32>(pos.z) + 0.5f);
                 entity->setRotation(0.0f, 0.0f);
 
+                // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+                auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+                if (mobEntity != nullptr) {
+                    entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+                    mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
+                }
+
                 world.spawnEntity(std::move(entity));
             }
         }
@@ -322,6 +332,13 @@ bool CarvedPumpkinBlock::_trySpawnGolem(IWorld& world, const BlockPos& pos)
                 IronGolemEntity* ironGolem = dynamic_cast<IronGolemEntity*>(entity.get());
                 if (ironGolem != nullptr) {
                     ironGolem->setPlayerCreated(true);
+                }
+
+                // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+                auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+                if (mobEntity != nullptr) {
+                    entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+                    mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
                 }
 
                 world.spawnEntity(std::move(entity));
@@ -542,6 +559,14 @@ bool JackOLanternBlock::_trySpawnGolem(IWorld& world, const BlockPos& pos)
                 entity->setPosition(
                     static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.05f, static_cast<f32>(pos.z) + 0.5f);
                 entity->setRotation(0.0f, 0.0f);
+
+                // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+                auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+                if (mobEntity != nullptr) {
+                    entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+                    mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
+                }
+
                 world.spawnEntity(std::move(entity));
             }
         }
@@ -609,6 +634,13 @@ bool JackOLanternBlock::_trySpawnGolem(IWorld& world, const BlockPos& pos)
                             ironGolem->setPlayerCreated(true);
                         }
 
+                        // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+                        auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+                        if (mobEntity != nullptr) {
+                            entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+                            mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
+                        }
+
                         world.spawnEntity(std::move(entity));
                     }
                 }
@@ -666,6 +698,13 @@ bool JackOLanternBlock::_trySpawnGolem(IWorld& world, const BlockPos& pos)
                         IronGolemEntity* ironGolem = dynamic_cast<IronGolemEntity*>(entity.get());
                         if (ironGolem != nullptr) {
                             ironGolem->setPlayerCreated(true);
+                        }
+
+                        // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+                        auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+                        if (mobEntity != nullptr) {
+                            entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+                            mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
                         }
 
                         world.spawnEntity(std::move(entity));

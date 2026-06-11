@@ -22,6 +22,9 @@
  */
 
 #include "InfestedBlock.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
@@ -60,6 +63,10 @@ void InfestedBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const Blo
     // 设置位置（方块中心）
     silverfish->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
     silverfish->setRotation(0.0f, 0.0f);
+
+    // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+    entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+    silverfish->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
 
     // 生成到世界
     world.spawnEntity(std::move(silverfish));
