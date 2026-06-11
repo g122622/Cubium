@@ -111,7 +111,7 @@ void StructureRegistry::registerStructure(std::unique_ptr<Structure> structure)
         list.push_back(structure.get());
         structures[id] = std::move(structure);
     } else {
-        spdlog::warn("StructureRegistry: 重复注册结构 {}", id.toString());
+        spdlog::warn("StructureRegistry: Re registering structure {}", id.toString());
     }
 }
 

@@ -142,3 +142,4 @@ flowchart LR
 5. **level 语义** — 级别越小优先级越高；级别 ≤ 33 的区块应该被加载
 6. **ChunkStatus 比较** — 使用 `isAtLeast()` 和 `isBefore()`，不要直接比较 ordinal
 7. **高度图内部存储** — `Heightmap` 内部存储 `y + 1`，不是实际方块 Y
+8. **WorldGenRegion 阶段校验** — 生成期区块访问按当前 `ChunkStep::directDependencies()` 校验距离对应的允许状态；调用点需要传递实际请求的 `ChunkStatus`

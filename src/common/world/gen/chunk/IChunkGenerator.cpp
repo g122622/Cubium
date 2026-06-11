@@ -32,9 +32,36 @@
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 
 #include <algorithm>
+#include <cstdlib>
 #include <stdexcept>
+#include <spdlog/spdlog.h>
 
 namespace mc {
+
+namespace {
+
+[[nodiscard]] i32 chebyshevDistance(i32 x, i32 z)
+{
+    return std::max(std::abs(x), std::abs(z));
+}
+
+[[nodiscard]] const char* statusName(const ChunkStatus* status)
+{
+    return status ? status->name().c_str() : "<none>";
+}
+
+[[nodiscard]] const ChunkStatus& actualChunkStatus(const IChunk& chunk)
+{
+    if (const auto* primer = dynamic_cast<const ChunkPrimer*>(&chunk)) {
+        return primer->getChunkStatus();
+    }
+    if (const auto* data = dynamic_cast<const ChunkData*>(&chunk); data != nullptr && data->isFullyGenerated()) {
+        return ChunkStatuses::FULL;
+    }
+    return ChunkStatuses::EMPTY;
+}
+
+} // namespace
 
 // ============================================================================
 // WorldGenRegion 实现
@@ -86,6 +113,86 @@ const IChunk* WorldGenRegion::getChunkAt(i32 relX, i32 relZ) const
     return m_chunks[index];
 }
 
+IChunk* WorldGenRegion::getIChunk(ChunkCoord x, ChunkCoord z)
+{
+    return getIChunk(x, z, ChunkStatuses::EMPTY);
+}
+
+const IChunk* WorldGenRegion::getIChunk(ChunkCoord x, ChunkCoord z) const
+{
+    return getIChunk(x, z, ChunkStatuses::EMPTY);
+}
+
+IChunk* WorldGenRegion::getIChunk(ChunkCoord x, ChunkCoord z, const ChunkStatus& requestedStatus)
+{
+    return const_cast<IChunk*>(static_cast<const WorldGenRegion&>(*this).getIChunk(x, z, requestedStatus));
+}
+
+const IChunk* WorldGenRegion::getIChunk(ChunkCoord x, ChunkCoord z, const ChunkStatus& requestedStatus) const
+{
+    const i32 relX = x - m_mainX;
+    const i32 relZ = z - m_mainZ;
+    const i32 distance = chebyshevDistance(relX, relZ);
+    const ChunkStatus* allowedStatus = nullptr;
+    if (m_generatingStep != nullptr && distance < m_generatingStep->directDependencies().size()) {
+        allowedStatus = m_generatingStep->directDependencies().get(distance);
+    }
+
+    const bool statusAllowed = allowedStatus != nullptr && requestedStatus.isOrBefore(*allowedStatus);
+    if (m_generatingStep != nullptr && !statusAllowed) {
+        spdlog::error("[WorldGenRegion] invalid chunk access: requested=({}, {}), center=({}, {}), distance={}, "
+                      "generatingStatus={}, requestedStatus={}, allowedStatus={}",
+            x,
+            z,
+            m_mainX,
+            m_mainZ,
+            distance,
+            statusName(m_generatingStep->targetStatus()),
+            requestedStatus.name(),
+            statusName(allowedStatus));
+        MC_ASSERT_RELEASE_MSG(false, "WorldGenRegion chunk access violates ChunkStep dependencies");
+        return nullptr;
+    }
+
+    const IChunk* chunk = getChunkAt(relX, relZ);
+    if (m_generatingStep != nullptr && chunk == nullptr) {
+        spdlog::error("[WorldGenRegion] missing chunk in access window: requested=({}, {}), center=({}, {}), "
+                      "distance={}, generatingStatus={}, requestedStatus={}, allowedStatus={}",
+            x,
+            z,
+            m_mainX,
+            m_mainZ,
+            distance,
+            statusName(m_generatingStep->targetStatus()),
+            requestedStatus.name(),
+            statusName(allowedStatus));
+        MC_ASSERT_RELEASE_MSG(false, "WorldGenRegion chunk is missing from generation window");
+        return nullptr;
+    }
+
+    if (m_generatingStep != nullptr && chunk != nullptr) {
+        const ChunkStatus& actualStatus = actualChunkStatus(*chunk);
+        if (!actualStatus.isAtLeast(requestedStatus)) {
+            spdlog::error(
+                "[WorldGenRegion] chunk status below request: requested=({}, {}), center=({}, {}), distance={}, "
+                "generatingStatus={}, requestedStatus={}, allowedStatus={}, actualStatus={}",
+                x,
+                z,
+                m_mainX,
+                m_mainZ,
+                distance,
+                statusName(m_generatingStep->targetStatus()),
+                requestedStatus.name(),
+                statusName(allowedStatus),
+                actualStatus.name());
+            MC_ASSERT_RELEASE_MSG(false, "WorldGenRegion chunk has not reached requested status");
+            return nullptr;
+        }
+    }
+
+    return chunk;
+}
+
 const BlockState* WorldGenRegion::getBlockState(i32 x, i32 y, i32 z) const
 {
     // 检查 Y 边界
@@ -96,10 +203,8 @@ const BlockState* WorldGenRegion::getBlockState(i32 x, i32 y, i32 z) const
     // 转换为区块坐标和本地坐标
     const ChunkCoord chunkX = world::toChunkCoord(x);
     const ChunkCoord chunkZ = world::toChunkCoord(z);
-    const i32 relX = chunkX - m_mainX;
-    const i32 relZ = chunkZ - m_mainZ;
 
-    const IChunk* chunk = getChunkAt(relX, relZ);
+    const IChunk* chunk = getIChunk(chunkX, chunkZ, ChunkStatuses::EMPTY);
     if (!chunk) {
         return BlockRegistry::instance().airState();
     }
@@ -127,24 +232,48 @@ bool WorldGenRegion::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         const i32 writeRadius = m_generatingStep->blockStateWriteRadius();
         const i32 dx = std::abs(relX);
         const i32 dz = std::abs(relZ);
-        if (writeRadius < 0) {
-            // 此步骤不允许写方块
-            return false;
-        }
-        if (dx > writeRadius || dz > writeRadius) {
-            // 超出写入半径
+        if (writeRadius < 0 || dx > writeRadius || dz > writeRadius) {
+            spdlog::warn("[WorldGenRegion] blocked setBlockState outside write radius: pos=({}, {}, {}), chunk=({}, "
+                         "{}), center=({}, {}), writeRadius={}, generatingStatus={}",
+                x,
+                y,
+                z,
+                chunkX,
+                chunkZ,
+                m_mainX,
+                m_mainZ,
+                writeRadius,
+                statusName(m_generatingStep->targetStatus()));
             return false;
         }
     }
 
-    IChunk* chunk = getChunkAt(relX, relZ);
+    IChunk* chunk = getIChunk(chunkX, chunkZ, ChunkStatuses::EMPTY);
     if (!chunk) {
         return false;
     }
 
     const i32 localX = world::toLocalCoord(x);
     const i32 localZ = world::toLocalCoord(z);
+    const BlockState* oldState = chunk->getBlockState(localX, y, localZ);
     chunk->setBlockState(localX, y, localZ, state);
+
+    auto* primer = dynamic_cast<ChunkPrimer*>(chunk);
+    if (primer != nullptr) {
+        ChunkData* data = primer->getChunkData();
+        const BlockPos pos(x, y, z);
+        if (data != nullptr && oldState != nullptr && oldState->getBlock().hasBlockEntity()) {
+            data->removeBlockEntity(pos);
+        }
+        if (data != nullptr && state != nullptr && state->getBlock().hasBlockEntity()) {
+            auto& block = const_cast<Block&>(state->getBlock());
+            data->setBlockEntity(pos, block.createBlockEntity(pos));
+        }
+        if (state != nullptr && state->isLiquid()) {
+            primer->markPosForPostprocessing(localX, y, localZ);
+        }
+    }
+
     return true;
 }
 
@@ -152,10 +281,8 @@ BiomeId WorldGenRegion::getBiome(i32 x, i32 y, i32 z) const
 {
     const ChunkCoord chunkX = world::toChunkCoord(x);
     const ChunkCoord chunkZ = world::toChunkCoord(z);
-    const i32 relX = chunkX - m_mainX;
-    const i32 relZ = chunkZ - m_mainZ;
 
-    const IChunk* chunk = getChunkAt(relX, relZ);
+    const IChunk* chunk = getIChunk(chunkX, chunkZ, ChunkStatuses::EMPTY);
     if (!chunk) {
         return Biomes::Plains;
     }
@@ -169,10 +296,8 @@ i32 WorldGenRegion::getTopBlockY(i32 x, i32 z, HeightmapType type) const
 {
     const ChunkCoord chunkX = world::toChunkCoord(x);
     const ChunkCoord chunkZ = world::toChunkCoord(z);
-    const i32 relX = chunkX - m_mainX;
-    const i32 relZ = chunkZ - m_mainZ;
 
-    const IChunk* chunk = getChunkAt(relX, relZ);
+    const IChunk* chunk = getIChunk(chunkX, chunkZ, ChunkStatuses::EMPTY);
     MC_ASSERT_RELEASE(chunk);
 
     const i32 localX = world::toLocalCoord(x);
@@ -222,14 +347,10 @@ const fluid::FluidState* WorldGenRegion::getFluidState(i32 x, i32 y, i32 z) cons
 
 const ChunkData* WorldGenRegion::getChunk(ChunkCoord x, ChunkCoord z) const
 {
-    // 从区块数组获取区块数据
-    const i32 relX = x - m_mainX;
-    const i32 relZ = z - m_mainZ;
-    const IChunk* chunk = getChunkAt(relX, relZ);
+    const IChunk* chunk = getIChunk(x, z, ChunkStatuses::EMPTY);
     if (!chunk) {
         return nullptr;
     }
-    // ChunkPrimer 继承自 IChunk，可通过 getChunkData() 获取底层 ChunkData
     const auto* primer = dynamic_cast<const ChunkPrimer*>(chunk);
     if (primer) {
         return primer->getChunkData();
@@ -241,7 +362,12 @@ bool WorldGenRegion::hasChunk(ChunkCoord x, ChunkCoord z) const
 {
     const i32 relX = x - m_mainX;
     const i32 relZ = z - m_mainZ;
-    return getChunkAt(relX, relZ) != nullptr;
+    if (m_generatingStep == nullptr) {
+        return getChunkAt(relX, relZ) != nullptr;
+    }
+
+    const i32 distance = chebyshevDistance(relX, relZ);
+    return distance < m_generatingStep->directDependencies().size();
 }
 
 i32 WorldGenRegion::getHeight(i32 x, i32 z) const

@@ -248,18 +248,10 @@ public:
      * @param z 区块 Z 坐标
      * @return IChunk 指针，如果区块不在区域内则返回 nullptr
      */
-    [[nodiscard]] IChunk* getIChunk(ChunkCoord x, ChunkCoord z)
-    {
-        const i32 relX = x - m_mainX;
-        const i32 relZ = z - m_mainZ;
-        return getChunkAt(relX, relZ);
-    }
-    [[nodiscard]] const IChunk* getIChunk(ChunkCoord x, ChunkCoord z) const
-    {
-        const i32 relX = x - m_mainX;
-        const i32 relZ = z - m_mainZ;
-        return getChunkAt(relX, relZ);
-    }
+    [[nodiscard]] IChunk* getIChunk(ChunkCoord x, ChunkCoord z);
+    [[nodiscard]] const IChunk* getIChunk(ChunkCoord x, ChunkCoord z) const;
+    [[nodiscard]] IChunk* getIChunk(ChunkCoord x, ChunkCoord z, const ChunkStatus& requestedStatus);
+    [[nodiscard]] const IChunk* getIChunk(ChunkCoord x, ChunkCoord z, const ChunkStatus& requestedStatus) const;
 
     /**
      * @brief 获取主区块坐标

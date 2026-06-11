@@ -184,7 +184,7 @@ void NoiseChunkGenerator::generateStructureReferences(WorldGenRegion& region, Ch
             const ChunkCoord ncx = cx + dx;
             const ChunkCoord ncz = cz + dz;
 
-            const IChunk* neighbor = region.getIChunk(ncx, ncz);
+            const IChunk* neighbor = region.getIChunk(ncx, ncz, ChunkStatuses::STRUCTURE_STARTS);
             if (!neighbor) {
                 continue;
             }
@@ -411,7 +411,7 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
     std::unordered_set<BiomeId> sectionBiomes;
     for (ChunkCoord dz = -1; dz <= 1; ++dz) {
         for (ChunkCoord dx = -1; dx <= 1; ++dx) {
-            const IChunk* neighborChunk = region.getIChunk(chunkX + dx, chunkZ + dz);
+            const IChunk* neighborChunk = region.getIChunk(chunkX + dx, chunkZ + dz, ChunkStatuses::CARVERS);
             if (!neighborChunk) {
                 if (dx == 0 && dz == 0) {
                     for (i32 y = 0; y < world::CHUNK_SECTIONS; ++y) {
@@ -469,7 +469,7 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
 
             for (const auto& [refX, refZ] : refs) {
                 // 从源区块获取 StructureStart
-                IChunk* sourceChunk = region.getIChunk(refX, refZ);
+                IChunk* sourceChunk = region.getIChunk(refX, refZ, ChunkStatuses::STRUCTURE_STARTS);
                 if (!sourceChunk) continue;
 
                 auto* sourcePrimer = dynamic_cast<ChunkPrimer*>(sourceChunk);

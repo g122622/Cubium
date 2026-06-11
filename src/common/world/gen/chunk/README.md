@@ -33,7 +33,7 @@ NoiseChunkGenerator    DebugChunkGenerator
 - **IChunkGenerator**：定义区块生成流水线接口（结构起点→结构引用→生物群系→噪声→地表→雕刻→特性→生物）
 - **BaseChunkGenerator**：提供默认实现，子类只需重写核心方法
 - **NoiseChunkGenerator**：统一的地形生成器，通过不同的 NoiseRouter 配置支持所有维度
-- **WorldGenRegion**：提供有限的世界视图，按 `ChunkStatus::taskRange()` 构建动态方阵区域，越界访问会触发断言
+- **WorldGenRegion**：提供有限的世界视图，按当前 `ChunkStep` 的累积依赖构建动态方阵区域，并用 `directDependencies()` 校验区块访问阶段
 
 ### 维度配置
 
@@ -89,7 +89,7 @@ WorldGenRegion 的区块索引布局：
 
 ### 3. 生成阶段顺序
 
-必须按 ChunkStatus 顺序调用：`STRUCTURE_STARTS → STRUCTURE_REFERENCES → BIOMES → NOISE → SURFACE → CARVERS → FEATURES → LIGHT → SPAWN → HEIGHTMAPS → FULL`
+必须按 ChunkStatus 顺序调用：`EMPTY → STRUCTURE_STARTS → STRUCTURE_REFERENCES → BIOMES → NOISE → SURFACE → CARVERS → FEATURES → INITIALIZE_LIGHT → LIGHT → SPAWN → FULL`
 
 ### 4. 随机种子确定性
 
@@ -102,7 +102,7 @@ math::Random rng(static_cast<u64>(chunkX) * 341873128712ULL +
 
 ### 5. WorldGenRegion 窗口越界
 
-`WorldGenRegion` 按阶段特定的 `ChunkStatus::taskRange()` 构建窗口，缺失区块会在 `getTopBlockY()` 等热路径触发断言。不要将窗口外的高度查询视为"高度 0"，应修复区域半径或调用点。
+`WorldGenRegion` 按当前 `ChunkStep` 的累积依赖构建窗口，缺失区块或请求阶段超过该距离允许阶段时会在 `getIChunk()` / `getTopBlockY()` 等路径触发断言。不要将窗口外查询视为"高度 0"，应修复区域半径或调用点。
 
 ### 6. isDebugGenerator() 标识
 
