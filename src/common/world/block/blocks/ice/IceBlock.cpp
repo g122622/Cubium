@@ -112,8 +112,7 @@ void handleIceBreak(IWorld& world, const BlockPos& pos)
 IceBlock::IceBlock(BlockProperties properties)
     : Block(std::move(properties))
 {
-    // 设置摩擦力为冰的摩擦力（0.98）
-    // 注意：摩擦力是通过BlockProperties设置的
+    // 冰的滑度通过 BlockProperties.slipperiness() 在注册时设置
 }
 
 void IceBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)

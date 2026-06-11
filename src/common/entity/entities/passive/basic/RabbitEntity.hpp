@@ -103,6 +103,18 @@ public:
     void setRandomRabbitType();
 
     /**
+     * @brief 根据群系获取默认的兔子类型
+     *
+     * 参考 MC 1.21.11 Rabbit.getRandomRabbitVariant：
+     * - 雪地群系：80% 白色，20% 白色斑点
+     * - 沙漠群系：100% 金色
+     * - 其他群系：50% 棕色，40% 椒盐色，10% 黑色
+     *
+     * @return 基于当前位置群系的兔子类型
+     */
+    [[nodiscard]] RabbitType getDefaultRabbitTypeForBiome() const;
+
+    /**
      * @brief 是否是杀手兔
      */
     [[nodiscard]] bool isKillerRabbit() const { return m_rabbitType == RabbitType::Killer; }

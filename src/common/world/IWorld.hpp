@@ -24,6 +24,7 @@
 #pragma once
 
 #include "IWorldWriter.hpp"
+#include "WorldConstants.hpp"
 #include "block/BlockPos.hpp"
 #include "border/WorldBorder.hpp"
 #include "common/core/Types.hpp"
@@ -437,12 +438,9 @@ public:
      */
     [[nodiscard]] virtual u8 getNeighborAwareLightSubtracted(const BlockPos& pos, u32 skyDarkening) const
     {
-        // 检查坐标是否在有效范围内
-        // TODO: 应该使用 mc::world 命名空间下的世界边界常量，但当前 WorldConstants.hpp 中未暴露 WORLD_BORDER 常量
-        constexpr i32 WORLD_BORDER_MIN = -30000000;
-        constexpr i32 WORLD_BORDER_MAX = 30000000;
-        if (pos.x < WORLD_BORDER_MIN || pos.x >= WORLD_BORDER_MAX || pos.z < WORLD_BORDER_MIN ||
-            pos.z >= WORLD_BORDER_MAX) {
+        // 检查坐标是否在世界边界内
+        if (pos.x < -world::WORLD_BORDER || pos.x >= world::WORLD_BORDER || pos.z < -world::WORLD_BORDER ||
+            pos.z >= world::WORLD_BORDER) {
             return 15; // 世界边界外返回最大亮度
         }
         return getLightSubtracted(pos, skyDarkening);

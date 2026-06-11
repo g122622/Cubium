@@ -32,7 +32,6 @@
 #include "../../../IWorld.hpp"
 #include "../../../WorldEvents.hpp"
 #include "../../../block/IBucketPickupHandler.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../block/blocks/LiquidBlock.hpp"
 #include "../../../blockentity/BlockEntity.hpp"
 #include "../../../blockentity/redstone/CommandBlockEntity.hpp"
@@ -41,6 +40,7 @@
 #include "../../../gen/jigsaw/JigsawOrientation.hpp"
 #include "../../../redstone/RedstonePower.hpp"
 #include "../../../tick/manager/TickManager.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <queue>
 #include <unordered_set>
 #include <utility>
@@ -563,10 +563,10 @@ bool SlimeBlock::canStickTo(const BlockState& state, const BlockState& other) co
 HoneyBlock::HoneyBlock(const BlockProperties& properties)
     : Block(properties)
 {
-    // 蜂蜜块滑度为 0.98
-    // TODO: 应使用 PhysicsConstants 中的常量替代硬编码值，但当前未定义 SLIPPERINESS_HONEY
-    m_slipperiness = 0.98f;
-    // 蜂蜜块跳跃因子为 0.5
+    // 蜂蜜块滑度为默认值 0.6（MC 中蜂蜜块不修改 friction）
+    // 蜂蜜块的减速效果通过 speedFactor=0.4 和 jumpFactor=0.5 实现
+    m_slipperiness = physics::SLIPPERINESS_HONEY;
+    m_speedFactor = physics::HONEY_BLOCK_SPEED_FACTOR;
     m_jumpFactor = physics::HONEY_BLOCK_JUMP_FACTOR;
 
     // 蜂蜜块碰撞箱稍小

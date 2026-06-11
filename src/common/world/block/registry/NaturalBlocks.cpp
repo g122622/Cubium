@@ -21,6 +21,7 @@
  */
 
 #include "world/block/registry/NaturalBlocks.hpp"
+#include "common/physics/PhysicsConstants.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/FallingBlock.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"
@@ -132,16 +133,25 @@ void registerNaturalBlocks()
     // 浮冰 - 不透明，不融化
     NaturalBlocks::PACKED_ICE =
         &registry.registerBlock<blocks::PackedIceBlock>(ResourceLocation("minecraft:packed_ice"),
-            BlockProperties(Material::ICE).hardness(0.5f).opacity(2).propagatesSkylightDown());
+            BlockProperties(Material::ICE)
+                .hardness(0.5f)
+                .opacity(2)
+                .propagatesSkylightDown()
+                .slipperiness(physics::SLIPPERINESS_ICE));
 
-    // 蓝冰 - 最滑的方块，摩擦力0.989
-    NaturalBlocks::BLUE_ICE = &registry.registerBlock<blocks::BlueIceBlock>(
-        ResourceLocation("minecraft:blue_ice"), BlockProperties(Material::ICE).hardness(2.8f).resistance(2.8f));
+    // 蓝冰 - 最滑的方块
+    NaturalBlocks::BLUE_ICE = &registry.registerBlock<blocks::BlueIceBlock>(ResourceLocation("minecraft:blue_ice"),
+        BlockProperties(Material::ICE).hardness(2.8f).resistance(2.8f).slipperiness(physics::SLIPPERINESS_BLUE_ICE));
 
     // 霜冰 - 由冰霜行者附魔生成的临时冰
     NaturalBlocks::FROSTED_ICE =
         &registry.registerBlock<blocks::FrostedIceBlock>(ResourceLocation("minecraft:frosted_ice"),
-            BlockProperties(Material::ICE).hardness(0.5f).notSolid().opacity(2).propagatesSkylightDown());
+            BlockProperties(Material::ICE)
+                .hardness(0.5f)
+                .notSolid()
+                .opacity(2)
+                .propagatesSkylightDown()
+                .slipperiness(physics::SLIPPERINESS_ICE));
 
     // 粘液块
     NaturalBlocks::SLIME_BLOCK = &registry.registerBlock<SimpleBlock>(

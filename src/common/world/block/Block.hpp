@@ -344,11 +344,14 @@ public:
      * @brief 设置滑度
      *
      * 设置方块的滑动系数，影响实体在方块上的移动阻力。
-     * - 0.6f: 默认值（普通方块如石头、泥土）
-     * - 0.98f: 冰、浮冰、蓝冰（更滑）
-     * - 0.5f: 蜂蜜块（粘性，减少移动）
+     * - 0.6f: 默认值（普通方块如石头、泥土、蜂蜜块）
+     * - 0.8f: 史莱姆块
+     * - 0.98f: 冰、浮冰
+     * - 0.989f: 蓝冰
      *
-     * 参考: net.minecraft.block.Block.slipperiness
+     * 注意：蜂蜜块的减速效果通过 speedFactor(0.4) 和 jumpFactor(0.5) 实现，而非修改滑度。
+     *
+     * 参考: net.minecraft.block.Block.friction
      *
      * @param value 滑度值 (0.0-1.0)
      */
@@ -1073,11 +1076,14 @@ public:
      * @brief 获取方块滑度
      *
      * 返回方块的滑动系数，影响实体在方块上的移动阻力。
-     * - 0.6f: 默认值（普通方块如石头、泥土）
-     * - 0.98f: 冰、浮冰、蓝冰（更滑）
-     * - 0.5f: 蜂蜜块（粘性，减少移动）
+     * - 0.6f: 默认值（普通方块如石头、泥土、蜂蜜块）
+     * - 0.8f: 史莱姆块
+     * - 0.98f: 冰、浮冰
+     * - 0.989f: 蓝冰
      *
-     * 参考: net.minecraft.block.Block.getSlipperiness
+     * 注意：蜂蜜块的减速效果通过 speedFactor 和 jumpFactor 实现，而非修改滑度。
+     *
+     * 参考: net.minecraft.block.Block.getFriction
      *
      * @param state 方块状态
      * @param world 世界引用（可选）

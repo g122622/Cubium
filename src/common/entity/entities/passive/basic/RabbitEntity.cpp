@@ -23,6 +23,8 @@
 
 #include "RabbitEntity.hpp"
 
+#include <cmath>
+
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
@@ -41,7 +43,11 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 
 namespace mc {
 
@@ -73,8 +79,55 @@ void RabbitEntity::setRandomRabbitType()
         return;
     }
 
-    // 正常皮肤随机
-    m_rabbitType = static_cast<RabbitType>(rng.nextInt(0, 5));
+    // 根据当前群系确定兔子类型
+    m_rabbitType = getDefaultRabbitTypeForBiome();
+}
+
+RabbitEntity::RabbitType RabbitEntity::getDefaultRabbitTypeForBiome() const
+{
+    // 获取当前位置的群系
+    const IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return RabbitType::Brown;
+    }
+
+    BlockPos pos(
+        static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
+
+    const ChunkData* chunk = worldPtr->getChunk(pos.chunkX(), pos.chunkZ());
+    if (chunk == nullptr) {
+        return RabbitType::Brown;
+    }
+
+    BiomeId biomeId = chunk->getBiomeAtBlock(pos.localX(), pos.y, pos.localZ());
+
+    // 雪地群系：生成白色/白色斑点兔子
+    // 参考 MC BiomeTags.SPAWNS_WHITE_RABBITS
+    if (biomeId == Biomes::SnowyPlains || biomeId == Biomes::SnowyMountains || biomeId == Biomes::IceSpikes ||
+        biomeId == Biomes::FrozenOcean || biomeId == Biomes::DeepFrozenOcean || biomeId == Biomes::FrozenRiver ||
+        biomeId == Biomes::SnowyBeach || biomeId == Biomes::SnowyTaiga || biomeId == Biomes::SnowyTaigaHills ||
+        biomeId == Biomes::SnowyTaigaMountains || biomeId == Biomes::FrozenPeaks || biomeId == Biomes::JaggedPeaks ||
+        biomeId == Biomes::SnowySlopes || biomeId == Biomes::Grove) {
+        math::Random rng = getRandom();
+        return rng.nextInt(100) < 80 ? RabbitType::White : RabbitType::WhiteSpotted;
+    }
+
+    // 沙漠群系：生成金色兔子
+    // 参考 MC BiomeTags.SPAWNS_GOLD_RABBITS
+    if (biomeId == Biomes::Desert || biomeId == Biomes::DesertHills || biomeId == Biomes::DesertLakes) {
+        return RabbitType::Gold;
+    }
+
+    // 其他群系：棕色/椒盐色/黑色
+    math::Random rng = getRandom();
+    i32 i = rng.nextInt(100);
+    if (i < 50) {
+        return RabbitType::Brown;
+    }
+    if (i < 90) {
+        return RabbitType::SaltAndPepper;
+    }
+    return RabbitType::Black;
 }
 
 bool RabbitEntity::isBreedingItem(const ItemStack& itemStack) const
@@ -105,15 +158,15 @@ std::unique_ptr<AnimalEntity> RabbitEntity::spawnBaby(AnimalEntity& partner)
     // 设置为幼体
     baby->setChild(true);
 
-    // 类型继承逻辑：5% 概率随机生成类型（根据群系），95% 从父母继承
+    // 类型继承逻辑：5% 概率根据群系随机生成类型，95% 从父母继承
+    // 参考 MC 1.21.11 Rabbit.getBreedOffspring
     math::Random rng = getRandom();
     RabbitType babyType;
 
     if (rng.nextInt(20) == 0) {
-        // 5% 概率：随机类型
-        // TODO: 应该根据群系决定兔子类型，而非完全随机
-        baby->setRandomRabbitType();
-        babyType = baby->getRabbitType();
+        // 5% 概率：根据父母所在位置的群系生成类型
+        // 注意：此时 baby 尚未设置 world，因此使用父级的位置和群系
+        babyType = getDefaultRabbitTypeForBiome();
     } else {
         // 95% 概率：从父母继承
         // 50% 概率继承自己，50% 概率继承配偶
@@ -128,8 +181,8 @@ std::unique_ptr<AnimalEntity> RabbitEntity::spawnBaby(AnimalEntity& partner)
                 babyType = m_rabbitType;
             }
         }
-        baby->setRabbitType(babyType);
     }
+    baby->setRabbitType(babyType);
 
     // 设置位置
     baby->setPosition(x(), y(), z());

@@ -21,6 +21,7 @@
  */
 
 #include "world/block/registry/BaseBlocks.hpp"
+#include "common/physics/PhysicsConstants.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/HarvestTool.hpp"
 #include "world/block/blocks/AirBlock.hpp"
@@ -259,7 +260,12 @@ void registerBaseBlocks()
 
     // 冰
     BaseBlocks::ICE = &registry.registerBlock<blocks::IceBlock>(ResourceLocation("minecraft:ice"),
-        BlockProperties(Material::ICE).hardness(0.5f).notSolid().opacity(2).propagatesSkylightDown());
+        BlockProperties(Material::ICE)
+            .hardness(0.5f)
+            .notSolid()
+            .opacity(2)
+            .propagatesSkylightDown()
+            .slipperiness(physics::SLIPPERINESS_ICE));
 
     // 玻璃
     BaseBlocks::GLASS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:glass"),

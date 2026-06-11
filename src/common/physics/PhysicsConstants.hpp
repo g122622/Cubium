@@ -73,6 +73,9 @@ constexpr f32 SLIPPERINESS_SLIME = 0.8f;
 /// 蓝冰滑度系数
 constexpr f32 SLIPPERINESS_BLUE_ICE = 0.989f;
 
+/// 蜂蜜块滑度系数（与默认值相同，蜂蜜块的减速效果由 speedFactor 和 jumpFactor 实现）
+constexpr f32 SLIPPERINESS_HONEY = 0.6f;
+
 /// 地面移动因子计算
 constexpr f32 getGroundMoveFactor(f32 speed, f32 slipperiness = SLIPPERINESS_DEFAULT)
 {

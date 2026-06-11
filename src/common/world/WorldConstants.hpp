@@ -29,6 +29,14 @@
 namespace mc::world {
 
 // ============================================================================
+// 世界边界
+// ============================================================================
+
+/// 世界边界半径（方块坐标绝对值上限）
+/// MC 1.16.5: 世界边界为 ±30,000,000
+constexpr i32 WORLD_BORDER = 30000000;
+
+// ============================================================================
 // 区块加载优先级
 // ============================================================================
 
@@ -184,7 +192,6 @@ inline i32 sectionCoordToIndex(i32 sectionCoord) noexcept
  */
 inline bool isValidChunkCoord(i32 chunkX, i32 chunkZ) noexcept
 {
-    constexpr i32 WORLD_BORDER = 30000000;
     constexpr i32 MIN_CHUNK = -WORLD_BORDER / CHUNK_WIDTH;
     constexpr i32 MAX_CHUNK = WORLD_BORDER / CHUNK_WIDTH;
     return chunkX >= MIN_CHUNK && chunkX <= MAX_CHUNK && chunkZ >= MIN_CHUNK && chunkZ <= MAX_CHUNK;

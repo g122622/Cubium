@@ -234,7 +234,7 @@ bool WorldGenRegion::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         const i32 dz = std::abs(relZ);
         if (writeRadius < 0 || dx > writeRadius || dz > writeRadius) {
             spdlog::error("[WorldGenRegion] blocked setBlockState outside write radius: pos=({}, {}, {}), chunk=({}, "
-                         "{}), center=({}, {}), writeRadius={}, generatingStatus={}",
+                          "{}), center=({}, {}), writeRadius={}, generatingStatus={}",
                 x,
                 y,
                 z,
@@ -410,8 +410,8 @@ std::vector<AxisAlignedBB> WorldGenRegion::getBlockCollisions(const AxisAlignedB
 
 bool WorldGenRegion::isWithinWorldBounds(i32 x, i32 y, i32 z) const
 {
-    return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT && x >= -30000000 && x < 30000000 &&
-        z >= -30000000 && z < 30000000;
+    return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT && x >= -world::WORLD_BORDER &&
+        x < world::WORLD_BORDER && z >= -world::WORLD_BORDER && z < world::WORLD_BORDER;
 }
 
 bool WorldGenRegion::hasEntityCollision(const AxisAlignedBB& box, const Entity* except) const

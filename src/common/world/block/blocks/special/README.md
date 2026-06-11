@@ -99,7 +99,7 @@ Block (基类)
 ### 蜂蜜块碰撞箱
 
 - **碰撞箱高度为 15/16**：`CollisionShape::box(0, 0, 0, 1, 0.9375f, 1)`
-- **滑度为 0.98**：当前硬编码，待 `PhysicsConstants` 添加 `SLIPPERINESS_HONEY` 常量
+- **滑度为默认值 0.6**（MC 中蜂蜜块不修改 friction，减速通过 speedFactor=0.4 和 jumpFactor=0.5 实现）
 
 ### StructureBlock MODE 属性
 
