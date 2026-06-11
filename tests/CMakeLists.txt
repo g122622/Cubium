@@ -242,6 +242,8 @@ add_executable(mc_tests
     common/entity/combat/DifficultyHelperTest.cpp
     # DifficultyInstance 区域难度测试
     common/entity/combat/DifficultyInstanceTest.cpp
+    # MobEntity 装备生成和finalizeSpawn测试
+    common/entity/combat/MobEntityEquipmentTest.cpp
     # 战斗追踪器测试
     common/entity/combat/CombatTrackerTest.cpp
     # CombatRules EPF 测试

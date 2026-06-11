@@ -31,6 +31,8 @@ DespawnManager（消失管理）
 
 **生成流程**：每 tick，NaturalSpawner 检查玩家周围区块，根据生物群系配置、光照条件、实体密度限制决定是否生成实体。VillageSiege 在午夜时刻有概率触发僵尸围村。DespawnManager 在每 tick 后检查实体消失条件。
 
+**finalizeSpawn 调用**：所有 MobEntity 生成路径在 `spawnEntity()` 前必须调用 `finalizeSpawn(world, difficulty, spawnReason)`，以完成基于难度的初始化（拾取物品能力、默认装备、附魔等）。NaturalSpawner 使用 `SpawnReason::Natural`，VillageSiege 使用 `SpawnReason::Event`。详见 `entity/core/README.md`。
+
 ## 上下游外部依赖关系
 
 ### 上游依赖（本模块依赖的外部模块）

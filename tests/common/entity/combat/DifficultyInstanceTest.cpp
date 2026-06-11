@@ -120,9 +120,11 @@ TEST(DifficultyInstanceTest, FullConstructor_EasyChunkFactorHalved)
 
 TEST(DifficultyInstanceTest, FullConstructor_MoonPhaseAddsToChunkFactor)
 {
-    // 月相因子增加难度
-    DifficultyInstance instNoMoon(Difficulty::Normal, 72000, 0, 0.0f);
-    DifficultyInstance instFullMoon(Difficulty::Normal, 72000, 0, 1.0f);
+    // 月相因子增加难度（需要足够的世界时间才能生效）
+    // worldTime=72000 -> timeGlobalFactor=0, 月相被夹到0，无效果
+    // 使用更大的 worldTime 使月相因子生效
+    DifficultyInstance instNoMoon(Difficulty::Normal, 720000, 0, 0.0f);
+    DifficultyInstance instFullMoon(Difficulty::Normal, 720000, 0, 1.0f);
     EXPECT_GT(instFullMoon.getEffectiveDifficulty(), instNoMoon.getEffectiveDifficulty());
 }
 
@@ -141,10 +143,15 @@ TEST(DifficultyInstanceTest, FullConstructor_AllMaxFactors)
     // 所有因子拉满：最大世界时间 + 最大区块居住时间 + 满月
     DifficultyInstance inst(Difficulty::Hard, 1440000, 3600000, 1.0f);
 
-    // f = 0.75 + 1.0 * 0.25 + 1.0 * 1.0 + min(1.0 * 0.25, 1.0) = 0.75 + 0.25 + 1.0 + 0.25 = 2.25
-    // effective = 3 * 2.25 = 6.75
-    EXPECT_FLOAT_EQ(inst.getEffectiveDifficulty(), 6.75f);
-    // 6.75 > 4.0 -> special = 1.0
+    // timeGlobalFactor = clamp((1440000 - 72000) / 1440000, 0, 1) = clamp(0.95, 0, 1) = 0.95
+    // f = 0.75 + 0.95 * 0.25 = 0.75 + 0.2375 = 0.9875
+    // chunkFactor = 1.0 * 1.0 = 1.0 (Hard)
+    // moonFactor = clamp(1.0 * 0.25, 0, 0.95) = 0.25
+    // chunkFactor += 0.25 = 1.25
+    // f += 1.25 = 2.2375
+    // effective = 3 * 2.2375 = 6.7125
+    EXPECT_FLOAT_EQ(inst.getEffectiveDifficulty(), 6.7125f);
+    // 6.7125 > 4.0 -> special = 1.0
     EXPECT_FLOAT_EQ(inst.getSpecialMultiplier(), 1.0f);
 }
 
@@ -406,44 +413,46 @@ TEST(DifficultyInstanceTest, Calculate_MoonPhaseClampedWhenExceedsTimeGlobalFact
 TEST(DifficultyInstanceTest, Calculate_EasyDifficultyChunkFactorHalved)
 {
     // Easy 下 chunkFactor *= 0.5
-    // worldTime = 1440000 (max timeGlobalFactor = 1.0)
+    // worldTime = 1440000 -> timeGlobalFactor = (1440000 - 72000) / 1440000 = 0.95
     // chunkInhabitedTime = 3600000 (max chunk factor = 1.0)
     // moonPhaseFactor = 1.0
     DifficultyInstance inst(Difficulty::Easy, 1440000, 3600000, 1.0f);
-    // timeGlobalFactor = 1.0
+    // timeGlobalFactor = 0.95
     // chunkFactor = 1.0 * 0.75 = 0.75 (Easy uses 0.75 for non-Hard)
-    // moonFactor = clamp(0.25, 0, 1.0) = 0.25
+    // moonFactor = clamp(0.25, 0, 0.95) = 0.25
     // chunkFactor += moonFactor = 0.75 + 0.25 = 1.0
     // Easy: chunkFactor *= 0.5 -> 0.5
-    // f = 0.75 + 1.0 * 0.25 + 0.5 = 0.75 + 0.25 + 0.5 = 1.5
-    // effective = 1 * 1.5 = 1.5
-    EXPECT_FLOAT_EQ(inst.getEffectiveDifficulty(), 1.5f);
+    // f = 0.75 + 0.95 * 0.25 + 0.5 = 0.75 + 0.2375 + 0.5 = 1.4875
+    // effective = 1 * 1.4875 = 1.4875
+    EXPECT_NEAR(inst.getEffectiveDifficulty(), 1.4875f, 0.001f);
 }
 
 TEST(DifficultyInstanceTest, Calculate_NormalDifficultyFullFactors)
 {
     DifficultyInstance inst(Difficulty::Normal, 1440000, 3600000, 1.0f);
-    // timeGlobalFactor = 1.0
+    // timeGlobalFactor = 0.95
     // chunkFactor = 1.0 * 0.75 = 0.75 (Normal uses 0.75 for non-Hard)
-    // moonFactor = clamp(0.25, 0, 1.0) = 0.25
+    // moonFactor = clamp(0.25, 0, 0.95) = 0.25
     // chunkFactor += moonFactor = 0.75 + 0.25 = 1.0
     // Normal: chunkFactor NOT halved
-    // f = 0.75 + 1.0 * 0.25 + 1.0 = 0.75 + 0.25 + 1.0 = 2.0
-    // effective = 2 * 2.0 = 4.0
-    EXPECT_FLOAT_EQ(inst.getEffectiveDifficulty(), 4.0f);
-    // effective = 4.0 >= 2.0, (4.0 - 2.0) / 2.0 = 1.0
-    EXPECT_FLOAT_EQ(inst.getSpecialMultiplier(), 1.0f);
+    // f = 0.75 + 0.95 * 0.25 + 1.0 = 0.75 + 0.2375 + 1.0 = 1.9875
+    // effective = 2 * 1.9875 = 3.975
+    EXPECT_NEAR(inst.getEffectiveDifficulty(), 3.975f, 0.001f);
+    // effective = 3.975 >= 2.0, (3.975 - 2.0) / 2.0 = 0.9875
+    EXPECT_NEAR(inst.getSpecialMultiplier(), 0.9875f, 0.001f);
 }
 
 TEST(DifficultyInstanceTest, Calculate_HardDifficultyFullFactors)
 {
     DifficultyInstance inst(Difficulty::Hard, 1440000, 3600000, 1.0f);
-    // timeGlobalFactor = 1.0
+    // timeGlobalFactor = 0.95
     // chunkFactor = 1.0 * 1.0 = 1.0 (Hard uses 1.0)
-    // moonFactor = clamp(0.25, 0, 1.0) = 0.25
+    // moonFactor = clamp(0.25, 0, 0.95) = 0.25
     // chunkFactor += moonFactor = 1.0 + 0.25 = 1.25
     // Hard: chunkFactor NOT halved
-    // f = 0.75 + 1.0 * 0.25 + 1.25 = 0.75 + 0.25 + 1.25 = 2.25
-    // effective = 3 * 2.25 = 6.75
-    EXPECT_FLOAT_EQ(inst.getEffectiveDifficulty(), 6.75f);
+    // f = 0.75 + 0.95 * 0.25 + 1.25 = 0.75 + 0.2375 + 1.25 = 2.2375
+    // effective = 3 * 2.2375 = 6.7125
+    EXPECT_NEAR(inst.getEffectiveDifficulty(), 6.7125f, 0.001f);
+    // 6.7125 > 4.0 -> special = 1.0
+    EXPECT_FLOAT_EQ(inst.getSpecialMultiplier(), 1.0f);
 }

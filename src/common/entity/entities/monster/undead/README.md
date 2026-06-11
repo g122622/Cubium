@@ -42,13 +42,15 @@ Entity
 ## 内部模块关系
 
 - **AbstractSkeletonEntity**：骷髅系基类，实现 `IRangedAttackMob` 接口，采用 `setCombatTask()` 模式动态选择远程/近战目标
-- **ZombieEntity**：僵尸系基类，实现溺水转化、增援召唤、破门能力、婴儿状态
+- **ZombieEntity**：僵尸系基类，实现溺水转化、增援召唤、破门能力、婴儿状态、生成初始化
 - **ZombieVillagerEntity**：继承 ZombieEntity，实现治愈系统（铁栏杆/床加速、力量效果加速）
 
 各实体通过重写父类方法实现差异化行为：
 - `shouldBurnInDaylight()`：HuskEntity/DrownedEntity 返回 false
 - `shouldDrown()`：ZombieVillagerEntity 返回 false，DrownedEntity 返回 false
 - `setCombatTask()`：WitherSkeletonEntity 重写使用近战，其他骷髅使用远程
+- `finalizeSpawn()`：ZombieEntity 覆写，设置破门能力（概率 = specialMultiplier × 0.1）和万圣节南瓜头
+- `populateDefaultEquipmentSlots()`：ZombieEntity 覆写，Hard 难度 5%/其他 1% 概率生成铁剑或铁锹
 
 ## 上下游外部依赖关系
 

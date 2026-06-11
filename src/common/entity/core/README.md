@@ -79,6 +79,64 @@ Entity（基类：位置、运动、碰撞、火焰、流体检测）
 - `server/` - 服务端实体调度
 - `client/renderer/entity/` - 客户端实体渲染
 
+## MobEntity 生成初始化系统
+
+MobEntity 提供 `finalizeSpawn()` 方法，在实体被创建并设置好位置后调用，用于根据难度和生成原因进行初始化。
+
+### finalizeSpawn 调用链
+
+```
+finalizeSpawn(world, difficulty, spawnReason)
+├── 设置 canPickUpLoot（概率 = 0.55 * specialMultiplier）
+├── populateDefaultEquipmentSlots(random, difficulty)
+│   └── 护甲生成概率 = 0.15 * specialMultiplier
+│       └── getEquipmentForSlot(slot, armorLevel) → 护甲物品映射
+└── populateDefaultEquipmentEnchantments(random, difficulty)
+    ├── 武器附魔概率 = 0.25 * specialMultiplier
+    └── 护甲附魔概率 = 0.5 * specialMultiplier（每个槽位独立）
+```
+
+### 子类覆写示例
+
+- **ZombieEntity**：覆写 `populateDefaultEquipmentSlots()` 添加铁剑/铁锹
+- **MonsterEntity**：调用 `finalizeSpawn()` 设置 `isDespawnPeaceful()`
+
+### finalizeSpawn 调用位置
+
+所有 MobEntity 生成路径必须在 `spawnEntity()` 之前调用 `finalizeSpawn()`：
+
+| 生成路径 | SpawnReason | 文件 |
+|---------|-------------|------|
+| 自然生成 | Natural | NaturalSpawner.cpp |
+| 村庄围攻 | Event | VillageSiege.cpp |
+| 刷怪蛋 | SpawnEgg | SpawnEggItem.cpp |
+| /summon 命令 | Command | SummonCommand.cpp |
+| 陷阱骷髅马 | Trigger | SkeletonHorseEntity.cpp |
+| 袭击 | Event | Raid.cpp |
+| 繁殖 | Breeding | BreedGoal.cpp |
+| 史莱姆分裂 | Reinforcement | SlimeEntity.cpp |
+| 恼鬼召唤 | MobSummons | EvokerEntity.cpp |
+| 蠹虫生成 | Event | InfestedBlock.cpp |
+| 雪傀儡/铁傀儡 | Event | MelonPumpkinBlocks.cpp |
+| 海龟孵化 | Natural | TurtleEggBlock.cpp |
+| 远古守卫者 | Structure | OceanMonumentPieces.cpp |
+| 结构模板 | Structure | Template.cpp |
+| 区块生成 | ChunkGeneration | ServerWorld.cpp, MinecraftServer.cpp |
+| 僵尸村民治愈 | Conversion | ZombieVillagerEntity.cpp |
+
+### getEquipmentForSlot 护甲等级映射
+
+| armorLevel | 材质 | Head | Chest | Legs | Feet |
+|-----------|------|------|-------|------|------|
+| 0 | 皮革 | LEATHER_HELMET | LEATHER_CHESTPLATE | LEATHER_LEGGINGS | LEATHER_BOOTS |
+| 1 | 铜(暂铁) | IRON_HELMET | IRON_CHESTPLATE | IRON_LEGGINGS | IRON_BOOTS |
+| 2 | 金 | GOLDEN_HELMET | GOLDEN_CHESTPLATE | GOLDEN_LEGGINGS | GOLDEN_BOOTS |
+| 3 | 锁链 | CHAINMAIL_HELMET | CHAINMAIL_CHESTPLATE | CHAINMAIL_LEGGINGS | CHAINMAIL_BOOTS |
+| 4 | 铁 | IRON_HELMET | IRON_CHESTPLATE | IRON_LEGGINGS | IRON_BOOTS |
+| 5 | 钻石 | DIAMOND_HELMET | DIAMOND_CHESTPLATE | DIAMOND_LEGGINGS | DIAMOND_BOOTS |
+
+注意：armorLevel=1 对应铜材质，但铜护甲尚未实现，当前回退为铁护甲。
+
 ## 容易踩的坑
 
 ### 区块高度常量混淆
