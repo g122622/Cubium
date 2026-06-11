@@ -361,6 +361,17 @@ BiomeTag& BiomeTags::HAS_STRUCTURE_ANCIENT_CITY()
     return *tag;
 }
 
+// ========== 游戏玩法标签 ==========
+
+BiomeTag& BiomeTags::ALLOWS_SURFACE_SLIME_SPAWNS()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "allows_surface_slime_spawns"));
+    }
+    return *tag;
+}
+
 // ============================================================================
 // 初始化
 // ============================================================================
@@ -962,6 +973,15 @@ void BiomeTags::initialize()
     {
         auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "has_structure/ancient_city"));
         tag->addAll({Biomes::DeepDark});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // ========== 游戏玩法标签 ==========
+
+    // allows_surface_slime_spawns: 沼泽和红树林沼泽允许地表史莱姆生成
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "allows_surface_slime_spawns"));
+        tag->addAll({Biomes::Swamp, Biomes::MangroveSwamp});
         tags[tag->getId()] = std::move(tag);
     }
 

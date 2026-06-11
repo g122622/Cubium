@@ -25,8 +25,10 @@
 #include "util/assert/AssertAll.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
+#include "world/biome/BiomeTags.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/Material.hpp"
+#include "world/spawn/SlimeChunkChecker.hpp"
 
 namespace mc::world::spawn {
 
@@ -317,32 +319,44 @@ bool canMonsterSpawnInLightPredicate(
 /**
  * @brief 史莱姆生成条件检查
  *
- * 史莱姆需要在史莱姆区块或沼泽生物群系生成。
+ * 史莱姆需要在史莱姆区块或允许地表史莱姆生成的生物群系中生成。
+ *
+ * 地下史莱姆区块生成条件（MC 原版 Slime.checkSlimeSpawnRules）：
+ * 1. 非和平难度
+ * 2. 非刷怪笼生成
+ * 3. 区块是史莱姆区块（使用世界种子确定性计算，10% 概率）
+ * 4. 额外 10% 随机概率
+ * 5. Y < 40
+ *
+ * 地表沼泽史莱姆生成条件：
+ * 1. 生物群系带有 ALLOWS_SURFACE_SLIME_SPAWNS 标签（沼泽、红树林沼泽）
+ * 2. Y 在 50-70 之间（开区间，即 51-69）
+ * 3. 生成概率受月相影响（满月 50%，新月 0%）
+ * 4. 光照等级 <= 随机值(0-7)
  */
 bool canSlimeSpawn(const ISpawnWorldReader& world, const Vector3i& pos, const std::string& /*entityTypeId*/)
 {
-    // 史莱姆生成条件：
-    // 1. Y < 40 且在史莱姆区块中
-    // 2. 或在沼泽生物群系中，Y 在 50-70 之间
-
-    if (pos.y < 40) {
-        // 检查是否在史莱姆区块
-        // 史莱姆区块的判断需要世界种子，这里简化为随机种子检查
-        // TODO: 实际实现需要 SlimeChunkChecker，使用世界种子检查是否为史莱姆区块
-        const i32 chunkX = pos.x >> world::CHUNK_SHIFT;
-        const i32 chunkZ = pos.z >> world::CHUNK_SHIFT;
-        MC_UNUSED(chunkX);
-        MC_UNUSED(chunkZ);
-        // 简化实现：暂时允许所有低位置
-        return true;
+    // 和平难度不生成史莱姆
+    if (world.difficulty() == Difficulty::Peaceful) {
+        return false;
     }
 
-    // 沼泽生物群系检查
+    // 地下史莱姆区块生成路径
+    if (pos.y < 40) {
+        const i32 chunkX = pos.x >> world::CHUNK_SHIFT;
+        const i32 chunkZ = pos.z >> world::CHUNK_SHIFT;
+
+        // 使用世界种子确定性判断是否为史莱姆区块
+        if (SlimeChunkChecker::isSlimeChunk(world.seed(), chunkX, chunkZ)) {
+            return true;
+        }
+    }
+
+    // 地表沼泽史莱姆生成路径
     const BiomeId biome = world.getBiome(pos.x, pos.y, pos.z);
-    // Biomes::Swamp = 6, Biomes::SwampHills = 134
-    if (biome == 6 || biome == 134) {
-        // 沼泽史莱姆需要在 Y 50-70 之间
-        if (pos.y >= 50 && pos.y <= 70) {
+    if (biome::BiomeTags::ALLOWS_SURFACE_SLIME_SPAWNS().contains(biome)) {
+        // Y 需要在 (50, 70) 开区间内
+        if (pos.y > 50 && pos.y < 70) {
             return true;
         }
     }

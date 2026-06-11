@@ -6,8 +6,10 @@
 
 ```
 src/common/world/spawn/
-├── MobSpawnInfo.hpp    # 生成信息类型定义（SpawnCosts、SpawnEntry、SpawnCategory、MobSpawnInfo）
-└── MobSpawnInfo.cpp    # 各生物群系的工厂方法实现（createPlains、createOcean 等）
+├── MobSpawnInfo.hpp        # 生成信息类型定义（SpawnCosts、SpawnEntry、SpawnCategory、MobSpawnInfo）
+├── MobSpawnInfo.cpp        # 各生物群系的工厂方法实现（createPlains、createOcean 等）
+├── SlimeChunkChecker.hpp   # 史莱姆区块判断工具（使用世界种子确定性计算）
+└── SlimeChunkChecker.cpp   # 史莱姆区块判断算法实现（Java LCG 复刻）
 ```
 
 ## 内部模块关系
@@ -25,6 +27,11 @@ src/common/world/spawn/
 │                                                                 │
 │  MobSpawnInfo.cpp                                               │
 │  └── 工厂方法：主世界、下界、末地、洞穴等生物群系的生成配置      │
+│                                                                 │
+│  SlimeChunkChecker.hpp/.cpp                                     │
+│  ├── isSlimeChunk()      判断区块是否为史莱姆区块（10%概率）     │
+│  ├── computeSlimeChunkSeed()  计算区块种子（MC公式）             │
+│  └── getSurfaceSlimeSpawnChance()  地表生成概率（月相相关）      │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -38,6 +45,7 @@ src/common/world/spawn/
 - `Biome.hpp` / `BiomeRegistry.cpp` - 生物群系定义，通过 `Biome::spawnInfo()` 获取生成信息
 - `WorldGenSpawner.hpp` - 区块生成时放置动物（仅使用 Creature 分类）
 - `NaturalSpawner.hpp` (server) - 运行时自然生成（处理所有分类）
+- `EntitySpawnPlacementRegistry.cpp` - 史莱姆生成条件检查使用 `SlimeChunkChecker::isSlimeChunk()`
 
 ## 容易踩的坑
 
@@ -75,3 +83,7 @@ if (costs && costs->isValid()) { /* 使用成本限制 */ }
 - **暖水海洋**：热带鱼为主，有河豚、海豚，无鳕鱼/鲑鱼
 - **冰冻海洋**：鲑鱼为主，北极熊，**没有鳕鱼**
 - **深海**：更多鱿鱼
+
+### 8. 史莱姆区块判断算法与 Java 不兼容
+
+`SlimeChunkChecker` 使用 Java `LegacyRandomSource`（48位 LCG）算法，与项目默认的 `Xoroshiro128ppRandom` 不兼容。史莱姆区块判断必须使用 `SlimeChunkChecker` 的静态方法，不能直接用 `math::Random` 替代。

@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "core/Types.hpp"
+#include "common/core/Types.hpp"
 #include "util/math/Vector3.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/chunk/data/IChunk.hpp"
@@ -219,6 +219,18 @@ public:
      * @brief 获取指定位置的生物群系ID
      */
     [[nodiscard]] virtual BiomeId getBiome(i32 x, i32 y, i32 z) const = 0;
+
+    /**
+     * @brief 获取世界种子
+     *
+     * 用于确定性生成判断（如史莱姆区块判定）。
+     */
+    [[nodiscard]] virtual u64 seed() const = 0;
+
+    /**
+     * @brief 获取世界难度
+     */
+    [[nodiscard]] virtual Difficulty difficulty() const = 0;
 };
 
 /**

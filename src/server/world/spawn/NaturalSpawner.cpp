@@ -654,6 +654,10 @@ bool NaturalSpawner::_canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i
             return chunk->getBiomeAtBlock(localX, by, localZ);
         }
 
+        [[nodiscard]] u64 seed() const override { return m_world.seed(); }
+
+        [[nodiscard]] Difficulty difficulty() const override { return m_world.difficulty(); }
+
     private:
         mc::server::ServerWorld& m_world;
     };

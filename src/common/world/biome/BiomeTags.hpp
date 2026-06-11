@@ -142,6 +142,11 @@ public:
     /// 远古城市标签
     static BiomeTag& HAS_STRUCTURE_ANCIENT_CITY();
 
+    // ========== 游戏玩法标签 ==========
+
+    /// 允许地表史莱姆生成的生物群系（沼泽、红树林沼泽）
+    static BiomeTag& ALLOWS_SURFACE_SLIME_SPAWNS();
+
     /**
      * @brief 初始化所有内置标签
      *

@@ -29,8 +29,8 @@
 #include "../../../util/AxisAlignedBB.hpp"
 #include "../../WorldConstants.hpp"
 #include "../../block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../chunk/IChunkGenerator.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -66,6 +66,10 @@ public:
     }
 
     [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override { return m_region.getBiome(x, y, z); }
+
+    [[nodiscard]] u64 seed() const override { return m_region.seed(); }
+
+    [[nodiscard]] Difficulty difficulty() const override { return m_region.difficulty(); }
 
 private:
     WorldGenRegion& m_region;
