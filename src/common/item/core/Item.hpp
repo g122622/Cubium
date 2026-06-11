@@ -25,6 +25,7 @@
 
 #include "ActionResult.hpp"
 #include "UseAction.hpp"
+#include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <functional>
@@ -172,7 +173,7 @@ public:
 private:
     friend class Item;
 
-    i32 m_maxStackSize = 64;
+    i32 m_maxStackSize = mc::item::DEFAULT_MAX_STACK_SIZE;
     i32 m_maxDamage = 0;
     const Item* m_containerItem = nullptr;
     ItemRarity m_rarity = ItemRarity::Common;
@@ -670,7 +671,7 @@ protected:
     ItemId m_itemId = 0;
 
     // 由构造函数设置
-    i32 m_maxStackSize = 64;
+    i32 m_maxStackSize = mc::item::DEFAULT_MAX_STACK_SIZE;
     i32 m_maxDamage = 0;
     const Item* m_containerItem = nullptr;
     ItemRarity m_rarity = ItemRarity::Common;

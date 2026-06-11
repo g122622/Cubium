@@ -22,6 +22,7 @@
  */
 
 #include "SimpleInventory.hpp"
+#include "common/core/Constants.hpp"
 #include "network/packet/PacketSerializer.hpp"
 #include "util/assert/AssertAll.hpp"
 
@@ -47,7 +48,7 @@ SimpleInventory::SimpleInventory(SimpleInventory&& other) noexcept
     , m_onChanged(std::move(other.m_onChanged))
 {
     // 重置源对象
-    other.m_maxStackSize = 64;
+    other.m_maxStackSize = mc::item::DEFAULT_MAX_STACK_SIZE;
     other.m_onChanged = nullptr;
 }
 
@@ -59,7 +60,7 @@ SimpleInventory& SimpleInventory::operator=(SimpleInventory&& other) noexcept
         m_onChanged = std::move(other.m_onChanged);
 
         // 重置源对象
-        other.m_maxStackSize = 64;
+        other.m_maxStackSize = mc::item::DEFAULT_MAX_STACK_SIZE;
         other.m_onChanged = nullptr;
     }
     return *this;

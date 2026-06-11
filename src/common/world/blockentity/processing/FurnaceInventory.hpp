@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Constants.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include <array>
 #include <functional>
@@ -68,7 +69,7 @@ public:
 
     [[nodiscard]] i32 getContainerSize() const override { return SLOT_COUNT; }
     [[nodiscard]] bool isEmpty() const override;
-    [[nodiscard]] i32 getMaxStackSize() const override { return 64; }
+    [[nodiscard]] i32 getMaxStackSize() const override { return mc::item::DEFAULT_MAX_STACK_SIZE; }
     [[nodiscard]] ItemStack getItem(i32 slot) const override;
     void setItem(i32 slot, const ItemStack& stack) override;
     ItemStack removeItem(i32 slot, i32 count) override;

@@ -23,6 +23,7 @@
 
 #include "CreativeInventory.hpp"
 #include "PlayerInventory.hpp"
+#include "common/core/Constants.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/items/block/BlockItem.hpp"
@@ -57,7 +58,8 @@ std::vector<CreativeInventoryEntry> buildCreativePaletteEntries()
     std::vector<CreativeInventoryEntry> entries;
 
     Item::forEachItem([&entries](Item& item) {
-        const i32 stackSize = item.isDamageable() ? 1 : std::clamp(item.maxStackSize(), 1, 64);
+        const i32 stackSize =
+            item.isDamageable() ? 1 : std::clamp(item.maxStackSize(), 1, mc::item::DEFAULT_MAX_STACK_SIZE);
         CreativeInventoryEntry entry{ItemStack(item, stackSize), {}};
         entry.searchKey = buildSearchKey(entry.stack);
         entries.push_back(std::move(entry));
@@ -97,7 +99,7 @@ void fillCreativeModeInventory(PlayerInventory& inventory)
     Item* craftingTableItem = ItemRegistry::instance().getItem(ResourceLocation("minecraft:crafting_table"));
     BlockItem* craftingTableBlockItem = dynamic_cast<BlockItem*>(craftingTableItem);
     if (craftingTableBlockItem != nullptr && slot < PlayerInventory::TOTAL_SIZE) {
-        inventory.setItem(slot, ItemStack(*craftingTableBlockItem, 64));
+        inventory.setItem(slot, ItemStack(*craftingTableBlockItem, mc::item::DEFAULT_MAX_STACK_SIZE));
         ++slot;
     }
 
@@ -123,7 +125,7 @@ void fillCreativeModeInventory(PlayerInventory& inventory)
             break;
         }
 
-        inventory.setItem(slot, ItemStack(*blockItem, 64));
+        inventory.setItem(slot, ItemStack(*blockItem, mc::item::DEFAULT_MAX_STACK_SIZE));
         ++slot;
     }
 }

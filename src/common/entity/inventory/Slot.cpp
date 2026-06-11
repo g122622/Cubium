@@ -22,6 +22,7 @@
  */
 
 #include "Slot.hpp"
+#include "../../core/Constants.hpp"
 #include "../../item/Items.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../item/items/armor/ArmorItem.hpp"
@@ -98,8 +99,7 @@ void Slot::setChanged()
 i32 Slot::getMaxStackSize() const
 {
     if (m_inventory == nullptr) {
-        // TODO: 应该使用常量替代硬编码的默认最大堆叠数
-        return 64;
+        return mc::item::DEFAULT_MAX_STACK_SIZE;
     }
     return m_inventory->getMaxStackSize();
 }

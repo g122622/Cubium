@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "../../core/Constants.hpp"
 #include "../../core/Result.hpp"
 #include "../../core/Types.hpp"
 #include "../../entity/inventory/ContainerTypes.hpp"
@@ -44,8 +45,8 @@ namespace inventory {
 // 最大槽位数
 constexpr i32 MAX_SLOTS = 256;
 
-// 最大物品堆叠数
-constexpr i32 MAX_STACK_SIZE = 64;
+// 最大物品堆叠数（与物品默认最大堆叠数一致）
+constexpr i32 MAX_STACK_SIZE = mc::item::DEFAULT_MAX_STACK_SIZE;
 
 // 玩家背包槽位数
 constexpr i32 PLAYER_INVENTORY_SIZE = 41;

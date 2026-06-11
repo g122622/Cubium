@@ -51,7 +51,7 @@ ItemProperties& ItemProperties::maxStackSize(i32 maxStackSize)
         // 有耐久度的物品不能堆叠
         m_maxStackSize = 1;
     } else {
-        m_maxStackSize = std::clamp(maxStackSize, 1, 64);
+        m_maxStackSize = std::clamp(maxStackSize, 1, mc::item::DEFAULT_MAX_STACK_SIZE);
     }
     return *this;
 }

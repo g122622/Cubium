@@ -22,6 +22,7 @@
  */
 
 #include "entity/inventory/container/BrewingStandContainer.hpp"
+#include "common/core/Constants.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
@@ -79,7 +80,7 @@ public:
         return !stack.isEmpty() && potion::PotionBrewing::isReagent(stack);
     }
 
-    [[nodiscard]] i32 getMaxStackSize() const override { return 64; }
+    [[nodiscard]] i32 getMaxStackSize() const override { return mc::item::DEFAULT_MAX_STACK_SIZE; }
 };
 
 /**
@@ -98,7 +99,7 @@ public:
         return !stack.isEmpty() && stack.getItem() == Items::BLAZE_POWDER;
     }
 
-    [[nodiscard]] i32 getMaxStackSize() const override { return 64; }
+    [[nodiscard]] i32 getMaxStackSize() const override { return mc::item::DEFAULT_MAX_STACK_SIZE; }
 
     /**
      * @brief 检查是否为有效的酿造燃料

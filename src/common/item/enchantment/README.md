@@ -146,14 +146,10 @@ LivingEntity::actuallyHurt()
 - 工具：`(level + 1) / (level + 1)` 概率忽略
 - 护甲：额外有 60% 概率不触发耐久效果
 
-### 5. EnchantmentHelper 部分方法有默认参数违规
-
-`getEnchantmentDatas()`、`buildEnchantmentList()`、`addRandomEnchantment()` 有默认参数 `allowTreasure = false`，违反项目规范，调用时应显式传参。
-
-### 6. 荆棘反伤的耐久消耗
+### 5. 荆棘反伤的耐久消耗
 
 荆棘触发反伤时会消耗护甲耐久，需要在 `ThornsEnchantment::onUserHurt` 中处理，不要在调用方处理。
 
-### 7. 附魔注册时机
+### 6. 附魔注册时机
 
 `EnchantmentRegistry::initialize()` 必须在游戏启动时调用，在使用任何附魔之前完成注册。注册后的附魔实例由注册表持有所有权。

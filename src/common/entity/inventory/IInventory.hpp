@@ -27,6 +27,7 @@
 #include <memory>
 #include <unordered_set>
 
+#include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 
@@ -72,9 +73,9 @@ public:
 
     /**
      * @brief 获取最大堆叠数量
-     * @return 默认64
+     * @return 默认 DEFAULT_MAX_STACK_SIZE
      */
-    [[nodiscard]] virtual i32 getMaxStackSize() const { return 64; }
+    [[nodiscard]] virtual i32 getMaxStackSize() const { return mc::item::DEFAULT_MAX_STACK_SIZE; }
 
     // ========== 物品操作 ==========
 

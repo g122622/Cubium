@@ -174,6 +174,17 @@ constexpr i32 PLAYER_TRACKING_RANGE_CHUNKS = 32;        // 玩家追踪距离（
 
 } // namespace entity
 
+// ============================================================================
+// 物品常量
+// ============================================================================
+
+namespace item {
+
+// 物品默认最大堆叠数（MC: Item.DEFAULT_MAX_STACK_SIZE）
+constexpr i32 DEFAULT_MAX_STACK_SIZE = 64;
+
+} // namespace item
+
 } // namespace mc
 
 // ============================================================================

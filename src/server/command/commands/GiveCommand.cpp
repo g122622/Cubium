@@ -26,6 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -78,7 +79,7 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
 [[nodiscard]] i32 getMaxStackSize(const Item* item)
 {
     if (item == nullptr) {
-        return 64; // 默认最大堆叠数
+        return mc::item::DEFAULT_MAX_STACK_SIZE;
     }
     return item->maxStackSize();
 }

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Constants.hpp"
 #include "entity/inventory/IInventory.hpp"
 #include <functional>
 #include <vector>
@@ -96,7 +97,7 @@ public:
 
     /**
      * @brief 设置最大堆叠数量
-     * @param maxStackSize 最大堆叠数量（默认64）
+     * @param maxStackSize 最大堆叠数量（默认 DEFAULT_MAX_STACK_SIZE）
      */
     void setMaxStackSize(i32 maxStackSize) noexcept { m_maxStackSize = maxStackSize; }
 
@@ -177,7 +178,7 @@ private:
     void _onChanged();
 
     std::vector<ItemStack> m_items;
-    i32 m_maxStackSize = 64;
+    i32 m_maxStackSize = mc::item::DEFAULT_MAX_STACK_SIZE;
     std::function<void()> m_onChanged;
 };
 

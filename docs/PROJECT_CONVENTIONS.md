@@ -90,7 +90,7 @@ src/common/core/
 ├── Types.hpp                    # 基础类型定义（i8/u8/f32等、游戏类型、枚举）
 ├── Result.hpp                   # 错误处理系统（Result<T>、Error、ErrorCode）
 ├── Result.cpp                   # Result 实现
-├── Constants.hpp                # 游戏常量（命名空间组织：game/network/world/entity/capacity）
+├── Constants.hpp                # 游戏常量（命名空间组织：game/network/world/entity/item/capacity）
 ├── EnumSet.hpp                  # 枚举集合工具（基于 std::bitset）
 ├── BlockRaycastResult.hpp       # 方块射线投射结果类型
 ├── GameDirectory.hpp/cpp        # 游戏目录管理器（统一管理所有游戏路径）
@@ -274,6 +274,9 @@ inline bool isValidChunkCoord(i32 chunkX, i32 chunkZ)
 - `LegacyEntityTypeId` - 实体类型ID枚举（旧版，用于网络同步）
 - `EntityStatus` - 实体状态枚举
 - `ENTITY_TRACKING_RANGE`, `PLAYER_TRACKING_RANGE` - 追踪距离
+
+`mc::item` 命名空间：
+- `DEFAULT_MAX_STACK_SIZE` - 物品默认最大堆叠数（64）
 
 `mc::capacity` 命名空间：
 - `DEFAULT_BUFFER_SIZE`, `PACKET_BUFFER_SIZE` - 缓冲区大小
