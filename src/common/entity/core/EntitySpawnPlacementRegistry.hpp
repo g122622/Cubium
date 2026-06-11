@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "common/core/Types.hpp"
+#include "core/Types.hpp"
 #include "util/math/Vector3.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/chunk/data/IChunk.hpp"

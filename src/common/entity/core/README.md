@@ -49,6 +49,10 @@ Entity（基类：位置、运动、碰撞、火焰、流体检测）
 - EntityRegistry → EntityType → EntityTypeIdNumber（类型注册）
 - BoostHelper → EntityDataManager（鞍和加速状态同步）
 - EntitySpawnPlacementRegistry → SpawnReason（生成规则判断）
+  - EntitySpawnPlacementRegistry → ISpawnWorldReader（世界状态查询接口）
+  - EntitySpawnPlacementRegistry → BiomeTags（生物群系标签查询，如地表史莱姆生成）
+  - EntitySpawnPlacementRegistry → InternalLightUtils（月相、光照计算）
+  - EntitySpawnPlacementRegistry → SlimeChunkChecker（史莱姆区块判断）
 ```
 
 ## 上下游外部依赖关系
@@ -116,6 +120,19 @@ Entity（基类：位置、运动、碰撞、火焰、流体检测）
 - `typeId()` 返回 `EntityTypeIdNumber` 命名空间中的常量
 - `legacyType()` 返回 `LegacyEntityType` 枚举（旧版，仅用于兼容）
 - 新代码应使用 `typeId()`
+
+### ISpawnWorldReader 接口
+- 定义在 `EntitySpawnPlacementRegistry.hpp` 中，用于生成检查的最小世界读取接口
+- 主要方法：
+  - `getBlockState(x, y, z)` - 获取方块状态
+  - `isInWorldBounds(x, y, z)` - 检查位置是否在世界范围内
+  - `getHeight(type, x, z)` - 获取高度图值
+  - `getBiome(x, y, z)` - 获取生物群系ID
+  - `seed()` - 获取世界种子（史莱姆区块判断等确定性生成条件）
+  - `difficulty()` - 获取世界难度（和平难度拒绝怪物生成）
+  - `dayTime()` - 获取游戏日时间（月相计算等基于时间的生成条件）
+  - `getMaxLocalRawBrightness(x, y, z)` - 获取最大原始亮度（光照等级生成条件）
+- 适配器实现：`NaturalSpawner::ServerWorldAdapter`（服务端）、`WorldGenRegionAdapter`（世界生成）
 
 ### 数据参数注册
 - 数据参数必须在 `registerData()` 中注册
