@@ -556,6 +556,9 @@ Result<void> MinecraftServer::initializeWorld()
     // 初始化命令注册表
     m_commandRegistry = std::make_unique<command::CommandRegistry>();
 
+    // 初始化命令存储（/data storage 命令使用的持久化 NBT 存储）
+    m_commandStorage = std::make_unique<command::CommandStorage>();
+
     if (m_storage && m_storage->isOpen()) {
         auto runtimeDataResult = m_storage->loadLevelData();
         if (runtimeDataResult.success()) {
@@ -1131,6 +1134,7 @@ void MinecraftServer::shutdownManagers()
     m_miningManager.reset();
     m_blockInteractionManager.reset();
     m_commandRegistry.reset();
+    m_commandStorage.reset();
     if (m_dimensionManager) {
         m_dimensionManager->shutdown();
     }

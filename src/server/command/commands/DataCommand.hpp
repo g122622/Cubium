@@ -68,28 +68,6 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    // ========== 子命令处理函数 ==========
-
-    /**
-     * @brief /data get 子命令
-     */
-    static i32 _getData(CommandContext<ServerCommandSource>& context);
-
-    /**
-     * @brief /data set 子命令
-     */
-    static i32 _setData(CommandContext<ServerCommandSource>& context);
-
-    /**
-     * @brief /data merge 子命令
-     */
-    static i32 _mergeData(CommandContext<ServerCommandSource>& context);
-
-    /**
-     * @brief /data remove 子命令
-     */
-    static i32 _removeData(CommandContext<ServerCommandSource>& context);
-
     // ========== 具体目标类型的处理函数 ==========
 
     /**
@@ -168,11 +146,6 @@ private:
      * @return 缩放后的整数值
      */
     static i32 _scaleValue(const nbt::tags::tag& tag, double scale);
-
-    /**
-     * @brief 格式化 NBT 标签为字符串
-     */
-    static std::string _formatNbt(const nbt::tags::tag& tag);
 
     /**
      * @brief 发送错误消息

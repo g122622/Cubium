@@ -62,21 +62,6 @@ public:
      */
     [[nodiscard]] static i32 getFortuneLevel(LootContext& context) noexcept;
 
-    /**
-     * @brief 计算时运加成后的掉落数量
-     *
-     * 时运对矿石的影响：
-     * - Fortune I: 33%概率掉落+1
-     * - Fortune II: 25%概率掉落+1, 25%概率掉落+2
-     * - Fortune III: 20%概率掉落+1, 20%概率掉落+2, 20%概率掉落+3
-     *
-     * @param baseCount 基础掉落数量
-     * @param fortuneLevel 时运等级（0-3）
-     * @param random 随机数生成器
-     * @return 加成后的掉落数量
-     */
-    [[nodiscard]] static i32 applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::Random& random) noexcept;
-
 private:
     i32 m_minLevel;
 };

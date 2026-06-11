@@ -258,16 +258,6 @@ private:
      * @return 时运等级（0-3）
      */
     [[nodiscard]] static i32 getFortuneLevel(const ItemStack* tool);
-
-    /**
-     * @brief 应用时运加成到掉落数量
-     *
-     * @param baseCount 基础数量
-     * @param fortuneLevel 时运等级
-     * @param random 随机数生成器
-     * @return 加成后的数量
-     */
-    [[nodiscard]] static i32 applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::Random& random);
 };
 
 } // namespace mc

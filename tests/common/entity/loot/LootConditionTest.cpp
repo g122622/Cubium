@@ -36,6 +36,7 @@
 #include "item/loot/entries/ItemLootEntry.hpp"
 #include "item/loot/entries/LootEntry.hpp"
 #include "item/loot/entries/LootEntryBuilder.hpp"
+#include "item/loot/functions/ApplyBonusFunction.hpp"
 #include "util/math/random/Random.hpp"
 #include "util/math/random/RandomRanges.hpp"
 #include "world/IWorld.hpp"
@@ -193,13 +194,13 @@ TEST_F(LootConditionsTest, FortuneCondition_ApplyBonus)
     math::Random random(12345);
 
     // Fortune 0 - 无加成
-    EXPECT_EQ(FortuneCondition::applyFortuneBonus(1, 0, random), 1);
+    EXPECT_EQ(ApplyBonusFunction::calculateOreDrops(1, 0, random), 1);
 
     // Fortune I - 大约 33% 概率 +1
     i32 total = 0;
     for (i32 i = 0; i < 1000; ++i) {
         random.setSeed(i);
-        total += FortuneCondition::applyFortuneBonus(1, 1, random);
+        total += ApplyBonusFunction::calculateOreDrops(1, 1, random);
     }
     // 平均应该在 1.33 左右，总和约 1330
     EXPECT_GT(total, 1200);
@@ -208,7 +209,7 @@ TEST_F(LootConditionsTest, FortuneCondition_ApplyBonus)
     // Fortune III - 最多 +3
     random.setSeed(12345);
     for (i32 i = 0; i < 1000; ++i) {
-        i32 result = FortuneCondition::applyFortuneBonus(1, 3, random);
+        i32 result = ApplyBonusFunction::calculateOreDrops(1, 3, random);
         EXPECT_GE(result, 1);
         EXPECT_LE(result, 4); // 1 + 3 = 4
     }

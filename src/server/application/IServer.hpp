@@ -57,7 +57,8 @@ class SingleLevelStorageManager;
 } // namespace world
 namespace command {
 class CommandRegistry;
-}
+class CommandStorage;
+} // namespace command
 } // namespace mc
 
 namespace mc::server {
@@ -232,6 +233,14 @@ public:
 
     [[nodiscard]] virtual mc::command::CommandRegistry& commandRegistry() = 0;
     [[nodiscard]] virtual const mc::command::CommandRegistry& commandRegistry() const = 0;
+
+    /**
+     * @brief 获取命令存储
+     *
+     * /data storage 命令使用的持久化 NBT 存储。
+     */
+    [[nodiscard]] virtual mc::command::CommandStorage& commandStorage() = 0;
+    [[nodiscard]] virtual const mc::command::CommandStorage& commandStorage() const = 0;
 
     // ========== 数据包系统 ==========
 

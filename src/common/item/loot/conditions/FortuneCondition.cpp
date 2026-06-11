@@ -51,25 +51,5 @@ i32 FortuneCondition::getFortuneLevel(LootContext& context) noexcept
     return 0;
 }
 
-i32 FortuneCondition::applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::Random& random) noexcept
-{
-    if (fortuneLevel <= 0) {
-        return baseCount;
-    }
-
-    // OreDropsFormula (乘法式):
-    // int i = random.nextInt(fortune + 2) - 1;
-    // if (i < 0) i = 0;
-    // return baseCount * (i + 1);
-    //
-    // 注意：此方法已弃用，请使用 ApplyBonusFunction::calculateOreDrops()
-    i32 i = random.nextInt(fortuneLevel + 2) - 1;
-    if (i < 0) {
-        i = 0;
-    }
-
-    return baseCount * (i + 1);
-}
-
 } // namespace loot
 } // namespace mc

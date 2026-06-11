@@ -283,22 +283,6 @@ i32 BlockDropHandler::getFortuneLevel(const ItemStack* tool)
     return item::enchant::EnchantmentHelper::getFortuneLevel(*tool);
 }
 
-i32 BlockDropHandler::applyFortuneBonus(i32 baseCount, i32 fortuneLevel, math::Random& random)
-{
-    if (fortuneLevel <= 0) {
-        return baseCount;
-    }
-
-    // 注意：此方法已弃用，请使用 ApplyBonusFunction::calculateOreDrops()
-    // TODO: 移除此方法，改用 LootTable 系统的 ApplyBonusFunction
-    i32 i = random.nextInt(fortuneLevel + 2) - 1;
-    if (i < 0) {
-        i = 0;
-    }
-
-    return baseCount * (i + 1);
-}
-
 // ============================================================================
 // 经验掉落
 // ============================================================================

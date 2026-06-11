@@ -7,6 +7,7 @@
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/CommandRegistry.hpp"
+#include "server/command/data/DataAccessor.hpp"
 #include "server/core/BannedIpList.hpp"
 #include "server/core/BannedPlayerList.hpp"
 #include "server/core/ConnectionManager.hpp"
@@ -111,6 +112,8 @@ public:
     }
     [[nodiscard]] command::CommandRegistry& commandRegistry() override { return m_commandRegistry; }
     [[nodiscard]] const command::CommandRegistry& commandRegistry() const override { return m_commandRegistry; }
+    [[nodiscard]] command::CommandStorage& commandStorage() override { return m_commandStorage; }
+    [[nodiscard]] const command::CommandStorage& commandStorage() const override { return m_commandStorage; }
     [[nodiscard]] resource::DataPackList& dataPackList() override;
     [[nodiscard]] const resource::DataPackList& dataPackList() const override;
     [[nodiscard]] loot::LootTableManager& lootTableManager() override;
@@ -192,6 +195,7 @@ protected:
     server::core::BannedIpList m_bannedIpList;
     server::core::OpListManager m_opListManager;
     command::CommandRegistry m_commandRegistry;
+    command::CommandStorage m_commandStorage;
     server::ServerScoreboard m_scoreboard;
     std::vector<std::shared_ptr<FakeServerConnection>> m_connections;
 };

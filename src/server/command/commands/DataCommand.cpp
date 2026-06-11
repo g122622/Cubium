@@ -414,7 +414,7 @@ i32 DataCommand::_getEntity(CommandContext<ServerCommandSource>& context)
 i32 DataCommand::_getStorage(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto server = source.server();
+    auto* server = source.server();
 
     if (server == nullptr) {
         _sendError(source, "commands.data.storage.failed.noServer");
@@ -423,10 +423,7 @@ i32 DataCommand::_getStorage(CommandContext<ServerCommandSource>& context)
 
     ResourceLocation id = context.getArgument<ResourceLocation>("id");
 
-    // TODO: 从服务器获取 CommandStorage，而不是使用静态本地存储
-    // CommandStorage* storage = server->getCommandStorage();
-    // StorageDataAccessor accessor(storage, id);
-    static CommandStorage storage;
+    CommandStorage& storage = server->commandStorage();
     StorageDataAccessor accessor(&storage, id);
 
     try {
@@ -592,8 +589,13 @@ i32 DataCommand::_setStorage(CommandContext<ServerCommandSource>& context)
     NbtPath path = context.getArgument<NbtPath>("path");
     auto value = context.getArgument<std::shared_ptr<nbt::tags::tag>>("value");
 
-    // TODO: 从服务器获取 CommandStorage，而不是使用静态本地存储
-    static CommandStorage storage;
+    auto* server = source.server();
+    if (server == nullptr) {
+        _sendError(source, "commands.data.storage.failed.noServer");
+        return 0;
+    }
+
+    CommandStorage& storage = server->commandStorage();
     StorageDataAccessor accessor(&storage, id);
 
     try {
@@ -707,8 +709,13 @@ i32 DataCommand::_mergeStorage(CommandContext<ServerCommandSource>& context)
     ResourceLocation id = context.getArgument<ResourceLocation>("id");
     auto nbt = context.getArgument<std::shared_ptr<nbt::tags::compound_tag>>("nbt");
 
-    // TODO: 从服务器获取 CommandStorage，而不是使用静态本地存储
-    static CommandStorage storage;
+    auto* server = source.server();
+    if (server == nullptr) {
+        _sendError(source, "commands.data.storage.failed.noServer");
+        return 0;
+    }
+
+    CommandStorage& storage = server->commandStorage();
     StorageDataAccessor accessor(&storage, id);
 
     try {
@@ -830,8 +837,13 @@ i32 DataCommand::_removeStorage(CommandContext<ServerCommandSource>& context)
     ResourceLocation id = context.getArgument<ResourceLocation>("id");
     NbtPath path = context.getArgument<NbtPath>("path");
 
-    // TODO: 从服务器获取 CommandStorage，而不是使用静态本地存储
-    static CommandStorage storage;
+    auto* server = source.server();
+    if (server == nullptr) {
+        _sendError(source, "commands.data.storage.failed.noServer");
+        return 0;
+    }
+
+    CommandStorage& storage = server->commandStorage();
     StorageDataAccessor accessor(&storage, id);
 
     try {
@@ -918,44 +930,9 @@ i32 DataCommand::_scaleValue(const nbt::tags::tag& tag, double scale)
     return static_cast<i32>(std::floor(value * scale));
 }
 
-// TODO: _formatNbt 函数目前未使用，可能在未来用于 NBT 输出格式化
-std::string DataCommand::_formatNbt(const nbt::tags::tag& tag)
-{
-    std::ostringstream ss;
-    ss << nbt::contexts::mojangson << tag;
-    return ss.str();
-}
-
 void DataCommand::_sendError(ServerCommandSource& source, const std::string& message)
 {
     source.sendMessage("§c" + message);
-}
-
-// ========== 旧的子命令实现（废弃） ==========
-// TODO: 这些废弃的函数应该被删除，它们已被 _getBlock/_getEntity/_getStorage 等替代
-
-i32 DataCommand::_getData(CommandContext<ServerCommandSource>& context)
-{
-    // 废弃：由 _getBlock/_getEntity/_getStorage 替代
-    return 0;
-}
-
-i32 DataCommand::_setData(CommandContext<ServerCommandSource>& context)
-{
-    // 废弃：由 _setBlock/_setEntity/_setStorage 替代
-    return 0;
-}
-
-i32 DataCommand::_mergeData(CommandContext<ServerCommandSource>& context)
-{
-    // 废弃：由 _mergeBlock/_mergeEntity/_mergeStorage 替代
-    return 0;
-}
-
-i32 DataCommand::_removeData(CommandContext<ServerCommandSource>& context)
-{
-    // 废弃：由 _removeBlock/_removeEntity/_removeStorage 替代
-    return 0;
 }
 
 } // namespace command

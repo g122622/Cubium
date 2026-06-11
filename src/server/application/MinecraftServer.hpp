@@ -41,6 +41,7 @@
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/advancement/AdvancementEventHandler.hpp"
 #include "server/bossbar/CustomServerBossInfoManager.hpp"
+#include "server/command/data/DataAccessor.hpp"
 #include "server/core/BannedIpList.hpp"
 #include "server/core/BannedPlayerList.hpp"
 #include "server/core/ConnectionManager.hpp"
@@ -214,6 +215,9 @@ public:
 
     [[nodiscard]] mc::command::CommandRegistry& commandRegistry() override { return *m_commandRegistry; }
     [[nodiscard]] const mc::command::CommandRegistry& commandRegistry() const override { return *m_commandRegistry; }
+
+    [[nodiscard]] mc::command::CommandStorage& commandStorage() override { return *m_commandStorage; }
+    [[nodiscard]] const mc::command::CommandStorage& commandStorage() const override { return *m_commandStorage; }
 
     // ========== 记分板系统 ==========
 
@@ -842,6 +846,7 @@ protected:
 
     // 命令
     std::unique_ptr<mc::command::CommandRegistry> m_commandRegistry;
+    std::unique_ptr<mc::command::CommandStorage> m_commandStorage;
 
     // 记分板
     std::unique_ptr<ServerScoreboard> m_scoreboard;
