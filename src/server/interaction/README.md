@@ -113,3 +113,15 @@ src/server/interaction/
 ### 10. 眼睛位置检测（水下挖掘惩罚）
 
 MC 1.16.5 的水下挖掘惩罚检测玩家**眼睛位置**是否在水中，不是身体位置。需精确计算眼睛位置和流体表面高度进行比较。
+
+### 11. spawnAfterBreak 调用时序
+
+方块破坏流程中 `spawnAfterBreak` 的调用时序必须与 MC Java 一致：
+
+1. `_generateBlockDrops` — 生成掉落物
+2. `_setBlockToAir` — 将方块设置为空气
+3. `block.spawnAfterBreak(world, pos, state, tool, true)` — 触发方块被破坏后的额外行为
+
+**关键**：`spawnAfterBreak` 必须在 `_setBlockToAir` **之后**调用，因为 MC Java 中 `BlockBehaviour.spawnAfterBreak` 在方块已被移除后执行。对于 InfestedBlock，这意味着蠹虫在方块变为空气后才生成。
+
+`handleBlockInteraction` 的 StopDestroyBlock 路径和 `handleBlockBreak` 路径都遵循此顺序。

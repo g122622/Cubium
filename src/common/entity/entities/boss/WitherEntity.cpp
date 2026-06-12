@@ -31,7 +31,6 @@
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockState.hpp"
 #include "../../../world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../world/explosion/Explosion.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
 #include "../../ai/goal/Goal.hpp"
@@ -48,6 +47,7 @@
 #include "../../entities/projectile/AbstractFireballEntity.hpp"
 #include "../../utils/ItemDropHelper.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 #include <limits>
 
@@ -643,7 +643,10 @@ void WitherEntity::_breakNearbyBlocks()
 
                 if (airState != nullptr) {
                     // 设置为空气方块，flags=3 表示通知邻居并更新客户端
+                    // 调用 spawnAfterBreak 以支持虫蚀方块等特殊行为（凋灵破坏方块不使用工具，不产生经验）
+                    const BlockState* oldState = state;
                     worldPtr->setBlockState(pos, airState, 3);
+                    block.spawnAfterBreak(*worldPtr, pos, *oldState, nullptr, false);
                     anyBlockBroken = true;
                 }
             }

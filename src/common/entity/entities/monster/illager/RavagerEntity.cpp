@@ -294,8 +294,11 @@ void RavagerEntity::_breakLeavesOnCollision()
                 // 只破坏树叶 (LeavesBlock)
                 if (BlockTags::LEAVES().contains(*state)) {
                     // 设置为空气，掉落物品
+                    // 调用 spawnAfterBreak 以支持特殊方块行为（掠夺者破坏不使用工具，不产生经验）
+                    const Block& brokenBlock = state->getBlock();
                     const BlockState* airState = BlockRegistry::instance().airState();
                     worldPtr->setBlockState(pos, airState, 3);
+                    brokenBlock.spawnAfterBreak(*worldPtr, pos, *state, nullptr, false);
                     brokeAny = true;
                 }
             }

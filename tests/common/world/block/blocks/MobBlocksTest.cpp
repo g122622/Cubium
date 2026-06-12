@@ -22,6 +22,7 @@
  */
 
 #include "common/TestWorldHelper.hpp"
+#include "common/item/Items.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
@@ -31,6 +32,8 @@
 #include "entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "entity/entities/passive/special/TurtleEntity.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "item/core/ItemStack.hpp"
+#include "item/enchantment/EnchantmentHelper.hpp"
 #include "util/Direction.hpp"
 #include "util/math/random/Random.hpp"
 #include "util/property/Properties.hpp"
@@ -43,6 +46,7 @@
 #include "world/block/blocks/mob/TurtleEggBlock.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"
+#include "world/gamerule/GameRules.hpp"
 #include "world/tick/manager/TickManager.hpp"
 #include <gtest/gtest.h>
 
@@ -455,11 +459,16 @@ public:
 
     void clearSpawnedEntities() { m_spawnedEntities.clear(); }
 
+    // GameRules 接口
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
     u64 m_currentTick = 0;
     bool m_isClientSide = false;
+    world::gamerule::GameRules m_gameRules;
 };
 
 /**
@@ -732,6 +741,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
+        Items::initialize();
         infested_ = std::make_unique<InfestedBlock>(1, // 石头方块ID
             BlockProperties(Material::ROCK).hardness(0.75f).resistance(0.75f));
     }
@@ -795,6 +805,86 @@ TEST_F(InfestedBlockSpawnAfterBreakTest, SpawnAfterBreak_SilverfishPositionCorre
     EXPECT_NEAR(spawned->x(), 100.5f, 0.01f);
     EXPECT_NEAR(spawned->y(), 50.0f, 0.01f);
     EXPECT_NEAR(spawned->z(), -199.5f, 0.01f);
+}
+
+TEST_F(InfestedBlockSpawnAfterBreakTest, SpawnAfterBreak_DoTileDropsFalse_DoesNotSpawn)
+{
+    // 设置 doTileDrops 游戏规则为 false
+    world_.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_TILE_DROPS, false, nullptr);
+
+    // 设置被感染方块
+    BlockPos pos(5, 10, 5);
+    const BlockState& state = infested_->defaultState();
+    world_.setBlockAt(pos, &state);
+
+    // 调用 spawnAfterBreak（服务端，无精准采集工具）
+    // doTileDrops=false 时不应生成蠹虫
+    infested_->spawnAfterBreak(world_, pos, state, nullptr, true);
+
+    // 验证：不应该生成任何实体
+    EXPECT_EQ(world_.spawnedEntityCount(), 0u);
+}
+
+TEST_F(InfestedBlockSpawnAfterBreakTest, SpawnAfterBreak_DoTileDropsTrue_SpawnsSilverfish)
+{
+    // 确保 doTileDrops 游戏规则为 true（默认值）
+    world_.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_TILE_DROPS, true, nullptr);
+
+    // 设置被感染方块
+    BlockPos pos(5, 10, 5);
+    const BlockState& state = infested_->defaultState();
+    world_.setBlockAt(pos, &state);
+
+    // 调用 spawnAfterBreak（服务端，无精准采集工具）
+    infested_->spawnAfterBreak(world_, pos, state, nullptr, true);
+
+    // 验证：应该生成一个蠹虫实体
+    EXPECT_EQ(world_.spawnedEntityCount(), 1u);
+}
+
+TEST_F(InfestedBlockSpawnAfterBreakTest, SpawnAfterBreak_SilkTouchTool_DoesNotSpawn)
+{
+    // 使用精准采集附魔的工具破坏虫蚀方块时不应生成蠹虫
+    if (Items::DIAMOND_PICKAXE == nullptr) {
+        GTEST_SKIP() << "DIAMOND_PICKAXE not initialized";
+    }
+
+    ItemStack silkTouchTool(*Items::DIAMOND_PICKAXE, 1);
+    silkTouchTool.addEnchantment("minecraft:silk_touch", 1);
+    ASSERT_TRUE(item::enchant::EnchantmentHelper::hasSilkTouch(silkTouchTool));
+
+    // 设置被感染方块
+    BlockPos pos(5, 10, 5);
+    const BlockState& state = infested_->defaultState();
+    world_.setBlockAt(pos, &state);
+
+    // 调用 spawnAfterBreak（服务端，精准采集工具）
+    infested_->spawnAfterBreak(world_, pos, state, &silkTouchTool, true);
+
+    // 验证：精准采集不应生成蠹虫
+    EXPECT_EQ(world_.spawnedEntityCount(), 0u);
+}
+
+TEST_F(InfestedBlockSpawnAfterBreakTest, SpawnAfterBreak_RegularTool_SpawnsSilverfish)
+{
+    // 使用普通工具（无附魔）破坏虫蚀方块时应生成蠹虫
+    if (Items::DIAMOND_PICKAXE == nullptr) {
+        GTEST_SKIP() << "DIAMOND_PICKAXE not initialized";
+    }
+
+    ItemStack regularTool(*Items::DIAMOND_PICKAXE, 1);
+    ASSERT_FALSE(item::enchant::EnchantmentHelper::hasSilkTouch(regularTool));
+
+    // 设置被感染方块
+    BlockPos pos(5, 10, 5);
+    const BlockState& state = infested_->defaultState();
+    world_.setBlockAt(pos, &state);
+
+    // 调用 spawnAfterBreak（服务端，普通工具）
+    infested_->spawnAfterBreak(world_, pos, state, &regularTool, true);
+
+    // 验证：普通工具应生成蠹虫
+    EXPECT_EQ(world_.spawnedEntityCount(), 1u);
 }
 
 // ==================== InfestedBlock 静态方法测试 ====================

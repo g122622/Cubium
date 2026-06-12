@@ -109,3 +109,12 @@ EntityExplosionContext      ┌────────────────�
 | None | ❌ | ❌ | mobGriefing=false 时的苦力怕 |
 | Break | ✅ | ❌ | TNT |
 | Destroy | ✅ | ✅ | 苦力怕、末地水晶 |
+
+### 8. 爆炸路径中的 spawnAfterBreak
+
+**要点**：`Explosion::_destroyBlocks` 在方块被移除后调用 `block.spawnAfterBreak(world, pos, state, nullptr, false)`。
+
+- `tool` 参数为 `nullptr`（爆炸无工具），`dropExp` 为 `false`（爆炸不产生经验）
+- 这意味着虫蚀方块（InfestedBlock）在爆炸中不会因为精准采集而不生成蠹虫（因为 tool=nullptr）
+- 但 `doTileDrops` 游戏规则仍然生效：`doTileDrops=false` 时不生成蠹虫
+- 调用顺序：`onBlockExploded` → `setBlockState(air)` → `spawnAfterBreak`，与 MC Java 一致
