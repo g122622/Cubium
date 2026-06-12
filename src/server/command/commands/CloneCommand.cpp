@@ -261,17 +261,11 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
             }
         }
 
-        // 设置为空气，并调用spawnAfterBreak
+        // 设置为空气（MC Java 中 /clone move 不调用 spawnAfterBreak，仅清空源区域）
         const BlockState* airState = BlockRegistry::instance().airState();
         for (const BlockPos& srcPos : sourcePositions) {
             if (world::isValidY(srcPos.y)) {
-                // 保存旧方块状态，用于spawnAfterBreak
-                const BlockState* oldState = world->getBlockState(srcPos.x, srcPos.y, srcPos.z);
                 world->setBlockState(srcPos.x, srcPos.y, srcPos.z, airState);
-                // 在方块被设为空气后调用spawnAfterBreak
-                if (oldState != nullptr && !oldState->isAir()) {
-                    oldState->getBlock().spawnAfterBreak(*world, srcPos, *oldState, nullptr, false);
-                }
             }
         }
     }

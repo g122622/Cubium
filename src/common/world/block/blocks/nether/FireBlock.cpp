@@ -511,9 +511,8 @@ void FireBlock::tryCatchFire(
         world.setBlockState(pos, &fireState, 3);
     } else {
         // 直接烧毁：移除方块
+        // MC Java 中火焰烧毁方块时不调用 spawnAfterBreak，仅移除方块
         world.setBlockState(pos, nullptr, 3);
-        // 生成方块破坏后的附加效果（如蠹虫等）
-        state->owner().spawnAfterBreak(world, pos, *state, nullptr, false);
     }
 
     // 触发燃烧回调（如 TNT 爆炸）

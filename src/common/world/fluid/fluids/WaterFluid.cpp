@@ -134,9 +134,6 @@ void WaterFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos, const 
         // 使用 ItemDropHelper 生成物品实体
         ItemDropHelper::spawnItemEntities(&world, pos, drops, rng);
     }
-
-    // 生成方块破坏后的附加效果（如蠹虫等）
-    block.spawnAfterBreak(world, pos, *state, nullptr, false);
 }
 
 bool WaterFluid::isEquivalentTo(const Fluid& fluid) const noexcept
