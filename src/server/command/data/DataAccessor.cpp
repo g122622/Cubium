@@ -24,7 +24,11 @@
 #include "DataAccessor.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectManager.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -32,6 +36,9 @@
 
 // Bring operator<< for nbt::tags::tag into scope for ADL
 using mc::nbt::operator<<;
+
+// NBT 键名常量简写
+using namespace mc::entity::serialization;
 
 namespace mc {
 namespace command {
@@ -248,8 +255,17 @@ std::unique_ptr<nbt::tags::compound_tag> EntityDataAccessor::getData() const
         compound->put("Health", livingEntity->health());
         compound->put("AbsorptionAmount", livingEntity->absorptionAmount());
 
-        // 效果
-        // TODO: 添加药水效果
+        // 药水效果
+        const auto& effects = livingEntity->effectManager().getAllEffects();
+        if (!effects.empty()) {
+            auto effectsList = std::make_unique<nbt::tags::compound_list_tag>();
+            for (const auto& effect : effects) {
+                nbt::tags::compound_tag effectTag;
+                effect.toNbt(effectTag);
+                effectsList->value.push_back(std::move(effectTag));
+            }
+            compound->value.emplace(nbt_keys::ACTIVE_EFFECTS, std::move(effectsList));
+        }
     }
 
     return compound;
@@ -297,6 +313,22 @@ void EntityDataAccessor::mergeData(const nbt::tags::compound_tag& data)
         it = data.value.find("AbsorptionAmount");
         if (it != data.value.end() && it->second->id() == nbt::TagId::Float) {
             livingEntity->setAbsorptionAmount(dynamic_cast<const nbt::tags::float_tag&>(*it->second).value);
+        }
+
+        // 药水效果
+        it = data.value.find(nbt_keys::ACTIVE_EFFECTS);
+        if (it != data.value.end() && it->second->id() == nbt::TagId::List) {
+            auto* list = dynamic_cast<const nbt::tags::list_tag*>(it->second.get());
+            if (list != nullptr && list->element_id() == nbt::TagId::Compound) {
+                auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*list);
+                // 先移除所有现有效果
+                livingEntity->removeAllEffects();
+                // 添加 NBT 中的效果
+                for (const auto& effectTag : compoundList.value) {
+                    auto effect = entity::effect::EffectInstance::fromNbt(effectTag);
+                    livingEntity->addEffect(std::move(effect));
+                }
+            }
         }
     }
 }

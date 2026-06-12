@@ -53,7 +53,11 @@ data/
 - `common/world/IWorld.hpp` - 世界接口（用于获取 BlockEntity）
 - `common/world/blockentity/BlockEntity.hpp` - 方块实体基类
 - `common/entity/core/Entity.hpp` - 实体基类
-- `common/entity/core/LivingEntity.hpp` - 生物实体（用于生命值、吸收值等数据）
+- `common/entity/core/LivingEntity.hpp` - 生物实体（用于生命值、吸收值、药水效果等数据）
+- `common/entity/effect/EffectInstance.hpp` - 效果实例（NBT 序列化）
+- `common/entity/effect/EffectManager.hpp` - 效果管理器（获取/操作效果列表）
+- `common/entity/serialization/EntityNbtKeys.hpp` - 实体 NBT 键名常量
+- `common/entity/serialization/NbtHelper.hpp` - NBT 安全读取工具
 - `common/entity/entities/player/Player.hpp` - 玩家实体（用于判断是否为玩家）
 
 ### 下游依赖（依赖本模块的外部模块）
@@ -74,7 +78,9 @@ data/
 
 6. **统一存储实例**：`CommandStorage` 由 `IServer::commandStorage()` 管理，通过 `server->commandStorage()` 获取。不要使用局部 `static CommandStorage`，否则不同 storage 子命令的数据互不共享。
 
-7. **LivingEntity 吸收值**：`EntityDataAccessor` 通过 `LivingEntity::absorptionAmount()` 和 `setAbsorptionAmount()` 读写 `"AbsorptionAmount"` NBT 键。`setAbsorptionAmount` 会将值限制在 `[0, maxAbsorption]` 范围内，因此合并 NBT 数据时不需要额外的值域检查。
+7. **LivingEntity 药水效果**：`EntityDataAccessor` 序列化 `ActiveEffects` NBT 键（compound_list_tag），使用 `EffectInstance::toNbt()`/`fromNbt()` 与 `LivingEntity` 存档格式完全一致。`mergeData` 会先 `removeAllEffects()` 再逐个 `addEffect()`，因此属性修改器会正确应用。
+
+8. **LivingEntity 吸收值**：`EntityDataAccessor` 通过 `LivingEntity::absorptionAmount()` 和 `setAbsorptionAmount()` 读写 `"AbsorptionAmount"` NBT 键。`setAbsorptionAmount` 会将值限制在 `[0, maxAbsorption]` 范围内，因此合并 NBT 数据时不需要额外的值域检查。
 
 ## 参考
 
