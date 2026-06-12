@@ -280,28 +280,25 @@ TEST_F(MobEntityInteractTest, ProcessInitialInteract_LeadItemOnHostileMobDoesNot
 }
 
 // ============================================================================
-// SpawnEggItem 交互测试
-// 注意：SpawnEggItem 的完整交互测试（类型匹配/不匹配、幼体生成等）
-// 需要在 Items 注册表中注册 SpawnEggItem 实例后才能通过 processInitialInteract 进行。
-// 当前 Items 注册表尚未注册任何刷怪蛋物品，因此通过 SpawnEggItem 构造函数
-// 直接创建测试实例。由于 EntityType 不可拷贝，使用 EntityType::Builder 构建本地实例。
+// AgeableEntity 类型检查与刷怪蛋前置条件测试
+//
+// _spawnOffspringFromSpawnEgg 的核心逻辑（实体生成、物品消耗、类型匹配等）
+// TODO: 待 Items 注册表中注册 SpawnEggItem 实例后，补充以下测试用例：
+//   - 刷怪蛋类型匹配时成功生成幼体
+//   - 刷怪蛋类型不匹配时返回 Pass
+//   - 非 AgeableEntity 实体使用刷怪蛋返回 Pass
+//   - 创造模式下刷怪蛋不消耗物品
+//   - 客户端预测返回 Success
+// 当前 Items 注册表尚未注册任何刷怪蛋物品（如 Items::PIG_SPAWN_EGG），
+// 因此无法通过 processInitialInteract 路径触发刷怪蛋交互逻辑。
+// 完整的 _spawnOffspringFromSpawnEgg 测试需依赖 SpawnEggItem 在 Items 中的注册。
 // ============================================================================
 
-TEST_F(MobEntityInteractTest, SpawnEgg_TypeMismatchOnPigWithZombieEgg)
+TEST_F(MobEntityInteractTest, AgeableEntity_TypeCheck)
 {
-    // 创建一个僵尸类型的刷怪蛋并在猪上使用
-    // EntityType 不可拷贝，需要通过 Builder 构建
-    auto pigType = EntityType::Builder(
-        [](IWorld* world) -> std::unique_ptr<Entity> { return std::make_unique<PigEntity>(EntityId(0)); },
-        EntityClassification::Creature)
-                       .size(0.9f, 0.9f)
-                       .build();
-    // 修正: Builder 构建的 EntityType 没有 name，需要手动设置 typeId
-    // 但 _spawnOffspringFromSpawnEgg 通过 getTypeId() 比较类型名称
-    // 这里用一种更简洁的方式：直接测试 canBeLeashed 对不同实体类型的行为
-    // 完整的 SpawnEggItem 交互测试将在 Items 注册 SpawnEggItem 后补充
-
     // 验证 PigEntity 是 AgeableEntity（可生成幼体的前提条件）
+    // _spawnOffspringFromSpawnEgg 要求目标实体类型是 AgeableEntity 子类，
+    // 否则 dynamic_cast<AgeableEntity*> 返回 nullptr，无法设置幼体状态
     auto pig = std::make_unique<PigEntity>(EntityId(1));
     EXPECT_NE(dynamic_cast<AgeableEntity*>(pig.get()), nullptr)
         << "PigEntity should be an AgeableEntity (required for spawn egg baby creation)";

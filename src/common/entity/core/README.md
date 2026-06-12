@@ -206,9 +206,11 @@ finalizeSpawn(world, difficulty, spawnReason)
 - `processInitialInteract()` - 处理玩家与生物的交互链，按优先级依次处理：命名牌 → 刷怪蛋 → 拴绳 → 子类交互
   - 命名牌交互：委托 `NameTagItem::itemInteractionForEntity()`，成功后设置自定义名称并启用持久化
   - 刷怪蛋交互：调用 `_spawnOffspringFromSpawnEgg()`，生成同类型幼体（仅 AgeableEntity 子类支持）
+    - **依赖**：此路径依赖 SpawnEggItem 在 Items 注册表中的注册（如 `Items::PIG_SPAWN_EGG`），当前 Items 注册表尚未注册任何刷怪蛋物品，待 `Items::registerSpawnEggs()` 实现后可通过正常游戏流程触发
   - 拴绳交互：当前为 TODO，待 Leashable 接口完善后实现
 - `canBeLeashed()` - 判断生物是否可被拴绳拴住，默认实现通过 `dynamic_cast<IMob*>` 判断（敌对生物不可拴绳）
 - `_spawnOffspringFromSpawnEgg()` - 使用刷怪蛋生成幼体，类型匹配 + AgeableEntity 检查
+  - **测试覆盖**：核心逻辑（实体生成、物品消耗、类型匹配）的单元测试待 Items 注册 SpawnEggItem 后补充
 - `applyPlayerInteraction()` - 有位置信息的交互（盔甲架装备槽）
 - 基类默认返回 `ActionResultType::Pass`
 
