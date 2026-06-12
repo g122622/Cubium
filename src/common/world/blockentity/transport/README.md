@@ -6,7 +6,7 @@
 
 ```
 transport/
-├── IHopper.hpp/cpp       # 漏斗接口（统一处理漏斗方块和漏斗矿车）
+├── IHopper.hpp/cpp       # 漏斗接口（统一处理漏斗方块和漏斗矿车，坐标返回 f64）
 ├── HopperEntity.hpp/cpp  # 漏斗实体（物品传输、ISidedInventory）
 └── README.md
 ```

@@ -200,6 +200,10 @@ void BiomeAmbientHandler::tick(SoundEngine& engine)
 
         // 随机选择一个采样位置
         // blockpos = playerPos + random(blockSearchExtent*2+1) - blockSearchExtent
+        // TODO: 当前光照采样在主线程完成（m_moodSkyLight/m_moodBlockLight），而声音播放位置
+        // 在音频线程计算（bx, by, bz），两者使用不同的随机种子，位置可能不一致。
+        // MC 原版在同一 tick 中使用相同随机位置同时查询光照和播放声音。
+        // 要完全对齐 MC，需要将声音播放位置也通过主线程采样后传递到音频线程。
         i32 extent = mood.blockSearchExtent();
         i32 bx = static_cast<i32>(m_playerX) + m_rng.nextInt(extent * 2 + 1) - extent;
         i32 by = static_cast<i32>(m_playerY) + m_rng.nextInt(extent * 2 + 1) - extent;

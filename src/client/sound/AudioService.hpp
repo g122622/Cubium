@@ -318,7 +318,7 @@ private:
         u8 skyLight = 15;
         u8 blockLight = 15;
         // 心境音效采样位置光照等级
-        u8 moodSkyLight = 15;
+        u8 moodSkyLight = 0;
         u8 moodBlockLight = 0;
         // 环境音效玩家位置
         f64 playerX = 0.0;

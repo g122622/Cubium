@@ -17,7 +17,7 @@ biome/
 ├── BiomeRegistry.cpp
 ├── BiomeSource.hpp              # 生物群系源基类
 ├── BiomeSource.cpp
-├── Biomes.hpp                   # 生物群系 ID 常量 + 聚合头文件
+├── Biomes.hpp                   # 生物群系 ID 常量 + isOceanOrRiverBiome() 工具函数
 ├── climate/                     # Climate 参数系统
 │   ├── Climate.hpp              # Parameter, ParameterPoint, TargetPoint, ParameterList, Sampler
 │   ├── Climate.cpp

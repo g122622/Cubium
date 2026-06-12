@@ -133,9 +133,9 @@ private:
     u8 m_skyLight = static_cast<u8>(game::MAX_LIGHT_LEVEL);
     u8 m_blockLight = static_cast<u8>(game::MAX_LIGHT_LEVEL);
 
-    /// 心境音效采样位置的光照等级
-    u8 m_moodSkyLight = static_cast<u8>(game::MAX_LIGHT_LEVEL);
-    u8 m_moodBlockLight = static_cast<u8>(game::MAX_LIGHT_LEVEL);
+    /// 心境音效采样位置的光照等级（默认 0，由主线程采样后传递）
+    u8 m_moodSkyLight = 0;
+    u8 m_moodBlockLight = 0;
 
     /// 心境音效计时器 (0.0 - 1.0)
     f32 m_moodTimer = 0.0f;

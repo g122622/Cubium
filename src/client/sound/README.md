@@ -71,6 +71,8 @@ src/client/sound/
 - **初始化顺序**：启动阶段如果额外添加资源包，会触发资源重载回调，注意初始化顺序
 - **音频线程专用**：`AudioBufferCache` 和 `SoundPool` 只应在音频线程内使用
 - **群系环境音**：群系需要配置 `BiomeAmbientSounds` 才能播放环境音效，否则使用默认心境音效
+- **心境音效光照采样**：心境音效的光照采样在主线程完成（通过 `ClientApplicationAudio`），而非音频线程。主线程每帧随机采样一个位置并查询该位置的光照，然后传递给 `BiomeAmbientHandler`。由于音频线程的随机采样位置（用于声音播放位置）与主线程的光照采样位置使用不同的随机种子，两者可能不一致——这是架构限制，属于已知的近似实现
+- **水下音乐生物群系检查**：水下音乐（`MusicType::Underwater`）仅在海洋或河流生物群系中播放，通过 `Biomes::isOceanOrRiverBiome()` 判断。判断结果由主线程计算后通过 `AudioService::updateMusicState()` 传递到音频线程
 - **菜单状态判断**：菜单状态通过 `ScreenManager::instance().hasScreen()` 判断，需在 UI 更新后调用
 - **实体声音跨线程**：TickableSound 子类不直接引用 ClientEntity，而是通过 `EntitySoundState` 状态快照获取实体信息，避免跨线程访问
 - **高度常量**：使用 `mc::world::SEA_LEVEL` 而非硬编码 63
