@@ -316,3 +316,85 @@ TEST_F(EntityTeamTest, IsOnSameTeam_SweepAttackScenario_NoTeamEntityCanBeHit)
     EXPECT_FALSE(m_entity1->isOnSameTeam(*m_entityNoTeam));
     EXPECT_FALSE(m_entityNoTeam->isOnSameTeam(*m_entity1));
 }
+
+// ============================================================================
+// Entity::isAlliedTo 测试
+// ============================================================================
+
+TEST_F(EntityTeamTest, IsAlliedTo_SelfCheck_AlwaysTrue)
+{
+    // 实体自身视为盟友，即使没有队伍
+    EXPECT_TRUE(m_entityNoTeam->isAlliedTo(*m_entityNoTeam));
+    EXPECT_TRUE(m_entity1->isAlliedTo(*m_entity1));
+}
+
+TEST_F(EntityTeamTest, IsAlliedTo_SameTeam_ReturnsTrue)
+{
+    m_entity1->setTeam(m_team1.get());
+    m_entity2->setTeam(m_team1.get());
+
+    // 同一队伍双向都是盟友
+    EXPECT_TRUE(m_entity1->isAlliedTo(*m_entity2));
+    EXPECT_TRUE(m_entity2->isAlliedTo(*m_entity1));
+}
+
+TEST_F(EntityTeamTest, IsAlliedTo_DifferentTeams_ReturnsFalse)
+{
+    m_entity1->setTeam(m_team1.get());
+    m_entity2->setTeam(m_team2.get());
+
+    EXPECT_FALSE(m_entity1->isAlliedTo(*m_entity2));
+    EXPECT_FALSE(m_entity2->isAlliedTo(*m_entity1));
+}
+
+TEST_F(EntityTeamTest, IsAlliedTo_OneWithoutTeam_ReturnsFalse)
+{
+    m_entity1->setTeam(m_team1.get());
+
+    // 有队伍实体与无队伍实体不是盟友
+    EXPECT_FALSE(m_entity1->isAlliedTo(*m_entityNoTeam));
+    EXPECT_FALSE(m_entityNoTeam->isAlliedTo(*m_entity1));
+}
+
+TEST_F(EntityTeamTest, IsAlliedTo_BothWithoutTeam_ReturnsFalse)
+{
+    // 两个没有队伍的实体不是盟友（除非自身）
+    EXPECT_FALSE(m_entityNoTeam->isAlliedTo(*m_entity1));
+}
+
+TEST_F(EntityTeamTest, IsAlliedTo_ConsidersEntityAsAlly_OverrideWorks)
+{
+    // 验证 considersEntityAsAlly 虚方法可被子类重写
+    // 模拟驯服动物继承主人队伍的场景：
+    // 狼没有自己的队伍，但 considersEntityAsAlly 检查主人的队伍
+    class MockTameableWithOwnerTeam : public MockEntityWithTeam {
+    public:
+        MockTameableWithOwnerTeam()
+            : MockEntityWithTeam()
+        {
+            // 给一个不同的 EntityId 以避免与 m_entityNoTeam 冲突
+        }
+
+        // 模拟：已驯服的动物继承主人的队伍
+        [[nodiscard]] scoreboard::Team* getTeam() override { return m_ownerTeam; }
+        [[nodiscard]] const scoreboard::Team* getTeam() const override { return m_ownerTeam; }
+
+        void setOwnerTeam(scoreboard::Team* team) { m_ownerTeam = team; }
+
+    private:
+        scoreboard::Team* m_ownerTeam = nullptr;
+    };
+
+    auto tameable = std::make_unique<MockTameableWithOwnerTeam>();
+    m_entity1->setTeam(m_team1.get()); // 主人在 red 队
+    tameable->setOwnerTeam(m_team1.get()); // 驯服动物继承主人的队伍
+
+    // 驯服动物与主人在同一队伍 → 盟友
+    EXPECT_TRUE(tameable->isAlliedTo(*m_entity1));
+    EXPECT_TRUE(m_entity1->isAlliedTo(*tameable));
+
+    // 驯服动物与敌队不是盟友
+    m_entity2->setTeam(m_team2.get());
+    EXPECT_FALSE(tameable->isAlliedTo(*m_entity2));
+    EXPECT_FALSE(m_entity2->isAlliedTo(*tameable));
+}

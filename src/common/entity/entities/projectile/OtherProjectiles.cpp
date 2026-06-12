@@ -1141,8 +1141,8 @@ void EvokerFangsEntity::_damageEntities()
             continue;
         }
 
-        // 检查队伍关系：不伤害唤魔者及其队友
-        if (m_owner != nullptr && m_owner->isOnSameTeam(*living)) {
+        // 检查队伍关系：不伤害唤魔者及其盟友（双向检查）
+        if (m_owner != nullptr && m_owner->isAlliedTo(*living)) {
             continue;
         }
 

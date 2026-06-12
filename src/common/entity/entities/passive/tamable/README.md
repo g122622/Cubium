@@ -6,9 +6,9 @@
 
 ```
 tamable/
-├── TameableEntity.hpp/cpp    # 可驯服实体基类（IAngerable 接口）
+├── TameableEntity.hpp/cpp    # 可驯服实体基类（IAngerable 接口、getTeam重写、wantsToAttack虚方法）
 ├── ShoulderRidingEntity.hpp  # 肩膀乘坐实体基类（鹦鹉专用）
-├── WolfEntity.hpp/cpp        # 狼（骨头驯服、攻击保护）
+├── WolfEntity.hpp/cpp        # 狼（骨头驯服、攻击保护、wantsToAttack过滤）
 ├── CatEntity.hpp/cpp         # 猫（生鱼驯服、11种皮肤）
 ├── OcelotEntity.hpp/cpp      # 豹猫（信任机制、丛林生物）
 └── ParrotEntity.hpp/cpp      # 鹦鹉（种子驯服、可站肩膀、不可繁殖）
@@ -75,3 +75,9 @@ AnimalEntity
 ### 动态 AI 移除
 - **猫驯服后移除躲避行为**：`setupTamedAI()` 中移除 `CatAvoidPlayerGoal`
 - **豹猫信任后移除躲避行为**：`setupTrustingAI()` 中移除 `OcelotAvoidPlayerGoal`
+
+### 队伍继承与攻击过滤
+- **`getTeam()` 重写**：TameableEntity 重写了 `getTeam()`，已驯服动物继承主人的队伍，未驯服时回退到 AnimalEntity 默认逻辑
+- **`wantsToAttack(target, owner)` 虚方法**：TameableEntity 提供此虚方法供子类重写攻击过滤逻辑，默认返回 true（允许攻击所有目标）
+- **WolfEntity 重写 `wantsToAttack()`**：实现 MC 精确的攻击过滤规则——永远不攻击苦力怕/恶魂/盔甲架，不攻击已驯服的同类（除非主人不同），不攻击已驯服的驯服动物和马
+- **OwnerHurtByTargetGoal / OwnerHurtTargetGoal 均调用 `wantsToAttack()`**，因此狼的攻击限制自动生效

@@ -31,6 +31,7 @@ target/
 - 目标必须存活
 - 目标不能是自己
 - 创造模式/观察者模式玩家不能作为目标
+- 同盟实体不能作为目标（通过 `isAlliedTo()` 双向检查）
 
 ---
 
@@ -65,6 +66,9 @@ target/
 | `mob` | 拥有此目标的生物 |
 | `alertAllies` | 是否警醒附近同类实体 |
 
+**行为细节**:
+- `startExecuting()` 警醒盟友时，跳过与攻击者同盟的实体（通过 `isAlliedTo()` 检查），避免友军误伤
+
 **参考**: `net.minecraft.entity.ai.goal.HurtByTargetGoal`
 
 ---
@@ -77,6 +81,10 @@ target/
 - 实体必须是 `TameableEntity` 且已驯服
 - 实体不能坐下
 - 主人存在且有攻击者
+- 目标通过 `isSuitableTarget()` 和 `wantsToAttack()` 检查
+
+**行为细节**:
+- 调用 `wantsToAttack(target, owner)` 过滤攻击目标，狼不会攻击苦力怕/恶魂/盔甲架/已驯服动物等
 
 **参考**: `net.minecraft.entity.ai.goal.OwnerHurtByTargetGoal`
 
@@ -90,6 +98,10 @@ target/
 - 实体必须是 `TameableEntity` 且已驯服
 - 实体不能坐下
 - 主人存在且有攻击目标
+- 目标通过 `isSuitableTarget()` 和 `wantsToAttack()` 检查
+
+**行为细节**:
+- 调用 `wantsToAttack(target, owner)` 过滤攻击目标，狼不会攻击苦力怕/恶魂/盔甲架/已驯服动物等
 
 **参考**: `net.minecraft.entity.ai.goal.OwnerHurtTargetGoal`
 
@@ -122,6 +134,9 @@ target/
 |------|------|
 | `mob` | 拥有此目标的实体 |
 | `alertOthers` | 是否警醒附近同类实体 |
+
+**执行条件**:
+- `UNIVERSAL_ANGER` 游戏规则必须启用，否则 `shouldExecute()` 直接返回 false
 
 **已显式实例化的类型**: `EndermanEntity`
 
@@ -166,12 +181,13 @@ TargetGoal (基类)
 
 - `entity/ai/goal/Goal.hpp` - 目标基类
 - `entity/core/EntityUtils.hpp` - `findClosestEntity<T>()` 查找最近目标
+- `entity/core/Entity.hpp` - `isAlliedTo()` 队伍联盟判断
 - `entity/core/LivingEntity.hpp` - `getLastHurtBy()`, `getLastHurtTarget()`, `lastHurtByTimestamp()`, `lastHurtTargetTimestamp()`
 - `entity/core/MobEntity.hpp` - `setAttackTarget()`, `canSee()`, `getAttributeValue()`
-- `entity/entities/passive/tamable/TameableEntity.hpp` - `isTamed()`, `isSitting()`, `getOwner()`
+- `entity/entities/passive/tamable/TameableEntity.hpp` - `isTamed()`, `isSitting()`, `getOwner()`, `wantsToAttack()`
 - `entity/interfaces/IAngerable.hpp` - `getRevengeTarget()`, `getRevengeTimer()`, `setAngry()`, `setAngerTime()`
+- `world/IWorld.hpp` - 世界查询、游戏规则（`UNIVERSAL_ANGER`）
 - `util/math/random/Random.hpp` - 随机数生成
-- `world/IWorld.hpp` - 世界查询
 
 ### 被依赖
 
@@ -239,3 +255,27 @@ template class NearestAttackableTargetGoal<SomeEntity>;
 **原因**: 内部使用 `dynamic_cast<TameableEntity*>` 检查，非驯服动物转换失败。
 
 **解决**: 仅在 `TameableEntity` 子类中使用这些目标。
+
+### 8. isSuitableTarget 会拒绝同盟实体
+
+**问题**: 期望某目标可攻击但 `isSuitableTarget()` 返回 false，且目标存活、非自己、非创造模式。
+
+**原因**: `isSuitableTarget()` 现在通过 `isAlliedTo()` 检查队伍联盟关系，同盟实体会被拒绝。
+
+**解决**: 如果需要攻击同盟实体，在自定义谓词中处理，或确认队伍配置正确。
+
+### 9. wantsToAttack 过滤导致驯服动物不攻击
+
+**问题**: OwnerHurtByTargetGoal/OwnerHurtTargetGoal 不攻击某些目标（如苦力怕、已驯服动物）。
+
+**原因**: 这两个目标调用 `TameableEntity::wantsToAttack()` 进行攻击过滤。WolfEntity 重写了此方法，永远拒绝苦力怕/恶魂/盔甲架，且不攻击已驯服的同类和驯服动物。
+
+**解决**: 这是 MC 原版行为，不是 bug。如需自定义过滤逻辑，在 TameableEntity 子类中重写 `wantsToAttack()`。
+
+### 10. ResetAngerGoal 需要 UNIVERSAL_ANGER 规则
+
+**问题**: ResetAngerGoal 的 `shouldExecute()` 始终返回 false。
+
+**原因**: 必须启用 `UNIVERSAL_ANGER` 游戏规则，否则目标不会执行。
+
+**解决**: 确认世界 `UNIVERSAL_ANGER` 游戏规则已启用。

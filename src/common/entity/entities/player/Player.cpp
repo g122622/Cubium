@@ -452,7 +452,7 @@ void Player::tick()
 {
     LivingEntity::tick();
 
-    for(i32 i = world::MIN_BUILD_HEIGHT; i < world::MAX_BUILD_HEIGHT; ++i) {
+    for (i32 i = world::MIN_BUILD_HEIGHT; i < world::MAX_BUILD_HEIGHT; ++i) {
         auto bs = m_world->getBlockState(BlockPos(x(), i, z()));
         if (bs == nullptr) {
             spdlog::error("Failed to get block state at y={}", i);
@@ -2001,8 +2001,8 @@ void Player::attack(Entity& target)
                             continue;
                         }
 
-                        // 排除队友（友军伤害保护）
-                        if (isOnSameTeam(*entity)) {
+                        // 排除盟友（友军伤害保护，双向检查）
+                        if (isAlliedTo(*entity)) {
                             continue;
                         }
 

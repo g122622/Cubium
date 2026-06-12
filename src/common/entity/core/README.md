@@ -6,7 +6,7 @@
 
 ```
 src/common/entity/core/
-├── Entity.hpp/cpp                  # 所有实体的基类（位置、运动、碰撞、火焰等）
+├── Entity.hpp/cpp                  # 所有实体的基类（位置、运动、碰撞、火焰、队伍联盟判断等）
 ├── LivingEntity.hpp/cpp            # 有生命值的生物实体基类（生命值、吸收值、装备、药水效果）
 ├── MobEntity.hpp/cpp               # 有AI的生物实体基类（AI系统、目标选择）
 ├── CreatureEntity.hpp/cpp          # 陆地生物基类（寻路、步进）
@@ -163,8 +163,12 @@ finalizeSpawn(world, difficulty, spawnReason)
 - 亡灵生物 `canBreatheUnderwater()` 返回 true，不会溺水
 - WaterMobEntity 使用反逻辑：水中恢复，陆地上消耗
 
-### 队伍关系判断
-- 使用**指针相等性**比较，而非队伍名称比较
+### 队伍联盟判断
+- **`isAlliedTo(const Entity&)`** - 双向联盟检查：this 认为 other 是盟友，或 other 认为 this 是盟友
+- **`isAlliedTo(const scoreboard::Team*)`** - 队伍级联盟检查（虚方法，TameableEntity 重写以继承主人队伍）
+- **`considersEntityAsAlly(const Entity&)`** - 虚方法，自定义单向盟友判定逻辑，默认委托给 `isAlliedTo(other.getTeam())`
+- **`isOnSameTeam(const Entity&)`** - 旧版 API，仅单向检查 this 是否属于 other 的队伍，新代码应优先使用 `isAlliedTo()`
+- 使用**指针相等性**比较队伍，而非队伍名称比较
 - 两个 Team 对象即使名称相同，指针不同也不算同一队伍
 - 没有队伍的实体（`getTeam()` 返回 nullptr）不会与任何队伍匹配
 

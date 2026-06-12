@@ -186,6 +186,8 @@ add_executable(mc_tests
     common/entity/EntitySerializationTest.cpp
     # Entity::isOnSameTeam() 队伍系统测试
     entity/EntityTeamTest.cpp
+    # Entity::isAlliedTo() 盟友系统测试
+    entity/AlliedAndTargetTest.cpp
     # Player::attack() 横扫攻击过滤、荆棘附魔反伤、武器损耗测试
     entity/PlayerAttackTest.cpp
     # IRideable 速度设置逻辑测试
