@@ -25,6 +25,7 @@
 #include "AnimatedMeshCache.hpp"
 #include "client/renderer/trident/entity/effect/fire/FireEffect.hpp"
 #include "client/renderer/trident/entity/model/ModelRegistration.hpp"
+#include "client/renderer/trident/entity/model/animal/AnimalModels.hpp"
 #include "client/renderer/trident/entity/model/animal/PolarBearModel.hpp"
 #include "client/renderer/trident/entity/model/aquatic/PufferfishModel.hpp"
 #include "client/renderer/trident/entity/model/core/ModelFactory.hpp"
@@ -830,6 +831,15 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
             auto* polarBearModel = dynamic_cast<model::animal::PolarBearModel*>(model.get());
             if (polarBearModel != nullptr) {
                 polarBearModel->setStandingProgress(context.standingProgress);
+            }
+        }
+
+        // 羊吃草动画
+        if (normalizedId == "sheep" || normalizedId == "minecraft:sheep") {
+            auto* sheepModel = dynamic_cast<model::animal::SheepModel*>(model.get());
+            if (sheepModel != nullptr) {
+                sheepModel->setEatAnimationTimer(context.eatAnimationTimer);
+                sheepModel->setLivingAnimations(context.limbSwing, context.limbSwingAmount, context.partialTicks);
             }
         }
 

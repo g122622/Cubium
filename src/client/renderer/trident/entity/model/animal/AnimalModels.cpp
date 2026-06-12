@@ -126,20 +126,62 @@ SheepModel::SheepModel()
 
 void SheepModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
 {
+    // 保存 headPitch 以便在吃草动画中使用
+    m_headPitch = headPitch;
+
     QuadrupedModel::setAngles(limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, scale);
 
-    // 用实体的头部旋转角度覆盖默认的 headPitch 旋转
-    m_head->setRotateAngleX(static_cast<f32>(m_headRotationAngleX));
+    // 计算吃草动画的头部姿态
+    // 参考 MC 1.16.5 SheepModel.setupAnim：head.y += headEatPositionScale * 9.0; head.xRot = headEatAngleScale;
+    const f32 headEatAngle = getHeadEatAngleScale(m_partialTick);
+    m_head->setRotateAngleX(static_cast<f64>(headEatAngle));
 
     (void)scale;
     (void)ageInTicks;
 }
 
-void SheepModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 /*partialTick*/)
+void SheepModel::setLivingAnimations(f64 /*limbSwing*/, f64 /*limbSwingAmount*/, f64 partialTick)
 {
-    // 头部 Y 位置由 setHeadRotation() 设置的 m_headRotationPointY 控制
-    // 这里应用偏移：默认 6.0 + rotationPointY * 9.0
-    m_head->setRotationPointY(6.0f + m_headRotationPointY * 9.0f);
+    m_partialTick = static_cast<f32>(partialTick);
+
+    // 参考 MC 1.16.5 SheepModel.setupAnim：
+    // head.y = head.y + headEatPositionScale * 9.0F * ageScale
+    // 这里默认头部 Y 旋转点为 6.0，ageScale 默认为 1.0
+    const f32 headEatPosScale = getHeadEatPositionScale(m_partialTick);
+    m_head->setRotationPointY(6.0 + static_cast<f64>(headEatPosScale) * 9.0);
+}
+
+f32 SheepModel::getHeadEatPositionScale(f32 partialTick) const
+{
+    // 参考 MC Sheep.getHeadEatPositionScale
+    if (m_eatAnimationTimer <= 0) {
+        return 0.0f;
+    }
+    if (m_eatAnimationTimer >= 4 && m_eatAnimationTimer <= 36) {
+        return 1.0f;
+    }
+    if (m_eatAnimationTimer < 4) {
+        // 头部逐渐低下的过渡阶段
+        return (static_cast<f32>(m_eatAnimationTimer) - partialTick) / 4.0f;
+    }
+    // eatAnimationTimer > 36: 头部逐渐抬起的恢复阶段
+    return -(static_cast<f32>(m_eatAnimationTimer) - EAT_ANIMATION_DURATION - partialTick) / 4.0f;
+}
+
+f32 SheepModel::getHeadEatAngleScale(f32 partialTick) const
+{
+    // 参考 MC Sheep.getHeadEatAngleScale
+    if (m_eatAnimationTimer > 4 && m_eatAnimationTimer <= 36) {
+        // 头部保持低位并左右摆动
+        const f32 f = (static_cast<f32>(m_eatAnimationTimer) - 4.0f - partialTick) / 32.0f;
+        return static_cast<f32>(math::PI / 5.0) + 0.21991149f * std::sin(static_cast<f64>(f) * 28.7);
+    }
+    if (m_eatAnimationTimer > 0) {
+        // 头部低头但不摆动（过渡阶段）
+        return static_cast<f32>(math::PI / 5.0);
+    }
+    // 正常姿态：使用头部俯仰角
+    return static_cast<f32>(m_headPitch * (math::PI / 180.0));
 }
 
 // ==================== ChickenModel ====================

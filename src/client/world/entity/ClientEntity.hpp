@@ -562,10 +562,10 @@ public:
      * 羊吃草时的头部低头动画计时器，收到 EatBlock 状态包时设为 40，
      * 每tick递减，为0时动画结束。
      *
-     * TODO: 当前值已存入 AnimationContext.eatAnimationTimer，
-     * 但 SheepRenderer 尚未读取此值驱动头部低头动画，
-     * 需在 SheepModel 中实现 getHeadEatPositionScale/getHeadEatAngleScale
-     * 并在 EntityRendererManager 中将 eatAnimationTimer 传递给模型。
+     * 数据流：ClientApplicationNetwork.onEntityStatus(EatBlock) → setEatAnimationTimer(40)
+     * → ClientEntity.tick() 递减 → AnimationContext.eatAnimationTimer
+     * → EntityRendererManager 传递给 SheepModel::setEatAnimationTimer()
+     * → SheepModel 计算 getHeadEatPositionScale/getHeadEatAngleScale 驱动头部动画
      */
     [[nodiscard]] i32 eatAnimationTimer() const { return m_eatAnimationTimer; }
 

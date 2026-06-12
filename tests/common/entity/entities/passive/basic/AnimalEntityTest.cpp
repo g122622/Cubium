@@ -27,11 +27,13 @@
 #include "common/core/Constants.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 #include <memory>
@@ -276,6 +278,91 @@ TEST(MonsterEntityGetPathWeightTest, SlightlyDarkPreferredOverBright)
     EXPECT_GT(darkWeight, brightWeight);
     EXPECT_FLOAT_EQ(darkWeight, 0.3f);    // 0.5 - 0.2
     EXPECT_FLOAT_EQ(brightWeight, -0.3f); // 0.5 - 0.8
+}
+
+// ============================================================================
+// AnimalEntity::setInLove 广播 LoveHeart 状态测试
+// ============================================================================
+
+/**
+ * @brief 支持实体状态广播追踪的测试用世界
+ */
+class LoveHeartTestWorld final : public test::BaseTestWorld {
+public:
+    void broadcastEntityStatus(EntityId entityId, u8 status) override
+    {
+        m_lastBroadcastEntityId = entityId;
+        m_lastBroadcastStatus = status;
+        m_broadcastCount++;
+    }
+
+    [[nodiscard]] EntityId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
+    [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
+    [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
+    void resetBroadcastTracking()
+    {
+        m_lastBroadcastEntityId = EntityId(0);
+        m_lastBroadcastStatus = 0;
+        m_broadcastCount = 0;
+    }
+
+private:
+    EntityId m_lastBroadcastEntityId{0};
+    u8 m_lastBroadcastStatus = 0;
+    i32 m_broadcastCount = 0;
+};
+
+TEST(AnimalEntitySetInLoveTest, BroadcastsLoveHeartStatus)
+{
+    LoveHeartTestWorld world;
+    TestAnimalEntity animal(EntityId(42));
+    animal.setWorld(&world);
+
+    world.resetBroadcastTracking();
+
+    // 调用 setInLove 应该广播 LoveHeart(18) 状态
+    animal.setInLove(12345);
+
+    // 验证广播了正确状态
+    EXPECT_EQ(world.getBroadcastCount(), 1);
+    EXPECT_EQ(world.getLastBroadcastEntityId(), EntityId(42));
+    EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatusPacket::Status::LoveHeart));
+}
+
+TEST(AnimalEntitySetInLoveTest, SetInLoveWithoutWorldDoesNotCrash)
+{
+    // 没有 world 的实体调用 setInLove 不应崩溃
+    TestAnimalEntity animal(EntityId(1));
+    EXPECT_NO_THROW(animal.setInLove(999));
+
+    // 验证 love 状态确实被设置了
+    EXPECT_TRUE(animal.isInLove());
+}
+
+TEST(AnimalEntitySetInLoveTest, SetInLoveSetsTimerAndLoveCause)
+{
+    LoveHeartTestWorld world;
+    TestAnimalEntity animal(EntityId(1));
+    animal.setWorld(&world);
+
+    animal.setInLove(12345);
+
+    EXPECT_TRUE(animal.isInLove());
+    // 600 ticks = 30 seconds
+    EXPECT_EQ(animal.getLoveCause(), 12345);
+}
+
+TEST(AnimalEntitySetInLoveTest, ResetInLoveClearsState)
+{
+    LoveHeartTestWorld world;
+    TestAnimalEntity animal(EntityId(1));
+    animal.setWorld(&world);
+
+    animal.setInLove(0);
+    EXPECT_TRUE(animal.isInLove());
+
+    animal.resetInLove();
+    EXPECT_FALSE(animal.isInLove());
 }
 
 } // anonymous namespace

@@ -57,6 +57,13 @@ public:
 
 /**
  * @brief 羊模型
+ *
+ * 支持吃草动画（头部低头/摆动），参考 MC 1.16.5 SheepModel。
+ * 吃草动画由 eatAnimationTimer (0-40) 驱动：
+ * - 0: 无动画，头部恢复正常姿态
+ * - 1-3: 头部逐渐低下的过渡阶段
+ * - 4-36: 头部保持低位并左右摆动
+ * - 37-40: 头部逐渐抬起的过渡阶段
  */
 class SheepModel : public QuadrupedModel {
 public:
@@ -78,33 +85,41 @@ public:
     void setWool(bool hasWool) { m_hasWool = hasWool; }
 
     /**
-     * @brief 设置吃草动画状态
-     * @param isEating 是否正在吃草
-     * @param eatingTimer 吃草计时器 (0-40)
+     * @brief 设置吃草动画计时器
+     * @param eatAnimationTimer 吃草动画计时器 (0-40 ticks)
+     *
+     * 参考 MC Sheep.eatAnimationTick：收到状态码 10 时设为 40，每 tick 递减 1。
      */
-    void setEatingGrass(bool isEating, i32 eatingTimer)
-    {
-        m_isEating = isEating;
-        m_eatingTimer = eatingTimer;
-    }
+    void setEatAnimationTimer(i32 eatAnimationTimer) { m_eatAnimationTimer = eatAnimationTimer; }
 
     /**
-     * @brief 设置头部旋转角度（用于吃草动画）
-     * @param headRotationPointY 头部 Y 旋转点偏移 (来自实体)
-     * @param headRotationAngleX 头部 X 旋转角度 (来自实体)
+     * @brief 计算头部吃草 Y 位置缩放因子
+     *
+     * 参考 MC Sheep.getHeadEatPositionScale：
+     * - eatAnimationTick <= 0: 返回 0.0（正常姿态）
+     * - eatAnimationTick >= 4 && <= 36: 返回 1.0（完全低头）
+     * - eatAnimationTick < 4: 过渡阶段 (eatAnimationTick - partialTick) / 4.0
+     * - eatAnimationTick > 36: 恢复阶段 -(eatAnimationTick - 40 - partialTick) / 4.0
      */
-    void setHeadRotation(f32 headRotationPointY, f32 headRotationAngleX)
-    {
-        m_headRotationPointY = headRotationPointY;
-        m_headRotationAngleX = headRotationAngleX;
-    }
+    [[nodiscard]] f32 getHeadEatPositionScale(f32 partialTick) const;
+
+    /**
+     * @brief 计算头部吃草 X 旋转角度
+     *
+     * 参考 MC Sheep.getHeadEatAngleScale：
+     * - eatAnimationTick > 4 && <= 36: PI/5 + 摆动 (sin 驱动)
+     * - eatAnimationTick > 0: PI/5（低头但不摆动）
+     * - eatAnimationTick <= 0: headPitch（恢复正常）
+     */
+    [[nodiscard]] f32 getHeadEatAngleScale(f32 partialTick) const;
 
 private:
     bool m_hasWool = true;
-    bool m_isEating = false;
-    i32 m_eatingTimer = 0;
-    f32 m_headRotationPointY = 0.0f; // 来自实体的头部 Y 偏移
-    f32 m_headRotationAngleX = 0.0f; // 来自实体的头部 X 旋转角度
+    i32 m_eatAnimationTimer = 0; // 吃草动画计时器 (0-40)
+    f64 m_headPitch = 0.0;       // 保存的头部俯仰角（用于恢复姿态）
+    f32 m_partialTick = 0.0f;    // 保存的部分 tick（用于插值）
+
+    static constexpr f32 EAT_ANIMATION_DURATION = 40.0f;
 };
 
 /**

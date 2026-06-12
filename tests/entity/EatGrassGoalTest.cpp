@@ -617,3 +617,49 @@ TEST_F(EatGrassGoalGameRuleTest, StartExecutingBroadcastsEvenWithoutGrass)
     EXPECT_EQ(world.getBroadcastCount(), 1);
     EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatusPacket::Status::EatBlock));
 }
+
+// ============================================================================
+// EatGrassGoal 边界条件测试
+// ============================================================================
+
+TEST_F(EatGrassGoalGameRuleTest, ShouldExecuteReturnsFalseWhenMobIsNull)
+{
+    // 构造一个 mob 指针为空的 goal
+    EatGrassGoal goal(nullptr, []() {}, []() { return false; });
+
+    // shouldExecute 应安全返回 false
+    EXPECT_FALSE(goal.shouldExecute());
+}
+
+TEST_F(EatGrassGoalGameRuleTest, ShouldExecuteReturnsFalseWhenNoWorld)
+{
+    TestMobEntity mob;
+    mob.setPositionForTest(0.5, 65.0, 0.5);
+    // mob 没有 world
+
+    EatGrassGoal goal(&mob, []() {}, []() { return false; });
+    EXPECT_FALSE(goal.shouldExecute());
+}
+
+TEST_F(EatGrassGoalGameRuleTest, StartExecutingDoesNotCrashWithNullMob)
+{
+    // 构造一个 mob 指针为空的 goal
+    EatGrassGoal goal(nullptr, []() {}, []() { return false; });
+
+    // startExecuting 不应崩溃（虽然不会广播状态）
+    EXPECT_NO_THROW(goal.startExecuting());
+}
+
+TEST_F(EatGrassGoalGameRuleTest, TickDoesNotCrashWhenNotExecuting)
+{
+    EatGrassTestWorld world;
+    TestMobEntity mob;
+    mob.setPositionForTest(0.5, 65.0, 0.5);
+    mob.setWorldForTest(&world);
+
+    EatGrassGoal goal(&mob, []() {}, []() { return false; });
+
+    // 没有先调用 shouldExecute/startExecuting，直接 tick 不应崩溃
+    EXPECT_NO_THROW(goal.tick());
+    EXPECT_EQ(goal.getEatingGrassTimer(), 0);
+}
