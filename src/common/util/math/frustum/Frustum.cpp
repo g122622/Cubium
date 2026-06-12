@@ -22,7 +22,6 @@
  */
 
 #include "Frustum.hpp"
-#include "common/core/Constants.hpp"
 #include "common/world/WorldConstants.hpp"
 #include <cmath>
 

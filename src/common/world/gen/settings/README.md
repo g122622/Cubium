@@ -33,7 +33,7 @@ Settings.hpp（总入口）
 | 依赖项 | 用途 |
 |--------|------|
 | `common/core/Types.hpp` | 基础类型 i32, f32 等 |
-| `common/core/Constants.hpp` | world::MAX_BUILD_HEIGHT, world::SEA_LEVEL |
+| `common/world/WorldConstants.hpp` | world::MAX_BUILD_HEIGHT, world::SEA_LEVEL |
 | `common/world/block/Block.hpp` | BlockState 前向声明 |
 | `common/world/block/BlockRegistry.hpp` | 方块注册表访问 |
 | `common/world/block/registry/VanillaBlocks.hpp` | 原版方块定义（石头、水、熔岩等） |

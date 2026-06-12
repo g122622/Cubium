@@ -29,7 +29,6 @@
 #include "ServerWorld.hpp"
 #include "ServerChunkManager.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
-#include "common/core/Constants.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"

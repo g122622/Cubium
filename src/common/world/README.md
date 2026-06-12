@@ -8,7 +8,7 @@
 world/
 ├── IWorld.hpp/cpp              # 世界访问接口
 ├── IWorldWriter.hpp            # 世界写入接口（生成用）
-├── WorldConstants.hpp          # 世界常量和坐标转换工具
+├── WorldConstants.hpp          # 世界常量（高度限制、区块尺寸等）和坐标转换工具
 ├── WorldConfig.hpp             # 世界配置
 ├── WorldEvents.hpp             # 世界事件ID常量
 ├── GlobalPos.hpp               # 全局位置类型
@@ -274,7 +274,7 @@ world/
 
 ### 11. 高度常量使用
 **问题**：硬编码 0、256、16 等高度/尺寸数字。
-**解决**：使用 `mc::world` 命名空间下的常量（`MIN_BUILD_HEIGHT`、`MAX_BUILD_HEIGHT`、`CHUNK_WIDTH` 等）。`CHUNK_HEIGHT` 与 `MAX_BUILD_HEIGHT` 目前值相同但语义不同，未来可能变化。
+**解决**：使用 `mc::world` 命名空间下的常量（`MIN_BUILD_HEIGHT`、`MAX_BUILD_HEIGHT`、`CHUNK_WIDTH` 等）。`CHUNK_HEIGHT`（384）与 `MAX_BUILD_HEIGHT`（320）值不同，语义也完全不同，切勿混淆。这些常量定义在 `WorldConstants.hpp` 中。
 
 ### 12. canSeeSky 实现
 **问题**：错误假设 `canSeeSky()` 只检查顶部是否有方块。

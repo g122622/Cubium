@@ -36,5 +36,5 @@ armor/
 
 - **颜色标签管理**：不要把颜色直接写到别的字段里，统一使用 `display.color`。清除颜色后要把空掉的 `display` 子标签一并删除，否则物品堆比较会认为元数据不同，导致无法堆叠。
 - **属性汇总范围**：汇总装备属性时只应该看四个护甲槽，不要把主手、副手混进去。`ArmorItem` 的总属性统计应忽略非盔甲物品，避免把无关物品算进防御值。
-- **CHUNK_HEIGHT vs MAX_BUILD_HEIGHT**：若涉及高度判断，注意这两个常量语义不同，未来 MIN_BUILD_HEIGHT 可能向下拓展。
+- **CHUNK_HEIGHT vs MAX_BUILD_HEIGHT**：若涉及高度判断，注意这两个常量值不同（384 vs 320）且语义不同。
 - **马铠装备判断**：`HorseArmorItem` 仅对 `HorseEntity` 有效，其他实体（如驴、骡）使用不同的装备槽逻辑。

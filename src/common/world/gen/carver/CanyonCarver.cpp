@@ -23,7 +23,6 @@
 
 #include "CanyonCarver.hpp"
 #include "CarvingContext.hpp"
-#include "common/core/Constants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"

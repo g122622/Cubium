@@ -42,7 +42,7 @@ VoxelShape ────────┘         │
 ### 上游依赖（本模块依赖的模块）
 
 - `common/core/Types.hpp` - 基础类型定义
-- `common/core/Constants.hpp` - 游戏常量（区块尺寸、高度限制等）
+- `common/world/WorldConstants.hpp` - 世界常量（区块尺寸、高度限制等）
 - `common/util/AxisAlignedBB.hpp` - AABB 碰撞箱
 - `common/util/Direction.hpp` - 方向枚举
 - `common/util/math/Vector3.hpp` - 向量类型

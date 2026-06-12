@@ -249,11 +249,11 @@ TEST(Constants, MathConstants)
 TEST(Constants, WorldConstants)
 {
     EXPECT_EQ(world::CHUNK_WIDTH, 16);
-    EXPECT_EQ(world::CHUNK_HEIGHT, 256);
+    EXPECT_EQ(world::CHUNK_HEIGHT, 384); // MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT = 320 - (-64) = 384
     EXPECT_EQ(world::CHUNK_SECTION_HEIGHT, 16);
-    EXPECT_EQ(world::CHUNK_SECTIONS, 16);
-    EXPECT_EQ(world::MIN_BUILD_HEIGHT, 0);
-    EXPECT_EQ(world::MAX_BUILD_HEIGHT, 256);
+    EXPECT_EQ(world::CHUNK_SECTIONS, 24); // 384 / 16 = 24
+    EXPECT_EQ(world::MIN_BUILD_HEIGHT, -64);
+    EXPECT_EQ(world::MAX_BUILD_HEIGHT, 320);
     // MC 1.16.5 海平面高度是 63
     EXPECT_EQ(world::SEA_LEVEL, 63);
 }
@@ -307,25 +307,30 @@ TEST(WorldConversion, ToWorldCoord)
 
 TEST(WorldConversion, ToSectionIndex)
 {
-    EXPECT_EQ(world::toSectionIndex(0), 0);
-    EXPECT_EQ(world::toSectionIndex(15), 0);
-    EXPECT_EQ(world::toSectionIndex(16), 1);
-    EXPECT_EQ(world::toSectionIndex(255), 15);
+    // MIN_BUILD_HEIGHT = -64，段索引从 0 开始
+    EXPECT_EQ(world::toSectionIndex(-64), 0);
+    EXPECT_EQ(world::toSectionIndex(-64 + 15), 0); // -49
+    EXPECT_EQ(world::toSectionIndex(-64 + 16), 1); // -48
+    EXPECT_EQ(world::toSectionIndex(0), 4);        // (0 - (-64)) / 16 = 4
+    EXPECT_EQ(world::toSectionIndex(319), 23);     // (319 - (-64)) / 16 = 23
 }
 
 TEST(WorldConversion, SectionToY)
 {
-    EXPECT_EQ(world::sectionToY(0), 0);
-    EXPECT_EQ(world::sectionToY(1), 16);
-    EXPECT_EQ(world::sectionToY(15), 240);
+    // sectionToY 返回段的最低Y坐标
+    EXPECT_EQ(world::sectionToY(0), -64);
+    EXPECT_EQ(world::sectionToY(1), -48);
+    EXPECT_EQ(world::sectionToY(4), 0);
+    EXPECT_EQ(world::sectionToY(23), 304);
 }
 
 TEST(WorldConversion, IsValidY)
 {
+    EXPECT_TRUE(world::isValidY(-64)); // MIN_BUILD_HEIGHT
     EXPECT_TRUE(world::isValidY(0));
     EXPECT_TRUE(world::isValidY(128));
-    EXPECT_TRUE(world::isValidY(255));
-    EXPECT_FALSE(world::isValidY(-1));
-    EXPECT_FALSE(world::isValidY(256));
+    EXPECT_TRUE(world::isValidY(319));  // MAX_BUILD_HEIGHT - 1
+    EXPECT_FALSE(world::isValidY(-65)); // MIN_BUILD_HEIGHT - 1
+    EXPECT_FALSE(world::isValidY(320)); // MAX_BUILD_HEIGHT
     EXPECT_FALSE(world::isValidY(1000));
 }

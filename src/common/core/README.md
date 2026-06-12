@@ -9,7 +9,7 @@ src/common/core/
 ├── Types.hpp                    # 基础类型定义（i8/u8/f32等、游戏类型、枚举）
 ├── Result.hpp                   # 错误处理系统（Result<T>、Error、ErrorCode）
 ├── Result.cpp                   # Result 实现
-├── Constants.hpp                # 游戏常量（命名空间组织：game/network/world/entity/capacity）
+├── Constants.hpp                # 游戏常量（命名空间组织：game/network/entity/item/capacity；world 已迁移至 WorldConstants.hpp）
 ├── EnumSet.hpp                  # 枚举集合工具（基于 std::bitset）
 ├── BlockRaycastResult.hpp       # 方块射线投射结果类型
 ├── GameDirectory.hpp/cpp        # 游戏目录管理器（统一管理所有游戏路径）
@@ -32,7 +32,7 @@ Constants.hpp   BlockRaycastResult.hpp  SettingsBase.hpp
 
 - **Types.hpp** 是最基础的文件，仅依赖标准库
 - **Result.hpp** 依赖 Types.hpp
-- **Constants.hpp** 依赖 Types.hpp
+- **Constants.hpp** 依赖 Types.hpp、WorldConstants.hpp（mc::world 常量已迁移至 WorldConstants.hpp，Constants.hpp 通过 include 重新导出）
 - **EnumSet.hpp** 独立，仅依赖标准库
 - **BlockRaycastResult.hpp** 依赖 `common/util/math/Vector3.hpp`、`common/util/Direction.hpp`、`common/world/chunk/ChunkPos.hpp`
 - **SettingsTypes.hpp** 依赖 Result.hpp
@@ -92,7 +92,8 @@ enum class MyEnum { A, B, C };
 ### 7. 常量使用注意事项（见 PROJECT_CONVENTIONS.md）
 - 高度限制只能使用 `mc::world::MIN_BUILD_HEIGHT`、`mc::world::MAX_BUILD_HEIGHT`，不能硬编码 0、256
 - 区块尺寸只能使用 `mc::world::CHUNK_WIDTH` 等，不能硬编码 16
-- `CHUNK_HEIGHT` 和 `MAX_BUILD_HEIGHT` 目前值相同但语义不同，未来可能变化
+- `CHUNK_HEIGHT` 和 `MAX_BUILD_HEIGHT` 值不同（384 vs 320），语义也完全不同
+- `mc::world` 命名空间的常量定义在 `WorldConstants.hpp` 中，`Constants.hpp` 通过 include 重新导出以保持兼容
 
 ### 8. 添加新错误码
 - 在 `Result.hpp` 的 `ErrorCode` 枚举中添加

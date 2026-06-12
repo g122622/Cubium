@@ -140,10 +140,9 @@ finalizeSpawn(world, difficulty, spawnReason)
 ## 容易踩的坑
 
 ### 区块高度常量混淆
-- `CHUNK_HEIGHT` 和 `MAX_BUILD_HEIGHT` 目前值相同但语义不同
-- `CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT`
-- 未来 `MIN_BUILD_HEIGHT` 可能从 0 改为 -64，届时 `CHUNK_HEIGHT` 将不等于 `MAX_BUILD_HEIGHT`
-- 务必根据语义选择正确常量，不要硬编码
+- `CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT`（当前值 384）
+- `MAX_BUILD_HEIGHT` 是世界最大建筑高度（当前值 320），`MIN_BUILD_HEIGHT` 是最低高度（当前值 -64）
+- 两者语义完全不同，务必根据语义选择正确常量，不要硬编码
 
 ### 步进高度（stepHeight）设置
 - Entity 基类默认 stepHeight = 0.0f（无步进能力）

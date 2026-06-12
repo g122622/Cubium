@@ -21,7 +21,6 @@
  */
 
 #include "common/world/gen/surface/SurfaceRules.hpp"
-#include "common/core/Constants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"

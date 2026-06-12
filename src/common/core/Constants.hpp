@@ -24,8 +24,7 @@
 #pragma once
 
 #include "Types.hpp"
-#include <cmath>
-#include <limits>
+#include "common/world/WorldConstants.hpp"
 
 namespace mc {
 
@@ -120,49 +119,8 @@ constexpr u32 MAX_LOGIN_ATTEMPTS = 5;
 } // namespace network
 
 // ============================================================================
-// 世界常量 TODO 移动到\src\common\world\WorldConstants.hpp中
-// ============================================================================
-
-namespace world {
-// 高度限制(左闭右开区间)
-constexpr i32 MIN_BUILD_HEIGHT = -64;
-constexpr i32 MAX_BUILD_HEIGHT = 320;
-
-// 区块尺寸
-constexpr i32 CHUNK_WIDTH = 16;
-constexpr i32 CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT;
-constexpr i32 CHUNK_SECTION_HEIGHT = 16;
-constexpr i32 CHUNK_SECTIONS = CHUNK_HEIGHT / CHUNK_SECTION_HEIGHT;
-constexpr i32 CHUNK_VOLUME = CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH;
-
-// 区块块尺寸（区块内的位偏移）
-constexpr i32 CHUNK_SHIFT = 4; // log2(16) = 4
-constexpr i32 SECTION_SHIFT = 4;
-constexpr i32 CHUNK_MASK = CHUNK_WIDTH - 1;
-
-// 段坐标范围（段坐标 = worldY >> SECTION_SHIFT，区别于段索引 0..CHUNK_SECTIONS-1）
-constexpr i32 MIN_SECTION_Y = MIN_BUILD_HEIGHT >> SECTION_SHIFT;       // -4
-constexpr i32 MAX_SECTION_Y = (MAX_BUILD_HEIGHT - 1) >> SECTION_SHIFT; // 19
-
-// 海平面高度 (MC 1.16.5 DimensionSettings.java:114)
-constexpr i32 SEA_LEVEL = 63;
-
-// 区块加载
-constexpr i32 CHUNK_LOAD_RADIUS = 10;
-constexpr i32 CHUNK_UNLOAD_RADIUS = 12;
-constexpr i32 MAX_CHUNKS_LOADED = 1024;
-
-// 世界生成
-constexpr i64 WORLD_SEED_DEFAULT = 0;
-constexpr i32 SPAWN_CHUNK_RADIUS = 11;
-
-// 方块更新
-constexpr i32 BLOCK_UPDATE_RADIUS = 16;
-
-} // namespace world
-
-// ============================================================================
-// 实体常量
+// 世界常量 - 已迁移至 common/world/WorldConstants.hpp
+// 所有 mc::world 命名空间下的常量和工具函数均定义在该文件中
 // ============================================================================
 
 namespace entity {

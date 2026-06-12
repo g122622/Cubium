@@ -62,7 +62,7 @@ ConfiguredCarvers            默认配置工厂（createOverworldCaveConfig 等�
 | `BlockRegistry` / `VanillaBlocks` | 方块注册表和原版方块定义 |
 | `Random` | 随机数生成 |
 | `MathUtils` | 数学常量 (PI, TWO_PI 等) |
-| `Constants` | 游戏常量（MIN_BUILD_HEIGHT, MAX_BUILD_HEIGHT 等） |
+| `WorldConstants` | 世界常量（MIN_BUILD_HEIGHT, MAX_BUILD_HEIGHT 等） |
 | `Aquifer` | 含水层系统 |
 | `WorldGenerationContext` | 世界生成上下文基类 |
 

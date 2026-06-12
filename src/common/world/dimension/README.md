@@ -91,11 +91,10 @@ if (settings.hasClouds) { ... }
 
 ### 4. CHUNK_HEIGHT 与 MAX_BUILD_HEIGHT 的区别
 
-两者当前值相同但语义不同：
-- `MAX_BUILD_HEIGHT`: 世界最大建筑高度
-- `CHUNK_HEIGHT`: 区块高度 = `MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT`
-
-未来 `MIN_BUILD_HEIGHT` 可能扩展到 -64，届时 `CHUNK_HEIGHT` 将不等于 `MAX_BUILD_HEIGHT`。
+两者值不同且语义不同：
+- `MAX_BUILD_HEIGHT`: 世界最大建筑高度（320）
+- `MIN_BUILD_HEIGHT`: 世界最低建筑高度（-64）
+- `CHUNK_HEIGHT`: 区块高度 = `MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT` = 384
 
 ### 5. 传送门触发时序（MC 1.16.5）
 

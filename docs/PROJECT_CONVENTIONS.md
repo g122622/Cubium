@@ -177,11 +177,10 @@ block/
 - `MAX_PACKETS_PER_SECOND`, `MAX_LOGIN_ATTEMPTS` - 速率限制
 
 `mc::world` 命名空间：
-- `MIN_BUILD_HEIGHT`, `MAX_BUILD_HEIGHT`, `SEA_LEVEL` - 高度限制。【重要】只能使用这些mc::world下的常量作为高度限制，不能硬编码0、256等数字，因为未来可能会频繁这些高度限制。
+- `MIN_BUILD_HEIGHT`, `MAX_BUILD_HEIGHT`, `SEA_LEVEL` - 高度限制。【重要】只能使用这些mc::world下的常量作为高度限制，不能硬编码0、256等数字，因为未来可能会频繁修改这些高度限制。
 - `CHUNK_WIDTH`, `CHUNK_HEIGHT`, `CHUNK_SECTION_HEIGHT`, `CHUNK_SECTIONS`, `CHUNK_VOLUME` - 区块尺寸。【重要】只能使用这些mc::world下的常量作为区块尺寸，不能硬编码16等数字，因为未来可能会频繁修改区块尺寸。另外，有些地方可能使用位运算来计算区块坐标（例如 `x >> CHUNK_SHIFT`），务必使用这些常量来确保位运算的正确性，而不是简单 >> 4。
-【重要】CHUNK_HEIGHT和MAX_BUILD_HEIGHT目前虽然值一样，但是语义存在巨大区别。
-constexpr i32 CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT;
-未来可能MIN_BUILD_HEIGHT会向下拓展成-64，这时候CHUNK_HEIGHT就不等于MAX_BUILD_HEIGHT了！使用的时候务必小心这个坑！
+【重要】CHUNK_HEIGHT和MAX_BUILD_HEIGHT值不同，语义也完全不同。CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT = 320 - (-64) = 384，而MAX_BUILD_HEIGHT = 320。使用的时候务必小心这个区别！
+这些常量定义在 `src/common/world/WorldConstants.hpp` 中（`Constants.hpp` 通过 include 重新导出以保持兼容）。
 - `CHUNK_SHIFT`, `SECTION_SHIFT`, `CHUNK_MASK` - 区块位运算常量
 - `CHUNK_LOAD_RADIUS`, `CHUNK_UNLOAD_RADIUS`, `MAX_CHUNKS_LOADED` - 区块加载
 - `WORLD_SEED_DEFAULT`, `SPAWN_CHUNK_RADIUS` - 世界生成

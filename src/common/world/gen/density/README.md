@@ -56,7 +56,7 @@ EndIslands ──持有──→ SimplexNoise
 - `common/world/gen/noise/PerlinNoise.hpp` — Perlin 噪声
 - `common/world/gen/noise/SimplexNoise.hpp` — Simplex 噪声（EndIslands）
 - `common/world/biome/climate/Climate.hpp` — Climate.Sampler 创建
-- `common/core/Constants.hpp` — MIN_BUILD_HEIGHT, MAX_BUILD_HEIGHT
+- `common/world/WorldConstants.hpp` — MIN_BUILD_HEIGHT, MAX_BUILD_HEIGHT
 - `common/util/math/MathUtils.hpp` — 数学工具
 
 ### 被依赖

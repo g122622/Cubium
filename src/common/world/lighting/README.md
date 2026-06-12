@@ -51,7 +51,7 @@ InternalLightUtils (独立工具模块，无依赖其他 lighting 模块)
 - `common/world/block/BlockState.hpp` - 方块状态查询
 - `common/world/block/Block.hpp` - 方块发光等级、透明度查询
 - `common/util/NibbleArray.hpp` - 基础 4 位数组
-- `common/core/Constants.hpp` - 世界高度常量（MIN_BUILD_HEIGHT、MAX_BUILD_HEIGHT 等）
+- `common/world/WorldConstants.hpp` - 世界高度常量（MIN_BUILD_HEIGHT、MAX_BUILD_HEIGHT 等）
 
 ### 依赖本模块的外部模块
 

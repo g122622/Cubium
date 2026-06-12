@@ -106,4 +106,4 @@ PortalSize ←─── NetherTeleporter
 
 ### 10. CHUNK_HEIGHT 与 MAX_BUILD_HEIGHT
 
-两者当前值相同但语义不同，未来 `MIN_BUILD_HEIGHT` 可能扩展到 -64，届时 `CHUNK_HEIGHT` 将不等于 `MAX_BUILD_HEIGHT`。搜索传送门方块时使用 `world::MIN_BUILD_HEIGHT` 和 `world::MAX_BUILD_HEIGHT` 作为高度范围。
+两者值不同（384 vs 320）且语义不同。`CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT`。搜索传送门方块时使用 `world::MIN_BUILD_HEIGHT` 和 `world::MAX_BUILD_HEIGHT` 作为高度范围。
