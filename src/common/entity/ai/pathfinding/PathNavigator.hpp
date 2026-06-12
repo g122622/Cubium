@@ -182,6 +182,15 @@ public:
     void setCanEnterDoors(bool canEnterDoors) noexcept { m_canEnterDoors = canEnterDoors; }
 
     /**
+     * @brief 设置寻路时是否避开阳光
+     *
+     * 当设置为 true 时，WalkNodeProcessor 会在路径规划时
+     * 尽量避免暴露在阳光下的路径。用于亡灵生物（如骷髅）在白天避阳。
+     * @param avoidSun 是否避开阳光
+     */
+    void setAvoidSunPathing(bool avoidSun);
+
+    /**
      * @brief 设置关联的实体
      */
     void setEntity(LivingEntity* entity) noexcept { m_entity = entity; }

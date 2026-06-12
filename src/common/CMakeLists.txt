@@ -316,8 +316,8 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/SwimUpGoal.cpp
     entity/ai/goal/goals/EatGrassGoal.cpp
     entity/ai/goal/goals/FleeSunGoal.cpp
+    entity/ai/goal/goals/RestrictSunGoal.cpp
     entity/ai/goal/goals/FindShelterGoal.cpp
-    entity/ai/goal/goals/ReturnToHomeGoal.cpp
     entity/ai/goal/goals/FlyGoal.cpp
     entity/ai/goal/goals/interact/TameableGoals.cpp
     entity/ai/goal/goals/interact/LandOnOwnersShoulderGoal.cpp

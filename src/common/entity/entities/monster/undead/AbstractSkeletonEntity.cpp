@@ -32,6 +32,7 @@
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
+#include "../../../ai/goal/goals/RestrictSunGoal.hpp"
 #include "../../../ai/goal/goals/attack/RangedAttackGoals.hpp"
 #include "../../../ai/goal/goals/movement/MovementGoals.hpp"
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
@@ -164,8 +165,7 @@ void AbstractSkeletonEntity::registerGoals()
     // ========== 行为目标 (goalSelector) ==========
 
     // 优先级 2: 限制阳光（不在阳光下移动）
-    // TODO: RestrictSunGoal 未实现
-    // m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::RestrictSunGoal>(this));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::RestrictSunGoal>(this));
 
     // 优先级 3: 躲避阳光
     m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::FleeSunGoal>(this, 1.0));

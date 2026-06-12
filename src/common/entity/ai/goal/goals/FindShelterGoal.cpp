@@ -105,8 +105,8 @@ bool FindShelterGoal::_needsShelter() const
         return false;
     }
 
-    // 在白天且暴露在阳光下时需要避难
-    if (!world->isDaytime()) {
+    // MC原版使用 isBrightOutside()，考虑天气（雷暴时白天也会变暗）
+    if (!world->isBrightOutside()) {
         return false;
     }
 

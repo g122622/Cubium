@@ -54,8 +54,8 @@ bool FleeSunGoal::shouldExecute()
         return false;
     }
 
-    // 只有在白天且暴露在阳光下时才执行
-    if (!world->isDaytime()) {
+    // MC原版使用 isBrightOutside()，考虑天气（雷暴时白天也会变暗）
+    if (!world->isBrightOutside()) {
         return false;
     }
 
@@ -90,7 +90,6 @@ void FleeSunGoal::startExecuting()
 void FleeSunGoal::resetTask()
 {
     m_creature->clearNavigation();
-    m_wantsToShelter = false;
 }
 
 void FleeSunGoal::tick()

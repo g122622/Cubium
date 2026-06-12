@@ -4,7 +4,7 @@
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to Use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software be
  * furnished to do so, subject to the following conditions:
  *
@@ -26,7 +26,6 @@
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
-#include "common/util/math/Vector3.hpp"
 
 namespace mc {
 
@@ -36,52 +35,37 @@ class CreatureEntity;
 namespace entity::ai::goal {
 
 /**
- * @brief 返回家园目标
+ * @brief 限制阳光目标
  *
- * 控制生物返回其家园位置的行为。用于村民返回床位、
- * 铁傀儡返回村庄等场景。当生物离开家园范围时，
- * 会导航回家园位置附近。
+ * 控制生物在白天暴露于阳光下时限制其移动行为。
+ * 与 FleeSunGoal 不同，此目标不会主动寻找阴影，而是配置路径导航器
+ * 使其在寻路时避开阳光路径。如果没有可行的避阳路径，生物会停止移动。
  *
- * 依赖MobEntity的家园区系统（setHomePosAndDistance/hasHome/isWithinHomeDistanceFromPosition）。
+ * 用于骷髅等亡灵生物。MC原版对应: RestrictSunGoal
+ *
+ * 工作原理：
+ * - shouldExecute()：白天且头部未装备物品时激活
+ * - startExecuting()：设置导航器避开阳光路径
+ * - resetTask()：恢复导航器正常路径规划
  */
-class ReturnToHomeGoal : public Goal {
+class RestrictSunGoal : public Goal {
 public:
     /**
      * @brief 构造函数
      * @param creature 拥有此目标的生物
-     * @param speed 移动速度倍率
-     * @param homeRadius 家园半径（仅当生物未设置家园区时使用）
      */
-    ReturnToHomeGoal(CreatureEntity* creature, f64 speed, f32 homeRadius = 16.0f);
+    explicit RestrictSunGoal(CreatureEntity* creature);
 
-    ~ReturnToHomeGoal() override = default;
+    ~RestrictSunGoal() override = default;
 
     [[nodiscard]] bool shouldExecute() override;
-    [[nodiscard]] bool shouldContinueExecuting() override;
     void startExecuting() override;
     void resetTask() override;
-    void tick() override;
 
-    [[nodiscard]] std::string getTypeName() const override { return "ReturnToHomeGoal"; }
+    [[nodiscard]] std::string getTypeName() const override { return "RestrictSunGoal"; }
 
 private:
-    /**
-     * @brief 重新计算路径
-     */
-    void _recalculatePath();
-
     CreatureEntity* m_creature;
-    f64 m_speed;
-    f32 m_homeRadius;
-    f64 m_targetX = 0.0;
-    f64 m_targetY = 0.0;
-    f64 m_targetZ = 0.0;
-    i32 m_pathRecalcTimer = 0;
-
-    // 搜索范围常量
-    static constexpr i32 HOME_XZ_RANGE = 16;        // 朝向家园位置的水平搜索范围
-    static constexpr i32 HOME_Y_RANGE = 7;          // 朝向家园位置的垂直搜索范围
-    static constexpr i32 PATH_RECALC_INTERVAL = 10; // 路径重新计算间隔（tick）
 };
 
 } // namespace entity::ai::goal

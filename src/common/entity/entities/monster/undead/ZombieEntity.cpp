@@ -228,6 +228,9 @@ void ZombieEntity::registerGoals()
     // 优先级 2: 近战攻击
     m_goalSelector.addGoal(2, new entity::ai::goal::MeleeAttackGoal(this, 1.0, false));
 
+    // 注意：MC原版僵尸不会躲避阳光，它们只是直接在阳光下燃烧
+    // 骷髅才会使用 FleeSunGoal 和 RestrictSunGoal 来躲避阳光
+
     // 优先级 7: 避水随机行走
     // TODO: 需要 WaterAvoidingRandomWalkingGoal 实现
     // m_goalSelector.addGoal(7, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 1.0));

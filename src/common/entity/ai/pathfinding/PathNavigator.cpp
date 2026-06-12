@@ -22,6 +22,8 @@
  */
 
 #include "PathNavigator.hpp"
+#include "WalkNodeProcessor.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/ai/controller/MovementController.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/core/MobEntity.hpp"
@@ -30,7 +32,6 @@
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 #include <limits>
 
@@ -381,6 +382,19 @@ f32 PathNavigator::_getDistanceToTarget() const
 const PathPoint* PathNavigator::_getCurrentWaypoint() const
 {
     return m_path ? m_path->getCurrentTarget() : nullptr;
+}
+
+void PathNavigator::setAvoidSunPathing(bool avoidSun)
+{
+    if (m_pathFinder) {
+        auto* nodeProcessor = m_pathFinder->getNodeProcessor();
+        if (nodeProcessor != nullptr) {
+            auto* walkNodeProcessor = dynamic_cast<WalkNodeProcessor*>(nodeProcessor);
+            if (walkNodeProcessor != nullptr) {
+                walkNodeProcessor->setAvoidSun(avoidSun);
+            }
+        }
+    }
 }
 
 } // namespace mc::entity::ai::pathfinding

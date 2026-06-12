@@ -165,6 +165,7 @@ private:
  *
  * 当生物离开其家范围时，向家位置移动。
  * 守卫者使用此目标来限制它们在海底神殿附近的移动。
+ * MC原版对应: MoveTowardsRestrictionGoal
  */
 class MoveTowardsRestrictionGoal : public Goal {
 public:
@@ -180,17 +181,26 @@ public:
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;
     void startExecuting() override;
+    void resetTask() override;
+    void tick() override;
     [[nodiscard]] std::string getTypeName() const override { return "MoveTowardsRestrictionGoal"; }
 
 private:
+    /**
+     * @brief 重新计算朝向家位置的路径
+     */
+    void _recalculatePath();
+
     CreatureEntity* m_creature;
     f64 m_speed;
     f64 m_targetX = 0.0;
     f64 m_targetY = 0.0;
     f64 m_targetZ = 0.0;
+    i32 m_pathRecalcTimer = 0;
 
-    static constexpr i32 XZ_RANGE = 16; ///< 水平搜索范围
-    static constexpr i32 Y_RANGE = 7;   ///< 垂直搜索范围
+    static constexpr i32 XZ_RANGE = 16;             ///< 水平搜索范围
+    static constexpr i32 Y_RANGE = 7;               ///< 垂直搜索范围
+    static constexpr i32 PATH_RECALC_INTERVAL = 10; ///< 路径重算间隔（ticks）
 };
 
 } // namespace entity::ai::goal

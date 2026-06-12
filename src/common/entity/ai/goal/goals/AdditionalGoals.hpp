@@ -30,7 +30,8 @@
 //   - NearestAttackableTargetGoal -> target/TargetGoals.hpp
 //   - FleeSunGoal        -> FleeSunGoal.hpp
 //   - FindShelterGoal    -> FindShelterGoal.hpp
-//   - ReturnToHomeGoal   -> ReturnToHomeGoal.hpp
+//   - RestrictSunGoal    -> RestrictSunGoal.hpp
+//   - ReturnToHomeGoal   -> 已合并到 movement/MovementGoals.hpp (MoveTowardsRestrictionGoal)
 //   - FlyGoal            -> FlyGoal.hpp
 //   - SleepGoal          -> villager/VillagerGoals.hpp (SleepAtNightGoal)
 //   - WorkAtPoiGoal      -> villager/VillagerGoals.hpp (WorkAtJobSiteGoal)

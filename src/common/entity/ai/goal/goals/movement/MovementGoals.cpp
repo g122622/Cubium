@@ -333,7 +333,19 @@ MoveTowardsRestrictionGoal::MoveTowardsRestrictionGoal(CreatureEntity* creature,
 
 bool MoveTowardsRestrictionGoal::shouldExecute()
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
+
+    // 被骑乘时不执行
+    if (m_creature->isBeingRidden()) {
+        return false;
+    }
+
+    // 检查是否设有家位置
+    if (!m_creature->hasHome()) {
+        return false;
+    }
 
     // 如果当前已在家范围内，不需要移动
     if (m_creature->isWithinHomeDistanceCurrentPosition()) {
@@ -359,17 +371,66 @@ bool MoveTowardsRestrictionGoal::shouldExecute()
 
 bool MoveTowardsRestrictionGoal::shouldContinueExecuting()
 {
-    if (!m_creature) return false;
+    if (!m_creature) {
+        return false;
+    }
 
-    // 当导航器还有路径时继续执行
+    // 已经回到家园范围内，停止
+    if (m_creature->hasHome() && m_creature->isWithinHomeDistanceCurrentPosition()) {
+        return false;
+    }
+
+    // 导航仍在进行中
     auto* nav = m_creature->navigator();
-    return nav && !nav->noPath();
+    return nav && nav->hasPath() && !nav->isDone();
 }
 
 void MoveTowardsRestrictionGoal::startExecuting()
 {
     if (m_creature) {
-        m_creature->tryMoveTo(m_targetX, m_targetY, m_targetZ, m_speed);
+        static_cast<void>(m_creature->navigator()->moveTo(m_targetX, m_targetY, m_targetZ, m_speed));
+    }
+    m_pathRecalcTimer = 0;
+}
+
+void MoveTowardsRestrictionGoal::resetTask()
+{
+    if (m_creature) {
+        m_creature->clearNavigation();
+    }
+    m_pathRecalcTimer = 0;
+}
+
+void MoveTowardsRestrictionGoal::tick()
+{
+    if (m_pathRecalcTimer > 0) {
+        --m_pathRecalcTimer;
+        return;
+    }
+
+    // 定期重新计算路径
+    _recalculatePath();
+    m_pathRecalcTimer = PATH_RECALC_INTERVAL;
+}
+
+void MoveTowardsRestrictionGoal::_recalculatePath()
+{
+    if (!m_creature || !m_creature->hasHome()) {
+        return;
+    }
+
+    // 生成朝向家位置的新路径
+    BlockPos homePos = m_creature->homePosition();
+    Vector3 homeCenter(
+        static_cast<f32>(homePos.x) + 0.5f, static_cast<f32>(homePos.y) + 0.5f, static_cast<f32>(homePos.z) + 0.5f);
+
+    Vector3 targetPos;
+    if (entity::ai::util::RandomPositionGenerator::findRandomTargetTowards(
+            m_creature, XZ_RANGE, Y_RANGE, homeCenter, targetPos)) {
+        m_targetX = targetPos.x;
+        m_targetY = targetPos.y;
+        m_targetZ = targetPos.z;
+        static_cast<void>(m_creature->navigator()->moveTo(m_targetX, m_targetY, m_targetZ, m_speed));
     }
 }
 

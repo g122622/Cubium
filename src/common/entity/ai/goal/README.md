@@ -25,12 +25,12 @@ goal/
     ├── FindWaterGoal.hpp/cpp     # 寻找水源目标（水生生物）
     ├── SwimUpGoal.hpp/cpp        # 向上游目标（水生生物）
     ├── AdditionalGoals.hpp/cpp   # 已迁移：所有目标已移至独立文件（见下方）
-    ├── FleeSunGoal.hpp/cpp       # 躲避阳光目标（亡灵生物日间避阳）
+    ├── FleeSunGoal.hpp/cpp       # 躲避阳光目标（亡灵生物日间避阳，主动寻找阴影）
+    ├── RestrictSunGoal.hpp/cpp   # 限制阳光目标（配置导航器避阳路径，骷髅优先使用）
     ├── FindShelterGoal.hpp/cpp   # 寻找庇护所目标（日间寻找阴影位置）
-    ├── ReturnToHomeGoal.hpp/cpp  # 返回家园目标（家园区系统，导航回家园位置）
     ├── FlyGoal.hpp/cpp           # 飞行目标（蝙蝠等飞行生物随机飞行）
     ├── movement/                 # 移动类目标
-    │   └── MovementGoals.hpp/cpp # WaterAvoidingRandomWalkingGoal, LeapAtTargetGoal
+    │   └── MovementGoals.hpp/cpp # WaterAvoidingRandomWalkingGoal, LeapAtTargetGoal, MoveTowardsTargetGoal, MoveTowardsRestrictionGoal
     │   └── FollowSchoolLeaderGoal.hpp/cpp # 跟随群体领导者（群游鱼类）
     ├── attack/                   # 攻击类目标
     │   └── RangedAttackGoals.hpp/cpp # RangedAttackGoal, RangedBowAttackGoal, RangedCrossbowAttackGoal

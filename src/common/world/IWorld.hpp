@@ -755,6 +755,24 @@ public:
     [[nodiscard]] virtual bool isDaytime() const { return dayTimeOfDay() < 12000; }
 
     /**
+     * @brief 检查外面是否明亮
+     *
+     * MC原版对应: Level.isBrightOutside()
+     * 当天空减暗因子小于4时返回true，即天空足够明亮。
+     * 与isDaytime()不同，此方法还考虑了天气（雷暴时白天也会变暗），
+     * 以及维度类型（下界和末地总是返回false，因为它们有固定时间）。
+     * 用于亡灵生物的阳光相关AI（RestrictSunGoal、FleeSunGoal等）。
+     */
+    [[nodiscard]] virtual bool isBrightOutside() const
+    {
+        // 没有天空光照的维度（下界、末地）不算明亮
+        if (!hasSkyLight()) {
+            return false;
+        }
+        return getSkyDarkening() < 4;
+    }
+
+    /**
      * @brief 获取游戏时间 (总tick数)
      *
      * 与 currentTick() 相同，提供更明确的语义。

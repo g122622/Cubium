@@ -72,8 +72,6 @@ protected:
     f64 m_targetX = 0.0;
     f64 m_targetY = 0.0;
     f64 m_targetZ = 0.0;
-    bool m_wantsToShelter = false;
-
     // 搜索范围常量
     static constexpr i32 SHELTER_XZ_RANGE = 10; // 水平搜索范围
     static constexpr i32 SHELTER_Y_RANGE = 7;   // 垂直搜索范围
