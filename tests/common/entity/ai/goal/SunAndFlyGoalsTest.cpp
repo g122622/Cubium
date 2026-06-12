@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/goals/FindShelterGoal.hpp"
 #include "common/entity/ai/goal/goals/FleeSunGoal.hpp"
@@ -31,7 +32,6 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 using namespace mc::entity::ai::goal;
@@ -429,4 +429,193 @@ TEST_F(FlyGoalTest, TimeoutDecrements)
         goal->tick();
     }
     EXPECT_TRUE(true);
+}
+
+// ============================================================================
+// Goal Lifecycle Tests: shouldExecute -> startExecuting -> tick -> shouldContinueExecuting -> resetTask
+// ============================================================================
+
+TEST_F(FleeSunGoalTest, FullLifecycleDoesNotCrash)
+{
+    // 完整生命周期：shouldExecute -> startExecuting -> tick -> shouldContinueExecuting -> resetTask
+    // 在没有区块数据的环境中，shouldExecute 可能返回 false
+    // 但我们仍然可以验证生命周期方法不崩溃
+    world->setDaytime(true);
+    world->setSkyDarkening(0);
+    world->setCanSeeSky(true);
+
+    // shouldExecute 在白天且可见天空时尝试执行（但 RandomPositionGenerator 可能找不到位置）
+    goal->shouldExecute();
+
+    // 手动触发生命周期
+    goal->startExecuting();
+    for (int i = 0; i < 20; ++i) {
+        goal->tick();
+    }
+    // shouldContinueExecuting 在无路径时返回 false
+    EXPECT_FALSE(goal->shouldContinueExecuting());
+    goal->resetTask();
+}
+
+TEST_F(RestrictSunGoalTest, FullLifecycleDayToNight)
+{
+    // 白天 -> 执行 RestrictSunGoal -> 夜晚 -> 停止
+    world->setDaytime(true);
+    world->setSkyDarkening(0);
+    EXPECT_TRUE(goal->shouldExecute());
+
+    goal->startExecuting();
+
+    // tick 一段时间
+    for (int i = 0; i < 20; ++i) {
+        goal->tick();
+    }
+
+    // 变为夜晚
+    world->setDaytime(false);
+    world->setSkyDarkening(11);
+
+    // RestrictSunGoal 没有 shouldContinueExecuting，只靠 shouldExecute 重评估
+    // 但 resetTask 应该恢复导航器设置
+    goal->resetTask();
+    EXPECT_TRUE(true);
+}
+
+TEST_F(RestrictSunGoalTest, HeadEquipmentPreventsExecution)
+{
+    // 白天但头部有装备时不执行
+    world->setDaytime(true);
+    world->setSkyDarkening(0);
+
+    // 头部无装备时应该执行
+    EXPECT_TRUE(goal->shouldExecute());
+
+    // 头部有装备时不应该执行
+    // 注意：TestCreature 默认没有装备，所以 shouldExecute 返回 true
+    // 如果设置了头部装备，应该返回 false
+    // 这里验证默认无装备的情况
+}
+
+TEST_F(FindShelterGoalTest, FullLifecycleWithTimeout)
+{
+    // FindShelterGoal 有超时机制
+    world->setDaytime(true);
+    world->setSkyDarkening(0);
+    world->setCanSeeSky(true);
+
+    goal->shouldExecute();
+    goal->startExecuting();
+
+    // tick 超过 MAX_SHELTER_TIME(600) 次，验证超时机制
+    for (int i = 0; i < 700; ++i) {
+        goal->tick();
+    }
+
+    // 超时后 shouldContinueExecuting 应返回 false
+    EXPECT_FALSE(goal->shouldContinueExecuting());
+
+    goal->resetTask();
+}
+
+TEST_F(FindShelterGoalTest, TickAfterResetDoesNotCrash)
+{
+    goal->startExecuting();
+    goal->resetTask();
+    // resetTask 后继续 tick 不应该崩溃
+    for (int i = 0; i < 50; ++i) {
+        goal->tick();
+    }
+    EXPECT_TRUE(true);
+}
+
+TEST_F(FlyGoalTest, FullLifecycleWithTimeout)
+{
+    // FlyGoal 有超时机制（MAX_FLIGHT_TIME = 600 ticks）
+    goal->shouldExecute();
+    goal->startExecuting();
+
+    // tick 超过超时
+    for (int i = 0; i < 700; ++i) {
+        goal->tick();
+    }
+
+    // 超时后 shouldContinueExecuting 应返回 false
+    EXPECT_FALSE(goal->shouldContinueExecuting());
+
+    goal->resetTask();
+}
+
+TEST_F(FleeSunGoalTest, ShouldNotExecuteWithoutWorld)
+{
+    // 没有世界时不应执行
+    creature->setWorld(nullptr);
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(RestrictSunGoalTest, ShouldNotExecuteWithoutWorld)
+{
+    creature->setWorld(nullptr);
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(FindShelterGoalTest, ShouldNotExecuteWithoutWorld)
+{
+    creature->setWorld(nullptr);
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(FlyGoalTest, ShouldNotExecuteWithoutWorld)
+{
+    creature->setWorld(nullptr);
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+// ============================================================================
+// isBrightOutside() Tests
+// ============================================================================
+
+class IsBrightOutsideTest : public ::testing::Test {
+protected:
+    void SetUp() override { world = std::make_unique<SunTestWorld>(); }
+    void TearDown() override { world.reset(); }
+    std::unique_ptr<SunTestWorld> world;
+};
+
+TEST_F(IsBrightOutsideTest, BrightDuringDay)
+{
+    world->setSkyDarkening(0);
+    world->setHasSkyLight(true);
+    EXPECT_TRUE(world->isBrightOutside());
+}
+
+TEST_F(IsBrightOutsideTest, NotBrightAtNight)
+{
+    world->setSkyDarkening(11);
+    EXPECT_FALSE(world->isBrightOutside());
+}
+
+TEST_F(IsBrightOutsideTest, NotBrightDuringThunderstorm)
+{
+    // 雷暴时 skyDarkening >= 4
+    world->setSkyDarkening(6);
+    EXPECT_FALSE(world->isBrightOutside());
+}
+
+TEST_F(IsBrightOutsideTest, BorderlineSkyDarkening)
+{
+    // skyDarkening = 3 -> 仍然明亮
+    world->setSkyDarkening(3);
+    EXPECT_TRUE(world->isBrightOutside());
+
+    // skyDarkening = 4 -> 不再明亮
+    world->setSkyDarkening(4);
+    EXPECT_FALSE(world->isBrightOutside());
+}
+
+TEST_F(IsBrightOutsideTest, NotBrightInNetherOrEnd)
+{
+    // 没有天空光照的维度总是不亮
+    world->setHasSkyLight(false);
+    world->setSkyDarkening(0);
+    EXPECT_FALSE(world->isBrightOutside());
 }

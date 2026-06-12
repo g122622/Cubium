@@ -359,6 +359,8 @@ add_executable(mc_tests
     common/entity/ai/goal/FishSwimGoalTest.cpp
     # FleeSunGoal/RestrictSunGoal/FindShelterGoal/FlyGoal 阳光和飞行目标测试
     common/entity/ai/goal/SunAndFlyGoalsTest.cpp
+    # MoveTowardsRestrictionGoal 向家范围移动目标测试
+    common/entity/ai/goal/MoveTowardsRestrictionGoalTest.cpp
     entity/GhastEntityTest.cpp
     # 恶魂 AI 目标测试
     common/entity/GhastGoalsTest.cpp

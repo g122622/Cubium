@@ -105,12 +105,12 @@ ai/
 │   ├── Path.hpp/cpp              # 路径对象
 │   ├── PathFinder.hpp/cpp        # A* 寻路器
 │   ├── PathHeap.hpp              # 路径点最小堆
-│   ├── PathNavigator.hpp/cpp     # 路径导航器
+│   ├── PathNavigator.hpp/cpp     # 路径导航器（含setAvoidSunPathing阳光避让接口）
 │   ├── PathNodeType.hpp          # 路径节点类型（Walkable/Water/Lava等）
 │   ├── PathPoint.hpp/cpp         # 路径点（代价、父节点等）
 │   ├── RavagerNodeProcessor.hpp/cpp # 劫掠兽节点处理器
 │   ├── Region.hpp/cpp            # 世界区域访问接口
-│   └── WalkNodeProcessor.hpp/cpp # 行走节点处理器
+│   └── WalkNodeProcessor.hpp/cpp # 行走节点处理器（含setAvoidSun阳光避让标志，待实现寻路逻辑）
 └── util/                         # AI工具类
     ├── RandomPositionGenerator.hpp/cpp # 随机位置生成器
     └── README.md

@@ -44,6 +44,10 @@ namespace entity::ai::goal {
  * 与WaterAvoidingRandomFlyingGoal的区别：
  * FlyGoal使用概率触发机制（默认1/120每tick），而WaterAvoidingRandomFlyingGoal使用更小的概率。
  * FlyGoal适用于需要更频繁飞行的生物。
+ *
+ * TODO: 当前无实体直接使用此目标。BatEntity使用自定义的BatRandomFlyGoal，
+ * ParrotEntity使用WaterAvoidingRandomFlyingGoal，PhantomEntity使用自定义目标。
+ * 此目标作为通用飞行行为备用，待需要通用飞行AI的实体实现后接入。
  */
 class FlyGoal : public Goal {
 public:

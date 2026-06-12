@@ -99,6 +99,11 @@ public:
 
     /**
      * @brief 设置是否避免太阳
+     *
+     * TODO: 当前m_avoidSun标志已设置但未被寻路逻辑读取。
+     * 需要在节点代价计算中实现阳光避让逻辑：当m_avoidSun为true时，
+     * 检查节点位置的canSeeSky状态，对暴露在阳光下的节点增加代价或标记为不可通过。
+     * 这将使RestrictSunGoal实际影响骷髅等亡灵生物的寻路行为。
      */
     void setAvoidSun(bool avoidSun) { m_avoidSun = avoidSun; }
 

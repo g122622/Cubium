@@ -42,6 +42,9 @@ namespace entity::ai::goal {
  * 与FleeSunGoal不同，此目标在白天或雷暴天气时激活，
  * 并且只在有明确威胁时（如光照条件）寻找阴影位置。
  * 用于僵尸、骷髅等亡灵生物的日间避难行为。
+ *
+ * TODO: 当前无实体使用此目标。MC原版中FoxEntity使用自定义的FoxFindShelterGoal（继承FleeSunGoal），
+ * 而非直接使用此目标。待FoxEntity等实体实现后，评估是否需要接入或由子类覆盖。
  */
 class FindShelterGoal : public Goal {
 public:
