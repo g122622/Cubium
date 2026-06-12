@@ -642,9 +642,7 @@ void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     tag.put(nbt_keys::NO_AI, static_cast<i8>(m_aiEnabled ? 0 : 1));
 
     // HandDropChances / ArmorDropChances (float list)
-    // 对应 MC 原版 Mob.addAdditionalSaveData 中的 drop_chances 序列化。
-    // 旧格式使用两个 float 列表：HandDropChances[2] 和 ArmorDropChances[4]。
-    // 写入时同时写入旧格式和新格式（drop_chances compound）以保证兼容性。
+    // 掉落概率序列化，同时写入旧格式（float 列表）和新格式（drop_chances compound）以保证兼容性。TODO：彻底移除旧的格式及其兼容代码
     // 新格式 drop_chances 只写入非默认值（不等于 0.085 的槽位）。
 
     // 旧格式：HandDropChances（主手、副手）
@@ -666,10 +664,9 @@ void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     }
 
     // 新格式：drop_chances（compound，仅包含非默认值）
-    // 对应 MC 1.21.4+ 的 DropChances.CODEC 序列化格式
     {
         nbt::tags::compound_tag dropChancesTag;
-        // 装备槽位名称映射（与 MC 原版 EquipmentSlot.CODEC 一致）
+        // 装备槽位名称映射
         static constexpr struct {
             EquipmentSlot slot;
             const char* name;
@@ -695,7 +692,6 @@ void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     }
 
     // Leash (compound) - 拴绳数据
-    // 对应 MC 原版 Leashable.LeashData.CODEC 序列化。
     // 格式：Leash = {UUIDMost: long, UUIDLeast: long}（拴在实体上）
     //   或  Leash = {X: int, Y: int, Z: int}（拴在栅栏柱上）
     if (m_isLeashed) {
@@ -715,7 +711,6 @@ void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     }
 
     // DeathLootTable / DeathLootTableSeed
-    // 对应 MC 原版 Mob.lootTable 和 Mob.lootTableSeed。
     // 仅在有自定义掉落表时写入，否则使用实体类型的默认掉落表。
     if (m_deathLootTable.has_value()) {
         tag.put(nbt_keys::DEATH_LOOT_TABLE, std::string(*m_deathLootTable));
@@ -819,7 +814,7 @@ Result<void> MobEntity::readAdditionalSaveData(const nbt::tags::compound_tag& ta
     }
 
     // Leash (compound) - 拴绳数据
-    // 对应 MC 原版 Leashable.readLeashData()
+    // 读取拴绳绑定信息，支持实体 UUID 和栅栏柱坐标两种格式
     {
         auto* leashCompound = nbt_helper::tryGetCompound(tag, nbt_keys::LEASH);
         if (leashCompound != nullptr) {
@@ -831,10 +826,15 @@ Result<void> MobEntity::readAdditionalSaveData(const nbt::tags::compound_tag& ta
                 // 拴在实体上
                 std::string uuid = nbt_helper::getUuid(*leashCompound);
                 if (!uuid.empty()) {
+                    m_isLeashed = true;
+                    m_leashHolderUuid = uuid;
                     m_leashDelayInfo.targetUuid = uuid;
-                    // 注意：实际的拴绳绑定需要在实体加载后延迟处理，
+                    // TODO: 实际的拴绳绑定需要在实体加载后延迟处理，
                     // 因为此时目标实体可能尚未加载到世界中。
-                    // restoreLeashFromSave() 会在 tick 中调用以完成绑定。
+                    // 需要实现 restoreLeashFromSave() 方法，在 tick 中
+                    // 尝试通过 UUID 查找目标实体并完成实际绑定。
+                    // 当前仅存储了 UUID 但未完成实体引用绑定，
+                    // 拴绳的视觉效果和物理约束暂未生效。
                 }
             } else {
                 // 拴在栅栏柱上
@@ -917,7 +917,7 @@ void MobEntity::populateDefaultEquipmentSlots(
     f32 skipChance = (difficulty.getDifficulty() == Difficulty::Hard) ? 0.1f : 0.25f;
 
     // 按 Head -> Chest -> Legs -> Feet 顺序填充护甲
-    // 对应 MC 原版的 EQUIPMENT_POPULATION_ORDER
+    // 护甲生成顺序
     static constexpr EquipmentSlot armorSlots[] = {
         EquipmentSlot::Head,
         EquipmentSlot::Chest,
@@ -1042,7 +1042,7 @@ void MobEntity::enchantSpawnedWeapon(
     (void)difficulty;
     ItemStack mainHand = getEquipment(EquipmentSlot::MainHand);
     if (!mainHand.isEmpty() && random.nextFloat() < 0.25f * specialMultiplier) {
-        // 附魔等级范围：5~17，对应 MC 原版 VanillaEnchantmentProviders.MOB_SPAWN_EQUIPMENT
+        // 附魔等级范围：5~17
         i32 level = 5 + random.nextInt(13);
         mainHand = item::enchant::EnchantmentHelper::addRandomEnchantment(random, mainHand, level, false);
         setEquipment(EquipmentSlot::MainHand, mainHand);

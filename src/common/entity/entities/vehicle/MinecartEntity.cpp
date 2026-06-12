@@ -1136,10 +1136,7 @@ void FurnaceMinecartEntity::tick()
     }
 
     // 燃烧时产生烟雾粒子
-    // 对应 MC 原版 FurnaceMinecartEntity.tick()：
-    // if (this.fuel > 0 && this.random.nextInt(4) == 0) {
-    //     level.addParticle(ParticleTypes.LARGE_SMOKE, getX(), getY() + 0.8, getZ(), 0, 0, 0);
-    // }
+    // 激活状态下每 tick 有 1/4 概率产生大烟雾粒子
     if (isActivated() && worldPtr != nullptr) {
         math::Random& random = worldPtr->getRandom();
         if (random.nextInt(4) == 0) {
@@ -1262,7 +1259,7 @@ void TNTMinecartEntity::tick()
         m_fuse--;
 
         // 引信燃烧时产生烟雾粒子
-        // 对应 MC 原版：引信每 4 tick 产生一次烟雾
+        // 引信每 4 tick 产生一次烟雾
         if (m_fuse % 4 == 0) {
             IWorld* worldPtr = Entity::world();
             if (worldPtr) {
