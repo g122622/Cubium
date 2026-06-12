@@ -109,15 +109,13 @@ void IronGolemEntity::registerGoals()
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, false));
 
     // 优先级 3: 攻击敌对生物
-    // 排除苦力怕，因为铁傀儡不攻击苦力怕
+    // canAttackType 已在 TargetGoal::isSuitableTarget 中自动调用，排除苦力怕
     m_targetSelector.addGoal(3,
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
             true, // checkSight
             5,    // chance (每5tick检查一次)
             [](const LivingEntity* entity) -> bool {
                 if (!entity || !entity->isAlive()) return false;
-                // 铁傀儡不攻击苦力怕
-                if (entity->typeId() == entity::EntityTypeIdNumber::CREEPER) return false;
                 // 攻击敌对生物（实现了 IMob 接口/是 MonsterEntity 子类）
                 const MonsterEntity* monster = dynamic_cast<const MonsterEntity*>(entity);
                 return monster != nullptr;
@@ -130,6 +128,8 @@ void IronGolemEntity::registerAttributes()
     GolemEntity::registerAttributes();
 
     // 铁傀儡的属性
+    // ATTACK_DAMAGE 需要先注册（GolemEntity 继承链中未注册此属性，MonsterEntity 才注册）
+    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 100.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
     m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 1.0);
@@ -167,6 +167,10 @@ bool IronGolemEntity::attackEntityAsMob(LivingEntity& target)
     }
 
     // 计算伤害：随机化伤害值
+    // 对应 MC 原版 IronGolem.doHurtTarget:
+    //   float f = this.getAttackDamage();
+    //   float f1 = (int)f > 0 ? f / 2.0F + this.random.nextInt((int)f) : f;
+    // 注意：(int)f 是截断取整而非向上取整，但对于整数 ATTACK_DAMAGE=7.0 无差异
     f32 damage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE));
 
     math::Random rng = getRandom();
@@ -200,7 +204,7 @@ void IronGolemEntity::playAttackSound(LivingEntity& /*target*/)
     // 此方法保留为空，避免基类和AI目标中重复播放
 }
 
-bool IronGolemEntity::canAttackEntity(entity::EntityTypeId typeId) const
+bool IronGolemEntity::canAttackType(entity::EntityTypeId typeId) const
 {
     // 玩家创建的铁傀儡不攻击玩家
     if (isPlayerCreated() && typeId == entity::EntityTypeIdNumber::PLAYER) {
@@ -213,7 +217,7 @@ bool IronGolemEntity::canAttackEntity(entity::EntityTypeId typeId) const
     }
 
     // 其他情况由父类处理
-    return true;
+    return MobEntity::canAttackType(typeId);
 }
 
 } // namespace mc

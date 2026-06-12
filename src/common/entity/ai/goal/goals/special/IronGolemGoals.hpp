@@ -25,9 +25,6 @@
 
 #include "../../Goal.hpp"
 #include "../target/TargetGoals.hpp"
-#include "core/EnumSet.hpp"
-#include "core/Types.hpp"
-#include <memory>
 
 namespace mc {
 

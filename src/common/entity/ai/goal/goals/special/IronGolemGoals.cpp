@@ -23,23 +23,18 @@
 
 #include "IronGolemGoals.hpp"
 #include "../../../../../util/assert/AssertMacros.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
-#include "../../../../attribute/Attributes.hpp"
-#include "../../../../core/CreatureEntity.hpp"
 #include "../../../../core/EntityTypeIdNumber.hpp"
 #include "../../../../core/EntityUtils.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
-#include "../../../../damage/DamageSource.hpp"
 #include "../../../../entities/monster/MonsterEntity.hpp"
 #include "../../../../entities/passive/golem/IronGolemEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../../entities/villager/VillagerEntity.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
-#include <cmath>
 
 namespace mc::entity::ai::goal {
 
@@ -339,14 +334,8 @@ bool DefendVillageTargetGoal::shouldExecute()
     }
 
     // 检查攻击者是否适合作为目标
+    // isSuitableTarget 已调用 canAttackType，会排除玩家创建的铁傀儡不攻击玩家等情况
     if (!isSuitableTarget(attacker)) {
-        return false;
-    }
-
-    // 检查攻击者是否是玩家创建的铁傀儡的主人
-    // 如果铁傀儡是玩家创建的，不攻击该玩家
-    Player* player = dynamic_cast<Player*>(attacker);
-    if (player && m_golem->isPlayerCreated()) {
         return false;
     }
 
@@ -393,6 +382,7 @@ bool IronGolemNearestAttackableTargetGoal::shouldExecute()
     if (!world) return false;
 
     // 搜索附近的敌对生物，但不包括苦力怕
+    // canAttackType 检查排除苦力怕和玩家创建者
     MobEntity* nearestTarget = EntityUtils::findClosestEntity<MobEntity>(
         world, m_golem->position(), SEARCH_RANGE, m_golem, [this](MobEntity* candidate) -> bool {
             if (!candidate || !candidate->isAlive()) {
@@ -405,8 +395,8 @@ bool IronGolemNearestAttackableTargetGoal::shouldExecute()
                 return false;
             }
 
-            // 不攻击苦力怕
-            if (candidate->typeId() == entity::EntityTypeIdNumber::CREEPER) {
+            // 检查实体类型是否可攻击（canAttackType 排除苦力怕等）
+            if (!m_golem->canAttackType(candidate->typeId())) {
                 return false;
             }
 

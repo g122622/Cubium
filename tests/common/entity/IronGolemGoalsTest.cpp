@@ -192,19 +192,20 @@ TEST_F(IronGolemEntityTest, PlayerCreatedState)
     EXPECT_TRUE(ironGolem->isPlayerCreated());
 }
 
-TEST_F(IronGolemEntityTest, CanAttackEntity)
+TEST_F(IronGolemEntityTest, CanAttackType)
 {
     // 玩家创建的铁傀儡不攻击玩家
     ironGolem->setPlayerCreated(true);
-    EXPECT_FALSE(ironGolem->canAttackEntity(entity::EntityTypeIdNumber::PLAYER));
+    EXPECT_FALSE(ironGolem->canAttackType(entity::EntityTypeIdNumber::PLAYER));
 
     // 铁傀儡不攻击苦力怕
-    EXPECT_FALSE(ironGolem->canAttackEntity(entity::EntityTypeIdNumber::CREEPER));
+    EXPECT_FALSE(ironGolem->canAttackType(entity::EntityTypeIdNumber::CREEPER));
 
-    // 注意：canAttackEntity 对非 PLAYER/非 CREEPER 类型返回 true，
+    // 注意：canAttackType 对非 PLAYER/非 CREEPER 类型返回 true，
     // 但在单元测试环境中 EntityTypeIdNumber 的 extern 变量均为默认值 0，
     // ZOMBIE == CREEPER == 0，因此无法在此测试"可以攻击其他实体"。
-    // 该逻辑由 IronGolemEntityFeatureTest 中的集成测试覆盖。
+    // 使用不可能的 ID 值测试默认行为
+    EXPECT_TRUE(ironGolem->canAttackType(entity::EntityTypeId(999)));
 }
 
 TEST_F(IronGolemEntityTest, IAngerableInterface)

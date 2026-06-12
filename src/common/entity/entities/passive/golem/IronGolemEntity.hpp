@@ -164,11 +164,19 @@ public:
     void playAttackSound(LivingEntity& target) override;
 
     /**
-     * @brief 检查是否可以攻击指定实体类型
+     * @brief 检查是否可以攻击指定类型的实体
+     *
+     * 重写 MobEntity::canAttackType()。
+     * 铁傀儡的攻击类型限制：
+     * - 玩家创建的铁傀儡不攻击玩家
+     * - 铁傀儡永远不攻击苦力怕
+     *
+     * 对应 Minecraft 原版 IronGolem.canAttackType()。
+     *
      * @param typeId 实体类型ID
      * @return 是否可以攻击
      */
-    [[nodiscard]] bool canAttackEntity(entity::EntityTypeId typeId) const;
+    [[nodiscard]] bool canAttackType(entity::EntityTypeId typeId) const override;
 
 protected:
     // ========== AI 目标注册 ==========

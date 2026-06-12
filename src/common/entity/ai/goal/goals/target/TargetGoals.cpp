@@ -108,6 +108,11 @@ bool TargetGoal::isSuitableTarget(LivingEntity* target) const
         return false;
     }
 
+    // 检查实体类型是否可攻击（对应 MC 原版 Mob.canAttackType）
+    if (!m_mob->canAttackType(target->typeId())) {
+        return false;
+    }
+
     // 如果目标是玩家，检查游戏模式
     // 创造模式和观察者模式的玩家不能被作为目标
     Player* targetPlayer = dynamic_cast<Player*>(target);

@@ -676,6 +676,25 @@ public:
      */
     [[nodiscard]] bool isInDaylight() const;
 
+    // ========== 攻击目标类型判断 ==========
+
+    /**
+     * @brief 检查是否可以攻击指定类型的实体
+     *
+     * 对应 Minecraft 原版的 Mob.canAttackType()。
+     * 在目标选择器的 isSuitableTarget 中自动调用，
+     * 用于在目标类型层面进行攻击可行性过滤。
+     *
+     * 基类默认实现返回 true（允许攻击所有类型）。
+     * 子类可重写以限制攻击目标类型，例如：
+     * - IronGolem: 不攻击苦力怕，玩家创建的不攻击玩家
+     * - Wolf: 不攻击苦力怕和恶魂
+     *
+     * @param typeId 目标实体类型ID
+     * @return 是否可以攻击该类型的实体
+     */
+    [[nodiscard]] virtual bool canAttackType(entity::EntityTypeId typeId) const;
+
     // ========== 攻击 ==========
 
     /**

@@ -312,6 +312,14 @@ bool MobEntity::isInDaylight() const
     return m_world->canSeeSky(pos);
 }
 
+bool MobEntity::canAttackType(entity::EntityTypeId typeId) const
+{
+    // 基类默认允许攻击所有类型
+    // 子类可重写以限制攻击目标类型（如铁傀儡不攻击苦力怕）
+    (void)typeId;
+    return true;
+}
+
 bool MobEntity::attackEntityAsMob(LivingEntity& target)
 {
     // 1. 获取攻击伤害属性
@@ -642,8 +650,9 @@ void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     tag.put(nbt_keys::NO_AI, static_cast<i8>(m_aiEnabled ? 0 : 1));
 
     // HandDropChances / ArmorDropChances (float list)
-    // 掉落概率序列化，同时写入旧格式（float 列表）和新格式（drop_chances compound）以保证兼容性。TODO：彻底移除旧的格式及其兼容代码
-    // 新格式 drop_chances 只写入非默认值（不等于 0.085 的槽位）。
+    // 掉落概率序列化，同时写入旧格式（float 列表）和新格式（drop_chances
+    // compound）以保证兼容性。TODO：彻底移除旧的格式及其兼容代码 新格式 drop_chances 只写入非默认值（不等于 0.085
+    // 的槽位）。
 
     // 旧格式：HandDropChances（主手、副手）
     {

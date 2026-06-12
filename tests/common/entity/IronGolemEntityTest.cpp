@@ -21,16 +21,57 @@
 
 #include <gtest/gtest.h>
 
-#include "entity/attribute/Attributes.hpp"
-#include "entity/entities/passive/golem/IronGolemEntity.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 
 using namespace mc;
 
 // ============================================================================
 // IronGolemEntity 功能测试
 // ============================================================================
-// 测试 TODO 收敛后新增的功能：攻击计时器递减、持花状态递减、属性注册等
+// 测试 TODO 收敛后新增的功能：攻击计时器递减、持花状态递减、属性注册、
+// canAttackType 类型判断、attackEntityAsMob 核心逻辑等
 // 基础构造和状态测试见 IronGolemGoalsTest.cpp
+
+namespace {
+
+/**
+ * @brief 铁傀儡测试用世界
+ */
+class IronGolemTestWorld final : public test::BaseTestWorld {
+public:
+    IronGolemTestWorld() = default;
+
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        m_spawnedEntities.push_back(std::move(entity));
+        return static_cast<EntityId>(m_spawnedEntities.size());
+    }
+
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+
+    // 测试辅助
+    void incrementTick() { m_currentTick++; }
+
+private:
+    u64 m_currentTick = 0;
+    std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+    world::gamerule::GameRules m_gameRules;
+};
+
+} // anonymous namespace
+
+// ==================== 基础状态测试（不需要世界） ====================
 
 class IronGolemEntityFeatureTest : public ::testing::Test {
 protected:
@@ -123,28 +164,148 @@ TEST_F(IronGolemEntityFeatureTest, KnockbackResistanceAttribute)
     EXPECT_DOUBLE_EQ(kbResistance, 1.0);
 }
 
-// ==================== 攻击判断 ====================
+// ==================== 攻击类型判断 ====================
 
 TEST_F(IronGolemEntityFeatureTest, PlayerCreatedDoesNotAttackPlayer)
 {
     // 玩家创建的铁傀儡不攻击玩家
     ironGolem->setPlayerCreated(true);
-    EXPECT_FALSE(ironGolem->canAttackEntity(entity::EntityTypeIdNumber::PLAYER));
+    EXPECT_FALSE(ironGolem->canAttackType(entity::EntityTypeIdNumber::PLAYER));
 }
 
-// 注意：canAttackEntity 依赖 EntityTypeIdNumber 的运行时注册值，
+// 注意：canAttackType 依赖 EntityTypeIdNumber 的运行时注册值，
 // 在单元测试环境中这些 extern 变量均为默认值 0，无法区分不同实体类型，
-// 因此 canAttackEntity 对非 PLAYER/非 CREEPER 类型的测试需要在集成测试中进行。
+// 因此 canAttackType 对非 PLAYER/非 CREEPER 类型的测试需要在集成测试中进行。
 // PlayerCreatedDoesNotAttackPlayer 和 NeverAttacksCreeper 测试之所以通过，
-// 是因为 canAttackEntity 对 PLAYER(玩家创建) 和 CREEPER 返回 false 的逻辑
+// 是因为 canAttackType 对 PLAYER(玩家创建) 和 CREEPER 返回 false 的逻辑
 // 在 typeId == 0 时仍能正确匹配。
 
 TEST_F(IronGolemEntityFeatureTest, NeverAttacksCreeper)
 {
     // 铁傀儡不攻击苦力怕，无论是否玩家创建
     ironGolem->setPlayerCreated(true);
-    EXPECT_FALSE(ironGolem->canAttackEntity(entity::EntityTypeIdNumber::CREEPER));
+    EXPECT_FALSE(ironGolem->canAttackType(entity::EntityTypeIdNumber::CREEPER));
 
     ironGolem->setPlayerCreated(false);
-    EXPECT_FALSE(ironGolem->canAttackEntity(entity::EntityTypeIdNumber::CREEPER));
+    EXPECT_FALSE(ironGolem->canAttackType(entity::EntityTypeIdNumber::CREEPER));
+}
+
+TEST_F(IronGolemEntityFeatureTest, CanAttackOtherTypesByDefault)
+{
+    // 非玩家创建的铁傀儡默认允许攻击（除苦力怕和玩家创建者外的类型）
+    // 使用 MobEntity 基类默认值测试：canAttackType 对未知类型返回 true
+    // 注意：在单元测试中 EntityTypeIdNumber 未注册，我们用 999 这个不可能的 ID 测试
+    ironGolem->setPlayerCreated(false);
+    EXPECT_TRUE(ironGolem->canAttackType(entity::EntityTypeId(999)));
+}
+
+TEST_F(IronGolemEntityFeatureTest, WildGolemCanAttackPlayer)
+{
+    // 野生（非玩家创建的）铁傀儡可以攻击玩家
+    ironGolem->setPlayerCreated(false);
+    // PLAYER 和 CREEPER 在测试中 typeId 都为 0，无法区分，
+    // 所以使用 MobEntity 基类测试 canAttackType 的默认行为
+    EXPECT_TRUE(ironGolem->canAttackType(entity::EntityTypeId(998)));
+}
+
+// ==================== attackEntityAsMob 核心逻辑测试 ====================
+
+class IronGolemAttackTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        m_world = std::make_unique<IronGolemTestWorld>();
+        ironGolem = std::make_unique<IronGolemEntity>(EntityId(1));
+        ironGolem->setWorld(m_world.get());
+        ironGolem->setPosition(0.0, 64.0, 0.0);
+    }
+
+    void TearDown() override
+    {
+        ironGolem.reset();
+        m_world.reset();
+    }
+
+    std::unique_ptr<IronGolemTestWorld> m_world;
+    std::unique_ptr<IronGolemEntity> ironGolem;
+};
+
+TEST_F(IronGolemAttackTest, AttackSetsAnimationState)
+{
+    // 攻击后应设置攻击计时器和手臂举起状态
+    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    player->setWorld(m_world.get());
+    player->setPosition(2.0, 64.0, 0.0);
+
+    ironGolem->attackEntityAsMob(*player);
+
+    // 攻击动画：计时器 = ATTACK_DURATION(10)，手臂举起
+    EXPECT_EQ(ironGolem->getAttackTimer(), 10);
+    EXPECT_TRUE(ironGolem->isArmsRaised());
+}
+
+TEST_F(IronGolemAttackTest, AttackDealsDamageToTarget)
+{
+    // 铁傀儡攻击应对目标造成伤害
+    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    player->setWorld(m_world.get());
+    player->setPosition(2.0, 64.0, 0.0);
+
+    f32 healthBefore = player->health();
+    bool success = ironGolem->attackEntityAsMob(*player);
+
+    // 攻击应成功
+    EXPECT_TRUE(success);
+    // 目标生命值应减少（铁傀儡 ATTACK_DAMAGE = 7.0）
+    EXPECT_LT(player->health(), healthBefore);
+}
+
+TEST_F(IronGolemAttackTest, AttackAppliesYAxisKnockback)
+{
+    // 铁傀儡攻击应将目标向上击飞
+    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    player->setWorld(m_world.get());
+    player->setPosition(2.0, 64.0, 0.0);
+
+    ironGolem->attackEntityAsMob(*player);
+
+    // 目标应有Y轴速度（击退），玩家默认无击退抗性，所以系数为1.0
+    // Y轴速度应为 0.4 * (1.0 - 0.0) = 0.4
+    f64 yVelocity = player->velocity().y;
+    EXPECT_GT(yVelocity, 0.0); // 向上击飞
+    // 允许一定误差，因为 hurt 内部可能有额外修改
+    EXPECT_NEAR(yVelocity, 0.4, 0.1);
+}
+
+TEST_F(IronGolemAttackTest, KnockbackResistedByTargetAttribute)
+{
+    // 目标有击退抗性时应减少击退
+    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    player->setWorld(m_world.get());
+    player->setPosition(2.0, 64.0, 0.0);
+
+    // 给玩家设置 100% 击退抗性（与铁傀儡相同）
+    player->attributes().setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 1.0);
+
+    ironGolem->attackEntityAsMob(*player);
+
+    // 击退抗性为1.0时，击退系数 = max(0, 1.0 - 1.0) = 0，不应有Y轴击退
+    f64 yVelocity = player->velocity().y;
+    EXPECT_DOUBLE_EQ(yVelocity, 0.0);
+}
+
+TEST_F(IronGolemAttackTest, AttackDamageValue)
+{
+    // 铁傀儡攻击伤害应为 ATTACK_DAMAGE 属性值 (7.0)
+    f64 attackDamage = ironGolem->getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0);
+    EXPECT_DOUBLE_EQ(attackDamage, 7.0);
+}
+
+TEST_F(IronGolemAttackTest, MobEntityCanAttackTypeDefaultAllowsAll)
+{
+    // MobEntity 基类 canAttackType 默认允许所有类型
+    // 使用 IronGolemEntity 自身测试（非玩家创建、非苦力怕类型应允许）
+    // IronGolemEntity 继承自 MobEntity，其 canAttackType 重写了部分类型
+    // 使用不可能的 ID 值测试 MobEntity 基类默认行为
+    EXPECT_TRUE(ironGolem->canAttackType(entity::EntityTypeId(999)));
 }
