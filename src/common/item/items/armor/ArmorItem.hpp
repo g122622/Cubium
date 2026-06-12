@@ -67,6 +67,12 @@ public:
     // ========== 物品重写方法 ==========
 
     /**
+     * @brief 是否为护甲物品
+     * @return true，盔甲物品始终返回 true
+     */
+    [[nodiscard]] bool isArmor() const override { return true; }
+
+    /**
      * @brief 获取附魔能力
      * @return 盔甲材质的附魔能力
      */

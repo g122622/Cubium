@@ -51,6 +51,16 @@ public:
     // ========== 物品重写方法 ==========
 
     /**
+     * @brief 是否为护甲物品
+     *
+     * 鞘翅虽然不继承 ArmorItem，但占用胸甲槽位，
+     * 受伤时同样会损耗耐久度，且耐久保护附魔使用护甲概率。
+     *
+     * @return true
+     */
+    [[nodiscard]] bool isArmor() const override { return true; }
+
+    /**
      * @brief 是否可修复
      */
     [[nodiscard]] bool isRepairable() const { return true; }

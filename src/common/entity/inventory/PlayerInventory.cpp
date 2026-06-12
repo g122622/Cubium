@@ -757,9 +757,8 @@ void PlayerInventory::damageArmor(DamageSource& source, f32 damage)
         }
 
         // 对护甲造成耐久损耗
-        // MC 1.16.5: 只有 ArmorItem 才会损坏
-        // 这里简化实现：所有可损坏的物品都会损耗
-        if (armor.isDamageable()) {
+        // MC 1.16.5: 只有 ArmorItem 和 ElytraItem 才会损坏
+        if (armor.getItem()->isArmor() && armor.isDamageable()) {
             i32 damageAmount = static_cast<i32>(damage);
             armor.attemptDamageItem(damageAmount, m_player);
 

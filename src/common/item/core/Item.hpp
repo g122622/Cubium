@@ -266,6 +266,17 @@ public:
     [[nodiscard]] bool isDamageable() const { return m_maxDamage > 0; }
 
     /**
+     * @brief 是否为护甲物品
+     *
+     * 护甲物品在玩家受伤时会在护甲槽中受到耐久损耗。
+     * ArmorItem 和 ElytraItem 重写此方法返回 true。
+     * 该方法同时用于耐久保护附魔的护甲概率计算。
+     *
+     * @return 是否为护甲物品
+     */
+    [[nodiscard]] virtual bool isArmor() const { return false; }
+
+    /**
      * @brief 获取容器物品
      */
     [[nodiscard]] const Item* containerItem() const { return m_containerItem; }

@@ -1147,6 +1147,75 @@ TEST_F(PlayerInventoryNewMethodsTest, DamageArmorFireDamageSkipsBurnableArmor)
     EXPECT_GE(m_inventory->getHelmet().getDamage(), initialDamage + (isLeatherBurnable ? 1 : 2));
 }
 
+TEST_F(PlayerInventoryNewMethodsTest, DamageArmorOnlyDamagesArmorItems)
+{
+    // 验证只有护甲物品（ArmorItem 和 ElytraItem）会受伤
+    // 非护甲的可损坏物品放在护甲槽中不应该受到护甲伤害
+
+    // 钻石剑是可损坏的但不是护甲
+    Item* diamondSword = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond_sword"));
+    ASSERT_NE(diamondSword, nullptr);
+    ASSERT_TRUE(diamondSword->isDamageable());
+    ASSERT_FALSE(diamondSword->isArmor());
+
+    ItemStack swordStack(*diamondSword);
+    ASSERT_TRUE(swordStack.isDamageable());
+
+    // 直接放入护甲槽（绕过 mayPlace 检查，模拟命令或其他强制放置）
+    m_inventory->setHelmet(swordStack);
+    i32 initialDamage = m_inventory->getHelmet().getDamage();
+
+    // 造成伤害
+    auto source = DamageSources::generic();
+    m_inventory->damageArmor(source, 16.0f);
+
+    // 非护甲物品不应该受到护甲伤害
+    EXPECT_EQ(m_inventory->getHelmet().getDamage(), initialDamage);
+}
+
+TEST_F(PlayerInventoryNewMethodsTest, DamageArmorDamagesElytraItem)
+{
+    // 验证鞘翅（ElytraItem）在护甲槽中会受到伤害
+    const auto elytra = item::items::ElytraItem(ItemProperties().maxDamage(432));
+    ItemStack elytraStack(elytra);
+    ASSERT_TRUE(elytraStack.isDamageable());
+    ASSERT_TRUE(elytraStack.getItem()->isArmor());
+
+    m_inventory->setChestplate(elytraStack);
+    i32 initialDamage = m_inventory->getChestplate().getDamage();
+
+    auto source = DamageSources::generic();
+    m_inventory->damageArmor(source, 8.0f);
+
+    // 鞘翅应该受到护甲伤害（8 / 4 = 2）
+    EXPECT_GE(m_inventory->getChestplate().getDamage(), initialDamage + 1);
+}
+
+TEST_F(PlayerInventoryNewMethodsTest, IsArmorReturnsCorrectValue)
+{
+    // ArmorItem::isArmor() 返回 true
+    const auto helmet = item::items::ArmorItem(item::armor::ArmorMaterials::IRON,
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(item::armor::ArmorMaterials::IRON.getDurability(item::armor::ArmorSlot::Head)));
+    EXPECT_TRUE(helmet.isArmor());
+
+    // ElytraItem::isArmor() 返回 true
+    const auto elytra = item::items::ElytraItem(ItemProperties().maxDamage(432));
+    EXPECT_TRUE(elytra.isArmor());
+
+    // 通过注册表获取的非护甲可损坏物品（钻石剑）isArmor() 返回 false
+    Item* diamondSword = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond_sword"));
+    ASSERT_NE(diamondSword, nullptr);
+    EXPECT_TRUE(diamondSword->isDamageable());
+    EXPECT_FALSE(diamondSword->isArmor());
+
+    // 不可损坏的普通物品 isArmor() 返回 false
+    Item* stick = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stick"));
+    ASSERT_NE(stick, nullptr);
+    EXPECT_FALSE(stick->isDamageable());
+    EXPECT_FALSE(stick->isArmor());
+}
+
 TEST_F(PlayerInventoryNewMethodsTest, GetDestroySpeedReturnsCorrectValue)
 {
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));

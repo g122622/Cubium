@@ -26,6 +26,7 @@
 #include "../../item/Items.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../item/items/armor/ArmorItem.hpp"
+#include "../../item/items/armor/ElytraItem.hpp"
 #include "../../world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "../entities/player/Player.hpp"
 #include "IInventory.hpp"
@@ -173,6 +174,11 @@ bool ArmorSlot::mayPlace(const ItemStack& stack) const
 {
     if (!Slot::mayPlace(stack)) {
         return false;
+    }
+
+    // 鞘翅可以放入胸甲槽位
+    if (m_armorType == ArmorType::Chest && dynamic_cast<const item::items::ElytraItem*>(stack.getItem()) != nullptr) {
+        return true;
     }
 
     const auto* armorItem = dynamic_cast<const item::items::ArmorItem*>(stack.getItem());

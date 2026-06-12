@@ -222,13 +222,8 @@ bool ItemStack::attemptDamageItem(i32 amount, LivingEntity* entity)
     i32 unbreakingLevel = item::enchant::EnchantmentHelper::getUnbreakingLevel(*this);
 
     if (unbreakingLevel > 0) {
-        // 判断是否为盔甲
-        bool isArmor = false;
-        if (m_item != nullptr) {
-            // 检查物品是否为盔甲（通过是否有护甲槽位判断）
-            // 简化判断：检查物品是否有防御属性
-            isArmor = (m_item->getFood() == nullptr && m_item->maxDamage() > 0 && m_item->maxStackSize() == 1);
-        }
+        // 护甲的耐久保护有 60% 概率不生效
+        bool isArmor = m_item != nullptr && m_item->isArmor();
 
         // 使用静态随机数生成器
         // TODO: 应该从外部传入随机数生成器，或者使用实体关联的随机源
