@@ -22,6 +22,7 @@
  */
 
 #include "VillagerParticle.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
@@ -89,8 +90,10 @@ void AngryVillagerParticle::tick(mc::client::ClientWorld* world)
 
 f64 AngryVillagerParticle::getScale(f64 partialTick) const
 {
-    MC_UNUSED(partialTick);
-    return 1.0f;
+    // 淡入效果：粒子从零尺寸快速增大到完整尺寸
+    // 前 1/32 生命周期内从 0 渐变到 m_initialSize，之后保持 m_initialSize
+    f64 t = (m_age + partialTick) / m_maxAge;
+    return m_initialSize * mc::math::clamp(t * 32.0, 0.0, 1.0);
 }
 
 // ============================================================================
@@ -99,13 +102,11 @@ f64 AngryVillagerParticle::getScale(f64 partialTick) const
 
 HappyVillagerParticle::HappyVillagerParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
-    , m_initialSize(0.1f)
 {
     mc::math::Random rng;
 
     setGravity(0.0f);
     setSize(0.05f + rng.nextFloat() * 0.03f);
-    m_initialSize = size();
     setFriction(0.95f);
     setHasPhysics(false);
     setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 5.0);
@@ -150,12 +151,6 @@ void HappyVillagerParticle::tick(mc::client::ClientWorld* world)
 
     f64 lifeRatio = m_age / m_maxAge;
     m_color.a = static_cast<f32>(0.9f * (1.0f - lifeRatio));
-}
-
-f64 HappyVillagerParticle::getScale(f64 partialTick) const
-{
-    MC_UNUSED(partialTick);
-    return 1.0f;
 }
 
 // ============================================================================
@@ -217,8 +212,10 @@ void SneezeParticle::tick(mc::client::ClientWorld* world)
 
 f64 SneezeParticle::getScale(f64 partialTick) const
 {
-    MC_UNUSED(partialTick);
-    return 1.0f;
+    // 淡入效果：粒子从零尺寸快速增大到完整尺寸
+    // 前 1/32 生命周期内从 0 渐变到 m_initialSize，之后保持 m_initialSize
+    f64 t = (m_age + partialTick) / m_maxAge;
+    return m_initialSize * mc::math::clamp(t * 32.0, 0.0, 1.0);
 }
 
 } // namespace mc::client::renderer::trident::particle::particles

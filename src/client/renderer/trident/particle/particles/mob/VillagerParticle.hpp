@@ -61,7 +61,6 @@ public:
 
 private:
     static constexpr f64 DEFAULT_LIFETIME = 8.0;
-    // TODO: m_initialSize 已设置但未被使用，getScale() 待实现基于生命周期的缩放
     f64 m_initialSize;
 };
 
@@ -89,12 +88,8 @@ public:
         return ResourceLocation("minecraft:particle/happy_villager");
     }
 
-    [[nodiscard]] f64 getScale(f64 partialTick) const override;
-
 private:
     static constexpr f64 DEFAULT_LIFETIME = 10.0;
-    // TODO: m_initialSize 已设置但未被使用，getScale() 待实现基于生命周期的缩放
-    f64 m_initialSize;
 };
 
 /**
@@ -126,7 +121,6 @@ public:
 private:
     static constexpr f64 DEFAULT_GRAVITY = 0.02;
     static constexpr f64 DEFAULT_LIFETIME = 10.0;
-    // TODO: m_initialSize 已设置但未被使用，getScale() 待实现基于生命周期的缩放
     f64 m_initialSize;
 };
 

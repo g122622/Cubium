@@ -77,7 +77,6 @@ public:
 
 private:
     static constexpr f64 DEFAULT_LIFETIME = 8.0;
-    // TODO: m_initialSize 已存储但未被使用，getScale() 目前返回固定值 1.0，应基于 m_initialSize 和生命周期计算缩放
     f64 m_initialSize;
 };
 
@@ -114,12 +113,8 @@ public:
         return 0xF0;
     }
 
-    [[nodiscard]] f64 getScale(f64 partialTick) const override;
-
 private:
     static constexpr f64 DEFAULT_LIFETIME = 30.0;
-    // TODO: m_initialSize 已存储但未被使用，getScale() 目前返回固定值 1.0，应基于 m_initialSize 和生命周期计算缩放
-    f64 m_initialSize;
 };
 
 /**
@@ -154,7 +149,6 @@ public:
 private:
     static constexpr f64 DEFAULT_GRAVITY = 0.003f;
     static constexpr f64 DEFAULT_LIFETIME = 29.0;
-    // TODO: m_initialSize 已存储但未被使用，getScale() 目前返回固定值 1.0，应基于 m_initialSize 和生命周期计算缩放
     f64 m_initialSize;
 };
 

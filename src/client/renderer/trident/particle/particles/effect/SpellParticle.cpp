@@ -32,13 +32,11 @@ namespace mc::client::renderer::trident::particle::particles {
 
 SpellParticle::SpellParticle(const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color)
     : Particle(pos, velocity)
-    , m_initialSize(0.1f)
 {
     mc::math::Random rng;
 
     setGravity(0.0f);
     setSize(0.1f + rng.nextFloat() * 0.04f);
-    m_initialSize = size();
     setFriction(0.96f);
     setHasPhysics(false);
     setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 4.0);
@@ -90,25 +88,17 @@ void SpellParticle::tick(mc::client::ClientWorld* world)
     m_color.a = static_cast<f32>(0.8f * (1.0f - lifeRatio));
 }
 
-f64 SpellParticle::getScale(f64 partialTick) const
-{
-    MC_UNUSED(partialTick);
-    return 1.0f;
-}
-
 // ============================================================================
 // InstantSpellParticle
 // ============================================================================
 
 InstantSpellParticle::InstantSpellParticle(const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color)
     : Particle(pos, velocity)
-    , m_initialSize(0.1f)
 {
     mc::math::Random rng;
 
     setGravity(0.0f);
     setSize(0.1f + rng.nextFloat() * 0.02f);
-    m_initialSize = size();
     setFriction(0.95f);
     setHasPhysics(false);
     setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 4.0);
@@ -146,25 +136,17 @@ void InstantSpellParticle::tick(mc::client::ClientWorld* world)
     m_color.a = static_cast<f32>(1.0f - lifeRatio);
 }
 
-f64 InstantSpellParticle::getScale(f64 partialTick) const
-{
-    MC_UNUSED(partialTick);
-    return 1.0f;
-}
-
 // ============================================================================
 // EntityEffectParticle
 // ============================================================================
 
 EntityEffectParticle::EntityEffectParticle(const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color)
     : Particle(pos, velocity)
-    , m_initialSize(0.1f)
 {
     mc::math::Random rng;
 
     setGravity(0.0f);
     setSize(0.1f + rng.nextFloat() * 0.03f);
-    m_initialSize = size();
     setFriction(0.95f);
     setHasPhysics(false);
     setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 4.0);
@@ -205,12 +187,6 @@ void EntityEffectParticle::tick(mc::client::ClientWorld* world)
     m_color.a = static_cast<f32>(0.5f * (1.0f - lifeRatio));
 }
 
-f64 EntityEffectParticle::getScale(f64 partialTick) const
-{
-    MC_UNUSED(partialTick);
-    return 1.0f;
-}
-
 // ============================================================================
 // AmbientEntityEffectParticle
 // ============================================================================
@@ -218,13 +194,11 @@ f64 EntityEffectParticle::getScale(f64 partialTick) const
 AmbientEntityEffectParticle::AmbientEntityEffectParticle(
     const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color)
     : Particle(pos, velocity)
-    , m_initialSize(0.1f)
 {
     mc::math::Random rng;
 
     setGravity(0.0f);
     setSize(0.1f + rng.nextFloat() * 0.02f);
-    m_initialSize = size();
     setFriction(0.98f); // 更高的摩擦，更慢
     setHasPhysics(false);
     setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 6.0);
@@ -266,25 +240,17 @@ void AmbientEntityEffectParticle::tick(mc::client::ClientWorld* world)
     m_color.a = static_cast<f32>(0.3f * (1.0f - lifeRatio));
 }
 
-f64 AmbientEntityEffectParticle::getScale(f64 partialTick) const
-{
-    MC_UNUSED(partialTick);
-    return 1.0f;
-}
-
 // ============================================================================
 // WitchParticle
 // ============================================================================
 
 WitchParticle::WitchParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
-    , m_initialSize(0.1f)
 {
     mc::math::Random rng;
 
     setGravity(0.0f);
     setSize(0.1f + rng.nextFloat() * 0.04f);
-    m_initialSize = size();
     setFriction(0.96f);
     setHasPhysics(false);
     setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 4.0);

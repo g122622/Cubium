@@ -23,7 +23,9 @@
 
 #include "RedstoneParticle.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
+#include <algorithm>
 #include <cmath>
 
 namespace mc::client::renderer::trident::particle::particles {
@@ -84,8 +86,10 @@ void RedstoneParticle::tick(mc::client::ClientWorld* world)
 
 f64 RedstoneParticle::getScale(f64 partialTick) const
 {
-    MC_UNUSED(partialTick);
-    return 1.0f;
+    // 淡入效果：粒子从零尺寸快速增大到完整尺寸
+    // 前 1/32 生命周期内从 0 渐变到 m_initialSize，之后保持 m_initialSize
+    f64 t = (m_age + partialTick) / m_maxAge;
+    return m_initialSize * mc::math::clamp(t * 32.0, 0.0, 1.0);
 }
 
 // ============================================================================
@@ -94,13 +98,11 @@ f64 RedstoneParticle::getScale(f64 partialTick) const
 
 EnchantParticle::EnchantParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
-    , m_initialSize(0.02f)
 {
     mc::math::Random rng;
 
     setGravity(0.0f);
     setSize(0.02f + rng.nextFloat() * 0.01f);
-    m_initialSize = size();
     setFriction(0.95f);
     setHasPhysics(false);
     setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 10.0);
@@ -151,12 +153,6 @@ void EnchantParticle::tick(mc::client::ClientWorld* world)
 
     // 淡出
     m_color.a = static_cast<f32>(1.0f - lifeRatio * 0.5f);
-}
-
-f64 EnchantParticle::getScale(f64 partialTick) const
-{
-    MC_UNUSED(partialTick);
-    return 1.0f;
 }
 
 // ============================================================================
@@ -227,8 +223,10 @@ void FallingDustParticle::tick(mc::client::ClientWorld* world)
 
 f64 FallingDustParticle::getScale(f64 partialTick) const
 {
-    MC_UNUSED(partialTick);
-    return 1.0f;
+    // 淡入效果：粒子从零尺寸快速增大到完整尺寸
+    // 前 1/32 生命周期内从 0 渐变到 m_initialSize，之后保持 m_initialSize
+    f64 t = (m_age + partialTick) / m_maxAge;
+    return m_initialSize * mc::math::clamp(t * 32.0, 0.0, 1.0);
 }
 
 } // namespace mc::client::renderer::trident::particle::particles

@@ -66,12 +66,8 @@ public:
         return ResourceLocation("minecraft:particle/spell");
     }
 
-    [[nodiscard]] f64 getScale(f64 partialTick) const override;
-
 private:
     static constexpr f64 DEFAULT_LIFETIME = 8.0;
-    // TODO: m_initialSize 尚未在 getScale 等方法中使用，待实现粒子大小随生命周期变化的逻辑
-    f64 m_initialSize;
 };
 
 /**
@@ -104,12 +100,8 @@ public:
         return 0xF0;
     }
 
-    [[nodiscard]] f64 getScale(f64 partialTick) const override;
-
 private:
     static constexpr f64 DEFAULT_LIFETIME = 8.0;
-    // TODO: m_initialSize 尚未在 getScale 等方法中使用，待实现粒子大小随生命周期变化的逻辑
-    f64 m_initialSize;
 };
 
 /**
@@ -136,12 +128,8 @@ public:
         return ResourceLocation("minecraft:particle/entity_effect");
     }
 
-    [[nodiscard]] f64 getScale(f64 partialTick) const override;
-
 private:
     static constexpr f64 DEFAULT_LIFETIME = 8.0;
-    // TODO: m_initialSize 尚未在 getScale 等方法中使用，待实现粒子大小随生命周期变化的逻辑
-    f64 m_initialSize;
 };
 
 /**
@@ -168,12 +156,8 @@ public:
         return ResourceLocation("minecraft:particle/ambient_entity_effect");
     }
 
-    [[nodiscard]] f64 getScale(f64 partialTick) const override;
-
 private:
     static constexpr f64 DEFAULT_LIFETIME = 12.0;
-    // TODO: m_initialSize 尚未在 getScale 等方法中使用，待实现粒子大小随生命周期变化的逻辑
-    f64 m_initialSize;
 };
 
 /**
@@ -202,8 +186,6 @@ public:
 
 private:
     static constexpr f64 DEFAULT_LIFETIME = 8.0;
-    // TODO: m_initialSize 尚未在 getScale 等方法中使用，待实现粒子大小随生命周期变化的逻辑
-    f64 m_initialSize;
 };
 
 } // namespace mc::client::renderer::trident::particle::particles
