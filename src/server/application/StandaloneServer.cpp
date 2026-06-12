@@ -312,7 +312,16 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                     if (blockEntity != nullptr &&
                         (blockEntity->getType() == BlockEntityType::Chest ||
                             blockEntity->getType() == BlockEntityType::TrappedChest)) {
-                        static_cast<blockentity::ChestEntity*>(blockEntity)->closeContainer(nullptr);
+                        auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
+                        chest->closeContainer(nullptr);
+
+                        // 双箱时，同步减少另一半的打开计数
+                        if (chest->isDoubleChest(*world)) {
+                            blockentity::ChestEntity* connected = chest->getConnectedChest(*world);
+                            if (connected != nullptr) {
+                                connected->closeContainer(nullptr);
+                            }
+                        }
                     }
                 }
             }

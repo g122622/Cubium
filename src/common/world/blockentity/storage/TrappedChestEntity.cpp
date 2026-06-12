@@ -69,6 +69,18 @@ void TrappedChestEntity::openContainer(Player* player)
 
     if (m_world != nullptr) {
         _notifyNeighbors(*m_world);
+
+        // 双箱时，同步通知连接箱子的邻居（红石信号变化也会影响其邻居）
+        ChestEntity* connected = getConnectedChest(*m_world);
+        if (connected != nullptr) {
+            const BlockState* connectedState = m_world->getBlockState(connected->getPos());
+            if (connectedState != nullptr) {
+                const Block& connectedBlock = connectedState->getBlock();
+                world::redstone::RedstoneSystem::instance().updateNeighbors(
+                    *m_world, connected->getPos(), const_cast<Block&>(connectedBlock));
+                world::redstone::RedstoneSystem::instance().updateComparators(*m_world, connected->getPos());
+            }
+        }
     }
 }
 
@@ -79,6 +91,18 @@ void TrappedChestEntity::closeContainer(Player* player)
 
     if (m_world != nullptr) {
         _notifyNeighbors(*m_world);
+
+        // 双箱时，同步通知连接箱子的邻居
+        ChestEntity* connected = getConnectedChest(*m_world);
+        if (connected != nullptr) {
+            const BlockState* connectedState = m_world->getBlockState(connected->getPos());
+            if (connectedState != nullptr) {
+                const Block& connectedBlock = connectedState->getBlock();
+                world::redstone::RedstoneSystem::instance().updateNeighbors(
+                    *m_world, connected->getPos(), const_cast<Block&>(connectedBlock));
+                world::redstone::RedstoneSystem::instance().updateComparators(*m_world, connected->getPos());
+            }
+        }
     }
 }
 

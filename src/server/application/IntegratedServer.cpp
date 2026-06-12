@@ -825,7 +825,16 @@ void IntegratedServer::_closeCurrentContainer(bool sendClosePacket)
         if (blockEntity != nullptr &&
             (blockEntity->getType() == BlockEntityType::Chest ||
                 blockEntity->getType() == BlockEntityType::TrappedChest)) {
-            static_cast<blockentity::ChestEntity*>(blockEntity)->closeContainer(nullptr);
+            auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
+            chest->closeContainer(nullptr);
+
+            // 双箱时，同步减少另一半的打开计数
+            if (chest->isDoubleChest(*playerWorld)) {
+                blockentity::ChestEntity* connected = chest->getConnectedChest(*playerWorld);
+                if (connected != nullptr) {
+                    connected->closeContainer(nullptr);
+                }
+            }
         }
     }
 

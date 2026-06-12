@@ -42,6 +42,15 @@ public:
      */
     explicit TrappedChestBlock(const BlockProperties& properties);
 
+    // ========== 方块实体 ==========
+
+    /**
+     * @brief 创建陷阱箱方块实体
+     * @param pos 方块位置
+     * @return 陷阱箱方块实体
+     */
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+
     // ========== 红石 ==========
 
     /**

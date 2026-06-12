@@ -33,7 +33,13 @@ TrappedChestBlock::TrappedChestBlock(const BlockProperties& properties)
     : ChestBlock(properties)
 {}
 
-i32 TrappedChestBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
+std::unique_ptr<BlockEntity> TrappedChestBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::TrappedChestEntity>(pos);
+}
+
+i32 TrappedChestBlock::getWeakPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     BlockEntity* blockEntity = world.getBlockEntity(pos);
     if (!blockEntity || blockEntity->getType() != BlockEntityType::TrappedChest) {
@@ -42,11 +48,12 @@ i32 TrappedChestBlock::getWeakPower(const BlockState& state, IWorld& world, cons
 
     auto* chest = static_cast<blockentity::TrappedChestEntity*>(blockEntity);
 
-    // TODO: 需要转换为World来获取完整的红石信号计算（支持双箱）
-    return chest->getOpenCount();
+    // 使用 getRedstoneSignal 计算红石信号（包含双箱聚合）
+    return chest->getRedstoneSignal(world);
 }
 
-i32 TrappedChestBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
+i32 TrappedChestBlock::getStrongPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     // 仅从顶面输出强充能
     if (side != Direction::Up) {

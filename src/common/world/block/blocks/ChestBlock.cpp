@@ -186,13 +186,26 @@ ActionResultType ChestBlock::onBlockActivated(const BlockState& state,
         return ActionResultType::Success;
     }
 
-    // 获取方块实体
+    // 获取方块实体（支持普通箱子和陷阱箱）
     BlockEntity* blockEntity = world.getBlockEntity(pos);
-    if (!blockEntity || blockEntity->getType() != BlockEntityType::Chest) {
+    if (!blockEntity ||
+        (blockEntity->getType() != BlockEntityType::Chest && blockEntity->getType() != BlockEntityType::TrappedChest)) {
         return ActionResultType::Pass;
     }
 
     auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
+
+    // 双箱时，检查另一半是否也被阻挡
+    if (chest->isDoubleChest(world)) {
+        blockentity::ChestEntity* connected = chest->getConnectedChest(world);
+        if (connected != nullptr) {
+            // 获取另一半的位置来检查阻挡和猫
+            BlockPos connectedPos = connected->getPos();
+            if (isBlocked(world, connectedPos) || isCatSittingOn(world, connectedPos)) {
+                return ActionResultType::Success;
+            }
+        }
+    }
 
     // 检查是否可以打开
     if (!chest->canOpen(&player, player.getHeldItem(hand))) {
@@ -206,6 +219,16 @@ ActionResultType ChestBlock::onBlockActivated(const BlockState& state,
     // 单个箱子是27格 (3行)，使用 Generic9x3 类型
     if (world.openContainer(ContainerType::Generic9x3, pos, player)) {
         chest->openContainer(&player);
+
+        // 双箱时，同步增加另一半的打开计数
+        // 参考 MC Java: CompoundContainer.startOpen() 会转发到两个半箱
+        if (chest->isDoubleChest(world)) {
+            blockentity::ChestEntity* connected = chest->getConnectedChest(world);
+            if (connected != nullptr) {
+                connected->openContainer(&player);
+            }
+        }
+
         return ActionResultType::Consume;
     }
 
@@ -218,7 +241,8 @@ void ChestBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockS
 {
     // 箱子被移除时需要掉落其内容物
     BlockEntity* blockEntity = world.getBlockEntity(pos);
-    if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Chest) {
+    if (blockEntity != nullptr &&
+        (blockEntity->getType() == BlockEntityType::Chest || blockEntity->getType() == BlockEntityType::TrappedChest)) {
         auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
 
         // 收集箱子中的所有物品
@@ -251,7 +275,8 @@ void ChestBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockS
 i32 ChestBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
     BlockEntity* blockEntity = world.getBlockEntity(pos);
-    if (!blockEntity || blockEntity->getType() != BlockEntityType::Chest) {
+    if (!blockEntity ||
+        (blockEntity->getType() != BlockEntityType::Chest && blockEntity->getType() != BlockEntityType::TrappedChest)) {
         return 0;
     }
 
