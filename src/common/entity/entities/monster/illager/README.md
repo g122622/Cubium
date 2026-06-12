@@ -96,6 +96,7 @@ VexEntity (恼鬼) 独立继承自 MonsterEntity - 穿墙飞行
 9. **自定义寻路**：RavagerEntity 使用 `RavagerNodeProcessor`，将树叶视为开放区域，可穿过树叶
 10. **攻击状态机**：攻击 -> 眩晕(50%概率) -> 咆哮，三个状态通过 tick 计时器管理
 11. **咆哮伤害**：咆哮对非掠夺者类实体造成伤害，掠夺者类免疫但会被击退
+12. **树叶破坏与 spawnAfterBreak**：劫掠兽冲撞破坏树叶后调用 `spawnAfterBreak(nullptr, false)`，确保虫蚀方块等特殊方块能正确触发生成逻辑。受 `mobGriefing` 游戏规则控制。
 
 ### 女巫药水逻辑
 

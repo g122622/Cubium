@@ -57,3 +57,4 @@ src/server/command/commands/
 - **目标选择器解析依赖 support 辅助函数**：不要在每个命令里重复实现
 - **只读世界存储的保存命令处理**：当共享存储是外来只读世界时，`save-all` / `save-on` / `save-off` 必须显式提示"不会写入"，不能继续伪装成普通可写世界
 - **天气命令统一通过 ServerCommandSource::world() 获取世界**：使用天气管理器进行操作
+- **`/setblock destroy` 和 `/fill destroy`/`/fill hollow` 调用 spawnAfterBreak**：这些命令在替换方块时，先保存旧方块状态，设置新方块后调用 `spawnAfterBreak(nullptr, false)`，使得虫蚀方块等特殊方块能正确触发生成逻辑。`/clone move` 不调用 spawnAfterBreak（MC Java 行为：仅清空源区域）。

@@ -76,7 +76,7 @@ boss/
 
 ### 4. 凋灵方块破坏
 
-凋灵受伤后会破坏周围 3x4x3 范围内的方块，有 20 tick 冷却。**方块破坏受 `mobGriefing` 游戏规则控制**，需要检查 `IWorld::getGameRules()`。使用 `BlockTags::WITHER_IMMUNE` 标签判断不可破坏方块。
+凋灵受伤后会破坏周围 3x4x3 范围内的方块，有 20 tick 冷却。**方块破坏受 `mobGriefing` 游戏规则控制**，需要检查 `IWorld::getGameRules()`。使用 `BlockTags::WITHER_IMMUNE` 标签判断不可破坏方块。破坏方块后调用 `spawnAfterBreak(nullptr, false)`，使得虫蚀方块等特殊方块能正确触发生成逻辑。
 
 ### 5. 凋灵充能状态
 
@@ -112,6 +112,10 @@ Boss 生命条需要在客户端-服务端之间同步显示状态。服务端�
 - 碰撞检测转发到父龙（`attackEntityPartFrom`）
 
 **不要对龙部件调用 `hurt()` 或其他 LivingEntity 的方法**。
+
+### 11. 末影龙/凋灵方块破坏与 spawnAfterBreak
+
+末影龙的 `_destroyBlocksInAABB` 和凋灵的 `_breakNearbyBlocks` 在破坏方块后调用 `block.spawnAfterBreak(world, pos, *oldState, nullptr, false)`。这确保了虫蚀方块（InfestedBlock）等特殊方块在实体破坏时能正确触发生成逻辑（如蠹虫）。调用顺序：先 `setBlockState(air)` 移除方块，再调用 `spawnAfterBreak`，与 MC Java 行为一致。
 
 ## 参考
 

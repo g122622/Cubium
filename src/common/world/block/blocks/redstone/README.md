@@ -149,6 +149,10 @@ if (!redstone.isUpdating(pos)) {
 
 活塞收回时方块实体可能丢失，必须使用 `MovingPistonBlock` 作为动画代理。
 
+### 9b. 活塞破坏方块时的 spawnAfterBreak
+
+活塞推出时如果前方的方块无法被推动（如实体方块在推动路径末端），该方块会被破坏。破坏后调用 `spawnAfterBreak(world, pos, *destroyState, nullptr, false)`，使得虫蚀方块等特殊方块能正确触发生成逻辑（如蠹虫）。调用顺序：先 `setBlockState(nullptr)` 移除方块，再调用 `spawnAfterBreak`，与 MC Java 行为一致。
+
 ### 10. 信号源强/弱信号区分
 
 按钮、拉杆等信号源必须正确区分：
