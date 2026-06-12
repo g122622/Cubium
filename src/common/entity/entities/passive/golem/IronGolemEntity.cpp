@@ -15,28 +15,28 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
+ * LIABILITY, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+ * OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #include "IronGolemEntity.hpp"
 
-#include "entity/ai/goal/GoalConstants.hpp"
-#include "entity/ai/goal/GoalFlag.hpp"
-#include "entity/ai/goal/GoalSelector.hpp"
-#include "entity/ai/goal/goals/LookAtGoal.hpp"
-#include "entity/ai/goal/goals/MeleeAttackGoal.hpp"
-#include "entity/ai/goal/goals/SwimGoal.hpp"
-#include "entity/ai/goal/goals/movement/MovementGoals.hpp"
-#include "entity/ai/goal/goals/special/IronGolemGoals.hpp"
-#include "entity/ai/goal/goals/target/TargetGoals.hpp"
-#include "entity/attribute/Attributes.hpp"
-#include "entity/damage/DamageSource.hpp"
-#include "entity/entities/monster/MonsterEntity.hpp"
-#include "util/math/random/Random.hpp"
-#include "world/IWorld.hpp"
+#include "common/entity/ai/goal/GoalConstants.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/special/IronGolemGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/network/packet/EntityPackets.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include <memory>
 
 namespace mc {
@@ -70,11 +70,6 @@ void IronGolemEntity::tick()
         if (m_attackTimer <= 0) {
             m_armsRaised = false;
         }
-    }
-
-    // 更新攻击冷却
-    if (m_attackCooldown > 0) {
-        m_attackCooldown--;
     }
 
     // 更新持花状态
@@ -127,10 +122,6 @@ void IronGolemEntity::registerGoals()
                 const MonsterEntity* monster = dynamic_cast<const MonsterEntity*>(entity);
                 return monster != nullptr;
             }));
-
-    // 优先级 4: 重置愤怒
-    // 当前项目暂未实现 UNIVERSAL_ANGER 游戏规则，暂时不添加
-    // m_targetSelector.addGoal(4, std::make_unique<entity::ai::goal::ResetAngerGoal<IronGolemEntity>>(this, false));
 }
 
 void IronGolemEntity::registerAttributes()
@@ -149,10 +140,18 @@ void IronGolemEntity::setHoldingRose(bool holding)
 {
     if (holding) {
         m_holdRoseTick = 400; // 400 ticks = 20秒
-        // TODO: 发送状态更新到客户端（byte 11）
+        // 广播实体状态到客户端：开始持花
+        if (m_world != nullptr) {
+            m_world->broadcastEntityStatus(
+                id(), static_cast<u8>(network::EntityStatusPacket::Status::IronGolemHoldRose));
+        }
     } else {
         m_holdRoseTick = 0;
-        // TODO: 发送状态更新到客户端（byte 34）
+        // 广播实体状态到客户端：停止持花
+        if (m_world != nullptr) {
+            m_world->broadcastEntityStatus(
+                id(), static_cast<u8>(network::EntityStatusPacket::Status::IronGolemStopRose));
+        }
     }
 }
 
@@ -162,7 +161,12 @@ bool IronGolemEntity::attackEntityAsMob(LivingEntity& target)
     m_attackTimer = ATTACK_DURATION;
     m_armsRaised = true;
 
-    // 计算伤害
+    // 广播攻击动画到客户端
+    if (m_world != nullptr) {
+        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::IronGolemAttack));
+    }
+
+    // 计算伤害：随机化伤害值
     f32 damage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE));
 
     math::Random rng = getRandom();
@@ -175,17 +179,25 @@ bool IronGolemEntity::attackEntityAsMob(LivingEntity& target)
     bool success = target.hurt(damageSource, damage);
 
     if (success) {
-        // 应用击退
-        Vector3 velocity = target.velocity();
-        velocity.y += 0.4;
-        target.setVelocity(velocity);
+        // 铁傀儡击退：向上击飞，考虑目标击退抗性
+        f64 knockbackResistance = target.getAttributeValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.0);
+        f64 knockbackMultiplier = std::max(0.0, 1.0 - knockbackResistance);
+        target.addVelocity(0.0, 0.4 * knockbackMultiplier, 0.0);
 
-        // TODO: 应用附魔效果
+        // 触发附魔后续效果（节肢杀手减速等）
+        onAttackEntity(target);
     }
 
-    // TODO: 播放攻击声音
+    // 播放攻击声音（无论是否命中都播放）
+    playSound(SoundEvents::ENTITY_IRON_GOLEM_ATTACK, 1.0f, 1.0f);
 
     return success;
+}
+
+void IronGolemEntity::playAttackSound(LivingEntity& /*target*/)
+{
+    // 攻击声音在 attackEntityAsMob 中已经播放（无论是否命中）
+    // 此方法保留为空，避免基类和AI目标中重复播放
 }
 
 bool IronGolemEntity::canAttackEntity(entity::EntityTypeId typeId) const
@@ -202,6 +214,28 @@ bool IronGolemEntity::canAttackEntity(entity::EntityTypeId typeId) const
 
     // 其他情况由父类处理
     return true;
+}
+
+void IronGolemEntity::handleEntityEvent(u8 status)
+{
+    using namespace network;
+
+    if (status == static_cast<u8>(EntityStatusPacket::Status::IronGolemAttack)) {
+        // 攻击动画：举臂
+        m_attackTimer = ATTACK_DURATION;
+        m_armsRaised = true;
+        // 客户端也播放攻击音效
+        playSound(SoundEvents::ENTITY_IRON_GOLEM_ATTACK, 1.0f, 1.0f);
+    } else if (status == static_cast<u8>(EntityStatusPacket::Status::IronGolemHoldRose)) {
+        // 开始持花动画
+        m_holdRoseTick = 400;
+    } else if (status == static_cast<u8>(EntityStatusPacket::Status::IronGolemStopRose)) {
+        // 停止持花动画
+        m_holdRoseTick = 0;
+    } else {
+        // 其他事件交给父类处理
+        GolemEntity::handleEntityEvent(status);
+    }
 }
 
 } // namespace mc

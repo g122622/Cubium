@@ -484,6 +484,11 @@ public:
         Dolphin = 38,           // 海豚寻宝粒子
         TeleportParticles = 46, // 传送粒子效果
 
+        // 铁傀儡状态
+        IronGolemAttack = 4,    // 铁傀儡攻击动画（举臂）+ 播放攻击音效
+        IronGolemHoldRose = 11, // 铁傀儡开始手持罂粟花
+        IronGolemStopRose = 34, // 铁傀儡停止手持罂粟花
+
         // Mob 特定状态
         MobPoof = 60, // 生物变形/消失烟雾粒子
     };

@@ -15,17 +15,14 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
+ * LIABILITY, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+ * OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../core/EntityTypeIdNumber.hpp"
 #include "GolemEntity.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include <memory>
 
 namespace mc {
@@ -42,7 +39,7 @@ class VillagerEntity;
  * - 保护村民：攻击威胁村民的生物
  * - 中立：对玩家中立，除非被激怒
  * - 举起手臂：攻击时会举起手臂
- * - 击飞：攻击会将敌人击飞
+ * - 击飞：攻击会将敌人向上击飞
  * - 生成：村民足够多时自然生成
  * - 掉落：铁锭、罂粟
  * - 送花：偶尔给村民展示罂粟花
@@ -120,6 +117,8 @@ public:
     /**
      * @brief 设置手持花朵状态
      * @param holding 是否手持花朵
+     *
+     * 会广播实体状态到客户端，触发动画效果。
      */
     void setHoldingRose(bool holding);
 
@@ -148,12 +147,21 @@ public:
 
     /**
      * @brief 近战攻击实体
+     *
+     * 铁傀儡特有的攻击方式：造成大伤害并将目标向上击飞。
+     * 攻击后广播实体状态到客户端，触发攻击动画和音效。
+     *
      * @param target 目标实体
      * @return 是否成功攻击
      */
     bool attackEntityAsMob(LivingEntity& target) override;
 
-    // ========== 实体类型检查 ==========
+    /**
+     * @brief 播放攻击音效
+     *
+     * 铁傀儡攻击时播放 ENTITY_IRON_GOLEM_ATTACK 声音。
+     */
+    void playAttackSound(LivingEntity& target) override;
 
     /**
      * @brief 检查是否可以攻击指定实体类型
@@ -161,6 +169,16 @@ public:
      * @return 是否可以攻击
      */
     [[nodiscard]] bool canAttackEntity(entity::EntityTypeId typeId) const;
+
+    /**
+     * @brief 处理实体状态事件
+     *
+     * 处理从服务端广播的实体状态事件：
+     * - IronGolemAttack (4): 设置攻击动画并播放攻击音效
+     * - IronGolemHoldRose (11): 开始持花动画
+     * - IronGolemStopRose (34): 停止持花动画
+     */
+    void handleEntityEvent(u8 status) override;
 
 protected:
     // ========== AI 目标注册 ==========
@@ -177,21 +195,12 @@ private:
     // 生成标记
     bool m_playerCreated = false;
 
-    // 攻击冷却
-    i32 m_attackCooldown = 0;
-
     // 送花状态
     i32 m_holdRoseTick = 0;
 
     // 常量
-    static constexpr i32 ATTACK_DURATION = 10; // 攻击动画持续时间
-    static constexpr f32 ATTACK_DAMAGE = 7.0f; // 攻击伤害
-
-    // TODO: 攻击冷却机制待实现
-    static constexpr i32 ATTACK_COOLDOWN = 20; // 攻击冷却
-
-    // TODO: 水平击退机制待实现
-    static constexpr f32 KNOCKBACK = 1.5f; // 击退力度
+    static constexpr i32 ATTACK_DURATION = 10; // 攻击动画持续时间（tick）
+    static constexpr f32 ATTACK_DAMAGE = 7.0f; // 攻击伤害基础值（属性注册值）
 };
 
 } // namespace mc

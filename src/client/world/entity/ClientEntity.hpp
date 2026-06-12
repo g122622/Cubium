@@ -734,6 +734,41 @@ public:
      */
     void setBoltVertex(u64 boltVertex) { m_boltVertex = boltVertex; }
 
+    // ========== 铁傀儡状态 ==========
+
+    /**
+     * @brief 获取攻击动画计时器
+     * 铁傀儡举臂攻击动画，收到 IronGolemAttack 状态包时设为 10，
+     * 每tick递减，为0时动画结束。
+     */
+    [[nodiscard]] i32 ironGolemAttackTimer() const { return m_ironGolemAttackTimer; }
+
+    /**
+     * @brief 设置攻击动画计时器
+     * @param timer 计时器值（原版为 10 ticks）
+     */
+    void setIronGolemAttackTimer(i32 timer) { m_ironGolemAttackTimer = timer; }
+
+    /**
+     * @brief 是否举起手臂（攻击动画）
+     */
+    [[nodiscard]] bool ironGolemArmsRaised() const { return m_ironGolemArmsRaised; }
+
+    /**
+     * @brief 设置手臂举起状态
+     */
+    void setIronGolemArmsRaised(bool raised) { m_ironGolemArmsRaised = raised; }
+
+    /**
+     * @brief 是否手持罂粟花（给村民送花动画）
+     */
+    [[nodiscard]] bool ironGolemHoldingRose() const { return m_ironGolemHoldingRose; }
+
+    /**
+     * @brief 设置手持花朵状态
+     */
+    void setIronGolemHoldingRose(bool holding) { m_ironGolemHoldingRose = holding; }
+
 private:
     // 基本信息
     EntityId m_id;
@@ -842,6 +877,11 @@ private:
 
     // LightningBolt 闪电形状随机种子
     u64 m_boltVertex = 0;
+
+    // 铁傀儡状态
+    i32 m_ironGolemAttackTimer = 0;      // 攻击动画计时器（收到 IronGolemAttack 时设为 10）
+    bool m_ironGolemArmsRaised = false;  // 是否举起手臂
+    bool m_ironGolemHoldingRose = false; // 是否手持罂粟花
 
     // 追踪位置系统（用于披风摆动）
     f64 m_chasingPosX = 0.0;

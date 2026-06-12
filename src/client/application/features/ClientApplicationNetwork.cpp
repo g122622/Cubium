@@ -52,6 +52,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/network/SkinPackets.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockRegistry.hpp"
@@ -897,6 +898,39 @@ void ClientApplication::setupNetworkCallbacks()
                             velocity,
                             &m_world);
                     }
+                }
+                break;
+            }
+            case static_cast<u8>(EntityStatusPacket::Status::IronGolemAttack): {
+                // 状态 4: 铁傀儡攻击动画（举臂）+ 攻击音效
+                if (entity != nullptr) {
+                    entity->setIronGolemAttackTimer(10);
+                    entity->setIronGolemArmsRaised(true);
+                }
+                // 播放铁傀儡攻击音效
+                if (m_audioService) {
+                    auto sound = sound::SoundInstance::createLocated(mc::SoundEvents::ENTITY_IRON_GOLEM_ATTACK,
+                        mc::sound::SoundCategory::Neutral,
+                        entityPos.x,
+                        entityPos.y,
+                        entityPos.z,
+                        1.0f,
+                        1.0f);
+                    m_audioService->play(std::make_unique<sound::SoundInstance>(std::move(sound)));
+                }
+                break;
+            }
+            case static_cast<u8>(EntityStatusPacket::Status::IronGolemHoldRose): {
+                // 状态 11: 铁傀儡开始手持罂粟花
+                if (entity != nullptr) {
+                    entity->setIronGolemHoldingRose(true);
+                }
+                break;
+            }
+            case static_cast<u8>(EntityStatusPacket::Status::IronGolemStopRose): {
+                // 状态 34: 铁傀儡停止手持罂粟花
+                if (entity != nullptr) {
+                    entity->setIronGolemHoldingRose(false);
                 }
                 break;
             }

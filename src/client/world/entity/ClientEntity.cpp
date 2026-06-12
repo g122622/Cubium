@@ -396,6 +396,15 @@ void ClientEntity::tick()
     if (m_eatAnimationTimer > 0) {
         --m_eatAnimationTimer;
     }
+
+    // 更新铁傀儡攻击动画计时器
+    if (m_ironGolemAttackTimer > 0) {
+        --m_ironGolemAttackTimer;
+        m_ironGolemArmsRaised = true;
+        if (m_ironGolemAttackTimer <= 0) {
+            m_ironGolemArmsRaised = false;
+        }
+    }
 }
 
 void ClientEntity::updateStandingAnimation()

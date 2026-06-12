@@ -219,52 +219,8 @@ void IronGolemAttackGoal::attackTarget(LivingEntity* target)
 {
     if (!target) return;
 
-    // 设置攻击动画计时器
-    m_golem->setAttackTimer(10);
-
-    // 获取伤害值
-    using namespace mc::entity::attribute;
-    f32 damage = static_cast<f32>(m_golem->getAttributeValue(Attributes::ATTACK_DAMAGE, 7.0));
-
-    // 随机化伤害：damage / 2.0 + random.nextInt((int)damage)
-    math::Random rng = m_golem->getRandom();
-    i32 intDamage = static_cast<i32>(damage);
-    f32 randomDamage = (intDamage > 0) ? damage / 2.0f + static_cast<f32>(rng.nextInt(intDamage)) : damage;
-
-    // 创建伤害来源
-    EntityDamageSource damageSource(DamageType::MobAttack, m_golem);
-
-    // 应用伤害
-    bool hurtSuccess = target->hurt(damageSource, randomDamage);
-
-    if (hurtSuccess) {
-        // 铁傀儡击退效果 - 向上击退 0.4 格
-        target->addVelocity(0.0, 0.4, 0.0);
-
-        // 应用击退
-        f32 knockbackStrength = static_cast<f32>(m_golem->getAttributeValue(Attributes::ATTACK_KNOCKBACK, 1.5));
-        if (knockbackStrength > 0.0f) {
-            // 计算击退方向
-            f32 dx = static_cast<f32>(target->x() - m_golem->x());
-            f32 dz = static_cast<f32>(target->z() - m_golem->z());
-            f32 distSq = dx * dx + dz * dz;
-
-            if (distSq > 0.000001f) {
-                f32 invDist = mc::math::fastInverseSqrt(distSq);
-                dx *= invDist;
-                dz *= invDist;
-            }
-
-            // 应用击退速度
-            f32 knockbackX = dx * knockbackStrength * 0.5f;
-            f32 knockbackZ = dz * knockbackStrength * 0.5f;
-
-            target->addVelocity(knockbackX, 0.0, knockbackZ);
-        }
-
-        // 播放攻击音效
-        m_golem->playAttackSound(*target);
-    }
+    // 使用铁傀儡的统一攻击方法，包含伤害、击退、附魔效果和声音
+    m_golem->attackEntityAsMob(*target);
 
     // 挥动手臂动画
     m_golem->swingArm();

@@ -932,6 +932,20 @@ public:
         (void)player;
     }
 
+    // ========== 实体状态事件 ==========
+
+    /**
+     * @brief 处理实体状态事件
+     *
+     * 当服务端广播实体状态事件时，客户端实体通过此方法处理。
+     * 子类可重写以实现特定的状态处理（如动画、粒子、音效等）。
+     *
+     * 基类默认实现为空操作，子类应调用父类方法处理未识别的状态码。
+     *
+     * @param status 状态码，对应 EntityStatusPacket::Status 枚举值
+     */
+    virtual void handleEntityEvent(u8 status) { (void)status; }
+
     // ========== 玩家交互 ==========
 
     /**
