@@ -62,7 +62,6 @@ import { cmakeGuardHook } from "./hooks/cmakeGuard";
                     hooks: {
                         Stop: shouldEvaluate ? [{ hooks: [stopHook] }] : [],
                         PreToolUse: [
-                            { hooks: [cmakeGuardHook] },
                         ]
                     },
                 },
