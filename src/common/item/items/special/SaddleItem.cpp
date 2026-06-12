@@ -24,6 +24,9 @@
 #include "SaddleItem.hpp"
 
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/passive/basic/PigEntity.hpp"
+#include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
+#include "common/entity/entities/passive/special/StriderEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/interfaces/IEquipable.hpp"
 #include "common/entity/interfaces/IRideable.hpp"
@@ -33,6 +36,33 @@
 #include "common/world/IWorld.hpp"
 
 namespace mc {
+namespace {
+
+/**
+ * @brief 根据实体类型选择鞍音效
+ *
+ * 不同实体装备鞍时播放不同的音效：
+ * - 猪: ENTITY_PIG_SADDLE
+ * - 炽足兽: ENTITY_STRIDER_SADDLE
+ * - 马类及其他: ENTITY_HORSE_SADDLE
+ */
+const ResourceLocation& getSaddleSound(const LivingEntity& target)
+{
+    // 通过 dynamic_cast 判断实体类型，选择对应的音效
+    // 猪使用猪专属音效
+    if (dynamic_cast<const PigEntity*>(&target) != nullptr) {
+        return SoundEvents::ENTITY_PIG_SADDLE;
+    }
+    // 炽足兽使用炽足兽专属音效
+    if (dynamic_cast<const StriderEntity*>(&target) != nullptr) {
+        return SoundEvents::ENTITY_STRIDER_SADDLE;
+    }
+    // 马类及其他实体使用马鞍音效
+    return SoundEvents::ENTITY_HORSE_SADDLE;
+}
+
+} // namespace
+
 namespace item::items {
 
 SaddleItem::SaddleItem(const ItemProperties& properties)
@@ -54,30 +84,36 @@ bool SaddleItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
         return false;
     }
 
+    // 幼年实体不能装备鞍
+    if (target.isChild()) {
+        return false;
+    }
+
     // 检查实体是否已经装备鞍
-    // 通过 IRideable 接口检查鞍状态
     auto* rideable = dynamic_cast<entity::IRideable*>(&target);
     if (rideable == nullptr) {
         return false;
     }
 
     if (rideable->hasSaddle()) {
-        // 已经有鞍了，不执行操作
         return false;
     }
 
     // 检查是否可以装备鞍
-    // 对于马类，需要驯服后才能装备鞍
-    // 对于猪和炽足兽，可以直接装备鞍
-    // TODO: 目前简化实现：检查实体是否有鞍槽（装备槽数量 > 0），后续需要根据实体类型检查驯服状态
+    // 马类需要先驯服才能装备鞍；猪和炽足兽可以直接装备
+    auto* horse = dynamic_cast<AbstractHorseEntity*>(&target);
+    if (horse != nullptr && !horse->isTame()) {
+        return false;
+    }
+
+    // 检查装备槽是否可用
     if (equipable->getEquipmentSlotCount() <= 0) {
         return false;
     }
 
-    // 检查鞍槽是否可用
+    // 检查鞍槽是否为空
     const ItemStack saddleSlot = equipable->getEquipment(0);
     if (!saddleSlot.isEmpty()) {
-        // 鞍槽已有物品
         return false;
     }
 
@@ -85,24 +121,14 @@ bool SaddleItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
     rideable->setSaddle(true);
 
     // 装备鞍到实体
-    // 创建鞍物品堆并放入鞍槽
     ItemStack saddleStack(stack.getItem(), 1);
     equipable->setEquipment(0, saddleStack);
 
-    // 播放鞍音效
-    // TODO: 根据实体类型播放不同音效：
-    // - 猪: ENTITY_PIG_SADDLE
-    // - 马: ENTITY_HORSE_SADDLE
-    // - 炽足兽: ENTITY_STRIDER_SADDLE
-    // 目前使用通用音效
+    // 根据实体类型播放不同的鞍音效
     IWorld* world = target.world();
     if (world != nullptr) {
-        world->playSound(SoundEvents::ENTITY_HORSE_SADDLE,
-            sound::SoundCategory::Neutral,
-            target.position(),
-            0.5f, // 音量
-            1.0f  // 音调
-        );
+        const ResourceLocation& soundEvent = getSaddleSound(target);
+        world->playSound(soundEvent, sound::SoundCategory::Neutral, target.position(), 0.5f, 1.0f);
     }
 
     // 消耗一个物品（非创造模式）

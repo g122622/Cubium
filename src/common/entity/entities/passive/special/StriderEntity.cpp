@@ -95,10 +95,6 @@ bool StriderEntity::isInLava() const
 void StriderEntity::setSaddle(bool saddle)
 {
     m_saddled = saddle;
-    // TODO: 播放鞍音效（需要音效系统支持）
-    // if (saddle && world != null && !world.isRemote) {
-    //     world.playMovingSound(null, this, SoundEvents.ENTITY_STRIDER_SADDLE, SoundCategory.NEUTRAL, 0.5F, 1.0F);
-    // }
 }
 
 f32 StriderEntity::getSteeringSpeed() const
