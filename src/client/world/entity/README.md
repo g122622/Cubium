@@ -31,7 +31,7 @@ ClientEntity
 ├── 动画状态：limbSwing, swingProgress, hurtTime
 ├── 实体状态：onGround, sneaking, swimming, riding, sleeping
 ├── 元数据缓存：EntityDataManager, metadata bytes
-└── 特殊实体数据：puffState(河豚), axolotlVariant(美西螈), xpValue(经验球), itemStack(物品实体)
+└── 特殊实体数据：puffState(河豚), axolotlVariant(美西螈), xpValue(经验球), ironGolemAttackTimer/ironGolemArmsRaised/ironGolemHoldingRose(铁傀儡), itemStack(物品实体)
 ```
 
 ## 上下游外部依赖关系
@@ -80,3 +80,9 @@ ClientEntity
 7. **元数据同步**：
    - 接收到 `EntityMetadataPacket` 后，调用 `setMetadata()` 设置原始字节
    - 然后调用 `syncMetadataFromDataManager()` 更新本地状态（如 puffState, axolotlVariant）
+
+8. **铁傀儡状态不走元数据同步**：
+   - 铁傀儡的攻击动画和持花状态通过 `EntityStatusPacket` 触发，**不经过** `EntityMetadataPacket` / `syncMetadataFromDataManager()`
+   - 客户端在 `onEntityStatus` 回调中直接设置 `ClientEntity` 的 `ironGolemAttackTimer` / `ironGolemArmsRaised` / `ironGolemHoldingRose`
+   - `ClientEntity::tick()` 中递减 `ironGolemAttackTimer`
+   - 新增铁傀儡动画状态时不要误走 metadata 路径

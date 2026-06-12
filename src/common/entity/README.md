@@ -360,3 +360,12 @@ if (entity->typeId() == entity::EntityTypeIdNumber::PIG) {
 ### 26. EntityTypeIdNumber 初始化时机
 
 `EntityTypeIdNumber` 变量在 `VanillaEntities::registerAll()` 后初始化，确保在实体类型注册后使用。
+
+### 27. 铁傀儡攻击/持花状态同步
+
+铁傀儡的攻击动画（举臂）和持花状态涉及服务端、网络包、客户端三端同步，修改时三处必须一起改：
+- **服务端**：`IronGolemEntity::attackEntityAsMob()` 通过 `IWorld::broadcastEntityStatus()` 广播 `EntityStatusPacket::Status::IronGolemAttack(4)` / `IronGolemHoldRose(11)` / `IronGolemStopRose(34)`；`setHoldingRose()` 同理
+- **网络包**：`EntityPackets.hpp` 中 `EntityStatusPacket::Status` 枚举必须包含这三个值
+- **客户端**：`ClientApplicationNetwork.cpp` 的 `onEntityStatus` 回调必须处理这三个状态值，分别设置 `ClientEntity` 的 `ironGolemAttackTimer`、`ironGolemArmsRaised`、`ironGolemHoldingRose`
+
+新增或修改铁傀儡的任何动画/状态时，三端缺一不可。

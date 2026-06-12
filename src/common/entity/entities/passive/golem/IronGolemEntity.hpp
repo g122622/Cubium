@@ -170,16 +170,6 @@ public:
      */
     [[nodiscard]] bool canAttackEntity(entity::EntityTypeId typeId) const;
 
-    /**
-     * @brief 处理实体状态事件
-     *
-     * 处理从服务端广播的实体状态事件：
-     * - IronGolemAttack (4): 设置攻击动画并播放攻击音效
-     * - IronGolemHoldRose (11): 开始持花动画
-     * - IronGolemStopRose (34): 停止持花动画
-     */
-    void handleEntityEvent(u8 status) override;
-
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;

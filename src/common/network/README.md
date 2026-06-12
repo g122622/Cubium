@@ -182,3 +182,7 @@ size_t actualSize = ser.size();
 ### 12. 区块视图距离计算
 
 `ChunkView::getChunksInView()` 返回**正方形区域**，不是圆形。视距 n 表示以玩家为中心，半径 n 的正方形区域，区块数量 = (2n + 1)²。
+
+### 13. EntityStatusPacket 状态枚举值与 MC 原版一致
+
+`EntityStatusPacket::Status` 枚举值必须与 Minecraft 原版 EntityStatus byte 值严格对应（如 `IronGolemAttack = 4`、`IronGolemHoldRose = 11`、`IronGolemStopRose = 34`）。新增实体状态时必须查阅原版协议确认正确的数值，不能自行分配。

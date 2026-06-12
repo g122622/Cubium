@@ -201,8 +201,10 @@ TEST_F(IronGolemEntityTest, CanAttackEntity)
     // 铁傀儡不攻击苦力怕
     EXPECT_FALSE(ironGolem->canAttackEntity(entity::EntityTypeIdNumber::CREEPER));
 
-    // 可以攻击其他实体
-    EXPECT_TRUE(ironGolem->canAttackEntity(entity::EntityTypeIdNumber::ZOMBIE));
+    // 注意：canAttackEntity 对非 PLAYER/非 CREEPER 类型返回 true，
+    // 但在单元测试环境中 EntityTypeIdNumber 的 extern 变量均为默认值 0，
+    // ZOMBIE == CREEPER == 0，因此无法在此测试"可以攻击其他实体"。
+    // 该逻辑由 IronGolemEntityFeatureTest 中的集成测试覆盖。
 }
 
 TEST_F(IronGolemEntityTest, IAngerableInterface)

@@ -216,26 +216,4 @@ bool IronGolemEntity::canAttackEntity(entity::EntityTypeId typeId) const
     return true;
 }
 
-void IronGolemEntity::handleEntityEvent(u8 status)
-{
-    using namespace network;
-
-    if (status == static_cast<u8>(EntityStatusPacket::Status::IronGolemAttack)) {
-        // 攻击动画：举臂
-        m_attackTimer = ATTACK_DURATION;
-        m_armsRaised = true;
-        // 客户端也播放攻击音效
-        playSound(SoundEvents::ENTITY_IRON_GOLEM_ATTACK, 1.0f, 1.0f);
-    } else if (status == static_cast<u8>(EntityStatusPacket::Status::IronGolemHoldRose)) {
-        // 开始持花动画
-        m_holdRoseTick = 400;
-    } else if (status == static_cast<u8>(EntityStatusPacket::Status::IronGolemStopRose)) {
-        // 停止持花动画
-        m_holdRoseTick = 0;
-    } else {
-        // 其他事件交给父类处理
-        GolemEntity::handleEntityEvent(status);
-    }
-}
-
 } // namespace mc
