@@ -563,6 +563,7 @@ add_library(mc_common STATIC
     world/block/Block.cpp
     world/block/BlockState.cpp
     world/block/BlockRegistry.cpp
+    world/block/FireInfoRegistry.cpp
     world/block/BlockSoundType.cpp
     world/block/BlockTags.cpp
     world/block/registry/BaseBlocks.cpp

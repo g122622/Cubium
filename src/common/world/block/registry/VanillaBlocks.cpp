@@ -22,6 +22,7 @@
 
 #include "world/block/registry/VanillaBlocks.hpp"
 #include "world/block/BlockTags.hpp"
+#include "world/block/FireInfoRegistry.hpp"
 
 #include "common/perfetto/TraceEvents.hpp"
 
@@ -136,6 +137,13 @@ void VanillaBlocks::initialize()
         spdlog::info("[VanillaBlocks] Initializing block tags...");
         BlockTags::initialize();
         spdlog::info("[VanillaBlocks] Block tags initialized");
+    }
+
+    // 初始化原版方块燃烧参数（必须在所有方块注册后）
+    {
+        MC_TRACE_EVENT("client.initialization", "InitializeVanillaFireInfos");
+        blocks::FireInfoRegistry::instance().initializeVanillaFireInfos();
+        spdlog::info("[VanillaBlocks] Fire info initialized");
     }
 
     s_initialized = true;

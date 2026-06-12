@@ -56,19 +56,8 @@ public:
      */
     [[nodiscard]] i32 getBurnTime() const { return 200; }
 
-    /**
-     * @brief 获取易燃性
-     * @return 易燃等级（0-100，越高越易燃）
-     */
-    [[nodiscard]] i32 getFlammability(
-        const BlockState& state, IWorld* world, const BlockPos* pos, Direction face) const noexcept override
-    {
-        MC_UNUSED(state);
-        MC_UNUSED(world);
-        MC_UNUSED(pos);
-        MC_UNUSED(face);
-        return 60;
-    }
+    // 注意: 可燃性参数 (flammability=60, encouragement=30) 已移至 FireInfoRegistry 统一管理
+    // 参见 FireInfoRegistry::initializeVanillaFireInfos() 中的注册
 };
 
 } // namespace blocks

@@ -1548,14 +1548,7 @@ public:
     [[nodiscard]] virtual i32 getFlammability(const BlockState& state,
         IWorld* world = nullptr,
         const BlockPos* pos = nullptr,
-        Direction face = static_cast<Direction>(255)) const noexcept
-    {
-        MC_UNUSED(state);
-        MC_UNUSED(world);
-        MC_UNUSED(pos);
-        MC_UNUSED(face);
-        return 0;
-    }
+        Direction face = static_cast<Direction>(255)) const noexcept;
 
     /**
      * @brief 获取方块的火焰蔓延速度
@@ -1578,14 +1571,7 @@ public:
     [[nodiscard]] virtual i32 getFireSpreadSpeed(const BlockState& state,
         IWorld* world = nullptr,
         const BlockPos* pos = nullptr,
-        Direction face = static_cast<Direction>(255)) const noexcept
-    {
-        MC_UNUSED(state);
-        MC_UNUSED(world);
-        MC_UNUSED(pos);
-        MC_UNUSED(face);
-        return 0;
-    }
+        Direction face = static_cast<Direction>(255)) const noexcept;
 
     /**
      * @brief 检查方块是否为火焰源

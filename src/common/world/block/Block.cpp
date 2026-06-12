@@ -43,6 +43,7 @@
 #include "BlockRegistry.hpp"
 #include "BlockSoundType.hpp"
 #include "BlockState.hpp"
+#include "FireInfoRegistry.hpp"
 #include "Material.hpp"
 #include "PlantType.hpp"
 #include <algorithm>
@@ -675,6 +676,35 @@ f32 Block::getPlayerRelativeBlockHardness(
     f32 divisor = canHarvest ? 30.0f : 100.0f;
 
     return digSpeed / hardness / divisor;
+}
+
+// ============================================================================
+// 火焰相关默认实现
+// ============================================================================
+
+i32 Block::getFlammability(const BlockState& state, IWorld* world, const BlockPos* pos, Direction face) const noexcept
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(face);
+
+    // 优先从 FireInfoRegistry 查询方块燃烧参数
+    // 子类可通过重写此方法提供自定义值（会隐藏此默认实现）
+    return blocks::FireInfoRegistry::instance().getFlammability(m_blockId);
+}
+
+i32 Block::getFireSpreadSpeed(
+    const BlockState& state, IWorld* world, const BlockPos* pos, Direction face) const noexcept
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(face);
+
+    // 优先从 FireInfoRegistry 查询方块蔓延速度
+    // 子类可通过重写此方法提供自定义值（会隐藏此默认实现）
+    return blocks::FireInfoRegistry::instance().getEncouragement(m_blockId);
 }
 
 } // namespace mc
