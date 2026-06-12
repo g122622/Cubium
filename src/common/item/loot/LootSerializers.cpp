@@ -1083,10 +1083,55 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseCopyBlockStateFunct
         std::make_unique<CopyBlockStateFunction>(blockId, properties));
 }
 
-Result<std::unique_ptr<LootFunction>> LootSerializers::_parseCopyNbtFunction(const nlohmann::json& /*json*/)
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseCopyNbtFunction(const nlohmann::json& json)
 {
-    // TODO: 实现 copy_nbt 函数解析
-    return Error(ErrorCode::Unsupported, "minecraft:copy_nbt is not supported yet");
+    // 解析 source 字段
+    CopyNbtFunction::Source source = CopyNbtFunction::Source::This;
+    if (json.contains("source") && json["source"].is_string()) {
+        std::string sourceStr = json["source"].get<std::string>();
+        if (sourceStr == "this") {
+            source = CopyNbtFunction::Source::This;
+        } else if (sourceStr == "killer") {
+            source = CopyNbtFunction::Source::Killer;
+        } else if (sourceStr == "killer_player") {
+            source = CopyNbtFunction::Source::KillerPlayer;
+        } else if (sourceStr == "block_entity") {
+            source = CopyNbtFunction::Source::BlockEntity;
+        }
+    }
+
+    auto func = std::make_unique<CopyNbtFunction>(source);
+
+    // 解析 ops 数组
+    if (json.contains("ops") && json["ops"].is_array()) {
+        for (const auto& op : json["ops"]) {
+            if (!op.contains("source") || !op["source"].is_string()) {
+                continue;
+            }
+            if (!op.contains("target") || !op["target"].is_string()) {
+                continue;
+            }
+
+            std::string sourcePath = op["source"].get<std::string>();
+            std::string targetPath = op["target"].get<std::string>();
+
+            CopyNbtFunction::Operation operation = CopyNbtFunction::Operation::Replace;
+            if (op.contains("op") && op["op"].is_string()) {
+                std::string opStr = op["op"].get<std::string>();
+                if (opStr == "replace") {
+                    operation = CopyNbtFunction::Operation::Replace;
+                } else if (opStr == "append") {
+                    operation = CopyNbtFunction::Operation::Append;
+                } else if (opStr == "merge") {
+                    operation = CopyNbtFunction::Operation::Merge;
+                }
+            }
+
+            func->addOperation(sourcePath, targetPath, operation);
+        }
+    }
+
+    return castToBase<CopyNbtFunction, LootFunction>(std::move(func));
 }
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::_parseFillPlayerHeadFunction(const nlohmann::json& json)

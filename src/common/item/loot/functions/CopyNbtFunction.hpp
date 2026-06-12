@@ -12,22 +12,24 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY KIND, INCLUDING
+ * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  *
  */
 
 #pragma once
 
 #include "LootFunction.hpp"
+#include "common/command/arguments/NbtPath.hpp"
 #include "common/core/Types.hpp"
 #include <memory>
 #include <string>
 #include <vector>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 namespace loot {
@@ -35,10 +37,11 @@ namespace loot {
 /**
  * @brief 复制NBT函数
  *
- * 从掉落源复制NBT数据到物品。
- * 参考: net.minecraft.loot.functions.CopyNbt
+ * 从掉落源（实体或方块实体）复制NBT数据到物品的自定义数据标签。
+ * 支持三种合并策略：替换、追加、合并。
  *
- * 用于复制实体或方块的NBT数据到掉落物品。
+ * NBT路径语法与MC命令 /data 中的路径语法一致，
+ * 例如 "CustomName"、"Inventory[0].id"、"Attributes[{Name:\"generic.max_health\"}].Base"。
  */
 class CopyNbtFunction : public LootFunction {
 public:
@@ -56,18 +59,23 @@ public:
      * @brief NBT操作类型
      */
     enum class Operation : u8 {
-        Replace, // 替换
-        Append,  // 追加
-        Merge    // 合并
+        Replace, // 替换目标路径的值
+        Append,  // 追加到目标路径的列表中
+        Merge    // 合并到目标路径的复合标签中
     };
 
     /**
      * @brief NBT操作定义
      */
     struct NbtOperation {
-        std::string sourcePath; ///< NBT源路径
-        std::string targetPath; ///< NBT目标路径
-        Operation operation;    ///< 操作类型
+        std::string sourcePath;                    ///< NBT源路径（原始字符串）
+        std::string targetPath;                    ///< NBT目标路径（原始字符串）
+        Operation operation;                       ///< 操作类型
+        mutable command::NbtPath parsedSourcePath; ///< 解析后的源路径（延迟解析）
+        mutable command::NbtPath parsedTargetPath; ///< 解析后的目标路径（延迟解析）
+        mutable bool pathsParsed = false;          ///< 路径是否已解析
+
+        NbtOperation(std::string srcPath, std::string tgtPath, Operation op);
     };
 
     /**
@@ -78,8 +86,11 @@ public:
 
     /**
      * @brief 添加NBT操作
+     * @param sourcePath NBT源路径
+     * @param targetPath NBT目标路径
+     * @param operation 操作类型
      */
-    void addOperation(const std::string& sourcePath, const std::string& targetPath, Operation operation) noexcept;
+    void addOperation(const std::string& sourcePath, const std::string& targetPath, Operation operation);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
@@ -89,6 +100,33 @@ public:
     [[nodiscard]] const std::vector<NbtOperation>& getOperations() const noexcept { return m_operations; }
 
 private:
+    /**
+     * @brief 从LootContext解析NBT来源对象，提取其NBT数据
+     * @return 源NBT复合标签，如果来源不可用则返回nullptr
+     */
+    [[nodiscard]] std::unique_ptr<nbt::tags::compound_tag> _resolveSourceNbt(LootContext& context) const;
+
+    /**
+     * @brief 确保操作的NBT路径已解析
+     */
+    void _ensurePathsParsed(const NbtOperation& op) const;
+
+    /**
+     * @brief 对NBT操作应用合并策略
+     */
+    void _applyOperation(
+        const NbtOperation& op, nbt::tags::compound_tag& sourceTag, nbt::tags::compound_tag& targetTag) const;
+
+    /**
+     * @brief 将 nlohmann::json 对象转换为 NBT compound_tag
+     */
+    [[nodiscard]] static std::unique_ptr<nbt::tags::compound_tag> _jsonToNbtCompound(const nlohmann::json& json);
+
+    /**
+     * @brief 将 NBT compound_tag 转换为 nlohmann::json 对象
+     */
+    [[nodiscard]] static nlohmann::json _nbtCompoundToJson(const nbt::tags::compound_tag& tag);
+
     Source m_source;
     std::vector<NbtOperation> m_operations;
 };

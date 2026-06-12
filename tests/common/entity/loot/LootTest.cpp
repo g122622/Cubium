@@ -626,6 +626,133 @@ TEST_F(LootTest, CopyNbtFunction_Clone)
     EXPECT_EQ(1, clonedFunc->getOperations().size());
 }
 
+TEST_F(LootTest, CopyNbtFunction_EmptyStack)
+{
+    CopyNbtFunction func(CopyNbtFunction::Source::This);
+    func.addOperation("CustomName", "display.Name", CopyNbtFunction::Operation::Replace);
+
+    math::Random rng(42);
+    LootContext context(m_world, rng);
+    ItemStack emptyStack;
+    auto result = func.apply(emptyStack, context);
+    EXPECT_TRUE(result.isEmpty());
+}
+
+TEST_F(LootTest, CopyNbtFunction_NoOperations)
+{
+    CopyNbtFunction func(CopyNbtFunction::Source::This);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    math::Random rng(42);
+    LootContext context(m_world, rng);
+    auto result = func.apply(stack, context);
+    EXPECT_FALSE(result.isEmpty());
+}
+
+TEST_F(LootTest, CopyNbtFunction_NoSourceEntity)
+{
+    CopyNbtFunction func(CopyNbtFunction::Source::This);
+    func.addOperation("CustomName", "display.Name", CopyNbtFunction::Operation::Replace);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    // 没有设置 THIS_ENTITY，应该返回原物品
+    math::Random rng(42);
+    LootContext context(m_world, rng);
+    auto result = func.apply(stack, context);
+    EXPECT_FALSE(result.isEmpty());
+    // 物品不应有自定义数据标签
+    EXPECT_FALSE(result.hasTag());
+}
+
+TEST_F(LootTest, CopyNbtFunction_ReplaceOperation)
+{
+    CopyNbtFunction func(CopyNbtFunction::Source::BlockEntity);
+    func.addOperation("CustomName", "display.Name", CopyNbtFunction::Operation::Replace);
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    // 设置方块实体到 LootContext，并给它一个自定义名称
+    blockentity::ChestEntity chest(BlockPos(0, 64, 0));
+    BlockEntity* blockEntity = &chest;
+    chest.setCustomName("Test Chest");
+
+    math::Random rng(42);
+    LootContext context(m_world, rng);
+    context.set(LootParams::BLOCK_ENTITY, blockEntity);
+
+    auto result = func.apply(stack, context);
+    EXPECT_FALSE(result.isEmpty());
+}
+
+TEST_F(LootTest, CopyNbtFunction_MultipleOperations)
+{
+    CopyNbtFunction func(CopyNbtFunction::Source::BlockEntity);
+    func.addOperation("CustomName", "display.Name", CopyNbtFunction::Operation::Replace);
+    func.addOperation("Items", "Items", CopyNbtFunction::Operation::Merge);
+
+    EXPECT_EQ(2, func.getOperations().size());
+    EXPECT_EQ(CopyNbtFunction::Operation::Replace, func.getOperations()[0].operation);
+    EXPECT_EQ(CopyNbtFunction::Operation::Merge, func.getOperations()[1].operation);
+}
+
+TEST_F(LootTest, CopyNbtFunction_AllSources)
+{
+    // 测试所有来源类型的构造
+    CopyNbtFunction funcThis(CopyNbtFunction::Source::This);
+    EXPECT_EQ(CopyNbtFunction::Source::This, funcThis.getSource());
+
+    CopyNbtFunction funcKiller(CopyNbtFunction::Source::Killer);
+    EXPECT_EQ(CopyNbtFunction::Source::Killer, funcKiller.getSource());
+
+    CopyNbtFunction funcKillerPlayer(CopyNbtFunction::Source::KillerPlayer);
+    EXPECT_EQ(CopyNbtFunction::Source::KillerPlayer, funcKillerPlayer.getSource());
+
+    CopyNbtFunction funcBlockEntity(CopyNbtFunction::Source::BlockEntity);
+    EXPECT_EQ(CopyNbtFunction::Source::BlockEntity, funcBlockEntity.getSource());
+}
+
+TEST_F(LootTest, CopyNbtFunction_AllOperations)
+{
+    CopyNbtFunction func(CopyNbtFunction::Source::This);
+    func.addOperation("a", "b", CopyNbtFunction::Operation::Replace);
+    func.addOperation("c", "d", CopyNbtFunction::Operation::Append);
+    func.addOperation("e", "f", CopyNbtFunction::Operation::Merge);
+
+    EXPECT_EQ(3, func.getOperations().size());
+    EXPECT_EQ(CopyNbtFunction::Operation::Replace, func.getOperations()[0].operation);
+    EXPECT_EQ(CopyNbtFunction::Operation::Append, func.getOperations()[1].operation);
+    EXPECT_EQ(CopyNbtFunction::Operation::Merge, func.getOperations()[2].operation);
+}
+
+TEST_F(LootTest, CopyNbtFunction_CloneWithOperations)
+{
+    CopyNbtFunction func(CopyNbtFunction::Source::BlockEntity);
+    func.addOperation("CustomName", "display.Name", CopyNbtFunction::Operation::Replace);
+    func.addOperation("Items", "Items", CopyNbtFunction::Operation::Merge);
+
+    auto cloned = func.clone();
+    ASSERT_NE(cloned, nullptr);
+
+    auto* clonedFunc = dynamic_cast<CopyNbtFunction*>(cloned.get());
+    ASSERT_NE(clonedFunc, nullptr);
+    EXPECT_EQ(CopyNbtFunction::Source::BlockEntity, clonedFunc->getSource());
+    EXPECT_EQ(2, clonedFunc->getOperations().size());
+    EXPECT_EQ("CustomName", clonedFunc->getOperations()[0].sourcePath);
+    EXPECT_EQ("display.Name", clonedFunc->getOperations()[0].targetPath);
+    EXPECT_EQ(CopyNbtFunction::Operation::Replace, clonedFunc->getOperations()[0].operation);
+    EXPECT_EQ("Items", clonedFunc->getOperations()[1].sourcePath);
+    EXPECT_EQ("Items", clonedFunc->getOperations()[1].targetPath);
+    EXPECT_EQ(CopyNbtFunction::Operation::Merge, clonedFunc->getOperations()[1].operation);
+}
+
 TEST_F(LootTest, FillPlayerHeadFunction_Creation)
 {
     FillPlayerHeadFunction func(CopyNameFunction::Source::KillerPlayer);
