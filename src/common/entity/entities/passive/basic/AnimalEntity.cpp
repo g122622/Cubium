@@ -27,7 +27,6 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
 #include "../../../ai/goal/goals/FollowParentGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
@@ -41,6 +40,8 @@
 #include "../../../serialization/EntityNbtKeys.hpp"
 #include "../../../serialization/NbtHelper.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/network/packet/EntityPackets.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 
@@ -96,8 +97,10 @@ void AnimalEntity::setInLove(u64 playerUuid)
     // 记录喂食玩家的 UUID
     m_loveCause = playerUuid;
 
-    // 广播状态更新（用于客户端粒子效果）
-    // world->setEntityState(this, static_cast<u8>(18));
+    // 广播状态更新（用于客户端繁殖爱心粒子效果）
+    if (world() != nullptr) {
+        world()->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::LoveHeart));
+    }
 }
 
 void AnimalEntity::resetInLove()

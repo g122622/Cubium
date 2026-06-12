@@ -335,8 +335,8 @@ TEST(EntityStatusPacketTest, AllStatusTypes)
     testStatus(EntityStatusPacket::Status::Death);
     testStatus(EntityStatusPacket::Status::TamingSucceeded);
     testStatus(EntityStatusPacket::Status::LoveHeart);
-    testStatus(EntityStatusPacket::Status::SheepEatGrass);
-    testStatus(EntityStatusPacket::Status::ChickenLayEgg);
+    testStatus(EntityStatusPacket::Status::EatBlock);
+    testStatus(EntityStatusPacket::Status::TeleportParticles);
 }
 
 // ==================== EntityMetadataPacket Tests ====================

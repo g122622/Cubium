@@ -26,6 +26,7 @@
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
@@ -95,8 +96,11 @@ void EatGrassGoal::startExecuting()
         }
     }
 
-    // TODO: 发送动画状态给客户端（原版通过 world.setEntityState(entity, (byte)10) 实现）
-    // 需要网络系统支持后实现
+    // 通知客户端开始吃草动画
+    if (m_mob && m_mob->world()) {
+        m_mob->world()->broadcastEntityStatus(
+            m_mob->id(), static_cast<u8>(network::EntityStatusPacket::Status::EatBlock));
+    }
 }
 
 void EatGrassGoal::resetTask()

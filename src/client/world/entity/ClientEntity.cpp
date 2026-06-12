@@ -391,6 +391,11 @@ void ClientEntity::tick()
     // 更新北极熊站立动画
     // 仅对北极熊实体有效
     updateStandingAnimation();
+
+    // 更新吃草动画计时器
+    if (m_eatAnimationTimer > 0) {
+        --m_eatAnimationTimer;
+    }
 }
 
 void ClientEntity::updateStandingAnimation()

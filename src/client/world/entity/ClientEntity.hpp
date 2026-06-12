@@ -555,6 +555,21 @@ public:
     [[nodiscard]] i32 puffState() const { return m_puffState; }
     void setPuffState(i32 state) { m_puffState = std::clamp(state, 0, 2); }
 
+    // ========== 吃草动画状态 ==========
+
+    /**
+     * @brief 获取吃草动画计时器
+     * 羊吃草时的头部低头动画计时器，收到 EatBlock 状态包时设为 40，
+     * 每tick递减，为0时动画结束。
+     */
+    [[nodiscard]] i32 eatAnimationTimer() const { return m_eatAnimationTimer; }
+
+    /**
+     * @brief 设置吃草动画计时器
+     * @param timer 计时器值（原版为 40 ticks）
+     */
+    void setEatAnimationTimer(i32 timer) { m_eatAnimationTimer = timer; }
+
     // ========== 美西螈状态 ==========
 
     /**
@@ -789,6 +804,9 @@ private:
 
     // 河豚膨胀状态 (0=Deflated, 1=SemiPuffed, 2=FullyPuffed)
     i32 m_puffState = 0;
+
+    // 吃草动画计时器（羊等实体的头部低头动画，收到 EatBlock 状态包时设为 40）
+    i32 m_eatAnimationTimer = 0;
 
     // 美西螈变体 (0=Lucy, 1=Wild, 2=Gold, 3=Cyan, 4=Blue)
     i32 m_axolotlVariant = 0;

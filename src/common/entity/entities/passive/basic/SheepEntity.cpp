@@ -28,9 +28,7 @@
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/EatGrassGoal.hpp"
 #include "../../../ai/goal/goals/FollowParentGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp" // 包含 LookRandomlyGoal
 #include "../../../ai/goal/goals/PanicGoal.hpp"
@@ -39,6 +37,7 @@
 #include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <memory>
 #include <optional>
 #include <vector>
@@ -258,9 +257,10 @@ void SheepEntity::registerGoals()
     m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.1));
 
     // 优先级 5: 吃草 - 在 RandomWalkingGoal 之前
-    m_goalSelector.addGoal(5,
-        std::make_unique<entity::ai::goal::EatGrassGoal>(
-            this, [this]() { this->eatGrassBonus(); }, [this]() { return this->isChild(); }));
+    auto eatGrassGoal = std::make_unique<entity::ai::goal::EatGrassGoal>(
+        this, [this]() { this->eatGrassBonus(); }, [this]() { return this->isChild(); });
+    m_eatGrassGoal = eatGrassGoal.get();
+    m_goalSelector.addGoal(5, std::move(eatGrassGoal));
 
     // 优先级 6: 随机漫步
     m_goalSelector.addGoal(6, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
@@ -284,10 +284,9 @@ void SheepEntity::registerAttributes()
 
 void SheepEntity::tick()
 {
-    // 吃草动画计时器递减
-    // 只在客户端递减
-    if (m_eatAnimationTimer > 0) {
-        --m_eatAnimationTimer;
+    // 同步吃草动画计时器（服务端从 EatGrassGoal 读取）
+    if (m_eatGrassGoal != nullptr) {
+        m_eatAnimationTimer = m_eatGrassGoal->getEatingGrassTimer();
     }
 
     AnimalEntity::tick();

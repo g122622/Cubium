@@ -456,13 +456,17 @@ private:
 class EntityStatusPacket : public Packet {
 public:
     // 状态类型
+    // 数值与 MC 原版 EntityStatus byte 对应
     enum class Status : u8 {
         // 通用状态
-        Hurt = 2,
-        Death = 3,
-        TamingFailed = 6,
-        TamingSucceeded = 7,
-        ShakeOffWater = 8,
+        Hurt = 2,            // 受击反馈（红色闪烁）
+        Death = 3,           // 死亡效果
+        TamingFailed = 6,    // 驯服失败（烟雾粒子）
+        TamingSucceeded = 7, // 驯服成功（爱心粒子）
+        ShakeOffWater = 8,   // 抖落水分（狼）
+
+        // 实体特定状态
+        EatBlock = 10, // 吃草/方块动画（羊、 TNT 矿车引燃）
 
         // 动物状态
         LoveHeart = 18, // 繁殖爱心效果
@@ -474,19 +478,14 @@ public:
 
         // 特殊状态
         FireworkExplosion = 17,
-        ArrowHit = 30,
-        TotemActivate = 35,
+        GuardianAttack = 21,    // 守卫者攻击音效
+        ArrowHit = 30,          // 箭矢命中音效
+        TotemActivate = 35,     // 不死图腾激活
+        Dolphin = 38,           // 海豚寻宝粒子
+        TeleportParticles = 46, // 传送粒子效果
 
-        // 动物特定状态
-        SheepEatGrass = 45, // 羊吃草
-        ChickenLayEgg = 47, // 鸡下蛋
-
-        // 守卫者/潜影贝攻击动画
-        GuardianAttack = 21,
-        ShulkerOpen = 46,
-
-        // 海豚状态
-        Dolphin = 38 // 海豚粒子效果（寻宝时生成）
+        // Mob 特定状态
+        MobPoof = 60, // 生物变形/消失烟雾粒子
     };
 
     EntityStatusPacket()

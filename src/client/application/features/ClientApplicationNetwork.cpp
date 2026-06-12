@@ -872,6 +872,34 @@ void ClientApplication::setupNetworkCallbacks()
                 }
                 break;
             }
+            case static_cast<u8>(EntityStatusPacket::Status::EatBlock): {
+                // 状态 10: 吃草/方块动画（羊低头吃草、TNT 矿车引燃）
+                if (entity != nullptr) {
+                    entity->setEatAnimationTimer(40);
+                }
+                break;
+            }
+            case static_cast<u8>(EntityStatusPacket::Status::TeleportParticles): {
+                // 状态 46: 传送粒子效果（末影人传送）
+                if (m_world.particleManager() != nullptr) {
+                    // 生成末影人传送粒子
+                    for (i32 i = 0; i < 16; ++i) {
+                        f32 rx = m_random.nextFloat(-1.0f, 1.0f);
+                        f32 ry = m_random.nextFloat(0.0f, 2.0f);
+                        f32 rz = m_random.nextFloat(-1.0f, 1.0f);
+                        glm::vec3 particlePos = entityPos + glm::vec3(rx * 0.5f, ry, rz * 0.5f);
+                        glm::vec3 velocity(m_random.nextGaussian(0.0f, 0.05f),
+                            m_random.nextGaussian(0.0f, 0.05f),
+                            m_random.nextGaussian(0.0f, 0.05f));
+                        m_world.particleManager()->addPendingParticle(
+                            client::renderer::trident::particle::ParticleTypeId::Portal,
+                            particlePos,
+                            velocity,
+                            &m_world);
+                    }
+                }
+                break;
+            }
             default:
                 // 其他状态暂未实现
                 break;

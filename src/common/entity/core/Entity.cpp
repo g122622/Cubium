@@ -45,6 +45,7 @@
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -1763,7 +1764,8 @@ bool Entity::attemptTeleport(f64 x, f64 y, f64 z, bool playEffects)
         // 播放传送粒子效果
         // 客户端收到后会播放末影人传送粒子
         if (m_world != nullptr) {
-            m_world->broadcastEntityStatus(m_id, 46);
+            m_world->broadcastEntityStatus(
+                m_id, static_cast<u8>(network::EntityStatusPacket::Status::TeleportParticles));
         }
 
         // 播放传送音效
