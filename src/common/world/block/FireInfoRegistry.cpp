@@ -473,6 +473,29 @@ void FireInfoRegistry::initializeVanillaFireInfos()
     // 参考: MC 1.21.4+ 中 CREAKING_HEART 注册为可燃方块
     // ========================================================================
     registerFireInfo(PaleGardenBlocks::CREAKING_HEART->blockId(), IGNITE_HARD, BURN_MEDIUM);
+
+    // ========================================================================
+    // TODO: 以下方块尚未在 VanillaBlocks 中注册指针，待对应方块实现后补充：
+    //
+    // - BEEHIVE (ignite=5, burn=20) — 蜂巢
+    // - BEE_NEST (ignite=30, burn=20) — 蜂箱
+    // - SWEET_BERRY_BUSH (ignite=60, burn=100) — 甜浆果丛
+    //
+    // TODO: 以下木质变体方块尚未在 VanillaBlocks 中注册指针，
+    //       待对应方块实现后补充：
+    //
+    // - 云杉/白桦/丛林/金合欢/深色橡木的楼梯 (ignite=5, burn=20)
+    // - 云杉/白桦/丛林/金合欢/深色橡木的台阶 (ignite=5, burn=20)
+    // - 云杉/白桦/丛林/金合欢/深色橡木的栅栏 (ignite=5, burn=20)
+    // - 云杉/白桦/丛林/金合欢/深色橡木的木门 (ignite=5, burn=20)
+    // - 云杉/白桦/丛林/金合欢/深色橡木的木活板门 (ignite=5, burn=20)
+    //   注意：MC原版中木门和木活板门实际上也注册了火焰参数，
+    //   但由于当前项目中这些方块的指针尚未声明，暂无法注册。
+    //
+    // TODO: MC 1.21.4+ 新增的木质书架（SHELF）方块：
+    // - 各木材类型的 SHELF (ignite=30, burn=20)
+    //   当前项目中尚无 SHELF 方块指针。
+    // ========================================================================
 }
 
 } // namespace blocks

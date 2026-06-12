@@ -323,3 +323,13 @@ CauldronBlock 使用 `LEVEL_0_3` 属性存储水位（0-3），交互操作直�
 2. 在 `getStateForPlacement()` 中检测水
 3. 在 `updatePostPlacement()` 中调度流体 tick
 4. 实现 `getFluidState()` 返回水流体状态
+
+### 21. FireInfoRegistry 火焰参数系统
+
+`Block::getFlammability()` 和 `Block::getFireSpreadSpeed()` 的默认实现已改为查询 `FireInfoRegistry`，无需子类重写即可获得正确的燃烧参数。
+
+- `FireInfoRegistry::initializeVanillaFireInfos()` 在 `VanillaBlocks::initialize()` 末尾自动调用
+- 所有原版可燃方块的 encouragement（蔓延速度）和 flammability（可燃性）参数已注册
+- 新增可燃方块时，在 `FireInfoRegistry::initializeVanillaFireInfos()` 中注册即可
+- 子类仍可通过重写 `getFlammability()`/`getFireSpreadSpeed()` 提供自定义值，会覆盖注册表值
+- 部分方块（如 BEEHIVE、BEE_NEST、SWEET_BERRY_BUSH、各木材楼梯/台阶/栅栏变体）尚待对应方块指针注册后补充

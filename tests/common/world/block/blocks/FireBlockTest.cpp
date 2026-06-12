@@ -36,6 +36,7 @@
 
 using namespace mc;
 using namespace mc::blocks;
+using namespace mc::block_registry;
 
 namespace {
 
@@ -690,3 +691,151 @@ TEST_F(FireBlockTest, GetFireState_ReturnsNormalFireOnDirt)
 }
 
 } // namespace
+
+// ============================================================================
+// FireInfoRegistry 原版方块火焰参数验证测试
+// ============================================================================
+
+class FireInfoRegistryTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        // initializeVanillaFireInfos() 已在 VanillaBlocks::initialize() 中调用
+        // 但其他测试的 TearDown 可能已清空注册表，确保重新初始化
+        if (FireInfoRegistry::instance().getFlammability(VanillaBlocks::OAK_PLANKS->blockId()) == 0) {
+            FireInfoRegistry::instance().initializeVanillaFireInfos();
+        }
+    }
+};
+
+// 验证木板类方块的燃烧参数 (ignite=5, burn=20)
+TEST_F(FireInfoRegistryTest, Planks_FireInfo)
+{
+    auto& registry = FireInfoRegistry::instance();
+    EXPECT_EQ(registry.getEncouragement(VanillaBlocks::OAK_PLANKS->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(VanillaBlocks::OAK_PLANKS->blockId()), 20);
+    EXPECT_EQ(registry.getEncouragement(VanillaBlocks::BIRCH_PLANKS->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(VanillaBlocks::BIRCH_PLANKS->blockId()), 20);
+    EXPECT_EQ(registry.getEncouragement(VanillaBlocks::CHERRY_PLANKS->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(VanillaBlocks::CHERRY_PLANKS->blockId()), 20);
+    EXPECT_EQ(registry.getEncouragement(VanillaBlocks::BAMBOO_PLANKS->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(VanillaBlocks::BAMBOO_PLANKS->blockId()), 20);
+}
+
+// 验证原木类方块的燃烧参数 (ignite=5, burn=5)
+TEST_F(FireInfoRegistryTest, Logs_FireInfo)
+{
+    auto& registry = FireInfoRegistry::instance();
+    EXPECT_EQ(registry.getEncouragement(VanillaBlocks::OAK_LOG->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(VanillaBlocks::OAK_LOG->blockId()), 5);
+    EXPECT_EQ(registry.getEncouragement(VanillaBlocks::STRIPPED_BIRCH_LOG->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(VanillaBlocks::STRIPPED_BIRCH_LOG->blockId()), 5);
+    EXPECT_EQ(registry.getEncouragement(VanillaBlocks::DARK_OAK_WOOD->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(VanillaBlocks::DARK_OAK_WOOD->blockId()), 5);
+}
+
+// 验证树叶类方块的燃烧参数 (ignite=30, burn=60)
+TEST_F(FireInfoRegistryTest, Leaves_FireInfo)
+{
+    auto& registry = FireInfoRegistry::instance();
+    EXPECT_EQ(registry.getEncouragement(VanillaBlocks::OAK_LEAVES->blockId()), 30);
+    EXPECT_EQ(registry.getFlammability(VanillaBlocks::OAK_LEAVES->blockId()), 60);
+    EXPECT_EQ(registry.getEncouragement(VanillaBlocks::AZALEA_LEAVES->blockId()), 30);
+    EXPECT_EQ(registry.getFlammability(VanillaBlocks::AZALEA_LEAVES->blockId()), 60);
+}
+
+// 验证羊毛类方块的燃烧参数 (ignite=30, burn=60)
+TEST_F(FireInfoRegistryTest, Wool_FireInfo)
+{
+    auto& registry = FireInfoRegistry::instance();
+    EXPECT_EQ(registry.getEncouragement(ColoredBlocks::WHITE_WOOL->blockId()), 30);
+    EXPECT_EQ(registry.getFlammability(ColoredBlocks::WHITE_WOOL->blockId()), 60);
+    EXPECT_EQ(registry.getEncouragement(ColoredBlocks::BLACK_WOOL->blockId()), 30);
+    EXPECT_EQ(registry.getFlammability(ColoredBlocks::BLACK_WOOL->blockId()), 60);
+}
+
+// 验证地毯类方块的燃烧参数 (ignite=60, burn=20)
+TEST_F(FireInfoRegistryTest, Carpet_FireInfo)
+{
+    auto& registry = FireInfoRegistry::instance();
+    EXPECT_EQ(registry.getEncouragement(ColoredBlocks::RED_CARPET->blockId()), 60);
+    EXPECT_EQ(registry.getFlammability(ColoredBlocks::RED_CARPET->blockId()), 20);
+}
+
+// 验证植物/花草类方块的燃烧参数 (ignite=60, burn=100)
+TEST_F(FireInfoRegistryTest, Plants_FireInfo)
+{
+    auto& registry = FireInfoRegistry::instance();
+    EXPECT_EQ(registry.getEncouragement(VegetationBlocks::SHORT_GRASS->blockId()), 60);
+    EXPECT_EQ(registry.getFlammability(VegetationBlocks::SHORT_GRASS->blockId()), 100);
+    EXPECT_EQ(registry.getEncouragement(VegetationBlocks::DANDELION->blockId()), 60);
+    EXPECT_EQ(registry.getFlammability(VegetationBlocks::DANDELION->blockId()), 100);
+    EXPECT_EQ(registry.getEncouragement(NaturalBlocks::DEAD_BUSH->blockId()), 60);
+    EXPECT_EQ(registry.getFlammability(NaturalBlocks::DEAD_BUSH->blockId()), 100);
+}
+
+// 验证杂项可燃方块的燃烧参数
+TEST_F(FireInfoRegistryTest, MiscFlammable_FireInfo)
+{
+    auto& registry = FireInfoRegistry::instance();
+    // 书架 (ignite=30, burn=20)
+    EXPECT_EQ(registry.getEncouragement(BuildingBlocks::BOOKSHELF->blockId()), 30);
+    EXPECT_EQ(registry.getFlammability(BuildingBlocks::BOOKSHELF->blockId()), 20);
+    // TNT (ignite=15, burn=100)
+    EXPECT_EQ(registry.getEncouragement(BuildingBlocks::TNT->blockId()), 15);
+    EXPECT_EQ(registry.getFlammability(BuildingBlocks::TNT->blockId()), 100);
+    // 藤蔓 (ignite=15, burn=100)
+    EXPECT_EQ(registry.getEncouragement(NaturalBlocks::VINE->blockId()), 15);
+    EXPECT_EQ(registry.getFlammability(NaturalBlocks::VINE->blockId()), 100);
+    // 煤炭块 (ignite=5, burn=5)
+    EXPECT_EQ(registry.getEncouragement(BaseBlocks::COAL_BLOCK->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(BaseBlocks::COAL_BLOCK->blockId()), 5);
+    // 干草块 (ignite=60, burn=20)
+    EXPECT_EQ(registry.getEncouragement(BuildingBlocks::HAY_BLOCK->blockId()), 60);
+    EXPECT_EQ(registry.getFlammability(BuildingBlocks::HAY_BLOCK->blockId()), 20);
+    // 干海带块 (ignite=30, burn=60)
+    EXPECT_EQ(registry.getEncouragement(NaturalBlocks::DRIED_KELP_BLOCK->blockId()), 30);
+    EXPECT_EQ(registry.getFlammability(NaturalBlocks::DRIED_KELP_BLOCK->blockId()), 60);
+    // 脚手架 (ignite=60, burn=60)
+    EXPECT_EQ(registry.getEncouragement(BuildingBlocks::SCAFFOLDING->blockId()), 60);
+    EXPECT_EQ(registry.getFlammability(BuildingBlocks::SCAFFOLDING->blockId()), 60);
+    // 发光地衣 (ignite=15, burn=100)
+    EXPECT_EQ(registry.getEncouragement(CaveBlocks::GLOW_LICHEN->blockId()), 15);
+    EXPECT_EQ(registry.getFlammability(CaveBlocks::GLOW_LICHEN->blockId()), 100);
+}
+
+// 验证非可燃方块返回 0
+TEST_F(FireInfoRegistryTest, NonFlammable_ReturnsZero)
+{
+    auto& registry = FireInfoRegistry::instance();
+    // 石头、泥土、沙子不可燃
+    EXPECT_EQ(registry.getEncouragement(VanillaBlocks::STONE->blockId()), 0);
+    EXPECT_EQ(registry.getFlammability(VanillaBlocks::STONE->blockId()), 0);
+    EXPECT_EQ(registry.getEncouragement(VanillaBlocks::DIRT->blockId()), 0);
+    EXPECT_EQ(registry.getFlammability(VanillaBlocks::DIRT->blockId()), 0);
+    // 下界木材（绯红/诡异）不可燃
+    EXPECT_EQ(registry.getEncouragement(NetherBlocks::CRIMSON_STEM->blockId()), 0);
+    EXPECT_EQ(registry.getFlammability(NetherBlocks::CRIMSON_STEM->blockId()), 0);
+    EXPECT_EQ(registry.getEncouragement(NetherBlocks::WARPED_STEM->blockId()), 0);
+    EXPECT_EQ(registry.getFlammability(NetherBlocks::WARPED_STEM->blockId()), 0);
+}
+
+// 验证 Block::getFlammability() 和 Block::getFireSpreadSpeed() 通过注册表查询
+TEST_F(FireInfoRegistryTest, Block_FireMethods_QueryRegistry)
+{
+    // 橡木木板：flammability=20, encouragement=5
+    const BlockState& planksState = VanillaBlocks::OAK_PLANKS->defaultState();
+    EXPECT_EQ(planksState.getFlammability(), 20);
+    EXPECT_EQ(planksState.getFireSpreadSpeed(), 5);
+
+    // 树叶：flammability=60, encouragement=30
+    const BlockState& leavesState = VanillaBlocks::OAK_LEAVES->defaultState();
+    EXPECT_EQ(leavesState.getFlammability(), 60);
+    EXPECT_EQ(leavesState.getFireSpreadSpeed(), 30);
+
+    // 石头：不注册，返回0
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    EXPECT_EQ(stoneState.getFlammability(), 0);
+    EXPECT_EQ(stoneState.getFireSpreadSpeed(), 0);
+}
