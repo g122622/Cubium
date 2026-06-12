@@ -45,7 +45,7 @@ bool OceanMonumentStructure::canGenerate(
     for (i32 dx = -outerRadius; dx <= outerRadius; dx += step) {
         for (i32 dz = -outerRadius; dz <= outerRadius; dz += step) {
             const BiomeId biome = generator.getBiome(centerX + dx, SEA_LEVEL, centerZ + dz);
-            if (!_isOceanOrRiverBiome(biome)) {
+            if (!isOceanOrRiverBiome(biome)) {
                 return false;
             }
         }
@@ -76,27 +76,6 @@ std::unique_ptr<StructureStart> OceanMonumentStructure::generate(
     start->addPiece(std::move(building));
     start->recalculateStructureSize();
     return start;
-}
-
-bool OceanMonumentStructure::_isOceanOrRiverBiome(BiomeId biomeId) const
-{
-    switch (biomeId) {
-        case Ocean:
-        case WarmOcean:
-        case LukewarmOcean:
-        case ColdOcean:
-        case FrozenOcean:
-        case DeepOcean:
-        case DeepWarmOcean:
-        case DeepLukewarmOcean:
-        case DeepColdOcean:
-        case DeepFrozenOcean:
-        case River:
-        case FrozenRiver:
-            return true;
-        default:
-            return false;
-    }
 }
 
 } // namespace structure

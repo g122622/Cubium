@@ -30,10 +30,11 @@
 #include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/ocean/BubbleColumnBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <cmath>
 
@@ -191,9 +192,18 @@ void ClientApplication::updateWorldAudio()
 
         // 更新群系环境音效处理器的光照等级和玩家位置
         // 用于心境音效的触发计算
+        // 玩家眼睛位置光照
         const u8 skyLight = m_world.getSkyLight(eyeBlockX, eyeBlockY, eyeBlockZ);
         const u8 blockLight = m_world.getBlockLight(eyeBlockX, eyeBlockY, eyeBlockZ);
-        m_audioService->setAmbientLightLevel(skyLight, blockLight);
+        // 心境音效采样位置光照：在玩家周围随机采样一个位置，获取该位置的光照
+        // 与 MC 原版一致，心境计时器使用采样位置的光照而非玩家位置的光照
+        constexpr i32 MOOD_BLOCK_SEARCH_EXTENT = 8;
+        const i32 moodBx = eyeBlockX + m_moodRng.nextInt(MOOD_BLOCK_SEARCH_EXTENT * 2 + 1) - MOOD_BLOCK_SEARCH_EXTENT;
+        const i32 moodBy = eyeBlockY + m_moodRng.nextInt(MOOD_BLOCK_SEARCH_EXTENT * 2 + 1) - MOOD_BLOCK_SEARCH_EXTENT;
+        const i32 moodBz = eyeBlockZ + m_moodRng.nextInt(MOOD_BLOCK_SEARCH_EXTENT * 2 + 1) - MOOD_BLOCK_SEARCH_EXTENT;
+        const u8 moodSkyLight = m_world.getSkyLight(moodBx, moodBy, moodBz);
+        const u8 moodBlockLight = m_world.getBlockLight(moodBx, moodBy, moodBz);
+        m_audioService->setAmbientLightLevel(skyLight, blockLight, moodSkyLight, moodBlockLight);
         m_audioService->setAmbientPlayerPosition(m_player->x(), m_player->y() + m_player->eyeHeight(), m_player->z());
 
         // 更新音乐状态
@@ -210,7 +220,10 @@ void ClientApplication::updateWorldAudio()
             biomeMusic = biome->getMusic();
         }
 
-        m_audioService->updateMusicState(dimension, inCreative, inBossFight, biomeMusic);
+        // 判断是否在海洋或河流生物群系中（水下音乐只在海洋/河流中播放）
+        const bool inOceanOrRiverBiome = biome ? Biomes::isOceanOrRiverBiome(biome->id()) : false;
+
+        m_audioService->updateMusicState(dimension, inCreative, inBossFight, inOceanOrRiverBiome, biomeMusic);
 
         // 更新气泡柱状态
         // 检测玩家碰撞箱范围内是否有气泡柱

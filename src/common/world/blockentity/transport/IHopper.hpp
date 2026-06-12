@@ -52,22 +52,19 @@ public:
      * @brief 获取漏斗的X坐标（世界坐标）
      * @return X坐标
      */
-    // TODO: 应将返回类型从 double 改为 f64，但需要同步修改 HopperEntity 和 HopperMinecartEntity 中的实现
-    [[nodiscard]] virtual double getXPos() const = 0;
+    [[nodiscard]] virtual f64 getXPos() const = 0;
 
     /**
      * @brief 获取漏斗的Y坐标（世界坐标）
      * @return Y坐标
      */
-    // TODO: 应将返回类型从 double 改为 f64，但需要同步修改 HopperEntity 和 HopperMinecartEntity 中的实现
-    [[nodiscard]] virtual double getYPos() const = 0;
+    [[nodiscard]] virtual f64 getYPos() const = 0;
 
     /**
      * @brief 获取漏斗的Z坐标（世界坐标）
      * @return Z坐标
      */
-    // TODO: 应将返回类型从 double 改为 f64，但需要同步修改 HopperEntity 和 HopperMinecartEntity 中的实现
-    [[nodiscard]] virtual double getZPos() const = 0;
+    [[nodiscard]] virtual f64 getZPos() const = 0;
 
     /**
      * @brief 获取漏斗位置（方块坐标）

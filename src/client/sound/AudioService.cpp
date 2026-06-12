@@ -299,8 +299,11 @@ void AudioService::setBubbleColumnState(bool inBubbleColumn, bool isDrag)
     _enqueue(std::move(command));
 }
 
-void AudioService::updateMusicState(
-    i32 dimension, bool inCreative, bool inBossFight, const std::optional<world::biome::BiomeMusic>& biomeMusic)
+void AudioService::updateMusicState(i32 dimension,
+    bool inCreative,
+    bool inBossFight,
+    bool inOceanOrRiverBiome,
+    const std::optional<world::biome::BiomeMusic>& biomeMusic)
 {
     if (!m_loaded.load()) {
         return;
@@ -311,11 +314,12 @@ void AudioService::updateMusicState(
     command.dimension = dimension;
     command.inCreative = inCreative;
     command.inBossFight = inBossFight;
+    command.inOceanOrRiverBiome = inOceanOrRiverBiome;
     command.biomeMusic = biomeMusic;
     _enqueue(std::move(command));
 }
 
-void AudioService::setAmbientLightLevel(u8 skyLight, u8 blockLight)
+void AudioService::setAmbientLightLevel(u8 skyLight, u8 blockLight, u8 moodSkyLight, u8 moodBlockLight)
 {
     if (!m_loaded.load()) {
         return;
@@ -325,6 +329,8 @@ void AudioService::setAmbientLightLevel(u8 skyLight, u8 blockLight)
     command.type = CommandType::SetAmbientLightLevel;
     command.skyLight = skyLight;
     command.blockLight = blockLight;
+    command.moodSkyLight = moodSkyLight;
+    command.moodBlockLight = moodBlockLight;
     _enqueue(std::move(command));
 }
 
@@ -624,6 +630,7 @@ void AudioService::_runWorker()
                         m_savedUnderwater,
                         m_savedCreative,
                         m_savedBossFight,
+                        m_savedInOceanOrRiverBiome,
                         biomeMusic);
                 }
 
@@ -736,6 +743,7 @@ void AudioService::_processCommand(Command& command)
             m_savedDimension.store(command.dimension);
             m_savedCreative.store(command.inCreative);
             m_savedBossFight.store(command.inBossFight);
+            m_savedInOceanOrRiverBiome.store(command.inOceanOrRiverBiome);
             {
                 std::unique_lock lock(m_biomeMusicMutex);
                 m_savedBiomeMusic = command.biomeMusic;
@@ -744,7 +752,8 @@ void AudioService::_processCommand(Command& command)
 
         case CommandType::SetAmbientLightLevel:
             if (m_biomeAmbientHandler) {
-                m_biomeAmbientHandler->setLightLevel(command.skyLight, command.blockLight);
+                m_biomeAmbientHandler->setLightLevel(
+                    command.skyLight, command.blockLight, command.moodSkyLight, command.moodBlockLight);
             }
             break;
 

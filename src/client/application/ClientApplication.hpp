@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/application/ClientAppStateMachine.hpp"
+#include "client/application/features/MemoryTraceThread.hpp"
 #include "client/dimension/ClientDimensionManager.hpp"
 #include "client/input/InputManager.hpp"
 #include "client/network/NetworkClient.hpp"
@@ -39,7 +40,6 @@
 #include "client/ui/TridentCanvas.hpp"
 #include "client/ui/kagero/KageroEngine.hpp"
 #include "client/window/Window.hpp"
-#include "client/application/features/MemoryTraceThread.hpp"
 #include "client/world/ClientWorld.hpp"
 #include "client/world/player/ClientPlayerPredictor.hpp"
 #include "client/world/player/LocalPlayerIdentity.hpp"
@@ -525,6 +525,9 @@ private:
 
     // 随机数生成器（用于音调变化等）
     math::Random m_random;
+
+    // 心境音效采样位置随机数生成器（主线程侧，用于计算采样位置光照）
+    math::Random m_moodRng;
 
     // 内存追踪线程（独立线程采样，避免阻塞主循环）
     MemoryTraceThread m_memoryTraceThread;

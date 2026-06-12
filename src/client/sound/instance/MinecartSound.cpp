@@ -115,8 +115,8 @@ void RidingMinecartSoundStateful::tick()
         return;
     }
 
-    // TODO: 需要检查玩家是否仍骑乘该矿车，当前仅检查玩家是否存在
-    if (!playerState || playerState->isRemoved) {
+    // 检查玩家是否仍骑乘该矿车（参考 MC RidingEntitySoundInstance.tick）
+    if (!playerState || playerState->isRemoved || !playerState->isRiding || playerState->vehicleId != m_minecartId) {
         markDone();
         return;
     }

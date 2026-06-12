@@ -136,6 +136,7 @@ public:
      * @param inWater 是否在水中
      * @param inCreative 是否在创造模式
      * @param inBossFight 是否在Boss战斗中
+     * @param inOceanOrRiverBiome 是否在海洋或河流生物群系中
      * @param biomeMusic 当前生物群系的音乐配置（可选）
      */
     void tick(bool isPaused,
@@ -144,6 +145,7 @@ public:
         bool inWater,
         bool inCreative,
         bool inBossFight,
+        bool inOceanOrRiverBiome,
         const std::optional<world::biome::BiomeMusic>& biomeMusic);
 
     /**

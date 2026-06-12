@@ -79,9 +79,9 @@ TEST_F(BiomeAmbientHandlerTest, SetPlayerPosition)
 TEST_F(BiomeAmbientHandlerTest, SetLightLevel)
 {
     // 测试设置光照等级不会崩溃
-    handler->setLightLevel(15, 0); // 完全天空光
-    handler->setLightLevel(0, 15); // 完全方块光
-    handler->setLightLevel(0, 0);  // 完全黑暗
+    handler->setLightLevel(15, 0, 15, 0); // 完全天空光（采样位置也是完全天空光）
+    handler->setLightLevel(0, 15, 0, 15); // 完全方块光（采样位置也是完全方块光）
+    handler->setLightLevel(0, 0, 0, 0);   // 完全黑暗（采样位置也是完全黑暗）
     // 无异常即成功
 }
 

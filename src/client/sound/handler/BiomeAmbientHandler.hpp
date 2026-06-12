@@ -100,13 +100,21 @@ public:
     /**
      * @brief 设置光照等级（用于心境音效触发）
      *
-     * @param skyLight 天空光照等级 (0 ~ MAX_LIGHT_LEVEL)
-     * @param blockLight 方块光照等级 (0 ~ MAX_LIGHT_LEVEL)
+     * skyLight/blockLight 为玩家眼睛位置的光照，
+     * moodSkyLight/moodBlockLight 为心境音效采样位置的光照。
+     * 心境计时器使用采样位置的光照计算，与 MC 原版行为一致。
+     *
+     * @param skyLight 玩家眼睛位置天空光照等级 (0 ~ MAX_LIGHT_LEVEL)
+     * @param blockLight 玩家眼睛位置方块光照等级 (0 ~ MAX_LIGHT_LEVEL)
+     * @param moodSkyLight 心境音效采样位置天空光照等级 (0 ~ MAX_LIGHT_LEVEL)
+     * @param moodBlockLight 心境音效采样位置方块光照等级 (0 ~ MAX_LIGHT_LEVEL)
      */
-    void setLightLevel(u8 skyLight, u8 blockLight)
+    void setLightLevel(u8 skyLight, u8 blockLight, u8 moodSkyLight, u8 moodBlockLight)
     {
         m_skyLight = skyLight;
         m_blockLight = blockLight;
+        m_moodSkyLight = moodSkyLight;
+        m_moodBlockLight = moodBlockLight;
     }
 
 private:
@@ -121,9 +129,13 @@ private:
     f64 m_playerY = 0.0;
     f64 m_playerZ = 0.0;
 
-    /// 光照等级
+    /// 光照等级（玩家眼睛位置）
     u8 m_skyLight = static_cast<u8>(game::MAX_LIGHT_LEVEL);
     u8 m_blockLight = static_cast<u8>(game::MAX_LIGHT_LEVEL);
+
+    /// 心境音效采样位置的光照等级
+    u8 m_moodSkyLight = static_cast<u8>(game::MAX_LIGHT_LEVEL);
+    u8 m_moodBlockLight = static_cast<u8>(game::MAX_LIGHT_LEVEL);
 
     /// 心境音效计时器 (0.0 - 1.0)
     f32 m_moodTimer = 0.0f;

@@ -206,15 +206,15 @@ void BiomeAmbientHandler::tick(SoundEngine& engine)
         i32 bz = static_cast<i32>(m_playerZ) + m_rng.nextInt(extent * 2 + 1) - extent;
 
         // 心境计时器逻辑
-        // TODO: MC使用采样位置的光照，当前简化为使用玩家位置的光照作为近似
-        if (m_skyLight > 0) {
+        // 使用采样位置的光照，而非玩家位置的光照（与 MC 原版一致）
+        if (m_moodSkyLight > 0) {
             // 在有天空光的地方，计时器减少
-            m_moodTimer -= static_cast<f32>(m_skyLight) / static_cast<f32>(game::MAX_LIGHT_LEVEL) * 0.001f;
+            m_moodTimer -= static_cast<f32>(m_moodSkyLight) / static_cast<f32>(game::MAX_LIGHT_LEVEL) * 0.001f;
         } else {
             // 在完全黑暗的地方，根据方块光调整
-            if (m_blockLight > 0) {
+            if (m_moodBlockLight > 0) {
                 // 有方块光，计时器减少
-                m_moodTimer -= static_cast<f32>(m_blockLight - 1) / static_cast<f32>(mood.tickDelay());
+                m_moodTimer -= static_cast<f32>(m_moodBlockLight - 1) / static_cast<f32>(mood.tickDelay());
             } else {
                 // 完全黑暗，计时器增加
                 m_moodTimer += 1.0f / static_cast<f32>(mood.tickDelay());

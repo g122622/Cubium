@@ -97,10 +97,12 @@ public:
      *
      * 用于心境音效的触发计算。
      *
-     * @param skyLight 天空光照等级 (0-15)
-     * @param blockLight 方块光照等级 (0-15)
+     * @param skyLight 玩家眼睛位置天空光照等级 (0-15)
+     * @param blockLight 玩家眼睛位置方块光照等级 (0-15)
+     * @param moodSkyLight 心境音效采样位置天空光照等级 (0-15)
+     * @param moodBlockLight 心境音效采样位置方块光照等级 (0-15)
      */
-    void setAmbientLightLevel(u8 skyLight, u8 blockLight);
+    void setAmbientLightLevel(u8 skyLight, u8 blockLight, u8 moodSkyLight, u8 moodBlockLight);
 
     /**
      * @brief 更新环境音效处理器的玩家位置
@@ -124,6 +126,7 @@ public:
     void updateMusicState(i32 dimension,
         bool inCreative,
         bool inBossFight,
+        bool inOceanOrRiverBiome,
         const std::optional<world::biome::BiomeMusic>& biomeMusic = std::nullopt);
 
     /**
@@ -307,12 +310,16 @@ private:
         i32 dimension = 0;
         bool inCreative = false;
         bool inBossFight = false;
+        bool inOceanOrRiverBiome = false;
         bool inMenu = false;
         // 生物群系音乐
         std::optional<world::biome::BiomeMusic> biomeMusic;
         // 环境音效光照等级
         u8 skyLight = 15;
         u8 blockLight = 15;
+        // 心境音效采样位置光照等级
+        u8 moodSkyLight = 15;
+        u8 moodBlockLight = 0;
         // 环境音效玩家位置
         f64 playerX = 0.0;
         f64 playerY = 0.0;
@@ -364,6 +371,7 @@ private:
     std::atomic<bool> m_savedUnderwater{false};
     std::atomic<bool> m_savedCreative{false};
     std::atomic<bool> m_savedBossFight{false};
+    std::atomic<bool> m_savedInOceanOrRiverBiome{false};
     std::atomic<bool> m_savedInMenu{false};
 
     // 生物群系音乐（需要互斥锁保护）

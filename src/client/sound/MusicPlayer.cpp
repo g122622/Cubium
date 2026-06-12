@@ -117,6 +117,7 @@ void MusicPlayer::tick(bool isPaused,
     bool inWater,
     bool inCreative,
     bool inBossFight,
+    bool inOceanOrRiverBiome,
     const std::optional<world::biome::BiomeMusic>& biomeMusic)
 {
     if (!m_enabled) {
@@ -145,8 +146,8 @@ void MusicPlayer::tick(bool isPaused,
                 // 诡异森林没有专属音乐，返回空选择器
                 desiredType = MusicType::None;
             }
-        } else if (inWater) {
-            // 水下 - TODO: 需要检查是否在海洋或河流群系中才能播放水下音乐
+        } else if (inWater && inOceanOrRiverBiome) {
+            // 水下且在海洋或河流生物群系中才播放水下音乐
             desiredType = MusicType::Underwater;
         } else if (inCreative) {
             // 创造模式

@@ -110,9 +110,9 @@ public:
 
     [[nodiscard]] IWorld* getWorld() override { return m_world; }
     [[nodiscard]] const IWorld* getWorld() const override { return m_world; }
-    [[nodiscard]] double getXPos() const override { return static_cast<double>(getPos().x) + 0.5; }
-    [[nodiscard]] double getYPos() const override { return static_cast<double>(getPos().y) + 0.5; }
-    [[nodiscard]] double getZPos() const override { return static_cast<double>(getPos().z) + 0.5; }
+    [[nodiscard]] f64 getXPos() const override { return static_cast<f64>(getPos().x) + 0.5; }
+    [[nodiscard]] f64 getYPos() const override { return static_cast<f64>(getPos().y) + 0.5; }
+    [[nodiscard]] f64 getZPos() const override { return static_cast<f64>(getPos().z) + 0.5; }
     [[nodiscard]] BlockPos getHopperPos() const override { return getPos(); }
 
     /**

@@ -81,11 +81,6 @@ public:
 private:
     void _initializeBiomes();
 
-    /**
-     * @brief 检查生物群系是否属于海洋或河流类别
-     */
-    [[nodiscard]] bool _isOceanOrRiverBiome(BiomeId biomeId) const;
-
     static constexpr StructureSeparationSettings m_settings{32, 5, 10387313};
     static const std::string m_name;
     static const SpawnOverrides m_spawnOverrides;

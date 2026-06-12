@@ -591,6 +591,35 @@ constexpr BiomeId WindsweptSavanna = ShatteredSavanna;        // 原 ShatteredSa
 // 生物群系总数（最大 ID + 1）
 constexpr BiomeId Count = 186;
 
+/**
+ * @brief 判断生物群系是否为海洋或河流类型
+ *
+ * 水下音乐只在海洋或河流生物群系中播放。
+ *
+ * @param biomeId 生物群系ID
+ * @return 是否为海洋或河流生物群系
+ */
+[[nodiscard]] inline bool isOceanOrRiverBiome(BiomeId biomeId)
+{
+    switch (biomeId) {
+        case Ocean:
+        case WarmOcean:
+        case LukewarmOcean:
+        case ColdOcean:
+        case FrozenOcean:
+        case DeepOcean:
+        case DeepWarmOcean:
+        case DeepLukewarmOcean:
+        case DeepColdOcean:
+        case DeepFrozenOcean:
+        case River:
+        case FrozenRiver:
+            return true;
+        default:
+            return false;
+    }
+}
+
 } // namespace Biomes
 
 } // namespace mc

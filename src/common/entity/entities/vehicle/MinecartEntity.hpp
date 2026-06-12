@@ -696,9 +696,9 @@ public:
 
     [[nodiscard]] IWorld* getWorld() override { return Entity::world(); }
     [[nodiscard]] const IWorld* getWorld() const override { return Entity::world(); }
-    [[nodiscard]] double getXPos() const override { return x(); }
-    [[nodiscard]] double getYPos() const override { return y(); }
-    [[nodiscard]] double getZPos() const override { return z(); }
+    [[nodiscard]] f64 getXPos() const override { return x(); }
+    [[nodiscard]] f64 getYPos() const override { return y(); }
+    [[nodiscard]] f64 getZPos() const override { return z(); }
     [[nodiscard]] BlockPos getHopperPos() const override
     {
         return BlockPos(static_cast<BlockCoord>(std::floor(x())),
