@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../building/TrapDoorBlock.hpp"
+#include "IOxidizableBlock.hpp"
 #include "WeatheringCopperBlock.hpp"
 
 namespace mc {
@@ -36,22 +37,37 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.OxidizableTrapDoorBlock
  */
-class WeatheringCopperTrapDoorBlock : public TrapDoorBlock {
+class WeatheringCopperTrapDoorBlock : public TrapDoorBlock, public IOxidizableBlock {
 public:
     /**
      * @brief 构造函数
      * @param properties 方块属性
      * @param oxidationLevel 初始氧化等级
      */
-    WeatheringCopperTrapDoorBlock(const BlockProperties& properties,
-        BlockStateProperties::OxidationLevel oxidationLevel);
+    WeatheringCopperTrapDoorBlock(
+        const BlockProperties& properties, BlockStateProperties::OxidationLevel oxidationLevel);
 
     ~WeatheringCopperTrapDoorBlock() override = default;
 
     /**
      * @brief 获取当前氧化等级
      */
-    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const { return m_oxidationLevel; }
+    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const override { return m_oxidationLevel; }
+
+    /**
+     * @brief 获取下一氧化等级对应的方块
+     */
+    [[nodiscard]] Block* getNextOxidationBlock() const override { return m_nextOxidationBlock; }
+
+    /**
+     * @brief 获取氧化概率修正系数
+     *
+     * 未氧化（Unaffected）返回 0.75，其余等级返回 1.0。
+     */
+    [[nodiscard]] float getOxidationChanceModifier() const override
+    {
+        return m_oxidationLevel == BlockStateProperties::OxidationLevel::Unaffected ? 0.75f : 1.0f;
+    }
 
     /**
      * @brief 设置下一氧化等级对应的方块

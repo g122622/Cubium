@@ -6,9 +6,7 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
+ * furnished to do so, subject to the License, shall be included in all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -23,8 +21,8 @@
 
 #pragma once
 
-#include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
+#include "IOxidizableBlock.hpp"
 
 namespace mc {
 
@@ -37,13 +35,16 @@ namespace blocks {
  * @brief 可风化铜方块
  *
  * 支持氧化等级属性的铜方块基类。非涂蜡的铜方块会在随机刻中尝试氧化。
- * 氧化算法：扫描4格曼哈顿距离内的同类型铜方块，
- * 如果周围有更氧化的同类型方块，则加速氧化；
- * 如果周围有更少氧化的同类型方块，则减缓氧化。
- *
- * 参考: net.minecraft.block.OxidizableBlock (1.17+)
+ * 氧化算法：先以约 5.69% 的概率通过外层门限，然后扫描4格曼哈顿距离内的
+ * 同类型铜方块，根据周围方块的氧化等级计算最终氧化概率：
+ *   - 若存在更低氧化等级的邻居，立即取消氧化
+ *   - 更多更高氧化等级的邻居会加速氧化
+ *   - 更多同等级邻居会减缓氧化
+ *   - 最终概率 = ((k+1)/(k+j+1))^2 * chanceModifier
+ *     其中 k = 更高氧化等级邻居数, j = 同等级邻居数
+ *   - Unaffected等级的 chanceModifier = 0.75, 其余为 1.0
  */
-class WeatheringCopperBlock : public Block {
+class WeatheringCopperBlock : public Block, public IOxidizableBlock {
 public:
     /**
      * @brief 构造函数
@@ -57,7 +58,7 @@ public:
     /**
      * @brief 获取当前氧化等级
      */
-    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const { return m_oxidationLevel; }
+    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const override { return m_oxidationLevel; }
 
     /**
      * @brief 设置下一氧化等级对应的方块
@@ -65,6 +66,11 @@ public:
      * 注册铜方块后调用，建立氧化链。
      */
     void setNextOxidationBlock(Block* nextBlock) { m_nextOxidationBlock = nextBlock; }
+
+    /**
+     * @brief 获取下一氧化等级对应的方块
+     */
+    [[nodiscard]] Block* getNextOxidationBlock() const override { return m_nextOxidationBlock; }
 
     /**
      * @brief 随机Tick - 尝试氧化
@@ -85,14 +91,6 @@ public:
     }
 
 protected:
-    /**
-     * @brief 获取下一氧化等级对应的方块
-     *
-     * 由子类或注册时设置氧化方块链。
-     * 返回 nullptr 表示已是最高等级，无法继续氧化。
-     */
-    [[nodiscard]] virtual Block* getNextOxidationBlock() const;
-
     /// 当前氧化等级
     BlockStateProperties::OxidationLevel m_oxidationLevel;
 
@@ -103,8 +101,7 @@ protected:
 /**
  * @brief 涂蜡铜方块
  *
- * 涂蜡后的铜方块不会氧化，OXIDATION属性固定。
- * 参考: net.minecraft.block.WaxableBlock (逻辑上，MC中涂蜡方块只是不响应氧化)
+ * 涂蜡后的铜方块不会氧化。
  */
 class WaxedCopperBlock : public Block {
 public:

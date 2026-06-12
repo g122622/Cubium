@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../building/SlabBlock.hpp"
+#include "IOxidizableBlock.hpp"
 #include "WeatheringCopperBlock.hpp"
 
 namespace mc {
@@ -36,15 +37,22 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.OxidizableSlabBlock
  */
-class WeatheringCopperSlabBlock : public SlabBlock {
+class WeatheringCopperSlabBlock : public SlabBlock, public IOxidizableBlock {
 public:
     WeatheringCopperSlabBlock(const BlockProperties& properties, BlockStateProperties::OxidationLevel oxidationLevel);
 
     ~WeatheringCopperSlabBlock() override = default;
 
-    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const { return m_oxidationLevel; }
+    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const override { return m_oxidationLevel; }
 
     void setNextOxidationBlock(Block* nextBlock) { m_nextOxidationBlock = nextBlock; }
+
+    [[nodiscard]] Block* getNextOxidationBlock() const override { return m_nextOxidationBlock; }
+
+    [[nodiscard]] float getOxidationChanceModifier() const override
+    {
+        return m_oxidationLevel == BlockStateProperties::OxidationLevel::Unaffected ? 0.75f : 1.0f;
+    }
 
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 

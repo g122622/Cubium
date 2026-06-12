@@ -6,7 +6,8 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * furnished to do so, subject to the new condition that the following
+ * conditions are met:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
@@ -26,7 +27,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace world {
@@ -42,7 +43,6 @@ i32 CopperBulbDegradationProcessor::getOxidationLevel(i32 x, i32 y, i32 z)
     // 模拟 MC 1.21 中 trial_chambers_copper_bulb_degradation 的行为
     u64 hash = math::hashBlockPos(x, y, z);
     // 将哈希值映射到 0-3 的氧化等级
-    // 未氧化和斑驳概率较高，锈蚀和氧化概率较低
     return static_cast<i32>((hash >> 16) % 4);
 }
 
@@ -56,14 +56,59 @@ std::optional<ProcessedBlockInfo> CopperBulbDegradationProcessor::process(const 
     MC_UNUSED(rawBlockInfo);
     MC_UNUSED(settings);
 
-    // TODO(trial_chambers): 实现铜灯降级逻辑
-    // 需要查找涂蜡铜灯的方块ID，并根据位置哈希将其替换为对应氧化等级的涂蜡铜灯
-    // 当铜块注册系统完善后实现具体映射：
-    //   waxed_copper_bulb -> waxed_copper_bulb / waxed_exposed_copper_bulb /
-    //                       waxed_weathered_copper_bulb / waxed_oxidized_copper_bulb
-    // 当前仅返回原始方块，不做替换
+    // 通过 blockStateId 获取方块
+    BlockState* state = BlockRegistry::instance().getBlockState(blockInfo.blockStateId);
+    if (state == nullptr) {
+        return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+    }
 
-    return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+    const Block& block = state->getBlock();
+
+    // 检查是否为涂蜡铜灯 - 只对涂蜡铜灯进行降级
+    // 在试炼密室中，结构模板使用的是涂蜡铜灯，
+    // 处理器根据位置哈希将其替换为不同氧化等级的涂蜡铜灯
+    Block* replacementBlock = nullptr;
+
+    if (&block == VanillaBlocks::WAXED_COPPER_BULB) {
+        i32 level = getOxidationLevel(pos.x, pos.y, pos.z);
+        switch (level) {
+            case 0:
+                replacementBlock = VanillaBlocks::WAXED_COPPER_BULB;
+                break;
+            case 1:
+                replacementBlock = VanillaBlocks::WAXED_EXPOSED_COPPER_BULB;
+                break;
+            case 2:
+                replacementBlock = VanillaBlocks::WAXED_WEATHERED_COPPER_BULB;
+                break;
+            case 3:
+                replacementBlock = VanillaBlocks::WAXED_OXIDIZED_COPPER_BULB;
+                break;
+            default:
+                replacementBlock = VanillaBlocks::WAXED_COPPER_BULB;
+                break;
+        }
+    }
+
+    // 如果没有匹配到需要降级的方块，返回原始方块
+    if (replacementBlock == nullptr) {
+        return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+    }
+
+    // 如果替换方块与原方块相同，无需替换
+    if (replacementBlock == &block) {
+        return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+    }
+
+    // 使用替换方块的默认状态的 blockStateId
+    const BlockState& replacementState = replacementBlock->defaultState();
+    ProcessedBlockInfo result;
+    result.pos = blockInfo.pos;
+    result.blockStateId = replacementState.stateId();
+    if (blockInfo.nbt) {
+        result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+    }
+    return result;
 }
 
 } // namespace template_

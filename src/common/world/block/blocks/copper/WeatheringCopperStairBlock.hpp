@@ -24,7 +24,7 @@
 #pragma once
 
 #include "../building/StairsBlock.hpp"
-#include "WeatheringCopperBlock.hpp"
+#include "IOxidizableBlock.hpp"
 
 namespace mc {
 namespace blocks {
@@ -36,7 +36,7 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.OxidizableStairsBlock
  */
-class WeatheringCopperStairBlock : public StairsBlock {
+class WeatheringCopperStairBlock : public StairsBlock, public IOxidizableBlock {
 public:
     WeatheringCopperStairBlock(const BlockState& baseState,
         const BlockProperties& properties,
@@ -44,9 +44,16 @@ public:
 
     ~WeatheringCopperStairBlock() override = default;
 
-    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const { return m_oxidationLevel; }
+    [[nodiscard]] BlockStateProperties::OxidationLevel getOxidationLevel() const override { return m_oxidationLevel; }
+
+    [[nodiscard]] Block* getNextOxidationBlock() const override { return m_nextOxidationBlock; }
 
     void setNextOxidationBlock(Block* nextBlock) { m_nextOxidationBlock = nextBlock; }
+
+    [[nodiscard]] float getOxidationChanceModifier() const override
+    {
+        return m_oxidationLevel == BlockStateProperties::OxidationLevel::Unaffected ? 0.75f : 1.0f;
+    }
 
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
