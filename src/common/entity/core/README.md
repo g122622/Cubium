@@ -269,3 +269,11 @@ finalizeSpawn(world, difficulty, spawnReason)
 - `setLeashedToEntity(uuid)`：拴到实体
 - `setLeashedToFence(pos)`：拴到栅栏柱
 - `clearLeash()`：解除拴绳
+
+### canAttackType 攻击类型判断
+- `canAttackType(EntityTypeId typeId)` — 对应 MC 原版 `Mob.canAttackType()`
+- 基类默认实现返回 `true`（允许攻击所有类型），MC 原版基类排除恶魂（TODO 待实现）
+- 子类重写以限制攻击目标类型，例如：
+  - `IronGolemEntity::canAttackType()` — 玩家创建的铁傀儡不攻击玩家，所有铁傀儡不攻击苦力怕
+- 在 `TargetGoal::isSuitableTarget()` 中自动调用，所有目标选择器继承此过滤逻辑
+- 自定义目标选择器（如 `IronGolemNearestAttackableTargetGoal`）需手动调用 `canAttackType()`

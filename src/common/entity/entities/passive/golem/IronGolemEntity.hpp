@@ -197,8 +197,8 @@ private:
     i32 m_holdRoseTick = 0;
 
     // 常量
-    static constexpr i32 ATTACK_DURATION = 10; // 攻击动画持续时间（tick）
-    static constexpr f32 ATTACK_DAMAGE = 7.0f; // 攻击伤害基础值（属性注册值）
+    static constexpr i32 ATTACK_DURATION = 10;  // 攻击动画持续时间（tick）
+    static constexpr f32 ATTACK_DAMAGE = 15.0f; // 攻击伤害基础值（属性注册值），MC 1.21.11 原版为 15.0
 };
 
 } // namespace mc

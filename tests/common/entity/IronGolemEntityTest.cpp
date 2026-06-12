@@ -256,7 +256,7 @@ TEST_F(IronGolemAttackTest, AttackDealsDamageToTarget)
 
     // 攻击应成功
     EXPECT_TRUE(success);
-    // 目标生命值应减少（铁傀儡 ATTACK_DAMAGE = 7.0）
+    // 目标生命值应减少（铁傀儡 ATTACK_DAMAGE = 15.0）
     EXPECT_LT(player->health(), healthBefore);
 }
 
@@ -296,9 +296,9 @@ TEST_F(IronGolemAttackTest, KnockbackResistedByTargetAttribute)
 
 TEST_F(IronGolemAttackTest, AttackDamageValue)
 {
-    // 铁傀儡攻击伤害应为 ATTACK_DAMAGE 属性值 (7.0)
+    // 铁傀儡攻击伤害应为 ATTACK_DAMAGE 属性值 (15.0)，MC 1.21.11 原版值
     f64 attackDamage = ironGolem->getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0);
-    EXPECT_DOUBLE_EQ(attackDamage, 7.0);
+    EXPECT_DOUBLE_EQ(attackDamage, 15.0);
 }
 
 TEST_F(IronGolemAttackTest, MobEntityCanAttackTypeDefaultAllowsAll)

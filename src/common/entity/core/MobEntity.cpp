@@ -314,8 +314,9 @@ bool MobEntity::isInDaylight() const
 
 bool MobEntity::canAttackType(entity::EntityTypeId typeId) const
 {
-    // 基类默认允许攻击所有类型
-    // 子类可重写以限制攻击目标类型（如铁傀儡不攻击苦力怕）
+    // 对应 MC 原版 Mob.canAttackType()
+    // MC 原版基类排除恶魂：return p_21399_ != EntityType.GHAST;
+    // TODO: 添加恶魂排除逻辑（需要 GhastEntity 注册后 EntityTypeIdNumber::GHAST 可用）
     (void)typeId;
     return true;
 }

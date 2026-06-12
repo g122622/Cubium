@@ -79,4 +79,10 @@ golem/
 
 6. **玩家创建标记**：铁傀儡有 `m_playerCreated` 标记，玩家创建的铁傀儡不攻击玩家，需要在生成时正确设置。
 
-7. **苦力怕排除**：铁傀儡不攻击苦力怕，`canAttackEntity()` 和 AI 目标选择器都有相关过滤逻辑。
+7. **苦力怕排除**：铁傀儡不攻击苦力怕，通过重写 `canAttackType()` 实现（对应 MC 原版 `IronGolem.canAttackType()`），`TargetGoal::isSuitableTarget()` 自动调用此方法过滤目标类型。
+
+8. **canAttackType 重写**：`IronGolemEntity::canAttackType()` 替代了之前的 `canAttackEntity()`，现在是 `MobEntity::canAttackType()` 的虚方法重写。修改铁傀儡可攻击类型时只需修改此方法，所有目标选择器自动继承。
+
+9. **ATTACK_DAMAGE 属性注册**：铁傀儡的攻击伤害属性值为 15.0（MC 1.21.11 原版），需要在 `registerAttributes()` 中先调用 `registerAttribute(*Attributes::attackDamage())` 再 `setBaseValue()`，因为 `GolemEntity` 继承链（不同于 `MonsterEntity`）未注册此属性。
+
+10. **伤害随机化**：`attackEntityAsMob()` 中的伤害计算 `damage/2.0f + nextInt((int)damage)` 对应 MC 原版 `f/2.0F + this.random.nextInt((int)f)`，其中 `(int)f` 是截断取整。
