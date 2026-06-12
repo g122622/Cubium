@@ -962,6 +962,26 @@ public:
      */
     virtual void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state);
 
+    /**
+     * @brief 方块被破坏后的额外生成处理
+     *
+     * 当方块被玩家或爆炸破坏后调用，用于执行额外的生成逻辑（如蠹虫生成）。
+     * 默认实现为空。此方法在掉落物生成之后、方块实际移除之前调用。
+     *
+     * 与 onBlockRemoved 的区别：此方法接收破坏工具信息，可用于判断附魔效果。
+     * onBlockRemoved 在方块状态变更后调用，不包含工具上下文。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 方块状态（破坏前的状态）
+     * @param tool 破坏工具（可能为空，如爆炸破坏）
+     * @param dropExp 是否掉落经验（爆炸时可能为 false）
+     *
+     * 参考: net.minecraft.block.BlockBehaviour.spawnAfterBreak
+     */
+    virtual void spawnAfterBreak(
+        IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack* tool, bool dropExp) const;
+
     // ========================================================================
     // 爆炸相关
     // ========================================================================

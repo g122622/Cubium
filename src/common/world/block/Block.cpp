@@ -409,6 +409,18 @@ void Block::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState&
     (void)state;
 }
 
+void Block::spawnAfterBreak(
+    IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack* tool, bool dropExp) const
+{
+    // 默认实现：空操作
+    // 需要额外生成逻辑的方块应重写此方法（如 InfestedBlock 生成蠹虫）
+    (void)world;
+    (void)pos;
+    (void)state;
+    (void)tool;
+    (void)dropExp;
+}
+
 bool Block::isSolidSide(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const
 {
     // 冰块特殊处理：冰块的侧面不被认为是实体面（用于流体流动判断）

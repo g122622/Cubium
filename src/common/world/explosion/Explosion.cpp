@@ -345,6 +345,11 @@ void Explosion::_destroyBlocks()
         // 调用方块的爆炸回调
         block.onBlockExploded(m_world, pos, *state);
 
+        // 调用方块的破坏后生成回调（如 InfestedBlock 生成蠹虫）
+        // 爆炸破坏时工具为 nullptr（精准采集检查会被跳过，蠹虫正常生成）
+        // dropExp 为 false，因为爆炸不会产生经验掉落
+        block.spawnAfterBreak(m_world, pos, *state, nullptr, false);
+
         // 检查方块是否可以被爆炸掉落
         bool canDrop = block.canDropFromExplosion(*state);
 

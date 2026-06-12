@@ -26,8 +26,10 @@
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 
 namespace mc {
 namespace blocks {
@@ -45,16 +47,34 @@ InfestedBlock::InfestedBlock(u32 hostBlock, const BlockProperties& properties)
 
 void InfestedBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 当被破坏时，有概率生成蠹虫
-    // 注意：实际生成条件需要检查游戏规则 doTileDrops 和精准采集附魔
-    // 这些检查在 onBlockHarvested 或 spawnAdditionalDrops 中进行
-    // TODO: 当前简化处理，应检查游戏规则和精准采集附魔后再决定是否生成蠹虫
-
+    // 蠹虫生成逻辑已移至 spawnAfterBreak，因为 onBlockRemoved 无法获取破坏工具信息
+    // onBlockRemoved 仍需保留空实现以阻止基类默认行为
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
     MC_UNUSED(state);
+}
+
+void InfestedBlock::spawnAfterBreak(
+    IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack* tool, bool dropExp) const
+{
+    MC_UNUSED(state);
+    MC_UNUSED(dropExp);
 
     // 只在服务端生成
     if (world.isClientSide()) {
         return;
+    }
+
+    // 检查游戏规则 doTileDrops：为 false 时不生成蠹虫
+    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_TILE_DROPS)) {
+        return;
+    }
+
+    // 检查精准采集附魔：使用精准采集工具破坏时不生成蠹虫
+    if (tool != nullptr && !tool->isEmpty()) {
+        if (item::enchant::EnchantmentHelper::hasSilkTouch(*tool)) {
+            return;
+        }
     }
 
     // 创建蠹虫实体

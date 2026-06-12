@@ -215,6 +215,10 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
                 // 生成掉落物
                 _generateBlockDrops(*world, pos, *state, playerId, tool.isEmpty() ? nullptr : &tool);
 
+                // 调用方块的 spawnAfterBreak 回调（如 InfestedBlock 生成蠹虫）
+                const Block& breakBlock = state->getBlock();
+                breakBlock.spawnAfterBreak(*world, pos, *state, tool.isEmpty() ? nullptr : &tool, true);
+
                 // 设置为空气
                 _setBlockToAir(*world, pos, *state, playerId);
 
@@ -517,6 +521,11 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId play
 
     // 生成掉落物
     _generateBlockDrops(*world, pos, oldState, playerId, tool.isEmpty() ? nullptr : &tool);
+
+    // 调用方块的 spawnAfterBreak 回调（如 InfestedBlock 生成蠹虫）
+    // 在掉落物生成之后、方块移除之前调用，此时工具信息可用
+    const Block& oldBlock = oldState.getBlock();
+    oldBlock.spawnAfterBreak(*world, pos, oldState, tool.isEmpty() ? nullptr : &tool, true);
 
     // 调用工具的 onBlockDestroyed 回调（用于耐久消耗等）
     if (!tool.isEmpty()) {

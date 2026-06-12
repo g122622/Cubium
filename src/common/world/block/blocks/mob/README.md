@@ -56,7 +56,8 @@ Block (基类)
 - **映射表初始化**：必须在使用 `canContainSilverfish` 或 `infest` 前调用 `initializeMappings()`，由 `VanillaBlocks::initialize()` 自动调用
 - **映射注册**：通过 `registerInfestedBlock()` 注册普通方块与虫蚀方块的映射关系
 - **服务端检查**：蠹虫只在服务端生成，需要 `world.isClientSide()` 检查
-- **精准采集**：当前未实现精准采集附魔检查，破坏时总是生成蠹虫
+- **蠹虫生成逻辑**：通过 `spawnAfterBreak` 实现，检查 `doTileDrops` 游戏规则和精准采集附魔；使用精准采集工具破坏时不生成蠹虫；爆炸破坏时（无工具）正常生成
+- **调用路径**：`BlockInteractionManager::handleBlockBreak` → `spawnAfterBreak` → `InfestedBlock::spawnAfterBreak`；爆炸路径 `Explosion::_destroyBlocks` → `spawnAfterBreak(nullptr, false)`
 
 ### DragonBreathBlock
 - **碰撞伤害**：只对 `LivingEntity` 造成伤害，使用 `dynamic_cast` 检查实体类型

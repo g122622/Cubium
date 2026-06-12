@@ -22,6 +22,7 @@
  */
 
 #include "SilverfishGoals.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "entity/ai/pathfinding/PathNavigator.hpp"
 #include "entity/core/LivingEntity.hpp"
@@ -31,7 +32,6 @@
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/mob/InfestedBlock.hpp"
 #include "world/gamerule/GameRules.hpp"
 #include <cmath>
@@ -206,11 +206,11 @@ void SilverfishSummonOthersGoal::tick()
                         if (infestedBlock != nullptr) {
                             // 检查 mobGriefing 游戏规则
                             if (world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
-                                // 破坏方块（会生成蠹虫）
                                 const BlockState* airState = BlockRegistry::instance().airState();
                                 if (airState != nullptr) {
+                                    // 先调用 spawnAfterBreak（蠹虫从虫蚀方块中钻出时也会触发蠹虫生成）
+                                    block.spawnAfterBreak(*world, checkPos, *state, nullptr, true);
                                     world->setBlockState(checkPos, airState, 3);
-                                    // onBlockRemoved 会在 InfestedBlock 中自动生成蠹虫
                                 }
                             } else {
                                 // 转换为原版方块
