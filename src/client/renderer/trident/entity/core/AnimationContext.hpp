@@ -147,6 +147,20 @@ struct AnimationContext {
      */
     i32 puffState = 0;
 
+    /**
+     * @brief 吃草动画计时器
+     *
+     * 羊等实体的低头吃草动画计时器。
+     * 收到 EatBlock(10) 状态包时设为 40，每tick递减，0表示动画结束。
+     * 参考 MC 1.16.5 Sheep.eatAnimationTick
+     *
+     * TODO: 当前值已在 ClientEntity 和 AnimationContext 中存储并传递，
+     * 但 SheepRenderer 尚未读取此值来驱动头部低头动画，
+     * 需要在 EntityRendererManager::_createModelForEntity() 中添加
+     * sheep 分支并将此值传递给 SheepModel::setEatingGrass()。
+     */
+    i32 eatAnimationTimer = 0;
+
     // ========== 方法 ==========
 
     /**

@@ -47,6 +47,7 @@ void AnimationContext::computeHash()
     hash = hashCombine(hash, static_cast<f64>(swingProgress));
     hash = hashCombine(hash, static_cast<f64>(standingProgress));
     hash = hashCombine(hash, static_cast<f64>(puffState));
+    hash = hashCombine(hash, static_cast<f64>(eatAnimationTimer));
 
     // 组合布尔状态（转换为 0.0 或 1.0）
     hash = hashCombine(hash, isSitting ? 1.0 : 0.0);
@@ -87,6 +88,9 @@ bool AnimationContext::hasSignificantChange(const AnimationContext& other, f64 t
 
     // 河豚膨胀状态变化（立即更新网格）
     if (puffState != other.puffState) return true;
+
+    // 吃草动画计时器变化（立即更新网格）
+    if (eatAnimationTimer != other.eatAnimationTimer) return true;
 
     // 布尔状态变化（立即更新）
     if (isSitting != other.isSitting) return true;

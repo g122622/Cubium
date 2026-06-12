@@ -148,6 +148,44 @@ TEST_F(ClientEntityAnimationTest, PuffState_ClampedToRange)
     EXPECT_EQ(entity->puffState(), 2);
 }
 
+// ========== Eat Animation Timer ==========
+
+TEST_F(ClientEntityAnimationTest, EatAnimationTimer_DefaultIsZero)
+{
+    EXPECT_EQ(entity->eatAnimationTimer(), 0);
+}
+
+TEST_F(ClientEntityAnimationTest, EatAnimationTimer_SetAndGet)
+{
+    entity->setEatAnimationTimer(40);
+    EXPECT_EQ(entity->eatAnimationTimer(), 40);
+}
+
+TEST_F(ClientEntityAnimationTest, EatAnimationTimer_DecrementsOnTick)
+{
+    entity->setEatAnimationTimer(40);
+    entity->tick();
+    EXPECT_EQ(entity->eatAnimationTimer(), 39);
+}
+
+TEST_F(ClientEntityAnimationTest, EatAnimationTimer_ReachesZero)
+{
+    entity->setEatAnimationTimer(5);
+    for (int i = 0; i < 5; ++i) {
+        entity->tick();
+    }
+    EXPECT_EQ(entity->eatAnimationTimer(), 0);
+}
+
+TEST_F(ClientEntityAnimationTest, EatAnimationTimer_DoesNotGoNegative)
+{
+    entity->setEatAnimationTimer(2);
+    entity->tick(); // 1
+    entity->tick(); // 0
+    entity->tick(); // still 0
+    EXPECT_EQ(entity->eatAnimationTimer(), 0);
+}
+
 // ========== Interpolated Swing Progress ==========
 
 TEST_F(ClientEntityAnimationTest, InterpolatedSwingProgress_NoSwing)

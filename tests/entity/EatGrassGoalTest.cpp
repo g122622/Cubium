@@ -26,6 +26,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/ai/goal/goals/EatGrassGoal.hpp"
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -321,6 +322,24 @@ public:
         m_lastEventData = data;
     }
 
+    // 实体状态广播追踪
+    void broadcastEntityStatus(EntityId entityId, u8 status) override
+    {
+        m_lastBroadcastEntityId = entityId;
+        m_lastBroadcastStatus = status;
+        m_broadcastCount++;
+    }
+
+    [[nodiscard]] EntityId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
+    [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
+    [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
+    void resetBroadcastTracking()
+    {
+        m_lastBroadcastEntityId = EntityId(0);
+        m_lastBroadcastStatus = 0;
+        m_broadcastCount = 0;
+    }
+
     [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
     [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
 
@@ -341,6 +360,9 @@ private:
     i32 m_lastEventId = -1;
     BlockPos m_lastEventPos{0, 0, 0};
     i32 m_lastEventData = 0;
+    EntityId m_lastBroadcastEntityId{0};
+    u8 m_lastBroadcastStatus = 0;
+    i32 m_broadcastCount = 0;
 };
 
 /**
@@ -528,4 +550,70 @@ TEST_F(EatGrassGoalGameRuleTest, TallGrassHandled_WhenMobGriefingEnabled)
     const BlockState* finalState = world.getBlockState(0, 64, 0);
     ASSERT_NE(finalState, nullptr);
     EXPECT_TRUE(finalState->isAir());
+}
+
+// ============================================================================
+// 吃草目标广播实体状态测试
+// ============================================================================
+
+TEST_F(EatGrassGoalGameRuleTest, StartExecutingBroadcastsEatBlockStatus)
+{
+    EatGrassTestWorld world;
+    world.setMobGriefing(true);
+
+    TestMobEntity mob;
+    mob.setPositionForTest(0.5, 65.0, 0.5);
+    mob.setWorldForTest(&world);
+
+    bool eatGrassBonusCalled = false;
+    EatGrassGoal goal(&mob, [&eatGrassBonusCalled]() { eatGrassBonusCalled = true; }, []() { return false; });
+
+    // 重置广播追踪
+    world.resetBroadcastTracking();
+
+    // 直接调用 startExecuting，应广播 EatBlock 状态码
+    goal.startExecuting();
+
+    // 验证广播了 EatBlock(10) 状态
+    EXPECT_EQ(world.getBroadcastCount(), 1);
+    EXPECT_EQ(mob.id(), world.getLastBroadcastEntityId());
+    EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatusPacket::Status::EatBlock));
+}
+
+TEST_F(EatGrassGoalGameRuleTest, BroadcastsCorrectEntityId)
+{
+    EatGrassTestWorld world;
+    world.setMobGriefing(true);
+
+    TestMobEntity mob;
+    mob.setPositionForTest(0.5, 65.0, 0.5);
+    mob.setWorldForTest(&world);
+
+    EatGrassGoal goal(&mob, []() {}, []() { return false; });
+
+    world.resetBroadcastTracking();
+    goal.startExecuting();
+
+    // 验证广播的实体 ID 是正确的 mob ID
+    EXPECT_EQ(world.getLastBroadcastEntityId(), mob.id());
+}
+
+TEST_F(EatGrassGoalGameRuleTest, StartExecutingBroadcastsEvenWithoutGrass)
+{
+    // 即使没有草方块，startExecuting 也会广播 EatBlock 状态
+    // 因为 shouldExecute 和 startExecuting 是分开的两个阶段
+    EatGrassTestWorld world;
+
+    TestMobEntity mob;
+    mob.setPositionForTest(0.5, 65.0, 0.5);
+    mob.setWorldForTest(&world);
+
+    EatGrassGoal goal(&mob, []() {}, []() { return false; });
+
+    world.resetBroadcastTracking();
+    goal.startExecuting();
+
+    // startExecuting 总是广播 EatBlock 状态
+    EXPECT_EQ(world.getBroadcastCount(), 1);
+    EXPECT_EQ(world.getLastBroadcastStatus(), static_cast<u8>(network::EntityStatusPacket::Status::EatBlock));
 }

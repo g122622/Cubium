@@ -805,6 +805,13 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
         context.puffState = 0;
     }
 
+    // 吃草动画计时器（羊等实体的低头吃草动画）
+    if (typeId == "minecraft:sheep" || typeId == "sheep") {
+        context.eatAnimationTimer = entity.eatAnimationTimer();
+    } else {
+        context.eatAnimationTimer = 0;
+    }
+
     // 计算哈希
     context.computeHash();
 
