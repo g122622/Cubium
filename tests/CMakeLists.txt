@@ -244,6 +244,8 @@ add_executable(mc_tests
     common/entity/combat/DifficultyInstanceTest.cpp
     # MobEntity 装备生成和finalizeSpawn测试
     common/entity/combat/MobEntityEquipmentTest.cpp
+    # MobEntity 交互测试（processInitialInteract、canBeLeashed、_spawnOffspringFromSpawnEgg）
+    common/entity/core/MobEntityInteractTest.cpp
     # 战斗追踪器测试
     common/entity/combat/CombatTrackerTest.cpp
     # CombatRules EPF 测试

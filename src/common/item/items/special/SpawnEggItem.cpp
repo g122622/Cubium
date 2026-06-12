@@ -42,7 +42,7 @@ namespace item {
 SpawnEggItem::SpawnEggItem(
     entity::EntityType entityType, u32 primaryColor, u32 secondaryColor, const ItemProperties& properties)
     : Item(properties)
-    , m_entityType(entityType)
+    , m_entityType(std::move(entityType))
     , m_primaryColor(primaryColor)
     , m_secondaryColor(secondaryColor)
 {}

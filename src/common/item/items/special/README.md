@@ -65,3 +65,5 @@ special/
 4. **canBeSteered 条件**：需同时满足：有鞍 + 有乘客 + 玩家手持正确钓竿
 5. **IRideable::boost() 返回值**：加速可能失败（已在加速中或没有鞍），需检查返回值
 6. **BoneMealItem 水下使用**：需检查目标位置是否为完整水源方块（流体等级 == 8）
+7. **SpawnEggItem 实体类型不可拷贝**：`EntityType` 的拷贝构造函数是 deleted 的，`getEntityType()` 返回 `const EntityType&`（引用），构造函数参数按值传递后需用 `std::move` 初始化成员
+8. **SpawnEggItem 命名空间**：`spawnEntity()` 方法中的 `SpawnReason` 属于 `world::spawn` 命名空间，非 `entity` 命名空间

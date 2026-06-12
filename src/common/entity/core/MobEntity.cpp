@@ -427,6 +427,8 @@ ActionResultType MobEntity::processInitialInteract(Player& player, Hand hand)
 
     // 1. 命名牌交互：如果玩家手持命名牌，调用 NameTagItem 的交互方法
     //    命名牌必须先在铁砧上命名，才能对生物使用
+    //    注意: ItemStack::getItem() 返回 const Item*，需要转换为非 const
+    //    这是安全的，因为 itemInteractionForEntity 只修改 ItemStack 参数，不修改 Item 本身
     if (item != nullptr && dynamic_cast<const item::items::NameTagItem*>(item) != nullptr) {
         bool success = const_cast<Item*>(item)->itemInteractionForEntity(heldItem, player, *this, hand);
         if (success) {

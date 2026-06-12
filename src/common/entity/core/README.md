@@ -203,7 +203,12 @@ finalizeSpawn(world, difficulty, spawnReason)
 - 客户端通过 `syncFromDataManager()` 同步状态
 
 ### 玩家交互
-- `processInitialInteract()` - 无位置信息的交互（骑乘、驯服）
+- `processInitialInteract()` - 处理玩家与生物的交互链，按优先级依次处理：命名牌 → 刷怪蛋 → 拴绳 → 子类交互
+  - 命名牌交互：委托 `NameTagItem::itemInteractionForEntity()`，成功后设置自定义名称并启用持久化
+  - 刷怪蛋交互：调用 `_spawnOffspringFromSpawnEgg()`，生成同类型幼体（仅 AgeableEntity 子类支持）
+  - 拴绳交互：当前为 TODO，待 Leashable 接口完善后实现
+- `canBeLeashed()` - 判断生物是否可被拴绳拴住，默认实现通过 `dynamic_cast<IMob*>` 判断（敌对生物不可拴绳）
+- `_spawnOffspringFromSpawnEgg()` - 使用刷怪蛋生成幼体，类型匹配 + AgeableEntity 检查
 - `applyPlayerInteraction()` - 有位置信息的交互（盔甲架装备槽）
 - 基类默认返回 `ActionResultType::Pass`
 
