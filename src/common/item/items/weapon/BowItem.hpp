@@ -135,12 +135,17 @@ public:
 
 private:
     /**
-     * @brief 查找玩家的箭矢
+     * @brief 查找玩家的箭矢所在槽位
+     *
+     * 搜索顺序：副手 → 主手 → 背包。
+     * 返回槽位索引而非物品堆副本，以便通过 PlayerInventory::removeItem()
+     * 正确消耗弹药（直接操作背包槽位，避免修改副本的问题）。
+     *
      * @param player 玩家
      * @param bowStack 弓物品堆
-     * @return 箭矢物品堆（如果没有则返回空）
+     * @return 箭矢所在槽位索引，如果没有则返回 -1
      */
-    [[nodiscard]] ItemStack _findAmmo(Player& player, const ItemStack& bowStack) const;
+    [[nodiscard]] i32 _findAmmoSlot(Player& player, const ItemStack& bowStack) const;
 
     /**
      * @brief 检查箭矢是否无限

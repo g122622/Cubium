@@ -26,6 +26,7 @@
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "../../../entity/inventory/PlayerInventory.hpp"
+#include "../../../entity/inventory/Slot.hpp"
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
@@ -76,8 +77,8 @@ ItemActionResult BowItem::onItemRightClick(IWorld& /*world*/, Player& player, Ha
                            bowStack, &item::enchant::AllEnchantments::INFINITY_ARROW) > 0;
     bool isCreative = player.isCreative();
 
-    ItemStack ammoStack = _findAmmo(player, bowStack);
-    bool hasAmmo = !ammoStack.isEmpty();
+    i32 ammoSlot = _findAmmoSlot(player, bowStack);
+    bool hasAmmo = ammoSlot >= 0;
 
     // 创造模式或有箭矢或无限附魔时才能使用
     if (isCreative || hasAmmo || hasInfinity) {
@@ -114,14 +115,19 @@ void BowItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity
                            stack, &item::enchant::AllEnchantments::INFINITY_ARROW) > 0;
     bool isCreative = player->isCreative();
 
-    // 查找箭矢
-    ItemStack ammoStack = _findAmmo(*player, stack);
-    bool hasAmmo = !ammoStack.isEmpty();
+    // 查找箭矢槽位
+    i32 ammoSlot = _findAmmoSlot(*player, stack);
+    bool hasAmmo = ammoSlot >= 0;
 
-    // 无箭矢时，无限附魔使用普通箭
+    // 获取箭矢物品堆（用于创建箭矢实体）
+    ItemStack ammoStack;
+    if (hasAmmo) {
+        ammoStack = player->inventory().getItem(ammoSlot);
+    }
+
+    // 无箭矢时，无限附魔或创造模式使用普通箭
     if (!hasAmmo) {
         if (hasInfinity || isCreative) {
-            // 使用普通箭
             ammoStack = ItemStack(Items::ARROW, 1);
         } else {
             return; // 无箭矢可用
@@ -193,10 +199,10 @@ void BowItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity
     }
 
     // 消耗箭矢（非无限、非创造）
-    if (!infiniteArrow && !isCreative && !ammoStack.isEmpty()) {
-        ammoStack.shrink(1);
-        // TODO: 如果箭矢堆为空，需要从背包删除空堆
-        // player->inventory().deleteStack(ammoStack);
+    // 参考 MC 原版 ProjectileWeaponItem.useAmmo()：使用 PlayerInventory::removeItem()
+    // 直接操作背包槽位，正确处理数量减少和空堆清理
+    if (!infiniteArrow && !isCreative && ammoSlot >= 0) {
+        player->inventory().removeItem(ammoSlot, 1);
     }
 }
 
@@ -240,31 +246,31 @@ entity::AbstractArrowEntity* BowItem::customArrow(entity::AbstractArrowEntity* a
 
 // ========== 私有方法 ==========
 
-ItemStack BowItem::_findAmmo(Player& player, const ItemStack& /*bowStack*/) const
+i32 BowItem::_findAmmoSlot(Player& player, const ItemStack& /*bowStack*/) const
 {
+    PlayerInventory& inventory = player.inventory();
 
-    // 检查副手
+    // 检查副手（槽位 40）
     ItemStack offhand = player.getHeldItem(Hand::OffHand);
     if (getAmmoPredicate()(offhand)) {
-        return offhand;
+        return InventorySlots::OFFHAND;
     }
 
-    // 检查主手（弓可能在副手）
+    // 检查主手（弓可能在副手，主手槽位为当前选中快捷栏）
     ItemStack mainhand = player.getHeldItem(Hand::MainHand);
     if (getAmmoPredicate()(mainhand)) {
-        return mainhand;
+        return inventory.getSelectedSlot();
     }
 
     // 检查背包
-    PlayerInventory& inventory = player.inventory();
     for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
         ItemStack slot = inventory.getItem(i);
         if (getInventoryAmmoPredicate()(slot)) {
-            return slot;
+            return i;
         }
     }
 
-    return ItemStack();
+    return -1;
 }
 
 bool BowItem::_isInfiniteArrow(const ItemStack& arrowStack, const ItemStack& bowStack, Player& player) const

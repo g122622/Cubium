@@ -26,6 +26,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
+#include "common/entity/inventory/Slot.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -84,8 +85,9 @@ ItemActionResult CrossbowItem::onItemRightClick(IWorld& world, Player& player, H
     }
 
     // 检查是否有弹药
-    ItemStack ammo = _findAmmo(player);
-    if (ammo.isEmpty() && !player.isCreative()) {
+    i32 ammoSlot = _findAmmoSlot(player);
+    bool hasAmmo = ammoSlot >= 0;
+    if (!hasAmmo && !player.isCreative()) {
         return ItemActionResult::fail(crossbowStack);
     }
 
@@ -194,30 +196,31 @@ bool CrossbowItem::_isAmmo(const ItemStack& stack)
     return item == Items::FIREWORK_ROCKET;
 }
 
-ItemStack CrossbowItem::_findAmmo(Player& player)
+i32 CrossbowItem::_findAmmoSlot(Player& player)
 {
-    // 先检查副手
+    PlayerInventory& inventory = player.inventory();
+
+    // 先检查副手（槽位 40）
     ItemStack offhand = player.getHeldItem(Hand::OffHand);
     if (_isAmmo(offhand)) {
-        return offhand;
+        return InventorySlots::OFFHAND;
     }
 
-    // 再检查主手（弩本身在主手时跳过）
+    // 再检查主手（弩本身在主手时跳过，但如果是弩以外的东西则需要检查）
     ItemStack mainhand = player.getHeldItem(Hand::MainHand);
     if (_isAmmo(mainhand)) {
-        return mainhand;
+        return inventory.getSelectedSlot();
     }
 
     // 检查背包
-    PlayerInventory& inventory = player.inventory();
     for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
         ItemStack slot = inventory.getItem(i);
         if (_isAmmo(slot)) {
-            return slot;
+            return i;
         }
     }
 
-    return ItemStack::EMPTY;
+    return -1;
 }
 
 bool CrossbowItem::_loadProjectiles(Player& player, ItemStack& crossbow)
@@ -226,30 +229,29 @@ bool CrossbowItem::_loadProjectiles(Player& player, ItemStack& crossbow)
     i32 projectileCount = multishotLevel > 0 ? 3 : 1;
     bool isCreative = player.isCreative();
 
-    ItemStack ammo = _findAmmo(player);
+    i32 ammoSlot = _findAmmoSlot(player);
+    PlayerInventory& inventory = player.inventory();
 
     for (i32 i = 0; i < projectileCount; ++i) {
         ItemStack projectileToLoad;
 
-        if (!ammo.isEmpty()) {
+        if (ammoSlot >= 0) {
+            ItemStack ammo = inventory.getItem(ammoSlot);
             if (isCreative) {
                 // 创造模式：复制弹药
                 projectileToLoad = ammo.copy();
             } else {
-                // 生存模式：消耗弹药
-                if (i == 0) {
-                    projectileToLoad = ammo.split(1);
-                } else {
-                    // 多重射击：后续弹丸需要额外弹药
-                    if (ammo.getCount() > i) {
-                        projectileToLoad = ammo.split(1);
-                    } else {
-                        // 弹药不足，尝试找更多
-                        ItemStack moreAmmo = _findAmmo(player);
-                        if (!moreAmmo.isEmpty()) {
-                            projectileToLoad = moreAmmo.split(1);
-                            ammo = moreAmmo;
-                        }
+                // 生存模式：从背包槽位消耗弹药
+                // 使用 removeItem 直接操作背包槽位，正确处理数量减少和空堆清理
+                projectileToLoad = inventory.removeItem(ammoSlot, 1);
+
+                // 多重射击：后续弹丸需要额外弹药
+                if (i < projectileCount - 1) {
+                    // 检查当前槽位是否还有弹药
+                    ItemStack remaining = inventory.getItem(ammoSlot);
+                    if (remaining.isEmpty()) {
+                        // 当前槽位已耗尽，寻找下一个弹药槽位
+                        ammoSlot = _findAmmoSlot(player);
                     }
                 }
             }

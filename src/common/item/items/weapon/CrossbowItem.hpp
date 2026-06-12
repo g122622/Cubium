@@ -161,10 +161,16 @@ private:
     [[nodiscard]] static bool _isAmmo(const ItemStack& stack);
 
     /**
-     * @brief 查找玩家身上的弹药
-     * @return 弹药物品堆，如果没有则返回空
+     * @brief 查找玩家身上的弹药所在槽位
+     *
+     * 搜索顺序：副手 → 主手 → 背包。
+     * 返回槽位索引而非物品堆副本，以便通过 PlayerInventory::removeItem()
+     * 正确消耗弹药（直接操作背包槽位，避免修改副本的问题）。
+     *
+     * @param player 玩家
+     * @return 弹药所在槽位索引，如果没有则返回 -1
      */
-    static ItemStack _findAmmo(Player& player);
+    static i32 _findAmmoSlot(Player& player);
 
     /**
      * @brief 检查是否有足够的弹药并装填
