@@ -37,6 +37,7 @@
 #include "common/item/loot/conditions/ReferenceCondition.hpp"
 #include "common/item/loot/conditions/SilkTouchCondition.hpp"
 #include "common/item/loot/conditions/SurvivesExplosionCondition.hpp"
+#include "common/item/loot/conditions/TableBonusCondition.hpp"
 #include "common/item/loot/conditions/TimeCheckCondition.hpp"
 #include "common/item/loot/conditions/ToolTypeCondition.hpp"
 #include "common/item/loot/conditions/WeatherCheckCondition.hpp"
@@ -151,6 +152,11 @@ std::unique_ptr<LootCondition> LootConditionBuilder::damageSourceProperties(
 std::unique_ptr<LootCondition> LootConditionBuilder::reference(const std::string& name)
 {
     return std::make_unique<ReferenceCondition>(name);
+}
+
+std::unique_ptr<LootCondition> LootConditionBuilder::tableBonus(std::string enchantmentId, std::vector<f32> chances)
+{
+    return std::make_unique<TableBonusCondition>(std::move(enchantmentId), std::move(chances));
 }
 
 } // namespace loot

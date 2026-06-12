@@ -56,12 +56,13 @@ TEST_F(LootJsonIntegrationTest, ParseCondition_ReferenceRejected)
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(LootJsonIntegrationTest, ParseCondition_TableBonusRejected)
+TEST_F(LootJsonIntegrationTest, ParseCondition_TableBonus)
 {
     nlohmann::json json = {
         {"condition", "minecraft:table_bonus"}, {"enchantment", "minecraft:fortune"}, {"chances", {0.1, 0.2, 0.3}}};
     auto result = LootSerializers::parseCondition(json);
-    EXPECT_FALSE(result.success());
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value()->getType(), "table_bonus");
 }
 
 TEST_F(LootJsonIntegrationTest, ParseFunction_CopyNbtRejected)

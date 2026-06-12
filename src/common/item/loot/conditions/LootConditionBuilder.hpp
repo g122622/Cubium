@@ -58,6 +58,7 @@ class TimeCheckCondition;
 class DamageSourcePropertiesCondition;
 class ReferenceCondition;
 class FishingOpenWaterCondition;
+class TableBonusCondition;
 
 /**
  * @brief 掉落条件构建器
@@ -205,6 +206,13 @@ public:
      * @param name 引用的谓词名称
      */
     [[nodiscard]] static std::unique_ptr<LootCondition> reference(const std::string& name);
+
+    /**
+     * @brief 创建附魔等级概率表条件
+     * @param enchantmentId 附魔ID（如 "minecraft:fortune"）
+     * @param chances 概率表，每个元素对应一个附魔等级的概率
+     */
+    [[nodiscard]] static std::unique_ptr<LootCondition> tableBonus(std::string enchantmentId, std::vector<f32> chances);
 };
 
 } // namespace loot

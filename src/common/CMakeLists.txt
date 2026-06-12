@@ -233,6 +233,7 @@ add_library(mc_common STATIC
     item/loot/conditions/BlockStateCondition.cpp
     item/loot/conditions/ToolTypeCondition.cpp
     item/loot/conditions/SurvivesExplosionCondition.cpp
+    item/loot/conditions/TableBonusCondition.cpp
     item/loot/conditions/KilledByPlayerCondition.cpp
     item/loot/conditions/EntityPropertiesCondition.cpp
     item/loot/conditions/EntityScoresCondition.cpp

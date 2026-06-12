@@ -299,6 +299,14 @@ nlohmann::json LootSerializers::toJson(const LootCondition& condition)
         }
     }
 
+    // 特殊处理 TableBonusCondition
+    if (condition.getType() == "table_bonus") {
+        const auto* tableBonusCond = dynamic_cast<const TableBonusCondition*>(&condition);
+        if (tableBonusCond) {
+            return toJson(*tableBonusCond);
+        }
+    }
+
     return json;
 }
 
@@ -313,6 +321,21 @@ nlohmann::json LootSerializers::toJson(const BlockStateCondition& condition)
         nlohmann::json propsJson = toJson(properties);
         json["properties"] = propsJson;
     }
+
+    return json;
+}
+
+nlohmann::json LootSerializers::toJson(const TableBonusCondition& condition)
+{
+    nlohmann::json json;
+    json["condition"] = "minecraft:table_bonus";
+    json["enchantment"] = condition.getEnchantmentId();
+
+    nlohmann::json chancesArray = nlohmann::json::array();
+    for (f32 chance : condition.getChances()) {
+        chancesArray.push_back(chance);
+    }
+    json["chances"] = chancesArray;
 
     return json;
 }
@@ -362,10 +385,37 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseFortuneCondition(c
     return castToBase<FortuneCondition, LootCondition>(std::make_unique<FortuneCondition>(minLevel));
 }
 
-Result<std::unique_ptr<LootCondition>> LootSerializers::_parseTableBonusCondition(const nlohmann::json& /*json*/)
+Result<std::unique_ptr<LootCondition>> LootSerializers::_parseTableBonusCondition(const nlohmann::json& json)
 {
-    // TODO: 实现 table_bonus 条件解析
-    return Error(ErrorCode::Unsupported, "minecraft:table_bonus is not supported yet");
+    // 解析附魔ID
+    if (!json.contains("enchantment") || !json["enchantment"].is_string()) {
+        return Error(ErrorCode::InvalidData, "table_bonus condition missing 'enchantment' field");
+    }
+    std::string enchantmentId = json["enchantment"].get<std::string>();
+
+    // 解析概率表
+    if (!json.contains("chances") || !json["chances"].is_array()) {
+        return Error(ErrorCode::InvalidData, "table_bonus condition missing 'chances' array");
+    }
+    const auto& chancesArray = json["chances"];
+    if (chancesArray.empty()) {
+        return Error(ErrorCode::InvalidData, "table_bonus condition 'chances' array must not be empty");
+    }
+
+    std::vector<f32> chances;
+    chances.reserve(chancesArray.size());
+    for (const auto& chanceVal : chancesArray) {
+        if (chanceVal.is_number_float()) {
+            chances.push_back(chanceVal.get<f32>());
+        } else if (chanceVal.is_number_integer()) {
+            chances.push_back(static_cast<f32>(chanceVal.get<i32>()));
+        } else {
+            return Error(ErrorCode::InvalidData, "table_bonus condition 'chances' array contains non-numeric value");
+        }
+    }
+
+    return castToBase<TableBonusCondition, LootCondition>(
+        std::make_unique<TableBonusCondition>(std::move(enchantmentId), std::move(chances)));
 }
 
 Result<std::unique_ptr<LootCondition>> LootSerializers::_parseRandomChanceCondition(const nlohmann::json& json)

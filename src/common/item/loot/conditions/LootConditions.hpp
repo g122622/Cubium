@@ -44,6 +44,7 @@
 #include "common/item/loot/conditions/ReferenceCondition.hpp"
 #include "common/item/loot/conditions/SilkTouchCondition.hpp"
 #include "common/item/loot/conditions/SurvivesExplosionCondition.hpp"
+#include "common/item/loot/conditions/TableBonusCondition.hpp"
 #include "common/item/loot/conditions/TimeCheckCondition.hpp"
 #include "common/item/loot/conditions/ToolTypeCondition.hpp"
 #include "common/item/loot/conditions/WeatherCheckCondition.hpp"

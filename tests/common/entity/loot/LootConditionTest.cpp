@@ -251,6 +251,10 @@ TEST(LootConditionBuilderTest, FactoryMethods)
     auto orCondition = LootConditionBuilder::or_(std::move(orConditions));
     EXPECT_NE(orCondition, nullptr);
     EXPECT_EQ(orCondition->getType(), "or");
+
+    auto tableBonus = LootConditionBuilder::tableBonus("minecraft:fortune", {0.1f, 0.15f, 0.2f, 0.25f});
+    EXPECT_NE(tableBonus, nullptr);
+    EXPECT_EQ(tableBonus->getType(), "table_bonus");
 }
 
 // ============================================================================

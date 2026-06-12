@@ -342,10 +342,49 @@ TEST_F(LootSerializersTest, ParseCondition_ReferenceUnsupported)
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(LootSerializersTest, ParseCondition_TableBonusUnsupported)
+TEST_F(LootSerializersTest, ParseCondition_TableBonus)
 {
-    nlohmann::json json = {
-        {"condition", "minecraft:table_bonus"}, {"enchantment", "minecraft:fortune"}, {"chances", {0.1, 0.2}}};
+    nlohmann::json json = {{"condition", "minecraft:table_bonus"},
+        {"enchantment", "minecraft:fortune"},
+        {"chances", {0.1, 0.2, 0.3, 0.4}}};
+
+    auto result = LootSerializers::parseCondition(json);
+    ASSERT_TRUE(result.success());
+    auto condition = std::move(result).value();
+    EXPECT_EQ(condition->getType(), "table_bonus");
+
+    // 验证序列化还原
+    auto toJson = LootSerializers::toJson(*condition);
+    EXPECT_EQ(toJson["condition"], "minecraft:table_bonus");
+    EXPECT_EQ(toJson["enchantment"], "minecraft:fortune");
+    EXPECT_EQ(toJson["chances"].size(), 4u);
+    EXPECT_FLOAT_EQ(toJson["chances"][0].get<f32>(), 0.1f);
+    EXPECT_FLOAT_EQ(toJson["chances"][1].get<f32>(), 0.2f);
+    EXPECT_FLOAT_EQ(toJson["chances"][2].get<f32>(), 0.3f);
+    EXPECT_FLOAT_EQ(toJson["chances"][3].get<f32>(), 0.4f);
+}
+
+TEST_F(LootSerializersTest, ParseCondition_TableBonus_MissingEnchantment)
+{
+    nlohmann::json json = {{"condition", "minecraft:table_bonus"}, {"chances", {0.1, 0.2}}};
+
+    auto result = LootSerializers::parseCondition(json);
+    EXPECT_FALSE(result.success());
+}
+
+TEST_F(LootSerializersTest, ParseCondition_TableBonus_MissingChances)
+{
+    nlohmann::json json = {{"condition", "minecraft:table_bonus"}, {"enchantment", "minecraft:fortune"}};
+
+    auto result = LootSerializers::parseCondition(json);
+    EXPECT_FALSE(result.success());
+}
+
+TEST_F(LootSerializersTest, ParseCondition_TableBonus_EmptyChances)
+{
+    nlohmann::json json = {{"condition", "minecraft:table_bonus"},
+        {"enchantment", "minecraft:fortune"},
+        {"chances", nlohmann::json::array()}};
 
     auto result = LootSerializers::parseCondition(json);
     EXPECT_FALSE(result.success());
