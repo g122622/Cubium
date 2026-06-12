@@ -212,6 +212,41 @@ public:
     }
 
     /**
+     * @brief 从源状态复制所有共有属性到当前状态
+     *
+     * 遍历源状态的所有属性，对于当前状态也拥有的同名属性（通过属性指针匹配），
+     * 将源状态的属性值复制过来。返回复制后的新状态引用。
+     *
+     * 典型用途：铜方块氧化时，将当前方块的状态属性（如FACING、HALF等）
+     * 复制到下一氧化等级方块的默认状态上。
+     *
+     * @param source 源状态
+     * @return 复制共有属性后的新状态引用
+     */
+    [[nodiscard]] const State& withPropertiesOf(const StateHolder& source) const
+    {
+        const State* result = &static_cast<const State&>(*this);
+        const auto& sourceLayouts = source.propertyLayouts();
+        for (size_t i = 0; i < sourceLayouts.size(); ++i) {
+            const IProperty* sourceProp = sourceLayouts[i].property;
+            // 通过属性指针匹配检查当前状态是否也有此属性
+            size_t targetSlot = findPropertySlot(*sourceProp);
+            if (targetSlot != kInvalidIndex && propertyLayouts()[targetSlot].property == sourceProp) {
+                size_t sourceValueIndex = source.m_valueIndices[i];
+                // 使用result的当前值索引（而非this的），因为前面的属性复制可能已经改变了result
+                size_t currentValueIndex = result->m_valueIndices[targetSlot];
+                if (sourceValueIndex != currentValueIndex) {
+                    const PropertyLayout& targetLayout = propertyLayouts()[targetSlot];
+                    size_t currentIdx = static_cast<size_t>(result->m_stateIndex);
+                    size_t targetIdx = currentIdx + ((sourceValueIndex - currentValueIndex) * targetLayout.stateStride);
+                    result = &(*(*m_allStates)[targetIdx]);
+                }
+            }
+        }
+        return *result;
+    }
+
+    /**
      * @brief 比较两个状态是否相等
      */
     [[nodiscard]] bool operator==(const StateHolder& other) const { return m_stateId == other.m_stateId; }

@@ -29,6 +29,12 @@ namespace mc {
 
 class BlockState;
 class Block;
+class IWorld;
+class BlockPos;
+
+namespace math {
+class IRandom;
+}
 
 namespace blocks {
 
@@ -65,6 +71,25 @@ public:
     {
         return getOxidationLevel() == BlockStateProperties::OxidationLevel::Unaffected ? 0.75f : 1.0f;
     }
+
+    /**
+     * @brief 尝试执行氧化
+     *
+     * 完整的曼哈顿距离氧化算法：
+     * 1. 外层门限概率 0.05688889（约5.69%）
+     * 2. 扫描4格曼哈顿距离内的可氧化方块
+     * 3. 若存在更低等级邻居 → 取消氧化
+     * 4. 计算最终概率 = ((k+1)/(k+j+1))^2 * chanceModifier
+     *    其中 k=更高等级邻居数, j=同等级邻居数
+     * 5. 通过概率则替换为下一等级方块（保留共有属性）
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @param random 随机数生成器
+     * @return true 如果成功氧化（方块状态已变更）
+     */
+    [[nodiscard]] bool tryOxidize(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random);
 };
 
 } // namespace blocks
