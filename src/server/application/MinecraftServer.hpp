@@ -24,6 +24,7 @@
 #pragma once
 
 #include "IServer.hpp"
+#include "common/item/loot/LootPredicateManager.hpp"
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/network/packet/ExplosionPacket.hpp"
@@ -286,6 +287,8 @@ public:
      */
     [[nodiscard]] mc::loot::LootTableManager& lootTableManager() override { return m_lootTableManager; }
     [[nodiscard]] const mc::loot::LootTableManager& lootTableManager() const override { return m_lootTableManager; }
+    [[nodiscard]] mc::loot::LootPredicateManager& predicateManager() { return m_predicateManager; }
+    [[nodiscard]] const mc::loot::LootPredicateManager& predicateManager() const { return m_predicateManager; }
     [[nodiscard]] world::storage::SingleLevelStorageManager* sharedStorage() override { return m_storage.get(); }
     [[nodiscard]] const world::storage::SingleLevelStorageManager* sharedStorage() const override
     {
@@ -856,6 +859,7 @@ protected:
 
     // 掉落表
     mc::loot::LootTableManager m_lootTableManager;
+    mc::loot::LootPredicateManager m_predicateManager;
     ResourcePackList m_resourcePackList;
     mc::resource::DataPackList m_dataPackList;
 

@@ -33,10 +33,14 @@
 namespace mc {
 namespace loot {
 
+// 前置声明
+class LootPredicateManager;
+
 /**
  * @brief 掉落表管理器
  *
- * 管理所有注册的掉落表。
+ * 管理所有注册的掉落表，同时可选地持有谓词管理器引用，
+ * 以便为 ReferenceCondition 提供谓词查找能力。
  */
 class LootTableManager {
 public:
@@ -89,8 +93,35 @@ public:
      */
     [[nodiscard]] static const LootTable& getEmptyTable();
 
+    // ========== 谓词管理 ==========
+
+    /**
+     * @brief 设置谓词管理器引用
+     *
+     * ReferenceCondition 通过此引用查找命名谓词。
+     *
+     * @param manager 谓词管理器指针（生命周期须长于此对象）
+     */
+    void setPredicateManager(const LootPredicateManager* manager) noexcept { m_predicateManager = manager; }
+
+    /**
+     * @brief 获取谓词管理器
+     */
+    [[nodiscard]] const LootPredicateManager* getPredicateManager() const noexcept { return m_predicateManager; }
+
+    /**
+     * @brief 查找命名谓词
+     *
+     * 便捷方法，委托给谓词管理器。
+     *
+     * @param id 谓词ID
+     * @return 谓词条件指针，不存在或无谓词管理器时返回nullptr
+     */
+    [[nodiscard]] const LootCondition* getPredicate(const std::string& id) const noexcept;
+
 private:
     std::unordered_map<std::string, std::unique_ptr<LootTable>> m_tables;
+    const LootPredicateManager* m_predicateManager = nullptr;
 };
 
 } // namespace loot

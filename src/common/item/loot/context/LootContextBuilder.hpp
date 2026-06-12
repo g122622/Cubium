@@ -40,6 +40,7 @@ class IWorld;
 namespace loot {
 
 // Forward declaration - LootContext is defined in LootContext.hpp
+class LootCondition;
 class LootTable;
 
 /**
@@ -48,6 +49,7 @@ class LootTable;
 class LootContextBuilder {
 public:
     using LootTableResolver = std::function<const LootTable*(const std::string&)>;
+    using PredicateResolver = std::function<const LootCondition*(const std::string&)>;
 
     explicit LootContextBuilder(IWorld& world);
 
@@ -124,6 +126,19 @@ public:
     }
 
     /**
+     * @brief 设置谓词解析器
+     *
+     * 用于 ReferenceCondition 查找命名谓词。
+     *
+     * @param resolver 谓词解析器函数
+     */
+    LootContextBuilder& withPredicateResolver(PredicateResolver resolver)
+    {
+        m_predicateResolver = std::move(resolver);
+        return *this;
+    }
+
+    /**
      * @brief 构建掉落上下文
      */
     [[nodiscard]] std::unique_ptr<class LootContext> build(const LootParameterSet& paramSet = LootParameterSet());
@@ -138,6 +153,7 @@ private:
     std::unordered_map<std::string, void*> m_params;
     std::vector<std::shared_ptr<void>> m_ownedValues; // 拥有所有权的值存储
     LootTableResolver m_lootTableResolver;
+    PredicateResolver m_predicateResolver;
 };
 
 } // namespace loot

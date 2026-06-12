@@ -62,5 +62,32 @@ void LootContext::popLootTable(const LootTable* table) noexcept
     }
 }
 
+const LootCondition* LootContext::getPredicate(const std::string& id) const noexcept
+{
+    if (m_predicateResolver) {
+        return m_predicateResolver(id);
+    }
+    return nullptr;
+}
+
+bool LootContext::pushPredicate(const LootCondition* predicate) noexcept
+{
+    // 检查是否已经在访问栈中（循环引用）
+    for (const auto* visited : m_visitedPredicates) {
+        if (visited == predicate) {
+            return false; // 循环引用
+        }
+    }
+    m_visitedPredicates.push_back(predicate);
+    return true;
+}
+
+void LootContext::popPredicate(const LootCondition* predicate) noexcept
+{
+    if (!m_visitedPredicates.empty() && m_visitedPredicates.back() == predicate) {
+        m_visitedPredicates.pop_back();
+    }
+}
+
 } // namespace loot
 } // namespace mc

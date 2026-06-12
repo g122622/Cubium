@@ -150,7 +150,11 @@ loot::LootContextBuilder createBaseContextBuilder(ServerCommandSource& source)
                        .withSeed(generateSeed())
                        .withLootTableResolver(
                            [&manager = server->lootTableManager()](
-                               const std::string& id) -> const loot::LootTable* { return manager.getTable(id); });
+                               const std::string& id) -> const loot::LootTable* { return manager.getTable(id); })
+                       .withPredicateResolver([&manager = server->lootTableManager()](
+                                                  const std::string& id) -> const loot::LootCondition* {
+                           return manager.getPredicate(id);
+                       });
 
     // 设置命令源实体
     if (source.player() != nullptr) {

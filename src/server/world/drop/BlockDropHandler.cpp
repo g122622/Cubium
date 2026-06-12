@@ -94,6 +94,9 @@ std::vector<ItemStack> BlockDropHandler::generateDrops(IWorld& world,
             context->setLootTableResolver([&lootTableManager](const std::string& id) -> const loot::LootTable* {
                 return lootTableManager.getTable(id);
             });
+            context->setPredicateResolver([&lootTableManager](const std::string& id) -> const loot::LootCondition* {
+                return lootTableManager.getPredicate(id);
+            });
 
             drops = lootTable->generate(*context);
             spdlog::info("BlockDropHandler::generateDrops loot table '{}' returned {} drops for block '{}'",

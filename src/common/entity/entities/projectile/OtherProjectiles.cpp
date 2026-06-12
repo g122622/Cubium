@@ -458,6 +458,9 @@ i32 FishingBobberEntity::_spawnCatchItems()
                        .withLootTableResolver([this](const std::string& id) -> const loot::LootTable* {
                            return m_world->lootTableManager() ? m_world->lootTableManager()->getTable(id) : nullptr;
                        })
+                       .withPredicateResolver([this](const std::string& id) -> const loot::LootCondition* {
+                           return m_world->lootTableManager() ? m_world->lootTableManager()->getPredicate(id) : nullptr;
+                       })
                        .build(loot::LootParameterSet(loot::LootParameterSet::Type::Fishing));
 
     if (!context) {

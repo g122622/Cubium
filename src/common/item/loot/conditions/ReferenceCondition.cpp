@@ -4,12 +4,11 @@
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to Use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * The above copyright notice shall be included in all copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -18,12 +17,12 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
  */
 
 #include "common/item/loot/conditions/ReferenceCondition.hpp"
 #include "common/core/Types.hpp"
-#include "common/util/assert/AssertMacros.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace loot {
@@ -34,9 +33,28 @@ ReferenceCondition::ReferenceCondition(const std::string& name)
 
 bool ReferenceCondition::test(LootContext& context) const
 {
-    MC_UNUSED(context);
-    // TODO: 实现谓词查找和条件测试，当前总是返回 true
-    return true;
+    // 通过谓词解析器查找命名谓词
+    const LootCondition* predicate = context.getPredicate(m_name);
+    if (predicate == nullptr) {
+        // 谓词未找到，返回 false 并记录警告
+        // 参考 MC: ConditionReference.test() 在找不到谓词时返回 false
+        spdlog::warn("ReferenceCondition: unknown predicate '{}', returning false", m_name);
+        return false;
+    }
+
+    // 循环引用检测：如果当前谓词已经在访问栈中，说明发生了无限循环
+    if (!context.pushPredicate(predicate)) {
+        spdlog::warn("ReferenceCondition: detected infinite loop in predicate reference '{}', returning false", m_name);
+        return false;
+    }
+
+    // 执行引用的谓词条件
+    bool result = predicate->test(context);
+
+    // 从访问栈中移除
+    context.popPredicate(predicate);
+
+    return result;
 }
 
 std::unique_ptr<LootCondition> ReferenceCondition::clone() const

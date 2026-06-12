@@ -43,6 +43,7 @@
 #include "common/item/crafting/special/TippedArrowRecipe.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/item/loot/LootPredicateLoader.hpp"
 #include "common/item/loot/LootTableLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/packet/CommandTreePacket.hpp"
@@ -757,6 +758,24 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
                 spdlog::error("Loot table error: {}", err);
             }
         }
+    }
+
+    // 初始化战利品谓词管理器（从数据包加载）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Predicates");
+        loot::LootPredicateLoader predicateLoader(m_predicateManager);
+        auto dataPackLoadResult = predicateLoader.loadFromDataPackList(m_dataPackList);
+        if (dataPackLoadResult.failed()) {
+            spdlog::error("Failed to load predicates from data packs: {}", dataPackLoadResult.error().toString());
+        } else {
+            const auto& result = dataPackLoadResult.value();
+            spdlog::info("Loaded {} predicates from data packs ({} failed)", result.successCount, result.failedCount);
+            for (const auto& err : result.errors) {
+                spdlog::error("Predicate error: {}", err);
+            }
+        }
+        // 将谓词管理器关联到掉落表管理器，使 LootContext 可通过掉落表管理器解析命名谓词
+        m_lootTableManager.setPredicateManager(&m_predicateManager);
     }
 
     // 加载配方（从数据包加载）

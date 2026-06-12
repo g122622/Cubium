@@ -700,10 +700,16 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseDamageSourceProper
         std::make_unique<DamageSourcePropertiesCondition>(std::move(predicate)));
 }
 
-Result<std::unique_ptr<LootCondition>> LootSerializers::_parseReferenceCondition(const nlohmann::json& /*json*/)
+Result<std::unique_ptr<LootCondition>> LootSerializers::_parseReferenceCondition(const nlohmann::json& json)
 {
-    // TODO: 实现 reference 条件解析（引用其他条件）
-    return Error(ErrorCode::Unsupported, "minecraft:reference is not supported yet");
+    // minecraft:reference 条件引用一个命名谓词
+    // JSON 格式: { "condition": "minecraft:reference", "name": "minecraft:gameplay/raid" }
+    if (!json.contains("name") || !json["name"].is_string()) {
+        return Error(ErrorCode::ResourceParseError, "Reference condition requires a 'name' string field");
+    }
+
+    std::string name = json["name"].get<std::string>();
+    return Result<std::unique_ptr<LootCondition>>(std::make_unique<ReferenceCondition>(name));
 }
 
 // ============================================================================

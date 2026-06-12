@@ -116,6 +116,9 @@ void WaterFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos, const 
             context->setLootTableResolver([&lootTableManager](const std::string& id) -> const loot::LootTable* {
                 return lootTableManager->getTable(id);
             });
+            context->setPredicateResolver([&lootTableManager](const std::string& id) -> const loot::LootCondition* {
+                return lootTableManager->getPredicate(id);
+            });
 
             // 生成掉落物
             drops = lootTable->generate(*context);

@@ -8,8 +8,7 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * The above copyright notice shall be included in all copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -18,67 +17,51 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
  */
 
-#include "LootTableManager.hpp"
 #include "LootPredicateManager.hpp"
 
 namespace mc {
 namespace loot {
 
 // ============================================================================
-// LootTableManager
+// LootPredicateManager
 // ============================================================================
 
-void LootTableManager::registerTable(const std::string& id, std::unique_ptr<LootTable> table)
+void LootPredicateManager::registerPredicate(const std::string& id, std::unique_ptr<LootCondition> condition)
 {
-    if (table) {
-        table->setId(id);
-        m_tables[id] = std::move(table);
+    if (condition) {
+        m_predicates[id] = std::move(condition);
     }
 }
 
-const LootTable* LootTableManager::getTable(const std::string& id) const
+const LootCondition* LootPredicateManager::getPredicate(const std::string& id) const
 {
-    auto it = m_tables.find(id);
-    if (it != m_tables.end()) {
+    auto it = m_predicates.find(id);
+    if (it != m_predicates.end()) {
         return it->second.get();
     }
     return nullptr;
 }
 
-bool LootTableManager::hasTable(const std::string& id) const
+bool LootPredicateManager::hasPredicate(const std::string& id) const
 {
-    return m_tables.find(id) != m_tables.end();
+    return m_predicates.find(id) != m_predicates.end();
 }
 
-void LootTableManager::clear()
+void LootPredicateManager::clear()
 {
-    m_tables.clear();
+    m_predicates.clear();
 }
 
-std::vector<std::string> LootTableManager::getAllTableIds() const
+std::vector<std::string> LootPredicateManager::getAllPredicateIds() const
 {
     std::vector<std::string> ids;
-    ids.reserve(m_tables.size());
-    for (const auto& [id, table] : m_tables) {
+    ids.reserve(m_predicates.size());
+    for (const auto& [id, _] : m_predicates) {
         ids.push_back(id);
     }
     return ids;
-}
-
-const LootTable& LootTableManager::getEmptyTable()
-{
-    return LootTable::EMPTY;
-}
-
-const LootCondition* LootTableManager::getPredicate(const std::string& id) const noexcept
-{
-    if (m_predicateManager != nullptr) {
-        return m_predicateManager->getPredicate(id);
-    }
-    return nullptr;
 }
 
 } // namespace loot

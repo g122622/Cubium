@@ -44,7 +44,8 @@ class IWorld;
 
 namespace loot {
 
-// Forward declaration
+// Forward declarations
+class LootCondition;
 class LootTable;
 
 /**
@@ -55,6 +56,7 @@ class LootTable;
 class LootContext {
 public:
     using LootTableResolver = std::function<const LootTable*(const std::string&)>;
+    using PredicateResolver = std::function<const LootCondition*(const std::string&)>;
 
     LootContext(IWorld& world, math::Random& random);
     ~LootContext() = default;
@@ -173,6 +175,25 @@ public:
      */
     void setLootingModifier(i32 level) noexcept { m_lootingModifier = level; }
 
+    // ========== 谓词访问 ==========
+
+    /**
+     * @brief 设置谓词解析器
+     *
+     * 用于 ReferenceCondition 查找命名谓词。
+     *
+     * @param resolver 谓词解析器函数
+     */
+    void setPredicateResolver(PredicateResolver resolver) noexcept { m_predicateResolver = std::move(resolver); }
+
+    /**
+     * @brief 获取命名谓词
+     *
+     * @param id 谓词ID
+     * @return 谓词条件指针，不存在返回nullptr
+     */
+    [[nodiscard]] const LootCondition* getPredicate(const std::string& id) const noexcept;
+
     // ========== 掉落表访问 ==========
 
     /**
@@ -198,6 +219,17 @@ public:
      */
     void popLootTable(const LootTable* table) noexcept;
 
+    /**
+     * @brief 添加谓词到访问栈（用于检测循环引用）
+     * @return 如果已经访问过此谓词，返回false
+     */
+    bool pushPredicate(const LootCondition* predicate) noexcept;
+
+    /**
+     * @brief 从访问栈移除谓词
+     */
+    void popPredicate(const LootCondition* predicate) noexcept;
+
     friend class LootContextBuilder;
 
 private:
@@ -208,7 +240,9 @@ private:
     std::unordered_map<std::string, void*> m_params;
     std::vector<std::shared_ptr<void>> m_ownedValues; // 拥有所有权的值存储
     LootTableResolver m_lootTableResolver;
-    std::vector<const LootTable*> m_visitedTables; // 用于检测循环引用
+    PredicateResolver m_predicateResolver;
+    std::vector<const LootTable*> m_visitedTables;         // 用于检测掉落表循环引用
+    std::vector<const LootCondition*> m_visitedPredicates; // 用于检测谓词循环引用
 };
 
 } // namespace loot

@@ -583,6 +583,12 @@ std::vector<ItemStack> Explosion::_generateBlockDrops(const BlockPos& pos, const
         }
         return m_lootTableManager->getTable(id);
     });
+    contextBuilder.withPredicateResolver([this](const std::string& id) -> const loot::LootCondition* {
+        if (m_lootTableManager == nullptr) {
+            return nullptr;
+        }
+        return m_lootTableManager->getPredicate(id);
+    });
 
     // 如果有爆炸源实体，添加到上下文
     if (m_source != nullptr) {
