@@ -25,7 +25,15 @@
 
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/monster/basic/CreeperEntity.hpp"
+#include "common/entity/entities/monster/end/EndermanEntity.hpp"
+#include "common/entity/entities/monster/nether/NetherEntities.hpp"
+#include "common/entity/entities/passive/basic/SheepEntity.hpp"
+#include "common/entity/entities/passive/horse/HorseEntity.hpp"
+#include "common/entity/entities/passive/tamable/TameableEntity.hpp"
+#include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/scoreboard/core/Team.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "entity/core/Entity.hpp"
 
 using namespace mc;
@@ -220,4 +228,187 @@ TEST_F(AlliedTest, IsAlliedTo_SweepAttackScenario_EnemiesHit)
 
     // 横扫攻击应击中敌人
     EXPECT_FALSE(m_entity1->isAlliedTo(*m_entity2));
+}
+
+// ============================================================================
+// TameableEntity::getTeam() 继承主人队伍测试
+// ============================================================================
+
+class TameableGetTeamTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        m_team1 = std::make_unique<MockTeam>("red");
+        m_team2 = std::make_unique<MockTeam>("blue");
+    }
+
+    void TearDown() override
+    {
+        m_team2.reset();
+        m_team1.reset();
+    }
+
+    std::unique_ptr<MockTeam> m_team1;
+    std::unique_ptr<MockTeam> m_team2;
+};
+
+TEST_F(TameableGetTeamTest, UntamedTameable_NoTeam)
+{
+    // 未驯服的动物没有队伍
+    WolfEntity wolf(EntityId(1));
+    EXPECT_EQ(wolf.getTeam(), nullptr);
+}
+
+TEST_F(TameableGetTeamTest, TamedWithoutOwner_NoTeam)
+{
+    // 已驯服但没有主人（找不到玩家）时没有队伍
+    WolfEntity wolf(EntityId(1));
+    wolf.setTamed(true);
+    wolf.setOwnerId(99999); // 不存在的玩家ID
+    // 没有世界，getOwner() 返回 nullptr，因此继承不到队伍
+    EXPECT_EQ(wolf.getTeam(), nullptr);
+}
+
+TEST_F(TameableGetTeamTest, UntamedDoesNotInheritTeam)
+{
+    // 未驯服的动物不应继承任何队伍
+    WolfEntity wolf(EntityId(1));
+    EXPECT_EQ(wolf.getTeam(), nullptr);
+    EXPECT_EQ(const_cast<const WolfEntity&>(wolf).getTeam(), nullptr);
+}
+
+// ============================================================================
+// WolfEntity::wantsToAttack 过滤规则测试
+// ============================================================================
+
+class WolfWantsToAttackTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        m_wolf = std::make_unique<WolfEntity>(EntityId(1));
+        m_wolf->setTamed(true);
+    }
+
+    void TearDown() override { m_wolf.reset(); }
+
+    std::unique_ptr<WolfEntity> m_wolf;
+};
+
+TEST_F(WolfWantsToAttackTest, NeverAttackCreeper)
+{
+    // 狼不应攻击苦力怕
+    CreeperEntity creeper(EntityId(2));
+    EXPECT_FALSE(m_wolf->wantsToAttack(creeper, nullptr));
+}
+
+TEST_F(WolfWantsToAttackTest, NeverAttackGhast)
+{
+    // 狼不应攻击恶魂
+    GhastEntity ghast(EntityId(2));
+    EXPECT_FALSE(m_wolf->wantsToAttack(ghast, nullptr));
+}
+
+TEST_F(WolfWantsToAttackTest, AttackUntamedWolf)
+{
+    // 狼应攻击未驯服的狼
+    WolfEntity untamedWolf(EntityId(2));
+    // untamedWolf 默认 isTamed() == false
+    EXPECT_TRUE(m_wolf->wantsToAttack(untamedWolf, nullptr));
+}
+
+TEST_F(WolfWantsToAttackTest, DontAttackTamedWolfWithSameOwner)
+{
+    // 不攻击同主人的已驯服狼
+    WolfEntity otherWolf(EntityId(2));
+    otherWolf.setTamed(true);
+    otherWolf.setOwnerId(42);
+
+    // 创建一个 mock owner（用 Player 太重，直接传 nullptr 作为 owner）
+    // 当 owner 为 nullptr 且另一只狼已驯服时，不应攻击
+    EXPECT_FALSE(m_wolf->wantsToAttack(otherWolf, nullptr));
+}
+
+TEST_F(WolfWantsToAttackTest, TameableDefaultWantsToAttack)
+{
+    // TameableEntity 基类默认允许攻击所有目标
+    // 创建一个最小化的 TameableEntity 子类来测试
+    // WolfEntity 重写了 wantsToAttack，但我们直接测试基类行为
+    // 注意：TameableEntity 是抽象类，我们用 WolfEntity 来间接验证
+    // 对于非特殊实体，狼应该允许攻击
+    // 例如：狼应攻击羊
+    SheepEntity sheep(EntityId(2));
+    EXPECT_TRUE(m_wolf->wantsToAttack(sheep, nullptr));
+}
+
+TEST_F(WolfWantsToAttackTest, UntamedWolfAllowAttackAllByDefault)
+{
+    // 未驯服的狼也遵循 wantsToAttack 规则（苦力怕等仍不攻击）
+    m_wolf->setTamed(false);
+    CreeperEntity creeper(EntityId(2));
+    EXPECT_FALSE(m_wolf->wantsToAttack(creeper, nullptr));
+
+    // 但可以攻击羊
+    SheepEntity sheep(EntityId(3));
+    EXPECT_TRUE(m_wolf->wantsToAttack(sheep, nullptr));
+}
+
+TEST_F(WolfWantsToAttackTest, DontAttackTamedHorse)
+{
+    // 狼不应攻击已驯服的马
+    HorseEntity horse(EntityId(2));
+    horse.setTame(true);
+    EXPECT_FALSE(m_wolf->wantsToAttack(horse, nullptr));
+}
+
+// ============================================================================
+// ResetAngerGoal UNIVERSAL_ANGER 游戏规则测试
+// ============================================================================
+
+TEST(ResetAngerGoalUniversalAngerTest, ShouldExecuteChecksGameRule)
+{
+    // 创建末影人来测试 ResetAngerGoal
+    // ResetAngerGoal 的 shouldExecute 现在要求 UNIVERSAL_ANGER 为 true
+    // 且 _shouldGetRevengeOnPlayer() 为 true
+
+    // 由于末影人没有世界，getGameRules() 返回 nullptr，shouldExecute 返回 false
+    EndermanEntity enderman(EntityId(1));
+    ResetAngerGoal<EndermanEntity> goal(&enderman, false);
+
+    // 没有世界 → getGameRules() 为空 → shouldExecute 返回 false
+    EXPECT_FALSE(goal.shouldExecute());
+}
+
+TEST(ResetAngerGoalUniversalAngerTest, GameRuleRequired)
+{
+    // 验证 ResetAngerGoal::shouldExecute() 的逻辑：
+    // 1. UNIVERSAL_ANGER 必须为 true
+    // 2. _shouldGetRevengeOnPlayer() 必须为 true
+    // 两个条件都满足时才返回 true
+
+    // 当没有世界时（无法获取游戏规则），shouldExecute 返回 false
+    // 这意味着即使末影人设置了复仇目标，也不会执行
+    EndermanEntity enderman(EntityId(1));
+    enderman.setAngry(true);
+    enderman.setAngerTime(100);
+    ResetAngerGoal<EndermanEntity> goal(&enderman, false);
+
+    EXPECT_FALSE(goal.shouldExecute());
+}
+
+TEST(ResetAngerGoalUniversalAngerTest, GameRuleDefaultValue)
+{
+    // 验证 UNIVERSAL_ANGER 游戏规则的默认值
+    // MC 1.16.5 默认值为 false
+    world::gamerule::GameRules gameRules;
+
+    // UNIVERSAL_ANGER 默认为 false
+    EXPECT_FALSE(gameRules.getBoolean(world::gamerule::GameRuleKeys::UNIVERSAL_ANGER));
+
+    // 设置为 true 后应该返回 true
+    gameRules.setBoolean(world::gamerule::GameRuleKeys::UNIVERSAL_ANGER, true);
+    EXPECT_TRUE(gameRules.getBoolean(world::gamerule::GameRuleKeys::UNIVERSAL_ANGER));
+
+    // 设置回 false
+    gameRules.setBoolean(world::gamerule::GameRuleKeys::UNIVERSAL_ANGER, false);
+    EXPECT_FALSE(gameRules.getBoolean(world::gamerule::GameRuleKeys::UNIVERSAL_ANGER));
 }
