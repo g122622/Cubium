@@ -26,7 +26,6 @@
 #include "../attribute/Attributes.hpp"
 #include "../core/LivingEntity.hpp"
 #include "../damage/DamageSource.hpp"
-#include "../effect/EffectType.hpp"
 #include "CombatRules.hpp"
 #include <algorithm>
 #include <cmath>
@@ -46,21 +45,9 @@ f32 AttackContext::calculateFinalDamage() const
     f32 baseDamage = m_baseDamage;
     f32 enchantDamage = 0.0f; // 附魔伤害单独计算
 
-    // ========== 1. 攻击者增益/减益（应用到基础伤害） ==========
-    if (m_attackerLiving && m_attackType == AttackType::Melee) {
-        // 力量药水加成（每级 +3 伤害）
-        const i32 strengthLevel = m_attackerLiving->getEffectLevel(entity::effect::EffectType::Strength);
-        if (strengthLevel > 0) {
-            baseDamage += 3.0f * static_cast<f32>(strengthLevel);
-        }
-
-        // 虚弱药水减益（每级 -4 伤害）
-        const i32 weaknessLevel = m_attackerLiving->getEffectLevel(entity::effect::EffectType::Weakness);
-        if (weaknessLevel > 0) {
-            baseDamage -= 4.0f * static_cast<f32>(weaknessLevel);
-            baseDamage = std::max(0.0f, baseDamage);
-        }
-    }
+    // 力量/虚弱药水效果已通过属性修改器系统自动应用到 ATTACK_DAMAGE 属性值中，
+    // baseDamage 已包含这些修改，不需要在此手动计算。
+    // 参见 EffectAttributeModifiers 中 Strength(+3.0/级) 和 Weakness(-4.0/级) 的 Addition 操作。
 
     // ========== 2. 附魔伤害加成（从外部传入） ==========
     // 附魔伤害（锋利、亡灵杀手、节肢杀手）需要单独计算

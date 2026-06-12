@@ -48,18 +48,21 @@ const std::unordered_map<EffectType, std::vector<EffectModifierInfo>> s_effectMo
     // 挖掘疲劳：每级减少 10% 攻击速度
     {EffectType::MiningFatigue,
         {{attribute::Attributes::ATTACK_SPEED, MINING_FATIGUE_UUID, -0.1, attribute::Operation::MultiplyTotal}}},
-    // 力量：每级增加 3.0 攻击伤害（ADDITION操作，MC中实际使用AttackDamageEffect）
+    // 力量：每级增加 3.0 攻击伤害
     {EffectType::Strength,
-        {{attribute::Attributes::ATTACK_DAMAGE, STRENGTH_UUID, 0.0, attribute::Operation::Addition}}},
-    // 跳跃提升：增加跳跃高度
+        {{attribute::Attributes::ATTACK_DAMAGE, STRENGTH_UUID, 3.0, attribute::Operation::Addition}}},
+    // 跳跃提升：每级增加 0.1 跳跃力
     {EffectType::JumpBoost,
         {{attribute::Attributes::JUMP_BOOST, JUMP_BOOST_UUID, 0.1, attribute::Operation::Addition}}},
-    // 虚弱：减少攻击伤害
+    // 虚弱：每级减少 4.0 攻击伤害
     {EffectType::Weakness,
-        {{attribute::Attributes::ATTACK_DAMAGE, WEAKNESS_UUID, 0.0, attribute::Operation::Addition}}},
+        {{attribute::Attributes::ATTACK_DAMAGE, WEAKNESS_UUID, -4.0, attribute::Operation::Addition}}},
     // 生命提升：每级增加 4.0 最大生命值
     {EffectType::HealthBoost,
         {{attribute::Attributes::MAX_HEALTH, HEALTH_BOOST_UUID, 4.0, attribute::Operation::Addition}}},
+    // 伤害吸收：每级增加 4.0 最大吸收值
+    {EffectType::Absorption,
+        {{attribute::Attributes::MAX_ABSORPTION, ABSORPTION_UUID, 4.0, attribute::Operation::Addition}}},
     // 幸运：每级增加 1.0 幸运值
     {EffectType::Luck, {{attribute::Attributes::LUCK, LUCK_UUID, 1.0, attribute::Operation::Addition}}},
     // 霉运：每级减少 1.0 幸运值
@@ -102,12 +105,12 @@ bool hasAttributeModifiers(EffectType type)
     return it != s_effectModifiers.end() && !it->second.empty();
 }
 
-attribute::AttributeModifier createModifier(const EffectModifierInfo& info, i32 amplifier)
+attribute::AttributeModifier createModifier(const EffectModifierInfo& info, EffectType type, i32 amplifier)
 {
     f64 amount = info.calculateAmount(amplifier);
-    // TODO: 当前实现硬编码了Speed，需要修改函数签名增加EffectType参数
-    // 以便正确生成修改器名称。当前调用方(EffectInstance.cpp)已有所需的EffectType信息。
-    std::string name = std::string("effect.") + getEffectName(EffectType::Speed) + "." + std::to_string(amplifier + 1);
+    // 使用 MC 原版命名格式: effect.minecraft.<resource_name>.<level>
+    std::string name =
+        std::string("effect.minecraft.") + getEffectResourceName(type) + "." + std::to_string(amplifier + 1);
     return attribute::AttributeModifier(std::string(info.uuid), name, amount, info.operation);
 }
 

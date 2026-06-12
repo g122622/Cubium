@@ -91,19 +91,22 @@ constexpr const char* MINING_FATIGUE_UUID = "55FCED67-E92A-486E-9800-B47F202C438
 constexpr const char* STRENGTH_UUID = "648D7064-6A60-4F59-8ABE-C2C23A6DD7A9";
 
 /// 跳跃提升效果修饰器 UUID
-constexpr const char* JUMP_BOOST_UUID = "202C495C-68E2-487F-821D-6B57E97F5D2A";
+constexpr const char* JUMP_BOOST_UUID = "C0105BF3-AEF8-46B0-9EBC-92943757CCBE";
 
 /// 虚弱效果修饰器 UUID
 constexpr const char* WEAKNESS_UUID = "22653B89-116E-49DC-9B6B-9971489B5BE5";
 
 /// 生命提升效果修饰器 UUID
-constexpr const char* HEALTH_BOOST_UUID = "0D2B1C3D-6E3E-4B5E-9A3D-5D5A6B7C8D9E";
+constexpr const char* HEALTH_BOOST_UUID = "5D6F0BA2-1186-46AC-B896-C61C5CEE99CC";
+
+/// 伤害吸收效果修饰器 UUID
+constexpr const char* ABSORPTION_UUID = "EAE29CF0-701E-4ED6-883A-96F798F3DAB5";
 
 /// 幸运效果修饰器 UUID
-constexpr const char* LUCK_UUID = "03C3C89D-7037-4B42-869F-B735591E2D3E";
+constexpr const char* LUCK_UUID = "03C3C89D-7037-4B42-869F-B146BCB64D2E";
 
 /// 霉运效果修饰器 UUID
-constexpr const char* UNLUCK_UUID = "CC5AF142-2BD2-4215-B636-2605A17BEFD1";
+constexpr const char* UNLUCK_UUID = "CC5AF142-2BD2-4215-B636-2605AED11727";
 
 // ============================================================================
 // 辅助函数

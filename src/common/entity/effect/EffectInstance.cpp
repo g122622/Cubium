@@ -137,11 +137,16 @@ bool EffectInstance::merge(const EffectInstance& other)
 
     if (otherIsStronger) {
         // 新效果更强，完全替换
+        // 注意：属性修改器的更新需要由调用方（EffectManager）处理
+        // 因为这里没有实体的引用，无法直接操作属性系统
         m_amplifier = other.m_amplifier;
         m_duration = other.m_duration;
         m_ambient = other.m_ambient;
         m_visible = other.m_visible;
         m_showIcon = other.m_showIcon;
+        // 标记需要重新应用属性修改器
+        // 调用方会先 remove() 旧的再 apply() 新的
+        m_applied = false;
         return true;
     } else if (sameAmplifier && otherIsLonger) {
         // 同级但更长，延长时间
@@ -161,7 +166,8 @@ void EffectInstance::apply(LivingEntity& entity)
     // 应用属性修改器
     const auto& modifiers = EffectAttributeModifiers::getEffectModifiers(m_type);
     for (const auto& modifierInfo : modifiers) {
-        attribute::AttributeModifier modifier = EffectAttributeModifiers::createModifier(modifierInfo, m_amplifier);
+        attribute::AttributeModifier modifier =
+            EffectAttributeModifiers::createModifier(modifierInfo, m_type, m_amplifier);
         entity.attributes().addModifier(modifierInfo.attributeName, modifier);
     }
 

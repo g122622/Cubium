@@ -44,7 +44,7 @@ namespace effect {
 namespace EffectAttributeModifiers {
 
 // ============================================================================
-// 修改器UUID常量（与MC 1.16.5一致）
+// 修改器UUID常量（与MC原版一致，来自AttributeModifierIdFix数据映射）
 // ============================================================================
 
 // 速度效果
@@ -58,11 +58,13 @@ constexpr const char* MINING_FATIGUE_UUID = "55FCED67-E92A-486E-9800-B47F202C438
 // 力量效果
 constexpr const char* STRENGTH_UUID = "648D7064-6A60-4F59-8ABE-C2C23A6DD7A9";
 // 跳跃提升
-constexpr const char* JUMP_BOOST_UUID = "01CD8E33-6D5F-4B69-8E53-7CAB1BC7A1D8";
-// 凋零效果（攻击伤害减少）
+constexpr const char* JUMP_BOOST_UUID = "C0105BF3-AEF8-46B0-9EBC-92943757CCBE";
+// 虚弱效果
 constexpr const char* WEAKNESS_UUID = "22653B89-116E-49DC-9B6B-9971489B5BE5";
 // 生命提升
 constexpr const char* HEALTH_BOOST_UUID = "5D6F0BA2-1186-46AC-B896-C61C5CEE99CC";
+// 伤害吸收
+constexpr const char* ABSORPTION_UUID = "EAE29CF0-701E-4ED6-883A-96F798F3DAB5";
 // 幸运
 constexpr const char* LUCK_UUID = "03C3C89D-7037-4B42-869F-B146BCB64D2E";
 // 霉运
@@ -109,10 +111,12 @@ struct EffectModifierInfo {
 /**
  * @brief 创建属性修改器
  * @param info 修改器信息
- * @param amplifier 效果等级
+ * @param type 效果类型（用于生成修改器名称）
+ * @param amplifier 效果等级（0-based）
  * @return 属性修改器
  */
-[[nodiscard]] attribute::AttributeModifier createModifier(const EffectModifierInfo& info, i32 amplifier);
+[[nodiscard]] attribute::AttributeModifier createModifier(
+    const EffectModifierInfo& info, EffectType type, i32 amplifier);
 
 } // namespace EffectAttributeModifiers
 

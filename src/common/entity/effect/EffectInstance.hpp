@@ -107,6 +107,11 @@ public:
      */
     [[nodiscard]] bool isPermanent() const noexcept { return m_duration < 0; }
 
+    /**
+     * @brief 检查属性修改器是否已应用
+     */
+    [[nodiscard]] bool isApplied() const noexcept { return m_applied; }
+
     // ========== 更新 ==========
 
     /**

@@ -99,18 +99,8 @@ f32 PlayerAttackHelper::calculateDamage(const Player& player, f32 baseDamage, f3
     // 当 progress = 1.0 时，伤害为 100%；当 progress = 0 时，伤害为 20%
     damage = applyCooldown(damage, cooldownProgress);
 
-    // 力量药水加成（每级 +3 伤害）
-    i32 strengthLevel = player.getEffectLevel(effect::EffectType::Strength);
-    if (strengthLevel > 0) {
-        damage += 3.0f * static_cast<f32>(strengthLevel);
-    }
-
-    // 虚弱药水减益（每级 -4 伤害）
-    i32 weaknessLevel = player.getEffectLevel(effect::EffectType::Weakness);
-    if (weaknessLevel > 0) {
-        damage -= 4.0f * static_cast<f32>(weaknessLevel);
-        damage = std::max(0.0f, damage);
-    }
+    // 力量/虚弱药水效果已通过属性修改器系统自动应用到 ATTACK_DAMAGE 属性值中，
+    // 不需要在此手动计算。参见 EffectAttributeModifiers 中 Strength(+3.0/级) 和 Weakness(-4.0/级) 的 Addition 操作。
 
     return damage;
 }

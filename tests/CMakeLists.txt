@@ -545,6 +545,8 @@ add_executable(mc_tests
     common/advancement/BlockPredicateTest.cpp
     # EffectType 工具函数测试
     common/entity/effect/EffectTypeTest.cpp
+    # EffectAttributeModifiers 效果属性修改器测试
+    common/entity/effect/EffectAttributeModifiersTest.cpp
     common/world/gen/WorldGenSpawnerTest.cpp
     common/world/gen/OceanFeatureTest.cpp
     common/world/gen/WaterContentRegistryTest.cpp

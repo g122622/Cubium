@@ -39,7 +39,21 @@ bool EffectManager::addEffect(EffectInstance effect, LivingEntity& entity)
 
     if (index >= 0) {
         // 已存在，尝试合并
-        return m_effects[index].merge(effect);
+        EffectInstance& existing = m_effects[index];
+
+        // 先移除旧的属性修改器
+        if (existing.amplifier() != effect.amplifier()) {
+            existing.remove(entity);
+        }
+
+        bool merged = existing.merge(effect);
+
+        // 如果合并后需要重新应用（amplifier 变化时 m_applied 被设为 false）
+        if (merged && !existing.isApplied()) {
+            existing.apply(entity);
+        }
+
+        return merged;
     } else {
         // 新效果，添加并应用
         effect.apply(entity);
