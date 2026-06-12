@@ -15,15 +15,21 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * LIABILITY, WHETHER IN TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
 #include "PistonHeadBlock.hpp"
+#include "PistonBlock.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include <unordered_map>
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/blocks/redstone/MovingPistonBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 
@@ -104,6 +110,19 @@ BlockState PistonHeadBlock::withType(BlockState state, Type type) noexcept
     return state.with(TYPE_PROP(), type);
 }
 
+bool PistonHeadBlock::_isFittingBase(const BlockState& headState, const BlockState& baseState) noexcept
+{
+    // 根据活塞头类型判断应该对应哪种活塞
+    Block* expectedPiston = (getType(headState) == Type::Sticky) ? VanillaBlocks::STICKY_PISTON : VanillaBlocks::PISTON;
+
+    // 三个条件必须全部满足：
+    // 1. 类型匹配：邻居方块是对应类型的活塞
+    // 2. 已伸出：活塞处于 EXTENDED=true 状态
+    // 3. 朝向一致：活塞的 FACING 与活塞头的 FACING 相同
+    return baseState.is(expectedPiston) && baseState.get(BlockStateProperties::EXTENDED()) &&
+        baseState.get(BlockStateProperties::FACING()) == getFacing(headState);
+}
+
 BlockState PistonHeadBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
@@ -111,22 +130,99 @@ BlockState PistonHeadBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-    MC_UNUSED(facingState);
-    MC_UNUSED(currentPos);
-
-    // 检查活塞主体是否还存在
-    Direction pistonFacing = getFacing(state);
-    BlockPos pistonPos = currentPos.offset(Directions::opposite(pistonFacing));
-
-    const BlockState* pistonState = world.getBlockState(pistonPos);
-    if (!pistonState || pistonState->isAir()) {
-        // TODO: 活塞主体不存在时，活塞头应该消失（返回空气状态）
-        // 当前实现返回原状态，需要实现正确的方块移除逻辑
-        return state;
+    // 检查更新是否来自活塞头朝向的反方向（即活塞主体方向）
+    // 活塞主体位于活塞头朝向的反方向一格
+    if (Directions::opposite(facing) == getFacing(state)) {
+        // 更新来自活塞主体方向，检查活塞头是否仍能存活
+        if (!isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
+            // 活塞主体不存在或未伸出，活塞头应消失
+            if (auto* airState = BlockRegistry::instance().airState()) {
+                return *airState;
+            }
+        }
     }
 
-    MC_UNUSED(facingPos);
     return state;
+}
+
+bool PistonHeadBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    // 活塞头能存活的条件：
+    // 1. 反方向（朝活塞基座方向）有匹配的已伸出活塞基座（isFittingBase 返回 true）
+    // 2. 或者反方向是方向匹配的 MOVING_PISTON（正在移动的活塞方块）
+    Direction facing = getFacing(state);
+    BlockPos basePos = pos.offset(Directions::opposite(facing));
+    const BlockState* baseState = world.getBlockState(basePos);
+
+    if (baseState == nullptr) {
+        return false;
+    }
+
+    // 条件1：匹配的已伸出活塞基座
+    if (_isFittingBase(state, *baseState)) {
+        return true;
+    }
+
+    // 条件2：方向匹配的 MOVING_PISTON
+    if (baseState->is(VanillaBlocks::MOVING_PISTON) && baseState->get(BlockStateProperties::FACING()) == facing) {
+        return true;
+    }
+
+    return false;
+}
+
+void PistonHeadBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
+    Block::neighborChanged(world, pos, neighborBlock, neighborPos, isMoving);
+
+    // 如果活塞头自身仍能存活，将邻居变化通知转发到活塞主体方向
+    // 这确保了活塞头区域的红石变化能传导到活塞基座
+    const BlockState* currentState = world.getBlockState(pos);
+    if (currentState != nullptr && isValidPosition(*currentState, static_cast<IBlockReader&>(world), pos)) {
+        Direction facing = getFacing(*currentState);
+        BlockPos basePos = pos.offset(Directions::opposite(facing));
+        const BlockState* baseState = world.getBlockState(basePos);
+        if (baseState != nullptr && !baseState->isAir()) {
+            Block& baseBlock = const_cast<Block&>(baseState->getBlock());
+            baseBlock.neighborChanged(world, basePos, neighborBlock, neighborPos, isMoving);
+        }
+    }
+}
+
+void PistonHeadBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    Block::onBlockRemoved(world, pos, state);
+
+    // 活塞头被移除时，检查反方向是否有匹配的已伸出活塞基座
+    // 如果有，级联销毁活塞基座并产生掉落物
+    Direction facing = getFacing(state);
+    BlockPos basePos = pos.offset(Directions::opposite(facing));
+    const BlockState* baseState = world.getBlockState(basePos);
+
+    if (baseState != nullptr && _isFittingBase(state, *baseState)) {
+        // 生成活塞基座的掉落物品
+        const Block& baseBlock = baseState->getBlock();
+        const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(baseBlock);
+        if (blockItem != nullptr) {
+            ItemStack dropStack(blockItem, 1);
+            math::Random rng;
+            ItemDropHelper::spawnItemEntity(&world,
+                dropStack,
+                static_cast<f64>(basePos.x) + 0.5,
+                static_cast<f64>(basePos.y) + 0.5,
+                static_cast<f64>(basePos.z) + 0.5,
+                rng);
+        }
+
+        // 将活塞基座设置为空气
+        if (auto* airState = BlockRegistry::instance().airState()) {
+            world.setBlockState(basePos, airState);
+        }
+
+        // 调用活塞基座的 spawnAfterBreak（如蠹虫生成等特殊逻辑）
+        baseBlock.spawnAfterBreak(world, basePos, *baseState, nullptr, false);
+    }
 }
 
 } // namespace blocks

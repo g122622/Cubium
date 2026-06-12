@@ -15,9 +15,8 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * LIABILITY, WHETHER IN TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
@@ -40,14 +39,14 @@ namespace blocks {
 /**
  * @brief 活塞头方块
  *
- * 活塞头是活塞伸出时显示的方块部分。
+ * 活塞头是活塞伸出时显示的方块部分，与活塞主体（PistonBlock）关联。
+ * 当活塞主体不存在或未伸出时，活塞头应自动消失。
  *
  * ## 特性
  * - 仅在活塞伸出时显示
- * - 与活塞主体关联
- * - 推动其他方块
- *
- * 参考: net.minecraft.block.PistonHeadBlock
+ * - 与活塞主体关联（通过 FACING 和 TYPE 属性）
+ * - 活塞主体不存在或未伸出时自动变为空气
+ * - 被移除时级联销毁匹配的活塞主体
  */
 class PistonHeadBlock : public Block {
 public:
@@ -73,6 +72,14 @@ public:
         IWorld& world,
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
+
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
+
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
     [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const noexcept override
     {
@@ -115,6 +122,20 @@ public:
      * @return 类型属性的引用
      */
     [[nodiscard]] static const EnumProperty<Type>& getTypeProperty() noexcept;
+
+private:
+    /**
+     * @brief 检查给定的方块状态是否是匹配的已伸出活塞基座
+     *
+     * 当活塞头的 TYPE 为 Normal 时，检查对方是否为已伸出的 PISTON；
+     * 当活塞头的 TYPE 为 Sticky 时，检查对方是否为已伸出的 STICKY_PISTON。
+     * 同时检查 EXTENDED 属性为 true 且 FACING 方向一致。
+     *
+     * @param headState 活塞头状态
+     * @param baseState 待检查的方块状态
+     * @return true 如果是匹配的已伸出活塞基座
+     */
+    [[nodiscard]] static bool _isFittingBase(const BlockState& headState, const BlockState& baseState) noexcept;
 };
 
 } // namespace blocks
