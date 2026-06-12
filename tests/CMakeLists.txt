@@ -547,6 +547,8 @@ add_executable(mc_tests
     common/entity/effect/EffectTypeTest.cpp
     # EffectAttributeModifiers 效果属性修改器测试
     common/entity/effect/EffectAttributeModifiersTest.cpp
+    # EffectManager 效果合并行为测试
+    common/entity/effect/EffectManagerMergeTest.cpp
     common/world/gen/WorldGenSpawnerTest.cpp
     common/world/gen/OceanFeatureTest.cpp
     common/world/gen/WaterContentRegistryTest.cpp

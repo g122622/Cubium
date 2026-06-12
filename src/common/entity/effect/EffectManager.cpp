@@ -41,15 +41,20 @@ bool EffectManager::addEffect(EffectInstance effect, LivingEntity& entity)
         // 已存在，尝试合并
         EffectInstance& existing = m_effects[index];
 
-        // 先移除旧的属性修改器
-        if (existing.amplifier() != effect.amplifier()) {
+        // 只有当新效果更强（amplifier更高）时才需要移除旧的属性修改器并重新应用
+        // 如果新效果更弱或同级，merge() 不会修改 amplifier，无需重新应用
+        bool needsReapply = effect.amplifier() > existing.amplifier();
+
+        if (needsReapply) {
+            // 新效果更强，先移除旧的属性修改器
             existing.remove(entity);
         }
 
         bool merged = existing.merge(effect);
 
-        // 如果合并后需要重新应用（amplifier 变化时 m_applied 被设为 false）
-        if (merged && !existing.isApplied()) {
+        if (merged && needsReapply && !existing.isApplied()) {
+            // merge() 在 amplifier 变化时将 m_applied 设为 false
+            // 此时需要用新的 amplifier 重新应用属性修改器
             existing.apply(entity);
         }
 

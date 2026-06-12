@@ -64,14 +64,37 @@ EffectType ←── EffectInstance ←── EffectManager
 
 ### 5. 效果合并规则
 当添加同名效果时，根据持续时间和等级决定合并策略：
-- 新效果等级更高 → 覆盖
-- 等级相同且新效果持续时间更长 → 合并持续时间
-- 否则 → 忽略
+- 新效果等级更高 → 覆盖（移除旧属性修改器，应用新属性修改器）
+- 等级相同且新效果持续时间更长 → 合并持续时间（属性修改器不变）
+- 否则 → 忽略（不修改现有效果和属性修改器）
 
-### 6. 新增效果类型注意
-MC 1.21 新增了 TrialOmen、WindCharged、RaidOmen 三个试炼密室效果，数值 ID 为 33-35。如需新增效果，需同时更新：`EffectType` 枚举、`getEffectById()`、`getEffectResourceLocation()`、`getEffectResourceName()`。
+注意：`EffectManager::addEffect()` 在合并时，只有当新效果的 amplifier 严格大于现有效果时，
+才会先调用 `remove()` 移除旧属性修改器，再调用 `apply()` 应用新属性修改器。
+同级延长时间不会重新应用属性修改器，更弱的效果会被完全忽略。
 
-### 7. 效果 tick 间隔
+### 6. 属性修改器映射
+效果到属性修改器的映射定义在 `EffectAttributeModifiers` 中：
+
+| 效果 | 属性 | 修改量/级 | 操作类型 | UUID |
+|------|------|-----------|----------|------|
+| Speed | MOVEMENT_SPEED | +0.2 | MultiplyTotal | SPEED_UUID |
+| Slowness | MOVEMENT_SPEED | -0.15 | MultiplyTotal | SLOWNESS_UUID |
+| Haste | ATTACK_SPEED | +0.1 | MultiplyTotal | HASTE_UUID |
+| MiningFatigue | ATTACK_SPEED | -0.1 | MultiplyTotal | MINING_FATIGUE_UUID |
+| Strength | ATTACK_DAMAGE | +3.0 | Addition | STRENGTH_UUID |
+| Weakness | ATTACK_DAMAGE | -4.0 | Addition | WEAKNESS_UUID |
+| JumpBoost | JUMP_BOOST | +0.1 | Addition | JUMP_BOOST_UUID |
+| HealthBoost | MAX_HEALTH | +4.0 | Addition | HEALTH_BOOST_UUID |
+| Absorption | MAX_ABSORPTION | +4.0 | Addition | ABSORPTION_UUID |
+| Luck | LUCK | +1.0 | Addition | LUCK_UUID |
+| BadLuck | LUCK | -1.0 | Addition | BAD_LUCK_UUID |
+
+修改器名称格式：`effect.minecraft.<resource_name>.<level>`（MC 原版格式）
+
+### 7. 新增效果类型注意
+MC 1.21 新增了 TrialOmen、WindCharged、RaidOmen 三个试炼密室效果，数值 ID 为 33-35。如需新增效果，需同时更新：`EffectType` 枚举、`getEffectById()`、`getEffectResourceLocation()`、`getEffectResourceName()`。如果新效果有属性修改器，还需在 `EffectAttributeModifiers` 中添加映射条目，并在 `AttributeModifierUUIDs.hpp` 中定义对应 UUID 常量。
+
+### 8. 效果 tick 间隔
 部分效果有特殊的 tick 间隔计算：
 - 生命恢复：每 `50/(level+1)` tick 治疗 1 HP
 - 中毒：每 `25/(level+1)` tick 造成 1 HP 伤害
