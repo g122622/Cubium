@@ -24,7 +24,11 @@ goal/
     ├── FishSwimGoal.hpp/cpp      # 鱼类游泳目标（检查 canRandomSwim）
     ├── FindWaterGoal.hpp/cpp     # 寻找水源目标（水生生物）
     ├── SwimUpGoal.hpp/cpp        # 向上游目标（水生生物）
-    ├── AdditionalGoals.hpp/cpp   # 其他目标(占位符)
+    ├── AdditionalGoals.hpp/cpp   # 已迁移：所有目标已移至独立文件（见下方）
+    ├── FleeSunGoal.hpp/cpp       # 躲避阳光目标（亡灵生物日间避阳）
+    ├── FindShelterGoal.hpp/cpp   # 寻找庇护所目标（日间寻找阴影位置）
+    ├── ReturnToHomeGoal.hpp/cpp  # 返回家园目标（家园区系统，导航回家园位置）
+    ├── FlyGoal.hpp/cpp           # 飞行目标（蝙蝠等飞行生物随机飞行）
     ├── movement/                 # 移动类目标
     │   └── MovementGoals.hpp/cpp # WaterAvoidingRandomWalkingGoal, LeapAtTargetGoal
     │   └── FollowSchoolLeaderGoal.hpp/cpp # 跟随群体领导者（群游鱼类）

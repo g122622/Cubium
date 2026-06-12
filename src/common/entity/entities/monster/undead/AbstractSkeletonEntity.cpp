@@ -28,6 +28,7 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../ai/goal/goals/FleeSunGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
@@ -167,8 +168,7 @@ void AbstractSkeletonEntity::registerGoals()
     // m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::RestrictSunGoal>(this));
 
     // 优先级 3: 躲避阳光
-    // TODO: FleeSunGoal 未实现
-    // m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::FleeSunGoal>(this, 1.0));
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::FleeSunGoal>(this, 1.0));
 
     // 优先级 3: 躲避狼
     // TODO: AvoidEntityGoal<WolfEntity> 需要实现模板版本
