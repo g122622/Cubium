@@ -28,13 +28,11 @@ namespace mc::client::renderer::trident::particle::particles {
 
 LavaParticle::LavaParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
-    , m_initialSize(DEFAULT_SIZE)
 {
     mc::math::Random rng;
 
     setGravity(DEFAULT_GRAVITY);
     setSize(DEFAULT_SIZE * (0.8f + rng.nextFloat() * 0.4f));
-    m_initialSize = size();
 
     // 熔岩颜色：橙红色
     f32 colorVar = rng.nextFloat() * 0.2f;
@@ -87,7 +85,7 @@ f64 LavaParticle::getScale(f64 partialTick) const
 {
     // 二次收缩：粒子从完整尺寸缩小到零
     f64 t = (m_age + partialTick) / m_maxAge;
-    return m_initialSize * (1.0 - t * t);
+    return 1.0 - t * t;
 }
 
 } // namespace mc::client::renderer::trident::particle::particles

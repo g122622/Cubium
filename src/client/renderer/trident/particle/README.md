@@ -128,3 +128,5 @@ ParticleManager
 9. **物理参数**：重力乘数 0.04、空气摩擦 0.98、地面摩擦 0.7，与 MC 1.16.5 一致。
 
 10. **DripParticle 状态机**：Hanging → Falling → Landed 三态，各态物理参数不同。
+
+11. **getScale() 返回值是乘数**：`getScale()` 返回的值会与 `m_size` 相乘（渲染管线：`halfSize = m_size * scale * 0.5`），因此 getScale() 应仅返回缩放乘数（如 0~1 范围），**不要**乘以 `m_initialSize` 或 `size()`，否则渲染尺寸会被平方放大。如需基于初始大小做动画，应在 `tick()` 中用 `setSize(m_initialSize * factor)` 更新 m_size，让 getScale() 返回 1.0；或让 getScale() 仅返回乘数。

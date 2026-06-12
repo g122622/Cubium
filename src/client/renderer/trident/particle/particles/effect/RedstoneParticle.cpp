@@ -36,7 +36,6 @@ namespace mc::client::renderer::trident::particle::particles {
 
 RedstoneParticle::RedstoneParticle(const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color)
     : Particle(pos, velocity)
-    , m_initialSize(0.1f)
 {
     mc::math::Random rng;
 
@@ -44,7 +43,6 @@ RedstoneParticle::RedstoneParticle(const glm::vec3& pos, const glm::vec3& veloci
     // 红石粒子大小基于颜色强度
     f32 intensity = (color.r + color.g + color.b) / 3.0f;
     setSize(0.01f + intensity * 0.05f);
-    m_initialSize = size();
     setFriction(1.0f); // 无摩擦
     setHasPhysics(false);
     setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 4.0);
@@ -87,9 +85,9 @@ void RedstoneParticle::tick(mc::client::ClientWorld* world)
 f64 RedstoneParticle::getScale(f64 partialTick) const
 {
     // 淡入效果：粒子从零尺寸快速增大到完整尺寸
-    // 前 1/32 生命周期内从 0 渐变到 m_initialSize，之后保持 m_initialSize
+    // 前 1/32 生命周期内从 0 渐变到 1.0，之后保持 1.0
     f64 t = (m_age + partialTick) / m_maxAge;
-    return m_initialSize * mc::math::clamp(t * 32.0, 0.0, 1.0);
+    return mc::math::clamp(t * 32.0, 0.0, 1.0);
 }
 
 // ============================================================================
@@ -161,13 +159,11 @@ void EnchantParticle::tick(mc::client::ClientWorld* world)
 
 FallingDustParticle::FallingDustParticle(const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color)
     : Particle(pos, velocity)
-    , m_initialSize(0.1f)
 {
     mc::math::Random rng;
 
     setGravity(DEFAULT_GRAVITY);
     setSize(0.05f + rng.nextFloat() * 0.02f);
-    m_initialSize = size();
     setFriction(0.98f);
     setHasPhysics(false);
     setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 10.0);
@@ -224,9 +220,9 @@ void FallingDustParticle::tick(mc::client::ClientWorld* world)
 f64 FallingDustParticle::getScale(f64 partialTick) const
 {
     // 淡入效果：粒子从零尺寸快速增大到完整尺寸
-    // 前 1/32 生命周期内从 0 渐变到 m_initialSize，之后保持 m_initialSize
+    // 前 1/32 生命周期内从 0 渐变到 1.0，之后保持 1.0
     f64 t = (m_age + partialTick) / m_maxAge;
-    return m_initialSize * mc::math::clamp(t * 32.0, 0.0, 1.0);
+    return mc::math::clamp(t * 32.0, 0.0, 1.0);
 }
 
 } // namespace mc::client::renderer::trident::particle::particles

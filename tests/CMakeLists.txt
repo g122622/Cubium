@@ -723,6 +723,8 @@ add_executable(mc_tests
     client/renderer/particle/ParticleRegistryTest.cpp
     client/renderer/particle/ParticleManagerTest.cpp
     client/renderer/trident/particle/particles/special/NautilusParticleTest.cpp
+    # 粒子缩放测试
+    client/renderer/trident/particle/particles/effect/ParticleScalingTest.cpp
     # DiggingParticle 测试
     client/renderer/trident/particle/particles/block/DiggingParticleTest.cpp
     # 绗竴浜虹О鎵嬮儴娓叉煋娴嬭瘯

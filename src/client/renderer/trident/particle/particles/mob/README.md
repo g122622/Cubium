@@ -38,3 +38,4 @@ VillagerParticle.hpp   → 包含 AngryVillagerParticle、HappyVillagerParticle�
 2. **颜色设置**：使用 `setColor(glm::vec4)` 设置 RGBA，alpha 用于淡出效果
 3. **摩擦力系数**：`setFriction()` 影响速度衰减，不同粒子类型系数不同
 4. **物理碰撞**：村民粒子通常 `setHasPhysics(false)`，不受方块碰撞影响
+5. **getScale() 返回值是乘数而非绝对尺寸**：`getScale()` 返回的值会与 `m_size` 相乘（渲染管线：`halfSize = m_size * scale * 0.5`），因此 getScale() 应仅返回乘数（如 0~1 范围），不要乘以 m_initialSize 或 size()，否则渲染尺寸会被平方放大

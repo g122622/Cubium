@@ -74,3 +74,5 @@ Particle (基类，在 particle/ 目录)
 5. **SpellParticle 多种类型**：SpellParticle 支持多种药水效果颜色（Instant、Mob、Wizard 等），创建时需正确设置颜色。
 
 6. **DragonBreathParticle 复合功能**：该文件同时包含 EndRodParticle 和 SweepAttackParticle 的实现，因它们共享相似逻辑。
+
+7. **getScale() 返回值是乘数而非绝对尺寸**：`getScale()` 返回的值会与 `m_size` 相乘（渲染管线：`halfSize = m_size * scale * 0.5`），因此 getScale() 应仅返回 0~1 范围的乘数。不要在 getScale() 中乘以 m_initialSize 或 size()，否则渲染尺寸会被平方放大。如需基于初始大小做动画，应在 tick() 中用 `setSize(m_initialSize * factor)` 更新 m_size，让 getScale() 返回 1.0；或让 getScale() 仅返回乘数。

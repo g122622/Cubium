@@ -92,7 +92,6 @@ f64 ExplosionParticle::getScale(f64 partialTick) const
 
 LargeExplosionParticle::LargeExplosionParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
-    , m_initialSize(2.0)
 {
     mc::math::Random rng;
 
@@ -102,10 +101,10 @@ LargeExplosionParticle::LargeExplosionParticle(const glm::vec3& pos, const glm::
     setColor(glm::vec4(gray, gray, gray, 1.0f));
 
     // 缩放随 xSpeed 参数变化
-    m_initialSize = 2.0 * (1.0 - velocity.x * 0.5);
+    f64 initialSize = 2.0 * (1.0 - velocity.x * 0.5);
 
     setGravity(0.0f);
-    setSize(static_cast<f32>(m_initialSize));
+    setSize(static_cast<f32>(initialSize));
     setFriction(1.0f);
     setHasPhysics(false);
 
@@ -146,7 +145,7 @@ ResourceLocation LargeExplosionParticle::getTextureLocation() const
 f64 LargeExplosionParticle::getScale(f64 partialTick) const
 {
     MC_UNUSED(partialTick);
-    return m_initialSize;
+    return 1.0;
 }
 
 } // namespace mc::client::renderer::trident::particle::particles

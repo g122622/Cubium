@@ -33,13 +33,11 @@ namespace mc::client::renderer::trident::particle::particles {
 
 AngryVillagerParticle::AngryVillagerParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
-    , m_initialSize(0.1f)
 {
     mc::math::Random rng;
 
     setGravity(0.0f);
     setSize(0.05f + rng.nextFloat() * 0.03f);
-    m_initialSize = size();
     setFriction(0.96f);
     setHasPhysics(false);
     setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 4.0);
@@ -91,9 +89,9 @@ void AngryVillagerParticle::tick(mc::client::ClientWorld* world)
 f64 AngryVillagerParticle::getScale(f64 partialTick) const
 {
     // 淡入效果：粒子从零尺寸快速增大到完整尺寸
-    // 前 1/32 生命周期内从 0 渐变到 m_initialSize，之后保持 m_initialSize
+    // 前 1/32 生命周期内从 0 渐变到 1.0，之后保持 1.0
     f64 t = (m_age + partialTick) / m_maxAge;
-    return m_initialSize * mc::math::clamp(t * 32.0, 0.0, 1.0);
+    return mc::math::clamp(t * 32.0, 0.0, 1.0);
 }
 
 // ============================================================================
@@ -159,13 +157,11 @@ void HappyVillagerParticle::tick(mc::client::ClientWorld* world)
 
 SneezeParticle::SneezeParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
-    , m_initialSize(0.05f)
 {
     mc::math::Random rng;
 
     setGravity(DEFAULT_GRAVITY);
     setSize(0.05f + rng.nextFloat() * 0.02f);
-    m_initialSize = size();
     setFriction(0.98f);
     setHasPhysics(false);
     setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 5.0);
@@ -213,9 +209,9 @@ void SneezeParticle::tick(mc::client::ClientWorld* world)
 f64 SneezeParticle::getScale(f64 partialTick) const
 {
     // 淡入效果：粒子从零尺寸快速增大到完整尺寸
-    // 前 1/32 生命周期内从 0 渐变到 m_initialSize，之后保持 m_initialSize
+    // 前 1/32 生命周期内从 0 渐变到 1.0，之后保持 1.0
     f64 t = (m_age + partialTick) / m_maxAge;
-    return m_initialSize * mc::math::clamp(t * 32.0, 0.0, 1.0);
+    return mc::math::clamp(t * 32.0, 0.0, 1.0);
 }
 
 } // namespace mc::client::renderer::trident::particle::particles

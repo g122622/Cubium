@@ -33,7 +33,6 @@ NautilusParticle::NautilusParticle(const glm::vec3& pos, const glm::vec3& veloci
 
     setGravity(0.0f);
     setSize(0.04 * (0.8 + rng.nextFloat() * 0.4));
-    m_initialSize = size();
 
     // 鹦鹉螺粒子颜色：白色/淡蓝色
     f32 brightness = 0.8f + rng.nextFloat() * 0.2f;
@@ -95,13 +94,13 @@ f64 NautilusParticle::getScale(f64 partialTick) const
 
     if (ageRatio < 0.3) {
         // 前期：从小变大
-        return m_initialSize * (0.5 + ageRatio / 0.3 * 0.5);
+        return 0.5 + ageRatio / 0.3 * 0.5;
     } else if (ageRatio < 0.7) {
         // 中期：保持正常大小
-        return m_initialSize;
+        return 1.0;
     } else {
         // 后期：逐渐缩小
-        return m_initialSize * (1.0 - (ageRatio - 0.7) / 0.3 * 0.5);
+        return 1.0 - (ageRatio - 0.7) / 0.3 * 0.5;
     }
 }
 

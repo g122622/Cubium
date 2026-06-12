@@ -121,7 +121,6 @@ public:
     [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
 private:
-    f64 m_initialSize;
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

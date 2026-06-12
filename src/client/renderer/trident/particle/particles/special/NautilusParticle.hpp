@@ -81,7 +81,6 @@ private:
     /// 最大亮度光照值（skyLight=15, blockLight=15 的组合值）
     static constexpr u32 FULL_BRIGHTNESS = 15728880;
     static constexpr f64 DEFAULT_LIFETIME = 60.0; // 约 3 秒
-    f64 m_initialSize;
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

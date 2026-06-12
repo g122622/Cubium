@@ -235,14 +235,15 @@ TEST_F(NautilusParticleTest, GetScale_MiddlePhase_ReturnsFullSize)
     auto particle = NautilusParticle::create(pos, velocity, nullptr);
 
     // tick 到中期阶段 (生命周期 30-70%)
-    for (int i = 0; i < 40; ++i) {
+    // NautilusParticle 的 DEFAULT_LIFETIME = 60.0，加上随机 0~36 tick
+    // tick 25 次确保进入中期阶段（25/60 ≈ 0.42，在 30%-70% 范围内）
+    for (int i = 0; i < 25; ++i) {
         particle->tick(nullptr);
     }
 
-    // 中期缩放应该接近初始大小
+    // 中期缩放乘数应该接近 1.0（三阶段缩放：0.3-0.7 区间为恒定 1.0）
     f64 scale = particle->getScale(0.0);
-    f64 initialSize = particle->size();
-    EXPECT_NEAR(scale, initialSize, 0.1);
+    EXPECT_NEAR(scale, 1.0, 0.05);
 }
 
 // ==================== 颜色测试 ====================
