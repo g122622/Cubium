@@ -56,7 +56,7 @@ u32 CarrotBlock::getSeedItem() const
 
 const CollisionShape& CarrotBlock::getShape(const BlockState& state) const
 {
-    int age = getAge(state);
+    i32 age = getAge(state);
     MC_ASSERT(age >= 0 && age <= 7);
     return m_carrotShapesByAge[age];
 }

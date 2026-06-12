@@ -80,12 +80,12 @@ StemBlock::StemBlock(const StemGrownBlock* crop, const BlockProperties& properti
     }
 }
 
-int StemBlock::getAge(const BlockState& state) const
+i32 StemBlock::getAge(const BlockState& state) const
 {
     return state.get(BlockStateProperties::AGE_0_7());
 }
 
-const BlockState& StemBlock::withAge(int age) const
+const BlockState& StemBlock::withAge(i32 age) const
 {
     return defaultState().with(BlockStateProperties::AGE_0_7(), std::min(age, getMaxAge()));
 }
@@ -136,7 +136,7 @@ void StemBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
     if (belowState != nullptr && belowState->hasProperty(BlockStateProperties::MOISTURE_0_7())) {
-        int moisture = belowState->get(BlockStateProperties::MOISTURE_0_7());
+        i32 moisture = belowState->get(BlockStateProperties::MOISTURE_0_7());
         if (moisture > 0) {
             growthChance *= (1.0f + moisture / 8.0f);
         }
@@ -176,7 +176,7 @@ void StemBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, 
 
     MC_UNUSED(random);
 
-    const auto newAge = std::min(getAge(state) + static_cast<int>(getBonemealAgeIncrease(world, pos)), getMaxAge());
+    const auto newAge = std::min(getAge(state) + getBonemealAgeIncrease(world, pos), getMaxAge());
     const BlockState& newState = withAge(newAge);
     world.setBlockState(pos, &newState, 2);
 
@@ -196,7 +196,7 @@ void StemBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state
 
 const CollisionShape& StemBlock::getShape(const BlockState& state) const
 {
-    int age = getAge(state);
+    i32 age = getAge(state);
     MC_ASSERT(age >= 0 && age <= 7);
     return m_shapesByAge[age];
 }

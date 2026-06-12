@@ -58,12 +58,12 @@ const IntegerProperty& CropBlock::getAgeProperty() const
     return BlockStateProperties::AGE_0_7();
 }
 
-int CropBlock::getAge(const BlockState& state) const
+i32 CropBlock::getAge(const BlockState& state) const
 {
     return state.get(getAgeProperty());
 }
 
-const BlockState& CropBlock::withAge(int age) const
+const BlockState& CropBlock::withAge(i32 age) const
 {
     return defaultState().with(getAgeProperty(), std::min(age, getMaxAge()));
 }
@@ -168,7 +168,7 @@ void CropBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state
     grow(world, random, pos, state);
 }
 
-int CropBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const
+i32 CropBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const
 {
     // 使用世界种子和方块位置派生确定性随机数
     // 这确保同一位置多次使用骨粉结果一致

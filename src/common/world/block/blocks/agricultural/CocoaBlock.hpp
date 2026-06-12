@@ -68,17 +68,17 @@ public:
     /**
      * @brief 获取最大年龄
      */
-    [[nodiscard]] static constexpr int getMaxAge() { return 2; }
+    [[nodiscard]] static constexpr i32 getMaxAge() { return 2; }
 
     /**
      * @brief 获取当前年龄
      */
-    [[nodiscard]] int getAge(const BlockState& state) const;
+    [[nodiscard]] i32 getAge(const BlockState& state) const;
 
     /**
      * @brief 创建指定年龄的状态
      */
-    [[nodiscard]] const BlockState& withAge(const BlockState& state, int age) const;
+    [[nodiscard]] const BlockState& withAge(const BlockState& state, i32 age) const;
 
     /**
      * @brief 是否为最大年龄

@@ -81,7 +81,7 @@ void BeetrootBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& s
     }
 }
 
-int BeetrootBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const
+i32 BeetrootBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const
 {
     // 甜菜根骨粉增加的生长阶段较少
     // 返回父类的 1/3（约 0-1，因为父类返回 2-5）
@@ -93,7 +93,7 @@ int BeetrootBlock::getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) co
 
 const CollisionShape& BeetrootBlock::getShape(const BlockState& state) const
 {
-    int age = getAge(state);
+    i32 age = getAge(state);
     MC_ASSERT(age >= 0 && age <= 3);
     return m_beetrootShapesByAge[age];
 }

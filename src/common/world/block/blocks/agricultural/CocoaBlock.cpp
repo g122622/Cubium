@@ -37,7 +37,7 @@ namespace blocks {
 namespace {
 
 // 将方向转换为索引 (North=0, South=1, West=2, East=3)
-[[nodiscard]] int directionToIndex(Direction facing)
+[[nodiscard]] i32 directionToIndex(Direction facing)
 {
     switch (facing) {
         case Direction::North:
@@ -74,12 +74,12 @@ CocoaBlock::CocoaBlock(const BlockProperties& properties)
     _initShapes();
 }
 
-int CocoaBlock::getAge(const BlockState& state) const
+i32 CocoaBlock::getAge(const BlockState& state) const
 {
-    return static_cast<int>(state.get(AGE()));
+    return state.get(AGE());
 }
 
-const BlockState& CocoaBlock::withAge(const BlockState& state, int age) const
+const BlockState& CocoaBlock::withAge(const BlockState& state, i32 age) const
 {
     return state.with(AGE(), std::clamp(age, 0, getMaxAge()));
 }
@@ -143,7 +143,7 @@ BlockState CocoaBlock::updatePostPlacement(const BlockState& state,
 void CocoaBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     // 只有未成熟的才生长
-    int age = getAge(state);
+    i32 age = getAge(state);
     if (age >= getMaxAge()) {
         return;
     }
@@ -189,7 +189,7 @@ void CocoaBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos,
     MC_UNUSED(random);
 
     // 骨粉使可可豆增加一个生长阶段
-    int age = getAge(state);
+    i32 age = getAge(state);
     if (age < getMaxAge()) {
         const BlockState& newState = withAge(state, age + 1);
         world.setBlockState(pos, &newState, 2);
@@ -199,9 +199,9 @@ void CocoaBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos,
 const CollisionShape& CocoaBlock::getShape(const BlockState& state) const
 {
     Direction facing = state.get(FACING());
-    int age = getAge(state);
+    i32 age = getAge(state);
 
-    int dirIndex = directionToIndex(facing);
+    i32 dirIndex = directionToIndex(facing);
     return m_shapesByDirectionAndAge[dirIndex][age];
 }
 

@@ -52,7 +52,7 @@ public:
     /**
      * @brief 获取最大年龄（甜菜根为 3）
      */
-    [[nodiscard]] int getMaxAge() const override { return 3; }
+    [[nodiscard]] i32 getMaxAge() const override { return 3; }
 
     // ========== 生长逻辑 ==========
 
@@ -64,7 +64,7 @@ public:
     /**
      * @brief 骨粉增加的年龄（甜菜根较少）
      */
-    [[nodiscard]] int getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const override;
+    [[nodiscard]] i32 getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const override;
 
     // ========== 形状 ==========
 

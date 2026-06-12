@@ -65,20 +65,17 @@ public:
     /**
      * @brief 获取最大年龄
      */
-    // TODO: 返回类型应改为 i32，但需同步修改子类 BeetrootBlock
-    [[nodiscard]] virtual int getMaxAge() const { return 7; }
+    [[nodiscard]] virtual i32 getMaxAge() const { return 7; }
 
     /**
      * @brief 获取当前年龄
      */
-    // TODO: 返回类型应改为 i32，但需同步修改子类 BeetrootBlock
-    [[nodiscard]] int getAge(const BlockState& state) const;
+    [[nodiscard]] i32 getAge(const BlockState& state) const;
 
     /**
      * @brief 创建指定年龄的状态
      */
-    // TODO: 参数类型应改为 i32，但需同步修改子类 BeetrootBlock
-    [[nodiscard]] const BlockState& withAge(int age) const;
+    [[nodiscard]] const BlockState& withAge(i32 age) const;
 
     /**
      * @brief 是否为最大年龄
@@ -140,8 +137,7 @@ public:
      * 增长值由世界种子和方块位置派生的确定性随机数生成，
      * 不要使用全局 rand()，否则同一世界内的结果会不可复现。
      */
-    // TODO: 返回类型应改为 i32，但需同步修改子类 BeetrootBlock
-    [[nodiscard]] virtual int getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] virtual i32 getBonemealAgeIncrease(IWorld& world, const BlockPos& pos) const;
 
     // ========== 形状 ==========
 
