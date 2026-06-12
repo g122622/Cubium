@@ -52,7 +52,7 @@ public:
     /**
      * @brief 获取要生成的实体类型
      */
-    [[nodiscard]] entity::EntityType getEntityType() const { return m_entityType; }
+    [[nodiscard]] const entity::EntityType& getEntityType() const { return m_entityType; }
 
     /**
      * @brief 获取主颜色
@@ -81,7 +81,7 @@ public:
      * @param spawnReason 生成原因
      * @return 是否成功生成
      */
-    bool spawnEntity(IWorld& world, const BlockPos& pos, entity::SpawnReason spawnReason) const;
+    bool spawnEntity(IWorld& world, const BlockPos& pos, world::spawn::SpawnReason spawnReason) const;
 
 private:
     entity::EntityType m_entityType;

@@ -37,6 +37,10 @@ namespace mc {
 class Player;
 class Item;
 
+namespace item {
+class SpawnEggItem;
+} // namespace item
+
 namespace entity::ai::controller {
 class LookController;
 class MovementController;
@@ -542,9 +546,9 @@ public:
      * @brief 处理玩家初始交互
      *
      * 重写 Entity::processInitialInteract() 以处理生物特有交互：
-     * 1. 检查拴绳（如果玩家手持拴绳）
-     * 2. 检查命名牌
-     * 3. 检查刷怪蛋
+     * 1. 命名牌交互：如果玩家手持已命名的命名牌，设置实体的自定义名称
+     * 2. 刷怪蛋交互：如果玩家手持与当前实体类型相同的刷怪蛋，生成幼体
+     * 3. 拴绳交互：如果玩家手持拴绳（TODO: 待 Leashable 接口完善后实现）
      * 4. 调用 interactMob() 让子类处理特定交互
      *
      * @param player 与此实体交互的玩家
@@ -564,6 +568,16 @@ public:
      * @return 交互结果类型
      */
     [[nodiscard]] virtual ActionResultType interactMob(Player& player, Hand hand);
+
+    /**
+     * @brief 检查此生物是否可以被拴绳拴住
+     *
+     * 敌对生物（实现了 IMob 接口）不能被拴住。
+     * 子类可重写此方法以自定义拴绳行为。
+     *
+     * @return 如果此生物可以被拴住返回 true
+     */
+    [[nodiscard]] virtual bool canBeLeashed() const;
 
     // ========== NBT 序列化 ==========
 
@@ -623,6 +637,19 @@ protected:
     bool m_canPickUpLoot = false; // 是否可以拾取物品
 
     // ========== 装备附魔辅助方法 ==========
+
+    /**
+     * @brief 使用刷怪蛋在当前实体位置生成幼体
+     *
+     * 当玩家对生物右键使用刷怪蛋时调用。如果刷怪蛋的实体类型
+     * 与当前实体类型匹配，则生成幼体；否则不生成。
+     *
+     * @param player 使用刷怪蛋的玩家
+     * @param spawnEgg 刷怪蛋物品
+     * @param heldItem 玩家手持的物品堆
+     * @return 是否成功生成了幼体
+     */
+    bool _spawnOffspringFromSpawnEgg(Player& player, const item::SpawnEggItem& spawnEgg, ItemStack& heldItem);
 
     /**
      * @brief 附魔生成的武器

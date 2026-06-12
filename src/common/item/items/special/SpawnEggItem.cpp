@@ -102,7 +102,7 @@ ItemActionResult SpawnEggItem::onItemRightClick(IWorld& world, Player& player, H
 bool SpawnEggItem::spawnEntity(IWorld& world, const BlockPos& pos, entity::SpawnReason spawnReason) const
 {
     // 通过实体注册表创建实体
-    auto entity = entity::EntityRegistry::instance().createEntity(m_entityType, world);
+    auto entity = m_entityType.create(&world);
     if (!entity) {
         return false;
     }

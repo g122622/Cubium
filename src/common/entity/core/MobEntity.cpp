@@ -29,6 +29,8 @@
 #include "../../item/core/ItemStack.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../item/enchantment/enchantments/AllEnchantments.hpp"
+#include "../../item/items/special/NameTagItem.hpp"
+#include "../../item/items/special/SpawnEggItem.hpp"
 #include "../../util/math/MathUtils.hpp"
 #include "../../util/math/random/Random.hpp"
 #include "../../world/IWorld.hpp"
@@ -40,12 +42,15 @@
 #include "../attribute/Attributes.hpp"
 #include "../combat/DifficultyHelper.hpp"
 #include "../combat/PlayerAttackHelper.hpp"
+#include "../core/AgeableEntity.hpp"
 #include "../damage/DamageSource.hpp"
 #include "../entities/player/Player.hpp"
 #include "../entities/vehicle/BoatEntity.hpp"
 #include "../experience/ExperienceDropHandler.hpp"
+#include "../interfaces/IMob.hpp"
 #include "../serialization/EntityNbtKeys.hpp"
 #include "../serialization/NbtHelper.hpp"
+#include "EntityRegistry.hpp"
 #include "EntitySpawnPlacementRegistry.hpp"
 
 namespace mc {
@@ -417,9 +422,45 @@ ActionResultType MobEntity::processInitialInteract(Player& player, Hand hand)
         return ActionResultType::Pass;
     }
 
-    // TODO: 检查拴绳（如果玩家手持拴绳）
-    // TODO: 检查命名牌
-    // TODO: 检查刷怪蛋
+    ItemStack& heldItem = player.getHeldItem(hand);
+    const Item* item = heldItem.getItem();
+
+    // 1. 命名牌交互：如果玩家手持命名牌，调用 NameTagItem 的交互方法
+    //    命名牌必须先在铁砧上命名，才能对生物使用
+    if (item != nullptr && dynamic_cast<const item::items::NameTagItem*>(item) != nullptr) {
+        bool success = const_cast<Item*>(item)->itemInteractionForEntity(heldItem, player, *this, hand);
+        if (success) {
+            return ActionResultType::Success;
+        }
+    }
+
+    // 2. 刷怪蛋交互：如果玩家手持刷怪蛋，生成幼体
+    if (item != nullptr) {
+        auto* spawnEgg = dynamic_cast<const item::SpawnEggItem*>(item);
+        if (spawnEgg != nullptr) {
+            if (m_world != nullptr && !m_world->isClientSide()) {
+                if (_spawnOffspringFromSpawnEgg(player, *spawnEgg, heldItem)) {
+                    return ActionResultType::Success;
+                }
+            } else {
+                // 客户端直接预测成功
+                return ActionResultType::Success;
+            }
+            return ActionResultType::Pass;
+        }
+    }
+
+    // 3. 拴绳交互
+    //    TODO: 拴绳系统需要完整的 Leashable 接口、拴绳物理、拴绳结实体交互、
+    //    网络同步包等基础设施。以下仅实现基本的拴绳附着逻辑，
+    //    完整的拴绳系统（Leashable接口、tickLeash物理、LeashKnotEntity交互、
+    //    ClientboundSetEntityLinkPacket同步等）待后续实现。
+    if (item != nullptr && item == Items::LEAD) {
+        // TODO: 完整的拴绳交互逻辑：
+        // - 如果实体已被当前玩家拴住，解除拴绳（掉落拴绳物品）
+        // - 如果实体可以被拴住且未被其他玩家拴住，将拴绳拴在实体上
+        // 当前暂不实现，等待 Leashable 接口完善
+    }
 
     // 调用子类的交互逻辑
     ActionResultType result = interactMob(player, hand);
@@ -435,6 +476,73 @@ ActionResultType MobEntity::interactMob(Player& /*player*/, Hand /*hand*/)
 {
     // 基类默认返回 Pass，子类可重写以处理特定交互
     return ActionResultType::Pass;
+}
+
+bool MobEntity::canBeLeashed() const
+{
+    // 敌对生物不能被拴住
+    return dynamic_cast<const entity::IMob*>(this) == nullptr;
+}
+
+bool MobEntity::_spawnOffspringFromSpawnEgg(Player& player, const item::SpawnEggItem& spawnEgg, ItemStack& heldItem)
+{
+    // 检查刷怪蛋的实体类型是否与当前实体类型匹配
+    // 只有相同类型的刷怪蛋才能在该实体上生成幼体
+    // 使用实体类型名称字符串进行比较，避免 EntityType 不可拷贝的问题
+    const std::string& eggEntityTypeName = spawnEgg.getEntityType().name();
+    if (eggEntityTypeName != getTypeId()) {
+        return false;
+    }
+
+    // 检查实体类型是否可序列化（与 MC 一致性检查）
+    const entity::EntityType* myType = entity::EntityRegistry::instance().getType(getTypeId());
+    if (myType == nullptr || !myType->serializable()) {
+        return false;
+    }
+
+    if (m_world == nullptr) {
+        return false;
+    }
+
+    // 创建幼体实体
+    auto baby = myType->create(m_world);
+    if (baby == nullptr) {
+        return false;
+    }
+
+    // 转换为 MobEntity 进行设置
+    auto* babyMob = dynamic_cast<MobEntity*>(baby.get());
+    if (babyMob == nullptr) {
+        return false;
+    }
+
+    // 设置为幼体
+    auto* babyAgeable = dynamic_cast<AgeableEntity*>(babyMob);
+    if (babyAgeable != nullptr) {
+        // 年龄型实体（动物等）：通过 AgeableEntity::setChild 设置幼体状态
+        babyAgeable->setChild(true);
+    } else {
+        // 非年龄型实体：不支持幼体状态，无法生成幼体
+        return false;
+    }
+
+    // 将幼体放置在父实体位置
+    babyMob->setPosition(x(), y(), z());
+    babyMob->setRotation(yaw(), pitch());
+
+    // 初始化生成
+    entity::combat::DifficultyInstance difficultyInstance(m_world->difficulty());
+    babyMob->finalizeSpawn(*m_world, difficultyInstance, world::spawn::SpawnReason::SpawnEgg);
+
+    // 将幼体添加到世界
+    m_world->spawnEntity(std::move(baby));
+
+    // 消耗一个刷怪蛋（创造模式不消耗）
+    if (!player.isCreative()) {
+        heldItem.shrink(1);
+    }
+
+    return true;
 }
 
 // ============================================================================

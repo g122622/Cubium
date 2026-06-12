@@ -201,7 +201,7 @@ public:
     /**
      * @brief 是否可以被拴绳牵引
      */
-    [[nodiscard]] bool canBeLeashed() const { return true; }
+    [[nodiscard]] bool canBeLeashed() const override { return true; }
 
     /**
      * @brief 是否会被水流推动
