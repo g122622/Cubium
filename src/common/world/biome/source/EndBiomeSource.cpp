@@ -20,16 +20,16 @@
  * SOFTWARE.
  */
 
-#include "common/world/biome/source/EndBiomeSource.hpp"
-#include "common/core/Constants.hpp"
-#include "common/util/math/MathUtils.hpp"
-#include "common/world/chunk/data/IChunk.hpp"
+#include "EndBiomeSource.hpp"
 #include "common/world/gen/density/DensityFunctions.hpp"
 
-namespace mc::world::biome::source {
+namespace mc {
+namespace world {
+namespace biome {
+namespace source {
 
 EndBiomeSource::EndBiomeSource(u64 seed)
-    : BiomeSource(seed)
+    : IBiomeSource(seed)
     , m_islandNoise(std::make_unique<gen::density::EndIslands>(seed))
 {
     m_possibleBiomes = {
@@ -49,14 +49,13 @@ BiomeId EndBiomeSource::getNoiseBiome(i32 quartX, i32 quartY, i32 quartZ) const
     const i32 blockX = quartX << 2;
     const i32 blockZ = quartZ << 2;
 
-    // 中央岛屿检查：使用区块坐标判断（MC 1.21 TheEndBiomeSource）
+    // 中央岛屿检查：使用区块坐标判断
     // blockToSectionCoord = blockX >> 4，4096 = 64^2（64格区块半径）
     if (isInCentralIsland(blockX, blockZ)) {
         return Biomes::TheEnd;
     }
 
     // 外围岛屿：噪声采样使用区块坐标缩放
-    // MC 1.21: (SectionPos.blockToSectionCoord(i) * 2 + 1) * 8
     const i32 chunkX = blockX >> 4;
     const i32 chunkZ = blockZ >> 4;
     const i32 sampleX = (chunkX * 2 + 1) * 8;
@@ -64,7 +63,7 @@ BiomeId EndBiomeSource::getNoiseBiome(i32 quartX, i32 quartY, i32 quartZ) const
     const i32 blockY = quartY << 2;
     const f64 islandNoise = m_islandNoise->compute(sampleX, blockY, sampleZ);
 
-    // MC 1.21 的生物群系映射阈值
+    // 生物群系映射阈值
     if (islandNoise > 0.25) {
         return Biomes::EndHighlands;
     }
@@ -82,31 +81,9 @@ const std::vector<BiomeId>& EndBiomeSource::possibleBiomes() const
     return m_possibleBiomes;
 }
 
-void EndBiomeSource::fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ)
-{
-    constexpr i32 HORIZ_SIZE = 4;
-    constexpr i32 VERT_SIZE = 4;
-    constexpr i32 SECTION_COUNT = world::CHUNK_SECTIONS;
-
-    for (i32 section = 0; section < SECTION_COUNT; ++section) {
-        for (i32 y = 0; y < VERT_SIZE; ++y) {
-            for (i32 z = 0; z < HORIZ_SIZE; ++z) {
-                for (i32 x = 0; x < HORIZ_SIZE; ++x) {
-                    const i32 quartX = (chunkX * HORIZ_SIZE) + x;
-                    const i32 quartY = (section * VERT_SIZE) + y + math::floorDiv(world::MIN_BUILD_HEIGHT, 4);
-                    const i32 quartZ = (chunkZ * HORIZ_SIZE) + z;
-
-                    const BiomeId biome = getNoiseBiome(quartX, quartY, quartZ);
-                    container.setBiome(section, x, y, z, biome);
-                }
-            }
-        }
-    }
-}
-
 bool EndBiomeSource::isInCentralIsland(i32 blockX, i32 blockZ)
 {
-    // MC 1.21 TheEndBiomeSource: 使用区块坐标判断中央岛屿
+    // 使用区块坐标判断中央岛屿
     // SectionPos.blockToSectionCoord(blockX) = blockX >> 4
     // 4096 = 64^2，即距原点64个区块半径（= 64*16 = 1024 格方块半径）
     const i32 chunkX = blockX >> 4;
@@ -116,4 +93,7 @@ bool EndBiomeSource::isInCentralIsland(i32 blockX, i32 blockZ)
     return cx * cx + cz * cz <= 4096LL;
 }
 
-} // namespace mc::world::biome::source
+} // namespace source
+} // namespace biome
+} // namespace world
+} // namespace mc

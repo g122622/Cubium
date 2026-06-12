@@ -31,6 +31,7 @@
 #include "client/world/color/blend/blend.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <gtest/gtest.h>

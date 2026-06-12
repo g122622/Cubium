@@ -32,6 +32,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/Biomes.hpp"
 #include "common/world/block/BlockTags.hpp"

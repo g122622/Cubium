@@ -43,7 +43,7 @@ public:
 
     bool carve(ChunkPrimer& chunk,
         CarvingContext& context,
-        const world::biome::BiomeSource& biomeSource,
+        const world::biome::IBiomeSource& biomeSource,
         ChunkCoord targetChunkX,
         ChunkCoord targetChunkZ,
         ChunkCoord originChunkX,
@@ -70,7 +70,7 @@ protected:
 private:
     void _createTunnel(ChunkPrimer& chunk,
         CarvingContext& context,
-        const world::biome::BiomeSource& biomeSource,
+        const world::biome::IBiomeSource& biomeSource,
         ChunkCoord targetChunkX,
         ChunkCoord targetChunkZ,
         i64 seed,
@@ -91,7 +91,7 @@ private:
 
     void _createRoom(ChunkPrimer& chunk,
         CarvingContext& context,
-        const world::biome::BiomeSource& biomeSource,
+        const world::biome::IBiomeSource& biomeSource,
         ChunkCoord targetChunkX,
         ChunkCoord targetChunkZ,
         f64 centerX,

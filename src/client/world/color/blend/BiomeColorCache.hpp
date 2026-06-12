@@ -32,7 +32,10 @@
 #include <unordered_map>
 
 namespace mc {
+namespace world::biome {
 class Biome;
+} // namespace world::biome
+using world::biome::Biome;
 namespace world::chunk {
 class ChunkData;
 }

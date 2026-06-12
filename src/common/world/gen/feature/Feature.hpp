@@ -38,7 +38,6 @@ namespace world::chunk {
 class ChunkPrimer;
 }
 using world::chunk::ChunkPrimer;
-class Biome;
 class WorldGenRegion;
 class IChunkGenerator;
 

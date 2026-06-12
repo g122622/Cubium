@@ -25,7 +25,7 @@
 #include "../../../../core/Constants.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../biome/Biome.hpp"
+#include "../../../biome/BiomeIds.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../feature/template/TemplateManager.hpp"

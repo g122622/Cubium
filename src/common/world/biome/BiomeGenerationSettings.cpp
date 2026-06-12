@@ -34,6 +34,8 @@
 #include <algorithm>
 
 namespace mc {
+namespace world {
+namespace biome {
 
 namespace {
 
@@ -222,14 +224,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createDefault()
     settings.addFeature(DecorationStage::Lakes, LakeFeatureIds::LavaLake);
 
     // 添加矿石（UNDERGROUND_ORES 阶段）
-    // 使用 FeatureIds 中定义的常量
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CoalOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::IronOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::GoldOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::RedstoneOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::DiamondOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::LapisOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CopperOre);
+    addDefaultOverworldOres(settings);
 
     return settings;
 }
@@ -358,14 +353,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createRiver()
     BiomeGenerationSettings settings;
 
     addOverworldCarvers(settings);
-
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CoalOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::IronOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::GoldOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::RedstoneOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::DiamondOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::LapisOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CopperOre);
+    addDefaultOverworldOres(settings);
 
     settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Simple);
     settings.addFeature(DecorationStage::VegetalDecoration, SeagrassFeatureIds::Simple);
@@ -380,14 +368,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createFrozenRiver()
     BiomeGenerationSettings settings;
 
     addOverworldCarvers(settings);
-
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CoalOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::IronOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::GoldOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::RedstoneOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::DiamondOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::LapisOre);
-    settings.addFeature(DecorationStage::UndergroundOres, OreFeatureIds::CopperOre);
+    addDefaultOverworldOres(settings);
 
     return settings;
 }
@@ -857,4 +838,6 @@ BiomeGenerationSettings BiomeGenerationSettings::createEndBarrens()
     return settings;
 }
 
+} // namespace biome
+} // namespace world
 } // namespace mc

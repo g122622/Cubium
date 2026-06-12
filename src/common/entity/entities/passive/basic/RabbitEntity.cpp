@@ -44,7 +44,7 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"

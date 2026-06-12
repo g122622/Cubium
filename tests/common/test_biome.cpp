@@ -24,11 +24,12 @@
 #include <array>
 
 #include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/BiomeSource.hpp"
 #include "common/world/biome/source/EndBiomeSource.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
-#include "common/world/biome/source/NetherBiomeSource.hpp"
+#include "common/world/biome/source/NetherBiomeBuilder.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/feature/FeatureIds.hpp"
 #include <gtest/gtest.h>
@@ -54,7 +55,6 @@ TEST_F(BiomeTest, Construction)
 
     EXPECT_EQ(biome.id(), Biomes::Plains);
     EXPECT_EQ(biome.name(), "plains");
-    EXPECT_EQ(biome.category(), Biome::Category::None);
 }
 
 TEST_F(BiomeTest, SettersAndGetters)
@@ -66,10 +66,6 @@ TEST_F(BiomeTest, SettersAndGetters)
     biome.setScale(0.3f);
     EXPECT_FLOAT_EQ(biome.depth(), 0.5f);
     EXPECT_FLOAT_EQ(biome.scale(), 0.3f);
-
-    // 设置类别
-    biome.setCategory(Biome::Category::Desert);
-    EXPECT_EQ(biome.category(), Biome::Category::Desert);
 
     // 设置气候
     BiomeClimate climate(BiomeClimate::Precipitation::None, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f);
@@ -496,8 +492,6 @@ TEST_F(BiomeRegistryTest, CreateMushroomFields)
     EXPECT_FLOAT_EQ(biome.scale(), 0.3f);
     EXPECT_FLOAT_EQ(biome.temperature(), 0.9f);
     EXPECT_FLOAT_EQ(biome.humidity(), 1.0f);
-    // MC 1.16.5: 蘑菇岛生物群系类别应为 Mushroom
-    EXPECT_EQ(biome.category(), Biome::Category::Mushroom);
 }
 
 TEST_F(BiomeRegistryTest, CreateMushroomFieldShore)
@@ -507,8 +501,6 @@ TEST_F(BiomeRegistryTest, CreateMushroomFieldShore)
     EXPECT_EQ(biome.name(), "mushroom_field_shore");
     EXPECT_FLOAT_EQ(biome.depth(), 0.0f);
     EXPECT_FLOAT_EQ(biome.scale(), 0.025f);
-    // MC 1.16.5: 蘑菇岛海岸生物群系类别应为 Mushroom
-    EXPECT_EQ(biome.category(), Biome::Category::Mushroom);
 }
 
 TEST_F(BiomeRegistryTest, CreateDesertHills)
@@ -688,10 +680,10 @@ TEST_F(MultiNoiseBiomeSourceTest, NetherGetNoiseBiomeReturnsValidBiomeId)
 }
 
 // ============================================================================
-// NetherBiomeSource 测试
+// NetherBiomeBuilder 测试
 // ============================================================================
 
-class NetherBiomeSourceTest : public ::testing::Test {
+class NetherBiomeBuilderTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
@@ -700,9 +692,9 @@ protected:
     }
 };
 
-TEST_F(NetherBiomeSourceTest, BuildParameterListReturnsNetherBiomes)
+TEST_F(NetherBiomeBuilderTest, BuildParameterListReturnsNetherBiomes)
 {
-    auto params = world::biome::source::NetherBiomeSource::buildParameterList();
+    auto params = world::biome::source::NetherBiomeBuilder::buildParameterList();
 
     // Should have entries for all nether biomes
     EXPECT_FALSE(params.empty());
@@ -833,7 +825,7 @@ TEST_F(EndBiomeSourceTest, FillBiomeContainer)
 }
 
 // ============================================================================
-// BiomeSource::findBiome 测试
+// IBiomeSource::findBiome 测试
 // ============================================================================
 
 class BiomeSourceFindBiomeTest : public ::testing::Test {
@@ -850,30 +842,15 @@ protected:
  *
  * 返回固定的生物群系，用于测试 findBiome 的搜索逻辑
  */
-class MockBiomeSource final : public world::biome::BiomeSource {
+class MockBiomeSource final : public world::biome::IBiomeSource {
 public:
     explicit MockBiomeSource(u64 seed)
-        : BiomeSource(seed)
+        : IBiomeSource(seed)
     {}
 
     [[nodiscard]] BiomeId getNoiseBiome(i32 x, i32 y, i32 z) const override { return getBiomeAtPosition(x * 4, z * 4); }
 
     [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override { return m_biomes; }
-
-    void fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ) override
-    {
-        for (i32 section = 0; section < BiomeContainer::SECTION_COUNT; ++section) {
-            for (i32 bz = 0; bz < BiomeContainer::HORIZ_SIZE; ++bz) {
-                for (i32 by = 0; by < BiomeContainer::VERT_SIZE; ++by) {
-                    for (i32 bx = 0; bx < BiomeContainer::HORIZ_SIZE; ++bx) {
-                        const i32 worldX = (chunkX << 4) + (bx << 2);
-                        const i32 worldZ = (chunkZ << 4) + (bz << 2);
-                        container.setBiome(section, bx, by, bz, getBiomeAtPosition(worldX, worldZ));
-                    }
-                }
-            }
-        }
-    }
 
 private:
     std::vector<BiomeId> m_biomes = {Biomes::Plains, Biomes::Forest, Biomes::Desert};

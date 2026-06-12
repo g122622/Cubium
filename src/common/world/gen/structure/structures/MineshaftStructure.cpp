@@ -26,6 +26,7 @@
 #include "../../../IWorldWriter.hpp"
 #include "../../../WorldConstants.hpp"
 #include "../StructureBoundingBox.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 

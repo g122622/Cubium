@@ -27,8 +27,10 @@
 #include <memory>
 
 namespace mc {
+namespace world::biome {
 class Biome; // 前向声明
-}
+} // namespace world::biome
+} // namespace mc
 
 namespace mc {
 namespace client {

@@ -27,7 +27,7 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/MathConstants.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../biome/Biome.hpp"
+#include "../../../biome/BiomeIds.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../StructureBoundingBox.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"

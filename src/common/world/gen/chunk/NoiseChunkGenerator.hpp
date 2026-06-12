@@ -52,7 +52,7 @@ namespace mc {
  * @brief 噪声区块生成器
  *
  * 使用多层噪声生成地形，是主世界和下界的标准地形生成器。
- * MC 1.18+ 使用 BiomeSource（3D 多噪声）替代旧版 BiomeProvider。
+ * MC 1.18+ 使用 IBiomeSource（3D 多噪声）替代旧版 BiomeProvider。
  *
  * 使用方法：
  * @code
@@ -73,7 +73,7 @@ public:
      * @param settings 维度设置
      * @param biomeSource 生物群系源
      */
-    NoiseChunkGenerator(u64 seed, DimensionSettings settings, std::unique_ptr<world::biome::BiomeSource> biomeSource);
+    NoiseChunkGenerator(u64 seed, DimensionSettings settings, std::unique_ptr<world::biome::IBiomeSource> biomeSource);
 
     ~NoiseChunkGenerator() override;
 
@@ -96,8 +96,8 @@ public:
 
     // === 生物群系源 ===
 
-    [[nodiscard]] world::biome::BiomeSource* getBiomeSource() override { return m_biomeSource.get(); }
-    [[nodiscard]] const world::biome::BiomeSource* getBiomeSource() const override { return m_biomeSource.get(); }
+    [[nodiscard]] world::biome::IBiomeSource* getBiomeSource() override { return m_biomeSource.get(); }
+    [[nodiscard]] const world::biome::IBiomeSource* getBiomeSource() const override { return m_biomeSource.get(); }
 
     // === 噪声参数 ===
 
@@ -112,7 +112,7 @@ private:
     i32 m_cellHeight = 8;                                   ///< Y 方向 cell 高度（主世界=8, 末地=4）
 
     // === 生物群系 ===
-    std::unique_ptr<world::biome::BiomeSource> m_biomeSource;
+    std::unique_ptr<world::biome::IBiomeSource> m_biomeSource;
 
     // === 结构管理器 ===
     std::unique_ptr<world::gen::structure::StructureManager> m_structureManager;

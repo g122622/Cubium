@@ -26,7 +26,10 @@
 #include "common/world/biome/climate/Climate.hpp"
 #include "common/world/gen/density/NoiseRouter.hpp"
 
-namespace mc::world::biome::source {
+namespace mc {
+namespace world {
+namespace biome {
+namespace source {
 
 /**
  * @brief 基于 Climate 参数的多噪声生物群系源（MC 1.18+）
@@ -38,7 +41,7 @@ namespace mc::world::biome::source {
  * 注意：此类拥有 NoiseRouter，Climate::Sampler 引用的 DensityFunction
  * 由 router 管理，确保生命周期正确。
  */
-class MultiNoiseBiomeSource : public BiomeSource {
+class MultiNoiseBiomeSource : public IBiomeSource {
 public:
     /**
      * @brief 构造多噪声生物群系源
@@ -46,13 +49,11 @@ public:
      * @param parameters 气候参数到生物群系的映射
      * @param router 噪声路由器（拥有权转移）
      */
-    MultiNoiseBiomeSource(u64 seed,
-        climate::ParameterList<BiomeId> parameters,
-        std::unique_ptr<gen::density::NoiseRouter> router);
+    MultiNoiseBiomeSource(
+        u64 seed, climate::ParameterList<BiomeId> parameters, std::unique_ptr<gen::density::NoiseRouter> router);
 
     [[nodiscard]] BiomeId getNoiseBiome(i32 quartX, i32 quartY, i32 quartZ) const override;
     [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override;
-    void fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ) override;
 
     /**
      * @brief 获取气候参数列表
@@ -97,4 +98,7 @@ private:
     climate::Sampler m_sampler;
 };
 
-} // namespace mc::world::biome::source
+} // namespace source
+} // namespace biome
+} // namespace world
+} // namespace mc

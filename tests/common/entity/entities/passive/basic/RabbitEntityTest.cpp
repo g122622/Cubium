@@ -32,6 +32,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"

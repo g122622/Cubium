@@ -28,10 +28,8 @@
 #include <algorithm>
 
 namespace mc {
-
-// 使用 biome 命名空间中的类型
-using world::biome::BiomeEffects;
-using world::biome::GrassColorModifier;
+namespace world {
+namespace biome {
 
 // ============================================================================
 // BiomeRegistry 实现
@@ -248,8 +246,8 @@ Biome createPlains()
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createPlains());
 
     // 主世界默认洞穴心境音效
-    world::biome::BiomeAmbientSounds sounds;
-    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    BiomeAmbientSounds sounds;
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     return biome;
@@ -271,8 +269,8 @@ Biome createDesert()
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDesert());
 
     // 主世界默认洞穴心境音效
-    world::biome::BiomeAmbientSounds sounds;
-    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    BiomeAmbientSounds sounds;
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     return biome;
@@ -292,8 +290,8 @@ Biome createMountains()
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createMountains());
 
     // 主世界默认洞穴心境音效
-    world::biome::BiomeAmbientSounds sounds;
-    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    BiomeAmbientSounds sounds;
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     return biome;
@@ -313,8 +311,8 @@ Biome createForest()
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createForest());
 
     // 主世界默认洞穴心境音效
-    world::biome::BiomeAmbientSounds sounds;
-    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    BiomeAmbientSounds sounds;
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     return biome;
@@ -365,8 +363,8 @@ Biome createTaiga()
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTaiga());
 
     // 主世界默认洞穴心境音效
-    world::biome::BiomeAmbientSounds sounds;
-    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    BiomeAmbientSounds sounds;
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     return biome;
@@ -402,8 +400,8 @@ Biome createJungle()
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createJungle());
 
     // 主世界默认洞穴心境音效
-    world::biome::BiomeAmbientSounds sounds;
-    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    BiomeAmbientSounds sounds;
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     return biome;
@@ -423,8 +421,8 @@ Biome createSavanna()
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSavanna());
 
     // 主世界默认洞穴心境音效
-    world::biome::BiomeAmbientSounds sounds;
-    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    BiomeAmbientSounds sounds;
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     return biome;
@@ -616,8 +614,8 @@ Biome createSwamp()
             .build());
 
     // 主世界默认洞穴心境音效
-    world::biome::BiomeAmbientSounds sounds;
-    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    BiomeAmbientSounds sounds;
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     return biome;
@@ -688,8 +686,8 @@ Biome createDarkForest()
             .build());
 
     // 主世界默认洞穴心境音效
-    world::biome::BiomeAmbientSounds sounds;
-    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    BiomeAmbientSounds sounds;
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     return biome;
@@ -710,8 +708,8 @@ Biome createSnowyPlains()
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowy());
 
     // 主世界默认洞穴心境音效
-    world::biome::BiomeAmbientSounds sounds;
-    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    BiomeAmbientSounds sounds;
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     return biome;
@@ -731,8 +729,8 @@ Biome createGiantTreeTaiga()
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createTaiga());
 
     // 主世界默认洞穴心境音效
-    world::biome::BiomeAmbientSounds sounds;
-    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    BiomeAmbientSounds sounds;
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     return biome;
@@ -1131,7 +1129,6 @@ Biome createMushroomFields()
 {
     // 蘑菇岛
     Biome biome(Biomes::MushroomFields, "mushroom_fields");
-    biome.setCategory(Biome::Category::Mushroom);
     biome.setDepth(0.2f);
     biome.setScale(0.3f);
     biome.setTemperature(0.9f);
@@ -1150,7 +1147,6 @@ Biome createMushroomFieldShore()
 {
     // 蘑菇岛海岸
     Biome biome(Biomes::MushroomFieldShore, "mushroom_field_shore");
-    biome.setCategory(Biome::Category::Mushroom);
     biome.setDepth(0.0f);
     biome.setScale(0.025f);
     biome.setTemperature(0.9f);
@@ -1463,7 +1459,6 @@ Biome createNetherWastes()
 {
     // 下界荒地：下界岩为主，猪灵、恶魂、岩浆怪
     Biome biome(Biomes::NetherWastes, "nether_wastes");
-    biome.setCategory(Biome::Category::Nether);
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
     biome.setTemperature(2.0f);
@@ -1474,26 +1469,24 @@ Biome createNetherWastes()
         BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f));
 
     // 视觉效果：雾颜色 3344392 (暗红色)
-    biome.setEffects(
-        world::biome::BiomeEffects::Builder().fogColor(3344392).waterColor(4159204).waterFogColor(329011).build());
+    biome.setEffects(BiomeEffects::Builder().fogColor(3344392).waterColor(4159204).waterFogColor(329011).build());
 
     biome.setGenerationSettings(BiomeGenerationSettings::createNether());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createNetherWastes());
 
     // 下界荒地环境音效
-    world::biome::BiomeAmbientSounds sounds;
+    BiomeAmbientSounds sounds;
     sounds.setLoopSound(ResourceLocation("minecraft:ambient.nether_wastes.loop"));
-    sounds.setMoodSound(world::biome::MoodSoundAmbience(ResourceLocation("minecraft:ambient.nether_wastes.mood"),
+    sounds.setMoodSound(MoodSoundAmbience(ResourceLocation("minecraft:ambient.nether_wastes.mood"),
         6000, // tick_delay
         8,    // block_search_extent
         2.0   // offset
         ));
-    sounds.setAdditionsSound(
-        world::biome::SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.nether_wastes.additions"),
-            0.0111 // tick_chance
-            ));
+    sounds.setAdditionsSound(SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.nether_wastes.additions"),
+        0.0111 // tick_chance
+        ));
     // 下界荒地专属音乐
-    sounds.setMusic(world::biome::BiomeMusic(ResourceLocation("minecraft:music.nether.nether_wastes"),
+    sounds.setMusic(BiomeMusic(ResourceLocation("minecraft:music.nether.nether_wastes"),
         12000, // min_delay_ticks
         24000, // max_delay_ticks
         false  // replace_current
@@ -1507,7 +1500,6 @@ Biome createSoulSandValley()
 {
     // 灵魂沙谷：灵魂沙和灵魂土，骷髅和恶魂
     Biome biome(Biomes::SoulSandValley, "soul_sand_valley");
-    biome.setCategory(Biome::Category::Nether);
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
     biome.setTemperature(2.0f);
@@ -1518,26 +1510,24 @@ Biome createSoulSandValley()
         BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f));
 
     // 视觉效果：雾颜色 1787717 (蓝灰色)
-    biome.setEffects(
-        world::biome::BiomeEffects::Builder().fogColor(1787717).waterColor(4159204).waterFogColor(329011).build());
+    biome.setEffects(BiomeEffects::Builder().fogColor(1787717).waterColor(4159204).waterFogColor(329011).build());
 
     biome.setGenerationSettings(BiomeGenerationSettings::createSoulSandValley());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSoulSandValley());
 
     // 灵魂沙谷环境音效
-    world::biome::BiomeAmbientSounds sounds;
+    BiomeAmbientSounds sounds;
     sounds.setLoopSound(ResourceLocation("minecraft:ambient.soul_sand_valley.loop"));
-    sounds.setMoodSound(world::biome::MoodSoundAmbience(ResourceLocation("minecraft:ambient.soul_sand_valley.mood"),
+    sounds.setMoodSound(MoodSoundAmbience(ResourceLocation("minecraft:ambient.soul_sand_valley.mood"),
         6000, // tick_delay
         8,    // block_search_extent
         2.0   // offset
         ));
-    sounds.setAdditionsSound(
-        world::biome::SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.soul_sand_valley.additions"),
-            0.0111 // tick_chance
-            ));
+    sounds.setAdditionsSound(SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.soul_sand_valley.additions"),
+        0.0111 // tick_chance
+        ));
     // 灵魂沙谷专属音乐
-    sounds.setMusic(world::biome::BiomeMusic(ResourceLocation("minecraft:music.nether.soul_sand_valley"),
+    sounds.setMusic(BiomeMusic(ResourceLocation("minecraft:music.nether.soul_sand_valley"),
         12000, // min_delay_ticks
         24000, // max_delay_ticks
         false  // replace_current
@@ -1551,7 +1541,6 @@ Biome createCrimsonForest()
 {
     // 绯红森林：绯红菌和疣猪兽，红色主题
     Biome biome(Biomes::CrimsonForest, "crimson_forest");
-    biome.setCategory(Biome::Category::Nether);
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
     biome.setTemperature(2.0f);
@@ -1562,26 +1551,24 @@ Biome createCrimsonForest()
         BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f));
 
     // 视觉效果：雾颜色 3343107 (暗红色)
-    biome.setEffects(
-        world::biome::BiomeEffects::Builder().fogColor(3343107).waterColor(4159204).waterFogColor(329011).build());
+    biome.setEffects(BiomeEffects::Builder().fogColor(3343107).waterColor(4159204).waterFogColor(329011).build());
 
     biome.setGenerationSettings(BiomeGenerationSettings::createCrimsonForest());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createCrimsonForest());
 
     // 绯红森林环境音效
-    world::biome::BiomeAmbientSounds sounds;
+    BiomeAmbientSounds sounds;
     sounds.setLoopSound(ResourceLocation("minecraft:ambient.crimson_forest.loop"));
-    sounds.setMoodSound(world::biome::MoodSoundAmbience(ResourceLocation("minecraft:ambient.crimson_forest.mood"),
+    sounds.setMoodSound(MoodSoundAmbience(ResourceLocation("minecraft:ambient.crimson_forest.mood"),
         6000, // tick_delay
         8,    // block_search_extent
         2.0   // offset
         ));
-    sounds.setAdditionsSound(
-        world::biome::SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.crimson_forest.additions"),
-            0.0111 // tick_chance
-            ));
+    sounds.setAdditionsSound(SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.crimson_forest.additions"),
+        0.0111 // tick_chance
+        ));
     // 绯红森林专属音乐
-    sounds.setMusic(world::biome::BiomeMusic(ResourceLocation("minecraft:music.nether.crimson_forest"),
+    sounds.setMusic(BiomeMusic(ResourceLocation("minecraft:music.nether.crimson_forest"),
         12000, // min_delay_ticks
         24000, // max_delay_ticks
         false  // replace_current
@@ -1595,7 +1582,6 @@ Biome createWarpedForest()
 {
     // 诡异森林：诡异菌和末影人，青色主题
     Biome biome(Biomes::WarpedForest, "warped_forest");
-    biome.setCategory(Biome::Category::Nether);
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
     biome.setTemperature(2.0f);
@@ -1606,28 +1592,26 @@ Biome createWarpedForest()
         BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f));
 
     // 视觉效果：雾颜色 1705242 (青色)
-    biome.setEffects(
-        world::biome::BiomeEffects::Builder().fogColor(1705242).waterColor(4159204).waterFogColor(329011).build());
+    biome.setEffects(BiomeEffects::Builder().fogColor(1705242).waterColor(4159204).waterFogColor(329011).build());
 
     biome.setGenerationSettings(BiomeGenerationSettings::createWarpedForest());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createWarpedForest());
 
     // 诡异森林环境音效
-    world::biome::BiomeAmbientSounds sounds;
+    BiomeAmbientSounds sounds;
     sounds.setLoopSound(ResourceLocation("minecraft:ambient.warped_forest.loop"));
-    sounds.setMoodSound(world::biome::MoodSoundAmbience(ResourceLocation("minecraft:ambient.warped_forest.mood"),
+    sounds.setMoodSound(MoodSoundAmbience(ResourceLocation("minecraft:ambient.warped_forest.mood"),
         6000, // tick_delay
         8,    // block_search_extent
         2.0   // offset
         ));
-    sounds.setAdditionsSound(
-        world::biome::SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.warped_forest.additions"),
-            0.0111 // tick_chance
-            ));
+    sounds.setAdditionsSound(SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.warped_forest.additions"),
+        0.0111 // tick_chance
+        ));
     // 诡异森林专属音乐
     // 注意: sounds.json 中 music.nether.warped_forest 定义为空数组，实际上不会播放音乐
     // 但游戏代码中仍然注册了这个音乐选择器
-    sounds.setMusic(world::biome::BiomeMusic(ResourceLocation("minecraft:music.nether.warped_forest"),
+    sounds.setMusic(BiomeMusic(ResourceLocation("minecraft:music.nether.warped_forest"),
         12000, // min_delay_ticks
         24000, // max_delay_ticks
         false  // replace_current
@@ -1641,7 +1625,6 @@ Biome createBasaltDeltas()
 {
     // 玄武岩三角洲：玄武岩和岩浆块，黑色颗粒效果
     Biome biome(Biomes::BasaltDeltas, "basalt_deltas");
-    biome.setCategory(Biome::Category::Nether);
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
     biome.setTemperature(2.0f);
@@ -1652,26 +1635,24 @@ Biome createBasaltDeltas()
         BiomeClimate(BiomeClimate::Precipitation::None, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f));
 
     // 视觉效果：雾颜色 6840176 (深灰蓝)
-    biome.setEffects(
-        world::biome::BiomeEffects::Builder().fogColor(6840176).waterColor(4341314).waterFogColor(4341314).build());
+    biome.setEffects(BiomeEffects::Builder().fogColor(6840176).waterColor(4341314).waterFogColor(4341314).build());
 
     biome.setGenerationSettings(BiomeGenerationSettings::createBasaltDeltas());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createBasaltDeltas());
 
     // 玄武岩三角洲环境音效
-    world::biome::BiomeAmbientSounds sounds;
+    BiomeAmbientSounds sounds;
     sounds.setLoopSound(ResourceLocation("minecraft:ambient.basalt_deltas.loop"));
-    sounds.setMoodSound(world::biome::MoodSoundAmbience(ResourceLocation("minecraft:ambient.basalt_deltas.mood"),
+    sounds.setMoodSound(MoodSoundAmbience(ResourceLocation("minecraft:ambient.basalt_deltas.mood"),
         6000, // tick_delay
         8,    // block_search_extent
         2.0   // offset
         ));
-    sounds.setAdditionsSound(
-        world::biome::SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.basalt_deltas.additions"),
-            0.0111 // tick_chance
-            ));
+    sounds.setAdditionsSound(SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.basalt_deltas.additions"),
+        0.0111 // tick_chance
+        ));
     // 玄武岩三角洲专属音乐
-    sounds.setMusic(world::biome::BiomeMusic(ResourceLocation("minecraft:music.nether.basalt_deltas"),
+    sounds.setMusic(BiomeMusic(ResourceLocation("minecraft:music.nether.basalt_deltas"),
         12000, // min_delay_ticks
         24000, // max_delay_ticks
         false  // replace_current
@@ -1689,7 +1670,6 @@ Biome createTheEnd()
 {
     // 末地主岛：末影龙战斗区域
     Biome biome(Biomes::TheEnd, "the_end");
-    biome.setCategory(Biome::Category::TheEnd);
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
     biome.setTemperature(0.5f);
@@ -1700,12 +1680,11 @@ Biome createTheEnd()
         BiomeClimate(BiomeClimate::Precipitation::None, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f));
 
     // 视觉效果：雾颜色 10518688 (暗紫色)
-    biome.setEffects(
-        world::biome::BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
+    biome.setEffects(BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
 
     // 环境音效：默认洞穴心境音效
-    world::biome::BiomeAmbientSounds sounds;
-    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    BiomeAmbientSounds sounds;
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     biome.setGenerationSettings(BiomeGenerationSettings::createTheEnd());
@@ -1717,7 +1696,6 @@ Biome createSmallEndIslands()
 {
     // 小型末地岛屿：外岛的小型岛屿群
     Biome biome(Biomes::SmallEndIslands, "small_end_islands");
-    biome.setCategory(Biome::Category::TheEnd);
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
     biome.setTemperature(0.5f);
@@ -1727,12 +1705,11 @@ Biome createSmallEndIslands()
     biome.setClimate(
         BiomeClimate(BiomeClimate::Precipitation::None, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f));
 
-    biome.setEffects(
-        world::biome::BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
+    biome.setEffects(BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
 
     // 环境音效：默认洞穴心境音效
-    world::biome::BiomeAmbientSounds sounds;
-    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    BiomeAmbientSounds sounds;
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     biome.setGenerationSettings(BiomeGenerationSettings::createSmallEndIslands());
@@ -1744,7 +1721,6 @@ Biome createEndMidlands()
 {
     // 末地中部：外岛过渡区域
     Biome biome(Biomes::EndMidlands, "end_midlands");
-    biome.setCategory(Biome::Category::TheEnd);
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
     biome.setTemperature(0.5f);
@@ -1754,12 +1730,11 @@ Biome createEndMidlands()
     biome.setClimate(
         BiomeClimate(BiomeClimate::Precipitation::None, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f));
 
-    biome.setEffects(
-        world::biome::BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
+    biome.setEffects(BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
 
     // 环境音效：默认洞穴心境音效
-    world::biome::BiomeAmbientSounds sounds;
-    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    BiomeAmbientSounds sounds;
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     biome.setGenerationSettings(BiomeGenerationSettings::createEndMidlands());
@@ -1771,7 +1746,6 @@ Biome createEndHighlands()
 {
     // 末地高地：末地城和紫颂树生成区域
     Biome biome(Biomes::EndHighlands, "end_highlands");
-    biome.setCategory(Biome::Category::TheEnd);
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
     biome.setTemperature(0.5f);
@@ -1781,12 +1755,11 @@ Biome createEndHighlands()
     biome.setClimate(
         BiomeClimate(BiomeClimate::Precipitation::None, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f));
 
-    biome.setEffects(
-        world::biome::BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
+    biome.setEffects(BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
 
     // 环境音效：默认洞穴心境音效
-    world::biome::BiomeAmbientSounds sounds;
-    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    BiomeAmbientSounds sounds;
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     biome.setGenerationSettings(BiomeGenerationSettings::createEndHighlands());
@@ -1798,7 +1771,6 @@ Biome createEndBarrens()
 {
     // 末地荒地：空旷区域，无特征
     Biome biome(Biomes::EndBarrens, "end_barrens");
-    biome.setCategory(Biome::Category::TheEnd);
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
     biome.setTemperature(0.5f);
@@ -1808,12 +1780,11 @@ Biome createEndBarrens()
     biome.setClimate(
         BiomeClimate(BiomeClimate::Precipitation::None, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f));
 
-    biome.setEffects(
-        world::biome::BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
+    biome.setEffects(BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
 
     // 环境音效：默认洞穴心境音效
-    world::biome::BiomeAmbientSounds sounds;
-    sounds.setMoodSound(world::biome::MoodSoundAmbience::defaultCaveMood());
+    BiomeAmbientSounds sounds;
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     biome.setGenerationSettings(BiomeGenerationSettings::createEndBarrens());
@@ -1828,7 +1799,6 @@ Biome createEndBarrens()
 Biome createMeadow()
 {
     Biome biome(Biomes::Meadow, "meadow");
-    biome.setCategory(Biome::Category::Plains);
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
     biome.setTemperature(0.5f);
@@ -1838,7 +1808,7 @@ Biome createMeadow()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setClimate(
         BiomeClimate(BiomeClimate::Precipitation::Rain, 0.5f, BiomeClimate::TemperatureModifier::None, 0.8f));
-    biome.setEffects(world::biome::BiomeEffects::Builder()
+    biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
             .waterFogColor(0x050533)
@@ -1852,7 +1822,6 @@ Biome createMeadow()
 Biome createGrove()
 {
     Biome biome(Biomes::Grove, "grove");
-    biome.setCategory(Biome::Category::Taiga);
     biome.setDepth(0.2f);
     biome.setScale(0.2f);
     biome.setTemperature(-0.2f);
@@ -1862,7 +1831,7 @@ Biome createGrove()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setClimate(
         BiomeClimate(BiomeClimate::Precipitation::Snow, -0.2f, BiomeClimate::TemperatureModifier::None, 0.8f));
-    biome.setEffects(world::biome::BiomeEffects::Builder()
+    biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
             .waterFogColor(0x050533)
@@ -1875,7 +1844,6 @@ Biome createGrove()
 Biome createSnowySlopes()
 {
     Biome biome(Biomes::SnowySlopes, "snowy_slopes");
-    biome.setCategory(Biome::Category::Icy);
     biome.setDepth(0.3f);
     biome.setScale(0.2f);
     biome.setTemperature(-0.3f);
@@ -1885,7 +1853,7 @@ Biome createSnowySlopes()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
     biome.setClimate(
         BiomeClimate(BiomeClimate::Precipitation::Snow, -0.3f, BiomeClimate::TemperatureModifier::None, 0.9f));
-    biome.setEffects(world::biome::BiomeEffects::Builder()
+    biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
             .waterFogColor(0x050533)
@@ -1898,7 +1866,6 @@ Biome createSnowySlopes()
 Biome createJaggedPeaks()
 {
     Biome biome(Biomes::JaggedPeaks, "jagged_peaks");
-    biome.setCategory(Biome::Category::ExtremeHills);
     biome.setDepth(1.0f);
     biome.setScale(1.0f);
     biome.setTemperature(-0.7f);
@@ -1908,7 +1875,7 @@ Biome createJaggedPeaks()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
     biome.setClimate(
         BiomeClimate(BiomeClimate::Precipitation::Snow, -0.7f, BiomeClimate::TemperatureModifier::None, 0.9f));
-    biome.setEffects(world::biome::BiomeEffects::Builder()
+    biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
             .waterFogColor(0x050533)
@@ -1921,7 +1888,6 @@ Biome createJaggedPeaks()
 Biome createFrozenPeaks()
 {
     Biome biome(Biomes::FrozenPeaks, "frozen_peaks");
-    biome.setCategory(Biome::Category::Icy);
     biome.setDepth(1.0f);
     biome.setScale(1.0f);
     biome.setTemperature(-0.7f);
@@ -1931,7 +1897,7 @@ Biome createFrozenPeaks()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
     biome.setClimate(
         BiomeClimate(BiomeClimate::Precipitation::Snow, -0.7f, BiomeClimate::TemperatureModifier::None, 0.9f));
-    biome.setEffects(world::biome::BiomeEffects::Builder()
+    biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
             .waterFogColor(0x050533)
@@ -1944,7 +1910,6 @@ Biome createFrozenPeaks()
 Biome createStonyPeaks()
 {
     Biome biome(Biomes::StonyPeaks, "stony_peaks");
-    biome.setCategory(Biome::Category::ExtremeHills);
     biome.setDepth(1.0f);
     biome.setScale(1.0f);
     biome.setTemperature(1.0f);
@@ -1954,7 +1919,7 @@ Biome createStonyPeaks()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
     biome.setClimate(
         BiomeClimate(BiomeClimate::Precipitation::Rain, 1.0f, BiomeClimate::TemperatureModifier::None, 0.3f));
-    biome.setEffects(world::biome::BiomeEffects::Builder()
+    biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
             .waterFogColor(0x050533)
@@ -1967,7 +1932,6 @@ Biome createStonyPeaks()
 Biome createDripstoneCaves()
 {
     Biome biome(Biomes::DripstoneCaves, "dripstone_caves");
-    biome.setCategory(Biome::Category::None);
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
     biome.setTemperature(0.8f);
@@ -1977,7 +1941,7 @@ Biome createDripstoneCaves()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
     biome.setClimate(
         BiomeClimate(BiomeClimate::Precipitation::Rain, 0.8f, BiomeClimate::TemperatureModifier::None, 0.4f));
-    biome.setEffects(world::biome::BiomeEffects::Builder()
+    biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
             .waterFogColor(0x050533)
@@ -1990,7 +1954,6 @@ Biome createDripstoneCaves()
 Biome createLushCaves()
 {
     Biome biome(Biomes::LushCaves, "lush_caves");
-    biome.setCategory(Biome::Category::None);
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
     biome.setTemperature(0.5f);
@@ -2000,7 +1963,7 @@ Biome createLushCaves()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
     biome.setClimate(
         BiomeClimate(BiomeClimate::Precipitation::Rain, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f));
-    biome.setEffects(world::biome::BiomeEffects::Builder()
+    biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
             .waterFogColor(0x050533)
@@ -2010,12 +1973,11 @@ Biome createLushCaves()
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createLushCaves());
 
     // 繁茂洞穴环境音效：循环音、心境音、随机附加音
-    world::biome::BiomeAmbientSounds sounds;
+    BiomeAmbientSounds sounds;
     sounds.setLoopSound(ResourceLocation("minecraft:ambient.lush_caves.loop"));
-    sounds.setMoodSound(
-        world::biome::MoodSoundAmbience(ResourceLocation("minecraft:ambient.lush_caves.mood"), 6000, 8, 2.0));
+    sounds.setMoodSound(MoodSoundAmbience(ResourceLocation("minecraft:ambient.lush_caves.mood"), 6000, 8, 2.0));
     sounds.setAdditionsSound(
-        world::biome::SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.lush_caves.additions"), 0.0111));
+        SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.lush_caves.additions"), 0.0111));
     biome.setAmbientSounds(sounds);
 
     return biome;
@@ -2024,7 +1986,6 @@ Biome createLushCaves()
 Biome createDeepDark()
 {
     Biome biome(Biomes::DeepDark, "deep_dark");
-    biome.setCategory(Biome::Category::None);
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
     biome.setTemperature(0.0f);
@@ -2034,7 +1995,7 @@ Biome createDeepDark()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
     biome.setClimate(
         BiomeClimate(BiomeClimate::Precipitation::None, 0.0f, BiomeClimate::TemperatureModifier::None, 0.5f));
-    biome.setEffects(world::biome::BiomeEffects::Builder()
+    biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
             .waterFogColor(0x050533)
@@ -2047,7 +2008,6 @@ Biome createDeepDark()
 Biome createMangroveSwamp()
 {
     Biome biome(Biomes::MangroveSwamp, "mangrove_swamp");
-    biome.setCategory(Biome::Category::Swamp);
     biome.setDepth(-0.2f);
     biome.setScale(0.1f);
     biome.setTemperature(0.8f);
@@ -2057,7 +2017,7 @@ Biome createMangroveSwamp()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setClimate(
         BiomeClimate(BiomeClimate::Precipitation::Rain, 0.8f, BiomeClimate::TemperatureModifier::None, 0.9f));
-    biome.setEffects(world::biome::BiomeEffects::Builder()
+    biome.setEffects(BiomeEffects::Builder()
             .fogColor(0x78A7FF)
             .waterColor(0x3A7F3E)
             .waterFogColor(0x0D2E1F)
@@ -2072,7 +2032,6 @@ Biome createMangroveSwamp()
 Biome createCherryGrove()
 {
     Biome biome(Biomes::CherryGrove, "cherry_grove");
-    biome.setCategory(Biome::Category::Plains);
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
     biome.setTemperature(0.5f);
@@ -2082,7 +2041,7 @@ Biome createCherryGrove()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setClimate(
         BiomeClimate(BiomeClimate::Precipitation::Rain, 0.5f, BiomeClimate::TemperatureModifier::None, 0.8f));
-    biome.setEffects(world::biome::BiomeEffects::Builder()
+    biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x5D93DF)
             .waterFogColor(0x050533)
@@ -2097,7 +2056,6 @@ Biome createCherryGrove()
 Biome createPaleGarden()
 {
     Biome biome(Biomes::PaleGarden, "pale_garden");
-    biome.setCategory(Biome::Category::Forest);
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
     biome.setTemperature(0.7f);
@@ -2107,7 +2065,7 @@ Biome createPaleGarden()
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setClimate(
         BiomeClimate(BiomeClimate::Precipitation::Rain, 0.7f, BiomeClimate::TemperatureModifier::None, 0.8f));
-    biome.setEffects(world::biome::BiomeEffects::Builder()
+    biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
             .waterFogColor(0x050533)
@@ -2120,4 +2078,6 @@ Biome createPaleGarden()
 
 } // namespace BiomeFactory
 
+} // namespace biome
+} // namespace world
 } // namespace mc

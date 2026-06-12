@@ -27,7 +27,7 @@
 #undef BYTE_SIZE
 
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"

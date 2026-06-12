@@ -26,7 +26,7 @@
 #include "../../../../core/Constants.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorldWriter.hpp"
-#include "../../../biome/Biome.hpp"
+#include "../../../biome/BiomeIds.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../StructureBoundingBox.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"

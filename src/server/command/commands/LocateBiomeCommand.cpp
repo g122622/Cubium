@@ -114,7 +114,7 @@ i32 LocateBiomeCommand::_locateBiome(CommandContext<ServerCommandSource>& contex
     constexpr i32 SEARCH_RADIUS = 6400;
     constexpr i32 SEARCH_STEP = 8;
 
-    world::biome::BiomeSource* biomeSource = generator->getBiomeSource();
+    world::biome::IBiomeSource* biomeSource = generator->getBiomeSource();
     if (biomeSource == nullptr) {
         source.sendError("Biome source not available");
         return 0;

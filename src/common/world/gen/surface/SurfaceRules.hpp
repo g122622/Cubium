@@ -42,10 +42,15 @@ namespace mc::world::gen {
 class RandomState;
 }
 
+namespace mc::world::chunk {
+class ChunkPrimer;
+}
+
 namespace mc::world::gen::surface {
 
 // Forward declarations
 class SurfaceRuleContext;
+using ChunkPrimer = ::mc::world::chunk::ChunkPrimer;
 
 // ============================================================================
 // CaveSurface — 地表/洞穴顶部方向枚举

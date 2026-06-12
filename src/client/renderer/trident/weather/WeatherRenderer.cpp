@@ -556,7 +556,7 @@ void WeatherRenderer::_generateWeatherGeometry(mc::client::ClientWorld* world)
             if (world) {
                 const mc::Biome* biome = world->getBiomeAtBlock(x, camY, z);
                 if (biome) {
-                    temperature = biome->getTemperature(x, l2, z, mc::world::SEA_LEVEL);
+                    temperature = biome->getHeightAdjustedTemperature(x, l2, z, mc::world::SEA_LEVEL);
                 }
             }
 

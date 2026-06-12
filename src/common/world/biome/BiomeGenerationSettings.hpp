@@ -28,17 +28,24 @@
 #include <memory>
 #include <vector>
 
+// 前向声明（必须在 mc::world::biome 命名空间之外，避免命名空间污染）
 namespace mc {
-
-// 前向声明
 class ConfiguredCarverBase;
+class IChunkGenerator;
 class WorldGenRegion;
 namespace world::chunk {
 class ChunkPrimer;
-}
-using world::chunk::ChunkPrimer;
-class IChunkGenerator;
-class Random;
+} // namespace world::chunk
+} // namespace mc
+
+namespace mc {
+namespace world {
+namespace biome {
+
+// 跨命名空间类型简写
+using ChunkPrimer = ::mc::world::chunk::ChunkPrimer;
+using ConfiguredCarverBase = ::mc::ConfiguredCarverBase;
+using IChunkGenerator = ::mc::IChunkGenerator;
 
 /**
  * @brief 生物群系生成设置
@@ -341,4 +348,11 @@ private:
     std::vector<std::unique_ptr<ConfiguredCarverBase>> m_carvers;
 };
 
+} // namespace biome
+} // namespace world
+} // namespace mc
+
+// 旧命名空间兼容别名
+namespace mc {
+using BiomeGenerationSettings = ::mc::world::biome::BiomeGenerationSettings;
 } // namespace mc

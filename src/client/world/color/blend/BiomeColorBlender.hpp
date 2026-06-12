@@ -35,7 +35,9 @@ namespace world::chunk {
 class ChunkData;
 }
 using world::chunk::ChunkData;
+namespace world::biome {
 class BiomeRegistry;
+} // namespace world::biome
 
 namespace client {
 

@@ -22,9 +22,9 @@
 
 #pragma once
 
+#include "BiomeIds.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/biome/Biome.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include <functional>
@@ -32,7 +32,11 @@
 #include <unordered_set>
 #include <vector>
 
-namespace mc::world::biome {
+namespace mc {
+namespace world {
+namespace biome {
+
+class Biome;
 
 /**
  * @brief 生物群系源接口（MC 1.18+）
@@ -44,10 +48,10 @@ namespace mc::world::biome {
  * - MultiNoiseBiomeSource: 基于 Climate 参数的多噪声生物群系源（主世界、下界）
  * - EndBiomeSource: 末地专用生物群系源
  */
-class BiomeSource {
+class IBiomeSource {
 public:
-    explicit BiomeSource(u64 seed);
-    virtual ~BiomeSource() = default;
+    explicit IBiomeSource(u64 seed);
+    virtual ~IBiomeSource() = default;
 
     /**
      * @brief 获取噪声坐标处的生物群系
@@ -73,12 +77,13 @@ public:
      *
      * 遍历区块内所有 section 的 4x4x4 网格，
      * 通过 getNoiseBiome() 采样填充 BiomeContainer。
+     * 此方法为 final，子类只需实现 getNoiseBiome()。
      *
      * @param container 生物群系容器（已扩展到 24 section）
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标
      */
-    virtual void fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ) = 0;
+    void fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ);
 
     /**
      * @brief 获取生物群系定义
@@ -113,12 +118,11 @@ public:
         i32 step,
         const std::function<bool(BiomeId)>& predicate,
         math::Random& random,
-        bool stopOnFirst = false) const;
+        bool stopOnFirst) const;
 
     /**
      * @brief 获取指定范围内所有不同的生物群系
      *
-     * MC 1.21.11 BiomeSource.getBiomesWithin()
      * 在以 (x,y,z) 为中心、radius 为半径的立方体内采样所有生物群系。
      *
      * @param x 中心 X 坐标（世界坐标）
@@ -134,4 +138,9 @@ protected:
     std::vector<BiomeId> m_possibleBiomes;
 };
 
-} // namespace mc::world::biome
+// 旧名称兼容别名
+using BiomeSource = IBiomeSource;
+
+} // namespace biome
+} // namespace world
+} // namespace mc

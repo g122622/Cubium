@@ -22,7 +22,7 @@
  */
 
 #include "JavaBiomeMapper.hpp"
-#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 
 namespace mc::world::storage::reader::java {
 

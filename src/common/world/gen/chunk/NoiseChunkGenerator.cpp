@@ -60,7 +60,7 @@ namespace mc {
 // ============================================================================
 
 NoiseChunkGenerator::NoiseChunkGenerator(
-    u64 seed, DimensionSettings settings, std::unique_ptr<world::biome::BiomeSource> biomeSource)
+    u64 seed, DimensionSettings settings, std::unique_ptr<world::biome::IBiomeSource> biomeSource)
     : BaseChunkGenerator(seed, std::move(settings))
     , m_biomeSource(std::move(biomeSource))
 {

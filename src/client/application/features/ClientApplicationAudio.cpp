@@ -32,6 +32,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/blocks/ocean/BubbleColumnBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -156,7 +157,7 @@ void ClientApplication::updateWorldAudio()
     if (inWater) {
         const auto* biome = m_world.getBiomeAtBlock(eyeBlockX, eyeBlockY, eyeBlockZ);
         if (biome) {
-            waterFogColor = biome->waterFogColor();
+            waterFogColor = biome->effects().waterFogColor();
         }
     }
 
@@ -217,7 +218,7 @@ void ClientApplication::updateWorldAudio()
         // 获取生物群系音乐
         std::optional<world::biome::BiomeMusic> biomeMusic;
         if (biome) {
-            biomeMusic = biome->getMusic();
+            biomeMusic = biome->ambientSounds().music();
         }
 
         // 判断是否在海洋或河流生物群系中（水下音乐只在海洋/河流中播放）

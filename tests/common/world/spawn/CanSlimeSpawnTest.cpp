@@ -22,6 +22,7 @@
  */
 
 #include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/spawn/SlimeChunkChecker.hpp"

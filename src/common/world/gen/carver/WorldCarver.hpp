@@ -40,7 +40,7 @@ namespace mc {
 
 // 前向声明
 namespace world::biome {
-class BiomeSource;
+class IBiomeSource;
 }
 
 /**
@@ -94,7 +94,7 @@ public:
      */
     virtual bool carve(ChunkPrimer& chunk,
         CarvingContext& context,
-        const world::biome::BiomeSource& biomeSource,
+        const world::biome::IBiomeSource& biomeSource,
         ChunkCoord targetChunkX,
         ChunkCoord targetChunkZ,
         ChunkCoord originChunkX,
@@ -137,7 +137,7 @@ protected:
      */
     bool carveEllipsoid(ChunkPrimer& chunk,
         CarvingContext& context,
-        const world::biome::BiomeSource& biomeSource,
+        const world::biome::IBiomeSource& biomeSource,
         ChunkCoord targetChunkX,
         ChunkCoord targetChunkZ,
         f32 centerX,
@@ -190,7 +190,7 @@ public:
 
     virtual bool carve(ChunkPrimer& chunk,
         CarvingContext& context,
-        const world::biome::BiomeSource& biomeSource,
+        const world::biome::IBiomeSource& biomeSource,
         ChunkCoord targetChunkX,
         ChunkCoord targetChunkZ,
         ChunkCoord originChunkX,
@@ -216,7 +216,7 @@ public:
 
     bool carve(ChunkPrimer& chunk,
         CarvingContext& context,
-        const world::biome::BiomeSource& biomeSource,
+        const world::biome::IBiomeSource& biomeSource,
         ChunkCoord targetChunkX,
         ChunkCoord targetChunkZ,
         ChunkCoord originChunkX,

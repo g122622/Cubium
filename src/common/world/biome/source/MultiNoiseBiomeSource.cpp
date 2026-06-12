@@ -20,19 +20,20 @@
  * SOFTWARE.
  */
 
-#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
-#include "common/core/Constants.hpp"
-#include "common/util/math/MathUtils.hpp"
-#include "common/world/biome/source/NetherBiomeSource.hpp"
-#include "common/world/biome/source/OverworldBiomeBuilder.hpp"
-#include "common/world/chunk/data/IChunk.hpp"
+#include "MultiNoiseBiomeSource.hpp"
+#include "NetherBiomeBuilder.hpp"
+#include "OverworldBiomeBuilder.hpp"
 #include "common/world/gen/density/NoiseRouterData.hpp"
+#include <algorithm>
 
-namespace mc::world::biome::source {
+namespace mc {
+namespace world {
+namespace biome {
+namespace source {
 
 MultiNoiseBiomeSource::MultiNoiseBiomeSource(
     u64 seed, climate::ParameterList<BiomeId> parameters, std::unique_ptr<gen::density::NoiseRouter> router)
-    : BiomeSource(seed)
+    : IBiomeSource(seed)
     , m_parameters(std::move(parameters))
     , m_router(std::move(router))
     , m_sampler(m_router->createClimateSampler())
@@ -64,30 +65,6 @@ const std::vector<BiomeId>& MultiNoiseBiomeSource::possibleBiomes() const
     return m_possibleBiomes;
 }
 
-void MultiNoiseBiomeSource::fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ)
-{
-    // 区块内 4x4x4 采样网格遍历所有 section
-    // 每个区块有 24 个 section（-64 ~ 320）
-    constexpr i32 HORIZ_SIZE = 4;
-    constexpr i32 VERT_SIZE = 4;
-    constexpr i32 SECTION_COUNT = world::CHUNK_SECTIONS;
-
-    for (i32 section = 0; section < SECTION_COUNT; ++section) {
-        for (i32 y = 0; y < VERT_SIZE; ++y) {
-            for (i32 z = 0; z < HORIZ_SIZE; ++z) {
-                for (i32 x = 0; x < HORIZ_SIZE; ++x) {
-                    const i32 quartX = (chunkX * HORIZ_SIZE) + x;
-                    const i32 quartY = (section * VERT_SIZE) + y + math::floorDiv(world::MIN_BUILD_HEIGHT, 4);
-                    const i32 quartZ = (chunkZ * HORIZ_SIZE) + z;
-
-                    const BiomeId biome = getNoiseBiome(quartX, quartY, quartZ);
-                    container.setBiome(section, x, y, z, biome);
-                }
-            }
-        }
-    }
-}
-
 std::unique_ptr<MultiNoiseBiomeSource> MultiNoiseBiomeSource::createOverworld(u64 seed, bool largeBiomes)
 {
     // 创建主世界噪声路由器
@@ -108,9 +85,12 @@ std::unique_ptr<MultiNoiseBiomeSource> MultiNoiseBiomeSource::createNether(u64 s
     auto router = std::make_unique<gen::density::NoiseRouter>(gen::density::NoiseRouterData::nether(seed));
 
     // 构建下界生物群系参数列表
-    auto parameters = NetherBiomeSource::buildParameterList();
+    auto parameters = NetherBiomeBuilder::buildParameterList();
 
     return std::make_unique<MultiNoiseBiomeSource>(seed, std::move(parameters), std::move(router));
 }
 
-} // namespace mc::world::biome::source
+} // namespace source
+} // namespace biome
+} // namespace world
+} // namespace mc

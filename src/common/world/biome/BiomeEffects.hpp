@@ -34,7 +34,6 @@ namespace biome {
  * @brief 草颜色修改器类型
  *
  * 某些生物群系会对草颜色应用特殊修改算法。
- * 参考 MC 1.16.5 BiomeAmbience.GrassColorModifier
  */
 enum class GrassColorModifier : u8 {
     None,       ///< 无修改，使用默认 colormap
@@ -48,8 +47,6 @@ enum class GrassColorModifier : u8 {
  *
  * 存储生物群系的视觉相关属性，包括水体颜色、雾颜色、天空颜色等。
  * 这些属性主要用于客户端渲染，影响水体颜色、雾效果、天空渲染等。
- *
- * 参考 MC 1.16.5 BiomeAmbience 类。
  *
  * @note 所有颜色使用 RGB 格式 (0xRRGGBB)，alpha 通道默认为 0xFF。
  */
@@ -112,7 +109,7 @@ public:
      * @brief 获取干燥树叶颜色覆盖
      * @return 干燥树叶颜色，如果未设置返回 nullopt
      *
-     * MC 1.21.11 新增，用于苍白花园等生物群系的干枯植被颜色。
+     * 新增，用于苍白花园等生物群系的干枯植被颜色。
      */
     [[nodiscard]] OptionalColor dryFoliageColor() const noexcept { return m_dryFoliageColor; }
 

@@ -83,7 +83,7 @@ const BlockState* WorldCarver<Config>::getCarveState(
 template <typename Config>
 bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
     CarvingContext& context,
-    const world::biome::BiomeSource& /*biomeSource*/,
+    const world::biome::IBiomeSource& /*biomeSource*/,
     ChunkCoord targetChunkX,
     ChunkCoord targetChunkZ,
     f32 centerX,

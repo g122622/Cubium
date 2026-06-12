@@ -1,6 +1,7 @@
 #include "OceanMonumentStructure.hpp"
 
 #include "common/core/Constants.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 
 namespace mc {
 namespace world {

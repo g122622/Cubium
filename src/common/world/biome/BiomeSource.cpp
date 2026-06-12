@@ -20,29 +20,53 @@
  * SOFTWARE.
  */
 
-#include "common/world/biome/BiomeSource.hpp"
+#include "BiomeSource.hpp"
+#include "BiomeRegistry.hpp"
 #include "common/core/Constants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
 #include <cmath>
 
-namespace mc::world::biome {
+namespace mc {
+namespace world {
+namespace biome {
 
 // ============================================================================
-// BiomeSource 实现
+// IBiomeSource 实现
 // ============================================================================
 
-BiomeSource::BiomeSource(u64 seed)
+IBiomeSource::IBiomeSource(u64 seed)
     : m_seed(seed)
 {}
 
-const Biome& BiomeSource::getBiomeDefinition(BiomeId id) const
+const Biome& IBiomeSource::getBiomeDefinition(BiomeId id) const
 {
     return BiomeRegistry::instance().get(id);
 }
 
-std::optional<BlockPos> BiomeSource::findBiome(i32 centerX,
+void IBiomeSource::fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ)
+{
+    constexpr i32 HORIZ_SIZE = 4;
+    constexpr i32 VERT_SIZE = 4;
+    constexpr i32 SECTION_COUNT = world::CHUNK_SECTIONS;
+
+    for (i32 section = 0; section < SECTION_COUNT; ++section) {
+        for (i32 y = 0; y < VERT_SIZE; ++y) {
+            for (i32 z = 0; z < HORIZ_SIZE; ++z) {
+                for (i32 x = 0; x < HORIZ_SIZE; ++x) {
+                    const i32 quartX = (chunkX * HORIZ_SIZE) + x;
+                    const i32 quartY = (section * VERT_SIZE) + y + math::floorDiv(world::MIN_BUILD_HEIGHT, 4);
+                    const i32 quartZ = (chunkZ * HORIZ_SIZE) + z;
+
+                    const BiomeId biome = getNoiseBiome(quartX, quartY, quartZ);
+                    container.setBiome(section, x, y, z, biome);
+                }
+            }
+        }
+    }
+}
+
+std::optional<BlockPos> IBiomeSource::findBiome(i32 centerX,
     i32 centerY,
     i32 centerZ,
     i32 radius,
@@ -110,7 +134,7 @@ std::optional<BlockPos> BiomeSource::findBiome(i32 centerX,
     return std::nullopt;
 }
 
-std::unordered_set<BiomeId> BiomeSource::getBiomesWithin(i32 x, i32 y, i32 z, i32 radius) const
+std::unordered_set<BiomeId> IBiomeSource::getBiomesWithin(i32 x, i32 y, i32 z, i32 radius) const
 {
     const i32 minQuartX = math::floorDiv(x - radius, 4);
     const i32 minQuartY = math::floorDiv(y - radius, 4);
@@ -132,4 +156,6 @@ std::unordered_set<BiomeId> BiomeSource::getBiomesWithin(i32 x, i32 y, i32 z, i3
     return result;
 }
 
-} // namespace mc::world::biome
+} // namespace biome
+} // namespace world
+} // namespace mc

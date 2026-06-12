@@ -106,7 +106,7 @@ u32 FoliageColorResolver::getColor(const Biome& biome, f64 x, f64 z) const noexc
 u32 WaterColorResolver::getColor(const Biome& biome, f64 x, f64 z) const noexcept
 {
     // 水颜色直接从 BiomeEffects 获取
-    return biome.waterColor();
+    return biome.effects().waterColor();
 }
 
 // === BiomeColors ===

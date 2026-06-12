@@ -39,7 +39,6 @@ class ChunkPrimer;
 }
 using world::chunk::ChunkPrimer;
 class IChunkGenerator;
-class Biome;
 class ConfiguredPlacement;
 struct OreFeatureConfig;
 

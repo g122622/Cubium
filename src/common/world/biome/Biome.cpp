@@ -22,12 +22,36 @@
  */
 
 #include "Biome.hpp"
+#include "BiomeClimate.hpp"
+#include "common/world/gen/noise/PerlinSimplexNoise.hpp"
 
 namespace mc {
+namespace world {
+namespace biome {
 
-Biome::Biome(BiomeId id, const std::string& name) noexcept
+Biome::Biome(BiomeId id, std::string_view name) noexcept
     : m_id(id)
     , m_name(name)
 {}
 
+f32 Biome::getHeightAdjustedTemperature(i32 x, i32 y, i32 z, i32 seaLevel) const
+{
+    f32 temp = applyTemperatureModifier(x, z, m_climate.temperature, m_climate.temperatureModifier);
+
+    const i32 threshold = seaLevel + 17;
+    if (y > threshold) {
+        const f64 noiseValue = temperatureNoise().getValue(static_cast<f64>(x) / 8.0, static_cast<f64>(z) / 8.0, false);
+        temp -= static_cast<f32>((noiseValue * 8.0 + static_cast<f64>(y - threshold)) * 0.05 / 40.0);
+    }
+
+    return temp;
+}
+
+f32 Biome::getBaseTemperature() const
+{
+    return applyTemperatureModifier(0, 0, m_climate.temperature, m_climate.temperatureModifier);
+}
+
+} // namespace biome
+} // namespace world
 } // namespace mc

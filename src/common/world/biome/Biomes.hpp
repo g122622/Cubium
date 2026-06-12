@@ -23,9 +23,12 @@
 
 #pragma once
 
-// 生物群系系统聚合头文件 (MC 1.18+ 3D 多噪声系统)
+// 生物群系系统聚合头文件
 
+// 核心定义
 #include "Biome.hpp"
+#include "BiomeClimate.hpp"
+#include "BiomeIds.hpp"
 #include "BiomeRegistry.hpp"
 #include "BiomeSource.hpp"
 
@@ -35,5 +38,5 @@
 // 生物群系源实现
 #include "source/EndBiomeSource.hpp"
 #include "source/MultiNoiseBiomeSource.hpp"
-#include "source/NetherBiomeSource.hpp"
+#include "source/NetherBiomeBuilder.hpp"
 #include "source/OverworldBiomeBuilder.hpp"

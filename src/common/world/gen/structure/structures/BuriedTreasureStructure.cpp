@@ -25,6 +25,7 @@
 
 #include "common/core/Constants.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"

@@ -47,7 +47,7 @@ bool CanyonCarver::shouldCarve(
 
 bool CanyonCarver::carve(ChunkPrimer& chunk,
     CarvingContext& context,
-    const world::biome::BiomeSource& biomeSource,
+    const world::biome::IBiomeSource& biomeSource,
     ChunkCoord targetChunkX,
     ChunkCoord targetChunkZ,
     ChunkCoord originChunkX,
@@ -122,7 +122,7 @@ f32 CanyonCarver::_updateVerticalRadius(
 
 void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
     CarvingContext& context,
-    const world::biome::BiomeSource& biomeSource,
+    const world::biome::IBiomeSource& biomeSource,
     ChunkCoord targetChunkX,
     ChunkCoord targetChunkZ,
     i64 seed,

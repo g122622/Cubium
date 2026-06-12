@@ -950,6 +950,7 @@ add_library(mc_common STATIC
 
     # World - Biome
     world/biome/Biome.cpp
+    world/biome/BiomeClimate.cpp
     world/biome/BiomeSource.cpp
     world/biome/BiomeRegistry.cpp
     world/biome/BiomeGenerationSettings.cpp
@@ -963,7 +964,7 @@ add_library(mc_common STATIC
     # World - Biome - Source
     world/biome/source/MultiNoiseBiomeSource.cpp
     world/biome/source/OverworldBiomeBuilder.cpp
-    world/biome/source/NetherBiomeSource.cpp
+    world/biome/source/NetherBiomeBuilder.cpp
     world/biome/source/EndBiomeSource.cpp
 
     # World - Generation - Surface

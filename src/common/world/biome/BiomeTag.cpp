@@ -47,7 +47,7 @@ void BiomeTag::addAll(const std::vector<BiomeId>& biomeIds)
 
 bool BiomeTag::contains(BiomeId biomeId) const noexcept
 {
-    return m_biomeIds.find(biomeId) != m_biomeIds.end();
+    return m_biomeIds.contains(biomeId);
 }
 
 } // namespace mc::world::biome

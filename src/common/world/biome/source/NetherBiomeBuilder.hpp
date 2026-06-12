@@ -22,10 +22,13 @@
 
 #pragma once
 
-#include "common/world/biome/Biomes.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/climate/Climate.hpp"
 
-namespace mc::world::biome::source {
+namespace mc {
+namespace world {
+namespace biome {
+namespace source {
 
 /**
  * @brief 下界生物群系参数构建器
@@ -34,7 +37,7 @@ namespace mc::world::biome::source {
  * 其他参数（continentalness, erosion, depth, weirdness）均为全范围。
  * 通过 offset 参数微调优先级。
  */
-class NetherBiomeSource {
+class NetherBiomeBuilder {
 public:
     /**
      * @brief 构建下界生物群系参数列表
@@ -43,4 +46,7 @@ public:
     [[nodiscard]] static climate::ParameterList<BiomeId> buildParameterList();
 };
 
-} // namespace mc::world::biome::source
+} // namespace source
+} // namespace biome
+} // namespace world
+} // namespace mc

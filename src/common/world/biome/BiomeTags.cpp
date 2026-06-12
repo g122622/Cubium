@@ -22,7 +22,7 @@
  */
 
 #include "BiomeTags.hpp"
-#include "Biome.hpp"
+#include "BiomeIds.hpp"
 
 #include <spdlog/spdlog.h>
 

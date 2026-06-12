@@ -98,11 +98,11 @@ public:
     /**
      * @brief 获取生物群系源（MC 1.18+）
      */
-    [[nodiscard]] world::biome::BiomeSource* biomeSource()
+    [[nodiscard]] world::biome::IBiomeSource* biomeSource()
     {
         return m_generator != nullptr ? m_generator->getBiomeSource() : nullptr;
     }
-    [[nodiscard]] const world::biome::BiomeSource* biomeSource() const
+    [[nodiscard]] const world::biome::IBiomeSource* biomeSource() const
     {
         return m_generator != nullptr ? m_generator->getBiomeSource() : nullptr;
     }

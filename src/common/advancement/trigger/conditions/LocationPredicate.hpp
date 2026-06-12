@@ -34,9 +34,12 @@
 // 前向声明
 namespace mc {
 class IWorld;
-class Biome;
 class BlockPos;
 class BlockState;
+namespace world::biome {
+class Biome;
+} // namespace world::biome
+using world::biome::Biome;
 } // namespace mc
 
 namespace mc::advancement {

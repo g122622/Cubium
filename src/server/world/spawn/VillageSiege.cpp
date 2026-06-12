@@ -35,8 +35,7 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/biome/Biome.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/village/Village.hpp"
@@ -366,17 +365,7 @@ bool VillageSiege::_isMushroomBiome(server::ServerWorld& world, const BlockPos& 
     // 获取玩家位置的生物群系
     const BiomeId biomeId = chunk->getBiomeAtBlock(pos.x, pos.y, pos.z);
 
-    // 检查生物群系类别是否为蘑菇岛
-    // 方法1：通过 BiomeRegistry 获取生物群系定义并检查类别
-    if (BiomeRegistry::instance().hasBiome(biomeId)) {
-        const Biome& biome = BiomeRegistry::instance().get(biomeId);
-        if (biome.category() == Biome::Category::Mushroom) {
-            return true;
-        }
-    }
-
-    // 方法2：直接检查蘑菇岛生物群系 ID（作为备用检查）
-    // 蘑菇岛 ID: 14 (MushroomFields), 15 (MushroomFieldShore)
+    // 检查是否为蘑菇岛生物群系（蘑菇岛不会发生僵尸围攻）
     if (biomeId == Biomes::MushroomFields || biomeId == Biomes::MushroomFieldShore) {
         return true;
     }

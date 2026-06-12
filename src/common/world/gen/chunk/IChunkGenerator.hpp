@@ -25,7 +25,7 @@
 
 #include "../../../core/Types.hpp"
 #include "../../IWorld.hpp"
-#include "../../biome/Biome.hpp"
+#include "../../biome/BiomeIds.hpp"
 #include "../../border/WorldBorder.hpp"
 #include "../settings/DimensionSettings.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
@@ -48,7 +48,7 @@ class ChunkStep;
 using world::chunk::ChunkStep;
 
 namespace world::biome {
-class BiomeSource;
+class IBiomeSource;
 }
 
 /**
@@ -188,8 +188,8 @@ public:
      * @brief 获取生物群系源（MC 1.18+）
      * @return 生物群系源指针
      */
-    [[nodiscard]] virtual world::biome::BiomeSource* getBiomeSource() { return nullptr; }
-    [[nodiscard]] virtual const world::biome::BiomeSource* getBiomeSource() const { return nullptr; }
+    [[nodiscard]] virtual world::biome::IBiomeSource* getBiomeSource() { return nullptr; }
+    [[nodiscard]] virtual const world::biome::IBiomeSource* getBiomeSource() const { return nullptr; }
 };
 
 /**

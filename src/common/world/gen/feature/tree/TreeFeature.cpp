@@ -24,7 +24,7 @@
 #include "TreeFeature.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../util/property/Properties.hpp"
-#include "../../../biome/Biome.hpp"
+#include "../../../biome/BiomeIds.hpp"
 #include "../../../block/BlockRegistry.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../placement/PlacementUtils.hpp"

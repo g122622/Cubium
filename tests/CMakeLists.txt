@@ -1071,12 +1071,11 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/carver/WorldCarver.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/Biome.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeEffects.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeGenerationSettings.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeSource.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/MultiNoiseBiomeSource.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/OverworldBiomeBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/NetherBiomeSource.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/NetherBiomeBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/EndBiomeSource.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/climate/Climate.cpp
         # 生物群系颜色解析器
@@ -1588,7 +1587,6 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorCache.cpp
             ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorBlender.cpp
             ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/ChunkBiomeAccessor.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeEffects.cpp
             # 甯哥敤璧勬簮
             ${CMAKE_SOURCE_DIR}/src/common/resource/ResourceLocation.cpp
             ${CMAKE_SOURCE_DIR}/src/common/resource/ResourcePackList.cpp

@@ -136,8 +136,8 @@ bool SnowGolemEntity::willMelt() const
     BiomeId biomeId = chunk->getBiomeAtBlock(pos.localX(), pos.y, pos.localZ());
     const Biome& biome = BiomeRegistry::instance().get(biomeId);
 
-    // MC 1.21: getTemperature 使用位置噪声和高度调整
-    f32 temperature = biome.getTemperature(pos.x, pos.y, pos.z, world::SEA_LEVEL);
+    // MC 1.21: getHeightAdjustedTemperature 使用位置噪声和高度调整
+    f32 temperature = biome.getHeightAdjustedTemperature(pos.x, pos.y, pos.z, world::SEA_LEVEL);
 
     return temperature > MELT_TEMPERATURE;
 }
@@ -356,7 +356,7 @@ void SnowGolemEntity::_placeSnowLayer()
         BiomeId biomeId = chunk->getBiomeAtBlock(pos.localX(), pos.y, pos.localZ());
         const Biome& biome = BiomeRegistry::instance().get(biomeId);
 
-        f32 temperature = biome.getTemperature(pos.x, pos.y, pos.z, world::SEA_LEVEL);
+        f32 temperature = biome.getHeightAdjustedTemperature(pos.x, pos.y, pos.z, world::SEA_LEVEL);
         if (temperature >= SNOW_TEMPERATURE) {
             continue;
         }

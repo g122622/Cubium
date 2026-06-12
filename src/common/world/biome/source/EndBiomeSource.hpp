@@ -22,15 +22,24 @@
 
 #pragma once
 
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeSource.hpp"
-#include "common/world/biome/Biomes.hpp"
 #include <memory>
 
-namespace mc::world::gen::density {
+namespace mc {
+namespace world {
+namespace gen {
+namespace density {
 class EndIslands;
 }
+} // namespace gen
+} // namespace world
+} // namespace mc
 
-namespace mc::world::biome::source {
+namespace mc {
+namespace world {
+namespace biome {
+namespace source {
 
 /**
  * @brief 末地生物群系源（MC 1.18+）
@@ -39,7 +48,7 @@ namespace mc::world::biome::source {
  * 中央岛屿（距原点64格内）固定为 THE_END 生物群系，
  * 外围岛屿使用 EndIslands 密度函数判断生物群系类型。
  */
-class EndBiomeSource : public BiomeSource {
+class EndBiomeSource : public IBiomeSource {
 public:
     explicit EndBiomeSource(u64 seed);
     ~EndBiomeSource() override;
@@ -51,7 +60,6 @@ public:
 
     [[nodiscard]] BiomeId getNoiseBiome(i32 quartX, i32 quartY, i32 quartZ) const override;
     [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override;
-    void fillBiomeContainer(BiomeContainer& container, ChunkCoord chunkX, ChunkCoord chunkZ) override;
 
 private:
     /**
@@ -60,12 +68,14 @@ private:
      * @param blockZ 方块 Z 坐标
      * @return 如果在中央岛屿范围内返回 true
      *
-     * MC 1.21 使用区块坐标判断: chunkX² + chunkZ² <= 4096（64区块半径）
+     * 使用区块坐标判断: chunkX² + chunkZ² <= 4096（64区块半径）
      */
     [[nodiscard]] static bool isInCentralIsland(i32 blockX, i32 blockZ);
 
     std::unique_ptr<gen::density::EndIslands> m_islandNoise;
-    std::vector<BiomeId> m_possibleBiomes;
 };
 
-} // namespace mc::world::biome::source
+} // namespace source
+} // namespace biome
+} // namespace world
+} // namespace mc

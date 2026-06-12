@@ -24,9 +24,12 @@
 #pragma once
 
 #include "Biome.hpp"
+#include "BiomeIds.hpp"
 #include <vector>
 
 namespace mc {
+namespace world {
+namespace biome {
 
 /**
  * @brief 生物群系注册表
@@ -599,4 +602,12 @@ Biome createPaleGarden();
 
 } // namespace BiomeFactory
 
+} // namespace biome
+} // namespace world
+} // namespace mc
+
+// 旧命名空间兼容别名
+namespace mc {
+using BiomeRegistry = ::mc::world::biome::BiomeRegistry;
+namespace BiomeFactory = ::mc::world::biome::BiomeFactory;
 } // namespace mc

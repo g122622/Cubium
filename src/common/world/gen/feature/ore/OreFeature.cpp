@@ -24,7 +24,7 @@
 #include "OreFeature.hpp"
 #include "common/core/Constants.hpp"
 #include "common/util/math/MathConstants.hpp"
-#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/DeepslateBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"

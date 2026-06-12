@@ -50,7 +50,7 @@ public:
 
     bool carve(ChunkPrimer& chunk,
         CarvingContext& context,
-        const world::biome::BiomeSource& biomeSource,
+        const world::biome::IBiomeSource& biomeSource,
         ChunkCoord targetChunkX,
         ChunkCoord targetChunkZ,
         ChunkCoord originChunkX,
@@ -76,7 +76,7 @@ private:
 
     void _generateCanyon(ChunkPrimer& chunk,
         CarvingContext& context,
-        const world::biome::BiomeSource& biomeSource,
+        const world::biome::IBiomeSource& biomeSource,
         ChunkCoord targetChunkX,
         ChunkCoord targetChunkZ,
         i64 seed,

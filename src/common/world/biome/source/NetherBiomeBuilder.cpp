@@ -18,18 +18,45 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
  */
 
-#include "BiomeEffects.hpp"
+#include "NetherBiomeBuilder.hpp"
 
 namespace mc {
 namespace world {
 namespace biome {
+namespace source {
 
-// BiomeEffects 是纯头文件实现的类，此文件保留用于将来扩展
-// 如添加需要复杂实现的方法（如基于噪声的颜色计算等）
+using namespace climate;
 
+ParameterList<BiomeId> NetherBiomeBuilder::buildParameterList()
+{
+    ParameterList<BiomeId> list;
+    const Parameter fullRange = Parameter::fullRange();
+
+    // 下界使用简化的气候参数映射
+    // 仅 temperature 和 humidity 有效，其他参数为全范围
+    // offset 用于微调优先级
+
+    // 下界荒地
+    list.add(pointParameters(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f), Biomes::NetherWastes);
+
+    // 灵魂沙峡谷
+    list.add(pointParameters(0.0f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f), Biomes::SoulSandValley);
+
+    // 绯红森林
+    list.add(pointParameters(0.4f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f), Biomes::CrimsonForest);
+
+    // 诡异森林
+    list.add(pointParameters(0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.375f), Biomes::WarpedForest);
+
+    // 玄武岩三角洲
+    list.add(pointParameters(-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.175f), Biomes::BasaltDeltas);
+
+    return list;
+}
+
+} // namespace source
 } // namespace biome
 } // namespace world
 } // namespace mc
