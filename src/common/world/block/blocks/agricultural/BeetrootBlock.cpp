@@ -22,6 +22,7 @@
  */
 
 #include "BeetrootBlock.hpp"
+#include "../../../../core/Constants.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../../util/math/random/Random.hpp"
@@ -68,7 +69,7 @@ void BeetrootBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& s
     const BlockPos abovePos = pos.up();
     const i32 blockLight = static_cast<i32>(world.getBlockLight(abovePos));
     const i32 skyLight = static_cast<i32>(world.getSkyLight(abovePos));
-    if (std::max(blockLight, skyLight) < 9) {
+    if (std::max(blockLight, skyLight) < game::CROP_GROWTH_LIGHT_THRESHOLD) {
         return;
     }
 

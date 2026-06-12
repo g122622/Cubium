@@ -179,8 +179,7 @@ bool BoneMealItem::growSeagrass(IWorld& world, const BlockPos& pos, math::IRando
         return false;
     }
 
-    // TODO: 将硬编码的流体源等级 8 替换为常量（需要在 fluid 命名空间定义 FLUID_SOURCE_LEVEL 常量）
-    if (fluidState->getLevel() != 8) {
+    if (fluidState->getLevel() != fluid::SOURCE_LEVEL) {
         return false;
     }
 
@@ -284,9 +283,9 @@ bool BoneMealItem::growSeagrass(IWorld& world, const BlockPos& pos, math::IRando
         const fluid::FluidState* targetFluid = world.getFluidState(currentPos);
 
         if (targetState != nullptr && targetState->is(VanillaBlocks::WATER)) {
-            // TODO: 将硬编码的流体源等级 8 替换为常量（需要在 fluid 命名空间定义 FLUID_SOURCE_LEVEL 常量）
             if (targetFluid != nullptr && !targetFluid->isEmpty() &&
-                targetFluid->getFluid().isIn(fluid::FluidTags::WATER()) && targetFluid->getLevel() == 8) {
+                targetFluid->getFluid().isIn(fluid::FluidTags::WATER()) &&
+                targetFluid->getLevel() == fluid::SOURCE_LEVEL) {
                 // 放置方块
                 world.setBlockState(currentPos, stateToPlace, 3);
                 placedAny = true;

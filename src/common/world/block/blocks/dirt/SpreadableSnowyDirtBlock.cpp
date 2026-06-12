@@ -28,10 +28,10 @@
 #include "../../../../util/math/random/IRandom.hpp"
 #include "../../../../util/property/StateContainer.hpp"
 #include "../../../IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../fluid/Fluid.hpp"
 #include "../../../lighting/engine/LightEngineUtils.hpp"
 #include "../ice/SnowBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc::blocks {
 
@@ -68,8 +68,7 @@ void SpreadableSnowyDirtBlock::randomTick(IWorld& world, const BlockPos& pos, Bl
         const u8 blockLight = world.getBlockLight(pos.x, pos.y + 1, pos.z);
         const u8 lightLevel = std::max(skyLight, blockLight);
 
-        // TODO: 将硬编码的蔓延光照阈值 9 替换为常量（建议在 game 命名空间定义 GRASS_SPREAD_LIGHT_THRESHOLD）
-        if (lightLevel >= 9) {
+        if (lightLevel >= game::GRASS_SPREAD_LIGHT_THRESHOLD) {
             const BlockState* defaultState = &getDefaultState();
 
             // 尝试向4个随机位置的泥土蔓延
@@ -155,8 +154,7 @@ bool SpreadableSnowyDirtBlock::isSnowyConditions(IWorld& world, const BlockPos& 
     // 检查上方是否有完整水源
     if (aboveState != nullptr) {
         const fluid::FluidState* fluidState = aboveState->getFluidState();
-        // TODO: 将硬编码的流体源等级 8 替换为常量（需要在 fluid 命名空间定义 FLUID_SOURCE_LEVEL 常量）
-        if (fluidState != nullptr && !fluidState->isEmpty() && fluidState->getLevel() == 8) {
+        if (fluidState != nullptr && !fluidState->isEmpty() && fluidState->getLevel() == fluid::SOURCE_LEVEL) {
             return false; // 上方有完整水源，不满足条件
         }
     }

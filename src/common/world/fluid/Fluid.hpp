@@ -45,6 +45,22 @@ class IRandom;
 
 namespace fluid {
 
+// ============================================================================
+// 流体常量
+// 参考: net.minecraft.world.level.material.FluidState (AMOUNT_FULL, AMOUNT_MAX)
+// ============================================================================
+
+/// 流体源头等级 (LEVEL_1_8 属性的最大值)
+/// 源头方块的 level 为此值，流动方块的 level 为 1~(SOURCE_LEVEL-1)
+/// 参考: FluidState.AMOUNT_FULL = 8
+constexpr i32 SOURCE_LEVEL = 8;
+
+/// 流体最大数量 (用于高度计算)
+/// getOwnHeight() = getLevel() / (AMOUNT_MAX + 0.0F)
+/// 当上方有同种流体时，level 可视为 9 以表示"视觉上填满"
+/// 参考: FluidState.AMOUNT_MAX = 9
+constexpr i32 MAX_AMOUNT = 9;
+
 class Fluid;
 class FluidState;
 
@@ -60,8 +76,8 @@ class FluidState;
  * @code
  * const FluidState& state = water.getDefaultState();
  * bool isSource = state.isSource();     // true
- * i32 level = state.getLevel();         // 8
- * f32 height = state.getHeight();       // 8/9.0f
+ * i32 level = state.getLevel();         // SOURCE_LEVEL (=8)
+ * f32 height = state.getHeight();       // SOURCE_LEVEL/MAX_AMOUNT (~0.889)
  * @endcode
  */
 class FluidState : public StateHolder<Fluid, FluidState> {
@@ -94,10 +110,10 @@ public:
     [[nodiscard]] bool isSource() const;
 
     /**
-     * @brief 获取流体等级 (1-8)
+     * @brief 获取流体等级 (1-SOURCE_LEVEL)
      *
-     * - 8 = 源头
-     * - 1-7 = 流动，数值越大越接近源头
+     * - SOURCE_LEVEL (=8) = 源头
+     * - 1-(SOURCE_LEVEL-1) = 流动，数值越大越接近源头
      *
      * @return 流体等级
      */
@@ -115,8 +131,8 @@ public:
     /**
      * @brief 获取流体高度（用于渲染）
      *
-     * 计算公式: level / 9.0f
-     * 源头高度约为0.888...
+     * 计算公式: level / MAX_AMOUNT
+     * 源头高度约为0.888... (8/9)
      *
      * @return 高度 (0.0-1.0)
      */

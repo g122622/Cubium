@@ -209,8 +209,8 @@ void addFaceRectangles(std::vector<FaceRectangle>& rectangles, const CollisionSh
 
 FluidState FlowingFluid::getFlowingState(i32 level, bool falling) const
 {
-    // level范围是1-8，但源头是level=8
-    level = std::clamp(level, 1, 8);
+    // level范围是1-SOURCE_LEVEL
+    level = std::clamp(level, 1, SOURCE_LEVEL);
     const FluidState& state = const_cast<FlowingFluid*>(this)->getFlowing().defaultState();
     auto& levelProp = FluidProperties::LEVEL_1_8();
     auto& fallingProp = FluidProperties::FALLING();
@@ -287,8 +287,9 @@ Vector3 FlowingFluid::getFlow(IBlockReader& world, const BlockPos& pos, const Fl
             if (belowFluid != nullptr && isSameOrEmpty(*belowFluid)) {
                 neighborHeight = belowFluid->getHeight();
                 if (neighborHeight > 0.0f) {
-                    // 0.8888889f ≈ 8/9，表示下落流体的额外高度偏移
-                    heightDelta = state.getHeight() - (neighborHeight - 0.8888889f);
+                    // SOURCE_LEVEL/MAX_AMOUNT ≈ 0.889，表示下落流体的额外高度偏移
+                    heightDelta = state.getHeight() -
+                        (neighborHeight - static_cast<f32>(SOURCE_LEVEL) / static_cast<f32>(MAX_AMOUNT));
                 }
             }
         } else {
@@ -344,7 +345,7 @@ bool FlowingFluid::causesDownwardCurrent(IBlockReader& world, const BlockPos& po
 CollisionShape FlowingFluid::getShape(const FluidState& state, IBlockReader& world, const BlockPos& pos) const
 {
     // 检查是否为满高度
-    if (state.getLevel() == 8 && isFullHeight(state, world, pos)) {
+    if (state.getLevel() == SOURCE_LEVEL && isFullHeight(state, world, pos)) {
         return CollisionShape::fullBlock();
     }
 
@@ -530,7 +531,7 @@ FluidState FlowingFluid::calculateCorrectFlowingState(
         const FluidState* aboveFluid = aboveBlock->getFluidState();
         if (aboveFluid != nullptr && !aboveFluid->isEmpty() && aboveFluid->getFluid().isEquivalentTo(*this) &&
             doesSideHaveHoles(Direction::Up, world, pos, blockState, abovePos, aboveBlock)) {
-            return getFlowingState(8, true);
+            return getFlowingState(SOURCE_LEVEL, true);
         }
     }
 

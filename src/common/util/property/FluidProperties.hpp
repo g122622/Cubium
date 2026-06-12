@@ -48,17 +48,17 @@ namespace mc::fluid {
 class FluidProperties {
 public:
     /**
-     * @brief 流体等级属性 (1-8)
+     * @brief 流体等级属性 (1-SOURCE_LEVEL)
      *
      * 用于FlowingFluid的状态：
      * - 1 = 最远的流动（即将消失）
-     * - 8 = 源头方块
+     * - SOURCE_LEVEL (=8) = 源头方块
      *
      * 注意：这与方块的LEVEL_0_15属性不同！
      * 方块LEVEL_0_15与流体LEVEL_1_8的映射关系：
-     * - 方块level=0 -> 流体level=8（源头）
+     * - 方块level=0 -> 流体level=SOURCE_LEVEL（源头）
      * - 方块level=1-7 -> 流体level=1-7
-     * - 方块level=8-15 -> 流体level=8 + falling=true
+     * - 方块level>=SOURCE_LEVEL -> 流体level=SOURCE_LEVEL + falling=true
      */
     static const IntegerProperty& LEVEL_1_8()
     {

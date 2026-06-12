@@ -72,7 +72,7 @@ void BubbleColumnBlock::placeBubbleColumn(IWorld& world, const BlockPos& pos, bo
 
 bool BubbleColumnBlock::canHoldBubbleColumn(const IWorld& world, const BlockPos& pos)
 {
-    // 条件：是水方块 + 流体等级 >= 8 + 是水源
+    // 条件：是水方块 + 是水源方块
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
         return false;
@@ -89,8 +89,8 @@ bool BubbleColumnBlock::canHoldBubbleColumn(const IWorld& world, const BlockPos&
         return false;
     }
 
-    // 流体等级 >= 8 且是水源
-    return fluidState->getLevel() >= 8 && fluidState->isSource();
+    // 流体是水源（源头的等级固定为 SOURCE_LEVEL）
+    return fluidState->isSource();
 }
 
 bool BubbleColumnBlock::getDrag(const IWorld& world, const BlockPos& pos)

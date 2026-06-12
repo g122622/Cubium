@@ -22,6 +22,7 @@
  */
 
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
+#include "common/core/Constants.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -124,7 +125,7 @@ void StemBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
     }
 
     // 光照检查：使用 getLightSubtracted 在方块位置本身，不是上方
-    if (world.getLightSubtracted(pos, 0) < 9) {
+    if (world.getLightSubtracted(pos, 0) < game::CROP_GROWTH_LIGHT_THRESHOLD) {
         return;
     }
 

@@ -22,6 +22,7 @@
  */
 
 #include "SweetBerryBushBlock.hpp"
+#include "common/core/Constants.hpp"
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityType.hpp"
@@ -92,11 +93,11 @@ void SweetBerryBushBlock::randomTick(IWorld& world, const BlockPos& pos, BlockSt
         return;
     }
 
-    // 光照检查：需要光照 >= 9
+    // 光照检查：需要光照 >= CROP_GROWTH_LIGHT_THRESHOLD
     const BlockPos abovePos = pos.up();
     const i32 blockLight = static_cast<i32>(world.getBlockLight(abovePos));
     const i32 skyLight = static_cast<i32>(world.getSkyLight(abovePos));
-    if (std::max(blockLight, skyLight) < 9) {
+    if (std::max(blockLight, skyLight) < game::CROP_GROWTH_LIGHT_THRESHOLD) {
         return;
     }
 

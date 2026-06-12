@@ -71,7 +71,7 @@ bool FluidState::isFalling() const
 f32 FluidState::getHeight() const
 {
     i32 level = getLevel();
-    return static_cast<f32>(level) / 9.0f;
+    return static_cast<f32>(level) / static_cast<f32>(MAX_AMOUNT);
 }
 
 f32 FluidState::getActualHeight(IWorld& world, const BlockPos& pos) const

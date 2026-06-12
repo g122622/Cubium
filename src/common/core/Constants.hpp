@@ -56,6 +56,18 @@ constexpr i32 PLAYER_MAX_HUNGER = 20;
 constexpr i32 MAX_LIGHT_LEVEL = 15;
 constexpr i32 MIN_LIGHT_LEVEL = 0;
 
+/// 草方块/菌丝蔓延所需最低光照等级
+/// 参考: SpreadingSnowyDirtBlock.randomTick() 中 getMaxLocalRawBrightness(pos.above()) >= 9
+constexpr i32 GRASS_SPREAD_LIGHT_THRESHOLD = 9;
+
+/// 作物/树苗/甜浆果等生长所需最低光照等级
+/// 参考: CropBlock.randomTick() 中 getRawBrightness(pos, 0) >= 9
+constexpr i32 CROP_GROWTH_LIGHT_THRESHOLD = 9;
+
+/// 作物放置存活所需最低光照等级
+/// 参考: CropBlock.hasSufficientLight() 中 getRawBrightness(pos, 0) >= 8
+constexpr i32 CROP_SURVIVAL_LIGHT_THRESHOLD = 8;
+
 // 时间
 constexpr i32 DAY_LENGTH_TICKS = 24000;
 constexpr i32 DAY_LENGTH_SECONDS = 1200; // 20分钟

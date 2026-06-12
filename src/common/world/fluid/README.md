@@ -8,7 +8,7 @@
 
 ```
 src/common/world/fluid/
-├── Fluid.hpp/cpp              # 流体基类和流体状态
+├── Fluid.hpp/cpp              # 流体基类、流体状态和流体常量（SOURCE_LEVEL, MAX_AMOUNT）
 ├── FlowingFluid.hpp/cpp       # 流动流体抽象类（核心流动算法）
 ├── FluidRegistry.hpp/cpp      # 流体注册表（单例）
 ├── Fluids.hpp/cpp             # 内置流体静态访问器（类似 VanillaBlocks）

@@ -27,11 +27,11 @@
 #include "../../../../util/math/random/IRandom.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../block/WaterLoggableHelpers.hpp"
 #include "../../../fluid/Fluid.hpp"
 #include "../../../fluid/FluidRegistry.hpp"
 #include "../../../fluid/FluidTags.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -64,7 +64,7 @@ bool SeagrassBlock::isValidPosition(const BlockState& state, IBlockReader& world
         return false;
     }
 
-    // 检查当前位置是否为水源方块（level=8）
+    // 检查当前位置是否为水源方块
     const fluid::FluidState* fluidState = world.getFluidState(pos);
     if (fluidState == nullptr || fluidState->isEmpty()) {
         return false;
@@ -75,8 +75,8 @@ bool SeagrassBlock::isValidPosition(const BlockState& state, IBlockReader& world
         return false;
     }
 
-    // 检查流体等级是否为 8（完整水源方块）
-    if (fluidState->getLevel() != 8) {
+    // 检查流体是否为完整水源方块
+    if (fluidState->getLevel() != fluid::SOURCE_LEVEL) {
         return false;
     }
 
@@ -117,7 +117,7 @@ bool SeagrassBlock::canGrow(IBlockReader& world, const BlockPos& pos, const Bloc
         return false;
     }
 
-    return aboveFluid->getLevel() == 8;
+    return aboveFluid->getLevel() == fluid::SOURCE_LEVEL;
 }
 
 bool SeagrassBlock::canUseBonemeal(
@@ -157,7 +157,7 @@ void SeagrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& p
         return;
     }
 
-    if (aboveFluid->getLevel() != 8) {
+    if (aboveFluid->getLevel() != fluid::SOURCE_LEVEL) {
         return;
     }
 

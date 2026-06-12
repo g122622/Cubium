@@ -66,12 +66,12 @@ const BlockState* LavaFluid::getBlockState(const FluidState& state) const
     // 计算方块level
     i32 blockLevel;
     if (isSource(state)) {
-        blockLevel = state.isFalling() ? 8 : 0;
+        blockLevel = state.isFalling() ? SOURCE_LEVEL : 0;
     } else {
         i32 fluidLevel = state.getLevel();
-        blockLevel = 8 - fluidLevel;
+        blockLevel = SOURCE_LEVEL - fluidLevel;
         if (state.isFalling()) {
-            blockLevel = 8;
+            blockLevel = SOURCE_LEVEL;
         }
     }
 
@@ -316,7 +316,7 @@ i32 LavaFlowingFluid::getLevel(const FluidState& state) const
 {
     auto& levelProp = FluidProperties::LEVEL_1_8();
     auto opt = state.getOptional(levelProp);
-    return opt.has_value() ? opt.value() : 8;
+    return opt.has_value() ? opt.value() : SOURCE_LEVEL;
 }
 
 FlowingFluid& LavaFlowingFluid::getStill()

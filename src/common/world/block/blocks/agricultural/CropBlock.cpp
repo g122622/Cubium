@@ -22,6 +22,7 @@
  */
 
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
+#include "common/core/Constants.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -96,8 +97,8 @@ bool CropBlock::isValidPosition(const BlockState& state, IBlockReader& world, co
     // 由于 IBlockReader 没有 getLightSubtracted 方法，使用传统方式
     const i32 blockLight = static_cast<i32>(world.getBlockLight(pos));
     const i32 skyLight = static_cast<i32>(world.getSkyLight(pos));
-    // 光照 >= 8 或能看见天空
-    return std::max(blockLight, skyLight) >= 8;
+    // 光照 >= CROP_SURVIVAL_LIGHT_THRESHOLD 或能看见天空
+    return std::max(blockLight, skyLight) >= game::CROP_SURVIVAL_LIGHT_THRESHOLD;
 }
 
 // ========== 生长逻辑 ==========
@@ -109,8 +110,8 @@ void CropBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
         return;
     }
 
-    // 光照检查
-    if (world.getLightSubtracted(pos, 0) < 9) {
+    // 光照检查：作物生长需要足够光照
+    if (world.getLightSubtracted(pos, 0) < game::CROP_GROWTH_LIGHT_THRESHOLD) {
         return;
     }
 

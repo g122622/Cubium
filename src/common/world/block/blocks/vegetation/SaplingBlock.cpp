@@ -22,6 +22,7 @@
  */
 
 #include "common/world/block/blocks/vegetation/SaplingBlock.hpp"
+#include "common/core/Constants.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -96,7 +97,7 @@ void SaplingBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& st
     const BlockPos lightPos = pos.up();
     const i32 blockLight = static_cast<i32>(world.getBlockLight(lightPos));
     const i32 skyLight = static_cast<i32>(world.getSkyLight(lightPos));
-    if (std::max(blockLight, skyLight) < 9) {
+    if (std::max(blockLight, skyLight) < game::CROP_GROWTH_LIGHT_THRESHOLD) {
         return;
     }
 

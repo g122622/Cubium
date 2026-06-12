@@ -183,7 +183,7 @@ public:
     /**
      * @brief 检查方块等级是否表示下落
      */
-    [[nodiscard]] static bool isFallingLevel(i32 blockLevel) noexcept { return blockLevel >= 8; }
+    [[nodiscard]] static bool isFallingLevel(i32 blockLevel) noexcept { return blockLevel >= fluid::SOURCE_LEVEL; }
 
     /**
      * @brief 获取放置时的方块状态

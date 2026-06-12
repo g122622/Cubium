@@ -148,7 +148,7 @@ public:
     [[nodiscard]] i32 getLevel(const FluidState& state) const override
     {
         (void)state;
-        return 8;
+        return SOURCE_LEVEL;
     }
 
     [[nodiscard]] FlowingFluid& getFlowing() override;

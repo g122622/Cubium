@@ -22,6 +22,7 @@
  */
 
 #include "CocoaBlock.hpp"
+#include "../../../../core/Constants.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../../util/math/random/Random.hpp"
@@ -147,11 +148,11 @@ void CocoaBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& stat
         return;
     }
 
-    // 检查光照：需要上方光照等级 >= 9
+    // 检查光照：需要上方光照等级 >= CROP_GROWTH_LIGHT_THRESHOLD
     const BlockPos abovePos = pos.up();
     const i32 blockLight = static_cast<i32>(world.getBlockLight(abovePos));
     const i32 skyLight = static_cast<i32>(world.getSkyLight(abovePos));
-    if (std::max(blockLight, skyLight) < 9) {
+    if (std::max(blockLight, skyLight) < game::CROP_GROWTH_LIGHT_THRESHOLD) {
         return;
     }
 

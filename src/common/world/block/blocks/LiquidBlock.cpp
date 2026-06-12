@@ -31,6 +31,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <functional>
@@ -286,29 +287,29 @@ fluid::Fluid* LiquidBlock::pickupFluid(IWorld& world, const BlockPos& pos, const
 
 i32 LiquidBlock::blockLevelToFluidLevel(i32 blockLevel) noexcept
 {
-    // 方块level=0 -> 流体level=8（源头）
-    // 方块level=1-7 -> 流体level=8-blockLevel（反向）
-    // 方块level=8-15 -> 流体level=8（下落）
+    // 方块level=0 -> 流体level=SOURCE_LEVEL（源头）
+    // 方块level=1-7 -> 流体level=SOURCE_LEVEL-blockLevel（反向）
+    // 方块level=8-15 -> 流体level=SOURCE_LEVEL（下落）
     if (blockLevel == 0) {
-        return 8; // 源头
+        return fluid::SOURCE_LEVEL; // 源头
     } else if (blockLevel >= 1 && blockLevel <= 7) {
-        return 8 - blockLevel; // 1->7, 2->6, ..., 7->1
+        return fluid::SOURCE_LEVEL - blockLevel; // 1->7, 2->6, ..., 7->1
     } else {
-        return 8; // 下落，level>=8
+        return fluid::SOURCE_LEVEL; // 下落，level>=SOURCE_LEVEL
     }
 }
 
 i32 LiquidBlock::fluidLevelToBlockLevel(i32 fluidLevel, bool falling) noexcept
 {
-    // 流体level=8, falling=false -> 方块level=0（源头）
-    // 流体level=1-7 -> 方块level=8-fluidLevel
-    // 流体level=8, falling=true -> 方块level=8（下落）
+    // 流体level=SOURCE_LEVEL, falling=false -> 方块level=0（源头）
+    // 流体level=1-7 -> 方块level=SOURCE_LEVEL-fluidLevel
+    // 流体level=SOURCE_LEVEL, falling=true -> 方块level=SOURCE_LEVEL（下落）
     if (falling) {
-        return 8;
-    } else if (fluidLevel == 8) {
+        return fluid::SOURCE_LEVEL;
+    } else if (fluidLevel == fluid::SOURCE_LEVEL) {
         return 0; // 源头
     } else {
-        return 8 - fluidLevel;
+        return fluid::SOURCE_LEVEL - fluidLevel;
     }
 }
 
@@ -324,7 +325,7 @@ void LiquidBlock::_buildFluidStateCache()
         i32 fluidLevel = blockLevelToFluidLevel(blockLevel);
         bool falling = isFallingLevel(blockLevel);
 
-        if (fluidLevel == 8 && !falling) {
+        if (fluidLevel == fluid::SOURCE_LEVEL && !falling) {
             // 源头状态
             m_fluidStateCache.push_back(m_fluid.getStill().defaultState());
         } else {
