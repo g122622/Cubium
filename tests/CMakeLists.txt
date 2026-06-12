@@ -548,6 +548,11 @@ add_executable(mc_tests
     common/entity/loot/LootJsonIntegrationTest.cpp
     # SetStewEffectFunction 测试
     common/entity/loot/SetStewEffectTest.cpp
+    # LootPredicateManager 和 LootPredicateLoader 测试
+    common/entity/loot/LootPredicateManagerTest.cpp
+    common/entity/loot/LootPredicateLoaderTest.cpp
+    # ReferenceCondition 谓词引用条件测试
+    common/entity/loot/ReferenceConditionTest.cpp
     # BlockPredicate 和 StatePropertiesPredicate 测试
     common/advancement/BlockPredicateTest.cpp
     # EffectType 工具函数测试
@@ -1204,6 +1209,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/LootConditionBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/StatePropertiesPredicate.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootTableLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootPredicateManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootPredicateLoader.cpp
         # 成就系统
         ${CMAKE_SOURCE_DIR}/src/common/advancement/Advancement.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/AdvancementProgress.cpp
