@@ -69,7 +69,7 @@ DoubleSidedInventory (双箱容器，非 BlockEntity，用于合并两个箱子)
 
 ### 2. TrappedChestEntity 红石信号
 
-陷阱箱的红石信号输出 = 打开的玩家数（最大 15）。每次 open/close 都会通知邻居方块更新红石信号。
+陷阱箱的红石信号输出 = 打开的玩家数（最大 15）。`getRedstoneSignal(IWorld&)` 方法会查询双箱连接，聚合两侧的打开玩家数后 clamp 到 15。每次 `openContainer()`/`closeContainer()` 都会通知邻居方块更新红石信号（通过 `RedstoneSystem::updateNeighbors` 和 `updateComparators`），双箱时还会同步通知连接箱子侧的邻居。注意：`openContainer`/`closeContainer` 的双箱计数同步由 `ChestBlock::onBlockActivated()` 和服务器端的容器关闭处理负责，而非 `TrappedChestEntity` 自身。
 
 ### 3. EnderChestEntity 不存储物品
 

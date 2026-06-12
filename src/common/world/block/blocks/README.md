@@ -12,7 +12,7 @@ blocks/
 ├── RotatedPillarBlock.hpp/cpp   # 旋转柱状方块（原木、玄武岩等，有 AXIS 属性）
 ├── LiquidBlock.hpp/cpp          # 液体方块（水、岩浆，关联 FlowingFluid）
 ├── ChestBlock.hpp/cpp           # 箱子方块（27格存储，支持双箱合并）
-├── TrappedChestBlock.hpp/cpp    # 陷阱箱方块（红石信号输出）
+├── TrappedChestBlock.hpp/cpp    # 陷阱箱方块（红石信号输出，重写createBlockEntity返回TrappedChestEntity）
 ├── HopperBlock.hpp/cpp          # 漏斗方块（物品自动传输）
 ├── ShulkerBoxBlock.hpp/cpp      # 潜影盒方块（27格存储，防递归嵌套）
 ├── AbstractFurnaceBlock.hpp     # 熔炉方块基类（FACING + LIT 属性）
@@ -183,3 +183,7 @@ DoorBlock 使用 `HALF` 属性区分上下半部分，操作时需要同时处�
 ### 7. 炼药锅使用方块状态存储水位
 
 CauldronBlock 没有方块实体，使用 `LEVEL_0_3` 属性存储水位（0-3）。交互操作直接修改方块状态，不需要额外实体数据。
+
+### 8. TrappedChestBlock 红石信号与双箱支持
+
+`TrappedChestBlock` 重写了 `createBlockEntity()` 返回 `TrappedChestEntity`（而非继承自 `ChestBlock` 的默认 `ChestEntity`）。红石信号通过 `TrappedChestEntity::getRedstoneSignal(world)` 计算，该方法会自动聚合双箱两侧的打开玩家数，信号强度 = 打开玩家总数（最大15）。`TrappedChestBlock::getWeakPower()` 调用此方法而非直接读取 `openCount`，确保双陷阱箱的红石信号正确。强充能仅从顶面输出（`getStrongPower` 仅 `Direction::Up` 返回有效信号）。

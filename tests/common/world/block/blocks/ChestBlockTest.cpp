@@ -22,13 +22,21 @@
  */
 
 #include "world/block/blocks/ChestBlock.hpp"
-#include "util/property/Properties.hpp"
-#include "world/block/BlockRegistry.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "world/block/blocks/TrappedChestBlock.hpp"
+#include "world/blockentity/BlockEntity.hpp"
+#include "world/blockentity/storage/TrappedChestEntity.hpp"
 #include <gtest/gtest.h>
 
-using namespace mc;
+// 注意：不能同时 using namespace mc 和 using namespace mc::blocks，
+// 因为 ChestEntity.hpp 在 mc:: 中前向声明了 ChestBlock，
+// 与 mc::blocks::ChestBlock 冲突。
 using namespace mc::blocks;
+using mc::BlockEntityType;
+using mc::BlockPos;
+using mc::BlockProperties;
+using mc::Material;
 
 // ========== ChestBlock 测试 ==========
 
@@ -98,4 +106,26 @@ TEST_F(TrappedChestBlockTest, HasBlockEntity_ReturnsTrue)
 TEST_F(TrappedChestBlockTest, GetBlockEntityType_ReturnsTrappedChest)
 {
     EXPECT_EQ(trappedChest_->getBlockEntityType(), BlockEntityType::TrappedChest);
+}
+
+TEST_F(TrappedChestBlockTest, CanProvidePower_ReturnsTrue)
+{
+    // 陷阱箱可以提供红石信号
+    const auto& state = trappedChest_->defaultState();
+    EXPECT_TRUE(trappedChest_->canProvidePower(state));
+}
+
+TEST_F(TrappedChestBlockTest, HasComparatorInputOverride_ReturnsTrue)
+{
+    // 陷阱箱继承自箱子，支持比较器信号
+    const auto& state = trappedChest_->defaultState();
+    EXPECT_TRUE(trappedChest_->hasComparatorInputOverride(state));
+}
+
+TEST_F(TrappedChestBlockTest, CreateBlockEntity_ReturnsTrappedChestEntity)
+{
+    // 确保创建的方块实体是 TrappedChestEntity，而非 ChestEntity
+    auto entity = trappedChest_->createBlockEntity(BlockPos(0, 0, 0));
+    ASSERT_NE(entity, nullptr);
+    EXPECT_EQ(entity->getType(), BlockEntityType::TrappedChest);
 }
