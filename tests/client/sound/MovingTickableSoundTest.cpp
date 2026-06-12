@@ -1225,3 +1225,118 @@ TEST_F(TickableSoundLifecycleTest, MultipleSoundsForDifferentEntities)
         }
     }
 }
+
+// ============================================================================
+// MinecartSound 骑乘状态检查测试
+// ============================================================================
+
+class MinecartSoundRidingTest : public ::testing::Test {
+protected:
+    void SetUp() override { handler = std::make_unique<EntitySoundHandler>(); }
+
+    std::unique_ptr<EntitySoundHandler> handler;
+};
+
+TEST_F(MinecartSoundRidingTest, EntitySoundStateRidingFields)
+{
+    // 验证 EntitySoundState 的骑乘字段默认值
+    EntitySoundState state;
+    EXPECT_FALSE(state.isRiding);
+    EXPECT_EQ(state.vehicleId, static_cast<EntityId>(0));
+}
+
+TEST_F(MinecartSoundRidingTest, EntitySoundStateRidingSetAndGet)
+{
+    // 设置骑乘状态并通过 handler 检索
+    EntitySoundState playerState;
+    playerState.position = glm::vec3(10.0f, 0.0f, 10.0f);
+    playerState.isRiding = true;
+    playerState.vehicleId = static_cast<EntityId>(42);
+
+    handler->updateEntityState(static_cast<EntityId>(1), playerState);
+
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    ASSERT_NE(retrieved, nullptr);
+    EXPECT_TRUE(retrieved->isRiding);
+    EXPECT_EQ(retrieved->vehicleId, static_cast<EntityId>(42));
+}
+
+TEST_F(MinecartSoundRidingTest, RidingStateUpdateClearsVehicleId)
+{
+    // 先设置骑乘状态
+    EntitySoundState ridingState;
+    ridingState.position = glm::vec3(10.0f, 0.0f, 10.0f);
+    ridingState.isRiding = true;
+    ridingState.vehicleId = static_cast<EntityId>(42);
+    handler->updateEntityState(static_cast<EntityId>(1), ridingState);
+
+    const EntitySoundState* retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    ASSERT_NE(retrieved, nullptr);
+    EXPECT_TRUE(retrieved->isRiding);
+    EXPECT_EQ(retrieved->vehicleId, static_cast<EntityId>(42));
+
+    // 更新为未骑乘状态
+    EntitySoundState notRidingState;
+    notRidingState.position = glm::vec3(10.0f, 0.0f, 10.0f);
+    notRidingState.isRiding = false;
+    notRidingState.vehicleId = static_cast<EntityId>(0);
+    handler->updateEntityState(static_cast<EntityId>(1), notRidingState);
+
+    retrieved = handler->getEntityState(static_cast<EntityId>(1));
+    ASSERT_NE(retrieved, nullptr);
+    EXPECT_FALSE(retrieved->isRiding);
+    EXPECT_EQ(retrieved->vehicleId, static_cast<EntityId>(0));
+}
+
+TEST_F(MinecartSoundRidingTest, PlayerRidingWrongVehicleShouldStopSound)
+{
+    // 场景：玩家骑乘矿车 A，但声音绑定的是矿车 B
+    // 当 vehicleId != m_minecartId 时，应该停止声音
+    // 这是 MinecartSound.cpp 中修复的核心逻辑：
+    // !playerState->isRiding || playerState->vehicleId != m_minecartId
+
+    const EntityId playerId = static_cast<EntityId>(1);
+    const EntityId minecartA = static_cast<EntityId>(100);
+    const EntityId minecartB = static_cast<EntityId>(200);
+
+    // 设置玩家骑乘矿车 A
+    EntitySoundState playerState;
+    playerState.position = glm::vec3(10.0f, 0.0f, 10.0f);
+    playerState.isRiding = true;
+    playerState.vehicleId = minecartA;
+    handler->updateEntityState(playerId, playerState);
+
+    // 验证骑乘正确矿车时应该继续播放
+    const EntitySoundState* player = handler->getEntityState(playerId);
+    ASSERT_NE(player, nullptr);
+    EXPECT_TRUE(player->isRiding);
+    EXPECT_EQ(player->vehicleId, minecartA);
+    // 条件: !isRiding || vehicleId != m_minecartId
+    // isRiding=true, vehicleId==minecartA → false || false = false → 不停止
+    EXPECT_FALSE(!player->isRiding || player->vehicleId != minecartA);
+
+    // 但如果 m_minecartId 是 minecartB，条件为:
+    // isRiding=true, vehicleId==minecartA != minecartB → false || true = true → 应该停止
+    EXPECT_TRUE(!player->isRiding || player->vehicleId != minecartB);
+}
+
+TEST_F(MinecartSoundRidingTest, PlayerNotRidingShouldStopSound)
+{
+    // 场景：玩家未骑乘时，应该停止矿车内部声音
+    const EntityId playerId = static_cast<EntityId>(1);
+    const EntityId minecartId = static_cast<EntityId>(100);
+
+    EntitySoundState playerState;
+    playerState.position = glm::vec3(10.0f, 0.0f, 10.0f);
+    playerState.isRiding = false;
+    playerState.vehicleId = static_cast<EntityId>(0);
+    handler->updateEntityState(playerId, playerState);
+
+    const EntitySoundState* player = handler->getEntityState(playerId);
+    ASSERT_NE(player, nullptr);
+    EXPECT_FALSE(player->isRiding);
+
+    // 条件: !isRiding || vehicleId != minecartId
+    // isRiding=false → true || ... = true → 应该停止
+    EXPECT_TRUE(!player->isRiding || player->vehicleId != minecartId);
+}

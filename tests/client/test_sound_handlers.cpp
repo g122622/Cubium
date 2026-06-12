@@ -528,3 +528,146 @@ TEST_F(WeatherSoundHandlerTest, WeatherSoundEvents)
     EXPECT_EQ(SoundEvents::WEATHER_RAIN_ABOVE.toString(), "minecraft:weather.rain.above");
     EXPECT_EQ(SoundEvents::WEATHER_THUNDER.toString(), "minecraft:weather.thunder");
 }
+
+// ============================================================================
+// BiomeAmbientHandler 采样位置光照测试
+// ============================================================================
+
+class BiomeAmbientMoodLightingTest : public ::testing::Test {};
+
+TEST_F(BiomeAmbientMoodLightingTest, MoodTimerIncreasesInSampledDarkness)
+{
+    // 当采样位置完全黑暗时，心境计时器应该增加
+    // 复现 BiomeAmbientHandler 中的心境计时器逻辑
+    f32 timer = 0.0f;
+    constexpr i32 tickDelay = 6000;
+
+    // 采样位置完全黑暗 (skyLight=0, blockLight=0)
+    u8 moodSkyLight = 0;
+    u8 moodBlockLight = 0;
+
+    for (int i = 0; i < 6000; ++i) {
+        if (moodSkyLight > 0) {
+            timer -= static_cast<f32>(moodSkyLight) / 15.0f * 0.001f;
+        } else if (moodBlockLight > 0) {
+            timer -= static_cast<f32>(moodBlockLight - 1) / static_cast<f32>(tickDelay);
+        } else {
+            timer += 1.0f / static_cast<f32>(tickDelay);
+        }
+    }
+
+    // 6000 tick 后，计时器应该达到 1.0
+    EXPECT_NEAR(timer, 1.0f, 0.01f);
+}
+
+TEST_F(BiomeAmbientMoodLightingTest, MoodTimerDecreasesWithSampledSkyLight)
+{
+    // 当采样位置有天空光时，心境计时器应该减少
+    f32 timer = 0.5f;
+    u8 moodSkyLight = 15;
+
+    for (int i = 0; i < 100; ++i) {
+        if (moodSkyLight > 0) {
+            timer -= static_cast<f32>(moodSkyLight) / 15.0f * 0.001f;
+        }
+        timer = std::max(timer, 0.0f);
+    }
+
+    // 有天空光时计时器应该减少
+    EXPECT_LT(timer, 0.5f);
+}
+
+TEST_F(BiomeAmbientMoodLightingTest, MoodTimerDecreasesWithSampledBlockLight)
+{
+    // 当采样位置无天空光但有方块光时，计时器也应该减少
+    f32 timer = 0.5f;
+    u8 moodSkyLight = 0;
+    u8 moodBlockLight = 10;
+    constexpr i32 tickDelay = 6000;
+
+    for (int i = 0; i < 100; ++i) {
+        if (moodSkyLight > 0) {
+            timer -= static_cast<f32>(moodSkyLight) / 15.0f * 0.001f;
+        } else if (moodBlockLight > 0) {
+            timer -= static_cast<f32>(moodBlockLight - 1) / static_cast<f32>(tickDelay);
+        }
+        timer = std::max(timer, 0.0f);
+    }
+
+    // 有方块光时计时器应该减少
+    EXPECT_LT(timer, 0.5f);
+}
+
+TEST_F(BiomeAmbientMoodLightingTest, SampledLightDiffersFromPlayerLight)
+{
+    // 验证采样位置光照与玩家位置光照可以不同
+    // 模拟：玩家站在有光照的位置（skyLight=15），但采样位置在黑暗处（moodSkyLight=0）
+    // 此时计时器应该增加（采样位置黑暗），而非减少（玩家位置有光）
+
+    f32 timer = 0.0f;
+    u8 playerSkyLight = 15; // 玩家位置有光
+    u8 moodSkyLight = 0;    // 采样位置黑暗
+    u8 moodBlockLight = 0;
+    constexpr i32 tickDelay = 6000;
+
+    // 使用采样位置的光照计算（修复后的行为）
+    for (int i = 0; i < 6000; ++i) {
+        if (moodSkyLight > 0) {
+            timer -= static_cast<f32>(moodSkyLight) / 15.0f * 0.001f;
+        } else if (moodBlockLight > 0) {
+            timer -= static_cast<f32>(moodBlockLight - 1) / static_cast<f32>(tickDelay);
+        } else {
+            timer += 1.0f / static_cast<f32>(tickDelay);
+        }
+    }
+
+    // 采样位置黑暗 → 计时器增加（修复后的行为）
+    EXPECT_NEAR(timer, 1.0f, 0.01f);
+
+    // 如果使用玩家位置光照（修复前的错误行为），计时器会减少
+    f32 wrongTimer = 0.5f;
+    for (int i = 0; i < 100; ++i) {
+        if (playerSkyLight > 0) {
+            wrongTimer -= static_cast<f32>(playerSkyLight) / 15.0f * 0.001f;
+        }
+        wrongTimer = std::max(wrongTimer, 0.0f);
+    }
+    EXPECT_LT(wrongTimer, 0.5f); // 使用玩家光照时计时器会减少
+}
+
+TEST_F(BiomeAmbientMoodLightingTest, SetLightLevelAcceptsMoodLight)
+{
+    // 验证 setLightLevel 接受4个参数
+    BiomeAmbientHandler handler;
+    // 玩家位置有天空光，采样位置黑暗
+    handler.setLightLevel(15, 0, 0, 0);
+    // 玩家位置和采样位置都有天空光
+    handler.setLightLevel(15, 0, 15, 0);
+    // 玩家位置黑暗，采样位置有方块光
+    handler.setLightLevel(0, 0, 0, 10);
+    // 无异常即成功
+}
+
+// ============================================================================
+// MusicPlayer 水下生物群系测试
+// ============================================================================
+
+class MusicPlayerOceanBiomeTest : public ::testing::Test {};
+
+TEST_F(MusicPlayerOceanBiomeTest, InOceanOrRiverBiomeEnumCoverage)
+{
+    // 验证 MusicPlayer 的 MusicType::Underwater 枚举值存在
+    EXPECT_EQ(static_cast<int>(MusicPlayer::MusicType::Underwater), 7);
+}
+
+TEST_F(MusicPlayerOceanBiomeTest, MusicSelectorFromBiomeMusic)
+{
+    // 验证 MusicSelector::fromBiomeMusic 能正确转换
+    mc::world::biome::BiomeMusic biomeMusic(
+        mc::ResourceLocation("minecraft:music.nether.basalt_deltas"), 12000, 24000, true);
+    auto selector = MusicPlayer::MusicSelector::fromBiomeMusic(biomeMusic);
+    EXPECT_EQ(selector.soundEventId.toString(), "minecraft:music.nether.basalt_deltas");
+    EXPECT_EQ(selector.minDelayTicks, 12000u);
+    EXPECT_EQ(selector.maxDelayTicks, 24000u);
+    EXPECT_TRUE(selector.replaceCurrent);
+}

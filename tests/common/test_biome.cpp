@@ -1034,3 +1034,54 @@ TEST_F(BiomeSourceFindBiomeTest, FindAnyBiomeWithRealOverworldSource)
     auto result = source->findBiome(0, 64, 0, 1000, 64, predicate, random, true);
     EXPECT_TRUE(result.has_value());
 }
+
+// ============================================================================
+// Biomes::isOceanOrRiverBiome 测试
+// ============================================================================
+
+class IsOceanOrRiverBiomeTest : public ::testing::Test {};
+
+TEST_F(IsOceanOrRiverBiomeTest, OceanBiomesReturnTrue)
+{
+    // 所有海洋生物群系应返回 true
+    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::Ocean));
+    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::WarmOcean));
+    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::LukewarmOcean));
+    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::ColdOcean));
+    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::FrozenOcean));
+    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::DeepOcean));
+    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::DeepWarmOcean));
+    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::DeepLukewarmOcean));
+    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::DeepColdOcean));
+    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::DeepFrozenOcean));
+}
+
+TEST_F(IsOceanOrRiverBiomeTest, RiverBiomesReturnTrue)
+{
+    // 河流生物群系应返回 true
+    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::River));
+    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::FrozenRiver));
+}
+
+TEST_F(IsOceanOrRiverBiomeTest, NonOceanOrRiverBiomesReturnFalse)
+{
+    // 非海洋/河流生物群系应返回 false
+    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::Plains));
+    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::Desert));
+    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::Forest));
+    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::Swamp));
+    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::Beach));
+    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::Mountains));
+    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::Taiga));
+    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::Jungle));
+    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::SoulSandValley));
+    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::CrimsonForest));
+    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::TheEnd));
+}
+
+TEST_F(IsOceanOrRiverBiomeTest, InvalidBiomeIdReturnsFalse)
+{
+    // 无效的ID应返回 false
+    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(static_cast<BiomeId>(9999)));
+    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(static_cast<BiomeId>(200)));
+}
