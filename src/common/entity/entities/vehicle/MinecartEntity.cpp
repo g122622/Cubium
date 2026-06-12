@@ -22,6 +22,7 @@
  */
 
 #include "MinecartEntity.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -35,9 +36,9 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/redstone/ActivatorRailBlock.hpp"
 #include "common/world/block/blocks/redstone/DetectorRailBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 #include "common/world/blockentity/transport/HopperEntity.hpp"
 #include "common/world/explosion/Explosion.hpp"
@@ -1134,10 +1135,18 @@ void FurnaceMinecartEntity::tick()
         }
     }
 
-    // TODO: 燃烧时产生烟雾粒子
-    // if (isActivated() && rand.nextInt(4) == 0) {
-    //     world.addParticle(ParticleTypes.LARGE_SMOKE, x, y + 0.8, z, 0, 0, 0);
+    // 燃烧时产生烟雾粒子
+    // 对应 MC 原版 FurnaceMinecartEntity.tick()：
+    // if (this.fuel > 0 && this.random.nextInt(4) == 0) {
+    //     level.addParticle(ParticleTypes.LARGE_SMOKE, getX(), getY() + 0.8, getZ(), 0, 0, 0);
     // }
+    if (isActivated() && worldPtr != nullptr) {
+        math::Random& random = worldPtr->getRandom();
+        if (random.nextInt(4) == 0) {
+            using namespace client::renderer::trident::particle;
+            worldPtr->addParticle(ParticleTypeId::LargeSmoke, Vector3(x(), y() + 0.8, z()), Vector3(0.0, 0.0, 0.0));
+        }
+    }
 }
 
 void FurnaceMinecartEntity::updatePushDirection()
@@ -1253,11 +1262,12 @@ void TNTMinecartEntity::tick()
         m_fuse--;
 
         // 引信燃烧时产生烟雾粒子
+        // 对应 MC 原版：引信每 4 tick 产生一次烟雾
         if (m_fuse % 4 == 0) {
             IWorld* worldPtr = Entity::world();
             if (worldPtr) {
-                // 每tick有1/4概率产生烟雾
-                // worldPtr->addParticle(ParticleTypes::SMOKE, x, y + 0.5, z, 0, 0, 0);
+                using namespace client::renderer::trident::particle;
+                worldPtr->addParticle(ParticleTypeId::Smoke, Vector3(x(), y() + 0.5, z()), Vector3(0.0, 0.0, 0.0));
             }
         }
 

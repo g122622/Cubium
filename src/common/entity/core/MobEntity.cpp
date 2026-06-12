@@ -63,7 +63,8 @@ MobEntity::MobEntity(EntityId id)
     , m_senses(std::make_unique<entity::ai::EntitySenses>(this))
     , m_navigator(std::make_unique<entity::ai::pathfinding::PathNavigator>(this))
 {
-    // 子类可在此初始化寻路器
+    // 初始化装备掉落概率为默认值
+    m_equipmentDropChances.fill(DEFAULT_EQUIPMENT_DROP_CHANCE);
 }
 
 MobEntity::~MobEntity() = default;
@@ -560,6 +561,64 @@ bool MobEntity::_spawnOffspringFromSpawnEgg(Player& player, const item::SpawnEgg
 }
 
 // ============================================================================
+// 掉落概率
+// ============================================================================
+
+f32 MobEntity::getEquipmentDropChance(EquipmentSlot slot) const
+{
+    auto idx = static_cast<size_t>(slot);
+    if (idx >= m_equipmentDropChances.size()) {
+        return DEFAULT_EQUIPMENT_DROP_CHANCE;
+    }
+    return m_equipmentDropChances[idx];
+}
+
+void MobEntity::setEquipmentDropChance(EquipmentSlot slot, f32 chance)
+{
+    auto idx = static_cast<size_t>(slot);
+    if (idx < m_equipmentDropChances.size()) {
+        m_equipmentDropChances[idx] = chance;
+    }
+}
+
+void MobEntity::setGuaranteedDrop(EquipmentSlot slot)
+{
+    setEquipmentDropChance(slot, PRESERVE_ITEM_DROP_CHANCE);
+}
+
+bool MobEntity::isEquipmentDropPreserved(EquipmentSlot slot) const
+{
+    return getEquipmentDropChance(slot) > 1.0f;
+}
+
+// ============================================================================
+// 拴绳系统
+// ============================================================================
+
+void MobEntity::setLeashedToEntity(const std::string& holderUuid)
+{
+    m_isLeashed = true;
+    m_leashHolderUuid = holderUuid;
+    m_leashFencePos = std::nullopt;
+}
+
+void MobEntity::setLeashedToFence(const BlockPos& pos)
+{
+    m_isLeashed = true;
+    m_leashHolderUuid = std::nullopt;
+    m_leashFencePos = pos;
+}
+
+void MobEntity::clearLeash()
+{
+    m_isLeashed = false;
+    m_leashHolderUuid = std::nullopt;
+    m_leashFencePos = std::nullopt;
+    m_leashDelayInfo.targetUuid = std::nullopt;
+    m_leashDelayInfo.fencePos = std::nullopt;
+}
+
+// ============================================================================
 // NBT 序列化
 // ============================================================================
 
@@ -583,13 +642,87 @@ void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     tag.put(nbt_keys::NO_AI, static_cast<i8>(m_aiEnabled ? 0 : 1));
 
     // HandDropChances / ArmorDropChances (float list)
-    // TODO: 实现掉落概率序列化
+    // 对应 MC 原版 Mob.addAdditionalSaveData 中的 drop_chances 序列化。
+    // 旧格式使用两个 float 列表：HandDropChances[2] 和 ArmorDropChances[4]。
+    // 写入时同时写入旧格式和新格式（drop_chances compound）以保证兼容性。
+    // 新格式 drop_chances 只写入非默认值（不等于 0.085 的槽位）。
+
+    // 旧格式：HandDropChances（主手、副手）
+    {
+        auto handChances = std::make_unique<nbt::tags::float_list_tag>();
+        handChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::MainHand)]);
+        handChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::OffHand)]);
+        tag.value.emplace(nbt_keys::HAND_DROP_CHANCES, std::move(handChances));
+    }
+
+    // 旧格式：ArmorDropChances（脚、腿、胸、头）
+    {
+        auto armorChances = std::make_unique<nbt::tags::float_list_tag>();
+        armorChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::Feet)]);
+        armorChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::Legs)]);
+        armorChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::Chest)]);
+        armorChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::Head)]);
+        tag.value.emplace(nbt_keys::ARMOR_DROP_CHANCES, std::move(armorChances));
+    }
+
+    // 新格式：drop_chances（compound，仅包含非默认值）
+    // 对应 MC 1.21.4+ 的 DropChances.CODEC 序列化格式
+    {
+        nbt::tags::compound_tag dropChancesTag;
+        // 装备槽位名称映射（与 MC 原版 EquipmentSlot.CODEC 一致）
+        static constexpr struct {
+            EquipmentSlot slot;
+            const char* name;
+        } slotNames[] = {
+            {EquipmentSlot::MainHand, "mainhand"},
+            {EquipmentSlot::OffHand, "offhand"},
+            {EquipmentSlot::Feet, "feet"},
+            {EquipmentSlot::Legs, "legs"},
+            {EquipmentSlot::Chest, "chest"},
+            {EquipmentSlot::Head, "head"},
+        };
+        for (const auto& entry : slotNames) {
+            f32 chance = m_equipmentDropChances[static_cast<size_t>(entry.slot)];
+            // 仅写入非默认值（与 MC DropChances.filterDefaultValues 一致）
+            if (chance != DEFAULT_EQUIPMENT_DROP_CHANCE) {
+                dropChancesTag.put(entry.name, chance);
+            }
+        }
+        if (!dropChancesTag.value.empty()) {
+            tag.value.emplace(
+                nbt_keys::DROP_CHANCES, std::make_unique<nbt::tags::compound_tag>(std::move(dropChancesTag)));
+        }
+    }
 
     // Leash (compound) - 拴绳数据
-    // TODO: 实现拴绳序列化
+    // 对应 MC 原版 Leashable.LeashData.CODEC 序列化。
+    // 格式：Leash = {UUIDMost: long, UUIDLeast: long}（拴在实体上）
+    //   或  Leash = {X: int, Y: int, Z: int}（拴在栅栏柱上）
+    if (m_isLeashed) {
+        nbt::tags::compound_tag leashTag;
+        if (m_leashHolderUuid.has_value()) {
+            // 拴在实体上：写入 UUIDMost + UUIDLeast
+            nbt_helper::putUuid(leashTag, *m_leashHolderUuid);
+        } else if (m_leashFencePos.has_value()) {
+            // 拴在栅栏柱上：写入 X + Y + Z
+            leashTag.put(nbt_keys::LEASH_X, m_leashFencePos->x);
+            leashTag.put(nbt_keys::LEASH_Y, m_leashFencePos->y);
+            leashTag.put(nbt_keys::LEASH_Z, m_leashFencePos->z);
+        }
+        if (!leashTag.value.empty()) {
+            tag.value.emplace(nbt_keys::LEASH, std::make_unique<nbt::tags::compound_tag>(std::move(leashTag)));
+        }
+    }
 
     // DeathLootTable / DeathLootTableSeed
-    // TODO: 实现掉落表序列化
+    // 对应 MC 原版 Mob.lootTable 和 Mob.lootTableSeed。
+    // 仅在有自定义掉落表时写入，否则使用实体类型的默认掉落表。
+    if (m_deathLootTable.has_value()) {
+        tag.put(nbt_keys::DEATH_LOOT_TABLE, std::string(*m_deathLootTable));
+        if (m_lootTableSeed != 0) {
+            tag.put(nbt_keys::DEATH_LOOT_TABLE_SEED, m_lootTableSeed);
+        }
+    }
 }
 
 Result<void> MobEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
@@ -619,8 +752,119 @@ Result<void> MobEntity::readAdditionalSaveData(const nbt::tags::compound_tag& ta
         m_aiEnabled = !(*val);
     }
 
-    // Leash (compound)
-    // TODO: 实现拴绳反序列化
+    // HandDropChances / ArmorDropChances / drop_chances
+    // 读取时优先使用新格式 drop_chances（compound），然后回退到旧格式。
+    // 新格式中的槽位会覆盖旧格式的值，未指定的槽位保持默认值。
+    {
+        bool readNewFormat = false;
+
+        // 新格式：drop_chances（compound）
+        if (auto* dropChancesCompound = nbt_helper::tryGetCompound(tag, nbt_keys::DROP_CHANCES)) {
+            readNewFormat = true;
+            // 装备槽位名称映射
+            static constexpr struct {
+                const char* name;
+                EquipmentSlot slot;
+            } slotNames[] = {
+                {"mainhand", EquipmentSlot::MainHand},
+                {"offhand", EquipmentSlot::OffHand},
+                {"feet", EquipmentSlot::Feet},
+                {"legs", EquipmentSlot::Legs},
+                {"chest", EquipmentSlot::Chest},
+                {"head", EquipmentSlot::Head},
+            };
+            for (const auto& entry : slotNames) {
+                if (auto chance = nbt_helper::tryGetFloat(*dropChancesCompound, entry.name)) {
+                    m_equipmentDropChances[static_cast<size_t>(entry.slot)] = *chance;
+                }
+            }
+        }
+
+        // 旧格式：HandDropChances（float list，长度 2）
+        if (auto* handList = nbt_helper::tryGetList(tag, nbt_keys::HAND_DROP_CHANCES)) {
+            if (handList->element_id() == nbt::TagId::Float) {
+                auto& floatList = dynamic_cast<const nbt::tags::float_list_tag&>(*handList);
+                if (floatList.value.size() >= 1) {
+                    // 仅在新格式未设置时使用旧格式的值
+                    if (!readNewFormat ||
+                        m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::MainHand)] ==
+                            DEFAULT_EQUIPMENT_DROP_CHANCE) {
+                        m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::MainHand)] = floatList.value[0];
+                    }
+                }
+                if (floatList.value.size() >= 2) {
+                    if (!readNewFormat ||
+                        m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::OffHand)] ==
+                            DEFAULT_EQUIPMENT_DROP_CHANCE) {
+                        m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::OffHand)] = floatList.value[1];
+                    }
+                }
+            }
+        }
+
+        // 旧格式：ArmorDropChances（float list，长度 4）
+        if (auto* armorList = nbt_helper::tryGetList(tag, nbt_keys::ARMOR_DROP_CHANCES)) {
+            if (armorList->element_id() == nbt::TagId::Float) {
+                auto& floatList = dynamic_cast<const nbt::tags::float_list_tag&>(*armorList);
+                constexpr std::array<EquipmentSlot, 4> armorSlots = {
+                    EquipmentSlot::Feet, EquipmentSlot::Legs, EquipmentSlot::Chest, EquipmentSlot::Head};
+                for (size_t i = 0; i < armorSlots.size() && i < floatList.value.size(); ++i) {
+                    if (!readNewFormat ||
+                        m_equipmentDropChances[static_cast<size_t>(armorSlots[i])] == DEFAULT_EQUIPMENT_DROP_CHANCE) {
+                        m_equipmentDropChances[static_cast<size_t>(armorSlots[i])] = floatList.value[i];
+                    }
+                }
+            }
+        }
+    }
+
+    // Leash (compound) - 拴绳数据
+    // 对应 MC 原版 Leashable.readLeashData()
+    {
+        auto* leashCompound = nbt_helper::tryGetCompound(tag, nbt_keys::LEASH);
+        if (leashCompound != nullptr) {
+            // 检查是拴在实体上（UUIDMost + UUIDLeast）还是栅栏柱上（X + Y + Z）
+            auto uuidMost = nbt_helper::tryGetLong(*leashCompound, nbt_keys::LEASH_UUID_MOST);
+            auto uuidLeast = nbt_helper::tryGetLong(*leashCompound, nbt_keys::LEASH_UUID_LEAST);
+
+            if (uuidMost.has_value() && uuidLeast.has_value()) {
+                // 拴在实体上
+                std::string uuid = nbt_helper::getUuid(*leashCompound);
+                if (!uuid.empty()) {
+                    m_leashDelayInfo.targetUuid = uuid;
+                    // 注意：实际的拴绳绑定需要在实体加载后延迟处理，
+                    // 因为此时目标实体可能尚未加载到世界中。
+                    // restoreLeashFromSave() 会在 tick 中调用以完成绑定。
+                }
+            } else {
+                // 拴在栅栏柱上
+                auto x = nbt_helper::tryGetInt(*leashCompound, nbt_keys::LEASH_X);
+                auto y = nbt_helper::tryGetInt(*leashCompound, nbt_keys::LEASH_Y);
+                auto z = nbt_helper::tryGetInt(*leashCompound, nbt_keys::LEASH_Z);
+                if (x.has_value() && y.has_value() && z.has_value()) {
+                    m_leashDelayInfo.fencePos = BlockPos(*x, *y, *z);
+                    // 拴在栅栏柱上的情况可以立即绑定
+                    setLeashedToFence(*m_leashDelayInfo.fencePos);
+                }
+            }
+        } else if (m_isLeashed) {
+            // 如果之前被拴住，但 NBT 中没有 Leash 数据，则解除拴绳
+            clearLeash();
+        }
+    }
+
+    // DeathLootTable / DeathLootTableSeed
+    if (auto lootTableStr = nbt_helper::tryGetString(tag, nbt_keys::DEATH_LOOT_TABLE)) {
+        m_deathLootTable = *lootTableStr;
+    } else {
+        m_deathLootTable = std::nullopt;
+    }
+
+    if (auto seed = nbt_helper::tryGetLong(tag, nbt_keys::DEATH_LOOT_TABLE_SEED)) {
+        m_lootTableSeed = *seed;
+    } else {
+        m_lootTableSeed = 0;
+    }
 
     return Result<void>::ok();
 }

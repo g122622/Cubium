@@ -73,6 +73,7 @@ constexpr const char* HAND_ITEMS = "HandItems";
 constexpr const char* ARMOR_ITEMS = "ArmorItems";
 constexpr const char* HAND_DROP_CHANCES = "HandDropChances";
 constexpr const char* ARMOR_DROP_CHANCES = "ArmorDropChances";
+constexpr const char* DROP_CHANCES = "drop_chances";
 
 constexpr const char* SLEEPING_X = "SleepingX";
 constexpr const char* SLEEPING_Y = "SleepingY";
@@ -105,6 +106,13 @@ constexpr const char* LEFT_HANDED = "LeftHanded";
 constexpr const char* NO_AI = "NoAI";
 
 constexpr const char* LEASH = "Leash";
+
+// Leash 子键
+constexpr const char* LEASH_UUID_MOST = "UUIDMost";
+constexpr const char* LEASH_UUID_LEAST = "UUIDLeast";
+constexpr const char* LEASH_X = "X";
+constexpr const char* LEASH_Y = "Y";
+constexpr const char* LEASH_Z = "Z";
 
 constexpr const char* DEATH_LOOT_TABLE = "DeathLootTable";
 constexpr const char* DEATH_LOOT_TABLE_SEED = "DeathLootTableSeed";

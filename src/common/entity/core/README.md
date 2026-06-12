@@ -206,8 +206,11 @@ finalizeSpawn(world, difficulty, spawnReason)
   - 命名牌交互：委托 `NameTagItem::itemInteractionForEntity()`，成功后设置自定义名称并启用持久化
   - 刷怪蛋交互：调用 `_spawnOffspringFromSpawnEgg()`，生成同类型幼体（仅 AgeableEntity 子类支持）
     - **依赖**：此路径依赖 SpawnEggItem 在 Items 注册表中的注册（如 `Items::PIG_SPAWN_EGG`），当前 Items 注册表尚未注册任何刷怪蛋物品，待 `Items::registerSpawnEggs()` 实现后可通过正常游戏流程触发
-  - 拴绳交互：当前为 TODO，待 Leashable 接口完善后实现
+  - 拴绳交互：基本拴绳附着逻辑已实现（`setLeashedToEntity`、`setLeashedToFence`、`clearLeash`），
+    完整的拴绳系统（Leashable接口、tickLeash物理、LeashKnotEntity交互、网络同步包等）待后续实现
 - `canBeLeashed()` - 判断生物是否可被拴绳拴住，默认实现通过 `dynamic_cast<IMob*>` 判断（敌对生物不可拴绳）
+- 拴绳数据序列化：NBT 中 `Leash` 标签已实现，支持实体 UUID（UUIDMost/UUIDLeast）和栅栏柱坐标（X/Y/Z）两种格式
+- 拴绳延迟绑定：`LeashDelayInfo` 存储从 NBT 读取的原始数据，待目标实体加载后通过 `restoreLeashFromSave()` 完成实际绑定
 - `_spawnOffspringFromSpawnEgg()` - 使用刷怪蛋生成幼体，类型匹配 + AgeableEntity 检查
   - **测试覆盖**：核心逻辑（实体生成、物品消耗、类型匹配）的单元测试待 Items 注册 SpawnEggItem 后补充
 - `applyPlayerInteraction()` - 有位置信息的交互（盔甲架装备槽）
@@ -234,3 +237,31 @@ finalizeSpawn(world, difficulty, spawnReason)
 - Player 不再需要单独定义吸收值方法，统一使用 LivingEntity 基类的实现
 - 吸收值在 `actuallyHurt` 中通过 `setAbsorptionAmount` 消耗，确保限制逻辑生效
 - NBT 序列化键为 `"AbsorptionAmount"`，反序列化也使用 `setAbsorptionAmount`
+
+### 装备掉落概率 (DropChances)
+- 对应 MC 原版的 `DropChances` 记录，存储在 `m_equipmentDropChances` 数组中
+- 索引与 `EquipmentSlot` 枚举值对应：[0]=MainHand, [1]=OffHand, [2]=Feet, [3]=Legs, [4]=Chest, [5]=Head
+- 默认值为 `DEFAULT_EQUIPMENT_DROP_CHANCE = 0.085f`（8.5%）
+- 大于 1.0 的值表示物品被保留（`PRESERVE_ITEM_DROP_CHANCE = 2.0f`）
+- `isEquipmentDropPreserved(slot)` 检查掉落概率 > 1.0
+- `setGuaranteedDrop(slot)` 设置掉落概率为 2.0（保整掉落）
+- NBT 序列化支持两种格式：
+  - 旧格式：`HandDropChances`（float[2]）和 `ArmorDropChances`（float[4]）
+  - 新格式（MC 1.21.4+）：`drop_chances`（compound，仅包含非默认值）
+- 读取时优先使用新格式，然后回退到旧格式
+
+### 死亡掉落表 (DeathLootTable)
+- `m_deathLootTable`：可选字符串，覆盖实体类型的默认掉落表（格式如 `"minecraft:entities/zombie"`）
+- `m_lootTableSeed`：确定性种子，0 表示随机
+- NBT 键：`DeathLootTable`（string，仅在有值时写入）、`DeathLootTableSeed`（long，仅非零时写入）
+- 对应 MC 原版 Mob 的 `lootTable` 和 `lootTableSeed` 字段
+
+### 拴绳系统 (Leash)
+- `m_isLeashed`：是否被拴绳拴住
+- `m_leashHolderUuid`：拴绳目标实体的 UUID（拴在实体上时）
+- `m_leashFencePos`：拴绳目标栅栏柱坐标（拴在栅栏上时）
+- `LeashDelayInfo`：延迟绑定信息，用于 NBT 加载后目标实体尚未就绪的情况
+- NBT 键：`Leash`（compound），包含 `UUIDMost`+`UUIDLeast`（实体）或 `X`+`Y`+`Z`（栅栏柱）
+- `setLeashedToEntity(uuid)`：拴到实体
+- `setLeashedToFence(pos)`：拴到栅栏柱
+- `clearLeash()`：解除拴绳

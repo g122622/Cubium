@@ -30,6 +30,8 @@
 #include "EntitySpawnPlacementRegistry.hpp"
 #include "LivingEntity.hpp"
 #include <memory>
+#include <optional>
+#include <variant>
 
 namespace mc {
 
@@ -54,6 +56,22 @@ class EntitySenses;
 namespace entity::ai::pathfinding {
 class PathNavigator;
 }
+
+/**
+ * @brief 拴绳延迟信息
+ *
+ * 当实体从 NBT 加载时，拴绳的目标实体可能尚未加载，
+ * 因此需要延迟解析。此结构体存储从 NBT 中读取的原始数据，
+ * 待目标实体加载后再进行实际绑定。
+ *
+ * 对应 MC 原版的 Leashable.LeashData 中的 delayedLeashInfo 字段。
+ */
+struct LeashDelayInfo {
+    /// 拴绳目标为实体时，存储目标实体的 UUID
+    std::optional<std::string> targetUuid;
+    /// 拴绳目标为栅栏柱时，存储栅栏柱坐标
+    std::optional<BlockPos> fencePos;
+};
 
 /**
  * @brief Mob 实体基类
@@ -439,6 +457,161 @@ public:
      */
     void setCanPickUpLoot(bool canPickUp) { m_canPickUpLoot = canPickUp; }
 
+    // ========== 掉落概率 (DropChances) ==========
+
+    /**
+     * @brief 默认装备掉落概率
+     *
+     * 对应 MC 原版的 DropChances.DEFAULT_EQUIPMENT_DROP_CHANCE。
+     * 未特别设置时，所有装备槽位的掉落概率为 0.085 (8.5%)。
+     */
+    static constexpr f32 DEFAULT_EQUIPMENT_DROP_CHANCE = 0.085f;
+
+    /**
+     * @brief 保整天花板值
+     *
+     * 对应 MC 原版的 DropChances.PRESERVE_ITEM_DROP_CHANCE。
+     * 当掉落概率设为 2.0 时，表示物品被保留（总是掉落且不会因消失而丢失）。
+     * 任何 > 1.0 的值都被视为"保留"。
+     */
+    static constexpr f32 PRESERVE_ITEM_DROP_CHANCE = 2.0f;
+
+    /**
+     * @brief 获取指定装备槽位的掉落概率
+     *
+     * 对应 MC 原版的 Mob.getEquipmentDropChance() / DropChances.byEquipment()。
+     * 如果槽位超出范围，返回默认值 0.085。
+     *
+     * @param slot 装备槽位
+     * @return 掉落概率（0.0 = 永不掉落, 0.085 = 默认, >1.0 = 保留）
+     */
+    [[nodiscard]] f32 getEquipmentDropChance(EquipmentSlot slot) const;
+
+    /**
+     * @brief 设置指定装备槽位的掉落概率
+     *
+     * 对应 MC 原版的 Mob.setDropChance() / DropChances.withEquipmentChance()。
+     *
+     * @param slot 装备槽位
+     * @param chance 掉落概率（不能为负数）
+     */
+    void setEquipmentDropChance(EquipmentSlot slot, f32 chance);
+
+    /**
+     * @brief 设置指定装备槽位为保整掉落（总是掉落）
+     *
+     * 对应 MC 原版的 DropChances.withGuaranteedDrop()。
+     * 将掉落概率设为 2.0（>1.0 表示保留）。
+     *
+     * @param slot 装备槽位
+     */
+    void setGuaranteedDrop(EquipmentSlot slot);
+
+    /**
+     * @brief 检查指定装备槽位的物品是否被保留（不掉落或总是掉落）
+     *
+     * 对应 MC 原版的 DropChances.isPreserved()。
+     * 当掉落概率 > 1.0 时，物品被视为保留。
+     *
+     * @param slot 装备槽位
+     * @return 如果物品被保留返回 true
+     */
+    [[nodiscard]] bool isEquipmentDropPreserved(EquipmentSlot slot) const;
+
+    // ========== 掉落表 (DeathLootTable) ==========
+
+    /**
+     * @brief 获取死亡掉落表 ID
+     *
+     * 对应 MC 原版的 Mob.getLootTable()。
+     * 如果实体有自定义掉落表（从 NBT 加载），返回自定义掉落表；
+     * 否则返回空，表示使用实体类型的默认掉落表。
+     *
+     * @return 自定义掉落表 ID，如果使用默认掉落表则返回空
+     */
+    [[nodiscard]] const std::optional<std::string>& deathLootTable() const { return m_deathLootTable; }
+
+    /**
+     * @brief 设置自定义死亡掉落表
+     *
+     * @param lootTableId 掉落表 ID（格式如 "minecraft:entities/zombie"），空表示使用默认
+     */
+    void setDeathLootTable(std::optional<std::string> lootTableId) { m_deathLootTable = std::move(lootTableId); }
+
+    /**
+     * @brief 获取掉落表种子
+     *
+     * 对应 MC 原版的 Mob.getLootTableSeed()。
+     * 非零种子用于确定性地生成掉落物。
+     *
+     * @return 掉落表种子
+     */
+    [[nodiscard]] i64 lootTableSeed() const { return m_lootTableSeed; }
+
+    /**
+     * @brief 设置掉落表种子
+     *
+     * @param seed 种子值
+     */
+    void setLootTableSeed(i64 seed) { m_lootTableSeed = seed; }
+
+    // ========== 拴绳系统 (Leash) ==========
+
+    /**
+     * @brief 检查实体是否被拴绳拴住
+     *
+     * @return 如果实体被拴住返回 true
+     */
+    [[nodiscard]] bool isLeashed() const { return m_isLeashed; }
+
+    /**
+     * @brief 获取拴绳目标实体的 UUID
+     *
+     * 当实体被拴绳拴在另一个实体上时，返回目标实体的 UUID。
+     *
+     * @return 目标实体 UUID，如果未拴住或拴在栅栏上则返回空
+     */
+    [[nodiscard]] const std::optional<std::string>& leashHolderUuid() const { return m_leashHolderUuid; }
+
+    /**
+     * @brief 获取拴绳目标栅栏柱坐标
+     *
+     * 当实体被拴绳拴在栅栏柱上时，返回栅栏柱坐标。
+     *
+     * @return 栅栏柱坐标，如果未拴住或拴在实体上则返回空
+     */
+    [[nodiscard]] const std::optional<BlockPos>& leashFencePos() const { return m_leashFencePos; }
+
+    /**
+     * @brief 获取延迟拴绳信息
+     *
+     * 从 NBT 加载拴绳数据时，目标实体可能尚未加载到世界中。
+     * 此信息在实体 tick 时用于尝试重新绑定拴绳。
+     *
+     * @return 延迟拴绳信息的引用
+     */
+    [[nodiscard]] LeashDelayInfo& leashDelayInfo() { return m_leashDelayInfo; }
+    [[nodiscard]] const LeashDelayInfo& leashDelayInfo() const { return m_leashDelayInfo; }
+
+    /**
+     * @brief 设置拴绳绑定到实体
+     *
+     * @param holderUuid 目标实体的 UUID
+     */
+    void setLeashedToEntity(const std::string& holderUuid);
+
+    /**
+     * @brief 设置拴绳绑定到栅栏柱
+     *
+     * @param pos 栅栏柱坐标
+     */
+    void setLeashedToFence(const BlockPos& pos);
+
+    /**
+     * @brief 解除拴绳绑定
+     */
+    void clearLeash();
+
     // ========== 持久化系统 (Persistence) ==========
 
     /**
@@ -635,6 +808,25 @@ protected:
 
     // 拾取物品
     bool m_canPickUpLoot = false; // 是否可以拾取物品
+
+    // 装备掉落概率（对应 MC 原版的 DropChances）
+    // 索引与 EquipmentSlot 枚举值对应：
+    //   [0] = MainHand, [1] = OffHand, [2] = Feet, [3] = Legs, [4] = Chest, [5] = Head
+    // 默认值为 0.085f (DEFAULT_EQUIPMENT_DROP_CHANCE)
+    // 大于 1.0 的值表示物品被保留（总是掉落，PRESERVE_ITEM_DROP_CHANCE = 2.0）
+    std::array<f32, static_cast<size_t>(EquipmentSlot::Count)> m_equipmentDropChances = {};
+
+    // 死亡掉落表（对应 MC 原版的 Mob.lootTable / Mob.lootTableSeed）
+    // 当 m_deathLootTable 有值时，使用自定义掉落表替代实体类型的默认掉落表
+    // 掉落表使用后会被清空（只掉落一次）
+    std::optional<std::string> m_deathLootTable; // 掉落表 ID，格式如 "minecraft:entities/zombie"
+    i64 m_lootTableSeed = 0;                     // 掉落表种子，0 表示随机
+
+    // 拴绳系统（对应 MC 原版的 Leashable.LeashData）
+    bool m_isLeashed = false;                     // 是否被拴绳拴住
+    std::optional<std::string> m_leashHolderUuid; // 拴绳目标实体的 UUID（拴在实体上时）
+    std::optional<BlockPos> m_leashFencePos;      // 拴绳目标栅栏柱坐标（拴在栅栏上时）
+    LeashDelayInfo m_leashDelayInfo;              // 延迟绑定信息（NBT 加载后尚未解析时使用）
 
     // ========== 装备附魔辅助方法 ==========
 
