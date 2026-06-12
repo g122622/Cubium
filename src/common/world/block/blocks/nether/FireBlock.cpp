@@ -512,6 +512,8 @@ void FireBlock::tryCatchFire(
     } else {
         // 直接烧毁：移除方块
         world.setBlockState(pos, nullptr, 3);
+        // 生成方块破坏后的附加效果（如蠹虫等）
+        state->owner().spawnAfterBreak(world, pos, *state, nullptr, false);
     }
 
     // 触发燃烧回调（如 TNT 爆炸）

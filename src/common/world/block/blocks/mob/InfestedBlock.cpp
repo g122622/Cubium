@@ -45,15 +45,6 @@ InfestedBlock::InfestedBlock(u32 hostBlock, const BlockProperties& properties)
     // 被感染方块没有特殊状态
 }
 
-void InfestedBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
-{
-    // 蠹虫生成逻辑已移至 spawnAfterBreak，因为 onBlockRemoved 无法获取破坏工具信息
-    // onBlockRemoved 仍需保留空实现以阻止基类默认行为
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(state);
-}
-
 void InfestedBlock::spawnAfterBreak(
     IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack* tool, bool dropExp) const
 {

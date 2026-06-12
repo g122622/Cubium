@@ -58,10 +58,6 @@ public:
     InfestedBlock(u32 hostBlock, const BlockProperties& properties);
     ~InfestedBlock() override = default;
 
-    // ========== 破坏 ==========
-
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
-
     /**
      * @brief 方块被破坏后的额外生成处理
      *

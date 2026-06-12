@@ -85,10 +85,11 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
         }
     }
 
+    // 获取原有方块状态（在替换前保存，用于spawnAfterBreak）
+    const BlockState* oldState = world->getBlockState(position.x, position.y, position.z);
+
     // destroy模式：先破坏原有方块并掉落物品
     if (doDrop) {
-        // 获取原有方块状态
-        const BlockState* oldState = world->getBlockState(position.x, position.y, position.z);
         if (oldState != nullptr && !oldState->isAir()) {
             // 播放方块破坏效果（粒子 + 音效）
             // eventID 2001，data 为方块状态ID
@@ -123,6 +124,11 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
     if (!success) {
         source.sendError("commands.setblock.failed");
         return 0;
+    }
+
+    // destroy模式：在方块被替换后调用spawnAfterBreak
+    if (doDrop && oldState != nullptr && !oldState->isAir()) {
+        oldState->getBlock().spawnAfterBreak(*world, pos, *oldState, nullptr, false);
     }
 
     // 发送反馈

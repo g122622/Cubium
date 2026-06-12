@@ -208,6 +208,11 @@ void LavaFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos, const B
 {
     // 岩浆替换方块前触发效果
     _triggerEffects(world, pos);
+
+    // 生成方块破坏后的附加效果（如蠹虫等）
+    if (state != nullptr && !state->isAir()) {
+        state->owner().spawnAfterBreak(world, pos, *state, nullptr, false);
+    }
 }
 
 void LavaFluid::_triggerEffects(IWorld& world, const BlockPos& pos)

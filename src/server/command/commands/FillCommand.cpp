@@ -120,6 +120,10 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
                 // 判断当前位置是否需要填充
                 bool shouldFill = false;
                 bool isShell = false;
+                // 保存旧方块状态，用于在setBlockState之后调用spawnAfterBreak
+                const BlockState* prevState = nullptr;
+                // 是否需要调用spawnAfterBreak（destroy和hollow的内部空气替换需要）
+                bool needSpawnAfterBreak = false;
 
                 switch (mode) {
                     case FillMode::Replace:
@@ -154,6 +158,8 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
                                     BlockDropHandler::spawnDrops(*world, BlockPos(x, y, z), drops, "");
                                 }
                             }
+                            prevState = currentState;
+                            needSpawnAfterBreak = true;
                         }
                         shouldFill = true;
                         break;
@@ -170,8 +176,18 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
                             if (airState != nullptr) {
                                 const BlockState* currentState = world->getBlockState(x, y, z);
                                 if (currentState == nullptr || !currentState->isAir()) {
+                                    // 记录旧方块，用于spawnAfterBreak
+                                    prevState = currentState;
+                                    needSpawnAfterBreak = true;
                                     world->setBlockState(x, y, z, airState);
                                     blocksModified++;
+                                    // 内部空气填充后立即调用spawnAfterBreak
+                                    if (prevState != nullptr && !prevState->isAir()) {
+                                        prevState->getBlock().spawnAfterBreak(
+                                            *world, BlockPos(x, y, z), *prevState, nullptr, false);
+                                    }
+                                    prevState = nullptr;
+                                    needSpawnAfterBreak = false;
                                 }
                             }
                         }
@@ -197,6 +213,11 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
                 if (shouldFill) {
                     if (world->setBlockState(x, y, z, fillState)) {
                         blocksModified++;
+                        // destroy模式：在方块被替换后调用spawnAfterBreak
+                        if (needSpawnAfterBreak && prevState != nullptr && !prevState->isAir()) {
+                            prevState->getBlock().spawnAfterBreak(
+                                *world, BlockPos(x, y, z), *prevState, nullptr, false);
+                        }
                     }
                 }
             }

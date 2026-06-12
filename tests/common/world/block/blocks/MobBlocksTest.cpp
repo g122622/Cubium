@@ -22,6 +22,7 @@
  */
 
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/EntityTypeIdNumber.hpp"
@@ -35,7 +36,6 @@
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/mob/BeehiveBlock.hpp"
 #include "world/block/blocks/mob/DragonBreathBlock.hpp"
 #include "world/block/blocks/mob/InfestedBlock.hpp"
@@ -725,9 +725,9 @@ TEST_F(TurtleEggBlockHatchTest, RandomTick_ClientSideDoesNotSpawn)
     EXPECT_EQ(world_.spawnedEntityCount(), 0u);
 }
 
-// ==================== InfestedBlock 蠹虫生成测试 ====================
+// ==================== InfestedBlock spawnAfterBreak 测试 ====================
 
-class InfestedBlockSpawnTest : public ::testing::Test {
+class InfestedBlockSpawnAfterBreakTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
@@ -740,17 +740,15 @@ protected:
     MobBlocksTestWorld world_;
 };
 
-TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_SpawnsSilverfish_OnServer)
+TEST_F(InfestedBlockSpawnAfterBreakTest, SpawnAfterBreak_SpawnsSilverfish_OnServer)
 {
     // 设置被感染方块
     BlockPos pos(5, 10, 5);
     const BlockState& state = infested_->defaultState();
     world_.setBlockAt(pos, &state);
 
-    // 调用 onBlockRemoved（服务端）
-    // 注意：需要可修改的状态，所以创建一个副本
-    BlockState mutableState = state;
-    infested_->onBlockRemoved(world_, pos, mutableState);
+    // 调用 spawnAfterBreak（服务端，无精准采集工具）
+    infested_->spawnAfterBreak(world_, pos, state, nullptr, true);
 
     // 验证：应该生成一个蠹虫实体
     EXPECT_EQ(world_.spawnedEntityCount(), 1u);
@@ -761,7 +759,7 @@ TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_SpawnsSilverfish_OnServer)
     EXPECT_EQ(spawned->typeId(), entity::EntityTypeIdNumber::SILVERFISH);
 }
 
-TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_DoesNotSpawn_OnClient)
+TEST_F(InfestedBlockSpawnAfterBreakTest, SpawnAfterBreak_DoesNotSpawn_OnClient)
 {
     // 设置客户端
     world_.setClientSide(true);
@@ -771,24 +769,22 @@ TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_DoesNotSpawn_OnClient)
     const BlockState& state = infested_->defaultState();
     world_.setBlockAt(pos, &state);
 
-    // 调用 onBlockRemoved（客户端）
-    BlockState mutableState = state;
-    infested_->onBlockRemoved(world_, pos, mutableState);
+    // 调用 spawnAfterBreak（客户端）
+    infested_->spawnAfterBreak(world_, pos, state, nullptr, true);
 
     // 验证：客户端不应该生成实体
     EXPECT_EQ(world_.spawnedEntityCount(), 0u);
 }
 
-TEST_F(InfestedBlockSpawnTest, OnBlockRemoved_SilverfishPositionCorrect)
+TEST_F(InfestedBlockSpawnAfterBreakTest, SpawnAfterBreak_SilverfishPositionCorrect)
 {
     // 设置被感染方块
     BlockPos pos(100, 50, -200);
     const BlockState& state = infested_->defaultState();
     world_.setBlockAt(pos, &state);
 
-    // 调用 onBlockRemoved
-    BlockState mutableState = state;
-    infested_->onBlockRemoved(world_, pos, mutableState);
+    // 调用 spawnAfterBreak
+    infested_->spawnAfterBreak(world_, pos, state, nullptr, true);
 
     // 验证生成的蠹虫位置
     Entity* spawned = world_.getSpawnedEntity(0);

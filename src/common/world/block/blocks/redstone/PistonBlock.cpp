@@ -27,13 +27,13 @@
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../blockentity/interactive/PistonBlockEntity.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "MovingPistonBlock.hpp"
 #include "PistonHeadBlock.hpp"
 #include "PistonStructureHelper.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <unordered_map>
 
 namespace mc {
@@ -355,6 +355,7 @@ bool PistonBlock::_doMove(IWorld& world, const BlockPos& pos, Direction facing, 
                 }
             }
             world.setBlockState(destroyPos, nullptr, 18);
+            destroyBlock->spawnAfterBreak(world, destroyPos, *destroyState, nullptr, false);
         }
     }
 

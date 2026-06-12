@@ -261,11 +261,17 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
             }
         }
 
-        // 设置为空气
+        // 设置为空气，并调用spawnAfterBreak
         const BlockState* airState = BlockRegistry::instance().airState();
         for (const BlockPos& srcPos : sourcePositions) {
             if (world::isValidY(srcPos.y)) {
+                // 保存旧方块状态，用于spawnAfterBreak
+                const BlockState* oldState = world->getBlockState(srcPos.x, srcPos.y, srcPos.z);
                 world->setBlockState(srcPos.x, srcPos.y, srcPos.z, airState);
+                // 在方块被设为空气后调用spawnAfterBreak
+                if (oldState != nullptr && !oldState->isAir()) {
+                    oldState->getBlock().spawnAfterBreak(*world, srcPos, *oldState, nullptr, false);
+                }
             }
         }
     }

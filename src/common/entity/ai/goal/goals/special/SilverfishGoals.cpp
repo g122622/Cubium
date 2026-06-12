@@ -208,9 +208,9 @@ void SilverfishSummonOthersGoal::tick()
                             if (world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
                                 const BlockState* airState = BlockRegistry::instance().airState();
                                 if (airState != nullptr) {
-                                    // 先调用 spawnAfterBreak（蠹虫从虫蚀方块中钻出时也会触发蠹虫生成）
-                                    block.spawnAfterBreak(*world, checkPos, *state, nullptr, true);
+                                    // 先移除方块，再调用 spawnAfterBreak（与 MC Java destroyBlock 行为一致）
                                     world->setBlockState(checkPos, airState, 3);
+                                    block.spawnAfterBreak(*world, checkPos, *state, nullptr, true);
                                 }
                             } else {
                                 // 转换为原版方块
