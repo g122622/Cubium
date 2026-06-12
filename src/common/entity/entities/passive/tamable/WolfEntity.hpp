@@ -94,6 +94,21 @@ public:
      */
     [[nodiscard]] bool isFoodItem(const ItemStack& itemStack) const;
 
+    /**
+     * @brief 判断此狼是否想要攻击指定目标
+     *
+     * 狼不会攻击以下目标：
+     * - 苦力怕、恶魂、盔甲架
+     * - 已驯服的其他驯服动物（包括已驯服的马）
+     * - 与自己同主人的其他狼
+     * - 主人不能伤害的玩家（PvP保护）
+     *
+     * @param target 待攻击的目标实体
+     * @param owner 此狼的主人（可能为 nullptr）
+     * @return true 如果此狼愿意攻击该目标
+     */
+    [[nodiscard]] bool wantsToAttack(const LivingEntity& target, const LivingEntity* owner) const override;
+
     // ========== 繁殖 ==========
 
     /**

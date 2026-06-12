@@ -26,7 +26,9 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/scoreboard/core/Team.hpp"
 #include "common/world/IWorld.hpp"
 
 namespace mc {
@@ -164,6 +166,41 @@ Player* TameableEntity::getOwner() const
     }
 
     return nullptr;
+}
+
+scoreboard::Team* TameableEntity::getTeam()
+{
+    // 已驯服的动物继承主人的队伍
+    if (m_tamed && m_ownerId.has_value()) {
+        Player* owner = getOwner();
+        if (owner != nullptr) {
+            return owner->getTeam();
+        }
+    }
+    // 未驯服的动物使用默认队伍逻辑
+    return AnimalEntity::getTeam();
+}
+
+const scoreboard::Team* TameableEntity::getTeam() const
+{
+    // 已驯服的动物继承主人的队伍
+    if (m_tamed && m_ownerId.has_value()) {
+        Player* owner = getOwner();
+        if (owner != nullptr) {
+            return owner->getTeam();
+        }
+    }
+    // 未驯服的动物使用默认队伍逻辑
+    return AnimalEntity::getTeam();
+}
+
+bool TameableEntity::wantsToAttack(const LivingEntity& target, const LivingEntity* owner) const
+{
+    MC_UNUSED(owner);
+    MC_UNUSED(target);
+    // 默认实现：允许攻击所有目标
+    // 子类可重写此方法来限制攻击目标，例如狼不会攻击苦力怕和恶魂
+    return true;
 }
 
 } // namespace mc

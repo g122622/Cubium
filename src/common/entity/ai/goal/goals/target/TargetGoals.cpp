@@ -40,6 +40,7 @@
 #include "util/AxisAlignedBB.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
+#include "world/gamerule/GameRules.hpp"
 #include <cmath>
 #include <limits>
 #include <type_traits>
@@ -116,10 +117,10 @@ bool TargetGoal::isSuitableTarget(LivingEntity* target) const
         }
     }
 
-    // TODO: 检查团队关系（需要实现 Scoreboard 和 Team 系统）
-    // if (m_mob->isOnSameTeam(target)) {
-    //     return false;
-    // }
+    // 检查队伍关系：同一队伍的实体不能互相攻击
+    if (m_mob->isAlliedTo(*target)) {
+        return false;
+    }
 
     return true;
 }
@@ -280,6 +281,9 @@ void HurtByTargetGoal::startExecuting()
             // 不能警醒目标本身
             if (ally == m_target) continue;
 
+            // 不警醒与攻击者盟友的实体
+            if (ally->isAlliedTo(*m_target)) continue;
+
             // 检查是否是同类型（使用 typeId 比较）
             if (ally->typeId() == m_mob->typeId()) {
                 ally->setAttackTarget(m_target);
@@ -328,7 +332,10 @@ bool OwnerHurtByTargetGoal::shouldExecute()
     // 检查是否适合作为目标
     if (!isSuitableTarget(attacker)) return false;
 
-    // TODO: 使用 shouldAttackEntity 检查（狼不应该攻击苦力怕、恶魂、其他驯服动物等）
+    // 检查驯服动物是否愿意攻击此目标
+    // 狼不会攻击苦力怕、恶魂、已驯服的动物等
+    if (!tameable->wantsToAttack(*attacker, owner)) return false;
+
     m_target = attacker;
     return true;
 }
@@ -372,7 +379,8 @@ bool OwnerHurtTargetGoal::shouldExecute()
     // 检查是否适合作为目标
     if (!isSuitableTarget(target)) return false;
 
-    // TODO: 使用 shouldAttackEntity 检查
+    // 检查驯服动物是否愿意攻击此目标
+    if (!tameable->wantsToAttack(*target, owner)) return false;
     m_target = target;
     return true;
 }
@@ -474,10 +482,14 @@ bool ResetAngerGoal<T>::shouldExecute()
 {
     if (!m_mob) return false;
 
-    // TODO: 实现检查 UNIVERSAL_ANGER 游戏规则
-    // 原版逻辑：return this.field_241383_a_.world.getGameRules().getBoolean(GameRules.UNIVERSAL_ANGER) &&
-    // this.shouldGetRevengeOnPlayer();
-    // 当前简化：直接检查是否应该复仇
+    // 检查 UNIVERSAL_ANGER 游戏规则是否启用
+    IWorld* world = m_mob->world();
+    if (!world) return false;
+
+    if (!world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::UNIVERSAL_ANGER)) {
+        return false;
+    }
+
     return _shouldGetRevengeOnPlayer();
 }
 

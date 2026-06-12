@@ -1928,6 +1928,30 @@ bool Entity::isOnScoreboardTeam(const scoreboard::Team* team) const
     return myTeam == team;
 }
 
+bool Entity::isAlliedTo(const Entity& other) const
+{
+    // 自身视为盟友
+    if (this == &other) {
+        return true;
+    }
+    // 双向检查：this 认为 other 是盟友，或 other 认为 this 是盟友
+    return considersEntityAsAlly(other) || other.considersEntityAsAlly(*this);
+}
+
+bool Entity::isAlliedTo(const scoreboard::Team* team) const
+{
+    const scoreboard::Team* myTeam = getTeam();
+    if (myTeam == nullptr || team == nullptr) {
+        return false;
+    }
+    return myTeam == team;
+}
+
+bool Entity::considersEntityAsAlly(const Entity& other) const
+{
+    return isAlliedTo(other.getTeam());
+}
+
 bool Entity::isOnSameTeam(const Entity& other) const
 {
     return isOnScoreboardTeam(other.getTeam());

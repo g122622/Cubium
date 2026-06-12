@@ -42,6 +42,7 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp"
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
+#include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
 #include "common/entity/entities/passive/horse/LlamaEntity.hpp"
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
@@ -93,6 +94,57 @@ bool WolfEntity::isFoodItem(const ItemStack& itemStack) const
 {
     // 同繁殖物品
     return isBreedingItem(itemStack);
+}
+
+bool WolfEntity::wantsToAttack(const LivingEntity& target, const LivingEntity* owner) const
+{
+    // 苦力怕、恶魂、盔甲架：永远不攻击
+    auto targetType = target.typeId();
+    if (targetType == entity::EntityTypeIdNumber::CREEPER || targetType == entity::EntityTypeIdNumber::GHAST ||
+        targetType == entity::EntityTypeIdNumber::ARMOR_STAND) {
+        return false;
+    }
+
+    // 其他狼：只攻击未驯服的狼或主不同的狼
+    if (targetType == entity::EntityTypeIdNumber::WOLF) {
+        const WolfEntity* otherWolf = dynamic_cast<const WolfEntity*>(&target);
+        if (otherWolf != nullptr) {
+            if (!otherWolf->isTamed()) {
+                return true; // 未驯服的狼可以攻击
+            }
+            // 已驯服的狼：只有主不同时才攻击
+            if (owner != nullptr) {
+                return otherWolf->getOwner() != owner;
+            }
+            return false; // 没有主人，不攻击已驯服的狼
+        }
+    }
+
+    // TODO: 玩家PvP保护检查（需要实现 Player::canHarmPlayer）
+    // 如果目标和主人都是玩家，需要检查 PvP 规则
+    // if (targetType == entity::EntityTypeIdNumber::PLAYER && owner != nullptr) {
+    //     const Player* ownerPlayer = dynamic_cast<const Player*>(owner);
+    //     const Player* targetPlayer = dynamic_cast<const Player*>(&target);
+    //     if (ownerPlayer != nullptr && targetPlayer != nullptr && !ownerPlayer->canHarmPlayer(*targetPlayer))
+    //     {
+    //         return false;
+    //     }
+    // }
+
+    // 已驯服的马：不攻击
+    const AbstractHorseEntity* horse = dynamic_cast<const AbstractHorseEntity*>(&target);
+    if (horse != nullptr && horse->isTame()) {
+        return false;
+    }
+
+    // 其他已驯服的驯服动物：不攻击
+    const TameableEntity* tameable = dynamic_cast<const TameableEntity*>(&target);
+    if (tameable != nullptr && tameable->isTamed()) {
+        return false;
+    }
+
+    // 其他目标：允许攻击
+    return true;
 }
 
 std::unique_ptr<AnimalEntity> WolfEntity::spawnBaby(AnimalEntity& /*partner*/)

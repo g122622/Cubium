@@ -35,6 +35,12 @@ namespace mc {
 class Player;
 class ItemStack;
 
+namespace scoreboard {
+class Team;
+}
+
+class LivingEntity;
+
 /**
  * @brief 可驯服实体基类
  *
@@ -130,6 +136,32 @@ public:
      * @return 主人实体指针，如果未找到或无主人返回nullptr
      */
     [[nodiscard]] Player* getOwner() const;
+
+    // ========== 队伍系统 ==========
+
+    /**
+     * @brief 获取驯服动物所在的队伍
+     *
+     * 已驯服的动物继承主人的队伍。未驯服的动物不在任何队伍中。
+     *
+     * @return 队伍指针，如果不在任何队伍返回 nullptr
+     */
+    [[nodiscard]] scoreboard::Team* getTeam() override;
+    [[nodiscard]] const scoreboard::Team* getTeam() const override;
+
+    // ========== 攻击判定 ==========
+
+    /**
+     * @brief 判断此驯服动物是否想要攻击指定目标
+     *
+     * 默认实现返回 true（允许攻击所有目标）。
+     * 子类可重写此方法来限制攻击目标，例如狼不会攻击苦力怕和恶魂。
+     *
+     * @param target 待攻击的目标实体
+     * @param owner 此驯服动物的主人（可能为 nullptr）
+     * @return true 如果此驯服动物愿意攻击该目标
+     */
+    [[nodiscard]] virtual bool wantsToAttack(const LivingEntity& target, const LivingEntity* owner) const;
 
     // ========== 坐下/站起 ==========
 

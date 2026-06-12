@@ -474,9 +474,43 @@ public:
     [[nodiscard]] bool isOnScoreboardTeam(const scoreboard::Team* team) const;
 
     /**
+     * @brief 检查两个实体是否为盟友关系
+     *
+     * 双向检查：this 认为 other 是盟友，或 other 认为 this 是盟友。
+     * 子类可重写 considersEntityAsAlly 来自定义盟友判定逻辑。
+     *
+     * @param other 另一个实体
+     * @return true 如果两个实体互为盟友
+     */
+    [[nodiscard]] bool isAlliedTo(const Entity& other) const;
+
+    /**
+     * @brief 检查此实体是否将指定队伍视为盟友
+     *
+     * 默认实现通过 getTeam() 判断是否同一队伍。
+     * 子类可重写此方法以支持更复杂的盟友关系（如驯服动物继承主人的队伍）。
+     *
+     * @param team 要检查的队伍
+     * @return true 如果此实体属于该队伍或与该队伍为盟友关系
+     */
+    [[nodiscard]] virtual bool isAlliedTo(const scoreboard::Team* team) const;
+
+    /**
+     * @brief 检查此实体是否将指定实体视为盟友
+     *
+     * 默认实现调用 isAlliedTo(other.getTeam())。
+     * 子类可重写此方法以支持更复杂的盟友关系。
+     *
+     * @param other 另一个实体
+     * @return true 如果此实体将 other 视为盟友
+     */
+    [[nodiscard]] virtual bool considersEntityAsAlly(const Entity& other) const;
+
+    /**
      * @brief 检查两个实体是否在同一队伍
      *
-     * 用于判断友军关系（如横扫攻击排除队友）。
+     * 旧版 API，仅检查 this 是否属于 other 的队伍。
+     * 新代码应优先使用 isAlliedTo() 进行双向检查。
      *
      * @param other 另一个实体
      * @return true 如果两个实体在同一队伍
