@@ -39,10 +39,14 @@ CopperBulbDegradationProcessor::CopperBulbDegradationProcessor() = default;
 
 i32 CopperBulbDegradationProcessor::getOxidationLevel(i32 x, i32 y, i32 z)
 {
-    // 使用位置哈希来确定氧化等级
-    // 模拟 MC 1.21 中 trial_chambers_copper_bulb_degradation 的行为
+    // TODO: 当前实现使用位置哈希均匀映射到0-3四个氧化等级（各25%概率），
+    // 而MC原版使用数据驱动的 trial_chambers_copper_bulb_degradation 结构处理器规则，
+    // 通过JSON配置文件指定每个氧化等级的权重概率，而非均匀分布。
+    // 当前实现仅匹配 WAXED_COPPER_BULB 一种基础方块，
+    // 原版处理器可根据配置匹配任意铜灯变体并应用加权随机选择。
+    // 应改为从数据包加载 trial_chambers_copper_bulb_degradation 配置，
+    // 使用加权随机而非均匀哈希来决定氧化等级。
     u64 hash = math::hashBlockPos(x, y, z);
-    // 将哈希值映射到 0-3 的氧化等级
     return static_cast<i32>((hash >> 16) % 4);
 }
 

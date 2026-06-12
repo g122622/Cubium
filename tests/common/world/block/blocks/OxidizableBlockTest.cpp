@@ -33,6 +33,8 @@
 #include "common/world/block/blocks/copper/WeatheringCopperSlabBlock.hpp"
 #include "common/world/block/blocks/copper/WeatheringCopperStairBlock.hpp"
 #include "common/world/block/blocks/copper/WeatheringCopperTrapDoorBlock.hpp"
+#include "common/world/block/registry/CopperBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <unordered_map>
 
@@ -421,4 +423,174 @@ TEST_F(OxidizableBlockTest, DynamicCast_NonOxidizableBlockReturnsNull)
     const auto* oxidizable2 = dynamic_cast<const IOxidizableBlock*>(exposedBlock.get());
     EXPECT_NE(oxidizable1, nullptr);
     EXPECT_NE(oxidizable2, nullptr);
+}
+
+// ========== withPropertiesOf 属性保留测试 ==========
+
+/**
+ * @brief withPropertiesOf 属性保留测试夹具
+ *
+ * 需要使用 VanillaBlocks 注册的方块来测试跨方块变体的属性保留，
+ * 因为注册后的方块才有完整的状态容器（含 FACING、SLAB_TYPE 等属性）。
+ */
+class WithPropertiesOfTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        // 全局初始化方块注册表（只执行一次）
+        VanillaBlocks::initialize();
+    }
+
+    void SetUp() override {}
+};
+
+TEST_F(WithPropertiesOfTest, StairOxidationPreservesFacingAndShape)
+{
+    // 验证楼梯氧化时 FACING/STAIRS_SHAPE/WATERLOGGED 属性被正确保留
+    using namespace block_registry;
+
+    // 获取未氧化切制铜楼梯和暴露切制铜楼梯
+    Block* cutCopperStairs = CopperBlocks::CUT_COPPER_STAIRS;
+    Block* exposedCutCopperStairs = CopperBlocks::EXPOSED_CUT_COPPER_STAIRS;
+    ASSERT_NE(cutCopperStairs, nullptr);
+    ASSERT_NE(exposedCutCopperStairs, nullptr);
+
+    // 获取 FACING=North 的楼梯状态
+    const BlockState& northState =
+        cutCopperStairs->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+
+    // 氧化后应该保留 FACING 属性
+    const BlockState& oxidizedState = exposedCutCopperStairs->defaultState().withPropertiesOf(northState);
+
+    // 验证 FACING 被保留为 North
+    EXPECT_EQ(oxidizedState.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
+}
+
+TEST_F(WithPropertiesOfTest, SlabOxidationPreservesSlabType)
+{
+    // 验证台阶氧化时 SLAB_TYPE 属性被正确保留
+    using namespace block_registry;
+
+    Block* cutCopperSlab = CopperBlocks::CUT_COPPER_SLAB;
+    Block* exposedCutCopperSlab = CopperBlocks::EXPOSED_CUT_COPPER_SLAB;
+    ASSERT_NE(cutCopperSlab, nullptr);
+    ASSERT_NE(exposedCutCopperSlab, nullptr);
+
+    // 获取 SLAB_TYPE=Top 的台阶状态
+    const BlockState& topState =
+        cutCopperSlab->defaultState().with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Top);
+
+    // 氧化后应该保留 SLAB_TYPE 属性
+    const BlockState& oxidizedState = exposedCutCopperSlab->defaultState().withPropertiesOf(topState);
+
+    // 验证 SLAB_TYPE 被保留为 Top
+    EXPECT_EQ(oxidizedState.get(BlockStateProperties::SLAB_TYPE()), BlockStateProperties::SlabType::Top);
+}
+
+TEST_F(WithPropertiesOfTest, DoorOxidationPreservesFacingAndHinge)
+{
+    // 验证门氧化时 FACING/HINGE/OPEN/POWERED/DOUBLE_BLOCK_HALF 属性被正确保留
+    using namespace block_registry;
+
+    Block* copperDoor = CopperBlocks::COPPER_DOOR;
+    Block* exposedCopperDoor = CopperBlocks::EXPOSED_COPPER_DOOR;
+    ASSERT_NE(copperDoor, nullptr);
+    ASSERT_NE(exposedCopperDoor, nullptr);
+
+    // 获取 FACING=East, HINGE=Left, OPEN=true 的门状态
+    const BlockState& doorState = copperDoor->defaultState()
+                                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
+                                      .with(BlockStateProperties::HINGE(), BlockStateProperties::DoorHinge::Left)
+                                      .with(BlockStateProperties::OPEN(), true);
+
+    // 氧化后应该保留这些属性
+    const BlockState& oxidizedState = exposedCopperDoor->defaultState().withPropertiesOf(doorState);
+
+    // 验证属性被保留
+    EXPECT_EQ(oxidizedState.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::East);
+    EXPECT_EQ(oxidizedState.get(BlockStateProperties::HINGE()), BlockStateProperties::DoorHinge::Left);
+    EXPECT_EQ(oxidizedState.get(BlockStateProperties::OPEN()), true);
+}
+
+TEST_F(WithPropertiesOfTest, TrapDoorOxidationPreservesFacingAndHalf)
+{
+    // 验证活板门氧化时 FACING/HALF/OPEN/POWERED/WATERLOGGED 属性被正确保留
+    using namespace block_registry;
+
+    Block* copperTrapdoor = CopperBlocks::COPPER_TRAPDOOR;
+    Block* exposedCopperTrapdoor = CopperBlocks::EXPOSED_COPPER_TRAPDOOR;
+    ASSERT_NE(copperTrapdoor, nullptr);
+    ASSERT_NE(exposedCopperTrapdoor, nullptr);
+
+    // 获取 FACING=South, HALF=Top, OPEN=true 的活板门状态
+    const BlockState& trapdoorState = copperTrapdoor->defaultState()
+                                          .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
+                                          .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Top)
+                                          .with(BlockStateProperties::OPEN(), true);
+
+    // 氧化后应该保留这些属性
+    const BlockState& oxidizedState = exposedCopperTrapdoor->defaultState().withPropertiesOf(trapdoorState);
+
+    // 验证属性被保留
+    EXPECT_EQ(oxidizedState.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::South);
+    EXPECT_EQ(oxidizedState.get(BlockStateProperties::HALF()), BlockStateProperties::Half::Top);
+    EXPECT_EQ(oxidizedState.get(BlockStateProperties::OPEN()), true);
+}
+
+TEST_F(WithPropertiesOfTest, StairOxidationPreservesWaterlogged)
+{
+    // 验证楼梯氧化时 WATERLOGGED 属性被正确保留
+    using namespace block_registry;
+
+    Block* cutCopperStairs = CopperBlocks::CUT_COPPER_STAIRS;
+    Block* exposedCutCopperStairs = CopperBlocks::EXPOSED_CUT_COPPER_STAIRS;
+    ASSERT_NE(cutCopperStairs, nullptr);
+    ASSERT_NE(exposedCutCopperStairs, nullptr);
+
+    // 获取 WATERLOGGED=true 的楼梯状态
+    const BlockState& waterloggedState =
+        cutCopperStairs->defaultState().with(BlockStateProperties::WATERLOGGED(), true);
+
+    // 氧化后应该保留 WATERLOGGED 属性
+    const BlockState& oxidizedState = exposedCutCopperStairs->defaultState().withPropertiesOf(waterloggedState);
+
+    // 验证 WATERLOGGED 被保留
+    EXPECT_EQ(oxidizedState.get(BlockStateProperties::WATERLOGGED()), true);
+}
+
+TEST_F(WithPropertiesOfTest, StairDefaultPropertiesNotChangedWhenMatching)
+{
+    // 当源状态和目标默认状态属性值相同时，withPropertiesOf 应返回目标默认状态
+    using namespace block_registry;
+
+    Block* cutCopperStairs = CopperBlocks::CUT_COPPER_STAIRS;
+    Block* exposedCutCopperStairs = CopperBlocks::EXPOSED_CUT_COPPER_STAIRS;
+    ASSERT_NE(cutCopperStairs, nullptr);
+    ASSERT_NE(exposedCutCopperStairs, nullptr);
+
+    // 使用默认状态（所有属性值都是默认值）
+    const BlockState& sourceState = cutCopperStairs->defaultState();
+    const BlockState& targetDefault = exposedCutCopperStairs->defaultState();
+    const BlockState& resultState = targetDefault.withPropertiesOf(sourceState);
+
+    // 结果应该等于目标默认状态
+    EXPECT_EQ(resultState.stateId(), targetDefault.stateId());
+}
+
+TEST_F(WithPropertiesOfTest, BlockStatePropertiesSingletonEnsuresPointerEquality)
+{
+    // 验证 BlockStateProperties 的单例模式保证不同方块使用相同属性指针
+    // 这是 withPropertiesOf 能够跨方块工作的关键前提
+    const auto& facing1 = BlockStateProperties::HORIZONTAL_FACING();
+    const auto& facing2 = BlockStateProperties::HORIZONTAL_FACING();
+    // 同一属性的两次调用应返回相同引用（指针相等）
+    EXPECT_EQ(&facing1, &facing2);
+
+    const auto& slabType1 = BlockStateProperties::SLAB_TYPE();
+    const auto& slabType2 = BlockStateProperties::SLAB_TYPE();
+    EXPECT_EQ(&slabType1, &slabType2);
+
+    const auto& half1 = BlockStateProperties::HALF();
+    const auto& half2 = BlockStateProperties::HALF();
+    EXPECT_EQ(&half1, &half2);
 }
