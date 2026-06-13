@@ -64,7 +64,7 @@ IBlockEntityRenderer<TEntity>（模板接口）
 | 数据来源 | `ClientEntity` | `BlockEntity` |
 | 渲染位置 | 世界坐标（实体位置） | 方块坐标 + 动画偏移 |
 | 光照 | 实体光照计算 | 方块光照（天空光+方块光） |
-| 动画 | `AnimationContext` | `partialTick` 插值 |
+| 动画 | `AnimationContext` | `partialTick` + `gameTime` 驱动 |
 | 全局可见 | 少数实体 | 信标光束等 |
 
 ## 容易踩的坑
@@ -86,3 +86,5 @@ IBlockEntityRenderer<TEntity>（模板接口）
 8. **纹理尺寸**：ChestModel 和 BannerModel 的纹理尺寸都是 64x64，创建部件时需正确设置
 
 9. **活塞插值**：`getProgress(partialTick)` 使用 `lerp(lastProgress, progress, partialTick)`；`getExtendedProgress(progress)` 返回 `extending ? progress - 1.0 : 1.0 - progress`
+
+10. **gameTime 参数**：`render()` 接口的 `gameTime` 参数由 `BlockEntityRendererDispatcher::render()` 传入，用于驱动需要时间驱动动画的渲染器（如旗帜飘动、信标光束旋转）。调用方需从 `TridentEngine::m_gameTime` 或 `ClientWorld::gameTime()` 获取。当 `gameTime = 0` 时，旗帜不会飘动、信标光束不会旋转。

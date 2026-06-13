@@ -69,8 +69,9 @@ public:
      * @param entity 信标方块实体
      * @param partialTick 部分tick（0.0-1.0）
      * @param light 组合光照值
+     * @param gameTime 游戏时间（总 tick 数），用于驱动光束旋转动画
      */
-    void render(const mc::blockentity::BeaconEntity& entity, f32 partialTick, u32 light) override;
+    void render(const mc::blockentity::BeaconEntity& entity, f32 partialTick, u32 light, i64 gameTime) override;
 
     /**
      * @brief 信标是全局渲染器

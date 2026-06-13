@@ -34,8 +34,10 @@ PistonRenderer::PistonRenderer()
     , m_helper()
 {}
 
-void PistonRenderer::render(const mc::blockentity::PistonBlockEntity& entity, f32 partialTick, u32 light)
+void PistonRenderer::render(const mc::blockentity::PistonBlockEntity& entity, f32 partialTick, u32 light, i64 gameTime)
 {
+    MC_UNUSED(gameTime);
+
     // 如果方块状态为空气，不渲染
     // 如果动画完成，方块已经被替换，不需要渲染
 

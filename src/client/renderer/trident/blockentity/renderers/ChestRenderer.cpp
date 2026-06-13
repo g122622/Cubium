@@ -60,8 +60,10 @@ mc::client::renderer::blockentity::model::ChestModel::ChestType ChestRenderer::_
     return mc::client::renderer::blockentity::model::ChestModel::ChestType::Single;
 }
 
-void ChestRenderer::render(const mc::blockentity::ChestEntity& entity, f32 partialTick, u32 light)
+void ChestRenderer::render(const mc::blockentity::ChestEntity& entity, f32 partialTick, u32 light, i64 gameTime)
 {
+    MC_UNUSED(gameTime);
+
     // 获取插值后的盖子角度
     const f32 lidAngle = entity.getInterpolatedLidAngle(partialTick);
 

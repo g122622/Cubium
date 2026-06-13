@@ -23,7 +23,6 @@
 
 #include "BeaconRenderer.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/world/IWorld.hpp"
 #include "common/world/blockentity/processing/BeaconEntity.hpp"
 #include <cmath>
 
@@ -35,7 +34,7 @@ BeaconRenderer::BeaconRenderer()
     , m_helper()
 {}
 
-void BeaconRenderer::render(const mc::blockentity::BeaconEntity& entity, f32 partialTick, u32 light)
+void BeaconRenderer::render(const mc::blockentity::BeaconEntity& entity, f32 partialTick, u32 light, i64 gameTime)
 {
     const BlockPos& pos = entity.getPos();
 
@@ -52,10 +51,6 @@ void BeaconRenderer::render(const mc::blockentity::BeaconEntity& entity, f32 par
     if (segments.empty()) {
         return;
     }
-
-    // 获取游戏时间
-    // TODO: 需要 BlockEntity 持有世界引用或通过 render() 参数传入
-    i64 gameTime = 0;
 
     // 渲染光束
     _renderBeam(pos, segments, gameTime, partialTick, light);

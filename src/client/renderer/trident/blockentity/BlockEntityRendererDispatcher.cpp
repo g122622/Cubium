@@ -57,7 +57,7 @@ void BlockEntityRendererDispatcher::registerRenderer(BlockEntityType type, Rende
     m_renderers[type] = factory();
 }
 
-bool BlockEntityRendererDispatcher::render(BlockEntity& entity, f32 partialTick, u32 light)
+bool BlockEntityRendererDispatcher::render(BlockEntity& entity, f32 partialTick, u32 light, i64 gameTime)
 {
     const BlockEntityType type = entity.getType();
     auto it = m_renderers.find(type);
@@ -67,7 +67,7 @@ bool BlockEntityRendererDispatcher::render(BlockEntity& entity, f32 partialTick,
     }
 
     // 调用类型擦除的渲染方法
-    return it->second->render(entity, partialTick, light);
+    return it->second->render(entity, partialTick, light, gameTime);
 }
 
 void BlockEntityRendererDispatcher::renderGlobalBlockEntities(IWorld& world, f32 partialTick)

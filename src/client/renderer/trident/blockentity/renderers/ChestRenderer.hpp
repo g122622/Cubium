@@ -68,8 +68,9 @@ public:
      * @param entity 箱子方块实体
      * @param partialTick 部分tick（0.0-1.0）
      * @param light 组合光照值
+     * @param gameTime 游戏时间（总 tick 数），暂未使用，保留供未来动画需求
      */
-    void render(const mc::blockentity::ChestEntity& entity, f32 partialTick, u32 light) override;
+    void render(const mc::blockentity::ChestEntity& entity, f32 partialTick, u32 light, i64 gameTime) override;
 
     /**
      * @brief 箱子不是全局渲染器

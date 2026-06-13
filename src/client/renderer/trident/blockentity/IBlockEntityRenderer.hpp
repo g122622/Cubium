@@ -48,9 +48,10 @@ public:
      * @param entity 方块实体引用（基类类型）
      * @param partialTick 帧间插值系数（0.0-1.0）
      * @param light 组合光照值（天空光 << 4 | 方块光 << 20）
+     * @param gameTime 游戏时间（总 tick 数），用于驱动动画（如旗帜飘动、信标光束旋转）
      * @return 是否成功渲染
      */
-    virtual bool render(const BlockEntity& entity, f32 partialTick, u32 light) = 0;
+    virtual bool render(const BlockEntity& entity, f32 partialTick, u32 light, i64 gameTime) = 0;
 
     /**
      * @brief 是否为全局渲染器
@@ -83,21 +84,22 @@ public:
      * @param entity 方块实体实例
      * @param partialTick 帧间插值系数（0.0-1.0）
      * @param light 组合光照值
+     * @param gameTime 游戏时间（总 tick 数），用于驱动动画
      */
-    virtual void render(const TEntity& entity, f32 partialTick, u32 light) = 0;
+    virtual void render(const TEntity& entity, f32 partialTick, u32 light, i64 gameTime) = 0;
 
     /**
      * @brief 渲染方块实体（类型擦除接口实现）
      *
      * 执行类型安全转换后调用类型安全的render方法。
      */
-    bool render(const BlockEntity& entity, f32 partialTick, u32 light) override
+    bool render(const BlockEntity& entity, f32 partialTick, u32 light, i64 gameTime) override
     {
         const TEntity* typedEntity = dynamic_cast<const TEntity*>(&entity);
         if (typedEntity == nullptr) {
             return false;
         }
-        render(*typedEntity, partialTick, light);
+        render(*typedEntity, partialTick, light, gameTime);
         return true;
     }
 };

@@ -105,9 +105,10 @@ public:
      * @param entity 方块实体引用
      * @param partialTick 部分tick（用于插值）
      * @param light 组合光照
+     * @param gameTime 游戏时间（总 tick 数），用于驱动动画
      * @return 是否成功渲染
      */
-    bool render(BlockEntity& entity, f32 partialTick, u32 light);
+    bool render(BlockEntity& entity, f32 partialTick, u32 light, i64 gameTime);
 
     /**
      * @brief 渲染所有全局方块实体
