@@ -81,6 +81,16 @@ public:
 
     void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
+    // TODO: 实现 playerWillDestroy 方法
+    // MC 原版中，玩家在创造模式破坏活塞头时，应同时销毁匹配的活塞基座且不产生掉落物。
+    // 当前项目 Block 基类尚未提供 playerWillDestroy 虚方法（含 Player* 参数用于区分创造/生存模式），
+    // 也缺少 preventsBlockDrops 机制来跳过创造模式的掉落物生成。
+    // 待 Block 基类补齐这些功能后，在此实现：
+    //   1. 检查反方向是否有匹配的已伸出活塞基座（isFittingBase）
+    //   2. 将活塞基座设为空气（setBlockState）
+    //   3. 非创造模式下生成活塞基座掉落物
+    // 参考原版: PistonHeadBlock.playerWillDestroy()
+
     [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
@@ -123,7 +133,6 @@ public:
      */
     [[nodiscard]] static const EnumProperty<Type>& getTypeProperty() noexcept;
 
-private:
     /**
      * @brief 检查给定的方块状态是否是匹配的已伸出活塞基座
      *
@@ -135,7 +144,7 @@ private:
      * @param baseState 待检查的方块状态
      * @return true 如果是匹配的已伸出活塞基座
      */
-    [[nodiscard]] static bool _isFittingBase(const BlockState& headState, const BlockState& baseState) noexcept;
+    [[nodiscard]] static bool isFittingBase(const BlockState& headState, const BlockState& baseState) noexcept;
 };
 
 } // namespace blocks

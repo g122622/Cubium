@@ -110,7 +110,7 @@ BlockState PistonHeadBlock::withType(BlockState state, Type type) noexcept
     return state.with(TYPE_PROP(), type);
 }
 
-bool PistonHeadBlock::_isFittingBase(const BlockState& headState, const BlockState& baseState) noexcept
+bool PistonHeadBlock::isFittingBase(const BlockState& headState, const BlockState& baseState) noexcept
 {
     // 根据活塞头类型判断应该对应哪种活塞
     Block* expectedPiston = (getType(headState) == Type::Sticky) ? VanillaBlocks::STICKY_PISTON : VanillaBlocks::PISTON;
@@ -159,7 +159,7 @@ bool PistonHeadBlock::isValidPosition(const BlockState& state, IBlockReader& wor
     }
 
     // 条件1：匹配的已伸出活塞基座
-    if (_isFittingBase(state, *baseState)) {
+    if (isFittingBase(state, *baseState)) {
         return true;
     }
 
@@ -200,7 +200,7 @@ void PistonHeadBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const B
     BlockPos basePos = pos.offset(Directions::opposite(facing));
     const BlockState* baseState = world.getBlockState(basePos);
 
-    if (baseState != nullptr && _isFittingBase(state, *baseState)) {
+    if (baseState != nullptr && isFittingBase(state, *baseState)) {
         // 生成活塞基座的掉落物品
         const Block& baseBlock = baseState->getBlock();
         const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(baseBlock);

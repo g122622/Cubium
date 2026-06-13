@@ -25,7 +25,7 @@ redstone/
 ├── DaylightDetectorBlock.hpp/cpp      # 日光探测器（天空亮度→信号）
 ├── PistonBlock.hpp/cpp                # 活塞（推动/拉回方块）
 ├── PistonStructureHelper.hpp/cpp      # 活塞推动结构计算器
-├── PistonHeadBlock.hpp/cpp            # 活塞头
+├── PistonHeadBlock.hpp/cpp            # 活塞头（存活检查、基座关联、级联销毁）
 ├── MovingPistonBlock.hpp/cpp          # 移动中的活塞（动画代理）
 ├── DispenserBlock.hpp/cpp             # 发射器
 ├── DropperBlock.hpp/cpp               # 投掷器
@@ -199,3 +199,16 @@ if (!redstone.isUpdating(pos)) {
 ### 18. TNT 火焰检测
 
 TNT 需要检测相邻位置的火焰（包括灵魂火）和熔岩，不仅检测红石信号。
+
+### 19. 活塞头存活检查与级联销毁
+
+活塞头（PistonHeadBlock）不是独立方块，必须依赖已伸出的活塞基座才能存活：
+
+- **存活条件**（`isValidPosition`）：反方向有匹配的已伸出活塞基座（类型+EXTENDED+FACING 三重匹配），或反方向是方向匹配的 MOVING_PISTON
+- **自动消失**（`updatePostPlacement`）：当活塞基座消失或收回时，活塞头收到更新后返回空气状态
+- **级联销毁**（`onBlockRemoved`）：活塞头被移除时，检查反方向是否有匹配的已伸出活塞基座，如有则销毁基座并生成掉落物
+- **通知转发**（`neighborChanged`）：活塞头存活时将邻居变化通知转发到活塞基座方向，确保红石信号能传导到活塞
+- **推动反应**：活塞头的 `getPushReaction` 返回 `Block`，不能被活塞推动
+- **类型匹配**：Normal 活塞头对应 PISTON，Sticky 活塞头对应 STICKY_PISTON，类型不匹配则无法存活
+
+TODO: 待 Block 基类补齐 `playerWillDestroy`（含 Player* 参数）和 `preventsBlockDrops` 机制后，需实现创造模式破坏活塞头时同时销毁活塞基座且不产生掉落物的逻辑。

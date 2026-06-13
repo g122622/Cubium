@@ -600,6 +600,7 @@ add_executable(mc_tests
     common/world/block/blocks/redstone/NoteBlockTest.cpp
     common/world/block/blocks/redstone/TNTBlockTest.cpp
     common/world/block/blocks/redstone/PistonBlockTest.cpp
+    common/world/block/blocks/redstone/PistonHeadBlockTest.cpp
     common/world/block/blocks/redstone/TripWireTest.cpp
     # 红石方块形状测试
     common/world/block/blocks/redstone/RedstoneWireBlockTest.cpp
