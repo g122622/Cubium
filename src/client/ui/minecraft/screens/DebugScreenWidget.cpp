@@ -25,12 +25,14 @@
 #include "client/dimension/ClientDimensionManager.hpp"
 #include "client/network/NetworkClient.hpp"
 #include "client/renderer/Camera.hpp"
+#include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/renderer/trident/sky/CelestialCalculations.hpp"
 #include "client/renderer/util/GpuInfo.hpp"
 #include "client/world/ClientWorld.hpp"
 #include "client/world/entity/ClientEntityManager.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/PlatformInfo.hpp"
@@ -145,8 +147,14 @@ void DebugScreenWidget::_buildLeftDebugText()
 
     // 粒子统计
     oss.str("");
-    // TODO: 粒子计数待实现
-    oss << "Particles: 0, Entities: " << (m_entityManager ? m_entityManager->entityCount() : 0);
+    {
+        i32 particleCount = 0;
+        if (m_world != nullptr && m_world->particleManager() != nullptr) {
+            particleCount = m_world->particleManager()->aliveParticleCount();
+        }
+        oss << "Particles: " << particleCount
+            << ", Entities: " << (m_entityManager ? m_entityManager->entityCount() : 0);
+    }
     m_leftLines.push_back(oss.str());
 
     // 维度信息
@@ -251,13 +259,23 @@ void DebugScreenWidget::_buildLeftDebugText()
                     m_leftLines.push_back(oss.str());
                 }
 
-                // 时间信息
+                // 时间信息和本地难度
                 i64 gameTime = m_world->gameTime();
                 i64 dayCount = gameTime / game::DAY_LENGTH_TICKS;
                 i32 moonPhase = CelestialCalculations::calculateMoonPhase(gameTime);
+                f64 moonPhaseFactor = CelestialCalculations::getMoonPhaseFactor(moonPhase);
+
+                // 计算区域难度实例
+                // 注意：chunkInhabitedTime 目前客户端无法获取，使用 0 作为简化值
+                // 当区块居住时间数据实现后，应从客户端区块数据中获取
+                Difficulty worldDifficulty = m_world->difficulty();
+                entity::combat::DifficultyInstance diffInstance(
+                    worldDifficulty, gameTime, 0, static_cast<f32>(moonPhaseFactor));
+
                 oss.str("");
-                // TODO: 本地难度和区域难度计算待实现
-                oss << "Local Difficulty: 0.00 // 0.00 (Day " << dayCount << ", Moon " << moonPhase << ")";
+                oss << "Local Difficulty: " << std::fixed << std::setprecision(2)
+                    << diffInstance.getEffectiveDifficulty() << " // " << std::setprecision(2)
+                    << diffInstance.getSpecialMultiplier() << " (Day " << dayCount << ")";
                 m_leftLines.push_back(oss.str());
             }
         } else {

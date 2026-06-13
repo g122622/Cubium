@@ -185,6 +185,36 @@ public:
     [[nodiscard]] i64 gameTime() const { return m_gameTime; }
     [[nodiscard]] bool daylightCycleEnabled() const { return m_daylightCycleEnabled; }
 
+    // ========== 难度 ==========
+
+    /**
+     * @brief 获取世界难度
+     *
+     * 由服务端通过 ServerDifficulty 包同步。
+     * 默认为 Normal 难度。
+     */
+    [[nodiscard]] Difficulty difficulty() const { return m_difficulty; }
+
+    /**
+     * @brief 设置世界难度
+     *
+     * 由网络层收到 ServerDifficulty 包后调用。
+     */
+    void setDifficulty(Difficulty difficulty) { m_difficulty = difficulty; }
+
+    /**
+     * @brief 获取难度是否锁定
+     *
+     * 由服务端通过 ServerDifficulty 包同步。
+     * 当难度锁定时，玩家无法在游戏内更改难度。
+     */
+    [[nodiscard]] bool isDifficultyLocked() const { return m_difficultyLocked; }
+
+    /**
+     * @brief 设置难度是否锁定
+     */
+    void setDifficultyLocked(bool locked) { m_difficultyLocked = locked; }
+
     void initializeMeshSystem(i32 threadCount, const MeshSchedulerConfig& schedulerConfig);
     void shutdownMeshSystem();
     void processMeshBuildResults(u32 maxPerFrame);
@@ -344,6 +374,11 @@ private:
 
     ClientEntityManager m_entityManager;
     ClientWeather m_weather;
+
+    /// 世界难度（默认 Normal，由服务端同步）
+    Difficulty m_difficulty = Difficulty::Normal;
+    /// 难度是否锁定
+    bool m_difficultyLocked = false;
 
     /// 粒子管理器（外部引用，不拥有）
     renderer::trident::particle::ParticleManager* m_particleManager = nullptr;

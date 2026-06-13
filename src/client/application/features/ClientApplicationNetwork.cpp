@@ -999,6 +999,12 @@ void ClientApplication::setupNetworkCallbacks()
 
     callbacks.onEndRaining = [this]() { m_world.onEndRaining(); };
 
+    callbacks.onDifficultyChange = [this](Difficulty difficulty, bool locked) {
+        spdlog::info("[Client] Difficulty changed to: {}, locked: {}", static_cast<i32>(difficulty), locked);
+        m_world.setDifficulty(difficulty);
+        m_world.setDifficultyLocked(locked);
+    };
+
     callbacks.onPlayerAbilities =
         [this](bool invulnerable, bool flying, bool canFly, bool creativeMode, f32 flySpeed, f32 walkSpeed) {
             if (m_player) {
