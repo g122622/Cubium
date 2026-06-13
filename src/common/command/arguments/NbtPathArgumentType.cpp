@@ -72,34 +72,14 @@ std::unique_ptr<NbtPathNode> NbtPathArgumentType::_parseNode(StringReader& reade
     char c = reader.peek();
 
     // 处理引号包围的键名
+    // 参考 MC 源码 readObjectNode：只检查后面是否跟 {，不处理 [
+    // [ 留给主循环的下一轮 parseNode 调用自然处理
     if (c == '"') {
         std::string name = reader.readString();
-        // 检查后面是否跟过滤器或索引
-        if (reader.canRead()) {
-            char next = reader.peek();
-            if (next == '[') {
-                reader.skip();
-                // 解析列表过滤器或索引
-                if (reader.peek() == ']') {
-                    reader.skip();
-                    return std::make_unique<NbtPathStringNode>(name);
-                }
-                if (reader.peek() == '{') {
-                    auto filter = parseCompoundFilter(reader);
-                    reader.expect(']');
-                    return std::make_unique<NbtPathListFilterNode>(std::move(filter));
-                }
-                // 解析索引
-                i32 index = reader.readInt();
-                reader.expect(']');
-                // foo[0] 解析为 StringNode，索引作为下一个节点处理
-                // TODO: 完善索引节点的组合处理，当前实现简化了该逻辑
-                return std::make_unique<NbtPathIndexNode>(index);
-            }
-            if (next == '{') {
-                auto filter = parseCompoundFilter(reader);
-                return std::make_unique<NbtPathKeyFilterNode>(name, std::move(filter));
-            }
+        // 检查后面是否跟复合过滤器：foo{bar:1} 组合为 KeyFilterNode
+        if (reader.canRead() && reader.peek() == '{') {
+            auto filter = parseCompoundFilter(reader);
+            return std::make_unique<NbtPathKeyFilterNode>(name, std::move(filter));
         }
         return std::make_unique<NbtPathStringNode>(name);
     }

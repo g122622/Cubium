@@ -255,6 +255,122 @@ TEST_F(NbtPathTest, InvalidIndexThrowsError)
     EXPECT_THROW(argType.parse(reader), CommandException);
 }
 
+// ========== 引号键名与索引/过滤器组合路径测试 ==========
+
+TEST_F(NbtPathTest, ParseQuotedKeyWithIndex)
+{
+    // "foo"[0] 应解析为 StringNode("foo") + IndexNode(0)，共 2 个节点
+    StringReader reader("\"foo\"[0]");
+    NbtPathArgumentType argType;
+
+    NbtPath path = argType.parse(reader);
+    EXPECT_EQ(path.size(), 2);
+    EXPECT_EQ(path.toString(), "\"foo\"[0]");
+}
+
+TEST_F(NbtPathTest, ParseQuotedKeyWithNegativeIndex)
+{
+    // "foo"[-1] 应解析为 StringNode("foo") + IndexNode(-1)，共 2 个节点
+    StringReader reader("\"foo\"[-1]");
+    NbtPathArgumentType argType;
+
+    NbtPath path = argType.parse(reader);
+    EXPECT_EQ(path.size(), 2);
+    EXPECT_EQ(path.toString(), "\"foo\"[-1]");
+}
+
+TEST_F(NbtPathTest, ParseQuotedKeyWithAllElements)
+{
+    // "foo"[] 应解析为 StringNode("foo") + AllElementsNode，共 2 个节点
+    StringReader reader("\"foo\"[]");
+    NbtPathArgumentType argType;
+
+    NbtPath path = argType.parse(reader);
+    EXPECT_EQ(path.size(), 2);
+    EXPECT_EQ(path.toString(), "\"foo\"[]");
+}
+
+TEST_F(NbtPathTest, ParseQuotedKeyWithListFilter)
+{
+    // "foo"[{id:"diamond"}] 应解析为 StringNode("foo") + ListFilterNode，共 2 个节点
+    StringReader reader("\"foo\"[{id:\"diamond\"}]");
+    NbtPathArgumentType argType;
+
+    NbtPath path = argType.parse(reader);
+    EXPECT_EQ(path.size(), 2);
+}
+
+TEST_F(NbtPathTest, ParseQuotedKeyWithCompoundFilter)
+{
+    // "foo"{bar:1} 应解析为 KeyFilterNode("foo", {bar:1})，共 1 个节点（组合节点）
+    StringReader reader("\"foo\"{bar:1}");
+    NbtPathArgumentType argType;
+
+    NbtPath path = argType.parse(reader);
+    EXPECT_EQ(path.size(), 1);
+}
+
+TEST_F(NbtPathTest, ParseQuotedKeyWithIndexAndNested)
+{
+    // "Items"[0].tag.display.Name 应解析为 5 个节点
+    StringReader reader("\"Items\"[0].tag.display.Name");
+    NbtPathArgumentType argType;
+
+    NbtPath path = argType.parse(reader);
+    EXPECT_EQ(path.size(), 5);
+}
+
+TEST_F(NbtPathTest, QuotedKeyWithIndexGetOperation)
+{
+    // 验证 "items"[1] 的 get 操作结果与 items[1] 一致
+    nbt::tags::compound_tag root;
+    auto list = std::make_unique<nbt::tags::int_list_tag>();
+    list->value.push_back(10);
+    list->value.push_back(20);
+    list->value.push_back(30);
+    root.value["items"] = std::move(list);
+
+    // 使用引号键名路径
+    StringReader reader("\"items\"[1]");
+    NbtPathArgumentType argType;
+    NbtPath path = argType.parse(reader);
+
+    auto results = path.get(root);
+    EXPECT_EQ(results.size(), 1u);
+    auto* intTag = dynamic_cast<const nbt::tags::int_tag*>(results[0]);
+    ASSERT_NE(intTag, nullptr);
+    EXPECT_EQ(intTag->value, 20);
+}
+
+TEST_F(NbtPathTest, QuotedKeyWithAllElementsGetOperation)
+{
+    // 验证 "items"[] 的 get 操作结果与 items[] 一致
+    nbt::tags::compound_tag root;
+    auto list = std::make_unique<nbt::tags::int_list_tag>();
+    list->value.push_back(10);
+    list->value.push_back(20);
+    list->value.push_back(30);
+    root.value["items"] = std::move(list);
+
+    // 使用引号键名路径
+    StringReader reader("\"items\"[]");
+    NbtPathArgumentType argType;
+    NbtPath path = argType.parse(reader);
+
+    auto results = path.get(root);
+    EXPECT_EQ(results.size(), 3u);
+}
+
+TEST_F(NbtPathTest, QuotedKeyWithSpacesAndIndex)
+{
+    // "foo bar"[0] - 带空格的引号键名后跟索引
+    StringReader reader("\"foo bar\"[0]");
+    NbtPathArgumentType argType;
+
+    NbtPath path = argType.parse(reader);
+    EXPECT_EQ(path.size(), 2);
+}
+
 // ========== NbtCompoundArgumentType 测试 ==========
 
 TEST_F(NbtPathTest, NbtCompoundParseEmpty)
