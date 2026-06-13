@@ -49,8 +49,8 @@ src/common/entity/damage/
 
 - **DamageSource**：抽象基类，定义伤害来源接口（类型判断、护甲穿透、死亡消息键等）
 - **EnvironmentalDamage**：环境伤害（火焰、摔落、溺水、虚空等）
-- **EntityDamageSource**：直接实体伤害（生物攻击、玩家攻击等）
-- **IndirectEntityDamageSource**：间接实体伤害（箭矢、三叉戟、火球等投射物）
+- **EntityDamageSource**：直接实体伤害（生物攻击、玩家攻击、实体爆炸等）
+- **IndirectEntityDamageSource**：间接实体伤害（箭矢、三叉戟、火球、间接爆炸等）
 - **CombatEntry**：记录单次伤害事件（伤害来源、伤害值、时间戳、受伤前生命值、摔落信息）
 - **CombatTracker**：战斗追踪器，管理战斗状态、记录伤害、生成死亡消息
 

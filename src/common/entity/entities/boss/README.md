@@ -115,7 +115,17 @@ Boss 生命条需要在客户端-服务端之间同步显示状态。服务端�
 
 ### 11. 末影龙/凋灵方块破坏与 spawnAfterBreak
 
-末影龙的 `_destroyBlocksInAABB` 和凋灵的 `_breakNearbyBlocks` 在破坏方块后调用 `block.spawnAfterBreak(world, pos, *oldState, nullptr, false)`。这确保了虫蚀方块（InfestedBlock）等特殊方块在实体破坏时能正确触发生成逻辑（如蠹虫）。调用顺序：先 `setBlockState(air)` 移除方块，再调用 `spawnAfterBreak`，与 MC Java 行为一致。
+末影龙的 `_destroyBlocksInAABB` 和凋灵的 `_breakNearbyBlocks` 在破坏方块后调用 `block.spawnAfterBreak(world, pos, *oldState, nullptr, false)`。这确保了虫蚀方块（InfestedBlock）等特殊方块在实体破坏时能正确触发生成逻辑（如蠹虫）。调用顺序：先 `setBlockState(airState, 3)` 移除方块，再调用 `spawnAfterBreak`，与 MC Java 行为一致。
+
+**末影龙方块破坏规则**：末影龙使用 `BlockTags::DRAGON_IMMUNE` 标签判断不可破坏方块（基岩、黑曜石、末地石、铁栏杆、末地传送门等），使用 `BlockTags::DRAGON_TRANSPARENT` 标签判断龙透明方块（光照方块）。方块破坏受 `mobGriefing` 游戏规则控制。碰到 `DRAGON_IMMUNE` 方块后设置碰墙标志影响飞行行为。凋灵使用 `BlockTags::WITHER_IMMUNE` 标签。
+
+### 12. 末影龙伤害来源限制
+
+MC 原版中末影龙只接受两种伤害：
+1. **玩家直接攻击**（`DamageSource.isPlayerSource() == true`）
+2. **爆炸伤害**（`DamageSource.isExplosion() == true`），对应 MC 的 `ALWAYS_HURTS_ENDER_DRAGONS` 标签
+
+非头部伤害减伤公式为 `damage / 4.0 + min(damage, 1.0)`，而非简单的 50% 减伤。末影水晶爆炸对龙造成 10 点 `IndirectEntityDamageSource(DamageType::Explosion, crystal, player)` 伤害，仅当被破坏的水晶是龙当前绑定的最近水晶时触发。
 
 ## 参考
 

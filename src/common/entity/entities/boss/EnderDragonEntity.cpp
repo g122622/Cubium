@@ -285,22 +285,22 @@ void EnderDragonEntity::onCrystalDestroyed(EnderCrystalEntity* crystal, const Bl
     constexpr f64 HEAL_RANGE_SQ = 32.0 * 32.0;
 
     if (distSq < HEAL_RANGE_SQ) {
+        // MC 原版：仅当被破坏的水晶是龙当前绑定的最近水晶时才对龙头部造成伤害
+        // 先检查再清除，避免清除后检查结果不正确
+        bool isClosestCrystal = (crystal == m_closestEnderCrystal);
+
         // 清除回血目标
-        if (m_closestEnderCrystal == crystal) {
+        if (isClosestCrystal) {
             m_closestEnderCrystal = nullptr;
         }
 
-        // 只有当前最近的水晶被破坏时才对龙造成伤害
-        // MC 原版：仅当被破坏的水晶是龙当前绑定的最近水晶时才受伤
-        // 对龙头部造成爆炸伤害，伤害值为 10
-        // MC 原版使用 damageSources().explosion(crystal, player)
-        // player 来源：如果 source.getEntity() 是 Player 则使用，否则搜索附近最近的玩家
-        if (crystal == m_closestEnderCrystal || m_closestEnderCrystal == nullptr) {
+        if (isClosestCrystal) {
+            // MC 原版：对龙头部造成爆炸伤害，伤害值为 10
+            // 使用 IndirectEntityDamageSource 表示由水晶引起的爆炸伤害
+            // crystal 是直接来源（水晶），causeEntity 是造成者（如玩家）
             Entity* sourceEntity = source.getEntity();
             Entity* causeEntity = sourceEntity;
 
-            // 使用 IndirectEntityDamageSource 表示由水晶引起的爆炸伤害
-            // source 是直接来源（水晶），cause 是造成者（如玩家）
             auto explosionDamage = DamageSources::explosion(crystal, causeEntity);
             hurt(explosionDamage, 10.0f);
         }
