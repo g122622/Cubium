@@ -369,3 +369,26 @@ if (entity->typeId() == entity::EntityTypeIdNumber::PIG) {
 - **客户端**：`ClientApplicationNetwork.cpp` 的 `onEntityStatus` 回调必须处理这三个状态值，分别设置 `ClientEntity` 的 `ironGolemAttackTimer`、`ironGolemArmsRaised`、`ironGolemHoldingRose`
 
 新增或修改铁傀儡的任何动画/状态时，三端缺一不可。
+
+### 28. Entity::getComparatorOutput() 比较器信号
+
+`Entity` 基类提供 `virtual i32 getComparatorOutput() const` 方法，返回 0-15 的红石比较器信号强度。默认返回 0，需要输出信号的实体重写此方法。
+
+**已实现的实体信号：**
+
+| 实体 | 信号来源 | 说明 |
+|------|---------|------|
+| ItemFrameEntity | 物品堆叠数/地图编号 | 空物品框返回0，地图返回地图编号(1-15)，普通物品返回 min(stackSize, 1) |
+| ChestMinecartEntity | 容器填充率 | 使用 `RedstoneHelper::calcRedstoneFromInventory()` 计算 |
+| HopperMinecartEntity | 容器填充率 | 使用 `RedstoneHelper::calcRedstoneFromInventory()` 计算 |
+| CommandBlockMinecartEntity | 成功计数 | 直接返回 `m_successCount` |
+
+**信号计算公式**（`RedstoneHelper::calcRedstoneFromInventory()`）：
+```
+signal = floor(fillRatio * 14) + (hasItems ? 1 : 0)
+```
+其中 `fillRatio = occupiedSlots / totalSlots`（按槽位计算，非按物品数量）。
+
+**集成路径**：
+- `DetectorRailBlock::getComparatorInputOverride()` 通过 `RedstoneHelper::getEntitySignal()` 查询矿车实体信号
+- `RedstoneComparatorBlock` 对物品框直接调用 `ItemFrameEntity::getComparatorOutput()`

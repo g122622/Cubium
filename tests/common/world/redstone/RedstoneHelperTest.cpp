@@ -539,6 +539,7 @@ namespace {
  * @brief 支持 getEntitiesInAABB 的测试世界
  *
  * 继承 BaseTestWorld，允许在测试中手动添加实体供 getEntitiesInAABB 查询。
+ * 实体会根据其位置进行 AABB 过滤。
  */
 class EntityTestWorld : public mc::test::BaseTestWorld {
 public:
@@ -546,7 +547,15 @@ public:
     {
         std::vector<Entity*> result;
         for (auto* entity : m_entities) {
-            if (entity != nullptr && !entity->isRemoved()) {
+            if (entity == nullptr || entity->isRemoved()) {
+                continue;
+            }
+            // 使用实体位置进行简单的 AABB 包含检查
+            // 实体中心点在 AABB 内即视为相交
+            f64 ex = static_cast<f64>(entity->x());
+            f64 ey = static_cast<f64>(entity->y());
+            f64 ez = static_cast<f64>(entity->z());
+            if (aabb.contains(Vector3(static_cast<f32>(ex), static_cast<f32>(ey), static_cast<f32>(ez)))) {
                 result.push_back(entity);
             }
         }
@@ -713,4 +722,54 @@ TEST_F(GetEntitySignalTest, AABBOverload_EmptyWorld_ReturnsZero)
         static_cast<f64>(1),
         static_cast<f64>(1));
     EXPECT_EQ(RedstoneHelper::getEntitySignal(world, aabb), 0);
+}
+
+TEST_F(GetEntitySignalTest, AABBOverload_FiltersByPosition)
+{
+    // AABB 重载应仅返回搜索区域内的实体信号
+    EntityTestWorld world;
+
+    // 创建两个矿车，一个在原点 (0,0,0)，一个在远处 (100,0,0)
+    ChestMinecartEntity nearbyChest(EntityId(1));
+    Item* diamond = ensureTestItem("diamond");
+    ASSERT_NE(diamond, nullptr);
+    // 填满全部27格，信号15
+    for (i32 i = 0; i < ChestMinecartEntity::INVENTORY_SIZE; ++i) {
+        nearbyChest.setInventoryItem(i, ItemStack(*diamond, 64));
+    }
+    nearbyChest.setPosition(0.5f, 0.5f, 0.5f); // 在 AABB 内
+
+    CommandBlockMinecartEntity farCommand(EntityId(2));
+    farCommand.setSuccessCount(10);             // 信号10
+    farCommand.setPosition(100.0f, 0.0f, 0.0f); // 在 AABB 外
+
+    world.addEntity(&nearbyChest);
+    world.addEntity(&farCommand);
+
+    // 搜索 (0,0,0)-(1,1,1) 范围，应只找到 nearbyChest
+    AxisAlignedBB nearbyBox(static_cast<f64>(0),
+        static_cast<f64>(0),
+        static_cast<f64>(0),
+        static_cast<f64>(1),
+        static_cast<f64>(1),
+        static_cast<f64>(1));
+    EXPECT_EQ(RedstoneHelper::getEntitySignal(world, nearbyBox), 15);
+
+    // 搜索 (99,0,0)-(101,1,1) 范围，应只找到 farCommand
+    AxisAlignedBB farBox(static_cast<f64>(99),
+        static_cast<f64>(0),
+        static_cast<f64>(0),
+        static_cast<f64>(101),
+        static_cast<f64>(1),
+        static_cast<f64>(1));
+    EXPECT_EQ(RedstoneHelper::getEntitySignal(world, farBox), 10);
+
+    // 搜索远离所有实体的区域，应返回0
+    AxisAlignedBB emptyBox(static_cast<f64>(50),
+        static_cast<f64>(0),
+        static_cast<f64>(0),
+        static_cast<f64>(51),
+        static_cast<f64>(1),
+        static_cast<f64>(1));
+    EXPECT_EQ(RedstoneHelper::getEntitySignal(world, emptyBox), 0);
 }

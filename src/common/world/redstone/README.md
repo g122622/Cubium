@@ -116,3 +116,26 @@ graph TB
 ### 信号衰减
 
 红石线信号每传输一格衰减 1。使用 `RedstoneHelper::attenuate(strength, distance)` 计算衰减后强度。
+
+### 实体信号
+
+部分实体可以输出红石比较器信号（0-15），通过 `Entity::getComparatorOutput()` 虚方法实现。
+
+**`RedstoneHelper::getEntitySignal()`**：在指定区域搜索实体并返回最大比较器信号强度。
+- `getEntitySignal(IWorld&, const BlockPos&)` — 搜索方块位置处的实体
+- `getEntitySignal(IWorld&, const AxisAlignedBB&)` — 搜索 AABB 区域内的实体
+
+**`RedstoneHelper::calcRedstoneFromInventory()`**：计算容器填充信号，公式为 `floor(fillRatio * 14) + (hasItems ? 1 : 0)`。
+
+**实体信号表：**
+
+| 实体 | 信号来源 | 方法 |
+|------|---------|------|
+| ItemFrameEntity | 物品堆叠数/地图编号 | `getComparatorOutput()` |
+| ChestMinecartEntity | 容器填充率 | `getComparatorOutput()` → `calcRedstoneFromInventory()` |
+| HopperMinecartEntity | 容器填充率 | `getComparatorOutput()` → `calcRedstoneFromInventory()` |
+| CommandBlockMinecartEntity | 成功计数 | `getComparatorOutput()` → `m_successCount` |
+
+**集成路径：**
+- `DetectorRailBlock::getComparatorInputOverride()` 使用 `getEntitySignal()` 查询矿车信号
+- `RedstoneComparatorBlock` 对物品框直接调用 `getComparatorOutput()`

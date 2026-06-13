@@ -135,3 +135,14 @@ Entity (基类)
 - `MoveVehiclePacket`：客户端→服务端，发送载具位置
 - `VehicleMovePacket`：服务端→客户端，校正载具位置
 - `SetPassengersPacket`：服务端→客户端，同步乘客列表
+
+### 11. 矿车比较器信号
+
+**问题**：部分矿车需要通过 `getComparatorOutput()` 向红石比较器输出信号。
+
+**要点**：
+- `ChestMinecartEntity`：重写 `getComparatorOutput()`，使用 `RedstoneHelper::calcRedstoneFromInventory()` 计算容器填充信号（0-15）
+- `HopperMinecartEntity`：重写 `getComparatorOutput()`，使用 `RedstoneHelper::calcRedstoneFromInventory()` 计算容器填充信号（0-15）
+- `CommandBlockMinecartEntity`：重写 `getComparatorOutput()`，返回 `m_successCount`；通过 `setSuccessCount(i32)` 设置成功计数
+- `RideableMinecartEntity`、`FurnaceMinecartEntity`、`TNTMinecartEntity`：不重写，返回默认值 0
+- `DetectorRailBlock::getComparatorInputOverride()` 通过 `RedstoneHelper::getEntitySignal()` 查询矿车信号，优先级：CommandBlockMinecart > 容器矿车 > 普通矿车（返回 0）
