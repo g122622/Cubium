@@ -441,7 +441,8 @@ private:
     f32 m_prevAnimTime = 0.0f;
     f32 m_animTime = 0.0f;
     // MC 原版 inWall：碰到 DRAGON_IMMUNE 方块或 mobGriefing 关闭时的方块时为 true
-    // 翅膀扇动速度减半，移动速度乘以 0.8（移动减速待阶段系统实现后接入）
+    // 翅膀扇动速度减半，移动速度乘以 0.8
+    // TODO: 移动速度乘以 0.8 减速待阶段系统实现后接入
     bool m_slowed = false;
 
     // 死亡动画

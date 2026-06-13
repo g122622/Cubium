@@ -329,8 +329,6 @@ void EnderDragonEntity::onCrystalDestroyed(EnderCrystalEntity* crystal, const Bl
             hurt(explosionDamage, 10.0f);
         }
     }
-
-    MC_UNUSED(pos);
 }
 
 void EnderDragonEntity::initPathPoints()
