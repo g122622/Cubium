@@ -25,11 +25,14 @@
 
 #include "Sensor.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/interfaces/IMob.hpp"
 #include <algorithm>
+#include <unordered_map>
 #include <vector>
 
 namespace mc {
@@ -156,6 +159,47 @@ private:
 };
 
 /**
+ * @brief 村民敌对生物传感器
+ *
+ * 参考原版 VillagerHostilesSensor 实现，使用精确的实体类型到检测距离映射，
+ * 而非将所有 MobEntity 视为敌对。每种敌对生物有独立的检测距离阈值。
+ *
+ * 村民会检测并逃离以下实体（距离单位：方块）：
+ * - 溺尸(8)、唤魔者(12)、尸壳(8)、幻术师(12)、掠夺者(15)、劫掠兽(12)
+ * - 恼鬼(8)、卫道士(10)、疣猪兽(10)、僵尸(8)、僵尸村民(8)
+ *
+ * @tparam E 实体类型，需要有 brain() 方法返回 Brain<E>&
+ */
+template <typename E>
+class VillagerHostilesSensor : public Sensor<E> {
+public:
+    VillagerHostilesSensor()
+        : Sensor<E>(20)
+    {}
+
+    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override
+    {
+        return {memory::MemoryModuleTypes::MOBS, memory::MemoryModuleTypes::NEAREST_HOSTILE};
+    }
+
+protected:
+    void update(IWorld* world, E* entity) override;
+
+private:
+    /**
+     * @brief 判断实体是否为村民需要逃离的敌对生物
+     * @param entity 待检查的实体
+     * @return 如果是村民需要逃离的敌对生物，返回其检测距离；否则返回 0
+     */
+    static f32 getHostileDetectionRange(const LivingEntity* entity);
+
+    /**
+     * @brief 初始化村民敌对生物距离映射表
+     */
+    static std::unordered_map<entity::EntityTypeId, f32> createHostileDistanceMap();
+};
+
+/**
  * @brief 工作站点传感器
  *
  * 检测村民的工作站点。
@@ -229,7 +273,12 @@ protected:
 /**
  * @brief 避险传感器
  *
- * 检测需要避险的目标。
+ * 检测需要避险的目标。默认实现使用 IMob 标记接口判断敌对生物，
+ * 即所有继承 MonsterEntity 的实体都被视为需要避险的目标。
+ * 玩家在创造/旁观模式下不会触发避险。
+ *
+ * 特定实体的避险逻辑应通过专门的传感器实现（如 VillagerHostilesSensor）
+ * 或通过 AvoidEntityGoal 配合谓词来实现，而不是修改此通用传感器。
  *
  * @tparam E 实体类型，需要有 brain() 方法返回 Brain<E>&
  */
@@ -251,6 +300,11 @@ protected:
 
     /**
      * @brief 判断是否需要躲避某实体
+     *
+     * 默认实现使用 IMob 标记接口判断敌对生物。
+     * 所有继承 MonsterEntity 的实体（即实现了 IMob 接口）都被视为需要避险。
+     * 玩家在创造/旁观模式下不触发避险。
+     *
      * @param self 自身实体
      * @param other 其他实体
      * @return 是否需要躲避

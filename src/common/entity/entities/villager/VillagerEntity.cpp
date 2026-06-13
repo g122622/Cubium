@@ -129,7 +129,7 @@ void VillagerEntity::initializeBrain()
     m_brain->registerSensor(std::make_unique<NearestPlayersSensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<NearestVisibleLivingEntitySensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<HurtBySensor<VillagerEntity>>());
-    m_brain->registerSensor(std::make_unique<MobSensor<VillagerEntity>>());
+    m_brain->registerSensor(std::make_unique<VillagerHostilesSensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<WorkStationSensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<VillagePoiSensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<BabySensor<VillagerEntity>>());

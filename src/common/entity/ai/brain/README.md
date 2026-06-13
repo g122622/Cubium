@@ -26,7 +26,7 @@ brain/
 ├── sensor/                      # 传感器系统
 │   ├── Sensor.hpp               # 传感器基类
 │   ├── SensorType.hpp           # 传感器类型工厂
-│   ├── Sensors.hpp              # 传感器声明（8种）
+│   ├── Sensors.hpp              # 传感器声明（9种）
 │   └── Sensors.cpp              # 传感器实现
 ├── task/                        # 任务系统
 │   ├── Task.hpp                 # 任务基类

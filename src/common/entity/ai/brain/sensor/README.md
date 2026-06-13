@@ -1,0 +1,83 @@
+# Sensor 传感器系统
+
+Brain AI 的环境感知模块，周期性扫描周围环境并将结果写入记忆模块。
+
+## 目录结构
+
+```
+sensor/
+├── Sensor.hpp               # 传感器模板基类（周期更新、记忆声明）
+├── SensorType.hpp           # 传感器类型工厂（按名称创建实例）
+├── Sensors.hpp              # 9种传感器声明
+└── Sensors.cpp              # 传感器实现
+```
+
+## 传感器列表
+
+| 传感器 | 间隔 | 写入记忆 | 说明 |
+|--------|------|----------|------|
+| `NearestPlayersSensor<E>` | 20 tick | NEAREST_PLAYERS, NEAREST_VISIBLE_PLAYER, NEAREST_VISIBLE_TARGETABLE_PLAYER | 检测附近玩家，过滤旁观/创造模式 |
+| `NearestVisibleLivingEntitySensor<E>` | 可配置 | VISIBLE_MOBS, NEAREST_VISIBLE_NEMESIS | 检测可见生物 |
+| `HurtBySensor<E>` | 1 tick | HURT_BY, HURT_BY_ENTITY | 检测最近受到的伤害来源 |
+| `MobSensor<E>` | 可配置 | MOBS | 检测附近 MobEntity，仅存储列表不判断敌对 |
+| `VillagerHostilesSensor<E>` | 20 tick | MOBS, NEAREST_HOSTILE | 村民专用敌对检测，使用精确实体类型到距离映射 |
+| `WorkStationSensor<E>` | 40 tick | JOB_SITE, POTENTIAL_JOB_SITE | 检测村民工作站点 |
+| `VillagePoiSensor<E>` | 40 tick | HOME, MEETING_POINT, NEAREST_BED | 检测村民家/集会点 |
+| `BabySensor<E>` | 20 tick | VISIBLE_VILLAGER_BABIES, NEAREST_VISIBLE_ADULT | 检测附近幼年/成年实体 |
+| `AvoidEntitySensor<E>` | 可配置 | AVOID_TARGET, NEAREST_REPELLENT | 通用避险传感器，使用 IMob 标记接口判断敌对 |
+
+## 敌对检测机制
+
+### VillagerHostilesSensor（村民专用）
+
+参考原版 `VillagerHostilesSensor`，使用硬编码的实体类型到检测距离映射，而非统一判断所有 MobEntity 为敌对。村民检测以下实体：
+
+| 实体类型 | 检测距离（方块） |
+|----------|------------------|
+| 溺尸 (Drowned) | 8 |
+| 唤魔者 (Evoker) | 12 |
+| 尸壳 (Husk) | 8 |
+| 幻术师 (Illusioner) | 12 |
+| 掠夺者 (Pillager) | 15 |
+| 劫掠兽 (Ravager) | 12 |
+| 恼鬼 (Vex) | 8 |
+| 卫道士 (Vindicator) | 10 |
+| 疣猪兽 (Zoglin) | 10 |
+| 僵尸 (Zombie) | 8 |
+| 僵尸村民 (Zombie Villager) | 8 |
+
+注意：苦力怕、骷髅、蜘蛛、女巫、末影人等 **不在** 村民的敌对列表中。
+
+### AvoidEntitySensor（通用）
+
+默认实现使用 `IMob` 标记接口判断敌对生物（即所有继承 `MonsterEntity` 的实体）。玩家在创造/旁观模式下不触发避险。特定实体的避险逻辑应通过专门的传感器或 `AvoidEntityGoal` 配合谓词来实现。
+
+### MobSensor（通用附近实体）
+
+仅收集附近的 MobEntity 列表，**不**设置 NEAREST_HOSTILE 记忆。敌对判断应由专用传感器（如 VillagerHostilesSensor）负责。
+
+## 上下游外部依赖关系
+
+**被依赖（下游）**：
+- `entity/entities/villager/VillagerEntity.hpp` - 村民使用传感器系统
+
+**依赖（上游）**：
+- `entity/core/MobEntity.hpp` - 生物实体基类
+- `entity/core/LivingEntity.hpp` - 活体实体基类
+- `entity/core/EntityTypeIdNumber.hpp` - 实体类型ID缓存（VillagerHostilesSensor 使用）
+- `entity/interfaces/IMob.hpp` - 敌对标记接口（AvoidEntitySensor 使用）
+- `world/IWorld.hpp` - 世界访问
+
+## 容易踩的坑
+
+### 1. VillagerHostilesSensor 依赖 EntityTypeIdNumber 初始化
+
+`EntityTypeIdNumber` 中的变量在 `VanillaEntities::registerAll()` 之后才有值。如果在实体注册前使用 `VillagerHostilesSensor`，距离映射表中的类型 ID 将为 0，导致所有敌对生物都无法被检测到。
+
+### 2. MobSensor 不再设置 NEAREST_HOSTILE
+
+`MobSensor` 仅收集 MOBS 列表。如果某个实体需要 NEAREST_HOSTILE 记忆，必须使用专用传感器（如 VillagerHostilesSensor），而不是 MobSensor。
+
+### 3. 传感器更新频率
+
+传感器的构造参数是更新间隔（tick），不要设置过小。例如 `NearestPlayersSensor` 默认 20 tick 更新一次。

@@ -30,6 +30,7 @@
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include "common/world/village/poi/PointOfInterestType.hpp"
 #include <algorithm>
+#include <limits>
 
 namespace mc {
 namespace entity {
@@ -205,8 +206,6 @@ void MobSensor<E>::update(IWorld* world, E* entity)
     }
 
     std::vector<LivingEntity*> nearbyMobs;
-    LivingEntity* nearestHostile = nullptr;
-    f32 minHostileDist = m_range;
     Vector3 pos = entity->position();
 
     // 获取范围内所有实体
@@ -218,19 +217,91 @@ void MobSensor<E>::update(IWorld* world, E* entity)
             continue;
         }
 
+        MobEntity* mob = dynamic_cast<MobEntity*>(living);
+        if (!mob) {
+            continue;
+        }
+
+        nearbyMobs.push_back(living);
+    }
+
+    entity->brain().setMemory(memory::MemoryModuleTypes::MOBS, nearbyMobs);
+    // 注意：MobSensor 不再直接设置 NEAREST_HOSTILE。
+    // NEAREST_HOSTILE 应由专门的传感器（如 VillagerHostilesSensor）来设置，
+    // 因为不同实体对"敌对生物"的定义不同。
+    entity->brain().removeMemory(memory::MemoryModuleTypes::NEAREST_HOSTILE);
+}
+
+// ============================================================================
+// VillagerHostilesSensor
+// ============================================================================
+
+template <typename E>
+std::unordered_map<entity::EntityTypeId, f32> VillagerHostilesSensor<E>::createHostileDistanceMap()
+{
+    // 参考原版 VillagerHostilesSensor.ACCEPTABLE_DISTANCE_FROM_HOSTILES
+    // 每种敌对生物有独立的检测距离阈值，而非统一使用 MobEntity 判断
+    return {
+        {entity::EntityTypeIdNumber::DROWNED, 8.0f},
+        {entity::EntityTypeIdNumber::EVOKER, 12.0f},
+        {entity::EntityTypeIdNumber::HUSK, 8.0f},
+        {entity::EntityTypeIdNumber::ILLUSIONER, 12.0f},
+        {entity::EntityTypeIdNumber::PILLAGER, 15.0f},
+        {entity::EntityTypeIdNumber::RAVAGER, 12.0f},
+        {entity::EntityTypeIdNumber::VEX, 8.0f},
+        {entity::EntityTypeIdNumber::VINDICATOR, 10.0f},
+        {entity::EntityTypeIdNumber::ZOGLIN, 10.0f},
+        {entity::EntityTypeIdNumber::ZOMBIE, 8.0f},
+        {entity::EntityTypeIdNumber::ZOMBIE_VILLAGER, 8.0f},
+    };
+}
+
+template <typename E>
+f32 VillagerHostilesSensor<E>::getHostileDetectionRange(const LivingEntity* entity)
+{
+    static const auto hostileMap = createHostileDistanceMap();
+    auto it = hostileMap.find(entity->typeId());
+    if (it != hostileMap.end()) {
+        return it->second;
+    }
+    return 0.0f;
+}
+
+template <typename E>
+void VillagerHostilesSensor<E>::update(IWorld* world, E* entity)
+{
+    if (!entity || !entity->isAlive()) {
+        return;
+    }
+
+    std::vector<LivingEntity*> nearbyMobs;
+    LivingEntity* nearestHostile = nullptr;
+    f32 nearestHostileDistSq = std::numeric_limits<f32>::max();
+    Vector3 pos = entity->position();
+
+    // 获取范围内所有实体
+    auto entities = world->getEntitiesInRange(pos, 16.0f, entity);
+
+    for (Entity* e : entities) {
+        LivingEntity* living = dynamic_cast<LivingEntity*>(e);
+        if (!living || living == entity || !living->isAlive()) {
+            continue;
+        }
+
+        MobEntity* mob = dynamic_cast<MobEntity*>(living);
+        if (!mob) {
+            continue;
+        }
+
         nearbyMobs.push_back(living);
 
-        // 检查是否是敌对生物（非玩家）
-        Player* player = dynamic_cast<Player*>(living);
-        if (!player && !living->isRemoved()) {
-            // TODO: 当前简化判断将所有 MobEntity 视为敌对，应改为根据实体类型精确判断
-            MobEntity* mob = dynamic_cast<MobEntity*>(living);
-            if (mob) {
-                f32 dist = entity->distanceTo(*living);
-                if (dist < minHostileDist) {
-                    minHostileDist = dist;
-                    nearestHostile = living;
-                }
+        // 使用精确的实体类型到距离映射来判断敌对生物
+        f32 detectionRange = getHostileDetectionRange(living);
+        if (detectionRange > 0.0f) {
+            f32 distSq = entity->distanceSqTo(*living);
+            if (distSq <= detectionRange * detectionRange && distSq < nearestHostileDistSq) {
+                nearestHostileDistSq = distSq;
+                nearestHostile = living;
             }
         }
     }
@@ -453,19 +524,21 @@ void AvoidEntitySensor<E>::update(IWorld* world, E* entity)
 template <typename E>
 bool AvoidEntitySensor<E>::shouldAvoid(E* self, LivingEntity* other)
 {
-    // TODO: 当前简化实现假设所有 MobEntity 都可能是危险源，实际应根据实体类型精确判断
-    // 例如：羊躲避狼、村民躲避僵尸等
-
-    // 检查其他实体是否是 MobEntity（可能是敌对的）
-    MobEntity* mob = dynamic_cast<MobEntity*>(other);
-    Player* player = dynamic_cast<Player*>(other);
-
-    // 玩家在创造/旁观模式下不需要避险
-    if (player && (player->isCreative() || player->isSpectator())) {
-        return false;
+    // 使用 IMob 标记接口判断敌对生物。
+    // 只有继承 MonsterEntity 并实现 IMob 接口的实体才被视为敌对。
+    // 这与原版的 Enemy 接口语义一致：MonsterEntity implements Enemy(IMob)。
+    // 被动生物（牛、羊、猪等）不会触发避险。
+    entity::IMob* mob = dynamic_cast<entity::IMob*>(other);
+    if (mob != nullptr) {
+        // 玩家在创造/旁观模式下不需要避险
+        Player* player = dynamic_cast<Player*>(other);
+        if (player && (player->isCreative() || player->isSpectator())) {
+            return false;
+        }
+        return true;
     }
 
-    return mob != nullptr;
+    return false;
 }
 
 // 显式实例化常用类型
@@ -473,6 +546,7 @@ template class NearestPlayersSensor<VillagerEntity>;
 template class NearestVisibleLivingEntitySensor<VillagerEntity>;
 template class HurtBySensor<VillagerEntity>;
 template class MobSensor<VillagerEntity>;
+template class VillagerHostilesSensor<VillagerEntity>;
 template class WorkStationSensor<VillagerEntity>;
 template class VillagePoiSensor<VillagerEntity>;
 template class BabySensor<VillagerEntity>;
