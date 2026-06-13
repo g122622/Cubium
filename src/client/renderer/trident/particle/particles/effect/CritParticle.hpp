@@ -68,4 +68,39 @@ private:
     f64 m_initialSize;
 };
 
+/**
+ * @brief 附魔暴击粒子
+ *
+ * 特性：
+ * - 附魔武器攻击实体时产生
+ * - 与暴击粒子行为相似，但颜色为紫蓝色
+ * - 比 CritParticle 颜色偏紫（红、绿色通道减弱）
+ */
+class EnchantedHitParticle : public Particle {
+public:
+    EnchantedHitParticle(const glm::vec3& pos, const glm::vec3& velocity);
+
+    static std::unique_ptr<Particle> create(
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
+
+    void tick(mc::client::ClientWorld* world) override;
+
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
+        return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
+    }
+
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
+        return ResourceLocation("minecraft:particle/enchanted_hit");
+    }
+
+private:
+    static constexpr f64 DEFAULT_GRAVITY = 0.0;
+    static constexpr f64 DEFAULT_SIZE = 0.04;
+    static constexpr f64 DEFAULT_LIFETIME = 20.0;
+
+    f64 m_initialSize;
+};
+
 } // namespace mc::client::renderer::trident::particle::particles

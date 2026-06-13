@@ -192,6 +192,14 @@ void registerBuiltinParticleFactories()
         false,
         false);
 
+    registry.registerType(ParticleTypeId::EnchantedHit,
+        "minecraft:enchanted_hit",
+        EnchantedHitParticle::create,
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        6.0f,
+        false,
+        false);
+
     registry.registerType(ParticleTypeId::Spell,
         "minecraft:spell",
         SpellParticle::create,

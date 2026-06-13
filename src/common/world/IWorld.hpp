@@ -1077,6 +1077,21 @@ public:
         (void)status;
     }
 
+    /**
+     * @brief 广播实体动画事件
+     *
+     * 向所有追踪该实体的玩家发送实体动画事件。
+     * 用于触发客户端的动画效果，如暴击粒子、挥动手臂等。
+     *
+     * @param entityId 实体ID
+     * @param animation 动画类型（如 EntityAnimationPacket::Animation::CriticalEffect）
+     */
+    virtual void broadcastEntityAnimation(EntityId entityId, u8 animation)
+    {
+        (void)entityId;
+        (void)animation;
+    }
+
     // ========== 睡眠系统 ==========
 
     /**

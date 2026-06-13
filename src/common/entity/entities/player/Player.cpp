@@ -28,6 +28,7 @@
 #include "../../../item/enchantment/enchantments/AllEnchantments.hpp"
 #include "../../../item/items/armor/ArmorItem.hpp"
 #include "../../../item/items/tool/SwordItem.hpp"
+#include "../../../network/packet/EntityPackets.hpp"
 #include "../../../physics/PhysicsConstants.hpp"
 #include "../../../physics/PhysicsEngine.hpp"
 #include "../../../sound/SoundEvents.hpp"
@@ -2039,9 +2040,21 @@ void Player::attack(Entity& target)
             // 暴击音效
             playSound(SoundEvents::ENTITY_PLAYER_ATTACK_CRIT, 1.0f, 1.0f);
             playedAttackSound = true;
+
+            // 发送暴击动画包，在目标实体周围生成暴击粒子
+            if (m_world) {
+                m_world->broadcastEntityAnimation(
+                    target.id(), static_cast<u8>(network::EntityAnimationPacket::Animation::CriticalEffect));
+            }
         } else if (canSweep && !playedAttackSound) {
             // 横扫音效已在上面播放
             playedAttackSound = true;
+        }
+
+        // 附魔暴击：附魔额外伤害大于 0 时，发送魔法暴击动画包
+        if (enchantDamage > 0.0f && m_world) {
+            m_world->broadcastEntityAnimation(
+                target.id(), static_cast<u8>(network::EntityAnimationPacket::Animation::MagicCriticalEffect));
         }
 
         // 如果没有播放特殊音效，根据冷却强度播放普通攻击音效

@@ -1829,6 +1829,13 @@ void ServerWorld::broadcastEntityStatus(EntityId entityId, u8 status)
     }
 }
 
+void ServerWorld::broadcastEntityAnimation(EntityId entityId, u8 animation)
+{
+    if (m_onBroadcastEntityAnimation) {
+        m_onBroadcastEntityAnimation(entityId, animation);
+    }
+}
+
 // ============================================================================
 // 爆炸
 // ============================================================================

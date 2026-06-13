@@ -698,6 +698,16 @@ protected:
      */
     void broadcastEntityStatusInRange(EntityId entityId, u8 status, const Vector3& pos, f32 range = 64.0f);
 
+    /**
+     * @brief 广播实体动画事件给范围内玩家
+     *
+     * @param entityId 实体ID
+     * @param animation 动画类型
+     * @param pos 实体位置
+     * @param range 广播范围（格），默认 64 格
+     */
+    void broadcastEntityAnimationInRange(EntityId entityId, u8 animation, const Vector3& pos, f32 range = 64.0f);
+
     // ========== 世界事件广播方法 ==========
 
     /**

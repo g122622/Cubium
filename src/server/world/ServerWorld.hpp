@@ -424,6 +424,22 @@ public:
 
     void setOnBroadcastEntityStatus(EntityStatusCallback callback) { m_onBroadcastEntityStatus = std::move(callback); }
 
+    // ========== 实体动画广播回调 ==========
+
+    /**
+     * @brief 实体动画广播回调类型
+     *
+     * 当实体动画事件需要广播给客户端时触发。
+     * @param entityId 实体ID
+     * @param animation 动画类型
+     */
+    using EntityAnimationCallback = std::function<void(EntityId entityId, u8 animation)>;
+
+    void setOnBroadcastEntityAnimation(EntityAnimationCallback callback)
+    {
+        m_onBroadcastEntityAnimation = std::move(callback);
+    }
+
     // ========== 世界事件回调 ==========
 
     /**
@@ -496,6 +512,8 @@ public:
     // ========== 实体状态广播 (IWorld override) ==========
 
     void broadcastEntityStatus(EntityId entityId, u8 status) override;
+
+    void broadcastEntityAnimation(EntityId entityId, u8 animation) override;
 
     // ========== 爆炸 ==========
 
@@ -1013,6 +1031,7 @@ private:
     std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)> m_onPlaySound;
     ParticleBroadcastCallback m_onBroadcastParticle;
     EntityStatusCallback m_onBroadcastEntityStatus;
+    EntityAnimationCallback m_onBroadcastEntityAnimation;
     WorldEventCallback m_onBroadcastWorldEvent;
     ExplosionBroadcastCallback m_onBroadcastExplosion;
     RaidEventCallback m_onRaidEvent;           ///< 袭击事件回调

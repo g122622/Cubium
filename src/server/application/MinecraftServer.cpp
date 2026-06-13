@@ -417,6 +417,12 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
             broadcastEntityStatusInRange(entityId, status, entity->position());
         }
     });
+    world.setOnBroadcastEntityAnimation([this, &world](EntityId entityId, u8 animation) {
+        Entity* entity = world.getEntity(entityId);
+        if (entity != nullptr) {
+            broadcastEntityAnimationInRange(entityId, animation, entity->position());
+        }
+    });
     world.setOnBroadcastWorldEvent(
         [this](i32 eventId, i32 x, i32 y, i32 z, i32 data) { broadcastWorldEventInRange(eventId, x, y, z, data); });
     world.setOnBroadcastExplosion([this](const Vector3& position,
@@ -2259,6 +2265,33 @@ void MinecraftServer::broadcastEntityStatusInRange(EntityId entityId, u8 status,
     }
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::EntityStatus, result.value());
+
+    f32 rangeSq = range * range;
+    m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
+        if (distSq <= rangeSq) {
+            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+        }
+    });
+}
+
+void MinecraftServer::broadcastEntityAnimationInRange(EntityId entityId, u8 animation, const Vector3& pos, f32 range)
+{
+    network::EntityAnimationPacket packet;
+    packet.setEntityId(static_cast<u32>(entityId));
+    packet.setAnimation(static_cast<network::EntityAnimationPacket::Animation>(animation));
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize EntityAnimationPacket: {}", result.error().message());
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::EntityAnimation, result.value());
 
     f32 rangeSq = range * range;
     m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {

@@ -779,12 +779,51 @@ void ClientApplication::setupNetworkCallbacks()
             case Animation::LeaveBed:
                 entity->triggerLeaveBedAnimation();
                 break;
-            case Animation::CriticalEffect:
-                // TODO: 暴击粒子效果
+            case Animation::CriticalEffect: {
+                // 暴击粒子效果：在实体周围生成暴击粒子
+                // 原版使用 TrackingEmitter 持续 3 tick、每 tick 最多 16 个粒子，
+                // 这里一次性生成近似数量的粒子
+                if (m_world.particleManager() != nullptr && entity != nullptr) {
+                    glm::vec3 entityPos(entity->x(), entity->y(), entity->z());
+                    for (i32 i = 0; i < 16; ++i) {
+                        f32 rx = m_random.nextFloat() * 2.0f - 1.0f;
+                        f32 ry = m_random.nextFloat() * 2.0f - 1.0f;
+                        f32 rz = m_random.nextFloat() * 2.0f - 1.0f;
+                        // 球体内均匀分布：排除球外的随机点
+                        if (rx * rx + ry * ry + rz * rz > 1.0f) {
+                            continue;
+                        }
+                        glm::vec3 particlePos = entityPos + glm::vec3(rx * 0.25f, ry * 0.25f + 0.5f, rz * 0.25f);
+                        glm::vec3 velocity(rx, ry + 0.2f, rz);
+                        m_world.particleManager()->addPendingParticle(
+                            client::renderer::trident::particle::ParticleTypeId::Crit, particlePos, velocity, &m_world);
+                    }
+                }
                 break;
-            case Animation::MagicCriticalEffect:
-                // TODO: 魔法暴击粒子效果
+            }
+            case Animation::MagicCriticalEffect: {
+                // 附魔暴击粒子效果：在实体周围生成紫蓝色附魔暴击粒子
+                if (m_world.particleManager() != nullptr && entity != nullptr) {
+                    glm::vec3 entityPos(entity->x(), entity->y(), entity->z());
+                    for (i32 i = 0; i < 16; ++i) {
+                        f32 rx = m_random.nextFloat() * 2.0f - 1.0f;
+                        f32 ry = m_random.nextFloat() * 2.0f - 1.0f;
+                        f32 rz = m_random.nextFloat() * 2.0f - 1.0f;
+                        // 球体内均匀分布：排除球外的随机点
+                        if (rx * rx + ry * ry + rz * rz > 1.0f) {
+                            continue;
+                        }
+                        glm::vec3 particlePos = entityPos + glm::vec3(rx * 0.25f, ry * 0.25f + 0.5f, rz * 0.25f);
+                        glm::vec3 velocity(rx, ry + 0.2f, rz);
+                        m_world.particleManager()->addPendingParticle(
+                            client::renderer::trident::particle::ParticleTypeId::EnchantedHit,
+                            particlePos,
+                            velocity,
+                            &m_world);
+                    }
+                }
                 break;
+            }
         }
     };
 

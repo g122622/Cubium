@@ -10,7 +10,7 @@ effect/
 ├── SmokeParticle.hpp/cpp         # 烟雾粒子（向上飘动、变大淡出）
 ├── LavaParticle.hpp/cpp          # 熔岩滴粒子（发光、下落）
 ├── PortalParticle.hpp/cpp        # 传送门粒子（紫色、水平摆动）
-├── CritParticle.hpp/cpp          # 暴击粒子（发光、快速下落）
+├── CritParticle.hpp/cpp          # 暴击粒子（含 EnchantedHitParticle 附魔暴击粒子）
 ├── ExplosionParticle.hpp/cpp     # 爆炸粒子（大型爆炸效果）
 ├── PoofParticle.hpp/cpp          # 消散粒子（云雾消散效果）
 ├── SpellParticle.hpp/cpp         # 药水效果粒子（魔法效果、多种颜色）
@@ -30,7 +30,8 @@ Particle (基类，在 particle/ 目录)
     ├── SmokeParticle             │
     ├── LavaParticle              │
     ├── PortalParticle            │  普通效果粒子
-    ├── CritParticle              │  （直接继承 Particle）
+    ├── CritParticle ──────────────┐
+    │   (含 EnchantedHitParticle)  │  暴击/附魔暴击粒子
     ├── ExplosionParticle         │
     ├── PoofParticle              │
     ├── SpellParticle             │
