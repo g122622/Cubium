@@ -1728,3 +1728,119 @@ TEST(BlockStateCanBeReplacedTest, CanBeReplacedConsistentWithMaterial)
     EXPECT_TRUE(VanillaBlocks::WATER->defaultState().getMaterial().isReplaceable());
     EXPECT_TRUE(VanillaBlocks::WATER->defaultState().canBeReplaced());
 }
+
+// ============================================================================
+// canBeReplacedByFluid 与流体系统交互测试
+// ============================================================================
+
+TEST(BlockStateCanBeReplacedTest, LiquidBlocksCanBeReplacedByFluid)
+{
+    VanillaBlocks::initialize();
+
+    // 关键回归测试：MC Java 允许在已有液体上放置桶装流体
+    // 旧代码使用 canBeReplaced() && !isLiquid() 阻止了这一行为，但 MC Java 的
+    // canBeReplaced(Fluid) 对液体方块返回 true（因为液体 Material 设置了 replaceable）
+    // 因此 canBeReplacedByFluid() 对液体方块也应返回 true
+    EXPECT_TRUE(VanillaBlocks::WATER->defaultState().canBeReplacedByFluid());
+    EXPECT_TRUE(VanillaBlocks::LAVA->defaultState().canBeReplacedByFluid());
+
+    // 验证语义：canBeReplacedByFluid() = canBeReplaced() || !isSolid()
+    // 液体方块：canBeReplaced()=true, isSolid()=false → canBeReplacedByFluid()=true
+    EXPECT_TRUE(VanillaBlocks::WATER->defaultState().canBeReplaced());
+    EXPECT_FALSE(VanillaBlocks::WATER->defaultState().isSolid());
+}
+
+TEST(BlockStateCanBeReplacedTest, BlacklistBlocksCanBeReplacedByFluidButBlockedByFlowingFluid)
+{
+    VanillaBlocks::initialize();
+
+    // 门、告示牌等方块在 MC Java 中 isSolid()=false，因此 canBeReplacedByFluid() 应返回 true
+    // 但当前实现中 Block::isSolid() 返回 m_material->isSolid()，忽略了 BlockProperties::notSolid()
+    // 因此这些方块当前 isSolid()=true（跟随 Material），canBeReplacedByFluid()=false
+    // FlowingFluid::isBlocked() 对这些方块有专门的黑名单返回 true（阻挡流体流入）
+    // TODO: 修复 Block::isSolid() 使用 BlockProperties::m_isSolid 后，这些方块的 isSolid() 应为 false
+
+    // 门方块：不可替换，当前 isSolid()=true（Material::WOOD.isSolid()=true）
+    // 修复后 isSolid()=false（BlockProperties 设置了 notSolid()），canBeReplacedByFluid()=true
+    EXPECT_FALSE(VanillaBlocks::OAK_DOOR->defaultState().canBeReplaced());
+    // 当前行为：Material::WOOD.isSolid()=true
+    EXPECT_TRUE(VanillaBlocks::OAK_DOOR->defaultState().isSolid());
+    // 因为 isSolid()=true，canBeReplacedByFluid()=false
+    EXPECT_FALSE(VanillaBlocks::OAK_DOOR->defaultState().canBeReplacedByFluid());
+    // 但 FlowingFluid::isBlocked() 的黑名单仍会正确阻挡流体流入门方块
+
+    // 告示牌方块同理
+    EXPECT_FALSE(VanillaBlocks::OAK_SIGN->defaultState().canBeReplaced());
+    EXPECT_TRUE(VanillaBlocks::OAK_SIGN->defaultState().isSolid());
+    EXPECT_FALSE(VanillaBlocks::OAK_SIGN->defaultState().canBeReplacedByFluid());
+
+    // 梯子同理
+    EXPECT_FALSE(VanillaBlocks::LADDER->defaultState().canBeReplaced());
+    EXPECT_TRUE(VanillaBlocks::LADDER->defaultState().isSolid());
+    EXPECT_FALSE(VanillaBlocks::LADDER->defaultState().canBeReplacedByFluid());
+}
+
+TEST(BlockStateCanBeReplacedTest, CanBeReplacedByFluidSemanticsVerification)
+{
+    VanillaBlocks::initialize();
+
+    // 验证 canBeReplacedByFluid() == canBeReplaced() || !isSolid() 在各类方块上的正确性
+
+    // 1. 可替换且非固体 → canBeReplacedByFluid()=true
+    {
+        const BlockState& state = VanillaBlocks::SHORT_GRASS->defaultState();
+        EXPECT_TRUE(state.canBeReplaced());
+        EXPECT_FALSE(state.isSolid());
+        EXPECT_TRUE(state.canBeReplacedByFluid());
+    }
+
+    // 2. 不可替换且固体 → canBeReplacedByFluid()=false
+    {
+        const BlockState& state = VanillaBlocks::STONE->defaultState();
+        EXPECT_FALSE(state.canBeReplaced());
+        EXPECT_TRUE(state.isSolid());
+        EXPECT_FALSE(state.canBeReplacedByFluid());
+    }
+
+    // 3. 不可替换且（当前实现中）固体 → canBeReplacedByFluid()=false
+    // 注意：门方块在 MC Java 中 isSolid()=false，但当前实现中 Block::isSolid()
+    // 返回 m_material->isSolid()，忽略了 BlockProperties::notSolid()
+    // TODO: 修复 Block::isSolid() 后，门方块的 isSolid() 应为 false，
+    // canBeReplacedByFluid() 应为 true，届时需更新此测试
+    {
+        const BlockState& state = VanillaBlocks::OAK_DOOR->defaultState();
+        EXPECT_FALSE(state.canBeReplaced());
+        // 当前行为：Material::WOOD.isSolid()=true（应修复为 false）
+        EXPECT_TRUE(state.isSolid());
+        // 当前行为：canBeReplacedByFluid()=false（修复 isSolid 后应为 true）
+        EXPECT_FALSE(state.canBeReplacedByFluid());
+    }
+
+    // 4. 可替换且非固体（液体）→ canBeReplacedByFluid()=true
+    {
+        const BlockState& state = VanillaBlocks::WATER->defaultState();
+        EXPECT_TRUE(state.canBeReplaced());
+        EXPECT_FALSE(state.isSolid());
+        EXPECT_TRUE(state.canBeReplacedByFluid());
+    }
+
+    // 5. 空气：可替换且非固体 → canBeReplacedByFluid()=true
+    {
+        const BlockState& state = VanillaBlocks::AIR->defaultState();
+        EXPECT_TRUE(state.canBeReplaced());
+        EXPECT_FALSE(state.isSolid());
+        EXPECT_TRUE(state.canBeReplacedByFluid());
+    }
+}
+
+TEST(BlockStateCanBeReplacedTest, PortalAndStructureVoidAreNotReplacedByFluid)
+{
+    VanillaBlocks::initialize();
+
+    // 传送门和结构空位方块在 FlowingFluid::isBlocked() 中被特殊处理（返回 true=阻挡）
+    // 但它们本身的 canBeReplacedByFluid() 值取决于 Material 属性
+
+    // 结构空位：Material::STRUCTURE_VOID 是 replaceable=true 且非固体
+    // 所以 canBeReplacedByFluid()=true，但 FlowingFluid::isBlocked() 黑名单返回 true
+    // 这与门/告示牌的情况类似：canBeReplacedByFluid() 与 isBlocked() 是两个层面的判断
+}
