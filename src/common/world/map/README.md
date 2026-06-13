@@ -116,6 +116,10 @@ i = gameTime / 10; rotation = ((i * i * 34187121 + i * 121) >> 15) & 15
 
 `MapData::tryAddBanner()` 实现toggle行为：如果旗帜已存在则移除，不存在则添加。同时检查装饰物数量上限（256个非FRAME装饰）。需要 `BannerEntity` 方块实体存在才能添加旗帜标记。
 
+`MapData::addBanner()` 直接添加旗帜标记和对应装饰物，不进行世界交互检查，用于NBT反序列化或测试场景。
+
+`MapData::removeStaleBanners()` 检查指定坐标上的旗帜是否仍然有效（旗帜方块实体仍存在且颜色匹配），移除失效的旗帜标记。此方法在 `FilledMapItem::_updateMapData` 的像素扫描循环中逐像素调用，与MC Java版 `MapItem.update` 中调用 `checkBanners` 的行为一致。
+
 ### 地图锁定机制
 
 `MapData::lockFrom()` 会完全复制源地图的颜色数据并设置 `locked=true`，锁定后的地图不能再更新地形，但可以更新装饰物。用于地图复制物品。

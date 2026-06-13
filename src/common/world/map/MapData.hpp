@@ -174,6 +174,16 @@ public:
     void removeFrame(const std::string& frameId);
 
     /**
+     * @brief 直接添加旗帜标记
+     *
+     * 用于NBT反序列化或测试场景，跳过tryAddBanner的世界交互检查。
+     * 同时在地图上添加对应的装饰物。
+     *
+     * @param banner 旗帜标记数据
+     */
+    void addBanner(const MapBanner& banner);
+
+    /**
      * @brief 移除指定名称的装饰物
      */
     void removeDecoration(const std::string& decorationName);

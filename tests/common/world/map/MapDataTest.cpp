@@ -23,12 +23,14 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TranslationTextComponent.hpp"
+#include "common/world/blockentity/interactive/BannerEntity.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
 #include "common/world/map/MapBanner.hpp"
 #include "common/world/map/MapData.hpp"
@@ -36,6 +38,8 @@
 #include "common/world/map/MapFrame.hpp"
 #include "common/world/map/MapIdTracker.hpp"
 #include "common/world/map/MaterialColor.hpp"
+#include "network/packet/PacketDeserializer.hpp"
+#include "network/packet/PacketSerializer.hpp"
 #include <memory>
 
 using namespace mc;
@@ -579,4 +583,528 @@ TEST_F(MapDataTest, UpdateDecoration_NonPlayerOffMap)
     // 非玩家类型的装饰物超出范围应直接移除
     data.updateDecoration(DecorationType::BANNER_RED, nullptr, "banner-1", 200.0, 0.0, 0.0, nullptr);
     EXPECT_TRUE(data.decorations().find("banner-1") == data.decorations().end());
+}
+
+// ============================================================================
+// MapDecoration 网络序列化测试
+// ============================================================================
+
+TEST_F(MapDecorationTest, NetworkRoundTrip_WithoutCustomName)
+{
+    MapDecoration original(DecorationType::PLAYER, 10, -20, 5, nullptr);
+
+    network::PacketSerializer ser;
+    original.serialize(ser);
+
+    network::PacketDeserializer deser(ser.buffer().data(), ser.buffer().size());
+    auto restored = MapDecoration::deserialize(deser);
+
+    EXPECT_EQ(restored.type(), DecorationType::PLAYER);
+    EXPECT_EQ(restored.x(), 10);
+    EXPECT_EQ(restored.y(), -20);
+    EXPECT_EQ(restored.rotation(), 5u);
+    EXPECT_EQ(restored.customName(), nullptr);
+}
+
+TEST_F(MapDecorationTest, NetworkRoundTrip_WithCustomName)
+{
+    auto name = std::make_unique<text::StringTextComponent>("Test Banner");
+    MapDecoration original(DecorationType::BANNER_RED, 5, 10, 3, std::move(name));
+
+    network::PacketSerializer ser;
+    original.serialize(ser);
+
+    network::PacketDeserializer deser(ser.buffer().data(), ser.buffer().size());
+    auto restored = MapDecoration::deserialize(deser);
+
+    EXPECT_EQ(restored.type(), DecorationType::BANNER_RED);
+    EXPECT_EQ(restored.x(), 5);
+    EXPECT_EQ(restored.y(), 10);
+    EXPECT_EQ(restored.rotation(), 3u);
+    ASSERT_NE(restored.customName(), nullptr);
+    EXPECT_EQ(restored.customName()->getUnformattedText(), "Test Banner");
+}
+
+TEST_F(MapDecorationTest, NetworkRoundTrip_TranslationComponent)
+{
+    auto name = std::make_unique<text::TranslationTextComponent>("item.banner.red.name");
+    MapDecoration original(DecorationType::BANNER_RED, 0, 0, 0, std::move(name));
+
+    network::PacketSerializer ser;
+    original.serialize(ser);
+
+    network::PacketDeserializer deser(ser.buffer().data(), ser.buffer().size());
+    auto restored = MapDecoration::deserialize(deser);
+
+    ASSERT_NE(restored.customName(), nullptr);
+    auto* translation = dynamic_cast<const text::TranslationTextComponent*>(restored.customName());
+    ASSERT_NE(translation, nullptr);
+}
+
+TEST_F(MapDecorationTest, NetworkRoundTrip_RotationMasking)
+{
+    // 旋转值在网络序列化中应被掩码到0-15范围
+    MapDecoration original(DecorationType::PLAYER, 0, 0, 20, nullptr); // 20 & 0x0F = 4
+
+    network::PacketSerializer ser;
+    original.serialize(ser);
+
+    network::PacketDeserializer deser(ser.buffer().data(), ser.buffer().size());
+    auto restored = MapDecoration::deserialize(deser);
+
+    EXPECT_EQ(restored.rotation(), 4u);
+}
+
+TEST_F(MapDecorationTest, NetworkRoundTrip_InvalidIcon)
+{
+    // 无效图标值应回退为PLAYER
+    network::PacketSerializer ser;
+    ser.writeU8(200); // 无效的装饰类型
+    ser.writeI8(0);
+    ser.writeI8(0);
+    ser.writeU8(0);
+    ser.writeBool(false);
+
+    network::PacketDeserializer deser(ser.buffer().data(), ser.buffer().size());
+    auto restored = MapDecoration::deserialize(deser);
+    EXPECT_EQ(restored.type(), DecorationType::PLAYER);
+}
+
+// ============================================================================
+// MapDecoration / MapBanner ITextComponent JSON解析失败回退测试
+// ============================================================================
+
+TEST_F(MapDecorationTest, NbtRoundTrip_InvalidJsonFallback)
+{
+    // 写入一个包含无效JSON的name字段，验证回退为纯文本
+    nbt::tags::compound_tag tag;
+    tag.put("type", static_cast<i8>(DecorationType::BANNER_RED));
+    tag.put("x", static_cast<i8>(10));
+    tag.put("y", static_cast<i8>(-20));
+    tag.put("rot", static_cast<i8>(3));
+    tag.put("name", std::string("not valid json {"));
+
+    auto restored = MapDecoration::fromNbt(tag);
+    EXPECT_EQ(restored.type(), DecorationType::BANNER_RED);
+    ASSERT_NE(restored.customName(), nullptr);
+    // JSON解析失败时回退为纯文本组件
+    EXPECT_EQ(restored.customName()->getUnformattedText(), "not valid json {");
+}
+
+TEST(MapBannerTest, NbtRoundTrip_InvalidJsonFallback)
+{
+    // 写入一个包含无效JSON的name字段，验证回退为纯文本
+    nbt::tags::compound_tag tag;
+    tag.put("X", 10);
+    tag.put("Y", 20);
+    tag.put("Z", 30);
+    tag.put("Color", static_cast<i32>(DyeColor::Red));
+    tag.put("name", std::string("broken json [[["));
+
+    auto restored = MapBanner::fromNbt(tag);
+    ASSERT_NE(restored.name(), nullptr);
+    // JSON解析失败时回退为纯文本组件
+    EXPECT_EQ(restored.name()->getUnformattedText(), "broken json [[[");
+}
+
+// ============================================================================
+// MapData 下界旋转伪随机算法验证测试
+// ============================================================================
+
+class MapDataNetherRotationTest : public ::testing::Test {
+protected:
+    void SetUp() override { MaterialColor::initialize(); }
+};
+
+TEST_F(MapDataNetherRotationTest, NetherRotationUsesGameTime)
+{
+    // 需要一个能返回游戏时间的IWorld模拟
+    // 使用BaseTestWorld并覆写getGameTime
+    class NetherTestWorld : public mc::test::BaseTestWorld {
+    public:
+        [[nodiscard]] u64 getGameTime() const override { return m_gameTime; }
+        [[nodiscard]] DimensionId dimension() const override { return -1; } // Nether
+        void setGameTime(u64 time) { m_gameTime = time; }
+
+    private:
+        u64 m_gameTime = 0;
+    };
+
+    NetherTestWorld world;
+    world.setGameTime(100);
+
+    MapData data(1);
+    data.initialize(0, 0, 0, true, false, MapDimensionId::Nether);
+
+    // 下界旋转应基于游戏时间而非实际朝向
+    data.updateDecoration(DecorationType::PLAYER, &world, "player-1", 0.0, 0.0, 0.0, nullptr);
+    const auto& decos = data.decorations();
+    ASSERT_TRUE(decos.find("player-1") != decos.end());
+
+    // gameTime=100: t=10, rotation = ((10*10*34187121 + 10*121) >> 15) & 15
+    // = (3418712100 + 1210) >> 15 = 3418713310 >> 15 = 104213
+    // 104213 & 15 = 104213 % 16 = 5
+    u8 expectedRotation = static_cast<u8>(((10 * 10 * 34187121 + 10 * 121) >> 15) & 15);
+    EXPECT_EQ(decos.at("player-1").rotation(), expectedRotation);
+}
+
+TEST_F(MapDataNetherRotationTest, NetherRotationIndependentOfFacing)
+{
+    class NetherTestWorld : public mc::test::BaseTestWorld {
+    public:
+        [[nodiscard]] u64 getGameTime() const override { return m_gameTime; }
+        [[nodiscard]] DimensionId dimension() const override { return -1; }
+        void setGameTime(u64 time) { m_gameTime = time; }
+
+    private:
+        u64 m_gameTime = 1000;
+    };
+
+    NetherTestWorld world;
+
+    MapData data(1);
+    data.initialize(0, 0, 0, true, false, MapDimensionId::Nether);
+
+    // 不同朝向应得到相同的旋转（下界中朝向被忽略）
+    data.updateDecoration(DecorationType::PLAYER, &world, "player-north", 0.0, 0.0, 0.0, nullptr);
+    u8 rotNorth = data.decorations().at("player-north").rotation();
+
+    data.updateDecoration(DecorationType::PLAYER, &world, "player-east", 0.0, 0.0, 90.0, nullptr);
+    u8 rotEast = data.decorations().at("player-east").rotation();
+
+    data.updateDecoration(DecorationType::PLAYER, &world, "player-south", 0.0, 0.0, 180.0, nullptr);
+    u8 rotSouth = data.decorations().at("player-south").rotation();
+
+    EXPECT_EQ(rotNorth, rotEast);
+    EXPECT_EQ(rotNorth, rotSouth);
+}
+
+TEST_F(MapDataNetherRotationTest, OverworldRotationDependsOnFacing)
+{
+    MapData data(1);
+    data.initialize(0, 0, 0, true, false, MapDimensionId::Overworld);
+
+    // 主世界中不同朝向应产生不同的旋转值
+    data.updateDecoration(DecorationType::PLAYER, nullptr, "player-0", 0.0, 0.0, 0.0, nullptr);
+    data.updateDecoration(DecorationType::PLAYER, nullptr, "player-90", 0.0, 0.0, 90.0, nullptr);
+    data.updateDecoration(DecorationType::PLAYER, nullptr, "player-180", 0.0, 0.0, 180.0, nullptr);
+
+    u8 rot0 = data.decorations().at("player-0").rotation();
+    u8 rot90 = data.decorations().at("player-90").rotation();
+    u8 rot180 = data.decorations().at("player-180").rotation();
+
+    // 至少有两个旋转值不同
+    EXPECT_FALSE(rot0 == rot90 && rot90 == rot180);
+}
+
+TEST_F(MapDataNetherRotationTest, NetherRotationDeterministic)
+{
+    class NetherTestWorld : public mc::test::BaseTestWorld {
+    public:
+        [[nodiscard]] u64 getGameTime() const override { return 5000; }
+        [[nodiscard]] DimensionId dimension() const override { return -1; }
+    };
+
+    NetherTestWorld world;
+
+    MapData data1(1);
+    data1.initialize(0, 0, 0, true, false, MapDimensionId::Nether);
+    data1.updateDecoration(DecorationType::PLAYER, &world, "p1", 0.0, 0.0, 45.0, nullptr);
+
+    MapData data2(2);
+    data2.initialize(0, 0, 0, true, false, MapDimensionId::Nether);
+    data2.updateDecoration(DecorationType::PLAYER, &world, "p2", 0.0, 0.0, 270.0, nullptr);
+
+    // 相同游戏时间应产生相同旋转，无论朝向如何
+    EXPECT_EQ(data1.decorations().at("p1").rotation(), data2.decorations().at("p2").rotation());
+}
+
+// ============================================================================
+// MapData 旗帜交互集成测试（使用IWorld模拟）
+// ============================================================================
+
+class MapDataBannerTest : public ::testing::Test {
+protected:
+    void SetUp() override { MaterialColor::initialize(); }
+};
+
+TEST_F(MapDataBannerTest, RemoveStaleBanners_RemovesInvalidBanner)
+{
+    // removeStaleBanners在指定的区块坐标上检查旗帜是否仍然存在
+    // 如果该位置没有旗帜方块实体，应移除该旗帜标记
+    // 由于BaseTestWorld::getBlockEntity返回nullptr，所有旗帜都会被视为失效
+
+    class BannerTestWorld : public mc::test::BaseTestWorld {
+    public:
+        // getBlockEntity默认返回nullptr，意味着所有旗帜都已失效
+        using BaseTestWorld::getBlockEntity;
+    };
+
+    BannerTestWorld world;
+
+    MapData data(1);
+    data.initialize(0, 0, 0, true, false, MapDimensionId::Overworld);
+
+    // 使用addBanner直接添加旗帜标记（不经过tryAddBanner的世界交互检查）
+    BlockPos pos(10, 64, 20);
+    MapBanner banner(pos, DyeColor::Red, nullptr);
+    data.addBanner(banner);
+
+    std::string bannerId = banner.getMapDecorationId();
+    EXPECT_EQ(data.banners().size(), 1u);
+    EXPECT_TRUE(data.decorations().find(bannerId) != data.decorations().end());
+
+    // 调用removeStaleBanners - 由于getBlockEntity返回nullptr，旗帜应被移除
+    data.removeStaleBanners(world, 10, 20);
+
+    EXPECT_EQ(data.banners().size(), 0u);
+    EXPECT_TRUE(data.decorations().find(bannerId) == data.decorations().end());
+    EXPECT_TRUE(data.isDirty());
+}
+
+TEST_F(MapDataBannerTest, RemoveStaleBanners_NoMatchKeepsBanners)
+{
+    class BannerTestWorld : public mc::test::BaseTestWorld {
+    public:
+        using BaseTestWorld::getBlockEntity;
+    };
+
+    BannerTestWorld world;
+
+    MapData data(1);
+    data.initialize(0, 0, 0, true, false, MapDimensionId::Overworld);
+
+    // 添加一个旗帜在位置(10, 64, 20)
+    BlockPos pos(10, 64, 20);
+    MapBanner banner(pos, DyeColor::Red, nullptr);
+    data.addBanner(banner);
+
+    EXPECT_EQ(data.banners().size(), 1u);
+
+    // 在不同的区块坐标调用 - 不匹配任何旗帜位置
+    data.removeStaleBanners(world, 999, 999);
+
+    // 旗帜应保留（因为坐标不匹配，不会被检查）
+    EXPECT_EQ(data.banners().size(), 1u);
+}
+
+TEST_F(MapDataBannerTest, RemoveStaleBanners_KeepsValidBanner)
+{
+    // 测试当旗帜方块实体存在且颜色匹配时，旗帜应保留
+    // 需要一个能返回BannerEntity的世界模拟
+
+    class BannerTestWorld : public mc::test::BaseTestWorld {
+    public:
+        [[nodiscard]] mc::BlockEntity* getBlockEntity(const BlockPos& pos) override
+        {
+            // 只在特定位置返回旗帜实体
+            if (pos.x == m_bannerPos.x && pos.y == m_bannerPos.y && pos.z == m_bannerPos.z) {
+                return &m_bannerEntity;
+            }
+            return nullptr;
+        }
+
+        void setBannerPos(const BlockPos& pos) { m_bannerPos = pos; }
+
+        blockentity::BannerEntity& bannerEntity() { return m_bannerEntity; }
+
+    private:
+        BlockPos m_bannerPos;
+        blockentity::BannerEntity m_bannerEntity{BlockPos(0, 0, 0)};
+    };
+
+    BannerTestWorld world;
+    BlockPos bannerPos(10, 64, 20);
+    world.setBannerPos(bannerPos);
+    world.bannerEntity().setBaseColor(DyeColor::Red);
+
+    MapData data(1);
+    data.initialize(0, 0, 0, true, false, MapDimensionId::Overworld);
+
+    // 使用addBanner添加红色旗帜
+    MapBanner banner(bannerPos, DyeColor::Red, nullptr);
+    data.addBanner(banner);
+
+    EXPECT_EQ(data.banners().size(), 1u);
+
+    // removeStaleBanners应找到BannerEntity且颜色匹配，保留旗帜
+    data.removeStaleBanners(world, 10, 20);
+
+    EXPECT_EQ(data.banners().size(), 1u);
+}
+
+TEST_F(MapDataBannerTest, RemoveStaleBanners_RemovesColorChangedBanner)
+{
+    // 当旗帜颜色改变时，应移除旧的旗帜标记
+
+    class BannerTestWorld : public mc::test::BaseTestWorld {
+    public:
+        [[nodiscard]] mc::BlockEntity* getBlockEntity(const BlockPos& pos) override
+        {
+            if (pos.x == m_bannerPos.x && pos.y == m_bannerPos.y && pos.z == m_bannerPos.z) {
+                return &m_bannerEntity;
+            }
+            return nullptr;
+        }
+
+        void setBannerPos(const BlockPos& pos) { m_bannerPos = pos; }
+
+        blockentity::BannerEntity& bannerEntity() { return m_bannerEntity; }
+
+    private:
+        BlockPos m_bannerPos;
+        blockentity::BannerEntity m_bannerEntity{BlockPos(0, 0, 0)};
+    };
+
+    BannerTestWorld world;
+    BlockPos bannerPos(10, 64, 20);
+    world.setBannerPos(bannerPos);
+    // 世界中的旗帜现在是蓝色的
+    world.bannerEntity().setBaseColor(DyeColor::Blue);
+
+    MapData data(1);
+    data.initialize(0, 0, 0, true, false, MapDimensionId::Overworld);
+
+    // 地图数据中记录的是红色旗帜
+    MapBanner banner(bannerPos, DyeColor::Red, nullptr);
+    data.addBanner(banner);
+
+    EXPECT_EQ(data.banners().size(), 1u);
+
+    // removeStaleBanners应检测到颜色不匹配，移除旗帜
+    data.removeStaleBanners(world, 10, 20);
+
+    EXPECT_EQ(data.banners().size(), 0u);
+}
+
+TEST_F(MapDataBannerTest, TryAddBanner_AddsBanner)
+{
+    // 测试tryAddBanner在BannerEntity存在时成功添加旗帜
+
+    class BannerTestWorld : public mc::test::BaseTestWorld {
+    public:
+        [[nodiscard]] mc::BlockEntity* getBlockEntity(const BlockPos& pos) override
+        {
+            if (pos.x == m_bannerPos.x && pos.y == m_bannerPos.y && pos.z == m_bannerPos.z) {
+                return &m_bannerEntity;
+            }
+            return nullptr;
+        }
+
+        void setBannerPos(const BlockPos& pos) { m_bannerPos = pos; }
+
+        blockentity::BannerEntity& bannerEntity() { return m_bannerEntity; }
+
+    private:
+        BlockPos m_bannerPos;
+        blockentity::BannerEntity m_bannerEntity{BlockPos(0, 0, 0)};
+    };
+
+    BannerTestWorld world;
+    BlockPos bannerPos(10, 64, 20);
+    world.setBannerPos(bannerPos);
+    world.bannerEntity().setBaseColor(DyeColor::Red);
+
+    MapData data(1);
+    data.initialize(0, 0, 0, true, false, MapDimensionId::Overworld);
+
+    // tryAddBanner应成功添加旗帜
+    bool result = data.tryAddBanner(world, bannerPos);
+    EXPECT_TRUE(result);
+    EXPECT_EQ(data.banners().size(), 1u);
+
+    // 旗帜应使用正确的颜色
+    const auto& banners = data.banners();
+    auto it = banners.find("banner-10-64-20");
+    ASSERT_TRUE(it != banners.end());
+    EXPECT_EQ(it->second.color(), DyeColor::Red);
+}
+
+TEST_F(MapDataBannerTest, TryAddBanner_ToggleRemovesExisting)
+{
+    // 测试tryAddBanner的切换行为：再次添加相同旗帜应移除它
+
+    class BannerTestWorld : public mc::test::BaseTestWorld {
+    public:
+        [[nodiscard]] mc::BlockEntity* getBlockEntity(const BlockPos& pos) override
+        {
+            if (pos.x == m_bannerPos.x && pos.y == m_bannerPos.y && pos.z == m_bannerPos.z) {
+                return &m_bannerEntity;
+            }
+            return nullptr;
+        }
+
+        void setBannerPos(const BlockPos& pos) { m_bannerPos = pos; }
+
+        blockentity::BannerEntity& bannerEntity() { return m_bannerEntity; }
+
+    private:
+        BlockPos m_bannerPos;
+        blockentity::BannerEntity m_bannerEntity{BlockPos(0, 0, 0)};
+    };
+
+    BannerTestWorld world;
+    BlockPos bannerPos(10, 64, 20);
+    world.setBannerPos(bannerPos);
+    world.bannerEntity().setBaseColor(DyeColor::Red);
+
+    MapData data(1);
+    data.initialize(0, 0, 0, true, false, MapDimensionId::Overworld);
+
+    // 第一次添加应成功
+    bool result1 = data.tryAddBanner(world, bannerPos);
+    EXPECT_TRUE(result1);
+    EXPECT_EQ(data.banners().size(), 1u);
+
+    // 第二次添加相同旗帜应切换（移除）
+    bool result2 = data.tryAddBanner(world, bannerPos);
+    EXPECT_TRUE(result2);
+    EXPECT_EQ(data.banners().size(), 0u);
+}
+
+TEST_F(MapDataBannerTest, TryAddBanner_FailsWithoutBannerEntity)
+{
+    // 测试tryAddBanner在BannerEntity不存在时返回false
+
+    class EmptyWorld : public mc::test::BaseTestWorld {
+    public:
+        using BaseTestWorld::getBlockEntity;
+    };
+
+    EmptyWorld world;
+
+    MapData data(1);
+    data.initialize(0, 0, 0, true, false, MapDimensionId::Overworld);
+
+    BlockPos pos(10, 64, 20);
+    bool result = data.tryAddBanner(world, pos);
+    EXPECT_FALSE(result);
+    EXPECT_EQ(data.banners().size(), 0u);
+}
+
+TEST_F(MapDataBannerTest, TryAddBanner_FailsOutOfRange)
+{
+    // 测试tryAddBanner在旗帜超出地图范围时返回false
+
+    class BannerTestWorld : public mc::test::BaseTestWorld {
+    public:
+        [[nodiscard]] mc::BlockEntity* getBlockEntity(const BlockPos&) override { return &m_bannerEntity; }
+
+        blockentity::BannerEntity& bannerEntity() { return m_bannerEntity; }
+
+    private:
+        blockentity::BannerEntity m_bannerEntity{BlockPos(0, 0, 0)};
+    };
+
+    BannerTestWorld world;
+    world.bannerEntity().setBaseColor(DyeColor::Red);
+
+    MapData data(1);
+    data.initialize(0, 0, 0, true, false, MapDimensionId::Overworld);
+
+    // 旗帜在(5000, 64, 5000)，超出地图范围（中心0,0，scale=0时半径64）
+    BlockPos farPos(5000, 64, 5000);
+    bool result = data.tryAddBanner(world, farPos);
+    EXPECT_FALSE(result);
+    EXPECT_EQ(data.banners().size(), 0u);
 }

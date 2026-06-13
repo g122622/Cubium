@@ -129,13 +129,14 @@ world/
 │   ├── manager/                # 光照管理器
 │   └── storage/                # 光照存储
 ├── map/                        # 地图系统
-│   ├── MapData.hpp/cpp         # 地图数据
-│   ├── MapDecoration.hpp/cpp   # 地图装饰
-│   ├── MapBanner.hpp/cpp       # 地图横幅标记
-│   ├── MapFrame.hpp/cpp        # 地图物品展示框
-│   ├── MapIdTracker.hpp/cpp    # 地图ID追踪
-│   ├── MapDataManager.hpp/cpp  # 地图数据管理
-│   └── MaterialColor.hpp/cpp   # 材质颜色
+│   ├── MapData.hpp/cpp         # 地图数据核心 - 128x128像素、装饰物、旗帜、展示框标记
+│   ├── MapDecoration.hpp/cpp   # 地图装饰物 - 27种装饰类型定义、NBT/网络序列化
+│   ├── MapBanner.hpp/cpp       # 旗帜标记 - 旗帜位置/颜色记录、fromWorld世界交互
+│   ├── MapFrame.hpp/cpp        # 展示框标记 - 展示框位置/旋转记录
+│   ├── MapIdTracker.hpp/cpp    # 地图ID追踪器 - 自增ID分配
+│   ├── MapDataManager.hpp/cpp  # 地图数据管理器 - CRUD、tick更新
+│   ├── MaterialColor.hpp/cpp   # 材质颜色 - 59种颜色定义和阴影计算
+│   └── README.md               # 地图系统详细文档
 ├── redstone/                   # 红石系统
 │   ├── RedstoneSystem.hpp/cpp  # 红石系统管理
 │   ├── RedstonePower.hpp/cpp   # 信号强度计算

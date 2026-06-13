@@ -232,7 +232,6 @@ bool MapData::tryAddBanner(IWorld& world, const BlockPos& pos)
 
 void MapData::removeStaleBanners(IWorld& world, i32 x, i32 z)
 {
-    // TODO: 需要在 FilledMapItem::_updateMapData 的像素扫描循环中集成调用此方法
     auto it = m_banners.begin();
     while (it != m_banners.end()) {
         const MapBanner& banner = it->second;
@@ -263,6 +262,17 @@ void MapData::addFrame(const MapFrame& frame)
         static_cast<f64>(frame.pos().z),
         static_cast<f64>(frame.rotation()) * 90.0,
         nullptr);
+}
+
+void MapData::addBanner(const MapBanner& banner)
+{
+    std::string bannerId = banner.getMapDecorationId();
+    m_banners.insert_or_assign(bannerId, banner);
+    // 在地图上添加旗帜装饰
+    f64 worldX = static_cast<f64>(banner.pos().x) + 0.5;
+    f64 worldZ = static_cast<f64>(banner.pos().z) + 0.5;
+    updateDecoration(banner.getDecorationType(), nullptr, bannerId, worldX, worldZ, 180.0, banner.name());
+    m_dirty = true;
 }
 
 void MapData::removeFrame(const std::string& frameId)

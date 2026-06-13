@@ -381,6 +381,10 @@ void FilledMapItem::_updateMapData(IWorld& world, Entity& viewer, world::map::Ma
             const u8 pixelValue = (colorIndex == 0) ? 0 : static_cast<u8>(colorIndex * 4 + shadeIndex);
             data.setColor(x, z, pixelValue);
             prevHeight = height;
+
+            // 检查并移除该位置已失效的旗帜标记
+            // 参考: net.minecraft.world.item.MapItem.update 中对 checkBanners 的调用
+            data.removeStaleBanners(world, worldX, worldZ);
         }
     }
 }
