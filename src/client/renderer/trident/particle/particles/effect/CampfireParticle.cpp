@@ -22,7 +22,6 @@
  */
 
 #include "CampfireParticle.hpp"
-#include "common/util/math/random/Random.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
 
@@ -30,18 +29,16 @@ CampfireParticle::CampfireParticle(const glm::vec3& pos, const glm::vec3& veloci
     : Particle(pos, velocity)
     , m_campfireType(type)
 {
-    mc::math::Random rng;
-
     // 尺寸 0.25 x 0.25，缩放 3 倍
     setSize(static_cast<f32>(BASE_SIZE));
     setBoundingBox(static_cast<f32>(BASE_SIZE), static_cast<f32>(BASE_SIZE));
 
     // 生命周期随机：Cozy: 80 + rand(50)，Signal: 280 + rand(50)
     if (type == CampfireType::Signal) {
-        setMaxAge(280.0 + rng.nextInt(50));
+        setMaxAge(280.0 + m_random.nextInt(50));
         m_initialAlpha = 0.95;
     } else {
-        setMaxAge(80.0 + rng.nextInt(50));
+        setMaxAge(80.0 + m_random.nextInt(50));
         m_initialAlpha = 0.9;
     }
 
@@ -51,7 +48,7 @@ CampfireParticle::CampfireParticle(const glm::vec3& pos, const glm::vec3& veloci
     setHasPhysics(false); // 不做碰撞检测
 
     // Y速度增加随机量
-    m_velocity.y += rng.nextFloat() / 500.0f;
+    m_velocity.y += m_random.nextFloat() / 500.0f;
 
     // 初始颜色为灰色，alpha 根据类型设置
     setColor(glm::vec4(0.2f, 0.2f, 0.2f, static_cast<f32>(m_initialAlpha)));
@@ -89,9 +86,8 @@ void CampfireParticle::tick(mc::client::ClientWorld* world)
     }
 
     // 随机水平漂移
-    mc::math::Random rng;
-    m_velocity.x += (rng.nextFloat() / 5000.0f) * (rng.nextBoolean() ? 1.0f : -1.0f);
-    m_velocity.z += (rng.nextFloat() / 5000.0f) * (rng.nextBoolean() ? 1.0f : -1.0f);
+    m_velocity.x += (m_random.nextFloat() / 5000.0f) * (m_random.nextBoolean() ? 1.0f : -1.0f);
+    m_velocity.z += (m_random.nextFloat() / 5000.0f) * (m_random.nextBoolean() ? 1.0f : -1.0f);
 
     // 应用重力（负值，向上）
     m_velocity.y -= static_cast<f32>(m_gravity);

@@ -22,7 +22,6 @@
  */
 
 #include "DragonBreathParticle.hpp"
-#include "common/util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::trident::particle::particles {
@@ -36,23 +35,21 @@ DragonBreathParticle::DragonBreathParticle(const glm::vec3& pos, const glm::vec3
     , m_initialSize(0.1f)
     , m_hasLanded(false)
 {
-    mc::math::Random rng;
-
     setGravity(0.0f);
-    setSize(0.1f + rng.nextFloat() * 0.05f);
+    setSize(0.1f + m_random.nextFloat() * 0.05f);
     m_initialSize = size();
     setFriction(0.96f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 10.0);
+    setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * 10.0);
 
     // 紫色龙息颜色
-    f32 purple = 0.8f + rng.nextFloat() * 0.2f;
+    f32 purple = 0.8f + m_random.nextFloat() * 0.2f;
     setColor(glm::vec4(purple * 0.6f, 0.0f, purple, 1.0f));
 
     // 添加随机初始速度
-    m_velocity.x += (rng.nextFloat() - 0.5f) * 0.1f;
-    m_velocity.y += rng.nextFloat() * 0.1f;
-    m_velocity.z += (rng.nextFloat() - 0.5f) * 0.1f;
+    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.1f;
+    m_velocity.y += m_random.nextFloat() * 0.1f;
+    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.1f;
 }
 
 std::unique_ptr<Particle> DragonBreathParticle::create(
@@ -76,10 +73,9 @@ void DragonBreathParticle::tick(mc::client::ClientWorld* world)
     }
 
     // 随机漂浮运动
-    mc::math::Random rng;
-    m_velocity.x += (rng.nextFloat() - 0.5f) * 0.01f;
-    m_velocity.y += (rng.nextFloat() - 0.5f) * 0.01f;
-    m_velocity.z += (rng.nextFloat() - 0.5f) * 0.01f;
+    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.01f;
+    m_velocity.y += (m_random.nextFloat() - 0.5f) * 0.01f;
+    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.01f;
 
     m_position += m_velocity;
     m_velocity *= m_friction;
@@ -107,17 +103,15 @@ EndRodParticle::EndRodParticle(const glm::vec3& pos, const glm::vec3& velocity)
     , m_initialSize(0.02f)
     , m_brightness(0.95f)
 {
-    mc::math::Random rng;
-
     setGravity(-5e-4f); // 轻微向上浮动
-    setSize(0.02f + rng.nextFloat() * 0.01f);
+    setSize(0.02f + m_random.nextFloat() * 0.01f);
     m_initialSize = size();
     setFriction(0.98f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 12.0);
+    setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * 12.0);
 
     // 白色/淡黄色
-    m_brightness = 0.95f + rng.nextFloat() * 0.05f;
+    m_brightness = 0.95f + m_random.nextFloat() * 0.05f;
     setColor(glm::vec4(m_brightness, m_brightness, 1.0f, 1.0f));
 
     // 向上运动
@@ -172,13 +166,11 @@ SweepAttackParticle::SweepAttackParticle(const glm::vec3& pos, const glm::vec3& 
     : Particle(pos, velocity)
     , m_scaleMultiplier(1.0)
 {
-    mc::math::Random rng;
-
     // 固定生命周期 4 tick
     setMaxAge(4.0);
 
     // 随机灰白色
-    f32 gray = rng.nextFloat() * 0.6f + 0.4f;
+    f32 gray = m_random.nextFloat() * 0.6f + 0.4f;
     setColor(glm::vec4(gray, gray, gray, 1.0f));
 
     m_scaleMultiplier = 1.0 - velocity.x * 0.5;

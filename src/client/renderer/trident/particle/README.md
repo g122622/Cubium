@@ -130,3 +130,5 @@ ParticleManager
 10. **DripParticle 状态机**：Hanging → Falling → Landed 三态，各态物理参数不同。
 
 11. **getScale() 返回值是乘数**：`getScale()` 返回的值会与 `m_size` 相乘（渲染管线：`halfSize = m_size * scale * 0.5`），因此 getScale() 应仅返回缩放乘数（如 0~1 范围），**不要**乘以 `m_initialSize` 或 `size()`，否则渲染尺寸会被平方放大。如需基于初始大小做动画，应在 `tick()` 中用 `setSize(m_initialSize * factor)` 更新 m_size，让 getScale() 返回 1.0；或让 getScale() 仅返回乘数。
+
+12. **粒子随机源**：`Particle` 基类提供 `m_random` 成员（`mc::math::Random` 类型），构造时使用位置哈希和时间戳作为种子。子类应直接使用 `m_random` 获取随机数，**不要**在 tick() 或构造函数中创建局部 `mc::math::Random` 对象，否则每个粒子实例的随机序列会完全相同（默认种子为 0），且每 tick 创建对象有性能开销。

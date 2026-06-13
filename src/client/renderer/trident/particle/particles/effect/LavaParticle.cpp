@@ -22,25 +22,22 @@
  */
 
 #include "LavaParticle.hpp"
-#include "common/util/math/random/Random.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
 
 LavaParticle::LavaParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
-
     setGravity(DEFAULT_GRAVITY);
-    setSize(DEFAULT_SIZE * (0.8f + rng.nextFloat() * 0.4f));
+    setSize(DEFAULT_SIZE * (0.8f + m_random.nextFloat() * 0.4f));
 
     // 熔岩颜色：橙红色
-    f32 colorVar = rng.nextFloat() * 0.2f;
+    f32 colorVar = m_random.nextFloat() * 0.2f;
     setColor(glm::vec4(1.0f, 0.3f + colorVar, 0.0f, 1.0f));
 
     setFriction(0.98f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME * (0.8f + rng.nextFloat() * 0.4f));
+    setMaxAge(DEFAULT_LIFETIME * (0.8f + m_random.nextFloat() * 0.4f));
 }
 
 std::unique_ptr<Particle> LavaParticle::create(
@@ -66,9 +63,8 @@ void LavaParticle::tick(mc::client::ClientWorld* world)
     m_velocity.y -= m_gravity * 0.04;
 
     // 随机水平漂移
-    mc::math::Random rng;
-    m_velocity.x += (rng.nextFloat() - 0.5f) * 0.002f;
-    m_velocity.z += (rng.nextFloat() - 0.5f) * 0.002f;
+    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.002f;
+    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.002f;
 
     m_position += m_velocity;
     m_velocity.x *= m_friction;

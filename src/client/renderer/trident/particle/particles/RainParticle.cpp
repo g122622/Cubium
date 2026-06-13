@@ -25,7 +25,6 @@
 #include "client/renderer/trident/particle/particles/weather/SplashParticle.hpp"
 #include "client/world/ClientWorld.hpp"
 #include "common/physics/PhysicsConstants.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/world/block/Block.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
@@ -87,8 +86,7 @@ RainParticle::RainParticle(const glm::vec3& pos, const glm::vec3& velocity)
     setHasPhysics(false); // 雨滴使用自定义碰撞检测
 
     // 雨滴生命周期较短
-    mc::math::Random rng;
-    f64 lifeMultiplier = 0.2 + rng.nextFloat() * 0.8;
+    f64 lifeMultiplier = 0.2 + m_random.nextFloat() * 0.8;
     setMaxAge(8.0 / lifeMultiplier);
 }
 
@@ -147,17 +145,16 @@ void RainParticle::tick(mc::client::ClientWorld* world)
     if (m_collisionContext.onGround) {
         if (m_emitCallback) {
             // 生成溅射粒子
-            mc::math::Random rng;
             for (i32 i = 0; i < 2; ++i) {
-                glm::vec3 splashVelocity(
-                    (rng.nextFloat() - 0.5f) * 0.1f, rng.nextFloat() * 0.1f + 0.02f, (rng.nextFloat() - 0.5f) * 0.1f);
+                glm::vec3 splashVelocity((m_random.nextFloat() - 0.5f) * 0.1f,
+                    m_random.nextFloat() * 0.1f + 0.02f,
+                    (m_random.nextFloat() - 0.5f) * 0.1f);
                 m_emitCallback(ParticleTypeId::Splash, m_position, splashVelocity);
             }
         }
 
         // 雨滴碰到地面有概率消失
-        mc::math::Random rng;
-        if (rng.nextFloat() < 0.5f) {
+        if (m_random.nextFloat() < 0.5f) {
             setExpired();
         }
         m_velocity.x *= static_cast<f32>(physics::PARTICLE_GROUND_FRICTION);

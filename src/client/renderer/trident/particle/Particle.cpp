@@ -28,6 +28,7 @@
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/TimeUtils.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <algorithm>
 #include <cmath>
@@ -45,6 +46,9 @@ Particle::Particle(const glm::vec3& pos, const glm::vec3& velocity)
     , m_velocity(velocity)
     , m_bboxWidth(physics::PARTICLE_DEFAULT_BBOX_WIDTH)
     , m_bboxHeight(physics::PARTICLE_DEFAULT_BBOX_HEIGHT)
+    , m_random(static_cast<u64>(
+                   std::hash<double>{}(pos.x) ^ (std::hash<double>{}(pos.y) << 1) ^ (std::hash<double>{}(pos.z) << 2)) ^
+          mc::util::TimeUtils::getCurrentTimeUs())
 {}
 
 void Particle::tick(mc::client::ClientWorld* world)

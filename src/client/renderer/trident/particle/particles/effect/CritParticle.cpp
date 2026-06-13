@@ -22,7 +22,6 @@
  */
 
 #include "CritParticle.hpp"
-#include "common/util/math/random/Random.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
 
@@ -30,10 +29,8 @@ CritParticle::CritParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
     , m_initialSize(DEFAULT_SIZE)
 {
-    mc::math::Random rng;
-
     setGravity(DEFAULT_GRAVITY);
-    setSize(DEFAULT_SIZE * (0.8f + rng.nextFloat() * 0.4f));
+    setSize(DEFAULT_SIZE * (0.8f + m_random.nextFloat() * 0.4f));
     m_initialSize = size();
 
     // 暴击颜色：淡黄色
@@ -41,7 +38,7 @@ CritParticle::CritParticle(const glm::vec3& pos, const glm::vec3& velocity)
 
     setFriction(0.96f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME * (0.7f + rng.nextFloat() * 0.6f));
+    setMaxAge(DEFAULT_LIFETIME * (0.7f + m_random.nextFloat() * 0.6f));
 }
 
 std::unique_ptr<Particle> CritParticle::create(

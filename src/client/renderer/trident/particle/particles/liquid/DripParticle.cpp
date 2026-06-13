@@ -24,7 +24,6 @@
 #include "DripParticle.hpp"
 #include "client/world/ClientWorld.hpp"
 #include "common/physics/PhysicsConstants.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
@@ -200,9 +199,7 @@ void DripParticle::tickHanging(mc::client::ClientWorld* world)
     MC_UNUSED(world);
 
     // 进度增加非常慢，通常需要 40 tick 积累满
-    // TODO: 当前每次 tick 创建新的 Random 对象，应该使用粒子自身的随机源
-    mc::math::Random rng;
-    m_dripProgress += 0.01 + rng.nextFloat() * 0.01;
+    m_dripProgress += 0.01 + m_random.nextFloat() * 0.01;
 
     // 积累满后开始下落
     if (m_dripProgress >= 1.0) {

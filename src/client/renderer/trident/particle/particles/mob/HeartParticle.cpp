@@ -22,27 +22,24 @@
  */
 
 #include "HeartParticle.hpp"
-#include "common/util/math/random/Random.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
 
 HeartParticle::HeartParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
-
     setGravity(DEFAULT_GRAVITY);
-    setSize(DEFAULT_SIZE * (0.8 + static_cast<f64>(rng.nextFloat()) * 0.4));
+    setSize(DEFAULT_SIZE * (0.8 + static_cast<f64>(m_random.nextFloat()) * 0.4));
 
     // 爱心颜色：红色
     setColor(glm::vec4(1.0f, 0.2f, 0.2f, 1.0f));
 
     setFriction(0.95);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME * (0.8 + static_cast<f64>(rng.nextFloat()) * 0.4));
+    setMaxAge(DEFAULT_LIFETIME * (0.8 + static_cast<f64>(m_random.nextFloat()) * 0.4));
 
     // 爱心向上飘动
-    m_velocity.y = 0.02f + rng.nextFloat() * 0.01f;
+    m_velocity.y = 0.02f + m_random.nextFloat() * 0.01f;
 }
 
 std::unique_ptr<Particle> HeartParticle::create(

@@ -24,7 +24,6 @@
 #include "RedstoneParticle.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/util/math/random/Random.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -37,15 +36,13 @@ namespace mc::client::renderer::trident::particle::particles {
 RedstoneParticle::RedstoneParticle(const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
-
     setGravity(0.0f);
     // 红石粒子大小基于颜色强度
     f32 intensity = (color.r + color.g + color.b) / 3.0f;
     setSize(0.01f + intensity * 0.05f);
     setFriction(1.0f); // 无摩擦
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 4.0);
+    setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * 4.0);
 
     // 设置颜色
     setColor(color);
@@ -97,22 +94,20 @@ f64 RedstoneParticle::getScale(f64 partialTick) const
 EnchantParticle::EnchantParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
-
     setGravity(0.0f);
-    setSize(0.02f + rng.nextFloat() * 0.01f);
+    setSize(0.02f + m_random.nextFloat() * 0.01f);
     setFriction(0.95f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 10.0);
+    setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * 10.0);
 
     // 紫色附魔颜色
-    f32 purple = 0.7f + rng.nextFloat() * 0.3f;
+    f32 purple = 0.7f + m_random.nextFloat() * 0.3f;
     setColor(glm::vec4(purple, 0.0f, purple * 1.2f, 1.0f));
 
     // 向上运动
-    m_velocity.y += 0.02f + rng.nextFloat() * 0.02f;
-    m_velocity.x += (rng.nextFloat() - 0.5f) * 0.05f;
-    m_velocity.z += (rng.nextFloat() - 0.5f) * 0.05f;
+    m_velocity.y += 0.02f + m_random.nextFloat() * 0.02f;
+    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.05f;
+    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.05f;
 }
 
 std::unique_ptr<Particle> EnchantParticle::create(
@@ -136,12 +131,11 @@ void EnchantParticle::tick(mc::client::ClientWorld* world)
     }
 
     // 曲线运动
-    mc::math::Random rng;
     f64 lifeRatio = m_age / m_maxAge;
 
     // 随机摆动
-    m_velocity.x += (rng.nextFloat() - 0.5f) * 0.01f;
-    m_velocity.z += (rng.nextFloat() - 0.5f) * 0.01f;
+    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.01f;
+    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.01f;
 
     // 继续向上
     m_velocity.y *= 0.98f;
@@ -160,18 +154,16 @@ void EnchantParticle::tick(mc::client::ClientWorld* world)
 FallingDustParticle::FallingDustParticle(const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
-
     setGravity(DEFAULT_GRAVITY);
-    setSize(0.05f + rng.nextFloat() * 0.02f);
+    setSize(0.05f + m_random.nextFloat() * 0.02f);
     setFriction(0.98f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 10.0);
+    setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * 10.0);
 
     setColor(color);
 
     // 设置旋转
-    setRoll(rng.nextFloat() * mc::math::PI_DOUBLE * 2.0);
+    setRoll(m_random.nextFloat() * mc::math::PI_DOUBLE * 2.0);
 }
 
 std::unique_ptr<Particle> FallingDustParticle::create(
@@ -199,9 +191,8 @@ void FallingDustParticle::tick(mc::client::ClientWorld* world)
     m_velocity.y -= static_cast<f32>(m_gravity * 0.04);
 
     // 随机水平漂移
-    mc::math::Random rng;
-    m_velocity.x += (rng.nextFloat() - 0.5f) * 0.002f;
-    m_velocity.z += (rng.nextFloat() - 0.5f) * 0.002f;
+    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.002f;
+    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.002f;
 
     m_position += m_velocity;
     m_velocity.x *= m_friction;

@@ -28,6 +28,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <functional>
 #include <memory>
 #include <vector>
@@ -350,6 +351,12 @@ protected:
     f64 m_bboxWidth = 0.0;                       ///< 碰撞盒宽度
     f64 m_bboxHeight = 0.0;                      ///< 碰撞盒高度
     ParticleCollisionContext m_collisionContext; ///< 碰撞上下文
+
+    // ========================================================================
+    // 随机源
+    // ========================================================================
+
+    mc::math::Random m_random; ///< 粒子实例级随机源，供子类在 tick 和构造中使用
 
     // ========================================================================
     // 发射回调

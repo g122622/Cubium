@@ -22,16 +22,13 @@
  */
 
 #include "DripWaterParticle.hpp"
-#include "common/util/math/random/Random.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
 
 DripWaterParticle::DripWaterParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : DripParticle(pos, velocity, DripType::Water)
 {
-    mc::math::Random rng;
-
-    setSize(0.01f + rng.nextFloat() * 0.01f);
+    setSize(0.01f + m_random.nextFloat() * 0.01f);
 
     setColor(glm::vec4(0.7f, 0.7f, 1.0f, 0.8f));
 

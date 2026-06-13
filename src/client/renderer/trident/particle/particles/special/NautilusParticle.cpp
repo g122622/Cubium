@@ -22,25 +22,22 @@
  */
 
 #include "NautilusParticle.hpp"
-#include "common/util/math/random/Random.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
 
 NautilusParticle::NautilusParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
-
     setGravity(0.0f);
-    setSize(0.04 * (0.8 + rng.nextFloat() * 0.4));
+    setSize(0.04 * (0.8 + m_random.nextFloat() * 0.4));
 
     // 鹦鹉螺粒子颜色：白色/淡蓝色
-    f32 brightness = 0.8f + rng.nextFloat() * 0.2f;
+    f32 brightness = 0.8f + m_random.nextFloat() * 0.2f;
     setColor(glm::vec4(brightness, brightness, 1.0f, 1.0f));
 
     setFriction(0.95f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME * (0.7 + rng.nextFloat() * 0.6));
+    setMaxAge(DEFAULT_LIFETIME * (0.7 + m_random.nextFloat() * 0.6));
 }
 
 std::unique_ptr<Particle> NautilusParticle::create(

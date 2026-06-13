@@ -23,7 +23,6 @@
 
 #include "FlameParticle.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/util/math/random/Random.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
 
@@ -31,22 +30,20 @@ FlameParticle::FlameParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
     , m_initialSize(DEFAULT_SIZE)
 {
-    mc::math::Random rng;
-
     // 速度缩放后加上随机偏移
     setGravity(DEFAULT_GRAVITY);
     setSize(DEFAULT_SIZE);
     m_initialSize = size();
 
     // 火焰颜色：橙黄色
-    f64 colorVariation = rng.nextFloat() * 0.2f;
+    f64 colorVariation = m_random.nextFloat() * 0.2f;
     setColor(glm::vec4(1.0f, 0.6f + static_cast<f32>(colorVariation), 0.1f, 1.0f));
 
     setFriction(0.96f);
     setHasPhysics(false);
 
     // 生命周期带随机浮动
-    setMaxAge(DEFAULT_LIFETIME * (0.8f + rng.nextFloat() * 0.4f));
+    setMaxAge(DEFAULT_LIFETIME * (0.8f + m_random.nextFloat() * 0.4f));
 }
 
 std::unique_ptr<Particle> FlameParticle::create(

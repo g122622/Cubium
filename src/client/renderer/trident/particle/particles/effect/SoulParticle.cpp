@@ -22,7 +22,6 @@
  */
 
 #include "SoulParticle.hpp"
-#include "common/util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::trident::particle::particles {
@@ -35,18 +34,16 @@ SoulFireFlameParticle::SoulFireFlameParticle(const glm::vec3& pos, const glm::ve
     : Particle(pos, velocity)
     , m_initialSize(0.04f)
 {
-    mc::math::Random rng;
-
     setGravity(0.0f);
-    setSize(0.04f * (0.6f + rng.nextFloat() * 0.4f));
+    setSize(0.04f * (0.6f + m_random.nextFloat() * 0.4f));
     m_initialSize = size();
     setFriction(0.95f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME * (0.8f + rng.nextFloat() * 0.4f));
+    setMaxAge(DEFAULT_LIFETIME * (0.8f + m_random.nextFloat() * 0.4f));
 
     // 蓝色火焰颜色
-    f32 blueIntensity = 0.8f + rng.nextFloat() * 0.2f;
-    setColor(glm::vec4(0.2f, 0.4f + rng.nextFloat() * 0.2f, blueIntensity, 1.0f));
+    f32 blueIntensity = 0.8f + m_random.nextFloat() * 0.2f;
+    setColor(glm::vec4(0.2f, 0.4f + m_random.nextFloat() * 0.2f, blueIntensity, 1.0f));
 }
 
 std::unique_ptr<Particle> SoulFireFlameParticle::create(
@@ -70,9 +67,8 @@ void SoulFireFlameParticle::tick(mc::client::ClientWorld* world)
     }
 
     // 向上飘动并随机摇摆
-    mc::math::Random rng;
-    m_velocity.x += (rng.nextFloat() - 0.5f) * 0.01f;
-    m_velocity.z += (rng.nextFloat() - 0.5f) * 0.01f;
+    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.01f;
+    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.01f;
     m_velocity.y += 0.002f;
 
     m_position += m_velocity;
@@ -102,17 +98,15 @@ SoulParticle::SoulParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
     , m_initialSize(0.1f)
 {
-    mc::math::Random rng;
-
     setGravity(0.0f);
-    setSize(0.1f + rng.nextFloat() * 0.03f);
+    setSize(0.1f + m_random.nextFloat() * 0.03f);
     m_initialSize = size();
     setFriction(0.96f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 4.0);
+    setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * 4.0);
 
     // 蓝色灵魂颜色
-    f32 blue = 0.7f + rng.nextFloat() * 0.3f;
+    f32 blue = 0.7f + m_random.nextFloat() * 0.3f;
     setColor(glm::vec4(0.3f, 0.5f, blue, 0.8f));
 
     // 轻微向上漂浮
@@ -140,10 +134,9 @@ void SoulParticle::tick(mc::client::ClientWorld* world)
     }
 
     // 向上漂浮并随机漂移
-    mc::math::Random rng;
     m_velocity.y += 0.002f;
-    m_velocity.x += (rng.nextFloat() - 0.5f) * 0.002f;
-    m_velocity.z += (rng.nextFloat() - 0.5f) * 0.002f;
+    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.002f;
+    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.002f;
 
     m_position += m_velocity;
     m_velocity *= m_friction;

@@ -24,7 +24,6 @@
 #include "EmitterParticle.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/util/math/random/Random.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
 
@@ -78,17 +77,15 @@ void EmitterParticle::emitWithOffset(mc::client::ClientWorld* world,
     const glm::vec3& baseVelocity,
     const glm::vec3& velocitySpread)
 {
-    math::Random rng;
-
     // 随机偏移
-    glm::vec3 pos(center.x + (rng.nextFloat() * 2.0f - 1.0f) * offset.x,
-        center.y + (rng.nextFloat() * 2.0f - 1.0f) * offset.y,
-        center.z + (rng.nextFloat() * 2.0f - 1.0f) * offset.z);
+    glm::vec3 pos(center.x + (m_random.nextFloat() * 2.0f - 1.0f) * offset.x,
+        center.y + (m_random.nextFloat() * 2.0f - 1.0f) * offset.y,
+        center.z + (m_random.nextFloat() * 2.0f - 1.0f) * offset.z);
 
     // 随机速度
-    glm::vec3 vel(baseVelocity.x + (rng.nextFloat() * 2.0f - 1.0f) * velocitySpread.x,
-        baseVelocity.y + (rng.nextFloat() * 2.0f - 1.0f) * velocitySpread.y,
-        baseVelocity.z + (rng.nextFloat() * 2.0f - 1.0f) * velocitySpread.z);
+    glm::vec3 vel(baseVelocity.x + (m_random.nextFloat() * 2.0f - 1.0f) * velocitySpread.x,
+        baseVelocity.y + (m_random.nextFloat() * 2.0f - 1.0f) * velocitySpread.y,
+        baseVelocity.z + (m_random.nextFloat() * 2.0f - 1.0f) * velocitySpread.z);
 
     emit(world, type, pos, vel);
 }

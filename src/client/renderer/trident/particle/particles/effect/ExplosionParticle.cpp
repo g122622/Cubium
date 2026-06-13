@@ -22,7 +22,6 @@
  */
 
 #include "ExplosionParticle.hpp"
-#include "common/util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::trident::particle::particles {
@@ -35,17 +34,15 @@ ExplosionParticle::ExplosionParticle(const glm::vec3& pos, const glm::vec3& velo
     : Particle(pos, velocity)
     , m_initialSize(1.0)
 {
-    mc::math::Random rng;
-
     setGravity(0.0f);
-    setSize(1.0f + rng.nextFloat() * 0.5f);
+    setSize(1.0f + m_random.nextFloat() * 0.5f);
     m_initialSize = size();
     setFriction(1.0f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 4.0);
+    setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * 4.0);
 
     // 爆炸颜色：亮白色/黄色
-    setColor(glm::vec4(1.0f, 0.9f + rng.nextFloat() * 0.1f, 0.7f + rng.nextFloat() * 0.3f, 1.0f));
+    setColor(glm::vec4(1.0f, 0.9f + m_random.nextFloat() * 0.1f, 0.7f + m_random.nextFloat() * 0.3f, 1.0f));
 }
 
 std::unique_ptr<Particle> ExplosionParticle::create(
@@ -93,11 +90,9 @@ f64 ExplosionParticle::getScale(f64 partialTick) const
 LargeExplosionParticle::LargeExplosionParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
+    setMaxAge(6.0 + m_random.nextInt(4));
 
-    setMaxAge(6.0 + rng.nextInt(4));
-
-    f32 gray = rng.nextFloat() * 0.6f + 0.4f;
+    f32 gray = m_random.nextFloat() * 0.6f + 0.4f;
     setColor(glm::vec4(gray, gray, gray, 1.0f));
 
     // 缩放随 xSpeed 参数变化

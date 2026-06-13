@@ -23,7 +23,6 @@
 
 #include "PortalParticle.hpp"
 #include "common/util/math/MathConstants.hpp"
-#include "common/util/math/random/Random.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::trident::particle::particles {
@@ -33,18 +32,16 @@ PortalParticle::PortalParticle(const glm::vec3& pos, const glm::vec3& velocity)
     , m_startX(pos.x)
     , m_startZ(pos.z)
 {
-    mc::math::Random rng;
-
     setGravity(DEFAULT_GRAVITY);
-    setSize(DEFAULT_SIZE * (0.8 + static_cast<f64>(rng.nextFloat()) * 0.4));
+    setSize(DEFAULT_SIZE * (0.8 + static_cast<f64>(m_random.nextFloat()) * 0.4));
 
     // 传送门颜色：紫色
-    f64 purple = 0.6 + static_cast<f64>(rng.nextFloat()) * 0.4;
+    f64 purple = 0.6 + static_cast<f64>(m_random.nextFloat()) * 0.4;
     setColor(glm::vec4(0.4f, 0.1f, static_cast<f32>(purple), 0.8f));
 
     setFriction(0.95);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME * (0.7 + static_cast<f64>(rng.nextFloat()) * 0.6));
+    setMaxAge(DEFAULT_LIFETIME * (0.7 + static_cast<f64>(m_random.nextFloat()) * 0.6));
 }
 
 std::unique_ptr<Particle> PortalParticle::create(

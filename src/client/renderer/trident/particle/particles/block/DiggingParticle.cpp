@@ -25,7 +25,6 @@
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
 #include "client/resource/BlockModelCache.hpp"
 #include "client/resource/ResourceManager.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <optional>
 #include <glm/glm.hpp>
@@ -90,18 +89,16 @@ DiggingParticle::DiggingParticle(const glm::vec3& pos, const glm::vec3& velocity
     : Particle(pos, velocity)
     , m_blockState(blockState)
 {
-    math::Random rng;
-
     setGravity(DEFAULT_GRAVITY);
-    setSize(DEFAULT_SIZE * (0.5f + rng.nextFloat() * 0.5f));
+    setSize(DEFAULT_SIZE * (0.5f + m_random.nextFloat() * 0.5f));
     setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); // 使用纹理原色
     setFriction(0.92f);
     setHasPhysics(true); // 方块粒子有物理碰撞
-    setMaxAge(DEFAULT_LIFETIME * (0.8f + rng.nextFloat() * 0.4f));
+    setMaxAge(DEFAULT_LIFETIME * (0.8f + m_random.nextFloat() * 0.4f));
 
     // 随机 UV 偏移：将 16x16 纹理划分为 4x4 区域，随机选取一个
-    m_uvOffsetU = static_cast<f32>(rng.nextInt(4)); // 0, 1, 2, 或 3
-    m_uvOffsetV = static_cast<f32>(rng.nextInt(4));
+    m_uvOffsetU = static_cast<f32>(m_random.nextInt(4)); // 0, 1, 2, 或 3
+    m_uvOffsetV = static_cast<f32>(m_random.nextInt(4));
 
     // 初始化方块纹理
     _initializeBlockTexture();
@@ -307,8 +304,7 @@ void DiggingParticle::_initializeBlockTexture()
     }
 
     // 随机选择一个面的纹理
-    math::Random rng;
-    auto textureRegion = selectRandomFaceTexture(appearance, rng);
+    auto textureRegion = selectRandomFaceTexture(appearance, m_random);
 
     if (textureRegion.has_value()) {
         m_textureRegion = textureRegion.value();

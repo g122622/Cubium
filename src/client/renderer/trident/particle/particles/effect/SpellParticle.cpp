@@ -22,7 +22,6 @@
  */
 
 #include "SpellParticle.hpp"
-#include "common/util/math/random/Random.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
 
@@ -33,18 +32,16 @@ namespace mc::client::renderer::trident::particle::particles {
 SpellParticle::SpellParticle(const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
-
     setGravity(0.0f);
-    setSize(0.1f + rng.nextFloat() * 0.04f);
+    setSize(0.1f + m_random.nextFloat() * 0.04f);
     setFriction(0.96f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 4.0);
+    setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * 4.0);
 
     // 设置颜色，添加一点随机性
-    f32 r = color.r * (0.8f + rng.nextFloat() * 0.2f);
-    f32 g = color.g * (0.8f + rng.nextFloat() * 0.2f);
-    f32 b = color.b * (0.8f + rng.nextFloat() * 0.2f);
+    f32 r = color.r * (0.8f + m_random.nextFloat() * 0.2f);
+    f32 g = color.g * (0.8f + m_random.nextFloat() * 0.2f);
+    f32 b = color.b * (0.8f + m_random.nextFloat() * 0.2f);
     setColor(glm::vec4(r, g, b, 0.8f));
 
     // 轻微向上漂浮
@@ -76,9 +73,8 @@ void SpellParticle::tick(mc::client::ClientWorld* world)
     m_velocity.y += 0.002f;
 
     // 随机漂移
-    mc::math::Random rng;
-    m_velocity.x += (rng.nextFloat() - 0.5f) * 0.002f;
-    m_velocity.z += (rng.nextFloat() - 0.5f) * 0.002f;
+    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.002f;
+    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.002f;
 
     m_position += m_velocity;
     m_velocity *= m_friction;
@@ -95,13 +91,11 @@ void SpellParticle::tick(mc::client::ClientWorld* world)
 InstantSpellParticle::InstantSpellParticle(const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
-
     setGravity(0.0f);
-    setSize(0.1f + rng.nextFloat() * 0.02f);
+    setSize(0.1f + m_random.nextFloat() * 0.02f);
     setFriction(0.95f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 4.0);
+    setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * 4.0);
 
     // 设置颜色，更亮
     setColor(glm::vec4(color.r * 1.2f, color.g * 1.2f, color.b * 1.2f, 1.0f));
@@ -143,13 +137,11 @@ void InstantSpellParticle::tick(mc::client::ClientWorld* world)
 EntityEffectParticle::EntityEffectParticle(const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
-
     setGravity(0.0f);
-    setSize(0.1f + rng.nextFloat() * 0.03f);
+    setSize(0.1f + m_random.nextFloat() * 0.03f);
     setFriction(0.95f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 4.0);
+    setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * 4.0);
 
     setColor(color);
 }
@@ -175,10 +167,9 @@ void EntityEffectParticle::tick(mc::client::ClientWorld* world)
     }
 
     // 漂浮并漂移
-    mc::math::Random rng;
     m_velocity.y += 0.002f;
-    m_velocity.x += (rng.nextFloat() - 0.5f) * 0.003f;
-    m_velocity.z += (rng.nextFloat() - 0.5f) * 0.003f;
+    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.003f;
+    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.003f;
 
     m_position += m_velocity;
     m_velocity *= m_friction;
@@ -195,13 +186,11 @@ AmbientEntityEffectParticle::AmbientEntityEffectParticle(
     const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
-
     setGravity(0.0f);
-    setSize(0.1f + rng.nextFloat() * 0.02f);
+    setSize(0.1f + m_random.nextFloat() * 0.02f);
     setFriction(0.98f); // 更高的摩擦，更慢
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 6.0);
+    setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * 6.0);
 
     // 更透明的颜色
     setColor(glm::vec4(color.r, color.g, color.b, 0.3f));
@@ -228,10 +217,9 @@ void AmbientEntityEffectParticle::tick(mc::client::ClientWorld* world)
     }
 
     // 很慢的漂浮
-    mc::math::Random rng;
     m_velocity.y += 0.001f;
-    m_velocity.x += (rng.nextFloat() - 0.5f) * 0.001f;
-    m_velocity.z += (rng.nextFloat() - 0.5f) * 0.001f;
+    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.001f;
+    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.001f;
 
     m_position += m_velocity;
     m_velocity *= m_friction;
@@ -247,16 +235,14 @@ void AmbientEntityEffectParticle::tick(mc::client::ClientWorld* world)
 WitchParticle::WitchParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
-
     setGravity(0.0f);
-    setSize(0.1f + rng.nextFloat() * 0.04f);
+    setSize(0.1f + m_random.nextFloat() * 0.04f);
     setFriction(0.96f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 4.0);
+    setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * 4.0);
 
     // 紫色
-    f32 purpleIntensity = 0.6f + rng.nextFloat() * 0.4f;
+    f32 purpleIntensity = 0.6f + m_random.nextFloat() * 0.4f;
     setColor(glm::vec4(purpleIntensity * 0.8f, 0.0f, purpleIntensity, 0.8f));
 
     m_velocity.y += 0.01f;
@@ -282,10 +268,9 @@ void WitchParticle::tick(mc::client::ClientWorld* world)
         return;
     }
 
-    mc::math::Random rng;
     m_velocity.y += 0.002f;
-    m_velocity.x += (rng.nextFloat() - 0.5f) * 0.002f;
-    m_velocity.z += (rng.nextFloat() - 0.5f) * 0.002f;
+    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.002f;
+    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.002f;
 
     m_position += m_velocity;
     m_velocity *= m_friction;

@@ -23,7 +23,6 @@
 
 #include "BubbleParticle.hpp"
 #include "client/world/ClientWorld.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
@@ -33,15 +32,13 @@ namespace mc::client::renderer::trident::particle::particles {
 BubbleParticle::BubbleParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
-
     // 尺寸 = 0.02 + rand * 0.02
-    setSize(0.02f + rng.nextFloat() * 0.02f);
+    setSize(0.02f + m_random.nextFloat() * 0.02f);
 
     // 速度缩放 0.2 倍加上随机偏移
-    m_velocity.x = m_velocity.x * 0.2f + (rng.nextFloat() * 2.0f - 1.0f) * 0.02f;
-    m_velocity.y = m_velocity.y * 0.2f + (rng.nextFloat() * 2.0f - 1.0f) * 0.02f;
-    m_velocity.z = m_velocity.z * 0.2f + (rng.nextFloat() * 2.0f - 1.0f) * 0.02f;
+    m_velocity.x = m_velocity.x * 0.2f + (m_random.nextFloat() * 2.0f - 1.0f) * 0.02f;
+    m_velocity.y = m_velocity.y * 0.2f + (m_random.nextFloat() * 2.0f - 1.0f) * 0.02f;
+    m_velocity.z = m_velocity.z * 0.2f + (m_random.nextFloat() * 2.0f - 1.0f) * 0.02f;
 
     setColor(glm::vec4(1.0f, 1.0f, 1.0f, 0.6f));
 
@@ -49,7 +46,7 @@ BubbleParticle::BubbleParticle(const glm::vec3& pos, const glm::vec3& velocity)
     setHasPhysics(false);
 
     // 生命周期 = (int)(8.0 / (rand.nextDouble() * 0.8 + 0.2))
-    setMaxAge(static_cast<f64>(static_cast<i32>(8.0 / (rng.nextFloat() * 0.8f + 0.2f))));
+    setMaxAge(static_cast<f64>(static_cast<i32>(8.0 / (m_random.nextFloat() * 0.8f + 0.2f))));
 }
 
 std::unique_ptr<Particle> BubbleParticle::create(

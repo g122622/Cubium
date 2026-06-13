@@ -22,7 +22,6 @@
  */
 
 #include "SporeBlossomParticle.hpp"
-#include "common/util/math/random/Random.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
 
@@ -33,16 +32,14 @@ namespace mc::client::renderer::trident::particle::particles {
 FallingSporeBlossomParticle::FallingSporeBlossomParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
-
     setGravity(DEFAULT_GRAVITY);
-    setSize(DEFAULT_SIZE * (0.8 + rng.nextFloat() * 0.4));
-    m_initialAlpha = 0.3 + rng.nextFloat() * 0.4;
+    setSize(DEFAULT_SIZE * (0.8 + m_random.nextFloat() * 0.4));
+    m_initialAlpha = 0.3 + m_random.nextFloat() * 0.4;
     setColor(glm::vec4(0.32f, 0.50f, 0.22f, static_cast<f32>(m_initialAlpha)));
 
     setFriction(0.96);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME * (0.7 + rng.nextFloat() * 0.6));
+    setMaxAge(DEFAULT_LIFETIME * (0.7 + m_random.nextFloat() * 0.6));
 }
 
 std::unique_ptr<Particle> FallingSporeBlossomParticle::create(
@@ -65,9 +62,8 @@ void FallingSporeBlossomParticle::tick(mc::client::ClientWorld* world)
     }
 
     // 缓慢水平漂移
-    mc::math::Random rng;
-    m_velocity.x += static_cast<f32>((rng.nextFloat() - 0.5) * DRIFT_STRENGTH);
-    m_velocity.z += static_cast<f32>((rng.nextFloat() - 0.5) * DRIFT_STRENGTH);
+    m_velocity.x += static_cast<f32>((m_random.nextFloat() - 0.5) * DRIFT_STRENGTH);
+    m_velocity.z += static_cast<f32>((m_random.nextFloat() - 0.5) * DRIFT_STRENGTH);
 
     // 应用重力（下落）
     m_velocity.y -= static_cast<f32>(m_gravity);
@@ -89,17 +85,15 @@ void FallingSporeBlossomParticle::tick(mc::client::ClientWorld* world)
 SporeBlossomAirParticle::SporeBlossomAirParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
-
     setGravity(DEFAULT_GRAVITY);
-    setSize(DEFAULT_SIZE * (0.8 + rng.nextFloat() * 0.4));
-    m_initialAlpha = 0.2 + rng.nextFloat() * 0.3;
+    setSize(DEFAULT_SIZE * (0.8 + m_random.nextFloat() * 0.4));
+    m_initialAlpha = 0.2 + m_random.nextFloat() * 0.3;
     // 初始 alpha 为 0，渐入
     setColor(glm::vec4(0.32f, 0.50f, 0.22f, 0.0f));
 
     setFriction(0.95);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME * (0.7 + rng.nextFloat() * 0.6));
+    setMaxAge(DEFAULT_LIFETIME * (0.7 + m_random.nextFloat() * 0.6));
 }
 
 std::unique_ptr<Particle> SporeBlossomAirParticle::create(
@@ -122,10 +116,9 @@ void SporeBlossomAirParticle::tick(mc::client::ClientWorld* world)
     }
 
     // 缓慢随机漂移
-    mc::math::Random rng;
-    m_velocity.x += static_cast<f32>((rng.nextFloat() - 0.5) * DRIFT_STRENGTH);
-    m_velocity.y += static_cast<f32>((rng.nextFloat() - 0.5) * DRIFT_STRENGTH);
-    m_velocity.z += static_cast<f32>((rng.nextFloat() - 0.5) * DRIFT_STRENGTH);
+    m_velocity.x += static_cast<f32>((m_random.nextFloat() - 0.5) * DRIFT_STRENGTH);
+    m_velocity.y += static_cast<f32>((m_random.nextFloat() - 0.5) * DRIFT_STRENGTH);
+    m_velocity.z += static_cast<f32>((m_random.nextFloat() - 0.5) * DRIFT_STRENGTH);
 
     m_position += m_velocity;
     m_velocity *= static_cast<f32>(m_friction);

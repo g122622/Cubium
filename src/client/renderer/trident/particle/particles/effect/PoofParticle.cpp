@@ -22,7 +22,6 @@
  */
 
 #include "PoofParticle.hpp"
-#include "common/util/math/random/Random.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
 
@@ -30,23 +29,21 @@ PoofParticle::PoofParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
     , m_initialSize(0.1f)
 {
-    mc::math::Random rng;
-
     setGravity(0.0f);
-    setSize(0.1f + rng.nextFloat() * 0.02f);
+    setSize(0.1f + m_random.nextFloat() * 0.02f);
     m_initialSize = size();
     setFriction(0.96f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME + rng.nextFloat() * 8.0);
+    setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * 8.0);
 
     // 灰白色烟雾
-    f32 gray = 0.7f + rng.nextFloat() * 0.3f;
+    f32 gray = 0.7f + m_random.nextFloat() * 0.3f;
     setColor(glm::vec4(gray, gray, gray, 1.0f));
 
     // 初始速度添加随机分量
-    m_velocity.x += (rng.nextFloat() - 0.5f) * 0.1f;
-    m_velocity.y += rng.nextFloat() * 0.05f;
-    m_velocity.z += (rng.nextFloat() - 0.5f) * 0.1f;
+    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.1f;
+    m_velocity.y += m_random.nextFloat() * 0.05f;
+    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.1f;
 }
 
 std::unique_ptr<Particle> PoofParticle::create(
@@ -70,10 +67,9 @@ void PoofParticle::tick(mc::client::ClientWorld* world)
     }
 
     // 轻微随机运动
-    mc::math::Random rng;
-    m_velocity.x += (rng.nextFloat() - 0.5f) * 0.005f;
+    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.005f;
     m_velocity.y += 0.001f; // 轻微上升
-    m_velocity.z += (rng.nextFloat() - 0.5f) * 0.005f;
+    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.005f;
 
     m_position += m_velocity;
     m_velocity *= m_friction;

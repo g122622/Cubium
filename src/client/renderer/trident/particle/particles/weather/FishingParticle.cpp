@@ -22,23 +22,20 @@
  */
 
 #include "FishingParticle.hpp"
-#include "common/util/math/random/Random.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
 
 FishingParticle::FishingParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
-
     // 钓鱼粒子向下移动
     setGravity(0.0); // 无重力
-    setSize(DEFAULT_SIZE * (0.5f + rng.nextFloat() * 0.5f));
+    setSize(DEFAULT_SIZE * (0.5f + m_random.nextFloat() * 0.5f));
     setColor(glm::vec4(0.8f, 0.9f, 1.0f, 0.6f)); // 淡蓝色半透明
 
     setFriction(0.98f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME * (0.5f + rng.nextFloat()));
+    setMaxAge(DEFAULT_LIFETIME * (0.5f + m_random.nextFloat()));
 }
 
 std::unique_ptr<Particle> FishingParticle::create(

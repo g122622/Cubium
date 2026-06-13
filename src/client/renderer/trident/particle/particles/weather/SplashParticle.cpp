@@ -22,22 +22,19 @@
  */
 
 #include "SplashParticle.hpp"
-#include "common/util/math/random/Random.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
 
 SplashParticle::SplashParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
 {
-    mc::math::Random rng;
-
     setGravity(DEFAULT_GRAVITY);
-    setSize(DEFAULT_SIZE * (0.5 + static_cast<f64>(rng.nextFloat()) * 0.5));
+    setSize(DEFAULT_SIZE * (0.5 + static_cast<f64>(m_random.nextFloat()) * 0.5));
     setColor(glm::vec4(0.8f, 0.9f, 1.0f, 0.7f)); // 淡蓝色半透明
 
     setFriction(0.95);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME * (0.7 + static_cast<f64>(rng.nextFloat()) * 0.6));
+    setMaxAge(DEFAULT_LIFETIME * (0.7 + static_cast<f64>(m_random.nextFloat()) * 0.6));
 }
 
 std::unique_ptr<Particle> SplashParticle::create(

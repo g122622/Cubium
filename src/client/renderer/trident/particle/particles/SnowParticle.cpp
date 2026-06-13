@@ -27,7 +27,6 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/world/block/Block.hpp"
 #include <cmath>
 
@@ -83,23 +82,20 @@ SnowParticle::SnowParticle(const glm::vec3& pos, const glm::vec3& velocity)
     , m_swingPhase(0.0f)
     , m_swingAmplitude(SWING_AMPLITUDE)
 {
-    // 使用项目的随机数生成器
-    mc::math::Random rng;
-
     // 随机初始相位和振幅
-    m_swingPhase = rng.nextFloat() * mc::math::TWO_PI;
-    m_swingAmplitude = SWING_AMPLITUDE * (0.5f + rng.nextFloat());
+    m_swingPhase = m_random.nextFloat() * mc::math::TWO_PI;
+    m_swingAmplitude = SWING_AMPLITUDE * (0.5f + m_random.nextFloat());
 
     // 雪花参数
     setGravity(physics::SNOW_GRAVITY);
-    setSize(0.05f + rng.nextFloat() * 0.05f); // 0.05 - 0.1
+    setSize(0.05f + m_random.nextFloat() * 0.05f); // 0.05 - 0.1
     setBoundingBox(SNOW_BBOX_WIDTH, SNOW_BBOX_HEIGHT);
     setColor(glm::vec4(1.0f, 1.0f, 1.0f, 0.9f)); // 白色几乎不透明
     setFriction(0.95f);
     setHasPhysics(false); // 雪花使用自定义碰撞检测
 
     // 雪花生命周期较长
-    f64 lifeMultiplier = 0.8f + rng.nextFloat() * 0.2f;
+    f64 lifeMultiplier = 0.8f + m_random.nextFloat() * 0.2f;
     setMaxAge(200.0f / lifeMultiplier);
 }
 
