@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../../core/Types.hpp"
+#include "../../util/AxisAlignedBB.hpp"
 #include "../../util/Direction.hpp"
 #include <algorithm>
 
@@ -89,21 +90,30 @@ public:
      * @brief 获取指定位置实体的最大比较器信号强度
      *
      * 遍历指定位置的实体，返回最大的 getComparatorOutput() 值。
+     * 使用 1x1x1 AABB 包围指定方块位置。
      *
-     * 通用实体信号查询工具。当前使用场景：
-     * - DetectorRailBlock 通过 getComparatorInputOverride() 直接查询实体信号，
-     *   但它有优先级排序逻辑（命令方块矿车 > 容器矿车 > 普通矿车），因此
-     *   不使用此函数。
-     * - RedstoneComparatorBlock 通过 _findItemFrame() 专门检测物品展示框，
-     *   不使用此函数。
-     * - 此函数适用于不需要优先级排序的通用场景，如压力板等需要获取
-     *   任意实体信号强度的场合。
+     * 使用场景：
+     * - DetectorRailBlock::getComparatorInputOverride() 中优先级2的
+     *   容器矿车信号查询
+     * - 其他需要获取任意实体信号强度的场合
      *
      * @param world 世界引用
      * @param pos 检测位置（使用 1x1x1 AABB）
      * @return i32 信号强度 0-15
      */
     [[nodiscard]] static i32 getEntitySignal(IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 获取指定区域内实体的最大比较器信号强度
+     *
+     * 遍历指定 AABB 区域内的实体，返回最大的 getComparatorOutput() 值。
+     * 适用于需要自定义搜索范围的场景，如探测铁轨使用缩小的 AABB。
+     *
+     * @param world 世界引用
+     * @param searchBox 搜索区域
+     * @return i32 信号强度 0-15
+     */
+    [[nodiscard]] static i32 getEntitySignal(IWorld& world, const AxisAlignedBB& searchBox);
 
     /**
      * @brief 计算容器的红石信号强度

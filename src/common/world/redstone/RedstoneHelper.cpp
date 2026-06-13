@@ -67,9 +67,13 @@ bool RedstoneHelper::isRedstoneConductor(IWorld& world, const BlockPos& pos, con
 
 i32 RedstoneHelper::getEntitySignal(IWorld& world, const BlockPos& pos)
 {
-    // 在指定方块位置构建检测区域
+    // 在指定方块位置构建 1x1x1 检测区域
     AxisAlignedBB searchBox = AxisAlignedBB::fromBlock(pos.x, pos.y, pos.z);
+    return getEntitySignal(world, searchBox);
+}
 
+i32 RedstoneHelper::getEntitySignal(IWorld& world, const AxisAlignedBB& searchBox)
+{
     // 获取区域内的所有实体
     std::vector<Entity*> entities = world.getEntitiesInAABB(searchBox, nullptr);
 

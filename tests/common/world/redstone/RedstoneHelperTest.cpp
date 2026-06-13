@@ -684,3 +684,33 @@ TEST_F(GetEntitySignalTest, ItemFrameEntity_ReturnsAnalogOutput)
     BlockPos pos(0, 0, 0);
     EXPECT_EQ(RedstoneHelper::getEntitySignal(world, pos), 4);
 }
+
+TEST_F(GetEntitySignalTest, AABBOverload_ReturnsSameAsBlockPosOverload)
+{
+    // AABB 重载应与 BlockPos 重载返回相同结果
+    EntityTestWorld world;
+    ChestMinecartEntity chest(EntityId(1));
+    Item* diamond = ensureTestItem("diamond");
+    ASSERT_NE(diamond, nullptr);
+    for (i32 i = 0; i < ChestMinecartEntity::INVENTORY_SIZE; ++i) {
+        chest.setInventoryItem(i, ItemStack(*diamond, 64));
+    }
+    world.addEntity(&chest);
+
+    BlockPos pos(0, 0, 0);
+    AxisAlignedBB aabb = AxisAlignedBB::fromBlock(0, 0, 0);
+    EXPECT_EQ(RedstoneHelper::getEntitySignal(world, pos), RedstoneHelper::getEntitySignal(world, aabb));
+}
+
+TEST_F(GetEntitySignalTest, AABBOverload_EmptyWorld_ReturnsZero)
+{
+    // AABB 重载在空世界中返回0
+    EntityTestWorld world;
+    AxisAlignedBB aabb(static_cast<f64>(0),
+        static_cast<f64>(0),
+        static_cast<f64>(0),
+        static_cast<f64>(1),
+        static_cast<f64>(1),
+        static_cast<f64>(1));
+    EXPECT_EQ(RedstoneHelper::getEntitySignal(world, aabb), 0);
+}

@@ -28,6 +28,7 @@
 #include "common/entity/entities/vehicle/MinecartEntity.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/redstone/RedstoneHelper.hpp"
 
 namespace mc {
 namespace blocks {
@@ -154,18 +155,14 @@ i32 DetectorRailBlock::getComparatorInputOverride(const BlockState& state, IWorl
     }
 
     // 优先级2：容器矿车（箱子矿车、漏斗矿车，基于容器填充率）
-    for (Entity* entity : entities) {
-        if (!entity || entity->isRemoved()) {
-            continue;
-        }
-        i32 signal = entity->getComparatorOutput();
-        if (signal > 0) {
-            return signal;
-        }
+    // 使用 getEntitySignal() 获取搜索区域内的最大比较器信号
+    i32 entitySignal = world::redstone::RedstoneHelper::getEntitySignal(world, searchBox);
+    if (entitySignal > 0) {
+        return entitySignal;
     }
 
-    // 有矿车但没有信号输出，返回满信号15
-    return 15;
+    // 非容器矿车（普通矿车、TNT矿车、熔炉矿车等）不产生比较器信号
+    return 0;
 }
 
 RailShape DetectorRailBlock::getRailShape(const BlockState& state) const
