@@ -107,6 +107,12 @@ public:
      * @param light 组合光照
      * @param gameTime 游戏时间（总 tick 数），用于驱动动画
      * @return 是否成功渲染
+     *
+     * TODO: 当前 BlockEntityRendererDispatcher 尚未集成到主渲染循环（TridentEngine::render()），
+     * 调用方需在集成时将 TridentEngine::m_gameTime 或 ClientWorld::gameTime() 作为 gameTime
+     * 参数传入，以确保旗帜飘动、信标光束旋转等动画正常运行。
+     * 集成点建议：在 TridentEngine::render() 中区块渲染之后、实体渲染回调之前，遍历可见
+     * 区块中的方块实体并调用此方法。
      */
     bool render(BlockEntity& entity, f32 partialTick, u32 light, i64 gameTime);
 

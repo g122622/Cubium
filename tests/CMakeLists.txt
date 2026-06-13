@@ -668,6 +668,7 @@ add_executable(mc_tests
     # 鐜鍏夐伄钄芥祴璇?    client/renderer/AmbientOcclusionCalculatorTest.cpp
     client/renderer/trident/blockentity/ChestModelTest.cpp
     client/renderer/trident/blockentity/BeaconBeamModelTest.cpp
+    client/renderer/trident/blockentity/BlockEntityRendererGameTimeTest.cpp
     # NaturalSpawner 娴嬭瘯
     server/world/spawn/NaturalSpawnerTest.cpp
     # VillageSiege 测试
