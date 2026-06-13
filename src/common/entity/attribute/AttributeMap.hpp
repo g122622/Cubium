@@ -161,6 +161,51 @@ public:
     }
 
     /**
+     * @brief 重置属性基础值为默认值
+     * @param name 属性名称
+     * @return 是否成功重置（属性不存在返回false）
+     */
+    bool resetBaseValue(const std::string& name)
+    {
+        AttributeInstance* instance = getInstance(name);
+        if (instance) {
+            instance->setBaseValue(instance->attribute().defaultValue());
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @brief 检查属性是否有指定修饰器
+     * @param attributeName 属性名称
+     * @param modifierId 修饰器ID
+     * @return 是否存在该修饰器
+     */
+    [[nodiscard]] bool hasModifier(const std::string& attributeName, const std::string& modifierId) const
+    {
+        const AttributeInstance* instance = getInstance(attributeName);
+        return instance ? instance->hasModifier(modifierId) : false;
+    }
+
+    /**
+     * @brief 获取修饰器的值
+     * @param attributeName 属性名称
+     * @param modifierId 修饰器ID
+     * @param defaultValue 默认值（修饰器不存在时返回）
+     * @return 修饰器的amount值
+     */
+    [[nodiscard]] f64 getModifierValue(
+        const std::string& attributeName, const std::string& modifierId, f64 defaultValue = 0.0) const
+    {
+        const AttributeInstance* instance = getInstance(attributeName);
+        if (instance) {
+            const AttributeModifier* modifier = instance->getModifier(modifierId);
+            return modifier ? modifier->amount() : defaultValue;
+        }
+        return defaultValue;
+    }
+
+    /**
      * @brief 检查是否有属性
      * @param name 属性名称
      */
