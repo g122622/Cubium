@@ -77,6 +77,7 @@ add_executable(mc_tests
     common/item/ItemCraftedByTest.cpp
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/EnchantmentCallbackTest.cpp
+    common/item/enchantment/AttemptDamageItemTest.cpp
     common/entity/inventory/CraftingInventoryTest.cpp
     common/entity/inventory/IRecipeHolderTest.cpp
     common/entity/inventory/container/ChestContainerTest.cpp

@@ -225,8 +225,8 @@ bool ItemStack::attemptDamageItem(i32 amount, LivingEntity* entity)
         // 护甲的耐久保护有 60% 概率不生效
         bool isArmor = m_item != nullptr && m_item->isArmor();
 
-        // 优先使用实体所在世界的随机数生成器，与 MC 原版行为一致
-        // MC 原版在 processDurabilityChange 中使用 ServerLevel.getRandom()
+        // 优先使用实体所在世界的随机数生成器
+        // 物品耐久保护的概率计算应使用世界关联的随机源
         math::Random* random = nullptr;
         if (entity != nullptr) {
             IWorld* world = entity->world();
