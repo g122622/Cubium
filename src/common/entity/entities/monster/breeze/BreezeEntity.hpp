@@ -114,6 +114,14 @@ public:
 
     // TODO(trial_chambers): 实现掉落风弹 (0-1，受抢夺影响)
 
+    /**
+     * @brief 检查是否可以攻击指定类型的实体
+     *
+     * MC 原版 Breeze.canAttackType() 仅允许攻击玩家和铁傀儡。
+     * 旋风人采用白名单模式，只攻击这两种实体类型。
+     */
+    [[nodiscard]] bool canAttackType(entity::EntityTypeId typeId) const override;
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;
@@ -132,14 +140,6 @@ protected:
      * @return 风弹返回false（不偏转），其他返回true
      */
     bool shouldDeflectProjectile(const entity::ProjectileEntity& projectile) const;
-
-    /**
-     * @brief 检查是否可以攻击指定类型的实体
-     *
-     * MC 原版 Breeze.canAttackType() 仅允许攻击玩家和铁傀儡。
-     * 旋风人采用白名单模式，只攻击这两种实体类型。
-     */
-    [[nodiscard]] bool canAttackType(entity::EntityTypeId typeId) const override;
 
 private:
     /**

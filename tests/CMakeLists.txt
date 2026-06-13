@@ -139,6 +139,8 @@ add_executable(mc_tests
     common/entity/IronGolemGoalsTest.cpp
     # 铁傀儡实体测试（属性、攻击、持花状态等）
     common/entity/IronGolemEntityTest.cpp
+    # canAttackType 攻击类型判断测试（Mob基类排除恶魂、Phantom覆盖、Breeze白名单、IronGolem排除苦力怕）
+    entity/CanAttackTypeTest.cpp
     # 属性映射表测试（resetBaseValue、hasModifier、getModifierValue）
     common/entity/attribute/AttributeMapTest.cpp
     common/entity/entities/monster/EndermiteEntityTest.cpp

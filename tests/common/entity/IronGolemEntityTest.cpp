@@ -301,11 +301,11 @@ TEST_F(IronGolemAttackTest, AttackDamageValue)
     EXPECT_DOUBLE_EQ(attackDamage, 15.0);
 }
 
-TEST_F(IronGolemAttackTest, MobEntityCanAttackTypeDefaultAllowsAll)
+TEST_F(IronGolemAttackTest, MobEntityCanAttackTypeDefaultAllowsNonGhast)
 {
-    // MobEntity 基类 canAttackType 默认允许所有类型
+    // MobEntity 基类 canAttackType 排除恶魂，允许其他所有类型
     // 使用 IronGolemEntity 自身测试（非玩家创建、非苦力怕类型应允许）
     // IronGolemEntity 继承自 MobEntity，其 canAttackType 重写了部分类型
-    // 使用不可能的 ID 值测试 MobEntity 基类默认行为
+    // 使用不可能的 ID 值测试 MobEntity 基类默认行为（非 GHAST 的类型应允许）
     EXPECT_TRUE(ironGolem->canAttackType(entity::EntityTypeId(999)));
 }
