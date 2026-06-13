@@ -418,6 +418,8 @@ add_executable(mc_tests
     common/entity/entities/projectile/DragonFireballCloudTest.cpp
     # ShulkerBulletEntity 爆炸粒子效果测试
     common/entity/entities/projectile/ShulkerBulletParticleTest.cpp
+    # TridentEntity 忠诚附魔逻辑测试
+    common/entity/entities/projectile/TridentEntityTest.cpp
     entity/SkeletonSupportTypesTest.cpp
     entity/SpellcastingIllagerSupportTypesTest.cpp
     entity/SpawnLocationHelperTest.cpp

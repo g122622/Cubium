@@ -126,7 +126,6 @@ protected:
      */
     void tickInGroundTrident();
 
-private:
     /**
      * @brief 处理返回逻辑
      */
@@ -134,6 +133,9 @@ private:
 
     /**
      * @brief 检查是否应该返回到射手
+     *
+     * 旁观者模式玩家和已死亡射手的忠诚三叉戟不应返回，
+     * 而是应该在原位掉落物品。
      */
     bool _shouldReturnToThrower();
 
