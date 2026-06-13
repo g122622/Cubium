@@ -80,6 +80,9 @@ bool AttributeCommand::_tryGetLivingEntityWithAttribute(CommandContext<ServerCom
 
     PlayerId playerId = playerIds[0];
 
+    // TODO: 当前仅支持 Player 实体（通过 resolvePlayerIds 获取），
+    // MC 原版 /attribute 命令支持所有 LivingEntity（僵尸、马等）。
+    // 需要扩展实体选择器系统以支持非玩家活体实体后，此处应改为通用的 LivingEntity 获取逻辑。
     // 获取玩家实体
     Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
     if (player == nullptr) {
@@ -145,6 +148,7 @@ bool AttributeCommand::_tryGetAttributeInstance(CommandContext<ServerCommandSour
 
     PlayerId playerId = playerIds[0];
 
+    // TODO: 同 _tryGetLivingEntityWithAttribute，当前仅支持 Player 实体，需扩展到所有 LivingEntity。
     // 获取玩家实体
     Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
     if (player == nullptr) {
@@ -669,6 +673,9 @@ std::string AttributeCommand::_normalizeAttributeName(const std::string& name)
     return normalized;
 }
 
+// TODO: _isKnownAttribute、_getAttributeDefaultValue、_getAttributeRange 三个方法使用硬编码的
+// 属性名和范围值，与 Attributes.hpp 中的工厂函数定义可能不同步。未来应迁移到通过属性
+// 注册表（AttributeRegistry）动态查询，避免手动维护两份数据。
 bool AttributeCommand::_isKnownAttribute(const std::string& name) noexcept
 {
     using namespace entity::attribute;

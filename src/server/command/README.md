@@ -75,7 +75,7 @@ src/server/command/
     ├── LocateCommand.cpp
     ├── LocateBiomeCommand.hpp    # /locatebiome - 定位生物群系
     ├── LocateBiomeCommand.cpp
-    ├── AttributeCommand.hpp      # /attribute - 查询或修改实体属性
+    ├── AttributeCommand.hpp      # /attribute - 查询/修改实体属性（get/base/modifier子命令）
     ├── AttributeCommand.cpp
     ├── EnchantCommand.hpp        # /enchant - 给手持物品添加附魔
     ├── EnchantCommand.cpp
