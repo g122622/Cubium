@@ -45,7 +45,7 @@ src/client/ui/screen/
 
 - `ScreenManager`：单例，委托给 `ScreenStackWidget` 管理屏幕栈，不直接持有屏幕
 - `AbstractContainerScreen<Menu>`：容器屏幕模板基类，提供槽位渲染、点击处理、拖拽、悬停提示
-- `CreativeScreen`：直接继承 `IScreen`，不走容器点击流，直接编辑 `PlayerInventory` 并发送 `CreativeInventoryActionPacket`
+- `CreativeScreen`：直接继承 `IScreen`，不走容器点击流，直接编辑 `PlayerInventory` 并发送 `CreativeInventoryActionPacket`；拥有独立的 `_renderItemTooltip` 和 `_renderTooltip` 实现
 - `MapScreen`：全屏地图查看，依赖 `MapRenderer` 和 `ClientMapDataCache`
 
 ## 上下游外部依赖关系
@@ -82,3 +82,4 @@ src/client/ui/screen/
 - **MapScreen 需要地图数据缓存**：`MapScreen` 必须设置 `ClientMapDataCache` 才能显示地图内容。
 - **AbstractContainerScreen 模板参数**：继承时必须指定正确的 `Menu` 类型，槽位索引和点击逻辑由菜单定义。
 - **screen 目录是旧版兼容**：新屏幕应放在 `ui/minecraft/screens/`，本目录逐步迁移中。
+- **悬停提示渲染必须在最后**：所有屏幕的 `renderTooltip` / `_renderTooltip` 必须在 `render()` 末尾、`renderCarriedItem` / `_renderCarriedItem` 之后调用，因为 GuiRenderer 使用画家算法（后绘制覆盖先绘制），提示框必须渲染在所有其他元素之上。

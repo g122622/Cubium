@@ -718,6 +718,8 @@ add_executable(mc_tests
     ${CMAKE_SOURCE_DIR}/src/client/ui/FontRenderer.cpp
     ${CMAKE_SOURCE_DIR}/src/client/ui/DefaultAsciiFont.cpp
     client/ui/GuiScaleTest.cpp
+    # 屏幕工具提示命中检测与位置计算测试
+    client/ui/screen/ScreenTooltipTest.cpp
     # 闄勯瓟绯荤粺娴嬭瘯
     common/item/enchantment/EnchantmentTest.cpp
     # 鑷姩璺宠穬娴嬭瘯
