@@ -297,7 +297,7 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(const std::vector<IReso
             // 效果
             "explosion",
             "poof",
-            "crit",
+            "critical_hit",
             "enchanted_hit",
             "spell",
             "instant_spell",

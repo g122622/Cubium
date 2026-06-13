@@ -28,6 +28,7 @@
 #include "client/renderer/trident/particle/data/BasicParticleData.hpp"
 #include "client/renderer/trident/particle/particles/RainParticle.hpp"
 #include "client/renderer/trident/particle/particles/SnowParticle.hpp"
+#include "client/renderer/trident/particle/particles/effect/CritParticle.hpp"
 #include "client/renderer/trident/particle/particles/weather/FishingParticle.hpp"
 #include "client/renderer/trident/particle/particles/weather/SplashParticle.hpp"
 #include "common/core/Types.hpp"
@@ -621,4 +622,279 @@ TEST(ParticleRegistryTest, FishingParticleRegistration)
 
     // 工厂创建需要 registerBuiltinParticleFactories() 初始化，
     // 这通常在客户端启动时调用，测试环境不初始化图形系统
+}
+
+/**
+ * @brief 测试暴击粒子构造
+ *
+ * 参考 MC 1.16.5 CritParticle：
+ * - 无重力
+ * - 渲染类型为 OPAQUE
+ * - 纹理路径 minecraft:particle/critical_hit
+ * - 淡黄色 (1.0, 0.9, 0.5)
+ */
+TEST(ParticleTest, CritParticle_Construction)
+{
+    CritParticle particle(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.1f, 0.2f, 0.1f));
+
+    EXPECT_EQ(particle.getRenderType(), ParticleRenderType::PARTICLE_SHEET_OPAQUE);
+    EXPECT_EQ(particle.getTextureLocation(), mc::ResourceLocation("minecraft:particle/critical_hit"));
+    EXPECT_TRUE(particle.isAlive());
+    EXPECT_DOUBLE_EQ(particle.gravity(), 0.0); // 无重力
+
+    // 暴击粒子颜色为淡黄色
+    EXPECT_FLOAT_EQ(particle.color().r, 1.0f);
+    EXPECT_NEAR(particle.color().g, 0.9f, 0.01f);
+    EXPECT_NEAR(particle.color().b, 0.5f, 0.01f);
+    EXPECT_FLOAT_EQ(particle.color().a, 1.0f);
+}
+
+/**
+ * @brief 验证暴击粒子工厂方法返回正确的粒子类型
+ */
+TEST(ParticleTest, CritParticle_CreateReturnsCritParticle)
+{
+    auto particle = CritParticle::create(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.1f, 0.2f, 0.1f), nullptr);
+    ASSERT_NE(particle, nullptr);
+
+    EXPECT_EQ(particle->getRenderType(), ParticleRenderType::PARTICLE_SHEET_OPAQUE);
+    EXPECT_EQ(particle->getTextureLocation(), mc::ResourceLocation("minecraft:particle/critical_hit"));
+    EXPECT_TRUE(particle->isAlive());
+}
+
+/**
+ * @brief 测试暴击粒子 tick 行为
+ *
+ * 暴击粒子应该：
+ * - 无重力，速度仅受摩擦力影响
+ * - 位置随速度移动
+ * - 摩擦力 0.96 使速度逐渐减小
+ */
+TEST(ParticleTest, CritParticle_TickMovement)
+{
+    glm::vec3 initialPos(0.0f, 10.0f, 0.0f);
+    glm::vec3 initialVel(0.5f, 0.3f, 0.5f);
+    CritParticle particle(initialPos, initialVel);
+    particle.setMaxAge(100.0f);
+
+    // Tick 一次
+    particle.tick(nullptr);
+
+    // 位置应该随速度移动
+    EXPECT_GT(particle.position().x, initialPos.x);
+    EXPECT_GT(particle.position().y, initialPos.y);
+    EXPECT_GT(particle.position().z, initialPos.z);
+
+    // 速度应该因摩擦力而减小
+    EXPECT_LT(std::abs(particle.velocity().x), std::abs(initialVel.x));
+    EXPECT_LT(std::abs(particle.velocity().z), std::abs(initialVel.z));
+
+    // Y 方向速度也应减小（无重力）
+    EXPECT_LT(std::abs(particle.velocity().y), std::abs(initialVel.y));
+}
+
+/**
+ * @brief 测试暴击粒子淡出效果
+ *
+ * 暴击粒子在生命后半段淡出
+ */
+TEST(ParticleTest, CritParticle_FadeOut)
+{
+    CritParticle particle(glm::vec3(0.0f), glm::vec3(0.0f));
+    particle.setMaxAge(20.0f);
+    particle.setColor(glm::vec4(1.0f, 0.9f, 0.5f, 1.0f));
+
+    f32 initialAlpha = particle.color().a;
+
+    // 在生命周期前 50%，alpha 应该保持
+    for (int i = 0; i < 10; ++i) {
+        particle.tick(nullptr);
+    }
+    EXPECT_FLOAT_EQ(particle.color().a, initialAlpha);
+
+    // 在后 50%，alpha 应该减小
+    for (int i = 0; i < 5; ++i) {
+        particle.tick(nullptr);
+    }
+    EXPECT_LT(particle.color().a, initialAlpha);
+}
+
+/**
+ * @brief 测试暴击粒子生命周期结束
+ */
+TEST(ParticleTest, CritParticle_LifecycleEnd)
+{
+    CritParticle particle(glm::vec3(0.0f), glm::vec3(0.0f));
+    particle.setMaxAge(5.0f);
+
+    EXPECT_TRUE(particle.isAlive());
+
+    // Tick 到生命结束
+    for (int i = 0; i < 10; ++i) {
+        particle.tick(nullptr);
+    }
+
+    EXPECT_FALSE(particle.isAlive());
+}
+
+/**
+ * @brief 测试暴击粒子注册
+ */
+TEST(ParticleRegistryTest, CritParticleRegistration)
+{
+    auto& registry = ParticleRegistry::instance();
+
+    // 检查类型已注册
+    EXPECT_TRUE(registry.isRegistered(ParticleTypeId::Crit));
+    EXPECT_TRUE(registry.isRegistered("minecraft:crit"));
+
+    // 检查名称
+    EXPECT_EQ(registry.getTypeName(ParticleTypeId::Crit), "minecraft:crit");
+
+    // 检查类型信息
+    const ParticleTypeInfo* info = registry.getTypeInfo(ParticleTypeId::Crit);
+    ASSERT_NE(info, nullptr);
+    EXPECT_EQ(info->id, ParticleTypeId::Crit);
+    EXPECT_EQ(info->name, "minecraft:crit");
+    EXPECT_EQ(info->defaultRenderType, ParticleRenderType::PARTICLE_SHEET_OPAQUE);
+}
+
+/**
+ * @brief 测试附魔暴击粒子构造
+ *
+ * 参考 MC 1.16.5 EnchantedHitParticle（MagicCritParticle）：
+ * - 无重力
+ * - 渲染类型为 TRANSLUCENT
+ * - 纹理路径 minecraft:particle/enchanted_hit
+ * - 紫蓝色调（红色和绿色通道减弱）
+ */
+TEST(ParticleTest, EnchantedHitParticle_Construction)
+{
+    EnchantedHitParticle particle(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.1f, 0.2f, 0.1f));
+
+    EXPECT_EQ(particle.getRenderType(), ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    EXPECT_EQ(particle.getTextureLocation(), mc::ResourceLocation("minecraft:particle/enchanted_hit"));
+    EXPECT_TRUE(particle.isAlive());
+    EXPECT_DOUBLE_EQ(particle.gravity(), 0.0); // 无重力
+
+    // 附魔暴击粒子颜色应为紫蓝色调
+    // r = (random * 0.3 + 0.6) * 0.3 → 范围 [0.18, 0.27]
+    // g = (random * 0.3 + 0.6) * 0.8 → 范围 [0.48, 0.72]
+    // b = random * 0.3 + 0.6 → 范围 [0.6, 0.9]
+    EXPECT_GT(particle.color().r, 0.0f);
+    EXPECT_LT(particle.color().r, 0.35f); // 红色通道较弱
+    EXPECT_GT(particle.color().g, 0.3f);
+    EXPECT_LT(particle.color().g, 0.8f);
+    EXPECT_GT(particle.color().b, 0.5f); // 蓝色通道最强
+    EXPECT_FLOAT_EQ(particle.color().a, 1.0f);
+}
+
+/**
+ * @brief 验证附魔暴击粒子工厂方法返回正确的粒子类型
+ */
+TEST(ParticleTest, EnchantedHitParticle_CreateReturnsEnchantedHitParticle)
+{
+    auto particle = EnchantedHitParticle::create(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.1f, 0.2f, 0.1f), nullptr);
+    ASSERT_NE(particle, nullptr);
+
+    EXPECT_EQ(particle->getRenderType(), ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    EXPECT_EQ(particle->getTextureLocation(), mc::ResourceLocation("minecraft:particle/enchanted_hit"));
+    EXPECT_TRUE(particle->isAlive());
+}
+
+/**
+ * @brief 测试附魔暴击粒子 tick 行为
+ *
+ * 附魔暴击粒子应该：
+ * - 无重力，速度仅受摩擦力影响
+ * - 位置随速度移动
+ * - 摩擦力 0.96 使速度逐渐减小
+ */
+TEST(ParticleTest, EnchantedHitParticle_TickMovement)
+{
+    glm::vec3 initialPos(0.0f, 10.0f, 0.0f);
+    glm::vec3 initialVel(0.5f, 0.3f, 0.5f);
+    EnchantedHitParticle particle(initialPos, initialVel);
+    particle.setMaxAge(100.0f);
+
+    // Tick 一次
+    particle.tick(nullptr);
+
+    // 位置应该随速度移动
+    EXPECT_GT(particle.position().x, initialPos.x);
+    EXPECT_GT(particle.position().y, initialPos.y);
+    EXPECT_GT(particle.position().z, initialPos.z);
+
+    // 速度应该因摩擦力而减小
+    EXPECT_LT(std::abs(particle.velocity().x), std::abs(initialVel.x));
+    EXPECT_LT(std::abs(particle.velocity().z), std::abs(initialVel.z));
+
+    // Y 方向速度也应减小（无重力）
+    EXPECT_LT(std::abs(particle.velocity().y), std::abs(initialVel.y));
+}
+
+/**
+ * @brief 测试附魔暴击粒子淡出效果
+ *
+ * 附魔暴击粒子在生命后半段淡出
+ */
+TEST(ParticleTest, EnchantedHitParticle_FadeOut)
+{
+    EnchantedHitParticle particle(glm::vec3(0.0f), glm::vec3(0.0f));
+    particle.setMaxAge(20.0f);
+
+    f32 initialAlpha = particle.color().a;
+
+    // 在生命周期前 50%，alpha 应该保持
+    for (int i = 0; i < 10; ++i) {
+        particle.tick(nullptr);
+    }
+    EXPECT_FLOAT_EQ(particle.color().a, initialAlpha);
+
+    // 在后 50%，alpha 应该减小
+    for (int i = 0; i < 5; ++i) {
+        particle.tick(nullptr);
+    }
+    EXPECT_LT(particle.color().a, initialAlpha);
+}
+
+/**
+ * @brief 测试附魔暴击粒子生命周期结束
+ */
+TEST(ParticleTest, EnchantedHitParticle_LifecycleEnd)
+{
+    EnchantedHitParticle particle(glm::vec3(0.0f), glm::vec3(0.0f));
+    particle.setMaxAge(5.0f);
+
+    EXPECT_TRUE(particle.isAlive());
+
+    // Tick 到生命结束
+    for (int i = 0; i < 10; ++i) {
+        particle.tick(nullptr);
+    }
+
+    EXPECT_FALSE(particle.isAlive());
+}
+
+/**
+ * @brief 测试附魔暴击粒子注册
+ */
+TEST(ParticleRegistryTest, EnchantedHitParticleRegistration)
+{
+    auto& registry = ParticleRegistry::instance();
+
+    // 检查类型已注册
+    EXPECT_TRUE(registry.isRegistered(ParticleTypeId::EnchantedHit));
+    EXPECT_TRUE(registry.isRegistered("minecraft:enchanted_hit"));
+
+    // 检查名称
+    EXPECT_EQ(registry.getTypeName(ParticleTypeId::EnchantedHit), "minecraft:enchanted_hit");
+
+    // 检查类型信息
+    const ParticleTypeInfo* info = registry.getTypeInfo(ParticleTypeId::EnchantedHit);
+    ASSERT_NE(info, nullptr);
+    EXPECT_EQ(info->id, ParticleTypeId::EnchantedHit);
+    EXPECT_EQ(info->name, "minecraft:enchanted_hit");
+    // 附魔暴击粒子渲染类型应该是半透明
+    EXPECT_EQ(info->defaultRenderType, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
 }

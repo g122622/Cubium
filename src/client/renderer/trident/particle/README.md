@@ -42,7 +42,7 @@ particle/
     │   ├── SmokeParticle.hpp/cpp      # 烟雾粒子
     │   ├── LavaParticle.hpp/cpp       # 熔岩滴粒子
     │   ├── PortalParticle.hpp/cpp     # 传送门粒子
-    │   ├── CritParticle.hpp/cpp       # 暴击粒子
+    │   ├── CritParticle.hpp/cpp       # 暴击粒子 + 附魔暴击粒子（EnchantedHitParticle）
     │   ├── ExplosionParticle.hpp/cpp  # 爆炸粒子
     │   ├── PoofParticle.hpp/cpp       # 消散粒子
     │   ├── SpellParticle.hpp/cpp      # 药水效果粒子

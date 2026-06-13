@@ -52,12 +52,12 @@ public:
 
     [[nodiscard]] ParticleRenderType getRenderType() const override
     {
-        return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
+        return ParticleRenderType::PARTICLE_SHEET_OPAQUE;
     }
 
     [[nodiscard]] ResourceLocation getTextureLocation() const override
     {
-        return ResourceLocation("minecraft:particle/crit");
+        return ResourceLocation("minecraft:particle/critical_hit");
     }
 
 private:

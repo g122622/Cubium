@@ -236,7 +236,7 @@ void ParticleRegistry::_registerBuiltinTypes()
     registerSimpleType(
         ParticleTypeId::Poof, "minecraft:poof", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(
-        ParticleTypeId::Crit, "minecraft:crit", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleTypeId::Crit, "minecraft:crit", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_OPAQUE);
     registerSimpleType(ParticleTypeId::EnchantedHit,
         "minecraft:enchanted_hit",
         ParticleFactory{},
