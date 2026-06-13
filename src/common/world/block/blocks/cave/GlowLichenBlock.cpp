@@ -67,8 +67,6 @@ GlowLichenBlock::GlowLichenBlock(const BlockProperties& properties)
     //   WEST:  (0,0,0)-(1,16,16)   即 x=0 到 x=1 像素
     //   UP:    (0,15,0)-(16,16,16) 即 y=15 到 y=16 像素
     //   DOWN:  (0,0,0)-(16,1,16)   即 y=0 到 y=1 像素
-    constexpr f32 P = 1.0f / 16.0f;
-
     // 每个面方向的形状
     const CollisionShape northShape = CollisionShape::fromPixelBox(0, 0, 0, 16, 16, 1);
     const CollisionShape southShape = CollisionShape::fromPixelBox(0, 0, 15, 16, 16, 16);
