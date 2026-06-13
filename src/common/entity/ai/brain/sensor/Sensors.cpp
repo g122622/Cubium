@@ -226,10 +226,9 @@ void MobSensor<E>::update(IWorld* world, E* entity)
     }
 
     entity->brain().setMemory(memory::MemoryModuleTypes::MOBS, nearbyMobs);
-    // 注意：MobSensor 不再直接设置 NEAREST_HOSTILE。
+    // 注意：MobSensor 仅收集 MOBS 列表，不负责 NEAREST_HOSTILE。
     // NEAREST_HOSTILE 应由专门的传感器（如 VillagerHostilesSensor）来设置，
     // 因为不同实体对"敌对生物"的定义不同。
-    entity->brain().removeMemory(memory::MemoryModuleTypes::NEAREST_HOSTILE);
 }
 
 // ============================================================================
@@ -545,7 +544,6 @@ bool AvoidEntitySensor<E>::shouldAvoid(E* self, LivingEntity* other)
 template class NearestPlayersSensor<VillagerEntity>;
 template class NearestVisibleLivingEntitySensor<VillagerEntity>;
 template class HurtBySensor<VillagerEntity>;
-template class MobSensor<VillagerEntity>;
 template class VillagerHostilesSensor<VillagerEntity>;
 template class WorkStationSensor<VillagerEntity>;
 template class VillagePoiSensor<VillagerEntity>;

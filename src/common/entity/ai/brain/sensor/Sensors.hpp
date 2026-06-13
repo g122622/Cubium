@@ -148,7 +148,7 @@ public:
 
     [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override
     {
-        return {memory::MemoryModuleTypes::MOBS, memory::MemoryModuleTypes::NEAREST_HOSTILE};
+        return {memory::MemoryModuleTypes::MOBS};
     }
 
 protected:
@@ -295,9 +295,6 @@ public:
         return {memory::MemoryModuleTypes::AVOID_TARGET, memory::MemoryModuleTypes::NEAREST_REPELLENT};
     }
 
-protected:
-    void update(IWorld* world, E* entity) override;
-
     /**
      * @brief 判断是否需要躲避某实体
      *
@@ -310,6 +307,9 @@ protected:
      * @return 是否需要躲避
      */
     static bool shouldAvoid(E* self, LivingEntity* other);
+
+protected:
+    void update(IWorld* world, E* entity) override;
 
 private:
     f32 m_range;

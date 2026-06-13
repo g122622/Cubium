@@ -441,6 +441,8 @@ add_executable(mc_tests
     common/entity/ai/goal/goals/special/DolphinGoalsTest.cpp
     # WanderingTraderGoals 流浪商人 AI 目标测试
     common/entity/ai/goal/goals/special/WanderingTraderGoalsTest.cpp
+    # Sensors 传感器测试（VillagerHostilesSensor、AvoidEntitySensor）
+    common/entity/ai/brain/sensor/SensorsTest.cpp
     # RandomPositionGenerator 随机位置生成器测试
     common/entity/ai/util/RandomPositionGeneratorTest.cpp
     entity/AiGoalRegressionTest.cpp
