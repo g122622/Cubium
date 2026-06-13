@@ -192,11 +192,13 @@ TEST_F(NBTPredicateTest, NullJsonReturnsAny)
 
 TEST_F(NBTPredicateTest, StringJsonReturnsAny)
 {
-    // 由于 Mojangson 解析器尚未实现，字符串格式暂时返回空的谓词
-    nlohmann::json json = "{CustomName:'{\"text\":\"Test\"}'}";
+    // Mojangson 字符串格式的NBT谓词（使用双引号，本项目Mojangson解析器不支持单引号）
+    nlohmann::json json = R"({CustomName:"Test"})";
     auto result = NBTPredicate::fromJson(json);
     EXPECT_TRUE(result.success());
-    // 暂时返回空的 NBTPredicate
+    EXPECT_FALSE(result.value().isAny());
+    // 解析后的谓词应包含 CustomName 字段
+    EXPECT_NE(result.value().getTag(), nullptr);
 }
 
 // ========== DistancePredicate 测试 ==========

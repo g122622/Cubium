@@ -23,6 +23,7 @@
 
 #include "AdvancementDisplay.hpp"
 #include "common/item/core/ItemRegistry.hpp"
+#include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/util/text/ITextComponent.hpp"
 
 namespace mc::advancement {
@@ -71,7 +72,28 @@ Result<AdvancementDisplay> AdvancementDisplay::fromJson(const nlohmann::json& js
                     icon = ItemStack(item, 1);
                 }
             }
-            // [TODO 阶段3+4：触发器完善] 解析NBT数据应用到物品栈
+            // 解析NBT数据应用到物品栈
+            if (iconJson.contains("nbt")) {
+                if (iconJson["nbt"].is_string()) {
+                    // Mojangson 字符串格式
+                    auto parsedTag = nbt::parseMojangson(iconJson["nbt"].get<std::string>());
+                    if (parsedTag) {
+                        nlohmann::json jsonTag = nbt::nbtToJson(*parsedTag);
+                        if (jsonTag.is_object() && !jsonTag.empty()) {
+                            icon.mergeTag(jsonTag);
+                        }
+                    }
+                } else if (iconJson["nbt"].is_object()) {
+                    // JSON 对象格式
+                    auto parsedTag = nbt::jsonToNbt(iconJson["nbt"]);
+                    if (parsedTag) {
+                        nlohmann::json jsonTag = nbt::nbtToJson(*parsedTag);
+                        if (jsonTag.is_object() && !jsonTag.empty()) {
+                            icon.mergeTag(jsonTag);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -128,7 +150,18 @@ nlohmann::json AdvancementDisplay::toJson() const
     if (!m_icon.isEmpty()) {
         nlohmann::json iconJson;
         iconJson["item"] = m_icon.getItem()->itemLocation().toString();
-        // [TODO 阶段3+4：触发器完善] 添加NBT数据
+        // 序列化NBT数据
+        const nlohmann::json* tag = m_icon.getTag();
+        if (tag && tag->is_object() && !tag->empty()) {
+            // 将 JSON 标签转回 NBT 再序列化为 Mojangson 字符串
+            auto nbtTag = nbt::jsonToNbt(*tag);
+            if (nbtTag) {
+                std::string mojangson = std::to_string(*nbtTag);
+                if (!mojangson.empty() && mojangson != "{}") {
+                    iconJson["nbt"] = mojangson;
+                }
+            }
+        }
         json["icon"] = std::move(iconJson);
     }
 

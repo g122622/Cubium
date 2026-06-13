@@ -85,7 +85,7 @@ TEST_F(ItemPredicateTest, ItemIdMatch)
 {
     // 创建匹配钻石的谓词
     ResourceLocation diamondId("minecraft", "diamond");
-    ItemPredicate predicate(diamondId, std::nullopt, IntBounds{}, std::nullopt, nullptr);
+    ItemPredicate predicate(diamondId, IntBounds{}, IntBounds{}, std::nullopt, {}, {}, {});
 
     EXPECT_FALSE(predicate.isAny());
 
@@ -99,7 +99,7 @@ TEST_F(ItemPredicateTest, ItemIdMatch)
 TEST_F(ItemPredicateTest, ItemIdMismatch)
 {
     ResourceLocation diamondId("minecraft", "diamond");
-    ItemPredicate predicate(diamondId, std::nullopt, IntBounds{}, std::nullopt, nullptr);
+    ItemPredicate predicate(diamondId, IntBounds{}, IntBounds{}, std::nullopt, {}, {}, {});
 
     // 铁锭不匹配钻石谓词
     ItemStack ironStack(Items::IRON_INGOT, 1);
@@ -111,7 +111,7 @@ TEST_F(ItemPredicateTest, ItemIdMismatch)
 TEST_F(ItemPredicateTest, CountMatch)
 {
     // 创建匹配数量为32的谓词
-    ItemPredicate predicate(std::nullopt, 32, IntBounds{}, std::nullopt, nullptr);
+    ItemPredicate predicate(std::nullopt, IntBounds::exactly(32), IntBounds{}, std::nullopt, {}, {}, {});
 
     ItemStack stack32(Items::DIAMOND, 32);
     EXPECT_TRUE(predicate.test(stack32));
@@ -128,7 +128,7 @@ TEST_F(ItemPredicateTest, DurabilityMatch)
     IntBounds durabilityBounds;
     durabilityBounds = IntBounds::fromJson(R"({"min": 100})"_json);
 
-    ItemPredicate predicate(std::nullopt, std::nullopt, durabilityBounds, std::nullopt, nullptr);
+    ItemPredicate predicate(std::nullopt, IntBounds{}, durabilityBounds, std::nullopt, {}, {}, {});
 
     // 钻石镐的耐久度是1562，满足条件
     ItemStack pickaxe(Items::DIAMOND_PICKAXE, 1);
@@ -153,7 +153,7 @@ TEST_F(ItemPredicateTest, PotionMatch_NightVision)
 
     // 创建匹配夜视药水的谓词
     ResourceLocation predicateId("minecraft", "night_vision");
-    ItemPredicate predicate(std::nullopt, std::nullopt, IntBounds{}, predicateId, nullptr);
+    ItemPredicate predicate(std::nullopt, IntBounds{}, IntBounds{}, predicateId, {}, {}, {});
 
     EXPECT_FALSE(predicate.isAny());
 
@@ -179,7 +179,7 @@ TEST_F(ItemPredicateTest, PotionMatch_Healing)
 {
     // 创建匹配治疗药水的谓词
     ResourceLocation healingId("minecraft", "healing");
-    ItemPredicate predicate(std::nullopt, std::nullopt, IntBounds{}, healingId, nullptr);
+    ItemPredicate predicate(std::nullopt, IntBounds{}, IntBounds{}, healingId, {}, {}, {});
 
     // 创建治疗药水
     ItemStack healingPotion = potion::PotionUtils::createPotionItem(potion::Potions::HEALING);
@@ -194,7 +194,7 @@ TEST_F(ItemPredicateTest, PotionMatch_WaterBottle)
 {
     // 创建匹配水瓶的谓词
     ResourceLocation waterId("minecraft", "water");
-    ItemPredicate predicate(std::nullopt, std::nullopt, IntBounds{}, waterId, nullptr);
+    ItemPredicate predicate(std::nullopt, IntBounds{}, IntBounds{}, waterId, {}, {}, {});
 
     // 创建水瓶
     ItemStack waterBottle = potion::PotionUtils::createPotionItem(potion::Potions::WATER);
@@ -209,7 +209,7 @@ TEST_F(ItemPredicateTest, PotionMatch_SplashPotion)
 {
     // 创建匹配喷溅型夜视药水的谓词
     ResourceLocation nightVisionId("minecraft", "night_vision");
-    ItemPredicate predicate(std::nullopt, std::nullopt, IntBounds{}, nightVisionId, nullptr);
+    ItemPredicate predicate(std::nullopt, IntBounds{}, IntBounds{}, nightVisionId, {}, {}, {});
 
     // 创建喷溅型夜视药水
     ItemStack splashNightVision = potion::PotionUtils::createSplashPotionItem(potion::Potions::NIGHT_VISION);
@@ -224,7 +224,7 @@ TEST_F(ItemPredicateTest, PotionMatch_LingeringPotion)
 {
     // 创建匹配滞留型治疗药水的谓词
     ResourceLocation healingId("minecraft", "healing");
-    ItemPredicate predicate(std::nullopt, std::nullopt, IntBounds{}, healingId, nullptr);
+    ItemPredicate predicate(std::nullopt, IntBounds{}, IntBounds{}, healingId, {}, {}, {});
 
     // 创建滞留型治疗药水
     ItemStack lingeringHealing = potion::PotionUtils::createLingeringPotionItem(potion::Potions::HEALING);
@@ -235,7 +235,7 @@ TEST_F(ItemPredicateTest, PotionMatch_NonPotionItem)
 {
     // 创建匹配夜视药水的谓词
     ResourceLocation nightVisionId("minecraft", "night_vision");
-    ItemPredicate predicate(std::nullopt, std::nullopt, IntBounds{}, nightVisionId, nullptr);
+    ItemPredicate predicate(std::nullopt, IntBounds{}, IntBounds{}, nightVisionId, {}, {}, {});
 
     // 钻石不是药水，应该不匹配
     ItemStack diamond(Items::DIAMOND, 1);
@@ -250,7 +250,7 @@ TEST_F(ItemPredicateTest, PotionMatch_EmptyStack)
 {
     // 创建匹配夜视药水的谓词
     ResourceLocation nightVisionId("minecraft", "night_vision");
-    ItemPredicate predicate(std::nullopt, std::nullopt, IntBounds{}, nightVisionId, nullptr);
+    ItemPredicate predicate(std::nullopt, IntBounds{}, IntBounds{}, nightVisionId, {}, {}, {});
 
     // 空物品堆不匹配
     ItemStack emptyStack;
@@ -264,7 +264,7 @@ TEST_F(ItemPredicateTest, CombinedItemAndPotion)
     // 创建匹配药水物品 + 夜视药水的谓词
     ResourceLocation potionId("minecraft", "potion");
     ResourceLocation nightVisionId("minecraft", "night_vision");
-    ItemPredicate predicate(potionId, std::nullopt, IntBounds{}, nightVisionId, nullptr);
+    ItemPredicate predicate(potionId, IntBounds{}, IntBounds{}, nightVisionId, {}, {}, {});
 
     // 夜视药水
     ItemStack nightVisionPotion = potion::PotionUtils::createPotionItem(potion::Potions::NIGHT_VISION);
@@ -279,7 +279,7 @@ TEST_F(ItemPredicateTest, CombinedCountAndPotion)
 {
     // 创建匹配数量2 + 治疗药水的谓词
     ResourceLocation healingId("minecraft", "healing");
-    ItemPredicate predicate(std::nullopt, 2, IntBounds{}, healingId, nullptr);
+    ItemPredicate predicate(std::nullopt, IntBounds::exactly(2), IntBounds{}, healingId, {}, {}, {});
 
     // 数量为2的治疗药水
     ItemStack healing2 = potion::PotionUtils::createPotionItem(potion::Potions::HEALING);
@@ -314,8 +314,11 @@ TEST_F(ItemPredicateTest, FromJson_CountOnly)
     ASSERT_TRUE(result.success());
 
     ItemPredicate predicate = result.value();
-    EXPECT_TRUE(predicate.getCount().has_value());
-    EXPECT_EQ(predicate.getCount().value(), 16);
+    EXPECT_FALSE(predicate.getCount().isUnbounded());
+    EXPECT_TRUE(predicate.getCount().getMin().has_value());
+    EXPECT_EQ(predicate.getCount().getMin().value(), 16);
+    EXPECT_TRUE(predicate.getCount().getMax().has_value());
+    EXPECT_EQ(predicate.getCount().getMax().value(), 16);
 }
 
 TEST_F(ItemPredicateTest, FromJson_PotionOnly)
@@ -344,7 +347,7 @@ TEST_F(ItemPredicateTest, FromJson_AllFields)
 
     ItemPredicate predicate = result.value();
     EXPECT_TRUE(predicate.getItem().has_value());
-    EXPECT_TRUE(predicate.getCount().has_value());
+    EXPECT_FALSE(predicate.getCount().isUnbounded());
     EXPECT_TRUE(predicate.getPotion().has_value());
     EXPECT_FALSE(predicate.isAny());
 }
@@ -363,7 +366,7 @@ TEST_F(ItemPredicateTest, FromJson_Null)
 TEST_F(ItemPredicateTest, ToJson_ItemOnly)
 {
     ResourceLocation itemId("minecraft", "diamond");
-    ItemPredicate predicate(itemId, std::nullopt, IntBounds{}, std::nullopt, nullptr);
+    ItemPredicate predicate(itemId, IntBounds{}, IntBounds{}, std::nullopt, {}, {}, {});
 
     nlohmann::json json = predicate.toJson();
     ASSERT_TRUE(json.is_object());
@@ -376,7 +379,7 @@ TEST_F(ItemPredicateTest, ToJson_ItemOnly)
 TEST_F(ItemPredicateTest, ToJson_PotionOnly)
 {
     ResourceLocation potionId("minecraft", "night_vision");
-    ItemPredicate predicate(std::nullopt, std::nullopt, IntBounds{}, potionId, nullptr);
+    ItemPredicate predicate(std::nullopt, IntBounds{}, IntBounds{}, potionId, {}, {}, {});
 
     nlohmann::json json = predicate.toJson();
     ASSERT_TRUE(json.is_object());
@@ -397,7 +400,7 @@ TEST_F(ItemPredicateTest, RoundTrip_JsonSerialization)
     // 创建谓词
     ResourceLocation itemId("minecraft", "potion");
     ResourceLocation potionId("minecraft", "swiftness");
-    ItemPredicate original(itemId, 1, IntBounds{}, potionId, nullptr);
+    ItemPredicate original(itemId, IntBounds::exactly(1), IntBounds{}, potionId, {}, {}, {});
 
     // 序列化
     nlohmann::json json = original.toJson();
@@ -410,7 +413,10 @@ TEST_F(ItemPredicateTest, RoundTrip_JsonSerialization)
 
     // 验证
     EXPECT_EQ(restored.getItem().value().toString(), original.getItem().value().toString());
-    EXPECT_EQ(restored.getCount().value(), original.getCount().value());
+    EXPECT_TRUE(restored.getCount().getMin().has_value() && original.getCount().getMin().has_value());
+    if (restored.getCount().getMin().has_value() && original.getCount().getMin().has_value()) {
+        EXPECT_EQ(restored.getCount().getMin().value(), original.getCount().getMin().value());
+    }
     EXPECT_EQ(restored.getPotion().value().toString(), original.getPotion().value().toString());
 }
 
@@ -422,7 +428,7 @@ TEST_F(ItemPredicateTest, MC1165_StrongPotionVariants)
     // strong_healing vs healing
 
     ResourceLocation strongHealingId("minecraft", "strong_healing");
-    ItemPredicate predicate(std::nullopt, std::nullopt, IntBounds{}, strongHealingId, nullptr);
+    ItemPredicate predicate(std::nullopt, IntBounds{}, IntBounds{}, strongHealingId, {}, {}, {});
 
     // 强效治疗药水匹配
     ItemStack strongHealing = potion::PotionUtils::createPotionItem(potion::Potions::STRONG_HEALING);
@@ -439,7 +445,7 @@ TEST_F(ItemPredicateTest, MC1165_LongPotionVariants)
     // long_night_vision vs night_vision
 
     ResourceLocation longNightVisionId("minecraft", "long_night_vision");
-    ItemPredicate predicate(std::nullopt, std::nullopt, IntBounds{}, longNightVisionId, nullptr);
+    ItemPredicate predicate(std::nullopt, IntBounds{}, IntBounds{}, longNightVisionId, {}, {}, {});
 
     // 延长版夜视药水匹配
     ItemStack longNightVision = potion::PotionUtils::createPotionItem(potion::Potions::LONG_NIGHT_VISION);

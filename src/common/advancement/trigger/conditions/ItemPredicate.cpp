@@ -12,35 +12,41 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * IMPLIED, INCLUDING ANY WARRANTY OF ANY KIND, WHETHER
+ * EXPRESS OR IMPLIED, INCLUDING STATUTORY OR OTHERWISE, IMPLIED WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+ * EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+ * OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
  *
  */
 
 #include "ItemPredicate.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/special/EnchantedBookItem.hpp"
 #include "common/item/potion/PotionUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 namespace mc::advancement {
 
 ItemPredicate::ItemPredicate(std::optional<ResourceLocation> item,
-    std::optional<i32> count,
+    IntBounds count,
     IntBounds durability,
     std::optional<ResourceLocation> potion,
-    const nbt::tags::compound_tag* nbt)
+    std::vector<EnchantmentPredicate> enchantments,
+    std::vector<EnchantmentPredicate> storedEnchantments,
+    NBTPredicate nbt)
     : m_item(std::move(item))
-    , m_count(count)
+    , m_count(std::move(count))
     , m_durability(std::move(durability))
     , m_potion(std::move(potion))
-    , m_isAny(!m_item.has_value() && !m_count.has_value() && m_durability.isUnbounded() && !m_potion.has_value())
+    , m_enchantments(std::move(enchantments))
+    , m_storedEnchantments(std::move(storedEnchantments))
+    , m_nbt(std::move(nbt))
 {
-    MC_UNUSED(nbt);
+    _updateIsAny();
 }
 
 bool ItemPredicate::test(const ItemStack& stack) const
@@ -65,7 +71,7 @@ bool ItemPredicate::test(const ItemStack& stack) const
     }
 
     // 检查数量
-    if (m_count.has_value() && stack.getCount() != m_count.value()) {
+    if (!m_count.isUnbounded() && !m_count.test(stack.getCount())) {
         return false;
     }
 
@@ -79,20 +85,39 @@ bool ItemPredicate::test(const ItemStack& stack) const
 
     // 检查药水类型
     if (m_potion.has_value()) {
-        // 使用 PotionUtils 获取物品堆中的药水
         const potion::Potion* actualPotion = potion::PotionUtils::getPotion(stack);
         if (actualPotion == nullptr) {
-            // 无药水，匹配失败
             return false;
         }
-
-        // 比较药水的资源位置ID
         if (actualPotion->id() != m_potion.value()) {
             return false;
         }
     }
 
-    // TODO: NBT匹配、附魔匹配等
+    // 检查附魔
+    if (!_testEnchantments(m_enchantments, stack.getEnchantments())) {
+        return false;
+    }
+
+    // 检查存储附魔（附魔书的 StoredEnchantments）
+    if (!m_storedEnchantments.empty()) {
+        // 构建附魔书的存储附魔容器
+        item::enchant::EnchantmentContainer storedContainer;
+        auto storedData = item::items::EnchantedBookItem::getEnchantments(stack);
+        for (const auto& data : storedData) {
+            if (data.enchantment != nullptr) {
+                storedContainer.set(data.enchantment->id(), data.level);
+            }
+        }
+        if (!_testEnchantments(m_storedEnchantments, storedContainer)) {
+            return false;
+        }
+    }
+
+    // 检查NBT
+    if (!m_nbt.test(stack)) {
+        return false;
+    }
 
     return true;
 }
@@ -109,20 +134,19 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
     }
 
     std::optional<ResourceLocation> item;
-    std::optional<i32> count;
+    IntBounds count;
     IntBounds durability;
     std::optional<ResourceLocation> potion;
+    std::vector<EnchantmentPredicate> enchantments;
+    std::vector<EnchantmentPredicate> storedEnchantments;
+    NBTPredicate nbt;
 
     if (json.contains("item")) {
         item = ResourceLocation(json["item"].get<std::string>());
     }
 
     if (json.contains("count")) {
-        if (json["count"].is_number()) {
-            count = json["count"].get<i32>();
-        } else {
-            durability = IntBounds::fromJson(json["count"]);
-        }
+        count = IntBounds::fromJson(json["count"]);
     }
 
     if (json.contains("durability")) {
@@ -133,9 +157,41 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
         potion = ResourceLocation(json["potion"].get<std::string>());
     }
 
-    // [TODO 阶段3+4：触发器完善] 解析 nbt, enchantments, stored_enchantments 等
+    // 解析附魔谓词列表
+    if (json.contains("enchantments") && json["enchantments"].is_array()) {
+        for (const auto& enchJson : json["enchantments"]) {
+            auto result = EnchantmentPredicate::fromJson(enchJson);
+            if (result.success()) {
+                enchantments.push_back(std::move(result.value()));
+            }
+        }
+    }
 
-    return ItemPredicate(std::move(item), count, std::move(durability), std::move(potion), nullptr);
+    // 解析存储附魔谓词列表（附魔书）
+    if (json.contains("stored_enchantments") && json["stored_enchantments"].is_array()) {
+        for (const auto& enchJson : json["stored_enchantments"]) {
+            auto result = EnchantmentPredicate::fromJson(enchJson);
+            if (result.success()) {
+                storedEnchantments.push_back(std::move(result.value()));
+            }
+        }
+    }
+
+    // 解析NBT谓词
+    if (json.contains("nbt")) {
+        auto result = NBTPredicate::fromJson(json["nbt"]);
+        if (result.success()) {
+            nbt = std::move(result.value());
+        }
+    }
+
+    return ItemPredicate(std::move(item),
+        std::move(count),
+        std::move(durability),
+        std::move(potion),
+        std::move(enchantments),
+        std::move(storedEnchantments),
+        std::move(nbt));
 }
 
 nlohmann::json ItemPredicate::toJson() const
@@ -148,8 +204,8 @@ nlohmann::json ItemPredicate::toJson() const
     if (m_item.has_value()) {
         json["item"] = m_item.value().toString();
     }
-    if (m_count.has_value()) {
-        json["count"] = m_count.value();
+    if (!m_count.isUnbounded()) {
+        json["count"] = m_count.toJson();
     }
     if (!m_durability.isUnbounded()) {
         json["durability"] = m_durability.toJson();
@@ -157,7 +213,43 @@ nlohmann::json ItemPredicate::toJson() const
     if (m_potion.has_value()) {
         json["potion"] = m_potion.value().toString();
     }
+    if (!m_enchantments.empty()) {
+        nlohmann::json enchArray = nlohmann::json::array();
+        for (const auto& ench : m_enchantments) {
+            enchArray.push_back(ench.toJson());
+        }
+        json["enchantments"] = enchArray;
+    }
+    if (!m_storedEnchantments.empty()) {
+        nlohmann::json storedArray = nlohmann::json::array();
+        for (const auto& ench : m_storedEnchantments) {
+            storedArray.push_back(ench.toJson());
+        }
+        json["stored_enchantments"] = storedArray;
+    }
+    if (!m_nbt.isAny()) {
+        json["nbt"] = m_nbt.toJson();
+    }
     return json;
+}
+
+void ItemPredicate::_updateIsAny()
+{
+    m_isAny = !m_item.has_value() && m_count.isUnbounded() && m_durability.isUnbounded() && !m_potion.has_value() &&
+        m_enchantments.empty() && m_storedEnchantments.empty() && m_nbt.isAny();
+}
+
+bool ItemPredicate::_testEnchantments(
+    const std::vector<EnchantmentPredicate>& predicates, const item::enchant::EnchantmentContainer& enchantments)
+{
+    // 所有谓词都必须匹配（AND 语义）
+    // 每个谓词检查附魔容器中是否存在满足条件的附魔
+    for (const auto& pred : predicates) {
+        if (!pred.test(enchantments)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 } // namespace mc::advancement

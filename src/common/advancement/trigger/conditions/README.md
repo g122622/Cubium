@@ -10,8 +10,9 @@ conditions/
 ├── EntityPredicate.hpp/cpp          # 实体谓词 - 匹配实体类型、距离、位置、效果、NBT、标志、装备；包含 DamageSourcePredicate
 ├── EntityFlagsPredicate.hpp/cpp     # 实体标志谓词 - 匹配燃烧、潜行、疾跑、游泳、幼年状态
 ├── EntityEquipmentPredicate.hpp/cpp # 装备谓词 - 匹配实体装备（头盔、胸甲、护腿、靴子、主手、副手）
-├── NBTPredicate.hpp/cpp             # NBT谓词 - 匹配NBT数据（支持递归比较，期望标签须是实际标签子集）
-├── ItemPredicate.hpp/cpp            # 物品谓词 - 匹配物品ID、数量、耐久、药水、附魔、NBT
+├── EnchantmentPredicate.hpp/cpp     # 附魔谓词 - 匹配附魔类型和等级
+├── NBTPredicate.hpp/cpp             # NBT谓词 - 匹配NBT数据（支持递归子集比较，支持Mojangson和JSON格式解析）
+├── ItemPredicate.hpp/cpp            # 物品谓词 - 匹配物品ID、数量、耐久、药水、附魔、存储附魔、NBT
 ├── LocationPredicate.hpp/cpp        # 位置谓词 - 匹配坐标、维度、生物群系；包含 DistancePredicate
 └── MobEffectsPredicate.hpp/cpp      # 效果谓词 - 匹配实体身上的效果状态；包含 EffectInstancePredicate
 ```

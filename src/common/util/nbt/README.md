@@ -6,11 +6,13 @@ Minecraft NBT 格式序列化库，支持 Java Edition、Bedrock Edition 和 Moj
 
 ```
 src/common/util/nbt/
-├── LICENSE           # MIT 许可证（原作者 Ktlo）
-├── Nbt.hpp           # 主头文件 - 公共 API（TagId 枚举、Context、标签类型、类型别名）
-├── NbtInternal.hpp   # 内部头文件 - VarNum/Zint 模板实现（仅 Nbt.cpp 使用）
-├── Nbt.cpp           # 实现文件 - 所有函数的具体实现
-└── README.md         # 本文档
+├── LICENSE             # MIT 许可证（原作者 Ktlo）
+├── Nbt.hpp             # 主头文件 - 公共 API（TagId 枚举、Context、标签类型、类型别名）
+├── NbtInternal.hpp     # 内部头文件 - VarNum/Zint 模板实现（仅 Nbt.cpp 使用）
+├── Nbt.cpp             # 实现文件 - 所有函数的具体实现
+├── NbtJsonUtils.hpp    # NBT-JSON 转换工具（nbtToJson、jsonToNbt、parseMojangson）
+├── NbtJsonUtils.cpp    # NBT-JSON 转换工具实现
+└── README.md           # 本文档
 ```
 
 ## 内部模块关系
@@ -100,6 +102,10 @@ src/common/util/nbt/
 
 **进度系统**：
 - `advancement/trigger/conditions/NBTPredicate.hpp`
+- `advancement/AdvancementDisplay.cpp`
+
+**战利品系统**：
+- `item/loot/functions/SetNbtFunction.cpp`
 
 **其他**：
 - `server/bossbar/CustomServerBossInfo.hpp`, `CustomServerBossInfoManager.hpp`

@@ -26,122 +26,11 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/nbt/NbtJsonUtils.hpp"
 #include <sstream>
 
 namespace mc {
 namespace loot {
-
-// ============================================================================
-// NBT 转 JSON 辅助函数
-// ============================================================================
-
-namespace {
-
-/**
- * @brief 将 NBT 标签转换为 nlohmann::json
- *
- * NBT 到 JSON 转换规则：
- * - 数值类型直接转换
- * - 字符串直接转换
- * - 数组转换为 JSON 数组
- * - 列表转换为 JSON 数组
- * - 复合标签转换为 JSON 对象
- *
- * @param tag NBT 标签
- * @return 转换后的 JSON 值
- */
-nlohmann::json nbtToJson(const nbt::tags::tag& tag);
-
-nlohmann::json nbtListToJson(const nbt::tags::list_tag& list)
-{
-    nlohmann::json result = nlohmann::json::array();
-    for (size_t i = 0; i < list.size(); ++i) {
-        auto elem = list[i];
-        if (elem) {
-            result.push_back(nbtToJson(*elem));
-        }
-    }
-    return result;
-}
-
-nlohmann::json nbtToJson(const nbt::tags::tag& tag)
-{
-    using namespace nbt::tags;
-
-    switch (tag.id()) {
-        case nbt::TagId::Byte: {
-            const auto& t = dynamic_cast<const byte_tag&>(tag);
-            return t.value;
-        }
-        case nbt::TagId::Short: {
-            const auto& t = dynamic_cast<const short_tag&>(tag);
-            return t.value;
-        }
-        case nbt::TagId::Int: {
-            const auto& t = dynamic_cast<const int_tag&>(tag);
-            return t.value;
-        }
-        case nbt::TagId::Long: {
-            const auto& t = dynamic_cast<const long_tag&>(tag);
-            return t.value;
-        }
-        case nbt::TagId::Float: {
-            const auto& t = dynamic_cast<const float_tag&>(tag);
-            return t.value;
-        }
-        case nbt::TagId::Double: {
-            const auto& t = dynamic_cast<const double_tag&>(tag);
-            return t.value;
-        }
-        case nbt::TagId::ByteArray: {
-            const auto& t = dynamic_cast<const bytearray_tag&>(tag);
-            nlohmann::json result = nlohmann::json::array();
-            for (const auto& val : t.value) {
-                result.push_back(val);
-            }
-            return result;
-        }
-        case nbt::TagId::String: {
-            const auto& t = dynamic_cast<const string_tag&>(tag);
-            return t.value;
-        }
-        case nbt::TagId::List: {
-            const auto& t = dynamic_cast<const list_tag&>(tag);
-            return nbtListToJson(t);
-        }
-        case nbt::TagId::Compound: {
-            const auto& t = dynamic_cast<const compound_tag&>(tag);
-            nlohmann::json result = nlohmann::json::object();
-            for (const auto& [key, value] : t.value) {
-                if (value) {
-                    result[key] = nbtToJson(*value);
-                }
-            }
-            return result;
-        }
-        case nbt::TagId::IntArray: {
-            const auto& t = dynamic_cast<const intarray_tag&>(tag);
-            nlohmann::json result = nlohmann::json::array();
-            for (const auto& val : t.value) {
-                result.push_back(val);
-            }
-            return result;
-        }
-        case nbt::TagId::LongArray: {
-            const auto& t = dynamic_cast<const longarray_tag&>(tag);
-            nlohmann::json result = nlohmann::json::array();
-            for (const auto& val : t.value) {
-                result.push_back(val);
-            }
-            return result;
-        }
-        case nbt::TagId::End:
-        default:
-            return nullptr;
-    }
-}
-
-} // anonymous namespace
 
 SetNbtFunction::SetNbtFunction(const std::string& nbtString)
     : m_nbtString(nbtString)
@@ -155,36 +44,16 @@ ItemStack SetNbtFunction::apply(ItemStack stack, LootContext& context) const
         return stack;
     }
 
-    // 1. 解析 NBT 字符串（Mojangson 格式）
-    // 2. 将解析的 NBT 合并到 ItemStack 的现有标签中
-
-    try {
-        // 使用 Mojangson 格式解析 NBT 字符串
-        std::istringstream iss(m_nbtString);
-
-        // 设置 Mojangson 上下文
-        iss >> nbt::contexts::mojangson;
-
-        // 使用 compound_tag::read 静态方法解析
-        auto parsedTagPtr = nbt::tags::compound_tag::read(iss);
-        if (!parsedTagPtr || iss.fail()) {
-            // 解析失败，返回原始物品
-            return stack;
-        }
-
-        nbt::tags::compound_tag& parsedTag = *parsedTagPtr;
-
-        // 将 NBT 转换为 JSON 并合并到 ItemStack
-        nlohmann::json jsonTag = nbtToJson(parsedTag);
-        if (jsonTag.is_object() && !jsonTag.empty()) {
-            stack.mergeTag(jsonTag);
-        }
-    }
-    catch (const std::exception& e) {
-        // 解析异常，返回原始物品
-        // 在实际游戏中可能需要记录日志
-        MC_UNUSED(e);
+    // 使用 Mojangson 格式解析 NBT 字符串
+    auto parsedTag = nbt::parseMojangson(m_nbtString);
+    if (!parsedTag) {
         return stack;
+    }
+
+    // 将 NBT 转换为 JSON 并合并到 ItemStack
+    nlohmann::json jsonTag = nbt::nbtToJson(*parsedTag);
+    if (jsonTag.is_object() && !jsonTag.empty()) {
+        stack.mergeTag(jsonTag);
     }
 
     return stack;

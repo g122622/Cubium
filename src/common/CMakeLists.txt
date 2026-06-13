@@ -1219,6 +1219,7 @@ add_library(mc_common STATIC
 
     # NBT (Named Binary Tag) Library
     util/nbt/Nbt.cpp
+    util/nbt/NbtJsonUtils.cpp
 
     # Text System (Rich Text)
     util/text/TextStyle.cpp
@@ -1297,6 +1298,7 @@ add_library(mc_common STATIC
     advancement/trigger/conditions/EntityFlagsPredicate.cpp
     advancement/trigger/conditions/EntityEquipmentPredicate.cpp
     advancement/trigger/conditions/NBTPredicate.cpp
+    advancement/trigger/conditions/EnchantmentPredicate.cpp
     advancement/trigger/conditions/LocationPredicate.cpp
     advancement/trigger/conditions/BlockPredicate.cpp
     advancement/trigger/conditions/MobEffectsPredicate.cpp

@@ -12,12 +12,13 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY OF ANY KIND, WHETHER
+ * EXPRESS OR IMPLIED, INCLUDING STATUTORY OR OTHERWISE, IMPLIED WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+ * EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+ * OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
  *
  */
 
@@ -41,6 +42,8 @@ namespace mc::advancement {
  * @brief NBT谓词
  *
  * 用于匹配NBT数据的条件谓词，检查实体或物品的NBT标签。
+ * 匹配规则：期望标签中的所有字段必须在实际标签中存在且值相等（子集匹配），
+ * 实际标签可以包含期望标签中没有的额外字段。
  */
 class NBTPredicate {
 public:
@@ -77,6 +80,10 @@ public:
 
     /**
      * @brief 检查实体NBT是否匹配
+     *
+     * 将实体序列化为NBT后进行子集匹配。
+     * 对于玩家实体，还会包含 SelectedItem 字段。
+     *
      * @param entity 实体
      * @return 是否匹配
      */
@@ -84,6 +91,9 @@ public:
 
     /**
      * @brief 检查物品NBT是否匹配
+     *
+     * 将物品序列化为NBT后检查其tag字段进行子集匹配。
+     *
      * @param stack 物品堆
      * @return 是否匹配
      */
@@ -103,11 +113,22 @@ public:
 
     /**
      * @brief 从JSON解析
+     *
+     * 支持两种格式：
+     * 1. 字符串格式：Mojangson 格式的NBT字符串，如 "{CustomName:'Hello'}"
+     * 2. 对象格式：JSON对象直接作为NBT compound tag
+     *
+     * @param json JSON值（字符串或对象）
+     * @return 解析结果
      */
     static Result<NBTPredicate> fromJson(const nlohmann::json& json);
 
     /**
      * @brief 序列化为JSON
+     *
+     * 将NBT数据序列化为Mojangson字符串格式。
+     *
+     * @return JSON值（字符串或null）
      */
     [[nodiscard]] nlohmann::json toJson() const;
 
@@ -118,10 +139,12 @@ public:
 
 private:
     /**
-     * @brief 递归比较NBT标签是否匹配
+     * @brief 递归比较NBT标签是否匹配（子集匹配）
      *
      * 如果期望标签中的字段在实际标签中存在且值相等，则匹配。
      * 实际标签可以包含期望标签中没有的额外字段。
+     * 对于列表类型，使用无序子集匹配：期望列表中的每个元素
+     * 必须在实际列表中存在一个匹配的元素。
      *
      * @param expected 期望的NBT数据
      * @param actual 实际的NBT数据
@@ -131,8 +154,18 @@ private:
 
     /**
      * @brief 比较两个NBT标签是否相等
+     *
+     * 对于列表标签，使用无序子集匹配（compareList=true）。
      */
     static bool _matchTag(const nbt::tags::tag& expected, const nbt::tags::tag& actual) noexcept;
+
+    /**
+     * @brief 将物品堆序列化为NBT并获取tag字段
+     *
+     * @param stack 物品堆
+     * @return tag字段的compound_tag，如果无tag则返回nullptr
+     */
+    static std::unique_ptr<nbt::tags::compound_tag> _serializeItemStackTag(const ItemStack& stack);
 
     std::unique_ptr<nbt::tags::compound_tag> m_tag;
 };

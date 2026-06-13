@@ -12,12 +12,13 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY OF ANY KIND, WHETHER
+ * EXPRESS OR IMPLIED, INCLUDING STATUTORY OR OTHERWISE, IMPLIED WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+ * EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+ * OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
  *
  */
 
@@ -25,6 +26,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/nbt/NbtJsonUtils.hpp"
 #include <sstream>
 
 namespace mc::advancement {
@@ -60,15 +62,10 @@ bool NBTPredicate::test(const Entity& entity) const
         return true;
     }
 
-    // 将实体序列化为NBT后进行比较
-    // 由于当前项目实体NBT序列化尚未完全实现，暂时返回 true
-    // TODO: 实现实体NBT序列化后启用完整匹配
-    // nbt::tags::compound_tag entityNbt;
-    // entity.serializeNBT(entityNbt);
-    // return test(&entityNbt);
-
-    MC_UNUSED(entity);
-    return true;
+    // 将实体序列化为NBT后进行子集匹配
+    nbt::tags::compound_tag entityNbt;
+    entity.writeToNBT(entityNbt);
+    return test(&entityNbt);
 }
 
 bool NBTPredicate::test(const ItemStack& stack) const
@@ -77,14 +74,16 @@ bool NBTPredicate::test(const ItemStack& stack) const
         return true;
     }
 
-    // 检查物品的NBT标签
-    // 由于当前项目物品NBT序列化尚未完全实现，暂时返回 true
-    // TODO: 实现物品NBT序列化后启用完整匹配
-    // const nbt::tags::compound_tag* itemNbt = stack.getTag();
-    // return test(itemNbt);
+    if (stack.isEmpty()) {
+        return false;
+    }
 
-    MC_UNUSED(stack);
-    return true;
+    // 将物品的tag字段序列化为NBT后进行子集匹配
+    auto itemTag = _serializeItemStackTag(stack);
+    if (itemTag == nullptr) {
+        return false;
+    }
+    return test(itemTag.get());
 }
 
 bool NBTPredicate::test(const nbt::tags::compound_tag* tag) const
@@ -106,21 +105,24 @@ Result<NBTPredicate> NBTPredicate::fromJson(const nlohmann::json& json)
         return NBTPredicate{};
     }
 
-    // 解析 JSON 格式的 NBT 数据
-    // 使用字符串格式的 NBT（Mojangson 格式）
+    // 字符串格式：Mojangson 格式的NBT字符串
     if (json.is_string()) {
         std::string nbtString = json.get<std::string>();
-        // TODO: 实现 Mojangson 解析器
-        // 暂时返回空的 NBTPredicate
-        MC_UNUSED(nbtString);
-        return NBTPredicate{};
+        auto parsedTag = nbt::parseMojangson(nbtString);
+        if (!parsedTag) {
+            return Error(
+                ErrorCode::InvalidArgument, fmt::format("Failed to parse Mojangson NBT string: {}", nbtString));
+        }
+        return NBTPredicate(std::move(parsedTag));
     }
 
-    // 解析对象格式的 NBT 数据
+    // 对象格式：JSON对象直接转换为NBT compound tag
     if (json.is_object()) {
-        // TODO: 实现 JSON 到 NBT 的转换
-        // 暂时返回空的 NBTPredicate
-        return NBTPredicate{};
+        auto nbtTag = nbt::jsonToNbt(json);
+        if (!nbtTag) {
+            return Error(ErrorCode::InvalidArgument, "Failed to convert JSON object to NBT");
+        }
+        return NBTPredicate(std::move(nbtTag));
     }
 
     return NBTPredicate{};
@@ -132,9 +134,9 @@ nlohmann::json NBTPredicate::toJson() const
         return nullptr;
     }
 
-    // TODO: 实现 NBT 到 JSON 的转换
-    // 暂时返回 null
-    return nullptr;
+    // 将NBT序列化为Mojangson字符串
+    std::string mojangson = std::to_string(*m_tag);
+    return mojangson;
 }
 
 bool NBTPredicate::_matchNBT(const nbt::tags::compound_tag& expected, const nbt::tags::compound_tag& actual) noexcept
@@ -220,21 +222,34 @@ bool NBTPredicate::_matchTag(const nbt::tags::tag& expected, const nbt::tags::ta
             const auto& exp = static_cast<const nbt::tags::list_tag&>(expected);
             const auto& act = static_cast<const nbt::tags::list_tag&>(actual);
 
-            // 列表长度必须相等
-            if (exp.size() != act.size()) {
-                return false;
-            }
-
             // 列表元素类型必须相等
             if (exp.element_id() != act.element_id()) {
                 return false;
             }
 
-            // 逐个比较元素
+            // 空期望列表匹配任何列表
+            if (exp.size() == 0) {
+                return true;
+            }
+
+            // 实际列表长度不能小于期望列表
+            if (act.size() < exp.size()) {
+                return false;
+            }
+
+            // 无序子集匹配：期望列表中的每个元素必须在实际列表中存在至少一个匹配的元素
+            // 这与 MC Java 的 NbtUtils.compareNbt(listCompare=true) 行为一致
             for (size_t i = 0; i < exp.size(); ++i) {
                 auto expElem = exp[i];
-                auto actElem = act[i];
-                if (!_matchTag(*expElem, *actElem)) {
+                bool found = false;
+                for (size_t j = 0; j < act.size(); ++j) {
+                    auto actElem = act[j];
+                    if (_matchTag(*expElem, *actElem)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
                     return false;
                 }
             }
@@ -262,6 +277,29 @@ bool NBTPredicate::_matchTag(const nbt::tags::tag& expected, const nbt::tags::ta
         default:
             return false;
     }
+}
+
+std::unique_ptr<nbt::tags::compound_tag> NBTPredicate::_serializeItemStackTag(const ItemStack& stack)
+{
+    // 将物品堆完整序列化为NBT，然后提取tag字段
+    nbt::tags::compound_tag rootTag;
+    stack.toNbt(rootTag);
+
+    // 检查是否存在tag子标签
+    auto it = rootTag.value.find("tag");
+    if (it == rootTag.value.end()) {
+        return nullptr;
+    }
+
+    if (it->second->id() != nbt::TagId::Compound) {
+        return nullptr;
+    }
+
+    // 复制tag字段的内容
+    const auto& tagCompound = static_cast<const nbt::tags::compound_tag&>(*it->second);
+    auto result =
+        std::unique_ptr<nbt::tags::compound_tag>(dynamic_cast<nbt::tags::compound_tag*>(tagCompound.copy().release()));
+    return result;
 }
 
 } // namespace mc::advancement
