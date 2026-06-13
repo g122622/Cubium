@@ -402,41 +402,39 @@ ItemModelType ItemModelLoader::_determineModelType(const ResourceLocation& paren
     return ItemModelType::Generated;
 }
 
-void ItemModelLoader::_mergeParent(UnbakedItemModel& child, const UnbakedItemModel& parent)
+void ItemModelLoader::_mergeParent(UnbakedItemModel& accumulated, const UnbakedItemModel& currentLayer)
 {
-    // 合并纹理：子模型中不存在的纹理键从父模型继承
-    for (const auto& [key, value] : parent.textures) {
-        if (child.textures.find(key) == child.textures.end()) {
-            child.textures[key] = value;
-        }
+    // 合并纹理：当前层的纹理覆盖累积结果中的同名键（child-overrides-parent 语义）
+    // 在 root-to-leaf 累积遍历中，更靠近叶子的模型应该覆盖更靠近根的模型
+    for (const auto& [key, value] : currentLayer.textures) {
+        accumulated.textures[key] = value;
     }
 
-    // 合并元素：仅当子模型无元素时才继承父模型元素（first-defined-wins）
-    if (child.elements.empty() && !parent.elements.empty()) {
-        child.elements = parent.elements;
+    // 合并元素：仅当累积结果无元素时才继承当前层元素（first-defined-wins）
+    // TODO: MC Java 版语义是 leaf-wins（沿父子链从子到根查找，第一个定义了元素的模型生效），
+    // 当前 root-to-leaf 逐层合并的累积策略等效于 first-defined-wins，与 MC 语义一致。
+    // 但需注意：若未来支持多源合并（如 multipart），此处语义可能需要调整。
+    if (accumulated.elements.empty() && !currentLayer.elements.empty()) {
+        accumulated.elements = currentLayer.elements;
     }
 
-    // 合并显示变换：子模型中不存在的显示上下文从父模型继承
-    for (const auto& [ctx, transform] : parent.display) {
-        if (child.display.find(ctx) == child.display.end()) {
-            child.display[ctx] = transform;
-        }
+    // 合并显示变换：当前层中定义的上下文覆盖累积结果中的同名上下文
+    for (const auto& [ctx, transform] : currentLayer.display) {
+        accumulated.display[ctx] = transform;
     }
 
-    // 合并环境光遮蔽：如果父模型关闭了 AO，则关闭
-    if (!parent.ambientOcclusion) {
-        child.ambientOcclusion = false;
+    // 合并环境光遮蔽：如果当前层关闭了 AO，则关闭累积结果的 AO
+    if (!currentLayer.ambientOcclusion) {
+        accumulated.ambientOcclusion = false;
     }
 
-    // 合并模型类型：如果子模型未显式设置（Generated），继承父模型类型
-    // MC Java 版语义：子模型类型显式设置时覆盖父模型
-    if (child.type == ItemModelType::Generated && parent.type != ItemModelType::Generated) {
-        child.type = parent.type;
-    }
+    // 合并模型类型：leaf-wins 语义，与原始 bakeModel 循环中 baked.type = model->type 一致
+    // 在 root-to-leaf 遍历中，每层都覆盖 type，最终 leaf 的 type 生效
+    accumulated.type = currentLayer.type;
 
-    // 合并覆盖条件：仅当子模型无覆盖条件时才继承父模型
-    if (child.overrides.empty() && !parent.overrides.empty()) {
-        child.overrides = parent.overrides;
+    // 合并覆盖条件：当前层有覆盖条件时覆盖累积结果（leaf-wins）
+    if (!currentLayer.overrides.empty()) {
+        accumulated.overrides = currentLayer.overrides;
     }
 }
 

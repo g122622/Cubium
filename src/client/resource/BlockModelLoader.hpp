@@ -237,12 +237,15 @@ public:
     /**
      * @brief 合并父子未烘焙模型的属性
      *
+     * 在 root-to-leaf 累积遍历中使用。accumulated 是已累积的结果，
+     * currentLayer 是当前正在处理的模型层（更靠近叶子）。
+     *
      * 合并规则（与 MC Java 版一致）：
-     * - 纹理：子模型中不存在的纹理键从父模型继承
-     * - 元素：仅当子模型无元素时才继承父模型元素（first-defined-wins）
-     * - 环境光遮蔽：仅当子模型未显式设置时才继承（first-defined-wins）
+     * - 纹理：当前层覆盖累积结果中的同名键（child-overrides-parent）
+     * - 元素：仅当累积结果无元素时才继承当前层元素（first-defined-wins）
+     * - 环境光遮蔽：如果当前层关闭了 AO，则关闭累积结果的 AO
      */
-    static void mergeParent(UnbakedBlockModel& child, const UnbakedBlockModel& parent);
+    static void mergeParent(UnbakedBlockModel& accumulated, const UnbakedBlockModel& currentLayer);
 
     /**
      * @brief 解析纹理变量引用链
