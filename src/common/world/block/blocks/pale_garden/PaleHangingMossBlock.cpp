@@ -110,7 +110,8 @@ BlockState PaleHangingMossBlock::updatePostPlacement(const BlockState& state,
     // 更新TIP属性：如果下方不是苍白垂苔，则为末端
     BlockPos belowPos(currentPos.x, currentPos.y - 1, currentPos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
-    bool isTip = (belowState == nullptr || dynamic_cast<const PaleHangingMossBlock*>(&belowState->getBlock()) == nullptr);
+    bool isTip =
+        (belowState == nullptr || dynamic_cast<const PaleHangingMossBlock*>(&belowState->getBlock()) == nullptr);
 
     return state.with(BlockStateProperties::TIP(), isTip);
 }
