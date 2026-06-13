@@ -44,31 +44,6 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `BiomeProvider` - 生物群系分布基类
 - `LayerBiomeProvider` - 基于层的生物群系生成（MC 1.16.5）
 
-### 噪声类型（MC 1.18+ 噪声系统）
-- `PerlinNoise` - 多倍频 Perlin 噪声（支持任意振幅列表和涂抹效果）
-- `NormalNoise` - 双 Perlin 噪声（地形生成核心）
-- `SimplexNoise` - Simplex 噪声（末地岛屿生成）
-
-### 渲染器类型
-- `Vertex`, `ModelVertex`, `GuiVertex` - 顶点类型
-- `Face` - 三角形面
-- `MeshData` - 网格顶点/索引缓冲区
-- `TextureRegion` - 图集中的 UV 坐标
-- `BakedBlockModel`, `UnbakedBlockModel` - 模型类型
-
-### 渲染器 API 类型（平台无关）
-- `IRenderEngine` - 主渲染引擎接口
-- `IVertexBuffer`, `IIndexBuffer`, `IUniformBuffer`, `IStagingBuffer` - 缓冲区接口
-- `ITexture`, `ITextureAtlas` - 纹理接口
-- `ICamera` - 相机接口
-- `RenderState` - 混合、深度、光栅化状态
-- `RenderType` - 命名渲染类型（MC 1.16.5 风格）
-
-### 雾类型
-- `FogMode`：雾模式枚举（None, Linear, Exp2）
-- `FogUBO`：雾 uniform 缓冲区数据（fogStart, fogEnd, fogDensity, fogColor）
-- `FogManager`：雾效果管理器
-
 ### 网络类型
 - `PacketType` - 数据包类型枚举
 - `PacketHeader` - 12 字节数据包头
@@ -129,7 +104,7 @@ block/
 ├── BlockPos.hpp                    # 方块位置坐标类
 ├── BlockRegistry.hpp/cpp           # 方块注册表（单例）
 ├── BlockSoundType.hpp/cpp          # 方块声音类型定义
-├── BlockTags.hpp/cpp               # 方块标签系统（分组判断）
+├── BlockTags.hpp/cpp               # 方块标签系统（分组判断），可用于判断方块类型，推荐首选！
 ├── FireInfoRegistry.hpp/cpp        # 火焰信息注册表（燃烧/蔓延属性）
 ├── HarvestTool.hpp                 # 挖掘工具类型定义
 ├── IBeaconBeamColorProvider.hpp    # 信标光束颜色提供者接口
@@ -486,9 +461,6 @@ f32 g = rng.nextGaussian(0.0, 1.0); // 正态分布
 ### 目录结构
 保持整洁优雅的目录结构，适当使用子目录。永远不要在一个目录里堆放大量文件。
 
-### 编译警告
-所有编译警告必须解决。
-
 ### 命名空间使用
 使用嵌套命名空间来隔离子系统：
 ```cpp
@@ -566,4 +538,4 @@ src/client/renderer/
 
 当你完成一个任务后，不要停下来，请继续做后面的任务，直到任务清空你才能停！你时间充足、上下文也充足。
 
-注意本项目基建已经相当完善（代码量已经百万级别），各种常数、常用工具函数、音频系统、粒子系统、资源包系统、命令系统、实体系统、物品系统、物理系统、碰撞、tick调度、存档系统、成就系统等都已经有了相当完善的实现(另外world对象上面也挂了相当多的工具方法以便访问世界、操作世界等)，务必充分探索以实现复用，避免重复实现，或者以未实现为理由留下TODO。
+注意本项目基建已经相当完善（代码量已经百万级别），各种常数、常用工具函数、音频系统、粒子系统、资源包系统、命令系统、实体系统、物品系统、物理系统、碰撞、tick调度、存档系统、成就系统等都已经有了相当完善的实现(另外world对象上面也挂了相当多的工具方法以便访问世界、操作世界等)，务必充分探索以实现复用，避免重复实现。
