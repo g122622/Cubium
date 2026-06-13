@@ -63,6 +63,35 @@ ResourceManager（核心入口，协调所有加载器）
 - `client/renderer/entity/EntityRenderer.cpp` - 实体渲染时获取实体纹理
 - `client/game/ClientWorld.cpp` - 世界加载时初始化资源管理器
 
+## BlockModelLoader 共享工具方法
+
+BlockModelLoader 提供了一组 public static 方法，供 ItemModelLoader 等其他加载器复用，
+避免模型元素解析和父子模型合并逻辑的重复实现。
+
+| 方法 | 签名 | 用途 | 调用方 |
+|------|------|------|--------|
+| `parseElement` | `static Result<ModelElement> parseElement(const nlohmann::json&)` | 从 JSON 对象解析单个模型元素（from/to/rotation/shade/faces），并自动计算省略 UV 的面 | BlockModelLoader、ItemModelLoader |
+| `parseFace` | `static Result<ModelFace> parseFace(const nlohmann::json&, Direction)` | 从 JSON 对象解析模型面（texture/cullface/tintindex/uv/rotation） | BlockModelLoader（parseElement 内部调用） |
+| `parseUV` | `static ModelFaceUV parseUV(const nlohmann::json&)` | 从 JSON 数组解析 UV 坐标 `[u0, v0, u1, v1]` | BlockModelLoader（parseFace 内部调用） |
+| `parseRotation` | `static ModelRotation parseRotation(const nlohmann::json&)` | 从 JSON 对象解析旋转信息（origin/axis/angle/rescale） | BlockModelLoader（parseElement 内部调用） |
+| `computeDefaultUVs` | `static void computeDefaultUVs(ModelElement&)` | 为省略 UV 的面根据 from/to 坐标自动计算默认 UV，MC JSON 允许省略 UV | BlockModelLoader（parseElement 内部调用） |
+| `mergeParent` | `static void mergeParent(UnbakedBlockModel& accumulated, const UnbakedBlockModel& currentLayer)` | 合并父子模型属性（纹理覆盖、元素 first-defined-wins、AO 继承），用于 root-to-leaf 逐层累积 | BlockModelLoader、ItemModelLoader |
+| `resolveTextureReferences` | `static void resolveTextureReferences(std::map<std::string, ResourceLocation>&, i32 maxIterations=10)` | 递归解析 `#variable` 形式的纹理引用链（如 `down=#all, all=block/stone`） | BlockModelLoader、ItemModelLoader |
+
+**使用示例**：
+
+```cpp
+// 在 ItemModelLoader 中复用元素解析（替代原先的内联实现）
+auto result = BlockModelLoader::parseElement(elemJson);
+if (result.success()) {
+    model.elements.push_back(result.value());
+}
+
+// 在 bakeModel 中复用合并和纹理解析逻辑
+BlockModelLoader::mergeParent(merged, *modelLayer);
+BlockModelLoader::resolveTextureReferences(baked.textures);
+```
+
 ## 容易踩的坑
 
 ### 1. 资源包加载顺序
