@@ -22,11 +22,13 @@
  */
 
 #include "world/blockentity/interactive/BannerEntity.hpp"
+#include "entity/serialization/NbtHelper.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/core/ItemStack.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/nbt/Nbt.hpp"
 #include "util/text/ITextComponent.hpp"
+#include "util/text/StringTextComponent.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
@@ -124,6 +126,24 @@ bool BannerEntity::load(const nlohmann::json& data)
         m_baseColor = static_cast<DyeColor>(data["base_color"].get<i32>());
     }
 
+    // 加载自定义名称
+    if (data.contains("custom_name")) {
+        const auto& nameJson = data["custom_name"];
+        if (nameJson.is_string()) {
+            try {
+                auto parsed = nlohmann::json::parse(nameJson.get<std::string>());
+                m_customName = text::ITextComponent::fromJson(parsed);
+            }
+            catch (const nlohmann::json::exception&) {
+                m_customName = std::make_unique<text::StringTextComponent>(nameJson.get<std::string>());
+            }
+        } else if (nameJson.is_object()) {
+            m_customName = text::ITextComponent::fromJson(nameJson);
+        }
+    } else {
+        m_customName.reset();
+    }
+
     // 加载图案
     m_patterns.clear();
     if (data.contains("patterns")) {
@@ -153,6 +173,11 @@ void BannerEntity::save(nlohmann::json& data) const
 
     // 保存底色
     data["base_color"] = static_cast<i32>(m_baseColor);
+
+    // 保存自定义名称
+    if (m_customName != nullptr) {
+        data["custom_name"] = m_customName->toJson().dump();
+    }
 
     // 保存图案
     nlohmann::json patternsJson = nlohmann::json::array();
@@ -255,9 +280,9 @@ ItemStack BannerEntity::getItem(const BlockState& state) const
         tag["Patterns"] = patternsJson;
     }
 
-    // 设置自定义名称
+    // 设置自定义名称（保留富文本样式）
     if (m_customName != nullptr) {
-        result.setCustomName(m_customName->getUnformattedText());
+        result.setCustomNameComponent(m_customName->deepCopy());
     }
 
     return result;
@@ -357,12 +382,54 @@ bool BannerEntity::loadFromNBT(const nbt::tags::compound_tag& tag)
         return false;
     }
 
-    // 加载自定义名称
-    // TODO: 从NBT读取ITextComponent
+    // 加载底色
+    auto baseColorOpt = mc::entity::serialization::nbt_helper::tryGetInt(tag, "Base");
+    if (baseColorOpt.has_value()) {
+        auto colorValue = baseColorOpt.value();
+        if (colorValue >= 0 && colorValue < static_cast<i32>(DyeColor::Count)) {
+            m_baseColor = static_cast<DyeColor>(colorValue);
+        }
+    }
 
-    // 加载图案
+    // 加载自定义名称（JSON 文本组件字符串）
+    auto nameStr = mc::entity::serialization::nbt_helper::tryGetString(tag, "CustomName");
+    if (nameStr.has_value()) {
+        try {
+            auto json = nlohmann::json::parse(nameStr.value());
+            m_customName = text::ITextComponent::fromJson(json);
+        }
+        catch (const nlohmann::json::exception&) {
+            // JSON 解析失败，回退为纯文本组件
+            m_customName = std::make_unique<text::StringTextComponent>(nameStr.value());
+        }
+    } else {
+        m_customName.reset();
+    }
+
+    // 加载图案列表
     m_patterns.clear();
-    // NBT序列化将在NBT系统完善后实现
+    const auto* listTag = mc::entity::serialization::nbt_helper::tryGetList(tag, "Patterns");
+    if (listTag != nullptr && listTag->element_id() == nbt::TagId::Compound) {
+        const auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*listTag);
+        for (const auto& patternTag : compoundList.value) {
+            if (static_cast<i32>(m_patterns.size()) >= MAX_PATTERNS) {
+                break;
+            }
+            BannerPattern pattern;
+            auto hashName = mc::entity::serialization::nbt_helper::tryGetString(patternTag, "Pattern");
+            if (hashName.has_value()) {
+                pattern.pattern = BannerPatterns::byHash(hashName.value());
+            }
+            auto colorOpt = mc::entity::serialization::nbt_helper::tryGetInt(patternTag, "Color");
+            if (colorOpt.has_value()) {
+                auto colorValue = colorOpt.value();
+                if (colorValue >= 0 && colorValue < static_cast<i32>(DyeColor::Count)) {
+                    pattern.color = static_cast<DyeColor>(colorValue);
+                }
+            }
+            m_patterns.push_back(pattern);
+        }
+    }
 
     setChanged();
     return true;
@@ -372,19 +439,36 @@ void BannerEntity::saveToNBT(nbt::tags::compound_tag& tag) const
 {
     BlockEntity::saveToNBT(tag);
 
-    // 保存自定义名称
-    // TODO: 将ITextComponent写入NBT
+    // 保存底色
+    tag.put("Base", static_cast<i32>(m_baseColor));
 
-    // 保存图案
-    // NBT序列化将在NBT系统完善后实现
+    // 保存自定义名称（JSON 文本组件字符串）
+    if (m_customName != nullptr) {
+        tag.put("CustomName", m_customName->toJson().dump());
+    }
+
+    // 保存图案列表
+    if (!m_patterns.empty()) {
+        auto patternsList = std::make_unique<nbt::tags::compound_list_tag>();
+        for (const auto& pattern : m_patterns) {
+            nbt::tags::compound_tag patternTag;
+            patternTag.put("Pattern", BannerPatterns::getHashName(pattern.pattern));
+            patternTag.put("Color", static_cast<i32>(pattern.color));
+            patternsList->value.push_back(std::move(patternTag));
+        }
+        tag.value.emplace("Patterns", std::move(patternsList));
+    }
 }
 
 std::unique_ptr<BlockEntity> BannerEntity::clone() const
 {
-    auto clone = std::make_unique<BannerEntity>(m_pos);
-    clone->m_patterns = m_patterns;
-    clone->m_baseColor = m_baseColor;
-    return clone;
+    auto cloned = std::make_unique<BannerEntity>(m_pos);
+    cloned->m_patterns = m_patterns;
+    cloned->m_baseColor = m_baseColor;
+    if (m_customName != nullptr) {
+        cloned->m_customName = m_customName->deepCopy();
+    }
+    return cloned;
 }
 
 } // namespace blockentity
