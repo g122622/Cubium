@@ -122,3 +122,4 @@ EntityRenderer 系列    # 读取 ClientEntity 的插值位置和动画状态渲
 
 - **`ClientWorld` 不是 `IWorld` 实现**：它只提供自己的 xyz 查询接口，调试屏幕和客户端工具代码不要假设这里存在 `BlockPos` overload。
 - **固定 Tick 累加器防止螺旋死亡**：`fixedTick()` 有 `MAX_TICKS_PER_FRAME = 5` 限制，如果帧率过低会丢弃部分 tick。
+- **难度默认值为 Normal**：`ClientWorld::difficulty()` 默认返回 `Difficulty::Normal`，由服务端通过 `ServerDifficulty` 包同步更新。客户端启动后未收到难度包前使用默认值。

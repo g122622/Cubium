@@ -27,7 +27,7 @@ src/client/ui/minecraft/screens/
 - `Screen` 基类继承自 `ContainerWidget`，提供模态控制、生命周期回调（`onOpen`/`onClose`）、悬停状态管理
 - `TemplateScreen` 继承 `Screen`，支持从 `.tpl` 模板文件加载 UI 布局
 - `ScreenManager` 管理屏幕栈生命周期（push/pop/clear）、绘制顺序、事件传播
-- `DebugScreenWidget` 依赖 `ClientWorld`、`Camera`、`Player`、`ClientDimensionManager` 显示调试信息
+- `DebugScreenWidget` 依赖 `ClientWorld`、`Camera`、`Player`、`ClientDimensionManager`、`DifficultyInstance`、`ParticleManager` 显示调试信息
 - 各具体屏幕（`MainMenuScreen`、`PauseScreen` 等）继承 `Screen` 或 `TemplateScreen`
 
 ## 上下游外部依赖关系
@@ -37,8 +37,8 @@ src/client/ui/minecraft/screens/
 - `src/client/world/` - ClientWorld、ClientEntityManager
 - `src/client/dimension/` - ClientDimensionManager（维度信息显示）
 - `src/client/network/` - NetworkClient（调试屏幕网络状态）
-- `src/client/renderer/` - Camera、GpuInfo、CelestialCalculations
-- `src/common/entity/` - Player、Container、LoomContainer
+- `src/client/renderer/` - Camera、GpuInfo、CelestialCalculations、ParticleManager
+- `src/common/entity/` - Player、Container、LoomContainer、DifficultyInstance
 - `src/common/world/` - WorldConfig、WorldConstants、BiomeRegistry、Block
 
 **下游依赖（被谁依赖）：**
@@ -48,5 +48,6 @@ src/client/ui/minecraft/screens/
 
 - 不要在 F3 界面里硬编码维度名；必须通过 `ClientDimensionManager` 取当前维度显示名。
 - 调试信息里的玩家坐标应来自玩家真实位置，而不是相机摇晃后的矩阵结果。
+- `DebugScreenWidget` 本地难度计算使用 `DifficultyInstance`，其中 `chunkInhabitedTime` 暂传 0（客户端区块未实现此字段），后续需补全。
 - `Screen` 需要手动调用 `updateHover()` 更新子组件悬停状态。
 - 模态屏幕会阻止事件向下传播，如需事件穿透设置 `screen->setModal(false)`。

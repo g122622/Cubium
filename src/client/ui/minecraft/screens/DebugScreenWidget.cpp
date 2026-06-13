@@ -266,8 +266,8 @@ void DebugScreenWidget::_buildLeftDebugText()
                 f64 moonPhaseFactor = CelestialCalculations::getMoonPhaseFactor(moonPhase);
 
                 // 计算区域难度实例
-                // 注意：chunkInhabitedTime 目前客户端无法获取，使用 0 作为简化值
-                // 当区块居住时间数据实现后，应从客户端区块数据中获取
+                // TODO: chunkInhabitedTime 目前客户端无法获取，使用 0 作为简化值，
+                // 当区块居住时间（InhabitedTime）数据实现后，应从客户端区块数据中获取并传入
                 Difficulty worldDifficulty = m_world->difficulty();
                 entity::combat::DifficultyInstance diffInstance(
                     worldDifficulty, gameTime, 0, static_cast<f32>(moonPhaseFactor));
