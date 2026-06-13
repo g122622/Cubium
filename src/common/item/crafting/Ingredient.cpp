@@ -46,7 +46,7 @@ Ingredient Ingredient::fromItem(const Item* item)
     }
     Ingredient ing;
     ing.m_matchingStacks.emplace_back(*item, 1);
-    ing.m_isSimple = true; // 单个物品总是简单的
+    ing._updateSimple();
     return ing;
 }
 
@@ -68,14 +68,15 @@ Ingredient Ingredient::fromTag(const std::string& tag)
     Ingredient ing;
     ing.m_tag = tag;
     ing.m_hasTag = true;
-    // TODO: 标签原料的 isSimple 需要延迟解析后才能确定，暂时设为 false，解析后再更新
 
+    // 尝试立即解析标签内容
     item::tag::ItemTag* itemTag = item::tag::ItemTags::getTag(tag);
     if (itemTag != nullptr) {
         ing.m_tagItems = itemTag->getItemsList();
         ing.m_tagResolved = true;
-        ing._updateSimple();
     }
+
+    ing._updateSimple();
 
     return ing;
 }
@@ -94,7 +95,7 @@ Ingredient Ingredient::merge(const std::vector<Ingredient>& parts)
     std::set<ItemId> addedIds; // 去重
 
     for (const Ingredient& part : parts) {
-        // 添加物品列表
+        // 添加显式物品列表
         for (const ItemStack& stack : part.getMatchingStacks()) {
             if (stack.getItem() && addedIds.find(stack.getItem()->itemId()) == addedIds.end()) {
                 result.m_matchingStacks.push_back(stack);
@@ -102,15 +103,26 @@ Ingredient Ingredient::merge(const std::vector<Ingredient>& parts)
             }
         }
 
-        // 处理标签
+        // 处理标签：展开标签中的物品并合并到结果中
         if (part.hasTag()) {
-            // TODO: 合并标签时的处理可以优化，目前简化实现为直接添加标签中的物品
-            item::tag::ItemTag* itemTag = item::tag::ItemTags::getTag(part.getTag());
-            if (itemTag != nullptr) {
-                for (const Item* item : itemTag->getItemsList()) {
+            // 确保标签已解析
+            const auto& tagItems = part.m_tagItems;
+            if (!tagItems.empty()) {
+                for (const Item* item : tagItems) {
                     if (item && addedIds.find(item->itemId()) == addedIds.end()) {
                         result.m_matchingStacks.emplace_back(*item, 1);
                         addedIds.insert(item->itemId());
+                    }
+                }
+            } else if (!part.m_tagResolved) {
+                // 标签尚未解析，尝试解析并合并
+                item::tag::ItemTag* itemTag = item::tag::ItemTags::getTag(part.getTag());
+                if (itemTag != nullptr) {
+                    for (const Item* item : itemTag->getItemsList()) {
+                        if (item && addedIds.find(item->itemId()) == addedIds.end()) {
+                            result.m_matchingStacks.emplace_back(*item, 1);
+                            addedIds.insert(item->itemId());
+                        }
                     }
                 }
             }
@@ -203,15 +215,40 @@ bool Ingredient::hasNoMatchingItems() const
 {
     if (m_hasTag) {
         _resolveTagIfNeeded();
-        return m_tagItems.empty();
+        return m_tagItems.empty() && m_matchingStacks.empty();
     }
     return m_matchingStacks.empty();
 }
 
-void Ingredient::_updateSimple()
+std::vector<const Item*> Ingredient::getAllMatchingItems() const
+{
+    std::vector<const Item*> items;
+
+    // 添加显式物品列表中的物品
+    for (const ItemStack& stack : m_matchingStacks) {
+        if (stack.getItem() != nullptr) {
+            items.push_back(stack.getItem());
+        }
+    }
+
+    // 如果有标签，解析并添加标签中的物品
+    if (m_hasTag) {
+        _resolveTagIfNeeded();
+        for (const Item* item : m_tagItems) {
+            if (item != nullptr) {
+                items.push_back(item);
+            }
+        }
+    }
+
+    return items;
+}
+
+void Ingredient::_updateSimple() const
 {
     m_isSimple = true;
 
+    // 检查显式物品列表中是否包含可损坏物品
     for (const ItemStack& stack : m_matchingStacks) {
         const Item* item = stack.getItem();
         if (item != nullptr && item->isDamageable()) {
@@ -220,8 +257,26 @@ void Ingredient::_updateSimple()
         }
     }
 
+    // 检查标签解析后的物品列表中是否包含可损坏物品
     if (m_hasTag) {
-        m_isSimple = false;
+        if (m_tagResolved) {
+            // 标签已解析：检查标签中的物品是否可损坏
+            for (const Item* item : m_tagItems) {
+                if (item != nullptr && item->isDamageable()) {
+                    m_isSimple = false;
+                    return;
+                }
+            }
+            // 标签已解析且所有标签物品都不可损坏时，
+            // 只有当标签确实包含物品时才视为简单原料
+            // 空标签（标签不存在或无物品）保守地视为非简单原料
+            if (m_tagItems.empty()) {
+                m_isSimple = false;
+            }
+        } else {
+            // 标签尚未解析：无法确定标签内容，保守地视为非简单原料
+            m_isSimple = false;
+        }
     }
 }
 
@@ -234,6 +289,9 @@ void Ingredient::_resolveTagIfNeeded() const
             m_tagItems = itemTag->getItemsList();
         }
         m_tagResolved = true;
+
+        // 延迟解析后更新isSimple标志
+        _updateSimple();
     }
 }
 

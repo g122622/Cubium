@@ -142,7 +142,9 @@ public:
      * @param tag 物品标签名（如 "minecraft:planks"）
      * @return 匹配标签内所有物品的Ingredient
      *
-     * 注意：当前版本标签系统尚未完全实现，此方法暂时返回空Ingredient
+     * 标签Ingredient会尝试立即解析标签内容。如果标签尚未注册，
+     * 则延迟到首次test()调用时解析。标签Ingredient的isSimple属性
+     * 取决于标签中是否包含可损坏物品。
      */
     static Ingredient fromTag(const std::string& tag);
 
@@ -185,9 +187,21 @@ public:
      * @brief 获取所有匹配的物品堆
      * @return 匹配的物品堆列表
      *
-     * 注意：返回的物品堆数量均为1
+     * 注意：返回的物品堆数量均为1。对于标签类型Ingredient，
+     * 仅返回显式指定的物品堆，不包含标签解析后的物品。
+     * 如需获取包含标签物品的完整列表，请使用getAllMatchingItems()。
      */
     [[nodiscard]] const std::vector<ItemStack>& getMatchingStacks() const { return m_matchingStacks; }
+
+    /**
+     * @brief 获取所有匹配的物品（包括标签解析后的物品）
+     * @return 匹配的物品指针列表
+     *
+     * 对于标签类型Ingredient，会包含标签解析后的所有物品。
+     * 对于非标签Ingredient，返回m_matchingStacks中对应的物品指针。
+     * 标签解析在首次调用时延迟执行。
+     */
+    [[nodiscard]] std::vector<const Item*> getAllMatchingItems() const;
 
     /**
      * @brief 检查是否为简单原料
@@ -272,7 +286,7 @@ private:
     std::vector<ItemStack> m_matchingStacks;
     std::string m_tag;
     bool m_hasTag = false;
-    bool m_isSimple = true; ///< 是否为简单原料（不包含可损坏物品）
+    mutable bool m_isSimple = true; ///< 是否为简单原料（不包含可损坏物品）
 
     // 用于缓存解析后的标签物品
     mutable bool m_tagResolved = false;
@@ -280,9 +294,9 @@ private:
 
     /**
      * @brief 更新 isSimple 标志
-     * 在构造后调用，检查是否包含可损坏物品
+     * 在构造后或标签延迟解析后调用，检查是否包含可损坏物品
      */
-    void _updateSimple();
+    void _updateSimple() const;
 
     /**
      * @brief 延迟解析标签
