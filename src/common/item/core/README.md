@@ -6,8 +6,8 @@
 
 ```
 core/
-├── Item.hpp/cpp              # 物品基类，所有物品类型的父类
-├── ItemStack.hpp/cpp         # 物品堆，表示游戏中的一个物品实例（包含物品类型、数量、耐久、附魔和结构化自定义标签）
+├── Item.hpp/cpp              # 物品基类，所有物品类型的父类（含 onCraftedBy/onCraftedPostProcess 合成回调）
+├── ItemStack.hpp/cpp         # 物品堆，表示游戏中的一个物品实例（包含物品类型、数量、耐久、附魔和结构化自定义标签，含 onCraftedBy 桥接方法）
 ├── ItemRegistry.hpp/cpp      # 物品注册表，管理所有物品的注册和查找
 ├── ItemGroup.hpp/cpp         # 创造模式物品组（标签页）
 ├── UseAction.hpp             # 物品使用动作枚举（EAT、DRINK、BLOCK等）
@@ -74,3 +74,9 @@ MC 1.16.5中，附魔物品堆叠是基于NBT标签完全相等判断的。如�
 ### 6. Item::inventoryTick与ItemStack::inventoryTick
 
 `ItemStack::inventoryTick()`委托给`Item::inventoryTick()`，若需要实现物品在背包中的tick逻辑（如地图、时钟），应重写Item的虚方法而非ItemStack。
+
+### 7. 合成回调 onCraftedBy/onCraftedPostProcess
+
+物品合成后需要执行特殊后处理时，重写 `Item::onCraftedPostProcess(ItemStack&, IWorld&)`。`Item::onCraftedBy(ItemStack&, IWorld&, Player&)` 由 `ItemStack::onCraftedBy()` 调用，默认转发给 `onCraftedPostProcess`。调用链：`ServerPlayer::onItemCrafted()` → `ItemStack::onCraftedBy()` → `Item::onCraftedBy()` → `Item::onCraftedPostProcess()`。
+
+对于地图物品，`FilledMapItem` 重写了 `onCraftedPostProcess` 处理 `map_scale_direction`（缩放）和 `map_lock`（锁定）NBT 标签，处理完毕后移除标签。

@@ -8,7 +8,7 @@
 map/
 ├── AbstractMapItem.hpp/cpp   # 地图物品抽象基类，标记为复杂物品
 ├── EmptyMapItem.hpp/cpp      # 空地图物品，右键创建已填充地图
-└── FilledMapItem.hpp/cpp     # 已填充地图物品，包含地形数据和玩家追踪
+└── FilledMapItem.hpp/cpp     # 已填充地图物品，包含地形数据和玩家追踪，重写 onCraftedPostProcess
 ```
 
 ## 内部模块关系
@@ -59,3 +59,11 @@ Item
 ### 4. 锁定地图创建新副本
 
 `lockMap()` 不是简单设置标志，而是创建一个新的锁定副本（新地图ID）。锁定操作会改变物品的地图ID。
+
+### 5. onCraftedPostProcess 处理合成后操作
+
+`FilledMapItem::onCraftedPostProcess()` 重写了 `Item` 基类的虚方法，在物品被合成时处理以下 NBT 标签：
+- `map_scale_direction`：调用 `scaleMap()` 执行地图缩放，处理后移除标签
+- `map_lock`：调用 `lockMap()` 执行地图锁定，处理后移除标签
+
+这些标签由 `MapExtendingRecipe`（地图扩展配方）和 `CartographyContainer`（制图台容器）在 `assemble()`/`updateResult()` 中设置，在玩家取出合成结果时通过 `ServerPlayer::onItemCrafted()` → `ItemStack::onCraftedBy()` → `Item::onCraftedBy()` → `Item::onCraftedPostProcess()` 调用链触发处理。

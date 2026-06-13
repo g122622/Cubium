@@ -74,6 +74,7 @@ add_executable(mc_tests
     common/world/map/MapDataTest.cpp
     common/item/food/ChorusFruitItemTest.cpp
     common/item/NewItemTest.cpp
+    common/item/ItemCraftedByTest.cpp
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/EnchantmentCallbackTest.cpp
     common/entity/inventory/CraftingInventoryTest.cpp

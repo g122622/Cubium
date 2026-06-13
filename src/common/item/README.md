@@ -7,8 +7,8 @@ Cubium 物品系统实现，包含核心物品类型、食物、盔甲、工具�
 ```
 item/
 ├── core/                         # 核心类型
-│   ├── Item.hpp/cpp              # 物品基类
-│   ├── ItemStack.hpp/cpp         # 物品堆（数量、耐久、附魔等）
+│   ├── Item.hpp/cpp              # 物品基类（含 onCraftedBy/onCraftedPostProcess 合成回调）
+│   ├── ItemStack.hpp/cpp         # 物品堆（数量、耐久、附魔等，含 onCraftedBy 桥接方法）
 │   ├── ItemRegistry.hpp/cpp      # 物品注册表
 │   ├── ItemGroup.hpp/cpp         # 创造模式物品组
 │   ├── UseAction.hpp             # 使用动作枚举（无、吃、喝、阻挡等）
@@ -95,7 +95,7 @@ item/
 │   ├── map/                      # 地图物品
 │   │   ├── AbstractMapItem.hpp/cpp  # 地图基类
 │   │   ├── EmptyMapItem.hpp/cpp  # 空地图
-│   │   └── FilledMapItem.hpp/cpp  # 已填充地图
+│   │   └── FilledMapItem.hpp/cpp  # 已填充地图（重写 onCraftedPostProcess 处理缩放/锁定）
 │   └── BannerPatternItem.hpp/cpp  # 旗帜图案物品
 ├── enchantment/                  # 附魔系统
 │   ├── Enchantment.hpp/cpp       # 附魔基类
@@ -338,7 +338,13 @@ item/
 - `LivingEntity::onAttackEntity()` 触发攻击回调 → `EnchantmentHelper::applyArthropodEnchantmentDamage()`
 - `LivingEntity::actuallyHurt()` 触发受伤回调 → `EnchantmentHelper::applyThornsEnchantments()`
 
-### 13. 玩家→实体物品交互调用链
+### 13. 合成回调 onCraftedBy/onCraftedPostProcess
+
+**问题**：物品合成后需要进行特殊后处理（如地图缩放/锁定），需要在合成取出时自动触发。
+
+**解决方案**：`Item::onCraftedBy(ItemStack&, IWorld&, Player&)` 和 `Item::onCraftedPostProcess(ItemStack&, IWorld&)` 构成双层回调。`onCraftedBy` 由 `ItemStack::onCraftedBy()` 在 `ServerPlayer::onItemCrafted()` 中调用，默认转发给 `onCraftedPostProcess`。子类重写 `onCraftedPostProcess` 执行合成后处理。`FilledMapItem` 重写此方法处理 `map_scale_direction`（缩放）和 `map_lock`（锁定）NBT 标签。
+
+### 14. 玩家→实体物品交互调用链
 
 `Item::itemInteractionForEntity()` 完整调用链路：
 ```
