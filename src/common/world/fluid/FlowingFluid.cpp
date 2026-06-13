@@ -634,29 +634,33 @@ bool FlowingFluid::isBlocked(IWorld& world, const BlockPos& pos, const BlockStat
 
     const Block& blockRef = block->owner();
 
-    // 允许实现 ILiquidContainer 的方块按自身规则接收流体。
+    // ILiquidContainer 方块按自身规则接收流体
     if (auto* container = dynamic_cast<const ILiquidContainer*>(&blockRef)) {
         return !container->canContainFluid(world, pos, *block, fluid);
     }
 
+    // MC Java 的 canHoldAnyFluid 黑名单排除：
+    // 这些方块的 canBeReplacedByFluid() 返回 true（因为 isSolid=false），
+    // 但 MC Java 明确禁止流体流入这些方块
     const std::string& path = blockRef.blockLocation().path();
     if (hasSuffix(path, "_door") || hasSuffix(path, "_sign") || path == "ladder" || path == "sugar_cane" ||
         path == "bubble_column") {
-        return false;
+        return true;
     }
 
     const Material& material = blockRef.material();
 
-    if (material == Material::PORTAL || material == Material::STRUCTURE_VOID || material == Material::OCEAN_PLANT ||
-        material == Material::SEA_GRASS) {
-        return false;
+    // 传送门和结构空位不可被流体替换
+    if (material == Material::PORTAL || material == Material::STRUCTURE_VOID) {
+        return true;
     }
 
-    // 默认：非固体方块可以被流体替换
+    // 使用 canBeReplacedByFluid() 判断方块是否可被流体替换
+    // 对应 MC Java 的 BlockBehaviour.canBeReplaced(BlockState, Fluid)：canBeReplaced() || !isSolid()
     (void)world;
     (void)pos;
     (void)fluid;
-    return !material.blocksMovement();
+    return !block->canBeReplacedByFluid();
 }
 
 bool FlowingFluid::isSameOrEmpty(const FluidState& state) const

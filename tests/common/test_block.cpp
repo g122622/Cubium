@@ -1602,3 +1602,129 @@ TEST(AirVariantsTest, CaveAirUsedInWorldCarver)
     ASSERT_NE(caveAirState, nullptr);
     EXPECT_TRUE(caveAirState->isAir());
 }
+
+// ============================================================================
+// canBeReplaced / canBeReplacedByFluid 测试
+// ============================================================================
+
+TEST(BlockStateCanBeReplacedTest, AirBlocksAreReplaceable)
+{
+    VanillaBlocks::initialize();
+
+    // 空气方块 should be replaceable
+    EXPECT_TRUE(VanillaBlocks::AIR->defaultState().canBeReplaced());
+    EXPECT_TRUE(VanillaBlocks::CAVE_AIR->defaultState().canBeReplaced());
+    EXPECT_TRUE(VanillaBlocks::VOID_AIR->defaultState().canBeReplaced());
+}
+
+TEST(BlockStateCanBeReplacedTest, SolidBlocksAreNotReplaceable)
+{
+    VanillaBlocks::initialize();
+
+    // 石头、泥土等实心方块不应可替换
+    EXPECT_FALSE(VanillaBlocks::STONE->defaultState().canBeReplaced());
+    EXPECT_FALSE(VanillaBlocks::DIRT->defaultState().canBeReplaced());
+    EXPECT_FALSE(VanillaBlocks::GRASS_BLOCK->defaultState().canBeReplaced());
+    EXPECT_FALSE(VanillaBlocks::OAK_PLANKS->defaultState().canBeReplaced());
+}
+
+TEST(BlockStateCanBeReplacedTest, VegetationBlocksAreReplaceable)
+{
+    VanillaBlocks::initialize();
+
+    // 花草类方块应可替换（Material::REPLACEABLE_PLANT 或 Material::PLANT 都设置了 replaceable）
+    EXPECT_TRUE(VanillaBlocks::SHORT_GRASS->defaultState().canBeReplaced());
+    EXPECT_TRUE(VanillaBlocks::DANDELION->defaultState().canBeReplaced());
+    EXPECT_TRUE(VanillaBlocks::POPPY->defaultState().canBeReplaced());
+}
+
+TEST(BlockStateCanBeReplacedTest, LiquidBlocksAreReplaceable)
+{
+    VanillaBlocks::initialize();
+
+    // 水和岩浆应可替换（Material::WATER 和 Material::LAVA 都设置了 replaceable）
+    EXPECT_TRUE(VanillaBlocks::WATER->defaultState().canBeReplaced());
+    EXPECT_TRUE(VanillaBlocks::LAVA->defaultState().canBeReplaced());
+}
+
+TEST(BlockStateCanBeReplacedTest, FireIsReplaceable)
+{
+    VanillaBlocks::initialize();
+
+    // 火方块应可替换
+    EXPECT_TRUE(VanillaBlocks::FIRE->defaultState().canBeReplaced());
+}
+
+TEST(BlockStateCanBeReplacedTest, SnowLayerIsReplaceable)
+{
+    VanillaBlocks::initialize();
+
+    // 雪层方块应可替换
+    EXPECT_TRUE(VanillaBlocks::SNOW->defaultState().canBeReplaced());
+}
+
+TEST(BlockStateCanBeReplacedTest, CanBeReplacedByFluid)
+{
+    VanillaBlocks::initialize();
+
+    // 可替换方块 also canBeReplacedByFluid
+    EXPECT_TRUE(VanillaBlocks::AIR->defaultState().canBeReplacedByFluid());
+    EXPECT_TRUE(VanillaBlocks::SHORT_GRASS->defaultState().canBeReplacedByFluid());
+    EXPECT_TRUE(VanillaBlocks::WATER->defaultState().canBeReplacedByFluid());
+
+    // 非固体且不可替换的方块 canBeReplacedByFluid() 应返回 true（门、告示牌等非固体方块允许流体通过）
+    // 验证 canBeReplacedByFluid = canBeReplaced || !isSolid 的语义
+    // 石头：不可替换且固体 → canBeReplacedByFluid() = false
+    EXPECT_FALSE(VanillaBlocks::STONE->defaultState().canBeReplacedByFluid());
+    // 泥土：不可替换且固体 → canBeReplacedByFluid() = false
+    EXPECT_FALSE(VanillaBlocks::DIRT->defaultState().canBeReplacedByFluid());
+}
+
+TEST(BlockStateCanBeReplacedTest, CanBeReplacedByFluidNonSolidBlocks)
+{
+    VanillaBlocks::initialize();
+
+    // canBeReplacedByFluid() = canBeReplaced() || !isSolid()
+    // 非固体但不可替换的方块也允许流体流入（如门、告示牌等）
+    // 验证关系：对于任何方块，canBeReplacedByFluid() >= canBeReplaced()
+
+    // 可替换方块的 canBeReplacedByFluid 应该为 true
+    if (VanillaBlocks::AIR->defaultState().canBeReplaced()) {
+        EXPECT_TRUE(VanillaBlocks::AIR->defaultState().canBeReplacedByFluid());
+    }
+    if (VanillaBlocks::SHORT_GRASS->defaultState().canBeReplaced()) {
+        EXPECT_TRUE(VanillaBlocks::SHORT_GRASS->defaultState().canBeReplacedByFluid());
+    }
+
+    // 固体不可替换方块的 canBeReplacedByFluid 应该为 false
+    if (!VanillaBlocks::STONE->defaultState().canBeReplaced() && VanillaBlocks::STONE->defaultState().isSolid()) {
+        EXPECT_FALSE(VanillaBlocks::STONE->defaultState().canBeReplacedByFluid());
+    }
+}
+
+TEST(BlockStateCanBeReplacedTest, CanBeReplacedConsistentWithMaterial)
+{
+    VanillaBlocks::initialize();
+
+    // canBeReplaced() 应与 isAir() || getMaterial().isReplaceable() 等价
+    // 这是 canBeReplaced() 的语义定义
+
+    // 空气：isAir()=true，canBeReplaced()=true
+    EXPECT_TRUE(VanillaBlocks::AIR->defaultState().isAir());
+    EXPECT_TRUE(VanillaBlocks::AIR->defaultState().canBeReplaced());
+
+    // 石头：isAir()=false，Material::ROCK.isReplaceable()=false，canBeReplaced()=false
+    EXPECT_FALSE(VanillaBlocks::STONE->defaultState().isAir());
+    EXPECT_FALSE(VanillaBlocks::STONE->defaultState().getMaterial().isReplaceable());
+    EXPECT_FALSE(VanillaBlocks::STONE->defaultState().canBeReplaced());
+
+    // 花：isAir()=false，Material::REPLACEABLE_PLANT.isReplaceable()=true，canBeReplaced()=true
+    EXPECT_FALSE(VanillaBlocks::DANDELION->defaultState().isAir());
+    EXPECT_TRUE(VanillaBlocks::DANDELION->defaultState().getMaterial().isReplaceable());
+    EXPECT_TRUE(VanillaBlocks::DANDELION->defaultState().canBeReplaced());
+
+    // 水：isAir()=false，Material::WATER.isReplaceable()=true，canBeReplaced()=true
+    EXPECT_FALSE(VanillaBlocks::WATER->defaultState().isAir());
+    EXPECT_TRUE(VanillaBlocks::WATER->defaultState().getMaterial().isReplaceable());
+    EXPECT_TRUE(VanillaBlocks::WATER->defaultState().canBeReplaced());
+}

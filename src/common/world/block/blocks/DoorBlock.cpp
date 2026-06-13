@@ -79,6 +79,8 @@ BlockState DoorBlock::getStateForPlacement(BlockItemUseContext& context)
     BlockPos pos = context.placementPos();
     IWorld& world = const_cast<IWorld&>(context.getWorld());
 
+    // 检查上方位置是否可替换（空气、花草、水等 canBeReplaced=true 的方块）
+    // canBeReplaced() 已包含 isAir() 的语义（空气方块的 Material::AIR.isReplaceable()=true）
     const BlockState* upState = world.getBlockState(pos.up());
     if (pos.y >= world::MAX_BUILD_HEIGHT - 1 || upState == nullptr || !upState->canBeReplaced()) {
         return defaultState();

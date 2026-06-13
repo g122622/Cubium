@@ -241,8 +241,9 @@ bool BucketItem::tryPlaceContainedLiquid(
         }
     }
 
-    // 检查是否可以替换（可替换的非液体方块，如草、雪等）
-    if (currentState->canBeReplaced() && !currentState->getMaterial().isLiquid()) {
+    // 检查是否可被流体替换（对应 MC Java 的 blockstate.canBeReplaced(fluidContent)）
+    // canBeReplacedByFluid() = canBeReplaced() || !isSolid()，覆盖可替换方块和非固体方块
+    if (currentState->canBeReplacedByFluid()) {
         fluid::FluidState fluidState = m_containedFluid->defaultState();
         const BlockState* fluidBlockState = fluidState.getBlockState();
         if (fluidBlockState == nullptr) {
