@@ -202,6 +202,56 @@ public:
     // 清除缓存
     void clearCache();
 
+    // ---- 共享的模型元素解析工具方法（供 ItemModelLoader 等复用）----
+
+    /**
+     * @brief 从 JSON 对象解析单个模型元素
+     *
+     * 解析 from/to/rotation/shade/faces，并自动计算省略 UV 的面的默认坐标。
+     * ItemModelLoader 等其他加载器也可使用此方法，避免重复实现元素解析逻辑。
+     */
+    [[nodiscard]] static Result<ModelElement> parseElement(const nlohmann::json& json);
+
+    /**
+     * @brief 从 JSON 对象解析模型面
+     */
+    [[nodiscard]] static Result<ModelFace> parseFace(const nlohmann::json& json, Direction dir);
+
+    /**
+     * @brief 从 JSON 数组解析 UV 坐标
+     */
+    [[nodiscard]] static ModelFaceUV parseUV(const nlohmann::json& json);
+
+    /**
+     * @brief 从 JSON 对象解析旋转信息
+     */
+    [[nodiscard]] static ModelRotation parseRotation(const nlohmann::json& json);
+
+    /**
+     * @brief 为省略 UV 的面根据元素几何计算默认 UV 坐标
+     *
+     * MC JSON 允许省略面的 UV 数据，此时需根据面的方向和元素的 from/to 坐标推导。
+     */
+    static void computeDefaultUVs(ModelElement& elem);
+
+    /**
+     * @brief 合并父子未烘焙模型的属性
+     *
+     * 合并规则（与 MC Java 版一致）：
+     * - 纹理：子模型中不存在的纹理键从父模型继承
+     * - 元素：仅当子模型无元素时才继承父模型元素（first-defined-wins）
+     * - 环境光遮蔽：仅当子模型未显式设置时才继承（first-defined-wins）
+     */
+    static void mergeParent(UnbakedBlockModel& child, const UnbakedBlockModel& parent);
+
+    /**
+     * @brief 解析纹理变量引用链
+     *
+     * 将 #variable 形式的引用递归替换为实际纹理路径，最多迭代 maxIterations 次。
+     * 例如：down=#all, all=block/stone -> down=block/stone
+     */
+    static void resolveTextureReferences(std::map<std::string, ResourceLocation>& textures, i32 maxIterations = 10);
+
 private:
     std::map<ResourceLocation, UnbakedBlockModel> m_unbakedModels;
     std::vector<ResourcePackPtr> m_resourcePacks;
@@ -211,21 +261,6 @@ private:
 
     // 解析模型JSON
     [[nodiscard]] Result<UnbakedBlockModel> _parseModel(std::string_view jsonContent);
-
-    // 解析元素
-    [[nodiscard]] Result<ModelElement> _parseElement(const nlohmann::json& json);
-
-    // 解析面
-    [[nodiscard]] Result<ModelFace> _parseFace(const nlohmann::json& json, Direction dir);
-
-    // 解析UV
-    [[nodiscard]] ModelFaceUV _parseUV(const nlohmann::json& json);
-
-    // 解析旋转
-    [[nodiscard]] ModelRotation _parseRotation(const nlohmann::json& json);
-
-    // TODO: 合并父子模型（当前在bakeModel中内联实现）
-    void _mergeParent(UnbakedBlockModel& child, const UnbakedBlockModel& parent);
 };
 
 } // namespace mc

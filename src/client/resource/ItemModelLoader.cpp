@@ -360,87 +360,15 @@ void ItemModelLoader::_parseOverrides(UnbakedItemModel& model, const nlohmann::j
 
 Result<void> ItemModelLoader::_parseElements(UnbakedItemModel& model, const nlohmann::json& elements)
 {
-    // TODO: 提取公共解析方法，与 BlockModelLoader 复用元素解析逻辑
-
+    // 复用 BlockModelLoader::parseElement 共享的元素解析逻辑，
+    // 包含默认 UV 计算等完整功能
     for (const auto& elemJson : elements) {
         if (!elemJson.is_object()) continue;
 
-        ModelElement elem;
-
-        // from
-        if (elemJson.contains("from") && elemJson["from"].is_array() && elemJson["from"].size() >= 3) {
-            elem.from = glm::vec3(
-                elemJson["from"][0].get<f32>(), elemJson["from"][1].get<f32>(), elemJson["from"][2].get<f32>());
+        auto result = BlockModelLoader::parseElement(elemJson);
+        if (result.success()) {
+            model.elements.push_back(result.value());
         }
-
-        // to
-        if (elemJson.contains("to") && elemJson["to"].is_array() && elemJson["to"].size() >= 3) {
-            elem.to =
-                glm::vec3(elemJson["to"][0].get<f32>(), elemJson["to"][1].get<f32>(), elemJson["to"][2].get<f32>());
-        }
-
-        // shade
-        if (elemJson.contains("shade") && elemJson["shade"].is_boolean()) {
-            elem.shade = elemJson["shade"].get<bool>();
-        }
-
-        // rotation
-        if (elemJson.contains("rotation") && elemJson["rotation"].is_object()) {
-            auto& rotJson = elemJson["rotation"];
-            if (rotJson.contains("origin") && rotJson["origin"].is_array() && rotJson["origin"].size() >= 3) {
-                elem.rotation.origin = glm::vec3(
-                    rotJson["origin"][0].get<f32>(), rotJson["origin"][1].get<f32>(), rotJson["origin"][2].get<f32>());
-            }
-            if (rotJson.contains("axis") && rotJson["axis"].is_string()) {
-                elem.rotation.axis = rotJson["axis"].get<std::string>();
-            }
-            if (rotJson.contains("angle") && rotJson["angle"].is_number()) {
-                elem.rotation.angle = rotJson["angle"].get<f32>();
-            }
-            if (rotJson.contains("rescale") && rotJson["rescale"].is_boolean()) {
-                elem.rotation.rescale = rotJson["rescale"].get<bool>();
-            }
-        }
-
-        // faces
-        if (elemJson.contains("faces") && elemJson["faces"].is_object()) {
-            auto& facesJson = elemJson["faces"];
-            for (auto& [dirStr, faceJson] : facesJson.items()) {
-                Direction dir = parseDirection(dirStr);
-                if (dir == Direction::None) continue;
-
-                ModelFace face;
-
-                if (faceJson.contains("texture") && faceJson["texture"].is_string()) {
-                    face.texture = faceJson["texture"].get<std::string>();
-                }
-
-                if (faceJson.contains("cullface") && faceJson["cullface"].is_string()) {
-                    face.cullFace = parseDirection(faceJson["cullface"].get<std::string>());
-                }
-
-                if (faceJson.contains("tintindex") && faceJson["tintindex"].is_number()) {
-                    face.tintIndex = faceJson["tintindex"].get<i32>();
-                }
-
-                // uv
-                if (faceJson.contains("uv") && faceJson["uv"].is_array() && faceJson["uv"].size() >= 4) {
-                    face.uv.u0 = faceJson["uv"][0].get<f32>();
-                    face.uv.v0 = faceJson["uv"][1].get<f32>();
-                    face.uv.u1 = faceJson["uv"][2].get<f32>();
-                    face.uv.v1 = faceJson["uv"][3].get<f32>();
-                }
-
-                // rotation
-                if (faceJson.contains("rotation") && faceJson["rotation"].is_number()) {
-                    face.uv.rotation = faceJson["rotation"].get<i32>();
-                }
-
-                elem.faces[dir] = face;
-            }
-        }
-
-        model.elements.push_back(elem);
     }
 
     return Result<void>::ok();
@@ -476,29 +404,39 @@ ItemModelType ItemModelLoader::_determineModelType(const ResourceLocation& paren
 
 void ItemModelLoader::_mergeParent(UnbakedItemModel& child, const UnbakedItemModel& parent)
 {
-    // TODO: bakeModel 中存在重复的合并逻辑，应重构为调用此方法
-    // 合并纹理（子模型覆盖父模型）
+    // 合并纹理：子模型中不存在的纹理键从父模型继承
     for (const auto& [key, value] : parent.textures) {
         if (child.textures.find(key) == child.textures.end()) {
             child.textures[key] = value;
         }
     }
 
-    // 合并元素（只有子模型没有元素时才继承）
+    // 合并元素：仅当子模型无元素时才继承父模型元素（first-defined-wins）
     if (child.elements.empty() && !parent.elements.empty()) {
         child.elements = parent.elements;
     }
 
-    // 合并显示变换（子模型覆盖父模型）
+    // 合并显示变换：子模型中不存在的显示上下文从父模型继承
     for (const auto& [ctx, transform] : parent.display) {
         if (child.display.find(ctx) == child.display.end()) {
             child.display[ctx] = transform;
         }
     }
 
-    // 合并 ambientOcclusion
-    if (!child.ambientOcclusion && parent.ambientOcclusion) {
-        child.ambientOcclusion = parent.ambientOcclusion;
+    // 合并环境光遮蔽：如果父模型关闭了 AO，则关闭
+    if (!parent.ambientOcclusion) {
+        child.ambientOcclusion = false;
+    }
+
+    // 合并模型类型：如果子模型未显式设置（Generated），继承父模型类型
+    // MC Java 版语义：子模型类型显式设置时覆盖父模型
+    if (child.type == ItemModelType::Generated && parent.type != ItemModelType::Generated) {
+        child.type = parent.type;
+    }
+
+    // 合并覆盖条件：仅当子模型无覆盖条件时才继承父模型
+    if (child.overrides.empty() && !parent.overrides.empty()) {
+        child.overrides = parent.overrides;
     }
 }
 
@@ -539,9 +477,14 @@ Result<BakedItemModel> ItemModelLoader::bakeModel(const ResourceLocation& locati
         currentLoc = modelIt->second.parentLocation;
     }
 
-    // 从根到叶合并
+    // 从根到叶合并，使用 _mergeParent 逐层叠加
     BakedItemModel baked;
     baked.location = location;
+
+    // 创建临时 UnbakedItemModel 用于逐层合并
+    UnbakedItemModel merged;
+    merged.ambientOcclusion = true;
+    merged.type = ItemModelType::Generated;
 
     // 首先确定模型类型和默认变换
     bool hasHandheldParent = false;
@@ -553,6 +496,11 @@ Result<BakedItemModel> ItemModelLoader::bakeModel(const ResourceLocation& locati
         }
     }
 
+    // 从根到叶依次合并
+    for (auto it = modelChain.rbegin(); it != modelChain.rend(); ++it) {
+        _mergeParent(merged, *(*it));
+    }
+
     // 设置默认变换
     if (hasHandheldParent) {
         baked.display = m_handheldDefaults;
@@ -560,31 +508,21 @@ Result<BakedItemModel> ItemModelLoader::bakeModel(const ResourceLocation& locati
         baked.display = m_generatedDefaults;
     }
 
-    // 合并属性
-    for (auto it = modelChain.rbegin(); it != modelChain.rend(); ++it) {
-        auto& model = *it;
-
-        // 合并纹理
-        for (const auto& [key, value] : model->textures) {
-            baked.textures[key] = ResourceLocation(value);
-        }
-
-        // 合并元素
-        if (baked.elements.empty() && !model->elements.empty()) {
-            baked.elements = model->elements;
-        }
-
-        // 合并显示变换（子模型覆盖默认）
-        for (const auto& [ctx, transform] : model->display) {
-            baked.display[ctx] = transform;
-        }
-
-        // 继承模型类型
-        baked.type = model->type;
+    // 将合并后的显示变换覆盖默认值
+    for (const auto& [ctx, transform] : merged.display) {
+        baked.display[ctx] = transform;
     }
 
+    // 将合并结果写入 BakedItemModel
+    for (const auto& [key, value] : merged.textures) {
+        baked.textures[key] = ResourceLocation(value);
+    }
+    baked.elements = std::move(merged.elements);
+    baked.type = merged.type;
+    baked.overrides = std::move(merged.overrides);
+
     // 解析纹理引用链
-    _resolveTextureReferences(baked);
+    BlockModelLoader::resolveTextureReferences(baked.textures);
 
     // 提取纹理层（layer0, layer1, ...）
     for (u32 i = 0;; ++i) {
@@ -597,35 +535,9 @@ Result<BakedItemModel> ItemModelLoader::bakeModel(const ResourceLocation& locati
         }
     }
 
-    // 复制 overrides
-    if (!modelChain.empty()) {
-        baked.overrides = modelChain.front()->overrides;
-    }
-
     // 缓存并返回
     m_bakedModels[location] = baked;
     return baked;
-}
-
-void ItemModelLoader::_resolveTextureReferences(BakedItemModel& baked)
-{
-    // 递归解析 #variable 形式的纹理引用
-    bool changed = true;
-    i32 maxIterations = 10;
-    while (changed && maxIterations-- > 0) {
-        changed = false;
-        for (auto& [name, texLoc] : baked.textures) {
-            std::string path = texLoc.path();
-            if (!path.empty() && path[0] == '#') {
-                std::string varName = path.substr(1);
-                auto varIt = baked.textures.find(varName);
-                if (varIt != baked.textures.end()) {
-                    texLoc = varIt->second;
-                    changed = true;
-                }
-            }
-        }
-    }
 }
 
 const BakedItemModel* ItemModelLoader::getModel(const ResourceLocation& location) const

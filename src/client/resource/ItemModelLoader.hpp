@@ -260,11 +260,6 @@ private:
     void _mergeParent(UnbakedItemModel& child, const UnbakedItemModel& parent);
 
     /**
-     * @brief 解析纹理引用链
-     */
-    void _resolveTextureReferences(BakedItemModel& baked);
-
-    /**
      * @brief 加载内置默认变换
      */
     void _loadDefaultTransforms();

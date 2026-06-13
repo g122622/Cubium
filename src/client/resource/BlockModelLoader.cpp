@@ -461,50 +461,32 @@ Result<BakedBlockModel> BlockModelLoader::bakeModel(const ResourceLocation& loca
         currentLoc = model.parentLocation;
     }
 
-    // 从根到叶合并
-    // 纹理变量从子到父查找
-    for (auto it = modelChain.rbegin(); it != modelChain.rend(); ++it) {
-        auto& model = *it;
+    // 从根到叶合并，使用 mergeParent 逐层叠加
+    // 先将根模型作为初始状态
+    if (!modelChain.empty()) {
+        baked.textures.clear();
+        baked.elements.clear();
+        baked.ambientOcclusion = true;
 
-        // 合并纹理
-        for (const auto& [name, path] : model->textures) {
+        // 创建一个临时 UnbakedBlockModel 用于逐层合并
+        UnbakedBlockModel merged;
+        merged.ambientOcclusion = true;
+
+        // 从根到叶依次合并
+        for (auto it = modelChain.rbegin(); it != modelChain.rend(); ++it) {
+            mergeParent(merged, *(*it));
+        }
+
+        // 将合并结果写入 BakedBlockModel
+        for (const auto& [name, path] : merged.textures) {
             baked.textures[name] = ResourceLocation(path);
         }
-
-        // 合并元素 (子模型覆盖父模型)
-        if (!model->elements.empty() && baked.elements.empty()) {
-            baked.elements = model->elements;
-        }
-
-        // 环境光遮蔽
-        if (!model->ambientOcclusion) {
-            baked.ambientOcclusion = false;
-        }
+        baked.elements = std::move(merged.elements);
+        baked.ambientOcclusion = merged.ambientOcclusion;
     }
 
     // 解析纹理变量引用 (递归解析 #variable)
-    // 例如: down=#all, all=block/stone -> down=block/stone
-    bool changed = true;
-    i32 maxIterations = 10; // 防止无限循环
-    while (changed && maxIterations-- > 0) {
-        changed = false;
-        for (auto& [name, texLoc] : baked.textures) {
-            std::string path = texLoc.path();
-            if (!path.empty() && path[0] == '#') {
-                // 这是一个纹理变量引用
-                std::string varName = path.substr(1);
-                auto varIt = baked.textures.find(varName);
-                if (varIt != baked.textures.end()) {
-                    std::string varPath = varIt->second.path();
-                    // 只有当变量值不是另一个变量引用时才解析
-                    if (!varPath.empty() && varPath[0] != '#') {
-                        texLoc = varIt->second;
-                        changed = true;
-                    }
-                }
-            }
-        }
-    }
+    resolveTextureReferences(baked.textures);
 
     return baked;
 }
@@ -528,104 +510,8 @@ void BlockModelLoader::clearCache()
     m_unbakedModels.clear();
 }
 
-Result<UnbakedBlockModel> BlockModelLoader::_parseModel(std::string_view jsonContent)
+void BlockModelLoader::computeDefaultUVs(ModelElement& elem)
 {
-    try {
-        auto json = nlohmann::json::parse(jsonContent);
-
-        UnbakedBlockModel model;
-
-        // 解析父模型
-        if (json.contains("parent")) {
-            model.parentLocation = ResourceLocation(json["parent"].get<std::string>());
-        }
-
-        // 解析环境光遮蔽
-        if (json.contains("ambientocclusion")) {
-            model.ambientOcclusion = json["ambientocclusion"].get<bool>();
-        }
-
-        // 解析纹理
-        if (json.contains("textures")) {
-            const auto& textures = json["textures"];
-            for (auto it = textures.begin(); it != textures.end(); ++it) {
-                std::string name = it.key();
-                std::string path = it.value().get<std::string>();
-
-                // 移除前导 # (如果有)
-                if (!path.empty() && path[0] == '#') {
-                    // 纹理变量引用，保持原样
-                }
-
-                model.textures[name] = path;
-            }
-        }
-
-        // 解析元素
-        if (json.contains("elements")) {
-            for (const auto& elemJson : json["elements"]) {
-                auto result = _parseElement(elemJson);
-                if (result.success()) {
-                    model.elements.push_back(result.value());
-                }
-            }
-        }
-
-        return model;
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::ResourceParseError, std::string("Failed to parse model: ") + e.what());
-    }
-}
-
-Result<ModelElement> BlockModelLoader::_parseElement(const nlohmann::json& json)
-{
-    ModelElement elem;
-
-    // 解析 from/to
-    if (json.contains("from")) {
-        const auto& from = json["from"];
-        if (from.is_array() && from.size() >= 3) {
-            elem.from.x = from[0].get<f32>();
-            elem.from.y = from[1].get<f32>();
-            elem.from.z = from[2].get<f32>();
-        }
-    }
-
-    if (json.contains("to")) {
-        const auto& to = json["to"];
-        if (to.is_array() && to.size() >= 3) {
-            elem.to.x = to[0].get<f32>();
-            elem.to.y = to[1].get<f32>();
-            elem.to.z = to[2].get<f32>();
-        }
-    }
-
-    // 解析旋转
-    if (json.contains("rotation")) {
-        elem.rotation = _parseRotation(json["rotation"]);
-    }
-
-    // 解析阴影
-    if (json.contains("shade")) {
-        elem.shade = json["shade"].get<bool>();
-    }
-
-    // 解析面
-    if (json.contains("faces")) {
-        const auto& faces = json["faces"];
-        for (auto it = faces.begin(); it != faces.end(); ++it) {
-            Direction dir = parseDirection(it.key());
-            if (dir != Direction::None) {
-                auto result = _parseFace(it.value(), dir);
-                if (result.success()) {
-                    elem.faces[dir] = result.value();
-                }
-            }
-        }
-    }
-
-    // 计算默认UV (如果没有指定)
     for (auto& [dir, face] : elem.faces) {
         if (face.uv.isDefault()) {
             // 根据面的方向计算默认UV
@@ -671,11 +557,159 @@ Result<ModelElement> BlockModelLoader::_parseElement(const nlohmann::json& json)
             }
         }
     }
+}
+
+void BlockModelLoader::mergeParent(UnbakedBlockModel& child, const UnbakedBlockModel& parent)
+{
+    // 合并纹理：子模型中不存在的纹理键从父模型继承
+    for (const auto& [key, value] : parent.textures) {
+        if (child.textures.find(key) == child.textures.end()) {
+            child.textures[key] = value;
+        }
+    }
+
+    // 合并元素：仅当子模型无元素时才继承父模型元素（first-defined-wins）
+    if (child.elements.empty() && !parent.elements.empty()) {
+        child.elements = parent.elements;
+    }
+
+    // 合并环境光遮蔽：仅当子模型未显式关闭时继承父模型设置
+    // MC Java 版语义：子模型显式声明 ambientocclusion 时覆盖父模型，
+    // 否则使用父模型的值。当前 UnbakedBlockModel 缺少"是否显式设置"标记，
+    // 采用保守策略：如果父模型关闭了 AO，则关闭
+    if (parent.ambientOcclusion == false) {
+        child.ambientOcclusion = false;
+    }
+}
+
+void BlockModelLoader::resolveTextureReferences(std::map<std::string, ResourceLocation>& textures, i32 maxIterations)
+{
+    bool changed = true;
+    while (changed && maxIterations-- > 0) {
+        changed = false;
+        for (auto& [name, texLoc] : textures) {
+            std::string path = texLoc.path();
+            if (!path.empty() && path[0] == '#') {
+                // 这是一个纹理变量引用
+                std::string varName = path.substr(1);
+                auto varIt = textures.find(varName);
+                if (varIt != textures.end()) {
+                    std::string varPath = varIt->second.path();
+                    // 只有当变量值不是另一个变量引用时才解析
+                    if (!varPath.empty() && varPath[0] != '#') {
+                        texLoc = varIt->second;
+                        changed = true;
+                    }
+                }
+            }
+        }
+    }
+}
+
+Result<UnbakedBlockModel> BlockModelLoader::_parseModel(std::string_view jsonContent)
+{
+    try {
+        auto json = nlohmann::json::parse(jsonContent);
+
+        UnbakedBlockModel model;
+
+        // 解析父模型
+        if (json.contains("parent")) {
+            model.parentLocation = ResourceLocation(json["parent"].get<std::string>());
+        }
+
+        // 解析环境光遮蔽
+        if (json.contains("ambientocclusion")) {
+            model.ambientOcclusion = json["ambientocclusion"].get<bool>();
+        }
+
+        // 解析纹理
+        if (json.contains("textures")) {
+            const auto& textures = json["textures"];
+            for (auto it = textures.begin(); it != textures.end(); ++it) {
+                std::string name = it.key();
+                std::string path = it.value().get<std::string>();
+
+                // 移除前导 # (如果有)
+                if (!path.empty() && path[0] == '#') {
+                    // 纹理变量引用，保持原样
+                }
+
+                model.textures[name] = path;
+            }
+        }
+
+        // 解析元素
+        if (json.contains("elements")) {
+            for (const auto& elemJson : json["elements"]) {
+                auto result = parseElement(elemJson);
+                if (result.success()) {
+                    model.elements.push_back(result.value());
+                }
+            }
+        }
+
+        return model;
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::ResourceParseError, std::string("Failed to parse model: ") + e.what());
+    }
+}
+
+Result<ModelElement> BlockModelLoader::parseElement(const nlohmann::json& json)
+{
+    ModelElement elem;
+
+    // 解析 from/to
+    if (json.contains("from")) {
+        const auto& from = json["from"];
+        if (from.is_array() && from.size() >= 3) {
+            elem.from.x = from[0].get<f32>();
+            elem.from.y = from[1].get<f32>();
+            elem.from.z = from[2].get<f32>();
+        }
+    }
+
+    if (json.contains("to")) {
+        const auto& to = json["to"];
+        if (to.is_array() && to.size() >= 3) {
+            elem.to.x = to[0].get<f32>();
+            elem.to.y = to[1].get<f32>();
+            elem.to.z = to[2].get<f32>();
+        }
+    }
+
+    // 解析旋转
+    if (json.contains("rotation")) {
+        elem.rotation = parseRotation(json["rotation"]);
+    }
+
+    // 解析阴影
+    if (json.contains("shade")) {
+        elem.shade = json["shade"].get<bool>();
+    }
+
+    // 解析面
+    if (json.contains("faces")) {
+        const auto& faces = json["faces"];
+        for (auto it = faces.begin(); it != faces.end(); ++it) {
+            Direction dir = parseDirection(it.key());
+            if (dir != Direction::None) {
+                auto result = parseFace(it.value(), dir);
+                if (result.success()) {
+                    elem.faces[dir] = result.value();
+                }
+            }
+        }
+    }
+
+    // 计算默认UV (如果没有指定)
+    computeDefaultUVs(elem);
 
     return elem;
 }
 
-Result<ModelFace> BlockModelLoader::_parseFace(const nlohmann::json& json, Direction /* dir */)
+Result<ModelFace> BlockModelLoader::parseFace(const nlohmann::json& json, Direction /* dir */)
 {
     ModelFace face;
 
@@ -696,7 +730,7 @@ Result<ModelFace> BlockModelLoader::_parseFace(const nlohmann::json& json, Direc
 
     // 解析UV
     if (json.contains("uv")) {
-        face.uv = _parseUV(json["uv"]);
+        face.uv = parseUV(json["uv"]);
     }
 
     // 解析旋转
@@ -707,7 +741,7 @@ Result<ModelFace> BlockModelLoader::_parseFace(const nlohmann::json& json, Direc
     return face;
 }
 
-ModelFaceUV BlockModelLoader::_parseUV(const nlohmann::json& json)
+ModelFaceUV BlockModelLoader::parseUV(const nlohmann::json& json)
 {
     ModelFaceUV uv;
 
@@ -721,7 +755,7 @@ ModelFaceUV BlockModelLoader::_parseUV(const nlohmann::json& json)
     return uv;
 }
 
-ModelRotation BlockModelLoader::_parseRotation(const nlohmann::json& json)
+ModelRotation BlockModelLoader::parseRotation(const nlohmann::json& json)
 {
     ModelRotation rot;
 
