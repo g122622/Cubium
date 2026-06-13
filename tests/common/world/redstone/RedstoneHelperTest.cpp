@@ -22,14 +22,18 @@
  */
 
 #include "common/world/redstone/RedstoneHelper.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/hanging/HangingEntity.hpp"
 #include "common/entity/entities/vehicle/MinecartEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/resource/ResourceLocation.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
+#include <memory>
+#include <vector>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -203,7 +207,7 @@ TEST_F(CalcRedstoneFromInventoryTest, SingleItem_ReturnsOne)
     ASSERT_NE(diamond, nullptr);
     inventory.setItem(0, ItemStack(*diamond, 1));
 
-    // 单个物品占1/27槽位填充率，信号 = floor(1/64 / 27 * 14) + 1 = 0 + 1 = 1
+    // 单个物品占1/64槽位填充率，信号 = floor(1/64 / 27 * 14) + 1 = 0 + 1 = 1
     EXPECT_EQ(RedstoneHelper::calcRedstoneFromInventory(inventory), 1);
 }
 
@@ -399,11 +403,284 @@ TEST_F(MinecartComparatorOutputTest, CommandBlockMinecart_DefaultSuccessCount_Re
     EXPECT_EQ(command.getComparatorOutput(), 0);
 }
 
-TEST_F(MinecartComparatorOutputTest, CommandBlockMinecart_CappedAtFifteen)
+TEST_F(MinecartComparatorOutputTest, CommandBlockMinecart_SetSuccessCount_ReturnsCorrectValue)
 {
+    // 设置成功次数后返回对应值
     CommandBlockMinecartEntity command(EntityId(31));
-    // 直接设置 successCount（通过 setCommand 后命令执行的间接结果）
-    // getComparatorOutput() 返回 min(successCount, 15)
-    // 默认 successCount = 0
-    EXPECT_EQ(command.getComparatorOutput(), 0);
+    command.setSuccessCount(5);
+    EXPECT_EQ(command.getComparatorOutput(), 5);
+}
+
+TEST_F(MinecartComparatorOutputTest, CommandBlockMinecart_SuccessCountCappedAtFifteen)
+{
+    // 成功次数上限为15
+    CommandBlockMinecartEntity command(EntityId(32));
+    command.setSuccessCount(100);
+    EXPECT_EQ(command.getComparatorOutput(), 15);
+}
+
+TEST_F(MinecartComparatorOutputTest, CommandBlockMinecart_SuccessCountOne)
+{
+    CommandBlockMinecartEntity command(EntityId(33));
+    command.setSuccessCount(1);
+    EXPECT_EQ(command.getComparatorOutput(), 1);
+}
+
+// ========== ItemFrameEntity::getComparatorOutput 测试 ==========
+
+class ItemFrameComparatorOutputTest : public ::testing::Test {
+protected:
+    void SetUp() override { Items::initialize(); }
+};
+
+TEST_F(ItemFrameComparatorOutputTest, EmptyFrame_ReturnsZero)
+{
+    // 无物品的展示框返回0
+    ItemFrameEntity frame;
+    EXPECT_EQ(frame.getComparatorOutput(), 0);
+}
+
+TEST_F(ItemFrameComparatorOutputTest, FrameWithItem_Rotation0_Returns1)
+{
+    // 有物品、旋转0 → 0 % 8 + 1 = 1
+    ItemFrameEntity frame;
+    Item* diamond = ensureTestItem("diamond");
+    ASSERT_NE(diamond, nullptr);
+    frame.setDisplayedItem(ItemStack(*diamond, 1));
+    EXPECT_EQ(frame.getItemRotation(), 0); // setDisplayedItem 重置旋转为0
+    EXPECT_EQ(frame.getComparatorOutput(), 1);
+}
+
+TEST_F(ItemFrameComparatorOutputTest, FrameWithItem_Rotation4_Returns5)
+{
+    // 有物品、旋转4 → 4 % 8 + 1 = 5
+    ItemFrameEntity frame;
+    Item* diamond = ensureTestItem("diamond");
+    ASSERT_NE(diamond, nullptr);
+    frame.setDisplayedItem(ItemStack(*diamond, 1));
+    frame.setItemRotation(4);
+    EXPECT_EQ(frame.getComparatorOutput(), 5);
+}
+
+TEST_F(ItemFrameComparatorOutputTest, FrameWithItem_Rotation7_Returns8)
+{
+    // 有物品、旋转7（最大值）→ 7 % 8 + 1 = 8
+    ItemFrameEntity frame;
+    Item* diamond = ensureTestItem("diamond");
+    ASSERT_NE(diamond, nullptr);
+    frame.setDisplayedItem(ItemStack(*diamond, 1));
+    frame.setItemRotation(7);
+    EXPECT_EQ(frame.getComparatorOutput(), 8);
+}
+
+TEST_F(ItemFrameComparatorOutputTest, FrameWithItem_RotateItemCyclesThroughValues)
+{
+    // rotateItem 逐次旋转
+    ItemFrameEntity frame;
+    Item* diamond = ensureTestItem("diamond");
+    ASSERT_NE(diamond, nullptr);
+    frame.setDisplayedItem(ItemStack(*diamond, 1));
+
+    // 初始旋转0 → 信号1
+    EXPECT_EQ(frame.getComparatorOutput(), 1);
+
+    // 旋转1次 → 旋转1 → 信号2
+    frame.rotateItem();
+    EXPECT_EQ(frame.getComparatorOutput(), 2);
+
+    // 旋转到7 → 信号8
+    for (int i = 0; i < 6; ++i) {
+        frame.rotateItem();
+    }
+    EXPECT_EQ(frame.getItemRotation(), 7);
+    EXPECT_EQ(frame.getComparatorOutput(), 8);
+
+    // 再旋转一次回到0 → 信号1
+    frame.rotateItem();
+    EXPECT_EQ(frame.getItemRotation(), 0);
+    EXPECT_EQ(frame.getComparatorOutput(), 1);
+}
+
+TEST_F(ItemFrameComparatorOutputTest, ComparatorOutputMatchesAnalogOutput)
+{
+    // getComparatorOutput() 应该等于 getAnalogOutput()
+    ItemFrameEntity frame;
+    Item* diamond = ensureTestItem("diamond");
+    ASSERT_NE(diamond, nullptr);
+    frame.setDisplayedItem(ItemStack(*diamond, 1));
+
+    for (i32 rot = 0; rot < 8; ++rot) {
+        frame.setItemRotation(rot);
+        EXPECT_EQ(frame.getComparatorOutput(), frame.getAnalogOutput())
+            << "Rotation " << rot << ": getComparatorOutput() != getAnalogOutput()";
+    }
+}
+
+TEST_F(ItemFrameComparatorOutputTest, ComparatorOutputNeverExceeds8)
+{
+    // 展示框信号范围是0-8，不会超过8
+    ItemFrameEntity frame;
+    Item* diamond = ensureTestItem("diamond");
+    ASSERT_NE(diamond, nullptr);
+    frame.setDisplayedItem(ItemStack(*diamond, 1));
+
+    for (i32 rot = 0; rot < 8; ++rot) {
+        frame.setItemRotation(rot);
+        EXPECT_LE(frame.getComparatorOutput(), 8);
+        EXPECT_GE(frame.getComparatorOutput(), 1);
+    }
+}
+
+// ========== getEntitySignal 测试 ==========
+
+namespace {
+
+/**
+ * @brief 支持 getEntitiesInAABB 的测试世界
+ *
+ * 继承 BaseTestWorld，允许在测试中手动添加实体供 getEntitiesInAABB 查询。
+ */
+class EntityTestWorld : public mc::test::BaseTestWorld {
+public:
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB& aabb, const Entity*) const override
+    {
+        std::vector<Entity*> result;
+        for (auto* entity : m_entities) {
+            if (entity != nullptr && !entity->isRemoved()) {
+                result.push_back(entity);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * @brief 添加实体到世界中（用于测试）
+     * 注意：测试负责确保实体生命周期覆盖测试范围
+     */
+    void addEntity(Entity* entity) { m_entities.push_back(entity); }
+
+private:
+    std::vector<Entity*> m_entities;
+};
+
+} // namespace
+
+class GetEntitySignalTest : public ::testing::Test {
+protected:
+    void SetUp() override { Items::initialize(); }
+};
+
+TEST_F(GetEntitySignalTest, EmptyWorld_ReturnsZero)
+{
+    // 没有实体时返回0
+    EntityTestWorld world;
+    BlockPos pos(0, 0, 0);
+    EXPECT_EQ(RedstoneHelper::getEntitySignal(world, pos), 0);
+}
+
+TEST_F(GetEntitySignalTest, SingleChestMinecart_ReturnsSignal)
+{
+    // 一个箱子矿车在位置上，应返回非零信号
+    EntityTestWorld world;
+    ChestMinecartEntity chest(EntityId(1));
+    Item* diamond = ensureTestItem("diamond");
+    ASSERT_NE(diamond, nullptr);
+    chest.setInventoryItem(0, ItemStack(*diamond, 64));
+
+    world.addEntity(&chest);
+
+    BlockPos pos(0, 0, 0);
+    i32 signal = RedstoneHelper::getEntitySignal(world, pos);
+    EXPECT_GT(signal, 0);
+    EXPECT_LE(signal, 15);
+}
+
+TEST_F(GetEntitySignalTest, RideableMinecart_ReturnsZero)
+{
+    // 普通矿车比较器输出为0
+    EntityTestWorld world;
+    RideableMinecartEntity rideable(EntityId(1));
+    world.addEntity(&rideable);
+
+    BlockPos pos(0, 0, 0);
+    EXPECT_EQ(RedstoneHelper::getEntitySignal(world, pos), 0);
+}
+
+TEST_F(GetEntitySignalTest, CommandBlockMinecart_ReturnsSuccessCount)
+{
+    // 命令方块矿车返回成功次数
+    EntityTestWorld world;
+    CommandBlockMinecartEntity command(EntityId(1));
+    command.setSuccessCount(10);
+    world.addEntity(&command);
+
+    BlockPos pos(0, 0, 0);
+    EXPECT_EQ(RedstoneHelper::getEntitySignal(world, pos), 10);
+}
+
+TEST_F(GetEntitySignalTest, MultipleEntities_ReturnsMaxSignal)
+{
+    // 多个实体时返回最大信号
+    EntityTestWorld world;
+
+    ChestMinecartEntity chest(EntityId(1));
+    Item* diamond = ensureTestItem("diamond");
+    ASSERT_NE(diamond, nullptr);
+    chest.setInventoryItem(0, ItemStack(*diamond, 1)); // 信号1
+
+    CommandBlockMinecartEntity command(EntityId(2));
+    command.setSuccessCount(7); // 信号7
+
+    world.addEntity(&chest);
+    world.addEntity(&command);
+
+    BlockPos pos(0, 0, 0);
+    EXPECT_EQ(RedstoneHelper::getEntitySignal(world, pos), 7);
+}
+
+TEST_F(GetEntitySignalTest, FullChestMinecart_ReturnsMaxSignal)
+{
+    // 满的箱子矿车返回15
+    EntityTestWorld world;
+    ChestMinecartEntity chest(EntityId(1));
+    Item* diamond = ensureTestItem("diamond");
+    ASSERT_NE(diamond, nullptr);
+    for (i32 i = 0; i < ChestMinecartEntity::INVENTORY_SIZE; ++i) {
+        chest.setInventoryItem(i, ItemStack(*diamond, 64));
+    }
+    world.addEntity(&chest);
+
+    BlockPos pos(0, 0, 0);
+    EXPECT_EQ(RedstoneHelper::getEntitySignal(world, pos), 15);
+}
+
+TEST_F(GetEntitySignalTest, FullHopperMinecart_ReturnsMaxSignal)
+{
+    // 满的漏斗矿车返回15
+    EntityTestWorld world;
+    HopperMinecartEntity hopper(EntityId(1));
+    Item* diamond = ensureTestItem("diamond");
+    ASSERT_NE(diamond, nullptr);
+    for (i32 i = 0; i < HopperMinecartEntity::INVENTORY_SIZE; ++i) {
+        hopper.setInventoryItem(i, ItemStack(*diamond, 64));
+    }
+    world.addEntity(&hopper);
+
+    BlockPos pos(0, 0, 0);
+    EXPECT_EQ(RedstoneHelper::getEntitySignal(world, pos), 15);
+}
+
+TEST_F(GetEntitySignalTest, ItemFrameEntity_ReturnsAnalogOutput)
+{
+    // 物品展示框返回比较器输出信号
+    EntityTestWorld world;
+    ItemFrameEntity frame;
+    Item* diamond = ensureTestItem("diamond");
+    ASSERT_NE(diamond, nullptr);
+    frame.setDisplayedItem(ItemStack(*diamond, 1));
+    frame.setItemRotation(3); // 3 % 8 + 1 = 4
+    world.addEntity(&frame);
+
+    BlockPos pos(0, 0, 0);
+    EXPECT_EQ(RedstoneHelper::getEntitySignal(world, pos), 4);
 }

@@ -805,6 +805,15 @@ public:
      */
     [[nodiscard]] i32 getSuccessCount() const { return m_successCount; }
 
+    /**
+     * @brief 设置成功次数
+     *
+     * 命令执行后更新成功次数，用于比较器信号输出。
+     *
+     * @param count 成功次数
+     */
+    void setSuccessCount(i32 count) { m_successCount = count; }
+
     // ========== Entity 接口重写 ==========
 
     /**

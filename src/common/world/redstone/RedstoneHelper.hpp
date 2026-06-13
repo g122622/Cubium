@@ -86,13 +86,21 @@ public:
     [[nodiscard]] static bool isRedstoneConductor(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
-     * @brief 获取实体的红石信号强度
+     * @brief 获取指定位置实体的最大比较器信号强度
      *
-     * 某些实体（如矿车）可以输出红石信号。
-     * 遍历指定位置的实体，返回最大的比较器信号值。
+     * 遍历指定位置的实体，返回最大的 getComparatorOutput() 值。
+     *
+     * 通用实体信号查询工具。当前使用场景：
+     * - DetectorRailBlock 通过 getComparatorInputOverride() 直接查询实体信号，
+     *   但它有优先级排序逻辑（命令方块矿车 > 容器矿车 > 普通矿车），因此
+     *   不使用此函数。
+     * - RedstoneComparatorBlock 通过 _findItemFrame() 专门检测物品展示框，
+     *   不使用此函数。
+     * - 此函数适用于不需要优先级排序的通用场景，如压力板等需要获取
+     *   任意实体信号强度的场合。
      *
      * @param world 世界引用
-     * @param pos 检测位置
+     * @param pos 检测位置（使用 1x1x1 AABB）
      * @return i32 信号强度 0-15
      */
     [[nodiscard]] static i32 getEntitySignal(IWorld& world, const BlockPos& pos);
