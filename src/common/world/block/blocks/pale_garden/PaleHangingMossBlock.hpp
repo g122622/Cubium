@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 
@@ -35,14 +35,13 @@ class IBlockReader;
 namespace blocks {
 
 /**
- * @brief 苍白苔藓方块
+ * @brief 苍白垂苔方块
  *
- * 苍白花园中悬挂的苔藓方块，可以向下生长。
- * 具有TIP属性，表示是否为末端。
+ * 苍白花园中悬挂生长的苔藓方块，可向下链式延伸。
+ * 具有TIP属性表示是否为末端（最底部的垂苔）。
+ * 上方必须为实体面或另一苍白垂苔才能存活。
  *
  * MC ID: minecraft:pale_hanging_moss
- *
- * 参考: net.minecraft.block.PaleHangingMossBlock
  */
 class PaleHangingMossBlock : public Block {
 public:
@@ -59,6 +58,17 @@ public:
     [[nodiscard]] bool isValidPosition(
         const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
+    // ========== 更新 ==========
+
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
+
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
     // ========== 形状 ==========
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
@@ -67,7 +77,11 @@ public:
 
     // ========== 光照 ==========
 
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override;
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
 
     [[nodiscard]] bool isOpaque(const BlockState& state) const override
     {

@@ -153,9 +153,6 @@ protected:
     CollisionShape m_topShape;
     /// 完整形状（含支撑柱）
     CollisionShape m_fullShape;
-    // TODO: m_collisionShape 未被使用，可能需要删除或实现相关功能
-    /// 碰撞形状（用于掉落检测）
-    CollisionShape m_collisionShape;
     /// 无碰撞形状（当脚手架距离=0且有底部支撑时）
     CollisionShape m_emptyShape;
 

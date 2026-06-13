@@ -277,6 +277,7 @@ void registerPaleGardenBlocks()
                 .notSolid()
                 .hardness(0.0f)
                 .resistance(0.0f)
+                .propagatesSkylightDown()
                 .soundType(BlockSoundTypes::PALE_HANGING_MOSS));
 
     // ============================================================================

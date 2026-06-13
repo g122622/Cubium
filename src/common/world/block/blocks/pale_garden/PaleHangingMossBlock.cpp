@@ -22,7 +22,11 @@
  */
 
 #include "PaleHangingMossBlock.hpp"
+#include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace blocks {
@@ -67,7 +71,7 @@ bool PaleHangingMossBlock::isValidPosition(const BlockState& state, IBlockReader
 {
     MC_UNUSED(state);
 
-    // 检查上方是否有支撑方块
+    // 上方方块必须提供向下的实心面，或者上方方块本身是苍白垂苔（允许垂苔链）
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
 
@@ -75,9 +79,54 @@ bool PaleHangingMossBlock::isValidPosition(const BlockState& state, IBlockReader
         return false;
     }
 
-    // TODO: 检查是否为苍白橡木原木、苍白橡木树叶或苍白苔藓
-    // 目前返回 true
-    return true;
+    // 上方方块有向下的实心面（如苍白橡木原木、石头等任何固体方块）
+    if (aboveState->isSolidSide(world, abovePos, Direction::Down)) {
+        return true;
+    }
+
+    // 上方方块本身是苍白垂苔，允许垂苔链式悬挂
+    if (dynamic_cast<const PaleHangingMossBlock*>(&aboveState->getBlock()) != nullptr) {
+        return true;
+    }
+
+    return false;
+}
+
+BlockState PaleHangingMossBlock::updatePostPlacement(const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos)
+{
+    MC_UNUSED(facingState);
+    MC_UNUSED(facingPos);
+
+    // 当上方支撑方块变化时，如果不再满足存活条件则调度tick以销毁方块
+    if (!isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
+        world.tickManager().scheduleBlockTick(currentPos, *this, 1, world::tick::TickPriority::Normal);
+    }
+
+    // 更新TIP属性：如果下方不是苍白垂苔，则为末端
+    BlockPos belowPos(currentPos.x, currentPos.y - 1, currentPos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
+    bool isTip = (belowState == nullptr || dynamic_cast<const PaleHangingMossBlock*>(&belowState->getBlock()) == nullptr);
+
+    return state.with(BlockStateProperties::TIP(), isTip);
+}
+
+void PaleHangingMossBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
+    MC_UNUSED(random);
+
+    // 检查是否仍然满足存活条件
+    if (!isValidPosition(state, static_cast<IBlockReader&>(world), pos)) {
+        // 不满足存活条件，替换为空气并掉落物品
+        const BlockState* airState = VanillaBlocks::AIR ? &VanillaBlocks::AIR->defaultState() : nullptr;
+        if (airState != nullptr) {
+            world.setBlockState(pos, airState, 3);
+        }
+    }
 }
 
 const CollisionShape& PaleHangingMossBlock::getShape(const BlockState& state) const
@@ -93,12 +142,6 @@ const CollisionShape& PaleHangingMossBlock::getCollisionShape(const BlockState& 
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
-}
-
-bool PaleHangingMossBlock::useShapeForLightOcclusion(const BlockState& state) const
-{
-    MC_UNUSED(state);
-    return true;
 }
 
 void PaleHangingMossBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
