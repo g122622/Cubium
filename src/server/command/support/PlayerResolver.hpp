@@ -49,6 +49,18 @@ namespace mc::command::support {
 [[nodiscard]] std::vector<PlayerId> resolvePlayerIds(const ServerCommandSource& source, const EntitySelector& selector);
 
 /**
+ * @brief 通过 PlayerId 获取玩家名称。
+ *
+ * 查找 PlayerManager 中对应 PlayerId 的 ServerPlayerData，返回其 username。
+ * 如果服务器不可用或玩家不在线，返回回退名称 "player_<id>"。
+ *
+ * @param source 命令源，用于获取服务器实例
+ * @param playerId 玩家 ID
+ * @return 玩家名称字符串
+ */
+[[nodiscard]] std::string resolvePlayerName(const ServerCommandSource& source, PlayerId playerId);
+
+/**
  * @brief 将游戏模式转换为命令输出名称。
  */
 [[nodiscard]] const char* getGameModeCommandName(GameMode mode) noexcept;

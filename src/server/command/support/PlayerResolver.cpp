@@ -527,6 +527,25 @@ std::vector<PlayerId> resolvePlayerIds(const ServerCommandSource& source, const 
 }
 
 /**
+ * @brief 通过 PlayerId 获取玩家名称。
+ *
+ * 查找 PlayerManager 中对应 PlayerId 的 ServerPlayerData，返回其 username。
+ * 如果服务器不可用或玩家不在线，返回回退名称 "player_<id>"。
+ */
+std::string resolvePlayerName(const ServerCommandSource& source, PlayerId playerId)
+{
+    auto* server = source.server();
+    if (server != nullptr) {
+        auto* playerData = server->playerManager().getPlayer(playerId);
+        if (playerData != nullptr) {
+            return playerData->username;
+        }
+    }
+    // 回退：使用 PlayerId 生成临时名称（与 MC 原版行为一致，非玩家实体使用 UUID 字符串）
+    return "player_" + std::to_string(playerId);
+}
+
+/**
  * @brief 将游戏模式转换为命令输出名称。
  *
  * @param mode 游戏模式。

@@ -430,8 +430,7 @@ i32 TeamCommand::_joinTeam(CommandContext<ServerCommandSource>& context)
     // 添加成员
     i32 successCount = 0;
     for (PlayerId playerId : playerIds) {
-        // TODO: 应该通过 PlayerManager 获取真实的玩家名称
-        std::string playerName = "player_" + std::to_string(playerId);
+        std::string playerName = support::resolvePlayerName(source, playerId);
         if (scoreboard->addPlayerToTeam(playerName, *team)) {
             successCount++;
         }
@@ -471,8 +470,7 @@ i32 TeamCommand::_leaveTeam(CommandContext<ServerCommandSource>& context)
     // 移除成员（从所有队伍移除）
     i32 successCount = 0;
     for (PlayerId playerId : playerIds) {
-        // TODO: 应该通过 PlayerManager 获取真实的玩家名称
-        std::string playerName = "player_" + std::to_string(playerId);
+        std::string playerName = support::resolvePlayerName(source, playerId);
         auto* currentTeam = scoreboard->getPlayersTeam(playerName);
         if (currentTeam) {
             if (scoreboard->removePlayerFromTeam(playerName, *currentTeam)) {

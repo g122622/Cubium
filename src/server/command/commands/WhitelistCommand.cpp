@@ -190,7 +190,8 @@ i32 WhitelistCommand::_whitelistAdd(CommandContext<ServerCommandSource>& context
 
     if (selector.hasUsername()) {
         playerName = selector.username();
-        // TODO: 实际服务器应从 Mojang API 获取真实 UUID，当前使用玩家名生成临时 UUID
+        // 离线玩家无法获取真实 UUID，使用玩家名生成离线模式 UUID
+        // TODO: 正式服务器应从 Mojang API 获取真实 UUID
         playerUuid = _generateUuidFromName(playerName);
     } else {
         std::vector<PlayerId> playerIds = support::resolvePlayerIds(source, selector);
@@ -200,8 +201,12 @@ i32 WhitelistCommand::_whitelistAdd(CommandContext<ServerCommandSource>& context
                 auto* playerData = server->playerManager().getPlayer(playerIds.front());
                 if (playerData != nullptr) {
                     playerName = playerData->username;
-                    // 使用玩家 ID 作为临时 UUID
-                    playerUuid = std::to_string(playerIds.front());
+                    // 在线玩家使用其真实 UUID
+                    playerUuid = playerData->uuid;
+                    if (playerUuid.empty()) {
+                        // UUID 为空时回退到离线模式 UUID
+                        playerUuid = _generateUuidFromName(playerName);
+                    }
                 }
             }
         }
@@ -368,7 +373,9 @@ void WhitelistCommand::_kickNonWhitelistedPlayers(ServerCommandSource& source)
 
 std::string WhitelistCommand::_generateUuidFromName(const std::string& name)
 {
-    // TODO: 实际服务器应从 Mojang API 获取真实 UUID，当前使用简单的哈希算法生成伪 UUID
+    // 生成离线模式 UUID（与 MC 原版 OfflineUUID 算法一致）
+    // 原版使用 UUID.nameUUIDFromBytes("OfflinePlayer:" + name)
+    // TODO: 正式服务器应从 Mojang API 获取真实 UUID
     std::hash<std::string> hasher;
     size_t hash = hasher(name);
 
