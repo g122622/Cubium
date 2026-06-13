@@ -23,7 +23,12 @@
 
 #include "RedstoneHelper.hpp"
 
+#include "../../entity/core/Entity.hpp"
+#include "../../entity/inventory/IInventory.hpp"
+#include "../../item/core/ItemStack.hpp"
+#include "../../util/AxisAlignedBB.hpp"
 #include "../../util/assert/AssertMacros.hpp"
+#include "../../util/math/MathUtils.hpp"
 #include "../IWorld.hpp"
 #include "../block/Block.hpp"
 
@@ -62,12 +67,53 @@ bool RedstoneHelper::isRedstoneConductor(IWorld& world, const BlockPos& pos, con
 
 i32 RedstoneHelper::getEntitySignal(IWorld& world, const BlockPos& pos)
 {
-    // TODO: 检查位置上的实体是否输出红石信号
-    // 例如：装有漏斗的矿车、动力矿车等
-    // 待实体系统完善后实现
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    return 0;
+    // 在指定方块位置构建检测区域
+    AxisAlignedBB searchBox = AxisAlignedBB::fromBlock(pos.x, pos.y, pos.z);
+
+    // 获取区域内的所有实体
+    std::vector<Entity*> entities = world.getEntitiesInAABB(searchBox, nullptr);
+
+    // 遍历实体，查找最大的比较器信号值
+    i32 maxSignal = 0;
+    for (Entity* entity : entities) {
+        if (!entity || entity->isRemoved()) {
+            continue;
+        }
+        i32 signal = entity->getComparatorOutput();
+        if (signal > maxSignal) {
+            maxSignal = signal;
+        }
+    }
+
+    return maxSignal;
+}
+
+i32 RedstoneHelper::calcRedstoneFromInventory(const IInventory& inventory)
+{
+    const i32 containerSize = inventory.getContainerSize();
+    if (containerSize <= 0) {
+        return 0;
+    }
+
+    f32 fillRatio = 0.0f;
+
+    for (i32 i = 0; i < containerSize; ++i) {
+        const ItemStack& stack = inventory.getItem(i);
+        if (!stack.isEmpty()) {
+            fillRatio += static_cast<f32>(stack.getCount()) / static_cast<f32>(stack.getMaxStackSize());
+        }
+    }
+
+    fillRatio /= static_cast<f32>(containerSize);
+
+    // lerpDiscrete(fillRatio, 0, 14) + (fillRatio > 0 ? 1 : 0)
+    // 即 floor(fillRatio * 14) + (有物品 ? 1 : 0)
+    i32 signal = static_cast<i32>(math::floorTo<i32>(fillRatio * 14.0f));
+    if (fillRatio > 0.0f) {
+        signal += 1;
+    }
+
+    return std::min(signal, MAX_POWER);
 }
 
 } // namespace redstone

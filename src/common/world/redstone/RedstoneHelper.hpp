@@ -33,6 +33,7 @@ namespace mc {
 class IWorld;
 class BlockPos;
 class BlockState;
+class IInventory;
 
 namespace world {
 namespace redstone {
@@ -88,12 +89,28 @@ public:
      * @brief 获取实体的红石信号强度
      *
      * 某些实体（如矿车）可以输出红石信号。
+     * 遍历指定位置的实体，返回最大的比较器信号值。
      *
      * @param world 世界引用
      * @param pos 检测位置
      * @return i32 信号强度 0-15
      */
     [[nodiscard]] static i32 getEntitySignal(IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 计算容器的红石信号强度
+     *
+     * 基于容器填充率计算信号强度，公式：
+     *   fillRatio = sum(stack.count / stack.maxStackSize) / containerSize
+     *   signal = floor(fillRatio * 14) + (nonEmptySlots > 0 ? 1 : 0)
+     * 结果范围为 0-15。
+     *
+     * 参考: net.minecraft.world.inventory.AbstractContainerMenu.getRedstoneSignalFromContainer
+     *
+     * @param inventory 容器接口
+     * @return i32 信号强度 0-15
+     */
+    [[nodiscard]] static i32 calcRedstoneFromInventory(const IInventory& inventory);
 
     /**
      * @brief 检查方向是否是水平方向

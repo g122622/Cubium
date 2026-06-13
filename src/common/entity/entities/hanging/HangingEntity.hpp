@@ -234,6 +234,15 @@ public:
     [[nodiscard]] i32 getAnalogOutput() const;
 
     /**
+     * @brief 获取比较器输出信号强度
+     *
+     * 委托给 getAnalogOutput()，兼容 Entity::getComparatorOutput() 接口。
+     *
+     * @return 红石信号强度（0-8）
+     */
+    [[nodiscard]] i32 getComparatorOutput() const override { return getAnalogOutput(); }
+
+    /**
      * @brief 获取水平朝向（MC 方向）
      *
      * 用于红石比较器检测物品展示框朝向。

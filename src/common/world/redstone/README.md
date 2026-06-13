@@ -13,7 +13,7 @@ redstone/
 ├── RedstonePower.cpp
 ├── RedstoneContext.hpp    # 递归防护上下文（防止红石更新无限循环）
 ├── RedstoneContext.cpp
-├── RedstoneHelper.hpp     # 辅助函数（衰减计算、导体检测、连接判断）
+├── RedstoneHelper.hpp     # 辅助函数（衰减计算、导体检测、连接判断、实体信号、容器信号计算）
 └── RedstoneHelper.cpp
 ```
 

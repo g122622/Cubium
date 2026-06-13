@@ -453,6 +453,15 @@ public:
      */
     void dropItem(DamageSource* source = nullptr) override;
 
+    // ========== Entity 接口重写 ==========
+
+    /**
+     * @brief 获取比较器输出信号强度
+     *
+     * 基于库存填充率计算信号强度（0-15）。
+     */
+    [[nodiscard]] i32 getComparatorOutput() const override;
+
     // ========== IInventory 代理方法 ==========
 
     /**
@@ -717,6 +726,15 @@ public:
     void clearInventory();
     [[nodiscard]] IInventory* getInventory();
 
+    // ========== Entity 接口重写 ==========
+
+    /**
+     * @brief 获取比较器输出信号强度
+     *
+     * 基于库存填充率计算信号强度（0-15）。
+     */
+    [[nodiscard]] i32 getComparatorOutput() const override;
+
     // ========== 漏斗功能 ==========
 
     /**
@@ -786,6 +804,15 @@ public:
      * @brief 获取成功次数
      */
     [[nodiscard]] i32 getSuccessCount() const { return m_successCount; }
+
+    // ========== Entity 接口重写 ==========
+
+    /**
+     * @brief 获取比较器输出信号强度
+     *
+     * 返回命令执行成功次数（0-15），上限为15。
+     */
+    [[nodiscard]] i32 getComparatorOutput() const override;
 
     /**
      * @brief 激活铁轨通过时执行命令

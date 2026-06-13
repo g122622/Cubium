@@ -43,6 +43,7 @@
 #include "common/world/blockentity/transport/HopperEntity.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
+#include "common/world/redstone/RedstoneHelper.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include <algorithm>
 #include <cmath>
@@ -1034,10 +1035,8 @@ void ChestMinecartEntity::applyDrag()
     f32 drag = 0.98f;
 
     // 根据容器红石信号强度增加摩擦力
-    // TODO: 当红石信号计算实现后添加信号强度影响
-    // int signal = Container.calcRedstoneFromInventory(this);
-    // drag -= signal * 0.001f;
-    // 目前简化处理，使用固定摩擦力
+    i32 signal = getComparatorOutput();
+    drag -= static_cast<f32>(signal) * 0.001f;
 
     setVelocity(velocityX() * drag, velocityY(), velocityZ() * drag);
 }
@@ -1106,6 +1105,14 @@ void ChestMinecartEntity::clearInventory()
 IInventory* ChestMinecartEntity::getInventory()
 {
     return m_inventory.get();
+}
+
+i32 ChestMinecartEntity::getComparatorOutput() const
+{
+    if (!m_inventory) {
+        return 0;
+    }
+    return world::redstone::RedstoneHelper::calcRedstoneFromInventory(*m_inventory);
 }
 
 // ============================================================================
@@ -1626,6 +1633,14 @@ IInventory* HopperMinecartEntity::getInventory()
     return m_inventory.get();
 }
 
+i32 HopperMinecartEntity::getComparatorOutput() const
+{
+    if (!m_inventory) {
+        return 0;
+    }
+    return world::redstone::RedstoneHelper::calcRedstoneFromInventory(*m_inventory);
+}
+
 void HopperMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered)
 {
     // 激活铁轨控制漏斗状态
@@ -1660,6 +1675,11 @@ void CommandBlockMinecartEntity::tick()
 
     // 命令方块矿车不自动执行命令
     // 命令只在通过激活铁轨时执行
+}
+
+i32 CommandBlockMinecartEntity::getComparatorOutput() const
+{
+    return std::min(m_successCount, 15);
 }
 
 void CommandBlockMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered)

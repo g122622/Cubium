@@ -1737,6 +1737,17 @@ public:
     [[nodiscard]] virtual bool doesEntityNotTriggerPressurePlate() const { return false; }
 
     /**
+     * @brief 获取实体的比较器输出信号强度
+     *
+     * 某些实体可以输出模拟红石信号（0-15），供比较器读取。
+     * 例如：箱子矿车、漏斗矿车（基于容器填充率）、命令方块矿车（基于成功次数）、物品展示框（基于旋转）。
+     * 默认返回 0（无信号）。
+     *
+     * @return 比较器信号强度 0-15
+     */
+    [[nodiscard]] virtual i32 getComparatorOutput() const { return 0; }
+
+    /**
      * @brief 播放脚步声
      *
      * 当实体在方块上行走时调用。子类可重写以自定义脚步声。

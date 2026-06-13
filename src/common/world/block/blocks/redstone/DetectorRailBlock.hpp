@@ -77,6 +77,22 @@ public:
     [[nodiscard]] i32 getStrongPower(
         const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
 
+    // ========== 比较器信号 ==========
+
+    /**
+     * @brief 探测铁轨有比较器信号覆盖（基于矿车内容物）
+     */
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override;
+
+    /**
+     * @brief 获取比较器信号覆盖值
+     *
+     * 命令方块矿车优先（返回成功次数），其次是容器矿车（基于填充率），
+     * 最后是普通矿车（返回15）。
+     */
+    [[nodiscard]] i32 getComparatorInputOverride(
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
+
     // ========== 属性访问 ==========
 
     /**

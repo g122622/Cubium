@@ -25,6 +25,7 @@
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/entities/vehicle/MinecartEntity.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/world/IWorld.hpp"
 
@@ -66,15 +67,15 @@ void DetectorRailBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
     // 获取区域内的实体
     std::vector<Entity*> entities = world.getEntitiesInAABB(searchBox, nullptr);
 
-    // 检查是否有矿车
+    // 检查是否有矿车（包括所有矿车类型）
     for (Entity* entity : entities) {
         if (!entity || entity->isRemoved()) {
             continue;
         }
 
-        // 检查是否为矿车类型
-        // 使用 EntityTypeIdNumber::MINECART 检测
-        if (entity->typeId() == entity::EntityTypeIdNumber::MINECART) {
+        // 检查是否为矿车类型（所有矿车都继承自 AbstractMinecartEntity）
+        auto* minecart = dynamic_cast<entity::AbstractMinecartEntity*>(entity);
+        if (minecart != nullptr) {
             shouldBePowered = true;
             break;
         }
@@ -115,6 +116,56 @@ i32 DetectorRailBlock::getStrongPower(
         return 15;
     }
     return 0;
+}
+
+bool DetectorRailBlock::hasComparatorInputOverride(const BlockState& state) const noexcept
+{
+    MC_UNUSED(state);
+    // 探测铁轨有比较器信号覆盖（基于矿车内容物）
+    return true;
+}
+
+i32 DetectorRailBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    if (!isPowered(state)) {
+        return 0;
+    }
+
+    // 在检测区域查找矿车实体
+    // 搜索范围比 tick() 中稍小，与MC原版一致
+    AxisAlignedBB searchBox(static_cast<f64>(pos.x) + 0.2,
+        static_cast<f64>(pos.y),
+        static_cast<f64>(pos.z) + 0.2,
+        static_cast<f64>(pos.x) + 0.8,
+        static_cast<f64>(pos.y) + 0.8,
+        static_cast<f64>(pos.z) + 0.8);
+
+    std::vector<Entity*> entities = world.getEntitiesInAABB(searchBox, nullptr);
+
+    // 优先级1：命令方块矿车（返回命令成功次数）
+    for (Entity* entity : entities) {
+        if (!entity || entity->isRemoved()) {
+            continue;
+        }
+        auto* commandMinecart = dynamic_cast<entity::CommandBlockMinecartEntity*>(entity);
+        if (commandMinecart != nullptr) {
+            return commandMinecart->getComparatorOutput();
+        }
+    }
+
+    // 优先级2：容器矿车（箱子矿车、漏斗矿车，基于容器填充率）
+    for (Entity* entity : entities) {
+        if (!entity || entity->isRemoved()) {
+            continue;
+        }
+        i32 signal = entity->getComparatorOutput();
+        if (signal > 0) {
+            return signal;
+        }
+    }
+
+    // 有矿车但没有信号输出，返回满信号15
+    return 15;
 }
 
 RailShape DetectorRailBlock::getRailShape(const BlockState& state) const
