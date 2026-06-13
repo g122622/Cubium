@@ -339,4 +339,37 @@ TEST_F(TeamCommandTest, ModifyTeamCollisionRule)
     EXPECT_EQ(team->getCollisionRule(), scoreboard::TeamCollisionRule::PushOwnTeam);
 }
 
+// ========== 真实玩家名称的 joinTeam/leaveTeam 测试 ==========
+
+TEST_F(TeamCommandTest, JoinTeamUsesRealPlayerName)
+{
+    auto& scoreboard = m_server.scoreboard();
+
+    // 创建队伍
+    auto* team = scoreboard.createTeam("red");
+    ASSERT_NE(team, nullptr);
+
+    // 使用真实玩家名称（与 resolvePlayerName 返回值一致）
+    scoreboard.addPlayerToTeam("Alice", *team);
+
+    // 验证使用的是真实玩家名称，而非 "player_1" 之类的占位名称
+    EXPECT_TRUE(team->hasMember("Alice"));
+    EXPECT_FALSE(team->hasMember("player_1"));
+}
+
+TEST_F(TeamCommandTest, LeaveTeamUsesRealPlayerName)
+{
+    auto& scoreboard = m_server.scoreboard();
+
+    // 创建队伍并添加玩家
+    auto* team = scoreboard.createTeam("blue");
+    ASSERT_NE(team, nullptr);
+    scoreboard.addPlayerToTeam("Bob", *team);
+
+    // 验证用真实名称可以正确移除
+    EXPECT_TRUE(scoreboard.removePlayerFromTeam("Bob", *team));
+    EXPECT_FALSE(team->hasMember("Bob"));
+    EXPECT_EQ(scoreboard.getPlayersTeam("Bob"), nullptr);
+}
+
 } // namespace mc::command

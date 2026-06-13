@@ -54,6 +54,7 @@ using mc::command::ServerCommandSource;
 using mc::command::support::getDifficultyCommandName;
 using mc::command::support::getGameModeCommandName;
 using mc::command::support::resolvePlayerIds;
+using mc::command::support::resolvePlayerName;
 using mc::command::support::resolveSinglePlayerId;
 
 class IntRangeTest : public ::testing::Test {
@@ -683,4 +684,62 @@ TEST_F(EntitySelectorAngleTest, YRotationFilterHandlesWraparound)
     EXPECT_FALSE(selector.yRotation().testAngle(0.0f));
     EXPECT_FALSE(selector.yRotation().testAngle(90.0f));
     EXPECT_FALSE(selector.yRotation().testAngle(-90.0f));
+}
+
+// ========== resolvePlayerName 测试 ==========
+
+TEST_F(PlayerResolverTest, ResolvePlayerNameReturnsUsernameForOnlinePlayer)
+{
+    m_server.addTestPlayer(1, "Alice");
+    m_server.addTestPlayer(2, "Bob");
+
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+
+    EXPECT_EQ(resolvePlayerName(source, PlayerId(1)), "Alice");
+    EXPECT_EQ(resolvePlayerName(source, PlayerId(2)), "Bob");
+}
+
+TEST_F(PlayerResolverTest, ResolvePlayerNameReturnsFallbackForOfflinePlayer)
+{
+    m_server.addTestPlayer(1, "Alice");
+
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+
+    // PlayerId 99 不在线，应返回回退名称
+    EXPECT_EQ(resolvePlayerName(source, PlayerId(99)), "player_99");
+}
+
+TEST_F(PlayerResolverTest, ResolvePlayerNameReturnsFallbackWhenServerIsNull)
+{
+    // 使用空服务器指针的命令源
+    ServerCommandSource source = ServerCommandSource::forConsole(nullptr);
+
+    // 服务器为空时，应返回回退名称
+    EXPECT_EQ(resolvePlayerName(source, PlayerId(1)), "player_1");
+    EXPECT_EQ(resolvePlayerName(source, PlayerId(42)), "player_42");
+}
+
+TEST_F(PlayerResolverTest, ResolvePlayerNameReturnsFallbackForZeroPlayerId)
+{
+    m_server.addTestPlayer(1, "Alice");
+
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+
+    // PlayerId 0 是无效 ID，应返回回退名称
+    EXPECT_EQ(resolvePlayerName(source, PlayerId(0)), "player_0");
+}
+
+TEST_F(PlayerResolverTest, ResolvePlayerNameHandlesMultiplePlayers)
+{
+    m_server.addTestPlayer(1, "Alice");
+    m_server.addTestPlayer(2, "Bob");
+    m_server.addTestPlayer(3, "Charlie");
+
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+
+    EXPECT_EQ(resolvePlayerName(source, PlayerId(1)), "Alice");
+    EXPECT_EQ(resolvePlayerName(source, PlayerId(2)), "Bob");
+    EXPECT_EQ(resolvePlayerName(source, PlayerId(3)), "Charlie");
+    // 不存在的玩家 ID
+    EXPECT_EQ(resolvePlayerName(source, PlayerId(100)), "player_100");
 }

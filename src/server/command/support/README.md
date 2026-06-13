@@ -4,7 +4,7 @@
 
 ```
 support/
-├── PlayerResolver.hpp         # 玩家选择器解析接口
+├── PlayerResolver.hpp         # 玩家选择器解析接口（含 resolvePlayerName 辅助函数）
 ├── PlayerResolver.cpp         # 玩家选择器解析实现（@p/@a/@r/@s 及各种过滤条件）
 ├── EffectResolver.hpp         # 效果类型解析接口
 └── EffectResolver.cpp         # 效果类型解析实现（命令名称与EffectType的映射）
@@ -25,7 +25,7 @@ support/
 └─────────────────────────────────────────────────────────────┘
 ```
 
-- **PlayerResolver** - 将 EntitySelector 解析为实际的玩家 ID 列表，支持名称、游戏模式、距离、等级、角度、记分板、进度等过滤条件
+- **PlayerResolver** - 将 EntitySelector 解析为实际的玩家 ID 列表，支持名称、游戏模式、距离、等级、角度、记分板、进度等过滤条件；提供 `resolvePlayerName()` 辅助函数，通过 PlayerId 获取真实玩家名称
 - **EffectResolver** - 提供效果名称与 EffectType 枚举的双向转换
 
 ## 上下游外部依赖关系
@@ -81,3 +81,7 @@ ServerCommandSource consoleSource = ServerCommandSource::forConsole(server);
 ### 6. NBT 和 predicate 过滤当前仅解析未完全实现
 
 `nbt` 和 `predicate` 选择器参数已实现解析，但过滤逻辑待完善（依赖 Entity NBT 序列化和 LootConditionManager）。
+
+### 7. resolvePlayerName 回退行为
+
+`resolvePlayerName(source, playerId)` 在服务器不可用或玩家不在线时返回 `"player_<id>"` 格式的回退名称。命令层应优先使用此函数而非手动拼接 `"player_" + std::to_string(playerId)`，以确保玩家在线时使用真实名称、离线时有统一回退。
