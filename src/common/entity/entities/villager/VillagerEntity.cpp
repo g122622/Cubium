@@ -52,6 +52,17 @@ namespace mc {
 namespace entity {
 
 // ============================================================================
+// VillagerEntity 静态常量
+// ============================================================================
+
+const std::unordered_map<const Item*, i32> VillagerEntity::FOOD_POINTS = {
+    {Items::BREAD, 4},
+    {Items::POTATO, 1},
+    {Items::CARROT, 1},
+    {Items::BEETROOT, 1},
+};
+
+// ============================================================================
 // VillagerEntity
 // ============================================================================
 
@@ -157,6 +168,26 @@ bool VillagerEntity::isBreedingItem(const ItemStack& itemStack) const
     if (item == nullptr) return false;
 
     return item == Items::BREAD || item == Items::POTATO || item == Items::CARROT || item == Items::BEETROOT;
+}
+
+i32 VillagerEntity::countFoodPointsInInventory() const
+{
+    const IInventory& inv = inventory();
+    i32 total = 0;
+    for (const auto& [item, points] : FOOD_POINTS) {
+        total += inv.countItem(*item) * points;
+    }
+    return total;
+}
+
+bool VillagerEntity::hasExcessFood() const
+{
+    return countFoodPointsInInventory() >= EXCESS_FOOD_THRESHOLD;
+}
+
+bool VillagerEntity::wantsMoreFood() const
+{
+    return countFoodPointsInInventory() < WANTS_MORE_FOOD_THRESHOLD;
 }
 
 bool VillagerEntity::canPickUpItem(const ItemStack& itemStack) const

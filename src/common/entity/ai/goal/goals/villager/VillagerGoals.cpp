@@ -34,7 +34,9 @@
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/entity/interfaces/IMob.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/GlobalPos.hpp"
@@ -108,6 +110,101 @@ namespace {
 {
     f32 distSq = distanceToBlockCenter(entity, pos);
     return distSq < maxDistance * maxDistance;
+}
+
+/**
+ * @brief 从库存中抛出一半匹配的物品给目标实体
+ *
+ * 对应 MC TradeWithVillager.throwHalfStack()。
+ * 遍历库存，找到第一个匹配 itemFilter 的物品：
+ * - 如果数量 > maxStackSize/2，抛出 count/2 个
+ * - 如果数量 > 24 但不超过半组，保留24个，抛出剩余
+ *
+ * @param villager 分享物品的村民
+ * @param inventory 源村民库存
+ * @param itemFilter 允许抛出的物品及其点数映射
+ * @param target 目标实体
+ * @return 是否成功抛出了物品
+ */
+bool throwHalfStackToTarget(VillagerEntity* villager,
+    IInventory& inventory,
+    const std::unordered_map<const Item*, i32>& itemFilter,
+    LivingEntity* target)
+{
+    if (!villager || !target) return false;
+    IWorld* world = villager->world();
+    if (!world) return false;
+
+    for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
+        ItemStack stack = inventory.getItem(i);
+        if (stack.isEmpty()) continue;
+
+        const Item* item = stack.getItem();
+        if (itemFilter.find(item) == itemFilter.end()) continue;
+
+        // 计算要抛出的数量
+        i32 count = stack.getCount();
+        i32 maxStackSize = stack.getMaxStackSize();
+        i32 throwCount = 0;
+
+        if (count > maxStackSize / 2) {
+            // 超过半组，抛出一半
+            throwCount = count / 2;
+        } else if (count > 24) {
+            // 超过24个但不超过半组，保留24个，抛出剩余
+            throwCount = count - 24;
+        }
+
+        if (throwCount > 0) {
+            // 从源库存中移除物品
+            inventory.removeItem(i, throwCount);
+
+            // 创建新的物品堆并抛向目标
+            ItemStack throwStack(item, throwCount);
+
+            // 在村民眼睛高度略微偏下位置生成物品
+            f64 spawnX = villager->x();
+            f64 spawnY = villager->y() + villager->eyeHeight() - 0.3;
+            f64 spawnZ = villager->z();
+
+            // 计算朝向目标的方向向量
+            f64 dx = target->x() - spawnX;
+            f64 dy = target->y() + target->eyeHeight() * 0.5 - spawnY;
+            f64 dz = target->z() - spawnZ;
+            f64 dist = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+            // 抛出速度（与 MC 的 throwItem 一致，约 0.3-0.5）
+            static constexpr f32 THROW_SPEED = 0.35f;
+
+            f32 vx = 0.0f, vy = 0.0f, vz = 0.0f;
+            if (dist > 0.001) {
+                vx = static_cast<f32>(dx / dist) * THROW_SPEED;
+                vy = static_cast<f32>(dy / dist) * THROW_SPEED + 0.1f; // 略微向上抛
+                vz = static_cast<f32>(dz / dist) * THROW_SPEED;
+            } else {
+                vy = 0.1f; // 距离太近时直接向上抛
+            }
+
+            // 添加随机偏移（与 MC 的 spread(0.3, 0.3, 0.3) 对应）
+            math::Random rng = villager->getRandom();
+            vx += (rng.nextFloat() - 0.5f) * 0.3f;
+            vy += (rng.nextFloat() - 0.5f) * 0.3f;
+            vz += (rng.nextFloat() - 0.5f) * 0.3f;
+
+            // 生成物品实体
+            auto itemEntity = std::make_unique<ItemEntity>(EntityId(0), throwStack, spawnX, spawnY, spawnZ, vx, vy, vz);
+
+            // 设置拾取延迟（防止村民立即捡回自己扔出的物品）
+            static constexpr i32 ITEM_THROW_PICKUP_DELAY = 40; // 2秒
+            itemEntity->setPickupDelay(ITEM_THROW_PICKUP_DELAY);
+            itemEntity->setOwner(villager->uuid());
+
+            world->spawnEntity(std::move(itemEntity));
+            return true;
+        }
+    }
+
+    return false;
 }
 
 } // anonymous namespace
@@ -1424,19 +1521,26 @@ void CongregateGoal::_shareItems()
     if (!entity) return;
 
     VillagerEntity* targetVillager = dynamic_cast<VillagerEntity*>(entity);
-    if (!targetVillager) return;
+    if (!targetVillager || !targetVillager->isAlive()) return;
 
-    // 检查农民是否有足够的食物可以分享
+    // 对应 MC TradeWithVillager.tick() 中的分享逻辑
     IInventory& inventory = m_villager->inventory();
 
-    // 检查是否有面包、土豆、胡萝卜、甜菜根等食物
-    static constexpr i32 SHARE_THRESHOLD = 32; // 超过半组才分享
+    // 1. 食物分享：农民有食物过剩时分享给目标
+    //    对应 MC: if (hasExcessFood() && (isFarmer || target.wantsMoreFood()))
+    //    由于此方法仅限农民调用，简化为 hasExcessFood() 判断
+    if (m_villager->hasExcessFood()) {
+        throwHalfStackToTarget(m_villager, inventory, VillagerEntity::FOOD_POINTS, targetVillager);
+        return;
+    }
 
-    // 简化实现：如果农民有超过 SHARE_THRESHOLD 的食物，分享一半给目标
-    // 实际实现需要检查具体物品类型
-    (void)inventory;
-    (void)targetVillager;
-    // TODO: 实现物品分享逻辑
+    // 2. 小麦分享：农民有超过半组小麦时，抛出一半
+    //    对应 MC: if (isFarmer && countItem(WHEAT) > maxStackSize/2)
+    i32 wheatCount = inventory.countItem(*Items::WHEAT);
+    if (wheatCount > Items::WHEAT->maxStackSize() / 2) {
+        static const std::unordered_map<const Item*, i32> wheatOnly = {{Items::WHEAT, 1}};
+        throwHalfStackToTarget(m_villager, inventory, wheatOnly, targetVillager);
+    }
 }
 
 // ============================================================================
@@ -1591,16 +1695,17 @@ bool ShareItemsGoal::shouldExecute()
     // 冷却时间
     if (m_shareCooldown > 0) return false;
 
-    // 检查是否有多余的食物可以分享
+    // 检查是否有多余的食物可以分享（食物点数 >= 24 或小麦超过半组）
     if (!_canAbandonItems()) return false;
 
-    // 查找需要食物的村民
+    // 查找附近需要食物的村民
+    // 对应 MC TradeWithVillager: 农民只要有食物过剩就会分享给任意村民，
+    // 非农民只有在目标需要食物时才分享（本项目 ShareItemsGoal 仅限农民使用）
     static constexpr f32 SEARCH_RANGE = 8.0f;
 
     VillagerEntity* target = EntityUtils::findClosestEntity<VillagerEntity>(
-        m_villager->world(), m_villager->position(), SEARCH_RANGE, m_villager, [this](VillagerEntity* entity) {
-            // 检查是否是需要食物的村民
-            return entity && entity->isAlive() && _targetNeedsFood();
+        m_villager->world(), m_villager->position(), SEARCH_RANGE, m_villager, [](VillagerEntity* entity) {
+            return entity && entity->isAlive();
         });
 
     if (target) {
@@ -1693,34 +1798,87 @@ bool ShareItemsGoal::_canAbandonItems() const
 {
     if (!m_villager) return false;
 
-    // 检查库存中是否有足够的食物
-    IInventory& inventory = m_villager->inventory();
+    // 对应 MC TradeWithVillager.tick():
+    // 1. 如果村民有食物过剩（食物点数 >= 24），则可以分享食物
+    // 2. 如果是农民且小麦超过半组（>32），则可以分享小麦
+    if (m_villager->hasExcessFood()) {
+        return true;
+    }
 
-    // 检查小麦（农民有超过半组小麦时分享）
-    // TODO: 实际需要检查具体物品类型
-    (void)inventory;
-    return false; // TODO: 简化实现，需要完善
+    // 农民特殊检查：小麦超过半组时也愿意分享
+    if (m_villager->profession() == VillagerProfession::Farmer) {
+        IInventory& inventory = m_villager->inventory();
+        i32 wheatCount = inventory.countItem(*Items::WHEAT);
+        if (wheatCount > Items::WHEAT->maxStackSize() / 2) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool ShareItemsGoal::_targetNeedsFood() const
 {
-    // 检查目标是否需要食物
-    return true; // TODO: 简化实现，需要完善
+    // 对应 MC Villager.wantsMoreFood(): 食物点数 < 12 时需要更多食物
+    // 此方法当前未被 shouldExecute 直接调用（农民无条件分享给附近村民），
+    // 但保留供将来非农民分享逻辑使用
+    if (!m_villager) return false;
+
+    // 获取目标村民
+    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetVillagerId) : nullptr;
+    if (!entity) return false;
+
+    VillagerEntity* targetVillager = dynamic_cast<VillagerEntity*>(entity);
+    if (!targetVillager) return false;
+
+    return targetVillager->wantsMoreFood();
 }
 
 void ShareItemsGoal::_shareFoodWithTarget()
 {
     if (!m_villager || m_targetVillagerId == 0) return;
 
+    IWorld* world = m_villager->world();
+    if (!world) return;
+
     // 获取目标
-    Entity* entity = m_villager->world() ? m_villager->world()->getEntity(m_targetVillagerId) : nullptr;
-    if (!entity) return;
+    Entity* entity = world->getEntity(m_targetVillagerId);
+    if (!entity) {
+        m_targetVillagerId = 0;
+        m_shareCooldown = SHARE_COOLDOWN;
+        return;
+    }
 
     VillagerEntity* targetVillager = dynamic_cast<VillagerEntity*>(entity);
-    if (!targetVillager) return;
+    if (!targetVillager) {
+        m_targetVillagerId = 0;
+        m_shareCooldown = SHARE_COOLDOWN;
+        return;
+    }
 
-    // TODO: 实现实际的物品转移
-    // 需要从农民库存中取出食物物品，给予目标村民
+    // 对应 MC TradeWithVillager.tick() 中的物品分享逻辑
+    // 按优先级依次检查：食物分享 -> 小麦分享
+
+    IInventory& inventory = m_villager->inventory();
+    bool shared = false;
+
+    // 1. 食物分享：如果有食物过剩，向目标抛出一半食物
+    //    对应 MC: if (hasExcessFood() && (isFarmer || target.wantsMoreFood()))
+    //    由于 ShareItemsGoal 仅限农民，条件简化为 hasExcessFood()
+    if (m_villager->hasExcessFood()) {
+        shared = throwHalfStackToTarget(m_villager, inventory, VillagerEntity::FOOD_POINTS, targetVillager);
+    }
+
+    // 2. 小麦分享：农民有超过半组小麦时，抛出一半
+    //    对应 MC: if (isFarmer && countItem(WHEAT) > maxStackSize/2)
+    if (!shared && m_villager->profession() == VillagerProfession::Farmer) {
+        i32 wheatCount = inventory.countItem(*Items::WHEAT);
+        i32 halfStack = Items::WHEAT->maxStackSize() / 2;
+        if (wheatCount > halfStack) {
+            static const std::unordered_map<const Item*, i32> wheatOnly = {{Items::WHEAT, 1}};
+            shared = throwHalfStackToTarget(m_villager, inventory, wheatOnly, targetVillager);
+        }
+    }
 
     // 重置目标
     m_targetVillagerId = 0;
