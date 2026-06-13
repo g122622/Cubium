@@ -770,6 +770,24 @@ public:
      */
     void setLootTableId(const std::string& id) noexcept { m_lootTableId = id; }
 
+    /**
+     * @brief 获取中键选取方块时获得的物品堆
+     *
+     * 当玩家中键点击方块时，返回应给予玩家的物品堆。
+     * 默认实现返回空（由外部系统通过 BlockItemRegistry 查找对应方块物品）。
+     * 某些方块（如洞穴藤蔓）的中键选取返回的物品与方块物品不同，
+     * 需要覆写此方法返回正确的物品。
+     *
+     * 参考: net.minecraft.block.Block.getCloneItemStack
+     *
+     * @param state 方块状态
+     * @param world 世界指针（可能为空）
+     * @param pos 方块位置指针（可能为空）
+     * @return 物品堆，空表示使用默认方块物品
+     */
+    [[nodiscard]] virtual ItemStack getCloneItemStack(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const;
+
     // ========================================================================
     // 虚方法
     // ========================================================================

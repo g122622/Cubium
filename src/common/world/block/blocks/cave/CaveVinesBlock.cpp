@@ -168,5 +168,17 @@ ActionResultType CaveVinesBlock::onBlockActivated(const BlockState& state,
     return ActionResultType::Pass;
 }
 
+ItemStack CaveVinesBlock::getCloneItemStack(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 中键选取洞穴藤蔓返回发光浆果
+    if (Items::GLOW_BERRIES != nullptr) {
+        return ItemStack(*Items::GLOW_BERRIES, 1);
+    }
+    return ItemStack();
+}
+
 } // namespace blocks
 } // namespace mc

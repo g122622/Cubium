@@ -328,6 +328,7 @@ add_executable(mc_tests
     common/world/block/blocks/FallingBlockTest.cpp
     common/world/block/blocks/VegetationBlockTest.cpp
     common/world/block/blocks/SweetBerryBushBlockTest.cpp
+    common/world/block/blocks/CaveVinesBlockTest.cpp
     common/world/block/blocks/SeagrassBlockTest.cpp
     common/world/block/blocks/cave/GlowLichenBlockTest.cpp
     common/world/block/blocks/pale_garden/PaleHangingMossBlockTest.cpp

@@ -457,6 +457,15 @@ const loot::LootTable* Block::getLootTable(const loot::LootTableManager& manager
     return manager.getTable(m_lootTableId);
 }
 
+ItemStack Block::getCloneItemStack(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 默认实现返回空物品堆，由外部系统通过 BlockItemRegistry 查找对应方块物品
+    return ItemStack();
+}
+
 // ============================================================================
 // 新增虚方法默认实现
 // ============================================================================

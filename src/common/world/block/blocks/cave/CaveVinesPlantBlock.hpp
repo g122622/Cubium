@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../growing_plant/GrowingPlantBodyBlock.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
@@ -85,6 +86,14 @@ public:
         Player& player,
         Hand hand,
         const BlockRaycastResult& hit) override;
+
+    /**
+     * @brief 中键选取方块时返回发光浆果
+     *
+     * 洞穴藤蔓身体的中键选取不返回方块物品，而是返回发光浆果物品。
+     */
+    [[nodiscard]] ItemStack getCloneItemStack(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
