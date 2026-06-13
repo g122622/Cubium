@@ -22,19 +22,23 @@
  */
 
 #include "FarmlandBlock.hpp"
-#include "../../../../entity/core/Entity.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../fluid/Fluid.hpp"
 #include "../../../fluid/FluidTags.hpp"
 #include "../../../tick/manager/TickManager.hpp"
 #include "../../PlantType.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "CropBlock.hpp"
 #include "StemBlock.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MoverType.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 
 namespace mc {
 namespace blocks {
@@ -134,7 +138,7 @@ void FarmlandBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, 
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
     if (aboveState != nullptr && aboveState->hasOpaqueCollisionShape()) {
-        turnToDirt(world, pos, state);
+        turnToDirt(nullptr, world, pos, state);
     }
 }
 
@@ -154,7 +158,7 @@ void FarmlandBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& s
             world.setBlockState(pos, &state.with(BlockStateProperties::MOISTURE_0_7(), moisture - 1), 2);
         } else if (!hasCrops(world, pos)) {
             // 没有作物且干燥，转变为泥土
-            turnToDirt(world, pos, state);
+            turnToDirt(nullptr, world, pos, state);
         }
     } else if (moisture < 7) {
         // 有水或下雨，增加湿润度
@@ -192,24 +196,60 @@ bool FarmlandBlock::allowsMovement(const BlockState& state, IBlockReader& world,
 void FarmlandBlock::onFallenUpon(
     IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance)
 {
-    // 如果实体从高处落下，耕地会变成泥土
-    // 踩踏条件：fallDistance > 1.0f 且实体不是飞行或创造模式
-    // 简化实现：如果落下距离 > 1.0，则踩踏耕地
-    if (!world.isClientSide() && fallDistance > 1.0f) {
-        turnToDirt(world, pos, state);
+    // 踩踏耕地的条件（对齐 MC 1.21 FarmBlock.fallOn）：
+    // 1. 必须在服务端
+    // 2. 随机概率：random.nextFloat() < fallDistance - 0.5f（落下距离越大，踩踏概率越高）
+    // 3. 实体必须是 LivingEntity（物品、箭矢等非生物不会踩踏耕地）
+    // 4. 实体是玩家，或者 mobGriefing 游戏规则为 true
+    // 5. 实体的体积（width * width * height）必须大于 0.512（排除蝙蝠等小型实体）
+    if (!world.isClientSide() && world.getRandom().nextFloat() < fallDistance - 0.5f) {
+        auto* living = dynamic_cast<LivingEntity*>(&entity);
+        if (living != nullptr) {
+            auto* player = dynamic_cast<Player*>(living);
+            bool canTrample =
+                (player != nullptr) || world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING);
+            if (canTrample && entity.width() * entity.width() * entity.height() > 0.512f) {
+                turnToDirt(&entity, world, pos, state);
+            }
+        }
     }
 
-    // 调用父类方法处理实体着地
+    // 调用父类方法处理实体着地（坠落伤害等）
     Block::onFallenUpon(world, pos, state, entity, fallDistance);
 }
 
 // ========== 工具方法 ==========
 
-void FarmlandBlock::turnToDirt(IWorld& world, const BlockPos& pos, const BlockState& state)
+void FarmlandBlock::turnToDirt(Entity* entity, IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     MC_UNUSED(state);
     if (VanillaBlocks::DIRT != nullptr) {
-        world.setBlockState(pos, &VanillaBlocks::DIRT->defaultState(), 3);
+        const BlockState* dirtState = &VanillaBlocks::DIRT->defaultState();
+        world.setBlockState(pos, dirtState, 3);
+
+        // 耕地高度为 15/16 格，泥土为完整方块（1 格）。
+        // 当耕地变为泥土时，实体可能会嵌入方块内部，需要将它们向上推出。
+        // 对齐 MC 1.21 FarmBlock.turnToDirt 中的 pushEntitiesUp 逻辑。
+        AxisAlignedBB blockBox(static_cast<f32>(pos.x),
+            static_cast<f32>(pos.y),
+            static_cast<f32>(pos.z),
+            static_cast<f32>(pos.x + 1),
+            static_cast<f32>(pos.y + 1),
+            static_cast<f32>(pos.z + 1));
+        auto entities = world.getEntitiesInAABB(blockBox, nullptr);
+        for (auto* ent : entities) {
+            if (ent == entity) {
+                // 踩踏者自身不需要推出，它已经因着地而被放置在方块上方
+                continue;
+            }
+            AxisAlignedBB entityBox = ent->boundingBox();
+            if (entityBox.intersects(blockBox)) {
+                f32 pushUp = static_cast<f32>(pos.y + 1) - entityBox.minY;
+                if (pushUp > 0.0f) {
+                    ent->move(entity::MoverType::Piston, Vector3(0.0f, pushUp, 0.0f));
+                }
+            }
+        }
     }
 }
 

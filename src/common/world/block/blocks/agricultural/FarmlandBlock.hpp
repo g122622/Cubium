@@ -108,8 +108,12 @@ public:
 
     /**
      * @brief 转变为泥土
+     * @param entity 导致转变的实体（踩踏者），可为 nullptr（如上方放置方块、干燥等）
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 当前方块状态
      */
-    static void turnToDirt(IWorld& world, const BlockPos& pos, const BlockState& state);
+    static void turnToDirt(Entity* entity, IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
      * @brief 检查是否湿润
