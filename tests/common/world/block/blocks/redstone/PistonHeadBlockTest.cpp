@@ -550,6 +550,104 @@ TEST_F(PistonHeadBlockTest, NeighborChanged_NoForwardWhenInvalid)
         m_world, headPos, *VanillaBlocks::STONE, BlockPos(0, 64, -2), false));
 }
 
+// ========== onBlockRemoved 测试 ==========
+
+/**
+ * @brief 测试 onBlockRemoved - 有匹配基座时销毁活塞基座
+ *
+ * 活塞头被移除时，如果反方向有匹配的已伸出活塞基座，
+ * 活塞基座应被设为空气（级联销毁）。
+ */
+TEST_F(PistonHeadBlockTest, OnBlockRemoved_WithFittingBase_SetsBaseToAir)
+{
+    // 设置已伸出的活塞基座在 (0, 64, 0)
+    const BlockState& pistonState = VanillaBlocks::PISTON->defaultState()
+                                        .with(BlockStateProperties::FACING(), Direction::North)
+                                        .with(BlockStateProperties::EXTENDED(), true);
+    m_world.setBlockAt(BlockPos(0, 64, 0), &pistonState);
+
+    // 活塞头在 (0, 64, -1)，朝北
+    const BlockState& headState = VanillaBlocks::PISTON_HEAD->defaultState()
+                                      .with(BlockStateProperties::FACING(), Direction::North)
+                                      .with(PistonHeadBlock::getTypeProperty(), PistonHeadBlock::Type::Normal);
+
+    BlockPos headPos(0, 64, -1);
+    BlockPos basePos(0, 64, 0);
+
+    // 验证基座存在
+    const BlockState* baseBefore = m_world.getBlockState(basePos);
+    ASSERT_NE(baseBefore, nullptr);
+    EXPECT_TRUE(baseBefore->is(VanillaBlocks::PISTON));
+
+    // 调用 onBlockRemoved（ItemDropHelper::spawnItemEntity 可能因测试世界不完整而返回 nullptr，但不应崩溃）
+    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->onBlockRemoved(m_world, headPos, headState));
+
+    // 验证基座已被设为空气
+    const BlockState* baseAfter = m_world.getBlockState(basePos);
+    ASSERT_NE(baseAfter, nullptr);
+    EXPECT_TRUE(baseAfter->isAir());
+}
+
+/**
+ * @brief 测试 onBlockRemoved - 无匹配基座时不修改世界
+ *
+ * 活塞头被移除时，如果反方向没有匹配的已伸出活塞基座，
+ * 不应修改任何方块。
+ */
+TEST_F(PistonHeadBlockTest, OnBlockRemoved_NoFittingBase_NoChange)
+{
+    // 活塞头在 (0, 64, -1)，朝北，反方向 (0, 64, 0) 没有匹配的活塞基座
+    const BlockState& headState = VanillaBlocks::PISTON_HEAD->defaultState()
+                                      .with(BlockStateProperties::FACING(), Direction::North)
+                                      .with(PistonHeadBlock::getTypeProperty(), PistonHeadBlock::Type::Normal);
+
+    BlockPos headPos(0, 64, -1);
+    BlockPos basePos(0, 64, 0);
+
+    // 反方向原本是空气
+    const BlockState* baseBefore = m_world.getBlockState(basePos);
+    ASSERT_NE(baseBefore, nullptr);
+    EXPECT_TRUE(baseBefore->isAir());
+
+    // 调用 onBlockRemoved
+    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->onBlockRemoved(m_world, headPos, headState));
+
+    // 反方向应仍然为空气（未被修改）
+    const BlockState* baseAfter = m_world.getBlockState(basePos);
+    ASSERT_NE(baseAfter, nullptr);
+    EXPECT_TRUE(baseAfter->isAir());
+}
+
+/**
+ * @brief 测试 onBlockRemoved - 基座未伸出时不级联销毁
+ *
+ * 活塞头被移除时，如果反方向有活塞基座但未伸出（EXTENDED=false），
+ * isFittingBase 返回 false，不应级联销毁。
+ */
+TEST_F(PistonHeadBlockTest, OnBlockRemoved_BaseNotExtended_NoCascade)
+{
+    // 设置未伸出的活塞基座在 (0, 64, 0)
+    const BlockState& pistonState = VanillaBlocks::PISTON->defaultState()
+                                        .with(BlockStateProperties::FACING(), Direction::North)
+                                        .with(BlockStateProperties::EXTENDED(), false);
+    m_world.setBlockAt(BlockPos(0, 64, 0), &pistonState);
+
+    const BlockState& headState = VanillaBlocks::PISTON_HEAD->defaultState()
+                                      .with(BlockStateProperties::FACING(), Direction::North)
+                                      .with(PistonHeadBlock::getTypeProperty(), PistonHeadBlock::Type::Normal);
+
+    BlockPos headPos(0, 64, -1);
+    BlockPos basePos(0, 64, 0);
+
+    // 调用 onBlockRemoved
+    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->onBlockRemoved(m_world, headPos, headState));
+
+    // 基座应仍然存在（未被销毁）
+    const BlockState* baseAfter = m_world.getBlockState(basePos);
+    ASSERT_NE(baseAfter, nullptr);
+    EXPECT_TRUE(baseAfter->is(VanillaBlocks::PISTON));
+}
+
 // ========== getPushReaction 测试 ==========
 
 /**
