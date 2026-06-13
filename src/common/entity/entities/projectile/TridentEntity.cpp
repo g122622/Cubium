@@ -32,6 +32,7 @@
 #include "../../core/LivingEntity.hpp"
 #include "../../entities/effect/EffectEntities.hpp"
 #include "../../entities/player/Player.hpp"
+#include "../../utils/ItemDropHelper.hpp"
 #include "ProjectileHelper.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include <cmath>
@@ -75,10 +76,10 @@ void TridentEntity::tick()
         const i32 loyaltyLevel = m_loyaltyLevel;
 
         if (loyaltyLevel > 0 && !_shouldReturnToThrower()) {
-            // 忠诚附魔但无法返回（射手是观察者模式），掉落物品
+            // 忠诚附魔但无法返回（射手已死亡或是旁观者模式），掉落物品
             if (!m_world->isClientSide() && pickupStatus() == PickupStatus::Allowed) {
-                // TODO: 实现物品掉落逻辑
-                // entityDropItem(getArrowStack(), 0.1F);
+                math::Random rng = createRandomFromEntity(*this);
+                ItemDropHelper::spawnItemAtEntity(this, getArrowStack(), 0.1f, rng);
             }
             remove();
         } else if (loyaltyLevel > 0) {
@@ -96,30 +97,48 @@ void TridentEntity::tick()
 bool TridentEntity::_shouldReturnToThrower()
 {
     Entity* shooter = getShooter();
-    if (shooter != nullptr && shooter->isAlive()) {
-        // TODO: 如果是玩家，检查是否在观察者模式
-        // Player* player = dynamic_cast<Player*>(shooter);
-        // if (player && player->isSpectator()) {
-        //     return false;
-        // }
-        return true;
+    if (shooter == nullptr || !shooter->isAlive()) {
+        return false;
     }
-    return false;
+    // 旁观者模式玩家不能接收返回的三叉戟
+    Player* player = dynamic_cast<Player*>(shooter);
+    if (player != nullptr && player->isSpectator()) {
+        return false;
+    }
+    return true;
 }
 
 void TridentEntity::_tickReturning()
 {
     Entity* shooter = getShooter();
     if (!shooter || !shooter->isAlive()) {
-        // 射手已死亡或不存在，移除三叉戟
+        // 射手已死亡或不存在，掉落物品
+        if (!m_world->isClientSide() && pickupStatus() == PickupStatus::Allowed) {
+            math::Random rng = createRandomFromEntity(*this);
+            ItemDropHelper::spawnItemAtEntity(this, getArrowStack(), 0.1f, rng);
+        }
         remove();
         return;
     }
 
-    // 计算到射手的方向
-    Vector3 direction(shooter->x() - m_position.x,
-        shooter->y() + shooter->eyeHeight() * 0.5f - m_position.y,
-        shooter->z() - m_position.z);
+    // 计算到射手眼部位置的方向
+    Vector3 direction(
+        shooter->x() - m_position.x, shooter->y() + shooter->eyeHeight() - m_position.y, shooter->z() - m_position.z);
+    f32 distance = direction.length();
+
+    // 非玩家射手：当三叉戟足够近时掉落物品
+    Player* player = dynamic_cast<Player*>(shooter);
+    if (player == nullptr) {
+        f32 threshold = shooter->width() + 1.0f;
+        if (distance < threshold) {
+            if (!m_world->isClientSide() && pickupStatus() == PickupStatus::Allowed) {
+                math::Random rng = createRandomFromEntity(*this);
+                ItemDropHelper::spawnItemAtEntity(this, getArrowStack(), 0.1f, rng);
+            }
+            remove();
+            return;
+        }
+    }
 
     // 更新旋转朝向运动方向
     ProjectileHelper::rotateTowardsMovement(*this, 0.2f);
@@ -127,32 +146,24 @@ void TridentEntity::_tickReturning()
     // Y轴微小偏移
     m_position.y += direction.y * 0.015f * static_cast<f32>(m_loyaltyLevel);
 
-    // 计算距离
-    f32 distance = direction.length();
-
     // 返回速度
     f32 speed = 0.05f * static_cast<f32>(m_loyaltyLevel);
 
     // 设置速度：当前速度缩放 0.95 后加上朝向射手的方向
     Vector3 currentVel = m_velocity;
-    direction = direction.normalized();
-    m_velocity = Vector3(currentVel.x * 0.95f + direction.x * speed,
-        currentVel.y * 0.95f + direction.y * speed,
-        currentVel.z * 0.95f + direction.z * speed);
+    Vector3 normalizedDir = direction.normalized();
+    m_velocity = Vector3(currentVel.x * 0.95f + normalizedDir.x * speed,
+        currentVel.y * 0.95f + normalizedDir.y * speed,
+        currentVel.z * 0.95f + normalizedDir.z * speed);
 
     // 更新位置
     m_prevPosition = m_position;
     m_position = m_position + m_velocity;
 
-    // 检查是否到达射手
-    if (distance < 2.0f) {
-        // 到达射手，添加到背包
-        Player* player = dynamic_cast<Player*>(shooter);
-        if (player) {
+    // 玩家射手：检查是否到达射手，添加到背包（仅服务端）
+    if (player != nullptr && distance < 2.0f) {
+        if (!m_world->isClientSide()) {
             onPlayerPickup(*player);
-        } else {
-            // 非玩家射手，直接移除
-            remove();
         }
         return;
     }
