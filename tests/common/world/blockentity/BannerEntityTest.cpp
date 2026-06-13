@@ -21,10 +21,12 @@
  *
  */
 
+#include "world/blockentity/interactive/BannerEntity.hpp"
 #include "item/core/ItemStack.hpp"
 #include "util/color/DyeColor.hpp"
+#include "util/nbt/Nbt.hpp"
 #include "util/text/StringTextComponent.hpp"
-#include "world/blockentity/interactive/BannerEntity.hpp"
+#include "util/text/TranslationTextComponent.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -46,7 +48,7 @@ protected:
 
 TEST_F(BannerEntityTest, DefaultConstruction)
 {
-    EXPECT_EQ(entity_->getBaseColor(), DyeColor::Black);
+    EXPECT_EQ(entity_->getBaseColor(), DyeColor::White);
     EXPECT_EQ(entity_->getPatternCount(), 0);
     EXPECT_FALSE(entity_->hasCustomDisplayName());
 }
@@ -114,4 +116,314 @@ TEST_F(BannerEntityTest, RemoveBannerData)
     ItemStack emptyStack;
     BannerEntity::removeBannerData(emptyStack);
     // 无崩溃即通过
+}
+
+// ========== NBT 序列化测试 ==========
+
+TEST_F(BannerEntityTest, SaveToNBT_WritesBaseColor)
+{
+    entity_->setBaseColor(DyeColor::Red);
+
+    nbt::tags::compound_tag tag;
+    entity_->saveToNBT(tag);
+
+    // 基类写入 id, x, y, z
+    ASSERT_NE(tag.value.find("Base"), tag.value.end());
+    const auto* intTag = dynamic_cast<const nbt::tags::int_tag*>(tag.value.at("Base").get());
+    ASSERT_NE(intTag, nullptr);
+    EXPECT_EQ(intTag->value, static_cast<i32>(DyeColor::Red));
+}
+
+TEST_F(BannerEntityTest, SaveToNBT_WritesPatterns)
+{
+    entity_->setBaseColor(DyeColor::White);
+    entity_->addPattern(BannerPattern(BannerPatternType::StripeBottom, DyeColor::Red));
+    entity_->addPattern(BannerPattern(BannerPatternType::Cross, DyeColor::Blue));
+
+    nbt::tags::compound_tag tag;
+    entity_->saveToNBT(tag);
+
+    ASSERT_NE(tag.value.find("Patterns"), tag.value.end());
+    const auto* listTag = dynamic_cast<const nbt::tags::list_tag*>(tag.value.at("Patterns").get());
+    ASSERT_NE(listTag, nullptr);
+    ASSERT_EQ(listTag->element_id(), nbt::TagId::Compound);
+
+    const auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*listTag);
+    ASSERT_EQ(compoundList.value.size(), 2u);
+
+    // 第一个图案：StripeBottom (哈希名 "bs"), Red (14)
+    const auto& pattern0 = compoundList.value[0];
+    const auto* patternStr0 = dynamic_cast<const nbt::tags::string_tag*>(pattern0.value.at("Pattern").get());
+    ASSERT_NE(patternStr0, nullptr);
+    EXPECT_EQ(patternStr0->value, "bs");
+    const auto* colorInt0 = dynamic_cast<const nbt::tags::int_tag*>(pattern0.value.at("Color").get());
+    ASSERT_NE(colorInt0, nullptr);
+    EXPECT_EQ(colorInt0->value, static_cast<i32>(DyeColor::Red));
+
+    // 第二个图案：Cross (哈希名 "cr"), Blue (11)
+    const auto& pattern1 = compoundList.value[1];
+    const auto* patternStr1 = dynamic_cast<const nbt::tags::string_tag*>(pattern1.value.at("Pattern").get());
+    ASSERT_NE(patternStr1, nullptr);
+    EXPECT_EQ(patternStr1->value, "cr");
+    const auto* colorInt1 = dynamic_cast<const nbt::tags::int_tag*>(pattern1.value.at("Color").get());
+    ASSERT_NE(colorInt1, nullptr);
+    EXPECT_EQ(colorInt1->value, static_cast<i32>(DyeColor::Blue));
+}
+
+TEST_F(BannerEntityTest, SaveToNBT_WritesCustomName)
+{
+    entity_->setCustomDisplayName(std::make_unique<text::StringTextComponent>("Test Banner"));
+
+    nbt::tags::compound_tag tag;
+    entity_->saveToNBT(tag);
+
+    ASSERT_NE(tag.value.find("CustomName"), tag.value.end());
+    const auto* nameTag = dynamic_cast<const nbt::tags::string_tag*>(tag.value.at("CustomName").get());
+    ASSERT_NE(nameTag, nullptr);
+    // JSON 格式的文本组件字符串
+    EXPECT_NE(nameTag->value.find("Test Banner"), std::string::npos);
+}
+
+TEST_F(BannerEntityTest, SaveToNBT_NoPatternsOmitsField)
+{
+    // 空图案列表不应写入 Patterns 字段
+    entity_->setBaseColor(DyeColor::White);
+
+    nbt::tags::compound_tag tag;
+    entity_->saveToNBT(tag);
+
+    EXPECT_EQ(tag.value.find("Patterns"), tag.value.end());
+}
+
+TEST_F(BannerEntityTest, SaveToNBT_NoCustomNameOmitsField)
+{
+    // 无自定义名称不应写入 CustomName 字段
+    nbt::tags::compound_tag tag;
+    entity_->saveToNBT(tag);
+
+    EXPECT_EQ(tag.value.find("CustomName"), tag.value.end());
+}
+
+TEST_F(BannerEntityTest, LoadFromNBT_ReadsBaseColor)
+{
+    nbt::tags::compound_tag tag;
+    tag.put("Base", static_cast<i32>(DyeColor::Orange));
+
+    auto entity = std::make_unique<BannerEntity>(pos_);
+    ASSERT_TRUE(entity->loadFromNBT(tag));
+    EXPECT_EQ(entity->getBaseColor(), DyeColor::Orange);
+}
+
+TEST_F(BannerEntityTest, LoadFromNBT_ReadsPatterns)
+{
+    // 构造 NBT: Patterns 列表
+    auto patternsList = std::make_unique<nbt::tags::compound_list_tag>();
+    nbt::tags::compound_tag pattern0;
+    pattern0.put("Pattern", std::string("bs"));
+    pattern0.put("Color", static_cast<i32>(DyeColor::Red));
+    patternsList->value.push_back(std::move(pattern0));
+
+    nbt::tags::compound_tag pattern1;
+    pattern1.put("Pattern", std::string("cr"));
+    pattern1.put("Color", static_cast<i32>(DyeColor::Blue));
+    patternsList->value.push_back(std::move(pattern1));
+
+    nbt::tags::compound_tag tag;
+    tag.put("Base", static_cast<i32>(DyeColor::White));
+    tag.value.emplace("Patterns", std::move(patternsList));
+
+    auto entity = std::make_unique<BannerEntity>(pos_);
+    ASSERT_TRUE(entity->loadFromNBT(tag));
+
+    EXPECT_EQ(entity->getBaseColor(), DyeColor::White);
+    ASSERT_EQ(entity->getPatternCount(), 2);
+
+    const auto& patterns = entity->getPatterns();
+    EXPECT_EQ(patterns[0].pattern, BannerPatternType::StripeBottom);
+    EXPECT_EQ(patterns[0].color, DyeColor::Red);
+    EXPECT_EQ(patterns[1].pattern, BannerPatternType::Cross);
+    EXPECT_EQ(patterns[1].color, DyeColor::Blue);
+}
+
+TEST_F(BannerEntityTest, LoadFromNBT_ReadsCustomName)
+{
+    nbt::tags::compound_tag tag;
+    tag.put("Base", static_cast<i32>(DyeColor::White));
+    tag.put("CustomName", std::string("{\"text\":\"My Banner\",\"color\":\"gold\"}"));
+
+    auto entity = std::make_unique<BannerEntity>(pos_);
+    ASSERT_TRUE(entity->loadFromNBT(tag));
+
+    EXPECT_TRUE(entity->hasCustomDisplayName());
+    const auto* name = entity->getCustomDisplayName();
+    ASSERT_NE(name, nullptr);
+    EXPECT_EQ(name->getUnformattedText(), "My Banner");
+}
+
+TEST_F(BannerEntityTest, LoadFromNBT_CustomNameFallbackOnInvalidJson)
+{
+    // 无效 JSON 字符串应回退为纯文本
+    nbt::tags::compound_tag tag;
+    tag.put("Base", static_cast<i32>(DyeColor::White));
+    tag.put("CustomName", std::string("Plain Text Name"));
+
+    auto entity = std::make_unique<BannerEntity>(pos_);
+    ASSERT_TRUE(entity->loadFromNBT(tag));
+
+    EXPECT_TRUE(entity->hasCustomDisplayName());
+    const auto* name = entity->getCustomDisplayName();
+    ASSERT_NE(name, nullptr);
+    EXPECT_EQ(name->getUnformattedText(), "Plain Text Name");
+}
+
+TEST_F(BannerEntityTest, LoadFromNBT_ExceedsMaxPatternsTruncates)
+{
+    // 超过6层图案应截断
+    auto patternsList = std::make_unique<nbt::tags::compound_list_tag>();
+    for (i32 i = 0; i < 10; ++i) {
+        nbt::tags::compound_tag p;
+        p.put("Pattern", std::string("bs"));
+        p.put("Color", static_cast<i32>(DyeColor::White));
+        patternsList->value.push_back(std::move(p));
+    }
+
+    nbt::tags::compound_tag tag;
+    tag.value.emplace("Patterns", std::move(patternsList));
+
+    auto entity = std::make_unique<BannerEntity>(pos_);
+    ASSERT_TRUE(entity->loadFromNBT(tag));
+
+    // 最多只保留6层
+    EXPECT_EQ(entity->getPatternCount(), 6);
+}
+
+TEST_F(BannerEntityTest, LoadFromNBT_InvalidDyeColorClamps)
+{
+    // 超出范围的 DyeColor 值应被忽略
+    auto patternsList = std::make_unique<nbt::tags::compound_list_tag>();
+    nbt::tags::compound_tag p;
+    p.put("Pattern", std::string("bs"));
+    p.put("Color", 999); // 无效颜色值
+    patternsList->value.push_back(std::move(p));
+
+    nbt::tags::compound_tag tag;
+    tag.put("Base", 999); // 无效底色值
+    tag.value.emplace("Patterns", std::move(patternsList));
+
+    auto entity = std::make_unique<BannerEntity>(pos_);
+    ASSERT_TRUE(entity->loadFromNBT(tag));
+
+    // 底色应保持默认值（White），因为999超出范围
+    EXPECT_EQ(entity->getBaseColor(), DyeColor::White);
+    // 图案颜色应保持默认值（White），因为999超出范围
+    ASSERT_EQ(entity->getPatternCount(), 1);
+    EXPECT_EQ(entity->getPatterns()[0].color, DyeColor::White);
+}
+
+TEST_F(BannerEntityTest, LoadFromNBT_EmptyPatternsField)
+{
+    // 空 Patterns 列表
+    auto patternsList = std::make_unique<nbt::tags::compound_list_tag>();
+
+    nbt::tags::compound_tag tag;
+    tag.value.emplace("Patterns", std::move(patternsList));
+
+    auto entity = std::make_unique<BannerEntity>(pos_);
+    ASSERT_TRUE(entity->loadFromNBT(tag));
+    EXPECT_EQ(entity->getPatternCount(), 0);
+}
+
+TEST_F(BannerEntityTest, LoadFromNBT_NoCustomNameClearsExisting)
+{
+    // 先设置自定义名称，再加载没有 CustomName 的 NBT，应清除
+    entity_->setCustomDisplayName(std::make_unique<text::StringTextComponent>("Old Name"));
+    EXPECT_TRUE(entity_->hasCustomDisplayName());
+
+    nbt::tags::compound_tag tag;
+    // 不包含 CustomName 字段
+    ASSERT_TRUE(entity_->loadFromNBT(tag));
+    EXPECT_FALSE(entity_->hasCustomDisplayName());
+}
+
+TEST_F(BannerEntityTest, NBT_RoundTrip)
+{
+    // 完整往返测试：save -> load
+    entity_->setBaseColor(DyeColor::Purple);
+    entity_->addPattern(BannerPattern(BannerPatternType::StripeBottom, DyeColor::White));
+    entity_->addPattern(BannerPattern(BannerPatternType::Cross, DyeColor::Red));
+    entity_->addPattern(BannerPattern(BannerPatternType::Creeper, DyeColor::Black));
+    entity_->setCustomDisplayName(std::make_unique<text::StringTextComponent>("Round Trip Banner"));
+
+    // 保存到 NBT
+    nbt::tags::compound_tag tag;
+    entity_->saveToNBT(tag);
+
+    // 加载到新实体
+    auto entity2 = std::make_unique<BannerEntity>(pos_);
+    ASSERT_TRUE(entity2->loadFromNBT(tag));
+
+    // 验证数据一致性
+    EXPECT_EQ(entity2->getBaseColor(), DyeColor::Purple);
+    ASSERT_EQ(entity2->getPatternCount(), 3);
+    EXPECT_EQ(entity2->getPatterns()[0].pattern, BannerPatternType::StripeBottom);
+    EXPECT_EQ(entity2->getPatterns()[0].color, DyeColor::White);
+    EXPECT_EQ(entity2->getPatterns()[1].pattern, BannerPatternType::Cross);
+    EXPECT_EQ(entity2->getPatterns()[1].color, DyeColor::Red);
+    EXPECT_EQ(entity2->getPatterns()[2].pattern, BannerPatternType::Creeper);
+    EXPECT_EQ(entity2->getPatterns()[2].color, DyeColor::Black);
+
+    EXPECT_TRUE(entity2->hasCustomDisplayName());
+    ASSERT_NE(entity2->getCustomDisplayName(), nullptr);
+    EXPECT_EQ(entity2->getCustomDisplayName()->getUnformattedText(), "Round Trip Banner");
+}
+
+TEST_F(BannerEntityTest, Clone_CopiesAllFields)
+{
+    entity_->setBaseColor(DyeColor::Cyan);
+    entity_->addPattern(BannerPattern(BannerPatternType::StripeBottom, DyeColor::Red));
+    entity_->setCustomDisplayName(std::make_unique<text::StringTextComponent>("Cloned Banner"));
+
+    auto cloned = entity_->clone();
+    auto* clonedBanner = dynamic_cast<BannerEntity*>(cloned.get());
+    ASSERT_NE(clonedBanner, nullptr);
+
+    EXPECT_EQ(clonedBanner->getBaseColor(), DyeColor::Cyan);
+    ASSERT_EQ(clonedBanner->getPatternCount(), 1);
+    EXPECT_EQ(clonedBanner->getPatterns()[0].pattern, BannerPatternType::StripeBottom);
+    EXPECT_EQ(clonedBanner->getPatterns()[0].color, DyeColor::Red);
+
+    // 自定义名称深拷贝
+    EXPECT_TRUE(clonedBanner->hasCustomDisplayName());
+    ASSERT_NE(clonedBanner->getCustomDisplayName(), nullptr);
+    EXPECT_EQ(clonedBanner->getCustomDisplayName()->getUnformattedText(), "Cloned Banner");
+
+    // 验证是深拷贝而非共享指针
+    EXPECT_NE(clonedBanner->getCustomDisplayName(), entity_->getCustomDisplayName());
+}
+
+// ========== JSON 序列化测试 ==========
+
+TEST_F(BannerEntityTest, JSON_RoundTrip)
+{
+    entity_->setBaseColor(DyeColor::Pink);
+    entity_->addPattern(BannerPattern(BannerPatternType::SquareBottomLeft, DyeColor::Orange));
+    entity_->setCustomDisplayName(std::make_unique<text::StringTextComponent>("JSON Banner"));
+
+    // 保存到 JSON
+    nlohmann::json data;
+    entity_->save(data);
+
+    // 加载到新实体
+    auto entity2 = std::make_unique<BannerEntity>(pos_);
+    ASSERT_TRUE(entity2->load(data));
+
+    // 验证数据一致性
+    EXPECT_EQ(entity2->getBaseColor(), DyeColor::Pink);
+    ASSERT_EQ(entity2->getPatternCount(), 1);
+    EXPECT_EQ(entity2->getPatterns()[0].pattern, BannerPatternType::SquareBottomLeft);
+    EXPECT_EQ(entity2->getPatterns()[0].color, DyeColor::Orange);
+
+    EXPECT_TRUE(entity2->hasCustomDisplayName());
+    ASSERT_NE(entity2->getCustomDisplayName(), nullptr);
+    EXPECT_EQ(entity2->getCustomDisplayName()->getUnformattedText(), "JSON Banner");
 }

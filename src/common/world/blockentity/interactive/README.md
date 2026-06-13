@@ -79,7 +79,21 @@ DispenserBlockEntity 提供 9 格物品存储和随机选择物品发射功能�
 
 两者用途不同，不要混淆。
 
-### 6. BannerEntity 图案层数限制
+### 6. BannerEntity 序列化键名差异
+
+JSON 序列化（`load`/`save`，用于区块存档）和 NBT 序列化（`loadFromNBT`/`saveToNBT`，用于 Java 存档和结构模板）使用不同的键名：
+
+| 数据 | JSON 键名 | NBT 键名 |
+|------|-----------|----------|
+| 底色 | `base_color` | `Base` |
+| 图案列表 | `patterns` | `Patterns` |
+| 图案类型 | `pattern` | `Pattern` |
+| 图案颜色 | `color` | `Color` |
+| 自定义名称 | `custom_name` | `CustomName` |
+
+自定义名称在两种格式中均存储为 ITextComponent 的 JSON 字符串（`toJson().dump()`），读取时解析失败会回退为纯文本组件。
+
+### 7. BannerEntity 图案层数限制
 
 最大图案层数为 `MAX_PATTERNS = 6`，`addPattern()` 会检查并拒绝超过限制的添加。
 
