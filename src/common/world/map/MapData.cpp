@@ -154,7 +154,6 @@ void MapData::updateDecoration(DecorationType type,
 
 u8 MapData::calculateRotation(const IWorld* world, f64 rotation) const
 {
-    // 参考: net.minecraft.world.level.saveddata.maps.MapItemSavedData.calculateRotation
     if (world != nullptr && m_dimension == MapDimensionId::Nether) {
         // 下界中使用基于游戏时间的伪随机旋转，模拟指南针失灵效果
         i64 gameTime = static_cast<i64>(world->getGameTime());
@@ -186,7 +185,6 @@ void MapData::removeDecoration(const std::string& decorationName)
 
 bool MapData::tryAddBanner(IWorld& world, const BlockPos& pos)
 {
-    // 参考: net.minecraft.world.level.saveddata.maps.MapItemSavedData.toggleBanner
     f64 worldX = static_cast<f64>(pos.x) + 0.5;
     f64 worldZ = static_cast<f64>(pos.z) + 0.5;
     i32 scale = 1 << m_scale;
@@ -222,17 +220,19 @@ bool MapData::tryAddBanner(IWorld& world, const BlockPos& pos)
     }
 
     // 添加新旗帜标记
-    const text::ITextComponent* displayName = banner.name();
+    // 注意：必须先 insert_or_assign，再从 m_banners 中获取 name 指针，
+    // 因为 std::move(bannerOpt.value()) 会使 bannerOpt 中的对象失效
     m_banners.insert_or_assign(bannerId, std::move(bannerOpt.value()));
     // 旗帜始终朝向南（180度）
-    updateDecoration(m_banners[bannerId].getDecorationType(), &world, bannerId, worldX, worldZ, 180.0, displayName);
+    updateDecoration(
+        m_banners[bannerId].getDecorationType(), &world, bannerId, worldX, worldZ, 180.0, m_banners[bannerId].name());
     m_dirty = true;
     return true;
 }
 
 void MapData::removeStaleBanners(IWorld& world, i32 x, i32 z)
 {
-    // 参考: net.minecraft.world.level.saveddata.maps.MapItemSavedData.checkBanners
+    // TODO: 需要在 FilledMapItem::_updateMapData 的像素扫描循环中集成调用此方法
     auto it = m_banners.begin();
     while (it != m_banners.end()) {
         const MapBanner& banner = it->second;
@@ -339,9 +339,10 @@ u8 MapData::getColor(i32 x, i32 y) const
 
 void MapData::toNbt(nbt::tags::compound_tag& tag) const
 {
-    // 维度 - 以整数形式写入，与旧版 Minecraft 存档格式兼容
-    // Java 版 1.16+ 使用字符串标识符（如 "minecraft:overworld"），
-    // 但本项目目前使用整数 ID，保持向后兼容
+    // 维度 - 以整数形式写入，与旧版 MC 存档格式兼容
+    // TODO: Java 版 1.16+ 使用字符串维度标识符（如 "minecraft:overworld"），
+    // 当前使用整数 ID（0/-1/1），读取时已兼容两种格式，但写入时仍为整数。
+    // 后续应考虑切换为字符串格式以完全兼容新版存档。
     tag.put("dimension", static_cast<i32>(m_dimension));
 
     tag.put("xCenter", m_xCenter);

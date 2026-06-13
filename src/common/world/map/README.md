@@ -26,14 +26,11 @@ MapDataManager (管理器门面)
     │   └── MapInfo[] (玩家追踪信息)
     └── MapIdTracker (ID分配器)
 
-MaterialColor (独立工具类，被MapData渲染时使用)
-    └── 颜色查找表 + 阴影计算
-
-依赖关系：
-- MapBanner → MapDecoration (通过DyeColor映射到DecorationType)
-- MapFrame → MapDecoration (生成FRAME类型装饰)
-- MapData → MaterialColor, MapDecoration, MapBanner, MapFrame
-- MapDataManager → MapData, MapIdTracker
+MapBanner → MapDecoration (通过DyeColor映射到DecorationType)
+MapBanner → BannerEntity (通过fromWorld从世界获取旗帜信息)
+MapFrame → MapDecoration (生成FRAME类型装饰)
+MapData → IWorld (下界旋转随机化、旗帜验证)
+MapData → MaterialColor (颜色查找表 + 阴影计算)
 ```
 
 ## 上下游外部依赖关系
@@ -48,7 +45,9 @@ util/text/ITextComponent.hpp - 文本组件 (装饰物自定义名称)
 util/color/DyeColor.hpp     - 染料颜色枚举 (旗帜颜色映射)
 world/block/BlockPos.hpp    - 方块坐标 (旗帜/展示框位置)
 world/dimension/MapDimensionId.hpp - 维度ID (地图所属维度)
-network/packet/PacketSerializer.hpp - 网络序列化 (MapDecoration)
+world/IWorld.hpp            - 世界接口 (下界旋转、旗帜验证)
+world/blockentity/interactive/BannerEntity.hpp - 旗帜方块实体 (fromWorld)
+network/packet/PacketSerializer.hpp - 网络序列化
 network/packet/PacketDeserializer.hpp - 网络反序列化
 entity/serialization/NbtHelper.hpp - NBT辅助读取
 ```
@@ -57,10 +56,9 @@ entity/serialization/NbtHelper.hpp - NBT辅助读取
 
 ```
 ServerWorld                 - 持有MapDataManager实例，每tick调用更新
-FilledMapItem               - 创建/更新地图数据，更新地形像素
+FilledMapItem               - 创建/更新地图数据，更新地形像素、旗帜交互
 ItemFrameEntity             - 添加/移除MapFrame标记
-BannerBlockEntity           - 添加/移除MapBanner标记
-MapItemSavedData (网络同步) - 读取MapData发送给客户端
+MapDataPacket               - 读取MapData发送给客户端
 存档系统                    - 通过NBT持久化地图数据
 ```
 
@@ -76,15 +74,14 @@ MapItemSavedData (网络同步) - 读取MapData发送给客户端
 - `colorIndex` (高6位): MaterialColorId 枚举值 (0-58)
 - `shadeIndex` (低2位): 阴影级别 (0-3)
 
-**注意**：`MaterialColor::pixelToArgb()` 会自动解析这个格式，不要手动解析。
+`MaterialColor::pixelToArgb()` 会自动解析此格式，不要手动解析。
 
 ### 地图中心对齐规则
 
-`MapData::calculateMapCenter()` 将地图中心**对齐到缩放网格**，不是简单的坐标取整：
+`MapData::calculateMapCenter()` 将地图中心对齐到缩放网格：
 ```
 centerX = floor((x + 64) / (128 * (1 << scale))) * (128 * (1 << scale)) + (64 * (1 << scale)) - 64
 ```
-不同缩放级别的地图覆盖区域不同，但网格对齐确保相邻地图无缝衔接。
 
 ### 装饰物坐标范围
 
@@ -92,13 +89,40 @@ centerX = floor((x + 64) / (128 * (1 << scale))) * (128 * (1 << scale)) + (64 * 
 - 范围外但 < 320 单位：使用 `PLAYER_OFF_MAP` 类型
 - 范围外且 >= 320 单位：使用 `PLAYER_OFF_LIMITS` 类型（需要 `unlimitedTracking`）
 
+### 下界旋转随机化
+
+在下界维度中，`MapData::calculateRotation()` 使用基于游戏时间的伪随机旋转值而非实际朝向：
+```
+i = gameTime / 10; rotation = ((i * i * 34187121 + i * 121) >> 15) & 15
+```
+模拟指南针在下界失灵的效果。其他维度使用实际朝向角度。
+
+### ITextComponent序列化
+
+装饰物和旗帜的自定义名称(`ITextComponent`)在NBT和网络序列化中采用JSON桥接模式：
+- 写入NBT: `ITextComponent::toJson().dump()` → `nbt::string_tag`
+- 读取NBT: `nbt::string_tag` → `nlohmann::json::parse()` → `ITextComponent::fromJson()`
+- 网络序列化: 与NBT模式相同，通过 `PacketSerializer::writeString()` 传输JSON字符串
+- JSON解析失败时回退为纯文本 `StringTextComponent`
+
+### 维度ID序列化
+
+`MapData` 的维度字段在NBT中的序列化兼容两种格式：
+- 整数格式（旧版MC）: `dimension: 0/-1/1`，对应 `MapDimensionId::Overworld/Nether/End`
+- 字符串格式（1.16+）: `dimension: "minecraft:overworld"/"minecraft:the_nether"/"minecraft:the_end"`
+- 读取时两种格式都支持，写入时当前使用整数格式
+
+### 旗帜交互
+
+`MapData::tryAddBanner()` 实现toggle行为：如果旗帜已存在则移除，不存在则添加。同时检查装饰物数量上限（256个非FRAME装饰）。需要 `BannerEntity` 方块实体存在才能添加旗帜标记。
+
 ### 地图锁定机制
 
-`MapData::lockFrom()` 会**完全复制**源地图的颜色数据并设置 `locked=true`，锁定后的地图不能再更新地形，但可以更新装饰物。用于地图复制物品。
+`MapData::lockFrom()` 会完全复制源地图的颜色数据并设置 `locked=true`，锁定后的地图不能再更新地形，但可以更新装饰物。用于地图复制物品。
 
 ### MapIdTracker持久化
 
-`MapIdTracker` 的数据应存储在 `data/idcounts.dat` 的 `map` 字段中。**读取时需要 +1** 因为存储的是"已分配的最大ID"，而不是"下一个ID"：
+`MapIdTracker` 的数据存储在 `data/idcounts.dat` 的 `map` 字段中。读取时需要 +1，因为存储的是"已分配的最大ID"：
 ```cpp
 m_nextMapId = nbt_helper::tryGetInt(tag, "map").value_or(-1) + 1;
 ```
