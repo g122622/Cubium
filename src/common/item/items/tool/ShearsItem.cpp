@@ -126,7 +126,7 @@ bool ShearsItem::onBlockDestroyed(
 
     // 其他硬度>0的方块消耗耐久
     if (state.hardness() > 0.0f) {
-        stack.attemptDamageItem(1);
+        stack.attemptDamageItem(1, &entity);
     }
     return true;
 }
@@ -173,7 +173,7 @@ bool ShearsItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
 
     // 消耗剪刀耐久（非创造模式）
     if (!player.isCreative()) {
-        stack.attemptDamageItem(1);
+        stack.attemptDamageItem(1, &player);
     }
 
     return true;

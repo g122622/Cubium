@@ -84,7 +84,7 @@ ActionResultType HoeItem::onItemUse(ItemUseContext& context)
 
     // 消耗耐久度
     ItemStack& stack = context.getItemStackMut();
-    stack.attemptDamageItem(1);
+    stack.attemptDamageItem(1, context.getPlayer());
 
     return ActionResultType::Success;
 }

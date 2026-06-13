@@ -112,7 +112,7 @@ void TridentItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEn
 
     // 消耗耐久度
     if (!player->isCreative()) {
-        stack.attemptDamageItem(1);
+        stack.attemptDamageItem(1, player);
     }
 
     // 激流模式：冲刺而不是投掷
@@ -201,7 +201,7 @@ bool TridentItem::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity
     (void)target;
 
     // 消耗耐久度
-    stack.attemptDamageItem(1);
+    stack.attemptDamageItem(1, &attacker);
     return true;
 }
 
@@ -214,7 +214,7 @@ bool TridentItem::onBlockDestroyed(
 
     // 如果方块硬度不为0，消耗耐久度（三叉戟作为工具破坏方块消耗2点耐久）
     if (state.hardness() > 0.0f) {
-        stack.attemptDamageItem(2);
+        stack.attemptDamageItem(2, &breaker);
     }
     return true;
 }

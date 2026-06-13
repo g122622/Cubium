@@ -31,8 +31,8 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/decorative/CampfireBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace item {
@@ -72,7 +72,7 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
 
             // 消耗耐久度
             ItemStack& stack = context.getItemStackMut();
-            stack.attemptDamageItem(1);
+            stack.attemptDamageItem(1, context.getPlayer());
 
             return ActionResultType::Success;
         }
@@ -92,7 +92,7 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
 
             // 消耗耐久度
             ItemStack& stack = context.getItemStackMut();
-            stack.attemptDamageItem(1);
+            stack.attemptDamageItem(1, context.getPlayer());
 
             return ActionResultType::Success;
         }
@@ -131,7 +131,7 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
 
     // 消耗耐久度
     ItemStack& stack = context.getItemStackMut();
-    stack.attemptDamageItem(1);
+    stack.attemptDamageItem(1, context.getPlayer());
 
     return ActionResultType::Success;
 }

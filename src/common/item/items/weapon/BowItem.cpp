@@ -178,7 +178,7 @@ void BowItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity
 
             // 消耗耐久度（非创造模式）
             if (!isCreative) {
-                stack.attemptDamageItem(1);
+                stack.attemptDamageItem(1, &entity);
             }
 
             // 设置拾取状态

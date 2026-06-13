@@ -335,7 +335,7 @@ void CrossbowItem::_fireProjectiles(
             world.spawnEntity(std::move(firework));
 
             // 消耗耐久度（烟花消耗3点）
-            crossbow.attemptDamageItem(3);
+            crossbow.attemptDamageItem(3, &shooter);
         } else {
             // 创建箭矢实体
             const ArrowItem* arrowItem = dynamic_cast<const ArrowItem*>(item);
@@ -370,7 +370,7 @@ void CrossbowItem::_fireProjectiles(
             }
 
             // 消耗耐久度（箭矢消耗1点）
-            crossbow.attemptDamageItem(1);
+            crossbow.attemptDamageItem(1, &shooter);
         }
     }
 

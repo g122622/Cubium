@@ -225,15 +225,32 @@ bool ItemStack::attemptDamageItem(i32 amount, LivingEntity* entity)
         // 护甲的耐久保护有 60% 概率不生效
         bool isArmor = m_item != nullptr && m_item->isArmor();
 
-        // 使用静态随机数生成器
-        // TODO: 应该从外部传入随机数生成器，或者使用实体关联的随机源
-        static thread_local math::Random s_random(
-            static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+        // 优先使用实体所在世界的随机数生成器，与 MC 原版行为一致
+        // MC 原版在 processDurabilityChange 中使用 ServerLevel.getRandom()
+        math::Random* random = nullptr;
+        if (entity != nullptr) {
+            IWorld* world = entity->world();
+            if (world != nullptr) {
+                random = &world->getRandom();
+            }
+        }
 
-        // 每点伤害都有机会被耐久保护抵消
-        for (i32 i = 0; i < amount; ++i) {
-            if (item::enchant::EnchantmentHelper::shouldIgnoreDurabilityLoss(unbreakingLevel, isArmor, s_random)) {
-                --amount;
+        if (random != nullptr) {
+            // 使用世界关联的随机源
+            for (i32 i = 0; i < amount; ++i) {
+                if (item::enchant::EnchantmentHelper::shouldIgnoreDurabilityLoss(unbreakingLevel, isArmor, *random)) {
+                    --amount;
+                }
+            }
+        } else {
+            // 降级：无实体或实体不在世界中时，使用线程局部静态随机源
+            static thread_local math::Random s_random(
+                static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+
+            for (i32 i = 0; i < amount; ++i) {
+                if (item::enchant::EnchantmentHelper::shouldIgnoreDurabilityLoss(unbreakingLevel, isArmor, s_random)) {
+                    --amount;
+                }
             }
         }
 

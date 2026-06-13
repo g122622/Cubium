@@ -307,7 +307,12 @@ public:
     [[nodiscard]] i32 getMaxDamage() const;
 
     /**
-     * @brief 尝试造成伤害
+     * @brief 尝试造成伤害（无实体上下文）
+     *
+     * 考虑耐久保护（Unbreaking）附魔的效果。
+     * 当没有实体上下文时，使用线程局部静态随机数生成器。
+     * 优先使用带实体参数的重载版本，以获取世界关联的随机源并触发进度事件。
+     *
      * @param amount 伤害值
      * @return 是否已损坏（达到最大耐久度）
      */
@@ -317,11 +322,12 @@ public:
      * @brief 尝试造成伤害（带实体参数）
      *
      * 考虑耐久保护（Unbreaking）附魔的效果。
-     * 耐久附魔每级有 level/(level+1) 概率避免损耗。
-     * 对于盔甲，概率减半。
+     * 使用实体所在世界的随机数生成器进行耐久保护概率计算，
+     * 与 MC 原版行为一致（原版使用 ServerLevel.getRandom()）。
+     * 当实体为空时退回到线程局部静态随机源。
      *
      * @param amount 伤害值
-     * @param entity 持有该物品的实体（用于耐久保护计算）
+     * @param entity 持有该物品的实体（用于获取世界随机源和触发进度事件）
      * @return 是否已损坏（达到最大耐久度）
      */
     bool attemptDamageItem(i32 amount, LivingEntity* entity);

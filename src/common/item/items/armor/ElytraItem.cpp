@@ -82,10 +82,8 @@ bool ElytraItem::isGliding(const LivingEntity& entity)
 
 void ElytraItem::damageElytra(ItemStack& stack, LivingEntity& entity)
 {
-    (void)entity;
-
     if (stack.isDamageable()) {
-        stack.attemptDamageItem(1);
+        stack.attemptDamageItem(1, &entity);
     }
 }
 

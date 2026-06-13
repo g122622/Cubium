@@ -175,7 +175,7 @@ ActionResultType PumpkinBlock::onBlockActivated(const BlockState& state,
     );
 
     // 消耗剪刀耐久度
-    heldItem.attemptDamageItem(1);
+    heldItem.attemptDamageItem(1, &player);
 
     return ActionResultType::Success;
 }

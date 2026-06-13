@@ -93,9 +93,8 @@ bool ToolItem::canHarvestBlock(const BlockState& state) const
 bool ToolItem::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attacker)
 {
     (void)target;
-    (void)attacker;
     // 攻击实体消耗 2 点耐久
-    stack.attemptDamageItem(2);
+    stack.attemptDamageItem(2, &attacker);
     return true;
 }
 
@@ -104,10 +103,9 @@ bool ToolItem::onBlockDestroyed(
 {
     (void)world;
     (void)pos;
-    (void)entity;
     // 只有硬度 > 0 的方块才消耗耐久
     if (state.hardness() > 0.0f) {
-        stack.attemptDamageItem(1);
+        stack.attemptDamageItem(1, &entity);
     }
     return true;
 }

@@ -75,7 +75,7 @@ ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player,
         entity::FishingBobberEntity* bobber = getBobber(player);
         if (bobber != nullptr) {
             i32 damage = bobber->reelIn();
-            rodStack.attemptDamageItem(damage);
+            rodStack.attemptDamageItem(damage, &player);
             // 播放收杆音效
             player.playSound(
                 SoundEvents::ENTITY_FISHING_BOBBER_RETRIEVE, 0.5f, 0.4f / (math::Random().nextFloat() * 0.4f + 0.8f));

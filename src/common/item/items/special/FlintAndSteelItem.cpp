@@ -29,9 +29,9 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace item {
@@ -63,7 +63,7 @@ ActionResultType FlintAndSteelItem::onItemUse(ItemUseContext& context)
 
             // 消耗耐久
             if (player != nullptr) {
-                context.getItemStackMut().attemptDamageItem(1);
+                context.getItemStackMut().attemptDamageItem(1, player);
             }
             return ActionResultType::Success;
         }
@@ -83,7 +83,7 @@ ActionResultType FlintAndSteelItem::onItemUse(ItemUseContext& context)
 
             // 消耗耐久
             if (player != nullptr) {
-                context.getItemStackMut().attemptDamageItem(1);
+                context.getItemStackMut().attemptDamageItem(1, player);
             }
 
             return ActionResultType::Success;
