@@ -347,6 +347,20 @@ TEST_F(EntitySpawnPlacementRegistryTest, SpawnReasonRoundTrip)
     }
 }
 
+TEST_F(EntitySpawnPlacementRegistryTest, IsSpawnerReason)
+{
+    // Spawner 应该返回 true
+    EXPECT_TRUE(world::spawn::isSpawnerReason(world::spawn::SpawnReason::Spawner));
+
+    // 其他生成原因应该返回 false
+    EXPECT_FALSE(world::spawn::isSpawnerReason(world::spawn::SpawnReason::Natural));
+    EXPECT_FALSE(world::spawn::isSpawnerReason(world::spawn::SpawnReason::ChunkGeneration));
+    EXPECT_FALSE(world::spawn::isSpawnerReason(world::spawn::SpawnReason::Structure));
+    EXPECT_FALSE(world::spawn::isSpawnerReason(world::spawn::SpawnReason::Event));
+    EXPECT_FALSE(world::spawn::isSpawnerReason(world::spawn::SpawnReason::SpawnEgg));
+    EXPECT_FALSE(world::spawn::isSpawnerReason(world::spawn::SpawnReason::Command));
+}
+
 // ========== PlacementType 枚举测试 ==========
 
 TEST_F(EntitySpawnPlacementRegistryTest, PlacementTypeValues)

@@ -100,6 +100,20 @@ enum class SpawnReason : u8 {
 };
 
 /**
+ * @brief 判断生成原因是否为刷怪笼类型
+ *
+ * 刷怪笼生成应跳过某些特殊条件检查（如史莱姆区块判定、沼泽地表条件）。
+ * 包含 Spawner 和 TrialSpawner 两种刷怪笼类型。
+ *
+ * @param reason 生成原因
+ * @return 是否为刷怪笼生成
+ */
+[[nodiscard]] inline bool isSpawnerReason(SpawnReason reason)
+{
+    return reason == SpawnReason::Spawner;
+}
+
+/**
  * @brief 获取生成原因的名称字符串
  *
  * @param reason 生成原因
@@ -275,10 +289,14 @@ public:
      * @param pos 生成位置
      * @param entityTypeId 实体类型（用于类型检查）
      * @param random 随机数生成器（用于需要概率判断的生成条件）
+     * @param reason 生成原因（用于区分刷怪笼、自然生成等不同来源）
      * @return 是否可以生成
      */
-    using PlacementPredicate = std::function<bool(
-        const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId, math::Random& random)>;
+    using PlacementPredicate = std::function<bool(const ISpawnWorldReader& world,
+        const Vector3i& pos,
+        const std::string& entityTypeId,
+        math::Random& random,
+        SpawnReason reason)>;
 
     /**
      * @brief 放置条目

@@ -135,7 +135,7 @@ bool EntitySpawnPlacementRegistry::canSpawnEntity(const std::string& entityTypeI
 
     // 检查自定义谓词
     if (entry->predicate) {
-        return entry->predicate(world, pos, entityTypeId, random);
+        return entry->predicate(world, pos, entityTypeId, random, reason);
     }
 
     return true;
@@ -299,7 +299,8 @@ namespace {
 bool canBatSpawn(const ISpawnWorldReader& /*world*/,
     const Vector3i& /*pos*/,
     const std::string& /*entityTypeId*/,
-    math::Random& /*random*/)
+    math::Random& /*random*/,
+    SpawnReason /*reason*/)
 {
     // 光照检查在 NaturalSpawner 中进行，这里返回 true
     return true;
@@ -314,7 +315,8 @@ bool canBatSpawn(const ISpawnWorldReader& /*world*/,
 bool canMonsterSpawnInLightPredicate(const ISpawnWorldReader& /*world*/,
     const Vector3i& /*pos*/,
     const std::string& /*entityTypeId*/,
-    math::Random& /*random*/)
+    math::Random& /*random*/,
+    SpawnReason /*reason*/)
 {
     // 光照检查在 NaturalSpawner 中进行，这里返回 true
     return true;
@@ -323,55 +325,32 @@ bool canMonsterSpawnInLightPredicate(const ISpawnWorldReader& /*world*/,
 /**
  * @brief 史莱姆生成条件检查
  *
- * 完整复刻 MC 原版 Slime.checkSlimeSpawnRules 逻辑。
+ * 复刻 MC 原版 Slime.checkSlimeSpawnRules 逻辑。
  *
- * 地下史莱姆区块生成条件：
- * 1. 非和平难度
- * 2. 区块是史莱姆区块（使用世界种子确定性计算，10% 概率）
- * 3. 额外 10% 随机概率
- * 4. Y < 40
- *
- * 地表沼泽史莱姆生成条件：
- * 1. 生物群系带有 ALLOWS_SURFACE_SLIME_SPAWNS 标签（沼泽、红树林沼泽）
- * 2. Y 在 50-70 之间（开区间，即 51-69）
- * 3. 生成概率受月相影响（满月 50%，新月 0%）
- * 4. 光照等级 <= 随机值(0-7)
- *
- * TODO: 已知与 MC 原版行为差异：
- * 1. 刷怪笼生成（SpawnReason::Spawner）应跳过史莱姆区块和沼泽条件检查，
- *    直接使用通用怪物生成规则，但当前 PlacementPredicate 签名不包含 SpawnReason
- *    参数，canSlimeSpawn 无法区分生成来源，导致刷怪笼在非史莱姆区块中无法生成
- *    史莱姆。需要扩展 PlacementPredicate 签名以传入 SpawnReason，并在刷怪笼场景
- *    下直接返回 true。
- * 2. 地下史莱姆（Y<40 的史莱姆区块路径）在 MC 1.21.11 中只在区块生成阶段
- *    （SpawnReason::ChunkGeneration）生成，自然生成阶段（SpawnReason::Natural）
- *    不生成地下史莱姆。当前实现两个阶段都会走地下路径，导致自然生成阶段也能在
- *    史莱姆区块生成史莱姆，与原版行为不一致。需要在地下路径中检查 SpawnReason
- *    仅在 ChunkGeneration 时才走此路径（依赖第1点的 PlacementPredicate 签名扩展）。
+ * 三条路径，按优先级：
+ * 1. 刷怪笼生成（SpawnReason::Spawner）：跳过史莱姆区块和沼泽条件检查，
+ *    直接使用通用怪物生成规则（仅检查非和平难度）。
+ * 2. 沼泽地表生成：生物群系标签 ALLOWS_SURFACE_SLIME_SPAWNS + Y∈(50,70) +
+ *    月相概率 + 亮度<=random(8)
+ * 3. 地下史莱姆区块生成：仅限 ChunkGeneration 阶段 + isSlimeChunk + random(10)==0 + Y<40
  */
-bool canSlimeSpawn(
-    const ISpawnWorldReader& world, const Vector3i& pos, const std::string& /*entityTypeId*/, math::Random& random)
+bool canSlimeSpawn(const ISpawnWorldReader& world,
+    const Vector3i& pos,
+    const std::string& /*entityTypeId*/,
+    math::Random& random,
+    SpawnReason reason)
 {
     // 和平难度不生成史莱姆
     if (world.difficulty() == Difficulty::Peaceful) {
         return false;
     }
 
-    // 地下史莱姆区块生成路径
-    if (pos.y < 40) {
-        const i32 chunkX = pos.x >> world::CHUNK_SHIFT;
-        const i32 chunkZ = pos.z >> world::CHUNK_SHIFT;
-
-        // 使用世界种子确定性判断是否为史莱姆区块（10% 概率）
-        if (SlimeChunkChecker::isSlimeChunk(world.seed(), chunkX, chunkZ)) {
-            // 额外 10% 随机概率通过
-            if (random.nextInt(10) == 0) {
-                return true;
-            }
-        }
+    // 路径1：刷怪笼生成 — 跳过史莱姆区块和沼泽条件检查，直接允许
+    if (isSpawnerReason(reason)) {
+        return true;
     }
 
-    // 地表沼泽史莱姆生成路径
+    // 路径2：地表沼泽史莱姆生成路径
     const BiomeId biome = world.getBiome(pos.x, pos.y, pos.z);
     if (biome::BiomeTags::ALLOWS_SURFACE_SLIME_SPAWNS().contains(biome)) {
         // Y 需要在 (50, 70) 开区间内
@@ -389,6 +368,22 @@ bool canSlimeSpawn(
         }
     }
 
+    // 路径3：地下史莱姆区块生成路径（仅限区块生成阶段）
+    if (reason == SpawnReason::ChunkGeneration) {
+        if (pos.y < 40) {
+            const i32 chunkX = pos.x >> world::CHUNK_SHIFT;
+            const i32 chunkZ = pos.z >> world::CHUNK_SHIFT;
+
+            // 使用世界种子确定性判断是否为史莱姆区块（10% 概率）
+            if (SlimeChunkChecker::isSlimeChunk(world.seed(), chunkX, chunkZ)) {
+                // 额外 10% 随机概率通过
+                if (random.nextInt(10) == 0) {
+                    return true;
+                }
+            }
+        }
+    }
+
     return false;
 }
 
@@ -398,7 +393,8 @@ bool canSlimeSpawn(
 bool canMagmaCubeSpawn(const ISpawnWorldReader& /*world*/,
     const Vector3i& /*pos*/,
     const std::string& /*entityTypeId*/,
-    math::Random& /*random*/)
+    math::Random& /*random*/,
+    SpawnReason /*reason*/)
 {
     // 岩浆怪在下界生成，无特殊条件
     return true;
@@ -409,8 +405,11 @@ bool canMagmaCubeSpawn(const ISpawnWorldReader& /*world*/,
  *
  * 恶魂需要有足够的生成空间。
  */
-bool canGhastSpawn(
-    const ISpawnWorldReader& world, const Vector3i& pos, const std::string& /*entityTypeId*/, math::Random& /*random*/)
+bool canGhastSpawn(const ISpawnWorldReader& world,
+    const Vector3i& pos,
+    const std::string& /*entityTypeId*/,
+    math::Random& /*random*/,
+    SpawnReason /*reason*/)
 {
     // 恶魂需要 4x4x4 的空间
     // 检查周围是否有足够空间

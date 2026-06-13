@@ -220,13 +220,13 @@ TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkPathRequiresYBelow40)
     const i32 spawnZ = nonSlimeZ * 16 + 8;
     world.setupOnGroundBlocks(20, spawnX, spawnZ);
 
-    // Y < 40 但非史莱姆区块 → 不应生成
+    // Y < 40 但非史莱姆区块 → 不应生成（使用 ChunkGeneration 以走地下路径）
     Vector3i posUnderground(spawnX, 20, spawnZ);
-    math::Random random(12345);
     bool anySuccess = false;
     for (i32 i = 0; i < 100; ++i) {
+        math::Random random(static_cast<u64>(i * 3571 + 17));
         if (EntitySpawnPlacementRegistry::canSpawnEntity(
-                "minecraft:slime", world, SpawnReason::Natural, posUnderground, random)) {
+                "minecraft:slime", world, SpawnReason::ChunkGeneration, posUnderground, random)) {
             anySuccess = true;
             break;
         }
@@ -262,11 +262,11 @@ TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkPathRejectsYAtOrAbove40)
     // Y=40 → 地下路径要求 Y<40（严格小于），所以不走地下路径
     // Plains 生物群系没有 ALLOWS_SURFACE_SLIME_SPAWNS 标签，也不走地表路径
     Vector3i posAt40(spawnX, 40, spawnZ);
-    math::Random random(12345);
     bool anySuccess = false;
     for (i32 i = 0; i < 100; ++i) {
+        math::Random random(static_cast<u64>(i * 3571 + 17));
         if (EntitySpawnPlacementRegistry::canSpawnEntity(
-                "minecraft:slime", world, SpawnReason::Natural, posAt40, random)) {
+                "minecraft:slime", world, SpawnReason::ChunkGeneration, posAt40, random)) {
             anySuccess = true;
             break;
         }
@@ -274,10 +274,10 @@ TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkPathRejectsYAtOrAbove40)
     EXPECT_FALSE(anySuccess);
 }
 
-TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkSucceedsInSlimeChunk)
+TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkPathRequiresChunkGeneration)
 {
-    // 在史莱姆区块中、Y<40、非和平难度，应该有可能生成
-    // 需要同时通过 nextInt(10)==0 的 10% 随机概率
+    // 地下史莱姆区块路径只在 ChunkGeneration 阶段触发
+    // Natural 阶段即使 Y<40 且在史莱姆区块也不应走地下路径
     MockSpawnWorld world;
     world.m_difficulty = Difficulty::Normal;
     world.m_seed = 0;
@@ -301,22 +301,38 @@ TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkSucceedsInSlimeChunk)
     const i32 spawnX = slimeChunkX * 16 + 8;
     const i32 spawnZ = slimeChunkZ * 16 + 8;
     world.setupOnGroundBlocks(20, spawnX, spawnZ);
-
-    // 尝试多次，应该有大约 10% 的概率通过 nextInt(10)==0
     Vector3i pos(spawnX, 20, spawnZ);
-    i32 successCount = 0;
-    constexpr i32 TOTAL_ATTEMPTS = 1000;
-    for (i32 i = 0; i < TOTAL_ATTEMPTS; ++i) {
-        math::Random random(static_cast<u64>(i * 7919 + 31)); // 不同的种子
-        if (EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::Natural, pos, random)) {
-            ++successCount;
+
+    // Natural 阶段不应在地下路径生成史莱姆
+    {
+        bool anySuccess = false;
+        for (i32 i = 0; i < 100; ++i) {
+            math::Random random(static_cast<u64>(i * 7919 + 31));
+            if (EntitySpawnPlacementRegistry::canSpawnEntity(
+                    "minecraft:slime", world, SpawnReason::Natural, pos, random)) {
+                anySuccess = true;
+                break;
+            }
         }
+        EXPECT_FALSE(anySuccess) << "Slime should not spawn underground via Natural reason";
     }
 
-    // 期望约 10% 的成功率，允许 5%-20% 的范围
-    const f32 ratio = static_cast<f32>(successCount) / static_cast<f32>(TOTAL_ATTEMPTS);
-    EXPECT_GT(ratio, 0.05f) << "Slime spawn rate in slime chunk too low: " << ratio;
-    EXPECT_LT(ratio, 0.20f) << "Slime spawn rate in slime chunk too high: " << ratio;
+    // ChunkGeneration 阶段应该在史莱姆区块的地下路径有可能生成
+    {
+        i32 successCount = 0;
+        constexpr i32 TOTAL_ATTEMPTS = 1000;
+        for (i32 i = 0; i < TOTAL_ATTEMPTS; ++i) {
+            math::Random random(static_cast<u64>(i * 7919 + 31));
+            if (EntitySpawnPlacementRegistry::canSpawnEntity(
+                    "minecraft:slime", world, SpawnReason::ChunkGeneration, pos, random)) {
+                ++successCount;
+            }
+        }
+        // 期望约 10% 的成功率，允许 5%-20% 的范围
+        const f32 ratio = static_cast<f32>(successCount) / static_cast<f32>(TOTAL_ATTEMPTS);
+        EXPECT_GT(ratio, 0.05f) << "Slime spawn rate in slime chunk (ChunkGeneration) too low: " << ratio;
+        EXPECT_LT(ratio, 0.20f) << "Slime spawn rate in slime chunk (ChunkGeneration) too high: " << ratio;
+    }
 }
 
 // ========== 地表沼泽路径 ==========
@@ -594,8 +610,9 @@ TEST_F(CanSlimeSpawnTest, SurfacePathMediumBrightnessReducesChance)
 
 TEST_F(CanSlimeSpawnTest, SlimeChunkAndSwampBiomeBothPathsAvailable)
 {
-    // 当 Y<40 且在沼泽生物群系中的史莱姆区块时，地下路径可用
-    // 地表路径不可用（Y<50 不满足 Y>50）
+    // 当 Y<40 且在沼泽生物群系中的史莱姆区块时：
+    // - ChunkGeneration 阶段：地下路径可用（Y<40 且史莱姆区块）
+    // - Natural 阶段：地下路径不可用，地表路径也不可用（Y<50 不满足 Y>50）
     MockSpawnWorld world;
     world.m_difficulty = Difficulty::Normal;
     world.m_seed = 0;
@@ -620,22 +637,23 @@ TEST_F(CanSlimeSpawnTest, SlimeChunkAndSwampBiomeBothPathsAvailable)
     const i32 spawnZ = slimeChunkZ * 16 + 8;
     world.setupOnGroundBlocks(20, spawnX, spawnZ);
 
-    // Y=20: 地下路径可用（Y<40 且史莱姆区块）
-    // 地表路径不可用（Y<50 不满足 Y>50）
+    // Y=20: 地表路径不可用（Y<50 不满足 Y>50）
+    // ChunkGeneration 阶段：地下路径可用
     Vector3i pos(spawnX, 20, spawnZ);
     i32 successCount = 0;
     constexpr i32 TOTAL_ATTEMPTS = 500;
     for (i32 i = 0; i < TOTAL_ATTEMPTS; ++i) {
         math::Random random(static_cast<u64>(i * 7919 + 31));
-        if (EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::Natural, pos, random)) {
+        if (EntitySpawnPlacementRegistry::canSpawnEntity(
+                "minecraft:slime", world, SpawnReason::ChunkGeneration, pos, random)) {
             ++successCount;
         }
     }
 
     // 地下路径只有 10% 概率（nextInt(10)==0）
     const f32 ratio = static_cast<f32>(successCount) / static_cast<f32>(TOTAL_ATTEMPTS);
-    EXPECT_GT(ratio, 0.03f) << "Underground slime spawn in slime chunk too low: " << ratio;
-    EXPECT_LT(ratio, 0.20f) << "Underground slime spawn in slime chunk too high: " << ratio;
+    EXPECT_GT(ratio, 0.03f) << "Underground slime spawn in slime chunk (ChunkGeneration) too low: " << ratio;
+    EXPECT_LT(ratio, 0.20f) << "Underground slime spawn in slime chunk (ChunkGeneration) too high: " << ratio;
 }
 
 TEST_F(CanSlimeSpawnTest, NonSlimeEntityNotAffected)
@@ -709,14 +727,14 @@ TEST_F(CanSlimeSpawnTest, SlimeChunkDeterministicWithSameSeed)
     world.setupOnGroundBlocks(20, spawnX, spawnZ);
     Vector3i pos(spawnX, 20, spawnZ);
 
-    // 相同的 Random 种子应该得到相同的结果
+    // 相同的 Random 种子应该得到相同的结果（使用 ChunkGeneration 以走地下路径）
     math::Random random1(42);
-    bool result1 =
-        EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::Natural, pos, random1);
+    bool result1 = EntitySpawnPlacementRegistry::canSpawnEntity(
+        "minecraft:slime", world, SpawnReason::ChunkGeneration, pos, random1);
 
     math::Random random2(42);
-    bool result2 =
-        EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::Natural, pos, random2);
+    bool result2 = EntitySpawnPlacementRegistry::canSpawnEntity(
+        "minecraft:slime", world, SpawnReason::ChunkGeneration, pos, random2);
 
     EXPECT_EQ(result1, result2);
 }
@@ -767,6 +785,124 @@ TEST_F(CanSlimeSpawnTest, HardDifficultyAllowsSlime)
     }
 
     EXPECT_GT(successCount, 0) << "Slime should spawn on Hard difficulty";
+}
+
+// ========== 刷怪笼生成路径测试 ==========
+
+TEST_F(CanSlimeSpawnTest, SpawnerBypassesSlimeChunkAndSwampConditions)
+{
+    // 刷怪笼生成（SpawnReason::Spawner）应跳过史莱姆区块和沼泽条件检查
+    // 即使在非史莱姆区块、非沼泽生物群系、Y<40 的位置也应允许生成
+    MockSpawnWorld world;
+    world.m_difficulty = Difficulty::Normal;
+    world.m_seed = 0;
+    world.m_biomeId = Biomes::Plains; // 非沼泽
+
+    // 找一个非史莱姆区块
+    i32 nonSlimeX = 0, nonSlimeZ = 0;
+    for (i32 x = 0; x < 100; ++x) {
+        for (i32 z = 0; z < 100; ++z) {
+            if (!SlimeChunkChecker::isSlimeChunk(0, x, z)) {
+                nonSlimeX = x;
+                nonSlimeZ = z;
+                break;
+            }
+        }
+        if (nonSlimeX != 0 || nonSlimeZ != 0) break;
+    }
+
+    const i32 spawnX = nonSlimeX * 16 + 8;
+    const i32 spawnZ = nonSlimeZ * 16 + 8;
+    world.setupOnGroundBlocks(20, spawnX, spawnZ);
+
+    Vector3i pos(spawnX, 20, spawnZ);
+    math::Random random(12345);
+
+    // Natural 阶段不应在非史莱姆区块、非沼泽的 Y<40 位置生成
+    EXPECT_FALSE(
+        EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::Natural, pos, random));
+
+    // Spawner 阶段应允许在任意位置生成
+    math::Random random2(12345);
+    EXPECT_TRUE(
+        EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::Spawner, pos, random2));
+}
+
+TEST_F(CanSlimeSpawnTest, SpawnerRejectsPeacefulDifficulty)
+{
+    // 刷怪笼生成仍然需要非和平难度
+    MockSpawnWorld world;
+    world.m_difficulty = Difficulty::Peaceful;
+    world.m_seed = 0;
+    world.setupOnGroundBlocks(60);
+
+    Vector3i pos(0, 60, 0);
+    math::Random random(12345);
+
+    EXPECT_FALSE(
+        EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::Spawner, pos, random));
+}
+
+TEST_F(CanSlimeSpawnTest, SpawnerAllowsAnyPosition)
+{
+    // 刷怪笼生成允许在任何合法位置生成（只需非和平难度）
+    // 测试 Y=60 的平原生物群系（Natural 不允许，Spawner 允许）
+    MockSpawnWorld world;
+    world.m_difficulty = Difficulty::Normal;
+    world.m_seed = 0;
+    world.m_biomeId = Biomes::Plains; // 非沼泽
+    world.m_maxBrightness = 15;       // 高亮度
+    world.setupOnGroundBlocks(60);
+
+    Vector3i pos(0, 60, 0);
+    math::Random random(12345);
+
+    // Natural 不允许（非沼泽、Y>40）
+    EXPECT_FALSE(
+        EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::Natural, pos, random));
+
+    // Spawner 允许
+    math::Random random2(12345);
+    EXPECT_TRUE(
+        EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::Spawner, pos, random2));
+}
+
+TEST_F(CanSlimeSpawnTest, NaturalRejectsUndergroundInNonSlimeChunk)
+{
+    // Natural 阶段不应在地下路径生成史莱姆（即使和平难度下）
+    MockSpawnWorld world;
+    world.m_difficulty = Difficulty::Normal;
+    world.m_seed = 0;
+    world.m_biomeId = Biomes::Plains;
+
+    // 非史莱姆区块、Y<40
+    i32 nonSlimeX = 0, nonSlimeZ = 0;
+    for (i32 x = 0; x < 100; ++x) {
+        for (i32 z = 0; z < 100; ++z) {
+            if (!SlimeChunkChecker::isSlimeChunk(0, x, z)) {
+                nonSlimeX = x;
+                nonSlimeZ = z;
+                break;
+            }
+        }
+        if (nonSlimeX != 0 || nonSlimeZ != 0) break;
+    }
+
+    const i32 spawnX = nonSlimeX * 16 + 8;
+    const i32 spawnZ = nonSlimeZ * 16 + 8;
+    world.setupOnGroundBlocks(20, spawnX, spawnZ);
+    Vector3i pos(spawnX, 20, spawnZ);
+
+    // Natural 在地下不应生成
+    bool anySuccess = false;
+    for (i32 i = 0; i < 100; ++i) {
+        math::Random random(static_cast<u64>(i * 7919 + 31));
+        if (EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::Natural, pos, random)) {
+            anySuccess = true;
+            break;
+        }
+    }
+    EXPECT_FALSE(anySuccess) << "Slime should not spawn underground with Natural reason in non-slime chunk";
 }
 
 } // namespace test
