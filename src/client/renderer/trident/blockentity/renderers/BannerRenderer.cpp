@@ -53,7 +53,6 @@ void BannerRenderer::render(const mc::blockentity::BannerEntity& entity, f32 par
 
     // 计算风吹飘动
     // 基于方块位置的随机偏移，模拟风吹效果
-    // 参考: net.minecraft.client.renderer.blockentity.BannerRenderer.extractRenderState
     // phase = (floorMod(x*7 + y*9 + z*13 + gameTime, 100) + partialTick) / 100.0
     const auto& pos = entity.getPos();
     i64 seed = static_cast<i64>(pos.x * 7 + pos.y * 9 + pos.z * 13);

@@ -48,7 +48,7 @@ using namespace mc::client::renderer::blockentity::model;
 // ============================================================================
 // 旗帜飘动动画公式测试（BannerRenderer 中的 swingTime 计算）
 //
-// MC 原版公式（net.minecraft.client.renderer.blockentity.BannerRenderer.extractRenderState）：
+// 飘动公式：
 //   phase = (floorMod(x*7 + y*9 + z*13 + gameTime, 100) + partialTick) / 100.0
 //   flag.xRot = (-0.0125 + 0.01 * cos(2*PI * phase)) * PI
 //
@@ -67,7 +67,7 @@ protected:
     }
 
     // 模拟 BannerRenderer 中的 waveAngle 计算
-    // 参考: net.minecraft.client.model.object.banner.BannerFlagModel.setupAnim
+    // 参考: BannerFlagModel.setupAnim
     static f32 calculateWaveAngle(f32 swingTime)
     {
         return (-0.0125f + 0.01f * std::cos(2.0f * mc::math::PI * swingTime)) * mc::math::PI;
@@ -213,7 +213,7 @@ TEST_F(BannerSwingTimeTest, GameTimeZero_AnimationFrozenAtPositionSeed)
 // ============================================================================
 // 信标光束旋转公式测试（BeaconRenderer 中使用的公式）
 //
-// MC 原版公式：
+// 旋转公式：
 //   rotation = (floorMod(gameTime, 40) + partialTick) * 2.25 - 45
 //
 // 此处使用 BeaconBeamModel::calculateBeamRotation 进行验证

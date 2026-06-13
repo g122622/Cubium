@@ -36,8 +36,6 @@ namespace mc::client::renderer::blockentity::model {
  * 支持站立旗帜和墙壁旗帜两种形态。
  *
  * 纹理尺寸：64x64
- *
- * 参考: net.minecraft.client.renderer.tileentity.BannerTileEntityRenderer.BannerModel
  */
 class BannerModel : public BlockEntityModel {
 public:

@@ -73,7 +73,7 @@ IBlockEntityRenderer<TEntity>（模板接口）
 
 2. **BeaconBeamModel 不继承 BlockEntityModel**：信标光束是程序化生成的几何体，不使用 ModelRenderer 部件系统，调用时需要额外传入 `gameTime` 和 `partialTick`
 
-3. **箱子缓动函数**：MC 1.16.5 的箱子开合使用三次缓动，公式为 `eased = 1.0 - (1.0 - angle)³`，而非线性插值
+3. **箱子缓动函数**：箱子开合使用三次缓动，公式为 `eased = 1.0 - (1.0 - angle)³`，而非线性插值
 
 4. **信标光束旋转公式**：`(floorMod(gameTime, 40) + partialTick) * 2.25 - 45` 度，不要直接使用 gameTime
 

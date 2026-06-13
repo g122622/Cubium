@@ -43,8 +43,6 @@ namespace model = mc::client::renderer::blockentity::model;
  *
  * 渲染旗帜方块实体，包括旗杆和旗帜面。
  * 支持站立旗帜和墙壁旗帜两种形态，以及风吹飘动动画。
- *
- * 参考: net.minecraft.client.renderer.tileentity.BannerTileEntityRenderer
  */
 class BannerRenderer : public BlockEntityRenderer<mc::blockentity::BannerEntity> {
 public:
