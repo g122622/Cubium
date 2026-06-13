@@ -146,6 +146,9 @@ extern const Food SUSPICIOUS_STEW;
 /// 甜浆果 (2饥饿, 0.1饱和度修正)
 extern const Food SWEET_BERRIES;
 
+/// 发光浆果 (2饥饿, 0.1饱和度修正)
+extern const Food GLOW_BERRIES;
+
 /// 热带鱼 (1饥饿, 0.1饱和度修正)
 extern const Food TROPICAL_FISH;
 

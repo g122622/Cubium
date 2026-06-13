@@ -104,6 +104,8 @@ const Food Foods::SUSPICIOUS_STEW(6, 0.6f); // 随机效果，返回碗
 
 const Food Foods::SWEET_BERRIES(2, 0.1f);
 
+const Food Foods::GLOW_BERRIES(2, 0.1f);
+
 const Food Foods::TROPICAL_FISH(1, 0.1f);
 
 // ========== 金苹果 ==========

@@ -293,6 +293,7 @@ extern const ResourceLocation BLOCK_CROP_BREAK;
 extern const ResourceLocation BLOCK_NETHER_WART_BREAK;
 extern const ResourceLocation BLOCK_SWEET_BERRY_BUSH_BREAK;
 extern const ResourceLocation BLOCK_SWEET_BERRY_BUSH_PLACE;
+extern const ResourceLocation BLOCK_CAVE_VINES_PICK_BERRIES;
 extern const ResourceLocation BLOCK_LILY_PAD_PLACE;
 
 extern const ResourceLocation BLOCK_WATER_AMBIENT;

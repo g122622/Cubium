@@ -255,6 +255,7 @@ public:
     static Item* SPIDER_EYE;
     static Item* SUSPICIOUS_STEW;
     static Item* SWEET_BERRIES;
+    static Item* GLOW_BERRIES;
     static Item* TROPICAL_FISH;
 
     // ========================================================================

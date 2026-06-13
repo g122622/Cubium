@@ -22,6 +22,10 @@
 
 #include "CaveVinesPlantBlock.hpp"
 #include "CaveVinesBlock.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -103,7 +107,7 @@ void CaveVinesPlantBlock::grow(IWorld& world, math::IRandom& random, const Block
     // MC 1.21.11: 身体方块骨粉效果也是设置 BERRIES=true
     if (!state.get(BlockStateProperties::BERRIES())) {
         const BlockState& newState = state.with(BlockStateProperties::BERRIES(), true);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, 2);
     }
 }
 
@@ -120,9 +124,27 @@ ActionResultType CaveVinesPlantBlock::onBlockActivated(const BlockState& state,
 
     // 浆果存在时，右键收获
     if (state.get(BlockStateProperties::BERRIES())) {
+        if (!world.isClientSide()) {
+            // 生成发光浆果掉落（收获始终掉落1个发光浆果）
+            if (Items::GLOW_BERRIES != nullptr) {
+                ItemStack dropStack(*Items::GLOW_BERRIES, 1);
+                ItemDropHelper::spawnItemEntity(&world,
+                    dropStack,
+                    static_cast<f64>(pos.x) + 0.5,
+                    static_cast<f64>(pos.y) + 0.5,
+                    static_cast<f64>(pos.z) + 0.5,
+                    world.getRandom());
+            }
+
+            // 播放采摘音效，音调随机0.8-1.2
+            f32 pitch = 0.8f + world.getRandom().nextFloat() * 0.4f;
+            world.playSound(
+                SoundEvents::BLOCK_CAVE_VINES_PICK_BERRIES, sound::SoundCategory::Blocks, pos.center(), 1.0f, pitch);
+        }
+
         const BlockState& newState = state.with(BlockStateProperties::BERRIES(), false);
-        world.setBlockState(pos, &newState, 3);
-        // TODO: 掉落发光浆果物品（需要LootTable系统支持）
+        world.setBlockState(pos, &newState, 2);
+        // TODO: 触发 GameEvent::BLOCK_CHANGE（游戏事件系统尚未实现）
         return ActionResultType::Success;
     }
 

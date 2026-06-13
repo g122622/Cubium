@@ -286,6 +286,7 @@ Item* Items::ROTTEN_FLESH = nullptr;
 Item* Items::SPIDER_EYE = nullptr;
 Item* Items::SUSPICIOUS_STEW = nullptr;
 Item* Items::SWEET_BERRIES = nullptr;
+Item* Items::GLOW_BERRIES = nullptr;
 Item* Items::TROPICAL_FISH = nullptr;
 
 // 木棍、骨头和碗
@@ -1601,6 +1602,9 @@ void Items::_registerFood()
 
     SWEET_BERRIES = &registry.registerItem(
         ResourceLocation("minecraft:sweet_berries"), ItemProperties().maxStackSize(64).food(&Foods::SWEET_BERRIES));
+
+    GLOW_BERRIES = &registry.registerItem(
+        ResourceLocation("minecraft:glow_berries"), ItemProperties().maxStackSize(64).food(&Foods::GLOW_BERRIES));
 
     TROPICAL_FISH = &registry.registerItem(
         ResourceLocation("minecraft:tropical_fish"), ItemProperties().maxStackSize(64).food(&Foods::TROPICAL_FISH));

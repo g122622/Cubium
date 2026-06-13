@@ -273,6 +273,7 @@ const ResourceLocation BLOCK_CROP_BREAK("minecraft:block.crop.break");
 const ResourceLocation BLOCK_NETHER_WART_BREAK("minecraft:block.nether_wart.break");
 const ResourceLocation BLOCK_SWEET_BERRY_BUSH_BREAK("minecraft:block.sweet_berry_bush.break");
 const ResourceLocation BLOCK_SWEET_BERRY_BUSH_PLACE("minecraft:block.sweet_berry_bush.place");
+const ResourceLocation BLOCK_CAVE_VINES_PICK_BERRIES("minecraft:block.cave_vines.pick_berries");
 const ResourceLocation BLOCK_LILY_PAD_PLACE("minecraft:block.lily_pad.place");
 
 const ResourceLocation BLOCK_WATER_AMBIENT("minecraft:block.water.ambient");
