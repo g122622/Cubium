@@ -32,6 +32,8 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/interactive/BannerEntity.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
 #include "common/world/map/MapData.hpp"
 #include "common/world/map/MapDataManager.hpp"
@@ -87,11 +89,15 @@ ItemActionResult FilledMapItem::onItemRightClick(IWorld& world, Player& player, 
 ActionResultType FilledMapItem::onItemUse(ItemUseContext& context)
 {
     // 检查点击的方块是否为旗帜
-    // 如果是旗帜，在地图上添加旗帜标记
-    auto* blockState = context.world().getBlockState(context.blockPos());
-    if (blockState != nullptr) {
-        // TODO: 检查方块是否为旗帜 (BlockTags::BANNERS)
-        // 如果是旗帜，调用 mapData->tryAddBanner()
+    // 如果是旗帜，在地图上添加/切换旗帜标记
+    auto* mapData = getMapData(context.itemStack(), context.world());
+    if (mapData != nullptr) {
+        auto* blockEntity = context.world().getBlockEntity(context.blockPos());
+        if (dynamic_cast<blockentity::BannerEntity*>(blockEntity) != nullptr) {
+            if (mapData->tryAddBanner(context.world(), context.blockPos())) {
+                return ActionResultType::Success;
+            }
+        }
     }
 
     // 默认行为：与右键使用相同

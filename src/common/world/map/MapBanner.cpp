@@ -24,6 +24,11 @@
 #include "MapBanner.hpp"
 #include "entity/serialization/NbtHelper.hpp"
 #include "util/text/ITextComponent.hpp"
+#include "util/text/StringTextComponent.hpp"
+#include "world/IWorld.hpp"
+#include "world/blockentity/BlockEntity.hpp"
+#include "world/blockentity/interactive/BannerEntity.hpp"
+#include <nlohmann/json.hpp>
 
 namespace mc::world::map {
 
@@ -58,7 +63,20 @@ MapBanner MapBanner::fromNbt(const nbt::tags::compound_tag& tag)
     auto z = nbt_helper::tryGetInt(tag, "Z").value_or(0);
     auto colorInt = nbt_helper::tryGetInt(tag, "Color").value_or(0);
 
-    return MapBanner(BlockPos(x, y, z), static_cast<DyeColor>(colorInt), nullptr);
+    std::unique_ptr<text::ITextComponent> name;
+    auto nameStr = nbt_helper::tryGetString(tag, "name");
+    if (nameStr.has_value()) {
+        try {
+            auto json = nlohmann::json::parse(nameStr.value());
+            name = text::ITextComponent::fromJson(json);
+        }
+        catch (const nlohmann::json::exception&) {
+            // JSON 解析失败，回退为纯文本组件
+            name = std::make_unique<text::StringTextComponent>(nameStr.value());
+        }
+    }
+
+    return MapBanner(BlockPos(x, y, z), static_cast<DyeColor>(colorInt), std::move(name));
 }
 
 void MapBanner::toNbt(nbt::tags::compound_tag& tag) const
@@ -67,6 +85,10 @@ void MapBanner::toNbt(nbt::tags::compound_tag& tag) const
     tag.put("Y", m_pos.y);
     tag.put("Z", m_pos.z);
     tag.put("Color", static_cast<i32>(m_color));
+
+    if (m_name) {
+        tag.put("name", m_name->toJson().dump());
+    }
 }
 
 DecorationType MapBanner::getDecorationType() const
@@ -80,6 +102,29 @@ DecorationType MapBanner::getDecorationType() const
 std::string MapBanner::getMapDecorationId() const
 {
     return "banner-" + std::to_string(m_pos.x) + "-" + std::to_string(m_pos.y) + "-" + std::to_string(m_pos.z);
+}
+
+std::optional<MapBanner> MapBanner::fromWorld(IWorld& world, const BlockPos& pos)
+{
+    auto* blockEntity = world.getBlockEntity(pos);
+    auto* bannerEntity = dynamic_cast<blockentity::BannerEntity*>(blockEntity);
+    if (bannerEntity == nullptr) {
+        return std::nullopt;
+    }
+
+    DyeColor baseColor = bannerEntity->getBaseColor();
+    std::unique_ptr<text::ITextComponent> customName;
+    const text::ITextComponent* displayName = bannerEntity->getCustomDisplayName();
+    if (displayName != nullptr) {
+        customName = displayName->deepCopy();
+    }
+
+    return MapBanner(pos, baseColor, std::move(customName));
+}
+
+bool MapBanner::equals(const MapBanner& other) const
+{
+    return m_pos == other.m_pos && m_color == other.m_color;
 }
 
 } // namespace mc::world::map

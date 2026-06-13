@@ -26,8 +26,10 @@
 #include "network/packet/PacketDeserializer.hpp"
 #include "network/packet/PacketSerializer.hpp"
 #include "util/assert/AssertMacros.hpp"
+#include "util/text/ITextComponent.hpp"
 #include "util/text/StringTextComponent.hpp"
 #include <algorithm>
+#include <nlohmann/json.hpp>
 
 namespace mc::world::map {
 
@@ -125,7 +127,17 @@ MapDecoration MapDecoration::fromNbt(const nbt::tags::compound_tag& tag)
     u8 rotation = static_cast<u8>(nbt_helper::tryGetByte(tag, "rot").value_or(0)) & 0x0F;
 
     std::unique_ptr<text::ITextComponent> name;
-    // TODO: 从NBT读取ITextComponent名称
+    auto nameStr = nbt_helper::tryGetString(tag, "name");
+    if (nameStr.has_value()) {
+        try {
+            auto json = nlohmann::json::parse(nameStr.value());
+            name = text::ITextComponent::fromJson(json);
+        }
+        catch (const nlohmann::json::exception&) {
+            // JSON 解析失败，回退为纯文本组件
+            name = std::make_unique<text::StringTextComponent>(nameStr.value());
+        }
+    }
 
     return MapDecoration(type, x, y, rotation, std::move(name));
 }
@@ -137,7 +149,9 @@ void MapDecoration::toNbt(nbt::tags::compound_tag& tag) const
     tag.put("y", m_y);
     tag.put("rot", static_cast<i8>(m_rotation));
 
-    // TODO: 写入ITextComponent名称
+    if (m_customName) {
+        tag.put("name", m_customName->toJson().dump());
+    }
 }
 
 void MapDecoration::serialize(network::PacketSerializer& ser) const
@@ -149,8 +163,9 @@ void MapDecoration::serialize(network::PacketSerializer& ser) const
 
     if (m_customName) {
         ser.writeBool(true);
-        // TODO: 序列化ITextComponent
-        ser.writeString(m_customName->getUnformattedText());
+        // 将 ITextComponent 序列化为 JSON 字符串后写入网络包，
+        // 与 MC Java 版 ComponentSerialization.OPTIONAL_STREAM_CODEC 一致
+        ser.writeString(m_customName->toJson().dump());
     } else {
         ser.writeBool(false);
     }
@@ -174,8 +189,14 @@ MapDecoration MapDecoration::deserialize(network::PacketDeserializer& deser)
     if (hasName) {
         auto nameStrResult = deser.readString();
         if (nameStrResult.success()) {
-            // TODO: 解析ITextComponent
-            name = std::make_unique<text::StringTextComponent>(nameStrResult.value());
+            try {
+                auto json = nlohmann::json::parse(nameStrResult.value());
+                name = text::ITextComponent::fromJson(json);
+            }
+            catch (const nlohmann::json::exception&) {
+                // JSON 解析失败，回退为纯文本组件
+                name = std::make_unique<text::StringTextComponent>(nameStrResult.value());
+            }
         }
     }
 

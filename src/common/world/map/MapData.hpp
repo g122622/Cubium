@@ -36,6 +36,10 @@
 #include <string>
 #include <vector>
 
+namespace mc {
+class IWorld;
+}
+
 namespace mc::world::map {
 
 /**
@@ -126,7 +130,7 @@ public:
      * @param displayName 可选的显示名称
      */
     void updateDecoration(DecorationType type,
-        const void* world,
+        const IWorld* world,
         const std::string& decorationName,
         f64 worldX,
         f64 worldZ,
@@ -136,14 +140,28 @@ public:
     /**
      * @brief 尝试在指定位置添加旗帜标记
      *
-     * @return true 如果旗帜是新添加的
+     * 检查指定位置是否存在旗帜方块实体，如果存在则在地图上添加/切换旗帜标记。
+     * 如果旗帜已存在则移除，如果不存在则添加。同时检查装饰物数量上限。
+     * 参考: net.minecraft.world.level.saveddata.maps.MapItemSavedData.toggleBanner
+     *
+     * @param world 世界引用
+     * @param pos 旗帜方块位置
+     * @return true 如果成功添加或移除了旗帜标记
      */
-    bool tryAddBanner(const void* world, const BlockPos& pos);
+    bool tryAddBanner(IWorld& world, const BlockPos& pos);
 
     /**
      * @brief 移除过期的旗帜标记
+     *
+     * 检查指定区域内的旗帜标记是否仍然有效（旗帜方块仍然存在且颜色匹配），
+     * 移除不再匹配的旗帜标记和对应的装饰物。
+     * 参考: net.minecraft.world.level.saveddata.maps.MapItemSavedData.checkBanners
+     *
+     * @param world 世界引用
+     * @param x 区块X坐标
+     * @param z 区块Z坐标
      */
-    void removeStaleBanners(const void* world, i32 x, i32 z);
+    void removeStaleBanners(IWorld& world, i32 x, i32 z);
 
     /**
      * @brief 添加展示框标记
@@ -154,6 +172,11 @@ public:
      * @brief 移除展示框标记
      */
     void removeFrame(const std::string& frameId);
+
+    /**
+     * @brief 移除指定名称的装饰物
+     */
+    void removeDecoration(const std::string& decorationName);
 
     /**
      * @brief 从另一地图数据复制内容（用于锁定）
@@ -214,6 +237,26 @@ public:
     void clearDirty() { m_dirty = false; }
 
 private:
+    /**
+     * @brief 计算装饰物旋转值
+     *
+     * 在下界中使用基于游戏时间的伪随机旋转，模拟指南针失灵效果。
+     * 在其他维度中使用实际朝向角度。
+     * 参考: net.minecraft.world.level.saveddata.maps.MapItemSavedData.calculateRotation
+     *
+     * @param world 世界指针（可为nullptr，下界旋转需要）
+     * @param rotation 实际旋转角度（度）
+     * @return 旋转字节值 (0-15)
+     */
+    [[nodiscard]] u8 calculateRotation(const IWorld* world, f64 rotation) const;
+
+    /**
+     * @brief 检查追踪的装饰物数量是否超过上限
+     *
+     * 参考: net.minecraft.world.level.saveddata.maps.MapItemSavedData.isTrackedCountOverLimit
+     */
+    [[nodiscard]] bool isTrackedCountOverLimit(i32 limit) const;
+
     i32 m_mapId = 0;
     i32 m_xCenter = 0;
     i32 m_zCenter = 0;

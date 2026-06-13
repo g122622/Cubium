@@ -25,8 +25,12 @@
 #include "entity/serialization/NbtHelper.hpp"
 #include "util/assert/AssertMacros.hpp"
 #include "util/text/ITextComponent.hpp"
+#include "util/text/StringTextComponent.hpp"
+#include "world/IWorld.hpp"
+#include "world/dimension/MapDimensionId.hpp"
 #include <algorithm>
 #include <cmath>
+#include <nlohmann/json.hpp>
 
 namespace mc::world::map {
 
@@ -96,7 +100,7 @@ void MapData::calculateMapCenter(f64 x, f64 z, i32 scale, i32& outCenterX, i32& 
 }
 
 void MapData::updateDecoration(DecorationType type,
-    const void* world,
+    const IWorld* world,
     const std::string& decorationName,
     f64 worldX,
     f64 worldZ,
@@ -112,14 +116,12 @@ void MapData::updateDecoration(DecorationType type,
     i8 b0 = static_cast<i8>(static_cast<f64>(f * 2.0F) + 0.5);
     i8 b1 = static_cast<i8>(static_cast<f64>(f1 * 2.0F) + 0.5);
 
-    u8 b2 = 0;
+    u8 b2 = calculateRotation(world, rotation);
 
     if (f >= -63.0F && f1 >= -63.0F && f <= 63.0F && f1 <= 63.0F) {
         // 在地图范围内
-        f64 adjustedRotation = rotation + (rotation < 0.0 ? -8.0 : 8.0);
-        b2 = static_cast<u8>(static_cast<i32>(adjustedRotation * 16.0 / 360.0));
-
-        // TODO: 下界旋转随机化 - 需要世界时间信息
+        m_decorations.insert_or_assign(
+            decorationName, MapDecoration(type, b0, b1, b2, displayName ? displayName->deepCopy() : nullptr));
     } else {
         // 超出地图范围
         if (type != DecorationType::PLAYER) {
@@ -147,21 +149,107 @@ void MapData::updateDecoration(DecorationType type,
         return;
     }
 
-    m_decorations.insert_or_assign(
-        decorationName, MapDecoration(type, b0, b1, b2, displayName ? displayName->deepCopy() : nullptr));
     m_dirty = true;
 }
 
-bool MapData::tryAddBanner(const void* world, const BlockPos& pos)
+u8 MapData::calculateRotation(const IWorld* world, f64 rotation) const
 {
-    // TODO: 从世界读取旗帜信息（需要BannerBlockEntity）
-    // 暂时添加占位实现
-    return false;
+    // 参考: net.minecraft.world.level.saveddata.maps.MapItemSavedData.calculateRotation
+    if (world != nullptr && m_dimension == MapDimensionId::Nether) {
+        // 下界中使用基于游戏时间的伪随机旋转，模拟指南针失灵效果
+        i64 gameTime = static_cast<i64>(world->getGameTime());
+        i32 t = static_cast<i32>(gameTime / 10L);
+        return static_cast<u8>((t * t * 34187121 + t * 121) >> 15 & 15);
+    } else {
+        // 其他维度使用实际朝向角度
+        f64 adjustedRotation = rotation + (rotation < 0.0 ? -8.0 : 8.0);
+        return static_cast<u8>(static_cast<i32>(adjustedRotation * 16.0 / 360.0));
+    }
 }
 
-void MapData::removeStaleBanners(const void* world, i32 x, i32 z)
+bool MapData::isTrackedCountOverLimit(i32 limit) const
 {
-    // TODO: 检查旗帜是否仍然存在，移除不存在的
+    i32 count = 0;
+    for (const auto& [key, deco] : m_decorations) {
+        (void)key;
+        if (deco.type() != DecorationType::FRAME) {
+            ++count;
+        }
+    }
+    return count >= limit;
+}
+
+void MapData::removeDecoration(const std::string& decorationName)
+{
+    m_decorations.erase(decorationName);
+}
+
+bool MapData::tryAddBanner(IWorld& world, const BlockPos& pos)
+{
+    // 参考: net.minecraft.world.level.saveddata.maps.MapItemSavedData.toggleBanner
+    f64 worldX = static_cast<f64>(pos.x) + 0.5;
+    f64 worldZ = static_cast<f64>(pos.z) + 0.5;
+    i32 scale = 1 << m_scale;
+
+    f64 dx = (worldX - static_cast<f64>(m_xCenter)) / static_cast<f64>(scale);
+    f64 dz = (worldZ - static_cast<f64>(m_zCenter)) / static_cast<f64>(scale);
+
+    if (dx < -63.0 || dz < -63.0 || dx > 63.0 || dz > 63.0) {
+        return false; // 超出地图范围
+    }
+
+    auto bannerOpt = MapBanner::fromWorld(world, pos);
+    if (!bannerOpt.has_value()) {
+        return false; // 该位置没有旗帜方块实体
+    }
+
+    MapBanner& banner = bannerOpt.value();
+    std::string bannerId = banner.getMapDecorationId();
+
+    // 检查是否已存在相同的旗帜标记
+    auto it = m_banners.find(bannerId);
+    if (it != m_banners.end() && it->second.equals(banner)) {
+        // 已存在相同的旗帜，移除它（切换行为）
+        m_banners.erase(it);
+        removeDecoration(bannerId);
+        m_dirty = true;
+        return true;
+    }
+
+    // 检查追踪的装饰物数量上限
+    if (isTrackedCountOverLimit(256)) {
+        return false;
+    }
+
+    // 添加新旗帜标记
+    const text::ITextComponent* displayName = banner.name();
+    m_banners.insert_or_assign(bannerId, std::move(bannerOpt.value()));
+    // 旗帜始终朝向南（180度）
+    updateDecoration(m_banners[bannerId].getDecorationType(), &world, bannerId, worldX, worldZ, 180.0, displayName);
+    m_dirty = true;
+    return true;
+}
+
+void MapData::removeStaleBanners(IWorld& world, i32 x, i32 z)
+{
+    // 参考: net.minecraft.world.level.saveddata.maps.MapItemSavedData.checkBanners
+    auto it = m_banners.begin();
+    while (it != m_banners.end()) {
+        const MapBanner& banner = it->second;
+        if (banner.pos().x == x && banner.pos().z == z) {
+            // 重新从世界读取该位置的旗帜信息
+            auto currentBanner = MapBanner::fromWorld(world, banner.pos());
+            if (!currentBanner.has_value() || !currentBanner->equals(banner)) {
+                // 旗帜已被移除或颜色改变
+                std::string bannerId = banner.getMapDecorationId();
+                it = m_banners.erase(it);
+                removeDecoration(bannerId);
+                m_dirty = true;
+                continue;
+            }
+        }
+        ++it;
+    }
 }
 
 void MapData::addFrame(const MapFrame& frame)
@@ -251,8 +339,11 @@ u8 MapData::getColor(i32 x, i32 y) const
 
 void MapData::toNbt(nbt::tags::compound_tag& tag) const
 {
-    // 维度
-    // TODO: 维度ID序列化
+    // 维度 - 以整数形式写入，与旧版 Minecraft 存档格式兼容
+    // Java 版 1.16+ 使用字符串标识符（如 "minecraft:overworld"），
+    // 但本项目目前使用整数 ID，保持向后兼容
+    tag.put("dimension", static_cast<i32>(m_dimension));
+
     tag.put("xCenter", m_xCenter);
     tag.put("zCenter", m_zCenter);
     tag.put("scale", static_cast<i8>(m_scale));
@@ -291,7 +382,27 @@ MapData MapData::fromNbt(const nbt::tags::compound_tag& tag, i32 mapId)
 {
     MapData data(mapId);
 
-    // TODO: 维度ID反序列化
+    // 维度 - 从整数读取，同时兼容字符串格式
+    auto dimInt = nbt_helper::tryGetInt(tag, "dimension");
+    if (dimInt.has_value()) {
+        data.m_dimension = static_cast<MapDimensionId>(dimInt.value());
+    } else {
+        // 兼容 Java 版 1.16+ 的字符串维度标识符
+        auto dimStr = nbt_helper::tryGetString(tag, "dimension");
+        if (dimStr.has_value()) {
+            if (dimStr.value() == "minecraft:overworld" || dimStr.value() == "overworld") {
+                data.m_dimension = MapDimensionId::Overworld;
+            } else if (dimStr.value() == "minecraft:the_nether" || dimStr.value() == "the_nether") {
+                data.m_dimension = MapDimensionId::Nether;
+            } else if (dimStr.value() == "minecraft:the_end" || dimStr.value() == "the_end") {
+                data.m_dimension = MapDimensionId::End;
+            } else {
+                data.m_dimension = MapDimensionId::Overworld; // 未知维度默认为主世界
+            }
+        }
+        // 如果既没有整数也没有字符串维度字段，保持默认值 Overworld
+    }
+
     data.m_xCenter = nbt_helper::tryGetInt(tag, "xCenter").value_or(0);
     data.m_zCenter = nbt_helper::tryGetInt(tag, "zCenter").value_or(0);
     data.m_scale = std::clamp(static_cast<i32>(nbt_helper::tryGetByte(tag, "scale").value_or(0)), 0, MAX_SCALE);
