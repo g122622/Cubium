@@ -87,9 +87,11 @@ void FurnaceScreen::renderItemIcon(const mc::ItemStack& stack, i32 screenX, i32 
 
 void FurnaceScreen::renderTooltip(i32 mouseX, i32 mouseY)
 {
-    // TODO: 实现熔炉物品提示框渲染
-    (void)mouseX;
-    (void)mouseY;
+    mc::Slot* slot = getSlotAt(mouseX, mouseY);
+    if (slot == nullptr || slot->getItem().isEmpty()) {
+        return;
+    }
+    renderItemTooltip(slot->getItem(), mouseX, mouseY);
 }
 
 } // namespace mc::client

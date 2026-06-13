@@ -89,9 +89,11 @@ void ChestScreen::renderItemIcon(const mc::ItemStack& stack, i32 screenX, i32 sc
 
 void ChestScreen::renderTooltip(i32 mouseX, i32 mouseY)
 {
-    // TODO: 实现箱子屏幕的物品悬停提示渲染
-    MC_UNUSED(mouseX);
-    MC_UNUSED(mouseY);
+    mc::Slot* slot = getSlotAt(mouseX, mouseY);
+    if (slot == nullptr || slot->getItem().isEmpty()) {
+        return;
+    }
+    renderItemTooltip(slot->getItem(), mouseX, mouseY);
 }
 
 } // namespace mc::client

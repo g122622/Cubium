@@ -93,6 +93,7 @@ void CreativeScreen::render(i32 mouseX, i32 mouseY, f32 partialTick)
     _renderPaletteGrid(mouseX, mouseY);
     _renderPlayerInventory(mouseX, mouseY);
     _renderCarriedItem(mouseX, mouseY);
+    _renderTooltip(mouseX, mouseY);
 }
 
 // ============================================================================
@@ -524,6 +525,31 @@ void CreativeScreen::_renderCarriedItem(i32 mouseX, i32 mouseY)
     _renderItemIcon(m_carriedItem, mouseX - SLOT_SIZE / 2, mouseY - SLOT_SIZE / 2);
     if (m_carriedItem.getCount() > 1) {
         _renderItemCount(m_carriedItem.getCount(), mouseX + SLOT_SIZE / 2 - 2, mouseY + SLOT_SIZE / 2 - 8);
+    }
+}
+
+void CreativeScreen::_renderTooltip(i32 mouseX, i32 mouseY)
+{
+    // 优先检查创造模式调色板区域的悬停物品
+    const i32 paletteIndex = _getPaletteIndexAt(mouseX, mouseY);
+    if (paletteIndex >= 0 && paletteIndex < static_cast<i32>(m_visibleEntries.size())) {
+        const i32 entryIndex = m_visibleEntries[static_cast<std::size_t>(paletteIndex)];
+        if (entryIndex >= 0 && entryIndex < static_cast<i32>(m_paletteEntries.size())) {
+            const CreativeInventoryEntry& entry = m_paletteEntries[static_cast<std::size_t>(entryIndex)];
+            if (!entry.stack.isEmpty()) {
+                _renderItemTooltip(entry.stack, mouseX, mouseY);
+                return;
+            }
+        }
+    }
+
+    // 检查玩家物品栏区域的悬停物品
+    const i32 invSlot = _getInventorySlotAt(mouseX, mouseY);
+    if (invSlot >= 0 && m_inventory != nullptr) {
+        const ItemStack stack = m_inventory->getItem(invSlot);
+        if (!stack.isEmpty()) {
+            _renderItemTooltip(stack, mouseX, mouseY);
+        }
     }
 }
 

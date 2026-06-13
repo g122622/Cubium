@@ -187,8 +187,8 @@ private:
     void _renderItemIcon(const ItemStack& stack, i32 screenX, i32 screenY);
     void _renderItemCount(i32 count, i32 screenX, i32 screenY);
     void _renderSlotFrame(i32 screenX, i32 screenY, u32 borderColor, u32 fillColor);
-    // TODO: renderItemTooltip 已实现但尚未在 CreativeScreen 中接入调用，待后续连接悬停提示逻辑
     void _renderItemTooltip(const ItemStack& stack, i32 mouseX, i32 mouseY);
+    void _renderTooltip(i32 mouseX, i32 mouseY);
     void _renderCarriedItem(i32 mouseX, i32 mouseY);
     void _handlePaletteClick(i32 paletteIndex, i32 button);
     void _handleInventoryClick(i32 slotIndex, i32 button);
