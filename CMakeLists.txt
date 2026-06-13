@@ -220,7 +220,7 @@ if(MC_ENABLE_SANITIZERS)
     add_compile_options(-fno-fast-math) # sanitizer 需要精确浮点语义
     message(STATUS "Sanitizer build: optimizations reduced, stack protection enabled")
 else()
-    add_compile_options(-O3)
+    add_compile_options(-O2) # 不开o3，o3对缓存不友好、增加编译时间且可能存在bug
     add_compile_options(-march=native -mtune=native) # 架构专用优化：针对本地 CPU 生成优化指令
     add_compile_options(-ffast-math -fno-finite-math-only) # 启用快速浮点数，但保留 NaN/Inf 语义以允许 isfinite 检查
     add_compile_options(-fno-trapping-math) # 禁用浮点异常
