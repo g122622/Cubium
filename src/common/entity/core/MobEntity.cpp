@@ -52,6 +52,7 @@
 #include "../serialization/NbtHelper.hpp"
 #include "EntityRegistry.hpp"
 #include "EntitySpawnPlacementRegistry.hpp"
+#include "EntityTypeIdNumber.hpp"
 
 namespace mc {
 
@@ -316,9 +317,9 @@ bool MobEntity::canAttackType(entity::EntityTypeId typeId) const
 {
     // 对应 MC 原版 Mob.canAttackType()
     // MC 原版基类排除恶魂：return p_21399_ != EntityType.GHAST;
-    // TODO: 添加恶魂排除逻辑（需要 GhastEntity 注册后 EntityTypeIdNumber::GHAST 可用）
-    (void)typeId;
-    return true;
+    // 恶魂悬浮在下界高空，大多数近战型 Mob 无法接近恶魂，
+    // 将恶魂排除在攻击目标之外可以避免 Mob 徒劳地试图攻击一个它们够不着的敌人
+    return typeId != entity::EntityTypeIdNumber::GHAST;
 }
 
 bool MobEntity::attackEntityAsMob(LivingEntity& target)

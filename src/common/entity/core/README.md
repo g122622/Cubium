@@ -272,8 +272,10 @@ finalizeSpawn(world, difficulty, spawnReason)
 
 ### canAttackType 攻击类型判断
 - `canAttackType(EntityTypeId typeId)` — 对应 MC 原版 `Mob.canAttackType()`
-- 基类默认实现返回 `true`（允许攻击所有类型），MC 原版基类排除恶魂（TODO 待实现）
+- 基类默认实现排除恶魂（GHAST），因为恶魂悬浮在高空，大多数近战型 Mob 无法接近，排除恶魂可以避免 Mob 徒劳地试图攻击一个它们够不着的敌人
 - 子类重写以限制攻击目标类型，例如：
-  - `IronGolemEntity::canAttackType()` — 玩家创建的铁傀儡不攻击玩家，所有铁傀儡不攻击苦力怕
+  - `IronGolemEntity::canAttackType()` — 玩家创建的铁傀儡不攻击玩家，所有铁傀儡不攻击苦力怕，其余委托基类（排除恶魂）
+  - `PhantomEntity::canAttackType()` — 返回 `true`，覆盖基类排除恶魂的限制，因为幻翼本身会飞行
+  - `BreezeEntity::canAttackType()` — 白名单模式，仅允许攻击玩家和铁傀儡
 - 在 `TargetGoal::isSuitableTarget()` 中自动调用，所有目标选择器继承此过滤逻辑
 - 自定义目标选择器（如 `IronGolemNearestAttackableTargetGoal`）需手动调用 `canAttackType()`

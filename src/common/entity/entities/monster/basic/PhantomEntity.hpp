@@ -150,6 +150,15 @@ public:
     [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
 
     /**
+     * @brief 检查是否可以攻击指定类型的实体
+     *
+     * 重写 MobEntity 基类行为。MC 原版 Phantom.canAttackType() 返回 true，
+     * 覆盖 Mob 基类排除恶魂的限制，因为幻翼本身是飞行生物，
+     * 具备攻击空中目标的能力。
+     */
+    [[nodiscard]] bool canAttackType(entity::EntityTypeId typeId) const override;
+
+    /**
      * @brief 获取眼睛高度
      */
     [[nodiscard]] f32 eyeHeight() const override { return height() * 0.35f; }

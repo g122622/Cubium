@@ -133,6 +133,14 @@ protected:
      */
     bool shouldDeflectProjectile(const entity::ProjectileEntity& projectile) const;
 
+    /**
+     * @brief 检查是否可以攻击指定类型的实体
+     *
+     * MC 原版 Breeze.canAttackType() 仅允许攻击玩家和铁傀儡。
+     * 旋风人采用白名单模式，只攻击这两种实体类型。
+     */
+    [[nodiscard]] bool canAttackType(entity::EntityTypeId typeId) const override;
+
 private:
     /**
      * @brief 投掷风弹

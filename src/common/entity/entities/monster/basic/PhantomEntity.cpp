@@ -90,6 +90,13 @@ void PhantomEntity::tick()
     }
 }
 
+bool PhantomEntity::canAttackType(entity::EntityTypeId /*typeId*/) const
+{
+    // MC 原版 Phantom.canAttackType() 返回 true
+    // 覆盖 Mob 基类排除恶魂的限制，幻翼本身是飞行生物，可以攻击空中目标
+    return true;
+}
+
 void PhantomEntity::registerGoals()
 {
     FlyingEntity::registerGoals();

@@ -28,6 +28,7 @@
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/WindChargeEntity.hpp"
@@ -86,6 +87,13 @@ void BreezeEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, MOVEMENT_SPEED);
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, FOLLOW_RANGE);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
+}
+
+bool BreezeEntity::canAttackType(entity::EntityTypeId typeId) const
+{
+    // MC 原版 Breeze.canAttackType()：仅允许攻击玩家和铁傀儡
+    // 旋风人采用白名单模式，其余所有实体类型都不能被攻击
+    return typeId == entity::EntityTypeIdNumber::PLAYER || typeId == entity::EntityTypeIdNumber::IRON_GOLEM;
 }
 
 bool BreezeEntity::shouldDeflectProjectile(const entity::ProjectileEntity& projectile) const
