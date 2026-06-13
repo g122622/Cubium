@@ -63,6 +63,20 @@ Goal (基类)
 | LookAtEntitiesGoal | Look |
 | ShareItemsGoal | Move, Look |
 
+## 食物分享机制
+
+ShareItemsGoal 和 CongregateGoal::_shareItems() 使用相同的食物分享逻辑：
+
+**分享条件**（优先级从高到低）：
+1. 食物分享：村民有食物过剩（`hasExcessFood()`，食物点数 >= 24）时抛出一半食物给目标
+2. 小麦分享：农民有超过半组小麦时（>32）抛出一半小麦给目标
+
+**抛出数量规则**（throwHalfStackToTarget）：
+- 库存中某物品 > maxStackSize/2（通常 >32）：抛出 count/2 个
+- 库存中某物品 > 24 但不超过半组：保留24个，抛出剩余
+
+**物品实体生成**：创建 ItemEntity 抛向目标方向，设置 40 tick 拾取延迟和所有者标识（防止村民捡回自己扔出的物品）。
+
 ## 容易踩的坑
 
 1. **SleepAtNightGoal 与 GoToBedGoal 的区别**：两者功能相似但触发条件略有不同。`SleepAtNightGoal` 侧重夜间睡眠逻辑，`GoToBedGoal` 侧重导航到床位。实际使用时注意避免重复注册导致冲突。

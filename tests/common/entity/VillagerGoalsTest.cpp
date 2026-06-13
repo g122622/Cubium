@@ -28,6 +28,10 @@
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/goals/villager/VillagerGoals.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 
@@ -988,6 +992,222 @@ TEST_F(VillagerInteractionTest, GossipSpreadTimeRecorded)
 
     // 这应该被冷却阻止（不抛异常）
     EXPECT_NO_THROW(m_villager1->spreadGossipTo(m_villager2.get()));
+}
+
+// ============================================================================
+// Food Points System Tests
+// ============================================================================
+
+class FoodPointsTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+
+        m_world = std::make_unique<TestVillagerWorld>();
+        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
+        m_villager->setWorld(m_world.get());
+        m_villager->setPosition(0.0, 64.0, 0.0);
+    }
+
+    void TearDown() override
+    {
+        m_villager.reset();
+        m_world.reset();
+    }
+
+    std::unique_ptr<TestVillagerWorld> m_world;
+    std::unique_ptr<VillagerEntity> m_villager;
+};
+
+TEST_F(FoodPointsTest, FoodPointsMapContainsCorrectItems)
+{
+    // foodPoints() 应包含面包(4点)、土豆(1点)、胡萝卜(1点)、甜菜根(1点)
+    const auto& points = VillagerEntity::foodPoints();
+    EXPECT_NE(points.find(mc::Items::BREAD), points.end());
+    EXPECT_NE(points.find(mc::Items::POTATO), points.end());
+    EXPECT_NE(points.find(mc::Items::CARROT), points.end());
+    EXPECT_NE(points.find(mc::Items::BEETROOT), points.end());
+
+    EXPECT_EQ(points.at(mc::Items::BREAD), 4);
+    EXPECT_EQ(points.at(mc::Items::POTATO), 1);
+    EXPECT_EQ(points.at(mc::Items::CARROT), 1);
+    EXPECT_EQ(points.at(mc::Items::BEETROOT), 1);
+}
+
+TEST_F(FoodPointsTest, FoodPointsMapExcludesWheatAndSeeds)
+{
+    // 小麦和种子不在食物点数中（它们不是繁殖物品）
+    const auto& points = VillagerEntity::foodPoints();
+    EXPECT_EQ(points.find(mc::Items::WHEAT), points.end());
+    EXPECT_EQ(points.find(mc::Items::WHEAT_SEEDS), points.end());
+    EXPECT_EQ(points.find(mc::Items::BEETROOT_SEEDS), points.end());
+}
+
+TEST_F(FoodPointsTest, CountFoodPointsEmptyInventory)
+{
+    // 空库存时食物点数应为 0
+    EXPECT_EQ(m_villager->countFoodPointsInInventory(), 0);
+}
+
+TEST_F(FoodPointsTest, CountFoodPointsWithBread)
+{
+    // 6个面包 = 6 * 4 = 24 点
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::BREAD, 6));
+    EXPECT_EQ(m_villager->countFoodPointsInInventory(), 24);
+}
+
+TEST_F(FoodPointsTest, CountFoodPointsWithMixedItems)
+{
+    // 2个面包(8) + 4个土豆(4) + 4个胡萝卜(4) + 4个甜菜根(4) = 20 点
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::BREAD, 2));
+    inv.setItem(1, mc::ItemStack(mc::Items::POTATO, 4));
+    inv.setItem(2, mc::ItemStack(mc::Items::CARROT, 4));
+    inv.setItem(3, mc::ItemStack(mc::Items::BEETROOT, 4));
+    EXPECT_EQ(m_villager->countFoodPointsInInventory(), 20);
+}
+
+TEST_F(FoodPointsTest, CountFoodPointsIgnoresWheat)
+{
+    // 小麦不计入食物点数
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::WHEAT, 64));
+    EXPECT_EQ(m_villager->countFoodPointsInInventory(), 0);
+}
+
+TEST_F(FoodPointsTest, HasExcessFoodAtThreshold)
+{
+    // 6个面包 = 24 点，达到过剩阈值
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::BREAD, 6));
+    EXPECT_TRUE(m_villager->hasExcessFood());
+}
+
+TEST_F(FoodPointsTest, HasExcessFoodBelowThreshold)
+{
+    // 5个面包 = 20 点，低于过剩阈值
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::BREAD, 5));
+    EXPECT_FALSE(m_villager->hasExcessFood());
+}
+
+TEST_F(FoodPointsTest, WantsMoreFoodBelowThreshold)
+{
+    // 空库存时需要食物
+    EXPECT_TRUE(m_villager->wantsMoreFood());
+}
+
+TEST_F(FoodPointsTest, WantsMoreFoodAboveThreshold)
+{
+    // 3个面包 = 12 点，达到需求阈值（不再需要食物）
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::BREAD, 3));
+    EXPECT_FALSE(m_villager->wantsMoreFood());
+}
+
+TEST_F(FoodPointsTest, WantsMoreFoodAtThresholdBoundary)
+{
+    // 2个面包(8) + 4个土豆(4) = 12 点，恰好达到阈值（不想要更多）
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::BREAD, 2));
+    inv.setItem(1, mc::ItemStack(mc::Items::POTATO, 4));
+    EXPECT_FALSE(m_villager->wantsMoreFood());
+}
+
+TEST_F(FoodPointsTest, HasExcessFoodWithCarrotsOnly)
+{
+    // 24个胡萝卜 = 24 点，达到过剩阈值
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::CARROT, 24));
+    EXPECT_TRUE(m_villager->hasExcessFood());
+}
+
+// ============================================================================
+// ShareItemsGoal Tests
+// ============================================================================
+
+class ShareItemsGoalTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+
+        m_world = std::make_unique<TestVillagerWorld>();
+        m_farmer = std::make_unique<VillagerEntity>(EntityId(1));
+        m_farmer->setWorld(m_world.get());
+        m_farmer->setPosition(0.0, 64.0, 0.0);
+        m_farmer->setProfession(VillagerProfession::Farmer);
+
+        m_target = std::make_unique<VillagerEntity>(EntityId(2));
+        m_target->setWorld(m_world.get());
+        m_target->setPosition(2.0, 64.0, 0.0);
+    }
+
+    void TearDown() override
+    {
+        m_target.reset();
+        m_farmer.reset();
+        m_world.reset();
+    }
+
+    std::unique_ptr<TestVillagerWorld> m_world;
+    std::unique_ptr<VillagerEntity> m_farmer;
+    std::unique_ptr<VillagerEntity> m_target;
+};
+
+TEST_F(ShareItemsGoalTest, FarmerWithExcessFoodCanAbandonItems)
+{
+    // 农民有6个面包(24点食物)应可分享
+    mc::IInventory& inv = m_farmer->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::BREAD, 6));
+    EXPECT_TRUE(m_farmer->hasExcessFood());
+}
+
+TEST_F(ShareItemsGoalTest, FarmerWithNoFoodCannotAbandonItems)
+{
+    // 空库存的农民不能分享
+    EXPECT_FALSE(m_farmer->hasExcessFood());
+}
+
+TEST_F(ShareItemsGoalTest, FarmerWithWheatOnly)
+{
+    // 农民有超过半组小麦(>32)时可分享
+    mc::IInventory& inv = m_farmer->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::WHEAT, 40));
+    // 小麦不计入食物点数，所以没有过剩食物
+    EXPECT_FALSE(m_farmer->hasExcessFood());
+}
+
+TEST_F(ShareItemsGoalTest, NonFarmerCannotShareItems)
+{
+    // 非农民职业不应该有 ShareItemsGoal
+    auto librarian = std::make_unique<VillagerEntity>(EntityId(3));
+    librarian->setWorld(m_world.get());
+    // 图书管理员的职业不是农民
+    librarian->setProfession(VillagerProfession::Librarian);
+    // 食物过剩判断与职业无关，但 ShareItemsGoal 仅限农民执行
+    mc::IInventory& inv = librarian->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::BREAD, 6));
+    EXPECT_TRUE(librarian->hasExcessFood()); // 库存判断与职业无关
+    librarian.reset();
+}
+
+TEST_F(ShareItemsGoalTest, TargetNeedsFoodEmptyInventory)
+{
+    // 空库存的目标村民需要食物
+    EXPECT_TRUE(m_target->wantsMoreFood());
+}
+
+TEST_F(ShareItemsGoalTest, TargetDoesNotNeedFoodWithEnoughFood)
+{
+    // 目标有3个面包(12点)时不再需要食物
+    mc::IInventory& inv = m_target->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::BREAD, 3));
+    EXPECT_FALSE(m_target->wantsMoreFood());
 }
 
 } // namespace

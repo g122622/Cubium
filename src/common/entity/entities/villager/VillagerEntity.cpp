@@ -55,12 +55,16 @@ namespace entity {
 // VillagerEntity 静态常量
 // ============================================================================
 
-const std::unordered_map<const Item*, i32> VillagerEntity::FOOD_POINTS = {
-    {Items::BREAD, 4},
-    {Items::POTATO, 1},
-    {Items::CARROT, 1},
-    {Items::BEETROOT, 1},
-};
+const std::unordered_map<const Item*, i32>& VillagerEntity::foodPoints()
+{
+    static const std::unordered_map<const Item*, i32> s_foodPoints = {
+        {Items::BREAD, 4},
+        {Items::POTATO, 1},
+        {Items::CARROT, 1},
+        {Items::BEETROOT, 1},
+    };
+    return s_foodPoints;
+}
 
 // ============================================================================
 // VillagerEntity
@@ -174,7 +178,7 @@ i32 VillagerEntity::countFoodPointsInInventory() const
 {
     const IInventory& inv = inventory();
     i32 total = 0;
-    for (const auto& [item, points] : FOOD_POINTS) {
+    for (const auto& [item, points] : foodPoints()) {
         total += inv.countItem(*item) * points;
     }
     return total;

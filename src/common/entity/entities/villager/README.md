@@ -86,6 +86,17 @@ auto profession = ProfessionMapping::getProfessionFromPOI(poiType);
 - 繁殖食物：面包、土豆、胡萝卜、甜菜根
 - 农民额外拾取：小麦、小麦种子、甜菜根种子、骨粉
 
+### 食物点数系统
+
+VillagerEntity 提供基于库存食物点数的分享和繁殖判断：
+- `foodPoints()` 映射：面包=4点、土豆=1点、胡萝卜=1点、甜菜根=1点
+- `countFoodPointsInInventory()` — 计算库存食物点数总和
+- `hasExcessFood()` — 食物点数 >= 24 时返回 true（村民愿意分享食物）
+- `wantsMoreFood()` — 食物点数 < 12 时返回 true（村民需要更多食物）
+- `EXCESS_FOOD_THRESHOLD = 24` / `WANTS_MORE_FOOD_THRESHOLD = 12`
+
+食物点数仅统计繁殖物品（面包、土豆、胡萝卜、甜菜根），不包含小麦和种子。
+
 ### 职业等级经验
 
 | 等级 | 名称 | 升级所需累计经验 |

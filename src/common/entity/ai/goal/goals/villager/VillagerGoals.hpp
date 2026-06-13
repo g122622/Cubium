@@ -519,8 +519,10 @@ private:
 
     /**
      * @brief 检查目标是否需要食物
+     * @param target 目标村民
+     * @return 目标村民的食物点数是否低于需求阈值
      */
-    [[nodiscard]] bool _targetNeedsFood() const;
+    [[nodiscard]] bool _targetNeedsFoodForTarget(VillagerEntity* target) const;
 
     /**
      * @brief 分享食物给目标

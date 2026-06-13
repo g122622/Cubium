@@ -189,19 +189,21 @@ public:
     /**
      * @brief 食物点数映射表
      *
-     * 对应 MC 1.21.11 中 Villager.FOOD_POINTS，定义每种繁殖物品的点数值：
+     * 定义每种繁殖物品的点数值：
      * - 面包: 4点
      * - 土豆: 1点
      * - 胡萝卜: 1点
      * - 甜菜根: 1点
+     *
+     * 使用函数而非静态常量，避免静态初始化顺序问题
+     *（Items::BREAD 等指针在 Items::initialize() 后才有效）。
      */
-    static const std::unordered_map<const Item*, i32> FOOD_POINTS;
+    static const std::unordered_map<const Item*, i32>& foodPoints();
 
     /**
      * @brief 食物过剩阈值
      *
      * 村民库存中食物点数 >= 此值时视为食物过剩（hasExcessFood）。
-     * 对应 MC 中 Villager.hasExcessFood() 的阈值 24。
      */
     static constexpr i32 EXCESS_FOOD_THRESHOLD = 24;
 
@@ -209,15 +211,13 @@ public:
      * @brief 食物需求阈值
      *
      * 村民库存中食物点数 < 此值时视为需要食物（wantsMoreFood）。
-     * 对应 MC 中 Villager.wantsMoreFood() 的阈值 12。
      */
     static constexpr i32 WANTS_MORE_FOOD_THRESHOLD = 12;
 
     /**
      * @brief 计算村民库存中的食物点数
      *
-     * 按照 FOOD_POINTS 映射计算每种繁殖物品的数量 × 点数之和。
-     * 对应 MC 中 Villager.countFoodPointsInInventory()。
+     * 按照 foodPoints() 映射计算每种繁殖物品的数量 × 点数之和。
      *
      * @return 食物点数总和
      */
@@ -227,7 +227,6 @@ public:
      * @brief 村民是否有过剩食物
      *
      * 当食物点数 >= EXCESS_FOOD_THRESHOLD (24) 时返回 true。
-     * 对应 MC 中 Villager.hasExcessFood()。
      */
     [[nodiscard]] bool hasExcessFood() const;
 
@@ -235,7 +234,6 @@ public:
      * @brief 村民是否需要更多食物
      *
      * 当食物点数 < WANTS_MORE_FOOD_THRESHOLD (12) 时返回 true。
-     * 对应 MC 中 Villager.wantsMoreFood()。
      */
     [[nodiscard]] bool wantsMoreFood() const;
 
