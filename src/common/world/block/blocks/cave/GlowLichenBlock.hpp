@@ -23,9 +23,11 @@
 
 #pragma once
 
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../IWaterLoggable.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/IWaterLoggable.hpp"
+#include <array>
 
 namespace mc {
 namespace blocks {
@@ -35,8 +37,8 @@ namespace blocks {
  *
  * 可附着在任意六个面的发光方块，支持含水。
  * 根据附着的面数量决定形状和光照。
- *
- * 参考: net.minecraft.block.GlowLichenBlock
+ * 每个面是一个1像素厚的薄板，多个面激活时组合为联合形状。
+ * 预计算64种形状组合（2^6 = NORTH|SOUTH|EAST|WEST|UP|DOWN）。
  */
 class GlowLichenBlock : public Block, public IWaterLoggable {
 public:
@@ -74,7 +76,20 @@ protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 
 private:
-    CollisionShape m_shape;
+    /**
+     * @brief 根据六个面的激活状态计算形状索引
+     * @param down 下面是否激活
+     * @param up 上面是否激活
+     * @param north 北面是否激活
+     * @param south 南面是否激活
+     * @param east 东面是否激活
+     * @param west 西面是否激活
+     * @return 形状索引 (0-63)
+     */
+    [[nodiscard]] static size_t _getShapeIndex(bool down, bool up, bool north, bool south, bool east, bool west);
+
+    /// 预计算的形状缓存（64种组合：2^6，六个布尔面属性）
+    std::array<CollisionShape, 64> m_shapes;
 };
 
 } // namespace blocks
