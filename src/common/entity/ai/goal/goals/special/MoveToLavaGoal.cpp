@@ -27,7 +27,6 @@
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../../world/block/BlockState.hpp"
-#include "../../../../../world/block/Material.hpp"
 #include "../../../../../world/fluid/Fluid.hpp"
 #include "../../../../../world/fluid/FluidTags.hpp"
 #include "../../../../core/CreatureEntity.hpp"
@@ -330,8 +329,9 @@ bool MoveToLavaGoal::shouldMoveTo(IWorld* world, const BlockPos& pos)
     }
 
     // 检查上方是否是空气或可通过的方块
-    const Material& material = aboveState->getMaterial();
-    return material.isReplaceable() || !material.isSolid();
+    // canBeReplacedByFluid() = canBeReplaced() || !isSolid()
+    // 对应 MC Java 的 BlockState.canBeReplaced(Fluid)
+    return aboveState->canBeReplacedByFluid();
 }
 
 } // namespace mc::entity::ai::goal
