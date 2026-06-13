@@ -122,68 +122,17 @@ bool AttributeCommand::_tryGetAttributeInstance(CommandContext<ServerCommandSour
     Player*& outPlayer,
     entity::attribute::AttributeInstance*& outInstance)
 {
-    auto* server = source.server();
-    if (server == nullptr) {
-        source.sendMessage("Server not available");
+    entity::attribute::AttributeMap* attrMap = nullptr;
+    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, outPlayer, attrMap)) {
         return false;
     }
 
-    auto* world = source.world();
-    if (world == nullptr) {
-        source.sendMessage("World not available");
-        return false;
-    }
-
-    const EntitySelector& selector = context.getArgument<EntitySelector>("target");
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
-        source.sendError("No matching entities were found");
-        return false;
-    }
-
-    if (playerIds.size() > 1) {
-        source.sendMessage("Only one entity is allowed, but the provided selector allows more");
-        return false;
-    }
-
-    PlayerId playerId = playerIds[0];
-
-    // TODO: 同 _tryGetLivingEntityWithAttribute，当前仅支持 Player 实体，需扩展到所有 LivingEntity。
-    // 获取玩家实体
-    Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
-    if (player == nullptr) {
-        auto* playerData = server->playerManager().getPlayer(playerId);
-        if (playerData == nullptr) {
-            source.sendMessage("Player not found");
-            return false;
-        }
-        source.sendMessage("Player entity not available");
-        return false;
-    }
-
-    // Player 继承自 LivingEntity，dynamic_cast 用于未来扩展到非玩家活体实体
-    auto* livingEntity = dynamic_cast<LivingEntity*>(player);
-    MC_ASSERT_RELEASE(livingEntity != nullptr);
-
-    // 检查属性是否存在
-    if (!_isKnownAttribute(attrName)) {
-        source.sendError("Unknown attribute: " + attrName);
-        return false;
-    }
-
-    auto& attrMap = livingEntity->attributes();
-    if (!attrMap.hasAttribute(attrName)) {
-        source.sendError("Entity " + player->username() + " doesn't have attribute " + attrName);
-        return false;
-    }
-
-    auto* instance = attrMap.getInstance(attrName);
+    auto* instance = attrMap->getInstance(attrName);
     if (instance == nullptr) {
-        source.sendError("Entity " + player->username() + " doesn't have attribute instance for " + attrName);
+        source.sendError("Entity " + outPlayer->username() + " doesn't have attribute instance for " + attrName);
         return false;
     }
 
-    outPlayer = player;
     outInstance = instance;
     return true;
 }
@@ -673,8 +622,8 @@ std::string AttributeCommand::_normalizeAttributeName(const std::string& name)
     return normalized;
 }
 
-// TODO: _isKnownAttribute、_getAttributeDefaultValue、_getAttributeRange 三个方法使用硬编码的
-// 属性名和范围值，与 Attributes.hpp 中的工厂函数定义可能不同步。未来应迁移到通过属性
+// TODO: _isKnownAttribute 和 _getAttributeRange 使用硬编码的属性名和范围值，
+// 与 Attributes.hpp 中的工厂函数定义可能不同步。未来应迁移到通过属性
 // 注册表（AttributeRegistry）动态查询，避免手动维护两份数据。
 bool AttributeCommand::_isKnownAttribute(const std::string& name) noexcept
 {
@@ -702,38 +651,6 @@ bool AttributeCommand::_isKnownAttribute(const std::string& name) noexcept
     };
 
     return knownAttrs.count(name) > 0;
-}
-
-f64 AttributeCommand::_getAttributeDefaultValue(const std::string& name) noexcept
-{
-    using namespace entity::attribute;
-
-    static const std::unordered_map<std::string, f64> defaultValues = {
-        {Attributes::MAX_HEALTH, 20.0},
-        {Attributes::FOLLOW_RANGE, 32.0},
-        {Attributes::KNOCKBACK_RESISTANCE, 0.0},
-        {Attributes::MOVEMENT_SPEED, 0.1},
-        {Attributes::FLYING_SPEED, 0.4},
-        {Attributes::ATTACK_DAMAGE, 2.0},
-        {Attributes::ATTACK_KNOCKBACK, 0.0},
-        {Attributes::ATTACK_SPEED, 4.0},
-        {Attributes::ARMOR, 0.0},
-        {Attributes::ARMOR_TOUGHNESS, 0.0},
-        {Attributes::LUCK, 0.0},
-        {Attributes::MAX_ABSORPTION, 0.0},
-        {Attributes::BREATH_MAX, 300.0},
-        {Attributes::JUMP_BOOST, 0.42},
-        {Attributes::HORSE_JUMP_STRENGTH, 0.7},
-        {Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 0.0},
-        {Attributes::ENTITY_GRAVITY, 0.08},
-        {Attributes::SWIM_SPEED, 1.0},
-    };
-
-    auto it = defaultValues.find(name);
-    if (it != defaultValues.end()) {
-        return it->second;
-    }
-    return 0.0;
 }
 
 std::pair<f64, f64> AttributeCommand::_getAttributeRange(const std::string& name) noexcept

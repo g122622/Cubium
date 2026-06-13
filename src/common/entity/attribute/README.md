@@ -11,8 +11,8 @@ src/common/entity/attribute/
 ├── Attribute.hpp          # 属性基类定义（注册名称、默认值、范围）
 ├── AttributeModifier.hpp  # 属性修改器和操作类型枚举
 ├── AttributeInstance.hpp  # 属性实例（管理单个属性值和修改器，负责计算）
-├── AttributeMap.hpp       # 属性映射表（管理实体的所有属性，线程安全）
-└── Attributes.hpp         # 标准属性定义（14种MC原版属性+2种Forge扩展属性）
+├── AttributeMap.hpp       # 属性映射表（管理实体的所有属性，线程安全，提供resetBaseValue/hasModifier/getModifierValue）
+├── Attributes.hpp         # 标准属性定义（14种MC原版属性+2种Forge扩展属性）
 ```
 
 ## 内部模块关系

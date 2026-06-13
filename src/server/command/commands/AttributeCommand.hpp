@@ -98,7 +98,6 @@ private:
     // 辅助方法
     static std::string _normalizeAttributeName(const std::string& name);
     static bool _isKnownAttribute(const std::string& name) noexcept;
-    static f64 _getAttributeDefaultValue(const std::string& name) noexcept;
     static std::pair<f64, f64> _getAttributeRange(const std::string& name) noexcept;
 };
 
