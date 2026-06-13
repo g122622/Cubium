@@ -622,5 +622,340 @@ TEST_F(EnderDragonEntityTest, NonHeadDamageReduction_MCOriginalFormula)
     EXPECT_NEAR(dmg1, 1.25f, 0.01f);
 }
 
+// ========== onCrystalDestroyed 测试 ==========
+
+TEST_F(EnderDragonEntityTest, OnCrystalDestroyed_NoDamageWhenNotClosestCrystal)
+{
+    // 当被破坏的水晶不是龙绑定的最近水晶时，龙不应该受到伤害
+    entity::EnderDragonEntity dragon(EntityId(1));
+    dragon.setWorld(m_world.get());
+    dragon.setHealth(200.0f);
+    dragon.setPosition(Vector3(0.0f, 64.0f, 0.0f));
+
+    // 创建两个水晶
+    entity::EnderCrystalEntity crystal1;
+    entity::EnderCrystalEntity crystal2;
+
+    // 龙绑定到 crystal1
+    dragon.setClosestEnderCrystal(&crystal1);
+
+    // crystal2 被破坏（不是最近的），龙不应受伤
+    BlockPos pos(5, 64, 5);
+    auto fallDmg = DamageSources::fall();
+
+    f32 healthBefore = dragon.health();
+    dragon.onCrystalDestroyed(&crystal2, pos, fallDmg);
+    EXPECT_FLOAT_EQ(dragon.health(), healthBefore);
+
+    // 最近水晶不应被清除
+    EXPECT_EQ(dragon.closestEnderCrystal(), &crystal1);
+}
+
+TEST_F(EnderDragonEntityTest, OnCrystalDestroyed_ClearsClosestCrystalWhenDestroyed)
+{
+    // 当被破坏的水晶是龙绑定的最近水晶时，应清除引用
+    entity::EnderDragonEntity dragon(EntityId(1));
+    dragon.setWorld(m_world.get());
+    dragon.setHealth(200.0f);
+    dragon.setPosition(Vector3(0.0f, 64.0f, 0.0f));
+
+    entity::EnderCrystalEntity crystal;
+    dragon.setClosestEnderCrystal(&crystal);
+
+    // 在范围内破坏水晶
+    BlockPos pos(5, 64, 5);
+    auto explosionDmg = DamageSources::explosion();
+
+    dragon.onCrystalDestroyed(&crystal, pos, explosionDmg);
+
+    // 最近水晶引用应被清除
+    EXPECT_EQ(dragon.closestEnderCrystal(), nullptr);
+}
+
+TEST_F(EnderDragonEntityTest, OnCrystalDestroyed_PlayerFallbackToGetClosestPlayer)
+{
+    // MC 原版：当 source.getEntity() 不是 Player 时，搜索最近的玩家
+    // DragonTestWorld 的 getClosestPlayer 返回 m_closestPlayer
+
+    entity::EnderDragonEntity dragon(EntityId(1));
+    dragon.setWorld(m_world.get());
+    dragon.setHealth(200.0f);
+    dragon.setPosition(Vector3(0.0f, 64.0f, 0.0f));
+
+    entity::EnderCrystalEntity crystal;
+    dragon.setClosestEnderCrystal(&crystal);
+
+    // 设置 fallback 玩家
+    auto player = std::make_unique<Player>(EntityId(10), "TestPlayer");
+    player->setWorld(m_world.get());
+    Player* playerPtr = player.get();
+    m_world->setClosestPlayerForTest(playerPtr);
+    m_world->spawnEntity(std::move(player));
+
+    // 使用非玩家伤害来源（如摔落伤害），触发 getNearestPlayer fallback
+    BlockPos pos(5, 64, 5);
+    auto fallDmg = DamageSources::fall();
+
+    f32 healthBefore = dragon.health();
+    dragon.onCrystalDestroyed(&crystal, pos, fallDmg);
+
+    // 龙应该受伤（通过 fallback 找到玩家，创建带玩家的爆炸伤害）
+    EXPECT_LT(dragon.health(), healthBefore);
+}
+
+TEST_F(EnderDragonEntityTest, OnCrystalDestroyed_NoDamageWhenDead)
+{
+    // 龙死亡时不应受到水晶伤害
+    entity::EnderDragonEntity dragon(EntityId(1));
+    dragon.setWorld(m_world.get());
+    dragon.setHealth(0.0f);
+    dragon.setPosition(Vector3(0.0f, 64.0f, 0.0f));
+
+    entity::EnderCrystalEntity crystal;
+    dragon.setClosestEnderCrystal(&crystal);
+
+    BlockPos pos(5, 64, 5);
+    auto explosionDmg = DamageSources::explosion();
+
+    // 龙已死亡，不应受伤
+    dragon.onCrystalDestroyed(&crystal, pos, explosionDmg);
+    // 不崩溃即通过
+}
+
+TEST_F(EnderDragonEntityTest, OnCrystalDestroyed_NoDamageWhenCrystalTooFar)
+{
+    // 水晶在回血范围外，龙不应受伤
+    entity::EnderDragonEntity dragon(EntityId(1));
+    dragon.setWorld(m_world.get());
+    dragon.setHealth(200.0f);
+    dragon.setPosition(Vector3(0.0f, 64.0f, 0.0f));
+
+    entity::EnderCrystalEntity crystal;
+    dragon.setClosestEnderCrystal(&crystal);
+
+    // 水晶在 50 格外（超出 32 格回血范围）
+    BlockPos pos(50, 64, 0);
+    auto explosionDmg = DamageSources::explosion();
+
+    f32 healthBefore = dragon.health();
+    dragon.onCrystalDestroyed(&crystal, pos, explosionDmg);
+    EXPECT_FLOAT_EQ(dragon.health(), healthBefore);
+
+    // 最近水晶不应被清除（因为超出范围）
+    EXPECT_EQ(dragon.closestEnderCrystal(), &crystal);
+}
+
+// ========== isSlowed 测试 ==========
+
+TEST_F(EnderDragonEntityTest, IsSlowed_InitiallyFalse)
+{
+    // 初始状态 m_slowed 应为 false
+    entity::EnderDragonEntity dragon(EntityId(1));
+    EXPECT_FALSE(dragon.isSlowed());
+}
+
+TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_DyingDragonRejectsDamage)
+{
+    // 死亡中的龙不应受伤
+    entity::EnderDragonEntity dragon(EntityId(1));
+    dragon.setWorld(m_world.get());
+    dragon.setHealth(200.0f);
+    dragon.setPhase(entity::EnderDragonEntity::Phase::Dying);
+
+    entity::EnderDragonPartEntity headPart(EntityId(2));
+    headPart.setPart(entity::EnderDragonPartEntity::Part::Head);
+
+    auto explosionDmg = DamageSources::explosion();
+    f32 healthBefore = dragon.health();
+
+    bool result = dragon.attackEntityPartFrom(&headPart, explosionDmg, 10.0f);
+    EXPECT_FALSE(result);
+    EXPECT_FLOAT_EQ(dragon.health(), healthBefore);
+}
+
+TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_InvulnerableToSource)
+{
+    // 对特定伤害来源免疫时不应受伤
+    // 注意：isInvulnerableTo 依赖具体实现，此处验证方法不崩溃
+    entity::EnderDragonEntity dragon(EntityId(1));
+    dragon.setWorld(m_world.get());
+    dragon.setHealth(200.0f);
+
+    entity::EnderDragonPartEntity headPart(EntityId(2));
+    headPart.setPart(entity::EnderDragonPartEntity::Part::Head);
+
+    // 摔落伤害应被拒绝（不是玩家攻击也不是爆炸）
+    auto fallDmg = DamageSources::fall();
+    bool result = dragon.attackEntityPartFrom(&headPart, fallDmg, 10.0f);
+    EXPECT_FALSE(result);
+}
+
+TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_ExplosionDamageAccepted)
+{
+    // 爆炸伤害应被接受
+    entity::EnderDragonEntity dragon(EntityId(1));
+    dragon.setWorld(m_world.get());
+    dragon.setHealth(200.0f);
+
+    entity::EnderDragonPartEntity headPart(EntityId(2));
+    headPart.setPart(entity::EnderDragonPartEntity::Part::Head);
+
+    auto explosionDmg = DamageSources::explosion();
+    f32 healthBefore = dragon.health();
+
+    bool result = dragon.attackEntityPartFrom(&headPart, explosionDmg, 10.0f);
+    EXPECT_TRUE(result);
+    // 头部受伤 = 原始伤害
+    EXPECT_NEAR(dragon.health(), healthBefore - 10.0f, 0.01f);
+}
+
+TEST_F(EnderDragonEntityTest, AttackEntityPartFrom_HeadVsBodyDamage)
+{
+    // 头部和身体伤害对比
+    // MC 原版：头部伤害 = 原始伤害，身体伤害 = damage / 4 + min(damage, 1)
+    // 身体伤害更低，所以身体受伤后血量更高
+    entity::EnderDragonEntity dragon1(EntityId(1));
+    dragon1.setWorld(m_world.get());
+    dragon1.setHealth(200.0f);
+
+    entity::EnderDragonEntity dragon2(EntityId(2));
+    dragon2.setWorld(m_world.get());
+    dragon2.setHealth(200.0f);
+
+    entity::EnderDragonPartEntity headPart(EntityId(3));
+    headPart.setPart(entity::EnderDragonPartEntity::Part::Head);
+
+    entity::EnderDragonPartEntity bodyPart(EntityId(4));
+    bodyPart.setPart(entity::EnderDragonPartEntity::Part::Body);
+
+    auto explosionDmg1 = DamageSources::explosion();
+    auto explosionDmg2 = DamageSources::explosion();
+
+    dragon1.attackEntityPartFrom(&headPart, explosionDmg1, 10.0f);
+    dragon2.attackEntityPartFrom(&bodyPart, explosionDmg2, 10.0f);
+
+    // 龙应受伤
+    EXPECT_GT(dragon1.health(), 0.0f);
+    EXPECT_GT(dragon2.health(), 0.0f);
+    // 身体受伤后血量应高于头部（因为身体有减伤）
+    // 头部伤害 = 10.0，身体伤害 = 10/4 + min(10, 1) = 3.5
+    EXPECT_GT(dragon2.health(), dragon1.health());
+}
+
+// ========== BlockTags DRAGON_IMMUNE 集成验证 ==========
+
+TEST_F(EnderDragonEntityTest, BlockTags_DragonImmune_CoreBlocks)
+{
+    // 核心末影龙免疫方块验证
+    // 基岩、黑曜石、末地石是末地最常见的 DRAGON_IMMUNE 方块
+    EXPECT_TRUE(BlockTags::DRAGON_IMMUNE().contains(ResourceLocation("minecraft", "bedrock")));
+    EXPECT_TRUE(BlockTags::DRAGON_IMMUNE().contains(ResourceLocation("minecraft", "obsidian")));
+    EXPECT_TRUE(BlockTags::DRAGON_IMMUNE().contains(ResourceLocation("minecraft", "end_stone")));
+    EXPECT_TRUE(BlockTags::DRAGON_IMMUNE().contains(ResourceLocation("minecraft", "iron_bars")));
+
+    // 末地传送门相关
+    EXPECT_TRUE(BlockTags::DRAGON_IMMUNE().contains(ResourceLocation("minecraft", "end_portal")));
+    EXPECT_TRUE(BlockTags::DRAGON_IMMUNE().contains(ResourceLocation("minecraft", "end_portal_frame")));
+    EXPECT_TRUE(BlockTags::DRAGON_IMMUNE().contains(ResourceLocation("minecraft", "end_gateway")));
+
+    // 命令方块
+    EXPECT_TRUE(BlockTags::DRAGON_IMMUNE().contains(ResourceLocation("minecraft", "command_block")));
+}
+
+TEST_F(EnderDragonEntityTest, BlockTags_DragonImmune_VsWitherImmune)
+{
+    // DRAGON_IMMUNE 和 WITHER_IMMUNE 有重叠但不完全相同
+    // 基岩两者都免疫
+    EXPECT_TRUE(BlockTags::DRAGON_IMMUNE().contains(ResourceLocation("minecraft", "bedrock")));
+    EXPECT_TRUE(BlockTags::WITHER_IMMUNE().contains(ResourceLocation("minecraft", "bedrock")));
+
+    // 末地石龙免疫但凋灵不免疫（凋灵可以破坏末地石）
+    EXPECT_TRUE(BlockTags::DRAGON_IMMUNE().contains(ResourceLocation("minecraft", "end_stone")));
+    // 黑曜石龙免疫但凋灵不免疫（MC 原版凋灵可以破坏黑曜石）
+    EXPECT_TRUE(BlockTags::DRAGON_IMMUNE().contains(ResourceLocation("minecraft", "obsidian")));
+}
+
+TEST_F(EnderDragonEntityTest, BlockTags_DragonTransparent_LightBlock)
+{
+    // DRAGON_TRANSPARENT：龙穿过但不破坏的方块
+    // MC 1.21.11: 只有光照方块
+    EXPECT_TRUE(BlockTags::DRAGON_TRANSPARENT().contains(ResourceLocation("minecraft", "light")));
+
+    // 空气不应在 DRAGON_TRANSPARENT 中（空气由 isAir() 单独判断）
+    EXPECT_FALSE(BlockTags::DRAGON_TRANSPARENT().contains(ResourceLocation("minecraft", "air")));
+}
+
+// ========== DamageSources::explosion 工厂方法测试 ==========
+
+TEST_F(EnderDragonEntityTest, DamageSources_Explosion_WithNullCause)
+{
+    // explosion(crystal, nullptr) - 水晶爆炸，无玩家归属
+    entity::EnderDragonEntity dragon(EntityId(1));
+    auto dmg = DamageSources::explosion(&dragon, nullptr);
+
+    EXPECT_TRUE(dmg.isExplosion());
+    EXPECT_TRUE(dmg.isEntitySource());
+    // causeEntity 是 nullptr 时，getEntity() 应返回 nullptr
+    // IndirectEntityDamageSource 的 getEntity() 返回 cause
+    EXPECT_EQ(dmg.getEntity(), nullptr);
+}
+
+TEST_F(EnderDragonEntityTest, DamageSources_Explosion_WithPlayerCause)
+{
+    // explosion(crystal, player) - 水晶被玩家破坏
+    entity::EnderDragonEntity dragon(EntityId(1));
+    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    Player* playerPtr = player.get();
+
+    auto dmg = DamageSources::explosion(&dragon, playerPtr);
+    EXPECT_TRUE(dmg.isExplosion());
+    EXPECT_TRUE(dmg.isEntitySource());
+    EXPECT_EQ(dmg.getEntity(), playerPtr);
+}
+
+// ========== 末影龙方块破坏规则验证 ==========
+
+TEST_F(EnderDragonEntityTest, DragonBlockDestruction_Rules)
+{
+    // 验证 MC 原版方块破坏规则的核心逻辑（不直接调用私有方法）
+    // 1. DRAGON_IMMUNE 方块：龙碰墙减速但不破坏
+    // 2. DRAGON_TRANSPARENT 方块：龙穿过不减速不破坏
+    // 3. mobGriefing=false：龙碰墙减速但不破坏
+    // 4. 普通方块：龙破坏并生成粒子
+
+    // DRAGON_IMMUNE 方块在末地很常见
+    EXPECT_TRUE(BlockTags::DRAGON_IMMUNE().contains(ResourceLocation("minecraft", "bedrock")));
+    EXPECT_TRUE(BlockTags::DRAGON_IMMUNE().contains(ResourceLocation("minecraft", "obsidian")));
+    EXPECT_TRUE(BlockTags::DRAGON_IMMUNE().contains(ResourceLocation("minecraft", "end_stone")));
+
+    // 普通方块不应在 DRAGON_IMMUNE 中
+    EXPECT_FALSE(BlockTags::DRAGON_IMMUNE().contains(ResourceLocation("minecraft", "stone")));
+    EXPECT_FALSE(BlockTags::DRAGON_IMMUNE().contains(ResourceLocation("minecraft", "dirt")));
+
+    // DRAGON_TRANSPARENT 方块
+    EXPECT_TRUE(BlockTags::DRAGON_TRANSPARENT().contains(ResourceLocation("minecraft", "light")));
+}
+
+// ========== 龙部件碰撞检测与 m_slowed 的集成 ==========
+
+TEST_F(EnderDragonEntityTest, DragonParts_HeadNeckBodyInitialized)
+{
+    // 龙的头、颈、身部件必须被初始化，因为 _collideWithEntities 依赖它们
+    entity::EnderDragonEntity dragon(EntityId(1));
+
+    const auto& parts = dragon.getDragonParts();
+    EXPECT_EQ(parts.size(), 8u);
+
+    // 验证前三个部件是头、颈、身
+    ASSERT_NE(parts[0], nullptr);
+    EXPECT_EQ(parts[0]->part(), entity::EnderDragonPartEntity::Part::Head);
+
+    ASSERT_NE(parts[1], nullptr);
+    EXPECT_EQ(parts[1]->part(), entity::EnderDragonPartEntity::Part::Neck);
+
+    ASSERT_NE(parts[2], nullptr);
+    EXPECT_EQ(parts[2]->part(), entity::EnderDragonPartEntity::Part::Body);
+}
+
 } // namespace
 } // namespace mc

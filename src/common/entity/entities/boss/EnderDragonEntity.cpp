@@ -574,11 +574,9 @@ void EnderDragonEntity::_attackEntitiesInList()
         }
     }
 
-    // 破坏方块
-    _destroyBlocksInAABB(dragonBox);
-
-    // MC 原版：检查龙头、颈、身三个部件是否碰到了不可破坏的方块
-    // inWall = checkWalls(head) | checkWalls(neck) | checkWalls(body)
+    // MC 原版：checkWalls(head) | checkWalls(neck) | checkWalls(body)
+    // 对龙头、颈、身三个部件的碰撞箱调用 _destroyBlocksInAABB
+    // 这同时完成了方块破坏和碰墙检测，不需要对 dragonBox 单独调用
     // 碰到 DRAGON_IMMUNE 或 mobGriefing 关闭时的方块会设置 m_slowed，
     // 导致龙的飞行速度降低（乘以 0.8）和翅膀扇动速度减半
     m_slowed = false;

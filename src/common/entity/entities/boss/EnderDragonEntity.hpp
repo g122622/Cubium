@@ -316,6 +316,14 @@ public:
     [[nodiscard]] bool isDying() const { return m_phase == Phase::Dying; }
 
     /**
+     * @brief 是否碰墙减速中（MC 原版 inWall）
+     *
+     * 当龙头、颈或身碰到 DRAGON_IMMUNE 方块时为 true，
+     * 导致翅膀扇动速度减半，飞行速度乘以 0.8。
+     */
+    [[nodiscard]] bool isSlowed() const { return m_slowed; }
+
+    /**
      * @brief 获取死亡计时器
      */
     [[nodiscard]] i32 deathTicks() const { return m_deathTicks; }
