@@ -203,8 +203,8 @@ add_library(mc_common STATIC
     # Entity - Misc
     entity/entities/misc/MiscEntities.cpp
     entity/entities/misc/OminousItemSpawnerEntity.cpp
-    # Entity - Boss (EnderDragon is incomplete, Wither is complete)
-    # entity/entities/boss/EnderDragonEntity.cpp
+    # Entity - Boss
+    entity/entities/boss/EnderDragonEntity.cpp
     entity/entities/boss/WitherEntity.cpp
     # Entity - Villager
     entity/entities/villager/AbstractVillagerEntity.cpp

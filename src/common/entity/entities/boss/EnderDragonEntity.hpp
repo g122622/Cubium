@@ -37,6 +37,7 @@ namespace mc {
 class IWorld;
 class DamageSource;
 class LivingEntity;
+class Player;
 
 namespace entity {
 class EnderCrystalEntity;
@@ -355,6 +356,11 @@ protected:
 
 private:
     /**
+     * @brief 初始化龙部件
+     */
+    void initDragonParts();
+
+    /**
      * @brief 更新龙部件位置
      */
     void _updateDragonParts();
@@ -375,7 +381,14 @@ private:
     void _attackEntitiesInList();
 
     /**
-     * @brief 破坏方块
+     * @brief 检查并破坏区域内的方块
+     *
+     * 检查给定碰撞箱内的方块，破坏可破坏的方块（受 mobGriefing 规则控制），
+     * 跳过 DRAGON_TRANSPARENT 方块，遇到 DRAGON_IMMUNE 方块时标记碰墙。
+     *
+     * @param area 要检查的碰撞箱
+     * @return true 如果碰到了不可破坏的方块（DRAGON_IMMUNE 或 mobGriefing 关闭），
+     *         用于设置 m_slowed 标志影响龙的飞行行为
      */
     bool _destroyBlocksInAABB(const AxisAlignedBB& area);
 
@@ -419,6 +432,8 @@ private:
     // 动画
     f32 m_prevAnimTime = 0.0f;
     f32 m_animTime = 0.0f;
+    // MC 原版 inWall：碰到 DRAGON_IMMUNE 方块或 mobGriefing 关闭时的方块时为 true
+    // 翅膀扇动速度减半，移动速度乘以 0.8（移动减速待阶段系统实现后接入）
     bool m_slowed = false;
 
     // 死亡动画

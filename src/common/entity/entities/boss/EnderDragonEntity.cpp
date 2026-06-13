@@ -26,8 +26,10 @@
 #include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/effect/EffectEntities.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/experience/ExperienceDropHandler.hpp"
-#include "common/util/math/AxisAlignedBB.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -182,10 +184,14 @@ std::optional<ResourceLocation> EnderDragonEntity::getHurtSound(DamageSource& /*
 void EnderDragonEntity::tick()
 {
     // 更新动画时间
+    // MC 原版：栖息阶段 flapTime += 0.1F，碰墙时 flapTime += f7 * 0.5F（半速），正常 flapTime += f7
     m_prevAnimTime = m_animTime;
     if (isDying()) {
         // 死亡时动画加速
         m_animTime += 0.02f;
+    } else if (m_slowed) {
+        // 碰到 DRAGON_IMMUNE 方块时翅膀扇动速度减半
+        m_animTime += 0.005f;
     } else {
         m_animTime += 0.01f;
     }
@@ -297,11 +303,29 @@ void EnderDragonEntity::onCrystalDestroyed(EnderCrystalEntity* crystal, const Bl
         if (isClosestCrystal) {
             // MC 原版：对龙头部造成爆炸伤害，伤害值为 10
             // 使用 IndirectEntityDamageSource 表示由水晶引起的爆炸伤害
-            // crystal 是直接来源（水晶），causeEntity 是造成者（如玩家）
+            // crystal 是直接来源（水晶），causeEntity 是造成者（玩家）
+            // MC 原版逻辑：如果 source.getEntity() 是 Player，直接使用；
+            // 否则搜索水晶位置 64 格内最近的玩家作为 fallback
             Entity* sourceEntity = source.getEntity();
-            Entity* causeEntity = sourceEntity;
+            Player* causePlayer = nullptr;
 
-            auto explosionDamage = DamageSources::explosion(crystal, causeEntity);
+            if (sourceEntity) {
+                causePlayer = dynamic_cast<Player*>(sourceEntity);
+            }
+
+            // MC 原版：CRYSTAL_DESTROY_TARGETING = TargetingConditions.forCombat().range(64.0)
+            // 如果伤害来源不是玩家，搜索附近最近的玩家
+            if (!causePlayer) {
+                IWorld* worldPtr = world();
+                if (worldPtr) {
+                    causePlayer = worldPtr->getClosestPlayer(Vector3(static_cast<f32>(pos.x) + 0.5f,
+                                                                 static_cast<f32>(pos.y) + 0.5f,
+                                                                 static_cast<f32>(pos.z) + 0.5f),
+                        64.0f);
+                }
+            }
+
+            auto explosionDamage = DamageSources::explosion(crystal, causePlayer);
             hurt(explosionDamage, 10.0f);
         }
     }
@@ -501,12 +525,12 @@ void EnderDragonEntity::_collideWithEntities()
         if (!part) continue;
 
         // 获取部件碰撞箱内的实体
-        AxisAlignedBB partBox = part->getBoundingBox();
+        AxisAlignedBB partBox = part->boundingBox();
         std::vector<Entity*> entities = worldPtr->getEntitiesInAABB(partBox, this);
 
         // 对碰撞的实体造成伤害
         for (Entity* entity : entities) {
-            if (entity && entity != this && !entity->isDead()) {
+            if (entity && entity != this && entity->isAlive()) {
                 // 只对玩家造成伤害
                 if (entity->typeId() == entity::EntityTypeIdNumber::PLAYER) {
                     // 龙碰撞造成伤害
@@ -528,16 +552,16 @@ void EnderDragonEntity::_attackEntitiesInList()
     }
 
     // 获取龙的碰撞箱
-    AxisAlignedBB dragonBox = getBoundingBox();
+    AxisAlignedBB dragonBox = boundingBox();
 
     // 扩展碰撞箱以包含翅膀
-    dragonBox = dragonBox.grow(1.0f, 0.5f, 1.0f);
+    dragonBox = dragonBox.expand(1.0f, 0.5f, 1.0f);
 
     // 获取碰撞的实体
     std::vector<Entity*> entities = worldPtr->getEntitiesInAABB(dragonBox, this);
 
     for (Entity* entity : entities) {
-        if (!entity || entity->isDead()) {
+        if (!entity || !entity->isAlive()) {
             continue;
         }
 
@@ -552,11 +576,28 @@ void EnderDragonEntity::_attackEntitiesInList()
 
     // 破坏方块
     _destroyBlocksInAABB(dragonBox);
+
+    // MC 原版：检查龙头、颈、身三个部件是否碰到了不可破坏的方块
+    // inWall = checkWalls(head) | checkWalls(neck) | checkWalls(body)
+    // 碰到 DRAGON_IMMUNE 或 mobGriefing 关闭时的方块会设置 m_slowed，
+    // 导致龙的飞行速度降低（乘以 0.8）和翅膀扇动速度减半
+    m_slowed = false;
+    if (m_dragonPartHead) {
+        m_slowed = _destroyBlocksInAABB(m_dragonPartHead->boundingBox()) || m_slowed;
+    }
+    if (m_dragonPartNeck) {
+        m_slowed = _destroyBlocksInAABB(m_dragonPartNeck->boundingBox()) || m_slowed;
+    }
+    if (m_dragonPartBody) {
+        m_slowed = _destroyBlocksInAABB(m_dragonPartBody->boundingBox()) || m_slowed;
+    }
 }
 
 bool EnderDragonEntity::_destroyBlocksInAABB(const AxisAlignedBB& area)
 {
-    // 破坏区域内的方块
+    // 检查并破坏区域内的方块
+    // 返回值：是否碰到了不可破坏的方块（DRAGON_IMMUNE 或 mobGriefing 关闭时的方块）
+    // 此返回值用于设置龙的 m_slowed 标志（MC 原版 inWall）
     IWorld* worldPtr = world();
     if (!worldPtr) {
         return false;
@@ -567,12 +608,12 @@ bool EnderDragonEntity::_destroyBlocksInAABB(const AxisAlignedBB& area)
     bool mobGriefing = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING);
 
     // 计算方块坐标范围
-    BlockCoord minX = static_cast<BlockCoord>(std::floor(area.minX()));
-    BlockCoord minY = static_cast<BlockCoord>(std::floor(area.minY()));
-    BlockCoord minZ = static_cast<BlockCoord>(std::floor(area.minZ()));
-    BlockCoord maxX = static_cast<BlockCoord>(std::floor(area.maxX()));
-    BlockCoord maxY = static_cast<BlockCoord>(std::floor(area.maxY()));
-    BlockCoord maxZ = static_cast<BlockCoord>(std::floor(area.maxZ()));
+    BlockCoord minX = static_cast<BlockCoord>(std::floor(area.minX));
+    BlockCoord minY = static_cast<BlockCoord>(std::floor(area.minY));
+    BlockCoord minZ = static_cast<BlockCoord>(std::floor(area.minZ));
+    BlockCoord maxX = static_cast<BlockCoord>(std::floor(area.maxX));
+    BlockCoord maxY = static_cast<BlockCoord>(std::floor(area.maxY));
+    BlockCoord maxZ = static_cast<BlockCoord>(std::floor(area.maxZ));
 
     bool destroyedAny = false;
     bool hitWall = false;
@@ -634,9 +675,9 @@ bool EnderDragonEntity::_destroyBlocksInAABB(const AxisAlignedBB& area)
         worldPtr->addParticle(ParticleTypeId::HugeExplosion, particlePos, Vector3(1.0f, 0.0f, 0.0f));
     }
 
-    // 返回是否碰到了不可破坏的方块（用于调整龙的飞行行为）
-    MC_UNUSED(hitWall);
-    return destroyedAny;
+    // 返回是否碰到了不可破坏的方块（用于设置 m_slowed，影响龙的飞行行为）
+    // MC 原版：inWall = checkWalls(head) | checkWalls(neck) | checkWalls(body)
+    return hitWall;
 }
 
 void EnderDragonEntity::_onDeathUpdate()

@@ -127,6 +127,22 @@ MC 原版中末影龙只接受两种伤害：
 
 非头部伤害减伤公式为 `damage / 4.0 + min(damage, 1.0)`，而非简单的 50% 减伤。末影水晶爆炸对龙造成 10 点 `IndirectEntityDamageSource(DamageType::Explosion, crystal, player)` 伤害，仅当被破坏的水晶是龙当前绑定的最近水晶时触发。
 
+### 13. 末影龙碰墙减速（m_slowed）
+
+`m_slowed` 标志（MC 原版 `inWall`）控制龙的飞行减速行为：
+
+- **设置时机**：`_collideWithEntities()` 中检查龙头、颈、身三个部件的碰撞箱，调用 `_destroyBlocksInAABB()` 检测碰墙。若碰到 `DRAGON_IMMUNE` 方块或 `mobGriefing` 关闭时的方块，`m_slowed` 被设置为 `true`
+- **影响**：当 `m_slowed` 为 `true` 时，翅膀扇动速度减半（`m_animTime` 增量从 0.01 降为 0.005）。MC 原版还会将移动速度乘以 0.8（待阶段系统实现后接入）
+- **重置**：每帧在 `_collideWithEntities()` 中重新计算，若未碰到不可破坏方块则自动重置为 `false`
+
+### 14. 末影水晶破坏的玩家归属
+
+`onCrystalDestroyed()` 中，伤害来源的玩家归属按 MC 原版逻辑处理：
+
+1. 如果 `source.getEntity()` 是 `Player`，直接使用该玩家作为 `causeEntity`
+2. 否则，调用 `world->getClosestPlayer(crystalPos, 64.0f)` 搜索水晶位置 64 格内最近的玩家（对应 MC 的 `CRYSTAL_DESTROY_TARGETING`）
+3. 如果两者都找不到玩家，`causePlayer` 为 `nullptr`，爆炸伤害使用 `DamageSources::explosion(crystal, nullptr)`
+
 ## 参考
 
 - MC 1.16.5 `EnderDragonEntity`
