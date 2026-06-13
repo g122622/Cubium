@@ -150,7 +150,7 @@ item/
 │           └── SoulSpeedEnchantment.hpp/cpp  # 灵魂疾行
 ├── crafting/                     # 合成系统
 │   ├── IRecipe.hpp               # 配方接口
-│   ├── Ingredient.hpp/cpp        # 原料匹配器
+│   ├── Ingredient.hpp/cpp        # 原料匹配器（支持物品/标签/合并，含延迟标签解析）
 │   ├── RecipeManager.hpp/cpp     # 配方管理器
 │   ├── RecipeLoader.hpp/cpp      # 配方加载器（从数据包加载）
 │   ├── RecipeBook.hpp/cpp        # 配方书

@@ -95,36 +95,10 @@ Ingredient Ingredient::merge(const std::vector<Ingredient>& parts)
     std::set<ItemId> addedIds; // 去重
 
     for (const Ingredient& part : parts) {
-        // 添加显式物品列表
-        for (const ItemStack& stack : part.getMatchingStacks()) {
-            if (stack.getItem() && addedIds.find(stack.getItem()->itemId()) == addedIds.end()) {
-                result.m_matchingStacks.push_back(stack);
-                addedIds.insert(stack.getItem()->itemId());
-            }
-        }
-
-        // 处理标签：展开标签中的物品并合并到结果中
-        if (part.hasTag()) {
-            // 确保标签已解析
-            const auto& tagItems = part.m_tagItems;
-            if (!tagItems.empty()) {
-                for (const Item* item : tagItems) {
-                    if (item && addedIds.find(item->itemId()) == addedIds.end()) {
-                        result.m_matchingStacks.emplace_back(*item, 1);
-                        addedIds.insert(item->itemId());
-                    }
-                }
-            } else if (!part.m_tagResolved) {
-                // 标签尚未解析，尝试解析并合并
-                item::tag::ItemTag* itemTag = item::tag::ItemTags::getTag(part.getTag());
-                if (itemTag != nullptr) {
-                    for (const Item* item : itemTag->getItemsList()) {
-                        if (item && addedIds.find(item->itemId()) == addedIds.end()) {
-                            result.m_matchingStacks.emplace_back(*item, 1);
-                            addedIds.insert(item->itemId());
-                        }
-                    }
-                }
+        for (const Item* item : part.getAllMatchingItems()) {
+            if (item && addedIds.find(item->itemId()) == addedIds.end()) {
+                result.m_matchingStacks.emplace_back(*item, 1);
+                addedIds.insert(item->itemId());
             }
         }
     }

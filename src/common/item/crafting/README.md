@@ -6,8 +6,7 @@ Cubium 的合成配方系统，实现了 MC 1.16.5 风格的配方管理、解�
 
 ```
 src/common/item/crafting/
-├── Ingredient.hpp                # 原料匹配器接口
-├── Ingredient.cpp
+├── Ingredient.hpp/cpp            # 原料匹配器（支持物品/标签/合并，含延迟标签解析）
 ├── IRecipe.hpp                   # 配方接口和类型定义
 ├── RecipeType.cpp                # 配方类型字符串转换
 ├── ShapedRecipe.hpp              # 有序合成配方
@@ -130,7 +129,7 @@ src/common/item/crafting/
    - 如果配方不应该镜像（如特殊图案），需要在配方定义中禁用
 
 2. **空 Ingredient 的行为**
-   - 空 Ingredient 不匹配任何物品，包括空物品堆
+   - 空 Ingredient 只匹配空物品堆（`stack.isEmpty() == true`），不匹配任何非空物品
    - 如果配方某个位置需要留空，不要添加 Ingredient 而是减少配方尺寸
 
 3. **配方 ID 冲突**
@@ -138,8 +137,9 @@ src/common/item/crafting/
    - 建议在加载前调用 `clear()` 或设置 `setClearBeforeLoad(true)`
 
 4. **物品标签依赖**
-   - `Ingredient::fromTag()` 需要 `ItemTags` 系统支持
-   - 确保在加载配方前完成物品标签注册
+   - `Ingredient::fromTag()` 需要 `ItemTags` 系统支持，会尝试立即解析标签
+   - 如果标签在创建时未注册，`isSimple()` 返回 `false`，标签会在首次 `test()` 时延迟解析
+   - 延迟解析后 `isSimple` 会自动更新，因此 `m_isSimple` 为 `mutable`
 
 5. **ItemRegistry 依赖**
    - JSON 解析时如果物品未在 ItemRegistry 中注册，会返回空 Ingredient 或错误
@@ -173,3 +173,14 @@ src/common/item/crafting/
 12. **锻造台配方的 NBT 复制**
     - `SmithingRecipe` 会复制基础装备的 NBT 数据到结果物品
     - 附魔、耐久度等属性会被保留
+
+13. **Ingredient::isSimple 语义**
+    - `isSimple()` 返回 `true` 表示原料不包含可损坏物品，用于配方书优化
+    - 包含可损坏物品（如工具）的 Ingredient 返回 `false`
+    - 未解析的标签 Ingredient 返回 `false`（保守策略，无法确定标签内容）
+    - 解析后为空的标签也返回 `false`
+
+14. **Ingredient::getAllMatchingItems vs getMatchingStacks**
+    - `getMatchingStacks()` 仅返回显式指定的物品堆，不包含标签解析后的物品
+    - `getAllMatchingItems()` 返回包含标签解析物品的完整列表（延迟解析）
+    - 需要完整物品列表时（如 `merge()`）应使用 `getAllMatchingItems()`
