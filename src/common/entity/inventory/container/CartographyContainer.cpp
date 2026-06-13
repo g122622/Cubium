@@ -278,6 +278,8 @@ void CartographyContainer::updateResult()
             // 玻璃板 + 地图 → 锁定地图
             result = mapItem.copy();
             result.setCount(1);
+            auto& resultTag = result.getOrCreateTag();
+            resultTag["map_lock"] = 1;
         } else if (_hasEmptyMap() && _canCopyMap()) {
             // 空地图 + 地图 → 复制地图
             result = mapItem.copy();

@@ -317,6 +317,26 @@ bool Item::canEat(const ItemStack& stack, const Player& player) const
 }
 
 // ============================================================================
+// 合成回调
+// ============================================================================
+
+void Item::onCraftedBy(ItemStack& stack, IWorld& world, Player& player)
+{
+    // 默认实现：转发给 onCraftedPostProcess
+    (void)player;
+    onCraftedPostProcess(stack, world);
+}
+
+void Item::onCraftedPostProcess(ItemStack& stack, IWorld& world)
+{
+    // 默认实现：不做任何操作
+    // 子类可重写以执行合成后的特殊初始化
+    // 例如 FilledMapItem 重写此方法处理地图缩放/锁定
+    (void)stack;
+    (void)world;
+}
+
+// ============================================================================
 // 耐久度与修复
 // ============================================================================
 

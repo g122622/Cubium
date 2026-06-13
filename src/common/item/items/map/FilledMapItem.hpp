@@ -67,6 +67,14 @@ public:
     ActionResultType onItemUse(ItemUseContext& context) override;
 
     /**
+     * @brief 合成后处理
+     *
+     * 处理 map_scale_direction 和 map_lock NBT 标签，
+     * 执行地图缩放或锁定操作。
+     */
+    void onCraftedPostProcess(ItemStack& stack, IWorld& world) override;
+
+    /**
      * @brief 获取地图数据
      */
     [[nodiscard]] static world::map::MapData* getMapData(const ItemStack& stack, IWorld& world);

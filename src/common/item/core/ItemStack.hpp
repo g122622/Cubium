@@ -43,6 +43,7 @@ class BlockState;
 class LivingEntity;
 class Entity;
 class IWorld;
+class Player;
 
 namespace potion {
 class PotionUtils;
@@ -399,6 +400,17 @@ public:
      * @param player 穿戴护甲的玩家
      */
     void onArmorTick(IWorld& world, LivingEntity& player);
+
+    /**
+     * @brief 物品被玩家合成时调用
+     *
+     * 委托给 Item::onCraftedBy，用于执行物品合成后的特殊初始化。
+     * 例如地图物品通过此回调处理缩放和锁定后处理。
+     *
+     * @param player 合成物品的玩家
+     * @param amount 合成数量
+     */
+    void onCraftedBy(Player& player, i32 amount);
 
     // ========== 显示名称 ==========
 

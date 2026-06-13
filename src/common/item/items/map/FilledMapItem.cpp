@@ -98,6 +98,28 @@ ActionResultType FilledMapItem::onItemUse(ItemUseContext& context)
     return ActionResultType::Pass;
 }
 
+void FilledMapItem::onCraftedPostProcess(ItemStack& stack, IWorld& world)
+{
+    auto* tag = stack.getTag();
+
+    // 处理 map_scale_direction NBT 标签（地图缩放）
+    if (tag != nullptr && tag->contains("map_scale_direction")) {
+        i32 scaleDirection = (*tag)["map_scale_direction"].is_number() ? (*tag)["map_scale_direction"].get<i32>() : 0;
+        if (scaleDirection != 0) {
+            scaleMap(stack, world, scaleDirection);
+        }
+        // 移除标签，只处理一次
+        stack.removeChildTag("map_scale_direction");
+    }
+
+    // 处理 map_lock NBT 标签（地图锁定）
+    if (tag != nullptr && tag->contains("map_lock")) {
+        lockMap(world, stack);
+        // 移除标签，只处理一次
+        stack.removeChildTag("map_lock");
+    }
+}
+
 world::map::MapData* FilledMapItem::getMapData(const ItemStack& stack, IWorld& world)
 {
     i32 mapId = getMapId(stack);

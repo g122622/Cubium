@@ -213,10 +213,8 @@ void ServerPlayer::onItemCrafted(ItemStack& stack, i32 amount)
         const ResourceLocation& itemId = stack.getItem()->itemLocation();
         awardCraftedStat(itemId, amount);
 
-        // TODO: 调用 Item::onCreated（地图等物品的特殊初始化）
-        // Item::onCreated 方法在当前项目中尚未实现
-        // 如果需要，可以在 Item 类中添加虚方法 onCreated(ItemStack, IWorld, Player)
-        // stack.getItem()->onCreated(stack, getWorld(), *this);
+        // 调用物品合成回调（地图缩放/锁定等后处理）
+        stack.onCraftedBy(*this, amount);
     }
 }
 

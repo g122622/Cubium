@@ -446,6 +446,22 @@ void ItemStack::onArmorTick(IWorld& world, LivingEntity& player)
     m_item->onArmorTick(*this, world, player);
 }
 
+void ItemStack::onCraftedBy(Player& player, i32 amount)
+{
+    if (isEmpty()) {
+        return;
+    }
+    MC_UNUSED(amount);
+    // 统计更新由 ServerPlayer::onItemCrafted 处理
+    // 这里只委托给 Item 的合成回调
+    IWorld* world = player.world();
+    if (world != nullptr) {
+        // m_item 是 const Item*，但 onCraftedBy 需要修改 ItemStack（如 NBT 标签），
+        // onCraftedBy 本身不修改 Item 对象，所以 const_cast 安全
+        const_cast<Item*>(m_item)->onCraftedBy(*this, *world, player);
+    }
+}
+
 // ============================================================================
 // 显示名称
 // ============================================================================

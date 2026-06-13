@@ -579,6 +579,34 @@ public:
     [[nodiscard]] virtual bool canEat(const ItemStack& stack, const Player& player) const;
 
     /**
+     * @brief 物品被玩家合成时调用
+     *
+     * 当物品通过工作台、熔炉、切石机、锻造台等途径被玩家合成时调用。
+     * 默认实现转发给 onCraftedPostProcess。
+     * 子类可重写以执行合成时的特殊处理（如地图物品的后处理）。
+     *
+     * @param stack 合成产生的物品堆
+     * @param world 世界引用
+     * @param player 合成物品的玩家
+     */
+    virtual void onCraftedBy(ItemStack& stack, IWorld& world, Player& player);
+
+    /**
+     * @brief 物品合成后处理
+     *
+     * 当物品被合成后进行后处理。由 onCraftedBy 默认调用，
+     * 也可由系统合成（如合成器方块）直接调用。
+     * 子类可重写以执行创建后的特殊初始化。
+     *
+     * 例如 FilledMapItem 重写此方法以处理 map_scale_direction NBT 标签，
+     * 执行地图缩放或锁定操作。
+     *
+     * @param stack 合成产生的物品堆
+     * @param world 世界引用
+     */
+    virtual void onCraftedPostProcess(ItemStack& stack, IWorld& world);
+
+    /**
      * @brief 物品被破坏时调用
      *
      * 当物品耐久度耗尽时调用。
