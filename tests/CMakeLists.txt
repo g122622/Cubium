@@ -227,6 +227,10 @@ add_executable(mc_tests
     advancement/EntityPredicateTest.cpp
     # ItemPredicate 物品谓词测试（含药水匹配）
     advancement/ItemPredicateTest.cpp
+    # EnchantmentPredicate 附魔谓词测试
+    advancement/EnchantmentPredicateTest.cpp
+    # NBTPredicate NBT谓词测试（Mojangson/JSON解析、匹配、序列化）
+    advancement/NBTPredicateTest.cpp
     # BredAnimalsTrigger 动物繁殖触发器测试
     advancement/BredAnimalsTriggerTest.cpp
     # AdvancementEventHandler 测试（getServerPlayer 架构验证）
@@ -726,6 +730,8 @@ add_executable(mc_tests
     common/util/crypto/Md5Test.cpp
     # UUID 工具测试
     common/util/UuidUtilsTest.cpp
+    # NbtJsonUtils NBT-JSON转换工具测试
+    util/NbtJsonUtilsTest.cpp
     # 璋冭瘯鍖哄潡鐢熸垚鍣ㄦ祴璇?    common/world/gen/DebugChunkGeneratorTest.cpp
     # 鐢熺墿缇ょ郴棰滆壊娴嬭瘯
     client/world/color/BiomeColorsTest.cpp
@@ -1244,6 +1250,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/EntityFlagsPredicate.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/EntityEquipmentPredicate.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/NBTPredicate.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/EnchantmentPredicate.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/LocationPredicate.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/BlockPredicate.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/MobEffectsPredicate.cpp
