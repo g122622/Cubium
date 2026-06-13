@@ -378,7 +378,6 @@ private:
      * @param channel 活动通道
      * @param sound 声音实例
      */
-    // TODO: _updateSoundPosition 当前未被调用，tick() 中直接内联了位置更新逻辑，后续需决定是否启用此方法
     void _updateSoundPosition(ActiveChannel& channel, const ISoundInstance& sound);
 
     /**
@@ -421,10 +420,6 @@ private:
 
     /// 是否暂停
     bool m_paused = false;
-
-    /// 下一个声音ID
-    // TODO: m_nextSoundId 当前未使用，SoundPool 内部自行管理 ID 分配，后续需决定是否移除
-    SoundInstanceId m_nextSoundId = 1;
 
     /// 听者位置（用于距离剔除）
     glm::vec3 m_listenerPosition{0.0f};

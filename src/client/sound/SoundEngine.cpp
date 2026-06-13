@@ -499,9 +499,7 @@ void SoundEngine::tick(bool isPaused)
             channel.source->setPitch(pitch);
 
             // 更新位置
-            if (!sound->isGlobal()) {
-                channel.source->setPosition(sound->getPosition());
-            }
+            _updateSoundPosition(channel, *sound);
         }
 
         // 检查播放状态
