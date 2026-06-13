@@ -27,14 +27,13 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/Material.hpp"
 #include "common/world/block/blocks/FallingBlock.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
@@ -177,16 +176,9 @@ bool FallingBlockEntity::_tryPlaceBlock(
     }
 
     // 检查目标位置是否可替换
-    // 简化实现：检查是否为空气或可替换材质
-    bool isReplaceable = false;
-    if (hitState == nullptr || hitState->isAir()) {
-        isReplaceable = true;
-    } else if (hitState->getMaterial().isReplaceable()) {
-        isReplaceable = true;
-    } else if (!hitState->blocksMovement()) {
-        // 不阻挡移动的方块可以穿透（如火把、草等）
-        isReplaceable = true;
-    }
+    // canBeReplaced() 涵盖空气、可替换材质（花草、雪层等）
+    // !blocksMovement() 涵盖不阻挡移动但非 replaceable 的方块（如火把）
+    bool isReplaceable = (hitState == nullptr || hitState->canBeReplaced() || !hitState->blocksMovement());
 
     if (!isReplaceable) {
         return false;

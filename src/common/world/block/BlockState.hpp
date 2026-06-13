@@ -356,6 +356,29 @@ public:
     [[nodiscard]] bool isStickyBlock() const;
 
     /**
+     * @brief 检查此方块状态是否可被替换
+     *
+     * 对应 MC 的 BlockState.canBeReplaced()，返回方块注册时设置的 replaceable 属性。
+     * 空气、水、岩浆、花草、火等方块为 true；石头、泥土等实心方块为 false。
+     * 此方法等价于 isAir() || getMaterial().isReplaceable()，但性能更优（缓存值）。
+     *
+     * 用于：世界生成谓词(ReplaceablePredicate)、掉落方块判断、AI寻路等场景。
+     * 不适用于：玩家放置时的替换判断（应使用 Block::isReplaceable(state, context)）。
+     */
+    [[nodiscard]] bool canBeReplaced() const { return m_canBeReplaced; }
+
+    /**
+     * @brief 检查此方块状态是否可被流体替换
+     *
+     * 对应 MC 的 BlockState.canBeReplaced(Fluid)，默认实现为 canBeReplaced() || !isSolid()。
+     * 非固体方块即使不是 replaceable，也可以被流体流入（如门、告示牌等）。
+     *
+     * 用于：流体流动判断、桶放置流体等场景。
+     * 方块子类可重写 Block::canBeReplacedByFluid() 来拒绝流体替换（如末地传送门）。
+     */
+    [[nodiscard]] bool canBeReplacedByFluid() const;
+
+    /**
      * @brief 检查两个方块是否可以粘连
      *
      * 委托到方块的 canStickTo 方法。
@@ -449,6 +472,7 @@ private:
     bool m_blocksMovement = false;
     bool m_isLiquid = false;
     bool m_isFlammable = false;
+    bool m_canBeReplaced = false; // 是否可被替换（缓存自 Block.m_isReplaceable）
     bool m_propagatesSkylightDown = false;
     bool m_useShapeForLightOcclusion = false; // 是否使用形状进行光照遮挡
     u8 m_lightLevel = 0;

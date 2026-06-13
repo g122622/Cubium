@@ -711,6 +711,20 @@ public:
      */
     [[nodiscard]] bool requiresTool() const noexcept { return m_requiresTool; }
 
+    /**
+     * @brief 获取方块是否可被替换（无上下文）
+     *
+     * 返回方块注册时设置的 replaceable 属性。
+     * 对应 MC 的 BlockState.canBeReplaced() 无参版本。
+     * 空气、水、岩浆、花草、火等方块返回 true；石头、泥土等实心方块返回 false。
+     *
+     * 用于世界生成谓词(ReplaceablePredicate)、掉落方块判断等场景。
+     * 不适用于玩家放置时的替换判断（应使用 isReplaceable(state, context) 虚方法）。
+     *
+     * @return 是否可被替换
+     */
+    [[nodiscard]] bool isReplaceable() const noexcept { return m_isReplaceable; }
+
     // ========== 声音类型 ==========
 
     /**

@@ -265,7 +265,7 @@ bool FoxFollowTargetGoal::isPathClear(FoxEntity* fox, LivingEntity* target)
                 static_cast<i32>(fox->z() + checkZ));
 
             const BlockState* state = world->getBlockState(pos);
-            if (state != nullptr && !state->getMaterial().isReplaceable()) {
+            if (state != nullptr && !state->canBeReplaced()) {
                 return false;
             }
         }

@@ -80,11 +80,8 @@ BlockState DoorBlock::getStateForPlacement(BlockItemUseContext& context)
     IWorld& world = const_cast<IWorld&>(context.getWorld());
 
     const BlockState* upState = world.getBlockState(pos.up());
-    if (pos.y >= world::MAX_BUILD_HEIGHT - 1 || upState == nullptr || !upState->isAir()) {
-        const Material* mat = upState ? &upState->getMaterial() : nullptr;
-        if (mat == nullptr || !mat->isReplaceable()) {
-            return defaultState();
-        }
+    if (pos.y >= world::MAX_BUILD_HEIGHT - 1 || upState == nullptr || !upState->canBeReplaced()) {
+        return defaultState();
     }
 
     const bool powered = world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos) ||

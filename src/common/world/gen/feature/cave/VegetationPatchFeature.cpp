@@ -91,7 +91,7 @@ std::vector<BlockPos> VegetationPatchFeature::placeGroundPatch(
             scanPos = scanPos.offset(oppositeDir);
             for (i32 i = 0; i < config.verticalRange; ++i) {
                 const BlockState* state = region.getBlockState(scanPos);
-                if (state != nullptr && (state->isAir() || state->getMaterial().isReplaceable())) {
+                if (state != nullptr && state->canBeReplaced()) {
                     // 检查扫描方向相邻的方块是否有坚固面
                     const BlockState* supportState = region.getBlockState(scanPos.offset(scanDir));
                     if (supportState != nullptr && supportState->isSolid()) {

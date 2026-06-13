@@ -206,12 +206,8 @@ bool BlockItem::canPlace(const BlockItemUseContext& context, const BlockState& s
 
     // 获取当前方块
     const BlockState* currentState = context.getBlockStateAtPlacementPos();
-    if (currentState != nullptr && !currentState->isAir()) {
-        // 检查材质是否可替换
-        const Material& material = currentState->owner().material();
-        if (!material.isReplaceable() && !material.isLiquid()) {
-            return false;
-        }
+    if (currentState != nullptr && !currentState->canBeReplaced()) {
+        return false;
     }
 
     // 实体碰撞检查

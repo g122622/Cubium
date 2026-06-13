@@ -63,7 +63,7 @@ ActionResultType SpawnEggItem::onItemUse(ItemUseContext& context)
 
     // 检查位置是否有效
     const BlockState* state = world.getBlockState(spawnPos);
-    if (state != nullptr && !state->isAir() && !state->getMaterial().isReplaceable()) {
+    if (state != nullptr && !state->canBeReplaced()) {
         return ActionResultType::Fail;
     }
 

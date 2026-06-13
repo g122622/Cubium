@@ -23,7 +23,6 @@
 
 #include "BlockItemUseContext.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/world/block/Material.hpp"
 
 namespace mc {
 
@@ -87,19 +86,8 @@ bool BlockItemUseContext::_canReplace(const BlockPos& pos) const
     // 获取当前方块状态
     const BlockState* state = m_world.getBlockState(pos);
 
-    // 空气可以替换
-    if (state == nullptr || state->isAir()) {
-        return true;
-    }
-
-    // 检查材质是否可替换
-    const Material& material = state->owner().material();
-    if (material.isReplaceable()) {
-        return true;
-    }
-
-    // 液体可以替换
-    if (material.isLiquid()) {
+    // 可替换方块（空气、花草、水、岩浆等）
+    if (state == nullptr || state->canBeReplaced()) {
         return true;
     }
 

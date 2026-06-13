@@ -28,7 +28,6 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/block/Material.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
@@ -116,27 +115,21 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
 // 检查方块状态是否可穿透
 bool FallingBlock::canFallThrough(const BlockState* state)
 {
-    // 空气可穿透
-    if (state == nullptr || state->isAir()) {
+    if (state == nullptr) {
         return true;
     }
 
-    // 火焰可穿透
+    // 可替换方块（空气、花草、水、岩浆等）可穿透
+    if (state->canBeReplaced()) {
+        return true;
+    }
+
+    // 火焰标签方块可穿透
     if (BlockTags::FIRE().contains(*state)) {
         return true;
     }
 
-    // 液体可穿透
-    if (state->getMaterial().isLiquid()) {
-        return true;
-    }
-
-    // 可替换材质可穿透（如火把、草等）
-    if (state->getMaterial().isReplaceable()) {
-        return true;
-    }
-
-    // 不阻挡移动的方块可穿透
+    // 不阻挡移动的方块可穿透（如火把等）
     return !state->blocksMovement();
 }
 

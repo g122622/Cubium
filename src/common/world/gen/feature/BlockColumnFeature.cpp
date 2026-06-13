@@ -106,7 +106,7 @@ bool BlockColumnFeature::place(
         for (i32 h = 0; h < height; ++h) {
             if (layerState != nullptr) {
                 const BlockState* existing = region.getBlockState(current);
-                if (existing == nullptr || existing->isAir() || existing->getMaterial().isReplaceable()) {
+                if (existing == nullptr || existing->canBeReplaced()) {
                     region.setBlockState(current, layerState, 3);
                     placedAny = true;
                 }

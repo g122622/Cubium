@@ -40,8 +40,8 @@
 #include "common/world/block/IBucketPickupHandler.hpp"
 #include "common/world/block/ILiquidContainer.hpp"
 #include "common/world/block/IWaterLoggable.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/LiquidBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"
@@ -241,9 +241,8 @@ bool BucketItem::tryPlaceContainedLiquid(
         }
     }
 
-    // 检查是否可以替换
-    const Material& material = currentState->owner().material();
-    if (material.isReplaceable() && !material.isLiquid()) {
+    // 检查是否可以替换（可替换的非液体方块，如草、雪等）
+    if (currentState->canBeReplaced() && !currentState->getMaterial().isLiquid()) {
         fluid::FluidState fluidState = m_containedFluid->defaultState();
         const BlockState* fluidBlockState = fluidState.getBlockState();
         if (fluidBlockState == nullptr) {

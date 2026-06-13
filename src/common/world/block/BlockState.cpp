@@ -61,6 +61,7 @@ void BlockState::_cacheProperties()
     m_blocksMovement = m_owner->material().blocksMovement();
     m_isLiquid = m_owner->material().isLiquid();
     m_isFlammable = m_owner->material().isFlammable();
+    m_canBeReplaced = m_owner->isReplaceable();
     m_lightLevel = m_owner->lightLevel();
     // 通过虚函数计算缓存值，确保子类重写生效。
     m_opacity = m_owner->getOpacity(*this, nullptr, nullptr);
@@ -217,6 +218,14 @@ bool BlockState::requiresTool() const
 bool BlockState::isStickyBlock() const
 {
     return m_owner->isStickyBlock(*this);
+}
+
+bool BlockState::canBeReplacedByFluid() const
+{
+    // 对应 MC 的 BlockBehaviour.canBeReplaced(BlockState, Fluid)：
+    // canBeReplaced() || !isSolid()
+    // 即：replaceable 方块（空气、水、花草等）或非固体方块（门、告示牌等）可被流体替换
+    return m_canBeReplaced || !m_isSolid;
 }
 
 bool BlockState::canStickTo(const BlockState& other) const

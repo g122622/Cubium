@@ -48,8 +48,8 @@ bool SimpleBlockFeature::place(
     const Block& block = config.toPlace->getBlock();
     MC_UNUSED(block);
 
-    // 简单检查：如果当前位置是空气或可替换，则放置
-    if (!currentState->isAir() && !currentState->getMaterial().isReplaceable()) {
+    // 如果当前位置不可替换，则放置失败
+    if (!currentState->canBeReplaced()) {
         return false;
     }
 

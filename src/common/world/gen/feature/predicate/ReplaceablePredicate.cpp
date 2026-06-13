@@ -31,9 +31,7 @@ bool ReplaceablePredicate::test(const IWorld& world, const BlockPos& pos) const
     if (state == nullptr) {
         return true;
     }
-    // TODO: BlockState 缺少 canBeReplaced / canBeReplacedByFluid 方法，
-    // 暂时使用 isAir() || getMaterial().isReplaceable() 作为近似实现
-    return state->isAir() || state->getMaterial().isReplaceable();
+    return state->canBeReplaced();
 }
 
 } // namespace mc::world::gen::feature::predicate
