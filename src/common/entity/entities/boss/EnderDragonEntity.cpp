@@ -22,6 +22,7 @@
  */
 
 #include "EnderDragonEntity.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -30,7 +31,10 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gamerule/GameRules.hpp"
+#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -38,6 +42,7 @@ namespace mc {
 namespace entity {
 
 using namespace mc::math;
+using ParticleTypeId = client::renderer::trident::particle::ParticleTypeId;
 
 // ============================================================================
 // BossEntity
@@ -229,18 +234,26 @@ void EnderDragonEntity::setPhase(Phase phase)
 bool EnderDragonEntity::attackEntityPartFrom(EnderDragonPartEntity* part, DamageSource& source, f32 damage)
 {
     // 所有部件的伤害都传递给龙本体
-    if (isDead() || isInvulnerableTo(source)) {
+    if (isDead() || isDying() || isInvulnerableTo(source)) {
         return false;
     }
 
-    // 头部和身体受到正常伤害，其他部位伤害减半
+    // 只有玩家直接攻击或爆炸类型伤害才能对末影龙造成伤害
+    // MC 原版：source.getEntity() instanceof Player || source.is(DamageTypeTags.ALWAYS_HURTS_ENDER_DRAGONS)
+    bool canHurt = source.isPlayerSource() || source.isExplosion();
+    if (!canHurt) {
+        return false;
+    }
+
+    // 非头部伤害减伤：damage / 4 + min(damage, 1)
     f32 actualDamage = damage;
-    if (part) {
-        EnderDragonPartEntity::Part partType = part->part();
-        if (partType != EnderDragonPartEntity::Part::Head && partType != EnderDragonPartEntity::Part::Body) {
-            // 尾部和翅膀受到的伤害减半
-            actualDamage = damage * 0.5f;
-        }
+    if (part && part->part() != EnderDragonPartEntity::Part::Head) {
+        actualDamage = damage / 4.0f + std::min(damage, 1.0f);
+    }
+
+    // 伤害低于 0.01 时忽略
+    if (actualDamage < 0.01f) {
+        return false;
     }
 
     // 应用伤害到龙本体
@@ -277,13 +290,20 @@ void EnderDragonEntity::onCrystalDestroyed(EnderCrystalEntity* crystal, const Bl
             m_closestEnderCrystal = nullptr;
         }
 
-        // 对龙造成伤害
-        // 水晶被破坏时造成 10 点伤害
-        constexpr f32 CRYSTAL_DESTRUCTION_DAMAGE = 10.0f;
+        // 只有当前最近的水晶被破坏时才对龙造成伤害
+        // MC 原版：仅当被破坏的水晶是龙当前绑定的最近水晶时才受伤
+        // 对龙头部造成爆炸伤害，伤害值为 10
+        // MC 原版使用 damageSources().explosion(crystal, player)
+        // player 来源：如果 source.getEntity() 是 Player 则使用，否则搜索附近最近的玩家
+        if (crystal == m_closestEnderCrystal || m_closestEnderCrystal == nullptr) {
+            Entity* sourceEntity = source.getEntity();
+            Entity* causeEntity = sourceEntity;
 
-        // 创建伤害源（使用通用伤害，因为水晶爆炸）
-        // TODO: 实际应该使用 DamageSources::explosion()
-        hurt(source, CRYSTAL_DESTRUCTION_DAMAGE);
+            // 使用 IndirectEntityDamageSource 表示由水晶引起的爆炸伤害
+            // source 是直接来源（水晶），cause 是造成者（如玩家）
+            auto explosionDamage = DamageSources::explosion(crystal, causeEntity);
+            hurt(explosionDamage, 10.0f);
+        }
     }
 
     MC_UNUSED(pos);
@@ -502,11 +522,6 @@ void EnderDragonEntity::_collideWithEntities()
 void EnderDragonEntity::_attackEntitiesInList()
 {
     // 攻击碰撞到的实体
-
-    // 破坏龙路径上的方块
-    // 注意：方块破坏应该在 collideWithEntities 中获取碰撞实体后调用
-    // 这里只处理实体伤害
-
     IWorld* worldPtr = world();
     if (!worldPtr) {
         return;
@@ -522,12 +537,16 @@ void EnderDragonEntity::_attackEntitiesInList()
     std::vector<Entity*> entities = worldPtr->getEntitiesInAABB(dragonBox, this);
 
     for (Entity* entity : entities) {
-        if (entity && !entity->isDead()) {
-            // 对玩家造成伤害
-            if (entity->typeId() == entity::EntityTypeIdNumber::PLAYER) {
-                // TODO: 龙冲撞造成伤害，实际应该使用 DamageSources::mobAttack(this)
-                // entity->hurt(DamageSources::mobAttack(this), 10.0f);
-            }
+        if (!entity || entity->isDead()) {
+            continue;
+        }
+
+        // 只对玩家造成碰撞伤害
+        if (entity->typeId() == entity::EntityTypeIdNumber::PLAYER) {
+            // 龙碰撞对玩家造成伤害
+            // MC 原版：头部和颈部碰撞造成 10.0F 伤害，翅膀碰撞造成 5.0F 伤害
+            auto damageSource = DamageSources::mobAttack(this);
+            entity->hurt(damageSource, 10.0f);
         }
     }
 
@@ -543,12 +562,9 @@ bool EnderDragonEntity::_destroyBlocksInAABB(const AxisAlignedBB& area)
         return false;
     }
 
-    // 龙可以破坏大多数方块，但不能破坏以下类型：
-    // - 基岩
-    // - 黑曜石
-    // - 末地石（部分）
-    // - 屏障方块
-    // - 结构方块
+    // MC 原版：如果 mobGriefing 游戏规则关闭，龙不能破坏任何方块
+    // 但仍然会检测是否碰到了 DRAGON_IMMUNE 方块（影响飞行行为）
+    bool mobGriefing = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING);
 
     // 计算方块坐标范围
     BlockCoord minX = static_cast<BlockCoord>(std::floor(area.minX()));
@@ -559,6 +575,9 @@ bool EnderDragonEntity::_destroyBlocksInAABB(const AxisAlignedBB& area)
     BlockCoord maxZ = static_cast<BlockCoord>(std::floor(area.maxZ()));
 
     bool destroyedAny = false;
+    bool hitWall = false;
+
+    const BlockState* airState = &VanillaBlocks::AIR->defaultState();
 
     for (BlockCoord bx = minX; bx <= maxX; ++bx) {
         for (BlockCoord by = minY; by <= maxY; ++by) {
@@ -570,42 +589,53 @@ bool EnderDragonEntity::_destroyBlocksInAABB(const AxisAlignedBB& area)
                     continue;
                 }
 
-                // 检查方块是否可以被龙破坏
                 const Block& block = state->getBlock();
 
-                // 跳过不可破坏的方块
-                // 龙不能破坏基岩、黑曜石、末地传送门等
-                if (block.is(VanillaBlocks::BEDROCK) || block.is(VanillaBlocks::OBSIDIAN) ||
-                    block.is(VanillaBlocks::CRYING_OBSIDIAN) || block.is(VanillaBlocks::END_PORTAL) ||
-                    block.is(VanillaBlocks::END_PORTAL_FRAME)) {
+                // 龙透明方块：龙穿过时不破坏（如光照方块、火）
+                if (BlockTags::DRAGON_TRANSPARENT().contains(block)) {
                     continue;
                 }
 
-                // 末地石有一定概率不被破坏
-                if (block.is(VanillaBlocks::END_STONE)) {
-                    // 末地石有 50% 概率被破坏
-                    math::Random rng(ticksExisted() + bx + by * 31 + bz * 961);
-                    if (rng.nextFloat() > 0.5f) {
-                        continue;
-                    }
+                // 龙免疫方块：碰到后标记为碰墙，但不破坏
+                // MC 原版：DRAGON_IMMUNE 包含基岩、黑曜石、末地石、末地传送门等
+                if (BlockTags::DRAGON_IMMUNE().contains(block)) {
+                    hitWall = true;
+                    continue;
                 }
 
-                // 破坏方块
-                // TODO: 实际应该调用 world->destroyBlock(pos, false) 来触发掉落和粒子
-                // 这里简化为直接设置为空气，但需要调用 spawnAfterBreak 以支持虫蚀方块等特殊行为
-                const BlockState* oldState = state;
-                worldPtr->setBlockState(bx, by, bz, nullptr);
-                block.spawnAfterBreak(*worldPtr, BlockPos(bx, by, bz), *oldState, nullptr, false);
+                // mobGriefing 关闭时不能破坏方块，但仍标记碰墙
+                if (!mobGriefing) {
+                    hitWall = true;
+                    continue;
+                }
 
-                // TODO: 生成粒子效果
-                // worldPtr->addParticle(ParticleTypeId::EXPLOSION, Vector3(bx + 0.5, by + 0.5, bz + 0.5), Vector3(0, 0,
-                // 0));
+                // 破坏方块：使用 setBlockState 设为空气 + spawnAfterBreak 触发掉落
+                // MC 原版使用 removeBlock(pos, false)，效果等价于 setBlockState(air, 3)
+                worldPtr->setBlockState(pos, airState, 3);
+                block.spawnAfterBreak(*worldPtr, pos, *state, nullptr, false);
+
+                // 生成爆炸粒子效果
+                worldPtr->addParticle(ParticleTypeId::Explosion,
+                    Vector3(static_cast<f32>(bx) + 0.5f, static_cast<f32>(by) + 0.5f, static_cast<f32>(bz) + 0.5f),
+                    Vector3(0.0f, 0.0f, 0.0f));
 
                 destroyedAny = true;
             }
         }
     }
 
+    // 如果有方块被破坏，在世界事件位置播放全局爆炸粒子
+    // MC 原版：levelEvent(2008, randomPosInBounds, 0)
+    if (destroyedAny) {
+        math::Random rng(ticksExisted());
+        Vector3 particlePos(static_cast<f32>(minX + rng.nextInt(maxX - minX + 1)) + 0.5f,
+            static_cast<f32>(minY + rng.nextInt(maxY - minY + 1)) + 0.5f,
+            static_cast<f32>(minZ + rng.nextInt(maxZ - minZ + 1)) + 0.5f);
+        worldPtr->addParticle(ParticleTypeId::HugeExplosion, particlePos, Vector3(1.0f, 0.0f, 0.0f));
+    }
+
+    // 返回是否碰到了不可破坏的方块（用于调整龙的飞行行为）
+    MC_UNUSED(hitWall);
     return destroyedAny;
 }
 
@@ -622,30 +652,35 @@ void EnderDragonEntity::_onDeathUpdate()
         // 缓慢上升
         setVelocity(0.0f, 0.1f, 0.0f);
 
-        // 每隔一段时间生成爆炸粒子
-        if (m_deathTicks % 10 == 0) {
-            IWorld* worldPtr = world();
-            if (worldPtr) {
-                // 生成爆炸粒子
-                math::Random rng(m_deathTicks);
-                f32 px = static_cast<f32>(x() + rng.nextFloat(-5.0f, 5.0f));
-                f32 py = static_cast<f32>(y() + rng.nextFloat(-2.0f, 5.0f));
-                f32 pz = static_cast<f32>(z() + rng.nextFloat(-5.0f, 5.0f));
-                // worldPtr->addParticle(ParticleTypeId::EXPLOSION_EMITTER, Vector3(px, py, pz), Vector3(0, 0, 0));
-                MC_UNUSED(px);
-                MC_UNUSED(py);
-                MC_UNUSED(pz);
-            }
+        // 在 180-200 tick 之间，每 tick 生成爆炸粒子
+        IWorld* worldPtr = world();
+        if (worldPtr && m_deathTicks > 180) {
+            math::Random rng(m_deathTicks);
+            f32 px = static_cast<f32>(x() + rng.nextFloat(-5.0f, 5.0f));
+            f32 py = static_cast<f32>(y() + rng.nextFloat(-2.0f, 5.0f));
+            f32 pz = static_cast<f32>(z() + rng.nextFloat(-5.0f, 5.0f));
+            worldPtr->addParticle(ParticleTypeId::HugeExplosion, Vector3(px, py, pz), Vector3(1.0f, 0.0f, 0.0f));
+        }
+
+        // 在 150 tick 之后，每 5 tick 掉落 8% 经验
+        if (m_deathTicks > 150 && m_deathTicks % 5 == 0) {
+            constexpr i32 XP_DROP_AMOUNT = static_cast<i32>(XP_FIRST_KILL * 0.08f);
+            _dropExperienceAmount(XP_DROP_AMOUNT);
         }
     }
 
     if (m_deathTicks >= DEATH_DURATION) {
         // 死亡完成
-        // 掉落经验
-        _dropExperienceAmount(XP_FIRST_KILL);
+        // 掉落剩余 20% 经验
+        constexpr i32 XP_REMAINING = static_cast<i32>(XP_FIRST_KILL * 0.2f);
+        _dropExperienceAmount(XP_REMAINING);
 
         // TODO: 生成传送门和龙蛋
-        // 这需要访问世界生成系统来放置传送门结构
+        // 这需要 EndDragonFight 系统来放置传送门结构
+        // EndDragonFight.setDragonKilled() 应负责：
+        // 1. 生成出口传送门（EndPodiumFeature）
+        // 2. 首次击杀时在祭坛顶部放置龙蛋
+        // 3. 生成末地折跃门
 
         // 移除实体
         remove();

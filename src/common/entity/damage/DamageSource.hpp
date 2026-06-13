@@ -767,6 +767,25 @@ inline EnvironmentalDamage explosion()
 }
 
 /**
+ * @brief 创建实体爆炸伤害（由非玩家实体引起的爆炸，如末影水晶爆炸）
+ * @param source 爆炸来源实体（如末影水晶）
+ */
+inline EntityDamageSource explosion(Entity* source)
+{
+    return EntityDamageSource(DamageType::Explosion, source).setExplosion();
+}
+
+/**
+ * @brief 创建实体爆炸伤害（带来源实体和造成者，如末影水晶被玩家破坏后的爆炸）
+ * @param source 爆炸来源实体（如末影水晶）
+ * @param cause 爆炸造成者实体（如玩家），如果为 nullptr 则使用 source 作为造成者
+ */
+inline IndirectEntityDamageSource explosion(Entity* source, Entity* cause)
+{
+    return IndirectEntityDamageSource(DamageType::Explosion, cause, source).setExplosion();
+}
+
+/**
  * @brief 创建实体爆炸伤害
  * 玩家爆炸伤害使用 explosion.player
  */

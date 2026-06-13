@@ -335,6 +335,28 @@ BlockTag& BlockTags::WITHER_IMMUNE()
 }
 
 // ============================================================================
+// 末影龙标签
+// ============================================================================
+
+BlockTag& BlockTags::DRAGON_IMMUNE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "dragon_immune"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::DRAGON_TRANSPARENT()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "dragon_transparent"));
+    }
+    return *tag;
+}
+
+// ============================================================================
 // 1.17 Caves & Cliffs
 // ============================================================================
 
@@ -1697,6 +1719,49 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "trial_spawner"),
         ResourceLocation("minecraft", "vault")});
     tags[witherImmune->getId()] = std::move(witherImmune);
+
+    // 创建 DRAGON_IMMUNE 标签（末影龙免疫方块）
+    // 末影龙无法破坏这些方块，碰到后标记为"碰墙"状态影响飞行行为
+    auto dragonImmune = std::make_unique<BlockTag>(ResourceLocation("minecraft", "dragon_immune"));
+    dragonImmune->addAll({// 屏障方块
+        ResourceLocation("minecraft", "barrier"),
+        // 基岩
+        ResourceLocation("minecraft", "bedrock"),
+        // 末地传送门和传送门框架
+        ResourceLocation("minecraft", "end_portal"),
+        ResourceLocation("minecraft", "end_portal_frame"),
+        ResourceLocation("minecraft", "end_gateway"),
+        // 命令方块
+        ResourceLocation("minecraft", "command_block"),
+        ResourceLocation("minecraft", "repeating_command_block"),
+        ResourceLocation("minecraft", "chain_command_block"),
+        // 结构方块
+        ResourceLocation("minecraft", "structure_block"),
+        ResourceLocation("minecraft", "jigsaw"),
+        // 活塞移动中的方块
+        ResourceLocation("minecraft", "moving_piston"),
+        // 黑曜石和哭泣黑曜石
+        ResourceLocation("minecraft", "obsidian"),
+        ResourceLocation("minecraft", "crying_obsidian"),
+        // 末地石
+        ResourceLocation("minecraft", "end_stone"),
+        // 铁栏杆
+        ResourceLocation("minecraft", "iron_bars"),
+        // 重生锚
+        ResourceLocation("minecraft", "respawn_anchor"),
+        // 加固深板岩
+        ResourceLocation("minecraft", "reinforced_deepslate"),
+        // 1.21 试炼刷怪笼和宝库
+        ResourceLocation("minecraft", "trial_spawner"),
+        ResourceLocation("minecraft", "vault")});
+    tags[dragonImmune->getId()] = std::move(dragonImmune);
+
+    // 创建 DRAGON_TRANSPARENT 标签（末影龙透明方块）
+    // 末影龙穿过这些方块时不破坏它们
+    auto dragonTransparent = std::make_unique<BlockTag>(ResourceLocation("minecraft", "dragon_transparent"));
+    dragonTransparent->addAll({// 光照方块
+        ResourceLocation("minecraft", "light")});
+    tags[dragonTransparent->getId()] = std::move(dragonTransparent);
 
     // ============================================================================
     // 额外标签更新 - 1.16+ 黑石和下界方块
