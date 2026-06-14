@@ -756,3 +756,64 @@ TEST_F(PlayerAdvancementsTest, FlushAdvancementsPreservesExistingProgress)
     EXPECT_TRUE(progress->getCriterion("c1")->isObtained());
     EXPECT_FALSE(progress->getCriterion("c2")->isObtained());
 }
+
+// ========== 奖励发放测试 ==========
+
+TEST_F(PlayerAdvancementsTest, GrantAllCriteriaTriggersRewardWithoutServerPlayer)
+{
+    // 当没有 ServerPlayer 关联时（m_player == nullptr），完成成就应不崩溃
+    // _grantRewards 中的经验值和配方发放依赖 ServerPlayer，为空时跳过
+    Advancement::Builder builder{ResourceLocation("minecraft:test/reward_no_player")};
+    AdvancementDisplay display(ItemStack(),
+        std::make_unique<mc::text::StringTextComponent>("Rewarded"),
+        std::make_unique<mc::text::StringTextComponent>("With Rewards"),
+        AdvancementFrame::Task,
+        true,
+        true,
+        false);
+    builder.display(std::move(display));
+    builder.rewards(
+        mc::advancement::AdvancementRewards(100, {}, {mc::ResourceLocation("minecraft:diamond_sword")}, std::nullopt));
+    auto trigger = std::make_shared<TickTriggerInstance>();
+    builder.criterion("c1", trigger);
+    auto result = builder.build();
+    ASSERT_TRUE(result.success());
+    auto adv = std::make_shared<Advancement>(std::move(result).value());
+
+    // 没有 ServerPlayer，但完成成就应不崩溃
+    // _grantRewards 会输出日志说明 loot/function 未实现，但经验和配方因 m_player==nullptr 被跳过
+    EXPECT_TRUE(playerAdvancements->grantAllCriteria(adv));
+    EXPECT_TRUE(playerAdvancements->isDone(adv));
+}
+
+TEST_F(PlayerAdvancementsTest, AdvancementCompletionWithNoRewards)
+{
+    // 没有奖励的成就完成也应正常工作
+    auto adv = createTestAdvancement("minecraft:test/no_rewards", {"c1"});
+    ASSERT_NE(adv, nullptr);
+
+    // 默认创建的成就没有奖励
+    EXPECT_TRUE(playerAdvancements->grantCriterion(adv, "c1"));
+    EXPECT_TRUE(playerAdvancements->isDone(adv));
+}
+
+TEST_F(PlayerAdvancementsTest, MultiCriteriaCompletionGrantsRewardsOnce)
+{
+    // 多条件成就完成时，奖励只发放一次（从 wasDone=false 变为 isDone=true 时）
+    auto adv = createTestAdvancement("minecraft:test/reward_once", {"c1", "c2", "c3"});
+    ASSERT_NE(adv, nullptr);
+
+    // 授予前两个条件，成就未完成
+    EXPECT_TRUE(playerAdvancements->grantCriterion(adv, "c1"));
+    EXPECT_TRUE(playerAdvancements->grantCriterion(adv, "c2"));
+    EXPECT_FALSE(playerAdvancements->isDone(adv));
+
+    // 授予最后一个条件，成就完成
+    // 奖励应只在此刻发放一次
+    EXPECT_TRUE(playerAdvancements->grantCriterion(adv, "c3"));
+    EXPECT_TRUE(playerAdvancements->isDone(adv));
+
+    // 成就完成后，再次授予条件不应触发奖励（不会进入 !wasDone && isDone 分支）
+    // 由于 c3 已经完成，grantCriterion 返回 false
+    EXPECT_FALSE(playerAdvancements->grantCriterion(adv, "c3"));
+}

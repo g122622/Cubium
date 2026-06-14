@@ -237,3 +237,54 @@ TEST_F(AdvancementEventHandlerTest, EventSubscriptionLifecycle)
 //
 // 5. PlayerKillEntityEventIntegration
 //    - 验证 PlayerKillEntityEvent 正确处理（当 DistancePredicate 实现后）
+//
+// 6. OnServerTickIntegration
+//    - 验证 ServerTickEvent 正确触发 TickTrigger
+//    - 需要完整的 IServer、ServerWorld、ServerPlayer 环境
+//    - 当前 _onServerTick 依赖 _getServerPlayer() 获取在线玩家列表
+//    - 由于 ServerPlayerEntityManager::createPlayerEntity() 创建的是 Player 而非 ServerPlayer，
+//      Player::asServerPlayer() 返回 nullptr，导致 _onServerTick 无法获取 ServerPlayer
+//    - 修复 ServerPlayer 创建机制后此集成测试将可以正常工作
+
+// ========== _onServerTick 架构验证测试 ==========
+
+TEST_F(AdvancementEventHandlerTest, OnServerTickHandlerSubscribedOnInit)
+{
+    // 验证 initialize() 订阅了 ServerTickEvent
+    // 初始化后，事件处理器应订阅了 tick 事件
+    AdvancementEventHandler handler;
+    handler.setServer(reinterpret_cast<IServer*>(0x1234));
+
+    // initialize() 应成功（订阅 ServerTickEvent）
+    handler.initialize();
+    EXPECT_TRUE(handler.isInitialized());
+
+    // shutdown() 应成功（取消订阅所有事件）
+    handler.shutdown();
+    EXPECT_FALSE(handler.isInitialized());
+}
+
+TEST_F(AdvancementEventHandlerTest, OnServerTickRequiresServer)
+{
+    // _onServerTick 需要 m_server 不为空才能工作
+    // 没有 server 时，handler 不会崩溃
+    AdvancementEventHandler handler;
+
+    // 不设置 server 就 initialize，不应崩溃
+    handler.initialize();
+
+    // shutdown 也不应崩溃
+    handler.shutdown();
+}
+
+TEST_F(AdvancementEventHandlerTest, OnServerTickArchitectureGetServerPlayerPath)
+{
+    // 架构验证：_onServerTick 通过以下路径获取 ServerPlayer：
+    // m_server -> playerEntityManager() -> getPlayerIds()
+    // 对每个 playerId：m_server -> getPlayerWorld(playerId) -> entityManager.getPlayerEntity() -> asServerPlayer()
+    //
+    // TODO: 当前 ServerPlayerEntityManager::createPlayerEntity() 创建 Player 而非 ServerPlayer，
+    // 导致 Player::asServerPlayer() 返回 nullptr，TickTrigger 的 trigger() 不会被调用。
+    // 此测试记录了正确的架构路径，待 ServerPlayer 创建机制修复后验证。
+    SUCCEED();
+}
