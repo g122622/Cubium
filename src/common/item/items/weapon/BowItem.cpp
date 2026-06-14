@@ -46,7 +46,6 @@ namespace item {
 namespace {
 constexpr i32 MAX_USE_DURATION = 72000; // 几乎无限制
 constexpr f32 MIN_VELOCITY = 0.1f;      // 最小发射速度
-constexpr i32 FULL_CHARGE_TICKS = 20;   // 满蓄力 tick 数
 } // namespace
 
 // ========== 构造函数 ==========
@@ -233,7 +232,7 @@ f32 BowItem::getArrowVelocity(i32 chargeTicks)
         return 0.0f;
     }
 
-    f32 f = static_cast<f32>(chargeTicks) / static_cast<f32>(FULL_CHARGE_TICKS);
+    f32 f = static_cast<f32>(chargeTicks) / static_cast<f32>(BowItem::FULL_CHARGE_TICKS);
     f = (f * f + f * 2.0f) / 3.0f;
 
     return math::clamp(f, 0.0f, 1.0f);

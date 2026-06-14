@@ -41,7 +41,6 @@ namespace item {
 // ========== 常量 ==========
 namespace {
 constexpr i32 MAX_USE_DURATION = 72000; // 几乎无限制
-constexpr i32 MIN_CHARGE_TICKS = 10;    // 最小投掷蓄力时间
 constexpr f32 THROW_VELOCITY = 2.5f;    // 基础投掷速度
 } // namespace
 
@@ -97,7 +96,7 @@ void TridentItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEn
 
     // 计算蓄力时间
     i32 chargeTicks = getUseDuration(stack) - timeLeft;
-    if (chargeTicks < MIN_CHARGE_TICKS) {
+    if (chargeTicks < TridentItem::MIN_CHARGE_TICKS) {
         // 蓄力不足，不投掷
         return;
     }

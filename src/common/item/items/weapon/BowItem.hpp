@@ -113,10 +113,13 @@ public:
 
     // ========== 弓特有方法 ==========
 
+    /// 满蓄力所需 tick 数（1 秒 = 20 tick）
+    static constexpr i32 FULL_CHARGE_TICKS = 20;
+
     /**
      * @brief 计算箭矢速度因子
      *
-     * 公式: f = charge / 20.0
+     * 公式: f = charge / FULL_CHARGE_TICKS
      *       f = (f * f + f * 2.0) / 3.0
      *       最大 1.0
      *

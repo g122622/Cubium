@@ -310,13 +310,25 @@ private:
 
     /**
      * @brief 应用拉弓变换
+     *
+     * @param stack 矩阵栈
+     * @param partialTicks 部分 tick
+     * @param side 手侧
+     * @param useCount 使用计数
+     * @param itemStack 弓物品堆（用于获取 getUseDuration）
      */
-    void _transformBow(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount);
+    void _transformBow(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount, const ItemStack& itemStack);
 
     /**
      * @brief 应用三叉戟投掷变换
+     *
+     * @param stack 矩阵栈
+     * @param partialTicks 部分 tick
+     * @param side 手侧
+     * @param useCount 使用计数
+     * @param itemStack 三叉戟物品堆（用于获取 getUseDuration）
      */
-    void _transformSpear(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount);
+    void _transformSpear(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount, const ItemStack& itemStack);
 
     /**
      * @brief 应用弩装填变换
@@ -326,8 +338,10 @@ private:
      * @param side 手侧
      * @param useCount 使用计数
      * @param isCharged 是否已装填
+     * @param itemStack 弩物品堆（用于获取 getChargeTime）
      */
-    void _transformCrossbow(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount, bool isCharged);
+    void _transformCrossbow(
+        MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount, bool isCharged, const ItemStack& itemStack);
 
     /**
      * @brief 计算挥动动画参数

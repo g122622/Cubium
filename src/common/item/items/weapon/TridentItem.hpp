@@ -121,6 +121,11 @@ public:
      */
     [[nodiscard]] i32 getItemEnchantability() const override { return 1; }
 
+    // ========== 三叉戟特有常量 ==========
+
+    /// 最小投掷蓄力时间（tick），低于此值松开右键不会投掷
+    static constexpr i32 MIN_CHARGE_TICKS = 10;
+
 private:
     /**
      * @brief 检查玩家是否潮湿（在水中或雨中）

@@ -28,7 +28,9 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/items/map/FilledMapItem.hpp"
+#include "common/item/items/weapon/BowItem.hpp"
 #include "common/item/items/weapon/CrossbowItem.hpp"
+#include "common/item/items/weapon/TridentItem.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>
 #include <limits>
@@ -49,13 +51,6 @@ namespace {
 static constexpr f32 SIDE_OFFSET_X = 0.56f;
 static constexpr f32 SIDE_OFFSET_Y = -0.52f;
 static constexpr f32 SIDE_OFFSET_Z = -0.72f;
-
-/// 弓的默认使用时间（ticks）
-static constexpr i32 BOW_USE_DURATION = 72000;
-
-/// 弩的基础装填时间（ticks）
-// TODO: 弩装填时间应从 CrossbowItem 动态获取，当前硬编码为 25 ticks
-static constexpr i32 CROSSBOW_BASE_CHARGE_TICKS = 25;
 
 // 将向量长度归一化，长度过小时回退为零向量，避免数值抖动。
 [[nodiscard]] Vector3f normalizeSafe(const Vector3f& value)
@@ -580,17 +575,17 @@ void FirstPersonRenderer::_renderItemInHand(MatrixStack& stack,
 
             case UseAction::Bow:
                 // 弓：拉弓动画
-                _transformBow(stack, partialTicks, side, useCount);
+                _transformBow(stack, partialTicks, side, useCount, itemStack);
                 break;
 
             case UseAction::Spear:
                 // 三叉戟：投掷动画（Trident 是 Spear 的别名）
-                _transformSpear(stack, partialTicks, side, useCount);
+                _transformSpear(stack, partialTicks, side, useCount, itemStack);
                 break;
 
             case UseAction::Crossbow:
                 // 弩：装填动画
-                _transformCrossbow(stack, partialTicks, side, useCount, false);
+                _transformCrossbow(stack, partialTicks, side, useCount, false, itemStack);
                 break;
 
             default:
@@ -684,15 +679,19 @@ void FirstPersonRenderer::_transformEatOrDrink(
     matrixStack.rotateZ(sideSign * f3 * 30.0f);
 }
 
-void FirstPersonRenderer::_transformBow(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount)
+void FirstPersonRenderer::_transformBow(
+    MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount, const ItemStack& itemStack)
 {
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
 
-    // TODO: 弓的使用时间应从 BowItem 获取 useDuration，当前使用 BOW_USE_DURATION 作为占位
-    const f32 f8 = static_cast<f32>(BOW_USE_DURATION - useCount) + partialTicks + 1.0f;
+    // 从 BowItem 获取最大使用时间，用于计算蓄力进度
+    const Item* item = itemStack.getItem();
+    const i32 useDuration = (item != nullptr) ? item->getUseDuration(itemStack) : 72000;
 
-    // f12 = f8 / 20, 然后用公式 (f12^2 + f12*2) / 3
-    f32 f12 = f8 / 20.0f;
+    const f32 f8 = static_cast<f32>(useDuration - useCount) + partialTicks + 1.0f;
+
+    // 蓄力进度：与 BowItem::getArrowVelocity 一致的二次曲线
+    f32 f12 = f8 / static_cast<f32>(item::BowItem::FULL_CHARGE_TICKS);
     f12 = (f12 * f12 + f12 * 2.0f) / 3.0f;
     if (f12 > 1.0f) {
         f12 = 1.0f;
@@ -712,13 +711,19 @@ void FirstPersonRenderer::_transformBow(MatrixStack& stack, f32 partialTicks, Ha
     stack.rotateY(-sideSign * 45.0f);
 }
 
-void FirstPersonRenderer::_transformSpear(MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount)
+void FirstPersonRenderer::_transformSpear(
+    MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount, const ItemStack& itemStack)
 {
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
 
-    // TODO: 三叉戟蓄力应从 TridentItem 获取 useDuration，当前使用 BOW_USE_DURATION 作为占位
-    const f32 f7 = static_cast<f32>(BOW_USE_DURATION - useCount) + partialTicks + 1.0f;
-    f32 f11 = f7 / 10.0f;
+    // 从 TridentItem 获取最大使用时间，用于计算蓄力进度
+    const Item* item = itemStack.getItem();
+    const i32 useDuration = (item != nullptr) ? item->getUseDuration(itemStack) : 72000;
+
+    const f32 f7 = static_cast<f32>(useDuration - useCount) + partialTicks + 1.0f;
+
+    // 三叉戟蓄力进度：线性计算，以 MIN_CHARGE_TICKS 为基准
+    f32 f11 = f7 / static_cast<f32>(item::TridentItem::MIN_CHARGE_TICKS);
     if (f11 > 1.0f) {
         f11 = 1.0f;
     }
@@ -738,7 +743,7 @@ void FirstPersonRenderer::_transformSpear(MatrixStack& stack, f32 partialTicks, 
 }
 
 void FirstPersonRenderer::_transformCrossbow(
-    MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount, bool isCharged)
+    MatrixStack& stack, f32 partialTicks, HandSide side, i32 useCount, bool isCharged, const ItemStack& itemStack)
 {
     const f32 sideSign = side == HandSide::Right ? 1.0f : -1.0f;
 
@@ -747,16 +752,22 @@ void FirstPersonRenderer::_transformCrossbow(
         stack.translate(sideSign * -0.641864f, 0.0f, 0.0f);
         stack.rotateY(sideSign * 10.0f);
     } else {
-        // 装填中
-        const f32 f9 = static_cast<f32>(CROSSBOW_BASE_CHARGE_TICKS - useCount) + partialTicks + 1.0f;
-        f32 f13 = f9 / static_cast<f32>(CROSSBOW_BASE_CHARGE_TICKS);
+        // 装填中：从 CrossbowItem 动态获取装填时间（考虑快速装填附魔）
+        const Item* item = itemStack.getItem();
+        const i32 useDuration = (item != nullptr) ? item->getUseDuration(itemStack) : 28;
+        const i32 chargeTime = item::CrossbowItem::getChargeTime(itemStack);
+
+        // useDuration = chargeTime + 3，useCount 是剩余使用时间
+        // 已装填时间 = useDuration - useCount
+        const f32 elapsed = static_cast<f32>(useDuration - useCount) + partialTicks + 1.0f;
+        f32 f13 = elapsed / static_cast<f32>(chargeTime);
         if (f13 > 1.0f) {
             f13 = 1.0f;
         }
 
         // 超过 10% 进度后有轻微震动
         if (f13 > 0.1f) {
-            const f32 f16 = std::sin((f9 - 0.1f) * 1.3f);
+            const f32 f16 = std::sin((elapsed - 0.1f) * 1.3f);
             const f32 f3 = f13 - 0.1f;
             const f32 f4 = f16 * f3;
             stack.translate(f4 * 0.0f, f4 * 0.004f, f4 * 0.0f);
