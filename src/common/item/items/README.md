@@ -15,7 +15,7 @@ items/
 │   └── HorseArmorItem.hpp/cpp   # 马铠（马匹装备）
 ├── block/                       # 方块物品
 │   ├── BannerItem.hpp/cpp       # 旗帜物品
-│   ├── BlockItem.hpp/cpp        # 方块物品基类（放置逻辑、碰撞检查）
+│   ├── BlockItem.hpp/cpp        # 方块物品基类（放置逻辑、NBT数据传递）
 │   ├── BlockItemRegistry.hpp/cpp # 方块物品注册表
 │   └── WallOrFloorItem.hpp/cpp  # 墙上/地面放置物品（按钮、压力板等）
 ├── food/                        # 食物物品
@@ -139,4 +139,5 @@ flowchart TD
 - 不要让具体物品直接依赖另一个具体物品的实现细节，应该回退到 `item/core/` 共享抽象
 - 新增物品后必须同步更新 `Items::initialize()` 注册表
 - BlockItem 放置时会排除放置者实体进行碰撞检查，无碰撞箱方块（水、空气）跳过此检查
+- BlockItem 的 `applyBlockStateFromNBT` 和 `setTileEntityNBT` 已实现，分别处理物品 NBT 中的 BlockStateTag 和 BlockEntityTag 传递到放置的方块/方块实体
 - 投掷类物品（药水、箭矢、雪球等）都继承自 ThrowableItem 或 ThrowablePotionItem，不要重复实现投掷逻辑

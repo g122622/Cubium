@@ -150,6 +150,10 @@ BlockEntityDeserializer ──反序列化──→ BlockEntity（通过 Registr
 
 当前 `BlockEntity::getBlockState()` 返回 `nullptr`，需要 World 类支持后才能实现。使用前需要检查返回值。
 
+### 3. onlyOpsCanSetNbt() 权限控制
+
+`BlockEntity::onlyOpsCanSetNbt()` 虚方法默认返回 false，命令方块等方块实体重写返回 true。当玩家通过物品放置方块实体时，`BlockItem::setTileEntityNBT()` 会检查此标志，仅 OP 玩家可设置受保护的方块实体 NBT。
+
 ### 3. 线程安全问题
 
 `tick()` 和 `load()`/`save()` 可能在不同线程调用，需要注意：

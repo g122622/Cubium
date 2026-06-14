@@ -265,7 +265,6 @@ bool BlockItem::placeBlock(BlockItemUseContext& context, const BlockState* state
 bool BlockItem::onBlockPlaced(
     const BlockPos& pos, IWorld& world, Player* player, const ItemStack& stack, const BlockState& state) const
 {
-    // 参考 MC Java: BlockItem.updateCustomBlockEntityTag()
     // 将物品堆中的 BlockEntityTag 数据应用到方块实体
     return setTileEntityNBT(world, player, pos, stack);
 }
@@ -285,7 +284,6 @@ bool BlockItem::setTileEntityNBT(IWorld& world, Player* player, const BlockPos& 
     }
 
     // 权限检查：如果方块实体仅允许 OP 修改 NBT，则需要验证玩家权限
-    // 参考 MC Java: BlockEntityType.onlyOpCanSetNbt()
     // 需要OP权限的方块实体类型包括：CommandBlock, Sign, HangingSign, StructureBlock, JigsawBlock, TrialSpawner, Lectern
     if (blockEntity->onlyOpsCanSetNbt()) {
         // TODO: 当玩家权限系统完善后，应检查 player->canUseGameMasterBlocks() 权限
@@ -296,7 +294,6 @@ bool BlockItem::setTileEntityNBT(IWorld& world, Player* player, const BlockPos& 
     }
 
     // 验证 BlockEntityTag 中的类型ID与实际方块实体类型匹配
-    // 参考 MC Java: TypedEntityData.type() 必须与 blockentity.getType() 一致
     auto idIt = blockEntityTag->find("id");
     if (idIt != blockEntityTag->end() && idIt->is_string()) {
         std::string tagTypeId = idIt->get<std::string>();
@@ -309,8 +306,7 @@ bool BlockItem::setTileEntityNBT(IWorld& world, Player* player, const BlockPos& 
     }
 
     // 将 BlockEntityTag 中的数据合并到方块实体
-    // 参考 MC Java: TypedEntityData.loadInto(BlockEntity)
-    // MC Java 的流程是：保存当前数据 -> 合并物品NBT -> 加载合并后数据 -> 失败则回滚
+    // 流程：保存当前数据 -> 合并物品NBT -> 加载合并后数据 -> 失败则回滚
     // 本项目使用 JSON 存储自定义数据，直接合并即可
 
     // 先保存当前方块实体的数据（用于失败时回滚）
@@ -340,7 +336,6 @@ bool BlockItem::setTileEntityNBT(IWorld& world, Player* player, const BlockPos& 
 const BlockState* BlockItem::applyBlockStateFromNBT(
     const BlockPos& pos, IWorld& world, const ItemStack& stack, const BlockState& state) const
 {
-    // 参考 MC Java: BlockItem.updateBlockStateFromTag()
     // 从物品堆的 BlockStateTag 子标签中读取方块状态属性并应用
 
     const nlohmann::json* blockStateTag = stack.getChildTag("BlockStateTag");

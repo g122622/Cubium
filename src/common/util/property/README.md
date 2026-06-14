@@ -97,3 +97,7 @@ BlockStateProperties / FluidProperties (预定义属性)
 ### 8. 预定义属性是懒加载单例
 
 `BlockStateProperties` 中的属性通过函数内静态变量实现（C++11 magic statics），线程安全，首次调用时创建。同一属性多次调用返回同一引用。
+
+### 9. withValueIndex 与 with 的选择
+
+`with()` 是类型安全的属性设置方法，`withValueIndex(const IProperty& prop, size_t valueIndex)` 是类型擦除版本，通过属性引用和值索引设置。编译期无法确定属性类型时（如从 NBT/JSON 反序列化属性）使用 `withValueIndex`，其余情况优先使用 `with()`。

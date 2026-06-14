@@ -32,6 +32,7 @@ add_executable(mc_tests
     common/test_chunkloadticket.cpp
     # common/test_collision.cpp  # 鏆傛椂绂佺敤 - 渚濊禆鏃х殑纰版挒绯荤粺
     common/test_property.cpp
+    common/util/StateHolderTest.cpp
     common/TestWorldHelper.cpp
     common/BaseTestServer.cpp
     common/test_block.cpp
@@ -75,6 +76,7 @@ add_executable(mc_tests
     common/item/food/ChorusFruitItemTest.cpp
     common/item/NewItemTest.cpp
     common/item/ItemCraftedByTest.cpp
+    common/item/BlockItemNbtTest.cpp
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/EnchantmentCallbackTest.cpp
     common/item/enchantment/AttemptDamageItemTest.cpp
