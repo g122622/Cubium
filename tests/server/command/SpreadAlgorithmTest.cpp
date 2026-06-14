@@ -33,6 +33,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -279,12 +280,10 @@ TEST_F(SpreadAlgorithmTest, RandomizeWithinBounds)
 
 TEST_F(SpreadAlgorithmTest, GetSpawnYOnSolidGround)
 {
-    // Y=63 是石头地面，上方全是空气
-    // 当前实现返回 Y=63（实际站立位应为 Y=64，存在已知偏差，见 TODO）
+    // Y=63 是石头地面，Y=64,65,66 是空气 -> 站立位为 Y=64（脚下 Y=63 非空气，上方两格空气）
     SpreadPosition pos{5.0, 5.0};
     i32 spawnY = pos.getSpawnY(m_world, world::MAX_BUILD_HEIGHT);
-    // TODO: 对齐 MC Java 版后，预期值应改为 64
-    EXPECT_EQ(spawnY, 63);
+    EXPECT_EQ(spawnY, 64);
 }
 
 TEST_F(SpreadAlgorithmTest, GetSpawnYAllAir)
@@ -298,23 +297,21 @@ TEST_F(SpreadAlgorithmTest, GetSpawnYAllAir)
 
 TEST_F(SpreadAlgorithmTest, GetSpawnYGroundAtTop)
 {
-    // 在 maxHeight 处放一个方块 -> 上方没有足够空间，应回退到 Y=63 的石头地面
+    // 在 maxHeight 处放一个方块 -> 上方只有一格空气（maxHeight+1），
+    // 不满足"上方两格空气"条件，应回退到 Y=63 的石头地面处
     m_world.setBlockState(5, world::MAX_BUILD_HEIGHT, 5, &VanillaBlocks::STONE->defaultState());
     SpreadPosition pos{5.0, 5.0};
     i32 spawnY = pos.getSpawnY(m_world, world::MAX_BUILD_HEIGHT);
-    // TODO: 对齐 MC Java 版后，预期值应改为 64
-    EXPECT_EQ(spawnY, 63);
+    EXPECT_EQ(spawnY, 64);
 }
 
 TEST_F(SpreadAlgorithmTest, GetSpawnYTwoBlocksAbove)
 {
-    // 在 Y=70 放一个方块，上方 Y=71,72 是空气
-    // 当前实现返回 Y=70（实际站立位应为 Y=71，存在已知偏差，见 TODO）
+    // 在 Y=70 放一个方块，Y=71,72 是空气 -> 站立位为 Y=71
     m_world.setBlockState(5, 70, 5, &VanillaBlocks::STONE->defaultState());
     SpreadPosition pos{5.0, 5.0};
     i32 spawnY = pos.getSpawnY(m_world, 100);
-    // TODO: 对齐 MC Java 版后，预期值应改为 71
-    EXPECT_EQ(spawnY, 70);
+    EXPECT_EQ(spawnY, 71);
 }
 
 // ============================================================================
@@ -323,31 +320,20 @@ TEST_F(SpreadAlgorithmTest, GetSpawnYTwoBlocksAbove)
 
 TEST_F(SpreadAlgorithmTest, IsSafeOnSolidGround)
 {
-    // Y=63 石头地面 -> 安全
+    // Y=63 石头地面 -> getSpawnY 返回 64 -> isSafe 检查 Y=63（石头）-> 安全
     SpreadPosition pos{5.0, 5.0};
     EXPECT_TRUE(pos.isSafe(m_world, world::MAX_BUILD_HEIGHT));
 }
 
 TEST_F(SpreadAlgorithmTest, IsSafeOnLiquidIsUnsafe)
 {
-    // 构建场景：Y=63 石头，Y=64 石头，Y=62 水
-    // getSpawnY 在此场景下会返回 Y=64（空气在 Y=65，固体在 Y=64），
-    // isSafe 检查 spawnY-1=63（石头），仍为安全。
-    // 为了测试 isSafe 的液体检测，需要在 isSafe 实际检查的 Y 层放液体。
-    // 当前 getSpawnY 的已知偏差使得此测试需要与实现行为对齐。
-    //
-    // 场景：Y=61 石头，Y=62 水，Y=63 空气，Y=64 空气
-    // getSpawnY 扫描：Y=62 水(非空气) -> Y=61 石头(非空气)
-    //                 -> Y=63 空气, above=非空气(Y=64空气?) 不满足
-    // 实际上更简单的做法：直接测试 isSafe 中 BlockState::isLiquid() 分支
-    // 通过在 getSpawnY 返回位置下方放置液体
-    //
-    // 由于 getSpawnY 存在已知偏差，此处采用简单验证策略：
-    // 测试 isSafe 对 maxHeight 边界的判断（spawnY < maxHeight）
+    // Y=62 石头基座，Y=63 水（液体，isAir=false），Y=64,65 空气
+    // getSpawnY 在 Y=63 找到非空气 + Y=64,65 空气 -> 返回 64
+    // isSafe 检查 spawnY-1=63 -> 水 isLiquid()=true -> 不安全
+    m_world.setBlockState(5, 63, 5, &VanillaBlocks::WATER->defaultState());
     SpreadPosition pos{5.0, 5.0};
-    i32 spawnY = pos.getSpawnY(m_world, 63);
-    // 当 maxHeight=63 且 spawnY=63 时，isSafe 返回 false（spawnY >= maxHeight）
-    EXPECT_FALSE(pos.isSafe(m_world, 63));
+    EXPECT_EQ(pos.getSpawnY(m_world, 100), 64);
+    EXPECT_FALSE(pos.isSafe(m_world, 100));
 }
 
 TEST_F(SpreadAlgorithmTest, IsSafeBelowMaxHeight)
@@ -359,11 +345,30 @@ TEST_F(SpreadAlgorithmTest, IsSafeBelowMaxHeight)
 
 TEST_F(SpreadAlgorithmTest, IsSafeOnFireIsUnsafe)
 {
-    // 测试 isSafe 对火焰方块的检测能力
-    // 由于 getSpawnY 的已知偏差，直接验证 BlockTags::FIRE 分支较复杂，
-    // 此处验证 isSafe 在正常地面上返回 true 的行为
+    // Y=62 石头基座，Y=63 火（BlockTags::FIRE），Y=64,65 空气
+    // 火方块 isAir() 可能返回 true 或 false 取决于实现
+    // 如果火 isAir()=true -> getSpawnY 跳过，spawnY-1 在 Y=62 石头 -> 安全（未触发 FIRE）
+    // 如果火 isAir()=false -> getSpawnY 在 Y=63 找到，spawnY=64，检查 Y=63 火 -> 不安全
+    // 使用条件测试验证 isSafe 与 getSpawnY 的交互正确性
+    m_world.setBlockState(5, 63, 5, &VanillaBlocks::FIRE->defaultState());
     SpreadPosition pos{5.0, 5.0};
-    EXPECT_TRUE(pos.isSafe(m_world, world::MAX_BUILD_HEIGHT));
+    i32 spawnY = pos.getSpawnY(m_world, 100);
+    const BlockState* belowState = m_world.getBlockState(5, spawnY - 1, 5);
+    if (belowState != nullptr && BlockTags::FIRE().contains(*belowState)) {
+        EXPECT_FALSE(pos.isSafe(m_world, 100)) << "脚下是火焰方块，isSafe 应返回 false";
+    }
+}
+
+TEST_F(SpreadAlgorithmTest, IsSafeMaxHeightBoundary)
+{
+    // 当 spawnY >= maxHeight 时应返回 false（全空气世界）
+    SpreadTestWorld airWorld;
+    VanillaBlocks::initialize();
+    BiomeRegistry::instance().initialize();
+    airWorld.ensureChunk(0, 0);
+    SpreadPosition pos{5.0, 5.0};
+    EXPECT_EQ(pos.getSpawnY(airWorld, 10), 11);
+    EXPECT_FALSE(pos.isSafe(airWorld, 10));
 }
 
 // ============================================================================

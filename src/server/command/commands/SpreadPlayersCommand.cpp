@@ -55,7 +55,7 @@ namespace {
 /// 计算需要分散的位置数量（尊重队伍时，按队伍数计算；否则按实体数计算）
 /// TODO: MC Java 版中非玩家实体会被统一归入 null 队伍，当前实现仅支持玩家，
 ///       当支持 EntityArgumentType::entities() 后需要区分玩家和非玩家的队伍归属。
-i32 getNumberOfTeams(server::IServer& server, const std::vector<std::string>& playerNames)
+i32 _getNumberOfTeams(server::IServer& server, const std::vector<std::string>& playerNames)
 {
     // 收集不同的队伍（nullptr 算作一支独立的"无队伍"）
     std::set<scoreboard::ScorePlayerTeam*> teams;
@@ -78,7 +78,7 @@ i32 getNumberOfTeams(server::IServer& server, const std::vector<std::string>& pl
 ///       当前使用硬编码的 world::MAX_BUILD_HEIGHT，需要添加该变体
 /// TODO: MC Java 版使用 world.getMaxY() + 1 获取动态最大高度，而非硬编码常量，
 ///       且在提供 maxHeight 时验证其不小于 world.getMinY()，当前缺少此验证
-f64 setPlayerPositions(server::IServer& server,
+f64 _setPlayerPositions(server::IServer& server,
     server::ServerWorld& world,
     const std::vector<PlayerId>& playerIds,
     const std::vector<std::string>& playerNames,
@@ -222,7 +222,7 @@ i32 SpreadPlayersCommand::_spreadPlayers(CommandContext<ServerCommandSource>& co
 
     // 计算需要分散的位置数量
     const i32 positionCount =
-        respectTeams ? getNumberOfTeams(*server, playerNames) : static_cast<i32>(playerIds.size());
+        respectTeams ? _getNumberOfTeams(*server, playerNames) : static_cast<i32>(playerIds.size());
 
     if (positionCount == 0) {
         source.sendError("No positions to spread");
@@ -256,7 +256,7 @@ i32 SpreadPlayersCommand::_spreadPlayers(CommandContext<ServerCommandSource>& co
     }
 
     // 将分散位置应用到玩家
-    f64 avgMinDist = setPlayerPositions(*server, *world, playerIds, playerNames, positions, maxHeight, respectTeams);
+    f64 avgMinDist = _setPlayerPositions(*server, *world, playerIds, playerNames, positions, maxHeight, respectTeams);
 
     // 构建成功反馈消息
     std::ostringstream ss;

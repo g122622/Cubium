@@ -59,9 +59,7 @@ struct SpreadPosition {
     bool clamp(f64 minX, f64 minZ, f64 maxX, f64 maxZ);
 
     /// 计算此位置的生成 Y 坐标（从上往下搜索第一个安全的站立位置）
-    /// TODO: 当前实现与 MC Java 版存在差异。MC 使用三变量滚动法（flag/flag1/flag2）跟踪
-    ///       连续三个 Y 层的空气状态，确保上方两格都是空气、脚下是固体才返回。
-    ///       当前实现在边界情况下可能返回只有一格空气上方的位置，需要重写对齐。
+    /// 使用三变量滚动法，对齐 MC Java 版 SpreadPlayersCommand.Position.getSpawnY
     [[nodiscard]] i32 getSpawnY(IWorld& world, i32 maxHeight) const;
 
     /// 检查此位置是否安全（脚下不是液体、不是火焰）

@@ -87,36 +87,34 @@ bool SpreadPosition::clamp(f64 minX, f64 minZ, f64 maxX, f64 maxZ)
 
 i32 SpreadPosition::getSpawnY(IWorld& world, i32 maxHeight) const
 {
-    // 从 maxHeight + 1 开始向下搜索，找到第一个"上方两格都是空气、脚下不是空气"的位置
     i32 blockX = static_cast<i32>(std::floor(x));
     i32 blockZ = static_cast<i32>(std::floor(z));
 
-    // 从 maxHeight + 1 开始搜索
+    // 使用三变量滚动法，对齐 MC Java 版 SpreadPlayersCommand.Position.getSpawnY
+    // 从 maxHeight+1 开始向下搜索，找到"当前格非空气、上方两格都是空气"的站立位置
+    // flag: 上方第二格是否为空气
+    // flag1: 上方第一格是否为空气
+    // flag2: 当前格是否为空气
     i32 y = maxHeight + 1;
     const BlockState* state = world.getBlockState(blockX, y, blockZ);
-    bool above = (state != nullptr) && !state->isAir();
-    bool current = false;
+    bool flag = (state == nullptr) || state->isAir(); // maxHeight+1 处是否为空气
 
-    // 逐格向下搜索
+    --y;
+    state = world.getBlockState(blockX, y, blockZ);
+    bool flag1 = (state == nullptr) || state->isAir(); // maxHeight 处是否为空气
+
     while (y > world::MIN_BUILD_HEIGHT) {
         --y;
         state = world.getBlockState(blockX, y, blockZ);
-        current = (state != nullptr) && !state->isAir();
+        bool flag2 = (state == nullptr) || state->isAir(); // 当前格是否为空气
 
-        // 找到脚下是固体、上方两格是空气的位置
-        if (!current && above) {
-            // 检查再上一格是否也是空气
-            if (y + 2 <= maxHeight + 1) {
-                const BlockState* aboveState = world.getBlockState(blockX, y + 2, blockZ);
-                bool aboveTwo = (aboveState == nullptr) || aboveState->isAir();
-                if (aboveTwo) {
-                    return y + 1;
-                }
-            }
-            // 如果无法检查上方两格，仍然返回当前位置
+        // 当前格非空气（固体）、上方两格都是空气 -> 找到站立位置
+        if (!flag2 && flag1 && flag) {
             return y + 1;
         }
-        above = current;
+
+        flag = flag1;
+        flag1 = flag2;
     }
 
     // 如果找不到合适的位置，返回 maxHeight + 1
