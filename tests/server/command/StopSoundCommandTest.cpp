@@ -267,6 +267,16 @@ TEST_F(StopSoundCommandTest, StopSoundByCategoryVoice)
     EXPECT_EQ(result.value(), 1);
 }
 
+TEST_F(StopSoundCommandTest, StopSoundByCategoryUI)
+{
+    m_server.addTestPlayer(1, "Steve");
+
+    const auto result = m_server.commandRegistry().execute("stopsound Steve ui", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1);
+}
+
 TEST_F(StopSoundCommandTest, StopSoundByCategoryNoPlayer)
 {
     const auto result = m_server.commandRegistry().execute("stopsound Steve master", m_console);

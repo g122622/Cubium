@@ -50,6 +50,7 @@ TEST(SoundCategoryTest, GetCategoryName)
     EXPECT_EQ(getSoundCategoryName(SoundCategory::Players), "player");
     EXPECT_EQ(getSoundCategoryName(SoundCategory::Ambient), "ambient");
     EXPECT_EQ(getSoundCategoryName(SoundCategory::Voice), "voice");
+    EXPECT_EQ(getSoundCategoryName(SoundCategory::UI), "ui");
 }
 
 TEST(SoundCategoryTest, ParseValidNames)
@@ -64,6 +65,7 @@ TEST(SoundCategoryTest, ParseValidNames)
     EXPECT_EQ(parseSoundCategory("player"), SoundCategory::Players);
     EXPECT_EQ(parseSoundCategory("ambient"), SoundCategory::Ambient);
     EXPECT_EQ(parseSoundCategory("voice"), SoundCategory::Voice);
+    EXPECT_EQ(parseSoundCategory("ui"), SoundCategory::UI);
 }
 
 TEST(SoundCategoryTest, ParseCaseInsensitive)
@@ -72,6 +74,8 @@ TEST(SoundCategoryTest, ParseCaseInsensitive)
     EXPECT_EQ(parseSoundCategory("Music"), SoundCategory::Music);
     EXPECT_EQ(parseSoundCategory("BLOCK"), SoundCategory::Blocks);
     EXPECT_EQ(parseSoundCategory("Player"), SoundCategory::Players);
+    EXPECT_EQ(parseSoundCategory("UI"), SoundCategory::UI);
+    EXPECT_EQ(parseSoundCategory("Ui"), SoundCategory::UI);
 }
 
 TEST(SoundCategoryTest, ParsePluralAliases)
@@ -93,6 +97,7 @@ TEST(SoundCategoryTest, IsValidCategory)
 {
     EXPECT_TRUE(isValidSoundCategory(SoundCategory::Master));
     EXPECT_TRUE(isValidSoundCategory(SoundCategory::Voice));
+    EXPECT_TRUE(isValidSoundCategory(SoundCategory::UI));
     EXPECT_FALSE(isValidSoundCategory(SoundCategory::Count));
     EXPECT_FALSE(isValidSoundCategory(static_cast<SoundCategory>(255)));
 }

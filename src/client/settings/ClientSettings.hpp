@@ -199,6 +199,9 @@ public:
     /// 语音音量
     FloatOption voiceVolume;
 
+    /// UI 界面音量（按钮点击、菜单操作等）
+    FloatOption uiVolume;
+
     /**
      * @brief 获取指定类别的音量
      *

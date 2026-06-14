@@ -73,6 +73,7 @@ ClientSettings::ClientSettings()
     , playerVolume("playerVolume", 0.0f, 1.0f, defaults::client::playerVolume)
     , ambientVolume("ambientVolume", 0.0f, 1.0f, defaults::client::ambientVolume)
     , voiceVolume("voiceVolume", 0.0f, 1.0f, defaults::client::voiceVolume)
+    , uiVolume("uiVolume", 0.0f, 1.0f, defaults::client::uiVolume)
 
     // 控制设置
     , mouseSensitivity("mouseSensitivity", 0.0f, 1.0f, defaults::client::mouseSensitivity)
@@ -127,6 +128,7 @@ ClientSettings::ClientSettings()
     registerOption("audio", &playerVolume);
     registerOption("audio", &ambientVolume);
     registerOption("audio", &voiceVolume);
+    registerOption("audio", &uiVolume);
 
     // 注册控制设置
     registerOption("control", &mouseSensitivity);
@@ -304,6 +306,8 @@ f32 ClientSettings::getVolumeForCategory(sound::SoundCategory category) const
             return ambientVolume.get();
         case SoundCategory::Voice:
             return voiceVolume.get();
+        case SoundCategory::UI:
+            return uiVolume.get();
         default:
             return 1.0f;
     }
@@ -345,6 +349,9 @@ void ClientSettings::setVolumeForCategory(sound::SoundCategory category, f32 vol
             break;
         case SoundCategory::Voice:
             voiceVolume.set(volume);
+            break;
+        case SoundCategory::UI:
+            uiVolume.set(volume);
             break;
         default:
             break;

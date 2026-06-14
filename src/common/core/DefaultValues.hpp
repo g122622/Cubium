@@ -71,6 +71,7 @@ inline constexpr f32 neutralVolume = 1.0f;
 inline constexpr f32 playerVolume = 1.0f;
 inline constexpr f32 ambientVolume = 1.0f;
 inline constexpr f32 voiceVolume = 1.0f;
+inline constexpr f32 uiVolume = 1.0f;
 
 // 控制
 inline constexpr f32 mouseSensitivity = 0.5f;

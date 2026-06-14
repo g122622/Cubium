@@ -45,7 +45,8 @@ constexpr std::string_view s_categoryNames[] = {
     "neutral", // Neutral
     "player",  // Players
     "ambient", // Ambient
-    "voice"    // Voice
+    "voice",   // Voice
+    "ui"       // UI
 };
 
 static_assert(std::size(s_categoryNames) == static_cast<size_t>(SoundCategory::Count),

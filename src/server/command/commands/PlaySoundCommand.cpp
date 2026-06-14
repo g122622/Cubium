@@ -54,6 +54,7 @@ sound::SoundCategory parseSoundCategory(const std::string& name)
     if (name == "player" || name == "players") return sound::SoundCategory::Players;
     if (name == "ambient") return sound::SoundCategory::Ambient;
     if (name == "voice") return sound::SoundCategory::Voice;
+    if (name == "ui") return sound::SoundCategory::UI;
     return sound::SoundCategory::Master;
 }
 
@@ -110,6 +111,7 @@ void PlaySoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     auto playerSoundNode = createSourceNode("player");
     auto ambientNode = createSourceNode("ambient");
     auto voiceNode = createSourceNode("voice");
+    auto uiNode = createSourceNode("ui");
 
     // 为每个声源添加目标节点
     for (auto& sourceNode : {masterNode,
@@ -121,7 +123,8 @@ void PlaySoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
              neutralNode,
              playerSoundNode,
              ambientNode,
-             voiceNode}) {
+             voiceNode,
+             uiNode}) {
         auto targetNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
             "player", EntityArgumentType::player());
         targetNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {

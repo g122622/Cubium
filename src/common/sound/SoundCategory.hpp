@@ -58,9 +58,7 @@ enum class SoundCategory : u8 {
     Players, ///< 玩家音效
     Ambient, ///< 环境音效
     Voice,   ///< 语音/字幕
-    // TODO: MC 1.21.11 新增了 UI 类别（SoundSource.UI），需要在此添加 UI 类别，
-    //       并同步更新 SoundCategory.cpp 中的名称表和 parseSoundCategory() 的别名处理，
-    //       以及 StopSoundCommand.cpp 中的声源节点生成循环。
+    UI,      ///< 用户界面音效（按钮点击、菜单操作等）
 
     Count ///< 类别总数（用于数组大小）
 };
@@ -82,6 +80,7 @@ enum class SoundCategory : u8 {
  * - Players -> "player"
  * - Ambient -> "ambient"
  * - Voice   -> "voice"
+ * - UI      -> "ui"
  */
 [[nodiscard]] std::string_view getSoundCategoryName(SoundCategory category) noexcept;
 
@@ -104,6 +103,7 @@ enum class SoundCategory : u8 {
  * - "player", "PLAYER", "players", "PLAYERS" -> SoundCategory::Players
  * - "ambient", "AMBIENT" -> SoundCategory::Ambient
  * - "voice", "VOICE" -> SoundCategory::Voice
+ * - "ui", "UI" -> SoundCategory::UI
  */
 [[nodiscard]] std::optional<SoundCategory> parseSoundCategory(std::string_view name) noexcept;
 
