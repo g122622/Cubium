@@ -12,7 +12,7 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY KIND, either express or implied.
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY KIND, express or implied.
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN THE EVENT THAT THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
@@ -43,8 +43,9 @@ void ScreenStackWidget::push(std::unique_ptr<Screen> screen)
         return;
     }
 
-    // 记录打开的屏幕标识，用于 EventBus 事件
+    // 记录打开的屏幕标识和之前的栈顶，用于 EventBus 事件
     std::string openedId = screen->id();
+    std::string fromId = _getTopScreenId();
 
     ScreenWrapper wrapper;
     wrapper.item = std::move(screen);
@@ -55,7 +56,7 @@ void ScreenStackWidget::push(std::unique_ptr<Screen> screen)
     _onOpenScreen(wrapper);
     m_screens.push_back(std::move(wrapper));
 
-    _notifyScreenChange(openedId, "");
+    _notifyScreenChange(fromId, openedId, "");
 }
 
 void ScreenStackWidget::pushIScreen(std::unique_ptr<IScreen> screen)
@@ -64,8 +65,9 @@ void ScreenStackWidget::pushIScreen(std::unique_ptr<IScreen> screen)
         return;
     }
 
-    // 记录打开的屏幕标识，用于 EventBus 事件
+    // 记录打开的屏幕标识和之前的栈顶，用于 EventBus 事件
     std::string openedId = screen->getTitle();
+    std::string fromId = _getTopScreenId();
 
     ScreenWrapper wrapper;
     wrapper.item = std::move(screen);
@@ -76,7 +78,7 @@ void ScreenStackWidget::pushIScreen(std::unique_ptr<IScreen> screen)
     _onOpenScreen(wrapper);
     m_screens.push_back(std::move(wrapper));
 
-    _notifyScreenChange(openedId, "");
+    _notifyScreenChange(fromId, openedId, "");
 }
 
 void ScreenStackWidget::pop()
@@ -86,24 +88,14 @@ void ScreenStackWidget::pop()
     }
 
     // 记录关闭的屏幕标识，用于 EventBus 事件
-    const auto& closing = m_screens.back();
-    std::string closedId;
-    if (closing.isWidgetScreen()) {
-        auto* s = std::get<std::unique_ptr<Screen>>(closing.item).get();
-        if (s) {
-            closedId = s->id();
-        }
-    } else {
-        auto* s = std::get<std::unique_ptr<IScreen>>(closing.item).get();
-        if (s) {
-            closedId = s->getTitle();
-        }
-    }
+    std::string closedId = _getScreenId(m_screens.back());
 
     _onCloseScreen(m_screens.back());
     m_screens.pop_back();
 
-    _notifyScreenChange("", closedId);
+    // 关闭后的新栈顶即为 fromId 方向
+    std::string fromId = closedId;
+    _notifyScreenChange(fromId, "", closedId);
 }
 
 void ScreenStackWidget::clear()
@@ -112,9 +104,17 @@ void ScreenStackWidget::clear()
         return;
     }
 
+    auto& bus = kagero::event::EventBus::instance();
+
+    // 为每个被关闭的屏幕发布 ScreenCloseEvent，与 pop() 行为一致
     while (!m_screens.empty()) {
+        std::string closedId = _getScreenId(m_screens.back());
         _onCloseScreen(m_screens.back());
         m_screens.pop_back();
+
+        if (!closedId.empty()) {
+            bus.publish(kagero::event::ScreenCloseEvent(closedId));
+        }
     }
 
     ScreenChangeInfo info;
@@ -127,7 +127,7 @@ void ScreenStackWidget::clear()
     }
 
     // 发布屏幕切换事件（从某个屏幕变为空）
-    kagero::event::EventBus::instance().publish(kagero::event::ScreenChangeEvent("", ""));
+    bus.publish(kagero::event::ScreenChangeEvent("", ""));
 }
 
 Screen* ScreenStackWidget::top()
@@ -234,7 +234,26 @@ ScreenChangeInfo ScreenStackWidget::_buildChangeInfo() const
     return info;
 }
 
-void ScreenStackWidget::_notifyScreenChange(const std::string& openedScreenId, const std::string& closedScreenId)
+std::string ScreenStackWidget::_getScreenId(const ScreenWrapper& wrapper) const
+{
+    if (wrapper.isWidgetScreen()) {
+        auto* s = std::get<std::unique_ptr<Screen>>(wrapper.item).get();
+        return s ? s->id() : "";
+    }
+    auto* s = std::get<std::unique_ptr<IScreen>>(wrapper.item).get();
+    return s ? s->getTitle() : "";
+}
+
+std::string ScreenStackWidget::_getTopScreenId() const
+{
+    if (m_screens.empty()) {
+        return "";
+    }
+    return _getScreenId(m_screens.back());
+}
+
+void ScreenStackWidget::_notifyScreenChange(
+    const std::string& fromId, const std::string& openedScreenId, const std::string& closedScreenId)
 {
     // 触发回调
     if (m_onScreenChange) {
@@ -253,21 +272,7 @@ void ScreenStackWidget::_notifyScreenChange(const std::string& openedScreenId, c
     }
 
     // 总是发布切换事件
-    std::string toId;
-    if (!m_screens.empty()) {
-        const auto& wrapper = m_screens.back();
-        if (wrapper.isWidgetScreen()) {
-            auto* s = std::get<std::unique_ptr<Screen>>(wrapper.item).get();
-            toId = s ? s->id() : "";
-        } else {
-            auto* s = std::get<std::unique_ptr<IScreen>>(wrapper.item).get();
-            toId = s ? s->getTitle() : "";
-        }
-    }
-
-    std::string fromId = !closedScreenId.empty() ? closedScreenId : "";
-    // 对于 push 操作，fromId 是之前的栈顶（现在已成为第二层）
-    // 对于 push 操作且 openedScreenId 非空时，fromId 为空，表示从"无屏幕"或"底层屏幕"切换
+    std::string toId = _getTopScreenId();
     bus.publish(kagero::event::ScreenChangeEvent(fromId, toId));
 }
 
@@ -283,7 +288,7 @@ void ScreenStackWidget::paint(kagero::widget::PaintContext& ctx)
         if (it->visible) {
             firstPaintIndex = std::distance(it, m_screens.rend()) - 1;
         }
-        if (it->modal) {
+        if (_isScreenModal(*it)) {
             break;
         }
     }
@@ -364,7 +369,7 @@ bool ScreenStackWidget::onClick(i32 mouseX, i32 mouseY, i32 button)
         }
 
         // 如果屏幕是模态的，阻止事件向下传播
-        if (wrapper.modal) {
+        if (_isScreenModal(wrapper)) {
             return false;
         }
     }
@@ -444,7 +449,7 @@ bool ScreenStackWidget::onScroll(i32 mouseX, i32 mouseY, f64 delta)
         if (handled) {
             return true;
         }
-        if (wrapper.modal) {
+        if (_isScreenModal(wrapper)) {
             return false;
         }
     }
@@ -476,7 +481,7 @@ bool ScreenStackWidget::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
         if (handled) {
             return true;
         }
-        if (wrapper.modal) {
+        if (_isScreenModal(wrapper)) {
             return false;
         }
     }
@@ -508,7 +513,7 @@ bool ScreenStackWidget::onChar(u32 codePoint)
         if (handled) {
             return true;
         }
-        if (wrapper.modal) {
+        if (_isScreenModal(wrapper)) {
             return false;
         }
     }

@@ -263,13 +263,30 @@ private:
     [[nodiscard]] ScreenChangeInfo _buildChangeInfo() const;
 
     /**
+     * @brief 获取屏幕包装器的标识符
+     *
+     * Screen 使用 id()，IScreen 使用 getTitle()。
+     * @param wrapper 屏幕包装器
+     * @return 屏幕标识符字符串
+     */
+    [[nodiscard]] std::string _getScreenId(const ScreenWrapper& wrapper) const;
+
+    /**
+     * @brief 获取当前栈顶屏幕的标识符
+     * @return 栈顶屏幕标识符，栈空时返回空字符串
+     */
+    [[nodiscard]] std::string _getTopScreenId() const;
+
+    /**
      * @brief 通知屏幕变化
      *
      * 触发回调并发布 EventBus 事件。
+     * @param fromId 切换前的栈顶屏幕标识（空字符串表示之前无屏幕）
      * @param openedScreenId 新打开屏幕的标识（仅 push 时设置）
      * @param closedScreenId 关闭屏幕的标识（仅 pop/clear 时设置）
      */
-    void _notifyScreenChange(const std::string& openedScreenId = "", const std::string& closedScreenId = "");
+    void _notifyScreenChange(
+        const std::string& fromId, const std::string& openedScreenId, const std::string& closedScreenId);
 };
 
 } // namespace mc::client::ui::minecraft::widgets

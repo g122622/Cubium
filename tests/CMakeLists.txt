@@ -729,6 +729,8 @@ add_executable(mc_tests
     client/ui/GuiScaleTest.cpp
     # 屏幕工具提示命中检测与位置计算测试
     client/ui/screen/ScreenTooltipTest.cpp
+    # ScreenStackWidget 屏幕栈回调与事件通知测试
+    client/ui/minecraft/widgets/ScreenStackWidgetTest.cpp
     # 闄勯瓟绯荤粺娴嬭瘯
     common/item/enchantment/EnchantmentTest.cpp
     # 鑷姩璺宠穬娴嬭瘯
@@ -1350,6 +1352,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ListWidget.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/PaintContext.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/Geometry.cpp
+        # ScreenStackWidget 及 Screen 依赖
+        ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/Screen.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/widgets/ScreenStackWidget.cpp
         # Assert搴?        ${CMAKE_SOURCE_DIR}/src/common/util/assert/Assert.cpp
         # Crypto utilities
         ${CMAKE_SOURCE_DIR}/src/common/util/crypto/Sha256.cpp
