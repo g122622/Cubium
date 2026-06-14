@@ -103,6 +103,16 @@ public:
     // ========== 命令管理 ==========
 
     /**
+     * @brief 检查是否只有 OP 可以设置 NBT
+     *
+     * 命令方块的 NBT 数据只能由 OP 级玩家修改，
+     * 防止非授权玩家通过物品NBT注入恶意命令。
+     *
+     * @return 始终返回 true
+     */
+    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override { return true; }
+
+    /**
      * @brief 获取存储的命令
      * @return 命令字符串
      */

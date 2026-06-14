@@ -214,6 +214,18 @@ public:
     virtual void setCustomName(const std::string& name) { MC_UNUSED(name); }
 
     /**
+     * @brief 检查方块实体是否仅允许OP玩家修改NBT数据
+     *
+     * 参考 MC Java: BlockEntityType.onlyOpCanSetNbt()
+     * 在 MC Java 中，CommandBlock、StructureBlock、JigsawBlock、Sign、
+     * HangingSign、TrialSpawner、Lectern 等方块实体需要OP权限才能通过
+     * 物品NBT设置数据。
+     *
+     * @return 如果仅OP可修改NBT返回true，默认false
+     */
+    [[nodiscard]] virtual bool onlyOpsCanSetNbt() const noexcept { return false; }
+
+    /**
      * @brief 创建方块实体的副本
      * @return 副本的unique_ptr
      */

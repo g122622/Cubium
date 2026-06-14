@@ -133,6 +133,38 @@ public:
     }
 
     /**
+     * @brief 通过 IProperty 接口和值索引设置属性值，返回新状态
+     *
+     * 类型擦除版本的 with() 方法，允许在编译期不知道属性具体类型时设置属性值。
+     * 典型用途：从 BlockStateTag JSON/NBT 数据中解析属性名和字符串值后设置方块状态。
+     *
+     * @param prop 属性指针（通过 StateContainer::getProperty(name) 获取）
+     * @param valueIndex 属性值索引（通过 IProperty::parseValue(string) 获取）
+     * @return 设置属性值后的新状态引用；如果属性不存在或值索引无效则返回当前状态
+     */
+    [[nodiscard]] const State& withValueIndex(const IProperty& prop, size_t valueIndex) const
+    {
+        const size_t slotIndex = findPropertySlot(prop);
+        if (slotIndex == kInvalidIndex) {
+            return static_cast<const State&>(*this);
+        }
+
+        if (valueIndex >= prop.valueCount()) {
+            return static_cast<const State&>(*this);
+        }
+
+        if (m_valueIndices[slotIndex] == valueIndex) {
+            return static_cast<const State&>(*this);
+        }
+
+        const PropertyLayout& layout = propertyLayouts()[slotIndex];
+        const size_t currentIndex = static_cast<size_t>(m_stateIndex);
+        const size_t currentValueIndex = m_valueIndices[slotIndex];
+        const size_t targetIndex = currentIndex + ((valueIndex - currentValueIndex) * layout.stateStride);
+        return *(*m_allStates)[targetIndex];
+    }
+
+    /**
      * @brief 循环切换到下一个属性值
      */
     template <typename T>

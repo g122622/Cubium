@@ -190,7 +190,7 @@ public:
      *
      * @return 始终返回 true
      */
-    [[nodiscard]] bool onlyOpsCanSetNbt() const { return true; }
+    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override { return true; }
 
     // ========== Tick 更新 ==========
 

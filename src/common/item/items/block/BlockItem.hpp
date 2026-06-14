@@ -176,6 +176,29 @@ protected:
         const BlockPos& pos, IWorld& world, const ItemStack& stack, const BlockState& state) const;
 
 private:
+    /**
+     * @brief 将物品堆中的 BlockEntityTag 数据应用到方块实体
+     *
+     * 参考 MC Java: BlockItem.updateCustomBlockEntityTag()
+     * 从物品堆的 "BlockEntityTag" 子标签读取自定义数据，
+     * 合并到指定位置的方块实体中。
+     *
+     * 流程：
+     * 1. 检查物品堆是否有 BlockEntityTag
+     * 2. 获取目标位置的方块实体
+     * 3. 检查方块实体是否需要OP权限（onlyOpsCanSetNbt）
+     * 4. 验证类型ID匹配
+     * 5. 保存当前数据，合并BlockEntityTag，加载合并后数据
+     * 6. 失败时回滚
+     *
+     * @param world 世界引用
+     * @param player 放置方块的玩家（可为nullptr）
+     * @param pos 方块位置
+     * @param stack 物品堆
+     * @return 是否成功设置了方块实体数据
+     */
+    bool setTileEntityNBT(IWorld& world, Player* player, const BlockPos& pos, const ItemStack& stack) const;
+
     const Block* m_block;
 };
 

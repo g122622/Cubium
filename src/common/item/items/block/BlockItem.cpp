@@ -24,13 +24,19 @@
 #include "BlockItem.hpp"
 
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/util/property/IProperty.hpp"
+#include "common/util/property/StateContainer.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockSoundType.hpp"
 #include "common/world/block/Material.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 
 namespace mc {
 
@@ -259,43 +265,138 @@ bool BlockItem::placeBlock(BlockItemUseContext& context, const BlockState* state
 bool BlockItem::onBlockPlaced(
     const BlockPos& pos, IWorld& world, Player* player, const ItemStack& stack, const BlockState& state) const
 {
-    // 默认处理方块实体 NBT 数据
-    (void)pos;
-    (void)world;
-    (void)player;
-    (void)stack;
-    (void)state;
+    // 参考 MC Java: BlockItem.updateCustomBlockEntityTag()
+    // 将物品堆中的 BlockEntityTag 数据应用到方块实体
+    return setTileEntityNBT(world, player, pos, stack);
+}
 
-    // TODO: 实现方块实体 NBT 数据设置
-    // return setTileEntityNBT(world, player, pos, stack);
-    return false;
+bool BlockItem::setTileEntityNBT(IWorld& world, Player* player, const BlockPos& pos, const ItemStack& stack) const
+{
+    // 检查物品堆是否有 BlockEntityTag
+    const nlohmann::json* blockEntityTag = stack.getChildTag("BlockEntityTag");
+    if (blockEntityTag == nullptr || !blockEntityTag->is_object()) {
+        return false;
+    }
+
+    // 获取该位置的方块实体
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity == nullptr) {
+        return false;
+    }
+
+    // 权限检查：如果方块实体仅允许 OP 修改 NBT，则需要验证玩家权限
+    // 参考 MC Java: BlockEntityType.onlyOpCanSetNbt()
+    // 需要OP权限的方块实体类型包括：CommandBlock, Sign, HangingSign, StructureBlock, JigsawBlock, TrialSpawner, Lectern
+    if (blockEntity->onlyOpsCanSetNbt()) {
+        // TODO: 当玩家权限系统完善后，应检查 player->canUseGameMasterBlocks() 权限
+        // 当前实现：非空玩家即视为有权限（与创造模式放置场景一致）
+        if (player == nullptr) {
+            return false;
+        }
+    }
+
+    // 验证 BlockEntityTag 中的类型ID与实际方块实体类型匹配
+    // 参考 MC Java: TypedEntityData.type() 必须与 blockentity.getType() 一致
+    auto idIt = blockEntityTag->find("id");
+    if (idIt != blockEntityTag->end() && idIt->is_string()) {
+        std::string tagTypeId = idIt->get<std::string>();
+        ResourceLocation tagType(tagTypeId);
+        BlockEntityType expectedType = blockEntityTypeFromId(tagType);
+        if (expectedType != BlockEntityType::Unknown && expectedType != blockEntity->getType()) {
+            // 类型不匹配，拒绝加载
+            return false;
+        }
+    }
+
+    // 将 BlockEntityTag 中的数据合并到方块实体
+    // 参考 MC Java: TypedEntityData.loadInto(BlockEntity)
+    // MC Java 的流程是：保存当前数据 -> 合并物品NBT -> 加载合并后数据 -> 失败则回滚
+    // 本项目使用 JSON 存储自定义数据，直接合并即可
+
+    // 先保存当前方块实体的数据（用于失败时回滚）
+    nlohmann::json currentData;
+    blockEntity->save(currentData);
+
+    // 合并 BlockEntityTag 到当前数据
+    // 注意：移除 "id" 字段，因为它是类型标识符而非数据
+    nlohmann::json mergedData = currentData;
+    ItemStack::mergeJsonObjects(mergedData, *blockEntityTag);
+    mergedData.erase("id");
+
+    // 尝试加载合并后的数据
+    bool success = blockEntity->load(mergedData);
+    if (!success) {
+        // 加载失败，回滚到原始数据
+        blockEntity->load(currentData);
+        return false;
+    }
+
+    // 标记方块实体已修改，触发保存和客户端同步
+    blockEntity->setChanged();
+
+    return true;
 }
 
 const BlockState* BlockItem::applyBlockStateFromNBT(
     const BlockPos& pos, IWorld& world, const ItemStack& stack, const BlockState& state) const
 {
-    // 从物品堆的 BlockStateTag NBT 数据应用方块状态
-    (void)pos;
-    (void)world;
-    (void)stack;
+    // 参考 MC Java: BlockItem.updateBlockStateFromTag()
+    // 从物品堆的 BlockStateTag 子标签中读取方块状态属性并应用
 
-    // TODO: 实现 NBT 方块状态应用
-    // CompoundNBT tag = stack.getChildTag("BlockStateTag");
-    // if (tag != null) {
-    //     StateContainer<Block, BlockState> stateContainer = state.getBlock().getStateContainer();
-    //     for (std::string key : tag.keySet()) {
-    //         Property<?> property = stateContainer.getProperty(key);
-    //         if (property != null) {
-    //             std::string value = tag.get(key).getString();
-    //             state = applyProperty(state, property, value);
-    //         }
-    //     }
-    //     if (state != originalState) {
-    //         world.setBlockState(pos, state, 2);
-    //     }
-    // }
+    const nlohmann::json* blockStateTag = stack.getChildTag("BlockStateTag");
+    if (blockStateTag == nullptr || !blockStateTag->is_object()) {
+        return &state;
+    }
 
-    return &state;
+    // 如果 BlockStateTag 为空对象，直接返回
+    if (blockStateTag->empty()) {
+        return &state;
+    }
+
+    const Block& block = state.getBlock();
+    const auto& container = block.stateContainer();
+    const BlockState* currentState = &state;
+
+    // 遍历 BlockStateTag 中的每个属性名-值对
+    for (const auto& [propName, propValue] : blockStateTag->items()) {
+        // 跳过非字符串值
+        if (!propValue.is_string()) {
+            continue;
+        }
+
+        std::string valueStr = propValue.get<std::string>();
+
+        // 通过属性名查找属性定义
+        const IProperty* prop = container.getProperty(propName);
+        if (prop == nullptr) {
+            // 属性在此方块上不存在，跳过
+            continue;
+        }
+
+        // 检查当前方块状态是否拥有此属性
+        auto currentValueIndex = currentState->getValueIndex(*prop);
+        if (!currentValueIndex.has_value()) {
+            // 此属性不属于当前方块，跳过
+            continue;
+        }
+
+        // 将字符串值解析为属性值索引
+        auto parsedIndex = prop->parseValue(valueStr);
+        if (!parsedIndex.has_value()) {
+            // 值字符串无法解析为此属性的有效值，跳过
+            continue;
+        }
+
+        // 使用类型擦除的 withValueIndex 方法设置属性
+        currentState = &currentState->withValueIndex(*prop, *parsedIndex);
+    }
+
+    // 如果状态发生了变化，更新世界中的方块状态
+    if (currentState != &state) {
+        world.setBlockState(pos, currentState, 2);
+    }
+
+    return currentState;
 }
 
 } // namespace mc
