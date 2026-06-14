@@ -63,8 +63,7 @@ struct SpreadPosition {
     [[nodiscard]] i32 getSpawnY(IWorld& world, i32 maxHeight) const;
 
     /// 检查此位置是否安全（脚下不是液体、不是火焰）
-    /// TODO: MC Java 版还会检查 #minecraft:invalid_spawn_floor 标签，包含仙人掌、
-    ///       甜浆果丛等危险方块。当前仅检查了液体和火焰，需要添加该标签检查。
+    /// 对齐 MC Java 版 SpreadPlayersCommand.Position.isSafe：仅检查液体和 FIRE 标签
     [[nodiscard]] bool isSafe(IWorld& world, i32 maxHeight) const;
 
     /// 在指定范围内随机初始化位置
@@ -87,10 +86,11 @@ std::vector<SpreadPosition> createInitialPositions(
     math::Random& rng, i32 count, f64 minX, f64 minZ, f64 maxX, f64 maxZ);
 
 /// 迭代分散算法：将位置推开到满足最小距离要求
-/// TODO: 当前实现与 MC Java 版在以下方面存在差异：
-///   - minDist 初始值使用了 double max 而非 MC 的 Float.MAX_VALUE 作为哨兵值
-///   - 分散失败时的错误消息应包含中心坐标和实际达到的最小距离
-bool spreadPositions(f64 spreadDistance,
+/// 返回分散成功时实际达到的最小距离；失败时返回 -1.0
+/// 对齐 MC Java 版 SpreadPlayersCommand.spreadPositions：
+///   - 哨兵值使用 float 最大值（MC 使用 Float.MAX_VALUE）
+///   - 返回最小距离以便命令层报告实际分散结果
+f64 spreadPositions(f64 spreadDistance,
     IWorld& world,
     math::Random& rng,
     f64 minX,

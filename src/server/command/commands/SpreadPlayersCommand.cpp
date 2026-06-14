@@ -242,15 +242,16 @@ i32 SpreadPlayersCommand::_spreadPlayers(CommandContext<ServerCommandSource>& co
     auto positions = support::createInitialPositions(rng, positionCount, minX, minZ, maxX, maxZ);
 
     // 执行迭代分散算法
-    bool success = support::spreadPositions(
+    f64 minDist = support::spreadPositions(
         static_cast<f64>(spreadDistance), *world, rng, minX, minZ, maxX, maxZ, maxHeight, positions);
 
-    if (!success) {
+    if (minDist < 0.0) {
         // 分散失败：无法在给定参数下满足最小距离要求
+        // 对齐 MC Java 版错误消息格式：包含位置数量、中心坐标和实际达到的最小距离
         std::ostringstream ss;
         ss << "Could not spread " << (respectTeams ? "teams" : "entities") << " around (" << static_cast<i32>(center.x)
-           << ", " << static_cast<i32>(center.z) << ") - positions are too crowded for spread distance "
-           << spreadDistance;
+           << ", " << static_cast<i32>(center.z) << ") - too many " << (respectTeams ? "teams" : "entities")
+           << " for spread distance " << spreadDistance;
         source.sendError(ss.str());
         return 0;
     }

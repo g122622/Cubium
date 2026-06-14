@@ -127,7 +127,7 @@ bool SpreadPosition::isSafe(IWorld& world, i32 maxHeight) const
     i32 blockZ = static_cast<i32>(std::floor(z));
     i32 spawnY = getSpawnY(world, maxHeight);
 
-    // 脚下方块
+    // 脚下方块为空（世界边界外），不安全
     const BlockState* belowState = world.getBlockState(blockX, spawnY - 1, blockZ);
     if (belowState == nullptr) {
         return false;
@@ -138,7 +138,7 @@ bool SpreadPosition::isSafe(IWorld& world, i32 maxHeight) const
         return false;
     }
 
-    // 检查是否是火焰方块
+    // 检查是否是火焰方块（包含 fire 和 soul_fire）
     if (BlockTags::FIRE().contains(*belowState)) {
         return false;
     }
@@ -165,7 +165,7 @@ std::vector<SpreadPosition> createInitialPositions(math::Random& rng, i32 count,
     return positions;
 }
 
-bool spreadPositions(f64 spreadDistance,
+f64 spreadPositions(f64 spreadDistance,
     IWorld& world,
     math::Random& rng,
     f64 minX,
@@ -175,13 +175,15 @@ bool spreadPositions(f64 spreadDistance,
     i32 maxHeight,
     std::vector<SpreadPosition>& positions)
 {
+    // 对齐 MC Java 版：使用 float 最大值作为哨兵值（MC 使用 Float.MAX_VALUE）
+    constexpr f64 sentinelDist = static_cast<f64>(std::numeric_limits<f32>::max());
     bool moved = true;
-    f64 minDist = std::numeric_limits<f64>::max();
+    f64 minDist = sentinelDist;
 
     i32 iteration = 0;
     for (; iteration < SPREAD_MAX_ITERATIONS && moved; ++iteration) {
         moved = false;
-        minDist = std::numeric_limits<f64>::max();
+        minDist = sentinelDist;
 
         for (size_t j = 0; j < positions.size(); ++j) {
             i32 closeCount = 0;
@@ -233,16 +235,17 @@ bool spreadPositions(f64 spreadDistance,
         }
     }
 
-    if (minDist == std::numeric_limits<f64>::max()) {
+    // 对齐 MC Java 版：只有一个分散位置时，minDist 保持哨兵值，设为 0
+    if (minDist == sentinelDist) {
         minDist = 0.0;
     }
 
-    // 如果超过最大迭代次数，分散失败
+    // 如果超过最大迭代次数，分散失败，返回 -1.0
     if (iteration >= SPREAD_MAX_ITERATIONS) {
-        return false;
+        return -1.0;
     }
 
-    return true;
+    return minDist;
 }
 
 } // namespace support

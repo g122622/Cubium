@@ -402,10 +402,10 @@ TEST_F(SpreadAlgorithmTest, CreateInitialPositionsInBounds)
 
 TEST_F(SpreadAlgorithmTest, SpreadPositionsSinglePosition)
 {
-    // 单个位置不需要分散，应直接成功
+    // 单个位置不需要分散，应直接成功，返回最小距离 0.0
     auto positions = createInitialPositions(m_rng, 1, 0.0, 0.0, 100.0, 100.0);
-    bool success = spreadPositions(10.0, m_world, m_rng, 0.0, 0.0, 100.0, 100.0, world::MAX_BUILD_HEIGHT, positions);
-    EXPECT_TRUE(success);
+    f64 minDist = spreadPositions(10.0, m_world, m_rng, 0.0, 0.0, 100.0, 100.0, world::MAX_BUILD_HEIGHT, positions);
+    EXPECT_GE(minDist, 0.0);
     EXPECT_EQ(positions.size(), 1u);
     // 单个位置应在边界内
     EXPECT_GE(positions[0].x, 0.0);
@@ -418,8 +418,8 @@ TEST_F(SpreadAlgorithmTest, SpreadPositionsTwoPositionsFarEnough)
 {
     // 两个位置在大范围内，最小距离 1.0 -> 应容易分散
     auto positions = createInitialPositions(m_rng, 2, 0.0, 0.0, 100.0, 100.0);
-    bool success = spreadPositions(1.0, m_world, m_rng, 0.0, 0.0, 100.0, 100.0, world::MAX_BUILD_HEIGHT, positions);
-    EXPECT_TRUE(success);
+    f64 minDist = spreadPositions(1.0, m_world, m_rng, 0.0, 0.0, 100.0, 100.0, world::MAX_BUILD_HEIGHT, positions);
+    EXPECT_GE(minDist, 0.0);
     EXPECT_EQ(positions.size(), 2u);
     // 验证两者之间的距离 >= spreadDistance
     EXPECT_GE(positions[0].dist(positions[1]), 1.0 - 1e-6);
@@ -429,8 +429,8 @@ TEST_F(SpreadAlgorithmTest, SpreadPositionsRespectsBounds)
 {
     // 分散后所有位置应在边界内
     auto positions = createInitialPositions(m_rng, 10, 0.0, 0.0, 50.0, 50.0);
-    bool success = spreadPositions(5.0, m_world, m_rng, 0.0, 0.0, 50.0, 50.0, world::MAX_BUILD_HEIGHT, positions);
-    EXPECT_TRUE(success);
+    f64 minDist = spreadPositions(5.0, m_world, m_rng, 0.0, 0.0, 50.0, 50.0, world::MAX_BUILD_HEIGHT, positions);
+    EXPECT_GE(minDist, 0.0);
     for (const auto& pos : positions) {
         EXPECT_GE(pos.x, 0.0);
         EXPECT_LE(pos.x, 50.0);
@@ -441,18 +441,18 @@ TEST_F(SpreadAlgorithmTest, SpreadPositionsRespectsBounds)
 
 TEST_F(SpreadAlgorithmTest, SpreadPositionsSmallAreaManyPositionsFails)
 {
-    // 10 个位置在 1x1 范围内，最小距离 5.0 -> 应失败
+    // 10 个位置在 1x1 范围内，最小距离 5.0 -> 应失败（返回 -1.0）
     auto positions = createInitialPositions(m_rng, 10, 0.0, 0.0, 1.0, 1.0);
-    bool success = spreadPositions(5.0, m_world, m_rng, 0.0, 0.0, 1.0, 1.0, world::MAX_BUILD_HEIGHT, positions);
-    EXPECT_FALSE(success);
+    f64 minDist = spreadPositions(5.0, m_world, m_rng, 0.0, 0.0, 1.0, 1.0, world::MAX_BUILD_HEIGHT, positions);
+    EXPECT_LT(minDist, 0.0);
 }
 
 TEST_F(SpreadAlgorithmTest, SpreadPositionsZeroPositions)
 {
-    // 0 个位置 -> 不需要分散，应成功
+    // 0 个位置 -> 不需要分散，应成功（返回 0.0）
     std::vector<SpreadPosition> positions;
-    bool success = spreadPositions(10.0, m_world, m_rng, 0.0, 0.0, 100.0, 100.0, world::MAX_BUILD_HEIGHT, positions);
-    EXPECT_TRUE(success);
+    f64 minDist = spreadPositions(10.0, m_world, m_rng, 0.0, 0.0, 100.0, 100.0, world::MAX_BUILD_HEIGHT, positions);
+    EXPECT_DOUBLE_EQ(minDist, 0.0);
     EXPECT_EQ(positions.size(), 0u);
 }
 
@@ -460,8 +460,8 @@ TEST_F(SpreadAlgorithmTest, SpreadPositionsEmptyPositionsNoCrash)
 {
     // 空位置列表不应崩溃
     std::vector<SpreadPosition> positions;
-    bool success = spreadPositions(10.0, m_world, m_rng, -50.0, -50.0, 50.0, 50.0, world::MAX_BUILD_HEIGHT, positions);
-    EXPECT_TRUE(success);
+    f64 minDist = spreadPositions(10.0, m_world, m_rng, -50.0, -50.0, 50.0, 50.0, world::MAX_BUILD_HEIGHT, positions);
+    EXPECT_DOUBLE_EQ(minDist, 0.0);
 }
 
 // ============================================================================
