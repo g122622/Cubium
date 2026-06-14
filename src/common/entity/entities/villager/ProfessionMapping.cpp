@@ -33,6 +33,7 @@ namespace villager {
 bool ProfessionMapping::s_initialized = false;
 std::unordered_map<VillagerProfession, world::village::poi::PointOfInterestType> ProfessionMapping::s_professionToPOI;
 std::unordered_map<world::village::poi::PointOfInterestType, VillagerProfession> ProfessionMapping::s_poiToProfession;
+std::vector<world::village::poi::PointOfInterestType> ProfessionMapping::s_acquirableWorkstations;
 
 void ProfessionMapping::_initializeMappings()
 {
@@ -59,6 +60,23 @@ void ProfessionMapping::_initializeMappings()
     for (const auto& [profession, poi] : s_professionToPOI) {
         s_poiToProfession[poi] = profession;
     }
+
+    // 初始化可获取工作站列表（无职业村民可搜索的所有工作站POI类型）
+    // 对应 MC 原版 PoiTypeTags.ACQUIRABLE_JOB_SITE
+    s_acquirableWorkstations = {
+        world::village::poi::PointOfInterestType::Smoker,
+        world::village::poi::PointOfInterestType::BlastFurnace,
+        world::village::poi::PointOfInterestType::CartographyTable,
+        world::village::poi::PointOfInterestType::BrewingStand,
+        world::village::poi::PointOfInterestType::Composter,
+        world::village::poi::PointOfInterestType::Barrel,
+        world::village::poi::PointOfInterestType::FletchingTable,
+        world::village::poi::PointOfInterestType::Cauldron,
+        world::village::poi::PointOfInterestType::Lectern,
+        world::village::poi::PointOfInterestType::Stonecutter,
+        world::village::poi::PointOfInterestType::SmithingTable,
+        world::village::poi::PointOfInterestType::Loom,
+    };
 }
 
 world::village::poi::PointOfInterestType ProfessionMapping::getWorkstationPOI(VillagerProfession profession)
@@ -183,6 +201,12 @@ i32 ProfessionMapping::getExperienceForLevel(i32 level) noexcept
         default:
             return 0;
     }
+}
+
+const std::vector<world::village::poi::PointOfInterestType>& ProfessionMapping::getAcquirableWorkstations()
+{
+    _initializeMappings();
+    return s_acquirableWorkstations;
 }
 
 } // namespace villager

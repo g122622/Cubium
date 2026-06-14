@@ -25,9 +25,15 @@
 
 #include "VillagerGoalUtils.hpp"
 #include "common/entity/ai/goal/GoalConstants.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/entity/entities/villager/ProfessionMapping.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/network/packet/EntityPackets.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/village/VillageManager.hpp"
+#include "common/world/village/poi/PointOfInterestStorage.hpp"
+#include "common/world/village/poi/PointOfInterestType.hpp"
 
 namespace mc {
 namespace entity {
@@ -100,6 +106,22 @@ void LookForJobSiteGoal::tick()
             // 绑定工作站点
             m_villager->setWorkStation(pos);
 
+            // 根据 POI 类型分配职业（参考 MC 原版 AssignProfessionFromJobSite）
+            if (m_villager->profession() == VillagerProfession::None) {
+                auto* villageMgr = m_villager->world()->villageManager();
+                if (villageMgr) {
+                    auto& poiStorage = villageMgr->getPOIStorage();
+                    const auto* poi = poiStorage.getPOI(pos);
+                    if (poi && world::village::poi::POITypeHelper::isWorkstation(poi->getType())) {
+                        VillagerProfession profession =
+                            entity::villager::ProfessionMapping::getProfessionFromPOI(poi->getType());
+                        if (entity::villager::ProfessionMapping::isValidProfession(profession)) {
+                            m_villager->setProfession(profession);
+                        }
+                    }
+                }
+            }
+
             // MC原版 AssignProfessionFromJobSite：绑定工作站后播放开心村民粒子
             if (m_villager->world() != nullptr) {
                 m_villager->world()->broadcastEntityStatus(
@@ -115,9 +137,43 @@ void LookForJobSiteGoal::_searchForJobSite()
 {
     if (!m_villager || !m_villager->world()) return;
 
-    // TODO: 集成POI系统搜索工作站点
-    // 根据村民职业搜索对应的工作站点类型
-    // 目前不实现，等待POI系统
+    auto* world = m_villager->world();
+    auto* villageManager = world->villageManager();
+    if (!villageManager) return;
+
+    auto& poiStorage = villageManager->getPOIStorage();
+    BlockPos entityPos(
+        static_cast<i32>(m_villager->x()), static_cast<i32>(m_villager->y()), static_cast<i32>(m_villager->z()));
+
+    using POIType = world::village::poi::PointOfInterestType;
+
+    // 无职业村民搜索所有可获取的工作站类型
+    // 参考 MC 原版 AcquirePoi 行为：无职业村民使用 acquirableJobSite 谓词
+    const auto& allWorkstations = entity::villager::ProfessionMapping::getAcquirableWorkstations();
+
+    BlockPos nearestPos;
+    f32 nearestDist = SEARCH_RANGE;
+    bool found = false;
+
+    for (POIType wsType : allWorkstations) {
+        auto site = poiStorage.findNearestFree(entityPos, wsType, SEARCH_RANGE);
+        if (site.has_value()) {
+            const BlockPos& pos = site.value();
+            f32 dx = static_cast<f32>(pos.x - entityPos.x);
+            f32 dy = static_cast<f32>(pos.y - entityPos.y);
+            f32 dz = static_cast<f32>(pos.z - entityPos.z);
+            f32 dist = Vector3(dx, dy, dz).length();
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearestPos = pos;
+                found = true;
+            }
+        }
+    }
+
+    if (found) {
+        m_targetSite = nearestPos;
+    }
 }
 
 } // namespace villager

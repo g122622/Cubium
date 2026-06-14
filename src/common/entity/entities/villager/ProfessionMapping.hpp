@@ -27,6 +27,7 @@
 #include "core/Types.hpp"
 #include "world/village/poi/PointOfInterestType.hpp"
 #include <unordered_map>
+#include <vector>
 
 namespace mc {
 namespace entity {
@@ -103,6 +104,14 @@ public:
      */
     [[nodiscard]] static i32 getExperienceForLevel(i32 level) noexcept;
 
+    /**
+     * @brief 获取所有可获取的工作站POI类型列表
+     *
+     * 无职业村民使用此列表搜索工作站。对应MC原版的 acquirableJobSite 标签。
+     * @return 所有人类可获取的工作站POI类型列表
+     */
+    [[nodiscard]] static const std::vector<world::village::poi::PointOfInterestType>& getAcquirableWorkstations();
+
 private:
     // 初始化映射表
     static void _initializeMappings();
@@ -110,6 +119,7 @@ private:
     static bool s_initialized;
     static std::unordered_map<VillagerProfession, world::village::poi::PointOfInterestType> s_professionToPOI;
     static std::unordered_map<world::village::poi::PointOfInterestType, VillagerProfession> s_poiToProfession;
+    static std::vector<world::village::poi::PointOfInterestType> s_acquirableWorkstations;
 };
 
 } // namespace villager

@@ -23,6 +23,8 @@
 
 #include "Sensors.hpp"
 #include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/entity/entities/villager/ProfessionMapping.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/IWorld.hpp"
@@ -325,6 +327,14 @@ void WorkStationSensor<E>::update(IWorld* world, E* entity)
         return;
     }
 
+    // 傻子村民不寻找工作站
+    auto* villager = dynamic_cast<VillagerEntity*>(entity);
+    if (villager && villager->isNitwit()) {
+        entity->brain().removeMemory(memory::MemoryModuleTypes::JOB_SITE);
+        entity->brain().removeMemory(memory::MemoryModuleTypes::POTENTIAL_JOB_SITE);
+        return;
+    }
+
     // 获取 VillageManager（只有 ServerWorld 有）
     auto* villageManager = world->villageManager();
     if (!villageManager) {
@@ -333,25 +343,78 @@ void WorkStationSensor<E>::update(IWorld* world, E* entity)
 
     auto& poiStorage = villageManager->getPOIStorage();
     BlockPos entityPos(static_cast<i32>(entity->x()), static_cast<i32>(entity->y()), static_cast<i32>(entity->z()));
-
-    // TODO: 查找工作站点需要根据村民职业动态确定 POI 类型，当前硬编码为 Smoker
     constexpr f32 SEARCH_RANGE = 48.0f;
 
-    auto jobSite = poiStorage.findNearestUnacquired(
-        entityPos, world::village::poi::PointOfInterestType::Smoker, SEARCH_RANGE, static_cast<u64>(entity->id()));
+    using POIType = world::village::poi::PointOfInterestType;
 
-    if (jobSite.has_value()) {
-        GlobalPos globalPos(world->dimension(), jobSite.value());
-        entity->brain().setMemory(memory::MemoryModuleTypes::JOB_SITE, globalPos);
-    }
+    if (villager) {
+        VillagerProfession profession = villager->profession();
 
-    // 查找潜在工作站点
-    auto potentialSite =
-        poiStorage.findNearest(entityPos, world::village::poi::PointOfInterestType::Smoker, SEARCH_RANGE);
+        if (villager::ProfessionMapping::hasWorkstation(profession)) {
+            // 有职业的村民：只搜索自己职业对应的工作站类型
+            POIType workstationPOI = villager::ProfessionMapping::getWorkstationPOI(profession);
 
-    if (potentialSite.has_value()) {
-        GlobalPos globalPos(world->dimension(), potentialSite.value());
-        entity->brain().setMemory(memory::MemoryModuleTypes::POTENTIAL_JOB_SITE, globalPos);
+            // 查找已占用的最近工作站（JOB_SITE）
+            auto jobSite = poiStorage.findNearestUnacquired(
+                entityPos, workstationPOI, SEARCH_RANGE, static_cast<u64>(entity->id()));
+
+            if (jobSite.has_value()) {
+                GlobalPos globalPos(world->dimension(), jobSite.value());
+                entity->brain().setMemory(memory::MemoryModuleTypes::JOB_SITE, globalPos);
+            } else {
+                entity->brain().removeMemory(memory::MemoryModuleTypes::JOB_SITE);
+            }
+
+            // 查找潜在工作站点（POTENTIAL_JOB_SITE）
+            auto potentialSite = poiStorage.findNearest(entityPos, workstationPOI, SEARCH_RANGE);
+
+            if (potentialSite.has_value()) {
+                GlobalPos globalPos(world->dimension(), potentialSite.value());
+                entity->brain().setMemory(memory::MemoryModuleTypes::POTENTIAL_JOB_SITE, globalPos);
+            } else {
+                entity->brain().removeMemory(memory::MemoryModuleTypes::POTENTIAL_JOB_SITE);
+            }
+        } else {
+            // 无职业村民：搜索所有可获取的工作站类型，寻找潜在工作站点
+            // 参考 MC 原版 AcquirePoi 行为，使用 acquirableJobSite 谓词搜索全部工作站POI
+            const auto& allWorkstations = villager::ProfessionMapping::getAcquirableWorkstations();
+
+            // 无职业村民不需要 JOB_SITE，清除旧记忆
+            entity->brain().removeMemory(memory::MemoryModuleTypes::JOB_SITE);
+
+            // 遍历所有工作站类型，找到最近的未占用工作站作为 POTENTIAL_JOB_SITE
+            BlockPos nearestPos;
+            f32 nearestDist = SEARCH_RANGE;
+            bool found = false;
+
+            for (POIType wsType : allWorkstations) {
+                auto site =
+                    poiStorage.findNearestUnacquired(entityPos, wsType, SEARCH_RANGE, static_cast<u64>(entity->id()));
+                if (site.has_value()) {
+                    const BlockPos& pos = site.value();
+                    f32 dx = static_cast<f32>(pos.x - entityPos.x);
+                    f32 dy = static_cast<f32>(pos.y - entityPos.y);
+                    f32 dz = static_cast<f32>(pos.z - entityPos.z);
+                    f32 dist = Vector3(dx, dy, dz).length();
+                    if (dist < nearestDist) {
+                        nearestDist = dist;
+                        nearestPos = pos;
+                        found = true;
+                    }
+                }
+            }
+
+            if (found) {
+                GlobalPos globalPos(world->dimension(), nearestPos);
+                entity->brain().setMemory(memory::MemoryModuleTypes::POTENTIAL_JOB_SITE, globalPos);
+            } else {
+                entity->brain().removeMemory(memory::MemoryModuleTypes::POTENTIAL_JOB_SITE);
+            }
+        }
+    } else {
+        // 非VillagerEntity类型的实体（如流浪商人），不做工作站搜索
+        entity->brain().removeMemory(memory::MemoryModuleTypes::JOB_SITE);
+        entity->brain().removeMemory(memory::MemoryModuleTypes::POTENTIAL_JOB_SITE);
     }
 }
 
