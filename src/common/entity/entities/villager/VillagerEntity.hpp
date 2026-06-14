@@ -363,6 +363,7 @@ private:
     Player* m_lastTradedPlayer = nullptr;           // 最后交易的玩家（用于声望更新和粒子效果）
     i32 m_updateMerchantTimer = 0;                  // 交易升级计时器（40 ticks，仅在非交易状态递减）
     bool m_increaseProfessionLevelOnUpdate = false; // 计时器到期时是否升级并补充交易
+    i32 m_prevLevelBeforeTrade = 0;                 // 交易前的等级（用于多级升级时生成中间等级交易）
 
     // Brain系统
     std::unique_ptr<VillagerBrain> m_brain;

@@ -182,10 +182,11 @@ VillagerEntity 提供基于库存食物点数的分享和繁殖判断：
 
 - `m_updateMerchantTimer`：40 tick（2秒）倒计时，仅在非交易状态递减
 - `m_increaseProfessionLevelOnUpdate`：计时器到期时是否需要补充交易
-- 计时器到期时：为当前等级追加新交易（`_increaseMerchantCareer()`），给予再生效果 I
-- `_increaseMerchantCareer()` **不再次升级**（等级已由 `addExperience()` 正确递增），仅为当前等级生成并追加交易
+- `m_prevLevelBeforeTrade`：记录升级前等级，用于多级升级时生成所有中间等级交易
+- 计时器到期时：为所有新等级追加交易（`_increaseMerchantCareer()`），给予再生效果 I
+- `_increaseMerchantCareer()` **不再次升级**（等级已由 `addExperience()` 正确递增）
+- 多级升级处理：若一次交易从1级升到3级，会为2级和3级都生成交易并追加（循环 `prevLevel+1` 到 `currentLevel`）
 - `_increaseMerchantCareer()` 仅追加新等级的交易，不替换现有交易（保留使用次数和需求状态）
-- 注意：MC原版中一次交易导致多级升级时仅触发一次 increaseMerchantCareer，只为最终等级生成交易
 
 ### stillValid 距离检测
 

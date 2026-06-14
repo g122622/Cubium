@@ -591,6 +591,7 @@ void VillagerEntity::rewardTradeXp(MerchantOffer& offer)
             // 计时器到期时升级交易列表并给予再生效果
             m_updateMerchantTimer = 40;
             m_increaseProfessionLevelOnUpdate = true;
+            m_prevLevelBeforeTrade = prevLevel; // 记录升级前等级，用于生成中间等级交易
             xpOrbCount += 5;
         }
 
@@ -631,12 +632,9 @@ void VillagerEntity::_increaseMerchantCareer()
     // 1. 等级已在 addExperience() 中递增，此处不需要再次升级
     // 2. 为所有新等级生成交易并追加到现有交易列表（不替换）
     //
-    // 注意：addExperience() 内部的 while 循环可能一次跳过多个等级
+    // 关键：addExperience() 内部的 while 循环可能一次跳过多个等级
     // （例如从1级直接升到3级），此时需要为2级和3级都生成交易。
-    // 但由于 updateMerchantTimer 仅在第一次升级时设置（40 tick 后触发一次），
-    // MC原版的行为是：如果一次交易导致多级升级，也只触发一次 increaseMerchantCareer，
-    // 仅为当前新等级生成交易，中间等级的交易不会补充。
-    // 为了与MC原版行为一致，此处仅为当前等级生成交易。
+    // m_prevLevelBeforeTrade 记录了升级前的等级，用于确定需要补充的等级范围。
 
     if (isNitwit()) {
         // 傻子村民没有交易
@@ -652,26 +650,30 @@ void VillagerEntity::_increaseMerchantCareer()
     }
     seed = seed * 31 + static_cast<u64>(id());
 
-    // 为当前等级生成交易并追加到现有列表
+    // 为所有新等级（prevLevel+1 到 currentLevel）生成交易并追加到现有列表
     // 注意：等级已由 addExperience() 正确递增，不需要再调用 setLevel()
     const i32 currentLevel = m_villagerData.level();
-    auto newOffers = VillagerTrades::generateOffers(m_villagerData.profession(),
-        m_villagerData.type(),
-        currentLevel,
-        0, // demand
-        seed);
+    const i32 prevLevel = m_prevLevelBeforeTrade;
 
-    if (newOffers && m_offers) {
-        // 将新等级的交易追加到现有交易列表
-        for (size_t i = 0; i < newOffers->size(); ++i) {
-            MerchantOffer* offer = newOffers->getOffer(i);
-            if (offer != nullptr) {
-                m_offers->addOffer(std::make_unique<MerchantOffer>(*offer));
+    for (i32 level = prevLevel + 1; level <= currentLevel; ++level) {
+        auto newOffers = VillagerTrades::generateOffers(m_villagerData.profession(),
+            m_villagerData.type(),
+            level,
+            0,                               // demand
+            seed + static_cast<u64>(level)); // 不同等级使用不同种子
+
+        if (newOffers && m_offers) {
+            // 将新等级的交易追加到现有交易列表
+            for (size_t i = 0; i < newOffers->size(); ++i) {
+                MerchantOffer* offer = newOffers->getOffer(i);
+                if (offer != nullptr) {
+                    m_offers->addOffer(std::make_unique<MerchantOffer>(*offer));
+                }
             }
+        } else if (newOffers && !m_offers) {
+            // 如果现有交易列表不存在（不应该发生，但防御性处理），直接替换
+            m_offers = std::move(newOffers);
         }
-    } else if (newOffers && !m_offers) {
-        // 如果现有交易列表不存在（不应该发生，但防御性处理），直接替换
-        m_offers = std::move(newOffers);
     }
 }
 
