@@ -63,6 +63,8 @@ struct SpreadPosition {
     [[nodiscard]] i32 getSpawnY(IWorld& world, i32 maxHeight) const;
 
     /// 检查此位置是否安全（脚下不是液体、不是火焰）
+    /// TODO: MC Java 版还会检查 #minecraft:invalid_spawn_floor 标签，包含仙人掌、
+    ///       甜浆果丛等危险方块。当前仅检查了液体和火焰，需要添加该标签检查。
     [[nodiscard]] bool isSafe(IWorld& world, i32 maxHeight) const;
 
     /// 在指定范围内随机初始化位置
