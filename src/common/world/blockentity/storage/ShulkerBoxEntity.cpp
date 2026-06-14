@@ -22,6 +22,7 @@
  */
 
 #include "world/blockentity/storage/ShulkerBoxEntity.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/Items.hpp"
@@ -33,7 +34,6 @@
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -102,15 +102,16 @@ f32 ShulkerBoxEntity::getProgress(f32 partialTick) const
 
 void ShulkerBoxEntity::openContainer(Player* player)
 {
-    // 触发战利品表填充
-    fillWithLoot(player);
-
-    // 检查锁定状态
+    // 先检查是否允许打开（锁定状态和观察者模式检查）
+    // 必须在 fillWithLoot 之前检查，防止观察者模式玩家触发战利品生成
     if (player != nullptr && !LootableContainerBlockEntity::canOpen(player, ItemStack())) {
         return;
     }
 
-    // 基类已处理观察者检查和负数保护
+    // 触发战利品表填充
+    fillWithLoot(player);
+
+    // 基类处理计数增加
     LootableContainerBlockEntity::openContainer(player);
 
     if (m_openCount == 1) {

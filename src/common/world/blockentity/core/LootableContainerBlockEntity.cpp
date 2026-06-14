@@ -22,10 +22,14 @@
  */
 
 #include "world/blockentity/core/LootableContainerBlockEntity.hpp"
+#include "entity/attribute/Attributes.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/loot/LootTable.hpp"
 #include "item/loot/LootTableManager.hpp"
 #include "item/loot/context/LootContext.hpp"
+#include "item/loot/context/LootContextBuilder.hpp"
+#include "item/loot/context/LootParameterSets.hpp"
+#include "item/loot/context/LootParams.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 
@@ -37,6 +41,23 @@ namespace blockentity {
 LootableContainerBlockEntity::LootableContainerBlockEntity(BlockEntityType type, const BlockPos& pos)
     : LockableBlockEntity(type, pos)
 {}
+
+// ========== 打开权限检查 ==========
+
+bool LootableContainerBlockEntity::canOpen(const Player* player, const ItemStack& heldItem) const
+{
+    // 先检查基类的锁定规则
+    if (!LockableBlockEntity::canOpen(player, heldItem)) {
+        return false;
+    }
+
+    // 当战利品表尚未填充时，观察者模式玩家不能打开容器
+    if (m_hasLootTable && player != nullptr && player->isSpectator()) {
+        return false;
+    }
+
+    return true;
+}
 
 // ========== 战利品表接口 ==========
 
@@ -66,12 +87,9 @@ bool LootableContainerBlockEntity::isEmpty() const
 
 void LootableContainerBlockEntity::openContainer(Player* player)
 {
-    // 观察者模式玩家不能打开有战利品表的容器
-    if (m_hasLootTable && player != nullptr) {
-        // TODO: 检查玩家是否是观察者模式，需要在 Player 类中实现 isSpectator() 方法
-        // if (player->isSpectator()) {
-        //     return;
-        // }
+    // 当战利品表尚未填充时，观察者模式玩家不能打开容器，防止观察者触发战利品生成
+    if (m_hasLootTable && player != nullptr && player->isSpectator()) {
+        return;
     }
 
     // 触发战利品表填充
@@ -188,10 +206,12 @@ bool LootableContainerBlockEntity::fillWithLootFromTable(loot::LootTableManager&
 
     // 设置玩家相关参数（如果有）
     if (player != nullptr) {
-        // TODO: 设置玩家幸运值和实体参数
-        // builder.withLuck(player->getLuck());
-        // builder.withParameter(loot::LootParams::THIS_ENTITY, player);
-        MC_UNUSED(player);
+        // 设置玩家幸运值（来自属性系统，如幸运药水效果等）
+        f32 luck = static_cast<f32>(player->getAttributeValue(entity::attribute::Attributes::LUCK, 0.0));
+        builder.withLuck(luck);
+
+        // 设置实体参数，使战利品条件可以引用玩家
+        builder.withParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(player));
     }
 
     // 设置战利品表解析器（支持嵌套战利品表）
@@ -201,7 +221,7 @@ bool LootableContainerBlockEntity::fillWithLootFromTable(loot::LootTableManager&
         return lootTableManager.getPredicate(id);
     });
 
-    auto context = builder.build(loot::LootParameterSet());
+    auto context = builder.build(loot::LootParameterSets::chest());
 
     // 生成物品
     std::vector<ItemStack> items = table->generate(*context);

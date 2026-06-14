@@ -96,6 +96,21 @@ public:
      */
     [[nodiscard]] bool needsLootFill() const noexcept { return m_hasLootTable; }
 
+    // ========== 打开权限检查 ==========
+
+    /**
+     * @brief 检查玩家是否可以打开容器
+     *
+     * 重写 LockableBlockEntity::canOpen，增加观察者模式限制：
+     * 当战利品表尚未填充时，观察者模式玩家不能打开容器，
+     * 防止观察者触发战利品生成。
+     *
+     * @param player 玩家（可为nullptr）
+     * @param heldItem 手持物品（用于钥匙匹配）
+     * @return 如果可以打开返回true
+     */
+    [[nodiscard]] bool canOpen(const Player* player, const ItemStack& heldItem) const override;
+
     // ========== 容器访问重写（自动触发 fillWithLoot）==========
 
     /**
@@ -108,7 +123,8 @@ public:
     /**
      * @brief 玩家打开容器
      *
-     * 观察者模式玩家不能打开有战利品表的容器。
+     * 当战利品表尚未填充时，观察者模式玩家不能打开容器。
+     * 打开容器时会触发战利品表自动填充。
      */
     void openContainer(Player* player) override;
 

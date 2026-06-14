@@ -193,8 +193,8 @@ std::unique_ptr<DoubleSidedInventory> ChestEntity::getDoubleInventory(IWorld& wo
 
 void ChestEntity::openContainer(Player* player)
 {
-    // 基类已处理观察者检查和负数保护
-    ContainerBlockEntity::openContainer(player);
+    // 基类处理观察者检查和战利品表填充
+    LootableContainerBlockEntity::openContainer(player);
 
     if (m_world != nullptr) {
         broadcastChestState(*m_world, true);

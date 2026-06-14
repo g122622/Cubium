@@ -98,7 +98,7 @@ public:
      * 2. 锁定的容器：需要手持正确名称的物品
      * 3. 创造模式玩家：可以打开任何容器
      */
-    [[nodiscard]] bool canOpen(const Player* player, const ItemStack& heldItem) const;
+    [[nodiscard]] virtual bool canOpen(const Player* player, const ItemStack& heldItem) const;
 
     // ========== 重写 BlockEntity 接口 ==========
 

@@ -166,6 +166,9 @@ public:
      */
     [[nodiscard]] bool canOpen(IWorld& world) const;
 
+    // 引入基类的 canOpen 重载，避免被本类 canOpen(IWorld&) 隐藏
+    using LootableContainerBlockEntity::canOpen;
+
     /**
      * @brief 计算红石比较器信号
      * @param world 世界引用
