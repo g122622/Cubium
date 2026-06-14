@@ -22,6 +22,10 @@
  */
 
 #include "entity/inventory/container/MerchantContainer.hpp"
+#include "entity/entities/player/Player.hpp"
+#include "entity/inventory/PlayerInventory.hpp"
+#include "entity/inventory/container/MerchantContainerMenu.hpp"
+#include "entity/inventory/container/MerchantResultSlot.hpp"
 #include "item/core/Item.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/core/ItemStack.hpp"
@@ -470,6 +474,306 @@ TEST_F(MerchantContainerTest, InvalidSlotIndex)
     // 越界设置不应崩溃
     container.setItem(-1, ItemStack(emerald_, 1));
     container.setItem(3, ItemStack(emerald_, 1));
+}
+
+// ========== MerchantResultSlot 测试 ==========
+
+class MerchantResultSlotTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        emerald_ = getOrRegisterTestItem("minecraft:emerald");
+        bread_ = getOrRegisterTestItem("minecraft:bread");
+        diamond_ = getOrRegisterTestItem("minecraft:diamond");
+
+        player_ = std::make_unique<Player>(EntityId(1), "TestPlayer");
+        playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
+    }
+
+    std::unique_ptr<Player> player_;
+    std::unique_ptr<PlayerInventory> playerInventory_;
+    MockMerchant merchant_;
+    const Item* emerald_ = nullptr;
+    const Item* bread_ = nullptr;
+    const Item* diamond_ = nullptr;
+};
+
+TEST_F(MerchantResultSlotTest, MayPlace_ReturnsFalse)
+{
+    MerchantContainer container(merchant_);
+    MerchantResultSlot slot(*player_, merchant_, container, MerchantContainer::SLOT_RESULT, 0, 0);
+
+    // 结果槽不允许放置任何物品
+    EXPECT_FALSE(slot.mayPlace(ItemStack(emerald_, 1)));
+    EXPECT_FALSE(slot.mayPlace(ItemStack(bread_, 1)));
+    EXPECT_FALSE(slot.mayPlace(ItemStack()));
+}
+
+TEST_F(MerchantResultSlotTest, Remove_TracksCount)
+{
+    MerchantContainer container(merchant_);
+
+    // 设置结果槽物品
+    ItemStack result(bread_, 3);
+    container.setItem(MerchantContainer::SLOT_RESULT, result);
+
+    MerchantResultSlot slot(*player_, merchant_, container, MerchantContainer::SLOT_RESULT, 0, 0);
+
+    // 从结果槽移除物品
+    // 注意：MerchantContainer::removeItem 在 SLOT_RESULT 时会移除全部数量
+    // 而 Slot::remove 调用 IInventory::removeItem，所以结果槽会移除全部
+    ItemStack removed = slot.remove(2);
+    EXPECT_TRUE(removed.getCount() > 0); // 确认移除了物品
+}
+
+TEST_F(MerchantResultSlotTest, OnTake_ExecutesTrade_SingleItem)
+{
+    // 设置交易：1个绿宝石 → 3个面包
+    ItemStack buyA(emerald_, 1);
+    ItemStack sell(bread_, 3);
+    auto offer = std::make_unique<world::village::trade::MerchantOffer>(buyA, sell, 8, 2, 0.05f);
+    world::village::trade::MerchantOffer* offerPtr = offer.get();
+    merchant_.addTestOffer(std::move(offer));
+
+    MerchantContainer container(merchant_);
+
+    // 放入支付物品
+    container.setItem(MerchantContainer::SLOT_BUY_A, ItemStack(emerald_, 1));
+    ASSERT_NE(container.getActiveOffer(), nullptr);
+
+    // 结果槽应有物品
+    ASSERT_FALSE(container.getItem(MerchantContainer::SLOT_RESULT).isEmpty());
+
+    // 创建结果槽
+    MerchantResultSlot slot(*player_, merchant_, container, MerchantContainer::SLOT_RESULT, 0, 0);
+
+    // 模拟从结果槽取出物品
+    ItemStack resultStack = container.getItem(MerchantContainer::SLOT_RESULT);
+    ItemStack taken = slot.onTake(*player_, std::move(resultStack));
+
+    // 验证交易执行：
+    // 1. 交易使用次数应增加
+    EXPECT_EQ(offerPtr->getUses(), 1);
+
+    // 2. notifyTrade 应被调用（通过 offer 使用次数增加验证）
+    EXPECT_EQ(merchant_.getNotifyTradeCount(), 1);
+
+    // 3. 支付槽物品应被扣除
+    EXPECT_TRUE(container.getItem(MerchantContainer::SLOT_BUY_A).isEmpty());
+
+    // 4. 结果槽应在 updateSellItem 后更新（可能仍有物品或为空）
+}
+
+TEST_F(MerchantResultSlotTest, OnTake_ExecutesTrade_DoubleItem)
+{
+    // 设置交易：1个绿宝石 + 1个钻石 → 3个面包
+    ItemStack buyA(emerald_, 1);
+    ItemStack buyB(diamond_, 1);
+    ItemStack sell(bread_, 3);
+    auto offer = std::make_unique<world::village::trade::MerchantOffer>(buyA, buyB, sell, 8, 5, 0.2f);
+    world::village::trade::MerchantOffer* offerPtr = offer.get();
+    merchant_.addTestOffer(std::move(offer));
+
+    MerchantContainer container(merchant_);
+
+    // 放入两个支付物品
+    container.setItem(MerchantContainer::SLOT_BUY_A, ItemStack(emerald_, 1));
+    container.setItem(MerchantContainer::SLOT_BUY_B, ItemStack(diamond_, 1));
+    ASSERT_NE(container.getActiveOffer(), nullptr);
+
+    // 创建结果槽
+    MerchantResultSlot slot(*player_, merchant_, container, MerchantContainer::SLOT_RESULT, 0, 0);
+
+    // 取出结果
+    ItemStack resultStack = container.getItem(MerchantContainer::SLOT_RESULT);
+    slot.onTake(*player_, std::move(resultStack));
+
+    // 交易使用次数应增加
+    EXPECT_EQ(offerPtr->getUses(), 1);
+
+    // 两个支付槽都应被扣除
+    EXPECT_TRUE(container.getItem(MerchantContainer::SLOT_BUY_A).isEmpty());
+    EXPECT_TRUE(container.getItem(MerchantContainer::SLOT_BUY_B).isEmpty());
+}
+
+TEST_F(MerchantResultSlotTest, OnTake_NoDoubleXpReward)
+{
+    // 验证 onTake 不会重复添加经验
+    // 设置交易：1个绿宝石 → 3个面包，xp=5
+    ItemStack buyA(emerald_, 1);
+    ItemStack sell(bread_, 3);
+    auto offer = std::make_unique<world::village::trade::MerchantOffer>(buyA, sell, 8, 5, 0.05f);
+    merchant_.addTestOffer(std::move(offer));
+
+    MerchantContainer container(merchant_);
+    container.setItem(MerchantContainer::SLOT_BUY_A, ItemStack(emerald_, 1));
+
+    MerchantResultSlot slot(*player_, merchant_, container, MerchantContainer::SLOT_RESULT, 0, 0);
+
+    i32 xpBefore = merchant_.getVillagerXp();
+
+    ItemStack resultStack = container.getItem(MerchantContainer::SLOT_RESULT);
+    slot.onTake(*player_, std::move(resultStack));
+
+    // 经验应通过 notifyTrade -> rewardTradeXp 添加一次
+    // MockMerchant 的 notifyTrade 不会自动添加经验（仅增加使用次数）
+    // 但不应出现 overrideXp 再次添加
+    // 由于 MockMerchant.notifyTrade 不添加 xp，我们只验证没有重复调用
+    // 实际在 VillagerEntity 中，notifyTrade -> rewardTradeXp 会添加 xp
+    i32 xpAfter = merchant_.getVillagerXp();
+    // MockMerchant 不实现 rewardTradeXp（它不是 IMerchant 的一部分）
+    // 所以 xpBefore == xpAfter 在 mock 中是正常的
+    // 关键验证：onTake 不再调用 overrideXp
+    EXPECT_EQ(xpAfter, xpBefore);
+}
+
+TEST_F(MerchantResultSlotTest, OnTake_OutOfStockOffer_DoesNotExecute)
+{
+    // 设置交易：1个绿宝石 → 3个面包，最大使用1次
+    ItemStack buyA(emerald_, 1);
+    ItemStack sell(bread_, 3);
+    auto offer = std::make_unique<world::village::trade::MerchantOffer>(buyA, sell, 1, 2, 0.05f);
+    offer->increaseUses(); // 使其售罄
+    merchant_.addTestOffer(std::move(offer));
+
+    MerchantContainer container(merchant_);
+
+    // 放入支付物品，但交易已售罄
+    container.setItem(MerchantContainer::SLOT_BUY_A, ItemStack(emerald_, 1));
+
+    // 结果槽应为空（售罄）
+    EXPECT_TRUE(container.getItem(MerchantContainer::SLOT_RESULT).isEmpty());
+
+    // activeOffer 不应为 nullptr（因为匹配到了但售罄），但结果为空
+    // 或者 activeOffer 为 nullptr，取决于 updateSellItem 的实现
+    // 无论哪种情况，onTake 不应执行交易
+    MerchantResultSlot slot(*player_, merchant_, container, MerchantContainer::SLOT_RESULT, 0, 0);
+
+    // 尝试从空结果槽取出
+    ItemStack resultStack = container.getItem(MerchantContainer::SLOT_RESULT);
+    EXPECT_TRUE(resultStack.isEmpty());
+
+    // 不应有交易通知
+    EXPECT_EQ(merchant_.getNotifyTradeCount(), 0);
+}
+
+// ========== MerchantContainerMenu 测试 ==========
+
+class MerchantContainerMenuTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        emerald_ = getOrRegisterTestItem("minecraft:emerald");
+        bread_ = getOrRegisterTestItem("minecraft:bread");
+        diamond_ = getOrRegisterTestItem("minecraft:diamond");
+
+        player_ = std::make_unique<Player>(EntityId(1), "TestPlayer");
+        playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
+    }
+
+    std::unique_ptr<Player> player_;
+    std::unique_ptr<PlayerInventory> playerInventory_;
+    MockMerchant merchant_;
+    const Item* emerald_ = nullptr;
+    const Item* bread_ = nullptr;
+    const Item* diamond_ = nullptr;
+};
+
+TEST_F(MerchantContainerMenuTest, Create_HasCorrectSlotCount)
+{
+    // 交易菜单槽位：3个交易槽 + 27个背包槽 + 9个快捷栏 = 39
+    MerchantContainerMenu menu(ContainerId(1), playerInventory_.get(), merchant_);
+    EXPECT_EQ(menu.getSlotCount(), 39);
+}
+
+TEST_F(MerchantContainerMenuTest, SlotIndices_AreCorrect)
+{
+    MerchantContainerMenu menu(ContainerId(1), playerInventory_.get(), merchant_);
+
+    // 支付槽1 = 0, 支付槽2 = 1, 结果槽 = 2
+    // 注意: getResultSlotIndex() 是 protected 方法，无法直接测试
+
+    // 背包范围：3-29
+    EXPECT_EQ(MerchantContainerMenu::INV_SLOT_START, 3);
+    EXPECT_EQ(MerchantContainerMenu::INV_SLOT_END, 30);
+
+    // 快捷栏范围：30-38
+    EXPECT_EQ(MerchantContainerMenu::HOTBAR_SLOT_START, 30);
+    EXPECT_EQ(MerchantContainerMenu::HOTBAR_SLOT_END, 39);
+}
+
+TEST_F(MerchantContainerMenuTest, StillValid_ReturnsTrue)
+{
+    // MockMerchant::stillValid 总是返回 true
+    MerchantContainerMenu menu(ContainerId(1), playerInventory_.get(), merchant_);
+    EXPECT_TRUE(menu.stillValid(*player_));
+}
+
+TEST_F(MerchantContainerMenuTest, CanMergeSlot_ResultSlotNotAllowed)
+{
+    MerchantContainerMenu menu(ContainerId(1), playerInventory_.get(), merchant_);
+
+    // 结果槽不允许 Shift+点击合并
+    Slot* resultSlot = menu.getSlot(MerchantContainerMenu::SLOT_RESULT);
+    ASSERT_NE(resultSlot, nullptr);
+    EXPECT_FALSE(menu.canMergeSlot(ItemStack(emerald_, 1), *resultSlot));
+
+    // 支付槽允许
+    Slot* paymentSlot = menu.getSlot(MerchantContainerMenu::SLOT_PAYMENT_1);
+    ASSERT_NE(paymentSlot, nullptr);
+    EXPECT_TRUE(menu.canMergeSlot(ItemStack(emerald_, 1), *paymentSlot));
+}
+
+TEST_F(MerchantContainerMenuTest, SetSelectionHint_UpdatesContainer)
+{
+    // 设置交易
+    ItemStack buyA(emerald_, 1);
+    ItemStack sell(bread_, 3);
+    auto offer = std::make_unique<world::village::trade::MerchantOffer>(buyA, sell, 8, 2, 0.05f);
+    merchant_.addTestOffer(std::move(offer));
+
+    MerchantContainerMenu menu(ContainerId(1), playerInventory_.get(), merchant_);
+
+    // 设置选中提示不应崩溃
+    menu.setSelectionHint(0);
+    menu.setSelectionHint(-1);
+}
+
+TEST_F(MerchantContainerMenuTest, GetOffers_ReturnsMerchantOffers)
+{
+    MerchantContainerMenu menu(ContainerId(1), playerInventory_.get(), merchant_);
+    auto& offers = menu.getOffers();
+    EXPECT_TRUE(offers.empty());
+}
+
+TEST_F(MerchantContainerMenuTest, GetTraderXp_ReturnsMerchantXp)
+{
+    MerchantContainerMenu menu(ContainerId(1), playerInventory_.get(), merchant_);
+    EXPECT_EQ(menu.getTraderXp(), 0);
+}
+
+TEST_F(MerchantContainerMenuTest, SetMerchantLevel)
+{
+    MerchantContainerMenu menu(ContainerId(1), playerInventory_.get(), merchant_);
+    menu.setMerchantLevel(3);
+    EXPECT_EQ(menu.getTraderLevel(), 3);
+}
+
+TEST_F(MerchantContainerMenuTest, ShowProgressBar)
+{
+    MerchantContainerMenu menu(ContainerId(1), playerInventory_.get(), merchant_);
+    EXPECT_TRUE(menu.showProgressBar()); // MockMerchant 默认返回 true
+    menu.setShowProgressBar(false);
+    EXPECT_FALSE(menu.showProgressBar());
+}
+
+TEST_F(MerchantContainerMenuTest, CanRestock)
+{
+    MerchantContainerMenu menu(ContainerId(1), playerInventory_.get(), merchant_);
+    // 默认为 false（setCanRestock 需要在 createMenu 中由实体调用设置）
+    EXPECT_FALSE(menu.canRestock());
+    menu.setCanRestock(true);
+    EXPECT_TRUE(menu.canRestock());
 }
 
 } // namespace

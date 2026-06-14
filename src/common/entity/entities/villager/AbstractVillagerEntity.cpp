@@ -223,8 +223,15 @@ bool AbstractVillagerEntity::isClientSide() const
 
 bool AbstractVillagerEntity::stillValid(const Player& player) const
 {
-    // 检查：当前交易玩家是指定玩家，且村民存活
-    return m_tradingPlayer == &player && isAlive();
+    // 检查：当前交易玩家是指定玩家，且村民存活，且玩家在交互距离内（8格）
+    if (m_tradingPlayer != &player || !isAlive()) {
+        return false;
+    }
+
+    // TODO: 距离检查需要服务端侧的精确判断，当前实现使用欧几里得距离
+    // 原版 MC 使用 BlockState 距离（中心对中心），这里使用实体距离近似
+    constexpr f32 MAX_TRADE_DISTANCE = 8.0f;
+    return distanceTo(player) <= MAX_TRADE_DISTANCE;
 }
 
 f32 AbstractVillagerEntity::experienceProgress() const
