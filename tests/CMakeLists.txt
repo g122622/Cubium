@@ -154,6 +154,8 @@ add_executable(mc_tests
     common/entity/entities/monster/ZombieVillagerEntityTest.cpp
     # ZombieVillagerEntity 床和铁栏杆加速治愈测试
     entity/ZombieVillagerConversionTest.cpp
+    # VillagerData 升级逻辑和交易经验球测试
+    entity/VillagerTradeXpTest.cpp
     # ZombieEntity 僵尸转溺尸测试
     common/entity/entities/monster/undead/ZombieEntityTest.cpp
     # SkeletonEntity 骷髅射箭测试

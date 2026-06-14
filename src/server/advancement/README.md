@@ -18,7 +18,8 @@ server/advancement/
 │                     （事件订阅与触发器调度）                           │
 │  ┌────────────────────────────────────────────────────────────────┐  │
 │  │ 订阅事件：InventoryChangedEvent、PlayerKillEntityEvent、        │  │
-│  │ BlockPlaceEvent、CuredZombieVillagerEvent、ServerTickEvent 等  │  │
+│  │ BlockPlaceEvent、CuredZombieVillagerEvent、ServerTickEvent、    │  │
+│  │ VillagerTradeEvent、BredAnimalsEvent、ConsumeItemEvent 等      │  │
 │  └────────────────────────────────────────────────────────────────┘  │
 └───────────────────────────────┬──────────────────────────────────────┘
                                 │ 触发
@@ -94,3 +95,9 @@ server/advancement/
 13. **PlayerAdvancements 与 ServerPlayer 的关联时机**：`setServerPlayer()` 必须在 `ServerPlayer` 构造后尽早调用，因为 `_grantRewards()` 依赖 `m_player` 发放经验值和解锁配方。
 
 14. **ServerPlayerData::advancements 是废弃字段**：该字段始终为 nullptr，成就系统通过 `ServerPlayer::getAdvancements()` 获取 `PlayerAdvancements`。命令系统和实体选择器已改用 `ServerPlayerEntityManager → Player::asServerPlayer() → ServerPlayer::getAdvancements()` 路径。
+
+15. **VillagerTradeEvent 事件链**：玩家与村民/流浪商人交易时，`AbstractVillagerEntity::notifyTrade()` 通过 `IWorld::onVillagerTrade()` 发布 `VillagerTradeEvent`，`AdvancementEventHandler::_onVillagerTrade()` 订阅该事件并执行：
+    - 更新统计 `minecraft:traded_with_villager`（通过 `StatisticsManager::incrementCustom()`）
+    - 触发 `VillagerTradeTrigger`（检查交易物品和村民实体谓词条件）
+
+    事件触发路径：`MerchantResultSlot::onTake()` → `IMerchant::notifyTrade()` → `AbstractVillagerEntity::notifyTrade()` → `IWorld::onVillagerTrade()` → `ServerWorld::onVillagerTrade()` → `ServerEventBus::publish(VillagerTradeEvent)` → `AdvancementEventHandler::_onVillagerTrade()`

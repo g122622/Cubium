@@ -529,7 +529,10 @@ void VillagerEntity::updateOffers()
 
 void VillagerEntity::rewardTradeXp(MerchantOffer& offer)
 {
-    // 增加村民经验
+    // 在增加经验前记录当前等级，用于判断本次交易是否触发了升级
+    const i32 prevLevel = m_villagerData.level();
+
+    // 增加村民经验（内部可能触发升级）
     addVillagerExperience(offer.getXp());
 
     // 记录最后交易的玩家（用于升级时重新补充交易）
@@ -540,8 +543,12 @@ void VillagerEntity::rewardTradeXp(MerchantOffer& offer)
         // 经验球值 = 3 + random(0~3)，即 3~6
         i32 xpOrbCount = 3 + getRandom().nextInt(4);
 
-        // 如果村民即将升级，额外增加5点经验球值
-        if (shouldIncreaseLevel()) {
+        // 如果本次交易导致村民升级，额外增加5点经验球值
+        // 注意：必须在 addVillagerExperience 之前记录等级，否则升级已发生后
+        // shouldIncreaseLevel() 会因等级已提升而返回 false
+        if (m_villagerData.level() > prevLevel) {
+            // TODO: m_updateMerchantTimer/m_increaseProfessionLevelOnUpdate 待集成到tick()中，
+            // 用于升级后延迟补充交易列表（MC原版在upgradeTimer倒计时结束后调用updateOffers）
             m_updateMerchantTimer = 40;
             m_increaseProfessionLevelOnUpdate = true;
             xpOrbCount += 5;

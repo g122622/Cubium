@@ -34,11 +34,13 @@ AbstractVillagerEntity (抽象村民基类)
 │   ├── 持有 VillagerData (职业/类型/等级/经验)
 │   ├── 持有 Brain<VillagerEntity> (AI大脑)
 │   ├── 持有 ProfessionMapping (职业-工作站映射)
-│   ├── rewardTradeXp() — 调用 addVillagerExperience() 增加经验
-│   └── 功能: 职业系统、工作站点、睡眠系统、流言传播
+│   ├── rewardTradeXp() — 增加经验，检测升级，生成经验球（3+random(4)，升级+5）
+│   ├── shouldIncreaseLevel() — 检查当前经验是否达到升级阈值
+│   ├── 功能: 职业系统、工作站点、睡眠系统、流言传播
+│   └── 注意: m_updateMerchantTimer/m_increaseProfessionLevelOnUpdate 待集成到tick()
 │
 └── WanderingTraderEntity (流浪商人)
-    ├── rewardTradeXp() — 空实现（流浪商人不奖励经验）
+    ├── rewardTradeXp() — 生成经验球给玩家（3+random(4)，无升级加成）
     └── 功能: 随机生成、固定交易、消失倒计时、贸易羊驼
 ```
 
@@ -49,9 +51,11 @@ AbstractVillagerEntity (抽象村民基类)
 - `entity/ai/brain/` - Brain 系统、Memory、Sensor、Task、Schedule
 - `entity/inventory/INamedContainerProvider.hpp` - 容器界面接口
 - `entity/inventory/container/MerchantContainerMenu.hpp` - 交易容器菜单
+- `entity/experience/ExperienceDropHandler.hpp` - 经验球生成工具类
 - `world/village/trade/` - MerchantOffers, MerchantOffer, IMerchant 交易系统
 - `world/village/poi/` - PointOfInterestType 工作站 POI 类型
 - `world/blockentity/core/SimpleInventory.hpp` - 简单库存实现
+- `world/IWorld.hpp` - 世界接口（onVillagerTrade 事件桥接）
 
 **下游依赖（依赖本目录的模块）**：
 - `server/world/ServerWorld.hpp` - 村民生成的世界管理
@@ -71,6 +75,21 @@ AbstractVillagerEntity (抽象村民基类)
 **经验奖励链**：`onTake()` → `notifyTrade()` → `rewardTradeXp()` → `addVillagerExperience()`
 
 > ⚠️ **注意**：`notifyTrade()` 内部已调用 `rewardTradeXp()`，`onTake()` 不应再次添加经验，否则会导致经验翻倍。
+
+### 经验球生成逻辑
+
+- **VillagerEntity::rewardTradeXp()**：
+  1. 记录升级前等级 `prevLevel`
+  2. 调用 `addVillagerExperience(offer.getXp())` 增加村民经验
+  3. 若 `offer.shouldRewardExp()` 且世界存在，生成经验球：基础值 `3 + random(0~3)`（3~6）
+  4. 若 `m_villagerData.level() > prevLevel`（本次交易导致升级），经验球值额外 +5（8~11）
+  5. 升级时设置 `m_updateMerchantTimer = 40` 和 `m_increaseProfessionLevelOnUpdate = true`（待集成到tick()）
+  6. 通过 `ExperienceDropHandler::spawnExperienceOrbs()` 在村民位置上方0.5格生成经验球
+
+- **WanderingTraderEntity::rewardTradeXp()**：
+  1. 若 `offer.shouldRewardExp()` 且世界存在，生成经验球：`3 + random(0~3)`（3~6）
+  2. 没有升级系统，无额外+5加成
+  3. 通过 `ExperienceDropHandler::spawnExperienceOrbs()` 在商人位置上方0.5格生成经验球
 
 ## 容易踩的坑
 
@@ -137,14 +156,19 @@ VillagerEntity 提供基于库存食物点数的分享和繁殖判断：
 - 流浪商人没有职业系统，交易列表固定
 - 流浪商人不繁殖，有消失倒计时
 - `WanderingTraderEntity::getTradingLevel()` 始终返回 0
-- 流浪商人的 `rewardTradeXp()` 为空实现，不奖励交易经验
+- 流浪商人的 `rewardTradeXp()` 生成经验球（3~6），但没有升级加成
 - 流浪商人的 `showProgressBar()` 返回 true（但等级始终为0）
 
 ### 交易经验奖励
 
-- `VillagerEntity::rewardTradeXp()` 调用 `addVillagerExperience(offer.getXp())` 增加村民数据中的经验
-- `AbstractVillagerEntity::notifyTrade()` 调用 `rewardTradeXp()` 并增加交易使用次数
+- `VillagerEntity::rewardTradeXp()` 调用 `addVillagerExperience(offer.getXp())` 增加村民数据中的经验，并通过 `ExperienceDropHandler::spawnExperienceOrbs()` 生成经验球
+- `AbstractVillagerEntity::notifyTrade()` 调用 `rewardTradeXp()` 并增加交易使用次数，同时通过 `IWorld::onVillagerTrade()` 发布 `VillagerTradeEvent` 触发成就/进度和统计更新
 - **不要在交易流程中重复调用经验奖励方法**，经验已在 `notifyTrade()` 链中统一处理
+
+### stillValid 距离检测
+
+- `AbstractVillagerEntity::stillValid()` 使用 `distanceSqTo()` 与平方阈值 `64.0f` 比较（等价于 8 格距离）
+- 避免使用 `distanceTo()` 进行距离检测，`distanceSqTo()` 无需计算平方根，性能更优
 
 ## 参考
 
