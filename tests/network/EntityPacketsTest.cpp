@@ -336,7 +336,20 @@ TEST(EntityStatusPacketTest, AllStatusTypes)
     testStatus(EntityStatusPacket::Status::TamingSucceeded);
     testStatus(EntityStatusPacket::Status::LoveHeart);
     testStatus(EntityStatusPacket::Status::EatBlock);
+    testStatus(EntityStatusPacket::Status::VillagerHeart);
+    testStatus(EntityStatusPacket::Status::VillagerAngry);
+    testStatus(EntityStatusPacket::Status::VillagerHappy);
+    testStatus(EntityStatusPacket::Status::VillagerSplash);
     testStatus(EntityStatusPacket::Status::TeleportParticles);
+}
+
+TEST(EntityStatusPacketTest, VillagerStatusCodeValues)
+{
+    // 验证村民状态码与MC原版 EntityStatus byte 值一致
+    EXPECT_EQ(static_cast<u8>(EntityStatusPacket::Status::VillagerHeart), 12);
+    EXPECT_EQ(static_cast<u8>(EntityStatusPacket::Status::VillagerAngry), 13);
+    EXPECT_EQ(static_cast<u8>(EntityStatusPacket::Status::VillagerHappy), 14);
+    EXPECT_EQ(static_cast<u8>(EntityStatusPacket::Status::VillagerSplash), 42);
 }
 
 // ==================== EntityMetadataPacket Tests ====================
