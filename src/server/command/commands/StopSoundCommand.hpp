@@ -25,7 +25,11 @@
 
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandSource.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "server/command/ServerCommandSource.hpp"
+
+#include <optional>
 
 namespace mc {
 namespace command {
@@ -38,8 +42,11 @@ namespace command {
  *
  * 用法:
  * - /stopsound <player>
+ * - /stopsound <player> * [<sound>]
  * - /stopsound <player> <source>
  * - /stopsound <player> <source> <sound>
+ *
+ * 参考: net.minecraft.server.commands.StopSoundCommand
  */
 class StopSoundCommand {
 public:
@@ -50,11 +57,25 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    // TODO: 这些方法目前未使用，命令逻辑已在 registerTo 中内联实现。
-    // 未来如果需要复用或重构，可以考虑提取到这些方法中。
+    /**
+     * @brief 停止目标玩家的所有声音
+     *
+     * /stopsound <player>
+     */
     static i32 _stopAllSounds(CommandContext<ServerCommandSource>& context);
-    static i32 _stopSourceSounds(CommandContext<ServerCommandSource>& context);
-    static i32 _stopSpecificSound(CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 停止目标玩家指定类别的声音（可指定具体声音ID）
+     *
+     * /stopsound <player> <source> [<sound>]
+     * /stopsound <player> * [<sound>]
+     *
+     * @param category 声音类别（nullopt 表示所有类别）
+     * @param soundId 要停止的特定声音ID（nullopt 表示该类别下所有声音）
+     */
+    static i32 _stopSounds(CommandContext<ServerCommandSource>& context,
+        std::optional<sound::SoundCategory> category,
+        std::optional<ResourceLocation> soundId);
 };
 
 } // namespace command

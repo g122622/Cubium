@@ -12,12 +12,11 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * IMPLIED, INCLUDING ANY OF FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  *
  */
 
@@ -34,28 +33,12 @@
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/ConnectionManager.hpp"
 
+#include <spdlog/spdlog.h>
+
 namespace mc {
 namespace command {
 
 namespace {
-/**
- * @brief 从字符串解析声源类别
- */
-sound::SoundCategory parseSoundCategory(const std::string& name)
-{
-    if (name == "master") return sound::SoundCategory::Master;
-    if (name == "music") return sound::SoundCategory::Music;
-    if (name == "record") return sound::SoundCategory::Records;
-    if (name == "weather") return sound::SoundCategory::Weather;
-    if (name == "block" || name == "blocks") return sound::SoundCategory::Blocks;
-    if (name == "hostile") return sound::SoundCategory::Hostile;
-    if (name == "neutral") return sound::SoundCategory::Neutral;
-    if (name == "player" || name == "players") return sound::SoundCategory::Players;
-    if (name == "ambient") return sound::SoundCategory::Ambient;
-    if (name == "voice") return sound::SoundCategory::Voice;
-    return sound::SoundCategory::Master;
-}
-
 /**
  * @brief 发送 StopSoundPacket 给指定玩家
  */
@@ -74,6 +57,30 @@ void sendStopSoundPacket(server::core::ConnectionManager& connMgr,
 
     connMgr.sendPacketToPlayer(playerId, network::PacketType::StopSound, result.value());
 }
+
+/**
+ * @brief 构建停止声音的反馈消息
+ *
+ * 根据 category 和 soundId 是否为空，返回不同格式的反馈文本。
+ */
+std::string buildStopSoundFeedback(
+    const std::optional<sound::SoundCategory>& category, const std::optional<ResourceLocation>& soundId)
+{
+    if (category.has_value()) {
+        std::string categoryName(sound::getSoundCategoryName(category.value()));
+        if (soundId.has_value()) {
+            return fmt::format("Stopped sound '{}' in category '{}'", soundId.value().toString(), categoryName);
+        }
+        return fmt::format("Stopped all sounds in category '{}'", categoryName);
+    }
+
+    if (soundId.has_value()) {
+        return fmt::format("Stopped sound '{}' across all categories", soundId.value().toString());
+    }
+
+    return "Stopped all sounds";
+}
+
 } // namespace
 
 void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
@@ -87,101 +94,38 @@ void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     // /stopsound <player> - 停止所有声音
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "player", EntityArgumentType::players());
-    playerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        auto& source = ctx.getSource();
-        const auto& selector = ctx.getArgument<EntitySelector>("player");
-        auto playerIds = support::resolvePlayerIds(source, selector);
+    playerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _stopAllSounds(ctx); });
 
-        if (playerIds.empty()) {
-            source.sendError("No matching players were found");
-            return 0;
-        }
-
-        auto* server = source.server();
-        auto& connMgr = server->connectionManager();
-
-        // 发送 StopSoundPacket 停止所有声音（不指定声音ID和类别）
-        for (PlayerId playerId : playerIds) {
-            sendStopSoundPacket(connMgr, playerId, std::nullopt, std::nullopt);
-        }
-
-        return static_cast<i32>(playerIds.size());
+    // /stopsound <player> * [<sound>] - 通配符：停止所有类别的声音
+    auto wildcardNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("*");
+    wildcardNode->setCommand(
+        [](CommandContext<ServerCommandSource>& ctx) { return _stopSounds(ctx, std::nullopt, std::nullopt); });
+    auto wildcardSoundNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
+        "sound", ResourceLocationArgumentType::resourceLocation());
+    wildcardSoundNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        const ResourceLocation& soundId = ctx.getArgument<ResourceLocation>("sound");
+        return _stopSounds(ctx, std::nullopt, soundId);
     });
+    wildcardNode->addChild(wildcardSoundNode);
+    playerNode->addChild(wildcardNode);
 
-    // 声源子节点
-    auto createSourceNode = [](const char* name) {
-        return std::make_shared<LiteralCommandNode<ServerCommandSource>>(name);
-    };
+    // 为每个声源类别添加命令节点
+    for (u8 i = 0; i < static_cast<u8>(sound::SoundCategory::Count); ++i) {
+        auto category = static_cast<sound::SoundCategory>(i);
+        std::string categoryName(sound::getSoundCategoryName(category));
 
-    auto masterNode = createSourceNode("master");
-    auto musicNode = createSourceNode("music");
-    auto recordNode = createSourceNode("record");
-    auto weatherNode = createSourceNode("weather");
-    auto blockNode = createSourceNode("block");
-    auto hostileNode = createSourceNode("hostile");
-    auto neutralNode = createSourceNode("neutral");
-    auto playerSoundNode = createSourceNode("player");
-    auto ambientNode = createSourceNode("ambient");
-    auto voiceNode = createSourceNode("voice");
+        auto sourceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(categoryName);
 
-    // 为每个声源添加命令
-    for (auto& sourceNode : {masterNode,
-             musicNode,
-             recordNode,
-             weatherNode,
-             blockNode,
-             hostileNode,
-             neutralNode,
-             playerSoundNode,
-             ambientNode,
-             voiceNode}) {
         // /stopsound <player> <source> - 停止该类别所有声音
-        sourceNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
-            auto& source = ctx.getSource();
-            const auto& selector = ctx.getArgument<EntitySelector>("player");
-            auto playerIds = support::resolvePlayerIds(source, selector);
-
-            if (playerIds.empty()) {
-                source.sendError("No matching players were found");
-                return 0;
-            }
-
-            auto* server = source.server();
-            auto& connMgr = server->connectionManager();
-            auto category = parseSoundCategory(sourceName);
-
-            // 发送 StopSoundPacket 停止指定类别的声音
-            for (PlayerId playerId : playerIds) {
-                sendStopSoundPacket(connMgr, playerId, std::nullopt, category);
-            }
-
-            return static_cast<i32>(playerIds.size());
-        });
+        sourceNode->setCommand(
+            [category](CommandContext<ServerCommandSource>& ctx) { return _stopSounds(ctx, category, std::nullopt); });
 
         // /stopsound <player> <source> <sound> - 停止特定声音
         auto soundNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
             "sound", ResourceLocationArgumentType::resourceLocation());
-        soundNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
-            auto& source = ctx.getSource();
-            const auto& selector = ctx.getArgument<EntitySelector>("player");
+        soundNode->setCommand([category](CommandContext<ServerCommandSource>& ctx) {
             const ResourceLocation& soundId = ctx.getArgument<ResourceLocation>("sound");
-            auto playerIds = support::resolvePlayerIds(source, selector);
-
-            if (playerIds.empty()) {
-                source.sendError("No matching players were found");
-                return 0;
-            }
-
-            auto* server = source.server();
-            auto& connMgr = server->connectionManager();
-            auto category = parseSoundCategory(sourceName);
-
-            // 发送 StopSoundPacket 停止指定声音
-            for (PlayerId playerId : playerIds) {
-                sendStopSoundPacket(connMgr, playerId, soundId, category);
-            }
-
-            return static_cast<i32>(playerIds.size());
+            return _stopSounds(ctx, category, soundId);
         });
 
         sourceNode->addChild(soundNode);
@@ -194,26 +138,48 @@ void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
 i32 StopSoundCommand::_stopAllSounds(CommandContext<ServerCommandSource>& context)
 {
-    // TODO: 当前未使用，命令逻辑已在 registerTo 中内联实现。
-    // 如果需要复用此方法，请将 registerTo 中的相关逻辑提取到这里。
-    MC_UNUSED(context);
-    return 0;
+    auto& source = context.getSource();
+    const auto& selector = context.getArgument<EntitySelector>("player");
+    auto playerIds = support::resolvePlayerIds(source, selector);
+
+    if (playerIds.empty()) {
+        source.sendError("No matching players were found");
+        return 0;
+    }
+
+    auto* server = source.server();
+    auto& connMgr = server->connectionManager();
+
+    for (PlayerId playerId : playerIds) {
+        sendStopSoundPacket(connMgr, playerId, std::nullopt, std::nullopt);
+    }
+
+    source.sendMessage(buildStopSoundFeedback(std::nullopt, std::nullopt));
+    return static_cast<i32>(playerIds.size());
 }
 
-i32 StopSoundCommand::_stopSourceSounds(CommandContext<ServerCommandSource>& context)
+i32 StopSoundCommand::_stopSounds(CommandContext<ServerCommandSource>& context,
+    std::optional<sound::SoundCategory> category,
+    std::optional<ResourceLocation> soundId)
 {
-    // TODO: 当前未使用，命令逻辑已在 registerTo 中内联实现。
-    // 如果需要复用此方法，请将 registerTo 中的相关逻辑提取到这里。
-    MC_UNUSED(context);
-    return 0;
-}
+    auto& source = context.getSource();
+    const auto& selector = context.getArgument<EntitySelector>("player");
+    auto playerIds = support::resolvePlayerIds(source, selector);
 
-i32 StopSoundCommand::_stopSpecificSound(CommandContext<ServerCommandSource>& context)
-{
-    // TODO: 当前未使用，命令逻辑已在 registerTo 中内联实现。
-    // 如果需要复用此方法，请将 registerTo 中的相关逻辑提取到这里。
-    MC_UNUSED(context);
-    return 0;
+    if (playerIds.empty()) {
+        source.sendError("No matching players were found");
+        return 0;
+    }
+
+    auto* server = source.server();
+    auto& connMgr = server->connectionManager();
+
+    for (PlayerId playerId : playerIds) {
+        sendStopSoundPacket(connMgr, playerId, soundId, category);
+    }
+
+    source.sendMessage(buildStopSoundFeedback(category, soundId));
+    return static_cast<i32>(playerIds.size());
 }
 
 } // namespace command
