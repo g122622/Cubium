@@ -520,6 +520,7 @@ add_executable(mc_tests
     server/command/PublishCommandTest.cpp
     server/command/StopSoundCommandTest.cpp
     server/command/SpreadPlayersCommandTest.cpp
+    server/command/SpreadAlgorithmTest.cpp
     server/command/ExecuteCommandTest.cpp
     server/world/player/ServerPlayerEntityManagerTest.cpp
     client/world/player/LocalPlayerIdentityTest.cpp
@@ -949,6 +950,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ScheduleCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpectateCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpreadPlayersCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/support/SpreadAlgorithm.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TagCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeamCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TriggerCommand.cpp
@@ -1643,6 +1645,7 @@ add_executable(mc_command_tests
     server/command/PlayerResolverTest.cpp
     server/command/StopSoundCommandTest.cpp
     server/command/SpreadPlayersCommandTest.cpp
+    server/command/SpreadAlgorithmTest.cpp
     server/command/TeamCommandTest.cpp
     server/command/TriggerCommandTest.cpp
     common/command/arguments/BlockStateArgumentTest.cpp
@@ -1750,6 +1753,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ScheduleCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpectateCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpreadPlayersCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/support/SpreadAlgorithm.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TagCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeamCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TriggerCommand.cpp

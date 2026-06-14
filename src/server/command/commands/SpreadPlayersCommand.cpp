@@ -15,7 +15,7 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
@@ -32,20 +32,17 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockTags.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
+#include "server/command/support/SpreadAlgorithm.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/core/TeleportManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp"
 
-#include <cmath>
 #include <iomanip>
-#include <limits>
 #include <set>
 #include <sstream>
 #include <unordered_map>
@@ -55,148 +52,9 @@ namespace command {
 
 namespace {
 
-// ============================================================================
-// SpreadPosition - 2D 位置辅助结构
-// ============================================================================
-//
-// 表示一个 2D (x, z) 位置，用于迭代分散算法中的位置计算。
-//
-struct SpreadPosition {
-    f64 x = 0.0;
-    f64 z = 0.0;
-
-    /// 计算与另一个位置的距离
-    [[nodiscard]] f64 dist(const SpreadPosition& other) const
-    {
-        f64 dx = x - other.x;
-        f64 dz = z - other.z;
-        return std::sqrt(dx * dx + dz * dz);
-    }
-
-    /// 获取向量长度
-    [[nodiscard]] f64 getLength() const { return std::sqrt(x * x + z * z); }
-
-    /// 归一化向量
-    void normalize()
-    {
-        f64 len = getLength();
-        if (len > 0.0) {
-            x /= len;
-            z /= len;
-        }
-    }
-
-    /// 沿指定方向的反方向移动（远离）
-    void moveAway(const SpreadPosition& direction)
-    {
-        x -= direction.x;
-        z -= direction.z;
-    }
-
-    /// 将位置钳制到指定矩形范围内，返回是否发生了钳制
-    bool clamp(f64 minX, f64 minZ, f64 maxX, f64 maxZ)
-    {
-        bool clamped = false;
-        if (x < minX) {
-            x = minX;
-            clamped = true;
-        } else if (x > maxX) {
-            x = maxX;
-            clamped = true;
-        }
-        if (z < minZ) {
-            z = minZ;
-            clamped = true;
-        } else if (z > maxZ) {
-            z = maxZ;
-            clamped = true;
-        }
-        return clamped;
-    }
-
-    /// 计算此位置的生成 Y 坐标（从上往下搜索第一个安全的站立位置）
-    [[nodiscard]] i32 getSpawnY(server::ServerWorld& world, i32 maxHeight) const
-    {
-        // 从 maxHeight + 1 开始向下搜索，找到第一个"上方两格都是空气、脚下不是空气"的位置
-        i32 blockX = static_cast<i32>(std::floor(x));
-        i32 blockZ = static_cast<i32>(std::floor(z));
-
-        // 从 maxHeight + 1 开始搜索
-        i32 y = maxHeight + 1;
-        const BlockState* state = world.getBlockState(blockX, y, blockZ);
-        bool above = (state != nullptr) && !state->isAir();
-        bool current = false;
-
-        // 逐格向下搜索
-        while (y > world::MIN_BUILD_HEIGHT) {
-            --y;
-            state = world.getBlockState(blockX, y, blockZ);
-            current = (state != nullptr) && !state->isAir();
-
-            // 找到脚下是固体、上方两格是空气的位置
-            if (!current && above) {
-                // 检查再上一格是否也是空气
-                if (y + 2 <= maxHeight + 1) {
-                    const BlockState* aboveState = world.getBlockState(blockX, y + 2, blockZ);
-                    bool aboveTwo = (aboveState == nullptr) || aboveState->isAir();
-                    if (aboveTwo) {
-                        return y + 1;
-                    }
-                }
-                // 如果无法检查上方两格，仍然返回当前位置
-                return y + 1;
-            }
-            above = current;
-        }
-
-        // 如果找不到合适的位置，返回 maxHeight + 1
-        return maxHeight + 1;
-    }
-
-    /// 检查此位置是否安全（不是液体、不是火焰）
-    [[nodiscard]] bool isSafe(server::ServerWorld& world, i32 maxHeight) const
-    {
-        i32 blockX = static_cast<i32>(std::floor(x));
-        i32 blockZ = static_cast<i32>(std::floor(z));
-        i32 spawnY = getSpawnY(world, maxHeight);
-
-        // 脚下方块
-        const BlockState* belowState = world.getBlockState(blockX, spawnY - 1, blockZ);
-        if (belowState == nullptr) {
-            return false;
-        }
-
-        // 检查是否是液体
-        if (belowState->isLiquid()) {
-            return false;
-        }
-
-        // 检查是否是火焰方块
-        if (BlockTags::FIRE().contains(*belowState)) {
-            return false;
-        }
-
-        return spawnY < maxHeight;
-    }
-
-    /// 在指定范围内随机初始化位置
-    void randomize(math::Random& rng, f64 minX, f64 minZ, f64 maxX, f64 maxZ)
-    {
-        x = rng.nextDouble(minX, maxX);
-        z = rng.nextDouble(minZ, maxZ);
-    }
-};
-
-// ============================================================================
-// 最大迭代次数
-// ============================================================================
-constexpr i32 SPREAD_MAX_ITERATIONS = 10000;
-
-// ============================================================================
-// 辅助函数
-// ============================================================================
-
 /// 计算需要分散的位置数量（尊重队伍时，按队伍数计算；否则按实体数计算）
+/// TODO: MC Java 版中非玩家实体会被统一归入 null 队伍，当前实现仅支持玩家，
+///       当支持 EntityArgumentType::entities() 后需要区分玩家和非玩家的队伍归属。
 i32 getNumberOfTeams(server::IServer& server, const std::vector<std::string>& playerNames)
 {
     // 收集不同的队伍（nullptr 算作一支独立的"无队伍"）
@@ -211,104 +69,20 @@ i32 getNumberOfTeams(server::IServer& server, const std::vector<std::string>& pl
     return static_cast<i32>(teams.size());
 }
 
-/// 创建初始随机位置
-std::vector<SpreadPosition> createInitialPositions(math::Random& rng, i32 count, f64 minX, f64 minZ, f64 maxX, f64 maxZ)
-{
-    std::vector<SpreadPosition> positions(static_cast<size_t>(count));
-    for (auto& pos : positions) {
-        pos.randomize(rng, minX, minZ, maxX, maxZ);
-    }
-    return positions;
-}
-
-/// 迭代分散算法：将位置推开到满足最小距离要求
-bool spreadPositions(f64 spreadDistance,
-    server::ServerWorld& world,
-    math::Random& rng,
-    f64 minX,
-    f64 minZ,
-    f64 maxX,
-    f64 maxZ,
-    i32 maxHeight,
-    std::vector<SpreadPosition>& positions)
-{
-    bool moved = true;
-    f64 minDist = std::numeric_limits<f64>::max();
-
-    i32 iteration = 0;
-    for (; iteration < SPREAD_MAX_ITERATIONS && moved; ++iteration) {
-        moved = false;
-        minDist = std::numeric_limits<f64>::max();
-
-        for (size_t j = 0; j < positions.size(); ++j) {
-            i32 closeCount = 0;
-            SpreadPosition delta;
-
-            for (size_t l = 0; l < positions.size(); ++l) {
-                if (j == l) {
-                    continue;
-                }
-
-                f64 d = positions[j].dist(positions[l]);
-                minDist = std::min(minDist, d);
-
-                if (d < spreadDistance) {
-                    ++closeCount;
-                    delta.x += (positions[l].x - positions[j].x);
-                    delta.z += (positions[l].z - positions[j].z);
-                }
-            }
-
-            if (closeCount > 0) {
-                delta.x /= static_cast<f64>(closeCount);
-                delta.z /= static_cast<f64>(closeCount);
-
-                f64 len = delta.getLength();
-                if (len > 0.0) {
-                    delta.normalize();
-                    positions[j].moveAway(delta);
-                } else {
-                    positions[j].randomize(rng, minX, minZ, maxX, maxZ);
-                }
-
-                moved = true;
-            }
-
-            if (positions[j].clamp(minX, minZ, maxX, maxZ)) {
-                moved = true;
-            }
-        }
-
-        // 如果所有位置都已满足距离要求，检查安全性
-        if (!moved) {
-            for (auto& pos : positions) {
-                if (!pos.isSafe(world, maxHeight)) {
-                    pos.randomize(rng, minX, minZ, maxX, maxZ);
-                    moved = true;
-                }
-            }
-        }
-    }
-
-    if (minDist == std::numeric_limits<f64>::max()) {
-        minDist = 0.0;
-    }
-
-    // 如果超过最大迭代次数，分散失败
-    if (iteration >= SPREAD_MAX_ITERATIONS) {
-        return false;
-    }
-
-    return true;
-}
-
 /// 将分散后的位置应用到玩家/实体
 /// 返回所有玩家到最近分散点的最小距离的平均值
+/// TODO: MC Java 版传送时保留实体的 Y 旋转和 X 旋转，当前仅传送位置
+/// TODO: MC Java 版使用 Vec2ArgumentType 解析中心坐标（仅 x, z），当前使用 Vec3ArgumentType
+///       多解析了一个无用的 y 分量，需要创建 Vec2ArgumentType 或适配解析
+/// TODO: MC Java 版支持 under <maxHeight> 子命令变体，允许指定最大高度，
+///       当前使用硬编码的 world::MAX_BUILD_HEIGHT，需要添加该变体
+/// TODO: MC Java 版使用 world.getMaxY() + 1 获取动态最大高度，而非硬编码常量，
+///       且在提供 maxHeight 时验证其不小于 world.getMinY()，当前缺少此验证
 f64 setPlayerPositions(server::IServer& server,
     server::ServerWorld& world,
     const std::vector<PlayerId>& playerIds,
     const std::vector<std::string>& playerNames,
-    std::vector<SpreadPosition>& positions,
+    std::vector<support::SpreadPosition>& positions,
     i32 maxHeight,
     bool respectTeams)
 {
@@ -316,11 +90,11 @@ f64 setPlayerPositions(server::IServer& server,
     i32 positionIndex = 0;
 
     // 队伍 -> 分散位置的映射（当 respectTeams=true 时使用）
-    std::unordered_map<scoreboard::ScorePlayerTeam*, SpreadPosition*> teamPositionMap;
+    std::unordered_map<scoreboard::ScorePlayerTeam*, support::SpreadPosition*> teamPositionMap;
     auto& scoreboard = server.scoreboard();
 
     for (size_t i = 0; i < playerIds.size(); ++i) {
-        SpreadPosition* targetPos = nullptr;
+        support::SpreadPosition* targetPos = nullptr;
 
         if (respectTeams) {
             scoreboard::ScorePlayerTeam* team = scoreboard.getPlayersTeam(playerNames[i]);
@@ -443,6 +217,7 @@ i32 SpreadPlayersCommand::_spreadPlayers(CommandContext<ServerCommandSource>& co
     }
 
     // 计算最大高度
+    // TODO: 应使用 world->getMaxY() + 1 而非硬编码常量，以支持不同维度的最大高度
     const i32 maxHeight = world::MAX_BUILD_HEIGHT;
 
     // 计算需要分散的位置数量
@@ -464,11 +239,11 @@ i32 SpreadPlayersCommand::_spreadPlayers(CommandContext<ServerCommandSource>& co
     math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
 
     // 创建初始随机位置
-    auto positions = createInitialPositions(rng, positionCount, minX, minZ, maxX, maxZ);
+    auto positions = support::createInitialPositions(rng, positionCount, minX, minZ, maxX, maxZ);
 
     // 执行迭代分散算法
-    bool success =
-        spreadPositions(static_cast<f64>(spreadDistance), *world, rng, minX, minZ, maxX, maxZ, maxHeight, positions);
+    bool success = support::spreadPositions(
+        static_cast<f64>(spreadDistance), *world, rng, minX, minZ, maxX, maxZ, maxHeight, positions);
 
     if (!success) {
         // 分散失败：无法在给定参数下满足最小距离要求

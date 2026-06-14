@@ -70,6 +70,7 @@ add_executable(minecraft-server
     command/CommandRegistry.cpp
     command/support/PlayerResolver.cpp
     command/support/EffectResolver.cpp
+    command/support/SpreadAlgorithm.cpp
     command/data/DataAccessor.cpp
     command/commands/GameModeCommand.cpp
     command/commands/DifficultyCommand.cpp
