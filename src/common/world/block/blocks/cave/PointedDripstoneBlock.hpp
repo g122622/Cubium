@@ -18,17 +18,20 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
  */
 
 #pragma once
 
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../IWaterLoggable.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/IWaterLoggable.hpp"
+#include <optional>
 #include <unordered_map>
 
 namespace mc {
+namespace fluid {
+class Fluid;
+} // namespace fluid
 namespace blocks {
 
 /**
@@ -36,8 +39,7 @@ namespace blocks {
  *
  * 可上下放置的钟乳石/石笋方块，支持含水。
  * 根据厚度属性有不同的碰撞箱形状。
- *
- * 参考: net.minecraft.block.PointedDripstoneBlock
+ * 支持随机刻生长、滴水、支撑失效掉落等机制。
  */
 class PointedDripstoneBlock : public Block, public IWaterLoggable {
 public:
@@ -46,6 +48,9 @@ public:
     ~PointedDripstoneBlock() override = default;
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
@@ -72,6 +77,11 @@ public:
 
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
+    void onFallenUpon(
+        IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance) override;
+
     [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
@@ -79,7 +89,103 @@ protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 
 private:
+    /// 碰撞形状，按厚度和方向索引
     std::unordered_map<BlockStateProperties::DripstoneThickness, CollisionShape> m_shapes;
+    /// 朝下尖端的额外形状
+    CollisionShape m_tipDownShape;
+
+    // ========== 常量 ==========
+
+    /// 搜索流体时最大搜索距离
+    static constexpr i32 MAX_SEARCH_LENGTH_WHEN_CHECKING_DRIP_TYPE = 11;
+    /// 钟乳石掉落延迟(tick)
+    static constexpr i32 DELAY_BEFORE_FALLING = 2;
+    /// 水传输概率
+    static constexpr f32 WATER_TRANSFER_PROBABILITY_PER_RANDOM_TICK = 0.17578125F;
+    /// 岩浆传输概率
+    static constexpr f32 LAVA_TRANSFER_PROBABILITY_PER_RANDOM_TICK = 0.05859375F;
+    /// 每随机刻生长概率
+    static constexpr f32 GROWTH_PROBABILITY_PER_RANDOM_TICK = 0.011377778F;
+    /// 最大生长长度
+    static constexpr i32 MAX_GROWTH_LENGTH = 7;
+    /// 向下搜索石笋生长位置的最大距离
+    static constexpr i32 MAX_STALAGMITE_SEARCH_RANGE_WHEN_GROWING = 10;
+    /// 尖端到炼药锅最大搜索距离
+    static constexpr i32 MAX_SEARCH_LENGTH_BETWEEN_TIP_AND_CAULDRON = 11;
+
+    // ========== 静态辅助方法 ==========
+
+    /// 判断方块状态是否为指定方向的滴石
+    [[nodiscard]] static bool isPointedDripstoneWithDirection(const BlockState* state, Direction direction);
+
+    /// 判断是否为钟乳石（朝下）
+    [[nodiscard]] static bool isStalactite(const BlockState& state);
+
+    /// 判断是否为石笋（朝上）
+    [[nodiscard]] static bool isStalagmite(const BlockState& state);
+
+    /// 判断是否为尖端（allowMerge=true时TIP_MERGE也算尖端）
+    [[nodiscard]] static bool isTip(const BlockState* state, bool allowMerge);
+
+    /// 判断是否为未合并的指定方向尖端
+    [[nodiscard]] static bool isUnmergedTipWithDirection(const BlockState* state, Direction direction);
+
+    /// 判断是否为钟乳石起点位置（朝下且上方不是滴石）
+    [[nodiscard]] static bool isStalactiteStartPos(const BlockState& state, IWorld& world, const BlockPos& pos);
+
+    /// 判断尖端是否可以滴水
+    [[nodiscard]] static bool canDrip(const BlockState& state);
+
+    /// 判断尖端是否可以生长
+    [[nodiscard]] static bool canTipGrow(const BlockState& state, IWorld& world, const BlockPos& pos);
+
+    /// 判断生长条件：上方是滴水石块且上方2格是水源
+    [[nodiscard]] static bool canGrow(const BlockState* aboveState, const BlockState* aboveAboveState);
+
+    /// 检查位置是否可以放置滴石（支撑检查）
+    [[nodiscard]] static bool isValidPointedDripstonePlacement(IWorld& world, const BlockPos& pos, Direction direction);
+
+    /// 计算放置时的尖端方向
+    [[nodiscard]] static Direction calculateTipDirection(IWorld& world, const BlockPos& pos, Direction preferredDir);
+
+    /// 计算滴石厚度
+    [[nodiscard]] static BlockStateProperties::DripstoneThickness calculateDripstoneThickness(
+        IWorld& world, const BlockPos& pos, Direction tipDirection, bool isTipMerge);
+
+    /// 沿方向寻找尖端（返回空表示未找到）
+    [[nodiscard]] static std::optional<BlockPos> findTip(
+        const BlockState& state, IWorld& world, const BlockPos& pos, i32 maxDistance, bool allowMerge);
+
+    /// 向下寻找炼药锅（返回空表示未找到）
+    [[nodiscard]] static std::optional<BlockPos> findFillableCauldronBelow(
+        IWorld& world, const BlockPos& tipPos, const fluid::Fluid& fluid);
+
+    /// 判断方块是否可被滴水穿透
+    [[nodiscard]] static bool canDripThrough(IWorld& world, const BlockPos& pos, const BlockState* state);
+
+    /// 沿钟乳石向上寻找根方块（返回空表示未找到）
+    [[nodiscard]] static std::optional<BlockPos> findRootBlock(
+        IWorld& world, const BlockPos& pos, const BlockState& state, i32 maxDistance);
+
+    /// 在指定位置创建滴石方块
+    static void createDripstone(
+        IWorld& world, const BlockPos& pos, Direction direction, BlockStateProperties::DripstoneThickness thickness);
+
+    /// 合并两个对向尖端
+    static void createMergedTips(IWorld& world, const BlockPos& pos, const BlockState& upState);
+
+    /// 单步生长
+    static void grow(IWorld& world, const BlockPos& tipPos, Direction direction);
+
+    /// 尝试在钟乳石尖端下方生长石笋
+    static void growStalagmiteBelow(IWorld& world, const BlockPos& tipPos);
+
+    /// 尝试生长钟乳石或石笋
+    static void growStalactiteOrStalagmiteIfPossible(
+        const BlockState& state, IWorld& world, const BlockPos& pos, math::IRandom& random);
+
+    /// 流体传输逻辑
+    static void maybeTransferFluid(const BlockState& state, IWorld& world, const BlockPos& pos, f32 chance);
 };
 
 } // namespace blocks

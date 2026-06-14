@@ -85,4 +85,5 @@ void initialize();
 
 } // namespace Fluids
 
-} // namespace mc::fluid
+} // namespace fluid
+} // namespace mc
