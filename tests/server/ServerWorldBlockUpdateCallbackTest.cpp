@@ -124,3 +124,62 @@ TEST_F(ServerWorldBlockUpdateCallbackTest, BreakingIceWithoutSupportTurnsIntoAir
     EXPECT_EQ(blockUpdates[0].first, BlockPos(0, 64, 0));
     EXPECT_EQ(blockUpdates[0].second, 0u);
 }
+
+// ========== notifyBlockUpdate 测试 ==========
+
+TEST_F(ServerWorldBlockUpdateCallbackTest, NotifyBlockUpdate_InvokesCallback)
+{
+    // 设置方块，确保区块已加载
+    const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
+    m_world->setBlockState(5, 64, 5, stoneState);
+
+    std::vector<std::pair<BlockPos, u32>> blockUpdates;
+    m_world->setOnBlockChanged(
+        [&blockUpdates](const BlockPos& pos, u32 blockStateId) { blockUpdates.emplace_back(pos, blockStateId); });
+
+    // notifyBlockUpdate 应该即使方块状态未改变也触发回调
+    m_world->notifyBlockUpdate(BlockPos(5, 64, 5));
+
+    ASSERT_EQ(blockUpdates.size(), 1u);
+    EXPECT_EQ(blockUpdates[0].first, BlockPos(5, 64, 5));
+    EXPECT_EQ(blockUpdates[0].second, stoneState->stateId());
+}
+
+TEST_F(ServerWorldBlockUpdateCallbackTest, NotifyBlockUpdate_DoesNotChangeBlockState)
+{
+    // 设置方块
+    const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
+    m_world->setBlockState(5, 64, 5, stoneState);
+
+    // notifyBlockUpdate 不应该改变方块状态
+    m_world->notifyBlockUpdate(BlockPos(5, 64, 5));
+
+    const BlockState* stateAfter = m_world->getBlockState(5, 64, 5);
+    ASSERT_NE(stateAfter, nullptr);
+    EXPECT_EQ(stateAfter->stateId(), stoneState->stateId());
+}
+
+TEST_F(ServerWorldBlockUpdateCallbackTest, NotifyBlockUpdate_WithoutCallback_DoesNotCrash)
+{
+    // 不设置回调，notifyBlockUpdate 不应该崩溃
+    m_world->setBlockState(5, 64, 5, &VanillaBlocks::STONE->defaultState());
+
+    // m_onBlockChanged 为空，应安全跳过
+    m_world->notifyBlockUpdate(BlockPos(5, 64, 5));
+
+    // 如果到达这里，说明没有崩溃
+    SUCCEED();
+}
+
+TEST_F(ServerWorldBlockUpdateCallbackTest, NotifyBlockUpdate_UnloadedChunk_DoesNotCrash)
+{
+    std::vector<std::pair<BlockPos, u32>> blockUpdates;
+    m_world->setOnBlockChanged(
+        [&blockUpdates](const BlockPos& pos, u32 blockStateId) { blockUpdates.emplace_back(pos, blockStateId); });
+
+    // 远处未加载区块的坐标，getBlockState 应返回 nullptr
+    m_world->notifyBlockUpdate(BlockPos(10000, 64, 10000));
+
+    // 回调不应被触发（因为 getBlockState 返回 nullptr）
+    EXPECT_TRUE(blockUpdates.empty());
+}

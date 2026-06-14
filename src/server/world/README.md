@@ -126,3 +126,6 @@ src/server/world/
 
 ### 区块生成任务不要让子代理执行
 区块生成线程池是全局共享资源，子代理执行可能导致构建系统锁死。**必须由主代理管理**。
+
+### notifyBlockUpdate 与 setBlockState 的区别
+方块实体内部数据变化后需要通知客户端时，应使用 `notifyBlockUpdate(pos)` 而非 `setBlockState(pos, state, 3)`。`setBlockState` 在 `oldState == newState` 时直接返回 false，不会触发 `m_onBlockChanged` 回调，客户端收不到更新。`notifyBlockUpdate` 即使方块状态未改变也会触发回调，对应 MC Java 的 `Level.sendBlockUpdated()`。

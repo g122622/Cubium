@@ -269,6 +269,10 @@ world/
 **问题**：直接从服务器代码发送 `BlockUpdatePacket` 会绕过去重和批处理。
 **解决**：通过 `ServerWorld::setOnBlockChanged()` 供给 `BlockUpdateSyncManager`，保持去重和 tick 结束刷新的集中化。
 
+### 9a. notifyBlockUpdate vs setBlockState
+**问题**：方块实体内部数据变化后调用 `setBlockState(pos, state, 3)` 通知客户端，但 `setBlockState` 在 `oldState == newState` 时直接返回 false，不触发 `m_onBlockChanged` 回调，导致客户端收不到更新。
+**解决**：使用 `IWorld::notifyBlockUpdate(pos)` 代替。该方法即使方块状态未改变也会触发客户端同步通知，对应 MC Java 的 `Level.sendBlockUpdated(pos, oldState, newState, flags)`。适用于营火烹饪物品变化、箱子开合状态同步等方块实体数据变化场景。
+
 ### 10. Tick 优先级溢出
 **问题**：过多调度的 tick 导致性能问题。
 **解决**：`TickManager` 每个 tick 有处理上限（65536），使用优先级处理关键更新。

@@ -187,3 +187,7 @@ BlockEntityDeserializer ──反序列化──→ BlockEntity（通过 Registr
 ### 11. ISidedInventory 槽位访问规则
 
 熔炉、酿造台、潜影盒实现了 `ISidedInventory`，漏斗传输物品时会根据方向检查可访问槽位。详见各子模块 README.md。
+
+### 12. 方块实体通知客户端使用 notifyBlockUpdate
+
+方块实体内部数据变化后（如营火烹饪物品、箱子开合状态），应调用 `IWorld::notifyBlockUpdate(pos)` 通知客户端刷新显示。不要使用 `setBlockState(pos, state, 3)`，因为 `setBlockState` 在 `oldState == newState` 时直接返回 false，不触发 `m_onBlockChanged` 回调，客户端收不到更新。`notifyBlockUpdate` 即使方块状态未改变也会触发客户端同步，对应 MC Java 的 `Level.sendBlockUpdated(pos, state, state, 3)`。
