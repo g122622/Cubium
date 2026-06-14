@@ -53,11 +53,12 @@
 namespace mc {
 namespace command {
 
+namespace {
+
 // ============================================================================
 // SpreadPosition - 2D 位置辅助结构
 // ============================================================================
 //
-// 对应 MC 源码中 SpreadPlayersCommand.Position 的内部类。
 // 表示一个 2D (x, z) 位置，用于迭代分散算法中的位置计算。
 //
 struct SpreadPosition {
@@ -189,14 +190,14 @@ struct SpreadPosition {
 // ============================================================================
 // 最大迭代次数
 // ============================================================================
-static constexpr i32 MAX_ITERATION_COUNT = 10000;
+constexpr i32 SPREAD_MAX_ITERATIONS = 10000;
 
 // ============================================================================
 // 辅助函数
 // ============================================================================
 
 /// 计算需要分散的位置数量（尊重队伍时，按队伍数计算；否则按实体数计算）
-static i32 getNumberOfTeams(server::IServer& server, const std::vector<std::string>& playerNames)
+i32 getNumberOfTeams(server::IServer& server, const std::vector<std::string>& playerNames)
 {
     // 收集不同的队伍（nullptr 算作一支独立的"无队伍"）
     std::set<scoreboard::ScorePlayerTeam*> teams;
@@ -211,8 +212,7 @@ static i32 getNumberOfTeams(server::IServer& server, const std::vector<std::stri
 }
 
 /// 创建初始随机位置
-static std::vector<SpreadPosition> createInitialPositions(
-    math::Random& rng, i32 count, f64 minX, f64 minZ, f64 maxX, f64 maxZ)
+std::vector<SpreadPosition> createInitialPositions(math::Random& rng, i32 count, f64 minX, f64 minZ, f64 maxX, f64 maxZ)
 {
     std::vector<SpreadPosition> positions(static_cast<size_t>(count));
     for (auto& pos : positions) {
@@ -222,8 +222,7 @@ static std::vector<SpreadPosition> createInitialPositions(
 }
 
 /// 迭代分散算法：将位置推开到满足最小距离要求
-/// 对应 MC 源码 SpreadPlayersCommand.spreadPositions
-static bool spreadPositions(f64 spreadDistance,
+bool spreadPositions(f64 spreadDistance,
     server::ServerWorld& world,
     math::Random& rng,
     f64 minX,
@@ -237,7 +236,7 @@ static bool spreadPositions(f64 spreadDistance,
     f64 minDist = std::numeric_limits<f64>::max();
 
     i32 iteration = 0;
-    for (; iteration < MAX_ITERATION_COUNT && moved; ++iteration) {
+    for (; iteration < SPREAD_MAX_ITERATIONS && moved; ++iteration) {
         moved = false;
         minDist = std::numeric_limits<f64>::max();
 
@@ -296,7 +295,7 @@ static bool spreadPositions(f64 spreadDistance,
     }
 
     // 如果超过最大迭代次数，分散失败
-    if (iteration >= MAX_ITERATION_COUNT) {
+    if (iteration >= SPREAD_MAX_ITERATIONS) {
         return false;
     }
 
@@ -304,9 +303,8 @@ static bool spreadPositions(f64 spreadDistance,
 }
 
 /// 将分散后的位置应用到玩家/实体
-/// 对应 MC 源码 SpreadPlayersCommand.setPlayerPositions
 /// 返回所有玩家到最近分散点的最小距离的平均值
-static f64 setPlayerPositions(server::IServer& server,
+f64 setPlayerPositions(server::IServer& server,
     server::ServerWorld& world,
     const std::vector<PlayerId>& playerIds,
     const std::vector<std::string>& playerNames,
@@ -363,6 +361,8 @@ static f64 setPlayerPositions(server::IServer& server,
 
     return playerIds.size() < 2 ? 0.0 : totalMinDist / static_cast<f64>(playerIds.size());
 }
+
+} // namespace
 
 // ============================================================================
 // 命令注册
@@ -442,7 +442,7 @@ i32 SpreadPlayersCommand::_spreadPlayers(CommandContext<ServerCommandSource>& co
         playerNames.push_back(support::resolvePlayerName(source, playerId));
     }
 
-    // 计算最大高度（对应 MC 的 getLevel().getMaxY() + 1）
+    // 计算最大高度
     const i32 maxHeight = world::MAX_BUILD_HEIGHT;
 
     // 计算需要分散的位置数量

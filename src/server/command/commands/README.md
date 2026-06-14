@@ -9,6 +9,7 @@ src/server/command/commands/
 ├── ClearCommand.hpp / ClearCommand.cpp           # 清空玩家背包命令
 ├── DefaultGameModeCommand.hpp / DefaultGameModeCommand.cpp  # 设置服务器默认游戏模式
 ├── DifficultyCommand.hpp / DifficultyCommand.cpp # 修改世界难度
+├── SpreadPlayersCommand.hpp / SpreadPlayersCommand.cpp  # 随机分散玩家到区域内的命令
 ├── ExecuteCommand.hpp / ExecuteCommand.cpp       # 执行嵌套命令，支持多种执行上下文修改
 ├── ExperienceCommand.hpp / ExperienceCommand.cpp # 管理经验值和等级
 ├── FillCommand.hpp / FillCommand.cpp             # 填充区域方块
