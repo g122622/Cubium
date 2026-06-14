@@ -39,7 +39,6 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -894,8 +893,11 @@ void FarmerWorkGoal::_tryPlant()
         const Item* item = stack.getItem();
         if (!item) continue;
 
-        // 检查该物品是否是方块物品（种子放置后变成作物方块）
-        const Block* block = BlockItemRegistry::instance().getBlock(item->itemId());
+        // 获取种子对应的作物方块
+        // TODO: 当作物方块注册到 BlockItemRegistry 后，应改用
+        // BlockItemRegistry::instance().getBlock(item->itemId()) 进行查找，
+        // 当前作物方块（WheatBlock 等）尚未注册为 BlockItem，故使用直接映射
+        const Block* block = _getCropBlockForSeed(item);
         if (!block) continue;
 
         // 检查方块是否是作物（继承自 CropBlock）
@@ -1014,7 +1016,9 @@ void FarmerWorkGoal::_tryCompost()
             const BlockState* currentState = world->getBlockState(pos);
             if (!currentState) break;
 
-            // attemptCompost 需要 Block& 非const引用
+            // TODO attemptCompost 接口需要 Block& 非const引用，但 getBlock() 返回 const Block&。
+            // 当前使用 const_cast 是权宜之计，与 ServerWorld::setBlockState 中的用法一致。
+            // 未来应重构 ComposterBlock::attemptCompost 为 const 正确接口（接受 const Block& 或仅使用 BlockState）。
             Block& block = const_cast<Block&>(currentState->getBlock());
             BlockState newState =
                 blocks::ComposterBlock::attemptCompost(*currentState, *world, pos, block, item->itemId());
@@ -1048,6 +1052,9 @@ void FarmerWorkGoal::_harvestCrop(const BlockPos& pos)
     if (!state) return;
 
     // 确认是 CropBlock
+    // TODO onBlockRemoved 接口需要 Block& 非const引用，但 getBlock() 返回 const Block&。
+    // 当前使用 const_cast 是权宜之计，与 ServerWorld::setBlockState 中的用法一致。
+    // 未来应重构 Block::onBlockRemoved 为 const 正确接口。
     Block& block = const_cast<Block&>(state->getBlock());
     auto* cropBlock = dynamic_cast<blocks::CropBlock*>(&block);
     if (!cropBlock) return;
@@ -1131,6 +1138,38 @@ bool FarmerWorkGoal::_hasFarmSeeds() const
     }
 
     return false;
+}
+
+const Block* FarmerWorkGoal::_getCropBlockForSeed(const Item* seedItem)
+{
+    if (!seedItem) return nullptr;
+
+    // 种子物品到作物方块 ResourceLocation 的映射
+    // MC 原版中，种子放置后变为对应的作物方块：
+    //   小麦种子 → minecraft:wheat
+    //   胡萝卜   → minecraft:carrots
+    //   马铃薯   → minecraft:potatoes
+    //   甜菜种子 → minecraft:beetroots
+    // TODO: 当作物方块注册到 BlockItemRegistry 后，应改用
+    // BlockItemRegistry::instance().getBlock(seedItem->itemId()) 进行查找，
+    // 届时可以移除此硬编码映射
+
+    ResourceLocation cropId("minecraft:wheat"); // 默认值
+
+    if (seedItem == Items::WHEAT_SEEDS) {
+        cropId = ResourceLocation("minecraft:wheat");
+    } else if (seedItem == Items::CARROT) {
+        cropId = ResourceLocation("minecraft:carrots");
+    } else if (seedItem == Items::POTATO) {
+        cropId = ResourceLocation("minecraft:potatoes");
+    } else if (seedItem == Items::BEETROOT_SEEDS) {
+        cropId = ResourceLocation("minecraft:beetroots");
+    } else {
+        return nullptr;
+    }
+
+    Block* block = BlockRegistry::instance().getBlock(cropId);
+    return block;
 }
 
 bool FarmerWorkGoal::_isCropMatureAt(const BlockPos& pos) const

@@ -107,7 +107,7 @@ ShareItemsGoal 和 CongregateGoal::_shareItems() 使用相同的食物分享逻�
 
 6. **FarmerWorkGoal 收获逻辑**：收获作物时不使用 `destroyBlock`（需要 `ServerWorld`），而是手动生成掉落物（通过 `CropBlock::getCropItem()/getSeedItem()` 获取物品ID，放入背包或丢在地上），然后调用 `onBlockRemoved()` 通知方块移除回调，最后将方块设为空气。
 
-7. **FarmerWorkGoal 种植逻辑**：种植时通过 `BlockItemRegistry` 将种子物品映射为方块，检查是否为 `CropBlock` 子类，然后放置默认状态（age=0）。`_hasFarmSeeds()` 检查小麦种子、胡萝卜、马铃薯、甜菜种子。
+7. **FarmerWorkGoal 种植逻辑**：种植时通过 `_getCropBlockForSeed()` 将种子物品映射为作物方块（小麦种子→minecraft:wheat，胡萝卜→minecraft:carrots，马铃薯→minecraft:potatoes，甜菜种子→minecraft:beetroots），然后放置默认状态（age=0）。`_hasFarmSeeds()` 检查小麦种子、胡萝卜、马铃薯、甜菜种子。**注意**：当前作物方块尚未注册到 `BlockItemRegistry`，种植功能依赖作物方块在 `BlockRegistry` 中的注册，需要后续完成 `AgriculturalBlocks` 注册。
 
 8. **FarmerWorkGoal 堆肥逻辑**：堆肥只处理小麦种子和甜菜种子（保留10个，多余的最多20个用于堆肥）。使用 `ComposterBlock::attemptCompost()` 逐个尝试堆肥。满桶时使用 `ComposterBlock::empty()` 取出骨粉。
 

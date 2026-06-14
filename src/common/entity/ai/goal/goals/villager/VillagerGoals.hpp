@@ -33,6 +33,11 @@
 // TODO 这个文件中堆放了大量的类，必须拆分成多个文件，一个文件对应一个类
 
 namespace mc {
+
+// 前向声明
+class Block;
+class Item;
+
 namespace entity {
 
 // 前向声明
@@ -299,6 +304,18 @@ private:
     [[nodiscard]] bool _hasFarmSeeds() const;
 
     /**
+     * @brief 根据种子物品获取对应的作物方块
+     *
+     * 通过 BlockRegistry 按 ResourceLocation 查找作物方块。
+     * TODO: 当作物方块注册到 BlockItemRegistry 后，应改用
+     * BlockItemRegistry::instance().getBlock(itemId) 进行查找
+     *
+     * @param seedItem 种子物品
+     * @return 对应的作物方块指针，未找到返回 nullptr
+     */
+    [[nodiscard]] static const Block* _getCropBlockForSeed(const Item* seedItem);
+
+    /**
      * @brief 检查指定位置的方块是否是成熟的作物
      */
     [[nodiscard]] bool _isCropMatureAt(const BlockPos& pos) const;
@@ -331,7 +348,6 @@ private:
 
 private:
     i32 m_farmerWorkTicks = 0;
-    BlockPos m_currentFarmland;
     static constexpr i32 FARMER_WORK_INTERVAL = 20; // 工作间隔
     static constexpr i32 FARMER_SEARCH_RANGE = 1;   // 搜索半径（3x3x3区域）
 };

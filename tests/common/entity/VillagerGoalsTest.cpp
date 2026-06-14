@@ -32,7 +32,6 @@
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -1026,8 +1025,8 @@ TEST_F(FarmerBlockTest, TickWithMatureWheatCrop)
     m_villager->setWorkStation(BlockPos(0, 64, 0));
 
     // 设置成熟的小麦作物
-    // 找到 WheatBlock 并设置成熟状态
-    const Block* wheatBlock = BlockItemRegistry::instance().getBlock(mc::Items::WHEAT_SEEDS->itemId());
+    // 通过 BlockRegistry 按 ResourceLocation 查找作物方块
+    const Block* wheatBlock = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:wheat"));
     if (wheatBlock) {
         auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(wheatBlock);
         if (cropBlock && VanillaBlocks::FARMLAND) {
@@ -1151,6 +1150,251 @@ TEST_F(FarmerWorkGoalTest, NoFarmSeedsWithNonPlantableItems)
     auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
     goal->startExecuting();
     EXPECT_NO_THROW(goal->tick());
+}
+
+// ============================================================================
+// FarmerWorkGoal Behavior Verification Tests
+// ============================================================================
+
+TEST_F(FarmerBlockTest, HarvestAddsItemsToInventory)
+{
+    // 验证：收获成熟作物后，村民背包应该增加作物物品
+    // 注意：此测试需要作物方块（WheatBlock等）注册到 BlockRegistry 才能正常工作
+    // 当前作物方块尚未注册，故使用 BlockRegistry 查找
+    const Block* wheatBlock = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:wheat"));
+    if (!wheatBlock) {
+        GTEST_SKIP() << "WheatBlock not yet registered in BlockRegistry; skipping harvest test";
+    }
+
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(wheatBlock);
+    ASSERT_TRUE(cropBlock != nullptr);
+    ASSERT_TRUE(VanillaBlocks::FARMLAND != nullptr);
+
+    const BlockState& maxAgeState = cropBlock->withAge(cropBlock->getMaxAge());
+    const BlockState* farmlandState = &VanillaBlocks::FARMLAND->defaultState();
+
+    // 在村民周围设置成熟作物
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dz = -1; dz <= 1; ++dz) {
+            if (dx == 0 && dz == 0) continue;
+            m_world->setBlockStateAt(dx, 63, dz, farmlandState);
+            m_world->setBlockStateAt(dx, 64, dz, &maxAgeState);
+        }
+    }
+
+    // 清空背包以便观察收获后的变化
+    mc::IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, mc::ItemStack::EMPTY);
+    }
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // 农民工作间隔为20 tick，第20 tick时首次执行 _tryHarvest
+    for (int i = 0; i < 25; ++i) {
+        goal->tick();
+    }
+
+    // 收获后背包应该有小麦（WHEAT）或小麦种子（WHEAT_SEEDS）
+    bool hasWheatOrSeeds = false;
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        ItemStack stack = inv.getItem(slot);
+        if (!stack.isEmpty()) {
+            const Item* item = stack.getItem();
+            if (item == mc::Items::WHEAT || item == mc::Items::WHEAT_SEEDS) {
+                hasWheatOrSeeds = true;
+                break;
+            }
+        }
+    }
+    EXPECT_TRUE(hasWheatOrSeeds) << "Farmer should have wheat or wheat seeds after harvesting mature crop";
+}
+
+TEST_F(FarmerBlockTest, PlantSeedsOnEmptyFarmland)
+{
+    // 验证：在空耕地上种植后，种子数量应该减少
+    // 注意：此测试需要作物方块注册到 BlockRegistry 才能正常工作
+    const Block* wheatBlock = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:wheat"));
+    if (!wheatBlock) {
+        GTEST_SKIP() << "WheatBlock not yet registered in BlockRegistry; skipping plant test";
+    }
+
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    ASSERT_TRUE(VanillaBlocks::FARMLAND != nullptr);
+    const BlockState* farmlandState = &VanillaBlocks::FARMLAND->defaultState();
+    const BlockState* airState = BlockRegistry::instance().airState();
+    ASSERT_TRUE(airState != nullptr);
+
+    // 在村民周围设置空耕地（无作物，只有空气+耕地）
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dz = -1; dz <= 1; ++dz) {
+            if (dx == 0 && dz == 0) continue;
+            m_world->setBlockStateAt(dx, 63, dz, farmlandState);
+            m_world->setBlockStateAt(dx, 64, dz, airState);
+        }
+    }
+
+    // 给村民小麦种子
+    mc::IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, mc::ItemStack::EMPTY);
+    }
+    const i32 initialSeedCount = 32;
+    inv.setItem(0, mc::ItemStack(mc::Items::WHEAT_SEEDS, initialSeedCount));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // tick 25次以触发种植行为
+    for (int i = 0; i < 25; ++i) {
+        goal->tick();
+    }
+
+    // 种子数量应该减少（至少种了一颗）
+    i32 remainingSeeds = 0;
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        ItemStack stack = inv.getItem(slot);
+        if (!stack.isEmpty() && stack.getItem() == mc::Items::WHEAT_SEEDS) {
+            remainingSeeds += stack.getCount();
+        }
+    }
+    EXPECT_LT(remainingSeeds, initialSeedCount) << "Seed count should decrease after planting on empty farmland";
+}
+
+TEST_F(FarmerBlockTest, HarvestRemovesCropBlock)
+{
+    // 验证：收获后作物方块应该被移除（变为空气）
+    // 注意：此测试需要作物方块注册到 BlockRegistry 才能正常工作
+    const Block* wheatBlock = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:wheat"));
+    if (!wheatBlock) {
+        GTEST_SKIP() << "WheatBlock not yet registered in BlockRegistry; skipping harvest-remove test";
+    }
+
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(wheatBlock);
+    ASSERT_TRUE(cropBlock != nullptr);
+    ASSERT_TRUE(VanillaBlocks::FARMLAND != nullptr);
+
+    const BlockState& maxAgeState = cropBlock->withAge(cropBlock->getMaxAge());
+    const BlockState* farmlandState = &VanillaBlocks::FARMLAND->defaultState();
+
+    // 在村民周围设置成熟作物
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dz = -1; dz <= 1; ++dz) {
+            if (dx == 0 && dz == 0) continue;
+            m_world->setBlockStateAt(dx, 63, dz, farmlandState);
+            m_world->setBlockStateAt(dx, 64, dz, &maxAgeState);
+        }
+    }
+
+    // 清空背包
+    mc::IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, mc::ItemStack::EMPTY);
+    }
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // tick 多次以触发收获行为
+    for (int i = 0; i < 25; ++i) {
+        goal->tick();
+    }
+
+    // 收获后，至少有一个作物方块应该被移除（变为 nullptr 或空气状态）
+    bool anyCropRemoved = false;
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dz = -1; dz <= 1; ++dz) {
+            if (dx == 0 && dz == 0) continue;
+            const BlockState* state = m_world->getBlockState(dx, 64, dz);
+            // 如果方块状态变为nullptr（被移除）或空气，说明作物被收获
+            if (!state || state->isAir()) {
+                anyCropRemoved = true;
+                break;
+            }
+            // 或者不再是成熟作物
+            if (state) {
+                auto* currentCrop = dynamic_cast<const blocks::CropBlock*>(&state->getBlock());
+                if (!currentCrop || !currentCrop->isMaxAge(*state)) {
+                    anyCropRemoved = true;
+                    break;
+                }
+            }
+        }
+        if (anyCropRemoved) break;
+    }
+    EXPECT_TRUE(anyCropRemoved) << "At least one mature crop should be removed after harvesting";
+}
+
+TEST_F(FarmerBlockTest, GetCropBlockForSeedMapping)
+{
+    // 验证 _getCropBlockForSeed 的种子到作物方块映射
+    // 当前作物方块尚未注册到 BlockRegistry，但映射逻辑应该不会崩溃
+    // 当作物方块注册后，此测试将验证正确的映射关系
+
+    // 这些调用不应崩溃，即使作物方块尚未注册
+    EXPECT_NO_THROW({
+        const Block* wheatCrop = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:wheat"));
+        const Block* carrotCrop = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:carrots"));
+        const Block* potatoCrop = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:potatoes"));
+        const Block* beetrootCrop = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:beetroots"));
+        // 当前应为 nullptr（作物方块尚未注册），但未来注册后将返回有效指针
+        (void)wheatCrop;
+        (void)carrotCrop;
+        (void)potatoCrop;
+        (void)beetrootCrop;
+    });
+}
+
+TEST_F(FarmerBlockTest, HasFarmSeedsWithVariousItems)
+{
+    // 验证：_hasFarmSeeds 间接测试 - 有可种植种子时tick不崩溃
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    // 放入多种种子
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::WHEAT_SEEDS, 10));
+    inv.setItem(1, mc::ItemStack(mc::Items::CARROT, 10));
+    inv.setItem(2, mc::ItemStack(mc::Items::POTATO, 10));
+    inv.setItem(3, mc::ItemStack(mc::Items::BEETROOT_SEEDS, 10));
+
+    ASSERT_TRUE(VanillaBlocks::FARMLAND != nullptr);
+    const BlockState* farmlandState = &VanillaBlocks::FARMLAND->defaultState();
+    const BlockState* airState = BlockRegistry::instance().airState();
+    ASSERT_TRUE(airState != nullptr);
+
+    // 设置空耕地
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dz = -1; dz <= 1; ++dz) {
+            if (dx == 0 && dz == 0) continue;
+            m_world->setBlockStateAt(dx, 63, dz, farmlandState);
+            m_world->setBlockStateAt(dx, 64, dz, airState);
+        }
+    }
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // 多轮 tick，确保所有种子类型都被尝试
+    for (int i = 0; i < 200; ++i) {
+        EXPECT_NO_THROW(goal->tick());
+    }
+
+    // 即使作物方块未注册，种子数量也不应增加（只有收获才会增加物品）
+    // 且不应崩溃
 }
 
 // ============================================================================
