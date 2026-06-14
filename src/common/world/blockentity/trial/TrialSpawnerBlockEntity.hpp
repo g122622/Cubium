@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include <unordered_set>
 #include <vector>
@@ -31,7 +32,7 @@
 namespace mc {
 
 class Player;
-class LivingEntity;
+class Entity;
 
 /**
  * @brief 试炼刷怪笼方块实体
@@ -79,11 +80,11 @@ public:
     struct Config {
         /// 基础总怪物数
         i32 baseTotalMobs = 6;
-        /// 每个玩家增加的总怪物数（不祥变体）
+        /// 每个额外玩家增加的总怪物数
         i32 totalMobsAddedPerPlayer = 2;
         /// 基础同时存在怪物数
         i32 baseSimultaneousMobs = 3;
-        /// 每个玩家增加的同时怪物数（不祥变体）
+        /// 每个额外玩家增加的同时怪物数
         i32 simultaneousMobsAddedPerPlayer = 1;
         /// 生成间隔（ticks）
         i32 ticksBetweenSpawn = 40;
@@ -91,10 +92,10 @@ public:
         f32 detectionRange = 14.0f;
         /// 生成范围
         f32 spawnRange = 4.0f;
-        /// 冷却时间（ticks）
-        i32 cooldownTicks = 3600; // 3分钟
-        /// 奖励弹出持续时间（ticks）
-        i32 ejectingRewardTicks = 80; // 4秒
+        /// 冷却时间（ticks），参考MC原版 DEFAULT_TARGET_COOLDOWN_LENGTH = 36000 (30分钟)
+        i32 cooldownTicks = 36000;
+        /// 奖励弹出检测间隔（ticks）
+        i32 ejectingRewardTicks = 80;
         /// 补给战利品表
         ResourceLocation supplyLootTable;
         /// 钥匙战利品表
@@ -138,10 +139,12 @@ public:
     // ========== 玩家检测 ==========
 
     /**
-     * @brief 检测范围内的玩家
+     * @brief 检测范围内的玩家（排除旁观者模式）
+     * @param world 世界引用
+     * @param range 检测范围
      * @return 范围内的玩家列表
      */
-    std::vector<Player*> detectPlayers(IWorld& world);
+    std::vector<Player*> detectPlayers(IWorld& world, f32 range);
 
     // ========== 红石比较器 ==========
 
@@ -161,6 +164,23 @@ public:
     void applyOminous(Player& player);
 
 private:
+    // ========== 常量 ==========
+
+    /// 玩家扫描间隔（ticks），参考MC原版 DELAY_BETWEEN_PLAYER_SCANS
+    static constexpr i32 PLAYER_SCAN_INTERVAL = 20;
+
+    /// 新玩家检测后延迟生成缓冲（ticks），参考MC原版 DETECT_PLAYER_SPAWN_BUFFER
+    static constexpr i32 DETECT_PLAYER_SPAWN_BUFFER = 40;
+
+    /// 怪物追踪最大距离，参考MC原版 MAX_MOB_TRACKING_DISTANCE
+    static constexpr f32 MAX_MOB_TRACKING_DISTANCE = 47.0f;
+
+    /// 奖励弹出间隔（ticks），参考MC原版 TIME_BETWEEN_EACH_EJECTION
+    static constexpr i32 TIME_BETWEEN_EJECTIONS = 30;
+
+    /// 每级不祥之兆对应试炼之兆的时长（ticks），参考MC原版
+    static constexpr i32 TRIAL_OMEN_PER_BAD_OMEN_LEVEL = 18000;
+
     // ========== 状态机方法 ==========
 
     void tickInactive(IWorld& world);
@@ -174,21 +194,68 @@ private:
 
     /**
      * @brief 尝试生成一个怪物
+     *
+     * 在spawnRange范围内寻找合适的生成位置，
+     * 确定生成实体类型，生成实体并添加到世界，
+     * 追踪生成的实体UUID。
      */
     void spawnMob(IWorld& world);
 
     /**
-     * @brief 弹出奖励物品
+     * @brief 弹出奖励物品给指定玩家
      *
-     * 50%概率补给/50%概率钥匙
-     * 不祥变体：70%概率补给/30%概率钥匙
+     * 从补给表或钥匙表随机选择一个战利品表，
+     * 生成物品并弹出到世界中。
+     */
+    void ejectRewardForPlayer(IWorld& world, Player& player);
+
+    /**
+     * @brief 弹出奖励物品（无指定玩家时使用空上下文）
      */
     void ejectReward(IWorld& world);
 
     /**
      * @brief 检查已追踪的怪物是否还活着
+     *
+     * 遍历m_trackedMobs中的UUID，检查对应实体是否仍然存活，
+     * 移除已死亡或离开追踪范围的实体UUID，更新m_currentMobsCount。
      */
     void updateTrackedMobs(IWorld& world);
+
+    /**
+     * @brief 通过UUID查找实体
+     * @param world 世界引用
+     * @param uuid 实体UUID
+     * @return 实体指针，未找到返回nullptr
+     */
+    Entity* findEntityByUuid(IWorld& world, const std::string& uuid);
+
+    /**
+     * @brief 计算目标总怪物数
+     * @param additionalPlayers 额外玩家数（总玩家数-1）
+     */
+    [[nodiscard]] i32 calculateTargetTotalMobs(i32 additionalPlayers) const;
+
+    /**
+     * @brief 计算目标同时怪物数
+     * @param additionalPlayers 额外玩家数（总玩家数-1）
+     */
+    [[nodiscard]] i32 calculateTargetSimultaneousMobs(i32 additionalPlayers) const;
+
+    /**
+     * @brief 判断是否已生成完所有怪物
+     */
+    [[nodiscard]] bool hasFinishedSpawningAllMobs(i32 additionalPlayers) const;
+
+    /**
+     * @brief 判断当前存活怪物是否全部死亡
+     */
+    [[nodiscard]] bool haveAllCurrentMobsDied() const;
+
+    /**
+     * @brief 判断是否可以生成下一个怪物
+     */
+    [[nodiscard]] bool isReadyToSpawnNextMob(IWorld& world, i32 additionalPlayers) const;
 
     // ========== 数据成员 ==========
 
@@ -210,6 +277,12 @@ private:
     /// 上次生成tick
     i64 m_lastSpawnTick = 0;
 
+    /// 上次玩家扫描tick
+    i64 m_lastPlayerScanTick = 0;
+
+    /// 上次奖励弹出tick
+    i64 m_lastEjectionTick = 0;
+
     /// 已追踪的玩家UUID
     std::unordered_set<std::string> m_trackedPlayers;
 
@@ -227,6 +300,9 @@ private:
 
     /// 最大同时存在的怪物数（根据玩家数量动态计算）
     i32 m_maxSimultaneousMobs = 0;
+
+    /// 当前正在弹出奖励的玩家UUID列表（用于EjectingReward状态逐个弹出）
+    std::vector<std::string> m_detectedPlayerUuids;
 };
 
 } // namespace mc

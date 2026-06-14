@@ -9,7 +9,7 @@
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
- * copies of substantial portions of the Software.
+ * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -22,8 +22,17 @@
  */
 
 #include "VaultBlockEntity.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/loot/LootTable.hpp"
+#include "common/item/loot/LootTableManager.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootContextBuilder.hpp"
+#include "common/item/loot/context/LootParameterSets.hpp"
+#include "common/item/loot/context/LootParams.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/world/IWorld.hpp"
 
 namespace mc {
@@ -103,6 +112,23 @@ bool VaultBlockEntity::load(const nlohmann::json& data)
             m_rewardedPlayers.insert(uuid.get<std::string>());
         }
     }
+    if (data.contains("unlocking_start_tick")) {
+        m_unlockingStartTick = data["unlocking_start_tick"].get<i64>();
+    }
+    if (data.contains("ejection_end_tick")) {
+        m_ejectionEndTick = data["ejection_end_tick"].get<i64>();
+    }
+    if (data.contains("unlocking_player_uuid")) {
+        m_unlockingPlayerUuid = data["unlocking_player_uuid"].get<std::string>();
+    }
+    if (data.contains("last_insert_fail_sound_tick")) {
+        m_lastInsertFailSoundTick = data["last_insert_fail_sound_tick"].get<i64>();
+    }
+
+    // 根据不祥状态更新配置
+    if (m_ominous) {
+        m_config = getOminousConfig();
+    }
 
     return true;
 }
@@ -119,6 +145,10 @@ void VaultBlockEntity::save(nlohmann::json& data) const
         rewardedArray.push_back(uuid);
     }
     data["rewarded_players"] = rewardedArray;
+    data["unlocking_start_tick"] = m_unlockingStartTick;
+    data["ejection_end_tick"] = m_ejectionEndTick;
+    data["unlocking_player_uuid"] = m_unlockingPlayerUuid;
+    data["last_insert_fail_sound_tick"] = m_lastInsertFailSoundTick;
 }
 
 std::unique_ptr<BlockEntity> VaultBlockEntity::clone() const
@@ -129,8 +159,12 @@ std::unique_ptr<BlockEntity> VaultBlockEntity::clone() const
     copy->m_config = m_config;
     copy->m_rewardedPlayers = m_rewardedPlayers;
     copy->m_unlockingStartTick = m_unlockingStartTick;
-    copy->m_ejectingEndTick = m_ejectingEndTick;
+    copy->m_ejectionEndTick = m_ejectionEndTick;
     copy->m_unlockingPlayerUuid = m_unlockingPlayerUuid;
+    copy->m_itemsToEject = m_itemsToEject;
+    copy->m_totalEjectionsNeeded = m_totalEjectionsNeeded;
+    copy->m_lastInsertFailSoundTick = m_lastInsertFailSoundTick;
+    copy->m_lastStateUpdateTick = m_lastStateUpdateTick;
     return copy;
 }
 
@@ -167,30 +201,82 @@ void VaultBlockEntity::setConfig(const Config& config)
 
 bool VaultBlockEntity::tryInsertKey(Player& player)
 {
-    // 检查状态
-    if (m_state != State::Active) {
+    // 状态检查：仅Active和Unlocking/Ejecting状态允许操作
+    // 参考MC原版: canEjectReward = !config.keyItem().isEmpty() && vaultState != INACTIVE
+    if (m_state == State::Inactive) {
+        return false;
+    }
+
+    // 检查钥匙物品是否有效
+    if (m_config.keyItem == nullptr) {
+        return false;
+    }
+
+    // 检查玩家手持物品是否匹配钥匙
+    ItemStack heldItem = player.getHeldItem(Hand::MainHand);
+    if (heldItem.isEmpty() || heldItem.getItem() != m_config.keyItem || heldItem.getCount() < 1) {
+        // 播放插入失败音效（带冷却防刷）
+        i64 currentTick = static_cast<i64>(player.world() != nullptr ? player.world()->currentTick() : 0);
+        if (currentTick - m_lastInsertFailSoundTick >= INSERT_FAIL_SOUND_COOLDOWN) {
+            player.world()->playSound(ResourceLocation("minecraft", "block.vault.insert_item_fail"),
+                sound::SoundCategory::Blocks,
+                m_pos.center(),
+                1.0f,
+                1.0f);
+            m_lastInsertFailSoundTick = currentTick;
+        }
         return false;
     }
 
     // 检查玩家是否已领取过奖励
     if (m_rewardedPlayers.count(player.uuid()) > 0) {
-        // TODO(trial_chambers): 播放拒绝音效
+        // 播放拒绝已奖励玩家音效（带冷却防刷）
+        i64 currentTick = static_cast<i64>(player.world() != nullptr ? player.world()->currentTick() : 0);
+        if (currentTick - m_lastInsertFailSoundTick >= INSERT_FAIL_SOUND_COOLDOWN) {
+            player.world()->playSound(ResourceLocation("minecraft", "block.vault.reject_rewarded_player"),
+                sound::SoundCategory::Blocks,
+                m_pos.center(),
+                1.0f,
+                1.0f);
+            m_lastInsertFailSoundTick = currentTick;
+        }
         return false;
     }
 
-    // 检查玩家手中是否持有正确的钥匙
-    // TODO(trial_chambers): 实现物品检查和消耗
-    // if (player.getMainHandItem().getItem() != m_config.keyItem) {
-    //     return false;
-    // }
-    // player.getMainHandItem().shrink(1);
+    // 解析战利品表获取弹出物品列表
+    IWorld* world = player.world();
+    auto itemsToEject = resolveItemsToEject(*world, player);
+    if (itemsToEject.empty()) {
+        return false;
+    }
+
+    // 消耗钥匙物品
+    heldItem.shrink(1);
+
+    // 记录已奖励玩家
+    m_rewardedPlayers.insert(player.uuid());
+    if (static_cast<i32>(m_rewardedPlayers.size()) > MAX_REWARDED_PLAYERS) {
+        // 超过上限时移除最早的玩家（unordered_set无法保证顺序，
+        // 参考MC原版使用LinkedHashSet，这里简化处理：移除第一个元素）
+        m_rewardedPlayers.erase(m_rewardedPlayers.begin());
+    }
+
+    // 设置待弹出物品列表
+    m_itemsToEject = std::move(itemsToEject);
+    m_totalEjectionsNeeded = static_cast<i32>(m_itemsToEject.size());
+    m_unlockingPlayerUuid = player.uuid();
 
     // 开始解锁
-    m_unlockingPlayerUuid = player.uuid();
-    m_unlockingStartTick = static_cast<i64>(m_world->currentTick());
+    m_unlockingStartTick = static_cast<i64>(world->currentTick());
     setState(State::Unlocking);
 
-    // TODO(trial_chambers): 播放解锁音效和动画
+    // 播放插入钥匙音效
+    world->playSound(ResourceLocation("minecraft", "block.vault.insert_item"),
+        sound::SoundCategory::Blocks,
+        m_pos.center(),
+        1.0f,
+        1.0f);
+
     return true;
 }
 
@@ -218,8 +304,16 @@ i32 VaultBlockEntity::getComparatorOutput() const
 
 void VaultBlockEntity::tickInactive(IWorld& world)
 {
-    // 检测附近玩家
-    auto players = detectPlayers(world);
+    i64 currentTick = static_cast<i64>(world.currentTick());
+
+    // 控制检测频率：每STATE_UPDATE_INTERVAL tick检测一次
+    if (currentTick - m_lastStateUpdateTick < STATE_UPDATE_INTERVAL) {
+        return;
+    }
+    m_lastStateUpdateTick = currentTick;
+
+    // 检测附近是否有玩家进入激活范围
+    auto players = detectPlayers(world, m_config.activationRange);
     if (!players.empty()) {
         setState(State::Active);
     }
@@ -227,35 +321,45 @@ void VaultBlockEntity::tickInactive(IWorld& world)
 
 void VaultBlockEntity::tickActive(IWorld& world)
 {
-    // 活跃状态：等待玩家插入钥匙
-    // 检测玩家是否离开范围
-    auto players = detectPlayers(world);
+    i64 currentTick = static_cast<i64>(world.currentTick());
+
+    // 控制检测频率
+    if (currentTick - m_lastStateUpdateTick < STATE_UPDATE_INTERVAL) {
+        return;
+    }
+    m_lastStateUpdateTick = currentTick;
+
+    // 检测玩家是否离开失活范围（使用更大的范围实现迟滞）
+    auto players = detectPlayers(world, m_config.deactivationRange);
     if (players.empty()) {
         setState(State::Inactive);
     }
-
-    // TODO(trial_chambers): 显示钥匙物品（客户端渲染用）
 }
 
 void VaultBlockEntity::tickUnlocking(IWorld& world)
 {
     i64 currentTick = static_cast<i64>(world.currentTick());
 
+    // 解锁动画完成
     if (currentTick - m_unlockingStartTick >= UNLOCKING_DURATION) {
-        // 解锁完成，进入弹出阶段
-        m_ejectingEndTick = currentTick + EJECTING_DURATION;
+        // 播放打开百叶窗音效
+        world.playSound(ResourceLocation("minecraft", "block.vault.open_shutter"),
+            sound::SoundCategory::Blocks,
+            m_pos.center(),
+            1.0f,
+            1.0f);
+
+        // 进入弹出阶段
         setState(State::Ejecting);
 
-        // 弹出奖励
-        // TODO(trial_chambers): 查找解锁玩家
-        // Player* player = world.getPlayerByUuid(m_unlockingPlayerUuid);
-        // if (player != nullptr) {
-        //     ejectReward(world, *player);
-        //     m_rewardedPlayers.insert(m_unlockingPlayerUuid);
-        //     if (m_rewardedPlayers.size() > MAX_REWARDED_PLAYERS) {
-        //         // 移除最早的玩家
-        //     }
-        // }
+        // 如果有待弹出物品，立即弹出第一个
+        if (!m_itemsToEject.empty()) {
+            ejectNextItem(world);
+            m_ejectionEndTick = currentTick + EJECTION_INTERVAL;
+        } else {
+            // 没有物品，直接结束弹出
+            m_ejectionEndTick = currentTick + EJECTION_AFTER_LAST_DURATION;
+        }
     }
 }
 
@@ -263,10 +367,38 @@ void VaultBlockEntity::tickEjecting(IWorld& world)
 {
     i64 currentTick = static_cast<i64>(world.currentTick());
 
-    if (currentTick >= m_ejectingEndTick) {
-        // 弹出完成，回到活跃状态
-        m_unlockingPlayerUuid.clear();
-        setState(State::Active);
+    if (m_itemsToEject.empty()) {
+        // 所有物品已弹出，等待一段时间后转换状态
+        if (currentTick >= m_ejectionEndTick) {
+            // 播放关闭百叶窗音效
+            world.playSound(ResourceLocation("minecraft", "block.vault.close_shutter"),
+                sound::SoundCategory::Blocks,
+                m_pos.center(),
+                1.0f,
+                1.0f);
+
+            // 清理状态
+            m_unlockingPlayerUuid.clear();
+            m_totalEjectionsNeeded = 0;
+
+            // 检测玩家回到Active或Inactive
+            auto players = detectPlayers(world, m_config.deactivationRange);
+            setState(players.empty() ? State::Inactive : State::Active);
+        }
+    } else {
+        // 等待弹出间隔
+        if (currentTick >= m_ejectionEndTick) {
+            // 弹出下一个物品
+            ejectNextItem(world);
+
+            if (m_itemsToEject.empty()) {
+                // 最后一个物品弹出，等待一段时间
+                m_ejectionEndTick = currentTick + EJECTION_AFTER_LAST_DURATION;
+            } else {
+                // 继续弹出间隔
+                m_ejectionEndTick = currentTick + EJECTION_INTERVAL;
+            }
+        }
     }
 }
 
@@ -274,22 +406,129 @@ void VaultBlockEntity::tickEjecting(IWorld& world)
 // 奖励逻辑
 // ============================================================================
 
-void VaultBlockEntity::ejectReward(IWorld& world, Player& player)
+std::vector<ItemStack> VaultBlockEntity::resolveItemsToEject(IWorld& world, Player& player)
 {
-    // TODO(trial_chambers): 实现完整的战利品弹出逻辑
-    // 1. 80%概率从稀有表抽1次，20%概率从普通表抽1次
-    // 2. 总是从普通表抽1-3次
-    // 3. 普通宝库25%概率从独有表抽1次；不祥宝库75%概率
-    // 4. 生成物品实体弹出到世界中
-    // 5. 播放弹出音效和粒子效果
+    // 获取战利品表管理器
+    const auto* ltm = world.lootTableManager();
+    if (ltm == nullptr) {
+        return {};
+    }
+
+    // 选择战利品表（根据是否不祥）
+    const std::string lootTableId = m_ominous ? m_config.ominousLootTable.toString() : m_config.lootTable.toString();
+
+    const auto* lootTable = ltm->getTable(lootTableId);
+    if (lootTable == nullptr) {
+        return {};
+    }
+
+    // 构建战利品上下文
+    auto* playerEntity = static_cast<Entity*>(&player);
+    auto context =
+        loot::LootContextBuilder(world)
+            .withRandom(world.getRandom())
+            .withParameter(loot::LootParams::THIS_ENTITY, playerEntity)
+            .withLootTableResolver([ltm](const std::string& id) -> const loot::LootTable* { return ltm->getTable(id); })
+            .withPredicateResolver(
+                [ltm](const std::string& id) -> const loot::LootCondition* { return ltm->getPredicate(id); })
+            .build(loot::LootParameterSets::chest());
+
+    if (context == nullptr) {
+        return {};
+    }
+
+    // 生成物品列表
+    return lootTable->generate(*context);
 }
 
-std::vector<Player*> VaultBlockEntity::detectPlayers(IWorld& world)
+void VaultBlockEntity::ejectNextItem(IWorld& world)
 {
-    std::vector<Player*> players;
-    // TODO(trial_chambers): 实现范围玩家检测
-    // 使用 world.getEntitiesInAABB() 查找 activationRange 范围内的玩家
-    return players;
+    if (m_itemsToEject.empty()) {
+        return;
+    }
+
+    // 从列表末尾弹出（参考MC原版的栈式弹出）
+    ItemStack item = m_itemsToEject.back();
+    m_itemsToEject.pop_back();
+
+    if (item.isEmpty()) {
+        return;
+    }
+
+    // 计算弹出位置：方块上方1.2格
+    f64 x = static_cast<f64>(m_pos.x) + 0.5;
+    f64 y = static_cast<f64>(m_pos.y) + 1.2;
+    f64 z = static_cast<f64>(m_pos.z) + 0.5;
+
+    // 计算弹出进度（用于音高变化）
+    f32 progress = (m_totalEjectionsNeeded <= 1)
+        ? 1.0f
+        : 1.0f - static_cast<f32>(m_itemsToEject.size()) / static_cast<f32>(m_totalEjectionsNeeded - 1);
+
+    // 使用ItemDropHelper弹出物品，速度为UP方向2.0（参考MC原版DefaultDispenseItemBehavior.spawnItem）
+    ItemDropHelper::spawnItemEntity(&world,
+        item,
+        x,
+        y,
+        z,
+        0.0f,
+        EJECT_VELOCITY,
+        0.0f,                   // 向上弹出
+        10,                     // pickupDelay: 10 ticks (0.5秒)
+        m_unlockingPlayerUuid); // owner: 解锁玩家优先拾取
+
+    // 播放弹出音效，音高随进度变化 (0.8 + 0.4 * progress)
+    world.playSound(ResourceLocation("minecraft", "block.vault.eject_item"),
+        sound::SoundCategory::Blocks,
+        m_pos.center(),
+        1.0f,
+        0.8f + 0.4f * progress);
+
+    setChanged();
+}
+
+std::vector<Player*> VaultBlockEntity::detectPlayers(IWorld& world, f32 range)
+{
+    std::vector<Player*> result;
+
+    // 获取范围内所有实体
+    Vector3 center = m_pos.center();
+    auto entities = world.getEntitiesInRange(center, range);
+
+    for (auto* entity : entities) {
+        // 只筛选玩家
+        auto* player = dynamic_cast<Player*>(entity);
+        if (player == nullptr) {
+            continue;
+        }
+
+        // 排除旁观者模式的玩家（参考MC原版 PlayerDetector.INCLUDING_CREATIVE_PLAYERS 只排除旁观者）
+        if (player->isSpectator()) {
+            continue;
+        }
+
+        // 排除已领取过奖励的玩家
+        if (m_rewardedPlayers.count(player->uuid()) > 0) {
+            continue;
+        }
+
+        result.push_back(player);
+    }
+
+    return result;
+}
+
+Player* VaultBlockEntity::findPlayerByUuid(IWorld& world, const std::string& uuid)
+{
+    // 通过遍历所有玩家查找UUID匹配的玩家
+    auto entities = world.getPlayers();
+    for (auto* entity : entities) {
+        auto* player = dynamic_cast<Player*>(entity);
+        if (player != nullptr && player->uuid() == uuid) {
+            return player;
+        }
+    }
+    return nullptr;
 }
 
 } // namespace mc

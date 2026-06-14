@@ -9,7 +9,7 @@
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
- * copies of substantial portions of the Software.
+ * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -24,13 +24,16 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include <unordered_set>
+#include <vector>
 
 namespace mc {
 
 class Player;
+class ItemEntity;
 
 /**
  * @brief 宝库方块实体
@@ -43,9 +46,8 @@ class Player;
  *   INACTIVE → ACTIVE → UNLOCKING → EJECTING → ACTIVE (循环)
  *
  * 战利品弹出逻辑：
- *   1. 80%概率从稀有表抽1次，20%概率从普通表抽1次
- *   2. 总是从普通表抽1-3次
- *   3. 普通宝库25%概率从独有表抽1次；不祥宝库75%概率
+ *   从战利品表生成物品列表，每隔一定tick依次弹出每个物品。
+ *   弹出完成后再检测玩家回到 ACTIVE 或 INACTIVE。
  *
  * 配置：
  *   普通宝库: keyItem=TrialKey, lootTable=reward
@@ -115,9 +117,9 @@ public:
      * @return 是否成功插入并开始解锁
      *
      * 检查：
-     * 1. 钥匙类型是否匹配
-     * 2. 玩家是否已经领取过奖励
-     * 3. 当前状态是否允许插入
+     * 1. 当前状态允许弹出奖励（非INACTIVE）
+     * 2. 钥匙类型匹配
+     * 3. 玩家未领取过奖励
      */
     bool tryInsertKey(Player& player);
 
@@ -125,11 +127,34 @@ public:
 
     /**
      * @brief 获取红石比较器输出信号
-     * Active=0, Unlocking/Ejecting=15
+     * Active/Inactive=0, Unlocking/Ejecting=15
      */
     [[nodiscard]] i32 getComparatorOutput() const;
 
 private:
+    // ========== 常量 ==========
+
+    /// 解锁动画持续时间（ticks），参考MC原版 UNLOCKING_DELAY_TICKS
+    static constexpr i32 UNLOCKING_DURATION = 14;
+
+    /// 每个物品弹出间隔（ticks），参考MC原版 DELAY_BETWEEN_EJECTIONS_TICKS
+    static constexpr i32 EJECTION_INTERVAL = 20;
+
+    /// 最后一个物品弹出后等待时间（ticks），参考MC原版 DELAY_AFTER_LAST_EJECTION_TICKS
+    static constexpr i32 EJECTION_AFTER_LAST_DURATION = 20;
+
+    /// 状态更新扫描间隔（ticks）
+    static constexpr i32 STATE_UPDATE_INTERVAL = 20;
+
+    /// 已领取奖励玩家上限
+    static constexpr i32 MAX_REWARDED_PLAYERS = 128;
+
+    /// 插入失败音效最小间隔（ticks），防刷
+    static constexpr i32 INSERT_FAIL_SOUND_COOLDOWN = 15;
+
+    /// 物品弹出速度
+    static constexpr f32 EJECT_VELOCITY = 2.0f;
+
     // ========== 状态机方法 ==========
 
     void tickInactive(IWorld& world);
@@ -140,19 +165,34 @@ private:
     // ========== 奖励逻辑 ==========
 
     /**
-     * @brief 弹出战利品奖励
-     *
-     * 战利品抽取规则：
-     * 1. 80%概率从稀有表抽1次，20%概率从普通表抽1次
-     * 2. 总是从普通表抽1-3次
-     * 3. 普通宝库25%概率从独有表抽1次；不祥宝库75%概率
+     * @brief 从战利品表解析待弹出的物品列表
+     * @param world 世界引用
+     * @param player 解锁的玩家
+     * @return 待弹出的物品列表
      */
-    void ejectReward(IWorld& world, Player& player);
+    std::vector<ItemStack> resolveItemsToEject(IWorld& world, Player& player);
 
     /**
-     * @brief 检测范围内的玩家
+     * @brief 弹出下一个物品到世界中
+     * @param world 世界引用
      */
-    std::vector<Player*> detectPlayers(IWorld& world);
+    void ejectNextItem(IWorld& world);
+
+    /**
+     * @brief 检测范围内的未奖励玩家
+     * @param world 世界引用
+     * @param range 检测范围
+     * @return 范围内的玩家列表
+     */
+    std::vector<Player*> detectPlayers(IWorld& world, f32 range);
+
+    /**
+     * @brief 通过UUID查找玩家
+     * @param world 世界引用
+     * @param uuid 玩家UUID
+     * @return 玩家指针，未找到返回nullptr
+     */
+    static Player* findPlayerByUuid(IWorld& world, const std::string& uuid);
 
     // ========== 数据成员 ==========
 
@@ -165,26 +205,29 @@ private:
     /// 配置
     Config m_config;
 
-    /// 已领取奖励的玩家UUID集合（最多128人）
+    /// 已领取奖励的玩家UUID集合（最多MAX_REWARDED_PLAYERS人）
     std::unordered_set<std::string> m_rewardedPlayers;
 
     /// 解锁动画开始tick
     i64 m_unlockingStartTick = 0;
 
-    /// 弹出结束tick
-    i64 m_ejectingEndTick = 0;
+    /// 当前弹出阶段结束tick
+    i64 m_ejectionEndTick = 0;
 
     /// 当前正在解锁的玩家UUID
     std::string m_unlockingPlayerUuid;
 
-    /// 解锁动画持续时间（ticks）
-    static constexpr i32 UNLOCKING_DURATION = 40; // 2秒
+    /// 待弹出的物品列表
+    std::vector<ItemStack> m_itemsToEject;
 
-    /// 弹出动画持续时间（ticks）
-    static constexpr i32 EJECTING_DURATION = 60; // 3秒
+    /// 本轮需要弹出的物品总数（用于计算弹出进度）
+    i32 m_totalEjectionsNeeded = 0;
 
-    /// 最大已领取玩家数
-    static constexpr i32 MAX_REWARDED_PLAYERS = 128;
+    /// 上次插入失败音效时间（防止音效刷屏）
+    i64 m_lastInsertFailSoundTick = 0;
+
+    /// 上次状态更新tick（用于控制检测频率）
+    i64 m_lastStateUpdateTick = 0;
 };
 
 } // namespace mc

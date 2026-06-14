@@ -9,7 +9,7 @@
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
- * copies of substantial portions of the Software.
+ * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -22,11 +22,20 @@
  */
 
 #include "TrialSpawnerBlockEntity.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/loot/LootTable.hpp"
+#include "common/item/loot/LootTableManager.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootContextBuilder.hpp"
+#include "common/item/loot/context/LootParameterSets.hpp"
+#include "common/item/loot/context/LootParams.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/world/IWorld.hpp"
 
 namespace mc {
@@ -158,6 +167,27 @@ bool TrialSpawnerBlockEntity::load(const nlohmann::json& data)
     if (data.contains("spawned_mobs_count")) {
         m_spawnedMobsCount = data["spawned_mobs_count"].get<i32>();
     }
+    if (data.contains("tracked_players")) {
+        m_trackedPlayers.clear();
+        for (const auto& uuid : data["tracked_players"]) {
+            m_trackedPlayers.insert(uuid.get<std::string>());
+        }
+    }
+    if (data.contains("tracked_mobs")) {
+        m_trackedMobs.clear();
+        for (const auto& uuid : data["tracked_mobs"]) {
+            m_trackedMobs.insert(uuid.get<std::string>());
+        }
+    }
+    if (data.contains("current_mobs_count")) {
+        m_currentMobsCount = data["current_mobs_count"].get<i32>();
+    }
+    if (data.contains("total_mobs_to_spawn")) {
+        m_totalMobsToSpawn = data["total_mobs_to_spawn"].get<i32>();
+    }
+    if (data.contains("max_simultaneous_mobs")) {
+        m_maxSimultaneousMobs = data["max_simultaneous_mobs"].get<i32>();
+    }
 
     return true;
 }
@@ -171,6 +201,22 @@ void TrialSpawnerBlockEntity::save(nlohmann::json& data) const
     data["cooldown_ends_at"] = m_cooldownEndsAt;
     data["ejecting_reward_ends_at"] = m_ejectingRewardEndsAt;
     data["spawned_mobs_count"] = m_spawnedMobsCount;
+
+    nlohmann::json trackedPlayersArray = nlohmann::json::array();
+    for (const auto& uuid : m_trackedPlayers) {
+        trackedPlayersArray.push_back(uuid);
+    }
+    data["tracked_players"] = trackedPlayersArray;
+
+    nlohmann::json trackedMobsArray = nlohmann::json::array();
+    for (const auto& uuid : m_trackedMobs) {
+        trackedMobsArray.push_back(uuid);
+    }
+    data["tracked_mobs"] = trackedMobsArray;
+
+    data["current_mobs_count"] = m_currentMobsCount;
+    data["total_mobs_to_spawn"] = m_totalMobsToSpawn;
+    data["max_simultaneous_mobs"] = m_maxSimultaneousMobs;
 }
 
 std::unique_ptr<BlockEntity> TrialSpawnerBlockEntity::clone() const
@@ -181,10 +227,16 @@ std::unique_ptr<BlockEntity> TrialSpawnerBlockEntity::clone() const
     copy->m_config = m_config;
     copy->m_cooldownEndsAt = m_cooldownEndsAt;
     copy->m_ejectingRewardEndsAt = m_ejectingRewardEndsAt;
+    copy->m_lastSpawnTick = m_lastSpawnTick;
+    copy->m_lastPlayerScanTick = m_lastPlayerScanTick;
+    copy->m_lastEjectionTick = m_lastEjectionTick;
     copy->m_spawnedMobsCount = m_spawnedMobsCount;
     copy->m_currentMobsCount = m_currentMobsCount;
     copy->m_totalMobsToSpawn = m_totalMobsToSpawn;
     copy->m_maxSimultaneousMobs = m_maxSimultaneousMobs;
+    copy->m_trackedPlayers = m_trackedPlayers;
+    copy->m_trackedMobs = m_trackedMobs;
+    copy->m_detectedPlayerUuids = m_detectedPlayerUuids;
     return copy;
 }
 
@@ -218,12 +270,32 @@ void TrialSpawnerBlockEntity::setConfig(const Config& config)
 // 玩家检测
 // ============================================================================
 
-std::vector<Player*> TrialSpawnerBlockEntity::detectPlayers(IWorld& world)
+std::vector<Player*> TrialSpawnerBlockEntity::detectPlayers(IWorld& world, f32 range)
 {
-    std::vector<Player*> players;
-    // TODO(trial_chambers): 实现范围玩家检测
-    // 使用 world.getEntitiesInAABB() 查找 detectionRange 范围内的玩家
-    return players;
+    std::vector<Player*> result;
+
+    // 获取范围内所有实体
+    Vector3 center = m_pos.center();
+    auto entities = world.getEntitiesInRange(center, range);
+
+    for (auto* entity : entities) {
+        // 只筛选玩家
+        auto* player = dynamic_cast<Player*>(entity);
+        if (player == nullptr) {
+            continue;
+        }
+
+        // 排除创造模式玩家（参考MC原版 NO_CREATIVE_PLAYERS 检测器）
+        // 注意：MC原版试炼刷怪笼排除创造和旁观者，但这里先排除旁观者
+        // 创造模式玩家不参与怪物计数，但仍然可以触发不祥变体
+        if (player->isSpectator()) {
+            continue;
+        }
+
+        result.push_back(player);
+    }
+
+    return result;
 }
 
 // ============================================================================
@@ -265,17 +337,23 @@ void TrialSpawnerBlockEntity::applyOminous(Player& player)
     i32 level = badOmen->getEffectLevel();
     player.removeEffect(entity::effect::EffectType::BadOmen);
 
-    // 给予试炼之兆效果
+    // 给予试炼之兆效果（持续 level * TRIAL_OMEN_PER_BAD_OMEN_LEVEL ticks）
     player.addEffect(entity::effect::EffectInstance::trialOmen(level));
 
     // 转为不祥变体
     setOminous(true);
 
-    // 更新总怪物数和同时怪物数
-    auto players = detectPlayers(*m_world);
+    // 重新计算怪物数量（基于当前追踪的玩家）
+    auto players = detectPlayers(*m_world, m_config.detectionRange);
     i32 playerCount = static_cast<i32>(players.size());
-    m_totalMobsToSpawn = m_config.baseTotalMobs + m_config.totalMobsAddedPerPlayer * playerCount;
-    m_maxSimultaneousMobs = m_config.baseSimultaneousMobs + m_config.simultaneousMobsAddedPerPlayer * playerCount;
+    i32 additionalPlayers = std::max(0, playerCount - 1);
+    m_totalMobsToSpawn = calculateTargetTotalMobs(additionalPlayers);
+    m_maxSimultaneousMobs = calculateTargetSimultaneousMobs(additionalPlayers);
+
+    // 重置已生成怪物计数（参考MC原版 resetAfterBecomingOminous）
+    m_spawnedMobsCount = 0;
+    m_currentMobsCount = 0;
+    m_trackedMobs.clear();
 }
 
 // ============================================================================
@@ -284,8 +362,16 @@ void TrialSpawnerBlockEntity::applyOminous(Player& player)
 
 void TrialSpawnerBlockEntity::tickInactive(IWorld& world)
 {
+    i64 currentTick = static_cast<i64>(world.currentTick());
+
+    // 控制检测频率
+    if (currentTick - m_lastPlayerScanTick < PLAYER_SCAN_INTERVAL) {
+        return;
+    }
+    m_lastPlayerScanTick = currentTick;
+
     // 闲置状态：检测玩家进入范围
-    auto players = detectPlayers(world);
+    auto players = detectPlayers(world, m_config.detectionRange);
     if (!players.empty()) {
         // 检查是否有不祥之兆的玩家
         for (auto* player : players) {
@@ -297,14 +383,24 @@ void TrialSpawnerBlockEntity::tickInactive(IWorld& world)
 
         // 计算需要的怪物数
         i32 playerCount = static_cast<i32>(players.size());
-        m_totalMobsToSpawn = m_config.baseTotalMobs + (m_ominous ? m_config.totalMobsAddedPerPlayer : 0) * playerCount;
-        m_maxSimultaneousMobs =
-            m_config.baseSimultaneousMobs + (m_ominous ? m_config.simultaneousMobsAddedPerPlayer : 0) * playerCount;
+        i32 additionalPlayers = std::max(0, playerCount - 1);
+        if (m_ominous) {
+            m_totalMobsToSpawn = m_config.baseTotalMobs + m_config.totalMobsAddedPerPlayer * additionalPlayers;
+            m_maxSimultaneousMobs =
+                m_config.baseSimultaneousMobs + m_config.simultaneousMobsAddedPerPlayer * additionalPlayers;
+        } else {
+            m_totalMobsToSpawn = m_config.baseTotalMobs;
+            m_maxSimultaneousMobs = m_config.baseSimultaneousMobs;
+        }
 
         // 记录追踪玩家
+        m_trackedPlayers.clear();
         for (auto* player : players) {
             m_trackedPlayers.insert(player->uuid());
         }
+
+        // 新检测到玩家时，延迟至少 DETECT_PLAYER_SPAWN_BUFFER tick 才开始生成
+        m_lastSpawnTick = currentTick + DETECT_PLAYER_SPAWN_BUFFER;
 
         setState(State::WaitingForPlayers);
     }
@@ -312,14 +408,29 @@ void TrialSpawnerBlockEntity::tickInactive(IWorld& world)
 
 void TrialSpawnerBlockEntity::tickWaitingForPlayers(IWorld& world)
 {
+    i64 currentTick = static_cast<i64>(world.currentTick());
+
+    // 控制检测频率
+    if (currentTick - m_lastPlayerScanTick < PLAYER_SCAN_INTERVAL) {
+        return;
+    }
+    m_lastPlayerScanTick = currentTick;
+
     // 等待玩家：确认玩家仍在范围内，然后激活
-    auto players = detectPlayers(world);
+    auto players = detectPlayers(world, m_config.detectionRange);
     if (!players.empty()) {
+        // 更新追踪的玩家列表
+        m_trackedPlayers.clear();
+        for (auto* player : players) {
+            m_trackedPlayers.insert(player->uuid());
+        }
         setState(State::Active);
-        m_lastSpawnTick = static_cast<i64>(world.currentTick());
     } else {
         // 没有玩家了，回到闲置
         m_trackedPlayers.clear();
+        m_trackedMobs.clear();
+        m_spawnedMobsCount = 0;
+        m_currentMobsCount = 0;
         setState(State::Inactive);
     }
 }
@@ -332,46 +443,149 @@ void TrialSpawnerBlockEntity::tickActive(IWorld& world)
     updateTrackedMobs(world);
 
     // 检查是否所有怪物已生成且已被击杀
-    if (m_spawnedMobsCount >= m_totalMobsToSpawn && m_currentMobsCount <= 0) {
+    if (hasFinishedSpawningAllMobs(std::max(0, static_cast<i32>(m_trackedPlayers.size()) - 1)) &&
+        haveAllCurrentMobsDied()) {
+        // 所有怪物已被击杀，进入奖励弹出阶段
+        m_cooldownEndsAt = currentTick + m_config.cooldownTicks;
+        m_spawnedMobsCount = 0;
+        m_lastSpawnTick = 0;
+
+        // 收集当前检测到的玩家UUID用于弹出奖励
+        auto players = detectPlayers(world, m_config.detectionRange);
+        m_detectedPlayerUuids.clear();
+        for (auto* player : players) {
+            m_detectedPlayerUuids.push_back(player->uuid());
+        }
+
         setState(State::WaitingForRewardEjection);
         return;
     }
 
-    // 检查是否可以生成新怪物
-    if (m_spawnedMobsCount < m_totalMobsToSpawn && m_currentMobsCount < m_maxSimultaneousMobs) {
-        if (currentTick - m_lastSpawnTick >= m_config.ticksBetweenSpawn) {
-            spawnMob(world);
-            m_lastSpawnTick = currentTick;
+    // 定期检测玩家更新
+    if (currentTick - m_lastPlayerScanTick >= PLAYER_SCAN_INTERVAL) {
+        m_lastPlayerScanTick = currentTick;
+        auto players = detectPlayers(world, m_config.detectionRange);
+
+        // 更新追踪的玩家列表
+        m_trackedPlayers.clear();
+        for (auto* player : players) {
+            m_trackedPlayers.insert(player->uuid());
         }
+    }
+
+    // 检查是否可以生成新怪物
+    i32 additionalPlayers = std::max(0, static_cast<i32>(m_trackedPlayers.size()) - 1);
+    if (isReadyToSpawnNextMob(world, additionalPlayers)) {
+        spawnMob(world);
+        m_lastSpawnTick = currentTick;
     }
 }
 
 void TrialSpawnerBlockEntity::tickWaitingForRewardEjection(IWorld& world)
 {
-    // 等待奖励弹出：立即进入弹出状态
-    setState(State::EjectingReward);
-    m_ejectingRewardEndsAt = static_cast<i64>(world.currentTick()) + m_config.ejectingRewardTicks;
+    i64 currentTick = static_cast<i64>(world.currentTick());
+
+    // 等待一小段时间后进入弹出状态（参考MC原版 isReadyToOpenShutter 的延迟）
+    if (currentTick >= m_cooldownEndsAt - m_config.cooldownTicks + 40) {
+        // 播放打开百叶窗音效
+        world.playSound(ResourceLocation("minecraft", "block.trial_spawner.open_shutter"),
+            sound::SoundCategory::Blocks,
+            m_pos.center(),
+            1.0f,
+            1.0f);
+
+        setState(State::EjectingReward);
+        m_lastEjectionTick = currentTick;
+    }
 }
 
 void TrialSpawnerBlockEntity::tickEjectingReward(IWorld& world)
 {
     i64 currentTick = static_cast<i64>(world.currentTick());
 
-    // 弹出奖励物品
-    ejectReward(world);
+    // 每 TIME_BETWEEN_EJECTIONS tick 弹出一次奖励
+    if (currentTick - m_lastEjectionTick < TIME_BETWEEN_EJECTIONS) {
+        return;
+    }
 
-    if (currentTick >= m_ejectingRewardEndsAt) {
+    if (m_detectedPlayerUuids.empty()) {
+        // 所有玩家奖励弹完
+        world.playSound(ResourceLocation("minecraft", "block.trial_spawner.close_shutter"),
+            sound::SoundCategory::Blocks,
+            m_pos.center(),
+            1.0f,
+            1.0f);
+
         setState(State::Cooldown);
         m_cooldownEndsAt = currentTick + m_config.cooldownTicks;
+        return;
     }
+
+    // 弹出奖励给下一个玩家
+    std::string playerUuid = m_detectedPlayerUuids.front();
+    m_detectedPlayerUuids.erase(m_detectedPlayerUuids.begin());
+
+    // 查找玩家
+    Player* player = nullptr;
+    {
+        auto entities = world.getPlayers();
+        for (auto* entity : entities) {
+            auto* p = dynamic_cast<Player*>(entity);
+            if (p != nullptr && p->uuid() == playerUuid) {
+                player = p;
+                break;
+            }
+        }
+    }
+    if (player != nullptr) {
+        ejectRewardForPlayer(world, *player);
+    }
+
+    m_lastEjectionTick = currentTick;
 }
 
 void TrialSpawnerBlockEntity::tickCooldown(IWorld& world)
 {
     i64 currentTick = static_cast<i64>(world.currentTick());
 
+    // 冷却期间也检测玩家（参考MC原版 COOLDOWN 状态的检测逻辑）
+    if (currentTick - m_lastPlayerScanTick >= PLAYER_SCAN_INTERVAL) {
+        m_lastPlayerScanTick = currentTick;
+        auto players = detectPlayers(world, m_config.detectionRange);
+
+        if (!players.empty()) {
+            // 冷却中检测到新玩家，直接跳回 ACTIVE
+            i32 playerCount = static_cast<i32>(players.size());
+            i32 additionalPlayers = std::max(0, playerCount - 1);
+
+            // 更新追踪玩家
+            m_trackedPlayers.clear();
+            for (auto* player : players) {
+                m_trackedPlayers.insert(player->uuid());
+            }
+
+            // 重新计算怪物数
+            if (m_ominous) {
+                m_totalMobsToSpawn = m_config.baseTotalMobs + m_config.totalMobsAddedPerPlayer * additionalPlayers;
+                m_maxSimultaneousMobs =
+                    m_config.baseSimultaneousMobs + m_config.simultaneousMobsAddedPerPlayer * additionalPlayers;
+            } else {
+                m_totalMobsToSpawn = m_config.baseTotalMobs;
+                m_maxSimultaneousMobs = m_config.baseSimultaneousMobs;
+            }
+
+            m_spawnedMobsCount = 0;
+            m_currentMobsCount = 0;
+            m_trackedMobs.clear();
+            m_lastSpawnTick = currentTick + DETECT_PLAYER_SPAWN_BUFFER;
+
+            setState(State::Active);
+            return;
+        }
+    }
+
     if (currentTick >= m_cooldownEndsAt) {
-        // 重置状态
+        // 冷却结束，重置状态
         m_spawnedMobsCount = 0;
         m_currentMobsCount = 0;
         m_trackedMobs.clear();
@@ -387,40 +601,253 @@ void TrialSpawnerBlockEntity::tickCooldown(IWorld& world)
 
 void TrialSpawnerBlockEntity::spawnMob(IWorld& world)
 {
-    // TODO(trial_chambers): 实现怪物生成逻辑
-    // 1. 确定生成位置（spawnRange范围内，寻找合适的位置）
-    // 2. 根据刷怪笼类型确定生成实体类型
-    //    - 近战型: 僵尸/尸壳/蜘蛛 (由池别名决定)
-    //    - 小型近战: 史莱姆/洞穴蜘蛛/蠹虫/幼年僵尸
-    //    - 远程型: 骷髅/沼骸/流浪者
-    //    - 旋风人: 旋风人
-    // 3. 生成实体并添加到世界
-    // 4. 追踪生成的实体UUID
-    // 5. 播放生成音效和粒子效果
+    // TODO(trial_chambers): 完整的怪物生成逻辑需要以下支持：
+    // 1. 从配置或数据包读取可生成的实体类型池（spawnPotentials）
+    // 2. 从实体类型池中随机选择实体类型
+    // 3. 在spawnRange范围内寻找合适的生成位置（碰撞检测、视线检测）
+    // 4. 通过EntityRegistry创建实体
+    // 5. 设置实体位置、旋转、持久化标记
+    // 6. 生成实体并添加到世界
+    // 7. 播放生成音效和粒子效果
+    //
+    // 当前简化实现：仅更新计数器，实际的实体生成需要EntityRegistry完善后实现
 
     m_spawnedMobsCount++;
     m_currentMobsCount++;
     setChanged();
 }
 
+void TrialSpawnerBlockEntity::ejectRewardForPlayer(IWorld& world, Player& player)
+{
+    // 获取战利品表管理器
+    const auto* ltm = world.lootTableManager();
+    if (ltm == nullptr) {
+        return;
+    }
+
+    // 50%概率选择补给表，50%概率选择钥匙表
+    // 不祥变体：70%概率补给，30%概率钥匙
+    // 参考MC原版 TrialSpawnerConfig.lootTablesToEject
+    bool isSupply = world.getRandom().nextFloat() < (m_ominous ? 0.7f : 0.5f);
+
+    std::string lootTableId;
+    if (isSupply) {
+        lootTableId = m_ominous ? m_config.ominousSupplyLootTable.toString() : m_config.supplyLootTable.toString();
+    } else {
+        lootTableId = m_ominous ? m_config.ominousKeyLootTable.toString() : m_config.keyLootTable.toString();
+    }
+
+    const auto* lootTable = ltm->getTable(lootTableId);
+    if (lootTable == nullptr) {
+        return;
+    }
+
+    // 构建战利品上下文
+    auto* playerEntity = static_cast<Entity*>(&player);
+    auto context =
+        loot::LootContextBuilder(world)
+            .withRandom(world.getRandom())
+            .withParameter(loot::LootParams::THIS_ENTITY, playerEntity)
+            .withLootTableResolver([ltm](const std::string& id) -> const loot::LootTable* { return ltm->getTable(id); })
+            .withPredicateResolver(
+                [ltm](const std::string& id) -> const loot::LootCondition* { return ltm->getPredicate(id); })
+            .build(loot::LootParameterSets::chest());
+
+    if (context == nullptr) {
+        return;
+    }
+
+    // 生成物品列表
+    auto drops = lootTable->generate(*context);
+    if (drops.empty()) {
+        return;
+    }
+
+    // 弹出所有物品到世界中
+    // 参考MC原版 DefaultDispenseItemBehavior.spawnItem，方向为UP，速度为2
+    f64 x = static_cast<f64>(m_pos.x) + 0.5;
+    f64 y = static_cast<f64>(m_pos.y) + 1.2;
+    f64 z = static_cast<f64>(m_pos.z) + 0.5;
+
+    for (const auto& item : drops) {
+        if (!item.isEmpty()) {
+            ItemDropHelper::spawnItemEntity(&world,
+                item,
+                x,
+                y,
+                z,
+                0.0f,
+                2.0f,
+                0.0f,           // 向上弹出
+                10,             // pickupDelay
+                player.uuid()); // owner
+        }
+    }
+
+    // 播放弹出音效
+    world.playSound(ResourceLocation("minecraft", "block.trial_spawner.eject_item"),
+        sound::SoundCategory::Blocks,
+        m_pos.center(),
+        1.0f,
+        1.0f);
+
+    setChanged();
+}
+
 void TrialSpawnerBlockEntity::ejectReward(IWorld& world)
 {
-    // TODO(trial_chambers): 实现奖励弹出逻辑
-    // 1. 50%概率选择补给表，50%概率选择钥匙表
-    //    不祥变体：70%概率补给，30%概率钥匙
-    // 2. 参与的每个玩家抽取一次
-    // 3. 从选定的战利品表生成物品
-    // 4. 将物品弹出到世界上
-    // 5. 播放弹出音效和粒子效果
+    // 无指定玩家时使用空上下文生成物品
+    const auto* ltm = world.lootTableManager();
+    if (ltm == nullptr) {
+        return;
+    }
+
+    bool isSupply = world.getRandom().nextFloat() < (m_ominous ? 0.7f : 0.5f);
+    std::string lootTableId;
+    if (isSupply) {
+        lootTableId = m_ominous ? m_config.ominousSupplyLootTable.toString() : m_config.supplyLootTable.toString();
+    } else {
+        lootTableId = m_ominous ? m_config.ominousKeyLootTable.toString() : m_config.keyLootTable.toString();
+    }
+
+    const auto* lootTable = ltm->getTable(lootTableId);
+    if (lootTable == nullptr) {
+        return;
+    }
+
+    auto context =
+        loot::LootContextBuilder(world)
+            .withRandom(world.getRandom())
+            .withLootTableResolver([ltm](const std::string& id) -> const loot::LootTable* { return ltm->getTable(id); })
+            .withPredicateResolver(
+                [ltm](const std::string& id) -> const loot::LootCondition* { return ltm->getPredicate(id); })
+            .build(loot::LootParameterSets::empty());
+
+    if (context == nullptr) {
+        return;
+    }
+
+    auto drops = lootTable->generate(*context);
+    if (drops.empty()) {
+        return;
+    }
+
+    f64 x = static_cast<f64>(m_pos.x) + 0.5;
+    f64 y = static_cast<f64>(m_pos.y) + 1.2;
+    f64 z = static_cast<f64>(m_pos.z) + 0.5;
+
+    for (const auto& item : drops) {
+        if (!item.isEmpty()) {
+            ItemDropHelper::spawnItemEntity(&world,
+                item,
+                x,
+                y,
+                z,
+                world.getRandom().nextFloat(-0.1f, 0.1f),
+                2.0f,
+                world.getRandom().nextFloat(-0.1f, 0.1f),
+                10,
+                "");
+        }
+    }
+
+    world.playSound(ResourceLocation("minecraft", "block.trial_spawner.eject_item"),
+        sound::SoundCategory::Blocks,
+        m_pos.center(),
+        1.0f,
+        1.0f);
+
+    setChanged();
 }
 
 void TrialSpawnerBlockEntity::updateTrackedMobs(IWorld& world)
 {
-    // TODO(trial_chambers): 实现怪物追踪更新
-    // 1. 遍历m_trackedMobs中的UUID
-    // 2. 检查对应实体是否仍然存活
-    // 3. 移除已死亡的实体UUID
-    // 4. 更新m_currentMobsCount
+    bool changed = false;
+
+    // 遍历追踪的怪物UUID，移除不再存活或离开追踪范围的实体
+    auto it = m_trackedMobs.begin();
+    while (it != m_trackedMobs.end()) {
+        Entity* entity = findEntityByUuid(world, *it);
+        bool shouldRemove = false;
+
+        if (entity == nullptr) {
+            // 实体不存在（已卸载或移除）
+            shouldRemove = true;
+        } else if (!entity->isAlive()) {
+            // 实体已死亡
+            shouldRemove = true;
+        } else {
+            // 检查距离是否超过追踪范围
+            Vector3 entityPos = entity->position();
+            Vector3 spawnerPos = m_pos.center();
+            f32 distSq = entityPos.distanceSquared(spawnerPos);
+            if (distSq > MAX_MOB_TRACKING_DISTANCE * MAX_MOB_TRACKING_DISTANCE) {
+                shouldRemove = true;
+            }
+        }
+
+        if (shouldRemove) {
+            it = m_trackedMobs.erase(it);
+            m_currentMobsCount = std::max(0, m_currentMobsCount - 1);
+            changed = true;
+        } else {
+            ++it;
+        }
+    }
+
+    if (changed) {
+        // 追踪的怪物变化时，延迟下次生成以给予缓冲时间
+        i64 currentTick = static_cast<i64>(world.currentTick());
+        m_lastSpawnTick = std::max(currentTick + m_config.ticksBetweenSpawn, m_lastSpawnTick);
+        setChanged();
+    }
+}
+
+// ============================================================================
+// 辅助方法
+// ============================================================================
+
+Entity* TrialSpawnerBlockEntity::findEntityByUuid(IWorld& world, const std::string& uuid)
+{
+    // 通过遍历范围内实体查找UUID匹配的实体
+    // 使用较大的范围以确保能找到已离开追踪范围但仍在世界中的实体
+    Vector3 center = m_pos.center();
+    auto entities = world.getEntitiesInRange(center, MAX_MOB_TRACKING_DISTANCE);
+
+    for (auto* entity : entities) {
+        if (entity->uuid() == uuid) {
+            return entity;
+        }
+    }
+    return nullptr;
+}
+
+i32 TrialSpawnerBlockEntity::calculateTargetTotalMobs(i32 additionalPlayers) const
+{
+    return m_config.baseTotalMobs + m_config.totalMobsAddedPerPlayer * additionalPlayers;
+}
+
+i32 TrialSpawnerBlockEntity::calculateTargetSimultaneousMobs(i32 additionalPlayers) const
+{
+    return m_config.baseSimultaneousMobs + m_config.simultaneousMobsAddedPerPlayer * additionalPlayers;
+}
+
+bool TrialSpawnerBlockEntity::hasFinishedSpawningAllMobs(i32 additionalPlayers) const
+{
+    return m_spawnedMobsCount >= calculateTargetTotalMobs(additionalPlayers);
+}
+
+bool TrialSpawnerBlockEntity::haveAllCurrentMobsDied() const
+{
+    return m_currentMobsCount <= 0;
+}
+
+bool TrialSpawnerBlockEntity::isReadyToSpawnNextMob(IWorld& world, i32 additionalPlayers) const
+{
+    i64 currentTick = static_cast<i64>(world.currentTick());
+    return m_spawnedMobsCount < calculateTargetTotalMobs(additionalPlayers) &&
+        m_currentMobsCount < calculateTargetSimultaneousMobs(additionalPlayers) &&
+        currentTick - m_lastSpawnTick >= m_config.ticksBetweenSpawn;
 }
 
 } // namespace mc
