@@ -97,8 +97,19 @@ ai/
 │       │   └── WanderingTraderGoals.hpp/cpp # 流浪商人
 │       ├── target/                   # 目标选择类
 │       │   └── TargetGoals.hpp/cpp    # 攻击目标选择
-│       └── villager/                 # 村民目标
-│           └── VillagerGoals.hpp/cpp  # 村民行为目标
+│       └── villager/                 # 村民目标（每个类独立文件）
+│           ├── VillagerGoalUtils.hpp/cpp # 共享辅助函数
+│           ├── SleepAtNightGoal.hpp/cpp  # 夜间睡眠
+│           ├── WorkAtJobSiteGoal.hpp/cpp # 工作站点（FarmerWorkGoal基类）
+│           ├── FarmerWorkGoal.hpp/cpp    # 农民工作（种植/收获/堆肥）
+│           ├── LookForJobSiteGoal.hpp/cpp # 寻找工作站点
+│           ├── GatherItemsGoal.hpp/cpp   # 收集地面物品
+│           ├── AvoidHostileGoal.hpp/cpp  # 逃避敌对生物
+│           ├── GoToBedGoal.hpp/cpp       # 前往床位
+│           ├── VillagerBreedGoal.hpp/cpp # 繁殖
+│           ├── CongregateGoal.hpp/cpp    # 聚集互动
+│           ├── ShareItemsGoal.hpp/cpp    # 分享物品
+│           └── LookAtEntitiesGoal.hpp/cpp # 看向实体
 ├── pathfinding/                  # 寻路系统（A* 算法）
 │   ├── FlaggedPathPoint.hpp      # 带标志的路径点
 │   ├── NodeProcessor.hpp         # 节点处理器基类

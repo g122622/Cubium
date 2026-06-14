@@ -39,9 +39,20 @@ goal/
     │   └── README.md             # 目标选择器详细文档
     ├── interact/                 # 交互类目标
     │   └── TameableGoals.hpp/cpp # FollowOwnerGoal, SitGoal, BegGoal
-    ├── villager/                  # 村民目标
-    │   ├── VillagerGoals.hpp/cpp  # 村民全部AI目标（睡眠、工作、收获、种植、堆肥等）
-    │   └── README.md              # 村民目标详细文档
+    ├── villager/                  # 村民目标（每个类独立文件）
+    │   ├── VillagerGoalUtils.hpp/cpp # 村民目标共享辅助函数
+    │   ├── SleepAtNightGoal.hpp/cpp  # 夜间睡眠目标
+    │   ├── WorkAtJobSiteGoal.hpp/cpp # 工作站点目标（FarmerWorkGoal的基类）
+    │   ├── FarmerWorkGoal.hpp/cpp    # 农民工作目标（继承WorkAtJobSiteGoal）
+    │   ├── LookForJobSiteGoal.hpp/cpp # 寻找工作站点目标
+    │   ├── GatherItemsGoal.hpp/cpp   # 收集地面物品目标
+    │   ├── AvoidHostileGoal.hpp/cpp  # 逃避敌对生物目标
+    │   ├── GoToBedGoal.hpp/cpp       # 前往床位目标
+    │   ├── VillagerBreedGoal.hpp/cpp # 繁殖目标
+    │   ├── CongregateGoal.hpp/cpp    # 聚集互动目标
+    │   ├── ShareItemsGoal.hpp/cpp    # 分享物品目标
+    │   ├── LookAtEntitiesGoal.hpp/cpp # 看向实体目标
+    │   └── README.md                 # 村民目标详细文档
     └── special/                  # 特殊目标
         ├── SpecialGoals.hpp/cpp  # CreeperSwellGoal, EndermanTeleportGoal等
         ├── RavagerGoals.hpp/cpp  # RavagerAttackGoal 劫掠兽近战攻击目标
