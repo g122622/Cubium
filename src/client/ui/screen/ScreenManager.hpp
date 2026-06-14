@@ -189,7 +189,10 @@ public:
 
     /**
      * @brief 设置屏幕变化回调
-     * @param callback 回调函数
+     *
+     * 注意：回调的触发由 ScreenStackWidget 统一管理。
+     * 当通过本类设置回调后，ScreenStackWidget 的屏幕变化回调会桥接到此处。
+     * @param callback 回调函数，参数为变化后的栈顶 IScreen 指针（栈空时为 nullptr）
      */
     void setScreenChangeCallback(std::function<void(IScreen*)> callback) { m_onScreenChange = std::move(callback); }
 

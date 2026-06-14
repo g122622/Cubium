@@ -48,6 +48,19 @@ using ScreenItem = std::variant<std::unique_ptr<Screen>, // 新的 Widget-based 
     >;
 
 /**
+ * @brief 屏幕栈变化信息
+ *
+ * 描述屏幕栈发生变化的详细信息，用于回调通知。
+ * 当栈为空时，newScreen 和 newIScreen 均为 nullptr。
+ * 同一时刻只有一种类型的屏幕位于栈顶。
+ */
+struct ScreenChangeInfo {
+    Screen* newScreen = nullptr;   ///< 变化后的栈顶 Screen（Widget 类型），若非 Widget 类型或栈空则为 nullptr
+    IScreen* newIScreen = nullptr; ///< 变化后的栈顶 IScreen（旧接口类型），若非 IScreen 类型或栈空则为 nullptr
+    bool stackCleared = false;     ///< 是否因 clear() 导致的栈清空
+};
+
+/**
  * @brief 屏幕栈Widget
  *
  * 管理屏幕栈，处理屏幕切换和事件分发。
@@ -57,13 +70,19 @@ using ScreenItem = std::variant<std::unique_ptr<Screen>, // 新的 Widget-based 
  * - 支持屏幕堆叠（如暂停菜单覆盖在游戏界面上）
  * - 顶部屏幕接收事件
  * - 底部屏幕可以渲染（如果上层透明）
+ *
+ * 回调通知：
+ * - 在 push/pushIScreen/pop/clear 操作后，通过 ScreenChangeCallback 通知屏幕变化
+ * - 同时通过 EventBus 发布 ScreenOpenEvent/ScreenCloseEvent/ScreenChangeEvent 事件
  */
 class ScreenStackWidget : public kagero::widget::ContainerWidget {
 public:
     /**
      * @brief 屏幕变化回调类型
+     *
+     * 参数为 ScreenChangeInfo，包含变化后的栈顶屏幕信息。
      */
-    using ScreenChangeCallback = std::function<void(Screen*)>;
+    using ScreenChangeCallback = std::function<void(const ScreenChangeInfo&)>;
 
     ScreenStackWidget();
     ~ScreenStackWidget() override = default;
@@ -119,6 +138,9 @@ public:
 
     /**
      * @brief 设置屏幕变化回调
+     *
+     * 回调在 push/pushIScreen/pop/clear 操作后触发，
+     * 参数为 ScreenChangeInfo，包含变化后的栈顶屏幕信息。
      */
     void setScreenChangeCallback(ScreenChangeCallback callback) { m_onScreenChange = std::move(callback); }
 
@@ -215,7 +237,7 @@ private:
     };
 
     std::vector<ScreenWrapper> m_screens;
-    ScreenChangeCallback m_onScreenChange; // TODO: 尚未实现回调触发逻辑，需在 push/pop/clear 中调用
+    ScreenChangeCallback m_onScreenChange;
 
     // 拖动状态
     bool m_isDragging = false;
@@ -233,6 +255,21 @@ private:
     void _onOpenScreen(ScreenWrapper& wrapper);
     void _onCloseScreen(ScreenWrapper& wrapper);
     [[nodiscard]] bool _isScreenModal(const ScreenWrapper& wrapper) const;
+
+    /**
+     * @brief 构建当前栈顶的屏幕变化信息
+     * @return ScreenChangeInfo，包含栈顶屏幕指针
+     */
+    [[nodiscard]] ScreenChangeInfo _buildChangeInfo() const;
+
+    /**
+     * @brief 通知屏幕变化
+     *
+     * 触发回调并发布 EventBus 事件。
+     * @param openedScreenId 新打开屏幕的标识（仅 push 时设置）
+     * @param closedScreenId 关闭屏幕的标识（仅 pop/clear 时设置）
+     */
+    void _notifyScreenChange(const std::string& openedScreenId = "", const std::string& closedScreenId = "");
 };
 
 } // namespace mc::client::ui::minecraft::widgets

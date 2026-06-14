@@ -12,8 +12,8 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY KIND, either express or implied.
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN THE EVENT THAT THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
@@ -23,6 +23,8 @@
 
 #include "ScreenStackWidget.hpp"
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
+#include "client/ui/kagero/event/EventBus.hpp"
+#include "client/ui/kagero/event/UIEvents.hpp"
 #include "common/screen/IScreen.hpp"
 
 namespace mc::client::ui::minecraft::widgets {
@@ -41,6 +43,9 @@ void ScreenStackWidget::push(std::unique_ptr<Screen> screen)
         return;
     }
 
+    // 记录打开的屏幕标识，用于 EventBus 事件
+    std::string openedId = screen->id();
+
     ScreenWrapper wrapper;
     wrapper.item = std::move(screen);
     wrapper.visible = true;
@@ -49,6 +54,8 @@ void ScreenStackWidget::push(std::unique_ptr<Screen> screen)
 
     _onOpenScreen(wrapper);
     m_screens.push_back(std::move(wrapper));
+
+    _notifyScreenChange(openedId, "");
 }
 
 void ScreenStackWidget::pushIScreen(std::unique_ptr<IScreen> screen)
@@ -56,6 +63,9 @@ void ScreenStackWidget::pushIScreen(std::unique_ptr<IScreen> screen)
     if (screen == nullptr) {
         return;
     }
+
+    // 记录打开的屏幕标识，用于 EventBus 事件
+    std::string openedId = screen->getTitle();
 
     ScreenWrapper wrapper;
     wrapper.item = std::move(screen);
@@ -65,6 +75,8 @@ void ScreenStackWidget::pushIScreen(std::unique_ptr<IScreen> screen)
 
     _onOpenScreen(wrapper);
     m_screens.push_back(std::move(wrapper));
+
+    _notifyScreenChange(openedId, "");
 }
 
 void ScreenStackWidget::pop()
@@ -73,16 +85,49 @@ void ScreenStackWidget::pop()
         return;
     }
 
+    // 记录关闭的屏幕标识，用于 EventBus 事件
+    const auto& closing = m_screens.back();
+    std::string closedId;
+    if (closing.isWidgetScreen()) {
+        auto* s = std::get<std::unique_ptr<Screen>>(closing.item).get();
+        if (s) {
+            closedId = s->id();
+        }
+    } else {
+        auto* s = std::get<std::unique_ptr<IScreen>>(closing.item).get();
+        if (s) {
+            closedId = s->getTitle();
+        }
+    }
+
     _onCloseScreen(m_screens.back());
     m_screens.pop_back();
+
+    _notifyScreenChange("", closedId);
 }
 
 void ScreenStackWidget::clear()
 {
+    if (m_screens.empty()) {
+        return;
+    }
+
     while (!m_screens.empty()) {
         _onCloseScreen(m_screens.back());
         m_screens.pop_back();
     }
+
+    ScreenChangeInfo info;
+    info.newScreen = nullptr;
+    info.newIScreen = nullptr;
+    info.stackCleared = true;
+
+    if (m_onScreenChange) {
+        m_onScreenChange(info);
+    }
+
+    // 发布屏幕切换事件（从某个屏幕变为空）
+    kagero::event::EventBus::instance().publish(kagero::event::ScreenChangeEvent("", ""));
 }
 
 Screen* ScreenStackWidget::top()
@@ -166,8 +211,64 @@ void ScreenStackWidget::_onCloseScreen(ScreenWrapper& wrapper)
 
 bool ScreenStackWidget::_isScreenModal(const ScreenWrapper& wrapper) const
 {
-    // TODO: 当前未使用，后续可统一通过此方法查询屏幕模态状态
     return wrapper.modal;
+}
+
+ScreenChangeInfo ScreenStackWidget::_buildChangeInfo() const
+{
+    ScreenChangeInfo info;
+    if (m_screens.empty()) {
+        info.newScreen = nullptr;
+        info.newIScreen = nullptr;
+    } else {
+        const auto& wrapper = m_screens.back();
+        if (wrapper.isWidgetScreen()) {
+            info.newScreen = std::get<std::unique_ptr<Screen>>(wrapper.item).get();
+            info.newIScreen = nullptr;
+        } else {
+            info.newScreen = nullptr;
+            info.newIScreen = std::get<std::unique_ptr<IScreen>>(wrapper.item).get();
+        }
+    }
+    info.stackCleared = false;
+    return info;
+}
+
+void ScreenStackWidget::_notifyScreenChange(const std::string& openedScreenId, const std::string& closedScreenId)
+{
+    // 触发回调
+    if (m_onScreenChange) {
+        m_onScreenChange(_buildChangeInfo());
+    }
+
+    // 发布 EventBus 事件
+    auto& bus = kagero::event::EventBus::instance();
+
+    if (!openedScreenId.empty()) {
+        bus.publish(kagero::event::ScreenOpenEvent(openedScreenId));
+    }
+
+    if (!closedScreenId.empty()) {
+        bus.publish(kagero::event::ScreenCloseEvent(closedScreenId));
+    }
+
+    // 总是发布切换事件
+    std::string toId;
+    if (!m_screens.empty()) {
+        const auto& wrapper = m_screens.back();
+        if (wrapper.isWidgetScreen()) {
+            auto* s = std::get<std::unique_ptr<Screen>>(wrapper.item).get();
+            toId = s ? s->id() : "";
+        } else {
+            auto* s = std::get<std::unique_ptr<IScreen>>(wrapper.item).get();
+            toId = s ? s->getTitle() : "";
+        }
+    }
+
+    std::string fromId = !closedScreenId.empty() ? closedScreenId : "";
+    // 对于 push 操作，fromId 是之前的栈顶（现在已成为第二层）
+    // 对于 push 操作且 openedScreenId 非空时，fromId 为空，表示从"无屏幕"或"底层屏幕"切换
+    bus.publish(kagero::event::ScreenChangeEvent(fromId, toId));
 }
 
 void ScreenStackWidget::paint(kagero::widget::PaintContext& ctx)
