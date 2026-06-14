@@ -33,6 +33,8 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/blocks/CauldronBlock.hpp"
+#include "common/world/block/registry/BuildingBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include "common/world/fluid/Fluids.hpp"
@@ -543,8 +545,6 @@ std::optional<BlockPos> PointedDripstoneBlock::findTip(
 std::optional<BlockPos> PointedDripstoneBlock::findFillableCauldronBelow(
     IWorld& world, const BlockPos& tipPos, const fluid::Fluid& fluid)
 {
-    MC_UNUSED(fluid);
-
     BlockPosMutable mutablePos(tipPos.x, tipPos.y, tipPos.z);
 
     for (i32 i = 0; i < MAX_SEARCH_LENGTH_BETWEEN_TIP_AND_CAULDRON; i++) {
@@ -558,9 +558,15 @@ std::optional<BlockPos> PointedDripstoneBlock::findFillableCauldronBelow(
             break;
         }
 
-        // 检查是否为炼药锅
-        // TODO: 当炼药锅系统完善后，检查是否可以接收该流体
-        // 当前简化实现：不处理炼药锅填充
+        // MC 1.21.11: 检查是否为可接收滴水的炼药锅
+        // 当前仅支持水炼药锅（CauldronBlock），岩浆炼药锅尚未实现
+        if (state->is(block_registry::BuildingBlocks::CAULDRON)) {
+            // 水可以滴入未满的炼药锅
+            if (fluid.isIn(fluid::FluidTags::WATER()) && !CauldronBlock::isFull(*state)) {
+                return mutablePos.toImmutable();
+            }
+            // TODO: 岩浆可以滴入岩浆炼药锅（当 LavaCauldronBlock 实现后）
+        }
 
         // 检查是否可以穿过
         if (!canDripThrough(world, mutablePos.toImmutable(), state)) {
@@ -717,24 +723,8 @@ void PointedDripstoneBlock::growStalagmiteBelow(IWorld& world, const BlockPos& t
 void PointedDripstoneBlock::growStalactiteOrStalagmiteIfPossible(
     const BlockState& state, IWorld& world, const BlockPos& pos, math::IRandom& random)
 {
-    // 检查上方1格是滴水石块，上方2格是水源
-    const BlockState* aboveState = world.getBlockState(pos.up());
-    const BlockState* aboveAboveState = world.getBlockState(pos.up(2));
-
-    // canGrow: 上方1格是 DRIPSTONE_BLOCK，上方2格是水源
-    if (aboveState == nullptr || !aboveState->is(VanillaBlocks::DRIPSTONE_BLOCK)) {
-        return;
-    }
-
-    // 检查上方2格是否为水源
-    if (aboveAboveState == nullptr) {
-        return;
-    }
-    // 检查水源
-    const fluid::FluidState* aboveFluid = world.getFluidState(pos.up(2));
-    bool isWaterSource =
-        (aboveFluid != nullptr && aboveFluid->isSource() && aboveFluid->getFluid().isIn(fluid::FluidTags::WATER()));
-    if (!isWaterSource) {
+    // 检查生长条件：上方1格是滴水石块，上方2格是水源
+    if (!canGrow(world, pos)) {
         return;
     }
 
