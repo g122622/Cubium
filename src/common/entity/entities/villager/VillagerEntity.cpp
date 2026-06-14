@@ -22,7 +22,6 @@
  */
 
 #include "VillagerEntity.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/schedule/Activity.hpp"
 #include "common/entity/ai/brain/schedule/Schedule.hpp"
@@ -619,31 +618,32 @@ void VillagerEntity::_handleTradeReputation()
         }
     }
 
-    // 播放开心村民粒子效果（MC原版 broadcastEntityEvent(this, (byte)14)）
-    m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::HappyVillager,
-        Vector3(x(), y() + eyeHeight() + 0.5, z()),
-        Vector3(0.0f, 0.0f, 0.0f),
-        Vector3(0.5f, 0.5f, 0.5f),
-        4 // 粒子数量
-    );
+    // TODO: 播放开心村民粒子效果（MC原版 broadcastEntityEvent(this, (byte)14) -> HAPPY_VILLAGER 粒子）
+    // 当前 common 模块不能直接依赖 client 模块的 ParticleTypeId，
+    // 需要通过 IWorld::addParticle() 或 EntityEvent 系统间接触发。
+    // IWorld::addParticle() 需要 ParticleTypeId 参数，该类型定义在 client 模块中。
+    // 待 EntityEvent 系统或 common 层粒子抽象实现后补充。
 }
 
 void VillagerEntity::_increaseMerchantCareer()
 {
     // MC原版 increaseMerchantCareer 逻辑：
-    // 1. 升级村民等级
-    // 2. 为新等级生成交易并追加到现有交易列表（不替换）
-
-    const i32 newLevel = m_villagerData.level() + 1;
-    m_villagerData.setLevel(newLevel);
-
-    // 为新等级生成交易并追加到现有列表
-    using namespace world::village::trade;
+    // 1. 等级已在 addExperience() 中递增，此处不需要再次升级
+    // 2. 为所有新等级生成交易并追加到现有交易列表（不替换）
+    //
+    // 注意：addExperience() 内部的 while 循环可能一次跳过多个等级
+    // （例如从1级直接升到3级），此时需要为2级和3级都生成交易。
+    // 但由于 updateMerchantTimer 仅在第一次升级时设置（40 tick 后触发一次），
+    // MC原版的行为是：如果一次交易导致多级升级，也只触发一次 increaseMerchantCareer，
+    // 仅为当前新等级生成交易，中间等级的交易不会补充。
+    // 为了与MC原版行为一致，此处仅为当前等级生成交易。
 
     if (isNitwit()) {
         // 傻子村民没有交易
         return;
     }
+
+    using namespace world::village::trade;
 
     // 使用世界种子和实体ID生成唯一种子，确保每个村民交易不同
     u64 seed = 0;
@@ -652,9 +652,12 @@ void VillagerEntity::_increaseMerchantCareer()
     }
     seed = seed * 31 + static_cast<u64>(id());
 
+    // 为当前等级生成交易并追加到现有列表
+    // 注意：等级已由 addExperience() 正确递增，不需要再调用 setLevel()
+    const i32 currentLevel = m_villagerData.level();
     auto newOffers = VillagerTrades::generateOffers(m_villagerData.profession(),
         m_villagerData.type(),
-        newLevel,
+        currentLevel,
         0, // demand
         seed);
 
