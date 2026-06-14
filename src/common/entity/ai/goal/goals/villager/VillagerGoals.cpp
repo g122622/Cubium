@@ -35,14 +35,26 @@
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/entity/interfaces/IMob.hpp"
 #include "common/entity/inventory/IInventory.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/blocks/functional/ComposterBlock.hpp"
+#include "common/world/block/blocks/agricultural/CropBlock.hpp"
+#include "common/world/block/blocks/agricultural/FarmlandBlock.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include "common/world/village/poi/PointOfInterestType.hpp"
@@ -803,6 +815,9 @@ void GatherItemsGoal::_pickupItem()
 // ============================================================================
 // FarmerWorkGoal - 农民工作目标
 // ============================================================================
+//
+// 实现参考：MC 1.21.11 HarvestFarmland + UseBonemeal + WorkAtComposter
+// 农民在耕地区域执行：收获成熟作物、种植种子、堆肥多余种子
 
 FarmerWorkGoal::FarmerWorkGoal(VillagerEntity* villager)
     : WorkAtJobSiteGoal(villager)
@@ -835,47 +850,414 @@ void FarmerWorkGoal::_tryHarvest()
 {
     if (!m_villager || !m_villager->world()) return;
 
-    // TODO: 查找成熟作物并收获
+    // 在当前工作区域搜索成熟作物
+    IWorld* world = m_villager->world();
+    i32 cx = static_cast<i32>(m_villager->x());
+    i32 cy = static_cast<i32>(m_villager->y());
+    i32 cz = static_cast<i32>(m_villager->z());
+
+    // MC 原版搜索 3x3x3 区域
+    for (i32 dx = -FARMER_SEARCH_RANGE; dx <= FARMER_SEARCH_RANGE; ++dx) {
+        for (i32 dy = -FARMER_SEARCH_RANGE; dy <= FARMER_SEARCH_RANGE; ++dy) {
+            for (i32 dz = -FARMER_SEARCH_RANGE; dz <= FARMER_SEARCH_RANGE; ++dz) {
+                BlockPos checkPos(cx + dx, cy + dy, cz + dz);
+
+                if (!_isCropMatureAt(checkPos)) continue;
+
+                // 收获成熟作物：将作物方块设为空气，由方块自身的 drop 逻辑处理掉落物
+                // MC 原版使用 destroyBlock，这里设为空气即可（作物破坏后会自然掉落）
+                const BlockState* cropState = world->getBlockState(checkPos);
+                if (!cropState) continue;
+
+                const Block& block = cropState->getBlock();
+                auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(&block);
+                if (!cropBlock) continue;
+
+                // 收获掉落物处理：成熟时掉落作物和种子
+                u32 cropItemId = cropBlock->getCropItem();
+                u32 seedItemId = cropBlock->getSeedItem();
+
+                // 计算掉落数量：成熟时种子掉落 1+0~2（小麦额外 0~3 种子）
+                math::Random rng = m_villager->getRandom();
+                i32 seedCount = 1 + rng.nextInt(3); // 1~3 颗种子
+
+                // 将作物产品放入村民背包
+                if (cropItemId != 0) {
+                    const Item* cropItem = Item::getItem(static_cast<ItemId>(cropItemId));
+                    if (cropItem) {
+                        ItemStack cropStack(cropItem, 1);
+                        IInventory& inventory = m_villager->inventory();
+                        ItemStack remaining = inventory.addItem(cropStack);
+                        // 装不下的掉落在地上
+                        if (!remaining.isEmpty()) {
+                            ItemDropHelper::spawnItemEntity(world,
+                                remaining,
+                                checkPos.x + 0.5,
+                                static_cast<f64>(checkPos.y),
+                                checkPos.z + 0.5,
+                                rng);
+                        }
+                    }
+                }
+
+                // 种子掉落
+                if (seedItemId != 0) {
+                    const Item* seedItem = Item::getItem(static_cast<ItemId>(seedItemId));
+                    if (seedItem) {
+                        ItemStack seedStack(seedItem, seedCount);
+                        IInventory& inventory = m_villager->inventory();
+                        ItemStack remaining = inventory.addItem(seedStack);
+                        // 装不下的掉落在地上
+                        if (!remaining.isEmpty()) {
+                            ItemDropHelper::spawnItemEntity(world,
+                                remaining,
+                                checkPos.x + 0.5,
+                                static_cast<f64>(checkPos.y),
+                                checkPos.z + 0.5,
+                                rng);
+                        }
+                    }
+                }
+
+                // 将作物方块设为空气
+                const BlockState* airState = BlockRegistry::instance().airState();
+                if (airState) {
+                    world->setBlockState(checkPos, airState, 2);
+                }
+
+                // 收获一个就返回，避免一次收获太多
+                return;
+            }
+        }
+    }
 }
 
 void FarmerWorkGoal::_tryPlant()
 {
     if (!m_villager || !m_villager->world()) return;
 
-    // TODO: 在农田上种植作物
+    // 检查是否有可种植的种子
+    if (!_hasFarmSeeds()) return;
+
+    IWorld* world = m_villager->world();
+    i32 cx = static_cast<i32>(m_villager->x());
+    i32 cy = static_cast<i32>(m_villager->y());
+    i32 cz = static_cast<i32>(m_villager->z());
+
+    // MC 原版搜索 3x3x3 区域
+    for (i32 dx = -FARMER_SEARCH_RANGE; dx <= FARMER_SEARCH_RANGE; ++dx) {
+        for (i32 dy = -FARMER_SEARCH_RANGE; dy <= FARMER_SEARCH_RANGE; ++dy) {
+            for (i32 dz = -FARMER_SEARCH_RANGE; dz <= FARMER_SEARCH_RANGE; ++dz) {
+                BlockPos checkPos(cx + dx, cy + dy, cz + dz);
+
+                if (!_canPlantAt(checkPos)) continue;
+
+                // 找到可种植位置，尝试从背包中获取种子并种植
+                IInventory& inventory = m_villager->inventory();
+                for (i32 slot = 0; slot < inventory.getContainerSize(); ++slot) {
+                    ItemStack stack = inventory.getItem(slot);
+                    if (stack.isEmpty()) continue;
+
+                    const Item* item = stack.getItem();
+                    if (!item) continue;
+
+                    // 检查该物品是否是方块物品（种子放置后变成作物方块）
+                    const Block* block = BlockItemRegistry::instance().getBlock(item->itemId());
+                    if (!block) continue;
+
+                    // 检查方块是否是作物（继承自 CropBlock）
+                    auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(block);
+                    if (!cropBlock) continue;
+
+                    // 种植作物：放置默认状态（age=0）
+                    const BlockState& plantState = cropBlock->defaultState();
+                    world->setBlockState(checkPos, &plantState, 2);
+
+                    // 播放种植音效
+                    world->playSound(ResourceLocation("minecraft:block.crop_planted"),
+                        sound::SoundCategory::Blocks,
+                        Vector3(static_cast<f64>(checkPos.x) + 0.5,
+                            static_cast<f64>(checkPos.y),
+                            static_cast<f64>(checkPos.z) + 0.5),
+                        1.0f,
+                        1.0f);
+
+                    // 消耗一个种子
+                    inventory.removeItem(slot, 1);
+
+                    // 种植一个就返回
+                    return;
+                }
+            }
+        }
+    }
 }
 
 void FarmerWorkGoal::_tryCompost()
 {
     if (!m_villager) return;
 
-    // TODO: 使用堆肥桶
+    IWorld* world = m_villager->world();
+    if (!world) return;
+
+    // 查找附近的堆肥桶（农民的工作站点就是堆肥桶）
+    auto* villageManager = world->villageManager();
+    if (!villageManager) return;
+
+    auto& poiStorage = villageManager->getPOIStorage();
+    BlockPos villagerPos(
+        static_cast<i32>(m_villager->x()), static_cast<i32>(m_villager->y()), static_cast<i32>(m_villager->z()));
+
+    // 搜索最近的堆肥桶
+    using namespace world::village::poi;
+    auto composterPos = poiStorage.findNearestFree(villagerPos, PointOfInterestType::Composter, 4.0f);
+
+    if (!composterPos.has_value()) return;
+
+    BlockPos pos = composterPos.value();
+
+    // 检查堆肥桶方块
+    const BlockState* state = world->getBlockState(pos);
+    if (!state) return;
+
+    // 确认是堆肥桶
+    auto* composter = dynamic_cast<const blocks::ComposterBlock*>(&state->getBlock());
+    if (!composter) return;
+
+    i32 level = blocks::ComposterBlock::getLevel(*state);
+
+    // 如果堆肥桶已满（等级8），先取出骨粉
+    if (level >= 8) {
+        // MC 原版：满堆肥桶取出骨粉
+        auto newState = blocks::ComposterBlock::empty(*world, pos, *const_cast<BlockState*>(state));
+        // 将骨粉加入村民背包
+        const Item* boneMeal = Items::BONE_MEAL;
+        if (boneMeal) {
+            ItemStack boneMealStack(boneMeal, 1);
+            IInventory& inventory = m_villager->inventory();
+            ItemStack remaining = inventory.addItem(boneMealStack);
+            if (!remaining.isEmpty()) {
+                // 装不下就丢在地上
+                math::Random rng = m_villager->getRandom();
+                ItemDropHelper::spawnItemEntity(world,
+                    remaining,
+                    m_villager->x(),
+                    m_villager->y() + m_villager->eyeHeight() - 0.3,
+                    m_villager->z(),
+                    rng);
+            }
+        }
+        return;
+    }
+
+    // 尝试将多余的种子堆肥
+    // MC 原版 WorkAtComposter 只堆肥小麦种子和甜菜种子
+    IInventory& inventory = m_villager->inventory();
+    static const Item* compostableItems[] = {Items::WHEAT_SEEDS, Items::BEETROOT_SEEDS};
+
+    for (i32 slot = 0; slot < inventory.getContainerSize(); ++slot) {
+        ItemStack stack = inventory.getItem(slot);
+        if (stack.isEmpty()) continue;
+
+        const Item* item = stack.getItem();
+        if (!item) continue;
+
+        // 检查是否是可堆肥物品
+        bool isCompostableItem = false;
+        for (const Item* compostable : compostableItems) {
+            if (item == compostable) {
+                isCompostableItem = true;
+                break;
+            }
+        }
+        if (!isCompostableItem) continue;
+
+        // MC 原版：保留10个种子，多余的（超过10个的部分，最多20个）用于堆肥
+        i32 count = stack.getCount();
+        if (count <= 10) continue;
+
+        i32 compostCount = std::min(count - 10, 20);
+
+        // 尝试堆肥
+        for (i32 i = 0; i < compostCount; ++i) {
+            auto newState = blocks::ComposterBlock::attemptCompost(
+                *state, *world, pos, *const_cast<Block*>(&state->getBlock()), item->itemId());
+
+            // 检查堆肥是否成功（等级是否提升）
+            i32 newLevel = blocks::ComposterBlock::getLevel(newState);
+            if (newLevel > level) {
+                level = newLevel;
+                // 更新当前状态
+                state = world->getBlockState(pos);
+                if (!state) break;
+
+                // 等级达到7时停止（即将完成）
+                if (level >= 7) {
+                    // 从背包移除已堆肥的种子数量
+                    i32 consumed = i + 1;
+                    inventory.removeItem(slot, consumed);
+                    return;
+                }
+            }
+        }
+
+        // 从背包移除已堆肥的种子数量
+        inventory.removeItem(slot, compostCount);
+        return;
+    }
 }
 
 std::optional<BlockPos> FarmerWorkGoal::_findFarmland() const
 {
     if (!m_villager || !m_villager->world()) return std::nullopt;
 
-    // TODO: 搜索附近的农田
-    return std::nullopt;
+    IWorld* world = m_villager->world();
+    i32 cx = static_cast<i32>(m_villager->x());
+    i32 cy = static_cast<i32>(m_villager->y());
+    i32 cz = static_cast<i32>(m_villager->z());
+
+    std::optional<BlockPos> result;
+    i64 closestDistSq = std::numeric_limits<i64>::max();
+
+    // MC 原版搜索 3x3x3 区域
+    for (i32 dx = -FARMER_SEARCH_RANGE; dx <= FARMER_SEARCH_RANGE; ++dx) {
+        for (i32 dy = -FARMER_SEARCH_RANGE; dy <= FARMER_SEARCH_RANGE; ++dy) {
+            for (i32 dz = -FARMER_SEARCH_RANGE; dz <= FARMER_SEARCH_RANGE; ++dz) {
+                BlockPos checkPos(cx + dx, cy + dy, cz + dz);
+                const BlockState* state = world->getBlockState(checkPos);
+                if (!state) continue;
+
+                // 检查是否是耕地
+                if (!state->is(VanillaBlocks::FARMLAND)) continue;
+
+                i64 distSq = static_cast<i64>(dx * dx + dy * dy + dz * dz);
+                if (distSq < closestDistSq) {
+                    closestDistSq = distSq;
+                    result = checkPos;
+                }
+            }
+        }
+    }
+
+    return result;
 }
 
 bool FarmerWorkGoal::_isCropMature(BlockPos pos) const
 {
     if (!m_villager || !m_villager->world()) return false;
 
-    // TODO: 检查作物是否成熟
-    (void)pos;
-    return false;
+    return _isCropMatureAt(pos);
 }
 
 bool FarmerWorkGoal::_canPlant(BlockPos pos) const
 {
     if (!m_villager || !m_villager->world()) return false;
 
-    // TODO: 检查是否可以种植
-    (void)pos;
+    return _canPlantAt(pos);
+}
+
+bool FarmerWorkGoal::_hasFarmSeeds() const
+{
+    if (!m_villager) return false;
+
+    IInventory& inventory = m_villager->inventory();
+
+    // MC 原版 VILLAGER_PLANTABLE_SEEDS 标签包含的物品：
+    // 小麦种子、胡萝卜、马铃薯、甜菜种子
+    static const Item* plantableSeeds[] = {
+        Items::WHEAT_SEEDS,
+        Items::CARROT,
+        Items::POTATO,
+        Items::BEETROOT_SEEDS,
+    };
+
+    for (i32 slot = 0; slot < inventory.getContainerSize(); ++slot) {
+        ItemStack stack = inventory.getItem(slot);
+        if (stack.isEmpty()) continue;
+
+        const Item* item = stack.getItem();
+        if (!item) continue;
+
+        for (const Item* seed : plantableSeeds) {
+            if (item == seed) return true;
+        }
+    }
+
     return false;
+}
+
+bool FarmerWorkGoal::_isCropMatureAt(const BlockPos& pos) const
+{
+    IWorld* world = m_villager->world();
+    if (!world) return false;
+
+    const BlockState* state = world->getBlockState(pos);
+    if (!state) return false;
+
+    // 检查是否是 CropBlock 且已成熟
+    const Block& block = state->getBlock();
+    auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(&block);
+    if (!cropBlock) return false;
+
+    return cropBlock->isMaxAge(*state);
+}
+
+bool FarmerWorkGoal::_canPlantAt(const BlockPos& pos) const
+{
+    IWorld* world = m_villager->world();
+    if (!world) return false;
+
+    // 检查目标位置是否为空气或可替换
+    const BlockState* state = world->getBlockState(pos);
+    if (!state) return false;
+    if (!state->isAir() && !state->canBeReplaced()) return false;
+
+    // 检查下方是否是耕地
+    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    const BlockState* belowState = world->getBlockState(belowPos);
+    if (!belowState) return false;
+
+    return belowState->is(VanillaBlocks::FARMLAND);
+}
+
+bool FarmerWorkGoal::_isValidFarmPos(const BlockPos& pos) const
+{
+    // 对应 MC HarvestFarmland.validPos()：
+    // 1. 位置是 CropBlock 且已成熟（可收获）
+    // 2. 位置是空气且下方是耕地（可种植）
+    return _isCropMatureAt(pos) || _canPlantAt(pos);
+}
+
+std::optional<BlockPos> FarmerWorkGoal::_pickValidFarmland() const
+{
+    if (!m_villager || !m_villager->world()) return std::nullopt;
+
+    IWorld* world = m_villager->world();
+    i32 cx = static_cast<i32>(m_villager->x());
+    i32 cy = static_cast<i32>(m_villager->y());
+    i32 cz = static_cast<i32>(m_villager->z());
+
+    // MC 原版使用蓄水池抽样算法随机选取有效位置
+    i32 count = 0;
+    std::optional<BlockPos> result;
+
+    math::Random rng = m_villager->getRandom();
+
+    for (i32 dx = -FARMER_SEARCH_RANGE; dx <= FARMER_SEARCH_RANGE; ++dx) {
+        for (i32 dy = -FARMER_SEARCH_RANGE; dy <= FARMER_SEARCH_RANGE; ++dy) {
+            for (i32 dz = -FARMER_SEARCH_RANGE; dz <= FARMER_SEARCH_RANGE; ++dz) {
+                BlockPos checkPos(cx + dx, cy + dy, cz + dz);
+                if (_isValidFarmPos(checkPos)) {
+                    // 蓄水池抽样：以 1/(count+1) 的概率替换当前结果
+                    if (rng.nextInt(++count) == 0) {
+                        result = checkPos;
+                    }
+                }
+            }
+        }
+    }
+
+    return result;
 }
 
 // ============================================================================

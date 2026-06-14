@@ -301,6 +301,38 @@ private:
     i32 m_farmerWorkTicks = 0;
     BlockPos m_currentFarmland;
     static constexpr i32 FARMER_WORK_INTERVAL = 20; // 工作间隔
+
+    // MC 原版农民搜索范围（3x3x3 区域）
+    static constexpr i32 FARMER_SEARCH_RANGE = 1; // 半径1格（即3x3x3）
+
+    /**
+     * @brief 检查村民是否有可种植的种子
+     *
+     * 遍历村民背包，查找小麦种子、胡萝卜、马铃薯、甜菜种子等可种植物品
+     */
+    [[nodiscard]] bool _hasFarmSeeds() const;
+
+    /**
+     * @brief 检查指定位置的方块是否是成熟的作物
+     */
+    [[nodiscard]] bool _isCropMatureAt(const BlockPos& pos) const;
+
+    /**
+     * @brief 检查指定位置上方是否可以种植作物（空气+下方耕地）
+     */
+    [[nodiscard]] bool _canPlantAt(const BlockPos& pos) const;
+
+    /**
+     * @brief 判断方块位置是否有效（成熟作物 或 空地+下方耕地）
+     *
+     * 对应 MC HarvestFarmland.validPos() 的逻辑
+     */
+    [[nodiscard]] bool _isValidFarmPos(const BlockPos& pos) const;
+
+    /**
+     * @brief 从有效农田位置列表中随机选取一个
+     */
+    [[nodiscard]] std::optional<BlockPos> _pickValidFarmland() const;
 };
 
 /**
