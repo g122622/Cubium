@@ -244,6 +244,10 @@ void SkinCache::_loadMetadata()
 void SkinCache::_saveMetadata()
 {
     try {
+        // TODO: file_time_type 的 epoch 在不同平台可能不同（Windows 使用 1601-01-01，
+        // Unix 使用 1970-01-01）。当前实现假设 file_time_type::duration 可以转换为秒，
+        // 这在大多数平台上可行，但在极端跨平台场景下可能出现偏差。
+        // 如需更强的跨平台兼容性，应使用 last_write_time 与 clock::now() 的差值来计算。
         auto toEpochSeconds = [](const std::filesystem::file_time_type& ft) -> int64_t {
             auto secs = std::chrono::duration_cast<std::chrono::seconds>(ft.time_since_epoch());
             return secs.count();

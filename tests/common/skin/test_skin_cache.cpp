@@ -135,6 +135,106 @@ TEST_F(SkinCacheTest, ClearAll)
     EXPECT_EQ(0u, cache_->cacheCount());
 }
 
+TEST_F(SkinCacheTest, MetadataPersistence)
+{
+    // 初始化并保存皮肤数据
+    auto initResult = cache_->initialize();
+    ASSERT_TRUE(initResult.success());
+
+    std::string skinHash = "sha1_abcdef1234567890";
+    std::string capeHash = "sha1_cape0987654321ab";
+    std::vector<mc::u8> skinData(1024, 0xCD);
+    std::vector<mc::u8> capeData(512, 0xEF);
+
+    cache_->saveSkin(skinHash, skinData);
+    cache_->saveCape(capeHash, capeData);
+    EXPECT_EQ(2u, cache_->cacheCount());
+
+    // 关闭缓存（会保存元数据）
+    cache_->shutdown();
+    cache_.reset();
+
+    // 重新创建缓存实例并初始化（会从 metadata.json 加载）
+    cache_ = std::make_unique<SkinCache>(testDir_);
+    auto reinitResult = cache_->initialize();
+    ASSERT_TRUE(reinitResult.success());
+
+    // 验证缓存条目数量恢复
+    EXPECT_EQ(2u, cache_->cacheCount());
+
+    // 验证皮肤数据可读取
+    EXPECT_TRUE(cache_->hasSkin(skinHash));
+    auto readSkin = cache_->readSkin(skinHash);
+    EXPECT_TRUE(readSkin.success());
+    EXPECT_EQ(skinData.size(), readSkin.value().size());
+
+    // 验证披风数据可读取
+    EXPECT_TRUE(cache_->hasCape(capeHash));
+    auto readCape = cache_->readCape(capeHash);
+    EXPECT_TRUE(readCape.success());
+    EXPECT_EQ(capeData.size(), readCape.value().size());
+}
+
+TEST_F(SkinCacheTest, MetadataPersistenceWithEmptyCache)
+{
+    // 初始化空缓存
+    auto initResult = cache_->initialize();
+    ASSERT_TRUE(initResult.success());
+    EXPECT_EQ(0u, cache_->cacheCount());
+
+    // 关闭并重新打开
+    cache_->shutdown();
+    cache_.reset();
+
+    cache_ = std::make_unique<SkinCache>(testDir_);
+    auto reinitResult = cache_->initialize();
+    ASSERT_TRUE(reinitResult.success());
+    EXPECT_EQ(0u, cache_->cacheCount());
+}
+
+TEST_F(SkinCacheTest, MetadataPersistenceWithCorruptJson)
+{
+    // 初始化并添加一个皮肤
+    auto initResult = cache_->initialize();
+    ASSERT_TRUE(initResult.success());
+
+    cache_->saveSkin("hash1", std::vector<mc::u8>(100, 0xAA));
+    cache_->shutdown();
+    cache_.reset();
+
+    // 破坏 metadata.json 文件
+    std::string metadataPath = testDir_ + "/metadata.json";
+    {
+        std::ofstream file(metadataPath, std::ios::trunc);
+        file << "{ this is not valid JSON }}}";
+    }
+
+    // 重新初始化，应能从损坏的元数据中恢复（不崩溃）
+    cache_ = std::make_unique<SkinCache>(testDir_);
+    auto reinitResult = cache_->initialize();
+    ASSERT_TRUE(reinitResult.success());
+
+    // 文件仍然存在于磁盘，扫描应能恢复
+    EXPECT_TRUE(cache_->hasSkin("hash1"));
+}
+
+TEST_F(SkinCacheTest, CleanExpiredRemovesEntry)
+{
+    auto initResult = cache_->initialize();
+    ASSERT_TRUE(initResult.success());
+
+    // 保存一个皮肤
+    cache_->saveSkin("expired_hash", std::vector<mc::u8>(100, 0xBB));
+    EXPECT_TRUE(cache_->hasSkin("expired_hash"));
+
+    // 清理超过 0 秒的缓存（立即过期）
+    cache_->cleanExpired(std::chrono::seconds(0));
+
+    // 皮肤应被清理
+    EXPECT_FALSE(cache_->hasSkin("expired_hash"));
+    EXPECT_EQ(0u, cache_->cacheCount());
+}
+
 // ============================================================================
 // PlayerSkinInfo 测试
 // ============================================================================

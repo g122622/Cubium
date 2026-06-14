@@ -162,10 +162,14 @@ std::string HttpSkinLoader::_extractHashFromUrl(const std::string& url) const
 
 Result<std::vector<u8>> HttpSkinLoader::_validateAndConvertSkin(const std::vector<u8>& pngData)
 {
-    // 与 FileSkinLoader 相同的验证逻辑
-    // 简化实现：假设数据有效
+    // TODO: 当 HTTP 下载实现后，需要与 FileSkinLoader 保持一致的验证逻辑：
+    // 1. 使用 stbi_load_from_memory 解码 PNG
+    // 2. 验证尺寸为 64x64 或 64x32
+    // 3. 如果是 64x32，转换为 64x64
+    // 4. 使用 stbi_write_png_to_func 重新编码为 PNG
+    // 当前 _httpGet 尚未实现，此方法暂时不会被调用
 
-    if (pngData.size() < 64 * 32 * 4) {
+    if (pngData.size() < 64) {
         return Error(ErrorCode::InvalidData, "Skin data too small");
     }
 
