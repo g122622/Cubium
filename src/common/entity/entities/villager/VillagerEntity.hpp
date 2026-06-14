@@ -319,6 +319,12 @@ public:
      */
     [[nodiscard]] bool isNightTime() const;
 
+    /**
+     * @brief 检查是否在工作时间
+     * @return 是否是工作时间
+     */
+    [[nodiscard]] bool isWorkTime() const;
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;

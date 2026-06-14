@@ -1,35 +1,36 @@
 # 村民AI目标 (Villager AI Goals)
 
-本目录实现村民特有的AI目标系统。
+本目录实现村民特有的AI目标系统。每个目标类独立一个文件，共享辅助函数放在 `VillagerGoalUtils` 中。
 
 ## 目录结构
 
 ```
 villager/
-├── VillagerGoals.hpp      # 村民AI目标头文件（定义10个目标类）
-├── VillagerGoals.cpp      # 村民AI目标实现（FarmerWorkGoal含收获/种植/堆肥逻辑）
-└── README.md              # 本文档
+├── AvoidHostileGoal.hpp/cpp      # 逃离敌对生物（僵尸、掠夺者等）
+├── CongregateGoal.hpp/cpp        # 聚集互动（流言传播、物品分享）
+├── FarmerWorkGoal.hpp/cpp        # 农民工作（种植、收获、堆肥），继承WorkAtJobSiteGoal
+├── GatherItemsGoal.hpp/cpp       # 收集地面物品
+├── GoToBedGoal.hpp/cpp           # 前往床位导航
+├── LookAtEntitiesGoal.hpp/cpp    # 随机看向附近实体
+├── LookForJobSiteGoal.hpp/cpp    # 无职业村民寻找工作站点
+├── ShareItemsGoal.hpp/cpp        # 农民分享食物给其他村民
+├── SleepAtNightGoal.hpp/cpp      # 夜间寻找床位并睡眠
+├── VillagerBreedGoal.hpp/cpp     # 村民繁殖
+├── VillagerGoalUtils.hpp/cpp     # 共享辅助函数（距离计算、物品抛出等）
+├── WorkAtJobSiteGoal.hpp/cpp     # 工作站点工作（基类，FarmerWorkGoal继承此类）
+└── README.md                     # 本文档
 ```
 
 ## 内部模块关系
 
-本目录包含10个村民专用目标类，继承自 `Goal` 基类：
+本目录包含11个村民专用目标类，继承自 `Goal` 基类：
 
 ```
 Goal (基类)
-├── SleepAtNightGoal      ─┐
-├── GoToBedGoal            │ 夜间睡眠相关
+├── SleepAtNightGoal      ─┐ 夜间睡眠相关
+├── GoToBedGoal            │
 ├── WorkAtJobSiteGoal     ─┼─ 工作相关
 │   └── FarmerWorkGoal    ─┘    (继承WorkAtJobSiteGoal)
-│       ├── _tryHarvest()        收获成熟作物（3x3x3蓄水池抽样）
-│       ├── _tryPlant()          在空耕地上种植种子
-│       ├── _tryCompost()        多余种子堆肥/取出骨粉
-│       ├── _harvestCrop()       收获单个作物（生成掉落物+onBlockRemoved+设为空气）
-│       ├── _hasFarmSeeds()      检查背包是否有可种植种子
-│       ├── _isCropMatureAt()    检查位置是否为成熟作物
-│       ├── _canPlantAt()        检查位置是否可种植（空气+下方耕地）
-│       ├── _isValidFarmPos()    判断是否为有效农田位置
-│       └── _pickValidFarmland() 蓄水池抽样选取有效位置
 ├── LookForJobSiteGoal    ─── 就业相关
 ├── GatherItemsGoal       ─── 物品收集
 ├── AvoidHostileGoal      ─── 安全逃避
@@ -46,7 +47,8 @@ Goal (基类)
 
 **依赖以下模块：**
 - `Goal` / `GoalSelector` - AI目标基类和选择器
-- `VillagerEntity` - 村民实体，提供状态查询和行为接口
+- `VillagerEntity` - 村民实体，提供状态查询和行为接口（含 `isNightTime()`、`isWorkTime()`）
+- `VillagerGoalUtils` - 村民目标共享辅助函数（`isWithinDistance`、`distanceToBlockCenter`、`throwHalfStackToTarget`）
 - `IWorld` - 世界接口，获取时间、方块状态
 - `PathNavigator` - 寻路导航（通过Entity间接使用）
 - `EntityUtils` - 实体工具类（查找附近实体）
@@ -64,35 +66,6 @@ Goal (基类)
 - `BlockRegistry` - 方块注册表（获取空气方块状态）
 - `BlockTags` - 方块标签系统（可替换方块判断）
 
-## 互斥标志
-
-| 目标 | 互斥标志 |
-|------|----------|
-| SleepAtNightGoal | Move, Look |
-| WorkAtJobSiteGoal / FarmerWorkGoal | Move, Look |
-| LookForJobSiteGoal | Move |
-| GatherItemsGoal | Move |
-| AvoidHostileGoal | Move |
-| GoToBedGoal | Move |
-| VillagerBreedGoal | Move, Look |
-| CongregateGoal | Move, Look |
-| LookAtEntitiesGoal | Look |
-| ShareItemsGoal | Move, Look |
-
-## 食物分享机制
-
-ShareItemsGoal 和 CongregateGoal::_shareItems() 使用相同的食物分享逻辑：
-
-**分享条件**（优先级从高到低）：
-1. 食物分享：村民有食物过剩（`hasExcessFood()`，食物点数 >= 24）时抛出一半食物给目标
-2. 小麦分享：农民有超过半组小麦时（>32）抛出一半小麦给目标
-
-**抛出数量规则**（throwHalfStackToTarget）：
-- 库存中某物品 > maxStackSize/2（通常 >32）：抛出 count/2 个
-- 库存中某物品 > 24 但不超过半组：保留24个，抛出剩余
-
-**物品实体生成**：创建 ItemEntity 抛向目标方向，设置 40 tick 拾取延迟和所有者标识（防止村民捡回自己扔出的物品）。
-
 ## 容易踩的坑
 
 1. **SleepAtNightGoal 与 GoToBedGoal 的区别**：两者功能相似但触发条件略有不同。`SleepAtNightGoal` 侧重夜间睡眠逻辑，`GoToBedGoal` 侧重导航到床位。实际使用时注意避免重复注册导致冲突。
@@ -107,10 +80,12 @@ ShareItemsGoal 和 CongregateGoal::_shareItems() 使用相同的食物分享逻�
 
 6. **FarmerWorkGoal 收获逻辑**：收获作物时不使用 `destroyBlock`（需要 `ServerWorld`），而是手动生成掉落物（通过 `CropBlock::getCropItem()/getSeedItem()` 获取物品ID，放入背包或丢在地上），然后调用 `onBlockRemoved()` 通知方块移除回调，最后将方块设为空气。
 
-7. **FarmerWorkGoal 种植逻辑**：种植时通过 `_getCropBlockForSeed()` 将种子物品映射为作物方块（小麦种子→`VanillaBlocks::WHEAT`，胡萝卜→`VanillaBlocks::CARROTS`，马铃薯→`VanillaBlocks::POTATOES`，甜菜种子→`VanillaBlocks::BEETROOTS`），然后放置默认状态（age=0）。`_hasFarmSeeds()` 检查小麦种子、胡萝卜、马铃薯、甜菜种子。作物方块已在 `AgriculturalBlocks` 中注册到 `BlockRegistry` 和 `VanillaBlocks`，种子物品到作物方块的映射通过 `VanillaBlocks` 静态引用直接访问，无需运行时 `ResourceLocation` 查找。
+7. **FarmerWorkGoal 种植逻辑**：种植时通过 `_getCropBlockForSeed()` 将种子物品映射为作物方块（小麦种子→`VanillaBlocks::WHEAT`，胡萝卜→`VanillaBlocks::CARROTS`，马铃薯→`VanillaBlocks::POTATOES`，甜菜种子→`VanillaBlocks::BEETROOTS`），然后放置默认状态（age=0）。
 
 8. **FarmerWorkGoal 堆肥逻辑**：堆肥只处理小麦种子和甜菜种子（保留10个，多余的最多20个用于堆肥）。使用 `ComposterBlock::attemptCompost()` 逐个尝试堆肥。满桶时使用 `ComposterBlock::empty()` 取出骨粉。
 
-9. **时间判断常量**：夜间时间范围 `12542-23459` tick，工作时间范围 `2000-9000` tick。这些是 MC 1.16.5 的固定值，不要硬编码在其他地方。
+9. **时间判断**：夜间时间范围 `12542-23459` tick，工作时间范围 `2000-9000` tick。这些常量已统一到 `VillagerEntity::isNightTime()` 和 `VillagerEntity::isWorkTime()` 方法中。
 
 10. **Brain 记忆类型**：使用 `MemoryModuleTypes::HOME` 和 `MemoryModuleTypes::MEETING_POINT` 时需确保 Brain 系统已正确初始化这些记忆模块。
+
+11. **VillagerGoalUtils 共享函数**：`isWithinDistance()` 和 `distanceToBlockCenter()` 被4个目标类共享（SleepAtNightGoal、WorkAtJobSiteGoal、GoToBedGoal、LookForJobSiteGoal），`throwHalfStackToTarget()` 被2个目标类共享（CongregateGoal、ShareItemsGoal）。修改这些函数时需注意影响范围。

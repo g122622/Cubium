@@ -32,7 +32,16 @@
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "common/entity/ai/goal/goals/special/WanderingTraderGoals.hpp"
-#include "common/entity/ai/goal/goals/villager/VillagerGoals.hpp"
+#include "common/entity/ai/goal/goals/villager/AvoidHostileGoal.hpp"
+#include "common/entity/ai/goal/goals/villager/CongregateGoal.hpp"
+#include "common/entity/ai/goal/goals/villager/FarmerWorkGoal.hpp"
+#include "common/entity/ai/goal/goals/villager/GatherItemsGoal.hpp"
+#include "common/entity/ai/goal/goals/villager/LookAtEntitiesGoal.hpp"
+#include "common/entity/ai/goal/goals/villager/LookForJobSiteGoal.hpp"
+#include "common/entity/ai/goal/goals/villager/ShareItemsGoal.hpp"
+#include "common/entity/ai/goal/goals/villager/SleepAtNightGoal.hpp"
+#include "common/entity/ai/goal/goals/villager/VillagerBreedGoal.hpp"
+#include "common/entity/ai/goal/goals/villager/WorkAtJobSiteGoal.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityPose.hpp"
 #include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
@@ -484,6 +493,17 @@ bool VillagerEntity::isNightTime() const
     i64 tod = m_world->dayTimeOfDay();
     // 夜间时间：12542 - 23459
     return tod >= 12542 && tod <= 23459;
+}
+
+bool VillagerEntity::isWorkTime() const
+{
+    if (!m_world) {
+        return false;
+    }
+
+    i64 tod = m_world->dayTimeOfDay();
+    // 工作时间：2000 - 9000
+    return tod >= 2000 && tod <= 9000;
 }
 
 void VillagerEntity::updateOffers()

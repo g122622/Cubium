@@ -33,8 +33,8 @@
 //   - RestrictSunGoal    -> RestrictSunGoal.hpp
 //   - ReturnToHomeGoal   -> 已合并到 movement/MovementGoals.hpp (MoveTowardsRestrictionGoal)
 //   - FlyGoal            -> FlyGoal.hpp
-//   - SleepGoal          -> villager/VillagerGoals.hpp (SleepAtNightGoal)
-//   - WorkAtPoiGoal      -> villager/VillagerGoals.hpp (WorkAtJobSiteGoal)
+//   - SleepGoal          -> villager/SleepAtNightGoal.hpp
+//   - WorkAtPoiGoal      -> villager/WorkAtJobSiteGoal.hpp
 //   - TradeWithPlayerGoal -> 由VillagerEntity的交易系统处理
 //   - ShowWaresGoal      -> 由VillagerEntity的交易系统处理
 //

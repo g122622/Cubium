@@ -356,7 +356,18 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/SilverfishGoals.cpp
     entity/ai/goal/goals/AdditionalGoals.cpp
     # Entity - AI - Villager Goals
-    entity/ai/goal/goals/villager/VillagerGoals.cpp
+    entity/ai/goal/goals/villager/AvoidHostileGoal.cpp
+    entity/ai/goal/goals/villager/CongregateGoal.cpp
+    entity/ai/goal/goals/villager/FarmerWorkGoal.cpp
+    entity/ai/goal/goals/villager/GatherItemsGoal.cpp
+    entity/ai/goal/goals/villager/GoToBedGoal.cpp
+    entity/ai/goal/goals/villager/LookAtEntitiesGoal.cpp
+    entity/ai/goal/goals/villager/LookForJobSiteGoal.cpp
+    entity/ai/goal/goals/villager/ShareItemsGoal.cpp
+    entity/ai/goal/goals/villager/SleepAtNightGoal.cpp
+    entity/ai/goal/goals/villager/VillagerBreedGoal.cpp
+    entity/ai/goal/goals/villager/VillagerGoalUtils.cpp
+    entity/ai/goal/goals/villager/WorkAtJobSiteGoal.cpp
     # Entity - AI - Brain System
     entity/ai/brain/memory/MemoryModuleType.cpp
     entity/ai/brain/sensor/Sensors.cpp
