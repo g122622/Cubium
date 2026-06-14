@@ -45,6 +45,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityPose.hpp"
 #include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
+#include "common/entity/experience/ExperienceDropHandler.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -531,12 +532,31 @@ void VillagerEntity::rewardTradeXp(MerchantOffer& offer)
     // 增加村民经验
     addVillagerExperience(offer.getXp());
 
-    // TODO: 生成经验球实体
-    // int xpOrbCount = 3 + getRandom().nextInt(4);
-    // if (shouldIncreaseLevel()) { xpOrbCount += 5; }
-    // if (offer.shouldRewardExp()) {
-    //     world->spawnEntity(new ExperienceOrbEntity(x, y + 0.5, z, xpOrbCount));
-    // }
+    // 记录最后交易的玩家（用于升级时重新补充交易）
+    m_lastTradedPlayer = getTradingPlayer();
+
+    // 生成经验球给玩家
+    if (offer.shouldRewardExp() && m_world) {
+        // 经验球值 = 3 + random(0~3)，即 3~6
+        i32 xpOrbCount = 3 + getRandom().nextInt(4);
+
+        // 如果村民即将升级，额外增加5点经验球值
+        if (shouldIncreaseLevel()) {
+            m_updateMerchantTimer = 40;
+            m_increaseProfessionLevelOnUpdate = true;
+            xpOrbCount += 5;
+        }
+
+        // 在村民位置上方0.5格生成经验球
+        entity::ExperienceDropHandler::spawnExperienceOrbs(m_world, x(), y() + 0.5, z(), xpOrbCount);
+    }
+}
+
+bool VillagerEntity::shouldIncreaseLevel() const
+{
+    const i32 currentLevel = m_villagerData.level();
+    return VillagerData::canLevelUp(currentLevel) &&
+        m_villagerData.experience() >= VillagerData::getExperienceForLevel(currentLevel);
 }
 
 // ============================================================================
@@ -568,6 +588,18 @@ void WanderingTraderEntity::tick()
     // 如果没有交易对象且消失时间到，消失
     if (!isTrading() && canDespawn()) {
         remove();
+    }
+}
+
+void WanderingTraderEntity::rewardTradeXp(MerchantOffer& offer)
+{
+    // 流浪商人没有升级系统，但交易成功时仍会生成经验球给玩家
+    if (offer.shouldRewardExp() && m_world) {
+        // 经验球值 = 3 + random(0~3)，即 3~6
+        i32 xpOrbCount = 3 + getRandom().nextInt(4);
+
+        // 在流浪商人位置上方0.5格生成经验球
+        entity::ExperienceDropHandler::spawnExperienceOrbs(m_world, x(), y() + 0.5, z(), xpOrbCount);
     }
 }
 

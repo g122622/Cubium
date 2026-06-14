@@ -435,20 +435,9 @@ Result<std::shared_ptr<ICriterionInstance>> VillagerTradeTrigger::fromJson(const
 
 void VillagerTradeTrigger::trigger(ServerPlayer& player, const Entity& villager, const ItemStack& item)
 {
-    // TODO: 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
-    // 服务端代码应使用以下方式触发检测：
-    //
-    // 方法：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
-    // #include "server/advancement/TriggerInstantiation.hpp"
-    // auto* trigger = CriterionTriggers::instance().getTrigger<VillagerTradeTrigger>();
-    // trigger->AbstractCriterionTrigger<VillagerTradeTriggerInstance>::trigger(
-    //     *player.getAdvancements(),
-    //     [&villager, &item](const VillagerTradeTriggerInstance& instance) {
-    //         return instance.test(villager, item);
-    //     }
-    // );
-    //
-    // 参考：server/advancement/AdvancementEventHandler.hpp（待实现 onVillagerTrade）
+    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // 服务端代码通过 AdvancementEventHandler::_onVillagerTrade() 触发，
+    // 由 IWorld::onVillagerTrade() -> ServerWorld::onVillagerTrade() -> VillagerTradeEvent 链路触发。
     MC_UNUSED(player);
     MC_UNUSED(villager);
     MC_UNUSED(item);

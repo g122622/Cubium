@@ -177,6 +177,10 @@ public:
         m_bredAnimalsSubscription = event::ServerEventBus::instance().makeSubscription<event::BredAnimalsEvent>(
             [this](const event::BredAnimalsEvent& e) { _onBredAnimals(e); });
 
+        // 订阅村民交易事件
+        m_villagerTradeSubscription = event::ServerEventBus::instance().makeSubscription<event::VillagerTradeEvent>(
+            [this](const event::VillagerTradeEvent& e) { _onVillagerTrade(e); });
+
         // 订阅服务端Tick事件（触发 TickTrigger）
         m_serverTickSubscription = event::ServerEventBus::instance().makeSubscription<event::ServerTickEvent>(
             [this](const event::ServerTickEvent& e) { _onServerTick(e); });
@@ -209,6 +213,7 @@ public:
         m_slideDownBlockSubscription.unsubscribe();
         m_beeNestDestroyedSubscription.unsubscribe();
         m_bredAnimalsSubscription.unsubscribe();
+        m_villagerTradeSubscription.unsubscribe();
         m_serverTickSubscription.unsubscribe();
         m_initialized = false;
     }
@@ -1030,6 +1035,50 @@ private:
     }
 
     /**
+     * @brief 处理村民交易事件
+     *
+     * 当玩家与村民/流浪商人完成交易时触发 VillagerTradeTrigger。
+     * 同时更新统计 traded_with_villager。
+     */
+    void _onVillagerTrade(const event::VillagerTradeEvent& e)
+    {
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 更新统计：traded_with_villager
+        serverPlayer->getStats().incrementCustom(mc::ResourceLocation("minecraft:traded_with_villager"));
+
+        // 获取触发器
+        auto* trigger =
+            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::VillagerTradeTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 检查村民实体是否有效
+        if (e.villager == nullptr) {
+            return;
+        }
+
+        // 触发检测 - 使用基类模板方法
+        // bought = 玩家买到的物品（交易结果），即 VillagerTradeTriggerInstance 匹配的物品条件
+        trigger->AbstractCriterionTrigger<mc::advancement::VillagerTradeTriggerInstance>::trigger(
+            *advancements, [&e](const mc::advancement::VillagerTradeTriggerInstance& instance) {
+                return instance.test(*e.villager, e.bought);
+            });
+    }
+
+    /**
      * @brief 处理服务端Tick事件
      *
      * 每tick触发一次 TickTrigger，用于检测持续条件。
@@ -1121,6 +1170,7 @@ private:
     event::ServerEventBus::Subscription<event::SlideDownBlockEvent> m_slideDownBlockSubscription;
     event::ServerEventBus::Subscription<event::BeeNestDestroyedEvent> m_beeNestDestroyedSubscription;
     event::ServerEventBus::Subscription<event::BredAnimalsEvent> m_bredAnimalsSubscription;
+    event::ServerEventBus::Subscription<event::VillagerTradeEvent> m_villagerTradeSubscription;
     event::ServerEventBus::Subscription<event::ServerTickEvent> m_serverTickSubscription;
 
     // 服务器接口（用于获取 ServerPlayerEntityManager 和 ServerWorld）

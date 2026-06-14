@@ -157,6 +157,13 @@ public:
      */
     void rewardTradeXp(MerchantOffer& offer) override;
 
+    /**
+     * @brief 检查村民是否应该升级
+     *
+     * 当当前经验达到升级阈值时返回 true。
+     */
+    [[nodiscard]] bool shouldIncreaseLevel() const;
+
     // ========== 工作 ==========
 
     /**
@@ -359,6 +366,11 @@ private:
     // 流言传播
     i64 m_lastGossipSpreadTime = 0; // 上次传播流言的游戏时间
 
+    // 交易升级状态
+    Player* m_lastTradedPlayer = nullptr;           // 最后交易的玩家
+    i32 m_updateMerchantTimer = 0;                  // 交易升级计时器
+    bool m_increaseProfessionLevelOnUpdate = false; // 是否在计时器到期时升级
+
     // Brain系统
     std::unique_ptr<VillagerBrain> m_brain;
 };
@@ -436,9 +448,12 @@ public:
     void spawnLlamas();
 
     /**
-     * @brief 交易经验奖励（流浪商人不给予经验）
+     * @brief 交易经验奖励（流浪商人版本）
+     *
+     * 流浪商人没有升级系统，但会生成经验球给玩家。
+     * 经验球值 = 3 + random(0~3)，即 3~6。
      */
-    void rewardTradeXp(MerchantOffer& offer) override { (void)offer; }
+    void rewardTradeXp(MerchantOffer& offer) override;
 
 protected:
     void registerGoals() override;

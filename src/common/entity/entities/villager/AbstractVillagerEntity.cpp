@@ -191,7 +191,11 @@ void AbstractVillagerEntity::notifyTrade(MerchantOffer& offer)
     // 给予交易经验奖励
     rewardTradeXp(offer);
 
-    // TODO: 触发交易成就/进度 VillagerTradeTrigger
+    // 触发交易成就/进度
+    if (m_tradingPlayer != nullptr && m_world != nullptr) {
+        // resultItem = 玩家获得的物品（交易结果），paymentItem = 玩家付出的物品（支付物品）
+        m_world->onVillagerTrade(m_tradingPlayer->id(), this, offer.getSell(), offer.getBuyA());
+    }
 }
 
 void AbstractVillagerEntity::notifyTradeUpdated(const ItemStack& resultStack)
@@ -223,15 +227,15 @@ bool AbstractVillagerEntity::isClientSide() const
 
 bool AbstractVillagerEntity::stillValid(const Player& player) const
 {
-    // 检查：当前交易玩家是指定玩家，且村民存活，且玩家在交互距离内（8格）
     if (m_tradingPlayer != &player || !isAlive()) {
         return false;
     }
 
-    // TODO: 距离检查需要服务端侧的精确判断，当前实现使用欧几里得距离
-    // 原版 MC 使用 BlockState 距离（中心对中心），这里使用实体距离近似
-    constexpr f32 MAX_TRADE_DISTANCE = 8.0f;
-    return distanceTo(player) <= MAX_TRADE_DISTANCE;
+    // 原版 MC 使用 AABB.distanceToSqr(eyePosition) 计算玩家眼睛到实体碰撞箱的距离，
+    // 阈值为 entityInteractionRange + 4.0（默认 7.0 格）。
+    // 当前使用实体脚底距离平方近似，阈值为 8 格（64 平方）。
+    constexpr f32 MAX_TRADE_DISTANCE_SQ = 64.0f;
+    return distanceSqTo(player) <= MAX_TRADE_DISTANCE_SQ;
 }
 
 f32 AbstractVillagerEntity::experienceProgress() const

@@ -99,6 +99,7 @@ void CriterionTriggers::registerBuiltinTriggers()
     registerTrigger(std::make_unique<CuredZombieVillagerTrigger>());
     registerTrigger(std::make_unique<PlayerInteractedWithEntityTrigger>());
     registerTrigger(std::make_unique<ChanneledLightningTrigger>());
+    registerTrigger(std::make_unique<VillagerTradeTrigger>());
 
     // 注册方块相关触发器
     registerTrigger(std::make_unique<PlacedBlockTrigger>());

@@ -79,7 +79,7 @@ ItemStack MerchantResultSlot::onTake(Player& player, ItemStack stack)
 
 void MerchantResultSlot::_checkTakeAchievements(ItemStack& stack)
 {
-    // TODO: 实现成就/统计追踪 - traded_with_villager
+    // 成就/进度触发和统计追踪通过 VillagerTradeEvent 在 notifyTrade() 中完成
     (void)stack;
     m_removeCount = 0;
 }

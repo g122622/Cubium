@@ -1350,6 +1350,28 @@ public:
         // 默认空实现
     }
 
+    /**
+     * @brief 通知世界玩家与村民完成交易
+     *
+     * 当玩家与村民（或流浪商人）完成交易时调用，用于触发进度检测。
+     * ServerWorld 重写此方法来发布 VillagerTradeEvent。
+     * ClientWorld 和其他实现返回空实现。
+     *
+     * @param playerId 交易玩家ID
+     * @param villager 商人实体（村民或流浪商人）
+     * @param resultItem 交易结果物品（玩家获得的物品，即玩家买到的）
+     * @param paymentItem 交易支付物品（玩家付出的物品，即玩家卖出的）
+     */
+    virtual void onVillagerTrade(
+        PlayerId playerId, Entity* villager, const ItemStack& resultItem, const ItemStack& paymentItem)
+    {
+        (void)playerId;
+        (void)villager;
+        (void)resultItem;
+        (void)paymentItem;
+        // 默认空实现
+    }
+
     // ========== 结构定位 ==========
 
     /**

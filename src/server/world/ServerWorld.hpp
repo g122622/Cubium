@@ -867,6 +867,19 @@ public:
     void onBredAnimals(PlayerId playerId, Entity* child, Entity* parent1, Entity* parent2) override;
 
     /**
+     * @brief 通知世界玩家与村民完成交易
+     *
+     * 重写 IWorld::onVillagerTrade()，发布 VillagerTradeEvent 用于进度触发。
+     *
+     * @param playerId 交易玩家ID
+     * @param villager 商人实体（村民或流浪商人）
+     * @param resultItem 交易结果物品（玩家获得的物品）
+     * @param paymentItem 交易支付物品（玩家付出的物品）
+     */
+    void onVillagerTrade(
+        PlayerId playerId, Entity* villager, const ItemStack& resultItem, const ItemStack& paymentItem) override;
+
+    /**
      * @brief 通知世界玩家物品销毁
      *
      * 重写 IWorld::onPlayerDestroyItem()，发布 PlayerDestroyItemEvent 用于进度触发。

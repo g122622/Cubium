@@ -2026,6 +2026,15 @@ void ServerWorld::onBredAnimals(PlayerId playerId, Entity* child, Entity* parent
     event::ServerEventBus::instance().publish(event);
 }
 
+void ServerWorld::onVillagerTrade(
+    PlayerId playerId, Entity* villager, const ItemStack& resultItem, const ItemStack& paymentItem)
+{
+    // 发布 VillagerTradeEvent 用于进度触发
+    // bought = 玩家买到的物品（交易结果），sold = 玩家卖出的物品（支付物品）
+    event::VillagerTradeEvent event{currentTick(), playerId, villager, resultItem, paymentItem};
+    event::ServerEventBus::instance().publish(event);
+}
+
 void ServerWorld::onPlayerDestroyItem(PlayerId playerId, const ItemStack& item, i32 slot, Hand hand)
 {
     // 发布 PlayerDestroyItemEvent 用于进度触发
