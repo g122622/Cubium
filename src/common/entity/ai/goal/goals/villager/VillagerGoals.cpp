@@ -1024,12 +1024,23 @@ void FarmerWorkGoal::_tryCompost()
             BlockState newState =
                 blocks::ComposterBlock::attemptCompost(*currentState, *world, pos, block, item->itemId());
 
-            // 检查堆肥是否成功（等级是否提升）
+            // 验证世界状态一致性：attemptCompost 内部调用了 world.setBlockState，
+            // 此处通过重新读取确认世界状态与返回值一致
             i32 newLevel = blocks::ComposterBlock::getLevel(newState);
+            const BlockState* actualState = world->getBlockState(pos);
+            if (actualState) {
+                i32 actualLevel = blocks::ComposterBlock::getLevel(*actualState);
+                // 如果世界实际等级高于返回值中的等级（例如 tick 已将7推进到8），
+                // 使用世界实际等级以确保后续逻辑正确
+                if (actualLevel > newLevel) {
+                    newLevel = actualLevel;
+                }
+            }
+
             if (newLevel > level) {
                 level = newLevel;
 
-                // 等级达到7时停止（即将完成）
+                // 等级达到7时停止（即将完成，20 tick后自动变为8）
                 if (level >= 7) {
                     // 从背包移除已堆肥的种子数量
                     inventory.removeItem(slot, i + 1);

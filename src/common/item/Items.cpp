@@ -74,6 +74,7 @@
 #include "common/item/items/weapon/TippedArrowItem.hpp"
 #include "common/item/items/weapon/TridentItem.hpp"
 #include "common/item/tier/ItemTiers.hpp"
+#include "common/world/block/blocks/functional/CompostableItems.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 
@@ -1004,6 +1005,9 @@ void Items::initialize()
     _registerCoral();
     _registerDoorsFencesStairs();
     _registerTrialChamberItems(); // 试炼密室物品
+
+    // 初始化堆肥物品注册表（必须在 Items 注册完成后）
+    blocks::CompostableItems::initialize();
 
     s_initialized = true;
 }

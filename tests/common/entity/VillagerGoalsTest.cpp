@@ -28,15 +28,20 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/goals/villager/VillagerGoals.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
+#include "common/world/block/blocks/functional/CompostableItems.hpp"
+#include "common/world/block/blocks/functional/ComposterBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
+#include "common/world/village/poi/PointOfInterestType.hpp"
 
 // 引入命名空间以便使用枚举
 using mc::BlockPos;
@@ -1386,6 +1391,362 @@ TEST_F(FarmerBlockTest, HasFarmSeedsWithVariousItems)
 
     // 即使作物方块未注册，种子数量也不应增加（只有收获才会增加物品）
     // 且不应崩溃
+}
+
+// ============================================================================
+// FarmerWorkGoal Compost Behavior Tests
+// ============================================================================
+
+/**
+ * @brief 支持堆肥桶POI和TickManager的测试世界
+ *
+ * FarmerTestWorld 的扩展版本，增加了 VillageManager（含POI）和
+ * DummyTickManager 支持，用于测试 _tryCompost 行为。
+ */
+class FarmerCompostTestWorld : public test::BaseTestWorld {
+public:
+    FarmerCompostTestWorld()
+        : m_dayTime(5000)
+        , m_currentTick(1000)
+        , m_tickManager(*this)
+    {}
+
+    void setDayTime(i64 time) { m_dayTime = time; }
+    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+
+    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
+    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+
+    [[nodiscard]] world::village::VillageManager* villageManager() override { return m_villageManager.get(); }
+    [[nodiscard]] const world::village::VillageManager* villageManager() const override
+    {
+        return m_villageManager.get();
+    }
+
+    void setVillageManager(std::unique_ptr<world::village::VillageManager> manager)
+    {
+        m_villageManager = std::move(manager);
+    }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override { return m_tickManager; }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return m_tickManager; }
+
+    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) { _storeState(x, y, z, state); }
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        auto it = m_ownedStates.find(BlockPos(x, y, z));
+        if (it != m_ownedStates.end()) {
+            return &it->second;
+        }
+        return nullptr;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        _storeState(x, y, z, state);
+        return true;
+    }
+
+    /// 防止 ItemDropHelper::spawnItemEntity 崩溃，返回空 EntityId
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        (void)entity;
+        return EntityId(0);
+    }
+
+private:
+    /**
+     * @brief 存储 BlockState 的副本（拥有所有权）
+     *
+     * ComposterBlock::attemptCompost 等方法会创建临时 BlockState 对象
+     * 并通过 setBlockState 传入指针。如果只存储指针，临时对象销毁后
+     * 指针变为悬空。因此这里存储 BlockState 值副本，确保生命周期安全。
+     */
+    void _storeState(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        BlockPos key(x, y, z);
+        if (state) {
+            auto it = m_ownedStates.find(key);
+            if (it != m_ownedStates.end()) {
+                it->second = *state;
+            } else {
+                m_ownedStates.emplace(key, *state);
+            }
+        } else {
+            m_ownedStates.erase(key);
+        }
+    }
+
+    i64 m_dayTime;
+    u64 m_currentTick;
+    world::tick::TickManager m_tickManager;
+    std::unique_ptr<world::village::VillageManager> m_villageManager;
+    std::unordered_map<BlockPos, BlockState> m_ownedStates;
+};
+
+class FarmerCompostTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+
+        m_world = std::make_unique<FarmerCompostTestWorld>();
+
+        // 创建 VillageManager 并注册堆肥桶 POI
+        auto villageManager = std::make_unique<world::village::VillageManager>(*m_world);
+        m_composterPos = BlockPos(2, 64, 2);
+        villageManager->getPOIStorage().registerPOI(
+            m_composterPos, world::village::poi::PointOfInterestType::Composter);
+        m_world->setVillageManager(std::move(villageManager));
+
+        // 设置堆肥桶方块（等级0 = 空）
+        ASSERT_TRUE(VanillaBlocks::COMPOSTER != nullptr);
+        const BlockState* composterEmpty = &VanillaBlocks::COMPOSTER->defaultState();
+        m_world->setBlockStateAt(m_composterPos.x, m_composterPos.y, m_composterPos.z, composterEmpty);
+
+        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
+        m_villager->setWorld(m_world.get());
+        m_villager->setPosition(0.0, 64.0, 0.0);
+        m_villager->setProfession(VillagerProfession::Farmer);
+        m_villager->setWorkStation(m_composterPos);
+
+        m_world->setDayTime(5000);
+    }
+
+    void TearDown() override
+    {
+        m_villager.reset();
+        m_world.reset();
+    }
+
+    /**
+     * @brief 获取堆肥桶当前等级
+     */
+    i32 getComposterLevel() const
+    {
+        const BlockState* state = m_world->getBlockState(m_composterPos.x, m_composterPos.y, m_composterPos.z);
+        if (!state) return -1;
+        return blocks::ComposterBlock::getLevel(*state);
+    }
+
+    /**
+     * @brief 设置堆肥桶等级
+     */
+    void setComposterLevel(i32 level)
+    {
+        const BlockState* state = m_world->getBlockState(m_composterPos.x, m_composterPos.y, m_composterPos.z);
+        ASSERT_TRUE(state != nullptr);
+        BlockState newState = state->with(BlockStateProperties::LEVEL_0_8(), level);
+        m_world->setBlockStateAt(m_composterPos.x, m_composterPos.y, m_composterPos.z, &newState);
+    }
+
+    /**
+     * @brief 统计村民背包中指定物品的数量
+     */
+    i32 countItemInInventory(const Item* item) const
+    {
+        i32 total = 0;
+        IInventory& inv = m_villager->inventory();
+        for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+            ItemStack stack = inv.getItem(slot);
+            if (!stack.isEmpty() && stack.getItem() == item) {
+                total += stack.getCount();
+            }
+        }
+        return total;
+    }
+
+    std::unique_ptr<FarmerCompostTestWorld> m_world;
+    std::unique_ptr<VillagerEntity> m_villager;
+    BlockPos m_composterPos;
+};
+
+TEST_F(FarmerCompostTest, SeedCountDecreasesAfterComposting)
+{
+    // 验证：多余种子（>10）应该被堆肥消耗，种子数量应减少
+    // 给村民32个小麦种子（保留10个，可堆肥22个，但上限20个，因此堆肥20个）
+    IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, ItemStack::EMPTY);
+    }
+    inv.setItem(0, ItemStack(Items::WHEAT_SEEDS, 32));
+
+    const i32 initialSeedCount = 32;
+    ASSERT_EQ(countItemInInventory(Items::WHEAT_SEEDS), initialSeedCount);
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // FARMER_WORK_INTERVAL = 20 tick，tick 多次确保 _tryCompost 执行
+    for (int i = 0; i < 100; ++i) {
+        goal->tick();
+    }
+
+    // 种子数量应减少（至少被堆肥消耗了一部分）
+    i32 remainingSeeds = countItemInInventory(Items::WHEAT_SEEDS);
+    EXPECT_LT(remainingSeeds, initialSeedCount)
+        << "Seed count should decrease after composting. Initial: " << initialSeedCount
+        << ", Remaining: " << remainingSeeds;
+
+    // 村民应保留至少10个种子（MC原版保留逻辑）
+    EXPECT_GE(remainingSeeds, 10) << "Farmer should keep at least 10 seeds for planting";
+}
+
+TEST_F(FarmerCompostTest, SeedsBelowThresholdNotComposted)
+{
+    // 验证：种子数量 ≤10 时不应被堆肥
+    IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, ItemStack::EMPTY);
+    }
+    inv.setItem(0, ItemStack(Items::WHEAT_SEEDS, 10));
+
+    ASSERT_EQ(countItemInInventory(Items::WHEAT_SEEDS), 10);
+    ASSERT_EQ(getComposterLevel(), 0);
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    for (int i = 0; i < 100; ++i) {
+        goal->tick();
+    }
+
+    // 种子数量不应减少（10个是保留阈值）
+    i32 remainingSeeds = countItemInInventory(Items::WHEAT_SEEDS);
+    EXPECT_EQ(remainingSeeds, 10) << "Farmer should not compost seeds when count <= 10";
+
+    // 堆肥桶等级应保持0
+    EXPECT_EQ(getComposterLevel(), 0) << "Composter level should remain 0 when no seeds are composted";
+}
+
+TEST_F(FarmerCompostTest, ComposterLevelIncreasesAfterComposting)
+{
+    // 验证：堆肥后堆肥桶等级应增加
+    ASSERT_EQ(getComposterLevel(), 0);
+
+    // 确认 CompostableItems 已初始化
+    ASSERT_TRUE(blocks::CompostableItems::isInitialized()) << "CompostableItems must be initialized";
+    EXPECT_GT(blocks::CompostableItems::getCompostChance(Items::WHEAT_SEEDS), 0.0f)
+        << "WHEAT_SEEDS should be compostable";
+
+    // 直接调用 attemptCompost 测试堆肥桶状态变化
+    const BlockState* state = m_world->getBlockState(m_composterPos.x, m_composterPos.y, m_composterPos.z);
+    ASSERT_TRUE(state != nullptr);
+
+    // 验证初始等级为0
+    i32 initialLevel = blocks::ComposterBlock::getLevel(*state);
+    ASSERT_EQ(initialLevel, 0) << "Initial composter level should be 0";
+
+    ASSERT_TRUE(dynamic_cast<const blocks::ComposterBlock*>(&state->getBlock()) != nullptr);
+
+    Block& block = const_cast<Block&>(state->getBlock());
+    u32 wheatSeedsItemId = Items::WHEAT_SEEDS->itemId();
+
+    // 验证 itemId 到 Item* 的映射正确
+    const Item* resolvedItem = Item::getItem(static_cast<ItemId>(wheatSeedsItemId));
+    ASSERT_NE(resolvedItem, nullptr) << "Item::getItem should resolve WHEAT_SEEDS itemId";
+    EXPECT_EQ(resolvedItem, Items::WHEAT_SEEDS) << "Resolved item should be WHEAT_SEEDS";
+
+    // 尝试多次堆肥（小麦种子30%概率）
+    i32 prevLevel = 0;
+    for (int i = 0; i < 50 && prevLevel < 7; ++i) {
+        state = m_world->getBlockState(m_composterPos.x, m_composterPos.y, m_composterPos.z);
+        if (!state) break;
+        BlockState newState =
+            blocks::ComposterBlock::attemptCompost(*state, *m_world, m_composterPos, block, wheatSeedsItemId);
+        i32 newLevel = blocks::ComposterBlock::getLevel(newState);
+        if (newLevel > prevLevel) {
+            prevLevel = newLevel;
+        }
+    }
+
+    // 50次尝试，30%概率，至少应该成功一次
+    EXPECT_GT(prevLevel, 0) << "Composter level should increase after 50 attemptCompost calls with 30% chance seeds";
+}
+
+TEST_F(FarmerCompostTest, FullComposterProducesBoneMeal)
+{
+    // 验证：满堆肥桶（等级8）取出骨粉后，村民背包应获得骨粉，堆肥桶等级重置为0
+    // 设置堆肥桶为满（等级8）
+    setComposterLevel(8);
+    ASSERT_EQ(getComposterLevel(), 8);
+
+    // 清空背包
+    IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, ItemStack::EMPTY);
+    }
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // tick 触发 _tryCompost，发现满堆肥桶应取出骨粉
+    // 注意：ComposterBlock::empty() 会尝试生成物品实体（ItemDropHelper::spawnItemEntity），
+    // 但测试世界中 spawnEntity 返回 EntityId(0)，所以实体不会被生成。
+    // _tryCompost 也会将骨粉加入村民背包。
+    EXPECT_NO_THROW({
+        for (int i = 0; i < 100; ++i) {
+            goal->tick();
+        }
+    });
+
+    // 堆肥桶等级应被重置为0
+    EXPECT_EQ(getComposterLevel(), 0) << "Composter level should be reset to 0 after emptying";
+
+    // 村民背包应有骨粉（_tryCompost 在 empty() 后主动添加骨粉到背包）
+    i32 boneMealCount = countItemInInventory(Items::BONE_MEAL);
+    EXPECT_GT(boneMealCount, 0) << "Farmer should have bone meal after emptying full composter";
+}
+
+TEST_F(FarmerCompostTest, BeetrootSeedsCanBeComposted)
+{
+    // 验证：甜菜种子也可以被堆肥
+    IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, ItemStack::EMPTY);
+    }
+    inv.setItem(0, ItemStack(Items::BEETROOT_SEEDS, 30));
+
+    ASSERT_EQ(getComposterLevel(), 0);
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    for (int i = 0; i < 200; ++i) {
+        goal->tick();
+    }
+
+    // 甜菜种子数量应减少
+    i32 remainingSeeds = countItemInInventory(Items::BEETROOT_SEEDS);
+    EXPECT_LT(remainingSeeds, 30) << "Beetroot seeds should be consumed by composting";
+    EXPECT_GE(remainingSeeds, 10) << "Farmer should keep at least 10 beetroot seeds";
+}
+
+TEST_F(FarmerCompostTest, NonCompostableItemsNotConsumed)
+{
+    // 验证：非可堆肥物品（如面包、小麦）不应被堆肥消耗
+    IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, ItemStack::EMPTY);
+    }
+    inv.setItem(0, ItemStack(Items::BREAD, 30));
+    inv.setItem(1, ItemStack(Items::WHEAT, 30));
+
+    ASSERT_EQ(getComposterLevel(), 0);
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    for (int i = 0; i < 100; ++i) {
+        goal->tick();
+    }
+
+    // 面包和小麦不应被堆肥
+    EXPECT_EQ(countItemInInventory(Items::BREAD), 30) << "Bread should not be composted by farmer";
+    EXPECT_EQ(countItemInInventory(Items::WHEAT), 30) << "Wheat should not be composted by farmer";
+    EXPECT_EQ(getComposterLevel(), 0) << "Composter level should remain 0 with non-compostable items";
 }
 
 // ============================================================================

@@ -149,7 +149,8 @@ BlockState ComposterBlock::attemptCompost(
     }
 
     // 概率性增加等级
-    math::Random random;
+    // MC 原版使用 world.getRandom() 获取随机数，确保每次调用结果不同
+    math::IRandom& random = world.getRandom();
     if (random.nextFloat() < chance) {
         i32 newLevel = level + 1;
         BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), newLevel);

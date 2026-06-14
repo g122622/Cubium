@@ -645,13 +645,16 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     // 耕地
     registerSimpleBlock(VanillaBlocks::FARMLAND, "farmland");
 
-    // 农作物方块 - 种子物品（wheat_seeds, carrot, potato, beetroot_seeds）
-    // 与对应的作物方块（wheat, carrots, potatoes, beetroots）名称不同，
-    // 此处注册的是作物方块对应的BlockItem，用于方块物品映射
-    registerSimpleBlock(VanillaBlocks::WHEAT, "wheat");
-    registerSimpleBlock(VanillaBlocks::CARROTS, "carrots");
-    registerSimpleBlock(VanillaBlocks::POTATOES, "potatoes");
-    registerSimpleBlock(VanillaBlocks::BEETROOTS, "beetroots");
+    // 农作物方块不需要注册 BlockItem：
+    // - 小麦 (minecraft:wheat) 与普通物品 Items::WHEAT 同名，registerSimpleBlock 会因
+    //   Items::WHEAT 已存在且非 BlockItem 而跳过注册并打印警告。
+    // - 胡萝卜/马铃薯/甜菜根方块名与物品名不同（carrots/carrot, potatoes/potato, beetroots/beetroot），
+    //   虽然能注册成功但创建的 BlockItem 无实际用途——作物方块不能由物品直接放置，
+    //   它们只能通过种子（WheatSeedsItem、BeetrootSeedsItem 等）种植。
+    //   种子到作物方块的映射由 FarmerWorkGoal::_getCropBlockForSeed() 通过 VanillaBlocks
+    //   直接引用实现，不依赖 BlockItemRegistry。
+    //
+    // 因此不调用 registerSimpleBlock，避免 WHEAT 同名冲突警告和无用 BlockItem 注册。
 
     // 旗帜（站立式，每种颜色对应一个BannerItem；墙壁旗帜不需要单独注册物品）
     registerSimpleBlock(VanillaBlocks::WHITE_BANNER, "white_banner");
