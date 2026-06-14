@@ -260,6 +260,7 @@ private:
     struct StaticMeshEntry {
         pipeline::EntityMesh mesh;
         u32 itemRenderStateVersion = 0;
+        i32 xpOrbIconIndex = -1; // 经验球图标索引（用于检测 XP 值变化触发网格更新）
     };
 
     std::unordered_map<std::string, std::unique_ptr<core::EntityRenderer>> m_renderers;
@@ -330,6 +331,19 @@ private:
      * @brief 将模型局部UV映射到图集区域
      */
     void _remapUvToAtlasRegion(const std::string& normalizedTypeId, std::vector<model::ModelVertex>& vertices) const;
+
+    /**
+     * @brief 将 ExperienceOrb 的 UV 映射到精灵图集中对应的图标区域
+     *
+     * 经验球纹理为 64x64 精灵图集，4列×3行布局，每个图标 16x16 像素。
+     * 根据 XP 值确定图标索引，然后将 UV 坐标映射到对应的子区域。
+     *
+     * @param xpValue 经验值
+     * @param textureAtlas 纹理图集（用于获取图集基础区域）
+     * @param vertices 顶点数据（会被修改）
+     */
+    void _remapExperienceOrbUv(
+        i32 xpValue, const pipeline::EntityTextureAtlas& textureAtlas, std::vector<model::ModelVertex>& vertices) const;
 
     /**
      * @brief 计算 ItemEntity 浮动偏移

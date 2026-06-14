@@ -8,12 +8,12 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
+ * The above copyright notice shall this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN THE EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
@@ -25,6 +25,7 @@
 
 #include "client/renderer/trident/entity/core/EntityRenderer.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/experience/ExperienceUtils.hpp"
 #include "common/util/math/Vector4.hpp"
 
 namespace mc {
@@ -40,16 +41,28 @@ namespace client::renderer::entity::renderer::projectile {
  * 始终面向摄像机，带有绿色发光效果和浮动动画。
  *
  * 特性：
- * - 11 种大小等级（对应不同经验值）
- * - 绿色主色调颜色动画
+ * - 11 种大小等级（对应不同经验值，决定纹理图标）
+ * - 绿色↔黄色循环颜色动画（基于时间的正弦波）
  * - 上下浮动动画
- * - 固定光照 (blockLight = 15, skyLight = 15)
+ * - 半透明渲染（alpha = 128/255）
+ * - 固定光照 (blockLight = max(worldLight, 7))
+ *
+ * 经验球纹理为 64x64 像素的精灵图集，包含 11 个 16x16 的图标：
+ * - 4 列 × 3 行布局
+ * - 图标索引 = getOrbSize(xpValue)，范围 0-10
+ * - UV 计算: u = (icon % 4) * 16 / 64, v = (icon / 4) * 16 / 64
+ *
+ * 颜色动画（对齐 MC Java 版 ExperienceOrbRenderer.submit）：
+ * - Red:   (sin(ageInTicks / 2) + 1) * 0.5 * 255
+ * - Green: 255（固定）
+ * - Blue:  (sin(ageInTicks / 2 + 4π/3) + 1) * 0.1 * 255
+ * - Alpha: 128
  *
  * 关键实现细节：
  * - 浮动偏移: sin((age + partialTick) / 20.0) * 0.1 + 0.3
- * - 颜色: 绿色渐变动画
  * - Billboard: 始终面向摄像机
- * - 光照: getBlockLight() = world.getBlockLight(pos) + 7
+ * - 光照: getBlockLight() = max(worldLight, 7)（待管线支持）
+ * - 阴影: shadowRadius = 0.15, shadowStrength = 0.75
  */
 class ExperienceOrbRenderer : public core::EntityRenderer {
 public:
@@ -62,6 +75,10 @@ public:
 
     /**
      * @brief 渲染经验球
+     *
+     * 实际渲染由 EntityRendererManager::renderWithPipeline() 中的经验球特殊路径处理，
+     * 此方法当前为空操作。颜色动画、浮动、缩放和 UV 映射均由管线管理器完成。
+     *
      * @param entity 实体（必须是 ExperienceOrbEntity）
      * @param partialTicks 部分 tick
      */
@@ -75,7 +92,9 @@ public:
     void renderShadow(Entity& entity, f64 partialTicks) override;
 
     /**
-     * @brief 计算经验球大小
+     * @brief 根据经验值获取大小等级
+     *
+     * 大小等级决定经验球的纹理图标和渲染缩放。
      *
      * - 0-2: size 0 (最小)
      * - 3-6: size 1
@@ -94,45 +113,53 @@ public:
      */
     [[nodiscard]] static i32 getSizeByValue(i32 xpValue);
 
-private:
     /**
      * @brief 计算浮动偏移
      *
      * 经验球在 Y 轴上下浮动，频率比 ItemEntity 慢（/20.0 而非 /10.0），
-     * 基础高度偏移比 ItemEntity 高（0.3 而非 0.1）
+     * 基础高度偏移比 ItemEntity 高（0.3 而非 0.1）。
      *
      * @param ticksExisted 实体存活时间
      * @param partialTick 部分 tick
      * @return Y 轴偏移
      */
-    [[nodiscard]] f64 _calculateBobOffset(u32 ticksExisted, f64 partialTick) const;
-
-    /**
-     * @brief 计算颜色动画相位
-     * @param ticksExisted 实体存活时间
-     * @param partialTick 部分 tick
-     * @return 颜色相位 (0.0 - 1.0)
-     */
-    [[nodiscard]] f64 _calculateColorPhase(u32 ticksExisted, f64 partialTick) const;
+    [[nodiscard]] static f64 calculateBobOffset(u32 ticksExisted, f64 partialTick);
 
     /**
      * @brief 计算经验球颜色
      *
-     * 绿色系渐变，颜色基于时间变化
+     * 基于时间的正弦波颜色动画，颜色在绿色和黄色之间循环。
+     * 对齐 MC Java 版 ExperienceOrbRenderer.submit() 的颜色计算。
      *
-     * @param phase 颜色相位
-     * @return RGBA 颜色向量
+     * @param time 时间参数 (ticksExisted + partialTick)
+     * @return RGBA 颜色向量 (范围 0.0-1.0)
      */
-    [[nodiscard]] math::Vector4f _calculateColor(f64 phase) const;
+    [[nodiscard]] static math::Vector4f calculateColor(f64 time);
+
+    /**
+     * @brief 根据图标索引计算纹理 UV 坐标
+     *
+     * 经验球纹理为 64x64 精灵图集，4列×3行布局，每个图标 16x16 像素。
+     *
+     * @param iconIndex 图标索引 (0-10，由 getOrbSize 返回)
+     * @param[out] u0 UV 左边界
+     * @param[out] v0 UV 上边界
+     * @param[out] u1 UV 右边界
+     * @param[out] v1 UV 下边界
+     */
+    static void calculateIconUV(i32 iconIndex, f64& u0, f64& v0, f64& u1, f64& v1);
 
     // 动画常量
-    static constexpr f64 BOB_AMPLITUDE = 0.1;    // 浮动高度幅度
     static constexpr f64 BOB_FREQUENCY = 0.05;   // 浮动速度（1/20 弧度/tick）
+    static constexpr f64 BOB_AMPLITUDE = 0.1;    // 浮动高度幅度
     static constexpr f64 BOB_BASE = 0.3;         // 基础高度偏移
-    static constexpr f64 COLOR_SPEED = 0.1;      // 颜色变化速度
     static constexpr f64 BASE_SIZE = 0.25;       // 基础大小
     static constexpr f64 SIZE_INCREMENT = 0.015; // 每级大小增量
-    static constexpr i32 FULL_LIGHT = 15728640;  // 固定全亮光照 (0xF00000)
+
+    // 纹理图集常量
+    static constexpr i32 ATLAS_SIZE = 64;   // 图集总尺寸（像素）
+    static constexpr i32 ICON_SIZE = 16;    // 单个图标尺寸（像素）
+    static constexpr i32 ICONS_PER_ROW = 4; // 每行图标数
 };
 
 } // namespace client::renderer::entity::renderer::projectile

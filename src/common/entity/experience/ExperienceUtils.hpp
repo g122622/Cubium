@@ -25,6 +25,7 @@
 
 #include "../../core/Types.hpp"
 #include "../../util/math/MathConstants.hpp"
+#include "../../util/math/Vector4.hpp"
 #include "../../util/math/random/Random.hpp"
 #include "ExperienceConstants.hpp"
 
@@ -114,41 +115,35 @@ inline i32 getOrbSize(i32 xpValue)
 /**
  * @brief 计算经验球颜色
  *
- * 根据时间和经验值计算经验球的颜色。
- * 产生绿色主色调的波动效果。
+ * 根据时间计算经验球的颜色动画。颜色在绿色和黄色之间循环，
+ * 带有轻微的蓝色波动。
  *
- * 参考: ExperienceOrbEntity.render()
+ * 颜色公式（对齐 MC Java 版 ExperienceOrbRenderer.submit）：
+ * - Red:   (sin(ageInTicks / 2 + 0) + 1) * 0.5 * 255
+ * - Green: 255（固定）
+ * - Blue:  (sin(ageInTicks / 2 + 4π/3) + 1) * 0.1 * 255
+ * - Alpha: 128（半透明）
  *
- * @param xpValue 经验值 (影响颜色深浅)
  * @param time 时间参数 (ticks + partialTicks)
- * @return RGBA颜色值 (32位)
+ * @return RGBA颜色向量 (范围 0.0-1.0)
  */
-inline u32 calculateOrbColor(i32 xpValue, f32 time)
+inline math::Vector4f calculateOrbColor(f64 time)
 {
-    // 经验球颜色动画
-    // 主色调是绿色，有轻微的红色和蓝色波动
-    f32 phase = time / 2.0f;
+    f64 phase = time / 2.0;
 
-    // 红色分量：轻微波动
-    f32 red = (std::sin(phase) + 1.0f) * 0.5f * 0.3f;
+    // 红色分量：在 0~255 之间波动，使颜色在绿色和黄色之间循环
+    f32 red = static_cast<f32>((std::sin(phase) + 1.0) * 0.5 * 255.0) / 255.0f;
 
-    // 绿色分量：主要颜色，接近满值
+    // 绿色分量：固定满值
     f32 green = 1.0f;
 
-    // 蓝色分量：轻微波动，有相位偏移 (4π/3 = 240度)
-    f32 blue = (std::sin(phase + math::PI * 4.0f / 3.0f) + 1.0f) * 0.5f * 0.2f;
+    // 蓝色分量：轻微波动（0~约0.1），有 4π/3 相位偏移
+    f32 blue = static_cast<f32>((std::sin(phase + math::PI * 4.0 / 3.0) + 1.0) * 0.1 * 255.0) / 255.0f;
 
-    // 根据经验值调整亮度
-    i32 size = getOrbSize(xpValue);
-    f32 brightness = 0.7f + static_cast<f32>(size) * 0.03f;
+    // Alpha：半透明（MC 原版为 128）
+    f32 alpha = 128.0f / 255.0f;
 
-    // 转换为 RGBA
-    u8 r = static_cast<u8>(std::min(255.0f, red * 255.0f * brightness));
-    u8 g = static_cast<u8>(std::min(255.0f, green * 255.0f * brightness));
-    u8 b = static_cast<u8>(std::min(255.0f, blue * 255.0f * brightness));
-    u8 a = 255; // 完全不透明
-
-    return (static_cast<u32>(a) << 24) | (static_cast<u32>(b) << 16) | (static_cast<u32>(g) << 8) | static_cast<u32>(r);
+    return math::Vector4f(red, green, blue, alpha);
 }
 
 /**

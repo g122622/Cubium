@@ -31,6 +31,7 @@
 #include "client/renderer/trident/entity/model/core/ModelFactory.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "client/renderer/trident/entity/renderer/RendererRegistration.hpp"
+#include "client/renderer/trident/entity/renderer/projectile/ExperienceOrbRenderer.hpp"
 #include "client/renderer/trident/entity/renderer/projectile/ItemEntityRenderer.hpp"
 #include "client/renderer/trident/entity/util/NameTagRenderer.hpp"
 #include "client/renderer/trident/entity/util/ShadowRenderer.hpp"
@@ -288,7 +289,7 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
                 cmd, *mesh, modelMatrix, layerPos, MODEL_SCALE * 16.0f, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, 0.0f);
         }
     } else if (isExperienceOrb) {
-        // ExperienceOrb 特殊渲染：应用浮动动画和动态大小
+        // ExperienceOrb 特殊渲染：应用浮动动画、动态大小和颜色动画
         f64 bobOffset = _calculateExperienceOrbBobOffset(entity.ticksExisted(), partialTicks);
 
         // Y 翻转
@@ -299,7 +300,6 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         i32 orbSize = mc::entity::experience::utils::getOrbSize(xpValue);
 
         // 根据经验球大小计算缩放因子
-        // 大小等级 0-10，基础大小为 0.25，每级增加约 0.015
         f64 scale = MODEL_SCALE * (16.0f + static_cast<f64>(orbSize) * 0.5f);
 
         // 获取插值位置并应用浮动偏移
@@ -307,8 +307,13 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         Vector3f pos(
             static_cast<f32>(posInterp.x), static_cast<f32>(posInterp.y + bobOffset), static_cast<f32>(posInterp.z));
 
+        // 计算颜色动画（对齐 MC Java 版 ExperienceOrbRenderer.submit）
+        // 颜色在绿色和黄色之间循环，半透明
+        f64 time = static_cast<f64>(entity.ticksExisted()) + partialTicks;
+        Vector4f orbColor = renderer::projectile::ExperienceOrbRenderer::calculateColor(time);
+
         // 绘制网格
-        m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, scale, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, 0.0f);
+        m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, scale, orbColor, 0.0f, 0.0f);
     } else {
         // 普通实体渲染
         // 变换顺序：scale(-1, -1, 1) → preRenderCallback → translate(0, -1.501, 0)
@@ -416,9 +421,7 @@ f64 EntityRendererManager::_calculateItemRotation(const ClientEntity& entity, f6
 
 f64 EntityRendererManager::_calculateExperienceOrbBobOffset(u32 ticksExisted, f64 partialTick) const
 {
-    // 经验球浮动动画：sin(ticks * 0.05) * 0.1 + 0.2
-    f64 ticks = static_cast<f64>(ticksExisted) + partialTick;
-    return std::sin(ticks * 0.05f) * 0.1f + 0.3f; // 0.3 是基础高度偏移（略高于物品）
+    return renderer::projectile::ExperienceOrbRenderer::calculateBobOffset(ticksExisted, partialTick);
 }
 
 EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
@@ -444,6 +447,20 @@ EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
                 return nullptr;
             }
         }
+
+        // 检查经验球的图标索引是否变化（XP 值合并后图标可能变化）
+        std::string normalizedType = normalizeEntityTypeId(entity.typeId());
+        if (normalizedType == ::mc::entity::EntityTypes::EXPERIENCE_ORB) {
+            i32 currentIconIndex = mc::entity::experience::utils::getOrbSize(entity.xpValue());
+            if (it->second.xpOrbIconIndex != currentIconIndex) {
+                updateMesh(entity);
+                it = m_meshes.find(id);
+                if (it == m_meshes.end()) {
+                    return nullptr;
+                }
+            }
+        }
+
         return &it->second.mesh;
     }
 
@@ -459,6 +476,11 @@ EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
     std::string normalizedType = normalizeEntityTypeId(entity.typeId());
     if (normalizedType == ::mc::entity::EntityTypes::ITEM) {
         _remapItemEntityUv(entity, vertices);
+    } else if (normalizedType == ::mc::entity::EntityTypes::EXPERIENCE_ORB) {
+        // ExperienceOrb 使用精灵图集中的特定图标，需要根据 XP 值选择正确的子区域
+        if (m_textureAtlas && m_textureAtlas->isBuilt()) {
+            _remapExperienceOrbUv(entity.xpValue(), *m_textureAtlas, vertices);
+        }
     } else {
         // 普通实体使用实体纹理图集
         _remapUvToAtlasRegion(normalizedType, vertices);
@@ -482,6 +504,9 @@ EntityMesh* EntityRendererManager::getOrCreateMesh(ClientEntity& entity)
     meshEntry.mesh.posZ = entity.z();
     meshEntry.itemRenderStateVersion =
         normalizedType == ::mc::entity::EntityTypes::ITEM ? entity.itemRenderStateVersion() : 0;
+    meshEntry.xpOrbIconIndex = normalizedType == ::mc::entity::EntityTypes::EXPERIENCE_ORB
+        ? mc::entity::experience::utils::getOrbSize(entity.xpValue())
+        : -1;
 
     m_meshes[id] = std::move(meshEntry);
     return &m_meshes[id].mesh;
@@ -507,6 +532,11 @@ void EntityRendererManager::updateMesh(ClientEntity& entity)
     std::string normalizedType = normalizeEntityTypeId(entity.typeId());
     if (normalizedType == ::mc::entity::EntityTypes::ITEM) {
         _remapItemEntityUv(entity, vertices);
+    } else if (normalizedType == ::mc::entity::EntityTypes::EXPERIENCE_ORB) {
+        // ExperienceOrb 使用精灵图集中的特定图标
+        if (m_textureAtlas && m_textureAtlas->isBuilt()) {
+            _remapExperienceOrbUv(entity.xpValue(), *m_textureAtlas, vertices);
+        }
     } else {
         _remapUvToAtlasRegion(normalizedType, vertices);
     }
@@ -514,6 +544,9 @@ void EntityRendererManager::updateMesh(ClientEntity& entity)
     (void)m_pipeline->updateMesh(it->second.mesh, vertices, indices);
     if (normalizedType == ::mc::entity::EntityTypes::ITEM) {
         it->second.itemRenderStateVersion = entity.itemRenderStateVersion();
+    }
+    if (normalizedType == ::mc::entity::EntityTypes::EXPERIENCE_ORB) {
+        it->second.xpOrbIconIndex = mc::entity::experience::utils::getOrbSize(entity.xpValue());
     }
 }
 
@@ -725,6 +758,51 @@ void EntityRendererManager::_remapUvToAtlasRegion(
         const f64 remappedV = region->v0 + static_cast<f64>(vertex.texCoord.y) * dv;
         vertex.texCoord.x = static_cast<f32>(remappedU);
         vertex.texCoord.y = static_cast<f32>(remappedV);
+    }
+}
+
+void EntityRendererManager::_remapExperienceOrbUv(
+    i32 xpValue, const pipeline::EntityTextureAtlas& textureAtlas, std::vector<ModelVertex>& vertices) const
+{
+    if (vertices.empty()) {
+        return;
+    }
+
+    // 查找经验球纹理在图集中的区域
+    const TextureRegion* region = nullptr;
+    const auto texturePaths = EntityTextureLoader::getTexturePaths(::mc::entity::EntityTypes::EXPERIENCE_ORB);
+    for (const auto& path : texturePaths) {
+        region = textureAtlas.getRegion(path);
+        if (region) {
+            break;
+        }
+    }
+
+    if (!region) {
+        spdlog::warn("_remapExperienceOrbUv: No atlas region found for experience_orb");
+        return;
+    }
+
+    // 计算精灵图标在图集中的 UV 坐标
+    // 经验球纹理为 64x64 精灵图集，4列×3行布局，每个图标 16x16 像素
+    f64 iconU0, iconV0, iconU1, iconV1;
+    renderer::projectile::ExperienceOrbRenderer::calculateIconUV(
+        mc::entity::experience::utils::getOrbSize(xpValue), iconU0, iconV0, iconU1, iconV1);
+
+    // 将图集内的图标 UV 映射到纹理图集中的实际位置
+    const f64 atlasDu = region->u1 - region->u0;
+    const f64 atlasDv = region->v1 - region->v0;
+
+    for (auto& vertex : vertices) {
+        // 先将顶点 UV (0-1) 映射到图集中的图标子区域
+        const f64 localU = iconU0 + static_cast<f64>(vertex.texCoord.x) * (iconU1 - iconU0);
+        const f64 localV = iconV0 + static_cast<f64>(vertex.texCoord.y) * (iconV1 - iconV0);
+
+        // 再将图标 UV 映射到纹理图集中的整体区域
+        // localU/localV 是 0-1 范围内的图标 UV（相对于 64x64 图集）
+        // 需要映射到图集中的实际子纹理区域
+        vertex.texCoord.x = static_cast<f32>(region->u0 + localU * atlasDu);
+        vertex.texCoord.y = static_cast<f32>(region->v0 + localV * atlasDv);
     }
 }
 

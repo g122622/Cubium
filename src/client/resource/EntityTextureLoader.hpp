@@ -121,6 +121,18 @@ private:
      * @return 加载的纹理数量
      */
     [[nodiscard]] u32 _loadAdditionalTextures(const std::vector<IResourcePack*>& packs, EntityTextureAtlas& atlas);
+
+    /**
+     * @brief 加载 Misc 类别中需要纹理的实体纹理
+     *
+     * Misc 类别的实体（如经验球）在主加载循环中被跳过，
+     * 但部分 Misc 实体在 SPECIAL_TEXTURE_PATHS 中有纹理路径，需要额外加载。
+     *
+     * @param packs 资源包列表
+     * @param atlas 纹理图集
+     * @return 加载的纹理数量
+     */
+    [[nodiscard]] u32 _loadMiscEntityTextures(const std::vector<IResourcePack*>& packs, EntityTextureAtlas& atlas);
 };
 
 } // namespace mc::client

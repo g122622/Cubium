@@ -185,16 +185,26 @@ TEST_F(ExperienceUtilsTest, GetOrbSize)
 
 TEST_F(ExperienceUtilsTest, CalculateOrbColor)
 {
-    // 测试颜色计算
-    u32 color1 = xp_utils::calculateOrbColor(1, 0.0f);
-    u32 color100 = xp_utils::calculateOrbColor(100, 0.0f);
+    // 测试颜色计算（对齐 MC Java 版 ExperienceOrbRenderer.submit）
+    // 在 time=0 时: sin(0) = 0, 所以 red = (0+1)*0.5*255 = 127.5, green = 255, alpha = 128
+    mc::math::Vector4f color0 = xp_utils::calculateOrbColor(0.0);
 
-    // 颜色应该包含绿色分量 (绿色主色调)
-    u8 g1 = (color1 >> 8) & 0xFF;
-    u8 g100 = (color100 >> 8) & 0xFF;
+    // 绿色分量应该为 1.0（固定满值）
+    EXPECT_FLOAT_EQ(color0.y, 1.0f);
 
-    EXPECT_GT(g1, 0);   // 绿色分量应该大于0
-    EXPECT_GT(g100, 0); // 绿色分量应该大于0
+    // Alpha 应该为 128/255 ≈ 0.502
+    EXPECT_NEAR(color0.w, 128.0f / 255.0f, 0.01f);
+
+    // 红色分量在 time=0 时应该为 0.5（(sin(0)+1)*0.5 = 0.5）
+    EXPECT_NEAR(color0.x, 0.5f, 0.01f);
+
+    // 蓝色分量应该很小（系数 0.1）
+    EXPECT_LT(color0.z, 0.2f);
+
+    // 在不同时间点颜色应该不同（动画循环）
+    mc::math::Vector4f colorPi = xp_utils::calculateOrbColor(3.14159265);
+    // sin(PI/2) = sin(PI/2) ≈ 1.0, 所以 red 应该接近 1.0
+    EXPECT_GT(colorPi.x, 0.8f);
 }
 
 TEST_F(ExperienceUtilsTest, RandomOreExperience)

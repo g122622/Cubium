@@ -147,6 +147,7 @@ const std::unordered_map<std::string, std::vector<std::string>> SPECIAL_TEXTURE_
     {"small_fireball", {"entity/fireball"}},
     {"fishing_bobber", {"entity/fishing_hook"}},
     {"eye_of_ender", {"entity/eye_of_ender"}},
+    {"experience_orb", {"entity/experience_orb"}},
 };
 
 /**
@@ -236,6 +237,9 @@ bool EntityTextureLoader::needsTexture(entity::EntityClassification classificati
         case entity::EntityClassification::Monster:       // 怪物
             return true;
         case entity::EntityClassification::Misc: // 物品、经验球等
+            // Misc 类别的实体通常不加载纹理，但经验球等需要纹理
+            // 通过 SPECIAL_TEXTURE_PATHS 的存在来判断是否需要纹理
+            return false;
         default:
             return false;
     }
@@ -289,6 +293,10 @@ Result<u32> EntityTextureLoader::loadAllEntityTextures(
     // 加载附加纹理（如羊的毛皮层）
     loadedCount += _loadAdditionalTextures(packs, atlas);
 
+    // 加载 Misc 类别中需要纹理的实体（经验球等）
+    // 这些实体在主循环中因 needsTexture(Misc) = false 被跳过
+    loadedCount += _loadMiscEntityTextures(packs, atlas);
+
     return loadedCount;
 }
 
@@ -337,6 +345,69 @@ u32 EntityTextureLoader::_loadAdditionalTextures(const std::vector<IResourcePack
                     spdlog::warn("Failed to load entity texture: {} - {}", loc.toString(), result.error().toString());
                 }
             }
+        }
+    }
+
+    return loadedCount;
+}
+
+u32 EntityTextureLoader::_loadMiscEntityTextures(const std::vector<IResourcePack*>& packs, EntityTextureAtlas& atlas)
+{
+    // Misc 类别的实体在主循环中被 needsTexture() 跳过，
+    // 但 SPECIAL_TEXTURE_PATHS 中存在的实体需要加载纹理
+    static const std::vector<std::string> MISC_TEXTURE_ENTITIES = {
+        "experience_orb",
+    };
+
+    u32 loadedCount = 0;
+    auto& registry = entity::EntityRegistry::instance();
+    const auto& allTypes = registry.getAllTypes();
+
+    for (const auto& type : allTypes) {
+        // 只处理 Misc 类别
+        if (type.classification() != entity::EntityClassification::Misc) {
+            continue;
+        }
+
+        const std::string& entityName = type.name();
+
+        // 检查是否在 Misc 纹理实体列表中
+        bool isMiscTextureEntity = false;
+        for (const auto& name : MISC_TEXTURE_ENTITIES) {
+            if (entityName == name) {
+                isMiscTextureEntity = true;
+                break;
+            }
+        }
+        if (!isMiscTextureEntity) {
+            continue;
+        }
+
+        // 获取纹理路径
+        auto paths = getTexturePaths(entityName);
+
+        // 尝试从资源包加载
+        bool loaded = false;
+        for (auto it = packs.rbegin(); it != packs.rend() && !loaded; ++it) {
+            auto* pack = *it;
+            if (!pack) continue;
+
+            for (const auto& loc : paths) {
+                auto result = atlas.addTexture(*pack, loc);
+                if (result.success()) {
+                    loaded = true;
+                    spdlog::info("EntityTextureLoader: Loaded Misc entity texture '{}' for entity '{}'",
+                        loc.toString(),
+                        entityName);
+                    break;
+                }
+            }
+        }
+
+        if (!loaded) {
+            spdlog::warn("EntityTextureLoader: No texture found for Misc entity {}", entityName);
+        } else {
+            loadedCount++;
         }
     }
 

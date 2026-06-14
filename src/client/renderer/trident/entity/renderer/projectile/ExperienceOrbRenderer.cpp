@@ -8,12 +8,12 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
+ * The above copyright notice shall this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN THE EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
@@ -38,7 +38,9 @@ ExperienceOrbRenderer::ExperienceOrbRenderer()
 
 void ExperienceOrbRenderer::render(Entity& entity, f64 partialTicks)
 {
-    // TODO: 经验球渲染尚未实现，等待渲染管线集成
+    // 经验球的实际渲染由 EntityRendererManager::renderWithPipeline() 中的特殊路径处理，
+    // 包括 billboard 网格、浮动动画、颜色动画、图标选择和缩放。
+    // 此方法为空操作，因为管线管理器已完全接管渲染逻辑。
     (void)entity;
     (void)partialTicks;
 }
@@ -50,58 +52,32 @@ void ExperienceOrbRenderer::renderShadow(Entity& entity, f64 partialTicks)
 
 i32 ExperienceOrbRenderer::getSizeByValue(i32 xpValue)
 {
-    // 根据经验值返回大小等级 (0-10)
-    if (xpValue >= 2477) {
-        return 10;
-    } else if (xpValue >= 1237) {
-        return 9;
-    } else if (xpValue >= 617) {
-        return 8;
-    } else if (xpValue >= 307) {
-        return 7;
-    } else if (xpValue >= 149) {
-        return 6;
-    } else if (xpValue >= 73) {
-        return 5;
-    } else if (xpValue >= 37) {
-        return 4;
-    } else if (xpValue >= 17) {
-        return 3;
-    } else if (xpValue >= 7) {
-        return 2;
-    } else if (xpValue >= 3) {
-        return 1;
-    } else {
-        return 0;
-    }
+    return mc::entity::experience::utils::getOrbSize(xpValue);
 }
 
-f64 ExperienceOrbRenderer::_calculateBobOffset(u32 ticksExisted, f64 partialTick) const
+f64 ExperienceOrbRenderer::calculateBobOffset(u32 ticksExisted, f64 partialTick)
 {
-    // 经验球上下浮动动画，频率比 ItemEntity 慢，基础高度偏移比 ItemEntity 高
-
     f64 ticks = static_cast<f64>(ticksExisted) + partialTick;
     return std::sin(ticks * BOB_FREQUENCY) * BOB_AMPLITUDE + BOB_BASE;
 }
 
-f64 ExperienceOrbRenderer::_calculateColorPhase(u32 ticksExisted, f64 partialTick) const
+math::Vector4f ExperienceOrbRenderer::calculateColor(f64 time)
 {
-    f64 ticks = static_cast<f64>(ticksExisted) + partialTick;
-    return std::fmod(ticks * COLOR_SPEED, 1.0);
+    return mc::entity::experience::utils::calculateOrbColor(time);
 }
 
-math::Vector4f ExperienceOrbRenderer::_calculateColor(f64 phase) const
+void ExperienceOrbRenderer::calculateIconUV(i32 iconIndex, f64& u0, f64& v0, f64& u1, f64& v1)
 {
-    // TODO: 当前为简化的绿色渐变实现，后续需要实现基于经验值的精确颜色计算
-    // 经验球颜色基于经验值分档：
-    // - 低值 (0-6): 亮绿色
-    // - 中值 (7-16): 中绿色
-    // - 高值 (17+): 深绿色
-    f32 r = static_cast<f32>(0.25 + phase * 0.2); // 0.25 - 0.45
-    f32 g = static_cast<f32>(0.8 + phase * 0.15); // 0.8 - 0.95
-    f32 b = static_cast<f32>(0.2 + phase * 0.1);  // 0.2 - 0.3
+    // 经验球纹理为 64x64 精灵图集，4列×3行布局，每个图标 16x16 像素
+    // 对齐 MC Java 版 ExperienceOrbRenderer.submit() 的 UV 计算
+    const f64 iconU = static_cast<f64>((iconIndex % ICONS_PER_ROW) * ICON_SIZE);
+    const f64 iconV = static_cast<f64>((iconIndex / ICONS_PER_ROW) * ICON_SIZE);
+    const f64 atlasSize = static_cast<f64>(ATLAS_SIZE);
 
-    return math::Vector4f(r, g, b, 1.0f);
+    u0 = iconU / atlasSize;
+    v0 = iconV / atlasSize;
+    u1 = (iconU + static_cast<f64>(ICON_SIZE)) / atlasSize;
+    v1 = (iconV + static_cast<f64>(ICON_SIZE)) / atlasSize;
 }
 
 } // namespace mc::client::renderer::entity::renderer::projectile
