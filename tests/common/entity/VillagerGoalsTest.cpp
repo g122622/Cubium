@@ -40,6 +40,7 @@
 #include "common/entity/ai/goal/goals/villager/VillagerGoalUtils.hpp"
 #include "common/entity/ai/goal/goals/villager/WorkAtJobSiteGoal.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/villager/ProfessionMapping.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/item/Items.hpp"
@@ -60,6 +61,7 @@ using mc::EntityId;
 using mc::entity::VillagerEntity;
 using mc::entity::VillagerProfession;
 using mc::entity::ai::GoalFlag;
+using mc::world::village::poi::PointOfInterestType;
 
 namespace mc {
 namespace {
@@ -2165,6 +2167,149 @@ TEST_F(ShareItemsGoalTest, TargetDoesNotNeedFoodWithEnoughFood)
     mc::IInventory& inv = m_target->inventory();
     inv.setItem(0, mc::ItemStack(mc::Items::BREAD, 3));
     EXPECT_FALSE(m_target->wantsMoreFood());
+}
+
+} // namespace
+} // namespace mc
+
+// ============================================================================
+// LookForJobSiteGoal - POI搜索与职业分配测试
+// ============================================================================
+
+namespace mc {
+namespace {
+
+class LookForJobSitePOITest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        m_world = std::make_unique<TestVillagerWorld>();
+        auto mockManager = std::make_unique<MockVillageManager>(*m_world);
+        m_poiStorage = &mockManager->getMockPOIStorage();
+        m_world->setVillageManager(std::move(mockManager));
+
+        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
+        m_villager->setWorld(m_world.get());
+        m_villager->setPosition(0.0f, 64.0f, 0.0f);
+    }
+
+    void TearDown() override
+    {
+        m_villager.reset();
+        m_world.reset();
+    }
+
+    std::unique_ptr<TestVillagerWorld> m_world;
+    std::unique_ptr<VillagerEntity> m_villager;
+    world::village::poi::PointOfInterestStorage* m_poiStorage = nullptr;
+};
+
+// 测试：无职业村民搜索工作站后找到最近的空闲工作站
+TEST_F(LookForJobSitePOITest, UnemployedVillagerSearchesAllWorkstationTypes)
+{
+    // 无职业村民
+    m_villager->setProfession(VillagerProfession::None);
+    EXPECT_EQ(m_villager->profession(), VillagerProfession::None);
+
+    // 注册多种工作站POI
+    m_poiStorage->registerPOI(BlockPos(5, 64, 5), PointOfInterestType::Smoker);
+    m_poiStorage->registerPOI(BlockPos(10, 64, 10), PointOfInterestType::Composter);
+    m_poiStorage->registerPOI(BlockPos(20, 64, 20), PointOfInterestType::BlastFurnace);
+
+    // 验证POI已注册
+    EXPECT_TRUE(m_poiStorage->hasPOI(BlockPos(5, 64, 5)));
+    EXPECT_TRUE(m_poiStorage->hasPOI(BlockPos(10, 64, 10)));
+    EXPECT_TRUE(m_poiStorage->hasPOI(BlockPos(20, 64, 20)));
+
+    // 验证可以搜索到最近的工作站
+    auto result = m_poiStorage->findNearestFree(BlockPos(0, 64, 0), PointOfInterestType::Smoker, 48.0f);
+    EXPECT_TRUE(result.has_value()) << "应该能找到最近的Smoker工作站";
+    if (result.has_value()) {
+        EXPECT_EQ(result.value(), BlockPos(5, 64, 5));
+    }
+}
+
+// 测试：到达工作站后根据POI类型分配职业
+TEST_F(LookForJobSitePOITest, AssignProfessionFromPOI_SmokerToButcher)
+{
+    m_villager->setProfession(VillagerProfession::None);
+    EXPECT_EQ(m_villager->profession(), VillagerProfession::None);
+
+    // Smoker 对应 Butcher
+    VillagerProfession profession =
+        entity::villager::ProfessionMapping::getProfessionFromPOI(PointOfInterestType::Smoker);
+    EXPECT_EQ(profession, VillagerProfession::Butcher);
+}
+
+TEST_F(LookForJobSitePOITest, AssignProfessionFromPOI_ComposterToFarmer)
+{
+    VillagerProfession profession =
+        entity::villager::ProfessionMapping::getProfessionFromPOI(PointOfInterestType::Composter);
+    EXPECT_EQ(profession, VillagerProfession::Farmer);
+}
+
+TEST_F(LookForJobSitePOITest, AssignProfessionFromPOI_BlastFurnaceToArmorer)
+{
+    VillagerProfession profession =
+        entity::villager::ProfessionMapping::getProfessionFromPOI(PointOfInterestType::BlastFurnace);
+    EXPECT_EQ(profession, VillagerProfession::Armorer);
+}
+
+TEST_F(LookForJobSitePOITest, AssignProfessionFromPOI_NonWorkstationReturnsNone)
+{
+    // 床不是工作站，不应该映射到任何职业
+    VillagerProfession profession =
+        entity::villager::ProfessionMapping::getProfessionFromPOI(PointOfInterestType::BedRed);
+    EXPECT_EQ(profession, VillagerProfession::None);
+
+    // 钟也不是工作站
+    profession = entity::villager::ProfessionMapping::getProfessionFromPOI(PointOfInterestType::Bell);
+    EXPECT_EQ(profession, VillagerProfession::None);
+}
+
+// 测试：有职业村民不触发LookForJobSiteGoal
+TEST_F(LookForJobSitePOITest, EmployedVillagerDoesNotSearch)
+{
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos(10, 64, 10));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::LookForJobSiteGoal>(m_villager.get());
+    EXPECT_FALSE(goal->shouldExecute()) << "有职业且有工作站的村民不应搜索新工作站";
+}
+
+// 测试：傻子村民不触发LookForJobSiteGoal
+TEST_F(LookForJobSitePOITest, NitwitVillagerDoesNotSearch)
+{
+    m_villager->setProfession(VillagerProfession::Nitwit);
+
+    auto goal = std::make_unique<entity::ai::goal::villager::LookForJobSiteGoal>(m_villager.get());
+    EXPECT_FALSE(goal->shouldExecute()) << "傻子村民不应搜索工作站";
+}
+
+// 测试：ProfessionMapping::hasWorkstation 正确判断职业是否有工作站
+TEST_F(LookForJobSitePOITest, HasWorkstationCheck)
+{
+    EXPECT_FALSE(entity::villager::ProfessionMapping::hasWorkstation(VillagerProfession::None));
+    EXPECT_FALSE(entity::villager::ProfessionMapping::hasWorkstation(VillagerProfession::Nitwit));
+    EXPECT_TRUE(entity::villager::ProfessionMapping::hasWorkstation(VillagerProfession::Farmer));
+    EXPECT_TRUE(entity::villager::ProfessionMapping::hasWorkstation(VillagerProfession::Butcher));
+    EXPECT_TRUE(entity::villager::ProfessionMapping::hasWorkstation(VillagerProfession::Armorer));
+}
+
+// 测试：每种职业的工作站POI类型映射都正确
+TEST_F(LookForJobSitePOITest, EachProfessionMapsToCorrectWorkstation)
+{
+    // 验证正向映射：职业 -> POI类型
+    EXPECT_EQ(entity::villager::ProfessionMapping::getWorkstationPOI(VillagerProfession::Farmer),
+        PointOfInterestType::Composter);
+    EXPECT_EQ(entity::villager::ProfessionMapping::getWorkstationPOI(VillagerProfession::Butcher),
+        PointOfInterestType::Smoker);
+    EXPECT_EQ(entity::villager::ProfessionMapping::getWorkstationPOI(VillagerProfession::Armorer),
+        PointOfInterestType::BlastFurnace);
+    EXPECT_EQ(entity::villager::ProfessionMapping::getWorkstationPOI(VillagerProfession::Librarian),
+        PointOfInterestType::Lectern);
+    EXPECT_EQ(entity::villager::ProfessionMapping::getWorkstationPOI(VillagerProfession::Cleric),
+        PointOfInterestType::BrewingStand);
 }
 
 } // namespace

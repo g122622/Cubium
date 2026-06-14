@@ -21,7 +21,7 @@ sensor/
 | `HurtBySensor<E>` | 1 tick | HURT_BY, HURT_BY_ENTITY | 检测最近受到的伤害来源 |
 | `MobSensor<E>` | 可配置 | MOBS | 检测附近 MobEntity，仅存储列表不判断敌对 |
 | `VillagerHostilesSensor<E>` | 20 tick | MOBS, NEAREST_HOSTILE | 村民专用敌对检测，使用精确实体类型到距离映射 |
-| `WorkStationSensor<E>` | 40 tick | JOB_SITE, POTENTIAL_JOB_SITE | 检测村民工作站点 |
+| `WorkStationSensor<E>` | 40 tick | JOB_SITE, POTENTIAL_JOB_SITE | 根据村民职业动态搜索工作站POI；有职业村民搜索对应工作站，无职业村民搜索所有可获取工作站，傻子不搜索 |
 | `VillagePoiSensor<E>` | 40 tick | HOME, MEETING_POINT, NEAREST_BED | 检测村民家/集会点 |
 | `BabySensor<E>` | 20 tick | VISIBLE_VILLAGER_BABIES, NEAREST_VISIBLE_ADULT | 检测附近幼年/成年实体 |
 | `AvoidEntitySensor<E>` | 可配置 | AVOID_TARGET, NEAREST_REPELLENT | 通用避险传感器，使用 IMob 标记接口判断敌对 |

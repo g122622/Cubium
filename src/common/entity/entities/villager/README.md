@@ -107,7 +107,13 @@ AbstractVillagerEntity (抽象村民基类)
 // 正确做法
 auto poiType = ProfessionMapping::getWorkstationPOI(VillagerProfession::Farmer);
 auto profession = ProfessionMapping::getProfessionFromPOI(poiType);
+// 获取所有可获取的工作站POI类型（无职业村民搜索工作站时使用）
+const auto& workstations = ProfessionMapping::getAcquirableWorkstations();
 ```
+
+**WorkStationSensor 使用职业映射**：`WorkStationSensor::update()` 不再硬编码搜索 Smoker，而是根据村民职业动态确定 POI 类型。有职业村民搜索对应工作站，无职业村民搜索所有可获取工作站类型，傻子村民不搜索。
+
+**LookForJobSiteGoal 已实现 POI 搜索**：无职业村民通过 `ProfessionMapping::getAcquirableWorkstations()` 搜索最近空闲工作站，到达工作站后根据 POI 类型自动分配职业（参考 MC 原版 `AssignProfessionFromJobSite`）。
 
 ### Brain 系统管理村民行为
 

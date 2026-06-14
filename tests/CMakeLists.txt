@@ -121,6 +121,8 @@ add_executable(mc_tests
     common/entity/SquidGoalsTest.cpp
     # 村民 AI 目标测试
     common/entity/VillagerGoalsTest.cpp
+    # 职业映射测试
+    common/entity/ProfessionMappingTest.cpp
     # 蝙蝠 AI 目标测试
     common/entity/BatGoalsTest.cpp
     # 海豚 AI 目标测试
