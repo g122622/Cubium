@@ -212,7 +212,7 @@ bool VaultBlockEntity::tryInsertKey(Player& player)
     }
 
     // 检查玩家手持物品是否匹配钥匙
-    ItemStack heldItem = player.getHeldItem(Hand::MainHand);
+    ItemStack& heldItem = player.getHeldItem(Hand::MainHand);
     if (heldItem.isEmpty() || heldItem.getItem() != m_config.keyItem || heldItem.getCount() < 1) {
         // 播放插入失败音效（带冷却防刷）
         IWorld* playerWorld = player.world();
