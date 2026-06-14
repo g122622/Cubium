@@ -272,8 +272,9 @@ TEST_F(AdvancementTest, AdvancementProgressSerialization)
     // 序列化
     nlohmann::json json = progress.toJson();
     EXPECT_TRUE(json.is_object());
-    EXPECT_TRUE(json.contains("criterion1"));
-    EXPECT_TRUE(json.contains("criterion2"));
+    EXPECT_TRUE(json.contains("criteria"));
+    EXPECT_TRUE(json["criteria"].contains("criterion1"));
+    EXPECT_TRUE(json["criteria"].contains("criterion2"));
 
     // 反序列化
     auto result2 = AdvancementProgress::fromJson(json, advancementPtr);

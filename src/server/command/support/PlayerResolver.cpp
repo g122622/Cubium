@@ -36,6 +36,7 @@
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -204,7 +205,20 @@ namespace {
 
     // 检查进度条件
     if (selector.hasAdvancementConditions()) {
-        if (playerData.advancements == nullptr) {
+        // 通过 ServerPlayerEntityManager 获取 ServerPlayer 的成就进度
+        // 而不是使用 ServerPlayerData::advancements（始终为 nullptr）
+        server::PlayerAdvancements* playerAdvancements = nullptr;
+        if (server != nullptr && world != nullptr) {
+            Player* player = server->playerEntityManager().getPlayerEntity(playerData.playerId, *world);
+            if (player != nullptr) {
+                auto* serverPlayer = player->asServerPlayer();
+                if (serverPlayer != nullptr) {
+                    playerAdvancements = serverPlayer->getAdvancements();
+                }
+            }
+        }
+
+        if (playerAdvancements == nullptr) {
             return false;
         }
 
@@ -216,7 +230,7 @@ namespace {
                 return false;
             }
 
-            auto* progress = playerData.advancements->getProgress(advancement);
+            auto* progress = playerAdvancements->getProgress(advancement);
             if (progress == nullptr) {
                 // 玩家没有该进度的进度记录，不匹配
                 return false;

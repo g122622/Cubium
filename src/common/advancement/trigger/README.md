@@ -4,9 +4,9 @@
 
 ```
 trigger/
-├── CriterionTrigger.hpp           # 触发器接口和基类（ICriterionTrigger、AbstractCriterionTrigger）
+├── CriterionTrigger.hpp           # 触发器接口和基类（ICriterionTriggerBase、ICriterionTrigger、AbstractCriterionTrigger）
 ├── CriterionTrigger.cpp           # 触发器基类实现
-├── CriterionTriggers.hpp          # 触发器注册表（单例，管理所有触发器实例）
+├── CriterionTriggers.hpp          # 触发器注册表（单例，管理所有触发器实例，registerBuiltinTriggers 在服务器启动时调用）
 ├── CriterionTriggers.cpp          # 注册表实现，包含内置触发器注册
 │
 ├── conditions/                    # 条件谓词（用于匹配特定游戏状态）
@@ -21,7 +21,7 @@ trigger/
 │
 └── impl/                          # 触发器实现
     ├── ImpossibleTrigger.hpp      # 不可能触发器（只能手动授予）
-    ├── TickTrigger.hpp/cpp        # Tick 触发器（每 tick 触发）
+    ├── TickTrigger.hpp/cpp        # Tick 触发器（每 tick 触发，由 AdvancementEventHandler 订阅 ServerTickEvent 驱动）
     ├── InventoryChangedTrigger.hpp/cpp  # 物品栏变化触发器
     ├── LocationTrigger.hpp/cpp          # 位置触发器（维度、生物群系检测）
     ├── PlayerKilledEntityTrigger.hpp/cpp # 玩家击杀实体触发器
@@ -35,13 +35,18 @@ trigger/
 ## 内部模块关系
 
 ```
-CriterionTriggers（注册表）
+CriterionTriggers（注册表，服务器启动时调用 registerBuiltinTriggers）
     │ 管理
     ▼
-ICriterionTrigger<T>（接口）
+ICriterionTriggerBase（类型擦除接口，供 PlayerAdvancements 使用）
+    │  提供 addListenerForCriterion / removeListenerForCriterion / removeAllListenersForPlayer
+    │ 派生
+    ▼
+ICriterionTrigger<T>（带类型参数的触发器接口）
     │ 派生
     ▼
 AbstractCriterionTrigger<T>（监听器管理基类）
+    │ 实现类型擦除方法（内部使用 std::dynamic_pointer_cast<T> 转型）
     │ 派生
     ▼
 具体触发器实现（InventoryChangedTrigger、PlayerKilledEntityTrigger 等）
@@ -67,13 +72,17 @@ AbstractCriterionTrigger<T>（监听器管理基类）
 
 ### 依赖本模块的外部模块
 
-- `server/advancement/` - 服务端成就系统（PlayerAdvancements、AdvancementEventHandler、TriggerInstantiation）
+- `server/advancement/` - 服务端成就系统
+  - `PlayerAdvancements` - 通过 `ICriterionTriggerBase` 类型擦除接口注册/注销监听器
+  - `AdvancementEventHandler` - 订阅 ServerTickEvent 驱动 TickTrigger
+  - `TriggerInstantiation` - 触发器实例化工具
+- `server/application/MinecraftServer.cpp` - 启动时调用 `registerBuiltinTriggers()`
 - `common/network/packet/AdvancementPackets.hpp` - 成就网络数据包
 - `common/item/loot/conditions/` - 战利品条件复用谓词（EntityPropertiesCondition、LocationCheckCondition、DamageSourcePropertiesCondition）
 
 ## 容易踩的坑
 
-1. **触发器注册**：所有触发器必须在 `CriterionTriggers::registerBuiltinTriggers()` 中注册，否则无法从 JSON 加载。新增触发器后记得在此方法中添加注册代码。
+1. **触发器注册**：所有触发器必须在 `CriterionTriggers::registerBuiltinTriggers()` 中注册，否则无法从 JSON 加载。`registerBuiltinTriggers()` 在服务器启动时自动调用。新增触发器后记得在此方法中添加注册代码。
 
 2. **谓词为空语义**：大多数谓词的默认构造（空状态）表示"匹配任意"，而非"不匹配"。检查谓词时需注意 `isAny()` 的语义。
 
@@ -96,3 +105,7 @@ AbstractCriterionTrigger<T>（监听器管理基类）
 11. **命名空间注意**：`mc::advancement::PlayerAdvancements` 是前向声明，实际定义在 `mc::server::PlayerAdvancements`。触发器接口使用 `mc::server::PlayerAdvancements&` 作为参数类型。
 
 12. **触发器 ID 常量**：所有触发器 ID 常量定义在 `mc::advancement::triggers` 命名空间中（如 `triggers::INVENTORY_CHANGED`），新增触发器时需同步添加常量。
+
+13. **类型擦除接口与模板接口的选择**：`PlayerAdvancements` 在注册/注销监听器时使用 `ICriterionTriggerBase` 的类型擦除方法（`addListenerForCriterion` 等），因为此时只知道 `ICriterionInstance` 基类指针；而 `AdvancementEventHandler` 触发检测时使用 `ICriterionTrigger<T>` 的模板方法（`trigger`、`hasListeners` 等），因为触发器类型已知。不要混用两条路径。
+
+14. **dynamic_pointer_cast 失败**：`addListenerForCriterion()` 内部使用 `std::dynamic_pointer_cast<T>` 将 `ICriterionInstance` 向下转型。如果触发器 ID 与实例类型不匹配（例如注册了错误的实例类型），转型会失败并输出警告日志但不会崩溃。确保 `fromJson()` 返回的实例类型与触发器模板参数 `T` 一致。

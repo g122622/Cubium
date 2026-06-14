@@ -4,9 +4,9 @@
 
 ```
 server/advancement/
-├── PlayerAdvancements.hpp/cpp     # 玩家成就进度管理（追踪、持久化、授予/撤销）
+├── PlayerAdvancements.hpp/cpp     # 玩家成就进度管理（追踪、持久化、授予/撤销、监听器注册/注销、奖励发放）
 ├── TriggerInstantiation.hpp       # 触发器模板方法实例化（供 common/advancement 使用）
-├── AdvancementEventHandler.hpp    # 事件处理器（订阅服务端事件触发成就）
+├── AdvancementEventHandler.hpp    # 事件处理器（订阅服务端事件触发成就，含 ServerTickEvent 驱动 TickTrigger）
 └── README.md
 ```
 
@@ -18,7 +18,7 @@ server/advancement/
 │                     （事件订阅与触发器调度）                           │
 │  ┌────────────────────────────────────────────────────────────────┐  │
 │  │ 订阅事件：InventoryChangedEvent、PlayerKillEntityEvent、        │  │
-│  │ BlockPlaceEvent、CuredZombieVillagerEvent 等                   │  │
+│  │ BlockPlaceEvent、CuredZombieVillagerEvent、ServerTickEvent 等  │  │
 │  └────────────────────────────────────────────────────────────────┘  │
 └───────────────────────────────┬──────────────────────────────────────┘
                                 │ 触发
@@ -28,7 +28,12 @@ server/advancement/
 │                 （玩家成就进度管理器）                                 │
 │  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐        │
 │  │ 进度追踪/查询    │ │ 可见性管理      │ │ 持久化          │        │
+│  ├─────────────────┤ ├─────────────────┤ ├─────────────────┤        │
+│  │ 监听器注册/注销  │ │ 奖励发放        │ │ ServerPlayer关联│        │
 │  └─────────────────┘ └─────────────────┘ └─────────────────┘        │
+│  registerListeners → ICriterionTriggerBase::addListenerForCriterion  │
+│  unregisterListeners → ICriterionTriggerBase::removeListenerForCriterion │
+│  grantCriterion → _grantRewards + 注销已完成条件的监听器              │
 └───────────────────────────────┬──────────────────────────────────────┘
                                 │ 使用
                                 ▼
@@ -44,11 +49,11 @@ server/advancement/
 
 ### 本模块依赖的外部模块
 
-- `common/advancement/` - 成就系统核心（触发器定义、条件谓词、AdvancementManager）
-- `server/event/` - 服务端事件总线（订阅事件）
+- `common/advancement/` - 成就系统核心（触发器定义、条件谓词、AdvancementManager、ICriterionTriggerBase 类型擦除接口）
+- `server/event/` - 服务端事件总线（订阅事件，含 ServerTickEvent）
 - `server/application/IServer.hpp` - 服务器接口（获取 ServerWorld、ServerPlayerEntityManager）
 - `server/core/PlayerManager.hpp` - 玩家管理器（UUID 查找）
-- `server/player/ServerPlayer.hpp` - 服务端玩家实体
+- `server/player/ServerPlayer.hpp` - 服务端玩家实体（经验值发放、配方解锁）
 - `server/world/ServerWorld.hpp` - 服务端世界
 - `server/world/player/ServerPlayerEntityManager.hpp` - 玩家实体管理
 - `common/world/village/` - 村庄系统（声望更新）
@@ -56,8 +61,8 @@ server/advancement/
 
 ### 依赖本模块的外部模块
 
-- `server/application/MinecraftServer.cpp` - 初始化和关闭 AdvancementEventHandler
-- `server/player/ServerPlayer.hpp` - 持有 PlayerAdvancements 实例
+- `server/application/MinecraftServer.cpp` - 初始化和关闭 AdvancementEventHandler，调用 `CriterionTriggers::registerBuiltinTriggers()`
+- `server/player/ServerPlayer.hpp` - 持有 PlayerAdvancements 实例，通过 `setServerPlayer()`/`getServerPlayer()` 关联
 - `common/advancement/trigger/*.cpp` - 触发器实现（包含 TriggerInstantiation.hpp）
 
 ## 容易踩的坑
@@ -66,7 +71,7 @@ server/advancement/
 
 2. **UUID vs PlayerId**：`CuredZombieVillagerEvent` 携带的是 UUID 字符串而非 `PlayerId`，需先通过 `PlayerManager::findByUuid()` 转换。
 
-3. **初始化顺序**：`AdvancementEventHandler::setServer()` 必须在 `initialize()` 之前调用，否则事件处理器无法获取玩家实体。
+3. **初始化顺序**：`AdvancementEventHandler::setServer()` 必须在 `initialize()` 之前调用，否则事件处理器无法获取玩家实体。`CriterionTriggers::registerBuiltinTriggers()` 必须在成就加载之前调用，否则触发器实例无法从 JSON 反序列化。
 
 4. **村庄声望更新条件**：治愈僵尸村民更新声望前，必须检查村民是否在村庄范围内（`villageManager->getVillageAt()`），只有村内治愈才更新声望。
 
@@ -76,4 +81,10 @@ server/advancement/
 
 7. **事件中的空指针检查**：事件携带的指针可能为空（如 `BlockPlaceEvent::state`、`InventoryChangedEvent::inventory`），触发前必须检查。
 
-8. **PlayerAdvancements 持久化**：`registerListeners()` 和 `unregisterListeners()` 有 TODO 标记，监听器注册逻辑尚未完成，持久化恢复时需注意。
+8. **监听器注册/注销与 grantCriterion 的交互**：`grantCriterion()` 完成条件授予后会自动注销该条件的监听器；成就全部完成时会注销整个成就的所有监听器。手动注册/注销监听器时应避免重复操作。
+
+9. **loadFromJson 中的监听器注册**：`loadFromJson()` 会为所有已加载但未完成的成就注册监听器，加载完成后无需额外调用 `registerListeners()`。
+
+10. **onAdvancementsReloaded 必须先注销再清空**：重载时必须先调用 `unregisterListeners()` 注销旧监听器再清空进度，否则旧的监听器指针会悬空。
+
+11. **PlayerAdvancements 与 ServerPlayer 的关联时机**：`setServerPlayer()` 必须在 `ServerPlayer` 构造后尽早调用，因为 `_grantRewards()` 依赖 `m_player` 发放经验值和解锁配方。

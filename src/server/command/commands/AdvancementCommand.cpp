@@ -32,7 +32,9 @@
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
+#include "server/player/ServerPlayer.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <sstream>
 #include <spdlog/spdlog.h>
 
@@ -138,13 +140,28 @@ std::vector<advancement::AdvancementPtr> collectAdvancements(
 
 /**
  * @brief 获取玩家的成就进度
+ *
+ * 通过 IServer → ServerPlayerEntityManager → ServerPlayer 路径获取
+ * 玩家成就管理器，确保使用的是与触发器系统关联的 PlayerAdvancements 实例。
  */
-server::PlayerAdvancements* getPlayerAdvancements(server::ServerPlayerData* playerData)
+server::PlayerAdvancements* getPlayerAdvancements(server::IServer* server, PlayerId playerId)
 {
-    if (!playerData) {
+    if (server == nullptr) {
         return nullptr;
     }
-    return playerData->advancements.get();
+    auto* world = server->getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return nullptr;
+    }
+    mc::Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
+    if (player == nullptr) {
+        return nullptr;
+    }
+    auto* serverPlayer = player->asServerPlayer();
+    if (serverPlayer == nullptr) {
+        return nullptr;
+    }
+    return serverPlayer->getAdvancements();
 }
 
 } // namespace
@@ -314,14 +331,9 @@ i32 AdvancementCommand::_grantAdvancement(CommandContext<ServerCommandSource>& c
     // 授予成就给每个玩家
     i32 successCount = 0;
     for (PlayerId playerId : playerIds) {
-        auto* playerData = source.server()->playerManager().getPlayer(playerId);
-        if (!playerData) {
-            continue;
-        }
-
-        auto* playerAdvancements = getPlayerAdvancements(playerData);
+        auto* playerAdvancements = getPlayerAdvancements(source.server(), playerId);
         if (!playerAdvancements) {
-            spdlog::warn("PlayerAdvancements not initialized for player {}", playerId);
+            spdlog::warn("PlayerAdvancements not available for player {}", playerId);
             continue;
         }
 
@@ -385,14 +397,9 @@ i32 AdvancementCommand::_revokeAdvancement(CommandContext<ServerCommandSource>& 
     // 从每个玩家撤销成就
     i32 successCount = 0;
     for (PlayerId playerId : playerIds) {
-        auto* playerData = source.server()->playerManager().getPlayer(playerId);
-        if (!playerData) {
-            continue;
-        }
-
-        auto* playerAdvancements = getPlayerAdvancements(playerData);
+        auto* playerAdvancements = getPlayerAdvancements(source.server(), playerId);
         if (!playerAdvancements) {
-            spdlog::warn("PlayerAdvancements not yet integrated for player {}", playerId);
+            spdlog::warn("PlayerAdvancements not available for player {}", playerId);
             continue;
         }
 
@@ -448,14 +455,9 @@ i32 AdvancementCommand::_testAdvancement(CommandContext<ServerCommandSource>& co
     // 测试每个玩家
     i32 completedCount = 0;
     for (PlayerId playerId : playerIds) {
-        auto* playerData = source.server()->playerManager().getPlayer(playerId);
-        if (!playerData) {
-            continue;
-        }
-
-        auto* playerAdvancements = getPlayerAdvancements(playerData);
+        auto* playerAdvancements = getPlayerAdvancements(source.server(), playerId);
         if (!playerAdvancements) {
-            spdlog::warn("PlayerAdvancements not yet integrated for player {}", playerId);
+            spdlog::warn("PlayerAdvancements not available for player {}", playerId);
             continue;
         }
 
@@ -466,11 +468,8 @@ i32 AdvancementCommand::_testAdvancement(CommandContext<ServerCommandSource>& co
 
     // 发送结果
     if (playerIds.size() == 1) {
-        auto* playerData = source.server()->playerManager().getPlayer(playerIds[0]);
-        if (playerData) {
-            std::string status = completedCount > 0 ? "has completed" : "has not completed";
-            source.sendMessage(playerData->username + " " + status + " advancement '" + id->toString() + "'");
-        }
+        std::string status = completedCount > 0 ? "has completed" : "has not completed";
+        source.sendMessage("Player " + status + " advancement '" + id->toString() + "'");
     } else {
         std::ostringstream ss;
         ss << completedCount << " of " << playerIds.size() << " players have completed advancement '" << id->toString()

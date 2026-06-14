@@ -238,6 +238,8 @@ add_executable(mc_tests
     advancement/BredAnimalsTriggerTest.cpp
     # AdvancementEventHandler 测试（getServerPlayer 架构验证）
     server/advancement/AdvancementEventHandlerTest.cpp
+    # PlayerAdvancements 监听器注册/注销、进度管理、可见性测试
+    server/advancement/PlayerAdvancementsTest.cpp
     # PlayerDestroyItemEvent 物品销毁事件测试
     server/event/PlayerDestroyItemEventTest.cpp
     # 村庄声望治愈僵尸村民测试

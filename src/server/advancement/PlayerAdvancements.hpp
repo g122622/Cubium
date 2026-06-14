@@ -232,13 +232,17 @@ private:
 
     /**
      * @brief 更新所有成就的可见性
+     * @param manager 成就管理器（用于查找父成就）
      */
-    void _updateVisibility();
+    void _updateVisibility(mc::advancement::AdvancementManager* manager = nullptr);
 
     /**
      * @brief 检查成就是否应该可见
+     * @param advancement 成就
+     * @param manager 成就管理器（用于查找父成就，可为nullptr）
      */
-    bool _shouldShow(mc::advancement::AdvancementPtr advancement) const;
+    bool _shouldShow(
+        mc::advancement::AdvancementPtr advancement, mc::advancement::AdvancementManager* manager = nullptr) const;
 
     /**
      * @brief 发放成就奖励

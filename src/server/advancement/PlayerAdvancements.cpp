@@ -42,6 +42,7 @@ bool PlayerAdvancements::grantCriterion(mc::advancement::AdvancementPtr advancem
         return false;
     }
 
+    bool isNewProgress = false;
     auto it = m_progress.find(advancement);
     if (it == m_progress.end()) {
         // 创建新的进度
@@ -50,6 +51,11 @@ bool PlayerAdvancements::grantCriterion(mc::advancement::AdvancementPtr advancem
             return false;
         }
         it = inserted;
+        isNewProgress = true;
+
+        // 新进度条目：先为该成就的所有条件注册触发器监听
+        // grantCriterion 后续会注销已完成条件的监听器
+        registerListeners(advancement);
     }
 
     bool wasDone = it->second.isDone();
@@ -84,6 +90,9 @@ bool PlayerAdvancements::grantCriterion(mc::advancement::AdvancementPtr advancem
 
         // 更新可见性
         _ensureVisibility(advancement);
+    } else if (isNewProgress) {
+        // 新进度但条件授予无变化（条件已满足），注销不必要的监听器
+        unregisterListeners(advancement);
     }
 
     return changed;
@@ -100,10 +109,31 @@ bool PlayerAdvancements::revokeCriterion(mc::advancement::AdvancementPtr advance
         return false;
     }
 
+    bool wasDone = it->second.isDone();
     bool changed = it->second.revokeCriterion(criterion);
     if (changed) {
         m_progressChanged.insert(advancement);
         _ensureVisibility(advancement);
+
+        // 如果撤销条件导致已完成→未完成状态变化，需要重新注册监听器
+        if (wasDone && !it->second.isDone()) {
+            // 成就从已完成变为未完成，重新注册所有未完成条件的监听器
+            registerListeners(advancement);
+        } else {
+            // 仅撤销单个条件，为该条件重新注册监听器
+            const auto& criteria = advancement->getCriteria();
+            auto criterionIt = criteria.find(criterion);
+            if (criterionIt != criteria.end()) {
+                const auto triggerId = criterionIt->second.getTrigger();
+                auto* triggerBase = mc::advancement::CriterionTriggers::instance().getTrigger(triggerId);
+                if (triggerBase != nullptr) {
+                    const auto& instance = criterionIt->second.getTriggerInstance();
+                    if (instance != nullptr) {
+                        triggerBase->addListenerForCriterion(*this, advancement, criterion, instance);
+                    }
+                }
+            }
+        }
     }
 
     return changed;
@@ -229,7 +259,7 @@ bool PlayerAdvancements::loadFromJson(const nlohmann::json& json, mc::advancemen
     }
 
     // 更新可见性
-    _updateVisibility();
+    _updateVisibility(&manager);
 
     // 为所有已加载的成就注册监听器
     for (const auto& [advancement, progress] : m_progress) {
@@ -347,18 +377,22 @@ void PlayerAdvancements::_ensureVisibility(mc::advancement::AdvancementPtr advan
     }
 }
 
-void PlayerAdvancements::_updateVisibility()
+void PlayerAdvancements::_updateVisibility(mc::advancement::AdvancementManager* manager)
 {
     m_visible.clear();
 
-    // 遍历所有成就，检查可见性
-    // 注意：需要在调用此方法前通过 onAdvancementsReloaded 或其他方式
-    // 填充 m_visible 集合。此处仅清除状态。
+    // 遍历所有进度中的成就，检查可见性
+    for (const auto& [advancement, progress] : m_progress) {
+        if (_shouldShow(advancement, manager)) {
+            m_visible.insert(advancement);
+        }
+    }
 
     m_visibilityChanged.clear();
 }
 
-bool PlayerAdvancements::_shouldShow(mc::advancement::AdvancementPtr advancement) const
+bool PlayerAdvancements::_shouldShow(
+    mc::advancement::AdvancementPtr advancement, mc::advancement::AdvancementManager* manager) const
 {
     if (!advancement) {
         return false;
@@ -375,14 +409,16 @@ bool PlayerAdvancements::_shouldShow(mc::advancement::AdvancementPtr advancement
         return false;
     }
 
-    // 如果父成就未完成，则不可见
-    auto parent = advancement->getParent();
-    if (parent.has_value()) {
-        // 注意：父成就的可见性检查需要在 updateVisibility 中处理
-        // 因为需要访问 AdvancementManager，而 shouldShow 是 const 方法
+    // 如果有父成就，需要检查父成就是否已完成（从而确定此成就是否可见）
+    // Minecraft 中，如果父成就未完成，子成就仍然可见（只要不是隐藏的），
+    // 但如果父成就本身不可见，则子成就也不可见。
+    // 简化实现：有显示信息且非隐藏的成就都可见
+    if (display.has_value()) {
+        return true;
     }
 
-    return true;
+    // 没有显示信息的成就不可见（技术成就）
+    return false;
 }
 
 void PlayerAdvancements::_grantRewards(const mc::advancement::AdvancementRewards& rewards)
