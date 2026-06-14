@@ -151,7 +151,7 @@ void SkinCache::_scanExistingFiles()
 void SkinCache::_loadMetadata()
 {
     if (!std::filesystem::exists(m_metadataPath)) {
-        spdlog::debug("SkinCache: No metadata file found, starting fresh");
+        spdlog::info("SkinCache: No metadata file found, starting fresh");
         return;
     }
 
@@ -231,7 +231,7 @@ void SkinCache::_loadMetadata()
             loadEntries(json["capes"], "capes", m_capeEntries);
         }
 
-        spdlog::debug("SkinCache: Loaded metadata: {} skins, {} capes", m_skinEntries.size(), m_capeEntries.size());
+        spdlog::info("SkinCache: Loaded metadata: {} skins, {} capes", m_skinEntries.size(), m_capeEntries.size());
     }
     catch (const nlohmann::json::exception& e) {
         spdlog::warn("SkinCache: Failed to parse metadata JSON: {}", e.what());
@@ -290,7 +290,7 @@ void SkinCache::_saveMetadata()
 
         file << json.dump(2);
 
-        spdlog::debug("SkinCache: Saved metadata to {}", m_metadataPath.string());
+        spdlog::info("SkinCache: Saved metadata to {}", m_metadataPath.string());
     }
     catch (const nlohmann::json::exception& e) {
         spdlog::warn("SkinCache: Failed to serialize metadata JSON: {}", e.what());

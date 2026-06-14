@@ -79,9 +79,11 @@ skin/
 - `common/resource` - ResourceLocation
 - `common/network` - 网络包序列化
 - `common/util/text` - ITextComponent 文本组件
+- `common/util/crypto` - SHA-1 哈希（缓存键生成）
 - `common/entity/entities/player` - PlayerModelPart 枚举
 - `spdlog` - 日志
 - `nlohmann-json` - JSON解析
+- `stb_image` / `stb_image_write` - PNG 解码/编码
 
 ### 下游依赖（依赖本模块）
 
@@ -106,6 +108,14 @@ PlayerListEntry 的 displayName 字段存储的是 **ITextComponent 序列化后
 ### 缓存路径结构
 
 皮肤缓存使用 **两级目录结构**：`skins/<hash前2字符>/<完整hash>`，避免单个目录文件过多。清理缓存时需遍历子目录。
+
+### 缓存哈希算法
+
+皮肤缓存键使用 **SHA-1** 哈希（`util/crypto/Sha1`）计算，生成 40 字符十六进制字符串。Mojang 皮肤服务器的纹理 URL 中包含的哈希为 SHA-256 格式（64 字符），但本地缓存键使用 SHA-1 是为了与 SkinCache 的目录结构兼容。
+
+### 元数据持久化
+
+SkinCache 在初始化时从 `metadata.json` 加载缓存条目信息，在关闭时和析构时保存。元数据包含 hash、location、fileSize、lastAccess、lastModified 字段。如果元数据文件不存在或解析失败，会回退到文件扫描模式。
 
 ### 线程安全
 

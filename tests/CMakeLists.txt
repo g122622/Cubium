@@ -751,6 +751,8 @@ add_executable(mc_tests
     common/util/thread/ServerWorkerPoolTest.cpp
     # SHA-256 加密工具测试
     common/util/crypto/Sha256Test.cpp
+    # SHA-1 加密工具测试
+    common/util/crypto/Sha1Test.cpp
     # MD5 加密工具测试
     common/util/crypto/Md5Test.cpp
     # UUID 工具测试
@@ -1367,6 +1369,7 @@ target_sources(mc_tests
         # Assert搴?        ${CMAKE_SOURCE_DIR}/src/common/util/assert/Assert.cpp
         # Crypto utilities
         ${CMAKE_SOURCE_DIR}/src/common/util/crypto/Sha256.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/util/crypto/Sha1.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/crypto/Md5.cpp
         # UUID utilities
         ${CMAKE_SOURCE_DIR}/src/common/util/UuidUtils.cpp
