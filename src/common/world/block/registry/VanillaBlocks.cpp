@@ -71,6 +71,10 @@ void VanillaBlocks::initialize()
         block_registry::registerNaturalBlocks();
     }
     {
+        MC_TRACE_EVENT("client.initialization", "registerAgriculturalBlocks");
+        block_registry::registerAgriculturalBlocks();
+    }
+    {
         MC_TRACE_EVENT("client.initialization", "registerColoredBlocks");
         block_registry::registerColoredBlocks();
     }

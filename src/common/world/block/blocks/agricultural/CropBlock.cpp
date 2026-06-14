@@ -40,6 +40,21 @@ namespace blocks {
 CropBlock::CropBlock(const BlockProperties& properties)
     : BushBlock(properties)
 {
+    // 创建状态容器，注册 AGE 属性
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(getAgeProperty())
+            .create([](const Block& block,
+                        std::vector<size_t> values,
+                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                        const std::vector<BlockState*>* allStates,
+                        u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+            });
+    createBlockState(std::move(container));
+
+    // 设置默认状态为 age=0
+    setDefaultState(defaultState().with(getAgeProperty(), 0));
 
     // 预计算各生长阶段的形状
     // 年龄0-7对应高度2/16到16/16

@@ -6,6 +6,7 @@
 
 ```
 registry/
+├── AgriculturalBlocks.hpp/.cpp # 农作物方块：小麦、胡萝卜、马铃薯、甜菜根
 ├── VanillaBlocks.hpp/.cpp       # 主入口，VanillaBlocks 类继承所有分类结构体
 ├── BaseBlocks.hpp/.cpp          # 基础方块、矿石、矿物、原木、木板、冰、玻璃等
 ├── BuildingBlocks.hpp/.cpp      # 建筑、功能、含水、石砖、虫蚀、石英、海晶、紫珀、骨块等

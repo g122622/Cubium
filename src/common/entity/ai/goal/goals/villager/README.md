@@ -59,7 +59,7 @@ Goal (基类)
 - `CropBlock` - 作物方块（收获逻辑：getCropItem/getSeedItem/isMaxAge/withAge）
 - `FarmlandBlock` - 耕地方块（种植条件判断）
 - `ComposterBlock` - 堆肥桶方块（attemptCompost/empty/getLevel）
-- `BlockItemRegistry` - 方块物品注册表（种子→作物方块映射）
+- `VanillaBlocks` - 原版方块静态引用（AgriculturalBlocks::WHEAT/CARROTS/POTATOES/BEETROOTS 用于种子→作物映射）
 - `ItemDropHelper` - 物品掉落工具（生成掉落物实体）
 - `BlockRegistry` - 方块注册表（获取空气方块状态）
 - `BlockTags` - 方块标签系统（可替换方块判断）
@@ -107,7 +107,7 @@ ShareItemsGoal 和 CongregateGoal::_shareItems() 使用相同的食物分享逻�
 
 6. **FarmerWorkGoal 收获逻辑**：收获作物时不使用 `destroyBlock`（需要 `ServerWorld`），而是手动生成掉落物（通过 `CropBlock::getCropItem()/getSeedItem()` 获取物品ID，放入背包或丢在地上），然后调用 `onBlockRemoved()` 通知方块移除回调，最后将方块设为空气。
 
-7. **FarmerWorkGoal 种植逻辑**：种植时通过 `_getCropBlockForSeed()` 将种子物品映射为作物方块（小麦种子→minecraft:wheat，胡萝卜→minecraft:carrots，马铃薯→minecraft:potatoes，甜菜种子→minecraft:beetroots），然后放置默认状态（age=0）。`_hasFarmSeeds()` 检查小麦种子、胡萝卜、马铃薯、甜菜种子。**注意**：当前作物方块尚未注册到 `BlockItemRegistry`，种植功能依赖作物方块在 `BlockRegistry` 中的注册，需要后续完成 `AgriculturalBlocks` 注册。
+7. **FarmerWorkGoal 种植逻辑**：种植时通过 `_getCropBlockForSeed()` 将种子物品映射为作物方块（小麦种子→`VanillaBlocks::WHEAT`，胡萝卜→`VanillaBlocks::CARROTS`，马铃薯→`VanillaBlocks::POTATOES`，甜菜种子→`VanillaBlocks::BEETROOTS`），然后放置默认状态（age=0）。`_hasFarmSeeds()` 检查小麦种子、胡萝卜、马铃薯、甜菜种子。作物方块已在 `AgriculturalBlocks` 中注册到 `BlockRegistry` 和 `VanillaBlocks`，种子物品到作物方块的映射通过 `VanillaBlocks` 静态引用直接访问，无需运行时 `ResourceLocation` 查找。
 
 8. **FarmerWorkGoal 堆肥逻辑**：堆肥只处理小麦种子和甜菜种子（保留10个，多余的最多20个用于堆肥）。使用 `ComposterBlock::attemptCompost()` 逐个尝试堆肥。满桶时使用 `ComposterBlock::empty()` 取出骨粉。
 

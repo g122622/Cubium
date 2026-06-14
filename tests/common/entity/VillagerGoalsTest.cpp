@@ -1159,18 +1159,13 @@ TEST_F(FarmerWorkGoalTest, NoFarmSeedsWithNonPlantableItems)
 TEST_F(FarmerBlockTest, HarvestAddsItemsToInventory)
 {
     // 验证：收获成熟作物后，村民背包应该增加作物物品
-    // 注意：此测试需要作物方块（WheatBlock等）注册到 BlockRegistry 才能正常工作
-    // 当前作物方块尚未注册，故使用 BlockRegistry 查找
-    const Block* wheatBlock = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:wheat"));
-    if (!wheatBlock) {
-        GTEST_SKIP() << "WheatBlock not yet registered in BlockRegistry; skipping harvest test";
-    }
+    ASSERT_TRUE(VanillaBlocks::WHEAT != nullptr) << "WheatBlock must be registered";
 
     m_world->setDayTime(5000);
     m_villager->setProfession(VillagerProfession::Farmer);
     m_villager->setWorkStation(BlockPos(0, 64, 0));
 
-    auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(wheatBlock);
+    auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(VanillaBlocks::WHEAT);
     ASSERT_TRUE(cropBlock != nullptr);
     ASSERT_TRUE(VanillaBlocks::FARMLAND != nullptr);
 
@@ -1218,11 +1213,7 @@ TEST_F(FarmerBlockTest, HarvestAddsItemsToInventory)
 TEST_F(FarmerBlockTest, PlantSeedsOnEmptyFarmland)
 {
     // 验证：在空耕地上种植后，种子数量应该减少
-    // 注意：此测试需要作物方块注册到 BlockRegistry 才能正常工作
-    const Block* wheatBlock = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:wheat"));
-    if (!wheatBlock) {
-        GTEST_SKIP() << "WheatBlock not yet registered in BlockRegistry; skipping plant test";
-    }
+    ASSERT_TRUE(VanillaBlocks::WHEAT != nullptr) << "WheatBlock must be registered";
 
     m_world->setDayTime(5000);
     m_villager->setProfession(VillagerProfession::Farmer);
@@ -1272,17 +1263,13 @@ TEST_F(FarmerBlockTest, PlantSeedsOnEmptyFarmland)
 TEST_F(FarmerBlockTest, HarvestRemovesCropBlock)
 {
     // 验证：收获后作物方块应该被移除（变为空气）
-    // 注意：此测试需要作物方块注册到 BlockRegistry 才能正常工作
-    const Block* wheatBlock = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:wheat"));
-    if (!wheatBlock) {
-        GTEST_SKIP() << "WheatBlock not yet registered in BlockRegistry; skipping harvest-remove test";
-    }
+    ASSERT_TRUE(VanillaBlocks::WHEAT != nullptr) << "WheatBlock must be registered";
 
     m_world->setDayTime(5000);
     m_villager->setProfession(VillagerProfession::Farmer);
     m_villager->setWorkStation(BlockPos(0, 64, 0));
 
-    auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(wheatBlock);
+    auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(VanillaBlocks::WHEAT);
     ASSERT_TRUE(cropBlock != nullptr);
     ASSERT_TRUE(VanillaBlocks::FARMLAND != nullptr);
 
@@ -1340,21 +1327,25 @@ TEST_F(FarmerBlockTest, HarvestRemovesCropBlock)
 TEST_F(FarmerBlockTest, GetCropBlockForSeedMapping)
 {
     // 验证 _getCropBlockForSeed 的种子到作物方块映射
-    // 当前作物方块尚未注册到 BlockRegistry，但映射逻辑应该不会崩溃
-    // 当作物方块注册后，此测试将验证正确的映射关系
+    // 作物方块已注册到 BlockRegistry，应返回有效指针
 
-    // 这些调用不应崩溃，即使作物方块尚未注册
-    EXPECT_NO_THROW({
-        const Block* wheatCrop = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:wheat"));
-        const Block* carrotCrop = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:carrots"));
-        const Block* potatoCrop = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:potatoes"));
-        const Block* beetrootCrop = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:beetroots"));
-        // 当前应为 nullptr（作物方块尚未注册），但未来注册后将返回有效指针
-        (void)wheatCrop;
-        (void)carrotCrop;
-        (void)potatoCrop;
-        (void)beetrootCrop;
-    });
+    // 验证 VanillaBlocks 中的作物方块已注册
+    ASSERT_TRUE(VanillaBlocks::WHEAT != nullptr) << "WHEAT block must be registered";
+    ASSERT_TRUE(VanillaBlocks::CARROTS != nullptr) << "CARROTS block must be registered";
+    ASSERT_TRUE(VanillaBlocks::POTATOES != nullptr) << "POTATOES block must be registered";
+    ASSERT_TRUE(VanillaBlocks::BEETROOTS != nullptr) << "BEETROOTS block must be registered";
+
+    // 验证作物方块是 CropBlock 类型
+    EXPECT_NE(dynamic_cast<const blocks::CropBlock*>(VanillaBlocks::WHEAT), nullptr);
+    EXPECT_NE(dynamic_cast<const blocks::CropBlock*>(VanillaBlocks::CARROTS), nullptr);
+    EXPECT_NE(dynamic_cast<const blocks::CropBlock*>(VanillaBlocks::POTATOES), nullptr);
+    EXPECT_NE(dynamic_cast<const blocks::CropBlock*>(VanillaBlocks::BEETROOTS), nullptr);
+
+    // 验证 ResourceLocation 查找也能找到作物方块
+    EXPECT_EQ(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:wheat")), VanillaBlocks::WHEAT);
+    EXPECT_EQ(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:carrots")), VanillaBlocks::CARROTS);
+    EXPECT_EQ(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:potatoes")), VanillaBlocks::POTATOES);
+    EXPECT_EQ(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:beetroots")), VanillaBlocks::BEETROOTS);
 }
 
 TEST_F(FarmerBlockTest, HasFarmSeedsWithVariousItems)

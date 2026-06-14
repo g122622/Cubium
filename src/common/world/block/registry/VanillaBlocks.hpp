@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "world/block/registry/AgriculturalBlocks.hpp"
 #include "world/block/registry/BambooBlocks.hpp"
 #include "world/block/registry/BaseBlocks.hpp"
 #include "world/block/registry/BuildingBlocks.hpp"
@@ -56,7 +57,8 @@ namespace mc {
  *
  * 参考: net.minecraft.block.Blocks
  */
-class VanillaBlocks : public block_registry::BambooBlocks,
+class VanillaBlocks : public block_registry::AgriculturalBlocks,
+                      public block_registry::BambooBlocks,
                       public block_registry::BaseBlocks,
                       public block_registry::BuildingBlocks,
                       public block_registry::BuildingVariantBlocks,

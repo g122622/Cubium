@@ -894,9 +894,7 @@ void FarmerWorkGoal::_tryPlant()
         if (!item) continue;
 
         // 获取种子对应的作物方块
-        // TODO: 当作物方块注册到 BlockItemRegistry 后，应改用
-        // BlockItemRegistry::instance().getBlock(item->itemId()) 进行查找，
-        // 当前作物方块（WheatBlock 等）尚未注册为 BlockItem，故使用直接映射
+        // 种子物品与作物方块名称不同（如 wheat_seeds → wheat），故使用直接映射
         const Block* block = _getCropBlockForSeed(item);
         if (!block) continue;
 
@@ -1144,32 +1142,24 @@ const Block* FarmerWorkGoal::_getCropBlockForSeed(const Item* seedItem)
 {
     if (!seedItem) return nullptr;
 
-    // 种子物品到作物方块 ResourceLocation 的映射
+    // 种子物品到作物方块的直接映射
     // MC 原版中，种子放置后变为对应的作物方块：
     //   小麦种子 → minecraft:wheat
     //   胡萝卜   → minecraft:carrots
     //   马铃薯   → minecraft:potatoes
     //   甜菜种子 → minecraft:beetroots
-    // TODO: 当作物方块注册到 BlockItemRegistry 后，应改用
-    // BlockItemRegistry::instance().getBlock(seedItem->itemId()) 进行查找，
-    // 届时可以移除此硬编码映射
-
-    ResourceLocation cropId("minecraft:wheat"); // 默认值
-
+    // 使用 VanillaBlocks 静态引用直接映射，避免运行时 ResourceLocation 查找
     if (seedItem == Items::WHEAT_SEEDS) {
-        cropId = ResourceLocation("minecraft:wheat");
+        return VanillaBlocks::WHEAT;
     } else if (seedItem == Items::CARROT) {
-        cropId = ResourceLocation("minecraft:carrots");
+        return VanillaBlocks::CARROTS;
     } else if (seedItem == Items::POTATO) {
-        cropId = ResourceLocation("minecraft:potatoes");
+        return VanillaBlocks::POTATOES;
     } else if (seedItem == Items::BEETROOT_SEEDS) {
-        cropId = ResourceLocation("minecraft:beetroots");
-    } else {
-        return nullptr;
+        return VanillaBlocks::BEETROOTS;
     }
 
-    Block* block = BlockRegistry::instance().getBlock(cropId);
-    return block;
+    return nullptr;
 }
 
 bool FarmerWorkGoal::_isCropMatureAt(const BlockPos& pos) const

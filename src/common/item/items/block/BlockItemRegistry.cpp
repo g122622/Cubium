@@ -645,6 +645,14 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     // 耕地
     registerSimpleBlock(VanillaBlocks::FARMLAND, "farmland");
 
+    // 农作物方块 - 种子物品（wheat_seeds, carrot, potato, beetroot_seeds）
+    // 与对应的作物方块（wheat, carrots, potatoes, beetroots）名称不同，
+    // 此处注册的是作物方块对应的BlockItem，用于方块物品映射
+    registerSimpleBlock(VanillaBlocks::WHEAT, "wheat");
+    registerSimpleBlock(VanillaBlocks::CARROTS, "carrots");
+    registerSimpleBlock(VanillaBlocks::POTATOES, "potatoes");
+    registerSimpleBlock(VanillaBlocks::BEETROOTS, "beetroots");
+
     // 旗帜（站立式，每种颜色对应一个BannerItem；墙壁旗帜不需要单独注册物品）
     registerSimpleBlock(VanillaBlocks::WHITE_BANNER, "white_banner");
     registerSimpleBlock(VanillaBlocks::ORANGE_BANNER, "orange_banner");
