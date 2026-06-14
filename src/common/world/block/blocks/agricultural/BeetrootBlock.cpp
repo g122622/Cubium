@@ -26,13 +26,14 @@
 #include "../../../../item/Items.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../../IWorld.hpp"
 
 namespace mc {
 namespace blocks {
 
 BeetrootBlock::BeetrootBlock(const BlockProperties& properties)
-    : CropBlock(properties)
+    : CropBlock(properties, BlockStateProperties::AGE_0_3())
 {
 
     // 预计算甜菜根各生长阶段的形状

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/IGrowable.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include <array>
@@ -40,15 +41,22 @@ namespace blocks {
  * @brief 农作物方块基类
  *
  * 可生长的农作物，如小麦、胡萝卜、马铃薯等。
- * 使用 AGE_0_7 属性表示生长阶段（0-7，共8个阶段）。
+ * 默认使用 AGE_0_7 属性表示生长阶段（0-7，共8个阶段）。
+ * 甜菜根（BeetrootBlock）覆盖为 AGE_0_3（0-3，共4个阶段）。
+ *
+ * 注意：年龄属性通过构造函数参数传入，避免在基类构造函数中调用虚方法
+ * （C++ 中基类构造期间虚分派不会解析到派生类）。
  */
 class CropBlock : public BushBlock, public IGrowable {
 public:
     /**
      * @brief 构造函数
      * @param properties 方块属性
+     * @param ageProperty 年龄属性，默认为 AGE_0_7（8个阶段）。
+     *                    BeetrootBlock 传入 AGE_0_3（4个阶段）。
      */
-    explicit CropBlock(const BlockProperties& properties);
+    explicit CropBlock(
+        const BlockProperties& properties, const IntegerProperty& ageProperty = BlockStateProperties::AGE_0_7());
 
     /**
      * @brief 析构函数
@@ -171,6 +179,10 @@ protected:
 
     /// 各年龄阶段的形状缓存
     std::array<CollisionShape, 8> m_shapesByAge;
+
+private:
+    /// 存储的年龄属性引用（构造时由派生类传入，避免基类构造期间虚分派问题）
+    const IntegerProperty& m_ageProperty;
 };
 
 } // namespace blocks

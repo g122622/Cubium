@@ -37,13 +37,16 @@ namespace blocks {
 
 // ========== 构造函数 ==========
 
-CropBlock::CropBlock(const BlockProperties& properties)
+CropBlock::CropBlock(const BlockProperties& properties, const IntegerProperty& ageProperty)
     : BushBlock(properties)
+    , m_ageProperty(ageProperty)
 {
-    // 创建状态容器，注册 AGE 属性
+    // 创建状态容器，注册年龄属性
+    // 注意：不能在构造函数中调用虚方法 getAgeProperty()，因为 C++ 基类构造期间
+    // 虚分派会解析到基类而非派生类。因此通过构造函数参数传入年龄属性。
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
-            .add(getAgeProperty())
+            .add(m_ageProperty)
             .create([](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -54,7 +57,7 @@ CropBlock::CropBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     // 设置默认状态为 age=0
-    setDefaultState(defaultState().with(getAgeProperty(), 0));
+    setDefaultState(defaultState().with(m_ageProperty, 0));
 
     // 预计算各生长阶段的形状
     // 年龄0-7对应高度2/16到16/16
@@ -70,7 +73,7 @@ CropBlock::CropBlock(const BlockProperties& properties)
 
 const IntegerProperty& CropBlock::getAgeProperty() const
 {
-    return BlockStateProperties::AGE_0_7();
+    return m_ageProperty;
 }
 
 i32 CropBlock::getAge(const BlockState& state) const

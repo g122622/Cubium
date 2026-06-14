@@ -1015,8 +1015,11 @@ void FarmerWorkGoal::_tryCompost()
             if (!currentState) break;
 
             // TODO attemptCompost 接口需要 Block& 非const引用，但 getBlock() 返回 const Block&。
-            // 当前使用 const_cast 是权宜之计，与 ServerWorld::setBlockState 中的用法一致。
-            // 未来应重构 ComposterBlock::attemptCompost 为 const 正确接口（接受 const Block& 或仅使用 BlockState）。
+            // 当前使用 const_cast 是权宜之计。根本解决方案需要将 TickManager::scheduleBlockTick
+            // 及其下游模板（ScheduledTick<T>::target, ServerTickList 回调）改为接受 const Block&，
+            // 这涉及 TickManager、ITickList、ServerTickList、EmptyTickList 等多个文件的级联重构。
+            // 参考项目中 AbstractPressurePlateBlock、BigDripleafBlock、RedstoneOreBlock、
+            // MagmaBlock 等均有相同的 const_cast 问题。
             Block& block = const_cast<Block&>(currentState->getBlock());
             BlockState newState =
                 blocks::ComposterBlock::attemptCompost(*currentState, *world, pos, block, item->itemId());
