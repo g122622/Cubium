@@ -40,7 +40,7 @@ Block
 ├── AmethystBlock → Block
 ├── BuddingAmethystBlock → Block
 ├── AmethystClusterBlock → Block, IBucketPickupHandler
-├── PointedDripstoneBlock → Block
+├── PointedDripstoneBlock → Block, IWaterLoggable
 ├── CaveVinesBlock → GrowingPlantHeadBlock, IGrowable
 ├── CaveVinesPlantBlock → GrowingPlantBodyBlock, IGrowable
 ├── FrogspawnBlock → Block
@@ -93,9 +93,19 @@ Block
 
 由于注册顺序依赖，`BuddingAmethystBlock` 通过 `BlockRegistry::instance().getBlock(ResourceLocation(...))` 延迟查找紫水晶簇方块，而非直接引用指针。
 
-### #5. PointedDripstoneBlock 的 TODO
+### #5. PointedDripstoneBlock 滴石生长逻辑
 
-滴水石锥的生长逻辑尚未实现，当前只有碰撞形状和放置检测。
+滴水石锥实现了完整的 MC 1.21.11 生长逻辑，包括：
+
+- **随机刻生长**：以 0.011377778/tick 的概率触发，条件为上方1格是滴水石块且上方2格是水源
+- **厚度计算**：根据邻居滴石方向和厚度推断当前位置的厚度（TipMerge/Tip/Frustum/Middle/Base）
+- **放置方向**：根据点击面确定方向（顶面→朝下，底面→朝上），潜行时不合并尖端
+- **支撑失效**：钟乳石失去支撑时延迟2tick掉落，石笋失去支撑时立即破坏
+- **流体传输**：钟乳石可传输水/岩浆到下方炼药锅（水0.17578125/tick，岩浆0.05859375/tick）
+- **泥巴变粘土**：当泥巴在滴水石块上方时，钟乳石可将水滴穿泥巴变为粘土（TODO：需要 Mud/Clay 方块注册后启用）
+- **碰撞箱**：Tip朝上/朝下有不同形状，其他厚度均为全高柱状
+
+关键静态方法：`canGrow`、`findTip`、`findRootBlock`、`canDrip`、`canTipGrow`、`calculateDripstoneThickness`、`maybeTransferFluid`
 
 ### #6. CaveVinesBlock/CaveVinesPlantBlock 的中键选取和收获
 

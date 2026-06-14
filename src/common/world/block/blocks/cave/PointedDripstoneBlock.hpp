@@ -140,7 +140,7 @@ private:
     [[nodiscard]] static bool canTipGrow(const BlockState& state, IWorld& world, const BlockPos& pos);
 
     /// 判断生长条件：上方是滴水石块且上方2格是水源
-    [[nodiscard]] static bool canGrow(const BlockState* aboveState, const BlockState* aboveAboveState);
+    [[nodiscard]] static bool canGrow(IWorld& world, const BlockPos& pos);
 
     /// 检查位置是否可以放置滴石（支撑检查）
     [[nodiscard]] static bool isValidPointedDripstonePlacement(IWorld& world, const BlockPos& pos, Direction direction);

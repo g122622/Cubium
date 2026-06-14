@@ -22,6 +22,7 @@
 
 #include "PointedDripstoneBlock.hpp"
 
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -121,9 +122,11 @@ BlockState PointedDripstoneBlock::getStateForPlacement(BlockItemUseContext& cont
         return defaultState();
     }
 
-    // 非潜行时允许合并（isTipMerge = true）
-    // TODO: 当 Player::isSecondaryUseActive 接口完善后，读取潜行状态
-    bool isTipMerge = true;
+    // MC 1.21.11: isSecondaryUseActive = 玩家正在潜行
+    // 潜行时不合并尖端（isTipMerge = false），非潜行时允许合并
+    Player* player = context.getPlayer();
+    bool isSecondaryUseActive = player != nullptr && player->isSneaking();
+    bool isTipMerge = !isSecondaryUseActive;
     auto thickness = calculateDripstoneThickness(world, pos, tipDirection, isTipMerge);
 
     // 检查含水
@@ -412,23 +415,18 @@ bool PointedDripstoneBlock::canTipGrow(const BlockState& state, IWorld& world, c
     return isUnmergedTipWithDirection(growState, Directions::opposite(tipDir));
 }
 
-bool PointedDripstoneBlock::canGrow(const BlockState* aboveState, const BlockState* aboveAboveState)
+bool PointedDripstoneBlock::canGrow(IWorld& world, const BlockPos& pos)
 {
-    // 上方1格是滴水石块 + 上方2格是水源
+    // MC 1.21.11: 上方1格是滴水石块 + 上方2格是水源
+    const BlockState* aboveState = world.getBlockState(pos.up());
     if (aboveState == nullptr || !aboveState->is(VanillaBlocks::DRIPSTONE_BLOCK)) {
         return false;
     }
-    if (aboveAboveState == nullptr) {
-        return false;
-    }
+
     // 检查上方2格是否为水源
     // MC: p_154142_.is(Blocks.WATER) && p_154142_.getFluidState().isSource()
-    if (!aboveAboveState->isAir()) {
-        // TODO: 需要检查方块是否为水方块（BlockState::is(VanillaBlocks::WATER) 不一定可用）
-        // 简化判断：检查流体是否为水源
-        return false;
-    }
-    return false;
+    const fluid::FluidState* aboveFluid = world.getFluidState(pos.up(2));
+    return aboveFluid != nullptr && aboveFluid->isSource() && aboveFluid->getFluid().isIn(fluid::FluidTags::WATER());
 }
 
 bool PointedDripstoneBlock::isValidPointedDripstonePlacement(IWorld& world, const BlockPos& pos, Direction direction)
@@ -806,11 +804,31 @@ void PointedDripstoneBlock::maybeTransferFluid(const BlockState& state, IWorld& 
     if (!tipPosOpt2.has_value()) {
         return; // 未找到有效尖端
     }
-    MC_UNUSED(tipPosOpt2);
+    BlockPos tipPos = tipPosOpt2.value();
 
-    // TODO: 完整实现泥巴变粘土逻辑
-    // TODO: 完整实现填充炼药锅逻辑
-    // 当炼药锅系统完善后，搜索下方炼药锅并调度填充刻
+    // MC 1.21.11: 泥巴变粘土逻辑
+    // 如果根方块上方是泥巴且流体为水，将泥巴替换为粘土
+    // TODO: 当 Mud 方块和 Clay 方块注册后，启用此逻辑
+    // if (fluidBlockState != nullptr && fluidBlockState->is(VanillaBlocks::MUD) && isWater) {
+    //     const BlockState* clayState = &VanillaBlocks::CLAY->defaultState();
+    //     world.setBlockState(fluidPos, clayState, 3);
+    //     // TODO: 触发 GameEvent::BLOCK_CHANGE
+    //     // TODO: 播放 levelEvent 1504（滴水粒子/音效）
+    //     return;
+    // }
+
+    // MC 1.21.11: 寻找下方可接收流体的炼药锅
+    std::optional<BlockPos> cauldronPosOpt = findFillableCauldronBelow(world, tipPos, fluid);
+    if (cauldronPosOpt.has_value()) {
+        BlockPos cauldronPos = cauldronPosOpt.value();
+        // TODO: 播放 levelEvent 1504（尖端滴水粒子/音效）
+        // 计算延迟：50 + (尖端Y - 炼药锅Y) tick
+        i32 delay = 50 + (tipPos.y - cauldronPos.y);
+        const BlockState* cauldronState = world.getBlockState(cauldronPos);
+        if (cauldronState != nullptr) {
+            world.tickManager().scheduleBlockTick(cauldronPos, const_cast<Block&>(cauldronState->getBlock()), delay);
+        }
+    }
 }
 
 } // namespace blocks
