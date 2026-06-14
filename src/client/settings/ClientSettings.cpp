@@ -92,8 +92,7 @@ ClientSettings::ClientSettings()
     // 网络设置
     , serverAddress("serverAddress", defaults::client::serverAddress)
     , serverPort("serverPort", 1, 65535, defaults::server::serverPort)
-    // TODO: 将 "Player" 默认值移至 defaults::client 命名空间统一管理
-    , username("username", "Player")
+    , username("username", defaults::client::username)
 
     // 日志设置
     , logLevel("logLevel", defaults::client::logLevel)

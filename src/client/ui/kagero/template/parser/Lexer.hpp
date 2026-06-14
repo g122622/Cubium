@@ -334,11 +334,6 @@ private:
     Token _scanTagStart();
 
     /**
-     * @brief 扫描标签结束（> 或 />）
-     */
-    Token _scanTagEnd();
-
-    /**
      * @brief 扫描注释（<!-- ... -->）
      */
     Token _scanComment();

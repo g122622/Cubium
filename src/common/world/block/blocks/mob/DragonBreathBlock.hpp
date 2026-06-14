@@ -28,24 +28,21 @@
 
 namespace mc {
 
-class IWorld;
-class Entity;
-
 namespace blocks {
 
 /**
  * @brief 龙息方块
  *
- * 末影龙喷出的龙息滞留药水效果方块。
+ * 末影龙喷出的龙息残留视觉效果方块。
+ * 该方块不造成伤害——龙息伤害由 DragonFireballEntity 和
+ * DragonSittingFlamingPhase 生成的 AreaEffectCloudEntity 处理，
+ * 后者会应用瞬间伤害效果并具有重应用延迟。
+ * 此方块仅作为视觉效果占位，无碰撞体积。
  */
 class DragonBreathBlock : public Block {
 public:
     explicit DragonBreathBlock(const BlockProperties& properties);
     ~DragonBreathBlock() override = default;
-
-    // ========== 实体交互 ==========
-
-    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
     // ========== 形状 ==========
 

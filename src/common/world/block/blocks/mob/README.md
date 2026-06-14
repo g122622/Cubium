@@ -10,7 +10,7 @@ mob/
 ├── TurtleEggBlock.hpp/cpp    # 海龟蛋方块（可孵化、可被踩破）
 ├── InfestedBlock.hpp/cpp     # 被感染方块（破坏时生成蠹虫）
 ├── SpawnerBlock.hpp/cpp      # 刷怪笼方块（有方块实体）
-└── DragonBreathBlock.hpp/cpp # 龙息方块（碰撞伤害）
+└── DragonBreathBlock.hpp/cpp # 龙息方块（纯视觉，无碰撞无伤害）
 ```
 
 ## 内部模块关系
@@ -21,7 +21,7 @@ Block (基类)
     ├── TurtleEggBlock    → 状态属性: EGGS_1_4, HATCH_0_2
     ├── InfestedBlock     → 静态映射表管理虫蚀方块关系
     ├── SpawnerBlock      → 需要 SpawnerBlockEntity（待实现生物生成）
-    └── DragonBreathBlock → 碰撞时对 LivingEntity 造成龙息伤害
+    └── DragonBreathBlock → 纯视觉方块，无碰撞无伤害；龙息伤害由 AreaEffectCloudEntity 处理
 ```
 
 ## 上下游外部依赖关系
@@ -31,10 +31,7 @@ Block (基类)
 - `BlockStateProperties` - 属性定义（EGGS_1_4、HATCH_0_2、HONEY_LEVEL_0_5）
 - `BlockTags` - 方块标签（SAND 用于海龟蛋放置检测）
 - `IWorld` / `IBlockReader` - 世界接口
-- `Entity` / `LivingEntity` - 实体基类
-- `TurtleEntity` - 海龟实体（孵化生成）
-- `SilverfishEntity` - 蠹虫实体（虫蚀方块破坏生成）
-- `DamageSources` - 伤害来源（龙息伤害）
+- `Entity` / `LivingEntity` - 实体基类（海龟蛋、蠹虫生成）
 - `GameRules` - 游戏规则（mobGriefing）
 - `SoundEvents` - 音效播放
 
@@ -61,9 +58,9 @@ Block (基类)
 - **不调用 spawnAfterBreak 的路径**：流体冲刷（WaterFluid/LavaFluid）、火焰烧毁（FireBlock）、/clone move 命令——MC Java 中这些路径不调用 spawnAfterBreak
 
 ### DragonBreathBlock
-- **碰撞伤害**：只对 `LivingEntity` 造成伤害，使用 `dynamic_cast` 检查实体类型
-- **服务端检查**：伤害逻辑只在服务端执行
-- **伤害类型**：使用 `DamageSources::dragonBreath()` 绕过护甲
+- **纯视觉方块**：不造成伤害，龙息伤害由 `AreaEffectCloudEntity`（由 `DragonFireballEntity` 生成）处理
+- **无碰撞体积**：`getShape()` 和 `getCollisionShape()` 均返回空形状
+- **非不透明**：`isOpaque()` 返回 `false`，允许光照穿过
 
 ### BeehiveBlock / SpawnerBlock
 - **方块实体**：`hasBlockEntity()` 返回 `true`，需要配套的 BlockEntity 实现完整功能

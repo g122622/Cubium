@@ -22,9 +22,6 @@
  */
 
 #include "DragonBreathBlock.hpp"
-#include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/damage/DamageSource.hpp"
-#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace blocks {
@@ -32,30 +29,6 @@ namespace blocks {
 DragonBreathBlock::DragonBreathBlock(const BlockProperties& properties)
     : Block(properties)
 {}
-
-void DragonBreathBlock::onEntityCollision(
-    const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
-{
-    MC_UNUSED(state);
-    MC_UNUSED(pos);
-
-    // 只对 LivingEntity 造成伤害
-    // 龙息效果通过 AreaEffectCloudEntity 实现，每 5 tick 检测一次
-    // TODO: 简化实现，每次碰撞 tick 造成伤害，后续应实现完整的 AreaEffectCloudEntity 机制
-    auto* livingEntity = dynamic_cast<LivingEntity*>(&entity);
-    if (livingEntity == nullptr) {
-        return;
-    }
-
-    // 仅在服务端执行伤害逻辑
-    if (world.isClientSide()) {
-        return;
-    }
-
-    // 造成龙息伤害，绕过护甲
-    auto damageSource = DamageSources::dragonBreath();
-    livingEntity->hurt(damageSource, 1.0f);
-}
 
 const CollisionShape& DragonBreathBlock::getShape(const BlockState& state) const
 {

@@ -339,14 +339,6 @@ Token Lexer::_scanTagStart()
     return _makeToken(TokenType::OpenTag, "<");
 }
 
-Token Lexer::_scanTagEnd()
-{
-    // TODO: 此方法已不再使用，逻辑已移至_scanTagStart和_scanToken，考虑删除
-    _advance();
-    m_inTag = false;
-    return _makeToken(TokenType::CloseTag, ">");
-}
-
 Token Lexer::_scanComment()
 {
     // 已经扫描了 "<!--"

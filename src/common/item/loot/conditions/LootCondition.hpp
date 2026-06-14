@@ -38,7 +38,7 @@ namespace loot {
  * 示例用法:
  * @code
  * auto silkTouch = std::make_unique<SilkTouchCondition>();
- * auto entry = std::make_unique<ItemLootEntry>("minecraft:diamond_ore");
+ * auto entry = std::make_unique<ItemLootEntry>("minecraft:diamond_ore", RandomValueRange(1.0f, 1.0f), 1, 0);
  * entry->addCondition(std::move(silkTouch));
  * @endcode
  */

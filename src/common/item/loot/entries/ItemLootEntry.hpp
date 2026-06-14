@@ -44,12 +44,7 @@ public:
      * @param weight 权重
      * @param quality 质量
      */
-    // TODO: 构造函数参数不应设置默认值（违反项目规范），
-    // 但移除默认参数会影响 LootCondition.hpp 中的示例代码，暂时保留。
-    ItemLootEntry(const std::string& itemId,
-        const RandomValueRange& count = RandomValueRange(1.0f, 1.0f),
-        i32 weight = 1,
-        i32 quality = 0);
+    ItemLootEntry(const std::string& itemId, const RandomValueRange& count, i32 weight, i32 quality);
 
     [[nodiscard]] LootEntryType getType() const override { return LootEntryType::Item; }
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;

@@ -323,9 +323,10 @@ public:
 
     /**
      * @brief 滚动到使指定位置可见
+     * @param y 内容中的Y坐标
+     * @param height 目标区域的高度
      */
-    // TODO: 默认参数值违反项目规范（函数参数不允许默认值），需移除并更新所有调用点
-    void scrollIntoView(i32 y, i32 height = 0)
+    void scrollIntoView(i32 y, i32 height)
     {
         i32 visibleHeight = m_bounds.height - m_padding.vertical();
         i32 viewTop = m_scrollY;

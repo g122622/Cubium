@@ -90,6 +90,7 @@ inline constexpr const char* language = "zh_cn";
 // 网络
 inline constexpr const char* serverAddress = "127.0.0.1";
 inline constexpr u16 serverPort = 25565;
+inline constexpr const char* username = "Player";
 
 // 窗口
 inline constexpr i32 windowWidth = 1280;
