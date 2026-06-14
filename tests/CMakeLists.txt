@@ -298,6 +298,10 @@ add_executable(mc_tests
     common/world/blockentity/BannerEntityTest.cpp
     # BannerPattern 旗帜图案工具类测试（hashname、文件名、图案物品判断）
     common/world/blockentity/BannerPatternTest.cpp
+    # VaultBlockEntity 宝库方块实体测试（状态机、钥匙插入、战利品弹出、玩家检测）
+    common/world/blockentity/VaultBlockEntityTest.cpp
+    # TrialSpawnerBlockEntity 试炼刷怪笼方块实体测试（状态机、怪物生成、奖励弹出、不祥变体）
+    common/world/blockentity/TrialSpawnerBlockEntityTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp
@@ -1197,6 +1201,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/redstone/CommandBlockEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/CraftingTableEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/interactive/EnchantingTableEntity.cpp
+        # 试炼类方块实体
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/trial/VaultBlockEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/trial/TrialSpawnerBlockEntity.cpp
         # 鐗╁搧瀹炰綋鍜屾帀钀借〃
         ${CMAKE_SOURCE_DIR}/src/common/entity/entities/item/ItemEntity.cpp
         # 鎺夎惤绯荤粺

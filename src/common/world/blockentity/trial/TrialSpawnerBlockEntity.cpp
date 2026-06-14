@@ -285,8 +285,8 @@ std::vector<Player*> TrialSpawnerBlockEntity::detectPlayers(IWorld& world, f32 r
             continue;
         }
 
-        // 排除创造模式玩家（参考MC原版 NO_CREATIVE_PLAYERS 检测器）
-        // 注意：MC原版试炼刷怪笼排除创造和旁观者，但这里先排除旁观者
+        // 排除旁观者模式的玩家
+        // 注意：试炼刷怪笼应排除创造模式和旁观者，目前先排除旁观者
         // 创造模式玩家不参与怪物计数，但仍然可以触发不祥变体
         if (player->isSpectator()) {
             continue;
@@ -350,7 +350,7 @@ void TrialSpawnerBlockEntity::applyOminous(Player& player)
     m_totalMobsToSpawn = calculateTargetTotalMobs(additionalPlayers);
     m_maxSimultaneousMobs = calculateTargetSimultaneousMobs(additionalPlayers);
 
-    // 重置已生成怪物计数（参考MC原版 resetAfterBecomingOminous）
+    // 重置已生成怪物计数
     m_spawnedMobsCount = 0;
     m_currentMobsCount = 0;
     m_trackedMobs.clear();
@@ -485,7 +485,7 @@ void TrialSpawnerBlockEntity::tickWaitingForRewardEjection(IWorld& world)
 {
     i64 currentTick = static_cast<i64>(world.currentTick());
 
-    // 等待一小段时间后进入弹出状态（参考MC原版 isReadyToOpenShutter 的延迟）
+    // 等待一小段时间后进入弹出状态
     if (currentTick >= m_cooldownEndsAt - m_config.cooldownTicks + 40) {
         // 播放打开百叶窗音效
         world.playSound(ResourceLocation("minecraft", "block.trial_spawner.open_shutter"),
@@ -548,7 +548,7 @@ void TrialSpawnerBlockEntity::tickCooldown(IWorld& world)
 {
     i64 currentTick = static_cast<i64>(world.currentTick());
 
-    // 冷却期间也检测玩家（参考MC原版 COOLDOWN 状态的检测逻辑）
+    // 冷却期间也检测玩家
     if (currentTick - m_lastPlayerScanTick >= PLAYER_SCAN_INTERVAL) {
         m_lastPlayerScanTick = currentTick;
         auto players = detectPlayers(world, m_config.detectionRange);
@@ -627,7 +627,6 @@ void TrialSpawnerBlockEntity::ejectRewardForPlayer(IWorld& world, Player& player
 
     // 50%概率选择补给表，50%概率选择钥匙表
     // 不祥变体：70%概率补给，30%概率钥匙
-    // 参考MC原版 TrialSpawnerConfig.lootTablesToEject
     bool isSupply = world.getRandom().nextFloat() < (m_ominous ? 0.7f : 0.5f);
 
     std::string lootTableId;
@@ -663,8 +662,7 @@ void TrialSpawnerBlockEntity::ejectRewardForPlayer(IWorld& world, Player& player
         return;
     }
 
-    // 弹出所有物品到世界中
-    // 参考MC原版 DefaultDispenseItemBehavior.spawnItem，方向为UP，速度为2
+    // 弹出所有物品到世界中，方向为UP，速度为2
     f64 x = static_cast<f64>(m_pos.x) + 0.5;
     f64 y = static_cast<f64>(m_pos.y) + 1.2;
     f64 z = static_cast<f64>(m_pos.z) + 0.5;

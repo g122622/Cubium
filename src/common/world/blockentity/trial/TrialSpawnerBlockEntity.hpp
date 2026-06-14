@@ -58,7 +58,7 @@ class Entity;
  *   Inactive=0, WaitingForPlayers=1, Active=2,
  *   WaitingForRewardEjection=3, EjectingReward=4, Cooldown=4
  *
- * 参考: net.minecraft.block.entity.TrialSpawnerBlockEntity
+ * 参考: TrialSpawnerBlockEntity
  */
 class TrialSpawnerBlockEntity : public BlockEntity {
 public:
@@ -92,7 +92,7 @@ public:
         f32 detectionRange = 14.0f;
         /// 生成范围
         f32 spawnRange = 4.0f;
-        /// 冷却时间（ticks），参考MC原版 DEFAULT_TARGET_COOLDOWN_LENGTH = 36000 (30分钟)
+        /// 冷却时间（ticks）= 30分钟
         i32 cooldownTicks = 36000;
         /// 奖励弹出检测间隔（ticks）
         i32 ejectingRewardTicks = 80;
@@ -166,19 +166,19 @@ public:
 private:
     // ========== 常量 ==========
 
-    /// 玩家扫描间隔（ticks），参考MC原版 DELAY_BETWEEN_PLAYER_SCANS
+    /// 玩家扫描间隔（ticks）
     static constexpr i32 PLAYER_SCAN_INTERVAL = 20;
 
-    /// 新玩家检测后延迟生成缓冲（ticks），参考MC原版 DETECT_PLAYER_SPAWN_BUFFER
+    /// 新玩家检测后延迟生成缓冲（ticks）
     static constexpr i32 DETECT_PLAYER_SPAWN_BUFFER = 40;
 
-    /// 怪物追踪最大距离，参考MC原版 MAX_MOB_TRACKING_DISTANCE
+    /// 怪物追踪最大距离
     static constexpr f32 MAX_MOB_TRACKING_DISTANCE = 47.0f;
 
-    /// 奖励弹出间隔（ticks），参考MC原版 TIME_BETWEEN_EACH_EJECTION
+    /// 奖励弹出间隔（ticks）
     static constexpr i32 TIME_BETWEEN_EJECTIONS = 30;
 
-    /// 每级不祥之兆对应试炼之兆的时长（ticks），参考MC原版
+    /// 每级不祥之兆对应试炼之兆的时长（ticks）
     static constexpr i32 TRIAL_OMEN_PER_BAD_OMEN_LEVEL = 18000;
 
     // ========== 状态机方法 ==========

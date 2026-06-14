@@ -53,7 +53,7 @@ class ItemEntity;
  *   普通宝库: keyItem=TrialKey, lootTable=reward
  *   不祥宝库: keyItem=OminousTrialKey, lootTable=reward_ominous
  *
- * 参考: net.minecraft.block.entity.VaultBlockEntity
+ * 参考: VaultBlockEntity
  */
 class VaultBlockEntity : public BlockEntity {
 public:
@@ -134,13 +134,13 @@ public:
 private:
     // ========== 常量 ==========
 
-    /// 解锁动画持续时间（ticks），参考MC原版 UNLOCKING_DELAY_TICKS
+    /// 解锁动画持续时间（ticks）
     static constexpr i32 UNLOCKING_DURATION = 14;
 
-    /// 每个物品弹出间隔（ticks），参考MC原版 DELAY_BETWEEN_EJECTIONS_TICKS
+    /// 每个物品弹出间隔（ticks）
     static constexpr i32 EJECTION_INTERVAL = 20;
 
-    /// 最后一个物品弹出后等待时间（ticks），参考MC原版 DELAY_AFTER_LAST_EJECTION_TICKS
+    /// 最后一个物品弹出后等待时间（ticks）
     static constexpr i32 EJECTION_AFTER_LAST_DURATION = 20;
 
     /// 状态更新扫描间隔（ticks）

@@ -201,8 +201,7 @@ void VaultBlockEntity::setConfig(const Config& config)
 
 bool VaultBlockEntity::tryInsertKey(Player& player)
 {
-    // 状态检查：仅Active和Unlocking/Ejecting状态允许操作
-    // 参考MC原版: canEjectReward = !config.keyItem().isEmpty() && vaultState != INACTIVE
+    // 状态检查：仅非Inactive状态允许操作
     if (m_state == State::Inactive) {
         return false;
     }
@@ -216,14 +215,17 @@ bool VaultBlockEntity::tryInsertKey(Player& player)
     ItemStack heldItem = player.getHeldItem(Hand::MainHand);
     if (heldItem.isEmpty() || heldItem.getItem() != m_config.keyItem || heldItem.getCount() < 1) {
         // 播放插入失败音效（带冷却防刷）
-        i64 currentTick = static_cast<i64>(player.world() != nullptr ? player.world()->currentTick() : 0);
-        if (currentTick - m_lastInsertFailSoundTick >= INSERT_FAIL_SOUND_COOLDOWN) {
-            player.world()->playSound(ResourceLocation("minecraft", "block.vault.insert_item_fail"),
-                sound::SoundCategory::Blocks,
-                m_pos.center(),
-                1.0f,
-                1.0f);
-            m_lastInsertFailSoundTick = currentTick;
+        IWorld* playerWorld = player.world();
+        if (playerWorld != nullptr) {
+            i64 currentTick = static_cast<i64>(playerWorld->currentTick());
+            if (currentTick - m_lastInsertFailSoundTick >= INSERT_FAIL_SOUND_COOLDOWN) {
+                playerWorld->playSound(ResourceLocation("minecraft", "block.vault.insert_item_fail"),
+                    sound::SoundCategory::Blocks,
+                    m_pos.center(),
+                    1.0f,
+                    1.0f);
+                m_lastInsertFailSoundTick = currentTick;
+            }
         }
         return false;
     }
@@ -231,14 +233,17 @@ bool VaultBlockEntity::tryInsertKey(Player& player)
     // 检查玩家是否已领取过奖励
     if (m_rewardedPlayers.count(player.uuid()) > 0) {
         // 播放拒绝已奖励玩家音效（带冷却防刷）
-        i64 currentTick = static_cast<i64>(player.world() != nullptr ? player.world()->currentTick() : 0);
-        if (currentTick - m_lastInsertFailSoundTick >= INSERT_FAIL_SOUND_COOLDOWN) {
-            player.world()->playSound(ResourceLocation("minecraft", "block.vault.reject_rewarded_player"),
-                sound::SoundCategory::Blocks,
-                m_pos.center(),
-                1.0f,
-                1.0f);
-            m_lastInsertFailSoundTick = currentTick;
+        IWorld* playerWorld = player.world();
+        if (playerWorld != nullptr) {
+            i64 currentTick = static_cast<i64>(playerWorld->currentTick());
+            if (currentTick - m_lastInsertFailSoundTick >= INSERT_FAIL_SOUND_COOLDOWN) {
+                playerWorld->playSound(ResourceLocation("minecraft", "block.vault.reject_rewarded_player"),
+                    sound::SoundCategory::Blocks,
+                    m_pos.center(),
+                    1.0f,
+                    1.0f);
+                m_lastInsertFailSoundTick = currentTick;
+            }
         }
         return false;
     }
@@ -257,7 +262,7 @@ bool VaultBlockEntity::tryInsertKey(Player& player)
     m_rewardedPlayers.insert(player.uuid());
     if (static_cast<i32>(m_rewardedPlayers.size()) > MAX_REWARDED_PLAYERS) {
         // 超过上限时移除最早的玩家（unordered_set无法保证顺序，
-        // 参考MC原版使用LinkedHashSet，这里简化处理：移除第一个元素）
+        // 应使用有序集合保持插入顺序，此处简化处理：移除第一个元素）
         m_rewardedPlayers.erase(m_rewardedPlayers.begin());
     }
 
@@ -447,7 +452,7 @@ void VaultBlockEntity::ejectNextItem(IWorld& world)
         return;
     }
 
-    // 从列表末尾弹出（参考MC原版的栈式弹出）
+    // 从列表末尾弹出（栈式弹出顺序）
     ItemStack item = m_itemsToEject.back();
     m_itemsToEject.pop_back();
 
@@ -465,7 +470,7 @@ void VaultBlockEntity::ejectNextItem(IWorld& world)
         ? 1.0f
         : 1.0f - static_cast<f32>(m_itemsToEject.size()) / static_cast<f32>(m_totalEjectionsNeeded - 1);
 
-    // 使用ItemDropHelper弹出物品，速度为UP方向2.0（参考MC原版DefaultDispenseItemBehavior.spawnItem）
+    // 使用ItemDropHelper弹出物品，速度为UP方向2.0
     ItemDropHelper::spawnItemEntity(&world,
         item,
         x,
@@ -492,6 +497,8 @@ std::vector<Player*> VaultBlockEntity::detectPlayers(IWorld& world, f32 range)
     std::vector<Player*> result;
 
     // 获取范围内所有实体
+    // 状态转换（Inactive↔Active）检测所有非旁观者玩家，不过滤已奖励玩家。
+    // 已奖励玩家的过滤仅在 tryInsertKey 中进行。
     Vector3 center = m_pos.center();
     auto entities = world.getEntitiesInRange(center, range);
 
@@ -502,13 +509,8 @@ std::vector<Player*> VaultBlockEntity::detectPlayers(IWorld& world, f32 range)
             continue;
         }
 
-        // 排除旁观者模式的玩家（参考MC原版 PlayerDetector.INCLUDING_CREATIVE_PLAYERS 只排除旁观者）
+        // 排除旁观者模式的玩家（仅排除旁观者，不排除创造模式）
         if (player->isSpectator()) {
-            continue;
-        }
-
-        // 排除已领取过奖励的玩家
-        if (m_rewardedPlayers.count(player->uuid()) > 0) {
             continue;
         }
 
