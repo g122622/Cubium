@@ -364,6 +364,10 @@ public:
 
     void playEvent(i32 eventId, const BlockPos& pos, i32 data) override;
 
+    // ========== 方块更新通知 ==========
+
+    void notifyBlockUpdate(const BlockPos& pos) override;
+
     // ========== 容器打开回调 ==========
 
     using OpenContainerCallback = std::function<bool(ContainerType, const BlockPos&, Player&)>;

@@ -100,11 +100,10 @@ void BarrelEntity::tick(IWorld& world)
     if (m_ticksSinceSync >= 10) {
         m_ticksSinceSync = 0;
 
-        // 通过 setBlockState 触发方块更新与客户端状态同步
-        const BlockState* state = world.getBlockState(m_pos);
-        if (state != nullptr) {
-            world.setBlockState(m_pos, state, 3);
-        }
+        // 通知客户端方块实体数据更新
+        // 参考 MC: BarrelBlockEntity.tick() 中定期调用 level.sendBlockUpdated()
+        // notifyBlockUpdate 即使方块状态未改变也会触发客户端同步
+        world.notifyBlockUpdate(m_pos);
     }
 }
 

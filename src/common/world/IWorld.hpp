@@ -363,6 +363,20 @@ public:
         (void)data;
     }
 
+    // ========== 方块更新通知 ==========
+
+    /**
+     * @brief 通知客户端指定位置的方块（含方块实体）已更新
+     *
+     * 即使方块状态未改变，也会触发客户端同步。用于方块实体数据变化后
+     * 通知客户端刷新显示，例如营火烹饪物品变化、箱子开合状态等。
+     *
+     * 参考 MC: Level.sendBlockUpdated(pos, oldState, newState, flags)
+     *
+     * @param pos 方块位置
+     */
+    virtual void notifyBlockUpdate(const BlockPos& pos) { (void)pos; }
+
     // ========== 高度查询 ==========
 
     /**

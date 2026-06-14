@@ -113,6 +113,11 @@ void CampfireBlockEntity::_cookAndDrop(IWorld& world)
 
     if (anyChanged) {
         ContainerBlockEntity::setChanged();
+
+        // 烹饪完成掉落物品后通知客户端方块实体数据更新
+        // 参考 MC: CampfireBlockEntity.cookTick() 中在物品烹饪完成后调用
+        // ServerLevel.sendBlockUpdated(pos, state, state, 3)
+        world.notifyBlockUpdate(m_pos);
     }
 }
 
@@ -248,8 +253,14 @@ f32 CampfireBlockEntity::getCookProgress(i32 slot) const noexcept
 void CampfireBlockEntity::_inventoryChanged()
 {
     ContainerBlockEntity::setChanged();
-    // 通知客户端方块实体更新
-    // TODO: 实现世界通知机制，参考原版 world.notifyBlockUpdate()
+
+    // 通知客户端方块实体数据更新
+    // 参考 MC: CampfireBlockEntity.markUpdated() 中调用 level.sendBlockUpdated(pos, state, state, 3)
+    // 与 setBlockState 不同，notifyBlockUpdate 即使方块状态未改变也会触发客户端同步，
+    // 这对于方块实体内部数据（如营火烹饪物品）变化后的客户端刷新至关重要
+    if (m_world != nullptr) {
+        m_world->notifyBlockUpdate(m_pos);
+    }
 }
 
 bool CampfireBlockEntity::load(const nlohmann::json& data)

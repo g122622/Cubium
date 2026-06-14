@@ -268,10 +268,9 @@ void ChestEntity::tick(IWorld& world)
     if (m_ticksSinceSync >= SYNC_INTERVAL) {
         m_ticksSinceSync = 0;
 
-        const BlockState* state = world.getBlockState(m_pos);
-        if (state != nullptr) {
-            world.setBlockState(m_pos, state, 3);
-        }
+        // 通知客户端方块实体数据更新
+        // notifyBlockUpdate 即使方块状态未改变也会触发客户端同步
+        world.notifyBlockUpdate(m_pos);
     }
 
     // 只有在需要动画时才更新
@@ -389,16 +388,17 @@ void ChestEntity::broadcastChestState(IWorld& world, bool open)
 {
     MC_UNUSED(open);
 
+    // 通知客户端方块实体数据更新
+    // 参考 MC: ChestBlock.playSound() 中调用 level.blockEvent() 广播开合状态
+    // notifyBlockUpdate 即使方块状态未改变也会触发客户端同步
+    world.notifyBlockUpdate(m_pos);
+
     const BlockState* state = world.getBlockState(m_pos);
-    if (state == nullptr) {
-        return;
+    if (state != nullptr) {
+        const Block& sourceBlock = state->getBlock();
+        world::redstone::RedstoneSystem::instance().updateNeighbors(world, m_pos, const_cast<Block&>(sourceBlock));
+        world::redstone::RedstoneSystem::instance().updateComparators(world, m_pos);
     }
-
-    world.setBlockState(m_pos, state, 3);
-
-    const Block& sourceBlock = state->getBlock();
-    world::redstone::RedstoneSystem::instance().updateNeighbors(world, m_pos, const_cast<Block&>(sourceBlock));
-    world::redstone::RedstoneSystem::instance().updateComparators(world, m_pos);
 }
 
 void ChestEntity::playSound(IWorld& world, bool open)

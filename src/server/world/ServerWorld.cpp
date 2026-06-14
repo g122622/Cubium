@@ -302,6 +302,16 @@ void ServerWorld::playEvent(i32 eventId, const BlockPos& pos, i32 data)
     }
 }
 
+void ServerWorld::notifyBlockUpdate(const BlockPos& pos)
+{
+    // 即使方块状态未改变，也触发客户端同步通知
+    // 参考 MC: Level.sendBlockUpdated(pos, oldState, newState, flags)
+    const BlockState* state = getBlockState(pos);
+    if (state != nullptr && m_onBlockChanged) {
+        m_onBlockChanged(pos, state->stateId());
+    }
+}
+
 bool ServerWorld::openContainer(ContainerType type, const BlockPos& pos, Player& player)
 {
     if (!m_onOpenContainer) {
