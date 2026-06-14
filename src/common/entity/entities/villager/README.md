@@ -9,7 +9,7 @@ villager/
 ├── AbstractVillagerEntity.hpp/cpp  # 抽象村民基类，交易系统和繁殖意愿
 ├── VillagerEntity.hpp/cpp          # 村民实体 + VillagerData + WanderingTraderEntity
 ├── ProfessionMapping.hpp/cpp       # 职业-工作站POI映射工具类
-└── README.md                        # 本文档
+└── README.md                       # 本文档
 ```
 
 ## 内部模块关系
@@ -18,16 +18,27 @@ villager/
 AbstractVillagerEntity (抽象村民基类)
 ├── 继承自 AgeableEntity (可成长实体)
 ├── 实现 INamedContainerProvider (交易界面)
+├── 实现 IMerchant (商人接口)
+│   ├── getOffers() / setOffers() / overrideOffers()
+│   ├── startTrading() / stopTrading() / isTrading()
+│   ├── notifyTrade() / notifyTradeUpdated()
+│   ├── getVillagerXp() / overrideXp() / addExperience()
+│   ├── showProgressBar() / canRestock() / isClientSide()
+│   ├── stillValid() / asEntity()
+│   └── getTradingPlayer() — 当前交易玩家
 ├── 持有 MerchantOffers (交易列表)
 ├── 持有 IInventory (库存)
+├── 纯虚方法: rewardTradeXp() — 子类实现经验奖励逻辑
 │
 ├── VillagerEntity (村民)
 │   ├── 持有 VillagerData (职业/类型/等级/经验)
 │   ├── 持有 Brain<VillagerEntity> (AI大脑)
 │   ├── 持有 ProfessionMapping (职业-工作站映射)
+│   ├── rewardTradeXp() — 调用 addVillagerExperience() 增加经验
 │   └── 功能: 职业系统、工作站点、睡眠系统、流言传播
 │
 └── WanderingTraderEntity (流浪商人)
+    ├── rewardTradeXp() — 空实现（流浪商人不奖励经验）
     └── 功能: 随机生成、固定交易、消失倒计时、贸易羊驼
 ```
 
@@ -37,7 +48,8 @@ AbstractVillagerEntity (抽象村民基类)
 - `entity/core/` - Entity, LivingEntity, MobEntity, AgeableEntity 基类
 - `entity/ai/brain/` - Brain 系统、Memory、Sensor、Task、Schedule
 - `entity/inventory/INamedContainerProvider.hpp` - 容器界面接口
-- `world/village/trade/` - MerchantOffers, MerchantOffer 交易系统
+- `entity/inventory/container/MerchantContainerMenu.hpp` - 交易容器菜单
+- `world/village/trade/` - MerchantOffers, MerchantOffer, IMerchant 交易系统
 - `world/village/poi/` - PointOfInterestType 工作站 POI 类型
 - `world/blockentity/core/SimpleInventory.hpp` - 简单库存实现
 
@@ -46,6 +58,19 @@ AbstractVillagerEntity (抽象村民基类)
 - `server/network/` - 村民交易界面同步
 - `client/renderer/entity/` - 村民渲染器
 - `entity/entities/monster/undead/ZombieVillagerEntity.hpp` - 僵尸村民治愈后转换
+
+## 交易系统交互流程
+
+1. 玩家与村民交互 → `AbstractVillagerEntity::createMenu()` 创建 `MerchantContainerMenu`
+2. `createMenu()` 内部创建 `MerchantContainer`（3格交易容器）并添加到菜单
+3. 玩家在支付槽放入物品 → `MerchantContainer::updateSellItem()` 自动匹配交易
+4. 玩家从结果槽取出物品 → `MerchantResultSlot::onTake()` 执行交易
+5. 交易执行：`offer.take(buyA, buyB)` 扣除物品 → `merchant.notifyTrade()` 增加使用次数和经验
+6. 关闭界面 → `MerchantContainerMenu::removed()` 返还支付槽物品并调用 `merchant.stopTrading()`
+
+**经验奖励链**：`onTake()` → `notifyTrade()` → `rewardTradeXp()` → `addVillagerExperience()`
+
+> ⚠️ **注意**：`notifyTrade()` 内部已调用 `rewardTradeXp()`，`onTake()` 不应再次添加经验，否则会导致经验翻倍。
 
 ## 容易踩的坑
 
@@ -112,6 +137,14 @@ VillagerEntity 提供基于库存食物点数的分享和繁殖判断：
 - 流浪商人没有职业系统，交易列表固定
 - 流浪商人不繁殖，有消失倒计时
 - `WanderingTraderEntity::getTradingLevel()` 始终返回 0
+- 流浪商人的 `rewardTradeXp()` 为空实现，不奖励交易经验
+- 流浪商人的 `showProgressBar()` 返回 true（但等级始终为0）
+
+### 交易经验奖励
+
+- `VillagerEntity::rewardTradeXp()` 调用 `addVillagerExperience(offer.getXp())` 增加村民数据中的经验
+- `AbstractVillagerEntity::notifyTrade()` 调用 `rewardTradeXp()` 并增加交易使用次数
+- **不要在交易流程中重复调用经验奖励方法**，经验已在 `notifyTrade()` 链中统一处理
 
 ## 参考
 

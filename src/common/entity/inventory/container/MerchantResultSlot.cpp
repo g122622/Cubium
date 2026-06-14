@@ -65,16 +65,13 @@ ItemStack MerchantResultSlot::onTake(Player& player, ItemStack stack)
 
         // 尝试扣除支付物品（尝试两种顺序：先A后B，或先B后A）
         if (offer->take(buyA, buyB) || offer->take(buyB, buyA)) {
-            // 交易成功，通知商民
+            // 交易成功，通知商民（内部已调用 rewardTradeXp 添加经验）
             m_merchant.notifyTrade(*offer);
 
             // 更新支付槽物品（扣除后的剩余数量）
             m_container.setItem(MerchantContainer::SLOT_BUY_A, buyA);
             m_container.setItem(MerchantContainer::SLOT_BUY_B, buyB);
         }
-
-        // 更新商民经验值
-        m_merchant.overrideXp(m_merchant.getVillagerXp() + offer->getXp());
     }
 
     return stack;
