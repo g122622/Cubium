@@ -480,6 +480,13 @@ const ResourceLocation ENTITY_GENERIC_SWIM("minecraft:entity.generic.swim");
 const ResourceLocation ENTITY_GENERIC_EXPLODE("minecraft:entity.generic.explode");
 
 // ============================================================================
+// 试炼密室相关音效 (Trial Chambers)
+// ============================================================================
+
+const ResourceLocation ENTITY_WIND_CHARGE_WIND_BURST("minecraft:entity.wind_charge.wind_burst");
+const ResourceLocation ENTITY_BREEZE_WIND_CHARGE_BURST("minecraft:entity.breeze.wind_charge_burst");
+
+// ============================================================================
 // 玩家声音
 // ============================================================================
 

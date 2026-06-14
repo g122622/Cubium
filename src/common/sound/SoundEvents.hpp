@@ -554,6 +554,16 @@ extern const ResourceLocation ENTITY_GENERIC_SWIM;
 extern const ResourceLocation ENTITY_GENERIC_EXPLODE;
 
 // ============================================================================
+// 试炼密室相关音效 (Trial Chambers)
+// ============================================================================
+
+/// 风弹风爆声
+extern const ResourceLocation ENTITY_WIND_CHARGE_WIND_BURST;
+
+/// 旋风人风弹风爆声
+extern const ResourceLocation ENTITY_BREEZE_WIND_CHARGE_BURST;
+
+// ============================================================================
 // 玩家声音
 // ============================================================================
 

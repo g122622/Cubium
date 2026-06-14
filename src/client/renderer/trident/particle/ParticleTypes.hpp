@@ -336,6 +336,12 @@ enum class ParticleTypeId : u16 {
     /// 落地的樱花树叶
     LandingCherryLeaves = 99,
 
+    /// 风爆发射器粒子（小型）
+    GustEmitterSmall = 107,
+
+    /// 风爆发射器粒子（大型）
+    GustEmitterLarge = 108,
+
     /// 孢子花掉落粒子
     FallingSporeBlossom = 105,
 

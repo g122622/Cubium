@@ -89,6 +89,9 @@ enum class DamageType : u8 {
 
     // 新增实体伤害类型
     Sting, // 蜜蜂蛰刺
+
+    // 风爆伤害
+    WindBurst, // 风弹风爆
 };
 
 /**
@@ -278,7 +281,7 @@ public:
         return m_type == DamageType::OutOfWorld || m_type == DamageType::Starve || m_type == DamageType::Drown ||
             m_type == DamageType::Fall || m_type == DamageType::FlyIntoWall || m_type == DamageType::InWall ||
             m_type == DamageType::Cramming || m_type == DamageType::Generic || m_type == DamageType::Magic ||
-            m_type == DamageType::Wither || m_type == DamageType::DragonBreath;
+            m_type == DamageType::Wither || m_type == DamageType::DragonBreath || m_type == DamageType::WindBurst;
     }
 
     [[nodiscard]] bool bypassesInvulnerability() const override { return m_type == DamageType::OutOfWorld; }
@@ -349,6 +352,8 @@ public:
                 return "death.attack.lightningBolt";
             case DamageType::SweetBerryBush:
                 return "death.attack.sweetBerryBush";
+            case DamageType::WindBurst:
+                return "death.attack.windBurst";
             default:
                 return "death.attack.generic";
         }
@@ -886,6 +891,20 @@ inline IndirectEntityDamageSource fireball(Entity* fireball, Entity* shooter, bo
 inline IndirectEntityDamageSource indirectMagic(Entity* source, Entity* caster)
 {
     return IndirectEntityDamageSource(DamageType::Magic, caster, source).setBypassesArmor().setMagicDamage();
+}
+
+/**
+ * @brief 创建风爆伤害
+ * 风弹命中实体时造成的伤害，绕过护甲。
+ * 风爆伤害由风弹弹射物间接造成，需要追踪发射者。
+ *
+ * @param windCharge 风弹弹射物实体
+ * @param shooter 发射者（玩家或旋风人），可能为空
+ * @param isPlayer 发射者是否为玩家
+ */
+inline IndirectEntityDamageSource windBurst(Entity* windCharge, Entity* shooter, bool isPlayer = false)
+{
+    return IndirectEntityDamageSource(DamageType::WindBurst, shooter, windCharge, isPlayer).setBypassesArmor();
 }
 
 } // namespace DamageSources
