@@ -13,7 +13,7 @@ dimension/
 ├── DimensionManager.hpp         # 维度管理器（维度实例注册表）
 ├── DimensionManager.cpp         # 维度管理器实现
 ├── DimensionRenderSettings.hpp  # 维度渲染设置（云高度、雾类型、天空、天花板等）
-├── MapDimensionId.hpp           # 维度ID映射工具
+├── MapDimensionId.hpp           # 维度ID映射工具（MapDimensionId枚举 + dimensionIdToString/fromString/NameToId）
 ├── teleport/                    # 传送系统
 │   ├── PortalSize.hpp           # 传送门尺寸检测
 │   ├── PortalSize.cpp           # 传送门尺寸检测实现

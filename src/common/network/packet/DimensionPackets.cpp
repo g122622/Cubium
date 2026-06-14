@@ -23,6 +23,7 @@
 
 #include "DimensionPackets.hpp"
 #include "PacketSerializer.hpp"
+#include "world/dimension/MapDimensionId.hpp"
 #include <algorithm>
 
 namespace mc::network {
@@ -59,22 +60,7 @@ Result<std::vector<u8>> RespawnPacket::serialize() const
     ser.writeVarInt(dimensionTypeId);
 
     // 维度名称
-    const char* dimensionName = "minecraft:overworld";
-    switch (m_dimension) {
-        case 0:
-            dimensionName = "minecraft:overworld";
-            break;
-        case -1:
-            dimensionName = "minecraft:the_nether";
-            break;
-        case 1:
-            dimensionName = "minecraft:the_end";
-            break;
-        default:
-            dimensionName = "minecraft:overworld";
-            break;
-    }
-    ser.writeString(std::string(dimensionName));
+    ser.writeString(std::string(dimensionIdToString(m_dimension)));
 
     // 世界种子哈希
     ser.writeU64(m_hashedSeed);
@@ -117,15 +103,7 @@ Result<void> RespawnPacket::deserialize(const u8* data, size_t size)
     }
     // 解析维度名称到维度 ID
     const std::string& name = nameResult.value();
-    if (name == "minecraft:overworld" || name == "overworld") {
-        m_dimension = 0;
-    } else if (name == "minecraft:the_nether" || name == "the_nether") {
-        m_dimension = -1;
-    } else if (name == "minecraft:the_end" || name == "the_end") {
-        m_dimension = 1;
-    } else {
-        m_dimension = 0; // 默认主世界
-    }
+    m_dimension = static_cast<i32>(dimensionNameToId(name));
 
     // 读取种子哈希
     auto seedResult = deser.readU64();

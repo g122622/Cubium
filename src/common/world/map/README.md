@@ -108,9 +108,10 @@ i = gameTime / 10; rotation = ((i * i * 34187121 + i * 121) >> 15) & 15
 ### 维度ID序列化
 
 `MapData` 的维度字段在NBT中的序列化兼容两种格式：
-- 整数格式（旧版MC）: `dimension: 0/-1/1`，对应 `MapDimensionId::Overworld/Nether/End`
-- 字符串格式（1.16+）: `dimension: "minecraft:overworld"/"minecraft:the_nether"/"minecraft:the_end"`
-- 读取时两种格式都支持，写入时当前使用整数格式
+- 字符串格式（1.16+）: `dimension: "minecraft:overworld"/"minecraft:the_nether"/"minecraft:the_end"` — 写入格式
+- 整数格式（旧版MC）: `dimension: 0/-1/1`，对应 `MapDimensionId::Overworld/Nether/End` — 读取时兼容
+
+维度ID与字符串之间的转换使用 `MapDimensionId.hpp` 中的集中式工具函数 `dimensionIdToString()` / `dimensionIdFromString()` / `dimensionNameToId()`，不应在各处重复实现转换逻辑。
 
 ### 旗帜交互
 

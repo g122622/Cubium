@@ -458,6 +458,79 @@ TEST_F(MapDataTest, DimensionNbtDefaultOverworld)
     EXPECT_EQ(restored.dimension(), MapDimensionId::Overworld);
 }
 
+TEST_F(MapDataTest, DimensionNbtWritesStringFormat)
+{
+    // toNbt() 应写入字符串格式的维度标识符（Java 版 1.16+ 兼容）
+    MapData data(1);
+    data.initialize(100, 200, 2, true, false, MapDimensionId::Nether);
+
+    nbt::tags::compound_tag tag;
+    data.toNbt(tag);
+
+    // 验证维度字段是字符串类型，值为 "minecraft:the_nether"
+    auto it = tag.value.find("dimension");
+    ASSERT_NE(it, tag.value.end());
+    ASSERT_EQ(it->second->id(), nbt::TagId::String);
+    auto& strTag = dynamic_cast<const nbt::tags::string_tag&>(*it->second);
+    EXPECT_EQ(strTag.value, "minecraft:the_nether");
+}
+
+TEST_F(MapDataTest, DimensionNbtWritesStringFormatOverworld)
+{
+    MapData data(2);
+    data.initialize(0, 0, 0, true, false, MapDimensionId::Overworld);
+
+    nbt::tags::compound_tag tag;
+    data.toNbt(tag);
+
+    auto it = tag.value.find("dimension");
+    ASSERT_NE(it, tag.value.end());
+    ASSERT_EQ(it->second->id(), nbt::TagId::String);
+    auto& strTag = dynamic_cast<const nbt::tags::string_tag&>(*it->second);
+    EXPECT_EQ(strTag.value, "minecraft:overworld");
+}
+
+TEST_F(MapDataTest, DimensionNbtWritesStringFormatEnd)
+{
+    MapData data(3);
+    data.initialize(0, 0, 0, true, false, MapDimensionId::End);
+
+    nbt::tags::compound_tag tag;
+    data.toNbt(tag);
+
+    auto it = tag.value.find("dimension");
+    ASSERT_NE(it, tag.value.end());
+    ASSERT_EQ(it->second->id(), nbt::TagId::String);
+    auto& strTag = dynamic_cast<const nbt::tags::string_tag&>(*it->second);
+    EXPECT_EQ(strTag.value, "minecraft:the_end");
+}
+
+TEST_F(MapDataTest, DimensionNbtReadsLegacyIntegerFormat)
+{
+    // 测试从旧版整数格式的维度ID读取（向后兼容）
+    nbt::tags::compound_tag tag;
+    tag.put("dimension", static_cast<i32>(-1)); // 下界
+    tag.put("xCenter", 0);
+    tag.put("zCenter", 0);
+    tag.put("scale", static_cast<i8>(0));
+
+    auto restored = MapData::fromNbt(tag, 1);
+    EXPECT_EQ(restored.dimension(), MapDimensionId::Nether);
+}
+
+TEST_F(MapDataTest, DimensionNbtReadsShortStringFormat)
+{
+    // 测试从短格式（无命名空间前缀）读取
+    nbt::tags::compound_tag tag;
+    tag.put("dimension", std::string("overworld"));
+    tag.put("xCenter", 0);
+    tag.put("zCenter", 0);
+    tag.put("scale", static_cast<i8>(0));
+
+    auto restored = MapData::fromNbt(tag, 1);
+    EXPECT_EQ(restored.dimension(), MapDimensionId::Overworld);
+}
+
 // ============================================================================
 // MapData 下界旋转测试
 // ============================================================================
@@ -1107,4 +1180,74 @@ TEST_F(MapDataBannerTest, TryAddBanner_FailsOutOfRange)
     bool result = data.tryAddBanner(world, farPos);
     EXPECT_FALSE(result);
     EXPECT_EQ(data.banners().size(), 0u);
+}
+
+// ============================================================================
+// MapDimensionId 工具函数测试
+// ============================================================================
+
+TEST(MapDimensionIdTest, DimensionIdToString_Overworld)
+{
+    EXPECT_EQ(dimensionIdToString(MapDimensionId::Overworld), "minecraft:overworld");
+    EXPECT_EQ(dimensionIdToString(static_cast<DimensionId>(0)), "minecraft:overworld");
+}
+
+TEST(MapDimensionIdTest, DimensionIdToString_Nether)
+{
+    EXPECT_EQ(dimensionIdToString(MapDimensionId::Nether), "minecraft:the_nether");
+    EXPECT_EQ(dimensionIdToString(static_cast<DimensionId>(-1)), "minecraft:the_nether");
+}
+
+TEST(MapDimensionIdTest, DimensionIdToString_End)
+{
+    EXPECT_EQ(dimensionIdToString(MapDimensionId::End), "minecraft:the_end");
+    EXPECT_EQ(dimensionIdToString(static_cast<DimensionId>(1)), "minecraft:the_end");
+}
+
+TEST(MapDimensionIdTest, DimensionIdFromString_NamespacedFormat)
+{
+    EXPECT_EQ(dimensionIdFromString("minecraft:overworld"), MapDimensionId::Overworld);
+    EXPECT_EQ(dimensionIdFromString("minecraft:the_nether"), MapDimensionId::Nether);
+    EXPECT_EQ(dimensionIdFromString("minecraft:the_end"), MapDimensionId::End);
+}
+
+TEST(MapDimensionIdTest, DimensionIdFromString_ShortFormat)
+{
+    EXPECT_EQ(dimensionIdFromString("overworld"), MapDimensionId::Overworld);
+    EXPECT_EQ(dimensionIdFromString("the_nether"), MapDimensionId::Nether);
+    EXPECT_EQ(dimensionIdFromString("the_end"), MapDimensionId::End);
+}
+
+TEST(MapDimensionIdTest, DimensionIdFromString_NumericFormat)
+{
+    EXPECT_EQ(dimensionIdFromString("0"), MapDimensionId::Overworld);
+    EXPECT_EQ(dimensionIdFromString("-1"), MapDimensionId::Nether);
+    EXPECT_EQ(dimensionIdFromString("1"), MapDimensionId::End);
+}
+
+TEST(MapDimensionIdTest, DimensionIdFromString_UnknownDefaultsToOverworld)
+{
+    EXPECT_EQ(dimensionIdFromString("minecraft:custom_dim"), MapDimensionId::Overworld);
+    EXPECT_EQ(dimensionIdFromString("custom_dimension"), MapDimensionId::Overworld);
+    EXPECT_EQ(dimensionIdFromString(""), MapDimensionId::Overworld);
+}
+
+TEST(MapDimensionIdTest, DimensionNameToId)
+{
+    EXPECT_EQ(dimensionNameToId("minecraft:overworld"), static_cast<DimensionId>(0));
+    EXPECT_EQ(dimensionNameToId("minecraft:the_nether"), static_cast<DimensionId>(-1));
+    EXPECT_EQ(dimensionNameToId("minecraft:the_end"), static_cast<DimensionId>(1));
+    EXPECT_EQ(dimensionNameToId("overworld"), static_cast<DimensionId>(0));
+    EXPECT_EQ(dimensionNameToId("the_nether"), static_cast<DimensionId>(-1));
+    EXPECT_EQ(dimensionNameToId("the_end"), static_cast<DimensionId>(1));
+}
+
+TEST(MapDimensionIdTest, RoundTrip_AllDimensions)
+{
+    // 验证 toString -> fromString 往返一致性
+    for (auto dim : {MapDimensionId::Overworld, MapDimensionId::Nether, MapDimensionId::End}) {
+        std::string_view name = dimensionIdToString(dim);
+        MapDimensionId restored = dimensionIdFromString(name);
+        EXPECT_EQ(restored, dim) << "Round trip failed for dimension";
+    }
 }

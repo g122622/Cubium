@@ -30,6 +30,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/dimension/DimensionType.hpp"
+#include "common/world/dimension/MapDimensionId.hpp"
 
 namespace mc::advancement {
 
@@ -38,11 +39,8 @@ namespace {
 /**
  * @brief 检查维度名称是否匹配
  *
- * 将维度ID转换为ResourceLocation格式进行比较。
- * 标准维度名称：
- * - 0 -> minecraft:overworld
- * - -1 -> minecraft:the_nether
- * - 1 -> minecraft:the_end
+ * 将维度ID与ResourceLocation格式的维度名称进行比较。
+ * 支持 namespaced 格式（minecraft:overworld）、短格式（overworld）、数字格式（0、-1、1）。
  *
  * @param dimensionId 维度ID
  * @param expected 期望的维度ResourceLocation
@@ -50,27 +48,30 @@ namespace {
  */
 bool matchesDimension(DimensionId dimensionId, const ResourceLocation& expected)
 {
-    // 标准维度名称映射
-    std::string_view expectedPath = expected.path();
-
-    if (expectedPath == "overworld") {
-        return dimensionId == 0;
-    } else if (expectedPath == "the_nether") {
-        return dimensionId == -1;
-    } else if (expectedPath == "the_end") {
-        return dimensionId == 1;
+    // 使用集中式维度名称工具进行比较
+    // 先尝试直接匹配完整字符串（如 "minecraft:overworld"）
+    std::string_view canonicalName = dimensionIdToString(dimensionId);
+    if (expected.toString() == canonicalName) {
+        return true;
     }
 
-    // 未知维度名称 - 尝试直接比较
+    // 尝试匹配短格式（不带命名空间前缀，如 "overworld"）
+    const std::string& expectedPath = expected.path();
+    auto colonPos = canonicalName.find(':');
+    if (colonPos != std::string_view::npos) {
+        std::string_view canonicalPath = canonicalName.substr(colonPos + 1);
+        if (expectedPath == canonicalPath) {
+            return true;
+        }
+    }
+
     // 支持数字格式的维度名称（如 "minecraft:0"）
     if (expected.namespace_() == "minecraft") {
-        // 尝试解析数字
         try {
-            DimensionId id = std::stoi(std::string(expectedPath));
+            DimensionId id = static_cast<DimensionId>(std::stoi(expectedPath));
             return dimensionId == id;
         }
         catch (...) {
-            // 无法解析为数字，返回不匹配
             return false;
         }
     }

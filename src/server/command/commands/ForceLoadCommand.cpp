@@ -29,6 +29,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
+#include "common/world/dimension/MapDimensionId.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/world/ServerChunkManager.hpp"
@@ -93,16 +94,9 @@ void ForceLoadCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     dispatcher.registerCommand(forceloadNode);
 }
 
-const char* ForceLoadCommand::_getDimensionName(DimensionId dimensionId)
+std::string_view ForceLoadCommand::_getDimensionName(DimensionId dimensionId)
 {
-    switch (dimensionId) {
-        case -1:
-            return "minecraft:the_nether";
-        case 1:
-            return "minecraft:the_end";
-        default:
-            return "minecraft:overworld";
-    }
+    return dimensionIdToString(dimensionId);
 }
 
 i32 ForceLoadCommand::_addForceLoad(CommandContext<ServerCommandSource>& context)
@@ -168,7 +162,7 @@ i32 ForceLoadCommand::_addForceLoad(CommandContext<ServerCommandSource>& context
 
     // 获取维度信息
     auto dimensionId = world->dimension();
-    const char* dimensionName = _getDimensionName(dimensionId);
+    std::string_view dimensionName = _getDimensionName(dimensionId);
 
     // 添加强制加载
     auto& ticketManager = chunkManager->ticketManager();
@@ -250,7 +244,7 @@ i32 ForceLoadCommand::_removeForceLoad(CommandContext<ServerCommandSource>& cont
 
     // 获取维度信息
     auto dimensionId = world->dimension();
-    const char* dimensionName = _getDimensionName(dimensionId);
+    std::string_view dimensionName = _getDimensionName(dimensionId);
 
     // 移除强制加载
     auto& ticketManager = chunkManager->ticketManager();
@@ -317,7 +311,7 @@ i32 ForceLoadCommand::_queryForceLoad(CommandContext<ServerCommandSource>& conte
 
     // 获取维度信息
     auto dimensionId = world->dimension();
-    const char* dimensionName = _getDimensionName(dimensionId);
+    std::string_view dimensionName = _getDimensionName(dimensionId);
 
     // 查询强制加载状态
     auto& ticketManager = chunkManager->ticketManager();
@@ -356,7 +350,7 @@ i32 ForceLoadCommand::_listAllForceLoad(CommandContext<ServerCommandSource>& con
 
     // 获取维度信息
     auto dimensionId = world->dimension();
-    const char* dimensionName = _getDimensionName(dimensionId);
+    std::string_view dimensionName = _getDimensionName(dimensionId);
 
     // 获取所有强制加载区块
     auto& ticketManager = chunkManager->ticketManager();
@@ -419,7 +413,7 @@ i32 ForceLoadCommand::_removeAllForceLoad(CommandContext<ServerCommandSource>& c
 
     // 获取维度信息
     auto dimensionId = world->dimension();
-    const char* dimensionName = _getDimensionName(dimensionId);
+    std::string_view dimensionName = _getDimensionName(dimensionId);
 
     // 获取所有强制加载区块并移除
     auto& ticketManager = chunkManager->ticketManager();

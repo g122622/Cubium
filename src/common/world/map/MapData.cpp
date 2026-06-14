@@ -349,11 +349,8 @@ u8 MapData::getColor(i32 x, i32 y) const
 
 void MapData::toNbt(nbt::tags::compound_tag& tag) const
 {
-    // 维度 - 以整数形式写入，与旧版 MC 存档格式兼容
-    // TODO: Java 版 1.16+ 使用字符串维度标识符（如 "minecraft:overworld"），
-    // 当前使用整数 ID（0/-1/1），读取时已兼容两种格式，但写入时仍为整数。
-    // 后续应考虑切换为字符串格式以完全兼容新版存档。
-    tag.put("dimension", static_cast<i32>(m_dimension));
+    // 维度 - Java 版 1.16+ 使用字符串维度标识符（如 "minecraft:overworld"）
+    tag.put("dimension", std::string(dimensionIdToString(m_dimension)));
 
     tag.put("xCenter", m_xCenter);
     tag.put("zCenter", m_zCenter);
@@ -393,23 +390,14 @@ MapData MapData::fromNbt(const nbt::tags::compound_tag& tag, i32 mapId)
 {
     MapData data(mapId);
 
-    // 维度 - 从整数读取，同时兼容字符串格式
+    // 维度 - 兼容整数格式（旧版）和字符串格式（1.16+）
     auto dimInt = nbt_helper::tryGetInt(tag, "dimension");
     if (dimInt.has_value()) {
         data.m_dimension = static_cast<MapDimensionId>(dimInt.value());
     } else {
-        // 兼容 Java 版 1.16+ 的字符串维度标识符
         auto dimStr = nbt_helper::tryGetString(tag, "dimension");
         if (dimStr.has_value()) {
-            if (dimStr.value() == "minecraft:overworld" || dimStr.value() == "overworld") {
-                data.m_dimension = MapDimensionId::Overworld;
-            } else if (dimStr.value() == "minecraft:the_nether" || dimStr.value() == "the_nether") {
-                data.m_dimension = MapDimensionId::Nether;
-            } else if (dimStr.value() == "minecraft:the_end" || dimStr.value() == "the_end") {
-                data.m_dimension = MapDimensionId::End;
-            } else {
-                data.m_dimension = MapDimensionId::Overworld; // 未知维度默认为主世界
-            }
+            data.m_dimension = dimensionIdFromString(dimStr.value());
         }
         // 如果既没有整数也没有字符串维度字段，保持默认值 Overworld
     }

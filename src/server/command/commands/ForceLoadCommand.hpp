@@ -26,6 +26,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/core/Types.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include <string_view>
 
 namespace mc {
 namespace command {
@@ -59,7 +60,7 @@ private:
      * @param dimensionId 维度ID
      * @return 维度名称字符串
      */
-    static const char* _getDimensionName(DimensionId dimensionId);
+    static std::string_view _getDimensionName(DimensionId dimensionId);
 
     /**
      * @brief 添加强制加载区块
