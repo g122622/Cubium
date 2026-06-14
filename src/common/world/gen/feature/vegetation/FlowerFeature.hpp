@@ -33,16 +33,22 @@ namespace mc {
 
 /**
  * @brief 花卉特征配置
+ *
+ * 对齐 MC 原版 RandomPatchConfiguration，支持三轴扩散参数。
+ * MC 原版字段映射：tries -> tries, xz_spread -> xzSpread, y_spread -> ySpread。
  */
 struct FlowerFeatureConfig : public IFeatureConfig {
     /// 可放置的花卉方块状态列表（随机选择）
     std::vector<const BlockState*> flowers;
 
-    /// 花卉尝试放置次数
+    /// 花卉尝试放置次数（MC 原版默认 128）
     i32 tries = 64;
 
-    /// X 方向扩散范围
+    /// XZ 方向扩散范围（MC 原版默认 7）
     i32 xzSpread = 7;
+
+    /// Y 方向扩散范围（MC 原版默认 3，花卉通常使用 2）
+    i32 ySpread = 3;
 
     /// 是否需要特定方块才能放置
     bool requiresWater = false;
