@@ -64,7 +64,7 @@ const MerchantOffer* MerchantOffers::getOffer(size_t index) const
 MerchantOffer* MerchantOffers::getOfferFor(const ItemStack& buyA, const ItemStack& buyB, i32 hint)
 {
     // 如果有选中提示，先尝试匹配指定索引的交易
-    if (hint > 0 && static_cast<size_t>(hint) < m_offers.size()) {
+    if (hint >= 0 && static_cast<size_t>(hint) < m_offers.size()) {
         MerchantOffer* offer = m_offers[static_cast<size_t>(hint)].get();
         if (offer->canAccept(buyA, buyB)) {
             return offer;
