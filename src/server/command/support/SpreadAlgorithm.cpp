@@ -165,7 +165,7 @@ std::vector<SpreadPosition> createInitialPositions(math::Random& rng, i32 count,
     return positions;
 }
 
-f64 spreadPositions(f64 spreadDistance,
+bool spreadPositions(f64 spreadDistance,
     IWorld& world,
     math::Random& rng,
     f64 minX,
@@ -173,7 +173,8 @@ f64 spreadPositions(f64 spreadDistance,
     f64 maxX,
     f64 maxZ,
     i32 maxHeight,
-    std::vector<SpreadPosition>& positions)
+    std::vector<SpreadPosition>& positions,
+    f64& outMinDist)
 {
     // 对齐 MC Java 版：使用 float 最大值作为哨兵值（MC 使用 Float.MAX_VALUE）
     constexpr f64 sentinelDist = static_cast<f64>(std::numeric_limits<f32>::max());
@@ -240,12 +241,10 @@ f64 spreadPositions(f64 spreadDistance,
         minDist = 0.0;
     }
 
-    // 如果超过最大迭代次数，分散失败，返回 -1.0
-    if (iteration >= SPREAD_MAX_ITERATIONS) {
-        return -1.0;
-    }
+    outMinDist = minDist;
 
-    return minDist;
+    // 如果超过最大迭代次数，分散失败
+    return iteration < SPREAD_MAX_ITERATIONS;
 }
 
 } // namespace support

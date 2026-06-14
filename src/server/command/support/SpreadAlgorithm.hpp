@@ -86,11 +86,12 @@ std::vector<SpreadPosition> createInitialPositions(
     math::Random& rng, i32 count, f64 minX, f64 minZ, f64 maxX, f64 maxZ);
 
 /// 迭代分散算法：将位置推开到满足最小距离要求
-/// 返回分散成功时实际达到的最小距离；失败时返回 -1.0
-/// 对齐 MC Java 版 SpreadPlayersCommand.spreadPositions：
+/// 返回 true 表示分散成功，false 表示超过最大迭代次数仍未收敛
+/// 通过 outMinDist 输出所有位置对之间的最小距离（对齐 MC Java 版 SpreadPlayersCommand）
+/// 对齐 MC Java 版：
 ///   - 哨兵值使用 float 最大值（MC 使用 Float.MAX_VALUE）
-///   - 返回最小距离以便命令层报告实际分散结果
-f64 spreadPositions(f64 spreadDistance,
+///   - 输出最小距离以便命令层报告实际分散结果
+bool spreadPositions(f64 spreadDistance,
     IWorld& world,
     math::Random& rng,
     f64 minX,
@@ -98,7 +99,8 @@ f64 spreadPositions(f64 spreadDistance,
     f64 maxX,
     f64 maxZ,
     i32 maxHeight,
-    std::vector<SpreadPosition>& positions);
+    std::vector<SpreadPosition>& positions,
+    f64& outMinDist);
 
 } // namespace support
 } // namespace command

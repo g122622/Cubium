@@ -8,7 +8,7 @@ support/
 ├── PlayerResolver.cpp         # 玩家选择器解析实现（@p/@a/@r/@s 及各种过滤条件）
 ├── EffectResolver.hpp         # 效果类型解析接口
 ├── EffectResolver.cpp         # 效果类型解析实现（命令名称与EffectType的映射）
-├── SpreadAlgorithm.hpp        # /spreadplayers 分散算法核心（SpreadPosition 结构、迭代分散函数）
+├── SpreadAlgorithm.hpp        # /spreadplayers 分散算法核心（SpreadPosition 结构、迭代分散函数，返回实际最小距离）
 └── SpreadAlgorithm.cpp        # 分散算法实现（位置计算、安全检查、迭代推开逻辑）
 ```
 
