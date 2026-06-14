@@ -25,6 +25,7 @@
 
 #include "common/advancement/Advancement.hpp"
 #include "common/advancement/AdvancementProgress.hpp"
+#include "common/advancement/AdvancementRewards.hpp"
 #include "common/core/Types.hpp"
 #include <map>
 #include <memory>
@@ -34,7 +35,6 @@
 
 namespace mc {
 
-// 前向声明
 class ServerPlayer;
 
 namespace advancement {
@@ -65,6 +65,18 @@ public:
      * @brief 析构函数
      */
     ~PlayerAdvancements() noexcept;
+
+    /**
+     * @brief 设置关联的 ServerPlayer
+     * @param player 服务器玩家指针（非拥有）
+     */
+    void setServerPlayer(::mc::ServerPlayer* player) { m_player = player; }
+
+    /**
+     * @brief 获取关联的 ServerPlayer
+     */
+    [[nodiscard]] ::mc::ServerPlayer* getServerPlayer() noexcept { return m_player; }
+    [[nodiscard]] const ::mc::ServerPlayer* getServerPlayer() const noexcept { return m_player; }
 
     // ========== 进度操作 ==========
 
@@ -193,6 +205,7 @@ public:
 
 private:
     PlayerId m_playerId;
+    ::mc::ServerPlayer* m_player = nullptr; ///< 关联的 ServerPlayer（非拥有指针）
 
     /// 成就进度映射
     std::map<mc::advancement::AdvancementPtr, mc::advancement::AdvancementProgress> m_progress;
@@ -226,6 +239,12 @@ private:
      * @brief 检查成就是否应该可见
      */
     bool _shouldShow(mc::advancement::AdvancementPtr advancement) const;
+
+    /**
+     * @brief 发放成就奖励
+     * @param rewards 奖励内容
+     */
+    void _grantRewards(const mc::advancement::AdvancementRewards& rewards);
 };
 
 } // namespace mc::server

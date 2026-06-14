@@ -70,6 +70,7 @@ ServerPlayer::ServerPlayer(EntityId id, const std::string& name)
 void ServerPlayer::initAdvancements()
 {
     m_advancements = std::make_shared<server::PlayerAdvancements>(static_cast<PlayerId>(id()));
+    m_advancements->setServerPlayer(this);
 }
 
 void ServerPlayer::setupInventoryCallback()

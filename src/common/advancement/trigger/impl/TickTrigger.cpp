@@ -54,9 +54,9 @@ Result<std::shared_ptr<ICriterionInstance>> TickTrigger::fromJson(const nlohmann
 
 void TickTrigger::trigger(ServerPlayer& player)
 {
-    // Tick触发器对所有监听器都触发
-    // TODO: 实际触发逻辑需要访问 PlayerAdvancements 来触发监听器，
-    // 服务端会在每tick调用此方法，触发器将检查所有已注册的监听器
+    // Tick触发器通过 AdvancementEventHandler::_onServerTick() 调用基类模板方法
+    // AbstractCriterionTrigger<TickTriggerInstance>::trigger() 实现，不由此方法触发。
+    // 此方法仅为接口占位，实际触发逻辑在服务端的事件处理器中。
     MC_UNUSED(player);
 }
 

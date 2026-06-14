@@ -32,6 +32,7 @@
 #include "common/advancement/trigger/impl/ItemTriggers.hpp"
 #include "common/advancement/trigger/impl/LocationTrigger.hpp"
 #include "common/advancement/trigger/impl/PlayerKilledEntityTrigger.hpp"
+#include "common/advancement/trigger/impl/TickTrigger.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
@@ -175,6 +176,10 @@ public:
         m_bredAnimalsSubscription = event::ServerEventBus::instance().makeSubscription<event::BredAnimalsEvent>(
             [this](const event::BredAnimalsEvent& e) { _onBredAnimals(e); });
 
+        // 订阅服务端Tick事件（触发 TickTrigger）
+        m_serverTickSubscription = event::ServerEventBus::instance().makeSubscription<event::ServerTickEvent>(
+            [this](const event::ServerTickEvent& e) { _onServerTick(e); });
+
         m_initialized = true;
     }
 
@@ -203,6 +208,7 @@ public:
         m_slideDownBlockSubscription.unsubscribe();
         m_beeNestDestroyedSubscription.unsubscribe();
         m_bredAnimalsSubscription.unsubscribe();
+        m_serverTickSubscription.unsubscribe();
         m_initialized = false;
     }
 
@@ -1009,6 +1015,49 @@ private:
     }
 
     /**
+     * @brief 处理服务端Tick事件
+     *
+     * 每tick触发一次 TickTrigger，用于检测持续条件。
+     * 仅当有玩家在线且有 TickTrigger 监听器时才会执行检查。
+     */
+    void _onServerTick(const event::ServerTickEvent& e)
+    {
+        // 获取 TickTrigger
+        auto* trigger = mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::TickTrigger>();
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 遍历所有在线玩家触发 TickTrigger
+        if (m_server == nullptr) {
+            return;
+        }
+
+        auto& entityManager = m_server->playerEntityManager();
+        auto playerIds = entityManager.getPlayerIds();
+        for (PlayerId playerId : playerIds) {
+            mc::ServerPlayer* serverPlayer = _getServerPlayer(playerId);
+            if (serverPlayer == nullptr) {
+                continue;
+            }
+
+            auto* advancements = serverPlayer->getAdvancements();
+            if (advancements == nullptr) {
+                continue;
+            }
+
+            // 快速检查：是否有 TickTrigger 的监听器
+            if (!trigger->hasListeners(*advancements)) {
+                continue;
+            }
+
+            // TickTrigger 对所有监听器都触发（无条件）
+            trigger->AbstractCriterionTrigger<mc::advancement::TickTriggerInstance>::trigger(
+                *advancements, [](const mc::advancement::TickTriggerInstance& /*instance*/) { return true; });
+        }
+    }
+
+    /**
      * @brief 从 PlayerId 获取 ServerPlayer
      * @param playerId 玩家ID
      * @return ServerPlayer 指针，如果未找到返回 nullptr
@@ -1057,6 +1106,7 @@ private:
     event::ServerEventBus::Subscription<event::SlideDownBlockEvent> m_slideDownBlockSubscription;
     event::ServerEventBus::Subscription<event::BeeNestDestroyedEvent> m_beeNestDestroyedSubscription;
     event::ServerEventBus::Subscription<event::BredAnimalsEvent> m_bredAnimalsSubscription;
+    event::ServerEventBus::Subscription<event::ServerTickEvent> m_serverTickSubscription;
 
     // 服务器接口（用于获取 ServerPlayerEntityManager 和 ServerWorld）
     IServer* m_server = nullptr;

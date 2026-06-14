@@ -25,6 +25,7 @@
 #include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
@@ -51,14 +52,34 @@ bool PlayerAdvancements::grantCriterion(mc::advancement::AdvancementPtr advancem
         it = inserted;
     }
 
+    bool wasDone = it->second.isDone();
     bool changed = it->second.grantCriterion(criterion);
     if (changed) {
         m_progressChanged.insert(advancement);
 
-        // 如果成就完成，检查子成就的可见性
-        if (it->second.isDone()) {
-            // 成就完成时的奖励等处理
+        // 如果成就刚完成，发放奖励
+        if (!wasDone && it->second.isDone()) {
             spdlog::info("Player {} completed advancement: {}", m_playerId, advancement->getId().toString());
+
+            // 发放奖励
+            const auto& rewards = advancement->getRewards();
+            if (rewards.has_value() && !rewards->isEmpty()) {
+                _grantRewards(*rewards);
+            }
+
+            // 成就完成后注销所有监听器
+            unregisterListeners(advancement);
+        } else {
+            // 条件完成但成就未完成，注销该条件的监听器
+            const auto& criteria = advancement->getCriteria();
+            auto criterionIt = criteria.find(criterion);
+            if (criterionIt != criteria.end()) {
+                const auto triggerId = criterionIt->second.getTrigger();
+                auto* triggerBase = mc::advancement::CriterionTriggers::instance().getTrigger(triggerId);
+                if (triggerBase != nullptr) {
+                    triggerBase->removeListenerForCriterion(*this, advancement, criterion);
+                }
+            }
         }
 
         // 更新可见性
@@ -165,6 +186,11 @@ void PlayerAdvancements::clearProgressChanged()
 
 void PlayerAdvancements::onAdvancementsReloaded(mc::advancement::AdvancementManager& manager)
 {
+    // 注销所有旧的监听器
+    for (const auto& [advancement, progress] : m_progress) {
+        unregisterListeners(advancement);
+    }
+
     // 清空进度
     m_progress.clear();
     m_visible.clear();
@@ -191,22 +217,26 @@ bool PlayerAdvancements::loadFromJson(const nlohmann::json& json, mc::advancemen
                 continue;
             }
 
-            mc::advancement::AdvancementProgress progress(advancement);
-            if (progressJson.is_object()) {
-                for (const auto& [criterion, obtainedTime] : progressJson.items()) {
-                    if (obtainedTime.is_number()) {
-                        // 创建临时 CriterionProgress
-                        progress.grantCriterion(criterion);
-                    }
-                }
+            auto progressResult = mc::advancement::AdvancementProgress::fromJson(progressJson, advancement);
+            if (progressResult.failed()) {
+                spdlog::warn(
+                    "Failed to parse advancement progress for {}: {}", advId, progressResult.error().message());
+                continue;
             }
 
-            m_progress.emplace(advancement, std::move(progress));
+            m_progress.emplace(advancement, std::move(progressResult.value()));
         }
     }
 
     // 更新可见性
     _updateVisibility();
+
+    // 为所有已加载的成就注册监听器
+    for (const auto& [advancement, progress] : m_progress) {
+        if (!progress.isDone()) {
+            registerListeners(advancement);
+        }
+    }
 
     return true;
 }
@@ -233,8 +263,22 @@ void PlayerAdvancements::registerListeners(mc::advancement::AdvancementPtr advan
         return;
     }
 
-    // 为每个条件注册触发器监听
+    // 仅当成就未完成时才注册监听器
+    auto it = m_progress.find(advancement);
+    if (it != m_progress.end() && it->second.isDone()) {
+        return;
+    }
+
+    // 为每个未完成的条件注册触发器监听
     for (const auto& [criterionName, criterion] : advancement->getCriteria()) {
+        // 跳过已完成的条件
+        if (it != m_progress.end()) {
+            const auto* criterionProgress = it->second.getCriterion(criterionName);
+            if (criterionProgress != nullptr && criterionProgress->isObtained()) {
+                continue;
+            }
+        }
+
         const auto triggerId = criterion.getTrigger();
         auto* triggerBase = mc::advancement::CriterionTriggers::instance().getTrigger(triggerId);
         if (triggerBase == nullptr) {
@@ -243,8 +287,14 @@ void PlayerAdvancements::registerListeners(mc::advancement::AdvancementPtr advan
             continue;
         }
 
-        // 创建监听器并注册
-        // TODO: 根据触发器类型创建正确的监听器并注册到触发器
+        // 获取触发器实例
+        const auto& instance = criterion.getTriggerInstance();
+        if (instance == nullptr) {
+            continue;
+        }
+
+        // 通过类型擦除接口注册监听器
+        triggerBase->addListenerForCriterion(*this, advancement, criterionName, instance);
     }
 }
 
@@ -254,15 +304,27 @@ void PlayerAdvancements::unregisterListeners(mc::advancement::AdvancementPtr adv
         return;
     }
 
-    // 注销所有触发器监听
+    // 为每个已完成条件或成就已完成时注销监听器
+    auto it = m_progress.find(advancement);
+    const bool advancementDone = it != m_progress.end() && it->second.isDone();
+
     for (const auto& [criterionName, criterion] : advancement->getCriteria()) {
+        // 跳过未完成的条件（除非整个成就已完成）
+        if (!advancementDone && it != m_progress.end()) {
+            const auto* criterionProgress = it->second.getCriterion(criterionName);
+            if (criterionProgress == nullptr || !criterionProgress->isObtained()) {
+                continue;
+            }
+        }
+
         const auto triggerId = criterion.getTrigger();
         auto* triggerBase = mc::advancement::CriterionTriggers::instance().getTrigger(triggerId);
         if (triggerBase == nullptr) {
             continue;
         }
 
-        // TODO: 移除监听器
+        // 通过类型擦除接口移除监听器
+        triggerBase->removeListenerForCriterion(*this, advancement, criterionName);
     }
 }
 
@@ -321,6 +383,32 @@ bool PlayerAdvancements::_shouldShow(mc::advancement::AdvancementPtr advancement
     }
 
     return true;
+}
+
+void PlayerAdvancements::_grantRewards(const mc::advancement::AdvancementRewards& rewards)
+{
+    // 发放经验值
+    if (rewards.getExperience() > 0 && m_player != nullptr) {
+        m_player->addExperience(static_cast<i32>(rewards.getExperience()));
+    }
+
+    // 解锁配方
+    if (!rewards.getRecipes().empty() && m_player != nullptr) {
+        m_player->unlockRecipes(rewards.getRecipes());
+    }
+
+    // 战利品表和函数的发放需要 LootTable 系统和命令系统的支持
+    // TODO: 实现战利品表发放（需要 LootTable 系统）
+    // TODO: 实现函数执行（需要命令/函数系统）
+    if (!rewards.getLoot().empty()) {
+        spdlog::info("Advancement rewards: {} loot tables pending (LootTable system not yet implemented)",
+            rewards.getLoot().size());
+    }
+
+    if (rewards.getFunction().has_value()) {
+        spdlog::info("Advancement rewards: function {} pending (function system not yet implemented)",
+            rewards.getFunction()->toString());
+    }
 }
 
 } // namespace mc::server

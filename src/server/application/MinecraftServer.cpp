@@ -22,6 +22,7 @@
  */
 
 #include "MinecraftServer.hpp"
+#include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/schedule/Schedule.hpp"
@@ -653,6 +654,9 @@ void MinecraftServer::initializeInteractionManagers()
     m_blockInteractionManager->setServer(this);
 
     // 初始化成就事件处理器
+    // 先注册所有内置触发器（必须在成就加载之前完成）
+    mc::advancement::CriterionTriggers::instance().registerBuiltinTriggers();
+
     // 设置服务器接口以允许从 PlayerId 获取 ServerPlayer
     m_advancementEventHandler.setServer(this);
     m_advancementEventHandler.initialize();

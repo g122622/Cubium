@@ -32,6 +32,7 @@
 #include <typeindex>
 #include <unordered_map>
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc::advancement {
 
@@ -158,6 +159,9 @@ private:
 
 /**
  * @brief 触发器基类（无类型参数）
+ *
+ * 提供类型擦除的监听器管理接口，用于 PlayerAdvancements 在不知道
+ * 具体触发器类型的情况下注册/注销监听器。
  */
 class ICriterionTriggerBase {
 public:
@@ -172,6 +176,41 @@ public:
      * @brief 从JSON反序列化触发器实例
      */
     [[nodiscard]] virtual Result<std::shared_ptr<ICriterionInstance>> fromJson(const nlohmann::json& json) = 0;
+
+    /**
+     * @brief 添加监听器（类型擦除版本）
+     *
+     * 由 PlayerAdvancements::registerListeners() 调用。
+     * 内部将 ICriterionInstance 向下转型为具体类型 T 并创建 CriterionListener<T>。
+     *
+     * @param advancements 玩家成就进度
+     * @param advancement 成就
+     * @param criterion 条件名称
+     * @param instance 触发器实例
+     */
+    virtual void addListenerForCriterion(::mc::server::PlayerAdvancements& advancements,
+        AdvancementPtr advancement,
+        const std::string& criterion,
+        const std::shared_ptr<ICriterionInstance>& instance) = 0;
+
+    /**
+     * @brief 移除监听器（类型擦除版本）
+     *
+     * 由 PlayerAdvancements::unregisterListeners() 调用。
+     *
+     * @param advancements 玩家成就进度
+     * @param advancement 成就
+     * @param criterion 条件名称
+     */
+    virtual void removeListenerForCriterion(
+        ::mc::server::PlayerAdvancements& advancements, AdvancementPtr advancement, const std::string& criterion) = 0;
+
+    /**
+     * @brief 移除玩家的所有监听器（类型擦除版本）
+     *
+     * @param advancements 玩家成就进度
+     */
+    virtual void removeAllListenersForPlayer(::mc::server::PlayerAdvancements& advancements) = 0;
 };
 
 /**
@@ -251,6 +290,56 @@ public:
     void removeAllListeners(::mc::server::PlayerAdvancements& advancements) override
     {
         m_listeners.erase(&advancements);
+    }
+
+    // ========== 类型擦除的监听器管理（ICriterionTriggerBase 接口实现）==========
+
+    void addListenerForCriterion(::mc::server::PlayerAdvancements& advancements,
+        AdvancementPtr advancement,
+        const std::string& criterion,
+        const std::shared_ptr<ICriterionInstance>& instance) override
+    {
+        // 将 ICriterionInstance 向下转型为具体类型 T
+        auto typedInstance = std::dynamic_pointer_cast<T>(instance);
+        if (typedInstance == nullptr) {
+            spdlog::warn("Failed to cast criterion instance for trigger {}: type mismatch", this->getId().toString());
+            return;
+        }
+
+        // 创建监听器并注册
+        Listener listener(*typedInstance, std::move(advancement), criterion);
+        addListener(advancements, listener);
+    }
+
+    void removeListenerForCriterion(::mc::server::PlayerAdvancements& advancements,
+        AdvancementPtr advancement,
+        const std::string& criterion) override
+    {
+        // 需要找到匹配的监听器并移除
+        // 由于 CriterionListener 的比较基于 advancement 和 criterion，
+        // 我们构造一个临时监听器来查找
+        auto it = m_listeners.find(&advancements);
+        if (it == m_listeners.end()) {
+            return;
+        }
+
+        // 查找匹配的监听器
+        for (auto listenerIt = it->second.begin(); listenerIt != it->second.end(); ++listenerIt) {
+            if (listenerIt->getAdvancement() == advancement && listenerIt->getCriterion() == criterion) {
+                it->second.erase(listenerIt);
+                break;
+            }
+        }
+
+        // 如果该玩家已无监听器，移除整个条目
+        if (it->second.empty()) {
+            m_listeners.erase(it);
+        }
+    }
+
+    void removeAllListenersForPlayer(::mc::server::PlayerAdvancements& advancements) override
+    {
+        removeAllListeners(advancements);
     }
 
     /**
