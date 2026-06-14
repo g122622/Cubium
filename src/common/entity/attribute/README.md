@@ -8,11 +8,14 @@
 
 ```
 src/common/entity/attribute/
-├── Attribute.hpp          # 属性基类定义（注册名称、默认值、范围）
-├── AttributeModifier.hpp  # 属性修改器和操作类型枚举
-├── AttributeInstance.hpp  # 属性实例（管理单个属性值和修改器，负责计算）
-├── AttributeMap.hpp       # 属性映射表（管理实体的所有属性，线程安全，提供resetBaseValue/hasModifier/getModifierValue）
-├── Attributes.hpp         # 标准属性定义（14种MC原版属性+2种Forge扩展属性）
+├── Attribute.hpp              # 属性基类定义（注册名称、默认值、范围）
+├── AttributeModifier.hpp      # 属性修改器和操作类型枚举
+├── AttributeInstance.hpp      # 属性实例（管理单个属性值和修改器，负责计算）
+├── AttributeMap.hpp           # 属性映射表（管理实体的所有属性，线程安全，提供resetBaseValue/hasModifier/getModifierValue）
+├── AttributeRegistry.hpp      # 属性注册表（集中管理属性定义，提供名称查询、范围查询、名称规范化，替代硬编码数据）
+├── Attributes.hpp             # 标准属性定义（16种属性工厂+名称常量）
+├── AttributeModifierUUIDs.hpp # 属性修改器 UUID 常量
+├── EntityDefaultAttributes.hpp # 各实体类型的属性默认值常量
 ```
 
 ## 内部模块关系
@@ -25,6 +28,8 @@ AttributeModifier.hpp (修改器定义)
 AttributeInstance.hpp (实例管理+计算) ← 依赖 Attribute + AttributeModifier
       ↓
 AttributeMap.hpp (属性集合管理) ← 依赖 AttributeInstance
+      ↓
+AttributeRegistry.hpp (属性注册表) ← 依赖 Attribute + Attributes 工厂函数，提供全局属性查询
       ↓
 Attributes.hpp (标准属性工厂) ← 依赖 Attribute
 ```
@@ -44,7 +49,7 @@ Attributes.hpp (标准属性工厂) ← 依赖 Attribute
 - `entity/ai/controller/VexMovementController.cpp`：Vex 移动控制器
 - `entity/ai/goal/goals/attack/RangedAttackGoals.cpp`：远程攻击目标
 - `entity/serialization/NbtHelper.cpp`：NBT 序列化/反序列化
-- `server/command/commands/AttributeCommand.cpp`：属性命令
+- `server/command/commands/AttributeCommand.cpp`：属性命令（通过 AttributeRegistry 查询属性信息）
 
 ## 容易踩的坑
 
@@ -54,7 +59,7 @@ Attributes.hpp (标准属性工厂) ← 依赖 Attribute
 
 ### 2. 值范围限制
 
-设置基础值或计算结果会被自动 clamp 到属性范围。**重要**：MC 1.16.5 中 `MAX_HEALTH` 的最小值为 `1.0`（生命值不能为 0），而非 `0.0`。
+设置基础值或计算结果会被自动 clamp 到属性范围。**重要**：MC 1.16.5 中 `MAX_HEALTH` 的最小值为 `1.0`（生命值不能为 0），而非 `0.0`。AttributeRegistry 从工厂函数获取范围数据，确保与 Attributes.hpp 定义一致。
 
 ### 3. 修改器 ID 唯一性
 
@@ -66,7 +71,7 @@ AttributeMap 和 AttributeInstance 的单次操作是原子的，但多次操作
 
 ### 5. 属性注册
 
-必须先注册属性才能使用。未注册时调用 `setBaseValue()` 会返回 false 且无效果。
+必须先注册属性才能使用。未注册时调用 `setBaseValue()` 会返回 false 且无效果。AttributeRegistry 在首次访问时自动注册所有内置属性。
 
 ### 6. copyFrom() 的行为
 
@@ -75,3 +80,7 @@ AttributeMap 和 AttributeInstance 的单次操作是原子的，但多次操作
 ### 7. 缓存机制
 
 AttributeInstance 使用脏标记缓存计算结果。调用 `getValue()` 后会缓存，后续修改器变化会设置 dirty，下次 getValue() 才重新计算。需要注意：如果直接修改 AttributeModifier 对象的 amount（通过 setAmount），不会触发 dirty，需要手动调用 addModifier 或确保重新计算。
+
+### 8. 属性数据单一来源
+
+新增属性时，只需在 `Attributes.hpp` 中添加工厂函数和名称常量，然后在 `AttributeRegistry::_registerBuiltinAttributes()` 中注册即可。**不要**在命令或其他地方硬编码属性范围数据，一律通过 `AttributeRegistry::instance()` 查询。

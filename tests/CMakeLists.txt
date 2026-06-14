@@ -143,6 +143,8 @@ add_executable(mc_tests
     entity/CanAttackTypeTest.cpp
     # 属性映射表测试（resetBaseValue、hasModifier、getModifierValue）
     common/entity/attribute/AttributeMapTest.cpp
+    # 属性注册表测试（isKnown、getRange、normalizeName、getDefaultValue）
+    common/entity/attribute/AttributeRegistryTest.cpp
     common/entity/entities/monster/EndermiteEntityTest.cpp
     # SpiderEntity AI 目标、光照敏感、中毒攻击测试
     entity/SpiderEntityTest.cpp

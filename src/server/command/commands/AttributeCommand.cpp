@@ -28,6 +28,7 @@
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/entity/attribute/AttributeRegistry.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -39,7 +40,6 @@
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <sstream>
-#include <unordered_set>
 
 namespace mc {
 namespace command {
@@ -584,105 +584,18 @@ i32 AttributeCommand::_getModifierValueWithScale(CommandContext<ServerCommandSou
 
 std::string AttributeCommand::_normalizeAttributeName(const std::string& name)
 {
-    std::string normalized = name;
-
-    // 移除 minecraft: 前缀
-    constexpr std::string_view minecraftPrefix = "minecraft:";
-    if (normalized.starts_with(minecraftPrefix)) {
-        normalized = normalized.substr(minecraftPrefix.size());
-    }
-
-    // 添加 generic. 前缀（如果需要）
-    if (normalized.find("generic.") != 0 && normalized.find("horse.") != 0 && normalized.find("zombie.") != 0 &&
-        normalized.find("forge.") != 0) {
-        // 常见的通用属性需要 generic. 前缀
-        static const std::vector<std::string> genericAttrs = {"max_health",
-            "follow_range",
-            "knockback_resistance",
-            "movement_speed",
-            "flying_speed",
-            "attack_damage",
-            "attack_knockback",
-            "attack_speed",
-            "armor",
-            "armor_toughness",
-            "luck",
-            "max_absorption",
-            "breath_max",
-            "jump_boost"};
-
-        for (const auto& attr : genericAttrs) {
-            if (normalized == attr) {
-                normalized = "generic." + attr;
-                break;
-            }
-        }
-    }
-
-    return normalized;
+    // 委托给 AttributeRegistry 进行名称规范化，自动处理前缀补全
+    return entity::attribute::AttributeRegistry::instance().normalizeName(name);
 }
 
-// TODO: _isKnownAttribute 和 _getAttributeRange 使用硬编码的属性名和范围值，
-// 与 Attributes.hpp 中的工厂函数定义可能不同步。未来应迁移到通过属性
-// 注册表（AttributeRegistry）动态查询，避免手动维护两份数据。
 bool AttributeCommand::_isKnownAttribute(const std::string& name) noexcept
 {
-    using namespace entity::attribute;
-
-    static const std::unordered_set<std::string> knownAttrs = {
-        Attributes::MAX_HEALTH,
-        Attributes::FOLLOW_RANGE,
-        Attributes::KNOCKBACK_RESISTANCE,
-        Attributes::MOVEMENT_SPEED,
-        Attributes::FLYING_SPEED,
-        Attributes::ATTACK_DAMAGE,
-        Attributes::ATTACK_KNOCKBACK,
-        Attributes::ATTACK_SPEED,
-        Attributes::ARMOR,
-        Attributes::ARMOR_TOUGHNESS,
-        Attributes::LUCK,
-        Attributes::MAX_ABSORPTION,
-        Attributes::BREATH_MAX,
-        Attributes::JUMP_BOOST,
-        Attributes::HORSE_JUMP_STRENGTH,
-        Attributes::ZOMBIE_SPAWN_REINFORCEMENTS,
-        Attributes::ENTITY_GRAVITY,
-        Attributes::SWIM_SPEED,
-    };
-
-    return knownAttrs.count(name) > 0;
+    return entity::attribute::AttributeRegistry::instance().isKnown(name);
 }
 
 std::pair<f64, f64> AttributeCommand::_getAttributeRange(const std::string& name) noexcept
 {
-    using namespace entity::attribute;
-
-    static const std::unordered_map<std::string, std::pair<f64, f64>> ranges = {
-        {Attributes::MAX_HEALTH, {0.0, 1024.0}},
-        {Attributes::FOLLOW_RANGE, {0.0, 2048.0}},
-        {Attributes::KNOCKBACK_RESISTANCE, {0.0, 1.0}},
-        {Attributes::MOVEMENT_SPEED, {0.0, 1024.0}},
-        {Attributes::FLYING_SPEED, {0.0, 1024.0}},
-        {Attributes::ATTACK_DAMAGE, {0.0, 2048.0}},
-        {Attributes::ATTACK_KNOCKBACK, {0.0, 5.0}},
-        {Attributes::ATTACK_SPEED, {0.0, 1024.0}},
-        {Attributes::ARMOR, {0.0, 30.0}},
-        {Attributes::ARMOR_TOUGHNESS, {0.0, 20.0}},
-        {Attributes::LUCK, {-1024.0, 1024.0}},
-        {Attributes::MAX_ABSORPTION, {0.0, 2048.0}},
-        {Attributes::BREATH_MAX, {0.0, 6000.0}},
-        {Attributes::JUMP_BOOST, {0.0, 8.0}},
-        {Attributes::HORSE_JUMP_STRENGTH, {0.0, 2.0}},
-        {Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, {0.0, 1.0}},
-        {Attributes::ENTITY_GRAVITY, {-8.0, 8.0}},
-        {Attributes::SWIM_SPEED, {0.0, 1024.0}},
-    };
-
-    auto it = ranges.find(name);
-    if (it != ranges.end()) {
-        return it->second;
-    }
-    return {0.0, 1024.0};
+    return entity::attribute::AttributeRegistry::instance().getRange(name);
 }
 
 } // namespace command
