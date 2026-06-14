@@ -119,7 +119,9 @@ struct ServerPlayerData {
     ContainerType openContainerType = ContainerType::Player;
     ContainerId nextContainerId = 1;
 
-    // 成就进度（使用共享指针管理生命周期）
+    // 成就进度（弃用：请通过 ServerPlayer::getAdvancements() 获取 PlayerAdvancements，
+    // 该路径通过 ServerPlayerEntityManager → Player::asServerPlayer() 正确获取。
+    // 此字段始终为 nullptr，将在未来版本中移除。）
     std::shared_ptr<PlayerAdvancements> advancements;
 
     ServerPlayerData() = default;

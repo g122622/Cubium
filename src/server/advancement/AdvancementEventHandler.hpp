@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/BlockTriggers.hpp"
 #include "common/advancement/trigger/impl/ChanneledLightningTrigger.hpp"
@@ -313,9 +314,20 @@ private:
      */
     void _onPlayerLogin(const event::PlayerLoginEvent& e)
     {
-        // 玩家登录时，PlayerAdvancements 已经在 ServerPlayer 构造函数中初始化
-        // 这里可以做一些额外的初始化工作
-        MC_UNUSED(e);
+        // 玩家登录时，初始化成就监听器
+        // 为玩家尚未追踪的所有成就注册触发器监听器
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 为所有已注册成就注册触发器监听器
+        advancements->flushAdvancements(mc::advancement::AdvancementManager::instance());
     }
 
     /**

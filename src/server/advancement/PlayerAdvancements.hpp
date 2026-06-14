@@ -166,6 +166,16 @@ public:
      */
     void onAdvancementsReloaded(mc::advancement::AdvancementManager& manager);
 
+    /**
+     * @brief 初始化成就监听器
+     *
+     * 遍历成就管理器中所有已注册的成就，为玩家尚未完成且尚未有进度的成就
+     * 注册触发器监听器。通常在玩家首次加入服务器时调用。
+     *
+     * @param manager 成就管理器
+     */
+    void flushAdvancements(mc::advancement::AdvancementManager& manager);
+
     // ========== 持久化 ==========
 
     /**

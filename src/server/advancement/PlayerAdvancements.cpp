@@ -232,6 +232,30 @@ void PlayerAdvancements::onAdvancementsReloaded(mc::advancement::AdvancementMana
     MC_UNUSED(manager);
 }
 
+void PlayerAdvancements::flushAdvancements(mc::advancement::AdvancementManager& manager)
+{
+    // 遍历成就管理器中所有已注册的成就
+    manager.forEach([this](mc::advancement::AdvancementPtr advancement) {
+        // 跳过已有进度的成就（loadFromJson 已为它们注册监听器）
+        auto it = m_progress.find(advancement);
+        if (it != m_progress.end()) {
+            // 已有进度，为未完成的成就注册监听器
+            if (!it->second.isDone()) {
+                registerListeners(advancement);
+            }
+        } else {
+            // 没有进度的新成就，创建空的进度条目并注册监听器
+            m_progress.emplace(advancement, mc::advancement::AdvancementProgress(advancement));
+            registerListeners(advancement);
+        }
+
+        // 检查可见性
+        _ensureVisibility(advancement);
+
+        return true; // 继续遍历
+    });
+}
+
 bool PlayerAdvancements::loadFromJson(const nlohmann::json& json, mc::advancement::AdvancementManager& manager)
 {
     if (!json.is_object()) {

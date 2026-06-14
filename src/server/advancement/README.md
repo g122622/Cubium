@@ -81,10 +81,16 @@ server/advancement/
 
 7. **事件中的空指针检查**：事件携带的指针可能为空（如 `BlockPlaceEvent::state`、`InventoryChangedEvent::inventory`），触发前必须检查。
 
-8. **监听器注册/注销与 grantCriterion 的交互**：`grantCriterion()` 完成条件授予后会自动注销该条件的监听器；成就全部完成时会注销整个成就的所有监听器。手动注册/注销监听器时应避免重复操作。
+8. **监听器注册/注销与 grantCriterion 的交互**：`grantCriterion()` 创建新进度时自动注册所有未完成条件的监听器；完成单个条件后注销该条件的监听器；成就全部完成时注销整个成就的所有监听器。手动注册/注销监听器时应避免重复操作。
 
 9. **loadFromJson 中的监听器注册**：`loadFromJson()` 会为所有已加载但未完成的成就注册监听器，加载完成后无需额外调用 `registerListeners()`。
 
-10. **onAdvancementsReloaded 必须先注销再清空**：重载时必须先调用 `unregisterListeners()` 注销旧监听器再清空进度，否则旧的监听器指针会悬空。
+10. **flushAdvancements 用于新玩家初始化**：新玩家首次加入时没有存档数据，需调用 `flushAdvancements(manager)` 遍历 `AdvancementManager` 中所有成就，创建空进度条目并注册监听器。`_onPlayerLogin` 事件处理器已实现此调用。
 
-11. **PlayerAdvancements 与 ServerPlayer 的关联时机**：`setServerPlayer()` 必须在 `ServerPlayer` 构造后尽早调用，因为 `_grantRewards()` 依赖 `m_player` 发放经验值和解锁配方。
+11. **revokeCriterion 自动重新注册监听器**：撤销条件后，如果成就从完成变为未完成，会自动重新注册所有未完成条件的监听器；如果仅撤销单个条件，会为该条件重新注册监听器，确保后续触发器事件可以重新触发。
+
+12. **onAdvancementsReloaded 必须先注销再清空**：重载时必须先调用 `unregisterListeners()` 注销旧监听器再清空进度，否则旧的监听器指针会悬空。
+
+13. **PlayerAdvancements 与 ServerPlayer 的关联时机**：`setServerPlayer()` 必须在 `ServerPlayer` 构造后尽早调用，因为 `_grantRewards()` 依赖 `m_player` 发放经验值和解锁配方。
+
+14. **ServerPlayerData::advancements 是废弃字段**：该字段始终为 nullptr，成就系统通过 `ServerPlayer::getAdvancements()` 获取 `PlayerAdvancements`。命令系统和实体选择器已改用 `ServerPlayerEntityManager → Player::asServerPlayer() → ServerPlayer::getAdvancements()` 路径。

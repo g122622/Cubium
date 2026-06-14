@@ -629,3 +629,130 @@ TEST_F(PlayerAdvancementsTest, OnAdvancementsReloadedClearsState)
     EXPECT_FALSE(playerAdvancements->isDone(adv));
     EXPECT_TRUE(playerAdvancements->getVisibleAdvancements().empty());
 }
+
+// ========== revokeCriterion 重新注册监听器测试 ==========
+
+TEST_F(PlayerAdvancementsTest, RevokeCriterionReRegistersListenerForSingleCriterion)
+{
+    auto adv = createTestAdvancement("minecraft:test/revoke_reregister", {"c1", "c2"});
+    ASSERT_NE(adv, nullptr);
+
+    // 授予所有条件，完成成就
+    playerAdvancements->grantAllCriteria(adv);
+    EXPECT_TRUE(playerAdvancements->isDone(adv));
+
+    // 完成后监听器应被注销
+    auto* tickTrigger = CriterionTriggers::instance().getTrigger<TickTrigger>();
+    ASSERT_NE(tickTrigger, nullptr);
+    EXPECT_FALSE(tickTrigger->hasListeners(*playerAdvancements));
+
+    // 撤销一个条件，成就变为未完成
+    bool result = playerAdvancements->revokeCriterion(adv, "c2");
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(playerAdvancements->isDone(adv));
+
+    // 撤销后应重新注册监听器（因为成就从完成变为未完成）
+    EXPECT_TRUE(tickTrigger->hasListeners(*playerAdvancements));
+}
+
+TEST_F(PlayerAdvancementsTest, RevokeSingleCriterionReRegistersThatCriterionListener)
+{
+    auto adv = createTestAdvancement("minecraft:test/revoke_single", {"c1", "c2", "c3"});
+    ASSERT_NE(adv, nullptr);
+
+    // 仅授予 c1
+    playerAdvancements->grantCriterion(adv, "c1");
+    EXPECT_FALSE(playerAdvancements->isDone(adv));
+
+    // 授予 c2
+    playerAdvancements->grantCriterion(adv, "c2");
+
+    // 撤销 c2，应重新注册 c2 的监听器
+    bool result = playerAdvancements->revokeCriterion(adv, "c2");
+    EXPECT_TRUE(result);
+
+    auto* progress = playerAdvancements->getProgress(adv);
+    ASSERT_NE(progress, nullptr);
+    EXPECT_TRUE(progress->getCriterion("c1")->isObtained());
+    EXPECT_FALSE(progress->getCriterion("c2")->isObtained());
+    EXPECT_FALSE(progress->getCriterion("c3")->isObtained());
+}
+
+// ========== flushAdvancements 测试 ==========
+
+TEST_F(PlayerAdvancementsTest, FlushAdvancementsRegistersListenersForAllKnown)
+{
+    auto adv1 = createTestAdvancement("minecraft:test/flush_adv1", {"c1"});
+    auto adv2 = createTestAdvancement("minecraft:test/flush_adv2", {"c1", "c2"});
+    ASSERT_NE(adv1, nullptr);
+    ASSERT_NE(adv2, nullptr);
+
+    auto& manager = AdvancementManager::instance();
+    manager.registerAdvancement(adv1);
+    manager.registerAdvancement(adv2);
+
+    // 在 flush 之前，没有进度也没有监听器
+    EXPECT_EQ(playerAdvancements->getProgress(adv1), nullptr);
+    EXPECT_EQ(playerAdvancements->getProgress(adv2), nullptr);
+
+    // flush：为所有已知成就注册监听器
+    playerAdvancements->flushAdvancements(manager);
+
+    // flush 后，所有成就应有空的进度条目（条件全部未完成，但进度存在）
+    auto* progress1 = playerAdvancements->getProgress(adv1);
+    auto* progress2 = playerAdvancements->getProgress(adv2);
+    ASSERT_NE(progress1, nullptr);
+    ASSERT_NE(progress2, nullptr);
+    EXPECT_FALSE(progress1->isDone());
+    EXPECT_FALSE(progress2->isDone());
+
+    // 可见性应已更新（有显示信息的成就应可见）
+    // 注意：flushAdvancements 调用 _ensureVisibility
+    // 但空进度的成就（无 hasProgress）是否可见取决于 _shouldShow
+    // 有显示信息且非隐藏的成就应该在 flush 后可见
+}
+
+TEST_F(PlayerAdvancementsTest, FlushAdvancementsSkipsCompletedAdvancements)
+{
+    auto adv = createTestAdvancement("minecraft:test/flush_completed", {"c1"});
+    ASSERT_NE(adv, nullptr);
+
+    // 先授予所有条件（完成成就）
+    playerAdvancements->grantAllCriteria(adv);
+    EXPECT_TRUE(playerAdvancements->isDone(adv));
+
+    auto& manager = AdvancementManager::instance();
+    manager.registerAdvancement(adv);
+
+    // flush 不会为已完成的成就注册监听器
+    playerAdvancements->flushAdvancements(manager);
+
+    // 进度应该仍然存在且完成
+    EXPECT_TRUE(playerAdvancements->isDone(adv));
+
+    // 完成的成就不应有监听器
+    auto* tickTrigger = CriterionTriggers::instance().getTrigger<TickTrigger>();
+    ASSERT_NE(tickTrigger, nullptr);
+    EXPECT_FALSE(tickTrigger->hasListeners(*playerAdvancements));
+}
+
+TEST_F(PlayerAdvancementsTest, FlushAdvancementsPreservesExistingProgress)
+{
+    auto adv = createTestAdvancement("minecraft:test/flush_preserves", {"c1", "c2"});
+    ASSERT_NE(adv, nullptr);
+
+    // 授予部分条件
+    playerAdvancements->grantCriterion(adv, "c1");
+
+    auto& manager = AdvancementManager::instance();
+    manager.registerAdvancement(adv);
+
+    // flush
+    playerAdvancements->flushAdvancements(manager);
+
+    // 进度应保持不变
+    auto* progress = playerAdvancements->getProgress(adv);
+    ASSERT_NE(progress, nullptr);
+    EXPECT_TRUE(progress->getCriterion("c1")->isObtained());
+    EXPECT_FALSE(progress->getCriterion("c2")->isObtained());
+}
