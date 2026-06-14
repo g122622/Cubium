@@ -258,6 +258,8 @@ private:
  * @brief 农民工作目标
  *
  * 农民特有的工作行为：种植、收获、堆肥。
+ * 参考 MC 1.21.11 HarvestFarmland + WorkAtComposter 行为实现。
+ * 农民在3x3x3范围内搜索成熟作物或空耕地，执行收获、种植和堆肥操作。
  */
 class FarmerWorkGoal : public WorkAtJobSiteGoal {
 public:
@@ -270,42 +272,24 @@ public:
 private:
     /**
      * @brief 尝试收获成熟作物
+     *
+     * 在村民周围3x3x3区域搜索成熟CropBlock，收获后掉落物放入背包或丢在地上
      */
     void _tryHarvest();
 
     /**
-     * @brief 尝试种植作物
+     * @brief 尝试在空耕地上种植作物
+     *
+     * 搜索空气+下方耕地的位置，从背包中取种子种植
      */
     void _tryPlant();
 
     /**
-     * @brief 尝试堆肥
+     * @brief 尝试使用堆肥桶堆肥多余种子
+     *
+     * 查找附近堆肥桶，将多余种子（小麦种子、甜菜种子）堆肥，满桶时取出骨粉
      */
     void _tryCompost();
-
-    /**
-     * @brief 查找附近的农田
-     * @return 农田位置（如果有）
-     */
-    [[nodiscard]] std::optional<BlockPos> _findFarmland() const;
-
-    /**
-     * @brief 检查作物是否成熟
-     */
-    [[nodiscard]] bool _isCropMature(BlockPos pos) const;
-
-    /**
-     * @brief 检查是否可以种植
-     */
-    [[nodiscard]] bool _canPlant(BlockPos pos) const;
-
-private:
-    i32 m_farmerWorkTicks = 0;
-    BlockPos m_currentFarmland;
-    static constexpr i32 FARMER_WORK_INTERVAL = 20; // 工作间隔
-
-    // MC 原版农民搜索范围（3x3x3 区域）
-    static constexpr i32 FARMER_SEARCH_RANGE = 1; // 半径1格（即3x3x3）
 
     /**
      * @brief 检查村民是否有可种植的种子
@@ -332,9 +316,24 @@ private:
     [[nodiscard]] bool _isValidFarmPos(const BlockPos& pos) const;
 
     /**
-     * @brief 从有效农田位置列表中随机选取一个
+     * @brief 从有效农田位置中随机选取一个
+     *
+     * 使用蓄水池抽样算法在3x3x3范围内随机选取
      */
     [[nodiscard]] std::optional<BlockPos> _pickValidFarmland() const;
+
+    /**
+     * @brief 收获指定位置的成熟作物
+     *
+     * 生成掉落物（放入背包或丢在地上），然后移除作物方块
+     */
+    void _harvestCrop(const BlockPos& pos);
+
+private:
+    i32 m_farmerWorkTicks = 0;
+    BlockPos m_currentFarmland;
+    static constexpr i32 FARMER_WORK_INTERVAL = 20; // 工作间隔
+    static constexpr i32 FARMER_SEARCH_RANGE = 1;   // 搜索半径（3x3x3区域）
 };
 
 /**

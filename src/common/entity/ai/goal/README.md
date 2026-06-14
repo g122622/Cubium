@@ -39,6 +39,9 @@ goal/
     │   └── README.md             # 目标选择器详细文档
     ├── interact/                 # 交互类目标
     │   └── TameableGoals.hpp/cpp # FollowOwnerGoal, SitGoal, BegGoal
+    ├── villager/                  # 村民目标
+    │   ├── VillagerGoals.hpp/cpp  # 村民全部AI目标（睡眠、工作、收获、种植、堆肥等）
+    │   └── README.md              # 村民目标详细文档
     └── special/                  # 特殊目标
         ├── SpecialGoals.hpp/cpp  # CreeperSwellGoal, EndermanTeleportGoal等
         ├── RavagerGoals.hpp/cpp  # RavagerAttackGoal 劫掠兽近战攻击目标

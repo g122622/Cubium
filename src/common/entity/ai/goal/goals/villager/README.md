@@ -7,7 +7,7 @@
 ```
 villager/
 ├── VillagerGoals.hpp      # 村民AI目标头文件（定义10个目标类）
-├── VillagerGoals.cpp      # 村民AI目标实现
+├── VillagerGoals.cpp      # 村民AI目标实现（FarmerWorkGoal含收获/种植/堆肥逻辑）
 └── README.md              # 本文档
 ```
 
@@ -21,6 +21,15 @@ Goal (基类)
 ├── GoToBedGoal            │ 夜间睡眠相关
 ├── WorkAtJobSiteGoal     ─┼─ 工作相关
 │   └── FarmerWorkGoal    ─┘    (继承WorkAtJobSiteGoal)
+│       ├── _tryHarvest()        收获成熟作物（3x3x3蓄水池抽样）
+│       ├── _tryPlant()          在空耕地上种植种子
+│       ├── _tryCompost()        多余种子堆肥/取出骨粉
+│       ├── _harvestCrop()       收获单个作物（生成掉落物+onBlockRemoved+设为空气）
+│       ├── _hasFarmSeeds()      检查背包是否有可种植种子
+│       ├── _isCropMatureAt()    检查位置是否为成熟作物
+│       ├── _canPlantAt()        检查位置是否可种植（空气+下方耕地）
+│       ├── _isValidFarmPos()    判断是否为有效农田位置
+│       └── _pickValidFarmland() 蓄水池抽样选取有效位置
 ├── LookForJobSiteGoal    ─── 就业相关
 ├── GatherItemsGoal       ─── 物品收集
 ├── AvoidHostileGoal      ─── 安全逃避
@@ -41,12 +50,19 @@ Goal (基类)
 - `IWorld` - 世界接口，获取时间、方块状态
 - `PathNavigator` - 寻路导航（通过Entity间接使用）
 - `EntityUtils` - 实体工具类（查找附近实体）
-- `PointOfInterestStorage` - POI系统（查找床位、工作站点）
+- `PointOfInterestStorage` - POI系统（查找床位、工作站点、堆肥桶）
 - `VillageManager` - 村庄管理器（获取POI存储）
 - `Brain` / `MemoryModuleType` - 大脑记忆系统（HOME、MEETING_POINT等）
 - `ItemEntity` - 物品实体（收集目标）
 - `IMob` - 敌对生物接口（逃避检测）
 - `BedBlock` - 床方块（验证床位有效性）
+- `CropBlock` - 作物方块（收获逻辑：getCropItem/getSeedItem/isMaxAge/withAge）
+- `FarmlandBlock` - 耕地方块（种植条件判断）
+- `ComposterBlock` - 堆肥桶方块（attemptCompost/empty/getLevel）
+- `BlockItemRegistry` - 方块物品注册表（种子→作物方块映射）
+- `ItemDropHelper` - 物品掉落工具（生成掉落物实体）
+- `BlockRegistry` - 方块注册表（获取空气方块状态）
+- `BlockTags` - 方块标签系统（可替换方块判断）
 
 ## 互斥标志
 
@@ -89,6 +105,12 @@ ShareItemsGoal 和 CongregateGoal::_shareItems() 使用相同的食物分享逻�
 
 5. **FarmerWorkGoal 继承**：`FarmerWorkGoal` 继承自 `WorkAtJobSiteGoal`，调用 `tick()` 时会先执行父类逻辑（移动到工作站点、增加经验），再执行农民特有行为。如需覆盖父类行为需谨慎处理。
 
-6. **时间判断常量**：夜间时间范围 `12542-23459` tick，工作时间范围 `2000-9000` tick。这些是 MC 1.16.5 的固定值，不要硬编码在其他地方。
+6. **FarmerWorkGoal 收获逻辑**：收获作物时不使用 `destroyBlock`（需要 `ServerWorld`），而是手动生成掉落物（通过 `CropBlock::getCropItem()/getSeedItem()` 获取物品ID，放入背包或丢在地上），然后调用 `onBlockRemoved()` 通知方块移除回调，最后将方块设为空气。
 
-7. **Brain 记忆类型**：使用 `MemoryModuleTypes::HOME` 和 `MemoryModuleTypes::MEETING_POINT` 时需确保 Brain 系统已正确初始化这些记忆模块。
+7. **FarmerWorkGoal 种植逻辑**：种植时通过 `BlockItemRegistry` 将种子物品映射为方块，检查是否为 `CropBlock` 子类，然后放置默认状态（age=0）。`_hasFarmSeeds()` 检查小麦种子、胡萝卜、马铃薯、甜菜种子。
+
+8. **FarmerWorkGoal 堆肥逻辑**：堆肥只处理小麦种子和甜菜种子（保留10个，多余的最多20个用于堆肥）。使用 `ComposterBlock::attemptCompost()` 逐个尝试堆肥。满桶时使用 `ComposterBlock::empty()` 取出骨粉。
+
+9. **时间判断常量**：夜间时间范围 `12542-23459` tick，工作时间范围 `2000-9000` tick。这些是 MC 1.16.5 的固定值，不要硬编码在其他地方。
+
+10. **Brain 记忆类型**：使用 `MemoryModuleTypes::HOME` 和 `MemoryModuleTypes::MEETING_POINT` 时需确保 Brain 系统已正确初始化这些记忆模块。

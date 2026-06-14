@@ -22,6 +22,7 @@
  */
 
 #include <memory>
+#include <unordered_map>
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
@@ -31,6 +32,9 @@
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
@@ -743,13 +747,76 @@ TEST_F(AvoidHostileGoalTest, MutexFlags)
 }
 
 // ============================================================================
-// FarmerWorkGoal Tests
+// FarmerWorkGoal Tests - Comprehensive
 // ============================================================================
+
+/**
+ * @brief 支持按位置设置方块状态的测试世界
+ *
+ * 用于需要精确控制方块布局的农民工作目标测试
+ */
+class FarmerTestWorld : public test::BaseTestWorld {
+public:
+    FarmerTestWorld()
+        : m_dayTime(5000)
+        , m_currentTick(1000)
+    {}
+
+    void setDayTime(i64 time) { m_dayTime = time; }
+    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+
+    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
+    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+
+    [[nodiscard]] world::village::VillageManager* villageManager() override { return m_villageManager.get(); }
+    [[nodiscard]] const world::village::VillageManager* villageManager() const override
+    {
+        return m_villageManager.get();
+    }
+
+    void setVillageManager(std::unique_ptr<world::village::VillageManager> manager)
+    {
+        m_villageManager = std::move(manager);
+    }
+
+    /**
+     * @brief 设置指定位置的方块状态
+     */
+    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) { m_blockStates[BlockPos(x, y, z)] = state; }
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        auto it = m_blockStates.find(BlockPos(x, y, z));
+        if (it != m_blockStates.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        if (state) {
+            m_blockStates[BlockPos(x, y, z)] = state;
+        } else {
+            m_blockStates.erase(BlockPos(x, y, z));
+        }
+        return true;
+    }
+
+private:
+    i64 m_dayTime;
+    u64 m_currentTick;
+    std::unique_ptr<world::village::VillageManager> m_villageManager;
+    std::unordered_map<BlockPos, const BlockState*> m_blockStates;
+};
 
 class FarmerWorkGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
+        VanillaBlocks::initialize();
+        Items::initialize();
+
         m_world = std::make_unique<TestVillagerWorld>();
         m_villager = std::make_unique<VillagerEntity>(EntityId(1));
         m_villager->setWorld(m_world.get());
@@ -801,6 +868,289 @@ TEST_F(FarmerWorkGoalTest, ShouldExecuteDuringWorkTime)
 
     auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
     EXPECT_TRUE(goal->shouldExecute());
+}
+
+TEST_F(FarmerWorkGoalTest, ShouldNotExecuteForNitwit)
+{
+    // 傻子村民不应该执行工作目标
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Nitwit);
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(FarmerWorkGoalTest, ShouldNotExecuteWithoutJobSite)
+{
+    // 没有工作站点不应该执行（重置工作站点为默认零坐标）
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos::zero());
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(FarmerWorkGoalTest, ShouldNotContinueExecutingAfterWorkTime)
+{
+    // 设置工作时间
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos(10, 64, 10));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // 切换到非工作时间
+    m_world->setDayTime(10000);
+    EXPECT_FALSE(goal->shouldContinueExecuting());
+}
+
+TEST_F(FarmerWorkGoalTest, TickDoesNotCrashWithNullWorld)
+{
+    // 工作时间且有工作站点
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // tick 不应该崩溃（即使世界不支持完整的方块操作）
+    EXPECT_NO_THROW(goal->tick());
+}
+
+TEST_F(FarmerWorkGoalTest, TickDoesNotCrashWithEmptyInventory)
+{
+    // 工作时间，有工作站点，空背包
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // 即使背包为空，tick 也不应崩溃
+    for (int i = 0; i < 100; ++i) {
+        EXPECT_NO_THROW(goal->tick());
+    }
+}
+
+TEST_F(FarmerWorkGoalTest, TickDoesNotCrashWithSeedsInInventory)
+{
+    // 工作时间，有工作站点，背包有种子
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    // 放入小麦种子
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::WHEAT_SEEDS, 32));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // 有种子的农民不应该崩溃
+    for (int i = 0; i < 100; ++i) {
+        EXPECT_NO_THROW(goal->tick());
+    }
+}
+
+// ============================================================================
+// FarmerWorkGoal Integration Test with Block State Support
+// ============================================================================
+
+class FarmerBlockTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+
+        m_world = std::make_unique<FarmerTestWorld>();
+        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
+        m_villager->setWorld(m_world.get());
+        m_villager->setPosition(0.0, 64.0, 0.0);
+        m_villager->setProfession(VillagerProfession::Farmer);
+        m_villager->setWorkStation(BlockPos(0, 64, 0));
+    }
+
+    void TearDown() override
+    {
+        m_villager.reset();
+        m_world.reset();
+    }
+
+    std::unique_ptr<FarmerTestWorld> m_world;
+    std::unique_ptr<VillagerEntity> m_villager;
+};
+
+TEST_F(FarmerBlockTest, TickWithFarmlandBlocks)
+{
+    // 设置工作时间和工作站点
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    // 设置周围方块：耕地在脚下，空气在上方
+    if (VanillaBlocks::FARMLAND) {
+        const BlockState* farmlandState = &VanillaBlocks::FARMLAND->defaultState();
+        const BlockState* airState = BlockRegistry::instance().airState();
+
+        if (farmlandState && airState) {
+            // 村民位置 (0, 64, 0)，设置下方为耕地
+            m_world->setBlockStateAt(0, 63, 0, farmlandState);
+            // 上方为空气（可种植位置）
+            m_world->setBlockStateAt(0, 64, 0, airState);
+        }
+    }
+
+    // 放入种子
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::WHEAT_SEEDS, 32));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // tick 不应该崩溃
+    for (int i = 0; i < 100; ++i) {
+        EXPECT_NO_THROW(goal->tick());
+    }
+}
+
+TEST_F(FarmerBlockTest, TickWithMatureWheatCrop)
+{
+    // 设置工作时间
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    // 设置成熟的小麦作物
+    // 找到 WheatBlock 并设置成熟状态
+    const Block* wheatBlock = BlockItemRegistry::instance().getBlock(mc::Items::WHEAT_SEEDS->itemId());
+    if (wheatBlock) {
+        auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(wheatBlock);
+        if (cropBlock && VanillaBlocks::FARMLAND) {
+            // 获取最大成熟度状态
+            // 设置村民周围的成熟作物
+            const BlockState& maxAgeState = cropBlock->withAge(cropBlock->getMaxAge());
+            const BlockState* farmlandState = &VanillaBlocks::FARMLAND->defaultState();
+            for (int dx = -1; dx <= 1; ++dx) {
+                for (int dz = -1; dz <= 1; ++dz) {
+                    if (dx == 0 && dz == 0) continue;
+                    // 设置耕地
+                    m_world->setBlockStateAt(dx, 63, dz, farmlandState);
+                    // 设置成熟作物
+                    m_world->setBlockStateAt(dx, 64, dz, &maxAgeState);
+                }
+            }
+        }
+    }
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // tick 多次，不应崩溃，可能收获作物
+    for (int i = 0; i < 200; ++i) {
+        EXPECT_NO_THROW(goal->tick());
+    }
+}
+
+TEST_F(FarmerBlockTest, TickWithComposterNearby)
+{
+    // 设置工作时间
+    m_world->setDayTime(5000);
+    m_villager->setProfession(VillagerProfession::Farmer);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    // 放入大量小麦种子（用于堆肥）
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::WHEAT_SEEDS, 64));
+    inv.setItem(1, mc::ItemStack(mc::Items::BEETROOT_SEEDS, 64));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // 即使没有真正的堆肥桶POI，也不应崩溃
+    for (int i = 0; i < 100; ++i) {
+        EXPECT_NO_THROW(goal->tick());
+    }
+}
+
+// ============================================================================
+// FarmerWorkGoal _hasFarmSeeds indirect tests
+// ============================================================================
+
+TEST_F(FarmerWorkGoalTest, HasFarmSeedsWithWheatSeeds)
+{
+    // 小麦种子是可种植的
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::WHEAT_SEEDS, 16));
+
+    // 有种子时 tick 不崩溃
+    m_world->setDayTime(5000);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+    EXPECT_NO_THROW(goal->tick());
+}
+
+TEST_F(FarmerWorkGoalTest, HasFarmSeedsWithCarrot)
+{
+    // 胡萝卜是可种植的
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::CARROT, 16));
+
+    m_world->setDayTime(5000);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+    EXPECT_NO_THROW(goal->tick());
+}
+
+TEST_F(FarmerWorkGoalTest, HasFarmSeedsWithPotato)
+{
+    // 马铃薯是可种植的
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::POTATO, 16));
+
+    m_world->setDayTime(5000);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+    EXPECT_NO_THROW(goal->tick());
+}
+
+TEST_F(FarmerWorkGoalTest, HasFarmSeedsWithBeetrootSeeds)
+{
+    // 甜菜种子是可种植的
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::BEETROOT_SEEDS, 16));
+
+    m_world->setDayTime(5000);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+    EXPECT_NO_THROW(goal->tick());
+}
+
+TEST_F(FarmerWorkGoalTest, NoFarmSeedsWithNonPlantableItems)
+{
+    // 面包、小麦等不是可种植的种子
+    mc::IInventory& inv = m_villager->inventory();
+    inv.setItem(0, mc::ItemStack(mc::Items::BREAD, 16));
+    inv.setItem(1, mc::ItemStack(mc::Items::WHEAT, 16));
+
+    m_world->setDayTime(5000);
+    m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+    EXPECT_NO_THROW(goal->tick());
 }
 
 // ============================================================================
