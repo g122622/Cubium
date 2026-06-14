@@ -15,7 +15,7 @@ src/client/resource/
 ├── TextureAtlasBuilder.hpp/cpp  # 纹理图集构建器，Skyline 算法打包
 ├── ItemTextureAtlas.hpp/cpp     # 物品纹理图集管理
 ├── DestroyStageTextures.hpp/cpp # 破坏阶段纹理（10个阶段）
-└── EntityTextureLoader.hpp/cpp  # 实体纹理加载器
+└── EntityTextureLoader.hpp/cpp  # 实体纹理加载器（含 Misc 类别实体如经验球的特殊加载路径）
 ```
 
 ## 内部模块关系
@@ -137,3 +137,7 @@ MC 1.12 使用 `textures/blocks/`，MC 1.13+ 使用 `textures/block/`。加载�
 ### 11. 缓存失效
 
 资源包变更后需调用 `BlockModelCache::rebuild()` 重建缓存，否则外观数据会过时。
+
+### 12. Misc 类别实体纹理加载
+
+`EntityClassification::Misc` 的实体（如经验球、投掷物）默认不加载纹理（`needsTexture(Misc)` 返回 `false`）。需要纹理的 Misc 实体必须加入 `SPECIAL_TEXTURE_PATHS` 映射，并在 `_loadMiscEntityTextures()` 中额外加载。经验球纹理 `experience_orb` 是 64×64 精灵图集，包含 4列×3行共 11 个 16×16 图标。

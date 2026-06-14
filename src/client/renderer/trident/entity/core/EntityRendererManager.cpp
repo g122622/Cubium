@@ -309,6 +309,9 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
 
         // 计算颜色动画（对齐 MC Java 版 ExperienceOrbRenderer.submit）
         // 颜色在绿色和黄色之间循环，半透明
+        // TODO: 当前使用 overlayColor 的 mix() 混合方式（color.rgb = mix(texColor, overlayColor.rgb,
+        // overlayColor.a)）， 与 MC 原版的顶点颜色乘法（texColor * vertexColor）有视觉差异。mix 模式下纹理细节与颜色
+        // 是线性插值关系，而 MC 的乘法模式是纹理颜色被动画色调调制。后续应改为顶点颜色乘法以完全对齐 MC。
         f64 time = static_cast<f64>(entity.ticksExisted()) + partialTicks;
         Vector4f orbColor = renderer::projectile::ExperienceOrbRenderer::calculateColor(time);
 

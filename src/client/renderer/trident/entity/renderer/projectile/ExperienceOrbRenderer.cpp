@@ -68,16 +68,8 @@ math::Vector4f ExperienceOrbRenderer::calculateColor(f64 time)
 
 void ExperienceOrbRenderer::calculateIconUV(i32 iconIndex, f64& u0, f64& v0, f64& u1, f64& v1)
 {
-    // 经验球纹理为 64x64 精灵图集，4列×3行布局，每个图标 16x16 像素
-    // 对齐 MC Java 版 ExperienceOrbRenderer.submit() 的 UV 计算
-    const f64 iconU = static_cast<f64>((iconIndex % ICONS_PER_ROW) * ICON_SIZE);
-    const f64 iconV = static_cast<f64>((iconIndex / ICONS_PER_ROW) * ICON_SIZE);
-    const f64 atlasSize = static_cast<f64>(ATLAS_SIZE);
-
-    u0 = iconU / atlasSize;
-    v0 = iconV / atlasSize;
-    u1 = (iconU + static_cast<f64>(ICON_SIZE)) / atlasSize;
-    v1 = (iconV + static_cast<f64>(ICON_SIZE)) / atlasSize;
+    // 委托给 ExperienceUtils 中的通用计算函数
+    mc::entity::experience::utils::calculateOrbIconUV(iconIndex, u0, v0, u1, v1);
 }
 
 } // namespace mc::client::renderer::entity::renderer::projectile

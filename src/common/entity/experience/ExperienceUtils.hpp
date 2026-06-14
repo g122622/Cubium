@@ -147,6 +147,38 @@ inline math::Vector4f calculateOrbColor(f64 time)
 }
 
 /**
+ * @brief 计算经验球精灵图集中图标的 UV 坐标
+ *
+ * 经验球纹理为 64x64 精灵图集，4列×3行布局，每个图标 16x16 像素。
+ * 图标索引由 getOrbSize(xpValue) 确定，范围 0-10。
+ *
+ * 对齐 MC Java 版 ExperienceOrbRenderer.submit() 的 UV 计算。
+ *
+ * @param iconIndex 图标索引 (0-10，由 getOrbSize 返回)
+ * @param[out] u0 UV 左边界
+ * @param[out] v0 UV 上边界
+ * @param[out] u1 UV 右边界
+ * @param[out] v1 UV 下边界
+ */
+inline void calculateOrbIconUV(i32 iconIndex, f64& u0, f64& v0, f64& u1, f64& v1)
+{
+    // 经验球纹理为 64x64 精灵图集，4列×3行布局，每个图标 16x16 像素
+    // 对齐 MC Java 版 ExperienceOrbRenderer.submit() 的 UV 计算
+    constexpr i32 ATLAS_SIZE = 64;
+    constexpr i32 ICON_SIZE = 16;
+    constexpr i32 ICONS_PER_ROW = 4;
+
+    const f64 iconU = static_cast<f64>((iconIndex % ICONS_PER_ROW) * ICON_SIZE);
+    const f64 iconV = static_cast<f64>((iconIndex / ICONS_PER_ROW) * ICON_SIZE);
+    const f64 atlasSize = static_cast<f64>(ATLAS_SIZE);
+
+    u0 = iconU / atlasSize;
+    v0 = iconV / atlasSize;
+    u1 = (iconU + static_cast<f64>(ICON_SIZE)) / atlasSize;
+    v1 = (iconV + static_cast<f64>(ICON_SIZE)) / atlasSize;
+}
+
+/**
  * @brief 生成随机矿石经验值
  *
  * @param rng 随机数生成器

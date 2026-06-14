@@ -207,6 +207,59 @@ TEST_F(ExperienceUtilsTest, CalculateOrbColor)
     EXPECT_GT(colorPi.x, 0.8f);
 }
 
+TEST_F(ExperienceUtilsTest, CalculateOrbIconUV)
+{
+    // 测试图标 UV 计算对齐 MC Java 版 ExperienceOrbRenderer.submit()
+    // 图集: 64x64, 4列×3行, 每个图标 16x16
+
+    // 边界值: iconIndex=0 (左上角)
+    mc::f64 u0, v0, u1, v1;
+    xp_utils::calculateOrbIconUV(0, u0, v0, u1, v1);
+    EXPECT_NEAR(u0, 0.0, 0.001);         // 列0, 起始U=0/64=0
+    EXPECT_NEAR(v0, 0.0, 0.001);         // 行0, 起始V=0/64=0
+    EXPECT_NEAR(u1, 16.0 / 64.0, 0.001); // 结束U=16/64=0.25
+    EXPECT_NEAR(v1, 16.0 / 64.0, 0.001); // 结束V=16/64=0.25
+
+    // iconIndex=1 (第0行第1列)
+    xp_utils::calculateOrbIconUV(1, u0, v0, u1, v1);
+    EXPECT_NEAR(u0, 16.0 / 64.0, 0.001); // 列1, 起始U=16/64=0.25
+    EXPECT_NEAR(v0, 0.0, 0.001);         // 行0
+    EXPECT_NEAR(u1, 32.0 / 64.0, 0.001); // 结束U=32/64=0.5
+    EXPECT_NEAR(v1, 16.0 / 64.0, 0.001); // 结束V=16/64=0.25
+
+    // iconIndex=4 (第1行第0列, 第二行开始)
+    xp_utils::calculateOrbIconUV(4, u0, v0, u1, v1);
+    EXPECT_NEAR(u0, 0.0, 0.001);         // 列0
+    EXPECT_NEAR(v0, 16.0 / 64.0, 0.001); // 行1, 起始V=16/64=0.25
+    EXPECT_NEAR(u1, 16.0 / 64.0, 0.001); // 结束U=16/64=0.25
+    EXPECT_NEAR(v1, 32.0 / 64.0, 0.001); // 结束V=32/64=0.5
+
+    // 边界值: iconIndex=10 (第2行第2列, 最后一个图标)
+    xp_utils::calculateOrbIconUV(10, u0, v0, u1, v1);
+    EXPECT_NEAR(u0, 32.0 / 64.0, 0.001); // 列2, 起始U=32/64=0.5
+    EXPECT_NEAR(v0, 32.0 / 64.0, 0.001); // 行2, 起始V=32/64=0.5
+    EXPECT_NEAR(u1, 48.0 / 64.0, 0.001); // 结束U=48/64=0.75
+    EXPECT_NEAR(v1, 48.0 / 64.0, 0.001); // 结束V=48/64=0.75
+
+    // 中间值: iconIndex=5 (第1行第1列)
+    xp_utils::calculateOrbIconUV(5, u0, v0, u1, v1);
+    EXPECT_NEAR(u0, 16.0 / 64.0, 0.001);
+    EXPECT_NEAR(v0, 16.0 / 64.0, 0.001);
+    EXPECT_NEAR(u1, 32.0 / 64.0, 0.001);
+    EXPECT_NEAR(v1, 32.0 / 64.0, 0.001);
+
+    // 验证所有图标的 UV 区域不超出图集范围
+    for (i32 i = 0; i <= 10; ++i) {
+        xp_utils::calculateOrbIconUV(i, u0, v0, u1, v1);
+        EXPECT_GE(u0, 0.0);
+        EXPECT_GE(v0, 0.0);
+        EXPECT_LE(u1, 1.0 + 0.001);
+        EXPECT_LE(v1, 1.0 + 0.001);
+        EXPECT_LT(u0, u1); // U 必须递增
+        EXPECT_LT(v0, v1); // V 必须递增
+    }
+}
+
 TEST_F(ExperienceUtilsTest, RandomOreExperience)
 {
     Random rng(12345); // 固定种子

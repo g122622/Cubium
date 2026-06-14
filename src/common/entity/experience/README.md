@@ -8,7 +8,7 @@
 experience/
 ├── ExperienceConstants.hpp    # 经验系统常量（经验球参数、分割表、矿石/生物经验掉落）
 ├── ExperienceManager.hpp/cpp  # 经验管理器（等级、进度、升级、附魔消耗）
-├── ExperienceUtils.hpp        # 经验工具函数（分割、颜色计算、死亡掉落）
+├── ExperienceUtils.hpp        # 经验工具函数（分割、颜色计算、图标UV、死亡掉落）
 └── README.md                  # 本文档
 ```
 
@@ -30,7 +30,7 @@ ExperienceConstants（常量）
 **职责划分：**
 - **ExperienceConstants**：定义经验球存活时间、追踪范围、拾取延迟、分割值表、矿石/生物经验掉落范围等常量
 - **ExperienceManager**：管理玩家经验状态（等级、进度、总经验），处理升级/降级、附魔消耗、死亡掉落计算
-- **ExperienceUtils**：提供经验分割、经验球大小/颜色计算、矿石/生物经验随机生成等工具函数
+- **ExperienceUtils**：提供经验分割、经验球大小/颜色计算、图标UV计算、矿石/生物经验随机生成等工具函数。颜色计算对齐 MC Java 版 `ExperienceOrbRenderer.submit()`：Red=(sin(t/2)+1)*0.5*255, Green=255, Blue=(sin(t/2+4π/3)+1)*0.1*255, Alpha=128
 
 ## 上下游外部依赖关系
 
@@ -41,6 +41,7 @@ ExperienceConstants（常量）
 - `common/sound/SoundEvents.hpp` - 音效事件常量
 - `common/util/math/random/Random.hpp` - 随机数生成器
 - `common/util/math/MathConstants.hpp` - 数学常量
+- `common/util/math/Vector4.hpp` - Vector4f 类型（颜色计算返回值）
 
 ### 依赖本模块的外部模块
 
@@ -50,7 +51,8 @@ ExperienceConstants（常量）
 - `entities/core/MobEntity.cpp` - 生物死亡时掉落经验
 - `server/world/drop/BlockDropHandler.cpp` - 方块掉落时生成经验
 - `world/storage/player/PlayerDataManager.cpp` - 玩家数据序列化/反序列化经验状态
-- `client/renderer/trident/entity/renderer/projectile/ExperienceOrbRenderer.cpp` - 经验球渲染使用颜色计算
+- `client/renderer/trident/entity/renderer/projectile/ExperienceOrbRenderer.cpp` - 经验球渲染使用颜色计算和图标UV
+- `client/renderer/trident/entity/core/EntityRendererManager.cpp` - 经验球管线渲染路径（颜色动画、图标UV重映射、网格更新）
 
 ## 容易踩的坑
 
@@ -90,6 +92,14 @@ ExperienceConstants（常量）
 ### 8. 同步状态
 
 `ExperienceManager` 维护 `m_dirty` 标志，经验变化后需要同步到客户端。使用 `isDirty()` 检查，同步后调用 `clearDirty()`。
+
+### 9. 经验球颜色动画
+
+`calculateOrbColor(f64 time)` 返回 `Vector4f`（RGBA 0.0-1.0），颜色在绿色和黄色之间循环。对齐 MC Java 版 `ExperienceOrbRenderer.submit()` 公式。注意：渲染管线中当前使用 `overlayColor` 的 `mix()` 混合，与 MC 原版顶点颜色乘法 `texColor * vertexColor` 有细微差异（TODO: 后续应改为顶点颜色乘法以完全对齐）。
+
+### 10. 经验球图标UV
+
+`ExperienceOrbRenderer::calculateIconUV(i32 iconIndex, ...)` 根据 XP 值对应的图标索引 (0-10) 计算精灵图集中的 UV 子区域。图集为 64×64 像素，4列×3行，每个图标 16×16 像素。XP 值变化（合并）时 `EntityRendererManager` 通过 `xpOrbIconIndex` 自动重建网格。
 
 ## 参考
 

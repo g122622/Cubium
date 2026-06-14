@@ -7,7 +7,7 @@
 ```
 projectile/
 ├── BillboardRenderers.hpp/cpp        # Billboard 渲染器基类及物品投掷物（雪球、鸡蛋、末影珍珠等）
-├── ExperienceOrbRenderer.hpp/cpp     # 经验球渲染器
+├── ExperienceOrbRenderer.hpp/cpp     # 经验球渲染器（颜色动画、图标UV、浮动动画）
 ├── FireballRenderers.hpp/cpp         # 火球渲染器（恶魂火球、烈焰人小火球）
 ├── FishingBobberRenderer.hpp/cpp     # 钓鱼浮标渲染器
 ├── ItemEntityRenderer.hpp/cpp        # 物品实体渲染器（掉落物）
@@ -65,13 +65,17 @@ FishingBobberRenderer：独立实现，使用 LINE_LIST 拓扑渲染浮标和钓
 
 1. **ItemEntityRenderer 需要设置纹理图集**：使用前必须调用 `setItemTextureAtlas()` 设置物品纹理图集，否则无法获取物品纹理
 
-2. **经验球光照是固定的**：`ExperienceOrbRenderer` 使用固定光照（blockLight=15, skyLight=15），不会受环境光照影响
+2. **经验球渲染由管线管理器接管**：`ExperienceOrbRenderer::render()` 当前为空操作，实际渲染逻辑（颜色动画、图标UV映射、浮动、缩放）由 `EntityRendererManager::renderWithPipeline()` 中的 ExperienceOrb 特殊路径处理。颜色动画通过 `overlayColor` 传入着色器（注意：当前使用 `mix()` 线性混合，与 MC 原版顶点颜色乘法 `texColor * vertexColor` 有差异，TODO: 后续应改为顶点颜色乘法以完全对齐 MC）
 
-3. **Billboard 渲染器的 fullbright 参数**：继承 `ItemBillboardRenderer` 时需注意 fullbright 参数，末影之眼、火球等发光实体需要 `fullbright=true`
+3. **经验球纹理为 64×64 精灵图集**：`experience_orb.png` 包含 4列×3行共 11 个 16×16 图标（索引 0-10），UV 映射由 `ExperienceOrbRenderer::calculateIconUV()` 根据 XP 值选择图标。XP 值变化（合并）时通过 `xpOrbIconIndex` 自动触发网格重建
 
-4. **FishingBobberRenderer 使用 LINE_LIST 拓扑**：与其他渲染器不同，钓线使用线段而非三角形渲染，需注意管线配置
+4. **经验球光照是固定的**：`ExperienceOrbRenderer` 使用固定光照（blockLight ≥ 7），不会受环境光照影响
 
-5. **ItemEntity 动画参数是硬编码的**：浮动周期 `/10`、旋转周期 `/20`、基础偏移 `0.25` 等常量在 ItemEntityRenderer 中定义，修改需同步 MC 原版
+5. **Billboard 渲染器的 fullbright 参数**：继承 `ItemBillboardRenderer` 时需注意 fullbright 参数，末影之眼、火球等发光实体需要 `fullbright=true`
+
+6. **FishingBobberRenderer 使用 LINE_LIST 拓扑**：与其他渲染器不同，钓线使用线段而非三角形渲染，需注意管线配置
+
+7. **ItemEntity 动画参数是硬编码的**：浮动周期 `/10`、旋转周期 `/20`、基础偏移 `0.25` 等常量在 ItemEntityRenderer 中定义，修改需同步 MC 原版
 
 ## 参考
 
