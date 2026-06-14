@@ -516,6 +516,7 @@ add_executable(mc_tests
     server/command/EnchantCommandTest.cpp
     server/command/SpawnPointCommandTest.cpp
     server/command/PublishCommandTest.cpp
+    server/command/StopSoundCommandTest.cpp
     server/command/ExecuteCommandTest.cpp
     server/world/player/ServerPlayerEntityManagerTest.cpp
     client/world/player/LocalPlayerIdentityTest.cpp
@@ -1637,6 +1638,7 @@ add_executable(mc_command_tests
     server/command/CommandStorageTest.cpp
     server/command/EntityDataAccessorEffectTest.cpp
     server/command/PlayerResolverTest.cpp
+    server/command/StopSoundCommandTest.cpp
     server/command/TeamCommandTest.cpp
     server/command/TriggerCommandTest.cpp
     common/command/arguments/BlockStateArgumentTest.cpp
