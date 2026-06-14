@@ -31,6 +31,12 @@
 #endif
 #include <stb_image.h>
 
+// 只在stb_image_write.h未被包含时定义实现
+#ifndef STB_IMAGE_WRITE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#endif
+#include <stb_image_write.h>
+
 #include <algorithm>
 #include <cstring>
 #include <limits>

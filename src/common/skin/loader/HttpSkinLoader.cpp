@@ -22,8 +22,7 @@
  */
 
 #include "HttpSkinLoader.hpp"
-#include <iomanip>
-#include <sstream>
+#include "common/util/crypto/Sha1.hpp"
 #include <spdlog/spdlog.h>
 
 // 注意：实际 HTTP 实现需要依赖 curl 或 asio
@@ -175,18 +174,9 @@ Result<std::vector<u8>> HttpSkinLoader::_validateAndConvertSkin(const std::vecto
 
 std::string HttpSkinLoader::_calculateHash(const std::vector<u8>& data)
 {
-    // 简化的哈希计算
-    u64 hash = 0xcbf29ce484222325ULL;
-    constexpr u64 prime = 0x100000001b3ULL;
-
-    for (u8 byte : data) {
-        hash ^= byte;
-        hash *= prime;
-    }
-
-    std::ostringstream oss;
-    oss << std::hex << std::setfill('0') << std::setw(16) << hash;
-    return oss.str();
+    // 使用 SHA-1 哈希算法计算缓存键
+    auto digest = util::crypto::Sha1::hash(std::span<const u8>(data.data(), data.size()));
+    return util::crypto::Sha1::toHexString(digest);
 }
 
 } // namespace mc::skin

@@ -22,13 +22,15 @@
  */
 
 #include "FileSkinLoader.hpp"
+#include "common/util/crypto/Sha1.hpp"
 #include <fstream>
-#include <iomanip>
-#include <sstream>
 #include <spdlog/spdlog.h>
 
 // stb_image for PNG loading
 #include <stb_image.h>
+
+// stb_image_write for PNG encoding
+#include <stb_image_write.h>
 
 namespace mc::skin {
 
@@ -217,35 +219,42 @@ Result<std::vector<u8>> FileSkinLoader::_validateAndConvertSkin(const std::vecto
 
     stbi_image_free(pixels);
 
-    // TODO: 使用 stb_image_write 将 RGBA 数据编码为 PNG 格式
-    // 当前简化处理，直接返回 RGBA 数据，假设调用者会处理原始 RGBA 数据
+    // 使用 stb_image_write 将 RGBA 数据编码为 PNG 格式
+    // 使用内存写入模式，避免临时文件
+    struct PngWriteContext {
+        std::vector<u8> buffer;
+    };
+
+    PngWriteContext ctx;
+    stbi_write_png_to_func(
+        [](void* userdata, void* data, int size) {
+            auto* context = static_cast<PngWriteContext*>(userdata);
+            auto* bytes = static_cast<u8*>(data);
+            context->buffer.insert(context->buffer.end(), bytes, bytes + size);
+        },
+        &ctx,
+        64,     // width
+        height, // height
+        4,      // components (RGBA)
+        result.data(),
+        64 * 4 // stride
+    );
+
+    if (ctx.buffer.empty()) {
+        return Error(ErrorCode::InvalidData, "Failed to encode skin data to PNG");
+    }
+
+    // 用编码后的 PNG 数据替换原始 RGBA 数据
+    result = std::move(ctx.buffer);
 
     return result;
 }
 
 std::string FileSkinLoader::_calculateHash(const std::vector<u8>& data)
 {
-    // TODO: 实现真正的 SHA1 哈希计算
-    // 当前使用 FNV-1a 哈希作为临时方案
-    u64 hash = 0xcbf29ce484222325ULL;       // FNV offset basis
-    constexpr u64 prime = 0x100000001b3ULL; // FNV prime
-
-    for (u8 byte : data) {
-        hash ^= byte;
-        hash *= prime;
-    }
-
-    // 转换为十六进制字符串
-    std::ostringstream oss;
-    oss << std::hex << std::setfill('0');
-    for (int i = 0; i < 16; ++i) {
-        oss << std::setw(2) << static_cast<int>((hash >> (i * 4)) & 0xF);
-        if (i == 3 || i == 5 || i == 7 || i == 9) {
-            // UUID 格式
-        }
-    }
-
-    return oss.str();
+    // 使用 SHA-1 哈希算法计算缓存键
+    auto digest = util::crypto::Sha1::hash(std::span<const u8>(data.data(), data.size()));
+    return util::crypto::Sha1::toHexString(digest);
 }
 
 } // namespace mc::skin
