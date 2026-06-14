@@ -143,7 +143,9 @@ private:
  * 所有可交易NPC的基类（村民、流浪商人）。
  * 实现 INamedContainerProvider 接口，支持旁观者模式玩家与村民交互。
  */
-class AbstractVillagerEntity : public AgeableEntity, public INamedContainerProvider {
+class AbstractVillagerEntity : public AgeableEntity,
+                               public INamedContainerProvider,
+                               public world::village::trade::IMerchant {
 public:
     AbstractVillagerEntity(EntityId id);
     ~AbstractVillagerEntity() override = default;
@@ -157,12 +159,11 @@ public:
     /**
      * @brief 创建交易菜单
      *
-     * 当玩家（包括旁观者）与村民交互时调用。
-     * 创建村民交易界面的容器菜单。
+     * 当玩家与村民交互时调用，创建村民交易界面的容器菜单。
      *
      * @param containerId 容器ID（由服务端分配）
      * @param player 打开容器的玩家
-     * @return 创建的容器菜单，目前返回 nullptr（待实现交易界面）
+     * @return 创建的容器菜单
      */
     [[nodiscard]] std::unique_ptr<AbstractContainerMenu> createMenu(i32 containerId, Player& player) override;
 
@@ -179,63 +180,14 @@ public:
     // ========== 交易系统 ==========
 
     /**
-     * @brief 获取交易列表
-     */
-    [[nodiscard]] MerchantOffers* getOffers() { return m_offers.get(); }
-    [[nodiscard]] const MerchantOffers* getOffers() const { return m_offers.get(); }
-
-    /**
-     * @brief 设置交易列表
-     */
-    void setOffers(std::unique_ptr<MerchantOffers> offers);
-
-    /**
      * @brief 是否有交易
      */
-    [[nodiscard]] bool hasOffers() const { return m_offers != nullptr; }
+    [[nodiscard]] bool hasOffers() const override { return m_offers != nullptr; }
 
     /**
      * @brief 更新交易列表
      */
     virtual void updateOffers();
-
-    /**
-     * @brief 与玩家开始交易
-     * @param player 玩家
-     */
-    virtual void startTrading(Player* player);
-
-    /**
-     * @brief 结束交易
-     */
-    virtual void stopTrading();
-
-    /**
-     * @brief 获取当前交易对象
-     */
-    [[nodiscard]] Player* tradingPlayer() const { return m_tradingPlayer; }
-
-    /**
-     * @brief 是否正在交易
-     */
-    [[nodiscard]] bool isTrading() const { return m_tradingPlayer != nullptr; }
-
-    // ========== 经验和等级 ==========
-
-    /**
-     * @brief 获取经验值
-     */
-    [[nodiscard]] i32 experience() const { return m_experience; }
-
-    /**
-     * @brief 设置经验值
-     */
-    void setExperience(i32 exp) { m_experience = exp; }
-
-    /**
-     * @brief 增加经验值
-     */
-    void addExperience(i32 amount);
 
     /**
      * @brief 获取交易等级（子类实现）
@@ -274,6 +226,122 @@ public:
      * @brief 重置繁殖意愿
      */
     void resetBreedWillingness();
+
+    // ========== IMerchant 接口实现 ==========
+
+    /**
+     * @brief 获取交易列表（IMerchant 接口）
+     */
+    [[nodiscard]] MerchantOffers& getOffers() override;
+    [[nodiscard]] const MerchantOffers& getOffers() const override;
+
+    /**
+     * @brief 设置交易列表（IMerchant 接口）
+     */
+    void setOffers(MerchantOffers offers) override;
+
+    /**
+     * @brief 获取当前交易对象（IMerchant 接口）
+     */
+    [[nodiscard]] Player* getTradingPlayer() const override { return m_tradingPlayer; }
+
+    /**
+     * @brief 开始交易（IMerchant 接口）
+     */
+    void startTrading(Player* player) override;
+
+    /**
+     * @brief 结束交易（IMerchant 接口）
+     */
+    void stopTrading() override;
+
+    /**
+     * @brief 是否正在交易（IMerchant 接口）
+     */
+    [[nodiscard]] bool isTrading() const override { return m_tradingPlayer != nullptr; }
+
+    /**
+     * @brief 获取经验值（IMerchant 接口）
+     */
+    [[nodiscard]] i32 getExperience() const override { return m_experience; }
+
+    /**
+     * @brief 设置经验值（IMerchant 接口）
+     */
+    void setExperience(i32 exp) override { m_experience = exp; }
+
+    /**
+     * @brief 增加经验值（IMerchant 接口）
+     */
+    void addExperience(i32 amount) override;
+
+    /**
+     * @brief 补货（IMerchant 接口）
+     */
+    void restock() override;
+
+    /**
+     * @brief 通知交易执行（IMerchant 接口）
+     */
+    void notifyTrade(MerchantOffer& offer) override;
+
+    /**
+     * @brief 通知交易更新（IMerchant 接口）
+     */
+    void notifyTradeUpdated(const ItemStack& resultStack) override;
+
+    /**
+     * @brief 覆盖交易列表（IMerchant 接口，用于客户端同步）
+     */
+    void overrideOffers(MerchantOffers offers) override;
+
+    /**
+     * @brief 获取村民经验值（IMerchant 接口）
+     */
+    [[nodiscard]] i32 getVillagerXp() const override { return m_experience; }
+
+    /**
+     * @brief 覆盖经验值（IMerchant 接口）
+     */
+    void overrideXp(i32 xp) override { m_experience = xp; }
+
+    /**
+     * @brief 是否显示经验进度条（IMerchant 接口）
+     */
+    [[nodiscard]] bool showProgressBar() const override { return true; }
+
+    /**
+     * @brief 是否可以补货（IMerchant 接口）
+     */
+    [[nodiscard]] bool canRestock() const override { return true; }
+
+    /**
+     * @brief 是否在客户端（IMerchant 接口）
+     */
+    [[nodiscard]] bool isClientSide() const override;
+
+    /**
+     * @brief 检查商人是否仍可被指定玩家交易（IMerchant 接口）
+     */
+    [[nodiscard]] bool stillValid(const Player& player) const override;
+
+    /**
+     * @brief 获取商人对应的实体（IMerchant 接口）
+     */
+    [[nodiscard]] Entity* asEntity() override { return this; }
+    [[nodiscard]] const Entity* asEntity() const override { return this; }
+
+    /**
+     * @brief 通知交易执行后的经验奖励（子类实现）
+     * @param offer 已执行的交易
+     */
+    virtual void rewardTradeXp(MerchantOffer& offer) = 0;
+
+    /**
+     * @brief 播放交易音效（确认/否定）
+     * @param success 是否交易成功（true=确认音效，false=否定音效）
+     */
+    void playTradeSound(bool success);
 
 protected:
     // 交易列表

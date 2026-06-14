@@ -24,6 +24,9 @@
 #include "AbstractVillagerEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
+#include "common/entity/inventory/container/MerchantContainerMenu.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/world/IWorld.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -99,25 +102,9 @@ void AbstractVillagerEntity::tick()
     }
 }
 
-void AbstractVillagerEntity::setOffers(std::unique_ptr<MerchantOffers> offers)
-{
-    m_offers = std::move(offers);
-}
-
 void AbstractVillagerEntity::updateOffers()
 {
     // 子类实现
-}
-
-void AbstractVillagerEntity::startTrading(Player* player)
-{
-    m_tradingPlayer = player;
-    // TODO: 打开交易界面
-}
-
-void AbstractVillagerEntity::stopTrading()
-{
-    m_tradingPlayer = nullptr;
 }
 
 // ============================================================================
@@ -126,11 +113,14 @@ void AbstractVillagerEntity::stopTrading()
 
 std::unique_ptr<AbstractContainerMenu> AbstractVillagerEntity::createMenu(i32 containerId, Player& player)
 {
-    // TODO: 创建村民交易菜单
-    // 需要实现 MerchantContainer 类
-    (void)containerId;
-    (void)player;
-    return nullptr;
+    auto menu = std::make_unique<MerchantContainerMenu>(containerId, &player.inventory(), *this);
+
+    // 设置交易界面的属性
+    menu->setMerchantLevel(getTradingLevel());
+    menu->setShowProgressBar(showProgressBar());
+    menu->setCanRestock(canRestock());
+
+    return menu;
 }
 
 std::string AbstractVillagerEntity::getDisplayName() const
@@ -143,9 +133,98 @@ std::string AbstractVillagerEntity::getDisplayName() const
     return "Villager";
 }
 
+// ============================================================================
+// IMerchant 接口实现
+// ============================================================================
+
+MerchantOffers& AbstractVillagerEntity::getOffers()
+{
+    if (!m_offers) {
+        m_offers = std::make_unique<MerchantOffers>();
+        updateOffers();
+    }
+    return *m_offers;
+}
+
+const MerchantOffers& AbstractVillagerEntity::getOffers() const
+{
+    // 注意：const 版本不会懒加载，调用方应确保 offers 已存在
+    MC_ASSERT_RELEASE(m_offers != nullptr);
+    return *m_offers;
+}
+
+void AbstractVillagerEntity::setOffers(MerchantOffers offers)
+{
+    m_offers = std::make_unique<MerchantOffers>(std::move(offers));
+}
+
+void AbstractVillagerEntity::startTrading(Player* player)
+{
+    m_tradingPlayer = player;
+}
+
+void AbstractVillagerEntity::stopTrading()
+{
+    m_tradingPlayer = nullptr;
+}
+
 void AbstractVillagerEntity::addExperience(i32 amount)
 {
     m_experience += amount;
+}
+
+void AbstractVillagerEntity::restock()
+{
+    if (m_offers) {
+        m_offers->restockAll();
+    }
+}
+
+void AbstractVillagerEntity::notifyTrade(MerchantOffer& offer)
+{
+    // 增加使用次数
+    offer.increaseUses();
+
+    // 重置环境音效计时器（村民发出"成交"音效）
+    m_livingSoundTime = -getTalkInterval();
+
+    // 给予交易经验奖励
+    rewardTradeXp(offer);
+
+    // TODO: 触发交易成就/进度 VillagerTradeTrigger
+}
+
+void AbstractVillagerEntity::notifyTradeUpdated(const ItemStack& resultStack)
+{
+    // 在非客户端环境下，当交易输入变化时播放确认/否定音效
+    if (!isClientSide()) {
+        // 只有距离上次环境音效超过20 tick时才播放，避免频繁播放
+        if (m_livingSoundTime > -getTalkInterval() + 20) {
+            m_livingSoundTime = -getTalkInterval();
+
+            if (!resultStack.isEmpty()) {
+                playTradeSound(true);
+            } else {
+                playTradeSound(false);
+            }
+        }
+    }
+}
+
+void AbstractVillagerEntity::overrideOffers(MerchantOffers offers)
+{
+    m_offers = std::make_unique<MerchantOffers>(std::move(offers));
+}
+
+bool AbstractVillagerEntity::isClientSide() const
+{
+    return m_world != nullptr && m_world->isClientSide();
+}
+
+bool AbstractVillagerEntity::stillValid(const Player& player) const
+{
+    // 检查：当前交易玩家是指定玩家，且村民存活
+    return m_tradingPlayer == &player && isAlive();
 }
 
 f32 AbstractVillagerEntity::experienceProgress() const
@@ -176,6 +255,12 @@ void AbstractVillagerEntity::resetBreedWillingness()
 {
     // 繁殖后重置繁殖意愿
     m_willingToBreed = false;
+}
+
+void AbstractVillagerEntity::playTradeSound(bool success)
+{
+    const auto& soundId = success ? SoundEvents::ENTITY_VILLAGER_YES : SoundEvents::ENTITY_VILLAGER_NO;
+    playSound(soundId, 1.0f, 1.0f);
 }
 
 } // namespace entity

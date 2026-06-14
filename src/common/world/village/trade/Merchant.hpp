@@ -37,6 +37,7 @@ struct compound_tag;
 
 // 前向声明
 class Player;
+class Entity;
 class ItemStack;
 
 namespace world {
@@ -79,6 +80,15 @@ public:
     [[nodiscard]] bool empty() const noexcept { return m_offers.empty(); }
 
     /**
+     * @brief 根据支付物品查找匹配的交易
+     * @param buyA 第一个支付物品
+     * @param buyB 第二个支付物品（可选）
+     * @param hint 选中的交易索引提示（-1表示无提示）
+     * @return 匹配的交易指针，未找到返回nullptr
+     */
+    [[nodiscard]] MerchantOffer* getOfferFor(const ItemStack& buyA, const ItemStack& buyB, i32 hint = -1);
+
+    /**
      * @brief 补货所有交易
      */
     void restockAll();
@@ -108,13 +118,18 @@ public:
     /**
      * @brief 获取交易列表
      */
-    [[nodiscard]] virtual MerchantOffers* getOffers() = 0;
-    [[nodiscard]] virtual const MerchantOffers* getOffers() const = 0;
+    [[nodiscard]] virtual MerchantOffers& getOffers() = 0;
+    [[nodiscard]] virtual const MerchantOffers& getOffers() const = 0;
 
     /**
-     * @brief 设置交易列表
+     * @brief 设置交易列表（移动语义）
      */
-    virtual void setOffers(std::unique_ptr<MerchantOffers> offers) = 0;
+    virtual void setOffers(MerchantOffers offers) = 0;
+
+    /**
+     * @brief 覆盖交易列表（用于客户端同步）
+     */
+    virtual void overrideOffers(MerchantOffers offers) = 0;
 
     /**
      * @brief 是否有交易
@@ -160,6 +175,61 @@ public:
      * @brief 补货
      */
     virtual void restock() = 0;
+
+    /**
+     * @brief 通知交易执行
+     * @param offer 已执行的交易
+     *
+     * 当交易成功执行时调用，用于增加使用次数、播放音效、奖励经验等。
+     */
+    virtual void notifyTrade(MerchantOffer& offer) = 0;
+
+    /**
+     * @brief 通知交易更新（支付槽物品变化时）
+     * @param resultStack 结果槽物品
+     *
+     * 当交易输入变化时调用，用于播放确认/否定音效。
+     */
+    virtual void notifyTradeUpdated(const ItemStack& resultStack) = 0;
+
+    /**
+     * @brief 获取村民经验值（用于交易界面显示）
+     */
+    [[nodiscard]] virtual i32 getVillagerXp() const = 0;
+
+    /**
+     * @brief 覆盖经验值（用于客户端同步）
+     */
+    virtual void overrideXp(i32 xp) = 0;
+
+    /**
+     * @brief 是否显示经验进度条
+     */
+    [[nodiscard]] virtual bool showProgressBar() const = 0;
+
+    /**
+     * @brief 是否可以补货
+     */
+    [[nodiscard]] virtual bool canRestock() const = 0;
+
+    /**
+     * @brief 是否在客户端
+     */
+    [[nodiscard]] virtual bool isClientSide() const = 0;
+
+    /**
+     * @brief 检查商人是否仍可被指定玩家交易
+     * @param player 玩家
+     * @return 如果可以交易返回true
+     */
+    [[nodiscard]] virtual bool stillValid(const Player& player) const = 0;
+
+    /**
+     * @brief 获取商人对应的实体（用于播放音效等）
+     * @return 实体指针，如果不适用返回nullptr
+     */
+    [[nodiscard]] virtual Entity* asEntity() = 0;
+    [[nodiscard]] virtual const Entity* asEntity() const = 0;
 };
 
 } // namespace trade

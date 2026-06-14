@@ -150,6 +150,13 @@ public:
      */
     [[nodiscard]] i32 getTradingLevel() const override { return m_villagerData.level(); }
 
+    /**
+     * @brief 交易经验奖励（重写）
+     *
+     * 交易成功后给予村民经验，并可能生成经验球。
+     */
+    void rewardTradeXp(MerchantOffer& offer) override;
+
     // ========== 工作 ==========
 
     /**
@@ -427,6 +434,11 @@ public:
      * @brief 生成贸易羊驼
      */
     void spawnLlamas();
+
+    /**
+     * @brief 交易经验奖励（流浪商人不给予经验）
+     */
+    void rewardTradeXp(MerchantOffer& offer) override { (void)offer; }
 
 protected:
     void registerGoals() override;

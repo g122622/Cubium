@@ -153,7 +153,7 @@ bool LookAtCustomerGoal::shouldExecute()
     // 检查是否有交易中的玩家
     auto* villager = dynamic_cast<AbstractVillagerEntity*>(m_mob);
     if (villager != nullptr && villager->isTrading()) {
-        m_customer = villager->tradingPlayer();
+        m_customer = villager->getTradingPlayer();
         return m_customer != nullptr && m_customer->isAlive();
     }
 
@@ -232,7 +232,7 @@ bool TradeWithPlayerGoal::shouldExecute()
     }
 
     // 检查是否有交易中的玩家
-    Player* customer = villager->tradingPlayer();
+    Player* customer = villager->getTradingPlayer();
     if (customer != nullptr && customer->isAlive()) {
         m_customer = customer;
         return true;

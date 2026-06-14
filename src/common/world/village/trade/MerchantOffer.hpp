@@ -114,6 +114,22 @@ public:
      */
     void restock();
 
+    /**
+     * @brief 尝试从支付物品中扣除交易所需数量
+     * @param buyA 第一个支付物品（会被修改）
+     * @param buyB 第二个支付物品（会被修改）
+     * @return 是否成功扣除
+     *
+     * 检查提供的物品是否满足交易条件，如果满足则扣除相应数量。
+     */
+    bool take(ItemStack& buyA, ItemStack& buyB);
+
+    /**
+     * @brief 获取交易结果的拷贝
+     * @return 卖出物品的拷贝
+     */
+    [[nodiscard]] ItemStack assemble() const { return m_sell.copy(); }
+
     // ========== 状态查询 ==========
 
     /**
@@ -223,6 +239,11 @@ public:
      */
     void resetDailyRestock() noexcept { m_restocksToday = 0; }
 
+    /**
+     * @brief 是否应该奖励经验球
+     */
+    [[nodiscard]] bool shouldRewardExp() const noexcept { return m_rewardExp; }
+
     // ========== 序列化 ==========
 
     /**
@@ -268,6 +289,9 @@ private:
 
     /// 上次补货的游戏时间
     i64 m_lastRestockTime = 0;
+
+    /// 是否奖励经验球（默认true）
+    bool m_rewardExp = true;
 };
 
 } // namespace trade

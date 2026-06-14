@@ -526,6 +526,19 @@ void VillagerEntity::updateOffers()
     );
 }
 
+void VillagerEntity::rewardTradeXp(MerchantOffer& offer)
+{
+    // 增加村民经验
+    addVillagerExperience(offer.getXp());
+
+    // TODO: 生成经验球实体
+    // int xpOrbCount = 3 + getRandom().nextInt(4);
+    // if (shouldIncreaseLevel()) { xpOrbCount += 5; }
+    // if (offer.shouldRewardExp()) {
+    //     world->spawnEntity(new ExperienceOrbEntity(x, y + 0.5, z, xpOrbCount));
+    // }
+}
+
 // ============================================================================
 // WanderingTraderEntity
 // ============================================================================

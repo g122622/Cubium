@@ -182,6 +182,24 @@ void MerchantOffer::restock()
     ++m_restocksToday;
 }
 
+bool MerchantOffer::take(ItemStack& buyA, ItemStack& buyB)
+{
+    // 检查是否满足交易条件
+    if (!canAccept(buyA, buyB)) {
+        return false;
+    }
+
+    // 扣除第一物品
+    buyA.shrink(getAdjustedBuyPrice());
+
+    // 扣除第二物品（如果有）
+    if (m_buyB.has_value() && !buyB.isEmpty()) {
+        buyB.shrink(m_buyB->getCount());
+    }
+
+    return true;
+}
+
 bool MerchantOffer::isDisabled() const
 {
     return isOutOfStock() && m_restocksToday >= 2; // 每天最多补货2次
