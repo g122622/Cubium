@@ -23,11 +23,17 @@
 
 #include "SquidGoals.hpp"
 
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/water/SquidEntity.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -142,46 +148,68 @@ void SquidFleeGoal::tick()
     f64 dy = m_squid->y() - m_fleeTarget->y();
     f64 dz = m_squid->z() - m_fleeTarget->z();
 
-    // 计算到敌人的距离
-    f64 distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+    // 检查逃跑目标位置的方块和流体状态
+    // 只有当目标位置是水或空气时，鱿鱼才会向该方向逃跑
+    IWorld* world = m_squid->world();
+    if (world != nullptr) {
+        BlockPos targetPos(Vector3(static_cast<f32>(m_squid->x() + dx),
+            static_cast<f32>(m_squid->y() + dy),
+            static_cast<f32>(m_squid->z() + dz)));
 
-    // TODO: 检查目标位置是否是水或空气，当前为简化实现
-    // 需要检查 FluidTags.WATER 和 BlockState.isAir()
-    // 当前简化处理：假设鱿鱼只会在水中逃跑
-    bool targetIsAir = (dy > 0) && (!m_squid->isInWater());
+        const fluid::FluidState* fluidState = world->getFluidState(targetPos);
+        const BlockState* blockState = world->getBlockState(targetPos);
 
-    if (distance > 0.0) {
-        // 归一化方向向量
-        dx /= distance;
-        dy /= distance;
-        dz /= distance;
+        bool isWater =
+            fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+        bool isAir = blockState == nullptr || blockState->isAir();
 
-        // 根据距离调整速度
-        f32 speed = BASE_FLEE_SPEED;
-        if (distance > DISTANCE_THRESHOLD) {
-            // 距离越远，速度越慢
-            speed = static_cast<f32>(static_cast<f64>(speed) - (distance - DISTANCE_THRESHOLD) / DISTANCE_THRESHOLD);
+        if (!isWater && !isAir) {
+            // 目标位置既不是水也不是空气，不设置移动向量
+            return;
         }
 
-        if (speed > 0.0f) {
-            dx *= speed;
-            dy *= speed;
-            dz *= speed;
-        }
+        f64 distance = std::sqrt(dx * dx + dy * dy + dz * dz);
 
-        // 如果目标是空气，移除 Y 分量避免跳出水面
-        if (targetIsAir) {
-            dy = 0.0;
-        }
+        if (distance > 0.0) {
+            // 归一化方向向量
+            dx /= distance;
+            dy /= distance;
+            dz /= distance;
 
-        // 设置移动向量（除以 20 转换为每 tick 速度）
-        m_squid->setMovementVector(
-            static_cast<f32>(dx) / SPEED_SCALE, static_cast<f32>(dy) / SPEED_SCALE, static_cast<f32>(dz) / SPEED_SCALE);
+            // 根据距离调整速度
+            f32 speed = BASE_FLEE_SPEED;
+            if (distance > DISTANCE_THRESHOLD) {
+                speed =
+                    static_cast<f32>(static_cast<f64>(speed) - (distance - DISTANCE_THRESHOLD) / DISTANCE_THRESHOLD);
+            }
+
+            if (speed > 0.0f) {
+                dx *= speed;
+                dy *= speed;
+                dz *= speed;
+            }
+
+            // 如果目标是空气，移除 Y 分量避免跳出水面
+            if (isAir) {
+                dy = 0.0;
+            }
+
+            // 设置移动向量（除以 20 转换为每 tick 速度）
+            m_squid->setMovementVector(static_cast<f32>(dx) / SPEED_SCALE,
+                static_cast<f32>(dy) / SPEED_SCALE,
+                static_cast<f32>(dz) / SPEED_SCALE);
+        }
     }
 
-    // TODO: 每 10 tick 的第 5 tick 产生气泡粒子
-    // 需要实现: world.addParticle(ParticleTypes.BUBBLE, ...)
-    // 粒子效果在客户端产生，服务端需要发送粒子数据包
+    // 每 10 tick 的第 5 tick 产生气泡粒子
+    if (m_tickCounter % BUBBLE_INTERVAL == BUBBLE_OFFSET) {
+        IWorld* worldPtr = m_squid->world();
+        if (worldPtr != nullptr) {
+            using namespace client::renderer::trident::particle;
+            worldPtr->addParticle(
+                ParticleTypeId::Bubble, Vector3(m_squid->x(), m_squid->y(), m_squid->z()), Vector3(0.0f, 0.0f, 0.0f));
+        }
+    }
 }
 
 } // namespace mc::entity::ai::goal
