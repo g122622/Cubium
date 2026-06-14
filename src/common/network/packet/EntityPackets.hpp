@@ -468,6 +468,12 @@ public:
         // 实体特定状态
         EatBlock = 10, // 吃草/方块动画（羊、 TNT 矿车引燃）
 
+        // 村民状态
+        VillagerHeart = 12,  // 村民爱心粒子（繁殖中/幼年村民出生）
+        VillagerAngry = 13,  // 村民愤怒粒子（无床位/被攻击）
+        VillagerHappy = 14,  // 村民开心粒子（交易成功/获取职业/找到床位/找到集会点）
+        VillagerSplash = 42, // 村民水花粒子（突袭中恐慌）
+
         // 动物状态
         LoveHeart = 18, // 繁殖爱心效果
 

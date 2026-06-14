@@ -26,6 +26,7 @@
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
@@ -114,6 +115,14 @@ void VillagerBreedGoal::tick()
     if (!partner || !partner->isAlive()) {
         m_partnerId = 0;
         return;
+    }
+
+    // MC原版 VillagerMakeLove.tick: 繁殖过程中双方每隔约35tick随机显示爱心粒子
+    if (m_villager->world() != nullptr && m_villager->getRandom().nextInt(35) == 0) {
+        m_villager->world()->broadcastEntityStatus(
+            m_villager->id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerHeart));
+        m_villager->world()->broadcastEntityStatus(
+            partner->id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerHeart));
     }
 
     // 检查距离，足够接近时繁殖
@@ -230,7 +239,12 @@ void VillagerBreedGoal::_spawnChild()
     auto child = m_villager->createChild();
     if (child && m_villager->world()) {
         child->setPosition(m_villager->x(), m_villager->y(), m_villager->z());
+        EntityId childId = child->id();
         m_villager->world()->spawnEntity(std::move(child));
+
+        // MC原版 VillagerMakeLove.breed: 幼年村民出生后对其广播爱心粒子 (byte)12
+        m_villager->world()->broadcastEntityStatus(
+            childId, static_cast<u8>(network::EntityStatusPacket::Status::VillagerHeart));
     }
 
     // 重置

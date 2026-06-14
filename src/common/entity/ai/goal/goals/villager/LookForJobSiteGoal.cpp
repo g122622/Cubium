@@ -26,6 +26,7 @@
 #include "VillagerGoalUtils.hpp"
 #include "common/entity/ai/goal/GoalConstants.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/world/IWorld.hpp"
 
 namespace mc {
@@ -98,6 +99,13 @@ void LookForJobSiteGoal::tick()
         if (isWithinDistance(m_villager, pos, 2.0f)) {
             // 绑定工作站点
             m_villager->setWorkStation(pos);
+
+            // MC原版 AssignProfessionFromJobSite：绑定工作站后播放开心村民粒子
+            if (m_villager->world() != nullptr) {
+                m_villager->world()->broadcastEntityStatus(
+                    m_villager->id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerHappy));
+            }
+
             m_targetSite = std::nullopt;
         }
     }

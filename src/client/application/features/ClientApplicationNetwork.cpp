@@ -973,6 +973,89 @@ void ClientApplication::setupNetworkCallbacks()
                 }
                 break;
             }
+            case static_cast<u8>(EntityStatusPacket::Status::VillagerHeart): {
+                // 状态 12: 村民爱心粒子（繁殖中/幼年村民出生）
+                // MC原版 addParticlesAroundSelf: 5个粒子，随机分布在实体周围，速度为高斯分布*0.02
+                if (m_world.particleManager() != nullptr) {
+                    for (i32 i = 0; i < 5; ++i) {
+                        // getRandomX(1.0) = x + (random - 0.5) * width * 2.0, getRandomY() + 1.0 = y + random * height
+                        // + 1.0, getRandomZ(1.0) = z + (random - 0.5) * width * 2.0
+                        f32 rx = (m_random.nextFloat() - 0.5f) * 2.0f; // [-1, 1]
+                        f32 ry = m_random.nextFloat();                 // [0, 1)
+                        f32 rz = (m_random.nextFloat() - 0.5f) * 2.0f; // [-1, 1]
+                        glm::vec3 particlePos = entityPos + glm::vec3(rx * 0.3f, ry + 1.0f, rz * 0.3f);
+                        glm::vec3 velocity(m_random.nextGaussian(0.0f, 0.02f),
+                            m_random.nextGaussian(0.0f, 0.02f),
+                            m_random.nextGaussian(0.0f, 0.02f));
+                        m_world.particleManager()->addPendingParticle(
+                            client::renderer::trident::particle::ParticleTypeId::Heart,
+                            particlePos,
+                            velocity,
+                            &m_world);
+                    }
+                }
+                break;
+            }
+            case static_cast<u8>(EntityStatusPacket::Status::VillagerAngry): {
+                // 状态 13: 村民愤怒粒子（无床位/被攻击）
+                if (m_world.particleManager() != nullptr) {
+                    for (i32 i = 0; i < 5; ++i) {
+                        f32 rx = (m_random.nextFloat() - 0.5f) * 2.0f;
+                        f32 ry = m_random.nextFloat();
+                        f32 rz = (m_random.nextFloat() - 0.5f) * 2.0f;
+                        glm::vec3 particlePos = entityPos + glm::vec3(rx * 0.3f, ry + 1.0f, rz * 0.3f);
+                        glm::vec3 velocity(m_random.nextGaussian(0.0f, 0.02f),
+                            m_random.nextGaussian(0.0f, 0.02f),
+                            m_random.nextGaussian(0.0f, 0.02f));
+                        m_world.particleManager()->addPendingParticle(
+                            client::renderer::trident::particle::ParticleTypeId::AngryVillager,
+                            particlePos,
+                            velocity,
+                            &m_world);
+                    }
+                }
+                break;
+            }
+            case static_cast<u8>(EntityStatusPacket::Status::VillagerHappy): {
+                // 状态 14: 村民开心粒子（交易成功/获取职业/找到床位/找到集会点）
+                if (m_world.particleManager() != nullptr) {
+                    for (i32 i = 0; i < 5; ++i) {
+                        f32 rx = (m_random.nextFloat() - 0.5f) * 2.0f;
+                        f32 ry = m_random.nextFloat();
+                        f32 rz = (m_random.nextFloat() - 0.5f) * 2.0f;
+                        glm::vec3 particlePos = entityPos + glm::vec3(rx * 0.3f, ry + 1.0f, rz * 0.3f);
+                        glm::vec3 velocity(m_random.nextGaussian(0.0f, 0.02f),
+                            m_random.nextGaussian(0.0f, 0.02f),
+                            m_random.nextGaussian(0.0f, 0.02f));
+                        m_world.particleManager()->addPendingParticle(
+                            client::renderer::trident::particle::ParticleTypeId::HappyVillager,
+                            particlePos,
+                            velocity,
+                            &m_world);
+                    }
+                }
+                break;
+            }
+            case static_cast<u8>(EntityStatusPacket::Status::VillagerSplash): {
+                // 状态 42: 村民水花粒子（突袭中恐慌）
+                if (m_world.particleManager() != nullptr) {
+                    for (i32 i = 0; i < 5; ++i) {
+                        f32 rx = (m_random.nextFloat() - 0.5f) * 2.0f;
+                        f32 ry = m_random.nextFloat();
+                        f32 rz = (m_random.nextFloat() - 0.5f) * 2.0f;
+                        glm::vec3 particlePos = entityPos + glm::vec3(rx * 0.3f, ry + 1.0f, rz * 0.3f);
+                        glm::vec3 velocity(m_random.nextGaussian(0.0f, 0.02f),
+                            m_random.nextGaussian(0.0f, 0.02f),
+                            m_random.nextGaussian(0.0f, 0.02f));
+                        m_world.particleManager()->addPendingParticle(
+                            client::renderer::trident::particle::ParticleTypeId::Splash,
+                            particlePos,
+                            velocity,
+                            &m_world);
+                    }
+                }
+                break;
+            }
             default:
                 // 其他状态暂未实现
                 break;

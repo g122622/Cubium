@@ -51,6 +51,7 @@
 #include "common/entity/experience/ExperienceDropHandler.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -619,11 +620,8 @@ void VillagerEntity::_handleTradeReputation()
         }
     }
 
-    // TODO: 播放开心村民粒子效果（MC原版 broadcastEntityEvent(this, (byte)14) -> HAPPY_VILLAGER 粒子）
-    // 当前 common 模块不能直接依赖 client 模块的 ParticleTypeId，
-    // 需要通过 IWorld::addParticle() 或 EntityEvent 系统间接触发。
-    // IWorld::addParticle() 需要 ParticleTypeId 参数，该类型定义在 client 模块中。
-    // 待 EntityEvent 系统或 common 层粒子抽象实现后补充。
+    // 播放开心村民粒子效果（MC原版 broadcastEntityEvent(this, (byte)14)）
+    m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerHappy));
 }
 
 void VillagerEntity::_increaseMerchantCareer()

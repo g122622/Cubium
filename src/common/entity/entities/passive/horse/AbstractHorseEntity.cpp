@@ -866,10 +866,8 @@ bool AbstractHorseEntity::handleEating(Player* player, ItemStack& itemStack)
 
     // 幼体成长加速
     if (isChild() && growthAmount > 0) {
-        // MC 1.16.5: 添加成长粒子效果
-        if (m_world != nullptr) {
-            // TODO: 添加 HAPPY_VILLAGER 粒子效果
-        }
+        // MC 1.16.5: 成长粒子效果由 AgeableEntity::updateAge() 中的 forcedAgeTimer 驱动，
+        // 通过 broadcastEntityStatus(VillagerHappy) 在客户端生成开心村民粒子
         if (m_world == nullptr || !m_world->isClientSide()) {
             addGrowingAge(growthAmount);
         }
