@@ -24,6 +24,7 @@
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/HarvestTool.hpp"
+#include "world/block/blocks/BookshelfBlock.hpp"
 #include "world/block/blocks/CauldronBlock.hpp"
 #include "world/block/blocks/ChestBlock.hpp"
 #include "world/block/blocks/EnchantingTableBlock.hpp"
@@ -151,7 +152,7 @@ void registerBuildingBlocks()
             BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
 
     // 书架
-    BuildingBlocks::BOOKSHELF = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:bookshelf"),
+    BuildingBlocks::BOOKSHELF = &registry.registerBlock<blocks::BookshelfBlock>(ResourceLocation("minecraft:bookshelf"),
         BlockProperties(Material::WOOD).hardness(1.5f).flammable().ignitedByLava());
 
     // 海绵

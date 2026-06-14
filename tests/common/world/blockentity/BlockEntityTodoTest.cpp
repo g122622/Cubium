@@ -35,6 +35,7 @@
 #include "world/WorldConstants.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
+#include "world/block/BlockTags.hpp"
 #include "world/block/blocks/ChestBlock.hpp"
 #include "world/block/blocks/HopperBlock.hpp"
 #include "world/block/blocks/TrappedChestBlock.hpp"
@@ -532,4 +533,168 @@ TEST(BlockEntityTodoTest, BeaconDetectsThreeLevelPyramidWithoutSkyCheck)
     }
     // Beacon level should still be 3 (sky visibility is not checked in MC 1.16.5)
     EXPECT_EQ(beacon.getLevel(), 3);
+}
+
+// ========== EnchantingTableEntity isValidBookshelf 测试 ==========
+
+TEST(BlockEntityTodoTest, EnchantingTableIsValidBookshelf_BookshelfAtOffset2IsValid)
+{
+    // 附魔台在(0,0,0)，书架在(2,0,0)，中间(1,0,0)是空气
+    // 这是有效的书架位置
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    // 先设置中间位置为nullptr（空气），避免DummyWorld的m_state回退问题
+    world.setBlockState(1, 0, 0, nullptr);
+
+    // 设置书架在(2,0,0)
+    const BlockState* bookshelf = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
+    world.setBlockState(2, 0, 0, bookshelf);
+
+    BlockPos offset(2, 0, 0); // BOOKSHELF_OFFSETS中的偏移量
+    EXPECT_TRUE(blockentity::EnchantingTableEntity::isValidBookshelf(world, BlockPos(0, 0, 0), offset));
+}
+
+TEST(BlockEntityTodoTest, EnchantingTableIsValidBookshelf_BookshelfBlockedBySolidBlock)
+{
+    // 附魔台在(0,0,0)，书架在(2,0,0)，中间(1,0,0)是石头（不可替换）
+    // 这应该是无效的
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    // 设置书架在(2,0,0)
+    const BlockState* bookshelf = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
+    world.setBlockState(2, 0, 0, bookshelf);
+
+    // 设置石头在(1,0,0) - 石头不可替换，应阻挡附魔力量
+    const BlockState* stone = VanillaBlocks::getState(VanillaBlocks::STONE);
+    world.setBlockState(1, 0, 0, stone);
+
+    BlockPos offset(2, 0, 0);
+    EXPECT_FALSE(blockentity::EnchantingTableEntity::isValidBookshelf(world, BlockPos(0, 0, 0), offset));
+}
+
+TEST(BlockEntityTodoTest, EnchantingTableIsValidBookshelf_NoBookshelfAtOffset)
+{
+    // 附魔台在(0,0,0)，(2,0,0)没有书架
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    BlockPos offset(2, 0, 0);
+    EXPECT_FALSE(blockentity::EnchantingTableEntity::isValidBookshelf(world, BlockPos(0, 0, 0), offset));
+}
+
+TEST(BlockEntityTodoTest, EnchantingTableIsValidBookshelf_CornerOffsetIsValid)
+{
+    // 附魔台在(0,0,0)，书架在角落(2,0,2)，中间(1,0,1)是空气
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    // 先设置中间位置为nullptr（空气），避免DummyWorld的m_state回退问题
+    world.setBlockState(1, 0, 1, nullptr);
+
+    const BlockState* bookshelf = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
+    world.setBlockState(2, 0, 2, bookshelf);
+
+    BlockPos offset(2, 0, 2);
+    EXPECT_TRUE(blockentity::EnchantingTableEntity::isValidBookshelf(world, BlockPos(0, 0, 0), offset));
+}
+
+TEST(BlockEntityTodoTest, EnchantingTableIsValidBookshelf_UpperLevelBookshelf)
+{
+    // 附魔台在(0,0,0)，书架在(2,1,0)（Y=1层），中间(1,1,0)是空气
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    // 先设置中间位置为nullptr（空气），避免DummyWorld的m_state回退问题
+    world.setBlockState(1, 1, 0, nullptr);
+
+    const BlockState* bookshelf = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
+    world.setBlockState(2, 1, 0, bookshelf);
+
+    BlockPos offset(2, 1, 0);
+    EXPECT_TRUE(blockentity::EnchantingTableEntity::isValidBookshelf(world, BlockPos(0, 0, 0), offset));
+}
+
+TEST(BlockEntityTodoTest, EnchantingTableRecalculateEnchantPower_CountsBookshelves)
+{
+    // 放置5个书架，计算附魔力量
+    // DummyWorld的getBlockState()在位置未显式设置时返回m_state（最后setBlockState的值），
+    // 所以需要将所有候选书架位置和中间位置显式设为nullptr，确保不会误判
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    const BlockState* bookshelf = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
+
+    // 先将所有30个候选书架位置和对应的中间位置设为nullptr（空气）
+    for (i32 x = -2; x <= 2; ++x) {
+        for (i32 y = 0; y <= 1; ++y) {
+            for (i32 z = -2; z <= 2; ++z) {
+                if (std::abs(x) == 2 || std::abs(z) == 2) {
+                    // 书架位置
+                    world.setBlockState(x, y, z, nullptr);
+                    // 中间位置 = (x/2, y, z/2)
+                    world.setBlockState(x / 2, y, z / 2, nullptr);
+                }
+            }
+        }
+    }
+
+    // 在附魔台周围放置5个书架（水平2格，Y=0和Y=1）
+    world.setBlockState(2, 0, 0, bookshelf);
+    world.setBlockState(-2, 0, 0, bookshelf);
+    world.setBlockState(0, 0, 2, bookshelf);
+    world.setBlockState(0, 0, -2, bookshelf);
+    world.setBlockState(2, 1, 0, bookshelf);
+
+    blockentity::EnchantingTableEntity table(BlockPos(0, 0, 0));
+    table.recalculateEnchantPower(world);
+    EXPECT_EQ(table.getEnchantPower(), 5);
+}
+
+TEST(BlockEntityTodoTest, EnchantingTableRecalculateEnchantPower_MaxIsFifteen)
+{
+    // 放置20个书架，附魔力量上限为15
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    const BlockState* bookshelf = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
+
+    // 先将所有中间位置设为nullptr（空气），避免DummyWorld的m_state回退问题
+    // 中间位置 = 附魔台位置 + (offset.x/2, offset.y, offset.z/2)
+    // 对于所有|x|==2或|z|==2的偏移量，可能的中间位置为：
+    // x方向：-1, 0, 1；z方向：-1, 0, 1；y方向：0, 1
+    for (i32 mx = -1; mx <= 1; ++mx) {
+        for (i32 my = 0; my <= 1; ++my) {
+            for (i32 mz = -1; mz <= 1; ++mz) {
+                world.setBlockState(mx, my, mz, nullptr);
+            }
+        }
+    }
+
+    // 在所有30个候选位置放置书架
+    for (i32 x = -2; x <= 2; ++x) {
+        for (i32 y = 0; y <= 1; ++y) {
+            for (i32 z = -2; z <= 2; ++z) {
+                if (std::abs(x) == 2 || std::abs(z) == 2) {
+                    world.setBlockState(x, y, z, bookshelf);
+                }
+            }
+        }
+    }
+
+    blockentity::EnchantingTableEntity table(BlockPos(0, 0, 0));
+    table.recalculateEnchantPower(world);
+    EXPECT_EQ(table.getEnchantPower(), 15); // 最大15
+}
+
+TEST(BlockEntityTodoTest, EnchantingTableRecalculateEnchantPower_ZeroBookshelves)
+{
+    // 没有书架，附魔力量为0
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    blockentity::EnchantingTableEntity table(BlockPos(0, 0, 0));
+    table.recalculateEnchantPower(world);
+    EXPECT_EQ(table.getEnchantPower(), 0);
 }

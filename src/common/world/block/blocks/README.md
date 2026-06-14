@@ -22,7 +22,8 @@ blocks/
 ├── DoorBlock.hpp/cpp            # 门方块（双方块结构，HALF/FACING/OPEN/HINGE/POWERED 属性）
 ├── FenceGateBlock.hpp/cpp       # 栅栏门方块（FACING/OPEN/IN_WALL/POWERED 属性）
 ├── CauldronBlock.hpp/cpp        # 炼药锅方块（LEVEL_0_3 属性，无方块实体）
-├── EnchantingTableBlock.hpp/cpp # 附魔台方块（书架增强附魔力量）
+├── EnchantingTableBlock.hpp/cpp # 附魔台方块（书架增强附魔力量、延迟tick初始化、邻居通知）
+├── BookshelfBlock.hpp/cpp       # 书架方块（附魔力量提供者、主动通知附近附魔台）
 ├── SignBlock.hpp/cpp            # 告示牌方块（站立/墙面两种形式，含水支持）
 ├── redstone/                    # 红石方块子目录
 │   ├── README.md                # 红石方块文档
@@ -112,6 +113,7 @@ classDiagram
     Block <|-- FenceGateBlock
     Block <|-- CauldronBlock
     Block <|-- EnchantingTableBlock
+    Block <|-- BookshelfBlock
     Block <|-- SignBlock
 ```
 
@@ -187,3 +189,11 @@ CauldronBlock 没有方块实体，使用 `LEVEL_0_3` 属性存储水位（0-3�
 ### 8. TrappedChestBlock 红石信号与双箱支持
 
 `TrappedChestBlock` 重写了 `createBlockEntity()` 返回 `TrappedChestEntity`（而非继承自 `ChestBlock` 的默认 `ChestEntity`）。红石信号通过 `TrappedChestEntity::getRedstoneSignal(world)` 计算，该方法会自动聚合双箱两侧的打开玩家数，信号强度 = 打开玩家总数（最大15）。`TrappedChestBlock::getWeakPower()` 调用此方法而非直接读取 `openCount`，确保双陷阱箱的红石信号正确。强充能仅从顶面输出（`getStrongPower` 仅 `Direction::Up` 返回有效信号）。
+
+### 9. 附魔台与书架的距离通知机制
+
+附魔台检测书架的范围是水平2格、垂直0-1格（MC的BOOKSHELF_OFFSETS，共30个候选位置）。而 `ServerWorld::setBlockState` 的 `neighborChanged` 只通知1格距离的直接邻居。因此书架放置/移除时，`BookshelfBlock` 必须主动扫描5x3x5范围（dx∈[-2,2], dy∈[-1,1], dz∈[-2,2]）通知附近的附魔台重新计算附魔力量。附魔台自身的 `onBlockAdded` 会调度1tick延迟（因为方块实体在 `onBlockAdded` 之后才创建），在 `tick` 中完成首次附魔力量计算。
+
+### 10. 书架方块使用 BlockTags 而非硬编码
+
+`BookshelfBlock` 和 `EnchantingTableEntity` 使用 `BlockTags::ENCHANTMENT_POWER_PROVIDER` 标签判断书架（而非硬编码 `VanillaBlocks::BOOKSHELF` 指针），使用 `BlockState::canBeReplaced()` 判断中间方块是否可穿透（对应MC的 `ENCHANTMENT_POWER_TRANSMITTER` 标签）。这意味着任何被添加到 `minecraft:enchantment_power_provider` 标签的方块都会增强附魔力量。

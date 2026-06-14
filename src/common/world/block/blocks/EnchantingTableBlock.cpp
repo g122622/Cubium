@@ -125,9 +125,10 @@ void EnchantingTableBlock::neighborChanged(
     MC_UNUSED(isMoving);
 
     // 当邻居方块变化时，重新计算附魔力量
-    // 书架可以在2格距离内，邻居变化可能影响附魔力量
-    // 对于距离2的书架变化，其与附魔台之间必定有1格的中间方块，
-    // 中间方块的变化也会触发neighborChanged，因此能覆盖所有场景
+    // ServerWorld::setBlockState只通知直接邻居（1格距离），书架可在2格距离内。
+    // 但BookshelfBlock::onBlockAdded/onBlockRemoved会主动通知2格范围内的附魔台，
+    // 加上中间方块（空气/可替换方块）的变化也会触发此neighborChanged，
+    // 因此所有影响附魔力量的方块变化场景均已覆盖。
     BlockEntity* blockEntity = world.getBlockEntity(pos);
     if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::EnchantingTable) {
         auto* enchantingTable = static_cast<blockentity::EnchantingTableEntity*>(blockEntity);

@@ -100,11 +100,19 @@ JSON 序列化（`load`/`save`，用于区块存档）和 NBT 序列化（`loadF
 ### 7. EnchantingTableEntity 附魔力量计算
 
 有效书架必须满足：
-- 水平距离 = 2（曼哈顿距离）
-- 垂直距离 = 0 或 1
-- 书架与附魔台之间必须是空气
+- 水平距离为2（即 |x|==2 或 |z|==2，且 |x|≤2、|z|≤2）
+- 垂直距离为 0 或 1
+- 书架与附魔台之间（中间位置 = 附魔台 + (offset.x/2, offset.y, offset.z/2)）的方块必须可被替换（`canBeReplaced()`，对应MC的ENCHANTMENT_POWER_TRANSMITTER标签）
+- 书架本身必须属于 `ENCHANTMENT_POWER_PROVIDER` 标签（不仅限于原版书架）
 
-每个有效书架增加 1 点附魔力量，最大 15 点。不是 0.5 点。
+共30个候选书架位置（MC的BOOKSHELF_OFFSETS）。每个有效书架增加1点附魔力量，最大15点。
+
+附魔力量在以下时机重新计算：
+1. 附魔台放置时：`EnchantingTableBlock::onBlockAdded` 调度1tick延迟（因为方块实体尚未创建），在 `tick` 中计算
+2. 邻居方块变化时：`EnchantingTableBlock::neighborChanged` 直接触发重新计算
+3. 书架放置/移除时：`BookshelfBlock::onBlockAdded/onBlockRemoved` 主动扫描5x3x5范围通知附魔台
+
+`isValidBookshelf()` 是公开静态方法，供 `EnchantmentContainer` 复用，避免重复实现书架检测逻辑。
 
 ### 8. LecternEntity 页码从 0 开始
 
