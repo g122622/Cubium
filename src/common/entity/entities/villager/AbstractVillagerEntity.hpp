@@ -130,13 +130,6 @@ public:
      */
     [[nodiscard]] static constexpr i32 getMaxLevel() { return 5; }
 
-    /**
-     * @brief 检查指定等级是否可以继续升级
-     * @param level 当前等级
-     * @return 是否可以升级
-     */
-    [[nodiscard]] static constexpr bool canLevelUp(i32 level) { return level < getMaxLevel(); }
-
 private:
     VillagerType m_type = VillagerType::Plains;
     VillagerProfession m_profession = VillagerProfession::None;

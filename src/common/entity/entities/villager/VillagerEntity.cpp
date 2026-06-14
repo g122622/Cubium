@@ -553,13 +553,19 @@ void VillagerEntity::updateOffers()
         return;
     }
 
+    // 使用世界种子和实体ID生成唯一种子，确保每个村民交易不同
+    u64 seed = 0;
+    if (m_world) {
+        seed = m_world->seed();
+    }
+    seed = seed * 31 + static_cast<u64>(id());
+
     // 生成新的交易列表
     m_offers = VillagerTrades::generateOffers(m_villagerData.profession(),
         m_villagerData.type(),
         m_villagerData.level(),
         0, // 需求修正
-        0  // 种子
-    );
+        seed);
 }
 
 void VillagerEntity::rewardTradeXp(MerchantOffer& offer)
@@ -607,8 +613,9 @@ void VillagerEntity::_handleTradeReputation()
         world::village::Village* village =
             villageManager->getVillageAt(BlockPos(static_cast<i32>(x()), static_cast<i32>(y()), static_cast<i32>(z())));
         if (village != nullptr) {
-            u64 playerIdentifier = static_cast<u64>(m_lastTradedPlayer->playerId());
-            village->addGossip(playerIdentifier, world::village::VillageGossipType::Trading, 1);
+            // PlayerId 类型即为 u64，直接使用
+            const PlayerId playerId = m_lastTradedPlayer->playerId();
+            village->addGossip(playerId, world::village::VillageGossipType::Trading, 1);
         }
     }
 
@@ -638,12 +645,18 @@ void VillagerEntity::_increaseMerchantCareer()
         return;
     }
 
+    // 使用世界种子和实体ID生成唯一种子，确保每个村民交易不同
+    u64 seed = 0;
+    if (m_world) {
+        seed = m_world->seed();
+    }
+    seed = seed * 31 + static_cast<u64>(id());
+
     auto newOffers = VillagerTrades::generateOffers(m_villagerData.profession(),
         m_villagerData.type(),
         newLevel,
         0, // demand
-        0  // seed
-    );
+        seed);
 
     if (newOffers && m_offers) {
         // 将新等级的交易追加到现有交易列表

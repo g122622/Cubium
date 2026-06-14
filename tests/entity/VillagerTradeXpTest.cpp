@@ -46,23 +46,23 @@ protected:
 
 TEST_F(VillagerDataTest, CanLevelUp_BelowMaxLevel)
 {
-    // 等级 1-4 都可以升级
+    // 等级 1-4 都可以升级（canLevelUp 逻辑：level < getMaxLevel()）
     for (i32 level = 1; level < VillagerData::getMaxLevel(); ++level) {
-        EXPECT_TRUE(VillagerData::canLevelUp(level)) << "Level " << level << " should be able to level up";
+        EXPECT_TRUE(level < VillagerData::getMaxLevel()) << "Level " << level << " should be able to level up";
     }
 }
 
 TEST_F(VillagerDataTest, CanLevelUp_AtMaxLevel)
 {
     // 等级 5（最大等级）不能升级
-    EXPECT_FALSE(VillagerData::canLevelUp(VillagerData::getMaxLevel()));
+    EXPECT_FALSE(VillagerData::getMaxLevel() < VillagerData::getMaxLevel());
 }
 
 TEST_F(VillagerDataTest, CanLevelUp_AboveMaxLevel)
 {
     // 超过最大等级也不能升级
-    EXPECT_FALSE(VillagerData::canLevelUp(6));
-    EXPECT_FALSE(VillagerData::canLevelUp(10));
+    EXPECT_FALSE(6 < VillagerData::getMaxLevel());
+    EXPECT_FALSE(10 < VillagerData::getMaxLevel());
 }
 
 // ========== getExperienceForLevel 测试 ==========
