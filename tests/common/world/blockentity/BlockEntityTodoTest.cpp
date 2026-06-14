@@ -36,7 +36,9 @@
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/block/BlockTags.hpp"
+#include "world/block/blocks/BookshelfBlock.hpp"
 #include "world/block/blocks/ChestBlock.hpp"
+#include "world/block/blocks/EnchantingTableBlock.hpp"
 #include "world/block/blocks/HopperBlock.hpp"
 #include "world/block/blocks/TrappedChestBlock.hpp"
 #include "world/block/blocks/functional/BarrelBlock.hpp"
@@ -697,4 +699,371 @@ TEST(BlockEntityTodoTest, EnchantingTableRecalculateEnchantPower_ZeroBookshelves
     blockentity::EnchantingTableEntity table(BlockPos(0, 0, 0));
     table.recalculateEnchantPower(world);
     EXPECT_EQ(table.getEnchantPower(), 0);
+}
+
+// ========== canBeReplaced() 中间方块测试 ==========
+
+TEST(BlockEntityTodoTest, EnchantingTableIsValidBookshelf_ShortGrassAsMiddleBlock)
+{
+    // 附魔台在(0,0,0)，书架在(2,0,0)，中间(1,0,0)是短草（canBeReplaced=true）
+    // 短草不是空气但可被替换，附魔力量应能穿过
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    // 设置中间位置为短草（REPLACEABLE_PLANT材质，canBeReplaced=true）
+    const BlockState* shortGrass = VanillaBlocks::getState(VanillaBlocks::SHORT_GRASS);
+    ASSERT_NE(shortGrass, nullptr);
+    ASSERT_TRUE(shortGrass->canBeReplaced());
+
+    // 先将所有候选书架位置设为nullptr（避免m_state回退问题）
+    for (i32 x = -2; x <= 2; ++x) {
+        for (i32 y = 0; y <= 1; ++y) {
+            for (i32 z = -2; z <= 2; ++z) {
+                if (std::abs(x) == 2 || std::abs(z) == 2) {
+                    world.setBlockState(x, y, z, nullptr);
+                }
+            }
+        }
+    }
+
+    // 设置书架在(2,0,0)，中间位置(1,0,0)设为短草
+    const BlockState* bookshelf = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
+    world.setBlockState(2, 0, 0, bookshelf);
+    world.setBlockState(1, 0, 0, shortGrass);
+
+    BlockPos offset(2, 0, 0);
+    EXPECT_TRUE(blockentity::EnchantingTableEntity::isValidBookshelf(world, BlockPos(0, 0, 0), offset));
+}
+
+TEST(BlockEntityTodoTest, EnchantingTableIsValidBookshelf_DandelionAsMiddleBlock)
+{
+    // 附魔台在(0,0,0)，书架在(2,0,0)，中间(1,0,0)是蒲公英（canBeReplaced=true）
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    const BlockState* dandelion = VanillaBlocks::getState(VanillaBlocks::DANDELION);
+    ASSERT_NE(dandelion, nullptr);
+    ASSERT_TRUE(dandelion->canBeReplaced());
+
+    // 先将所有候选书架位置设为nullptr
+    for (i32 x = -2; x <= 2; ++x) {
+        for (i32 y = 0; y <= 1; ++y) {
+            for (i32 z = -2; z <= 2; ++z) {
+                if (std::abs(x) == 2 || std::abs(z) == 2) {
+                    world.setBlockState(x, y, z, nullptr);
+                }
+            }
+        }
+    }
+
+    const BlockState* bookshelf = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
+    world.setBlockState(2, 0, 0, bookshelf);
+    world.setBlockState(1, 0, 0, dandelion);
+
+    BlockPos offset(2, 0, 0);
+    EXPECT_TRUE(blockentity::EnchantingTableEntity::isValidBookshelf(world, BlockPos(0, 0, 0), offset));
+}
+
+TEST(BlockEntityTodoTest, EnchantingTableRecalculateEnchantPower_ShortGrassAllowsPower)
+{
+    // 中间方块为短草时，附魔力量应正常计算
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    const BlockState* bookshelf = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
+    const BlockState* shortGrass = VanillaBlocks::getState(VanillaBlocks::SHORT_GRASS);
+
+    // 先将所有候选书架位置和中间位置设为nullptr
+    for (i32 x = -2; x <= 2; ++x) {
+        for (i32 y = 0; y <= 1; ++y) {
+            for (i32 z = -2; z <= 2; ++z) {
+                if (std::abs(x) == 2 || std::abs(z) == 2) {
+                    world.setBlockState(x, y, z, nullptr);
+                    world.setBlockState(x / 2, y, z / 2, nullptr);
+                }
+            }
+        }
+    }
+
+    // 放置1个书架，中间位置为短草（应能通过）
+    world.setBlockState(2, 0, 0, bookshelf);
+    world.setBlockState(1, 0, 0, shortGrass); // 中间方块为短草
+
+    blockentity::EnchantingTableEntity table(BlockPos(0, 0, 0));
+    table.recalculateEnchantPower(world);
+    EXPECT_EQ(table.getEnchantPower(), 1);
+}
+
+TEST(BlockEntityTodoTest, EnchantingTableRecalculateEnchantPower_StoneBlocksPower)
+{
+    // 中间方块为石头时，附魔力量应被阻挡
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    const BlockState* bookshelf = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
+    const BlockState* stone = VanillaBlocks::getState(VanillaBlocks::STONE);
+
+    // 先将所有候选书架位置和中间位置设为nullptr
+    for (i32 x = -2; x <= 2; ++x) {
+        for (i32 y = 0; y <= 1; ++y) {
+            for (i32 z = -2; z <= 2; ++z) {
+                if (std::abs(x) == 2 || std::abs(z) == 2) {
+                    world.setBlockState(x, y, z, nullptr);
+                    world.setBlockState(x / 2, y, z / 2, nullptr);
+                }
+            }
+        }
+    }
+
+    // 放置1个书架，中间位置为石头（应阻挡附魔力量）
+    world.setBlockState(2, 0, 0, bookshelf);
+    world.setBlockState(1, 0, 0, stone); // 中间方块为石头
+
+    blockentity::EnchantingTableEntity table(BlockPos(0, 0, 0));
+    table.recalculateEnchantPower(world);
+    EXPECT_EQ(table.getEnchantPower(), 0);
+}
+
+// ========== BookshelfBlock 通知机制测试 ==========
+
+TEST(BlockEntityTodoTest, BookshelfBlock_OnBlockAdded_NotifiesEnchantingTable)
+{
+    // 书架放置时，应通知2格范围内的附魔台重新计算附魔力量
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    const BlockState* bookshelfState = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
+    const BlockState* enchantingTableState = VanillaBlocks::getState(VanillaBlocks::ENCHANTING_TABLE);
+
+    // 先将所有候选书架位置和中间位置设为nullptr
+    for (i32 x = -2; x <= 2; ++x) {
+        for (i32 y = 0; y <= 1; ++y) {
+            for (i32 z = -2; z <= 2; ++z) {
+                if (std::abs(x) == 2 || std::abs(z) == 2) {
+                    world.setBlockState(x, y, z, nullptr);
+                    world.setBlockState(x / 2, y, z / 2, nullptr);
+                }
+            }
+        }
+    }
+
+    // 在(0,0,0)放置附魔台
+    world.setBlockState(0, 0, 0, enchantingTableState);
+
+    // 创建附魔台实体并放入世界
+    blockentity::EnchantingTableEntity table(BlockPos(0, 0, 0));
+    world.setBlockEntity(BlockPos(0, 0, 0), &table);
+
+    // 初始附魔力量应为0
+    EXPECT_EQ(table.getEnchantPower(), 0);
+
+    // 放置书架在(2,0,0)，中间(1,0,0)为空气(nullptr)
+    world.setBlockState(2, 0, 0, bookshelfState);
+
+    // 调用BookshelfBlock::onBlockAdded
+    blocks::BookshelfBlock& bookshelfBlock = static_cast<blocks::BookshelfBlock&>(*VanillaBlocks::BOOKSHELF);
+    bookshelfBlock.onBlockAdded(world, BlockPos(2, 0, 0), *bookshelfState);
+
+    // 附魔台应被通知重新计算，附魔力量应为1
+    EXPECT_EQ(table.getEnchantPower(), 1);
+}
+
+TEST(BlockEntityTodoTest, BookshelfBlock_OnBlockRemoved_NotifiesEnchantingTable)
+{
+    // 书架移除时，应通知2格范围内的附魔台重新计算附魔力量
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    const BlockState* bookshelfState = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
+    const BlockState* enchantingTableState = VanillaBlocks::getState(VanillaBlocks::ENCHANTING_TABLE);
+
+    // 先将所有候选书架位置和中间位置设为nullptr
+    for (i32 x = -2; x <= 2; ++x) {
+        for (i32 y = 0; y <= 1; ++y) {
+            for (i32 z = -2; z <= 2; ++z) {
+                if (std::abs(x) == 2 || std::abs(z) == 2) {
+                    world.setBlockState(x, y, z, nullptr);
+                    world.setBlockState(x / 2, y, z / 2, nullptr);
+                }
+            }
+        }
+    }
+
+    // 在(0,0,0)放置附魔台
+    world.setBlockState(0, 0, 0, enchantingTableState);
+
+    // 创建附魔台实体
+    blockentity::EnchantingTableEntity table(BlockPos(0, 0, 0));
+    world.setBlockEntity(BlockPos(0, 0, 0), &table);
+
+    // 先放置书架在(2,0,0)并手动计算附魔力量
+    world.setBlockState(2, 0, 0, bookshelfState);
+    table.recalculateEnchantPower(world);
+    EXPECT_EQ(table.getEnchantPower(), 1);
+
+    // 模拟书架被移除：先更新世界状态
+    world.setBlockState(2, 0, 0, nullptr);
+
+    // 调用BookshelfBlock::onBlockRemoved
+    blocks::BookshelfBlock& bookshelfBlock = static_cast<blocks::BookshelfBlock&>(*VanillaBlocks::BOOKSHELF);
+    bookshelfBlock.onBlockRemoved(world, BlockPos(2, 0, 0), *bookshelfState);
+
+    // 附魔台应被通知重新计算，附魔力量应回到0
+    EXPECT_EQ(table.getEnchantPower(), 0);
+}
+
+TEST(BlockEntityTodoTest, BookshelfBlock_DoesNotNotifyDistantEnchantingTable)
+{
+    // 书架不应通知3格外的附魔台（超出2格范围）
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    const BlockState* bookshelfState = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
+    const BlockState* enchantingTableState = VanillaBlocks::getState(VanillaBlocks::ENCHANTING_TABLE);
+
+    // 先将候选位置清空
+    for (i32 x = -3; x <= 3; ++x) {
+        for (i32 y = 0; y <= 1; ++y) {
+            for (i32 z = -3; z <= 3; ++z) {
+                world.setBlockState(x, y, z, nullptr);
+            }
+        }
+    }
+
+    // 在(0,0,0)放置附魔台，书架在(3,0,0)（超出2格范围）
+    world.setBlockState(0, 0, 0, enchantingTableState);
+
+    blockentity::EnchantingTableEntity table(BlockPos(0, 0, 0));
+    world.setBlockEntity(BlockPos(0, 0, 0), &table);
+
+    // 放置书架在(3,0,0)（超出附魔台的2格检测范围）
+    world.setBlockState(3, 0, 0, bookshelfState);
+
+    blocks::BookshelfBlock& bookshelfBlock = static_cast<blocks::BookshelfBlock&>(*VanillaBlocks::BOOKSHELF);
+    bookshelfBlock.onBlockAdded(world, BlockPos(3, 0, 0), *bookshelfState);
+
+    // 附魔台不应受到影响（书架在3格外，不会被通知）
+    EXPECT_EQ(table.getEnchantPower(), 0);
+}
+
+// ========== EnchantingTableBlock neighborChanged 和 tick 测试 ==========
+
+TEST(BlockEntityTodoTest, EnchantingTableBlock_NeighborChanged_RecalculatesPower)
+{
+    // 当附魔台的邻居方块变化时，neighborChanged应重新计算附魔力量
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    const BlockState* bookshelfState = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
+    const BlockState* enchantingTableState = VanillaBlocks::getState(VanillaBlocks::ENCHANTING_TABLE);
+
+    // 先将候选位置清空
+    for (i32 x = -2; x <= 2; ++x) {
+        for (i32 y = 0; y <= 1; ++y) {
+            for (i32 z = -2; z <= 2; ++z) {
+                if (std::abs(x) == 2 || std::abs(z) == 2) {
+                    world.setBlockState(x, y, z, nullptr);
+                    world.setBlockState(x / 2, y, z / 2, nullptr);
+                }
+            }
+        }
+    }
+
+    // 在(0,0,0)放置附魔台
+    world.setBlockState(0, 0, 0, enchantingTableState);
+
+    blockentity::EnchantingTableEntity table(BlockPos(0, 0, 0));
+    world.setBlockEntity(BlockPos(0, 0, 0), &table);
+
+    // 初始附魔力量应为0
+    EXPECT_EQ(table.getEnchantPower(), 0);
+
+    // 放置书架在(2,0,0)
+    world.setBlockState(2, 0, 0, bookshelfState);
+
+    // 调用EnchantingTableBlock::neighborChanged
+    blocks::EnchantingTableBlock& enchantingTableBlock =
+        static_cast<blocks::EnchantingTableBlock&>(*VanillaBlocks::ENCHANTING_TABLE);
+    enchantingTableBlock.neighborChanged(world, BlockPos(0, 0, 0), *VanillaBlocks::BOOKSHELF, BlockPos(1, 0, 0), false);
+
+    // 附魔力量应被重新计算为1
+    EXPECT_EQ(table.getEnchantPower(), 1);
+}
+
+TEST(BlockEntityTodoTest, EnchantingTableBlock_NeighborChanged_NoBlockEntity_DoesNothing)
+{
+    // 当附魔台位置没有方块实体时，neighborChanged不应崩溃
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    const BlockState* enchantingTableState = VanillaBlocks::getState(VanillaBlocks::ENCHANTING_TABLE);
+    world.setBlockState(0, 0, 0, enchantingTableState);
+
+    // 没有设置方块实体
+    blocks::EnchantingTableBlock& enchantingTableBlock =
+        static_cast<blocks::EnchantingTableBlock&>(*VanillaBlocks::ENCHANTING_TABLE);
+
+    // 不应崩溃
+    EXPECT_NO_THROW(enchantingTableBlock.neighborChanged(
+        world, BlockPos(0, 0, 0), *VanillaBlocks::STONE, BlockPos(1, 0, 0), false));
+}
+
+TEST(BlockEntityTodoTest, EnchantingTableBlock_Tick_RecalculatesPower)
+{
+    // EnchantingTableBlock::tick应重新计算附魔力量
+    // 这模拟了onBlockAdded中调度1tick延迟后的行为
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    const BlockState* bookshelfState = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
+    const BlockState* enchantingTableState = VanillaBlocks::getState(VanillaBlocks::ENCHANTING_TABLE);
+
+    // 先将候选位置清空
+    for (i32 x = -2; x <= 2; ++x) {
+        for (i32 y = 0; y <= 1; ++y) {
+            for (i32 z = -2; z <= 2; ++z) {
+                if (std::abs(x) == 2 || std::abs(z) == 2) {
+                    world.setBlockState(x, y, z, nullptr);
+                    world.setBlockState(x / 2, y, z / 2, nullptr);
+                }
+            }
+        }
+    }
+
+    // 在(0,0,0)放置附魔台和书架
+    world.setBlockState(0, 0, 0, enchantingTableState);
+    world.setBlockState(2, 0, 0, bookshelfState);
+
+    blockentity::EnchantingTableEntity table(BlockPos(0, 0, 0));
+    world.setBlockEntity(BlockPos(0, 0, 0), &table);
+
+    // 初始附魔力量应为0（尚未计算）
+    EXPECT_EQ(table.getEnchantPower(), 0);
+
+    // 调用EnchantingTableBlock::tick
+    blocks::EnchantingTableBlock& enchantingTableBlock =
+        static_cast<blocks::EnchantingTableBlock&>(*VanillaBlocks::ENCHANTING_TABLE);
+    BlockState* mutableState = const_cast<BlockState*>(enchantingTableState);
+    math::Random random(42);
+    enchantingTableBlock.tick(world, BlockPos(0, 0, 0), *mutableState, random);
+
+    // tick后附魔力量应被计算为1
+    EXPECT_EQ(table.getEnchantPower(), 1);
+}
+
+TEST(BlockEntityTodoTest, EnchantingTableBlock_Tick_NoBlockEntity_DoesNothing)
+{
+    // 当附魔台位置没有方块实体时，tick不应崩溃
+    DummyWorld world;
+    VanillaBlocks::initialize();
+
+    const BlockState* enchantingTableState = VanillaBlocks::getState(VanillaBlocks::ENCHANTING_TABLE);
+    world.setBlockState(0, 0, 0, enchantingTableState);
+
+    blocks::EnchantingTableBlock& enchantingTableBlock =
+        static_cast<blocks::EnchantingTableBlock&>(*VanillaBlocks::ENCHANTING_TABLE);
+    BlockState* mutableState = const_cast<BlockState*>(enchantingTableState);
+    math::Random random(42);
+
+    EXPECT_NO_THROW(enchantingTableBlock.tick(world, BlockPos(0, 0, 0), *mutableState, random));
 }
