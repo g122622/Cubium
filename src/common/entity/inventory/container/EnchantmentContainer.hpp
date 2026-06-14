@@ -195,20 +195,6 @@ private:
     i32 _calculateEnchantPower() const;
 
     /**
-     * @brief 检查方块是否为有效书架
-     * @param pos 书架位置
-     * @return 如果是有效书架返回true
-     */
-    [[nodiscard]] bool _isValidBookshelf(const BlockPos& pos) const;
-
-    /**
-     * @brief 检查方块是否为空气
-     * @param pos 方块位置
-     * @return 如果是空气返回true
-     */
-    [[nodiscard]] bool _isAirBlock(const BlockPos& pos) const;
-
-    /**
      * @brief 更新附魔种子
      * @param player 玩家
      */

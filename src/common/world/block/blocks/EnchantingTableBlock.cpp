@@ -29,6 +29,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/blockentity/interactive/EnchantingTableEntity.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace blocks {
@@ -111,8 +112,40 @@ void EnchantingTableBlock::onBlockAdded(IWorld& world, const BlockPos& pos, cons
 {
     MC_UNUSED(state);
 
-    // TODO: 当附魔台放置时，需要重新计算附魔力量
-    // 当前 IWorld 接口无法直接调用附魔力量计算，需要在 World 中处理或扩展 IWorld 接口
+    // 附魔台放置时调度一个tick来重新计算附魔力量
+    // 原因：onBlockAdded在方块实体创建之前被调用，此时getBlockEntity返回nullptr
+    // 延迟1tick后方块实体已创建，可以安全地重新计算
+    world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::Normal);
+}
+
+void EnchantingTableBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
+    MC_UNUSED(neighborBlock);
+    MC_UNUSED(isMoving);
+
+    // 当邻居方块变化时，重新计算附魔力量
+    // 书架可以在2格距离内，邻居变化可能影响附魔力量
+    // 对于距离2的书架变化，其与附魔台之间必定有1格的中间方块，
+    // 中间方块的变化也会触发neighborChanged，因此能覆盖所有场景
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::EnchantingTable) {
+        auto* enchantingTable = static_cast<blockentity::EnchantingTableEntity*>(blockEntity);
+        enchantingTable->recalculateEnchantPower(world);
+    }
+}
+
+void EnchantingTableBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
+    MC_UNUSED(state);
+    MC_UNUSED(random);
+
+    // 延迟tick：方块实体已创建，重新计算附魔力量
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::EnchantingTable) {
+        auto* enchantingTable = static_cast<blockentity::EnchantingTableEntity*>(blockEntity);
+        enchantingTable->recalculateEnchantPower(world);
+    }
 }
 
 } // namespace blocks

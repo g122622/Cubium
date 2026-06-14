@@ -109,6 +109,20 @@ public:
      */
     void recalculateEnchantPower(IWorld& world);
 
+    /**
+     * @brief 检查给定偏移位置是否为有效书架
+     *
+     * 验证两个条件：
+     * 1. 书架位置必须属于 ENCHANTMENT_POWER_PROVIDER 标签（默认为书架）
+     * 2. 书架与附魔台之间的中间方块必须可被替换（canBeReplaced）
+     *
+     * @param world 世界
+     * @param tablePos 附魔台位置
+     * @param offset 偏移量（来自BOOKSHELF_OFFSETS列表）
+     * @return 如果是有效书架返回true
+     */
+    [[nodiscard]] static bool isValidBookshelf(IWorld& world, const BlockPos& tablePos, const BlockPos& offset);
+
     // ========== 自定义名称 ==========
 
     /**
@@ -151,15 +165,6 @@ public:
     void updateAnimation(IWorld& world, f32 dt);
 
 private:
-    /**
-     * @brief 检查位置是否有有效书架
-     * @param world 世界
-     * @param bookshelfPos 书架位置
-     * @param tablePos 附魔台位置
-     * @return 如果有效返回true
-     */
-    [[nodiscard]] static bool _isValidBookshelf(IWorld& world, const BlockPos& bookshelfPos, const BlockPos& tablePos);
-
     /// 附魔力量（0-15，每个书架+1，书架最大15个）
     i32 m_enchantPower = 0;
 

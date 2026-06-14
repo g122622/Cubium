@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,11 +22,13 @@
  */
 
 #include "EnchantingTableEntity.hpp"
+
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include <cmath>
 
 namespace mc {
@@ -68,6 +70,36 @@ constexpr f32 ENCHANTING_TABLE_PLAYER_RANGE_SQ = ENCHANTING_TABLE_PLAYER_RANGE *
 
     return false;
 }
+
+/**
+ * @brief 初始化附魔台书架偏移量列表。
+ *
+ * 生成附魔台周围2格范围内的所有候选书架位置偏移量。
+ * 对应 MC 的 EnchantingTableBlock.BOOKSHELF_OFFSETS：
+ * - x 范围 [-2, 2]，y 范围 [0, 1]，z 范围 [-2, 2]
+ * - 仅保留 |x|==2 或 |z|==2 的位置（外圈，排除内圈3x3区域）
+ * - 共30个偏移位置
+ *
+ * @return 书架候选偏移量列表
+ */
+[[nodiscard]] std::vector<BlockPos> initBookshelfOffsets()
+{
+    std::vector<BlockPos> offsets;
+    offsets.reserve(30);
+    for (i32 x = -2; x <= 2; ++x) {
+        for (i32 y = 0; y <= 1; ++y) {
+            for (i32 z = -2; z <= 2; ++z) {
+                if (std::abs(x) == 2 || std::abs(z) == 2) {
+                    offsets.emplace_back(x, y, z);
+                }
+            }
+        }
+    }
+    return offsets;
+}
+
+/// 附魔台周围候选书架位置的偏移量列表（相对于附魔台位置），共30个位置
+static const std::vector<BlockPos> BOOKSHELF_OFFSETS = initBookshelfOffsets();
 
 } // namespace
 
@@ -121,64 +153,49 @@ std::unique_ptr<BlockEntity> EnchantingTableEntity::clone() const
 
 void EnchantingTableEntity::recalculateEnchantPower(IWorld& world)
 {
-    m_enchantPower = 0;
+    i32 power = 0;
 
-    // 检查附魔台周围2格范围内的书架
-    // 书架位置：距离附魔台水平距离2格，垂直距离0-1格
-    for (i32 dx = -2; dx <= 2; ++dx) {
-        for (i32 dz = -2; dz <= 2; ++dz) {
-            // 跳过附魔台本身的位置
-            if (std::abs(dx) == 0 && std::abs(dz) == 0) {
-                continue;
-            }
-
-            // 只检查距离为2的位置（对角线距离sqrt(8)不算）
-            if (std::abs(dx) == 2 || std::abs(dz) == 2) {
-                // 检查两层高度：y+0 和 y+1
-                for (i32 dy = 0; dy <= 1; ++dy) {
-                    BlockPos bookshelfPos(m_pos.x + dx, m_pos.y + dy, m_pos.z + dz);
-
-                    if (_isValidBookshelf(world, bookshelfPos, m_pos)) {
-                        m_enchantPower++;
-                    }
-                }
-            }
+    // 遍历所有候选书架位置
+    // 对应 MC 的 EnchantingTableBlock.BOOKSHELF_OFFSETS 逻辑
+    for (const BlockPos& offset : BOOKSHELF_OFFSETS) {
+        if (isValidBookshelf(world, m_pos, offset)) {
+            power++;
         }
     }
 
     // 最大附魔力量为15
-    m_enchantPower = std::min(m_enchantPower, 15);
+    m_enchantPower = std::min(power, 15);
+
+    // 标记方块实体已更改
+    setChanged();
 }
 
-bool EnchantingTableEntity::_isValidBookshelf(IWorld& world, const BlockPos& bookshelfPos, const BlockPos& tablePos)
+/*static*/ bool EnchantingTableEntity::isValidBookshelf(IWorld& world, const BlockPos& tablePos, const BlockPos& offset)
 {
-    // 检查书架位置是否是书架方块
+    // 书架位置：附魔台位置 + 偏移量
+    BlockPos bookshelfPos = tablePos + offset;
+
+    // 条件1：书架位置必须是附魔力量提供者（默认为书架）
     const BlockState* bookshelfState = world.getBlockState(bookshelfPos.x, bookshelfPos.y, bookshelfPos.z);
-
-    if (bookshelfState == nullptr || bookshelfState->isAir()) {
+    if (bookshelfState == nullptr || !BlockTags::ENCHANTMENT_POWER_PROVIDER().contains(*bookshelfState)) {
         return false;
     }
 
-    // 检查是否是实际的书架方块类型
-    if (&bookshelfState->getBlock() != VanillaBlocks::BOOKSHELF) {
-        return false;
-    }
-
-    // 检查书架与附魔台之间的方块是否是空气
-    // 中间位置在书架和附魔台之间
-    i32 dx = bookshelfPos.x - tablePos.x;
-    i32 dz = bookshelfPos.z - tablePos.z;
-
-    // 计算中间位置（书架和附魔台之间的方块）
-    // 书架在距离2的位置，中间方块在距离1的位置
-    BlockPos middlePos(tablePos.x + (dx > 0 ? 1 : (dx < 0 ? -1 : 0)),
-        bookshelfPos.y, // 与书架同一高度
-        tablePos.z + (dz > 0 ? 1 : (dz < 0 ? -1 : 0)));
+    // 条件2：书架与附魔台之间的中间方块必须是可替换的（空气、草等）
+    // 中间位置 = 附魔台位置 + (offset.x/2, offset.y, offset.z/2)
+    // 由于offset.x和offset.z只能是-2, -1, 0, 1, 2，且只有|x|==2或|z|==2时才会到达这里
+    // 整数除法：-2/2=-1, -1/2=0, 0/2=0, 1/2=0, 2/2=1
+    BlockPos middlePos(tablePos.x + offset.x / 2, tablePos.y + offset.y, tablePos.z + offset.z / 2);
 
     const BlockState* middleState = world.getBlockState(middlePos.x, middlePos.y, middlePos.z);
 
-    // 中间必须是空气
-    return middleState == nullptr || middleState->isAir();
+    // 未加载的区块视为空气，不阻挡附魔力量
+    if (middleState == nullptr) {
+        return true;
+    }
+
+    // 使用canBeReplaced()判断中间方块是否可被替换（对应MC的ENCHANTMENT_POWER_TRANSMITTER标签）
+    return middleState->canBeReplaced();
 }
 
 // ========== 自定义名称 ==========

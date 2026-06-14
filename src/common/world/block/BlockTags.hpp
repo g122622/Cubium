@@ -327,6 +327,9 @@ public:
     /// 附魔力量提供者标签（书架）
     static BlockTag& ENCHANTMENT_POWER_PROVIDER();
 
+    /// 附魔力量传输者标签（空气等，允许附魔力量穿过的方块）
+    static BlockTag& ENCHANTMENT_POWER_TRANSMITTER();
+
     /// 维持耕地标签
     static BlockTag& MAINTAINS_FARMLAND();
 

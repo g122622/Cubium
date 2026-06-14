@@ -33,8 +33,10 @@
 #include "network/packet/PacketSerializer.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "world/block/BlockTags.hpp"
+#include "world/blockentity/interactive/EnchantingTableEntity.hpp"
 #include <algorithm>
+#include <cmath>
 
 namespace mc {
 
@@ -481,82 +483,25 @@ i32 EnchantmentContainer::_calculateEnchantPower() const
     i32 power = 0;
     BlockPos tablePos = m_position;
 
-    // 检查附魔台周围2格范围内（5x5区域）的书架
-    // 书架必须满足：与附魔台距离为2，中间有空隙
-    for (i32 dx = -1; dx <= 1; ++dx) {
-        for (i32 dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) continue;
-
-            // 检查两层高度（0和1层），中间必须有空气
-            bool hasAirGap = true;
-            for (i32 dy = 0; dy <= 1; ++dy) {
-                BlockPos airPos(tablePos.x + dx, tablePos.y + dy, tablePos.z + dz);
-                if (!_isAirBlock(airPos)) {
-                    hasAirGap = false;
-                    break;
+    // 使用与EnchantingTableEntity相同的书架偏移量列表和验证逻辑
+    // 对应MC的EnchantingTableBlock.BOOKSHELF_OFFSETS
+    for (i32 x = -2; x <= 2; ++x) {
+        for (i32 y = 0; y <= 1; ++y) {
+            for (i32 z = -2; z <= 2; ++z) {
+                // 仅检查外圈位置（|x|==2 或 |z|==2）
+                if (std::abs(x) != 2 && std::abs(z) != 2) {
+                    continue;
                 }
-            }
 
-            if (!hasAirGap) continue;
-
-            // 检查书架（距离为2）
-            i32 dx2 = dx * 2;
-            i32 dz2 = dz * 2;
-
-            // 主要书架位置
-            for (i32 dy = 0; dy <= 1; ++dy) {
-                BlockPos shelfPos(tablePos.x + dx2, tablePos.y + dy, tablePos.z + dz2);
-                if (_isValidBookshelf(shelfPos)) {
+                BlockPos offset(x, y, z);
+                if (blockentity::EnchantingTableEntity::isValidBookshelf(*m_world, tablePos, offset)) {
                     power++;
-                }
-            }
-
-            // 角落位置额外书架
-            if (dx != 0 && dz != 0) {
-                for (i32 dy = 0; dy <= 1; ++dy) {
-                    BlockPos shelfPos1(tablePos.x + dx2, tablePos.y + dy, tablePos.z + dz);
-                    BlockPos shelfPos2(tablePos.x + dx, tablePos.y + dy, tablePos.z + dz2);
-
-                    if (_isValidBookshelf(shelfPos1)) {
-                        power++;
-                    }
-                    if (_isValidBookshelf(shelfPos2)) {
-                        power++;
-                    }
                 }
             }
         }
     }
 
-    return std::min(power, 15); // 最大15
-}
-
-bool EnchantmentContainer::_isValidBookshelf(const BlockPos& pos) const
-{
-    if (!m_world) {
-        return false;
-    }
-
-    const BlockState* blockState = m_world->getBlockState(pos);
-    if (!blockState) {
-        return false;
-    }
-
-    // 检查是否为书架
-    const Block& block = blockState->getBlock();
-    return &block == VanillaBlocks::BOOKSHELF;
-}
-
-bool EnchantmentContainer::_isAirBlock(const BlockPos& pos) const
-{
-    if (!m_world) {
-        return false;
-    }
-    const BlockState* blockState = m_world->getBlockState(pos);
-    if (!blockState) {
-        return true; // 未加载的区块视为空气
-    }
-    return blockState->getBlock().isAir(*blockState);
+    return std::min(power, 15);
 }
 
 } // namespace mc

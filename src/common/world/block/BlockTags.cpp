@@ -633,6 +633,15 @@ BlockTag& BlockTags::ENCHANTMENT_POWER_PROVIDER()
     return *tag;
 }
 
+BlockTag& BlockTags::ENCHANTMENT_POWER_TRANSMITTER()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "enchantment_power_transmitter"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::MAINTAINS_FARMLAND()
 {
     static BlockTag* tag = nullptr;
@@ -1607,6 +1616,13 @@ void BlockTags::initialize()
         std::make_unique<BlockTag>(ResourceLocation("minecraft", "enchantment_power_provider"));
     enchantmentPowerProvider->addAll({ResourceLocation("minecraft", "bookshelf")});
     tags[enchantmentPowerProvider->getId()] = std::move(enchantmentPowerProvider);
+
+    // 附魔力量传输者标签（允许附魔力量穿过的方块）
+    // MC中此标签包含#minecraft:replaceable（即canBeReplaced()==true的所有方块）
+    // 此处仅注册标签以支持数据包兼容，实际附魔验证逻辑使用BlockState::canBeReplaced()
+    auto enchantmentPowerTransmitter =
+        std::make_unique<BlockTag>(ResourceLocation("minecraft", "enchantment_power_transmitter"));
+    tags[enchantmentPowerTransmitter->getId()] = std::move(enchantmentPowerTransmitter);
 
     // 维持耕地标签
     auto maintainsFarmland = std::make_unique<BlockTag>(ResourceLocation("minecraft", "maintains_farmland"));

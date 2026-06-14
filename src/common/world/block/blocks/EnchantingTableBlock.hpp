@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -48,10 +49,11 @@ namespace blocks {
  *
  * 附魔力量计算：
  * - 有效书架：距离附魔台水平2格，垂直0-1格
- * - 书架与附魔台之间必须是空气
+ * - 书架与附魔台之间必须是可替换方块（空气、草等）
  * - 每个有效书架增加1点附魔力量（最大15）
+ * - 书架判断使用ENCHANTMENT_POWER_PROVIDER标签，中间方块判断使用canBeReplaced()
  *
- * 参考: net.minecraft.block.EnchantingTableBlock
+ * 当附魔台放置或周围方块变化时，会重新计算附魔力量。
  */
 class EnchantingTableBlock : public Block {
 public:
@@ -126,11 +128,43 @@ public:
 
     /**
      * @brief 方块被放置后的处理
+     *
+     * 附魔台放置时调度一个tick来重新计算附魔力量，
+     * 因为方块实体在onBlockAdded调用时尚未创建。
+     *
      * @param world 世界
      * @param pos 方块位置
      * @param state 方块状态
      */
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
+    /**
+     * @brief 邻居方块变化通知
+     *
+     * 当周围方块发生变化时，重新计算附魔力量。
+     * 由于书架可以在2格距离内，邻居变化可能影响附魔力量。
+     *
+     * @param world 世界
+     * @param pos 本方块位置
+     * @param neighborBlock 变化的邻居方块
+     * @param neighborPos 邻居位置
+     * @param isMoving 是否因活塞推动
+     */
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
+
+    /**
+     * @brief 方块tick
+     *
+     * 延迟1tick后重新计算附魔力量。
+     * 在onBlockAdded中调度，因为方块实体在onBlockAdded调用时尚未创建。
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @param state 方块状态
+     * @param random 随机数生成器
+     */
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     // ========== 推动反应 ==========
 
