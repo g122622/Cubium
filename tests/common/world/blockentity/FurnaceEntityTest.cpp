@@ -22,10 +22,10 @@
  */
 
 #include "world/blockentity/processing/FurnaceEntity.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
 #include "world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/blockentity/processing/BlastFurnaceEntity.hpp"
 #include "world/blockentity/processing/FurnaceInventory.hpp"
 #include "world/blockentity/processing/SmokerEntity.hpp"
@@ -827,4 +827,46 @@ TEST_F(FurnaceBurnTimeTest, SignItemsAreFuel)
     EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::DARK_OAK_SIGN, 1)));
     EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::CRIMSON_SIGN, 1)));
     EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::WARPED_SIGN, 1)));
+}
+
+// ========== 旗帜燃烧时间测试 (300 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, WhiteBanner_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::WHITE_BANNER, nullptr) << "WHITE_BANNER should be registered";
+    ItemStack banner(Items::WHITE_BANNER, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(banner), 300) << "白色旗帜燃烧时间应为 300 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, BlackBanner_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::BLACK_BANNER, nullptr) << "BLACK_BANNER should be registered";
+    ItemStack banner(Items::BLACK_BANNER, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(banner), 300) << "黑色旗帜燃烧时间应为 300 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, BannerItemsAreFuel)
+{
+    ASSERT_NE(Items::WHITE_BANNER, nullptr);
+    ASSERT_NE(Items::RED_BANNER, nullptr);
+    ASSERT_NE(Items::BLUE_BANNER, nullptr);
+
+    EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::WHITE_BANNER, 1)));
+    EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::RED_BANNER, 1)));
+    EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::BLUE_BANNER, 1)));
+}
+
+// ========== 脚手架燃烧时间测试 (50 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, Scaffolding_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::SCAFFOLDING, nullptr) << "SCAFFOLDING should be registered";
+    ItemStack scaffolding(Items::SCAFFOLDING, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(scaffolding), 50) << "脚手架燃烧时间应为 50 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, Scaffolding_IsFuel)
+{
+    ASSERT_NE(Items::SCAFFOLDING, nullptr);
+    EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::SCAFFOLDING, 1)));
 }

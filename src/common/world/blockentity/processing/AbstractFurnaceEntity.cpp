@@ -24,13 +24,13 @@
 #include "world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/crafting/RecipeManager.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -101,9 +101,23 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
 /**
  * @brief 获取指定物品的燃烧时间。
  *
- * 燃烧时间单位：tick
+ * 燃烧时间单位：tick，参考 MC Java FuelValues。
  *
- * TODO: 部分物品尚未在 Items 中注册，待相关物品添加后需补充。
+ * TODO: 以下物品尚未注册方块物品（Items 和 BlockItemRegistry），待注册后需补充：
+ * - 木质楼梯（云杉、桦木、丛林、金合欢、深色橡木）：300 tick
+ * - 木质台阶（云杉、桦木、丛林、金合欢、深色橡木）：150 tick
+ * - 木质栅栏（云杉、桦木、丛林、金合欢、深色橡木、绯红、诡异）：300 tick
+ * - 木质栅栏门（云杉、桦木、丛林、金合欢、深色橡木、绯红、诡异）：300 tick
+ * - 木质门（云杉、桦木、丛林、金合欢、深色橡木、绯红、诡异）：200 tick
+ * - 木质活板门（云杉、桦木、丛林、金合欢、深色橡木、绯红、诡异）：300 tick
+ * - 木质压力板（云杉、桦木、丛林、金合欢、深色橡木）：300 tick
+ * - 竹木方块（竹块、竹拼花、竹台阶、竹楼梯、竹栅栏、竹栅栏门、竹门、竹活板门）：各对应燃烧值
+ * - 红树木根（MANGROVE_ROOTS）：300 tick
+ * - 杜鹃花（AZALEA, FLOWERING_AZALEA）：100 tick
+ * - 雕纹书架（CHISELED_BOOKSHELF）：300 tick
+ * - 枯草（SHORT_DRY_GRASS, TALL_DRY_GRASS）：100 tick
+ * - 落叶（LEAF_LITTER）：100 tick
+ * - 悬挂告示牌（12种木材）：800 tick
  */
 [[nodiscard]] i32 getBurnTimeByItem(const Item* item)
 {
@@ -185,11 +199,11 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
     }
 
     // ========== 木质建筑方块 (300 tick = 15 秒) ==========
-    // 木质楼梯 - 目前只有橡木楼梯
+    // 木质楼梯 - 目前只有橡木楼梯（其他木材楼梯尚未注册方块物品）
     if (isBlockItem(item, VanillaBlocks::OAK_STAIRS)) {
         return 300;
     }
-    // 栅栏和栅栏门 - 目前只有橡木栅栏
+    // 栅栏和栅栏门 - 目前只有橡木（其他木材栅栏尚未注册方块物品）
     if (isBlockInList(item, {VanillaBlocks::OAK_FENCE, VanillaBlocks::OAK_FENCE_GATE})) {
         return 300;
     }
@@ -209,20 +223,21 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
     if (isBlockItem(item, VanillaBlocks::DAYLIGHT_DETECTOR)) {
         return 300;
     }
-    // 木质门 - 目前只有橡木门
+    // 木质门 - 目前只有橡木门（其他木材门尚未注册方块物品）
     if (isBlockItem(item, VanillaBlocks::OAK_DOOR)) {
         return 300;
     }
-    // 木质活板门 - 目前只有橡木活板门
+    // 木质活板门 - 目前只有橡木活板门（其他木材活板门尚未注册方块物品）
     if (isBlockItem(item, VanillaBlocks::OAK_TRAPDOOR)) {
         return 300;
     }
-    // 木质压力板 - 目前只有橡木压力板
+    // 木质压力板 - 目前只有橡木压力板（其他木材压力板尚未注册方块物品）
     if (isBlockItem(item, VanillaBlocks::OAK_PRESSURE_PLATE)) {
         return 300;
     }
 
     // ========== 木质台阶 (150 tick = 7.5 秒) ==========
+    // 目前只有橡木台阶（其他木材台阶尚未注册方块物品）
     if (isBlockItem(item, VanillaBlocks::OAK_SLAB)) {
         return 150;
     }
@@ -285,16 +300,15 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
         return 100;
     }
 
-    // ========== 地毯 (67 tick) ==========
-    // TODO: 地毯方块尚未注册，待注册后补充
-
-    // ========== 竹子 (50 tick) ==========
+    // ========== 竹子 (50 tick = 2.5 秒) ==========
     if (isBlockItem(item, VanillaBlocks::BAMBOO)) {
         return 50;
     }
 
-    // ========== 脚手架 (400 tick = 20 秒) ==========
-    // TODO: 脚手架方块物品尚未注册，待注册后补充
+    // ========== 脚手架 (50 tick = 2.5 秒) ==========
+    if (item == Items::SCAFFOLDING) {
+        return 50;
+    }
 
     // ========== 干海带块 (4001 tick) ==========
     if (isBlockItem(item, VanillaBlocks::DRIED_KELP_BLOCK)) {
@@ -397,8 +411,26 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
         return 1200;
     }
 
-    // ========== TODO 待实现的物品 ==========
-    // 旗帜 (BANNER): 300 tick - 待方块注册
+    // ========== 旗帜 (300 tick = 15 秒) ==========
+    if (isItemInList(item,
+            {Items::WHITE_BANNER,
+                Items::ORANGE_BANNER,
+                Items::MAGENTA_BANNER,
+                Items::LIGHT_BLUE_BANNER,
+                Items::YELLOW_BANNER,
+                Items::LIME_BANNER,
+                Items::PINK_BANNER,
+                Items::GRAY_BANNER,
+                Items::LIGHT_GRAY_BANNER,
+                Items::CYAN_BANNER,
+                Items::PURPLE_BANNER,
+                Items::BLUE_BANNER,
+                Items::BROWN_BANNER,
+                Items::GREEN_BANNER,
+                Items::RED_BANNER,
+                Items::BLACK_BANNER})) {
+        return 300;
+    }
 
     return 0;
 }
