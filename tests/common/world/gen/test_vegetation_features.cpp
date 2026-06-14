@@ -32,6 +32,8 @@
 #include "../src/common/world/block/registry/VanillaBlocks.hpp"
 #include "../src/common/world/gen/feature/ConfiguredFeature.hpp"
 #include "../src/common/world/gen/feature/FeatureIds.hpp"
+#include "../src/common/world/gen/feature/vegetation/FlowerFeature.hpp"
+#include "../src/common/world/gen/feature/vegetation/GrassFeature.hpp"
 #include "../src/common/world/gen/feature/vegetation/VegetationFeatures.hpp"
 #include <gtest/gtest.h>
 
@@ -121,7 +123,8 @@ TEST_F(VegetationFeatureTest, FlowerFeatureIdsHaveCorrectOffset)
     EXPECT_EQ(FlowerFeatureIds::FlowerForestFlowers, TreeFeatureIds::Count + 2);
     EXPECT_EQ(FlowerFeatureIds::SwampFlowers, TreeFeatureIds::Count + 3);
     EXPECT_EQ(FlowerFeatureIds::Sunflower, TreeFeatureIds::Count + 4);
-    EXPECT_EQ(FlowerFeatureIds::Count, 5u);
+    EXPECT_EQ(FlowerFeatureIds::CherryGrovePetals, TreeFeatureIds::Count + 5);
+    EXPECT_EQ(FlowerFeatureIds::Count, 6u);
 }
 
 TEST_F(VegetationFeatureTest, GrassFeatureIdsHaveCorrectOffset)
@@ -965,4 +968,86 @@ TEST_F(VegetationFeatureTest, SavannaBiomeSettings)
 
     EXPECT_TRUE(hasSparseOakTree);
     EXPECT_TRUE(hasSavannaGrass);
+}
+
+// ============================================================================
+// FlowerFeatureConfig ySpread 测试
+// ============================================================================
+
+TEST_F(VegetationFeatureTest, FlowerFeatureConfigDefaultYSpread)
+{
+    // FlowerFeatureConfig 默认 ySpread 应为 3
+    FlowerFeatureConfig config;
+    EXPECT_EQ(config.ySpread, 3);
+    EXPECT_EQ(config.xzSpread, 7);
+    EXPECT_EQ(config.tries, 64);
+}
+
+TEST_F(VegetationFeatureTest, FlowerFeatureConfigYSpreadCustomValue)
+{
+    // 验证 ySpread 可以被自定义设置
+    FlowerFeatureConfig config;
+    config.ySpread = 2;
+    config.xzSpread = 6;
+    config.tries = 96;
+    EXPECT_EQ(config.ySpread, 2);
+    EXPECT_EQ(config.xzSpread, 6);
+    EXPECT_EQ(config.tries, 96);
+}
+
+TEST_F(VegetationFeatureTest, FlowerFeatureConfigYSpreadZero)
+{
+    // ySpread=0 时，yRange=1，nextInt(1)恒为0，即无Y偏移
+    FlowerFeatureConfig config;
+    config.ySpread = 0;
+    EXPECT_EQ(config.ySpread, 0);
+    // yRange = ySpread + 1 = 1
+    // nextInt(1) - nextInt(1) = 0 - 0 = 0，花卉只出现在表面高度
+}
+
+TEST_F(VegetationFeatureTest, FlowerFeaturePresetsHaveYSpread)
+{
+    // FeatureRegistry 初始化后 FlowerFeatures 静态列表已被清空，
+    // 需要直接创建预设来验证 ySpread 设置
+    auto plains = FlowerFeatures::createPlainsFlowers();
+    ASSERT_NE(plains, nullptr);
+    EXPECT_EQ(plains->getConfig().ySpread, 2);
+    EXPECT_EQ(plains->getConfig().xzSpread, 6);
+
+    auto forest = FlowerFeatures::createForestFlowers();
+    ASSERT_NE(forest, nullptr);
+    EXPECT_EQ(forest->getConfig().ySpread, 2);
+    EXPECT_EQ(forest->getConfig().xzSpread, 6);
+
+    auto flowerForest = FlowerFeatures::createFlowerForestFlowers();
+    ASSERT_NE(flowerForest, nullptr);
+    EXPECT_EQ(flowerForest->getConfig().ySpread, 2);
+    EXPECT_EQ(flowerForest->getConfig().xzSpread, 6);
+    EXPECT_EQ(flowerForest->getConfig().tries, 96);
+
+    auto swamp = FlowerFeatures::createSwampFlowers();
+    ASSERT_NE(swamp, nullptr);
+    EXPECT_EQ(swamp->getConfig().ySpread, 2);
+    EXPECT_EQ(swamp->getConfig().xzSpread, 6);
+
+    auto sunflower = FlowerFeatures::createSunflower();
+    ASSERT_NE(sunflower, nullptr);
+    EXPECT_EQ(sunflower->getConfig().ySpread, 2);
+    EXPECT_EQ(sunflower->getConfig().xzSpread, 6);
+    EXPECT_EQ(sunflower->getConfig().tries, 64);
+
+    auto cherry = FlowerFeatures::createCherryGrovePetals();
+    ASSERT_NE(cherry, nullptr);
+    EXPECT_EQ(cherry->getConfig().ySpread, 2);
+    EXPECT_EQ(cherry->getConfig().xzSpread, 6);
+    EXPECT_EQ(cherry->getConfig().tries, 96);
+}
+
+TEST_F(VegetationFeatureTest, GrassFeatureConfigHasYSpread)
+{
+    // GrassFeatureConfig 也有 ySpread 字段，默认值为 3
+    GrassFeatureConfig config;
+    EXPECT_EQ(config.ySpread, 3);
+    EXPECT_EQ(config.xSpread, 7);
+    EXPECT_EQ(config.zSpread, 7);
 }

@@ -148,3 +148,7 @@ graph LR
 ### 7. 特征ID顺序必须与注册顺序一致
 
 `FeatureIds.hpp` 中的 ID 必须与 `initialize()` 中的注册顺序完全一致，否则会导致特征 ID 错乱。
+
+### 8. FlowerFeatureConfig 的 ySpread 必须显式设置
+
+`FlowerFeatureConfig` 的 `ySpread` 默认值为 3，但花卉预设通常使用 `ySpread=2`。创建新的花卉配置时务必显式设置 `ySpread`，否则花卉会在 Y 方向过度扩散。偏移算法为三角形分布：`dy = nextInt(ySpread+1) - nextInt(ySpread+1)`，当 `ySpread=0` 时无 Y 偏移。

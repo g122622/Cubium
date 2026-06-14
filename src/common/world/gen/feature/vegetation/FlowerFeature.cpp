@@ -55,7 +55,7 @@ bool FlowerFeature::place(
     }
 
     i32 placedCount = 0;
-    // 对齐 MC 原版 RandomPatchFeature：j = xzSpread + 1, k = ySpread + 1
+    // RandomPatchFeature 散布算法：j = xzSpread + 1, k = ySpread + 1
     i32 xzRange = config.xzSpread + 1;
     i32 yRange = config.ySpread + 1;
 
@@ -63,7 +63,7 @@ bool FlowerFeature::place(
     BlockPos surfacePos(pos.x, world.getHeight(pos.x, pos.z), pos.z);
 
     for (i32 i = 0; i < config.tries; ++i) {
-        // 计算随机偏移（对齐 MC 原版 RandomPatchFeature 的三角形分布）
+        // 三角形分布随机偏移
         i32 dx = random.nextInt(xzRange) - random.nextInt(xzRange);
         i32 dy = random.nextInt(yRange) - random.nextInt(yRange);
         i32 dz = random.nextInt(xzRange) - random.nextInt(xzRange);
@@ -208,7 +208,7 @@ std::vector<std::unique_ptr<ConfiguredFlowerFeature>> FlowerFeatures::getAllFeat
 
 std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createPlainsFlowers()
 {
-    // MC 原版 VegetationFeatures: FLOWER_PLAIN = tries=64, xz_spread=6, y_spread=2
+    // FLOWER_PLAIN: tries=64, xz_spread=6, y_spread=2
     auto config = std::make_unique<FlowerFeatureConfig>();
     config->tries = 64;
     config->xzSpread = 6;
@@ -227,7 +227,7 @@ std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createPlainsFlowers()
 
 std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createForestFlowers()
 {
-    // MC 原版 VegetationFeatures: FLOWER_DEFAULT = tries=64, xz_spread=6, y_spread=2
+    // FLOWER_DEFAULT: tries=64, xz_spread=6, y_spread=2
     auto config = std::make_unique<FlowerFeatureConfig>();
     config->tries = 64;
     config->xzSpread = 6;
@@ -249,7 +249,7 @@ std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createForestFlowers()
 
 std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createFlowerForestFlowers()
 {
-    // MC 原版 VegetationFeatures: FLOWER_FLOWER_FOREST = tries=96, xz_spread=6, y_spread=2
+    // FLOWER_FLOWER_FOREST: tries=96, xz_spread=6, y_spread=2
     auto config = std::make_unique<FlowerFeatureConfig>();
     config->tries = 96;
     config->xzSpread = 6;
@@ -295,7 +295,7 @@ std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createFlowerForestFlowe
 
 std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createSwampFlowers()
 {
-    // MC 原版 VegetationFeatures: FLOWER_SWAMP = tries=64, xz_spread=6, y_spread=2
+    // FLOWER_SWAMP: tries=64, xz_spread=6, y_spread=2
     auto config = std::make_unique<FlowerFeatureConfig>();
     config->tries = 64;
     config->xzSpread = 6;
@@ -311,7 +311,7 @@ std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createSwampFlowers()
 
 std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createSunflower()
 {
-    // MC 原版 VegetationFeatures: FLOWER_SUNFLOWER_PLAIN = tries=64, xz_spread=6, y_spread=2
+    // FLOWER_SUNFLOWER_PLAIN: tries=64, xz_spread=6, y_spread=2
     auto config = std::make_unique<FlowerFeatureConfig>();
     config->tries = 64;
     config->xzSpread = 6;
@@ -321,7 +321,7 @@ std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createSunflower()
     if (VanillaBlocks::SUNFLOWER) {
         config->addFlower(&VanillaBlocks::SUNFLOWER->defaultState());
     }
-    // 也添加蒲公英作为补充（MC 原版向日葵平原也会生成普通花卉）
+    // 也添加蒲公英作为补充（向日葵平原也会生成普通花卉）
     if (VanillaBlocks::DANDELION) {
         config->addFlower(&VanillaBlocks::DANDELION->defaultState());
     }
@@ -331,7 +331,7 @@ std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createSunflower()
 
 std::unique_ptr<ConfiguredFlowerFeature> FlowerFeatures::createCherryGrovePetals()
 {
-    // MC 原版 VegetationFeatures: FLOWER_CHERRY = tries=96, xz_spread=6, y_spread=2
+    // FLOWER_CHERRY: tries=96, xz_spread=6, y_spread=2
     auto config = std::make_unique<FlowerFeatureConfig>();
     config->tries = 96;
     config->xzSpread = 6;
