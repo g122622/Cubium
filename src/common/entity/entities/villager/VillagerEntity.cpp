@@ -22,6 +22,7 @@
  */
 
 #include "VillagerEntity.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/schedule/Activity.hpp"
 #include "common/entity/ai/brain/schedule/Schedule.hpp"
@@ -44,13 +45,18 @@
 #include "common/entity/ai/goal/goals/villager/WorkAtJobSiteGoal.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityPose.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/experience/ExperienceDropHandler.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/village/Village.hpp"
+#include "common/world/village/VillageGossipType.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include "common/world/village/trade/Merchant.hpp"
@@ -112,6 +118,35 @@ void VillagerEntity::tick()
     // 更新声音冷却
     if (m_soundCooldown > 0) {
         m_soundCooldown--;
+    }
+
+    // 处理交易声望和粒子效果（MC原版 customServerAiStep 逻辑）
+    // 每tick检查 m_lastTradedPlayer，非空时触发声望事件和开心粒子，然后置空
+    if (m_lastTradedPlayer != nullptr && m_world) {
+        _handleTradeReputation();
+        m_lastTradedPlayer = nullptr;
+    }
+
+    // 处理交易升级计时器
+    // MC原版：仅在非交易状态时递减计时器，计时器到期时升级并生成新等级的交易
+    if (!isTrading() && m_updateMerchantTimer > 0) {
+        m_updateMerchantTimer--;
+        if (m_updateMerchantTimer <= 0) {
+            if (m_increaseProfessionLevelOnUpdate) {
+                // 升级并补充新等级的交易（追加而非替换）
+                _increaseMerchantCareer();
+                m_increaseProfessionLevelOnUpdate = false;
+            }
+
+            // 升级后给予村民再生效果 I（持续200 tick = 10秒）
+            addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Regeneration,
+                200,   // 持续时间（tick）
+                0,     // amplifier（0 = Level I）
+                false, // ambient
+                true,  // visible
+                true   // showIcon
+                ));
+        }
     }
 
     // 工作站点检查由 WorkAtJobSiteGoal 自动处理
@@ -545,10 +580,10 @@ void VillagerEntity::rewardTradeXp(MerchantOffer& offer)
 
         // 如果本次交易导致村民升级，额外增加5点经验球值
         // 注意：必须在 addVillagerExperience 之前记录等级，否则升级已发生后
-        // shouldIncreaseLevel() 会因等级已提升而返回 false
+        // 比较会因等级已提升而检测不到升级
         if (m_villagerData.level() > prevLevel) {
-            // TODO: m_updateMerchantTimer/m_increaseProfessionLevelOnUpdate 待集成到tick()中，
-            // 用于升级后延迟补充交易列表（MC原版在upgradeTimer倒计时结束后调用updateOffers）
+            // 设置升级计时器（40 tick = 2秒），在交易界面关闭后递减
+            // 计时器到期时升级交易列表并给予再生效果
             m_updateMerchantTimer = 40;
             m_increaseProfessionLevelOnUpdate = true;
             xpOrbCount += 5;
@@ -559,11 +594,69 @@ void VillagerEntity::rewardTradeXp(MerchantOffer& offer)
     }
 }
 
-bool VillagerEntity::shouldIncreaseLevel() const
+void VillagerEntity::_handleTradeReputation()
 {
-    const i32 currentLevel = m_villagerData.level();
-    return VillagerData::canLevelUp(currentLevel) &&
-        m_villagerData.experience() >= VillagerData::getExperienceForLevel(currentLevel);
+    // MC原版：交易完成后更新村庄声望（GossipType::Trading, +1）并播放开心村民粒子
+    if (m_lastTradedPlayer == nullptr || m_world == nullptr) {
+        return;
+    }
+
+    // 更新村庄声望：Trading 类型，每次交易 +1（最大累积100次）
+    auto* villageManager = m_world->villageManager();
+    if (villageManager != nullptr) {
+        world::village::Village* village =
+            villageManager->getVillageAt(BlockPos(static_cast<i32>(x()), static_cast<i32>(y()), static_cast<i32>(z())));
+        if (village != nullptr) {
+            u64 playerIdentifier = static_cast<u64>(m_lastTradedPlayer->playerId());
+            village->addGossip(playerIdentifier, world::village::VillageGossipType::Trading, 1);
+        }
+    }
+
+    // 播放开心村民粒子效果（MC原版 broadcastEntityEvent(this, (byte)14)）
+    m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::HappyVillager,
+        Vector3(x(), y() + eyeHeight() + 0.5, z()),
+        Vector3(0.0f, 0.0f, 0.0f),
+        Vector3(0.5f, 0.5f, 0.5f),
+        4 // 粒子数量
+    );
+}
+
+void VillagerEntity::_increaseMerchantCareer()
+{
+    // MC原版 increaseMerchantCareer 逻辑：
+    // 1. 升级村民等级
+    // 2. 为新等级生成交易并追加到现有交易列表（不替换）
+
+    const i32 newLevel = m_villagerData.level() + 1;
+    m_villagerData.setLevel(newLevel);
+
+    // 为新等级生成交易并追加到现有列表
+    using namespace world::village::trade;
+
+    if (isNitwit()) {
+        // 傻子村民没有交易
+        return;
+    }
+
+    auto newOffers = VillagerTrades::generateOffers(m_villagerData.profession(),
+        m_villagerData.type(),
+        newLevel,
+        0, // demand
+        0  // seed
+    );
+
+    if (newOffers && m_offers) {
+        // 将新等级的交易追加到现有交易列表
+        for (size_t i = 0; i < newOffers->size(); ++i) {
+            MerchantOffer* offer = newOffers->getOffer(i);
+            if (offer != nullptr) {
+                m_offers->addOffer(std::make_unique<MerchantOffer>(*offer));
+            }
+        }
+    } else if (newOffers && !m_offers) {
+        // 如果现有交易列表不存在（不应该发生，但防御性处理），直接替换
+        m_offers = std::move(newOffers);
+    }
 }
 
 // ============================================================================

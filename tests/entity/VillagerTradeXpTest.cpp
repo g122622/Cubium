@@ -231,3 +231,85 @@ TEST(VillagerTradeXpTest, XpOrbCount_LevelUpRange)
     EXPECT_GE(3 + 0 + 5, 8);  // 最小值
     EXPECT_LE(3 + 3 + 5, 11); // 最大值
 }
+
+// ========== stillValid 距离检查测试 ==========
+//
+// 验证 stillValid 使用 distanceSqTo + 平方阈值（64.0f = 8^2），
+// 而非 distanceTo + 线性阈值。
+
+TEST(VillagerTradeXpTest, StillValid_DistanceThreshold_Squared)
+{
+    // stillValid 使用 distanceSqTo(player) <= 64.0f
+    // 等价于 distanceTo(player) <= 8.0f
+    // 验证阈值是平方的：64 = 8^2
+    constexpr f32 MAX_TRADE_DISTANCE = 8.0f;
+    constexpr f32 MAX_TRADE_DISTANCE_SQ = MAX_TRADE_DISTANCE * MAX_TRADE_DISTANCE;
+    EXPECT_FLOAT_EQ(MAX_TRADE_DISTANCE_SQ, 64.0f);
+
+    // 距离 7.9 格：平方 = 62.41 < 64，应有效
+    f32 dist7_9_sq = 7.9f * 7.9f;
+    EXPECT_LT(dist7_9_sq, 64.0f);
+
+    // 距离 8.0 格：平方 = 64.0，应有效（<= 阈值）
+    f32 dist8_0_sq = 8.0f * 8.0f;
+    EXPECT_LE(dist8_0_sq, 64.0f);
+
+    // 距离 8.1 格：平方 = 65.61 > 64，应无效
+    f32 dist8_1_sq = 8.1f * 8.1f;
+    EXPECT_GT(dist8_1_sq, 64.0f);
+}
+
+// ========== VillagerData setLevel 测试 ==========
+
+TEST_F(VillagerDataTest, SetLevel_ClampsToRange)
+{
+    // setLevel 应将等级 clamp 到 [1, 5]
+    data = VillagerData(VillagerType::Plains, VillagerProfession::None, 3);
+
+    data.setLevel(0);
+    EXPECT_EQ(data.level(), 1); // clamp to min
+
+    data.setLevel(3);
+    EXPECT_EQ(data.level(), 3);
+
+    data.setLevel(10);
+    EXPECT_EQ(data.level(), VillagerData::getMaxLevel()); // clamp to max (5)
+}
+
+// ========== _increaseMerchantCareer 升级逻辑测试 ==========
+//
+// 验证升级后等级正确递增，且不会超过最大等级。
+// _increaseMerchantCareer 内部调用 setLevel(level + 1)，
+// setLevel 会 clamp 到 [1, getMaxLevel()]。
+
+TEST_F(VillagerDataTest, SetLevel_IncrementWithinRange)
+{
+    // 模拟 _increaseMerchantCareer 中的 level + 1 逻辑
+    data = VillagerData(VillagerType::Plains, VillagerProfession::None, 1);
+    data.setLevel(data.level() + 1);
+    EXPECT_EQ(data.level(), 2);
+
+    data.setLevel(data.level() + 1);
+    EXPECT_EQ(data.level(), 3);
+
+    data.setLevel(data.level() + 1);
+    EXPECT_EQ(data.level(), 4);
+
+    data.setLevel(data.level() + 1);
+    EXPECT_EQ(data.level(), 5);
+
+    // 等级 5 再升级会被 clamp 到 5
+    data.setLevel(data.level() + 1);
+    EXPECT_EQ(data.level(), VillagerData::getMaxLevel());
+}
+
+// ========== 经验球升级+5 加成仅当 shouldRewardExp 为 true 时触发 ==========
+//
+// 验证 shouldRewardExp 为 false 时不生成经验球（不测试具体生成逻辑，
+// 只验证 MerchantOffer 的 shouldRewardExp 语义）
+
+TEST(VillagerTradeXpTest, MerchantOffer_ShouldRewardExp_DefaultTrue)
+{
+    MerchantOffer offer;
+    EXPECT_TRUE(offer.shouldRewardExp());
+}

@@ -35,9 +35,10 @@ AbstractVillagerEntity (抽象村民基类)
 │   ├── 持有 Brain<VillagerEntity> (AI大脑)
 │   ├── 持有 ProfessionMapping (职业-工作站映射)
 │   ├── rewardTradeXp() — 增加经验，检测升级，生成经验球（3+random(4)，升级+5）
-│   ├── shouldIncreaseLevel() — 检查当前经验是否达到升级阈值
+│   ├── _handleTradeReputation() — 交易完成后更新村庄声望和播放开心粒子
+│   ├── _increaseMerchantCareer() — 升级并追加新等级的交易
 │   ├── 功能: 职业系统、工作站点、睡眠系统、流言传播
-│   └── 注意: m_updateMerchantTimer/m_increaseProfessionLevelOnUpdate 待集成到tick()
+│   └── tick()中处理: 升级计时器（40 tick后升级+再生效果）、交易声望更新
 │
 └── WanderingTraderEntity (流浪商人)
     ├── rewardTradeXp() — 生成经验球给玩家（3+random(4)，无升级加成）
@@ -83,8 +84,13 @@ AbstractVillagerEntity (抽象村民基类)
   2. 调用 `addVillagerExperience(offer.getXp())` 增加村民经验
   3. 若 `offer.shouldRewardExp()` 且世界存在，生成经验球：基础值 `3 + random(0~3)`（3~6）
   4. 若 `m_villagerData.level() > prevLevel`（本次交易导致升级），经验球值额外 +5（8~11）
-  5. 升级时设置 `m_updateMerchantTimer = 40` 和 `m_increaseProfessionLevelOnUpdate = true`（待集成到tick()）
+  5. 升级时设置 `m_updateMerchantTimer = 40` 和 `m_increaseProfessionLevelOnUpdate = true`
   6. 通过 `ExperienceDropHandler::spawnExperienceOrbs()` 在村民位置上方0.5格生成经验球
+
+  升级计时器在 `tick()` 中消费：
+  - 仅在非交易状态（`!isTrading()`）时递减
+  - 计时器到期时，若 `m_increaseProfessionLevelOnUpdate` 为 true，调用 `_increaseMerchantCareer()` 升级并追加新等级交易
+  - 无论是否升级，计时器到期时给予村民再生效果 I（200 tick = 10秒）
 
 - **WanderingTraderEntity::rewardTradeXp()**：
   1. 若 `offer.shouldRewardExp()` 且世界存在，生成经验球：`3 + random(0~3)`（3~6）
@@ -164,6 +170,20 @@ VillagerEntity 提供基于库存食物点数的分享和繁殖判断：
 - `VillagerEntity::rewardTradeXp()` 调用 `addVillagerExperience(offer.getXp())` 增加村民数据中的经验，并通过 `ExperienceDropHandler::spawnExperienceOrbs()` 生成经验球
 - `AbstractVillagerEntity::notifyTrade()` 调用 `rewardTradeXp()` 并增加交易使用次数，同时通过 `IWorld::onVillagerTrade()` 发布 `VillagerTradeEvent` 触发成就/进度和统计更新
 - **不要在交易流程中重复调用经验奖励方法**，经验已在 `notifyTrade()` 链中统一处理
+
+### 交易声望更新
+
+交易完成后，`m_lastTradedPlayer` 在 `rewardTradeXp()` 中设置，在下一个 `tick()` 中消费：
+- `_handleTradeReputation()` 更新村庄声望：`VillageGossipType::Trading`，每次交易 +1（最大累积100次，声望影响 +2）
+- 播放开心村民粒子效果（`ParticleTypeId::HappyVillager`）
+- 处理完成后 `m_lastTradedPlayer` 置空，确保每笔交易只触发一次
+
+### 升级计时器
+
+- `m_updateMerchantTimer`：40 tick（2秒）倒计时，仅在非交易状态递减
+- `m_increaseProfessionLevelOnUpdate`：计时器到期时是否需要升级
+- 计时器到期时：升级并追加新等级交易（`_increaseMerchantCareer()`），给予再生效果 I
+- `_increaseMerchantCareer()` 仅追加新等级的交易，不替换现有交易（保留使用次数和需求状态）
 
 ### stillValid 距离检测
 

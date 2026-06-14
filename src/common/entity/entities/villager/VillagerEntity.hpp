@@ -157,13 +157,6 @@ public:
      */
     void rewardTradeXp(MerchantOffer& offer) override;
 
-    /**
-     * @brief 检查村民是否应该升级
-     *
-     * 当当前经验达到升级阈值时返回 true。
-     */
-    [[nodiscard]] bool shouldIncreaseLevel() const;
-
     // ========== 工作 ==========
 
     /**
@@ -367,12 +360,33 @@ private:
     i64 m_lastGossipSpreadTime = 0; // 上次传播流言的游戏时间
 
     // 交易升级状态
-    Player* m_lastTradedPlayer = nullptr;           // 最后交易的玩家
-    i32 m_updateMerchantTimer = 0;                  // 交易升级计时器
-    bool m_increaseProfessionLevelOnUpdate = false; // 是否在计时器到期时升级
+    Player* m_lastTradedPlayer = nullptr;           // 最后交易的玩家（用于声望更新和粒子效果）
+    i32 m_updateMerchantTimer = 0;                  // 交易升级计时器（40 ticks，仅在非交易状态递减）
+    bool m_increaseProfessionLevelOnUpdate = false; // 计时器到期时是否升级并补充交易
 
     // Brain系统
     std::unique_ptr<VillagerBrain> m_brain;
+
+    // ========== 私有辅助方法 ==========
+
+    /**
+     * @brief 处理交易声望更新和开心粒子效果
+     *
+     * MC原版 customServerAiStep 逻辑：交易完成后更新村庄声望
+     * 并播放开心村民粒子。每笔交易仅触发一次。
+     */
+    void _handleTradeReputation();
+
+    /**
+     * @brief 升级村民职业等级并补充新等级的交易
+     *
+     * MC原版 increaseMerchantCareer 逻辑：
+     * 1. 增加村民等级（VillagerData.level + 1）
+     * 2. 为新等级生成交易并追加到现有交易列表
+     *
+     * 注意：此方法仅追加新等级的交易，不替换现有交易。
+     */
+    void _increaseMerchantCareer();
 };
 
 /**
