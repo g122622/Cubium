@@ -1041,6 +1041,9 @@ void BiomeTags::initialize()
 
 BiomeTag* BiomeTags::getTag(const ResourceLocation& id)
 {
+    if (!s_initialized) {
+        initialize();
+    }
     auto& tags = _getTags();
     auto it = tags.find(id);
     if (it != tags.end()) {
@@ -1060,6 +1063,9 @@ bool BiomeTags::hasStructure(BiomeId biomeId, const ResourceLocation& tagId)
 
 void BiomeTags::forEachTag(std::function<void(const BiomeTag&)> callback)
 {
+    if (!s_initialized) {
+        initialize();
+    }
     auto& tags = _getTags();
     for (const auto& [id, tag] : tags) {
         callback(*tag);
