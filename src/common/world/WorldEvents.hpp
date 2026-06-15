@@ -76,10 +76,16 @@ constexpr i32 FENCE_GATE_OPEN_SOUND = 1008;
 /// 火焰熄灭音效
 constexpr i32 FIRE_EXTINGUISH_SOUND = 1009;
 
-/// 播放唱片音效（data 为唱片物品ID）
+/// 播放唱片音效（data 为唱片比较器输出信号强度，1-15 为播放，0 为停止）
 constexpr i32 PLAY_RECORD_SOUND = 1010;
 
+/// 停止唱片音效
+/// 参考 MC 1.21.11: JukeboxSongPlayer.stop() 发送 levelEvent(1011, pos, 0)
+constexpr i32 STOP_RECORD_SOUND = 1011;
+
 /// 铁门关闭音效
+/// 注意: MC 协议中 1011 实际上是停止唱片音效 (STOP_RECORD_SOUND)，
+/// 铁门关闭音效应使用不同的事件ID。此处保留仅为兼容，后续应修正。
 constexpr i32 IRON_DOOR_CLOSE_SOUND = 1011;
 
 /// 木门关闭音效

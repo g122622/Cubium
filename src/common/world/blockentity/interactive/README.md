@@ -130,9 +130,13 @@ JSON 序列化（`load`/`save`，用于区块存档）和 NBT 序列化（`loadF
 
 `setRecord(const ItemStack& record, IWorld& world)` 方法内部会调用 `startPlaying()`/`stopPlaying()`，这些方法需要 `IWorld` 来广播音效事件。调用方（JukeboxBlock）负责更新 `HAS_RECORD` 方块状态。
 
-### 11. JukeboxEntity 歌曲自动结束尚未实现
+### 11. JukeboxEntity 歌曲自动结束和粒子效果
 
-`m_songLengthTicks` 始终为 0，歌曲不会自动结束。需要实现 JukeboxSong 注册表存储每首唱片的 `lengthInSeconds`，在 `startPlaying()` 中计算 `lengthInTicks`，并在 `tick()` 中检测播放完成。当前播放直到唱片被手动或漏斗移除才停止。
+JukeboxEntity 使用 JukeboxSongPlayer 管理播放状态，支持：
+- 歌曲自动结束：通过 JukeboxSongs 注册表获取歌曲长度，当 `ticksSinceSongStarted >= lengthInTicks + 20` 时自动停止
+- 音符粒子效果：每20tick（1秒）在唱片机上方生成音符粒子
+- 游戏事件：每20tick触发 GameEvent.JUKEBOX_PLAY（TODO：待游戏事件系统实现后补充），停止时触发 GameEvent.JUKEBOX_STOP_PLAY
+- 存档恢复：从存档加载时通过 `setSongWithoutPlaying()` 恢复播放进度
 
 ### 12. MusicDiscItem 信号强度映射
 

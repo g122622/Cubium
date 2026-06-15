@@ -1283,6 +1283,11 @@ add_library(mc_common STATIC
     sound/SoundEvent.cpp
     sound/SoundEvents.cpp
 
+    # Sound system - Jukebox
+    sound/jukebox/JukeboxSong.cpp
+    sound/jukebox/JukeboxSongs.cpp
+    sound/jukebox/JukeboxSongPlayer.cpp
+
     # Sound system - Network
     sound/network/SoundPackets.cpp
 

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/sound/jukebox/JukeboxSongPlayer.hpp"
 #include "world/blockentity/ContainerBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include <memory>
@@ -41,6 +42,8 @@ namespace blockentity {
  * - 1个槽位存放唱片
  * - 播放音乐时发射红石信号
  * - 可以被漏斗提取唱片
+ * - 歌曲播放完毕后自动停止
+ * - 每20tick（1秒）发射音符粒子效果
  *
  * 参考: net.minecraft.block.entity.JukeboxBlockEntity
  */
@@ -96,7 +99,8 @@ public:
     /**
      * @brief 开始播放唱片
      *
-     * 向所有玩家广播唱片音效事件。
+     * 通过 JukeboxSong 注册表查找唱片对应的歌曲，
+     * 并使用 JukeboxSongPlayer 开始播放。
      *
      * @param world 世界引用
      */
@@ -105,7 +109,7 @@ public:
     /**
      * @brief 停止播放唱片
      *
-     * 向所有玩家广播停止音效事件。
+     * 通过 JukeboxSongPlayer 停止播放并广播停止事件。
      *
      * @param world 世界引用
      */
@@ -115,13 +119,20 @@ public:
      * @brief 检查是否正在播放
      * @return 如果正在播放返回true
      */
-    [[nodiscard]] bool isPlaying() const noexcept { return m_isPlaying; }
+    [[nodiscard]] bool isPlaying() const noexcept { return m_songPlayer.isPlaying(); }
 
     /**
      * @brief 获取红石比较器信号强度
      * @return 信号强度（0-15），根据唱片类型返回对应值
      */
     [[nodiscard]] i32 getComparatorSignal() const;
+
+    /**
+     * @brief 获取歌曲播放器
+     * @return 歌曲播放器的引用
+     */
+    [[nodiscard]] JukeboxSongPlayer& getSongPlayer() noexcept { return m_songPlayer; }
+    [[nodiscard]] const JukeboxSongPlayer& getSongPlayer() const noexcept { return m_songPlayer; }
 
     // ========== Tick 更新 ==========
 
@@ -135,10 +146,15 @@ public:
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
 private:
-    SimpleInventory m_inventory;     ///< 1格物品存储
-    bool m_isPlaying = false;        ///< 是否正在播放
-    i64 m_ticksSinceSongStarted = 0; ///< 歌曲开始播放后的tick计数
-    i32 m_songLengthTicks = 0;       ///< 当前歌曲的总长度（ticks），0表示未知
+    /**
+     * @brief 歌曲变化回调
+     *
+     * 当歌曲开始播放或停止播放时调用，更新邻居方块和标记脏数据。
+     */
+    void onSongChanged();
+
+    SimpleInventory m_inventory;    ///< 1格物品存储
+    JukeboxSongPlayer m_songPlayer; ///< 歌曲播放器
 };
 
 } // namespace blockentity

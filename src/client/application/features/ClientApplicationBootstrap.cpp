@@ -46,6 +46,7 @@
 #include "client/ui/screen/ScreenManager.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
+#include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -73,6 +74,13 @@ void ClientApplication::initializeCoreRegistries()
         MC_TRACE_EVENT("client.initialization", "InitializeVanillaItems");
         Items::initialize();
         spdlog::info("Vanilla items initialized");
+    }
+
+    // 初始化唱片机歌曲注册表
+    {
+        MC_TRACE_EVENT("client.initialization", "InitializeJukeboxSongs");
+        JukeboxSongs::initialize();
+        spdlog::info("Jukebox songs initialized");
     }
 
     // 注册实体类型

@@ -34,6 +34,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/item/Items.hpp"
+#include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/item/crafting/special/ArmorDyeRecipe.hpp"
@@ -725,6 +726,13 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         Items::initialize();
     }
     spdlog::info("Vanilla items initialized");
+
+    // 初始化唱片机歌曲注册表（必须在 SoundEvents 初始化后）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::JukeboxSongs");
+        JukeboxSongs::initialize();
+    }
+    spdlog::info("Jukebox songs initialized");
 
     // 初始化附魔注册表
     {
