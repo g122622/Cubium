@@ -83,7 +83,7 @@ const std::string EndCityStructure::s_name = "End_City";
 const std::vector<BiomeId> EndCityStructure::s_validBiomes = {EndMidlands, EndHighlands};
 
 EndCityStructure::EndCityStructure()
-    : Structure(StructureType::Temple)
+    : Structure(StructureType::EndCity)
 {}
 
 bool EndCityStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)

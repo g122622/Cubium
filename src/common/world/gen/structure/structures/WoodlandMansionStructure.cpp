@@ -94,7 +94,7 @@ const std::string WoodlandMansionStructure::s_name = "Woodland_Mansion";
 const std::vector<BiomeId> WoodlandMansionStructure::s_validBiomes = {DarkForest, DarkForestHills};
 
 WoodlandMansionStructure::WoodlandMansionStructure()
-    : Structure(StructureType::Temple)
+    : Structure(StructureType::WoodlandMansion)
 {}
 
 bool WoodlandMansionStructure::canGenerate(

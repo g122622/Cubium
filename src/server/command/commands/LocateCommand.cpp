@@ -26,8 +26,11 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/world/ServerWorld.hpp"
+#include <cmath>
 #include <sstream>
 
 namespace mc {
@@ -60,71 +63,60 @@ i32 LocateCommand::_locateStructure(CommandContext<ServerCommandSource>& context
     const std::string structureName = context.getArgument<std::string>("structure");
     const Vector3d& playerPos = source.position();
 
-    // 规范化结构名称
-    std::string normalizedName = _normalizeStructureName(structureName);
+    // 通过 Structure::nameToStructureType 将结构名称转换为 StructureType 枚举
+    auto structureType = world::gen::structure::Structure::nameToStructureType(structureName);
+    if (!structureType.has_value()) {
+        source.sendError("Unknown structure: " + structureName);
+        source.sendError(
+            "Valid structures: village, pillager_outpost, mansion, stronghold, fortress, mineshaft, "
+            "ocean_monument, buried_treasure, shipwreck, ocean_ruin, ruined_portal, bastion_remnant, "
+            "end_city, trial_chambers, temple (desert_pyramid/jungle_temple/igloo/swamp_hut/nether_fossil)");
+        return 0;
+    }
+
+    // 获取 ServerWorld
+    auto* world = source.world();
+    if (world == nullptr) {
+        source.sendError("World not available");
+        return 0;
+    }
 
     BlockPos searchCenter(static_cast<BlockCoord>(playerPos.x),
         static_cast<BlockCoord>(playerPos.y),
         static_cast<BlockCoord>(playerPos.z));
 
-    // TODO: 实现真正的结构搜索，遍历区块查找结构起始点
-    // 当前使用占位实现，返回基于玩家位置的估算
-    // 实际实现需要访问世界的 StructureManager 并调用其搜索方法
+    // 搜索最近的结构，半径 6400 格（与 MC Java 版 /locate 一致）
+    constexpr i32 SEARCH_RADIUS = 6400;
 
-    std::ostringstream ss;
-    ss << "Searching for structure '" << structureName << "' near (" << searchCenter.x << ", " << searchCenter.y << ", "
-       << searchCenter.z << ")...";
-    source.sendMessage(ss.str());
+    auto result = world->findNearestStructure(searchCenter, structureType.value(), SEARCH_RADIUS, false);
 
-    // 占位实现：提示功能尚未完全实现
-    source.sendMessage("Structure location search is not yet fully implemented.");
-    source.sendMessage("The structure '" + normalizedName + "' exists in the world generation system.");
+    if (result.has_value()) {
+        i32 dx = result->x - searchCenter.x;
+        i32 dz = result->z - searchCenter.z;
+        i32 distance = static_cast<i32>(std::sqrt(static_cast<f64>(dx * dx + dz * dz)));
 
-    return 1;
+        std::ostringstream ss;
+        ss << "Found " << structureName << " at (" << result->x << ", " << result->z << ") "
+           << "(" << distance << " blocks away)";
+        source.sendMessage(ss.str());
+        return 1;
+    } else {
+        std::ostringstream errorSs;
+        errorSs << "Could not find structure '" << structureName << "' within " << SEARCH_RADIUS << " blocks";
+        source.sendError(errorSs.str());
+        return 0;
+    }
 }
 
 std::string LocateCommand::_normalizeStructureName(const std::string& name)
 {
-    // 移除 minecraft: 前缀
-    std::string normalized = name;
-    if (normalized.find("minecraft:") == 0) {
-        normalized = normalized.substr(10);
+    // 规范化结构名称：移除 minecraft: 前缀并解析别名
+    auto structureType = world::gen::structure::Structure::nameToStructureType(name);
+    if (structureType.has_value()) {
+        auto id = world::gen::structure::Structure::typeToId(structureType.value());
+        return id.toString();
     }
-
-    // 将常见别名转换为内部名称
-    static const std::unordered_map<std::string, std::string> aliases = {
-        {"village", "village"},
-        {"pillager_outpost", "pillager_outpost"},
-        {"mansion", "mansion"},
-        {"stronghold", "stronghold"},
-        {"fortress", "fortress"},
-        {"nether_fortress", "fortress"},
-        {"mineshaft", "mineshaft"},
-        {"ocean_monument", "ocean_monument"},
-        {"monument", "ocean_monument"},
-        {"buried_treasure", "buried_treasure"},
-        {"shipwreck", "shipwreck"},
-        {"ocean_ruin", "ocean_ruin"},
-        {"ocean_ruins", "ocean_ruin"},
-        {"ruined_portal", "ruined_portal"},
-        {"bastion", "bastion_remnant"},
-        {"bastion_remnant", "bastion_remnant"},
-        {"endcity", "end_city"},
-        {"end_city", "end_city"},
-        {"desert_pyramid", "desert_pyramid"},
-        {"desert_temple", "desert_pyramid"},
-        {"jungle_temple", "jungle_temple"},
-        {"jungle_pyramid", "jungle_temple"},
-        {"witch_hut", "swamp_hut"},
-        {"swamp_hut", "swamp_hut"},
-    };
-
-    auto it = aliases.find(normalized);
-    if (it != aliases.end()) {
-        return it->second;
-    }
-
-    return normalized;
+    return name;
 }
 
 } // namespace command

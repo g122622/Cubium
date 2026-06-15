@@ -33,6 +33,7 @@
 #include "common/world/gen/jigsaw/JigsawJunction.hpp"
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -655,7 +656,7 @@ protected:
      * @param type 结构类型枚举
      */
     explicit Structure(StructureType type)
-        : m_id(_typeToId(type))
+        : m_id(typeToId(type))
         , m_legacyType(type)
     {}
 
@@ -675,16 +676,27 @@ protected:
     ResourceLocation m_id;                                        ///< 结构资源位置 ID
     StructureType m_legacyType = static_cast<StructureType>(255); ///< 兼容旧代码的结构类型（无效值标记）
 
+public:
+    // ========== 兼容旧代码接口 ==========
+    // TODO: 所有子类迁移完成后删除以下方法
+
     /**
      * @brief 将 StructureType 转换为 ResourceLocation
      *
      * TODO: 所有子类迁移后删除。
      */
-    [[nodiscard]] static ResourceLocation _typeToId(StructureType type);
+    [[nodiscard]] static ResourceLocation typeToId(StructureType type);
 
-public:
-    // ========== 兼容旧代码接口 ==========
-    // TODO: 所有子类迁移完成后删除以下方法
+    /**
+     * @brief 将结构名称字符串转换为 StructureType 枚举
+     *
+     * 支持带或不带 "minecraft:" 前缀的名称，以及常见别名
+     * （如 "mansion" -> WoodlandMansion, "nether_fortress" -> Fortress）。
+     *
+     * @param name 结构名称字符串
+     * @return 对应的 StructureType，未匹配时返回 std::nullopt
+     */
+    [[nodiscard]] static std::optional<StructureType> nameToStructureType(std::string_view name);
 
     /**
      * @brief 获取结构类型枚举（兼容旧代码）

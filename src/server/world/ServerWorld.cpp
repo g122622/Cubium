@@ -2105,66 +2105,14 @@ void ServerWorld::onBeeNestDestroyed(
 // 结构定位
 // ============================================================================
 
-namespace {
-
-/**
- * @brief 将 StructureType 转换为结构名称
- * TODO 这个函数需要移到src\common\world\gen\structure\Structure.hpp
- */
-const char* structureTypeToName(world::gen::structure::StructureType type)
-{
-    using namespace world::gen::structure;
-    switch (type) {
-        case StructureType::Shipwreck:
-            return "shipwreck";
-        case StructureType::OceanRuin:
-            return "ocean_ruin";
-        case StructureType::BuriedTreasure:
-            return "buried_treasure";
-        case StructureType::Village:
-            return "village";
-        case StructureType::Stronghold:
-            return "stronghold";
-        case StructureType::Mineshaft:
-            return "mineshaft";
-        case StructureType::Monument:
-            return "ocean_monument";
-        case StructureType::Temple:
-            return "temple"; // 包括沙漠神殿、丛林神庙等
-        case StructureType::RuinedPortal:
-            return "ruined_portal";
-        case StructureType::WoodlandMansion:
-            return "woodland_mansion";
-        case StructureType::Fortress:
-            return "fortress";
-        case StructureType::Bastion:
-            return "bastion";
-        case StructureType::EndCity:
-            return "end_city";
-        case StructureType::PillagerOutpost:
-            return "pillager_outpost";
-        case StructureType::TrialChambers:
-            return "trial_chambers";
-        default:
-            MC_ASSERT_RELEASE(false);
-            return nullptr;
-    }
-}
-
-} // anonymous namespace
-
 std::optional<BlockPos> ServerWorld::findNearestStructure(
     const BlockPos& center, world::gen::structure::StructureType structureType, i32 maxDistance, bool skipExisting)
 {
     MC_UNUSED(skipExisting); // 当前实现不使用此参数
 
-    // 从注册表获取结构定义
-    const char* structureName = structureTypeToName(structureType);
-    if (structureName == nullptr) {
-        return std::nullopt;
-    }
-
-    const world::gen::structure::Structure* structure = world::gen::structure::StructureRegistry::get(structureName);
+    // 通过 ResourceLocation 从注册表获取结构定义
+    auto structureId = world::gen::structure::Structure::typeToId(structureType);
+    const world::gen::structure::Structure* structure = world::gen::structure::StructureRegistry::get(structureId);
     if (structure == nullptr) {
         return std::nullopt;
     }

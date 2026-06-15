@@ -31,6 +31,7 @@
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <algorithm>
+#include <unordered_map>
 
 namespace mc::world::gen::structure {
 
@@ -420,7 +421,7 @@ math::Random Structure::createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt)
     return math::Random(static_cast<i64>(combinedSeed));
 }
 
-ResourceLocation Structure::_typeToId(StructureType type)
+ResourceLocation Structure::typeToId(StructureType type)
 {
     switch (type) {
         case StructureType::Temple:
@@ -456,6 +457,55 @@ ResourceLocation Structure::_typeToId(StructureType type)
         default:
             return ResourceLocation("minecraft", "unknown");
     }
+}
+
+std::optional<StructureType> Structure::nameToStructureType(std::string_view name)
+{
+    // 移除 minecraft: 前缀
+    std::string_view normalized = name;
+    if (normalized.find("minecraft:") == 0) {
+        normalized = normalized.substr(10);
+    }
+
+    // 别名映射：支持常见名称变体
+    static const std::unordered_map<std::string_view, StructureType> aliases = {
+        {"temple", StructureType::Temple},
+        {"desert_pyramid", StructureType::Temple},
+        {"desert_temple", StructureType::Temple},
+        {"jungle_temple", StructureType::Temple},
+        {"jungle_pyramid", StructureType::Temple},
+        {"igloo", StructureType::Temple},
+        {"swamp_hut", StructureType::Temple},
+        {"witch_hut", StructureType::Temple},
+        {"nether_fossil", StructureType::Temple},
+        {"ocean_monument", StructureType::Monument},
+        {"monument", StructureType::Monument},
+        {"stronghold", StructureType::Stronghold},
+        {"village", StructureType::Village},
+        {"mineshaft", StructureType::Mineshaft},
+        {"ruined_portal", StructureType::RuinedPortal},
+        {"buried_treasure", StructureType::BuriedTreasure},
+        {"shipwreck", StructureType::Shipwreck},
+        {"ocean_ruin", StructureType::OceanRuin},
+        {"ocean_ruins", StructureType::OceanRuin},
+        {"woodland_mansion", StructureType::WoodlandMansion},
+        {"mansion", StructureType::WoodlandMansion},
+        {"bastion", StructureType::Bastion},
+        {"bastion_remnant", StructureType::Bastion},
+        {"fortress", StructureType::Fortress},
+        {"nether_fortress", StructureType::Fortress},
+        {"end_city", StructureType::EndCity},
+        {"endcity", StructureType::EndCity},
+        {"pillager_outpost", StructureType::PillagerOutpost},
+        {"trial_chambers", StructureType::TrialChambers},
+    };
+
+    auto it = aliases.find(normalized);
+    if (it != aliases.end()) {
+        return it->second;
+    }
+
+    return std::nullopt;
 }
 
 bool Structure::findStructureStart(i64 seed,
