@@ -31,6 +31,7 @@
  * - 药水效果发射器的药水效果应用
  */
 
+#include "common/core/Result.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
@@ -39,10 +40,12 @@
 #include "entity/effect/EffectType.hpp"
 #include "entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "entity/inventory/IInventory.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemStack.hpp"
 #include "item/potion/PotionUtils.hpp"
 #include "item/potion/Potions.hpp"
+#include "network/packet/PacketSerializer.hpp"
 #include "util/Direction.hpp"
 #include "util/math/Vector3.hpp"
 #include "util/property/Properties.hpp"
@@ -1399,6 +1402,339 @@ TEST_F(DispenseBehaviorTest, Registry_AllProjectileBehaviorsRegistered)
     // 火焰弹和烟花
     EXPECT_TRUE(registry.hasBehavior("minecraft:fire_charge"));
     EXPECT_TRUE(registry.hasBehavior("minecraft:firework_rocket"));
+}
+
+// ============================================================================
+// MockInventory - 用于测试 consumeWithRemainder 和 addToInventoryOrDispense
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 测试用 Mock 库存，模拟 IInventory 接口
+ *
+ * 简单的9槽位库存实现，支持 addItem、getItem、setItem 等操作，
+ * 用于验证 consumeWithRemainder 的物品放回逻辑。
+ */
+class MockInventory : public IInventory {
+public:
+    explicit MockInventory(i32 size = 9)
+        : m_items(size)
+    {}
+
+    [[nodiscard]] i32 getContainerSize() const override { return static_cast<i32>(m_items.size()); }
+
+    [[nodiscard]] bool isEmpty() const override
+    {
+        for (const auto& item : m_items) {
+            if (!item.isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    [[nodiscard]] ItemStack getItem(i32 slot) const override
+    {
+        if (slot < 0 || slot >= static_cast<i32>(m_items.size())) {
+            return ItemStack();
+        }
+        return m_items[slot];
+    }
+
+    void setItem(i32 slot, const ItemStack& stack) override
+    {
+        if (slot >= 0 && slot < static_cast<i32>(m_items.size())) {
+            m_items[slot] = stack;
+        }
+    }
+
+    ItemStack removeItem(i32 slot, i32 count) override
+    {
+        if (slot < 0 || slot >= static_cast<i32>(m_items.size())) {
+            return ItemStack();
+        }
+        ItemStack result = m_items[slot].split(count);
+        return result;
+    }
+
+    ItemStack removeItemNoUpdate(i32 slot) override
+    {
+        if (slot < 0 || slot >= static_cast<i32>(m_items.size())) {
+            return ItemStack();
+        }
+        ItemStack result = std::move(m_items[slot]);
+        m_items[slot] = ItemStack();
+        return result;
+    }
+
+    void clear() override
+    {
+        for (auto& item : m_items) {
+            item = ItemStack();
+        }
+    }
+
+    [[nodiscard]] i32 getFirstEmptySlot() const override
+    {
+        for (i32 i = 0; i < static_cast<i32>(m_items.size()); ++i) {
+            if (m_items[i].isEmpty()) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    void serialize(network::PacketSerializer&) const override {}
+    [[nodiscard]] static Result<std::unique_ptr<IInventory>> deserialize(network::PacketDeserializer&)
+    {
+        return Error(ErrorCode::Unsupported, "MockInventory does not support deserialization");
+    }
+
+private:
+    std::vector<ItemStack> m_items;
+};
+
+} // anonymous namespace
+
+// ============================================================================
+// consumeWithRemainder 测试
+// ============================================================================
+
+TEST_F(DispenseBehaviorTest, ConsumeWithRemainder_SingleItem_ReturnsReplacement)
+{
+    // 场景1：原始物品只有1个，shrink(1)后为空，直接返回替换物品
+    using namespace mc::blocks;
+
+    DispenseTestWorld world;
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    BlockPos dispenserPos(0, 0, 0);
+
+    // 1个水桶 -> 消耗后返回空桶
+    if (Items::WATER_BUCKET != nullptr && Items::BUCKET != nullptr) {
+        ItemStack original(Items::WATER_BUCKET, 1);
+        ItemStack replacement(Items::BUCKET, 1);
+
+        ItemStack result = DefaultDispenseItemBehavior::consumeWithRemainder(
+            world, dispenserPos, *dispenserState, original, replacement, nullptr);
+
+        // 原始物品变为空
+        EXPECT_TRUE(original.isEmpty());
+        // 返回替换物品（空桶）
+        EXPECT_FALSE(result.isEmpty());
+        EXPECT_EQ(result.getItem(), Items::BUCKET);
+        EXPECT_EQ(result.getCount(), 1);
+    }
+}
+
+TEST_F(DispenseBehaviorTest, ConsumeWithRemainder_MultipleItems_InventoryAcceptsReplacement)
+{
+    // 场景2：原始物品有多个，shrink(1)后还有剩余，替换物品能放入库存
+    using namespace mc::blocks;
+
+    DispenseTestWorld world;
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    BlockPos dispenserPos(0, 0, 0);
+
+    if (Items::WATER_BUCKET != nullptr && Items::BUCKET != nullptr) {
+        ItemStack original(Items::WATER_BUCKET, 3);
+        ItemStack replacement(Items::BUCKET, 1);
+        MockInventory inventory(9);
+
+        ItemStack result = DefaultDispenseItemBehavior::consumeWithRemainder(
+            world, dispenserPos, *dispenserState, original, replacement, &inventory);
+
+        // 原始物品减1后还剩2
+        EXPECT_FALSE(original.isEmpty());
+        EXPECT_EQ(original.getCount(), 2);
+        // 返回的是剩余的原始物品（2个水桶）
+        EXPECT_EQ(result.getItem(), Items::WATER_BUCKET);
+        EXPECT_EQ(result.getCount(), 2);
+        // 空桶应该被放入了库存的某个空槽位
+        bool foundEmptyBucket = false;
+        for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
+            ItemStack slotItem = inventory.getItem(i);
+            if (!slotItem.isEmpty() && slotItem.getItem() == Items::BUCKET) {
+                foundEmptyBucket = true;
+                EXPECT_EQ(slotItem.getCount(), 1);
+                break;
+            }
+        }
+        EXPECT_TRUE(foundEmptyBucket);
+    }
+}
+
+TEST_F(DispenseBehaviorTest, ConsumeWithRemainder_MultipleItems_InventoryFull_DispatchesToPlayer)
+{
+    // 场景3：原始物品有多个，库存已满，替换物品弹出到世界中
+    using namespace mc::blocks;
+
+    DispenseTestWorld world;
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    BlockPos dispenserPos(0, 0, 0);
+
+    if (Items::WATER_BUCKET != nullptr && Items::BUCKET != nullptr && Items::STONE != nullptr) {
+        ItemStack original(Items::WATER_BUCKET, 2);
+        ItemStack replacement(Items::BUCKET, 1);
+
+        // 创建一个满库存（9个槽位都放满石头）
+        MockInventory inventory(9);
+        for (i32 i = 0; i < 9; ++i) {
+            inventory.setItem(i, ItemStack(Items::STONE, 64));
+        }
+
+        i32 spawnCountBefore = static_cast<i32>(world.spawnedEntityTypes().size());
+
+        ItemStack result = DefaultDispenseItemBehavior::consumeWithRemainder(
+            world, dispenserPos, *dispenserState, original, replacement, &inventory);
+
+        // 原始物品减1后还剩1
+        EXPECT_FALSE(original.isEmpty());
+        EXPECT_EQ(original.getCount(), 1);
+        // 返回的是剩余的原始物品（1个水桶）
+        EXPECT_EQ(result.getItem(), Items::WATER_BUCKET);
+        EXPECT_EQ(result.getCount(), 1);
+        // 库存仍然是满的（空桶没有被放入）
+        // 替换物品应该被弹出到世界中（通过 _spawnItemEntity）
+        EXPECT_GT(world.spawnedEntityTypes().size(), static_cast<size_t>(spawnCountBefore));
+    }
+}
+
+TEST_F(DispenseBehaviorTest, ConsumeWithRemainder_NullInventory_DispatchesToPlayer)
+{
+    // 场景4：dispenserInventory 为 nullptr，替换物品直接弹出到世界中
+    using namespace mc::blocks;
+
+    DispenseTestWorld world;
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    BlockPos dispenserPos(0, 0, 0);
+
+    if (Items::WATER_BUCKET != nullptr && Items::BUCKET != nullptr) {
+        ItemStack original(Items::WATER_BUCKET, 2);
+        ItemStack replacement(Items::BUCKET, 1);
+
+        i32 spawnCountBefore = static_cast<i32>(world.spawnedEntityTypes().size());
+
+        // 传入 nullptr 库存指针
+        ItemStack result = DefaultDispenseItemBehavior::consumeWithRemainder(
+            world, dispenserPos, *dispenserState, original, replacement, nullptr);
+
+        // 原始物品减1后还剩1
+        EXPECT_FALSE(original.isEmpty());
+        EXPECT_EQ(original.getCount(), 1);
+        // 返回剩余的原始物品
+        EXPECT_EQ(result.getItem(), Items::WATER_BUCKET);
+        EXPECT_EQ(result.getCount(), 1);
+        // 替换物品被弹出到世界中
+        EXPECT_GT(world.spawnedEntityTypes().size(), static_cast<size_t>(spawnCountBefore));
+    }
+}
+
+TEST_F(DispenseBehaviorTest, AddToInventoryOrDispense_InventoryAcceptsItem)
+{
+    // addToInventoryOrDispense: 库存有空间，物品成功放入
+    using namespace mc::blocks;
+
+    DispenseTestWorld world;
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    BlockPos dispenserPos(0, 0, 0);
+
+    if (Items::BUCKET != nullptr) {
+        MockInventory inventory(9);
+        ItemStack itemToInsert(Items::BUCKET, 1);
+
+        // 库存为空，应该可以成功放入
+        DefaultDispenseItemBehavior::addToInventoryOrDispense(
+            world, dispenserPos, *dispenserState, itemToInsert, &inventory);
+
+        // 验证物品被放入库存
+        bool foundItem = false;
+        for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
+            ItemStack slotItem = inventory.getItem(i);
+            if (!slotItem.isEmpty() && slotItem.getItem() == Items::BUCKET) {
+                foundItem = true;
+                break;
+            }
+        }
+        EXPECT_TRUE(foundItem);
+    }
+}
+
+TEST_F(DispenseBehaviorTest, AddToInventoryOrDispense_InventoryFull_SpawnsEntity)
+{
+    // addToInventoryOrDispense: 库存已满，物品弹出到世界
+    using namespace mc::blocks;
+
+    DispenseTestWorld world;
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    BlockPos dispenserPos(0, 0, 0);
+
+    if (Items::BUCKET != nullptr && Items::STONE != nullptr) {
+        // 满库存
+        MockInventory inventory(9);
+        for (i32 i = 0; i < 9; ++i) {
+            inventory.setItem(i, ItemStack(Items::STONE, 64));
+        }
+
+        ItemStack itemToInsert(Items::BUCKET, 1);
+        i32 spawnCountBefore = static_cast<i32>(world.spawnedEntityTypes().size());
+
+        DefaultDispenseItemBehavior::addToInventoryOrDispense(
+            world, dispenserPos, *dispenserState, itemToInsert, &inventory);
+
+        // 替换物品被弹出到世界（生成了物品实体）
+        EXPECT_GT(world.spawnedEntityTypes().size(), static_cast<size_t>(spawnCountBefore));
+    }
+}
+
+TEST_F(DispenseBehaviorTest, AddToInventoryOrDispense_NullInventory_SpawnsEntity)
+{
+    // addToInventoryOrDispense: nullptr 库存，物品直接弹出到世界
+    using namespace mc::blocks;
+
+    DispenseTestWorld world;
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    BlockPos dispenserPos(0, 0, 0);
+
+    if (Items::BUCKET != nullptr) {
+        ItemStack itemToInsert(Items::BUCKET, 1);
+        i32 spawnCountBefore = static_cast<i32>(world.spawnedEntityTypes().size());
+
+        DefaultDispenseItemBehavior::addToInventoryOrDispense(
+            world, dispenserPos, *dispenserState, itemToInsert, nullptr);
+
+        // nullptr 库存，物品应该被弹出
+        EXPECT_GT(world.spawnedEntityTypes().size(), static_cast<size_t>(spawnCountBefore));
+    }
+}
+
+TEST_F(DispenseBehaviorTest, AddToInventoryOrDispense_EmptyStack_NoOp)
+{
+    // addToInventoryOrDispense: 空物品堆，不应产生任何操作
+    using namespace mc::blocks;
+
+    DispenseTestWorld world;
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    BlockPos dispenserPos(0, 0, 0);
+
+    MockInventory inventory(9);
+    ItemStack emptyStack;
+
+    i32 spawnCountBefore = static_cast<i32>(world.spawnedEntityTypes().size());
+
+    DefaultDispenseItemBehavior::addToInventoryOrDispense(world, dispenserPos, *dispenserState, emptyStack, &inventory);
+
+    // 空物品堆不应改变库存也不应生成实体
+    EXPECT_TRUE(inventory.isEmpty());
+    EXPECT_EQ(world.spawnedEntityTypes().size(), static_cast<size_t>(spawnCountBefore));
 }
 
 } // namespace test
