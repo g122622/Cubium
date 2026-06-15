@@ -5,7 +5,7 @@
         ##目录结构树
 
 ```text structure /
-├── Structure.hpp #结构基类定义（含 SpawnOverrides、BiomeTag 引用）
+├── Structure.hpp #结构基类定义（含 SpawnOverrides、BiomeTag 引用、typeToId/nameToStructureType 静态方法）
 ├── Structure.cpp #结构基类实现
 ├── StructureBoundingBox.hpp #结构边界框（用于判断片段与区块交集）
 ├── StructureBoundingBox.cpp
@@ -124,6 +124,8 @@ worldgen/processor_list/*.json→ ProcessorList (方块替换处理器)
     │  ├─ spawnOverrides() → SpawnOverrides*           │
     │  ├─ terrainAdaptation() → None/Bury/BeardThin/   │
     │  │                          BeardBox/Encapsulate │
+    │  ├─ typeToId(StructureType) → ResourceLocation   │
+    │  ├─ nameToStructureType(name) → optional<Type>   │
     │  ├─ generate() → StructureStart (仅创建片段)     │
     │  └─ placeInChunk() → 写入方块 (FEATURES 阶段)   │
     └──────────────────────────────────────────────────┘
@@ -160,7 +162,8 @@ worldgen/processor_list/*.json→ ProcessorList (方块替换处理器)
 |------|------|
 | `world/gen/chunk/NoiseChunkGenerator` | 区块生成器在三个阶段调用结构生成 |
 | `world/gen/density/Beardifier` | 结构地形平滑密度函数 |
-| `server/world/ServerWorld` | 世界初始化时调用注册 |
+| `server/world/ServerWorld` | 世界初始化时调用注册；`findNearestStructure()` 使用 `typeToId()` 查询注册表 |
+| `server/command/commands/LocateCommand` | `/locate` 命令使用 `nameToStructureType()` 解析玩家输入 |
 
 ## 容易踩的坑
 
@@ -230,4 +233,8 @@ return m_maxX >= chunkMinX && m_minX <= chunkMaxX &&
 
 ### 10. 资源位置标识
 
-所有结构现在使用 `ResourceLocation` 作为标识（如 `minecraft:village_plains`），替代旧的 `StructureType` 枚举。`StructureType` 作为兼容接口保留，后续将迁移完成。
+所有结构现在使用 `ResourceLocation` 作为标识（如 `minecraft:village_plains`），替代旧的 `StructureType` 枚举。`StructureType` 作为兼容接口保留，后续将迁移完成。使用 `Structure::typeToId()` 进行 `StructureType → ResourceLocation` 转换，使用 `Structure::nameToStructureType()` 进行反向转换（支持别名和 `minecraft:` 前缀）。
+
+### 11. StructureType 枚举与名称映射
+
+`StructureType::Temple` 是多个结构的兼容类型（沙漠神殿、丛林神庙、雪屋、沼泽小屋、下界化石共享此枚举值）。`nameToStructureType()` 的别名映射将这些子名称都映射到 `StructureType::Temple`，而 `typeToId(StructureType::Temple)` 统一返回 `minecraft:temple`。注意 `bastion_remnant` / `bastion` 均映射到 `StructureType::Bastion`，而 `typeToId` 返回 `minecraft:bastion_remnant`（而非 `minecraft:bastion`）。
