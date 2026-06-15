@@ -804,6 +804,8 @@ add_executable(mc_tests
     # 澹伴煶绯荤粺娴嬭瘯
     common/sound/SoundCategoryTest.cpp
     common/sound/test_sound_events.cpp
+    # JukeboxSong/JukeboxSongs/JukeboxSongPlayer 唱片机歌曲注册表与播放器测试
+    common/sound/jukebox/JukeboxSongTest.cpp
     client/sound/SoundTest.cpp
     client/sound/SoundRegistryTest.cpp
     client/sound/TickableSoundTest.cpp
@@ -1402,7 +1404,12 @@ target_sources(mc_tests
         # 澹伴煶绯荤粺 - Common
         ${CMAKE_SOURCE_DIR}/src/common/sound/SoundCategory.cpp
         ${CMAKE_SOURCE_DIR}/src/common/sound/SoundEvent.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/sound/SoundEvents.cpp
         ${CMAKE_SOURCE_DIR}/src/common/sound/network/SoundPackets.cpp
+        # Jukebox
+        ${CMAKE_SOURCE_DIR}/src/common/sound/jukebox/JukeboxSong.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/sound/jukebox/JukeboxSongs.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/sound/jukebox/JukeboxSongPlayer.cpp
         # Skin System
         ${CMAKE_SOURCE_DIR}/src/common/skin/core/SkinTypes.cpp
         ${CMAKE_SOURCE_DIR}/src/common/skin/core/GameProfile.cpp

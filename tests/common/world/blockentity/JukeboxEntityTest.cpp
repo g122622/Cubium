@@ -28,6 +28,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/special/MusicDiscItem.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/JukeboxEntity.hpp"
@@ -67,7 +68,11 @@ private:
 
 class JukeboxEntityTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite() { Items::initialize(); }
+    static void SetUpTestSuite()
+    {
+        Items::initialize();
+        JukeboxSongs::initialize();
+    }
 
     void SetUp() override
     {
@@ -167,10 +172,10 @@ TEST_F(JukeboxEntityTest, SetRecord_EmptyStopsPlaying)
     EXPECT_FALSE(jukebox_->hasRecord());
     EXPECT_FALSE(jukebox_->isPlaying());
 
-    // 应该广播停止事件 (data=0)
+    // 应该广播停止事件 STOP_RECORD_SOUND (data=0)
     ASSERT_FALSE(world_->playEventCalls().empty());
     const auto& call = world_->playEventCalls().back();
-    EXPECT_EQ(call.eventId, world::WorldEvents::PLAY_RECORD_SOUND);
+    EXPECT_EQ(call.eventId, world::WorldEvents::STOP_RECORD_SOUND);
     EXPECT_EQ(call.data, 0);
 }
 
@@ -204,10 +209,10 @@ TEST_F(JukeboxEntityTest, StopPlaying_WhenPlaying_BroadcastsStopEvent)
     jukebox_->stopPlaying(*world_);
     EXPECT_FALSE(jukebox_->isPlaying());
 
-    // 应该广播停止事件
+    // 应该广播停止事件 STOP_RECORD_SOUND
     ASSERT_FALSE(world_->playEventCalls().empty());
     const auto& call = world_->playEventCalls().back();
-    EXPECT_EQ(call.eventId, world::WorldEvents::PLAY_RECORD_SOUND);
+    EXPECT_EQ(call.eventId, world::WorldEvents::STOP_RECORD_SOUND);
     EXPECT_EQ(call.data, 0);
 }
 
@@ -378,7 +383,7 @@ TEST_F(JukeboxEntityTest, JSON_LoadPreservesTicksSinceSongStarted)
 
 // ========== clone 测试 ==========
 
-TEST_F(JukeboxEntityTest, Clone_CopiesRecordAndState)
+TEST_F(JukeboxEntityTest, Clone_CopiesRecordButNotPlayingState)
 {
     ItemStack disc(Items::MUSIC_DISC_PIGSTEP, 1);
     jukebox_->setRecord(disc, *world_);
@@ -387,9 +392,11 @@ TEST_F(JukeboxEntityTest, Clone_CopiesRecordAndState)
     auto* clonedJukebox = dynamic_cast<JukeboxEntity*>(cloned.get());
     ASSERT_NE(clonedJukebox, nullptr);
 
+    // 克隆实体会复制唱片物品，但不会恢复播放状态
+    // （因为克隆的实体不在世界中，无法重新播放声音）
     EXPECT_TRUE(clonedJukebox->hasRecord());
     EXPECT_EQ(clonedJukebox->getRecord().getItem(), Items::MUSIC_DISC_PIGSTEP);
-    EXPECT_EQ(clonedJukebox->isPlaying(), jukebox_->isPlaying());
+    EXPECT_FALSE(clonedJukebox->isPlaying()); // 克隆不恢复播放状态
 }
 
 TEST_F(JukeboxEntityTest, Clone_EmptyJukebox)
