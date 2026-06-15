@@ -34,7 +34,7 @@ Goal (基类)
 ├── LookForJobSiteGoal    ─── 就业相关
 ├── GatherItemsGoal       ─── 物品收集
 ├── AvoidHostileGoal      ─── 安全逃避
-├── VillagerBreedGoal     ─── 繁殖
+├── VillagerBreedGoal     ─── 繁殖（无床位时双亲广播VillagerAngry粒子+重置伙伴繁殖意愿）
 ├── CongregateGoal        ─┐
 ├── ShareItemsGoal        ─┼─ 社交互动
 └── LookAtEntitiesGoal    ─┘
@@ -65,6 +65,7 @@ Goal (基类)
 - `ItemDropHelper` - 物品掉落工具（生成掉落物实体）
 - `BlockRegistry` - 方块注册表（获取空气方块状态）
 - `BlockTags` - 方块标签系统（可替换方块判断）
+- `broadcastEntityStatus` / EntityPackets - 实体状态广播（VillagerBreedGoal无床位时广播VillagerAngry粒子）
 
 ## 容易踩的坑
 
@@ -89,3 +90,8 @@ Goal (基类)
 10. **Brain 记忆类型**：使用 `MemoryModuleTypes::HOME` 和 `MemoryModuleTypes::MEETING_POINT` 时需确保 Brain 系统已正确初始化这些记忆模块。
 
 11. **VillagerGoalUtils 共享函数**：`isWithinDistance()` 和 `distanceToBlockCenter()` 被4个目标类共享（SleepAtNightGoal、WorkAtJobSiteGoal、GoToBedGoal、LookForJobSiteGoal），`throwHalfStackToTarget()` 被2个目标类共享（CongregateGoal、ShareItemsGoal）。修改这些函数时需注意影响范围。
+
+12. **VillagerBreedGoal 无床位失败处理**：当繁殖条件满足但没有可用床位时：
+    - **双亲愤怒粒子**：对**两个**亲代村民都广播 `VillagerAngry` 粒子（status 13），而非仅广播一个。这是因为繁殖失败对双方都是负面反馈。
+    - **伙伴繁殖意愿重置**：在无床位分支中，除了重置当前村民的繁殖意愿外，还必须重置伙伴的繁殖意愿（调用 `setWillingToMate(false)`），否则伙伴会持续尝试繁殖导致 AI 循环。
+    - 依赖 `broadcastEntityStatus()` 发送粒子状态，客户端通过 `EntityPackets` 接收并渲染。

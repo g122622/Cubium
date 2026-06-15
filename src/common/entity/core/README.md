@@ -33,7 +33,7 @@ src/common/entity/core/
 ```
 继承层次：
 Entity（基类：位置、运动、碰撞、火焰、流体检测）
-├── LivingEntity（生命值、装备、药水效果、击退、空气供应）
+├── LivingEntity（生命值、装备、药水效果、击退、空气供应、setLastHurtBy虚方法）
 │   ├── MobEntity（AI系统、目标选择、控制器、日光检测）
 │   │   ├── CreatureEntity（陆地移动、寻路）
 │   │   │   ├── AgeableEntity（成长系统）
@@ -279,3 +279,8 @@ finalizeSpawn(world, difficulty, spawnReason)
   - `BreezeEntity::canAttackType()` — 白名单模式，仅允许攻击玩家和铁傀儡
 - 在 `TargetGoal::isSuitableTarget()` 中自动调用，所有目标选择器继承此过滤逻辑
 - 自定义目标选择器（如 `IronGolemNearestAttackableTargetGoal`）需手动调用 `canAttackType()`
+
+### setLastHurtBy 虚方法
+- `LivingEntity::setLastHurtBy()` 现为 `virtual` 方法，允许子类在受到其他实体攻击时执行自定义逻辑
+- **子类覆写时必须调用基类实现** `LivingEntity::setLastHurtBy()`，否则基类的 `m_lastHurtByPlayer`、`m_lastHurtByMob`、`m_lastHurtByPlayerAtTime` 等字段不会更新，可能导致依赖这些字段的逻辑（如复仇目标选择、击退方向等）失效
+- 典型覆写示例：`VillagerEntity::setLastHurtBy()` 在被玩家攻击时，调用基类实现后额外广播 `VillagerAngry` 粒子并添加 `MinorNegative` 流言

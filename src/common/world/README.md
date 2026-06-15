@@ -299,3 +299,9 @@ world/
 ### 12. canSeeSky 实现
 **问题**：错误假设 `canSeeSky()` 只检查顶部是否有方块。
 **解决**：实际基于天空光照 >= 15 判断，正确处理透明方块（玻璃、水）和部分方块（台阶、楼梯）。
+
+### 13. IWorld::raidManager() 接口
+- `IWorld` 新增虚方法 `raidManager()`，返回袭击管理器指针（`RaidManager*`）
+- `ServerWorld` 覆写实现，返回实际的 `m_raidManager`
+- 客户端世界（`ClientWorld`）返回 `nullptr`，不触发袭击相关逻辑
+- 典型使用场景：`VillagerEntity::tick()` 通过 `world->raidManager()` 检查当前区域是否有活跃袭击，若有则广播恐慌粒子

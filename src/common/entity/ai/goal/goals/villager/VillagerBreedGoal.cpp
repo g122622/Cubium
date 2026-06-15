@@ -249,6 +249,14 @@ void VillagerBreedGoal::_spawnChild()
             if (entity != nullptr && entity->isAlive()) {
                 m_villager->world()->broadcastEntityStatus(
                     entity->id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerAngry));
+
+                // MC原版在tryToGiveBirth之前就对双方调用eatAndDigestFood()消耗食物意愿。
+                // 本项目使用布尔标志m_willingToBreed替代食物点数系统，
+                // 因此需要同时重置配偶的繁殖意愿，防止配偶立即再次尝试繁殖。
+                VillagerEntity* partnerVillager = dynamic_cast<VillagerEntity*>(entity);
+                if (partnerVillager != nullptr) {
+                    partnerVillager->resetBreedWillingness();
+                }
             }
         }
     } else {

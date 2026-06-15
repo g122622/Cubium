@@ -43,7 +43,9 @@ AbstractVillagerEntity (抽象村民基类)
 │   ├── allowedToRestock() — 每日补货许可（首次允许，第二次需间隔2400tick）
 │   ├── _catchUpDemand() — 跨天需求补偿（昨日少于2次补货时补偿）
 │   ├── 功能: 职业系统、工作站点、睡眠系统、流言传播
-│   └── tick()中处理: 升级计时器（40 tick后升级+再生效果）、交易声望更新
+│   ├── tick()中处理: 升级计时器（40 tick后升级+再生效果）、交易声望更新
+│   ├── setLastHurtBy()覆写: 被玩家攻击时广播VillagerAngry粒子(status 13)+添加MinorNegative流言
+│   └── tick()中处理: 袭击期间RaidManager检测，广播VillagerSplash粒子(status 42, 1/100概率/tick)
 │
 └── WanderingTraderEntity (流浪商人)
     ├── rewardTradeXp() — 生成经验球给玩家（3+random(4)，无升级加成）
@@ -60,6 +62,7 @@ AbstractVillagerEntity (抽象村民基类)
 - `entity/experience/ExperienceDropHandler.hpp` - 经验球生成工具类
 - `world/village/trade/` - MerchantOffers, MerchantOffer, IMerchant 交易系统
 - `world/village/poi/` - PointOfInterestType 工作站 POI 类型
+- `world/village/raid/` - RaidManager 袭击管理器（村民tick()中检测袭击并广播恐慌粒子）
 - `world/blockentity/core/SimpleInventory.hpp` - 简单库存实现
 - `world/IWorld.hpp` - 世界接口（onVillagerTrade 事件桥接）
 
@@ -203,6 +206,21 @@ VillagerEntity 提供基于库存食物点数的分享和繁殖判断：
 
 - `AbstractVillagerEntity::stillValid()` 使用 `distanceSqTo()` 与平方阈值 `64.0f` 比较（等价于 8 格距离）
 - 避免使用 `distanceTo()` 进行距离检测，`distanceSqTo()` 无需计算平方根，性能更优
+
+### setLastHurtBy 覆写（被攻击时的愤怒反应）
+
+- `VillagerEntity` 覆写了 `LivingEntity::setLastHurtBy()`，当村民被玩家攻击时触发两个效果：
+  1. 广播 `VillagerAngry` 粒子（status 13），客户端渲染愤怒粒子效果
+  2. 向攻击者添加 `MinorNegative` 流言（`VillageGossipType::MinorNegative`），降低交易价格
+- 覆写方法中**必须调用基类实现** `LivingEntity::setLastHurtBy()`，否则 `lastHurtByPlayer` 等基类字段不会更新
+- 仅在攻击者为玩家时触发流言和粒子，非玩家攻击者只走基类逻辑
+
+### 袭击恐慌粒子（Raid Panic）
+
+- `VillagerEntity::tick()` 中检查 `RaidManager` 是否存在活跃袭击
+- 当村民所在区域有活跃袭击时，每 tick 有 1/100 概率广播 `VillagerSplash` 粒子（status 42）
+- 依赖 `IWorld::raidManager()` 获取袭击管理器，客户端世界返回 `nullptr`（不触发）
+- 对应 MC 1.16.5 中村民在袭击期间显示汗滴/飞溅粒子的行为
 
 ## 参考
 
