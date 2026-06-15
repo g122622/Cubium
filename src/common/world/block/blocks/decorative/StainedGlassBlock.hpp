@@ -46,17 +46,6 @@ public:
     StainedGlassBlock(BlockProperties properties, DyeColor color);
 
     /**
-     * @brief 是否为固体
-     *
-     * 玻璃不是固体方块。
-     */
-    [[nodiscard]] bool isSolid(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return false;
-    }
-
-    /**
      * @brief 获取信标光束颜色
      *
      * 实现 IBeaconBeamColorProvider 接口。

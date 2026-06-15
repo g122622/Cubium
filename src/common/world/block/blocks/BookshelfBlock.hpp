@@ -54,11 +54,6 @@ public:
      */
     ~BookshelfBlock() override = default;
 
-    /**
-     * @brief 是否为固体
-     */
-    [[nodiscard]] bool isSolid(const BlockState& state) const override;
-
     // ========== 放置和移除 ==========
 
     /**

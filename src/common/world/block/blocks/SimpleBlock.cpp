@@ -38,10 +38,4 @@ SimpleBlock::SimpleBlock(BlockProperties properties)
     createBlockState(std::move(container));
 }
 
-bool SimpleBlock::isSolid(const BlockState& state) const
-{
-    (void)state;
-    return material().isSolid();
-}
-
 } // namespace mc

@@ -46,14 +46,6 @@ BookshelfBlock::BookshelfBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 }
 
-// ========== 固体判断 ==========
-
-bool BookshelfBlock::isSolid(const BlockState& state) const
-{
-    MC_UNUSED(state);
-    return material().isSolid();
-}
-
 // ========== 放置和移除 ==========
 
 void BookshelfBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)

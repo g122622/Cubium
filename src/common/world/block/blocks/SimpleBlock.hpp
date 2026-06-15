@@ -39,11 +39,6 @@ public:
      * @brief 构造简单方块
      */
     explicit SimpleBlock(BlockProperties properties);
-
-    /**
-     * @brief 是否为固体
-     */
-    [[nodiscard]] bool isSolid(const BlockState& state) const override;
 };
 
 } // namespace mc

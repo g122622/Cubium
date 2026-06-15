@@ -56,12 +56,6 @@ bool AirBlock::isAir(const BlockState& state) const
     return true;
 }
 
-bool AirBlock::isSolid(const BlockState& state) const
-{
-    (void)state;
-    return false;
-}
-
 bool AirBlock::isOpaque(const BlockState& state) const
 {
     (void)state;

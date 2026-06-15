@@ -56,11 +56,6 @@ public:
     [[nodiscard]] bool isAir(const BlockState& state) const override;
 
     /**
-     * @brief 是否为固体（始终返回false）
-     */
-    [[nodiscard]] bool isSolid(const BlockState& state) const override;
-
-    /**
      * @brief 是否不透明（始终返回false）
      */
     [[nodiscard]] bool isOpaque(const BlockState& state) const override;

@@ -2025,6 +2025,7 @@ protected:
     u8 m_lightLevel = 0;
     i32 m_opacity = 15; // 默认完全不透明
     bool m_hasCollision = true;
+    bool m_isSolid = true;
     bool m_isFlammable = false;
     bool m_propagatesSkylightDown = false;
     bool m_requiresTool = false;

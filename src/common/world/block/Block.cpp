@@ -193,6 +193,7 @@ Block::Block(BlockProperties properties)
     , m_lightLevel(properties.m_lightLevel)
     , m_opacity(properties.m_opacity)
     , m_hasCollision(properties.m_hasCollision)
+    , m_isSolid(properties.m_isSolid)
     , m_isFlammable(properties.m_isFlammable)
     , m_propagatesSkylightDown(properties.m_propagatesSkylightDown)
     , m_requiresTool(properties.m_requiresTool)
@@ -311,7 +312,7 @@ bool Block::isAir(const BlockState& state) const
 bool Block::isSolid(const BlockState& state) const
 {
     (void)state;
-    return m_material->isSolid();
+    return m_isSolid;
 }
 
 bool Block::isOpaque(const BlockState& state) const
@@ -445,7 +446,7 @@ bool Block::isSolidSide(const BlockState& state, IWorld& world, const BlockPos& 
     (void)world;
     (void)pos;
     (void)side;
-    return m_material->isSolid() && m_hasCollision;
+    return m_isSolid && m_hasCollision;
 }
 
 const BlockState& Block::rotate(const BlockState& state, Rotation rotation) const
