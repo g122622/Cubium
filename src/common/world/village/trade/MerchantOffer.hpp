@@ -138,6 +138,14 @@ public:
     [[nodiscard]] bool isOutOfStock() const noexcept { return m_uses >= m_maxUses; }
 
     /**
+     * @brief 是否需要补货（交易被使用过即视为需要补货）
+     *
+     * MC原版逻辑：只要交易被使用过（uses > 0），就视为需要补货。
+     * 这使得村民在工作时会补充所有已被使用过的交易，而不仅仅是售罄的交易。
+     */
+    [[nodiscard]] bool needsRestock() const noexcept { return m_uses > 0; }
+
+    /**
      * @brief 是否禁用（售罄且无法补货）
      */
     [[nodiscard]] bool isDisabled() const;
@@ -214,6 +222,16 @@ public:
      * @param demandBonus 需求加成
      */
     void applyDemand(i32 demandBonus);
+
+    /**
+     * @brief 更新需求值
+     *
+     * MC原版逻辑：demand = demand + uses - (maxUses - uses)
+     * 如果交易被大量使用（uses > maxUses/2），需求增加（价格上涨）；
+     * 如果交易使用较少（uses < maxUses/2），需求减少（价格下降）。
+     * 调整后重新计算特殊价格：specialPrice = demand * priceMultiplier
+     */
+    void updateDemand();
 
     /**
      * @brief 获取调整后的买入价格

@@ -88,6 +88,30 @@ void MerchantOffers::restockAll()
     }
 }
 
+void MerchantOffers::updateDemandAll()
+{
+    for (auto& offer : m_offers) {
+        offer->updateDemand();
+    }
+}
+
+bool MerchantOffers::needsRestockAny() const
+{
+    for (const auto& offer : m_offers) {
+        if (offer->needsRestock()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void MerchantOffers::resetDailyRestockAll()
+{
+    for (auto& offer : m_offers) {
+        offer->resetDailyRestock();
+    }
+}
+
 void MerchantOffers::updatePrices(f32 modifier)
 {
     for (auto& offer : m_offers) {

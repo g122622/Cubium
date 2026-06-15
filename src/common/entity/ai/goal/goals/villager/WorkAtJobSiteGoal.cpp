@@ -99,14 +99,22 @@ void WorkAtJobSiteGoal::tick()
     if (isWithinDistance(m_villager, workPos, 2.0f)) {
         m_atJobSite = true;
         _doWork();
+
+        // MC原版 WorkAtPoi：在工作站点时检查补货，有300tick冷却
+        // shouldRestock() 内部也包含跨天检测和每日2次补货限制
+        IWorld* world = m_villager->world();
+        if (world) {
+            i64 currentTime = static_cast<i64>(world->currentTick());
+            if (currentTime >= m_lastRestockCheckTime + RESTOCK_CHECK_COOLDOWN) {
+                if (_needsRestock()) {
+                    _restock();
+                }
+                m_lastRestockCheckTime = currentTime;
+            }
+        }
     } else {
         m_atJobSite = false;
         _moveToJobSite();
-    }
-
-    // 检查补货
-    if (_needsRestock()) {
-        _restock();
     }
 }
 
@@ -147,16 +155,24 @@ bool WorkAtJobSiteGoal::_needsRestock() const
 {
     if (!m_villager) return false;
 
-    // 检查交易是否需要补货
-    // TODO: 检查交易使用次数
-    return false;
+    // MC原版 WorkAtPoi.start() 中的补货检查：
+    // 委托给 VillagerEntity::shouldRestock()，包含完整逻辑：
+    // - 跨天检测（12000tick 或新游戏日）与每日补货次数重置
+    // - 允许补货检查（每日最多2次，第二次需间隔2400tick）
+    // - 需要补货检查（任意交易被使用过）
+    return m_villager->shouldRestock();
 }
 
 void WorkAtJobSiteGoal::_restock()
 {
     if (!m_villager) return;
 
-    m_villager->restockTrades();
+    // 委托给 VillagerEntity::restock()，执行完整的补货流程：
+    // 1. 更新所有交易的需求值
+    // 2. 重置所有交易的使用次数
+    // 3. 记录补货时间
+    // 4. 增加今日补货次数
+    m_villager->restock();
 }
 
 } // namespace villager

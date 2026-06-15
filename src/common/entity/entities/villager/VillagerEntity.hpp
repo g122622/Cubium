@@ -295,6 +295,55 @@ public:
      */
     void restockTrades();
 
+    // ========== 补货系统 ==========
+
+    /**
+     * @brief 检查村民是否应该补货
+     *
+     * MC原版 Villager.shouldRestock() 逻辑：
+     * 1. 检测是否跨天（距上次补货超过12000tick 或 新的一天开始），若跨天则重置每日补货次数
+     * 2. 判断是否允许补货（今日补货次数 < 2，且第二次补货需间隔2400tick）
+     * 3. 判断是否需要补货（任意交易被使用过）
+     * @return 是否应该补货
+     */
+    [[nodiscard]] bool shouldRestock();
+
+    /**
+     * @brief 执行补货
+     *
+     * MC原版 Villager.restock() 逻辑：
+     * 1. 更新所有交易的需求值
+     * 2. 重置所有交易的使用次数
+     * 3. 向正在交易的玩家重新发送交易列表
+     * 4. 记录补货时间
+     * 5. 增加今日补货次数
+     */
+    void restock() override;
+
+    /**
+     * @brief 检查是否有交易需要补货
+     * @return 任意交易被使用过则返回true
+     */
+    [[nodiscard]] bool needsToRestock() const;
+
+    /**
+     * @brief 检查是否允许补货
+     *
+     * MC原版逻辑：
+     * - 今日首次补货总是允许
+     * - 第二次补货需要距离上次补货至少2400tick（2分钟）
+     * - 每日最多补货2次
+     */
+    [[nodiscard]] bool allowedToRestock() const;
+
+    /**
+     * @brief 重置每日补货次数
+     *
+     * 同时补偿错过的补货需求更新（catchUpDemand）。
+     * MC原版逻辑：如果昨日补货少于2次，对每次未补货执行额外的 resetUses + updateDemand。
+     */
+    void resetNumberOfRestocks();
+
     // ========== 睡眠 ==========
 
     /**
@@ -348,7 +397,9 @@ private:
     // 行为状态
     i32 m_workTime = 0;
     i32 m_lastRestock = 0;
-    bool m_needsRestock = false;
+    i32 m_numberOfRestocksToday = 0; // 今日补货次数（最多2次）
+    i64 m_lastRestockGameTime = 0;   // 上次补货的游戏时间（tick）
+    i64 m_lastRestockCheckDay = 0;   // 上次检查补货的游戏天数
 
     // 声音冷却
     i32 m_soundCooldown = 0;
@@ -388,6 +439,15 @@ private:
      * 注意：此方法仅追加新等级的交易，不替换现有交易。
      */
     void _increaseMerchantCareer();
+
+    /**
+     * @brief 补偿错过的需求更新
+     *
+     * MC原版 catchUpDemand 逻辑：
+     * 如果昨日补货少于2次，对每次未补货执行 resetUses + updateDemand。
+     * 这确保交易需求值在跨天后正确反映交易历史。
+     */
+    void _catchUpDemand();
 };
 
 /**

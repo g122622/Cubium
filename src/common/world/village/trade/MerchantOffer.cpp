@@ -219,6 +219,15 @@ void MerchantOffer::applyDemand(i32 demandBonus)
     m_specialPrice = static_cast<i32>(m_demand * m_priceMultiplier);
 }
 
+void MerchantOffer::updateDemand()
+{
+    // MC原版逻辑：demand = demand + uses - (maxUses - uses)
+    // 即 demand += 2 * uses - maxUses
+    // 使用次数超过一半时需求增加（价格上涨），反之需求减少（价格下降）
+    m_demand = m_demand + m_uses - (m_maxUses - m_uses);
+    m_specialPrice = static_cast<i32>(m_demand * m_priceMultiplier);
+}
+
 i32 MerchantOffer::getAdjustedBuyPrice() const noexcept
 {
     i32 basePrice = m_buyA.getCount();

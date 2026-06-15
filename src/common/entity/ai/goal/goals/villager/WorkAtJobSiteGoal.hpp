@@ -80,11 +80,23 @@ protected:
 
     /**
      * @brief 检查是否需要补货
+     *
+     * MC原版 WorkAtPoi 行为中在 start() 时检查 shouldRestock()。
+     * 委托给 VillagerEntity::shouldRestock()，包含完整的补货判定逻辑：
+     * - 跨天检测与每日补货次数重置
+     * - 每日最多补货2次（第二次需间隔2400tick）
+     * - 任意交易被使用过则需要补货
      */
     [[nodiscard]] bool _needsRestock() const;
 
     /**
      * @brief 执行补货
+     *
+     * 委托给 VillagerEntity::restock()，包含完整补货逻辑：
+     * - 更新所有交易的需求值
+     * - 重置所有交易的使用次数
+     * - 记录补货时间
+     * - 增加今日补货次数
      */
     void _restock();
 
@@ -94,9 +106,10 @@ protected:
 private:
     i32 m_workTicks = 0;
     bool m_atJobSite = false;
-    i32 m_lastRestockDay = -1;                 // 上次补货的游戏日
-    static constexpr i32 WORK_TICKS_MIN = 100; // 最小工作时间
-    static constexpr i32 WORK_TICKS_MAX = 600; // 最大工作时间
+    i64 m_lastRestockCheckTime = 0;                     // 上次检查补货的游戏时间
+    static constexpr i32 WORK_TICKS_MIN = 100;          // 最小工作时间
+    static constexpr i32 WORK_TICKS_MAX = 600;          // 最大工作时间
+    static constexpr i64 RESTOCK_CHECK_COOLDOWN = 300L; // 补货检查冷却（tick），MC原版300tick
 };
 
 } // namespace villager

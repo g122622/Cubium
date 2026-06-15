@@ -94,6 +94,25 @@ public:
     void restockAll();
 
     /**
+     * @brief 更新所有交易的需求值
+     *
+     * MC原版逻辑：对每个交易调用 updateDemand()，
+     * 根据交易使用情况调整需求值和价格。
+     */
+    void updateDemandAll();
+
+    /**
+     * @brief 检查是否有交易需要补货
+     * @return 如果有任何交易被使用过（uses > 0）则返回true
+     */
+    [[nodiscard]] bool needsRestockAny() const;
+
+    /**
+     * @brief 重置所有交易的每日补货计数
+     */
+    void resetDailyRestockAll();
+
+    /**
      * @brief 更新价格（基于声誉）
      */
     void updatePrices(f32 modifier);

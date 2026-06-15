@@ -302,11 +302,9 @@ void VillagerEntity::work()
     m_working = true;
     m_workTime++;
 
-    // 检查是否需要补货
-    if (m_needsRestock || m_workTime % 24000 == 0) {
-        restockTrades();
-        m_needsRestock = false;
-    }
+    // MC原版 WorkAtPoi 行为：在工作站点时检查是否需要补货
+    // 补货检查由 WorkAtJobSiteGoal::tick() 通过 shouldRestock() 触发，
+    // 此处不再直接处理补货逻辑，避免与 Goal 层的补货逻辑冲突。
 }
 
 void VillagerEntity::play()
@@ -454,6 +452,106 @@ void VillagerEntity::restockTrades()
         m_offers->restockAll();
     }
     m_lastRestock = m_workTime;
+}
+
+// ========== 补货系统 ==========
+
+bool VillagerEntity::shouldRestock()
+{
+    if (!m_world) return false;
+
+    // MC原版 Villager.shouldRestock() 逻辑：
+    // 1. 检测是否跨天（距上次补货超过12000tick 或 新的游戏日开始）
+    // 2. 若跨天，重置每日补货次数（同时补偿需求更新）
+    // 3. 返回 allowedToRestock() && needsToRestock()
+
+    const i64 gameTime = static_cast<i64>(m_world->currentTick());
+
+    // 检测是否跨天：距上次补货超过12000tick（10分钟）或新的游戏日开始
+    bool dayRollover = false;
+    {
+        const i64 lastRestockThreshold = m_lastRestockGameTime + 12000L;
+        const bool timeThreshold = gameTime > lastRestockThreshold;
+
+        // 游戏天数 = dayTime / 24000
+        const i64 currentDay = m_world->dayTime() / 24000L;
+        const bool newDay = m_lastRestockCheckDay > 0L && currentDay > m_lastRestockCheckDay;
+
+        dayRollover = timeThreshold || newDay;
+        m_lastRestockCheckDay = currentDay;
+    }
+
+    if (dayRollover) {
+        m_lastRestockGameTime = gameTime;
+        resetNumberOfRestocks();
+    }
+
+    return allowedToRestock() && needsToRestock();
+}
+
+void VillagerEntity::restock()
+{
+    // MC原版 Villager.restock() 逻辑：
+    // 1. 更新所有交易的需求值
+    // 2. 重置所有交易的使用次数
+    // 3. 记录补货时间
+    // 4. 增加今日补货次数
+    if (m_offers) {
+        m_offers->updateDemandAll();
+        m_offers->restockAll();
+    }
+
+    m_lastRestockGameTime = m_world ? static_cast<i64>(m_world->currentTick()) : 0LL;
+    ++m_numberOfRestocksToday;
+}
+
+bool VillagerEntity::needsToRestock() const
+{
+    // MC原版 Villager.needsToRestock()：任意交易被使用过则需要补货
+    if (!m_offers) return false;
+    return m_offers->needsRestockAny();
+}
+
+bool VillagerEntity::allowedToRestock() const
+{
+    // MC原版 Villager.allowedToRestock()：
+    // - 今日首次补货总是允许
+    // - 第二次补货需要距上次补货至少2400tick（2分钟）
+    // - 每日最多补货2次
+    if (m_numberOfRestocksToday == 0) {
+        return true;
+    }
+    if (m_numberOfRestocksToday < 2) {
+        const i64 gameTime = m_world ? static_cast<i64>(m_world->currentTick()) : 0LL;
+        return gameTime > m_lastRestockGameTime + 2400L;
+    }
+    return false;
+}
+
+void VillagerEntity::resetNumberOfRestocks()
+{
+    _catchUpDemand();
+    m_numberOfRestocksToday = 0;
+}
+
+void VillagerEntity::_catchUpDemand()
+{
+    // MC原版 Villager.catchUpDemand()：
+    // 如果昨日补货少于2次，对每次未补货执行额外的 resetUses + updateDemand
+    if (!m_offers) return;
+
+    const i32 missedRestocks = 2 - m_numberOfRestocksToday;
+    if (missedRestocks > 0) {
+        // 对每次错过的补货，重置使用次数并更新需求
+        for (i32 i = 0; i < missedRestocks; ++i) {
+            m_offers->restockAll();
+        }
+    }
+
+    // 对每次错过的补货，更新需求值
+    for (i32 i = 0; i < missedRestocks; ++i) {
+        m_offers->updateDemandAll();
+    }
 }
 
 // ========== 睡眠相关 ==========
