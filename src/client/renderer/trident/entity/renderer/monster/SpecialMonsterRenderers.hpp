@@ -328,6 +328,7 @@ public:
     {
         auto& witch = static_cast<::mc::WitchEntity&>(entity);
         m_model.setHoldingItem(witch.isDrinking());
+        m_model.setEntityId(static_cast<i32>(witch.id()));
         LivingRenderer::render(entity, partialTicks);
     }
 

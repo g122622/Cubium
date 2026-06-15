@@ -96,9 +96,8 @@ void WitchModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f
 
     // ====== 女巫特有的鼻子动画 ======
     // 鼻子根据 entityId 取模产生不同的摆动频率，使每个女巫的鼻子摆动略有不同
-    // TODO: 当前使用固定频率0.05，MC原版使用 0.01 * (entityId % 10) 动态频率，
-    //       使每个女巫鼻子摆动略有不同。待模型接口支持传递entityId后替换为动态频率
-    constexpr f32 noseFrequency = 0.05f;
+    // MC原版: frequency = 0.01F * (entityId % 10)，频率范围 [0.0, 0.09]
+    const f32 noseFrequency = 0.01f * static_cast<f32>(m_entityId % 10);
     m_nose->setRotateAngleX(static_cast<f32>(std::sin(ageInTicks * noseFrequency) * 4.5 * (mc::math::PI / 180.0)));
     m_nose->setRotateAngleZ(static_cast<f32>(std::cos(ageInTicks * noseFrequency) * 2.5 * (mc::math::PI / 180.0)));
 

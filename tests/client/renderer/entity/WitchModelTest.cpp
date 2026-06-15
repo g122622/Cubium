@@ -199,6 +199,21 @@ TEST_F(WitchModelConstructionTest, HoldingItemDefaultsToFalse)
     EXPECT_FALSE(m_model->isHoldingItem());
 }
 
+TEST_F(WitchModelConstructionTest, EntityIdDefaultsToZero)
+{
+    // 默认实体ID为0
+    EXPECT_EQ(m_model->entityId(), 0);
+}
+
+TEST_F(WitchModelConstructionTest, SetEntityIdWorks)
+{
+    m_model->setEntityId(42);
+    EXPECT_EQ(m_model->entityId(), 42);
+
+    m_model->setEntityId(7);
+    EXPECT_EQ(m_model->entityId(), 7);
+}
+
 /**
  * @brief 女巫模型动画测试夹具
  */
@@ -214,29 +229,73 @@ protected:
 TEST_F(WitchModelAnimationTest, NoseWobblesWhenNotHoldingItem)
 {
     // 不持有物品时，鼻子应该根据 ageInTicks 产生微小的摆动
+    // MC原版频率公式: 0.01 * (entityId % 10)
+    // entityId=5 时频率为 0.05，与旧版固定值一致
     constexpr f64 kModelScale = 1.0 / 16.0;
 
-    // 设置 setAngles，验证鼻子的旋转值不是0（有摆动动画）
+    m_model->setEntityId(5);
     m_model->setAngles(0.0, 0.0, 100.0, 0.0, 0.0, kModelScale);
 
     auto nose = m_model->getNose();
     ASSERT_NE(nose, nullptr);
 
     // 鼻子应该有 X 和 Z 轴的旋转（摆动动画）
-    // 使用固定频率 0.05，ageInTicks=100 时：
+    // 使用频率 0.05，ageInTicks=100 时：
     // xRot = sin(100 * 0.05) * 4.5 * (PI/180) ≈ sin(5) * 0.0785 ≈ -0.0757
     // zRot = cos(100 * 0.05) * 2.5 * (PI/180) ≈ cos(5) * 0.0436 ≈ 0.0173
     EXPECT_NE(nose->rotateAngleX(), 0.0);
     EXPECT_NE(nose->rotateAngleZ(), 0.0);
 }
 
+TEST_F(WitchModelAnimationTest, NoseNoWobbleWhenEntityIdMod10IsZero)
+{
+    // MC原版中 entityId % 10 == 0 时频率为0，鼻子不摆动
+    constexpr f64 kModelScale = 1.0 / 16.0;
+
+    m_model->setEntityId(0); // 0 % 10 == 0，频率为0
+    m_model->setAngles(0.0, 0.0, 100.0, 0.0, 0.0, kModelScale);
+
+    auto nose = m_model->getNose();
+    ASSERT_NE(nose, nullptr);
+
+    // 频率为0时，sin(0) = 0, cos(0) = 1
+    // xRot = sin(0) * 4.5 * (PI/180) = 0
+    // zRot = cos(0) * 2.5 * (PI/180) ≈ 0.0436
+    EXPECT_DOUBLE_EQ(nose->rotateAngleX(), 0.0);
+    EXPECT_NEAR(nose->rotateAngleZ(), 2.5 * (3.14159265358979323846 / 180.0), 1e-6);
+}
+
+TEST_F(WitchModelAnimationTest, NoseWobbleFrequencyVariesByEntityId)
+{
+    // 不同 entityId 产生不同的鼻子摆动频率
+    constexpr f64 kModelScale = 1.0 / 16.0;
+
+    // entityId=1: 频率=0.01, ageInTicks=100 → sin(1.0)*4.5*(PI/180)
+    m_model->setEntityId(1);
+    m_model->setAngles(0.0, 0.0, 100.0, 0.0, 0.0, kModelScale);
+    f32 rotX_id1 = m_model->getNose()->rotateAngleX();
+    f32 rotZ_id1 = m_model->getNose()->rotateAngleZ();
+
+    // entityId=9: 频率=0.09, ageInTicks=100 → sin(9.0)*4.5*(PI/180)
+    m_model->setEntityId(9);
+    m_model->setAngles(0.0, 0.0, 100.0, 0.0, 0.0, kModelScale);
+    f32 rotX_id9 = m_model->getNose()->rotateAngleX();
+    f32 rotZ_id9 = m_model->getNose()->rotateAngleZ();
+
+    // 不同的 entityId 应产生不同的旋转值
+    EXPECT_NE(rotX_id1, rotX_id9);
+    EXPECT_NE(rotZ_id1, rotZ_id9);
+}
+
 TEST_F(WitchModelAnimationTest, NoseWobbleAmplitudeIsSmall)
 {
     // 鼻子摆动幅度应该很小（4.5度和2.5度）
+    // 使用 entityId=5 以获得非零频率 (0.05)
     constexpr f64 kModelScale = 1.0 / 16.0;
 
     // 使用不同的 ageInTicks 值测试多个时间点
     for (f64 ageInTicks = 0.0; ageInTicks < 200.0; ageInTicks += 50.0) {
+        m_model->setEntityId(5);
         m_model->setAngles(0.0, 0.0, ageInTicks, 0.0, 0.0, kModelScale);
 
         auto nose = m_model->getNose();

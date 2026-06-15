@@ -68,6 +68,19 @@ public:
     [[nodiscard]] bool isHoldingItem() const { return m_holdingItem; }
 
     /**
+     * @brief 设置实体ID
+     *
+     * 实体ID用于计算每个女巫独特的鼻子摆动频率，
+     * 频率公式为 0.01 * (entityId % 10)，与MC原版一致。
+     */
+    void setEntityId(i32 entityId) { m_entityId = entityId; }
+
+    /**
+     * @brief 获取实体ID
+     */
+    [[nodiscard]] i32 entityId() const { return m_entityId; }
+
+    /**
      * @brief 获取鼻子模型部件
      */
     [[nodiscard]] std::shared_ptr<ModelRenderer> getNose() const { return m_nose; }
@@ -84,6 +97,7 @@ private:
 
     // 状态
     bool m_holdingItem = false;
+    i32 m_entityId = 0;
 };
 
 } // namespace mc::client::renderer::entity::model::monster
