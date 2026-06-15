@@ -31,6 +31,9 @@
 #include "../../../entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "../../../entity/entities/vehicle/BoatEntity.hpp"
 #include "../../../item/Items.hpp"
+#include "../../../item/items/special/BoneMealItem.hpp"
+#include "../../../item/items/special/BucketItem.hpp"
+#include "../../../item/items/special/FlintAndSteelItem.hpp"
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../util/math/Vector3.hpp"
@@ -38,6 +41,12 @@
 #include "../../../util/property/Properties.hpp"
 #include "../../IWorld.hpp"
 #include "../../WorldEvents.hpp"
+#include "../../block/Block.hpp"
+#include "../../block/IBucketPickupHandler.hpp"
+#include "../../block/ILiquidContainer.hpp"
+#include "../../block/blocks/nether/FireBlock.hpp"
+#include "../../block/blocks/redstone/TNTBlock.hpp"
+#include "../../block/registry/VanillaBlocks.hpp"
 #include "../../fluid/Fluid.hpp"
 #include "../../fluid/FluidRegistry.hpp"
 #include "../../fluid/FluidTags.hpp"
@@ -147,6 +156,35 @@ void DefaultDispenseItemBehavior::_spawnParticles(IWorld& world, const BlockPos&
         // 服务端通过世界事件广播粒子
         world.playEvent(world::WorldEvents::DISPENSER_SMOKE, pos, static_cast<i32>(direction));
     }
+}
+
+void DefaultDispenseItemBehavior::_spawnItemEntity(
+    IWorld& world, const BlockPos& pos, Direction direction, const ItemStack& itemStack)
+{
+    Vector3 dispensePos = getDispensePosition(pos, direction);
+
+    // Y轴偏移调整
+    f32 adjustedY = dispensePos.y;
+    if (Directions::getAxis(direction) == Axis::Y) {
+        adjustedY -= Y_AXIS_OFFSET;
+    } else {
+        adjustedY -= HORIZONTAL_Y_OFFSET;
+    }
+
+    // 计算速度
+    math::Random& rng = world.getRandom();
+    f32 baseVelocity = static_cast<f32>(rng.nextDouble() * BASE_VELOCITY_RANGE + BASE_VELOCITY_MIN);
+    f32 gaussianFactor = GAUSSIAN_FACTOR * 6.0f;
+    f32 vx = static_cast<f32>(rng.nextGaussian()) * gaussianFactor +
+        static_cast<f32>(Directions::xOffset(direction)) * baseVelocity;
+    f32 vy = static_cast<f32>(rng.nextGaussian()) * gaussianFactor + Y_VELOCITY_BASE;
+    f32 vz = static_cast<f32>(rng.nextGaussian()) * gaussianFactor +
+        static_cast<f32>(Directions::zOffset(direction)) * baseVelocity;
+
+    auto itemEntity =
+        std::make_unique<ItemEntity>(EntityId(0), itemStack, dispensePos.x, adjustedY, dispensePos.z, vx, vy, vz);
+    itemEntity->setPickupDelay(DEFAULT_PICKUP_DELAY);
+    world.spawnEntity(std::move(itemEntity));
 }
 
 Vector3 DefaultDispenseItemBehavior::getDispensePosition(const BlockPos& pos, Direction direction)
@@ -316,9 +354,118 @@ BucketDispenseBehavior::BucketDispenseBehavior(fluid::Fluid& fluid)
 ItemStack BucketDispenseBehavior::dispense(
     IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
 {
-    // TODO: 当 IWorld 支持放置流体后完善实现
+    // 获取发射方向和目标位置
+    Direction direction = state.get(BlockStateProperties::FACING());
+    BlockPos targetPos = pos.offset(direction);
+
+    // 尝试放置流体
+    // 1. 检查目标方块是否实现 ILiquidContainer（如炼药锅），向容器注水
+    const BlockState* targetState = world.getBlockState(targetPos);
+    if (targetState != nullptr) {
+        Block* targetBlock = Block::getBlock(targetState->blockId());
+        if (targetBlock != nullptr) {
+            auto* liquidContainer = dynamic_cast<ILiquidContainer*>(targetBlock);
+            if (liquidContainer != nullptr &&
+                liquidContainer->canContainFluid(world, targetPos, *targetState, *m_fluid)) {
+                fluid::FluidState fluidState = m_fluid->defaultState();
+                if (liquidContainer->receiveFluid(world, targetPos, *targetState, fluidState)) {
+                    // 成功向容器注水
+                    _setSuccess(true);
+                    _playSound(world, pos);
+                    _spawnParticles(world, pos, direction);
+
+                    // 消耗一个满桶
+                    stack.shrink(1);
+                    BucketItem* emptyBucket = BucketItem::getEmptyBucket();
+                    if (emptyBucket != nullptr) {
+                        if (stack.isEmpty()) {
+                            // 满桶用完了，直接返回空桶
+                            return emptyBucket->getDefaultInstance();
+                        }
+                        // 发射器中还有满桶，将空桶作为物品弹出到世界中
+                        ItemStack emptyStack = emptyBucket->getDefaultInstance();
+                        _spawnItemEntity(world, pos, direction, emptyStack);
+                    }
+                    return stack.isEmpty() ? ItemStack() : stack;
+                }
+            }
+        }
+    }
+
+    // 2. 尝试直接放置流体方块
+    //    检查目标位置是否可以放置流体（空气、可替换方块、可被流体替换的方块）
+    if (targetState != nullptr) {
+        bool canPlace = false;
+
+        // 空气或可替换方块
+        Block* targetBlock = Block::getBlock(targetState->blockId());
+        if (targetBlock == nullptr || targetBlock->isAir(*targetState)) {
+            canPlace = true;
+        } else if (targetState->canBeReplacedByFluid()) {
+            canPlace = true;
+        }
+
+        if (canPlace) {
+            // 获取流体对应的方块状态
+            fluid::FluidState fluidState = m_fluid->defaultState();
+            const BlockState* fluidBlockState = fluidState.getBlockState();
+            if (fluidBlockState == nullptr) {
+                if (m_fluid->isIn(fluid::FluidTags::WATER())) {
+                    fluidBlockState = VanillaBlocks::getState(VanillaBlocks::WATER);
+                } else if (m_fluid->isIn(fluid::FluidTags::LAVA())) {
+                    fluidBlockState = VanillaBlocks::getState(VanillaBlocks::LAVA);
+                }
+            }
+
+            if (fluidBlockState != nullptr) {
+                // 在下界等维度中，水会蒸发
+                if (m_fluid->isIn(fluid::FluidTags::WATER()) && world.isUltraWarm()) {
+                    // 水在超热维度中蒸发，播放熄灭音效和粒子
+                    world.playEvent(world::WorldEvents::FIRE_EXTINGUISH_SOUND, targetPos, 0);
+                    _setSuccess(true);
+                    _playSound(world, pos);
+                    _spawnParticles(world, pos, direction);
+
+                    // 消耗一个满桶，返回空桶
+                    stack.shrink(1);
+                    BucketItem* emptyBucket = BucketItem::getEmptyBucket();
+                    if (emptyBucket != nullptr) {
+                        if (stack.isEmpty()) {
+                            return emptyBucket->getDefaultInstance();
+                        }
+                        _spawnItemEntity(world, pos, direction, emptyBucket->getDefaultInstance());
+                    }
+                    return stack.isEmpty() ? ItemStack() : stack;
+                }
+
+                // 放置流体方块
+                world.setBlockState(targetPos, fluidBlockState, 3);
+
+                // 调度流体 tick
+                fluid::FluidState mutableFluidState = m_fluid->defaultState();
+                m_fluid->tick(world, targetPos, mutableFluidState);
+
+                _setSuccess(true);
+                _playSound(world, pos);
+                _spawnParticles(world, pos, direction);
+
+                // 消耗一个满桶，返回空桶
+                stack.shrink(1);
+                BucketItem* emptyBucket = BucketItem::getEmptyBucket();
+                if (emptyBucket != nullptr) {
+                    if (stack.isEmpty()) {
+                        return emptyBucket->getDefaultInstance();
+                    }
+                    _spawnItemEntity(world, pos, direction, emptyBucket->getDefaultInstance());
+                }
+                return stack.isEmpty() ? ItemStack() : stack;
+            }
+        }
+    }
+
+    // 放置失败，回退到默认投掷行为
     _setSuccess(false);
-    return stack;
+    return DefaultDispenseItemBehavior::dispense(world, pos, state, stack);
 }
 
 // ============================================================================
@@ -328,9 +475,48 @@ ItemStack BucketDispenseBehavior::dispense(
 ItemStack EmptyBucketDispenseBehavior::dispense(
     IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
 {
-    // TODO: 当 IWorld 支持收取流体后完善实现
+    // 获取发射方向和目标位置
+    Direction direction = state.get(BlockStateProperties::FACING());
+    BlockPos targetPos = pos.offset(direction);
+
+    // 检查目标方块是否实现 IBucketPickupHandler
+    const BlockState* targetState = world.getBlockState(targetPos);
+    if (targetState != nullptr) {
+        Block* targetBlock = Block::getBlock(targetState->blockId());
+        if (targetBlock != nullptr) {
+            auto* pickupHandler = dynamic_cast<IBucketPickupHandler*>(targetBlock);
+            if (pickupHandler != nullptr) {
+                // 尝试拾取流体
+                fluid::Fluid* pickedFluid = pickupHandler->pickupFluid(world, targetPos, *targetState);
+                if (pickedFluid != nullptr) {
+                    // 成功拾取流体，获取对应满桶
+                    BucketItem* filledBucket = BucketItem::getFilledBucket(*pickedFluid);
+                    if (filledBucket != nullptr) {
+                        _setSuccess(true);
+                        _playSound(world, pos);
+                        _spawnParticles(world, pos, direction);
+
+                        // 消耗一个空桶
+                        stack.shrink(1);
+
+                        // 如果空桶用完了，直接返回满桶
+                        if (stack.isEmpty()) {
+                            return filledBucket->getDefaultInstance();
+                        }
+
+                        // 发射器中还有空桶，将满桶作为物品弹出到世界中
+                        _spawnItemEntity(world, pos, direction, filledBucket->getDefaultInstance());
+
+                        return stack;
+                    }
+                }
+            }
+        }
+    }
+
+    // 目标不是可拾取流体的方块，回退到默认投掷行为
     _setSuccess(false);
-    return stack;
+    return DefaultDispenseItemBehavior::dispense(world, pos, state, stack);
 }
 
 // ============================================================================
@@ -340,9 +526,55 @@ ItemStack EmptyBucketDispenseBehavior::dispense(
 ItemStack FlintAndSteelDispenseBehavior::dispense(
     IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
 {
-    // TODO: 完善 FlintAndSteelItem API 后完善实现
-    _setSuccess(false);
-    return stack;
+    // 获取发射方向和目标位置
+    Direction direction = state.get(BlockStateProperties::FACING());
+    BlockPos targetPos = pos.offset(direction);
+
+    _setSuccess(true);
+
+    const BlockState* targetState = world.getBlockState(targetPos);
+    if (targetState == nullptr) {
+        _setSuccess(false);
+        _playSound(world, pos);
+        _spawnParticles(world, pos, direction);
+        return stack;
+    }
+
+    // 情况1：可以在目标位置放置火焰
+    if (item::tool::FlintAndSteelItem::canLightBlock(world, targetPos)) {
+        Block* fireBlock = item::tool::FlintAndSteelItem::getFireForPlacement(world, targetPos);
+        if (fireBlock != nullptr) {
+            const BlockState& fireState = fireBlock->getDefaultState();
+            world.setBlockState(targetPos, &fireState, 11);
+        }
+    }
+    // 情况2：目标是可点燃的方块（有 LIT 属性且当前为 false）
+    else if (targetState->hasProperty(BlockStateProperties::LIT()) && !targetState->get(BlockStateProperties::LIT())) {
+        BlockState newState = targetState->with(BlockStateProperties::LIT(), true);
+        world.setBlockState(targetPos, &newState, 11);
+    }
+    // 情况3：目标是 TNT 方块
+    else if (targetState->is(VanillaBlocks::TNT)) {
+        Block* tntBlock = Block::getBlock(targetState->blockId());
+        if (tntBlock != nullptr) {
+            auto* tnt = static_cast<TNTBlock*>(tntBlock);
+            tnt->ignite(world, targetPos, *targetState);
+        }
+    }
+    // 无法点燃
+    else {
+        _setSuccess(false);
+    }
+
+    // 成功时消耗耐久
+    if (isSuccess()) {
+        stack.attemptDamageItem(1);
+    }
+
+    _playSound(world, pos);
+    _spawnParticles(world, pos, direction);
+
+    return stack.isEmpty() ? ItemStack() : stack;
 }
 
 // ============================================================================
@@ -352,9 +584,43 @@ ItemStack FlintAndSteelDispenseBehavior::dispense(
 ItemStack BonemealDispenseBehavior::dispense(
     IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
 {
-    // TODO: 完善 BoneMealItem API 后完善实现
-    _setSuccess(false);
-    return stack;
+    // 获取发射方向和目标位置
+    Direction direction = state.get(BlockStateProperties::FACING());
+    BlockPos targetPos = pos.offset(direction);
+
+    _setSuccess(true);
+
+    // 先尝试对 IGrowable 方块使用骨粉
+    bool applied = item::items::BoneMealItem::applyBonemeal(stack, world, targetPos, nullptr);
+
+    // 如果 IGrowable 路径失败，尝试在水中生成海草
+    if (!applied) {
+        const fluid::FluidState* fluidState = world.getFluidState(targetPos);
+        if (fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(fluid::FluidTags::WATER()) &&
+            fluidState->isSource()) {
+            const u64 seed = world.seed() ^ static_cast<u64>(std::hash<BlockPos>{}(targetPos));
+            math::Random random(seed);
+            applied = item::items::BoneMealItem::growSeagrass(world, targetPos, random);
+            if (applied) {
+                // growSeagrass 不消耗物品，需要手动消耗
+                stack.shrink(1);
+            }
+        }
+    }
+
+    if (!applied) {
+        _setSuccess(false);
+    } else {
+        // 播放骨粉粒子效果
+        if (!world.isClientSide()) {
+            world.playEvent(world::WorldEvents::BONEMEAL_PARTICLES, targetPos, 15);
+        }
+    }
+
+    _playSound(world, pos);
+    _spawnParticles(world, pos, direction);
+
+    return stack.isEmpty() ? ItemStack() : stack;
 }
 
 } // namespace blocks

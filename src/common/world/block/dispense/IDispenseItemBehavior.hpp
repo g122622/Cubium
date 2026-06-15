@@ -150,6 +150,19 @@ protected:
      */
     virtual void _spawnParticles(IWorld& world, const BlockPos& pos, Direction direction);
 
+    /**
+     * @brief 将物品弹出到世界中
+     *
+     * 在发射位置创建物品实体并设置速度。
+     * 用于发射器行为中需要将替换物品（如空桶、满桶）弹出的场景。
+     *
+     * @param world 世界引用
+     * @param pos 发射器位置
+     * @param direction 发射方向
+     * @param itemStack 要弹出的物品堆
+     */
+    static void _spawnItemEntity(IWorld& world, const BlockPos& pos, Direction direction, const ItemStack& itemStack);
+
     /// 发射位置偏移量（从方块中心到出口的距离）
     static constexpr f32 DISPENSE_OFFSET = 0.7f;
 
