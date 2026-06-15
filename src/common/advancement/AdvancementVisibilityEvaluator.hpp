@@ -29,6 +29,8 @@
 
 namespace mc::advancement {
 
+class AdvancementManager;
+
 /**
  * @brief 成就可见性评估器
  *
@@ -67,17 +69,43 @@ public:
     using Output = std::function<void(Advancement::Ptr advancement, bool visible)>;
 
     /**
-     * @brief 评估成就的可见性
+     * @brief 评估成就的可见性（从根节点开始）
      *
      * 从指定成就的根节点开始，递归遍历整棵成就树，
      * 根据 MC Java 版的规则计算每个成就的可见性。
+     * 调用者应确保传入根节点（通过 getRoots() 或 findRoot() 获取）。
      *
-     * @param startNode 起始成就（会自动找到其根节点）
+     * @param startNode 起始成就（最好是根节点）
      * @param isDone 判断成就是否完成的谓词
      * @param output 接受可见性结果的回调
      */
     static void evaluateVisibility(
         Advancement::Ptr startNode, const std::function<bool(Advancement::Ptr)>& isDone, const Output& output);
+
+    /**
+     * @brief 评估成就的可见性（从任意节点开始，通过 manager 查找根节点）
+     *
+     * 通过 AdvancementManager 向上遍历 parent 链找到根节点，
+     * 然后从根开始递归计算可见性。
+     *
+     * @param node 任意成就节点
+     * @param manager 成就管理器（用于查找父成就）
+     * @param isDone 判断成就是否完成的谓词
+     * @param output 接受可见性结果的回调
+     */
+    static void evaluateVisibilityFromNode(Advancement::Ptr node,
+        AdvancementManager& manager,
+        const std::function<bool(Advancement::Ptr)>& isDone,
+        const Output& output);
+
+    /**
+     * @brief 通过 manager 向上查找根节点
+     *
+     * @param node 起始成就
+     * @param manager 成就管理器
+     * @return 根成就（如果找不到父成就，返回当前节点）
+     */
+    static Advancement::Ptr findRoot(Advancement::Ptr node, AdvancementManager& manager);
 
 private:
     /**
@@ -113,14 +141,6 @@ private:
         std::vector<VisibilityRule>& ruleStack,
         const std::function<bool(Advancement::Ptr)>& isDone,
         const Output& output);
-
-    /**
-     * @brief 获取成就树的根节点
-     *
-     * @param node 任意成就
-     * @return 根成就
-     */
-    static Advancement::Ptr _findRoot(Advancement::Ptr node);
 };
 
 } // namespace mc::advancement

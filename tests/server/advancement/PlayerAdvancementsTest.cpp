@@ -817,3 +817,470 @@ TEST_F(PlayerAdvancementsTest, MultiCriteriaCompletionGrantsRewardsOnce)
     // 由于 c3 已经完成，grantCriterion 返回 false
     EXPECT_FALSE(playerAdvancements->grantCriterion(adv, "c3"));
 }
+
+// ========== onAdvancementsReloaded 持久化恢复测试 ==========
+
+TEST_F(PlayerAdvancementsTest, OnAdvancementsReloadedPreservesProgress)
+{
+    // onAdvancementsReloaded 应保存并恢复进度数据
+    auto adv = createTestAdvancement("minecraft:test/reload_preserves", {"c1", "c2"});
+    ASSERT_NE(adv, nullptr);
+
+    auto& manager = AdvancementManager::instance();
+    manager.registerAdvancement(adv);
+
+    // flush 以初始化进度
+    playerAdvancements->flushAdvancements(manager);
+
+    // 授予部分条件
+    playerAdvancements->grantCriterion(adv, "c1");
+    EXPECT_TRUE(playerAdvancements->hasProgress(adv));
+    EXPECT_FALSE(playerAdvancements->isDone(adv));
+
+    // 重载
+    playerAdvancements->onAdvancementsReloaded(manager);
+
+    // 重载后，已授予的条件应被恢复
+    // 注意：onAdvancementsReloaded 先 toJson 保存进度，再 loadFromJson 恢复
+    auto* progress = playerAdvancements->getProgress(adv);
+    ASSERT_NE(progress, nullptr);
+    EXPECT_TRUE(progress->getCriterion("c1")->isObtained());
+    EXPECT_FALSE(progress->getCriterion("c2")->isObtained());
+    EXPECT_FALSE(playerAdvancements->isDone(adv));
+}
+
+TEST_F(PlayerAdvancementsTest, OnAdvancementsReloadedPreservesCompletedAdvancement)
+{
+    // 重载应恢复已完成的成就
+    auto adv = createTestAdvancement("minecraft:test/reload_completed", {"c1"});
+    ASSERT_NE(adv, nullptr);
+
+    auto& manager = AdvancementManager::instance();
+    manager.registerAdvancement(adv);
+
+    playerAdvancements->flushAdvancements(manager);
+    playerAdvancements->grantAllCriteria(adv);
+    EXPECT_TRUE(playerAdvancements->isDone(adv));
+
+    playerAdvancements->onAdvancementsReloaded(manager);
+
+    // 重载后成就应仍然完成
+    EXPECT_TRUE(playerAdvancements->isDone(adv));
+    auto* progress = playerAdvancements->getProgress(adv);
+    ASSERT_NE(progress, nullptr);
+    EXPECT_TRUE(progress->getCriterion("c1")->isObtained());
+}
+
+TEST_F(PlayerAdvancementsTest, OnAdvancementsReloadedPreservesMultipleAdvancements)
+{
+    // 重载应保留多个成就的进度
+    auto adv1 = createTestAdvancement("minecraft:test/reload_multi1", {"c1"});
+    auto adv2 = createTestAdvancement("minecraft:test/reload_multi2", {"c1", "c2"});
+    ASSERT_NE(adv1, nullptr);
+    ASSERT_NE(adv2, nullptr);
+
+    auto& manager = AdvancementManager::instance();
+    manager.registerAdvancement(adv1);
+    manager.registerAdvancement(adv2);
+
+    playerAdvancements->flushAdvancements(manager);
+
+    // adv1 完成，adv2 部分完成
+    playerAdvancements->grantAllCriteria(adv1);
+    playerAdvancements->grantCriterion(adv2, "c1");
+
+    playerAdvancements->onAdvancementsReloaded(manager);
+
+    EXPECT_TRUE(playerAdvancements->isDone(adv1));
+
+    auto* progress2 = playerAdvancements->getProgress(adv2);
+    ASSERT_NE(progress2, nullptr);
+    EXPECT_TRUE(progress2->getCriterion("c1")->isObtained());
+    EXPECT_FALSE(progress2->getCriterion("c2")->isObtained());
+}
+
+TEST_F(PlayerAdvancementsTest, OnAdvancementsReloadedRestoresVisibility)
+{
+    // 重载后可见性应正确恢复
+    auto adv = createTestAdvancement("minecraft:test/reload_visibility", {"c1"});
+    ASSERT_NE(adv, nullptr);
+
+    auto& manager = AdvancementManager::instance();
+    manager.registerAdvancement(adv);
+
+    playerAdvancements->flushAdvancements(manager);
+
+    // 授予条件后应可见
+    playerAdvancements->grantCriterion(adv, "c1");
+    EXPECT_TRUE(playerAdvancements->isVisible(adv));
+
+    playerAdvancements->onAdvancementsReloaded(manager);
+
+    // 重载后可见性应恢复
+    EXPECT_TRUE(playerAdvancements->isVisible(adv));
+}
+
+// ========== _ensureVisibility 级联效果测试 ==========
+
+TEST_F(PlayerAdvancementsTest, EnsureVisibilityCascadeFromParentToChild)
+{
+    // 父成就完成应使子成就可见
+    auto root = createTestAdvancement("minecraft:test/cascade_root", {"c1"});
+    // 子成就需要设置 parent
+    Advancement::Builder childBuilder{ResourceLocation("minecraft:test/cascade_child")};
+    childBuilder.parent(ResourceLocation("minecraft:test/cascade_root"));
+    AdvancementDisplay childDisplay(ItemStack(),
+        std::make_unique<mc::text::StringTextComponent>("Child"),
+        std::make_unique<mc::text::StringTextComponent>("Child Desc"),
+        AdvancementFrame::Task,
+        true,
+        true,
+        false);
+    childBuilder.display(std::move(childDisplay));
+    auto childTrigger = std::make_shared<TickTriggerInstance>();
+    childBuilder.criterion("c1", childTrigger);
+    auto childResult = childBuilder.build();
+    ASSERT_TRUE(childResult.success());
+    auto child = std::make_shared<Advancement>(std::move(childResult).value());
+    ASSERT_NE(root, nullptr);
+    ASSERT_NE(child, nullptr);
+
+    auto& manager = AdvancementManager::instance();
+    manager.registerAdvancement(root);
+    manager.registerAdvancement(child);
+
+    // flush 以初始化
+    playerAdvancements->flushAdvancements(manager);
+
+    // 初始时两者都不可见（未完成、无进度）
+    EXPECT_FALSE(playerAdvancements->isVisible(root));
+    EXPECT_FALSE(playerAdvancements->isVisible(child));
+
+    // 完成根成就
+    playerAdvancements->grantAllCriteria(root);
+
+    // 根应可见（完成），子也应可见（父完成且在 VISIBILITY_DEPTH 内）
+    EXPECT_TRUE(playerAdvancements->isVisible(root));
+    EXPECT_TRUE(playerAdvancements->isVisible(child));
+}
+
+TEST_F(PlayerAdvancementsTest, EnsureVisibilityRevokeCausesVisibilityChange)
+{
+    // 撤销父成就条件可能使子成就变为不可见
+    auto root = createTestAdvancement("minecraft:test/revoke_vis_root", {"c1"});
+    // 子成就需要设置 parent
+    Advancement::Builder childBuilder{ResourceLocation("minecraft:test/revoke_vis_child")};
+    childBuilder.parent(ResourceLocation("minecraft:test/revoke_vis_root"));
+    AdvancementDisplay childDisplay(ItemStack(),
+        std::make_unique<mc::text::StringTextComponent>("Child"),
+        std::make_unique<mc::text::StringTextComponent>("Child Desc"),
+        AdvancementFrame::Task,
+        true,
+        true,
+        false);
+    childBuilder.display(std::move(childDisplay));
+    auto childTrigger = std::make_shared<TickTriggerInstance>();
+    childBuilder.criterion("c1", childTrigger);
+    auto childResult = childBuilder.build();
+    ASSERT_TRUE(childResult.success());
+    auto child = std::make_shared<Advancement>(std::move(childResult).value());
+    ASSERT_NE(root, nullptr);
+    ASSERT_NE(child, nullptr);
+
+    auto& manager = AdvancementManager::instance();
+    manager.registerAdvancement(root);
+    manager.registerAdvancement(child);
+
+    playerAdvancements->flushAdvancements(manager);
+
+    // 完成根成就
+    playerAdvancements->grantAllCriteria(root);
+    EXPECT_TRUE(playerAdvancements->isVisible(root));
+    EXPECT_TRUE(playerAdvancements->isVisible(child));
+
+    // 撤销根成就的条件
+    playerAdvancements->revokeCriterion(root, "c1");
+    EXPECT_FALSE(playerAdvancements->isDone(root));
+
+    // 根和子都应不可见（根未完成且无进度）
+    EXPECT_FALSE(playerAdvancements->isVisible(root));
+    EXPECT_FALSE(playerAdvancements->isVisible(child));
+}
+
+TEST_F(PlayerAdvancementsTest, EnsureVisibilityHiddenAdvancement)
+{
+    // 隐藏成就在完成前不可见
+    Advancement::Builder builder{ResourceLocation("minecraft:test/cascade_hidden")};
+    AdvancementDisplay display(ItemStack(),
+        std::make_unique<mc::text::StringTextComponent>("Hidden"),
+        std::make_unique<mc::text::StringTextComponent>("Hidden"),
+        AdvancementFrame::Task,
+        true,
+        true,
+        true // hidden
+    );
+    builder.display(std::move(display));
+    auto trigger = std::make_shared<TickTriggerInstance>();
+    builder.criterion("c1", trigger);
+    auto result = builder.build();
+    ASSERT_TRUE(result.success());
+    auto hidden = std::make_shared<Advancement>(std::move(result).value());
+
+    auto& manager = AdvancementManager::instance();
+    manager.registerAdvancement(hidden);
+
+    playerAdvancements->flushAdvancements(manager);
+
+    // 隐藏成就完成前不可见
+    EXPECT_FALSE(playerAdvancements->isVisible(hidden));
+
+    // 完成后可见
+    playerAdvancements->grantAllCriteria(hidden);
+    EXPECT_TRUE(playerAdvancements->isVisible(hidden));
+}
+
+TEST_F(PlayerAdvancementsTest, EnsureVisibilityNoDisplayAdvancement)
+{
+    // 无 display 的技术成就：AdvancementVisibilityEvaluator 使用 anyChildDone 机制，
+    // 已完成的无 display 成就在算法层面会被标记为可见（anyChildDone=true），
+    // 但客户端/UI 层应进一步过滤无 display 的节点不渲染。
+    Advancement::Builder builder{ResourceLocation("minecraft:test/cascade_nodisplay")};
+    auto trigger = std::make_shared<TickTriggerInstance>();
+    builder.criterion("c1", trigger);
+    // 不添加 display
+    auto result = builder.build();
+    ASSERT_TRUE(result.success());
+    auto noDisplay = std::make_shared<Advancement>(std::move(result).value());
+
+    auto& manager = AdvancementManager::instance();
+    manager.registerAdvancement(noDisplay);
+
+    playerAdvancements->flushAdvancements(manager);
+
+    // 无 display 成就在未完成时不可见
+    EXPECT_FALSE(playerAdvancements->isVisible(noDisplay));
+
+    // 完成后，算法层面 anyChildDone=true 会将其标记为可见
+    // 但 UI 层应在渲染时进一步过滤（不渲染无 display 的成就）
+    playerAdvancements->grantAllCriteria(noDisplay);
+    EXPECT_TRUE(playerAdvancements->isVisible(noDisplay));
+}
+
+// ========== Round-Trip 序列化完整性测试 ==========
+
+TEST_F(PlayerAdvancementsTest, RoundTripSerializationPreservesAllProgress)
+{
+    auto adv1 = createTestAdvancement("minecraft:test/roundtrip_all1", {"c1", "c2"});
+    auto adv2 = createTestAdvancement("minecraft:test/roundtrip_all2", {"c3"});
+    ASSERT_NE(adv1, nullptr);
+    ASSERT_NE(adv2, nullptr);
+
+    auto& manager = AdvancementManager::instance();
+    manager.registerAdvancement(adv1);
+    manager.registerAdvancement(adv2);
+
+    // adv1 部分完成，adv2 全部完成
+    playerAdvancements->grantCriterion(adv1, "c1");
+    playerAdvancements->grantAllCriteria(adv2);
+
+    // 序列化
+    nlohmann::json json = playerAdvancements->toJson();
+
+    // 反序列化到新对象
+    auto restored = std::make_unique<PlayerAdvancements>(PlayerId(1));
+    bool result = restored->loadFromJson(json, manager);
+    EXPECT_TRUE(result);
+
+    // 验证 adv1 进度
+    auto* progress1 = restored->getProgress(adv1);
+    ASSERT_NE(progress1, nullptr);
+    EXPECT_TRUE(progress1->getCriterion("c1")->isObtained());
+    EXPECT_FALSE(progress1->getCriterion("c2")->isObtained());
+    EXPECT_FALSE(progress1->isDone());
+
+    // 验证 adv2 完成
+    auto* progress2 = restored->getProgress(adv2);
+    ASSERT_NE(progress2, nullptr);
+    EXPECT_TRUE(progress2->isDone());
+}
+
+// ========== 奖励发放测试（无 ServerPlayer） ==========
+
+TEST_F(PlayerAdvancementsTest, GrantRewardsWithLootNoPlayerNoCrash)
+{
+    // 带战利品表奖励的成就完成时，没有 ServerPlayer 应不崩溃
+    Advancement::Builder builder{ResourceLocation("minecraft:test/reward_loot_noplayer")};
+    AdvancementDisplay display(ItemStack(),
+        std::make_unique<mc::text::StringTextComponent>("Loot Reward"),
+        std::make_unique<mc::text::StringTextComponent>("With Loot"),
+        AdvancementFrame::Task,
+        true,
+        true,
+        false);
+    builder.display(std::move(display));
+    builder.rewards(mc::advancement::AdvancementRewards(
+        0, {mc::ResourceLocation("minecraft:gameplay/advancement/story/root")}, {}, std::nullopt));
+    auto trigger = std::make_shared<TickTriggerInstance>();
+    builder.criterion("c1", trigger);
+    auto result = builder.build();
+    ASSERT_TRUE(result.success());
+    auto adv = std::make_shared<Advancement>(std::move(result).value());
+
+    // 没有崩溃即通过
+    EXPECT_TRUE(playerAdvancements->grantAllCriteria(adv));
+    EXPECT_TRUE(playerAdvancements->isDone(adv));
+}
+
+TEST_F(PlayerAdvancementsTest, GrantRewardsWithFunctionNoPlayerNoCrash)
+{
+    // 带函数奖励的成就完成时，没有 ServerPlayer 应不崩溃
+    Advancement::Builder builder{ResourceLocation("minecraft:test/reward_func_noplayer")};
+    AdvancementDisplay display(ItemStack(),
+        std::make_unique<mc::text::StringTextComponent>("Function Reward"),
+        std::make_unique<mc::text::StringTextComponent>("With Function"),
+        AdvancementFrame::Task,
+        true,
+        true,
+        false);
+    builder.display(std::move(display));
+    builder.rewards(mc::advancement::AdvancementRewards(
+        0, {}, {}, mc::ResourceLocation("minecraft:advancements/story/root_reward")));
+    auto trigger = std::make_shared<TickTriggerInstance>();
+    builder.criterion("c1", trigger);
+    auto result = builder.build();
+    ASSERT_TRUE(result.success());
+    auto adv = std::make_shared<Advancement>(std::move(result).value());
+
+    // 函数系统尚未实现，但不应崩溃
+    EXPECT_TRUE(playerAdvancements->grantAllCriteria(adv));
+    EXPECT_TRUE(playerAdvancements->isDone(adv));
+}
+
+TEST_F(PlayerAdvancementsTest, GrantRewardsWithExperienceNoPlayerNoCrash)
+{
+    // 带经验值奖励的成就完成时，没有 ServerPlayer 应跳过（不崩溃）
+    Advancement::Builder builder{ResourceLocation("minecraft:test/reward_exp_noplayer")};
+    AdvancementDisplay display(ItemStack(),
+        std::make_unique<mc::text::StringTextComponent>("XP Reward"),
+        std::make_unique<mc::text::StringTextComponent>("With XP"),
+        AdvancementFrame::Task,
+        true,
+        true,
+        false);
+    builder.display(std::move(display));
+    builder.rewards(mc::advancement::AdvancementRewards(500, {}, {}, std::nullopt));
+    auto trigger = std::make_shared<TickTriggerInstance>();
+    builder.criterion("c1", trigger);
+    auto result = builder.build();
+    ASSERT_TRUE(result.success());
+    auto adv = std::make_shared<Advancement>(std::move(result).value());
+
+    // 没有 ServerPlayer，经验值应被跳过
+    EXPECT_TRUE(playerAdvancements->grantAllCriteria(adv));
+    EXPECT_TRUE(playerAdvancements->isDone(adv));
+}
+
+TEST_F(PlayerAdvancementsTest, GrantRewardsWithRecipesNoPlayerNoCrash)
+{
+    // 带配方奖励的成就完成时，没有 ServerPlayer 应跳过（不崩溃）
+    Advancement::Builder builder{ResourceLocation("minecraft:test/reward_recipe_noplayer")};
+    AdvancementDisplay display(ItemStack(),
+        std::make_unique<mc::text::StringTextComponent>("Recipe Reward"),
+        std::make_unique<mc::text::StringTextComponent>("With Recipe"),
+        AdvancementFrame::Task,
+        true,
+        true,
+        false);
+    builder.display(std::move(display));
+    builder.rewards(
+        mc::advancement::AdvancementRewards(0, {}, {mc::ResourceLocation("minecraft:diamond_sword")}, std::nullopt));
+    auto trigger = std::make_shared<TickTriggerInstance>();
+    builder.criterion("c1", trigger);
+    auto result = builder.build();
+    ASSERT_TRUE(result.success());
+    auto adv = std::make_shared<Advancement>(std::move(result).value());
+
+    // 没有 ServerPlayer，配方解锁应被跳过
+    EXPECT_TRUE(playerAdvancements->grantAllCriteria(adv));
+    EXPECT_TRUE(playerAdvancements->isDone(adv));
+}
+
+TEST_F(PlayerAdvancementsTest, GrantRewardsWithAllRewardTypesNoPlayerNoCrash)
+{
+    // 带所有奖励类型的成就完成时，没有 ServerPlayer 应跳过所有奖励（不崩溃）
+    Advancement::Builder builder{ResourceLocation("minecraft:test/reward_all_noplayer")};
+    AdvancementDisplay display(ItemStack(),
+        std::make_unique<mc::text::StringTextComponent>("All Rewards"),
+        std::make_unique<mc::text::StringTextComponent>("With Everything"),
+        AdvancementFrame::Task,
+        true,
+        true,
+        false);
+    builder.display(std::move(display));
+    builder.rewards(mc::advancement::AdvancementRewards(100,
+        {mc::ResourceLocation("minecraft:gameplay/advancement/story/root")},
+        {mc::ResourceLocation("minecraft:diamond_sword")},
+        mc::ResourceLocation("minecraft:advancements/story/root_reward")));
+    auto trigger = std::make_shared<TickTriggerInstance>();
+    builder.criterion("c1", trigger);
+    auto result = builder.build();
+    ASSERT_TRUE(result.success());
+    auto adv = std::make_shared<Advancement>(std::move(result).value());
+
+    // 所有奖励类型都应安全跳过
+    EXPECT_TRUE(playerAdvancements->grantAllCriteria(adv));
+    EXPECT_TRUE(playerAdvancements->isDone(adv));
+}
+
+// ========== _shouldShow 回退测试 ==========
+
+TEST_F(PlayerAdvancementsTest, ShouldShowRootAdvancementWithProgress)
+{
+    // 根成就（无父成就）有进度但未完成时：
+    // AdvancementVisibilityEvaluator 仅检查 isDone，不检查 hasProgress，
+    // 因此有进度但未完成的根成就不可见（无已完成祖先可传播可见性）。
+    // 这与 _shouldShow 的回退逻辑不同（回退中 hasProgress 会使成就可见）。
+    Advancement::Builder builder{ResourceLocation("minecraft:test/shouldshow_root_multi")};
+    AdvancementDisplay display(ItemStack(),
+        std::make_unique<mc::text::StringTextComponent>("Multi"),
+        std::make_unique<mc::text::StringTextComponent>("Multi"),
+        AdvancementFrame::Task,
+        true,
+        true,
+        false);
+    builder.display(std::move(display));
+    auto trigger = std::make_shared<TickTriggerInstance>();
+    builder.criterion("c1", trigger);
+    builder.criterion("c2", trigger);
+    auto result = builder.build();
+    ASSERT_TRUE(result.success());
+    auto multiAdv = std::make_shared<Advancement>(std::move(result).value());
+
+    auto& manager = AdvancementManager::instance();
+    manager.registerAdvancement(multiAdv);
+
+    playerAdvancements->flushAdvancements(manager);
+
+    // 授予部分条件
+    playerAdvancements->grantCriterion(multiAdv, "c1");
+    // 评估器仅检查 isDone，未完成的根成就不可见
+    EXPECT_FALSE(playerAdvancements->isVisible(multiAdv));
+
+    // 完成所有条件后可见
+    playerAdvancements->grantCriterion(multiAdv, "c2");
+    EXPECT_TRUE(playerAdvancements->isVisible(multiAdv));
+}
+
+TEST_F(PlayerAdvancementsTest, ShouldShowCompletedAdvancement)
+{
+    // 已完成的成就始终可见
+    auto adv = createTestAdvancement("minecraft:test/shouldshow_completed", {"c1"});
+    ASSERT_NE(adv, nullptr);
+
+    auto& manager = AdvancementManager::instance();
+    manager.registerAdvancement(adv);
+
+    playerAdvancements->flushAdvancements(manager);
+    playerAdvancements->grantAllCriteria(adv);
+    EXPECT_TRUE(playerAdvancements->isVisible(adv));
+}

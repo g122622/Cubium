@@ -22,34 +22,27 @@
  */
 
 #include "AdvancementVisibilityEvaluator.hpp"
-#include <spdlog/spdlog.h>
+#include "AdvancementManager.hpp"
 
 namespace mc::advancement {
 
-Advancement::Ptr AdvancementVisibilityEvaluator::_findRoot(Advancement::Ptr node)
+Advancement::Ptr AdvancementVisibilityEvaluator::findRoot(Advancement::Ptr node, AdvancementManager& manager)
 {
-    // Advancement 只存储 parent ID（ResourceLocation），不存储直接父指针。
-    // 但 children 是运行时填充的，我们需要从整棵树的角度找到根。
-    // 由于成就树的结构是：根成就 isRoot() == true，我们只能从已知的根开始遍历。
-    // 这里使用简单策略：沿着 parent 链向上查找。
-    // 但 Advancement 只有 getParent() 返回 ResourceLocation，没有直接的父指针。
-    // 所以我们需要换一种方式：调用者应该直接传入根节点。
-
-    // 事实上，在 MC 原版中 AdvancementNode 有 parent 指针可以向上遍历。
-    // 在我们的实现中，Advancement 没有 parent 指针，只有 parent ID。
-    // 因此 _findRoot 的正确做法是：对于根节点，isRoot() == true。
-    // 如果传入的不是根节点，我们无法向上查找（需要 manager）。
-    // 解决方案：evaluateVisibility 的调用者应该确保传入根节点，
-    // 或者我们遍历整棵树从根开始。
-
-    // 对于根节点直接返回
-    if (node->isRoot()) {
-        return node;
+    if (!node) {
+        return nullptr;
     }
 
-    // 非根节点无法向上查找，返回自身
-    // 调用者应确保传入根节点
-    return node;
+    // 通过 parent ID 链向上查找根节点
+    Advancement::Ptr current = node;
+    while (current->getParent().has_value()) {
+        Advancement::Ptr parent = manager.get(current->getParent().value());
+        if (!parent) {
+            // 父成就不存在（引用错误），以当前节点作为根
+            break;
+        }
+        current = parent;
+    }
+    return current;
 }
 
 AdvancementVisibilityEvaluator::VisibilityRule AdvancementVisibilityEvaluator::_evaluateVisibilityRule(
@@ -79,9 +72,6 @@ AdvancementVisibilityEvaluator::VisibilityRule AdvancementVisibilityEvaluator::_
 bool AdvancementVisibilityEvaluator::_evaluateVisibilityForUnfinishedNode(const std::vector<VisibilityRule>& ruleStack)
 {
     // 从栈顶（当前节点）向上回溯最多 VISIBILITY_DEPTH 层
-    // 栈的布局：[..., 哨兵NO_CHANGE, 哨兵NO_CHANGE, 哨兵NO_CHANGE, 根规则, ..., 当前节点规则]
-    // 栈顶是当前节点
-
     i32 stackSize = static_cast<i32>(ruleStack.size());
     for (i32 i = 0; i <= VISIBILITY_DEPTH; ++i) {
         i32 index = stackSize - 1 - i;
@@ -133,9 +123,6 @@ void AdvancementVisibilityEvaluator::evaluateVisibility(
         return;
     }
 
-    // 找到根节点
-    Advancement::Ptr root = _findRoot(startNode);
-
     // 初始化规则栈，压入 VISIBILITY_DEPTH + 1 个哨兵 NO_CHANGE
     // 确保根节点在向上回溯时不会越界
     std::vector<VisibilityRule> ruleStack;
@@ -144,7 +131,21 @@ void AdvancementVisibilityEvaluator::evaluateVisibility(
         ruleStack.push_back(VisibilityRule::NoChange);
     }
 
-    _evaluateVisibility(root, ruleStack, isDone, output);
+    _evaluateVisibility(startNode, ruleStack, isDone, output);
+}
+
+void AdvancementVisibilityEvaluator::evaluateVisibilityFromNode(Advancement::Ptr node,
+    AdvancementManager& manager,
+    const std::function<bool(Advancement::Ptr)>& isDone,
+    const Output& output)
+{
+    if (!node) {
+        return;
+    }
+
+    // 通过 manager 向上查找根节点
+    Advancement::Ptr root = findRoot(node, manager);
+    evaluateVisibility(root, isDone, output);
 }
 
 } // namespace mc::advancement

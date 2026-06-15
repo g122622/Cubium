@@ -215,7 +215,8 @@ public:
 
 private:
     PlayerId m_playerId;
-    ::mc::ServerPlayer* m_player = nullptr; ///< 关联的 ServerPlayer（非拥有指针）
+    ::mc::ServerPlayer* m_player = nullptr;                   ///< 关联的 ServerPlayer（非拥有指针）
+    mc::advancement::AdvancementManager* m_manager = nullptr; ///< 关联的成就管理器（非拥有指针）
 
     /// 成就进度映射
     std::map<mc::advancement::AdvancementPtr, mc::advancement::AdvancementProgress> m_progress;
@@ -238,7 +239,11 @@ private:
     /**
      * @brief 确保成就可见性正确
      *
-     * 检查单个成就的可见性是否发生变化，并更新 m_visible 和 m_visibilityChanged。
+     * 当单个成就的状态变化时，需要重新评估整棵成就树的可见性，
+     * 因为一个成就的完成/撤销可能级联影响子成就的可见性。
+     * 使用 AdvancementVisibilityEvaluator 从变更成就所在树的根节点重新计算。
+     *
+     * @param advancement 状态变化的成就
      */
     void _ensureVisibility(mc::advancement::AdvancementPtr advancement);
 

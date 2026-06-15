@@ -228,6 +228,9 @@ void PlayerAdvancements::clearProgressChanged()
 
 void PlayerAdvancements::onAdvancementsReloaded(mc::advancement::AdvancementManager& manager)
 {
+    // 缓存 manager 引用，用于后续可见性评估
+    m_manager = &manager;
+
     // 1. 保存当前进度的序列化数据
     nlohmann::json savedProgress = toJson();
 
@@ -251,6 +254,8 @@ void PlayerAdvancements::onAdvancementsReloaded(mc::advancement::AdvancementMana
 
 void PlayerAdvancements::flushAdvancements(mc::advancement::AdvancementManager& manager)
 {
+    // 缓存 manager 引用，用于后续可见性评估
+    m_manager = &manager;
     // 遍历成就管理器中所有已注册的成就
     manager.forEach([this](mc::advancement::AdvancementPtr advancement) {
         // 跳过已有进度的成就（loadFromJson 已为它们注册监听器）
@@ -405,27 +410,49 @@ void PlayerAdvancements::_ensureVisibility(mc::advancement::AdvancementPtr advan
         return;
     }
 
-    bool wasVisible = m_visible.count(advancement) > 0;
+    // 单个成就的状态变化可能级联影响子成就的可见性，
+    // 因此需要重新评估整棵成就树。
+    if (m_manager != nullptr) {
+        // 记录旧可见性集合
+        std::set<mc::advancement::AdvancementPtr> oldVisible = m_visible;
 
-    // 使用 AdvancementVisibilityEvaluator 重新评估整棵树的可见性
-    // 找到此成就的根节点，然后从根开始遍历
-    mc::advancement::Advancement::Ptr root = advancement;
-    while (root->getParent().has_value()) {
-        // 由于 Advancement 只存储 parent ID，无法直接向上遍历
-        // 需要通过 AdvancementManager 查找
-        // 这里简化处理：直接用 _shouldShow 评估单个成就
-        break;
-    }
+        // 通过 manager 向上找到根节点，然后从根开始重新评估可见性
+        mc::advancement::AdvancementVisibilityEvaluator::evaluateVisibilityFromNode(
+            advancement,
+            *m_manager,
+            [this](mc::advancement::Advancement::Ptr adv) { return isDone(adv); },
+            [this](mc::advancement::Advancement::Ptr adv, bool visible) {
+                if (visible) {
+                    m_visible.insert(adv);
+                } else {
+                    m_visible.erase(adv);
+                }
+            });
 
-    bool shouldShow = this->_shouldShow(advancement);
-
-    if (shouldShow != wasVisible) {
-        if (shouldShow) {
-            m_visible.insert(advancement);
-        } else {
-            m_visible.erase(advancement);
+        // 计算可见性变化
+        for (const auto& adv : m_visible) {
+            if (oldVisible.count(adv) == 0) {
+                m_visibilityChanged.insert(adv);
+            }
         }
-        m_visibilityChanged.insert(advancement);
+        for (const auto& adv : oldVisible) {
+            if (m_visible.count(adv) == 0) {
+                m_visibilityChanged.insert(adv);
+            }
+        }
+    } else {
+        // 没有 manager 时，使用简化的单成就评估
+        bool wasVisible = m_visible.count(advancement) > 0;
+        bool shouldShow = this->_shouldShow(advancement);
+
+        if (shouldShow != wasVisible) {
+            if (shouldShow) {
+                m_visible.insert(advancement);
+            } else {
+                m_visible.erase(advancement);
+            }
+            m_visibilityChanged.insert(advancement);
+        }
     }
 }
 

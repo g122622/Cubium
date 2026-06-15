@@ -605,6 +605,8 @@ add_executable(mc_tests
     common/entity/loot/ReferenceConditionTest.cpp
     # BlockPredicate 和 StatePropertiesPredicate 测试
     common/advancement/BlockPredicateTest.cpp
+    # AdvancementVisibilityEvaluator 成就可见性评估器测试
+    common/advancement/AdvancementVisibilityEvaluatorTest.cpp
     # EffectType 工具函数测试
     common/entity/effect/EffectTypeTest.cpp
     # EffectAttributeModifiers 效果属性修改器测试
