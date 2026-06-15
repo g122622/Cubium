@@ -258,6 +258,11 @@ public:
     void addChild(std::shared_ptr<ModelRenderer> child) { m_children.push_back(child); }
 
     /**
+     * @brief 获取子部件列表
+     */
+    [[nodiscard]] const std::vector<std::shared_ptr<ModelRenderer>>& children() const { return m_children; }
+
+    /**
      * @brief 创建并添加子部件
      * @param name 子部件名称
      * @return 创建的子部件

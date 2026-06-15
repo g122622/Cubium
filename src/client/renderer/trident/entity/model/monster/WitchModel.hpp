@@ -63,6 +63,11 @@ public:
     void setHoldingItem(bool holding) { m_holdingItem = holding; }
 
     /**
+     * @brief 获取是否持有物品
+     */
+    [[nodiscard]] bool isHoldingItem() const { return m_holdingItem; }
+
+    /**
      * @brief 获取鼻子模型部件
      */
     [[nodiscard]] std::shared_ptr<ModelRenderer> getNose() const { return m_nose; }

@@ -566,6 +566,8 @@ add_executable(mc_tests
     client/renderer/entity/ArmorLayerVisibilityTest.cpp
     client/renderer/entity/LlamaModelTest.cpp
     client/renderer/entity/LlamaRendererTest.cpp
+    # WitchModel 女巫模型测试
+    client/renderer/entity/WitchModelTest.cpp
     client/renderer/entity/test_entity_renderer_manager.cpp
     client/renderer/entity/ShadowRendererTest.cpp
     client/renderer/entity/WorldTextRendererTest.cpp
@@ -1336,6 +1338,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/QuadrupedModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/AnimalModels.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/LlamaModel.cpp
+        # VillagerModel + WitchModel 女巫模型测试依赖
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/VillagerModel.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/WitchModel.cpp
         # PlayerModel 手臂渲染测试
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/player/PlayerModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/pipeline/EntityTextureAtlas.cpp
