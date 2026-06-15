@@ -30,7 +30,9 @@
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/DispenserBlockEntity.hpp"
+#include "common/world/blockentity/interactive/DropperBlockEntity.hpp"
 
 namespace mc {
 namespace blocks {
@@ -156,6 +158,11 @@ bool DropperBlock::tryDispense(IWorld& world, const BlockPos& pos, const BlockSt
 
     dropper->setChanged();
     return true;
+}
+
+std::unique_ptr<BlockEntity> DropperBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::DropperBlockEntity>(pos);
 }
 
 } // namespace blocks

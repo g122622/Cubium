@@ -24,10 +24,17 @@
 #include "Structure.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/interactive/DispenserBlockEntity.hpp"
+#include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <algorithm>
@@ -347,6 +354,81 @@ void StructurePiece::replaceAirAndLiquidDownwards(
             --worldY;
         } else {
             break;
+        }
+    }
+}
+
+void StructurePiece::generateChest(IWorldWriter& world,
+    const StructureBoundingBox& bounds,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction facing,
+    const ResourceLocation& lootTable)
+{
+    i32 worldX = getXWithOffset(x, z);
+    i32 worldY = getYWithOffset(y);
+    i32 worldZ = getZWithOffset(x, z);
+
+    if (!bounds.contains(worldX, worldY, worldZ)) {
+        return;
+    }
+
+    // 放置带朝向的宝箱方块
+    const BlockState* chestState = VanillaBlocks::getState(VanillaBlocks::CHEST);
+    if (chestState != nullptr) {
+        BlockState orientedState = chestState->with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+        setBlockState(world, &orientedState, x, y, z, bounds);
+    }
+
+    // 设置战利品表
+    IWorld* iworld = dynamic_cast<IWorld*>(&world);
+    if (iworld != nullptr) {
+        BlockPos chestPos(worldX, worldY, worldZ);
+        BlockEntity* blockEntity = iworld->getBlockEntity(chestPos);
+        if (blockEntity != nullptr) {
+            if (blockEntity->getType() == BlockEntityType::Chest ||
+                blockEntity->getType() == BlockEntityType::TrappedChest) {
+                auto* chestEntity = static_cast<blockentity::ChestEntity*>(blockEntity);
+                chestEntity->setLootTable(lootTable, rng.nextLong());
+            }
+        }
+    }
+}
+
+void StructurePiece::generateDispenser(IWorldWriter& world,
+    const StructureBoundingBox& bounds,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction facing,
+    const ResourceLocation& lootTable)
+{
+    i32 worldX = getXWithOffset(x, z);
+    i32 worldY = getYWithOffset(y);
+    i32 worldZ = getZWithOffset(x, z);
+
+    if (!bounds.contains(worldX, worldY, worldZ)) {
+        return;
+    }
+
+    // 放置带朝向的发射器方块
+    const BlockState* dispenserState = VanillaBlocks::getState(VanillaBlocks::DISPENSER);
+    if (dispenserState != nullptr) {
+        BlockState orientedState = dispenserState->with(BlockStateProperties::FACING(), facing);
+        setBlockState(world, &orientedState, x, y, z, bounds);
+    }
+
+    // 设置战利品表
+    IWorld* iworld = dynamic_cast<IWorld*>(&world);
+    if (iworld != nullptr) {
+        BlockPos dispenserPos(worldX, worldY, worldZ);
+        BlockEntity* blockEntity = iworld->getBlockEntity(dispenserPos);
+        if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Dispenser) {
+            auto* dispenserEntity = static_cast<blockentity::DispenserBlockEntity*>(blockEntity);
+            dispenserEntity->setLootTable(lootTable, rng.nextLong());
         }
     }
 }

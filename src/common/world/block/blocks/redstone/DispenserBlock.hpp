@@ -89,6 +89,10 @@ public:
         return Material::PushReaction::Normal;
     }
 
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+
     // ========== 发射器特有方法 ==========
 
     /**

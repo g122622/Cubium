@@ -364,6 +364,56 @@ public:
         i32 maxZ,
         const BlockState* state);
 
+    // ========== 容器方块放置方法 ==========
+
+    /**
+     * @brief 放置带战利品表的宝箱
+     *
+     * 在指定位置放置宝箱方块并设置战利品表。放置后通过 IWorld 接口
+     * 获取 ChestEntity 并调用 setLootTable() 设置战利品表和种子。
+     *
+     * @param world 世界写入接口
+     * @param bounds 结构边界框
+     * @param rng 随机数生成器（用于战利品表种子）
+     * @param x 相对 X 坐标
+     * @param y 相对 Y 坐标
+     * @param z 相对 Z 坐标
+     * @param facing 宝箱朝向
+     * @param lootTable 战利品表资源位置（如 "minecraft:chests/jungle_temple"）
+     */
+    void generateChest(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        math::Random& rng,
+        i32 x,
+        i32 y,
+        i32 z,
+        Direction facing,
+        const ResourceLocation& lootTable);
+
+    /**
+     * @brief 放置带战利品表的发射器
+     *
+     * 在指定位置放置发射器方块并设置战利品表。放置后通过 IWorld 接口
+     * 获取 DispenserBlockEntity 并调用 setLootTable() 设置战利品表和种子。
+     *
+     * @param world 世界写入接口
+     * @param bounds 结构边界框
+     * @param rng 随机数生成器（用于战利品表种子）
+     * @param x 相对 X 坐标
+     * @param y 相对 Y 坐标
+     * @param z 相对 Z 坐标
+     * @param facing 发射器朝向
+     * @param lootTable 战利品表资源位置（如 "minecraft:chests/jungle_temple_dispenser"）
+     */
+    void generateDispenser(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        math::Random& rng,
+        i32 x,
+        i32 y,
+        i32 z,
+        Direction facing,
+        const ResourceLocation& lootTable);
+
     /**
      * @brief 向下替换空气和液体
      * @param world 世界接口

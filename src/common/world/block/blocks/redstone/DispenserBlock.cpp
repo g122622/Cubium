@@ -31,6 +31,7 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../blockentity/BlockEntity.hpp"
+#include "../../../blockentity/BlockEntityType.hpp"
 #include "../../../blockentity/interactive/DispenserBlockEntity.hpp"
 #include "../../../redstone/RedstonePower.hpp"
 #include "../../../tick/base/TickPriority.hpp"
@@ -285,6 +286,11 @@ void DispenserBlock::spawnItemEntity(IWorld& world, const BlockPos& pos, Directi
 void DispenserBlock::playDispenseSound(IWorld& world, const BlockPos& pos)
 {
     world.playSound(SoundEvents::BLOCK_DISPENSER_DISPENSE, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
+}
+
+std::unique_ptr<BlockEntity> DispenserBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::DispenserBlockEntity>(BlockEntityType::Dispenser, pos);
 }
 
 } // namespace blocks

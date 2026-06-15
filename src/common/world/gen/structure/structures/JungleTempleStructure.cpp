@@ -24,12 +24,16 @@
 #include "JungleTempleStructure.hpp"
 
 #include "../../../../core/Constants.hpp"
+#include "../../../../resource/ResourceLocation.hpp"
+#include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/property/Properties.hpp"
 #include "../../../IWorldWriter.hpp"
 #include "../../../biome/BiomeIds.hpp"
+#include "../../../biome/BiomeTags.hpp"
 #include "../../../block/BlockPos.hpp"
-#include "../StructureBoundingBox.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "../../../block/registry/VanillaBlocks.hpp"
+#include "../Structure.hpp"
 
 namespace mc {
 namespace world {
@@ -85,7 +89,6 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
     const BlockState* tripwire = VanillaBlocks::getState(VanillaBlocks::TRIPWIRE);
     const BlockState* tripwireHook = VanillaBlocks::getState(VanillaBlocks::TRIPWIRE_HOOK);
-    const BlockState* dispenser = VanillaBlocks::getState(VanillaBlocks::DISPENSER);
 
     // 基础参数
     i32 baseX = m_startPos.x;
@@ -296,22 +299,28 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
     }
 
     // 发射器陷阱（天花板）
-    if (dispenser) {
-        // 在天花板上放置发射器，朝下
-        {
-            i32 wx = baseX + trapX, wy = baseY + 5, wz = baseZ + 3;
-            if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, dispenser, 18);
-            }
-        }
-        {
-            i32 wx = baseX + trapX, wy = baseY + 5, wz = baseZ + 4;
-            if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, dispenser, 18);
-            }
-        }
-
-        // TODO: 发射器内放置箭（需要物品容器支持）
+    // 丛林神庙有两个发射器陷阱，朝下射击箭矢
+    // 战利品表 minecraft:chests/jungle_temple_dispenser 包含 2-7 支箭
+    // generateDispenser 会同时放置方块和设置战利品表
+    {
+        // 第一组发射器（走廊上方前侧）
+        generateDispenser(world,
+            bounds,
+            rng,
+            trapX,
+            5,
+            3,
+            Direction::Down,
+            ResourceLocation("minecraft", "chests/jungle_temple_dispenser"));
+        // 第二组发射器（走廊上方后侧）
+        generateDispenser(world,
+            bounds,
+            rng,
+            trapX,
+            5,
+            4,
+            Direction::Down,
+            ResourceLocation("minecraft", "chests/jungle_temple_dispenser"));
     }
 
     // 宝箱房间（北侧，隐藏）
@@ -351,13 +360,17 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
     }
 
     // 宝箱（高概率生成）
+    // 丛林神庙宝箱使用 minecraft:chests/jungle_temple 战利品表
     if (rng.nextInt(100) < 70) {
-        // TODO: 放置真正的宝箱（当前用金块占位）
-        const BlockState* goldBlock = VanillaBlocks::getState(VanillaBlocks::GOLD_BLOCK);
-        i32 wx = baseX + chestX, wy = baseY + 3, wz = baseZ + chestZ + 2;
-        if (goldBlock && bounds.contains(wx, wy, wz)) {
-            world.setBlockState(wx, wy, wz, goldBlock, 18);
-        }
+        // 宝箱朝向南面（入口方向）
+        generateChest(world,
+            bounds,
+            rng,
+            chestX,
+            3,
+            chestZ + 2,
+            Direction::South,
+            ResourceLocation("minecraft", "chests/jungle_temple"));
     }
 
     // 三层塔楼（四角）
@@ -442,11 +455,19 @@ void JungleTempleStructure::_initializeBiomes() noexcept
     m_validBiomes = {Jungle, JungleHills, JungleEdge, ModifiedJungle, ModifiedJungleEdge};
 }
 
+const biome::BiomeTag* JungleTempleStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_JUNGLE_PYRAMID();
+}
+
 bool JungleTempleStructure::canGenerate(
     IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
-    // TODO: 实现生物群系检查逻辑
-    return true;
+    MC_UNUSED(world);
+    MC_UNUSED(rng);
+    // 检查区块中心位置的生物群系是否属于丛林神庙可生成的生物群系
+    const BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, 64, chunkZ * CHUNK_WIDTH + 8);
+    return isValidBiome(biome);
 }
 
 std::unique_ptr<StructureStart> JungleTempleStructure::generate(

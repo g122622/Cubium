@@ -28,6 +28,9 @@
 #include <memory>
 
 namespace mc {
+namespace biome {
+class BiomeTag;
+}
 namespace world {
 namespace gen {
 namespace structure {
@@ -71,6 +74,13 @@ public:
     [[nodiscard]] const std::string& name() const noexcept override { return m_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const noexcept override { return m_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const noexcept override { return m_validBiomes; }
+
+    /**
+     * @brief 获取结构关联的生物群系标签
+     *
+     * 返回 minecraft:has_structure/jungle_pyramid 标签，用于 O(1) 生物群系查找。
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
 
     /**
      * @brief 检查是否可以生成

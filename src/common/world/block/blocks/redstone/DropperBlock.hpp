@@ -69,6 +69,8 @@ public:
      */
     void dispense(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+
 protected:
     /**
      * @brief 尝试从投掷器位置投掷物品
