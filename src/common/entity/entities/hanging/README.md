@@ -41,6 +41,7 @@ Entity (core/Entity.hpp)
 - `common/util/math/random/Random.hpp` - 随机数
 - `common/world/IWorld.hpp` - 世界接口
 - `common/world/block/Block.hpp` - 方块检测（hasEnoughSolidSide）
+- `common/world/gamerule/GameRules.hpp` - 游戏规则（DO_ENTITY_DROPS）
 
 **被谁依赖**：
 - `common/entity/core/VanillaEntities.hpp` - 实体类型注册
@@ -68,3 +69,14 @@ LeashKnotEntity 在 `tick()` 中检查绑定的实体列表，当列表为空时
 ### 5. ItemFrameEntity 红石信号
 
 `getAnalogOutput()` 返回 `rotation % 8 + 1`（有物品时范围 1-8），无物品返回 0。红石比较器检测时需检查朝向是否一致。
+
+### 6. 游戏规则 doEntityDrops 对悬挂实体掉落的影响
+
+**问题**：所有悬挂实体的 `dropItem()` 方法都受 `GameRuleKeys::DO_ENTITY_DROPS` 游戏规则控制。
+
+**要点**：
+- `PaintingEntity::dropItem()`：当 `DO_ENTITY_DROPS` 为 false 时直接返回，不产生画作物品掉落
+- `ItemFrameEntity::dropItem()`：当 `DO_ENTITY_DROPS` 为 true 时掉落物品展示框本身和内含物品；当为 false 时仅清空展示物品，不产生掉落。无论游戏规则如何，`m_displayedItem` 都会被清空
+- `LeashKnotEntity::dropItem()`：当 `DO_ENTITY_DROPS` 为 false 时直接返回，不产生拴绳物品掉落
+
+参考 MC 1.21.11：`Painting.dropItem()`、`ItemFrame.dropItem()`、`Leashable.tickLeash()` 中的 `ENTITY_DROPS` 检查

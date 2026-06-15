@@ -146,3 +146,17 @@ Entity (基类)
 - `CommandBlockMinecartEntity`：重写 `getComparatorOutput()`，返回 `m_successCount`；通过 `setSuccessCount(i32)` 设置成功计数
 - `RideableMinecartEntity`、`FurnaceMinecartEntity`、`TNTMinecartEntity`：不重写，返回默认值 0
 - `DetectorRailBlock::getComparatorInputOverride()` 通过 `RedstoneHelper::getEntitySignal()` 查询矿车信号，优先级：CommandBlockMinecart > 容器矿车 > 普通矿车（返回 0）
+
+### 12. 游戏规则 doEntityDrops 对车辆掉落的影响
+
+**问题**：所有车辆实体的 `dropItem()` 方法都受 `GameRuleKeys::DO_ENTITY_DROPS` 游戏规则控制。
+
+**要点**：
+- `AbstractMinecartEntity::dropItem()`：当 `DO_ENTITY_DROPS` 为 false 时，直接调用 `remove()` 返回，不产生任何掉落物
+- `ChestMinecartEntity::dropItem()`：容器内容物掉落受 `DO_ENTITY_DROPS` 控制，然后调用父类方法（父类也会检查该规则）
+- `FurnaceMinecartEntity::dropItem()`：熔炉方块额外掉落受 `DO_ENTITY_DROPS` 控制（且仅非爆炸伤害时掉落）
+- `TNTMinecartEntity::dropItem()`：TNT 方块掉落受 `DO_ENTITY_DROPS` 控制
+- `HopperMinecartEntity::dropItem()`：容器内容物掉落受 `DO_ENTITY_DROPS` 控制，然后调用父类方法
+- `BoatEntity::dropItem()`：当 `DO_ENTITY_DROPS` 为 false 时，直接返回，不掉落船物品
+
+参考 MC 1.21.11：`VehicleEntity.destroy()` 中的 `ENTITY_DROPS` 检查

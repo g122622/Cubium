@@ -228,52 +228,10 @@ TEST_F(EntityDropGameRuleTest, GetRuleType_ReturnsBoolean)
 }
 
 // ============================================================================
-// 实体掉落逻辑注释测试
+// 实体掉落逻辑集成测试
 //
-// 注意：完整的 dropItem() 测试需要模拟 IWorld 环境（getGameRules(),
-// isClientSide(), getRandom(), spawnEntity() 等）。
-// 由于 IWorld 接口方法众多，完整模拟成本较高。
+// 完整的 dropItem() 集成测试（使用 Mock World 验证 spawnEntity 调用）
+// 请参见 EntityDropItemGameRuleTest.cpp。
 //
-// 当前测试覆盖了 GameRules 层面的 DO_ENTITY_DROPS 行为验证。
-// 以下是各实体 dropItem 方法中 DO_ENTITY_DROPS 检查的逻辑描述，
-// 供未来集成测试参考：
-//
-// 1. AbstractMinecartEntity::dropItem:
-//    if (!worldPtr->getGameRules().getBoolean(GameRuleKeys::DO_ENTITY_DROPS)) {
-//        remove(); return;
-//    }
-//    // 正常掉落矿车物品
-//
-// 2. ChestMinecartEntity::dropItem:
-//    bool doEntityDrops = worldPtr->getGameRules().getBoolean(GameRuleKeys::DO_ENTITY_DROPS);
-//    if (doEntityDrops && m_inventory) { /* 掉落容器内容物 */ }
-//    AbstractMinecartEntity::dropItem(source); // 父类也检查 DO_ENTITY_DROPS
-//
-// 3. FurnaceMinecartEntity::dropItem:
-//    bool doEntityDrops = worldPtr->getGameRules().getBoolean(GameRuleKeys::DO_ENTITY_DROPS);
-//    if (!isExplosion && doEntityDrops) { /* 掉落熔炉方块 */ }
-//
-// 4. TNTMinecartEntity::dropItem:
-//    if (worldPtr->getGameRules().getBoolean(GameRuleKeys::DO_ENTITY_DROPS)) {
-//        /* 掉落 TNT 方块 */
-//    }
-//
-// 5. BoatEntity::dropItem:
-//    if (!worldPtr->getGameRules().getBoolean(GameRuleKeys::DO_ENTITY_DROPS)) { return; }
-//
-// 6. PaintingEntity::dropItem:
-//    if (!m_world->getGameRules().getBoolean(GameRuleKeys::DO_ENTITY_DROPS)) { return; }
-//
-// 7. ItemFrameEntity::dropItem:
-//    if (m_world->getGameRules().getBoolean(GameRuleKeys::DO_ENTITY_DROPS)) {
-//        /* 掉落物品展示框和内容物 */
-//    }
-//
-// 8. LeashKnotEntity::dropItem:
-//    if (!m_world->getGameRules().getBoolean(GameRuleKeys::DO_ENTITY_DROPS)) { return; }
-//
-// 9. FallingBlockEntity::_handleLanding (已有实现):
-//    if (worldPtr->getGameRules().getBoolean(GameRuleKeys::DO_ENTITY_DROPS)) {
-//        _dropItem(worldPtr, landingPos);
-//    }
+// 本文件仅测试 GameRules 层面的 DO_ENTITY_DROPS 行为验证。
 // ============================================================================

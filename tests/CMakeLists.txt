@@ -219,6 +219,8 @@ add_executable(mc_tests
     common/entity/entities/vehicle/BoatEntityDropItemTest.cpp
     # 实体掉落 DO_ENTITY_DROPS 游戏规则测试
     common/entity/entities/EntityDropGameRuleTest.cpp
+    # 实体 dropItem 受 DO_ENTITY_DROPS 控制的集成测试
+    common/entity/entities/EntityDropItemGameRuleTest.cpp
     # BoatItem 船物品测试
     common/item/vehicle/BoatItemTest.cpp
     # 成就系统测试
