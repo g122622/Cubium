@@ -660,6 +660,97 @@ TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_DecorationWithoutNamesp
     EXPECT_EQ(world::map::DecorationType::MONUMENT, func->getEffectiveDecoration());
 }
 
+TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_EmptyJson)
+{
+    // 测试空 JSON（全部使用默认值）
+    nlohmann::json json = {{"function", "minecraft:exploration_map"}};
+
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success());
+
+    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure, func->getDestination()); // 默认
+    EXPECT_EQ(2, func->getZoom());                                                          // 默认
+    EXPECT_EQ(50, func->getSearchRadius());                                                 // 默认
+    EXPECT_TRUE(func->shouldSkipKnownStructures());                                         // 默认
+    EXPECT_FALSE(func->getDecoration().has_value()); // 未指定，从 destination 推导
+    EXPECT_EQ(world::map::DecorationType::RED_X, func->getEffectiveDecoration());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_InvalidDestination)
+{
+    // 测试无效的 destination 字符串，应回退到默认值 BuriedTreasure
+    nlohmann::json json = {{"function", "minecraft:exploration_map"}, {"destination", "minecraft:unknown_structure"}};
+
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success());
+
+    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    ASSERT_NE(func, nullptr);
+    // 无法识别的 destination 应回退到默认值
+    EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure, func->getDestination());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_InvalidDecoration)
+{
+    // 测试无效的 decoration 字符串，应忽略并回退到从 destination 推导
+    nlohmann::json json = {{"function", "minecraft:exploration_map"}, {"decoration", "nonexistent_type"}};
+
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success());
+
+    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    ASSERT_NE(func, nullptr);
+    // 无法识别的 decoration 应忽略，decoration 保持 nullopt
+    EXPECT_FALSE(func->getDecoration().has_value());
+    // 从默认 destination (BuriedTreasure) 推导
+    EXPECT_EQ(world::map::DecorationType::RED_X, func->getEffectiveDecoration());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_DestinationWithoutNamespace)
+{
+    // 测试不带命名空间前缀的 destination（MC 1.16.5 兼容格式）
+    nlohmann::json json = {{"function", "minecraft:exploration_map"}, {"destination", "monument"}};
+
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success());
+
+    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ(ExplorationMapFunction::Destination::Monument, func->getDestination());
+}
+
+TEST_F(LootSerializersTest, DecorationTypeStringConversion)
+{
+    // 测试 decorationTypeFromString 和 decorationTypeToString 的双向转换
+    using world::map::DecorationType;
+
+    // 带命名空间前缀
+    EXPECT_EQ(DecorationType::MANSION, world::map::decorationTypeFromString("minecraft:mansion").value());
+    EXPECT_EQ(DecorationType::MONUMENT, world::map::decorationTypeFromString("minecraft:monument").value());
+    EXPECT_EQ(DecorationType::RED_X, world::map::decorationTypeFromString("minecraft:red_x").value());
+    EXPECT_EQ(DecorationType::TARGET_X, world::map::decorationTypeFromString("minecraft:target_x").value());
+    EXPECT_EQ(DecorationType::BANNER_WHITE, world::map::decorationTypeFromString("minecraft:banner_white").value());
+    EXPECT_EQ(DecorationType::BANNER_BLACK, world::map::decorationTypeFromString("minecraft:banner_black").value());
+
+    // 不带命名空间前缀（MC 1.16.5 格式）
+    EXPECT_EQ(DecorationType::MANSION, world::map::decorationTypeFromString("mansion").value());
+    EXPECT_EQ(DecorationType::RED_X, world::map::decorationTypeFromString("red_x").value());
+    EXPECT_EQ(DecorationType::PLAYER, world::map::decorationTypeFromString("player").value());
+    EXPECT_EQ(DecorationType::FRAME, world::map::decorationTypeFromString("frame").value());
+
+    // 无效字符串
+    EXPECT_FALSE(world::map::decorationTypeFromString("invalid_type").has_value());
+    EXPECT_FALSE(world::map::decorationTypeFromString("").has_value());
+
+    // decorationTypeToString 反向转换
+    EXPECT_STREQ("mansion", world::map::decorationTypeToString(DecorationType::MANSION));
+    EXPECT_STREQ("monument", world::map::decorationTypeToString(DecorationType::MONUMENT));
+    EXPECT_STREQ("red_x", world::map::decorationTypeToString(DecorationType::RED_X));
+    EXPECT_STREQ("banner_white", world::map::decorationTypeToString(DecorationType::BANNER_WHITE));
+}
+
 // ============================================================================
 // LootEntry Parsing Tests
 // ============================================================================

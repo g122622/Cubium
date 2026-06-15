@@ -8,7 +8,7 @@
 map/
 ├── MaterialColor.hpp/cpp   # 地图颜色系统 - 59种颜色定义和阴影计算
 ├── MapData.hpp/cpp         # 地图数据核心 - 128x128像素、装饰物、旗帜、展示框标记
-├── MapDecoration.hpp/cpp   # 地图装饰物 - 27种装饰类型定义和序列化
+├── MapDecoration.hpp/cpp   # 地图装饰物 - 27种装饰类型定义、序列化、字符串转换
 ├── MapBanner.hpp/cpp       # 旗帜标记 - 旗帜位置/颜色记录和装饰映射
 ├── MapFrame.hpp/cpp        # 展示框标记 - 展示框位置/旋转记录
 ├── MapIdTracker.hpp/cpp    # 地图ID追踪器 - 自增ID分配
@@ -112,6 +112,10 @@ i = gameTime / 10; rotation = ((i * i * 34187121 + i * 121) >> 15) & 15
 - 整数格式（旧版MC）: `dimension: 0/-1/1`，对应 `MapDimensionId::Overworld/Nether/End` — 读取时兼容
 
 维度ID与字符串之间的转换使用 `MapDimensionId.hpp` 中的集中式工具函数 `dimensionIdToString()` / `dimensionIdFromString()` / `dimensionNameToId()`，不应在各处重复实现转换逻辑。
+
+### DecorationType 字符串转换
+
+`decorationTypeFromString()` 和 `decorationTypeToString()` 提供 `DecorationType` 枚举与字符串的双向转换，支持 MC 1.16.5 格式（如 `"mansion"`、`"red_x"`）和 1.21.11 格式（如 `"minecraft:mansion"`、`"minecraft:red_x"`）。`decorationTypeFromString()` 无法识别的字符串返回 `std::nullopt`。
 
 ### 旗帜交互
 

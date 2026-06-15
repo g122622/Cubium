@@ -3,6 +3,7 @@
 #include "item/loot/entries/DynamicLootEntry.hpp"
 #include "item/loot/entries/LootEntry.hpp"
 #include "item/loot/functions/CopyNbtFunction.hpp"
+#include "item/loot/functions/ExplorationMapFunction.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -93,9 +94,13 @@ TEST_F(LootJsonIntegrationTest, ParseFunction_CopyNbtSuccess)
     EXPECT_EQ(CopyNbtFunction::Operation::Merge, func->getOperations()[1].operation);
 }
 
-TEST_F(LootJsonIntegrationTest, ParseFunction_ExplorationMapRejected)
+TEST_F(LootJsonIntegrationTest, ParseFunction_ExplorationMap)
 {
     nlohmann::json json = {{"function", "minecraft:exploration_map"}, {"destination", "minecraft:mansion"}};
     auto result = LootSerializers::parseFunction(json);
-    EXPECT_FALSE(result.success());
+    ASSERT_TRUE(result.success());
+
+    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ(ExplorationMapFunction::Destination::Mansion, func->getDestination());
 }
