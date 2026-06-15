@@ -189,6 +189,14 @@ Result<std::optional<ChunkData>> JavaColumnReader::readColumn(
         return sectionsResult.error();
     }
 
+    // 读取居住时间（InhabitedTime）
+    if (columnNbt.value.count("InhabitedTime") != 0) {
+        const auto& tag = columnNbt.value.at("InhabitedTime");
+        if (tag->id() == nbt::TagId::Long) {
+            chunk.setInhabitedTime(static_cast<i64>(columnNbt.get<long_tag>("InhabitedTime")));
+        }
+    }
+
     // TODO: dimension 参数目前未使用，未来可能用于维度特定的区块处理
     MC_UNUSED(dimension);
     chunk.setLoaded(true);

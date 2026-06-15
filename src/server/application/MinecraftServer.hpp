@@ -84,6 +84,19 @@ class ServerChunkManager;
 class ServerScriptManager;
 
 /**
+ * @brief 服务端调试统计信息
+ *
+ * 使用原子变量实现线程安全的服务端统计读取。
+ * 服务端线程写入，客户端线程读取，无需加锁。
+ */
+struct ServerDebugStats {
+    std::atomic<f32> smoothedTickTimeMs{0.0f}; ///< 平滑后的tick耗时（毫秒）
+    std::atomic<f32> targetMsPerTick{50.0f};   ///< 目标每tick毫秒数
+    std::atomic<i32> forcedChunkCount{0};      ///< 当前维度的强制加载区块数
+    std::atomic<bool> isSprinting{false};      ///< 服务端是否正在加速执行
+};
+
+/**
  * @brief Minecraft 服务器抽象基类
  *
  * 提供所有服务器类型的共享实现：
@@ -208,6 +221,15 @@ public:
 
     [[nodiscard]] interaction::InventoryManager& inventoryManager() override { return *m_inventoryManager; }
     [[nodiscard]] const interaction::InventoryManager& inventoryManager() const override { return *m_inventoryManager; }
+
+    // ========== 调试统计 ==========
+
+    /**
+     * @brief 获取服务端调试统计信息
+     *
+     * 原子变量，可从客户端线程安全读取。
+     */
+    [[nodiscard]] const ServerDebugStats& debugStats() const { return m_debugStats; }
 
     [[nodiscard]] PlayerInventory* playerInventory(PlayerId playerId) override;
     [[nodiscard]] const PlayerInventory* playerInventory(PlayerId playerId) const override;
@@ -890,6 +912,9 @@ protected:
     // Tick 计数器
     u64 m_tickCounter = 0;
     u64 m_lastKeepAliveTick = 0;
+
+    // 调试统计（原子变量，供客户端线程读取）
+    ServerDebugStats m_debugStats;
 
     // 心跳间隔（ticks）
     static constexpr u64 KEEPALIVE_INTERVAL = 300; // 15秒 @ 20 TPS

@@ -123,6 +123,11 @@ public:
     [[nodiscard]] bool isLoaded() const { return m_loaded; }
     void setLoaded(bool value) { m_loaded = value; }
 
+    // 居住时间（区块内有玩家附近时的累计刻数，用于计算区域难度）
+    [[nodiscard]] i64 inhabitedTime() const { return m_inhabitedTime; }
+    void setInhabitedTime(i64 value) { m_inhabitedTime = value; }
+    void incrementInhabitedTime(i64 ticks) { m_inhabitedTime += ticks; }
+
     // 序列化
     [[nodiscard]] std::vector<u8> serialize() const;
     [[nodiscard]] static Result<std::unique_ptr<ChunkData>> deserialize(const u8* data, size_t size);
@@ -344,6 +349,9 @@ private:
 
     // 生物群系采样数据
     BiomeContainer m_biomes;
+
+    // 居住时间（区块内有玩家附近时的累计刻数）
+    i64 m_inhabitedTime = 0;
 
     // 状态
     ChunkLoadStatus m_status = ChunkLoadStatus::Empty;

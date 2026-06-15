@@ -629,7 +629,8 @@ void ServerChunkManager::_doGenerateChunkToTargetStatus(
     }
 }
 
-void ServerChunkManager::_prepareStepDependencies(ChunkPrimer& chunk, const ChunkStep& step, GenerationChunkCache& cache)
+void ServerChunkManager::_prepareStepDependencies(
+    ChunkPrimer& chunk, const ChunkStep& step, GenerationChunkCache& cache)
 {
     const ChunkDependencies& deps = step.directDependencies();
     for (i32 radius = 0; radius < deps.size(); ++radius) {
@@ -1131,10 +1132,25 @@ void ServerChunkManager::tick()
     ++m_currentTick;
     processTicketUpdatesSync();
 
+    // 增加有玩家附近的区块的居住时间（每 tick +1）
+    _incrementInhabitedTime();
+
     if (m_currentTick - m_lastUnloadCheckTick >= UNLOAD_CHECK_INTERVAL_TICKS) {
         _checkChunkUnloading();
         m_lastUnloadCheckTick = m_currentTick;
     }
+}
+
+void ServerChunkManager::_incrementInhabitedTime()
+{
+    // 遍历所有已加载区块，对有玩家追踪的区块增加居住时间
+    forEachLoadedChunk([this](ChunkData& chunk) {
+        const u64 key = ChunkId(chunk.x(), chunk.z(), 0).toId();
+        if (m_ticketManager.hasTrackingPlayers(key)) {
+            chunk.incrementInhabitedTime(1);
+        }
+        return true; // 继续遍历
+    });
 }
 
 // ============================================================================

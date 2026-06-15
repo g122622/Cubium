@@ -539,6 +539,14 @@ void StandaloneServer::_mainLoop()
 
     auto lastTickTime = clock::now();
 
+    // 平滑 tick 耗时的指数移动平均因子
+    constexpr f32 SMOOTH_FACTOR = 0.2f;
+    f32 smoothedTickTimeMs = 0.0f;
+
+    // 更新目标每tick毫秒数
+    m_debugStats.targetMsPerTick.store(
+        static_cast<f32>(std::chrono::duration<f32, std::milli>(tickDuration).count()), std::memory_order_relaxed);
+
     spdlog::info("Server is now running!");
     spdlog::info("Connect with port: {}", m_settings.serverPort.get());
 
@@ -550,7 +558,9 @@ void StandaloneServer::_mainLoop()
 
         if (deltaTime >= tickDuration) {
             // 执行游戏刻
+            auto tickStart = clock::now();
             tick();
+            auto tickElapsed = clock::now() - tickStart;
 
             lastTickTime = currentTime;
 
@@ -558,6 +568,28 @@ void StandaloneServer::_mainLoop()
             const f64 tps = 1.0 / (std::chrono::duration<f64>(deltaTime).count());
             MC_TRACE_COUNTER("server.tick", "TPS", static_cast<i64>(tps));
             MC_TRACE_COUNTER("server.tick", "PlayerCount", static_cast<i64>(m_playerManager->playerCount()));
+
+            // 更新调试统计
+            const f32 tickTimeMs = std::chrono::duration<f32, std::milli>(tickElapsed).count();
+            if (smoothedTickTimeMs == 0.0f) {
+                smoothedTickTimeMs = tickTimeMs;
+            } else {
+                smoothedTickTimeMs = smoothedTickTimeMs * (1.0f - SMOOTH_FACTOR) + tickTimeMs * SMOOTH_FACTOR;
+            }
+            m_debugStats.smoothedTickTimeMs.store(smoothedTickTimeMs, std::memory_order_relaxed);
+
+            // 更新强制区块计数
+            if (m_dimensionManager != nullptr) {
+                if (auto* overworld = m_dimensionManager->getOverworld(); overworld != nullptr) {
+                    if (auto* world = overworld->world(); world != nullptr) {
+                        if (auto* chunkMgr = world->chunkManager(); chunkMgr != nullptr) {
+                            const auto& ticketManager = chunkMgr->ticketManager();
+                            m_debugStats.forcedChunkCount.store(
+                                static_cast<i32>(ticketManager.getForcedChunks().size()), std::memory_order_relaxed);
+                        }
+                    }
+                }
+            }
         } else {
             // 等待下一刻
             std::this_thread::sleep_for(std::chrono::milliseconds(1));

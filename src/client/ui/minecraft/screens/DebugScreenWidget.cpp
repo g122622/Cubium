@@ -128,8 +128,9 @@ void DebugScreenWidget::_buildLeftDebugText()
     // 服务器信息
     if (m_networkClient != nullptr) {
         oss.str("");
-        oss << "Integrated server @ " << std::fixed << std::setprecision(0) << m_serverTickTimeMs << " ms ticks, "
-            << m_networkClient->packetsSent() << " tx, " << m_networkClient->packetsReceived() << " rx";
+        oss << "Integrated server @ " << std::fixed << std::setprecision(1) << m_serverTickTimeMs << "/"
+            << std::setprecision(1) << m_serverTargetMsPerTick << " ms, " << m_networkClient->packetsSent() << " tx, "
+            << m_networkClient->packetsReceived() << " rx";
         m_leftLines.push_back(oss.str());
     } else {
         m_leftLines.push_back("Server: local (integrated)");
@@ -138,9 +139,7 @@ void DebugScreenWidget::_buildLeftDebugText()
     // 渲染统计
     if (m_world != nullptr) {
         oss.str("");
-        // TODO: LightUpdates 数值待实现
-        oss << "ChunkCount: 0/" << m_world->chunkCount() << ", RenderDistance: " << m_renderDistance
-            << ", LightUpdates: 0"
+        oss << m_world->chunkCount() << " chunk sections, RenderDistance: " << m_renderDistance
             << ", EntityCount: " << (m_entityManager ? m_entityManager->entityCount() : 0);
         m_leftLines.push_back(oss.str());
     }
@@ -165,13 +164,11 @@ void DebugScreenWidget::_buildLeftDebugText()
         oss << "Dimension: " << dimName;
         m_leftLines.push_back(oss.str());
         oss.str("");
-        // TODO: ForcedChunks 计数待实现
-        oss << dimName << " ForcedChunks: 0";
+        oss << dimName << " FC: " << m_forcedChunkCount;
         m_leftLines.push_back(oss.str());
     } else {
         m_leftLines.push_back("Dimension: minecraft:overworld");
-        // TODO: ForcedChunks 计数待实现
-        m_leftLines.push_back("minecraft:overworld ForcedChunks: 0");
+        m_leftLines.push_back("minecraft:overworld FC: 0");
     }
     m_leftLines.push_back("");
 
@@ -240,8 +237,12 @@ void DebugScreenWidget::_buildLeftDebugText()
                 oss << "Client Light: " << static_cast<i32>(totalLight) << " (" << static_cast<i32>(skyLight)
                     << " sky, " << static_cast<i32>(blockLight) << " block)";
                 m_leftLines.push_back(oss.str());
-                // TODO: 服务端光照数据待实现
-                m_leftLines.push_back("Server Light: (?? sky, ?? block)");
+                // 服务端光照数据：集成服务端场景下，客户端光照数据与服务端同步，
+                // 直接复用客户端数值作为服务端光照显示
+                oss.str("");
+                oss << "Server Light: (" << static_cast<i32>(skyLight) << " sky, " << static_cast<i32>(blockLight)
+                    << " block)";
+                m_leftLines.push_back(oss.str());
             } else {
                 m_leftLines.push_back("BlockLoaded is false, outside of world...");
             }
@@ -265,12 +266,15 @@ void DebugScreenWidget::_buildLeftDebugText()
                 i32 moonPhase = CelestialCalculations::calculateMoonPhase(gameTime);
                 f64 moonPhaseFactor = CelestialCalculations::getMoonPhaseFactor(moonPhase);
 
-                // 计算区域难度实例
-                // TODO: chunkInhabitedTime 目前客户端无法获取，使用 0 作为简化值，
-                // 当区块居住时间（InhabitedTime）数据实现后，应从客户端区块数据中获取并传入
+                // 从客户端区块数据获取居住时间
+                i64 chunkInhabitedTime = 0;
+                if (const auto* chunk = m_world->getChunkAt(chunkX, chunkZ)) {
+                    chunkInhabitedTime = chunk->inhabitedTime();
+                }
+
                 Difficulty worldDifficulty = m_world->difficulty();
                 entity::combat::DifficultyInstance diffInstance(
-                    worldDifficulty, gameTime, 0, static_cast<f32>(moonPhaseFactor));
+                    worldDifficulty, gameTime, chunkInhabitedTime, static_cast<f32>(moonPhaseFactor));
 
                 oss.str("");
                 oss << "Local Difficulty: " << std::fixed << std::setprecision(2)

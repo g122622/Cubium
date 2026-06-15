@@ -121,6 +121,21 @@ public:
      */
     void setRendererInfo(const std::string& info) { m_rendererInfo = info; }
 
+    /**
+     * @brief 设置服务端tick耗时
+     */
+    void setServerTickTimeMs(f32 ms) { m_serverTickTimeMs = ms; }
+
+    /**
+     * @brief 设置服务端目标每tick毫秒数
+     */
+    void setServerTargetMsPerTick(f32 ms) { m_serverTargetMsPerTick = ms; }
+
+    /**
+     * @brief 设置强制加载区块计数
+     */
+    void setForcedChunkCount(i32 count) { m_forcedChunkCount = count; }
+
     // ========== Widget接口 ==========
 
     /**
@@ -212,8 +227,8 @@ private:
 
     // 服务端信息
     f32 m_serverTickTimeMs = 0.0f;
-    // TODO: m_serverTps 尚未在调试屏幕中显示
-    f32 m_serverTps = 20.0f;
+    f32 m_serverTargetMsPerTick = 50.0f;
+    i32 m_forcedChunkCount = 0;
 
     // 内存信息
     u64 m_processMemoryMB = 0;

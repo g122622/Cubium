@@ -606,6 +606,11 @@ std::vector<u8> ChunkData::serialize() const
         data.push_back(static_cast<u8>(h & 0xFF));
     }
 
+    // 居住时间（8字节，大端序）
+    for (int i = 56; i >= 0; i -= 8) {
+        data.push_back(static_cast<u8>(m_inhabitedTime >> i));
+    }
+
     return data;
 }
 
@@ -688,6 +693,15 @@ Result<std::unique_ptr<ChunkData>> ChunkData::deserialize(const u8* data, size_t
         chunk->m_heightMap[i] =
             (static_cast<BlockCoord>(data[offset]) << 8) | static_cast<BlockCoord>(data[offset + 1]);
         offset += 2;
+    }
+
+    // 居住时间（8字节，大端序）
+    if (offset + 8 <= size) {
+        chunk->m_inhabitedTime = (static_cast<i64>(data[offset]) << 56) | (static_cast<i64>(data[offset + 1]) << 48) |
+            (static_cast<i64>(data[offset + 2]) << 40) | (static_cast<i64>(data[offset + 3]) << 32) |
+            (static_cast<i64>(data[offset + 4]) << 24) | (static_cast<i64>(data[offset + 5]) << 16) |
+            (static_cast<i64>(data[offset + 6]) << 8) | static_cast<i64>(data[offset + 7]);
+        offset += 8;
     }
 
     chunk->m_loaded = true;

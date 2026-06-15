@@ -96,6 +96,9 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
         ser.writeBytes(sectionData);
     }
 
+    // 写入居住时间（8字节）
+    ser.writeI64(chunk.inhabitedTime());
+
     return std::move(ser.buffer());
 }
 
@@ -199,6 +202,14 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
         }
 
         *section = std::move(*sectionResult.value());
+    }
+
+    // 读取居住时间（8字节，向后兼容：如果数据不足则默认为0）
+    {
+        auto inhabitedResult = deser.readI64();
+        if (inhabitedResult.success()) {
+            chunk->setInhabitedTime(inhabitedResult.value());
+        }
     }
 
     chunk->setFullyGenerated(true);

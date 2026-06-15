@@ -339,6 +339,13 @@ void IntegratedServer::_mainLoop()
 
     spdlog::info("Integrated server started ({} TPS)", m_settings.tickRate.get());
 
+    // 平滑 tick 耗时的指数移动平均因子（与 MC 一致）
+    constexpr f32 SMOOTH_FACTOR = 0.2f;
+    f32 smoothedTickTimeMs = 0.0f;
+
+    // 更新目标每tick毫秒数
+    m_debugStats.targetMsPerTick.store(static_cast<f32>(tickDuration.count()), std::memory_order_relaxed);
+
     while (m_running.load(std::memory_order_acquire)) {
         MC_TRACE_EVENT("server.tick", "MainLoopIteration");
 
@@ -347,8 +354,32 @@ void IntegratedServer::_mainLoop()
         tick();
 
         auto elapsed = clock::now() - startTime;
-        auto sleepTime = tickDuration - elapsed;
+        const f32 tickTimeMs = std::chrono::duration<f32, std::milli>(elapsed).count();
 
+        // 指数移动平均平滑 tick 耗时
+        if (smoothedTickTimeMs == 0.0f) {
+            smoothedTickTimeMs = tickTimeMs;
+        } else {
+            smoothedTickTimeMs = smoothedTickTimeMs * (1.0f - SMOOTH_FACTOR) + tickTimeMs * SMOOTH_FACTOR;
+        }
+
+        // 更新调试统计（原子写入，客户端线程可安全读取）
+        m_debugStats.smoothedTickTimeMs.store(smoothedTickTimeMs, std::memory_order_relaxed);
+
+        // 更新强制区块计数（从主维度获取）
+        if (m_dimensionManager != nullptr) {
+            if (auto* overworld = m_dimensionManager->getOverworld(); overworld != nullptr) {
+                if (auto* world = overworld->world(); world != nullptr) {
+                    if (auto* chunkMgr = world->chunkManager(); chunkMgr != nullptr) {
+                        const auto& ticketManager = chunkMgr->ticketManager();
+                        m_debugStats.forcedChunkCount.store(
+                            static_cast<i32>(ticketManager.getForcedChunks().size()), std::memory_order_relaxed);
+                    }
+                }
+            }
+        }
+
+        auto sleepTime = tickDuration - elapsed;
         MC_TRACE_COUNTER("server.tick", "ServerTickTime", static_cast<i64>(elapsed.count()));
 
         if (sleepTime > std::chrono::milliseconds(0)) {

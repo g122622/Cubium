@@ -806,6 +806,14 @@ private:
     void _checkChunkUnloading();
 
     /**
+     * @brief 增加有玩家附近的区块的居住时间
+     *
+     * 每个游戏 tick 对有玩家追踪的区块调用 incrementInhabitedTime(1)，
+     * 这与 MC Java 版的 ChunkHolder.tick() 中增加 InhabitedTime 的逻辑一致。
+     */
+    void _incrementInhabitedTime();
+
+    /**
      * @brief 将坐标转换为内部哈希键
      *
      * @param x 区块 X 坐标
