@@ -22,6 +22,7 @@
  */
 
 #include "DripParticle.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "client/world/ClientWorld.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/world/IWorld.hpp"
@@ -161,6 +162,37 @@ std::unique_ptr<Particle> DripParticle::createLandingHoney(
     return particle;
 }
 
+std::unique_ptr<Particle> DripParticle::createDrippingObsidianTear(
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
+{
+    MC_UNUSED(world);
+    auto particle = std::make_unique<DripParticle>(pos, velocity, DripType::ObsidianTear);
+    return particle;
+}
+
+std::unique_ptr<Particle> DripParticle::createFallingObsidianTear(
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
+{
+    MC_UNUSED(world);
+    auto particle = std::make_unique<DripParticle>(pos, velocity, DripType::ObsidianTear);
+    particle->m_dripState = DripState::Falling;
+    particle->m_dripProgress = 1.0;
+    particle->setGravity(0.01);
+    return particle;
+}
+
+std::unique_ptr<Particle> DripParticle::createLandingObsidianTear(
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
+{
+    MC_UNUSED(world);
+    auto particle = std::make_unique<DripParticle>(pos, velocity, DripType::ObsidianTear);
+    particle->m_dripState = DripState::Landed;
+    // 黑曜石眼泪落地粒子寿命比其他类型更长，对齐 MC Java 版的 28.0 / (random * 0.8 + 0.2)
+    particle->setMaxAge(28.0);
+    particle->setSize(0.04);
+    return particle;
+}
+
 void DripParticle::tick(mc::client::ClientWorld* world)
 {
     m_prevPosition = m_position;
@@ -273,9 +305,26 @@ void DripParticle::onLand(mc::client::ClientWorld* world)
     m_velocity = glm::vec3(0.0f, 0.0f, 0.0f);
     setMaxAge(m_age + 16.0); // 落地后存在 16 tick
 
-    // 根据 m_type 生成对应的落地粒子
-    // Water -> SplashParticle, Lava -> LandingLava, Honey -> LandingHoney
-    // TODO: 等待 ParticleManager 支持粒子生成后实现落地粒子效果
+    // 根据 m_type 通过 emitCallback 生成对应的落地粒子
+    // MC Java 版中每种滴落粒子落地后只生成一个落地粒子，速度为零
+    if (m_emitCallback) {
+        ParticleTypeId landingType = ParticleTypeId::Splash; // 默认值，不会用到
+        switch (m_type) {
+            case DripType::Water:
+                landingType = ParticleTypeId::Splash;
+                break;
+            case DripType::Lava:
+                landingType = ParticleTypeId::LandingLava;
+                break;
+            case DripType::Honey:
+                landingType = ParticleTypeId::LandingHoney;
+                break;
+            case DripType::ObsidianTear:
+                landingType = ParticleTypeId::LandingObsidianTear;
+                break;
+        }
+        m_emitCallback(landingType, m_position, glm::vec3(0.0f, 0.0f, 0.0f));
+    }
 }
 
 f64 DripParticle::getScale(f64 partialTick) const

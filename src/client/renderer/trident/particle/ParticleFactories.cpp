@@ -420,6 +420,30 @@ void registerBuiltinParticleFactories()
         true,
         false);
 
+    registry.registerType(ParticleTypeId::DrippingObsidianTear,
+        "minecraft:dripping_obsidian_tear",
+        DripParticle::createDrippingObsidianTear,
+        ParticleRenderType::PARTICLE_SHEET_LIT,
+        40.0f,
+        true,
+        false);
+
+    registry.registerType(ParticleTypeId::FallingObsidianTear,
+        "minecraft:falling_obsidian_tear",
+        DripParticle::createFallingObsidianTear,
+        ParticleRenderType::PARTICLE_SHEET_LIT,
+        64.0f,
+        true,
+        false);
+
+    registry.registerType(ParticleTypeId::LandingObsidianTear,
+        "minecraft:landing_obsidian_tear",
+        DripParticle::createLandingObsidianTear,
+        ParticleRenderType::PARTICLE_SHEET_LIT,
+        28.0f,
+        true,
+        false);
+
     // 方块粒子
     registry.registerType(ParticleTypeId::Block,
         "minecraft:block",

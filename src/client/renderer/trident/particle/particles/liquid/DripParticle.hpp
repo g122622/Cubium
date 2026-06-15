@@ -102,6 +102,24 @@ public:
     static std::unique_ptr<Particle> createLandingHoney(
         const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
+    /**
+     * @brief 工厂方法：创建黑曜石眼泪滴落粒子（悬挂状态）
+     */
+    static std::unique_ptr<Particle> createDrippingObsidianTear(
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
+
+    /**
+     * @brief 工厂方法：创建黑曜石眼泪下落粒子
+     */
+    static std::unique_ptr<Particle> createFallingObsidianTear(
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
+
+    /**
+     * @brief 工厂方法：创建黑曜石眼泪落地粒子
+     */
+    static std::unique_ptr<Particle> createLandingObsidianTear(
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
+
     void tick(mc::client::ClientWorld* world) override;
 
     [[nodiscard]] ParticleRenderType getRenderType() const override

@@ -22,7 +22,6 @@
  */
 
 #include "EmitterParticle.hpp"
-#include "client/renderer/trident/particle/ParticleRegistry.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 namespace mc::client::renderer::trident::particle::particles {
@@ -64,10 +63,10 @@ void EmitterParticle::emit(
         return;
     }
 
-    // 回调未设置时通过 ParticleRegistry 创建粒子
-    // TODO: 创建的粒子目前未添加到 ParticleManager，需要完善此逻辑
-    auto particle = ParticleRegistry::instance().createParticle(type, pos, velocity, world);
-    MC_UNUSED(particle);
+    // emitCallback 由 ParticleManager::tick() 在每个粒子 tick 前设置，
+    // 如果此处回调为空，说明此粒子未被 ParticleManager 管理（编程错误）
+    MC_ASSERT_RELEASE_MSG(
+        false, "EmitterParticle::emit() called without emitCallback set - particle not managed by ParticleManager?");
 }
 
 void EmitterParticle::emitWithOffset(mc::client::ClientWorld* world,

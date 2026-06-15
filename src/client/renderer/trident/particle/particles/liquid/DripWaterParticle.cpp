@@ -71,8 +71,7 @@ u32 DripWaterParticle::getLightColor(mc::client::ClientWorld* world) const
 
 void DripWaterParticle::onLand(mc::client::ClientWorld* world)
 {
-    // TODO: 等待 ParticleManager 支持粒子生成后实现 SplashParticle 生成
-
+    // 父类 DripParticle::onLand() 已通过 emitCallback 生成落地粒子
     DripParticle::onLand(world);
 }
 
