@@ -37,7 +37,7 @@ ocean/
 ```
 
 - **SeagrassBlock ↔ TallSeagrassBlock**：海草通过骨粉催熟变成高海草，两者通过 `VanillaBlocks::TALL_SEAGRASS` 关联
-- **BubbleColumnBlock**：独立方块，由灵魂沙/岩浆块触发，通过静态方法 `placeBubbleColumn()` 和 `getDrag()` 与其他方块交互
+- **BubbleColumnBlock**：独立方块，由灵魂沙/岩浆块触发，通过静态方法 `placeBubbleColumn()` 和 `getDrag()` 与其他方块交互。实现了 `animateTick()` 生成粒子效果和环境音效
 
 ## 上下游外部依赖关系
 
@@ -118,3 +118,11 @@ if (VanillaBlocks::TALL_SEAGRASS == nullptr) {
 **问题**：海带通过 `AGE_0_25` 属性控制生长，最大值为 25，超出会导致状态无效。
 
 **解决方案**：在 `randomTick()` 中检查年龄是否已达到上限再决定是否生长。
+
+### 7. 气泡柱动画 tick（animateTick）
+
+`BubbleColumnBlock::animateTick()` 在客户端每 tick 被调用，生成粒子和环境音效：
+- **下拖模式 (DRAG=true)**：生成 `CURRENT_DOWN` 粒子，1/200 概率播放 `BUBBLE_COLUMN_WHIRLPOOL_AMBIENT` 环境音
+- **上推模式 (DRAG=false)**：生成 2 个 `BUBBLE_COLUMN_UP` 粒子，1/200 概率播放 `BUBBLE_COLUMN_UPWARDS_AMBIENT` 环境音
+
+注意：气泡柱的粒子/音效效果由 `animateTick` 产生，而非 `randomTick`（后者是服务端逻辑）。

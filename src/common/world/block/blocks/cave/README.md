@@ -89,6 +89,10 @@ Block
 
 `SporeBlossomBlock::isValidPosition()` 检查上方方块的向下实心面（`isSolidSide`），且当前位置不能在水中。支撑失效时直接在 `updatePostPlacement` 中返回空气状态。
 
+`SporeBlossomBlock::animateTick()` 在客户端每 tick 被调用，生成两种粒子效果：
+- `FallingSporeBlossom`：从花底部掉落的绿色孢子粒子（每 tick 1 个）
+- `SporeBlossomAir`：在花周围10格半径内漂浮的环境粒子（14 次随机尝试，仅在非固体位置生成）
+
 ### #4. BuddingAmethystBlock 使用 ResourceLocation 查找方块
 
 由于注册顺序依赖，`BuddingAmethystBlock` 通过 `BlockRegistry::instance().getBlock(ResourceLocation(...))` 延迟查找紫水晶簇方块，而非直接引用指针。

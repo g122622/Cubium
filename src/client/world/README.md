@@ -120,6 +120,7 @@ EntityRenderer 系列    # 读取 ClientEntity 的插值位置和动画状态渲
 
 ### 其他
 
-- **`ClientWorld` 不是 `IWorld` 实现**：它只提供自己的 xyz 查询接口，调试屏幕和客户端工具代码不要假设这里存在 `BlockPos` overload。
+- **`ClientWorld` 不是 `IWorld` 实现**：它只提供自己的 xyz 查询接口，调试屏幕和客户端工具代码不要假设这里存在 `BlockPos` overload。但 `ClientWorld` 实现了 `IBlockAnimateContext` 接口，为 `Block::animateTick()` 提供轻量级的客户端操作能力（粒子、音效、方块状态查询）。
 - **固定 Tick 累加器防止螺旋死亡**：`fixedTick()` 有 `MAX_TICKS_PER_FRAME = 5` 限制，如果帧率过低会丢弃部分 tick。
-- **难度默认值为 Normal**：`ClientWorld::difficulty()` 默认返回 `Difficulty::Normal`，由服务端通过 `ServerDifficulty` 包同步更新。客户端启动后未收到难度包前使用默认值。
+- **难度默认值为 Normal**：`ClientWorld::difficulty()` 默认返回 `Difficulty::Normal`，由服务端通过 `ServerDifficulty` 包同步更新。
+- **animateTick 调度**：`ClientWorld::animateTick()` 每帧被调用，执行 667 次迭代 × 2 范围 pass（range=16 近距离 + range=32 远距离），共 1334 次随机采样。采样到有 `animateTick` 覆写的方块时调用该方块的动画方法，用于生成粒子、播放环境音效等。本地音效播放通过 `m_playLocalSoundCallback` 委托给 `AudioService`。客户端启动后未收到难度包前使用默认值。

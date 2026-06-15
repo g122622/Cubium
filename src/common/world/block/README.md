@@ -15,6 +15,7 @@ block/
 ├── FireInfoRegistry.hpp/cpp        # 火焰信息注册表（燃烧/蔓延属性）
 ├── HarvestTool.hpp                 # 挖掘工具类型定义
 ├── IBeaconBeamColorProvider.hpp    # 信标光束颜色提供者接口
+├── IBlockAnimateContext.hpp        # 方块动画 tick 上下文接口（客户端粒子/音效）
 ├── IBucketPickupHandler.hpp        # 桶提取接口
 ├── IGrowable.hpp                   # 可生长方块接口
 ├── ILiquidContainer.hpp            # 液体容器接口
@@ -175,6 +176,13 @@ Material（材质定义）
 IWaterLoggable（含水接口）
 ├── 继承 ILiquidContainer 和 IBucketPickupHandler
 └── 被 StairsBlock, SlabBlock, WallBlock 等 19+ 种方块实现
+
+IBlockAnimateContext（方块动画 tick 上下文）
+├── 轻量级接口，为 Block::animateTick 提供客户端操作能力
+├── addAnimateParticle() → 生成粒子效果
+├── playLocalSound() → 播放本地音效
+├── getBlockState() → 查询方块状态
+└── ClientWorld 实现此接口，在 animateTick 调度时传入自身
 
 dispense/ 子模块
 ├── IDispenseItemBehavior（发射行为接口）
@@ -348,6 +356,17 @@ CauldronBlock 使用 `LEVEL_0_3` 属性存储水位（0-3），交互操作直�
 | 流体流动 / 桶放置流体 | `canBeReplacedByFluid()` |
 
 **注意**：不要再用 `isAir() || getMaterial().isReplaceable()` 手动判断可替换性，统一使用 `canBeReplaced()`。
+
+### 23. animateTick 系统与 IBlockAnimateContext
+
+`Block::animateTick()` 是客户端方块动画 tick 方法，每 tick 由 `ClientWorld::animateTick()` 调度，用于生成粒子效果、播放环境音效等视觉效果。
+
+- **仅客户端执行**：animateTick 在服务端永远不会被调用
+- **IBlockAnimateContext 接口**：为避免 Block 直接依赖完整的 IWorld，animateTick 接收 `IBlockAnimateContext&` 而非 `IWorld&`，仅提供 `addAnimateParticle()`、`playLocalSound()`、`getBlockState()` 三个轻量方法
+- **签名**：`virtual void animateTick(IBlockAnimateContext& context, const BlockPos& pos, const BlockState& state, math::IRandom& random) const;`
+- **基类默认实现**：空操作（无粒子、无音效）
+- **调度逻辑**：ClientWorld 每帧执行 667 次迭代 × 2 范围 pass（16 + 32），共 1334 次随机采样
+- **已实现的方块**：BubbleColumnBlock（气泡/漩涡粒子+环境音）、SporeBlossomBlock（孢子花粒子）
 
 #### canBeReplacedByFluid 与 FlowingFluid::isBlocked 的关系
 

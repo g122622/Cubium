@@ -45,7 +45,7 @@ BushBlock (来自 agricultural/ 模块)
 - `SoulFireBlock`：继承 FireBlock，重写 `isValidPosition()` 限制基座，重写 `canBurn()` 禁止蔓延
 - `NetherWartBlock`：独立方块，4阶段生长，只能种在灵魂沙上
 - `NyliumBlock`：独立方块，光照过高时退化为下界岩
-- `MagmaBlock`：独立方块，水中生成气泡柱
+- `MagmaBlock`：独立方块，水中生成气泡柱，踩踏时造成烫脚伤害
 - `NetherPortalBlock`：独立方块，检测框架有效性、实体传送
 - `NetherSproutsBlock` / `NetherRootsBlock`：继承 BushBlock，扩展 `canSustain()` 支持菌岩和灵魂土
 
@@ -94,9 +94,11 @@ BushBlock (来自 agricultural/ 模块)
 
 `NyliumBlock` 只在随机 tick 时检查光照，不是每个 tick 都检查。退化使用 `randomTick()`，需要确保 `ticksRandomly()` 返回 true。
 
-### 5. 岩浆块气泡柱延迟
+### 5. 岩浆块气泡柱延迟和烫脚伤害
 
 `MagmaBlock::neighborChanged()` 检测到上方有水后，调度 20 tick 延迟才生成气泡柱，不是立即生成。这是 MC 1.16.5 的行为。
+
+`MagmaBlock::onEntityWalk()` 对非潜行的活体生物造成 1 点烫脚伤害（`DamageType::HotFloor`）。注意：岩浆块 **不响应随机刻**（`ticksRandomly()` 返回 false），气泡柱的视觉效果由 `BubbleColumnBlock::animateTick()` 产生。
 
 ### 6. 下界苗/菌索的支撑面
 
