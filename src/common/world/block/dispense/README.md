@@ -85,7 +85,7 @@ IDispenseItemBehavior (接口)
 
 5. **桶行为放置流体必须通过 `scheduleFluidTick` 调度**：不能直接调用 `Fluid::tick()`，因为流体流动有 tick 延迟（水5tick、岩浆10/30tick），直接调用会导致流体在同一 tick 内立即流动，违反 MC 的 tick 调度机制。正确做法是 `world.tickManager().scheduleFluidTick()`。
 
-6. **桶行为物品替换逻辑**：MC 中 `consumeWithRemainder` 会尝试将替换物品放回发射器库存。本项目中发射器行为接口无法访问发射器库存，因此当发射器中还有多个桶时，替换出的空桶/满桶通过 `_spawnItemEntity` 弹出到世界中。
+6. **桶行为物品替换逻辑（consumeWithRemainder）**：MC 中 `consumeWithRemainder` 会尝试将替换物品放回发射器库存。本项目中 `DefaultDispenseItemBehavior::consumeWithRemainder` 实现了此逻辑：原始物品减1后，若为空则直接返回替换物品写回原槽位，若有剩余则通过 `addToInventoryOrDispense` 尝试放回发射器库存其他槽位，放不下则弹出到世界中。`dispense` 接口新增了 `IInventory* dispenserInventory` 参数以支持此功能。
 
 7. **打火石行为不消耗物品数量，只消耗耐久**：`attemptDamageItem(1)` 减少耐久度而非数量，耐久耗尽物品自动损坏消失。骨粉则用 `shrink(1)` 减少数量。
 

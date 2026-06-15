@@ -1013,7 +1013,7 @@ TEST_F(DispenseBehaviorTest, BucketDispense_FailWhenTargetBlockIsSolid)
     if (Items::WATER_BUCKET != nullptr) {
         ItemStack stack(Items::WATER_BUCKET, 1);
         BlockPos dispenserPos(0, 0, 0);
-        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack, nullptr);
 
         // 失败时应回退到默认投掷行为，OptionalDispenseItemBehavior::isSuccess() 返回 false
         EXPECT_FALSE(behavior->isSuccess());
@@ -1042,7 +1042,7 @@ TEST_F(DispenseBehaviorTest, BucketDispense_PlaceWaterOnAir)
         BlockPos dispenserPos(0, 0, 0);
         i32 beforeCall = world.setBlockStateCallCount();
 
-        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack, nullptr);
 
         // 成功放置水方块
         EXPECT_TRUE(behavior->isSuccess());
@@ -1075,7 +1075,7 @@ TEST_F(DispenseBehaviorTest, BucketDispense_WaterEvaporatesInUltraWarmDimension)
         ItemStack stack(Items::WATER_BUCKET, 1);
         BlockPos dispenserPos(0, 0, 0);
 
-        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack, nullptr);
 
         // 成功但水蒸发
         EXPECT_TRUE(behavior->isSuccess());
@@ -1104,7 +1104,7 @@ TEST_F(DispenseBehaviorTest, BucketDispense_LavaOnAirSucceeds)
         ItemStack stack(Items::LAVA_BUCKET, 1);
         BlockPos dispenserPos(0, 0, 0);
 
-        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack, nullptr);
 
         // 成功放置岩浆
         EXPECT_TRUE(behavior->isSuccess());
@@ -1152,7 +1152,7 @@ TEST_F(DispenseBehaviorTest, EmptyBucket_FailWhenNoFluidToPickup)
         ItemStack stack(Items::BUCKET, 1);
         BlockPos dispenserPos(0, 0, 0);
 
-        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack, nullptr);
 
         // 失败时应回退到默认投掷行为
         EXPECT_FALSE(behavior->isSuccess());
@@ -1179,7 +1179,7 @@ TEST_F(DispenseBehaviorTest, EmptyBucket_FailOnAirBlock)
         ItemStack stack(Items::BUCKET, 1);
         BlockPos dispenserPos(0, 0, 0);
 
-        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack, nullptr);
 
         EXPECT_FALSE(behavior->isSuccess());
     }
@@ -1223,7 +1223,7 @@ TEST_F(DispenseBehaviorTest, FlintAndSteel_FailOnNonFlammableTarget)
         ItemStack stack(Items::FLINT_AND_STEEL, 1);
         BlockPos dispenserPos(0, 0, 0);
 
-        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack, nullptr);
 
         // 失败
         EXPECT_FALSE(behavior->isSuccess());
@@ -1251,7 +1251,7 @@ TEST_F(DispenseBehaviorTest, FlintAndSteel_FailOnNullTargetState)
         ItemStack stack(Items::FLINT_AND_STEEL, 1);
         BlockPos dispenserPos(0, 0, 0);
 
-        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack, nullptr);
 
         // 失败
         EXPECT_FALSE(behavior->isSuccess());
@@ -1297,7 +1297,7 @@ TEST_F(DispenseBehaviorTest, BoneMeal_FailWhenTargetNotGrowable)
         ItemStack stack(Items::BONE_MEAL, 1);
         BlockPos dispenserPos(0, 0, 0);
 
-        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack, nullptr);
 
         // 失败
         EXPECT_FALSE(behavior->isSuccess());

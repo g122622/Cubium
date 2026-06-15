@@ -186,8 +186,8 @@ bool DispenserBlock::tryDispense(IWorld& world, const BlockPos& pos, const Block
     // 检查是否有注册的特殊发射行为
     IDispenseItemBehavior* behavior = DispenseItemBehaviorRegistry::instance().getBehavior(dispensedStack);
     if (behavior != nullptr) {
-        // 使用特殊发射行为
-        dispensedStack = behavior->dispense(world, pos, state, dispensedStack);
+        // 使用特殊发射行为，传递发射器库存以便 consumeWithRemainder 使用
+        dispensedStack = behavior->dispense(world, pos, state, dispensedStack, inventory);
     } else {
         // 使用默认行为：发射物品实体
         dispensedStack = defaultDispense(world, pos, facing, targetPos, dispensedStack);

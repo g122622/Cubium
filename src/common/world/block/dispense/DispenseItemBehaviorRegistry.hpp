@@ -47,7 +47,7 @@ namespace blocks {
  * // 获取发射行为
  * IDispenseItemBehavior* behavior = DispenseItemBehaviorRegistry::getBehavior(stack);
  * if (behavior) {
- *     behavior->dispense(source, stack);
+ *     behavior->dispense(world, pos, state, stack, inventory);
  * } else {
  *     // 使用默认行为
  *     DefaultDispenseItemBehavior defaultBehavior;

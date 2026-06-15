@@ -38,6 +38,7 @@ class BlockPos;
 class BlockState;
 enum class Direction : u8;
 class Entity;
+class IInventory;
 
 namespace fluid {
 class Fluid;
@@ -60,7 +61,7 @@ namespace blocks {
  * // 执行发射
  * IDispenseItemBehavior* behavior = DispenseItemBehaviorRegistry::getBehavior(stack);
  * if (behavior) {
- *     behavior->dispense(world, pos, state, stack);
+ *     behavior->dispense(world, pos, state, stack, inventory);
  * }
  * ```
  *
@@ -77,9 +78,14 @@ public:
      * @param pos 发射器方块位置
      * @param state 发射器方块状态
      * @param stack 要发射的物品堆（会被修改，如减少数量）
+     * @param dispenserInventory 发射器库存指针（可空，用于consumeWithRemainder放回替换物品）
      * @return ItemStack 发射后的物品堆（可能为空或减少数量）
      */
-    virtual ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) = 0;
+    virtual ItemStack dispense(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        ItemStack& stack,
+        IInventory* dispenserInventory) = 0;
 
     /**
      * @brief 是否成功发射
@@ -100,7 +106,11 @@ public:
  */
 class DefaultDispenseItemBehavior : public IDispenseItemBehavior {
 public:
-    ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) override;
+    ItemStack dispense(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        ItemStack& stack,
+        IInventory* dispenserInventory) override;
 
     /**
      * @brief 计算发射位置
@@ -162,6 +172,52 @@ protected:
      * @param itemStack 要弹出的物品堆
      */
     static void _spawnItemEntity(IWorld& world, const BlockPos& pos, Direction direction, const ItemStack& itemStack);
+
+    /**
+     * @brief 消耗物品并处理容器物品替换
+     *
+     * 参考 MC 原版 DefaultDispenseItemBehavior.consumeWithRemainder。
+     * 当发射行为消耗一个物品后产生替换物品（如水桶→空桶）时使用。
+     *
+     * 逻辑：
+     * 1. 将原始物品减1 (shrink(1))
+     * 2. 如果原始物品变为空（只有1个），直接返回替换物品，替换物品会被写回发射器原槽位
+     * 3. 如果原始物品还有剩余（有多个），尝试将替换物品放回发射器库存：
+     *    - 放回成功则返回剩余的原始物品
+     *    - 库存满了则将替换物品弹出到世界中，并播放默认音效和粒子
+     *
+     * @param world 世界引用
+     * @param pos 发射器位置
+     * @param state 发射器方块状态
+     * @param original 原始物品堆（会被修改，shrink(1)）
+     * @param replacement 替换物品堆（如空桶）
+     * @param dispenserInventory 发射器库存指针（可空，为空时替换物品直接弹出）
+     * @return ItemStack 应写回发射器原槽位的物品堆
+     */
+    static ItemStack consumeWithRemainder(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        ItemStack& original,
+        const ItemStack& replacement,
+        IInventory* dispenserInventory);
+
+    /**
+     * @brief 尝试将物品放回发射器库存，放不下则弹出到世界
+     *
+     * 参考 MC 原版 DefaultDispenseItemBehavior.addToInventoryOrDispense。
+     * 先尝试将物品插入发射器库存，如果库存满了则弹出到世界中。
+     *
+     * @param world 世界引用
+     * @param pos 发射器位置
+     * @param state 发射器方块状态
+     * @param stack 要放回的物品堆
+     * @param dispenserInventory 发射器库存指针（可空，为空时直接弹出）
+     */
+    static void addToInventoryOrDispense(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        const ItemStack& stack,
+        IInventory* dispenserInventory);
 
     /// 发射位置偏移量（从方块中心到出口的距离）
     static constexpr f32 DISPENSE_OFFSET = 0.7f;
@@ -249,7 +305,11 @@ public:
      */
     explicit ProjectileDispenseBehavior(ProjectileFactory createProjectile, f32 velocity = 1.1f, f32 inaccuracy = 6.0f);
 
-    ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) override;
+    ItemStack dispense(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        ItemStack& stack,
+        IInventory* dispenserInventory) override;
 
 protected:
     /**
@@ -284,7 +344,11 @@ public:
      */
     explicit BoatDispenseBehavior(entity::BoatEntity::Type type);
 
-    ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) override;
+    ItemStack dispense(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        ItemStack& stack,
+        IInventory* dispenserInventory) override;
 
 private:
     entity::BoatEntity::Type m_boatType;
@@ -303,7 +367,11 @@ public:
      */
     explicit BucketDispenseBehavior(fluid::Fluid& fluid);
 
-    ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) override;
+    ItemStack dispense(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        ItemStack& stack,
+        IInventory* dispenserInventory) override;
 
 private:
     fluid::Fluid* m_fluid;
@@ -318,7 +386,11 @@ class EmptyBucketDispenseBehavior : public OptionalDispenseItemBehavior {
 public:
     EmptyBucketDispenseBehavior() = default;
 
-    ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) override;
+    ItemStack dispense(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        ItemStack& stack,
+        IInventory* dispenserInventory) override;
 };
 
 /**
@@ -330,7 +402,11 @@ class FlintAndSteelDispenseBehavior : public OptionalDispenseItemBehavior {
 public:
     FlintAndSteelDispenseBehavior() = default;
 
-    ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) override;
+    ItemStack dispense(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        ItemStack& stack,
+        IInventory* dispenserInventory) override;
 };
 
 /**
@@ -342,7 +418,11 @@ class BonemealDispenseBehavior : public OptionalDispenseItemBehavior {
 public:
     BonemealDispenseBehavior() = default;
 
-    ItemStack dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack) override;
+    ItemStack dispense(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        ItemStack& stack,
+        IInventory* dispenserInventory) override;
 };
 
 } // namespace blocks

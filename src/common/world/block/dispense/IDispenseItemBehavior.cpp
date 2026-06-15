@@ -30,6 +30,7 @@
 #include "../../../entity/entities/projectile/ProjectileEntity.hpp"
 #include "../../../entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "../../../entity/entities/vehicle/BoatEntity.hpp"
+#include "../../../entity/inventory/IInventory.hpp"
 #include "../../../item/Items.hpp"
 #include "../../../item/items/special/BoneMealItem.hpp"
 #include "../../../item/items/special/BucketItem.hpp"
@@ -61,8 +62,9 @@ namespace blocks {
 // ============================================================================
 
 ItemStack DefaultDispenseItemBehavior::dispense(
-    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
+    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack, IInventory* dispenserInventory)
 {
+    MC_UNUSED(dispenserInventory);
     // 获取发射方向
     Direction direction = state.get(BlockStateProperties::FACING());
 
@@ -188,6 +190,58 @@ void DefaultDispenseItemBehavior::_spawnItemEntity(
     world.spawnEntity(std::move(itemEntity));
 }
 
+// ============================================================================
+// consumeWithRemainder & addToInventoryOrDispense
+// ============================================================================
+
+ItemStack DefaultDispenseItemBehavior::consumeWithRemainder(IWorld& world,
+    const BlockPos& pos,
+    const BlockState& state,
+    ItemStack& original,
+    const ItemStack& replacement,
+    IInventory* dispenserInventory)
+{
+    // 将原始物品减一
+    original.shrink(1);
+
+    if (original.isEmpty()) {
+        // 原始物品只有1个，直接返回替换物品
+        // 调用者会将替换物品写回发射器原槽位
+        return replacement;
+    }
+
+    // 原始物品还有剩余，尝试将替换物品放回发射器库存
+    addToInventoryOrDispense(world, pos, state, replacement, dispenserInventory);
+
+    // 返回剩余的原始物品
+    return original;
+}
+
+void DefaultDispenseItemBehavior::addToInventoryOrDispense(
+    IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack, IInventory* dispenserInventory)
+{
+    if (stack.isEmpty()) {
+        return;
+    }
+
+    // 尝试将替换物品插入发射器库存
+    if (dispenserInventory != nullptr) {
+        ItemStack remainder = dispenserInventory->addItem(stack);
+        if (remainder.isEmpty()) {
+            // 全部放入库存成功，无需弹出
+            return;
+        }
+        // 库存放不下，将剩余物品弹出到世界中
+        Direction direction = state.get(BlockStateProperties::FACING());
+        _spawnItemEntity(world, pos, direction, remainder);
+        return;
+    }
+
+    // 没有库存指针，直接弹出到世界
+    Direction direction = state.get(BlockStateProperties::FACING());
+    _spawnItemEntity(world, pos, direction, stack);
+}
+
 Vector3 DefaultDispenseItemBehavior::getDispensePosition(const BlockPos& pos, Direction direction)
 {
     // 计算发射位置：从方块面中心稍微向外偏移
@@ -235,8 +289,9 @@ ProjectileDispenseBehavior::ProjectileDispenseBehavior(
 {}
 
 ItemStack ProjectileDispenseBehavior::dispense(
-    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
+    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack, IInventory* dispenserInventory)
 {
+    MC_UNUSED(dispenserInventory);
     // 获取发射方向
     Direction direction = state.get(BlockStateProperties::FACING());
 
@@ -247,7 +302,7 @@ ItemStack ProjectileDispenseBehavior::dispense(
     std::unique_ptr<mc::Entity> projectile = m_createProjectile(world, dispensePos, stack);
     if (!projectile) {
         // 创建失败，使用默认行为
-        return DefaultDispenseItemBehavior::dispense(world, pos, state, stack);
+        return DefaultDispenseItemBehavior::dispense(world, pos, state, stack, dispenserInventory);
     }
 
     // 设置投掷物的位置
@@ -257,7 +312,7 @@ ItemStack ProjectileDispenseBehavior::dispense(
     entity::ProjectileEntity* projectileEntity = dynamic_cast<entity::ProjectileEntity*>(projectile.get());
     if (!projectileEntity) {
         // 不是投掷物，使用默认行为
-        return DefaultDispenseItemBehavior::dispense(world, pos, state, stack);
+        return DefaultDispenseItemBehavior::dispense(world, pos, state, stack, dispenserInventory);
     }
 
     // 设置发射方向和速度，Y方向额外+0.1使投掷物稍向上
@@ -292,8 +347,10 @@ BoatDispenseBehavior::BoatDispenseBehavior(entity::BoatEntity::Type type)
     : m_boatType(type)
 {}
 
-ItemStack BoatDispenseBehavior::dispense(IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
+ItemStack BoatDispenseBehavior::dispense(
+    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack, IInventory* dispenserInventory)
 {
+    MC_UNUSED(dispenserInventory);
     Direction direction = state.get(BlockStateProperties::FACING());
 
     // 计算船的位置
@@ -322,7 +379,7 @@ ItemStack BoatDispenseBehavior::dispense(IWorld& world, const BlockPos& pos, con
             belowFluid != nullptr && !belowFluid->isEmpty() && belowFluid->getFluid().isIn(fluid::FluidTags::WATER());
         if (!isBelowWater || belowFluid->getLevel() == 0) {
             // 下方也没有水，作为普通物品发射
-            return DefaultDispenseItemBehavior::dispense(world, pos, state, stack);
+            return DefaultDispenseItemBehavior::dispense(world, pos, state, stack, dispenserInventory);
         }
         waterLevel = 0.0f; // 水位下方
     }
@@ -353,7 +410,7 @@ BucketDispenseBehavior::BucketDispenseBehavior(fluid::Fluid& fluid)
 {}
 
 ItemStack BucketDispenseBehavior::dispense(
-    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
+    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack, IInventory* dispenserInventory)
 {
     // 获取发射方向和目标位置
     Direction direction = state.get(BlockStateProperties::FACING());
@@ -375,21 +432,10 @@ ItemStack BucketDispenseBehavior::dispense(
                     _playSound(world, pos);
                     _spawnParticles(world, pos, direction);
 
-                    // 消耗一个满桶
-                    stack.shrink(1);
+                    // 消耗一个满桶，尝试将空桶放回发射器库存
                     BucketItem* emptyBucket = BucketItem::getEmptyBucket();
-                    if (emptyBucket != nullptr) {
-                        if (stack.isEmpty()) {
-                            // 满桶用完了，直接返回空桶
-                            return emptyBucket->getDefaultInstance();
-                        }
-                        // TODO: MC 原版中 consumeWithRemainder 会尝试将替换物品放回发射器库存。
-                        // 当前发射器行为接口无法访问发射器库存，因此将空桶作为物品弹出到世界中。
-                        // 未来需要在 dispense 接口中添加对发射器库存的访问，以实现物品放回逻辑。
-                        ItemStack emptyStack = emptyBucket->getDefaultInstance();
-                        _spawnItemEntity(world, pos, direction, emptyStack);
-                    }
-                    return stack.isEmpty() ? ItemStack() : stack;
+                    ItemStack replacement = (emptyBucket != nullptr) ? emptyBucket->getDefaultInstance() : ItemStack();
+                    return consumeWithRemainder(world, pos, state, stack, replacement, dispenserInventory);
                 }
             }
         }
@@ -429,18 +475,10 @@ ItemStack BucketDispenseBehavior::dispense(
                     _playSound(world, pos);
                     _spawnParticles(world, pos, direction);
 
-                    // 消耗一个满桶，返回空桶
-                    stack.shrink(1);
+                    // 消耗一个满桶，尝试将空桶放回发射器库存
                     BucketItem* emptyBucket = BucketItem::getEmptyBucket();
-                    if (emptyBucket != nullptr) {
-                        if (stack.isEmpty()) {
-                            return emptyBucket->getDefaultInstance();
-                        }
-                        // TODO: MC 原版中 consumeWithRemainder 会尝试将替换物品放回发射器库存。
-                        // 当前发射器行为接口无法访问发射器库存，因此将空桶作为物品弹出到世界中。
-                        _spawnItemEntity(world, pos, direction, emptyBucket->getDefaultInstance());
-                    }
-                    return stack.isEmpty() ? ItemStack() : stack;
+                    ItemStack replacement = (emptyBucket != nullptr) ? emptyBucket->getDefaultInstance() : ItemStack();
+                    return consumeWithRemainder(world, pos, state, stack, replacement, dispenserInventory);
                 }
 
                 // 放置流体方块
@@ -453,25 +491,17 @@ ItemStack BucketDispenseBehavior::dispense(
                 _playSound(world, pos);
                 _spawnParticles(world, pos, direction);
 
-                // 消耗一个满桶，返回空桶
-                stack.shrink(1);
+                // 消耗一个满桶，尝试将空桶放回发射器库存
                 BucketItem* emptyBucket = BucketItem::getEmptyBucket();
-                if (emptyBucket != nullptr) {
-                    if (stack.isEmpty()) {
-                        return emptyBucket->getDefaultInstance();
-                    }
-                    // TODO: MC 原版中 consumeWithRemainder 会尝试将替换物品放回发射器库存。
-                    // 当前发射器行为接口无法访问发射器库存，因此将空桶作为物品弹出到世界中。
-                    _spawnItemEntity(world, pos, direction, emptyBucket->getDefaultInstance());
-                }
-                return stack.isEmpty() ? ItemStack() : stack;
+                ItemStack replacement = (emptyBucket != nullptr) ? emptyBucket->getDefaultInstance() : ItemStack();
+                return consumeWithRemainder(world, pos, state, stack, replacement, dispenserInventory);
             }
         }
     }
 
     // 放置失败，回退到默认投掷行为
     _setSuccess(false);
-    return DefaultDispenseItemBehavior::dispense(world, pos, state, stack);
+    return DefaultDispenseItemBehavior::dispense(world, pos, state, stack, dispenserInventory);
 }
 
 // ============================================================================
@@ -479,7 +509,7 @@ ItemStack BucketDispenseBehavior::dispense(
 // ============================================================================
 
 ItemStack EmptyBucketDispenseBehavior::dispense(
-    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
+    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack, IInventory* dispenserInventory)
 {
     // 获取发射方向和目标位置
     Direction direction = state.get(BlockStateProperties::FACING());
@@ -502,19 +532,9 @@ ItemStack EmptyBucketDispenseBehavior::dispense(
                         _playSound(world, pos);
                         _spawnParticles(world, pos, direction);
 
-                        // 消耗一个空桶
-                        stack.shrink(1);
-
-                        // 如果空桶用完了，直接返回满桶
-                        if (stack.isEmpty()) {
-                            return filledBucket->getDefaultInstance();
-                        }
-
-                        // TODO: MC 原版中 consumeWithRemainder 会尝试将替换物品放回发射器库存。
-                        // 当前发射器行为接口无法访问发射器库存，因此将满桶作为物品弹出到世界中。
-                        _spawnItemEntity(world, pos, direction, filledBucket->getDefaultInstance());
-
-                        return stack;
+                        // 消耗一个空桶，尝试将满桶放回发射器库存
+                        ItemStack replacement = filledBucket->getDefaultInstance();
+                        return consumeWithRemainder(world, pos, state, stack, replacement, dispenserInventory);
                     }
                 }
             }
@@ -523,7 +543,7 @@ ItemStack EmptyBucketDispenseBehavior::dispense(
 
     // 目标不是可拾取流体的方块，回退到默认投掷行为
     _setSuccess(false);
-    return DefaultDispenseItemBehavior::dispense(world, pos, state, stack);
+    return DefaultDispenseItemBehavior::dispense(world, pos, state, stack, dispenserInventory);
 }
 
 // ============================================================================
@@ -531,8 +551,9 @@ ItemStack EmptyBucketDispenseBehavior::dispense(
 // ============================================================================
 
 ItemStack FlintAndSteelDispenseBehavior::dispense(
-    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
+    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack, IInventory* dispenserInventory)
 {
+    MC_UNUSED(dispenserInventory);
     // 获取发射方向和目标位置
     Direction direction = state.get(BlockStateProperties::FACING());
     BlockPos targetPos = pos.offset(direction);
@@ -589,8 +610,9 @@ ItemStack FlintAndSteelDispenseBehavior::dispense(
 // ============================================================================
 
 ItemStack BonemealDispenseBehavior::dispense(
-    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack)
+    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack, IInventory* dispenserInventory)
 {
+    MC_UNUSED(dispenserInventory);
     // 获取发射方向和目标位置
     Direction direction = state.get(BlockStateProperties::FACING());
     BlockPos targetPos = pos.offset(direction);
