@@ -185,6 +185,56 @@ glslc shaders/block.vert -o build/shaders/block.vert.spv
 glslc shaders/block.frag -o build/shaders/block.frag.spv
 ```
 
+### VS Code IntelliSense 配置
+
+项目使用 clang-cl 编译，系统头文件路径（MSVC、Windows SDK）由 `VsDevCmd.bat` 通过 `INCLUDE` 环境变量隐式注入，不会写入 `compile_commands.json`。这会导致 VS Code cpptools 扩展无法找到 C++ 标准库头文件（如 `<string>`、`<cmath>`、`<unordered_set>`），出现红色波浪线报错。
+
+#### 根因
+
+1. `compile_commands.json` 中编译器路径为 8.3 短名格式（`PROGRA~2`）且指向 `clang.exe`（C 编译器），而非 `clang++.exe`
+2. 系统头文件路径未记录在 `compile_commands.json` 中，cpptools 无法自动发现
+3. 全局 VS Code 设置中 `C_Cpp.default.compilerPath` 可能指向错误或不存在的编译器路径
+
+#### 解决方案
+
+项目已在 `.vscode/c_cpp_properties.json` 和 `.vscode/settings.json` 中预配置了正确的路径。如果你的环境不同，需检查以下两项：
+
+**1. `.vscode/c_cpp_properties.json`** — 确保 `includePath` 包含所有系统头文件目录，且 `compilerPath` 指向 `clang++.exe`：
+
+```json
+{
+    "configurations": [{
+        "name": "Win32",
+        "includePath": [
+            "${workspaceFolder}/include",
+            "${workspaceFolder}/src",
+            "${workspaceFolder}/src/common",
+            "${workspaceFolder}/build/vcpkg_installed/x64-windows/include",
+            "D:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/include",
+            "D:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/ATLMFC/include",
+            "D:/Program Files/Microsoft Visual Studio/18/Community/VC/Auxiliary/VS/include",
+            "D:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/Llvm/x64/lib/clang/20/include",
+            "D:/Windows Kits/10/Include/10.0.26100.0/ucrt",
+            "D:/Windows Kits/10/Include/10.0.26100.0/um",
+            "D:/Windows Kits/10/Include/10.0.26100.0/shared",
+            "D:/Windows Kits/10/Include/10.0.26100.0/winrt",
+            "D:/Windows Kits/10/Include/10.0.26100.0/cppwinrt"
+        ],
+        "compilerPath": "D:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/Llvm/x64/bin/clang++.exe",
+        "cStandard": "c17",
+        "cppStandard": "c++20",
+        "intelliSenseMode": "windows-clang-x64"
+    }],
+    "version": 4
+}
+```
+
+> **注意**：不要同时设置 `compileCommands`，否则 cpptools 会优先使用 `compile_commands.json` 中不完整的路径信息，覆盖 `includePath` 的效果。
+
+**2. 全局 VS Code 设置** — 检查 `C_Cpp.default.compilerPath` 是否指向正确路径（`Ctrl+,` 搜索 `compilerPath`），确保不是指向不存在的 VS 2022 或旧版 MSVC 路径。
+
+修改后执行 `Ctrl+Shift+P` → **C/C++: Reset IntelliSense Database** 重建索引。
+
 ## 依赖
 
 见vcpkg.json
