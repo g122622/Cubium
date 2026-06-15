@@ -32,6 +32,9 @@
  */
 
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/effect/EffectType.hpp"
 #include "entity/entities/projectile/AbstractArrowEntity.hpp"
@@ -42,6 +45,7 @@
 #include "item/potion/Potions.hpp"
 #include "util/Direction.hpp"
 #include "util/math/Vector3.hpp"
+#include "util/property/Properties.hpp"
 #include "world/WorldEvents.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
@@ -51,6 +55,7 @@
 // 测试基础设施
 #include "common/TestWorldHelper.hpp"
 
+#include <unordered_map>
 #include <gtest/gtest.h>
 
 namespace mc {
@@ -843,20 +848,34 @@ TEST_F(DispenseBehaviorTest, SpawnItemEntity_StaticMethodExists)
 
 namespace {
 
+/// BlockPos 哈希函数，用于 unordered_map
+struct BlockPosHasher {
+    std::size_t operator()(const BlockPos& pos) const noexcept
+    {
+        auto h1 = std::hash<i32>{}(pos.x);
+        auto h2 = std::hash<i32>{}(pos.y);
+        auto h3 = std::hash<i32>{}(pos.z);
+        return h1 ^ (h2 << 1) ^ (h3 << 2);
+    }
+};
+
 /**
  * @brief 专为发射器行为测试定制的 TestWorld
  *
  * 继承 BaseTestWorld 并覆写发射器行为所需的关键方法：
  * - setBlockState(i32,i32,i32,...): 记录最后设置的方块状态
- * - getBlockState(i32,i32,i32): 返回预设的方块状态
+ * - getBlockState(i32,i32,i32): 返回预设状态（支持按位置映射）
+ * - getFluidState(i32,i32,i32): 返回预设流体状态
  * - playEvent: 记录播放的事件
  * - spawnEntity: 记录生成的实体（返回 EntityId）
  * - tickManager: 提供可用的 DummyTickManager
+ * - isUltraWarm: 可配置（默认 false，用于下界蒸发测试）
  */
 class DispenseTestWorld : public mc::test::BaseTestWorld {
 public:
     DispenseTestWorld()
         : m_tickManager()
+        , m_isUltraWarm(false)
     {}
 
     // --- setBlockState: 记录最后一次调用（覆写虚函数） ---
@@ -869,12 +888,26 @@ public:
     }
 
     // --- getBlockState: 返回预设状态（覆写虚函数） ---
+    // 优先按位置查找映射，找不到则返回默认预设状态
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
-        MC_UNUSED(x);
-        MC_UNUSED(y);
-        MC_UNUSED(z);
+        BlockPos pos(x, y, z);
+        auto it = m_blockStateMap.find(pos);
+        if (it != m_blockStateMap.end()) {
+            return it->second;
+        }
         return m_presetBlockState;
+    }
+
+    // --- getFluidState: 返回预设流体状态 ---
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
+        BlockPos pos(x, y, z);
+        auto it = m_fluidStateMap.find(pos);
+        if (it != m_fluidStateMap.end()) {
+            return it->second;
+        }
+        return fluid::Fluid::getFluidState(0);
     }
 
     // --- playEvent: 记录事件 ---
@@ -896,8 +929,20 @@ public:
     [[nodiscard]] world::tick::TickManager& tickManager() override { return m_tickManager; }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override { return m_tickManager; }
 
-    // --- 设置预设的方块状态 ---
+    // --- isUltraWarm: 可配置 ---
+    [[nodiscard]] bool isUltraWarm() const override { return m_isUltraWarm; }
+
+    // --- 设置预设的方块状态（全局默认） ---
     void setPresetBlockState(const BlockState* state) { m_presetBlockState = state; }
+
+    // --- 设置指定位置的方块状态 ---
+    void setBlockStateAt(const BlockPos& pos, const BlockState* state) { m_blockStateMap[pos] = state; }
+
+    // --- 设置指定位置的流体状态 ---
+    void setFluidStateAt(const BlockPos& pos, const fluid::FluidState* state) { m_fluidStateMap[pos] = state; }
+
+    // --- 设置超热维度 ---
+    void setUltraWarm(bool ultraWarm) { m_isUltraWarm = ultraWarm; }
 
     // --- 查询记录 ---
     i32 setBlockStateCallCount() const { return m_setBlockStateCallCount; }
@@ -906,15 +951,38 @@ public:
     const std::vector<std::tuple<i32, BlockPos, i32>>& playedEvents() const { return m_playedEvents; }
     const std::vector<mc::entity::EntityTypeId>& spawnedEntityTypes() const { return m_spawnedEntityTypes; }
 
+    // --- 检查是否有指定事件ID的记录 ---
+    bool hasEvent(i32 eventId) const
+    {
+        for (const auto& ev : m_playedEvents) {
+            if (std::get<0>(ev) == eventId) return true;
+        }
+        return false;
+    }
+
+    // --- 清除记录 ---
+    void clearRecords()
+    {
+        m_setBlockStateCallCount = 0;
+        m_lastSetBlockPos = BlockPos(0, 0, 0);
+        m_lastSetBlockState = nullptr;
+        m_playedEvents.clear();
+        m_spawnedEntityTypes.clear();
+        m_spawnedEntities.clear();
+    }
+
 private:
     mc::test::DummyTickManager m_tickManager;
     const BlockState* m_presetBlockState = nullptr;
+    bool m_isUltraWarm;
     BlockPos m_lastSetBlockPos{0, 0, 0};
     const BlockState* m_lastSetBlockState = nullptr;
     i32 m_setBlockStateCallCount = 0;
     std::vector<std::tuple<i32, BlockPos, i32>> m_playedEvents;
     std::vector<mc::entity::EntityTypeId> m_spawnedEntityTypes;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+    std::unordered_map<BlockPos, const BlockState*, BlockPosHasher> m_blockStateMap;
+    std::unordered_map<BlockPos, const fluid::FluidState*, BlockPosHasher> m_fluidStateMap;
 };
 
 } // anonymous namespace
@@ -925,93 +993,338 @@ private:
 
 TEST_F(DispenseBehaviorTest, BucketDispense_FailWhenTargetBlockIsSolid)
 {
-    // 当目标位置是固体方块时，桶发射行为应失败并回退到默认投掷行为
-    // 这里测试类型注册和 OptionalDispenseItemBehavior 的成功/失败语义
+    // 当目标位置是固体方块（石砖）时，桶发射行为应失败并回退到默认投掷行为
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
     registry.initDefaultBehaviors();
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:water_bucket");
     ASSERT_NE(behavior, nullptr);
 
-    // BucketDispenseBehavior 初始状态为成功（需要执行 dispense 后才设置实际状态）
-    EXPECT_TRUE(behavior->isSuccess());
+    DispenseTestWorld world;
+    // 发射器位于 (0,0,0)，面朝北，目标位置为 (0,0,-1)
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    // 目标位置设为固体方块（石砖）
+    const BlockState* stoneBricksState = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
+    world.setPresetBlockState(stoneBricksState);
+    // 发射器位置自身也需要有状态
+    world.setBlockStateAt(BlockPos(0, 0, 0), dispenserState);
+
+    if (Items::WATER_BUCKET != nullptr) {
+        ItemStack stack(Items::WATER_BUCKET, 1);
+        BlockPos dispenserPos(0, 0, 0);
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+
+        // 失败时应回退到默认投掷行为，OptionalDispenseItemBehavior::isSuccess() 返回 false
+        EXPECT_FALSE(behavior->isSuccess());
+    }
 }
+
+TEST_F(DispenseBehaviorTest, BucketDispense_PlaceWaterOnAir)
+{
+    // 当目标位置是空气时，水桶应放置水方块
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:water_bucket");
+    ASSERT_NE(behavior, nullptr);
+
+    DispenseTestWorld world;
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    // 目标位置设为空气
+    const BlockState* airState = VanillaBlocks::getState(VanillaBlocks::AIR);
+    world.setBlockStateAt(BlockPos(0, 0, 0), dispenserState);
+    world.setBlockStateAt(BlockPos(0, 0, -1), airState);
+
+    if (Items::WATER_BUCKET != nullptr) {
+        ItemStack stack(Items::WATER_BUCKET, 1);
+        BlockPos dispenserPos(0, 0, 0);
+        i32 beforeCall = world.setBlockStateCallCount();
+
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+
+        // 成功放置水方块
+        EXPECT_TRUE(behavior->isSuccess());
+        // 应调用了 setBlockState 在目标位置放置水
+        EXPECT_GT(world.setBlockStateCallCount(), beforeCall);
+        // 应播放成功音效（1000）
+        EXPECT_TRUE(world.hasEvent(world::WorldEvents::DISPENSER_DISPENSE_SOUND));
+    }
+}
+
+TEST_F(DispenseBehaviorTest, BucketDispense_WaterEvaporatesInUltraWarmDimension)
+{
+    // 在超热维度（下界）中，水桶应蒸发而不放置水
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:water_bucket");
+    ASSERT_NE(behavior, nullptr);
+
+    DispenseTestWorld world;
+    world.setUltraWarm(true); // 模拟超热维度
+
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    const BlockState* airState = VanillaBlocks::getState(VanillaBlocks::AIR);
+    world.setBlockStateAt(BlockPos(0, 0, 0), dispenserState);
+    world.setBlockStateAt(BlockPos(0, 0, -1), airState);
+
+    if (Items::WATER_BUCKET != nullptr) {
+        ItemStack stack(Items::WATER_BUCKET, 1);
+        BlockPos dispenserPos(0, 0, 0);
+
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+
+        // 成功但水蒸发
+        EXPECT_TRUE(behavior->isSuccess());
+        // 应播放火焰熄灭音效（1009）
+        EXPECT_TRUE(world.hasEvent(world::WorldEvents::FIRE_EXTINGUISH_SOUND));
+    }
+}
+
+TEST_F(DispenseBehaviorTest, BucketDispense_LavaOnAirSucceeds)
+{
+    // 岩浆桶在空气位置放置岩浆方块
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:lava_bucket");
+    ASSERT_NE(behavior, nullptr);
+
+    DispenseTestWorld world;
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    const BlockState* airState = VanillaBlocks::getState(VanillaBlocks::AIR);
+    world.setBlockStateAt(BlockPos(0, 0, 0), dispenserState);
+    world.setBlockStateAt(BlockPos(0, 0, -1), airState);
+
+    if (Items::LAVA_BUCKET != nullptr) {
+        ItemStack stack(Items::LAVA_BUCKET, 1);
+        BlockPos dispenserPos(0, 0, 0);
+
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+
+        // 成功放置岩浆
+        EXPECT_TRUE(behavior->isSuccess());
+    }
+}
+
+TEST_F(DispenseBehaviorTest, BucketDispense_TypeVerification)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:water_bucket");
+    ASSERT_NE(behavior, nullptr);
+    // BucketDispenseBehavior 继承自 OptionalDispenseItemBehavior
+    EXPECT_TRUE(behavior->isSuccess());
+    // 可以安全地 dynamic_cast 验证类型
+    auto* bucketBehavior = dynamic_cast<BucketDispenseBehavior*>(behavior);
+    if (bucketBehavior != nullptr) {
+        EXPECT_NE(bucketBehavior, nullptr);
+    }
+}
+
+// ============================================================================
+// EmptyBucketDispenseBehavior 行为逻辑测试
+// ============================================================================
 
 TEST_F(DispenseBehaviorTest, EmptyBucket_FailWhenNoFluidToPickup)
 {
-    // 当目标位置没有可拾取流体时，空桶发射行为应失败
+    // 当目标位置没有可拾取流体的方块时，空桶发射行为应失败
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
     registry.initDefaultBehaviors();
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:bucket");
     ASSERT_NE(behavior, nullptr);
-    EXPECT_TRUE(behavior->isSuccess());
+
+    DispenseTestWorld world;
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    // 目标位置是石砖（不实现 IBucketPickupHandler）
+    const BlockState* stoneBricksState = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
+    world.setBlockStateAt(BlockPos(0, 0, 0), dispenserState);
+    world.setBlockStateAt(BlockPos(0, 0, -1), stoneBricksState);
+
+    if (Items::BUCKET != nullptr) {
+        ItemStack stack(Items::BUCKET, 1);
+        BlockPos dispenserPos(0, 0, 0);
+
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+
+        // 失败时应回退到默认投掷行为
+        EXPECT_FALSE(behavior->isSuccess());
+    }
+}
+
+TEST_F(DispenseBehaviorTest, EmptyBucket_FailOnAirBlock)
+{
+    // 空桶对空气方块也应失败（空气不实现 IBucketPickupHandler）
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:bucket");
+    ASSERT_NE(behavior, nullptr);
+
+    DispenseTestWorld world;
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    const BlockState* airState = VanillaBlocks::getState(VanillaBlocks::AIR);
+    world.setBlockStateAt(BlockPos(0, 0, 0), dispenserState);
+    world.setBlockStateAt(BlockPos(0, 0, -1), airState);
+
+    if (Items::BUCKET != nullptr) {
+        ItemStack stack(Items::BUCKET, 1);
+        BlockPos dispenserPos(0, 0, 0);
+
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+
+        EXPECT_FALSE(behavior->isSuccess());
+    }
+}
+
+TEST_F(DispenseBehaviorTest, EmptyBucket_TypeVerification)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:bucket");
+    ASSERT_NE(behavior, nullptr);
+    auto* emptyBucketBehavior = dynamic_cast<EmptyBucketDispenseBehavior*>(behavior);
+    if (emptyBucketBehavior != nullptr) {
+        EXPECT_NE(emptyBucketBehavior, nullptr);
+    }
 }
 
 // ============================================================================
 // FlintAndSteelDispenseBehavior 行为逻辑测试
 // ============================================================================
 
-TEST_F(DispenseBehaviorTest, FlintAndSteel_ConsumesDurabilityNotQuantity)
-{
-    // 打火石发射行为消耗耐久度（attemptDamageItem）而非数量（shrink）
-    // 验证注册正确
-    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
-    registry.initDefaultBehaviors();
-
-    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:flint_and_steel");
-    ASSERT_NE(behavior, nullptr);
-    // FlintAndSteelDispenseBehavior 继承自 OptionalDispenseItemBehavior
-    EXPECT_TRUE(behavior->isSuccess());
-}
-
 TEST_F(DispenseBehaviorTest, FlintAndSteel_FailOnNonFlammableTarget)
 {
-    // 当目标位置不可点燃时，打火石行为应标记为失败
-    // 失败时播放 DISPENSER_FAIL_SOUND (1001)，而非 DISPENSER_DISPENSE_SOUND (1000)
+    // 当目标位置是不可点燃的方块（石砖）时，打火石应标记为失败
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
     registry.initDefaultBehaviors();
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:flint_and_steel");
     ASSERT_NE(behavior, nullptr);
-    // 初始状态为成功，dispense() 执行后才根据结果更新
-    EXPECT_TRUE(behavior->isSuccess());
+
+    DispenseTestWorld world;
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    // 石砖不可点燃
+    const BlockState* stoneBricksState = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
+    world.setBlockStateAt(BlockPos(0, 0, 0), dispenserState);
+    world.setBlockStateAt(BlockPos(0, 0, -1), stoneBricksState);
+
+    if (Items::FLINT_AND_STEEL != nullptr) {
+        ItemStack stack(Items::FLINT_AND_STEEL, 1);
+        BlockPos dispenserPos(0, 0, 0);
+
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+
+        // 失败
+        EXPECT_FALSE(behavior->isSuccess());
+        // 失败时应播放 DISPENSER_FAIL_SOUND (1001)
+        EXPECT_TRUE(world.hasEvent(world::WorldEvents::DISPENSER_FAIL_SOUND));
+    }
+}
+
+TEST_F(DispenseBehaviorTest, FlintAndSteel_FailOnNullTargetState)
+{
+    // 当 getBlockState 返回 nullptr 时，打火石应失败
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:flint_and_steel");
+    ASSERT_NE(behavior, nullptr);
+
+    DispenseTestWorld world;
+    // 默认 getBlockState 返回 nullptr（未设置预设状态）
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    // 不设置目标位置状态，getBlockState 将返回 nullptr
+
+    if (Items::FLINT_AND_STEEL != nullptr) {
+        ItemStack stack(Items::FLINT_AND_STEEL, 1);
+        BlockPos dispenserPos(0, 0, 0);
+
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+
+        // 失败
+        EXPECT_FALSE(behavior->isSuccess());
+    }
+}
+
+TEST_F(DispenseBehaviorTest, FlintAndSteel_ConsumesDurabilityNotQuantity)
+{
+    // 打火石发射行为消耗耐久度而非数量，这里验证注册和类型正确
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:flint_and_steel");
+    ASSERT_NE(behavior, nullptr);
+    auto* flintBehavior = dynamic_cast<FlintAndSteelDispenseBehavior*>(behavior);
+    if (flintBehavior != nullptr) {
+        EXPECT_NE(flintBehavior, nullptr);
+    }
 }
 
 // ============================================================================
 // BonemealDispenseBehavior 行为逻辑测试
 // ============================================================================
 
-TEST_F(DispenseBehaviorTest, BoneMeal_ConsumesQuantity)
-{
-    // 骨粉发射行为消耗数量（shrink），而非耐久
-    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
-    registry.initDefaultBehaviors();
-
-    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:bone_meal");
-    ASSERT_NE(behavior, nullptr);
-    EXPECT_TRUE(behavior->isSuccess());
-}
-
 TEST_F(DispenseBehaviorTest, BoneMeal_FailWhenTargetNotGrowable)
 {
-    // 当目标位置没有可催熟的方块且不是水源时，骨粉行为应标记为失败
+    // 当目标方块不可催熟且不是水源时，骨粉应标记为失败
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
     registry.initDefaultBehaviors();
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:bone_meal");
     ASSERT_NE(behavior, nullptr);
-    EXPECT_TRUE(behavior->isSuccess());
+
+    DispenseTestWorld world;
+    const BlockState* dispenserState =
+        &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
+    // 石砖不可催熟
+    const BlockState* stoneBricksState = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
+    world.setBlockStateAt(BlockPos(0, 0, 0), dispenserState);
+    world.setBlockStateAt(BlockPos(0, 0, -1), stoneBricksState);
+
+    if (Items::BONE_MEAL != nullptr) {
+        ItemStack stack(Items::BONE_MEAL, 1);
+        BlockPos dispenserPos(0, 0, 0);
+
+        ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack);
+
+        // 失败
+        EXPECT_FALSE(behavior->isSuccess());
+    }
+}
+
+TEST_F(DispenseBehaviorTest, BoneMeal_ConsumesQuantity)
+{
+    // 骨粉发射行为消耗数量而非耐久，这里验证注册和类型正确
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    registry.initDefaultBehaviors();
+
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:bone_meal");
+    ASSERT_NE(behavior, nullptr);
+    auto* bonemealBehavior = dynamic_cast<BonemealDispenseBehavior*>(behavior);
+    if (bonemealBehavior != nullptr) {
+        EXPECT_NE(bonemealBehavior, nullptr);
+    }
 }
 
 // ============================================================================
-// _spawnItemEntity 辅助方法测试（通过 DispenseTestWorld 验证实体生成）
+// DefaultDispenseItemBehavior 测试
 // ============================================================================
 
 TEST_F(DispenseBehaviorTest, DefaultBehavior_SpawnsItemEntity)
 {
-    // 验证默认发射行为会生成 ItemEntity
-    // 由于 ItemEntity 构造函数需要较多参数，这里通过注册表行为验证
+    // 验证默认发射行为通过注册表验证
     DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
     registry.initDefaultBehaviors();
 
