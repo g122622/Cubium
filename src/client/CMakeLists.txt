@@ -162,6 +162,7 @@ add_executable(minecraft-client
     renderer/trident/entity/model/monster/SpecialMonsterModels.cpp
     renderer/trident/entity/model/monster/MoreMonsterModels.cpp
     renderer/trident/entity/model/monster/MonsterVariantModels.cpp
+    renderer/trident/entity/model/monster/WitchModel.cpp
     renderer/trident/entity/model/nether/NetherModels.cpp
     renderer/trident/entity/model/aquatic/AquaticModels.cpp
     renderer/trident/entity/model/aquatic/PufferfishModel.cpp

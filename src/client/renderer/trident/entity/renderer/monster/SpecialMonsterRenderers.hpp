@@ -28,6 +28,8 @@
 #include "client/renderer/trident/entity/model/monster/MoreMonsterModels.hpp"
 #include "client/renderer/trident/entity/model/monster/SkeletonModel.hpp"
 #include "client/renderer/trident/entity/model/monster/SpecialMonsterModels.hpp"
+#include "client/renderer/trident/entity/model/monster/WitchModel.hpp"
+#include "common/entity/entities/monster/illager/WitchEntity.hpp"
 
 namespace mc::client::renderer::entity::renderer::monster {
 
@@ -313,11 +315,21 @@ public:
 
 /**
  * @brief 女巫渲染器
+ *
+ * 使用 WitchModel 渲染女巫，包含独特的尖帽子和鼻子动画。
+ * 当女巫正在喝药水时，鼻子会上扬。
  */
-class WitchRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::IllagerModel> {
+class WitchRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::WitchModel> {
 public:
     WitchRenderer() { m_shadowSize = 0.5f; }
     ~WitchRenderer() override = default;
+
+    void render(Entity& entity, f64 partialTicks) override
+    {
+        auto& witch = static_cast<::mc::WitchEntity&>(entity);
+        m_model.setHoldingItem(witch.isDrinking());
+        LivingRenderer::render(entity, partialTicks);
+    }
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
     {

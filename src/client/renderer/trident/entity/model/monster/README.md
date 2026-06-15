@@ -24,6 +24,8 @@ monster/
 ├── MoreMonsterModels.cpp
 ├── SpecialMonsterModels.hpp         # 特殊怪物模型（凋灵、史莱姆、守卫者、远古守卫者、潜影贝、蠹虫、末影螨）
 ├── SpecialMonsterModels.cpp
+├── WitchModel.hpp                   # 女巫模型（继承 VillagerModel，含帽子、鼻子动画）
+├── WitchModel.cpp
 └── README.md
 ```
 
@@ -62,7 +64,8 @@ EntityModel（基类，定义于 model/core/）
 │   └── ElderGuardianModel → 远古守卫者（复用守卫者模型）
 ├── ShulkerModel           → 潜影贝（独立实现）
 ├── SilverfishModel        → 蠹虫（独立实现）
-└── EndermiteModel         → 末影螨（独立实现）
+├── EndermiteModel         → 末影螨（独立实现）
+└── WitchModel             → 女巫（继承 VillagerModel，分层帽子+鼻子动画）
 ```
 
 ### 模型分类
@@ -191,5 +194,7 @@ namespace mc::client::renderer::entity::model::monster {
     class ShulkerModel;
     class SilverfishModel;
     class EndermiteModel;
+    // 女巫模型
+    class WitchModel;
 }
 ```

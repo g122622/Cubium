@@ -62,6 +62,7 @@
 #include "monster/SkeletonModel.hpp"
 #include "monster/SpecialMonsterModels.hpp"
 #include "monster/SpiderModel.hpp"
+#include "monster/WitchModel.hpp"
 #include "monster/ZombieModel.hpp"
 
 // 下界生物模型
@@ -170,9 +171,8 @@ void initializeModelRegistration()
     factory.registerModel(ET::ILLUSIONER, []() { return std::make_unique<monster::IllagerModel>(); });
     factory.registerModel(ET::RAVAGER, []() { return std::make_unique<monster::RavagerModel>(); });
 
-    // 女巫（暂时使用 IllagerModel 占位，WitchRenderer 已注册）
-    // TODO: 实现 WitchModel 继承自 VillagerModel，包含帽子、鼻子等独特部件
-    factory.registerModel(ET::WITCH, []() { return std::make_unique<monster::IllagerModel>(); });
+    // 女巫（使用 WitchModel，继承自 VillagerModel，包含帽子、鼻子等独特部件）
+    factory.registerModel(ET::WITCH, []() { return std::make_unique<monster::WitchModel>(); });
 
     // ==================== 下界生物 ====================
     factory.registerModel(ET::GHAST, []() { return std::make_unique<nether::GhastModel>(); });
