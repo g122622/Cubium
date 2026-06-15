@@ -4,7 +4,7 @@
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * to use, copy, modify, merge, publish, distribute, sublicense, or/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
@@ -23,53 +23,15 @@
 
 #include "world/blockentity/interactive/JukeboxEntity.hpp"
 
-#include "item/core/Item.hpp"
-#include "item/core/ItemStack.hpp"
-#include "util/assert/AssertAll.hpp"
-#include "world/IWorld.hpp"
-
-#include <unordered_map>
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/special/MusicDiscItem.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
 
 namespace mc {
 namespace blockentity {
-
-namespace {
-
-/**
- * @brief 获取唱片对应的比较器信号强度。
- *
- * @param item 唱片物品。
- * @return 范围 [1, 15] 的信号强度，如果不是有效唱片返回 0。
- */
-[[nodiscard]] i32 getRecordComparatorSignal(const Item* item)
-{
-    if (item == nullptr) {
-        return 0;
-    }
-
-    // 唱片信号强度映射表
-    static const std::unordered_map<std::string, i32> s_discSignals = {
-        {"minecraft:music_disc_13", 1},
-        {"minecraft:music_disc_cat", 2},
-        {"minecraft:music_disc_blocks", 3},
-        {"minecraft:music_disc_chirp", 4},
-        {"minecraft:music_disc_far", 5},
-        {"minecraft:music_disc_mall", 6},
-        {"minecraft:music_disc_mellohi", 7},
-        {"minecraft:music_disc_stal", 8},
-        {"minecraft:music_disc_strad", 9},
-        {"minecraft:music_disc_ward", 10},
-        {"minecraft:music_disc_11", 11},
-        {"minecraft:music_disc_wait", 12},
-        {"minecraft:music_disc_pigstep", 13},
-    };
-
-    const std::string& location = item->itemLocation().toString();
-    const auto it = s_discSignals.find(location);
-    return it != s_discSignals.end() ? it->second : 0;
-}
-
-} // namespace
 
 JukeboxEntity::JukeboxEntity(const BlockPos& pos)
     : ContainerBlockEntity(BlockEntityType::Jukebox, pos)
@@ -83,10 +45,17 @@ ItemStack JukeboxEntity::getRecord() const
     return m_inventory.getItem(SLOT_RECORD);
 }
 
-void JukeboxEntity::setRecord(const ItemStack& record)
+void JukeboxEntity::setRecord(const ItemStack& record, IWorld& world)
 {
     m_inventory.setItem(SLOT_RECORD, record);
     setChanged();
+
+    // 根据唱片内容开始或停止播放
+    if (!record.isEmpty()) {
+        startPlaying(world);
+    } else {
+        stopPlaying(world);
+    }
 }
 
 bool JukeboxEntity::hasRecord() const
@@ -96,31 +65,50 @@ bool JukeboxEntity::hasRecord() const
 
 void JukeboxEntity::startPlaying(IWorld& world)
 {
-    MC_UNUSED(world);
-
     const ItemStack record = getRecord();
     if (record.isEmpty()) {
         m_isPlaying = false;
-        m_recordId = 0;
+        m_ticksSinceSongStarted = 0;
+        m_songLengthTicks = 0;
         return;
     }
 
+    // 从 MusicDiscItem 获取比较器信号强度
     const Item* item = record.getItem();
-    m_recordId = getRecordComparatorSignal(item);
-    m_isPlaying = m_recordId > 0;
+    const auto* discItem = dynamic_cast<const item::items::MusicDiscItem*>(item);
+    if (discItem == nullptr) {
+        // 非 MusicDiscItem 类型的唱片物品（不应该发生，但做防御性处理）
+        m_isPlaying = false;
+        m_ticksSinceSongStarted = 0;
+        m_songLengthTicks = 0;
+        return;
+    }
+
+    // 通过 world.playEvent 广播播放事件给所有客户端
+    // data 参数为唱片对应的比较器信号强度，客户端根据此值确定播放哪首曲目
+    // 参考 MC 1.21.11: JukeboxSongPlayer.play() 使用注册表 ID，但我们的简化实现使用信号强度
+    world.playEvent(world::WorldEvents::PLAY_RECORD_SOUND, m_pos, discItem->getComparatorOutput());
+
+    m_isPlaying = true;
+    m_ticksSinceSongStarted = 0;
+    m_songLengthTicks = 0; // 歌曲长度未知，播放直到唱片被移除
+
     setChanged();
 }
 
 void JukeboxEntity::stopPlaying(IWorld& world)
 {
-    MC_UNUSED(world);
-
-    if (!m_isPlaying && m_recordId == 0) {
+    if (!m_isPlaying) {
         return;
     }
 
+    // 广播停止事件：data=0 表示停止播放
+    world.playEvent(world::WorldEvents::PLAY_RECORD_SOUND, m_pos, 0);
+
     m_isPlaying = false;
-    m_recordId = 0;
+    m_ticksSinceSongStarted = 0;
+    m_songLengthTicks = 0;
+
     setChanged();
 }
 
@@ -130,19 +118,43 @@ i32 JukeboxEntity::getComparatorSignal() const
         return 0;
     }
 
-    if (m_recordId > 0) {
-        return m_recordId;
+    // 从 MusicDiscItem 获取比较器信号强度
+    const ItemStack record = getRecord();
+    const Item* item = record.getItem();
+    const auto* discItem = dynamic_cast<const item::items::MusicDiscItem*>(item);
+    if (discItem != nullptr) {
+        return discItem->getComparatorOutput();
     }
 
-    const ItemStack record = getRecord();
-    return getRecordComparatorSignal(record.getItem());
+    return 0;
 }
 
 void JukeboxEntity::tick(IWorld& world)
 {
-    if (m_isPlaying && !hasRecord()) {
-        stopPlaying(world);
+    if (!m_isPlaying) {
+        return;
     }
+
+    // 检查唱片是否被移除（如漏斗提取）
+    if (!hasRecord()) {
+        stopPlaying(world);
+        return;
+    }
+
+    ++m_ticksSinceSongStarted;
+
+    // 每20tick（1秒）触发一次音符粒子效果和游戏事件
+    // 参考 MC 1.21.11: JukeboxSongPlayer.tick() 中 shouldEmitJukeboxPlayingEvent()
+    if (m_ticksSinceSongStarted % 20 == 0) {
+        // TODO: 触发 GameEvent.JUKEBOX_PLAY 和音符粒子效果
+        // 暂时跳过，等游戏事件系统和粒子系统完善后补充
+    }
+}
+
+bool JukeboxEntity::needsTick() const noexcept
+{
+    // 只有正在播放时才需要 tick
+    return m_isPlaying;
 }
 
 bool JukeboxEntity::load(const nlohmann::json& data)
@@ -160,7 +172,9 @@ bool JukeboxEntity::load(const nlohmann::json& data)
     }
 
     m_isPlaying = data.value("IsPlaying", false);
-    m_recordId = data.value("RecordId", 0);
+    m_ticksSinceSongStarted = data.value("TicksSinceSongStarted", static_cast<i64>(0));
+    m_songLengthTicks = 0;
+
     return true;
 }
 
@@ -174,16 +188,17 @@ void JukeboxEntity::save(nlohmann::json& data) const
     }
 
     data["IsPlaying"] = m_isPlaying;
-    data["RecordId"] = m_recordId;
+    data["TicksSinceSongStarted"] = m_ticksSinceSongStarted;
 }
 
 std::unique_ptr<BlockEntity> JukeboxEntity::clone() const
 {
-    auto clone = std::make_unique<JukeboxEntity>(m_pos);
-    clone->m_inventory.setItem(SLOT_RECORD, m_inventory.getItem(SLOT_RECORD));
-    clone->m_isPlaying = m_isPlaying;
-    clone->m_recordId = m_recordId;
-    return clone;
+    auto cloned = std::make_unique<JukeboxEntity>(m_pos);
+    cloned->m_inventory.setItem(SLOT_RECORD, m_inventory.getItem(SLOT_RECORD));
+    cloned->m_isPlaying = m_isPlaying;
+    cloned->m_ticksSinceSongStarted = m_ticksSinceSongStarted;
+    cloned->m_songLengthTicks = m_songLengthTicks;
+    return cloned;
 }
 
 } // namespace blockentity

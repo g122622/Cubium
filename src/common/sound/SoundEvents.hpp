@@ -1463,15 +1463,23 @@ extern const ResourceLocation MUSIC_NETHER_WARPED_FOREST;
 /// 音乐唱片
 extern const ResourceLocation MUSIC_DISC_11;
 extern const ResourceLocation MUSIC_DISC_13;
+extern const ResourceLocation MUSIC_DISC_5;
 extern const ResourceLocation MUSIC_DISC_BLOCKS;
 extern const ResourceLocation MUSIC_DISC_CAT;
 extern const ResourceLocation MUSIC_DISC_CHIRP;
+extern const ResourceLocation MUSIC_DISC_CREATOR;
+extern const ResourceLocation MUSIC_DISC_CREATOR_MUSIC_BOX;
 extern const ResourceLocation MUSIC_DISC_FAR;
+extern const ResourceLocation MUSIC_DISC_LAVA_CHICKEN;
 extern const ResourceLocation MUSIC_DISC_MALL;
 extern const ResourceLocation MUSIC_DISC_MELLOHI;
+extern const ResourceLocation MUSIC_DISC_OTHERSIDE;
 extern const ResourceLocation MUSIC_DISC_PIGSTEP;
+extern const ResourceLocation MUSIC_DISC_PRECIPICE;
+extern const ResourceLocation MUSIC_DISC_RELIC;
 extern const ResourceLocation MUSIC_DISC_STAL;
 extern const ResourceLocation MUSIC_DISC_STRAD;
+extern const ResourceLocation MUSIC_DISC_TEARS;
 extern const ResourceLocation MUSIC_DISC_WAIT;
 extern const ResourceLocation MUSIC_DISC_WARD;
 

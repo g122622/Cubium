@@ -1347,15 +1347,23 @@ const ResourceLocation MUSIC_NETHER_WARPED_FOREST("minecraft:music.nether.warped
 // 音乐唱片
 const ResourceLocation MUSIC_DISC_11("minecraft:music_disc.11");
 const ResourceLocation MUSIC_DISC_13("minecraft:music_disc.13");
+const ResourceLocation MUSIC_DISC_5("minecraft:music_disc.5");
 const ResourceLocation MUSIC_DISC_BLOCKS("minecraft:music_disc.blocks");
 const ResourceLocation MUSIC_DISC_CAT("minecraft:music_disc.cat");
 const ResourceLocation MUSIC_DISC_CHIRP("minecraft:music_disc.chirp");
+const ResourceLocation MUSIC_DISC_CREATOR("minecraft:music_disc.creator");
+const ResourceLocation MUSIC_DISC_CREATOR_MUSIC_BOX("minecraft:music_disc.creator_music_box");
 const ResourceLocation MUSIC_DISC_FAR("minecraft:music_disc.far");
+const ResourceLocation MUSIC_DISC_LAVA_CHICKEN("minecraft:music_disc.lava_chicken");
 const ResourceLocation MUSIC_DISC_MALL("minecraft:music_disc.mall");
 const ResourceLocation MUSIC_DISC_MELLOHI("minecraft:music_disc.mellohi");
+const ResourceLocation MUSIC_DISC_OTHERSIDE("minecraft:music_disc.otherside");
 const ResourceLocation MUSIC_DISC_PIGSTEP("minecraft:music_disc.pigstep");
+const ResourceLocation MUSIC_DISC_PRECIPICE("minecraft:music_disc.precipice");
+const ResourceLocation MUSIC_DISC_RELIC("minecraft:music_disc.relic");
 const ResourceLocation MUSIC_DISC_STAL("minecraft:music_disc.stal");
 const ResourceLocation MUSIC_DISC_STRAD("minecraft:music_disc.strad");
+const ResourceLocation MUSIC_DISC_TEARS("minecraft:music_disc.tears");
 const ResourceLocation MUSIC_DISC_WAIT("minecraft:music_disc.wait");
 const ResourceLocation MUSIC_DISC_WARD("minecraft:music_disc.ward");
 

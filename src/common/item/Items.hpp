@@ -1021,9 +1021,31 @@ public:
     static Item* FLOW_POTTERY_SHERD;                // 涡流纹样陶片
     static Item* GUSTER_POTTERY_SHERD;              // 旋风纹样陶片
     static Item* SCRAPE_POTTERY_SHERD;              // 刮削纹样陶片
-    static Item* MUSIC_DISC_CREATOR;                // 音乐唱片 - Creator
-    static Item* MUSIC_DISC_CREATOR_MUSIC_BOX;      // 音乐唱片 - Creator (八音盒)
-    static Item* MUSIC_DISC_PRECIPICE;              // 音乐唱片 - Precipice
+
+    // ========================================================================
+    // 音乐唱片
+    // ========================================================================
+    static Item* MUSIC_DISC_13;                // 音乐唱片 - 13
+    static Item* MUSIC_DISC_CAT;               // 音乐唱片 - cat
+    static Item* MUSIC_DISC_BLOCKS;            // 音乐唱片 - blocks
+    static Item* MUSIC_DISC_CHIRP;             // 音乐唱片 - chirp
+    static Item* MUSIC_DISC_FAR;               // 音乐唱片 - far
+    static Item* MUSIC_DISC_MALL;              // 音乐唱片 - mall
+    static Item* MUSIC_DISC_MELLOHI;           // 音乐唱片 - mellohi
+    static Item* MUSIC_DISC_STAL;              // 音乐唱片 - stal
+    static Item* MUSIC_DISC_STRAD;             // 音乐唱片 - strad
+    static Item* MUSIC_DISC_WARD;              // 音乐唱片 - ward
+    static Item* MUSIC_DISC_11;                // 音乐唱片 - 11
+    static Item* MUSIC_DISC_WAIT;              // 音乐唱片 - wait
+    static Item* MUSIC_DISC_PIGSTEP;           // 音乐唱片 - Pigstep
+    static Item* MUSIC_DISC_OTHERSIDE;         // 音乐唱片 - otherside
+    static Item* MUSIC_DISC_5;                 // 音乐唱片 - 5
+    static Item* MUSIC_DISC_RELIC;             // 音乐唱片 - relic
+    static Item* MUSIC_DISC_TEARS;             // 音乐唱片 - Tears
+    static Item* MUSIC_DISC_CREATOR;           // 音乐唱片 - Creator
+    static Item* MUSIC_DISC_CREATOR_MUSIC_BOX; // 音乐唱片 - Creator (八音盒)
+    static Item* MUSIC_DISC_PRECIPICE;         // 音乐唱片 - Precipice
+    static Item* MUSIC_DISC_LAVA_CHICKEN;      // 音乐唱片 - Lava Chicken
 
 private:
     static bool s_initialized;
@@ -1060,6 +1082,7 @@ private:
     static void _registerCoral();
     static void _registerDoorsFencesStairs();
     static void _registerTrialChamberItems();
+    static void _registerMusicDiscs();
 };
 
 } // namespace mc

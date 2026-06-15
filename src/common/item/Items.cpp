@@ -48,6 +48,7 @@
 #include "common/item/items/special/FishBucketItem.hpp"
 #include "common/item/items/special/FlintAndSteelItem.hpp"
 #include "common/item/items/special/MilkBucketItem.hpp"
+#include "common/item/items/special/MusicDiscItem.hpp"
 #include "common/item/items/special/NameTagItem.hpp"
 #include "common/item/items/special/SaddleItem.hpp"
 #include "common/item/items/special/StickItems.hpp"
@@ -74,6 +75,7 @@
 #include "common/item/items/weapon/TippedArrowItem.hpp"
 #include "common/item/items/weapon/TridentItem.hpp"
 #include "common/item/tier/ItemTiers.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/world/block/blocks/functional/CompostableItems.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
@@ -918,9 +920,29 @@ Item* Items::FLOW_ARMOR_TRIM_SMITHING_TEMPLATE = nullptr;
 Item* Items::FLOW_POTTERY_SHERD = nullptr;
 Item* Items::GUSTER_POTTERY_SHERD = nullptr;
 Item* Items::SCRAPE_POTTERY_SHERD = nullptr;
+
+// 音乐唱片
+Item* Items::MUSIC_DISC_13 = nullptr;
+Item* Items::MUSIC_DISC_CAT = nullptr;
+Item* Items::MUSIC_DISC_BLOCKS = nullptr;
+Item* Items::MUSIC_DISC_CHIRP = nullptr;
+Item* Items::MUSIC_DISC_FAR = nullptr;
+Item* Items::MUSIC_DISC_MALL = nullptr;
+Item* Items::MUSIC_DISC_MELLOHI = nullptr;
+Item* Items::MUSIC_DISC_STAL = nullptr;
+Item* Items::MUSIC_DISC_STRAD = nullptr;
+Item* Items::MUSIC_DISC_WARD = nullptr;
+Item* Items::MUSIC_DISC_11 = nullptr;
+Item* Items::MUSIC_DISC_WAIT = nullptr;
+Item* Items::MUSIC_DISC_PIGSTEP = nullptr;
+Item* Items::MUSIC_DISC_OTHERSIDE = nullptr;
+Item* Items::MUSIC_DISC_5 = nullptr;
+Item* Items::MUSIC_DISC_RELIC = nullptr;
+Item* Items::MUSIC_DISC_TEARS = nullptr;
 Item* Items::MUSIC_DISC_CREATOR = nullptr;
 Item* Items::MUSIC_DISC_CREATOR_MUSIC_BOX = nullptr;
 Item* Items::MUSIC_DISC_PRECIPICE = nullptr;
+Item* Items::MUSIC_DISC_LAVA_CHICKEN = nullptr;
 
 // 旗帜物品（16色）
 Item* Items::WHITE_BANNER = nullptr;
@@ -1005,6 +1027,7 @@ void Items::initialize()
     _registerCoral();
     _registerDoorsFencesStairs();
     _registerTrialChamberItems(); // 试炼密室物品
+    _registerMusicDiscs();        // 音乐唱片
 
     // 初始化堆肥物品注册表（必须在 Items 注册完成后）
     blocks::CompostableItems::initialize();
@@ -3274,25 +3297,134 @@ void Items::_registerTrialChamberItems()
     // TODO(trial_chambers): 实现陶片/饰纹陶罐系统后替换为专用PotterySherdItem类
     SCRAPE_POTTERY_SHERD =
         &registry.registerItem(ResourceLocation("minecraft:scrape_pottery_sherd"), ItemProperties().maxStackSize(64));
+}
+
+void Items::_registerMusicDiscs()
+{
+    auto& registry = ItemRegistry::instance();
 
     // ========================================================================
     // 音乐唱片
     // ========================================================================
+    // 经典唱片 (1.16.5): 信号强度 1-12
+    // 后续版本新增: 信号强度 13-15
 
-    // 音乐唱片 (Creator) - 不祥宝库独有战利品
-    // TODO(trial_chambers): 实现音乐唱片播放逻辑
-    MUSIC_DISC_CREATOR = &registry.registerItem(
-        ResourceLocation("minecraft:music_disc_creator"), ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare));
+    MUSIC_DISC_13 = &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_13"),
+        1,
+        SoundEvents::MUSIC_DISC_13,
+        ItemProperties().maxStackSize(1).rarity(ItemRarity::Common));
 
-    // 音乐唱片 (Creator 八音盒) - 试炼密室柱廊陶罐掉落
-    // TODO(trial_chambers): 实现音乐唱片播放逻辑
-    MUSIC_DISC_CREATOR_MUSIC_BOX = &registry.registerItem(ResourceLocation("minecraft:music_disc_creator_music_box"),
+    MUSIC_DISC_CAT = &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_cat"),
+        2,
+        SoundEvents::MUSIC_DISC_CAT,
+        ItemProperties().maxStackSize(1).rarity(ItemRarity::Common));
+
+    MUSIC_DISC_BLOCKS =
+        &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_blocks"),
+            3,
+            SoundEvents::MUSIC_DISC_BLOCKS,
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Common));
+
+    MUSIC_DISC_CHIRP =
+        &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_chirp"),
+            4,
+            SoundEvents::MUSIC_DISC_CHIRP,
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Common));
+
+    MUSIC_DISC_FAR = &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_far"),
+        5,
+        SoundEvents::MUSIC_DISC_FAR,
+        ItemProperties().maxStackSize(1).rarity(ItemRarity::Common));
+
+    MUSIC_DISC_MALL = &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_mall"),
+        6,
+        SoundEvents::MUSIC_DISC_MALL,
+        ItemProperties().maxStackSize(1).rarity(ItemRarity::Common));
+
+    MUSIC_DISC_MELLOHI =
+        &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_mellohi"),
+            7,
+            SoundEvents::MUSIC_DISC_MELLOHI,
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Common));
+
+    MUSIC_DISC_STAL = &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_stal"),
+        8,
+        SoundEvents::MUSIC_DISC_STAL,
+        ItemProperties().maxStackSize(1).rarity(ItemRarity::Common));
+
+    MUSIC_DISC_STRAD =
+        &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_strad"),
+            9,
+            SoundEvents::MUSIC_DISC_STRAD,
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Common));
+
+    MUSIC_DISC_WARD = &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_ward"),
+        10,
+        SoundEvents::MUSIC_DISC_WARD,
+        ItemProperties().maxStackSize(1).rarity(ItemRarity::Common));
+
+    MUSIC_DISC_11 = &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_11"),
+        11,
+        SoundEvents::MUSIC_DISC_11,
+        ItemProperties().maxStackSize(1).rarity(ItemRarity::Common));
+
+    MUSIC_DISC_WAIT = &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_wait"),
+        12,
+        SoundEvents::MUSIC_DISC_WAIT,
+        ItemProperties().maxStackSize(1).rarity(ItemRarity::Common));
+
+    MUSIC_DISC_PIGSTEP =
+        &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_pigstep"),
+            13,
+            SoundEvents::MUSIC_DISC_PIGSTEP,
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare));
+
+    MUSIC_DISC_OTHERSIDE =
+        &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_otherside"),
+            14,
+            SoundEvents::MUSIC_DISC_OTHERSIDE,
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare));
+
+    MUSIC_DISC_5 = &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_5"),
+        15,
+        SoundEvents::MUSIC_DISC_5,
         ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare));
 
-    // 音乐唱片 (Precipice) - 试炼密室宝库独有战利品
-    // TODO(trial_chambers): 实现音乐唱片播放逻辑
-    MUSIC_DISC_PRECIPICE = &registry.registerItem(
-        ResourceLocation("minecraft:music_disc_precipice"), ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare));
+    MUSIC_DISC_RELIC =
+        &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_relic"),
+            14,
+            SoundEvents::MUSIC_DISC_RELIC,
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare));
+
+    MUSIC_DISC_TEARS =
+        &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_tears"),
+            10,
+            SoundEvents::MUSIC_DISC_TEARS,
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Common));
+
+    MUSIC_DISC_CREATOR =
+        &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_creator"),
+            12,
+            SoundEvents::MUSIC_DISC_CREATOR,
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare));
+
+    MUSIC_DISC_CREATOR_MUSIC_BOX =
+        &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_creator_music_box"),
+            11,
+            SoundEvents::MUSIC_DISC_CREATOR_MUSIC_BOX,
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare));
+
+    MUSIC_DISC_PRECIPICE =
+        &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_precipice"),
+            13,
+            SoundEvents::MUSIC_DISC_PRECIPICE,
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare));
+
+    MUSIC_DISC_LAVA_CHICKEN =
+        &registry.registerItem<item::items::MusicDiscItem>(ResourceLocation("minecraft:music_disc_lava_chicken"),
+            9,
+            SoundEvents::MUSIC_DISC_LAVA_CHICKEN,
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Common));
 }
 
 } // namespace mc

@@ -11,8 +11,8 @@
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
@@ -25,6 +25,9 @@
 #include "../../../../entity/inventory/IInventory.hpp"
 #include "../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../item/core/Item.hpp"
+#include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/items/special/MusicDiscItem.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../blockentity/BlockEntityType.hpp"
@@ -77,6 +80,7 @@ std::unique_ptr<BlockEntity> JukeboxBlock::createBlockEntity(const BlockPos& pos
 
 int JukeboxBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
+    MC_UNUSED(state);
 
     // 从唱片机方块实体获取比较器信号
     BlockEntity* entity = world.getBlockEntity(pos);
@@ -85,8 +89,7 @@ int JukeboxBlock::getComparatorInputOverride(const BlockState& state, IWorld& wo
         return jukebox->getComparatorSignal();
     }
 
-    // 有唱片时输出1，无唱片时输出0
-    return hasRecord(state) ? 1 : 0;
+    return 0;
 }
 
 ActionResultType JukeboxBlock::onBlockActivated(const BlockState& state,
@@ -96,8 +99,6 @@ ActionResultType JukeboxBlock::onBlockActivated(const BlockState& state,
     Hand hand,
     const BlockRaycastResult& hit)
 {
-    MC_UNUSED(player);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     if (world.isClientSide()) {
@@ -118,22 +119,42 @@ ActionResultType JukeboxBlock::onBlockActivated(const BlockState& state,
             // 停止播放
             jukebox->stopPlaying(world);
 
-            // 清空唱片
-            jukebox->setRecord(ItemStack::EMPTY);
+            // 清空唱片（内部不再更新方块状态，由 Block 层负责）
+            jukebox->setRecord(ItemStack::EMPTY, world);
 
-            // 掉落唱片
-            math::Random rng;
-            ItemDropHelper::spawnItemEntity(&world, record, pos.x + 0.5, pos.y + 1.0, pos.z + 0.5, rng);
-
-            // 更新方块状态
+            // 更新方块状态为无唱片
             BlockState newState = state.with(BlockStateProperties::HAS_RECORD(), false);
             world.setBlockState(pos, &newState, 3);
+
+            // 掉落唱片到方块上方
+            math::Random rng;
+            ItemDropHelper::spawnItemEntity(&world, record, pos.x + 0.5, pos.y + 1.01, pos.z + 0.5, rng);
 
             return ActionResultType::Consume;
         }
     }
 
-    // TODO: 如果玩家手中有唱片，放入唱片
+    // 如果没有唱片，检查玩家手中是否有唱片
+    ItemStack heldItem = player.getHeldItem(hand);
+    if (!heldItem.isEmpty() && heldItem.getItem() != nullptr && heldItem.getItem()->isMusicDisc()) {
+        // 放入唱片
+        ItemStack recordToInsert = heldItem.copy();
+        recordToInsert.setCount(1);
+
+        // 设置唱片到方块实体（内部会开始播放）
+        jukebox->setRecord(recordToInsert, world);
+
+        // 更新方块状态为有唱片
+        BlockState newState = state.with(BlockStateProperties::HAS_RECORD(), true);
+        world.setBlockState(pos, &newState, 3);
+
+        // 消耗玩家手中的唱片（非创造模式）
+        if (!player.isCreative()) {
+            heldItem.shrink(1);
+        }
+
+        return ActionResultType::Consume;
+    }
 
     return ActionResultType::Pass;
 }
@@ -159,23 +180,6 @@ void JukeboxBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const Bloc
     }
 
     Block::onBlockRemoved(world, pos, state);
-}
-
-void JukeboxBlock::setRecord(IWorld& world, const BlockPos& pos, BlockState& state, bool hasRecord)
-{
-    BlockState newState = state.with(BlockStateProperties::HAS_RECORD(), hasRecord);
-    world.setBlockState(pos, &newState, 3);
-
-    // 更新方块实体
-    BlockEntity* entity = world.getBlockEntity(pos);
-    if (entity != nullptr && entity->getType() == BlockEntityType::Jukebox) {
-        auto* jukebox = static_cast<blockentity::JukeboxEntity*>(entity);
-        if (hasRecord) {
-            jukebox->startPlaying(world);
-        } else {
-            jukebox->stopPlaying(world);
-        }
-    }
 }
 
 } // namespace blocks

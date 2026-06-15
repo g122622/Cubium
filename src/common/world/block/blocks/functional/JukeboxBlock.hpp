@@ -11,8 +11,8 @@
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
@@ -43,10 +43,17 @@ namespace blocks {
 /**
  * @brief 唱片机方块
  *
- * 可以播放音乐唱片的功能方块。
+ * 可以播放音乐唱片的功能方块。玩家手持唱片右键放入唱片开始播放，
+ * 空手右键取出唱片停止播放。
  *
  * 状态属性：
  * - HAS_RECORD: 是否有唱片
+ *
+ * 红石：
+ * - 比较器信号强度由唱片类型决定（1-15）
+ * - 正在播放时直接输出信号强度15（isSignalSource）
+ *
+ * 参考: net.minecraft.block.JukeboxBlock
  */
 class JukeboxBlock : public Block {
 public:
@@ -68,7 +75,6 @@ public:
     // ========== 方块实体 ==========
 
     [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
-
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
     // ========== 红石 ==========
@@ -87,7 +93,7 @@ public:
     /**
      * @brief 处理玩家右键交互
      *
-     * 有唱片时取出唱片，无唱片时放入唱片。
+     * 有唱片时取出唱片，无唱片且玩家手持唱片时放入唱片。
      */
     [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
@@ -112,11 +118,6 @@ public:
     {
         return state.get(BlockStateProperties::HAS_RECORD());
     }
-
-    /**
-     * @brief 设置唱片状态
-     */
-    static void setRecord(IWorld& world, const BlockPos& pos, BlockState& state, bool hasRecord);
 
 protected:
     /// 唱片机形状

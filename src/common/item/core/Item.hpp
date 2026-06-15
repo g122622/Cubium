@@ -397,6 +397,14 @@ public:
     [[nodiscard]] virtual bool isFood() const { return m_food != nullptr; }
 
     /**
+     * @brief 物品是否为音乐唱片
+     *
+     * 音乐唱片可以放入唱片机播放音乐。
+     * MusicDiscItem 重写此方法返回 true。
+     */
+    [[nodiscard]] virtual bool isMusicDisc() const { return false; }
+
+    /**
      * @brief 获取使用时间（如食物食用时间）
      *
      * 如果物品是食物，返回食物的使用时间；
