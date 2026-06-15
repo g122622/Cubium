@@ -278,6 +278,103 @@ bool WorldGenRegion::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     return true;
 }
 
+BlockEntity* WorldGenRegion::getBlockEntity(const BlockPos& pos)
+{
+    const ChunkCoord chunkX = world::toChunkCoord(pos.x);
+    const ChunkCoord chunkZ = world::toChunkCoord(pos.z);
+
+    IChunk* chunk = getIChunk(chunkX, chunkZ, ChunkStatuses::EMPTY);
+    if (!chunk) {
+        return nullptr;
+    }
+
+    auto* primer = dynamic_cast<ChunkPrimer*>(chunk);
+    if (primer == nullptr) {
+        return nullptr;
+    }
+
+    ChunkData* data = primer->getChunkData();
+    if (data == nullptr) {
+        return nullptr;
+    }
+
+    return data->getBlockEntity(pos);
+}
+
+const BlockEntity* WorldGenRegion::getBlockEntity(const BlockPos& pos) const
+{
+    const ChunkCoord chunkX = world::toChunkCoord(pos.x);
+    const ChunkCoord chunkZ = world::toChunkCoord(pos.z);
+
+    const IChunk* chunk = getIChunk(chunkX, chunkZ, ChunkStatuses::EMPTY);
+    if (!chunk) {
+        return nullptr;
+    }
+
+    const auto* primer = dynamic_cast<const ChunkPrimer*>(chunk);
+    if (primer == nullptr) {
+        return nullptr;
+    }
+
+    const ChunkData* data = primer->getChunkData();
+    if (data == nullptr) {
+        return nullptr;
+    }
+
+    return data->getBlockEntity(pos);
+}
+
+void WorldGenRegion::setBlockEntity(const BlockPos& pos, BlockEntity* entity)
+{
+    if (entity == nullptr) {
+        return;
+    }
+
+    const ChunkCoord chunkX = world::toChunkCoord(pos.x);
+    const ChunkCoord chunkZ = world::toChunkCoord(pos.z);
+
+    IChunk* chunk = getIChunk(chunkX, chunkZ, ChunkStatuses::EMPTY);
+    if (!chunk) {
+        return;
+    }
+
+    auto* primer = dynamic_cast<ChunkPrimer*>(chunk);
+    if (primer == nullptr) {
+        return;
+    }
+
+    ChunkData* data = primer->getChunkData();
+    if (data == nullptr) {
+        return;
+    }
+
+    // IWorld::setBlockEntity 接受裸指针（获取所有权），转换为 unique_ptr
+    data->setBlockEntity(pos, std::unique_ptr<BlockEntity>(entity));
+}
+
+void WorldGenRegion::removeBlockEntity(const BlockPos& pos)
+{
+    const ChunkCoord chunkX = world::toChunkCoord(pos.x);
+    const ChunkCoord chunkZ = world::toChunkCoord(pos.z);
+
+    IChunk* chunk = getIChunk(chunkX, chunkZ, ChunkStatuses::EMPTY);
+    if (!chunk) {
+        return;
+    }
+
+    auto* primer = dynamic_cast<ChunkPrimer*>(chunk);
+    if (primer == nullptr) {
+        return;
+    }
+
+    ChunkData* data = primer->getChunkData();
+    if (data == nullptr) {
+        return;
+    }
+
+    data->removeBlockEntity(pos);
+}
+
 BiomeId WorldGenRegion::getBiome(i32 x, i32 y, i32 z) const
 {
     const ChunkCoord chunkX = world::toChunkCoord(x);

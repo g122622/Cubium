@@ -27,8 +27,8 @@ redstone/
 ├── PistonStructureHelper.hpp/cpp      # 活塞推动结构计算器
 ├── PistonHeadBlock.hpp/cpp            # 活塞头（存活检查、基座关联、级联销毁）
 ├── MovingPistonBlock.hpp/cpp          # 移动中的活塞（动画代理）
-├── DispenserBlock.hpp/cpp             # 发射器
-├── DropperBlock.hpp/cpp               # 投掷器
+├── DispenserBlock.hpp/cpp             # 发射器（含方块实体支持，红石触发发射物品）
+├── DropperBlock.hpp/cpp               # 投掷器（继承发射器，简化投掷行为，含方块实体支持）
 ├── TripWireBlock.hpp/cpp              # 绊线（实体穿越检测，潜行不触发）
 ├── TripWireHookBlock.hpp/cpp          # 绊线钩
 ├── NoteBlock.hpp/cpp                  # 音符盒（16种乐器，25个音高）

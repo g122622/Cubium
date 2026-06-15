@@ -625,6 +625,7 @@ add_executable(mc_tests
     common/world/gen/structure/test_shipwreck_structure.cpp
     common/world/gen/structure/test_new_structures.cpp
     common/world/gen/structure/test_structure_type_mapping.cpp
+    common/world/gen/structure/StructurePieceChestDispenserTest.cpp
     common/world/gen/structure/TemplatedStructuresTest.cpp
     common/world/gen/jigsaw/test_jigsaw.cpp
     common/world/gen/jigsaw/test_jigsaw_matcher.cpp

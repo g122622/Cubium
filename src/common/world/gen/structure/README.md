@@ -6,7 +6,7 @@
 
 ```text structure /
 ├── Structure.hpp #结构基类定义（含 SpawnOverrides、BiomeTag 引用、typeToId/nameToStructureType 静态方法）
-├── Structure.cpp #结构基类实现
+├── Structure.cpp #结构基类实现（含 generateChest/generateDispenser 辅助方法）
 ├── StructureBoundingBox.hpp #结构边界框（用于判断片段与区块交集）
 ├── StructureBoundingBox.cpp
 ├── StructureSet.hpp #结构集合模型（加权条目 +
@@ -127,6 +127,8 @@ worldgen/processor_list/*.json→ ProcessorList (方块替换处理器)
     │  ├─ typeToId(StructureType) → ResourceLocation   │
     │  ├─ nameToStructureType(name) → optional<Type>   │
     │  ├─ generate() → StructureStart (仅创建片段)     │
+    │  ├─ generateChest() → 放置宝箱+设置战利品表      │
+    │  ├─ generateDispenser() → 放置发射器+设置战利品表 │
     │  └─ placeInChunk() → 写入方块 (FEATURES 阶段)   │
     └──────────────────────────────────────────────────┘
                             │
@@ -238,3 +240,15 @@ return m_maxX >= chunkMinX && m_minX <= chunkMaxX &&
 ### 11. StructureType 枚举与名称映射
 
 `StructureType::Temple` 是多个结构的兼容类型（沙漠神殿、丛林神庙、雪屋、沼泽小屋、下界化石共享此枚举值）。`nameToStructureType()` 的别名映射将这些子名称都映射到 `StructureType::Temple`，而 `typeToId(StructureType::Temple)` 统一返回 `minecraft:temple`。注意 `bastion_remnant` / `bastion` 均映射到 `StructureType::Bastion`，而 `typeToId` 返回 `minecraft:bastion_remnant`（而非 `minecraft:bastion`）。
+
+### 12. generateChest / generateDispenser 辅助方法
+
+`StructurePiece` 基类提供了 `generateChest()` 和 `generateDispenser()` 两个辅助方法，用于在结构生成中放置带有战利品表的容器方块。这两个方法封装了以下逻辑：
+
+1. 通过坐标偏移计算世界坐标
+2. 检查位置是否在生成边界内
+3. 放置带朝向的方块（宝箱使用 `HORIZONTAL_FACING`，发射器使用 `FACING`）
+4. 通过 `dynamic_cast<IWorld*>(&world)->getBlockEntity()` 获取自动创建的方块实体
+5. 设置战利品表（`ChestEntity::setLootTable()` / `DispenserBlockEntity::setLootTable()`）
+
+这些方法要求 `WorldGenRegion` 正确覆写 `getBlockEntity()`/`setBlockEntity()`/`removeBlockEntity()` 方法，以便在结构生成阶段访问和操作方块实体。`WorldGenRegion::setBlockState()` 会在放置有方块实体的方块时自动创建对应的 `BlockEntity`，然后通过 `getBlockEntity()` 即可获取并设置战利品表。

@@ -435,6 +435,29 @@ public:
     [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const;
 
     /**
+     * @brief 获取方块实体（IWorld 接口）
+     *
+     * 从 ChunkPrimer 底层的 ChunkData 中获取方块实体。
+     * 结构生成中通过 generateChest/generateDispenser 设置战利品表时使用。
+     */
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override;
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override;
+
+    /**
+     * @brief 设置方块实体（IWorld 接口）
+     *
+     * 将方块实体存储到 ChunkPrimer 底层的 ChunkData 中。
+     */
+    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override;
+
+    /**
+     * @brief 移除方块实体（IWorld 接口）
+     *
+     * 从 ChunkPrimer 底层的 ChunkData 中移除方块实体。
+     */
+    void removeBlockEntity(const BlockPos& pos) override;
+
+    /**
      * @brief 获取最高方块 Y 坐标（指定高度图类型）
      */
     [[nodiscard]] i32 getTopBlockY(i32 x, i32 z, HeightmapType type) const;

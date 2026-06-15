@@ -139,6 +139,8 @@ bool StrongholdPiece::canStrongholdGoDeeper(const StructureBoundingBox& box)
     return box.minY() > 10;
 }
 
+// TODO: 重构为使用基类 StructurePiece::generateChest()，需添加朝向参数 Direction facing。
+// 当前版本不设置宝箱朝向（使用默认状态），应迁移到基类方法以获得一致的朝向处理。
 void StrongholdPiece::generateChest(IWorldWriter& world,
     const StructureBoundingBox& bounds,
     math::Random& rng,
