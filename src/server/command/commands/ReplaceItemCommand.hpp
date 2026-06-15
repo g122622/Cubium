@@ -12,9 +12,7 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
@@ -33,12 +31,20 @@ namespace command {
 /**
  * @brief ReplaceItemCommand - 替换物品命令
  *
- * 用法: /replaceitem <entity|block> <target> <slot> <item> [count]
+ * 用法: /replaceitem entity <targets> <slot> <item> [count]
+ *       /replaceitem block <pos> <slot> <item> [count]
  * 权限: 2 (游戏管理员)
  *
  * 支持两种目标类型：
  * - entity: 替换实体（玩家）物品栏中的物品
  * - block: 替换方块容器（如箱子）中的物品
+ *
+ * 槽位名称参考 ItemSlotArgumentType 支持的格式，
+ * 如 weapon.mainhand, armor.head, container.5, hotbar.0 等。
+ *
+ * 参考: net.minecraft.server.commands.ItemCommands (MC 1.21.11)
+ * 注: MC 1.17+ 已将 /replaceitem 重命名为 /item replace with，
+ *     本项目保留 /replaceitem 名称以兼容旧版命令习惯。
  */
 class ReplaceItemCommand {
 public:
