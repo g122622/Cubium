@@ -29,6 +29,7 @@
 #include "../../../world/IWorld.hpp"
 #include "../../../world/fluid/Fluid.hpp"
 #include "../../../world/fluid/FluidTags.hpp"
+#include "../../../world/gamerule/GameRules.hpp"
 #include "../../core/DataParameter.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../entities/player/Player.hpp"
@@ -680,6 +681,12 @@ void BoatEntity::dropItem()
 {
     IWorld* worldPtr = world();
     if (!worldPtr || worldPtr->isClientSide()) {
+        return;
+    }
+
+    // 检查游戏规则 doEntityDrops：当该规则为 false 时，船被摧毁不产生掉落物品
+    // 对齐 MC 原版 VehicleEntity.destroy() 行为
+    if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
         return;
     }
 

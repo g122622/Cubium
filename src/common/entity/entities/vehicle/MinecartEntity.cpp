@@ -43,6 +43,7 @@
 #include "common/world/blockentity/transport/HopperEntity.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/redstone/RedstoneHelper.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include <algorithm>
@@ -860,6 +861,13 @@ void AbstractMinecartEntity::dropItem(DamageSource* source)
         return;
     }
 
+    // 检查游戏规则 doEntityDrops：当该规则为 false 时，矿车被摧毁不产生掉落物品
+    // 对齐 MC 原版 VehicleEntity.destroy() 行为
+    if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+        remove();
+        return;
+    }
+
     // 获取对应的矿车物品
     const Item* minecartItem = nullptr;
     switch (m_type) {
@@ -1051,8 +1059,12 @@ void ChestMinecartEntity::dropItem(DamageSource* source)
         return;
     }
 
-    // 掉落所有库存物品
-    if (m_inventory) {
+    // 容器内容物掉落也受 doEntityDrops 游戏规则控制
+    // 对齐 MC 原版 ContainerEntity.chestVehicleDestroyed() 行为
+    bool doEntityDrops = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS);
+
+    if (doEntityDrops && m_inventory) {
+        // 掉落所有库存物品
         math::Random& rng = worldPtr->getRandom();
         for (i32 i = 0; i < INVENTORY_SIZE; ++i) {
             ItemStack stack = m_inventory->getItem(i);
@@ -1064,7 +1076,7 @@ void ChestMinecartEntity::dropItem(DamageSource* source)
         }
     }
 
-    // 调用父类方法掉落矿车物品
+    // 调用父类方法掉落矿车物品（父类内部也会检查 doEntityDrops）
     AbstractMinecartEntity::dropItem(source);
 }
 
@@ -1226,7 +1238,7 @@ void FurnaceMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powere
 
 void FurnaceMinecartEntity::dropItem(DamageSource* source)
 {
-    // 先调用父类方法掉落矿车物品
+    // 先调用父类方法掉落矿车物品（父类内部会检查 doEntityDrops）
     AbstractMinecartEntity::dropItem(source);
 
     IWorld* worldPtr = world();
@@ -1234,12 +1246,11 @@ void FurnaceMinecartEntity::dropItem(DamageSource* source)
         return;
     }
 
-    // 如果不是爆炸伤害，则掉落熔炉方块
+    // 如果不是爆炸伤害且游戏规则允许实体掉落，则掉落熔炉方块
     bool isExplosion = (source != nullptr && source->isExplosion());
-    // TODO: 当 GameRules 系统完善后检查 DO_ENTITY_DROPS 规则
-    // bool doEntityDrops = worldPtr->gameRules().getBoolean(GameRules::DO_ENTITY_DROPS);
+    bool doEntityDrops = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS);
 
-    if (!isExplosion) {
+    if (!isExplosion && doEntityDrops) {
         // 掉落熔炉方块
         // 通过 BlockItemRegistry 获取熔炉方块物品
         // TODO: 当 FURNACE 方块注册到 VanillaBlocks 后使用 BlockItemRegistry
@@ -1365,14 +1376,13 @@ void TNTMinecartEntity::dropItem(DamageSource* source)
 
     // 如果不是火焰伤害、不是爆炸伤害、且速度足够低，则正常掉落
     if (!isFire && !isExplosion && speedSq < 0.01) {
-        // 先掉落矿车物品
+        // 先掉落矿车物品（父类内部会检查 doEntityDrops）
         AbstractMinecartEntity::dropItem(source);
 
         // 如果不是爆炸伤害且游戏规则允许实体掉落，则额外掉落 TNT 方块
-        if (!isExplosion) {
-            // TODO: 当 GameRules 系统完善后检查 DO_ENTITY_DROPS 规则
-            IWorld* worldPtr = world();
-            if (worldPtr && !worldPtr->isClientSide()) {
+        IWorld* worldPtr = world();
+        if (!isExplosion && worldPtr && !worldPtr->isClientSide()) {
+            if (worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
                 // 通过 BlockItemRegistry 获取 TNT 方块物品
                 const BlockItem* tntBlockItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::TNT);
                 if (tntBlockItem != nullptr) {

@@ -32,6 +32,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -199,6 +200,12 @@ void PaintingEntity::dropItem()
         return;
     }
 
+    // 检查游戏规则 doEntityDrops：当该规则为 false 时，画被破坏不产生掉落物品
+    // 对齐 MC 原版 Painting.dropItem() 行为
+    if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+        return;
+    }
+
     // 创建画作物品堆
     if (Items::PAINTING != nullptr) {
         ItemStack stack(*Items::PAINTING, 1);
@@ -259,9 +266,13 @@ void ItemFrameEntity::dropItem()
 {
     // 掉落展示框内的物品
     if (!m_displayedItem.isEmpty() && m_world != nullptr) {
-        // 生成物品实体
-        math::Random& rng = m_world->getRandom();
-        ItemDropHelper::spawnItemEntity(m_world, m_displayedItem, x(), y(), z(), rng);
+        // 检查游戏规则 doEntityDrops：当该规则为 false 时，展示框内容物不掉落
+        // 对齐 MC 原版 ItemFrame.dropItem() 行为
+        if (m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+            // 生成物品实体
+            math::Random& rng = m_world->getRandom();
+            ItemDropHelper::spawnItemEntity(m_world, m_displayedItem, x(), y(), z(), rng);
+        }
         m_displayedItem = ItemStack();
     }
 }
@@ -358,6 +369,12 @@ void LeashKnotEntity::dropItem()
 {
     // 掉落拴绳物品
     if (m_world == nullptr) {
+        return;
+    }
+
+    // 检查游戏规则 doEntityDrops：当该规则为 false 时，拴绳结被破坏不产生掉落物品
+    // 对齐 MC 原版 Leashable.tickLeash() 中 doEntityDrops 控制的 dropLeash/removeLeash 行为
+    if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
         return;
     }
 
