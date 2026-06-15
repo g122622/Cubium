@@ -148,3 +148,7 @@ advancement/
 9. **触发器模板模式**：创建新触发器需继承 `AbstractCriterionTrigger<T>`，其中 `T` 是触发器实例类型。`CriterionInstance<T>` 提供条件检测的 `test()` 方法。
 
 10. **服务端触发路径**：服务端触发成就需通过 `AdvancementEventHandler` 订阅事件，然后调用 `trigger->trigger(*advancements, predicate)`。直接调用触发器不会生效，因为没有监听器上下文。
+
+11. **可见性判定仅使用 isDone**：`AdvancementVisibilityEvaluator` 的 `isDone` 谓词只检查成就是否完成，不使用 `hasProgress`（部分完成）。这与 MC Java 原版一致——部分完成不影响可见性。`PlayerAdvancements._shouldShow` 也仅使用 `isDone`。
+
+12. **无 display 成就的 anyChildDone 行为**：当无 display 的成就有已完成子成就时，`anyChildDone=true` 会在算法层面将其标记为"可见"。这与 MC Java 一致，客户端/UI 层负责过滤不渲染无 display 的成就。

@@ -98,7 +98,7 @@ server/advancement/
 `PlayerAdvancements` 使用 `AdvancementVisibilityEvaluator`（位于 `common/advancement/`）实现与 MC Java 版一致的可见性递归算法。核心规则：
 
 1. **已完成成就始终可见**（VisibilityRule::Show）
-2. **无 display 的成就始终不可见**（VisibilityRule::Hide，如配方解锁等技术成就）
+2. **无 display 的成就标记为 Hide**（VisibilityRule::Hide，如配方解锁等技术成就），但 anyChildDone 机制可能覆盖此规则（见下方说明）
 3. **隐藏成就（hidden=true）在完成前不可见**（VisibilityRule::Hide）
 4. **非隐藏且未完成的成就**（VisibilityRule::NoChange）：向上回溯 `VISIBILITY_DEPTH=2` 层祖先
    - 遇到 Show → 可见
@@ -106,10 +106,14 @@ server/advancement/
    - 全部 NoChange → 不可见
 5. **子树中有已完成的成就会使祖先链可见**（anyChildDone 机制）
 
+**重要：可见性判定仅使用 `isDone`，不使用 `hasProgress`。** 这与 MC Java 原版一致：部分完成（有进度但未完成）不影响可见性。`AdvancementVisibilityEvaluator` 和 `_shouldShow` 都只检查 `isDone`。
+
+**关于无 display 成就的 anyChildDone 行为：** 当无 display 的成就有已完成的子成就时，anyChildDone=true 会使其在算法层面被标记为"可见"。这与 MC Java 一致——MC Java 的 `PlayerAdvancements.updateTreeVisibility` 也会将无 display 节点添加到 visible 集合中。客户端/UI 层负责过滤不渲染无 display 的成就。`_shouldShow` 作为简化回退路径，对无 display 节点直接返回不可见。
+
 可见性计算分为三个方法：
 - `_ensureVisibility(advancement)`：单个成就状态变化时调用，通过 `evaluateVisibilityFromNode` 从变更成就的根节点重新评估整棵树的可见性，同时跟踪 `m_visibilityChanged` 集合用于网络同步
 - `_updateVisibility(manager)`：全量刷新可见性，遍历所有根成就调用 `evaluateVisibility`，用于 `loadFromJson` 等场景
-- `_shouldShow(advancement, manager)`：简化的单成就可见性判定回退路径，当 `m_manager` 为空时使用
+- `_shouldShow(advancement, manager)`：简化的单成就可见性判定回退路径，当 `m_manager` 为空时使用，仅使用 `isDone` 不使用 `hasProgress`
 
 ## 奖励发放
 

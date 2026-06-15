@@ -257,15 +257,17 @@ private:
     void _updateVisibility(mc::advancement::AdvancementManager* manager = nullptr);
 
     /**
-     * @brief 检查成就是否应该可见
+     * @brief 检查成就是否应该可见（简化回退路径，当 m_manager 为空时使用）
      *
-     * 实现 MC 原版的可见性规则：
+     * 实现 MC 原版的可见性规则（与 AdvancementVisibilityEvaluator 一致）：
      * - 已完成的成就始终可见
-     * - 有进度的成就可见（部分完成）
      * - 无 display 的成就始终不可见（技术成就）
      * - 隐藏成就（hidden=true）在完成前不可见
      * - 非隐藏且未完成的成就：向上回溯 VISIBILITY_DEPTH(2) 层祖先，
      *   如果有已完成的祖先则可见，否则不可见
+     *
+     * 注意：此方法仅使用 isDone 判定完成状态，不使用 hasProgress，
+     * 与 MC Java 原版行为一致。部分完成（有进度但未完成）不影响可见性。
      *
      * @param advancement 成就
      * @param manager 成就管理器（用于查找父成就，可为nullptr）

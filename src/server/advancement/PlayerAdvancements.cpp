@@ -486,17 +486,19 @@ bool PlayerAdvancements::_shouldShow(
         return false;
     }
 
+    // MC 原版规则：可见性判定仅基于 isDone，不使用 hasProgress。
+    // hasProgress（部分完成）在 MC Java 中不作为可见性判据，
+    // 这与 AdvancementVisibilityEvaluator 的行为一致。
+
     // 已完成的成就始终可见
     if (isDone(advancement)) {
         return true;
     }
 
-    // 有进度的成就可见（部分完成）
-    if (hasProgress(advancement)) {
-        return true;
-    }
-
     // 无 display 的成就始终不可见（技术成就，如配方解锁）
+    // 注意：AdvancementVisibilityEvaluator 中 anyChildDone 会将无 display 节点
+    // 标记为可见，但客户端/UI 层应进一步过滤不渲染无 display 的成就。
+    // _shouldShow 作为简化回退路径，对无 display 节点直接返回不可见。
     const auto& display = advancement->getDisplay();
     if (!display.has_value()) {
         return false;
@@ -508,9 +510,10 @@ bool PlayerAdvancements::_shouldShow(
     }
 
     // 非隐藏且未完成的成就：检查祖先链的可见性
-    // 如果没有 manager 则无法查找父成就，默认可见（非隐藏且有 display）
+    // 如果没有 manager 则无法查找父成就，默认不可见
+    // （根成就未完成且无已完成祖先 -> 不可见）
     if (manager == nullptr) {
-        return true;
+        return false;
     }
 
     // 向上回溯 VISIBILITY_DEPTH 层祖先，检查是否有已完成的祖先
