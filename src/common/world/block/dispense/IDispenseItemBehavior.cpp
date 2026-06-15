@@ -41,7 +41,6 @@
 #include "../../../util/property/Properties.hpp"
 #include "../../IWorld.hpp"
 #include "../../WorldEvents.hpp"
-#include "../../tick/manager/TickManager.hpp"
 #include "../../block/Block.hpp"
 #include "../../block/IBucketPickupHandler.hpp"
 #include "../../block/ILiquidContainer.hpp"
@@ -51,6 +50,7 @@
 #include "../../fluid/Fluid.hpp"
 #include "../../fluid/FluidRegistry.hpp"
 #include "../../fluid/FluidTags.hpp"
+#include "../../tick/manager/TickManager.hpp"
 #include "../Block.hpp"
 
 namespace mc {
@@ -383,7 +383,9 @@ ItemStack BucketDispenseBehavior::dispense(
                             // 满桶用完了，直接返回空桶
                             return emptyBucket->getDefaultInstance();
                         }
-                        // 发射器中还有满桶，将空桶作为物品弹出到世界中
+                        // TODO: MC 原版中 consumeWithRemainder 会尝试将替换物品放回发射器库存。
+                        // 当前发射器行为接口无法访问发射器库存，因此将空桶作为物品弹出到世界中。
+                        // 未来需要在 dispense 接口中添加对发射器库存的访问，以实现物品放回逻辑。
                         ItemStack emptyStack = emptyBucket->getDefaultInstance();
                         _spawnItemEntity(world, pos, direction, emptyStack);
                     }
@@ -434,6 +436,8 @@ ItemStack BucketDispenseBehavior::dispense(
                         if (stack.isEmpty()) {
                             return emptyBucket->getDefaultInstance();
                         }
+                        // TODO: MC 原版中 consumeWithRemainder 会尝试将替换物品放回发射器库存。
+                        // 当前发射器行为接口无法访问发射器库存，因此将空桶作为物品弹出到世界中。
                         _spawnItemEntity(world, pos, direction, emptyBucket->getDefaultInstance());
                     }
                     return stack.isEmpty() ? ItemStack() : stack;
@@ -456,6 +460,8 @@ ItemStack BucketDispenseBehavior::dispense(
                     if (stack.isEmpty()) {
                         return emptyBucket->getDefaultInstance();
                     }
+                    // TODO: MC 原版中 consumeWithRemainder 会尝试将替换物品放回发射器库存。
+                    // 当前发射器行为接口无法访问发射器库存，因此将空桶作为物品弹出到世界中。
                     _spawnItemEntity(world, pos, direction, emptyBucket->getDefaultInstance());
                 }
                 return stack.isEmpty() ? ItemStack() : stack;
@@ -504,7 +510,8 @@ ItemStack EmptyBucketDispenseBehavior::dispense(
                             return filledBucket->getDefaultInstance();
                         }
 
-                        // 发射器中还有空桶，将满桶作为物品弹出到世界中
+                        // TODO: MC 原版中 consumeWithRemainder 会尝试将替换物品放回发射器库存。
+                        // 当前发射器行为接口无法访问发射器库存，因此将满桶作为物品弹出到世界中。
                         _spawnItemEntity(world, pos, direction, filledBucket->getDefaultInstance());
 
                         return stack;

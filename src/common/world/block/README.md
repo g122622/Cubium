@@ -187,7 +187,11 @@ IBlockAnimateContext（方块动画 tick 上下文）
 dispense/ 子模块
 ├── IDispenseItemBehavior（发射行为接口）
 ├── DispenseItemBehaviorRegistry（行为注册表）
-└── 各种具体发射行为（投射物、船、桶等）
+└── 各种具体发射行为（投射物、船、桶、打火石、骨粉等）
+  - BucketDispenseBehavior：装满流体的桶放置流体，成功后替换为空桶
+  - EmptyBucketDispenseBehavior：空桶收集流体，成功后替换为满桶
+  - FlintAndSteelDispenseBehavior：打火石点燃方块/引燃TNT，消耗耐久
+  - BonemealDispenseBehavior：骨粉催熟方块/水中海草，消耗数量
 ```
 
 ## 上下游依赖关系
