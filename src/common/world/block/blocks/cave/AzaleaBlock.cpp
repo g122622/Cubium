@@ -110,6 +110,22 @@ void AzaleaBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos
     // 当前占位：骨粉效果尚未接入杜鹃树 feature
 }
 
+// ========== IPlantable 接口实现 ==========
+
+PlantType AzaleaBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // MC 1.21.11: AzaleaBlock 继承 VegetationBlock -> BushBlock，返回 PlantType.Plains
+    return PlantType::Plains;
+}
+
+const BlockState& AzaleaBlock::getPlant(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    return defaultState();
+}
+
 // ============================================================================
 // FloweringAzaleaBlock
 // ============================================================================

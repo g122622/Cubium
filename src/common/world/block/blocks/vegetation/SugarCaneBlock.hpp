@@ -27,6 +27,7 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
+#include "../../PlantType.hpp"
 
 namespace mc {
 
@@ -45,7 +46,7 @@ namespace blocks {
  * 状态属性：
  * - AGE_0_15: 年龄（用于生长计时）
  */
-class SugarCaneBlock : public Block {
+class SugarCaneBlock : public Block, public IPlantable {
 public:
     explicit SugarCaneBlock(const BlockProperties& properties);
     ~SugarCaneBlock() override = default;
@@ -86,6 +87,11 @@ public:
         MC_UNUSED(state);
         return false;
     }
+
+    // ========== IPlantable ==========
+
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] const BlockState& getPlant(IBlockReader& world, const BlockPos& pos) const override;
 
 private:
     /**

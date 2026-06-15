@@ -26,6 +26,7 @@
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
+#include "../../PlantType.hpp"
 
 namespace mc {
 
@@ -52,7 +53,7 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.TallSeaGrassBlock
  */
-class TallSeagrassBlock : public Block {
+class TallSeagrassBlock : public Block, public IPlantable {
 public:
     explicit TallSeagrassBlock(const BlockProperties& properties);
     ~TallSeagrassBlock() override = default;
@@ -85,6 +86,11 @@ public:
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    // ========== IPlantable 接口 ==========
+
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] const BlockState& getPlant(IBlockReader& world, const BlockPos& pos) const override;
 
     [[nodiscard]] bool isOpaque(const BlockState& state) const override
     {

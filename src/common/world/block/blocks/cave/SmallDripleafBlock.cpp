@@ -187,5 +187,22 @@ void SmallDripleafBlock::grow(IWorld& world, math::IRandom& random, const BlockP
     world.setBlockState(leafPosition, &leafState, 3);
 }
 
+// ========== IPlantable 接口实现 ==========
+
+PlantType SmallDripleafBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // MC 1.21.11: SmallDripleafBlock 继承 BushBlock，返回 PlantType.WATER
+    // 小滴叶可放置在黏土、泥土、砂土、灰化土、苔藓块、耕地和黏土上
+    return PlantType::Water;
+}
+
+const BlockState& SmallDripleafBlock::getPlant(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    return defaultState();
+}
+
 } // namespace blocks
 } // namespace mc

@@ -27,8 +27,8 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -164,6 +164,21 @@ const CollisionShape& KelpBlock::getCollisionShape(const BlockState& state) cons
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
+}
+
+// ========== IPlantable 接口实现 ==========
+
+PlantType KelpBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return PlantType::Water;
+}
+
+const BlockState& KelpBlock::getPlant(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    return defaultState();
 }
 
 } // namespace blocks

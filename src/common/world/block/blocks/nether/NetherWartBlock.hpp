@@ -26,6 +26,7 @@
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
+#include "../../PlantType.hpp"
 
 namespace mc {
 
@@ -44,7 +45,7 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.NetherWartBlock
  */
-class NetherWartBlock : public Block {
+class NetherWartBlock : public Block, public IPlantable {
 public:
     explicit NetherWartBlock(const BlockProperties& properties);
     ~NetherWartBlock() noexcept override = default;
@@ -79,6 +80,11 @@ public:
         MC_UNUSED(state);
         return false;
     }
+
+    // ========== IPlantable 接口 ==========
+
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] const BlockState& getPlant(IBlockReader& world, const BlockPos& pos) const override;
 
 private:
     std::array<CollisionShape, 4> m_shapesByAge;

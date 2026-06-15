@@ -47,7 +47,8 @@ BushBlock (来自 agricultural/ 模块)
 - `NyliumBlock`：独立方块，光照过高时退化为下界岩
 - `MagmaBlock`：独立方块，水中生成气泡柱，踩踏时造成烫脚伤害
 - `NetherPortalBlock`：独立方块，检测框架有效性、实体传送
-- `NetherSproutsBlock` / `NetherRootsBlock`：继承 BushBlock，扩展 `canSustain()` 支持菌岩和灵魂土
+- `NetherSproutsBlock` / `NetherRootsBlock`：继承 BushBlock，扩展 `canSustain()` 支持菌岩和灵魂土，返回 PlantType::Nether
+- `NetherWartBlock`：独立实现 Block + IPlantable，返回 PlantType::Nether，只能种在灵魂沙上
 
 ## 上下游外部依赖关系
 

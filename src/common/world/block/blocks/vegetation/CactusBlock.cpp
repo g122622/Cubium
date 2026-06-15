@@ -225,5 +225,20 @@ void CactusBlock::onEntityCollision(const BlockState& state, IWorld& world, cons
     livingEntity->hurt(damageSource, 1.0f);
 }
 
+// ========== IPlantable 接口 ==========
+
+PlantType CactusBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return PlantType::Desert;
+}
+
+const BlockState& CactusBlock::getPlant(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    return defaultState();
+}
+
 } // namespace blocks
 } // namespace mc

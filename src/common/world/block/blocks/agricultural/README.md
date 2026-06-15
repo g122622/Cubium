@@ -45,12 +45,15 @@ Block
 
 ## 内部模块关系
 
-- **BushBlock** 是所有植物类方块的基类，提供放置检测和形状管理
-- **CropBlock** 继承 BushBlock 和 IGrowable，实现农作物通用生长逻辑（AGE_0_7）
-- **StemBlock** 继承 BushBlock 和 IGrowable，实现茎类作物生长和果实在成逻辑
+- **BushBlock** 是所有植物类方块的基类，实现 IPlantable 接口，提供放置检测和形状管理
+  - BushBlock::canSustain() 委托给下方方块的 canSustainPlant() 方法，通过 PlantType 判断土壤兼容性
+  - BushBlock 默认返回 PlantType::Plains，子类可重写返回其他类型
+- **CropBlock** 继承 BushBlock 和 IGrowable，重写 getPlantType() 返回 PlantType::Crop，实现农作物通用生长逻辑（AGE_0_7）
+- **StemBlock** 继承 BushBlock 和 IGrowable，重写 getPlantType() 返回 PlantType::Crop，实现茎类作物生长和果实在成逻辑
 - **StemGrownBlock** 是果实方块的基类，通过 `getStem()` 和 `getAttachedStem()` 关联茎方块
 - **AttachedStemBlock** 在果实生成后替换普通茎，指向果实方向
-- **FarmlandBlock** 独立实现耕地湿润逻辑，被 CropBlock 的 `canSustain()` 依赖
+- **FarmlandBlock** 独立实现耕地湿润逻辑，重写 canSustainPlant() 接受 PlantType::Crop 和 PlantType::Plains
+  - hasCrops() 使用 BlockTags::MAINTAINS_FARMLAND 标签检测上方是否有作物
 - **CocoaBlock** 继承 HorizontalBlock 和 IGrowable，实现丛林原木侧面附着生长
 
 ## 上下游外部依赖关系
@@ -128,4 +131,18 @@ Block
 
 **问题**：农作物只能种植在耕地上，但 `BushBlock::canSustain()` 默认返回 false，导致所有作物无法放置。
 
-**解决方案**：`CropBlock::canSustain()` 必须重写，检查下方是否为耕地（FarmlandBlock 或 BlockTags::MAINTAIN_FARMLAND）。
+**解决方案**：`CropBlock::canSustain()` 重写返回 PlantType::Crop，BushBlock::canSustain() 委托给下方方块的 canSustainPlant()，FarmlandBlock::canSustainPlant() 接受 Crop 类型。
+
+### 9. IPlantable / PlantType 集成
+
+**架构说明**：所有植物方块通过 IPlantable 接口报告其 PlantType，土壤方块通过 canSustainPlant() 方法判断是否支撑该植物类型。
+
+| PlantType | 含义 | 对应植物 | 可种植土壤 |
+|-----------|------|---------|-----------|
+| Plains | 平原植物 | 花草、树苗等 BushBlock 子类 | DIRT 标签 + FARMLAND |
+| Crop | 农作物 | 小麦、胡萝卜、马铃薯等 | FARMLAND |
+| Desert | 沙漠植物 | 仙人掌 | SAND 标签 |
+| Beach | 海滩植物 | 甘蔗、竹子 | DIRT 标签 + SAND 标签 |
+| Cave | 洞穴植物 | 蘑菇 | MYCELIUM + PODZOL |
+| Water | 水生植物 | 睡莲、海草、海带 | 由植物自身 isValidPosition 处理 |
+| Nether | 下界植物 | 地狱疣、菌索 | CRIMSON_NYLIUM + WARPED_NYLIUM + MYCELIUM + SOUL_SOIL + DIRT 标签 + FARMLAND |

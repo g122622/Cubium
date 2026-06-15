@@ -26,6 +26,7 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
+#include "../../PlantType.hpp"
 
 namespace mc {
 namespace blocks {
@@ -39,7 +40,7 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.MangrovePropaguleBlock
  */
-class MangrovePropaguleBlock : public Block, public IWaterLoggable {
+class MangrovePropaguleBlock : public Block, public IWaterLoggable, public IPlantable {
 public:
     explicit MangrovePropaguleBlock(const BlockProperties& properties);
 
@@ -77,6 +78,11 @@ public:
      * @brief 是否响应随机刻 - 悬挂且未完全长大时
      */
     [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+
+    // ========== IPlantable 接口 ==========
+
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] const BlockState& getPlant(IBlockReader& world, const BlockPos& pos) const override;
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;

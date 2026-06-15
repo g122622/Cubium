@@ -189,5 +189,18 @@ const CollisionShape& SugarCaneBlock::getCollisionShape(const BlockState& state)
     return emptyShape;
 }
 
+PlantType SugarCaneBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return PlantType::Beach;
+}
+
+const BlockState& SugarCaneBlock::getPlant(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    return defaultState();
+}
+
 } // namespace blocks
 } // namespace mc

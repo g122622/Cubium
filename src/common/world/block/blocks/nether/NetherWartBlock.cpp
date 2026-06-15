@@ -115,5 +115,18 @@ const CollisionShape& NetherWartBlock::getCollisionShape(const BlockState& state
     return emptyShape;
 }
 
+PlantType NetherWartBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return PlantType::Nether;
+}
+
+const BlockState& NetherWartBlock::getPlant(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    return defaultState();
+}
+
 } // namespace blocks
 } // namespace mc

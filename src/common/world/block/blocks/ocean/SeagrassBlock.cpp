@@ -27,6 +27,7 @@
 #include "../../../../util/math/random/IRandom.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../block/PlantType.hpp"
 #include "../../../block/WaterLoggableHelpers.hpp"
 #include "../../../fluid/Fluid.hpp"
 #include "../../../fluid/FluidRegistry.hpp"
@@ -184,6 +185,22 @@ const fluid::FluidState* SeagrassBlock::getFluidState(const BlockState& state) c
         return &waterFluid->defaultState();
     }
     return nullptr;
+}
+
+// ========== IPlantable 接口实现 ==========
+
+PlantType SeagrassBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return PlantType::Water;
+}
+
+const BlockState& SeagrassBlock::getPlant(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return defaultState();
 }
 
 } // namespace blocks

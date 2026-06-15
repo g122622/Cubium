@@ -27,6 +27,7 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
+#include "common/world/block/PlantType.hpp"
 #include <array>
 
 namespace mc {
@@ -45,10 +46,8 @@ namespace blocks {
  *
  * 状态属性：
  * - AGE_0_15: 年龄（用于纹理）
- *
- * 参考: net.minecraft.block.CactusBlock
  */
-class CactusBlock : public Block {
+class CactusBlock : public Block, public IPlantable {
 public:
     /**
      * @brief 构造函数
@@ -95,6 +94,11 @@ public:
     // ========== 实体交互 ==========
 
     void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
+
+    // ========== IPlantable 接口 ==========
+
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] const BlockState& getPlant(IBlockReader& world, const BlockPos& pos) const override;
 
     // ========== 渲染属性 ==========
 

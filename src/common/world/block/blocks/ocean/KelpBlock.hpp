@@ -26,6 +26,7 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/PlantType.hpp"
 
 namespace mc {
 
@@ -53,7 +54,7 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.KelpBlock
  */
-class KelpBlock : public Block {
+class KelpBlock : public Block, public IPlantable {
 public:
     explicit KelpBlock(const BlockProperties& properties);
     ~KelpBlock() override = default;
@@ -105,6 +106,11 @@ public:
         MC_UNUSED(state);
         return false;
     }
+
+    // ========== IPlantable 接口 ==========
+
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] const BlockState& getPlant(IBlockReader& world, const BlockPos& pos) const override;
 
 private:
     CollisionShape m_shape;

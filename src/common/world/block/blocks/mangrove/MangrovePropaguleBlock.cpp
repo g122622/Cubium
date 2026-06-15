@@ -130,5 +130,23 @@ void MangrovePropaguleBlock::randomTick(IWorld& world, const BlockPos& pos, Bloc
     }
 }
 
+// ========== IPlantable 接口实现 ==========
+
+PlantType MangrovePropaguleBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // MC 1.21.11: MangrovePropaguleBlock 继承 BushBlock
+    // 红树胎生苗可种植在泥土类方块、砂土、灰化土、苔藓块、耕地和黏土上
+    // 使用 PlantType::Beach 因为种植面包含泥土和沙子
+    return PlantType::Beach;
+}
+
+const BlockState& MangrovePropaguleBlock::getPlant(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    return defaultState();
+}
+
 } // namespace blocks
 } // namespace mc

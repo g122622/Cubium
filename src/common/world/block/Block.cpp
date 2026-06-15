@@ -569,7 +569,9 @@ bool Block::canSustainPlant(
 
         case PlantType::Cave:
             // 洞穴植物（蘑菇）：可在菌丝和灰化土上种植
-            // 注意：蘑菇的光照检查由自身完成
+            // TODO: MC 原版中蘑菇在低光照下也可放置在 DIRT 标签方块上，
+            // 此处仅检查默认土壤支撑，光照检查由 MushroomBlock 自身在
+            // isValidPosition 中完成（光照 <= 12 时允许放置）
             return (VanillaBlocks::MYCELIUM != nullptr && state.is(VanillaBlocks::MYCELIUM)) ||
                 (VanillaBlocks::PODZOL != nullptr && state.is(VanillaBlocks::PODZOL));
 

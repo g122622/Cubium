@@ -27,6 +27,7 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../IGrowable.hpp"
+#include "../../PlantType.hpp"
 
 namespace mc {
 
@@ -52,7 +53,7 @@ namespace blocks {
  * - 可用骨粉催熟变成高海草
  * - 实现 IGrowable 接口
  */
-class SeagrassBlock : public Block, public IGrowable {
+class SeagrassBlock : public Block, public IGrowable, public IPlantable {
 public:
     explicit SeagrassBlock(const BlockProperties& properties);
     ~SeagrassBlock() override = default;
@@ -118,6 +119,11 @@ public:
      * @param state 当前方块状态
      */
     void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
+
+    // ========== IPlantable 接口 ==========
+
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] const BlockState& getPlant(IBlockReader& world, const BlockPos& pos) const override;
 
     // ========== 流体状态 ==========
 

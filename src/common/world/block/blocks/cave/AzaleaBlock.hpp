@@ -24,6 +24,7 @@
 
 #include "../../Block.hpp"
 #include "../../IGrowable.hpp"
+#include "../../PlantType.hpp"
 
 namespace mc {
 namespace blocks {
@@ -38,7 +39,7 @@ namespace blocks {
  *
  * 参考: net.minecraft.world.level.block.AzaleaBlock (MC 1.21.11)
  */
-class AzaleaBlock : public Block, public IGrowable {
+class AzaleaBlock : public Block, public IGrowable, public IPlantable {
 public:
     explicit AzaleaBlock(const BlockProperties& properties);
 
@@ -76,6 +77,11 @@ public:
      * @brief 生长为杜鹃树
      */
     void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
+
+    // ========== IPlantable 接口 ==========
+
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] const BlockState& getPlant(IBlockReader& world, const BlockPos& pos) const override;
 
 protected:
     /**

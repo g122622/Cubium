@@ -36,14 +36,15 @@ Block (基类)
 │   ├── FlowerBlock
 │   ├── SaplingBlock
 │   └── LilyPadBlock
-├── MushroomBlock        # 独立实现
+├── MushroomBlock        # 独立实现，IPlantable(Cave)
 ├── HugeMushroomBlock    # 巨型蘑菇组成方块
-├── CactusBlock          # 独立实现
-├── SugarCaneBlock       # 独立实现
-├── VineBlock            # 独立实现
+├── CactusBlock          # 独立实现，IPlantable(Desert)
+├── SugarCaneBlock       # 独立实现，IPlantable(Beach)
+├── VineBlock            # 独立实现（非 IPlantable，墙面附着）
+├── LilyPadBlock         # 继承 BushBlock，IPlantable(Water)
 ├── SweetBerryBushBlock  # 继承 BushBlock，实现 IGrowable
-├── BambooBlock          # 继承 Block，实现 IGrowable
-└── BambooSaplingBlock   # 继承 Block，实现 IGrowable
+├── BambooBlock          # 继承 Block，实现 IGrowable + IPlantable(Beach)
+└── BambooSaplingBlock   # 继承 Block，实现 IGrowable + IPlantable(Beach)
 ```
 
 ## 上下游依赖关系
@@ -54,6 +55,7 @@ Block (基类)
 |------|------|
 | `world/block/Block` | 方块基类 |
 | `world/block/IGrowable` | 可生长接口（BambooBlock、SweetBerryBushBlock） |
+| `world/block/PlantType` | 植物类型接口（IPlantable，用于土壤兼容性检测） |
 | `world/block/blocks/agricultural/BushBlock` | 植物基类（来自 agricultural 目录） |
 | `world/block/Material` | 材质系统 |
 | `world/IWorld` | 世界接口 |

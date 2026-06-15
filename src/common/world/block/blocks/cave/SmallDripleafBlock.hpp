@@ -26,6 +26,7 @@
 #include "../../Block.hpp"
 #include "../../IGrowable.hpp"
 #include "../../IWaterLoggable.hpp"
+#include "../../PlantType.hpp"
 
 namespace mc {
 namespace blocks {
@@ -39,7 +40,7 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.SmallDripleafBlock
  */
-class SmallDripleafBlock : public Block, public IWaterLoggable, public IGrowable {
+class SmallDripleafBlock : public Block, public IWaterLoggable, public IGrowable, public IPlantable {
 public:
     explicit SmallDripleafBlock(const BlockProperties& properties);
 
@@ -91,6 +92,11 @@ public:
      * 移除小滴叶，在原位置放置1-5格大滴叶茎+1格大滴叶叶片
      */
     void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
+
+    // ========== IPlantable 接口 ==========
+
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] const BlockState& getPlant(IBlockReader& world, const BlockPos& pos) const override;
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;

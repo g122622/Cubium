@@ -30,6 +30,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/PlantType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 
@@ -300,6 +301,22 @@ void BambooBlock::_growBamboo(
     world.setBlockState(abovePos, &newState, 3);
 }
 
+// ========== IPlantable 接口实现 ==========
+
+PlantType BambooBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return PlantType::Beach;
+}
+
+const BlockState& BambooBlock::getPlant(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return defaultState();
+}
+
 // ============================================================================
 // BambooSaplingBlock 实现
 // ============================================================================
@@ -421,6 +438,22 @@ void BambooSaplingBlock::_growBamboo(IWorld& world, const BlockPos& pos)
         const BlockState& bambooState = VanillaBlocks::BAMBOO->defaultState();
         world.setBlockState(pos, &bambooState, 3);
     }
+}
+
+// ========== IPlantable 接口实现 ==========
+
+PlantType BambooSaplingBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return PlantType::Beach;
+}
+
+const BlockState& BambooSaplingBlock::getPlant(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return defaultState();
 }
 
 } // namespace blocks

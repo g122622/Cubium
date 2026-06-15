@@ -9,7 +9,7 @@ cave/
 ├── README.md                          # 本文档
 ├── AmethystBlock.hpp/.cpp             # 紫水晶方块（装饰性）
 ├── AmethystClusterBlock.hpp/.cpp      # 紫水晶簇（可生长的晶体）
-├── AzaleaBlock.hpp/.cpp              # 杜鹃花方块（地表装饰，下方需要有根土）
+├── AzaleaBlock.hpp/.cpp              # 杜鹃花方块（地表装饰，IPlantable(Plains)）
 ├── BigDripleafBlock.hpp/.cpp         # 大滴水叶（可倾斜的平台植物）
 ├── BigDripleafStemBlock.hpp/.cpp     # 大滴水叶茎
 ├── BuddingAmethystBlock.hpp/.cpp     # 芽生紫水晶方块（周期性生成紫水晶簇）
@@ -22,7 +22,7 @@ cave/
 ├── PointedDripstoneBlock.hpp/.cpp    # 滴水石锥（钟乳石/石笋）
 ├── PowderSnowBlock.hpp/.cpp          # 细雪方块（可陷入）
 ├── RootedDirtBlock.hpp/.cpp          # 根土方块（杜鹃花下方）
-├── SmallDripleafBlock.hpp/.cpp       # 小滴水叶
+├── SmallDripleafBlock.hpp/.cpp       # 小滴水叶（IPlantable(Water)）
 └── SporeBlossomBlock.hpp/.cpp        # 孢子花方块（顶面悬挂，粒子效果）
 ```
 

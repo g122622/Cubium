@@ -7,9 +7,9 @@
 ```
 ocean/
 ├── SeaPickleBlock.hpp/cpp    # 海泡菜方块（可堆叠1-4个，水下发光）
-├── KelpBlock.hpp/cpp         # 海带方块（可生长的水下植物，AGE_0_25）
-├── SeagrassBlock.hpp/cpp     # 海草方块（单格水下植物，实现IGrowable接口）
-├── TallSeagrassBlock.hpp/cpp # 高海草方块（双格水下植物，HALF属性）
+├── KelpBlock.hpp/cpp         # 海带方块（可生长的水下植物，AGE_0_25，IPlantable(Water)）
+├── SeagrassBlock.hpp/cpp     # 海草方块（单格水下植物，实现IGrowable+IPlantable(Water)接口）
+├── TallSeagrassBlock.hpp/cpp # 高海草方块（双格水下植物，HALF属性，IPlantable(Water)）
 ├── BubbleColumnBlock.hpp/cpp # 气泡柱方块（推动实体，DRAG属性）
 ├── DriedKelpBlock.hpp/cpp    # 干海带块（装饰性方块，可作为燃料）
 └── ConduitBlock.hpp/cpp      # 潮涌核心（水下信标，需要框架激活）

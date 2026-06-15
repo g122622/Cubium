@@ -26,6 +26,7 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../IWorld.hpp"
 #include "../../BlockRegistry.hpp"
+#include "../../PlantType.hpp"
 #include "../../WaterLoggableHelpers.hpp"
 
 namespace mc {
@@ -149,6 +150,22 @@ const CollisionShape& TallSeagrassBlock::getCollisionShape(const BlockState& sta
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
+}
+
+// ========== IPlantable 接口实现 ==========
+
+PlantType TallSeagrassBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return PlantType::Water;
+}
+
+const BlockState& TallSeagrassBlock::getPlant(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return defaultState();
 }
 
 } // namespace blocks

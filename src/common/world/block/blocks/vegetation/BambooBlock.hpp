@@ -27,6 +27,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/IGrowable.hpp"
+#include "common/world/block/PlantType.hpp"
 #include <array>
 
 namespace mc {
@@ -46,7 +47,7 @@ inline constexpr i32 BAMBOO_MAX_HEIGHT = 16;
  * 高大的竹子植物，可以生长到16格高。
  * 使用 AGE、BAMBOO_LEAVES 和 STAGE 属性。
  */
-class BambooBlock : public Block, public IGrowable {
+class BambooBlock : public Block, public IGrowable, public IPlantable {
 public:
     /**
      * @brief 构造函数
@@ -103,6 +104,11 @@ public:
 
     void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 
+    // ========== IPlantable 接口 ==========
+
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] const BlockState& getPlant(IBlockReader& world, const BlockPos& pos) const override;
+
     // ========== 形状 ==========
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const noexcept override;
@@ -152,7 +158,7 @@ private:
  *
  * 竹子的幼苗形态，可以生长成竹子。
  */
-class BambooSaplingBlock : public Block, public IGrowable {
+class BambooSaplingBlock : public Block, public IGrowable, public IPlantable {
 public:
     /**
      * @brief 构造函数
@@ -189,6 +195,11 @@ public:
         IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
 
     void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
+
+    // ========== IPlantable 接口 ==========
+
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] const BlockState& getPlant(IBlockReader& world, const BlockPos& pos) const override;
 
     // ========== 形状 ==========
 
