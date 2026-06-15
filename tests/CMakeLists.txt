@@ -217,6 +217,8 @@ add_executable(mc_tests
     common/entity/entities/vehicle/MinecartDropItemTest.cpp
     # 船实体 getBoatItem() 和 dropItem() 测试
     common/entity/entities/vehicle/BoatEntityDropItemTest.cpp
+    # 实体掉落 DO_ENTITY_DROPS 游戏规则测试
+    common/entity/entities/EntityDropGameRuleTest.cpp
     # BoatItem 船物品测试
     common/item/vehicle/BoatItemTest.cpp
     # 成就系统测试

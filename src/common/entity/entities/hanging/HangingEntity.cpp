@@ -201,7 +201,7 @@ void PaintingEntity::dropItem()
     }
 
     // 检查游戏规则 doEntityDrops：当该规则为 false 时，画被破坏不产生掉落物品
-    // 对齐 MC 原版 Painting.dropItem() 行为
+    // 参考 Painting.dropItem() 中的 ENTITY_DROPS 检查
     if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
         return;
     }
@@ -264,17 +264,27 @@ void ItemFrameEntity::tick()
 
 void ItemFrameEntity::dropItem()
 {
-    // 掉落展示框内的物品
-    if (!m_displayedItem.isEmpty() && m_world != nullptr) {
-        // 检查游戏规则 doEntityDrops：当该规则为 false 时，展示框内容物不掉落
-        // 对齐 MC 原版 ItemFrame.dropItem() 行为
-        if (m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
-            // 生成物品实体
+    // 检查游戏规则 doEntityDrops
+    // 参考 ItemFrame.dropItem() 中的 ENTITY_DROPS 检查
+    // 当 doEntityDrops 为 false 时不掉落任何物品，当为 true 时掉落物品展示框和内含物品
+    if (m_world != nullptr && m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+        // 掉落物品展示框本身
+        if (Items::ITEM_FRAME != nullptr) {
+            ItemStack frameStack(*Items::ITEM_FRAME, 1);
+            math::Random& rng = m_world->getRandom();
+            ItemDropHelper::spawnItemEntity(
+                m_world, frameStack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
+        }
+
+        // 掉落展示框内的物品
+        if (!m_displayedItem.isEmpty()) {
             math::Random& rng = m_world->getRandom();
             ItemDropHelper::spawnItemEntity(m_world, m_displayedItem, x(), y(), z(), rng);
         }
-        m_displayedItem = ItemStack();
     }
+
+    // 无论 doEntityDrops 是否为 true，都清空展示物品
+    m_displayedItem = ItemStack();
 }
 
 void ItemFrameEntity::setDisplayedItem(const ItemStack& stack)
@@ -373,7 +383,7 @@ void LeashKnotEntity::dropItem()
     }
 
     // 检查游戏规则 doEntityDrops：当该规则为 false 时，拴绳结被破坏不产生掉落物品
-    // 对齐 MC 原版 Leashable.tickLeash() 中 doEntityDrops 控制的 dropLeash/removeLeash 行为
+    // 参考 Leashable.tickLeash() 中 doEntityDrops 控制的 dropLeash/removeLeash 逻辑
     if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
         return;
     }

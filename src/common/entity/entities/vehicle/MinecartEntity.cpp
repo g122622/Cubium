@@ -862,7 +862,7 @@ void AbstractMinecartEntity::dropItem(DamageSource* source)
     }
 
     // 检查游戏规则 doEntityDrops：当该规则为 false 时，矿车被摧毁不产生掉落物品
-    // 对齐 MC 原版 VehicleEntity.destroy() 行为
+    // 参考 VehicleEntity.destroy() 中的 ENTITY_DROPS 检查
     if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
         remove();
         return;
@@ -1060,7 +1060,7 @@ void ChestMinecartEntity::dropItem(DamageSource* source)
     }
 
     // 容器内容物掉落也受 doEntityDrops 游戏规则控制
-    // 对齐 MC 原版 ContainerEntity.chestVehicleDestroyed() 行为
+    // 参考 ContainerEntity.chestVehicleDestroyed() 中的 ENTITY_DROPS 检查
     bool doEntityDrops = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS);
 
     if (doEntityDrops && m_inventory) {
@@ -1641,6 +1641,37 @@ void HopperMinecartEntity::clearInventory()
 IInventory* HopperMinecartEntity::getInventory()
 {
     return m_inventory.get();
+}
+
+void HopperMinecartEntity::dropItem(DamageSource* source)
+{
+    MC_UNUSED(source);
+    // 先掉落库存内容，再掉落矿车物品
+    IWorld* worldPtr = world();
+    if (!worldPtr || worldPtr->isClientSide()) {
+        remove();
+        return;
+    }
+
+    // 容器内容物掉落受 doEntityDrops 游戏规则控制
+    // 参考 ContainerEntity.chestVehicleDestroyed() 中的 ENTITY_DROPS 检查
+    bool doEntityDrops = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS);
+
+    if (doEntityDrops && m_inventory) {
+        // 掉落所有库存物品
+        math::Random& rng = worldPtr->getRandom();
+        for (i32 i = 0; i < INVENTORY_SIZE; ++i) {
+            ItemStack stack = m_inventory->getItem(i);
+            if (!stack.isEmpty()) {
+                // 使用 ItemDropHelper 在矿车位置生成物品实体
+                ItemDropHelper::spawnItemEntity(
+                    worldPtr, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
+            }
+        }
+    }
+
+    // 调用父类方法掉落矿车物品（父类内部也会检查 doEntityDrops）
+    AbstractMinecartEntity::dropItem(source);
 }
 
 i32 HopperMinecartEntity::getComparatorOutput() const

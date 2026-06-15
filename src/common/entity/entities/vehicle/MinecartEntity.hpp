@@ -729,6 +729,14 @@ public:
     // ========== Entity 接口重写 ==========
 
     /**
+     * @brief 漏斗矿车被摧毁时掉落物品
+     *
+     * 掉落容器内容物（受 doEntityDrops 游戏规则控制），
+     * 然后调用父类方法掉落矿车物品（同样受 doEntityDrops 控制）。
+     */
+    void dropItem(DamageSource* source = nullptr) override;
+
+    /**
      * @brief 获取比较器输出信号强度
      *
      * 基于库存填充率计算信号强度（0-15）。
