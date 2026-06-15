@@ -709,6 +709,7 @@ void ResourceManager::_computeBlockAppearances()
                         // 保留首层纹理用于兼容旧逻辑
                         if (!appearance.faceTextures.count(dirStr)) {
                             appearance.faceTextures[dirStr] = *region;
+                            appearance.faceTextureLocations[dirStr] = fullTexLoc;
                         }
 
                         // 收集全部层，支持草方块侧面 overlay 等多层模型
@@ -726,6 +727,7 @@ void ResourceManager::_computeBlockAppearances()
                 const TextureRegion* particleRegion = _findTextureRegion(fullParticleTexLoc);
                 if (particleRegion) {
                     appearance.particleTexture = *particleRegion;
+                    appearance.particleTextureLocation = fullParticleTexLoc;
                     appearance.hasParticleTexture = true;
                 }
             }

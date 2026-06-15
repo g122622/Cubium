@@ -83,9 +83,10 @@ public:
     /**
      * @brief 获取纹理位置
      *
-     * 对于 TERRAIN_SHEET 类型粒子，此方法返回的路径用于
-     * 在方块纹理图集中查找 UV 坐标。
-     * 实际渲染使用 buildVertices 中预计算的 m_textureRegion。
+     * 优先返回方块模型中 textures.particle 指定的纹理路径，
+     * 若无粒子纹理则返回随机选中的面纹理路径，
+     * 若均不可用则返回默认石头纹理路径。
+     * 对于 TERRAIN_SHEET 类型粒子，实际渲染使用 buildVertices 中预计算的 m_textureRegion。
      */
     [[nodiscard]] ResourceLocation getTextureLocation() const override;
 

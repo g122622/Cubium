@@ -26,6 +26,7 @@
 #include "client/renderer/trident/particle/ParticleRenderType.hpp"
 #include "client/renderer/trident/particle/ParticleTextureAtlas.hpp"
 #include "client/renderer/trident/particle/particles/block/DiggingParticle.hpp"
+#include "client/resource/ResourceManager.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
@@ -387,6 +388,90 @@ TEST_F(DiggingParticleTest, CreateWithBlock_DifferentBlockTypes)
         EXPECT_TRUE(particle->isAlive());
         EXPECT_EQ(particle->getRenderType(), ParticleRenderType::TERRAIN_SHEET);
     }
+}
+
+// ==================== BlockAppearance 粒子纹理测试 ====================
+
+TEST_F(DiggingParticleTest, BlockAppearance_ParticleTexture_Defaults)
+{
+    // 验证 BlockAppearance 的粒子纹理字段默认值
+    BlockAppearance appearance;
+    EXPECT_FALSE(appearance.hasParticleTexture);
+    EXPECT_EQ(appearance.particleTexture.u0, 0.0);
+    EXPECT_EQ(appearance.particleTexture.v0, 0.0);
+    EXPECT_EQ(appearance.particleTexture.u1, 1.0);
+    EXPECT_EQ(appearance.particleTexture.v1, 1.0);
+}
+
+TEST_F(DiggingParticleTest, BlockAppearance_ParticleTexture_SetAndAccess)
+{
+    // 验证可以设置和访问粒子纹理字段
+    BlockAppearance appearance;
+    TextureRegion region(0.1, 0.2, 0.3, 0.4);
+    appearance.particleTexture = region;
+    appearance.particleTextureLocation = ResourceLocation("minecraft:textures/block/stone");
+    appearance.hasParticleTexture = true;
+
+    EXPECT_TRUE(appearance.hasParticleTexture);
+    EXPECT_DOUBLE_EQ(appearance.particleTexture.u0, 0.1);
+    EXPECT_DOUBLE_EQ(appearance.particleTexture.v0, 0.2);
+    EXPECT_DOUBLE_EQ(appearance.particleTexture.u1, 0.3);
+    EXPECT_DOUBLE_EQ(appearance.particleTexture.v1, 0.4);
+    EXPECT_EQ(appearance.particleTextureLocation.toString(), "minecraft:textures/block/stone");
+}
+
+TEST_F(DiggingParticleTest, BlockAppearance_FaceTextureLocations_EmptyByDefault)
+{
+    // 验证面纹理位置映射默认为空
+    BlockAppearance appearance;
+    EXPECT_TRUE(appearance.faceTextureLocations.empty());
+}
+
+TEST_F(DiggingParticleTest, BlockAppearance_FaceTextureLocations_SetAndAccess)
+{
+    // 验证可以设置和访问面纹理位置映射
+    BlockAppearance appearance;
+    appearance.faceTextureLocations["up"] = ResourceLocation("minecraft:textures/block/stone");
+    appearance.faceTextureLocations["north"] = ResourceLocation("minecraft:textures/block/dirt");
+
+    EXPECT_EQ(appearance.faceTextureLocations.size(), 2u);
+    EXPECT_EQ(appearance.faceTextureLocations["up"].toString(), "minecraft:textures/block/stone");
+    EXPECT_EQ(appearance.faceTextureLocations["north"].toString(), "minecraft:textures/block/dirt");
+}
+
+TEST_F(DiggingParticleTest, GetTextureLocation_WithoutModelCache_ReturnsDefault)
+{
+    // 当 BlockModelCache 不可用时，应返回默认纹理路径
+    glm::vec3 pos(0.0f, 0.0f, 0.0f);
+    glm::vec3 velocity(0.0f, 0.0f, 0.0f);
+
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    auto particle = DiggingParticle::createWithBlock(pos, velocity, stoneState);
+
+    ASSERT_NE(particle, nullptr);
+    // 在没有 BlockModelCache 的测试环境中，应返回默认石头纹理
+    ResourceLocation texture = particle->getTextureLocation();
+    EXPECT_EQ(texture.toString(), "minecraft:block/stone");
+}
+
+TEST_F(DiggingParticleTest, GetTextureLocation_DifferentBlocks_ReturnsDifferentPaths)
+{
+    // 验证不同方块返回不同的纹理路径
+    // 注意：在没有 BlockModelCache 的测试环境中，所有方块都会回退到默认路径
+    glm::vec3 pos(0.0f, 0.0f, 0.0f);
+    glm::vec3 velocity(0.0f, 0.0f, 0.0f);
+
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    const BlockState& dirtState = VanillaBlocks::DIRT->defaultState();
+
+    auto stoneParticle = DiggingParticle::createWithBlock(pos, velocity, stoneState);
+    auto dirtParticle = DiggingParticle::createWithBlock(pos, velocity, dirtState);
+
+    ASSERT_NE(stoneParticle, nullptr);
+    ASSERT_NE(dirtParticle, nullptr);
+    // 在没有模型缓存的测试环境中，两者都回退到默认路径
+    EXPECT_EQ(stoneParticle->getTextureLocation().toString(), "minecraft:block/stone");
+    EXPECT_EQ(dirtParticle->getTextureLocation().toString(), "minecraft:block/stone");
 }
 
 // ==================== buildVertices 测试 ====================

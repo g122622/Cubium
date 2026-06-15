@@ -236,7 +236,17 @@ void BlockModelCache::_createMissingAppearance()
 
     // 缺失模型的粒子纹理与面纹理一致
     m_missingAppearance->particleTexture = missingRegion;
+    m_missingAppearance->particleTextureLocation = ResourceLocation("minecraft:textures/block/missing");
     m_missingAppearance->hasParticleTexture = true;
+
+    // 缺失模型的各面纹理资源位置
+    ResourceLocation missingLoc("minecraft:textures/block/missing");
+    m_missingAppearance->faceTextureLocations["down"] = missingLoc;
+    m_missingAppearance->faceTextureLocations["up"] = missingLoc;
+    m_missingAppearance->faceTextureLocations["north"] = missingLoc;
+    m_missingAppearance->faceTextureLocations["south"] = missingLoc;
+    m_missingAppearance->faceTextureLocations["west"] = missingLoc;
+    m_missingAppearance->faceTextureLocations["east"] = missingLoc;
 }
 
 } // namespace mc
