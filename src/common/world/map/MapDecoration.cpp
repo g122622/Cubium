@@ -105,6 +105,163 @@ DecorationType decorationTypeByIcon(u8 icon) noexcept
     return static_cast<DecorationType>(icon);
 }
 
+std::optional<DecorationType> decorationTypeFromString(const std::string& str) noexcept
+{
+    // 支持带命名空间和不带命名空间两种格式
+    std::string name = str;
+    constexpr std::string_view PREFIX = "minecraft:";
+    if (name.size() > PREFIX.size() && name.substr(0, PREFIX.size()) == PREFIX) {
+        name = name.substr(PREFIX.size());
+    }
+
+    // MC 1.16.5 风格的名称（蛇形命名）
+    if (name == "player") {
+        return DecorationType::PLAYER;
+    }
+    if (name == "frame") {
+        return DecorationType::FRAME;
+    }
+    if (name == "red_marker") {
+        return DecorationType::RED_MARKER;
+    }
+    if (name == "blue_marker") {
+        return DecorationType::BLUE_MARKER;
+    }
+    if (name == "target_x") {
+        return DecorationType::TARGET_X;
+    }
+    if (name == "target_point") {
+        return DecorationType::TARGET_POINT;
+    }
+    if (name == "player_off_map") {
+        return DecorationType::PLAYER_OFF_MAP;
+    }
+    if (name == "player_off_limits") {
+        return DecorationType::PLAYER_OFF_LIMITS;
+    }
+    if (name == "mansion") {
+        return DecorationType::MANSION;
+    }
+    if (name == "monument") {
+        return DecorationType::MONUMENT;
+    }
+    if (name == "banner_white") {
+        return DecorationType::BANNER_WHITE;
+    }
+    if (name == "banner_orange") {
+        return DecorationType::BANNER_ORANGE;
+    }
+    if (name == "banner_magenta") {
+        return DecorationType::BANNER_MAGENTA;
+    }
+    if (name == "banner_light_blue") {
+        return DecorationType::BANNER_LIGHT_BLUE;
+    }
+    if (name == "banner_yellow") {
+        return DecorationType::BANNER_YELLOW;
+    }
+    if (name == "banner_lime") {
+        return DecorationType::BANNER_LIME;
+    }
+    if (name == "banner_pink") {
+        return DecorationType::BANNER_PINK;
+    }
+    if (name == "banner_gray") {
+        return DecorationType::BANNER_GRAY;
+    }
+    if (name == "banner_light_gray") {
+        return DecorationType::BANNER_LIGHT_GRAY;
+    }
+    if (name == "banner_cyan") {
+        return DecorationType::BANNER_CYAN;
+    }
+    if (name == "banner_purple") {
+        return DecorationType::BANNER_PURPLE;
+    }
+    if (name == "banner_blue") {
+        return DecorationType::BANNER_BLUE;
+    }
+    if (name == "banner_brown") {
+        return DecorationType::BANNER_BROWN;
+    }
+    if (name == "banner_green") {
+        return DecorationType::BANNER_GREEN;
+    }
+    if (name == "banner_red") {
+        return DecorationType::BANNER_RED;
+    }
+    if (name == "banner_black") {
+        return DecorationType::BANNER_BLACK;
+    }
+    if (name == "red_x") {
+        return DecorationType::RED_X;
+    }
+
+    return std::nullopt;
+}
+
+const char* decorationTypeToString(DecorationType type) noexcept
+{
+    switch (type) {
+        case DecorationType::PLAYER:
+            return "player";
+        case DecorationType::FRAME:
+            return "frame";
+        case DecorationType::RED_MARKER:
+            return "red_marker";
+        case DecorationType::BLUE_MARKER:
+            return "blue_marker";
+        case DecorationType::TARGET_X:
+            return "target_x";
+        case DecorationType::TARGET_POINT:
+            return "target_point";
+        case DecorationType::PLAYER_OFF_MAP:
+            return "player_off_map";
+        case DecorationType::PLAYER_OFF_LIMITS:
+            return "player_off_limits";
+        case DecorationType::MANSION:
+            return "mansion";
+        case DecorationType::MONUMENT:
+            return "monument";
+        case DecorationType::BANNER_WHITE:
+            return "banner_white";
+        case DecorationType::BANNER_ORANGE:
+            return "banner_orange";
+        case DecorationType::BANNER_MAGENTA:
+            return "banner_magenta";
+        case DecorationType::BANNER_LIGHT_BLUE:
+            return "banner_light_blue";
+        case DecorationType::BANNER_YELLOW:
+            return "banner_yellow";
+        case DecorationType::BANNER_LIME:
+            return "banner_lime";
+        case DecorationType::BANNER_PINK:
+            return "banner_pink";
+        case DecorationType::BANNER_GRAY:
+            return "banner_gray";
+        case DecorationType::BANNER_LIGHT_GRAY:
+            return "banner_light_gray";
+        case DecorationType::BANNER_CYAN:
+            return "banner_cyan";
+        case DecorationType::BANNER_PURPLE:
+            return "banner_purple";
+        case DecorationType::BANNER_BLUE:
+            return "banner_blue";
+        case DecorationType::BANNER_BROWN:
+            return "banner_brown";
+        case DecorationType::BANNER_GREEN:
+            return "banner_green";
+        case DecorationType::BANNER_RED:
+            return "banner_red";
+        case DecorationType::BANNER_BLACK:
+            return "banner_black";
+        case DecorationType::RED_X:
+            return "red_x";
+        default:
+            return "player";
+    }
+}
+
 MapDecoration::MapDecoration(
     DecorationType type, i8 x, i8 y, u8 rotation, std::unique_ptr<text::ITextComponent> customName)
     : m_type(type)

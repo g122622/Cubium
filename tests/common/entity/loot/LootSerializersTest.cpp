@@ -575,12 +575,89 @@ TEST_F(LootSerializersTest, ParseFunction_CopyNbtUnsupported)
     EXPECT_FALSE(result.success());
 }
 
-TEST_F(LootSerializersTest, ParseFunction_ExplorationMapUnsupported)
+TEST_F(LootSerializersTest, ParseFunction_ExplorationMap)
 {
+    // 测试解析带有 destination 字段的 exploration_map 函数
     nlohmann::json json = {{"function", "minecraft:exploration_map"}, {"destination", "minecraft:mansion"}};
 
     auto result = LootSerializers::parseFunction(json);
-    EXPECT_FALSE(result.success());
+    ASSERT_TRUE(result.success());
+
+    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ(ExplorationMapFunction::Destination::Mansion, func->getDestination());
+    EXPECT_EQ(2, func->getZoom());                                                  // 默认值
+    EXPECT_EQ(50, func->getSearchRadius());                                         // 默认值
+    EXPECT_TRUE(func->shouldSkipKnownStructures());                                 // 默认值
+    EXPECT_FALSE(func->getDecoration().has_value());                                // 未指定 decoration
+    EXPECT_EQ(world::map::DecorationType::MANSION, func->getEffectiveDecoration()); // 从 destination 推导
+}
+
+TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_AllFields)
+{
+    // 测试解析所有字段的 exploration_map 函数
+    nlohmann::json json = {
+        {"function", "minecraft:exploration_map"},
+        {"destination", "minecraft:buried_treasure"},
+        {"decoration", "minecraft:red_x"},
+        {"zoom", 1},
+        {"search_radius", 100},
+        {"skip_existing_chunks", false},
+    };
+
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success());
+
+    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure, func->getDestination());
+    EXPECT_EQ(1, func->getZoom());
+    EXPECT_EQ(100, func->getSearchRadius());
+    EXPECT_FALSE(func->shouldSkipKnownStructures());
+    EXPECT_TRUE(func->getDecoration().has_value());
+    EXPECT_EQ(world::map::DecorationType::RED_X, func->getDecoration().value());
+    EXPECT_EQ(world::map::DecorationType::RED_X, func->getEffectiveDecoration());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_VanillaDatapack)
+{
+    // 测试解析原版数据包中实际使用的格式（与 shipwreck_map.json 等一致）
+    nlohmann::json json = {
+        {"function", "minecraft:exploration_map"},
+        {"decoration", "minecraft:red_x"},
+        {"skip_existing_chunks", false},
+        {"zoom", 1},
+    };
+
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success());
+
+    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure, func->getDestination()); // 默认值
+    EXPECT_EQ(1, func->getZoom());
+    EXPECT_EQ(50, func->getSearchRadius()); // 默认值
+    EXPECT_FALSE(func->shouldSkipKnownStructures());
+    EXPECT_TRUE(func->getDecoration().has_value());
+    EXPECT_EQ(world::map::DecorationType::RED_X, func->getDecoration().value());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_DecorationWithoutNamespace)
+{
+    // 测试不带命名空间前缀的 decoration 字段（MC 1.16.5 兼容格式）
+    nlohmann::json json = {
+        {"function", "minecraft:exploration_map"},
+        {"decoration", "monument"},
+    };
+
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success());
+
+    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_TRUE(func->getDecoration().has_value());
+    EXPECT_EQ(world::map::DecorationType::MONUMENT, func->getDecoration().value());
+    EXPECT_EQ(world::map::DecorationType::MONUMENT, func->getEffectiveDecoration());
 }
 
 // ============================================================================

@@ -1437,20 +1437,70 @@ TEST_F(LootTest, SetLootTableFunction_Clone)
 
 TEST_F(LootTest, ExplorationMapFunction_Creation)
 {
-    ExplorationMapFunction func(ExplorationMapFunction::Destination::Mansion);
+    ExplorationMapFunction func(ExplorationMapFunction::Destination::Mansion, std::nullopt, 2, 50, true);
     EXPECT_EQ("exploration_map", func.getType());
     EXPECT_EQ(ExplorationMapFunction::Destination::Mansion, func.getDestination());
+    EXPECT_EQ(2, func.getZoom());
+    EXPECT_EQ(50, func.getSearchRadius());
+    EXPECT_TRUE(func.shouldSkipKnownStructures());
+    EXPECT_FALSE(func.getDecoration().has_value());
 }
 
 TEST_F(LootTest, ExplorationMapFunction_AllDestinations)
 {
-    ExplorationMapFunction func1(ExplorationMapFunction::Destination::BuriedTreasure);
-    ExplorationMapFunction func2(ExplorationMapFunction::Destination::Mansion);
-    ExplorationMapFunction func3(ExplorationMapFunction::Destination::Monument);
+    ExplorationMapFunction func1(ExplorationMapFunction::Destination::BuriedTreasure, std::nullopt, 2, 50, true);
+    ExplorationMapFunction func2(ExplorationMapFunction::Destination::Mansion, std::nullopt, 2, 50, true);
+    ExplorationMapFunction func3(ExplorationMapFunction::Destination::Monument, std::nullopt, 2, 50, true);
 
     EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure, func1.getDestination());
     EXPECT_EQ(ExplorationMapFunction::Destination::Mansion, func2.getDestination());
     EXPECT_EQ(ExplorationMapFunction::Destination::Monument, func3.getDestination());
+}
+
+TEST_F(LootTest, ExplorationMapFunction_CustomDecoration)
+{
+    // 测试自定义装饰类型覆盖目标默认装饰
+    ExplorationMapFunction func(
+        ExplorationMapFunction::Destination::Mansion, world::map::DecorationType::RED_X, 1, 100, false);
+    EXPECT_EQ(ExplorationMapFunction::Destination::Mansion, func.getDestination());
+    EXPECT_TRUE(func.getDecoration().has_value());
+    EXPECT_EQ(world::map::DecorationType::RED_X, func.getDecoration().value());
+    EXPECT_EQ(world::map::DecorationType::RED_X, func.getEffectiveDecoration());
+    EXPECT_EQ(1, func.getZoom());
+    EXPECT_EQ(100, func.getSearchRadius());
+    EXPECT_FALSE(func.shouldSkipKnownStructures());
+}
+
+TEST_F(LootTest, ExplorationMapFunction_DefaultDecorationFromDestination)
+{
+    // 测试从 destination 推导默认装饰类型
+    ExplorationMapFunction mansionFunc(ExplorationMapFunction::Destination::Mansion, std::nullopt, 2, 50, true);
+    EXPECT_FALSE(mansionFunc.getDecoration().has_value());
+    EXPECT_EQ(world::map::DecorationType::MANSION, mansionFunc.getEffectiveDecoration());
+
+    ExplorationMapFunction monumentFunc(ExplorationMapFunction::Destination::Monument, std::nullopt, 2, 50, true);
+    EXPECT_EQ(world::map::DecorationType::MONUMENT, monumentFunc.getEffectiveDecoration());
+
+    ExplorationMapFunction treasureFunc(ExplorationMapFunction::Destination::BuriedTreasure, std::nullopt, 2, 50, true);
+    EXPECT_EQ(world::map::DecorationType::RED_X, treasureFunc.getEffectiveDecoration());
+}
+
+TEST_F(LootTest, ExplorationMapFunction_DestinationStringConversion)
+{
+    EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure,
+        ExplorationMapFunction::destinationFromString("minecraft:buried_treasure").value());
+    EXPECT_EQ(ExplorationMapFunction::Destination::Mansion,
+        ExplorationMapFunction::destinationFromString("minecraft:mansion").value());
+    EXPECT_EQ(ExplorationMapFunction::Destination::Monument,
+        ExplorationMapFunction::destinationFromString("minecraft:monument").value());
+    EXPECT_EQ(ExplorationMapFunction::Destination::Shipwreck,
+        ExplorationMapFunction::destinationFromString("minecraft:shipwreck").value());
+    EXPECT_EQ(ExplorationMapFunction::Destination::RuinedPortal,
+        ExplorationMapFunction::destinationFromString("minecraft:ruined_portal").value());
+    // 不带命名空间前缀
+    EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure,
+        ExplorationMapFunction::destinationFromString("buried_treasure").value());
+    EXPECT_FALSE(ExplorationMapFunction::destinationFromString("unknown").has_value());
 }
 
 TEST_F(LootTest, SetStewEffectFunction_Creation)

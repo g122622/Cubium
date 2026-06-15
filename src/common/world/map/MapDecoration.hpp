@@ -102,6 +102,22 @@ enum class DecorationType : u8 {
 [[nodiscard]] DecorationType decorationTypeByIcon(u8 icon) noexcept;
 
 /**
+ * @brief 根据字符串名称获取装饰类型
+ *
+ * 支持 MC 1.16.5 格式（如 "mansion"、"red_x"）和
+ * 1.21.11 格式（如 "minecraft:mansion"、"minecraft:red_x"）。
+ *
+ * @param str 装饰类型名称字符串
+ * @return 对应的装饰类型，无法识别时返回 nullopt
+ */
+[[nodiscard]] std::optional<DecorationType> decorationTypeFromString(const std::string& str) noexcept;
+
+/**
+ * @brief 将装饰类型转换为字符串名称（不含命名空间前缀）
+ */
+[[nodiscard]] const char* decorationTypeToString(DecorationType type) noexcept;
+
+/**
  * @brief 地图装饰
  *
  * 表示地图上的一个标记图标，包含类型、位置、旋转和可选的自定义名称。

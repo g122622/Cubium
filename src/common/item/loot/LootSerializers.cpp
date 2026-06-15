@@ -1266,10 +1266,50 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetLootTableFunctio
     return castToBase<SetLootTableFunction, LootFunction>(std::make_unique<SetLootTableFunction>(lootTableId, seed));
 }
 
-Result<std::unique_ptr<LootFunction>> LootSerializers::_parseExplorationMapFunction(const nlohmann::json& /*json*/)
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseExplorationMapFunction(const nlohmann::json& json)
 {
-    // TODO: 实现 exploration_map 函数解析
-    return Error(ErrorCode::Unsupported, "minecraft:exploration_map is not supported yet");
+    using world::map::DecorationType;
+
+    // 解析 destination（可选，默认 BuriedTreasure）
+    // MC 1.16.5 格式：结构特征资源位置字符串，如 "minecraft:buried_treasure"
+    ExplorationMapFunction::Destination destination = ExplorationMapFunction::Destination::BuriedTreasure;
+    if (json.contains("destination") && json["destination"].is_string()) {
+        auto parsed = ExplorationMapFunction::destinationFromString(json["destination"].get<std::string>());
+        if (parsed.has_value()) {
+            destination = parsed.value();
+        }
+    }
+
+    // 解析 decoration（可选，默认从 destination 推导）
+    // 支持 MC 1.16.5 格式（如 "mansion"、"red_x"）和 1.21.11 格式（如 "minecraft:red_x"）
+    std::optional<DecorationType> decoration;
+    if (json.contains("decoration") && json["decoration"].is_string()) {
+        auto parsed = world::map::decorationTypeFromString(json["decoration"].get<std::string>());
+        if (parsed.has_value()) {
+            decoration = parsed.value();
+        }
+    }
+
+    // 解析 zoom（可选，默认2）
+    i32 zoom = 2;
+    if (json.contains("zoom") && json["zoom"].is_number_integer()) {
+        zoom = json["zoom"].get<i32>();
+    }
+
+    // 解析 search_radius（可选，默认50区块）
+    i32 searchRadius = 50;
+    if (json.contains("search_radius") && json["search_radius"].is_number_integer()) {
+        searchRadius = json["search_radius"].get<i32>();
+    }
+
+    // 解析 skip_existing_chunks（可选，默认true）
+    bool skipKnownStructures = true;
+    if (json.contains("skip_existing_chunks") && json["skip_existing_chunks"].is_boolean()) {
+        skipKnownStructures = json["skip_existing_chunks"].get<bool>();
+    }
+
+    return castToBase<ExplorationMapFunction, LootFunction>(
+        std::make_unique<ExplorationMapFunction>(destination, decoration, zoom, searchRadius, skipKnownStructures));
 }
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetStewEffectFunction(const nlohmann::json& json)

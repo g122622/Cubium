@@ -131,7 +131,8 @@ std::unique_ptr<LootFunction> LootFunctionBuilder::setLootTable(const std::strin
 
 std::unique_ptr<LootFunction> LootFunctionBuilder::explorationMap()
 {
-    return std::make_unique<ExplorationMapFunction>();
+    return std::make_unique<ExplorationMapFunction>(
+        ExplorationMapFunction::Destination::BuriedTreasure, std::nullopt, 2, 50, true);
 }
 
 std::unique_ptr<LootFunction> LootFunctionBuilder::setStewEffect()
