@@ -449,6 +449,7 @@ add_executable(mc_tests
     common/entity/player/SpawnPointValidatorTest.cpp
     common/entity/player/CooldownTrackerTest.cpp
     common/entity/player/PlayerMessageTest.cpp
+    common/entity/player/PlayerPermissionTest.cpp
     common/entity/player/PlayerSleepTest.cpp
     entity/ProjectileHelperTest.cpp
     # ThrowableEntity 传送门处理测试（下界传送门、末地折跃门）

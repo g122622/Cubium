@@ -70,7 +70,11 @@ DispenserBlockEntity 提供 9 格物品存储和随机选择物品发射功能�
 
 ### 4. SignEntity 的 NBT 修改权限
 
-`onlyOpsCanSetNbt()` 返回 true，意味着告示牌的 NBT 数据只能由 OP 级玩家修改。点击事件中的 `RunCommand` 以权限级别 2（相当于 OP）执行。
+`onlyOpsCanSetNbt()` 返回 true，意味着告示牌的 NBT 数据只能由 OP 级玩家修改。点击事件中的 `RunCommand` 以玩家自身权限等级执行（上限为 2）。
+
+### 5. LecternEntity 的 NBT 修改权限
+
+`onlyOpsCanSetNbt()` 返回 true，讲台的 NBT 数据只能由 OP 级玩家修改（MC Java 中 Lectern 属于 `OP_ONLY_CUSTOM_DATA` 集合）。
 
 ### 5. EndGatewayEntity 的两套冷却时间
 

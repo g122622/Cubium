@@ -1673,6 +1673,8 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
             static_cast<i32>(m_opListManager->getLevel(player->uuid)),
             playerId,
             player->username);
+        // TODO: /op 和 /deop 命令执行后应通过 EntityStatusPacket::PermissionLevelChange (status byte 24+level)
+        // 通知客户端玩家权限等级变更，当前未实现该网络同步机制
         auto cmdResult = m_commandRegistry->execute(message, source);
         if (cmdResult.failed()) {
             spdlog::warn("Command '{}' failed for {}: {}", message, player->username, cmdResult.error().toString());

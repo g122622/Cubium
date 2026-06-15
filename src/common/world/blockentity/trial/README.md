@@ -253,3 +253,7 @@ VaultBlockEntity 的 `detectPlayers` 不过滤已奖励玩家（影响状态转�
 
 `findPlayerByUuid` 和 `findEntityByUuid` 通过遍历实体列表匹配 UUID。
 当实体数量较多时可能存在性能问题，后续可考虑在 EntityManager 中添加 UUID 索引。
+
+### 8. TrialSpawnerBlockEntity 的 NBT 修改权限
+
+`onlyOpsCanSetNbt()` 返回 true，试炼刷怪笼的 NBT 数据只能由 OP 级玩家修改（MC Java 中 TrialSpawner 属于 `OP_ONLY_CUSTOM_DATA` 集合）。

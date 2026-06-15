@@ -9,7 +9,7 @@ src/common/entity/entities/player/
 ├── ChatVisibility.hpp     # 聊天可见性枚举（全显示、仅系统、隐藏）
 ├── GameModeUtils.hpp      # 游戏模式能力映射工具
 ├── GameModeUtils.cpp      # 游戏模式能力映射实现
-├── Player.hpp             # 玩家实体声明，包含状态、移动和网络同步接口
+├── Player.hpp             # 玩家实体声明，包含状态、移动、权限等级和网络同步接口
 ├── Player.cpp             # 玩家实体实现，包含物理、脚步声、游泳声和序列化
 ├── PlayerModelPart.hpp    # 玩家皮肤部件位掩码（披风、夹克、袖子、裤腿、帽子）
 ├── SpawnLocationHelper.hpp # 重生点位置辅助工具
@@ -64,3 +64,5 @@ src/common/entity/entities/player/
 - **能力同步来源**：能力同步以 `Player::abilities()` 为运行时事实来源；`PlayerAbilitiesPacket::fromPlayer()` 不会再根据 GameMode 重新推导，避免覆盖飞行状态或自定义 walk/fly speed。
 - **挖掘速度公式**：最终挖掘速度 = 基础速度 × 效率附魔加成 × 急迫效果乘数 × 挖掘疲劳乘数 × 水下惩罚 × 空中惩罚。各乘数叠加顺序影响结果精度。
 - **攻击冷却判定**：横扫攻击需要玩家"几乎静止"（`distanceWalkedModified - prevDistanceWalkedModified < aiMoveSpeed()`），否则不会触发横扫效果。
+- **权限等级与游戏模式分离**：`m_permissionLevel`（0-4）独立于游戏模式存储，`setGameMode()` 会重置 `m_abilities` 但不会重置 `m_permissionLevel`。`canUseGameMasterBlocks()` 要求同时满足 `creativeMode` 和 `permissionLevel >= 2`。
+- **权限等级未网络同步**：当前服务端 `/op`/`/deop` 后不会发送 `EntityStatusPacket::PermissionLevelChange` 给客户端，客户端不知道权限变更。此为 TODO 项。
