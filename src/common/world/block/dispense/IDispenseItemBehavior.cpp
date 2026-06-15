@@ -41,6 +41,7 @@
 #include "../../../util/property/Properties.hpp"
 #include "../../IWorld.hpp"
 #include "../../WorldEvents.hpp"
+#include "../../tick/manager/TickManager.hpp"
 #include "../../block/Block.hpp"
 #include "../../block/IBucketPickupHandler.hpp"
 #include "../../block/ILiquidContainer.hpp"
@@ -441,9 +442,8 @@ ItemStack BucketDispenseBehavior::dispense(
                 // 放置流体方块
                 world.setBlockState(targetPos, fluidBlockState, 3);
 
-                // 调度流体 tick
-                fluid::FluidState mutableFluidState = m_fluid->defaultState();
-                m_fluid->tick(world, targetPos, mutableFluidState);
+                // 通过世界调度器调度流体 tick，而非直接调用
+                world.tickManager().scheduleFluidTick(targetPos, *m_fluid, m_fluid->getTickDelay(world));
 
                 _setSuccess(true);
                 _playSound(world, pos);

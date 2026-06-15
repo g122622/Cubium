@@ -23,10 +23,10 @@ DispenseItemBehaviorRegistry
 IDispenseItemBehavior (接口)
     └── DefaultDispenseItemBehavior (基类：物品投掷)
         ├── OptionalDispenseItemBehavior (可能失败的行为基类)
-        │   ├── BucketDispenseBehavior (放置流体)
-        │   ├── EmptyBucketDispenseBehavior (收集流体)
-        │   ├── FlintAndSteelDispenseBehavior (点火)
-        │   └── BonemealDispenseBehavior (骨粉催熟)
+        │   ├── BucketDispenseBehavior (放置流体，成功后替换为空桶)
+        │   ├── EmptyBucketDispenseBehavior (收集流体，成功后替换为满桶)
+        │   ├── FlintAndSteelDispenseBehavior (点火/点燃/引燃TNT，消耗耐久)
+        │   └── BonemealDispenseBehavior (骨粉催熟/水中海草，消耗数量)
         ├── ProjectileDispenseBehavior (投掷物发射)
         └── BoatDispenseBehavior (放置船)
 ```
@@ -41,22 +41,31 @@ IDispenseItemBehavior (接口)
 ### 下游依赖（这个模块依赖谁）
 
 **实体系统：**
-- `ItemEntity` - 默认发射行为创建物品实体
+- `ItemEntity` - 默认发射行为和 `_spawnItemEntity` 创建物品实体
 - `ProjectileEntity` 及其子类 - 投掷物发射行为
 - `BoatEntity` - 船发射行为
 
 **世界接口：**
-- `IWorld` - 世界操作（spawnEntity、playEvent、getFluidState、getRandom）
+- `IWorld` - 世界操作（spawnEntity、playEvent、getFluidState、setBlockState、getBlockState 等）
+- `TickManager` - 流体 tick 调度（BucketDispenseBehavior 放置流体后调度）
 
 **物品系统：**
-- `ItemStack` - 物品堆操作
+- `ItemStack` - 物品堆操作（shrink、split、attemptDamageItem、getContainerItem）
 - `Items` - 物品注册表
+- `BucketItem` - 桶物品（getFilledBucket、getEmptyBucket）
+- `FlintAndSteelItem` - 打火石静态方法（canLightBlock、getFireForPlacement）
+- `BoneMealItem` - 骨粉静态方法（applyBonemeal、growSeagrass）
 
 **方块系统：**
-- `BlockState` / `BlockStateProperties::FACING()` - 获取发射方向
+- `BlockState` / `BlockStateProperties::FACING()` - 获取发射方向和 LIT 属性
+- `Block` / `IBucketPickupHandler` / `ILiquidContainer` - 桶交互接口
+- `TNTBlock` - TNT 引燃
+- `FireBlock` / `VanillaBlocks` - 火焰放置和方块检测
+- `IGrowable` - 骨粉催熟接口
 
 **流体系统：**
-- `Fluid` / `FluidState` / `FluidTags::WATER()` - 船放置时的水体检测
+- `Fluid` / `FluidState` / `FluidTags::WATER()` - 流体检测和放置
+- `FluidRegistry` - 流体注册表
 
 **工具：**
 - `Direction` / `Directions` - 方向枚举和工具函数
@@ -74,12 +83,18 @@ IDispenseItemBehavior (接口)
 
 4. **BoatDispenseBehavior 需要检测水体**：不仅检测目标位置，还要检测目标位置下方是否有水，若无水则回退到默认投掷行为。
 
-5. **桶、打火石、骨粉行为是桩实现**：目前返回 `isSuccess() = false`，待 IWorld 流体 API 和方块操作 API 完善后实现。
+5. **桶行为放置流体必须通过 `scheduleFluidTick` 调度**：不能直接调用 `Fluid::tick()`，因为流体流动有 tick 延迟（水5tick、岩浆10/30tick），直接调用会导致流体在同一 tick 内立即流动，违反 MC 的 tick 调度机制。正确做法是 `world.tickManager().scheduleFluidTick()`。
 
-6. **世界事件 ID**：
+6. **桶行为物品替换逻辑**：MC 中 `consumeWithRemainder` 会尝试将替换物品放回发射器库存。本项目中发射器行为接口无法访问发射器库存，因此当发射器中还有多个桶时，替换出的空桶/满桶通过 `_spawnItemEntity` 弹出到世界中。
+
+7. **打火石行为不消耗物品数量，只消耗耐久**：`attemptDamageItem(1)` 减少耐久度而非数量，耐久耗尽物品自动损坏消失。骨粉则用 `shrink(1)` 减少数量。
+
+8. **世界事件 ID**：
    - `1000` - 发射成功音效
    - `1001` - 发射失败音效（OptionalDispenseItemBehavior 使用）
    - `1002` - 投掷物发射音效
    - `2000` - 发射烟雾粒子（数据为方向索引 0-5）
+   - `2005` - 骨粉粒子效果（数据为粒子数量 15）
+   - `1009` - 火焰熄灭音效（水桶在超热维度蒸发时使用）
 
-7. **注册行为时使用物品 ID 字符串**：`registerBehavior("minecraft:arrow", ...)` 使用完整物品 ID，而非 `Items::ARROW` 枚举，确保与 ItemStack 查询一致。
+9. **注册行为时使用物品 ID 字符串**：`registerBehavior("minecraft:arrow", ...)` 使用完整物品 ID，而非 `Items::ARROW` 枚举，确保与 ItemStack 查询一致。

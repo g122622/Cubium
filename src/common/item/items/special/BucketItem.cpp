@@ -45,6 +45,7 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
 
@@ -233,9 +234,8 @@ bool BucketItem::tryPlaceContainedLiquid(
         if (fluidBlockState != nullptr) {
             world.setBlockState(pos, fluidBlockState, 3);
 
-            // 调度流体 tick（需要非const引用）
-            fluid::FluidState mutableFluidState = m_containedFluid->defaultState();
-            m_containedFluid->tick(world, pos, mutableFluidState);
+            // 通过世界调度器调度流体 tick，而非直接调用
+            world.tickManager().scheduleFluidTick(pos, *m_containedFluid, m_containedFluid->getTickDelay(world));
 
             return true;
         }
