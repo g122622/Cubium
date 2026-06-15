@@ -121,7 +121,7 @@ ai/
 │   ├── PathPoint.hpp/cpp         # 路径点（代价、父节点等）
 │   ├── RavagerNodeProcessor.hpp/cpp # 劫掠兽节点处理器
 │   ├── Region.hpp/cpp            # 世界区域访问接口
-│   └── WalkNodeProcessor.hpp/cpp # 行走节点处理器（含setAvoidSun阳光避让标志，待实现寻路逻辑）
+│   └── WalkNodeProcessor.hpp/cpp # 行走节点处理器（含setAvoidSun阳光避让标志）
 └── util/                         # AI工具类
     ├── RandomPositionGenerator.hpp/cpp # 随机位置生成器
     └── README.md

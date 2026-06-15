@@ -21,13 +21,13 @@
  *
  */
 
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/ai/pathfinding/Region.hpp"
 #include "entity/ai/pathfinding/WalkNodeProcessor.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
 #include "world/block/Material.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <memory>
 #include <unordered_map>
 #include <gtest/gtest.h>
@@ -107,6 +107,12 @@ public:
     {
         auto it = m_isLava.find(makeKey(x, y, z));
         return it != m_isLava.end() ? it->second : false;
+    }
+
+    [[nodiscard]] bool canSeeSky(i32 /*x*/, i32 /*y*/, i32 /*z*/) const override
+    {
+        // 测试中默认返回 false（不可见天空）
+        return false;
     }
 };
 

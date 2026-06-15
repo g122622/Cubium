@@ -184,8 +184,11 @@ public:
     /**
      * @brief 设置寻路时是否避开阳光
      *
-     * 当设置为 true 时，WalkNodeProcessor 会在路径规划时
-     * 尽量避免暴露在阳光下的路径。用于亡灵生物（如骷髅）在白天避阳。
+     * 当设置为 true 时，路径导航器在计算路径后会截断暴露在阳光下的部分：
+     * - 如果实体当前位置已在阳光下，保留完整路径（实体需要移动来逃离）
+     * - 如果实体当前位置不在阳光下，截断路径中第一个暴露在阳光下的节点及之后的所有节点
+     * 这使亡灵生物（如骷髅）在白天会避免走入阳光直射区域。
+     *
      * @param avoidSun 是否避开阳光
      */
     void setAvoidSunPathing(bool avoidSun);
@@ -249,6 +252,7 @@ protected:
     bool m_canSwim = false;
     bool m_canOpenDoors = false;
     bool m_canEnterDoors = false;
+    bool m_avoidSun = false;
 
     // ========== 内部方法 ==========
 

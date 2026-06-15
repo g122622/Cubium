@@ -311,4 +311,148 @@ TEST(PathNavigatorBasicTest, BasicState)
     EXPECT_NO_THROW(navigator.stop());
 }
 
+/**
+ * @brief 测试 Path::truncateNodes 方法 - 基本截断
+ */
+TEST(PathTruncateNodesTest, BasicTruncation)
+{
+    // 创建包含5个路径点的路径
+    std::vector<PathPoint> points;
+    points.emplace_back(0, 0, 0);
+    points.emplace_back(1, 0, 1);
+    points.emplace_back(2, 0, 2);
+    points.emplace_back(3, 0, 3);
+    points.emplace_back(4, 0, 4);
+
+    Path path(std::move(points));
+    EXPECT_EQ(path.length(), 5);
+
+    // 在索引2处截断（保留索引0和1）
+    path.truncateNodes(2);
+    EXPECT_EQ(path.length(), 2);
+
+    // 验证保留的路径点
+    const PathPoint* p0 = path.getPoint(0);
+    ASSERT_NE(p0, nullptr);
+    EXPECT_EQ(p0->x(), 0);
+
+    const PathPoint* p1 = path.getPoint(1);
+    ASSERT_NE(p1, nullptr);
+    EXPECT_EQ(p1->x(), 1);
+
+    // 被截断的路径点应不存在
+    EXPECT_EQ(path.getPoint(2), nullptr);
+    EXPECT_EQ(path.getPoint(3), nullptr);
+    EXPECT_EQ(path.getPoint(4), nullptr);
+}
+
+/**
+ * @brief 测试 Path::truncateNodes 方法 - 索引0处截断（清空路径）
+ */
+TEST(PathTruncateNodesTest, TruncateAtZero)
+{
+    std::vector<PathPoint> points;
+    points.emplace_back(0, 0, 0);
+    points.emplace_back(1, 0, 1);
+
+    Path path(std::move(points));
+    EXPECT_EQ(path.length(), 2);
+
+    // 在索引0处截断（清空路径）
+    path.truncateNodes(0);
+    EXPECT_EQ(path.length(), 0);
+    EXPECT_TRUE(path.empty());
+}
+
+/**
+ * @brief 测试 Path::truncateNodes 方法 - 索引超出范围（不做任何操作）
+ */
+TEST(PathTruncateNodesTest, TruncateIndexOutOfRange)
+{
+    std::vector<PathPoint> points;
+    points.emplace_back(0, 0, 0);
+    points.emplace_back(1, 0, 1);
+
+    Path path(std::move(points));
+    EXPECT_EQ(path.length(), 2);
+
+    // 索引超出范围，不做任何操作
+    path.truncateNodes(5);
+    EXPECT_EQ(path.length(), 2);
+
+    // 负数索引也不做操作
+    path.truncateNodes(-1);
+    EXPECT_EQ(path.length(), 2);
+}
+
+/**
+ * @brief 测试 Path::truncateNodes 方法 - 当前索引调整
+ *
+ * 当截断发生在当前索引之前时，当前索引应被调整到新的末尾
+ */
+TEST(PathTruncateNodesTest, CurrentIndexAdjustment)
+{
+    std::vector<PathPoint> points;
+    points.emplace_back(0, 0, 0);
+    points.emplace_back(1, 0, 1);
+    points.emplace_back(2, 0, 2);
+    points.emplace_back(3, 0, 3);
+
+    Path path(std::move(points));
+
+    // 将当前索引设置到3
+    path.setCurrentIndex(3);
+    EXPECT_EQ(path.getCurrentIndex(), 3);
+
+    // 在索引2处截断
+    path.truncateNodes(2);
+    EXPECT_EQ(path.length(), 2);
+
+    // 当前索引3超出了新的路径长度2，应被调整到1（最后的有效索引）
+    EXPECT_EQ(path.getCurrentIndex(), 1);
+}
+
+/**
+ * @brief 测试 Path::truncateNodes 方法 - 模拟阳光避让场景
+ *
+ * 模拟 trimPath 的阳光避让逻辑：
+ * 路径包含5个节点，其中第3个节点暴露在阳光下，
+ * 截断应发生在第3个节点处，保留前2个节点（阴影中的路径）
+ */
+TEST(PathTruncateNodesTest, SimulateSunAvoidanceTruncation)
+{
+    // 创建路径：5个节点，从阴影区域穿越到阳光区域
+    std::vector<PathPoint> points;
+    points.emplace_back(0, 64, 0); // 阴影中
+    points.emplace_back(1, 64, 1); // 阴影中
+    points.emplace_back(2, 64, 2); // 阳光下 <- 截断点
+    points.emplace_back(3, 64, 3); // 阳光下
+    points.emplace_back(4, 64, 4); // 阳光下
+
+    Path path(std::move(points));
+    EXPECT_EQ(path.length(), 5);
+
+    // 模拟阳光避让：在第3个节点（索引2）处截断
+    // 对应 MC Java 版：遍历路径，在第一个 canSeeSky 为 true 的节点处截断
+    path.truncateNodes(2);
+    EXPECT_EQ(path.length(), 2);
+
+    // 验证保留的节点都在阴影中
+    const PathPoint* p0 = path.getPoint(0);
+    ASSERT_NE(p0, nullptr);
+    EXPECT_EQ(p0->x(), 0);
+    EXPECT_EQ(p0->z(), 0);
+
+    const PathPoint* p1 = path.getPoint(1);
+    ASSERT_NE(p1, nullptr);
+    EXPECT_EQ(p1->x(), 1);
+    EXPECT_EQ(p1->z(), 1);
+
+    // 路径终点应在阴影区域
+    const PathPoint* end = path.getEnd();
+    ASSERT_NE(end, nullptr);
+    EXPECT_EQ(end->x(), 1);
+    EXPECT_EQ(end->z(), 1);
+}
+
 } // anonymous namespace

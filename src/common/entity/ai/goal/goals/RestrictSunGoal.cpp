@@ -63,9 +63,8 @@ bool RestrictSunGoal::shouldExecute()
 void RestrictSunGoal::startExecuting()
 {
     // 设置路径导航器避开阳光路径
-    // TODO: WalkNodeProcessor::setAvoidSun 当前为空实现（仅设置m_avoidSun标志但不影响寻路逻辑），
-    // 因此RestrictSunGoal目前不会实际改变寻路行为。待WalkNodeProcessor的寻路逻辑
-    // 实现阳光避让节点代价计算后，此目标才会完全生效。
+    // 当 avoidSun 为 true 时，PathNavigator 在路径计算完成后会截断
+    // 暴露在阳光下的路径部分，使实体只在阴影区域移动
     auto* nav = m_creature->navigator();
     if (nav != nullptr) {
         nav->setAvoidSunPathing(true);

@@ -100,10 +100,11 @@ public:
     /**
      * @brief 设置是否避免太阳
      *
-     * TODO: 当前m_avoidSun标志已设置但未被寻路逻辑读取。
-     * 需要在节点代价计算中实现阳光避让逻辑：当m_avoidSun为true时，
-     * 检查节点位置的canSeeSky状态，对暴露在阳光下的节点增加代价或标记为不可通过。
-     * 这将使RestrictSunGoal实际影响骷髅等亡灵生物的寻路行为。
+     * 当设置为 true 时，WalkNodeProcessor 会标记阳光避让标志。
+     * 实际的阳光避让逻辑由 PathNavigator::_trimPath() 实现：
+     * 路径计算完成后，遍历路径节点并在第一个暴露在阳光下的节点处截断路径，
+     * 使实体只在阴影区域移动。如果实体当前已在阳光下，则保留完整路径。
+     * 这对应 MC Java 版的 GroundPathNavigation.trimPath() 实现。
      */
     void setAvoidSun(bool avoidSun) { m_avoidSun = avoidSun; }
 

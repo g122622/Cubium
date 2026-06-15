@@ -305,6 +305,32 @@ void PathNavigator::_trimPath()
             }
         }
     }
+
+    // 阳光避让路径截断
+    // 当 m_avoidSun 为 true 时，遍历路径节点，如果在阴影中的实体
+    // 发现路径经过阳光直射区域，则在该节点处截断路径。
+    // 这对应 MC Java 版的 GroundPathNavigation.trimPath() 逻辑。
+    if (m_avoidSun) {
+        // 如果实体当前已在阳光下，保留完整路径——实体需要移动来逃离阳光
+        if (world->canSeeSky(BlockPos(
+                floorTo<i32>(m_entity->x()), floorTo<i32>(m_entity->y() + 0.5), floorTo<i32>(m_entity->z())))) {
+            return;
+        }
+
+        // 遍历路径节点，找到第一个暴露在阳光下的节点并截断
+        for (i32 i = 0; i < static_cast<i32>(m_path->length()); ++i) {
+            const PathPoint* point = m_path->getPoint(static_cast<size_t>(i));
+            if (point == nullptr) {
+                continue;
+            }
+
+            if (world->canSeeSky(BlockPos(point->x(), point->y(), point->z()))) {
+                // 在第一个阳光暴露节点处截断路径
+                m_path->truncateNodes(i);
+                break;
+            }
+        }
+    }
 }
 
 void PathNavigator::_resetTimeout()
@@ -386,6 +412,8 @@ const PathPoint* PathNavigator::_getCurrentWaypoint() const
 
 void PathNavigator::setAvoidSunPathing(bool avoidSun)
 {
+    m_avoidSun = avoidSun;
+
     if (m_pathFinder) {
         auto* nodeProcessor = m_pathFinder->getNodeProcessor();
         if (nodeProcessor != nullptr) {

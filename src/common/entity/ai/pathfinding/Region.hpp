@@ -104,6 +104,20 @@ public:
         // 默认实现
         return static_cast<f32>(y) + 1.0f;
     }
+
+    /**
+     * @brief 检查指定位置是否能看到天空
+     *
+     * 用于寻路中的阳光避让逻辑。如果位置上方无遮挡方块（天空光照>=15），
+     * 则认为可以看到天空。此方法在寻路后处理中被 trimPath() 调用，
+     * 当 m_avoidSun 为 true 时，路径会在第一个能看到天空的节点处截断。
+     *
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     * @return 是否能看到天空
+     */
+    [[nodiscard]] virtual bool canSeeSky(i32 x, i32 y, i32 z) const = 0;
 };
 
 } // namespace mc::entity::ai::pathfinding

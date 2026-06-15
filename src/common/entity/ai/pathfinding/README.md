@@ -104,4 +104,8 @@ PathPoint 的 `m_distanceToNext` 字段存储的是 `启发式值 * 1.5`（MC 1.
 
 ### 10. Region 接口需要完整实现
 
-自定义 Region 时，`getBlockStateId()` 和 `isLoaded()` 是核心方法，必须正确实现。默认的 `getBlockState()` 依赖 `getBlockStateId()`。
+自定义 Region 时，`getBlockStateId()`、`isLoaded()` 和 `canSeeSky()` 是核心方法，必须正确实现。默认的 `getBlockState()` 依赖 `getBlockStateId()`。`canSeeSky()` 用于阳光避让路径截断，返回位置上方是否有遮挡方块（天空光照>=15）。
+
+### 11. 阳光避让路径截断
+
+`PathNavigator::_trimPath()` 实现了阳光避让逻辑（对应 MC Java 的 `GroundPathNavigation.trimPath()`）。当 `m_avoidSun` 为 true 时（由 `RestrictSunGoal` 通过 `setAvoidSunPathing(true)` 设置），路径计算完成后会遍历所有节点，在第一个暴露在阳光下的节点处截断路径。如果实体当前已在阳光下，则保留完整路径（实体需要移动来逃离阳光）。此逻辑不修改 WalkNodeProcessor 的节点代价，而是通过路径后处理实现阳光避让。

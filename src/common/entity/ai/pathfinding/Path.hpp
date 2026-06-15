@@ -332,6 +332,26 @@ public:
         }
     }
 
+    /**
+     * @brief 从指定索引处截断路径
+     *
+     * 移除从 index 开始到末尾的所有路径点。
+     * 用于阳光避让逻辑：当寻路路径中某个节点暴露在阳光下时，
+     * 在该节点处截断路径，使实体只在阴影区域移动。
+     *
+     * @param index 截断起始索引（该索引及之后的节点将被移除）
+     */
+    void truncateNodes(i32 index)
+    {
+        if (index >= 0 && index < static_cast<i32>(m_points.size())) {
+            m_points.resize(static_cast<size_t>(index));
+            // 如果当前索引超出新的路径长度，调整到末尾
+            if (m_currentIndex >= static_cast<i32>(m_points.size())) {
+                m_currentIndex = std::max(0, static_cast<i32>(m_points.size()) - 1);
+            }
+        }
+    }
+
     // ========== 状态检查 ==========
 
     /**
