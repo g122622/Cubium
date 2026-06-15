@@ -31,6 +31,7 @@
 #include "BlockSoundType.hpp"
 #include "BlockState.hpp"
 #include "HarvestTool.hpp"
+#include "IBlockAnimateContext.hpp"
 #include "Material.hpp"
 #include "world/map/MaterialColor.hpp"
 #include <functional>
@@ -954,6 +955,25 @@ public:
      * @param random 随机数生成器
      */
     virtual void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random);
+
+    /**
+     * @brief 客户端方块动画 tick
+     *
+     * 仅在客户端每 tick 调用，用于生成视觉效果粒子、播放环境音效等。
+     * 默认实现为空操作。需要客户端动画效果的方块应重写此方法。
+     *
+     * 由 ClientWorld::animateTick 在每 tick 对玩家周围随机采样位置调用，
+     * 采样范围约 32 格，每 tick 采样约 1334 个位置。
+     *
+     * 注意：此方法仅在客户端执行，不会在服务端调用。
+     *
+     * @param context 动画上下文（提供粒子和音效接口）
+     * @param pos 方块位置
+     * @param state 方块状态
+     * @param random 随机数生成器
+     */
+    virtual void animateTick(
+        IBlockAnimateContext& context, const BlockPos& pos, const BlockState& state, math::IRandom& random) const;
 
     /**
      * @brief 邻居方块更新

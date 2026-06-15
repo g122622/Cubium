@@ -78,7 +78,8 @@ BlockState SporeBlossomBlock::updatePostPlacement(const BlockState& state,
     return Block::updatePostPlacement(state, facing, facingState, world, currentPos, facingPos);
 }
 
-void SporeBlossomBlock::animateTick(IWorld& world, const BlockPos& pos, const BlockState& state, math::IRandom& random)
+void SporeBlossomBlock::animateTick(
+    IBlockAnimateContext& context, const BlockPos& pos, const BlockState& state, math::IRandom& random) const
 {
     MC_UNUSED(state);
 
@@ -86,7 +87,7 @@ void SporeBlossomBlock::animateTick(IWorld& world, const BlockPos& pos, const Bl
     const f32 x = static_cast<f32>(pos.x) + 0.5f + (random.nextFloat() - 0.5f) * 0.8f;
     const f32 y = static_cast<f32>(pos.y) + 0.7f;
     const f32 z = static_cast<f32>(pos.z) + 0.5f + (random.nextFloat() - 0.5f) * 0.8f;
-    world.addParticle(client::renderer::trident::particle::ParticleTypeId::FallingSporeBlossom,
+    context.addAnimateParticle(client::renderer::trident::particle::ParticleTypeId::FallingSporeBlossom,
         Vector3(x, y, z),
         Vector3(0.0f, 0.0f, 0.0f));
 
@@ -96,13 +97,12 @@ void SporeBlossomBlock::animateTick(IWorld& world, const BlockPos& pos, const Bl
         const int px = pos.x + random.nextInt(21) - 10;
         const int py = pos.y - random.nextInt(10);
         const int pz = pos.z + random.nextInt(21) - 10;
-        const BlockPos particlePos(px, py, pz);
-        const BlockState* blockState = world.getBlockState(particlePos);
+        const BlockState* blockState = context.getBlockState(px, py, pz);
         if (blockState && !blockState->isSolid()) {
             const f32 ppx = static_cast<f32>(px) + random.nextFloat();
             const f32 ppy = static_cast<f32>(py) + random.nextFloat();
             const f32 ppz = static_cast<f32>(pz) + random.nextFloat();
-            world.addParticle(client::renderer::trident::particle::ParticleTypeId::SporeBlossomAir,
+            context.addAnimateParticle(client::renderer::trident::particle::ParticleTypeId::SporeBlossomAir,
                 Vector3(ppx, ppy, ppz),
                 Vector3(0.0f, 0.0f, 0.0f));
         }

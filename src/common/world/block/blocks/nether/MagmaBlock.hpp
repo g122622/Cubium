@@ -11,8 +11,8 @@
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * THE SOFTWARE IS PROVIDED "AS IS", ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
@@ -31,6 +31,7 @@ namespace mc {
 class IWorld;
 class BlockPos;
 class BlockState;
+class Entity;
 
 namespace math {
 class IRandom;
@@ -42,10 +43,9 @@ namespace blocks {
  * @brief 岩浆块方块
  *
  * 下界的岩浆块，站在上面会受伤，在水中会产生气泡柱。
+ * 不响应随机刻，气泡柱的视觉效果由 BubbleColumnBlock::animateTick 产生。
  *
  * MC ID: minecraft:magma_block
- *
- * 参考 MC 1.16.5 MagmaBlock
  */
 class MagmaBlock : public Block {
 public:
@@ -67,23 +67,18 @@ public:
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     /**
-     * @brief Tick 更新
+     * @brief 计划 tick 更新
      *
      * 在上方生成气泡柱。
      */
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     /**
-     * @brief 随机刻
+     * @brief 实体踩上方块时
      *
-     * 在水中产生气泡效果。
+     * 非潜行的活体生物踩在岩浆块上会受到烫脚伤害（1点 = 半颗心）。
      */
-    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
-
-    /**
-     * @brief 是否响应随机刻
-     */
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    void onEntityWalk(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 };
 
 } // namespace blocks

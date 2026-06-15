@@ -22,12 +22,15 @@
  */
 
 #include "MagmaBlock.hpp"
-#include "../../../../util/math/random/IRandom.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../fluid/Fluid.hpp"
-#include "../../../fluid/FluidTags.hpp"
-#include "../../../tick/manager/TickManager.hpp"
 #include "../ocean/BubbleColumnBlock.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidTags.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::blocks {
@@ -65,7 +68,6 @@ void MagmaBlock::neighborChanged(
 
 void MagmaBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    // 在上方生成气泡柱
     MC_UNUSED(state);
     MC_UNUSED(random);
 
@@ -76,21 +78,18 @@ void MagmaBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, mat
     BubbleColumnBlock::placeBubbleColumn(world, abovePos, true);
 }
 
-void MagmaBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+void MagmaBlock::onEntityWalk(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    // 在水中产生气泡效果
     MC_UNUSED(state);
+    MC_UNUSED(&world);
+    MC_UNUSED(&pos);
 
-    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos);
-
-    if (aboveState != nullptr) {
-        const fluid::FluidState* fluidState = aboveState->getFluidState();
-        if (fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
-            // TODO 产生气泡粒子
-            // world.addParticle(ParticleTypes::LARGE_SMOKE, ...)
-            // world.playSound(SoundEvents::BLOCK_FIRE_EXTINGUISH, ...)
-            MC_UNUSED(random);
+    // 非潜行的活体生物踩在岩浆块上受到烫脚伤害（1点 = 半颗心）
+    if (!entity.isSteppingCarefully()) {
+        auto* living = dynamic_cast<LivingEntity*>(&entity);
+        if (living != nullptr) {
+            auto damage = DamageSources::hotFloor();
+            living->hurt(damage, 1.0f);
         }
     }
 }

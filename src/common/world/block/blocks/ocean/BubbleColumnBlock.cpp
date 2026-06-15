@@ -23,8 +23,11 @@
 
 #include "BubbleColumnBlock.hpp"
 
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -276,6 +279,50 @@ bool BubbleColumnBlock::_checkSource(const IWorld& world, const BlockPos& pos) c
     }
 
     return false;
+}
+
+void BubbleColumnBlock::animateTick(
+    IBlockAnimateContext& context, const BlockPos& pos, const BlockState& state, math::IRandom& random) const
+{
+    const f32 centerX = static_cast<f32>(pos.x) + 0.5f;
+    const f32 centerY = static_cast<f32>(pos.y);
+    const f32 centerZ = static_cast<f32>(pos.z) + 0.5f;
+
+    if (isDrag(state)) {
+        // 下拖模式（岩浆块产生）：生成向下水流粒子
+        context.addAnimateParticle(client::renderer::trident::particle::ParticleTypeId::CurrentDown,
+            Vector3(centerX, centerY + 0.8f, static_cast<f32>(pos.z)),
+            Vector3(0.0f, 0.0f, 0.0f));
+
+        // 1/200 概率播放漩涡环境音
+        if (random.nextInt(200) == 0) {
+            context.playLocalSound(SoundEvents::BLOCK_BUBBLE_COLUMN_WHIRLPOOL_AMBIENT,
+                sound::SoundCategory::Blocks,
+                Vector3(centerX, centerY, centerZ),
+                0.2f + random.nextFloat() * 0.2f,
+                0.9f + random.nextFloat() * 0.15f);
+        }
+    } else {
+        // 上推模式（灵魂沙产生）：生成向上气泡粒子
+        context.addAnimateParticle(client::renderer::trident::particle::ParticleTypeId::BubbleColumnUp,
+            Vector3(centerX, centerY, centerZ),
+            Vector3(0.0f, 0.04f, 0.0f));
+
+        context.addAnimateParticle(client::renderer::trident::particle::ParticleTypeId::BubbleColumnUp,
+            Vector3(static_cast<f32>(pos.x) + random.nextFloat(),
+                centerY + random.nextFloat(),
+                static_cast<f32>(pos.z) + random.nextFloat()),
+            Vector3(0.0f, 0.04f, 0.0f));
+
+        // 1/200 概率播放上升环境音
+        if (random.nextInt(200) == 0) {
+            context.playLocalSound(SoundEvents::BLOCK_BUBBLE_COLUMN_UPWARDS_AMBIENT,
+                sound::SoundCategory::Blocks,
+                Vector3(centerX, centerY, centerZ),
+                0.2f + random.nextFloat() * 0.2f,
+                0.9f + random.nextFloat() * 0.15f);
+        }
+    }
 }
 
 } // namespace blocks

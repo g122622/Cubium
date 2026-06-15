@@ -472,6 +472,11 @@ void ClientApplication::update(f32 deltaTime)
 
         m_world.update(meshViewState);
 
+        // 方块动画 tick：在玩家周围随机采样位置，调用方块的 animateTick 生成粒子和音效
+        const auto& playerPos = m_player->position();
+        m_world.animateTick(
+            static_cast<i32>(playerPos.x), static_cast<i32>(playerPos.y), static_cast<i32>(playerPos.z));
+
         // 更新客户端实体（固定频率 tick，20 TPS）
         m_world.entityManager().fixedTick(deltaTime);
 

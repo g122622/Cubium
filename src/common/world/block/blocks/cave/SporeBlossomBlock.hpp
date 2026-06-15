@@ -78,7 +78,10 @@ public:
      * - falling_spore_blossom: 从花正下方掉落的绿色孢子粒子
      * - spore_blossom_air: 在花周围10格半径内漂浮的环境粒子（14次尝试）
      */
-    void animateTick(IWorld& world, const BlockPos& pos, const BlockState& state, math::IRandom& random);
+    void animateTick(IBlockAnimateContext& context,
+        const BlockPos& pos,
+        const BlockState& state,
+        math::IRandom& random) const override;
 
 private:
     CollisionShape m_shape;

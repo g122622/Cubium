@@ -882,4 +882,52 @@ bool ClientWorld::shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance) con
     return distSq <= maxDistSq;
 }
 
+// ========== IBlockAnimateContext 接口实现 ==========
+
+void ClientWorld::playLocalSound(
+    const ResourceLocation& soundEventId, sound::SoundCategory category, const Vector3& position, f32 volume, f32 pitch)
+{
+    if (m_playLocalSoundCallback) {
+        m_playLocalSoundCallback(soundEventId, category, position, volume, pitch);
+    }
+}
+
+// ========== 方块动画 tick ==========
+
+void ClientWorld::animateTick(i32 playerX, i32 playerY, i32 playerZ)
+{
+    math::Random random;
+    constexpr i32 animateTickIterations = 667;
+    constexpr i32 nearRange = 16;
+    constexpr i32 farRange = 32;
+
+    for (i32 i = 0; i < animateTickIterations; ++i) {
+        _doAnimateTick(playerX, playerY, playerZ, nearRange, random);
+        _doAnimateTick(playerX, playerY, playerZ, farRange, random);
+    }
+}
+
+void ClientWorld::_doAnimateTick(i32 centerX, i32 centerY, i32 centerZ, i32 range, math::Random& random)
+{
+    // 在玩家周围随机采样一个位置（三角分布近似）
+    const i32 x = centerX + random.nextInt(range) - random.nextInt(range);
+    const i32 y = centerY + random.nextInt(range) - random.nextInt(range);
+    const i32 z = centerZ + random.nextInt(range) - random.nextInt(range);
+
+    // 高度范围检查
+    if (y < m_minBuildHeight || y >= m_maxBuildHeight) {
+        return;
+    }
+
+    const BlockState* blockState = getBlockState(x, y, z);
+    if (blockState == nullptr) {
+        return;
+    }
+
+    // 调用方块的 animateTick（基类默认实现为空，只有覆写的方块会产生效果）
+    const Block& block = blockState->getBlock();
+    BlockPos pos(x, y, z);
+    block.animateTick(*this, pos, *blockState, random);
+}
+
 } // namespace mc::client

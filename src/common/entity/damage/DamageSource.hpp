@@ -681,6 +681,12 @@ inline EnvironmentalDamage cactus()
     return EnvironmentalDamage(DamageType::Cactus);
 }
 
+/** 创建烫脚伤害（踩在岩浆块上） */
+inline EnvironmentalDamage hotFloor()
+{
+    return EnvironmentalDamage(DamageType::HotFloor);
+}
+
 /** 创建摔落伤害 */
 inline EnvironmentalDamage fall()
 {

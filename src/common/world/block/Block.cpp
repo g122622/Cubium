@@ -379,6 +379,17 @@ void Block::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, ma
     tick(world, pos, state, random);
 }
 
+void Block::animateTick(
+    IBlockAnimateContext& context, const BlockPos& pos, const BlockState& state, math::IRandom& random) const
+{
+    // 默认实现：空操作
+    // 需要客户端动画效果的方块应重写此方法（如营火烟雾、气泡柱粒子、红石矿石闪烁等）
+    (void)context;
+    (void)pos;
+    (void)state;
+    (void)random;
+}
+
 void Block::neighborChanged(
     IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
 {

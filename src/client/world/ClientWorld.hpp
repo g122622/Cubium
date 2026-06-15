@@ -30,9 +30,14 @@
 #include "common/core/Types.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/physics/PhysicsEngine.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/IBlockAnimateContext.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "entity/ClientEntityManager.hpp"
 #include <array>
@@ -69,7 +74,7 @@ struct ClientChunk {
  *
  * 管理客户端区块数据、异步网格构建、维度校验和天气时间同步。
  */
-class ClientWorld : public ICollisionWorld {
+class ClientWorld : public ICollisionWorld, public IBlockAnimateContext {
 public:
     ClientWorld();
     ~ClientWorld() override;
@@ -128,6 +133,19 @@ public:
         // 只允许注册一次
         MC_ASSERT_RELEASE(!m_chunkUnloadCallback);
         m_chunkUnloadCallback = std::move(callback);
+    }
+
+    /**
+     * @brief 设置本地音效播放回调
+     *
+     * 由 ClientApplication 注册，委托给 AudioService 播放音效。
+     *
+     * @param callback 音效播放回调函数
+     */
+    void setPlayLocalSoundCallback(
+        std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)> callback)
+    {
+        m_playLocalSoundCallback = std::move(callback);
     }
 
     void rebuildChunkMesh(const ChunkId& id);
@@ -300,6 +318,26 @@ public:
      */
     [[nodiscard]] bool shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance = 256.0f) const;
 
+    // ========== IBlockAnimateContext 接口实现 ==========
+
+    /**
+     * @brief 生成动画粒子（委托给 addParticle）
+     */
+    void addAnimateParticle(
+        renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    {
+        addParticle(type, pos, velocity);
+    }
+
+    /**
+     * @brief 播放本地音效（通过音频服务）
+     */
+    void playLocalSound(const ResourceLocation& soundEventId,
+        sound::SoundCategory category,
+        const Vector3& position,
+        f32 volume,
+        f32 pitch) override;
+
     void onRainStrengthChange(f32 strength);
     void onThunderStrengthChange(f32 strength);
     void onBeginRaining();
@@ -311,6 +349,22 @@ public:
         const std::vector<u8>& skyLight,
         const std::vector<u8>& blockLight,
         bool trustEdges);
+
+    // ========== 方块动画 tick ==========
+
+    /**
+     * @brief 执行方块动画 tick
+     *
+     * 在客户端每 tick 调用，在玩家周围随机采样位置，对采样到的方块调用 animateTick。
+     * 用于生成视觉效果粒子、播放环境音效等。
+     *
+     * 参考 MC 1.21.11 ClientLevel.animateTick / doAnimateTick
+     *
+     * @param playerX 玩家方块 X 坐标
+     * @param playerY 玩家方块 Y 坐标
+     * @param playerZ 玩家方块 Z 坐标
+     */
+    void animateTick(i32 playerX, i32 playerY, i32 playerZ);
 
     // ========== 出生点 ==========
 
@@ -342,6 +396,7 @@ private:
     void _requestChunkMeshRebuild(const ChunkId& id);
     void _scheduleNeighborMeshRebuild(const ChunkId& id);
     void _scheduleVisibleChunksWithoutMesh(const MeshSchedulerViewState& viewState, u32 maxChunkCount);
+    void _doAnimateTick(i32 centerX, i32 centerY, i32 centerZ, i32 range, math::Random& random);
 
     std::array<std::shared_ptr<const ChunkData>, 6> _getNeighborChunkData(const ChunkId& id);
     void _getNeighborChunks(const ChunkId& id, const ChunkData* neighbors[6]);
@@ -350,6 +405,10 @@ private:
     std::unordered_map<ChunkId, std::unique_ptr<ClientChunk>> m_chunks;
 
     std::function<void(const ChunkId&)> m_chunkUnloadCallback;
+
+    /// 本地音效播放回调（由 ClientApplication 注册，委托给 AudioService）
+    std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)>
+        m_playLocalSoundCallback;
 
     std::unique_ptr<MeshWorkerPool> m_meshWorkerPool;
     std::unique_ptr<MeshBuildScheduler> m_meshBuildScheduler;

@@ -28,6 +28,8 @@
 #include "client/renderer/trident/chunk/ChunkRenderer.hpp"
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/firstperson/FirstPersonRenderer.hpp"
+#include "client/sound/AudioService.hpp"
+#include "client/sound/instance/SoundInstance.hpp"
 #include "client/ui/minecraft/screens/CreateWorldScreen.hpp"
 #include "client/ui/minecraft/screens/LoadingScreen.hpp"
 #include "client/ui/minecraft/screens/MainMenuScreen.hpp"
@@ -251,6 +253,19 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
     m_world.setChunkUnloadCallback([this](const ChunkId& chunkId) {
         if (m_renderer && m_renderer->isChunkRendererInitialized()) {
             m_renderer->chunkRenderer().removeChunk(chunkId);
+        }
+    });
+
+    // 设置本地音效播放回调（方块动画 tick 产生的环境音效）
+    m_world.setPlayLocalSoundCallback([this](const ResourceLocation& soundEventId,
+                                          sound::SoundCategory category,
+                                          const Vector3& position,
+                                          f32 volume,
+                                          f32 pitch) {
+        if (m_audioService) {
+            auto sound = std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                soundEventId, category, position.x, position.y, position.z, volume, pitch));
+            m_audioService->play(std::move(sound));
         }
     });
 

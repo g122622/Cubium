@@ -160,6 +160,20 @@ public:
      */
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
+    // ========== 客户端动画 ==========
+
+    /**
+     * @brief 客户端方块动画 tick
+     *
+     * 在气泡柱中生成粒子和播放环境音效：
+     * - 下拖模式 (DRAG=true): 生成 CURRENT_DOWN 粒子，1/200 概率播放漩涡环境音
+     * - 上推模式 (DRAG=false): 生成 BUBBLE_COLUMN_UP 粒子，1/200 概率播放上升环境音
+     */
+    void animateTick(IBlockAnimateContext& context,
+        const BlockPos& pos,
+        const BlockState& state,
+        math::IRandom& random) const override;
+
     // ========== 形状 ==========
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
