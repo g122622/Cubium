@@ -24,6 +24,7 @@
 #include "MagmaPatchFeature.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
+#include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include <cmath>
@@ -45,9 +46,6 @@ bool MagmaPatchFeature::place(
     // 获取方块状态
     const BlockState* magma = VanillaBlocks::getState(VanillaBlocks::MAGMA);
     const BlockState* lava = VanillaBlocks::getState(VanillaBlocks::LAVA);
-    // TODO: 应使用 FireBlock::getFireState() 根据下方方块类型选择火焰种类，
-    // 当前直接使用普通火，在灵魂沙/灵魂土上方不会生成灵魂火
-    const BlockState* fire = VanillaBlocks::getState(VanillaBlocks::FIRE);
 
     if (!magma) {
         return false;
@@ -78,12 +76,13 @@ bool MagmaPatchFeature::place(
             if (random.nextFloat() < config.magmaChance) {
                 world.setBlockState(placePos, magma);
 
-                // 在岩浆块上生成火焰
-                if (fire && random.nextFloat() < config.fireChance) {
+                // 在岩浆块上生成火焰（根据下方方块类型选择火焰种类）
+                if (random.nextFloat() < config.fireChance) {
                     BlockPos firePos(placePos.x, placePos.y + 1, placePos.z);
                     const BlockState* aboveState = world.getBlockState(firePos);
                     if (!aboveState || aboveState->isAir()) {
-                        world.setBlockState(firePos, fire);
+                        const BlockState& fireState = blocks::FireBlock::getFireState(world, firePos);
+                        world.setBlockState(firePos, &fireState);
                     }
                 }
             }

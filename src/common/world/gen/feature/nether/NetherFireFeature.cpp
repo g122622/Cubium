@@ -24,6 +24,7 @@
 #include "NetherFireFeature.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
+#include "common/world/block/blocks/nether/SoulFireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 
@@ -36,25 +37,19 @@ namespace mc {
 bool NetherFireFeature::place(
     WorldGenRegion& world, math::Random& random, const BlockPos& pos, const NetherFireFeatureConfig& config)
 {
-    // TODO: 应使用 FireBlock::getFireState() 根据下方方块类型选择火焰种类，
-    // 当前直接使用普通火，在灵魂沙/灵魂土上方不会生成灵魂火
-    const BlockState* fire = VanillaBlocks::getState(VanillaBlocks::FIRE);
-    if (!fire) {
-        return false;
-    }
-
     bool placed = false;
 
-    // 在范围内随机放置火焰
     for (i32 i = 0; i < config.spread * config.spread; ++i) {
         i32 dx = random.nextInt(config.spread * 2 + 1) - config.spread;
         i32 dz = random.nextInt(config.spread * 2 + 1) - config.spread;
 
         BlockPos firePos(pos.x + dx, pos.y, pos.z + dz);
 
-        // 检查位置是否有效（在下界岩上）
+        // 检查位置是否有效（在可燃基座方块上：下界岩、灵魂沙、灵魂土）
         const BlockState* belowState = world.getBlockState(firePos.x, firePos.y - 1, firePos.z);
-        if (!belowState || !belowState->is(VanillaBlocks::NETHERRACK)) {
+        if (!belowState ||
+            (!belowState->is(VanillaBlocks::NETHERRACK) &&
+                !blocks::SoulFireBlock::isSoulFireBase(&belowState->getBlock()))) {
             continue;
         }
 
@@ -64,8 +59,9 @@ bool NetherFireFeature::place(
             continue;
         }
 
-        // 放置火焰
-        world.setBlockState(firePos, fire);
+        // 根据下方方块类型选择火焰种类（灵魂沙/灵魂土上方生成灵魂火）
+        const BlockState& fireState = blocks::FireBlock::getFireState(world, firePos);
+        world.setBlockState(firePos, &fireState);
         placed = true;
     }
 

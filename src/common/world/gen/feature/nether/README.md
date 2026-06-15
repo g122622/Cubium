@@ -8,10 +8,12 @@ nether/
 ├── BasaltFeature.cpp
 ├── GlowstoneFeature.hpp       # 萤石簇特征
 ├── GlowstoneFeature.cpp
-├── MagmaPatchFeature.hpp      # 岩浆池与下界火焰特征
+├── MagmaPatchFeature.hpp      # 岩浆池特征
 ├── MagmaPatchFeature.cpp
 ├── NetherFeatures.hpp         # 下界特征聚合注册入口
 ├── NetherFeatures.cpp
+├── NetherFireFeature.hpp      # 下界火焰特征（自动选择普通火/灵魂火）
+├── NetherFireFeature.cpp
 └── README.md
 ```
 
@@ -28,6 +30,7 @@ nether/
 - `FeatureIds` - 特征 ID 定义
 - `DecorationStage` - 装饰阶段枚举
 - `VanillaBlocks` - 原版方块定义
+- `FireBlock` / `SoulFireBlock` - 火焰方块（自动选择普通火/灵魂火）
 - `WorldGenRegion` - 世界访问接口
 - `math::Random` - 随机数生成
 - `IChunkGenerator` - 区块生成器接口
