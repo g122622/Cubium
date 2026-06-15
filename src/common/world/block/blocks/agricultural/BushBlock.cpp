@@ -120,6 +120,11 @@ bool BushBlock::canSustain(const BlockState& groundState, IWorld& world, const B
 {
     // 委托给下方方块的 canSustainPlant 方法
     // 如果下方方块支持此植物的类型（通过 IPlantable 接口），则返回 true
+    //
+    // 注意：此实现替代了旧版的 groundState.getMaterial().isSolid() 检查。
+    // 旧版允许植物放置在任意固体方块上（包括石头），但 MC 原版 VegetationBlock.mayPlaceOn()
+    // 只允许放置在 DIRT 标签方块和耕地上。新的委托模式与原版行为一致。
+    // 如果某些自定义植物需要更宽松的放置条件，可以重写 canSustain() 方法。
     const Block& groundBlock = groundState.getBlock();
     return groundBlock.canSustainPlant(groundState, static_cast<IBlockReader&>(world), groundPos, Direction::Up, *this);
 }

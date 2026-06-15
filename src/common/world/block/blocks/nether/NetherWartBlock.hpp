@@ -26,7 +26,7 @@
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
-#include "../../PlantType.hpp"
+#include "common/world/block/PlantType.hpp"
 
 namespace mc {
 

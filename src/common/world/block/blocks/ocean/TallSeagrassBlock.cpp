@@ -26,8 +26,8 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../IWorld.hpp"
 #include "../../BlockRegistry.hpp"
-#include "../../PlantType.hpp"
 #include "../../WaterLoggableHelpers.hpp"
+#include "common/world/block/PlantType.hpp"
 
 namespace mc {
 namespace blocks {

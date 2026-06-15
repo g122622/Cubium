@@ -27,11 +27,11 @@
 #include "../../../../util/math/random/IRandom.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../block/PlantType.hpp"
 #include "../../../block/WaterLoggableHelpers.hpp"
 #include "../../../fluid/Fluid.hpp"
 #include "../../../fluid/FluidRegistry.hpp"
 #include "../../../fluid/FluidTags.hpp"
+#include "common/world/block/PlantType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {

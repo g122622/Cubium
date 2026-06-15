@@ -26,7 +26,7 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
-#include "../../PlantType.hpp"
+#include "common/world/block/PlantType.hpp"
 
 namespace mc {
 namespace blocks {

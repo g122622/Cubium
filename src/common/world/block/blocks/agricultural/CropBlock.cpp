@@ -209,11 +209,11 @@ const CollisionShape& CropBlock::getShape(const BlockState& state) const
 
 bool CropBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
 {
-    MC_UNUSED(world);
-    MC_UNUSED(groundPos);
-
-    // 农作物只能种在耕地上
-    return VanillaBlocks::FARMLAND != nullptr && groundState.is(VanillaBlocks::FARMLAND);
+    // 委托给下方方块的 canSustainPlant 方法
+    // CropBlock::getPlantType() 返回 PlantType::Crop，
+    // Block::canSustainPlant 的 Crop 分支只接受 Farmland
+    const Block& groundBlock = groundState.getBlock();
+    return groundBlock.canSustainPlant(groundState, static_cast<IBlockReader&>(world), groundPos, Direction::Up, *this);
 }
 
 PlantType CropBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
