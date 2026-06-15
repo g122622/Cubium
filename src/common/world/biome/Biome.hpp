@@ -75,10 +75,6 @@ public:
 
     // === 气候参数 ===
     [[nodiscard]] const BiomeClimate& climate() const { return m_climate; }
-    [[nodiscard]] f32 temperature() const { return m_climate.temperature; }
-    [[nodiscard]] f32 humidity() const { return m_climate.humidity; }
-    [[nodiscard]] f32 continentalness() const { return m_climate.continentalness; }
-    [[nodiscard]] f32 erosion() const { return m_climate.erosion; }
 
     /**
      * @brief 获取指定位置的高度调整温度
@@ -241,5 +237,4 @@ private:
 // 旧命名空间兼容别名
 namespace mc {
 using Biome = ::mc::world::biome::Biome;
-using BiomeClimate = ::mc::world::biome::BiomeClimate;
 } // namespace mc

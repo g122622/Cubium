@@ -254,8 +254,8 @@ void DebugScreenWidget::_buildLeftDebugText()
                     m_leftLines.push_back(oss.str());
 
                     oss.str("");
-                    oss << "Climate: T=" << std::fixed << std::setprecision(2) << biome->temperature()
-                        << " H=" << biome->humidity() << " C=" << biome->continentalness();
+                    oss << "Climate: T=" << std::fixed << std::setprecision(2) << biome->climate().temperature
+                        << " H=" << biome->climate().humidity << " C=" << biome->climate().continentalness;
                     m_leftLines.push_back(oss.str());
                 }
 

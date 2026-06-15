@@ -59,7 +59,7 @@ void addDefaultOverworldOres(BiomeGenerationSettings& settings)
 /**
  * @brief 为主世界生物群系添加标准雕刻器（洞穴 + 额外地下洞穴 + 峡谷）
  *
- * MC 1.21.11: 所有主世界非海洋生物群系都有这三种雕刻器。
+ * 所有主世界非海洋生物群系都有这三种雕刻器。
  * 参考: NoiseBasedChunkGenerator 中的 carver 列表注册。
  */
 void addOverworldCarvers(BiomeGenerationSettings& settings)
@@ -85,7 +85,7 @@ void addOverworldCarvers(BiomeGenerationSettings& settings)
 /**
  * @brief 为主世界海洋生物群系添加雕刻器（洞穴 + 峡谷，无额外地下洞穴）
  *
- * MC 1.21.11: 海洋生物群系只有 cave + canyon，没有 cave_extra_underground。
+ * 海洋生物群系只有 cave + canyon，没有 cave_extra_underground。
  */
 void addOverworldOceanCarvers(BiomeGenerationSettings& settings)
 {
@@ -105,7 +105,7 @@ void addOverworldOceanCarvers(BiomeGenerationSettings& settings)
 /**
  * @brief 为下界生物群系添加雕刻器（下界洞穴）
  *
- * MC 1.21.11: 所有下界生物群系都只有 nether_cave。
+ * 所有下界生物群系都只有 nether_cave。
  */
 void addNetherCarvers(BiomeGenerationSettings& settings)
 {

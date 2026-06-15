@@ -249,3 +249,9 @@ private:
 } // namespace biome
 } // namespace world
 } // namespace mc
+
+// 旧命名空间兼容别名
+namespace mc {
+using BiomeEffects = ::mc::world::biome::BiomeEffects;
+using GrassColorModifier = ::mc::world::biome::GrassColorModifier;
+} // namespace mc

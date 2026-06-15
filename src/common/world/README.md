@@ -13,12 +13,21 @@ world/
 ├── WorldEvents.hpp             # 世界事件ID常量
 ├── GlobalPos.hpp               # 全局位置类型
 ├── biome/                      # 生物群系系统
-│   ├── Biome.hpp/cpp           # 生物群系定义（170个群系）
-│   ├── BiomeSource.hpp/cpp     # 生物群系源基类
+│   ├── Biome.hpp/cpp           # 生物群系定义
+│   ├── BiomeClimate.hpp/cpp    # 气候参数
+│   ├── BiomeIds.hpp/cpp        # 生物群系ID常量
+│   ├── BiomeFactory.hpp        # 工厂函数声明
+│   ├── BiomeFactoryOverworld.cpp  # 主世界工厂
+│   ├── BiomeFactoryNether.cpp     # 下界工厂
+│   ├── BiomeFactoryEnd.cpp        # 末地工厂
+│   ├── BiomeTag.hpp/cpp           # 生物群系标签类型
+│   ├── BiomeTags.hpp/cpp          # 原版生物群系标签常量（IS_OCEAN 等）
+│   ├── BiomeTagLoader.hpp/cpp     # 生物群系标签加载器
+│   ├── BiomeSource.hpp/cpp     # 生物群系源基类 (IBiomeSource)
 │   ├── BiomeGenerationSettings.hpp/cpp  # 群系生成配置
 │   ├── BiomeRegistry.hpp/cpp   # 群系注册表
-│   ├── Biomes.hpp              # 群系ID常量
-│   ├── BiomeEffects.hpp/cpp    # 群系视觉效果
+│   ├── Biomes.hpp              # 聚合头文件
+│   ├── BiomeEffects.hpp        # 群系视觉效果（仅头文件，无 .cpp）
 │   ├── BiomeAmbientSounds.hpp  # 群系环境音效
 │   ├── climate/                # 气候系统
 │   └── source/                 # 群系源实现
@@ -209,7 +218,7 @@ world/
 **核心数据流**：
 - `IWorld` 作为统一访问接口，被 `ServerWorld`/`ClientWorld` 实现
 - 区块通过 `ChunkLoadTicketManager` → `SingleChunkLifecycleManager` → `ChunkPrimer` → `ChunkData` 流转
-- 生成器链：`NoiseChunkGenerator` 调用 `BiomeSource` → 噪声 → 地表 → 雕刻器 → 特性
+- 生成器链：`NoiseChunkGenerator` 调用 `IBiomeSource` → 噪声 → 地表 → 雕刻器 → 特性
 - 光照由 `WorldLightManager` 协调 `SkyLightEngine`/`BlockLightEngine`，使用 `SWMRNibbleArray` 存储
 
 ## 上下游外部依赖关系
@@ -244,6 +253,12 @@ world/
 ### 3. 生物群系采样分辨率
 **问题**：生物群系以 4x4x4 块存储，逐块查询会出错。
 **解决**：使用 `BiomeContainer` 进行正确的 4x4x4 采样。
+
+### 3b. 已移除的接口
+- `Biome::Category` 枚举已移除，改用 `BiomeTags` 系统判断生物群系分类
+- `BiomeEffects.cpp` 已移除，`BiomeEffects.hpp` 为 header-only
+- `isOceanOrRiverBiome()` 已移除，改用 `BiomeTags::IS_OCEAN` / `BiomeTags::IS_RIVER`
+- `Biome::temperature()` 访问器已移除，改用 `biome.climate().temperature`
 
 ### 4. 流体级别方向
 **问题**：流体级别向源头增加而非减少。

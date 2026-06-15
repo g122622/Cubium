@@ -33,6 +33,7 @@
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/blocks/ocean/BubbleColumnBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -222,7 +223,9 @@ void ClientApplication::updateWorldAudio()
         }
 
         // 判断是否在海洋或河流生物群系中（水下音乐只在海洋/河流中播放）
-        const bool inOceanOrRiverBiome = biome ? Biomes::isOceanOrRiverBiome(biome->id()) : false;
+        const bool inOceanOrRiverBiome = biome ? (world::biome::BiomeTags::IS_OCEAN().contains(biome->id()) ||
+                                                     world::biome::BiomeTags::IS_RIVER().contains(biome->id()))
+                                               : false;
 
         m_audioService->updateMusicState(dimension, inCreative, inBossFight, inOceanOrRiverBiome, biomeMusic);
 

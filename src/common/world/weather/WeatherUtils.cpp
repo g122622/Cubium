@@ -69,7 +69,7 @@ bool WeatherUtils::canRainAt(const mc::IWorld& world, const mc::BlockPos& pos)
         return false;
     }
 
-    return getPrecipitationType(biome->temperature()) == 1;
+    return getPrecipitationType(biome->climate().temperature) == 1;
 }
 
 bool WeatherUtils::canSnowAt(const mc::IWorld& world, const mc::BlockPos& pos)
@@ -87,7 +87,7 @@ bool WeatherUtils::canSnowAt(const mc::IWorld& world, const mc::BlockPos& pos)
         return false;
     }
 
-    return getPrecipitationType(biome->temperature()) == 2;
+    return getPrecipitationType(biome->climate().temperature) == 2;
 }
 
 i32 WeatherUtils::getRandomWeatherDuration(mc::math::IRandom& rng, i32 minTime, i32 maxTime)

@@ -8,16 +8,29 @@
 biome/
 ├── Biome.hpp                    # 生物群系定义类
 ├── Biome.cpp
+├── BiomeClimate.hpp             # 生物群系气候参数（温度/湿度/降水等）
+├── BiomeClimate.cpp
+├── BiomeIds.hpp                 # BiomeId 类型别名 + Biomes 命名空间常量
+├── BiomeIds.cpp
 ├── BiomeAmbientSounds.hpp       # 生物群系环境音效配置
-├── BiomeEffects.hpp             # 生物群系视觉效果（水色、雾色、天色等）
-├── BiomeEffects.cpp
+├── BiomeEffects.hpp             # 生物群系视觉效果（水色、雾色、天色等）— 仅头文件，无 .cpp
 ├── BiomeGenerationSettings.hpp  # 生物群系生成设置（特征配置）
 ├── BiomeGenerationSettings.cpp
-├── BiomeRegistry.hpp            # 生物群系注册表 + 工厂函数
+├── BiomeRegistry.hpp            # 生物群系注册表（单例）
 ├── BiomeRegistry.cpp
-├── BiomeSource.hpp              # 生物群系源基类
+├── BiomeFactory.hpp             # 生物群系工厂函数声明
+├── BiomeFactoryOverworld.cpp    # 主世界生物群系工厂函数
+├── BiomeFactoryNether.cpp       # 下界生物群系工厂函数
+├── BiomeFactoryEnd.cpp          # 末地及新生物群系工厂函数
+├── BiomeTag.hpp                 # 生物群系标签类型定义
+├── BiomeTag.cpp
+├── BiomeTags.hpp                # 原版生物群系标签常量（IS_OCEAN、IS_RIVER 等）
+├── BiomeTags.cpp
+├── BiomeTagLoader.hpp           # 生物群系标签加载器（从数据包读取标签定义）
+├── BiomeTagLoader.cpp
+├── BiomeSource.hpp              # 生物群系源基类 (IBiomeSource)，兼容别名 BiomeSource
 ├── BiomeSource.cpp
-├── Biomes.hpp                   # 生物群系 ID 常量 + isOceanOrRiverBiome() 工具函数
+├── Biomes.hpp                   # 生物群系系统聚合头文件
 ├── climate/                     # Climate 参数系统
 │   ├── Climate.hpp              # Parameter, ParameterPoint, TargetPoint, ParameterList, Sampler
 │   ├── Climate.cpp
@@ -27,8 +40,8 @@ biome/
 │   ├── MultiNoiseBiomeSource.cpp
 │   ├── OverworldBiomeBuilder.hpp  # 主世界生物群系参数构建器
 │   ├── OverworldBiomeBuilder.cpp
-│   ├── NetherBiomeSource.hpp      # 下界生物群系源
-│   ├── NetherBiomeSource.cpp
+│   ├── NetherBiomeBuilder.hpp     # 下界生物群系参数构建器
+│   ├── NetherBiomeBuilder.cpp
 │   ├── EndBiomeSource.hpp         # 末地生物群系源
 │   ├── EndBiomeSource.cpp
 │   └── README.md
@@ -42,7 +55,7 @@ biome/
 │                  ChunkGenerator                          │
 │                       │                                 │
 │                       ▼                                 │
-│                BiomeSource                              │
+│                IBiomeSource                              │
 │                       │                                 │
 │         ┌─────────────┼─────────────┐                   │
 │         │             │             │                   │
@@ -75,7 +88,7 @@ biome/
 ### 1. quart 坐标 vs 方块坐标
 quart 坐标 = 方块坐标 / 4。`getNoiseBiome()` 接收 quart 坐标，`fillBiomeContainer()` 内部自动转换。
 
-### 2. MC 1.18+ 多噪声系统的 6 个气候参数
+### 2. 多噪声系统的 6 个气候参数
 | 参数 | 范围 | 说明 |
 |------|------|------|
 | Temperature | [-1, 1] | 温度 |
@@ -88,7 +101,7 @@ quart 坐标 = 方块坐标 / 4。`getNoiseBiome()` 接收 quart 坐标，`fillB
 每个生物群系注册时定义一组 Climate Parameter 范围，系统通过最近邻匹配（fitness 计算）确定最匹配的生物群系。
 
 ### 3. OverworldBiomeBuilder 的 pick 方法使用 Parameter 而非 f64
-MC 1.21.11 中 `pickMiddleBiome` 等方法接收 `Climate.Parameter`（奇异度范围），通过 `weirdness.max >= 0` 判断正/负奇异度来选择变体生物群系。
+`pickMiddleBiome` 等方法接收 `Climate.Parameter`（奇异度范围），通过 `weirdness.max >= 0` 判断正/负奇异度来选择变体生物群系。
 
 ### 4. 13 个奇异度切片
 `addInlandBiomes()` 注册 13 个奇异度切片，覆盖完整的 [-1, 1] 范围：
@@ -104,3 +117,15 @@ MC 1.21.11 中 `pickMiddleBiome` 等方法接收 `Climate.Parameter`（奇异度
 
 ### 7. BiomeContainer 已移除
 原 `BiomeContainer.hpp/cpp` 已移除，生物群系存储现由 `IChunk` 内部管理。
+
+### 8. 已删除的文件和接口
+- **BiomeEffects.cpp** — 已删除，`BiomeEffects.hpp` 现为 header-only（所有方法内联）
+- **Biome::Category** — 已删除，生物群系分类改由 BiomeTags 系统替代
+- **isOceanOrRiverBiome()** — 已删除，改用 `BiomeTags::IS_OCEAN` / `BiomeTags::IS_RIVER` 判断
+- **Biome::temperature()** — 已移除，请使用 `biome.climate().temperature` 替代
+
+### 9. BiomeTag 标签系统
+`BiomeTag`/`BiomeTags`/`BiomeTagLoader` 提供基于标签的生物群系分类，替代了旧的 `Biome::Category` 枚举和硬编码判断函数（如 `isOceanOrRiverBiome`）：
+- `BiomeTag.hpp/cpp` — 标签类型定义，每个标签对应一组生物群系 ID
+- `BiomeTags.hpp/cpp` — 原版标签常量（`IS_OCEAN`、`IS_RIVER`、`IS_MOUNTAIN` 等）
+- `BiomeTagLoader.hpp/cpp` — 从数据包加载标签定义的加载器

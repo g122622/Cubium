@@ -54,7 +54,7 @@ inline constexpr f32 QUANTIZATION_FACTOR = 10000.0f;
  * @brief 气候参数范围
  *
  * 使用量化整数存储参数范围 [min, max]，优化最近邻搜索性能。
- * MC 1.21 中每个气候参数（temperature, humidity, continentalness, erosion, depth, weirdness）
+ * 每个气候参数（temperature, humidity, continentalness, erosion, depth, weirdness）
  * 都用 Parameter 定义其匹配范围。
  */
 struct Parameter {
@@ -233,7 +233,7 @@ struct ParameterPoint {
  * @brief 参数列表，支持基于最近邻匹配的生物群系查找
  *
  * 存储 ParameterPoint → T 的映射，通过 fitness() 查找最匹配的值。
- * MC 1.21 原版使用 RTree 加速搜索，当前实现使用线性搜索，
+ * 原版使用 RTree 加速搜索，当前实现使用线性搜索，
  * 后续可根据性能需求替换为 RTree。
  */
 template <typename T>

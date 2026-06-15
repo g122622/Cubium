@@ -195,3 +195,8 @@ private:
 } // namespace biome
 } // namespace world
 } // namespace mc
+
+// 旧命名空间兼容别名
+namespace mc {
+using BiomeAmbientSounds = ::mc::world::biome::BiomeAmbientSounds;
+} // namespace mc

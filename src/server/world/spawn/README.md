@@ -173,6 +173,5 @@ DespawnManager（消失管理）
 
 ### 9. 蘑菇岛检测
 
-蘑菇岛是 MC 1.16.5 中的安全区域，不会发生僵尸围攻。`isMushroomBiome()` 通过两种方式检测：
-1. 生物群系类别检查：`Biome::Category::Mushroom`
-2. 生物群系 ID 备用检查：直接比较 `Biomes::MushroomFields` 和 `Biomes::MushroomFieldShore`
+蘑菇岛是安全区域，不会发生僵尸围攻。`isMushroomBiome()` 通过生物群系 ID 检查：
+1. 直接比较 `Biomes::MushroomFields` 和 `Biomes::MushroomFieldShore`

@@ -147,6 +147,13 @@ public:
     /// 允许地表史莱姆生成的生物群系（沼泽、红树林沼泽）
     static BiomeTag& ALLOWS_SURFACE_SLIME_SPAWNS();
 
+    // ========== 生物群系类型标签 ==========
+
+    /// 海洋生物群系标签（#minecraft:is_ocean）
+    static BiomeTag& IS_OCEAN();
+    /// 河流生物群系标签（#minecraft:is_river）
+    static BiomeTag& IS_RIVER();
+
     /**
      * @brief 初始化所有内置标签
      *
@@ -184,3 +191,8 @@ private:
 };
 
 } // namespace mc::world::biome
+
+// 旧命名空间兼容别名
+namespace mc {
+using BiomeTags = ::mc::world::biome::BiomeTags;
+} // namespace mc

@@ -2,6 +2,7 @@
 
 #include "common/core/Constants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 
 namespace mc {
 namespace world {
@@ -46,7 +47,7 @@ bool OceanMonumentStructure::canGenerate(
     for (i32 dx = -outerRadius; dx <= outerRadius; dx += step) {
         for (i32 dz = -outerRadius; dz <= outerRadius; dz += step) {
             const BiomeId biome = generator.getBiome(centerX + dx, SEA_LEVEL, centerZ + dz);
-            if (!isOceanOrRiverBiome(biome)) {
+            if (!biome::BiomeTags::IS_OCEAN().contains(biome) && !biome::BiomeTags::IS_RIVER().contains(biome)) {
                 return false;
             }
         }

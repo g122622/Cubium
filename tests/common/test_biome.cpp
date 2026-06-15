@@ -27,6 +27,7 @@
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/BiomeSource.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/biome/source/EndBiomeSource.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/biome/source/NetherBiomeBuilder.hpp"
@@ -70,7 +71,7 @@ TEST_F(BiomeTest, SettersAndGetters)
     // 设置气候
     BiomeClimate climate(BiomeClimate::Precipitation::None, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f);
     biome.setClimate(climate);
-    EXPECT_FLOAT_EQ(biome.temperature(), 2.0f);
+    EXPECT_FLOAT_EQ(biome.climate().temperature, 2.0f);
     EXPECT_EQ(biome.climate().precipitation, BiomeClimate::Precipitation::None);
 
     // 设置方块 - 使用 VanillaBlocks
@@ -225,8 +226,8 @@ TEST_F(BiomeRegistryTest, CreateDesert)
     Biome desert = BiomeFactory::createDesert();
     EXPECT_EQ(desert.id(), Biomes::Desert);
     EXPECT_EQ(desert.name(), "desert");
-    EXPECT_FLOAT_EQ(desert.temperature(), 2.0f);
-    EXPECT_FLOAT_EQ(desert.humidity(), 0.0f);
+    EXPECT_FLOAT_EQ(desert.climate().temperature, 2.0f);
+    EXPECT_FLOAT_EQ(desert.climate().humidity, 0.0f);
     ASSERT_NE(desert.surfaceBlock(), nullptr);
     ASSERT_NE(desert.subSurfaceBlock(), nullptr);
     EXPECT_TRUE(desert.surfaceBlock()->is(VanillaBlocks::SAND));
@@ -284,7 +285,7 @@ TEST_F(BiomeRegistryTest, CreateWarmOcean)
     EXPECT_EQ(biome.name(), "warm_ocean");
     EXPECT_FLOAT_EQ(biome.depth(), -1.0f);
     EXPECT_FLOAT_EQ(biome.scale(), 0.1f);
-    EXPECT_FLOAT_EQ(biome.temperature(), 0.8f);
+    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.8f);
 }
 
 TEST_F(BiomeRegistryTest, CreateLukewarmOcean)
@@ -293,7 +294,7 @@ TEST_F(BiomeRegistryTest, CreateLukewarmOcean)
     EXPECT_EQ(biome.id(), Biomes::LukewarmOcean);
     EXPECT_EQ(biome.name(), "lukewarm_ocean");
     EXPECT_FLOAT_EQ(biome.depth(), -1.0f);
-    EXPECT_FLOAT_EQ(biome.temperature(), 0.6f);
+    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.6f);
 }
 
 TEST_F(BiomeRegistryTest, CreateColdOcean)
@@ -302,7 +303,7 @@ TEST_F(BiomeRegistryTest, CreateColdOcean)
     EXPECT_EQ(biome.id(), Biomes::ColdOcean);
     EXPECT_EQ(biome.name(), "cold_ocean");
     EXPECT_FLOAT_EQ(biome.depth(), -1.0f);
-    EXPECT_FLOAT_EQ(biome.temperature(), 0.3f);
+    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.3f);
 }
 
 TEST_F(BiomeRegistryTest, CreateColdOceanUsesColdOceanGenerationSettings)
@@ -490,8 +491,8 @@ TEST_F(BiomeRegistryTest, CreateMushroomFields)
     EXPECT_EQ(biome.name(), "mushroom_fields");
     EXPECT_FLOAT_EQ(biome.depth(), 0.2f);
     EXPECT_FLOAT_EQ(biome.scale(), 0.3f);
-    EXPECT_FLOAT_EQ(biome.temperature(), 0.9f);
-    EXPECT_FLOAT_EQ(biome.humidity(), 1.0f);
+    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.9f);
+    EXPECT_FLOAT_EQ(biome.climate().humidity, 1.0f);
 }
 
 TEST_F(BiomeRegistryTest, CreateMushroomFieldShore)
@@ -1016,49 +1017,57 @@ TEST_F(BiomeSourceFindBiomeTest, FindAnyBiomeWithRealOverworldSource)
 // Biomes::isOceanOrRiverBiome 测试
 // ============================================================================
 
-class IsOceanOrRiverBiomeTest : public ::testing::Test {};
+class IsOceanOrRiverBiomeTest : public ::testing::Test {
+protected:
+    void SetUp() override { BiomeTags::initialize(); }
+};
 
 TEST_F(IsOceanOrRiverBiomeTest, OceanBiomesReturnTrue)
 {
     // 所有海洋生物群系应返回 true
-    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::Ocean));
-    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::WarmOcean));
-    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::LukewarmOcean));
-    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::ColdOcean));
-    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::FrozenOcean));
-    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::DeepOcean));
-    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::DeepWarmOcean));
-    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::DeepLukewarmOcean));
-    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::DeepColdOcean));
-    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::DeepFrozenOcean));
+    EXPECT_TRUE(BiomeTags::IS_OCEAN().contains(Biomes::Ocean));
+    EXPECT_TRUE(BiomeTags::IS_OCEAN().contains(Biomes::WarmOcean));
+    EXPECT_TRUE(BiomeTags::IS_OCEAN().contains(Biomes::LukewarmOcean));
+    EXPECT_TRUE(BiomeTags::IS_OCEAN().contains(Biomes::ColdOcean));
+    EXPECT_TRUE(BiomeTags::IS_OCEAN().contains(Biomes::FrozenOcean));
+    EXPECT_TRUE(BiomeTags::IS_OCEAN().contains(Biomes::DeepOcean));
+    EXPECT_TRUE(BiomeTags::IS_OCEAN().contains(Biomes::DeepWarmOcean));
+    EXPECT_TRUE(BiomeTags::IS_OCEAN().contains(Biomes::DeepLukewarmOcean));
+    EXPECT_TRUE(BiomeTags::IS_OCEAN().contains(Biomes::DeepColdOcean));
+    EXPECT_TRUE(BiomeTags::IS_OCEAN().contains(Biomes::DeepFrozenOcean));
 }
 
 TEST_F(IsOceanOrRiverBiomeTest, RiverBiomesReturnTrue)
 {
     // 河流生物群系应返回 true
-    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::River));
-    EXPECT_TRUE(Biomes::isOceanOrRiverBiome(Biomes::FrozenRiver));
+    EXPECT_TRUE(BiomeTags::IS_RIVER().contains(Biomes::River));
+    EXPECT_TRUE(BiomeTags::IS_RIVER().contains(Biomes::FrozenRiver));
 }
 
 TEST_F(IsOceanOrRiverBiomeTest, NonOceanOrRiverBiomesReturnFalse)
 {
     // 非海洋/河流生物群系应返回 false
-    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::Plains));
-    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::Desert));
-    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::Forest));
-    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::Swamp));
-    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::Beach));
-    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::Mountains));
-    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::Taiga));
-    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::Jungle));
-    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::SoulSandValley));
-    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::CrimsonForest));
-    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(Biomes::TheEnd));
+    EXPECT_FALSE(BiomeTags::IS_OCEAN().contains(Biomes::Plains) || BiomeTags::IS_RIVER().contains(Biomes::Plains));
+    EXPECT_FALSE(BiomeTags::IS_OCEAN().contains(Biomes::Desert) || BiomeTags::IS_RIVER().contains(Biomes::Desert));
+    EXPECT_FALSE(BiomeTags::IS_OCEAN().contains(Biomes::Forest) || BiomeTags::IS_RIVER().contains(Biomes::Forest));
+    EXPECT_FALSE(BiomeTags::IS_OCEAN().contains(Biomes::Swamp) || BiomeTags::IS_RIVER().contains(Biomes::Swamp));
+    EXPECT_FALSE(BiomeTags::IS_OCEAN().contains(Biomes::Beach) || BiomeTags::IS_RIVER().contains(Biomes::Beach));
+    EXPECT_FALSE(
+        BiomeTags::IS_OCEAN().contains(Biomes::Mountains) || BiomeTags::IS_RIVER().contains(Biomes::Mountains));
+    EXPECT_FALSE(BiomeTags::IS_OCEAN().contains(Biomes::Taiga) || BiomeTags::IS_RIVER().contains(Biomes::Taiga));
+    EXPECT_FALSE(BiomeTags::IS_OCEAN().contains(Biomes::Jungle) || BiomeTags::IS_RIVER().contains(Biomes::Jungle));
+    EXPECT_FALSE(BiomeTags::IS_OCEAN().contains(Biomes::SoulSandValley) ||
+        BiomeTags::IS_RIVER().contains(Biomes::SoulSandValley));
+    EXPECT_FALSE(
+        BiomeTags::IS_OCEAN().contains(Biomes::CrimsonForest) || BiomeTags::IS_RIVER().contains(Biomes::CrimsonForest));
+    EXPECT_FALSE(BiomeTags::IS_OCEAN().contains(Biomes::TheEnd) || BiomeTags::IS_RIVER().contains(Biomes::TheEnd));
 }
 
 TEST_F(IsOceanOrRiverBiomeTest, InvalidBiomeIdReturnsFalse)
 {
     // 无效的ID应返回 false
-    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(static_cast<BiomeId>(9999)));
-    EXPECT_FALSE(Biomes::isOceanOrRiverBiome(static_cast<BiomeId>(200)));
+    EXPECT_FALSE(BiomeTags::IS_OCEAN().contains(static_cast<BiomeId>(9999)) ||
+        BiomeTags::IS_RIVER().contains(static_cast<BiomeId>(9999)));
+    EXPECT_FALSE(BiomeTags::IS_OCEAN().contains(static_cast<BiomeId>(200)) ||
+        BiomeTags::IS_RIVER().contains(static_cast<BiomeId>(200)));
 }

@@ -42,7 +42,7 @@ namespace biome {
 namespace source {
 
 /**
- * @brief 末地生物群系源（MC 1.18+）
+ * @brief 末地生物群系源
  *
  * 末地使用专用的生物群系选择算法，不同于 MultiNoiseBiomeSource。
  * 中央岛屿（距原点64格内）固定为 THE_END 生物群系，

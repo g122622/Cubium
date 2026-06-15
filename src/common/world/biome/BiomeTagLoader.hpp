@@ -45,7 +45,7 @@ namespace world::biome {
  *
  * 从数据包加载生物群系标签 JSON 文件。
  *
- * JSON 格式 (MC 1.16.5+):
+ * JSON 格式:
  * {
  *   "replace": false,
  *   "values": [

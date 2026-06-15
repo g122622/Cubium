@@ -73,7 +73,7 @@ protected:
 
 TEST_F(NetherSurfaceTest, NetherUsesNoiseChunkGenerator)
 {
-    // 验证下界可以使用 NoiseChunkGenerator + NetherBiomeSource 创建
+    // 验证下界可以使用 NoiseChunkGenerator + NetherBiomeBuilder 创建
     const u64 seed = 246813579ULL;
     DimensionSettings settings = DimensionSettings::nether();
     auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createNether(seed);

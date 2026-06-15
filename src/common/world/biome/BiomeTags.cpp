@@ -372,6 +372,26 @@ BiomeTag& BiomeTags::ALLOWS_SURFACE_SLIME_SPAWNS()
     return *tag;
 }
 
+// ========== 生物群系类型标签 ==========
+
+BiomeTag& BiomeTags::IS_OCEAN()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "is_ocean"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::IS_RIVER()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "is_river"));
+    }
+    return *tag;
+}
+
 // ============================================================================
 // 初始化
 // ============================================================================
@@ -982,6 +1002,31 @@ void BiomeTags::initialize()
     {
         auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "allows_surface_slime_spawns"));
         tag->addAll({Biomes::Swamp, Biomes::MangroveSwamp});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // ========== 生物群系类型标签 ==========
+
+    // is_ocean: 所有海洋生物群系
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_ocean"));
+        tag->addAll({Biomes::Ocean,
+            Biomes::DeepOcean,
+            Biomes::FrozenOcean,
+            Biomes::DeepFrozenOcean,
+            Biomes::WarmOcean,
+            Biomes::DeepWarmOcean,
+            Biomes::LukewarmOcean,
+            Biomes::DeepLukewarmOcean,
+            Biomes::ColdOcean,
+            Biomes::DeepColdOcean});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // is_river: 所有河流生物群系
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_river"));
+        tag->addAll({Biomes::River, Biomes::FrozenRiver});
         tags[tag->getId()] = std::move(tag);
     }
 

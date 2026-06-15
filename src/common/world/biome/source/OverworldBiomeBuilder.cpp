@@ -22,6 +22,7 @@
 
 #include "common/world/biome/source/OverworldBiomeBuilder.hpp"
 #include "common/world/biome/climate/Climate.hpp"
+#include <limits>
 
 namespace mc::world::biome::source {
 
@@ -29,7 +30,8 @@ using namespace climate;
 
 namespace B = Biomes;
 
-static constexpr BiomeId BIOME_NULL = static_cast<BiomeId>(-1);
+/// 哨兵值，表示该位置无生物群系变体
+static constexpr BiomeId BIOME_NULL = std::numeric_limits<BiomeId>::max();
 
 // ============================================================================
 // 构造函数

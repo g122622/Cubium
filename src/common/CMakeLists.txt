@@ -953,6 +953,9 @@ add_library(mc_common STATIC
     world/biome/BiomeClimate.cpp
     world/biome/BiomeSource.cpp
     world/biome/BiomeRegistry.cpp
+    world/biome/BiomeFactoryOverworld.cpp
+    world/biome/BiomeFactoryNether.cpp
+    world/biome/BiomeFactoryEnd.cpp
     world/biome/BiomeGenerationSettings.cpp
     world/biome/BiomeTag.cpp
     world/biome/BiomeTagLoader.cpp

@@ -160,8 +160,14 @@ const world::gen::noise::PerlinSimplexNoise& biomeInfoNoise();
  * @param modifier 温度修改器
  * @return 修改后的温度
  */
-[[nodiscard]] f32 applyTemperatureModifier(i32 x, i32 z, f32 baseTemperature, BiomeClimate::TemperatureModifier modifier);
+[[nodiscard]] f32 applyTemperatureModifier(
+    i32 x, i32 z, f32 baseTemperature, BiomeClimate::TemperatureModifier modifier);
 
 } // namespace biome
 } // namespace world
+} // namespace mc
+
+// 旧命名空间兼容别名
+namespace mc {
+using BiomeClimate = ::mc::world::biome::BiomeClimate;
 } // namespace mc

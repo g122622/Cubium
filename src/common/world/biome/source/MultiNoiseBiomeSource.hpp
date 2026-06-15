@@ -32,7 +32,7 @@ namespace biome {
 namespace source {
 
 /**
- * @brief 基于 Climate 参数的多噪声生物群系源（MC 1.18+）
+ * @brief 基于 Climate 参数的多噪声生物群系源
  *
  * 使用 6 个气候参数（temperature, humidity, continentalness, erosion, depth, weirdness）
  * 在三维空间中采样，通过最近邻匹配确定生物群系。

@@ -77,8 +77,8 @@ public:
 
         // 如果 colormap 可用，从 colormap 计算
         if (colorMap) {
-            const f32 temperature = std::clamp(biome.temperature(), 0.0f, 1.0f);
-            const f32 humidity = std::clamp(biome.humidity(), 0.0f, 1.0f) * temperature;
+            const f32 temperature = std::clamp(biome.climate().temperature, 0.0f, 1.0f);
+            const f32 humidity = std::clamp(biome.climate().humidity, 0.0f, 1.0f) * temperature;
             const i32 tempIndex = static_cast<i32>((1.0f - temperature) * 255.0f);
             const i32 humidityIndex = static_cast<i32>((1.0f - humidity) * 255.0f);
             const i32 colorIndex = (humidityIndex << 8) | tempIndex;

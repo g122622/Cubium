@@ -39,7 +39,7 @@ namespace biome {
 class Biome;
 
 /**
- * @brief 生物群系源接口（MC 1.18+）
+ * @brief 生物群系源接口
  *
  * 替代旧版 BiomeProvider，支持 3D 多噪声生物群系生成。
  * 核心接口是 getNoiseBiome()，接收 quart 坐标（1 quart = 4 blocks）。

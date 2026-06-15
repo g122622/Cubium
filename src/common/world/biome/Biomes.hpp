@@ -28,6 +28,7 @@
 // 核心定义
 #include "Biome.hpp"
 #include "BiomeClimate.hpp"
+#include "BiomeFactory.hpp"
 #include "BiomeIds.hpp"
 #include "BiomeRegistry.hpp"
 #include "BiomeSource.hpp"

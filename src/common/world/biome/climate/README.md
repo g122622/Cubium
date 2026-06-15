@@ -1,8 +1,8 @@
-# climate/ — MC 1.18+ 气候参数系统
+# climate/ — 气候参数系统
 
 ## 概述
 
-MC 1.18+ 引入的 3D 多噪声生物群系生成系统核心。取代旧版 2D 层叠生成，
+引入的 3D 多噪声生物群系生成系统核心。取代旧版 2D 层叠生成，
 通过 6 个气候参数（temperature, humidity, continentalness, erosion, depth, weirdness）
 在三维空间中采样，然后通过最近邻匹配确定生物群系。
 
@@ -38,7 +38,7 @@ ParameterList<BiomeId> ──findValue()──→ BiomeId
 
 - `common/world/biome/source/MultiNoiseBiomeSource` — 使用 Sampler + ParameterList
 - `common/world/biome/source/OverworldBiomeBuilder` — 构建主世界 ParameterList
-- `common/world/biome/source/NetherBiomeSource` — 构建下界 ParameterList
+- `common/world/biome/source/NetherBiomeBuilder` — 构建下界 ParameterList
 
 ## 容易踩的坑
 
@@ -47,5 +47,5 @@ ParameterList<BiomeId> ──findValue()──→ BiomeId
 2. **量化精度**：所有气候参数比较都基于量化后的整数值（×10000），
    不要直接比较浮点值
 3. **offset 字段**：ParameterPoint 的 offset 用于微调优先级，TargetPoint 中 offset 固定为 0
-4. **ParameterList 线性搜索**：当前实现使用线性搜索，MC 1.21 原版使用 RTree 加速，
+4. **ParameterList 线性搜索**：当前实现使用线性搜索，原版使用 RTree 加速，
    后续可根据性能需求替换

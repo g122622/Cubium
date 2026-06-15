@@ -88,3 +88,8 @@ private:
 };
 
 } // namespace mc::world::biome
+
+// 旧命名空间兼容别名
+namespace mc {
+using BiomeTag = ::mc::world::biome::BiomeTag;
+} // namespace mc
