@@ -522,7 +522,7 @@ TEST(TradeXpGossipTypeHelperTest, IsNegativeIsPositive)
 // ============================================================================
 //
 // 测试 MerchantOffers 的核心操作：添加、查询、补货、价格更新。
-// 这些操作是 _increaseMerchantCareer 追加交易和 restockTrades 的基础。
+// 这些操作是 _increaseMerchantCareer 追加交易和 restock 的基础。
 
 class MerchantOffersTest : public ::testing::Test {
 protected:

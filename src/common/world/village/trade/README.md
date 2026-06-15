@@ -33,13 +33,19 @@ MerchantOffers（交易列表管理）
     ├── addOffer() / removeOffer() / getOffer() — 列表操作
     ├── getOfferFor(buyA, buyB, hint) — 按物品匹配交易（支持双支付槽顺序交换）
     ├── restockAll() — 批量补货
-    ├── updatePrices(modifier) — 基于声誉更新价格
-    └── 持有多个 MerchantOffer（单个交易项）
+    ├── updateDemandAll() — 批量更新所有交易需求值
+    ├── needsRestockAny() — 检查是否有交易需要补货（任意uses > 0）
+    ├── resetDailyRestockAll() — 重置所有交易的每日补货计数
+    └── updatePrices(modifier) — 基于声誉更新价格
 
 MerchantOffer（单个交易项）
     ├── take(buyA, buyB) — 扣除支付物品（交易执行核心）
     ├── assemble() — 复制结果物品
-    ├── isOutOfStock() — 是否售罄
+    ├── isOutOfStock() — 是否售罄（uses >= maxUses）
+    ├── needsRestock() — 是否需要补货（uses > 0）
+    ├── updateDemand() — 更新需求值（demand += 2*uses - maxUses）
+    ├── restock() — 补货（重置uses=0，restocksToday++）
+    ├── resetDailyRestock() — 重置每日补货计数
     ├── getXp() / shouldRewardExp() — 经验奖励信息
     └── getBuyA() / getBuyB() / getSell() — 物品获取
 
@@ -93,10 +99,15 @@ VillagerTrades / WanderingTraderTrades
 最终价格 = 基础价格 + 特殊价格修正（来自流言/需求）。`getAdjustedBuyPrice()` 返回调整后的买入价格。
 
 ### 每日补货限制
-每日最多补货 2 次。补货时机由村民 AI 控制，不是自动的。
+每日最多补货 2 次。补货时机由 `VillagerEntity::shouldRestock()` 控制，该逻辑包含：
+- 跨天检测（距上次补货超过12000tick 或新游戏日开始）→ 重置每日补货次数并补偿需求
+- 允许补货检查：首次补货总是允许，第二次需间隔2400tick
+- 需要补货检查：任意交易被使用过（uses > 0）即触发补货
+- 需求补偿：跨天时，若昨日补货少于2次，对每次未补货执行额外的 restockAll + updateDemandAll
 
 ### 需求系统
-需求会动态影响价格。`applyDemand()` 应用需求调整，需求值来自交易次数统计。
+需求会动态影响价格。`updateDemand()` 计算公式：`demand = demand + uses - (maxUses - uses)`，即 `demand += 2*uses - maxUses`。
+使用次数超过一半时需求增加（价格上涨），反之需求减少（价格下降）。更新后重新计算特殊价格：`specialPrice = demand * priceMultiplier`。
 
 ### NBT 字段
 MerchantOffer 的 NBT 字段包括：`buy`、`buyB`（可选第二买入）、`sell`、`uses`、`maxUses`、`xp`、`priceMultiplier`、`specialPrice`、`demand`、`restocksToday`、`lastRestock`。

@@ -29,7 +29,7 @@ villager/
 Goal (基类)
 ├── SleepAtNightGoal      ─┐ 夜间睡眠相关
 ├── GoToBedGoal            │
-├── WorkAtJobSiteGoal     ─┼─ 工作相关
+├── WorkAtJobSiteGoal     ─┼─ 工作相关（含补货逻辑，300tick冷却检查）
 │   └── FarmerWorkGoal    ─┘    (继承WorkAtJobSiteGoal)
 ├── LookForJobSiteGoal    ─── 就业相关
 ├── GatherItemsGoal       ─── 物品收集

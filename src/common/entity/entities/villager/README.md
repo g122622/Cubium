@@ -37,6 +37,11 @@ AbstractVillagerEntity (抽象村民基类)
 │   ├── rewardTradeXp() — 增加经验，检测升级，生成经验球（3+random(4)，升级+5）
 │   ├── _handleTradeReputation() — 交易完成后更新村庄声望 + 开心村民粒子
 │   ├── _increaseMerchantCareer() — 为当前等级追加新交易（不再次升级）
+│   ├── shouldRestock() — 补货判定（跨天检测 + 每日2次限制 + needsRestock检查）
+│   ├── restock() — 执行补货（updateDemandAll + restockAll + 记录时间 + 增加计数）
+│   ├── needsToRestock() — 检查是否有交易被使用过（uses > 0）
+│   ├── allowedToRestock() — 每日补货许可（首次允许，第二次需间隔2400tick）
+│   ├── _catchUpDemand() — 跨天需求补偿（昨日少于2次补货时补偿）
 │   ├── 功能: 职业系统、工作站点、睡眠系统、流言传播
 │   └── tick()中处理: 升级计时器（40 tick后升级+再生效果）、交易声望更新
 │

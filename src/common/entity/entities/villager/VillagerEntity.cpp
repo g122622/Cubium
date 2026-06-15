@@ -120,7 +120,7 @@ void VillagerEntity::tick()
         m_soundCooldown--;
     }
 
-    // 处理交易声望和粒子效果（MC原版 customServerAiStep 逻辑）
+    // 处理交易声望和粒子效果
     // 每tick检查 m_lastTradedPlayer，非空时触发声望事件和开心粒子，然后置空
     if (m_lastTradedPlayer != nullptr && m_world) {
         _handleTradeReputation();
@@ -128,7 +128,7 @@ void VillagerEntity::tick()
     }
 
     // 处理交易升级计时器
-    // MC原版：仅在非交易状态时递减计时器，计时器到期时升级并生成新等级的交易
+    // 仅在非交易状态时递减计时器，计时器到期时升级并生成新等级的交易
     if (!isTrading() && m_updateMerchantTimer > 0) {
         m_updateMerchantTimer--;
         if (m_updateMerchantTimer <= 0) {
@@ -302,7 +302,7 @@ void VillagerEntity::work()
     m_working = true;
     m_workTime++;
 
-    // MC原版 WorkAtPoi 行为：在工作站点时检查是否需要补货
+    // 在工作站点时检查是否需要补货
     // 补货检查由 WorkAtJobSiteGoal::tick() 通过 shouldRestock() 触发，
     // 此处不再直接处理补货逻辑，避免与 Goal 层的补货逻辑冲突。
 }
@@ -445,22 +445,13 @@ void VillagerEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
 }
 
-void VillagerEntity::restockTrades()
-{
-    // 补充交易物品
-    if (m_offers) {
-        m_offers->restockAll();
-    }
-    m_lastRestock = m_workTime;
-}
-
 // ========== 补货系统 ==========
 
 bool VillagerEntity::shouldRestock()
 {
     if (!m_world) return false;
 
-    // MC原版 Villager.shouldRestock() 逻辑：
+    // 补货判定逻辑：
     // 1. 检测是否跨天（距上次补货超过12000tick 或 新的游戏日开始）
     // 2. 若跨天，重置每日补货次数（同时补偿需求更新）
     // 3. 返回 allowedToRestock() && needsToRestock()
@@ -491,7 +482,7 @@ bool VillagerEntity::shouldRestock()
 
 void VillagerEntity::restock()
 {
-    // MC原版 Villager.restock() 逻辑：
+    // 补货执行逻辑：
     // 1. 更新所有交易的需求值
     // 2. 重置所有交易的使用次数
     // 3. 记录补货时间
@@ -507,14 +498,14 @@ void VillagerEntity::restock()
 
 bool VillagerEntity::needsToRestock() const
 {
-    // MC原版 Villager.needsToRestock()：任意交易被使用过则需要补货
+    // 任意交易被使用过则需要补货
     if (!m_offers) return false;
     return m_offers->needsRestockAny();
 }
 
 bool VillagerEntity::allowedToRestock() const
 {
-    // MC原版 Villager.allowedToRestock()：
+    // 补货许可判定：
     // - 今日首次补货总是允许
     // - 第二次补货需要距上次补货至少2400tick（2分钟）
     // - 每日最多补货2次
@@ -536,7 +527,7 @@ void VillagerEntity::resetNumberOfRestocks()
 
 void VillagerEntity::_catchUpDemand()
 {
-    // MC原版 Villager.catchUpDemand()：
+    // 需求补偿逻辑：
     // 如果昨日补货少于2次，对每次未补货执行额外的 resetUses + updateDemand
     if (!m_offers) return;
 
@@ -701,7 +692,7 @@ void VillagerEntity::rewardTradeXp(MerchantOffer& offer)
 
 void VillagerEntity::_handleTradeReputation()
 {
-    // MC原版：交易完成后更新村庄声望（GossipType::Trading, +1）并播放开心村民粒子
+    // 交易完成后更新村庄声望（GossipType::Trading, +1）并播放开心村民粒子
     if (m_lastTradedPlayer == nullptr || m_world == nullptr) {
         return;
     }
@@ -718,13 +709,13 @@ void VillagerEntity::_handleTradeReputation()
         }
     }
 
-    // 播放开心村民粒子效果（MC原版 broadcastEntityEvent(this, (byte)14)）
+    // 播放开心村民粒子效果
     m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerHappy));
 }
 
 void VillagerEntity::_increaseMerchantCareer()
 {
-    // MC原版 increaseMerchantCareer 逻辑：
+    // 升级村民职业等级逻辑：
     // 1. 等级已在 addExperience() 中递增，此处不需要再次升级
     // 2. 为所有新等级生成交易并追加到现有交易列表（不替换）
     //
@@ -814,24 +805,6 @@ void WanderingTraderEntity::rewardTradeXp(MerchantOffer& offer)
 
         // 在流浪商人位置上方0.5格生成经验球
         entity::ExperienceDropHandler::spawnExperienceOrbs(m_world, x(), y() + 0.5, z(), xpOrbCount);
-    }
-}
-
-void WanderingTraderEntity::restockTrades()
-{
-    // 流浪商人会自动补充已用完的交易
-
-    if (m_offers == nullptr) {
-        return;
-    }
-
-    // 遍历所有交易，补充已用完的
-    for (size_t i = 0; i < m_offers->size(); ++i) {
-        MerchantOffer* offer = m_offers->getOffer(i);
-        if (offer != nullptr && offer->isOutOfStock()) {
-            // 重置交易次数
-            offer->restock();
-        }
     }
 }
 

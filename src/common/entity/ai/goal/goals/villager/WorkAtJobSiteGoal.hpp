@@ -81,7 +81,7 @@ protected:
     /**
      * @brief 检查是否需要补货
      *
-     * MC原版 WorkAtPoi 行为中在 start() 时检查 shouldRestock()。
+     * 在 start() 时检查 shouldRestock()。
      * 委托给 VillagerEntity::shouldRestock()，包含完整的补货判定逻辑：
      * - 跨天检测与每日补货次数重置
      * - 每日最多补货2次（第二次需间隔2400tick）
@@ -109,7 +109,7 @@ private:
     i64 m_lastRestockCheckTime = 0;                     // 上次检查补货的游戏时间
     static constexpr i32 WORK_TICKS_MIN = 100;          // 最小工作时间
     static constexpr i32 WORK_TICKS_MAX = 600;          // 最大工作时间
-    static constexpr i64 RESTOCK_CHECK_COOLDOWN = 300L; // 补货检查冷却（tick），MC原版300tick
+    static constexpr i64 RESTOCK_CHECK_COOLDOWN = 300L; // 补货检查冷却（tick），300tick
 };
 
 } // namespace villager

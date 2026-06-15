@@ -290,17 +290,12 @@ public:
      */
     void trySpreadGossip();
 
-    /**
-     * @brief 补充交易物品
-     */
-    void restockTrades();
-
     // ========== 补货系统 ==========
 
     /**
      * @brief 检查村民是否应该补货
      *
-     * MC原版 Villager.shouldRestock() 逻辑：
+     * 补货判定逻辑：
      * 1. 检测是否跨天（距上次补货超过12000tick 或 新的一天开始），若跨天则重置每日补货次数
      * 2. 判断是否允许补货（今日补货次数 < 2，且第二次补货需间隔2400tick）
      * 3. 判断是否需要补货（任意交易被使用过）
@@ -311,7 +306,7 @@ public:
     /**
      * @brief 执行补货
      *
-     * MC原版 Villager.restock() 逻辑：
+     * 补货执行逻辑：
      * 1. 更新所有交易的需求值
      * 2. 重置所有交易的使用次数
      * 3. 向正在交易的玩家重新发送交易列表
@@ -329,7 +324,7 @@ public:
     /**
      * @brief 检查是否允许补货
      *
-     * MC原版逻辑：
+     * 补货许可判定逻辑：
      * - 今日首次补货总是允许
      * - 第二次补货需要距离上次补货至少2400tick（2分钟）
      * - 每日最多补货2次
@@ -340,7 +335,7 @@ public:
      * @brief 重置每日补货次数
      *
      * 同时补偿错过的补货需求更新（catchUpDemand）。
-     * MC原版逻辑：如果昨日补货少于2次，对每次未补货执行额外的 resetUses + updateDemand。
+     * 如果昨日补货少于2次，对每次未补货执行额外的 resetUses + updateDemand。
      */
     void resetNumberOfRestocks();
 
@@ -396,7 +391,6 @@ private:
 
     // 行为状态
     i32 m_workTime = 0;
-    i32 m_lastRestock = 0;
     i32 m_numberOfRestocksToday = 0; // 今日补货次数（最多2次）
     i64 m_lastRestockGameTime = 0;   // 上次补货的游戏时间（tick）
     i64 m_lastRestockCheckDay = 0;   // 上次检查补货的游戏天数
@@ -424,7 +418,7 @@ private:
     /**
      * @brief 处理交易声望更新和开心粒子效果
      *
-     * MC原版 customServerAiStep 逻辑：交易完成后更新村庄声望
+     * 交易完成后更新村庄声望
      * 并播放开心村民粒子。每笔交易仅触发一次。
      */
     void _handleTradeReputation();
@@ -432,7 +426,7 @@ private:
     /**
      * @brief 升级村民职业等级并补充新等级的交易
      *
-     * MC原版 increaseMerchantCareer 逻辑：
+     * 升级村民职业等级逻辑：
      * 1. 增加村民等级（VillagerData.level + 1）
      * 2. 为新等级生成交易并追加到现有交易列表
      *
@@ -443,7 +437,7 @@ private:
     /**
      * @brief 补偿错过的需求更新
      *
-     * MC原版 catchUpDemand 逻辑：
+     * 需求补偿逻辑：
      * 如果昨日补货少于2次，对每次未补货执行 resetUses + updateDemand。
      * 这确保交易需求值在跨天后正确反映交易历史。
      */
@@ -511,11 +505,6 @@ public:
      * @brief 设置游荡目标位置
      */
     void setWanderTarget(const BlockPos& pos) { m_wanderTarget = pos; }
-
-    /**
-     * @brief 补充交易
-     */
-    void restockTrades();
 
     /**
      * @brief 生成贸易羊驼

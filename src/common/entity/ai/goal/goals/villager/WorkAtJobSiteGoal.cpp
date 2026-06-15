@@ -100,7 +100,7 @@ void WorkAtJobSiteGoal::tick()
         m_atJobSite = true;
         _doWork();
 
-        // MC原版 WorkAtPoi：在工作站点时检查补货，有300tick冷却
+        // 在工作站点时检查补货，有300tick冷却
         // shouldRestock() 内部也包含跨天检测和每日2次补货限制
         IWorld* world = m_villager->world();
         if (world) {
@@ -155,7 +155,7 @@ bool WorkAtJobSiteGoal::_needsRestock() const
 {
     if (!m_villager) return false;
 
-    // MC原版 WorkAtPoi.start() 中的补货检查：
+    // 补货检查逻辑：
     // 委托给 VillagerEntity::shouldRestock()，包含完整逻辑：
     // - 跨天检测（12000tick 或新游戏日）与每日补货次数重置
     // - 允许补货检查（每日最多2次，第二次需间隔2400tick）

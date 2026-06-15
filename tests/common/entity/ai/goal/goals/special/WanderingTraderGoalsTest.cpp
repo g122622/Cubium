@@ -424,10 +424,10 @@ TEST_F(WanderingTraderEntityTest, WanderTarget)
     EXPECT_EQ(m_trader->wanderTarget(), target);
 }
 
-TEST_F(WanderingTraderEntityTest, RestockTradesWithNoOffers)
+TEST_F(WanderingTraderEntityTest, RestockWithNoOffers)
 {
-    // 测试没有交易时的补充
-    m_trader->restockTrades();
+    // 测试没有交易时的补货
+    m_trader->restock();
     // 不应该崩溃
     SUCCEED();
 }
