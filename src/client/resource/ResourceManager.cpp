@@ -718,6 +718,18 @@ void ResourceManager::_computeBlockAppearances()
                 }
             }
 
+            // 解析粒子纹理（模型 JSON 中 textures.particle 字段）
+            auto particleIt = bakedModel.textures.find("particle");
+            if (particleIt != bakedModel.textures.end()) {
+                // particleIt->second 已经被 resolveTextureReferences 解析为实际的 ResourceLocation
+                ResourceLocation fullParticleTexLoc = _texturePathToLocation(particleIt->second.path());
+                const TextureRegion* particleRegion = _findTextureRegion(fullParticleTexLoc);
+                if (particleRegion) {
+                    appearance.particleTexture = *particleRegion;
+                    appearance.hasParticleTexture = true;
+                }
+            }
+
             totalAppearances++;
             if (!appearance.faceTextures.empty()) {
                 appearancesWithTextures++;

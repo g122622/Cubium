@@ -40,7 +40,9 @@ namespace mc::client::renderer::trident::particle::particles {
  *
  * 特性：
  * - 使用方块纹理（从 BlockModelCache 获取）
- * - 从 16x16 纹理中随机选取 4x4 区域
+ * - 优先使用模型中 textures.particle 指定的粒子纹理，
+ *   若无则回退到随机选取一个面的纹理
+ * - 从 16x16 纹理中随机选取 4x4 区域，模拟碎片效果
  * - 受重力影响
  * - 使用 TERRAIN_SHEET 渲染类型
  */
@@ -114,6 +116,9 @@ private:
 
     /// 是否成功获取了方块纹理
     bool m_hasValidTexture = false;
+
+    /// 纹理位置标识（用于 TERRAIN_SHEET 渲染类型）
+    ResourceLocation m_textureLocation{"minecraft:block/stone"};
 
     /**
      * @brief 初始化方块纹理

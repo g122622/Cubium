@@ -233,6 +233,10 @@ void BlockModelCache::_createMissingAppearance()
     m_missingAppearance->faceTextures["south"] = missingRegion;
     m_missingAppearance->faceTextures["west"] = missingRegion;
     m_missingAppearance->faceTextures["east"] = missingRegion;
+
+    // 缺失模型的粒子纹理与面纹理一致
+    m_missingAppearance->particleTexture = missingRegion;
+    m_missingAppearance->hasParticleTexture = true;
 }
 
 } // namespace mc

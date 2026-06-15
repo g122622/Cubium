@@ -54,6 +54,8 @@ struct BlockAppearance {
     std::map<std::string, TextureRegion> faceTextures;                      // 方向 -> 纹理区域
     std::map<std::string, i32> faceTintIndices;                             // 方向 -> tintindex（仅存储 >= 0）
     std::map<std::string, std::vector<FaceTextureLayer>> faceTextureLayers; // 方向 -> 多层纹理（按模型顺序）
+    TextureRegion particleTexture = {0.0, 0.0, 1.0, 1.0};                   // 模型中 textures.particle 指定的粒子纹理
+    bool hasParticleTexture = false;                                        // 是否有有效的粒子纹理
     i32 xRotation = 0;                                                      // X轴旋转
     i32 yRotation = 0;                                                      // Y轴旋转
     bool uvLock = false;

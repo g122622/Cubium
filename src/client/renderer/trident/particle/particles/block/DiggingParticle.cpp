@@ -49,6 +49,8 @@ constexpr f64 DEFAULT_V1 = 1.0;
 /**
  * @brief 从 BlockAppearance 中随机选择一个面的纹理
  *
+ * 当方块模型没有指定粒子纹理时的回退策略。
+ *
  * @param appearance 方块外观
  * @param rng 随机数生成器
  * @return 纹理区域，如果没有可用纹理返回 nullopt
@@ -108,8 +110,6 @@ std::unique_ptr<Particle> DiggingParticle::create(
     const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
-    // TODO: 默认石头方块状态的获取方式不够健壮，应考虑统一初始化或移除此默认工厂方法
-    // 实际使用时应通过 createWithBlock 创建
     static const BlockState* defaultStoneState = nullptr;
     if (!defaultStoneState) {
         // 尝试获取石头方块状态
@@ -170,8 +170,7 @@ void DiggingParticle::tick(mc::client::ClientWorld* world)
 
 ResourceLocation DiggingParticle::getTextureLocation() const
 {
-    // TODO: 应根据 m_blockState 动态返回对应的方块纹理路径，而非硬编码石头纹理
-    return ResourceLocation("minecraft:block/stone");
+    return m_textureLocation;
 }
 
 void DiggingParticle::buildVertices(const glm::vec3& cameraPos,
@@ -289,6 +288,7 @@ void DiggingParticle::_initializeBlockTexture()
     if (!modelCache) {
         spdlog::warn("DiggingParticle: BlockModelCache not available, using default texture");
         m_hasValidTexture = false;
+        m_textureLocation = ResourceLocation("minecraft:block/stone");
         return;
     }
 
@@ -299,18 +299,33 @@ void DiggingParticle::_initializeBlockTexture()
         appearance = modelCache->getMissingAppearance();
         if (!appearance) {
             m_hasValidTexture = false;
+            m_textureLocation = ResourceLocation("minecraft:block/stone");
             return;
         }
     }
 
-    // 随机选择一个面的纹理
-    auto textureRegion = selectRandomFaceTexture(appearance, m_random);
-
-    if (textureRegion.has_value()) {
-        m_textureRegion = textureRegion.value();
+    // 优先使用模型中 textures.particle 指定的粒子纹理
+    if (appearance->hasParticleTexture) {
+        m_textureRegion = appearance->particleTexture;
         m_hasValidTexture = true;
     } else {
-        m_hasValidTexture = false;
+        // 回退：从方块所有面纹理中随机选一个
+        auto textureRegion = selectRandomFaceTexture(appearance, m_random);
+        if (textureRegion.has_value()) {
+            m_textureRegion = textureRegion.value();
+            m_hasValidTexture = true;
+        } else {
+            m_hasValidTexture = false;
+        }
+    }
+
+    // 设置纹理位置（用于 TERRAIN_SHEET 渲染类型标识方块纹理图集）
+    // 对于 TERRAIN_SHEET 粒子，实际渲染使用 buildVertices 中预计算的 m_textureRegion，
+    // getTextureLocation() 返回的路径仅用于标识纹理来源
+    if (m_hasValidTexture) {
+        m_textureLocation = ResourceLocation("minecraft:block/stone");
+    } else {
+        m_textureLocation = ResourceLocation("minecraft:block/stone");
     }
 }
 
