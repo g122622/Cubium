@@ -13,6 +13,7 @@ special/
 ├── FishBucketItem.cpp/hpp   # 鱼桶（放置水并生成鱼）
 ├── FlintAndSteelItem.cpp/hpp # 打火石（点火、点燃下界传送门）
 ├── MilkBucketItem.cpp/hpp   # 牛奶桶（清除药水效果）
+├── MusicDiscItem.cpp/hpp    # 音乐唱片（放入唱片机播放，比较器信号1-15）
 ├── NameTagItem.cpp/hpp      # 命名牌（给生物命名、持久化）
 ├── OnAStickItem.cpp/hpp     # 钓竿类物品基类（控制可骑乘实体）
 ├── SaddleItem.cpp/hpp       # 鞍（装备可骑乘实体）
@@ -67,3 +68,4 @@ special/
 6. **BoneMealItem 水下使用**：需检查目标位置是否为完整水源方块（流体等级 == 8）
 7. **SpawnEggItem 实体类型不可拷贝**：`EntityType` 的拷贝构造函数是 deleted 的，`getEntityType()` 返回 `const EntityType&`（引用），构造函数参数按值传递后需用 `std::move` 初始化成员
 8. **SpawnEggItem 命名空间**：`spawnEntity()` 方法中的 `SpawnReason` 属于 `world::spawn` 命名空间，非 `entity` 命名空间
+9. **MusicDiscItem 信号强度**：比较器输出范围 [1, 15]，构造函数有 `MC_ASSERT_RELEASE_MSG` 断言。JukeboxBlock::onBlockActivated() 通过 `isMusicDisc()` 识别唱片，JukeboxEntity::getComparatorSignal() 通过 `dynamic_cast<MusicDiscItem*>` 获取信号强度

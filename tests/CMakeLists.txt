@@ -71,6 +71,8 @@ add_executable(mc_tests
     common/item/special/FishBucketItemTest.cpp
     common/item/special/BoneMealItemTest.cpp
     common/item/special/OnAStickItemTest.cpp
+    # MusicDiscItem 音乐唱片测试（比较器信号、isMusicDisc、声音事件ID）
+    common/item/special/MusicDiscItemTest.cpp
     common/world/map/MaterialColorTest.cpp
     common/world/map/MapDataTest.cpp
     common/item/food/ChorusFruitItemTest.cpp
@@ -309,6 +311,8 @@ add_executable(mc_tests
     common/world/blockentity/CommandBlockEntityTest.cpp
     # BannerEntity 旗帜方块实体测试（图案存储、底色、自定义名称、NBT序列化）
     common/world/blockentity/BannerEntityTest.cpp
+    # JukeboxEntity 唱片机方块实体测试（播放/停止、比较器信号、序列化、tick）
+    common/world/blockentity/JukeboxEntityTest.cpp
     # BannerPattern 旗帜图案工具类测试（hashname、文件名、图案物品判断）
     common/world/blockentity/BannerPatternTest.cpp
     # VaultBlockEntity 宝库方块实体测试（状态机、钥匙插入、战利品弹出、玩家检测）

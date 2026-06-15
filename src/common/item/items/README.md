@@ -40,6 +40,7 @@ items/
 │   ├── FishBucketItem.hpp/cpp   # 鱼桶（桶装鱼实体）
 │   ├── FlintAndSteelItem.hpp/cpp # 打火石
 │   ├── MilkBucketItem.hpp/cpp   # 奶桶（清除效果）
+│   ├── MusicDiscItem.hpp/cpp    # 音乐唱片（放入唱片机播放，比较器信号1-15）
 │   ├── NameTagItem.hpp/cpp      # 命名牌
 │   ├── OnAStickItem.hpp/cpp     # 钓鱼竿类物品基类
 │   ├── SaddleItem.hpp/cpp       # 鞍

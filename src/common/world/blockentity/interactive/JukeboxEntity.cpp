@@ -91,7 +91,9 @@ void JukeboxEntity::startPlaying(IWorld& world)
 
     m_isPlaying = true;
     m_ticksSinceSongStarted = 0;
-    m_songLengthTicks = 0; // 歌曲长度未知，播放直到唱片被移除
+    m_songLengthTicks = 0; // TODO: 歌曲长度未知，播放直到唱片被移除。需要实现JukeboxSong注册表，
+                           // 存储每首唱片的lengthInSeconds，在startPlaying()中计算lengthInTicks
+                           // = ceil(lengthInSeconds * 20)，并在tick()中检测hasFinished()自动停止
 
     setChanged();
 }
@@ -142,6 +144,10 @@ void JukeboxEntity::tick(IWorld& world)
     }
 
     ++m_ticksSinceSongStarted;
+
+    // TODO: 歌曲自动结束检测。原版MC中JukeboxSongPlayer.tick()会在
+    // ticksSinceSongStarted >= lengthInTicks + 20时自动调用stop()。
+    // 当前m_songLengthTicks始终为0（未知），需要实现JukeboxSong注册表后补充。
 
     // 每20tick（1秒）触发一次音符粒子效果和游戏事件
     // 参考 MC 1.21.11: JukeboxSongPlayer.tick() 中 shouldEmitJukeboxPlayingEvent()

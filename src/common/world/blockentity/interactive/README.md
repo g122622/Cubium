@@ -12,7 +12,7 @@ interactive/
 ├── DropperBlockEntity.hpp/cpp     # 投掷器方块实体（继承DispenserBlockEntity）
 ├── EnchantingTableEntity.hpp/cpp  # 附魔台方块实体（附魔力量计算、书本动画）
 ├── EndGatewayEntity.hpp/cpp       # 末地折跃门方块实体（传送逻辑、两套冷却时间）
-├── JukeboxEntity.hpp/cpp          # 唱片机方块实体（唱片播放、1槽位）
+├── JukeboxEntity.hpp/cpp          # 唱片机方块实体（唱片播放、比较器信号、1槽位，通过MusicDiscItem获取信号强度）
 ├── LecternEntity.hpp/cpp          # 讲台方块实体（书本展示、翻页、红石信号）
 ├── PistonBlockEntity.hpp/cpp      # 活塞方块实体（方块移动动画）
 ├── SignEntity.hpp/cpp             # 告示牌方块实体（富文本存储、点击事件）
@@ -121,3 +121,15 @@ JSON 序列化（`load`/`save`，用于区块存档）和 NBT 序列化（`loadF
 ### 9. JukeboxEntity 继承 ContainerBlockEntity 而非 LootableContainerBlockEntity
 
 唱片机不支持战利品表填充，只有 1 个槽位存放唱片。与 DispenserBlockEntity 不同。
+
+### 10. JukeboxEntity::setRecord() 需要传入 IWorld&
+
+`setRecord(const ItemStack& record, IWorld& world)` 方法内部会调用 `startPlaying()`/`stopPlaying()`，这些方法需要 `IWorld` 来广播音效事件。调用方（JukeboxBlock）负责更新 `HAS_RECORD` 方块状态。
+
+### 11. JukeboxEntity 歌曲自动结束尚未实现
+
+`m_songLengthTicks` 始终为 0，歌曲不会自动结束。需要实现 JukeboxSong 注册表存储每首唱片的 `lengthInSeconds`，在 `startPlaying()` 中计算 `lengthInTicks`，并在 `tick()` 中检测播放完成。当前播放直到唱片被手动或漏斗移除才停止。
+
+### 12. MusicDiscItem 信号强度映射
+
+JukeboxEntity::getComparatorSignal() 通过 `dynamic_cast<MusicDiscItem*>` 获取信号强度。如果唱片不是 MusicDiscItem 类型（如旧版直接用 Item 基类注册的），信号强度为 0。
