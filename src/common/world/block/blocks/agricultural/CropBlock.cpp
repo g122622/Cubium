@@ -209,12 +209,18 @@ const CollisionShape& CropBlock::getShape(const BlockState& state) const
 
 bool CropBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
 {
-
     MC_UNUSED(world);
     MC_UNUSED(groundPos);
 
     // 农作物只能种在耕地上
     return VanillaBlocks::FARMLAND != nullptr && groundState.is(VanillaBlocks::FARMLAND);
+}
+
+PlantType CropBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return PlantType::Crop;
 }
 
 f32 CropBlock::getGrowthChance(const Block& block, IBlockReader& world, const BlockPos& pos)

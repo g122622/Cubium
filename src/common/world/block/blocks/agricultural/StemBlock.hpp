@@ -140,6 +140,11 @@ protected:
         const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;
 
     /**
+     * @brief 获取植物类型 - 茎类作物返回 PlantType::Crop
+     */
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
+
+    /**
      * @brief 尝试生成果实
      * @return 如果成功生成了果实返回true
      */
@@ -261,6 +266,13 @@ public:
      * @brief 获取对应的果实方块
      */
     [[nodiscard]] const StemGrownBlock* getCrop() const { return m_crop; }
+
+    // ========== IPlantable 接口 ==========
+
+    /**
+     * @brief 获取植物类型 - 连接茎返回 PlantType::Crop
+     */
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
 
 protected:
     /// 对应的果实方块

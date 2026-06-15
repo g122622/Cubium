@@ -22,23 +22,22 @@
  */
 
 #include "FarmlandBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../fluid/Fluid.hpp"
-#include "../../../fluid/FluidTags.hpp"
-#include "../../../tick/manager/TickManager.hpp"
-#include "../../PlantType.hpp"
-#include "CropBlock.hpp"
-#include "StemBlock.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MoverType.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/PlantType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace blocks {
@@ -277,6 +276,8 @@ bool FarmlandBlock::hasWater(IWorld& world, const BlockPos& pos)
 bool FarmlandBlock::hasCrops(IWorld& world, const BlockPos& pos)
 {
     // 检查上方是否有作物
+    // 对齐 MC 1.21.11 FarmBlock.shouldMaintainFarmland()：
+    // 使用 MAINTAINS_FARMLAND 方块标签检测，而非 IPlantable 动态类型检查
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
 
@@ -284,18 +285,24 @@ bool FarmlandBlock::hasCrops(IWorld& world, const BlockPos& pos)
         return false;
     }
 
-    const Block& aboveBlock = aboveState->getBlock();
+    return BlockTags::MAINTAINS_FARMLAND().contains(*aboveState);
+}
 
-    // 检查方块是否实现了 IPlantable 接口
-    const IPlantable* plantable = dynamic_cast<const IPlantable*>(&aboveBlock);
-    if (plantable != nullptr) {
-        // 耕地可以支撑 IPlantable 类型的植物
-        return true;
+bool FarmlandBlock::canSustainPlant(
+    const BlockState& state, IBlockReader& world, const BlockPos& pos, Direction facing, const IPlantable& plant) const
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+
+    // 耕地只支撑朝上方向的植物
+    if (facing != Direction::Up) {
+        return false;
     }
 
-    // 后备检查：使用 AGE_0_7 属性检测作物
-    // TODO: 未来应使用 canSustainPlant 方法进行更精确的判断
-    return aboveState->hasProperty(BlockStateProperties::AGE_0_7());
+    // 耕地支持 Crop 类型（农作物）和 Plains 类型（花、树苗等可种植在耕地上的植物）
+    PlantType plantType = plant.getPlantType(const_cast<IBlockReader&>(world), pos);
+    return plantType == PlantType::Crop || plantType == PlantType::Plains;
 }
 
 } // namespace blocks

@@ -27,6 +27,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
+#include "common/world/block/PlantType.hpp"
 
 namespace mc {
 
@@ -41,10 +42,11 @@ namespace blocks {
  *
  * 所有植物类方块的基类，提供基本的放置逻辑和形状。
  * 植物只能在特定地面（草地、泥土、耕地等）上放置。
+ * 默认返回 PlantType::Plains，子类可重写 getPlantType() 返回其他类型。
  *
  * 参考: net.minecraft.block.BushBlock
  */
-class BushBlock : public Block {
+class BushBlock : public Block, public IPlantable {
 public:
     /**
      * @brief 构造函数
@@ -118,6 +120,21 @@ protected:
      */
     [[nodiscard]] virtual bool canSustain(
         const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const;
+
+    // ========== IPlantable 接口实现 ==========
+
+    /**
+     * @brief 获取植物类型
+     *
+     * 默认返回 PlantType::Plains，子类可重写返回其他类型。
+     * 例如：CropBlock 返回 PlantType::Crop，LilyPadBlock 返回 PlantType::Water。
+     */
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
+
+    /**
+     * @brief 获取植物方块状态
+     */
+    [[nodiscard]] const BlockState& getPlant(IBlockReader& world, const BlockPos& pos) const override;
 
     /// 植物形状（默认为完整方块大小）
     CollisionShape m_shape;

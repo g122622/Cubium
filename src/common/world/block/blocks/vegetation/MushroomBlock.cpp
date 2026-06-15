@@ -151,6 +151,21 @@ const CollisionShape& MushroomBlock::getCollisionShape(const BlockState& state) 
     return emptyShape;
 }
 
+// ========== IPlantable 接口实现 ==========
+
+PlantType MushroomBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return PlantType::Cave;
+}
+
+const BlockState& MushroomBlock::getPlant(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    return defaultState();
+}
+
 // ========== HugeMushroomBlock ==========
 
 HugeMushroomBlock::HugeMushroomBlock(const BlockProperties& properties)

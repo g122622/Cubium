@@ -72,6 +72,11 @@ protected:
      */
     [[nodiscard]] bool canSustain(
         const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;
+
+    /**
+     * @brief 获取植物类型 - 下界菌索返回 PlantType::Nether
+     */
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
 };
 
 } // namespace blocks

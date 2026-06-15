@@ -203,11 +203,17 @@ const CollisionShape& StemBlock::getShape(const BlockState& state) const
 
 bool StemBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
 {
-
     MC_UNUSED(world);
     MC_UNUSED(groundPos);
 
     return VanillaBlocks::FARMLAND != nullptr && groundState.is(VanillaBlocks::FARMLAND);
+}
+
+PlantType StemBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return PlantType::Crop;
 }
 
 bool StemBlock::tryGrowFruit(const BlockState& state, IWorld& world, const BlockPos& pos, math::IRandom& random)
@@ -366,6 +372,13 @@ const BlockState& AttachedStemBlock::mirror(const BlockState& state, Mirror mirr
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Rotation rotation = Directions::mirrorToRotation(mirror, facing);
     return rotate(state, rotation);
+}
+
+PlantType AttachedStemBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return PlantType::Crop;
 }
 
 } // namespace blocks

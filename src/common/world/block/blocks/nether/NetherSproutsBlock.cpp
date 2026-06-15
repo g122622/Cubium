@@ -61,5 +61,12 @@ bool NetherSproutsBlock::canSustain(const BlockState& groundState, IWorld& world
     return BushBlock::canSustain(groundState, world, groundPos);
 }
 
+PlantType NetherSproutsBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return PlantType::Nether;
+}
+
 } // namespace blocks
 } // namespace mc

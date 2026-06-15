@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../Material.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 
 namespace mc {
 
@@ -130,8 +130,23 @@ public:
 
     /**
      * @brief 检查上方是否有作物
+     *
+     * 使用 MAINTAINS_FARMLAND 方块标签检测，与 MC 原版逻辑一致。
      */
     [[nodiscard]] static bool hasCrops(IWorld& world, const BlockPos& pos);
+
+    // ========== 植物支撑 ==========
+
+    /**
+     * @brief 检查耕地是否可以支撑指定类型的植物
+     *
+     * 耕地支持 PlantType::Crop（农作物）类型的植物。
+     */
+    [[nodiscard]] bool canSustainPlant(const BlockState& state,
+        IBlockReader& world,
+        const BlockPos& pos,
+        Direction facing,
+        const IPlantable& plant) const override;
 
 private:
     /// 耕地形状（高度15像素）

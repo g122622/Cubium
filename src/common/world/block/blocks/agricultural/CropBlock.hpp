@@ -171,6 +171,11 @@ protected:
         const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;
 
     /**
+     * @brief 获取植物类型 - 农作物返回 PlantType::Crop
+     */
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
+
+    /**
      * @brief 计算生长速度（静态方法，供 StemBlock 使用）
      *
      * 考虑周围耕地湿润度和同类作物拥挤程度

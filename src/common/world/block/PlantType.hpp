@@ -27,6 +27,10 @@
 
 namespace mc {
 
+// 前向声明
+class IBlockReader;
+class BlockState;
+
 /**
  * @brief 植物类型枚举
  *

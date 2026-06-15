@@ -109,13 +109,19 @@ void LilyPadBlock::onEntityCollision(const BlockState& state, IWorld& world, con
 
 bool LilyPadBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
 {
-
     MC_UNUSED(world);
     MC_UNUSED(groundPos);
 
     // 睡莲需要水作为支撑
     const Material& material = groundState.getMaterial();
     return material.isLiquid();
+}
+
+PlantType LilyPadBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return PlantType::Water;
 }
 
 } // namespace blocks

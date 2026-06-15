@@ -23,10 +23,11 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../Material.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/block/PlantType.hpp"
 
 namespace mc {
 
@@ -44,7 +45,7 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.MushroomBlock
  */
-class MushroomBlock : public Block {
+class MushroomBlock : public Block, public IPlantable {
 public:
     /**
      * @brief 构造函数
@@ -85,6 +86,18 @@ public:
 protected:
     /// 蘑菇形状
     CollisionShape m_shape;
+
+    // ========== IPlantable 接口实现 ==========
+
+    /**
+     * @brief 获取植物类型 - 蘑菇返回 PlantType::Cave
+     */
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
+
+    /**
+     * @brief 获取植物方块状态
+     */
+    [[nodiscard]] const BlockState& getPlant(IBlockReader& world, const BlockPos& pos) const override;
 };
 
 /**

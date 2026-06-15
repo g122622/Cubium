@@ -27,6 +27,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/PlantType.hpp"
 
 namespace mc {
 namespace blocks {
@@ -117,16 +118,27 @@ const CollisionShape& BushBlock::getOcclusionShape(const BlockState& state) cons
 
 bool BushBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
 {
+    // 委托给下方方块的 canSustainPlant 方法
+    // 如果下方方块支持此植物的类型（通过 IPlantable 接口），则返回 true
+    const Block& groundBlock = groundState.getBlock();
+    return groundBlock.canSustainPlant(groundState, static_cast<IBlockReader&>(world), groundPos, Direction::Up, *this);
+}
 
+// ========== IPlantable 接口实现 ==========
+
+PlantType BushBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
     MC_UNUSED(world);
-    MC_UNUSED(groundPos);
+    MC_UNUSED(pos);
+    // 默认植物类型为平原（大多数花草、树苗等）
+    // 子类可重写返回其他类型
+    return PlantType::Plains;
+}
 
-    // 默认实现：检查是否为草地或泥土
-    const Material& material = groundState.getMaterial();
-
-    // 检查是否为固体且可支撑植物
-    // 实际 MC 中有更复杂的逻辑，包括 IPlantable 接口
-    return material.isSolid() && !material.isLiquid();
+const BlockState& BushBlock::getPlant(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    return defaultState();
 }
 
 } // namespace blocks

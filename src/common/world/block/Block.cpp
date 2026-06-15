@@ -43,9 +43,11 @@
 #include "BlockRegistry.hpp"
 #include "BlockSoundType.hpp"
 #include "BlockState.hpp"
+#include "BlockTags.hpp"
 #include "FireInfoRegistry.hpp"
 #include "Material.hpp"
 #include "PlantType.hpp"
+#include "registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -542,14 +544,51 @@ bool Block::isReplaceable(const BlockState& state, BlockItemUseContext& context)
 bool Block::canSustainPlant(
     const BlockState& state, IBlockReader& world, const BlockPos& pos, Direction facing, const IPlantable& plant) const
 {
-    // 默认实现：不支持任何植物
-    // 子类（如草方块、泥土、耕地等）应重写此方法
-    (void)state;
-    (void)world;
-    (void)pos;
-    (void)facing;
-    (void)plant;
-    return false;
+    // 默认实现：根据植物类型检查此方块是否可支撑该植物
+    // 对齐 MC 1.21.11 中各土壤方块的 canSustainPlant 逻辑
+    const PlantType plantType = plant.getPlantType(world, pos);
+
+    switch (plantType) {
+        case PlantType::Plains:
+            // 平原植物（花草、树苗等）：可在泥土类方块和耕地上种植
+            return BlockTags::DIRT().contains(state) ||
+                (VanillaBlocks::FARMLAND != nullptr && state.is(VanillaBlocks::FARMLAND));
+
+        case PlantType::Crop:
+            // 农作物：只能在耕地上种植
+            return VanillaBlocks::FARMLAND != nullptr && state.is(VanillaBlocks::FARMLAND);
+
+        case PlantType::Desert:
+            // 沙漠植物（仙人掌）：可在沙子上种植
+            return BlockTags::SAND().contains(state);
+
+        case PlantType::Beach:
+            // 海滩植物（甘蔗）：可在泥土类方块和沙子上种植
+            // 注意：甘蔗还需要相邻水源，此检查由甘蔗自身在 isValidPosition 中完成
+            return BlockTags::DIRT().contains(state) || BlockTags::SAND().contains(state);
+
+        case PlantType::Cave:
+            // 洞穴植物（蘑菇）：可在菌丝和灰化土上种植
+            // 注意：蘑菇的光照检查由自身完成
+            return (VanillaBlocks::MYCELIUM != nullptr && state.is(VanillaBlocks::MYCELIUM)) ||
+                (VanillaBlocks::PODZOL != nullptr && state.is(VanillaBlocks::PODZOL));
+
+        case PlantType::Water:
+            // 水生植物：由植物自身在 mayPlaceOn/canSustain 中处理
+            return false;
+
+        case PlantType::Nether:
+            // 下界植物（地狱疣、菌类等）：可在菌岩、菌丝、灵魂土和泥土类方块上种植
+            return (VanillaBlocks::CRIMSON_NYLIUM != nullptr && state.is(VanillaBlocks::CRIMSON_NYLIUM)) ||
+                (VanillaBlocks::WARPED_NYLIUM != nullptr && state.is(VanillaBlocks::WARPED_NYLIUM)) ||
+                (VanillaBlocks::MYCELIUM != nullptr && state.is(VanillaBlocks::MYCELIUM)) ||
+                (VanillaBlocks::SOUL_SOIL != nullptr && state.is(VanillaBlocks::SOUL_SOIL)) ||
+                BlockTags::DIRT().contains(state) ||
+                (VanillaBlocks::FARMLAND != nullptr && state.is(VanillaBlocks::FARMLAND));
+
+        default:
+            return false;
+    }
 }
 
 ActionResultType Block::onBlockActivated(const BlockState& state,
