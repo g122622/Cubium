@@ -465,7 +465,7 @@ public:
      *
      * @param attacker 攻击者
      */
-    void setLastHurtBy(LivingEntity* attacker);
+    virtual void setLastHurtBy(LivingEntity* attacker);
 
     /**
      * @brief 获取该实体最近攻击的目标

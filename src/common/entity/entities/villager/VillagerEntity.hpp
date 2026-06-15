@@ -81,6 +81,14 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 重写被攻击回调
+     *
+     * 当村民被玩家攻击时，广播愤怒粒子效果（VillagerAngry）。
+     * 同时触发村庄声望事件 VILLAGER_HURT。
+     */
+    void setLastHurtBy(LivingEntity* attacker) override;
+
     // ========== Brain系统 ==========
 
     /**

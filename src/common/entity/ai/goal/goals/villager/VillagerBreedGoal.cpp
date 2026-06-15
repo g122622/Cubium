@@ -59,8 +59,10 @@ bool VillagerBreedGoal::shouldExecute()
     // 检查是否愿意繁殖
     if (!_isWillingToBreed()) return false;
 
-    // 检查床位
-    if (!_hasEnoughBeds()) return false;
+    // MC原版 VillagerMakeLove 不在开始时检查床位，
+    // 而是在 _spawnChild 时检查。如果无空床位，双方显示愤怒粒子。
+    // 保留床位检查作为优化：如果完全无床位则不启动繁殖流程
+    // 但在 _spawnChild 中会再次检查，以处理繁殖过程中床位被占用的情况
 
     // 寻找配偶
     _findPartner();
@@ -235,16 +237,32 @@ void VillagerBreedGoal::_spawnChild()
 {
     if (!m_villager) return;
 
-    // 生成幼年村民
-    auto child = m_villager->createChild();
-    if (child && m_villager->world()) {
-        child->setPosition(m_villager->x(), m_villager->y(), m_villager->z());
-        // spawnEntity 返回服务端分配的 EntityId，可能不同于移动前的 id
-        EntityId childId = m_villager->world()->spawnEntity(std::move(child));
+    // MC原版 VillagerMakeLove.tryToGiveBirth: 尝试寻找空床位
+    // 如果找不到空床位，双方村民显示愤怒粒子
+    if (!_hasEnoughBeds()) {
+        // 无空床位，繁殖失败，双方显示愤怒粒子
+        if (m_villager->world()) {
+            m_villager->world()->broadcastEntityStatus(
+                m_villager->id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerAngry));
 
-        // MC原版 VillagerMakeLove.breed: 幼年村民出生后对其广播爱心粒子 (byte)12
-        m_villager->world()->broadcastEntityStatus(
-            childId, static_cast<u8>(network::EntityStatusPacket::Status::VillagerHeart));
+            Entity* entity = m_villager->world()->getEntity(m_partnerId);
+            if (entity != nullptr && entity->isAlive()) {
+                m_villager->world()->broadcastEntityStatus(
+                    entity->id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerAngry));
+            }
+        }
+    } else {
+        // 生成幼年村民
+        auto child = m_villager->createChild();
+        if (child && m_villager->world()) {
+            child->setPosition(m_villager->x(), m_villager->y(), m_villager->z());
+            // spawnEntity 返回服务端分配的 EntityId，可能不同于移动前的 id
+            EntityId childId = m_villager->world()->spawnEntity(std::move(child));
+
+            // MC原版 VillagerMakeLove.breed: 幼年村民出生后对其广播爱心粒子 (byte)12
+            m_villager->world()->broadcastEntityStatus(
+                childId, static_cast<u8>(network::EntityStatusPacket::Status::VillagerHeart));
+        }
     }
 
     // 重置

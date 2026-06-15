@@ -73,6 +73,10 @@ namespace world::village {
 class VillageManager; // 前向声明
 }
 
+namespace world::village::raid {
+class RaidManager; // 前向声明
+}
+
 namespace world::map {
 class MapDataManager; // 前向声明
 }
@@ -1036,6 +1040,18 @@ public:
      */
     [[nodiscard]] virtual world::village::VillageManager* villageManager() { return nullptr; }
     [[nodiscard]] virtual const world::village::VillageManager* villageManager() const { return nullptr; }
+
+    // ========== 袭击管理 ==========
+
+    /**
+     * @brief 获取袭击管理器
+     *
+     * 只有ServerWorld会返回有效的指针，其他实现返回nullptr。
+     *
+     * @return RaidManager指针，如果不存在返回nullptr
+     */
+    [[nodiscard]] virtual world::village::raid::RaidManager* raidManager() { return nullptr; }
+    [[nodiscard]] virtual const world::village::raid::RaidManager* raidManager() const { return nullptr; }
 
     // ========== 战利品表管理 ==========
 

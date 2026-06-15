@@ -59,6 +59,7 @@
 #include "common/world/village/VillageGossipType.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
+#include "common/world/village/raid/RaidManager.hpp"
 #include "common/world/village/trade/Merchant.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
 #include "common/world/village/trade/WanderingTraderTrades.hpp"
@@ -120,6 +121,21 @@ void VillagerEntity::tick()
         m_soundCooldown--;
     }
 
+    // 突袭恐慌流汗粒子效果
+    // MC原版 Villager.customServerAiStep: 每 tick 有 1/100 概率检查是否在活跃突袭中，
+    // 如果是则广播 VillagerSplash (42) 粒子效果
+    if (m_world && getRandom().nextInt(100) == 0) {
+        auto* raidManager = m_world->raidManager();
+        if (raidManager != nullptr) {
+            BlockPos villagerPos(static_cast<i32>(x()), static_cast<i32>(y()), static_cast<i32>(z()));
+            auto* raid = raidManager->getRaidAt(villagerPos);
+            if (raid != nullptr && raid->status() == world::village::raid::RaidStatus::Ongoing) {
+                m_world->broadcastEntityStatus(
+                    id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerSplash));
+            }
+        }
+    }
+
     // 处理交易声望和粒子效果
     // 每tick检查 m_lastTradedPlayer，非空时触发声望事件和开心粒子，然后置空
     if (m_lastTradedPlayer != nullptr && m_world) {
@@ -153,6 +169,35 @@ void VillagerEntity::tick()
     // - shouldExecute() 检查是否是工作时间 (2000-9000 ticks) 和是否有工作站点
     // - tick() 中使用 isWithinDistance() 检查是否在工作站点附近
     // - Schedule 系统在 2000 ticks 时自动切换到 WORK 活动
+}
+
+void VillagerEntity::setLastHurtBy(LivingEntity* attacker)
+{
+    // MC原版 Villager.setLastHurtByMob: 当被玩家攻击时，广播愤怒粒子效果并触发声望事件
+    if (attacker != nullptr && m_world && attacker != this) {
+        Player* player = dynamic_cast<Player*>(attacker);
+
+        // 触发村庄声望事件 VILLAGER_HURT
+        if (player != nullptr) {
+            auto* villageManager = m_world->villageManager();
+            if (villageManager != nullptr) {
+                world::village::Village* village = villageManager->getVillageAt(
+                    BlockPos(static_cast<i32>(x()), static_cast<i32>(y()), static_cast<i32>(z())));
+                if (village != nullptr) {
+                    village->addGossip(player->playerId(), world::village::VillageGossipType::MinorNegative, 5);
+                }
+            }
+
+            // 只有被玩家攻击时才广播愤怒粒子效果
+            if (isAlive()) {
+                m_world->broadcastEntityStatus(
+                    id(), static_cast<u8>(network::EntityStatusPacket::Status::VillagerAngry));
+            }
+        }
+    }
+
+    // 调用父类方法更新 m_lastHurtBy
+    AbstractVillagerEntity::setLastHurtBy(attacker);
 }
 
 void VillagerEntity::initializeBrain()

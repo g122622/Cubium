@@ -762,20 +762,23 @@ public:
         return m_villageManager.get();
     }
 
+    // ========== 袭击管理 ==========
+
+    [[nodiscard]] ::mc::world::village::raid::RaidManager* raidManager() noexcept override
+    {
+        return m_raidManager.get();
+    }
+    [[nodiscard]] const ::mc::world::village::raid::RaidManager* raidManager() const noexcept override
+    {
+        return m_raidManager.get();
+    }
+
     // ========== 地图数据管理 ==========
 
     [[nodiscard]] world::map::MapDataManager* mapDataManager() noexcept override { return m_mapDataManager.get(); }
     [[nodiscard]] const world::map::MapDataManager* mapDataManager() const noexcept override
     {
         return m_mapDataManager.get();
-    }
-
-    // ========== 袭击管理 ==========
-
-    [[nodiscard]] ::mc::world::village::raid::RaidManager* raidManager() noexcept { return m_raidManager.get(); }
-    [[nodiscard]] const ::mc::world::village::raid::RaidManager* raidManager() const noexcept
-    {
-        return m_raidManager.get();
     }
 
     // ========== 睡眠管理 ==========
