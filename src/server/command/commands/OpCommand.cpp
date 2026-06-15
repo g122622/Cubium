@@ -119,7 +119,11 @@ i32 OpCommand::_opPlayer(CommandContext<ServerCommandSource>& context)
     // 更新在线玩家实体的权限等级
     if (auto* world = server->getPlayerWorld(targetId)) {
         if (Player* player = server->playerEntityManager().getPlayerEntity(targetId, *world)) {
-            player->setPermissionLevel(static_cast<i32>(opList.getLevel(playerData->uuid)));
+            i32 newLevel = static_cast<i32>(opList.getLevel(playerData->uuid));
+            player->setPermissionLevel(newLevel);
+
+            // 通知客户端权限等级变更并同步命令树
+            server->sendPermissionLevelChange(targetId, newLevel);
         }
     }
 

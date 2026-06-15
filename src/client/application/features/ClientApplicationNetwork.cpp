@@ -1056,9 +1056,20 @@ void ClientApplication::setupNetworkCallbacks()
                 }
                 break;
             }
-            default:
-                // 其他状态暂未实现
+            default: {
+                // 检查是否为权限等级变更状态 (status byte 24-28, 其中 level = status - 24)
+                i32 permLevel = EntityStatusPacket::toPermissionLevel(status);
+                if (permLevel >= 0) {
+                    // 权限等级变更，仅对本机玩家生效
+                    if (m_localIdentity.isLocalPlayerEntity(static_cast<EntityId>(entityId))) {
+                        if (m_player) {
+                            spdlog::info("Permission level changed to {}", permLevel);
+                            m_player->setPermissionLevel(permLevel);
+                        }
+                    }
+                }
                 break;
+            }
         }
     };
 

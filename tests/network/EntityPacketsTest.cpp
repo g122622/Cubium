@@ -352,6 +352,33 @@ TEST(EntityStatusPacketTest, VillagerStatusCodeValues)
     EXPECT_EQ(static_cast<u8>(EntityStatusPacket::Status::VillagerSplash), 42);
 }
 
+TEST(EntityStatusPacketTest, PermissionLevelStatusValues)
+{
+    // 验证权限等级状态码与MC原版 EntityStatus byte 值一致 (status byte = 24 + level)
+    EXPECT_EQ(static_cast<u8>(EntityStatusPacket::Status::PermissionLevel0), 24);
+    EXPECT_EQ(static_cast<u8>(EntityStatusPacket::Status::PermissionLevel1), 25);
+    EXPECT_EQ(static_cast<u8>(EntityStatusPacket::Status::PermissionLevel2), 26);
+    EXPECT_EQ(static_cast<u8>(EntityStatusPacket::Status::PermissionLevel3), 27);
+    EXPECT_EQ(static_cast<u8>(EntityStatusPacket::Status::PermissionLevel4), 28);
+
+    // 验证 permissionLevel() 辅助函数
+    EXPECT_EQ(static_cast<u8>(EntityStatusPacket::permissionLevel(0)), 24);
+    EXPECT_EQ(static_cast<u8>(EntityStatusPacket::permissionLevel(1)), 25);
+    EXPECT_EQ(static_cast<u8>(EntityStatusPacket::permissionLevel(2)), 26);
+    EXPECT_EQ(static_cast<u8>(EntityStatusPacket::permissionLevel(3)), 27);
+    EXPECT_EQ(static_cast<u8>(EntityStatusPacket::permissionLevel(4)), 28);
+
+    // 验证 toPermissionLevel() 辅助函数
+    EXPECT_EQ(EntityStatusPacket::toPermissionLevel(24), 0);
+    EXPECT_EQ(EntityStatusPacket::toPermissionLevel(25), 1);
+    EXPECT_EQ(EntityStatusPacket::toPermissionLevel(26), 2);
+    EXPECT_EQ(EntityStatusPacket::toPermissionLevel(27), 3);
+    EXPECT_EQ(EntityStatusPacket::toPermissionLevel(28), 4);
+    EXPECT_EQ(EntityStatusPacket::toPermissionLevel(23), -1);
+    EXPECT_EQ(EntityStatusPacket::toPermissionLevel(29), -1);
+    EXPECT_EQ(EntityStatusPacket::toPermissionLevel(0), -1);
+}
+
 // ==================== EntityMetadataPacket Tests ====================
 
 TEST(EntityMetadataPacketTest, SerializeDeserialize)

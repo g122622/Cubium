@@ -242,6 +242,28 @@ public:
     [[nodiscard]] virtual mc::command::CommandStorage& commandStorage() = 0;
     [[nodiscard]] virtual const mc::command::CommandStorage& commandStorage() const = 0;
 
+    /**
+     * @brief 向指定玩家同步命令树
+     *
+     * 当玩家的权限等级发生变化时（如 /op、/deop），应调用此方法
+     * 将更新后的命令树发送给客户端，以便客户端刷新可用命令列表。
+     *
+     * @param playerId 目标玩家ID
+     */
+    virtual void sendCommandTreePacket(PlayerId playerId) = 0;
+
+    /**
+     * @brief 向指定玩家发送权限等级变更通知
+     *
+     * 通过 EntityStatusPacket 通知客户端玩家的权限等级已变更，
+     * 客户端收到后会更新本地玩家的 m_permissionLevel。
+     * 应在 /op、/deop 命令执行后以及玩家登录时调用。
+     *
+     * @param playerId 目标玩家ID
+     * @param permissionLevel 新的权限等级 (0-4)
+     */
+    virtual void sendPermissionLevelChange(PlayerId playerId, i32 permissionLevel) = 0;
+
     // ========== 数据包系统 ==========
 
     /**

@@ -65,4 +65,4 @@ src/common/entity/entities/player/
 - **挖掘速度公式**：最终挖掘速度 = 基础速度 × 效率附魔加成 × 急迫效果乘数 × 挖掘疲劳乘数 × 水下惩罚 × 空中惩罚。各乘数叠加顺序影响结果精度。
 - **攻击冷却判定**：横扫攻击需要玩家"几乎静止"（`distanceWalkedModified - prevDistanceWalkedModified < aiMoveSpeed()`），否则不会触发横扫效果。
 - **权限等级与游戏模式分离**：`m_permissionLevel`（0-4）独立于游戏模式存储，`setGameMode()` 会重置 `m_abilities` 但不会重置 `m_permissionLevel`。`canUseGameMasterBlocks()` 要求同时满足 `creativeMode` 和 `permissionLevel >= 2`。
-- **权限等级未网络同步**：当前服务端 `/op`/`/deop` 后不会发送 `EntityStatusPacket::PermissionLevelChange` 给客户端，客户端不知道权限变更。此为 TODO 项。
+- **权限等级网络同步**：服务端 `/op`/`/deop` 后会通过 `EntityStatusPacket`（status byte = 24 + level）通知客户端权限等级变更，客户端收到后在 `ClientApplicationNetwork` 的 `onEntityStatus` 回调中更新本地玩家的 `m_permissionLevel`。

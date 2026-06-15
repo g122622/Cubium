@@ -34,7 +34,6 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/item/Items.hpp"
-#include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/item/crafting/special/ArmorDyeRecipe.hpp"
@@ -58,6 +57,7 @@
 #include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/physics/PhysicsEngine.hpp"
+#include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -1681,8 +1681,6 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
             static_cast<i32>(m_opListManager->getLevel(player->uuid)),
             playerId,
             player->username);
-        // TODO: /op 和 /deop 命令执行后应通过 EntityStatusPacket::PermissionLevelChange (status byte 24+level)
-        // 通知客户端玩家权限等级变更，当前未实现该网络同步机制
         auto cmdResult = m_commandRegistry->execute(message, source);
         if (cmdResult.failed()) {
             spdlog::warn("Command '{}' failed for {}: {}", message, player->username, cmdResult.error().toString());
@@ -1934,6 +1932,42 @@ void MinecraftServer::sendCommandTreePacket(PlayerId playerId)
     auto fullPacket =
         core::ConnectionManager::encapsulatePacket(network::PacketType::CommandTree, serializeResult.value());
     sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+}
+
+void MinecraftServer::sendPermissionLevelChange(PlayerId playerId, i32 permissionLevel)
+{
+    MC_TRACE_EVENT("server.network",
+        "MinecraftServer::sendPermissionLevelChange",
+        "playerId",
+        playerId,
+        "permissionLevel",
+        permissionLevel);
+
+    // 获取玩家实体 ID 用于 EntityStatusPacket
+    auto* world = getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return;
+    }
+
+    auto* player = playerEntityManager().getPlayerEntity(playerId, *world);
+    if (player == nullptr) {
+        return;
+    }
+
+    // 通过 EntityStatusPacket 通知客户端权限等级变更（status byte = 24 + level）
+    network::EntityStatusPacket packet;
+    packet.setEntityId(static_cast<u32>(player->id()));
+    packet.setStatus(network::EntityStatusPacket::permissionLevel(permissionLevel));
+
+    auto payloadResult = packet.serialize();
+    if (payloadResult.success()) {
+        auto fullPacket =
+            core::ConnectionManager::encapsulatePacket(network::PacketType::EntityStatus, payloadResult.value());
+        sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+    }
+
+    // 同步更新后的命令树到客户端，以便刷新可用命令列表
+    sendCommandTreePacket(playerId);
 }
 
 void MinecraftServer::stopCore()

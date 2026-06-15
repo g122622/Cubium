@@ -112,6 +112,9 @@ i32 DeOpCommand::_deopPlayer(CommandContext<ServerCommandSource>& context)
     if (auto* world = server->getPlayerWorld(targetId)) {
         if (Player* player = server->playerEntityManager().getPlayerEntity(targetId, *world)) {
             player->setPermissionLevel(0);
+
+            // 通知客户端权限等级变更并同步命令树
+            server->sendPermissionLevelChange(targetId, 0);
         }
     }
 

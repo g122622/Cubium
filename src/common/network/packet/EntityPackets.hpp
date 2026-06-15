@@ -26,6 +26,7 @@
 #include "Packet.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <array>
 #include <memory>
@@ -478,9 +479,12 @@ public:
         LoveHeart = 18, // 繁殖爱心效果
 
         // 玩家状态
-        PermissionLevelChange = 26,
-        ReduceDebugInfo = 27,
-        HideParticles = 28,
+        // 玩家权限等级变更（status byte = 24 + permissionLevel，permissionLevel 范围 0-4）
+        PermissionLevel0 = 24, // 普通玩家（非 OP）
+        PermissionLevel1 = 25, // 版主（可绕过重生点保护）
+        PermissionLevel2 = 26, // 游戏管理员（可使用命令方块等）
+        PermissionLevel3 = 27, // 服务器管理员（可使用 /op、/deop 等）
+        PermissionLevel4 = 28, // 服务器所有者（控制台级别权限）
 
         // 特殊状态
         FireworkExplosion = 17,
@@ -498,6 +502,30 @@ public:
         // Mob 特定状态
         MobPoof = 60, // 生物变形/消失烟雾粒子
     };
+
+    /**
+     * @brief 根据权限等级生成对应的状态字节
+     * @param level 权限等级 (0-4)
+     * @return 状态枚举值 (PermissionLevel0 ~ PermissionLevel4)
+     */
+    [[nodiscard]] static Status permissionLevel(i32 level)
+    {
+        MC_ASSERT_RELEASE(level >= 0 && level <= 4);
+        return static_cast<Status>(24 + level);
+    }
+
+    /**
+     * @brief 从状态字节解析权限等级
+     * @param status 状态字节
+     * @return 权限等级 (0-4)，如果不是权限等级状态则返回 -1
+     */
+    [[nodiscard]] static i32 toPermissionLevel(u8 status)
+    {
+        if (status >= 24 && status <= 28) {
+            return static_cast<i32>(status - 24);
+        }
+        return -1;
+    }
 
     EntityStatusPacket()
         : Packet(PacketType::EntityStatus)

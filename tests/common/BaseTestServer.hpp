@@ -143,6 +143,8 @@ public:
         m_running = false;
     }
     void broadcastParticleInRange(u32, f64, f64, f64, f32, f32, f32, f32, f32, f32, u32, f32) override {}
+    void sendCommandTreePacket(PlayerId) override {}
+    void sendPermissionLevelChange(PlayerId, i32) override {}
     void sendSoundToPlayer(PlayerId playerId,
         const ResourceLocation& soundEventId,
         sound::SoundCategory category,

@@ -479,7 +479,15 @@ protected:
     /**
      * @brief 向指定玩家同步命令树
      */
-    void sendCommandTreePacket(PlayerId playerId);
+    void sendCommandTreePacket(PlayerId playerId) override;
+
+    /**
+     * @brief 向指定玩家发送权限等级变更通知
+     *
+     * 通过 EntityStatusPacket (status byte = 24 + level) 通知客户端，
+     * 并同步命令树以刷新可用命令列表。
+     */
+    void sendPermissionLevelChange(PlayerId playerId, i32 permissionLevel) override;
 
     /**
      * @brief 刷新指定玩家的实体追踪范围
