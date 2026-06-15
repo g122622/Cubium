@@ -1308,6 +1308,7 @@ add_library(mc_common STATIC
     advancement/AdvancementList.cpp
     advancement/AdvancementManager.cpp
     advancement/AdvancementLoader.cpp
+    advancement/AdvancementVisibilityEvaluator.cpp
     advancement/Criterion.cpp
     advancement/trigger/CriterionTrigger.cpp
     advancement/trigger/CriterionTriggers.cpp

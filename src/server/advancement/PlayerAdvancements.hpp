@@ -237,17 +237,31 @@ private:
 
     /**
      * @brief 确保成就可见性正确
+     *
+     * 检查单个成就的可见性是否发生变化，并更新 m_visible 和 m_visibilityChanged。
      */
     void _ensureVisibility(mc::advancement::AdvancementPtr advancement);
 
     /**
-     * @brief 更新所有成就的可见性
-     * @param manager 成就管理器（用于查找父成就）
+     * @brief 使用 AdvancementVisibilityEvaluator 更新所有成就的可见性
+     *
+     * 从成就树的根节点开始，使用 MC 原版的递归算法计算每个成就的可见性。
+     *
+     * @param manager 成就管理器（用于获取根成就列表，不能为nullptr）
      */
     void _updateVisibility(mc::advancement::AdvancementManager* manager = nullptr);
 
     /**
      * @brief 检查成就是否应该可见
+     *
+     * 实现 MC 原版的可见性规则：
+     * - 已完成的成就始终可见
+     * - 有进度的成就可见（部分完成）
+     * - 无 display 的成就始终不可见（技术成就）
+     * - 隐藏成就（hidden=true）在完成前不可见
+     * - 非隐藏且未完成的成就：向上回溯 VISIBILITY_DEPTH(2) 层祖先，
+     *   如果有已完成的祖先则可见，否则不可见
+     *
      * @param advancement 成就
      * @param manager 成就管理器（用于查找父成就，可为nullptr）
      */

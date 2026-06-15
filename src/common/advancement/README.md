@@ -12,6 +12,7 @@ advancement/
 ├── AdvancementManager.hpp/cpp    # 成就注册表（单例）
 ├── AdvancementProgress.hpp/cpp   # 进度追踪（条件完成状态、序列化）
 ├── AdvancementRewards.hpp/cpp    # 奖励定义（经验、战利品、功能、配方）
+├── AdvancementVisibilityEvaluator.hpp/cpp  # 成就可见性评估器（MC 原版递归算法）
 ├── Criterion.hpp/cpp             # 条件定义（触发器实例引用）
 ├── MinMaxBounds.hpp              # 范围谓词（IntBounds、DoubleBounds 等）
 ├── README.md                     # 本文件
