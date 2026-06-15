@@ -764,6 +764,10 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     EntityId entityId = playerEntity->id();
     m_playerEntityIds[playerId] = entityId;
 
+    // 从 OP 列表设置玩家权限等级
+    i32 playerPermissionLevel = static_cast<i32>(m_opListManager->getLevel(playerData->uuid));
+    playerEntity->setPermissionLevel(playerPermissionLevel);
+
     // 初始化玩家物品栏
     inventoryManager().initializeInventory(playerId);
 

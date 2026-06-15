@@ -1670,7 +1670,7 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
             commandDimension,
             Vector3d(player->x, player->y, player->z),
             Vector2f(player->yaw, player->pitch),
-            4,
+            static_cast<i32>(m_opListManager->getLevel(player->uuid)),
             playerId,
             player->username);
         auto cmdResult = m_commandRegistry->execute(message, source);

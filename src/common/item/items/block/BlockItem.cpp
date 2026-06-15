@@ -286,9 +286,8 @@ bool BlockItem::setTileEntityNBT(IWorld& world, Player* player, const BlockPos& 
     // 权限检查：如果方块实体仅允许 OP 修改 NBT，则需要验证玩家权限
     // 需要OP权限的方块实体类型包括：CommandBlock, Sign, HangingSign, StructureBlock, JigsawBlock, TrialSpawner, Lectern
     if (blockEntity->onlyOpsCanSetNbt()) {
-        // TODO: 当玩家权限系统完善后，应检查 player->canUseGameMasterBlocks() 权限
-        // 当前实现：非空玩家即视为有权限（与创造模式放置场景一致）
-        if (player == nullptr) {
+        // 玩家必须非空且拥有游戏管理员方块使用权限（创造模式 + OP等级>=2）
+        if (player == nullptr || !player->canUseGameMasterBlocks()) {
             return false;
         }
     }

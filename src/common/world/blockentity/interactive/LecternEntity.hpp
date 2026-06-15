@@ -156,6 +156,13 @@ public:
     void save(nlohmann::json& data) const override;
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
+    /**
+     * @brief 讲台方块实体的 NBT 仅允许 OP 玩家设置
+     *
+     * 参考 MC Java: BlockEntityType.OP_ONLY_CUSTOM_DATA 包含 LECTERN
+     */
+    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override { return true; }
+
 private:
     /**
      * @brief 检查物品是否是有效的书本

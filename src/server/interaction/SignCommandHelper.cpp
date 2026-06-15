@@ -109,14 +109,15 @@ bool SignCommandHelper::_executeCommand(const std::string& command, mc::ServerPl
         cmd = "/" + cmd;
     }
 
-    // 创建命令源（权限级别为 2，位置为告示牌位置）
+    // 创建命令源（使用玩家自身的权限等级，位置为告示牌位置）
+    i32 signPermissionLevel = std::min(player.permissionLevel(), 2);
     command::ServerCommandSource source(player.getServer(),
         &player,
         player.dimension(),
         Vector3d(
             static_cast<f64>(signPos.x) + 0.5, static_cast<f64>(signPos.y) + 0.5, static_cast<f64>(signPos.z) + 0.5),
         Vector2f(0.0f, 0.0f),
-        2, // 权限级别 2（相当于 OP 级别）
+        signPermissionLevel,
         player.playerId(),
         player.username());
 

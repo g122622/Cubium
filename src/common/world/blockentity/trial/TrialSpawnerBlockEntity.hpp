@@ -125,6 +125,13 @@ public:
     void save(nlohmann::json& data) const override;
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
+    /**
+     * @brief 试炼刷怪笼的 NBT 仅允许 OP 玩家设置
+     *
+     * 参考 MC Java: BlockEntityType.OP_ONLY_CUSTOM_DATA 包含 TRIAL_SPAWNER
+     */
+    [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override { return true; }
+
     // ========== 状态访问 ==========
 
     [[nodiscard]] State getState() const noexcept { return m_state; }

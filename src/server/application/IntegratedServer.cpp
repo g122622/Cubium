@@ -454,6 +454,10 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
 
         // 记录实体ID
         m_clientEntityId = playerEntity->id();
+
+        // 从 OP 列表设置玩家权限等级（集成服务器中单机玩家默认拥有完整权限）
+        i32 playerPermissionLevel = static_cast<i32>(m_opListManager->getLevel(playerData->uuid));
+        playerEntity->setPermissionLevel(playerPermissionLevel);
     }
 
     // 初始化物品栏

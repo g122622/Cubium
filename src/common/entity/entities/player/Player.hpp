@@ -210,6 +210,47 @@ public:
      */
     [[nodiscard]] bool isAdventure() const { return m_gameMode == GameMode::Adventure; }
 
+    // ========== 权限等级 ==========
+
+    /**
+     * @brief 获取玩家权限等级
+     *
+     * 权限等级对应 MC 的 OP 等级系统：
+     * - 0: 普通玩家
+     * - 1: 版主（可绕过重生点保护）
+     * - 2: 游戏管理员（可使用游戏管理命令）
+     * - 3: 服务器管理员
+     * - 4: 服务器所有者（控制台级别）
+     *
+     * @return 权限等级 (0-4)
+     */
+    [[nodiscard]] i32 permissionLevel() const { return m_permissionLevel; }
+
+    /**
+     * @brief 设置玩家权限等级
+     * @param level 权限等级 (0-4)
+     */
+    void setPermissionLevel(i32 level) { m_permissionLevel = level; }
+
+    /**
+     * @brief 检查玩家是否拥有指定权限等级
+     * @param level 所需的最低权限等级
+     * @return 如果玩家权限等级 >= level 则返回 true
+     */
+    [[nodiscard]] bool hasPermission(i32 level) const { return m_permissionLevel >= level; }
+
+    /**
+     * @brief 检查玩家是否可以使用游戏管理员方块
+     *
+     * 游戏管理员方块包括命令方块、结构方块、拼图方块等，
+     * 只有创造模式且拥有游戏管理员权限的玩家才能使用。
+     *
+     * 条件：creativeMode == true 且 permissionLevel >= 2 (GameMaster)
+     *
+     * @return 如果玩家可以使用游戏管理员方块则返回 true
+     */
+    [[nodiscard]] bool canUseGameMasterBlocks() const { return m_abilities.creativeMode && m_permissionLevel >= 2; }
+
     // 维度
     [[nodiscard]] DimensionId dimension() const { return m_dimension; }
     void setDimension(DimensionId dim) { m_dimension = dim; }
@@ -1400,6 +1441,7 @@ private:
     std::string m_username;
     PlayerId m_playerId = 0;
     GameMode m_gameMode = GameMode::Survival;
+    i32 m_permissionLevel = 0; ///< 权限等级 (0-4)，对应 OP 等级
     ChatVisibility m_chatVisibility = ChatVisibility::Full;
     u8 m_playerModelParts = PLAYER_MODEL_PARTS_ALL_MASK;
 

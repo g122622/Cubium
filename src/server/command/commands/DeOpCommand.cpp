@@ -25,12 +25,15 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/OpListManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <sstream>
 
@@ -103,6 +106,13 @@ i32 DeOpCommand::_deopPlayer(CommandContext<ServerCommandSource>& context)
     auto saveResult = opList.save();
     if (saveResult.failed()) {
         spdlog::error("Failed to save ops.json: {}", saveResult.error().message());
+    }
+
+    // 更新在线玩家实体的权限等级（已移除 OP，降为普通玩家）
+    if (auto* world = server->getPlayerWorld(targetId)) {
+        if (Player* player = server->playerEntityManager().getPlayerEntity(targetId, *world)) {
+            player->setPermissionLevel(0);
+        }
     }
 
     // 发送成功消息
