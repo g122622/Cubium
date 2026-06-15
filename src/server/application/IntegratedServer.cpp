@@ -454,14 +454,16 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
 
         // 记录实体ID
         m_clientEntityId = playerEntity->id();
+    }
 
-        // 从 OP 列表设置玩家权限等级（集成服务器中单机玩家默认拥有完整权限）
-        i32 playerPermissionLevel = static_cast<i32>(m_opListManager->getLevel(playerData->uuid));
-        playerEntity->setPermissionLevel(playerPermissionLevel);
-
-        // 通过 EntityStatusPacket 同步玩家权限等级到客户端
-        if (playerPermissionLevel > 0) {
-            sendPermissionLevelChange(m_clientPlayerId, playerPermissionLevel);
+    // 从 OP 列表设置玩家权限等级（集成服务器中单机玩家默认拥有完整权限）
+    i32 playerPermissionLevel = static_cast<i32>(m_opListManager->getLevel(playerData->uuid));
+    {
+        auto* world = getPlayerWorld(m_clientPlayerId);
+        if (world != nullptr) {
+            if (Player* player = playerEntityManager().getPlayerEntity(m_clientPlayerId, *world)) {
+                player->setPermissionLevel(playerPermissionLevel);
+            }
         }
     }
 
@@ -490,8 +492,8 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     // 发送登录成功响应（包含 playerId 和 entityId）
     _sendLoginResponse(true, m_clientPlayerId, m_clientEntityId, username, "Welcome to singleplayer world!");
 
-    // 同步命令树
-    sendCommandTreePacket(m_clientPlayerId);
+    // 同步玩家权限等级到客户端（同时发送 EntityStatusPacket 和命令树）
+    sendPermissionLevelChange(m_clientPlayerId, playerPermissionLevel);
 
     // 发送初始游戏状态
     sendInitialGameState(

@@ -780,13 +780,8 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     // 发送登录成功响应（包含 playerId 和 entityId）
     _sendLoginResponse(session.get(), true, playerId, entityId, username, "Welcome!");
 
-    // 同步命令树
-    sendCommandTreePacket(playerId);
-
-    // 通过 EntityStatusPacket 同步玩家权限等级到客户端
-    if (playerPermissionLevel > 0) {
-        sendPermissionLevelChange(playerId, playerPermissionLevel);
-    }
+    // 同步玩家权限等级到客户端（同时发送 EntityStatusPacket 和命令树）
+    sendPermissionLevelChange(playerId, playerPermissionLevel);
 
     // 发送初始游戏状态
     sendInitialGameState(playerId, playerData->x, playerData->y, playerData->z, playerData->yaw, playerData->pitch);
