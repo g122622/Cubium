@@ -109,8 +109,13 @@ public:
      * @brief 检查指定位置是否能看到天空
      *
      * 用于寻路中的阳光避让逻辑。如果位置上方无遮挡方块（天空光照>=15），
-     * 则认为可以看到天空。此方法在寻路后处理中被 trimPath() 调用，
-     * 当 m_avoidSun 为 true 时，路径会在第一个能看到天空的节点处截断。
+     * 则认为可以看到天空。
+     *
+     * TODO: 当前阳光避让路径截断通过 PathNavigator::_trimPath() 直接使用
+     * IWorld::canSeeSky() 实现，此接口尚未被 WalkNodeProcessor 调用。
+     * 未来若需要在节点代价计算级别实现阳光避让（如对阳光节点增加代价），
+     * 则 WalkNodeProcessor 需要通过此接口查询天空可见性。
+     * 届时具体 Region 实现需委托到 IWorld::canSeeSky() 或使用高度图快速判断。
      *
      * @param x X坐标
      * @param y Y坐标
