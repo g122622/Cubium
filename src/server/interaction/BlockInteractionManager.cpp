@@ -36,7 +36,6 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/GameMasterBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
@@ -609,8 +608,7 @@ bool BlockInteractionManager::_canBreakBlock(
 
     // 游戏管理员方块需要 canUseGameMasterBlocks() 权限才能破坏
     const Block& block = state->getBlock();
-    auto* gameMasterBlock = dynamic_cast<const GameMasterBlock*>(&block);
-    if (gameMasterBlock != nullptr) {
+    if (block.isGameMaster()) {
         Player* player = _getPlayerEntity(playerId, world);
         if (player == nullptr || !player->canUseGameMasterBlocks()) {
             return false;

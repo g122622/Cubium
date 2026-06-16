@@ -1444,6 +1444,21 @@ public:
     [[nodiscard]] virtual bool hasBlockEntity() const noexcept { return false; }
 
     /**
+     * @brief 检查是否为游戏管理员方块
+     *
+     * 游戏管理员方块需要创造模式 + OP等级>=2 权限才能放置、破坏和交互。
+     * 包括命令方块、结构方块、拼图方块等。
+     *
+     * Block 子类需要通过同时继承 GameMasterBlock 标记接口并重写此方法返回 true
+     * 来标记自身为管理员方块。
+     *
+     * 参考: net.minecraft.world.level.block.GameMasterBlock
+     *
+     * @return 如果此方块为游戏管理员方块返回true
+     */
+    [[nodiscard]] virtual bool isGameMaster() const noexcept { return false; }
+
+    /**
      * @brief 创建方块实体
      *
      * @param pos 方块位置

@@ -774,6 +774,12 @@ void BlockItemRegistry::initializeVanillaBlockItems()
         registerGameMasterBlock(VanillaBlocks::STRUCTURE_BLOCK, "structure_block");
         registerGameMasterBlock(VanillaBlocks::JIGSAW, "jigsaw");
         registerGameMasterBlock(VanillaBlocks::BARRIER, "barrier");
+
+        // TODO: CommandBlock、RepeatingCommandBlock、ChainCommandBlock 尚未在 VanillaBlocks 中注册，
+        // 待注册后需在此处使用 GameMasterBlockItem 注册，例如：
+        // registerGameMasterBlock(VanillaBlocks::COMMAND_BLOCK, "command_block");
+        // registerGameMasterBlock(VanillaBlocks::REPEATING_COMMAND_BLOCK, "repeating_command_block");
+        // registerGameMasterBlock(VanillaBlocks::CHAIN_COMMAND_BLOCK, "chain_command_block");
     }
 
     m_initialized = true;

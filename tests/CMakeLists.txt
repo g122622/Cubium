@@ -79,6 +79,7 @@ add_executable(mc_tests
     common/item/NewItemTest.cpp
     common/item/ItemCraftedByTest.cpp
     common/item/BlockItemNbtTest.cpp
+    common/item/GameMasterBlockItemTest.cpp
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/EnchantmentCallbackTest.cpp
     common/item/enchantment/AttemptDamageItemTest.cpp

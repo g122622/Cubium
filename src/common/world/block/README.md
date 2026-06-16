@@ -13,6 +13,7 @@ block/
 ├── BlockSoundType.hpp/cpp          # 方块声音类型定义
 ├── BlockTags.hpp/cpp               # 方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT 等）
 ├── FireInfoRegistry.hpp/cpp        # 火焰信息注册表（燃烧/蔓延属性）
+├── GameMasterBlock.hpp             # 游戏管理员方块标记接口（命令方块、结构方块等）
 ├── HarvestTool.hpp                 # 挖掘工具类型定义
 ├── IBeaconBeamColorProvider.hpp    # 信标光束颜色提供者接口
 ├── IBlockAnimateContext.hpp        # 方块动画 tick 上下文接口（客户端粒子/音效）
@@ -176,6 +177,11 @@ Material（材质定义）
 IWaterLoggable（含水接口）
 ├── 继承 ILiquidContainer 和 IBucketPickupHandler
 └── 被 StairsBlock, SlabBlock, WallBlock 等 19+ 种方块实现
+
+GameMasterBlock（管理员方块标记接口）
+├── CommandBlock、StructureBlock、JigsawBlock 实现此接口并重写 Block::isGameMaster() 返回 true
+├── Block::isGameMaster() 虚方法默认返回 false，用于替代 dynamic_cast 做权限检查
+└── BlockInteractionManager::_canBreakBlock() 和 GameMasterBlockItem::getStateForPlacement() 检查此权限
 
 IBlockAnimateContext（方块动画 tick 上下文）
 ├── 轻量级接口，为 Block::animateTick 提供客户端操作能力
@@ -361,7 +367,21 @@ CauldronBlock 使用 `LEVEL_0_3` 属性存储水位（0-3），交互操作直�
 
 **注意**：不要再用 `isAir() || getMaterial().isReplaceable()` 手动判断可替换性，统一使用 `canBeReplaced()`。
 
-### 23. animateTick 系统与 IBlockAnimateContext
+### 23. GameMasterBlock 权限检查
+
+管理员方块（CommandBlock、StructureBlock、JigsawBlock）有三层权限防护：
+
+1. **放置限制**：使用 `GameMasterBlockItem`（继承 BlockItem），重写 `getStateForPlacement()` 检查 `player.canUseGameMasterBlocks()`（创造模式 + OP≥2）
+2. **破坏限制**：`BlockInteractionManager::_canBreakBlock()` 检查 `block.isGameMaster()`，无权限阻止破坏
+3. **交互限制**：各方块 `onBlockActivated()` 中检查 `player.canUseGameMasterBlocks()`
+
+判断是否为管理员方块应使用 `block.isGameMaster()` 虚方法，而非 `dynamic_cast<GameMasterBlock>`（性能更好）。新增管理员方块时需：
+1. 继承 `GameMasterBlock` 标记接口
+2. 重写 `isGameMaster()` 返回 `true`
+3. 在 `BlockItemRegistry` 中使用 `GameMasterBlockItem` 注册
+4. 在 `onBlockActivated()` 中添加权限检查
+
+### 24. animateTick 系统与 IBlockAnimateContext
 
 `Block::animateTick()` 是客户端方块动画 tick 方法，每 tick 由 `ClientWorld::animateTick()` 调度，用于生成粒子效果、播放环境音效等视觉效果。
 

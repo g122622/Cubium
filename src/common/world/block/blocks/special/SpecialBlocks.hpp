@@ -110,6 +110,10 @@ public:
     explicit StructureBlock(const BlockProperties& properties);
     ~StructureBlock() override = default;
 
+    // ========== 标记接口 ==========
+
+    [[nodiscard]] bool isGameMaster() const noexcept override { return true; }
+
     // ========== 状态属性 ==========
 
     /**
@@ -155,6 +159,10 @@ public:
     explicit JigsawBlock(const BlockProperties& properties);
     ~JigsawBlock() override = default;
 
+    // ========== 标记接口 ==========
+
+    [[nodiscard]] bool isGameMaster() const noexcept override { return true; }
+
     // ========== 旋转和镜像 ==========
 
     [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
@@ -185,6 +193,10 @@ class CommandBlock : public Block, public GameMasterBlock {
 public:
     explicit CommandBlock(const BlockProperties& properties);
     ~CommandBlock() override = default;
+
+    // ========== 标记接口 ==========
+
+    [[nodiscard]] bool isGameMaster() const noexcept override { return true; }
 
     // ========== 状态属性 ==========
 
