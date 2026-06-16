@@ -52,12 +52,13 @@ Block (基类)
 
 ### 3. StairsBlock 内角/外角检测
 
-`_calculateShape()` 检测邻居楼梯时必须验证三个条件：
-- 邻居是楼梯（`isStairs()`）
-- 邻居在同一层（`DOUBLE_BLOCK_HALF` 相同）
-- 邻居朝向与本楼梯朝向垂直
+`_calculateShape()` 检测邻居楼梯时需要三个辅助方法配合：
+- `_neighborIsStairs()`: 检查邻居是否为同层、朝向垂直的楼梯，返回朝向信息
+- `_isDifferentStairs()`: 对应 MC 的 `canTakeShape`，检查第三位置是否阻止角形状形成
+- `isStairs()`: 静态方法，检查方块状态是否包含 `STAIRS_SHAPE` 属性
 
-忽略任一条件会导致错误的形状计算。
+忽略任一条件或辅助方法的逻辑错误会导致错误的形状计算。
+`getStateForPlacement()` 会在放置时立即调用 `_calculateShape()`，确保楼梯一放置就有正确的角形状。
 
 ### 4. WallBlock 形状数量巨大
 

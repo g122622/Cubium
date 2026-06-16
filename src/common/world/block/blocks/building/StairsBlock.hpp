@@ -29,6 +29,7 @@
 #include "common/world/block/IWaterLoggable.hpp"
 #include "common/world/block/Material.hpp"
 #include <array>
+#include <optional>
 
 namespace mc {
 
@@ -138,36 +139,54 @@ public:
 
 private:
     /**
+     * @brief 邻居楼梯信息
+     *
+     * 当指定方向上的邻居是同层且朝向垂直的楼梯时，
+     * 携带该邻居的朝向信息，用于后续角形状判定。
+     */
+    struct _NeighborStairsInfo {
+        Direction facing; ///< 邻居楼梯的朝向
+    };
+
+    /**
      * @brief 计算楼梯形状
      * @param state 当前状态
      * @param world 世界
      * @param pos 位置
      * @return 楼梯形状
      */
-    [[nodiscard]] BlockStateProperties::StairsShape _calculateShape(
-        const BlockState& state, IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] static BlockStateProperties::StairsShape _calculateShape(
+        const BlockState& state, IWorld& world, const BlockPos& pos);
 
     /**
-     * @brief 检查邻居是否为楼梯
+     * @brief 检查邻居是否为符合条件的楼梯
+     *
+     * 检查指定方向上的邻居方块是否为同层楼梯且朝向垂直。
+     * 如果是，返回包含邻居朝向信息的结构；否则返回 nullopt。
+     *
+     * @param state 当前方块状态
      * @param world 世界
-     * @param pos 位置
+     * @param pos 当前方块位置
      * @param facing 检查方向
-     * @return 如果是楼梯返回其形状，否则返回nullopt
-     * TODO: 此函数尚未实现，待后续完善
+     * @return 如果邻居是符合条件的楼梯返回其朝向信息，否则返回nullopt
      */
-    [[nodiscard]] std::optional<BlockStateProperties::StairsShape> _neighborIsStairs(
-        IWorld& world, const BlockPos& pos, Direction facing) const;
+    [[nodiscard]] static std::optional<_NeighborStairsInfo> _neighborIsStairs(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction facing);
 
     /**
-     * @brief 检查指定方向是否有不同的楼梯
+     * @brief 检查指定方向是否有不同的楼梯（用于角形状判定）
+     *
+     * 检查 pos + face 方向上的方块是否为与本楼梯朝向或层次不同的楼梯。
+     * 如果该方向不是同朝向同层次的楼梯，返回 true（可以形成角形状）。
+     *
      * @param state 当前方块状态
      * @param world 世界
      * @param pos 当前位置
      * @param face 检查方向
-     * @return 如果该方向是不同的楼梯（或不是楼梯）返回true
+     * @return 如果该方向不是同朝向同层次的楼梯返回true
      */
-    [[nodiscard]] bool _isDifferentStairs(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Direction face) const;
+    [[nodiscard]] static bool _isDifferentStairs(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction face);
 
     /**
      * @brief 获取状态索引

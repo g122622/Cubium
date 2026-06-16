@@ -203,17 +203,24 @@ BlockState StairsBlock::getStateForPlacement(BlockItemUseContext& context)
     Direction facing = context.horizontalDirection();
 
     // 根据点击位置决定上半/下半
-    // 如果点击面是DOWN，或者（点击面不是UP且点击Y坐标大于0.5），则放置上半
-    bool isTop = context.getHitY() > 0.5f;
+    // 如果点击面是UP，或者点击面不是DOWN且点击Y坐标大于0.5，则放置上半
+    Direction clickedFace = context.getClickedFace();
+    bool isTop = clickedFace == Direction::Up || (clickedFace != Direction::Down && context.getHitY() > 0.5f);
 
     bool waterlogged = waterloggable::shouldWaterlogAt(context.getWorld(), context.placementPos());
 
-    return defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
-        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-            isTop ? BlockStateProperties::DoubleBlockHalf::Upper : BlockStateProperties::DoubleBlockHalf::Lower)
-        .with(BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::Straight)
-        .with(BlockStateProperties::WATERLOGGED(), waterlogged);
+    // 先设置基本属性，然后根据邻居计算楼梯形状
+    BlockState state =
+        defaultState()
+            .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
+                isTop ? BlockStateProperties::DoubleBlockHalf::Upper : BlockStateProperties::DoubleBlockHalf::Lower)
+            .with(BlockStateProperties::WATERLOGGED(), waterlogged);
+
+    // 根据邻居楼梯计算正确的角形状（与 MC 一致）
+    BlockStateProperties::StairsShape shape = _calculateShape(state, context.getWorld(), context.placementPos());
+
+    return state.with(BlockStateProperties::STAIRS_SHAPE(), shape);
 }
 
 BlockState StairsBlock::updatePostPlacement(const BlockState& state,
@@ -282,35 +289,43 @@ const BlockState& StairsBlock::mirror(const BlockState& state, Mirror mirror) co
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     BlockStateProperties::StairsShape shape = state.get(BlockStateProperties::STAIRS_SHAPE());
 
-    // 镜像逻辑：仅在特定朝向上生效
-    bool shouldMirror = false;
-    if (mirror == Mirror::LeftRight && (facing == Direction::South || facing == Direction::North)) {
-        shouldMirror = true;
-    } else if (mirror == Mirror::FrontBack && (facing == Direction::East || facing == Direction::West)) {
-        shouldMirror = true;
+    // 与 MC StairBlock.mirror 一致：
+    // LEFT_RIGHT 镜像（沿 X 轴翻转）：仅当朝向为 Z 轴（North/South）时生效
+    // FRONT_BACK 镜像（沿 Z 轴翻转）：仅当朝向为 X 轴（East/West）时生效
+    if (mirror == Mirror::LeftRight && Directions::getAxis(facing) == Axis::Z) {
+        const BlockState& rotated = rotate(state, Rotation::Clockwise180);
+        switch (shape) {
+            case BlockStateProperties::StairsShape::OuterLeft:
+                return rotated.with(
+                    BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::OuterRight);
+            case BlockStateProperties::StairsShape::InnerRight:
+                return rotated.with(BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::InnerLeft);
+            case BlockStateProperties::StairsShape::InnerLeft:
+                return rotated.with(
+                    BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::InnerRight);
+            case BlockStateProperties::StairsShape::OuterRight:
+                return rotated.with(BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::OuterLeft);
+            default:
+                return rotated;
+        }
     }
 
-    if (shouldMirror) {
-        Direction rotated = Directions::rotateDirection(facing, Rotation::Clockwise180);
-        BlockStateProperties::StairsShape mirroredShape = shape;
+    if (mirror == Mirror::FrontBack && Directions::getAxis(facing) == Axis::X) {
+        const BlockState& rotated = rotate(state, Rotation::Clockwise180);
         switch (shape) {
-            case BlockStateProperties::StairsShape::InnerLeft:
-                mirroredShape = BlockStateProperties::StairsShape::InnerRight;
-                break;
-            case BlockStateProperties::StairsShape::InnerRight:
-                mirroredShape = BlockStateProperties::StairsShape::InnerLeft;
-                break;
+            case BlockStateProperties::StairsShape::Straight:
+                return rotated;
             case BlockStateProperties::StairsShape::OuterLeft:
-                mirroredShape = BlockStateProperties::StairsShape::OuterRight;
-                break;
+                return rotated.with(
+                    BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::OuterRight);
+            case BlockStateProperties::StairsShape::InnerRight:
+                return rotated.with(
+                    BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::InnerRight);
+            case BlockStateProperties::StairsShape::InnerLeft:
+                return rotated.with(BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::InnerLeft);
             case BlockStateProperties::StairsShape::OuterRight:
-                mirroredShape = BlockStateProperties::StairsShape::OuterLeft;
-                break;
-            default:
-                break;
+                return rotated.with(BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::OuterLeft);
         }
-        const BlockState& result = state.with(BlockStateProperties::HORIZONTAL_FACING(), rotated);
-        return result.with(BlockStateProperties::STAIRS_SHAPE(), mirroredShape);
     }
 
     return state;
@@ -335,52 +350,34 @@ const fluid::FluidState* StairsBlock::getFluidState(const BlockState& state) con
 // ========== 私有方法 ==========
 
 BlockStateProperties::StairsShape StairsBlock::_calculateShape(
-    const BlockState& state, IWorld& world, const BlockPos& pos) const
+    const BlockState& state, IWorld& world, const BlockPos& pos)
 {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
 
-    // 检查朝向方向的邻居
-    BlockPos forwardPos(pos.x + Directions::xOffset(facing), pos.y, pos.z + Directions::zOffset(facing));
-    const BlockState* forwardState = world.getBlockState(forwardPos);
-
-    if (forwardState != nullptr && isStairs(*forwardState)) {
-        Direction forwardFacing = forwardState->get(BlockStateProperties::HORIZONTAL_FACING());
-        BlockStateProperties::DoubleBlockHalf forwardHalf =
-            forwardState->get(BlockStateProperties::DOUBLE_BLOCK_HALF());
-
-        // 检查是否同层且朝向垂直
-        if (forwardHalf == half && Directions::getAxis(forwardFacing) != Directions::getAxis(facing)) {
-            // 检查第三个位置是否形成外角
-            if (_isDifferentStairs(state, world, pos, Directions::opposite(forwardFacing))) {
-                // 判断是左外角还是右外角
-                if (forwardFacing == Directions::rotateYCCW(facing)) {
-                    return BlockStateProperties::StairsShape::OuterLeft;
-                }
-                return BlockStateProperties::StairsShape::OuterRight;
+    // 检查朝向方向的邻居（前方）
+    auto forwardShape = _neighborIsStairs(state, world, pos, facing);
+    if (forwardShape.has_value()) {
+        Direction forwardFacing = forwardShape->facing;
+        // canTakeShape: 检查第三个位置（邻居朝向的反方向）是否有同朝向同层次的楼梯
+        if (_isDifferentStairs(state, world, pos, Directions::opposite(forwardFacing))) {
+            if (forwardFacing == Directions::rotateYCCW(facing)) {
+                return BlockStateProperties::StairsShape::OuterLeft;
             }
+            return BlockStateProperties::StairsShape::OuterRight;
         }
     }
 
-    // 检查反方向的邻居
-    BlockPos backwardPos(pos.x - Directions::xOffset(facing), pos.y, pos.z - Directions::zOffset(facing));
-    const BlockState* backwardState = world.getBlockState(backwardPos);
-
-    if (backwardState != nullptr && isStairs(*backwardState)) {
-        Direction backwardFacing = backwardState->get(BlockStateProperties::HORIZONTAL_FACING());
-        BlockStateProperties::DoubleBlockHalf backwardHalf =
-            backwardState->get(BlockStateProperties::DOUBLE_BLOCK_HALF());
-
-        // 检查是否同层且朝向垂直
-        if (backwardHalf == half && Directions::getAxis(backwardFacing) != Directions::getAxis(facing)) {
-            // 检查第三个位置是否形成内角
-            if (_isDifferentStairs(state, world, pos, backwardFacing)) {
-                // 判断是左内角还是右内角
-                if (backwardFacing == Directions::rotateYCCW(facing)) {
-                    return BlockStateProperties::StairsShape::InnerLeft;
-                }
-                return BlockStateProperties::StairsShape::InnerRight;
+    // 检查反方向的邻居（后方）
+    Direction oppositeFacing = Directions::opposite(facing);
+    auto backwardShape = _neighborIsStairs(state, world, pos, oppositeFacing);
+    if (backwardShape.has_value()) {
+        Direction backwardFacing = backwardShape->facing;
+        // canTakeShape: 检查第三个位置（邻居朝向方向）是否有同朝向同层次的楼梯
+        if (_isDifferentStairs(state, world, pos, backwardFacing)) {
+            if (backwardFacing == Directions::rotateYCCW(facing)) {
+                return BlockStateProperties::StairsShape::InnerLeft;
             }
+            return BlockStateProperties::StairsShape::InnerRight;
         }
     }
 
@@ -388,17 +385,46 @@ BlockStateProperties::StairsShape StairsBlock::_calculateShape(
     return BlockStateProperties::StairsShape::Straight;
 }
 
-bool StairsBlock::_isDifferentStairs(const BlockState& state, IWorld& world, const BlockPos& pos, Direction face) const
+std::optional<StairsBlock::_NeighborStairsInfo> StairsBlock::_neighborIsStairs(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction facing)
 {
-    BlockPos checkPos(
-        pos.x + Directions::xOffset(face), pos.y + Directions::yOffset(face), pos.z + Directions::zOffset(face));
+    BlockPos neighborPos = pos.offset(facing);
+    const BlockState* neighborState = world.getBlockState(neighborPos);
+
+    if (neighborState == nullptr || !isStairs(*neighborState)) {
+        return std::nullopt;
+    }
+
+    BlockStateProperties::DoubleBlockHalf neighborHalf = neighborState->get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+    BlockStateProperties::DoubleBlockHalf ourHalf = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+
+    // 不同层的楼梯不形成角
+    if (neighborHalf != ourHalf) {
+        return std::nullopt;
+    }
+
+    Direction neighborFacing = neighborState->get(BlockStateProperties::HORIZONTAL_FACING());
+    Direction ourFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+
+    // 朝向必须在不同的轴上（垂直方向）
+    if (Directions::getAxis(neighborFacing) == Directions::getAxis(ourFacing)) {
+        return std::nullopt;
+    }
+
+    return _NeighborStairsInfo{neighborFacing};
+}
+
+bool StairsBlock::_isDifferentStairs(const BlockState& state, IWorld& world, const BlockPos& pos, Direction face)
+{
+    BlockPos checkPos = pos.offset(face);
     const BlockState* checkState = world.getBlockState(checkPos);
 
     if (checkState == nullptr || !isStairs(*checkState)) {
         return true;
     }
 
-    // 检查朝向、half是否相同
+    // 与 canTakeShape 语义一致：
+    // 如果第三位置的楼梯与当前楼梯朝向相同且层次相同，则不能形成角形状
     Direction checkFacing = checkState->get(BlockStateProperties::HORIZONTAL_FACING());
     BlockStateProperties::DoubleBlockHalf checkHalf = checkState->get(BlockStateProperties::DOUBLE_BLOCK_HALF());
 
