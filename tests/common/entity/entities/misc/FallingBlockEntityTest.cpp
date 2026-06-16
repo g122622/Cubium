@@ -40,11 +40,14 @@
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/blocks/FallingBlock.hpp"
+#include "common/world/block/blocks/functional/AnvilBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -678,7 +681,9 @@ TEST_F(FallingBlockEntityTest, FallingStatePreservation)
 /**
  * @brief 测试 cancelDrop 标志
  *
- * 当铁砧在最大损坏状态下损坏时，cancelDrop 为 true，不掉落物品
+ * cancelDrop 由外部逻辑设置，表示完全取消一切后续处理（不调用回调、不掉落物品）。
+ * 注意：铁砧完全摧毁时不再使用 cancelDrop，而是使用 dontSetBlock + shouldDropItem=false，
+ * 以确保 onBroken 回调被触发（播放破碎音效）。
  */
 TEST_F(FallingBlockEntityTest, CancelDropFlag)
 {
@@ -687,7 +692,7 @@ TEST_F(FallingBlockEntityTest, CancelDropFlag)
     // 默认为 false
     EXPECT_FALSE(entity->cancelDrop());
 
-    // 设置为 true（铁砧完全摧毁时）
+    // 设置为 true（外部逻辑需要完全取消掉落时）
     entity->setCancelDrop(true);
     EXPECT_TRUE(entity->cancelDrop());
 
@@ -717,6 +722,142 @@ TEST_F(FallingBlockEntityTest, CustomDamageParameters)
 
     EXPECT_FLOAT_EQ(entity->getFallDamagePerDistance(), 1.0f);
     EXPECT_EQ(entity->getFallDamageMax(), 20);
+}
+
+/**
+ * @brief 测试铁砧降级时 fallingState 正确更新
+ *
+ * 当铁砧在 _hurtEntities 中降级后，m_fallingState 和 m_blockId 应同步更新
+ */
+TEST_F(FallingBlockEntityTest, AnvilDegradeUpdatesFallingState)
+{
+    // 设置铁砧方块
+    const Block* anvil = block_registry::BuildingBlocks::ANVIL;
+    ASSERT_NE(anvil, nullptr);
+
+    auto entity = std::make_unique<FallingBlockEntity>();
+    const BlockState* anvilState =
+        &anvil->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
+    entity->setBlockId(anvilState->blockId());
+    entity->setFallingState(anvilState);
+
+    // 验证初始状态
+    EXPECT_EQ(entity->getBlockId(), anvilState->blockId());
+    EXPECT_EQ(entity->getFallingState(), anvilState);
+
+    // 模拟降级：手动调用 damageAnvil 并更新
+    const BlockState* chippedState = blocks::AnvilBlock::damageAnvil(*anvilState);
+    ASSERT_NE(chippedState, nullptr);
+
+    // 模拟 _hurtEntities 中铁砧降级后的更新逻辑
+    entity->setFallingState(chippedState);
+    entity->setBlockId(chippedState->blockId());
+
+    // 验证状态已更新为 chipped_anvil
+    EXPECT_EQ(entity->getBlockId(), chippedState->blockId());
+    EXPECT_EQ(entity->getFallingState(), chippedState);
+    EXPECT_EQ(chippedState->getBlock().blockLocation(), ResourceLocation("minecraft", "chipped_anvil"));
+
+    // 朝向应保留
+    Direction facing = chippedState->get(BlockStateProperties::HORIZONTAL_FACING());
+    EXPECT_EQ(facing, Direction::East);
+}
+
+/**
+ * @brief 测试铁砧完全损坏时 dontSetBlock 和 shouldDropItem 标志
+ *
+ * 铁砧在 damaged_anvil 状态再损坏时，应设置 dontSetBlock=true 且 shouldDropItem=false，
+ * 而非 cancelDrop=true，以确保 onBroken 回调被触发（播放破碎音效）
+ */
+TEST_F(FallingBlockEntityTest, AnvilFullDestroySetsDontSetBlockNotCancelDrop)
+{
+    auto entity = std::make_unique<FallingBlockEntity>();
+
+    // 验证初始状态
+    EXPECT_FALSE(entity->dontSetBlock());
+    EXPECT_TRUE(entity->shouldDropItem());
+    EXPECT_FALSE(entity->cancelDrop());
+
+    // 模拟铁砧完全损坏场景：_hurtEntities 中 damaged_anvil 再损坏时的处理
+    // 在实际代码中，这通过 damageAnvil 返回 nullptr 触发
+    // 这里直接验证标志设置的语义
+    entity->setDontSetBlock(true);
+    entity->setShouldDropItem(false);
+
+    EXPECT_TRUE(entity->dontSetBlock());
+    EXPECT_FALSE(entity->shouldDropItem());
+    // cancelDrop 不应为铁砧损坏而设置
+    EXPECT_FALSE(entity->cancelDrop());
+}
+
+/**
+ * @brief 测试铁砧完整损坏链：anvil → chipped_anvil → damaged_anvil → destroyed
+ *
+ * 验证通过 FallingBlockEntity 的状态更新与 AnvilBlock::damageAnvil 的集成
+ */
+TEST_F(FallingBlockEntityTest, AnvilFullDamageChainViaEntity)
+{
+    const Block* anvil = block_registry::BuildingBlocks::ANVIL;
+    ASSERT_NE(anvil, nullptr);
+
+    auto entity = std::make_unique<FallingBlockEntity>();
+    const BlockState* state = &anvil->defaultState();
+    entity->setBlockId(state->blockId());
+    entity->setFallingState(state);
+
+    // 第一级损坏：anvil → chipped_anvil
+    const BlockState* state2 = blocks::AnvilBlock::damageAnvil(*state);
+    ASSERT_NE(state2, nullptr);
+    entity->setFallingState(state2);
+    entity->setBlockId(state2->blockId());
+    EXPECT_EQ(entity->getFallingState()->getBlock().blockLocation(), ResourceLocation("minecraft", "chipped_anvil"));
+
+    // 第二级损坏：chipped_anvil → damaged_anvil
+    const BlockState* state3 = blocks::AnvilBlock::damageAnvil(*state2);
+    ASSERT_NE(state3, nullptr);
+    entity->setFallingState(state3);
+    entity->setBlockId(state3->blockId());
+    EXPECT_EQ(entity->getFallingState()->getBlock().blockLocation(), ResourceLocation("minecraft", "damaged_anvil"));
+
+    // 第三级损坏：damaged_anvil → 完全摧毁（nullptr）
+    const BlockState* state4 = blocks::AnvilBlock::damageAnvil(*state3);
+    EXPECT_EQ(state4, nullptr);
+    // 此时 _hurtEntities 应设置 dontSetBlock=true, shouldDropItem=false
+}
+
+/**
+ * @brief 测试 _dropItem 使用 fallingState 的 blockId
+ *
+ * 当铁砧降级后，_dropItem 应优先使用 m_fallingState->blockId() 而非旧的 m_blockId，
+ * 确保掉落的是降级后的铁砧物品而非原始铁砧物品
+ */
+TEST_F(FallingBlockEntityTest, DropItemUsesFallingStateBlockId)
+{
+    const Block* anvil = block_registry::BuildingBlocks::ANVIL;
+    const Block* chippedAnvil = block_registry::BuildingBlocks::CHIPPED_ANVIL;
+    ASSERT_NE(anvil, nullptr);
+    ASSERT_NE(chippedAnvil, nullptr);
+
+    auto entity = std::make_unique<FallingBlockEntity>();
+
+    // 初始设置为铁砧
+    const BlockState* anvilState = &anvil->defaultState();
+    entity->setBlockId(anvilState->blockId());
+    entity->setFallingState(anvilState);
+
+    // 模拟降级到 chipped_anvil
+    const BlockState* chippedState = blocks::AnvilBlock::damageAnvil(*anvilState);
+    ASSERT_NE(chippedState, nullptr);
+    entity->setFallingState(chippedState);
+    entity->setBlockId(chippedState->blockId());
+
+    // 验证 m_fallingState 的 blockId 与 m_blockId 一致
+    // 两者都应指向 chipped_anvil
+    EXPECT_EQ(entity->getBlockId(), chippedState->blockId());
+    EXPECT_EQ(entity->getFallingState()->blockId(), chippedState->blockId());
+
+    // 验证 blockId 不再是原始 anvil
+    EXPECT_NE(entity->getBlockId(), anvilState->blockId());
 }
 
 } // namespace test

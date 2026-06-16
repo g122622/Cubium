@@ -129,18 +129,25 @@ void FallingBlockEntity::_handleLanding()
         _hurtEntities(worldPtr);
     }
 
-    // 如果 cancelDrop 为 true（铁砧在最大损坏状态下损坏），直接移除实体，不掉落物品
-    if (m_cancelDrop) {
+    // _hurtEntities 可能更新了 m_blockId（铁砧降级），需要重新获取 block 指针
+    block = Block::getBlock(m_blockId);
+
+    // 如果 dontSetBlock 为 true（铁砧完全摧毁或外部设置），不放置方块，但调用 onBroken 回调
+    // 注意：铁砧完全摧毁时仅设置 m_dontSetBlock=true（而非 m_cancelDrop），
+    // 以确保 onBroken 回调被触发（播放铁砧破碎音效 WorldEvents::ANVIL_DESTROYED_SOUND）
+    // 同时 m_shouldDropItem 在此路径下不会触发物品掉落（因为不走 _dropItem 分支）
+    if (m_dontSetBlock) {
+        // 调用 FallingBlock 的 onBroken 回调（如铁砧播放破碎音效）
+        if (auto* fallingBlock = dynamic_cast<blocks::FallingBlock*>(block)) {
+            fallingBlock->onBroken(*worldPtr, landingPos, *this);
+        }
         remove();
         return;
     }
 
-    // 如果 dontSetBlock 为 true，只调用 onBroken 回调
-    if (m_dontSetBlock) {
-        // 调用 FallingBlock 的 onBroken 回调
-        if (auto* fallingBlock = dynamic_cast<blocks::FallingBlock*>(block)) {
-            fallingBlock->onBroken(*worldPtr, landingPos, *this);
-        }
+    // cancelDrop 为 true 时直接移除实体，不调用回调也不掉落物品
+    // 此标志由外部逻辑设置（非铁砧损坏场景），表示完全取消一切后续处理
+    if (m_cancelDrop) {
         remove();
         return;
     }
@@ -236,7 +243,13 @@ void FallingBlockEntity::_dropItem(IWorld* world, const BlockPos& pos)
     }
 
     // 获取方块对应的物品
-    const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(m_blockId);
+    // 优先使用 m_fallingState 中的 blockId（铁砧降级后已更新），
+    // 回退到 m_blockId（兼容未设置 fallingState 的情况）
+    u32 itemId = m_blockId;
+    if (m_fallingState != nullptr && !m_fallingState->isAir()) {
+        itemId = m_fallingState->blockId();
+    }
+    const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(itemId);
     if (blockItem == nullptr) {
         // 某些方块（如基岩）可能没有对应的物品
         return;
@@ -328,9 +341,12 @@ void FallingBlockEntity::_hurtEntities(IWorld* world)
                 m_fallingState = damagedState;
                 m_blockId = damagedState->blockId();
             } else {
-                // 铁砧已在最大损坏状态，完全摧毁（不掉落物品）
-                m_cancelDrop = true;
+                // 铁砧已在最大损坏状态（damaged_anvil），完全摧毁
+                // 设置 m_dontSetBlock=true 使 _handleLanding 走 onBroken 回调路径
+                // （播放铁砧破碎音效 WorldEvents::ANVIL_DESTROYED_SOUND），不放置方块也不掉落物品
+                // 不使用 m_cancelDrop，因为那会跳过 onBroken 回调
                 m_dontSetBlock = true;
+                m_shouldDropItem = false;
             }
         }
     }
