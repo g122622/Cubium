@@ -25,7 +25,7 @@
 
 #include "client/sound/resource/SoundRegistry.hpp"
 #include "common/core/Result.hpp"
-#include "common/resource/ResourcePackList.hpp"
+#include "common/resource/PackRepository.hpp"
 
 #include <functional>
 
@@ -61,7 +61,7 @@ struct SoundLoadProgress {
  *
  * 使用示例:
  * @code
- * ResourcePackList packs;
+ * PackRepository packs;
  * // ... 添加资源包 ...
  *
  * SoundHandler handler(packs);
@@ -94,7 +94,7 @@ public:
      *
      * @param resourcePacks 资源包列表引用
      */
-    explicit SoundHandler(ResourcePackList& resourcePacks);
+    explicit SoundHandler(PackRepository& resourcePacks);
 
     /**
      * @brief 析构函数
@@ -217,12 +217,12 @@ public:
     /**
      * @brief 获取资源包列表
      */
-    [[nodiscard]] ResourcePackList& getResourcePacks() noexcept { return m_resourcePacks; }
+    [[nodiscard]] PackRepository& getResourcePacks() noexcept { return m_resourcePacks; }
 
     /**
      * @brief 获取资源包列表（const版本）
      */
-    [[nodiscard]] const ResourcePackList& getResourcePacks() const noexcept { return m_resourcePacks; }
+    [[nodiscard]] const PackRepository& getResourcePacks() const noexcept { return m_resourcePacks; }
 
     /**
      * @brief 获取声音注册表
@@ -258,7 +258,7 @@ private:
      */
     void _notifyProgress(const SoundLoadProgress& progress);
 
-    ResourcePackList& m_resourcePacks;
+    PackRepository& m_resourcePacks;
     SoundRegistry m_registry;
     ProgressCallback m_progressCallback;
     size_t m_errorCount = 0;

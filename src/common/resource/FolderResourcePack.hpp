@@ -26,7 +26,7 @@
 #include "IResourcePack.hpp"
 #include <filesystem>
 
-namespace mc {
+namespace mc::resource {
 
 /**
  * @brief 文件夹资源包实现
@@ -50,12 +50,11 @@ public:
     // IResourcePack接口实现
     [[nodiscard]] Result<void> initialize() override;
     [[nodiscard]] const PackMetadata& metadata() const override { return m_metadata; }
-    [[nodiscard]] bool hasResource(resource::PackType type, std::string_view resourcePath) const override;
-    [[nodiscard]] Result<std::vector<u8>> readResource(
-        resource::PackType type, std::string_view resourcePath) const override;
+    [[nodiscard]] bool hasResource(PackType type, std::string_view resourcePath) const override;
+    [[nodiscard]] Result<std::vector<u8>> readResource(PackType type, std::string_view resourcePath) const override;
     [[nodiscard]] Result<std::vector<std::string>> listResources(
-        resource::PackType type, std::string_view directory, std::string_view extension) const override;
-    [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces(resource::PackType type) const override;
+        PackType type, std::string_view directory, std::string_view extension) const override;
+    [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces(PackType type) const override;
     [[nodiscard]] std::string name() const override { return m_name; }
 
     // 获取根路径
@@ -70,4 +69,8 @@ private:
     [[nodiscard]] std::string _normalize_path(std::string_view resourcePath) const;
 };
 
+} // namespace mc::resource
+
+namespace mc {
+using FolderResourcePack = resource::FolderResourcePack;
 } // namespace mc

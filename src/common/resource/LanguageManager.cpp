@@ -23,8 +23,8 @@
 
 #include "LanguageManager.hpp"
 #include "IResourcePack.hpp"
+#include "PackRepository.hpp"
 #include "ResourceLocation.hpp"
-#include "ResourcePackList.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -32,7 +32,7 @@
 #include <algorithm>
 #include <regex>
 
-namespace mc {
+namespace mc::resource {
 
 // ============================================================================
 // 全局实例
@@ -48,13 +48,13 @@ LanguageManager& LanguageManager::instance()
 // 语言加载
 // ============================================================================
 
-Result<void> LanguageManager::loadLanguage(const ResourcePackList& packList, const std::string& languageCode)
+Result<void> LanguageManager::loadLanguage(const PackRepository& packList, const std::string& languageCode)
 {
     return loadLanguage(packList, languageCode, "minecraft");
 }
 
 Result<void> LanguageManager::loadLanguage(
-    const ResourcePackList& packList, const std::string& languageCode, const std::string& namespace_)
+    const PackRepository& packList, const std::string& languageCode, const std::string& namespace_)
 {
     // 清空现有翻译
     clear();
@@ -109,12 +109,12 @@ Result<size_t> LanguageManager::loadLanguageFromPack(
     std::string filePath = namespace_ + "/lang/" + languageCode + ".json";
 
     // 检查资源是否存在
-    if (!pack.hasResource(resource::PackType::ClientResources, filePath)) {
+    if (!pack.hasResource(PackType::ClientResources, filePath)) {
         return Error(ErrorCode::ResourceNotFound, "Language file not found: " + filePath);
     }
 
     // 读取文件内容
-    auto readResult = pack.readTextResource(resource::PackType::ClientResources, filePath);
+    auto readResult = pack.readTextResource(PackType::ClientResources, filePath);
     if (readResult.failed()) {
         return readResult.error();
     }
@@ -198,7 +198,7 @@ std::string LanguageManager::get(const std::string& key, const std::vector<std::
 // ============================================================================
 
 std::vector<std::string> LanguageManager::getAvailableLanguages(
-    const ResourcePackList& packList, const std::string& namespace_)
+    const PackRepository& packList, const std::string& namespace_)
 {
     std::set<std::string> languages;
 
@@ -351,4 +351,4 @@ std::string LanguageManager::_replacePlaceholders(const std::string& text, const
     return result;
 }
 
-} // namespace mc
+} // namespace mc::resource

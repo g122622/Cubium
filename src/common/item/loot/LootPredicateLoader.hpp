@@ -24,9 +24,9 @@
 #include "LootPredicateManager.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/resource/DataPackList.hpp"
+#include "common/resource/DataPackRepository.hpp"
+#include "common/resource/PackRepository.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/resource/ResourcePackList.hpp"
 #include <functional>
 #include <string>
 #include <vector>
@@ -75,20 +75,20 @@ public:
      * @param callback 进度回调（可选）
      * @return 加载结果
      */
-    Result<LoadResult> loadFromResourcePacks(const ResourcePackList& packs, ProgressCallback callback = nullptr);
+    Result<LoadResult> loadFromResourcePacks(const PackRepository& packs, ProgressCallback callback = nullptr);
 
     /**
      * @brief 从数据包列表加载所有谓词
      *
-     * 使用 DataPackList 的 PackType::ServerData 限定接口从数据包加载谓词。
+     * 使用 DataPackRepository 的 PackType::ServerData 限定接口从数据包加载谓词。
      * 按数据包优先级从低到高加载，同名谓词由高优先级数据包覆盖。
      *
      * @param dataPacks 数据包列表
      * @param callback 进度回调（可选）
      * @return 加载结果
      */
-    Result<LoadResult> loadFromDataPackList(
-        const mc::resource::DataPackList& dataPacks, ProgressCallback callback = nullptr);
+    Result<LoadResult> loadFromDataPackRepository(
+        const mc::resource::DataPackRepository& dataPacks, ProgressCallback callback = nullptr);
 
     /**
      * @brief 从目录加载所有谓词

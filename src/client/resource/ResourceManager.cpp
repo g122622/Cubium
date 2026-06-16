@@ -250,7 +250,7 @@ Result<void> ResourceManager::loadAllResources()
     MC_TRACE_EVENT("client.resource", "ResourceManager::loadAllResources");
 
     // 设置模型加载器的资源包列表
-    m_modelLoader.setResourcePackList(m_resourcePacks);
+    m_modelLoader.setPackRepository(m_resourcePacks);
 
     // 加载方块状态
     for (auto& pack : m_resourcePacks) {

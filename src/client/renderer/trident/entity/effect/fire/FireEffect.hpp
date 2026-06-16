@@ -25,6 +25,7 @@
 
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/IResourcePack.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <memory>
 #include <vector>
@@ -32,7 +33,6 @@
 
 namespace mc {
 class Entity;
-class IResourcePack;
 
 namespace client {
 class ClientEntity;

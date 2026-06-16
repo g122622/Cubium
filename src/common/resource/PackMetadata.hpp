@@ -27,7 +27,7 @@
 #include "common/core/Types.hpp"
 #include <string>
 
-namespace mc {
+namespace mc::resource {
 
 /**
  * @brief 资源包元数据
@@ -84,4 +84,8 @@ private:
     std::string m_description;
 };
 
+} // namespace mc::resource
+
+namespace mc {
+using PackMetadata = resource::PackMetadata;
 } // namespace mc

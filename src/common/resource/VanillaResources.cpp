@@ -25,7 +25,7 @@
 #include <cstring>
 #include <spdlog/spdlog.h>
 
-namespace mc {
+namespace mc::resource {
 
 // ============================================================================
 // 模型模板定义
@@ -1094,4 +1094,4 @@ void VanillaResources::_registerBlockStates(InMemoryResourcePack& pack)
     })");
 }
 
-} // namespace mc
+} // namespace mc::resource

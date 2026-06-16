@@ -32,8 +32,8 @@
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/ParticlePacket.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
-#include "common/resource/DataPackList.hpp"
-#include "common/resource/ResourcePackList.hpp"
+#include "common/resource/DataPackRepository.hpp"
+#include "common/resource/PackRepository.hpp"
 #include "common/sound/network/SoundPackets.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/util/thread/ServerWorkerPool.hpp"
@@ -317,10 +317,10 @@ public:
         return m_storage.get();
     }
     [[nodiscard]] bool isSharedStorageReadonlyForeignWorld() const override;
-    [[nodiscard]] ResourcePackList& resourcePackList() { return m_resourcePackList; }
-    [[nodiscard]] const ResourcePackList& resourcePackList() const { return m_resourcePackList; }
-    [[nodiscard]] mc::resource::DataPackList& dataPackList() override { return m_dataPackList; }
-    [[nodiscard]] const mc::resource::DataPackList& dataPackList() const override { return m_dataPackList; }
+    [[nodiscard]] PackRepository& resourcePackList() { return m_resourcePackList; }
+    [[nodiscard]] const PackRepository& resourcePackList() const { return m_resourcePackList; }
+    [[nodiscard]] mc::resource::DataPackRepository& dataPackList() override { return m_dataPackList; }
+    [[nodiscard]] const mc::resource::DataPackRepository& dataPackList() const override { return m_dataPackList; }
 
 protected:
     void attachWorldBindings(ServerWorld& world);
@@ -900,8 +900,8 @@ protected:
     // 掉落表
     mc::loot::LootTableManager m_lootTableManager;
     mc::loot::LootPredicateManager m_predicateManager;
-    ResourcePackList m_resourcePackList;
-    mc::resource::DataPackList m_dataPackList;
+    PackRepository m_resourcePackList;
+    mc::resource::DataPackRepository m_dataPackList;
 
     // 脚本系统
     std::unique_ptr<ServerScriptManager> m_scriptManager;

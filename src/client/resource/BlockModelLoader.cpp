@@ -424,7 +424,7 @@ Result<std::string> BlockModelLoader::_readModelFromResourcePacks(const std::str
     return Error(ErrorCode::ResourceNotFound, "Model not found in any resource pack: " + filePath);
 }
 
-void BlockModelLoader::setResourcePackList(const std::vector<std::shared_ptr<IResourcePack>>& resourcePacks)
+void BlockModelLoader::setPackRepository(const std::vector<std::shared_ptr<IResourcePack>>& resourcePacks)
 {
     m_resourcePacks = resourcePacks;
 }

@@ -26,7 +26,7 @@
 #include <sstream>
 #include <spdlog/spdlog.h>
 
-namespace mc {
+namespace mc::resource {
 
 InMemoryResourcePack::InMemoryResourcePack(std::string name)
     : m_name(std::move(name))
@@ -35,7 +35,7 @@ InMemoryResourcePack::InMemoryResourcePack(std::string name)
 
 void InMemoryResourcePack::addClientResource(std::string path, std::string content)
 {
-    std::string normalized = _makeTypedPath(resource::PackType::ClientResources, path);
+    std::string normalized = _makeTypedPath(PackType::ClientResources, path);
     std::vector<u8> data(content.begin(), content.end());
     m_resources[normalized] = std::move(data);
     _addDirectoryEntries(normalized);
@@ -43,7 +43,7 @@ void InMemoryResourcePack::addClientResource(std::string path, std::string conte
 
 void InMemoryResourcePack::addServerDataResource(std::string path, std::string content)
 {
-    std::string normalized = _makeTypedPath(resource::PackType::ServerData, path);
+    std::string normalized = _makeTypedPath(PackType::ServerData, path);
     std::vector<u8> data(content.begin(), content.end());
     m_resources[normalized] = std::move(data);
     _addDirectoryEntries(normalized);
@@ -51,19 +51,19 @@ void InMemoryResourcePack::addServerDataResource(std::string path, std::string c
 
 void InMemoryResourcePack::addClientResource(std::string path, std::vector<u8> data)
 {
-    std::string normalized = _makeTypedPath(resource::PackType::ClientResources, path);
+    std::string normalized = _makeTypedPath(PackType::ClientResources, path);
     m_resources[normalized] = std::move(data);
     _addDirectoryEntries(normalized);
 }
 
 void InMemoryResourcePack::addServerDataResource(std::string path, std::vector<u8> data)
 {
-    std::string normalized = _makeTypedPath(resource::PackType::ServerData, path);
+    std::string normalized = _makeTypedPath(PackType::ServerData, path);
     m_resources[normalized] = std::move(data);
     _addDirectoryEntries(normalized);
 }
 
-void InMemoryResourcePack::addDirectory(resource::PackType type, std::string directory)
+void InMemoryResourcePack::addDirectory(PackType type, std::string directory)
 {
     std::string normalized = _makeTypedPath(type, directory);
     m_directories.insert(normalized);
@@ -75,13 +75,13 @@ Result<void> InMemoryResourcePack::initialize()
     return Result<void>::ok();
 }
 
-bool InMemoryResourcePack::hasResource(resource::PackType type, std::string_view resourcePath) const
+bool InMemoryResourcePack::hasResource(PackType type, std::string_view resourcePath) const
 {
     const std::string normalized = _makeTypedPath(type, resourcePath);
     return m_resources.find(normalized) != m_resources.end();
 }
 
-Result<std::vector<u8>> InMemoryResourcePack::readResource(resource::PackType type, std::string_view resourcePath) const
+Result<std::vector<u8>> InMemoryResourcePack::readResource(PackType type, std::string_view resourcePath) const
 {
     const std::string normalized = _makeTypedPath(type, resourcePath);
 
@@ -96,7 +96,7 @@ Result<std::vector<u8>> InMemoryResourcePack::readResource(resource::PackType ty
 }
 
 Result<std::vector<std::string>> InMemoryResourcePack::listResources(
-    resource::PackType type, std::string_view directory, std::string_view extension) const
+    PackType type, std::string_view directory, std::string_view extension) const
 {
     std::vector<std::string> resources;
     std::string normalizedDir = _makeTypedPath(type, directory);
@@ -133,7 +133,7 @@ Result<std::vector<std::string>> InMemoryResourcePack::listResources(
     return resources;
 }
 
-Result<std::vector<std::string>> InMemoryResourcePack::getResourceNamespaces(resource::PackType type) const
+Result<std::vector<std::string>> InMemoryResourcePack::getResourceNamespaces(PackType type) const
 {
     std::string typeDir(resource::packTypeDirectoryName(type));
     std::string prefix = typeDir + "/";
@@ -172,7 +172,7 @@ std::string InMemoryResourcePack::_normalizePath(std::string_view path)
     return result;
 }
 
-std::string InMemoryResourcePack::_makeTypedPath(resource::PackType type, std::string_view path)
+std::string InMemoryResourcePack::_makeTypedPath(PackType type, std::string_view path)
 {
     return _normalizePath(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(path));
 }
@@ -194,4 +194,4 @@ void InMemoryResourcePack::_addDirectoryEntries(const std::string& normalizedPat
     }
 }
 
-} // namespace mc
+} // namespace mc::resource

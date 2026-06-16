@@ -43,7 +43,7 @@ void TemplateManager::setResourcePack(const IResourcePack* pack)
     m_resourcePack = pack;
 }
 
-void TemplateManager::setDataPackList(const resource::DataPackList* dataPackList)
+void TemplateManager::setDataPackRepository(const resource::DataPackRepository* dataPackList)
 {
     m_dataPackList = dataPackList;
 }
@@ -106,7 +106,7 @@ void TemplateManager::clear()
 
 std::unique_ptr<Template> TemplateManager::_loadTemplate(const ResourceLocation& location)
 {
-    // 优先从 DataPackList 加载（支持多数据包优先级）
+    // 优先从 DataPackRepository 加载（支持多数据包优先级）
     if (m_dataPackList) {
         std::string resourcePath =
             std::string(location.namespace_()) + "/structure/" + std::string(location.path()) + ".nbt";

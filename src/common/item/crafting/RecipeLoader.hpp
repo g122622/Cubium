@@ -26,7 +26,7 @@
 #include "core/Result.hpp"
 #include "item/crafting/RecipeManager.hpp"
 #include "item/crafting/RecipeSerializers.hpp"
-#include "resource/DataPackList.hpp"
+#include "resource/DataPackRepository.hpp"
 #include "resource/ResourceLocation.hpp"
 #include <functional>
 #include <string>
@@ -97,15 +97,15 @@ public:
     /**
      * @brief 从数据包列表加载所有配方
      *
-     * 使用 DataPackList 的 PackType::ServerData 限定接口从数据包加载配方。
+     * 使用 DataPackRepository 的 PackType::ServerData 限定接口从数据包加载配方。
      * 按数据包优先级从低到高加载，同名配方由高优先级数据包覆盖。
      *
      * @param dataPacks 数据包列表
      * @param callback 进度回调（可选）
      * @return 加载结果
      */
-    Result<LoadResult> loadFromDataPackList(
-        const mc::resource::DataPackList& dataPacks, ProgressCallback callback = nullptr);
+    Result<LoadResult> loadFromDataPackRepository(
+        const mc::resource::DataPackRepository& dataPacks, ProgressCallback callback = nullptr);
 
     /**
      * @brief 加载单个配方文件

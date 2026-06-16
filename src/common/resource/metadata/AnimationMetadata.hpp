@@ -198,3 +198,7 @@ struct AnimationMetadata {
 };
 
 } // namespace mc::resource::metadata
+
+namespace mc::resource {
+using AnimationMetadata = metadata::AnimationMetadata;
+} // namespace mc::resource

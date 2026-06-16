@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/IResourcePack.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTextures.hpp"
 #include "common/skin/core/SkinTypes.hpp"
@@ -36,10 +37,6 @@
 #include <memory>
 #include <mutex>
 #include <unordered_map>
-
-namespace mc {
-class IResourcePack; // 前向声明
-}
 
 namespace mc::skin {
 

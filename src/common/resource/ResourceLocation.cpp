@@ -24,7 +24,7 @@
 #include "ResourceLocation.hpp"
 #include <functional>
 
-namespace mc {
+namespace mc::resource {
 
 ResourceLocation::ResourceLocation()
     : m_namespace("minecraft")
@@ -68,14 +68,14 @@ std::string ResourceLocation::toString() const
     return m_namespace + ":" + m_path;
 }
 
-std::string ResourceLocation::toFilePath(resource::PackType type) const
+std::string ResourceLocation::toFilePath(PackType type) const
 {
     // ClientResources -> "assets/namespace/path"
     // ServerData -> "data/namespace/path"
     return std::string(resource::packTypeDirectoryName(type)) + "/" + m_namespace + "/" + m_path;
 }
 
-std::string ResourceLocation::toFilePath(resource::PackType type, std::string_view extension) const
+std::string ResourceLocation::toFilePath(PackType type, std::string_view extension) const
 {
     std::string result = toFilePath(type);
     if (!extension.empty()) {
@@ -112,4 +112,4 @@ size_t ResourceLocation::hash() const noexcept
     return h1 ^ (h2 << 1);
 }
 
-} // namespace mc
+} // namespace mc::resource

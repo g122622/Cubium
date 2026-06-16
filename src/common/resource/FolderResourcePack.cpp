@@ -27,7 +27,7 @@
 
 namespace fs = std::filesystem;
 
-namespace mc {
+namespace mc::resource {
 
 namespace {
 std::string getDirectoryName(const std::string& path)
@@ -70,14 +70,14 @@ Result<void> FolderResourcePack::initialize()
     return Result<void>::ok();
 }
 
-bool FolderResourcePack::hasResource(resource::PackType type, std::string_view resourcePath) const
+bool FolderResourcePack::hasResource(PackType type, std::string_view resourcePath) const
 {
     const std::string fullPath =
         _normalize_path(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(resourcePath));
     return fs::exists(fullPath) && fs::is_regular_file(fullPath);
 }
 
-Result<std::vector<u8>> FolderResourcePack::readResource(resource::PackType type, std::string_view resourcePath) const
+Result<std::vector<u8>> FolderResourcePack::readResource(PackType type, std::string_view resourcePath) const
 {
     const std::string fullPath =
         _normalize_path(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(resourcePath));
@@ -108,7 +108,7 @@ Result<std::vector<u8>> FolderResourcePack::readResource(resource::PackType type
 }
 
 Result<std::vector<std::string>> FolderResourcePack::listResources(
-    resource::PackType type, std::string_view directory, std::string_view extension) const
+    PackType type, std::string_view directory, std::string_view extension) const
 {
     std::string fullPath =
         m_rootPath + "/" + std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(directory);
@@ -155,7 +155,7 @@ Result<std::vector<std::string>> FolderResourcePack::listResources(
     return resources;
 }
 
-Result<std::vector<std::string>> FolderResourcePack::getResourceNamespaces(resource::PackType type) const
+Result<std::vector<std::string>> FolderResourcePack::getResourceNamespaces(PackType type) const
 {
     std::string typeDir(resource::packTypeDirectoryName(type));
     fs::path typePath = fs::path(m_rootPath) / typeDir;
@@ -197,4 +197,4 @@ std::string FolderResourcePack::_normalize_path(std::string_view resourcePath) c
     return m_rootPath + "/" + path;
 }
 
-} // namespace mc
+} // namespace mc::resource

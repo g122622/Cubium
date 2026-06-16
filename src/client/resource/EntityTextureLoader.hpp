@@ -32,7 +32,6 @@
 #include <vector>
 
 namespace mc {
-class IResourcePack;
 
 namespace entity {
 enum class EntityClassification : u8;

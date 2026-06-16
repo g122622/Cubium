@@ -43,7 +43,6 @@
 namespace mc {
 
 // 前向声明
-class ResourcePackList;
 
 namespace client {
 

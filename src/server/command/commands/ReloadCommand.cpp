@@ -26,7 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/loot/LootTableLoader.hpp"
-#include "common/resource/DataPackList.hpp"
+#include "common/resource/DataPackRepository.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include <spdlog/spdlog.h>
@@ -63,7 +63,7 @@ i32 ReloadCommand::_reload(CommandContext<ServerCommandSource>& context)
     // 1. 重新加载战利品表
     auto& lootTableManager = server->lootTableManager();
     loot::LootTableLoader lootLoader(lootTableManager);
-    auto lootResult = lootLoader.loadFromDataPackList(dataPacks);
+    auto lootResult = lootLoader.loadFromDataPackRepository(dataPacks);
     if (lootResult.failed()) {
         source.sendMessage("Failed to reload loot tables: " + lootResult.error().toString());
         spdlog::error("Failed to reload loot tables: {}", lootResult.error().toString());
@@ -78,7 +78,7 @@ i32 ReloadCommand::_reload(CommandContext<ServerCommandSource>& context)
 
     // 2. 重新加载配方
     RecipeLoader recipeLoader;
-    auto recipeResult = recipeLoader.loadFromDataPackList(dataPacks);
+    auto recipeResult = recipeLoader.loadFromDataPackRepository(dataPacks);
     if (recipeResult.failed()) {
         source.sendMessage("Failed to reload recipes: " + recipeResult.error().toString());
         spdlog::error("Failed to reload recipes: {}", recipeResult.error().toString());

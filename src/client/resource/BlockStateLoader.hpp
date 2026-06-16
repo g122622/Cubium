@@ -32,8 +32,6 @@
 
 namespace mc {
 
-class IResourcePack;
-
 /**
  * @brief 方块状态加载器
  *

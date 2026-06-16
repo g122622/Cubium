@@ -26,12 +26,11 @@
 #include "client/renderer/trident/gui/GuiSprite.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/IResourcePack.hpp"
 #include <unordered_map>
 #include <vector>
 
-namespace mc {
-class IResourcePack;
-}
+namespace mc {}
 
 namespace mc::client::renderer::trident::gui {
 

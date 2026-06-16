@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/sound/instance/ISoundInstance.hpp"
+#include "common/resource/PackRepository.hpp"
 #include "common/world/biome/BiomeAmbientSounds.hpp"
 
 #include <glm/glm.hpp>
@@ -37,8 +38,6 @@
 #include <thread>
 
 namespace mc {
-
-class ResourcePackList;
 
 namespace client {
 class ClientSettings;
@@ -64,7 +63,7 @@ class WeatherSoundHandler;
  */
 class AudioService {
 public:
-    explicit AudioService(ResourcePackList& resourcePacks, ClientSettings& settings);
+    explicit AudioService(PackRepository& resourcePacks, ClientSettings& settings);
     ~AudioService();
 
     AudioService(const AudioService&) = delete;
@@ -349,7 +348,7 @@ private:
     void _runWorker();
     void _processCommand(Command& command);
 
-    ResourcePackList& m_resourcePacks;
+    PackRepository& m_resourcePacks;
     ClientSettings& m_settings;
 
     std::thread m_workerThread;

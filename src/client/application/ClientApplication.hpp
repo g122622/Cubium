@@ -49,7 +49,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/physics/PhysicsEngine.hpp"
-#include "common/resource/ResourcePackList.hpp"
+#include "common/resource/PackRepository.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "server/application/IntegratedServer.hpp"
 
@@ -415,7 +415,7 @@ private:
     ClientLaunchParams m_launchParams;
 
     // 资源系统
-    ResourcePackList m_resourcePackList;
+    PackRepository m_resourcePackList;
     std::unique_ptr<ResourceManager> m_resourceManager;
     BlockModelCache m_modelCache;
 

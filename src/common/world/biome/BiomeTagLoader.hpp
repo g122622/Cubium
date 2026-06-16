@@ -32,10 +32,9 @@
 
 namespace mc {
 
-class IResourcePack;
-
 namespace resource {
-class DataPackList;
+class DataPackRepository;
+class IResourcePack;
 } // namespace resource
 
 namespace world::biome {
@@ -70,7 +69,7 @@ public:
      * @param dataPackList 数据包列表
      * @return 加载的标签数量
      */
-    [[nodiscard]] static Result<size_t> loadFromDataPackList(const resource::DataPackList& dataPackList);
+    [[nodiscard]] static Result<size_t> loadFromDataPackRepository(const resource::DataPackRepository& dataPackList);
 
     /**
      * @brief 从单个资源包加载所有生物群系标签
@@ -78,7 +77,7 @@ public:
      * @param pack 资源包
      * @return 加载的标签数量
      */
-    [[nodiscard]] static Result<size_t> loadFromResourcePack(const IResourcePack& pack);
+    [[nodiscard]] static Result<size_t> loadFromResourcePack(const resource::IResourcePack& pack);
 
     /**
      * @brief 从 JSON 字符串加载单个生物群系标签

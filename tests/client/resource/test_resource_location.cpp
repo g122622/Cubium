@@ -24,8 +24,8 @@
 #include "common/core/settings/ResourcePackListOption.hpp"
 #include "common/resource/FolderResourcePack.hpp"
 #include "common/resource/PackMetadata.hpp"
+#include "common/resource/PackRepository.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/resource/ResourcePackList.hpp"
 #include "common/resource/ZipResourcePack.hpp"
 #include <filesystem>
 #include <fstream>
@@ -290,71 +290,71 @@ TEST(ResourcePackListOptionTest, JsonSerialization)
     EXPECT_EQ(loaded[0].priority, 5);
 }
 
-// ResourcePackList测试
-TEST(ResourcePackListTest, EmptyList)
+// PackRepository测试
+TEST(PackRepositoryTest, EmptyList)
 {
-    ResourcePackList list;
+    PackRepository list;
     EXPECT_EQ(list.packCount(), static_cast<size_t>(0));
     EXPECT_EQ(list.enabledPackCount(), static_cast<size_t>(0));
     EXPECT_TRUE(list.getEnabledPacks().empty());
 }
 
-TEST(ResourcePackListTest, HasResourceEmpty)
+TEST(PackRepositoryTest, HasResourceEmpty)
 {
-    ResourcePackList list;
+    PackRepository list;
     EXPECT_FALSE(list.hasResource("test.json"));
 }
 
-TEST(ResourcePackListTest, ReadResourceEmpty)
+TEST(PackRepositoryTest, ReadResourceEmpty)
 {
-    ResourcePackList list;
+    PackRepository list;
     auto result = list.readResource("test.json");
     EXPECT_TRUE(result.failed());
     EXPECT_EQ(result.error().code(), ErrorCode::ResourceNotFound);
 }
 
-TEST(ResourcePackListTest, SetEnabled)
+TEST(PackRepositoryTest, SetEnabled)
 {
-    ResourcePackList list;
+    PackRepository list;
 
     // 测试空列表
     EXPECT_FALSE(list.setEnabled("test", true));
     EXPECT_FALSE(list.setEnabled("test", false));
 }
 
-TEST(ResourcePackListTest, SetPriority)
+TEST(PackRepositoryTest, SetPriority)
 {
-    ResourcePackList list;
+    PackRepository list;
 
     // 测试空列表
     EXPECT_FALSE(list.setPriority("test", 5));
 }
 
-TEST(ResourcePackListTest, MoveUp)
+TEST(PackRepositoryTest, MoveUp)
 {
-    ResourcePackList list;
+    PackRepository list;
 
     // 测试空列表
     EXPECT_FALSE(list.moveUp("test"));
 }
 
-TEST(ResourcePackListTest, MoveDown)
+TEST(PackRepositoryTest, MoveDown)
 {
-    ResourcePackList list;
+    PackRepository list;
 
     // 测试空列表
     EXPECT_FALSE(list.moveDown("test"));
 }
 
-TEST(ResourcePackListTest, Clear)
+TEST(PackRepositoryTest, Clear)
 {
-    ResourcePackList list;
+    PackRepository list;
     list.clear(); // 不应崩溃
     EXPECT_EQ(list.packCount(), static_cast<size_t>(0));
 }
 
-TEST(ResourcePackListTest, FindPackEmpty)
+TEST(PackRepositoryTest, FindPackEmpty)
 {
-    ResourcePackList list;
+    PackRepository list;
     EXPECT_FALSE(list.getPackInfo("test").has_value());
 }

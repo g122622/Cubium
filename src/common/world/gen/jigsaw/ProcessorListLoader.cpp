@@ -23,7 +23,7 @@
 
 #include "ProcessorListLoader.hpp"
 
-#include "common/resource/DataPackList.hpp"
+#include "common/resource/DataPackRepository.hpp"
 #include "common/resource/IResourcePack.hpp"
 #include "common/resource/PackType.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -49,7 +49,7 @@ using feature::template_::RuleStructureProcessor;
 using feature::template_::StructureProcessor;
 using feature::template_::StructureProcessorList;
 
-Result<size_t> ProcessorListLoader::loadFromDataPackList(const resource::DataPackList& dataPackList)
+Result<size_t> ProcessorListLoader::loadFromDataPackRepository(const resource::DataPackRepository& dataPackList)
 {
     size_t loadedCount = 0;
 

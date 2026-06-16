@@ -60,3 +60,7 @@ enum class PackType : u8 {
 }
 
 } // namespace mc::resource
+
+namespace mc {
+using resource::PackType;
+} // namespace mc

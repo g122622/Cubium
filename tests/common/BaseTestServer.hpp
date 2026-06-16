@@ -114,8 +114,8 @@ public:
     [[nodiscard]] const command::CommandRegistry& commandRegistry() const override { return m_commandRegistry; }
     [[nodiscard]] command::CommandStorage& commandStorage() override { return m_commandStorage; }
     [[nodiscard]] const command::CommandStorage& commandStorage() const override { return m_commandStorage; }
-    [[nodiscard]] resource::DataPackList& dataPackList() override;
-    [[nodiscard]] const resource::DataPackList& dataPackList() const override;
+    [[nodiscard]] resource::DataPackRepository& dataPackList() override;
+    [[nodiscard]] const resource::DataPackRepository& dataPackList() const override;
     [[nodiscard]] loot::LootTableManager& lootTableManager() override;
     [[nodiscard]] const loot::LootTableManager& lootTableManager() const override;
     [[nodiscard]] world::storage::SingleLevelStorageManager* sharedStorage() override { return nullptr; }

@@ -25,15 +25,14 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/IResourcePack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <unordered_map>
 #include <vector>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 
-namespace mc {
-class IResourcePack;
-}
+namespace mc {}
 
 namespace mc::client::renderer::trident::particle {
 

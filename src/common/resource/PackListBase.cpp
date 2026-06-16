@@ -21,7 +21,7 @@
  *
  */
 
-#include "ResourcePackList.hpp"
+#include "PackListBase.hpp"
 
 #include "common/perfetto/TraceEvents.hpp"
 #include <spdlog/spdlog.h>
@@ -30,17 +30,17 @@
 #include <set>
 #include <shared_mutex>
 
-namespace mc {
+namespace mc::resource {
 
 namespace {
 
-std::string normalizePathSeparators(std::string path)
+std::string _normalizePathSeparators(std::string path)
 {
     std::replace(path.begin(), path.end(), '\\', '/');
     return path;
 }
 
-std::string toLowerAscii(std::string value)
+std::string _toLowerAscii(std::string value)
 {
     std::transform(
         value.begin(), value.end(), value.begin(), [](u8 ch) { return static_cast<char>(std::tolower(ch)); });
@@ -49,25 +49,12 @@ std::string toLowerAscii(std::string value)
 
 } // namespace
 
-// ============================================================================
-// 线程安全说明
-//
-// ResourcePackList 会在客户端主线程与音频线程之间共享，属于"读多写少"的场景。
-// - 读操作（查询/遍历/读取资源）使用 std::shared_lock
-// - 写操作（增删/启用/优先级/回调注册）使用 std::unique_lock
-// - 对外返回 PackInfo 一律按值拷贝，避免暴露 vector 元素地址导致悬垂指针
-// ============================================================================
+PackListBase::PackListBase(PackType defaultType)
+    : m_defaultType(defaultType)
+{}
 
-// ============================================================================
-// 资源包管理
-// ============================================================================
-
-Result<size_t> ResourcePackList::scanDirectory(const std::filesystem::path& dir)
+Result<size_t> PackListBase::scanDirectory(const std::filesystem::path& dir)
 {
-    MC_TRACE_EVENT("client.initialization", "ResourcePackList::scanDirectory", "dir", dir.string());
-
-    // 注意：音频线程会并发读取 ResourcePackList，因此这里的"已存在检查"
-    // 不能再返回内部元素指针给外部长期持有。我们只做布尔查询。
     if (!std::filesystem::exists(dir)) {
         return static_cast<size_t>(0);
     }
@@ -76,39 +63,41 @@ Result<size_t> ResourcePackList::scanDirectory(const std::filesystem::path& dir)
         return Error(ErrorCode::InvalidArgument, "Path is not a directory: " + dir.string());
     }
 
+    const char* packTypeName = m_defaultType == PackType::ClientResources ? "resource" : "data";
+
     size_t addedCount = 0;
     i32 nextPriority = static_cast<i32>(packCount());
 
-    // 遍历目录
     for (const auto& entry : std::filesystem::directory_iterator(dir)) {
         const auto& path = entry.path();
 
-        // 跳过已存在的资源包
         std::string normalizedPath = _normalizePathKey(path);
         if (containsPack(normalizedPath)) {
             continue;
         }
 
-        // 检查是否是 ZIP 文件或资源包目录
         bool isZip = _isZipFile(path);
-        bool isPackDir = !isZip && _isResourcePackDir(path);
+        bool isPackDir = !isZip && _isPackDir(path);
 
         if (!isZip && !isPackDir) {
             continue;
         }
 
-        // 添加资源包
         auto result = addPack(path, true, nextPriority++);
         if (result.success()) {
             ++addedCount;
             if (result.value().initialized) {
-                spdlog::info("Found resource pack: {} ({})", result.value().pack->name(), isZip ? "ZIP" : "folder");
+                spdlog::info(
+                    "Found {} pack: {} ({})", packTypeName, result.value().pack->name(), isZip ? "ZIP" : "folder");
             } else {
-                spdlog::warn(
-                    "Resource pack failed to initialize: {} - {}", path.filename().string(), result.value().error);
+                spdlog::warn("{} pack failed to initialize: {} - {}",
+                    packTypeName,
+                    path.filename().string(),
+                    result.value().error);
             }
         } else {
-            spdlog::warn("Failed to add resource pack {}: {}", path.filename().string(), result.error().toString());
+            spdlog::warn(
+                "Failed to add {} pack {}: {}", packTypeName, path.filename().string(), result.error().toString());
         }
     }
 
@@ -116,26 +105,14 @@ Result<size_t> ResourcePackList::scanDirectory(const std::filesystem::path& dir)
     return addedCount;
 }
 
-Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
-    const std::filesystem::path& path, bool enabled, i32 priority)
+Result<PackListBase::PackInfo> PackListBase::addPack(const std::filesystem::path& path, bool enabled, i32 priority)
 {
-    MC_TRACE_EVENT("client.initialization",
-        "ResourcePackList::addPack",
-        "path",
-        path.string(),
-        "enabled",
-        enabled,
-        "priority",
-        priority);
-
     if (!std::filesystem::exists(path)) {
-        return Error(ErrorCode::FileNotFound, "Resource pack not found: " + path.string());
+        return Error(ErrorCode::FileNotFound, "Pack not found: " + path.string());
     }
 
     std::string normalizedPath = _normalizePathKey(path);
 
-    // 先在锁内做一次"已存在"检查：如果只是更新开关/优先级，应该快速返回，
-    // 不要做昂贵的 ZIP 打开与初始化。
     {
         bool foundExisting = false;
         bool changed = false;
@@ -150,7 +127,7 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
                 changed = (existingIt->enabled != enabled) || (existingIt->priority != priority);
                 existingIt->enabled = enabled;
                 existingIt->priority = priority;
-                existing = *existingIt; // 返回拷贝，避免对外暴露内部地址
+                existing = *existingIt;
             }
         }
 
@@ -162,14 +139,12 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
         }
     }
 
-    // 注意：资源包初始化可能涉及 IO/解压/解析，为避免阻塞并发读，初始化放到锁外。
     PackInfo info;
     info.path = normalizedPath;
     info.enabled = enabled;
     info.priority = priority;
     info.isZip = _isZipFile(path);
 
-    // 创建资源包实例
     if (info.isZip) {
         auto result = ZipResourcePack::create(path);
         if (result.failed()) {
@@ -182,19 +157,17 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
         info.pack = std::make_shared<FolderResourcePack>(path.string());
     }
 
-    // 初始化资源包
     if (info.pack) {
         auto initResult = info.pack->initialize();
         if (initResult.failed()) {
             info.initialized = false;
             info.error = initResult.error().toString();
-            spdlog::warn("Failed to initialize resource pack {}: {}", path.filename().string(), info.error);
+            spdlog::warn("Failed to initialize pack {}: {}", path.filename().string(), info.error);
         } else {
             info.initialized = true;
         }
     }
 
-    // 二次检查并插入：避免并发 addPack 时重复插入同一路径。
     bool shouldNotify = false;
     PackInfo resultInfo;
     {
@@ -204,7 +177,6 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
             m_packs.begin(), m_packs.end(), [&](const PackInfo& pack) { return pack.path == normalizedPath; });
 
         if (existingIt != m_packs.end()) {
-            // 有人抢先插入了，则我们仅更新 enabled/priority 保持语义一致。
             bool changed = (existingIt->enabled != enabled) || (existingIt->priority != priority);
             existingIt->enabled = enabled;
             existingIt->priority = priority;
@@ -224,7 +196,7 @@ Result<ResourcePackList::PackInfo> ResourcePackList::addPack(
     return resultInfo;
 }
 
-bool ResourcePackList::removePack(const std::string& path)
+bool PackListBase::removePack(const std::string& path)
 {
     std::string normalizedPath = _normalizePathKey(std::filesystem::path(path));
 
@@ -247,9 +219,8 @@ bool ResourcePackList::removePack(const std::string& path)
     return removed;
 }
 
-void ResourcePackList::clear()
+void PackListBase::clear()
 {
-    // 清空列表后统一发出变更通知，避免重复触发重载
     {
         std::unique_lock lock(m_mutex);
         m_packs.clear();
@@ -257,11 +228,7 @@ void ResourcePackList::clear()
     _notifyChange();
 }
 
-// ============================================================================
-// 启用/禁用和优先级
-// ============================================================================
-
-bool ResourcePackList::setEnabled(const std::string& path, bool enabled)
+bool PackListBase::setEnabled(const std::string& path, bool enabled)
 {
     bool changed = false;
     {
@@ -281,7 +248,7 @@ bool ResourcePackList::setEnabled(const std::string& path, bool enabled)
     return changed;
 }
 
-bool ResourcePackList::setPriority(const std::string& path, i32 priority)
+bool PackListBase::setPriority(const std::string& path, i32 priority)
 {
     bool changed = false;
     {
@@ -301,10 +268,8 @@ bool ResourcePackList::setPriority(const std::string& path, i32 priority)
     return changed;
 }
 
-bool ResourcePackList::moveUp(const std::string& path)
+bool PackListBase::moveUp(const std::string& path)
 {
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::moveUp", "path", path);
-
     bool changed = false;
     {
         std::unique_lock lock(m_mutex);
@@ -314,7 +279,6 @@ bool ResourcePackList::moveUp(const std::string& path)
             return false;
         }
 
-        // 找到比当前优先级高的下一个资源包
         i32 currentPriority = it->priority;
         i32 maxPriority = currentPriority;
 
@@ -325,11 +289,9 @@ bool ResourcePackList::moveUp(const std::string& path)
         }
 
         if (maxPriority == currentPriority) {
-            // 已经是最高优先级
             return false;
         }
 
-        // 交换优先级
         for (auto& pack : m_packs) {
             if (pack.priority == maxPriority) {
                 pack.priority = currentPriority;
@@ -347,10 +309,8 @@ bool ResourcePackList::moveUp(const std::string& path)
     return changed;
 }
 
-bool ResourcePackList::moveDown(const std::string& path)
+bool PackListBase::moveDown(const std::string& path)
 {
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::moveDown", "path", path);
-
     bool changed = false;
     {
         std::unique_lock lock(m_mutex);
@@ -360,7 +320,6 @@ bool ResourcePackList::moveDown(const std::string& path)
             return false;
         }
 
-        // 找到比当前优先级低的下一个资源包
         i32 currentPriority = it->priority;
         i32 minPriority = currentPriority;
 
@@ -371,11 +330,9 @@ bool ResourcePackList::moveDown(const std::string& path)
         }
 
         if (minPriority == currentPriority) {
-            // 已经是最低优先级
             return false;
         }
 
-        // 交换优先级
         for (auto& pack : m_packs) {
             if (pack.priority == minPriority) {
                 pack.priority = currentPriority;
@@ -393,14 +350,8 @@ bool ResourcePackList::moveDown(const std::string& path)
     return changed;
 }
 
-// ============================================================================
-// 查询方法
-// ============================================================================
-
-std::vector<ResourcePackPtr> ResourcePackList::getEnabledPacks() const
+std::vector<ResourcePackPtr> PackListBase::getEnabledPacks() const
 {
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::getEnabledPacks");
-
     const auto infos = getEnabledPackInfos();
     std::vector<ResourcePackPtr> result;
     result.reserve(infos.size());
@@ -414,21 +365,16 @@ std::vector<ResourcePackPtr> ResourcePackList::getEnabledPacks() const
     return result;
 }
 
-std::vector<ResourcePackList::PackInfo> ResourcePackList::getAllPacks() const
+std::vector<PackListBase::PackInfo> PackListBase::getAllPacks() const
 {
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::getAllPacks");
-
     std::shared_lock lock(m_mutex);
     return m_packs;
 }
 
-std::vector<ResourcePackList::PackInfo> ResourcePackList::getEnabledPackInfos() const
+std::vector<PackListBase::PackInfo> PackListBase::getEnabledPackInfos() const
 {
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::getEnabledPackInfos");
-
     std::vector<PackInfo> result;
     {
-        // 收集启用的资源包（锁内复制，锁外排序）
         std::shared_lock lock(m_mutex);
         for (const auto& info : m_packs) {
             if (info.enabled && info.initialized) {
@@ -437,17 +383,14 @@ std::vector<ResourcePackList::PackInfo> ResourcePackList::getEnabledPackInfos() 
         }
     }
 
-    // 按优先级降序排序
     std::stable_sort(
         result.begin(), result.end(), [](const PackInfo& a, const PackInfo& b) { return a.priority > b.priority; });
 
     return result;
 }
 
-std::optional<ResourcePackList::PackInfo> ResourcePackList::getPackInfo(const std::string& path) const
+std::optional<PackListBase::PackInfo> PackListBase::getPackInfo(const std::string& path) const
 {
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::getPackInfo", "path", path);
-
     std::shared_lock lock(m_mutex);
     auto it = std::find_if(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) { return info.path == path; });
 
@@ -458,38 +401,27 @@ std::optional<ResourcePackList::PackInfo> ResourcePackList::getPackInfo(const st
     return *it;
 }
 
-bool ResourcePackList::containsPack(const std::string& path) const
+bool PackListBase::containsPack(const std::string& path) const
 {
     std::shared_lock lock(m_mutex);
     return std::any_of(m_packs.begin(), m_packs.end(), [&](const PackInfo& info) { return info.path == path; });
 }
 
-size_t ResourcePackList::packCount() const
+size_t PackListBase::packCount() const
 {
     std::shared_lock lock(m_mutex);
     return m_packs.size();
 }
 
-size_t ResourcePackList::enabledPackCount() const
+size_t PackListBase::enabledPackCount() const
 {
     std::shared_lock lock(m_mutex);
     return std::count_if(
         m_packs.begin(), m_packs.end(), [](const PackInfo& info) { return info.enabled && info.initialized; });
 }
 
-// ============================================================================
-// 资源访问
-// ============================================================================
-
-bool ResourcePackList::hasResource(std::string_view resourcePath) const
+bool PackListBase::hasResource(PackType type, std::string_view resourcePath) const
 {
-    return hasResource(resource::PackType::ClientResources, resourcePath);
-}
-
-bool ResourcePackList::hasResource(resource::PackType type, std::string_view resourcePath) const
-{
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::hasResource", "resourcePath", resourcePath);
-
     for (const auto& pack : getEnabledPacks()) {
         if (pack->hasResource(type, resourcePath)) {
             return true;
@@ -499,15 +431,8 @@ bool ResourcePackList::hasResource(resource::PackType type, std::string_view res
     return false;
 }
 
-Result<std::vector<u8>> ResourcePackList::readResource(std::string_view resourcePath) const
+Result<std::vector<u8>> PackListBase::readResource(PackType type, std::string_view resourcePath) const
 {
-    return readResource(resource::PackType::ClientResources, resourcePath);
-}
-
-Result<std::vector<u8>> ResourcePackList::readResource(resource::PackType type, std::string_view resourcePath) const
-{
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::readResource", "resourcePath", resourcePath);
-
     for (const auto& pack : getEnabledPacks()) {
         if (!pack->hasResource(type, resourcePath)) {
             continue;
@@ -517,21 +442,13 @@ Result<std::vector<u8>> ResourcePackList::readResource(resource::PackType type, 
         if (result.success()) {
             return result;
         }
-        // 资源包中存在该资源但读取失败，继续尝试下一个资源包
     }
 
     return Error(ErrorCode::ResourceNotFound, "Resource not found in any enabled pack: " + std::string(resourcePath));
 }
 
-Result<std::string> ResourcePackList::readTextResource(std::string_view resourcePath) const
+Result<std::string> PackListBase::readTextResource(PackType type, std::string_view resourcePath) const
 {
-    return readTextResource(resource::PackType::ClientResources, resourcePath);
-}
-
-Result<std::string> ResourcePackList::readTextResource(resource::PackType type, std::string_view resourcePath) const
-{
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::readTextResource", "resourcePath", resourcePath);
-
     auto dataResult = readResource(type, resourcePath);
     if (dataResult.failed()) {
         return dataResult.error();
@@ -541,18 +458,9 @@ Result<std::string> ResourcePackList::readTextResource(resource::PackType type, 
     return std::string(data.begin(), data.end());
 }
 
-Result<std::vector<std::string>> ResourcePackList::listResources(
-    std::string_view directory, std::string_view extension) const
+Result<std::vector<std::string>> PackListBase::listResources(
+    PackType type, std::string_view directory, std::string_view extension) const
 {
-    return listResources(resource::PackType::ClientResources, directory, extension);
-}
-
-Result<std::vector<std::string>> ResourcePackList::listResources(
-    resource::PackType type, std::string_view directory, std::string_view extension) const
-{
-    MC_TRACE_EVENT(
-        "client.resource", "ResourcePackList::listResources", "directory", directory, "extension", extension);
-
     std::vector<std::string> result;
     std::set<std::string> seen;
 
@@ -573,15 +481,13 @@ Result<std::vector<std::string>> ResourcePackList::listResources(
     return result;
 }
 
-Result<std::vector<std::string>> ResourcePackList::getResourceNamespaces() const
+Result<std::vector<std::string>> PackListBase::getResourceNamespaces(PackType type) const
 {
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::getResourceNamespaces");
-
     std::vector<std::string> result;
     std::set<std::string> seen;
 
     for (const auto& pack : getEnabledPacks()) {
-        auto nsResult = pack->getResourceNamespaces(resource::PackType::ClientResources);
+        auto nsResult = pack->getResourceNamespaces(type);
         if (!nsResult.success()) {
             continue;
         }
@@ -597,56 +503,19 @@ Result<std::vector<std::string>> ResourcePackList::getResourceNamespaces() const
     return result;
 }
 
-// ============================================================================
-// 设置同步
-// ============================================================================
-
-void ResourcePackList::loadFromSettings(const ResourcePackListOption& settings)
+void PackListBase::onChange(std::function<void()> callback)
 {
-    MC_TRACE_EVENT("client.initialization", "ResourcePackList::loadFromSettings");
-
-    for (const auto& entry : settings.getSortedEnabledEntries()) {
-        auto result = addPack(std::filesystem::path(entry.path), entry.enabled, entry.priority);
-        if (result.failed()) {
-            spdlog::warn("Failed to add resource pack from settings {}: {}", entry.path, result.error().toString());
-        }
-    }
-}
-
-void ResourcePackList::saveToSettings(ResourcePackListOption& settings) const
-{
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::saveToSettings");
-
-    std::vector<ResourcePackEntry> entries;
-    {
-        std::shared_lock lock(m_mutex);
-        entries.reserve(m_packs.size());
-        for (const auto& info : m_packs) {
-            entries.emplace_back(info.path, info.enabled, info.priority);
-        }
-    }
-
-    settings.setEntries(std::move(entries));
-}
-
-// ============================================================================
-// 变更通知
-// ============================================================================
-
-void ResourcePackList::onChange(std::function<void()> callback)
-{
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::onChange");
-
     std::unique_lock lock(m_mutex);
     MC_ASSERT_RELEASE(!m_callback);
     m_callback = std::move(callback);
 }
 
-void ResourcePackList::_notifyChange()
-{
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::_notifyChange");
+void PackListBase::onPackListChanged() {}
 
-    // 拷贝回调到局部变量，避免回调内部再次访问 ResourcePackList 时造成锁重入
+void PackListBase::_notifyChange()
+{
+    onPackListChanged();
+
     std::function<void()> callback;
     {
         std::shared_lock lock(m_mutex);
@@ -654,26 +523,12 @@ void ResourcePackList::_notifyChange()
     }
 
     if (callback) {
-        MC_TRACE_EVENT("client.resource", "ResourcePackList::notifyChange::callback");
         callback();
     }
 }
 
-// ============================================================================
-// 私有方法
-// ============================================================================
-
-std::string ResourcePackList::_normalizePath(const std::filesystem::path& path)
+std::string PackListBase::_normalizePathKey(const std::filesystem::path& path)
 {
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::_normalizePath");
-
-    return normalizePathSeparators(path.string());
-}
-
-std::string ResourcePackList::_normalizePathKey(const std::filesystem::path& path)
-{
-    MC_TRACE_EVENT("client.resource", "ResourcePackList::_normalizePathKey");
-
     std::filesystem::path normalizedPath = path;
     std::error_code ec;
     auto canonicalPath = std::filesystem::weakly_canonical(path, ec);
@@ -683,27 +538,26 @@ std::string ResourcePackList::_normalizePathKey(const std::filesystem::path& pat
         normalizedPath = path.lexically_normal();
     }
 
-    return toLowerAscii(normalizePathSeparators(normalizedPath.string()));
+    return _toLowerAscii(_normalizePathSeparators(normalizedPath.string()));
 }
 
-bool ResourcePackList::_isZipFile(const std::filesystem::path& path)
+bool PackListBase::_isZipFile(const std::filesystem::path& path)
 {
     if (!std::filesystem::is_regular_file(path)) {
         return false;
     }
 
-    return toLowerAscii(path.extension().string()) == ".zip";
+    return _toLowerAscii(path.extension().string()) == ".zip";
 }
 
-bool ResourcePackList::_isResourcePackDir(const std::filesystem::path& path)
+bool PackListBase::_isPackDir(const std::filesystem::path& path)
 {
     if (!std::filesystem::is_directory(path)) {
         return false;
     }
 
-    // 检查是否包含 pack.mcmeta
     std::filesystem::path mcmetaPath = path / "pack.mcmeta";
     return std::filesystem::exists(mcmetaPath);
 }
 
-} // namespace mc
+} // namespace mc::resource

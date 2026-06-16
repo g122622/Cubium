@@ -95,12 +95,12 @@ const server::interaction::ContainerManager& BaseTestServer::containerManager() 
     throwUnused();
 }
 
-resource::DataPackList& BaseTestServer::dataPackList()
+resource::DataPackRepository& BaseTestServer::dataPackList()
 {
     throwUnused();
 }
 
-const resource::DataPackList& BaseTestServer::dataPackList() const
+const resource::DataPackRepository& BaseTestServer::dataPackList() const
 {
     throwUnused();
 }

@@ -23,15 +23,16 @@
 
 #pragma once
 
-#include <memory>
 #include "ITextComponent.hpp"
+#include <memory>
 #include <vector>
 #include <nlohmann/json.hpp>
 
 namespace mc {
 
-// 前向声明
+namespace resource {
 class LanguageManager;
+} // namespace resource
 
 namespace text {
 
@@ -188,20 +189,20 @@ public:
      *
      * @param manager 语言管理器指针（生命周期由调用者管理）
      */
-    static void setLanguageManager(LanguageManager* manager) { s_languageManager = manager; }
+    static void setLanguageManager(resource::LanguageManager* manager) { s_languageManager = manager; }
 
     /**
      * @brief 获取全局语言管理器
      * @return 语言管理器指针，可能为 nullptr
      */
-    static LanguageManager* getLanguageManager() { return s_languageManager; }
+    static resource::LanguageManager* getLanguageManager() { return s_languageManager; }
 
 private:
     std::string m_key;
     std::vector<std::unique_ptr<ITextComponent>> m_params;
 
     /// 全局语言管理器指针（生命周期由外部管理）
-    static LanguageManager* s_languageManager;
+    static resource::LanguageManager* s_languageManager;
 
     /**
      * @brief 获取翻译后的文本

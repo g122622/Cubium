@@ -25,12 +25,12 @@
 
 #include "client/sound/backend/AudioBuffer.hpp"
 #include "common/core/Result.hpp"
+#include "common/resource/PackRepository.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
 namespace mc {
 
 // 前向声明
-class ResourcePackList;
 
 namespace client::sound {
 
@@ -67,7 +67,7 @@ public:
      *
      * @param resourcePacks 资源包列表
      */
-    explicit SoundLoader(ResourcePackList& resourcePacks);
+    explicit SoundLoader(PackRepository& resourcePacks);
 
     ~SoundLoader() = default;
 
@@ -118,7 +118,7 @@ public:
     [[nodiscard]] static std::string toAudioPath(const ResourceLocation& location);
 
 private:
-    ResourcePackList& m_resourcePacks;
+    PackRepository& m_resourcePacks;
 };
 
 } // namespace client::sound

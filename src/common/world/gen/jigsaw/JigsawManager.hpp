@@ -39,7 +39,10 @@
 namespace mc {
 
 class IWorldWriter;
+
+namespace resource {
 class IResourcePack;
+} // namespace resource
 
 namespace world {
 namespace gen {
@@ -148,7 +151,7 @@ public:
      * @brief 设置资源包（用于加载模板）
      * @param pack 资源包指针
      */
-    static void setResourcePack(const IResourcePack* pack);
+    static void setResourcePack(const resource::IResourcePack* pack);
 
     /**
      * @brief 获取模板管理器

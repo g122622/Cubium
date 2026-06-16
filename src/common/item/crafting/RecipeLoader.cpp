@@ -24,7 +24,7 @@
 #include "item/crafting/RecipeLoader.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
-#include "resource/DataPackList.hpp"
+#include "resource/DataPackRepository.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -83,8 +83,8 @@ Result<RecipeLoader::LoadResult> RecipeLoader::loadFromDirectory(
     return result;
 }
 
-Result<RecipeLoader::LoadResult> RecipeLoader::loadFromDataPackList(
-    const mc::resource::DataPackList& dataPacks, ProgressCallback callback)
+Result<RecipeLoader::LoadResult> RecipeLoader::loadFromDataPackRepository(
+    const mc::resource::DataPackRepository& dataPacks, ProgressCallback callback)
 {
     LoadResult result;
     m_lastResult = LoadResult{};

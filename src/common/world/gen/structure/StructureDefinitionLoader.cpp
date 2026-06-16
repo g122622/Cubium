@@ -23,7 +23,7 @@
 
 #include "StructureDefinitionLoader.hpp"
 
-#include "common/resource/DataPackList.hpp"
+#include "common/resource/DataPackRepository.hpp"
 #include "common/resource/IResourcePack.hpp"
 #include "common/resource/PackType.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -42,7 +42,7 @@ namespace structure {
 std::vector<std::unique_ptr<StructureDefinition>> StructureDefinitionLoader::s_definitions;
 std::unordered_map<ResourceLocation, StructureDefinition*> StructureDefinitionLoader::s_byId;
 
-Result<size_t> StructureDefinitionLoader::loadFromDataPackList(const resource::DataPackList& dataPackList)
+Result<size_t> StructureDefinitionLoader::loadFromDataPackRepository(const resource::DataPackRepository& dataPackList)
 {
     size_t loadedCount = 0;
 

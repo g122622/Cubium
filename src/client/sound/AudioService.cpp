@@ -35,7 +35,7 @@
 
 #include "common/perfetto/PerfettoManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
-#include "common/resource/ResourcePackList.hpp"
+#include "common/resource/PackRepository.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -49,7 +49,7 @@ constexpr std::chrono::milliseconds AUDIO_TICK_INTERVAL{50};
 using AudioClock = std::chrono::steady_clock;
 } // namespace
 
-AudioService::AudioService(ResourcePackList& resourcePacks, ClientSettings& settings)
+AudioService::AudioService(PackRepository& resourcePacks, ClientSettings& settings)
     : m_resourcePacks(resourcePacks)
     , m_settings(settings)
 {}

@@ -31,7 +31,7 @@
 #include <string>
 #include <vector>
 
-namespace mc {
+namespace mc::resource {
 
 /**
  * @brief 资源包抽象接口
@@ -50,22 +50,20 @@ public:
     [[nodiscard]] virtual const PackMetadata& metadata() const = 0;
 
     // 检查指定类型的资源是否存在
-    [[nodiscard]] virtual bool hasResource(resource::PackType type, std::string_view resourcePath) const = 0;
+    [[nodiscard]] virtual bool hasResource(PackType type, std::string_view resourcePath) const = 0;
 
     // 读取指定类型的资源内容
-    [[nodiscard]] virtual Result<std::vector<u8>> readResource(
-        resource::PackType type, std::string_view resourcePath) const = 0;
+    [[nodiscard]] virtual Result<std::vector<u8>> readResource(PackType type, std::string_view resourcePath) const = 0;
 
     // 读取指定类型的文本资源
-    [[nodiscard]] virtual Result<std::string> readTextResource(
-        resource::PackType type, std::string_view resourcePath) const;
+    [[nodiscard]] virtual Result<std::string> readTextResource(PackType type, std::string_view resourcePath) const;
 
     // 列出指定类型目录下的所有资源
     [[nodiscard]] virtual Result<std::vector<std::string>> listResources(
-        resource::PackType type, std::string_view directory, std::string_view extension) const = 0;
+        PackType type, std::string_view directory, std::string_view extension) const = 0;
 
     // 获取指定类型的所有命名空间
-    [[nodiscard]] virtual Result<std::vector<std::string>> getResourceNamespaces(resource::PackType type) const = 0;
+    [[nodiscard]] virtual Result<std::vector<std::string>> getResourceNamespaces(PackType type) const = 0;
 
     // 获取资源包路径/名称
     [[nodiscard]] virtual std::string name() const = 0;
@@ -73,4 +71,9 @@ public:
 
 using ResourcePackPtr = std::shared_ptr<IResourcePack>;
 
+} // namespace mc::resource
+
+namespace mc {
+using IResourcePack = resource::IResourcePack;
+using ResourcePackPtr = resource::ResourcePackPtr;
 } // namespace mc

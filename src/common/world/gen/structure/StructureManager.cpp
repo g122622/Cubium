@@ -22,7 +22,7 @@
  */
 
 #include "StructureManager.hpp"
-#include "common/resource/DataPackList.hpp"
+#include "common/resource/DataPackRepository.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/gen/jigsaw/JigsawPattern.hpp"
 #include "common/world/gen/jigsaw/JigsawPiece.hpp"
@@ -189,9 +189,9 @@ math::Random StructureManager::_createRandom(i32 chunkX, i32 chunkZ, i32 salt) c
 
 // StructureRegistry loadTemplatePoolsFromDataPacks 实现
 size_t mc::world::gen::structure::StructureRegistry::loadTemplatePoolsFromDataPacks(
-    const resource::DataPackList& dataPackList)
+    const resource::DataPackRepository& dataPackList)
 {
-    auto result = jigsaw::TemplatePoolLoader::loadFromDataPackList(dataPackList);
+    auto result = jigsaw::TemplatePoolLoader::loadFromDataPackRepository(dataPackList);
     if (result.success()) {
         return result.value();
     }

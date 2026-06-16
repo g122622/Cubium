@@ -25,7 +25,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
-namespace mc {
+namespace mc::resource {
 
 PackMetadata::PackMetadata(i32 packFormat, std::string description)
     : m_packFormat(packFormat)
@@ -76,4 +76,4 @@ bool PackMetadata::isCompatible(i32 minFormat, i32 maxFormat) const noexcept
     return m_packFormat >= minFormat && m_packFormat <= maxFormat;
 }
 
-} // namespace mc
+} // namespace mc::resource

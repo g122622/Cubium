@@ -34,10 +34,9 @@
 
 namespace mc {
 
-class IResourcePack;
-
 namespace resource {
-class DataPackList;
+class DataPackRepository;
+class IResourcePack;
 } // namespace resource
 
 namespace world::gen::structure {
@@ -89,7 +88,7 @@ public:
      * @param dataPackList 数据包列表
      * @return 加载的结构集合数量，或错误
      */
-    [[nodiscard]] static Result<size_t> loadFromDataPackList(const resource::DataPackList& dataPackList);
+    [[nodiscard]] static Result<size_t> loadFromDataPackRepository(const resource::DataPackRepository& dataPackList);
 
     /**
      * @brief 从单个资源包加载所有结构集合
@@ -97,7 +96,7 @@ public:
      * @param pack 资源包
      * @return 加载的结构集合数量，或错误
      */
-    [[nodiscard]] static Result<size_t> loadFromResourcePack(const IResourcePack& pack);
+    [[nodiscard]] static Result<size_t> loadFromResourcePack(const resource::IResourcePack& pack);
 
     /**
      * @brief 从 JSON 字符串加载单个结构集合

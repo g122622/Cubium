@@ -27,7 +27,7 @@
 #include "common/resource/PackType.hpp"
 #include <string>
 
-namespace mc {
+namespace mc::resource {
 
 /**
  * @brief 资源位置标识符
@@ -60,10 +60,10 @@ public:
     // 根据 PackType 转换为文件路径
     // ClientResources -> "assets/namespace/path"
     // ServerData -> "data/namespace/path"
-    [[nodiscard]] std::string toFilePath(resource::PackType type) const;
+    [[nodiscard]] std::string toFilePath(PackType type) const;
 
     // 根据 PackType 转换为文件路径（带扩展名）
-    [[nodiscard]] std::string toFilePath(resource::PackType type, std::string_view extension) const;
+    [[nodiscard]] std::string toFilePath(PackType type, std::string_view extension) const;
 
     // 比较
     [[nodiscard]] bool operator==(const ResourceLocation& other) const noexcept;
@@ -78,12 +78,16 @@ private:
     std::string m_path;
 };
 
-} // namespace mc
+} // namespace mc::resource
 
 // std::hash特化
 namespace std {
 template <>
-struct hash<mc::ResourceLocation> {
-    size_t operator()(const mc::ResourceLocation& loc) const noexcept { return loc.hash(); }
+struct hash<mc::resource::ResourceLocation> {
+    size_t operator()(const mc::resource::ResourceLocation& loc) const noexcept { return loc.hash(); }
 };
 } // namespace std
+
+namespace mc {
+using ResourceLocation = resource::ResourceLocation;
+} // namespace mc

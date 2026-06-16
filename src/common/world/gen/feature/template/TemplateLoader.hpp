@@ -32,7 +32,9 @@
 
 namespace mc {
 
+namespace resource {
 class IResourcePack;
+} // namespace resource
 
 namespace world {
 namespace gen {
@@ -69,7 +71,7 @@ public:
      * @return 加载的模板，失败返回 nullptr
      */
     [[nodiscard]] static std::unique_ptr<Template> loadFromResourcePack(
-        const IResourcePack& pack, const ResourceLocation& location);
+        const resource::IResourcePack& pack, const ResourceLocation& location);
 
     /**
      * @brief 从原始 NBT 字节加载模板

@@ -26,15 +26,14 @@
 #include "FontTextureAtlas.hpp"
 #include "Glyph.hpp"
 #include "common/core/Result.hpp"
+#include "common/resource/IResourcePack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-namespace mc {
-class IResourcePack;
-}
+namespace mc {}
 
 namespace mc::client {
 

@@ -34,11 +34,11 @@
 #include <unordered_map>
 #include <vector>
 
-namespace mc {
+namespace mc::resource {
 
 // 前向声明
+class PackRepository;
 class IResourcePack;
-class ResourcePackList;
 
 /**
  * @brief 语言信息结构
@@ -133,7 +133,7 @@ public:
      * @param languageCode 语言代码（如 "zh_cn", "en_us"）
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> loadLanguage(const ResourcePackList& packList, const std::string& languageCode);
+    [[nodiscard]] Result<void> loadLanguage(const PackRepository& packList, const std::string& languageCode);
 
     /**
      * @brief 从资源包列表加载语言文件（指定命名空间）
@@ -144,7 +144,7 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> loadLanguage(
-        const ResourcePackList& packList, const std::string& languageCode, const std::string& namespace_);
+        const PackRepository& packList, const std::string& languageCode, const std::string& namespace_);
 
     /**
      * @brief 从单个资源包加载语言文件
@@ -228,7 +228,7 @@ public:
      * @return 语言代码列表（已去重排序）
      */
     [[nodiscard]] static std::vector<std::string> getAvailableLanguages(
-        const ResourcePackList& packList, const std::string& namespace_ = "minecraft");
+        const PackRepository& packList, const std::string& namespace_ = "minecraft");
 
     /**
      * @brief 获取内置语言列表
@@ -282,4 +282,9 @@ private:
     static std::string _replacePlaceholders(const std::string& text, const std::vector<std::string>& params);
 };
 
+} // namespace mc::resource
+
+namespace mc {
+using LanguageManager = resource::LanguageManager;
+using LanguageInfo = resource::LanguageInfo;
 } // namespace mc

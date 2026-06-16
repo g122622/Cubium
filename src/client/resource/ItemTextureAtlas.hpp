@@ -26,6 +26,7 @@
 #include "client/renderer/MeshTypes.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/IResourcePack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <unordered_map>
@@ -34,7 +35,6 @@
 
 namespace mc {
 
-class IResourcePack;
 class Item;
 
 namespace client {

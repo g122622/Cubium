@@ -182,10 +182,10 @@ public:
     BlockModelLoader() = default;
 
     // 从资源包加载模型（添加到资源包列表）
-    [[nodiscard]] Result<void> loadFromResourcePack(class IResourcePack& resourcePack);
+    [[nodiscard]] Result<void> loadFromResourcePack(IResourcePack& resourcePack);
 
     // 设置资源包列表（用于模型加载时查找）
-    void setResourcePackList(const std::vector<std::shared_ptr<class IResourcePack>>& resourcePacks);
+    void setPackRepository(const std::vector<std::shared_ptr<IResourcePack>>& resourcePacks);
 
     // 加载单个模型
     [[nodiscard]] Result<UnbakedBlockModel> loadModel(const ResourceLocation& location);

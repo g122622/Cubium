@@ -25,7 +25,7 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
-#include "common/resource/DataPackList.hpp"
+#include "common/resource/DataPackRepository.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include <sstream>

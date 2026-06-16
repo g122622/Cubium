@@ -23,9 +23,9 @@
 
 #include "IResourcePack.hpp"
 
-namespace mc {
+namespace mc::resource {
 
-Result<std::string> IResourcePack::readTextResource(resource::PackType type, std::string_view resourcePath) const
+Result<std::string> IResourcePack::readTextResource(PackType type, std::string_view resourcePath) const
 {
     auto result = readResource(type, resourcePath);
     if (result.failed()) {
@@ -36,4 +36,4 @@ Result<std::string> IResourcePack::readTextResource(resource::PackType type, std
     return std::string(data.begin(), data.end());
 }
 
-} // namespace mc
+} // namespace mc::resource

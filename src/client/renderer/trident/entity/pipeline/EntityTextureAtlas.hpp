@@ -26,6 +26,7 @@
 #include "client/renderer/MeshTypes.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/IResourcePack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <filesystem>
 #include <memory>
@@ -33,10 +34,6 @@
 #include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.h>
-
-namespace mc {
-class IResourcePack; // Forward declaration in mc namespace
-}
 
 namespace mc::client::renderer::entity::pipeline {
 

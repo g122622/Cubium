@@ -50,8 +50,8 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/perfetto/TraceEvents.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -416,7 +416,7 @@ void ClientApplication::initializeUi()
 
                 // 添加启用的资源包到加载器
                 auto enabledPacks = m_resourcePackList.getEnabledPacks();
-                spdlog::info("[GUI] ResourcePackList has {} enabled packs", enabledPacks.size());
+                spdlog::info("[GUI] PackRepository has {} enabled packs", enabledPacks.size());
                 for (const auto& pack : enabledPacks) {
                     if (pack) {
                         spdlog::info("[GUI] Adding enabled resource pack: {}", pack->name());

@@ -1,4 +1,4 @@
-#include "common/resource/DataPackList.hpp"
+#include "common/resource/DataPackRepository.hpp"
 
 #include <gtest/gtest.h>
 
@@ -29,10 +29,10 @@ std::filesystem::path createDataPackDir()
 
 } // namespace
 
-TEST(DataPackListTest, ScanDirectoryFindsFolderPack)
+TEST(DataPackRepositoryTest, ScanDirectoryFindsFolderPack)
 {
     const auto dir = createDataPackDir();
-    DataPackList list;
+    DataPackRepository list;
 
     const auto result = list.scanDirectory(dir);
     ASSERT_TRUE(result.success());
@@ -40,10 +40,10 @@ TEST(DataPackListTest, ScanDirectoryFindsFolderPack)
     EXPECT_EQ(list.packCount(), static_cast<size_t>(1));
 }
 
-TEST(DataPackListTest, ReadResourceUsesServerDataRoot)
+TEST(DataPackRepositoryTest, ReadResourceUsesServerDataRoot)
 {
     const auto dir = createDataPackDir();
-    DataPackList list;
+    DataPackRepository list;
     ASSERT_TRUE(list.scanDirectory(dir).success());
 
     const auto readResult = list.readTextResource("minecraft/loot_tables/blocks/stone.json");

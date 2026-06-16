@@ -32,7 +32,7 @@
 
 namespace mc::client::sound {
 
-SoundHandler::SoundHandler(ResourcePackList& resourcePacks)
+SoundHandler::SoundHandler(PackRepository& resourcePacks)
     : m_resourcePacks(resourcePacks)
 {}
 

@@ -35,7 +35,7 @@
 namespace mc {
 
 namespace resource {
-class DataPackList;
+class DataPackRepository;
 } // namespace resource
 
 namespace world {
@@ -77,7 +77,7 @@ public:
      * @param dataPackList 数据包列表
      * @return 加载的模板池数量，或错误
      */
-    [[nodiscard]] static Result<size_t> loadFromDataPackList(const resource::DataPackList& dataPackList);
+    [[nodiscard]] static Result<size_t> loadFromDataPackRepository(const resource::DataPackRepository& dataPackList);
 
     /**
      * @brief 从单个资源包加载所有模板池

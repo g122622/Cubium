@@ -24,7 +24,7 @@
 #include "TemplatePoolLoader.hpp"
 
 #include "JigsawPattern.hpp"
-#include "common/resource/DataPackList.hpp"
+#include "common/resource/DataPackRepository.hpp"
 #include "common/resource/IResourcePack.hpp"
 #include "common/resource/PackType.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -37,7 +37,7 @@ namespace world {
 namespace gen {
 namespace jigsaw {
 
-Result<size_t> TemplatePoolLoader::loadFromDataPackList(const resource::DataPackList& dataPackList)
+Result<size_t> TemplatePoolLoader::loadFromDataPackRepository(const resource::DataPackRepository& dataPackList)
 {
     size_t loadedCount = 0;
 

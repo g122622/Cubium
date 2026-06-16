@@ -37,7 +37,6 @@
 namespace mc {
 
 // 前向声明
-class ResourcePackList;
 
 /**
  * @brief 方块外观信息

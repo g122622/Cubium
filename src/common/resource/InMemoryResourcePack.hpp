@@ -27,7 +27,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace mc {
+namespace mc::resource {
 
 /**
  * @brief 内存资源包
@@ -69,18 +69,17 @@ public:
      * @param type 资源类型
      * @param directory 目录路径（相对于类型根目录）
      */
-    void addDirectory(resource::PackType type, std::string directory);
+    void addDirectory(PackType type, std::string directory);
 
     // IResourcePack 接口实现
 
     [[nodiscard]] Result<void> initialize() override;
     [[nodiscard]] const PackMetadata& metadata() const override { return m_metadata; }
-    [[nodiscard]] bool hasResource(resource::PackType type, std::string_view resourcePath) const override;
-    [[nodiscard]] Result<std::vector<u8>> readResource(
-        resource::PackType type, std::string_view resourcePath) const override;
+    [[nodiscard]] bool hasResource(PackType type, std::string_view resourcePath) const override;
+    [[nodiscard]] Result<std::vector<u8>> readResource(PackType type, std::string_view resourcePath) const override;
     [[nodiscard]] Result<std::vector<std::string>> listResources(
-        resource::PackType type, std::string_view directory, std::string_view extension) const override;
-    [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces(resource::PackType type) const override;
+        PackType type, std::string_view directory, std::string_view extension) const override;
+    [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces(PackType type) const override;
     [[nodiscard]] std::string name() const override { return m_name; }
 
 private:
@@ -108,7 +107,7 @@ private:
      * @param path 资源路径
      * @return 带类型前缀的规范化路径
      */
-    [[nodiscard]] static std::string _makeTypedPath(resource::PackType type, std::string_view path);
+    [[nodiscard]] static std::string _makeTypedPath(PackType type, std::string_view path);
 
     /**
      * @brief 为资源路径自动添加所有父目录条目
@@ -118,4 +117,8 @@ private:
     void _addDirectoryEntries(const std::string& normalizedPath);
 };
 
+} // namespace mc::resource
+
+namespace mc {
+using InMemoryResourcePack = resource::InMemoryResourcePack;
 } // namespace mc

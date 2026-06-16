@@ -22,7 +22,7 @@ add_executable(mc_tests
     common/GameDirectoryTest.cpp
     common/DefaultValuesTest.cpp
     common/PackTypeTest.cpp
-    common/DataPackListTest.cpp
+    common/DataPackRepositoryTest.cpp
     # common/test_blockid.cpp  # 宸茬Щ闄?- 浣跨敤鏂扮殑鏂瑰潡绯荤粺
     # common/test_noise.cpp     # 宸茬Щ闄?- Noise 绫诲凡鍒犻櫎
     common/test_entity.cpp
@@ -694,7 +694,7 @@ add_executable(mc_tests
     # 璧勬簮鍖呭吋瀹瑰眰娴嬭瘯
     # 鍐呯疆妯″瀷鐫€鑹查厤缃祴璇?    common/resource/VanillaResourcesTintModelTest.cpp
     # ResourcePackList 自包含测试（不依赖外部资源路径）
-    common/resource/ResourcePackListSelfContainedTest.cpp
+    common/resource/PackRepositorySelfContainedTest.cpp
     # 语言管理器测试
     common/resource/LanguageManagerTest.cpp
     # 缂撳瓨鎬ц兘瀵规瘮娴嬭瘯
@@ -1506,7 +1506,8 @@ target_sources(mc_resource_tests
         ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelCache.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/ResourcePackList.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/resource/PackRepository.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/resource/PackListBase.cpp
         ${CMAKE_SOURCE_DIR}/src/common/resource/ZipResourcePack.cpp
         ${CMAKE_SOURCE_DIR}/src/common/resource/FolderResourcePack.cpp
         ${CMAKE_SOURCE_DIR}/src/common/resource/IResourcePack.cpp
@@ -1609,7 +1610,8 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/ChunkBiomeAccessor.cpp
             # 甯哥敤璧勬簮
             ${CMAKE_SOURCE_DIR}/src/common/resource/ResourceLocation.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/resource/ResourcePackList.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/resource/PackRepository.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/resource/PackListBase.cpp
             ${CMAKE_SOURCE_DIR}/src/common/resource/FolderResourcePack.cpp
             ${CMAKE_SOURCE_DIR}/src/common/resource/ZipResourcePack.cpp
             ${CMAKE_SOURCE_DIR}/src/common/resource/IResourcePack.cpp

@@ -1227,8 +1227,8 @@ add_library(mc_common STATIC
     resource/IResourcePack.cpp
     resource/FolderResourcePack.cpp
     resource/ZipResourcePack.cpp
-    resource/ResourcePackList.cpp
-    resource/DataPackList.cpp
+    resource/PackListBase.cpp
+    resource/PackRepository.cpp
     resource/InMemoryResourcePack.cpp
     resource/VanillaResources.cpp
 

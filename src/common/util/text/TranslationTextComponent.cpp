@@ -28,7 +28,7 @@ namespace mc {
 namespace text {
 
 // 静态成员初始化
-LanguageManager* TranslationTextComponent::s_languageManager = nullptr;
+resource::LanguageManager* TranslationTextComponent::s_languageManager = nullptr;
 
 std::string TranslationTextComponent::getUnformattedText() const
 {

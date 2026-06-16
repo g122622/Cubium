@@ -26,7 +26,7 @@
 #include "common/resource/InMemoryResourcePack.hpp"
 #include <memory>
 
-namespace mc {
+namespace mc::resource {
 
 /**
  * @brief 原版内置资源
@@ -63,4 +63,8 @@ private:
     static const char* MODEL_AIR;          // 空气
 };
 
+} // namespace mc::resource
+
+namespace mc {
+using VanillaResources = resource::VanillaResources;
 } // namespace mc

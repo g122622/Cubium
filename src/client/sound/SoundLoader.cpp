@@ -24,7 +24,7 @@
 #include "client/sound/SoundLoader.hpp"
 
 #include "common/resource/IResourcePack.hpp"
-#include "common/resource/ResourcePackList.hpp"
+#include "common/resource/PackRepository.hpp"
 
 #include <limits>
 
@@ -64,7 +64,7 @@ int mc_stb_vorbis_get_samples_short_interleaved(stb_vorbis* v, int channels, sho
 
 namespace mc::client::sound {
 
-SoundLoader::SoundLoader(ResourcePackList& resourcePacks)
+SoundLoader::SoundLoader(PackRepository& resourcePacks)
     : m_resourcePacks(resourcePacks)
 {}
 
@@ -162,7 +162,7 @@ Result<AudioData> SoundLoader::decode(const u8* data, size_t size)
 std::string SoundLoader::toAudioPath(const ResourceLocation& location)
 {
     // 返回相对于 PackType 根目录的路径（不含 "assets/" 前缀）
-    // ResourcePackList::readResource 会自动添加 PackType 目录前缀
+    // PackRepository::readResource 会自动添加 PackType 目录前缀
     // minecraft:sounds/dig/stone1 -> minecraft/sounds/dig/stone1.ogg
     return fmt::format("{}/sounds/{}.ogg", location.namespace_(), location.path());
 }

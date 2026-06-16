@@ -1,5 +1,5 @@
 #include "item/loot/LootTableLoader.hpp"
-#include "common/resource/ResourcePackList.hpp"
+#include "common/resource/PackRepository.hpp"
 #include "item/Items.hpp"
 #include "item/loot/LootTable.hpp"
 #include "resource/FolderResourcePack.hpp"
@@ -84,9 +84,9 @@ TEST_F(LootTableLoaderTest, LoadFromDirectory_LoadsJsonFiles)
     std::filesystem::remove_all(tempRoot, ec);
 }
 
-TEST_F(LootTableLoaderTest, LoadFromResourcePacks_EmptyResourcePackListReturnsSuccess)
+TEST_F(LootTableLoaderTest, LoadFromResourcePacks_EmptyPackRepositoryReturnsSuccess)
 {
-    ResourcePackList packList;
+    PackRepository packList;
 
     LootTableManager manager;
     LootTableLoader loader(manager);

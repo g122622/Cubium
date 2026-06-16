@@ -39,8 +39,8 @@ namespace mc {
 class IWorldWriter;
 
 namespace resource {
-class DataPackList;
-}
+class DataPackRepository;
+} // namespace resource
 
 namespace world::gen::jigsaw {
 class JigsawPatternRegistry;
@@ -88,7 +88,7 @@ public:
      * @param dataPackList 数据包列表
      * @return 加载的模板池数量
      */
-    static size_t loadTemplatePoolsFromDataPacks(const resource::DataPackList& dataPackList);
+    static size_t loadTemplatePoolsFromDataPacks(const resource::DataPackRepository& dataPackList);
 
 private:
     static std::unordered_map<ResourceLocation, std::unique_ptr<Structure>>& getStructures();

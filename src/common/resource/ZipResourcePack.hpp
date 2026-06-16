@@ -30,7 +30,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace mc {
+namespace mc::resource {
 
 /**
  * @brief ZIP 资源包实现
@@ -56,12 +56,11 @@ public:
 
     [[nodiscard]] Result<void> initialize() override;
     [[nodiscard]] const PackMetadata& metadata() const override { return m_metadata; }
-    [[nodiscard]] bool hasResource(resource::PackType type, std::string_view resourcePath) const override;
-    [[nodiscard]] Result<std::vector<u8>> readResource(
-        resource::PackType type, std::string_view resourcePath) const override;
+    [[nodiscard]] bool hasResource(PackType type, std::string_view resourcePath) const override;
+    [[nodiscard]] Result<std::vector<u8>> readResource(PackType type, std::string_view resourcePath) const override;
     [[nodiscard]] Result<std::vector<std::string>> listResources(
-        resource::PackType type, std::string_view directory, std::string_view extension) const override;
-    [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces(resource::PackType type) const override;
+        PackType type, std::string_view directory, std::string_view extension) const override;
+    [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces(PackType type) const override;
     [[nodiscard]] std::string name() const override { return m_name; }
 
     // 额外方法
@@ -78,7 +77,7 @@ private:
      * @brief 规范化资源路径
      */
     [[nodiscard]] static std::string _normalizePath(std::string_view path);
-    [[nodiscard]] static std::string _makeTypedPath(resource::PackType type, std::string_view path);
+    [[nodiscard]] static std::string _makeTypedPath(PackType type, std::string_view path);
 
     std::filesystem::path m_zipPath;           ///< ZIP 文件路径
     std::string m_name;                        ///< 资源包名称（文件名）
@@ -90,4 +89,8 @@ private:
     mutable std::shared_mutex m_cacheMutex;
 };
 
+} // namespace mc::resource
+
+namespace mc {
+using ZipResourcePack = resource::ZipResourcePack;
 } // namespace mc

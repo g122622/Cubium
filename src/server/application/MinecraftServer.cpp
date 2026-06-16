@@ -766,7 +766,7 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     {
         MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::LootTables");
         loot::LootTableLoader lootLoader(m_lootTableManager);
-        auto dataPackLoadResult = lootLoader.loadFromDataPackList(m_dataPackList);
+        auto dataPackLoadResult = lootLoader.loadFromDataPackRepository(m_dataPackList);
         if (dataPackLoadResult.failed()) {
             spdlog::error("Failed to load loot tables from data packs: {}", dataPackLoadResult.error().toString());
         } else {
@@ -782,7 +782,7 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     {
         MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Predicates");
         loot::LootPredicateLoader predicateLoader(m_predicateManager);
-        auto dataPackLoadResult = predicateLoader.loadFromDataPackList(m_dataPackList);
+        auto dataPackLoadResult = predicateLoader.loadFromDataPackRepository(m_dataPackList);
         if (dataPackLoadResult.failed()) {
             spdlog::error("Failed to load predicates from data packs: {}", dataPackLoadResult.error().toString());
         } else {
@@ -800,7 +800,7 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     {
         MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Recipes");
         RecipeLoader recipeLoader;
-        auto dataPackLoadResult = recipeLoader.loadFromDataPackList(m_dataPackList);
+        auto dataPackLoadResult = recipeLoader.loadFromDataPackRepository(m_dataPackList);
         if (dataPackLoadResult.failed()) {
             spdlog::error("Failed to load crafting recipes from data packs: {}", dataPackLoadResult.error().toString());
         } else {
@@ -823,7 +823,7 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     // 设置 JigsawManager 的 TemplateManager 数据包列表（用于加载结构模板 .nbt 文件）
     {
         MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::JigsawTemplateManager");
-        world::gen::jigsaw::JigsawManager::getTemplateManager().setDataPackList(&m_dataPackList);
+        world::gen::jigsaw::JigsawManager::getTemplateManager().setDataPackRepository(&m_dataPackList);
         spdlog::info("Jigsaw TemplateManager configured with data pack list");
     }
 

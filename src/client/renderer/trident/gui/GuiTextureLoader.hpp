@@ -25,12 +25,11 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/IResourcePack.hpp"
 #include <memory>
 #include <vector>
 
-namespace mc {
-class IResourcePack;
-} // namespace mc
+namespace mc {} // namespace mc
 
 namespace mc::client::renderer::trident::gui {
 

@@ -46,7 +46,7 @@ void LootPredicateLoader::_clearIfNeeded()
 }
 
 Result<LootPredicateLoader::LoadResult> LootPredicateLoader::loadFromResourcePacks(
-    const ResourcePackList& packs, ProgressCallback callback)
+    const PackRepository& packs, ProgressCallback callback)
 {
     MC_TRACE_EVENT("io.resource", "LootPredicateLoader::loadFromResourcePacks");
 
@@ -99,10 +99,10 @@ Result<LootPredicateLoader::LoadResult> LootPredicateLoader::loadFromResourcePac
     return m_lastResult;
 }
 
-Result<LootPredicateLoader::LoadResult> LootPredicateLoader::loadFromDataPackList(
-    const mc::resource::DataPackList& dataPacks, ProgressCallback callback)
+Result<LootPredicateLoader::LoadResult> LootPredicateLoader::loadFromDataPackRepository(
+    const mc::resource::DataPackRepository& dataPacks, ProgressCallback callback)
 {
-    MC_TRACE_EVENT("io.resource", "LootPredicateLoader::loadFromDataPackList");
+    MC_TRACE_EVENT("io.resource", "LootPredicateLoader::loadFromDataPackRepository");
 
     m_lastResult = LoadResult{};
     _clearIfNeeded();

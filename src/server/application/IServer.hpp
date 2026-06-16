@@ -38,7 +38,7 @@ namespace loot {
 class LootTableManager;
 }
 namespace resource {
-class DataPackList;
+class DataPackRepository;
 }
 namespace server {
 class ServerPlayerEntityManager;
@@ -270,8 +270,8 @@ public:
      * @brief 获取数据包列表
      * @return 数据包列表引用
      */
-    [[nodiscard]] virtual resource::DataPackList& dataPackList() = 0;
-    [[nodiscard]] virtual const resource::DataPackList& dataPackList() const = 0;
+    [[nodiscard]] virtual resource::DataPackRepository& dataPackList() = 0;
+    [[nodiscard]] virtual const resource::DataPackRepository& dataPackList() const = 0;
 
     /**
      * @brief 获取掉落表管理器

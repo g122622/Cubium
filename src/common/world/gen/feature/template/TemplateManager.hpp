@@ -25,15 +25,13 @@
 
 #include "Template.hpp"
 #include "TemplateLoader.hpp"
-#include "common/resource/DataPackList.hpp"
+#include "common/resource/DataPackRepository.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <mutex>
 #include <unordered_map>
 
 namespace mc {
-
-class IResourcePack;
 
 namespace world {
 namespace gen {
@@ -45,7 +43,7 @@ namespace template_ {
  *
  * 管理结构模板的加载、缓存和访问。
  * 支持从资源包加载 .nbt 格式的结构模板文件。
- * 支持从 DataPackList 加载结构模板（优先级高于单个资源包）。
+ * 支持从 DataPackRepository 加载结构模板（优先级高于单个资源包）。
  */
 class TemplateManager {
 public:
@@ -61,12 +59,12 @@ public:
     /**
      * @brief 设置数据包列表
      *
-     * DataPackList 的优先级高于单个资源包。模板加载时会优先从 DataPackList 加载，
-     * 如果 DataPackList 中没有找到，则回退到单个资源包或文件系统。
+     * DataPackRepository 的优先级高于单个资源包。模板加载时会优先从 DataPackRepository 加载，
+     * 如果 DataPackRepository 中没有找到，则回退到单个资源包或文件系统。
      *
      * @param dataPackList 数据包列表指针
      */
-    void setDataPackList(const resource::DataPackList* dataPackList);
+    void setDataPackRepository(const resource::DataPackRepository* dataPackList);
 
     /**
      * @brief 获取模板（如果不存在则尝试加载）
@@ -120,7 +118,7 @@ private:
     mutable std::mutex m_mutex;
     std::unique_ptr<Template> m_emptyTemplate;
     const IResourcePack* m_resourcePack = nullptr;
-    const resource::DataPackList* m_dataPackList = nullptr;
+    const resource::DataPackRepository* m_dataPackList = nullptr;
 };
 
 } // namespace template_

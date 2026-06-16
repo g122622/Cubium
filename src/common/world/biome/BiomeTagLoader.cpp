@@ -24,7 +24,7 @@
 #include "BiomeTagLoader.hpp"
 #include "BiomeRegistry.hpp"
 #include "BiomeTags.hpp"
-#include "common/resource/DataPackList.hpp"
+#include "common/resource/DataPackRepository.hpp"
 #include "common/resource/IResourcePack.hpp"
 #include "common/resource/PackType.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -121,7 +121,7 @@ static void resolveTagEntry(
 // BiomeTagLoader 实现
 // ============================================================================
 
-Result<size_t> BiomeTagLoader::loadFromDataPackList(const resource::DataPackList& dataPackList)
+Result<size_t> BiomeTagLoader::loadFromDataPackRepository(const resource::DataPackRepository& dataPackList)
 {
     size_t loadedCount = 0;
 

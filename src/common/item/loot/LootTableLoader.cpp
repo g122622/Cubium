@@ -48,7 +48,7 @@ void LootTableLoader::_clearIfNeeded()
 }
 
 Result<LootTableLoader::LoadResult> LootTableLoader::loadFromResourcePacks(
-    const ResourcePackList& packs, ProgressCallback callback)
+    const PackRepository& packs, ProgressCallback callback)
 {
     MC_TRACE_EVENT("io.resource", "LootTableLoader::loadFromResourcePacks");
 
@@ -101,10 +101,10 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromResourcePacks(
     return m_lastResult;
 }
 
-Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDataPackList(
-    const mc::resource::DataPackList& dataPacks, ProgressCallback callback)
+Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDataPackRepository(
+    const mc::resource::DataPackRepository& dataPacks, ProgressCallback callback)
 {
-    MC_TRACE_EVENT("io.resource", "LootTableLoader::loadFromDataPackList");
+    MC_TRACE_EVENT("io.resource", "LootTableLoader::loadFromDataPackRepository");
 
     m_lastResult = LoadResult{};
     _clearIfNeeded();

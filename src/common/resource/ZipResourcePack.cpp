@@ -31,7 +31,7 @@
 #include <cstring>
 #include <shared_mutex>
 
-namespace mc {
+namespace mc::resource {
 
 // ============================================================================
 // 构造函数 / 析构函数
@@ -114,7 +114,7 @@ Result<void> ZipResourcePack::initialize()
     // 读取 pack.mcmeta
     const std::string mcmetaPath = "pack.mcmeta";
     if (m_entries.find(mcmetaPath) != m_entries.end()) {
-        auto dataResult = readResource(resource::PackType::ClientResources, "../pack.mcmeta");
+        auto dataResult = readResource(PackType::ClientResources, "../pack.mcmeta");
         if (dataResult.success()) {
             const auto& data = dataResult.value();
             std::string jsonStr(data.begin(), data.end());
@@ -135,13 +135,13 @@ Result<void> ZipResourcePack::initialize()
     return Result<void>::ok();
 }
 
-bool ZipResourcePack::hasResource(resource::PackType type, std::string_view resourcePath) const
+bool ZipResourcePack::hasResource(PackType type, std::string_view resourcePath) const
 {
     const std::string normalized = _makeTypedPath(type, resourcePath);
     return m_entries.find(normalized) != m_entries.end();
 }
 
-Result<std::vector<u8>> ZipResourcePack::readResource(resource::PackType type, std::string_view resourcePath) const
+Result<std::vector<u8>> ZipResourcePack::readResource(PackType type, std::string_view resourcePath) const
 {
     std::string normalized;
     if (resourcePath == "../pack.mcmeta") {
@@ -216,7 +216,7 @@ Result<std::vector<u8>> ZipResourcePack::readResource(resource::PackType type, s
 }
 
 Result<std::vector<std::string>> ZipResourcePack::listResources(
-    resource::PackType type, std::string_view directory, std::string_view extension) const
+    PackType type, std::string_view directory, std::string_view extension) const
 {
     std::vector<std::string> resources;
     std::string normalizedDir = _makeTypedPath(type, directory);
@@ -254,7 +254,7 @@ Result<std::vector<std::string>> ZipResourcePack::listResources(
     return resources;
 }
 
-Result<std::vector<std::string>> ZipResourcePack::getResourceNamespaces(resource::PackType type) const
+Result<std::vector<std::string>> ZipResourcePack::getResourceNamespaces(PackType type) const
 {
     std::string typeDir(resource::packTypeDirectoryName(type));
     std::string prefix = typeDir + "/";
@@ -307,9 +307,9 @@ std::string ZipResourcePack::_normalizePath(std::string_view path)
     return result;
 }
 
-std::string ZipResourcePack::_makeTypedPath(resource::PackType type, std::string_view path)
+std::string ZipResourcePack::_makeTypedPath(PackType type, std::string_view path)
 {
     return _normalizePath(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(path));
 }
 
-} // namespace mc
+} // namespace mc::resource
