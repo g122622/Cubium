@@ -441,15 +441,15 @@ TEST_F(WeatherSoundHandlerTest, InitialState)
 TEST_F(WeatherSoundHandlerTest, UpdateWeatherState)
 {
     // 测试设置天气状态
-    handler->updateWeatherState(0.5f, 0.0f, 64.0f, true);
+    handler->updateWeatherState(0.5f, 0.0f, true);
     EXPECT_TRUE(handler->isRaining());
     EXPECT_FALSE(handler->isThundering());
 
-    handler->updateWeatherState(0.5f, 0.95f, 64.0f, true);
+    handler->updateWeatherState(0.5f, 0.95f, true);
     EXPECT_TRUE(handler->isRaining());
     EXPECT_TRUE(handler->isThundering());
 
-    handler->updateWeatherState(0.0f, 0.0f, 64.0f, true);
+    handler->updateWeatherState(0.0f, 0.0f, true);
     EXPECT_FALSE(handler->isRaining());
     EXPECT_FALSE(handler->isThundering());
 }
@@ -457,68 +457,73 @@ TEST_F(WeatherSoundHandlerTest, UpdateWeatherState)
 TEST_F(WeatherSoundHandlerTest, RainThreshold)
 {
     // 雨量低于阈值不算下雨
-    handler->updateWeatherState(0.009f, 0.0f, 64.0f, true);
+    handler->updateWeatherState(0.009f, 0.0f, true);
     EXPECT_FALSE(handler->isRaining());
 
     // 雨量等于阈值不算下雨（严格大于）
-    handler->updateWeatherState(0.01f, 0.0f, 64.0f, true);
+    handler->updateWeatherState(0.01f, 0.0f, true);
     EXPECT_FALSE(handler->isRaining());
 
     // 雨量高于阈值才算下雨
-    handler->updateWeatherState(0.011f, 0.0f, 64.0f, true);
+    handler->updateWeatherState(0.011f, 0.0f, true);
     EXPECT_TRUE(handler->isRaining());
 }
 
 TEST_F(WeatherSoundHandlerTest, ThunderThreshold)
 {
     // 雷暴强度低于阈值不算雷暴
-    handler->updateWeatherState(0.5f, 0.89f, 64.0f, true);
+    handler->updateWeatherState(0.5f, 0.89f, true);
     EXPECT_FALSE(handler->isThundering());
 
     // 雷暴强度等于阈值不算雷暴（严格大于 0.9）
-    handler->updateWeatherState(0.5f, 0.9f, 64.0f, true);
+    handler->updateWeatherState(0.5f, 0.9f, true);
     EXPECT_FALSE(handler->isThundering());
 
     // 雷暴强度高于阈值才算雷暴
-    handler->updateWeatherState(0.5f, 0.91f, 64.0f, true);
+    handler->updateWeatherState(0.5f, 0.91f, true);
     EXPECT_TRUE(handler->isThundering());
 }
 
-TEST_F(WeatherSoundHandlerTest, CanSeeSkyAffectsRain)
+TEST_F(WeatherSoundHandlerTest, CanSeeSkyAffectsRainAndThunder)
 {
-    // 看不到天空时，即使下雨也不应该播放雨声
-    handler->updateWeatherState(0.5f, 0.0f, 64.0f, false);
+    // 看不到天空时，下雨状态仍然成立，但播放的是 RAIN_ABOVE 而非 RAIN
+    handler->updateWeatherState(0.5f, 0.0f, false);
     EXPECT_TRUE(handler->isRaining()); // 状态是下雨
-    // 但雨声是否播放取决于 tick() 中对 canSeeSky 的检查
+    // 具体播放 RAIN 还是 RAIN_ABOVE 由 _updateRainSound 中的 canSeeSky 决定
+
+    // 看不到天空时，雷暴状态仍然成立，但雷声不会播放
+    handler->updateWeatherState(1.0f, 1.0f, false);
+    EXPECT_TRUE(handler->isThundering()); // 状态仍是雷暴
+    // 但雷声不应该播放（在 _tryPlayThunder 中对 canSeeSky 检查）
 }
 
-TEST_F(WeatherSoundHandlerTest, PlayerHeightForRainAbove)
+TEST_F(WeatherSoundHandlerTest, CanSeeSkyDeterminesRainType)
 {
-    // MC 1.16.5: 玩家高度 > SEA_LEVEL + 63 时使用 WEATHER_RAIN_ABOVE
-    // SEA_LEVEL = 63，所以阈值为 126
+    // MC 1.21.11: canSeeSky=false 时使用 WEATHER_RAIN_ABOVE（遮挡物下方闷雨声）
+    // canSeeSky=true 时使用 WEATHER_RAIN（户外正常雨声）
 
-    // 低于阈值
-    handler->updateWeatherState(0.5f, 0.0f, 64.0f, true);
+    // 户外（能看到天空）
+    handler->updateWeatherState(0.5f, 0.0f, true);
     EXPECT_TRUE(handler->isRaining());
 
-    // 高于阈值
-    handler->updateWeatherState(0.5f, 0.0f, 200.0f, true);
-    EXPECT_TRUE(handler->isRaining());
+    // 遮挡物下方（看不到天空）
+    handler->updateWeatherState(0.5f, 0.0f, false);
+    EXPECT_TRUE(handler->isRaining()); // 仍然下雨，只是雨声类型不同
 }
 
 TEST_F(WeatherSoundHandlerTest, ThunderTiming)
 {
     // 测试雷声计时器行为
-    // MC 1.16.5: 雷声间隔 5-30 秒 (100-600 ticks)
+    // MC 1.21.11: 雷声间隔 5-30 秒 (100-600 ticks)
 
     // 设置雷暴状态
-    handler->updateWeatherState(1.0f, 1.0f, 64.0f, true);
+    handler->updateWeatherState(1.0f, 1.0f, true);
     EXPECT_TRUE(handler->isThundering());
 
     // 看不到天空时不应该播放雷声
-    handler->updateWeatherState(1.0f, 1.0f, 64.0f, false);
+    handler->updateWeatherState(1.0f, 1.0f, false);
     EXPECT_TRUE(handler->isThundering()); // 状态仍是雷暴
-    // 但雷声不应该播放（在 tick() 中处理）
+    // 但雷声不应该播放（在 _tryPlayThunder 中处理）
 }
 
 TEST_F(WeatherSoundHandlerTest, WeatherSoundEvents)

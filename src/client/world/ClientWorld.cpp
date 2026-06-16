@@ -317,8 +317,29 @@ i32 ClientWorld::getHeight(i32 x, i32 z) const
     return chunk->data->getHighestBlock(localX, localZ);
 }
 
+i32 ClientWorld::getTopBlockY(world::chunk::HeightmapType type, i32 x, i32 z) const
+{
+    const ChunkCoord chunkX = toChunkCoord(x);
+    const ChunkCoord chunkZ = toChunkCoord(z);
+    const ChunkId id(chunkX, chunkZ, 0);
+
+    const ClientChunk* chunk = getChunk(id);
+    if (!chunk || !chunk->data) {
+        return m_minBuildHeight;
+    }
+
+    const i32 localX = toLocalCoord(x);
+    const i32 localZ = toLocalCoord(z);
+
+    return chunk->data->getTopBlockY(type, localX, localZ);
+}
+
 bool ClientWorld::canSeeSky(const BlockPos& pos) const
 {
+    // 没有天空光照的维度（下界、末地）永远看不到天空
+    if (m_dimensionId != 0) { // OVERWORLD
+        return false;
+    }
     // 基于天空光照判断，只有天空光照达到最大值 15 时才能看到天空
     return getSkyLight(pos.x, pos.y, pos.z) >= 15;
 }

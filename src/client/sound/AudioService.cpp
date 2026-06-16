@@ -360,7 +360,7 @@ void AudioService::setInMenu(bool inMenu)
     _enqueue(std::move(command));
 }
 
-void AudioService::updateWeatherState(f32 rainStrength, f32 thunderStrength, f32 playerY, bool canSeeSky)
+void AudioService::updateWeatherState(f32 rainStrength, f32 thunderStrength, bool canSeeSky)
 {
     if (!m_loaded.load()) {
         return;
@@ -370,7 +370,6 @@ void AudioService::updateWeatherState(f32 rainStrength, f32 thunderStrength, f32
     command.type = CommandType::UpdateWeatherState;
     command.rainStrength = rainStrength;
     command.thunderStrength = thunderStrength;
-    command.weatherPlayerY = playerY;
     command.canSeeSky = canSeeSky;
     _enqueue(std::move(command));
 }
@@ -770,7 +769,7 @@ void AudioService::_processCommand(Command& command)
         case CommandType::UpdateWeatherState:
             if (m_weatherSoundHandler) {
                 m_weatherSoundHandler->updateWeatherState(
-                    command.rainStrength, command.thunderStrength, command.weatherPlayerY, command.canSeeSky);
+                    command.rainStrength, command.thunderStrength, command.canSeeSky);
             }
             break;
 

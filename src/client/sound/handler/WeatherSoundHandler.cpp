@@ -23,7 +23,6 @@
 
 #include "WeatherSoundHandler.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
-#include "common/core/Constants.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/sound/SoundTypes.hpp"
 
@@ -43,11 +42,17 @@ constexpr i32 THUNDER_MIN_DELAY = 100; // 5秒
 /// 雷声最大间隔（ticks）
 constexpr i32 THUNDER_MAX_DELAY = 600; // 30秒
 
-// TODO: 当前雨声"above"版本的判断逻辑是简化的高度阈值实现。
-// MC 1.16.5 的实际逻辑是：通过粒子采样找到雨滴落点位置，判断该位置是否
-// 在玩家上方且有运动阻挡方块（MOTION_BLOCKING高度图），而非简单的Y坐标阈值。
-// 当高度图系统完善后，应重构为基于高度图的判断。
-constexpr f32 RAIN_ABOVE_HEIGHT = static_cast<f32>(world::SEA_LEVEL) + 63.0f;
+/// WEATHER_RAIN 音量（对齐 MC 原版 WeatherEffectRenderer）
+constexpr f32 RAIN_VOLUME = 0.2f;
+
+/// WEATHER_RAIN 音调
+constexpr f32 RAIN_PITCH = 1.0f;
+
+/// WEATHER_RAIN_ABOVE 音量（对齐 MC 原版：闷雨声音量为正常雨声的一半）
+constexpr f32 RAIN_ABOVE_VOLUME = 0.1f;
+
+/// WEATHER_RAIN_ABOVE 音调（对齐 MC 原版：闷雨声音调为正常雨声的一半）
+constexpr f32 RAIN_ABOVE_PITCH = 0.5f;
 } // namespace
 
 // ============================================================================
@@ -69,21 +74,22 @@ void WeatherSoundHandler::tick(SoundEngine& engine)
     _tryPlayThunder(engine);
 }
 
-void WeatherSoundHandler::updateWeatherState(f32 rainStrength, f32 thunderStrength, f32 playerY, bool canSeeSky)
+void WeatherSoundHandler::updateWeatherState(f32 rainStrength, f32 thunderStrength, bool canSeeSky)
 {
     m_rainStrength = rainStrength;
     m_thunderStrength = thunderStrength;
-    m_playerY = playerY;
     m_canSeeSky = canSeeSky;
 }
 
 void WeatherSoundHandler::_updateRainSound(SoundEngine& engine)
 {
     // 检查是否应该播放雨声
-    bool shouldPlayRain = isRaining() && m_canSeeSky;
+    bool shouldPlayRain = isRaining();
 
-    // 判断是否使用高空雨声
-    bool useAbove = m_playerY > RAIN_ABOVE_HEIGHT;
+    // 判断是否使用高空/遮挡雨声
+    // MC 原版逻辑: 当玩家位置上方有 MOTION_BLOCKING 方块遮挡时播放 WEATHER_RAIN_ABOVE
+    // 使用 canSeeSky 近似判断: canSeeSky=false 表示天空光照被遮挡，即玩家在遮挡物下方
+    bool useAbove = !m_canSeeSky;
 
     if (shouldPlayRain) {
         // 检查是否需要切换雨声类型
@@ -96,24 +102,27 @@ void WeatherSoundHandler::_updateRainSound(SoundEngine& engine)
         // 如果没有播放雨声，启动新的
         if (!m_playingRainSound) {
             const ResourceLocation& rainSound = useAbove ? SoundEvents::WEATHER_RAIN_ABOVE : SoundEvents::WEATHER_RAIN;
+            const f32 volume = useAbove ? RAIN_ABOVE_VOLUME : RAIN_VOLUME;
+            const f32 pitch = useAbove ? RAIN_ABOVE_PITCH : RAIN_PITCH;
 
             auto sound = std::make_unique<SoundInstance>(rainSound,
                 sound::SoundCategory::Weather,
-                glm::vec3(0.0f),       // 位置不重要，跟随玩家
-                m_rainStrength,        // 音量根据强度
-                1.0f,                  // 音调
-                true,                  // 循环
-                AttenuationType::None, // 无衰减
+                glm::vec3(0.0f),         // 位置不重要，跟随玩家
+                m_rainStrength * volume, // 音量根据强度和雨声类型调整
+                pitch,                   // 音调根据雨声类型调整
+                true,                    // 循环
+                AttenuationType::None,   // 无衰减
                 DEFAULT_ATTENUATION_DISTANCE);
 
             m_rainSoundId = engine.play(std::move(sound));
             m_playingRainSound = true;
             m_rainSoundAbove = useAbove;
         } else {
-            // 更新音量
+            // 更新音量（保持类型对应的音量系数）
+            const f32 volume = useAbove ? RAIN_ABOVE_VOLUME : RAIN_VOLUME;
             ISoundInstance* sound = engine.getSoundInstance(m_rainSoundId);
             if (sound) {
-                sound->setVolume(m_rainStrength);
+                sound->setVolume(m_rainStrength * volume);
             }
         }
     } else {
@@ -127,7 +136,7 @@ void WeatherSoundHandler::_updateRainSound(SoundEngine& engine)
 
 void WeatherSoundHandler::_tryPlayThunder(SoundEngine& engine)
 {
-    // 只在雷暴时播放雷声
+    // 只在雷暴且能看到天空时播放雷声
     if (!isThundering() || !m_canSeeSky) {
         m_thunderTimer = 0;
         m_nextThunderDelay = 0;

@@ -146,10 +146,9 @@ public:
      *
      * @param rainStrength 降雨强度 (0.0 - 1.0)
      * @param thunderStrength 雷暴强度 (0.0 - 1.0)
-     * @param playerY 玩家Y坐标（用于判断是否在高空）
-     * @param canSeeSky 是否能看到天空
+     * @param canSeeSky 玩家眼睛位置是否能看到天空（基于天空光照判断）
      */
-    void updateWeatherState(f32 rainStrength, f32 thunderStrength, f32 playerY, bool canSeeSky);
+    void updateWeatherState(f32 rainStrength, f32 thunderStrength, bool canSeeSky);
 
     // ========================================================================
     // 实体声音处理
@@ -340,7 +339,6 @@ private:
         // 天气状态
         f32 rainStrength = 0.0f;
         f32 thunderStrength = 0.0f;
-        f32 weatherPlayerY = 0.0f;
         bool canSeeSky = true;
     };
 

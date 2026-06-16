@@ -248,7 +248,7 @@ void ClientApplication::updateWorldAudio()
         const f32 rainStrength = m_world.weather().rainStrength();
         const f32 thunderStrength = m_world.weather().thunderStrength();
         const bool canSeeSky = m_world.canSeeSky(BlockPos(eyeBlockX, eyeBlockY, eyeBlockZ));
-        m_audioService->updateWeatherState(rainStrength, thunderStrength, m_player->y(), canSeeSky);
+        m_audioService->updateWeatherState(rainStrength, thunderStrength, canSeeSky);
     }
 
     m_wasPlayerInWater = inWater;

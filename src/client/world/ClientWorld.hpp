@@ -39,6 +39,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/IBlockAnimateContext.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "entity/ClientEntityManager.hpp"
 #include <array>
 #include <functional>
@@ -114,6 +115,19 @@ public:
      * @return 最高非空气方块的 Y 坐标，如果没有返回 MIN_BUILD_HEIGHT
      */
     [[nodiscard]] i32 getHeight(i32 x, i32 z) const;
+
+    /**
+     * @brief 获取指定位置指定类型的高度图值
+     *
+     * 查询 (x, z) 位置指定高度图类型的最高方块 Y 坐标。
+     * 如果指定类型的高度图不存在，回退到基本高度图（WorldSurface 语义）。
+     *
+     * @param type 高度图类型（如 HeightmapType::MotionBlocking）
+     * @param x 方块 X 坐标（世界坐标）
+     * @param z 方块 Z 坐标（世界坐标）
+     * @return 指定类型高度图的最高方块 Y 坐标，如果区块未加载返回 MIN_BUILD_HEIGHT
+     */
+    [[nodiscard]] i32 getTopBlockY(world::chunk::HeightmapType type, i32 x, i32 z) const;
 
     /**
      * @brief 检查指定位置是否可以看到天空

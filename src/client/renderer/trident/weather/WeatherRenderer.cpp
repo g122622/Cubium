@@ -529,7 +529,8 @@ void WeatherRenderer::_generateWeatherGeometry(mc::client::ClientWorld* world)
                     }
                 }
 
-                // 查询地形高度（使用 MOTION_BLOCKING 高度图）
+                // 查询地形高度（使用基本高度图 WorldSurface 语义）
+                // TODO: 当客户端高度图完善后，应改用 MotionBlocking 高度图以匹配 MC 原版行为
                 groundY = world->getHeight(x, z);
             }
 

@@ -35,17 +35,25 @@ namespace mc::client::sound {
  *
  * 处理雨天和雷暴时的环境音效。
  *
- * 音效行为:
- * - 雨天时播放循环雨声 (WEATHER_RAIN / WEATHER_RAIN_ABOVE)
+ * 音效行为（对齐 MC 1.21.11 WeatherEffectRenderer）:
+ * - 户外（canSeeSky=true）时播放 WEATHER_RAIN（音量 0.2，音调 1.0）
+ * - 遮挡物下方（canSeeSky=false）时播放 WEATHER_RAIN_ABOVE（音量 0.1，音调 0.5）
+ *   模拟从上方隔层传来的闷雨声效果
  * - 雷暴时有概率播放雷声 (WEATHER_THUNDER)
  * - 音量根据天气强度调整
+ *
+ * MC 原版逻辑:
+ * 当玩家位置上方有运动阻挡方块（MOTION_BLOCKING 高度图值 > 玩家 Y），
+ * 且雨滴落点在玩家上方时，播放 WEATHER_RAIN_ABOVE。
+ * 当前使用 canSeeSky（基于天空光照 >= 15）来近似 MOTION_BLOCKING 判断：
+ * canSeeSky=false 等价于玩家上方有遮挡物（屋顶、洞穴等）。
  *
  * 使用示例:
  * @code
  * auto handler = std::make_unique<WeatherSoundHandler>();
  * engine.addAmbientHandler(std::move(handler));
  * // 当天气状态改变时:
- * handler->updateWeatherState(rainStrength, thunderStrength, playerPos, canSeeSky);
+ * handler->updateWeatherState(rainStrength, thunderStrength, canSeeSky);
  * @endcode
  */
 class WeatherSoundHandler : public IAmbientSoundHandler {
@@ -69,10 +77,9 @@ public:
      *
      * @param rainStrength 降雨强度 (0.0 - 1.0)
      * @param thunderStrength 雷暴强度 (0.0 - 1.0)
-     * @param playerY 玩家Y坐标（用于判断是否在雨层上方）
-     * @param canSeeSky 是否能看到天空
+     * @param canSeeSky 玩家眼睛位置是否能看到天空（基于天空光照判断）
      */
-    void updateWeatherState(f32 rainStrength, f32 thunderStrength, f32 playerY, bool canSeeSky);
+    void updateWeatherState(f32 rainStrength, f32 thunderStrength, bool canSeeSky);
 
     /**
      * @brief 检查是否正在下雨
@@ -88,8 +95,8 @@ private:
     /**
      * @brief 更新雨声音效
      *
-     * 根据天气强度和玩家位置播放雨声。
-     * 玩家在高处或看不到天空时使用 WEATHER_RAIN_ABOVE。
+     * 根据天气强度和天空可见性播放雨声。
+     * canSeeSky=true 时播放 WEATHER_RAIN，canSeeSky=false 时播放 WEATHER_RAIN_ABOVE。
      */
     void _updateRainSound(SoundEngine& engine);
 
@@ -107,10 +114,7 @@ private:
     /// 雷暴强度
     f32 m_thunderStrength = 0.0f;
 
-    /// 玩家Y坐标
-    f32 m_playerY = 0.0f;
-
-    /// 是否能看到天空
+    /// 玩家眼睛位置是否能看到天空
     bool m_canSeeSky = true;
 
     /// 雨声声音实例ID
