@@ -296,6 +296,8 @@ world/
 **问题**：硬编码 0、256、16 等高度/尺寸数字。
 **解决**：使用 `mc::world` 命名空间下的常量（`MIN_BUILD_HEIGHT`、`MAX_BUILD_HEIGHT`、`CHUNK_WIDTH` 等）。`CHUNK_HEIGHT`（384）与 `MAX_BUILD_HEIGHT`（320）值不同，语义也完全不同，切勿混淆。这些常量定义在 `WorldConstants.hpp` 中。
 
+**维度感知高度**：`IWorld` 提供虚方法 `getMinBuildHeight()` 和 `getMaxBuildHeight()`，默认返回 `world::MIN_BUILD_HEIGHT` 和 `world::MAX_BUILD_HEIGHT`。`ServerWorld` 覆写了这两个方法，基于 `DimensionType` 返回维度特定的建筑高度范围（如下界 -64~128、末地 0~256 等）。需要维度感知高度时应优先使用这两个虚方法而非全局常量。`SpreadAlgorithm` 等算法已适配此接口。
+
 ### 12. canSeeSky 实现
 **问题**：错误假设 `canSeeSky()` 只检查顶部是否有方块。
 **解决**：实际基于天空光照 >= 15 判断，正确处理透明方块（玻璃、水）和部分方块（台阶、楼梯）。
