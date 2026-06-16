@@ -77,10 +77,12 @@ public:
     [[nodiscard]] f64 getValue(f64 x, f64 y, bool useOffset) const;
 
     /**
-     * @brief 获取第一个倍频层的 SimplexNoise（用于种子派生）
+     * @brief 获取最低倍频层的 SimplexNoise
      *
-     * 返回 noiseLevels 中最高倍频的 SimplexNoise，
-     * 与 MC 的 PerlinSimplexNoise.firstNoise 等价。
+     * 返回 noiseLevels 中索引 0 的 SimplexNoise（最低倍频）。
+     * 注意：MC Java 的 PerlinSimplexNoise.firstNoise 指向最高倍频
+     * （索引 maxOctave），与本方法的索引 0 不同。
+     * 当前此方法未被外部调用。
      */
     [[nodiscard]] const SimplexNoise* firstNoise() const
     {

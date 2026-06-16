@@ -50,6 +50,8 @@ PerlinSimplexNoise::PerlinSimplexNoise(math::IRandom& rng, std::vector<i32> octa
 
     // MC: 创建第一个 SimplexNoise（用于种子派生，也共享给 octave 0）
     auto firstNoise = std::make_unique<SimplexNoise>(rng);
+    // 保存原始指针，因为 firstNoise 可能被 move 到 m_noiseLevels 中
+    const SimplexNoise* firstNoisePtr = firstNoise.get();
 
     // MC: 如果 octave 0 在集合中，放入 noiseLevels[maxOctave]
     if (maxOctave >= 0 && maxOctave < k && octaveSet.count(0)) {
@@ -69,18 +71,7 @@ PerlinSimplexNoise::PerlinSimplexNoise(math::IRandom& rng, std::vector<i32> octa
     // MC: 填充负倍频 (maxOctave-1 到 0)
     // 使用第一个 simplexnoise 的 3D 评估值派生种子
     if (maxOctave > 0) {
-        // firstNoisePtr 始终从 m_noiseLevels[maxOctave] 获取
-        // 如果 octave 0 在集合中，firstNoise 已移入 m_noiseLevels[maxOctave]
-        // 如果 octave 0 不在集合中，m_noiseLevels[maxOctave] 可能为空
-        // 但 MC 的 PerlinSimplexNoise 保证 firstNoise 总是有效的
-        // 这里处理两种情况：
-        const SimplexNoise* firstNoisePtr = nullptr;
-        if (m_noiseLevels[static_cast<size_t>(maxOctave)]) {
-            firstNoisePtr = m_noiseLevels[static_cast<size_t>(maxOctave)].get();
-        } else if (firstNoise) {
-            // octave 0 不在集合中，firstNoise 仍然有效
-            firstNoisePtr = firstNoise.get();
-        }
+        // firstNoisePtr 始终有效：在 move 之前已保存原始指针
         MC_ASSERT_RELEASE(firstNoisePtr != nullptr);
 
         // MC: WorldgenRandom(new LegacyRandomSource(seed))

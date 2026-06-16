@@ -24,6 +24,7 @@
 
 #include "common/world/gen/noise/PerlinNoise.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc::world::gen::noise {
 
@@ -112,8 +113,10 @@ public:
 
     /**
      * @brief 构造时使用的种子
+     *
+     * 仅当通过种子构造时有效；通过 Random& 构造时为 nullopt。
      */
-    [[nodiscard]] u64 seed() const { return m_seed; }
+    [[nodiscard]] const std::optional<u64>& seed() const { return m_seed; }
 
 private:
     /**
@@ -130,7 +133,7 @@ private:
     static constexpr f64 INPUT_FACTOR = 1.0181268882175227;
     static constexpr f64 VALUE_FACTOR_BASE = 1.0 / 6.0;
 
-    u64 m_seed = 0;
+    std::optional<u64> m_seed; ///< nullopt = 通过 Random& 构造（无法克隆）
     i32 m_firstOctave;
     std::vector<f64> m_amplitudes;
     std::unique_ptr<PerlinNoise> m_first;
