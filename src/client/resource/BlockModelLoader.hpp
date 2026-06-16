@@ -103,6 +103,12 @@ struct UnbakedBlockModel {
     bool ambientOcclusion = true;                // 环境光遮蔽
     std::string name;                            // 模型名称(调试用)
 
+    // JSON 显式设置标记（用于 leaf-wins 合并语义）
+    // MC Java 版中，沿子模型到根模型查找第一个显式设置了该属性的模型，其值生效
+    // 若整个继承链都没有显式设置，则使用默认值
+    bool hasElements = false;         // JSON 中是否包含 "elements" 字段
+    bool hasAmbientOcclusion = false; // JSON 中是否包含 "ambientocclusion" 字段
+
     // 检查是否有父模型
     [[nodiscard]] bool hasParent() const { return !parentLocation.path().empty(); }
 };
@@ -241,9 +247,9 @@ public:
      * currentLayer 是当前正在处理的模型层（更靠近叶子）。
      *
      * 合并规则（与 MC Java 版一致）：
-     * - 纹理：当前层覆盖累积结果中的同名键（child-overrides-parent）
-     * - 元素：仅当累积结果无元素时才继承当前层元素（first-defined-wins）
-     * - 环境光遮蔽：如果当前层关闭了 AO，则关闭累积结果的 AO
+     * - 纹理：当前层覆盖累积结果中的同名键（merge 语义，子模型纹理覆盖父模型）
+     * - 元素：当前层显式定义了元素时覆盖累积结果（leaf-wins 语义）
+     * - 环境光遮蔽：当前层显式设置了 AO 时覆盖累积结果（leaf-wins 语义）
      */
     static void mergeParent(UnbakedBlockModel& accumulated, const UnbakedBlockModel& currentLayer);
 

@@ -302,6 +302,7 @@ Result<UnbakedItemModel> ItemModelLoader::_parseModel(const ResourceLocation& lo
 
         // 解析元素（可选，用于 3D 物品）
         if (json.contains("elements") && json["elements"].is_array()) {
+            model.hasElements = true;
             auto elemResult = _parseElements(model, json["elements"]);
             if (!elemResult.success()) {
                 return elemResult.error();
@@ -310,12 +311,14 @@ Result<UnbakedItemModel> ItemModelLoader::_parseModel(const ResourceLocation& lo
 
         // 解析覆盖条件
         if (json.contains("overrides") && json["overrides"].is_array()) {
+            model.hasOverrides = true;
             _parseOverrides(model, json["overrides"]);
         }
 
         // 解析环境光遮蔽
         if (json.contains("ambientocclusion") && json["ambientocclusion"].is_boolean()) {
             model.ambientOcclusion = json["ambientocclusion"].get<bool>();
+            model.hasAmbientOcclusion = true;
         }
 
         // 确定模型类型
@@ -404,37 +407,51 @@ ItemModelType ItemModelLoader::_determineModelType(const ResourceLocation& paren
 
 void ItemModelLoader::_mergeParent(UnbakedItemModel& accumulated, const UnbakedItemModel& currentLayer)
 {
-    // 合并纹理：当前层的纹理覆盖累积结果中的同名键（child-overrides-parent 语义）
-    // 在 root-to-leaf 累积遍历中，更靠近叶子的模型应该覆盖更靠近根的模型
+    // 合并纹理：当前层的纹理覆盖累积结果中的同名键（merge 语义）
+    // MC Java 版 TextureSlots 采用合并语义：子模型纹理变量覆盖父模型同名变量，
+    // 但保留父模型中子模型未定义的变量。在 root-to-leaf 逐层合并中，
+    // 后处理的层（更靠近叶子）覆盖先处理的层（更靠近根），结果与 MC Java 一致。
     for (const auto& [key, value] : currentLayer.textures) {
         accumulated.textures[key] = value;
     }
 
-    // 合并元素：仅当累积结果无元素时才继承当前层元素（first-defined-wins）
-    // TODO: MC Java 版语义是 leaf-wins（沿父子链从子到根查找，第一个定义了元素的模型生效），
-    // 当前 root-to-leaf 逐层合并的累积策略等效于 first-defined-wins，与 MC 语义一致。
-    // 但需注意：若未来支持多源合并（如 multipart），此处语义可能需要调整。
-    if (accumulated.elements.empty() && !currentLayer.elements.empty()) {
+    // 合并元素：leaf-wins 语义
+    // MC Java 版语义：沿子模型到根模型查找，第一个定义了 elements 的模型生效。
+    // 在 root-to-leaf 累积遍历中，如果当前层显式定义了 elements（hasElements=true），
+    // 则用当前层的元素覆盖累积结果，这样后处理的（更靠近叶子的）层会覆盖先处理的层，
+    // 最终效果与 leaf-to-root 查找一致——最靠近叶子的定义了 elements 的模型生效。
+    if (currentLayer.hasElements) {
         accumulated.elements = currentLayer.elements;
+        accumulated.hasElements = true;
     }
 
     // 合并显示变换：当前层中定义的上下文覆盖累积结果中的同名上下文
+    // MC Java 版语义：按每个 ItemDisplayContext 独立地沿 parent 链查找第一个有效的 transform。
+    // 在 root-to-leaf 逐层合并中，后处理的层覆盖先处理的层的同名上下文，与 MC Java 一致。
     for (const auto& [ctx, transform] : currentLayer.display) {
         accumulated.display[ctx] = transform;
     }
 
-    // 合并环境光遮蔽：如果当前层关闭了 AO，则关闭累积结果的 AO
-    if (!currentLayer.ambientOcclusion) {
-        accumulated.ambientOcclusion = false;
+    // 合并环境光遮蔽：leaf-wins 语义
+    // MC Java 版语义：沿子模型到根模型查找，第一个显式声明了 ambientocclusion 的模型，其值生效。
+    // 在 root-to-leaf 累积遍历中，如果当前层显式设置了 AO（hasAmbientOcclusion=true），
+    // 则用当前层的 AO 值覆盖累积结果，最终效果与 leaf-to-root 查找一致。
+    if (currentLayer.hasAmbientOcclusion) {
+        accumulated.ambientOcclusion = currentLayer.ambientOcclusion;
+        accumulated.hasAmbientOcclusion = true;
     }
 
-    // 合并模型类型：leaf-wins 语义，与原始 bakeModel 循环中 baked.type = model->type 一致
+    // 合并模型类型：leaf-wins 语义
     // 在 root-to-leaf 遍历中，每层都覆盖 type，最终 leaf 的 type 生效
     accumulated.type = currentLayer.type;
 
-    // 合并覆盖条件：当前层有覆盖条件时覆盖累积结果（leaf-wins）
-    if (!currentLayer.overrides.empty()) {
+    // 合并覆盖条件：leaf-wins 语义
+    // MC Java 版语义：沿子模型到根模型查找，第一个定义了 overrides 的模型生效。
+    // 在 root-to-leaf 累积遍历中，如果当前层显式定义了 overrides（hasOverrides=true），
+    // 则用当前层的 overrides 覆盖累积结果，最终效果与 leaf-to-root 查找一致。
+    if (currentLayer.hasOverrides) {
         accumulated.overrides = currentLayer.overrides;
+        accumulated.hasOverrides = true;
     }
 }
 
@@ -479,45 +496,77 @@ Result<BakedItemModel> ItemModelLoader::bakeModel(const ResourceLocation& locati
     BakedItemModel baked;
     baked.location = location;
 
-    // 创建临时 UnbakedItemModel 用于逐层合并
-    UnbakedItemModel merged;
-    merged.ambientOcclusion = true;
-    merged.type = ItemModelType::Generated;
+    // === 合并策略：与 MC Java 版一致 ===
+    // MC Java 版使用 findTop* 模式：沿叶子到根方向查找第一个显式定义了该属性的模型。
+    // 对于纹理：采用 merge 语义（所有层的纹理变量合并，子模型覆盖父模型同名变量）。
+    // 对于元素、环境光遮蔽、覆盖条件：采用 leaf-wins 语义（从叶子到根查找，第一个显式定义的生效）。
+    // 对于显示变换：按每个 ItemDisplayContext 独立地采用 leaf-wins。
+    // 对于模型类型：leaf-wins（最靠近叶子的类型生效）。
 
-    // 首先确定模型类型和默认变换
-    bool hasHandheldParent = false;
+    // 1. 纹理：从根到叶逐层合并，后处理的层覆盖先处理的层的同名键（等效于 merge 语义）
     for (auto it = modelChain.rbegin(); it != modelChain.rend(); ++it) {
-        auto& model = *it;
-        if (model->parentLocation.path().find("handheld") != std::string::npos) {
-            hasHandheldParent = true;
+        for (const auto& [key, value] : (*it)->textures) {
+            baked.textures[key] = ResourceLocation(value);
+        }
+    }
+
+    // 2. 元素：从叶子到根查找第一个显式定义了 elements 的模型（leaf-wins）
+    for (auto it = modelChain.begin(); it != modelChain.end(); ++it) {
+        if ((*it)->hasElements) {
+            baked.elements = (*it)->elements;
             break;
         }
     }
 
-    // 从根到叶依次合并
-    for (auto it = modelChain.rbegin(); it != modelChain.rend(); ++it) {
-        _mergeParent(merged, *(*it));
+    // 3. 环境光遮蔽：从叶子到根查找第一个显式设置了 ambientocclusion 的模型（leaf-wins）
+    // 默认值为 true（与 MC Java 版 DEFAULT_AMBIENT_OCCLUSION 一致）
+    for (auto it = modelChain.begin(); it != modelChain.end(); ++it) {
+        if ((*it)->hasAmbientOcclusion) {
+            baked.ambientOcclusion = (*it)->ambientOcclusion;
+            break;
+        }
     }
 
-    // 设置默认变换
+    // 4. 模型类型：基于合并结果确定
+    // 检查整条链中是否有 handheld 父模型
+    bool hasHandheldParent = false;
+    for (auto it = modelChain.rbegin(); it != modelChain.rend(); ++it) {
+        if ((*it)->hasParent() && ((*it)->parentLocation.path().find("handheld") != std::string::npos)) {
+            hasHandheldParent = true;
+            break;
+        }
+    }
+    if (hasHandheldParent) {
+        baked.type = ItemModelType::Handheld;
+    } else if (!baked.elements.empty()) {
+        baked.type = ItemModelType::Custom;
+    } else {
+        baked.type = ItemModelType::Generated;
+    }
+
+    // 5. 覆盖条件：从叶子到根查找第一个显式定义了 overrides 的模型（leaf-wins）
+    for (auto it = modelChain.begin(); it != modelChain.end(); ++it) {
+        if ((*it)->hasOverrides) {
+            baked.overrides = (*it)->overrides;
+            break;
+        }
+    }
+
+    // 6. 显示变换：按每个 ItemDisplayContext 独立地采用 leaf-wins
+    // 首先根据是否手持类模型设置默认变换
     if (hasHandheldParent) {
         baked.display = m_handheldDefaults;
     } else {
         baked.display = m_generatedDefaults;
     }
-
-    // 将合并后的显示变换覆盖默认值
-    for (const auto& [ctx, transform] : merged.display) {
-        baked.display[ctx] = transform;
+    // 然后从根到叶逐层覆盖显示变换（后处理的层覆盖先处理的层的同名上下文）
+    for (auto it = modelChain.rbegin(); it != modelChain.rend(); ++it) {
+        for (const auto& [ctx, transform] : (*it)->display) {
+            baked.display[ctx] = transform;
+        }
     }
 
-    // 将合并结果写入 BakedItemModel
-    for (const auto& [key, value] : merged.textures) {
-        baked.textures[key] = ResourceLocation(value);
-    }
-    baked.elements = std::move(merged.elements);
-    baked.type = merged.type;
-    baked.overrides = std::move(merged.overrides);
+    // 7. 环境光遮蔽：已计算但 BakedItemModel 当前不包含 AO 字段，供未来使用
 
     // 解析纹理引用链
     BlockModelLoader::resolveTextureReferences(baked.textures);

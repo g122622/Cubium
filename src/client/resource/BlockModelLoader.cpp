@@ -434,6 +434,7 @@ Result<BakedBlockModel> BlockModelLoader::bakeModel(const ResourceLocation& loca
     BakedBlockModel baked;
 
     // 加载模型链 (子 -> 父 -> 祖父...)
+    // modelChain[0] = 目标模型（叶子）, modelChain.back() = 最远祖先（根）
     std::vector<UnbakedBlockModel*> modelChain;
 
     ResourceLocation currentLoc = location;
@@ -461,28 +462,39 @@ Result<BakedBlockModel> BlockModelLoader::bakeModel(const ResourceLocation& loca
         currentLoc = model.parentLocation;
     }
 
-    // 从根到叶合并，使用 mergeParent 逐层叠加
-    // 先将根模型作为初始状态
     if (!modelChain.empty()) {
         baked.textures.clear();
         baked.elements.clear();
         baked.ambientOcclusion = true;
 
-        // 创建一个临时 UnbakedBlockModel 用于逐层合并
-        UnbakedBlockModel merged;
-        merged.ambientOcclusion = true;
+        // === 合并策略：与 MC Java 版一致 ===
+        // MC Java 版使用 findTop* 模式：沿叶子到根方向查找第一个显式定义了该属性的模型。
+        // 对于纹理：采用 merge 语义（所有层的纹理变量合并，子模型覆盖父模型同名变量）。
+        // 对于元素和环境光遮蔽：采用 leaf-wins 语义（从叶子到根查找，第一个显式定义的生效）。
 
-        // 从根到叶依次合并
+        // 1. 纹理：从根到叶逐层合并，后处理的层覆盖先处理的层的同名键（等效于 merge 语义）
         for (auto it = modelChain.rbegin(); it != modelChain.rend(); ++it) {
-            mergeParent(merged, *(*it));
+            for (const auto& [key, value] : (*it)->textures) {
+                baked.textures[key] = ResourceLocation(value);
+            }
         }
 
-        // 将合并结果写入 BakedBlockModel
-        for (const auto& [name, path] : merged.textures) {
-            baked.textures[name] = ResourceLocation(path);
+        // 2. 元素：从叶子到根查找第一个显式定义了 elements 的模型（leaf-wins）
+        for (auto it = modelChain.begin(); it != modelChain.end(); ++it) {
+            if ((*it)->hasElements) {
+                baked.elements = (*it)->elements;
+                break;
+            }
         }
-        baked.elements = std::move(merged.elements);
-        baked.ambientOcclusion = merged.ambientOcclusion;
+
+        // 3. 环境光遮蔽：从叶子到根查找第一个显式设置了 ambientocclusion 的模型（leaf-wins）
+        // 默认值为 true（与 MC Java 版 DEFAULT_AMBIENT_OCCLUSION 一致）
+        for (auto it = modelChain.begin(); it != modelChain.end(); ++it) {
+            if ((*it)->hasAmbientOcclusion) {
+                baked.ambientOcclusion = (*it)->ambientOcclusion;
+                break;
+            }
+        }
     }
 
     // 解析纹理变量引用 (递归解析 #variable)
@@ -561,26 +573,32 @@ void BlockModelLoader::computeDefaultUVs(ModelElement& elem)
 
 void BlockModelLoader::mergeParent(UnbakedBlockModel& accumulated, const UnbakedBlockModel& currentLayer)
 {
-    // 合并纹理：当前层的纹理覆盖累积结果中的同名键（child-overrides-parent 语义）
-    // 在 root-to-leaf 累积遍历中，更靠近叶子的模型应该覆盖更靠近根的模型
+    // 合并纹理：当前层的纹理覆盖累积结果中的同名键（merge 语义）
+    // MC Java 版 TextureSlots 采用合并语义：子模型纹理变量覆盖父模型同名变量，
+    // 但保留父模型中子模型未定义的变量。在 root-to-leaf 逐层合并中，
+    // 后处理的层（更靠近叶子）覆盖先处理的层（更靠近根），结果与 MC Java 一致。
     for (const auto& [key, value] : currentLayer.textures) {
         accumulated.textures[key] = value;
     }
 
-    // 合并元素：仅当累积结果无元素时才继承当前层元素（first-defined-wins）
-    // TODO: MC Java 版语义是 leaf-wins（沿父子链从子到根查找，第一个定义了元素的模型生效），
-    // 当前 root-to-leaf 逐层合并的累积策略等效于 first-defined-wins，与 MC 语义一致。
-    // 但需注意：若未来支持多源合并（如 multipart），此处语义可能需要调整。
-    if (accumulated.elements.empty() && !currentLayer.elements.empty()) {
+    // 合并元素：leaf-wins 语义
+    // MC Java 版语义：沿子模型到根模型查找，第一个定义了 elements 的模型生效。
+    // 在 root-to-leaf 累积遍历中，如果当前层显式定义了 elements（hasElements=true），
+    // 则用当前层的元素覆盖累积结果，这样后处理的（更靠近叶子的）层会覆盖先处理的层，
+    // 最终效果与 leaf-to-root 查找一致——最靠近叶子的定义了 elements 的模型生效。
+    if (currentLayer.hasElements) {
         accumulated.elements = currentLayer.elements;
+        accumulated.hasElements = true;
     }
 
-    // 合并环境光遮蔽：如果当前层关闭了 AO，则关闭累积结果的 AO
-    // MC Java 版语义：子模型显式声明 ambientocclusion 时覆盖父模型，
-    // 否则使用父模型的值。当前 UnbakedBlockModel 缺少"是否显式设置"标记，
-    // 采用保守策略：如果当前层关闭了 AO，则关闭
-    if (currentLayer.ambientOcclusion == false) {
-        accumulated.ambientOcclusion = false;
+    // 合并环境光遮蔽：leaf-wins 语义
+    // MC Java 版语义：沿子模型到根模型查找，第一个显式声明了 ambientocclusion 的模型，其值生效。
+    // 在 root-to-leaf 累积遍历中，如果当前层显式设置了 AO（hasAmbientOcclusion=true），
+    // 则用当前层的 AO 值覆盖累积结果，这样后处理的层会覆盖先处理的层，
+    // 最终效果与 leaf-to-root 查找一致。
+    if (currentLayer.hasAmbientOcclusion) {
+        accumulated.ambientOcclusion = currentLayer.ambientOcclusion;
+        accumulated.hasAmbientOcclusion = true;
     }
 }
 
@@ -623,6 +641,7 @@ Result<UnbakedBlockModel> BlockModelLoader::_parseModel(std::string_view jsonCon
         // 解析环境光遮蔽
         if (json.contains("ambientocclusion")) {
             model.ambientOcclusion = json["ambientocclusion"].get<bool>();
+            model.hasAmbientOcclusion = true;
         }
 
         // 解析纹理
@@ -643,6 +662,7 @@ Result<UnbakedBlockModel> BlockModelLoader::_parseModel(std::string_view jsonCon
 
         // 解析元素
         if (json.contains("elements")) {
+            model.hasElements = true;
             for (const auto& elemJson : json["elements"]) {
                 auto result = parseElement(elemJson);
                 if (result.success()) {

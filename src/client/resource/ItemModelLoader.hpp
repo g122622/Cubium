@@ -128,6 +128,13 @@ struct UnbakedItemModel {
     bool ambientOcclusion = true;
     std::string name; // 模型名称（调试用）
 
+    // JSON 显式设置标记（用于 leaf-wins 合并语义）
+    // MC Java 版中，沿子模型到根模型查找第一个显式设置了该属性的模型，其值生效
+    // 若整个继承链都没有显式设置，则使用默认值
+    bool hasElements = false;         // JSON 中是否包含 "elements" 字段
+    bool hasAmbientOcclusion = false; // JSON 中是否包含 "ambientocclusion" 字段
+    bool hasOverrides = false;        // JSON 中是否包含 "overrides" 字段
+
     /**
      * @brief 检查是否有父模型
      */
@@ -152,6 +159,9 @@ struct BakedItemModel {
     // 3D 元素（Block/Custom 类型使用）
     std::vector<ModelElement> elements;
     std::map<std::string, ResourceLocation> textures;
+
+    // 环境光遮蔽
+    bool ambientOcclusion = true;
 
     // 显示变换
     std::map<ItemDisplayContext, ItemTransform> display;

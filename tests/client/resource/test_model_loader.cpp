@@ -585,64 +585,114 @@ TEST(MergeParentBlockTest, CurrentLayerOverridesAccumulatedTextures)
 
 TEST(MergeParentBlockTest, InheritsParentElementsWhenChildEmpty)
 {
+    // 在 root-to-leaf 累积中，如果子模型（叶子）没有显式定义 elements，
+    // 则父模型（根）的元素生效
+
     UnbakedBlockModel parent;
+    parent.hasElements = true; // 根模型显式定义了 elements
     ModelElement elem;
     elem.from = {0.0f, 0.0f, 0.0f};
     elem.to = {16.0f, 16.0f, 16.0f};
     parent.elements.push_back(elem);
 
     UnbakedBlockModel child;
+    // 子模型没有 hasElements 标记，也没有元素
     EXPECT_TRUE(child.elements.empty());
+    EXPECT_FALSE(child.hasElements);
 
-    BlockModelLoader::mergeParent(child, parent);
+    // 模拟 root-to-leaf 合并：先 parent（根），后 child（叶子）
+    UnbakedBlockModel merged;
+    BlockModelLoader::mergeParent(merged, parent);
+    EXPECT_EQ(merged.elements.size(), 1u);
+    EXPECT_TRUE(merged.hasElements);
 
-    // 子模型无元素时继承父模型
-    EXPECT_EQ(child.elements.size(), 1u);
-    EXPECT_FLOAT_EQ(child.elements[0].to.x, 16.0f);
+    BlockModelLoader::mergeParent(merged, child);
+    // 子模型没有显式定义 elements，不覆盖父模型的元素
+    EXPECT_EQ(merged.elements.size(), 1u);
+    EXPECT_FLOAT_EQ(merged.elements[0].to.x, 16.0f);
+    EXPECT_TRUE(merged.hasElements);
 }
 
 TEST(MergeParentBlockTest, ChildElementsOverrideParent)
 {
+    // 在 root-to-leaf 累积中，后处理的层（更靠近叶子）覆盖先处理的层
+    // 模拟 bakeModel 中的调用顺序：先处理根（parent），再处理叶子（child）
+
     UnbakedBlockModel parent;
+    parent.hasElements = true; // 根模型显式定义了 elements
     ModelElement parentElem;
     parentElem.from = {0.0f, 0.0f, 0.0f};
     parentElem.to = {16.0f, 16.0f, 16.0f};
     parent.elements.push_back(parentElem);
 
     UnbakedBlockModel child;
+    child.hasElements = true; // 叶子模型显式定义了 elements
     ModelElement childElem;
     childElem.from = {4.0f, 4.0f, 4.0f};
     childElem.to = {12.0f, 12.0f, 12.0f};
     child.elements.push_back(childElem);
 
-    BlockModelLoader::mergeParent(child, parent);
+    // 模拟 root-to-leaf 合并：先 parent（根），后 child（叶子）
+    UnbakedBlockModel merged;
+    BlockModelLoader::mergeParent(merged, parent);
+    EXPECT_EQ(merged.elements.size(), 1u);
+    EXPECT_FLOAT_EQ(merged.elements[0].to.x, 16.0f); // root 的元素
 
-    // 子模型有元素时不被覆盖
-    EXPECT_EQ(child.elements.size(), 1u);
-    EXPECT_FLOAT_EQ(child.elements[0].from.x, 4.0f);
+    BlockModelLoader::mergeParent(merged, child);
+    // 叶子模型的元素覆盖根模型的元素（leaf-wins）
+    EXPECT_EQ(merged.elements.size(), 1u);
+    EXPECT_FLOAT_EQ(merged.elements[0].from.x, 4.0f); // child 的元素
 }
 
 TEST(MergeParentBlockTest, AmbientOcclusionInheritance)
 {
-    // 父模型 AO=false 应传播到子模型
+    // 场景 1：父模型显式设置 AO=false，子模型未显式设置 -> 子模型应继承父模型的 false
     UnbakedBlockModel parent;
     parent.ambientOcclusion = false;
+    parent.hasAmbientOcclusion = true;
 
     UnbakedBlockModel child;
-    child.ambientOcclusion = true;
+    // child 没有显式设置 hasAmbientOcclusion，默认 AO=true 但不应覆盖父模型
 
-    BlockModelLoader::mergeParent(child, parent);
-    EXPECT_FALSE(child.ambientOcclusion);
+    // 模拟 root-to-leaf 合并：先 parent（根），后 child（叶子）
+    UnbakedBlockModel merged;
+    BlockModelLoader::mergeParent(merged, parent);
+    EXPECT_FALSE(merged.ambientOcclusion); // parent 设置了 AO=false
+    EXPECT_TRUE(merged.hasAmbientOcclusion);
 
-    // 父模型 AO=true 不应覆盖子模型的 AO=false
+    BlockModelLoader::mergeParent(merged, child);
+    // child 没有显式设置 AO，不覆盖 parent 的值
+    EXPECT_FALSE(merged.ambientOcclusion); // 仍然保持 false
+
+    // 场景 2：子模型显式设置 AO=true，覆盖父模型的 AO=false（MC Java 版 leaf-wins）
     UnbakedBlockModel parent2;
-    parent2.ambientOcclusion = true;
+    parent2.ambientOcclusion = false;
+    parent2.hasAmbientOcclusion = true;
 
     UnbakedBlockModel child2;
-    child2.ambientOcclusion = false;
+    child2.ambientOcclusion = true;
+    child2.hasAmbientOcclusion = true; // 子模型显式设置了 AO=true
 
-    BlockModelLoader::mergeParent(child2, parent2);
-    EXPECT_FALSE(child2.ambientOcclusion); // 子模型保持 false
+    UnbakedBlockModel merged2;
+    BlockModelLoader::mergeParent(merged2, parent2);
+    EXPECT_FALSE(merged2.ambientOcclusion);
+
+    BlockModelLoader::mergeParent(merged2, child2);
+    EXPECT_TRUE(merged2.ambientOcclusion); // child 显式设置 AO=true，覆盖 parent 的 false
+
+    // 场景 3：子模型显式设置 AO=false，父模型 AO=true
+    UnbakedBlockModel parent3;
+    parent3.ambientOcclusion = true;
+    parent3.hasAmbientOcclusion = true;
+
+    UnbakedBlockModel child3;
+    child3.ambientOcclusion = false;
+    child3.hasAmbientOcclusion = true;
+
+    UnbakedBlockModel merged3;
+    BlockModelLoader::mergeParent(merged3, parent3);
+    BlockModelLoader::mergeParent(merged3, child3);
+    EXPECT_FALSE(merged3.ambientOcclusion); // child 显式设置 AO=false
 }
 
 TEST(MergeParentBlockTest, RootToLeafChainMerge)
@@ -651,6 +701,7 @@ TEST(MergeParentBlockTest, RootToLeafChainMerge)
     UnbakedBlockModel root;
     root.textures["all"] = "minecraft:block/stone";
     root.textures["particle"] = "minecraft:block/stone";
+    root.hasElements = true; // 根模型显式定义了 elements
     ModelElement rootElem;
     rootElem.from = {0.0f, 0.0f, 0.0f};
     rootElem.to = {16.0f, 16.0f, 16.0f};
@@ -662,9 +713,8 @@ TEST(MergeParentBlockTest, RootToLeafChainMerge)
     UnbakedBlockModel leaf;
     leaf.textures["top"] = "minecraft:block/dirt_top"; // leaf 添加新纹理
 
-    // 模拟 root-to-leaf 合并
+    // 模拟 root-to-leaf 合并（使用 mergeParent 逐层累积）
     UnbakedBlockModel merged;
-    merged.ambientOcclusion = true;
     BlockModelLoader::mergeParent(merged, root);
     BlockModelLoader::mergeParent(merged, mid);
     BlockModelLoader::mergeParent(merged, leaf);
@@ -675,8 +725,9 @@ TEST(MergeParentBlockTest, RootToLeafChainMerge)
     EXPECT_EQ(merged.textures.at("particle"), "minecraft:block/stone");
     // top 从 leaf 继承
     EXPECT_EQ(merged.textures.at("top"), "minecraft:block/dirt_top");
-    // 元素从 root 继承（mid 和 leaf 都没有元素）
+    // 元素从 root 继承（mid 和 leaf 都没有显式定义 elements）
     EXPECT_EQ(merged.elements.size(), 1u);
+    EXPECT_TRUE(merged.hasElements);
 }
 
 // --- resolveTextureReferences 测试 ---
@@ -842,6 +893,7 @@ TEST(ItemMergeParentTest, OverridesMergeIsLeafWins)
 
     // 当前层有 overrides -> 应覆盖累积结果（leaf-wins）
     UnbakedItemModel currentLayer;
+    currentLayer.hasOverrides = true;
     ItemModelOverride override;
     override.predicates["damage"] = 0.5f;
     override.model = ResourceLocation("minecraft:item/damaged");
@@ -850,24 +902,28 @@ TEST(ItemMergeParentTest, OverridesMergeIsLeafWins)
     // 累积结果没有 overrides
     UnbakedItemModel accumulated;
 
-    // 模拟 _mergeParent 的 overrides 行为：当前层有 overrides 时覆盖累积结果
-    if (!currentLayer.overrides.empty()) {
+    // 模拟 _mergeParent 的 overrides 行为：当前层显式定义了 overrides 时覆盖累积结果
+    if (currentLayer.hasOverrides) {
         accumulated.overrides = currentLayer.overrides;
+        accumulated.hasOverrides = true;
     }
 
     EXPECT_EQ(accumulated.overrides.size(), 1u);
     EXPECT_EQ(accumulated.overrides[0].model.toString(), "minecraft:item/damaged");
+    EXPECT_TRUE(accumulated.hasOverrides);
 
     // 累积结果有自己的 overrides -> 当前层没有时不覆盖
     UnbakedItemModel accumulatedWithOverrides;
+    accumulatedWithOverrides.hasOverrides = true;
     ItemModelOverride existingOverride;
     existingOverride.predicates["custom_model_data"] = 1.0f;
     existingOverride.model = ResourceLocation("minecraft:item/custom");
     accumulatedWithOverrides.overrides.push_back(existingOverride);
 
     UnbakedItemModel emptyLayer;
-    if (!emptyLayer.overrides.empty()) {
+    if (emptyLayer.hasOverrides) {
         accumulatedWithOverrides.overrides = emptyLayer.overrides;
+        accumulatedWithOverrides.hasOverrides = true;
     }
 
     // 累积结果保留自己的 overrides
@@ -875,34 +931,145 @@ TEST(ItemMergeParentTest, OverridesMergeIsLeafWins)
     EXPECT_EQ(accumulatedWithOverrides.overrides[0].model.toString(), "minecraft:item/custom");
 }
 
-TEST(ItemMergeParentTest, ElementMergeIsFirstDefinedWins)
+TEST(ItemMergeParentTest, ElementMergeIsLeafWins)
 {
     using namespace mc::client::resource;
 
-    // 当前层有元素
+    // 测试 leaf-wins 语义：后处理的层（更靠近叶子）覆盖先处理的层的元素
+    // 使用 hasElements 标记区分"JSON 显式定义了 elements"和"JSON 中没有 elements 字段"
+
+    // 场景 1：当前层显式定义了 elements，累积结果没有 -> 应从当前层继承
     UnbakedItemModel currentLayer;
+    currentLayer.hasElements = true;
     ModelElement elem;
     elem.from = {0.0f, 0.0f, 0.0f};
     elem.to = {16.0f, 16.0f, 16.0f};
     currentLayer.elements.push_back(elem);
 
-    // 累积结果无元素 -> 应继承当前层
     UnbakedItemModel accumulated;
-    if (accumulated.elements.empty() && !currentLayer.elements.empty()) {
+    if (currentLayer.hasElements) {
         accumulated.elements = currentLayer.elements;
+        accumulated.hasElements = true;
     }
     EXPECT_EQ(accumulated.elements.size(), 1u);
+    EXPECT_TRUE(accumulated.hasElements);
 
-    // 累积结果已有元素 -> 不被覆盖
+    // 场景 2：累积结果已从某层继承了 elements，当前层也有 -> 当前层覆盖（leaf-wins）
     UnbakedItemModel accumulatedWithElems;
+    accumulatedWithElems.hasElements = true;
     ModelElement existingElem;
     existingElem.from = {4.0f, 4.0f, 4.0f};
     existingElem.to = {12.0f, 12.0f, 12.0f};
     accumulatedWithElems.elements.push_back(existingElem);
 
-    if (accumulatedWithElems.elements.empty() && !currentLayer.elements.empty()) {
+    if (currentLayer.hasElements) {
         accumulatedWithElems.elements = currentLayer.elements;
+        accumulatedWithElems.hasElements = true;
     }
     EXPECT_EQ(accumulatedWithElems.elements.size(), 1u);
-    EXPECT_FLOAT_EQ(accumulatedWithElems.elements[0].from.x, 4.0f); // 累积结果保留
+    EXPECT_FLOAT_EQ(accumulatedWithElems.elements[0].from.x, 0.0f); // 当前层覆盖了累积结果
+}
+
+// --- leaf-wins 语义测试 (MC Java 版模型合并行为) ---
+
+TEST(MergeParentBlockTest, LeafWinsElements_ChildOverridesParent)
+{
+    // MC Java 版 leaf-wins 语义：子模型定义了 elements 时完全覆盖父模型
+    // 在 root-to-leaf 累积合并中，后处理的层（更靠近叶子）覆盖先处理的层
+
+    // 场景：根模型定义了 cube 元素，叶子模型定义了 slab 元素
+    // 期望：叶子模型的 slab 元素生效（leaf-wins）
+    UnbakedBlockModel root;
+    root.hasElements = true;
+    ModelElement cubeElem;
+    cubeElem.from = {0.0f, 0.0f, 0.0f};
+    cubeElem.to = {16.0f, 16.0f, 16.0f};
+    root.elements.push_back(cubeElem);
+
+    UnbakedBlockModel leaf;
+    leaf.hasElements = true;
+    ModelElement slabElem;
+    slabElem.from = {0.0f, 0.0f, 0.0f};
+    slabElem.to = {16.0f, 8.0f, 16.0f};
+    leaf.elements.push_back(slabElem);
+
+    // 模拟 root-to-leaf 合并
+    UnbakedBlockModel merged;
+    BlockModelLoader::mergeParent(merged, root);
+    BlockModelLoader::mergeParent(merged, leaf);
+
+    // 叶子模型的 slab 元素应该覆盖根模型的 cube 元素（leaf-wins）
+    EXPECT_EQ(merged.elements.size(), 1u);
+    EXPECT_FLOAT_EQ(merged.elements[0].to.y, 8.0f); // leaf 的 slab 元素
+    EXPECT_TRUE(merged.hasElements);
+}
+
+TEST(MergeParentBlockTest, AmbientOcclusionExplicitlySetWins)
+{
+    // MC Java 版 leaf-wins 语义：子模型显式设置了 ambientocclusion 时覆盖父模型
+    // 在 root-to-leaf 累积合并中，后处理的层（更靠近叶子）覆盖先处理的层
+    UnbakedBlockModel parent;
+    parent.ambientOcclusion = false;
+    parent.hasAmbientOcclusion = true;
+
+    UnbakedBlockModel child;
+    child.ambientOcclusion = true;
+    child.hasAmbientOcclusion = true;
+
+    // 模拟 root-to-leaf 累积合并：先合并 parent，再合并 child
+    UnbakedBlockModel merged;
+    BlockModelLoader::mergeParent(merged, parent);
+    EXPECT_FALSE(merged.ambientOcclusion); // parent 设置了 AO=false
+    EXPECT_TRUE(merged.hasAmbientOcclusion);
+
+    BlockModelLoader::mergeParent(merged, child);
+    // child 也显式设置了 AO=true，覆盖 parent 的 AO=false
+    EXPECT_TRUE(merged.ambientOcclusion); // child 的 AO=true 覆盖了 parent 的 AO=false
+}
+
+TEST(MergeParentBlockTest, AmbientOcclusionUnsetInheritsParent)
+{
+    // 场景：父模型 AO=false，子模型没有显式设置 ambientocclusion（默认 true）
+    // 子模型应该继承父模型的 AO=false
+    UnbakedBlockModel parent;
+    parent.ambientOcclusion = false;
+    parent.hasAmbientOcclusion = true;
+
+    UnbakedBlockModel child;
+    child.ambientOcclusion = true;     // C++ 默认值
+    child.hasAmbientOcclusion = false; // 但 JSON 中没有 ambientocclusion 字段
+
+    // 模拟 root-to-leaf 累积合并
+    UnbakedBlockModel merged;
+    BlockModelLoader::mergeParent(merged, parent);
+    BlockModelLoader::mergeParent(merged, child);
+
+    // child 没有显式设置 AO，所以 merged 保持从 parent 继承的 false
+    EXPECT_FALSE(merged.ambientOcclusion);
+}
+
+TEST(MergeParentBlockTest, EmptyElementsWithHasElements)
+{
+    // 区分 JSON 中显式定义了空 elements 数组和没有 elements 字段
+    // 显式定义空 elements（hasElements=true）应该覆盖父模型的元素（leaf-wins）
+    UnbakedBlockModel parent;
+    parent.hasElements = true;
+    ModelElement elem;
+    elem.from = {0.0f, 0.0f, 0.0f};
+    elem.to = {16.0f, 16.0f, 16.0f};
+    parent.elements.push_back(elem);
+
+    UnbakedBlockModel child;
+    child.hasElements = true; // JSON 中写了 "elements": []
+    // elements 向量为空（JSON 定义了空数组）
+
+    // 模拟 root-to-leaf 累积合并
+    UnbakedBlockModel merged;
+    BlockModelLoader::mergeParent(merged, parent);
+    EXPECT_EQ(merged.elements.size(), 1u); // parent 的元素
+
+    BlockModelLoader::mergeParent(merged, child);
+    // 子模型显式定义了空 elements，覆盖父模型的元素（leaf-wins）
+    EXPECT_TRUE(merged.elements.empty());
+    EXPECT_TRUE(merged.hasElements);
 }

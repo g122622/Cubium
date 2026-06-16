@@ -75,7 +75,7 @@ BlockModelLoader 提供了一组 public static 方法，供 ItemModelLoader 等�
 | `parseUV` | `static ModelFaceUV parseUV(const nlohmann::json&)` | 从 JSON 数组解析 UV 坐标 `[u0, v0, u1, v1]` | BlockModelLoader（parseFace 内部调用） |
 | `parseRotation` | `static ModelRotation parseRotation(const nlohmann::json&)` | 从 JSON 对象解析旋转信息（origin/axis/angle/rescale） | BlockModelLoader（parseElement 内部调用） |
 | `computeDefaultUVs` | `static void computeDefaultUVs(ModelElement&)` | 为省略 UV 的面根据 from/to 坐标自动计算默认 UV，MC JSON 允许省略 UV | BlockModelLoader（parseElement 内部调用） |
-| `mergeParent` | `static void mergeParent(UnbakedBlockModel& accumulated, const UnbakedBlockModel& currentLayer)` | 合并父子模型属性（纹理覆盖、元素 first-defined-wins、AO 继承），用于 root-to-leaf 逐层累积 | BlockModelLoader、ItemModelLoader |
+| `mergeParent` | `static void mergeParent(UnbakedBlockModel& accumulated, const UnbakedBlockModel& currentLayer)` | 合并父子模型属性（纹理 merge、元素 leaf-wins、AO leaf-wins），用于 root-to-leaf 逐层累积 | BlockModelLoader（公共API）、测试代码 |
 | `resolveTextureReferences` | `static void resolveTextureReferences(std::map<std::string, ResourceLocation>&, i32 maxIterations=10)` | 递归解析 `#variable` 形式的纹理引用链（如 `down=#all, all=block/stone`） | BlockModelLoader、ItemModelLoader |
 
 **使用示例**：
