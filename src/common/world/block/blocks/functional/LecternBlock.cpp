@@ -223,7 +223,7 @@ ActionResultType LecternBlock::onBlockActivated(const BlockState& state,
         if (!heldItem.isEmpty()) {
             const Item* item = heldItem.getItem();
             if (item != nullptr && isLecternBookItem(item->itemId())) {
-                if (tryPlaceBook(world, pos, const_cast<BlockState&>(state), heldItem)) {
+                if (tryPlaceBook(world, pos, heldItem)) {
                     // tryPlaceBook 已将书放入讲台实体，这里消耗玩家手中的一个物品
                     heldItem.shrink(1);
                     // 播放放书音效
@@ -275,9 +275,11 @@ void LecternBlock::_dropBook(IWorld& world, const BlockPos& pos, const BlockStat
     }
 }
 
-bool LecternBlock::tryPlaceBook(IWorld& world, const BlockPos& pos, BlockState& state, const ItemStack& bookStack)
+bool LecternBlock::tryPlaceBook(IWorld& world, const BlockPos& pos, const ItemStack& bookStack)
 {
-    if (state.get(BlockStateProperties::HAS_BOOK())) {
+    // 从世界获取当前方块状态
+    const BlockState* currentState = world.getBlockState(pos);
+    if (currentState == nullptr || currentState->get(BlockStateProperties::HAS_BOOK())) {
         return false;
     }
 
@@ -303,14 +305,20 @@ bool LecternBlock::tryPlaceBook(IWorld& world, const BlockPos& pos, BlockState& 
         // 物品消耗由 onBlockActivated 中的 heldItem.shrink(1) 处理
     }
 
-    setHasBook(world, pos, state, true);
+    setHasBook(world, pos, true);
     return true;
 }
 
-void LecternBlock::setHasBook(IWorld& world, const BlockPos& pos, BlockState& state, bool hasBook)
+void LecternBlock::setHasBook(IWorld& world, const BlockPos& pos, bool hasBook)
 {
-    state = state.with(BlockStateProperties::HAS_BOOK(), hasBook).with(BlockStateProperties::POWERED(), false);
-    world.setBlockState(pos, &state, 3);
+    const BlockState* currentState = world.getBlockState(pos);
+    if (currentState == nullptr) {
+        return;
+    }
+
+    BlockState updated =
+        currentState->with(BlockStateProperties::HAS_BOOK(), hasBook).with(BlockStateProperties::POWERED(), false);
+    world.setBlockState(pos, &updated, 3);
 
     if (BlockEntity* blockEntity = world.getBlockEntity(pos);
         blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Lectern) {

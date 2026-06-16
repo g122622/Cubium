@@ -149,16 +149,15 @@ public:
      * @brief 尝试放置书本到讲台
      * @param world 世界引用
      * @param pos 方块位置
-     * @param state 方块状态（可修改）
      * @param bookStack 要放置的书本物品（将复制一份到讲台）
      * @return 放置成功返回true
      */
-    static bool tryPlaceBook(IWorld& world, const BlockPos& pos, BlockState& state, const ItemStack& bookStack);
+    static bool tryPlaceBook(IWorld& world, const BlockPos& pos, const ItemStack& bookStack);
 
     /**
      * @brief 设置有书状态
      */
-    static void setHasBook(IWorld& world, const BlockPos& pos, BlockState& state, bool hasBook);
+    static void setHasBook(IWorld& world, const BlockPos& pos, bool hasBook);
 
     /**
      * @brief 发出红石脉冲

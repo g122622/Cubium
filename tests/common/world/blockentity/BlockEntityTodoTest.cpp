@@ -43,6 +43,7 @@
 #include "world/block/blocks/TrappedChestBlock.hpp"
 #include "world/block/blocks/functional/BarrelBlock.hpp"
 #include "world/blockentity/interactive/EnchantingTableEntity.hpp"
+#include "world/blockentity/interactive/LecternEntity.hpp"
 #include "world/blockentity/interactive/PistonBlockEntity.hpp"
 #include "world/blockentity/interactive/SignEntity.hpp"
 #include "world/blockentity/processing/BeaconEntity.hpp"
@@ -1066,4 +1067,125 @@ TEST(BlockEntityTodoTest, EnchantingTableBlock_Tick_NoBlockEntity_DoesNothing)
     math::Random random(42);
 
     EXPECT_NO_THROW(enchantingTableBlock.tick(world, BlockPos(0, 0, 0), *mutableState, random));
+}
+
+// ============================================================================
+// BarrelEntity 容器打开/关闭音效和状态更新测试
+// ============================================================================
+
+TEST_F(BlockEntityTodoTestHelper, BarrelEntityOpenCloseUpdatesBlockState)
+{
+    DummyWorld world;
+    world.setBlockState(3, 5, 7, makeBarrelOpenState());
+
+    blockentity::BarrelEntity barrel(BlockPos(3, 5, 7));
+    barrel.setWorld(&world);
+
+    // 打开时 m_openCount 增加并更新方块状态
+    barrel.openContainer(nullptr);
+    EXPECT_EQ(barrel.getOpenCount(), 1);
+    EXPECT_GE(world.setBlockStateCalls(), 1);
+
+    // 关闭时 m_openCount 减少并更新方块状态
+    barrel.closeContainer(nullptr);
+    EXPECT_EQ(barrel.getOpenCount(), 0);
+}
+
+TEST_F(BlockEntityTodoTestHelper, BarrelEntityMultipleOpenersIncrementCount)
+{
+    blockentity::BarrelEntity barrel(BlockPos(1, 2, 3));
+    DummyWorld world;
+    world.setBlockState(1, 2, 3, makeBarrelOpenState());
+    barrel.setWorld(&world);
+
+    barrel.openContainer(nullptr);
+    barrel.openContainer(nullptr);
+    barrel.openContainer(nullptr);
+    EXPECT_EQ(barrel.getOpenCount(), 3);
+
+    barrel.closeContainer(nullptr);
+    EXPECT_EQ(barrel.getOpenCount(), 2);
+
+    barrel.closeContainer(nullptr);
+    EXPECT_EQ(barrel.getOpenCount(), 1);
+}
+
+// ============================================================================
+// LecternEntity 书本放置和翻页测试
+// ============================================================================
+
+TEST(BlockEntityTodoTest, LecternEntitySetBookAndPageNavigation)
+{
+    VanillaBlocks::initialize();
+    Items::initialize();
+
+    blockentity::LecternEntity lectern(BlockPos(4, 10, 6));
+
+    // 讲台初始状态无书
+    EXPECT_FALSE(lectern.hasBook());
+    EXPECT_EQ(lectern.getPage(), 0);
+
+    // 放入书本（使用 book 物品）
+    const Item* bookItem = Items::BOOK;
+    ASSERT_NE(bookItem, nullptr);
+    ItemStack bookStack(*bookItem, 1);
+    EXPECT_TRUE(lectern.setBook(bookStack));
+    EXPECT_TRUE(lectern.hasBook());
+
+    // 翻页测试（book 只有1页）
+    EXPECT_EQ(lectern.getTotalPages(), 1);
+    EXPECT_FALSE(lectern.nextPage());
+
+    // 移除书本
+    ItemStack removed = lectern.removeBook();
+    EXPECT_FALSE(removed.isEmpty());
+    EXPECT_FALSE(lectern.hasBook());
+}
+
+TEST(BlockEntityTodoTest, LecternEntityComparatorSignalBasedOnPage)
+{
+    VanillaBlocks::initialize();
+    Items::initialize();
+
+    blockentity::LecternEntity lectern(BlockPos(0, 0, 0));
+
+    // 无书时信号为0
+    EXPECT_EQ(lectern.getComparatorSignal(), 0);
+
+    // 放入书本
+    const Item* bookItem = Items::BOOK;
+    ASSERT_NE(bookItem, nullptr);
+    ItemStack bookStack(*bookItem, 1);
+    lectern.setBook(bookStack);
+
+    // 有书时至少有信号1
+    EXPECT_GE(lectern.getComparatorSignal(), 1);
+}
+
+TEST(BlockEntityTodoTest, LecternEntityOpenCloseCountTracking)
+{
+    blockentity::LecternEntity lectern(BlockPos(2, 3, 4));
+
+    EXPECT_EQ(lectern.getOpenCount(), 0);
+
+    lectern.openContainer();
+    EXPECT_EQ(lectern.getOpenCount(), 1);
+
+    lectern.openContainer();
+    EXPECT_EQ(lectern.getOpenCount(), 2);
+
+    lectern.closeContainer();
+    EXPECT_EQ(lectern.getOpenCount(), 1);
+
+    lectern.closeContainer();
+    EXPECT_EQ(lectern.getOpenCount(), 0);
+}
+
+TEST(BlockEntityTodoTest, LecternEntityCloseCountDoesNotGoBelowZero)
+{
+    blockentity::LecternEntity lectern(BlockPos(5, 6, 7));
+
+    // 关闭次数超过打开次数时不应变为负数
+    lectern.closeContainer();
+    EXPECT_EQ(lectern.getOpenCount(), 0);
 }
