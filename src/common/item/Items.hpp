@@ -552,6 +552,7 @@ public:
     static Item* BLUE_ICE;    // 蓝冰
     static Item* COARSE_DIRT; // 砂土
     static Item* PODZOL;      // 灰化土
+    static Item* TORCH;       // 火把
 
     // ========================================================================
     // 石头变种
@@ -566,10 +567,14 @@ public:
     // ========================================================================
     // 砂岩
     // ========================================================================
-    static Item* SANDSTONE;          // 砂岩
-    static Item* CHISELED_SANDSTONE; // 錾制砂岩
-    static Item* CUT_SANDSTONE;      // 切制砂岩
-    static Item* RED_SANDSTONE;      // 红砂岩
+    static Item* SANDSTONE;              // 砂岩
+    static Item* CHISELED_SANDSTONE;     // 錾制砂岩
+    static Item* CUT_SANDSTONE;          // 切制砂岩
+    static Item* SMOOTH_SANDSTONE;       // 平滑砂岩
+    static Item* RED_SANDSTONE;          // 红砂岩
+    static Item* CHISELED_RED_SANDSTONE; // 錾制红砂岩
+    static Item* CUT_RED_SANDSTONE;      // 切制红砂岩
+    static Item* SMOOTH_RED_SANDSTONE;   // 平滑红砂岩
 
     // ========================================================================
     // 矿物方块
@@ -911,13 +916,27 @@ public:
     // 楼梯、台阶、墙
     // ========================================================================
     static Item* OAK_STAIRS;               // 橡木楼梯
+    static Item* SPRUCE_STAIRS;            // 云杉木楼梯
+    static Item* BIRCH_STAIRS;             // 白桦木楼梯
+    static Item* JUNGLE_STAIRS;            // 丛林木楼梯
+    static Item* ACACIA_STAIRS;            // 金合欢木楼梯
+    static Item* DARK_OAK_STAIRS;          // 深色橡木楼梯
     static Item* STONE_STAIRS;             // 石头楼梯
     static Item* COBBLESTONE_STAIRS;       // 圆石楼梯
+    static Item* SANDSTONE_STAIRS;         // 砂岩楼梯
+    static Item* SMOOTH_SANDSTONE_STAIRS;  // 平滑砂岩楼梯
     static Item* STONE_BRICK_STAIRS;       // 石砖楼梯
     static Item* MOSSY_STONE_BRICK_STAIRS; // 苔石砖楼梯
     static Item* OAK_SLAB;                 // 橡木台阶
+    static Item* SPRUCE_SLAB;              // 云杉木台阶
+    static Item* BIRCH_SLAB;               // 白桦木台阶
+    static Item* JUNGLE_SLAB;              // 丛林木台阶
+    static Item* ACACIA_SLAB;              // 金合欢木台阶
+    static Item* DARK_OAK_SLAB;            // 深色橡木台阶
     static Item* STONE_SLAB;               // 石头台阶
     static Item* COBBLESTONE_SLAB;         // 圆石台阶
+    static Item* SANDSTONE_SLAB;           // 砂岩台阶
+    static Item* SMOOTH_SANDSTONE_SLAB;    // 平滑砂岩台阶
     static Item* STONE_BRICK_SLAB;         // 石砖台阶
     static Item* MOSSY_STONE_BRICK_SLAB;   // 苔石砖台阶
     static Item* COBBLESTONE_WALL;         // 圆石墙

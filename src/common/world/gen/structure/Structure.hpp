@@ -79,7 +79,7 @@ namespace world::gen::structure {
  * 新代码应使用 Structure(ResourceLocation) 构造函数。
  */
 enum class StructureType : u8 {
-    Temple,          ///< 神殿/神庙结构（沙漠神殿、丛林神庙等）
+    Temple,          ///< 已废弃：子类已迁移到独立 ResourceLocation，仅保留用于 nameToStructureType 向后兼容
     Monument,        ///< 海洋纪念碑
     Stronghold,      ///< 要塞
     Village,         ///< 村庄

@@ -114,6 +114,10 @@ Block* NaturalBlocks::HORN_CORAL_WALL_FAN = nullptr;
 
 Block* NaturalBlocks::CONDUIT = nullptr;
 
+// 火把
+Block* NaturalBlocks::TORCH = nullptr;
+Block* NaturalBlocks::WALL_TORCH = nullptr;
+
 void registerNaturalBlocks()
 {
     auto& registry = BlockRegistry::instance();
@@ -128,7 +132,7 @@ void registerNaturalBlocks()
 
     // 草径
     NaturalBlocks::GRASS_PATH = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:grass_path"), BlockProperties(Material::EARTH).hardness(0.65f));
+        ResourceLocation("minecraft:dirt_path"), BlockProperties(Material::EARTH).hardness(0.65f));
 
     // 浮冰 - 不透明，不融化
     NaturalBlocks::PACKED_ICE =
@@ -348,6 +352,17 @@ void registerNaturalBlocks()
     // 潮涌核心 - 水下信标类方块，需要潮涌框架激活
     NaturalBlocks::CONDUIT = &registry.registerBlock<blocks::ConduitBlock>(ResourceLocation("minecraft:conduit"),
         BlockProperties(Material::GLASS).hardness(3.0f).resistance(3.0f).notSolid());
+
+    // ========== 火把 ==========
+    // 火把 - 发光等级14
+    // TODO: 实现 TorchBlock 专用类，支持墙上放置方向和粒子效果
+    NaturalBlocks::TORCH = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:torch"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14));
+
+    // 墙上的火把
+    // TODO: 实现 WallTorchBlock 专用类，支持方向属性和墙上放置逻辑
+    NaturalBlocks::WALL_TORCH = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:wall_torch"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14));
 }
 
 } // namespace block_registry

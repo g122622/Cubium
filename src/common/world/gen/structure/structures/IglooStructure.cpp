@@ -248,7 +248,7 @@ void IglooPiece::_generateBottom(IWorldWriter& world, math::Random& rng, const S
 // ============================================================================
 
 IglooStructure::IglooStructure()
-    : Structure(StructureType::Temple)
+    : Structure(ResourceLocation("minecraft", "igloo"))
 {}
 
 bool IglooStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)

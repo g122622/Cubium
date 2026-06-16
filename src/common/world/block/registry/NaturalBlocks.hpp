@@ -94,6 +94,10 @@ struct NaturalBlocks {
     static Block* FIRE_CORAL_WALL_FAN;
     static Block* HORN_CORAL_WALL_FAN;
 
+    // 火把
+    static Block* TORCH;
+    static Block* WALL_TORCH;
+
     static Block* CONDUIT;
 };
 

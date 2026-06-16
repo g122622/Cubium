@@ -1868,7 +1868,7 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "basalt"),
         ResourceLocation("minecraft", "blackstone"),
         ResourceLocation("minecraft", "gravel"),
-        ResourceLocation("minecraft", "magma"),
+        ResourceLocation("minecraft", "magma_block"),
     });
     tags[netherCarverReplaceables->getId()] = std::move(netherCarverReplaceables);
 

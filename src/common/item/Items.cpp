@@ -517,6 +517,7 @@ Item* Items::PACKED_ICE = nullptr;
 Item* Items::BLUE_ICE = nullptr;
 Item* Items::COARSE_DIRT = nullptr;
 Item* Items::PODZOL = nullptr;
+Item* Items::TORCH = nullptr;
 
 // 石头变种
 Item* Items::GRANITE = nullptr;
@@ -530,7 +531,11 @@ Item* Items::POLISHED_ANDESITE = nullptr;
 Item* Items::SANDSTONE = nullptr;
 Item* Items::CHISELED_SANDSTONE = nullptr;
 Item* Items::CUT_SANDSTONE = nullptr;
+Item* Items::SMOOTH_SANDSTONE = nullptr;
 Item* Items::RED_SANDSTONE = nullptr;
+Item* Items::CHISELED_RED_SANDSTONE = nullptr;
+Item* Items::CUT_RED_SANDSTONE = nullptr;
+Item* Items::SMOOTH_RED_SANDSTONE = nullptr;
 
 // 矿物方块
 Item* Items::DIAMOND_BLOCK = nullptr;
@@ -830,13 +835,27 @@ Item* Items::IRON_TRAPDOOR = nullptr;
 
 // 楼梯、台阶、墙
 Item* Items::OAK_STAIRS = nullptr;
+Item* Items::SPRUCE_STAIRS = nullptr;
+Item* Items::BIRCH_STAIRS = nullptr;
+Item* Items::JUNGLE_STAIRS = nullptr;
+Item* Items::ACACIA_STAIRS = nullptr;
+Item* Items::DARK_OAK_STAIRS = nullptr;
 Item* Items::STONE_STAIRS = nullptr;
 Item* Items::COBBLESTONE_STAIRS = nullptr;
+Item* Items::SANDSTONE_STAIRS = nullptr;
+Item* Items::SMOOTH_SANDSTONE_STAIRS = nullptr;
 Item* Items::STONE_BRICK_STAIRS = nullptr;
 Item* Items::MOSSY_STONE_BRICK_STAIRS = nullptr;
 Item* Items::OAK_SLAB = nullptr;
+Item* Items::SPRUCE_SLAB = nullptr;
+Item* Items::BIRCH_SLAB = nullptr;
+Item* Items::JUNGLE_SLAB = nullptr;
+Item* Items::ACACIA_SLAB = nullptr;
+Item* Items::DARK_OAK_SLAB = nullptr;
 Item* Items::STONE_SLAB = nullptr;
 Item* Items::COBBLESTONE_SLAB = nullptr;
+Item* Items::SANDSTONE_SLAB = nullptr;
+Item* Items::SMOOTH_SANDSTONE_SLAB = nullptr;
 Item* Items::STONE_BRICK_SLAB = nullptr;
 Item* Items::MOSSY_STONE_BRICK_SLAB = nullptr;
 Item* Items::COBBLESTONE_WALL = nullptr;
@@ -2438,7 +2457,7 @@ void Items::_registerBuildingBlocks()
     FARMLAND =
         &registerBlockBackedItem(registry, VanillaBlocks::FARMLAND, "farmland", ItemProperties().maxStackSize(64));
     GRASS_PATH =
-        &registerBlockBackedItem(registry, VanillaBlocks::GRASS_PATH, "grass_path", ItemProperties().maxStackSize(64));
+        &registerBlockBackedItem(registry, VanillaBlocks::GRASS_PATH, "dirt_path", ItemProperties().maxStackSize(64));
     MYCELIUM =
         &registerBlockBackedItem(registry, VanillaBlocks::MYCELIUM, "mycelium", ItemProperties().maxStackSize(64));
     PACKED_ICE =
@@ -2448,6 +2467,7 @@ void Items::_registerBuildingBlocks()
     COARSE_DIRT = &registerBlockBackedItem(
         registry, VanillaBlocks::COARSE_DIRT, "coarse_dirt", ItemProperties().maxStackSize(64));
     PODZOL = &registerBlockBackedItem(registry, VanillaBlocks::PODZOL, "podzol", ItemProperties().maxStackSize(64));
+    TORCH = &registerBlockBackedItem(registry, VanillaBlocks::TORCH, "torch", ItemProperties().maxStackSize(64));
 
     // 石头变种
     GRANITE = &registerBlockBackedItem(registry, VanillaBlocks::GRANITE, "granite", ItemProperties().maxStackSize(64));
@@ -2468,8 +2488,16 @@ void Items::_registerBuildingBlocks()
         registry, VanillaBlocks::CHISELED_SANDSTONE, "chiseled_sandstone", ItemProperties().maxStackSize(64));
     CUT_SANDSTONE = &registerBlockBackedItem(
         registry, VanillaBlocks::CUT_SANDSTONE, "cut_sandstone", ItemProperties().maxStackSize(64));
+    SMOOTH_SANDSTONE = &registerBlockBackedItem(
+        registry, VanillaBlocks::SMOOTH_SANDSTONE, "smooth_sandstone", ItemProperties().maxStackSize(64));
     RED_SANDSTONE = &registerBlockBackedItem(
         registry, VanillaBlocks::RED_SANDSTONE, "red_sandstone", ItemProperties().maxStackSize(64));
+    CHISELED_RED_SANDSTONE = &registerBlockBackedItem(
+        registry, VanillaBlocks::CHISELED_RED_SANDSTONE, "chiseled_red_sandstone", ItemProperties().maxStackSize(64));
+    CUT_RED_SANDSTONE = &registerBlockBackedItem(
+        registry, VanillaBlocks::CUT_RED_SANDSTONE, "cut_red_sandstone", ItemProperties().maxStackSize(64));
+    SMOOTH_RED_SANDSTONE = &registerBlockBackedItem(
+        registry, VanillaBlocks::SMOOTH_RED_SANDSTONE, "smooth_red_sandstone", ItemProperties().maxStackSize(64));
 
     // 矿物方块
     DIAMOND_BLOCK = &registerBlockBackedItem(
@@ -3176,10 +3204,24 @@ void Items::_registerDoorsFencesStairs()
     // 楼梯、台阶、墙
     OAK_STAIRS =
         &registerBlockBackedItem(registry, VanillaBlocks::OAK_STAIRS, "oak_stairs", ItemProperties().maxStackSize(64));
+    SPRUCE_STAIRS = &registerBlockBackedItem(
+        registry, VanillaBlocks::SPRUCE_STAIRS, "spruce_stairs", ItemProperties().maxStackSize(64));
+    BIRCH_STAIRS = &registerBlockBackedItem(
+        registry, VanillaBlocks::BIRCH_STAIRS, "birch_stairs", ItemProperties().maxStackSize(64));
+    JUNGLE_STAIRS = &registerBlockBackedItem(
+        registry, VanillaBlocks::JUNGLE_STAIRS, "jungle_stairs", ItemProperties().maxStackSize(64));
+    ACACIA_STAIRS = &registerBlockBackedItem(
+        registry, VanillaBlocks::ACACIA_STAIRS, "acacia_stairs", ItemProperties().maxStackSize(64));
+    DARK_OAK_STAIRS = &registerBlockBackedItem(
+        registry, VanillaBlocks::DARK_OAK_STAIRS, "dark_oak_stairs", ItemProperties().maxStackSize(64));
     STONE_STAIRS = &registerBlockBackedItem(
         registry, VanillaBlocks::STONE_STAIRS, "stone_stairs", ItemProperties().maxStackSize(64));
     COBBLESTONE_STAIRS = &registerBlockBackedItem(
         registry, VanillaBlocks::COBBLESTONE_STAIRS, "cobblestone_stairs", ItemProperties().maxStackSize(64));
+    SANDSTONE_STAIRS = &registerBlockBackedItem(
+        registry, VanillaBlocks::SANDSTONE_STAIRS, "sandstone_stairs", ItemProperties().maxStackSize(64));
+    SMOOTH_SANDSTONE_STAIRS = &registerBlockBackedItem(
+        registry, VanillaBlocks::SMOOTH_SANDSTONE_STAIRS, "smooth_sandstone_stairs", ItemProperties().maxStackSize(64));
     STONE_BRICK_STAIRS = &registerBlockBackedItem(
         registry, VanillaBlocks::STONE_BRICK_STAIRS, "stone_brick_stairs", ItemProperties().maxStackSize(64));
     MOSSY_STONE_BRICK_STAIRS = &registerBlockBackedItem(registry,
@@ -3188,10 +3230,24 @@ void Items::_registerDoorsFencesStairs()
         ItemProperties().maxStackSize(64));
     OAK_SLAB =
         &registerBlockBackedItem(registry, VanillaBlocks::OAK_SLAB, "oak_slab", ItemProperties().maxStackSize(64));
+    SPRUCE_SLAB = &registerBlockBackedItem(
+        registry, VanillaBlocks::SPRUCE_SLAB, "spruce_slab", ItemProperties().maxStackSize(64));
+    BIRCH_SLAB =
+        &registerBlockBackedItem(registry, VanillaBlocks::BIRCH_SLAB, "birch_slab", ItemProperties().maxStackSize(64));
+    JUNGLE_SLAB = &registerBlockBackedItem(
+        registry, VanillaBlocks::JUNGLE_SLAB, "jungle_slab", ItemProperties().maxStackSize(64));
+    ACACIA_SLAB = &registerBlockBackedItem(
+        registry, VanillaBlocks::ACACIA_SLAB, "acacia_slab", ItemProperties().maxStackSize(64));
+    DARK_OAK_SLAB = &registerBlockBackedItem(
+        registry, VanillaBlocks::DARK_OAK_SLAB, "dark_oak_slab", ItemProperties().maxStackSize(64));
     STONE_SLAB =
         &registerBlockBackedItem(registry, VanillaBlocks::STONE_SLAB, "stone_slab", ItemProperties().maxStackSize(64));
     COBBLESTONE_SLAB = &registerBlockBackedItem(
         registry, VanillaBlocks::COBBLESTONE_SLAB, "cobblestone_slab", ItemProperties().maxStackSize(64));
+    SANDSTONE_SLAB = &registerBlockBackedItem(
+        registry, VanillaBlocks::SANDSTONE_SLAB, "sandstone_slab", ItemProperties().maxStackSize(64));
+    SMOOTH_SANDSTONE_SLAB = &registerBlockBackedItem(
+        registry, VanillaBlocks::SMOOTH_SANDSTONE_SLAB, "smooth_sandstone_slab", ItemProperties().maxStackSize(64));
     STONE_BRICK_SLAB = &registerBlockBackedItem(
         registry, VanillaBlocks::STONE_BRICK_SLAB, "stone_brick_slab", ItemProperties().maxStackSize(64));
     MOSSY_STONE_BRICK_SLAB = &registerBlockBackedItem(

@@ -73,7 +73,11 @@ Block* BaseBlocks::PODZOL = nullptr;
 Block* BaseBlocks::SANDSTONE = nullptr;
 Block* BaseBlocks::CHISELED_SANDSTONE = nullptr;
 Block* BaseBlocks::CUT_SANDSTONE = nullptr;
+Block* BaseBlocks::SMOOTH_SANDSTONE = nullptr;
 Block* BaseBlocks::RED_SANDSTONE = nullptr;
+Block* BaseBlocks::CHISELED_RED_SANDSTONE = nullptr;
+Block* BaseBlocks::CUT_RED_SANDSTONE = nullptr;
+Block* BaseBlocks::SMOOTH_RED_SANDSTONE = nullptr;
 
 // 矿石方块
 Block* BaseBlocks::GOLD_ORE = nullptr;
@@ -317,6 +321,15 @@ void registerBaseBlocks()
         ResourceLocation("minecraft:cut_sandstone"), BlockProperties(Material::ROCK).hardness(0.8f));
     BaseBlocks::RED_SANDSTONE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:red_sandstone"), BlockProperties(Material::ROCK).hardness(0.8f));
+    BaseBlocks::SMOOTH_SANDSTONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:smooth_sandstone"),
+        BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
+    BaseBlocks::CHISELED_RED_SANDSTONE = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:chiseled_red_sandstone"), BlockProperties(Material::ROCK).hardness(0.8f));
+    BaseBlocks::CUT_RED_SANDSTONE = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:cut_red_sandstone"), BlockProperties(Material::ROCK).hardness(0.8f));
+    BaseBlocks::SMOOTH_RED_SANDSTONE =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:smooth_red_sandstone"),
+            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
 
     // ========== 矿石方块 ==========
     BaseBlocks::GOLD_ORE = &registry.registerBlock<SimpleBlock>(

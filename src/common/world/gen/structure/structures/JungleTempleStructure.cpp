@@ -445,7 +445,7 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
 const std::string JungleTempleStructure::m_name = "jungle_temple";
 
 JungleTempleStructure::JungleTempleStructure() noexcept
-    : Structure(StructureType::Temple)
+    : Structure(ResourceLocation("minecraft", "jungle_pyramid"))
 {
     _initializeBiomes();
 }

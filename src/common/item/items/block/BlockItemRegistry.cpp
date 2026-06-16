@@ -168,7 +168,11 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::SANDSTONE, "sandstone");
     registerSimpleBlock(VanillaBlocks::CHISELED_SANDSTONE, "chiseled_sandstone");
     registerSimpleBlock(VanillaBlocks::CUT_SANDSTONE, "cut_sandstone");
+    registerSimpleBlock(VanillaBlocks::SMOOTH_SANDSTONE, "smooth_sandstone");
     registerSimpleBlock(VanillaBlocks::RED_SANDSTONE, "red_sandstone");
+    registerSimpleBlock(VanillaBlocks::CHISELED_RED_SANDSTONE, "chiseled_red_sandstone");
+    registerSimpleBlock(VanillaBlocks::CUT_RED_SANDSTONE, "cut_red_sandstone");
+    registerSimpleBlock(VanillaBlocks::SMOOTH_RED_SANDSTONE, "smooth_red_sandstone");
 
     // 矿石
     registerSimpleBlock(VanillaBlocks::GOLD_ORE, "gold_ore");
@@ -319,7 +323,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::BLACKSTONE, "blackstone");
     registerSimpleBlock(VanillaBlocks::POLISHED_BLACKSTONE, "polished_blackstone");
     registerSimpleBlock(VanillaBlocks::CRYING_OBSIDIAN, "crying_obsidian");
-    registerSimpleBlock(VanillaBlocks::MAGMA, "magma");
+    registerSimpleBlock(VanillaBlocks::MAGMA, "magma_block");
     registerSimpleBlock(VanillaBlocks::NETHER_WART_BLOCK, "nether_wart_block");
     registerSimpleBlock(VanillaBlocks::CRIMSON_STEM, "crimson_stem");
     registerSimpleBlock(VanillaBlocks::WARPED_STEM, "warped_stem");
@@ -336,7 +340,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     // 自然方块扩展
     registerSimpleBlock(VanillaBlocks::CLAY, "clay");
     registerSimpleBlock(VanillaBlocks::MYCELIUM, "mycelium");
-    registerSimpleBlock(VanillaBlocks::GRASS_PATH, "grass_path");
+    registerSimpleBlock(VanillaBlocks::GRASS_PATH, "dirt_path");
     registerSimpleBlock(VanillaBlocks::PACKED_ICE, "packed_ice");
     registerSimpleBlock(VanillaBlocks::BLUE_ICE, "blue_ice");
     registerSimpleBlock(VanillaBlocks::SLIME_BLOCK, "slime_block");
@@ -561,8 +565,15 @@ void BlockItemRegistry::initializeVanillaBlockItems()
 
     // 楼梯
     registerSimpleBlock(VanillaBlocks::OAK_STAIRS, "oak_stairs");
+    registerSimpleBlock(VanillaBlocks::SPRUCE_STAIRS, "spruce_stairs");
+    registerSimpleBlock(VanillaBlocks::BIRCH_STAIRS, "birch_stairs");
+    registerSimpleBlock(VanillaBlocks::JUNGLE_STAIRS, "jungle_stairs");
+    registerSimpleBlock(VanillaBlocks::ACACIA_STAIRS, "acacia_stairs");
+    registerSimpleBlock(VanillaBlocks::DARK_OAK_STAIRS, "dark_oak_stairs");
     registerSimpleBlock(VanillaBlocks::STONE_STAIRS, "stone_stairs");
     registerSimpleBlock(VanillaBlocks::COBBLESTONE_STAIRS, "cobblestone_stairs");
+    registerSimpleBlock(VanillaBlocks::SANDSTONE_STAIRS, "sandstone_stairs");
+    registerSimpleBlock(VanillaBlocks::SMOOTH_SANDSTONE_STAIRS, "smooth_sandstone_stairs");
     registerSimpleBlock(VanillaBlocks::PRISMARINE_STAIRS, "prismarine_stairs");
     registerSimpleBlock(VanillaBlocks::PRISMARINE_BRICK_STAIRS, "prismarine_brick_stairs");
     registerSimpleBlock(VanillaBlocks::DARK_PRISMARINE_STAIRS, "dark_prismarine_stairs");
@@ -571,8 +582,15 @@ void BlockItemRegistry::initializeVanillaBlockItems()
 
     // 台阶
     registerSimpleBlock(VanillaBlocks::OAK_SLAB, "oak_slab");
+    registerSimpleBlock(VanillaBlocks::SPRUCE_SLAB, "spruce_slab");
+    registerSimpleBlock(VanillaBlocks::BIRCH_SLAB, "birch_slab");
+    registerSimpleBlock(VanillaBlocks::JUNGLE_SLAB, "jungle_slab");
+    registerSimpleBlock(VanillaBlocks::ACACIA_SLAB, "acacia_slab");
+    registerSimpleBlock(VanillaBlocks::DARK_OAK_SLAB, "dark_oak_slab");
     registerSimpleBlock(VanillaBlocks::STONE_SLAB, "stone_slab");
     registerSimpleBlock(VanillaBlocks::COBBLESTONE_SLAB, "cobblestone_slab");
+    registerSimpleBlock(VanillaBlocks::SANDSTONE_SLAB, "sandstone_slab");
+    registerSimpleBlock(VanillaBlocks::SMOOTH_SANDSTONE_SLAB, "smooth_sandstone_slab");
     registerSimpleBlock(VanillaBlocks::PRISMARINE_SLAB, "prismarine_slab");
     registerSimpleBlock(VanillaBlocks::PRISMARINE_BRICK_SLAB, "prismarine_brick_slab");
     registerSimpleBlock(VanillaBlocks::DARK_PRISMARINE_SLAB, "dark_prismarine_slab");
@@ -597,6 +615,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     // 红石方块
     // 注意：REDSTONE_WIRE 没有独立物品，红石粉物品（REDSTONE）放在地上时变成 REDSTONE_WIRE 方块
     // REDSTONE_BLOCK 已在矿物方块中注册
+    registerSimpleBlock(VanillaBlocks::TORCH, "torch");
     registerSimpleBlock(VanillaBlocks::REDSTONE_TORCH, "redstone_torch");
     registerSimpleBlock(VanillaBlocks::REDSTONE_LAMP, "redstone_lamp");
     registerSimpleBlock(VanillaBlocks::REDSTONE_REPEATER, "redstone_repeater");

@@ -135,7 +135,7 @@ void NetherFossilPiece::generate(
 // ============================================================================
 
 NetherFossilStructure::NetherFossilStructure()
-    : Structure(StructureType::Temple)
+    : Structure(ResourceLocation("minecraft", "nether_fossil"))
 {}
 
 bool NetherFossilStructure::canGenerate(

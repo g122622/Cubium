@@ -33,13 +33,27 @@ namespace block_registry {
 struct BuildingVariantBlocks {
     // 楼梯
     static Block* OAK_STAIRS;
+    static Block* SPRUCE_STAIRS;
+    static Block* BIRCH_STAIRS;
+    static Block* JUNGLE_STAIRS;
+    static Block* ACACIA_STAIRS;
+    static Block* DARK_OAK_STAIRS;
     static Block* STONE_STAIRS;
     static Block* COBBLESTONE_STAIRS;
+    static Block* SANDSTONE_STAIRS;
+    static Block* SMOOTH_SANDSTONE_STAIRS;
 
     // 台阶
     static Block* OAK_SLAB;
+    static Block* SPRUCE_SLAB;
+    static Block* BIRCH_SLAB;
+    static Block* JUNGLE_SLAB;
+    static Block* ACACIA_SLAB;
+    static Block* DARK_OAK_SLAB;
     static Block* STONE_SLAB;
     static Block* COBBLESTONE_SLAB;
+    static Block* SANDSTONE_SLAB;
+    static Block* SMOOTH_SANDSTONE_SLAB;
 
     // 墙
     static Block* COBBLESTONE_WALL;

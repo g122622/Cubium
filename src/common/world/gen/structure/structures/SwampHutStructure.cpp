@@ -50,7 +50,7 @@ const SpawnOverrides SwampHutStructure::s_spawnOverrides = {
 const std::vector<BiomeId> SwampHutStructure::s_validBiomes = {Swamp, SwampHills};
 
 SwampHutStructure::SwampHutStructure()
-    : Structure(StructureType::Temple)
+    : Structure(ResourceLocation("minecraft", "swamp_hut"))
 {}
 
 bool SwampHutStructure::canGenerate(

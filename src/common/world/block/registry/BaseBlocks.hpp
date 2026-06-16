@@ -62,7 +62,11 @@ struct BaseBlocks {
     static Block* SANDSTONE;
     static Block* CHISELED_SANDSTONE;
     static Block* CUT_SANDSTONE;
+    static Block* SMOOTH_SANDSTONE;
     static Block* RED_SANDSTONE;
+    static Block* CHISELED_RED_SANDSTONE;
+    static Block* CUT_RED_SANDSTONE;
+    static Block* SMOOTH_RED_SANDSTONE;
 
     // 矿石方块
     static Block* GOLD_ORE;

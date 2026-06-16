@@ -210,7 +210,7 @@ void registerNetherBlocks()
     // 岩浆块 - 发光3级
     // 会站在上面造成伤害，在水中产生气泡柱
     NetherBlocks::MAGMA = &registry.registerBlock<blocks::MagmaBlock>(
-        ResourceLocation("minecraft:magma"), BlockProperties(Material::ROCK).hardness(0.5f).lightLevel(3));
+        ResourceLocation("minecraft:magma_block"), BlockProperties(Material::ROCK).hardness(0.5f).lightLevel(3));
 
     // 地狱疣块
     NetherBlocks::NETHER_WART_BLOCK =

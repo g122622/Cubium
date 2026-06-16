@@ -239,7 +239,7 @@ void DesertPyramidPiece::_generatePyramid(IWorldWriter& world, math::Random& rng
 const std::string DesertPyramidStructure::m_name = "desert_pyramid";
 
 DesertPyramidStructure::DesertPyramidStructure()
-    : Structure(StructureType::Temple)
+    : Structure(ResourceLocation("minecraft", "desert_pyramid"))
 {
     _initializeBiomes();
 }

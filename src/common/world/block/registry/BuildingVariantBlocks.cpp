@@ -46,13 +46,27 @@ namespace block_registry {
 
 // 楼梯
 Block* BuildingVariantBlocks::OAK_STAIRS = nullptr;
+Block* BuildingVariantBlocks::SPRUCE_STAIRS = nullptr;
+Block* BuildingVariantBlocks::BIRCH_STAIRS = nullptr;
+Block* BuildingVariantBlocks::JUNGLE_STAIRS = nullptr;
+Block* BuildingVariantBlocks::ACACIA_STAIRS = nullptr;
+Block* BuildingVariantBlocks::DARK_OAK_STAIRS = nullptr;
 Block* BuildingVariantBlocks::STONE_STAIRS = nullptr;
 Block* BuildingVariantBlocks::COBBLESTONE_STAIRS = nullptr;
+Block* BuildingVariantBlocks::SANDSTONE_STAIRS = nullptr;
+Block* BuildingVariantBlocks::SMOOTH_SANDSTONE_STAIRS = nullptr;
 
 // 台阶
 Block* BuildingVariantBlocks::OAK_SLAB = nullptr;
+Block* BuildingVariantBlocks::SPRUCE_SLAB = nullptr;
+Block* BuildingVariantBlocks::BIRCH_SLAB = nullptr;
+Block* BuildingVariantBlocks::JUNGLE_SLAB = nullptr;
+Block* BuildingVariantBlocks::ACACIA_SLAB = nullptr;
+Block* BuildingVariantBlocks::DARK_OAK_SLAB = nullptr;
 Block* BuildingVariantBlocks::STONE_SLAB = nullptr;
 Block* BuildingVariantBlocks::COBBLESTONE_SLAB = nullptr;
+Block* BuildingVariantBlocks::SANDSTONE_SLAB = nullptr;
+Block* BuildingVariantBlocks::SMOOTH_SANDSTONE_SLAB = nullptr;
 
 // 墙
 Block* BuildingVariantBlocks::COBBLESTONE_WALL = nullptr;
@@ -130,6 +144,36 @@ void registerBuildingVariantBlocks()
             BaseBlocks::OAK_PLANKS->defaultState(),
             BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
 
+    // 云杉木楼梯
+    BuildingVariantBlocks::SPRUCE_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:spruce_stairs"),
+            BaseBlocks::SPRUCE_PLANKS->defaultState(),
+            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+
+    // 白桦木楼梯
+    BuildingVariantBlocks::BIRCH_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:birch_stairs"),
+            BaseBlocks::BIRCH_PLANKS->defaultState(),
+            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+
+    // 丛林木楼梯
+    BuildingVariantBlocks::JUNGLE_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:jungle_stairs"),
+            BaseBlocks::JUNGLE_PLANKS->defaultState(),
+            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+
+    // 金合欢木楼梯
+    BuildingVariantBlocks::ACACIA_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:acacia_stairs"),
+            BaseBlocks::ACACIA_PLANKS->defaultState(),
+            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+
+    // 深色橡木楼梯
+    BuildingVariantBlocks::DARK_OAK_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:dark_oak_stairs"),
+            BaseBlocks::DARK_OAK_PLANKS->defaultState(),
+            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+
     // 石头楼梯
     BuildingVariantBlocks::STONE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:stone_stairs"),
@@ -140,6 +184,18 @@ void registerBuildingVariantBlocks()
     BuildingVariantBlocks::COBBLESTONE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:cobblestone_stairs"),
             BaseBlocks::COBBLESTONE->defaultState(),
+            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+
+    // 砂岩楼梯
+    BuildingVariantBlocks::SANDSTONE_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:sandstone_stairs"),
+            BaseBlocks::SANDSTONE->defaultState(),
+            BlockProperties(Material::ROCK).hardness(0.8f).resistance(0.8f).harvestTool(HarvestTool::Pickaxe));
+
+    // 平滑砂岩楼梯
+    BuildingVariantBlocks::SMOOTH_SANDSTONE_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:smooth_sandstone_stairs"),
+            BaseBlocks::SMOOTH_SANDSTONE->defaultState(),
             BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
     // 海晶楼梯
@@ -161,6 +217,31 @@ void registerBuildingVariantBlocks()
     BuildingVariantBlocks::OAK_SLAB = &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:oak_slab"),
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
 
+    // 云杉木台阶
+    BuildingVariantBlocks::SPRUCE_SLAB =
+        &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:spruce_slab"),
+            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+
+    // 白桦木台阶
+    BuildingVariantBlocks::BIRCH_SLAB =
+        &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:birch_slab"),
+            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+
+    // 丛林木台阶
+    BuildingVariantBlocks::JUNGLE_SLAB =
+        &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:jungle_slab"),
+            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+
+    // 金合欢木台阶
+    BuildingVariantBlocks::ACACIA_SLAB =
+        &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:acacia_slab"),
+            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+
+    // 深色橡木台阶
+    BuildingVariantBlocks::DARK_OAK_SLAB =
+        &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:dark_oak_slab"),
+            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+
     // 石头台阶
     BuildingVariantBlocks::STONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:stone_slab"),
@@ -169,6 +250,16 @@ void registerBuildingVariantBlocks()
     // 圆石台阶
     BuildingVariantBlocks::COBBLESTONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:cobblestone_slab"),
+            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+
+    // 砂岩台阶
+    BuildingVariantBlocks::SANDSTONE_SLAB =
+        &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:sandstone_slab"),
+            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+
+    // 平滑砂岩台阶
+    BuildingVariantBlocks::SMOOTH_SANDSTONE_SLAB =
+        &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:smooth_sandstone_slab"),
             BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
     // 海晶台阶

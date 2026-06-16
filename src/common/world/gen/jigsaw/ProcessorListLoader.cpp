@@ -191,7 +191,7 @@ std::unique_ptr<RuleTest> parseRuleTest(const nlohmann::json& predicateObj)
         return std::make_unique<AlwaysTrueRuleTest>();
     }
 
-    if (predicateType == "block_state_match") {
+    if (predicateType == "block_state_match" || predicateType == "blockstate_match") {
         if (predicateObj.contains("block_state") && predicateObj["block_state"].is_object()) {
             u32 stateId = parseOutputBlockStateId(predicateObj["block_state"]);
             if (stateId != 0) {
