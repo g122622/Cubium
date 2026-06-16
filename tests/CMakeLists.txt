@@ -269,6 +269,8 @@ add_executable(mc_tests
     common/entity/ArrowPickupTest.cpp
     # ArrowEntity 药水箭测试（效果、颜色、NBT标签）
     common/entity/ArrowEntityTest.cpp
+    # ArrowEntity 修复验证测试（拾取状态、伤害公式、isPlayer判断）
+    common/entity/ArrowEntityFixTest.cpp
     # 难度系统测试
     common/entity/combat/DifficultyHelperTest.cpp
     # DifficultyInstance 区域难度测试
