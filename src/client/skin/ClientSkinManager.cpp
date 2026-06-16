@@ -205,7 +205,11 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
         }
     }
 
-    // TODO: 三元表达式两个分支返回相同值，疑似逻辑错误，需要检查是否应根据 m_steveRegion 是否为空返回不同的默认皮肤
+    // 未命中缓存的默认回退：根据玩家皮肤类型返回对应的默认皮肤
+    // 如果能获取玩家信息，根据皮肤类型选择 Alex（Slim）或 Steve（Default）
+    if (info && info->getSkinType() == ::mc::skin::SkinType::Slim) {
+        return ResourceLocation("minecraft:textures/entity/player/slim/alex.png");
+    }
     return ResourceLocation("minecraft:textures/entity/player/wide/steve.png");
 }
 

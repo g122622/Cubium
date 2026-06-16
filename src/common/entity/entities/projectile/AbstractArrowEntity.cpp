@@ -24,12 +24,15 @@
 #include "AbstractArrowEntity.hpp"
 
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileHelper.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/enchantment/enchantments/AllEnchantments.hpp"
 #include "common/item/potion/PotionUtils.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/sound/SoundCategory.hpp"
@@ -278,8 +281,8 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
     // 创建伤害来源
     std::unique_ptr<DamageSource> damageSource;
     if (shooter) {
-        damageSource =
-            std::make_unique<IndirectEntityDamageSource>(DamageType::Arrow, shooter, this, shooter != nullptr);
+        bool isPlayer = shooter->typeId() == entity::EntityTypeIdNumber::PLAYER;
+        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Arrow, shooter, this, isPlayer);
     } else {
         damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Arrow, this, this, false);
     }
@@ -353,29 +356,30 @@ void AbstractArrowEntity::onBlockHit(const RayTraceResult& result)
 
 void AbstractArrowEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity)
 {
-    // 设置基础伤害
+    // 设置基础伤害（对应 MC AbstractArrow 构造函数中的伤害计算）
     math::Random rng = createRandomFromEntity(*this);
     f32 difficultyBonus = m_world ? static_cast<f32>(static_cast<u8>(m_world->difficulty())) * 0.11f : 0.0f;
     m_damage = static_cast<f32>(baseVelocity * 2.0 + rng.nextGaussian() * 0.25 + difficultyBonus);
 
-    // TODO: 力量附魔增加伤害（需要附魔系统支持）
-    // i32 power = EnchantmentHelper::getEnchantmentLevel(shooter.getMainHandItem(), "minecraft:power");
-    // if (power > 0) {
-    //     m_damage += power * 0.5 + 0.5;
-    // }
+    // 力量附魔增加伤害（PowerEnchantment: 每级 +0.5 伤害 + 基础 0.5）
+    i32 powerLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
+        shooter.getMainHandItem(), &item::enchant::AllEnchantments::POWER);
+    if (powerLevel > 0) {
+        m_damage += static_cast<f32>(powerLevel) * 0.5f + 0.5f;
+    }
 
-    // TODO: 冲击附魔增加击退（需要附魔系统支持）
-    // i32 punch = EnchantmentHelper::getEnchantmentLevel(shooter.getMainHandItem(), "minecraft:punch");
-    // if (punch > 0) {
-    //     m_knockbackStrength = punch;
-    // }
+    // 冲击附魔增加击退（PunchEnchantment: 每级增加 1 点击退强度）
+    i32 punchLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
+        shooter.getMainHandItem(), &item::enchant::AllEnchantments::PUNCH);
+    if (punchLevel > 0) {
+        m_knockbackStrength = punchLevel;
+    }
 
-    // TODO: 火焰附魔（需要附魔系统支持）
-    // if (EnchantmentHelper::hasEnchantment(shooter.getMainHandItem(), "minecraft:flame")) {
-    //     setFire(100);
-    // }
-
-    (void)shooter; // 暂时未使用
+    // 火焰附魔：设置箭矢着火 100 ticks（5 秒），命中时点燃目标
+    if (item::enchant::EnchantmentHelper::getEnchantmentLevel(
+            shooter.getMainHandItem(), &item::enchant::AllEnchantments::FLAME) > 0) {
+        setFire(100);
+    }
 }
 
 void AbstractArrowEntity::onCollideWithPlayer(Player& player)
@@ -479,10 +483,12 @@ std::unique_ptr<ArrowEntity> ArrowEntity::createFromShooter(LivingEntity& shoote
     arrow->setPosition(shooter.x(), shooter.y() + shooter.eyeHeight() - 0.1f, shooter.z());
     arrow->setShooter(&shooter);
 
-    // TODO: 玩家射出的箭可以被拾取（需要 isPlayer() 方法）
-    // if (shooter.isPlayer()) {
-    //     arrow->setPickupStatus(PickupStatus::Allowed);
-    // }
+    // MC 原版：玩家射出的箭默认允许拾取（AbstractArrow.setOwner 在 owner 为 Player 时
+    // 将 pickup 从 DISALLOWED 改为 ALLOWED）
+    Player* player = dynamic_cast<Player*>(&shooter);
+    if (player != nullptr) {
+        arrow->setPickupStatus(PickupStatus::Allowed);
+    }
 
     return arrow;
 }

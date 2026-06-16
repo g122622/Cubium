@@ -29,6 +29,7 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/BlockPos.hpp"
+#include "../../core/EntityTypeIdNumber.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../entities/effect/EffectEntities.hpp"
 #include "../../entities/player/Player.hpp"
@@ -213,8 +214,8 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
     // 创建伤害来源
     std::unique_ptr<DamageSource> damageSource;
     if (shooter != nullptr) {
-        damageSource =
-            std::make_unique<IndirectEntityDamageSource>(DamageType::Trident, shooter, this, shooter != nullptr);
+        bool isPlayer = shooter->typeId() == entity::EntityTypeIdNumber::PLAYER;
+        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Trident, shooter, this, isPlayer);
     } else {
         damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Trident, this, this, false);
     }
