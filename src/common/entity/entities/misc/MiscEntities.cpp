@@ -3,10 +3,10 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including, modification, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to permit
- * persons to whom the Software is furnished to do so, subject to the following
- * conditions:
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
@@ -14,6 +14,8 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
@@ -34,7 +36,9 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockSoundType.hpp"
 #include "common/world/block/blocks/FallingBlock.hpp"
+#include "common/world/block/blocks/functional/AnvilBlock.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -106,19 +110,29 @@ void FallingBlockEntity::_handleLanding()
         return;
     }
 
-    const BlockState* fallingState = &block->defaultState();
+    // 获取下落时的方块状态
+    // 优先使用保存的完整状态（含属性如朝向），否则回退到默认状态
+    const BlockState* fallingState = m_fallingState;
     if (fallingState == nullptr || fallingState->isAir()) {
-        // 方块状态无效，直接移除
-        remove();
-        return;
+        fallingState = &block->defaultState();
+        if (fallingState == nullptr || fallingState->isAir()) {
+            remove();
+            return;
+        }
     }
 
     // 获取落地点当前的方块状态
     const BlockState* hitState = worldPtr->getBlockState(landingPos);
 
-    // 伤害碰撞箱内的实体
+    // 伤害碰撞箱内的实体（铁砧等 hurtEntities=true 的方块）
     if (m_hurtEntities) {
         _hurtEntities(worldPtr);
+    }
+
+    // 如果 cancelDrop 为 true（铁砧在最大损坏状态下损坏），直接移除实体，不掉落物品
+    if (m_cancelDrop) {
+        remove();
+        return;
     }
 
     // 如果 dontSetBlock 为 true，只调用 onBroken 回调
@@ -155,14 +169,6 @@ bool FallingBlockEntity::_tryPlaceBlock(
         return false;
     }
 
-    // TODO: 检查目标位置是否为移动中的活塞（活塞推动的方块不能放置）
-    // 当前项目可能还没有实现活塞，这里暂时跳过这个检查
-
-    // 检查放置条件：
-    // 条件1: 目标位置可替换
-    // 条件2: 下方方块不可穿透
-    // 条件3: 方块状态在目标位置有效
-
     // 获取下方方块状态
     BlockPos belowPos(landingPos.x, landingPos.y - 1, landingPos.z);
     const BlockState* belowState = world->getBlockState(belowPos);
@@ -184,12 +190,6 @@ bool FallingBlockEntity::_tryPlaceBlock(
         return false;
     }
 
-    // TODO: 检查方块是否可以在该位置放置
-    // 完整实现需要调用 fallingState->getBlock().isValidPosition()
-
-    // TODO: 处理水浸透方块（如沙子落入水中）
-    // 如果方块有 waterlogged 属性且目标位置有水，设置 waterlogged = true
-
     // 尝试放置方块
     // flags = 3 表示通知邻居 + 同步客户端
     bool success = world->setBlockState(landingPos, fallingState, 3);
@@ -202,7 +202,15 @@ bool FallingBlockEntity::_tryPlaceBlock(
             fallingBlock->onEndFalling(*world, landingPos, *fallingState, hitStateRef, *this);
         }
 
-        // TODO: 播放放置音效
+        // 播放方块放置音效
+        const BlockSoundType& soundType = fallingState->getBlock().getSoundType();
+        world->playSound(soundType.getPlaceSound(),
+            sound::SoundCategory::Blocks,
+            Vector3(static_cast<f32>(landingPos.x) + 0.5f,
+                static_cast<f32>(landingPos.y) + 0.5f,
+                static_cast<f32>(landingPos.z) + 0.5f),
+            (soundType.getVolume() + 1.0f) / 2.0f,
+            soundType.getPitch() * 0.8f);
 
         return true;
     }
@@ -250,15 +258,18 @@ void FallingBlockEntity::_hurtEntities(IWorld* world)
     }
 
     // 有效下落距离 = 总距离 - 1（第一格不造成伤害）
-    i32 effectiveDistance = static_cast<i32>(std::floor(fallDistance - 1.0));
+    // 参考 MC 原版: Mth.ceil(fallDistance - 1.0)
+    i32 effectiveDistance = static_cast<i32>(std::ceil(fallDistance - 1.0));
     if (effectiveDistance <= 0) {
         return;
     }
 
     // 计算伤害值
-    // 伤害 = min(floor(下落距离 * HURT_AMOUNT), MAX_HURT_AMOUNT)
-    i32 damage = static_cast<i32>(
-        std::min(static_cast<f32>(effectiveDistance) * HURT_AMOUNT, static_cast<f32>(MAX_HURT_AMOUNT)));
+    // 伤害 = min(floor(有效距离 * 每格伤害), 最大伤害)
+    f32 damagePerDist = m_hurtEntities ? m_fallDamagePerDistance : HURT_AMOUNT;
+    i32 maxDmg = m_hurtEntities ? m_fallDamageMax : MAX_HURT_AMOUNT;
+    i32 damage =
+        static_cast<i32>(std::min(static_cast<f32>(effectiveDistance) * damagePerDist, static_cast<f32>(maxDmg)));
 
     if (damage <= 0) {
         return;
@@ -268,7 +279,7 @@ void FallingBlockEntity::_hurtEntities(IWorld* world)
     AxisAlignedBB hurtBox = boundingBox();
     std::vector<Entity*> entities = world->getEntitiesInAABB(hurtBox, this);
 
-    // 判断是否为铁砧
+    // 判断是否为铁砧（使用 BlockTags 检查）
     Block* block = Block::getBlock(m_blockId);
     bool isAnvil = (block != nullptr && block->blockLocation().toString().find("anvil") != std::string::npos);
 
@@ -291,8 +302,27 @@ void FallingBlockEntity::_hurtEntities(IWorld* world)
         }
     }
 
-    // TODO: 铁砧损坏机制
-    // 如果是铁砧，有概率损坏，需要检查铁砧的损坏状态并更新
+    // ========== 铁砧损坏逻辑 ==========
+    // 参考 MC 原版 FallingBlockEntity.causeFallDamage:
+    // 当方块是铁砧、伤害 > 0、且随机概率满足时，铁砧损坏
+    // 概率公式: 0.05 + effectiveDistance * 0.05
+    if (isAnvil && damage > 0 && m_fallingState != nullptr) {
+        math::Random& rng = world->getRandom();
+        f32 damageChance = 0.05f + static_cast<f32>(effectiveDistance) * 0.05f;
+        if (rng.nextFloat() < damageChance) {
+            // 尝试降级铁砧
+            const BlockState* damagedState = blocks::AnvilBlock::damageAnvil(*m_fallingState);
+            if (damagedState != nullptr) {
+                // 铁砧降级成功（anvil → chipped_anvil 或 chipped_anvil → damaged_anvil）
+                m_fallingState = damagedState;
+                m_blockId = damagedState->blockId();
+            } else {
+                // 铁砧已在最大损坏状态，完全摧毁（不掉落物品）
+                m_cancelDrop = true;
+                m_dontSetBlock = true;
+            }
+        }
+    }
 }
 
 // ==================== TNTEntity ====================

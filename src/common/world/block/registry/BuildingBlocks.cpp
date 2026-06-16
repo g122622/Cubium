@@ -43,6 +43,7 @@
 #include "world/block/blocks/decorative/LanternBlock.hpp"
 #include "world/block/blocks/decorative/PaneBlock.hpp"
 #include "world/block/blocks/decorative/ScaffoldingBlock.hpp"
+#include "world/block/blocks/functional/AnvilBlock.hpp"
 #include "world/block/blocks/functional/BarrelBlock.hpp"
 #include "world/block/blocks/functional/BeaconBlock.hpp"
 #include "world/block/blocks/functional/BrewingStandBlock.hpp"
@@ -137,6 +138,11 @@ Block* BuildingBlocks::PURPUR_PILLAR = nullptr;
 // 骨块与干草块
 Block* BuildingBlocks::BONE_BLOCK = nullptr;
 Block* BuildingBlocks::HAY_BLOCK = nullptr;
+
+// 铁砧系列
+Block* BuildingBlocks::ANVIL = nullptr;
+Block* BuildingBlocks::CHIPPED_ANVIL = nullptr;
+Block* BuildingBlocks::DAMAGED_ANVIL = nullptr;
 
 void registerBuildingBlocks()
 {
@@ -394,6 +400,23 @@ void registerBuildingBlocks()
     // 干草块 - 有轴属性
     BuildingBlocks::HAY_BLOCK = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:hay_block"),
         BlockProperties(Material::EARTH).hardness(0.5f).flammable().ignitedByLava());
+
+    // ========== 铁砧系列 ==========
+    // 铁砧属性: 硬度5.0, 爆炸抗性1200.0, 铁砧材质音效
+    BlockProperties anvilProps =
+        BlockProperties(Material::ANVIL).hardness(5.0f).resistance(1200.0f).soundType(BlockSoundTypes::ANVIL);
+
+    // 铁砧（完好）
+    BuildingBlocks::ANVIL =
+        &registry.registerBlock<blocks::AnvilBlock>(ResourceLocation("minecraft:anvil"), anvilProps);
+
+    // 铁砧（轻微损坏）
+    BuildingBlocks::CHIPPED_ANVIL =
+        &registry.registerBlock<blocks::AnvilBlock>(ResourceLocation("minecraft:chipped_anvil"), anvilProps);
+
+    // 铁砧（严重损坏）
+    BuildingBlocks::DAMAGED_ANVIL =
+        &registry.registerBlock<blocks::AnvilBlock>(ResourceLocation("minecraft:damaged_anvil"), anvilProps);
 }
 
 } // namespace block_registry

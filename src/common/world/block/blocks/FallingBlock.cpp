@@ -101,6 +101,7 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
     fallingEntity->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
     fallingEntity->setVelocity(0.0f, 0.0f, 0.0f);
     fallingEntity->setBlockId(currentState->blockId());
+    fallingEntity->setFallingState(currentState);
     fallingEntity->setFallStartPos(static_cast<f64>(pos.y));
 
     // 调用开始下落回调

@@ -106,6 +106,11 @@ struct BuildingBlocks {
     // 骨块与干草块
     static Block* BONE_BLOCK;
     static Block* HAY_BLOCK;
+
+    // 铁砧系列
+    static Block* ANVIL;
+    static Block* CHIPPED_ANVIL;
+    static Block* DAMAGED_ANVIL;
 };
 
 void registerBuildingBlocks();

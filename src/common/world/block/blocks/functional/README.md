@@ -6,6 +6,7 @@
 
 ```
 functional/
+├── AnvilBlock.hpp/cpp             # 铁砧（FallingBlock子类，下落伤害+损坏降级，3个变体）
 ├── BedBlock.hpp/cpp              # 床方块（16色，双格结构，设置重生点）
 ├── BrewingStandBlock.hpp/cpp     # 酿造台（药水酿造，3瓶槽位）
 ├── CauldronBlock.hpp/cpp         # 炼药锅（储水、物品清洗，4级水位）
@@ -33,6 +34,11 @@ functional/
 
 ```
 Block (基类)
+├── AnvilBlock (→ FallingBlock)
+│   ├── 下落伤害（hurtEntities，每格2.0伤害，上限40）
+│   ├── 损坏降级（anvil → chipped → damaged → 摧毁）
+│   ├── HORIZONTAL_FACING 属性
+│   └── 落地/破碎音效（WorldEvents 1031/1029）
 ├── BedBlock
 │   └── 双方块结构处理
 ├── BrewingStandBlock

@@ -63,6 +63,8 @@ MiscEntities.hpp
 
 4. **FallingBlockEntity 的伤害类型**：铁砧使用 `DamageType::Anvil`，其他下落方块使用 `DamageType::FallingBlock`，在 `_hurtEntities()` 中根据方块ID判断。
 
+5. **FallingBlockEntity 的铁砧损坏机制**：铁砧下落伤害实体时，有概率降级（anvil → chipped_anvil → damaged_anvil → 摧毁）。概率公式: `0.05 + ceil(fallDistance - 1) * 0.05`。降级由 `AnvilBlock::damageAnvil()` 处理，保留朝向属性。完全摧毁时 `m_cancelDrop=true`，不掉落物品。
+
 5. **TNTEntity 爆炸模式**：TNT 爆炸使用 `ExplosionMode::Break`（破坏方块但不掉落物品），与苦力怕的 `ExplosionMode::Destroy` 不同。
 
 6. **FallingBlockEntity 放置条件**：只有当下方方块不可穿透且目标位置可替换时才能放置，否则掉落物品。检查 `FallingBlock::canFallThrough()` 理解穿透判定。

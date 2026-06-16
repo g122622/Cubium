@@ -31,6 +31,7 @@ namespace mc {
 
 // Forward declarations
 class Block;
+class BlockState;
 class Player;
 class LivingEntity;
 class DamageSource;
@@ -40,7 +41,8 @@ namespace entity {
 /**
  * @brief 下落方块实体
  *
- * 沙子、砾石等方块下落时创建的实体。
+ * 沙子、砾石、铁砧等方块下落时创建的实体。
+ * 铁砧下落时会伤害实体，并有概率损坏（降级到下一级铁砧或完全摧毁）。
  */
 class FallingBlockEntity : public Entity {
 public:
@@ -68,10 +70,34 @@ public:
     [[nodiscard]] u32 getBlockId() const { return m_blockId; }
 
     /**
+     * @brief 设置下落时的方块状态
+     *
+     * 保存原始方块状态（包含属性如朝向等），用于落地时恢复。
+     */
+    void setFallingState(const BlockState* state) { m_fallingState = state; }
+    [[nodiscard]] const BlockState* getFallingState() const { return m_fallingState; }
+
+    /**
      * @brief 设置是否在落地时造成伤害
      */
     void setHurtEntities(bool hurt) { m_hurtEntities = hurt; }
     [[nodiscard]] bool shouldHurtEntities() const { return m_hurtEntities; }
+
+    /**
+     * @brief 设置每格下落伤害系数
+     *
+     * 默认为 2.0f（铁砧专用值），其他下落方块使用 HURT_AMOUNT 常量。
+     */
+    void setFallDamagePerDistance(f32 damage) { m_fallDamagePerDistance = damage; }
+    [[nodiscard]] f32 getFallDamagePerDistance() const { return m_fallDamagePerDistance; }
+
+    /**
+     * @brief 设置最大伤害值
+     *
+     * 默认为 40（铁砧专用值），其他下落方块使用 MAX_HURT_AMOUNT 常量。
+     */
+    void setFallDamageMax(i32 maxDamage) { m_fallDamageMax = maxDamage; }
+    [[nodiscard]] i32 getFallDamageMax() const { return m_fallDamageMax; }
 
     /**
      * @brief 设置下落起始位置（用于计算伤害）
@@ -86,7 +112,7 @@ public:
     /**
      * @brief 设置是否应该掉落物品
      *
-     * 默认为 true。某些特殊方块（如损坏的铁砧）可能设置为 false。
+     * 默认为 true。铁砧完全损坏时设置为 false。
      */
     void setShouldDropItem(bool drop) { m_shouldDropItem = drop; }
     [[nodiscard]] bool shouldDropItem() const { return m_shouldDropItem; }
@@ -98,6 +124,14 @@ public:
      */
     void setDontSetBlock(bool dontSet) { m_dontSetBlock = dontSet; }
     [[nodiscard]] bool dontSetBlock() const { return m_dontSetBlock; }
+
+    /**
+     * @brief 设置是否取消掉落物品
+     *
+     * 当铁砧在最大损坏状态下损坏时设置为 true（铁砧完全摧毁，不掉落物品）。
+     */
+    void setCancelDrop(bool cancel) { m_cancelDrop = cancel; }
+    [[nodiscard]] bool cancelDrop() const { return m_cancelDrop; }
 
 private:
     void _handleLanding();
@@ -123,22 +157,26 @@ private:
     void _dropItem(IWorld* world, const BlockPos& pos);
 
     /**
-     * @brief 伤害碰撞箱内的实体
+     * @brief 伤害碰撞箱内的实体，并处理铁砧损坏逻辑
      *
      * @param world 世界指针
      */
     void _hurtEntities(IWorld* world);
 
-    u32 m_blockId = 0;                         ///< 方块ID
-    bool m_hurtEntities = false;               ///< 是否伤害实体（铁砧=true）
-    bool m_placeBlock = true;                  ///< 是否应该放置方块
-    bool m_shouldDropItem = true;              ///< 是否应该掉落物品
-    bool m_dontSetBlock = false;               ///< 是否不放置方块（铁砧损坏时）
-    f64 m_fallStartY = 0.0;                    ///< 下落起始Y坐标
-    i32 m_fallTime = 0;                        ///< 下落时间（tick）
-    static constexpr f32 HURT_AMOUNT = 2.0f;   ///< 每格下落伤害系数
-    static constexpr i32 MAX_HURT_AMOUNT = 40; ///< 最大伤害值
-    static constexpr i32 MAX_FALL_TIME = 600;  ///< 最大下落时间（30秒）
+    u32 m_blockId = 0;                          ///< 方块ID
+    const BlockState* m_fallingState = nullptr; ///< 下落时的方块状态（含属性，如朝向）
+    bool m_hurtEntities = false;                ///< 是否伤害实体（铁砧=true）
+    bool m_placeBlock = true;                   ///< 是否应该放置方块
+    bool m_shouldDropItem = true;               ///< 是否应该掉落物品
+    bool m_dontSetBlock = false;                ///< 是否不放置方块（铁砧损坏时）
+    bool m_cancelDrop = false;                  ///< 是否取消掉落物品（铁砧完全摧毁时）
+    f64 m_fallStartY = 0.0;                     ///< 下落起始Y坐标
+    f32 m_fallDamagePerDistance = 2.0f;         ///< 每格下落伤害系数
+    i32 m_fallDamageMax = 40;                   ///< 最大伤害值
+    i32 m_fallTime = 0;                         ///< 下落时间（tick）
+    static constexpr f32 HURT_AMOUNT = 2.0f;    ///< 默认每格下落伤害系数
+    static constexpr i32 MAX_HURT_AMOUNT = 40;  ///< 默认最大伤害值
+    static constexpr i32 MAX_FALL_TIME = 600;   ///< 最大下落时间（30秒）
 };
 
 /**
