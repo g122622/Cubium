@@ -456,7 +456,7 @@ void Player::tick()
     for (i32 i = world::MIN_BUILD_HEIGHT; i < world::MAX_BUILD_HEIGHT; ++i) {
         auto bs = m_world->getBlockState(BlockPos(x(), i, z()));
         if (bs == nullptr) {
-            spdlog::error("Failed to get block state at y={}", i);
+            // spdlog::error("Failed to get block state at y={}", i);
             continue;
         }
         std::stringstream ss;

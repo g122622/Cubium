@@ -224,6 +224,35 @@ bool matchConditions(const std::vector<std::pair<std::string, std::string>>& con
     }
 }
 
+/**
+ * @brief 动态生成 missingno 纹理（紫黑棋盘格）
+ *
+ * 当纹理资源包中找不到 missingno 纹理时，通过代码生成经典的
+ * 16×16 紫黑棋盘格替代纹理，避免出现纹理缺失警告。
+ *
+ * @return 16×16 RGBA8 像素数据
+ */
+std::vector<u8> _generateMissingNoTexture()
+{
+    constexpr u32 SIZE = 16;
+    constexpr u32 TILE = 8; // 每个棋盘格 8×8 像素
+    constexpr u8 PURPLE_R = 128, PURPLE_G = 0, PURPLE_B = 128;
+    constexpr u8 BLACK_R = 0, BLACK_G = 0, BLACK_B = 0;
+
+    std::vector<u8> pixels(SIZE * SIZE * 4);
+    for (u32 y = 0; y < SIZE; ++y) {
+        for (u32 x = 0; x < SIZE; ++x) {
+            const u32 idx = (y * SIZE + x) * 4;
+            const bool isPurple = ((x / TILE) + (y / TILE)) % 2 == 0;
+            pixels[idx + 0] = isPurple ? PURPLE_R : BLACK_R;
+            pixels[idx + 1] = isPurple ? PURPLE_G : BLACK_G;
+            pixels[idx + 2] = isPurple ? PURPLE_B : BLACK_B;
+            pixels[idx + 3] = 255; // 完全不透明
+        }
+    }
+    return pixels;
+}
+
 } // namespace
 
 Result<void> ResourceManager::addResourcePack(ResourcePackPtr resourcePack)
@@ -347,9 +376,18 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas()
         }
 
         if (!added) {
-            failedTextures.push_back(
-                texLoc.toString() + " -> " + texLoc.toFilePath(resource::PackType::ClientResources, "png"));
-            failedCount++;
+            // missingno 纹理：动态生成紫黑棋盘格替代纹理
+            if (texLoc == ResourceLocation("minecraft", "textures/missingno")) {
+                constexpr u32 MISSINGNO_SIZE = 16;
+                auto pixelData = _generateMissingNoTexture();
+                builder.addTextureFrame(
+                    texLoc, pixelData, MISSINGNO_SIZE, MISSINGNO_SIZE, MISSINGNO_SIZE, MISSINGNO_SIZE);
+                addedCount++;
+            } else {
+                failedTextures.push_back(
+                    texLoc.toString() + " -> " + texLoc.toFilePath(resource::PackType::ClientResources, "png"));
+                failedCount++;
+            }
         }
     }
 
