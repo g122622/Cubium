@@ -222,18 +222,22 @@ Jigsaw 模板在方块注册前加载会失败。初始化顺序：方块 → �
 
 `WorldGenRegion` 不是 `IBlockReader`，直接传递给 `Block::isValidPosition` 会导致编译错误。在世界生成特征中，使用显式的本地放置检查（`isWater`、支撑方块检查）。
 
-### 9. 区块访问窗口越界
+### 9. WorldGenRegion 维度感知高度
+
+`WorldGenRegion` 通过构造函数接收 `DimensionId` 参数，覆写 `IWorld::getMinBuildHeight()` 和 `IWorld::getMaxBuildHeight()` 返回维度特定的建筑高度范围（主世界 -64~320，下界 0~128，末地 0~256）。`dimension()` 方法也基于此参数返回正确的维度 ID。`ServerChunkManager` 在创建 `WorldGenRegion` 时从 `ServerWorld::dimension()` 传入维度 ID。`isWithinWorldBounds()` 使用这些虚方法进行 Y 坐标范围检查。
+
+### 10. 区块访问窗口越界
 
 `WorldGenRegion` 使用当前 `ChunkStep` 的累积依赖窗口，并按 `directDependencies()` 校验请求区块的阶段。越界、缺失或请求阶段超过该距离允许阶段时会触发断言；不要将窗口外查询视为"高度 0"，应修复区域半径或调用点。
 
-### 10. 临时 BlockState 副本
+### 11. 临时 BlockState 副本
 
 将临时 `BlockState` 副本传递给世界写入 API 可能导致状态 ID 不一致。优先使用 `state.with(...)` / `defaultState()` 返回的规范引用。
 
-### 11. 海洋特征注册顺序
+### 12. 海洋特征注册顺序
 
 `KelpFeatureIds` 和 `SeagrassFeatureIds` 按海洋温度分开，添加新海洋变体时必须保持 `FeatureRegistry::initialize()` 顺序、`BiomeGenerationSettings` 映射和海洋断言同步。
 
-### 12. 区块生成阶段与访问范围
+### 13. 区块生成阶段与访问范围
 
 每个 `ChunkStatus` 阶段通过 `ChunkStep` 定义需要访问的邻居区块范围和各距离允许的依赖状态。`FEATURES`、`NOISE` 等阶段使用更大的动态方阵窗口，越界、缺失或请求状态不匹配会在热路径上断言失败。生成代码必须确保在正确的阶段访问正确范围内、正确状态的区块。

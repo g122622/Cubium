@@ -574,6 +574,86 @@ TEST_F(SpreadAlgorithmTest, IWorldDefaultHeightMethods)
     EXPECT_EQ(m_world.getMaxBuildHeight(), world::MAX_BUILD_HEIGHT);
 }
 
+// ============================================================================
+// maxHeight 低于 getMinBuildHeight() 时的边界测试
+// ============================================================================
+
+// 自定义测试世界，覆写 getMinBuildHeight/getMaxBuildHeight 以模拟非主世界维度
+class NetherHeightTestWorld : public SpreadTestWorld {
+public:
+    [[nodiscard]] i32 getMinBuildHeight() const override { return 0; }
+    [[nodiscard]] i32 getMaxBuildHeight() const override { return 128; }
+};
+
+TEST_F(SpreadAlgorithmTest, IsSafeReturnsFalseWhenMaxHeightBelowMinBuildHeight)
+{
+    // 使用自定义世界模拟下界高度范围 (minHeight=0, maxHeight=128)
+    // 当 maxHeight 参数低于世界的 getMinBuildHeight() 时，
+    // getSpawnY 搜索范围会立即为空，返回 maxHeight+1
+    // isSafe 会因为查询的方块坐标低于世界最小高度而返回 false
+    NetherHeightTestWorld netherWorld;
+    VanillaBlocks::initialize();
+    BiomeRegistry::instance().initialize();
+    ChunkData& chunk = netherWorld.ensureChunk(0, 0);
+    netherWorld.fillBiome(chunk, 1);
+
+    // 在 Y=63 铺一层石头作为地面
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+    for (i32 x = 0; x < 16; ++x) {
+        for (i32 z = 0; z < 16; ++z) {
+            netherWorld.setBlockState(x, 63, z, stone);
+        }
+    }
+
+    // 下界的 getMinBuildHeight() = 0
+    // 当 maxHeight = -5（低于 minHeight=0）时：
+    // getSpawnY 从 maxHeight+1 = -4 向下搜索到 getMinBuildHeight() = 0
+    // 搜索范围 y > 0 不满足（-4 不大于 0），循环不执行，返回 -4
+    // isSafe 检查 getBlockState(blockX, -5, blockZ) -> 低于世界范围返回 nullptr -> 不安全
+    SpreadPosition pos{5.0, 5.0};
+    EXPECT_EQ(pos.getSpawnY(netherWorld, -5), -4);
+    EXPECT_FALSE(pos.isSafe(netherWorld, -5));
+}
+
+TEST_F(SpreadAlgorithmTest, IsSafeWorksWithNetherHeightRange)
+{
+    // 在下界高度范围内，maxHeight 合法时算法正常工作
+    NetherHeightTestWorld netherWorld;
+    VanillaBlocks::initialize();
+    BiomeRegistry::instance().initialize();
+    ChunkData& chunk = netherWorld.ensureChunk(0, 0);
+    netherWorld.fillBiome(chunk, 1);
+
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+    for (i32 x = 0; x < 16; ++x) {
+        for (i32 z = 0; z < 16; ++z) {
+            netherWorld.setBlockState(x, 63, z, stone);
+        }
+    }
+
+    // 下界的 getMinBuildHeight() = 0, getMaxBuildHeight() = 128
+    // maxHeight = 100 是合法的，地面在 Y=63 -> 站立位 Y=64 -> 安全
+    SpreadPosition pos{5.0, 5.0};
+    EXPECT_EQ(pos.getSpawnY(netherWorld, 100), 64);
+    EXPECT_TRUE(pos.isSafe(netherWorld, 100));
+}
+
+TEST_F(SpreadAlgorithmTest, SpreadPositionsFailsWithMaxHeightBelowMinBuildHeight)
+{
+    // 当 maxHeight 低于世界的 getMinBuildHeight() 时，
+    // 所有位置的 isSafe 都返回 false，分散必然失败
+    NetherHeightTestWorld netherWorld;
+    VanillaBlocks::initialize();
+    BiomeRegistry::instance().initialize();
+    netherWorld.ensureChunk(0, 0);
+
+    auto positions = createInitialPositions(m_rng, 2, 0.0, 0.0, 100.0, 100.0);
+    f64 minDist = 0.0;
+    // maxHeight=-10 低于 netherWorld.getMinBuildHeight()=0
+    bool success = spreadPositions(5.0, netherWorld, m_rng, 0.0, 0.0, 100.0, 100.0, -10, positions, minDist);
+    EXPECT_FALSE(success);
+}
+
 } // namespace
 } // namespace support
 } // namespace command

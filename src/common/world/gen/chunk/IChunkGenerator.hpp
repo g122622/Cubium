@@ -27,6 +27,7 @@
 #include "../../IWorld.hpp"
 #include "../../biome/BiomeIds.hpp"
 #include "../../border/WorldBorder.hpp"
+#include "../../dimension/DimensionType.hpp"
 #include "../settings/DimensionSettings.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
@@ -210,8 +211,10 @@ public:
      * @param mainZ 主区块 Z
      * @param chunkRadius 区块半径（0 表示只有中心区块，1 表示 3x3 区域，8 表示 17x17 区域）
      * @param chunks 区块数组（按从左上到右下的顺序排列，数量为 (2*chunkRadius+1)^2）
+     * @param dimensionId 维度 ID（默认 0 = 主世界），用于 getMinBuildHeight/getMaxBuildHeight/dimension
      */
-    WorldGenRegion(ChunkCoord mainX, ChunkCoord mainZ, i32 chunkRadius, std::vector<IChunk*> chunks);
+    WorldGenRegion(
+        ChunkCoord mainX, ChunkCoord mainZ, i32 chunkRadius, std::vector<IChunk*> chunks, DimensionId dimensionId = 0);
 
     /**
      * @brief 构造世界生成区域（带步骤校验模式）
@@ -219,8 +222,13 @@ public:
      * @param mainZ 主区块 Z
      * @param generatingStep 当前正在执行的生成步骤
      * @param chunks 区块数组（按从左上到右下的顺序排列）
+     * @param dimensionId 维度 ID（默认 0 = 主世界），用于 getMinBuildHeight/getMaxBuildHeight/dimension
      */
-    WorldGenRegion(ChunkCoord mainX, ChunkCoord mainZ, const ChunkStep& generatingStep, std::vector<IChunk*> chunks);
+    WorldGenRegion(ChunkCoord mainX,
+        ChunkCoord mainZ,
+        const ChunkStep& generatingStep,
+        std::vector<IChunk*> chunks,
+        DimensionId dimensionId = 0);
 
     // === 区块访问 ===
 
@@ -370,7 +378,23 @@ public:
     /**
      * @brief 获取维度 ID
      */
-    [[nodiscard]] DimensionId dimension() const override;
+    [[nodiscard]] DimensionId dimension() const override { return m_dimensionId; }
+
+    /**
+     * @brief 获取最低建筑高度（维度感知）
+     *
+     * 基于 m_dimensionId 查询 DimensionType 获取维度特定的最低建筑高度。
+     * 下界为 0，主世界和末地为 -64。
+     */
+    [[nodiscard]] i32 getMinBuildHeight() const override { return DimensionType::fromId(m_dimensionId).minHeight(); }
+
+    /**
+     * @brief 获取最高建筑高度（维度感知）
+     *
+     * 基于 m_dimensionId 查询 DimensionType 获取维度特定的最高建筑高度。
+     * 下界为 128，末地为 256，主世界为 320。
+     */
+    [[nodiscard]] i32 getMaxBuildHeight() const override { return DimensionType::fromId(m_dimensionId).maxHeight(); }
 
     /**
      * @brief 获取世界种子
@@ -505,6 +529,7 @@ private:
     i32 m_chunkDiameter;
     std::vector<IChunk*> m_chunks; // 按行优先顺序存储的动态方阵
     const ChunkStep* m_generatingStep = nullptr;
+    DimensionId m_dimensionId = 0; // 维度 ID，用于 getMinBuildHeight/getMaxBuildHeight/dimension
 
     // IWorld 所需的状态
     u64 m_seed = 0;

@@ -67,26 +67,32 @@ namespace {
 // WorldGenRegion 实现
 // ============================================================================
 
-WorldGenRegion::WorldGenRegion(ChunkCoord mainX, ChunkCoord mainZ, i32 chunkRadius, std::vector<IChunk*> chunks)
+WorldGenRegion::WorldGenRegion(
+    ChunkCoord mainX, ChunkCoord mainZ, i32 chunkRadius, std::vector<IChunk*> chunks, DimensionId dimensionId)
     : m_mainX(mainX)
     , m_mainZ(mainZ)
     , m_chunkRadius(chunkRadius)
     , m_chunkDiameter(chunkRadius * 2 + 1)
     , m_chunks(std::move(chunks))
     , m_generatingStep(nullptr)
+    , m_dimensionId(dimensionId)
 {
     MC_ASSERT_RELEASE(m_chunkRadius >= 0);
     MC_ASSERT_RELEASE(static_cast<i32>(m_chunks.size()) == m_chunkDiameter * m_chunkDiameter);
 }
 
-WorldGenRegion::WorldGenRegion(
-    ChunkCoord mainX, ChunkCoord mainZ, const ChunkStep& generatingStep, std::vector<IChunk*> chunks)
+WorldGenRegion::WorldGenRegion(ChunkCoord mainX,
+    ChunkCoord mainZ,
+    const ChunkStep& generatingStep,
+    std::vector<IChunk*> chunks,
+    DimensionId dimensionId)
     : m_mainX(mainX)
     , m_mainZ(mainZ)
     , m_chunkRadius(generatingStep.accumulatedRadius())
     , m_chunkDiameter(m_chunkRadius * 2 + 1)
     , m_chunks(std::move(chunks))
     , m_generatingStep(&generatingStep)
+    , m_dimensionId(dimensionId)
 {
     MC_ASSERT_RELEASE(m_chunkRadius >= 0);
     MC_ASSERT_RELEASE(static_cast<i32>(m_chunks.size()) == m_chunkDiameter * m_chunkDiameter);
@@ -542,12 +548,6 @@ std::vector<Entity*> WorldGenRegion::getEntitiesInRange(const Vector3& pos, f32 
     (void)range;
     (void)except;
     return {};
-}
-
-DimensionId WorldGenRegion::dimension() const
-{
-    // 默认返回主世界
-    return 0; // DimensionId::Overworld
 }
 
 world::tick::TickManager& WorldGenRegion::tickManager()

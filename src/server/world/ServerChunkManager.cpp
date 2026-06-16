@@ -844,13 +844,14 @@ ServerChunkManager::NeighborRegionContext ServerChunkManager::_doCreateWorldGenR
         context.loadedNeighbors,
         context.missingNeighbors,
         cache);
+    const DimensionId dimId = m_world != nullptr ? m_world->dimension() : 0;
     if (step != nullptr) {
         assertRegionSatisfiesDirectDependencies(context.neighbors, centerChunk.x(), centerChunk.z(), radius, *step);
-        context.region =
-            std::make_unique<WorldGenRegion>(centerChunk.x(), centerChunk.z(), *step, std::move(context.neighbors));
+        context.region = std::make_unique<WorldGenRegion>(
+            centerChunk.x(), centerChunk.z(), *step, std::move(context.neighbors), dimId);
     } else {
-        context.region =
-            std::make_unique<WorldGenRegion>(centerChunk.x(), centerChunk.z(), radius, std::move(context.neighbors));
+        context.region = std::make_unique<WorldGenRegion>(
+            centerChunk.x(), centerChunk.z(), radius, std::move(context.neighbors), dimId);
     }
     return context;
 }
