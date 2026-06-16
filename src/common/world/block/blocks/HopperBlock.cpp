@@ -23,6 +23,7 @@
 
 #include "HopperBlock.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/Direction.hpp"
@@ -117,7 +118,6 @@ ActionResultType HopperBlock::onBlockActivated(const BlockState& state,
     MC_UNUSED(state);
     MC_UNUSED(hand);
     MC_UNUSED(hit);
-    MC_UNUSED(player);
 
     if (world.asServerWorld() == nullptr) {
         return ActionResultType::Success;
@@ -125,7 +125,11 @@ ActionResultType HopperBlock::onBlockActivated(const BlockState& state,
 
     BlockEntity* blockEntity = world.getBlockEntity(pos);
     if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Hopper) {
-        return ActionResultType::Consume;
+        auto* hopper = static_cast<blockentity::HopperEntity*>(blockEntity);
+        if (world.openContainer(ContainerType::Hopper, pos, player)) {
+            hopper->openContainer(&player);
+            return ActionResultType::Consume;
+        }
     }
 
     return ActionResultType::Pass;

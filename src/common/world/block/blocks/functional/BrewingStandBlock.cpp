@@ -22,15 +22,16 @@
  */
 
 #include "BrewingStandBlock.hpp"
-#include "../../../../entity/entities/player/Player.hpp"
-#include "../../../../entity/inventory/IInventory.hpp"
-#include "../../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../blockentity/BlockEntityType.hpp"
-#include "../../../blockentity/processing/BrewingStandEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/processing/BrewingStandEntity.hpp"
 
 namespace mc {
 namespace blocks {
@@ -124,12 +125,11 @@ ActionResultType BrewingStandBlock::onBlockActivated(const BlockState& state,
     BlockEntity* entity = world.getBlockEntity(pos);
     if (entity != nullptr && entity->getType() == BlockEntityType::BrewingStand) {
         auto* brewingStand = static_cast<blockentity::BrewingStandEntity*>(entity);
-        // 打开酿造台GUI
-        // TODO: 实现容器打开
-        // player.openContainer(brewingStand);
-        // player.addStat(Stats::INTERACT_WITH_BREWINGSTAND);
-        MC_UNUSED(brewingStand);
-        return ActionResultType::Consume;
+        if (world.openContainer(ContainerType::BrewingStand, pos, player)) {
+            brewingStand->openContainer(&player);
+            // TODO: 当统计系统实现后，添加 player.awardStat(Stats::INTERACT_WITH_BREWINGSTAND)
+            return ActionResultType::Consume;
+        }
     }
 
     return ActionResultType::Pass;

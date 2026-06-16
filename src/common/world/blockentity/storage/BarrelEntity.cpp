@@ -24,6 +24,8 @@
 #include "world/blockentity/storage/BarrelEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/core/ItemStack.hpp"
+#include "sound/SoundCategory.hpp"
+#include "util/Direction.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
@@ -51,6 +53,7 @@ void BarrelEntity::openContainer(Player* player)
 
     if (m_world != nullptr) {
         _updateBlockState(*m_world, true);
+        _playSound(true);
     }
 
     setChanged();
@@ -63,6 +66,9 @@ void BarrelEntity::closeContainer(Player* player)
 
     if (m_world != nullptr) {
         _updateBlockState(*m_world, m_openCount > 0);
+        if (m_openCount == 0) {
+            _playSound(false);
+        }
     }
 
     setChanged();
@@ -120,6 +126,36 @@ void BarrelEntity::_updateBlockState(IWorld& world, bool open)
 
     const BlockState& updated = state->with(BlockStateProperties::OPEN(), open);
     world.setBlockState(m_pos, &updated, 3);
+}
+
+void BarrelEntity::_playSound(bool isOpen)
+{
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 获取方块朝向，根据朝向偏移音效位置
+    const BlockState* state = m_world->getBlockState(m_pos);
+    if (state == nullptr) {
+        return;
+    }
+
+    Direction facing = state->hasProperty(BlockStateProperties::FACING()) ? state->get(BlockStateProperties::FACING())
+                                                                          : Direction::North;
+
+    // 音效位置：方块中心偏移朝向方向 0.5 格
+    f32 offsetX = 0.5f + 0.5f * static_cast<f32>(Directions::xOffset(facing));
+    f32 offsetY = 0.5f + 0.5f * static_cast<f32>(Directions::yOffset(facing));
+    f32 offsetZ = 0.5f + 0.5f * static_cast<f32>(Directions::zOffset(facing));
+
+    const char* soundId = isOpen ? "minecraft:block.barrel.open" : "minecraft:block.barrel.close";
+    m_world->playSound(ResourceLocation(soundId),
+        sound::SoundCategory::Blocks,
+        Vector3(static_cast<f64>(m_pos.x) + offsetX,
+            static_cast<f64>(m_pos.y) + offsetY,
+            static_cast<f64>(m_pos.z) + offsetZ),
+        0.5f,
+        1.0f);
 }
 
 bool BarrelEntity::load(const nlohmann::json& data)

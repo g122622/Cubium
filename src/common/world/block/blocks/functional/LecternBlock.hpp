@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
@@ -145,9 +146,14 @@ public:
     // ========== 工具方法 ==========
 
     /**
-     * @brief 尝试放置书本
+     * @brief 尝试放置书本到讲台
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 方块状态（可修改）
+     * @param bookStack 要放置的书本物品（将复制一份到讲台）
+     * @return 放置成功返回true
      */
-    static bool tryPlaceBook(IWorld& world, const BlockPos& pos, BlockState& state, u32 itemId);
+    static bool tryPlaceBook(IWorld& world, const BlockPos& pos, BlockState& state, const ItemStack& bookStack);
 
     /**
      * @brief 设置有书状态

@@ -123,6 +123,12 @@ private:
      */
     void _updateBlockState(IWorld& world, bool open);
 
+    /**
+     * @brief 播放开/关音效
+     * @param isOpen true 播放打开音效，false 播放关闭音效
+     */
+    void _playSound(bool isOpen);
+
     SimpleInventory m_inventory; ///< 27格物品存储
     i32 m_ticksSinceSync = 0;    ///< 同步计数器
 };

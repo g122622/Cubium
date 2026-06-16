@@ -23,16 +23,19 @@
 
 #include "LecternBlock.hpp"
 
-#include "../../../../entity/entities/player/Player.hpp"
-#include "../../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../item/core/Item.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../blockentity/BlockEntityType.hpp"
-#include "../../../blockentity/interactive/LecternEntity.hpp"
-#include "../../../tick/manager/TickManager.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/interactive/LecternEntity.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace blocks {
@@ -149,7 +152,8 @@ const CollisionShape& LecternBlock::getCollisionShape(const BlockState& state) c
     return m_collisionShape;
 }
 
-i32 LecternBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
+i32 LecternBlock::getWeakPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -158,7 +162,8 @@ i32 LecternBlock::getWeakPower(const BlockState& state, IWorld& world, const Blo
     return state.get(BlockStateProperties::POWERED()) ? 15 : 0;
 }
 
-i32 LecternBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
+i32 LecternBlock::getStrongPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -195,20 +200,44 @@ ActionResultType LecternBlock::onBlockActivated(const BlockState& state,
     Hand hand,
     const BlockRaycastResult& hit)
 {
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     if (state.get(BlockStateProperties::HAS_BOOK())) {
+        // 讲台上已有书，打开讲台GUI
         if (!world.isClientSide()) {
-            // 打开讲台GUI
-            // TODO: 实现容器打开
-            // player.openContainer(lecternEntity);
-            // player.addStat(Stats::INTERACT_WITH_LECTERN);
+            BlockEntity* entity = world.getBlockEntity(pos);
+            if (entity != nullptr && entity->getType() == BlockEntityType::Lectern) {
+                auto* lectern = static_cast<blockentity::LecternEntity*>(entity);
+                if (world.openContainer(ContainerType::Lectern, pos, player)) {
+                    lectern->openContainer();
+                    // TODO: 当统计系统实现后，添加 player.awardStat(Stats::INTERACT_WITH_LECTERN)
+                }
+            }
         }
         return ActionResultType::Success;
     }
 
-    return ActionResultType::Pass;
+    // 讲台上没有书，检查玩家手中是否持有可放入讲台的书籍
+    if (!world.isClientSide()) {
+        ItemStack& heldItem = player.getHeldItem(hand);
+        if (!heldItem.isEmpty()) {
+            const Item* item = heldItem.getItem();
+            if (item != nullptr && isLecternBookItem(item->itemId())) {
+                if (tryPlaceBook(world, pos, const_cast<BlockState&>(state), heldItem)) {
+                    // tryPlaceBook 已将书放入讲台实体，这里消耗玩家手中的一个物品
+                    heldItem.shrink(1);
+                    // 播放放书音效
+                    world.playSound(ResourceLocation("minecraft:item.book.put"),
+                        sound::SoundCategory::Blocks,
+                        pos.center(),
+                        1.0f,
+                        1.0f);
+                }
+            }
+        }
+    }
+
+    return ActionResultType::Consume;
 }
 
 void LecternBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
@@ -246,14 +275,32 @@ void LecternBlock::_dropBook(IWorld& world, const BlockPos& pos, const BlockStat
     }
 }
 
-bool LecternBlock::tryPlaceBook(IWorld& world, const BlockPos& pos, BlockState& state, u32 itemId)
+bool LecternBlock::tryPlaceBook(IWorld& world, const BlockPos& pos, BlockState& state, const ItemStack& bookStack)
 {
     if (state.get(BlockStateProperties::HAS_BOOK())) {
         return false;
     }
 
-    if (!isLecternBookItem(static_cast<ItemId>(itemId))) {
+    if (bookStack.isEmpty()) {
         return false;
+    }
+
+    const Item* item = bookStack.getItem();
+    if (item == nullptr || !isLecternBookItem(item->itemId())) {
+        return false;
+    }
+
+    // 将书本设置到讲台实体中，然后更新方块状态
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::Lectern) {
+        auto* lectern = static_cast<blockentity::LecternEntity*>(entity);
+        // 将书的一份副本放入讲台（数量为1）
+        ItemStack bookForLectern = bookStack.copy();
+        bookForLectern.setCount(1);
+        if (!lectern->setBook(bookForLectern)) {
+            return false;
+        }
+        // 物品消耗由 onBlockActivated 中的 heldItem.shrink(1) 处理
     }
 
     setHasBook(world, pos, state, true);

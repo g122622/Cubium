@@ -23,7 +23,8 @@
 
 #include "BarrelBlock.hpp"
 
-#include "common/entity/inventory/IInventory.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/Direction.hpp"
@@ -133,12 +134,12 @@ ActionResultType BarrelBlock::onBlockActivated(const BlockState& state,
     BlockEntity* entity = world.getBlockEntity(pos);
     if (entity != nullptr && entity->getType() == BlockEntityType::Barrel) {
         auto* barrel = static_cast<blockentity::BarrelEntity*>(entity);
-        // 打开木桶GUI
-        // TODO: 实现容器打开
-        // player.openContainer(barrel);
-        // player.addStat(Stats::OPEN_BARREL);
-        MC_UNUSED(barrel);
-        return ActionResultType::Consume;
+        if (world.openContainer(ContainerType::Generic9x3, pos, player)) {
+            barrel->openContainer(&player);
+            // TODO: 当统计系统实现后，添加 player.awardStat(Stats::OPEN_BARREL)
+            // TODO: 当猪灵AI实现后，添加 PiglinAi::angerNearbyPiglins(world, player, true)
+            return ActionResultType::Consume;
+        }
     }
 
     return ActionResultType::Pass;
