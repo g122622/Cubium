@@ -875,7 +875,7 @@ void StrongholdStairs::buildComponent(
         return;
     }
 
-    // 如果是起始楼梯，设置下一个组件类型为交叉点（对应 MC Java 的 imposedPiece = FiveCrossing）
+    // 如果是起始楼梯，设置下一个组件类型为交叉点
     if (m_isSource) {
         start->setImposedPieceType(StrongholdPieceTypes::CROSSING);
     }
@@ -1188,7 +1188,7 @@ void StrongholdLibrary::generate(
 
     generateChest(world, chunkBounds, rng, 3, 3, 5, ResourceLocation("minecraft", "chests/stronghold_library"));
 
-    // 大型图书馆在高层增加第二个宝箱（对应 MC Java Library 的 isTall 分支）
+    // 大型图书馆在高层增加第二个宝箱
     if (m_isLargeRoom) {
         // 在 (12, 9, 1) 处放置洞穴空气以清理上方空间
         const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
@@ -1644,7 +1644,7 @@ StrongholdPiece* generatePieceFromSmallDoor(StrongholdStartStairs* start,
     std::vector<StrongholdPieceWeight>& weights,
     StrongholdPieceWeight*& lastPlaced)
 {
-    // 对应 MC Java 的 imposedPiece 机制：如果有强制片段类型，优先创建
+    // 强制片段类型机制：如果有强制片段类型，优先创建
     if (start != nullptr && start->imposedPieceType() >= 0) {
         i32 imposedType = start->imposedPieceType();
         start->setImposedPieceType(-1); // 消费强制类型
@@ -1705,7 +1705,7 @@ StrongholdPiece* generatePieceFromSmallDoor(StrongholdStartStairs* start,
                     lastPlaced = &weight;
 
                     // 如果达到限制，将权重设为0使其不再被选中
-                    // 对应 MC Java 的 currentPieces.remove() 操作
+                    // 将权重置0使其不再被选中（等效于从列表中移除）
                     // 使用权重置0而非移除，避免迭代器失效和 lastPlaced 悬垂指针问题
                     if (!weight.canSpawnMoreStructures()) {
                         weight.weight = 0;

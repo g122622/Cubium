@@ -29,6 +29,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/registry/BaseBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/DispenserBlockEntity.hpp"
@@ -39,6 +40,7 @@
 #include "common/world/gen/structure/structures/JungleTempleStructure.hpp"
 
 using namespace mc;
+using namespace mc::block_registry;
 using namespace mc::world::gen::structure;
 using namespace mc::world::chunk;
 
@@ -251,6 +253,7 @@ public:
     // 暴露基类的 generateChest 和 generateDispenser 方法
     using StructurePiece::generateChest;
     using StructurePiece::generateDispenser;
+    using StructurePiece::reorientChest;
 };
 
 } // namespace
@@ -410,4 +413,165 @@ TEST_F(StructurePieceChestDispenserTest, WorldGenRegion_SetBlockEntityOutsideReg
     BlockPos outsidePos(100, 65, 100);
     auto entity = std::make_unique<blockentity::ChestEntity>(outsidePos);
     m_region->setBlockEntity(outsidePos, entity.release()); // 不应崩溃
+}
+
+// ============================================================================
+// reorientChest 测试
+// ============================================================================
+
+TEST_F(StructurePieceChestDispenserTest, ReorientChest_NoAdjacentBlocks_ReturnsNorthFacing)
+{
+    // 没有相邻方块时，宝箱默认朝向北
+    const BlockState* chestState = VanillaBlocks::getState(VanillaBlocks::CHEST);
+    ASSERT_NE(chestState, nullptr);
+
+    // 清除宝箱位置及其四个水平邻居的石头（SetUp 填充了 y=60..70 的石头）
+    const BlockState* airState = &BaseBlocks::AIR->defaultState();
+    BlockPos chestPos(5, 65, 5);
+    m_region->setBlockState(5, 65, 5, airState, 2);
+    m_region->setBlockState(4, 65, 5, airState, 2);
+    m_region->setBlockState(6, 65, 5, airState, 2);
+    m_region->setBlockState(5, 65, 4, airState, 2);
+    m_region->setBlockState(5, 65, 6, airState, 2);
+
+    // 在空气中放置宝箱（周围都是空气）
+    m_region->setBlockState(5, 65, 5, chestState, 2);
+
+    const BlockState* result = StructurePiece::reorientChest(*m_region, chestPos, chestState);
+    ASSERT_NE(result, nullptr);
+    EXPECT_TRUE(result->is(VanillaBlocks::CHEST));
+
+    // 没有相邻实心方块，应返回朝北的宝箱
+    auto facing = result->getOptional(BlockStateProperties::HORIZONTAL_FACING());
+    ASSERT_TRUE(facing.has_value());
+    EXPECT_EQ(facing.value(), Direction::North);
+}
+
+TEST_F(StructurePieceChestDispenserTest, ReorientChest_OneSolidBlock_FacesAwayFromSolid)
+{
+    // 北侧有一个实心方块时，宝箱应朝向南（远离实心方块）
+    const BlockState* chestState = VanillaBlocks::getState(VanillaBlocks::CHEST);
+    ASSERT_NE(chestState, nullptr);
+
+    // 清除宝箱位置及其四个水平邻居的石头（SetUp 填充了 y=60..70 的石头）
+    const BlockState* airState = &BaseBlocks::AIR->defaultState();
+    BlockPos chestPos(5, 65, 5);
+    m_region->setBlockState(5, 65, 5, airState, 2);
+    m_region->setBlockState(4, 65, 5, airState, 2);
+    m_region->setBlockState(6, 65, 5, airState, 2);
+    m_region->setBlockState(5, 65, 4, airState, 2);
+    m_region->setBlockState(5, 65, 6, airState, 2);
+
+    // 只在宝箱北侧放置石头（宝箱在 (5, 65, 5)，北侧是 (5, 65, 4)）
+    m_region->setBlockState(5, 65, 4, &VanillaBlocks::STONE->defaultState(), 2);
+
+    const BlockState* result = StructurePiece::reorientChest(*m_region, chestPos, chestState);
+    ASSERT_NE(result, nullptr);
+
+    auto facing = result->getOptional(BlockStateProperties::HORIZONTAL_FACING());
+    ASSERT_TRUE(facing.has_value());
+    EXPECT_EQ(facing.value(), Direction::South);
+}
+
+TEST_F(StructurePieceChestDispenserTest, ReorientChest_TwoSolidBlocks_KeepsDefaultFacing)
+{
+    // 两个方向有实心方块时，进入回退逻辑，从默认朝向开始寻找非实心方向
+    const BlockState* chestState = VanillaBlocks::getState(VanillaBlocks::CHEST);
+    ASSERT_NE(chestState, nullptr);
+
+    // 清除宝箱位置及其四个水平邻居的石头（SetUp 填充了 y=60..70 的石头）
+    const BlockState* airState = &BaseBlocks::AIR->defaultState();
+    BlockPos chestPos(5, 65, 5);
+    m_region->setBlockState(5, 65, 5, airState, 2);
+    m_region->setBlockState(4, 65, 5, airState, 2);
+    m_region->setBlockState(6, 65, 5, airState, 2);
+    m_region->setBlockState(5, 65, 4, airState, 2);
+    m_region->setBlockState(5, 65, 6, airState, 2);
+
+    // 北侧和南侧都放置石头，东西两侧是空气
+    m_region->setBlockState(5, 65, 4, &VanillaBlocks::STONE->defaultState(), 2);
+    m_region->setBlockState(5, 65, 6, &VanillaBlocks::STONE->defaultState(), 2);
+
+    const BlockState* result = StructurePiece::reorientChest(*m_region, chestPos, chestState);
+    ASSERT_NE(result, nullptr);
+
+    // 两个实心方向（北和南），回退逻辑：
+    // 1. 默认朝向北 → 北侧实心 → 翻转为南
+    // 2. 南侧也实心 → 顺时针旋转为西
+    // 3. 西侧是空气 → 停止，最终朝向为西
+    auto facing = result->getOptional(BlockStateProperties::HORIZONTAL_FACING());
+    ASSERT_TRUE(facing.has_value());
+    EXPECT_EQ(facing.value(), Direction::West);
+}
+
+TEST_F(StructurePieceChestDispenserTest, ReorientChest_AdjacentChest_KeepsDefaultFacing)
+{
+    // 相邻有宝箱时（用于双箱合并），保持默认朝向
+    const BlockState* chestState = VanillaBlocks::getState(VanillaBlocks::CHEST);
+    ASSERT_NE(chestState, nullptr);
+
+    // 清除宝箱位置及其四个水平邻居的石头（SetUp 填充了 y=60..70 的石头）
+    const BlockState* airState = &BaseBlocks::AIR->defaultState();
+    BlockPos chestPos(5, 65, 5);
+    m_region->setBlockState(5, 65, 5, airState, 2);
+    m_region->setBlockState(4, 65, 5, airState, 2);
+    m_region->setBlockState(6, 65, 5, airState, 2);
+    m_region->setBlockState(5, 65, 4, airState, 2);
+    m_region->setBlockState(5, 65, 6, airState, 2);
+
+    // 在宝箱东侧放置另一个宝箱
+    m_region->setBlockState(6, 65, 5, chestState, 2);
+
+    const BlockState* result = StructurePiece::reorientChest(*m_region, chestPos, chestState);
+    ASSERT_NE(result, nullptr);
+
+    // 相邻有宝箱，保持默认状态
+    EXPECT_EQ(result, chestState);
+}
+
+TEST_F(StructurePieceChestDispenserTest, ReorientChest_NullDefaultState_ReturnsNullptr)
+{
+    // 传入 nullptr 的 defaultState 应返回 nullptr
+    BlockPos chestPos(5, 65, 5);
+    const BlockState* result = StructurePiece::reorientChest(*m_region, chestPos, nullptr);
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(StructurePieceChestDispenserTest, AutoFacingGenerateChest_PlacesChestWithCorrectOrientation)
+{
+    // 测试自动朝向版本的 generateChest
+    TestStructurePiece piece(5, 65, 5, 20, 80, 20);
+    piece.setCoordBaseMode(Direction::South);
+
+    StructureBoundingBox bounds(0, 0, 0, 30, 100, 30);
+    math::Random rng(42);
+
+    // 清除宝箱位置及其四个水平邻居的石头（SetUp 填充了 y=60..70 的石头）
+    const BlockState* airState = &BaseBlocks::AIR->defaultState();
+    m_region->setBlockState(5, 65, 5, airState, 2);
+    m_region->setBlockState(4, 65, 5, airState, 2);
+    m_region->setBlockState(6, 65, 5, airState, 2);
+    m_region->setBlockState(5, 65, 4, airState, 2);
+    m_region->setBlockState(5, 65, 6, airState, 2);
+
+    // 只在宝箱北侧放置石头，宝箱应朝向南
+    m_region->setBlockState(5, 65, 4, &VanillaBlocks::STONE->defaultState(), 2);
+
+    // 使用自动朝向版本的 generateChest
+    piece.generateChest(*m_region, bounds, rng, 0, 0, 0, ResourceLocation("minecraft", "chests/stronghold_crossing"));
+
+    // 验证宝箱已放置
+    const BlockState* afterState = m_region->getBlockState(5, 65, 5);
+    ASSERT_NE(afterState, nullptr);
+    EXPECT_TRUE(afterState->is(VanillaBlocks::CHEST));
+
+    // 验证宝箱朝向南（远离北侧的石头）
+    auto facing = afterState->getOptional(BlockStateProperties::HORIZONTAL_FACING());
+    ASSERT_TRUE(facing.has_value());
+    EXPECT_EQ(facing.value(), Direction::South);
+
+    // 验证战利品表已设置
+    BlockEntity* entity = m_region->getBlockEntity(BlockPos(5, 65, 5));
+    ASSERT_NE(entity, nullptr);
+    EXPECT_EQ(entity->getType(), BlockEntityType::Chest);
 }

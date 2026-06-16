@@ -369,11 +369,10 @@ public:
     /**
      * @brief 根据周围方块自动确定宝箱朝向
      *
-     * 对应 MC Java 的 StructurePiece.reorient() 方法。
      * 检查宝箱周围四个水平方向的方块状态，确定最佳朝向：
      * 1. 如果相邻位置有宝箱，保持默认朝向（用于双箱合并）
-     * 2. 如果恰好有一个方向是实心方块，宝箱朝向该方向的反方向（面向开放空间）
-     * 3. 如果没有或有多于一个实心方向，从默认朝向开始寻找非实心方向
+     * 2. 如果恰好有一个方向是不透明完整方块，宝箱朝向该方向的反方向（面向开放空间）
+     * 3. 如果没有或有多于一个不透明完整方块，从默认朝向（北）开始寻找非不透明方向
      *
      * @param world 世界接口
      * @param pos 宝箱位置
@@ -388,8 +387,8 @@ public:
      *
      * 在指定位置放置宝箱方块并设置战利品表。
      * 宝箱朝向根据周围方块自动确定（调用 reorientChest），
-     * 与 MC Java 版 StructurePiece.createChest(WorldGenLevel, BoundingBox, RandomSource, int, int, int, ResourceKey)
-     * 行为一致。
+     * 适用于不需要显式指定朝向的结构生成场景（如要塞宝箱）。
+     * 还会检查该位置是否已有宝箱，避免重复放置。
      *
      * @param world 世界写入接口
      * @param bounds 结构边界框

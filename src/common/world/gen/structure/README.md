@@ -6,7 +6,7 @@
 
 ```text structure /
 ├── Structure.hpp #结构基类定义（含 SpawnOverrides、BiomeTag 引用、typeToId/nameToStructureType 静态方法）
-├── Structure.cpp #结构基类实现（含 generateChest/generateDispenser 辅助方法）
+├── Structure.cpp #结构基类实现（含 generateChest/generateDispenser/reorientChest 辅助方法）
 ├── StructureBoundingBox.hpp #结构边界框（用于判断片段与区块交集）
 ├── StructureBoundingBox.cpp
 ├── StructureSet.hpp #结构集合模型（加权条目 +
@@ -241,14 +241,19 @@ return m_maxX >= chunkMinX && m_minX <= chunkMaxX &&
 
 `StructureType::Temple` 是多个结构的兼容类型（沙漠神殿、丛林神庙、雪屋、沼泽小屋、下界化石共享此枚举值）。`nameToStructureType()` 的别名映射将这些子名称都映射到 `StructureType::Temple`，而 `typeToId(StructureType::Temple)` 统一返回 `minecraft:temple`。注意 `bastion_remnant` / `bastion` 均映射到 `StructureType::Bastion`，而 `typeToId` 返回 `minecraft:bastion_remnant`（而非 `minecraft:bastion`）。
 
-### 12. generateChest / generateDispenser 辅助方法
+### 12. generateChest / generateDispenser / reorientChest 辅助方法
 
-`StructurePiece` 基类提供了 `generateChest()` 和 `generateDispenser()` 两个辅助方法，用于在结构生成中放置带有战利品表的容器方块。这两个方法封装了以下逻辑：
+`StructurePiece` 基类提供了 `generateChest()`、`generateDispenser()` 和 `reorientChest()` 辅助方法，用于在结构生成中放置带有战利品表的容器方块：
 
-1. 通过坐标偏移计算世界坐标
-2. 检查位置是否在生成边界内
-3. 放置带朝向的方块（宝箱使用 `HORIZONTAL_FACING`，发射器使用 `FACING`）
-4. 通过 `dynamic_cast<IWorld*>(&world)->getBlockEntity()` 获取自动创建的方块实体
-5. 设置战利品表（`ChestEntity::setLootTable()` / `DispenserBlockEntity::setLootTable()`）
+**`generateChest()` 有两个重载：**
+1. 自动朝向版本（无 Direction 参数）：调用 `reorientChest()` 根据周围方块自动确定宝箱朝向，适用于要塞等不需要显式指定朝向的场景。还会检查该位置是否已有宝箱，避免重复放置。
+2. 指定朝向版本（带 Direction 参数）：显式设置宝箱朝向，适用于丛林神庙等已知朝向的场景。
+
+**`reorientChest()` 逻辑：**
+1. 如果相邻位置有宝箱，保持默认朝向（用于双箱合并）
+2. 如果恰好有一个方向是不透明完整方块，宝箱面向相反方向（面向开放空间）
+3. 如果没有或有多于一个不透明完整方块，从默认朝向（北）开始依次尝试四个方向
+
+**`generateDispenser()` 使用方式与指定朝向的 `generateChest()` 相同。**
 
 这些方法要求 `WorldGenRegion` 正确覆写 `getBlockEntity()`/`setBlockEntity()`/`removeBlockEntity()` 方法，以便在结构生成阶段访问和操作方块实体。`WorldGenRegion::setBlockState()` 会在放置有方块实体的方块时自动创建对应的 `BlockEntity`，然后通过 `getBlockEntity()` 即可获取并设置战利品表。

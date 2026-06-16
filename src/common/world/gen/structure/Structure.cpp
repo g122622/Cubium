@@ -364,12 +364,9 @@ const BlockState* StructurePiece::reorientChest(IWorld& world, const BlockPos& p
         return nullptr;
     }
 
-    // 对应 MC Java 的 StructurePiece.reorient() 方法
-    // 检查宝箱周围四个水平方向的方块，确定最佳朝向
     Direction solidDirection = Direction::None;
-    bool foundChest = false;
 
-    // 四个水平方向：北、南、西、东
+    // 四个水平方向
     static constexpr Direction horizontalDirs[] = {
         Direction::North,
         Direction::South,
@@ -386,54 +383,48 @@ const BlockState* StructurePiece::reorientChest(IWorld& world, const BlockPos& p
 
         // 如果相邻位置是宝箱，保持默认朝向（用于双箱合并）
         if (neighborState->is(VanillaBlocks::CHEST)) {
-            foundChest = true;
-            break;
+            return defaultState;
         }
 
-        // 检查是否为实心面
-        if (neighborState->isSolidSide(world, neighborPos, getOpposite(dir))) {
+        // 检查是否为不透明完整方块
+        if (neighborState->isOpaqueCube(world, neighborPos)) {
             if (solidDirection != Direction::None) {
-                // 多于一个方向有实心面，无法确定朝向，重置
+                // 多于一个方向有不透明完整方块，无法确定朝向，重置并跳出
                 solidDirection = Direction::None;
-                foundChest = true; // 用作跳出标志
                 break;
             }
             solidDirection = dir;
         }
     }
 
-    // 如果找到相邻宝箱，或有两个以上实心面，保持默认朝向
-    if (foundChest) {
-        return defaultState;
-    }
-
-    // 如果恰好有一个方向是实心方块，宝箱面向相反方向（面向开放空间）
+    // 如果恰好有一个方向是不透明完整方块，宝箱面向相反方向（面向开放空间）
     if (solidDirection != Direction::None) {
         return &defaultState->with(BlockStateProperties::HORIZONTAL_FACING(), getOpposite(solidDirection));
     }
 
-    // 没有实心方向：从默认朝向开始寻找非实心方向
-    Direction facing = Direction::North; // 宝箱默认朝向为北
-    const BlockState* facingState = &defaultState->with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+    // 没有或有两个以上不透明完整方块：从默认朝向开始寻找非不透明方向
+    Direction facing = Direction::North;
+    auto currentFacing = defaultState->getOptional(BlockStateProperties::HORIZONTAL_FACING());
+    if (currentFacing.has_value()) {
+        facing = currentFacing.value();
+    }
 
-    // 检查默认朝向是否可行
     BlockPos frontPos = pos.offset(facing);
     const BlockState* frontState = world.getBlockState(frontPos);
-    if (frontState != nullptr && frontState->isSolidSide(world, frontPos, getOpposite(facing))) {
-        // 默认朝向不可行，尝试反方向
+    if (frontState != nullptr && frontState->isOpaqueCube(world, frontPos)) {
         facing = getOpposite(facing);
         frontPos = pos.offset(facing);
         frontState = world.getBlockState(frontPos);
-        if (frontState != nullptr && frontState->isSolidSide(world, frontPos, getOpposite(facing))) {
-            // 反方向也不可行，尝试顺时针
-            facing = Directions::rotateY(facing);
-            frontPos = pos.offset(facing);
-            frontState = world.getBlockState(frontPos);
-            if (frontState != nullptr && frontState->isSolidSide(world, frontPos, getOpposite(facing))) {
-                // 顺时针也不可行，尝试逆时针（反方向的再次旋转）
-                facing = getOpposite(facing);
-            }
-        }
+    }
+
+    if (frontState != nullptr && frontState->isOpaqueCube(world, frontPos)) {
+        facing = Directions::rotateY(facing);
+        frontPos = pos.offset(facing);
+        frontState = world.getBlockState(frontPos);
+    }
+
+    if (frontState != nullptr && frontState->isOpaqueCube(world, frontPos)) {
+        facing = getOpposite(facing);
     }
 
     return &defaultState->with(BlockStateProperties::HORIZONTAL_FACING(), facing);
