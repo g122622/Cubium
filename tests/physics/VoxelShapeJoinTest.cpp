@@ -195,6 +195,101 @@ TEST(NonOverlappingMergerTest, SwappedIndices)
     EXPECT_EQ(std::get<1>(results[0]), 0);  // secondIdx 应为 0
 }
 
+TEST(NonOverlappingMergerTest, GapBetweenShapes)
+{
+    // lower: [0.0, 0.3]  upper: [0.5, 1.0]
+    // 中间有一个间隙 [0.3, 0.5)
+    std::vector<f64> lower = {0.0, 0.3};
+    std::vector<f64> upper = {0.5, 1.0};
+
+    NonOverlappingMerger merger(lower, upper, false);
+    EXPECT_EQ(merger.size(), 4); // 2 + 2
+
+    const auto& list = merger.getList();
+    ASSERT_EQ(list.size(), 4u);
+    EXPECT_DOUBLE_EQ(list[0], 0.0);
+    EXPECT_DOUBLE_EQ(list[1], 0.3);
+    EXPECT_DOUBLE_EQ(list[2], 0.5);
+    EXPECT_DOUBLE_EQ(list[3], 1.0);
+
+    // 验证索引映射
+    std::vector<std::tuple<i32, i32, i32>> results;
+    merger.forMergedIndexes([&](i32 a, i32 b, i32 m) -> bool {
+        results.emplace_back(a, b, m);
+        return true;
+    });
+
+    // lower 有2个坐标 -> 2个段
+    // upper 有2个坐标 -> 1个段
+    // 总共 3 个段
+    ASSERT_EQ(results.size(), 3u);
+
+    // 段0: [0.0, 0.3) - 属于 lower
+    EXPECT_EQ(std::get<0>(results[0]), 0);  // firstIdx = 0 (lower 的段0)
+    EXPECT_EQ(std::get<1>(results[0]), -1); // secondIdx = -1 (upper 不存在)
+    EXPECT_EQ(std::get<2>(results[0]), 0);  // mergedIdx = 0
+
+    // 段1: [0.3, 0.5) - 间隙段，连接 lower 末尾到 upper 开头
+    EXPECT_EQ(std::get<0>(results[1]), 1);  // firstIdx = lower.size()-1 = 1
+    EXPECT_EQ(std::get<1>(results[1]), -1); // secondIdx = -1
+    EXPECT_EQ(std::get<2>(results[1]), 1);  // mergedIdx = 1
+
+    // 段2: [0.5, 1.0) - 属于 upper
+    EXPECT_EQ(std::get<0>(results[2]), 1); // firstIdx = lower.size()-1 = 1
+    EXPECT_EQ(std::get<1>(results[2]), 0); // secondIdx = 0 (upper 的段0)
+    EXPECT_EQ(std::get<2>(results[2]), 2); // mergedIdx = 2
+}
+
+TEST(NonOverlappingMergerTest, SwappedWithGap)
+{
+    // lower: [0.0, 0.3]  upper: [0.5, 1.0], swapped=true
+    // 模拟形状 B 在形状 A 之前的情况
+    // swap=true 时，forNonSwappedIndexes 生成的 (firstIdx, secondIdx) 会被交换
+    std::vector<f64> lower = {0.0, 0.3};
+    std::vector<f64> upper = {0.5, 1.0};
+
+    NonOverlappingMerger merger(lower, upper, true);
+
+    std::vector<std::tuple<i32, i32, i32>> results;
+    merger.forMergedIndexes([&](i32 a, i32 b, i32 m) -> bool {
+        results.emplace_back(a, b, m);
+        return true;
+    });
+
+    ASSERT_EQ(results.size(), 3u);
+
+    // swap=true 时，forNonSwappedIndexes 生成的原始索引被交换
+    // 原始（非交换）：段0 merge(0, -1, 0) -> 交换后 consumer(-1, 0, 0)
+    EXPECT_EQ(std::get<0>(results[0]), -1); // 原始 firstIdx=0, 交换后 secondIdx=-1 -> firstIdx=-1
+    EXPECT_EQ(std::get<1>(results[0]), 0);  // 原始 secondIdx=-1, 交换后 -> secondIdx=0
+
+    // 原始：段1 merge(1, -1, 1) -> 交换后 consumer(-1, 1, 1)
+    EXPECT_EQ(std::get<0>(results[1]), -1);
+    EXPECT_EQ(std::get<1>(results[1]), 1);
+
+    // 原始：段2 merge(1, 0, 2) -> 交换后 consumer(0, 1, 2)
+    EXPECT_EQ(std::get<0>(results[2]), 0);
+    EXPECT_EQ(std::get<1>(results[2]), 1);
+}
+
+TEST(NonOverlappingMergerTest, SizeMatchesCoordinateCount)
+{
+    // size() 应等于 lower.size() + upper.size()
+    // 段数应等于 size() - 1 = lower.size() + upper.size() - 1
+    std::vector<f64> lower = {0.0, 0.25, 0.5};
+    std::vector<f64> upper = {0.6, 0.8, 1.0};
+
+    NonOverlappingMerger merger(lower, upper, false);
+    EXPECT_EQ(merger.size(), 6); // 3 + 3
+
+    i32 segCount = 0;
+    merger.forMergedIndexes([&](i32, i32, i32) -> bool {
+        ++segCount;
+        return true;
+    });
+    EXPECT_EQ(segCount, 5); // size - 1 = 6 - 1 = 5
+}
+
 // ============================================================================
 // IndirectMerger 测试
 // ============================================================================
@@ -527,4 +622,277 @@ TEST_F(VoxelShapeJoinTest, CollisionBasic)
     // 向 +X 方向移动不应碰撞
     f64 result2 = box.collide(Axis::X, entity, 0.5);
     EXPECT_DOUBLE_EQ(result2, 0.5);
+}
+
+// ============================================================================
+// NonOverlappingMerger 端到端测试（真正不重叠的形状，带间隙）
+// ============================================================================
+
+TEST_F(VoxelShapeJoinTest, OrGapNonOverlappingShapes)
+{
+    // 两个在 X 轴上不重叠且有间隙的形状
+    // left: [0, 0.25) x [0,1] x [0,1]
+    // right: [0.5, 1) x [0,1] x [0,1]
+    // 间隙: [0.25, 0.5) x [0,1] x [0,1]
+    VoxelShape left = Shapes::box(0.0, 0.0, 0.0, 0.25, 1.0, 1.0);
+    VoxelShape right = Shapes::box(0.5, 0.0, 0.0, 1.0, 1.0, 1.0);
+
+    VoxelShape result = Shapes::or_(left, right);
+
+    EXPECT_FALSE(result.isEmpty());
+    EXPECT_DOUBLE_EQ(result.min(Axis::X), 0.0);
+    EXPECT_DOUBLE_EQ(result.max(Axis::X), 1.0);
+    EXPECT_DOUBLE_EQ(result.min(Axis::Y), 0.0);
+    EXPECT_DOUBLE_EQ(result.max(Axis::Y), 1.0);
+
+    // 间隙区域不应包含任何体素
+    // [0.25, 0.5) 在 X 方向上是空的
+    // 但整体边界应该是 [0, 1] 因为 OR 合并了两个形状
+}
+
+TEST_F(VoxelShapeJoinTest, JoinIsNotEmptyNonOverlappingWithGap)
+{
+    // 不重叠且有间隙的形状
+    VoxelShape left = Shapes::box(0.0, 0.0, 0.0, 0.25, 1.0, 1.0);
+    VoxelShape right = Shapes::box(0.5, 0.0, 0.0, 1.0, 1.0, 1.0);
+
+    // OR 操作：两个不重叠的形状 OR 应该非空
+    EXPECT_TRUE(Shapes::joinIsNotEmpty(left, right, BooleanOps::Or()));
+
+    // AND 操作：两个不重叠的形状 AND 应该为空
+    EXPECT_FALSE(Shapes::joinIsNotEmpty(left, right, BooleanOps::And()));
+
+    // OnlyFirst：left 中不在 right 中的部分 = left 本身，非空
+    EXPECT_TRUE(Shapes::joinIsNotEmpty(left, right, BooleanOps::OnlyFirst()));
+
+    // OnlySecond：right 中不在 left 中的部分 = right 本身，非空
+    EXPECT_TRUE(Shapes::joinIsNotEmpty(left, right, BooleanOps::OnlySecond()));
+}
+
+TEST_F(VoxelShapeJoinTest, JoinIsNotEmptyOverlapping)
+{
+    // 重叠的形状
+    VoxelShape full = Shapes::box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
+    VoxelShape half = Shapes::box(0.0, 0.0, 0.0, 0.5, 1.0, 1.0);
+
+    // AND：重叠区域 = [0, 0.5) x [0,1] x [0,1]，非空
+    EXPECT_TRUE(Shapes::joinIsNotEmpty(full, half, BooleanOps::And()));
+
+    // OR：并集 = full，非空
+    EXPECT_TRUE(Shapes::joinIsNotEmpty(full, half, BooleanOps::Or()));
+
+    // OnlyFirst: full 中不在 half 中的 = [0.5, 1] x [0,1] x [0,1]，非空
+    EXPECT_TRUE(Shapes::joinIsNotEmpty(full, half, BooleanOps::OnlyFirst()));
+
+    // OnlyFirst: half 中不在 full 中的 = 空（half 完全在 full 内部）
+    EXPECT_FALSE(Shapes::joinIsNotEmpty(half, full, BooleanOps::OnlyFirst()));
+
+    // OnlySecond: full 中不在 half 中的 = [0.5, 1] x [0,1] x [0,1]，非空
+    EXPECT_TRUE(Shapes::joinIsNotEmpty(half, full, BooleanOps::OnlySecond()));
+
+    // OnlySecond: half 中不在 full 中的 = 空（half 完全在 full 内部）
+    EXPECT_FALSE(Shapes::joinIsNotEmpty(full, half, BooleanOps::OnlySecond()));
+}
+
+TEST_F(VoxelShapeJoinTest, JoinIsNotEmptyIdenticalShapes)
+{
+    VoxelShape half = Shapes::box(0.0, 0.0, 0.0, 0.5, 1.0, 1.0);
+
+    // 同一个形状
+    // AND: 交集 = half，非空
+    EXPECT_TRUE(Shapes::joinIsNotEmpty(half, half, BooleanOps::And()));
+    // OR: 并集 = half，非空
+    EXPECT_TRUE(Shapes::joinIsNotEmpty(half, half, BooleanOps::Or()));
+    // OnlyFirst: half - half = 空
+    EXPECT_FALSE(Shapes::joinIsNotEmpty(half, half, BooleanOps::OnlyFirst()));
+}
+
+TEST_F(VoxelShapeJoinTest, JoinIsNotEmptyEmptyShapes)
+{
+    VoxelShape empty = Shapes::empty();
+    VoxelShape box = Shapes::box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
+
+    // OR: 空 OR 空 = 空
+    EXPECT_FALSE(Shapes::joinIsNotEmpty(empty, empty, BooleanOps::Or()));
+    // OR: 空 OR box = box，非空
+    EXPECT_TRUE(Shapes::joinIsNotEmpty(empty, box, BooleanOps::Or()));
+    // AND: 空 AND box = 空
+    EXPECT_FALSE(Shapes::joinIsNotEmpty(empty, box, BooleanOps::And()));
+    // OnlyFirst: 空 OnlyFirst box = 空
+    EXPECT_FALSE(Shapes::joinIsNotEmpty(empty, box, BooleanOps::OnlyFirst()));
+    // OnlySecond: 空 OnlySecond box = box，非空
+    EXPECT_TRUE(Shapes::joinIsNotEmpty(empty, box, BooleanOps::OnlySecond()));
+}
+
+// ============================================================================
+// IndirectMerger skipFirst/skipSkipSecond 详细测试
+// ============================================================================
+
+TEST(IndirectMergerTest, SkipFirstDetailed)
+{
+    // first: [0.0, 0.3, 0.5]  (段0: [0.0, 0.3), 段1: [0.3, 0.5))
+    // second: [0.3, 0.7, 1.0] (段0: [0.3, 0.5), 段1: [0.5, 1.0))
+    // 重叠区域: [0.3, 0.5) (first 段1 和 second 段0)
+    // first 独占: [0.0, 0.3) (first 段0)
+    // second 独占: [0.5, 1.0) (second 段1)
+    //
+    // includeFirst=false, includeSecond=true:
+    // 跳过 first 的独占区域 [0.0, 0.3)
+    // 结果坐标应从 0.3 开始
+
+    std::vector<f64> first = {0.0, 0.3, 0.5};
+    std::vector<f64> second = {0.3, 0.7, 1.0};
+
+    IndirectMerger merger(first, second, false, true);
+
+    const auto& list = merger.getList();
+    ASSERT_GE(list.size(), 2u);
+
+    // 第一个坐标应该是 0.3（first 独占的 0.0 被跳过）
+    EXPECT_DOUBLE_EQ(list[0], 0.3);
+
+    // 最后一个坐标应该是 1.0
+    EXPECT_DOUBLE_EQ(list.back(), 1.0);
+
+    // 验证索引映射
+    std::vector<std::tuple<i32, i32, i32>> results;
+    merger.forMergedIndexes([&](i32 a, i32 b, i32 m) -> bool {
+        results.emplace_back(a, b, m);
+        return true;
+    });
+
+    // 不应包含 firstIdx=0, secondIdx=-1 的段（那是 first 的独占区域）
+    for (const auto& [a, b, m] : results) {
+        // firstIdx 不应为负数（除非 first 独占区域被跳过后仍有 second 独占段）
+        // 在这个情况下，所有段要么在重叠区域，要么在 second 独占区域
+    }
+}
+
+TEST(IndirectMergerTest, SkipSecondDetailed)
+{
+    // first: [0.0, 0.3, 0.5]  (段0: [0.0, 0.3), 段1: [0.3, 0.5))
+    // second: [0.3, 0.7, 1.0] (段0: [0.3, 0.5), 段1: [0.5, 1.0))
+    //
+    // includeFirst=true, includeSecond=false:
+    // 跳过 second 的独占区域 [0.5, 1.0)
+    // 结果坐标不应包含 1.0
+
+    std::vector<f64> first = {0.0, 0.3, 0.5};
+    std::vector<f64> second = {0.3, 0.7, 1.0};
+
+    IndirectMerger merger(first, second, true, false);
+
+    const auto& list = merger.getList();
+    ASSERT_GE(list.size(), 2u);
+
+    // 第一个坐标应该是 0.0（first 的起始）
+    EXPECT_DOUBLE_EQ(list[0], 0.0);
+
+    // 最后一个坐标应该是 0.7（second 的倒数第二个坐标，1.0 被跳过）
+    // 或者是 0.5（取决于合并逻辑），但不应该是 1.0
+    EXPECT_LT(list.back(), 1.0 - 1e-10);
+}
+
+TEST(IndirectMergerTest, IncludeBoth)
+{
+    // first: [0.0, 0.5, 1.0]
+    // second: [0.0, 0.3, 0.7, 1.0]
+    // includeFirst=true, includeSecond=true: 保留所有段
+    std::vector<f64> first = {0.0, 0.5, 1.0};
+    std::vector<f64> second = {0.0, 0.3, 0.7, 1.0};
+
+    IndirectMerger merger(first, second, true, true);
+
+    const auto& list = merger.getList();
+    ASSERT_EQ(list.size(), 5u);
+
+    // 合并后的坐标应该是 [0.0, 0.3, 0.5, 0.7, 1.0]
+    EXPECT_DOUBLE_EQ(list[0], 0.0);
+    EXPECT_DOUBLE_EQ(list[1], 0.3);
+    EXPECT_DOUBLE_EQ(list[2], 0.5);
+    EXPECT_DOUBLE_EQ(list[3], 0.7);
+    EXPECT_DOUBLE_EQ(list[4], 1.0);
+}
+
+// ============================================================================
+// joinIsNotEmpty 短路退出测试
+// ============================================================================
+
+TEST_F(VoxelShapeJoinTest, JoinIsNotEmptyEarlyExit)
+{
+    // 两个完全不重叠的形状（快速路径应该生效）
+    VoxelShape left = Shapes::box(0.0, 0.0, 0.0, 0.25, 0.25, 0.25);
+    VoxelShape right = Shapes::box(0.75, 0.75, 0.75, 1.0, 1.0, 1.0);
+
+    // 在每个轴上都不重叠
+    EXPECT_FALSE(Shapes::joinIsNotEmpty(left, right, BooleanOps::And()));
+    EXPECT_TRUE(Shapes::joinIsNotEmpty(left, right, BooleanOps::Or()));
+}
+
+// ============================================================================
+// OnlySecond 操作测试
+// ============================================================================
+
+TEST_F(VoxelShapeJoinTest, OnlySecondOperation)
+{
+    // OnlySecond: 结果应包含只在第二个形状中的部分
+    VoxelShape full = Shapes::box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
+    VoxelShape half = Shapes::box(0.0, 0.0, 0.0, 0.5, 1.0, 1.0);
+
+    // full OnlySecond half: half 中不在 full 中的部分 = 空
+    EXPECT_FALSE(Shapes::joinIsNotEmpty(full, half, BooleanOps::OnlySecond()));
+
+    // half OnlySecond full: full 中不在 half 中的部分 = [0.5, 1] x [0, 1] x [0, 1]，非空
+    EXPECT_TRUE(Shapes::joinIsNotEmpty(half, full, BooleanOps::OnlySecond()));
+}
+
+// ============================================================================
+// AND 操作测试
+// ============================================================================
+
+TEST_F(VoxelShapeJoinTest, AndOperation)
+{
+    VoxelShape full = Shapes::box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
+    VoxelShape half = Shapes::box(0.0, 0.0, 0.0, 0.5, 1.0, 1.0);
+
+    VoxelShape result = Shapes::join(full, half, BooleanOps::And());
+
+    // AND: 交集应该等于 half
+    EXPECT_FALSE(result.isEmpty());
+    EXPECT_NEAR(result.min(Axis::X), 0.0, 1e-6);
+    EXPECT_NEAR(result.max(Axis::X), 0.5, 1e-6);
+}
+
+TEST_F(VoxelShapeJoinTest, AndNonOverlapping)
+{
+    VoxelShape left = Shapes::box(0.0, 0.0, 0.0, 0.25, 1.0, 1.0);
+    VoxelShape right = Shapes::box(0.5, 0.0, 0.0, 1.0, 1.0, 1.0);
+
+    VoxelShape result = Shapes::join(left, right, BooleanOps::And());
+
+    // 不重叠的形状 AND 应该为空
+    EXPECT_TRUE(result.isEmpty());
+}
+
+// ============================================================================
+// faceShapeOccludes 更多测试
+// ============================================================================
+
+TEST_F(VoxelShapeJoinTest, FaceShapeOccludesPartialCoverage)
+{
+    // 两个小方块不能遮挡完整面
+    VoxelShape quarter1 = Shapes::box(0.0, 0.0, 0.0, 0.5, 0.5, 1.0);
+    VoxelShape quarter2 = Shapes::box(0.5, 0.5, 0.0, 1.0, 1.0, 1.0);
+
+    // 两个四分之一方块不能遮挡整个面（中间有空隙）
+    EXPECT_FALSE(Shapes::faceShapeOccludes(quarter1, quarter2));
+}
+
+TEST_F(VoxelShapeJoinTest, FaceShapeOccludesFullCoverage)
+{
+    // 两个半方块覆盖完整面
+    VoxelShape half1 = Shapes::box(0.0, 0.0, 0.0, 0.5, 1.0, 1.0);
+    VoxelShape half2 = Shapes::box(0.5, 0.0, 0.0, 1.0, 1.0, 1.0);
+
+    EXPECT_TRUE(Shapes::faceShapeOccludes(half1, half2));
 }

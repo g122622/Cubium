@@ -73,8 +73,24 @@ private:
  *
  * 对应 MC Java 版的 NonOverlappingMerger。
  *
- * 索引映射规则（参考 MC Java 版）：
- * - lower 的每个段：firstIdx = 段索引, secondIdx = -1（第二个形状不存在）
+ * 索引映射规则（严格遵循 MC Java 版 NonOverlappingMerger.forNonSwappedIndexes）：
+ * - lower 的每个坐标点 j（0 <= j < lower.size()）产生一个段：
+ *   firstIdx = j, secondIdx = -1, mergedIdx = j
+ *   注意：这产生 lower.size() 个段，比 lower 的实际段数多 1。
+ *   最后一个段（j = lower.size()-1）是从 lower 的最后一个坐标到 upper 的第一个坐标的过渡段。
+ *   对于这个过渡段，firstIdx = lower.size()-1 指向 lower 的最后一个体素，
+ *   但由于 isFullWide 对超出 lower 实际体素范围的索引返回 false，
+ *   这个过渡段在实际布尔运算中会正确地被视为空。
+ *
+ * - upper 的每个段 k（0 <= k < upper.size()-1）产生一个段：
+ *   firstIdx = lower.size()-1, secondIdx = k, mergedIdx = lower.size() + k
+ *   注意：upper 段的 firstIdx = lower.size()-1，这是 MC Java 的设计。
+ *   由于 lower.size()-1 对 lower 来说可能超出实际体素范围，
+ *   isFullWide 会返回 false，使得 upper 段只反映 upper 形状的内容。
+ *
+ * 当 swap=true 时，forMergedIndexes 回调中交换 firstIdx 和 secondIdx 参数，
+ * 这是因为 createIndexMerger 在检测到 b < a 时交换了参数顺序，
+ * 需要在回调中恢复原始的 (a, b) 顺序。
  * - upper 的每个段：firstIdx = lower.size()-1（lower 最后段的索引）, secondIdx = 段索引
  * 当 swap=true 时，forMergedIndexes 交换 firstIdx 和 secondIdx 参数
  */
