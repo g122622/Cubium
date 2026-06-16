@@ -143,5 +143,42 @@ TEST_F(SpreadPlayersCommandTest, SpreadPlayersCommandPermissionLevel)
     }
 }
 
+// ============================================================================
+// under 子命令注册测试
+// ============================================================================
+
+TEST_F(SpreadPlayersCommandTest, UnderSubcommandIsRegistered)
+{
+    // 验证 under 子命令节点已注册到命令树中
+    const auto& registry = m_server.commandRegistry();
+    const auto snapshot = registry.getCommandTreeSnapshot();
+
+    // 查找 maxRange 节点下的子节点应包含 "under"
+    bool foundUnderNode = false;
+    for (const auto& node : snapshot.nodes) {
+        if (node.name == "under") {
+            foundUnderNode = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(foundUnderNode) << "under 子命令应已注册";
+}
+
+TEST_F(SpreadPlayersCommandTest, UnderSubcommandHasMaxHeightArgument)
+{
+    // 验证 under 子命令下有 maxHeight 参数节点
+    const auto& registry = m_server.commandRegistry();
+    const auto snapshot = registry.getCommandTreeSnapshot();
+
+    bool foundMaxHeightArg = false;
+    for (const auto& node : snapshot.nodes) {
+        if (node.name == "maxHeight") {
+            foundMaxHeightArg = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(foundMaxHeightArg) << "under 子命令下应有 maxHeight 参数";
+}
+
 } // namespace command
 } // namespace mc

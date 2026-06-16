@@ -53,6 +53,8 @@ namespace command {
 namespace {
 
 /// 计算需要分散的位置数量（尊重队伍时，按队伍数计算；否则按实体数计算）
+/// TODO: 当支持 EntityArgumentType::entities() 后，非玩家实体应统一归入 null 队伍，
+///       当前仅支持玩家选择器，无法区分玩家和非玩家的队伍归属
 i32 _getNumberOfTeams(server::IServer& server, const std::vector<std::string>& playerNames)
 {
     // 收集不同的队伍（nullptr 算作一支独立的"无队伍"）
@@ -69,6 +71,7 @@ i32 _getNumberOfTeams(server::IServer& server, const std::vector<std::string>& p
 
 /// 将分散后的位置应用到玩家/实体
 /// 返回所有玩家到最近分散点的最小距离的平均值
+/// TODO: 传送时应保留实体的 Y 旋转和 X 旋转，当前仅传送位置
 f64 _setPlayerPositions(server::IServer& server,
     server::ServerWorld& world,
     const std::vector<PlayerId>& playerIds,
@@ -292,17 +295,6 @@ void SpreadPlayersCommand::registerTo(CommandDispatcher<ServerCommandSource>& di
     spreadNode->addChild(centerArg);
 
     dispatcher.registerCommand(spreadNode);
-}
-
-// ============================================================================
-// 命令执行（旧接口，保留兼容）
-// ============================================================================
-
-i32 SpreadPlayersCommand::_spreadPlayers(CommandContext<ServerCommandSource>& context)
-{
-    auto* world = context.getSource().world();
-    i32 maxHeight = (world != nullptr) ? world->getMaxBuildHeight() : world::MAX_BUILD_HEIGHT;
-    return spreadPlayersImpl(context, maxHeight);
 }
 
 } // namespace command

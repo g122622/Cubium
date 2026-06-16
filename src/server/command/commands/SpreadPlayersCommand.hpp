@@ -33,15 +33,18 @@ namespace command {
 /**
  * @brief SpreadPlayersCommand - 随机分散玩家
  *
- * 用法: /spreadplayers <center> <spreadDistance> <maxRange> <respectTeams> <targets>
+ * 用法:
+ *   /spreadplayers <center> <spreadDistance> <maxRange> <respectTeams> <targets>
+ *   /spreadplayers <center> <spreadDistance> <maxRange> under <maxHeight> <respectTeams> <targets>
+ *
  * 权限: 2 (游戏管理员)
+ *
+ * center 使用 Vec3ArgumentType 解析（TODO: 应改用 Vec2ArgumentType 仅解析 x, z）
+ * under 子命令允许指定分散的最大高度，默认使用世界的最高建筑高度
  */
 class SpreadPlayersCommand {
 public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
-
-private:
-    static i32 _spreadPlayers(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

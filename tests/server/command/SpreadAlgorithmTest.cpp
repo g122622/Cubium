@@ -516,6 +516,64 @@ TEST_F(SpreadAlgorithmTest, GetSpawnYNoChunk)
     EXPECT_EQ(spawnY, 101);
 }
 
+// ============================================================================
+// 动态高度方法测试（getMinBuildHeight / getMaxBuildHeight）
+// ============================================================================
+
+TEST_F(SpreadAlgorithmTest, GetSpawnYUsesDynamicMinHeight)
+{
+    // SpreadTestWorld 继承自 BaseChunkBackedTestWorld，默认 getMinBuildHeight 返回
+    // world::MIN_BUILD_HEIGHT (-64)。getSpawnY 从 maxHeight+1 向下搜索到
+    // getMinBuildHeight()。验证在空区块中，getSpawnY 返回 maxHeight + 1
+    // （因为从 maxHeight+1 到 MIN_BUILD_HEIGHT 都是空气）
+    SpreadPosition pos{17.0, 5.0}; // 未创建区块的位置
+    i32 spawnY = pos.getSpawnY(m_world, 100);
+    EXPECT_EQ(spawnY, 101); // 全空气，返回 maxHeight + 1
+}
+
+TEST_F(SpreadAlgorithmTest, GetSpawnYWithCustomMaxHeight)
+{
+    // 使用较小的 maxHeight（模拟 under 子命令指定的高度）
+    // 在 Y=63 有石头地面，maxHeight=80 时应找到 Y=64 的站立位
+    SpreadPosition pos{5.0, 5.0};
+    i32 spawnY = pos.getSpawnY(m_world, 80);
+    EXPECT_EQ(spawnY, 64); // Y=63 石头地面，Y=64,65 空气 -> 站立位 Y=64
+}
+
+TEST_F(SpreadAlgorithmTest, GetSpawnYWithVeryLowMaxHeight)
+{
+    // maxHeight 低于地面高度时，spawnY 应等于 maxHeight + 1（找不到站立位）
+    // 地面在 Y=63，maxHeight=50 时，搜索范围 [51, 50+1=51] 全是空气
+    SpreadPosition pos{5.0, 5.0};
+    i32 spawnY = pos.getSpawnY(m_world, 50);
+    EXPECT_EQ(spawnY, 51); // maxHeight+1，没有找到合适的站立位
+}
+
+TEST_F(SpreadAlgorithmTest, IsSafeWithCustomMaxHeight)
+{
+    // 使用自定义 maxHeight 验证 isSafe 行为
+    SpreadPosition pos{5.0, 5.0};
+    // maxHeight=100，地面在 Y=63 -> spawnY=64 -> 64 < 100 -> 安全
+    EXPECT_TRUE(pos.isSafe(m_world, 100));
+}
+
+TEST_F(SpreadAlgorithmTest, SpreadPositionsCustomMaxHeight)
+{
+    // 使用自定义 maxHeight 进行分散，验证分散算法正确工作
+    auto positions = createInitialPositions(m_rng, 2, 0.0, 0.0, 100.0, 100.0);
+    f64 minDist = 0.0;
+    bool success = spreadPositions(5.0, m_world, m_rng, 0.0, 0.0, 100.0, 100.0, 80, positions, minDist);
+    EXPECT_TRUE(success);
+    EXPECT_GE(minDist, 0.0);
+}
+
+TEST_F(SpreadAlgorithmTest, IWorldDefaultHeightMethods)
+{
+    // 验证 IWorld 默认的 getMinBuildHeight/getMaxBuildHeight 返回正确的常量值
+    EXPECT_EQ(m_world.getMinBuildHeight(), world::MIN_BUILD_HEIGHT);
+    EXPECT_EQ(m_world.getMaxBuildHeight(), world::MAX_BUILD_HEIGHT);
+}
+
 } // namespace
 } // namespace support
 } // namespace command
