@@ -23,6 +23,7 @@
 
 #include "BlockItemRegistry.hpp"
 
+#include "GameMasterBlockItem.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -734,6 +735,45 @@ void BlockItemRegistry::initializeVanillaBlockItems()
         registerWallBanner(VanillaBlocks::GREEN_WALL_BANNER, VanillaBlocks::GREEN_BANNER);
         registerWallBanner(VanillaBlocks::RED_WALL_BANNER, VanillaBlocks::RED_BANNER);
         registerWallBanner(VanillaBlocks::BLACK_WALL_BANNER, VanillaBlocks::BLACK_BANNER);
+    }
+
+    // 游戏管理员方块 - 需要创造模式 + OP等级>=2 才能放置和破坏
+    // 这些方块使用 GameMasterBlockItem 替代普通 BlockItem，
+    // 在放置时检查玩家 canUseGameMasterBlocks() 权限
+    {
+        auto registerGameMasterBlock = [this](Block* block, const std::string& name) {
+            if (block == nullptr) {
+                spdlog::warn("GameMaster block '{}' is null, skipping", name);
+                return;
+            }
+
+            const ResourceLocation& blockLoc = block->blockLocation();
+            ResourceLocation itemLoc(blockLoc.namespace_(), blockLoc.path());
+
+            BlockItem* registeredItem = nullptr;
+            Item* existingItem = ItemRegistry::instance().getItem(itemLoc);
+            if (existingItem != nullptr) {
+                registeredItem = dynamic_cast<BlockItem*>(existingItem);
+                if (registeredItem == nullptr) {
+                    spdlog::warn("Item '{}' already exists but is not a BlockItem, skipping", itemLoc.toString());
+                    return;
+                }
+            } else {
+                registeredItem = &ItemRegistry::instance().registerItem<GameMasterBlockItem>(
+                    itemLoc, *block, ItemProperties().maxStackSize(64));
+            }
+
+            // 存储映射关系
+            u32 blockId = block->blockId();
+            ItemId itemId = registeredItem->itemId();
+            m_blockToItem[blockId] = registeredItem;
+            m_itemToBlock[itemId] = block;
+            m_itemIdToBlockItem[itemId] = registeredItem;
+        };
+
+        registerGameMasterBlock(VanillaBlocks::STRUCTURE_BLOCK, "structure_block");
+        registerGameMasterBlock(VanillaBlocks::JIGSAW, "jigsaw");
+        registerGameMasterBlock(VanillaBlocks::BARRIER, "barrier");
     }
 
     m_initialized = true;

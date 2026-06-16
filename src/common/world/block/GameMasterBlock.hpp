@@ -1,0 +1,44 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#pragma once
+
+namespace mc {
+
+/**
+ * @brief 游戏管理员方块标记接口
+ *
+ * 标记接口，用于标识需要管理员权限才能破坏的方块。
+ * 实现此接口的方块在破坏时需要检查玩家的 canUseGameMasterBlocks() 权限。
+ *
+ * 对应的放置权限由 GameMasterBlockItem 控制（重写 getStateForPlacement），
+ * 而破坏权限则通过此接口在破坏逻辑中检查。
+ *
+ * 参考: net.minecraft.world.level.block.GameMasterBlock
+ */
+class GameMasterBlock {
+public:
+    virtual ~GameMasterBlock() = default;
+};
+
+} // namespace mc

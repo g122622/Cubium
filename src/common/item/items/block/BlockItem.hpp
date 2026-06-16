@@ -36,12 +36,12 @@ namespace mc {
  * 继承自 Item 类，用于处理方块的放置。
  * 每个 BlockItem 与一个 Block 关联。
  *
- * TODO: 实现 GameMasterBlockItem 子类，限制命令方块、结构方块、拼图方块等的放置权限。
- * MC Java 中 GameMasterBlockItem 覆盖 getPlacementState()，当玩家没有
- * canUseGameMasterBlocks() 权限时返回 null，阻止放置。当前所有方块物品
- * 都使用普通 BlockItem 注册，缺少此权限检查。
+ * 子类：
+ * - GameMasterBlockItem：限制管理员方块的放置权限（命令方块、结构方块等）
+ * - WallOrFloorItem：支持地面和墙壁两种放置方式（告示牌、旗帜等）
+ * - BannerItem：旗帜物品，支持颜色信息
  *
- * 参考: net.minecraft.item.GameMasterBlockItem
+ * 参考: net.minecraft.item.BlockItem
  */
 class BlockItem : public Item {
 public:

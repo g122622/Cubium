@@ -438,6 +438,7 @@ add_library(mc_common STATIC
     # Item System - Block Items
     item/items/block/BlockItem.cpp
     item/items/block/BlockItemRegistry.cpp
+    item/items/block/GameMasterBlockItem.cpp
     item/items/block/WallOrFloorItem.cpp
     item/items/block/BannerItem.cpp
 

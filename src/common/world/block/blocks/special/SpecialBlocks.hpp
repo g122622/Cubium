@@ -26,6 +26,7 @@
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
+#include "../../GameMasterBlock.hpp"
 #include "../../Material.hpp"
 #include <memory>
 
@@ -101,7 +102,7 @@ public:
  * 状态属性：
  * - MODE: 结构方块模式 (SAVE, LOAD, CORNER, DATA)
  */
-class StructureBlock : public Block {
+class StructureBlock : public Block, public GameMasterBlock {
 public:
     /// 结构方块模式别名，使用 BlockStateProperties 中定义的 StructureMode
     using Mode = BlockStateProperties::StructureMode;
@@ -149,7 +150,7 @@ public:
  * 状态属性：
  * - ORIENTATION: 方向 (DOWN_EAST, DOWN_NORTH, ..., UP_WEST)
  */
-class JigsawBlock : public Block {
+class JigsawBlock : public Block, public GameMasterBlock {
 public:
     explicit JigsawBlock(const BlockProperties& properties);
     ~JigsawBlock() override = default;
@@ -180,7 +181,7 @@ public:
  * - CONDITIONAL: 是否有条件
  * - POWERED: 是否被激活
  */
-class CommandBlock : public Block {
+class CommandBlock : public Block, public GameMasterBlock {
 public:
     explicit CommandBlock(const BlockProperties& properties);
     ~CommandBlock() override = default;

@@ -130,13 +130,16 @@ ActionResultType StructureBlock::onBlockActivated(const BlockState& state,
     Hand hand,
     const BlockRaycastResult& hit)
 {
-
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
-    MC_UNUSED(player);
     MC_UNUSED(hand);
     MC_UNUSED(hit);
+
+    // 游戏管理员方块需要权限才能交互
+    if (!player.canUseGameMasterBlocks()) {
+        return ActionResultType::Fail;
+    }
 
     // TODO: 打开结构方块界面
     return ActionResultType::Success;
@@ -188,13 +191,16 @@ ActionResultType JigsawBlock::onBlockActivated(const BlockState& state,
     Hand hand,
     const BlockRaycastResult& hit)
 {
-
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
-    MC_UNUSED(player);
     MC_UNUSED(hand);
     MC_UNUSED(hit);
+
+    // 游戏管理员方块需要权限才能交互
+    if (!player.canUseGameMasterBlocks()) {
+        return ActionResultType::Fail;
+    }
 
     // TODO: 打开拼图方块界面
     return ActionResultType::Success;
@@ -337,9 +343,13 @@ ActionResultType CommandBlock::onBlockActivated(const BlockState& state,
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
-    MC_UNUSED(player);
     MC_UNUSED(hand);
     MC_UNUSED(hit);
+
+    // 游戏管理员方块需要权限才能交互
+    if (!player.canUseGameMasterBlocks()) {
+        return ActionResultType::Fail;
+    }
 
     // TODO: 打开命令方块界面
     return ActionResultType::Success;
