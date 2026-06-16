@@ -212,3 +212,39 @@ if (distSq < 49.0f) { }  // 7 * 7 = 49
 **解决**：
 - `mobGriefing = true`：破坏虫蚀方块并生成蠹虫
 - `mobGriefing = false`：只将虫蚀方块转换为原版方块，不生成蠹虫
+
+### 11. 史莱姆攻击目标的创造/旁观者检查
+
+**问题**：史莱姆攻击目标未检查玩家游戏模式，导致创造/旁观者玩家也被追击。
+
+**解决**：`SlimeAttackGoal::shouldExecute()` 需要使用 `dynamic_cast<Player*>(target)` 检查目标是否为玩家，并检查 `isCreative()` 或 `isSpectator()`，如果是则不执行攻击。
+
+```cpp
+auto* targetPlayer = dynamic_cast<Player*>(target);
+if (targetPlayer != nullptr && (targetPlayer->isCreative() || targetPlayer->isSpectator())) {
+    return false;
+}
+```
+
+### 12. 史莱姆随机转向目标的漂浮效果检查
+
+**问题**：有漂浮效果的史莱姆在空中不会随机转向，导致漂浮时行为不自然。
+
+**解决**：`SlimeFaceRandomGoal::shouldExecute()` 需要检查 `hasEffect(EffectType::Levitation)`，与 MC 一致：
+
+```cpp
+return m_slime->onGround() || m_slime->isInWater() || m_slime->isInLava() ||
+    m_slime->hasEffect(entity::effect::EffectType::Levitation);
+```
+
+### 13. 美西螈装死时给予再生效果
+
+**问题**：美西螈装死时不给予再生效果，缺少 MC 原版的生存优势。
+
+**解决**：`AxolotlPlayDeadGoal::startExecuting()` 中添加 `addEffect(EffectInstance(EffectType::Regeneration, 200))`，给予 Regeneration I 效果 200 ticks (10秒)。
+
+### 14. 烈焰人火球发射音效
+
+**问题**：烈焰人发射火球时缺少音效事件通知。
+
+**解决**：`BlazeFireballAttackGoal::_performFireballAttack()` 中在 `spawnEntity` 前添加 `world->playEvent(WorldEvents::BLAZE_SHOOT_SOUND, ...)` 播放音效事件 (ID 1018)。

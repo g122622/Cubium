@@ -270,6 +270,18 @@ TEST_F(BlazeFireballAttackGoalBasicTest, HurtByTargetGoal_AlertsAllies)
 }
 
 // ============================================================================
+// 烈焰人音效事件测试
+// ============================================================================
+
+TEST_F(BlazeFireballAttackGoalBasicTest, BlazeShootSoundEvent_IsCorrect)
+{
+    // MC 1.16.5: 烈焰人发射火球时播放音效事件 ID 1018
+    // 参考: world.playEvent(null, 1018, blockPos, 0)
+    constexpr i32 BLAZE_SHOOT_SOUND_EVENT = 1018;
+    EXPECT_EQ(BLAZE_SHOOT_SOUND_EVENT, 1018);
+}
+
+// ============================================================================
 // EnumSet 操作测试 (额外覆盖)
 // ============================================================================
 

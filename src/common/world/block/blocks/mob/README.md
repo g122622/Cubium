@@ -54,6 +54,7 @@ Block (基类)
 - **映射注册**：通过 `registerInfestedBlock()` 注册普通方块与虫蚀方块的映射关系
 - **服务端检查**：蠹虫只在服务端生成，需要 `world.isClientSide()` 检查
 - **蠹虫生成逻辑**：通过 `spawnAfterBreak` 实现，检查 `doTileDrops` 游戏规则和精准采集附魔；使用精准采集工具破坏时不生成蠹虫；爆炸破坏时（无工具）正常生成
+- **粒子效果**：蠹虫出现时产生 `ParticleTypeId::Poof` 烟雾粒子效果（调用 `world.addParticle()`），提供视觉反馈
 - **调用路径**：`BlockInteractionManager::handleBlockBreak` → `spawnAfterBreak(tool, true)` → `InfestedBlock::spawnAfterBreak`；爆炸路径 `Explosion::_destroyBlocks` → `spawnAfterBreak(nullptr, false)`；实体破坏路径（末影龙/凋灵/掠夺者/蠹虫苏醒/活塞/命令setblock/fill）均调用 `spawnAfterBreak(nullptr, false)`
 - **不调用 spawnAfterBreak 的路径**：流体冲刷（WaterFluid/LavaFluid）、火焰烧毁（FireBlock）、/clone move 命令——MC Java 中这些路径不调用 spawnAfterBreak
 

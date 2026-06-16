@@ -481,6 +481,8 @@ add_executable(mc_tests
     # PandaGoals 熊猫打滚 AI 目标测试
     common/entity/ai/goal/goals/special/PandaGoalsTest.cpp
     common/entity/ai/goal/goals/special/SilverfishGoalsTest.cpp
+    # AxolotlGoals 美西螈 AI 目标测试
+    common/entity/ai/goal/goals/special/AxolotlGoalsTest.cpp
     # DolphinGoals 海豚 AI 目标测试
     common/entity/ai/goal/goals/special/DolphinGoalsTest.cpp
     # WanderingTraderGoals 流浪商人 AI 目标测试
@@ -657,6 +659,7 @@ add_executable(mc_tests
     # 绾㈢煶鏂瑰潡娴嬭瘯
     common/world/block/test_redstone_blocks.cpp
     common/world/block/InfestedBlockTest.cpp
+    common/world/block/blocks/building/StairsBlockTest.cpp
     common/world/block/blocks/redstone/NoteBlockTest.cpp
     common/world/block/blocks/redstone/TNTBlockTest.cpp
     common/world/block/blocks/redstone/PistonBlockTest.cpp
