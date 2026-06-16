@@ -132,10 +132,23 @@ public:
     /**
      * @brief 检查指定位置是否可以看到天空
      *
+     * 没有天空光照的维度（下界、末地）始终返回 false。
+     * 有天空光照的维度中，只有天空光照达到最大值 15 时才返回 true。
+     *
      * @param pos 方块位置
      * @return 如果该位置可以看到天空返回 true
      */
     [[nodiscard]] bool canSeeSky(const BlockPos& pos) const;
+
+    /**
+     * @brief 检查当前维度是否有天空光照
+     *
+     * 只有主世界（维度 ID 0）有天空光照。
+     * 下界和末地没有天空光照，canSeeSky 始终返回 false。
+     *
+     * @return 如果当前维度有天空光照返回 true
+     */
+    [[nodiscard]] bool hasSkyLight() const { return m_dimensionId == 0; }
 
     void forEachChunk(std::function<void(const ChunkId&, ClientChunk&)> func);
     void forEachDirtyMesh(std::function<void(const ChunkId&, ClientChunk&)> func);

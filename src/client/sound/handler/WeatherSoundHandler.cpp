@@ -42,16 +42,16 @@ constexpr i32 THUNDER_MIN_DELAY = 100; // 5秒
 /// 雷声最大间隔（ticks）
 constexpr i32 THUNDER_MAX_DELAY = 600; // 30秒
 
-/// WEATHER_RAIN 音量（对齐 MC 原版 WeatherEffectRenderer）
+/// WEATHER_RAIN 音量
 constexpr f32 RAIN_VOLUME = 0.2f;
 
 /// WEATHER_RAIN 音调
 constexpr f32 RAIN_PITCH = 1.0f;
 
-/// WEATHER_RAIN_ABOVE 音量（对齐 MC 原版：闷雨声音量为正常雨声的一半）
+/// WEATHER_RAIN_ABOVE 音量（闷雨声音量为正常雨声的一半）
 constexpr f32 RAIN_ABOVE_VOLUME = 0.1f;
 
-/// WEATHER_RAIN_ABOVE 音调（对齐 MC 原版：闷雨声音调为正常雨声的一半）
+/// WEATHER_RAIN_ABOVE 音调（闷雨声音调为正常雨声的一半）
 constexpr f32 RAIN_ABOVE_PITCH = 0.5f;
 } // namespace
 

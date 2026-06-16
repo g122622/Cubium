@@ -6,7 +6,7 @@
 
 ```text
 src/client/world/
-├── ClientWorld.hpp/cpp                 # 客户端世界核心管理器（区块同步、网格调度、天气时间）
+├── ClientWorld.hpp/cpp                 # 客户端世界核心管理器（区块同步、网格调度、天气时间、高度图查询）
 ├── ClientWeather.hpp                   # 天气插值状态（雨强、雷强、闪电闪烁）
 ├── ClientMapDataCache.hpp/cpp          # 地图数据缓存
 ├── color/                              # 生物群系颜色解析与混合
@@ -124,3 +124,6 @@ EntityRenderer 系列    # 读取 ClientEntity 的插值位置和动画状态渲
 - **固定 Tick 累加器防止螺旋死亡**：`fixedTick()` 有 `MAX_TICKS_PER_FRAME = 5` 限制，如果帧率过低会丢弃部分 tick。
 - **难度默认值为 Normal**：`ClientWorld::difficulty()` 默认返回 `Difficulty::Normal`，由服务端通过 `ServerDifficulty` 包同步更新。
 - **animateTick 调度**：`ClientWorld::animateTick()` 每帧被调用，执行 667 次迭代 × 2 范围 pass（range=16 近距离 + range=32 远距离），共 1334 次随机采样。采样到有 `animateTick` 覆写的方块时调用该方块的动画方法，用于生成粒子、播放环境音效等。本地音效播放通过 `m_playLocalSoundCallback` 委托给 `AudioService`。客户端启动后未收到难度包前使用默认值。
+- **`canSeeSky()` 含维度检查**：`canSeeSky()` 会先调用 `hasSkyLight()` 检查当前维度是否有天空光照（仅主世界 dimensionId==0 有），非主世界直接返回 false，再基于天空光照判断。
+- **`getTopBlockY()` 支持按类型查询高度图**：`getTopBlockY(HeightmapType, x, z)` 支持按高度图类型（如 `MotionBlocking`、`WorldSurface`）查询，如果指定类型高度图不存在会回退到基本高度图。客户端高度图数据来自网络同步和存档加载。
+- **`getHeight()` 与 `getTopBlockY()` 语义差异**：`getHeight(x, z)` 使用基本高度图（WorldSurface 语义），`getTopBlockY(MotionBlocking, x, z)` 使用运动阻挡高度图，两者结果可能不同（如树叶上方有水时）。

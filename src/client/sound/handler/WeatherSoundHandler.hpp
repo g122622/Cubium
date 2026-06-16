@@ -35,14 +35,14 @@ namespace mc::client::sound {
  *
  * 处理雨天和雷暴时的环境音效。
  *
- * 音效行为（对齐 MC 1.21.11 WeatherEffectRenderer）:
+ * 音效行为:
  * - 户外（canSeeSky=true）时播放 WEATHER_RAIN（音量 0.2，音调 1.0）
  * - 遮挡物下方（canSeeSky=false）时播放 WEATHER_RAIN_ABOVE（音量 0.1，音调 0.5）
  *   模拟从上方隔层传来的闷雨声效果
  * - 雷暴时有概率播放雷声 (WEATHER_THUNDER)
  * - 音量根据天气强度调整
  *
- * MC 原版逻辑:
+ * 雨声类型判断逻辑:
  * 当玩家位置上方有运动阻挡方块（MOTION_BLOCKING 高度图值 > 玩家 Y），
  * 且雨滴落点在玩家上方时，播放 WEATHER_RAIN_ABOVE。
  * 当前使用 canSeeSky（基于天空光照 >= 15）来近似 MOTION_BLOCKING 判断：

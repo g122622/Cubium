@@ -30,6 +30,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/Biome.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -529,9 +530,8 @@ void WeatherRenderer::_generateWeatherGeometry(mc::client::ClientWorld* world)
                     }
                 }
 
-                // 查询地形高度（使用基本高度图 WorldSurface 语义）
-                // TODO: 当客户端高度图完善后，应改用 MotionBlocking 高度图以匹配 MC 原版行为
-                groundY = world->getHeight(x, z);
+                // 查询地形高度（MOTION_BLOCKING 高度图，获取最高阻挡运动方块的Y坐标）
+                groundY = world->getTopBlockY(mc::world::chunk::HeightmapType::MotionBlocking, x, z);
             }
 
             // 高度计算：

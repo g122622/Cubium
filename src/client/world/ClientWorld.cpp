@@ -337,7 +337,7 @@ i32 ClientWorld::getTopBlockY(world::chunk::HeightmapType type, i32 x, i32 z) co
 bool ClientWorld::canSeeSky(const BlockPos& pos) const
 {
     // 没有天空光照的维度（下界、末地）永远看不到天空
-    if (m_dimensionId != 0) { // OVERWORLD
+    if (!hasSkyLight()) {
         return false;
     }
     // 基于天空光照判断，只有天空光照达到最大值 15 时才能看到天空
