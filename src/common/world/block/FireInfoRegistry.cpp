@@ -475,11 +475,41 @@ void FireInfoRegistry::initializeVanillaFireInfos()
     registerFireInfo(PaleGardenBlocks::CREAKING_HEART->blockId(), IGNITE_HARD, BURN_MEDIUM);
 
     // ========================================================================
+    // 甜浆果丛 — ignite=60, burn=100 (MC原版 FireBlock.bootStrap())
+    // ========================================================================
+    registerFireInfo(VegetationBlocks::SWEET_BERRY_BUSH->blockId(), IGNITE_INSTANT, BURN_INSTANT);
+
+    // ========================================================================
+    // 可可豆 — ignite=60, burn=0 (MC原版 FireBlock.bootStrap(), 可被点燃但不蔓延)
+    // ========================================================================
+    registerFireInfo(AgriculturalBlocks::COCOA->blockId(), IGNITE_INSTANT, 0);
+
+    // ========================================================================
+    // 农作物 — ignite=60, burn=0 (MC原版 FireBlock.bootStrap(), 可被点燃但不蔓延)
+    // ========================================================================
+    registerFireInfo(AgriculturalBlocks::WHEAT->blockId(), IGNITE_INSTANT, 0);
+    registerFireInfo(AgriculturalBlocks::CARROTS->blockId(), IGNITE_INSTANT, 0);
+    registerFireInfo(AgriculturalBlocks::POTATOES->blockId(), IGNITE_INSTANT, 0);
+    registerFireInfo(AgriculturalBlocks::BEETROOTS->blockId(), IGNITE_INSTANT, 0);
+
+    // ========================================================================
+    // 南瓜/西瓜茎 — ignite=60, burn=0 (MC原版 FireBlock.bootStrap())
+    // ========================================================================
+    registerFireInfo(VegetationBlocks::PUMPKIN_STEM->blockId(), IGNITE_INSTANT, 0);
+    registerFireInfo(VegetationBlocks::MELON_STEM->blockId(), IGNITE_INSTANT, 0);
+    registerFireInfo(VegetationBlocks::ATTACHED_PUMPKIN_STEM->blockId(), IGNITE_INSTANT, 0);
+    registerFireInfo(VegetationBlocks::ATTACHED_MELON_STEM->blockId(), IGNITE_INSTANT, 0);
+
+    // ========================================================================
+    // 甘蔗 — ignite=60, burn=0 (MC原版 FireBlock.bootStrap(), 可被点燃但不蔓延)
+    // ========================================================================
+    registerFireInfo(NaturalBlocks::SUGAR_CANE->blockId(), IGNITE_INSTANT, 0);
+
+    // ========================================================================
     // TODO: 以下方块尚未在 VanillaBlocks 中注册指针，待对应方块实现后补充：
     //
     // - BEEHIVE (ignite=5, burn=20) — 蜂巢
     // - BEE_NEST (ignite=30, burn=20) — 蜂箱
-    // - SWEET_BERRY_BUSH (ignite=60, burn=100) — 甜浆果丛
     //
     // TODO: 以下木质变体方块尚未在 VanillaBlocks 中注册指针，
     //       待对应方块实现后补充：

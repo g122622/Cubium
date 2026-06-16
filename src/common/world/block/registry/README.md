@@ -6,7 +6,7 @@
 
 ```
 registry/
-├── AgriculturalBlocks.hpp/.cpp # 农作物方块：小麦、胡萝卜、马铃薯、甜菜根
+├── AgriculturalBlocks.hpp/.cpp # 农作物方块：小麦、胡萝卜、马铃薯、甜菜根、可可豆
 ├── VanillaBlocks.hpp/.cpp       # 主入口，VanillaBlocks 类继承所有分类结构体
 ├── BaseBlocks.hpp/.cpp          # 基础方块、矿石、矿物、原木、木板、冰、玻璃等
 ├── BuildingBlocks.hpp/.cpp      # 建筑、功能、含水、石砖、虫蚀、石英、海晶、紫珀、骨块等
@@ -29,7 +29,7 @@ registry/
 ├── TrailsBlocks.hpp/.cpp        # 足迹方块
 ├── TrialBlocks.hpp/.cpp         # 试炼密室方块
 ├── TuffBlocks.hpp/.cpp          # 凝灰岩系列
-├── VegetationBlocks.hpp/.cpp    # 植被：草、花、蘑菇、树苗、南瓜西瓜
+├── VegetationBlocks.hpp/.cpp    # 植被：草、花、蘑菇、树苗、南瓜西瓜、甜浆果丛
 ├── WildBlocks.hpp/.cpp          # 野生方块
 └── README.md
 ```

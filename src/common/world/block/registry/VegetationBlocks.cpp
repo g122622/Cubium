@@ -29,6 +29,7 @@
 #include "world/block/blocks/vegetation/FlowerBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
 #include "world/block/blocks/vegetation/SugarCaneBlock.hpp"
+#include "world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
 #include "world/block/blocks/vegetation/TallGrassBlock.hpp"
 
 namespace mc {
@@ -82,6 +83,9 @@ Block* VegetationBlocks::ATTACHED_PUMPKIN_STEM = nullptr;
 // 竹子
 Block* VegetationBlocks::BAMBOO = nullptr;
 Block* VegetationBlocks::BAMBOO_SAPLING = nullptr;
+
+// 甜浆果丛
+Block* VegetationBlocks::SWEET_BERRY_BUSH = nullptr;
 
 void registerVegetationBlocks()
 {
@@ -280,6 +284,18 @@ void registerVegetationBlocks()
         ->setAttachedStem(VegetationBlocks::ATTACHED_PUMPKIN_STEM);
     static_cast<blocks::MelonBlock*>(VegetationBlocks::MELON)->setStem(VegetationBlocks::MELON_STEM);
     static_cast<blocks::MelonBlock*>(VegetationBlocks::MELON)->setAttachedStem(VegetationBlocks::ATTACHED_MELON_STEM);
+
+    // ========== 甜浆果丛 ==========
+
+    // 甜浆果丛 - 4个生长阶段（AGE_0_3），实体碰撞减速/伤害，右键可采摘
+    // 可种在草地、泥土、砂土、灰化土、耕地上
+    VegetationBlocks::SWEET_BERRY_BUSH =
+        &registry.registerBlock<blocks::SweetBerryBushBlock>(ResourceLocation("minecraft:sweet_berry_bush"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .hardness(0.0f)
+                .soundType(BlockSoundTypes::SWEET_BERRY_BUSH));
 }
 
 } // namespace block_registry

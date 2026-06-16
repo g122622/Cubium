@@ -79,6 +79,9 @@ struct VegetationBlocks {
     // 竹子
     static Block* BAMBOO;
     static Block* BAMBOO_SAPLING;
+
+    // 甜浆果丛
+    static Block* SWEET_BERRY_BUSH;
 };
 
 void registerVegetationBlocks();

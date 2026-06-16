@@ -344,7 +344,7 @@ CauldronBlock 使用 `LEVEL_0_3` 属性存储水位（0-3），交互操作直�
 - 所有原版可燃方块的 encouragement（蔓延速度）和 flammability（可燃性）参数已注册
 - 新增可燃方块时，在 `FireInfoRegistry::initializeVanillaFireInfos()` 中注册即可
 - 子类仍可通过重写 `getFlammability()`/`getFireSpreadSpeed()` 提供自定义值，会覆盖注册表值
-- 部分方块（如 BEEHIVE、BEE_NEST、SWEET_BERRY_BUSH、各木材楼梯/台阶/栅栏变体）尚待对应方块指针注册后补充
+- 部分方块（如 BEEHIVE、BEE_NEST、各木材楼梯/台阶/栅栏变体）尚待对应方块指针注册后补充
 
 ### 22. canBeReplaced / canBeReplacedByFluid 语义
 

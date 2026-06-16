@@ -675,6 +675,18 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     //
     // 因此不调用 registerSimpleBlock，避免 WHEAT 同名冲突警告和无用 BlockItem 注册。
 
+    // 可可豆方块：minecraft:cocoa 方块与 minecraft:cocoa_beans 物品名称不同，
+    // 需要显式注册方块到物品的映射关系。
+    // Items::COCOA_BEANS 已作为普通 Item 注册（用作染料和食物），
+    // 而在 MC 原版中 cocoa_beans 是 ItemBlock，可右键丛林原木放置可可豆方块。
+    // 由于当前 cocoa_beans 已注册为普通 Item，registerSimpleBlock 无法直接关联，
+    // 这里暂不注册映射，待 Item 系统支持 ItemBlock 替换后再完善。
+    // 可可豆方块的放置逻辑由 CocoaBlock::getStateForPlacement 和
+    // CocoaBlock::isValidPosition 直接处理。
+
+    // 甜浆果丛方块：minecraft:sweet_berry_bush 方块不能由物品直接放置，
+    // SWEET_BERRIES 物品是食物而非种植物品，因此不需要注册 BlockItem。
+
     // 旗帜（站立式，每种颜色对应一个BannerItem；墙壁旗帜不需要单独注册物品）
     registerSimpleBlock(VanillaBlocks::WHITE_BANNER, "white_banner");
     registerSimpleBlock(VanillaBlocks::ORANGE_BANNER, "orange_banner");
