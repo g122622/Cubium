@@ -26,7 +26,10 @@
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../attribute/Attributes.hpp"
 #include "../../../../core/LivingEntity.hpp"
+#include "../../../../effect/EffectInstance.hpp"
+#include "../../../../effect/EffectType.hpp"
 #include "../../../../entities/monster/basic/SlimeEntity.hpp"
+#include "../../../../entities/player/Player.hpp"
 #include "../../../controller/JumpController.hpp"
 #include "../../../controller/MovementController.hpp"
 
@@ -87,7 +90,12 @@ bool SlimeAttackGoal::shouldExecute()
         return false;
     }
 
-    // TODO: 检查目标是否是创造模式/无敌玩家
+    // 创造模式或旁观者玩家不会被攻击
+    auto* targetPlayer = dynamic_cast<Player*>(target);
+    if (targetPlayer != nullptr && (targetPlayer->isCreative() || targetPlayer->isSpectator())) {
+        return false;
+    }
+
     m_attackTarget = target;
     return true;
 }
@@ -143,8 +151,9 @@ bool SlimeFaceRandomGoal::shouldExecute()
         return false;
     }
 
-    // TODO: 添加漂浮效果检查 (需要 Potion 系统)
-    return m_slime->onGround() || m_slime->isInWater() || m_slime->isInLava();
+    // 漂浮效果下也会随机转向（与 MC 一致）
+    return m_slime->onGround() || m_slime->isInWater() || m_slime->isInLava() ||
+        m_slime->hasEffect(entity::effect::EffectType::Levitation);
 }
 
 void SlimeFaceRandomGoal::tick()

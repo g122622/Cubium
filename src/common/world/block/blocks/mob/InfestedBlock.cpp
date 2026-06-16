@@ -22,11 +22,13 @@
  */
 
 #include "InfestedBlock.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -82,8 +84,10 @@ void InfestedBlock::spawnAfterBreak(
     // 生成到世界
     world.spawnEntity(std::move(silverfish));
 
-    // TODO: 生成爆炸粒子效果 (ParticleTypeId::Poof)
-    // 粒子效果通过 ServerWorld::addParticle 广播给客户端
+    // 生成蠹虫出现的烟雾粒子效果
+    world.addParticle(client::renderer::trident::particle::ParticleTypeId::Poof,
+        Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f),
+        Vector3(0.0f, 0.0f, 0.0f));
 }
 
 // ========== 静态方法实现 ==========

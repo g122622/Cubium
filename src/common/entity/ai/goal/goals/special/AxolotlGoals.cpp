@@ -27,6 +27,8 @@
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/passive/water/AxolotlEntity.hpp"
 
 namespace mc {
@@ -64,7 +66,9 @@ void AxolotlPlayDeadGoal::startExecuting()
     if (nav != nullptr) {
         nav->clearPath();
     }
-    // TODO: 当药水效果系统实现后，给予自身 Regeneration I 效果 (200 tick)
+
+    // 给予自身 Regeneration I 效果（200 tick = 10 秒）
+    m_axolotl->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Regeneration, 200));
 }
 
 void AxolotlPlayDeadGoal::resetTask()

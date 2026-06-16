@@ -37,6 +37,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
 
 namespace mc::entity::ai::goal {
 
@@ -244,8 +245,11 @@ void BlazeFireballAttackGoal::_performFireballAttack(LivingEntity* target, f64 d
 
             // 在世界中生成火球
             if (m_blaze->world()) {
-                // TODO: 播放发射音效 (1018 = 烈焰人发射火球事件)
-                // world.playEvent(null, 1018, getPosition(), 0)
+                // 播放发射音效
+                m_blaze->world()->playEvent(world::WorldEvents::BLAZE_SHOOT_SOUND,
+                    BlockPos(
+                        static_cast<i32>(m_blaze->x()), static_cast<i32>(m_blaze->y()), static_cast<i32>(m_blaze->z())),
+                    0);
                 m_blaze->world()->spawnEntity(std::move(fireball));
             }
         } else {
