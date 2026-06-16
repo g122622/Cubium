@@ -1829,7 +1829,8 @@ void Items::_registerCrops()
 
     VINE = &registerBlockBackedItem(registry, VanillaBlocks::VINE, "vine", ItemProperties().maxStackSize(64));
 
-    SUGAR_CANE = &registry.registerItem(ResourceLocation("minecraft:sugar_cane"), ItemProperties().maxStackSize(64));
+    SUGAR_CANE =
+        &registerBlockBackedItem(registry, VanillaBlocks::SUGAR_CANE, "sugar_cane", ItemProperties().maxStackSize(64));
 
     SUGAR = &registry.registerItem(ResourceLocation("minecraft:sugar"), ItemProperties().maxStackSize(64));
 
