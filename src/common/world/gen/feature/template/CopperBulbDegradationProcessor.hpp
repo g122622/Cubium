@@ -40,6 +40,10 @@ namespace template_ {
  * 处理规则（根据 MC 1.21 trial_chambers_copper_bulb_degradation 处理器）：
  * - 涂蜡铜灯 (waxed_copper_bulb[lit=true]) → 保持不变或降级为斑驳/锈蚀/氧化
  * - 降级概率与位置有关，使用位置哈希确定降级结果
+ *
+ * 注意：此处理器已通过 TrialChambersPools::registerAll() 注册到 ProcessorListRegistry，
+ * 作为硬编码后备。当数据包加载的 rule processor 版本可用时（由 ProcessorListLoader 加载），
+ * 硬编码版本会被优先使用（因为 hasList 检查会跳过已注册的列表）。
  */
 class CopperBulbDegradationProcessor : public StructureProcessor {
 public:

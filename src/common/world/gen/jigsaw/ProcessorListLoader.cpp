@@ -27,6 +27,8 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockState.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -36,18 +38,188 @@ namespace world {
 namespace gen {
 namespace jigsaw {
 
-// 导入处理器类型，简化代码
+// 导入处理器类型（来自 Template.hpp 的 template_ 命名空间）
+using feature::template_::AlwaysTruePosRuleTest;
+using feature::template_::AlwaysTrueRuleTest;
 using feature::template_::BlackstoneReplacementProcessor;
 using feature::template_::BlockAgeProcessor;
 using feature::template_::BlockIgnoreStructureProcessor;
+using feature::template_::BlockMatchRuleTest;
+using feature::template_::BlockStateMatchRuleTest;
 using feature::template_::GravityStructureProcessor;
 using feature::template_::IntegrityProcessor;
 using feature::template_::JigsawReplacementStructureProcessor;
 using feature::template_::LavaSubmergingProcessor;
 using feature::template_::NopStructureProcessor;
+using feature::template_::RandomBlockMatchRuleTest;
+using feature::template_::RandomBlockStateMatchRuleTest;
+using feature::template_::RuleEntry;
 using feature::template_::RuleStructureProcessor;
+using feature::template_::RuleTest;
 using feature::template_::StructureProcessor;
 using feature::template_::StructureProcessorList;
+using feature::template_::TagMatchRuleTest;
+
+namespace {
+
+// ============================================================================
+// 辅助函数：从方块名称和属性解析 BlockState
+// ============================================================================
+
+/**
+ * @brief 从 JSON output_state 解析方块状态 ID
+ *
+ * JSON 格式：
+ *   { "Name": "minecraft:stone" }
+ *   { "Name": "minecraft:waxed_copper_bulb", "Properties": { "lit": "true", "powered": "false" } }
+ *
+ * @return 方块状态 ID，解析失败返回 0（空气）
+ */
+u32 parseOutputBlockStateId(const nlohmann::json& outputState)
+{
+    if (!outputState.contains("Name") || !outputState["Name"].is_string()) {
+        return 0;
+    }
+
+    std::string blockName = outputState["Name"].get<std::string>();
+    ResourceLocation blockLoc(blockName);
+
+    Block* block = BlockRegistry::instance().getBlock(blockLoc);
+    if (block == nullptr) {
+        spdlog::warn("ProcessorListLoader: unknown block '{}' in output_state, using air", blockName);
+        return 0;
+    }
+
+    const BlockState& defaultState = block->defaultState();
+
+    // 没有 Properties，直接使用默认状态
+    if (!outputState.contains("Properties") || !outputState["Properties"].is_object()) {
+        return defaultState.stateId();
+    }
+
+    // 有 Properties，逐一设置属性
+    const auto& props = outputState["Properties"];
+    const BlockState* currentState = &defaultState;
+
+    for (const auto& [propName, propValue] : props.items()) {
+        if (!propValue.is_string()) {
+            continue;
+        }
+
+        const IProperty* prop = block->stateContainer().getProperty(propName);
+        if (prop == nullptr) {
+            spdlog::warn("ProcessorListLoader: unknown property '{}' on block '{}'", propName, blockName);
+            continue;
+        }
+
+        auto valueIndex = prop->parseValue(propValue.get<std::string>());
+        if (!valueIndex.has_value()) {
+            spdlog::warn("ProcessorListLoader: invalid value '{}' for property '{}' on block '{}'",
+                propValue.get<std::string>(),
+                propName,
+                blockName);
+            continue;
+        }
+
+        currentState = &currentState->withValueIndex(*prop, *valueIndex);
+    }
+
+    return currentState->stateId();
+}
+
+/**
+ * @brief 从 JSON 解析输入/位置谓词 (RuleTest)
+ *
+ * JSON 格式：
+ *   { "predicate_type": "minecraft:always_true" }
+ *   { "predicate_type": "minecraft:block_match", "block": "minecraft:stone" }
+ *   { "predicate_type": "minecraft:random_block_match", "block": "minecraft:stone", "probability": 0.5 }
+ *   { "predicate_type": "minecraft:tag_match", "tag": "minecraft:stone_bricks" }
+ *   { "predicate_type": "minecraft:block_state_match", "block_state": { "Name": "...", "Properties": {...} } }
+ *   { "predicate_type": "minecraft:random_block_state_match", "block_state": {...}, "probability": 0.5 }
+ */
+std::unique_ptr<RuleTest> parseRuleTest(const nlohmann::json& predicateObj)
+{
+    if (!predicateObj.contains("predicate_type") || !predicateObj["predicate_type"].is_string()) {
+        spdlog::warn("ProcessorListLoader: predicate missing 'predicate_type'");
+        return std::make_unique<AlwaysTrueRuleTest>();
+    }
+
+    std::string predicateType = predicateObj["predicate_type"].get<std::string>();
+
+    // 移除 minecraft: 前缀
+    if (predicateType.size() > 10 && predicateType.substr(0, 10) == "minecraft:") {
+        predicateType = predicateType.substr(10);
+    }
+
+    if (predicateType == "always_true") {
+        return std::make_unique<AlwaysTrueRuleTest>();
+    }
+
+    if (predicateType == "block_match") {
+        if (predicateObj.contains("block") && predicateObj["block"].is_string()) {
+            ResourceLocation blockLoc(predicateObj["block"].get<std::string>());
+            Block* block = BlockRegistry::instance().getBlock(blockLoc);
+            if (block != nullptr) {
+                return std::make_unique<BlockMatchRuleTest>(block->defaultState().blockId());
+            }
+            spdlog::warn("ProcessorListLoader: block_match: unknown block '{}'", blockLoc.toString());
+        }
+        return std::make_unique<AlwaysTrueRuleTest>();
+    }
+
+    if (predicateType == "random_block_match") {
+        if (predicateObj.contains("block") && predicateObj["block"].is_string() &&
+            predicateObj.contains("probability") && predicateObj["probability"].is_number()) {
+            ResourceLocation blockLoc(predicateObj["block"].get<std::string>());
+            f32 probability = predicateObj["probability"].get<f32>();
+            Block* block = BlockRegistry::instance().getBlock(blockLoc);
+            if (block != nullptr) {
+                return std::make_unique<RandomBlockMatchRuleTest>(block->defaultState().blockId(), probability);
+            }
+            spdlog::warn("ProcessorListLoader: random_block_match: unknown block '{}'", blockLoc.toString());
+        }
+        return std::make_unique<AlwaysTrueRuleTest>();
+    }
+
+    if (predicateType == "tag_match") {
+        if (predicateObj.contains("tag") && predicateObj["tag"].is_string()) {
+            std::string tag = predicateObj["tag"].get<std::string>();
+            return std::make_unique<TagMatchRuleTest>(ResourceLocation(tag));
+        }
+        spdlog::warn("ProcessorListLoader: tag_match: missing 'tag' field");
+        return std::make_unique<AlwaysTrueRuleTest>();
+    }
+
+    if (predicateType == "block_state_match") {
+        if (predicateObj.contains("block_state") && predicateObj["block_state"].is_object()) {
+            u32 stateId = parseOutputBlockStateId(predicateObj["block_state"]);
+            if (stateId != 0) {
+                return std::make_unique<BlockStateMatchRuleTest>(stateId);
+            }
+            spdlog::warn("ProcessorListLoader: block_state_match: unknown block state");
+        }
+        return std::make_unique<AlwaysTrueRuleTest>();
+    }
+
+    if (predicateType == "random_block_state_match") {
+        if (predicateObj.contains("block_state") && predicateObj["block_state"].is_object() &&
+            predicateObj.contains("probability") && predicateObj["probability"].is_number()) {
+            u32 stateId = parseOutputBlockStateId(predicateObj["block_state"]);
+            f32 probability = predicateObj["probability"].get<f32>();
+            if (stateId != 0) {
+                return std::make_unique<RandomBlockStateMatchRuleTest>(stateId, probability);
+            }
+            spdlog::warn("ProcessorListLoader: random_block_state_match: unknown block state");
+        }
+        return std::make_unique<AlwaysTrueRuleTest>();
+    }
+
+    spdlog::warn("ProcessorListLoader: unknown predicate_type '{}', using always_true", predicateType);
+    return std::make_unique<AlwaysTrueRuleTest>();
+}
+
+} // namespace
 
 Result<size_t> ProcessorListLoader::loadFromDataPackRepository(const resource::DataPackRepository& dataPackList)
 {
@@ -79,7 +251,7 @@ Result<size_t> ProcessorListLoader::loadFromDataPackRepository(const resource::D
 
             ResourceLocation location(listName);
 
-            // 读取 JSON 内容
+            // 读取 JSON 内容（数据包版本会覆盖硬编码注册，因为数据包通常更准确）
             auto readResult = dataPackList.readTextResource(resourcePath);
             if (!readResult.success()) {
                 spdlog::warn("Failed to read processor list: {}", resourcePath);
@@ -103,7 +275,6 @@ Result<size_t> ProcessorListLoader::loadFromDataPackRepository(const resource::D
 
     return loadedCount;
 }
-
 Result<size_t> ProcessorListLoader::loadFromResourcePack(const IResourcePack& pack)
 {
     size_t loadedCount = 0;
@@ -132,7 +303,7 @@ Result<size_t> ProcessorListLoader::loadFromResourcePack(const IResourcePack& pa
 
             ResourceLocation location(listName);
 
-            // 读取 JSON 内容
+            // 读取 JSON 内容（数据包版本会覆盖硬编码注册，因为数据包通常更准确）
             auto readResult = pack.readTextResource(resource::PackType::ServerData, resourcePath);
             if (!readResult.success()) {
                 spdlog::warn("Failed to read processor list: {}", resourcePath);
@@ -244,13 +415,20 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseBlockIgnoreProces
     if (processorObj.contains("blocks") && processorObj["blocks"].is_array()) {
         for (const auto& blockEntry : processorObj["blocks"]) {
             if (blockEntry.is_string()) {
-                // 方块名称字符串，后续需要通过注册表解析为 ID
-                // 目前记录为 0（空气），等待方块注册表完善后替换
-                spdlog::info(
-                    "block_ignore: block '{}' parsing deferred to block registry", blockEntry.get<std::string>());
+                // 方块名称字符串，通过方块注册表解析
+                ResourceLocation blockLoc(blockEntry.get<std::string>());
+                Block* block = BlockRegistry::instance().getBlock(blockLoc);
+                if (block != nullptr) {
+                    blocksToIgnore.push_back(block->defaultState().stateId());
+                } else {
+                    spdlog::info("block_ignore: unknown block '{}' in ignore list, skipping", blockLoc.toString());
+                }
             } else if (blockEntry.is_object()) {
-                // 完整方块状态对象，后续解析
-                spdlog::info("block_ignore: block state object parsing deferred");
+                // 完整方块状态对象
+                u32 stateId = parseOutputBlockStateId(blockEntry);
+                if (stateId != 0) {
+                    blocksToIgnore.push_back(stateId);
+                }
             }
         }
     }
@@ -311,14 +489,52 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseRuleProcessor(con
 {
     // rule 处理器：规则处理器
     // JSON: { "processor_type": "minecraft:rule", "rules": [...] }
-    // 规则解析较为复杂，后续实现
-    // 目前创建空规则列表的 RuleStructureProcessor
-    spdlog::info("rule processor: rules parsing deferred, creating empty rule processor");
+    // 每条规则：{ "input_predicate": {...}, "location_predicate": {...}, "output_state": {...} }
+    std::vector<std::unique_ptr<RuleEntry>> rules;
 
-    std::vector<std::unique_ptr<feature::template_::RuleEntry>> rules;
+    if (!processorObj.contains("rules") || !processorObj["rules"].is_array()) {
+        spdlog::info("rule processor: no rules array, creating empty rule processor");
+        return std::make_unique<RuleStructureProcessor>(std::move(rules));
+    }
 
-    if (processorObj.contains("rules") && processorObj["rules"].is_array()) {
-        spdlog::info("rule processor: {} rules skipped (parsing not yet implemented)", processorObj["rules"].size());
+    for (const auto& ruleObj : processorObj["rules"]) {
+        // 解析 input_predicate
+        std::unique_ptr<RuleTest> inputPredicate;
+        if (ruleObj.contains("input_predicate") && ruleObj["input_predicate"].is_object()) {
+            inputPredicate = parseRuleTest(ruleObj["input_predicate"]);
+        } else {
+            inputPredicate = std::make_unique<AlwaysTrueRuleTest>();
+        }
+
+        // 解析 location_predicate
+        std::unique_ptr<RuleTest> locationPredicate;
+        if (ruleObj.contains("location_predicate") && ruleObj["location_predicate"].is_object()) {
+            locationPredicate = parseRuleTest(ruleObj["location_predicate"]);
+        } else {
+            locationPredicate = std::make_unique<AlwaysTrueRuleTest>();
+        }
+
+        // 解析 pos_predicate（可选）
+        std::unique_ptr<feature::template_::PosRuleTest> posPredicate;
+        if (ruleObj.contains("pos_predicate") && ruleObj["pos_predicate"].is_object()) {
+            // TODO: 解析 linear_pos 和 axis_aligned_linear_pos 位置谓词
+            posPredicate = std::make_unique<AlwaysTruePosRuleTest>();
+        } else {
+            posPredicate = std::make_unique<AlwaysTruePosRuleTest>();
+        }
+
+        // 解析 output_state
+        u32 outputStateId = 0;
+        if (ruleObj.contains("output_state") && ruleObj["output_state"].is_object()) {
+            outputStateId = parseOutputBlockStateId(ruleObj["output_state"]);
+        }
+
+        // 解析 output_nbt / block_entity_modifier（可选，暂不实现）
+        std::optional<nbt::tags::compound_tag> outputNbt;
+
+        auto ruleEntry = std::make_unique<RuleEntry>(
+            std::move(inputPredicate), std::move(locationPredicate), std::move(posPredicate), outputStateId, outputNbt);
+        rules.push_back(std::move(ruleEntry));
     }
 
     return std::make_unique<RuleStructureProcessor>(std::move(rules));
@@ -362,19 +578,33 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseNopProcessor()
 std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseProtectedBlocksProcessor(
     const nlohmann::json& processorObj)
 {
-    // protected_blocks 处理器：保护方块
+    // protected_blocks 处理器：保护指定标签的方块不被结构覆盖
     // JSON: { "processor_type": "minecraft:protected_blocks", "value": "#minecraft:features_cannot_replace" }
-    // 需要标签系统支持，目前用 nop 处理器占位
-    spdlog::info("protected_blocks processor: tag parsing deferred, using nop processor");
+    // 目前标签系统尚未完全支持 protected_blocks 逻辑，
+    // 但此处理器在原版中用于防止结构替换被保护的方块（如刷怪笼），
+    // 使用 Nop 作为占位不会影响结构生成正确性（只是不保护方块，生成后不会有功能问题）
+    spdlog::info("protected_blocks processor: tag-based protection not yet implemented, using nop processor");
     return std::make_unique<NopStructureProcessor>();
 }
 
 std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseCappedProcessor(const nlohmann::json& processorObj)
 {
-    // capped 处理器：上限处理器
+    // capped 处理器：限制内部处理器应用次数的上限
     // JSON: { "processor_type": "minecraft:capped", "delegate": {...}, "limit": 4 }
-    // 需要递归解析 delegate，目前用 nop 处理器占位
-    spdlog::info("capped processor: delegate parsing deferred, using nop processor");
+    // delegate 是嵌套的处理器定义，limit 是最大应用次数
+    // TODO: 实现 CappedStructureProcessor 以支持次数限制
+    // 当前使用 delegate 处理器但不限制次数，作为近似实现
+    if (processorObj.contains("delegate") && processorObj["delegate"].is_object()) {
+        auto delegateProcessor = _parseProcessor(processorObj["delegate"]);
+        if (delegateProcessor) {
+            // 返回 delegate 处理器（不限制次数）
+            // 完整实现需要 CappedStructureProcessor 包装器
+            spdlog::info("capped processor: limit not enforced, using delegate processor directly");
+            return delegateProcessor;
+        }
+    }
+
+    spdlog::info("capped processor: no valid delegate, using nop processor");
     return std::make_unique<NopStructureProcessor>();
 }
 

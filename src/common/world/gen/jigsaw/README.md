@@ -158,7 +158,13 @@ JSON 文件路径：`data/<namespace>/worldgen/template_pool/<path>.json`
 
 ### 11. ProcessorListRegistry 初始化
 
-`ProcessorLists::initialize()` 会向 `ProcessorListRegistry` 注册所有内置处理器列表。必须在 `JigsawManager::placePieceRecursive()` 之前完成注册，否则 piece 自带处理器会找不到。
+处理器列表有两个注册来源：
+1. **硬编码注册**：`ProcessorLists::initialize()` 在启动时注册内置处理器列表（村庄、堡垒遗迹等）
+2. **数据包加载**：`ProcessorListLoader::loadFromDataPackRepository()` 在 `MinecraftServer::initializeRegistries()` 中被调用，加载 `data/<namespace>/worldgen/processor_list/*.json`
+
+硬编码注册优先于数据包加载（数据包加载时跳过已注册的列表）。
+
+必须在 `JigsawManager::placePieceRecursive()` 之前完成注册，否则 piece 自带处理器会找不到。
 
 ### 12. 处理器链顺序
 

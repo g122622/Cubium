@@ -73,6 +73,7 @@
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/gen/feature/template/TemplateManager.hpp"
 #include "common/world/gen/jigsaw/JigsawManager.hpp"
+#include "common/world/gen/jigsaw/ProcessorListLoader.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
@@ -818,6 +819,17 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::TemplatePools");
         size_t poolCount = world::gen::structure::StructureRegistry::loadTemplatePoolsFromDataPacks(m_dataPackList);
         spdlog::info("Loaded {} template pools from data packs", poolCount);
+    }
+
+    // 加载处理器列表（从数据包加载，补充硬编码注册未覆盖的列表）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::ProcessorLists");
+        auto processorResult = world::gen::jigsaw::ProcessorListLoader::loadFromDataPackRepository(m_dataPackList);
+        if (processorResult.success()) {
+            spdlog::info("Loaded {} processor lists from data packs", processorResult.value());
+        } else {
+            spdlog::warn("Failed to load processor lists from data packs: {}", processorResult.error().message());
+        }
     }
 
     // 设置 JigsawManager 的 TemplateManager 数据包列表（用于加载结构模板 .nbt 文件）

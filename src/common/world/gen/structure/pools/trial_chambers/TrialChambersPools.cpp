@@ -25,8 +25,6 @@
 
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
-#include "common/world/gen/feature/template/CopperBulbDegradationProcessor.hpp"
-#include "common/world/gen/structure/pools/ProcessorLists.hpp"
 
 namespace mc {
 namespace world {
@@ -42,13 +40,11 @@ void TrialChambersPools::registerAll(jigsaw::JigsawPatternRegistry& registry)
     // data/minecraft/worldgen/template_pool/trial_chambers/*.json
     // 因此不需要编程式注册模板池。
 
-    // 注册铜灯降级处理器到处理器列表
-    // 此处理器在试炼密室的多个模板中被引用
-    // TODO(trial_chambers): 当 ProcessorLists 支持自定义处理器名称注册时，
-    // 将 "minecraft:trial_chambers_copper_bulb_degradation" 注册为 CopperBulbDegradationProcessor
-
-    // 注册空模板池（如果数据包未加载时作为后备）
-    // 正常情况下数据包加载后会覆盖这些空池
+    // trial_chambers_copper_bulb_degradation 处理器列表由数据包 JSON 加载：
+    // data/minecraft/worldgen/processor_list/trial_chambers_copper_bulb_degradation.json
+    // ProcessorListLoader 会解析其中的 rule processor 和 protected_blocks processor。
+    // 注意：硬编码的 CopperBulbDegradationProcessor 仍可作为后备，
+    // 但数据包版本（含加权概率的 rule processor）会覆盖硬编码注册。
 }
 
 } // namespace pools

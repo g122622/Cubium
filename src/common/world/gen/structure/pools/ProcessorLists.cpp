@@ -327,7 +327,21 @@ void ProcessorLists::initialize()
     registry.registerList(ResourceLocation("minecraft", "bastion_high_wall"), BASTION_HIGH_WALL);
     registry.registerList(ResourceLocation("minecraft", "bastion_high_rampart"), BASTION_HIGH_RAMPART);
 
-    spdlog::info("Registered {} processor lists in ProcessorListRegistry", 31);
+    // 堡垒遗迹处理器别名：MC 数据包中的模板池使用短名称（无 bastion_ 前缀），
+    // 因此需要注册与数据包一致的名称
+    registry.registerList(ResourceLocation("minecraft", "bottom_rampart"), BASTION_BOTTOM_RAMPART);
+    registry.registerList(ResourceLocation("minecraft", "treasure_rooms"), BASTION_TREASURE_ROOMS);
+    registry.registerList(ResourceLocation("minecraft", "housing"), BASTION_HOUSING);
+    registry.registerList(ResourceLocation("minecraft", "side_wall_degradation"), BASTION_SIDE_WALL_DEGRADATION);
+    registry.registerList(ResourceLocation("minecraft", "stable_degradation"), BASTION_STABLE_DEGRADATION);
+    registry.registerList(ResourceLocation("minecraft", "rampart_degradation"), BASTION_RAMPART_DEGRADATION);
+    registry.registerList(ResourceLocation("minecraft", "entrance_replacement"), BASTION_ENTRANCE_REPLACEMENT);
+    registry.registerList(ResourceLocation("minecraft", "bridge"), BASTION_BRIDGE);
+    registry.registerList(ResourceLocation("minecraft", "roof"), BASTION_ROOF);
+    registry.registerList(ResourceLocation("minecraft", "high_wall"), BASTION_HIGH_WALL);
+    registry.registerList(ResourceLocation("minecraft", "high_rampart"), BASTION_HIGH_RAMPART);
+
+    spdlog::info("Registered {} processor lists in ProcessorListRegistry", 42);
 }
 
 bool ProcessorLists::isInitialized()
