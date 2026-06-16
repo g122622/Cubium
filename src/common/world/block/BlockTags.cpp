@@ -691,6 +691,15 @@ BlockTag& BlockTags::NETHER_CARVER_REPLACEABLES()
     return *tag;
 }
 
+BlockTag& BlockTags::ANVIL()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "anvil"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize()
 {
     if (s_initialized) {
@@ -1871,6 +1880,13 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "magma_block"),
     });
     tags[netherCarverReplaceables->getId()] = std::move(netherCarverReplaceables);
+
+    // 创建 ANVIL 标签（铁砧系列方块）
+    auto anvilTag = std::make_unique<BlockTag>(ResourceLocation("minecraft", "anvil"));
+    anvilTag->addAll({ResourceLocation("minecraft", "anvil"),
+        ResourceLocation("minecraft", "chipped_anvil"),
+        ResourceLocation("minecraft", "damaged_anvil")});
+    tags[anvilTag->getId()] = std::move(anvilTag);
 
     s_initialized = true;
 }

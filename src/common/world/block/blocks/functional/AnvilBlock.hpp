@@ -43,6 +43,10 @@ namespace blocks {
  * 三个铁砧变体（anvil、chipped_anvil、damaged_anvil）均为 AnvilBlock 实例，
  * 通过不同的 Block 注册来区分。
  *
+ * TODO: 实现铁砧碰撞箱（MC原版为不规则形状，底部宽、顶部窄）
+ * TODO: 实现铁砧GUI（AnvilContainer与AnvilBlock的交互，含使用时12%概率降级）
+ * TODO: 实现铁砧放置位置验证（需要在稳固方块上方）
+ *
  * 参考: net.minecraft.world.level.block.AnvilBlock
  */
 class AnvilBlock : public FallingBlock {

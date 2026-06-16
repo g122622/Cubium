@@ -349,6 +349,12 @@ public:
     /// 下界可雕刻方块标签（下界岩、灵魂沙、灵魂土、玄武岩、黑石等）
     static BlockTag& NETHER_CARVER_REPLACEABLES();
 
+    // ========== 铁砧标签 ==========
+
+    /// 铁砧标签（包含 anvil、chipped_anvil、damaged_anvil）
+    /// 用于下落铁砧损坏判定
+    static BlockTag& ANVIL();
+
     /**
      * @brief 初始化所有内置标签
      *

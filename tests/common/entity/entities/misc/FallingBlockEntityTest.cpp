@@ -44,8 +44,8 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/FallingBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -631,6 +631,92 @@ TEST_F(FallingBlockEntityTest, ConstantsMatchMC1165)
 
     // 这些常量是私有的，通过行为测试验证
     // 例如：下落伤害应该是 min((distance-1) * 2.0, 40)
+}
+
+/**
+ * @brief 测试铁砧特有的伤害参数设置
+ *
+ * 铁砧下落时设置 hurtEntities=true，每格伤害 2.0，最大伤害 40
+ */
+TEST_F(FallingBlockEntityTest, AnvilDamageParameters)
+{
+    auto entity = std::make_unique<FallingBlockEntity>();
+
+    // 默认参数
+    EXPECT_FALSE(entity->shouldHurtEntities());
+    EXPECT_EQ(entity->getFallDamagePerDistance(), 2.0f);
+    EXPECT_EQ(entity->getFallDamageMax(), 40);
+
+    // 设置为铁砧模式
+    entity->setHurtEntities(true);
+    entity->setFallDamagePerDistance(2.0f);
+    entity->setFallDamageMax(40);
+
+    EXPECT_TRUE(entity->shouldHurtEntities());
+    EXPECT_FLOAT_EQ(entity->getFallDamagePerDistance(), 2.0f);
+    EXPECT_EQ(entity->getFallDamageMax(), 40);
+}
+
+/**
+ * @brief 测试 fallingState 保存和获取
+ *
+ * FallingBlockEntity 应该保存原始方块状态（含朝向等属性）
+ */
+TEST_F(FallingBlockEntityTest, FallingStatePreservation)
+{
+    auto entity = std::make_unique<FallingBlockEntity>();
+
+    // 默认为 nullptr
+    EXPECT_EQ(entity->getFallingState(), nullptr);
+
+    // 设置方块状态
+    const BlockState* anvilState = &VanillaBlocks::SAND->defaultState();
+    entity->setFallingState(anvilState);
+    EXPECT_EQ(entity->getFallingState(), anvilState);
+}
+
+/**
+ * @brief 测试 cancelDrop 标志
+ *
+ * 当铁砧在最大损坏状态下损坏时，cancelDrop 为 true，不掉落物品
+ */
+TEST_F(FallingBlockEntityTest, CancelDropFlag)
+{
+    auto entity = std::make_unique<FallingBlockEntity>();
+
+    // 默认为 false
+    EXPECT_FALSE(entity->cancelDrop());
+
+    // 设置为 true（铁砧完全摧毁时）
+    entity->setCancelDrop(true);
+    EXPECT_TRUE(entity->cancelDrop());
+
+    entity->setCancelDrop(false);
+    EXPECT_FALSE(entity->cancelDrop());
+}
+
+/**
+ * @brief 测试自定义伤害参数
+ *
+ * 非 2.0/40 的伤害参数也能正确设置
+ */
+TEST_F(FallingBlockEntityTest, CustomDamageParameters)
+{
+    auto entity = std::make_unique<FallingBlockEntity>();
+
+    // 设置自定义伤害参数（模拟沙子等普通下落方块使用默认值）
+    entity->setFallDamagePerDistance(2.0f);
+    entity->setFallDamageMax(40);
+
+    EXPECT_FLOAT_EQ(entity->getFallDamagePerDistance(), 2.0f);
+    EXPECT_EQ(entity->getFallDamageMax(), 40);
+
+    // 验证参数可以被修改
+    entity->setFallDamagePerDistance(1.0f);
+    entity->setFallDamageMax(20);
+
+    EXPECT_FLOAT_EQ(entity->getFallDamagePerDistance(), 1.0f);
+    EXPECT_EQ(entity->getFallDamageMax(), 20);
 }
 
 } // namespace test

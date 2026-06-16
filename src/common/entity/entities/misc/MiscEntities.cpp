@@ -36,7 +36,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockSoundType.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/blocks/FallingBlock.hpp"
 #include "common/world/block/blocks/functional/AnvilBlock.hpp"
 #include "common/world/explosion/Explosion.hpp"
@@ -151,11 +151,20 @@ void FallingBlockEntity::_handleLanding()
         placed = _tryPlaceBlock(worldPtr, landingPos, fallingState, hitState);
     }
 
-    // 放置失败，掉落物品
-    if (!placed && m_shouldDropItem) {
-        // 检查游戏规则 doEntityDrops
-        if (worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
-            _dropItem(worldPtr, landingPos);
+    if (placed) {
+        // 放置成功：onEndFalling 回调已在 _tryPlaceBlock 中调用
+    } else {
+        // 放置失败：调用 onBroken 回调（如铁砧播放破碎音效）
+        if (auto* fallingBlock = dynamic_cast<blocks::FallingBlock*>(block)) {
+            fallingBlock->onBroken(*worldPtr, landingPos, *this);
+        }
+
+        // 掉落物品
+        if (m_shouldDropItem) {
+            // 检查游戏规则 doEntityDrops
+            if (worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+                _dropItem(worldPtr, landingPos);
+            }
         }
     }
 
@@ -168,6 +177,9 @@ bool FallingBlockEntity::_tryPlaceBlock(
     if (world == nullptr || fallingState == nullptr) {
         return false;
     }
+
+    // TODO: 检查目标位置是否为移动中的活塞（活塞推动的方块不能放置）
+    // 当前项目可能还没有实现活塞，这里暂时跳过这个检查
 
     // 获取下方方块状态
     BlockPos belowPos(landingPos.x, landingPos.y - 1, landingPos.z);
@@ -190,27 +202,26 @@ bool FallingBlockEntity::_tryPlaceBlock(
         return false;
     }
 
+    // TODO: 检查方块是否可以在该位置放置
+    // 完整实现需要调用 fallingState->getBlock().isValidPosition()
+
+    // TODO: 处理水浸透方块（如沙子落入水中）
+    // 如果方块有 waterlogged 属性且目标位置有水，设置 waterlogged = true
+
     // 尝试放置方块
     // flags = 3 表示通知邻居 + 同步客户端
     bool success = world->setBlockState(landingPos, fallingState, 3);
 
     if (success) {
         // 调用 FallingBlock 的 onEndFalling 回调
+        // 注意：各方块的音效由 onEndFalling 回调自行处理（如铁砧播放落地音效），
+        // 沙子/砾石等方块 onEndFalling 为空实现（MC 原版中这些方块落地无声），
+        // 不在此处播放通用放置音效以避免铁砧双重音效问题
         Block* block = const_cast<Block*>(&fallingState->getBlock());
         if (auto* fallingBlock = dynamic_cast<blocks::FallingBlock*>(block)) {
             const BlockState& hitStateRef = hitState ? *hitState : *BlockRegistry::instance().airState();
             fallingBlock->onEndFalling(*world, landingPos, *fallingState, hitStateRef, *this);
         }
-
-        // 播放方块放置音效
-        const BlockSoundType& soundType = fallingState->getBlock().getSoundType();
-        world->playSound(soundType.getPlaceSound(),
-            sound::SoundCategory::Blocks,
-            Vector3(static_cast<f32>(landingPos.x) + 0.5f,
-                static_cast<f32>(landingPos.y) + 0.5f,
-                static_cast<f32>(landingPos.z) + 0.5f),
-            (soundType.getVolume() + 1.0f) / 2.0f,
-            soundType.getPitch() * 0.8f);
 
         return true;
     }
@@ -279,9 +290,9 @@ void FallingBlockEntity::_hurtEntities(IWorld* world)
     AxisAlignedBB hurtBox = boundingBox();
     std::vector<Entity*> entities = world->getEntitiesInAABB(hurtBox, this);
 
-    // 判断是否为铁砧（使用 BlockTags 检查）
+    // 判断是否为铁砧（使用 BlockTags::ANVIL 检查）
     Block* block = Block::getBlock(m_blockId);
-    bool isAnvil = (block != nullptr && block->blockLocation().toString().find("anvil") != std::string::npos);
+    bool isAnvil = (block != nullptr && BlockTags::ANVIL().contains(*block));
 
     // 创建伤害来源
     EnvironmentalDamage anvilDamage = DamageSources::anvil();

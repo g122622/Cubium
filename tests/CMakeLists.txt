@@ -344,6 +344,7 @@ add_executable(mc_tests
     common/world/block/blocks/decorative/ScaffoldingBlockTest.cpp
     common/world/block/blocks/functional/BellBlockTest.cpp
     common/world/block/blocks/functional/GrindstoneBlockTest.cpp
+    common/world/block/blocks/functional/AnvilBlockTest.cpp
     common/world/block/WaterLoggableTest.cpp
     common/world/block/blocks/HopperBlockTest.cpp
     # SignBlock 告示牌方块测试（onBlockActivated、状态属性）
