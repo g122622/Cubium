@@ -32,7 +32,7 @@ EntityTextureAtlas ──→ 提供纹理区域(TextureRegion)用于UV映射
 | `client/renderer/MeshTypes.hpp` | TextureRegion 类型 |
 | `client/renderer/util/ShaderPath.hpp` | 着色器路径解析 |
 | `common/core/Result.hpp` | 错误处理 |
-| `common/resource/IResourcePack.hpp` | 资源包接口 |
+| `common/resource/pack/IResourcePack.hpp` | 资源包接口 |
 | `common/resource/ResourceLocation.hpp` | 资源位置标识 |
 | `common/util/math/Vector3.hpp, Vector4.hpp` | 数学向量 |
 

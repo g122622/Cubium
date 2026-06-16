@@ -25,7 +25,7 @@
 
 #include "client/sound/resource/SoundRegistry.hpp"
 #include "common/core/Result.hpp"
-#include "common/resource/PackRepository.hpp"
+#include "common/resource/repository/PackRepository.hpp"
 
 #include <functional>
 

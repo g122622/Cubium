@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "IResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include <filesystem>
 
 namespace mc::resource {

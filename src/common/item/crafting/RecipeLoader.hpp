@@ -26,8 +26,8 @@
 #include "core/Result.hpp"
 #include "item/crafting/RecipeManager.hpp"
 #include "item/crafting/RecipeSerializers.hpp"
-#include "resource/DataPackRepository.hpp"
 #include "resource/ResourceLocation.hpp"
+#include "resource/repository/DataPackRepository.hpp"
 #include <functional>
 #include <string>
 #include <vector>

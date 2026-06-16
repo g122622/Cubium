@@ -26,7 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/loot/LootTableLoader.hpp"
-#include "common/resource/DataPackRepository.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include <spdlog/spdlog.h>

@@ -1,8 +1,8 @@
 #include "item/loot/LootTableLoader.hpp"
-#include "common/resource/PackRepository.hpp"
+#include "common/resource/repository/PackRepository.hpp"
 #include "item/Items.hpp"
 #include "item/loot/LootTable.hpp"
-#include "resource/FolderResourcePack.hpp"
+#include "resource/pack/FolderResourcePack.hpp"
 #include <gtest/gtest.h>
 
 #include <chrono>

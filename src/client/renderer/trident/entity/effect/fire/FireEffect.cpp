@@ -25,7 +25,7 @@
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/resource/IResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <cmath>
 #include <cstring>

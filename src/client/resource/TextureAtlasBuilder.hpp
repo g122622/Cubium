@@ -26,9 +26,9 @@
 #include "client/renderer/MeshTypes.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/resource/IResourcePack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/metadata/AnimationMetadata.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include <map>
 #include <set>
 #include <vector>

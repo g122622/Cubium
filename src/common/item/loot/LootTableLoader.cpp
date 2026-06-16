@@ -24,8 +24,8 @@
 #include "LootTableLoader.hpp"
 #include "LootTable.hpp"
 #include "common/perfetto/TraceEvents.hpp"
-#include "common/resource/IResourcePack.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>

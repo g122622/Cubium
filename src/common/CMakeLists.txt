@@ -1223,13 +1223,13 @@ add_library(mc_common STATIC
 
     # Resource - Core
     resource/ResourceLocation.cpp
-    resource/PackMetadata.cpp
-    resource/IResourcePack.cpp
-    resource/FolderResourcePack.cpp
-    resource/ZipResourcePack.cpp
-    resource/PackListBase.cpp
-    resource/PackRepository.cpp
-    resource/InMemoryResourcePack.cpp
+    resource/pack/PackMetadata.cpp
+    resource/pack/IResourcePack.cpp
+    resource/pack/FolderResourcePack.cpp
+    resource/pack/ZipResourcePack.cpp
+    resource/repository/PackListBase.cpp
+    resource/repository/PackRepository.cpp
+    resource/pack/InMemoryResourcePack.cpp
     resource/VanillaResources.cpp
 
     # Resource - Metadata

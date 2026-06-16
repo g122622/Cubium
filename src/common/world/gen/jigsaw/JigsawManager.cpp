@@ -22,7 +22,7 @@
  */
 
 #include "JigsawManager.hpp"
-#include "../../../resource/IResourcePack.hpp"
+#include "../../../resource/pack/IResourcePack.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/IWorldWriter.hpp"
 #include "../../../world/block/BlockPos.hpp"

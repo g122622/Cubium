@@ -22,7 +22,7 @@
  */
 
 #include "TemplateLoader.hpp"
-#include "../../../../resource/IResourcePack.hpp"
+#include "../../../../resource/pack/IResourcePack.hpp"
 #include "../../../../util/CompressionUtils.hpp"
 #include "../../../block/Block.hpp"
 #include "../../../block/BlockRegistry.hpp"

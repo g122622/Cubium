@@ -23,7 +23,7 @@
 
 #include "JigsawPiece.hpp"
 #include "JigsawManager.hpp"
-#include "common/resource/IResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/gen/feature/template/TemplateLoader.hpp"

@@ -23,8 +23,8 @@
 
 #include "client/sound/SoundLoader.hpp"
 
-#include "common/resource/IResourcePack.hpp"
-#include "common/resource/PackRepository.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
+#include "common/resource/repository/PackRepository.hpp"
 
 #include <limits>
 

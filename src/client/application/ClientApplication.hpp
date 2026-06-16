@@ -49,7 +49,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/physics/PhysicsEngine.hpp"
-#include "common/resource/PackRepository.hpp"
+#include "common/resource/repository/PackRepository.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "server/application/IntegratedServer.hpp"
 

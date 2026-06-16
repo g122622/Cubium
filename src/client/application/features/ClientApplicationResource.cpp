@@ -29,8 +29,8 @@
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/perfetto/TraceEvents.hpp"
-#include "common/resource/FolderResourcePack.hpp"
 #include "common/resource/VanillaResources.hpp"
+#include "common/resource/pack/FolderResourcePack.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <algorithm>

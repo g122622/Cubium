@@ -24,9 +24,9 @@
 #include "LootPredicateManager.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/resource/DataPackRepository.hpp"
-#include "common/resource/PackRepository.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
+#include "common/resource/repository/PackRepository.hpp"
 #include <functional>
 #include <string>
 #include <vector>

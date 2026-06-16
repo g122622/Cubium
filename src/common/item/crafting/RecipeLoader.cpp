@@ -24,7 +24,7 @@
 #include "item/crafting/RecipeLoader.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
-#include "resource/DataPackRepository.hpp"
+#include "resource/repository/DataPackRepository.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>

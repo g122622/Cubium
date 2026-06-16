@@ -25,8 +25,8 @@
 #include "GuiRenderer.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "client/resource/ResourceManager.hpp"
-#include "common/resource/FolderResourcePack.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/FolderResourcePack.hpp"
 #include <cstring>
 #include <vector>
 #include <spdlog/spdlog.h>

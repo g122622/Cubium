@@ -24,8 +24,8 @@
 #include "ParticleTextureAtlas.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "client/resource/TextureAtlasBuilder.hpp"
-#include "common/resource/IResourcePack.hpp"
 #include "common/resource/metadata/AnimationMetadata.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <cstring>

@@ -21,7 +21,7 @@
  *
  */
 
-#include "FolderResourcePack.hpp"
+#include "common/resource/pack/FolderResourcePack.hpp"
 #include <filesystem>
 #include <fstream>
 

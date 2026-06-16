@@ -24,7 +24,7 @@
 #include "client/resource/BlockModelLoader.hpp"
 #include "client/resource/BlockStateLoader.hpp"
 #include "client/resource/ItemModelLoader.hpp"
-#include "common/resource/FolderResourcePack.hpp"
+#include "common/resource/pack/FolderResourcePack.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

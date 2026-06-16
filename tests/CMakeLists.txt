@@ -1506,12 +1506,12 @@ target_sources(mc_resource_tests
         ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelCache.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/PackRepository.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/PackListBase.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/ZipResourcePack.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/FolderResourcePack.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/IResourcePack.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/PackMetadata.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/resource/repository/PackRepository.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/resource/repository/PackListBase.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/resource/pack/ZipResourcePack.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/resource/pack/FolderResourcePack.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/resource/pack/IResourcePack.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/resource/pack/PackMetadata.cpp
         ${CMAKE_SOURCE_DIR}/src/common/resource/ResourceLocation.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/Block.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/BlockRegistry.cpp
@@ -1610,12 +1610,12 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/ChunkBiomeAccessor.cpp
             # 甯哥敤璧勬簮
             ${CMAKE_SOURCE_DIR}/src/common/resource/ResourceLocation.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/resource/PackRepository.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/resource/PackListBase.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/resource/FolderResourcePack.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/resource/ZipResourcePack.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/resource/IResourcePack.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/resource/PackMetadata.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/resource/repository/PackRepository.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/resource/repository/PackListBase.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/resource/pack/FolderResourcePack.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/resource/pack/ZipResourcePack.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/resource/pack/IResourcePack.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/resource/pack/PackMetadata.cpp
             # 鏂瑰潡绯荤粺
             ${CMAKE_SOURCE_DIR}/src/common/world/block/Material.cpp
             ${CMAKE_SOURCE_DIR}/src/common/world/block/Block.cpp

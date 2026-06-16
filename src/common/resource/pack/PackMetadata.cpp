@@ -21,7 +21,7 @@
  *
  */
 
-#include "PackMetadata.hpp"
+#include "common/resource/pack/PackMetadata.hpp"
 #include <fstream>
 #include <nlohmann/json.hpp>
 

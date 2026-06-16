@@ -23,53 +23,34 @@
 
 #pragma once
 
-#include "common/resource/IResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
+#include <filesystem>
+#include <memory>
+#include <shared_mutex>
 #include <unordered_map>
 #include <unordered_set>
 
 namespace mc::resource {
 
 /**
- * @brief 内存资源包
+ * @brief ZIP 资源包实现
  *
- * 从内存中提供资源，用于内置资源（如原版基础模型）。
- * 优先级最高，始终加载。
+ * 从 ZIP 文件读取资源，支持标准的 Minecraft 资源包格式。
+ * 使用 libarchive 库进行解压。
  */
-class InMemoryResourcePack : public IResourcePack {
+class ZipResourcePack : public IResourcePack {
 public:
-    /**
-     * @brief 构造函数
-     * @param name 资源包名称
-     */
-    explicit InMemoryResourcePack(std::string name);
-
     /**
      * @brief 析构函数
      */
-    ~InMemoryResourcePack() override = default;
+    ~ZipResourcePack() noexcept override;
 
     /**
-     * @brief 添加资源
-     * @param path 资源路径（如 "minecraft/models/block/cube_all.json"）
-     * @param content 资源内容
+     * @brief 创建 ZIP 资源包
+     * @param zipPath ZIP 文件路径
+     * @return 资源包实例或错误
      */
-    void addClientResource(std::string path, std::string content);
-    void addServerDataResource(std::string path, std::string content);
-
-    /**
-     * @brief 添加二进制资源
-     * @param path 资源路径
-     * @param data 资源数据
-     */
-    void addClientResource(std::string path, std::vector<u8> data);
-    void addServerDataResource(std::string path, std::vector<u8> data);
-
-    /**
-     * @brief 添加目录条目（用于 listResources）
-     * @param type 资源类型
-     * @param directory 目录路径（相对于类型根目录）
-     */
-    void addDirectory(PackType type, std::string directory);
+    [[nodiscard]] static Result<std::unique_ptr<ZipResourcePack>> create(const std::filesystem::path& zipPath);
 
     // IResourcePack 接口实现
 
@@ -82,43 +63,34 @@ public:
     [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces(PackType type) const override;
     [[nodiscard]] std::string name() const override { return m_name; }
 
+    // 额外方法
+
+    [[nodiscard]] const std::filesystem::path& zipPath() const { return m_zipPath; }
+    [[nodiscard]] size_t entryCount() const { return m_entries.size(); }
+    void clearCache();
+
 private:
-    std::string m_name;
-    PackMetadata m_metadata;
-    std::unordered_map<std::string, std::vector<u8>> m_resources;
-    std::unordered_set<std::string> m_directories; // 用于 listResources
+    /// 私有构造函数
+    explicit ZipResourcePack(std::filesystem::path zipPath);
 
     /**
-     * @brief 规范化路径
-     *
-     * 将路径中的反斜杠转换为正斜杠，移除前导斜杠
-     *
-     * @param path 原始路径
-     * @return 规范化后的路径
+     * @brief 规范化资源路径
      */
     [[nodiscard]] static std::string _normalizePath(std::string_view path);
-
-    /**
-     * @brief 构造带类型前缀的路径
-     *
-     * 将资源类型目录前缀添加到路径前，并规范化路径
-     *
-     * @param type 资源类型
-     * @param path 资源路径
-     * @return 带类型前缀的规范化路径
-     */
     [[nodiscard]] static std::string _makeTypedPath(PackType type, std::string_view path);
 
-    /**
-     * @brief 为资源路径自动添加所有父目录条目
-     *
-     * @param normalizedPath 已规范化的资源路径
-     */
-    void _addDirectoryEntries(const std::string& normalizedPath);
+    std::filesystem::path m_zipPath;           ///< ZIP 文件路径
+    std::string m_name;                        ///< 资源包名称（文件名）
+    PackMetadata m_metadata;                   ///< 元数据
+    std::unordered_set<std::string> m_entries; ///< 文件路径索引
+
+    /// 可变缓存（mutable 以支持 const 方法中的缓存）
+    mutable std::unordered_map<std::string, std::vector<u8>> m_cache;
+    mutable std::shared_mutex m_cacheMutex;
 };
 
 } // namespace mc::resource
 
 namespace mc {
-using InMemoryResourcePack = resource::InMemoryResourcePack;
+using ZipResourcePack = resource::ZipResourcePack;
 } // namespace mc

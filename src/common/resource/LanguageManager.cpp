@@ -22,9 +22,9 @@
  */
 
 #include "LanguageManager.hpp"
-#include "IResourcePack.hpp"
-#include "PackRepository.hpp"
 #include "ResourceLocation.hpp"
+#include "pack/IResourcePack.hpp"
+#include "repository/PackRepository.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>

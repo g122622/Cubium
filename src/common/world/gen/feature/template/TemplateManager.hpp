@@ -25,8 +25,8 @@
 
 #include "Template.hpp"
 #include "TemplateLoader.hpp"
-#include "common/resource/DataPackRepository.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
 #include <memory>
 #include <mutex>
 #include <unordered_map>

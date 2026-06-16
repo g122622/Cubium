@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "common/resource/InMemoryResourcePack.hpp"
+#include "common/resource/pack/InMemoryResourcePack.hpp"
 #include <memory>
 
 namespace mc::resource {

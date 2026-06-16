@@ -1,4 +1,4 @@
-#include "common/resource/DataPackRepository.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
 
 #include <gtest/gtest.h>
 

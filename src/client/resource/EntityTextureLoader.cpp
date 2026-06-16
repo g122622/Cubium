@@ -24,7 +24,7 @@
 #include "EntityTextureLoader.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/resource/IResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include <unordered_map>
 #include <spdlog/spdlog.h>
 

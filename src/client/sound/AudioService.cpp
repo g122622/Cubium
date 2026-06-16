@@ -35,7 +35,7 @@
 
 #include "common/perfetto/PerfettoManager.hpp"
 #include "common/perfetto/TraceEvents.hpp"
-#include "common/resource/PackRepository.hpp"
+#include "common/resource/repository/PackRepository.hpp"
 
 #include <spdlog/spdlog.h>
 

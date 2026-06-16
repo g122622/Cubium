@@ -22,11 +22,11 @@
  */
 
 #include "common/core/settings/ResourcePackListOption.hpp"
-#include "common/resource/FolderResourcePack.hpp"
-#include "common/resource/PackMetadata.hpp"
-#include "common/resource/PackRepository.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/resource/ZipResourcePack.hpp"
+#include "common/resource/pack/FolderResourcePack.hpp"
+#include "common/resource/pack/PackMetadata.hpp"
+#include "common/resource/pack/ZipResourcePack.hpp"
+#include "common/resource/repository/PackRepository.hpp"
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>

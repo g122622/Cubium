@@ -26,7 +26,7 @@ fire/
 - `client/renderer/trident/entity/pipeline/EntityPipeline.hpp` - 实体渲染管线
 - `client/world/entity/ClientEntity.hpp` - 客户端实体
 - `common/entity/core/Entity.hpp` - 实体基类
-- `common/resource/IResourcePack.hpp` - 资源包接口
+- `common/resource/pack/IResourcePack.hpp` - 资源包接口
 - `common/util/math/MathConstants.hpp` - 数学常量
 - `common/util/math/Vector3.hpp` - 向量类型
 

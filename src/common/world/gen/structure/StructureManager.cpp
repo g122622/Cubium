@@ -22,8 +22,8 @@
  */
 
 #include "StructureManager.hpp"
-#include "common/resource/DataPackRepository.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
 #include "common/world/gen/jigsaw/JigsawPattern.hpp"
 #include "common/world/gen/jigsaw/JigsawPiece.hpp"
 #include "common/world/gen/jigsaw/TemplatePoolLoader.hpp"

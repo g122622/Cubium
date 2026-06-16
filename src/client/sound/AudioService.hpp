@@ -24,7 +24,7 @@
 #pragma once
 
 #include "client/sound/instance/ISoundInstance.hpp"
-#include "common/resource/PackRepository.hpp"
+#include "common/resource/repository/PackRepository.hpp"
 #include "common/world/biome/BiomeAmbientSounds.hpp"
 
 #include <glm/glm.hpp>

@@ -25,7 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/resource/IResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTextures.hpp"
 #include "common/skin/core/SkinTypes.hpp"

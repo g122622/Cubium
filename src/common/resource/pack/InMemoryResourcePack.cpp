@@ -21,7 +21,7 @@
  *
  */
 
-#include "InMemoryResourcePack.hpp"
+#include "common/resource/pack/InMemoryResourcePack.hpp"
 #include <algorithm>
 #include <sstream>
 #include <spdlog/spdlog.h>

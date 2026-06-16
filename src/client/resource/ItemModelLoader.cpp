@@ -22,7 +22,7 @@
  */
 
 #include "ItemModelLoader.hpp"
-#include "common/resource/IResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 

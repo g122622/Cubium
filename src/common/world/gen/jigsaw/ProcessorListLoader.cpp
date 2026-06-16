@@ -23,9 +23,9 @@
 
 #include "ProcessorListLoader.hpp"
 
-#include "common/resource/DataPackRepository.hpp"
-#include "common/resource/IResourcePack.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 #include <nlohmann/json.hpp>

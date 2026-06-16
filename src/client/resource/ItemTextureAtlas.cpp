@@ -27,8 +27,8 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/items/block/BlockItem.hpp"
-#include "common/resource/IResourcePack.hpp"
 #include "common/resource/metadata/AnimationMetadata.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include <spdlog/spdlog.h>
 
 // stb_image - only header, implementation in TextureAtlasBuilder.cpp

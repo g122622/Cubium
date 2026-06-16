@@ -30,7 +30,7 @@
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
 #include "client/resource/BlockModelCache.hpp"
 #include "client/resource/ResourceManager.hpp"
-#include "common/resource/IResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
@@ -1026,7 +1026,8 @@ TEST(ChunkMesherLiquidMaterialTest, ParticleOnlyWaterModelStillRendersWithLiquid
     ASSERT_TRUE(resourceManager.loadAllResources().success());
     ASSERT_TRUE(resourceManager.buildTextureAtlas().success());
 
-    const BlockAppearance* waterAppearance = resourceManager.getBlockAppearance(ResourceLocation("minecraft:water"), {});
+    const BlockAppearance* waterAppearance =
+        resourceManager.getBlockAppearance(ResourceLocation("minecraft:water"), {});
     ASSERT_NE(waterAppearance, nullptr);
     EXPECT_TRUE(waterAppearance->faceTextures.empty());
 

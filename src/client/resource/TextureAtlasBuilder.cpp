@@ -22,7 +22,7 @@
  */
 
 #include "TextureAtlasBuilder.hpp"
-#include "common/resource/IResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 
 // 只在stb_image.h未被包含时定义实现
 #ifndef STB_IMAGE_IMPLEMENTATION

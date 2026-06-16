@@ -21,7 +21,7 @@
  *
  */
 
-#include "IResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 
 namespace mc::resource {
 

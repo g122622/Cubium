@@ -26,7 +26,7 @@
 #include "GuiSpriteParser.hpp"
 #include "GuiSpriteRegistry.hpp"
 #include "GuiTextureAtlas.hpp"
-#include "common/resource/IResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include <spdlog/spdlog.h>
 #include <stb_image.h>
 

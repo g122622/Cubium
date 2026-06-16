@@ -22,7 +22,7 @@
  */
 
 #include "GuiSpriteParser.hpp"
-#include "common/resource/IResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include <nlohmann/json.hpp>
 
 namespace mc::client::renderer::trident::gui {

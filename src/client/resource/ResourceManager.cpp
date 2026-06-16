@@ -23,7 +23,7 @@
 
 #include "ResourceManager.hpp"
 #include "ItemModelCache.hpp"
-#include "common/resource/FolderResourcePack.hpp"
+#include "common/resource/pack/FolderResourcePack.hpp"
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 

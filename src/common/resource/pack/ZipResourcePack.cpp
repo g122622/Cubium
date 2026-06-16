@@ -21,7 +21,7 @@
  *
  */
 
-#include "ZipResourcePack.hpp"
+#include "common/resource/pack/ZipResourcePack.hpp"
 
 #include <archive.h>
 #include <archive_entry.h>

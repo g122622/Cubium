@@ -26,7 +26,7 @@
 #include "client/resource/ItemTextureAtlas.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/items/block/BlockItem.hpp"
-#include "common/resource/IResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <algorithm>

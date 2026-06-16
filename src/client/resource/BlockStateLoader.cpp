@@ -22,7 +22,7 @@
  */
 
 #include "BlockStateLoader.hpp"
-#include "common/resource/IResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 

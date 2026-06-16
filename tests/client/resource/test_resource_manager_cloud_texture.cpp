@@ -24,7 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "client/resource/ResourceManager.hpp"
-#include "common/resource/IResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <algorithm>

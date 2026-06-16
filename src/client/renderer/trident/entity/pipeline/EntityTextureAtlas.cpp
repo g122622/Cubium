@@ -23,7 +23,7 @@
 
 #include "EntityTextureAtlas.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
-#include "common/resource/IResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include <cstring>
 #include <fstream>
 #include <spdlog/spdlog.h>

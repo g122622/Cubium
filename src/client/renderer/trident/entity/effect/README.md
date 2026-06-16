@@ -42,7 +42,7 @@ effect/
 - `client/world/entity/ClientEntity.hpp` - 客户端实体
 - `common/entity/core/Entity.hpp` - 实体基类
 - `common/entity/core/LivingEntity.hpp` - 生物实体
-- `common/resource/IResourcePack.hpp` - 资源包接口
+- `common/resource/pack/IResourcePack.hpp` - 资源包接口
 
 **依赖本目录的下游模块**：
 - `client/renderer/trident/core/TridentEngine.cpp` - 初始化/清理调用

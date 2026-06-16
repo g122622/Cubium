@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "common/resource/PackRepository.hpp"
+#include "common/resource/repository/PackRepository.hpp"
 
 #include <chrono>
 #include <filesystem>

@@ -25,10 +25,10 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/resource/FolderResourcePack.hpp"
-#include "common/resource/IResourcePack.hpp"
 #include "common/resource/PackType.hpp"
-#include "common/resource/ZipResourcePack.hpp"
+#include "common/resource/pack/FolderResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
+#include "common/resource/pack/ZipResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 #include <filesystem>
