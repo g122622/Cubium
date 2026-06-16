@@ -70,7 +70,6 @@ void AbstractSkeletonEntity::attackEntityWithRangedAttack(LivingEntity* target, 
     m_attackCooldown = ATTACK_COOLDOWN;
 
     // 创建箭矢实体
-    // 当前简化实现：直接创建普通箭矢（暂不考虑弹药和附魔）
     auto arrow = entity::ArrowEntity::createFromShooter(*this, world());
     if (arrow == nullptr) {
         return;
@@ -87,9 +86,9 @@ void AbstractSkeletonEntity::attackEntityWithRangedAttack(LivingEntity* target, 
     i32 difficultyId = static_cast<i32>(world()->difficulty());
     f32 inaccuracy = static_cast<f32>(14 - difficultyId * 4);
 
-    // 设置箭矢伤害：基础伤害 + 蓄力加成
-    f32 damage = ARROW_DAMAGE + charge * 0.5f;
-    arrow->setDamage(damage);
+    // 使用 MC 原版的生物箭矢伤害公式设置基础伤害
+    // 对应 MC AbstractArrow.setBaseDamageFromMob(charge)
+    arrow->setBaseDamageFromMob(charge);
 
     // 发射箭矢：速度固定为 1.6F，Y轴补偿 horizontalDist * 0.2 用于抛物线弹道
     constexpr f32 ARROW_VELOCITY = 1.6f;

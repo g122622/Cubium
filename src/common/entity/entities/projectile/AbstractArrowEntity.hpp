@@ -154,11 +154,27 @@ public:
     // ========== 箭矢特有方法 ==========
 
     /**
-     * @brief 根据发射者设置附魔效果
-     * @param shooter 发射者
-     * @param baseVelocity 基础速度
+     * @brief 设置生物射出箭矢的基础伤害（对应 MC AbstractArrow.setBaseDamageFromMob）
+     *
+     * 根据蓄力值和难度计算基础伤害：damage = power * 2.0 + random(difficulty * 0.11, 0.57425)
+     * 生物射出的箭矢不应用弓类附魔（力量/冲击/火焰）。
+     * 三叉戟重写此方法以跳过弓类附魔计算。
+     *
+     * @param power 蓄力值（0.0 ~ 1.0），来自 RangedAttackGoal 的攻击蓄力
      */
-    void setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity);
+    virtual void setBaseDamageFromMob(f32 power);
+
+    /**
+     * @brief 从射手武器应用弓类附魔效果
+     *
+     * 读取射手手持物品的附魔等级，应用到箭矢：
+     * - 力量附魔（Power）：每级 +0.5 伤害 + 基础 0.5
+     * - 冲击附魔（Punch）：每级增加 1 点击退强度
+     * - 火焰附魔（Flame）：设置箭矢着火 100 ticks
+     *
+     * @param shooter 射手实体
+     */
+    void applyBowEnchantments(LivingEntity& shooter);
 
     /**
      * @brief 当玩家与此箭矢碰撞时调用

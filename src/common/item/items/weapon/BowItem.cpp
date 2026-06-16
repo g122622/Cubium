@@ -153,27 +153,8 @@ void BowItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity
                 arrow->setCritical(true);
             }
 
-            // 力量附魔
-            i32 powerLevel =
-                item::enchant::EnchantmentHelper::getEnchantmentLevel(stack, &item::enchant::AllEnchantments::POWER);
-            if (powerLevel > 0) {
-                // 每级增加 0.5 伤害 + 0.5 基础
-                f32 bonusDamage = static_cast<f32>(powerLevel) * 0.5f + 0.5f;
-                arrow->setDamage(arrow->damage() + bonusDamage);
-            }
-
-            // 冲击附魔
-            i32 punchLevel =
-                item::enchant::EnchantmentHelper::getEnchantmentLevel(stack, &item::enchant::AllEnchantments::PUNCH);
-            if (punchLevel > 0) {
-                arrow->setKnockbackStrength(punchLevel);
-            }
-
-            // 火矢附魔
-            if (item::enchant::EnchantmentHelper::getEnchantmentLevel(stack, &item::enchant::AllEnchantments::FLAME) >
-                0) {
-                arrow->setFire(100); // 5秒燃烧
-            }
+            // 应用弓类附魔效果（力量/冲击/火焰）
+            arrow->applyBowEnchantments(*player);
 
             // 消耗耐久度（非创造模式）
             if (!isCreative) {

@@ -354,13 +354,20 @@ void AbstractArrowEntity::onBlockHit(const RayTraceResult& result)
     playSound(SoundEvents::ENTITY_ARROW_HIT_GROUND, 1.0f, 1.2f / (rng.nextFloat() * 0.2f + 0.9f));
 }
 
-void AbstractArrowEntity::setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity)
+void AbstractArrowEntity::setBaseDamageFromMob(f32 power)
 {
-    // 设置基础伤害（对应 MC AbstractArrow 构造函数中的伤害计算）
+    // 对应 MC AbstractArrow.setBaseDamageFromMob()
+    // 公式：power * 2.0 + random.triangle(difficulty * 0.11, 0.57425)
+    // random.triangle(mode, spread) = mode + (random.nextFloat() - random.nextFloat()) * spread
+    // 即以 mode 为中心，spread 为半宽的三角分布
     math::Random rng = createRandomFromEntity(*this);
     f32 difficultyBonus = m_world ? static_cast<f32>(static_cast<u8>(m_world->difficulty())) * 0.11f : 0.0f;
-    m_damage = static_cast<f32>(baseVelocity * 2.0 + rng.nextGaussian() * 0.25 + difficultyBonus);
+    f32 triangle = difficultyBonus + (rng.nextFloat() - rng.nextFloat()) * 0.57425f;
+    m_damage = power * 2.0f + triangle;
+}
 
+void AbstractArrowEntity::applyBowEnchantments(LivingEntity& shooter)
+{
     // 力量附魔增加伤害（PowerEnchantment: 每级 +0.5 伤害 + 基础 0.5）
     i32 powerLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
         shooter.getMainHandItem(), &item::enchant::AllEnchantments::POWER);

@@ -113,7 +113,7 @@ Entity (core/Entity.hpp)
 | 引雷 (Channeling) | `TridentEntity::onEntityHit()` | 雷暴天气召唤闪电 |
 | 激流 (Riptide) | `TridentItem::onPlayerStoppedUsing()` | 雨天/水中携带玩家冲刺 |
 
-`TridentEntity::setEnchantmentEffectsFrom()` 方法继承自 `AbstractArrowEntity`，但三叉戟只需计算基础伤害，不考虑弓类附魔。
+`TridentEntity::setBaseDamageFromMob()` 方法继承自 `AbstractArrowEntity`，但三叉戟只需计算基础伤害，不考虑弓类附魔。
 
 ### 2. 火球类粒子效果
 

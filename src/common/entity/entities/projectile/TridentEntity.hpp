@@ -108,9 +108,12 @@ public:
     [[nodiscard]] f32 getWaterDrag() const override;
 
     /**
-     * @brief 根据发射者设置附魔效果
+     * @brief 设置生物射出三叉戟的基础伤害
+     *
+     * 三叉戟不使用弓类附魔（力量/冲击/火焰），因此不重写 applyBowEnchantments。
+     * 三叉戟的专属附魔（忠诚/穿刺/引雷/激流）在其他地方处理。
      */
-    void setEnchantmentEffectsFrom(LivingEntity& shooter, f32 baseVelocity);
+    void setBaseDamageFromMob(f32 power) override;
 
     /**
      * @brief 玩家拾取三叉戟
