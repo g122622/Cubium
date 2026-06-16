@@ -10,7 +10,8 @@ src/common/command/arguments/
 ├── BlockStateArgument.hpp      # 方块状态参数类型（支持属性解析）
 ├── EntityArgument.hpp/.cpp     # 实体选择器参数类型（@p, @a, @e, @r, @s）
 ├── GameModeArgument.hpp        # 游戏模式、资源位置、坐标参数类型
-├── ItemArgument.hpp            # 物品参数类型
+├── ItemArgument.hpp            # 物品参数类型 + ItemInput 包装器
+├── ItemSlotArgument.hpp        # 物品槽位参数类型 + ItemSlot 索引类
 ├── NbtPath.hpp/.cpp            # NBT 路径类和节点实现
 └── NbtPathArgumentType.hpp/.cpp # NBT 路径/复合标签/标签参数类型
 ```
@@ -23,10 +24,14 @@ ArgumentType.hpp (基类模板)
     ├── GameModeArgument.hpp    → 继承 ArgumentType<T> (GameMode/ResourceLocation/Vector3i/Vector3d/Vector2f)
     ├── BlockStateArgument.hpp  → 继承 ArgumentType<BlockStateInput>
     ├── ItemArgument.hpp        → 继承 ArgumentType<ItemInput>
+    ├── ItemSlotArgument.hpp    → 继承 ArgumentType<ItemSlot>（槽位名称→索引映射）
     └── NbtPathArgumentType.hpp → 继承 ArgumentType<NbtPath>
 
 NbtPath.hpp
     └── NbtPathArgumentType.hpp → 使用 NbtPath 作为返回类型
+
+ItemSlotArgument.hpp
+    └── ItemSlotArgumentType    → ItemSlot 索引类 + 解析器
 
 EntityArgument.hpp
     └── EntityArgument.cpp      → 实现复杂的选择器解析逻辑
@@ -106,3 +111,7 @@ auto enumArg = std::shared_ptr<EnumArgumentType<Color>>(
 ### 8. 相对/局部坐标的执行时计算
 
 `BlockPosArgumentType` 和 `Vec3ArgumentType` 解析 `~` 和 `^` 前缀时，需要在命令执行时根据执行者位置/朝向进行计算，这不在参数解析阶段完成。
+
+### 9. ItemSlot 槽位编号重叠
+
+`ItemSlotArgument` 中 `player.cursor`(499) 与 `horse.chest`(499) 编号重叠，`player.crafting.0~3`(500-503) 与 `horse.0~3`(500-503) 编号重叠。原版中通过不同命令上下文区分，当前实现中 `player.crafting` 优先匹配，需在后续根据上下文细化。

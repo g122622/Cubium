@@ -110,19 +110,19 @@ bool setEntitySlotItem(ServerCommandSource& source, PlayerId playerId, const Ite
         return true;
     }
 
-    // 末影箱槽位 (200-226)：当前末影箱系统尚未完整实现
+    // TODO: 末影箱槽位 (200-226) 需要访问 EnderChestInventory，当末影箱系统集成后实现
     if (slot.isEnderChestSlot()) {
         source.sendError("Ender chest slots are not yet supported");
         return false;
     }
 
-    // 马匹槽位 (500-514)：当前马匹物品栏系统尚未完整实现
+    // TODO: 马匹槽位 (500-514) 需要访问 HorseInventory/AbstractHorse，当马匹物品栏系统集成后实现
     if (slot.isHorseSlot()) {
         source.sendError("Horse inventory slots are not yet supported");
         return false;
     }
 
-    // 合成槽位 (500-503)：当前不支持
+    // TODO: 合成槽位 (500-503) 需要访问 CraftingContainer，当合成容器系统集成后实现
     if (slot.isCraftingSlot()) {
         source.sendError("Crafting slots are not yet supported");
         return false;

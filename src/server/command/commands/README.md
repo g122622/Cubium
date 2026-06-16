@@ -20,6 +20,7 @@ src/server/command/commands/
 ├── KillCommand.hpp / KillCommand.cpp             # 杀死实体或自己
 ├── ListCommand.hpp / ListCommand.cpp             # 列出在线玩家
 ├── SayCommand.hpp / SayCommand.cpp               # 广播聊天消息
+├── ReplaceItemCommand.hpp / ReplaceItemCommand.cpp  # 替换物品栏/容器槽位物品（支持槽位名称解析）
 ├── ScoreboardCommand.hpp / ScoreboardCommand.cpp # 记分板目标管理
 ├── SeedCommand.hpp / SeedCommand.cpp             # 显示当前世界种子
 ├── SetBlockCommand.hpp / SetBlockCommand.cpp     # 放置单个方块

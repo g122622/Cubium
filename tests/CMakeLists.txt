@@ -1688,6 +1688,7 @@ add_executable(mc_command_tests
     server/command/TriggerCommandTest.cpp
     common/command/arguments/BlockStateArgumentTest.cpp
     common/command/arguments/EntityArgumentTest.cpp
+    common/command/arguments/ItemSlotArgumentTest.cpp
     common/command/arguments/NbtPathTest.cpp
 )
 

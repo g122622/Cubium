@@ -7,7 +7,8 @@
 ```
 tests/common/command/arguments/
 ├── BlockStateArgumentTest.cpp   # 方块状态参数解析测试
-└── EntityArgumentTest.cpp       # 实体选择器参数解析测试
+├── EntityArgumentTest.cpp       # 实体选择器参数解析测试
+└── ItemSlotArgumentTest.cpp     # 物品槽位参数解析测试
 ```
 
 ## 测试文件详解

@@ -42,7 +42,6 @@ namespace command {
  * 槽位名称参考 ItemSlotArgumentType 支持的格式，
  * 如 weapon.mainhand, armor.head, container.5, hotbar.0 等。
  *
- * 参考: net.minecraft.server.commands.ItemCommands (MC 1.21.11)
  * 注: MC 1.17+ 已将 /replaceitem 重命名为 /item replace with，
  *     本项目保留 /replaceitem 名称以兼容旧版命令习惯。
  */

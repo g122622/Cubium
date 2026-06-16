@@ -97,12 +97,22 @@ public:
     /**
      * @brief 判断该槽位是否为马匹槽位
      */
-    [[nodiscard]] bool isHorseSlot() const noexcept { return m_slotIndex >= 500 && m_slotIndex <= 514; }
+    [[nodiscard]] bool isHorseSlot() const noexcept
+    {
+        // TODO: horse.0~horse.14 (500-514) 与 player.crafting.0~3 (500-503) 编号范围重叠，
+        // 需要根据命令上下文（entity/block）区分实际含义，当前统一视为 horse 槽位
+        return m_slotIndex >= 500 && m_slotIndex <= 514;
+    }
 
     /**
      * @brief 判断该槽位是否为合成槽位
      */
-    [[nodiscard]] bool isCraftingSlot() const noexcept { return m_slotIndex >= 500 && m_slotIndex <= 503; }
+    [[nodiscard]] bool isCraftingSlot() const noexcept
+    {
+        // TODO: player.crafting.0~3 (500-503) 与 horse.0~3 (500-503) 编号范围重叠，
+        // 需要根据命令上下文区分实际含义，当前统一优先判定为 horse 槽位
+        return m_slotIndex >= 500 && m_slotIndex <= 503;
+    }
 
     /**
      * @brief 获取装备槽位类型索引
@@ -203,7 +213,7 @@ private:
  * - "horse.N"       (0-14) 马匹槽位（偏移到 500-514）
  * - 纯数字          直接作为槽位索引
  *
- * 参考: net.minecraft.commands.arguments.SlotArgument
+ * 槽位编号定义与原版 SlotRanges 一致
  */
 class ItemSlotArgumentType : public ArgumentType<ItemSlot> {
 public:
@@ -310,6 +320,8 @@ private:
         }
 
         // 马匹: horse.0 ~ horse.14 -> 500-514
+        // 注意: horse.chest 必须在 horse.N 之前检查，避免被 horse. 前缀匹配误捕获
+        if (str == "horse.chest") return 499;
         if (str.starts_with("horse.")) {
             i32 offset = _parseTrailingInt(str, 6);
             if (offset >= 0 && offset <= 14) return 500 + offset;
@@ -317,8 +329,8 @@ private:
         }
 
         // 合成槽: player.crafting.0 ~ player.crafting.3 -> 500-503
-        // 注意: 这与 horse 槽位范围重叠，MC 原版中也是如此
-        // （player.crafting 和 horse 使用不同的上下文，不会冲突）
+        // TODO: player.crafting 与 horse 槽位范围 (500-514) 部分重叠 (500-503)，
+        // 需根据命令上下文（entity 玩家/马匹）区分实际含义，当前 player.crafting 优先匹配
         if (str.starts_with("player.crafting.")) {
             i32 offset = _parseTrailingInt(str, 16);
             if (offset >= 0 && offset <= 3) return 500 + offset;
@@ -326,6 +338,7 @@ private:
         }
 
         // 玩家光标: player.cursor -> 499
+        // TODO: player.cursor (499) 与 horse.chest (499) 编号重叠，需根据命令上下文区分
         if (str == "player.cursor") return 499;
 
         // 武器槽位
@@ -341,9 +354,6 @@ private:
 
         // 鞍槽位
         if (str == "saddle") return 106;
-
-        // 马匹箱子: horse.chest -> 499 (MC 原版值)
-        if (str == "horse.chest") return 499;
 
         return -1;
     }
