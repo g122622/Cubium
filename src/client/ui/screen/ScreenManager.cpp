@@ -85,26 +85,26 @@ void ScreenManager::render(i32 mouseX, i32 mouseY, f32 partialTick)
     (void)partialTick;
 }
 
-bool ScreenManager::onClick(i32 mouseX, i32 mouseY, i32 button)
+bool ScreenManager::onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods)
 {
     if (m_stackWidget) {
-        return m_stackWidget->onClick(mouseX, mouseY, button);
+        return m_stackWidget->onClick(mouseX, mouseY, button, mods);
     }
     return false;
 }
 
-bool ScreenManager::onRelease(i32 mouseX, i32 mouseY, i32 button)
+bool ScreenManager::onRelease(i32 mouseX, i32 mouseY, i32 button, i32 mods)
 {
     if (m_stackWidget) {
-        return m_stackWidget->onRelease(mouseX, mouseY, button);
+        return m_stackWidget->onRelease(mouseX, mouseY, button, mods);
     }
     return false;
 }
 
-bool ScreenManager::onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY)
+bool ScreenManager::onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button)
 {
     if (m_stackWidget) {
-        return m_stackWidget->onDrag(mouseX, mouseY, deltaX, deltaY);
+        return m_stackWidget->onDrag(mouseX, mouseY, deltaX, deltaY, button);
     }
     return false;
 }

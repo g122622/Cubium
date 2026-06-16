@@ -85,11 +85,12 @@ void MapScreen::render(i32 mouseX, i32 mouseY, f32 partialTick)
     m_gui->drawRect(mapX - BORDER, mapY - BORDER, mapSize + BORDER * 2.0, mapSize + BORDER * 2.0, 0xFF555555);
 }
 
-bool MapScreen::onClick(i32 mouseX, i32 mouseY, i32 button)
+bool MapScreen::onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods)
 {
     MC_UNUSED(mouseX);
     MC_UNUSED(mouseY);
     MC_UNUSED(button);
+    MC_UNUSED(mods);
     return true;
 }
 

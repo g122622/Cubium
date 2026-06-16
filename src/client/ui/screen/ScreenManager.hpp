@@ -125,18 +125,20 @@ public:
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标
      * @param button 鼠标按钮
+     * @param mods 修饰键位掩码 (GLFW_MOD_SHIFT, GLFW_MOD_CONTROL 等)
      * @return 如果事件被处理返回true
      */
-    bool onClick(i32 mouseX, i32 mouseY, i32 button);
+    bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods);
 
     /**
      * @brief 处理鼠标释放
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标
      * @param button 鼠标按钮
+     * @param mods 修饰键位掩码 (GLFW_MOD_SHIFT, GLFW_MOD_CONTROL 等)
      * @return 如果事件被处理返回true
      */
-    bool onRelease(i32 mouseX, i32 mouseY, i32 button);
+    bool onRelease(i32 mouseX, i32 mouseY, i32 button, i32 mods);
 
     /**
      * @brief 处理鼠标拖动
@@ -144,9 +146,10 @@ public:
      * @param mouseY 鼠标Y坐标
      * @param deltaX X方向移动量
      * @param deltaY Y方向移动量
+     * @param button 触发拖动的鼠标按钮
      * @return 如果事件被处理返回true
      */
-    bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY);
+    bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button);
 
     /**
      * @brief 处理鼠标滚轮

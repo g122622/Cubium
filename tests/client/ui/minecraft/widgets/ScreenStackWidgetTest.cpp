@@ -68,7 +68,7 @@ public:
 
     void init() override { m_initCalled = true; }
     void render(i32, i32, f32) override {}
-    bool onClick(i32, i32, i32) override { return false; }
+    bool onClick(i32, i32, i32, i32) override { return false; }
     bool onKey(i32, i32, i32, i32) override { return false; }
     void onClose() override { m_closeCalled = true; }
 
@@ -203,7 +203,7 @@ class ConcreteIScreen : public IScreen {
 public:
     void init() override {}
     void render(i32, i32, f32) override {}
-    bool onClick(i32, i32, i32) override { return false; }
+    bool onClick(i32, i32, i32, i32) override { return false; }
     bool onKey(i32, i32, i32, i32) override { return false; }
     void onClose() override {}
     [[nodiscard]] std::string getTitle() const override { return "test_iscreen"; }
@@ -212,13 +212,13 @@ public:
 TEST(IScreenDefaultTest, DefaultOnReleaseReturnsFalse)
 {
     ConcreteIScreen screen;
-    EXPECT_FALSE(screen.onRelease(0, 0, 0));
+    EXPECT_FALSE(screen.onRelease(0, 0, 0, 0));
 }
 
 TEST(IScreenDefaultTest, DefaultOnDragReturnsFalse)
 {
     ConcreteIScreen screen;
-    EXPECT_FALSE(screen.onDrag(0, 0, 0, 0));
+    EXPECT_FALSE(screen.onDrag(0, 0, 0, 0, 0));
 }
 
 TEST(IScreenDefaultTest, DefaultOnScrollReturnsFalse)

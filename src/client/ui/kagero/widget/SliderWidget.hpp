@@ -113,8 +113,9 @@ public:
 
     // ==================== 事件处理 ====================
 
-    bool onClick(i32 mouseX, i32 mouseY, i32 button) override
+    bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
     {
+        (void)mods;
         if (!isActive() || !isVisible()) return false;
         if (button != 0) return false; // 只响应左键
 
@@ -128,10 +129,11 @@ public:
         return true;
     }
 
-    bool onRelease(i32 mouseX, i32 mouseY, i32 button) override
+    bool onRelease(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
     {
         (void)mouseX;
         (void)mouseY;
+        (void)mods;
 
         if (button != 0) return false;
 
@@ -147,10 +149,11 @@ public:
         return false;
     }
 
-    bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) override
+    bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button) override
     {
         (void)deltaX;
         (void)deltaY;
+        (void)button;
 
         if (!m_dragging) return false;
 

@@ -220,7 +220,7 @@ TEST(SliderWidgetTest, ClickSetsFocus)
 
     EXPECT_FALSE(slider.isFocused());
 
-    slider.onClick(50, 10, 0);
+    slider.onClick(50, 10, 0, 0);
     EXPECT_TRUE(slider.isFocused());
     EXPECT_TRUE(slider.isDragging());
 }
@@ -233,10 +233,10 @@ TEST(SliderWidgetTest, DraggingState)
 
     EXPECT_FALSE(slider.isDragging());
 
-    slider.onClick(50, 10, 0);
+    slider.onClick(50, 10, 0, 0);
     EXPECT_TRUE(slider.isDragging());
 
-    slider.onRelease(50, 10, 0);
+    slider.onRelease(50, 10, 0, 0);
     EXPECT_FALSE(slider.isDragging());
 }
 

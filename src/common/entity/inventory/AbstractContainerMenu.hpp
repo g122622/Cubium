@@ -554,6 +554,16 @@ private:
     ItemStack _handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack);
 
     /**
+     * @brief 处理拖拽分发的 START/END 事件（使用 -999 槽位）
+     *
+     * 拖拽分发协议中，START 和 END 事件发送到 -999 槽位。
+     * START 初始化拖拽状态，END 分发物品到所有目标槽位。
+     *
+     * @param button 编码后的按钮值（低2位=事件状态，高位=拖拽模式）
+     */
+    void _handleQuickCraftStartEnd(i32 button);
+
+    /**
      * @brief 分发物品到单个拖拽槽位
      * @param toDistribute 要分发的物品（会被修改）
      * @param slotIdx 目标槽位索引

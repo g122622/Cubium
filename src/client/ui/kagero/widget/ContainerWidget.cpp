@@ -56,19 +56,19 @@ void ContainerWidget::tick(f32 dt)
 
 // ========== 鼠标事件 ==========
 
-bool ContainerWidget::onClick(i32 mouseX, i32 mouseY, i32 button)
+bool ContainerWidget::onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods)
 {
-    return handleClickInChildren(mouseX, mouseY, button);
+    return handleClickInChildren(mouseX, mouseY, button, mods);
 }
 
-bool ContainerWidget::onRelease(i32 mouseX, i32 mouseY, i32 button)
+bool ContainerWidget::onRelease(i32 mouseX, i32 mouseY, i32 button, i32 mods)
 {
-    return handleReleaseInChildren(mouseX, mouseY, button);
+    return handleReleaseInChildren(mouseX, mouseY, button, mods);
 }
 
-bool ContainerWidget::onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY)
+bool ContainerWidget::onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button)
 {
-    return handleDragInChildren(mouseX, mouseY, deltaX, deltaY);
+    return handleDragInChildren(mouseX, mouseY, deltaX, deltaY, button);
 }
 
 bool ContainerWidget::onScroll(i32 mouseX, i32 mouseY, f64 delta)

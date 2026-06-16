@@ -190,7 +190,7 @@ TEST(SlotWidgetTest, OnSlotClickCallback)
         shiftHeld = shift;
     });
 
-    slot.onClick(5, 5, 0); // 左键点击
+    slot.onClick(5, 5, 0, 0); // 左键点击
 
     EXPECT_EQ(3, clickedIndex);
     EXPECT_EQ(0, clickedButton);
@@ -208,7 +208,7 @@ TEST(SlotWidgetTest, OnSlotClickRightButton)
 
     slot.setOnSlotClick([&](i32, i32 button, bool) { clickedButton = button; });
 
-    slot.onClick(5, 5, 1); // 右键点击
+    slot.onClick(5, 5, 1, 0); // 右键点击
 
     EXPECT_EQ(1, clickedButton);
 }
@@ -223,7 +223,7 @@ TEST(SlotWidgetTest, OnSlotClickInactive)
     slot.setOnSlotClick([&](i32, i32, bool) { callbackCalled = true; });
 
     // onClick 在 inactive 时返回 false，不调用回调
-    bool result = slot.onClick(5, 5, 0);
+    bool result = slot.onClick(5, 5, 0, 0);
 
     EXPECT_FALSE(result);         // inactive 时返回 false
     EXPECT_FALSE(callbackCalled); // 回调不被调用
@@ -243,7 +243,7 @@ TEST(SlotWidgetTest, OnReleaseCallback)
         releaseButton = button;
     });
 
-    slot.onRelease(5, 5, 0);
+    slot.onRelease(5, 5, 0, 0);
 
     EXPECT_TRUE(releaseCalled);
     EXPECT_EQ(0, releaseButton);

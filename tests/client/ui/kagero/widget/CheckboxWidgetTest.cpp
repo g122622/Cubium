@@ -154,11 +154,11 @@ TEST(CheckboxWidgetTest, ClickToggles)
     EXPECT_FALSE(checkbox.isChecked());
 
     // 左键点击
-    bool result = checkbox.onClick(10, 10, 0);
+    bool result = checkbox.onClick(10, 10, 0, 0);
     EXPECT_TRUE(result);
     EXPECT_TRUE(checkbox.isChecked());
 
-    result = checkbox.onClick(10, 10, 0);
+    result = checkbox.onClick(10, 10, 0, 0);
     EXPECT_TRUE(result);
     EXPECT_FALSE(checkbox.isChecked());
 }
@@ -170,7 +170,7 @@ TEST(CheckboxWidgetTest, ClickDisabled)
 
     EXPECT_FALSE(checkbox.isChecked());
 
-    bool result = checkbox.onClick(10, 10, 0);
+    bool result = checkbox.onClick(10, 10, 0, 0);
     EXPECT_FALSE(result);
     EXPECT_FALSE(checkbox.isChecked());
 }
@@ -182,7 +182,7 @@ TEST(CheckboxWidgetTest, ClickRightButtonIgnored)
     checkbox.setVisible(true);
 
     // 右键点击不触发
-    bool result = checkbox.onClick(10, 10, 1);
+    bool result = checkbox.onClick(10, 10, 1, 0);
     EXPECT_FALSE(result);
     EXPECT_FALSE(checkbox.isChecked());
 }

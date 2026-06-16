@@ -335,8 +335,9 @@ bool ChatWidget::onChar(u32 codePoint)
     return true;
 }
 
-bool ChatWidget::onClick(i32 mouseX, i32 mouseY, i32 button)
+bool ChatWidget::onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods)
 {
+    (void)mods;
     if (!m_open) {
         return false;
     }

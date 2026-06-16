@@ -66,7 +66,7 @@ TEST(ButtonWidgetTest, ConstructorWithCallback)
     EXPECT_EQ("Click Me", button.text());
 
     // 触发点击
-    button.onClick(50, 30, 0);
+    button.onClick(50, 30, 0, 0);
     EXPECT_TRUE(clicked);
 }
 
@@ -170,12 +170,12 @@ TEST(ButtonWidgetTest, ClickTriggersCallback)
     button.setVisible(true);
 
     // 左键点击
-    bool result = button.onClick(50, 20, 0);
+    bool result = button.onClick(50, 20, 0, 0);
     EXPECT_TRUE(result);
     EXPECT_EQ(1, clickCount);
 
     // 右键点击不触发
-    result = button.onClick(50, 20, 1);
+    result = button.onClick(50, 20, 1, 0);
     EXPECT_FALSE(result);
     EXPECT_EQ(1, clickCount);
 }
@@ -187,7 +187,7 @@ TEST(ButtonWidgetTest, ClickDisabledNoTrigger)
 
     button.setActive(false);
 
-    bool result = button.onClick(50, 20, 0);
+    bool result = button.onClick(50, 20, 0, 0);
     EXPECT_FALSE(result);
     EXPECT_EQ(0, clickCount);
 }
@@ -199,7 +199,7 @@ TEST(ButtonWidgetTest, ClickInvisibleNoTrigger)
 
     button.setVisible(false);
 
-    bool result = button.onClick(50, 20, 0);
+    bool result = button.onClick(50, 20, 0, 0);
     EXPECT_FALSE(result);
     EXPECT_EQ(0, clickCount);
 }
@@ -288,7 +288,7 @@ TEST_F(UiSoundTest, ButtonClickPlaysSound)
     button.setVisible(true);
 
     // 点击按钮
-    button.onClick(50, 20, 0);
+    button.onClick(50, 20, 0, 0);
 
     // 验证点击回调和音效都被触发
     EXPECT_EQ(1, clickCallCount);
@@ -306,7 +306,7 @@ TEST_F(UiSoundTest, ButtonClickNoSoundWhenDisabled)
     button.setActive(false);
 
     // 点击禁用的按钮
-    button.onClick(50, 20, 0);
+    button.onClick(50, 20, 0, 0);
 
     // 禁用按钮不应该播放音效
     EXPECT_EQ(0, soundCallCount);
@@ -331,7 +331,7 @@ TEST_F(UiSoundTest, CustomButtonSound)
     button.setActive(true);
     button.setVisible(true);
 
-    button.onClick(50, 20, 0);
+    button.onClick(50, 20, 0, 0);
 
     // 验证使用了自定义音效
     EXPECT_EQ("minecraft:block.wood.hit", lastSoundId);

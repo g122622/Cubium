@@ -15,7 +15,7 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
@@ -54,20 +54,20 @@ namespace mc::client {
  * 管理容器菜单的客户端屏幕，处理槽位渲染和交互。
  * 与服务端的AbstractContainerMenu配对使用。
  *
- * 槽位渲染：
- * - 槽位背景
- * - 槽位物品
- * - 槽位高亮
- * - 鼠标悬停提示
- *
- * 使用示例：
- * @code
- * class CraftingScreen : public AbstractContainerScreen<CraftingMenu> {
- * public:
- *     void render(i32 mouseX, i32 mouseY, f32 partialTick) override;
- *     bool onClick(i32 mouseX, i32 mouseY, i32 button) override;
- * };
- * @endcode
+ * 交互类型：
+ * - 左键点击：拾取/放置物品
+ * - 右键点击：拾取半组/放置一个物品
+ * - Shift+左键：快速移动物品到对应区域
+ * - Shift+双击：快速移动所有匹配物品
+ * - 数字键1-9：与快捷栏槽位交换
+ * - F键：与副手槽位交换
+ * - Q键：丢弃一个物品，Ctrl+Q丢弃整组
+ * - 中键（创造模式）：复制物品
+ * - 左键拖拽：均匀分发物品
+ * - 右键拖拽：逐个分发物品
+ * - 中键拖拽（创造模式）：填满槽位
+ * - 双击：拾取所有相同物品
+ * - 点击屏幕外：丢弃光标上的物品
  *
  * @tparam Menu 菜单类型
  */
@@ -177,50 +177,219 @@ public:
 
     /**
      * @brief 处理鼠标点击
+     *
+     * 根据 Shift/Ctrl 修饰键和鼠标按钮，决定交互类型：
+     * - 左键(0): 拾取/放置
+     * - 右键(1): 拾取半组/放置一个
+     * - 中键(2): 创造模式复制
+     * - Shift+左键: 快速移动
+     * - 如果光标持有物品且不在拖拽中: 开始拖拽分发
+     *
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标
      * @param button 鼠标按键
+     * @param mods 修饰键位掩码
      * @return 是否处理了点击事件
      */
-    bool onClick(i32 mouseX, i32 mouseY, i32 button) override
+    bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
     {
         if (m_menu == nullptr) {
             return false;
         }
 
+        const bool shiftHeld = (mods & GLFW_MOD_SHIFT) != 0;
+        const bool ctrlHeld = (mods & GLFW_MOD_CONTROL) != 0;
+
         // 查找点击的槽位
         mc::Slot* slot = getSlotAt(mouseX, mouseY);
-        if (slot != nullptr) {
-            return onSlotClick(*slot, slot->getIndex(), button);
+        const bool clickedOutside = (slot == nullptr);
+
+        // 如果光标持有物品且不在拖拽中，且点击了有效槽位，进入拖拽模式
+        if (!m_carried.isEmpty() && !m_isQuickCrafting && !clickedOutside && button <= 1) {
+            m_isQuickCrafting = true;
+            m_quickCraftingButton = button;
+            m_quickCraftingType = _getQuickCraftType(button, ctrlHeld);
+            m_quickCraftSlots.clear();
+            m_skipNextRelease = false;
+            return true;
         }
 
-        // 点击空白区域
-        return onClickOutside(mouseX, mouseY, button);
+        if (clickedOutside) {
+            // 点击屏幕外部（槽位索引 -999）
+            return _handleClickOutside(button, shiftHeld);
+        }
+
+        // 检测双击
+        const auto now = std::chrono::steady_clock::now();
+        const bool isDoubleClick =
+            (m_lastClickSlot == slot && m_lastClickTime > std::chrono::steady_clock::time_point{} &&
+                std::chrono::duration_cast<std::chrono::nanoseconds>(now - m_lastClickTime).count() <
+                    DOUBLE_CLICK_THRESHOLD_NS);
+        m_lastClickSlot = slot;
+        m_lastClickTime = now;
+
+        if (isDoubleClick && button == 0 && !shiftHeld) {
+            // 双击：拾取所有相同物品
+            _sendSlotClick(*slot, slot->getIndex(), 0, ClickAction::PickupAll);
+            m_skipNextRelease = true;
+            return true;
+        }
+
+        // Shift+左键：快速移动
+        if (shiftHeld && button == 0) {
+            _sendSlotClick(*slot, slot->getIndex(), 0, ClickAction::QuickMove);
+            m_skipNextRelease = true;
+            return true;
+        }
+
+        // 中键：创造模式复制
+        if (button == 2) {
+            _sendSlotClick(*slot, slot->getIndex(), 2, ClickAction::Clone);
+            m_skipNextRelease = true;
+            return true;
+        }
+
+        // 左键或右键：拾取/放置
+        if (button == 0 || button == 1) {
+            _sendSlotClick(*slot, slot->getIndex(), button, ClickAction::Pickup);
+            m_skipNextRelease = true;
+            return true;
+        }
+
+        return onSlotClick(*slot, slot->getIndex(), button);
+    }
+
+    /**
+     * @brief 处理鼠标释放
+     *
+     * 如果正在拖拽分发，完成拖拽操作。
+     * 否则忽略释放事件（点击已在 onClick 中处理）。
+     */
+    bool onRelease(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
+    {
+        (void)mouseX;
+        (void)mouseY;
+
+        if (m_menu == nullptr) {
+            return false;
+        }
+
+        // 如果设置了跳过下一次释放，清除标记并忽略
+        if (m_skipNextRelease) {
+            m_skipNextRelease = false;
+            return true;
+        }
+
+        // 处理拖拽分发完成
+        if (m_isQuickCrafting && button == m_quickCraftingButton) {
+            const bool shiftHeld = (mods & GLFW_MOD_SHIFT) != 0;
+            _finishQuickCraft(shiftHeld);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @brief 处理鼠标拖动
+     *
+     * 如果正在拖拽分发，将鼠标下的有效槽位添加到拖拽目标列表中。
+     */
+    bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button) override
+    {
+        (void)deltaX;
+        (void)deltaY;
+
+        if (m_menu == nullptr || !m_isQuickCrafting || button != m_quickCraftingButton) {
+            return false;
+        }
+
+        // 查找鼠标下的槽位
+        mc::Slot* slot = getSlotAt(mouseX, mouseY);
+        if (slot == nullptr) {
+            return true;
+        }
+
+        // 检查槽位是否可以接受拖拽物品
+        const ItemStack& carried = m_menu->getCarriedItem();
+        if (carried.isEmpty()) {
+            return true;
+        }
+
+        // 检查槽位是否已经在拖拽列表中
+        const i32 slotIndex = slot->getIndex();
+        for (i32 idx : m_quickCraftSlots) {
+            if (idx == slotIndex) {
+                return true; // 已在列表中
+            }
+        }
+
+        // 检查是否可以放入物品
+        if (!slot->mayPlace(carried)) {
+            return true;
+        }
+
+        // 检查数量限制（均匀/逐个模式需要数量大于已选槽位数）
+        if (m_quickCraftingType != DragConstants::MODE_FILL) {
+            if (carried.getCount() <= static_cast<i32>(m_quickCraftSlots.size())) {
+                return true;
+            }
+        }
+
+        // 检查槽位物品是否可以合并
+        if (!slot->getItem().isEmpty() && !carried.isSameItem(slot->getItem())) {
+            return true;
+        }
+
+        m_quickCraftSlots.push_back(slotIndex);
+        return true;
     }
 
     /**
      * @brief 处理键盘按键
-     * @param key 按键代码（GLFW键码）
-     * @param scanCode 扫描码
-     * @param action 动作（按下/释放/重复）
-     * @param mods 修饰键
-     * @return 是否处理了按键事件
+     *
+     * 处理以下键盘操作：
+     * - ESC/E: 关闭屏幕
+     * - 数字键1-9: 与快捷栏槽位交换
+     * - F: 与副手槽位交换
+     * - Q: 丢弃一个物品，Ctrl+Q丢弃整组
      */
     bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override
     {
         (void)scanCode;
-        (void)mods;
 
-        // ESC关闭屏幕
-        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-            onClose();
-            return true;
+        if (m_menu == nullptr) {
+            return false;
         }
 
-        // E键关闭容器屏幕
-        if (key == GLFW_KEY_E && action == GLFW_PRESS) {
-            onClose();
-            return true;
+        if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+            // ESC关闭屏幕
+            if (key == GLFW_KEY_ESCAPE) {
+                onClose();
+                return true;
+            }
+
+            // E键关闭容器屏幕
+            if (key == GLFW_KEY_E) {
+                onClose();
+                return true;
+            }
+
+            // Q键丢弃物品
+            if (key == GLFW_KEY_Q) {
+                return _handleDropKey(mods);
+            }
+
+            // 数字键1-9交换快捷栏
+            if (key >= GLFW_KEY_1 && key <= GLFW_KEY_9) {
+                const i32 hotbarIndex = key - GLFW_KEY_1;
+                return _handleHotbarSwap(hotbarIndex);
+            }
+
+            // F键交换副手
+            if (key == GLFW_KEY_F) {
+                return _handleHotbarSwap(40); // 40 = 副手槽位索引
+            }
         }
 
         return false;
@@ -286,6 +455,9 @@ protected:
     // 槽位尺寸常量
     static constexpr i32 SLOT_SIZE = 16;
     static constexpr i32 SLOT_SPACING = 18;
+
+    // 双击检测阈值（纳秒，500ms）
+    static constexpr i64 DOUBLE_CLICK_THRESHOLD_NS = 500'000'000L;
 
     /**
      * @brief 子类初始化回调
@@ -361,9 +533,6 @@ protected:
      */
     virtual void renderSlot(const mc::Slot& slot, i32 screenX, i32 screenY)
     {
-        // 渲染槽位背景（可选，纹理中已包含槽位背景）
-        // 如果需要单独渲染槽位高亮，可以在这里添加
-
         // 渲染物品
         const mc::ItemStack& stack = slot.getItem();
         if (!stack.isEmpty()) {
@@ -571,34 +740,26 @@ protected:
     }
 
     /**
-     * @brief 槽位点击处理
-     * @param slot 点击的槽位（供子类使用）
+     * @brief 槽位点击处理（子类可重写以添加特殊逻辑）
+     * @param slot 点击的槽位
      * @param slotIndex 槽位索引
      * @param button 鼠标按键
      * @return 是否处理了点击事件
+     *
+     * 子类可以重写此方法来实现特殊的槽位点击逻辑（如合成结果槽位）。
+     * 默认实现通过 _sendSlotClick 将点击事件发送到菜单。
      */
     virtual bool onSlotClick(mc::Slot& slot, i32 slotIndex, i32 button)
     {
         (void)slot;
+        (void)button;
 
         if (m_menu == nullptr) {
             return false;
         }
 
-        if (m_clickSender) {
-            const ClickAction action = ClickAction::Pickup;
-            const i16 transactionId = m_menu->incrementTransactionId();
-            m_clickSender(m_menu->getId(), slotIndex, button, transactionId, action, m_menu->getCarriedItem());
-            return true;
-        }
-
-        auto* playerInventory = m_menu->getPlayerInventory();
-        if (playerInventory == nullptr || playerInventory->getPlayer() == nullptr) {
-            return false;
-        }
-
-        const ClickType clickType = (button == 0) ? ClickType::Pick : ClickType::PickSome;
-        m_menu->clicked(slotIndex, button, clickType, *playerInventory->getPlayer());
+        // 默认：左键拾取/放置
+        _sendSlotClick(slot, slotIndex, button, ClickAction::Pickup);
         return true;
     }
 
@@ -637,6 +798,242 @@ protected:
 
     // 空物品堆（用于空菜单时返回）
     static mc::ItemStack s_emptyStack;
+
+private:
+    /**
+     * @brief 发送槽位点击事件
+     *
+     * 根据是否有 clickSender 决定是网络模式还是本地模式。
+     * 网络模式：发送 ContainerClickPacket 到服务端。
+     * 本地模式：直接调用菜单的 clicked 方法。
+     *
+     * @param slot 点击的槽位
+     * @param slotIndex 槽位索引
+     * @param button 鼠标按钮
+     * @param action 点击操作类型
+     */
+    void _sendSlotClick(mc::Slot& slot, i32 slotIndex, i32 button, ClickAction action)
+    {
+        if (m_clickSender) {
+            const i16 transactionId = m_menu->incrementTransactionId();
+            m_clickSender(m_menu->getId(), slotIndex, button, transactionId, action, m_menu->getCarriedItem());
+            return;
+        }
+
+        // 本地模式：将 ClickAction 转换为 ClickType
+        auto* playerInventory = m_menu->getPlayerInventory();
+        if (playerInventory == nullptr || playerInventory->getPlayer() == nullptr) {
+            return;
+        }
+
+        ClickType clickType = _actionToClickType(action, button);
+        m_menu->clicked(slotIndex, button, clickType, *playerInventory->getPlayer());
+    }
+
+    /**
+     * @brief 发送特殊槽位点击事件（使用 -999 槽位索引）
+     * @param button 鼠标按钮
+     * @param action 点击操作类型
+     */
+    void _sendOutsideClick(i32 button, ClickAction action)
+    {
+        if (m_clickSender) {
+            const i16 transactionId = m_menu->incrementTransactionId();
+            m_clickSender(
+                m_menu->getId(), SLOT_CLICKED_OUTSIDE, button, transactionId, action, m_menu->getCarriedItem());
+            return;
+        }
+
+        auto* playerInventory = m_menu->getPlayerInventory();
+        if (playerInventory == nullptr || playerInventory->getPlayer() == nullptr) {
+            return;
+        }
+
+        ClickType clickType = _actionToClickType(action, button);
+        m_menu->clicked(SLOT_CLICKED_OUTSIDE, button, clickType, *playerInventory->getPlayer());
+    }
+
+    /**
+     * @brief 处理点击屏幕外部（丢弃光标物品）
+     */
+    bool _handleClickOutside(i32 button, bool shiftHeld)
+    {
+        if (m_menu == nullptr || m_carried.isEmpty()) {
+            return false;
+        }
+
+        // 点击外部丢弃光标物品
+        if (button == 0) {
+            // 左键：丢弃全部
+            _sendOutsideClick(0, ClickAction::Throw);
+            return true;
+        }
+        if (button == 1) {
+            // 右键：丢弃一个
+            _sendOutsideClick(1, ClickAction::Throw);
+            return true;
+        }
+
+        (void)shiftHeld;
+        return false;
+    }
+
+    /**
+     * @brief 处理Q键丢弃物品
+     */
+    bool _handleDropKey(i32 mods)
+    {
+        if (m_menu == nullptr) {
+            return false;
+        }
+
+        // 如果光标持有物品，丢弃光标物品
+        if (!m_carried.isEmpty()) {
+            const bool ctrlHeld = (mods & GLFW_MOD_CONTROL) != 0;
+            _sendOutsideClick(ctrlHeld ? 1 : 0, ClickAction::Throw);
+            return true;
+        }
+
+        // 否则丢弃鼠标悬停槽位中的物品
+        // TODO: 需要跟踪当前悬停的槽位索引来发送 Throw 操作
+        return false;
+    }
+
+    /**
+     * @brief 处理快捷栏交换（数字键/F键）
+     * @param hotbarIndex 快捷栏索引(0-8)或40(副手)
+     */
+    bool _handleHotbarSwap(i32 hotbarIndex)
+    {
+        if (m_menu == nullptr || m_hoveredSlotIndex < 0) {
+            return false;
+        }
+
+        _sendSlotClick(*m_menu->getSlot(m_hoveredSlotIndex), m_hoveredSlotIndex, hotbarIndex, ClickAction::Swap);
+        return true;
+    }
+
+    /**
+     * @brief 完成拖拽分发
+     *
+     * 将拖拽操作发送为 QuickCraft 点击序列：
+     * 1. START: 发送到 -999 槽位
+     * 2. ADD_SLOT: 发送到每个选中的槽位
+     * 3. END: 发送到 -999 槽位
+     */
+    void _finishQuickCraft(bool shiftHeld)
+    {
+        m_isQuickCrafting = false;
+
+        if (m_quickCraftSlots.empty()) {
+            // 没有选中的槽位，取消拖拽
+            m_quickCraftSlots.clear();
+            return;
+        }
+
+        // 如果只有一个槽位，退化为普通点击
+        if (m_quickCraftSlots.size() == 1) {
+            const i32 slotIndex = m_quickCraftSlots[0];
+            mc::Slot* slot = m_menu->getSlot(slotIndex);
+            if (slot != nullptr) {
+                if (shiftHeld) {
+                    _sendSlotClick(*slot, slotIndex, 0, ClickAction::QuickMove);
+                } else {
+                    _sendSlotClick(*slot, slotIndex, m_quickCraftingButton, ClickAction::Pickup);
+                }
+            }
+            m_quickCraftSlots.clear();
+            return;
+        }
+
+        // 编码按钮值：低2位 = 事件状态，高2位 = 拖拽模式
+        const i32 startButton = (DragConstants::EVENT_START) | (m_quickCraftingType << DragConstants::MODE_SHIFT);
+        const i32 addButton = (DragConstants::EVENT_ADD_SLOT) | (m_quickCraftingType << DragConstants::MODE_SHIFT);
+        const i32 endButton = (DragConstants::EVENT_END) | (m_quickCraftingType << DragConstants::MODE_SHIFT);
+
+        // 1. START: 发送到 -999 槽位
+        _sendOutsideClick(startButton, ClickAction::QuickCraft);
+
+        // 2. ADD_SLOT: 发送到每个选中的槽位
+        for (i32 slotIndex : m_quickCraftSlots) {
+            mc::Slot* slot = m_menu->getSlot(slotIndex);
+            if (slot != nullptr) {
+                _sendSlotClick(*slot, slotIndex, addButton, ClickAction::QuickCraft);
+            }
+        }
+
+        // 3. END: 发送到 -999 槽位
+        _sendOutsideClick(endButton, ClickAction::QuickCraft);
+
+        m_quickCraftSlots.clear();
+    }
+
+    /**
+     * @brief 根据鼠标按钮获取拖拽类型
+     * @param button 鼠标按钮 (0=左键, 1=右键, 2=中键)
+     * @param ctrlHeld 是否按住Ctrl键
+     * @return 拖拽类型
+     */
+    static i32 _getQuickCraftType(i32 button, bool ctrlHeld)
+    {
+        (void)ctrlHeld;
+        switch (button) {
+            case 0:
+                return DragConstants::MODE_EVEN; // 左键：均匀分发
+            case 1:
+                return DragConstants::MODE_SINGLE; // 右键：逐个分发
+            case 2:
+                return DragConstants::MODE_FILL; // 中键：填满（创造模式）
+            default:
+                return DragConstants::MODE_EVEN;
+        }
+    }
+
+    /**
+     * @brief 将 ClickAction 和 button 转换为 ClickType
+     * @param action 网络点击操作类型
+     * @param button 鼠标按钮
+     * @return 内部点击类型
+     */
+    static ClickType _actionToClickType(ClickAction action, i32 button)
+    {
+        switch (action) {
+            case ClickAction::Pickup:
+                return (button == 0) ? ClickType::Pick : ClickType::PickSome;
+            case ClickAction::QuickMove:
+                return ClickType::QuickMove;
+            case ClickAction::Swap:
+                return ClickType::Swap;
+            case ClickAction::Clone:
+                return ClickType::Clone;
+            case ClickAction::Throw:
+                return (button == 0) ? ClickType::Throw : ClickType::ThrowAll;
+            case ClickAction::QuickCraft:
+                return ClickType::QuickCraft;
+            case ClickAction::PickupAll:
+                return ClickType::PickAll;
+            default:
+                return ClickType::Pick;
+        }
+    }
+
+    /// 点击屏幕外部时的槽位索引
+    static constexpr i32 SLOT_CLICKED_OUTSIDE = -999;
+
+    // 拖拽分发状态
+    ItemStack m_carried;                                     ///< 光标持有物品的缓存（用于拖拽判断）
+    bool m_isQuickCrafting = false;                          ///< 是否正在拖拽分发
+    i32 m_quickCraftingButton = -1;                          ///< 拖拽使用的鼠标按钮
+    i32 m_quickCraftingType = DragConstants::DRAG_MODE_NONE; ///< 拖拽模式
+    std::vector<i32> m_quickCraftSlots;                      ///< 拖拽目标槽位列表
+    bool m_skipNextRelease = false;                          ///< 跳过下一次鼠标释放事件
+
+    // 双击检测状态
+    mc::Slot* m_lastClickSlot = nullptr;                     ///< 上次点击的槽位
+    std::chrono::steady_clock::time_point m_lastClickTime{}; ///< 上次点击时间
+
+    // 当前悬停槽位（用于键盘操作如Q键丢弃、数字键交换）
+    i32 m_hoveredSlotIndex = -1; ///< 当前鼠标悬停的槽位索引
 };
 
 // 静态成员定义

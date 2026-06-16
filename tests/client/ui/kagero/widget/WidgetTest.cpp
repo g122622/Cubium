@@ -294,7 +294,7 @@ TEST(WidgetTest, OnClickReturnsFalse)
     widget.setBounds(Rect(0, 0, 100, 100));
 
     // 默认实现返回false
-    EXPECT_FALSE(widget.onClick(50, 50, 0));
+    EXPECT_FALSE(widget.onClick(50, 50, 0, 0));
 }
 
 TEST(WidgetTest, OnReleaseReturnsFalse)
@@ -302,7 +302,7 @@ TEST(WidgetTest, OnReleaseReturnsFalse)
     TestWidget widget;
     widget.setBounds(Rect(0, 0, 100, 100));
 
-    EXPECT_FALSE(widget.onRelease(50, 50, 0));
+    EXPECT_FALSE(widget.onRelease(50, 50, 0, 0));
 }
 
 TEST(WidgetTest, OnDragReturnsFalse)
@@ -310,7 +310,7 @@ TEST(WidgetTest, OnDragReturnsFalse)
     TestWidget widget;
     widget.setBounds(Rect(0, 0, 100, 100));
 
-    EXPECT_FALSE(widget.onDrag(50, 50, 10, 10));
+    EXPECT_FALSE(widget.onDrag(50, 50, 10, 10, 0));
 }
 
 TEST(WidgetTest, OnScrollReturnsFalse)

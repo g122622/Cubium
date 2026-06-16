@@ -178,17 +178,17 @@ public:
     /**
      * @brief 处理鼠标点击
      */
-    bool onClick(i32 mouseX, i32 mouseY, i32 button) override;
+    bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override;
 
     /**
      * @brief 处理鼠标释放
      */
-    bool onRelease(i32 mouseX, i32 mouseY, i32 button) override;
+    bool onRelease(i32 mouseX, i32 mouseY, i32 button, i32 mods) override;
 
     /**
      * @brief 处理鼠标拖动
      */
-    bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) override;
+    bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button) override;
 
     /**
      * @brief 处理鼠标滚轮

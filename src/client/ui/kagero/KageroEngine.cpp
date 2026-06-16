@@ -158,7 +158,7 @@ bool KageroEngine::handleClick(i32 x, i32 y, i32 button)
             continue;
         }
 
-        if (it->widget->onClick(x, y, button)) {
+        if (it->widget->onClick(x, y, button, 0)) {
             m_draggingWidget = it->widget.get();
             m_dragButton = button;
             return true;
@@ -180,7 +180,7 @@ bool KageroEngine::handleRelease(i32 x, i32 y, i32 button)
         widget::Widget* w = m_draggingWidget;
         m_draggingWidget = nullptr;
         m_dragButton = 0;
-        return w->onRelease(x, y, button);
+        return w->onRelease(x, y, button, 0);
     }
 
     // 从顶层开始处理
@@ -189,7 +189,7 @@ bool KageroEngine::handleRelease(i32 x, i32 y, i32 button)
             continue;
         }
 
-        if (it->widget->onRelease(x, y, button)) {
+        if (it->widget->onRelease(x, y, button, 0)) {
             return true;
         }
 
@@ -224,7 +224,7 @@ bool KageroEngine::handleMouseMove(i32 x, i32 y)
 
     // 如果有正在拖动的Widget，发送拖动事件
     if (m_draggingWidget != nullptr) {
-        return m_draggingWidget->onDrag(x, y, deltaX, deltaY);
+        return m_draggingWidget->onDrag(x, y, deltaX, deltaY, m_dragButton);
     }
 
     return false;

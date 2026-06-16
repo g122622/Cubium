@@ -462,7 +462,7 @@ TEST(TextFieldWidgetTest, OnClick_SetsCursorPositionByMouseX)
     textField.setText("ABCD");
 
     // 点击到第二个字符边界，光标应落在索引 1。
-    EXPECT_TRUE(textField.onClick(9, 10, 0));
+    EXPECT_TRUE(textField.onClick(9, 10, 0, 0));
     EXPECT_EQ(1, textField.cursorPosition());
 }
 

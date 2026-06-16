@@ -201,13 +201,14 @@ public:
 
     // ==================== 事件处理 ====================
 
-    bool onClick(i32 mouseX, i32 mouseY, i32 button) override
+    bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
     {
+        (void)mods;
         if (!isActive() || !isVisible()) return false;
 
         // 首先检查滚动条
         if (m_showScrollbar && isOnScrollbar(mouseX, mouseY)) {
-            return ScrollableWidget::onClick(mouseX, mouseY, button);
+            return ScrollableWidget::onClick(mouseX, mouseY, button, mods);
         }
 
         // 获取点击的项目索引
@@ -225,8 +226,9 @@ public:
         return false;
     }
 
-    bool onRelease(i32 mouseX, i32 mouseY, i32 button) override
+    bool onRelease(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
     {
+        (void)mods;
         // 检查双击
         i32 index = getIndexAt(mouseX, mouseY);
         if (index >= 0 && index == m_selectedIndex) {
@@ -250,7 +252,7 @@ public:
             }
         }
 
-        return ScrollableWidget::onRelease(mouseX, mouseY, button);
+        return ScrollableWidget::onRelease(mouseX, mouseY, button, mods);
     }
 
     // ==================== 项目操作 ====================

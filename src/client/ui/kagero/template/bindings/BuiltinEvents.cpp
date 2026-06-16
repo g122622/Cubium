@@ -93,7 +93,7 @@ void BuiltinEvents::_registerClickEvents()
     m_handlers[event_names::CLICK] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {
-                widget->onClick(clickEvent->x(), clickEvent->y(), clickEvent->button());
+                widget->onClick(clickEvent->x(), clickEvent->y(), clickEvent->button(), 0);
             }
         }
     };
@@ -104,7 +104,7 @@ void BuiltinEvents::_registerClickEvents()
     m_handlers[event_names::DOUBLE_CLICK] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {
-                widget->onClick(clickEvent->x(), clickEvent->y(), clickEvent->button());
+                widget->onClick(clickEvent->x(), clickEvent->y(), clickEvent->button(), 0);
             }
         }
     };
@@ -115,7 +115,8 @@ void BuiltinEvents::_registerClickEvents()
     m_handlers[event_names::RIGHT_CLICK] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {
-                widget->onClick(clickEvent->x(), clickEvent->y(), 1);
+                (void)clickEvent;
+                widget->onClick(clickEvent->x(), clickEvent->y(), 1, 0);
             }
         }
     };
@@ -126,7 +127,7 @@ void BuiltinEvents::_registerClickEvents()
     m_handlers[event_names::MOUSE_DOWN] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {
-                widget->onClick(clickEvent->x(), clickEvent->y(), clickEvent->button());
+                widget->onClick(clickEvent->x(), clickEvent->y(), clickEvent->button(), 0);
             }
         }
     };
@@ -136,7 +137,7 @@ void BuiltinEvents::_registerClickEvents()
     m_handlers[event_names::MOUSE_UP] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* releaseEvent = dynamic_cast<const event::MouseReleaseEvent*>(&event)) {
-                widget->onRelease(releaseEvent->x(), releaseEvent->y(), releaseEvent->button());
+                widget->onRelease(releaseEvent->x(), releaseEvent->y(), releaseEvent->button(), 0);
             }
         }
     };
@@ -261,7 +262,7 @@ void BuiltinEvents::_registerDragEvents()
     m_handlers[event_names::DRAG] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* dragEvent = dynamic_cast<const event::MouseDragEvent*>(&event)) {
-                widget->onDrag(dragEvent->x(), dragEvent->y(), dragEvent->deltaX(), dragEvent->deltaY());
+                widget->onDrag(dragEvent->x(), dragEvent->y(), dragEvent->deltaX(), dragEvent->deltaY(), 0);
             }
         }
     };

@@ -147,7 +147,7 @@ public:
     /**
      * @brief 处理鼠标点击
      */
-    bool onClick(i32 mouseX, i32 mouseY, i32 button) override;
+    bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override;
 
     // ========== 消息 ==========
 

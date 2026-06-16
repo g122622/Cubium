@@ -109,9 +109,10 @@ public:
     /**
      * @brief 鼠标点击处理，点击后聚焦并定位光标
      */
-    bool onClick(i32 mouseX, i32 mouseY, i32 button) override
+    bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
     {
         (void)mouseY;
+        (void)mods;
 
         if (!isActive() || !isVisible()) return false;
         if (button != 0) return false;

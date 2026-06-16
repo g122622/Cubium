@@ -373,7 +373,7 @@ TEST_F(RichTextWidgetTest, EventsDisabled)
     widget->setEventsEnabled(false);
     widget->setText("Test");
 
-    bool clicked = widget->onClick(10, 10, 0);
+    bool clicked = widget->onClick(10, 10, 0, 0);
     EXPECT_FALSE(clicked);
 }
 
@@ -384,7 +384,7 @@ TEST_F(RichTextWidgetTest, InvisibleWidget)
     widget->setText("Test");
     widget->setVisible(false);
 
-    bool clicked = widget->onClick(10, 10, 0);
+    bool clicked = widget->onClick(10, 10, 0, 0);
     EXPECT_FALSE(clicked);
 }
 
@@ -393,6 +393,6 @@ TEST_F(RichTextWidgetTest, InactiveWidget)
     widget->setText("Test");
     widget->setActive(false);
 
-    bool clicked = widget->onClick(10, 10, 0);
+    bool clicked = widget->onClick(10, 10, 0, 0);
     EXPECT_FALSE(clicked);
 }

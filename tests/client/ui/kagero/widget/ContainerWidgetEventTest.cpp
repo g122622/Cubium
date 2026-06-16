@@ -98,7 +98,7 @@ TEST_F(ContainerWidgetEventTest, Click_PropagatesToVisibleChild)
 
     container->addChild(std::move(button));
 
-    EXPECT_TRUE(container->onClick(50, 20, 0)); // 左键点击按钮区域
+    EXPECT_TRUE(container->onClick(50, 20, 0, 0)); // 左键点击按钮区域
     EXPECT_TRUE(clicked);
 }
 
@@ -107,7 +107,7 @@ TEST_F(ContainerWidgetEventTest, Click_ReturnsFalseWhenNoWidgetClicked)
     auto button = std::make_unique<ButtonWidget>("btn", 10, 10, 100, 20, "Test");
     container->addChild(std::move(button));
 
-    EXPECT_FALSE(container->onClick(200, 200, 0)); // 点击空白区域
+    EXPECT_FALSE(container->onClick(200, 200, 0, 0)); // 点击空白区域
 }
 
 TEST_F(ContainerWidgetEventTest, Click_DoesNotHitInvisibleWidget)
@@ -119,7 +119,7 @@ TEST_F(ContainerWidgetEventTest, Click_DoesNotHitInvisibleWidget)
 
     container->addChild(std::move(button));
 
-    EXPECT_FALSE(container->onClick(50, 20, 0));
+    EXPECT_FALSE(container->onClick(50, 20, 0, 0));
     EXPECT_FALSE(clicked);
 }
 
@@ -137,7 +137,7 @@ TEST_F(ContainerWidgetEventTest, Click_TopWidgetReceivesEvent)
     container->addChild(std::move(bottom));
     container->addChild(std::move(top)); // 后添加的在上面
 
-    EXPECT_TRUE(container->onClick(50, 20, 0));
+    EXPECT_TRUE(container->onClick(50, 20, 0, 0));
     EXPECT_TRUE(topClicked);
     EXPECT_FALSE(bottomClicked); // 底层未收到事件
 }
@@ -153,7 +153,7 @@ TEST_F(ContainerWidgetEventTest, Focus_ClickSetsFocus)
     container->addChild(std::move(textField));
 
     EXPECT_FALSE(fieldPtr->isFocused());
-    EXPECT_TRUE(container->onClick(50, 20, 0));
+    EXPECT_TRUE(container->onClick(50, 20, 0, 0));
     EXPECT_TRUE(fieldPtr->isFocused());
 }
 
@@ -166,11 +166,11 @@ TEST_F(ContainerWidgetEventTest, Focus_ClickElsewhereClearsFocus)
     container->addChild(std::move(textField));
 
     // 点击设置焦点
-    container->onClick(50, 20, 0);
+    container->onClick(50, 20, 0, 0);
     EXPECT_TRUE(fieldPtr->isFocused());
 
     // 点击空白区域清除焦点
-    container->onClick(300, 200, 0);
+    container->onClick(300, 200, 0, 0);
     EXPECT_FALSE(fieldPtr->isFocused());
 }
 
@@ -295,10 +295,10 @@ TEST_F(ContainerWidgetEventTest, Drag_PropagatesToHoveredChild)
     container->addChild(std::move(button));
 
     // 先点击使按钮获得悬停状态
-    container->onClick(50, 20, 0);
+    container->onClick(50, 20, 0, 0);
 
     // 拖动事件会传递到悬停的组件
-    bool handled = container->onDrag(60, 25, 10, 5);
+    bool handled = container->onDrag(60, 25, 10, 5, 0);
     // ButtonWidget 默认不处理拖动，所以返回 false
     EXPECT_FALSE(handled);
 }

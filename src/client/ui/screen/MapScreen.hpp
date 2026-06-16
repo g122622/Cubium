@@ -50,7 +50,7 @@ public:
 
     void init() override;
     void render(i32 mouseX, i32 mouseY, f32 partialTick) override;
-    bool onClick(i32 mouseX, i32 mouseY, i32 button) override;
+    bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override;
     bool onKey(i32 key, i32 scanCode, i32 action, i32 mods) override;
     void onClose() override;
 

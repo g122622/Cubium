@@ -100,8 +100,9 @@ void CreativeScreen::render(i32 mouseX, i32 mouseY, f32 partialTick)
 // 事件处理
 // ============================================================================
 
-bool CreativeScreen::onClick(i32 mouseX, i32 mouseY, i32 button)
+bool CreativeScreen::onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods)
 {
+    (void)mods;
     if (m_gui == nullptr) {
         return false;
     }

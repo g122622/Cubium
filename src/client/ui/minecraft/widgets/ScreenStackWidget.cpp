@@ -338,8 +338,9 @@ void ScreenStackWidget::tick(f32 dt)
     }
 }
 
-bool ScreenStackWidget::onClick(i32 mouseX, i32 mouseY, i32 button)
+bool ScreenStackWidget::onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods)
 {
+    (void)mods;
     // 从顶层开始处理
     for (auto it = m_screens.rbegin(); it != m_screens.rend(); ++it) {
         const auto& wrapper = *it;
@@ -351,12 +352,12 @@ bool ScreenStackWidget::onClick(i32 mouseX, i32 mouseY, i32 button)
         if (wrapper.isWidgetScreen()) {
             auto* screen = std::get<std::unique_ptr<Screen>>(wrapper.item).get();
             if (screen) {
-                handled = screen->onClick(mouseX, mouseY, button);
+                handled = screen->onClick(mouseX, mouseY, button, mods);
             }
         } else {
             auto* screen = std::get<std::unique_ptr<IScreen>>(wrapper.item).get();
             if (screen) {
-                handled = screen->onClick(mouseX, mouseY, button);
+                handled = screen->onClick(mouseX, mouseY, button, mods);
             }
         }
 
@@ -376,8 +377,9 @@ bool ScreenStackWidget::onClick(i32 mouseX, i32 mouseY, i32 button)
     return false;
 }
 
-bool ScreenStackWidget::onRelease(i32 mouseX, i32 mouseY, i32 button)
+bool ScreenStackWidget::onRelease(i32 mouseX, i32 mouseY, i32 button, i32 mods)
 {
+    (void)mods;
     if (m_isDragging && m_dragButton == button) {
         m_isDragging = false;
         m_dragButton = 0;
@@ -389,12 +391,12 @@ bool ScreenStackWidget::onRelease(i32 mouseX, i32 mouseY, i32 button)
                 if (wrapper.isWidgetScreen()) {
                     auto* screen = std::get<std::unique_ptr<Screen>>(wrapper.item).get();
                     if (screen) {
-                        return screen->onRelease(mouseX, mouseY, button);
+                        return screen->onRelease(mouseX, mouseY, button, mods);
                     }
                 } else {
                     auto* screen = std::get<std::unique_ptr<IScreen>>(wrapper.item).get();
                     if (screen) {
-                        return screen->onRelease(mouseX, mouseY, button);
+                        return screen->onRelease(mouseX, mouseY, button, mods);
                     }
                 }
             }
@@ -403,20 +405,21 @@ bool ScreenStackWidget::onRelease(i32 mouseX, i32 mouseY, i32 button)
     return false;
 }
 
-bool ScreenStackWidget::onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY)
+bool ScreenStackWidget::onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button)
 {
+    (void)button;
     if (m_isDragging && !m_screens.empty()) {
         const auto& wrapper = m_screens.back();
         if (wrapper.visible && wrapper.active) {
             if (wrapper.isWidgetScreen()) {
                 auto* screen = std::get<std::unique_ptr<Screen>>(wrapper.item).get();
                 if (screen) {
-                    return screen->onDrag(mouseX, mouseY, deltaX, deltaY);
+                    return screen->onDrag(mouseX, mouseY, deltaX, deltaY, button);
                 }
             } else {
                 auto* screen = std::get<std::unique_ptr<IScreen>>(wrapper.item).get();
                 if (screen) {
-                    return screen->onDrag(mouseX, mouseY, deltaX, deltaY);
+                    return screen->onDrag(mouseX, mouseY, deltaX, deltaY, button);
                 }
             }
         }

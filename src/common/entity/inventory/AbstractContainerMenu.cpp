@@ -318,12 +318,52 @@ ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType cl
 {
     // 特殊槽位索引：-999 表示点击了屏幕外部
     if (slotIndex == -999) {
-        // 点击屏幕外部 - 丢弃鼠标物品
-        if (clickType == ClickType::Throw) {
-            ItemStack toDrop = m_carried.split(button == 1 ? m_carried.getCount() : 1);
-            dropItem(toDrop, player, false);
+        // 点击屏幕外部 - 根据点击类型处理光标物品
+        if (m_carried.isEmpty()) {
             return m_carried;
         }
+
+        switch (clickType) {
+            case ClickType::Pick:
+                // 左键点击外部：丢弃光标上全部物品
+                dropItem(m_carried, player, false);
+                m_carried = ItemStack();
+                break;
+
+            case ClickType::PickSome:
+                // 右键点击外部：丢弃光标上一个物品
+                {
+                    ItemStack toDrop = m_carried.split(1);
+                    dropItem(toDrop, player, false);
+                }
+                break;
+
+            case ClickType::Throw:
+                // Q键丢弃：button=0丢一个，button=1丢全部
+                {
+                    ItemStack toDrop = m_carried.split(button == 1 ? m_carried.getCount() : 1);
+                    dropItem(toDrop, player, false);
+                }
+                break;
+
+            case ClickType::ThrowAll:
+                // Ctrl+Q丢弃全部
+                dropItem(m_carried, player, false);
+                m_carried = ItemStack();
+                break;
+
+            case ClickType::QuickCraft:
+                // 拖拽分发的 START 和 END 事件使用 -999 槽位
+                // START：初始化拖拽状态（不需要槽位引用）
+                // END：分发物品到所有目标槽位（不需要当前槽位引用）
+                _handleQuickCraftStartEnd(button);
+                break;
+
+            default:
+                // 其他点击类型在外部不做处理
+                break;
+        }
+
         return m_carried;
     }
 
@@ -632,6 +672,98 @@ ItemStack AbstractContainerMenu::_handleQuickCraft(Slot& slot, i32 slotIndex, i3
 
     (void)slot;
     return m_carried;
+}
+
+void AbstractContainerMenu::_handleQuickCraftStartEnd(i32 button)
+{
+    // 拖拽分发的 START 和 END 事件使用 -999 槽位
+    // 这部分逻辑不需要访问具体槽位
+
+    i32 prevDragEvent = m_dragEvent;
+    m_dragEvent = _getDragEvent(button);
+
+    // 检查状态是否有效
+    if ((prevDragEvent != DragConstants::EVENT_ADD_SLOT || m_dragEvent != DragConstants::EVENT_END) &&
+        prevDragEvent != m_dragEvent) {
+        _resetDrag();
+        return;
+    }
+
+    if (m_carried.isEmpty()) {
+        _resetDrag();
+        return;
+    }
+
+    if (m_dragEvent == DragConstants::EVENT_START) {
+        // 开始拖拽 - 确定拖拽模式
+        m_dragMode = _extractDragMode(button);
+        if (_isValidDragMode(m_dragMode)) {
+            m_dragEvent = DragConstants::EVENT_ADD_SLOT;
+            m_dragSlots.clear();
+        } else {
+            _resetDrag();
+        }
+    } else if (m_dragEvent == DragConstants::EVENT_END) {
+        // 结束拖拽 - 分发物品到所有目标槽位
+        if (!m_dragSlots.empty()) {
+            ItemStack toDistribute = m_carried.copy();
+
+            // 计算每个槽位可以放入多少
+            std::vector<std::pair<i32, i32>> slotAmounts;
+            for (i32 dragSlotIndex : m_dragSlots) {
+                Slot* dragSlot = getSlot(dragSlotIndex);
+                if (dragSlot == nullptr) {
+                    continue;
+                }
+
+                ItemStack existing = dragSlot->getItem();
+                i32 maxStackSize = dragSlot->getMaxStackSize(toDistribute);
+                i32 space = existing.isEmpty() ? maxStackSize : maxStackSize - existing.getCount();
+
+                if (space > 0 && (existing.isEmpty() || existing.canMergeWith(toDistribute))) {
+                    slotAmounts.push_back({dragSlotIndex, space});
+                }
+            }
+
+            // 根据拖拽模式分发
+            if (m_dragMode == DragConstants::MODE_EVEN) {
+                i32 slotsRemaining = static_cast<i32>(slotAmounts.size());
+                for (auto& [idx, space] : slotAmounts) {
+                    if (toDistribute.isEmpty()) {
+                        break;
+                    }
+
+                    i32 perSlot = toDistribute.getCount() / slotsRemaining;
+                    if (perSlot == 0) {
+                        perSlot = 1;
+                    }
+                    perSlot = std::min(perSlot, space);
+                    _distributeToDragSlot(toDistribute, idx, perSlot);
+                    slotsRemaining--;
+                }
+            } else if (m_dragMode == DragConstants::MODE_SINGLE) {
+                for (auto& [idx, space] : slotAmounts) {
+                    if (toDistribute.isEmpty()) {
+                        break;
+                    }
+                    _distributeToDragSlot(toDistribute, idx, 1);
+                }
+            } else if (m_dragMode == DragConstants::MODE_FILL) {
+                for (auto& [idx, space] : slotAmounts) {
+                    if (toDistribute.isEmpty()) {
+                        break;
+                    }
+                    _distributeToDragSlot(toDistribute, idx, space);
+                }
+            }
+
+            // 更新鼠标物品
+            m_carried = toDistribute.isEmpty() ? ItemStack() : toDistribute;
+        }
+        _resetDrag();
+    } else {
+        _resetDrag();
+    }
 }
 
 void AbstractContainerMenu::_resetDrag()

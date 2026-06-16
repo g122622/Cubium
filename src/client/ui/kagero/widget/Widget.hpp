@@ -65,7 +65,7 @@ using UiSoundCallback = std::function<void(const std::string& soundEventId)>;
  *         ctx.drawBorder(bounds(), 1.0f, isHovered() ? hoverColor : borderColor);
  *     }
  *
- *     bool onClick(i32 mouseX, i32 mouseY, i32 button) override {
+ *     bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override {
  *         if (button == 0) {
  *             // 处理左键点击
  *             return true;
@@ -150,13 +150,15 @@ public:
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标
      * @param button 鼠标按钮
+     * @param mods 修饰键位掩码 (GLFW_MOD_SHIFT, GLFW_MOD_CONTROL 等)
      * @return 如果事件被处理返回true
      */
-    virtual bool onClick(i32 mouseX, i32 mouseY, i32 button)
+    virtual bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods)
     {
         (void)mouseX;
         (void)mouseY;
         (void)button;
+        (void)mods;
         return false;
     }
 
@@ -165,13 +167,15 @@ public:
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标
      * @param button 鼠标按钮
+     * @param mods 修饰键位掩码 (GLFW_MOD_SHIFT, GLFW_MOD_CONTROL 等)
      * @return 如果事件被处理返回true
      */
-    virtual bool onRelease(i32 mouseX, i32 mouseY, i32 button)
+    virtual bool onRelease(i32 mouseX, i32 mouseY, i32 button, i32 mods)
     {
         (void)mouseX;
         (void)mouseY;
         (void)button;
+        (void)mods;
         return false;
     }
 
@@ -181,14 +185,16 @@ public:
      * @param mouseY 鼠标Y坐标
      * @param deltaX X方向移动量
      * @param deltaY Y方向移动量
+     * @param button 触发拖动的鼠标按钮 (0=左键, 1=右键, 2=中键)
      * @return 如果事件被处理返回true
      */
-    virtual bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY)
+    virtual bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button)
     {
         (void)mouseX;
         (void)mouseY;
         (void)deltaX;
         (void)deltaY;
+        (void)button;
         return false;
     }
 

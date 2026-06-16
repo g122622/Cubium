@@ -62,9 +62,9 @@ public:
 
     // ========== 鼠标事件 ==========
 
-    bool onClick(i32 mouseX, i32 mouseY, i32 button) override;
-    bool onRelease(i32 mouseX, i32 mouseY, i32 button) override;
-    bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) override;
+    bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override;
+    bool onRelease(i32 mouseX, i32 mouseY, i32 button, i32 mods) override;
+    bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button) override;
     bool onScroll(i32 mouseX, i32 mouseY, f64 delta) override;
 
     /**

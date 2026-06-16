@@ -113,8 +113,9 @@ public:
 
     // ==================== 事件处理 ====================
 
-    bool onClick(i32 mouseX, i32 mouseY, i32 button) override
+    bool onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
     {
+        (void)mods;
         if (!isActive() || !isVisible()) return false;
 
         // 检查是否点击滚动条
@@ -126,11 +127,12 @@ public:
 
         // 调整Y坐标并传递给子组件
         i32 adjustedY = mouseY + m_scrollY;
-        return handleClickInChildren(mouseX, adjustedY, button);
+        return handleClickInChildren(mouseX, adjustedY, button, mods);
     }
 
-    bool onRelease(i32 mouseX, i32 mouseY, i32 button) override
+    bool onRelease(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
     {
+        (void)mods;
         if (button != 0) return false;
 
         if (m_draggingScrollbar) {
@@ -139,11 +141,12 @@ public:
         }
 
         i32 adjustedY = mouseY + m_scrollY;
-        return handleReleaseInChildren(mouseX, adjustedY, button);
+        return handleReleaseInChildren(mouseX, adjustedY, button, mods);
     }
 
-    bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY) override
+    bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button) override
     {
+        (void)button;
         if (m_draggingScrollbar) {
             // 滚动条拖动
             i32 visibleHeight = m_bounds.height - m_padding.vertical();
@@ -156,7 +159,7 @@ public:
         i32 adjustedY = mouseY + m_scrollY;
         for (auto& child : m_children) {
             if (child->isVisible() && child->isActive() && child->contains(mouseX, adjustedY)) {
-                if (child->onDrag(mouseX, adjustedY, deltaX, deltaY)) {
+                if (child->onDrag(mouseX, adjustedY, deltaX, deltaY, button)) {
                     return true;
                 }
             }
@@ -477,11 +480,11 @@ protected:
 
     // TODO: 此方法未被调用且与基类 WidgetContainerMixin::handleDragInChildren 行为不同，
     //       基类使用 isHovered 过滤而此处使用 getWidgetAt，需确认是否应统一或移除
-    bool handleDragInChildren(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY)
+    bool handleDragInChildren(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button)
     {
         Widget* widget = getWidgetAt(mouseX, mouseY);
         if (widget != nullptr) {
-            return widget->onDrag(mouseX, mouseY, deltaX, deltaY);
+            return widget->onDrag(mouseX, mouseY, deltaX, deltaY, button);
         }
         return false;
     }

@@ -475,15 +475,16 @@ protected:
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标
      * @param button 鼠标按钮
+     * @param mods 修饰键位掩码 (GLFW_MOD_SHIFT, GLFW_MOD_CONTROL 等)
      * @return 如果有组件处理了事件返回true
      */
-    bool handleClickInChildren(i32 mouseX, i32 mouseY, i32 button)
+    bool handleClickInChildren(i32 mouseX, i32 mouseY, i32 button, i32 mods)
     {
         Widget* widget = getWidgetAt(mouseX, mouseY);
         if (widget != nullptr) {
             // 点击时自动设置焦点
             setFocusedWidget(widget);
-            return widget->onClick(mouseX, mouseY, button);
+            return widget->onClick(mouseX, mouseY, button, mods);
         }
         // 点击空白区域清除焦点
         setFocusedWidget(nullptr);
@@ -495,13 +496,14 @@ protected:
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标
      * @param button 鼠标按钮
+     * @param mods 修饰键位掩码 (GLFW_MOD_SHIFT, GLFW_MOD_CONTROL 等)
      * @return 如果有组件处理了事件返回true
      */
-    bool handleReleaseInChildren(i32 mouseX, i32 mouseY, i32 button)
+    bool handleReleaseInChildren(i32 mouseX, i32 mouseY, i32 button, i32 mods)
     {
         Widget* widget = getWidgetAt(mouseX, mouseY);
         if (widget != nullptr) {
-            return widget->onRelease(mouseX, mouseY, button);
+            return widget->onRelease(mouseX, mouseY, button, mods);
         }
         return false;
     }
@@ -512,15 +514,16 @@ protected:
      * @param mouseY 鼠标Y坐标
      * @param deltaX X轴移动量
      * @param deltaY Y轴移动量
+     * @param button 触发拖动的鼠标按钮
      * @return 如果有组件处理了事件返回true
      */
-    bool handleDragInChildren(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY)
+    bool handleDragInChildren(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button)
     {
         // 拖动事件发送到悬停的组件
         for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
             Widget* widget = it->get();
             if (widget->isVisible() && widget->isActive() && widget->isHovered()) {
-                if (widget->onDrag(mouseX, mouseY, deltaX, deltaY)) {
+                if (widget->onDrag(mouseX, mouseY, deltaX, deltaY, button)) {
                     return true;
                 }
             }

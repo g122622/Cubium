@@ -183,12 +183,13 @@ void CraftingScreen::renderTooltip(i32 mouseX, i32 mouseY)
 
 bool CraftingScreen::onSlotClick(mc::Slot& slot, i32 slotIndex, i32 button)
 {
-    // TODO: 实现结果槽位的特殊点击处理（取出合成结果、消耗原料）
-    if (_isResultSlot(slotIndex)) {
-        // 结果槽位点击逻辑由基类和菜单处理
-    }
-
-    return AbstractContainerScreen::onSlotClick(slot, slotIndex, button);
+    // 合成结果槽位的点击由 CraftingMenu::clicked() 处理（_handleResultSlotClick），
+    // 护甲槽位的验证由 ArmorSlot::mayPlace() 处理，无需屏幕层额外逻辑。
+    // 所有交互类型（Shift+点击、拖拽、数字键交换等）由基类 AbstractContainerScreen 统一处理。
+    (void)slot;
+    (void)slotIndex;
+    (void)button;
+    return false;
 }
 
 // ========== InventoryCraftingScreen 实现 ==========
@@ -386,17 +387,13 @@ void InventoryCraftingScreen::renderTooltip(i32 mouseX, i32 mouseY)
 
 bool InventoryCraftingScreen::onSlotClick(mc::Slot& slot, i32 slotIndex, i32 button)
 {
-    // TODO: 实现结果槽位的特殊点击处理（取出合成结果、消耗原料）
-    if (_isResultSlot(slotIndex)) {
-        // 结果槽位点击逻辑由基类和菜单处理
-    }
-
-    // TODO: 实现护甲槽位的特殊验证逻辑（仅允许放置对应护甲类型）
-    if (_isArmorSlot(slotIndex)) {
-        // ArmorSlot 的 mayPlace 方法会进行验证
-    }
-
-    return AbstractContainerScreen::onSlotClick(slot, slotIndex, button);
+    // 合成结果槽位的点击由 InventoryCraftingMenu::clicked() 处理（_handleResultSlotClick），
+    // 护甲槽位的验证由 ArmorSlot::mayPlace() 处理，无需屏幕层额外逻辑。
+    // 所有交互类型（Shift+点击、拖拽、数字键交换等）由基类 AbstractContainerScreen 统一处理。
+    (void)slot;
+    (void)slotIndex;
+    (void)button;
+    return false;
 }
 
 } // namespace mc::client
