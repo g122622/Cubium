@@ -72,11 +72,6 @@ extern const ResourceLocation AMBIENT_WARPED_FOREST_ADDITIONS;
 extern const ResourceLocation AMBIENT_WARPED_FOREST_LOOP;
 extern const ResourceLocation AMBIENT_WARPED_FOREST_MOOD;
 
-/// 繁茂洞穴环境音
-extern const ResourceLocation AMBIENT_LUSH_CAVES_ADDITIONS;
-extern const ResourceLocation AMBIENT_LUSH_CAVES_LOOP;
-extern const ResourceLocation AMBIENT_LUSH_CAVES_MOOD;
-
 /// 水下环境音
 extern const ResourceLocation AMBIENT_UNDERWATER_ENTER;
 extern const ResourceLocation AMBIENT_UNDERWATER_EXIT;

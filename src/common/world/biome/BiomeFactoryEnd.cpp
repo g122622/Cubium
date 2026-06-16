@@ -350,12 +350,9 @@ Biome createLushCaves()
     biome.setGenerationSettings(BiomeGenerationSettings::createLushCaves());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createLushCaves());
 
-    // 繁茂洞穴环境音效：循环音、心境音、随机附加音
+    // 繁茂洞穴环境音效：仅使用默认洞穴心境音（繁茂洞穴没有专属环境音事件）
     BiomeAmbientSounds sounds;
-    sounds.setLoopSound(ResourceLocation("minecraft:ambient.lush_caves.loop"));
-    sounds.setMoodSound(MoodSoundAmbience(ResourceLocation("minecraft:ambient.lush_caves.mood"), 6000, 8, 2.0));
-    sounds.setAdditionsSound(
-        SoundAdditionsAmbience(ResourceLocation("minecraft:ambient.lush_caves.additions"), 0.0111));
+    sounds.setMoodSound(MoodSoundAmbience::defaultCaveMood());
     biome.setAmbientSounds(sounds);
 
     return biome;
