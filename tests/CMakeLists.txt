@@ -762,6 +762,8 @@ add_executable(mc_tests
     client/ui/GuiScaleTest.cpp
     # 屏幕工具提示命中检测与位置计算测试
     client/ui/screen/ScreenTooltipTest.cpp
+    # 容器屏幕交互系统测试（Shift+click/数字键/Q键/中键/双击/拖拽/点击外部）
+    client/ui/screen/ContainerScreenInteractionTest.cpp
     # ScreenStackWidget 屏幕栈回调与事件通知测试
     client/ui/minecraft/widgets/ScreenStackWidgetTest.cpp
     # 闄勯瓟绯荤粺娴嬭瘯

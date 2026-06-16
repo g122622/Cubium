@@ -15,7 +15,7 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
@@ -32,6 +32,7 @@
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
 #include <algorithm>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -155,6 +156,9 @@ public:
             return;
         }
 
+        // 更新悬停槽位索引（用于键盘操作）
+        _updateHoveredSlot(mouseX, mouseY);
+
         // 开始GUI帧
         m_gui->beginFrame(static_cast<f32>(m_screenWidth), static_cast<f32>(m_screenHeight));
 
@@ -204,8 +208,12 @@ public:
         mc::Slot* slot = getSlotAt(mouseX, mouseY);
         const bool clickedOutside = (slot == nullptr);
 
+        // 更新悬停槽位索引
+        m_hoveredSlotIndex = clickedOutside ? -1 : slot->getIndex();
+
         // 如果光标持有物品且不在拖拽中，且点击了有效槽位，进入拖拽模式
-        if (!m_carried.isEmpty() && !m_isQuickCrafting && !clickedOutside && button <= 1) {
+        const bool carriedHasItems = !getCarriedItem().isEmpty();
+        if (carriedHasItems && !m_isQuickCrafting && !clickedOutside && button <= 1) {
             m_isQuickCrafting = true;
             m_quickCraftingButton = button;
             m_quickCraftingType = _getQuickCraftType(button, ctrlHeld);
@@ -310,8 +318,11 @@ public:
             return true;
         }
 
+        // 更新悬停槽位索引
+        m_hoveredSlotIndex = slot->getIndex();
+
         // 检查槽位是否可以接受拖拽物品
-        const ItemStack& carried = m_menu->getCarriedItem();
+        const ItemStack& carried = getCarriedItem();
         if (carried.isEmpty()) {
             return true;
         }
@@ -424,6 +435,12 @@ public:
     {
         return m_menu ? m_menu->getCarriedItem() : s_emptyStack;
     }
+
+    /**
+     * @brief 获取当前悬停的槽位索引
+     * @return 悬停槽位索引，如果没有悬停槽位返回-1
+     */
+    [[nodiscard]] i32 getHoveredSlotIndex() const { return m_hoveredSlotIndex; }
 
     /**
      * @brief 获取GUI左边界
@@ -801,6 +818,18 @@ protected:
 
 private:
     /**
+     * @brief 更新悬停槽位索引
+     *
+     * 在每帧渲染时调用，跟踪当前鼠标悬停的槽位索引，
+     * 用于键盘操作（Q键丢弃、数字键交换等）。
+     */
+    void _updateHoveredSlot(i32 mouseX, i32 mouseY)
+    {
+        mc::Slot* slot = getSlotAt(mouseX, mouseY);
+        m_hoveredSlotIndex = (slot != nullptr) ? slot->getIndex() : -1;
+    }
+
+    /**
      * @brief 发送槽位点击事件
      *
      * 根据是否有 clickSender 决定是网络模式还是本地模式。
@@ -858,19 +887,19 @@ private:
      */
     bool _handleClickOutside(i32 button, bool shiftHeld)
     {
-        if (m_menu == nullptr || m_carried.isEmpty()) {
+        if (m_menu == nullptr || getCarriedItem().isEmpty()) {
             return false;
         }
 
         // 点击外部丢弃光标物品
         if (button == 0) {
             // 左键：丢弃全部
-            _sendOutsideClick(0, ClickAction::Throw);
+            _sendOutsideClick(0, ClickAction::Pickup);
             return true;
         }
         if (button == 1) {
             // 右键：丢弃一个
-            _sendOutsideClick(1, ClickAction::Throw);
+            _sendOutsideClick(1, ClickAction::Pickup);
             return true;
         }
 
@@ -880,6 +909,8 @@ private:
 
     /**
      * @brief 处理Q键丢弃物品
+     * @param mods 修饰键位掩码
+     * @return 是否处理了事件
      */
     bool _handleDropKey(i32 mods)
     {
@@ -888,20 +919,29 @@ private:
         }
 
         // 如果光标持有物品，丢弃光标物品
-        if (!m_carried.isEmpty()) {
+        if (!getCarriedItem().isEmpty()) {
             const bool ctrlHeld = (mods & GLFW_MOD_CONTROL) != 0;
             _sendOutsideClick(ctrlHeld ? 1 : 0, ClickAction::Throw);
             return true;
         }
 
         // 否则丢弃鼠标悬停槽位中的物品
-        // TODO: 需要跟踪当前悬停的槽位索引来发送 Throw 操作
+        if (m_hoveredSlotIndex >= 0 && m_hoveredSlotIndex < m_menu->getSlotCount()) {
+            const bool ctrlHeld = (mods & GLFW_MOD_CONTROL) != 0;
+            mc::Slot* slot = m_menu->getSlot(m_hoveredSlotIndex);
+            if (slot != nullptr && !slot->getItem().isEmpty()) {
+                _sendSlotClick(*slot, m_hoveredSlotIndex, ctrlHeld ? 1 : 0, ClickAction::Throw);
+                return true;
+            }
+        }
+
         return false;
     }
 
     /**
      * @brief 处理快捷栏交换（数字键/F键）
      * @param hotbarIndex 快捷栏索引(0-8)或40(副手)
+     * @return 是否处理了事件
      */
     bool _handleHotbarSwap(i32 hotbarIndex)
     {
@@ -909,7 +949,12 @@ private:
             return false;
         }
 
-        _sendSlotClick(*m_menu->getSlot(m_hoveredSlotIndex), m_hoveredSlotIndex, hotbarIndex, ClickAction::Swap);
+        mc::Slot* slot = m_menu->getSlot(m_hoveredSlotIndex);
+        if (slot == nullptr) {
+            return false;
+        }
+
+        _sendSlotClick(*slot, m_hoveredSlotIndex, hotbarIndex, ClickAction::Swap);
         return true;
     }
 
@@ -1021,7 +1066,6 @@ private:
     static constexpr i32 SLOT_CLICKED_OUTSIDE = -999;
 
     // 拖拽分发状态
-    ItemStack m_carried;                                     ///< 光标持有物品的缓存（用于拖拽判断）
     bool m_isQuickCrafting = false;                          ///< 是否正在拖拽分发
     i32 m_quickCraftingButton = -1;                          ///< 拖拽使用的鼠标按钮
     i32 m_quickCraftingType = DragConstants::DRAG_MODE_NONE; ///< 拖拽模式
@@ -1033,7 +1077,7 @@ private:
     std::chrono::steady_clock::time_point m_lastClickTime{}; ///< 上次点击时间
 
     // 当前悬停槽位（用于键盘操作如Q键丢弃、数字键交换）
-    i32 m_hoveredSlotIndex = -1; ///< 当前鼠标悬停的槽位索引
+    i32 m_hoveredSlotIndex = -1; ///< 当前鼠标悬停的槽位索引，在每帧渲染时更新
 };
 
 // 静态成员定义

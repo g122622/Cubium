@@ -7,7 +7,7 @@
 ```text
 src/client/ui/screen/
 ├── ScreenManager.hpp/cpp           # 旧版屏幕栈管理器（委托给 ScreenStackWidget）
-├── AbstractContainerScreen.hpp     # 容器屏幕模板基类（槽位渲染、点击处理、拖拽、提示）
+├── AbstractContainerScreen.hpp     # 容器屏幕模板基类（槽位渲染、交互处理、拖拽、提示）
 ├── CraftingScreen.hpp/cpp          # 工作台屏幕（CraftingScreen 3x3）和玩家背包屏幕（InventoryCraftingScreen 2x2）
 ├── ChestScreen.hpp/cpp             # 箱子屏幕（支持多行箱子）
 ├── FurnaceScreen.hpp/cpp           # 熔炉屏幕（燃料、原料、结果槽位）
@@ -44,9 +44,65 @@ src/client/ui/screen/
 ```
 
 - `ScreenManager`：单例，委托给 `ScreenStackWidget` 管理屏幕栈，不直接持有屏幕
-- `AbstractContainerScreen<Menu>`：容器屏幕模板基类，提供槽位渲染、点击处理、拖拽、悬停提示
+- `AbstractContainerScreen<Menu>`：容器屏幕模板基类，提供槽位渲染、交互处理、拖拽、悬停提示
 - `CreativeScreen`：直接继承 `IScreen`，不走容器点击流，直接编辑 `PlayerInventory` 并发送 `CreativeInventoryActionPacket`；拥有独立的 `_renderItemTooltip` 和 `_renderTooltip` 实现
 - `MapScreen`：全屏地图查看，依赖 `MapRenderer` 和 `ClientMapDataCache`
+
+## 容器交互系统
+
+`AbstractContainerScreen<Menu>` 支持以下容器交互类型，覆盖 Minecraft Java 版的完整交互协议：
+
+### 交互类型
+
+| 交互 | 操作 | ClickAction | ClickType |
+|------|------|-------------|-----------|
+| 拾取/放置 | 左键点击槽位 | Pickup | Pick/PickSome |
+| 快速移动 | Shift+左键 | QuickMove | QuickMove |
+| 快捷栏交换 | 数字键1-9 / F键 | Swap | Swap |
+| 丢弃 | Q键 / Ctrl+Q | Throw | Throw/ThrowAll |
+| 创造模式复制 | 中键点击 | Clone | Clone |
+| 拖拽分发 | 左键拖拽/右键拖拽/中键拖拽 | QuickCraft | QuickCraft |
+| 双击拾取全部 | 双击槽位 | PickupAll | PickAll |
+| 点击外部丢弃 | 点击容器外部 | Pickup | Pick/PickSome |
+
+### 交互流程
+
+1. **点击（onClick）**：检测 Shift/Ctrl 修饰键和鼠标按钮，决定交互类型
+   - Shift+左键 → QuickMove（快速移动）
+   - 中键 → Clone（创造模式复制）
+   - 光标有物品 + 非拖拽中 + 有效槽位 → 进入拖拽模式
+   - 点击外部（-999 槽位）→ 丢弃光标物品
+   - 双击检测（500ms 阈值）→ PickupAll
+   - 左键/右键 → Pickup（拾取/放置）
+
+2. **释放（onRelease）**：完成拖拽分发
+   - 拖拽中释放鼠标 → 调用 `_finishQuickCraft` 发送 START/ADD_SLOT/END 序列
+
+3. **拖动（onDrag）**：累积拖拽目标槽位
+   - 检查槽位是否可接受物品、是否已在列表中
+
+4. **键盘（onKey）**：
+   - ESC/E → 关闭屏幕
+   - Q → 丢弃悬停槽位物品（Ctrl+Q 丢弃整组）
+   - 1-9 → 与快捷栏交换
+   - F → 与副手交换
+
+### 悬停槽位追踪
+
+`m_hoveredSlotIndex` 在每帧 `render()` 中通过 `_updateHoveredSlot()` 更新，用于键盘操作（Q键丢弃、数字键交换）。在 `onClick()` 和 `onDrag()` 中也会同步更新。
+
+### 拖拽分发协议
+
+拖拽操作通过三步协议发送到菜单层：
+1. **START**：发送到 -999 槽位，携带拖拽模式（均匀/逐个/填满）
+2. **ADD_SLOT**：发送到每个选中的槽位
+3. **END**：发送到 -999 槽位，触发实际分发
+
+按钮编码：低2位 = 事件状态（0=START, 1=ADD_SLOT, 2=END），高2位 = 拖拽模式（0=均匀, 1=逐个, 2=填满）
+
+### 网络同步
+
+本地模式直接调用 `m_menu->clicked()`；网络模式通过 `m_clickSender` 发送 `ContainerClickPacket`。`_sendSlotClick` 和 `_sendOutsideClick` 自动选择模式。
 
 ## 上下游外部依赖关系
 
@@ -54,16 +110,16 @@ src/client/ui/screen/
 
 | 模块 | 用途 |
 |------|------|
-| `common/screen/IScreen.hpp` | 屏幕接口 |
+| `common/screen/IScreen.hpp` | 屏幕接口（onClick/onRelease/onDrag/onKey 签名含修饰键参数） |
 | `common/entity/inventory/PlayerInventory.hpp` | 玩家背包 |
 | `common/entity/inventory/CreativeInventory.hpp` | 创造物品列表 |
-| `common/entity/inventory/AbstractContainerMenu.hpp` | 容器菜单基类 |
+| `common/entity/inventory/AbstractContainerMenu.hpp` | 容器菜单基类（槽位管理、点击逻辑、拖拽协议） |
 | `common/network/packet/InventoryPackets.hpp` | 容器点击包、关闭包、创造库存动作包 |
 | `client/renderer/trident/gui/GuiRenderer.hpp` | GUI 渲染器 |
 | `client/renderer/trident/item/ItemRenderer.hpp` | 物品渲染器 |
 | `client/renderer/map/MapRenderer.hpp` | 地图渲染器（CartographyScreen、MapScreen） |
 | `client/ui/minecraft/widgets/ScreenStackWidget.hpp` | 屏幕栈组件（ScreenManager 委托对象） |
-| `GLFW` | 键盘和鼠标常量 |
+| `GLFW` | 键盘和鼠标常量（GLFW_MOD_SHIFT, GLFW_KEY_Q 等） |
 
 ### 依赖本模块
 
@@ -83,3 +139,6 @@ src/client/ui/screen/
 - **AbstractContainerScreen 模板参数**：继承时必须指定正确的 `Menu` 类型，槽位索引和点击逻辑由菜单定义。
 - **screen 目录是旧版兼容**：新屏幕应放在 `ui/minecraft/screens/`，本目录逐步迁移中。
 - **悬停提示渲染必须在最后**：所有屏幕的 `renderTooltip` / `_renderTooltip` 必须在 `render()` 末尾、`renderCarriedItem` / `_renderCarriedItem` 之后调用，因为 GuiRenderer 使用画家算法（后绘制覆盖先绘制），提示框必须渲染在所有其他元素之上。
+- **m_hoveredSlotIndex 自动更新**：在 `render()` 每帧中通过 `_updateHoveredSlot()` 更新，键盘操作（Q键丢弃、数字键交换）依赖此索引。
+- **拖拽分发需要 Player**：`_isValidDragMode` 检查 `m_playerInventory->getPlayer()` 是否非空，测试拖拽时必须用 `PlayerInventory(&player)` 构造。
+- **IScreen 接口签名**：`onClick` 和 `onRelease` 含 `mods` 参数（GLFW 修饰键），`onDrag` 含 `button` 参数（鼠标按钮），所有 IScreen 子类必须匹配新签名。
