@@ -49,10 +49,14 @@ public:
     ~InMemoryResourcePack() override = default;
 
     /**
-     * @brief 添加资源
+     * @brief 添加资源（统一入口）
+     * @param type 资源包类型
      * @param path 资源路径（如 "minecraft/models/block/cube_all.json"）
      * @param content 资源内容
      */
+    void addResource(PackType type, std::string_view path, std::vector<u8> content);
+
+    // 便捷方法 — 委托给 addResource
     void addClientResource(std::string path, std::string content);
     void addServerDataResource(std::string path, std::string content);
 

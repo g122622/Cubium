@@ -31,7 +31,7 @@ namespace mc::resource {
 /**
  * @brief 资源包类型枚举
  *
- * 区分客户端资源包和服务端数据包，对应 MC 1.16.5 的 ResourcePackType：
+ * 区分客户端资源包和服务端数据包：
  * - ClientResources 映射到 assets/ 目录（纹理、模型、音效、语言等）
  * - ServerData 映射到 data/ 目录（战利品表、配方、标签、函数等）
  *

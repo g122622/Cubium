@@ -30,7 +30,7 @@ namespace fs = std::filesystem;
 namespace mc::resource {
 
 namespace {
-std::string getDirectoryName(const std::string& path)
+std::string _getDirectoryName(const std::string& path)
 {
     fs::path p(path);
     return p.filename().string();
@@ -39,7 +39,7 @@ std::string getDirectoryName(const std::string& path)
 
 FolderResourcePack::FolderResourcePack(std::string rootPath)
     : m_rootPath(std::move(rootPath))
-    , m_name(getDirectoryName(m_rootPath))
+    , m_name(_getDirectoryName(m_rootPath))
 {}
 
 Result<void> FolderResourcePack::initialize()

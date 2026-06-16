@@ -33,34 +33,33 @@ InMemoryResourcePack::InMemoryResourcePack(std::string name)
     , m_metadata(3, "Built-in resources") // pack_format 3 for 1.16.x
 {}
 
+void InMemoryResourcePack::addResource(PackType type, std::string_view path, std::vector<u8> content)
+{
+    std::string normalized = _makeTypedPath(type, path);
+    m_resources[normalized] = std::move(content);
+    _addDirectoryEntries(normalized);
+}
+
 void InMemoryResourcePack::addClientResource(std::string path, std::string content)
 {
-    std::string normalized = _makeTypedPath(PackType::ClientResources, path);
     std::vector<u8> data(content.begin(), content.end());
-    m_resources[normalized] = std::move(data);
-    _addDirectoryEntries(normalized);
+    addResource(PackType::ClientResources, path, std::move(data));
 }
 
 void InMemoryResourcePack::addServerDataResource(std::string path, std::string content)
 {
-    std::string normalized = _makeTypedPath(PackType::ServerData, path);
     std::vector<u8> data(content.begin(), content.end());
-    m_resources[normalized] = std::move(data);
-    _addDirectoryEntries(normalized);
+    addResource(PackType::ServerData, path, std::move(data));
 }
 
 void InMemoryResourcePack::addClientResource(std::string path, std::vector<u8> data)
 {
-    std::string normalized = _makeTypedPath(PackType::ClientResources, path);
-    m_resources[normalized] = std::move(data);
-    _addDirectoryEntries(normalized);
+    addResource(PackType::ClientResources, path, std::move(data));
 }
 
 void InMemoryResourcePack::addServerDataResource(std::string path, std::vector<u8> data)
 {
-    std::string normalized = _makeTypedPath(PackType::ServerData, path);
-    m_resources[normalized] = std::move(data);
-    _addDirectoryEntries(normalized);
+    addResource(PackType::ServerData, path, std::move(data));
 }
 
 void InMemoryResourcePack::addDirectory(PackType type, std::string directory)

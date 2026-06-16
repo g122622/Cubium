@@ -57,7 +57,7 @@ public:
     [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces(PackType type) const override;
     [[nodiscard]] std::string name() const override { return m_name; }
 
-    // 获取根路径
+    // 内部 API — 仅供诊断/管理代码使用
     [[nodiscard]] const std::string& rootPath() const { return m_rootPath; }
 
 private:

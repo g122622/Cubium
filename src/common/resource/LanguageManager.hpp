@@ -147,28 +147,19 @@ public:
         const PackRepository& packList, const std::string& languageCode, const std::string& namespace_);
 
     /**
-     * @brief 从单个资源包加载语言文件
-     *
-     * @param pack 资源包
-     * @param languageCode 语言代码
-     * @param namespace_ 命名空间
-     * @return 成功加载的翻译条目数量
+     * @brief 清空当前加载的翻译
      */
-    [[nodiscard]] Result<size_t> loadLanguageFromPack(
-        const IResourcePack& pack, const std::string& languageCode, const std::string& namespace_ = "minecraft");
+    void clear();
 
     /**
      * @brief 从 JSON 内容加载翻译
+     *
+     * 主要用于测试场景，生产代码应使用 loadLanguage。
      *
      * @param jsonContent JSON 内容
      * @return 成功加载的翻译条目数量
      */
     [[nodiscard]] Result<size_t> loadFromJson(const std::string& jsonContent);
-
-    /**
-     * @brief 清空当前加载的翻译
-     */
-    void clear();
 
     // ========================================================================
     // 翻译查询
@@ -280,6 +271,17 @@ private:
 
     /// 占位符替换（内部实现）
     static std::string _replacePlaceholders(const std::string& text, const std::vector<std::string>& params);
+
+    /**
+     * @brief 从单个资源包加载语言文件
+     *
+     * @param pack 资源包
+     * @param languageCode 语言代码
+     * @param namespace_ 命名空间
+     * @return 成功加载的翻译条目数量
+     */
+    [[nodiscard]] Result<size_t> loadLanguageFromPack(
+        const IResourcePack& pack, const std::string& languageCode, const std::string& namespace_ = "minecraft");
 };
 
 } // namespace mc::resource

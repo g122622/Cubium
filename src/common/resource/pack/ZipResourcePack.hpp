@@ -65,6 +65,7 @@ public:
 
     // 额外方法
 
+    // 内部 API — 仅供诊断/管理代码使用
     [[nodiscard]] const std::filesystem::path& zipPath() const { return m_zipPath; }
     [[nodiscard]] size_t entryCount() const { return m_entries.size(); }
     void clearCache();
