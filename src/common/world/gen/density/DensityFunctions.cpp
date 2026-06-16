@@ -47,25 +47,27 @@ f64 EndIslands::compute(i32 blockX, i32 blockY, i32 blockZ) const
 {
     MC_UNUSED(blockY);
 
-    // MC 1.21: 采样网格为 8 格间距
-    const i32 sx = blockX >> 3; // blockX / 8
-    const i32 sz = blockZ >> 3; // blockZ / 8
+    // MC 1.21.11: 使用整数除法（向零取整），不能用右移（负数行为不同）
+    const i32 sx = blockX / 8;
+    const i32 sz = blockZ / 8;
 
-    const f64 height = getHeightValue(sx, sz);
-    return (height - 8.0) / 128.0;
+    // MC 1.21.11: getHeightValue 返回 float，然后 (float - 8.0) / 128.0 在 double 下计算
+    const f32 height = getHeightValue(sx, sz);
+    return (static_cast<f64>(height) - 8.0) / 128.0;
 }
 
-f64 EndIslands::getHeightValue(i32 x, i32 z) const
+f32 EndIslands::getHeightValue(i32 x, i32 z) const
 {
     // MC 1.21.11 EndIslandDensityFunction.getHeightValue
-    const i32 i = x >> 1; // x / 2
-    const i32 j = z >> 1; // z / 2
-    const i32 k = x & 1;  // x % 2
-    const i32 l = z & 1;  // z % 2
+    // Java 使用整数除法（向零取整），不能用右移（负奇数时行为不同）
+    const i32 i = x / 2;
+    const i32 j = z / 2;
+    const i32 k = x % 2; // Java % 可能返回负数（-1），& 1 总是返回 0 或 1
+    const i32 l = z % 2;
 
-    // 基础高度：根据到原点的距离
-    f64 f = 100.0 - std::sqrt(static_cast<f64>(x * x + z * z)) * 8.0;
-    f = std::clamp(f, -100.0, 80.0);
+    // MC 1.21.11: 所有算术使用 float 精度（与 Java Mth.sqrt / Mth.abs 一致）
+    f32 f = 100.0f - std::sqrt(static_cast<f32>(x * x + z * z)) * 8.0f;
+    f = std::clamp(f, -100.0f, 80.0f);
 
     // 检测周围的岛屿（-12 到 +12 范围内）
     for (i32 i1 = -12; i1 <= 12; ++i1) {
@@ -73,18 +75,17 @@ f64 EndIslands::getHeightValue(i32 x, i32 z) const
             const i64 k1 = static_cast<i64>(i) + i1;
             const i64 l1 = static_cast<i64>(j) + j1;
 
-            // MC 1.21.11: 只在外岛区域（距中心 > 64 区块半径）且噪声 < -0.9 时处理
-            // 原代码错误地将此条件反转（continue 跳过了外岛区域）
+            // MC 1.21.11: 只在外岛区域（距中心 > 64 区块半径）且噪声 < -0.9F 时处理
+            // 阈值使用 float 字面量 -0.9F（约 -0.89999998）而非 double -0.9
             if (k1 * k1 + l1 * l1 > 4096L &&
-                m_islandNoise->getValue(static_cast<f64>(k1), static_cast<f64>(l1)) < -0.9) {
-                // 计算此岛屿对此位置的高度贡献
-                const f64 f1 =
-                    std::fmod(std::abs(static_cast<f64>(k1)) * 3439.0 + std::abs(static_cast<f64>(l1)) * 147.0, 13.0) +
-                    9.0;
-                const f64 f2 = static_cast<f64>(k) - i1 * 2;
-                const f64 f3 = static_cast<f64>(l) - j1 * 2;
-                f64 f4 = 100.0 - std::sqrt(f2 * f2 + f3 * f3) * f1;
-                f4 = std::clamp(f4, -100.0, 80.0);
+                m_islandNoise->getValue(static_cast<f64>(k1), static_cast<f64>(l1)) < -0.9f) {
+                // MC 1.21.11: 先转为 float 再乘，与 Java 的 Mth.abs((float)k1) * 3439.0F 一致
+                const f32 f1 = std::fabs(static_cast<f32>(k1)) * 3439.0f + std::fabs(static_cast<f32>(l1)) * 147.0f;
+                const f32 f1mod = std::fmod(f1, 13.0f) + 9.0f;
+                const f32 f2 = static_cast<f32>(k) - static_cast<f32>(i1) * 2.0f;
+                const f32 f3 = static_cast<f32>(l) - static_cast<f32>(j1) * 2.0f;
+                f32 f4 = 100.0f - std::sqrt(f2 * f2 + f3 * f3) * f1mod;
+                f4 = std::clamp(f4, -100.0f, 80.0f);
                 f = std::max(f, f4);
             }
         }
@@ -237,6 +238,16 @@ namespace factory {
 std::unique_ptr<DensityFunction> constant(f64 value)
 {
     return std::make_unique<Constant>(value);
+}
+
+std::unique_ptr<DensityFunction> blendAlpha()
+{
+    return std::make_unique<BlendAlpha>();
+}
+
+std::unique_ptr<DensityFunction> blendOffset()
+{
+    return std::make_unique<BlendOffset>();
 }
 
 std::unique_ptr<DensityFunction> yClampedGradient(i32 fromY, i32 toY, f64 fromValue, f64 toValue)
@@ -464,6 +475,13 @@ std::unique_ptr<DensityFunction> flatCacheMarker(std::unique_ptr<DensityFunction
 std::unique_ptr<DensityFunction> cache2DMarker(std::unique_ptr<DensityFunction> wrapped)
 {
     return std::make_unique<Marker>(MarkerType::Cache2D, std::move(wrapped));
+}
+
+std::unique_ptr<DensityFunction> beardifierMarker()
+{
+    // BeardifierMarker 不包装子函数，它本身就是一个返回 0.0 的标记
+    // 使用 Constant(0.0) 作为占位，NoiseChunk 构造时替换为实际 Beardifier
+    return std::make_unique<Marker>(MarkerType::BeardifierMarker, std::make_unique<Constant>(0.0));
 }
 
 std::unique_ptr<DensityFunction> sharedHolder(std::unique_ptr<DensityFunction> input)

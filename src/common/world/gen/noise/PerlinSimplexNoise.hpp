@@ -78,15 +78,21 @@ public:
 
     /**
      * @brief 获取第一个倍频层的 SimplexNoise（用于种子派生）
+     *
+     * 返回 noiseLevels 中最高倍频的 SimplexNoise，
+     * 与 MC 的 PerlinSimplexNoise.firstNoise 等价。
      */
-    [[nodiscard]] const SimplexNoise* firstNoise() const { return m_firstNoise.get(); }
+    [[nodiscard]] const SimplexNoise* firstNoise() const
+    {
+        if (m_noiseLevels.empty()) {
+            return nullptr;
+        }
+        return m_noiseLevels[0].get();
+    }
 
 private:
     /// 倍频层 SimplexNoise 数组（索引 0 对应最低倍频）
     std::vector<std::unique_ptr<SimplexNoise>> m_noiseLevels;
-
-    /// 第一个创建的 SimplexNoise（用于负倍频的种子派生）
-    std::unique_ptr<SimplexNoise> m_firstNoise;
 
     /// 最高频率输入因子 = 2^maxOctave
     f64 m_highestFreqInputFactor = 0.0;

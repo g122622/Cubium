@@ -80,7 +80,7 @@ public:
     static constexpr const char* CONTINENTALNESS_LARGE = "minecraft:continentalness_large";
     static constexpr const char* EROSION_LARGE = "minecraft:erosion_large";
     static constexpr const char* RIDGE = "minecraft:ridge";
-    static constexpr const char* SHIFT = "minecraft:shift";
+    static constexpr const char* SHIFT = "minecraft:offset";
 
     // ========== 洞穴噪声 ==========
     static constexpr const char* AQUIFER_BARRIER = "minecraft:aquifer_barrier";
@@ -126,7 +126,7 @@ public:
     static constexpr const char* ICEBERG_PILLAR = "minecraft:iceberg_pillar";
     static constexpr const char* ICEBERG_PILLAR_ROOF = "minecraft:iceberg_pillar_roof";
     static constexpr const char* ICEBERG_SURFACE = "minecraft:iceberg_surface";
-    static constexpr const char* SWAMP = "minecraft:swamp";
+    static constexpr const char* SWAMP = "minecraft:surface_swamp";
     static constexpr const char* CALCITE = "minecraft:calcite";
     static constexpr const char* GRAVEL = "minecraft:gravel";
     static constexpr const char* POWDER_SNOW = "minecraft:powder_snow";

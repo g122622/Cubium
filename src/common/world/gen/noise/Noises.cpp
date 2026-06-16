@@ -61,51 +61,52 @@ void Noises::initialize()
     s_initialized = true;
 
     // ========== 气候噪声 ==========
-    // MC 1.21 NoiseData.java
-    registerNoise(TEMPERATURE, -10, {1.0, 1.0, 1.0, 1.0});
-    registerNoise(VEGETATION, -8, {1.0, 1.0, 1.0, 1.0});
-    registerNoise(CONTINENTALNESS, -9, {1.0, 1.0, 1.0, 1.0});
-    registerNoise(EROSION, -9, {1.0, 1.0, 1.0, 1.0});
-    registerNoise(TEMPERATURE_LARGE, -10, {1.0, 1.0});
-    registerNoise(VEGETATION_LARGE, -8, {1.0, 1.0});
-    registerNoise(CONTINENTALNESS_LARGE, -9, {1.0, 1.0});
-    registerNoise(EROSION_LARGE, -9, {1.0, 1.0});
-    registerNoise(RIDGE, -7, {1.0, 1.0, 1.0, 1.0});
-    registerNoise(SHIFT, -3, {1.0, 1.0, 1.0, 1.0});
+    // MC 1.21 NoiseData.java — registerBiomeNoises(offset=0)
+    registerNoise(TEMPERATURE, -10, {1.5, 0.0, 1.0, 0.0, 0.0, 0.0});
+    registerNoise(VEGETATION, -8, {1.0, 1.0, 0.0, 0.0, 0.0, 0.0});
+    registerNoise(CONTINENTALNESS, -9, {1.0, 1.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0});
+    registerNoise(EROSION, -9, {1.0, 1.0, 0.0, 1.0, 1.0});
+    // MC 1.21 NoiseData.java — registerBiomeNoises(offset=-2)
+    registerNoise(TEMPERATURE_LARGE, -12, {1.5, 0.0, 1.0, 0.0, 0.0, 0.0});
+    registerNoise(VEGETATION_LARGE, -10, {1.0, 1.0, 0.0, 0.0, 0.0, 0.0});
+    registerNoise(CONTINENTALNESS_LARGE, -11, {1.0, 1.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0});
+    registerNoise(EROSION_LARGE, -11, {1.0, 1.0, 0.0, 1.0, 1.0});
+    registerNoise(RIDGE, -7, {1.0, 2.0, 1.0, 0.0, 0.0, 0.0});
+    registerNoise(SHIFT, -3, {1.0, 1.0, 1.0, 0.0});
 
     // ========== 洞穴噪声 ==========
     registerNoise(AQUIFER_BARRIER, -3, {1.0});
-    registerNoise(AQUIFER_FLUID_LEVEL_FLOODEDNESS, -4, {1.0});
-    registerNoise(AQUIFER_LAVA, -1, {1.0, 1.0});
-    registerNoise(AQUIFER_FLUID_LEVEL_SPREAD, -3, {1.0});
-    registerNoise(PILLAR, -7, {1.0, 1.0, 1.0, 1.0});
+    registerNoise(AQUIFER_FLUID_LEVEL_FLOODEDNESS, -7, {1.0});
+    registerNoise(AQUIFER_LAVA, -1, {1.0});
+    registerNoise(AQUIFER_FLUID_LEVEL_SPREAD, -5, {1.0});
+    registerNoise(PILLAR, -7, {1.0, 1.0});
     registerNoise(PILLAR_RARENESS, -8, {1.0});
     registerNoise(PILLAR_THICKNESS, -8, {1.0});
-    registerNoise(SPAGHETTI_2D, -6, {1.0, 1.0});
+    registerNoise(SPAGHETTI_2D, -7, {1.0});
     registerNoise(SPAGHETTI_2D_ELEVATION, -8, {1.0});
-    registerNoise(SPAGHETTI_2D_MODULATOR, -7, {1.0, 1.0});
-    registerNoise(SPAGHETTI_2D_THICKNESS, -7, {1.0, 1.0});
-    registerNoise(SPAGHETTI_3D_1, -7, {1.0, 1.0});
-    registerNoise(SPAGHETTI_3D_2, -7, {1.0, 1.0});
-    registerNoise(SPAGHETTI_3D_RARITY, -7, {1.0, 1.0});
-    registerNoise(SPAGHETTI_3D_THICKNESS, -7, {1.0, 1.0});
-    registerNoise(SPAGHETTI_ROUGHNESS, -7, {1.0, 1.0});
+    registerNoise(SPAGHETTI_2D_MODULATOR, -11, {1.0});
+    registerNoise(SPAGHETTI_2D_THICKNESS, -11, {1.0});
+    registerNoise(SPAGHETTI_3D_1, -7, {1.0});
+    registerNoise(SPAGHETTI_3D_2, -7, {1.0});
+    registerNoise(SPAGHETTI_3D_RARITY, -11, {1.0});
+    registerNoise(SPAGHETTI_3D_THICKNESS, -8, {1.0});
+    registerNoise(SPAGHETTI_ROUGHNESS, -5, {1.0});
     registerNoise(SPAGHETTI_ROUGHNESS_MODULATOR, -8, {1.0});
-    registerNoise(CAVE_ENTRANCE, -6, {1.0, 1.0});
-    registerNoise(CAVE_LAYER, -6, {1.0, 1.0});
-    registerNoise(CAVE_CHEESE, -5, {1.0, 1.0, 1.0, 1.0});
+    registerNoise(CAVE_ENTRANCE, -7, {0.4, 0.5, 1.0});
+    registerNoise(CAVE_LAYER, -8, {1.0});
+    registerNoise(CAVE_CHEESE, -8, {0.5, 1.0, 2.0, 1.0, 2.0, 1.0, 0.0, 2.0, 0.0});
 
     // ========== 矿脉噪声 ==========
-    registerNoise(ORE_VEININESS, -6, {1.0, 1.0});
-    registerNoise(ORE_VEIN_A, -5, {1.0, 1.0, 1.0, 1.0});
-    registerNoise(ORE_VEIN_B, -5, {1.0, 1.0, 1.0, 1.0});
-    registerNoise(ORE_GAP, -3, {1.0});
+    registerNoise(ORE_VEININESS, -8, {1.0});
+    registerNoise(ORE_VEIN_A, -7, {1.0});
+    registerNoise(ORE_VEIN_B, -7, {1.0});
+    registerNoise(ORE_GAP, -5, {1.0});
 
     // ========== 面条洞穴噪声 ==========
-    registerNoise(NOODLE, -5, {1.0, 1.0, 1.0, 1.0});
-    registerNoise(NOODLE_THICKNESS, -5, {1.0, 1.0, 1.0, 1.0});
-    registerNoise(NOODLE_RIDGE_A, -6, {1.0, 1.0, 1.0, 1.0});
-    registerNoise(NOODLE_RIDGE_B, -6, {1.0, 1.0, 1.0, 1.0});
+    registerNoise(NOODLE, -8, {1.0});
+    registerNoise(NOODLE_THICKNESS, -8, {1.0});
+    registerNoise(NOODLE_RIDGE_A, -7, {1.0});
+    registerNoise(NOODLE_RIDGE_B, -7, {1.0});
 
     // ========== 地表噪声 ==========
     // MC 1.21 NoiseData.java — 权威参数
@@ -128,13 +129,13 @@ void Noises::initialize()
     // ========== 下界噪声 ==========
     registerNoise(SOUL_SAND_LAYER, -8, {1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.013333333333333334});
     registerNoise(GRAVEL_LAYER, -8, {1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.013333333333333334});
-    registerNoise(PATCH, -5, {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.013333333333333334});
+    registerNoise(PATCH, -5, {1.0, 0.0, 0.0, 0.0, 0.0, 0.013333333333333334});
     registerNoise(NETHERRACK, -3, {1.0, 0.0, 0.0, 0.35});
     registerNoise(NETHER_WART, -3, {1.0, 0.0, 0.0, 0.9});
     registerNoise(NETHER_STATE_SELECTOR, -4, {1.0});
 
     // ========== 其他噪声 ==========
-    registerNoise(JAGGED, -9, {1.0, 1.0, 1.0, 1.0});
+    registerNoise(JAGGED, -16, {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
 }
 
 } // namespace mc::world::gen::noise

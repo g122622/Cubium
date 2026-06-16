@@ -48,7 +48,7 @@ PerlinSimplexNoise::PerlinSimplexNoise(math::IRandom& rng, std::vector<i32> octa
 
     m_noiseLevels.resize(static_cast<size_t>(k));
 
-    // MC: 创建第一个 SimplexNoise（共享给 octave 0）
+    // MC: 创建第一个 SimplexNoise（用于种子派生，也共享给 octave 0）
     auto firstNoise = std::make_unique<SimplexNoise>(rng);
 
     // MC: 如果 octave 0 在集合中，放入 noiseLevels[maxOctave]
@@ -69,15 +69,28 @@ PerlinSimplexNoise::PerlinSimplexNoise(math::IRandom& rng, std::vector<i32> octa
     // MC: 填充负倍频 (maxOctave-1 到 0)
     // 使用第一个 simplexnoise 的 3D 评估值派生种子
     if (maxOctave > 0) {
-        const SimplexNoise* firstNoisePtr = m_noiseLevels[static_cast<size_t>(maxOctave)].get();
+        // firstNoisePtr 始终从 m_noiseLevels[maxOctave] 获取
+        // 如果 octave 0 在集合中，firstNoise 已移入 m_noiseLevels[maxOctave]
+        // 如果 octave 0 不在集合中，m_noiseLevels[maxOctave] 可能为空
+        // 但 MC 的 PerlinSimplexNoise 保证 firstNoise 总是有效的
+        // 这里处理两种情况：
+        const SimplexNoise* firstNoisePtr = nullptr;
+        if (m_noiseLevels[static_cast<size_t>(maxOctave)]) {
+            firstNoisePtr = m_noiseLevels[static_cast<size_t>(maxOctave)].get();
+        } else if (firstNoise) {
+            // octave 0 不在集合中，firstNoise 仍然有效
+            firstNoisePtr = firstNoise.get();
+        }
         MC_ASSERT_RELEASE(firstNoisePtr != nullptr);
 
+        // MC: WorldgenRandom(new LegacyRandomSource(seed))
+        // Java 使用 float 乘法: (long)(simplexnoise.getValue(...) * 9.223372E18F)
+        // 注意 9.223372E18F 是 float 字面量，精度比 double 低
         const f64 derivedSeed =
             firstNoisePtr->getValue(firstNoisePtr->xOffset(), firstNoisePtr->yOffset(), firstNoisePtr->zOffset());
-        const i64 seed = static_cast<i64>(derivedSeed * 9.223372E18);
+        const i64 seed = static_cast<i64>(static_cast<f32>(derivedSeed) * 9.223372E18f);
 
-        // MC: WorldgenRandom(new LegacyRandomSource(seed))
-        // 使用 LcgRandom 近似 LegacyRandomSource 的行为
+        // 使用 LcgRandom 作为 WorldgenRandom(LegacyRandomSource(seed)) 的近似
         math::LcgRandom secondaryRng(static_cast<u64>(seed));
 
         for (i32 j1 = maxOctave - 1; j1 >= 0; --j1) {

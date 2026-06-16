@@ -47,6 +47,46 @@ inline constexpr i32 OVERWORLD_MIN_Y = world::MIN_BUILD_HEIGHT;
 inline constexpr i32 OVERWORLD_MAX_Y = world::MAX_BUILD_HEIGHT;
 
 // ============================================================================
+// BlendAlpha — 旧区块混合 Alpha 密度函数
+// ============================================================================
+
+/**
+ * @brief 旧区块混合 Alpha 密度函数
+ *
+ * MC 1.21 DensityFunctions.BlendAlpha: 始终返回 1.0。
+ * 用于 blendDensity 计算中的 lerp alpha 参数。
+ * 当没有旧区块需要混合时，blendAlpha=1.0 表示使用新区块的密度值。
+ */
+class BlendAlpha final : public DensityFunction {
+public:
+    [[nodiscard]] f64 compute(i32, i32, i32) const override { return 1.0; }
+    [[nodiscard]] f64 minValue() const override { return 1.0; }
+    [[nodiscard]] f64 maxValue() const override { return 1.0; }
+
+    DENSITY_FUNCTION_MAP_ALL_LEAF(BlendAlpha)
+};
+
+// ============================================================================
+// BlendOffset — 旧区块混合偏移密度函数
+// ============================================================================
+
+/**
+ * @brief 旧区块混合偏移密度函数
+ *
+ * MC 1.21 DensityFunctions.BlendOffset: 始终返回 0.0。
+ * 用于 blendDensity 计算中的 lerp end 参数。
+ * 当没有旧区块需要混合时，blendOffset=0.0 表示不偏移密度值。
+ */
+class BlendOffset final : public DensityFunction {
+public:
+    [[nodiscard]] f64 compute(i32, i32, i32) const override { return 0.0; }
+    [[nodiscard]] f64 minValue() const override { return 0.0; }
+    [[nodiscard]] f64 maxValue() const override { return 0.0; }
+
+    DENSITY_FUNCTION_MAP_ALL_LEAF(BlendOffset)
+};
+
+// ============================================================================
 // Constant — 常量密度函数
 // ============================================================================
 
@@ -288,6 +328,7 @@ private:
                 break;
             case MappedType::Invert: {
                 // 1/x 的范围取决于输入范围是否跨零
+                // MC 1.21: 跨越零点时使用 Double.NEGATIVE_INFINITY / Double.POSITIVE_INFINITY
                 if (inMin > 0.0) {
                     m_minValue = 1.0 / inMax;
                     m_maxValue = 1.0 / inMin;
@@ -296,8 +337,8 @@ private:
                     m_maxValue = 1.0 / inMax;
                 } else {
                     // 跨越零点，范围无界
-                    m_minValue = -1e6;
-                    m_maxValue = 1e6;
+                    m_minValue = -std::numeric_limits<f64>::infinity();
+                    m_maxValue = std::numeric_limits<f64>::infinity();
                 }
                 break;
             }
@@ -1144,11 +1185,12 @@ private:
  * 每种标记类型对应 NoiseChunk 中的特定替换实现。
  */
 enum class MarkerType : u8 {
-    Interpolated,   ///< 替换为 NoiseInterpolator（三线性插值）
-    CacheOnce,      ///< 绑定 interpolationCounter 缓存
-    CacheAllInCell, ///< 替换为 CellCache（selectCellYZ 时预填充）
-    FlatCache,      ///< 区块级扁平缓存（Y=0 的 2D 缓存）
-    Cache2D         ///< XZ 位置缓存
+    Interpolated,    ///< 替换为 NoiseInterpolator（三线性插值）
+    CacheOnce,       ///< 绑定 interpolationCounter 缓存
+    CacheAllInCell,  ///< 替换为 CellCache（selectCellYZ 时预填充）
+    FlatCache,       ///< 区块级扁平缓存（Y=0 的 2D 缓存）
+    Cache2D,         ///< XZ 位置缓存
+    BeardifierMarker ///< 替换为 Beardifier（结构物对地形的密度贡献），标记阶段返回 0.0
 };
 
 /**
@@ -1260,8 +1302,8 @@ public:
     DENSITY_FUNCTION_MAP_ALL_LEAF(EndIslands, m_seed)
 
 private:
-    /// MC 1.21: 检测岛屿高度值
-    [[nodiscard]] f64 getHeightValue(i32 x, i32 z) const;
+    /// MC 1.21.11: 检测岛屿高度值（Java 返回 float）
+    [[nodiscard]] f32 getHeightValue(i32 x, i32 z) const;
 
     u64 m_seed;
     std::unique_ptr<noise::SimplexNoise> m_islandNoise;
@@ -1277,6 +1319,22 @@ namespace factory {
  * @brief 创建常量密度函数
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> constant(f64 value);
+
+/**
+ * @brief 创建 BlendAlpha 密度函数（始终返回 1.0）
+ *
+ * MC 1.21 DensityFunctions.BlendAlpha: 用于旧区块混合。
+ * NoiseChunk 构造时将替换为实际的 BlendAlpha 实现。
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> blendAlpha();
+
+/**
+ * @brief 创建 BlendOffset 密度函数（始终返回 0.0）
+ *
+ * MC 1.21 DensityFunctions.BlendOffset: 用于旧区块混合偏移。
+ * NoiseChunk 构造时将替换为实际的 BlendOffset 实现。
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> blendOffset();
 
 /**
  * @brief 创建 Y 轴钳制梯度
@@ -1547,6 +1605,14 @@ namespace factory {
  * NoiseChunk::wrap() 在构造时替换为 2D 位置缓存。
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> cache2DMarker(std::unique_ptr<DensityFunction> wrapped);
+
+/**
+ * @brief 创建标记密度函数（BeardifierMarker 类型）
+ *
+ * MC 1.21: BeardifierMarker 是占位标记，在密度函数树中返回 0.0。
+ * NoiseChunk 构造时将其替换为实际的 Beardifier（基于结构物的密度贡献）。
+ */
+[[nodiscard]] std::unique_ptr<DensityFunction> beardifierMarker();
 
 } // namespace factory
 

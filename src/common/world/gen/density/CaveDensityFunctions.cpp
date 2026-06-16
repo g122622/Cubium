@@ -100,7 +100,7 @@ std::unique_ptr<DensityFunction> CaveDensityFunctions::spaghetti2d(u64 seed)
     // densityFunction4 = abs(densityFunction2 + yClampedGradient(-64, 320, 8.0, -40.0))
     // 这里 densityFunction2 的范围取决于噪声值，加上 yClampedGradient
 
-    auto yGradient = factory::yClampedGradient(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT - 1, 8.0, -40.0);
+    auto yGradient = factory::yClampedGradient(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT, 8.0, -40.0);
     auto df4 = factory::abs(factory::add(std::move(elevation), std::move(yGradient)));
 
     // densityFunction5 = cube(df4 + thickness)
@@ -325,7 +325,7 @@ std::unique_ptr<DensityFunction> CaveDensityFunctions::underground(u64 seed, i32
     auto entrancesFunc = entrances(seed);
 
     auto spaghettiWithRoughness = factory::add(std::move(spag2d), std::move(roughnessFunc));
-    auto minEntrances = factory::min(factory::constant(5.0), std::move(entrancesFunc));
+    auto minEntrances = std::move(entrancesFunc);
 
     // 注意: 完整的 MC 版本还包括 caveLayer 和 caveCheese
     // 这里返回简化版本，后续在 NoiseRouterData 中组装完整 underground

@@ -27,6 +27,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/biome/Biomes.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
 
 #include <cmath>
 
@@ -201,6 +202,8 @@ void DebugChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chu
             }
         }
     }
+
+    chunk.setChunkStatus(ChunkStatuses::NOISE);
 }
 
 void DebugChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chunk)
@@ -208,6 +211,7 @@ void DebugChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chun
     // 调试模式不需要地表生成
     MC_UNUSED(region);
     MC_UNUSED(chunk);
+    chunk.setChunkStatus(ChunkStatuses::SURFACE);
 }
 
 void DebugChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk)

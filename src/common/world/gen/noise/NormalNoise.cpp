@@ -21,6 +21,7 @@
  */
 
 #include "common/world/gen/noise/NormalNoise.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -44,12 +45,12 @@ NormalNoise::NormalNoise(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
 }
 
 NormalNoise::NormalNoise(math::Random& rng, i32 firstOctave, std::vector<f64> amplitudes)
-    : m_seed(0) // Cannot determine seed from Random
-    , m_firstOctave(firstOctave)
+    : m_firstOctave(firstOctave)
     , m_amplitudes(std::move(amplitudes))
 {
     // MC 1.21: 两次调用 forkPositional() 获取不同的 PositionalRandomFactory
     // 与 MC NormalNoise(RandomSource, NoiseParameters) 一致
+    // 注意：通过 Random& 构造时无法提取种子，clone() 将无法正确工作
     m_first = std::make_unique<PerlinNoise>(rng.forkPositional(), m_firstOctave, m_amplitudes);
     m_second = std::make_unique<PerlinNoise>(rng.forkPositional(), m_firstOctave, m_amplitudes);
 
@@ -91,6 +92,9 @@ void NormalNoise::computeValueFactor()
 
 std::unique_ptr<NormalNoise> NormalNoise::clone() const
 {
+    // 只有通过种子构造的 NormalNoise 才能正确克隆
+    // 通过 Random& 构造的实例无法提取种子，克隆结果将不正确
+    MC_ASSERT_RELEASE_MSG(m_seed != 0, "Cannot clone NormalNoise constructed from Random& without seed");
     return std::make_unique<NormalNoise>(m_seed, m_firstOctave, m_amplitudes);
 }
 

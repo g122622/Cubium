@@ -91,15 +91,11 @@ f64 PerlinNoise::PerlinLayer::noiseWithSmear(f64 x, f64 y, f64 z, f64 yOffset, f
 
     // MC 1.21.11: ImprovedNoise.noise(x, y, z, yOffset, yFraction)
     // 涂抹效果：将 Y 分数吸附到 yOffset 间隔的网格线上
+    // Java 使用 Math.min(floor(yFraction / yOffset + 1.0E-7F) * yOffset, fracY)
     f64 smearOffset = 0.0;
     if (yOffset != 0.0) {
-        f64 clampedY = yFraction;
-        if (yFraction >= 0.0 && yFraction < fracY) {
-            clampedY = yFraction;
-        } else {
-            clampedY = fracY;
-        }
-        smearOffset = std::floor(clampedY / yOffset + 1.0e-7) * yOffset;
+        const f64 raw = std::floor(fracY / yOffset + static_cast<f64>(1.0e-7f)) * yOffset;
+        smearOffset = std::min(raw, fracY);
     }
 
     // 注意：梯度计算使用修改后的 fracY (fracY - smearOffset)，
@@ -224,16 +220,15 @@ void PerlinNoise::initLayers(const math::PositionalRandomFactory& factory)
     }
 
     // 计算最低频率的输入和值缩放因子
+    // 参考 MC 1.21.11: PerlinNoise 构造函数
+    // Java 使用 firstOctave + minNonZero 索引作为最低频率，
+    // 输入因子 = 2^(firstOctave + minNonZero)
+    // 值因子 = 2^(totalAmplitudes - 1) / (2^totalAmplitudes - 1)
     if (minNonZero < octaveCount) {
-        const i32 nonZeroRange = maxNonZero - minNonZero;
-        if (nonZeroRange == 0) {
-            m_lowestFreqInputFactor = 1.0;
-            m_lowestFreqValueFactor = 1.0;
-        } else {
-            m_lowestFreqInputFactor = std::pow(2.0, -static_cast<f64>(m_firstOctave + minNonZero));
-            const i32 nonZeroCount = nonZeroRange + 1;
-            m_lowestFreqValueFactor = std::pow(2.0, nonZeroCount - 1) / (std::pow(2.0, nonZeroCount) - 1.0);
-        }
+        m_lowestFreqInputFactor = std::pow(2.0, static_cast<f64>(m_firstOctave + minNonZero));
+        const auto amplitudeCount = static_cast<i32>(m_amplitudes.size());
+        m_lowestFreqValueFactor = std::pow(2.0, static_cast<f64>(amplitudeCount - 1)) /
+            (std::pow(2.0, static_cast<f64>(amplitudeCount)) - 1.0);
     }
 
     m_maxValue = edgeValue(2.0);
@@ -269,12 +264,14 @@ f64 PerlinNoise::wrap(f64 value)
 
 f64 PerlinNoise::edgeValue(f64 maxInputValue) const
 {
+    // 参考 MC 1.21.11: PerlinNoise.edgeValue()
+    // 不使用 abs()，直接使用原始振幅值
     f64 result = 0.0;
     f64 valueFactor = m_lowestFreqValueFactor;
 
     for (size_t i = 0; i < m_amplitudes.size(); ++i) {
         if (m_layers[i] != nullptr) {
-            result += std::abs(m_amplitudes[i]) * maxInputValue * valueFactor;
+            result += m_amplitudes[i] * maxInputValue * valueFactor;
         }
         valueFactor /= 2.0;
     }
@@ -284,17 +281,10 @@ f64 PerlinNoise::edgeValue(f64 maxInputValue) const
 
 f64 PerlinNoise::maxBrokenValue(f64 maxInputValue) const
 {
-    f64 result = 0.0;
-    f64 valueFactor = m_lowestFreqValueFactor;
-
-    for (size_t i = 0; i < m_amplitudes.size(); ++i) {
-        if (m_layers[i] != nullptr) {
-            result += std::abs(m_amplitudes[i]) * maxInputValue * valueFactor;
-        }
-        valueFactor /= 2.0;
-    }
-
-    return result;
+    // 参考 MC 1.21.11: PerlinNoise.maxBrokenValue()
+    // maxBrokenValue 调用 edgeValue(maxInputValue + 2.0)，
+    // +2.0 用于补偿涂抹效果带来的额外范围
+    return edgeValue(maxInputValue + 2.0);
 }
 
 f64 PerlinNoise::getValueWithSmear(f64 x, f64 y, f64 z, f64 smearScaleMultiplier) const

@@ -319,6 +319,12 @@ std::unique_ptr<DensityFunction> NoiseChunk::apply(std::unique_ptr<DensityFuncti
                 auto filler = marker->releaseWrapped();
                 return std::make_unique<Cache2D>(std::move(filler));
             }
+            case MarkerType::BeardifierMarker: {
+                // BeardifierMarker → 在 MC 中替换为 Beardifier（结构物对地形的密度贡献）
+                // 当前暂未实现 Beardifier，保留包装函数（返回 0.0）
+                auto filler = marker->releaseWrapped();
+                return filler;
+            }
         }
     }
     return function;

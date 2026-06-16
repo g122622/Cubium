@@ -78,6 +78,42 @@ EndIslands ──持有──→ SimplexNoise
 - 下界: xzScale=0.25, yScale=0.375, xzFactor=80, yFactor=60, smear=8
 - 末地: xzScale=0.25, yScale=0.25, xzFactor=80, yFactor=160, smear=4
 
+## 关键算法对齐要点（MC 1.21.11）
+
+### 1. YClampedGradient toY 值
+
+主世界 `depthPlusOffset` 中的 `YClampedGradient` 范围为 `[MIN_BUILD_HEIGHT, MAX_BUILD_HEIGHT]`（即 [-64, 320]），toY 使用 `MAX_BUILD_HEIGHT`（320），而非 `MAX_BUILD_HEIGHT - 1`（319）。
+
+### 2. CaveDensityFunctions::entrances() 无 min(5.0) 包装
+
+MC 原版 `entrances()` 直接返回 `add(slopedCheese, mul(5.0, entrancesFunc))` 的结果，不使用 `min(5.0, ...)` 裁剪。C++ 曾错误地添加了 `min(5.0, ...)` 包装。
+
+### 3. EndIslands float 精度
+
+Java 的 `EndIslandDensityFunction.getHeightValue()` 使用 `float` 算术：
+- `Mth.sqrt(float)` 返回 float，不是 double
+- `Mth.abs((float)k1)` 先转 float 再取绝对值（大数精度截断）
+- 阈值使用 `-0.9f`（约 -0.89999998）而非 `-0.9`（double）
+- 整数除法和取模使用 `/` 和 `%`（负数向零取整），而非 `>>` 和 `&`（负数行为不同）
+
+### 4. DensityFunctions::Invert 边界
+
+`Invert`（1/x）的边界值在输入范围跨越零点时应使用 `±infinity`，而非 `±1e6`。
+
+### 5. BlendAlpha / BlendOffset / BeardifierMarker
+
+- `BlendAlpha`：始终返回 1.0（minValue=1.0, maxValue=1.0）
+- `BlendOffset`：始终返回 0.0（minValue=0.0, maxValue=0.0）
+- `BeardifierMarker`：Marker 类型，在 NoiseChunk::apply() 中替换为实际 Beardifier（当前暂返回 0.0）
+
+### 6. preliminarySurfaceLevel
+
+当前使用 `constant(0.0)` 占位。MC 原版使用 `findTopSurface` 密度函数向下搜索密度 > 0 的位置，影响含水层水位和结构放置。
+
+### 7. BlendDensity
+
+当前为恒等函数（直接返回输入）。MC 原版通过 Blender.blendDensity() 实现旧区块混合，与 BlendAlpha/BlendOffset 一起用于区块边界平滑过渡。
+
 ## 容易踩的坑
 
 1. **NormalNoise 种子**：两个 PerlinNoise 实例必须使用不同种子（第二个偏移 0xDEADBEEF）

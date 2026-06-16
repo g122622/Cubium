@@ -110,7 +110,7 @@ NoiseRouterData::ClimateFunctions NoiseRouterData::createOverworldClimate(u64 se
     // depth 使用 YClampedGradient（Y 轴线性映射）
     // MC 1.21: fromY=-64, toY=320, fromValue=1.5, toValue=-1.5
     // 这意味着表面 depth≈1.5，高空 depth≈-1.5
-    climate.depth = factory::yClampedGradient(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT - 1, 1.5, -1.5);
+    climate.depth = factory::yClampedGradient(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT, 1.5, -1.5);
 
     // ridges（奇异度）使用 shiftedNoise2d
     auto shiftX5 = factory::flatCacheMarker(
@@ -385,7 +385,7 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     // --- slopedCheese: noiseGradientDensity(factor, depth + offset + jaggedness * noise(JAGGED).halfNegative()) +
     // base3dNoise --- depth = YClampedGradient(-64, 320, 1.5, -1.5) offsetToDepth = yClampedGradient(-64, 320, 1.5,
     // -1.5) + offset
-    auto depth = factory::yClampedGradient(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT - 1, 1.5, -1.5);
+    auto depth = factory::yClampedGradient(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT, 1.5, -1.5);
     auto depthPlusOffset = factory::add(std::move(depth), std::move(offset));
 
     // jaggedNoise = noise(JAGGED, 1500.0, 0.0) — MC 1.21
@@ -407,8 +407,8 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     // MC 1.21: slopedCheese 需要被 caveCheeseFactor 和 rangeChoice 同时引用。
     // 使用 SharedHolder（类似 MC 的 Holder 机制）实现引用共享。
     // 先用 cacheAllInCellMarker(interpolated(...)) 包裹，确保在同一 cell 内只计算一次。
-    auto slopedCheeseShared = std::shared_ptr<DensityFunction>(
-        factory::cacheAllInCellMarker(factory::interpolated(std::move(slopedCheese))));
+    auto slopedCheeseShared =
+        std::shared_ptr<DensityFunction>(factory::cacheAllInCellMarker(factory::interpolated(std::move(slopedCheese))));
 
     // --- 洞穴密度 ---
     auto entrancesFunc = CaveDensityFunctions::entrances(seed);
@@ -434,8 +434,7 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     auto caveCheeseFactor =
         factory::add(factory::clamp(factory::add(factory::constant(0.27), std::move(caveCheese)), -1.0, 1.0),
             factory::clamp(factory::add(factory::constant(1.5),
-                               factory::mul(factory::constant(-0.64),
-                                   factory::sharedHolder(slopedCheeseShared))),
+                               factory::mul(factory::constant(-0.64), factory::sharedHolder(slopedCheeseShared))),
                 0.0,
                 0.5));
 
@@ -458,7 +457,7 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     auto undergroundShared = std::shared_ptr<DensityFunction>(std::move(underground));
 
     // --- noodle ---
-    auto noodle = CaveDensityFunctions::noodle(seed, world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT - 1);
+    auto noodle = CaveDensityFunctions::noodle(seed, world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT);
 
     // --- noCavesOrNoodle = rangeChoice(slopedCheese, -1e6, 1.5625, min(slopedCheese + 5*entrances, underground),
     // underground) ---
@@ -466,12 +465,15 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     // 的较小值决定 当 slopedCheese >= 1.5625 时（深层），直接使用 underground
     // slopedCheese 和 underground 均通过 SharedHolder 引用
     auto entrancesForRange = CaveDensityFunctions::entrances(seed);
-    auto slopedCheesePlus5Entrances =
-        factory::add(factory::sharedHolder(slopedCheeseShared), factory::mul(factory::constant(5.0), std::move(entrancesForRange)));
+    auto slopedCheesePlus5Entrances = factory::add(
+        factory::sharedHolder(slopedCheeseShared), factory::mul(factory::constant(5.0), std::move(entrancesForRange)));
     auto whenInRange = factory::min(std::move(slopedCheesePlus5Entrances), factory::sharedHolder(undergroundShared));
 
-    auto noCavesOrNoodle = factory::rangeChoice(
-        factory::sharedHolder(slopedCheeseShared), -1000000.0, 1.5625, std::move(whenInRange), factory::sharedHolder(undergroundShared));
+    auto noCavesOrNoodle = factory::rangeChoice(factory::sharedHolder(slopedCheeseShared),
+        -1000000.0,
+        1.5625,
+        std::move(whenInRange),
+        factory::sharedHolder(undergroundShared));
 
     // 应用主世界 slide 和 postProcess
     auto slid = slideOverworld(std::move(noCavesOrNoodle));
@@ -483,9 +485,9 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     // ========== 矿脉噪声 ==========
     // MC 1.21: yLimitedInterpolatable(Y, noise(ORE_VEININESS, 1.5, 1.5), -60, 50, 0)
     auto veinToggle = TerrainProvider::yLimitedInterpolatable(factory::yClampedGradient(world::MIN_BUILD_HEIGHT * 2,
-                                                                  (world::MAX_BUILD_HEIGHT - 1) * 2,
+                                                                  world::MAX_BUILD_HEIGHT * 2,
                                                                   static_cast<f64>(world::MIN_BUILD_HEIGHT * 2),
-                                                                  static_cast<f64>((world::MAX_BUILD_HEIGHT - 1) * 2)),
+                                                                  static_cast<f64>(world::MAX_BUILD_HEIGHT * 2)),
         factory::noise(seed ^ 0xC0000001ULL,
             CaveDensityFunctions::ORE_VEININESS_OCTAVE,
             toVector(CaveDensityFunctions::ORE_VEININESS_AMPS),
@@ -499,33 +501,31 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     // 50, 0)),
     //                                            abs(yLimitedInterpolatable(Y, noise(ORE_VEIN_B, 4.0, 4.0), -60, 50,
     //                                            0))))
-    auto veinAYLimited =
-        TerrainProvider::yLimitedInterpolatable(factory::yClampedGradient(world::MIN_BUILD_HEIGHT * 2,
-                                                    (world::MAX_BUILD_HEIGHT - 1) * 2,
-                                                    static_cast<f64>(world::MIN_BUILD_HEIGHT * 2),
-                                                    static_cast<f64>((world::MAX_BUILD_HEIGHT - 1) * 2)),
-            factory::noise(seed ^ 0xC0000002ULL,
-                CaveDensityFunctions::ORE_VEIN_A_OCTAVE,
-                toVector(CaveDensityFunctions::ORE_VEIN_A_AMPS),
-                4.0,
-                4.0),
-            -60,
-            50,
-            0.0);
+    auto veinAYLimited = TerrainProvider::yLimitedInterpolatable(factory::yClampedGradient(world::MIN_BUILD_HEIGHT * 2,
+                                                                     world::MAX_BUILD_HEIGHT * 2,
+                                                                     static_cast<f64>(world::MIN_BUILD_HEIGHT * 2),
+                                                                     static_cast<f64>(world::MAX_BUILD_HEIGHT * 2)),
+        factory::noise(seed ^ 0xC0000002ULL,
+            CaveDensityFunctions::ORE_VEIN_A_OCTAVE,
+            toVector(CaveDensityFunctions::ORE_VEIN_A_AMPS),
+            4.0,
+            4.0),
+        -60,
+        50,
+        0.0);
 
-    auto veinBYLimited =
-        TerrainProvider::yLimitedInterpolatable(factory::yClampedGradient(world::MIN_BUILD_HEIGHT * 2,
-                                                    (world::MAX_BUILD_HEIGHT - 1) * 2,
-                                                    static_cast<f64>(world::MIN_BUILD_HEIGHT * 2),
-                                                    static_cast<f64>((world::MAX_BUILD_HEIGHT - 1) * 2)),
-            factory::noise(seed ^ 0xC0000003ULL,
-                CaveDensityFunctions::ORE_VEIN_B_OCTAVE,
-                toVector(CaveDensityFunctions::ORE_VEIN_B_AMPS),
-                4.0,
-                4.0),
-            -60,
-            50,
-            0.0);
+    auto veinBYLimited = TerrainProvider::yLimitedInterpolatable(factory::yClampedGradient(world::MIN_BUILD_HEIGHT * 2,
+                                                                     world::MAX_BUILD_HEIGHT * 2,
+                                                                     static_cast<f64>(world::MIN_BUILD_HEIGHT * 2),
+                                                                     static_cast<f64>(world::MAX_BUILD_HEIGHT * 2)),
+        factory::noise(seed ^ 0xC0000003ULL,
+            CaveDensityFunctions::ORE_VEIN_B_OCTAVE,
+            toVector(CaveDensityFunctions::ORE_VEIN_B_AMPS),
+            4.0,
+            4.0),
+        -60,
+        50,
+        0.0);
 
     auto veinRidged = factory::add(factory::constant(-0.08),
         factory::max(factory::abs(std::move(veinAYLimited)), factory::abs(std::move(veinBYLimited))));
@@ -539,7 +539,9 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
 
     // ========== 预备表面高度 ==========
     // MC 1.21: 完整实现使用 offset 样条的 flatCache(cache2d(lerp(blendAlpha, 0, offset)))
-    // 当前简化: constant(0.0)
+    // 以及 findTopSurface 函数来计算 preliminarySurfaceLevel
+    // TODO: Java 使用 findTopSurface 计算实际表面高度，当前简化为 constant(0.0)
+    //       需要实现 findTopSurface 后替换为正确的密度函数
     auto preliminarySurfaceLevel = factory::constant(0.0);
 
     return NoiseRouter(std::move(barrierNoise), // barrierNoise

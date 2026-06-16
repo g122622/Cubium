@@ -1,6 +1,6 @@
 # Noise 噪声生成器模块
 
-本目录包含 Minecraft 1.18+ 世界生成所需的噪声生成器实现。
+本目录包含 Minecraft 1.21 世界生成所需的噪声生成器实现，已对齐 MC 1.21.11 Java 源码。
 
 ## 目录结构
 
@@ -12,6 +12,10 @@ src/common/world/gen/noise/
 ├── NormalNoise.cpp
 ├── SimplexNoise.hpp             # Simplex 噪声（用于末地岛屿生成）
 ├── SimplexNoise.cpp
+├── PerlinSimplexNoise.hpp       # 多倍频 Simplex 噪声（用于旧版生物群系气候噪声）
+├── PerlinSimplexNoise.cpp
+├── Noises.hpp                   # 噪声参数注册表（定义所有 MC 噪声的 firstOctave 和 amplitudes）
+├── Noises.cpp
 ├── Noise.hpp                    # 统一头文件（包含 PerlinNoise、NormalNoise、SimplexNoise）
 └── README.md                    # 本文档
 ```
@@ -27,10 +31,20 @@ PerlinNoise（MC 1.18+ 多倍频 Perlin）
 NormalNoise（MC 1.18+ 双 Perlin 噪声）
     └── 内含两个 PerlinNoise 实例（坐标偏移避免相关性）
     └── 被密度函数系统广泛使用（NoiseDensity、ShiftedNoise 等）
+    └── INPUT_FACTOR ≈ 1.018，确保两路噪声不相关
 
 SimplexNoise（2D/3D Simplex 噪声）
     └── 被 EndIslands 密度函数使用
     └── 使用 LegacyRandomSource.consumeCount(17292) 种子初始化
+
+PerlinSimplexNoise（多倍频 Simplex 噪声）
+    └── 负倍频层使用主噪声派生种子
+    └── 被 OverworldBiomeBuilder 用于气候噪声
+    └── 注意：种子派生使用 float 精度乘法（9.223372E18f）
+
+Noises（噪声参数注册表）
+    └── 定义 TEMPERATURE、VEGETATION、CONTINENTALNESS 等 27+ 种噪声参数
+    └── 所有参数已对齐 MC 1.21.11 Noises.java
 ```
 
 **命名空间**：所有噪声类位于 `mc::world::gen::noise` 命名空间。
@@ -56,6 +70,52 @@ gen/placement/Placements.cpp        # 放置器（噪声阈值放置）
 gen/aquifer/Aquifer.cpp             # 含水层生成
 ```
 
+## 关键算法对齐要点
+
+### 1. PerlinNoise 缩放因子计算
+
+```cpp
+// 最低频率输入因子 = 2^(firstOctave + minNonZero)
+// 最低频率值因子 = 2^(amplitudeCount - 1) / (2^amplitudeCount - 1)
+// 注意：使用 amplitudes.size() 而非非零振幅数
+m_lowestFreqInputFactor = std::pow(2.0, static_cast<f64>(m_firstOctave + minNonZero));
+m_lowestFreqValueFactor = std::pow(2.0, static_cast<f64>(amplitudeCount - 1)) /
+    (std::pow(2.0, static_cast<f64>(amplitudeCount)) - 1.0);
+```
+
+### 2. PerlinNoise::edgeValue 不使用 abs()
+
+Java 原版的 `edgeValue` 直接使用振幅的原始值（含符号），不取绝对值。负振幅时结果与使用 abs() 不同。
+
+### 3. PerlinNoise::maxBrokenValue 加 2.0
+
+```cpp
+// Java: maxBrokenValue(x) = edgeValue(x + 2.0)
+// +2.0 补偿 noiseWithSmear 带来的额外范围
+f64 maxBrokenValue(f64 maxInputValue) const { return edgeValue(maxInputValue + 2.0); }
+```
+
+### 4. noiseWithSmear 的 Y 轴吸附
+
+```cpp
+// Java: Math.min(Math.floor(fracY / yOffset + 1.0E-7F) * yOffset, fracY)
+// 将 Y 小数部分吸附到 yOffset 间隔的网格线上，产生条纹结构
+// 注意 epsilon 使用 float 字面量 1.0E-7F
+```
+
+### 5. Noises 注册表命名
+
+- `SHIFT` → `"minecraft:offset"`（非 "minecraft:shift"）
+- `SWAMP` → `"minecraft:surface_swamp"`（非 "minecraft:swamp"）
+
+### 6. PerlinSimplexNoise 种子派生精度
+
+```cpp
+// Java 使用 float 精度: (long)(simplexnoise.getValue(...) * 9.223372E18F)
+// C++ 必须使用 static_cast<f32>(derivedSeed) * 9.223372E18f 保持一致
+const i64 seed = static_cast<i64>(static_cast<f32>(derivedSeed) * 9.223372E18f);
+```
+
 ## 容易踩的坑
 
 ### 1. 倍频索引理解错误
@@ -76,7 +136,7 @@ math::Random rng(seed);
 PerlinNoise noise1(rng, -4, amps);  // rng 状态改变
 PerlinNoise noise2(rng, -4, amps);  // noise2 使用不同的随机序列！
 
-// 正确：使用 PositionalRandomFactory 或不同种子
+// 正确：使用 PositionalRandomFactory
 PerlinNoise noise1(seed, -4, amps);
 PerlinNoise noise2(seed ^ 0xDEADBEEFULL, -4, amps);
 ```
@@ -101,9 +161,9 @@ f64 value = noise.getValue(safeX, y, z);
 
 `NormalNoise` 使用两个 `PerlinNoise` 实例，第二个的坐标乘以 `INPUT_FACTOR ≈ 1.018`，避免两个噪声的相关性。这是 MC 1.18+ 地形生成平滑性的关键。
 
-### 6. PerlinNoise 坐标偏移
+### 6. NormalNoise::clone() 限制
 
-`PerlinNoise` 构造时通过 `PositionalRandomFactory.fromHashOf()` 为每个倍频层生成独立的坐标偏移（xOffset, yOffset, zOffset），确保不同倍频层产生不同模式。
+只有通过种子构造的 NormalNoise 才能正确克隆。通过 Random& 构造的实例无法提取种子，调用 clone() 会触发断言。
 
 ### 7. BlendedNoise 涂抹效果
 

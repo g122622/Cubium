@@ -303,6 +303,11 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chun
     auto* noiseChunkPtr = chunk.noiseChunk();
     if (noiseChunkPtr != nullptr) {
         m_randomState->surfaceSystem().buildSurface(chunk, getBiomeAt, *noiseChunkPtr);
+    } else {
+        spdlog::warn("[NoiseChunkGenerator] buildSurface: NoiseChunk is null for chunk ({}, {}). "
+                     "Surface generation skipped.",
+            chunk.x(),
+            chunk.z());
     }
 
     // 标记阶段完成
@@ -341,9 +346,10 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
             const ChunkCoord originChunkZ = targetChunkZ + dz;
 
             // 采样起始区块中心位置的四分位生物群系
+            // MC 1.21.11: 使用 Y=0 的四分位坐标 (QuartPos.fromBlock(0) = 0)
             const i32 originBlockX = (originChunkX << 4) + 8;
             const i32 originBlockZ = (originChunkZ << 4) + 8;
-            const BiomeId biomeId = m_biomeSource->getNoiseBiome(originBlockX >> 2, 64 >> 2, originBlockZ >> 2);
+            const BiomeId biomeId = m_biomeSource->getNoiseBiome(originBlockX >> 2, 0, originBlockZ >> 2);
             const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
             const BiomeGenerationSettings& biomeSettings = biome.generationSettings();
 
@@ -653,7 +659,9 @@ i32 NoiseChunkGenerator::spawnInitialMobs(
     }
 
     // 获取区块中心位置的生物群系
-    const BiomeId biomeId = chunk.getBiomeAtBlock(8, 64, 8);
+    // MC 1.21.11: 在区块中心的最大建筑高度处采样 (getMaxY())
+    const i32 sampleY = region.getMaxBuildHeight();
+    const BiomeId biomeId = chunk.getBiomeAtBlock(8, sampleY, 8);
     const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
 
     // 使用种子创建随机数生成器
