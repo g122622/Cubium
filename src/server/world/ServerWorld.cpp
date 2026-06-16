@@ -1120,7 +1120,7 @@ const fluid::FluidState* ServerWorld::getFluidState(i32 x, i32 y, i32 z) const
 
 bool ServerWorld::isWithinWorldBounds(i32, i32 y, i32) const
 {
-    return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
+    return y >= getMinBuildHeight() && y < getMaxBuildHeight();
 }
 
 i32 ServerWorld::getHeight(i32 x, i32 z) const
@@ -1720,12 +1720,12 @@ Difficulty ServerWorld::difficulty() const
 
 i32 ServerWorld::getMinBuildHeight() const noexcept
 {
-    return world::MIN_BUILD_HEIGHT;
+    return getDimensionType().minHeight();
 }
 
 i32 ServerWorld::getMaxBuildHeight() const noexcept
 {
-    return world::MAX_BUILD_HEIGHT;
+    return getDimensionType().maxHeight();
 }
 
 i32 ServerWorld::getSectionCount() const noexcept

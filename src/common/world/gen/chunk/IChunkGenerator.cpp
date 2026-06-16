@@ -507,7 +507,7 @@ std::vector<AxisAlignedBB> WorldGenRegion::getBlockCollisions(const AxisAlignedB
 
 bool WorldGenRegion::isWithinWorldBounds(i32 x, i32 y, i32 z) const
 {
-    return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT && x >= -world::WORLD_BORDER &&
+    return y >= getMinBuildHeight() && y < getMaxBuildHeight() && x >= -world::WORLD_BORDER &&
         x < world::WORLD_BORDER && z >= -world::WORLD_BORDER && z < world::WORLD_BORDER;
 }
 

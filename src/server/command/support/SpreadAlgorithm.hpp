@@ -26,7 +26,6 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldConstants.hpp"
 
 #include <vector>
 
@@ -59,11 +58,11 @@ struct SpreadPosition {
     bool clamp(f64 minX, f64 minZ, f64 maxX, f64 maxZ);
 
     /// 计算此位置的生成 Y 坐标（从上往下搜索第一个安全的站立位置）
-    /// 使用三变量滚动法，对齐 MC Java 版 SpreadPlayersCommand.Position.getSpawnY
+    /// 使用三变量滚动法
     [[nodiscard]] i32 getSpawnY(IWorld& world, i32 maxHeight) const;
 
     /// 检查此位置是否安全（脚下不是液体、不是火焰）
-    /// 对齐 MC Java 版 SpreadPlayersCommand.Position.isSafe：仅检查液体和 FIRE 标签
+    /// 仅检查液体和 FIRE 标签
     [[nodiscard]] bool isSafe(IWorld& world, i32 maxHeight) const;
 
     /// 在指定范围内随机初始化位置
@@ -87,9 +86,8 @@ std::vector<SpreadPosition> createInitialPositions(
 
 /// 迭代分散算法：将位置推开到满足最小距离要求
 /// 返回 true 表示分散成功，false 表示超过最大迭代次数仍未收敛
-/// 通过 outMinDist 输出所有位置对之间的最小距离（对齐 MC Java 版 SpreadPlayersCommand）
-/// 对齐 MC Java 版：
-///   - 哨兵值使用 float 最大值（MC 使用 Float.MAX_VALUE）
+/// 通过 outMinDist 输出所有位置对之间的最小距离
+///   - 哨兵值使用 float 最大值
 ///   - 输出最小距离以便命令层报告实际分散结果
 bool spreadPositions(f64 spreadDistance,
     IWorld& world,

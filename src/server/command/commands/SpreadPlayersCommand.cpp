@@ -15,7 +15,7 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, WHETHER IN AN EVENT OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
@@ -53,8 +53,6 @@ namespace command {
 namespace {
 
 /// 计算需要分散的位置数量（尊重队伍时，按队伍数计算；否则按实体数计算）
-/// TODO: MC Java 版中非玩家实体会被统一归入 null 队伍，当前实现仅支持玩家，
-///       当支持 EntityArgumentType::entities() 后需要区分玩家和非玩家的队伍归属。
 i32 _getNumberOfTeams(server::IServer& server, const std::vector<std::string>& playerNames)
 {
     // 收集不同的队伍（nullptr 算作一支独立的"无队伍"）
@@ -71,13 +69,6 @@ i32 _getNumberOfTeams(server::IServer& server, const std::vector<std::string>& p
 
 /// 将分散后的位置应用到玩家/实体
 /// 返回所有玩家到最近分散点的最小距离的平均值
-/// TODO: MC Java 版传送时保留实体的 Y 旋转和 X 旋转，当前仅传送位置
-/// TODO: MC Java 版使用 Vec2ArgumentType 解析中心坐标（仅 x, z），当前使用 Vec3ArgumentType
-///       多解析了一个无用的 y 分量，需要创建 Vec2ArgumentType 或适配解析
-/// TODO: MC Java 版支持 under <maxHeight> 子命令变体，允许指定最大高度，
-///       当前使用硬编码的 world::MAX_BUILD_HEIGHT，需要添加该变体
-/// TODO: MC Java 版使用 world.getMaxY() + 1 获取动态最大高度，而非硬编码常量，
-///       且在提供 maxHeight 时验证其不小于 world.getMinY()，当前缺少此验证
 f64 _setPlayerPositions(server::IServer& server,
     server::ServerWorld& world,
     const std::vector<PlayerId>& playerIds,
@@ -136,53 +127,8 @@ f64 _setPlayerPositions(server::IServer& server,
     return playerIds.size() < 2 ? 0.0 : totalMinDist / static_cast<f64>(playerIds.size());
 }
 
-} // namespace
-
-// ============================================================================
-// 命令注册
-// ============================================================================
-
-void SpreadPlayersCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
-{
-    auto spreadNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("spreadplayers");
-    spreadNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
-    support::applyMetadata(spreadNode,
-        support::makeMetadata("Spreads players to random locations within an area.",
-            "/spreadplayers <center> <spreadDistance> <maxRange> <respectTeams> <targets>",
-            2,
-            {},
-            true));
-
-    auto centerArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("center", Vec3ArgumentType::vec3());
-
-    auto spreadDistanceArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
-        "spreadDistance", FloatArgumentType::floatArg(0.0f));
-
-    auto maxRangeArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("maxRange", FloatArgumentType::floatArg(1.0f));
-
-    auto respectTeamsArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("respectTeams", BoolArgumentType::boolArg());
-
-    auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "targets", EntityArgumentType::players());
-    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _spreadPlayers(ctx); });
-
-    respectTeamsArg->addChild(targetsArg);
-    maxRangeArg->addChild(respectTeamsArg);
-    spreadDistanceArg->addChild(maxRangeArg);
-    centerArg->addChild(spreadDistanceArg);
-    spreadNode->addChild(centerArg);
-
-    dispatcher.registerCommand(spreadNode);
-}
-
-// ============================================================================
-// 命令执行
-// ============================================================================
-
-i32 SpreadPlayersCommand::_spreadPlayers(CommandContext<ServerCommandSource>& context)
+/// 无 under 子命令的执行入口：使用世界默认最大高度
+i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeight)
 {
     auto& source = context.getSource();
     auto* server = source.server();
@@ -209,16 +155,21 @@ i32 SpreadPlayersCommand::_spreadPlayers(CommandContext<ServerCommandSource>& co
         return 0;
     }
 
+    // 验证 maxHeight 不小于世界最低建筑高度
+    const i32 minY = world->getMinBuildHeight();
+    if (maxHeight < minY) {
+        std::ostringstream ss;
+        ss << "Invalid height " << maxHeight << ": must be at least " << minY;
+        source.sendError(ss.str());
+        return 0;
+    }
+
     // 解析玩家名称（用于队伍查询）
     std::vector<std::string> playerNames;
     playerNames.reserve(playerIds.size());
     for (const PlayerId playerId : playerIds) {
         playerNames.push_back(support::resolvePlayerName(source, playerId));
     }
-
-    // 计算最大高度
-    // TODO: 应使用 world->getMaxY() + 1 而非硬编码常量，以支持不同维度的最大高度
-    const i32 maxHeight = world::MAX_BUILD_HEIGHT;
 
     // 计算需要分散的位置数量
     const i32 positionCount =
@@ -248,7 +199,6 @@ i32 SpreadPlayersCommand::_spreadPlayers(CommandContext<ServerCommandSource>& co
 
     if (!spreadSuccess) {
         // 分散失败：无法在给定参数下满足最小距离要求
-        // 对齐 MC Java 版错误消息格式：包含位置数量、中心坐标和实际达到的最小距离
         std::ostringstream ss;
         ss << "Could not spread " << positionCount << " " << (respectTeams ? "teams" : "entities") << " around "
            << static_cast<i32>(center.x) << ", " << static_cast<i32>(center.z) << " - too many "
@@ -269,6 +219,90 @@ i32 SpreadPlayersCommand::_spreadPlayers(CommandContext<ServerCommandSource>& co
     source.sendMessage(ss.str());
 
     return positionCount;
+}
+
+} // namespace
+
+// ============================================================================
+// 命令注册
+// ============================================================================
+
+void SpreadPlayersCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
+{
+    auto spreadNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("spreadplayers");
+    spreadNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
+    support::applyMetadata(spreadNode,
+        support::makeMetadata("Spreads players to random locations within an area.",
+            "/spreadplayers <center> <spreadDistance> <maxRange> <respectTeams> <targets>",
+            2,
+            {},
+            true));
+
+    // TODO: 使用 Vec2ArgumentType 解析中心坐标（仅 x, z），当前使用 Vec3ArgumentType
+    //       多解析了一个无用的 y 分量，需要创建 Vec2ArgumentType 或适配解析
+    auto centerArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("center", Vec3ArgumentType::vec3());
+
+    auto spreadDistanceArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
+        "spreadDistance", FloatArgumentType::floatArg(0.0f));
+
+    auto maxRangeArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("maxRange", FloatArgumentType::floatArg(1.0f));
+
+    // 路径 A: /spreadplayers <center> <spreadDistance> <maxRange> <respectTeams> <targets>
+    //          使用世界默认最大高度 (getMaxBuildHeight())
+    auto respectTeamsArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("respectTeams", BoolArgumentType::boolArg());
+
+    auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+        "targets", EntityArgumentType::players());
+    targetsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) -> i32 {
+        auto* world = ctx.getSource().world();
+        i32 maxHeight = (world != nullptr) ? world->getMaxBuildHeight() : world::MAX_BUILD_HEIGHT;
+        return spreadPlayersImpl(ctx, maxHeight);
+    });
+
+    respectTeamsArg->addChild(targetsArg);
+    maxRangeArg->addChild(respectTeamsArg);
+
+    // 路径 B: /spreadplayers <center> <spreadDistance> <maxRange> under <maxHeight> <respectTeams> <targets>
+    //          用户指定最大高度
+    auto underNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("under");
+
+    auto maxHeightArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("maxHeight", IntegerArgumentType::integer());
+
+    auto respectTeamsUnderArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("respectTeams", BoolArgumentType::boolArg());
+
+    auto targetsUnderArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+        "targets", EntityArgumentType::players());
+    targetsUnderArg->setCommand([](CommandContext<ServerCommandSource>& ctx) -> i32 {
+        i32 maxHeight = ctx.getArgument<i32>("maxHeight");
+        return spreadPlayersImpl(ctx, maxHeight);
+    });
+
+    respectTeamsUnderArg->addChild(targetsUnderArg);
+    maxHeightArg->addChild(respectTeamsUnderArg);
+    underNode->addChild(maxHeightArg);
+    maxRangeArg->addChild(underNode);
+
+    spreadDistanceArg->addChild(maxRangeArg);
+    centerArg->addChild(spreadDistanceArg);
+    spreadNode->addChild(centerArg);
+
+    dispatcher.registerCommand(spreadNode);
+}
+
+// ============================================================================
+// 命令执行（旧接口，保留兼容）
+// ============================================================================
+
+i32 SpreadPlayersCommand::_spreadPlayers(CommandContext<ServerCommandSource>& context)
+{
+    auto* world = context.getSource().world();
+    i32 maxHeight = (world != nullptr) ? world->getMaxBuildHeight() : world::MAX_BUILD_HEIGHT;
+    return spreadPlayersImpl(context, maxHeight);
 }
 
 } // namespace command

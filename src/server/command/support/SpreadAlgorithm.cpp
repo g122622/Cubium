@@ -90,7 +90,7 @@ i32 SpreadPosition::getSpawnY(IWorld& world, i32 maxHeight) const
     i32 blockX = static_cast<i32>(std::floor(x));
     i32 blockZ = static_cast<i32>(std::floor(z));
 
-    // 使用三变量滚动法，对齐 MC Java 版 SpreadPlayersCommand.Position.getSpawnY
+    // 使用三变量滚动法
     // 从 maxHeight+1 开始向下搜索，找到"当前格非空气、上方两格都是空气"的站立位置
     // flag: 上方第二格是否为空气
     // flag1: 上方第一格是否为空气
@@ -103,7 +103,7 @@ i32 SpreadPosition::getSpawnY(IWorld& world, i32 maxHeight) const
     state = world.getBlockState(blockX, y, blockZ);
     bool flag1 = (state == nullptr) || state->isAir(); // maxHeight 处是否为空气
 
-    while (y > world::MIN_BUILD_HEIGHT) {
+    while (y > world.getMinBuildHeight()) {
         --y;
         state = world.getBlockState(blockX, y, blockZ);
         bool flag2 = (state == nullptr) || state->isAir(); // 当前格是否为空气
@@ -176,7 +176,7 @@ bool spreadPositions(f64 spreadDistance,
     std::vector<SpreadPosition>& positions,
     f64& outMinDist)
 {
-    // 对齐 MC Java 版：使用 float 最大值作为哨兵值（MC 使用 Float.MAX_VALUE）
+    // 使用 float 最大值作为哨兵值
     constexpr f64 sentinelDist = static_cast<f64>(std::numeric_limits<f32>::max());
     bool moved = true;
     f64 minDist = sentinelDist;
@@ -236,7 +236,7 @@ bool spreadPositions(f64 spreadDistance,
         }
     }
 
-    // 对齐 MC Java 版：只有一个分散位置时，minDist 保持哨兵值，设为 0
+    // 只有一个分散位置时，minDist 保持哨兵值，设为 0
     if (minDist == sentinelDist) {
         minDist = 0.0;
     }

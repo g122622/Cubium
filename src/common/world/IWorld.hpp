@@ -384,6 +384,23 @@ public:
     // ========== 高度查询 ==========
 
     /**
+     * @brief 获取最低建筑高度
+     *
+     * 对应 MC Java 版 LevelHeightAccessor.getMinY()。
+     * 主世界和末地返回 -64，下界返回 0。
+     */
+    [[nodiscard]] virtual i32 getMinBuildHeight() const { return world::MIN_BUILD_HEIGHT; }
+
+    /**
+     * @brief 获取最高建筑高度（不含）
+     *
+     * 对应 MC Java 版 LevelHeightAccessor.getMaxY() + 1。
+     * 主世界和末地返回 320，下界返回 128。
+     * 注意：此值为独占上界，有效方块 Y 范围是 [getMinBuildHeight(), getMaxBuildHeight())。
+     */
+    [[nodiscard]] virtual i32 getMaxBuildHeight() const { return world::MAX_BUILD_HEIGHT; }
+
+    /**
      * @brief 获取最高可站立方块高度
      * @param x, z 水平坐标
      * @return 最高方块 Y 坐标
