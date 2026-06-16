@@ -405,56 +405,6 @@ ItemModelType ItemModelLoader::_determineModelType(const ResourceLocation& paren
     return ItemModelType::Generated;
 }
 
-void ItemModelLoader::_mergeParent(UnbakedItemModel& accumulated, const UnbakedItemModel& currentLayer)
-{
-    // 合并纹理：当前层的纹理覆盖累积结果中的同名键（merge 语义）
-    // MC Java 版 TextureSlots 采用合并语义：子模型纹理变量覆盖父模型同名变量，
-    // 但保留父模型中子模型未定义的变量。在 root-to-leaf 逐层合并中，
-    // 后处理的层（更靠近叶子）覆盖先处理的层（更靠近根），结果与 MC Java 一致。
-    for (const auto& [key, value] : currentLayer.textures) {
-        accumulated.textures[key] = value;
-    }
-
-    // 合并元素：leaf-wins 语义
-    // MC Java 版语义：沿子模型到根模型查找，第一个定义了 elements 的模型生效。
-    // 在 root-to-leaf 累积遍历中，如果当前层显式定义了 elements（hasElements=true），
-    // 则用当前层的元素覆盖累积结果，这样后处理的（更靠近叶子的）层会覆盖先处理的层，
-    // 最终效果与 leaf-to-root 查找一致——最靠近叶子的定义了 elements 的模型生效。
-    if (currentLayer.hasElements) {
-        accumulated.elements = currentLayer.elements;
-        accumulated.hasElements = true;
-    }
-
-    // 合并显示变换：当前层中定义的上下文覆盖累积结果中的同名上下文
-    // MC Java 版语义：按每个 ItemDisplayContext 独立地沿 parent 链查找第一个有效的 transform。
-    // 在 root-to-leaf 逐层合并中，后处理的层覆盖先处理的层的同名上下文，与 MC Java 一致。
-    for (const auto& [ctx, transform] : currentLayer.display) {
-        accumulated.display[ctx] = transform;
-    }
-
-    // 合并环境光遮蔽：leaf-wins 语义
-    // MC Java 版语义：沿子模型到根模型查找，第一个显式声明了 ambientocclusion 的模型，其值生效。
-    // 在 root-to-leaf 累积遍历中，如果当前层显式设置了 AO（hasAmbientOcclusion=true），
-    // 则用当前层的 AO 值覆盖累积结果，最终效果与 leaf-to-root 查找一致。
-    if (currentLayer.hasAmbientOcclusion) {
-        accumulated.ambientOcclusion = currentLayer.ambientOcclusion;
-        accumulated.hasAmbientOcclusion = true;
-    }
-
-    // 合并模型类型：leaf-wins 语义
-    // 在 root-to-leaf 遍历中，每层都覆盖 type，最终 leaf 的 type 生效
-    accumulated.type = currentLayer.type;
-
-    // 合并覆盖条件：leaf-wins 语义
-    // MC Java 版语义：沿子模型到根模型查找，第一个定义了 overrides 的模型生效。
-    // 在 root-to-leaf 累积遍历中，如果当前层显式定义了 overrides（hasOverrides=true），
-    // 则用当前层的 overrides 覆盖累积结果，最终效果与 leaf-to-root 查找一致。
-    if (currentLayer.hasOverrides) {
-        accumulated.overrides = currentLayer.overrides;
-        accumulated.hasOverrides = true;
-    }
-}
-
 Result<BakedItemModel> ItemModelLoader::bakeModel(const ResourceLocation& location)
 {
     // 检查缓存
@@ -492,7 +442,7 @@ Result<BakedItemModel> ItemModelLoader::bakeModel(const ResourceLocation& locati
         currentLoc = modelIt->second.parentLocation;
     }
 
-    // 从根到叶合并，使用 _mergeParent 逐层叠加
+    // === 合并策略：与 MC Java 版一致 ===
     BakedItemModel baked;
     baked.location = location;
 

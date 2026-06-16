@@ -124,6 +124,9 @@ struct UnbakedItemModel {
     std::map<std::string, std::string> textures;         // 纹理变量 -> 路径
     std::map<ItemDisplayContext, ItemTransform> display; // 显示变换
     std::vector<ItemModelOverride> overrides;            // 模型覆盖条件
+    // TODO: UnbakedItemModel::type 目前仅在 _parseModel 中设置，bakeModel 不再使用它
+    // （bakeModel 根据 hasHandheldParent 和 baked.elements 独立确定 BakedItemModel::type）。
+    // 保留此字段供未来可能的用途（如模型预览、未烘焙模型查询等）。
     ItemModelType type = ItemModelType::Generated;
     bool ambientOcclusion = true;
     std::string name; // 模型名称（调试用）
@@ -261,13 +264,13 @@ private:
 
     /**
      * @brief 确定模型类型
+     *
+     * @note 此方法目前仅在 _parseModel 中用于设置 UnbakedItemModel::type。
+     * bakeModel 不再使用 UnbakedItemModel::type，而是根据 hasHandheldParent
+     * 和 baked.elements 独立确定 BakedItemModel::type。UnbakedItemModel::type
+     * 字段保留供未来可能的用途（如模型预览等）。
      */
     [[nodiscard]] ItemModelType _determineModelType(const ResourceLocation& parent, bool hasElements) const;
-
-    /**
-     * @brief 合并父模型属性
-     */
-    void _mergeParent(UnbakedItemModel& child, const UnbakedItemModel& parent);
 
     /**
      * @brief 加载内置默认变换

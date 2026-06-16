@@ -250,6 +250,10 @@ public:
      * - 纹理：当前层覆盖累积结果中的同名键（merge 语义，子模型纹理覆盖父模型）
      * - 元素：当前层显式定义了元素时覆盖累积结果（leaf-wins 语义）
      * - 环境光遮蔽：当前层显式设置了 AO 时覆盖累积结果（leaf-wins 语义）
+     *
+     * @note bakeModel 已改用内联的 leaf-to-root 查找策略（与 MC Java 版
+     *       ResolvedModel.findTop* 方法一致），此方法作为公共工具方法保留，
+     *       可用于手动构建模型合并链或测试。
      */
     static void mergeParent(UnbakedBlockModel& accumulated, const UnbakedBlockModel& currentLayer);
 
