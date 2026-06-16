@@ -358,6 +358,141 @@ void StructurePiece::replaceAirAndLiquidDownwards(
     }
 }
 
+const BlockState* StructurePiece::reorientChest(IWorld& world, const BlockPos& pos, const BlockState* defaultState)
+{
+    if (defaultState == nullptr) {
+        return nullptr;
+    }
+
+    // 对应 MC Java 的 StructurePiece.reorient() 方法
+    // 检查宝箱周围四个水平方向的方块，确定最佳朝向
+    Direction solidDirection = Direction::None;
+    bool foundChest = false;
+
+    // 四个水平方向：北、南、西、东
+    static constexpr Direction horizontalDirs[] = {
+        Direction::North,
+        Direction::South,
+        Direction::West,
+        Direction::East,
+    };
+
+    for (Direction dir : horizontalDirs) {
+        BlockPos neighborPos = pos.offset(dir);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
+        if (neighborState == nullptr) {
+            continue;
+        }
+
+        // 如果相邻位置是宝箱，保持默认朝向（用于双箱合并）
+        if (neighborState->is(VanillaBlocks::CHEST)) {
+            foundChest = true;
+            break;
+        }
+
+        // 检查是否为实心面
+        if (neighborState->isSolidSide(world, neighborPos, getOpposite(dir))) {
+            if (solidDirection != Direction::None) {
+                // 多于一个方向有实心面，无法确定朝向，重置
+                solidDirection = Direction::None;
+                foundChest = true; // 用作跳出标志
+                break;
+            }
+            solidDirection = dir;
+        }
+    }
+
+    // 如果找到相邻宝箱，或有两个以上实心面，保持默认朝向
+    if (foundChest) {
+        return defaultState;
+    }
+
+    // 如果恰好有一个方向是实心方块，宝箱面向相反方向（面向开放空间）
+    if (solidDirection != Direction::None) {
+        return &defaultState->with(BlockStateProperties::HORIZONTAL_FACING(), getOpposite(solidDirection));
+    }
+
+    // 没有实心方向：从默认朝向开始寻找非实心方向
+    Direction facing = Direction::North; // 宝箱默认朝向为北
+    const BlockState* facingState = &defaultState->with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+
+    // 检查默认朝向是否可行
+    BlockPos frontPos = pos.offset(facing);
+    const BlockState* frontState = world.getBlockState(frontPos);
+    if (frontState != nullptr && frontState->isSolidSide(world, frontPos, getOpposite(facing))) {
+        // 默认朝向不可行，尝试反方向
+        facing = getOpposite(facing);
+        frontPos = pos.offset(facing);
+        frontState = world.getBlockState(frontPos);
+        if (frontState != nullptr && frontState->isSolidSide(world, frontPos, getOpposite(facing))) {
+            // 反方向也不可行，尝试顺时针
+            facing = Directions::rotateY(facing);
+            frontPos = pos.offset(facing);
+            frontState = world.getBlockState(frontPos);
+            if (frontState != nullptr && frontState->isSolidSide(world, frontPos, getOpposite(facing))) {
+                // 顺时针也不可行，尝试逆时针（反方向的再次旋转）
+                facing = getOpposite(facing);
+            }
+        }
+    }
+
+    return &defaultState->with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+}
+
+void StructurePiece::generateChest(IWorldWriter& world,
+    const StructureBoundingBox& bounds,
+    math::Random& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    const ResourceLocation& lootTable)
+{
+    i32 worldX = getXWithOffset(x, z);
+    i32 worldY = getYWithOffset(y);
+    i32 worldZ = getZWithOffset(x, z);
+
+    if (!bounds.contains(worldX, worldY, worldZ)) {
+        return;
+    }
+
+    // 检查该位置是否已有宝箱（避免重复放置）
+    IWorld* iworld = dynamic_cast<IWorld*>(&world);
+    if (iworld != nullptr) {
+        const BlockState* existingState = iworld->getBlockState(worldX, worldY, worldZ);
+        if (existingState != nullptr && existingState->is(VanillaBlocks::CHEST)) {
+            return;
+        }
+    }
+
+    // 获取默认宝箱状态，通过 reorientChest 自动确定朝向
+    const BlockState* chestState = VanillaBlocks::getState(VanillaBlocks::CHEST);
+    if (chestState == nullptr) {
+        return;
+    }
+
+    // 如果能获取世界接口，自动确定朝向；否则使用默认状态
+    if (iworld != nullptr) {
+        BlockPos chestPos(worldX, worldY, worldZ);
+        const BlockState* orientedState = reorientChest(*iworld, chestPos, chestState);
+        setBlockState(world, orientedState, x, y, z, bounds);
+    } else {
+        setBlockState(world, chestState, x, y, z, bounds);
+    }
+
+    // 设置战利品表
+    if (iworld != nullptr) {
+        BlockPos chestPos(worldX, worldY, worldZ);
+        BlockEntity* blockEntity = iworld->getBlockEntity(chestPos);
+        if (blockEntity != nullptr) {
+            if (blockEntity->getType() == BlockEntityType::Chest ||
+                blockEntity->getType() == BlockEntityType::TrappedChest) {
+                auto* chestEntity = static_cast<blockentity::ChestEntity*>(blockEntity);
+                chestEntity->setLootTable(lootTable, rng.nextLong());
+            }
+        }
+    }
+}
+
 void StructurePiece::generateChest(IWorldWriter& world,
     const StructureBoundingBox& bounds,
     math::Random& rng,

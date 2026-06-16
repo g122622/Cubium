@@ -31,7 +31,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
-#include "common/world/blockentity/storage/ChestEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <algorithm>
 #include <cmath>
@@ -137,41 +137,6 @@ void StrongholdPiece::generateDoor(
 bool StrongholdPiece::canStrongholdGoDeeper(const StructureBoundingBox& box)
 {
     return box.minY() > 10;
-}
-
-// TODO: 重构为使用基类 StructurePiece::generateChest()，需添加朝向参数 Direction facing。
-// 当前版本不设置宝箱朝向（使用默认状态），应迁移到基类方法以获得一致的朝向处理。
-void StrongholdPiece::generateChest(IWorldWriter& world,
-    const StructureBoundingBox& bounds,
-    math::Random& rng,
-    i32 x,
-    i32 y,
-    i32 z,
-    const std::string& lootTable)
-{
-    // 检查边界
-    i32 worldX = getXWithOffset(x, z);
-    i32 worldY = getYWithOffset(y);
-    i32 worldZ = getZWithOffset(x, z);
-
-    if (bounds.isInside(worldX, worldY, worldZ)) {
-        const BlockState* chest = VanillaBlocks::getState(VanillaBlocks::CHEST);
-        setBlockState(world, chest, x, y, z, bounds);
-
-        // 设置战利品表到箱子实体
-        IWorld* iworld = dynamic_cast<IWorld*>(&world);
-        if (iworld != nullptr && !lootTable.empty()) {
-            BlockPos chestPos(worldX, worldY, worldZ);
-            BlockEntity* blockEntity = iworld->getBlockEntity(chestPos);
-            if (blockEntity != nullptr) {
-                BlockEntityType entityType = blockEntity->getType();
-                if (entityType == BlockEntityType::Chest || entityType == BlockEntityType::TrappedChest) {
-                    auto* chestEntity = static_cast<blockentity::ChestEntity*>(blockEntity);
-                    chestEntity->setLootTable(ResourceLocation(lootTable), rng.nextLong());
-                }
-            }
-        }
-    }
 }
 
 StructurePiece* StrongholdPiece::getNextComponentNormal(StrongholdStartStairs* start,
@@ -727,7 +692,8 @@ void StrongholdRoomCrossing::generate(
                 setBlockState(world, oakPlanks, 7, 3, l, chunkBounds);
                 setBlockState(world, oakPlanks, 8, 3, l, chunkBounds);
             }
-            generateChest(world, chunkBounds, rng, 3, 4, 8, "minecraft:chests/stronghold_crossing");
+            generateChest(
+                world, chunkBounds, rng, 3, 4, 8, ResourceLocation("minecraft", "chests/stronghold_crossing"));
             break;
 
         default:
@@ -909,9 +875,9 @@ void StrongholdStairs::buildComponent(
         return;
     }
 
-    // 如果是起始楼梯，设置下一个组件类型为 Crossing
+    // 如果是起始楼梯，设置下一个组件类型为交叉点（对应 MC Java 的 imposedPiece = FiveCrossing）
     if (m_isSource) {
-        // TODO: 设置下一个组件类型为交叉点
+        start->setImposedPieceType(StrongholdPieceTypes::CROSSING);
     }
 
     getNextComponentNormal(start, pieces, rng, 1, 1);
@@ -1120,7 +1086,8 @@ void StrongholdChestCorridor::generate(
         i32 chestZ = getZWithOffset(3, 3);
         if (chunkBounds.isInside(chestX, chestY, chestZ)) {
             m_hasChest = true;
-            generateChest(world, chunkBounds, rng, 3, 2, 3, "minecraft:chests/stronghold_corridor");
+            generateChest(
+                world, chunkBounds, rng, 3, 2, 3, ResourceLocation("minecraft", "chests/stronghold_corridor"));
         }
     }
 
@@ -1219,7 +1186,15 @@ void StrongholdLibrary::generate(
         fillWithBlocks(world, chunkBounds, 9, 1, l1, 10, 3, l1, bookshelf, bookshelf, false);
     }
 
-    generateChest(world, chunkBounds, rng, 3, 3, 5, "minecraft:chests/stronghold_library");
+    generateChest(world, chunkBounds, rng, 3, 3, 5, ResourceLocation("minecraft", "chests/stronghold_library"));
+
+    // 大型图书馆在高层增加第二个宝箱（对应 MC Java Library 的 isTall 分支）
+    if (m_isLargeRoom) {
+        // 在 (12, 9, 1) 处放置洞穴空气以清理上方空间
+        const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
+        setBlockState(world, caveAir, 12, 9, 1, chunkBounds);
+        generateChest(world, chunkBounds, rng, 12, 8, 1, ResourceLocation("minecraft", "chests/stronghold_library"));
+    }
 
     (void)chunkX;
     (void)chunkZ;
@@ -1451,9 +1426,9 @@ void StrongholdPortalRoom::generate(
                 BlockPos spawnerPos(spawnerX, spawnerY, spawnerZ);
                 BlockEntity* blockEntity = iworld->getBlockEntity(spawnerPos);
                 if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::MobSpawner) {
-                    // TODO: 设置刷怪笼为蠹虫
+                    // TODO(trial_chambers): MobSpawnerBlockEntity 尚未实现，待实现后取消注释以下代码
                     // auto* mobSpawner = static_cast<blockentity::MobSpawnerBlockEntity*>(blockEntity);
-                    // mobSpawner->setEntityType(EntityType::SILVERFISH);
+                    // mobSpawner->setEntityType(EntityType::SILVERFISH, rng);
                 }
             }
         }
@@ -1605,6 +1580,10 @@ bool canAddStructurePieces(std::vector<StrongholdPieceWeight>& weights, i32& out
     outTotalWeight = 0;
 
     for (auto& weight : weights) {
+        // 跳过权重为0的项（已达到生成上限）
+        if (weight.weight == 0) {
+            continue;
+        }
         if (weight.instancesLimit > 0 && weight.instancesSpawned < weight.instancesLimit) {
             canAdd = true;
         }
@@ -1665,6 +1644,34 @@ StrongholdPiece* generatePieceFromSmallDoor(StrongholdStartStairs* start,
     std::vector<StrongholdPieceWeight>& weights,
     StrongholdPieceWeight*& lastPlaced)
 {
+    // 对应 MC Java 的 imposedPiece 机制：如果有强制片段类型，优先创建
+    if (start != nullptr && start->imposedPieceType() >= 0) {
+        i32 imposedType = start->imposedPieceType();
+        start->setImposedPieceType(-1); // 消费强制类型
+
+        StrongholdPiece* piece = createStrongholdPiece(imposedType, pieces, rng, x, y, z, direction, depth);
+        if (piece != nullptr) {
+            // 找到对应的权重并更新计数
+            for (auto& weight : weights) {
+                if (weight.pieceType == imposedType) {
+                    weight.instancesSpawned++;
+                    lastPlaced = &weight;
+                    // 如果达到限制，从列表中移除
+                    if (!weight.canSpawnMoreStructures()) {
+                        // 使用 swap-and-pop 惯用法移除，避免迭代器失效
+                        // 注意：lastPlaced 此时指向被移除元素的引用，需要置空
+                        if (lastPlaced == &weight) {
+                            lastPlaced = nullptr;
+                        }
+                        weight.weight = 0; // 将权重设为0，使其不再被选中
+                    }
+                    break;
+                }
+            }
+            return piece;
+        }
+    }
+
     i32 totalWeight = 0;
     if (!canAddStructurePieces(weights, totalWeight)) {
         return nullptr;
@@ -1677,6 +1684,10 @@ StrongholdPiece* generatePieceFromSmallDoor(StrongholdStartStairs* start,
         for (auto& weight : weights) {
             randomValue -= weight.weight;
             if (randomValue < 0) {
+                // 跳过权重为0的片段（已达到生成上限）
+                if (weight.weight == 0) {
+                    continue;
+                }
                 // 检查是否可以生成该类型的片段
                 if (!weight.canSpawnMoreStructuresOfType(depth)) {
                     break;
@@ -1693,9 +1704,14 @@ StrongholdPiece* generatePieceFromSmallDoor(StrongholdStartStairs* start,
                     weight.instancesSpawned++;
                     lastPlaced = &weight;
 
-                    // 如果达到限制，从列表中移除
+                    // 如果达到限制，将权重设为0使其不再被选中
+                    // 对应 MC Java 的 currentPieces.remove() 操作
+                    // 使用权重置0而非移除，避免迭代器失效和 lastPlaced 悬垂指针问题
                     if (!weight.canSpawnMoreStructures()) {
-                        // TODO: 实现从列表移除逻辑（当前不能直接移除，因为 lastPlaced 指向它）
+                        weight.weight = 0;
+                        if (lastPlaced == &weight) {
+                            lastPlaced = nullptr;
+                        }
                     }
 
                     return piece;

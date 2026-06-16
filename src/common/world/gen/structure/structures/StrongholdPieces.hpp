@@ -146,17 +146,6 @@ public:
         i32 offsetY);
 
 protected:
-    /**
-     * @brief 生成宝箱
-     */
-    void generateChest(IWorldWriter& world,
-        const StructureBoundingBox& bounds,
-        math::Random& rng,
-        i32 x,
-        i32 y,
-        i32 z,
-        const std::string& lootTable);
-
     Door m_entryDoor = Door::Opening;
 };
 
@@ -470,11 +459,24 @@ public:
     [[nodiscard]] std::vector<StrongholdPieceWeight>& weights() { return m_weights; }
     [[nodiscard]] const std::vector<StrongholdPieceWeight>& weights() const { return m_weights; }
 
+    /**
+     * @brief 获取强制片段类型
+     * 对应 MC Java 的 imposedPiece 字段，当非空时下一个片段必须为指定类型
+     */
+    [[nodiscard]] i32 imposedPieceType() const { return m_imposedPieceType; }
+
+    /**
+     * @brief 设置强制片段类型并清除
+     * @param type 片段类型（设为 -1 表示无强制）
+     */
+    void setImposedPieceType(i32 type) { m_imposedPieceType = type; }
+
 private:
     std::vector<StrongholdPieceWeight> m_weights;   ///< 片段权重列表
     StrongholdPieceWeight* m_lastPlaced = nullptr;  ///< 上一个放置的片段权重
     StrongholdPiece* m_portalRoom = nullptr;        ///< 传送门房间引用
     std::vector<StructurePiece*> m_pendingChildren; ///< 待处理的子片段
+    i32 m_imposedPieceType = -1;                    ///< 强制片段类型（-1 表示无强制）
 };
 
 // ============================================================================
