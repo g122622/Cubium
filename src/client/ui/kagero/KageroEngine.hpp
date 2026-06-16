@@ -157,18 +157,20 @@ public:
      * @param x 鼠标X坐标
      * @param y 鼠标Y坐标
      * @param button 鼠标按钮
+     * @param mods 修饰键状态（GLFW_MOD_SHIFT等）
      * @return 如果事件被处理返回true
      */
-    bool handleClick(i32 x, i32 y, i32 button);
+    bool handleClick(i32 x, i32 y, i32 button, i32 mods);
 
     /**
      * @brief 处理鼠标释放
      * @param x 鼠标X坐标
      * @param y 鼠标Y坐标
      * @param button 鼠标按钮
+     * @param mods 修饰键状态（GLFW_MOD_SHIFT等）
      * @return 如果事件被处理返回true
      */
-    bool handleRelease(i32 x, i32 y, i32 button);
+    bool handleRelease(i32 x, i32 y, i32 button, i32 mods);
 
     /**
      * @brief 处理鼠标移动
@@ -258,6 +260,7 @@ private:
     widget::Widget* m_draggingWidget = nullptr;
     // TODO: m_dragButton 当前仅设置/重置，未被用于判断逻辑，待完善拖动按钮校验
     i32 m_dragButton = 0;
+    i32 m_dragMods = 0; ///< 拖拽开始时的修饰键状态
 };
 
 } // namespace mc::client::ui::kagero

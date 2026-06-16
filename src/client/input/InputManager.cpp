@@ -172,11 +172,11 @@ void InputManager::bindActionCallback(const std::string& action, ActionCallback 
     m_actionCallbacks[action] = std::move(callback);
 }
 
-void InputManager::_keyCallback(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/)
+void InputManager::_keyCallback(GLFWwindow* window, int key, int /*scancode*/, int action, int mods)
 {
     auto* input = getInputManager(window);
     if (input && key >= 0) {
-        input->_handleKey(key, action);
+        input->_handleKey(key, action, mods);
     }
 }
 
@@ -188,11 +188,11 @@ void InputManager::_mouseCallback(GLFWwindow* window, double xpos, double ypos)
     }
 }
 
-void InputManager::_mouseButtonCallback(GLFWwindow* window, int button, int action, int /*mods*/)
+void InputManager::_mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 {
     auto* input = getInputManager(window);
     if (input && button >= 0) {
-        input->_handleMouseButton(button, action);
+        input->_handleMouseButton(button, action, mods);
     }
 }
 
@@ -204,11 +204,13 @@ void InputManager::_scrollCallback(GLFWwindow* window, double xoffset, double yo
     }
 }
 
-void InputManager::_handleKey(i32 key, i32 action)
+void InputManager::_handleKey(i32 key, i32 action, i32 mods)
 {
+    m_currentMods = mods;
+
     // 先触发键盘事件回调（用于UI输入处理），如果回调消费了事件则不再触发 action
     if (m_keyEventCallback) {
-        if (m_keyEventCallback(key, action, 0)) {
+        if (m_keyEventCallback(key, action, mods)) {
             return;
         }
     }
@@ -233,8 +235,10 @@ void InputManager::_handleKey(i32 key, i32 action)
     }
 }
 
-void InputManager::_handleMouseButton(i32 button, i32 action)
+void InputManager::_handleMouseButton(i32 button, i32 action, i32 mods)
 {
+    m_currentMods = mods;
+
     if (action == GLFW_PRESS) {
         m_mouseButtonsPressed.insert(button);
         m_mouseButtonsJustPressed.insert(button);

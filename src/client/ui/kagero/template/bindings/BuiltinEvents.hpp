@@ -172,12 +172,12 @@ namespace event_utils {
 /**
  * @brief 创建鼠标点击事件
  */
-[[nodiscard]] event::MouseClickEvent createClickEvent(i32 x, i32 y, i32 button, i32 clicks);
+[[nodiscard]] event::MouseClickEvent createClickEvent(i32 x, i32 y, i32 button, i32 clicks, i32 mods = 0);
 
 /**
  * @brief 创建鼠标释放事件
  */
-[[nodiscard]] event::MouseReleaseEvent createReleaseEvent(i32 x, i32 y, i32 button);
+[[nodiscard]] event::MouseReleaseEvent createReleaseEvent(i32 x, i32 y, i32 button, i32 mods = 0);
 
 /**
  * @brief 创建鼠标拖动事件

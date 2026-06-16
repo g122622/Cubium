@@ -174,16 +174,16 @@ void ClientApplication::handleEvents()
             static_cast<i32>(m_input.mouseY() / static_cast<f64>(std::max(m_guiScaleState.scaleFactor, 1)));
 
         if (m_input.isMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
-            m_kageroEngine->handleClick(guiMouseX, guiMouseY, GLFW_MOUSE_BUTTON_LEFT);
+            m_kageroEngine->handleClick(guiMouseX, guiMouseY, GLFW_MOUSE_BUTTON_LEFT, m_input.currentMods());
         }
         if (m_input.isMouseButtonJustPressed(GLFW_MOUSE_BUTTON_RIGHT)) {
-            m_kageroEngine->handleClick(guiMouseX, guiMouseY, GLFW_MOUSE_BUTTON_RIGHT);
+            m_kageroEngine->handleClick(guiMouseX, guiMouseY, GLFW_MOUSE_BUTTON_RIGHT, m_input.currentMods());
         }
         if (m_input.isMouseButtonJustReleased(GLFW_MOUSE_BUTTON_LEFT)) {
-            m_kageroEngine->handleRelease(guiMouseX, guiMouseY, GLFW_MOUSE_BUTTON_LEFT);
+            m_kageroEngine->handleRelease(guiMouseX, guiMouseY, GLFW_MOUSE_BUTTON_LEFT, m_input.currentMods());
         }
         if (m_input.isMouseButtonJustReleased(GLFW_MOUSE_BUTTON_RIGHT)) {
-            m_kageroEngine->handleRelease(guiMouseX, guiMouseY, GLFW_MOUSE_BUTTON_RIGHT);
+            m_kageroEngine->handleRelease(guiMouseX, guiMouseY, GLFW_MOUSE_BUTTON_RIGHT, m_input.currentMods());
         }
 
         const f64 screenScrollDelta = m_input.scrollDeltaY();

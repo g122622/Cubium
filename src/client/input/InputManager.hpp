@@ -161,6 +161,15 @@ public:
      */
     void clearKeyEventCallback() { m_keyEventCallback = nullptr; }
 
+    /**
+     * @brief 获取当前修饰键状态
+     * @return GLFW修饰键位掩码 (GLFW_MOD_SHIFT, GLFW_MOD_CONTROL, GLFW_MOD_ALT, GLFW_MOD_SUPER)
+     *
+     * 返回最近一次键盘或鼠标事件中的修饰键状态。
+     * 用于在轮询模式下获取点击时的修饰键状态。
+     */
+    [[nodiscard]] i32 currentMods() const noexcept { return m_currentMods; }
+
     // 按键绑定
     using ActionCallback = std::function<void()>;
 
@@ -174,8 +183,8 @@ private:
     static void _scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
     static void _charCallback(GLFWwindow* window, unsigned int codepoint);
 
-    void _handleKey(i32 key, i32 action);
-    void _handleMouseButton(i32 button, i32 action);
+    void _handleKey(i32 key, i32 action, i32 mods);
+    void _handleMouseButton(i32 button, i32 action, i32 mods);
     void _handleMouseMove(f64 x, f64 y);
     void _handleScroll(f64 x, f64 y);
     void _handleCharInput(u32 codepoint);
@@ -204,6 +213,9 @@ private:
     // 滚轮
     f64 m_scrollDeltaX = 0.0;
     f64 m_scrollDeltaY = 0.0;
+
+    // 当前修饰键状态（由GLFW回调更新）
+    i32 m_currentMods = 0;
 
     // 鼠标锁定
     bool m_mouseLocked = false;

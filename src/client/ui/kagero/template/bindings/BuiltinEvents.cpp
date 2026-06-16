@@ -93,7 +93,7 @@ void BuiltinEvents::_registerClickEvents()
     m_handlers[event_names::CLICK] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {
-                widget->onClick(clickEvent->x(), clickEvent->y(), clickEvent->button(), 0);
+                widget->onClick(clickEvent->x(), clickEvent->y(), clickEvent->button(), clickEvent->mods());
             }
         }
     };
@@ -104,7 +104,7 @@ void BuiltinEvents::_registerClickEvents()
     m_handlers[event_names::DOUBLE_CLICK] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {
-                widget->onClick(clickEvent->x(), clickEvent->y(), clickEvent->button(), 0);
+                widget->onClick(clickEvent->x(), clickEvent->y(), clickEvent->button(), clickEvent->mods());
             }
         }
     };
@@ -115,8 +115,7 @@ void BuiltinEvents::_registerClickEvents()
     m_handlers[event_names::RIGHT_CLICK] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {
-                (void)clickEvent;
-                widget->onClick(clickEvent->x(), clickEvent->y(), 1, 0);
+                widget->onClick(clickEvent->x(), clickEvent->y(), 1, clickEvent->mods());
             }
         }
     };
@@ -127,7 +126,7 @@ void BuiltinEvents::_registerClickEvents()
     m_handlers[event_names::MOUSE_DOWN] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {
-                widget->onClick(clickEvent->x(), clickEvent->y(), clickEvent->button(), 0);
+                widget->onClick(clickEvent->x(), clickEvent->y(), clickEvent->button(), clickEvent->mods());
             }
         }
     };
@@ -137,7 +136,7 @@ void BuiltinEvents::_registerClickEvents()
     m_handlers[event_names::MOUSE_UP] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* releaseEvent = dynamic_cast<const event::MouseReleaseEvent*>(&event)) {
-                widget->onRelease(releaseEvent->x(), releaseEvent->y(), releaseEvent->button(), 0);
+                widget->onRelease(releaseEvent->x(), releaseEvent->y(), releaseEvent->button(), releaseEvent->mods());
             }
         }
     };
@@ -262,7 +261,8 @@ void BuiltinEvents::_registerDragEvents()
     m_handlers[event_names::DRAG] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* dragEvent = dynamic_cast<const event::MouseDragEvent*>(&event)) {
-                widget->onDrag(dragEvent->x(), dragEvent->y(), dragEvent->deltaX(), dragEvent->deltaY(), 0);
+                widget->onDrag(
+                    dragEvent->x(), dragEvent->y(), dragEvent->deltaX(), dragEvent->deltaY(), dragEvent->button());
             }
         }
     };
@@ -342,14 +342,14 @@ event::EventType inferEventType(const std::string& eventName)
     return it != eventTypeMap.end() ? it->second : event::EventType::Custom;
 }
 
-event::MouseClickEvent createClickEvent(i32 x, i32 y, i32 button, i32 clicks)
+event::MouseClickEvent createClickEvent(i32 x, i32 y, i32 button, i32 clicks, i32 mods)
 {
-    return event::MouseClickEvent(x, y, button, clicks);
+    return event::MouseClickEvent(x, y, button, clicks, mods);
 }
 
-event::MouseReleaseEvent createReleaseEvent(i32 x, i32 y, i32 button)
+event::MouseReleaseEvent createReleaseEvent(i32 x, i32 y, i32 button, i32 mods)
 {
-    return event::MouseReleaseEvent(x, y, button);
+    return event::MouseReleaseEvent(x, y, button, mods);
 }
 
 event::MouseDragEvent createDragEvent(i32 x, i32 y, i32 deltaX, i32 deltaY, i32 button)

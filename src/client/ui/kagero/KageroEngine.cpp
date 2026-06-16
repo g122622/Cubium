@@ -150,7 +150,7 @@ const widget::Widget* KageroEngine::getLayer(size_t layerId) const
     return nullptr;
 }
 
-bool KageroEngine::handleClick(i32 x, i32 y, i32 button)
+bool KageroEngine::handleClick(i32 x, i32 y, i32 button, i32 mods)
 {
     // 从顶层开始处理（Z索引高的先处理）
     for (auto it = m_layers.rbegin(); it != m_layers.rend(); ++it) {
@@ -158,9 +158,10 @@ bool KageroEngine::handleClick(i32 x, i32 y, i32 button)
             continue;
         }
 
-        if (it->widget->onClick(x, y, button, 0)) {
+        if (it->widget->onClick(x, y, button, mods)) {
             m_draggingWidget = it->widget.get();
             m_dragButton = button;
+            m_dragMods = mods;
             return true;
         }
 
@@ -173,14 +174,15 @@ bool KageroEngine::handleClick(i32 x, i32 y, i32 button)
     return false;
 }
 
-bool KageroEngine::handleRelease(i32 x, i32 y, i32 button)
+bool KageroEngine::handleRelease(i32 x, i32 y, i32 button, i32 mods)
 {
     // 如果有正在拖动的Widget，发送释放事件
     if (m_draggingWidget != nullptr) {
         widget::Widget* w = m_draggingWidget;
         m_draggingWidget = nullptr;
         m_dragButton = 0;
-        return w->onRelease(x, y, button, 0);
+        m_dragMods = 0;
+        return w->onRelease(x, y, button, mods);
     }
 
     // 从顶层开始处理
@@ -189,7 +191,7 @@ bool KageroEngine::handleRelease(i32 x, i32 y, i32 button)
             continue;
         }
 
-        if (it->widget->onRelease(x, y, button, 0)) {
+        if (it->widget->onRelease(x, y, button, mods)) {
             return true;
         }
 

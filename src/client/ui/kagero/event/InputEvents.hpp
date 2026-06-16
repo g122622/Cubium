@@ -33,11 +33,12 @@ namespace mc::client::ui::kagero::event {
  */
 class MouseClickEvent : public Event {
 public:
-    MouseClickEvent(i32 x, i32 y, i32 button, i32 clicks)
+    MouseClickEvent(i32 x, i32 y, i32 button, i32 clicks, i32 mods = 0)
         : m_x(x)
         , m_y(y)
         , m_button(button)
         , m_clicks(clicks)
+        , m_mods(mods)
     {}
 
     [[nodiscard]] EventType getType() const override { return EventType::MouseClick; }
@@ -47,6 +48,7 @@ public:
     [[nodiscard]] i32 y() const { return m_y; }
     [[nodiscard]] i32 button() const { return m_button; }
     [[nodiscard]] i32 clicks() const { return m_clicks; }
+    [[nodiscard]] i32 mods() const { return m_mods; }
 
     /**
      * @brief 检查是否是左键点击
@@ -68,6 +70,7 @@ private:
     i32 m_y;
     i32 m_button;
     i32 m_clicks;
+    i32 m_mods;
 };
 
 /**
@@ -75,10 +78,11 @@ private:
  */
 class MouseReleaseEvent : public Event {
 public:
-    MouseReleaseEvent(i32 x, i32 y, i32 button)
+    MouseReleaseEvent(i32 x, i32 y, i32 button, i32 mods = 0)
         : m_x(x)
         , m_y(y)
         , m_button(button)
+        , m_mods(mods)
     {}
 
     [[nodiscard]] EventType getType() const override { return EventType::MouseRelease; }
@@ -87,11 +91,13 @@ public:
     [[nodiscard]] i32 x() const { return m_x; }
     [[nodiscard]] i32 y() const { return m_y; }
     [[nodiscard]] i32 button() const { return m_button; }
+    [[nodiscard]] i32 mods() const { return m_mods; }
 
 private:
     i32 m_x;
     i32 m_y;
     i32 m_button;
+    i32 m_mods;
 };
 
 /**
