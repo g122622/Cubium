@@ -235,7 +235,7 @@ const std::unordered_map<std::string, std::vector<std::string>> ADDITIONAL_TEXTU
             // 职业层
             // MC 1.21+ 资源包中没有 none.png，无职业时不渲染职业层
             "entity/zombie_villager/profession/armorer",
-            "entity/zombie_villager/profession/profession/butcher",
+            "entity/zombie_villager/profession/butcher",
             "entity/zombie_villager/profession/cartographer",
             "entity/zombie_villager/profession/cleric",
             "entity/zombie_villager/profession/farmer",

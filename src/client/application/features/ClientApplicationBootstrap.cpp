@@ -30,6 +30,7 @@
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/firstperson/FirstPersonRenderer.hpp"
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
+#include "client/renderer/trident/gui/GuiSpriteMappings.hpp"
 #include "client/renderer/trident/gui/GuiSpriteRegistry.hpp"
 #include "client/renderer/trident/gui/GuiTextureLoader.hpp"
 #include "client/renderer/trident/weather/WeatherRenderer.hpp"
@@ -46,10 +47,10 @@
 #include "client/ui/screen/ScreenManager.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
-#include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
@@ -450,21 +451,44 @@ void ClientApplication::initializeUi()
                 MC_TRACE_EVENT("client.initialization", "LoadGuiTextures");
                 spdlog::info("[GUI] TextureLoader has {} resource packs", textureLoader.resourcePackCount());
 
-                // 加载 icons.png 到 iconsAtlas
+                // 加载 HUD/Icons 图集
+                // 优先使用 MC 1.21+ 独立精灵格式，回退到旧版 icons.png 单体图集
                 if (m_iconsAtlas) {
-                    spdlog::info("[GUI] Loading icons.png to iconsAtlas...");
-                    auto loadResult = textureLoader.loadGuiTexture(*m_iconsAtlas, "minecraft:textures/gui/icons.png");
-                    if (loadResult.failed()) {
-                        spdlog::warn("[GUI] Failed to load icons.png: {}. Using default textures.",
-                            loadResult.error().toString());
-                        (void)m_iconsAtlas->loadDefaultTextures();
-                    } else {
-                        spdlog::info("[GUI] Loaded icons.png from resource pack ({}x{})",
+                    MC_TRACE_EVENT("client.initialization", "LoadIconsAtlas");
+                    spdlog::info("[GUI] Loading HUD/Icons atlas...");
+
+                    bool iconsLoaded = false;
+
+                    // 尝试 MC 1.21+ 独立精灵格式（从 textures/gui/sprites/hud/ 拼合图集）
+                    auto spriteResult =
+                        textureLoader.buildSpriteAtlas(*m_iconsAtlas, renderer::trident::gui::HUD_SPRITE_MAPPINGS);
+                    if (spriteResult.success() && spriteResult.value() > 0) {
+                        iconsLoaded = true;
+                        spdlog::info("[GUI] Loaded HUD atlas from sprite files ({} sprites, {}x{})",
+                            spriteResult.value(),
                             m_iconsAtlas->atlasWidth(),
                             m_iconsAtlas->atlasHeight());
+                    } else {
+                        spdlog::info("[GUI] Sprite atlas build failed or empty, trying legacy icons.png...");
                     }
-                    // 纹理加载后注册精灵（使用正确的图集尺寸计算UV）
-                    renderer::trident::gui::GuiSpriteRegistry::registerIconsSprites(*m_iconsAtlas);
+
+                    // 回退到旧版 icons.png 单体图集
+                    if (!iconsLoaded) {
+                        auto loadResult =
+                            textureLoader.loadGuiTexture(*m_iconsAtlas, "minecraft:textures/gui/icons.png");
+                        if (loadResult.failed()) {
+                            spdlog::warn("[GUI] Failed to load icons.png: {}. Using default textures.",
+                                loadResult.error().toString());
+                            (void)m_iconsAtlas->loadDefaultTextures();
+                        } else {
+                            spdlog::info("[GUI] Loaded icons.png from resource pack ({}x{})",
+                                m_iconsAtlas->atlasWidth(),
+                                m_iconsAtlas->atlasHeight());
+                        }
+                        // 旧版单体图集使用硬编码UV注册精灵
+                        renderer::trident::gui::GuiSpriteRegistry::registerIconsSprites(*m_iconsAtlas);
+                    }
+
                     spdlog::info("[GUI] Icons atlas: {} sprites registered, texture={}",
                         m_iconsAtlas->spriteCount(),
                         m_iconsAtlas->hasTexture() ? "yes" : "no");
@@ -480,24 +504,44 @@ void ClientApplication::initializeUi()
                     }
                 }
 
-                // 加载 widgets.png 到 widgetsAtlas
+                // 加载 Widget 图集
+                // 优先使用 MC 1.21+ 独立精灵格式，回退到旧版 widgets.png 单体图集
                 if (m_widgetsAtlas) {
-                    MC_TRACE_EVENT("client.initialization", "LoadWidgetsTexture");
-                    spdlog::info("[GUI] Loading widgets.png to widgetsAtlas...");
+                    MC_TRACE_EVENT("client.initialization", "LoadWidgetsAtlas");
+                    spdlog::info("[GUI] Loading Widget atlas...");
 
-                    auto loadResult =
-                        textureLoader.loadGuiTexture(*m_widgetsAtlas, "minecraft:textures/gui/widgets.png");
-                    if (loadResult.failed()) {
-                        spdlog::warn("[GUI] Failed to load widgets.png: {}. Using default textures.",
-                            loadResult.error().toString());
-                        (void)m_widgetsAtlas->loadDefaultTextures();
-                    } else {
-                        spdlog::info("[GUI] Loaded widgets.png from resource pack ({}x{})",
+                    bool widgetsLoaded = false;
+
+                    // 尝试 MC 1.21+ 独立精灵格式（从 textures/gui/sprites/widget/ 拼合图集）
+                    auto spriteResult =
+                        textureLoader.buildSpriteAtlas(*m_widgetsAtlas, renderer::trident::gui::WIDGET_SPRITE_MAPPINGS);
+                    if (spriteResult.success() && spriteResult.value() > 0) {
+                        widgetsLoaded = true;
+                        spdlog::info("[GUI] Loaded Widget atlas from sprite files ({} sprites, {}x{})",
+                            spriteResult.value(),
                             m_widgetsAtlas->atlasWidth(),
                             m_widgetsAtlas->atlasHeight());
+                    } else {
+                        spdlog::info("[GUI] Sprite atlas build failed or empty, trying legacy widgets.png...");
                     }
-                    // 纹理加载后注册精灵（使用正确的图集尺寸计算UV）
-                    renderer::trident::gui::GuiSpriteRegistry::registerWidgetsSprites(*m_widgetsAtlas);
+
+                    // 回退到旧版 widgets.png 单体图集
+                    if (!widgetsLoaded) {
+                        auto loadResult =
+                            textureLoader.loadGuiTexture(*m_widgetsAtlas, "minecraft:textures/gui/widgets.png");
+                        if (loadResult.failed()) {
+                            spdlog::warn("[GUI] Failed to load widgets.png: {}. Using default textures.",
+                                loadResult.error().toString());
+                            (void)m_widgetsAtlas->loadDefaultTextures();
+                        } else {
+                            spdlog::info("[GUI] Loaded widgets.png from resource pack ({}x{})",
+                                m_widgetsAtlas->atlasWidth(),
+                                m_widgetsAtlas->atlasHeight());
+                        }
+                        // 旧版单体图集使用硬编码UV注册精灵
+                        renderer::trident::gui::GuiSpriteRegistry::registerWidgetsSprites(*m_widgetsAtlas);
+                    }
+
                     spdlog::info("[GUI] Widgets atlas: {} sprites registered, texture={}",
                         m_widgetsAtlas->spriteCount(),
                         m_widgetsAtlas->hasTexture() ? "yes" : "no");

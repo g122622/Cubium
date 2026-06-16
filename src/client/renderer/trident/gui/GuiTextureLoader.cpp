@@ -22,11 +22,14 @@
  */
 
 #include "GuiTextureLoader.hpp"
+#include "GuiSprite.hpp"
 #include "GuiSpriteAtlas.hpp"
 #include "GuiSpriteParser.hpp"
 #include "GuiSpriteRegistry.hpp"
 #include "GuiTextureAtlas.hpp"
+#include "client/resource/TextureAtlasBuilder.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include <cmath>
 #include <spdlog/spdlog.h>
 #include <stb_image.h>
 
@@ -194,6 +197,128 @@ Result<void> GuiTextureLoader::loadSpritesFromJson(GuiTextureAtlas& atlas, const
     }
 
     return Error(ErrorCode::NotFound, std::string("Sprite definition not found: ") + jsonPath);
+}
+
+Result<u32> GuiTextureLoader::buildSpriteAtlas(GuiSpriteAtlas& atlas, const std::vector<SpriteMapping>& spriteMappings)
+{
+    if (m_resourcePacks.empty()) {
+        spdlog::warn("[GuiTextureLoader] No resource packs available for buildSpriteAtlas");
+        return Error(ErrorCode::NotFound, "No resource packs available");
+    }
+
+    if (spriteMappings.empty()) {
+        spdlog::warn("[GuiTextureLoader] Empty sprite mappings for buildSpriteAtlas");
+        return Error(ErrorCode::InvalidArgument, "Empty sprite mappings");
+    }
+
+    // 使用 TextureAtlasBuilder 将独立精灵拼合成图集
+    TextureAtlasBuilder builder;
+    u32 loadedCount = 0;
+
+    for (const auto& [spriteId, location] : spriteMappings) {
+        // 将 ResourceLocation 转换为资源包内的文件路径
+        std::string pngPath = location.toFilePath(resource::PackType::ClientResources, "png");
+        // toFilePath 产生 "assets/<namespace>/<path>.png"，需要去掉 "assets/" 前缀
+        const std::string assetsPrefix = "assets/";
+        if (pngPath.size() > assetsPrefix.size() && pngPath.substr(0, assetsPrefix.size()) == assetsPrefix) {
+            pngPath.erase(0, assetsPrefix.size());
+        }
+
+        // 按资源包优先级搜索（后添加的优先）
+        bool found = false;
+        for (auto it = m_resourcePacks.rbegin(); it != m_resourcePacks.rend() && !found; ++it) {
+            auto& pack = *it;
+            if (!pack) continue;
+
+            if (!pack->hasResource(resource::PackType::ClientResources, pngPath)) {
+                continue;
+            }
+
+            auto readResult = pack->readResource(resource::PackType::ClientResources, pngPath);
+            if (readResult.failed()) {
+                spdlog::warn(
+                    "[GuiTextureLoader] Failed to read sprite '{}': {}", spriteId, readResult.error().toString());
+                continue;
+            }
+
+            // 解码PNG
+            i32 width, height;
+            std::vector<u8> pixels;
+            auto decodeResult = decodePng(readResult.value(), width, height, pixels);
+            if (decodeResult.failed()) {
+                spdlog::warn(
+                    "[GuiTextureLoader] Failed to decode sprite '{}': {}", spriteId, decodeResult.error().toString());
+                continue;
+            }
+
+            // 添加到图集构建器（精灵ID作为key用于后续查找）
+            ResourceLocation spriteKey(location.namespace_(), location.path());
+            builder.addTexture(spriteKey, pixels, static_cast<u32>(width), static_cast<u32>(height));
+            found = true;
+            loadedCount++;
+        }
+
+        if (!found) {
+            spdlog::debug("[GuiTextureLoader] Sprite '{}' not found in any resource pack, skipping", spriteId);
+        }
+    }
+
+    if (loadedCount == 0) {
+        spdlog::warn("[GuiTextureLoader] No sprites loaded from mapping, falling back to monolithic atlas");
+        return Error(ErrorCode::NotFound, "No sprites loaded from mapping");
+    }
+
+    // 构建图集
+    auto buildResult = builder.build();
+    if (buildResult.failed()) {
+        spdlog::error("[GuiTextureLoader] Failed to build sprite atlas: {}", buildResult.error().toString());
+        return buildResult.error();
+    }
+
+    auto& atlasData = buildResult.value();
+
+    // 上传图集纹理到 GuiSpriteAtlas
+    auto uploadResult = atlas.loadTextureFromMemory(
+        atlasData.pixels, static_cast<i32>(atlasData.width), static_cast<i32>(atlasData.height));
+    if (uploadResult.failed()) {
+        spdlog::error("[GuiTextureLoader] Failed to upload sprite atlas: {}", uploadResult.error().toString());
+        return uploadResult.error();
+    }
+
+    // 根据拼合结果注册精灵：从 AtlasBuildResult.regions 查找每个精灵的UV坐标
+    u32 registeredCount = 0;
+    for (const auto& [spriteId, location] : spriteMappings) {
+        // 使用与 addTexture 相同的 key 来查找 region
+        ResourceLocation spriteKey(location.namespace_(), location.path());
+        auto regionIt = atlasData.regions.find(spriteKey);
+        if (regionIt == atlasData.regions.end()) {
+            continue;
+        }
+
+        const auto& region = regionIt->second;
+        // 从UV坐标反算像素尺寸：width = (u1 - u0) * atlasWidth, height = (v1 - v0) * atlasHeight
+        i32 spriteWidth = static_cast<i32>(std::round((region.u1 - region.u0) * atlasData.width));
+        i32 spriteHeight = static_cast<i32>(std::round((region.v1 - region.v0) * atlasData.height));
+
+        GuiSprite sprite;
+        sprite.id = spriteId;
+        sprite.u0 = region.u0;
+        sprite.v0 = region.v0;
+        sprite.u1 = region.u1;
+        sprite.v1 = region.v1;
+        sprite.width = spriteWidth;
+        sprite.height = spriteHeight;
+        atlas.registerSprite(sprite);
+        registeredCount++;
+    }
+
+    spdlog::info("[GuiTextureLoader] Built sprite atlas: {}x{}, loaded {} sprites, registered {}",
+        atlasData.width,
+        atlasData.height,
+        loadedCount,
+        registeredCount);
+
+    return registeredCount;
 }
 
 Result<void> GuiTextureLoader::loadDefaultTextures(GuiTextureAtlas& atlas)

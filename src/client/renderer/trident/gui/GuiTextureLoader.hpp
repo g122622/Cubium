@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include <memory>
 #include <vector>
@@ -35,6 +36,15 @@ namespace mc::client::renderer::trident::gui {
 
 class GuiTextureAtlas;
 class GuiSpriteAtlas;
+
+/**
+ * @brief 精灵ID到资源路径的映射条目
+ *
+ * 用于 MC 1.21+ 独立精灵格式的图集构建。
+ * first 为旧版精灵ID（如 "heart_full"），
+ * second 为新格式资源路径（如 ResourceLocation("minecraft", "textures/gui/sprites/hud/heart/full")）。
+ */
+using SpriteMapping = std::pair<std::string, ResourceLocation>;
 
 /**
  * @brief GUI纹理加载器
@@ -123,6 +133,22 @@ public:
      * @return 成功或错误
      */
     [[nodiscard]] Result<void> loadAllToSpriteAtlas(GuiSpriteAtlas& atlas, const std::string& textureLocation);
+
+    /**
+     * @brief 从独立精灵文件构建精灵图集（MC 1.21+ 格式）
+     *
+     * MC 1.21+ 资源包将 icons.png / widgets.png 拆分为独立精灵 PNG 文件，
+     * 此方法将指定映射表中的精灵文件逐一加载，拼合成纹理图集，
+     * 并根据拼合结果自动注册精灵到 GuiSpriteAtlas。
+     *
+     * 如果映射表中的某个精灵文件不存在，跳过该精灵并继续加载其余。
+     * 如果没有任何精灵加载成功，返回错误。
+     *
+     * @param atlas 目标精灵图集
+     * @param spriteMappings 精灵ID到资源路径的映射表
+     * @return 成功加载的精灵数量
+     */
+    [[nodiscard]] Result<u32> buildSpriteAtlas(GuiSpriteAtlas& atlas, const std::vector<SpriteMapping>& spriteMappings);
 
     // ==================== GuiTextureAtlas 重载（传统）====================
 
