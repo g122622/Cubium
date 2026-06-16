@@ -63,6 +63,33 @@ ResourceManager（核心入口，协调所有加载器）
 - `client/renderer/entity/EntityRenderer.cpp` - 实体渲染时获取实体纹理
 - `client/game/ClientWorld.cpp` - 世界加载时初始化资源管理器
 
+## 模型合并语义（leaf-wins）
+
+MC Java 版使用 `findTop*` 模式：沿叶子到根方向查找第一个显式定义了该属性的模型。
+`bakeModel` 采用内联的 leaf-to-root 查找策略实现此语义。
+
+### 显式设置标记（has* 标志）
+
+`UnbakedBlockModel` 和 `UnbakedItemModel` 中的 `hasElements`、`hasAmbientOcclusion`、
+（仅 Item）`hasOverrides` 布尔字段用于区分"JSON 显式定义了该字段"与"JSON 中未出现该字段（使用默认值）"。
+只有 `has* == true` 的模型层才会参与 leaf-wins 查找，确保正确实现 MC Java 的合并语义。
+
+### 各属性合并规则
+
+| 属性 | 合并策略 | 说明 |
+|------|----------|------|
+| 纹理（textures） | merge（子覆盖父同名键） | 从根到叶逐层合并，后处理的层覆盖先处理层的同名键 |
+| 元素（elements） | leaf-wins | 从叶子到根查找第一个 `hasElements == true` 的模型 |
+| 环境光遮蔽（ambientOcclusion） | leaf-wins | 从叶子到根查找第一个 `hasAmbientOcclusion == true` 的模型，默认 true |
+| 显示变换（display） | 按上下文独立 leaf-wins | 每个 ItemDisplayContext 独立从根到叶覆盖 |
+| 覆盖条件（overrides） | leaf-wins | 从叶子到根查找第一个 `hasOverrides == true` 的模型 |
+
+### BakedItemModel 新增字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `ambientOcclusion` | `bool` | 从继承链合并后的环境光遮蔽设置，默认 true |
+
 ## BlockModelLoader 共享工具方法
 
 BlockModelLoader 提供了一组 public static 方法，供 ItemModelLoader 等其他加载器复用，

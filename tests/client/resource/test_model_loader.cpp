@@ -809,55 +809,13 @@ TEST(ResolveTextureReferencesTest, NoVariableReferences)
 }
 
 // ============================================================================
-// ItemModelLoader _mergeParent 行为验证测试
+// ItemModelLoader 合并行为验证测试
 // ============================================================================
 using namespace mc::client::resource;
 
-// _mergeParent 是私有方法，通过 bakeModel 的间接行为或友元来验证。
-// 此处验证的关键语义是：root-to-leaf 逐层合并时，type 应为 leaf-wins。
-TEST(ItemMergeParentTest, TypeMergeIsLeafWins)
-{
-    // 验证 ItemModelLoader 的 type 合并行为：
-    // 在 root-to-leaf 遍历中，每层都覆盖 type，最终 leaf 的 type 生效。
-    // 模拟 3 层链：root(Generated) -> mid(Block) -> leaf(Handheld)
-
-    // 使用 ItemModelLoader 的 bakeModel 间接测试较为复杂，
-    // 此处直接验证 _mergeParent 的语义：
-    // 在 mergeParent 中 child.type = parent.type（leaf-wins）
-
-    // 构造 merged 模型模拟 root-to-leaf 合并过程
-    using namespace mc::client::resource;
-
-    UnbakedItemModel merged;
-    merged.type = ItemModelType::Generated;
-
-    // 第一步：合并 root（Generated）
-    UnbakedItemModel root;
-    root.type = ItemModelType::Generated;
-    // merged.type = root.type = Generated
-
-    // 第二步：合并 mid（Block）
-    UnbakedItemModel mid;
-    mid.type = ItemModelType::Block;
-    // merged.type = mid.type = Block
-
-    // 第三步：合并 leaf（Handheld）
-    UnbakedItemModel leaf;
-    leaf.type = ItemModelType::Handheld;
-    // merged.type = leaf.type = Handheld
-
-    // 手动模拟 _mergeParent 的 type 行为：child.type = parent.type
-    merged.type = root.type;
-    EXPECT_EQ(merged.type, ItemModelType::Generated);
-
-    merged.type = mid.type;
-    EXPECT_EQ(merged.type, ItemModelType::Block);
-
-    merged.type = leaf.type;
-    EXPECT_EQ(merged.type, ItemModelType::Handheld);
-
-    // 最终结果：leaf 的 type 生效，与原始 bakeModel 行为一致
-}
+// 注意：UnbakedItemModel::type 已移除（原为 write-only 死代码）。
+// 模型类型的确定现在由 bakeModel 根据 hasHandheldParent 和 baked.elements 独立计算，
+// 并存储在 BakedItemModel::type 中。类型逻辑通过 bakeModel 集成测试间接验证。
 
 TEST(ItemMergeParentTest, DisplayTransformMergeIsPerContext)
 {

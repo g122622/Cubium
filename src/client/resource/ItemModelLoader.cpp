@@ -320,9 +320,6 @@ Result<UnbakedItemModel> ItemModelLoader::_parseModel(const ResourceLocation& lo
             model.ambientOcclusion = json["ambientocclusion"].get<bool>();
             model.hasAmbientOcclusion = true;
         }
-
-        // 确定模型类型
-        model.type = _determineModelType(model.parentLocation, !model.elements.empty());
     }
     catch (const nlohmann::json::exception& e) {
         return Error(
@@ -375,34 +372,6 @@ Result<void> ItemModelLoader::_parseElements(UnbakedItemModel& model, const nloh
     }
 
     return Result<void>::ok();
-}
-
-ItemModelType ItemModelLoader::_determineModelType(const ResourceLocation& parent, bool hasElements) const
-{
-    std::string parentPath = parent.path();
-
-    // 检查父模型类型
-    if (parentPath == "item/generated" || parentPath.find("generated") != std::string::npos) {
-        return ItemModelType::Generated;
-    }
-
-    if (parentPath == "item/handheld" || parentPath == "item/handheld_rod" ||
-        parentPath.find("handheld") != std::string::npos) {
-        return ItemModelType::Handheld;
-    }
-
-    // 方块物品
-    if (parentPath.find("block/") != std::string::npos) {
-        return ItemModelType::Block;
-    }
-
-    // 有 elements 但不是以上类型，视为自定义 3D 模型
-    if (hasElements) {
-        return ItemModelType::Custom;
-    }
-
-    // 默认为平面图标
-    return ItemModelType::Generated;
 }
 
 Result<BakedItemModel> ItemModelLoader::bakeModel(const ResourceLocation& location)
