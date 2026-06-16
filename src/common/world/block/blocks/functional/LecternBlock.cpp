@@ -232,12 +232,13 @@ ActionResultType LecternBlock::onBlockActivated(const BlockState& state,
                         pos.center(),
                         1.0f,
                         1.0f);
+                    return ActionResultType::Success;
                 }
             }
         }
     }
 
-    return ActionResultType::Consume;
+    return ActionResultType::Pass;
 }
 
 void LecternBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)

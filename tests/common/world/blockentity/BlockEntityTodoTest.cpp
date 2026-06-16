@@ -42,6 +42,7 @@
 #include "world/block/blocks/HopperBlock.hpp"
 #include "world/block/blocks/TrappedChestBlock.hpp"
 #include "world/block/blocks/functional/BarrelBlock.hpp"
+#include "world/block/blocks/functional/LecternBlock.hpp"
 #include "world/blockentity/interactive/EnchantingTableEntity.hpp"
 #include "world/blockentity/interactive/LecternEntity.hpp"
 #include "world/blockentity/interactive/PistonBlockEntity.hpp"
@@ -1188,4 +1189,98 @@ TEST(BlockEntityTodoTest, LecternEntityCloseCountDoesNotGoBelowZero)
     // 关闭次数超过打开次数时不应变为负数
     lectern.closeContainer();
     EXPECT_EQ(lectern.getOpenCount(), 0);
+}
+
+// ============================================================================
+// LecternBlock::tryPlaceBook 集成测试
+// ============================================================================
+
+TEST_F(BlockEntityTodoTestHelper, LecternBlockTryPlaceBookSetsEntityBook)
+{
+    VanillaBlocks::initialize();
+    Items::initialize();
+
+    DummyWorld world;
+
+    // 创建讲台方块状态
+    static const blocks::LecternBlock s_lecternBlock(BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
+    const BlockState* lecternState = &s_lecternBlock.defaultState();
+    world.setBlockState(3, 10, 5, lecternState);
+
+    // 创建讲台方块实体
+    auto lecternEntity = std::make_unique<blockentity::LecternEntity>(BlockPos(3, 10, 5));
+    blockentity::LecternEntity* lecternPtr = lecternEntity.get();
+    lecternEntity->setWorld(&world);
+    world.setBlockEntity(BlockPos(3, 10, 5), lecternPtr);
+
+    // 讲台初始无书
+    EXPECT_FALSE(lecternPtr->hasBook());
+
+    // 使用 book 物品放书
+    const Item* bookItem = Items::BOOK;
+    ASSERT_NE(bookItem, nullptr);
+    ItemStack bookStack(*bookItem, 3);
+
+    // 获取可修改的方块状态引用
+    BlockState mutableState = *lecternState;
+    bool result = blocks::LecternBlock::tryPlaceBook(world, BlockPos(3, 10, 5), bookStack);
+
+    EXPECT_TRUE(result);
+    EXPECT_TRUE(lecternPtr->hasBook());
+
+    // tryPlaceBook 不负责消耗物品，调用方负责
+    EXPECT_EQ(bookStack.getCount(), 3);
+}
+
+TEST_F(BlockEntityTodoTestHelper, LecternBlockTryPlaceBookFailsWhenBookAlreadyPresent)
+{
+    VanillaBlocks::initialize();
+    Items::initialize();
+
+    DummyWorld world;
+
+    static const blocks::LecternBlock s_lecternBlock(BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
+    const BlockState* lecternState = &s_lecternBlock.defaultState();
+    world.setBlockState(7, 20, 3, lecternState);
+
+    auto lecternEntity = std::make_unique<blockentity::LecternEntity>(BlockPos(7, 20, 3));
+    blockentity::LecternEntity* lecternPtr = lecternEntity.get();
+    lecternEntity->setWorld(&world);
+    world.setBlockEntity(BlockPos(7, 20, 3), lecternPtr);
+
+    // 先放一本书
+    const Item* bookItem = Items::BOOK;
+    ItemStack firstBook(*bookItem, 1);
+    lecternPtr->setBook(firstBook);
+    ASSERT_TRUE(lecternPtr->hasBook());
+
+    // 尝试再放一本应该失败
+    ItemStack secondBook(*bookItem, 1);
+    // 设置HAS_BOOK状态
+    BlockState hasBookState = lecternState->with(BlockStateProperties::HAS_BOOK(), true);
+    world.setBlockState(7, 20, 3, &hasBookState);
+
+    bool result = blocks::LecternBlock::tryPlaceBook(world, BlockPos(7, 20, 3), secondBook);
+    EXPECT_FALSE(result);
+}
+
+TEST_F(BlockEntityTodoTestHelper, LecternBlockTryPlaceBookFailsWithEmptyStack)
+{
+    VanillaBlocks::initialize();
+    Items::initialize();
+
+    DummyWorld world;
+
+    static const blocks::LecternBlock s_lecternBlock(BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
+    const BlockState* lecternState = &s_lecternBlock.defaultState();
+    world.setBlockState(0, 0, 0, lecternState);
+
+    auto lecternEntity = std::make_unique<blockentity::LecternEntity>(BlockPos(0, 0, 0));
+    lecternEntity->setWorld(&world);
+    world.setBlockEntity(BlockPos(0, 0, 0), lecternEntity.get());
+
+    // 空物品堆应该失败
+    ItemStack emptyStack;
+    bool result = blocks::LecternBlock::tryPlaceBook(world, BlockPos(0, 0, 0), emptyStack);
+    EXPECT_FALSE(result);
 }
