@@ -205,8 +205,9 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
         }
     }
 
-    // 未命中缓存的默认回退：根据玩家皮肤类型返回对应的默认皮肤
-    // 如果能获取玩家信息，根据皮肤类型选择 Alex（Slim）或 Steve（Default）
+    // TODO: MC 1.21.1 有 18 种默认皮肤（9 slim + 9 wide），通过 UUID 哈希选择。
+    // 当前项目仅支持 Steve（wide）和 Alex（slim）2 种默认皮肤，
+    // 需要扩展 DefaultSkinProvider 支持 18 种皮肤并通过 UUID 哈希选择。
     if (info && info->getSkinType() == ::mc::skin::SkinType::Slim) {
         return ResourceLocation("minecraft:textures/entity/player/slim/alex.png");
     }

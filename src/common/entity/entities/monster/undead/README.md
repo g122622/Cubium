@@ -82,6 +82,7 @@ Entity
 1. **setCombatTask() 调用时机**：`registerGoals()` 只注册非战斗目标，`setCombatTask()` 在构造函数末尾调用，根据装备动态添加战斗目标
 2. **战斗目标优先级**：战斗目标使用优先级 4（`COMBAT_GOAL_PRIORITY`），确保非战斗目标（游泳、看向等）优先执行
 3. **WitherSkeletonEntity 特殊处理**：凋灵骷髅重写 `setCombatTask()` 强制使用近战，因为默认生成时持石剑
+4. **远程箭矢伤害**：骷髅类使用 `arrow->setBaseDamageFromMob(charge)` 设置箭矢伤害，公式为 `power * 2.0 + triangle(difficulty * 0.11, 0.57425)`，与 AbstractArrowEntity 基类保持一致。不调用 `applyBowEnchantments()`，因为生物射出的箭矢不应有弓类附魔效果。
 
 ### 僵尸类溺水转化
 

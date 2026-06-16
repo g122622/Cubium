@@ -159,7 +159,14 @@ Entity (core/Entity.hpp)
 | 钓到鱼 | 1 |
 | 落地 | 2 |
 
-### 6. 箭矢拾取条件
+### 6. 箭矢伤害计算
+
+箭矢伤害由两个独立方法控制：
+
+- **`setBaseDamageFromMob(f32 power)`**：生物射出箭矢时调用，公式为 `power * 2.0 + triangle(difficulty * 0.11, 0.57425)`。骷髅、幻术师等怪物射箭时使用此方法。三叉戟重写此方法使用相同公式但默认伤害更高（8.0）。
+- **`applyBowEnchantments(LivingEntity& shooter)`**：玩家射出箭矢时调用，读取射手主手武器的附魔等级：力量（每级 +0.5 伤害 + 基础 0.5）、冲击（每级 +1 击退强度）、火焰（着火 100 ticks）。BowItem 中调用此方法，怪物射箭不调用。
+
+### 7. 箭矢拾取条件
 
 箭矢拾取需要满足：
 - 必须插在方块中或处于穿甲状态（noClip）
@@ -167,18 +174,18 @@ Entity (core/Entity.hpp)
 - PickupStatus 必须允许拾取
 - Allowed 状态会检查背包空间，CreativeOnly 状态不检查背包
 
-### 7. 投掷物发射者追踪
+### 8. 投掷物发射者追踪
 
 投掷物同时存储发射者的 UUID 和 Entity ID，用于跨区块追踪。投掷物需要离开发射者的碰撞箱才能伤害发射者。
 
-### 8. 箭矢计数系统
+### 9. 箭矢计数系统
 
 箭矢命中生物实体时会增加目标身上的箭矢计数：
 - 只有非穿透箭（`pierceLevel <= 0`）才增加计数
 - 穿透箭会记录已穿透的实体 ID，避免重复命中
 - 箭矢计数用于渲染层 `ArrowLayer` 显示插在身上的箭矢
 
-### 9. 随机数生成规范
+### 10. 随机数生成规范
 
 所有投掷物的随机数必须使用 `mc::math::Random`，严禁使用 `rand()` 或 `mt19937`：
 ```cpp
@@ -190,14 +197,14 @@ f32 g = rng.nextGaussian(0.0, 1.0); // 正态分布
 
 发射时使用 `world->getRandom().nextGaussian()` 计算散布精度，符合 MC 1.16.5 投掷物不精确度计算：`inaccuracy * 0.0075 * nextGaussian()`。
 
-### 10. 投射物传送门处理
+### 11. 投射物传送门处理
 
 `ThrowableEntity::tick()` 实现投射物的传送门检测逻辑：
 - 下界传送门（NETHER_PORTAL）：设置 `setInPortal(true)` 和 `setPortalPos()`
 - 末地折跃门（END_GATEWAY）：调用 `EndGatewayEntity::teleportEntity()` 立即传送
 - 末地传送门（END_PORTAL）：由 `EndPortalBlock.onEntityCollision()` 直接传送
 
-### 11. 重力和阻力系数
+### 12. 重力和阻力系数
 
 | 投掷物类型 | 重力 | 空气阻力 | 水中阻力 |
 |-----------|------|---------|---------|
@@ -205,7 +212,7 @@ f32 g = rng.nextGaussian(0.0, 1.0); // 正态分布
 | AbstractArrowEntity | 0.05 | 0.99 | 0.6 |
 | DamagingProjectileEntity | 0.0 | - | - |
 
-### 12. 碰撞检测
+### 13. 碰撞检测
 
 投掷物使用射线追踪进行碰撞检测：
 1. **方块碰撞**：通过 `rayTraceBlocks` 检测与方块的碰撞

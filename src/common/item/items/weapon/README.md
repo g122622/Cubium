@@ -58,7 +58,11 @@ FishingRodItem → FishingBobberEntity
 
 弓的最小发射阈值是速度 >= 0.1（约 3 tick），而不是 0。过早松开右键不会发射箭矢。速度计算公式 `f = charge / 20.0; velocity = (f * f + f * 2.0) / 3.0`。
 
-### 2. 弩 NBT 结构
+### 2. 弓附魔委托
+
+BowItem 通过 `arrow->applyBowEnchantments(shooter)` 将附魔效果委托给 AbstractArrowEntity 处理，而非在 BowItem 中内联处理。该方法读取射手主手武器的附魔等级并应用到箭矢：力量（每级 +0.5 伤害 + 基础 0.5）、冲击（每级 +1 击退强度）、火焰（着火 100 ticks）。
+
+### 3. 弩 NBT 结构
 
 弩使用 `Charged` 布尔值存储装填状态，使用 `ChargedProjectiles` 数组存储已装填的弹丸。发射后需要清除这些标签，否则会残留旧数据。
 

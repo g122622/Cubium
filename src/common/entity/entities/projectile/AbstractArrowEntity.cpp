@@ -356,10 +356,7 @@ void AbstractArrowEntity::onBlockHit(const RayTraceResult& result)
 
 void AbstractArrowEntity::setBaseDamageFromMob(f32 power)
 {
-    // 对应 MC AbstractArrow.setBaseDamageFromMob()
-    // 公式：power * 2.0 + random.triangle(difficulty * 0.11, 0.57425)
-    // random.triangle(mode, spread) = mode + (random.nextFloat() - random.nextFloat()) * spread
-    // 即以 mode 为中心，spread 为半宽的三角分布
+    // 公式：power * 2.0 + triangle(difficulty * 0.11, 0.57425)
     math::Random rng = createRandomFromEntity(*this);
     f32 difficultyBonus = m_world ? static_cast<f32>(static_cast<u8>(m_world->difficulty())) * 0.11f : 0.0f;
     f32 triangle = difficultyBonus + (rng.nextFloat() - rng.nextFloat()) * 0.57425f;
@@ -490,8 +487,7 @@ std::unique_ptr<ArrowEntity> ArrowEntity::createFromShooter(LivingEntity& shoote
     arrow->setPosition(shooter.x(), shooter.y() + shooter.eyeHeight() - 0.1f, shooter.z());
     arrow->setShooter(&shooter);
 
-    // MC 原版：玩家射出的箭默认允许拾取（AbstractArrow.setOwner 在 owner 为 Player 时
-    // 将 pickup 从 DISALLOWED 改为 ALLOWED）
+    // 玩家射出的箭默认允许拾取，非玩家射出的箭默认不允许拾取
     Player* player = dynamic_cast<Player*>(&shooter);
     if (player != nullptr) {
         arrow->setPickupStatus(PickupStatus::Allowed);

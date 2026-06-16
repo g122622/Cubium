@@ -86,8 +86,7 @@ void AbstractSkeletonEntity::attackEntityWithRangedAttack(LivingEntity* target, 
     i32 difficultyId = static_cast<i32>(world()->difficulty());
     f32 inaccuracy = static_cast<f32>(14 - difficultyId * 4);
 
-    // 使用 MC 原版的生物箭矢伤害公式设置基础伤害
-    // 对应 MC AbstractArrow.setBaseDamageFromMob(charge)
+    // 使用生物箭矢伤害公式设置基础伤害
     arrow->setBaseDamageFromMob(charge);
 
     // 发射箭矢：速度固定为 1.6F，Y轴补偿 horizontalDist * 0.2 用于抛物线弹道

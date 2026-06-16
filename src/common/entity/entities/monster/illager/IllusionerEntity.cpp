@@ -80,7 +80,7 @@ void IllusionerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 ch
     i32 difficulty = static_cast<i32>(world()->difficulty());
     f32 inaccuracy = static_cast<f32>(14 - difficulty * 4);
 
-    // 使用 MC 原版的生物箭矢伤害公式设置基础伤害
+    // 使用生物箭矢伤害公式设置基础伤害
     arrow->setBaseDamageFromMob(charge);
 
     // 发射箭矢

@@ -179,8 +179,7 @@ void BowItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity
     }
 
     // 消耗箭矢（非无限、非创造）
-    // 参考 MC 原版 ProjectileWeaponItem.useAmmo()：使用 PlayerInventory::removeItem()
-    // 直接操作背包槽位，正确处理数量减少和空堆清理
+    // 使用 PlayerInventory::removeItem() 直接操作背包槽位
     if (!infiniteArrow && !isCreative && ammoSlot >= 0) {
         player->inventory().removeItem(ammoSlot, 1);
     }
