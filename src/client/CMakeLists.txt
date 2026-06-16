@@ -244,7 +244,6 @@ add_executable(minecraft-client
     sound/backend/AudioBuffer.cpp
     sound/backend/OpenALBackend.cpp
     sound/instance/SoundInstance.cpp
-    sound/instance/BeeSound.cpp
     sound/instance/ElytraSound.cpp
     sound/instance/UnderwaterLoopSound.cpp
     sound/instance/MinecartSound.cpp

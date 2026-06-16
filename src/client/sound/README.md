@@ -28,7 +28,6 @@ src/client/sound/
 ├── instance/                     # 声音实例定义
 │   ├── ISoundInstance.hpp
 │   ├── SoundInstance.hpp/cpp     # 包含 TickableSound 基类
-│   ├── BeeSound.hpp/cpp
 │   ├── ElytraSound.hpp/cpp
 │   ├── UnderwaterLoopSound.hpp/cpp
 │   └── MinecartSound.hpp/cpp
@@ -76,6 +75,7 @@ src/client/sound/
 - **水下音乐生物群系检查**：水下音乐（`MusicType::Underwater`）仅在海洋或河流生物群系中播放，通过 `BiomeTags::IS_OCEAN()` 和 `BiomeTags::IS_RIVER()` 标签判断。判断结果由主线程计算后通过 `AudioService::updateMusicState()` 传递到音频线程
 - **菜单状态判断**：菜单状态通过 `ScreenManager::instance().hasScreen()` 判断，需在 UI 更新后调用
 - **实体声音跨线程**：TickableSound 子类不直接引用 ClientEntity，而是通过 `EntitySoundState` 状态快照获取实体信息，避免跨线程访问
+- **蜜蜂声音切换**：蜜蜂飞行/愤怒声音的切换由 EntitySoundHandler 内嵌的 `BeeSoundBase` 实现，不使用旧版 `BeeSound`（已移除）。切换流程：`BeeSoundBase::tick()` 检测愤怒状态变化 -> `markDone()` -> `EntitySoundHandler::tick()` 检测 isDone() -> 根据当前状态重建声音并立即播放，实现同帧无缝切换
 - **高度常量**：使用 `mc::world::SEA_LEVEL` 而非硬编码 63
 
 ## 接入原则

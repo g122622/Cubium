@@ -433,11 +433,9 @@ void SoundEngine::setVolume(SoundCategory category, f32 volume)
     for (SoundInstanceId id : ids) {
         auto it = m_channels.find(id);
         if (it != m_channels.end()) {
-            const ISoundInstance* sound = m_pool.get(id);
-            // TODO: m_pool.get() 对活动通道理论上不应返回空，但暂时保留空指针检查以确保安全
-            if (sound) {
-                it->second.source->setGain(_calculateVolume(*sound));
-            }
+            ISoundInstance* sound = m_pool.get(id);
+            MC_ASSERT_RELEASE(sound != nullptr);
+            it->second.source->setGain(_calculateVolume(*sound));
         }
     }
 }

@@ -47,7 +47,10 @@ constexpr u32 RIDING_SOUND_KEY_MASK = 0x80000000;
 /**
  * @brief 蜜蜂飞行声音基类
  *
- * 支持通过 EntitySoundHandler 查询最新状态
+ * 支持通过 EntitySoundHandler 查询最新状态。
+ * 声音切换流程：当愤怒状态变化时调用 markDone()，EntitySoundHandler::tick()
+ * 检测到 isDone() 后根据当前状态重新创建对应类型的声音并立即播放。
+ * 这比 MC 原版的 playOnNextTick 方案更优——新声音在同一帧内就播放，无间隙。
  */
 class BeeSoundBase : public TickableSound {
 public:
@@ -135,10 +138,8 @@ public:
 protected:
     void switchSound() override
     {
-        // 切换到愤怒声音
-        // 注意：这里不能直接创建新声音，需要通过 SoundEngine::playOnNextTick
-        // 但由于 TickableSound 没有访问 SoundEngine 的权限，
-        // 我们标记为完成，EntitySoundHandler 会在下一 tick 检测并创建新声音
+        // 标记当前声音完成，EntitySoundHandler::tick() 会在同一帧内
+        // 检测到 isDone() 并根据当前 isAngry 状态创建 BeeAngrySoundStateful
         markDone();
         m_needsSwitch = true;
     }
@@ -162,7 +163,8 @@ public:
 protected:
     void switchSound() override
     {
-        // 切换回飞行声音
+        // 标记当前声音完成，EntitySoundHandler::tick() 会在同一帧内
+        // 检测到 isDone() 并根据当前 isAngry 状态创建 BeeFlightSoundStateful
         markDone();
         m_needsSwitch = true;
     }
@@ -432,9 +434,11 @@ void EntitySoundHandler::tick(SoundEngine& engine)
         }
     }
 
-    // 检查声音切换（蜜蜂愤怒状态变化）
-    // 由于 TickableSound::tick() 已经在 SoundEngine::tick() 中被调用，
-    // 我们需要检查是否有声音因为状态切换而完成
+    // 检查声音切换（蜜蜂愤怒状态变化等）
+    // 当 TickableSound 检测到状态变化时调用 markDone()，
+    // EntitySoundHandler 在此检测 isDone() 并根据当前状态重新创建声音
+    // 由于此代码在 SoundEngine::tick() 的活动声音更新之后执行，
+    // 新声音在同一帧内就播放，实现了无缝切换
     for (auto it = m_activeSounds.begin(); it != m_activeSounds.end();) {
         EntityId entityId = it->first;
         SoundInstanceId soundId = it->second;
@@ -453,8 +457,7 @@ void EntitySoundHandler::tick(SoundEngine& engine)
 
                 // 如果实体类型是蜜蜂，检查是否需要切换
                 if (typeId == "minecraft:bee" && !state.isRemoved) {
-                    // 声音完成，可能是因为状态切换
-                    // 重新创建声音（根据当前愤怒状态）
+                    // 蜜蜂声音因愤怒状态切换而完成，根据当前状态重建
                     it = m_activeSounds.erase(it);
                     lock.unlock();
                     _checkAndCreateSound(engine, entityId, typeId);
