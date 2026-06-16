@@ -1426,7 +1426,7 @@ void StrongholdPortalRoom::generate(
                 BlockPos spawnerPos(spawnerX, spawnerY, spawnerZ);
                 BlockEntity* blockEntity = iworld->getBlockEntity(spawnerPos);
                 if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::MobSpawner) {
-                    // TODO(trial_chambers): MobSpawnerBlockEntity 尚未实现，待实现后取消注释以下代码
+                    // TODO(stronghold): MobSpawnerBlockEntity 尚未实现，待实现后取消注释以下代码
                     // auto* mobSpawner = static_cast<blockentity::MobSpawnerBlockEntity*>(blockEntity);
                     // mobSpawner->setEntityType(EntityType::SILVERFISH, rng);
                 }

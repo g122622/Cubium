@@ -595,6 +595,8 @@ public:
         Direction direction,
         i32 depth);
 
+    [[nodiscard]] bool isLargeRoom() const { return m_isLargeRoom; }
+
 private:
     bool m_isLargeRoom;
 };
