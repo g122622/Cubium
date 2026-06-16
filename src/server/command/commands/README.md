@@ -17,7 +17,7 @@ src/server/command/commands/
 ├── GiveCommand.hpp / GiveCommand.cpp             # 发放物品
 ├── HelpCommand.hpp / HelpCommand.cpp             # 展示命令帮助
 ├── KickCommand.hpp / KickCommand.cpp             # 踢出在线玩家
-├── KillCommand.hpp / KillCommand.cpp             # 杀死实体或自己
+├── KillCommand.hpp / KillCommand.cpp             # 杀死实体或自己（使用 EntityResolver 支持所有实体类型）
 ├── ListCommand.hpp / ListCommand.cpp             # 列出在线玩家
 ├── SayCommand.hpp / SayCommand.cpp               # 广播聊天消息
 ├── ReplaceItemCommand.hpp / ReplaceItemCommand.cpp  # 替换物品栏/容器槽位物品（支持槽位名称解析）
@@ -57,6 +57,7 @@ src/server/command/commands/
 - **命令元数据和实际语法要同步更新**：否则帮助输出和补全会偏离
 - **别名命令使用重定向共享命令树**：`/tp` 和 `/teleport`、`/experience` 和 `/xp` 这类别名应使用重定向
 - **目标选择器解析依赖 support 辅助函数**：不要在每个命令里重复实现
+- **EntityResolver vs PlayerResolver 选择**：需要 @e 选择器支持的命令（如 KillCommand、TagCommand、DataCommand）应使用 EntityResolver，仅处理玩家的命令可使用 PlayerResolver
 - **只读世界存储的保存命令处理**：当共享存储是外来只读世界时，`save-all` / `save-on` / `save-off` 必须显式提示"不会写入"，不能继续伪装成普通可写世界
 - **天气命令统一通过 ServerCommandSource::world() 获取世界**：使用天气管理器进行操作
 - **`/setblock destroy` 和 `/fill destroy`/`/fill hollow` 调用 spawnAfterBreak**：这些命令在替换方块时，先保存旧方块状态，设置新方块后调用 `spawnAfterBreak(nullptr, false)`，使得虫蚀方块等特殊方块能正确触发生成逻辑。`/clone move` 不调用 spawnAfterBreak（MC Java 行为：仅清空源区域）。

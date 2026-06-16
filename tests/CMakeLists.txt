@@ -532,6 +532,7 @@ add_executable(mc_tests
     server/command/GiveCommandTest.cpp
     server/command/LootCommandTest.cpp
     server/command/PlayerResolverTest.cpp
+    server/command/EntityResolverTest.cpp
     server/command/MessageCommandTest.cpp
     server/command/TellRawCommandTest.cpp
     server/command/ExperienceCommandTest.cpp
@@ -1684,6 +1685,7 @@ add_executable(mc_command_tests
     server/command/CommandStorageTest.cpp
     server/command/EntityDataAccessorEffectTest.cpp
     server/command/PlayerResolverTest.cpp
+    server/command/EntityResolverTest.cpp
     server/command/StopSoundCommandTest.cpp
     server/command/SpreadPlayersCommandTest.cpp
     server/command/SpreadAlgorithmTest.cpp
