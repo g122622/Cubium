@@ -26,9 +26,9 @@
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../world/block/blocks/decorative/CampfireBlock.hpp"
 #include "../../core/LivingEntity.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::pathfinding {
@@ -68,8 +68,7 @@ PathNodeType WalkNodeProcessor::getNodeType(i32 x, i32 y, i32 z)
         }
 
         // 甜浆果丛 - 直接站在甜浆果丛上（DAMAGE_OTHER）
-        Block* sweetBerryBush = Block::getBlock(ResourceLocation("minecraft", "sweet_berry_bush"));
-        if (sweetBerryBush != nullptr && &block == sweetBerryBush) {
+        if (VanillaBlocks::SWEET_BERRY_BUSH != nullptr && &block == VanillaBlocks::SWEET_BERRY_BUSH) {
             return PathNodeType::DamageOther;
         }
 
@@ -145,8 +144,8 @@ PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z)
                     }
 
                     // 甜浆果丛相邻 - DANGER_BERRY
-                    Block* sweetBerryBush = Block::getBlock(ResourceLocation("minecraft", "sweet_berry_bush"));
-                    if (sweetBerryBush != nullptr && &neighborBlock == sweetBerryBush) {
+                    if (VanillaBlocks::SWEET_BERRY_BUSH != nullptr &&
+                        &neighborBlock == VanillaBlocks::SWEET_BERRY_BUSH) {
                         return PathNodeType::DangerBerry;
                     }
 
@@ -443,9 +442,7 @@ bool WalkNodeProcessor::isDangerous(i32 x, i32 y, i32 z) const
 
     // 7. 甜浆果丛（SWEET_BERRY_BUSH）
     // 接触会造成伤害和减速
-    // 由于甜浆果丛在 VanillaBlocks 中尚未注册，暂时通过 ResourceLocation 查找
-    Block* sweetBerryBush = Block::getBlock(ResourceLocation("minecraft", "sweet_berry_bush"));
-    if (sweetBerryBush != nullptr && &block == sweetBerryBush) {
+    if (VanillaBlocks::SWEET_BERRY_BUSH != nullptr && &block == VanillaBlocks::SWEET_BERRY_BUSH) {
         return true;
     }
 

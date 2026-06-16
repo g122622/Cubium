@@ -1001,6 +1001,29 @@ TEST(BlockRegistryTest, VegetationBlocksRegistration)
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:fern")), nullptr);
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:dandelion")), nullptr);
     EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:poppy")), nullptr);
+
+    // 甜浆果丛 - 验证注册成功
+    EXPECT_NE(VanillaBlocks::SWEET_BERRY_BUSH, nullptr);
+    EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:sweet_berry_bush")), nullptr);
+}
+
+TEST(BlockRegistryTest, AgriculturalBlocksRegistration)
+{
+    VanillaBlocks::initialize();
+
+    // 验证农作物方块已注册
+    EXPECT_NE(VanillaBlocks::WHEAT, nullptr);
+    EXPECT_NE(VanillaBlocks::CARROTS, nullptr);
+    EXPECT_NE(VanillaBlocks::POTATOES, nullptr);
+    EXPECT_NE(VanillaBlocks::BEETROOTS, nullptr);
+    EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:wheat")), nullptr);
+    EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:carrots")), nullptr);
+    EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:potatoes")), nullptr);
+    EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:beetroots")), nullptr);
+
+    // 可可豆 - 验证注册成功
+    EXPECT_NE(VanillaBlocks::COCOA, nullptr);
+    EXPECT_NE(BlockRegistry::instance().getBlock(ResourceLocation("minecraft:cocoa")), nullptr);
 }
 
 TEST(BlockRegistryTest, NetherBlocksRegistration)

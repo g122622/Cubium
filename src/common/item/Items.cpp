@@ -1779,7 +1779,8 @@ void Items::_registerDyes()
 
     GREEN_DYE = &registry.registerItem(ResourceLocation("minecraft:green_dye"), ItemProperties().maxStackSize(64));
 
-    COCOA_BEANS = &registry.registerItem(ResourceLocation("minecraft:cocoa_beans"), ItemProperties().maxStackSize(64));
+    COCOA_BEANS =
+        &registerBlockBackedItem(registry, VanillaBlocks::COCOA, "cocoa_beans", ItemProperties().maxStackSize(64));
 
     LAPIS_LAZULI_DYE =
         &registry.registerItem(ResourceLocation("minecraft:lapis_lazuli_dye"), ItemProperties().maxStackSize(64));

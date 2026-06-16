@@ -839,3 +839,31 @@ TEST_F(FireInfoRegistryTest, Block_FireMethods_QueryRegistry)
     EXPECT_EQ(stoneState.getFlammability(), 0);
     EXPECT_EQ(stoneState.getFireSpreadSpeed(), 0);
 }
+
+TEST_F(FireInfoRegistryTest, AgriculturalAndVegetationBlockFireInfo)
+{
+    // 甜浆果丛：ignite=60, burn=100（IGNITE_INSTANT=60, BURN_INSTANT=100）
+    const BlockState& sweetBerryState = VanillaBlocks::SWEET_BERRY_BUSH->defaultState();
+    EXPECT_EQ(sweetBerryState.getFlammability(), 100);
+    EXPECT_EQ(sweetBerryState.getFireSpreadSpeed(), 60);
+
+    // 可可豆：ignite=60, burn=0（IGNITE_INSTANT=60, 可被点燃但不蔓延）
+    const BlockState& cocoaState = VanillaBlocks::COCOA->defaultState();
+    EXPECT_EQ(cocoaState.getFlammability(), 0);
+    EXPECT_EQ(cocoaState.getFireSpreadSpeed(), 60);
+
+    // 小麦：ignite=60, burn=0（IGNITE_INSTANT=60）
+    const BlockState& wheatState = VanillaBlocks::WHEAT->defaultState();
+    EXPECT_EQ(wheatState.getFlammability(), 0);
+    EXPECT_EQ(wheatState.getFireSpreadSpeed(), 60);
+
+    // 南瓜茎：ignite=60, burn=0
+    const BlockState& pumpkinStemState = VanillaBlocks::PUMPKIN_STEM->defaultState();
+    EXPECT_EQ(pumpkinStemState.getFlammability(), 0);
+    EXPECT_EQ(pumpkinStemState.getFireSpreadSpeed(), 60);
+
+    // 甘蔗：ignite=60, burn=0
+    const BlockState& sugarCaneState = VanillaBlocks::SUGAR_CANE->defaultState();
+    EXPECT_EQ(sugarCaneState.getFlammability(), 0);
+    EXPECT_EQ(sugarCaneState.getFireSpreadSpeed(), 60);
+}
