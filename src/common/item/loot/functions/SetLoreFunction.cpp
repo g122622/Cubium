@@ -22,9 +22,9 @@
  */
 
 #include "SetLoreFunction.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertMacros.hpp"
-#include "common/core/Types.hpp"
 
 namespace mc {
 namespace loot {
@@ -53,7 +53,7 @@ ItemStack SetLoreFunction::apply(ItemStack stack, LootContext& context) const
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetLoreFunction::clone() const
+std::unique_ptr<LootFunction> SetLoreFunction::clone() const noexcept
 {
     auto func = std::make_unique<SetLoreFunction>(m_lore, m_replace);
     for (const auto& cond : m_conditions) {

@@ -66,7 +66,7 @@ ItemStack SetDamageFunction::apply(ItemStack stack, LootContext& context) const
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetDamageFunction::clone() const
+std::unique_ptr<LootFunction> SetDamageFunction::clone() const noexcept
 {
     auto func = std::make_unique<SetDamageFunction>(m_durability, m_add);
     for (const auto& cond : m_conditions) {

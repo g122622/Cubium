@@ -45,7 +45,7 @@ public:
     explicit ToolTypeCondition(u8 toolType);
 
     [[nodiscard]] bool test(LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
     [[nodiscard]] std::string getType() const noexcept override { return "match_tool"; }
 
     [[nodiscard]] u8 getToolType() const noexcept { return m_toolType; }

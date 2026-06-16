@@ -49,7 +49,7 @@ public:
     explicit FortuneCondition(i32 minLevel = 0);
 
     [[nodiscard]] bool test(LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "fortune"; }
 
     /**

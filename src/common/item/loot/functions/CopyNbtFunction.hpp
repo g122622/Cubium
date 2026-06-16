@@ -93,7 +93,7 @@ public:
     void addOperation(const std::string& sourcePath, const std::string& targetPath, Operation operation);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
     [[nodiscard]] std::string getType() const noexcept override { return "copy_nbt"; }
 
     [[nodiscard]] Source getSource() const noexcept { return m_source; }

@@ -36,7 +36,7 @@ bool FortuneCondition::test(LootContext& context) const
     return fortuneLevel >= m_minLevel;
 }
 
-std::unique_ptr<LootCondition> FortuneCondition::clone() const
+std::unique_ptr<LootCondition> FortuneCondition::clone() const noexcept
 {
     return std::make_unique<FortuneCondition>(m_minLevel);
 }

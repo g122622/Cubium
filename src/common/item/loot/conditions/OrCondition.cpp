@@ -39,7 +39,7 @@ bool OrCondition::test(LootContext& context) const
         [&context](const std::unique_ptr<LootCondition>& cond) { return cond && cond->test(context); });
 }
 
-std::unique_ptr<LootCondition> OrCondition::clone() const
+std::unique_ptr<LootCondition> OrCondition::clone() const noexcept
 {
     // 深拷贝所有子条件
     std::vector<std::unique_ptr<LootCondition>> cloned;

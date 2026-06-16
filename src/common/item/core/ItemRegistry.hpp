@@ -23,11 +23,9 @@
 
 #pragma once
 
-// TODO: include路径应改为 "common/core/Types.hpp" 和 "common/resource/ResourceLocation.hpp"
-// 但由于Item.hpp也使用了相同的相对路径模式，为保持项目内一致性，暂不修改
-#include "../../core/Types.hpp"
-#include "../../resource/ResourceLocation.hpp"
 #include "Item.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <functional>
 #include <memory>
 #include <optional>

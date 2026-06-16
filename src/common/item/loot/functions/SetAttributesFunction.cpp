@@ -83,7 +83,7 @@ ItemStack SetAttributesFunction::apply(ItemStack stack, LootContext& context) co
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetAttributesFunction::clone() const
+std::unique_ptr<LootFunction> SetAttributesFunction::clone() const noexcept
 {
     auto func = std::make_unique<SetAttributesFunction>();
     func->m_modifiers = m_modifiers;

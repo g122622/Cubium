@@ -23,15 +23,11 @@
 
 #pragma once
 
-// TODO: include 路径使用了 ../.. 形式，违反代码规范。
-// 应改为从 src/ 目录开始的绝对路径，如 "common/core/Types.hpp"。
-// 但这需要同时修改所有依赖此头文件的源文件，暂不处理。
-
-#include "../../core/Types.hpp"
-#include "../../physics/collision/CollisionShape.hpp"
-#include "../../resource/ResourceLocation.hpp"
-#include "../../util/property/StateHolder.hpp"
-#include "world/map/MaterialColor.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/map/MaterialColor.hpp"
 #include <memory>
 #include <unordered_map>
 

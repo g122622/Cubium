@@ -120,7 +120,7 @@ ItemStack CopyNbtFunction::apply(ItemStack stack, LootContext& context) const
     return stack;
 }
 
-std::unique_ptr<LootFunction> CopyNbtFunction::clone() const
+std::unique_ptr<LootFunction> CopyNbtFunction::clone() const noexcept
 {
     auto func = std::make_unique<CopyNbtFunction>(m_source);
     func->m_operations = m_operations;

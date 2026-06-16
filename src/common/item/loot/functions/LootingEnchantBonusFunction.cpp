@@ -58,7 +58,7 @@ ItemStack LootingEnchantBonusFunction::apply(ItemStack stack, LootContext& conte
     return stack;
 }
 
-std::unique_ptr<LootFunction> LootingEnchantBonusFunction::clone() const
+std::unique_ptr<LootFunction> LootingEnchantBonusFunction::clone() const noexcept
 {
     auto func = std::make_unique<LootingEnchantBonusFunction>(m_count, m_limit);
     for (const auto& cond : m_conditions) {

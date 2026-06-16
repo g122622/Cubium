@@ -99,7 +99,7 @@ ItemStack ExplorationMapFunction::apply(ItemStack stack, LootContext& context) c
     return mapStack;
 }
 
-std::unique_ptr<LootFunction> ExplorationMapFunction::clone() const
+std::unique_ptr<LootFunction> ExplorationMapFunction::clone() const noexcept
 {
     auto func = std::make_unique<ExplorationMapFunction>(
         m_destination, m_decoration, m_zoom, m_searchRadius, m_skipKnownStructures);

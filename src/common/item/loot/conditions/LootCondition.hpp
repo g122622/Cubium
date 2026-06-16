@@ -57,7 +57,7 @@ public:
     /**
      * @brief 创建条件副本
      */
-    [[nodiscard]] virtual std::unique_ptr<LootCondition> clone() const = 0;
+    [[nodiscard]] virtual std::unique_ptr<LootCondition> clone() const noexcept = 0;
 
     /**
      * @brief 获取条件类型标识

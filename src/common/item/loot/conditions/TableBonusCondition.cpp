@@ -59,7 +59,7 @@ bool TableBonusCondition::test(LootContext& context) const
     return context.getRandom().nextFloat() < chance;
 }
 
-std::unique_ptr<LootCondition> TableBonusCondition::clone() const
+std::unique_ptr<LootCondition> TableBonusCondition::clone() const noexcept
 {
     return std::make_unique<TableBonusCondition>(m_enchantmentId, m_chances);
 }

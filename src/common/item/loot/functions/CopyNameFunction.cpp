@@ -97,7 +97,7 @@ ItemStack CopyNameFunction::apply(ItemStack stack, LootContext& context) const
     return stack;
 }
 
-std::unique_ptr<LootFunction> CopyNameFunction::clone() const
+std::unique_ptr<LootFunction> CopyNameFunction::clone() const noexcept
 {
     auto func = std::make_unique<CopyNameFunction>(m_source);
     for (const auto& cond : m_conditions) {

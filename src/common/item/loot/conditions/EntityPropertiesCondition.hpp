@@ -73,7 +73,7 @@ public:
     EntityPropertiesCondition(EntityTarget target, advancement::EntityPredicate predicate);
 
     [[nodiscard]] bool test(LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "entity_properties"; }
 
     [[nodiscard]] EntityTarget getTarget() const noexcept { return m_target; }

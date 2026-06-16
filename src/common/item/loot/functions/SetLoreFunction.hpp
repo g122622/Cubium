@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "LootFunction.hpp"
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -47,7 +47,7 @@ public:
     explicit SetLoreFunction(const std::vector<std::string>& lore, bool replace = true);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "set_lore"; }
 
     [[nodiscard]] const std::vector<std::string>& getLore() const { return m_lore; }

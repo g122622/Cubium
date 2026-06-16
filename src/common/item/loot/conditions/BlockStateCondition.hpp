@@ -88,7 +88,7 @@ public:
     BlockStateCondition(const std::string& blockId, StatePropertiesPredicate properties);
 
     [[nodiscard]] bool test(LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "block_state_property"; }
 
     [[nodiscard]] const std::string& getBlockId() const { return m_blockId; }

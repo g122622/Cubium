@@ -38,7 +38,7 @@ bool NotCondition::test(LootContext& context) const
     return !m_condition->test(context);
 }
 
-std::unique_ptr<LootCondition> NotCondition::clone() const
+std::unique_ptr<LootCondition> NotCondition::clone() const noexcept
 {
     if (m_condition) {
         return std::make_unique<NotCondition>(m_condition->clone());

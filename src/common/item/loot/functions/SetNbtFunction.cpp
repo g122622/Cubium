@@ -59,7 +59,7 @@ ItemStack SetNbtFunction::apply(ItemStack stack, LootContext& context) const
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetNbtFunction::clone() const
+std::unique_ptr<LootFunction> SetNbtFunction::clone() const noexcept
 {
     auto func = std::make_unique<SetNbtFunction>(m_nbtString);
     for (const auto& cond : m_conditions) {

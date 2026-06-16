@@ -88,7 +88,7 @@ ItemStack CopyBlockStateFunction::apply(ItemStack stack, LootContext& context) c
     return stack;
 }
 
-std::unique_ptr<LootFunction> CopyBlockStateFunction::clone() const
+std::unique_ptr<LootFunction> CopyBlockStateFunction::clone() const noexcept
 {
     auto func = std::make_unique<CopyBlockStateFunction>(m_blockId, m_properties);
     for (const auto& cond : m_conditions) {

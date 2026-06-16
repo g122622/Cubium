@@ -45,7 +45,7 @@ public:
     explicit SetNameFunction(const std::string& name, bool replace = true);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
     [[nodiscard]] std::string getType() const noexcept override { return "set_name"; }
 
     [[nodiscard]] const std::string& getName() const noexcept { return m_name; }

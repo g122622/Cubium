@@ -43,7 +43,7 @@ bool RandomChanceCondition::test(LootContext& context) const
     return context.getRandom().nextFloat() < actualChance;
 }
 
-std::unique_ptr<LootCondition> RandomChanceCondition::clone() const
+std::unique_ptr<LootCondition> RandomChanceCondition::clone() const noexcept
 {
     return std::make_unique<RandomChanceCondition>(m_chance, m_affectedByLuck);
 }

@@ -52,7 +52,7 @@ ItemStack SetCountFunction::apply(ItemStack stack, LootContext& context) const
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetCountFunction::clone() const
+std::unique_ptr<LootFunction> SetCountFunction::clone() const noexcept
 {
     // 深拷贝函数及其条件
     auto func = std::make_unique<SetCountFunction>(m_count, m_add);

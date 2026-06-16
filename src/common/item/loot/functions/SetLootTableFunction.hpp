@@ -46,8 +46,7 @@ public:
     explicit SetLootTableFunction(const std::string& lootTableId, u64 seed = 0);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
-    // TODO: clone() 应该添加 noexcept 修饰符，但需要基类 LootFunction 也添加 noexcept
-    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "set_loot_table"; }
 
     [[nodiscard]] const std::string& getLootTableId() const { return m_lootTableId; }

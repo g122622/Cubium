@@ -207,7 +207,7 @@ public:
      * @param callback 方法回调
      * @param length 参数个数
      */
-    ClassRegistrar& method(const std::string& name, ScriptMethodCallback callback, int length = 0)
+    ClassRegistrar& method(const std::string& name, ScriptMethodCallback callback, i32 length = 0)
     {
         m_ctx.registerMethod(m_proto, name.c_str(), std::move(callback), length);
         return *this;

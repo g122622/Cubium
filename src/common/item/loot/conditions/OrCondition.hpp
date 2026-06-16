@@ -56,7 +56,7 @@ public:
      * @brief 创建条件副本
      * @return 当前条件的深拷贝
      */
-    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
 
     /**
      * @brief 获取条件类型标识

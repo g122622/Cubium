@@ -58,7 +58,7 @@ bool BlockStateCondition::test(LootContext& context) const
     return true;
 }
 
-std::unique_ptr<LootCondition> BlockStateCondition::clone() const
+std::unique_ptr<LootCondition> BlockStateCondition::clone() const noexcept
 {
     return std::make_unique<BlockStateCondition>(m_blockId, m_properties);
 }

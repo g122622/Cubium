@@ -132,11 +132,12 @@ void* QuickJSBindingContext::createObjectWithProto(void* proto, u64 classId)
     return wrapValue(obj);
 }
 
-void* QuickJSBindingContext::createFunction(ScriptMethodCallback callback, const char* name, int length)
+void* QuickJSBindingContext::createFunction(ScriptMethodCallback callback, const char* name, i32 length)
 {
     int magic = static_cast<int>(m_methodCallbacks.size());
     m_methodCallbacks.push_back(std::move(callback));
-    JSValue fn = JS_NewCFunctionMagic(m_ctx, methodTrampoline, name, length, JS_CFUNC_generic_magic, magic);
+    JSValue fn =
+        JS_NewCFunctionMagic(m_ctx, methodTrampoline, name, static_cast<int>(length), JS_CFUNC_generic_magic, magic);
     return wrapValue(fn);
 }
 
@@ -461,9 +462,9 @@ void* QuickJSBindingContext::createClassProto(u64 classId)
     return wrapValue(proto);
 }
 
-void QuickJSBindingContext::registerNativeMethod(void* proto, const char* name, void* nativeFunc, int length)
+void QuickJSBindingContext::registerNativeMethod(void* proto, const char* name, void* nativeFunc, i32 length)
 {
-    JSValue fn = JS_NewCFunction(m_ctx, reinterpret_cast<JSCFunction*>(nativeFunc), name, length);
+    JSValue fn = JS_NewCFunction(m_ctx, reinterpret_cast<JSCFunction*>(nativeFunc), name, static_cast<int>(length));
     JS_SetPropertyStr(m_ctx, unwrapValue(proto), name, fn);
 }
 
@@ -502,12 +503,13 @@ bool QuickJSBindingContext::createNativeModule(const std::string& moduleName)
     return true;
 }
 
-bool QuickJSBindingContext::exportNativeFunction(const std::string& name, void* nativeFunc, int length)
+bool QuickJSBindingContext::exportNativeFunction(const std::string& name, void* nativeFunc, i32 length)
 {
     if (!m_module || m_moduleFinalized) return false;
     auto* module = static_cast<JSModuleDef*>(m_module);
     JS_AddModuleExport(m_ctx, module, name.c_str());
-    JSValue fn = JS_NewCFunction(m_ctx, reinterpret_cast<JSCFunction*>(nativeFunc), name.c_str(), length);
+    JSValue fn =
+        JS_NewCFunction(m_ctx, reinterpret_cast<JSCFunction*>(nativeFunc), name.c_str(), static_cast<int>(length));
     JS_SetModuleExport(m_ctx, module, name.c_str(), fn);
     return true;
 }
@@ -682,12 +684,13 @@ JSValue QuickJSBindingContext::setterTrampoline(
     return JS_UNDEFINED;
 }
 
-void QuickJSBindingContext::registerMethod(void* proto, const char* name, ScriptMethodCallback callback, int length)
+void QuickJSBindingContext::registerMethod(void* proto, const char* name, ScriptMethodCallback callback, i32 length)
 {
     int magic = static_cast<int>(m_methodCallbacks.size());
     m_methodCallbacks.push_back(std::move(callback));
 
-    JSValue fn = JS_NewCFunctionMagic(m_ctx, methodTrampoline, name, length, JS_CFUNC_generic_magic, magic);
+    JSValue fn =
+        JS_NewCFunctionMagic(m_ctx, methodTrampoline, name, static_cast<int>(length), JS_CFUNC_generic_magic, magic);
     JS_SetPropertyStr(m_ctx, unwrapValue(proto), name, fn);
 }
 

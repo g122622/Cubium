@@ -59,7 +59,7 @@ public:
     /**
      * @brief 创建函数副本
      */
-    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
 
     /**
      * @brief 获取函数类型标识

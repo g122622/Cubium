@@ -57,7 +57,7 @@ bool ToolTypeCondition::test(LootContext& context) const
     return false;
 }
 
-std::unique_ptr<LootCondition> ToolTypeCondition::clone() const
+std::unique_ptr<LootCondition> ToolTypeCondition::clone() const noexcept
 {
     return std::make_unique<ToolTypeCondition>(m_toolType);
 }

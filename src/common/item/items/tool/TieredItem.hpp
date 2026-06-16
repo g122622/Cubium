@@ -23,10 +23,8 @@
 
 #pragma once
 
-// TODO: include路径应使用绝对路径风格（如 common/item/core/Item.hpp），
-// 但由于同级其他文件仍使用相对路径，为保持一致性暂不修改。
-#include "../../core/Item.hpp"
-#include "../../tier/IItemTier.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/tier/IItemTier.hpp"
 
 namespace mc {
 namespace item {

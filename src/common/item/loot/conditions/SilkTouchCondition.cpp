@@ -33,7 +33,7 @@ bool SilkTouchCondition::test(LootContext& context) const
     return silkTouchLevel != nullptr && *silkTouchLevel > 0;
 }
 
-std::unique_ptr<LootCondition> SilkTouchCondition::clone() const
+std::unique_ptr<LootCondition> SilkTouchCondition::clone() const noexcept
 {
     return std::make_unique<SilkTouchCondition>();
 }

@@ -59,7 +59,7 @@ public:
     LocationCheckCondition(advancement::LocationPredicate predicate, i32 offsetX = 0, i32 offsetY = 0, i32 offsetZ = 0);
 
     [[nodiscard]] bool test(LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
     [[nodiscard]] std::string getType() const noexcept override { return "location_check"; }
 
     [[nodiscard]] const advancement::LocationPredicate& getPredicate() const noexcept { return m_predicate; }

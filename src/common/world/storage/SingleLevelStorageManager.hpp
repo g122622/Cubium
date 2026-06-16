@@ -411,10 +411,8 @@ private:
     SingleLevelStorageConfig m_config;
     std::filesystem::path m_worldPath;
 
-    // TODO: 应该重命名为 _database() 以符合私有方法命名规范，
-    // 但这会影响 ScoreboardDataManager.cpp，需要一起修改
-    [[nodiscard]] RocksDBDatabase* database() { return m_db.get(); }
-    [[nodiscard]] const RocksDBDatabase* database() const { return m_db.get(); }
+    [[nodiscard]] RocksDBDatabase* _database() { return m_db.get(); }
+    [[nodiscard]] const RocksDBDatabase* _database() const { return m_db.get(); }
 };
 
 } // namespace mc::world::storage

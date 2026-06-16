@@ -63,7 +63,7 @@ public:
     /**
      * @brief 创建函数副本
      */
-    [[nodiscard]] virtual std::unique_ptr<LootFunction> clone() const = 0;
+    [[nodiscard]] virtual std::unique_ptr<LootFunction> clone() const noexcept = 0;
 
     /**
      * @brief 获取函数类型标识

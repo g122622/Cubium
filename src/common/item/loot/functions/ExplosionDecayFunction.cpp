@@ -57,7 +57,7 @@ ItemStack ExplosionDecayFunction::apply(ItemStack stack, LootContext& context) c
     return stack;
 }
 
-std::unique_ptr<LootFunction> ExplosionDecayFunction::clone() const
+std::unique_ptr<LootFunction> ExplosionDecayFunction::clone() const noexcept
 {
     auto func = std::make_unique<ExplosionDecayFunction>();
     for (const auto& cond : m_conditions) {

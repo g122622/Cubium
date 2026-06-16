@@ -82,7 +82,7 @@ public:
     void addModifier(const Modifier& modifier);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "set_attributes"; }
 
     [[nodiscard]] const std::vector<Modifier>& getModifiers() const { return m_modifiers; }

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <memory>
 #include "common/item/loot/conditions/LootCondition.hpp"
+#include <memory>
 #include <optional>
 
 namespace mc {
@@ -59,7 +59,7 @@ public:
     WeatherCheckCondition(std::optional<bool> raining, std::optional<bool> thundering);
 
     [[nodiscard]] bool test(LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "weather_check"; }
 
     [[nodiscard]] const std::optional<bool>& getRaining() const { return m_raining; }

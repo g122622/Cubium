@@ -67,7 +67,7 @@ public:
         BonusType bonusType = BonusType::OreDrops, i32 bonusMultiplier = 1, i32 extra = 1, f32 probability = 1.0f);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "apply_bonus"; }
 
     [[nodiscard]] BonusType getBonusType() const { return m_bonusType; }

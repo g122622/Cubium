@@ -50,7 +50,7 @@ public:
     explicit CopyBlockStateFunction(const std::string& blockId, const std::vector<std::string>& properties = {});
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "copy_block_state"; }
 
     [[nodiscard]] const std::string& getBlockId() const { return m_blockId; }

@@ -78,7 +78,7 @@ bool EntityPropertiesCondition::test(LootContext& context) const
         *entity);
 }
 
-std::unique_ptr<LootCondition> EntityPropertiesCondition::clone() const
+std::unique_ptr<LootCondition> EntityPropertiesCondition::clone() const noexcept
 {
     return std::make_unique<EntityPropertiesCondition>(m_target, m_predicate);
 }

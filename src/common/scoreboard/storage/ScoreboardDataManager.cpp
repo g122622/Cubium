@@ -134,7 +134,7 @@ Result<void> ScoreboardDataManager::saveObjective(const ScoreboardSaveData::Obje
 
     // 写入数据库
     auto key = makeObjectiveKey(objective.name);
-    auto putResult = m_storage.database()->put(world::storage::cf::SCOREBOARD, key, serializeResult.value(), true);
+    auto putResult = m_storage._database()->put(world::storage::cf::SCOREBOARD, key, serializeResult.value(), true);
     if (putResult.failed()) {
         return putResult.error();
     }
@@ -158,7 +158,7 @@ Result<std::optional<ScoreboardSaveData::ObjectiveData>> ScoreboardDataManager::
 
     // 从数据库加载
     auto key = makeObjectiveKey(name);
-    auto dataResult = m_storage.database()->get(world::storage::cf::SCOREBOARD, key);
+    auto dataResult = m_storage._database()->get(world::storage::cf::SCOREBOARD, key);
     if (dataResult.failed()) {
         if (dataResult.error().code() == ErrorCode::NotFound) {
             return std::nullopt;
@@ -193,7 +193,7 @@ Result<void> ScoreboardDataManager::deleteObjective(const std::string& name)
 
     // 从数据库删除
     auto key = makeObjectiveKey(name);
-    auto delResult = m_storage.database()->del(world::storage::cf::SCOREBOARD, key);
+    auto delResult = m_storage._database()->del(world::storage::cf::SCOREBOARD, key);
     if (delResult.failed()) {
         return delResult.error();
     }
@@ -216,7 +216,7 @@ Result<std::vector<ScoreboardSaveData::ObjectiveData>> ScoreboardDataManager::lo
     std::lock_guard<std::mutex> lock(m_cacheMutex);
 
     // 使用迭代器遍历所有目标
-    auto iter = m_storage.database()->newIterator(world::storage::cf::SCOREBOARD);
+    auto iter = m_storage._database()->newIterator(world::storage::cf::SCOREBOARD);
     if (!iter) {
         return objectives;
     }
@@ -279,7 +279,7 @@ Result<void> ScoreboardDataManager::saveScore(
 
     // 写入数据库
     auto key = makeScoreKey(objectiveName, playerName);
-    auto putResult = m_storage.database()->put(world::storage::cf::SCOREBOARD, key, serializeResult.value(), true);
+    auto putResult = m_storage._database()->put(world::storage::cf::SCOREBOARD, key, serializeResult.value(), true);
     if (putResult.failed()) {
         return putResult.error();
     }
@@ -307,7 +307,7 @@ Result<std::optional<ScoreboardSaveData::ScoreData>> ScoreboardDataManager::load
 
     // 从数据库加载
     auto key = makeScoreKey(objectiveName, playerName);
-    auto dataResult = m_storage.database()->get(world::storage::cf::SCOREBOARD, key);
+    auto dataResult = m_storage._database()->get(world::storage::cf::SCOREBOARD, key);
     if (dataResult.failed()) {
         if (dataResult.error().code() == ErrorCode::NotFound) {
             return std::nullopt;
@@ -342,7 +342,7 @@ Result<void> ScoreboardDataManager::deleteScore(const std::string& objectiveName
 
     // 从数据库删除
     auto key = makeScoreKey(objectiveName, playerName);
-    auto delResult = m_storage.database()->del(world::storage::cf::SCOREBOARD, key);
+    auto delResult = m_storage._database()->del(world::storage::cf::SCOREBOARD, key);
     if (delResult.failed()) {
         return delResult.error();
     }
@@ -371,7 +371,7 @@ Result<void> ScoreboardDataManager::deletePlayerScores(const std::string& player
     // 或者通过迭代器遍历所有分数键进行删除
 
     // 使用迭代器遍历并删除
-    auto iter = m_storage.database()->newIterator(world::storage::cf::SCOREBOARD);
+    auto iter = m_storage._database()->newIterator(world::storage::cf::SCOREBOARD);
     if (!iter) {
         return {};
     }
@@ -388,7 +388,7 @@ Result<void> ScoreboardDataManager::deletePlayerScores(const std::string& player
 
     // 批量删除
     for (const auto& key : keysToDelete) {
-        auto delResult = m_storage.database()->del(world::storage::cf::SCOREBOARD, key);
+        auto delResult = m_storage._database()->del(world::storage::cf::SCOREBOARD, key);
         if (delResult.failed()) {
             spdlog::warn("Failed to delete score: {}", delResult.error().message());
         }
@@ -414,7 +414,7 @@ Result<std::vector<ScoreboardSaveData::ScoreData>> ScoreboardDataManager::loadSc
     }
 
     // 使用迭代器遍历
-    auto iter = m_storage.database()->newIterator(world::storage::cf::SCOREBOARD);
+    auto iter = m_storage._database()->newIterator(world::storage::cf::SCOREBOARD);
     if (!iter) {
         return scores;
     }
@@ -457,7 +457,7 @@ Result<void> ScoreboardDataManager::saveTeam(const ScoreboardSaveData::TeamData&
 
     // 写入数据库
     auto key = makeTeamKey(team.name);
-    auto putResult = m_storage.database()->put(world::storage::cf::SCOREBOARD, key, serializeResult.value(), true);
+    auto putResult = m_storage._database()->put(world::storage::cf::SCOREBOARD, key, serializeResult.value(), true);
     if (putResult.failed()) {
         return putResult.error();
     }
@@ -481,7 +481,7 @@ Result<std::optional<ScoreboardSaveData::TeamData>> ScoreboardDataManager::loadT
 
     // 从数据库加载
     auto key = makeTeamKey(name);
-    auto dataResult = m_storage.database()->get(world::storage::cf::SCOREBOARD, key);
+    auto dataResult = m_storage._database()->get(world::storage::cf::SCOREBOARD, key);
     if (dataResult.failed()) {
         if (dataResult.error().code() == ErrorCode::NotFound) {
             return std::nullopt;
@@ -516,7 +516,7 @@ Result<void> ScoreboardDataManager::deleteTeam(const std::string& name)
 
     // 从数据库删除
     auto key = makeTeamKey(name);
-    auto delResult = m_storage.database()->del(world::storage::cf::SCOREBOARD, key);
+    auto delResult = m_storage._database()->del(world::storage::cf::SCOREBOARD, key);
     if (delResult.failed()) {
         return delResult.error();
     }
@@ -535,7 +535,7 @@ Result<std::vector<ScoreboardSaveData::TeamData>> ScoreboardDataManager::loadAll
     std::lock_guard<std::mutex> lock(m_cacheMutex);
 
     // 使用迭代器遍历所有队伍
-    auto iter = m_storage.database()->newIterator(world::storage::cf::SCOREBOARD);
+    auto iter = m_storage._database()->newIterator(world::storage::cf::SCOREBOARD);
     if (!iter) {
         return teams;
     }
@@ -617,7 +617,7 @@ Result<void> ScoreboardDataManager::saveDisplaySlot(i32 slot, const std::string&
     // 写入数据库
     std::string keyStr(KEY_DISPLAY_SLOTS);
     std::vector<u8> key(keyStr.begin(), keyStr.end());
-    auto putResult = m_storage.database()->put(world::storage::cf::SCOREBOARD, key, serializeResult.value(), true);
+    auto putResult = m_storage._database()->put(world::storage::cf::SCOREBOARD, key, serializeResult.value(), true);
     if (putResult.failed()) {
         return putResult.error();
     }
@@ -638,7 +638,7 @@ Result<std::vector<ScoreboardSaveData::DisplaySlotData>> ScoreboardDataManager::
     // 从数据库加载
     std::string keyStr(KEY_DISPLAY_SLOTS);
     std::vector<u8> key(keyStr.begin(), keyStr.end());
-    auto dataResult = m_storage.database()->get(world::storage::cf::SCOREBOARD, key);
+    auto dataResult = m_storage._database()->get(world::storage::cf::SCOREBOARD, key);
     if (dataResult.failed()) {
         if (dataResult.error().code() == ErrorCode::NotFound) {
             m_displaySlotCache.clear();

@@ -77,7 +77,7 @@ ItemStack ApplyBonusFunction::apply(ItemStack stack, LootContext& context) const
     return stack;
 }
 
-std::unique_ptr<LootFunction> ApplyBonusFunction::clone() const
+std::unique_ptr<LootFunction> ApplyBonusFunction::clone() const noexcept
 {
     auto func = std::make_unique<ApplyBonusFunction>(m_bonusType, m_bonusMultiplier, m_extra, m_probability);
     for (const auto& cond : m_conditions) {

@@ -68,7 +68,7 @@ bool LocationCheckCondition::test(LootContext& context) const
     return false;
 }
 
-std::unique_ptr<LootCondition> LocationCheckCondition::clone() const
+std::unique_ptr<LootCondition> LocationCheckCondition::clone() const noexcept
 {
     return std::make_unique<LocationCheckCondition>(m_predicate, m_offsetX, m_offsetY, m_offsetZ);
 }

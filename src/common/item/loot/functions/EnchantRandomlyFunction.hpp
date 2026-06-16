@@ -48,7 +48,7 @@ public:
     explicit EnchantRandomlyFunction(const std::vector<std::string>& enchantments = {}, bool treasure = false);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "enchant_randomly"; }
 
     [[nodiscard]] const std::vector<std::string>& getEnchantments() const { return m_enchantments; }

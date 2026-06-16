@@ -115,7 +115,7 @@ ItemStack SetContentsFunction::apply(ItemStack stack, LootContext& context) cons
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetContentsFunction::clone() const
+std::unique_ptr<LootFunction> SetContentsFunction::clone() const noexcept
 {
     auto func = std::make_unique<SetContentsFunction>();
     for (const auto& cond : m_conditions) {

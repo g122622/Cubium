@@ -63,7 +63,7 @@ public:
         EntityPropertiesCondition::EntityTarget target, std::unordered_map<std::string, RandomValueRange> scores);
 
     [[nodiscard]] bool test(LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "entity_scores"; }
 
     [[nodiscard]] EntityPropertiesCondition::EntityTarget getTarget() const { return m_target; }

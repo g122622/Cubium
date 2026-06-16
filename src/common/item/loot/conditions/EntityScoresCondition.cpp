@@ -102,7 +102,7 @@ bool EntityScoresCondition::test(LootContext& context) const
     return true;
 }
 
-std::unique_ptr<LootCondition> EntityScoresCondition::clone() const
+std::unique_ptr<LootCondition> EntityScoresCondition::clone() const noexcept
 {
     return std::make_unique<EntityScoresCondition>(m_target, m_scores);
 }

@@ -99,7 +99,7 @@ ItemStack SetStewEffectFunction::apply(ItemStack stack, LootContext& context) co
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetStewEffectFunction::clone() const
+std::unique_ptr<LootFunction> SetStewEffectFunction::clone() const noexcept
 {
     auto func = std::make_unique<SetStewEffectFunction>();
     func->m_effects = m_effects;

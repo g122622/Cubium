@@ -47,7 +47,7 @@ bool WeatherCheckCondition::test(LootContext& context) const
     return true;
 }
 
-std::unique_ptr<LootCondition> WeatherCheckCondition::clone() const
+std::unique_ptr<LootCondition> WeatherCheckCondition::clone() const noexcept
 {
     return std::make_unique<WeatherCheckCondition>(m_raining, m_thundering);
 }

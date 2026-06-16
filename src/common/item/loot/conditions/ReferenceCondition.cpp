@@ -57,7 +57,7 @@ bool ReferenceCondition::test(LootContext& context) const
     return result;
 }
 
-std::unique_ptr<LootCondition> ReferenceCondition::clone() const
+std::unique_ptr<LootCondition> ReferenceCondition::clone() const noexcept
 {
     return std::make_unique<ReferenceCondition>(m_name);
 }

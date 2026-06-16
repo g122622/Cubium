@@ -108,8 +108,7 @@ public:
      * @param length 参数个数（用于JS的length属性）
      * @return 函数值句柄（调用者拥有所有权）
      */
-    // TODO: 参数类型应改为 i32 以符合代码规范，但需要同步修改 QuickJSBindingContext.hpp/cpp
-    [[nodiscard]] virtual void* createFunction(ScriptMethodCallback callback, const char* name, int length = 0) = 0;
+    [[nodiscard]] virtual void* createFunction(ScriptMethodCallback callback, const char* name, i32 length = 0) = 0;
 
     /**
      * @brief 设置构造函数关联
@@ -201,8 +200,7 @@ public:
     [[nodiscard]] virtual void* createClassProto(u64 classId) = 0;
 
     /** 注册原生方法（nativeFunc为引擎特定的C函数指针） */
-    // TODO: 参数类型应改为 i32 以符合代码规范，但需要同步修改 QuickJSBindingContext.hpp/cpp
-    virtual void registerNativeMethod(void* proto, const char* name, void* nativeFunc, int length = 0) = 0;
+    virtual void registerNativeMethod(void* proto, const char* name, void* nativeFunc, i32 length = 0) = 0;
     /** 注册原生只读属性（nativeGetter为引擎特定的C函数指针） */
     virtual void registerNativeReadonlyProperty(void* proto, const char* name, void* nativeGetter) = 0;
     /** 注册原生读写属性 */
@@ -221,8 +219,7 @@ public:
      * @param callback 方法回调
      * @param length 参数个数（用于JS的length属性）
      */
-    // TODO: 参数类型应改为 i32 以符合代码规范，但需要同步修改 QuickJSBindingContext.hpp/cpp
-    virtual void registerMethod(void* proto, const char* name, ScriptMethodCallback callback, int length = 0) = 0;
+    virtual void registerMethod(void* proto, const char* name, ScriptMethodCallback callback, i32 length = 0) = 0;
 
     /**
      * @brief 注册只读属性（使用引擎无关回调）
@@ -238,8 +235,7 @@ public:
     // ===== 模块注册 =====
 
     virtual bool createNativeModule(const std::string& moduleName) = 0;
-    // TODO: 参数类型应改为 i32 以符合代码规范，但需要同步修改 QuickJSBindingContext.hpp/cpp
-    virtual bool exportNativeFunction(const std::string& name, void* nativeFunc, int length = 0) = 0;
+    virtual bool exportNativeFunction(const std::string& name, void* nativeFunc, i32 length = 0) = 0;
     virtual bool exportNativeConst(const std::string& name, i32 value) = 0;
     virtual bool exportNativeConstFloat(const std::string& name, f64 value) = 0;
     virtual bool exportNativeConstString(const std::string& name, const std::string& value) = 0;

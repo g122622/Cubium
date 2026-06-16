@@ -23,9 +23,7 @@
 
 #pragma once
 
-// TODO: include 路径应改为 "common/item/enchantment/Enchantment.hpp"，
-// 但项目所有附魔文件都使用 "../../Enchantment.hpp" 模式，需统一重构
-#include "../../Enchantment.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 
 namespace mc {
 namespace item {

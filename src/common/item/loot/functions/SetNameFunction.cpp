@@ -51,7 +51,7 @@ ItemStack SetNameFunction::apply(ItemStack stack, LootContext& context) const
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetNameFunction::clone() const
+std::unique_ptr<LootFunction> SetNameFunction::clone() const noexcept
 {
     auto func = std::make_unique<SetNameFunction>(m_name, m_replace);
     for (const auto& cond : m_conditions) {

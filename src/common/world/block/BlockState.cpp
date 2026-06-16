@@ -23,17 +23,14 @@
 
 #include "BlockState.hpp"
 
-// TODO: include 路径使用了 ../.. 形式，违反代码规范。
-// 应改为从 src/ 目录开始的绝对路径，如 "common/world/IWorld.hpp"。
-// 但这需要同时修改所有依赖此头文件的源文件，暂不处理。
-#include "../IWorld.hpp"
-#include "../fluid/Fluid.hpp"
-#include "../fluid/FluidRegistry.hpp"
-#include "../fluid/fluids/EmptyFluid.hpp"
 #include "Block.hpp"
 #include "BlockPos.hpp"
 #include "BlockSoundType.hpp"
 #include "Material.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/fluids/EmptyFluid.hpp"
 #include <algorithm>
 #include <vector>
 

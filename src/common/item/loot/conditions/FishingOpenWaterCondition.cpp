@@ -43,7 +43,7 @@ bool FishingOpenWaterCondition::test(LootContext& context) const
     return m_requireOpenWater == *openWaterPtr;
 }
 
-std::unique_ptr<LootCondition> FishingOpenWaterCondition::clone() const
+std::unique_ptr<LootCondition> FishingOpenWaterCondition::clone() const noexcept
 {
     return std::make_unique<FishingOpenWaterCondition>(m_requireOpenWater);
 }

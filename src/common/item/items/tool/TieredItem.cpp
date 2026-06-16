@@ -22,8 +22,8 @@
  */
 
 #include "TieredItem.hpp"
-#include "../../core/ItemStack.hpp"
-#include "../../crafting/Ingredient.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/crafting/Ingredient.hpp"
 
 namespace mc {
 namespace item {

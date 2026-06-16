@@ -58,7 +58,7 @@ ItemStack SetLootTableFunction::apply(ItemStack stack, LootContext& context) con
     return stack;
 }
 
-std::unique_ptr<LootFunction> SetLootTableFunction::clone() const
+std::unique_ptr<LootFunction> SetLootTableFunction::clone() const noexcept
 {
     auto func = std::make_unique<SetLootTableFunction>(m_lootTableId, m_seed);
     for (const auto& cond : m_conditions) {

@@ -48,7 +48,7 @@ bool DamageSourcePropertiesCondition::test(LootContext& context) const
     return m_predicate.test(*damageSource);
 }
 
-std::unique_ptr<LootCondition> DamageSourcePropertiesCondition::clone() const
+std::unique_ptr<LootCondition> DamageSourcePropertiesCondition::clone() const noexcept
 {
     return std::make_unique<DamageSourcePropertiesCondition>(m_predicate);
 }

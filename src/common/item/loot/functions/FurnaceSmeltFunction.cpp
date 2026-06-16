@@ -59,7 +59,7 @@ ItemStack FurnaceSmeltFunction::apply(ItemStack stack, LootContext& context) con
     return stack;
 }
 
-std::unique_ptr<LootFunction> FurnaceSmeltFunction::clone() const
+std::unique_ptr<LootFunction> FurnaceSmeltFunction::clone() const noexcept
 {
     auto func = std::make_unique<FurnaceSmeltFunction>();
     for (const auto& cond : m_conditions) {

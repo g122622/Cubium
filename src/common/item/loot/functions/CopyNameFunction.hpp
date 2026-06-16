@@ -63,7 +63,7 @@ public:
     explicit CopyNameFunction(Source source);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "copy_name"; }
 
     [[nodiscard]] Source getSource() const { return m_source; }

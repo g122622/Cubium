@@ -67,7 +67,7 @@ public:
     explicit TableBonusCondition(std::string enchantmentId, std::vector<f32> chances);
 
     [[nodiscard]] bool test(LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "table_bonus"; }
 
     /**

@@ -24,9 +24,9 @@
 #pragma once
 
 // Convenience header that includes all loot function classes
-#include "LootFunction.hpp"
 #include "ApplyBonusFunction.hpp"
 #include "CopyBlockStateFunction.hpp"
+#include "CopyNameFunction.hpp"
 #include "CopyNbtFunction.hpp"
 #include "EnchantRandomlyFunction.hpp"
 #include "EnchantWithLevelsFunction.hpp"
@@ -35,8 +35,9 @@
 #include "FillPlayerHeadFunction.hpp"
 #include "FurnaceSmeltFunction.hpp"
 #include "LimitCountFunction.hpp"
-#include "LootingEnchantBonusFunction.hpp"
+#include "LootFunction.hpp"
 #include "LootFunctionBuilder.hpp"
+#include "LootingEnchantBonusFunction.hpp"
 #include "SetAttributesFunction.hpp"
 #include "SetContentsFunction.hpp"
 #include "SetCountFunction.hpp"
@@ -46,4 +47,3 @@
 #include "SetNameFunction.hpp"
 #include "SetNbtFunction.hpp"
 #include "SetStewEffectFunction.hpp"
-#include "CopyNameFunction.hpp"

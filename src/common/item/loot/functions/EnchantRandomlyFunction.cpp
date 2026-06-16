@@ -120,7 +120,7 @@ ItemStack EnchantRandomlyFunction::apply(ItemStack stack, LootContext& context) 
     return stack;
 }
 
-std::unique_ptr<LootFunction> EnchantRandomlyFunction::clone() const
+std::unique_ptr<LootFunction> EnchantRandomlyFunction::clone() const noexcept
 {
     auto func = std::make_unique<EnchantRandomlyFunction>(m_enchantments, m_treasure);
     for (const auto& cond : m_conditions) {

@@ -32,7 +32,7 @@ bool KilledByPlayerCondition::test(LootContext& context) const
     return context.has(LootParams::KILLER_PLAYER);
 }
 
-std::unique_ptr<LootCondition> KilledByPlayerCondition::clone() const
+std::unique_ptr<LootCondition> KilledByPlayerCondition::clone() const noexcept
 {
     return std::make_unique<KilledByPlayerCondition>();
 }

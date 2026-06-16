@@ -57,7 +57,7 @@ public:
     [[nodiscard]] void* createObject() override;
     [[nodiscard]] void* createArray() override;
     [[nodiscard]] void* createObjectWithProto(void* proto, u64 classId) override;
-    [[nodiscard]] void* createFunction(ScriptMethodCallback callback, const char* name, int length = 0) override;
+    [[nodiscard]] void* createFunction(ScriptMethodCallback callback, const char* name, i32 length = 0) override;
     virtual void setConstructor(void* ctor, void* proto) override;
 
     // ===== 值类型检查 =====
@@ -124,13 +124,13 @@ public:
     [[nodiscard]] u64 allocateClassId() override;
     bool registerClass(u64 classId, const char* className, bool hasFinalizer = true) override;
     [[nodiscard]] void* createClassProto(u64 classId) override;
-    void registerNativeMethod(void* proto, const char* name, void* nativeFunc, int length = 0) override;
+    void registerNativeMethod(void* proto, const char* name, void* nativeFunc, i32 length = 0) override;
     void registerNativeReadonlyProperty(void* proto, const char* name, void* nativeGetter) override;
     void registerNativeProperty(void* proto, const char* name, void* nativeGetter, void* nativeSetter) override;
 
     // ===== 高级方法/属性注册（引擎无关回调） =====
 
-    void registerMethod(void* proto, const char* name, ScriptMethodCallback callback, int length = 0) override;
+    void registerMethod(void* proto, const char* name, ScriptMethodCallback callback, i32 length = 0) override;
     void registerReadonlyProperty(void* proto, const char* name, ScriptGetterCallback getter) override;
     void registerProperty(
         void* proto, const char* name, ScriptGetterCallback getter, ScriptSetterCallback setter) override;
@@ -138,7 +138,7 @@ public:
     // ===== 模块注册 =====
 
     bool createNativeModule(const std::string& moduleName) override;
-    bool exportNativeFunction(const std::string& name, void* nativeFunc, int length = 0) override;
+    bool exportNativeFunction(const std::string& name, void* nativeFunc, i32 length = 0) override;
     bool exportNativeConst(const std::string& name, i32 value) override;
     bool exportNativeConstFloat(const std::string& name, f64 value) override;
     bool exportNativeConstString(const std::string& name, const std::string& value) override;

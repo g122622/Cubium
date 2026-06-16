@@ -47,7 +47,7 @@ public:
     explicit SetNbtFunction(const std::string& nbtString);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
     [[nodiscard]] std::string getType() const noexcept override { return "set_nbt"; }
 
     [[nodiscard]] const std::string& getNbtString() const noexcept { return m_nbtString; }

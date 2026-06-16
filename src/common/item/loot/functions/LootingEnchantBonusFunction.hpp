@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include <memory>
 #include "LootFunction.hpp"
-#include "common/util/math/random/RandomRanges.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {
@@ -52,7 +52,7 @@ public:
     explicit LootingEnchantBonusFunction(const RandomValueRange& count = RandomValueRange(0.0f, 1.0f), i32 limit = 0);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "looting_enchant"; }
 
     [[nodiscard]] const RandomValueRange& getCount() const { return m_count; }

@@ -48,7 +48,7 @@ public:
     RandomChanceWithLuckCondition(f32 baseChance, f32 luckCoefficient);
 
     [[nodiscard]] bool test(LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "random_chance_with_luck"; }
 
     [[nodiscard]] f32 getBaseChance() const { return m_baseChance; }

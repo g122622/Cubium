@@ -46,7 +46,7 @@ public:
     explicit SetDamageFunction(const RandomValueRange& durability, bool add = false);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
-    [[nodiscard]] std::unique_ptr<LootFunction> clone() const override;
+    [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
     [[nodiscard]] std::string getType() const override { return "set_damage"; }
 
     [[nodiscard]] const RandomValueRange& getDurability() const { return m_durability; }

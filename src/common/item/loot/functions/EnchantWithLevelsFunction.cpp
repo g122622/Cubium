@@ -45,7 +45,7 @@ ItemStack EnchantWithLevelsFunction::apply(ItemStack stack, LootContext& context
         context.getRandom(), std::move(stack), level, m_treasure);
 }
 
-std::unique_ptr<LootFunction> EnchantWithLevelsFunction::clone() const
+std::unique_ptr<LootFunction> EnchantWithLevelsFunction::clone() const noexcept
 {
     auto func = std::make_unique<EnchantWithLevelsFunction>(m_levels, m_treasure);
     for (const auto& cond : m_conditions) {
