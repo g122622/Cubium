@@ -1001,10 +1001,11 @@ void FirstPersonRenderer::_remapToPlayerSkinRegion(std::vector<ModelVertex>& ver
 
     const mc::TextureRegion* region = m_entityTextureAtlas->getRegion(m_playerSkinLocation);
     if (region == nullptr) {
-        const std::array<ResourceLocation, 4> fallbacks = {ResourceLocation("minecraft:textures/entity/steve.png"),
+        const std::array<ResourceLocation, 4> fallbacks = {
             ResourceLocation("minecraft:textures/entity/player/wide/steve.png"),
-            ResourceLocation("minecraft:textures/entity/alex.png"),
-            ResourceLocation("minecraft:textures/entity/player/slim/alex.png")};
+            ResourceLocation("minecraft:textures/entity/player/slim/alex.png"),
+            ResourceLocation("minecraft:textures/entity/steve.png"),
+            ResourceLocation("minecraft:textures/entity/alex.png")};
 
         for (const auto& location : fallbacks) {
             region = m_entityTextureAtlas->getRegion(location);

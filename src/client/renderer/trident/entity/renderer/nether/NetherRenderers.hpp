@@ -84,12 +84,12 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/magma_cube/magma_cube.png");
+        return ResourceLocation("minecraft", "textures/entity/slime/magmacube.png");
     }
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/magma_cube/magma_cube.png");
+        return ResourceLocation("minecraft", "textures/entity/slime/magmacube.png");
     }
 };
 

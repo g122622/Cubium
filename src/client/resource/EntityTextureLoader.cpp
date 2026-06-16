@@ -25,6 +25,7 @@
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <unordered_map>
 #include <spdlog/spdlog.h>
 
@@ -34,9 +35,11 @@ namespace {
 
 bool shouldSuppressMissingTextureWarning(const ResourceLocation& location)
 {
-    const std::string texturePath = location.toString();
-    return texturePath == "minecraft:textures/entity/villager/profession/none.png" ||
-        texturePath == "minecraft:textures/entity/zombie_villager/profession/none.png";
+    // 目前不需要抑制任何纹理缺失告警
+    // 之前曾抑制 villager/zombie_villager 的 none.png，
+    // 但已从 ADDITIONAL_TEXTURES 中移除该路径
+    MC_UNUSED(location);
+    return false;
 }
 
 /**
@@ -47,15 +50,17 @@ bool shouldSuppressMissingTextureWarning(const ResourceLocation& location)
  * 键为实体名称（不含命名空间），值为纹理路径列表（不含 textures/ 前缀和 .png 后缀）。
  */
 const std::unordered_map<std::string, std::vector<std::string>> SPECIAL_TEXTURE_PATHS = {
-    // 玩家 - 多种默认皮肤
-    {"player", {"entity/steve", "entity/alex", "entity/player/wide/steve", "entity/player/slim/alex"}},
+    // 玩家 - 新版资源包只有 player/wide 和 player/slim 子目录下的皮肤
+    {"player", {"entity/player/wide/steve", "entity/player/slim/alex", "entity/steve", "entity/alex"}},
 
     // 基础家畜
+    // MC 1.21+ 资源包中 pig/cow/chicken 的纹理已按气候变体重命名，
+    // 不再存在 <name>/<name>.png 格式，需使用气候变体作为默认纹理
     {"sheep", {"entity/sheep/sheep"}},
-    {"chicken", {"entity/chicken"}},
-    {"cow", {"entity/cow/cow"}},
-    {"pig", {"entity/pig/pig"}},
-    {"mooshroom", {"entity/cow/red_mooshroom"}},
+    {"chicken", {"entity/chicken/temperate_chicken", "entity/chicken/cold_chicken", "entity/chicken/warm_chicken"}},
+    {"cow", {"entity/cow/temperate_cow", "entity/cow/cold_cow", "entity/cow/warm_cow"}},
+    {"pig", {"entity/pig/temperate_pig", "entity/pig/cold_pig", "entity/pig/warm_pig"}},
+    {"mooshroom", {"entity/cow/red_mooshroom", "entity/cow/brown_mooshroom"}},
 
     // 可驯服/常见动物
     {"rabbit", {"entity/rabbit/brown"}},
@@ -83,7 +88,8 @@ const std::unordered_map<std::string, std::vector<std::string>> SPECIAL_TEXTURE_
     {"salmon", {"entity/fish/salmon"}},
     {"pufferfish", {"entity/fish/pufferfish"}},
     {"tropical_fish", {"entity/fish/tropical_a"}},
-    {"squid", {"entity/squid"}},
+    // MC 1.21+ 资源包中 squid 纹理移至子目录 textures/entity/squid/squid.png
+    {"squid", {"entity/squid/squid"}},
     {"dolphin", {"entity/dolphin"}},
 
     // 环境生物 / 结构类实体
@@ -138,16 +144,41 @@ const std::unordered_map<std::string, std::vector<std::string>> SPECIAL_TEXTURE_
     {"wither", {"entity/wither/wither"}},
 
     // 投掷物和特殊实体
-    {"snowball", {"entity/snowball"}},
-    {"egg", {"entity/egg"}},
-    {"ender_pearl", {"entity/ender_pearl"}},
-    {"potion", {"entity/potion"}},
-    {"experience_bottle", {"entity/experience_bottle"}},
+    // MC 1.21+ 资源包中多数投掷物没有 entity/ 下的纹理，
+    // 需要回退到 item/ 目录下的纹理
+    {"snowball", {"item/snowball"}},
+    {"egg", {"item/egg"}},
+    {"ender_pearl", {"item/ender_pearl"}},
+    {"potion", {"item/potion"}},
+    {"experience_bottle", {"item/experience_bottle"}},
     {"fireball", {"entity/fireball"}},
-    {"small_fireball", {"entity/fireball"}},
     {"fishing_bobber", {"entity/fishing_hook"}},
-    {"eye_of_ender", {"entity/eye_of_ender"}},
+    {"eye_of_ender", {"item/ender_pearl"}},
     {"experience_orb", {"entity/experience_orb"}},
+
+    // MC 1.21+ 新增气候变体实体 - 需要在 SPECIAL_TEXTURE_PATHS 中注册
+    // 以避免回退到不存在的默认路径
+    {"axolotl",
+        {"entity/axolotl/axolotl_lucy",
+            "entity/axolotl/axolotl_wild",
+            "entity/axolotl/axolotl_gold",
+            "entity/axolotl/axolotl_cyan",
+            "entity/axolotl/axolotl_blue"}},
+    {"trader_llama", {"entity/llama/creamy"}},
+
+    // MC 1.21+ 新增的其他实体
+    {"allay", {"entity/allay/allay"}},
+    {"armadillo", {"entity/armadillo"}},
+    {"breeze", {"entity/breeze/breeze"}},
+    {"camel", {"entity/camel/camel"}},
+    {"copper_golem", {"entity/copper_golem/copper_golem"}},
+    {"creaking", {"entity/creaking/creaking"}},
+    {"frog", {"entity/frog/temperate_frog", "entity/frog/warm_frog", "entity/frog/cold_frog"}},
+    {"goat", {"entity/goat/goat"}},
+    {"nautilus", {"entity/nautilus/nautilus"}},
+    {"sniffer", {"entity/sniffer/sniffer"}},
+    {"tadpole", {"entity/tadpole/tadpole"}},
+    {"warden", {"entity/warden/warden"}},
 };
 
 /**
@@ -156,8 +187,8 @@ const std::unordered_map<std::string, std::vector<std::string>> SPECIAL_TEXTURE_
  * 键为实体名称，值为附加纹理路径列表。
  */
 const std::unordered_map<std::string, std::vector<std::string>> ADDITIONAL_TEXTURES = {
-    // 羊的毛皮层
-    {"sheep", {"entity/sheep/sheep_fur"}},
+    // 羊的毛皮层 - MC 1.21+ 资源包中已从 sheep_fur 重命名为 sheep_wool
+    {"sheep", {"entity/sheep/sheep_wool"}},
 
     // 村民多层纹理
     // 类型层 - 根据生物群系
@@ -170,7 +201,7 @@ const std::unordered_map<std::string, std::vector<std::string>> ADDITIONAL_TEXTU
             "entity/villager/type/swamp",
             "entity/villager/type/taiga",
             // 职业层 - 根据职业
-            "entity/villager/profession/none",
+            // MC 1.21+ 资源包中没有 none.png，无职业时不渲染职业层
             "entity/villager/profession/armorer",
             "entity/villager/profession/butcher",
             "entity/villager/profession/cartographer",
@@ -202,9 +233,9 @@ const std::unordered_map<std::string, std::vector<std::string>> ADDITIONAL_TEXTU
             "entity/zombie_villager/type/swamp",
             "entity/zombie_villager/type/taiga",
             // 职业层
-            "entity/zombie_villager/profession/none",
+            // MC 1.21+ 资源包中没有 none.png，无职业时不渲染职业层
             "entity/zombie_villager/profession/armorer",
-            "entity/zombie_villager/profession/butcher",
+            "entity/zombie_villager/profession/profession/butcher",
             "entity/zombie_villager/profession/cartographer",
             "entity/zombie_villager/profession/cleric",
             "entity/zombie_villager/profession/farmer",

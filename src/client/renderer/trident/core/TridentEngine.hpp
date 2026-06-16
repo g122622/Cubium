@@ -755,7 +755,7 @@ private:
     // 纹理图集
     ItemTextureAtlas m_itemTextureAtlas;
     EntityTextureAtlas m_entityTextureAtlas;
-    ResourceLocation m_localPlayerSkinLocation{"minecraft:textures/entity/steve.png"};
+    ResourceLocation m_localPlayerSkinLocation{"minecraft:textures/entity/player/wide/steve.png"};
     std::map<ResourceLocation, TextureRegion> m_textureRegions;
 
     // 动画纹理管理

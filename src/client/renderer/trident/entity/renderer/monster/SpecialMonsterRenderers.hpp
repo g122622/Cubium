@@ -204,12 +204,12 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/illager/illager.png");
+        return ResourceLocation("minecraft", "textures/entity/illager/pillager.png");
     }
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/illager/illager.png");
+        return ResourceLocation("minecraft", "textures/entity/illager/pillager.png");
     }
 };
 
@@ -355,12 +355,12 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/iron_golem.png");
+        return ResourceLocation("minecraft", "textures/entity/iron_golem/iron_golem.png");
     }
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/iron_golem.png");
+        return ResourceLocation("minecraft", "textures/entity/iron_golem/iron_golem.png");
     }
 };
 
@@ -541,12 +541,12 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/polar_bear.png");
+        return ResourceLocation("minecraft", "textures/entity/bear/polarbear.png");
     }
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/polar_bear.png");
+        return ResourceLocation("minecraft", "textures/entity/bear/polarbear.png");
     }
 };
 

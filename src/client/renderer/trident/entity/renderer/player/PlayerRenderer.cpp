@@ -271,7 +271,7 @@ ResourceLocation PlayerRenderer::getEntityTexture(::mc::Player& entity)
         return ResourceLocation("minecraft:textures/entity/player/custom_skin.png");
     }
     // 返回默认 Steve 皮肤
-    return ResourceLocation("minecraft:textures/entity/steve.png");
+    return ResourceLocation("minecraft:textures/entity/player/wide/steve.png");
 }
 
 ResourceLocation PlayerRenderer::getEntityTexture(const ::mc::Player& entity) const
@@ -280,7 +280,7 @@ ResourceLocation PlayerRenderer::getEntityTexture(const ::mc::Player& entity) co
     if (m_skinRegion) {
         return ResourceLocation("minecraft:textures/entity/player/custom_skin.png");
     }
-    return ResourceLocation("minecraft:textures/entity/steve.png");
+    return ResourceLocation("minecraft:textures/entity/player/wide/steve.png");
 }
 
 void PlayerRenderer::_setupLayers()

@@ -100,9 +100,9 @@ ResourceLocation PlayerSkinInfo::getDefaultSkinLocation() const
 {
     SkinType type = getDefaultSkinTypeForUUID(m_profile.uuid());
     if (type == SkinType::Slim) {
-        return ResourceLocation("minecraft:textures/entity/alex.png");
+        return ResourceLocation("minecraft:textures/entity/player/slim/alex.png");
     }
-    return ResourceLocation("minecraft:textures/entity/steve.png");
+    return ResourceLocation("minecraft:textures/entity/player/wide/steve.png");
 }
 
 } // namespace mc::skin

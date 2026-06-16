@@ -295,7 +295,8 @@ public:
             return _buildTexturePath(
                 std::string("profession/") + VillagerLayerDetail::VILLAGER_PROFESSION_NAMES[index]);
         }
-        return _buildTexturePath("profession/none");
+        // MC 1.21+ 资源包中没有 none.png，无职业时不会调用此方法
+        return _buildTexturePath("profession/nitwit");
     }
 
     /**

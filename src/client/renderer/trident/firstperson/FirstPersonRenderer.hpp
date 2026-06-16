@@ -470,7 +470,7 @@ private:
     const mc::client::ItemTextureAtlas* m_itemTextureAtlas = nullptr;
 
     // 玩家皮肤纹理位置（默认 Steve）
-    ResourceLocation m_playerSkinLocation{"minecraft:textures/entity/steve.png"};
+    ResourceLocation m_playerSkinLocation{"minecraft:textures/entity/player/wide/steve.png"};
 
     // 玩家模型
     PlayerModel m_model;

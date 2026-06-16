@@ -38,8 +38,8 @@ namespace mc::skin {
  * 提供内置的默认皮肤（Steve 和 Alex）。
  *
  * 默认皮肤：
- * - Steve: 宽手臂模型，textures/entity/steve.png
- * - Alex: 窄手臂模型，textures/entity/alex.png
+ * - Steve: 宽手臂模型，textures/entity/player/wide/steve.png
+ * - Alex: 窄手臂模型，textures/entity/player/slim/alex.png
  *
  * 默认皮肤选择算法：
  * - 根据 UUID 哈希的最低位决定
@@ -113,8 +113,8 @@ private:
      */
     Result<void> _loadBuiltinSkins();
 
-    ResourceLocation m_steveLocation{"minecraft:textures/entity/steve.png"};
-    ResourceLocation m_alexLocation{"minecraft:textures/entity/alex.png"};
+    ResourceLocation m_steveLocation{"minecraft:textures/entity/player/wide/steve.png"};
+    ResourceLocation m_alexLocation{"minecraft:textures/entity/player/slim/alex.png"};
 
     std::vector<u8> m_steveData; // Steve 皮肤 PNG 数据
     std::vector<u8> m_alexData;  // Alex 皮肤 PNG 数据

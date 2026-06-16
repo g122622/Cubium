@@ -51,13 +51,13 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/pig/pig.png");
+        return ResourceLocation("minecraft", "textures/entity/pig/temperate_pig.png");
     }
 
     [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/pig/pig.png");
+        return ResourceLocation("minecraft", "textures/entity/pig/temperate_pig.png");
     }
 };
 
@@ -72,13 +72,13 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/cow/cow.png");
+        return ResourceLocation("minecraft", "textures/entity/cow/temperate_cow.png");
     }
 
     [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/cow/cow.png");
+        return ResourceLocation("minecraft", "textures/entity/cow/temperate_cow.png");
     }
 };
 
@@ -118,13 +118,13 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/cow/mooshroom.png");
+        return ResourceLocation("minecraft", "textures/entity/cow/red_mooshroom.png");
     }
 
     [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/cow/mooshroom.png");
+        return ResourceLocation("minecraft", "textures/entity/cow/red_mooshroom.png");
     }
 };
 
@@ -139,13 +139,13 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/chicken.png");
+        return ResourceLocation("minecraft", "textures/entity/chicken/temperate_chicken.png");
     }
 
     [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/chicken.png");
+        return ResourceLocation("minecraft", "textures/entity/chicken/temperate_chicken.png");
     }
 };
 
@@ -202,13 +202,13 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(LivingEntity& entity) override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/squid.png");
+        return ResourceLocation("minecraft", "textures/entity/squid/squid.png");
     }
 
     [[nodiscard]] ResourceLocation getEntityTexture(const LivingEntity& entity) const override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/squid.png");
+        return ResourceLocation("minecraft", "textures/entity/squid/squid.png");
     }
 };
 

@@ -106,12 +106,12 @@ public:
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/turtle/sea_turtle.png");
+        return ResourceLocation("minecraft", "textures/entity/turtle/big_sea_turtle.png");
     }
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override
     {
         (void)entity;
-        return ResourceLocation("minecraft", "textures/entity/turtle/sea_turtle.png");
+        return ResourceLocation("minecraft", "textures/entity/turtle/big_sea_turtle.png");
     }
 };
 
@@ -355,12 +355,18 @@ private:
     static ResourceLocation _getTextureForVariant(i32 variant)
     {
         switch (variant) {
-            case 0: return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_lucy.png");
-            case 1: return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_wild.png");
-            case 2: return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_gold.png");
-            case 3: return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_cyan.png");
-            case 4: return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_blue.png");
-            default: return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_lucy.png");
+            case 0:
+                return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_lucy.png");
+            case 1:
+                return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_wild.png");
+            case 2:
+                return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_gold.png");
+            case 3:
+                return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_cyan.png");
+            case 4:
+                return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_blue.png");
+            default:
+                return ResourceLocation("minecraft", "textures/entity/axolotl/axolotl_lucy.png");
         }
     }
 };

@@ -159,9 +159,9 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
     if (m_skinManager->defaultSkinProvider().isDefaultSkin(location)) {
         // 使用默认皮肤的纹理区域
         if (info->getSkinType() == ::mc::skin::SkinType::Slim) {
-            return m_alexRegion ? ResourceLocation("minecraft:textures/entity/alex.png") : location;
+            return m_alexRegion ? ResourceLocation("minecraft:textures/entity/player/slim/alex.png") : location;
         } else {
-            return m_steveRegion ? ResourceLocation("minecraft:textures/entity/steve.png") : location;
+            return m_steveRegion ? ResourceLocation("minecraft:textures/entity/player/wide/steve.png") : location;
         }
     }
 
@@ -206,7 +206,7 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
     }
 
     // TODO: 三元表达式两个分支返回相同值，疑似逻辑错误，需要检查是否应根据 m_steveRegion 是否为空返回不同的默认皮肤
-    return ResourceLocation("minecraft:textures/entity/steve.png");
+    return ResourceLocation("minecraft:textures/entity/player/wide/steve.png");
 }
 
 const TextureRegion* ClientSkinManager::getSkinRegion(const std::array<u8, 16>& uuid) const
@@ -279,8 +279,8 @@ Result<void> ClientSkinManager::rebuildAtlas()
     }
 
     // 更新默认皮肤纹理区域引用
-    m_steveRegion = m_textureAtlas->getRegion(ResourceLocation("minecraft:textures/entity/steve.png"));
-    m_alexRegion = m_textureAtlas->getRegion(ResourceLocation("minecraft:textures/entity/alex.png"));
+    m_steveRegion = m_textureAtlas->getRegion(ResourceLocation("minecraft:textures/entity/player/wide/steve.png"));
+    m_alexRegion = m_textureAtlas->getRegion(ResourceLocation("minecraft:textures/entity/player/slim/alex.png"));
 
     // 更新所有已注册玩家的纹理区域引用
     {
@@ -339,7 +339,7 @@ Result<void> ClientSkinManager::_loadDefaultSkins()
 
     // 添加 Steve 皮肤
     if (!steveData.empty()) {
-        ResourceLocation steveLocation("minecraft:textures/entity/steve.png");
+        ResourceLocation steveLocation("minecraft:textures/entity/player/wide/steve.png");
         auto result = m_textureAtlas->addTextureFromPixels(steveData,
             64, // Steve 皮肤是 64x64
             64,
@@ -353,7 +353,7 @@ Result<void> ClientSkinManager::_loadDefaultSkins()
 
     // 添加 Alex 皮肤
     if (!alexData.empty()) {
-        ResourceLocation alexLocation("minecraft:textures/entity/alex.png");
+        ResourceLocation alexLocation("minecraft:textures/entity/player/slim/alex.png");
         auto result = m_textureAtlas->addTextureFromPixels(alexData,
             64, // Alex 皮肤是 64x64
             64,
