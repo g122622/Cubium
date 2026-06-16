@@ -146,6 +146,8 @@ public:
     [[nodiscard]] i32 lastSetFlags() const { return m_lastSetFlags; }
     [[nodiscard]] const BlockState* lastSetBlockState() const { return m_lastSetBlockState; }
 
+    void resetSetBlockStateCalls() { m_setBlockStateCalls = 0; }
+
     // TickManager interface (stubbed)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -1109,6 +1111,42 @@ TEST_F(BlockEntityTodoTestHelper, BarrelEntityMultipleOpenersIncrementCount)
 
     barrel.closeContainer(nullptr);
     EXPECT_EQ(barrel.getOpenCount(), 1);
+}
+
+TEST_F(BlockEntityTodoTestHelper, BarrelEntitySoundAndStateOnlyOnFirstOpen)
+{
+    // MC原版：音效和方块状态更新仅在 openCount 从0变为1时触发
+    // 后续玩家打开不应再触发音效和状态更新
+    DummyWorld world;
+    world.setBlockState(3, 5, 7, makeBarrelOpenState());
+
+    blockentity::BarrelEntity barrel(BlockPos(3, 5, 7));
+    barrel.setWorld(&world);
+
+    // 第一次打开：应触发方块状态更新
+    world.resetSetBlockStateCalls();
+    barrel.openContainer(nullptr);
+    EXPECT_EQ(barrel.getOpenCount(), 1);
+    EXPECT_GE(world.setBlockStateCalls(), 1); // 首次打开触发了_updateBlockState
+
+    // 第二次打开：不应再触发方块状态更新
+    world.resetSetBlockStateCalls();
+    barrel.openContainer(nullptr);
+    EXPECT_EQ(barrel.getOpenCount(), 2);
+    EXPECT_EQ(world.setBlockStateCalls(), 0); // 非首次打开不触发_updateBlockState
+
+    // 第三次打开：同样不应触发
+    world.resetSetBlockStateCalls();
+    barrel.openContainer(nullptr);
+    EXPECT_EQ(barrel.getOpenCount(), 3);
+    EXPECT_EQ(world.setBlockStateCalls(), 0);
+
+    // 关闭一个：还有人在用，不应触发关闭状态更新和音效
+    world.resetSetBlockStateCalls();
+    barrel.closeContainer(nullptr);
+    EXPECT_EQ(barrel.getOpenCount(), 2);
+    // closeContainer在openCount > 0时仍更新状态为open=true，所以可能会有调用
+    // 但不应播放关闭音效（openCount仍>0）
 }
 
 // ============================================================================

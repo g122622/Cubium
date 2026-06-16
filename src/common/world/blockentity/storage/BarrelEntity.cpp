@@ -48,10 +48,13 @@ void BarrelEntity::openContainer(Player* player)
     // 触发战利品表填充
     fillWithLoot(player);
 
+    // MC原版：仅在首个玩家打开（openCount从0变为1）时播放音效和更新方块状态
+    const bool wasEmpty = (m_openCount == 0);
+
     // 基类已处理观察者检查和负数保护
     LootableContainerBlockEntity::openContainer(player);
 
-    if (m_world != nullptr) {
+    if (wasEmpty && m_world != nullptr) {
         _updateBlockState(*m_world, true);
         _playSound(true);
     }
