@@ -249,6 +249,15 @@ TEST_F(EntityResolverTest, ResolveSingleWithNoMatchReturnsNullptr)
     EXPECT_EQ(entity, nullptr);
 }
 
+TEST_F(EntityResolverTest, NearestPlayerSelectorWithNoPlayersReturnsEmpty)
+{
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector = EntitySelector::nearestPlayer();
+
+    auto result = EntityResolver::resolve(source, selector);
+    EXPECT_TRUE(result.empty());
+}
+
 // ============================================================================
 // 2. type= 过滤测试（正向、反向、命名空间兼容）
 // ============================================================================
@@ -450,7 +459,7 @@ TEST_F(EntityResolverTest, TagFilterMixedPositiveAndNegative)
 }
 
 // ============================================================================
-// 4. distance/dx/dy/dz 空间过滤测试（含边界值）
+// 4. distance/dx/dy/dz 空间过滤测试（含边界值和 MC 原版 +1.0 行为）
 // ============================================================================
 
 TEST_F(EntityResolverTest, DistanceFilterBasicRange)
@@ -547,9 +556,7 @@ TEST_F(EntityResolverTest, VolumeFilterNegativeDx)
     selector.setX(5.0f);
     selector.setY(0.0f);
     selector.setZ(0.0f);
-    selector.setDx(-10.0f); // 体积范围 x∈[5+(-10), 5] = [-5, 5]
-    selector.setDy(10.0f);  // 给体积一个合理的高度范围
-    selector.setDz(10.0f);  // 给体积一个合理的深度范围
+    selector.setDx(-10.0f); // 体积范围 x∈[5+(-10), 5+1] = [-5, 6]
 
     auto result = EntityResolver::resolve(source, selector);
     EXPECT_EQ(result.size(), 1u);
@@ -565,8 +572,26 @@ TEST_F(EntityResolverTest, VolumeFilterBoundaryInclusive)
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
     EntitySelector selector = EntitySelector::allEntities();
     selector.setDx(10.0f);
-    selector.setDy(10.0f);
-    selector.setDz(10.0f);
+    // MC 原版行为：仅设置 dx 时，dy/dz 默认为 0，但 max 侧加 1.0
+    // 因此 Y 范围为 [0, 1]，Z 范围为 [0, 1]，实体在 Y=0 应在范围内
+
+    auto result = EntityResolver::resolve(source, selector);
+    EXPECT_EQ(result.size(), 1u);
+}
+
+TEST_F(EntityResolverTest, VolumeFilterOnlyDxFindsEntityAtY0)
+{
+    // MC 原版行为验证：仅 dx 时，dy/dz 默认 delta=0
+    // AABB Y 范围为 [refY, refY+1]，Z 范围为 [refZ, refZ+1]
+    // 实体在原点 Y=0 应被选中
+    auto entity = createEntityByType(EntityTypes::PIG);
+    ASSERT_NE(entity, nullptr);
+    entity->setPosition(5.0f, 0.5f, 0.5f);
+    m_server.spawnEntity(std::move(entity));
+
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector = EntitySelector::allEntities();
+    selector.setDx(10.0f); // 仅设置 dx，不设 dy/dz
 
     auto result = EntityResolver::resolve(source, selector);
     EXPECT_EQ(result.size(), 1u);
@@ -993,4 +1018,117 @@ TEST_F(EntityResolverTest, CombinedTypeAndDistanceAndSortAndLimit)
     ASSERT_EQ(result.size(), 2u);
     EXPECT_FLOAT_EQ(result[0]->position().x, 5.0f);
     EXPECT_FLOAT_EQ(result[1]->position().x, 15.0f);
+}
+
+// ============================================================================
+// name= 过滤测试
+// ============================================================================
+
+TEST_F(EntityResolverTest, NameFilterMatchesCustomName)
+{
+    auto pig = createEntityByType(EntityTypes::PIG);
+    ASSERT_NE(pig, nullptr);
+    pig->setPosition(0.0f, 64.0f, 0.0f);
+    pig->setCustomName("TestPig");
+    m_server.spawnEntity(std::move(pig));
+
+    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    ASSERT_NE(zombie, nullptr);
+    zombie->setPosition(5.0f, 64.0f, 0.0f);
+    m_server.spawnEntity(std::move(zombie));
+
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector = EntitySelector::allEntities();
+    selector.setUsername("TestPig");
+
+    auto result = EntityResolver::resolve(source, selector);
+    ASSERT_EQ(result.size(), 1u);
+    EXPECT_EQ(result[0]->getTypeId(), std::string("minecraft:pig"));
+}
+
+TEST_F(EntityResolverTest, NameFilterNegatedExcludesNamedEntity)
+{
+    auto pig = createEntityByType(EntityTypes::PIG);
+    ASSERT_NE(pig, nullptr);
+    pig->setPosition(0.0f, 64.0f, 0.0f);
+    pig->setCustomName("Excluded");
+    m_server.spawnEntity(std::move(pig));
+
+    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    ASSERT_NE(zombie, nullptr);
+    zombie->setPosition(5.0f, 64.0f, 0.0f);
+    m_server.spawnEntity(std::move(zombie));
+
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector = EntitySelector::allEntities();
+    selector.setUsernameNegated("Excluded");
+
+    auto result = EntityResolver::resolve(source, selector);
+    ASSERT_EQ(result.size(), 1u);
+    EXPECT_EQ(result[0]->getTypeId(), std::string("minecraft:zombie"));
+}
+
+TEST_F(EntityResolverTest, NameFilterNoMatchReturnsEmpty)
+{
+    auto pig = createEntityByType(EntityTypes::PIG);
+    ASSERT_NE(pig, nullptr);
+    pig->setPosition(0.0f, 64.0f, 0.0f);
+    m_server.spawnEntity(std::move(pig));
+
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector = EntitySelector::allEntities();
+    selector.setUsername("NonExistentName");
+
+    auto result = EntityResolver::resolve(source, selector);
+    EXPECT_TRUE(result.empty());
+}
+
+// ============================================================================
+// team= 过滤测试
+// ============================================================================
+
+TEST_F(EntityResolverTest, TeamFilterNoTeamExcludedByTeamFilter)
+{
+    // 非玩家实体默认不在任何队伍中（getTeam() 返回 nullptr）
+    // team=red 应该排除不在 red 队伍中的实体
+    auto pig = createEntityByType(EntityTypes::PIG);
+    ASSERT_NE(pig, nullptr);
+    pig->setPosition(0.0f, 64.0f, 0.0f);
+    m_server.spawnEntity(std::move(pig));
+
+    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    ASSERT_NE(zombie, nullptr);
+    zombie->setPosition(5.0f, 64.0f, 0.0f);
+    m_server.spawnEntity(std::move(zombie));
+
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector = EntitySelector::allEntities();
+    selector.setTeam("red"); // team=red — 只选中 red 队伍中的实体
+
+    auto result = EntityResolver::resolve(source, selector);
+    // 非玩家实体不在任何队伍中，应该返回空
+    EXPECT_TRUE(result.empty());
+}
+
+TEST_F(EntityResolverTest, TeamFilterNegatedIncludesEntitiesWithoutTeam)
+{
+    // team=!red — 排除在 red 队伍中的实体
+    // 没有队伍的实体不在 red 中，因此不应被排除
+    auto pig = createEntityByType(EntityTypes::PIG);
+    ASSERT_NE(pig, nullptr);
+    pig->setPosition(0.0f, 64.0f, 0.0f);
+    m_server.spawnEntity(std::move(pig));
+
+    auto zombie = createEntityByType(EntityTypes::ZOMBIE);
+    ASSERT_NE(zombie, nullptr);
+    zombie->setPosition(5.0f, 64.0f, 0.0f);
+    m_server.spawnEntity(std::move(zombie));
+
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector = EntitySelector::allEntities();
+    selector.setTeam("red", true); // team=!red
+
+    auto result = EntityResolver::resolve(source, selector);
+    // 所有实体都不在 red 队伍中，应全部返回
+    EXPECT_EQ(result.size(), 2u);
 }

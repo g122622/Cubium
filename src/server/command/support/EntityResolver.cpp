@@ -406,46 +406,26 @@ void sortEntities(std::vector<Entity*>& entities, const EntitySelector& selector
             }
         }
 
-        // 体积过滤（dx/dy/dz）
+        // 体积过滤（dx/dy/dz，MC 原版行为：未指定轴默认 delta=0，max 侧加 1.0）
         if (selector.hasDx() || selector.hasDy() || selector.hasDz()) {
             const auto& pos = entity->position();
-            f32 minX = refX;
-            f32 minY = refY;
-            f32 minZ = refZ;
-            f32 maxX = pos.x;
-            f32 maxY = pos.y;
-            f32 maxZ = pos.z;
+            f32 dx = selector.hasDx() ? selector.getDx() : 0.0f;
+            f32 dy = selector.hasDy() ? selector.getDy() : 0.0f;
+            f32 dz = selector.hasDz() ? selector.getDz() : 0.0f;
 
-            if (selector.hasDx()) {
-                f32 dx = selector.getDx();
-                if (dx < 0) {
-                    minX = refX + dx;
-                    maxX = refX;
-                } else {
-                    maxX = refX + dx;
-                }
-            }
-            if (selector.hasDy()) {
-                f32 dy = selector.getDy();
-                if (dy < 0) {
-                    minY = refY + dy;
-                    maxY = refY;
-                } else {
-                    maxY = refY + dy;
-                }
-            }
-            if (selector.hasDz()) {
-                f32 dz = selector.getDz();
-                if (dz < 0) {
-                    minZ = refZ + dz;
-                    maxZ = refZ;
-                } else {
-                    maxZ = refZ + dz;
-                }
-            }
+            f32 minX = (dx < 0.0f) ? (refX + dx) : refX;
+            f32 minY = (dy < 0.0f) ? (refY + dy) : refY;
+            f32 minZ = (dz < 0.0f) ? (refZ + dz) : refZ;
+            f32 maxX = (dx < 0.0f) ? refX : (refX + dx);
+            f32 maxY = (dy < 0.0f) ? refY : (refY + dy);
+            f32 maxZ = (dz < 0.0f) ? refZ : (refZ + dz);
 
-            const auto& ePos = entity->position();
-            if (ePos.x < minX || ePos.x > maxX || ePos.y < minY || ePos.y > maxY || ePos.z < minZ || ePos.z > maxZ) {
+            // MC 原版行为：max 侧额外加 1.0
+            maxX += 1.0f;
+            maxY += 1.0f;
+            maxZ += 1.0f;
+
+            if (pos.x < minX || pos.x > maxX || pos.y < minY || pos.y > maxY || pos.z < minZ || pos.z > maxZ) {
                 return;
             }
         }
@@ -510,34 +490,25 @@ void sortEntities(std::vector<Entity*>& entities, const EntitySelector& selector
         f32 maxDist = std::sqrt(maxDistSq.value());
         result = world->getEntitiesInRange(Vector3(refX, refY, refZ), maxDist);
     } else if (selector.hasDx() || selector.hasDy() || selector.hasDz()) {
-        // 根据体积构建 AABB
-        f32 minX = refX, minY = refY, minZ = refZ;
-        f32 maxX = refX, maxY = refY, maxZ = refZ;
+        // 根据 MC 原版行为构建体积 AABB
+        // 未指定的轴默认 delta=0，但仍会在 max 侧加 1.0
+        // 例如 @e[dx=5] 的 AABB 为 (0,0,0, 6,1,1) 相对坐标
+        f32 dx = selector.hasDx() ? selector.getDx() : 0.0f;
+        f32 dy = selector.hasDy() ? selector.getDy() : 0.0f;
+        f32 dz = selector.hasDz() ? selector.getDz() : 0.0f;
 
-        if (selector.hasDx()) {
-            f32 dx = selector.getDx();
-            if (dx < 0) {
-                minX = refX + dx;
-            } else {
-                maxX = refX + dx;
-            }
-        }
-        if (selector.hasDy()) {
-            f32 dy = selector.getDy();
-            if (dy < 0) {
-                minY = refY + dy;
-            } else {
-                maxY = refY + dy;
-            }
-        }
-        if (selector.hasDz()) {
-            f32 dz = selector.getDz();
-            if (dz < 0) {
-                minZ = refZ + dz;
-            } else {
-                maxZ = refZ + dz;
-            }
-        }
+        // MC 原版 createAabb 逻辑：负 delta 赋给 min 侧，正 delta 赋给 max 侧，max 侧再加 1.0
+        f32 minX = (dx < 0.0f) ? (refX + dx) : refX;
+        f32 minY = (dy < 0.0f) ? (refY + dy) : refY;
+        f32 minZ = (dz < 0.0f) ? (refZ + dz) : refZ;
+        f32 maxX = (dx < 0.0f) ? refX : (refX + dx);
+        f32 maxY = (dy < 0.0f) ? refY : (refY + dy);
+        f32 maxZ = (dz < 0.0f) ? refZ : (refZ + dz);
+
+        // MC 原版行为：max 侧额外加 1.0（确保选择体积至少包含 1 格）
+        maxX += 1.0f;
+        maxY += 1.0f;
+        maxZ += 1.0f;
 
         AxisAlignedBB aabb(minX, minY, minZ, maxX, maxY, maxZ);
         result = world->getEntitiesInAABB(aabb);
@@ -567,36 +538,24 @@ void sortEntities(std::vector<Entity*>& entities, const EntitySelector& selector
                     }
                 }
 
-                // 体积过滤
+                // 体积过滤（MC 原版行为：未指定轴默认 delta=0，max 侧加 1.0）
                 if (selector.hasDx() || selector.hasDy() || selector.hasDz()) {
                     const auto& pos = entity->position();
-                    f32 minX = refX, minY = refY, minZ = refZ;
-                    f32 maxX = refX, maxY = refY, maxZ = refZ;
+                    f32 dx = selector.hasDx() ? selector.getDx() : 0.0f;
+                    f32 dy = selector.hasDy() ? selector.getDy() : 0.0f;
+                    f32 dz = selector.hasDz() ? selector.getDz() : 0.0f;
 
-                    if (selector.hasDx()) {
-                        f32 dx = selector.getDx();
-                        if (dx < 0) {
-                            minX = refX + dx;
-                        } else {
-                            maxX = refX + dx;
-                        }
-                    }
-                    if (selector.hasDy()) {
-                        f32 dy = selector.getDy();
-                        if (dy < 0) {
-                            minY = refY + dy;
-                        } else {
-                            maxY = refY + dy;
-                        }
-                    }
-                    if (selector.hasDz()) {
-                        f32 dz = selector.getDz();
-                        if (dz < 0) {
-                            minZ = refZ + dz;
-                        } else {
-                            maxZ = refZ + dz;
-                        }
-                    }
+                    f32 minX = (dx < 0.0f) ? (refX + dx) : refX;
+                    f32 minY = (dy < 0.0f) ? (refY + dy) : refY;
+                    f32 minZ = (dz < 0.0f) ? (refZ + dz) : refZ;
+                    f32 maxX = (dx < 0.0f) ? refX : (refX + dx);
+                    f32 maxY = (dy < 0.0f) ? refY : (refY + dy);
+                    f32 maxZ = (dz < 0.0f) ? refZ : (refZ + dz);
+
+                    // MC 原版行为：max 侧额外加 1.0
+                    maxX += 1.0f;
+                    maxY += 1.0f;
+                    maxZ += 1.0f;
 
                     if (pos.x < minX || pos.x > maxX || pos.y < minY || pos.y > maxY || pos.z < minZ || pos.z > maxZ) {
                         return true;
