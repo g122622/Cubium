@@ -263,53 +263,65 @@ VoxelShape Shapes::joinUnoptimized(const VoxelShape& a, const VoxelShape& b, con
 
 bool Shapes::joinIsNotEmpty(const VoxelShape& a, const VoxelShape& b, const BooleanOp& op)
 {
-    if (!op.apply(false, false)) {
-        return false; // FALSE 操作
+    // MC Java: 如果 op(false, false) 为 true，则该操作没有意义
+    // （结果永远是满的，无法判断"是否非空"）
+    if (op.apply(false, false)) {
+        return true;
     }
 
     const bool aEmpty = a.isEmpty();
     const bool bEmpty = b.isEmpty();
 
-    if (!aEmpty && !bEmpty) {
-        if (&a == &b) {
-            return op.apply(true, true);
-        }
-
-        const bool aOnly = op.apply(true, false);
-        const bool bOnly = op.apply(false, true);
-
-        // 快速边界检查
-        for (Axis axis : {Axis::X, Axis::Y, Axis::Z}) {
-            if (a.max(axis) < b.min(axis) - EPSILON) {
-                return aOnly || bOnly;
-            }
-            if (b.max(axis) < a.min(axis) - EPSILON) {
-                return aOnly || bOnly;
-            }
-        }
-
-        // 详细检查：遍历所有盒子
-        std::vector<AxisAlignedBB> aBoxes = a.toAabbs();
-        std::vector<AxisAlignedBB> bBoxes = b.toAabbs();
-
-        for (const auto& boxA : aBoxes) {
-            for (const auto& boxB : bBoxes) {
-                if (boxA.intersects(boxB)) {
-                    if (op.apply(true, true)) {
-                        return true;
-                    }
-                } else {
-                    if (op.apply(true, false) || op.apply(false, true)) {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return aOnly || bOnly;
+    // 处理空形状情况
+    if (aEmpty && bEmpty) {
+        return op.apply(false, false);
+    }
+    if (aEmpty) {
+        return op.apply(false, true);
+    }
+    if (bEmpty) {
+        return op.apply(true, false);
     }
 
-    return op.apply(!aEmpty, !bEmpty);
+    // 两个形状都不为空
+    if (&a == &b) {
+        return op.apply(true, true);
+    }
+
+    const bool aOnly = op.apply(true, false);
+    const bool bOnly = op.apply(false, true);
+
+    // 快速边界检查：如果两个形状在任意轴上不重叠，则没有重叠区域
+    for (Axis axis : {Axis::X, Axis::Y, Axis::Z}) {
+        if (a.max(axis) < b.min(axis) - EPSILON) {
+            // a 和 b 不重叠，a 在 b 前面
+            return aOnly || bOnly;
+        }
+        if (b.max(axis) < a.min(axis) - EPSILON) {
+            // a 和 b 不重叠，b 在 a 前面
+            return aOnly || bOnly;
+        }
+    }
+
+    // MC Java: 使用 IndexMerger 进行逐体素检查
+    auto xMerger = createIndexMerger(1, a.getCoords(Axis::X), b.getCoords(Axis::X), aOnly, bOnly);
+    auto yMerger = createIndexMerger(xMerger->size() - 1, a.getCoords(Axis::Y), b.getCoords(Axis::Y), aOnly, bOnly);
+    auto zMerger = createIndexMerger(
+        (xMerger->size() - 1) * (yMerger->size() - 1), a.getCoords(Axis::Z), b.getCoords(Axis::Z), aOnly, bOnly);
+
+    // 三重循环：遍历所有合并后的体素单元，使用 isFullWide 逐体素检查
+    // forMergedIndexes 返回 true 表示遍历完成（没有提前退出）
+    // 内层回调返回 !op.apply(inA, inB) -- 找到满足条件的体素时返回 false（停止遍历）
+    // 外层取反：如果遍历提前停止，说明找到了满足条件的体素，返回 true（非空）
+    return !xMerger->forMergedIndexes([&](i32 xIdxA, i32 xIdxB, i32 /*xIdxMerged*/) -> bool {
+        return yMerger->forMergedIndexes([&](i32 yIdxA, i32 yIdxB, i32 /*yIdxMerged*/) -> bool {
+            return zMerger->forMergedIndexes([&](i32 zIdxA, i32 zIdxB, i32 /*zIdxMerged*/) -> bool {
+                const bool inA = a.shape().isFullWide(xIdxA, yIdxA, zIdxA);
+                const bool inB = b.shape().isFullWide(xIdxB, yIdxB, zIdxB);
+                return !op.apply(inA, inB); // 找到满足条件的体素时返回 false（停止遍历）
+            });
+        });
+    });
 }
 
 // ============================================================================
@@ -386,7 +398,8 @@ bool Shapes::mergedFaceOccludes(const VoxelShape& sourceShape, const VoxelShape&
     const VoxelShape farFace = farShape.getFaceShape(Directions::opposite(direction));
 
     // 合并面形状并检查是否完全遮挡
-    const VoxelShape merged = or_(nearFace, farFace);
+    // MC Java 使用 joinUnoptimized 而非 or_（避免触发 optimize）
+    const VoxelShape merged = joinUnoptimized(nearFace, farFace, BooleanOps::Or());
     return !joinIsNotEmpty(block(), merged, BooleanOps::OnlyFirst());
 }
 
@@ -403,7 +416,8 @@ bool Shapes::faceShapeOccludes(const VoxelShape& faceShape1, const VoxelShape& f
     }
 
     // 合并两个面形状，检查是否完全遮挡单位正方形
-    const VoxelShape merged = or_(faceShape1, faceShape2);
+    // MC Java 使用 joinUnoptimized 而非 or_（避免触发 optimize）
+    const VoxelShape merged = joinUnoptimized(faceShape1, faceShape2, BooleanOps::Or());
     return !joinIsNotEmpty(block(), merged, BooleanOps::OnlyFirst());
 }
 

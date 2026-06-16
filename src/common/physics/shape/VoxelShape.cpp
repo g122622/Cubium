@@ -231,19 +231,37 @@ VoxelShape VoxelShape::optimize() const
         return Shapes::empty();
     }
 
-    // 收集所有AABB，然后使用OR操作逐个合并
-    // 此过程会自动消除不必要的坐标细分，因为每个box通过Shapes::create()
-    // 创建时会使用最精简的分辨率，合并后的结果也是最优的
+    // 收集所有AABB，然后直接创建VoxelShape合并
+    // 注意：不能使用 Shapes::or_()，因为那会调用 Shapes::join()，
+    // 而 join() 会再次调用 optimize()，导致无限递归。
+    // MC Java 版的优化策略：将形状分解为独立的盒子，然后合并。
+    // 由于每个盒子已经是简单的形状，合并后的结果是优化过的。
     std::vector<AxisAlignedBB> boxes = toAabbs();
     if (boxes.empty()) {
         return Shapes::empty();
     }
 
-    VoxelShape result = Shapes::empty();
-    for (const auto& box : boxes) {
-        result = Shapes::or_(result, Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ));
+    // 单个盒子的情况，直接返回优化过的形状
+    if (boxes.size() == 1) {
+        const auto& b = boxes[0];
+        return Shapes::create(b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ);
     }
 
+    // 多个盒子：使用 joinUnoptimized 直接合并（跳过 optimize 步骤避免递归）
+    // 然后对结果再次 optimize（此时递归会终止，因为合并后的盒子数不会增加）
+    VoxelShape result = Shapes::create(boxes[0]);
+    for (size_t i = 1; i < boxes.size(); ++i) {
+        VoxelShape boxShape = Shapes::create(boxes[i]);
+        // 直接调用 joinUnoptimized 避免递归，然后手动 optimize
+        result = Shapes::joinUnoptimized(result, boxShape, BooleanOps::Or());
+    }
+
+    // After merging, check if simplification occurred (fewer boxes)
+    // If so, recursively optimize. If not, we have reached a fixed point.
+    std::vector<AxisAlignedBB> newBoxes = result.toAabbs();
+    if (newBoxes.size() < boxes.size()) {
+        return result.optimize();
+    }
     return result;
 }
 

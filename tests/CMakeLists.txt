@@ -683,6 +683,8 @@ add_executable(mc_tests
     physics/DiscreteVoxelShapeTest.cpp
     # CollisionShape 测试
     physics/CollisionShapeTest.cpp
+    # VoxelShape 布尔运算和 IndexMerger 测试
+    physics/VoxelShapeJoinTest.cpp
     # ServerWorld 纰版挒妫€娴嬫祴璇?    server/ServerWorldCollisionTests.cpp
     # 瀹炰綋杩借釜鍣ㄦ祴璇?    server/world/EntityTrackerTest.cpp
     # EntityTracker UUID 测试

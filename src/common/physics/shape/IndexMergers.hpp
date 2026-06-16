@@ -3,7 +3,7 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the the rights
+ * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
@@ -72,13 +72,19 @@ private:
  * （一个形状完全在另一个形状的前面）。
  *
  * 对应 MC Java 版的 NonOverlappingMerger。
+ *
+ * 索引映射规则（参考 MC Java 版）：
+ * - lower 的每个段：firstIdx = 段索引, secondIdx = -1（第二个形状不存在）
+ * - upper 的每个段：firstIdx = lower.size()-1（lower 最后段的索引）, secondIdx = 段索引
+ * 当 swap=true 时，forMergedIndexes 交换 firstIdx 和 secondIdx 参数
  */
 class NonOverlappingMerger : public Shapes::IndexMerger {
 public:
     /**
      * @param lower 较低的坐标列表
      * @param upper 较高的坐标列表
-     * @param swapped 如果为 true，表示第一个形状实际上是 upper（索引交换）
+     * @param swapped 如果为 true，表示参数顺序与实际 lower/upper 相反，
+     *                需要在回调中交换 firstIdx 和 secondIdx
      */
     NonOverlappingMerger(std::vector<f64> lower, std::vector<f64> upper, bool swapped)
         : m_lower(std::move(lower))
@@ -99,39 +105,13 @@ public:
 
     [[nodiscard]] bool forMergedIndexes(const std::function<bool(i32, i32, i32)>& consumer) const override
     {
-        const i32 lowerSegs = static_cast<i32>(m_lower.size()) - 1;
-        const i32 upperSegs = static_cast<i32>(m_upper.size()) - 1;
-
-        if (!m_swapped) {
-            // first = lower, second = upper
-            // lower 段：secondIdx = -1（upper 不存在）
-            for (i32 i = 0; i < lowerSegs; ++i) {
-                if (!consumer(i, -1, i)) {
-                    return false;
-                }
-            }
-            // upper 段：firstIdx = lower 的最后一个段索引
-            for (i32 i = 0; i < upperSegs; ++i) {
-                if (!consumer(lowerSegs - 1, i, lowerSegs + i)) {
-                    return false;
-                }
-            }
-        } else {
-            // first = upper, second = lower（构造时交换了）
-            // lower 段：firstIdx = -1（upper 不存在）
-            for (i32 i = 0; i < lowerSegs; ++i) {
-                if (!consumer(-1, i, i)) {
-                    return false;
-                }
-            }
-            // upper 段：secondIdx = lower 的最后一个段索引
-            for (i32 i = 0; i < upperSegs; ++i) {
-                if (!consumer(i, lowerSegs - 1, lowerSegs + i)) {
-                    return false;
-                }
-            }
+        if (m_swapped) {
+            // swap=true 时交换 firstIdx 和 secondIdx
+            return forNonSwappedIndexes([&consumer](i32 firstIdx, i32 secondIdx, i32 mergedIdx) {
+                return consumer(secondIdx, firstIdx, mergedIdx);
+            });
         }
-        return true;
+        return forNonSwappedIndexes(consumer);
     }
 
     [[nodiscard]] i32 size() const noexcept override { return static_cast<i32>(m_merged.size()); }
@@ -141,6 +121,35 @@ private:
     std::vector<f64> m_upper;
     std::vector<f64> m_merged;
     bool m_swapped;
+
+    /**
+     * @brief 非交换版本的索引遍历
+     *
+     * 索引映射：
+     * - lower 的段：firstIdx = j, secondIdx = -1
+     * - upper 的段：firstIdx = lower.size()-1, secondIdx = k
+     */
+    bool forNonSwappedIndexes(const std::function<bool(i32, i32, i32)>& consumer) const
+    {
+        const i32 lowerSize = static_cast<i32>(m_lower.size());
+
+        // lower 的所有段（包括从 lower 末尾到 upper 开头的过渡段）
+        for (i32 j = 0; j < lowerSize; ++j) {
+            if (!consumer(j, -1, j)) {
+                return false;
+            }
+        }
+
+        // upper 的段（不包括从 lower 末尾到 upper 开头的过渡段，因为那已经包含在 lower 的段中了）
+        const i32 upperSegs = static_cast<i32>(m_upper.size()) - 1;
+        for (i32 k = 0; k < upperSegs; ++k) {
+            if (!consumer(lowerSize - 1, k, lowerSize + k)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 };
 
 /**
@@ -150,6 +159,11 @@ private:
  * 同时跟踪每个合并段对应的原始段索引。
  *
  * 对应 MC Java 版的 IndirectMerger。
+ *
+ * 当 includeFirst 为 false 时，跳过仅属于第一个形状的坐标段；
+ * 当 includeSecond 为 false 时，跳过仅属于第二个形状的坐标段。
+ * 这是布尔运算优化的关键：如果操作不需要某个形状的独占区域，
+ * 就不需要包含那些坐标段。
  */
 class IndirectMerger : public Shapes::IndexMerger {
 public:
@@ -164,74 +178,78 @@ public:
         const i32 firstLen = static_cast<i32>(first.size());
         const i32 secondLen = static_cast<i32>(second.size());
 
-        // 预分配空间
+        // skipFirst = !includeFirst: 跳过仅属于第一个形状的坐标
+        // skipSecond = !includeSecond: 跳过仅属于第二个形状的坐标
+        const bool skipFirst = !includeFirst;
+        const bool skipSecond = !includeSecond;
+
+        // 预分配空间（最坏情况：两个列表完全不相交）
         const size_t maxSize = static_cast<size_t>(firstLen + secondLen);
         m_coords.reserve(maxSize);
         m_firstIndices.reserve(maxSize);
         m_secondIndices.reserve(maxSize);
 
-        i32 i1 = 0;           // first 的指针
-        i32 j1 = 0;           // second 的指针
-        i32 segIdxFirst = 0;  // 当前 first 段索引
-        i32 segIdxSecond = 0; // 当前 second 段索引
+        i32 i1 = 0;                                            // first 的指针
+        i32 j1 = 0;                                            // second 的指针
+        i32 writeIdx = 0;                                      // 写入位置
+        f64 prevCoord = std::numeric_limits<f64>::quiet_NaN(); // 前一个坐标值，用于去重
 
-        while (i1 < firstLen || j1 < secondLen) {
-            // 选择下一个坐标
-            f64 coord;
-            bool fromFirst = false;
-            bool fromSecond = false;
+        while (true) {
+            const bool firstDone = i1 >= firstLen;
+            const bool secondDone = j1 >= secondLen;
 
-            if (i1 >= firstLen) {
-                coord = second[static_cast<size_t>(j1)];
-                fromSecond = true;
-            } else if (j1 >= secondLen) {
-                coord = first[static_cast<size_t>(i1)];
-                fromFirst = true;
+            if (firstDone && secondDone) {
+                break;
+            }
+
+            // 选择下一个坐标：取两者中较小的
+            const bool takeFromFirst =
+                !firstDone && (secondDone || first[static_cast<size_t>(i1)] < second[static_cast<size_t>(j1)] + 1.0E-7);
+
+            if (takeFromFirst) {
+                ++i1;
+                // 如果要跳过第一个形状的独占坐标，且第二个形状尚未开始或已结束
+                if (skipFirst && (j1 == 0 || secondDone)) {
+                    continue;
+                }
             } else {
-                const f64 v1 = first[static_cast<size_t>(i1)];
-                const f64 v2 = second[static_cast<size_t>(j1)];
-
-                if (v1 < v2 - 1.0E-7) {
-                    coord = v1;
-                    fromFirst = true;
-                } else if (v2 < v1 - 1.0E-7) {
-                    coord = v2;
-                    fromSecond = true;
-                } else {
-                    // 相等（在容差范围内）
-                    coord = v1;
-                    fromFirst = true;
-                    fromSecond = true;
+                ++j1;
+                // 如果要跳过第二个形状的独占坐标，且第一个形状尚未开始或已结束
+                if (skipSecond && (i1 == 0 || firstDone)) {
+                    continue;
                 }
             }
 
-            // 更新段索引（在前进指针之前，当前坐标属于 i1/j1 之前的段）
-            // 段索引 = 当前坐标在对应列表中的位置 - 1
-            // 因为坐标点 i 定义了段 [i-1, i) 的右边界
-            const i32 firstSegIdx = fromFirst ? (i1 - 1) : segIdxFirst;
-            const i32 secondSegIdx = fromSecond ? (j1 - 1) : segIdxSecond;
+            // 计算段索引：i1/j1 已自增，段索引 = 指针 - 1
+            const i32 firstSegIdx = i1 - 1;
+            const i32 secondSegIdx = j1 - 1;
+            const f64 coord =
+                takeFromFirst ? first[static_cast<size_t>(firstSegIdx)] : second[static_cast<size_t>(secondSegIdx)];
 
-            // 前进指针
-            if (fromFirst) {
-                ++i1;
-            }
-            if (fromSecond) {
-                ++j1;
-            }
-
-            segIdxFirst = fromFirst ? (i1 - 1) : segIdxFirst;
-            segIdxSecond = fromSecond ? (j1 - 1) : segIdxSecond;
-
-            // 去重：如果当前坐标与前一个坐标几乎相同，覆盖
-            if (!m_coords.empty() && coord >= m_coords.back() - 1.0E-7) {
-                m_coords.back() = coord;
-                m_firstIndices.back() = segIdxFirst;
-                m_secondIndices.back() = segIdxSecond;
-            } else {
+            // 去重：如果当前坐标与前一个几乎相同，覆盖前一个条目的索引
+            if (!(prevCoord >= coord - 1.0E-7)) {
+                // 新坐标点
                 m_coords.push_back(coord);
-                m_firstIndices.push_back(segIdxFirst);
-                m_secondIndices.push_back(segIdxSecond);
+                m_firstIndices.push_back(firstSegIdx);
+                m_secondIndices.push_back(secondSegIdx);
+                ++writeIdx;
+                prevCoord = coord;
+            } else {
+                // 重复坐标点，覆盖前一个条目的索引（两个形状在此处共享边界）
+                m_firstIndices[static_cast<size_t>(writeIdx - 1)] = firstSegIdx;
+                m_secondIndices[static_cast<size_t>(writeIdx - 1)] = secondSegIdx;
             }
+        }
+
+        // 结果长度至少为1（确保空形状也能正常处理）
+        m_resultLength = std::max(1, writeIdx);
+
+        // 如果只有一个坐标点，清空索引（表示空形状）
+        if (m_resultLength <= 1) {
+            m_coords.clear();
+            m_firstIndices.clear();
+            m_secondIndices.clear();
+            m_resultLength = 1;
         }
     }
 
@@ -240,7 +258,7 @@ public:
     [[nodiscard]] bool forMergedIndexes(const std::function<bool(i32, i32, i32)>& consumer) const override
     {
         // 段数 = 坐标数 - 1
-        const i32 segCount = static_cast<i32>(m_coords.size()) - 1;
+        const i32 segCount = m_resultLength - 1;
         for (i32 i = 0; i < segCount; ++i) {
             if (!consumer(m_firstIndices[static_cast<size_t>(i)], m_secondIndices[static_cast<size_t>(i)], i)) {
                 return false;
@@ -249,12 +267,13 @@ public:
         return true;
     }
 
-    [[nodiscard]] i32 size() const noexcept override { return static_cast<i32>(m_coords.size()); }
+    [[nodiscard]] i32 size() const noexcept override { return m_resultLength; }
 
 private:
     std::vector<f64> m_coords;
     std::vector<i32> m_firstIndices;
     std::vector<i32> m_secondIndices;
+    i32 m_resultLength = 0;
 };
 
 /**
