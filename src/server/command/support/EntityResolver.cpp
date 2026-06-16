@@ -493,6 +493,9 @@ void sortEntities(std::vector<Entity*>& entities, const EntitySelector& selector
         // 根据 MC 原版行为构建体积 AABB
         // 未指定的轴默认 delta=0，但仍会在 max 侧加 1.0
         // 例如 @e[dx=5] 的 AABB 为 (0,0,0, 6,1,1) 相对坐标
+        // TODO(待改进): 当前体积过滤使用实体位置点包含检查（pos.x < minX || pos.x > maxX），
+        // MC 原版使用实体碰撞箱与选择 AABB 的相交检查（AABB.intersects(entityBox)），
+        // 两者在实体体积较大或跨越边界时行为不同，未来应改为碰撞箱相交检查。
         f32 dx = selector.hasDx() ? selector.getDx() : 0.0f;
         f32 dy = selector.hasDy() ? selector.getDy() : 0.0f;
         f32 dz = selector.hasDz() ? selector.getDz() : 0.0f;
