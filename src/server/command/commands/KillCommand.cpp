@@ -8,14 +8,14 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
+ * The above copyright notice shall be included in all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
@@ -25,15 +25,12 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "server/command/support/PlayerResolver.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
+#include "server/command/support/EntityResolver.hpp"
 #include "server/player/ServerPlayer.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <sstream>
 
@@ -92,55 +89,41 @@ i32 KillCommand::_killEntities(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     EntitySelector selector = context.getArgument<EntitySelector>("target");
 
-    // 获取目标玩家 ID 列表
-    std::vector<PlayerId> targetPlayerIds = support::resolvePlayerIds(source, selector);
+    // 使用 EntityResolver 解析实体选择器，支持非玩家实体
+    auto entities = support::EntityResolver::resolve(source, selector);
 
-    if (targetPlayerIds.empty()) {
-        source.sendError("commands.kill.failed.noEntity");
-        return 0;
-    }
-
-    auto* server = source.server();
-    if (server == nullptr) {
-        source.sendError("commands.kill.failed.noEntity");
-        return 0;
-    }
-
-    auto* world = source.world();
-    if (world == nullptr) {
+    if (entities.empty()) {
         source.sendError("commands.kill.failed.noEntity");
         return 0;
     }
 
     i32 killedCount = 0;
 
-    for (PlayerId playerId : targetPlayerIds) {
-        if (playerId == 0) {
+    for (Entity* entity : entities) {
+        if (entity == nullptr || !entity->isAlive()) {
             continue;
         }
 
-        // 通过 ServerPlayerEntityManager 获取玩家实体
-        Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
-        if (player == nullptr) {
-            continue;
-        }
-
-        // 调用击杀命令处理
-        player->onKillCommand();
+        // 对所有实体使用 onKillCommand（基类默认调用 remove()）
+        entity->onKillCommand();
         killedCount++;
     }
 
     // 发送反馈消息
     if (killedCount == 1) {
-        // 获取第一个被杀死的玩家名称
-        auto* playerData = server->playerManager().getPlayer(targetPlayerIds.front());
-        if (playerData != nullptr) {
+        Entity* first = entities.front();
+        auto* player = dynamic_cast<Player*>(first);
+        if (player != nullptr) {
             std::ostringstream ss;
-            ss << "Killed " << playerData->username;
+            ss << "Killed " << player->username();
+            source.sendMessage(ss.str());
+        } else if (first->hasCustomName()) {
+            std::ostringstream ss;
+            ss << "Killed " << first->customNameText();
             source.sendMessage(ss.str());
         } else {
             std::ostringstream ss;
-            ss << "Killed " << killedCount << " entities";
+            ss << "Killed " << first->getTypeId();
             source.sendMessage(ss.str());
         }
     } else {

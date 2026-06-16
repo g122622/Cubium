@@ -34,9 +34,8 @@
 #include "server/application/IServer.hpp"
 #include "server/command/data/DataAccessor.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "server/command/support/PlayerResolver.hpp"
+#include "server/command/support/EntityResolver.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <cmath>
 #include <sstream>
 
@@ -330,35 +329,23 @@ i32 DataCommand::_getBlock(CommandContext<ServerCommandSource>& context)
 i32 DataCommand::_getEntity(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto world = source.world();
-    auto server = source.server();
+    auto* server = source.server();
 
-    if (world == nullptr || server == nullptr) {
-        _sendError(source, "commands.data.entity.failed.noWorld");
+    if (server == nullptr) {
+        _sendError(source, "commands.data.entity.failed.noServer");
         return 0;
     }
 
     EntitySelector selector = context.getArgument<EntitySelector>("target");
-    auto playerIds = support::resolvePlayerIds(source, selector);
+    auto entities = support::EntityResolver::resolve(source, selector);
 
-    if (playerIds.empty()) {
+    if (entities.empty()) {
         _sendError(source, "commands.data.entity.failed.noEntity");
         return 0;
     }
 
-    // TODO: 支持多实体，目前只处理第一个实体
-    Entity* entity = nullptr;
-    auto& playerEntityManager = server->playerEntityManager();
-    // 检查是否是玩家
-    Player* player = playerEntityManager.getPlayerEntity(playerIds[0], *world);
-    if (player != nullptr) {
-        entity = static_cast<Entity*>(player);
-    }
-
-    if (entity == nullptr) {
-        _sendError(source, "commands.data.entity.failed.noEntity");
-        return 0;
-    }
+    // 只处理第一个匹配的实体
+    Entity* entity = entities.front();
 
     EntityDataAccessor accessor(entity);
 
@@ -523,11 +510,10 @@ i32 DataCommand::_setBlock(CommandContext<ServerCommandSource>& context)
 i32 DataCommand::_setEntity(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto world = source.world();
-    auto server = source.server();
+    auto* server = source.server();
 
-    if (world == nullptr || server == nullptr) {
-        _sendError(source, "commands.data.entity.failed.noWorld");
+    if (server == nullptr) {
+        _sendError(source, "commands.data.entity.failed.noServer");
         return 0;
     }
 
@@ -535,23 +521,13 @@ i32 DataCommand::_setEntity(CommandContext<ServerCommandSource>& context)
     NbtPath path = context.getArgument<NbtPath>("path");
     auto value = context.getArgument<std::shared_ptr<nbt::tags::tag>>("value");
 
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
+    auto entities = support::EntityResolver::resolve(source, selector);
+    if (entities.empty()) {
         _sendError(source, "commands.data.entity.failed.noEntity");
         return 0;
     }
 
-    Entity* entity = nullptr;
-    auto& playerEntityManager = server->playerEntityManager();
-    Player* player = playerEntityManager.getPlayerEntity(playerIds[0], *world);
-    if (player != nullptr) {
-        entity = static_cast<Entity*>(player);
-    }
-
-    if (entity == nullptr) {
-        _sendError(source, "commands.data.entity.failed.noEntity");
-        return 0;
-    }
+    Entity* entity = entities.front();
 
     EntityDataAccessor accessor(entity);
 
@@ -655,34 +631,23 @@ i32 DataCommand::_mergeBlock(CommandContext<ServerCommandSource>& context)
 i32 DataCommand::_mergeEntity(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto world = source.world();
-    auto server = source.server();
+    auto* server = source.server();
 
-    if (world == nullptr || server == nullptr) {
-        _sendError(source, "commands.data.entity.failed.noWorld");
+    if (server == nullptr) {
+        _sendError(source, "commands.data.entity.failed.noServer");
         return 0;
     }
 
     EntitySelector selector = context.getArgument<EntitySelector>("target");
     auto nbt = context.getArgument<std::shared_ptr<nbt::tags::compound_tag>>("nbt");
 
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
+    auto entities = support::EntityResolver::resolve(source, selector);
+    if (entities.empty()) {
         _sendError(source, "commands.data.entity.failed.noEntity");
         return 0;
     }
 
-    Entity* entity = nullptr;
-    auto& playerEntityManager = server->playerEntityManager();
-    Player* player = playerEntityManager.getPlayerEntity(playerIds[0], *world);
-    if (player != nullptr) {
-        entity = static_cast<Entity*>(player);
-    }
-
-    if (entity == nullptr) {
-        _sendError(source, "commands.data.entity.failed.noEntity");
-        return 0;
-    }
+    Entity* entity = entities.front();
 
     EntityDataAccessor accessor(entity);
 
@@ -774,34 +739,23 @@ i32 DataCommand::_removeBlock(CommandContext<ServerCommandSource>& context)
 i32 DataCommand::_removeEntity(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto world = source.world();
-    auto server = source.server();
+    auto* server = source.server();
 
-    if (world == nullptr || server == nullptr) {
-        _sendError(source, "commands.data.entity.failed.noWorld");
+    if (server == nullptr) {
+        _sendError(source, "commands.data.entity.failed.noServer");
         return 0;
     }
 
     EntitySelector selector = context.getArgument<EntitySelector>("target");
     NbtPath path = context.getArgument<NbtPath>("path");
 
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
+    auto entities = support::EntityResolver::resolve(source, selector);
+    if (entities.empty()) {
         _sendError(source, "commands.data.entity.failed.noEntity");
         return 0;
     }
 
-    Entity* entity = nullptr;
-    auto& playerEntityManager = server->playerEntityManager();
-    Player* player = playerEntityManager.getPlayerEntity(playerIds[0], *world);
-    if (player != nullptr) {
-        entity = static_cast<Entity*>(player);
-    }
-
-    if (entity == nullptr) {
-        _sendError(source, "commands.data.entity.failed.noEntity");
-        return 0;
-    }
+    Entity* entity = entities.front();
 
     EntityDataAccessor accessor(entity);
 

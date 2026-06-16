@@ -8,14 +8,14 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
+ * The above copyright notice shall be included in all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
@@ -29,10 +29,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "server/command/support/PlayerResolver.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/world/ServerWorld.hpp"
-#include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "server/command/support/EntityResolver.hpp"
 #include <algorithm>
 #include <sstream>
 
@@ -75,25 +72,20 @@ void TagCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 }
 
 /**
- * @brief 获取实体指针
+ * @brief 获取实体的显示名称。
  *
- * 当前实现仅支持玩家实体。未来可通过 EntityResolver 扩展支持所有实体。
- *
- * @param source 命令源
- * @param playerId 玩家ID
- * @return Entity指针，如果找不到返回 nullptr
+ * 优先使用玩家用户名，其次使用自定义名称，最后使用实体类型ID。
  */
-static Entity* getEntityFromPlayerId(const ServerCommandSource& source, PlayerId playerId)
+[[nodiscard]] static std::string getEntityDisplayName(const Entity& entity)
 {
-    auto* server = source.server();
-    auto* world = source.world();
-    if (server == nullptr || world == nullptr) {
-        return nullptr;
+    auto* player = dynamic_cast<const Player*>(&entity);
+    if (player != nullptr) {
+        return player->username();
     }
-
-    // 通过 ServerPlayerEntityManager 获取玩家实体
-    Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
-    return player; // Player 继承自 Entity
+    if (entity.hasCustomName()) {
+        return entity.customNameText();
+    }
+    return entity.getTypeId();
 }
 
 i32 TagCommand::_addTag(CommandContext<ServerCommandSource>& context)
@@ -102,19 +94,16 @@ i32 TagCommand::_addTag(CommandContext<ServerCommandSource>& context)
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
     const std::string tag = context.getArgument<std::string>("tag");
 
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
+    auto entities = support::EntityResolver::resolve(source, selector);
+    if (entities.empty()) {
         source.sendError("No entities matched the selector");
         return 0;
     }
 
     i32 successCount = 0;
-    for (PlayerId playerId : playerIds) {
-        Entity* entity = getEntityFromPlayerId(source, playerId);
-        if (entity != nullptr) {
-            if (entity->addTag(tag)) {
-                successCount++;
-            }
+    for (Entity* entity : entities) {
+        if (entity->addTag(tag)) {
+            successCount++;
         }
     }
 
@@ -136,19 +125,16 @@ i32 TagCommand::_removeTag(CommandContext<ServerCommandSource>& context)
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
     const std::string tag = context.getArgument<std::string>("tag");
 
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
+    auto entities = support::EntityResolver::resolve(source, selector);
+    if (entities.empty()) {
         source.sendError("No entities matched the selector");
         return 0;
     }
 
     i32 successCount = 0;
-    for (PlayerId playerId : playerIds) {
-        Entity* entity = getEntityFromPlayerId(source, playerId);
-        if (entity != nullptr) {
-            if (entity->removeTag(tag)) {
-                successCount++;
-            }
+    for (Entity* entity : entities) {
+        if (entity->removeTag(tag)) {
+            successCount++;
         }
     }
 
@@ -169,8 +155,8 @@ i32 TagCommand::_listTags(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
 
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
+    auto entities = support::EntityResolver::resolve(source, selector);
+    if (entities.empty()) {
         source.sendError("No entities matched the selector");
         return 0;
     }
@@ -179,31 +165,18 @@ i32 TagCommand::_listTags(CommandContext<ServerCommandSource>& context)
     std::set<std::string> allTags;
     std::vector<std::pair<std::string, std::set<std::string>>> entityTags;
 
-    for (PlayerId playerId : playerIds) {
-        Entity* entity = getEntityFromPlayerId(source, playerId);
-        if (entity != nullptr) {
-            const auto& tags = entity->getTags();
-            std::string entityName;
+    for (Entity* entity : entities) {
+        const auto& tags = entity->getTags();
+        std::string entityName = getEntityDisplayName(*entity);
 
-            // 尝试获取实体名称
-            Player* player = dynamic_cast<Player*>(entity);
-            if (player != nullptr) {
-                entityName = player->username();
-            } else if (entity->hasCustomName()) {
-                entityName = entity->customNameText();
-            } else {
-                entityName = entity->getTypeId();
-            }
-
-            entityTags.emplace_back(entityName, tags);
-            for (const auto& tag : tags) {
-                allTags.insert(tag);
-            }
+        entityTags.emplace_back(std::move(entityName), tags);
+        for (const auto& tag : tags) {
+            allTags.insert(tag);
         }
     }
 
     // 输出结果
-    if (playerIds.size() == 1) {
+    if (entities.size() == 1) {
         // 单个实体：显示该实体的所有标签
         if (entityTags.empty() || entityTags[0].second.empty()) {
             source.sendMessage(entityTags.empty() ? "Entity has no tags" : entityTags[0].first + " has no tags");
@@ -219,11 +192,11 @@ i32 TagCommand::_listTags(CommandContext<ServerCommandSource>& context)
     } else {
         // 多个实体：显示所有实体的标签总数
         if (allTags.empty()) {
-            source.sendMessage("No tags found on " + std::to_string(playerIds.size()) + " entities");
+            source.sendMessage("No tags found on " + std::to_string(entities.size()) + " entities");
         } else {
             std::ostringstream ss;
             ss << "There are " << allTags.size() << " unique tag" << (allTags.size() == 1 ? "" : "s") << " on "
-               << playerIds.size() << " entities:";
+               << entities.size() << " entities:";
             for (const auto& tag : allTags) {
                 ss << " " << tag;
             }

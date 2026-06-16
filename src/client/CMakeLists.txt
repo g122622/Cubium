@@ -399,6 +399,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/command/support/EntityResolver.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/support/EffectResolver.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/support/SpreadAlgorithm.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/data/DataAccessor.cpp
