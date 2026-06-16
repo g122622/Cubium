@@ -6,10 +6,13 @@
 
 ```
 shape/
-├── BooleanOp.hpp             # 布尔运算函数对象（并集、交集、差集等）
-├── DiscreteVoxelShape.hpp/cpp # 离散体素形状，使用位图存储体素占用状态
-├── VoxelShape.hpp/cpp        # 体素形状主类，包含离散网格和浮点坐标点列表
-└── Shapes.hpp/cpp            # 形状工厂类，提供创建和操作 VoxelShape 的静态方法
+├── BooleanOp.hpp                # 布尔运算函数对象（并集、交集、差集等）
+├── BitSetDiscreteVoxelShape.hpp # 基于BitSet的离散体素形状，提供join布尔运算核心算法
+├── CubePointRange.hpp           # 均匀分布坐标点列表（单位立方体对齐），用于优化合并器
+├── DiscreteVoxelShape.hpp/cpp   # 离散体素形状，使用位图存储体素占用状态
+├── IndexMergers.hpp             # IndexMerger子类集合（IdenticalMerger、NonOverlappingMerger、IndirectMerger、DiscreteCubeMerger）
+├── VoxelShape.hpp/cpp           # 体素形状主类，包含离散网格和浮点坐标点列表
+└── Shapes.hpp/cpp               # 形状工厂类，提供创建和操作 VoxelShape 的静态方法
 ```
 
 ## 内部模块关系
@@ -17,15 +20,19 @@ shape/
 ```
 BooleanOp ──┐
             ▼
-DiscreteVoxelShape ◄──────────────────────────────┐
+DiscreteVoxelShape ◄────────────────── BitSetDiscreteVoxelShape
             │                                      │
-            ▼                                      │
+            ▼                                      │ (join 静态方法)
        VoxelShape ◄────────────────────────────────┤
             │                                      │
             ▼                                      │
-          Shapes ──(join操作)──► BooleanOp ────────┘
+          Shapes ──(join操作)──► BooleanOp ─────────┘
               │                   (布尔运算)
+              ├──(IndexMerger)──► IndexMergers (Identical/NonOverlapping/Indirect/DiscreteCube)
+              │
               └──(创建/操作)──► VoxelShape
+
+CubePointRange ──► DiscreteCubeMerger (优化路径)
 ```
 
 - **BooleanOp**：布尔运算函数对象，无依赖

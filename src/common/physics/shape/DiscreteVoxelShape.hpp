@@ -198,6 +198,23 @@ public:
      */
     void fillRange(i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ);
 
+    /**
+     * @brief 直接设置边界缓存（跳过重新计算）
+     *
+     * 当调用者已经知道精确的边界时，可以避免遍历整个体素网格来重算边界。
+     * 设置后会将 m_boundsDirty 标记为 false。
+     */
+    void setBounds(i32 xMin, i32 yMin, i32 zMin, i32 xMax, i32 yMax, i32 zMax)
+    {
+        m_xMin = xMin;
+        m_yMin = yMin;
+        m_zMin = zMin;
+        m_xMax = xMax;
+        m_yMax = yMax;
+        m_zMax = zMax;
+        m_boundsDirty = false;
+    }
+
     // === 工厂方法 ===
 
     /**

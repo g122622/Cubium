@@ -22,10 +22,14 @@
  */
 
 #include "Shapes.hpp"
+
+#include "BitSetDiscreteVoxelShape.hpp"
+#include "CubePointRange.hpp"
+#include "IndexMergers.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
-#include <set>
 
 namespace mc {
 
@@ -151,7 +155,7 @@ VoxelShape Shapes::create(f64 minX, f64 minY, f64 minZ, f64 maxX, f64 maxY, f64 
         static_cast<i32>(std::round(maxY * ySize)),
         static_cast<i32>(std::round(maxZ * zSize)));
 
-    // 创建立方体坐标点
+    // 创建立方体坐标点列表
     std::vector<f64> xPoints(xSize + 1);
     std::vector<f64> yPoints(ySize + 1);
     std::vector<f64> zPoints(zSize + 1);
@@ -202,12 +206,21 @@ VoxelShape Shapes::join(const VoxelShape& a, const VoxelShape& b, const BooleanO
 
 VoxelShape Shapes::joinUnoptimized(const VoxelShape& a, const VoxelShape& b, const BooleanOp& op)
 {
-    // 特殊情况处理
+    // 布尔运算的 false,false 情况会导致无限体积
     if (!op.apply(false, false)) {
-        // FALSE 操作会导致无限体积，不允许
+        // 标准布尔运算都满足此条件（AND, OR, ONLY_FIRST, ONLY_SECOND 等）
+        // 这是正确的路径
+    } else {
+        // FALSE 和 TRUE 操作不在 join 中处理
         return empty();
     }
 
+    // 相同形状快捷路径
+    if (&a == &b) {
+        return op.apply(true, true) ? a : empty();
+    }
+
+    // 空形状快捷路径
     if (a.isEmpty()) {
         return op.apply(false, true) ? b : empty();
     }
@@ -216,49 +229,36 @@ VoxelShape Shapes::joinUnoptimized(const VoxelShape& a, const VoxelShape& b, con
         return op.apply(true, false) ? a : empty();
     }
 
-    // TODO: 完整实现需要使用 IndexMerger 和 BitSetDiscreteVoxelShape.join
-    // 当前是简化实现：收集所有盒子并应用布尔运算
-    // 对于 OR 操作，简单合并盒子
-    if (op.apply(true, true)) {
-        std::vector<AxisAlignedBB> boxes = a.toAabbs();
-        std::vector<AxisAlignedBB> bBoxes = b.toAabbs();
-        boxes.insert(boxes.end(), bBoxes.begin(), bBoxes.end());
+    // 计算布尔运算的包含标志
+    const bool includeA = op.apply(true, false); // A 独占区域是否包含
+    const bool includeB = op.apply(false, true); // B 独占区域是否包含
+    const bool includeAB = op.apply(true, true); // A 和 B 重叠区域是否包含
 
-        // 使用第一个盒子作为基础
-        if (boxes.empty()) {
-            return empty();
-        }
+    // 创建三个轴的索引合并器
+    auto xMerger = createIndexMerger(1, a.getCoords(Axis::X), b.getCoords(Axis::X), includeA, includeB);
+    auto yMerger =
+        createIndexMerger(xMerger->size() - 1, a.getCoords(Axis::Y), b.getCoords(Axis::Y), includeA, includeB);
+    auto zMerger = createIndexMerger(
+        (xMerger->size() - 1) * (yMerger->size() - 1), a.getCoords(Axis::Z), b.getCoords(Axis::Z), includeA, includeB);
 
-        VoxelShape result = create(boxes[0]);
-        for (size_t i = 1; i < boxes.size(); ++i) {
-            result = or_(result, create(boxes[i]));
-        }
-        return result;
+    // 使用 BitSetDiscreteVoxelShape::join 执行体素级布尔运算
+    DiscreteVoxelShape resultShape =
+        BitSetDiscreteVoxelShape::join(a.shape(), b.shape(), *xMerger, *yMerger, *zMerger, op);
+
+    // 从合并器获取合并后的坐标列表
+    std::vector<f64> xPoints = xMerger->getList();
+    std::vector<f64> yPoints = yMerger->getList();
+    std::vector<f64> zPoints = zMerger->getList();
+
+    // 如果结果为空，返回空形状
+    if (resultShape.isEmpty()) {
+        return empty();
     }
 
-    // 对于 AND 操作
-    if (op.apply(true, true) && !op.apply(true, false) && !op.apply(false, true) && !op.apply(false, false)) {
-        // 简化实现：只检查边界相交
-        const AxisAlignedBB aBounds = a.bounds();
-        const AxisAlignedBB bBounds = b.bounds();
-
-        if (!aBounds.intersects(bBounds)) {
-            return empty();
-        }
-
-        // 创建相交区域
-        const AxisAlignedBB intersection(std::max(aBounds.minX, bBounds.minX),
-            std::max(aBounds.minY, bBounds.minY),
-            std::max(aBounds.minZ, bBounds.minZ),
-            std::min(aBounds.maxX, bBounds.maxX),
-            std::min(aBounds.maxY, bBounds.maxY),
-            std::min(aBounds.maxZ, bBounds.maxZ));
-
-        return create(intersection);
-    }
-
-    // 默认返回空
-    return empty();
+    return VoxelShape(std::make_shared<DiscreteVoxelShape>(std::move(resultShape)),
+        std::move(xPoints),
+        std::move(yPoints),
+        std::move(zPoints));
 }
 
 bool Shapes::joinIsNotEmpty(const VoxelShape& a, const VoxelShape& b, const BooleanOp& op)
@@ -522,89 +522,53 @@ bool Shapes::isEmpty(const VoxelShape& shape)
 }
 
 // ============================================================================
-// IndexMerger 实现（内部类）
+// IndexMerger 创建
 // ============================================================================
-
-namespace {
-
-class SimpleIndexMerger : public Shapes::IndexMerger {
-public:
-    SimpleIndexMerger(std::vector<f64> list, std::vector<std::pair<i32, i32>> pairs)
-        : m_list(std::move(list))
-        , m_pairs(std::move(pairs))
-    {}
-
-    SimpleIndexMerger(SimpleIndexMerger&& other) noexcept
-        : m_list(std::move(other.m_list))
-        , m_pairs(std::move(other.m_pairs))
-    {}
-
-    SimpleIndexMerger& operator=(SimpleIndexMerger&& other) noexcept
-    {
-        if (this != &other) {
-            m_list = std::move(other.m_list);
-            m_pairs = std::move(other.m_pairs);
-        }
-        return *this;
-    }
-
-    const std::vector<f64>& getList() const noexcept override { return m_list; }
-
-    bool forMergedIndexes(const std::function<bool(i32, i32, i32)>& consumer) const override
-    {
-        for (size_t i = 0; i < m_pairs.size(); ++i) {
-            if (!consumer(m_pairs[i].first, m_pairs[i].second, static_cast<i32>(i))) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    i32 size() const noexcept override { return static_cast<i32>(m_list.size()); }
-
-private:
-    std::vector<f64> m_list;
-    std::vector<std::pair<i32, i32>> m_pairs;
-};
-
-} // anonymous namespace
 
 std::unique_ptr<Shapes::IndexMerger> Shapes::createIndexMerger(
     i32 size, const std::vector<f64>& a, const std::vector<f64>& b, bool aIncluded, bool bIncluded)
 {
+    const i32 aSegs = static_cast<i32>(a.size()) - 1;
+    const i32 bSegs = static_cast<i32>(b.size()) - 1;
 
-    std::set<f64> allCoords;
-    for (f64 v : a)
-        allCoords.insert(v);
-    for (f64 v : b)
-        allCoords.insert(v);
+    // 检测 CubePointRange
+    const i32 aCubeBits = detectCubePointRange(a);
+    const i32 bCubeBits = detectCubePointRange(b);
 
-    std::vector<f64> merged(allCoords.begin(), allCoords.end());
-    std::vector<std::pair<i32, i32>> pairs;
-
-    for (size_t i = 0; i < merged.size(); ++i) {
-        i32 idxA = -1, idxB = -1;
-
-        // 找到a中的索引
-        for (size_t j = 0; j < a.size() - 1; ++j) {
-            if (a[j] <= merged[i] && merged[i] <= a[j + 1]) {
-                idxA = static_cast<i32>(j);
-                break;
-            }
+    // 情况 1：两个都是 CubePointRange，且复杂度在预算内
+    if (aCubeBits > 0 && bCubeBits > 0) {
+        const i64 lcmVal = lcm(static_cast<i64>(aCubeBits), static_cast<i64>(bCubeBits));
+        if (static_cast<i64>(size) * lcmVal <= 256LL) {
+            return std::make_unique<DiscreteCubeMerger>(aCubeBits, bCubeBits);
         }
-
-        // 找到b中的索引
-        for (size_t j = 0; j < b.size() - 1; ++j) {
-            if (b[j] <= merged[i] && merged[i] <= b[j + 1]) {
-                idxB = static_cast<i32>(j);
-                break;
-            }
-        }
-
-        pairs.emplace_back(idxA, idxB);
     }
 
-    return std::make_unique<SimpleIndexMerger>(std::move(merged), std::move(pairs));
+    // 情况 2：不重叠（a 完全在 b 之前）
+    if (a.back() < b.front() - 1.0E-7) {
+        return std::make_unique<NonOverlappingMerger>(std::vector<f64>(a), std::vector<f64>(b), false);
+    }
+
+    // 情况 3：不重叠（b 完全在 a 之前）
+    if (b.back() < a.front() - 1.0E-7) {
+        return std::make_unique<NonOverlappingMerger>(std::vector<f64>(b), std::vector<f64>(a), true);
+    }
+
+    // 情况 4：相同的坐标列表
+    if (a.size() == b.size()) {
+        bool identical = true;
+        for (size_t i = 0; i < a.size(); ++i) {
+            if (std::abs(a[i] - b[i]) > 1.0E-7) {
+                identical = false;
+                break;
+            }
+        }
+        if (identical) {
+            return std::make_unique<IdenticalMerger>(std::vector<f64>(a));
+        }
+    }
+
+    // 情况 5：通用归并排序
+    return std::make_unique<IndirectMerger>(a, b, aIncluded, bIncluded);
 }
 
 } // namespace mc

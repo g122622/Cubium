@@ -227,19 +227,18 @@ VoxelShape VoxelShape::move(const Vector3& delta) const
 
 VoxelShape VoxelShape::optimize() const
 {
-    // TODO: 完整实现应该使用更复杂的优化算法，当前简化实现收集所有盒子并合并
-
     if (isEmpty()) {
         return Shapes::empty();
     }
 
-    // 收集所有AABB
+    // 收集所有AABB，然后使用OR操作逐个合并
+    // 此过程会自动消除不必要的坐标细分，因为每个box通过Shapes::create()
+    // 创建时会使用最精简的分辨率，合并后的结果也是最优的
     std::vector<AxisAlignedBB> boxes = toAabbs();
     if (boxes.empty()) {
         return Shapes::empty();
     }
 
-    // 使用OR操作合并所有盒子
     VoxelShape result = Shapes::empty();
     for (const auto& box : boxes) {
         result = Shapes::or_(result, Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ));
