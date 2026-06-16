@@ -773,7 +773,10 @@ void BlockItemRegistry::initializeVanillaBlockItems()
 
         registerGameMasterBlock(VanillaBlocks::STRUCTURE_BLOCK, "structure_block");
         registerGameMasterBlock(VanillaBlocks::JIGSAW, "jigsaw");
-        registerGameMasterBlock(VanillaBlocks::BARRIER, "barrier");
+
+        // BarrierBlock 使用普通 BlockItem 注册（MC Java 中 BarrierBlock 不是 GameMasterBlockItem，
+        // 创造模式玩家均可放置，只有硬度=-1 防止破坏）
+        registerSimpleBlock(VanillaBlocks::BARRIER, "barrier");
 
         // TODO: CommandBlock、RepeatingCommandBlock、ChainCommandBlock 尚未在 VanillaBlocks 中注册，
         // 待注册后需在此处使用 GameMasterBlockItem 注册，例如：

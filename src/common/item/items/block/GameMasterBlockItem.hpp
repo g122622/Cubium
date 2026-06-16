@@ -50,7 +50,6 @@ public:
 
     ~GameMasterBlockItem() override = default;
 
-protected:
     /**
      * @brief 获取放置时的方块状态
      *
@@ -61,6 +60,8 @@ protected:
      * @return 方块状态指针，如果不允许放置返回 nullptr
      */
     [[nodiscard]] const BlockState* getStateForPlacement(const BlockItemUseContext& context) const override;
+
+private:
 };
 
 } // namespace mc
