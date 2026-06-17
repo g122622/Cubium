@@ -518,6 +518,7 @@ Item* Items::BLUE_ICE = nullptr;
 Item* Items::COARSE_DIRT = nullptr;
 Item* Items::PODZOL = nullptr;
 Item* Items::TORCH = nullptr;
+Item* Items::SOUL_TORCH = nullptr;
 
 // 石头变种
 Item* Items::GRANITE = nullptr;
@@ -2468,7 +2469,15 @@ void Items::_registerBuildingBlocks()
     COARSE_DIRT = &registerBlockBackedItem(
         registry, VanillaBlocks::COARSE_DIRT, "coarse_dirt", ItemProperties().maxStackSize(64));
     PODZOL = &registerBlockBackedItem(registry, VanillaBlocks::PODZOL, "podzol", ItemProperties().maxStackSize(64));
-    TORCH = &registerBlockBackedItem(registry, VanillaBlocks::TORCH, "torch", ItemProperties().maxStackSize(64));
+    TORCH = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:torch"),
+        *VanillaBlocks::TORCH,
+        *VanillaBlocks::WALL_TORCH,
+        ItemProperties().maxStackSize(64));
+
+    SOUL_TORCH = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:soul_torch"),
+        *VanillaBlocks::SOUL_TORCH,
+        *VanillaBlocks::SOUL_WALL_TORCH,
+        ItemProperties().maxStackSize(64));
 
     // 石头变种
     GRANITE = &registerBlockBackedItem(registry, VanillaBlocks::GRANITE, "granite", ItemProperties().maxStackSize(64));
@@ -3063,8 +3072,10 @@ void Items::_registerRedstone()
 
     // 注意：REDSTONE_WIRE 没有独立的物品，因为玩家持有的是 REDSTONE 物品
     // 红石粉放在地上时变成 REDSTONE_WIRE 方块
-    REDSTONE_TORCH = &registerBlockBackedItem(
-        registry, VanillaBlocks::REDSTONE_TORCH, "redstone_torch", ItemProperties().maxStackSize(64));
+    REDSTONE_TORCH = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:redstone_torch"),
+        *VanillaBlocks::REDSTONE_TORCH,
+        *VanillaBlocks::REDSTONE_WALL_TORCH,
+        ItemProperties().maxStackSize(64));
     REDSTONE_LAMP = &registerBlockBackedItem(
         registry, VanillaBlocks::REDSTONE_LAMP, "redstone_lamp", ItemProperties().maxStackSize(64));
     REDSTONE_REPEATER = &registerBlockBackedItem(

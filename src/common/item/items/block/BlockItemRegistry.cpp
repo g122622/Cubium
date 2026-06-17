@@ -618,7 +618,12 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     // 注意：REDSTONE_WIRE 没有独立物品，红石粉物品（REDSTONE）放在地上时变成 REDSTONE_WIRE 方块
     // REDSTONE_BLOCK 已在矿物方块中注册
     registerSimpleBlock(VanillaBlocks::TORCH, "torch");
+    // 墙上变体映射到同一物品
+    registerSimpleBlock(VanillaBlocks::WALL_TORCH, "torch");
     registerSimpleBlock(VanillaBlocks::REDSTONE_TORCH, "redstone_torch");
+    registerSimpleBlock(VanillaBlocks::REDSTONE_WALL_TORCH, "redstone_torch");
+    registerSimpleBlock(VanillaBlocks::SOUL_TORCH, "soul_torch");
+    registerSimpleBlock(VanillaBlocks::SOUL_WALL_TORCH, "soul_torch");
     registerSimpleBlock(VanillaBlocks::REDSTONE_LAMP, "redstone_lamp");
     registerSimpleBlock(VanillaBlocks::REDSTONE_REPEATER, "redstone_repeater");
     registerSimpleBlock(VanillaBlocks::REDSTONE_COMPARATOR, "redstone_comparator");

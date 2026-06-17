@@ -553,6 +553,7 @@ public:
     static Item* COARSE_DIRT; // 砂土
     static Item* PODZOL;      // 灰化土
     static Item* TORCH;       // 火把
+    static Item* SOUL_TORCH;  // 灵魂火把
 
     // ========================================================================
     // 石头变种

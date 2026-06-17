@@ -138,12 +138,13 @@ BlockState WallTorchBlock::getStateForPlacement(BlockItemUseContext& context)
     Direction hitFace = context.face();
     if (Directions::isHorizontal(hitFace)) {
         BlockPos pos = context.placementPos();
-        BlockPos attachPos = pos.offset(hitFace);
+        // 附着面是点击的方块，位于放置位置的反方向
+        Direction attachDir = Directions::opposite(hitFace);
+        BlockPos attachPos = pos.offset(attachDir);
         IWorld& world = context.getWorld();
         const BlockState* attachState = world.getBlockState(attachPos);
-        if (attachState &&
-            attachState->getBlock().isSolidSide(*attachState, world, attachPos, Directions::opposite(hitFace))) {
-            return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(hitFace));
+        if (attachState && attachState->getBlock().isSolidSide(*attachState, world, attachPos, hitFace)) {
+            return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), attachDir);
         }
     }
 
