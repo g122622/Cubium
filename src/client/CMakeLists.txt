@@ -505,6 +505,11 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
     ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfo.cpp
     ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfoManager.cpp
+    # 函数系统
+    ${CMAKE_SOURCE_DIR}/src/server/function/CommandFunction.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/function/FunctionLoader.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/function/FunctionManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/function/TimerQueue.cpp
 )
 
 target_link_libraries(minecraft-client

@@ -83,9 +83,11 @@
 #include "common/world/village/raid/RaidManager.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
 #include "server/command/CommandRegistry.hpp"
+#include "server/command/ServerCommandSource.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/function/FunctionLoader.hpp"
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
@@ -261,6 +263,31 @@ void MinecraftServer::tick()
     if (m_dimensionManager) {
         MC_TRACE_EVENT("server.tick", "TickAllDimensions");
         m_dimensionManager->tick();
+    }
+
+    // 函数系统 tick：执行 minecraft:tick 标签中的函数和处理调度的函数
+    {
+        MC_TRACE_EVENT("server.tick", "TickFunctions");
+        // 创建游戏循环命令源（权限等级2，抑制输出，无关联玩家）
+        command::ServerCommandSource gameLoopSource(this, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "");
+
+        // 执行 tick 和 load 标签中的函数
+        m_functionManager.tick(gameLoopSource);
+
+        // 处理到期的调度事件
+        auto dueEvents = m_functionTimerQueue.tick(currentTick());
+        for (const auto& event : dueEvents) {
+            if (event.type == function::TimerQueue::EventType::Function) {
+                // 执行单个函数
+                m_functionManager.execute(event.loc, gameLoopSource);
+            } else if (event.type == function::TimerQueue::EventType::FunctionTag) {
+                // 执行函数标签中的所有函数
+                const auto& functionIds = m_functionManager.getTag(event.loc);
+                for (const auto& funcId : functionIds) {
+                    m_functionManager.execute(funcId, gameLoopSource);
+                }
+            }
+        }
     }
 
     if (m_storage) {
@@ -812,6 +839,26 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 
         // 注册特殊配方（动态配方，不从数据包加载）
         registerSpecialRecipes();
+    }
+
+    // 加载函数（从数据包加载 .mcfunction 文件）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Functions");
+        function::FunctionLoader functionLoader(m_functionManager);
+        auto funcLoadResult = functionLoader.loadFromDataPackRepository(m_dataPackList);
+        if (funcLoadResult.failed()) {
+            spdlog::error("Failed to load functions from data packs: {}", funcLoadResult.error().toString());
+        } else {
+            const auto& result = funcLoadResult.value();
+            spdlog::info("Loaded {} functions from data packs ({} failed, {} macros skipped)",
+                result.successCount,
+                result.failedCount,
+                result.skippedCount);
+            for (const auto& err : result.errors) {
+                spdlog::error("Function error: {}", err);
+            }
+        }
+        m_functionManager.notifyReload();
     }
 
     // 加载模板池（从数据包加载）

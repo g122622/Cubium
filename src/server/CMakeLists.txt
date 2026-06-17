@@ -147,6 +147,11 @@ add_executable(minecraft-server
     bossbar/ServerBossInfo.cpp
     bossbar/CustomServerBossInfo.cpp
     bossbar/CustomServerBossInfoManager.cpp
+    # 函数系统
+    function/CommandFunction.cpp
+    function/FunctionLoader.cpp
+    function/FunctionManager.cpp
+    function/TimerQueue.cpp
     # 脚本系统集成
     mod/bedrock/addon/ServerScriptManager.cpp
     mod/bedrock/addon/bridge/EventBridge.cpp

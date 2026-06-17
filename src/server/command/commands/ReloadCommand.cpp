@@ -29,6 +29,8 @@
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/function/FunctionLoader.hpp"
+#include "server/function/FunctionManager.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -89,6 +91,24 @@ i32 ReloadCommand::_reload(CommandContext<ServerCommandSource>& context)
         for (const auto& err : result.errors) {
             spdlog::error("Recipe error: {}", err);
         }
+    }
+
+    // 3. 重新加载函数
+    auto& functionManager = server->functionManager();
+    function::FunctionLoader functionLoader(functionManager);
+    auto funcResult = functionLoader.loadFromDataPackRepository(dataPacks);
+    if (funcResult.failed()) {
+        source.sendMessage("Failed to reload functions: " + funcResult.error().toString());
+        spdlog::error("Failed to reload functions: {}", funcResult.error().toString());
+    } else {
+        const auto& result = funcResult.value();
+        source.sendMessage("Reloaded " + std::to_string(result.successCount) + " functions" +
+            (result.failedCount > 0 ? (" (" + std::to_string(result.failedCount) + " failed)") : ""));
+        for (const auto& err : result.errors) {
+            spdlog::error("Function error: {}", err);
+        }
+        // 通知函数管理器重新加载完成，下次 tick 时执行 minecraft:load 标签
+        functionManager.notifyReload();
     }
 
     source.sendMessage("Reload complete!");

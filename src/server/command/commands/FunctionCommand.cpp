@@ -25,8 +25,10 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/function/FunctionManager.hpp"
 #include <sstream>
 
 namespace mc {
@@ -52,22 +54,38 @@ i32 FunctionCommand::_runFunction(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     const std::string name = context.getArgument<std::string>("name");
 
-    // 解析函数命名空间
-    size_t colonPos = name.find(':');
-    std::string namespaceName = colonPos != std::string::npos ? name.substr(0, colonPos) : "minecraft";
-    std::string functionName = colonPos != std::string::npos ? name.substr(colonPos + 1) : name;
+    // 解析函数命名空间（格式：namespace:path 或 path）
+    ResourceLocation functionId = ResourceLocation::parse(name);
 
+    auto* server = source.server();
+    if (server == nullptr) {
+        source.sendError("Function command requires a server instance");
+        return 0;
+    }
+
+    auto& functionManager = server->functionManager();
+
+    // 检查函数是否存在
+    if (!functionManager.hasFunction(functionId)) {
+        std::ostringstream ss;
+        ss << "Unknown function '" << functionId.toString() << "'";
+        source.sendError(ss.str());
+        return 0;
+    }
+
+    // 执行函数
+    auto result = functionManager.execute(functionId, source);
+
+    // 反馈执行结果
     std::ostringstream ss;
-    ss << "Running function " << namespaceName << ":" << functionName;
+    ss << "Executed function '" << functionId.toString() << "' (" << result.successCount << " commands succeeded";
+    if (result.failureCount > 0) {
+        ss << ", " << result.failureCount << " failed";
+    }
+    ss << ")";
     source.sendMessage(ss.str());
 
-    // TODO: 实现数据包函数系统
-    // 1. 从数据包加载函数文件
-    // 2. 解析函数中的命令
-    // 3. 按顺序执行命令
-    // 4. 处理递归调用限制
-
-    return 1;
+    return result.successCount;
 }
 
 } // namespace command

@@ -930,6 +930,11 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfoManager.cpp
+        # 函数系统
+        ${CMAKE_SOURCE_DIR}/src/server/function/CommandFunction.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/function/FunctionLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/function/FunctionManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/function/TimerQueue.cpp
         # 统计系统
         ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp
         ${CMAKE_SOURCE_DIR}/src/server/stats/Stat.cpp
@@ -1867,6 +1872,11 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfoManager.cpp
+        # 函数系统
+        ${CMAKE_SOURCE_DIR}/src/server/function/CommandFunction.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/function/FunctionLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/function/FunctionManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/function/TimerQueue.cpp
 )
 
 target_link_libraries(mc_command_tests

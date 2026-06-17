@@ -20,6 +20,8 @@
 #include "server/core/TeleportManager.hpp"
 #include "server/core/TimeManager.hpp"
 #include "server/core/WhitelistManager.hpp"
+#include "server/function/FunctionManager.hpp"
+#include "server/function/TimerQueue.hpp"
 #include "server/interaction/InventoryManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 
@@ -118,6 +120,10 @@ public:
     [[nodiscard]] const resource::DataPackRepository& dataPackList() const override;
     [[nodiscard]] loot::LootTableManager& lootTableManager() override;
     [[nodiscard]] const loot::LootTableManager& lootTableManager() const override;
+    [[nodiscard]] function::FunctionManager& functionManager() override { return m_functionManager; }
+    [[nodiscard]] const function::FunctionManager& functionManager() const override { return m_functionManager; }
+    [[nodiscard]] function::TimerQueue& functionTimerQueue() override { return m_functionTimerQueue; }
+    [[nodiscard]] const function::TimerQueue& functionTimerQueue() const override { return m_functionTimerQueue; }
     [[nodiscard]] world::storage::SingleLevelStorageManager* sharedStorage() override { return nullptr; }
     [[nodiscard]] const world::storage::SingleLevelStorageManager* sharedStorage() const override { return nullptr; }
     [[nodiscard]] bool isSharedStorageReadonlyForeignWorld() const override { return false; }
@@ -199,6 +205,8 @@ protected:
     command::CommandRegistry m_commandRegistry;
     command::CommandStorage m_commandStorage;
     server::ServerScoreboard m_scoreboard;
+    function::FunctionManager m_functionManager;
+    function::TimerQueue m_functionTimerQueue;
     std::vector<std::shared_ptr<FakeServerConnection>> m_connections;
 };
 

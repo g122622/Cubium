@@ -33,9 +33,13 @@
 #include "common/item/loot/context/LootParameterSets.hpp"
 #include "common/item/loot/context/LootParams.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/Vector2.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "server/application/IServer.hpp"
+#include "server/command/ServerCommandSource.hpp"
+#include "server/function/FunctionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <spdlog/spdlog.h>
@@ -632,9 +636,27 @@ void PlayerAdvancements::_grantRewards(const mc::advancement::AdvancementRewards
 
     // 执行函数奖励
     if (rewards.getFunction().has_value()) {
-        // TODO: 实现函数执行（需要命令/函数系统，当前 FunctionManager 尚未实现）
-        spdlog::info("Advancement rewards: function {} pending (function system not yet implemented)",
-            rewards.getFunction()->toString());
+        auto* server = m_player ? m_player->getServer() : nullptr;
+        if (server != nullptr) {
+            auto& functionManager = server->functionManager();
+            const auto& functionId = rewards.getFunction().value();
+            if (functionManager.hasFunction(functionId)) {
+                // 使用游戏循环命令源（权限等级2，抑制输出）
+                // 与 MC Java 一致：进度奖励函数使用 getGameLoopSender() 执行
+                command::ServerCommandSource gameLoopSource(
+                    server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "");
+                auto result = functionManager.execute(functionId, gameLoopSource);
+                spdlog::debug("Advancement rewards: executed function '{}' ({} commands succeeded, {} failed)",
+                    functionId.toString(),
+                    result.successCount,
+                    result.failureCount);
+            } else {
+                spdlog::warn("Advancement rewards: function '{}' not found", functionId.toString());
+            }
+        } else {
+            spdlog::warn("Advancement rewards: cannot execute function '{}' - server not available",
+                rewards.getFunction()->toString());
+        }
     }
 }
 
