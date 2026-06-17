@@ -49,7 +49,12 @@ Block
   - BushBlock::canSustain() 委托给下方方块的 canSustainPlant() 方法，通过 PlantType 判断土壤兼容性
   - BushBlock 默认返回 PlantType::Plains，子类可重写返回其他类型
 - **CropBlock** 继承 BushBlock 和 IGrowable，重写 getPlantType() 返回 PlantType::Crop，实现农作物通用生长逻辑（AGE_0_7）
+  - `getGrowthChance()` 为 public static 方法，供 StemBlock 等兄弟类复用生长概率计算（3x3 耕地扫描 + 拥挤惩罚）
 - **StemBlock** 继承 BushBlock 和 IGrowable，重写 getPlantType() 返回 PlantType::Crop，实现茎类作物生长和果实在成逻辑
+  - `randomTick` 使用 `CropBlock::getGrowthChance()` 公式计算生长概率（3x3 耕地扫描 + 拥挤惩罚），而非硬编码
+  - 成熟后（AGE=7）的 randomTick 仍受光照和概率控制再尝试结果，而非直接调用 tryGrowFruit
+  - 骨粉催熟至最大年龄后调用 `randomTick`（而非 `tryGrowFruit`），确保果实生成受概率控制
+  - `tryGrowFruit` 使用 `BlockTags::DIRT` 标签检查果实下方支撑（而非硬编码 FARMLAND/DIRT/GRASS_BLOCK）
 - **StemGrownBlock** 是果实方块的基类，通过 `getStem()` 和 `getAttachedStem()` 关联茎方块
 - **AttachedStemBlock** 在果实生成后替换普通茎，指向果实方向
 - **FarmlandBlock** 独立实现耕地湿润逻辑，重写 canSustainPlant() 接受 PlantType::Crop 和 PlantType::Plains
@@ -66,7 +71,7 @@ Block
 | `world/block/IGrowable.hpp` | 骨粉生长接口 |
 | `world/block/blocks/HorizontalBlock.hpp` | 水平方向方块基类 |
 | `world/block/BlockStateProperties.hpp` | AGE_0_7、AGE_0_2、AGE_0_3、HORIZONTAL_FACING、MOISTURE_0_7 等属性 |
-| `world/block/BlockTags.hpp` | JUNGLE_LOGS 标签（可可豆附着检测） |
+| `world/block/BlockTags.hpp` | JUNGLE_LOGS 标签（可可豆附着检测）、DIRT 标签（果实支撑判定） |
 | `world/block/Material.hpp` | PLANTS、EARTH 材质 |
 | `physics/collision/CollisionShape.hpp` | 碰撞形状 |
 | `entity/Entity.hpp` | 实体基类（耕地跳跃破坏检测） |
@@ -146,3 +151,15 @@ Block
 | Cave | 洞穴植物 | 蘑菇 | MYCELIUM + PODZOL |
 | Water | 水生植物 | 睡莲、海草、海带 | 由植物自身 isValidPosition 处理 |
 | Nether | 下界植物 | 地狱疣、菌索 | CRIMSON_NYLIUM + WARPED_NYLIUM + MYCELIUM + SOUL_SOIL + DIRT 标签 + FARMLAND |
+
+### 10. StemBlock 果实支撑判定必须使用 BlockTags::DIRT
+
+**问题**：`tryGrowFruit` 中检查果实下方支撑方块时，不能硬编码 `FARMLAND`/`DIRT`/`GRASS_BLOCK` 三个方块指针。原版使用 `BlockTags.DIRT` 标签，覆盖 podzol、coarse_dirt、mycelium、rooted_dirt、moss_block、mud、muddy_mangrove_roots、pale_moss_block 等所有泥土类方块。
+
+**解决方案**：使用 `BlockTags::DIRT().contains(*belowFruitState)` 替代硬编码检查。FARMLAND 已在 DIRT 标签中，无需额外检查。
+
+### 11. StemBlock 成熟后的 randomTick 仍受光照和概率控制
+
+**问题**：原版 `StemBlock.randomTick` 中，AGE=7 时尝试结果仍需通过 `getRawBrightness >= 9` 和 `nextInt(25/f + 1) == 0` 的概率检查，而非直接调用 `tryGrowFruit`。同样，骨粉催熟至 AGE=7 后调用 `blockstate.randomTick()`，而非直接结果。
+
+**解决方案**：`randomTick` 采用统一流程（光照→概率→年龄分支），`grow` 方法在 `newAge == maxAge` 时调用 `randomTick` 而非 `tryGrowFruit`。
