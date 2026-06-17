@@ -1,4 +1,4 @@
-# 函数系统 (Function System)
+#函数系统(Function System)
 
 ## 概述
 
@@ -109,6 +109,7 @@ FunctionManager.execute(id, source)
 2. **多数据包标签合并**：当前只读取最高优先级数据包中的标签文件。MC Java 按数据包优先级从高到低遍历同名标签文件，`replace=true` 时清空已有条目后追加。完整的多数据包标签合并需要在 DataPackRepository 层面提供读取所有数据包中同一资源的方法。
 3. **无持久化**：TimerQueue 的调度事件不会保存到存档（MC Java 会保存到 level.dat 的 ScheduledEvents）。
 4. **ExecutionContext 简化**：MC Java 有复杂的 ExecutionContext / Frame / CallFunction 系统，当前实现直接逐行执行命令，没有递归深度限制和帧控制。
+5. **required=true 行为差异**：MC Java 中当 `required=true` 的条目缺失时整个标签会被丢弃（不注册），当前实现仅输出警告并继续构建标签。函数条目的 `required` 验证尚未实现（函数加载顺序不确定），当前运行时所有不存在的函数引用仅输出警告跳过。
 
 ## 集成点
 

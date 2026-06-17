@@ -201,24 +201,40 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
     // 分两步：1. 收集所有条目到合并列表  2. 解析标签引用
 
     // 用于存储合并后的标签函数 ID 列表
-    // key: 标签 ResourceLocation, value: (函数ID列表, 是否有required条目缺失)
+    // key: 标签 ResourceLocation, value: 函数ID列表
     struct MergedTag {
         std::vector<ResourceLocation> functionIds;
         std::vector<ResourceLocation> tagReferences; // 需要展开的标签引用
-        bool hasMissingRequired = false;             // 是否有 required=true 但缺失的条目
     };
     std::unordered_map<ResourceLocation, MergedTag> mergedTags;
 
     // 第一步：将直接函数引用加入合并列表，收集标签引用
+    // 同时建立条目ID到required的映射，用于后续验证
+    // key: 标签 ResourceLocation, value: (函数条目required映射, 标签条目required映射)
+    struct RequiredMaps {
+        std::unordered_map<ResourceLocation, bool> functionRequired;
+        std::unordered_map<ResourceLocation, bool> tagRequired;
+    };
+    std::unordered_map<ResourceLocation, RequiredMaps> requiredMaps;
+
     for (auto& [tagLoc, tagData] : parsedTags) {
         auto& merged = mergedTags[tagLoc];
+        auto& reqMaps = requiredMaps[tagLoc];
         for (auto& entry : tagData.entries) {
             if (entry.type == TagEntryType::Function) {
                 merged.functionIds.push_back(std::move(entry.id));
+                // 同一函数ID可能被多次引用，保留 required=true 的标记
+                auto it = reqMaps.functionRequired.find(entry.id);
+                if (it == reqMaps.functionRequired.end() || entry.required) {
+                    reqMaps.functionRequired[entry.id] = entry.required;
+                }
             } else {
                 merged.tagReferences.push_back(std::move(entry.id));
+                auto it = reqMaps.tagRequired.find(entry.id);
+                if (it == reqMaps.tagRequired.end() || entry.required) {
+                    reqMaps.tagRequired[entry.id] = entry.required;
+                }
             }
-            // 注意：TagEntry 的 required 字段在后续标签引用展开和注册时使用
         }
     }
 
@@ -227,41 +243,20 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
     Size tagCount = 0;
     for (auto& [tagLoc, tagData] : parsedTags) {
         auto& merged = mergedTags[tagLoc];
+        auto& reqMaps = requiredMaps[tagLoc];
         std::unordered_set<ResourceLocation> visitedTags;
         visitedTags.insert(tagLoc); // 防止自引用
-
-        // 收集此标签中所有条目的 required 标志，用于后续构建时验证
-        // 建立条目ID到required的映射
-        std::unordered_map<ResourceLocation, bool> functionRequiredMap;
-        std::unordered_map<ResourceLocation, bool> tagRequiredMap;
-        for (const auto& entry : tagData.entries) {
-            if (entry.type == TagEntryType::Function) {
-                // 同一函数ID可能被多次引用，保留 required=true 的标记
-                auto it = functionRequiredMap.find(entry.id);
-                if (it == functionRequiredMap.end() || entry.required) {
-                    functionRequiredMap[entry.id] = entry.required;
-                }
-            } else {
-                auto it = tagRequiredMap.find(entry.id);
-                if (it == tagRequiredMap.end() || entry.required) {
-                    tagRequiredMap[entry.id] = entry.required;
-                }
-            }
-        }
 
         for (const auto& refTagLoc : merged.tagReferences) {
             // 防止循环引用
             if (visitedTags.count(refTagLoc) > 0) {
-                bool isRequired = tagRequiredMap.count(refTagLoc) > 0 && tagRequiredMap[refTagLoc];
+                bool isRequired = reqMaps.tagRequired.count(refTagLoc) > 0 && reqMaps.tagRequired[refTagLoc];
                 if (isRequired) {
                     spdlog::warn("FunctionLoader: 循环标签引用 '{}' in tag '{}' (required), 跳过",
                         refTagLoc.toString(),
                         tagLoc.toString());
-                } else {
-                    spdlog::warn("FunctionLoader: 循环标签引用 '{}' in tag '{}' (optional), 静默跳过",
-                        refTagLoc.toString(),
-                        tagLoc.toString());
                 }
+                // required=false 时循环引用静默跳过
                 continue;
             }
             visitedTags.insert(refTagLoc);
@@ -273,17 +268,24 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
                     merged.functionIds.push_back(funcId);
                 }
             } else {
-                bool isRequired = tagRequiredMap.count(refTagLoc) > 0 && tagRequiredMap[refTagLoc];
+                bool isRequired = reqMaps.tagRequired.count(refTagLoc) > 0 && reqMaps.tagRequired[refTagLoc];
                 if (isRequired) {
-                    // required=true 且引用的标签不存在：记录警告，标签可能构建不完整
+                    // required=true 且引用的标签不存在：与 MC Java 不同，MC Java 会丢弃整个标签，
+                    // 当前实现仅输出警告并继续构建标签（行为差异见 README）
                     spdlog::warn("FunctionLoader: 引用的标签 '{}' 未找到 (required), 标签 '{}' 可能不完整",
                         refTagLoc.toString(),
                         tagLoc.toString());
-                    merged.hasMissingRequired = true;
                 }
                 // required=false 且引用的标签不存在：静默跳过
             }
         }
+
+        // 验证函数条目的 required 语义
+        // TODO: 当前无法在加载阶段验证函数是否存在，因为函数和标签的加载顺序不确定。
+        // MC Java 在构建阶段（TagLoader.build）验证 required 条目，此时所有函数已加载。
+        // 完整实现需要在所有函数加载完成后进行二次验证，检查 required=true 的函数条目
+        // 是否在 FunctionManager 中已注册。当前仅在运行时（executeTagFunctions）中
+        // 输出 warn 日志跳过不存在的函数，等同于 required=false 的行为。
 
         ++tagCount;
     }

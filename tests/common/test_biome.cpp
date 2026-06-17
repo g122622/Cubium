@@ -27,6 +27,7 @@
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/BiomeSource.hpp"
+#include "common/world/biome/BiomeTagLoader.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/biome/source/EndBiomeSource.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
@@ -36,6 +37,7 @@
 #include <gtest/gtest.h>
 
 using namespace mc;
+using namespace mc::world::biome;
 
 // ============================================================================
 // Biome 类测试
@@ -1070,4 +1072,170 @@ TEST_F(IsOceanOrRiverBiomeTest, InvalidBiomeIdReturnsFalse)
         BiomeTags::IS_RIVER().contains(static_cast<BiomeId>(9999)));
     EXPECT_FALSE(BiomeTags::IS_OCEAN().contains(static_cast<BiomeId>(200)) ||
         BiomeTags::IS_RIVER().contains(static_cast<BiomeId>(200)));
+}
+
+// ============================================================================
+// BiomeTagLoader 测试
+// ============================================================================
+
+class BiomeTagLoaderTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        BiomeRegistry::instance().initialize();
+        BiomeTags::initialize();
+    }
+};
+
+TEST_F(BiomeTagLoaderTest, LoadFromJson_SimpleStringValues)
+{
+    ResourceLocation loc = ResourceLocation::parse("minecraft:test_tag");
+    auto result = BiomeTagLoader::loadFromJson(R"({"values": ["minecraft:desert", "minecraft:plains"]})", loc);
+    ASSERT_TRUE(result.success());
+    auto tag = result.value();
+    ASSERT_TRUE(tag != nullptr);
+    EXPECT_EQ(tag->getId().toString(), "minecraft:test_tag");
+    const auto& biomeIds = tag->getBiomeIds();
+    EXPECT_EQ(biomeIds.size(), 2u);
+    EXPECT_TRUE(biomeIds.contains(Biomes::Desert));
+    EXPECT_TRUE(biomeIds.contains(Biomes::Plains));
+}
+
+TEST_F(BiomeTagLoaderTest, LoadFromJson_TagReference)
+{
+    // IS_OCEAN 标签在 BiomeTags::initialize() 中注册
+    ResourceLocation loc = ResourceLocation::parse("minecraft:test_tag_ref");
+    auto result = BiomeTagLoader::loadFromJson(R"({"values": ["#minecraft:is_ocean"]})", loc);
+    ASSERT_TRUE(result.success());
+    auto tag = result.value();
+    ASSERT_TRUE(tag != nullptr);
+    const auto& biomeIds = tag->getBiomeIds();
+    // IS_OCEAN 应包含 Ocean 等海洋生物群系
+    EXPECT_TRUE(biomeIds.contains(Biomes::Ocean));
+}
+
+TEST_F(BiomeTagLoaderTest, LoadFromJson_ObjectEntryWithRequiredFalse)
+{
+    ResourceLocation loc = ResourceLocation::parse("minecraft:optional_tag");
+    auto result = BiomeTagLoader::loadFromJson(
+        R"({"values": ["minecraft:desert", {"id": "minecraft:nonexistent_biome", "required": false}]})", loc);
+    ASSERT_TRUE(result.success());
+    auto tag = result.value();
+    ASSERT_TRUE(tag != nullptr);
+    const auto& biomeIds = tag->getBiomeIds();
+    // desert 应被解析，不存在的 biome 设为 required=false 应静默跳过
+    EXPECT_EQ(biomeIds.size(), 1u);
+    EXPECT_TRUE(biomeIds.contains(Biomes::Desert));
+}
+
+TEST_F(BiomeTagLoaderTest, LoadFromJson_ObjectEntryWithRequiredTrue)
+{
+    ResourceLocation loc = ResourceLocation::parse("minecraft:required_tag");
+    auto result = BiomeTagLoader::loadFromJson(
+        R"({"values": ["minecraft:desert", {"id": "minecraft:nonexistent_biome", "required": true}]})", loc);
+    ASSERT_TRUE(result.success());
+    auto tag = result.value();
+    ASSERT_TRUE(tag != nullptr);
+    const auto& biomeIds = tag->getBiomeIds();
+    // required=true 但不存在的 biome 仅输出警告，不会导致解析失败
+    // 行为差异已在 README 中记录
+    EXPECT_EQ(biomeIds.size(), 1u);
+    EXPECT_TRUE(biomeIds.contains(Biomes::Desert));
+}
+
+TEST_F(BiomeTagLoaderTest, LoadFromJson_ObjectEntryDefaultRequired)
+{
+    ResourceLocation loc = ResourceLocation::parse("minecraft:default_required");
+    // 对象格式不指定 required 时默认为 true
+    auto result = BiomeTagLoader::loadFromJson(R"({"values": [{"id": "minecraft:desert"}]})", loc);
+    ASSERT_TRUE(result.success());
+    auto tag = result.value();
+    ASSERT_TRUE(tag != nullptr);
+    const auto& biomeIds = tag->getBiomeIds();
+    EXPECT_EQ(biomeIds.size(), 1u);
+    EXPECT_TRUE(biomeIds.contains(Biomes::Desert));
+}
+
+TEST_F(BiomeTagLoaderTest, LoadFromJson_ObjectEntryMissingIdSkipped)
+{
+    ResourceLocation loc = ResourceLocation::parse("minecraft:bad_tag");
+    // 对象条目缺少 id 字段，应被跳过
+    auto result = BiomeTagLoader::loadFromJson(R"({"values": ["minecraft:desert", {"required": false}]})", loc);
+    ASSERT_TRUE(result.success());
+    auto tag = result.value();
+    ASSERT_TRUE(tag != nullptr);
+    const auto& biomeIds = tag->getBiomeIds();
+    EXPECT_EQ(biomeIds.size(), 1u);
+    EXPECT_TRUE(biomeIds.contains(Biomes::Desert));
+}
+
+TEST_F(BiomeTagLoaderTest, LoadFromJson_ObjectEntryWithTagReference)
+{
+    ResourceLocation loc = ResourceLocation::parse("minecraft:mixed_tag");
+    auto result = BiomeTagLoader::loadFromJson(
+        R"({"values": ["minecraft:desert", "#minecraft:is_ocean", {"id": "#minecraft:is_river", "required": false}, {"id": "minecraft:plains", "required": true}]})",
+        loc);
+    ASSERT_TRUE(result.success());
+    auto tag = result.value();
+    ASSERT_TRUE(tag != nullptr);
+    const auto& biomeIds = tag->getBiomeIds();
+    // desert 和 plains 应被解析
+    EXPECT_TRUE(biomeIds.contains(Biomes::Desert));
+    EXPECT_TRUE(biomeIds.contains(Biomes::Plains));
+    // is_ocean 标签引用应被展开
+    EXPECT_TRUE(biomeIds.contains(Biomes::Ocean));
+    // is_river 标签引用应被展开（required=false）
+    EXPECT_TRUE(biomeIds.contains(Biomes::River));
+}
+
+TEST_F(BiomeTagLoaderTest, LoadFromJson_NonStringNonObjectValuesIgnored)
+{
+    ResourceLocation loc = ResourceLocation::parse("minecraft:bad_values_tag");
+    // 数值和布尔值被跳过，对象格式被正确解析
+    auto result = BiomeTagLoader::loadFromJson(
+        R"({"values": ["minecraft:desert", 42, true, {"id": "minecraft:plains", "required": false}]})", loc);
+    ASSERT_TRUE(result.success());
+    auto tag = result.value();
+    ASSERT_TRUE(tag != nullptr);
+    const auto& biomeIds = tag->getBiomeIds();
+    EXPECT_EQ(biomeIds.size(), 2u);
+    EXPECT_TRUE(biomeIds.contains(Biomes::Desert));
+    EXPECT_TRUE(biomeIds.contains(Biomes::Plains));
+}
+
+TEST_F(BiomeTagLoaderTest, LoadFromJson_ReplaceTrue)
+{
+    ResourceLocation loc = ResourceLocation::parse("minecraft:replace_tag");
+    auto result = BiomeTagLoader::loadFromJson(R"({"replace": true, "values": ["minecraft:desert"]})", loc);
+    ASSERT_TRUE(result.success());
+    auto tag = result.value();
+    ASSERT_TRUE(tag != nullptr);
+    const auto& biomeIds = tag->getBiomeIds();
+    EXPECT_EQ(biomeIds.size(), 1u);
+    EXPECT_TRUE(biomeIds.contains(Biomes::Desert));
+}
+
+TEST_F(BiomeTagLoaderTest, LoadFromJson_EmptyValues)
+{
+    ResourceLocation loc = ResourceLocation::parse("minecraft:empty_tag");
+    auto result = BiomeTagLoader::loadFromJson(R"({"values": []})", loc);
+    ASSERT_TRUE(result.success());
+    auto tag = result.value();
+    ASSERT_TRUE(tag != nullptr);
+    EXPECT_TRUE(tag->getBiomeIds().empty());
+}
+
+TEST_F(BiomeTagLoaderTest, LoadFromJson_MissingValuesArray)
+{
+    ResourceLocation loc = ResourceLocation::parse("minecraft:bad_tag");
+    auto result = BiomeTagLoader::loadFromJson(R"({"replace": false})", loc);
+    EXPECT_FALSE(result.success());
+}
+
+TEST_F(BiomeTagLoaderTest, LoadFromJson_InvalidJson)
+{
+    ResourceLocation loc = ResourceLocation::parse("minecraft:invalid_tag");
+    auto result = BiomeTagLoader::loadFromJson("not valid json", loc);
+    EXPECT_FALSE(result.success());
 }
