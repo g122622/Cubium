@@ -43,7 +43,7 @@ bool EntityPredicate::test(const Entity& entity) const
         return true;
     }
 
-    // 不带世界和参考位置的简化版本
+    // TODO 这是不带世界和参考位置的简化版本
 
     // 1. 检查实体类型
     if (m_type.has_value()) {
