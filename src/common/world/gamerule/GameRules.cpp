@@ -104,6 +104,8 @@ struct RuleRegistry {
         registerBoolean("doFireTick", GameRuleCategory::Updates, true);
         registerBoolean("doDaylightCycle", GameRuleCategory::Updates, true);
         registerBoolean("doWeatherCycle", GameRuleCategory::Updates, true);
+        registerInteger("randomTickSpeed", GameRuleCategory::Updates, 3);
+        registerInteger("snowAccumulationHeight", GameRuleCategory::Updates, 1);
 
         // 聊天相关
         registerBoolean("commandBlockOutput", GameRuleCategory::Chat, true);
@@ -196,6 +198,7 @@ const BooleanGameRuleKey DO_FIRE_TICK("doFireTick", GameRuleCategory::Updates);
 const BooleanGameRuleKey DO_DAYLIGHT_CYCLE("doDaylightCycle", GameRuleCategory::Updates);
 const IntegerGameRuleKey RANDOM_TICK_SPEED("randomTickSpeed", GameRuleCategory::Updates);
 const BooleanGameRuleKey DO_WEATHER_CYCLE("doWeatherCycle", GameRuleCategory::Updates);
+const IntegerGameRuleKey MAX_SNOW_ACCUMULATION_HEIGHT("snowAccumulationHeight", GameRuleCategory::Updates);
 
 // 聊天相关
 const BooleanGameRuleKey COMMAND_BLOCK_OUTPUT("commandBlockOutput", GameRuleCategory::Chat);

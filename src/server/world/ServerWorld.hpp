@@ -238,6 +238,20 @@ private:
     void tickEnvironment(i32 randomTickSpeed);
 
     /**
+     * @brief 处理降水对方块的影响（结冰和降雪）
+     *
+     * 对每个已加载区块，以 1/48 的概率选择一个位置，
+     * 检查生物群系温度并执行结冰或降雪操作。
+     * 结冰不受天气状态影响（低温即结冰），降雪仅在下雪时执行。
+     *
+     * 冰形成：生物群系温度 < 0.15 且方块光照 < 10 且流体为水的位置，
+     *         将水替换为冰（checkNeighbors=true，防止深海大面积结冰）。
+     * 降雪：下雪时，生物群系温度 < 0.15 且方块光照 < 10 且位置为空气/已有雪层，
+     *        放置或增加雪层（受 snowAccumulationHeight 游戏规则控制）。
+     */
+    void tickPrecipitation(i32 randomTickSpeed);
+
+    /**
      * @brief 生成随机方块位置
      *
      * 使用 LCG 生成随机位置，确保同一 tick 内位置分布均匀。

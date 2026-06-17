@@ -226,6 +226,11 @@ BiomeGenerationSettings BiomeGenerationSettings::createDefault()
     // 添加矿石（UNDERGROUND_ORES 阶段）
     addDefaultOverworldOres(settings);
 
+    // 顶层冻结特征（TOP_LAYER_MODIFICATION 阶段）
+    // 所有主世界生物群系都会获得此特征；shouldFreeze/shouldSnow 的温度检查
+    // 会自动过滤掉温暖生物群系中的冰雪放置
+    settings.addFeature(DecorationStage::TopLayerModification, SnowAndFreezeFeatureIds::FreezeTopLayer);
+
     return settings;
 }
 

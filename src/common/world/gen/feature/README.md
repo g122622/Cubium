@@ -13,6 +13,7 @@ feature/
 ├── FeatureIds.hpp                    # 特征ID常量定义
 ├── FeatureSpread.hpp/cpp             # 特征扩散配置
 ├── LakeFeature.hpp/cpp               # 湖泊特征（水湖/熔岩湖）
+├── SnowAndFreezeFeature.hpp/cpp      # 雪和冰冻结特征（TopLayerModification 阶段）
 ├── SimpleBlockFeature.hpp/cpp        # 简单方块放置特征
 ├── BlockColumnFeature.hpp/cpp        # 方块柱特征
 ├── RandomBooleanSelectorFeature.hpp/cpp  # 随机布尔选择器特征

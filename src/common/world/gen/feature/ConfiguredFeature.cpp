@@ -28,6 +28,7 @@
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/LakeFeature.hpp"
+#include "common/world/gen/feature/SnowAndFreezeFeature.hpp"
 #include "common/world/gen/feature/cave/LushCavesFeatures.hpp"
 #include "common/world/gen/feature/end/EndGatewayFeature.hpp"
 #include "common/world/gen/feature/end/EndSpikeFeature.hpp"
@@ -240,6 +241,15 @@ void FeatureRegistry::initialize()
     for (auto& feature : lushCaveFeatures) {
         if (feature) {
             registerFeature(std::move(feature), DecorationStage::VegetalDecoration);
+        }
+    }
+
+    // 注册雪和冰冻结特征（TopLayerModification 阶段）
+    SnowAndFreezeFeatures::initialize();
+    auto snowAndFreezeFeatures = SnowAndFreezeFeatures::getAllFeaturesAndClear();
+    for (auto& feature : snowAndFreezeFeatures) {
+        if (feature) {
+            registerFeature(std::move(feature), DecorationStage::TopLayerModification);
         }
     }
 

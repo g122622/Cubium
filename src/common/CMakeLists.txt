@@ -1041,6 +1041,7 @@ add_library(mc_common STATIC
 
     # World - Generation - Feature - Lake
     world/gen/feature/LakeFeature.cpp
+    world/gen/feature/SnowAndFreezeFeature.cpp
 
     # World - Generation - Feature - Predicate
     world/gen/feature/predicate/BlockPredicate.cpp

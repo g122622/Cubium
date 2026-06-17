@@ -167,6 +167,9 @@ extern const IntegerGameRuleKey RANDOM_TICK_SPEED;
 /// 天气循环是否进行
 extern const BooleanGameRuleKey DO_WEATHER_CYCLE;
 
+/// 雪层最大堆积高度（0=不允许堆积，1-8=最大雪层数）
+extern const IntegerGameRuleKey MAX_SNOW_ACCUMULATION_HEIGHT;
+
 // ============================================================================
 // 聊天相关 (Chat)
 // ============================================================================

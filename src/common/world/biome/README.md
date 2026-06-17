@@ -136,4 +136,4 @@ quart 坐标 = 方块坐标 / 4。`getNoiseBiome()` 接收 quart 坐标，`fillB
 - `doesWaterFreeze(x, y, z, seaLevel)` — 仅温度判断，不需要 IWorld，适用于生成阶段（无光照/方块状态可用时）
 - `doesSnowGenerate(x, y, z, seaLevel)` — 仅温度判断，不需要 IWorld，适用于 SurfaceRules 等生成阶段
 
-**shouldFreeze/shouldSnow 尚未被 SnowAndFreezeFeature 和 ServerWorld::tickPrecipitation() 集成调用，需要后续补充。**
+**shouldFreeze/shouldSnow 已集成调用：SnowAndFreezeFeature（TopLayerModification 生成阶段）、ServerWorld::tickPrecipitation()（运行时逐 tick 结冰和降雪）、LakeFeature（湖泊冻结，checkNeighbors=false）。**

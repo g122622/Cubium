@@ -44,11 +44,18 @@
 #include "common/util/Direction.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/util/core/CoordConverter.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/ice/SnowBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/explosion/Explosion.hpp"
@@ -903,6 +910,10 @@ void ServerWorld::tick()
         // 从游戏规则获取随机刻速度
         i32 randomTickSpeed = m_gameRules.getInt(world::gamerule::GameRuleKeys::RANDOM_TICK_SPEED);
         tickEnvironment(randomTickSpeed);
+
+        // 降水对方块的影响（结冰和降雪）
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::PrecipitationTick");
+        tickPrecipitation(randomTickSpeed);
     }
 
     // 调试世界不执行红石清理
@@ -1058,6 +1069,101 @@ BlockPos ServerWorld::getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ)
 
     return BlockPos(
         chunkX + (i & SECTION_MASK), sectionY + ((i >> 16) & SECTION_MASK), chunkZ + ((i >> 8) & SECTION_MASK));
+}
+
+void ServerWorld::tickPrecipitation(i32 randomTickSpeed)
+{
+    if (randomTickSpeed <= 0 || !m_chunkManager) {
+        return;
+    }
+
+    MC_TRACE_EVENT("server.tick", "ServerWorld::tickPrecipitation");
+
+    const i32 maxSnowAccumulation = m_gameRules.getInt(world::gamerule::GameRuleKeys::MAX_SNOW_ACCUMULATION_HEIGHT);
+    const bool isRaining = m_weatherManager && m_weatherManager->isRaining();
+
+    m_chunkManager->forEachLoadedChunk([this, randomTickSpeed, maxSnowAccumulation, isRaining](ChunkData& chunk) {
+        i32 chunkX = chunk.x() * world::CHUNK_WIDTH;
+        i32 chunkZ = chunk.z() * world::CHUNK_WIDTH;
+
+        for (i32 i = 0; i < randomTickSpeed; ++i) {
+            // 每次迭代以 1/48 的概率触发降水 tick
+            if (m_random.nextInt(48) != 0) {
+                continue;
+            }
+
+            // 生成随机 XZ 位置，Y 坐标使用 MOTION_BLOCKING 高度图确定
+            BlockPos randomPos = getBlockRandomPos(chunkX, 0, chunkZ);
+            BlockCoord localX = randomPos.x - chunkX;
+            BlockCoord localZ = randomPos.z - chunkZ;
+
+            i32 topY = chunk.getTopBlockY(HeightmapType::MotionBlocking, localX, localZ);
+            if (topY < world::MIN_BUILD_HEIGHT) {
+                continue;
+            }
+
+            // topY 是最高运动阻挡方块的 Y 坐标
+            // 冰检查位置是 topY 本身（水面），雪检查位置是 topY + 1（水面上方的空气）
+            BlockPos surfacePos(randomPos.x, topY, randomPos.z);
+            BlockPos belowSurfacePos(randomPos.x, topY - 1, randomPos.z);
+
+            // 获取生物群系
+            BiomeId biomeId = chunk.getBiomeAtBlock(localX, topY, localZ);
+            const world::biome::Biome& biome = world::biome::BiomeRegistry::instance().get(biomeId);
+
+            // === 冰形成 ===
+            // 冰形成不受天气状态影响，低温即可结冰
+            if (biome.shouldFreeze(
+                    *this, belowSurfacePos.x, belowSurfacePos.y, belowSurfacePos.z, world::SEA_LEVEL, true)) {
+                const BlockState* iceState = VanillaBlocks::getState(VanillaBlocks::ICE);
+                if (iceState) {
+                    setBlockState(belowSurfacePos.x, belowSurfacePos.y, belowSurfacePos.z, iceState, 3);
+                }
+            }
+
+            // === 降雪 ===
+            // 降雪仅在下雪时执行
+            if (isRaining && maxSnowAccumulation > 0) {
+                if (biome.shouldSnow(*this, surfacePos.x, surfacePos.y, surfacePos.z, world::SEA_LEVEL)) {
+                    const BlockState* currentBlock = getBlockState(surfacePos.x, surfacePos.y, surfacePos.z);
+                    if (currentBlock == nullptr) {
+                        continue;
+                    }
+
+                    if (currentBlock->is(VanillaBlocks::SNOW)) {
+                        // 已有雪层：尝试增加层数
+                        i32 layers = currentBlock->get(blocks::SnowBlock::LAYERS());
+                        i32 maxLayers = std::min(maxSnowAccumulation, 8);
+                        if (layers < maxLayers) {
+                            const BlockState* newState = &currentBlock->with(blocks::SnowBlock::LAYERS(), layers + 1);
+                            if (newState) {
+                                setBlockState(surfacePos.x, surfacePos.y, surfacePos.z, newState, 3);
+                            }
+                        }
+                    } else if (currentBlock->isAir()) {
+                        // 空气：放置新的雪层
+                        const BlockState* snowState = &VanillaBlocks::SNOW->defaultState();
+                        if (snowState) {
+                            setBlockState(surfacePos.x, surfacePos.y, surfacePos.z, snowState, 3);
+
+                            // 更新下方方块的 SNOWY 属性（如草方块、菌丝等）
+                            const BlockState* belowBlock =
+                                getBlockState(belowSurfacePos.x, belowSurfacePos.y, belowSurfacePos.z);
+                            if (belowBlock && belowBlock->hasProperty(BlockStateProperties::SNOWY())) {
+                                const BlockState* snowyState = &belowBlock->with(BlockStateProperties::SNOWY(), true);
+                                if (snowyState) {
+                                    setBlockState(
+                                        belowSurfacePos.x, belowSurfacePos.y, belowSurfacePos.z, snowyState, 3);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return true; // 继续遍历
+    });
 }
 
 size_t ServerWorld::chunkCount() const
