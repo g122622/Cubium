@@ -51,8 +51,6 @@ namespace blocks {
  * 1. 下方方块不在 SNOW_LAYER_CANNOT_SURVIVE_ON 标签中（冰、浮冰、屏障）
  * 2. 下方方块在 SNOW_LAYER_CAN_SURVIVE_ON 标签中时允许放置（蜂蜜块、灵魂沙、泥巴）
  * 3. 否则，下方方块的碰撞形状上表面必须完整，或下方为满层(8层)雪层
- *
- * 参考: net.minecraft.world.level.block.SnowLayerBlock
  */
 class SnowBlock : public Block {
 public:
@@ -85,8 +83,6 @@ public:
      * - 下方不能是冰/浮冰/屏障（SNOW_LAYER_CANNOT_SURVIVE_ON）
      * - 下方是蜂蜜块/灵魂沙/泥巴时允许（SNOW_LAYER_CAN_SURVIVE_ON）
      * - 否则下方碰撞形状上表面必须完整，或下方为满层雪层
-     *
-     * 参考: net.minecraft.world.level.block.SnowLayerBlock#canSurvive
      */
     [[nodiscard]] bool isValidPosition(
         const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
@@ -95,8 +91,6 @@ public:
      * @brief 邻居方块更新时检查支撑
      *
      * 当下方方块变化时，如果不再满足放置条件则变为空气。
-     *
-     * 参考: net.minecraft.world.level.block.SnowLayerBlock#updateShape
      */
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,

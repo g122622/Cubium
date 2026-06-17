@@ -135,7 +135,6 @@ bool Biome::shouldSnow(const IWorld& world, i32 x, i32 y, i32 z, i32 seaLevel) c
     }
 
     // 雪层方块必须能在此处存活
-    // 参考: net.minecraft.world.level.biome.Biome#shouldSnow
     // 使用 SnowBlock::canSurviveAt 检查下方方块是否支持雪层放置：
     //   - 下方不能是冰/浮冰/屏障（SNOW_LAYER_CANNOT_SURVIVE_ON）
     //   - 下方是蜂蜜块/灵魂沙/泥巴时允许（SNOW_LAYER_CAN_SURVIVE_ON）

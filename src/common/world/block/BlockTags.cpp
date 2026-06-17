@@ -1926,7 +1926,6 @@ void BlockTags::initialize()
 
     // 创建 SNOW_LAYER_CANNOT_SURVIVE_ON 标签（雪层不可放置方块）
     // 雪层不能在这些方块上方存活（即使它们有完整的上表面碰撞箱）
-    // 参考: net.minecraft.tags.BlockTags.SNOW_LAYER_CANNOT_SURVIVE_ON
     auto snowLayerCannotSurviveOn =
         std::make_unique<BlockTag>(ResourceLocation("minecraft", "snow_layer_cannot_survive_on"));
     snowLayerCannotSurviveOn->addAll({ResourceLocation("minecraft", "ice"),
@@ -1936,7 +1935,6 @@ void BlockTags::initialize()
 
     // 创建 SNOW_LAYER_CAN_SURVIVE_ON 标签（雪层可放置方块）
     // 雪层可以在这些方块上方存活（即使它们没有完整的上表面碰撞箱）
-    // 参考: net.minecraft.tags.BlockTags.SNOW_LAYER_CAN_SURVIVE_ON
     auto snowLayerCanSurviveOn = std::make_unique<BlockTag>(ResourceLocation("minecraft", "snow_layer_can_survive_on"));
     snowLayerCanSurviveOn->addAll({ResourceLocation("minecraft", "honey_block"),
         ResourceLocation("minecraft", "soul_sand"),

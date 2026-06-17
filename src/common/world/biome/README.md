@@ -132,7 +132,7 @@ quart 坐标 = 方块坐标 / 4。`getNoiseBiome()` 接收 quart 坐标，`fillB
 
 ### 10. shouldFreeze/shouldSnow 与 doesWaterFreeze/doesSnowGenerate 的区别
 - `shouldFreeze(world, x, y, z, seaLevel, checkNeighbors)` — 完整实现，需要 IWorld，检查温度、光照、流体类型、邻居水域
-- `shouldSnow(world, x, y, z, seaLevel)` — 完整实现，需要 IWorld，检查降水类型、温度、光照、方块状态
+- `shouldSnow(world, x, y, z, seaLevel)` — 完整实现，需要 IWorld，检查降水类型、温度、光照、方块状态，并通过 `SnowBlock::canSurviveAt` 检查下方方块是否支撑雪层
 - `doesWaterFreeze(x, y, z, seaLevel)` — 仅温度判断，不需要 IWorld，适用于生成阶段（无光照/方块状态可用时）
 - `doesSnowGenerate(x, y, z, seaLevel)` — 仅温度判断，不需要 IWorld，适用于 SurfaceRules 等生成阶段
 

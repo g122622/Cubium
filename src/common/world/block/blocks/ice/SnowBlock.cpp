@@ -99,7 +99,6 @@ bool SnowBlock::isValidPosition(const BlockState& state, IBlockReader& world, co
 {
     MC_UNUSED(state);
 
-    // 参考: net.minecraft.world.level.block.SnowLayerBlock#canSurvive
     // 1. 检查下方方块
     const BlockPos belowPos = pos.down();
     const BlockState* belowState = world.getBlockState(belowPos);
@@ -123,9 +122,7 @@ bool SnowBlock::isValidPosition(const BlockState& state, IBlockReader& world, co
     }
 
     // 5. 否则，下方方块的碰撞形状上表面必须完整（即下方方块有坚固的上表面）
-    //    参考: net.minecraft.world.level.block.Block#isFaceFull(collisionShape, Direction.UP)
-    //    当前使用 isSolidSide 作为简化判断（与项目现有模式一致）
-    //    TODO: 当 Block::doesSideFillSquare 实现完整的面投影检查后，
+    //    TODO: 当 doesSideFillSquare 实现完整的面投影检查后，
     //          应替换为碰撞形状上表面检查，以支持蜂蜜块/灵魂沙等非完整面方块的精确判断
     return belowState->isSolidSide(world, belowPos, Direction::Up);
 }
@@ -141,7 +138,6 @@ BlockState SnowBlock::updatePostPlacement(const BlockState& state,
     MC_UNUSED(facingPos);
 
     // 当下方方块变化时，如果不再满足放置条件则变为空气
-    // 参考: net.minecraft.world.level.block.SnowLayerBlock#updateShape
     if (facing == Direction::Down && !_canSurvive(world, currentPos)) {
         if (auto* airBlock = VanillaBlocks::AIR) {
             return airBlock->defaultState();

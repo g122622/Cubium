@@ -353,6 +353,7 @@ add_executable(mc_tests
     # SignBlock 告示牌方块测试（onBlockActivated、状态属性）
     common/world/block/blocks/SignBlockTest.cpp
     common/world/block/blocks/IceBlockTest.cpp
+    common/world/block/blocks/SnowBlockTest.cpp
     common/world/block/blocks/SpreadableSnowyDirtBlockTest.cpp
     common/world/block/blocks/SoulFireBlockTest.cpp
     common/world/block/blocks/FireBlockCollisionTest.cpp

@@ -363,7 +363,7 @@ void SnowGolemEntity::_placeSnowLayer()
         }
 
         // 放置雪层
-        // 参考: net.minecraft.world.entity.animal.SnowGolem，放置前需检查雪层能否存活
+        // 放置前需检查雪层能否存活
         if (!blocks::SnowBlock::canSurviveAt(*worldPtr, pos)) {
             continue;
         }
