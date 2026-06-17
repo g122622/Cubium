@@ -692,6 +692,8 @@ add_library(mc_common STATIC
     world/block/blocks/decorative/CampfireBlock.cpp
     world/block/blocks/decorative/StainedGlassBlock.cpp
     world/block/blocks/decorative/BannerBlock.cpp
+    world/block/blocks/decorative/TorchBlock.cpp
+    world/block/blocks/decorative/WallTorchBlock.cpp
 
     # World - Block - Vegetation
     world/block/blocks/vegetation/DoublePlantBlock.cpp

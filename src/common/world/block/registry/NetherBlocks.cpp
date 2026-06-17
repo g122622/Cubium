@@ -21,6 +21,7 @@
  */
 
 #include "world/block/registry/NetherBlocks.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/blocks/HopperBlock.hpp"
@@ -31,6 +32,8 @@
 #include "world/block/blocks/building/WallBlock.hpp"
 #include "world/block/blocks/decorative/CampfireBlock.hpp"
 #include "world/block/blocks/decorative/LanternBlock.hpp"
+#include "world/block/blocks/decorative/TorchBlock.hpp"
+#include "world/block/blocks/decorative/WallTorchBlock.hpp"
 #include "world/block/blocks/end/ChorusFlowerBlock.hpp"
 #include "world/block/blocks/end/ChorusPlantBlock.hpp"
 #include "world/block/blocks/end/DragonEggBlock.hpp"
@@ -315,12 +318,15 @@ void registerNetherBlocks()
                 .soundType(BlockSoundTypes::NETHER_SPROUT));
 
     // 灵魂火把 - 发光等级10，蓝色火焰
-    NetherBlocks::SOUL_TORCH = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:soul_torch"),
-        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(10));
+    NetherBlocks::SOUL_TORCH = &registry.registerBlock<blocks::TorchBlock>(ResourceLocation("minecraft:soul_torch"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(10),
+        client::renderer::trident::particle::ParticleTypeId::SoulFireFlame);
 
     // 墙上的灵魂火把
-    NetherBlocks::SOUL_WALL_TORCH = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:soul_wall_torch"),
-        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(10));
+    NetherBlocks::SOUL_WALL_TORCH =
+        &registry.registerBlock<blocks::WallTorchBlock>(ResourceLocation("minecraft:soul_wall_torch"),
+            BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(10),
+            client::renderer::trident::particle::ParticleTypeId::SoulFireFlame);
 
     // ============================================================================
     // 黑石建筑方块

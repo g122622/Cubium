@@ -21,6 +21,7 @@
  */
 
 #include "world/block/registry/NaturalBlocks.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/FallingBlock.hpp"
@@ -28,6 +29,8 @@
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/agricultural/FarmlandBlock.hpp"
 #include "world/block/blocks/coral/CoralBlock.hpp"
+#include "world/block/blocks/decorative/TorchBlock.hpp"
+#include "world/block/blocks/decorative/WallTorchBlock.hpp"
 #include "world/block/blocks/dirt/SpreadableSnowyDirtBlock.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"
 #include "world/block/blocks/ice/SnowBlock.hpp"
@@ -354,15 +357,16 @@ void registerNaturalBlocks()
         BlockProperties(Material::GLASS).hardness(3.0f).resistance(3.0f).notSolid());
 
     // ========== 火把 ==========
-    // 火把 - 发光等级14
-    // TODO: 实现 TorchBlock 专用类，支持墙上放置方向和粒子效果
-    NaturalBlocks::TORCH = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:torch"),
-        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14));
+    // 火把 - 发光等级14，生成火焰和烟雾粒子
+    NaturalBlocks::TORCH = &registry.registerBlock<blocks::TorchBlock>(ResourceLocation("minecraft:torch"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14),
+        client::renderer::trident::particle::ParticleTypeId::Flame);
 
-    // 墙上的火把
-    // TODO: 实现 WallTorchBlock 专用类，支持方向属性和墙上放置逻辑
-    NaturalBlocks::WALL_TORCH = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:wall_torch"),
-        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14));
+    // 墙上的火把 - 附着在墙上，根据朝向有不同碰撞箱和粒子位置
+    NaturalBlocks::WALL_TORCH =
+        &registry.registerBlock<blocks::WallTorchBlock>(ResourceLocation("minecraft:wall_torch"),
+            BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14),
+            client::renderer::trident::particle::ParticleTypeId::Flame);
 }
 
 } // namespace block_registry
