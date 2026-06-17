@@ -1102,10 +1102,10 @@ void ServerWorld::tickPrecipitation(i32 randomTickSpeed)
                 continue;
             }
 
-            // topY 是最高运动阻挡方块的 Y 坐标
-            // 冰检查位置是 topY 本身（水面），雪检查位置是 topY + 1（水面上方的空气）
+            // topY 是最高运动阻挡方块的 Y 坐标（getTopBlockY 已从 getHeight 减 1）
+            // 冰检查位置是 topY 本身（水面/地面），雪检查位置是 topY + 1（上方的空气）
             BlockPos surfacePos(randomPos.x, topY, randomPos.z);
-            BlockPos belowSurfacePos(randomPos.x, topY - 1, randomPos.z);
+            BlockPos aboveSurfacePos(randomPos.x, topY + 1, randomPos.z);
 
             // 获取生物群系
             BiomeId biomeId = chunk.getBiomeAtBlock(localX, topY, localZ);
@@ -1113,19 +1113,20 @@ void ServerWorld::tickPrecipitation(i32 randomTickSpeed)
 
             // === 冰形成 ===
             // 冰形成不受天气状态影响，低温即可结冰
-            if (biome.shouldFreeze(
-                    *this, belowSurfacePos.x, belowSurfacePos.y, belowSurfacePos.z, world::SEA_LEVEL, true)) {
+            if (biome.shouldFreeze(*this, surfacePos.x, surfacePos.y, surfacePos.z, world::SEA_LEVEL, true)) {
                 const BlockState* iceState = VanillaBlocks::getState(VanillaBlocks::ICE);
                 if (iceState) {
-                    setBlockState(belowSurfacePos.x, belowSurfacePos.y, belowSurfacePos.z, iceState, 3);
+                    setBlockState(surfacePos.x, surfacePos.y, surfacePos.z, iceState, 3);
                 }
             }
 
             // === 降雪 ===
             // 降雪仅在下雪时执行
             if (isRaining && maxSnowAccumulation > 0) {
-                if (biome.shouldSnow(*this, surfacePos.x, surfacePos.y, surfacePos.z, world::SEA_LEVEL)) {
-                    const BlockState* currentBlock = getBlockState(surfacePos.x, surfacePos.y, surfacePos.z);
+                if (biome.shouldSnow(
+                        *this, aboveSurfacePos.x, aboveSurfacePos.y, aboveSurfacePos.z, world::SEA_LEVEL)) {
+                    const BlockState* currentBlock =
+                        getBlockState(aboveSurfacePos.x, aboveSurfacePos.y, aboveSurfacePos.z);
                     if (currentBlock == nullptr) {
                         continue;
                     }
@@ -1137,29 +1138,42 @@ void ServerWorld::tickPrecipitation(i32 randomTickSpeed)
                         if (layers < maxLayers) {
                             const BlockState* newState = &currentBlock->with(blocks::SnowBlock::LAYERS(), layers + 1);
                             if (newState) {
-                                setBlockState(surfacePos.x, surfacePos.y, surfacePos.z, newState, 3);
+                                // 使用 pushEntitiesUp 将嵌入方块的实体向上推出
+                                Block::pushEntitiesUp(*currentBlock, *newState, *this, aboveSurfacePos);
+                                setBlockState(aboveSurfacePos.x, aboveSurfacePos.y, aboveSurfacePos.z, newState, 3);
                             }
                         }
                     } else if (currentBlock->isAir()) {
                         // 空气：放置新的雪层
                         const BlockState* snowState = &VanillaBlocks::SNOW->defaultState();
                         if (snowState) {
-                            setBlockState(surfacePos.x, surfacePos.y, surfacePos.z, snowState, 3);
+                            setBlockState(aboveSurfacePos.x, aboveSurfacePos.y, aboveSurfacePos.z, snowState, 3);
 
                             // 更新下方方块的 SNOWY 属性（如草方块、菌丝等）
-                            const BlockState* belowBlock =
-                                getBlockState(belowSurfacePos.x, belowSurfacePos.y, belowSurfacePos.z);
+                            const BlockState* belowBlock = getBlockState(surfacePos.x, surfacePos.y, surfacePos.z);
                             if (belowBlock && belowBlock->hasProperty(BlockStateProperties::SNOWY())) {
                                 const BlockState* snowyState = &belowBlock->with(BlockStateProperties::SNOWY(), true);
                                 if (snowyState) {
-                                    setBlockState(
-                                        belowSurfacePos.x, belowSurfacePos.y, belowSurfacePos.z, snowyState, 3);
+                                    setBlockState(surfacePos.x, surfacePos.y, surfacePos.z, snowyState, 3);
                                 }
                             }
                         }
                     }
                 }
             }
+
+            // === 降水方块处理（炼药锅填充等）===
+            // TODO: 实现 Block::handlePrecipitation 系统
+            // MC Java 在 tickIceAndSnow 中对每个降水位置调用 block.handlePrecipitation(state, level, pos,
+            // precipitation)， 用于：1) 空炼药锅在雨天装水（变为 WaterCauldronBlock）
+            //       2) 空炼药锅在雪天装细雪（变为 PowderSnowCauldronBlock）
+            //       3) 水炼药锅/细雪炼药锅增加水位
+            // 需要的前置工作：
+            //   - Biome::getPrecipitationAt() 方法（返回 Rain/Snow/None）
+            //   - Block::handlePrecipitation() 虚方法
+            //   - WaterCauldronBlock / PowderSnowCauldronBlock 独立方块类
+            //   - GameEvent::BLOCK_CHANGE 事件系统
+            // 当前 CauldronBlock::randomTick 已实现部分雨填充逻辑作为临时替代。
         }
 
         return true; // 继续遍历

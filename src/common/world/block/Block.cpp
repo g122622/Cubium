@@ -713,6 +713,81 @@ bool Block::isFaceFull(const CollisionShape& shape, Direction direction)
     return faceShape.coversFullBlock();
 }
 
+const BlockState& Block::pushEntitiesUp(
+    const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos)
+{
+    // 参考: net.minecraft.block.Block#pushEntitiesUp
+    // 当方块碰撞形状增大时，将嵌入方块内的实体向上推出。
+    // 简化实现：使用新形状的世界包围盒找到实体，推出到新形状最大Y之上。
+    // 未来可迁移到 VoxelShape 布尔运算实现更精确的形状差异计算。
+
+    const CollisionShape& newShape = newState.getCollisionShape();
+    if (newShape.isEmpty()) {
+        return newState;
+    }
+
+    // 获取新形状在世界坐标中的所有碰撞箱
+    auto worldBoxes = newShape.getWorldBoxes(pos.x, pos.y, pos.z);
+    if (worldBoxes.empty()) {
+        return newState;
+    }
+
+    // 计算新形状的整体包围盒
+    f64 minX = worldBoxes[0].minX, minY = worldBoxes[0].minY, minZ = worldBoxes[0].minZ;
+    f64 maxX = worldBoxes[0].maxX, maxY = worldBoxes[0].maxY, maxZ = worldBoxes[0].maxZ;
+    for (size_t i = 1; i < worldBoxes.size(); ++i) {
+        minX = std::min(minX, static_cast<f64>(worldBoxes[i].minX));
+        minY = std::min(minY, static_cast<f64>(worldBoxes[i].minY));
+        minZ = std::min(minZ, static_cast<f64>(worldBoxes[i].minZ));
+        maxX = std::max(maxX, static_cast<f64>(worldBoxes[i].maxX));
+        maxY = std::max(maxY, static_cast<f64>(worldBoxes[i].maxY));
+        maxZ = std::max(maxZ, static_cast<f64>(worldBoxes[i].maxZ));
+    }
+
+    // 获取旧形状的最大Y（用于判断是否需要推出）
+    const CollisionShape& oldShape = oldState.getCollisionShape();
+    f64 oldMaxY = static_cast<f64>(pos.y);
+    if (!oldShape.isEmpty()) {
+        const auto& oldBoxes = oldShape.boxes();
+        for (const auto& box : oldBoxes) {
+            oldMaxY = std::max(oldMaxY, static_cast<f64>(pos.y) + box.maxY);
+        }
+    }
+
+    // 如果新形状的最大Y没有增大，不需要推出实体
+    if (maxY <= oldMaxY) {
+        return newState;
+    }
+
+    // 使用整体包围盒查找实体
+    AxisAlignedBB worldBox(static_cast<f32>(minX),
+        static_cast<f32>(minY),
+        static_cast<f32>(minZ),
+        static_cast<f32>(maxX),
+        static_cast<f32>(maxY),
+        static_cast<f32>(maxZ));
+
+    auto entities = world.getEntitiesInAABB(worldBox, nullptr);
+    for (auto* entity : entities) {
+        if (entity == nullptr) {
+            continue;
+        }
+
+        AxisAlignedBB entityBox = entity->boundingBox();
+        if (!entityBox.intersects(worldBox)) {
+            continue;
+        }
+
+        // 实体需要被推到新形状最大Y之上
+        f64 pushUp = maxY - static_cast<f64>(entityBox.minY);
+        if (pushUp > 0.0) {
+            entity->move(entity::MoverType::Piston, Vector3(0.0f, static_cast<f32>(pushUp), 0.0f));
+        }
+    }
+
+    return newState;
+}
+
 // ============================================================================
 // 攻击和交互
 // ============================================================================

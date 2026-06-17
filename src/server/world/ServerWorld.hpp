@@ -226,17 +226,6 @@ public:
 
     void tick();
 
-private:
-    /**
-     * @brief 执行环境随机刻
-     *
-     * 对每个已加载区块，随机选择位置执行方块和流体的随机刻。
-     * 这是农作物生长、冰融化、火焰蔓延等机制的核心。
-     *
-     * @param randomTickSpeed 随机刻速度（默认为3，可在游戏规则中设置）
-     */
-    void tickEnvironment(i32 randomTickSpeed);
-
     /**
      * @brief 处理降水对方块的影响（结冰和降雪）
      *
@@ -250,6 +239,17 @@ private:
      *        放置或增加雪层（受 snowAccumulationHeight 游戏规则控制）。
      */
     void tickPrecipitation(i32 randomTickSpeed);
+
+private:
+    /**
+     * @brief 执行环境随机刻
+     *
+     * 对每个已加载区块，随机选择位置执行方块和流体的随机刻。
+     * 这是农作物生长、冰融化、火焰蔓延等机制的核心。
+     *
+     * @param randomTickSpeed 随机刻速度（默认为3，可在游戏规则中设置）
+     */
+    void tickEnvironment(i32 randomTickSpeed);
 
     /**
      * @brief 生成随机方块位置

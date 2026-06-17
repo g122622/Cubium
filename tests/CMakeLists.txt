@@ -645,6 +645,7 @@ add_executable(mc_tests
     common/world/gen/NoiseChunkGeneratorCarverParityTest.cpp
     common/world/gen/NetherSurfaceParityTest.cpp
     common/world/gen/feature/NetherFeatureTest.cpp
+    common/world/gen/feature/SnowAndFreezeFeatureTest.cpp
     common/world/gen/feature/template/test_template.cpp
     common/world/gen/structure/test_ocean_ruin_structure.cpp
     common/world/gen/structure/test_shipwreck_structure.cpp
@@ -715,6 +716,8 @@ add_executable(mc_tests
     server/world/ServerWorldSpawnAngleTest.cpp
     # ServerWorld 命令执行回调测试
     server/world/ServerWorldCommandExecuteTest.cpp
+    # ServerWorld tickPrecipitation 测试
+    server/world/TickPrecipitationTest.cpp
     # 璧勬簮鍖呭吋瀹瑰眰娴嬭瘯
     # 鍐呯疆妯″瀷鐫€鑹查厤缃祴璇?    common/resource/VanillaResourcesTintModelTest.cpp
     # ResourcePackList 自包含测试（不依赖外部资源路径）

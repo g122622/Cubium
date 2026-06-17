@@ -126,11 +126,7 @@ bool Biome::shouldSnow(const IWorld& world, i32 x, i32 y, i32 z, i32 seaLevel) c
 
     // 方块检查：该位置的方块必须是空气或已有雪层
     const BlockState* blockState = world.getBlockState(x, y, z);
-    if (blockState == nullptr) {
-        return false;
-    }
-
-    if (!blockState->isAir() && !blockState->is(VanillaBlocks::SNOW)) {
+    if (blockState != nullptr && !blockState->isAir() && !blockState->is(VanillaBlocks::SNOW)) {
         return false;
     }
 

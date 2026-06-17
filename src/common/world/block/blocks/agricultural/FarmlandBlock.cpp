@@ -23,10 +23,8 @@
 
 #include "FarmlandBlock.hpp"
 #include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/core/MoverType.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
-#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -221,34 +219,13 @@ void FarmlandBlock::onFallenUpon(
 
 void FarmlandBlock::turnToDirt(Entity* entity, IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    MC_UNUSED(state);
+    MC_UNUSED(entity);
     if (VanillaBlocks::DIRT != nullptr) {
         const BlockState* dirtState = &VanillaBlocks::DIRT->defaultState();
+        // 使用 Block::pushEntitiesUp 将嵌入方块的实体向上推出
+        // 耕地高度为 15/16 格，泥土为完整方块（1 格），碰撞形状增大时实体需要被推出
+        Block::pushEntitiesUp(state, *dirtState, world, pos);
         world.setBlockState(pos, dirtState, 3);
-
-        // 耕地高度为 15/16 格，泥土为完整方块（1 格）。
-        // 当耕地变为泥土时，实体可能会嵌入方块内部，需要将它们向上推出。
-        // 对齐 MC 1.21 FarmBlock.turnToDirt 中的 pushEntitiesUp 逻辑。
-        AxisAlignedBB blockBox(static_cast<f32>(pos.x),
-            static_cast<f32>(pos.y),
-            static_cast<f32>(pos.z),
-            static_cast<f32>(pos.x + 1),
-            static_cast<f32>(pos.y + 1),
-            static_cast<f32>(pos.z + 1));
-        auto entities = world.getEntitiesInAABB(blockBox, nullptr);
-        for (auto* ent : entities) {
-            if (ent == entity) {
-                // 踩踏者自身不需要推出，它已经因着地而被放置在方块上方
-                continue;
-            }
-            AxisAlignedBB entityBox = ent->boundingBox();
-            if (entityBox.intersects(blockBox)) {
-                f32 pushUp = static_cast<f32>(pos.y + 1) - entityBox.minY;
-                if (pushUp > 0.0f) {
-                    ent->move(entity::MoverType::Piston, Vector3(0.0f, pushUp, 0.0f));
-                }
-            }
-        }
     }
 }
 

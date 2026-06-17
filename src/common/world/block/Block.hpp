@@ -1860,6 +1860,27 @@ public:
      */
     [[nodiscard]] static bool isFaceFull(const CollisionShape& shape, Direction direction);
 
+    /**
+     * @brief 当方块碰撞形状增大时，将嵌入方块内的实体向上推出
+     *
+     * 计算 oldState 和 newState 之间的碰撞形状差异（新增部分），
+     * 找到与新形状重叠的实体，并将它们向上推出。
+     *
+     * 典型用途：
+     * - 雪层增加时推出站在上面的实体
+     * - 耕地变为泥土时推出上面的实体（FarmlandBlock::turnToDirt）
+     *
+     * 参考: net.minecraft.block.Block#pushEntitiesUp
+     *
+     * @param oldState 变化前的方块状态
+     * @param newState 变化后的方块状态
+     * @param world 世界接口
+     * @param pos 方块位置
+     * @return 变化后的方块状态（即 newState）
+     */
+    static const BlockState& pushEntitiesUp(
+        const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos);
+
     // ========================================================================
     // 攻击和交互
     // ========================================================================
