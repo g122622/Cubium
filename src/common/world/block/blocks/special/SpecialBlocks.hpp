@@ -213,6 +213,8 @@ public:
     void neighborChanged(
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
     [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
@@ -221,6 +223,17 @@ public:
 
     [[nodiscard]] i32 getWeakPower(
         const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
+
+    // ========== 比较器输出 ==========
+
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
+    [[nodiscard]] i32 getComparatorInputOverride(
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
     // ========== 旋转 ==========
 
