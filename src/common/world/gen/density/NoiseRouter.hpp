@@ -117,6 +117,22 @@ public:
      */
     void mapAll(DensityFunction::Visitor& visitor);
 
+    /**
+     * @brief 提取 finalDensity 密度函数（移出所有权）
+     *
+     * 用于 NoiseChunk 构造时提取 finalDensity，叠加 BeardifierMarker 后替换回去。
+     * 调用后 finalDensity() 将返回空指针，必须立即调用 replaceFinalDensity()。
+     */
+    [[nodiscard]] std::unique_ptr<DensityFunction> extractFinalDensity();
+
+    /**
+     * @brief 替换 finalDensity 密度函数
+     *
+     * 用于将叠加了 BeardifierMarker 并包装在 CacheAllInCell 中的组合密度函数
+     * 设置回路由器。
+     */
+    void replaceFinalDensity(std::unique_ptr<DensityFunction> density);
+
 private:
     // 洞穴
     std::unique_ptr<DensityFunction> m_barrierNoise;

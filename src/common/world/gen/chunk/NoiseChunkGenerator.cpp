@@ -233,9 +233,24 @@ void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
     const i32 startZ = chunkZ * world::CHUNK_WIDTH;
     const i32 startBlockY = m_settings.noise.minY;
     const i32 cellCountY = math::floorDiv(m_settings.noise.height, m_cellHeight);
-    auto& noiseChunk = chunk.getOrCreateNoiseChunk([&]() {
-        auto nc = std::make_unique<world::gen::density::NoiseChunk>(
-            m_randomState->createRouterCopy(), m_cellWidth, m_cellHeight, cellCountY, startX, startBlockY, startZ);
+
+    // MC 1.21: 构建 Beardifier 并传入 NoiseChunk
+    // Beardifier 在 NoiseChunk 构造时集成到密度函数树中（叠加到 finalDensity 上），
+    // 而非在外部逐方块计算
+    // 使用 shared_ptr 因为 std::function 要求可复制的 callable
+    auto beardifierDf = std::make_shared<world::gen::density::Beardifier>(_buildBeardifier(chunk));
+
+    auto& noiseChunk = chunk.getOrCreateNoiseChunk([this, cellCountY, startX, startBlockY, startZ, beardifierDf]() {
+        // 将 shared_ptr 中的 Beardifier 移动到 unique_ptr 中传入 NoiseChunk
+        auto beardifierUnique = std::make_unique<world::gen::density::Beardifier>(std::move(*beardifierDf));
+        auto nc = std::make_unique<world::gen::density::NoiseChunk>(m_randomState->createRouterCopy(),
+            m_cellWidth,
+            m_cellHeight,
+            cellCountY,
+            startX,
+            startBlockY,
+            startZ,
+            std::move(beardifierUnique));
         return nc;
     });
 
@@ -582,8 +597,15 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
     const f64 deltaZ = static_cast<f64>(z - alignedZ) / static_cast<f64>(cellWidth);
 
     // 创建单列 NoiseChunk（cellCountXZ=1）
-    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(
-        m_randomState->createRouterCopy(), cellWidth, cellHeight, cellCountY, alignedX, minY, alignedZ);
+    // MC 1.21: 高度查询使用 BeardifierMarker（零贡献），结构地形不影响高度计算
+    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(m_randomState->createRouterCopy(),
+        cellWidth,
+        cellHeight,
+        cellCountY,
+        alignedX,
+        minY,
+        alignedZ,
+        std::make_unique<world::gen::density::BeardifierMarker>());
 
     // 设置 DisabledAquiferFiller（高度查询不需要实际含水层计算，
     // 但需要正确判断海平面以下的流体方块）
@@ -697,8 +719,16 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
     const i32 cellCountY = math::floorDiv(m_settings.noise.height, m_cellHeight);
     auto& noiseChunk = chunk.getOrCreateNoiseChunk([&]() {
         // MC 1.21: NoiseChunk 拥有自己的路由器副本，mapAll() 会将 Marker 替换为区块特定实现
-        auto nc = std::make_unique<world::gen::density::NoiseChunk>(
-            m_randomState->createRouterCopy(), m_cellWidth, m_cellHeight, cellCountY, startX, startBlockY, startZ);
+        // Beardifier 在构造时集成到密度函数树中（叠加到 finalDensity 上）
+        auto beardifierDf = std::make_unique<world::gen::density::Beardifier>(_buildBeardifier(chunk));
+        auto nc = std::make_unique<world::gen::density::NoiseChunk>(m_randomState->createRouterCopy(),
+            m_cellWidth,
+            m_cellHeight,
+            cellCountY,
+            startX,
+            startBlockY,
+            startZ,
+            std::move(beardifierDf));
 
         // MC 1.21: 创建含水层采样器
         {
@@ -753,8 +783,8 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
         return nc;
     });
 
-    // MC 1.21: 构建 Beardifier 用于结构地形平滑
-    const auto beardifier = _buildBeardifier(chunk);
+    // MC 1.21: Beardifier 已集成到 NoiseChunk 密度函数树中，
+    // 无需在外部逐方块计算，finalDensity().compute() 已包含 Beardifier 贡献
 
     const auto& cellConfig = noiseChunk.cellConfig();
     noiseChunk.initializeForFirstCellX();
@@ -786,10 +816,9 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
                             noiseChunk.setInCellPos(inCellX, inCellY, inCellZ);
 
                             // MC 1.21: updateForZ 更新插值器状态，密度通过 finalDensity().compute() 获取
-                            // updateForZ 不返回密度值，而是通过 finalDensity 函数树计算
+                            // finalDensity 已包含 Beardifier 贡献（在 NoiseChunk 构造时叠加到密度函数树中）
                             noiseChunk.updateForZ(zLerp);
-                            const f64 rawDensity = noiseChunk.finalDensity().compute(blockX, blockY, blockZ);
-                            const f64 density = rawDensity + beardifier.compute(blockX, blockY, blockZ);
+                            const f64 density = noiseChunk.finalDensity().compute(blockX, blockY, blockZ);
 
                             // density > 0 → 固体（石头），density <= 0 → 空气/流体
                             // Aquifer 在 density > 0 时返回 nullptr（表示固体）

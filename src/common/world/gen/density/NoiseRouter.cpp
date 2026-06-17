@@ -98,4 +98,15 @@ void NoiseRouter::mapAll(DensityFunction::Visitor& visitor)
     DensityFunction::applyInPlace(m_veinGap, visitor);
 }
 
+std::unique_ptr<DensityFunction> NoiseRouter::extractFinalDensity()
+{
+    return std::move(m_finalDensity);
+}
+
+void NoiseRouter::replaceFinalDensity(std::unique_ptr<DensityFunction> density)
+{
+    MC_ASSERT_RELEASE(density != nullptr);
+    m_finalDensity = std::move(density);
+}
+
 } // namespace mc::world::gen::density

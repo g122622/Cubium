@@ -379,6 +379,11 @@ public:
      * @param startBlockX 区块起始 X 方块坐标
      * @param startBlockY 区块起始 Y 方块坐标（= noiseSettings.minY）
      * @param startBlockZ 区块起始 Z 方块坐标
+     * @param beardifier Beardifier 密度函数（结构地形贡献），传入 nullptr 使用零贡献
+     *
+     * MC 1.21: 构造时将 Beardifier 叠加到 finalDensity 上，
+     * 包装在 CacheAllInCell 中，mapAll 时将 BeardifierMarker 替换为实际 Beardifier。
+     * 高度查询传入 BeardifierMarker（零贡献），区块生成传入实际 Beardifier。
      */
     NoiseChunk(NoiseRouter router,
         i32 cellWidth,
@@ -386,7 +391,8 @@ public:
         i32 cellCountY,
         i32 startBlockX,
         i32 startBlockY,
-        i32 startBlockZ);
+        i32 startBlockZ,
+        std::unique_ptr<DensityFunction> beardifier = nullptr);
 
     ~NoiseChunk() override;
     NoiseChunk(const NoiseChunk&) = delete;
@@ -664,7 +670,12 @@ private:
     /// 所有 CellCache 实例（由 apply() 注册）
     std::vector<std::unique_ptr<CellCache>> m_cellCaches;
 
-    /// 噪声路由器（放在 interpolators/cellCaches 之后，确保析构顺序正确：
+    /// Beardifier 密度函数（结构地形贡献）
+    /// 在 m_router 之前声明，确保析构顺序：router 中的 DensityFunctionReference 引用此对象，
+    /// 必须先销毁 router 再销毁 beardifier
+    std::unique_ptr<DensityFunction> m_beardifier;
+
+    /// 噪声路由器（放在 interpolators/cellCaches/beardifier 之后，确保析构顺序正确：
     /// router 中的 DensityFunctionReference 引用 interpolators/cellCaches 中的对象，
     /// 必须先销毁 router 再销毁这些容器）
     NoiseRouter m_router;

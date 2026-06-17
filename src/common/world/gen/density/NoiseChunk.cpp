@@ -252,20 +252,33 @@ NoiseChunk::NoiseChunk(NoiseRouter router,
     i32 cellCountY,
     i32 startBlockX,
     i32 startBlockY,
-    i32 startBlockZ)
+    i32 startBlockZ,
+    std::unique_ptr<DensityFunction> beardifier)
     : m_cellConfig{cellWidth, cellHeight, 0, cellCountY}
     , m_startBlockX(startBlockX)
     , m_startBlockZ(startBlockZ)
     , m_firstCellX(math::floorDiv(startBlockX, cellWidth))
     , m_firstCellY(math::floorDiv(startBlockY, cellHeight))
     , m_firstCellZ(math::floorDiv(startBlockZ, cellWidth))
+    , m_beardifier(std::move(beardifier))
     , m_router(std::move(router))
 {
     m_cellConfig.cellCountXZ = world::CHUNK_WIDTH / cellWidth;
 
+    // MC 1.21: 在 finalDensity 上叠加 BeardifierMarker，包装在 CacheAllInCell 中
+    // 对应 Java: DensityFunctions.cacheAllInCell(
+    //     DensityFunctions.add(noiserouter.finalDensity(), DensityFunctions.BeardifierMarker.INSTANCE))
+    // mapAll 时 BeardifierMarker 会被替换为实际的 Beardifier 实例（或 Constant(0.0)）
+    auto currentFinalDensity = m_router.extractFinalDensity();
+    auto composite = std::make_unique<TwoArgument>(
+        std::move(currentFinalDensity), factory::beardifierMarker(), TwoArgumentType::Add);
+    auto cachedComposite = std::make_unique<Marker>(MarkerType::CacheAllInCell, std::move(composite));
+    m_router.replaceFinalDensity(std::move(cachedComposite));
+
     // MC 1.21: 使用 mapAll(*this) 遍历密度函数树，将 Marker 替换为 NoiseChunk 特定实现
     // 对所有 15 个密度函数执行 mapAll，将 Interpolated → NoiseInterpolator，
-    // CacheAllInCell → CellCache，CacheOnce/FlatCache/Cache2D 保持原样
+    // CacheAllInCell → CellCache，BeardifierMarker → 实际 Beardifier，
+    // CacheOnce/FlatCache/Cache2D 保持原样
     m_router.mapAll(*this);
 }
 
@@ -320,8 +333,12 @@ std::unique_ptr<DensityFunction> NoiseChunk::apply(std::unique_ptr<DensityFuncti
                 return std::make_unique<Cache2D>(std::move(filler));
             }
             case MarkerType::BeardifierMarker: {
-                // BeardifierMarker → 在 MC 中替换为 Beardifier（结构物对地形的密度贡献）
-                // 当前暂未实现 Beardifier，保留包装函数（返回 0.0）
+                // MC 1.21: 替换为实际的 Beardifier 实例
+                // 如果提供了 beardifier，返回指向它的引用（与 NoiseInterpolator/CellCache 相同模式）
+                // 如果没有提供（如高度查询），释放包装的 Constant(0.0)
+                if (m_beardifier) {
+                    return std::make_unique<DensityFunctionReference>(*m_beardifier);
+                }
                 auto filler = marker->releaseWrapped();
                 return filler;
             }
