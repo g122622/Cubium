@@ -22,14 +22,106 @@
  */
 
 #include "world/block/blocks/CauldronBlock.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/world/biome/BiomeClimate.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include "util/property/Properties.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include <gtest/gtest.h>
+
+#include <map>
+#include <memory>
 
 using namespace mc;
 using namespace mc::blocks;
+using namespace mc::world::biome;
 
-// ========== CauldronBlock 测试 ==========
+// ============================================================================
+// 测试用世界桩 - 用于 handlePrecipitation 测试
+// ============================================================================
+
+/**
+ * @brief CauldronBlock handlePrecipitation 测试用的世界桩
+ *
+ * 继承 BaseTestWorld，提供可控的方块状态存储、天气控制和随机数控制。
+ */
+class CauldronPrecipTestWorld : public test::BaseTestWorld {
+public:
+    void ensureTickManager()
+    {
+        if (!m_tickManagerPtr) {
+            m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
+        }
+    }
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const BlockPos pos(x, y, z);
+        const auto it = m_blocks.find(pos);
+        if (it != m_blocks.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        const BlockPos pos(x, y, z);
+        if (state == nullptr || state->isAir()) {
+            m_blocks.erase(pos);
+            m_ownedStates.erase(pos);
+        } else {
+            auto [it, inserted] = m_ownedStates.insert_or_assign(pos, *state);
+            m_blocks[pos] = &it->second;
+        }
+        return true;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
+        MC_UNUSED(flags);
+        return setBlockState(x, y, z, state);
+    }
+
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        ensureTickManager();
+        return *m_tickManagerPtr;
+    }
+
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        const_cast<CauldronPrecipTestWorld*>(this)->ensureTickManager();
+        return *m_tickManagerPtr;
+    }
+
+    void setRaining(bool raining) { m_isRaining = raining; }
+    void setThundering(bool thundering) { m_isThundering = thundering; }
+
+    [[nodiscard]] bool isRaining() const override { return m_isRaining; }
+    [[nodiscard]] bool isThundering() const override { return m_isThundering; }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+
+    /// 设置随机数种子以控制 nextFloat() 结果
+    void setRandomSeed(u64 seed) { m_random.setSeed(seed); }
+
+private:
+    std::map<BlockPos, const BlockState*> m_blocks;
+    std::map<BlockPos, BlockState> m_ownedStates;
+    std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
+    bool m_isRaining = false;
+    bool m_isThundering = false;
+};
+
+// ============================================================================
+// CauldronBlock 基础测试
+// ============================================================================
 
 class CauldronBlockTest : public ::testing::Test {
 protected:
@@ -101,4 +193,263 @@ TEST_F(CauldronBlockTest, GetContentShape_ReturnsValidShapeForAllLevels)
             EXPECT_FALSE(shape.isEmpty()) << "Level " << level << " should have content shape";
         }
     }
+}
+
+// ============================================================================
+// CauldronBlock handlePrecipitation 测试夹具
+// ============================================================================
+
+class CauldronPrecipTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        fluid::FluidRegistry::instance().initialize();
+
+        cauldron_ = std::make_unique<CauldronBlock>(BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
+        world_.setRaining(true);
+    }
+
+    /// 在指定位置放置指定水位的炼药锅
+    void placeCauldron(i32 x, i32 y, i32 z, i32 level)
+    {
+        const BlockState* state = &cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), level);
+        world_.setBlockAt(BlockPos(x, y, z), state);
+    }
+
+    /// 获取指定位置的炼药锅水位
+    i32 getCauldronLevel(i32 x, i32 y, i32 z) const
+    {
+        const BlockState* state = world_.getBlockState(x, y, z);
+        if (state == nullptr) {
+            return -1;
+        }
+        return CauldronBlock::getLevel(*state);
+    }
+
+    std::unique_ptr<CauldronBlock> cauldron_;
+    CauldronPrecipTestWorld world_;
+};
+
+// ============================================================================
+// 降水类型 - None（无降水）
+// ============================================================================
+
+TEST_F(CauldronPrecipTest, HandlePrecipitation_NoneType_NoChange)
+{
+    placeCauldron(0, 64, 0, 0);
+    const BlockState* stateBefore = world_.getBlockState(0, 64, 0);
+    i32 levelBefore = CauldronBlock::getLevel(*stateBefore);
+    ASSERT_EQ(levelBefore, 0);
+
+    // 无降水类型不会改变水位
+    cauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::None);
+
+    EXPECT_EQ(getCauldronLevel(0, 64, 0), 0);
+}
+
+// ============================================================================
+// 降水类型 - Rain（雨天）
+// ============================================================================
+
+TEST_F(CauldronPrecipTest, HandlePrecipitation_Rain_IncrementsLevelWhenNotFull)
+{
+    // 水位0，雨天，5%概率触发
+    // 使用随机数种子让 nextFloat() 返回一个小于 0.05 的值
+    placeCauldron(0, 64, 0, 0);
+
+    // 反复尝试直到触发（概率5%，种子不同结果不同）
+    // 直接使用一个确定性的种子序列
+    world_.setRandomSeed(42);
+
+    // 调用多次直到水位增加（雨天5%概率）
+    bool levelChanged = false;
+    for (int i = 0; i < 200; ++i) {
+        i32 levelBefore = getCauldronLevel(0, 64, 0);
+        cauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Rain);
+        i32 levelAfter = getCauldronLevel(0, 64, 0);
+        if (levelAfter > levelBefore) {
+            levelChanged = true;
+            break;
+        }
+    }
+
+    EXPECT_TRUE(levelChanged) << "Rain precipitation should eventually increment cauldron level";
+}
+
+TEST_F(CauldronPrecipTest, HandlePrecipitation_Rain_DoesNotExceedMaxLevel)
+{
+    // 水位3（满），雨天不应增加
+    placeCauldron(0, 64, 0, 3);
+
+    // 多次调用，水位不应超过3
+    for (int i = 0; i < 100; ++i) {
+        cauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Rain);
+    }
+
+    EXPECT_EQ(getCauldronLevel(0, 64, 0), 3);
+}
+
+TEST_F(CauldronPrecipTest, HandlePrecipitation_Rain_LevelCapsAt3)
+{
+    // 水位2，多次雨天触发后水位不应超过3
+    placeCauldron(0, 64, 0, 2);
+    world_.setRandomSeed(12345);
+
+    // 调用足够多次
+    for (int i = 0; i < 500; ++i) {
+        cauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Rain);
+    }
+
+    EXPECT_EQ(getCauldronLevel(0, 64, 0), 3);
+}
+
+// ============================================================================
+// 降水类型 - Snow（雪天）
+// ============================================================================
+
+TEST_F(CauldronPrecipTest, HandlePrecipitation_Snow_IncrementsLevelWhenNotFull)
+{
+    // 雪天10%概率，比雨天更容易触发
+    placeCauldron(0, 64, 0, 0);
+    world_.setRandomSeed(42);
+
+    bool levelChanged = false;
+    for (int i = 0; i < 100; ++i) {
+        i32 levelBefore = getCauldronLevel(0, 64, 0);
+        cauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Snow);
+        i32 levelAfter = getCauldronLevel(0, 64, 0);
+        if (levelAfter > levelBefore) {
+            levelChanged = true;
+            break;
+        }
+    }
+
+    EXPECT_TRUE(levelChanged) << "Snow precipitation should eventually increment cauldron level";
+}
+
+TEST_F(CauldronPrecipTest, HandlePrecipitation_Snow_DoesNotExceedMaxLevel)
+{
+    // 水位3（满），雪天不应增加
+    placeCauldron(0, 64, 0, 3);
+
+    for (int i = 0; i < 100; ++i) {
+        cauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Snow);
+    }
+
+    EXPECT_EQ(getCauldronLevel(0, 64, 0), 3);
+}
+
+TEST_F(CauldronPrecipTest, HandlePrecipitation_Snow_LevelCapsAt3)
+{
+    // 水位2，多次雪天触发后水位不应超过3
+    placeCauldron(0, 64, 0, 2);
+    world_.setRandomSeed(12345);
+
+    for (int i = 0; i < 500; ++i) {
+        cauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Snow);
+    }
+
+    EXPECT_EQ(getCauldronLevel(0, 64, 0), 3);
+}
+
+// ============================================================================
+// 概率测试 - 确保雨天5%和雪天10%的概率行为
+// ============================================================================
+
+TEST_F(CauldronPrecipTest, HandlePrecipitation_Rain_About5PercentChance)
+{
+    // 统计2000次雨天调用中水位增加的次数，应该在5%左右
+    // 空炼药锅，每次增加后重置
+    i32 incrementCount = 0;
+    constexpr int TOTAL_TRIALS = 2000;
+
+    for (int i = 0; i < TOTAL_TRIALS; ++i) {
+        // 重置水位为0
+        placeCauldron(0, 64, 0, 0);
+
+        i32 levelBefore = getCauldronLevel(0, 64, 0);
+        cauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Rain);
+        i32 levelAfter = getCauldronLevel(0, 64, 0);
+
+        if (levelAfter > levelBefore) {
+            incrementCount++;
+        }
+    }
+
+    // 5% 概率，2000次约100次。允许较宽的范围：30-170（1.5% ~ 8.5%）
+    EXPECT_GE(incrementCount, 30) << "Rain increment count too low";
+    EXPECT_LE(incrementCount, 170) << "Rain increment count too high";
+}
+
+TEST_F(CauldronPrecipTest, HandlePrecipitation_Snow_About10PercentChance)
+{
+    // 统计2000次雪天调用中水位增加的次数，应该在10%左右
+    i32 incrementCount = 0;
+    constexpr int TOTAL_TRIALS = 2000;
+
+    for (int i = 0; i < TOTAL_TRIALS; ++i) {
+        // 重置水位为0
+        placeCauldron(0, 64, 0, 0);
+
+        i32 levelBefore = getCauldronLevel(0, 64, 0);
+        cauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Snow);
+        i32 levelAfter = getCauldronLevel(0, 64, 0);
+
+        if (levelAfter > levelBefore) {
+            incrementCount++;
+        }
+    }
+
+    // 10% 概率，2000次约200次。允许较宽的范围：120-280（6% ~ 14%）
+    EXPECT_GE(incrementCount, 120) << "Snow increment count too low";
+    EXPECT_LE(incrementCount, 280) << "Snow increment count too high";
+}
+
+// ============================================================================
+// 边界条件测试
+// ============================================================================
+
+TEST_F(CauldronPrecipTest, HandlePrecipitation_NullBlockState_NoCrash)
+{
+    // 没有放置炼药锅的位置，getBlockState 返回 nullptr
+    // handlePrecipitation 不应崩溃
+    cauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Rain);
+    // 如果到达这里，说明没有崩溃
+    SUCCEED();
+}
+
+TEST_F(CauldronPrecipTest, HandlePrecipitation_FullCauldron_NoIncrementForAnyPrecipitationType)
+{
+    // 满的炼药锅不应被任何降水类型增加
+    placeCauldron(0, 64, 0, 3);
+
+    world_.setRandomSeed(42);
+    for (int i = 0; i < 100; ++i) {
+        cauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Rain);
+    }
+    EXPECT_EQ(getCauldronLevel(0, 64, 0), 3);
+
+    for (int i = 0; i < 100; ++i) {
+        cauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Snow);
+    }
+    EXPECT_EQ(getCauldronLevel(0, 64, 0), 3);
+}
+
+TEST_F(CauldronPrecipTest, HandlePrecipitation_LevelTwoCanReachMax)
+{
+    // 水位2可以在雨/雪天达到3
+    placeCauldron(0, 64, 0, 2);
+    world_.setRandomSeed(42);
+
+    bool reachedMax = false;
+    for (int i = 0; i < 200; ++i) {
+        cauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Rain);
+        if (getCauldronLevel(0, 64, 0) == 3) {
+            reachedMax = true;
+            break;
+        }
+    }
+
+    EXPECT_TRUE(reachedMax) << "Level 2 cauldron should be able to reach level 3 with rain";
 }

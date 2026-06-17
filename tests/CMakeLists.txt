@@ -40,6 +40,7 @@ add_executable(mc_tests
     common/test_chunk_level.cpp
     common/test_biome.cpp
     common/test_biome_freeze.cpp
+    common/world/biome/BiomeGetPrecipitationAtTest.cpp
     common/test_ore_feature.cpp
     common/test_carver.cpp
     common/test_tree_feature.cpp
@@ -331,6 +332,7 @@ add_executable(mc_tests
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp
     common/world/block/blocks/CauldronBlockTest.cpp
+    common/world/block/blocks/LightningRodBlockTest.cpp
     common/world/block/blocks/MobBlocksTest.cpp
     common/world/block/DispenseItemBehaviorTest.cpp
     common/world/storage/StorageTaskTest.cpp

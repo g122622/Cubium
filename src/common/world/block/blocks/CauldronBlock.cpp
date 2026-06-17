@@ -154,6 +154,11 @@ void CauldronBlock::handlePrecipitation(
     // 增加水位
     BlockState newState = currentState->with(BlockStateProperties::LEVEL_0_3(), level + 1);
     world.setBlockState(pos, &newState, 3);
+
+    // TODO: 触发 GameEvent::BLOCK_CHANGE 事件（用于幽匿感测体检测）
+    // 参考: net.minecraft.block.CauldronBlock#handlePrecipitation 中调用
+    //       world.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(state, newState))
+    // 当前项目尚未实现 GameEvent 系统，待该系统实现后补充此处调用
 }
 
 // ========== 交互 ==========

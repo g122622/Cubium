@@ -441,3 +441,17 @@ CauldronBlock 使用 `LEVEL_0_3` 属性存储水位（0-3），交互操作直�
 - 方法返回 `newState`，方便链式调用
 - 当前实现使用简化算法（整体包围盒），未来可迁移到 VoxelShape 布尔运算实现更精确的形状差异计算
 - 必须在 `setBlockState` **之前**调用，先推出实体再更新方块状态
+
+### 27. Block::handlePrecipitation 降水方块处理
+
+`Block::handlePrecipitation(IWorld&, const BlockPos&, BiomeClimate::Precipitation)` 是方块的降水处理虚方法，默认实现为空操作。方块可以重写此方法来响应降水：
+
+- **CauldronBlock**：雨天 5% 概率增加水位、雪天 10% 概率增加水位，水位上限为 3
+- **LightningRodBlock**：雷暴天气且避雷针朝上时，通过 `onLightningStrike()` 激活避雷针
+
+**调用时机**：`ServerWorld::tickPrecipitation()` 在每个降水 tick 中，对表面方块调用 `biome.getPrecipitationAt()` 确定降水类型后，调用 `block.handlePrecipitation(world, pos, precipitation)`。
+
+**注意**：
+- 此方法替代了旧的 `fillWithRain()` 方法，增加了降水类型参数（Rain/Snow/None）
+- 降水类型由 `Biome::getPrecipitationAt()` 确定，综合考虑生物群系降水设置和高度调整后的温度
+- 只有 `isRaining()` 为 true 时才会调用 `handlePrecipitation`（在 `tickPrecipitation` 中判断）

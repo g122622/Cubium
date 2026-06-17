@@ -137,3 +137,15 @@ quart 坐标 = 方块坐标 / 4。`getNoiseBiome()` 接收 quart 坐标，`fillB
 - `doesSnowGenerate(x, y, z, seaLevel)` — 仅温度判断，不需要 IWorld，适用于 SurfaceRules 等生成阶段
 
 **shouldFreeze/shouldSnow 已集成调用：SnowAndFreezeFeature（TopLayerModification 生成阶段）、ServerWorld::tickPrecipitation()（运行时逐 tick 结冰和降雪）、LakeFeature（湖泊冻结，checkNeighbors=false）。**
+
+### 11. getPrecipitationAt 降水类型判定
+
+`getPrecipitationAt(x, y, z, seaLevel)` 根据生物群系的降水设置和高度调整后的温度，返回指定位置的降水类型：
+
+- 如果生物群系 `m_climate.precipitation == None`，返回 `Precipitation::None`
+- 如果高度调整后的温度 < 0.15（即 `coldEnoughToSnow` 返回 true），返回 `Precipitation::Snow`
+- 否则返回 `Precipitation::Rain`
+
+**调用场景**：`ServerWorld::tickPrecipitation()` 在降水 tick 中调用此方法确定表面方块位置的降水类型，然后调用 `Block::handlePrecipitation()` 将降水事件传递给方块（如炼药锅填充水、避雷针雷暴激活等）。
+
+参考: `net.minecraft.world.level.biome.Biome#getPrecipitationAt`
