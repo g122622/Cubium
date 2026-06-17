@@ -105,6 +105,8 @@ src/server/command/
     ├── ExecuteCommand.cpp
     ├── SpawnPointCommand.hpp     # /spawnpoint - 设置重生点
     ├── SpawnPointCommand.cpp
+    ├── SetWorldSpawnCommand.hpp  # /setworldspawn - 设置世界出生点（支持朝向参数）
+    ├── SetWorldSpawnCommand.cpp
     ├── TagCommand.hpp            # /tag - 管理实体标签
     ├── TagCommand.cpp
     ├── TeamCommand.hpp           # /team - 管理队伍
@@ -219,3 +221,8 @@ server/command
 10. **命令反馈未发送**
     - 问题：命令执行后玩家看不到反馈
     - 解决：确保通过 `source.sendMessage()` 发送反馈消息
+
+11. **SetWorldSpawnCommand 朝向参数**
+    - `/setworldspawn` 支持三种语法：无参数（使用玩家朝向）、仅位置（朝向默认 0.0）、位置+角度
+    - 角度参数通过 `FloatArgumentType(-180.0f, 180.0f)` 解析，并通过 `math::wrapDegrees()` 归一化
+    - 修改出生点后需同时更新 `ServerWorld::setWorldSpawnPoint(pos, angle)` 和广播 `SpawnPositionPacket(angle)`

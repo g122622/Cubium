@@ -549,6 +549,7 @@ add_executable(mc_tests
     server/command/AttributeCommandTest.cpp
     server/command/EnchantCommandTest.cpp
     server/command/SpawnPointCommandTest.cpp
+    server/command/SetWorldSpawnCommandTest.cpp
     server/command/PublishCommandTest.cpp
     server/command/StopSoundCommandTest.cpp
     server/command/SpreadPlayersCommandTest.cpp
@@ -708,6 +709,8 @@ add_executable(mc_tests
     # 鐗╁搧鎷惧彇绠＄悊鍣ㄦ祴璇?    server/world/ItemPickupManagerTest.cpp
     # ServerWorld 方块实体测试
     server/world/ServerWorldBlockEntityTest.cpp
+    # ServerWorld 出生点朝向测试
+    server/world/ServerWorldSpawnAngleTest.cpp
     # ServerWorld 命令执行回调测试
     server/world/ServerWorldCommandExecuteTest.cpp
     # 璧勬簮鍖呭吋瀹瑰眰娴嬭瘯

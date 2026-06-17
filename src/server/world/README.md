@@ -86,6 +86,40 @@ src/server/world/
 - `SingleLevelStorageManager` - 由 MinecraftServer 创建，所有维度共享
 - `ServerWorkerPool` - 计算线程池，由 MinecraftServer 统一管理
 
+## 出生点管理
+
+`ServerWorld` 负责管理世界出生点的位置和朝向，新玩家首次进入世界时在此处生成。
+
+### 核心接口
+
+| 接口 | 说明 |
+|------|------|
+| `worldSpawnPoint()` | 获取出生点坐标（`Vector3d`） |
+| `spawnAngle()` | 获取出生点朝向角度（`f32`，度，范围 [-180, 180]） |
+| `setWorldSpawnPoint(pos, angle)` | 同时设置出生点位置和朝向，`angle` 默认 `0.0f` |
+| `setSpawnAngle(angle)` | 仅设置出生点朝向，不影响位置 |
+| `initializeWorldSpawn()` | 世界初始化时在 (0,0) 区块查找合适出生位置 |
+| `applyLevelRuntimeData(data)` | 从 level.dat 读取的运行时数据中恢复出生点（含朝向） |
+
+### 数据流
+
+```
+level.dat (SpawnAngle 字段)
+    → JavaLevelDatReader / LevelDatCodec 读取
+    → LevelRuntimeData.spawnAngle
+    → ServerWorld::applyLevelRuntimeData() 写入 m_spawnAngle
+    → MinecraftServer::saveAllWorldData() 通过 world->spawnAngle() 写回 level.dat
+    → MinecraftServer::sendInitialGameState() 通过 SpawnPositionPacket 发送给客户端
+    → /setworldspawn 命令修改后广播给所有玩家
+```
+
+### 注意事项
+
+- **朝向范围**：MC 原版使用 `Mth.wrapDegrees()` 归一化到 [-180, 180]，`SetWorldSpawnCommand` 已做归一化处理。
+- **保存一致性**：`saveAllWorldData()` 从 `world->spawnAngle()` 读取朝向值写入 level.dat，确保保存/加载循环不丢失。
+- **客户端同步**：`SpawnPositionPacket` 包含 angle 字段，客户端 `ClientWorld::setSpawnPoint(x, y, z, angle)` 接收并存储。
+- **Dimension 出生点**：`Dimension::spawnPoint()` 是每个维度的出生点（独立于世界出生点），当前不含朝向字段。
+
 ## 容易踩的坑
 
 ### 区块异步生成竞态条件

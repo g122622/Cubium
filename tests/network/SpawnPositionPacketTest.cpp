@@ -73,10 +73,10 @@ TEST_F(SpawnPositionPacketTest, SerializeDeserialize)
     ASSERT_TRUE(result.success());
 
     const auto& data = result.value();
-    // Serialized data is payload only (3 x i32 = 12 bytes)
-    // expectedSize() returns total including header (12 + 12 = 24)
-    EXPECT_EQ(data.size(), 12u);
-    EXPECT_EQ(packet.expectedSize(), 24u);
+    // Serialized data is payload only (3 x i32 + 1 x f32 = 16 bytes)
+    // expectedSize() returns total including header (12 + 16 = 28)
+    EXPECT_EQ(data.size(), 16u);
+    EXPECT_EQ(packet.expectedSize(), 28u);
 
     SpawnPositionPacket packet2;
     auto result2 = packet2.deserialize(data.data(), data.size());
@@ -134,4 +134,106 @@ TEST_F(SpawnPositionPacketTest, PacketType)
 {
     SpawnPositionPacket packet;
     EXPECT_EQ(packet.type(), PacketType::SpawnPosition);
+}
+
+// ==================== Angle 字段测试 ====================
+
+TEST_F(SpawnPositionPacketTest, DefaultAngleIsZero)
+{
+    SpawnPositionPacket packet;
+    EXPECT_FLOAT_EQ(packet.angle(), 0.0f);
+}
+
+TEST_F(SpawnPositionPacketTest, PositionAndAngleConstruction)
+{
+    SpawnPositionPacket packet(testPos, 90.0f);
+    EXPECT_EQ(packet.position().x, 100);
+    EXPECT_EQ(packet.position().y, 64);
+    EXPECT_EQ(packet.position().z, -200);
+    EXPECT_FLOAT_EQ(packet.angle(), 90.0f);
+}
+
+TEST_F(SpawnPositionPacketTest, SetAngle)
+{
+    SpawnPositionPacket packet;
+    packet.setAngle(-45.0f);
+    EXPECT_FLOAT_EQ(packet.angle(), -45.0f);
+}
+
+TEST_F(SpawnPositionPacketTest, SerializeDeserializeWithAngle)
+{
+    SpawnPositionPacket packet(testPos, 135.0f);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    // 序列化数据包含 3 x i32 (position) + 1 x f32 (angle) = 16 bytes
+    EXPECT_EQ(result.value().size(), 16u);
+
+    SpawnPositionPacket packet2;
+    auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(result2.success());
+
+    EXPECT_EQ(packet2.position().x, 100);
+    EXPECT_EQ(packet2.position().y, 64);
+    EXPECT_EQ(packet2.position().z, -200);
+    EXPECT_FLOAT_EQ(packet2.angle(), 135.0f);
+}
+
+TEST_F(SpawnPositionPacketTest, SerializeDeserializeNegativeAngle)
+{
+    SpawnPositionPacket packet(BlockPos(50, 64, -100), -180.0f);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    SpawnPositionPacket packet2;
+    auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(result2.success());
+
+    EXPECT_FLOAT_EQ(packet2.angle(), -180.0f);
+}
+
+TEST_F(SpawnPositionPacketTest, SerializeDeserializeZeroAngle)
+{
+    SpawnPositionPacket packet(testPos, 0.0f);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    SpawnPositionPacket packet2;
+    auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(result2.success());
+
+    EXPECT_FLOAT_EQ(packet2.angle(), 0.0f);
+}
+
+TEST_F(SpawnPositionPacketTest, DeserializeAngleFallbackOnTruncatedData)
+{
+    // 仅提供位置数据（12 bytes），不包含 angle
+    SpawnPositionPacket packet(testPos);
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    // 截取仅位置部分（12 bytes），模拟无 angle 的旧版数据
+    std::vector<mc::u8> positionOnly(result.value().begin(), result.value().begin() + 12);
+
+    SpawnPositionPacket packet2;
+    auto result2 = packet2.deserialize(positionOnly.data(), positionOnly.size());
+    // 反序列化应成功（angle 使用默认值 0.0f 向后兼容）
+    EXPECT_TRUE(result2.success());
+    EXPECT_FLOAT_EQ(packet2.angle(), 0.0f);
+}
+
+TEST_F(SpawnPositionPacketTest, AngleBoundary180)
+{
+    SpawnPositionPacket packet(BlockPos(0, 0, 0), 180.0f);
+
+    auto result = packet.serialize();
+    ASSERT_TRUE(result.success());
+
+    SpawnPositionPacket packet2;
+    auto result2 = packet2.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(result2.success());
+    EXPECT_FLOAT_EQ(packet2.angle(), 180.0f);
 }
