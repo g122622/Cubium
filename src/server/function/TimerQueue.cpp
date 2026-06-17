@@ -41,7 +41,7 @@ void TimerQueue::scheduleInternal(const std::string& id, ResourceLocation loc, u
 {
     EventKey key{id, triggerTime};
 
-    // 检查重复：同一 id + triggerTime 不会重复添加（与 MC Java 一致）
+    // 检查重复：同一 id + triggerTime 不会重复添加
     if (m_scheduledKeys.count(key) > 0) {
         return;
     }

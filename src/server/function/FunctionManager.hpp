@@ -20,7 +20,6 @@ namespace function {
  * @brief 函数管理器
  *
  * 管理 .mcfunction 文件的注册、查找和执行。
- * 对应 MC Java 的 ServerFunctionManager。
  *
  * 职责：
  * 1. 存储已注册的 CommandFunction（按 ResourceLocation 索引）
@@ -32,7 +31,7 @@ namespace function {
  */
 class FunctionManager {
 public:
-    /// 最大递归调用深度（与 MC Java 的 ExecutionContext.MAX_QUEUE_DEPTH 一致）
+    /// 最大递归调用深度
     static constexpr Size MAX_CALL_DEPTH = 100;
 
     /**
@@ -142,7 +141,6 @@ public:
      *
      * 执行 minecraft:tick 标签中的函数。
      * 在首次重载后执行 minecraft:load 标签中的函数。
-     * 对应 MC Java 的 ServerFunctionManager.tick()。
      *
      * @param source 命令源（使用 gamemaster 权限）
      */

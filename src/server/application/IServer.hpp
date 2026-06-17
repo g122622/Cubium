@@ -288,7 +288,6 @@ public:
      * @brief 获取函数管理器
      *
      * 管理数据包函数（.mcfunction）的加载、注册、执行和调度。
-     * 对应 MC Java 的 ServerFunctionManager。
      */
     [[nodiscard]] virtual function::FunctionManager& functionManager() = 0;
     [[nodiscard]] virtual const function::FunctionManager& functionManager() const = 0;
@@ -297,7 +296,6 @@ public:
      * @brief 获取函数调度定时器队列
      *
      * 用于 /schedule 命令调度函数延迟执行。
-     * 对应 MC Java 的 TimerQueue<MinecraftServer>（存储在 PrimaryLevelData.scheduledEvents 中）。
      */
     [[nodiscard]] virtual function::TimerQueue& functionTimerQueue() = 0;
     [[nodiscard]] virtual const function::TimerQueue& functionTimerQueue() const = 0;

@@ -113,7 +113,7 @@ FunctionManager::ExecuteResult FunctionManager::execute(
         return result;
     }
 
-    spdlog::debug(
+    spdlog::info(
         "FunctionManager: Executing function '{}' with {} commands", function.id().toString(), function.commandCount());
 
     auto& registry = command::CommandRegistry::getGlobal();
@@ -134,7 +134,7 @@ FunctionManager::ExecuteResult FunctionManager::execute(
             ++result.successCount;
         } else {
             ++result.failureCount;
-            spdlog::debug("FunctionManager: Command '{}' in function '{}' failed: {}",
+            spdlog::info("FunctionManager: Command '{}' in function '{}' failed: {}",
                 command,
                 function.id().toString(),
                 execResult.error().toString());

@@ -15,7 +15,6 @@ namespace function {
 /**
  * @brief 定时器队列 - 调度延迟执行的函数事件
  *
- * 对应 MC Java 的 TimerQueue<MinecraftServer>。
  * 使用优先队列（按触发时间排序）和哈希表（按事件名称索引）
  * 实现高效的按 tick 调度和按名称移除。
  *
@@ -25,8 +24,10 @@ namespace function {
  * 事件在 tick() 中被处理：所有 triggerTime <= currentTick 的事件
  * 将被收集并返回给调用者执行。
  *
- * 调度的事件在服务器重启后不持久化（与 MC Java 的 NBT 持久化不同，
- * 当前版本的存档系统尚未支持此功能）。
+ * 调度的事件在服务器重启后不持久化。
+ *
+ * TODO: 调度事件持久化到 level.dat。需要实现：
+ * 1) 事件序列化到 NBT 2) 从 level.dat 加载恢复 3) 服务器关闭时保存
  */
 class TimerQueue {
 public:

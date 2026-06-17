@@ -33,7 +33,7 @@ namespace function {
 
 namespace fs = std::filesystem;
 
-/// MC Java 的命令行最大字符数限制
+/// 命令行最大字符数限制
 static constexpr Size MAX_COMMAND_LINE_LENGTH = 2000000;
 
 FunctionLoader::FunctionLoader(FunctionManager& manager)
@@ -90,7 +90,7 @@ Result<FunctionLoader::LoadResult> FunctionLoader::loadFromDataPackRepository(
                 m_manager.registerFunction(loc, std::move(parsed.commands));
                 ++result.successCount;
             } else {
-                // 空函数仍然注册（MC Java 也会注册空函数）
+                // 空函数仍然注册
                 ResourceLocation loc = ResourceLocation::parse(id);
                 m_manager.registerFunction(loc, std::vector<std::string>{});
                 ++result.successCount;
@@ -113,7 +113,6 @@ Result<FunctionLoader::LoadResult> FunctionLoader::loadFromDataPackRepository(
     // minecraft:load 标签中的函数在重载后首次 tick 执行。
     // 标签文件的 JSON 格式：{ "values": ["namespace:path", "#namespace:tag"] }
     // 需要实现标签加载、合并（数据包覆盖/追加）和注册到 FunctionManager.registerTag()。
-    // 参考 MC Java 的 ServerFunctionLibrary.tagLoader / TagLoader 实现逻辑。
 
     return result;
 }
@@ -181,7 +180,7 @@ Result<FunctionLoader::ParseResult> FunctionLoader::parseFunctionContent(
 
         // 去除 / 前缀（MC 不允许在函数文件中使用 / 前缀，但我们做容错处理）
         if (processedLine[0] == '/') {
-            // 检查是否是 // 注释（MC Java 会报错，这里我们仅去除单 / 前缀做容错）
+            // 检查是否是 // 注释（非法，需报错）
             if (processedLine.size() > 1 && processedLine[1] == '/') {
                 return Error(ErrorCode::ResourceParseError,
                     "Invalid command in function '" + id + "' on line " + std::to_string(i + 1) +

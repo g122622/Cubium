@@ -60,6 +60,9 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     auto functionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("function");
     auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "function", StringArgumentType::string());
+    // TODO: 当前使用 IntegerArgumentType 解析时间（单位为 tick），原版使用 TimeArgument
+    // （支持 "5s"、"1d" 等时间字符串后缀：s=秒、d=天、t=tick，默认为 tick）。
+    // 完整实现需要自定义 TimeArgumentType 类，解析时间字符串并转换为 tick 数。
     auto timeArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", IntegerArgumentType::integer(1));
 
@@ -97,7 +100,7 @@ i32 ScheduleCommand::_scheduleFunction(CommandContext<ServerCommandSource>& cont
     const std::string functionName = context.getArgument<std::string>("function");
     const i32 time = context.getArgument<i32>("time");
 
-    // 不允许在同 tick 调度（MC Java 的限制）
+    // 不允许在同 tick 调度
     if (time == 0) {
         throw ERROR_SAME_TICK;
     }

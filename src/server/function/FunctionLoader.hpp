@@ -18,17 +18,16 @@ class FunctionManager;
  * @brief 函数加载器
  *
  * 从数据包加载 .mcfunction 文件并注册到 FunctionManager。
- * 路径映射遵循 MC 数据包规范：
+ * 路径映射遵循数据包规范：
  *   data/<namespace>/functions/<path>.mcfunction -> <namespace>:<path>
  *
- * 对应 MC Java 的 ServerFunctionLibrary 的加载部分。
  * 函数文件格式：
  *   - 每行一条命令（不含 / 前缀）
  *   - # 开头的行为注释，被忽略
  *   - \ 结尾的行与下一行连接
  *   - $ 开头的行为宏函数行，当前版本跳过并记录警告
  *   - 空行被忽略
- *   - 命令长度上限为 2,000,000 字符（与 MC Java 一致）
+ *   - 命令长度上限为 2,000,000 字符
  */
 class FunctionLoader {
 public:

@@ -16,13 +16,13 @@ namespace function {
 /**
  * @brief 命令函数 - 表示从 .mcfunction 文件解析出的命令序列
  *
- * 对应 MC Java 的 CommandFunction / PlainTextFunction。
  * 每个 CommandFunction 包含一个函数 ID 和一组按行解析的命令字符串。
  * 命令在执行时通过 CommandRegistry 逐行解析和执行。
  *
- * 当前不支持宏函数（$variable 语法），因为 MC 的宏函数需要
- * CompoundTag 参数实例化，这超出了当前命令系统的范畴。
- * 宏函数行（以 $ 开头的行）在加载时会被跳过并记录警告。
+ * TODO: 当前不支持宏函数（MacroFunction，$variable 语法），MC Java 的宏函数
+ * 需要 CompoundTag 参数实例化（将 $(var) 替换为 NBT 值），这超出了当前命令系统的范畴。
+ * 宏函数行（以 $ 开头的行）在 FunctionLoader::parseFunctionContent 中被跳过并记录警告。
+ * 完整实现需要：1) MacroFunction 类 2) 参数实例化机制 3) CommandFunction 与 MacroFunction 的统一接口
  */
 class CommandFunction {
 public:

@@ -642,7 +642,6 @@ void PlayerAdvancements::_grantRewards(const mc::advancement::AdvancementRewards
             const auto& functionId = rewards.getFunction().value();
             if (functionManager.hasFunction(functionId)) {
                 // 使用游戏循环命令源（权限等级2，抑制输出）
-                // 与 MC Java 一致：进度奖励函数使用 getGameLoopSender() 执行
                 command::ServerCommandSource gameLoopSource(
                     server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "");
                 auto result = functionManager.execute(functionId, gameLoopSource);

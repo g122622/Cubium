@@ -41,6 +41,9 @@ void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     support::applyMetadata(
         functionNode, support::makeMetadata("Runs a function from a data pack.", "/function <name>", 2, {}, true));
 
+    // TODO: 当前使用 StringArgumentType 解析函数名，原版使用 FunctionArgument
+    // （提供 Tab 补全、函数标签 # 前缀支持、不存在的函数在输入时即报错等功能）。
+    // 完整实现需要自定义 FunctionArgumentType 类，在建议阶段查询 FunctionManager 获取可用函数列表。
     auto nameArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
     nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _runFunction(ctx); });
