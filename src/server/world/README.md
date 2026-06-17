@@ -150,7 +150,7 @@ level.dat (SpawnAngle 字段)
 - **高度图**：使用 `MOTION_BLOCKING` 高度图确定表面 Y 坐标。冰检查位置是 `topY`（水面/地面），雪检查位置是 `topY + 1`（上方空气）。
 - **实体推出**：雪层增加时调用 `Block::pushEntitiesUp()` 将嵌入方块的实体向上推出，防止实体卡入方块。
 - **SNOWY 属性**：放置新雪层时，更新下方方块的 SNOWY 属性（草方块、菌丝等）。
-- **handlePrecipitation**：TODO - 尚未实现 `Block::handlePrecipitation` 系统（炼药锅填充等）。
+- **handlePrecipitation**：已实现 `Block::handlePrecipitation` 系统。在世界下雨时，对每个降水位置的表面方块调用 `handlePrecipitation()`，传入降水类型（Rain/Snow）。`CauldronBlock` 重写此方法：雨天 5% 概率增加水位，雪天 10% 概率增加水位。`LightningRodBlock` 重写此方法：雷暴时朝上的避雷针被激活。
 
 ### ServerWorld 不再默认自建 ChunkManager
 `ServerWorld` 必须由外部注入 `ServerChunkManager`，再调用 `initialize()`。主调者通过 `ServerDimensionManager` 或测试装配 helper 显式创建。

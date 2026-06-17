@@ -33,6 +33,7 @@
 #include "HarvestTool.hpp"
 #include "IBlockAnimateContext.hpp"
 #include "Material.hpp"
+#include "world/biome/BiomeClimate.hpp"
 #include "world/map/MaterialColor.hpp"
 #include <functional>
 #include <memory>
@@ -1953,20 +1954,27 @@ public:
     }
 
     /**
-     * @brief 雨水填充
+     * @brief 降水处理
      *
-     * 在下雨时每 tick 调用，用于实现炼药锅收集雨水等功能。
-     * 默认实现为空。
+     * 在降水 tick 中对每个降水位置调用，让方块响应降水（雨/雪）。
+     * 默认实现为空。方块可以重写此方法来响应降水，例如：
+     * - 炼药锅在雨天填充水、在雪天填充细雪
+     * - 避雷针在雷暴时被激活
      *
-     * 参考: net.minecraft.block.Block#fillWithRain
+     * 调用条件：世界正在下雨（isRaining()）且生物群系的降水类型不为 None。
+     *
+     * 参考: net.minecraft.block.Block#handlePrecipitation
      *
      * @param world 世界
      * @param pos 方块位置
+     * @param precipitation 降水类型（Rain / Snow）
      */
-    virtual void fillWithRain(IWorld& world, const BlockPos& pos)
+    virtual void handlePrecipitation(
+        IWorld& world, const BlockPos& pos, world::biome::BiomeClimate::Precipitation precipitation)
     {
         MC_UNUSED(world);
         MC_UNUSED(pos);
+        MC_UNUSED(precipitation);
     }
 
     /**

@@ -33,14 +33,12 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
-
-using math::IRandom;
 
 // ========== 构造函数 ==========
 
@@ -122,26 +120,40 @@ void CauldronBlock::neighborChanged(
     // 水位变化由交互和雨天填充控制
 }
 
-void CauldronBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, IRandom& random)
+void CauldronBlock::handlePrecipitation(
+    IWorld& world, const BlockPos& pos, world::biome::BiomeClimate::Precipitation precipitation)
 {
-    MC_UNUSED(state);
-    MC_UNUSED(random);
-
-    // 雨天时填充水
-    // 检查是否下雨且该位置可以接收雨水
-    if (world.isRaining() && world.canRainAt(pos)) {
-        const BlockState* currentState = world.getBlockState(pos);
-        if (currentState != nullptr) {
-            i32 level = getLevel(*currentState);
-            if (level < 3) {
-                // 约 1/20 概率在雨天填充（每个随机tick）
-                if (random.nextFloat() < 0.05f) {
-                    BlockState newState = currentState->with(BlockStateProperties::LEVEL_0_3(), level + 1);
-                    world.setBlockState(pos, &newState);
-                }
-            }
-        }
+    // 确定降水触发概率：雨天 5%，雪天 10%
+    f32 chance = 0.0f;
+    if (precipitation == world::biome::BiomeClimate::Precipitation::Rain) {
+        chance = 0.05f;
+    } else if (precipitation == world::biome::BiomeClimate::Precipitation::Snow) {
+        chance = 0.1f;
     }
+
+    if (chance <= 0.0f) {
+        return;
+    }
+
+    const BlockState* currentState = world.getBlockState(pos);
+    if (currentState == nullptr) {
+        return;
+    }
+
+    // 只有水位未满时才增加
+    i32 level = getLevel(*currentState);
+    if (level >= 3) {
+        return;
+    }
+
+    // 随机概率触发
+    if (world.getRandom().nextFloat() >= chance) {
+        return;
+    }
+
+    // 增加水位
+    BlockState newState = currentState->with(BlockStateProperties::LEVEL_0_3(), level + 1);
+    world.setBlockState(pos, &newState, 3);
 }
 
 // ========== 交互 ==========

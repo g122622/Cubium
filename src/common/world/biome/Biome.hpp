@@ -162,6 +162,30 @@ public:
     }
 
     /**
+     * @brief 获取指定位置的降水类型
+     *
+     * 根据生物群系的降水设置和高度调整后的温度确定降水类型。
+     * 如果生物群系本身没有降水（Precipitation::None），返回 None。
+     * 如果高度调整后的温度 < 0.15，返回 Snow；否则返回 Rain。
+     *
+     * 参考: net.minecraft.world.level.biome.Biome#getPrecipitationAt
+     *
+     * @param x 方块 X 坐标
+     * @param y 方块 Y 坐标
+     * @param z 方块 Z 坐标
+     * @param seaLevel 海平面高度
+     * @return 降水类型（None / Rain / Snow）
+     */
+    [[nodiscard]] BiomeClimate::Precipitation getPrecipitationAt(i32 x, i32 y, i32 z, i32 seaLevel) const
+    {
+        if (m_climate.precipitation == BiomeClimate::Precipitation::None) {
+            return BiomeClimate::Precipitation::None;
+        }
+        return coldEnoughToSnow(x, y, z, seaLevel) ? BiomeClimate::Precipitation::Snow
+                                                   : BiomeClimate::Precipitation::Rain;
+    }
+
+    /**
      * @brief 判断指定位置的水是否应该结冰
      *
      * 完整实现 MC 的 Biome.shouldFreeze 逻辑：

@@ -1162,18 +1162,20 @@ void ServerWorld::tickPrecipitation(i32 randomTickSpeed)
                 }
             }
 
-            // === 降水方块处理（炼药锅填充等）===
-            // TODO: 实现 Block::handlePrecipitation 系统
+            // === 降水方块处理（炼药锅填充、避雷针激活等）===
             // MC Java 在 tickIceAndSnow 中对每个降水位置调用 block.handlePrecipitation(state, level, pos,
-            // precipitation)， 用于：1) 空炼药锅在雨天装水（变为 WaterCauldronBlock）
-            //       2) 空炼药锅在雪天装细雪（变为 PowderSnowCauldronBlock）
-            //       3) 水炼药锅/细雪炼药锅增加水位
-            // 需要的前置工作：
-            //   - Biome::getPrecipitationAt() 方法（返回 Rain/Snow/None）
-            //   - Block::handlePrecipitation() 虚方法
-            //   - WaterCauldronBlock / PowderSnowCauldronBlock 独立方块类
-            //   - GameEvent::BLOCK_CHANGE 事件系统
-            // 当前 CauldronBlock::randomTick 已实现部分雨填充逻辑作为临时替代。
+            // precipitation)。仅在世界正在下雨时执行，且降水类型不为 None 时才调用。
+            if (isRaining) {
+                auto precipitation =
+                    biome.getPrecipitationAt(surfacePos.x, surfacePos.y, surfacePos.z, world::SEA_LEVEL);
+                if (precipitation != world::biome::BiomeClimate::Precipitation::None) {
+                    const BlockState* surfaceState = getBlockState(surfacePos.x, surfacePos.y, surfacePos.z);
+                    if (surfaceState != nullptr) {
+                        Block& block = const_cast<Block&>(surfaceState->getBlock());
+                        block.handlePrecipitation(*this, surfacePos, precipitation);
+                    }
+                }
+            }
         }
 
         return true; // 继续遍历

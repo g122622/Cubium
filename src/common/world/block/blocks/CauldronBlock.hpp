@@ -25,16 +25,13 @@
 
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/Material.hpp"
 #include <memory>
 
 namespace mc {
-
-namespace math {
-class IRandom;
-}
 
 class World;
 class BlockItemUseContext;
@@ -61,7 +58,11 @@ namespace blocks {
  * - 旗帜：清洗（水位-1，移除图案）
  * - 潜影盒：清洗（水位-1，移除颜色）
  *
- * 雨天时会缓慢填充水。
+ * 降水处理：
+ * - 雨天：5% 概率增加水位
+ * - 雪天：10% 概率增加水位
+ * 降水处理通过 handlePrecipitation 在 tickPrecipitation 中调用，
+ * 而非 randomTick。
  */
 class CauldronBlock : public Block {
 public:
@@ -92,18 +93,20 @@ public:
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     /**
-     * @brief 执行随机刻（雨天填充水）
+     * @brief 降水处理
+     *
+     * 在降水 tick 中被调用，用于炼药锅收集降水。
+     * - 雨天：5% 概率增加水位（如果未满）
+     * - 雪天：10% 概率增加水位（如果未满）
+     *
+     * 参考: net.minecraft.block.CauldronBlock#handlePrecipitation
+     *
      * @param world 世界
      * @param pos 方块位置
-     * @param state 方块状态
-     * @param random 随机数生成器
+     * @param precipitation 降水类型（Rain / Snow）
      */
-    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
-
-    /**
-     * @brief 是否响应随机刻
-     */
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    void handlePrecipitation(
+        IWorld& world, const BlockPos& pos, world::biome::BiomeClimate::Precipitation precipitation) override;
 
     // ========== 交互 ==========
 

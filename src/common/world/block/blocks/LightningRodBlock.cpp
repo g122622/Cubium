@@ -251,6 +251,34 @@ void LightningRodBlock::onLightningStrike(IWorld& world, const BlockPos& pos)
     world.tickManager().scheduleBlockTick(pos, *this, ACTIVATION_TICKS);
 }
 
+void LightningRodBlock::handlePrecipitation(
+    IWorld& world, const BlockPos& pos, world::biome::BiomeClimate::Precipitation precipitation)
+{
+    // 避雷针仅在雷暴天气且朝上时响应降水
+    // 参考: net.minecraft.block.LightningRodBlock#handlePrecipitation
+    if (precipitation != world::biome::BiomeClimate::Precipitation::Rain) {
+        return;
+    }
+
+    // 必须正在雷暴
+    if (!world.isThundering()) {
+        return;
+    }
+
+    // 避雷针必须朝上才能被雷击
+    const BlockState* currentState = world.getBlockState(pos);
+    if (currentState == nullptr || !currentState->is(this)) {
+        return;
+    }
+
+    if (currentState->get(FACING()) != Direction::Up) {
+        return;
+    }
+
+    // 雷暴时朝上的避雷针激活
+    onLightningStrike(world, pos);
+}
+
 size_t LightningRodBlock::_getShapeIndex(Direction facing, bool powered) noexcept
 {
     return static_cast<size_t>(facing) + (powered ? 6 : 0);

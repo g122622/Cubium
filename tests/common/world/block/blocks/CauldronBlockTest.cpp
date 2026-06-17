@@ -71,9 +71,11 @@ TEST_F(CauldronBlockTest, HasComparatorInputOverride_ReturnsTrue)
     EXPECT_TRUE(cauldron_->hasComparatorInputOverride(state));
 }
 
-TEST_F(CauldronBlockTest, TicksRandomly_ReturnsTrue)
+TEST_F(CauldronBlockTest, TicksRandomly_ReturnsFalse)
 {
-    EXPECT_TRUE(cauldron_->ticksRandomly());
+    // 炼药锅不再使用 randomTick 进行雨填充，
+    // 而是通过 handlePrecipitation 在 tickPrecipitation 中处理降水
+    EXPECT_FALSE(cauldron_->ticksRandomly());
 }
 
 TEST_F(CauldronBlockTest, GetShape_ReturnsValidShape)
