@@ -192,3 +192,165 @@ TEST_F(FunctionLoaderTest, PathToFunctionId_NoDataPrefix)
     // 相对路径格式（不含 data/ 前缀）
     EXPECT_EQ("minecraft:test", loader.pathToFunctionId("minecraft/functions/test.mcfunction"));
 }
+
+// ========== pathToTagId 测试 ==========
+
+TEST_F(FunctionLoaderTest, PathToTagId_StandardPath)
+{
+    FunctionLoader loader(manager);
+    EXPECT_EQ("minecraft:tick", loader.pathToTagId("minecraft/tags/functions/tick.json"));
+    EXPECT_EQ("minecraft:load", loader.pathToTagId("minecraft/tags/functions/load.json"));
+    EXPECT_EQ("minecraft:foo/bar", loader.pathToTagId("minecraft/tags/functions/foo/bar.json"));
+    EXPECT_EQ("mod_id:custom/tag", loader.pathToTagId("mod_id/tags/functions/custom/tag.json"));
+}
+
+TEST_F(FunctionLoaderTest, PathToTagId_WithDataPrefix)
+{
+    FunctionLoader loader(manager);
+    EXPECT_EQ("minecraft:tick", loader.pathToTagId("data/minecraft/tags/functions/tick.json"));
+    EXPECT_EQ("minecraft:game_loop", loader.pathToTagId("data/minecraft/tags/functions/game_loop.json"));
+    EXPECT_EQ("mod_id:custom/tag", loader.pathToTagId("data/mod_id/tags/functions/custom/tag.json"));
+}
+
+TEST_F(FunctionLoaderTest, PathToTagId_DeepNestedPath)
+{
+    FunctionLoader loader(manager);
+    EXPECT_EQ("minecraft:a/b/c", loader.pathToTagId("minecraft/tags/functions/a/b/c.json"));
+}
+
+// ========== parseTagJson 测试 ==========
+
+TEST_F(FunctionLoaderTest, ParseTagJson_SimpleValues)
+{
+    FunctionLoader loader(manager);
+    ResourceLocation tagLoc = ResourceLocation::parse("minecraft:tick");
+    auto result = loader.parseTagJson(tagLoc, R"({"values": ["minecraft:game_loop", "minecraft:another"]})");
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value().id.toString(), "minecraft:tick");
+    EXPECT_FALSE(result.value().replace);
+    EXPECT_EQ(result.value().functionIds.size(), 2u);
+    EXPECT_EQ(result.value().functionIds[0].toString(), "minecraft:game_loop");
+    EXPECT_EQ(result.value().functionIds[1].toString(), "minecraft:another");
+    EXPECT_TRUE(result.value().tagReferences.empty());
+}
+
+TEST_F(FunctionLoaderTest, ParseTagJson_TagReference)
+{
+    FunctionLoader loader(manager);
+    ResourceLocation tagLoc = ResourceLocation::parse("minecraft:tick");
+    auto result = loader.parseTagJson(tagLoc, R"({"values": ["#minecraft:load", "minecraft:game_loop"]})");
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value().functionIds.size(), 1u);
+    EXPECT_EQ(result.value().functionIds[0].toString(), "minecraft:game_loop");
+    EXPECT_EQ(result.value().tagReferences.size(), 1u);
+    EXPECT_EQ(result.value().tagReferences[0].toString(), "minecraft:load");
+}
+
+TEST_F(FunctionLoaderTest, ParseTagJson_ReplaceTrue)
+{
+    FunctionLoader loader(manager);
+    ResourceLocation tagLoc = ResourceLocation::parse("minecraft:tick");
+    auto result = loader.parseTagJson(tagLoc, R"({"replace": true, "values": ["minecraft:new_func"]})");
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(result.value().replace);
+    EXPECT_EQ(result.value().functionIds.size(), 1u);
+}
+
+TEST_F(FunctionLoaderTest, ParseTagJson_ReplaceFalse)
+{
+    FunctionLoader loader(manager);
+    ResourceLocation tagLoc = ResourceLocation::parse("minecraft:tick");
+    auto result = loader.parseTagJson(tagLoc, R"({"replace": false, "values": ["minecraft:func"]})");
+    ASSERT_TRUE(result.success());
+    EXPECT_FALSE(result.value().replace);
+}
+
+TEST_F(FunctionLoaderTest, ParseTagJson_EmptyValues)
+{
+    FunctionLoader loader(manager);
+    ResourceLocation tagLoc = ResourceLocation::parse("minecraft:empty_tag");
+    auto result = loader.parseTagJson(tagLoc, R"({"values": []})");
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(result.value().functionIds.empty());
+    EXPECT_TRUE(result.value().tagReferences.empty());
+}
+
+TEST_F(FunctionLoaderTest, ParseTagJson_MissingValuesArray)
+{
+    FunctionLoader loader(manager);
+    ResourceLocation tagLoc = ResourceLocation::parse("minecraft:bad_tag");
+    auto result = loader.parseTagJson(tagLoc, R"({"replace": false})");
+    EXPECT_FALSE(result.success());
+}
+
+TEST_F(FunctionLoaderTest, ParseTagJson_InvalidJson)
+{
+    FunctionLoader loader(manager);
+    ResourceLocation tagLoc = ResourceLocation::parse("minecraft:bad_tag");
+    auto result = loader.parseTagJson(tagLoc, "not valid json");
+    EXPECT_FALSE(result.success());
+}
+
+TEST_F(FunctionLoaderTest, ParseTagJson_OnlyTagReferences)
+{
+    FunctionLoader loader(manager);
+    ResourceLocation tagLoc = ResourceLocation::parse("minecraft:combined_tag");
+    auto result = loader.parseTagJson(tagLoc, R"({"values": ["#minecraft:tick", "#minecraft:load"]})");
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(result.value().functionIds.empty());
+    EXPECT_EQ(result.value().tagReferences.size(), 2u);
+    EXPECT_EQ(result.value().tagReferences[0].toString(), "minecraft:tick");
+    EXPECT_EQ(result.value().tagReferences[1].toString(), "minecraft:load");
+}
+
+TEST_F(FunctionLoaderTest, ParseTagJson_NonStringValuesIgnored)
+{
+    FunctionLoader loader(manager);
+    ResourceLocation tagLoc = ResourceLocation::parse("minecraft:tag_with_bad_values");
+    auto result = loader.parseTagJson(tagLoc, R"({"values": ["minecraft:valid", 42, true, {"id": "test"}]})");
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value().functionIds.size(), 1u);
+    EXPECT_EQ(result.value().functionIds[0].toString(), "minecraft:valid");
+}
+
+// ========== FunctionManager 标签测试 ==========
+
+TEST_F(FunctionLoaderTest, FunctionManager_RegisterAndQueryTag)
+{
+    FunctionManager mgr;
+    ResourceLocation tickTag = ResourceLocation::parse("minecraft:tick");
+    std::vector<ResourceLocation> funcs = {
+        ResourceLocation::parse("minecraft:game_loop"), ResourceLocation::parse("minecraft:another_tick")};
+    mgr.registerTag(tickTag, std::move(funcs));
+
+    EXPECT_TRUE(mgr.hasTag(tickTag));
+    EXPECT_EQ(mgr.getTag(tickTag).size(), 2u);
+    EXPECT_EQ(mgr.getTag(tickTag)[0].toString(), "minecraft:game_loop");
+    EXPECT_EQ(mgr.getTag(tickTag)[1].toString(), "minecraft:another_tick");
+}
+
+TEST_F(FunctionLoaderTest, FunctionManager_TagNotFound)
+{
+    FunctionManager mgr;
+    ResourceLocation nonexistentTag = ResourceLocation::parse("minecraft:nonexistent");
+    EXPECT_FALSE(mgr.hasTag(nonexistentTag));
+    EXPECT_TRUE(mgr.getTag(nonexistentTag).empty());
+}
+
+TEST_F(FunctionLoaderTest, FunctionManager_GetAllTagIds)
+{
+    FunctionManager mgr;
+    mgr.registerTag(ResourceLocation::parse("minecraft:tick"), {ResourceLocation::parse("minecraft:a")});
+    mgr.registerTag(ResourceLocation::parse("minecraft:load"), {ResourceLocation::parse("minecraft:b")});
+    auto ids = mgr.getAllTagIds();
+    EXPECT_EQ(ids.size(), 2u);
+}
+
+TEST_F(FunctionLoaderTest, FunctionManager_ClearAlsoClearsTags)
+{
+    FunctionManager mgr;
+    mgr.registerTag(ResourceLocation::parse("minecraft:tick"), {ResourceLocation::parse("minecraft:a")});
+    EXPECT_EQ(mgr.tagCount(), 1u);
+    mgr.clear();
+    EXPECT_EQ(mgr.tagCount(), 0u);
+}

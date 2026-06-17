@@ -31,10 +31,15 @@ namespace mc {
 namespace command {
 
 /**
- * @brief FunctionCommand - 执行函数文件
+ * @brief FunctionCommand - 执行函数文件或函数标签
  *
  * 用法: /function <name>
+ *        /function #<tag>
  * 权限: 2 (游戏管理员)
+ *
+ * 支持两种引用方式：
+ * - 直接函数引用: /function minecraft:foo/bar
+ * - 标签引用: /function #minecraft:tick（执行标签中的所有函数）
  */
 class FunctionCommand {
 public:

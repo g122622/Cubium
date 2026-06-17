@@ -235,8 +235,8 @@ TCP 网络通信实现。
 
 **已知限制**（与 MC Java 的差异）：
 - 宏函数（$variable 语法）当前跳过并记录警告，需要 CompoundTag 实例化支持
-- 函数标签加载（data/\<namespace\>/tags/functions/\*.json）尚未实现，minecraft:tick 和 minecraft:load 标签需手动注册
 - 调度事件不持久化（重启后丢失）
+- 多数据包标签合并仅读取最高优先级数据包的内容，完整的多数据包合并需要在 DataPackRepository 层面提供读取所有数据包中同一资源的方法
 
 ### menu/ - 容器菜单
 

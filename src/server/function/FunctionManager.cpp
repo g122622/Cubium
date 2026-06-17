@@ -73,6 +73,11 @@ bool FunctionManager::hasFunction(const ResourceLocation& id) const
     return m_functions.find(id) != m_functions.end();
 }
 
+bool FunctionManager::hasTag(const ResourceLocation& tagId) const
+{
+    return m_tags.find(tagId) != m_tags.end();
+}
+
 std::vector<ResourceLocation> FunctionManager::getAllFunctionIds() const
 {
     std::vector<ResourceLocation> ids;

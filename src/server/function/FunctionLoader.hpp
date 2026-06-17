@@ -7,6 +7,8 @@
 #include "common/resource/repository/PackRepository.hpp"
 #include <functional>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace mc {
@@ -17,9 +19,22 @@ class FunctionManager;
 /**
  * @brief 函数加载器
  *
- * 从数据包加载 .mcfunction 文件并注册到 FunctionManager。
- * 路径映射遵循数据包规范：
+ * 从数据包加载 .mcfunction 文件和函数标签 JSON 文件，并注册到 FunctionManager。
+ *
+ * 函数文件路径映射遵循数据包规范：
  *   data/<namespace>/functions/<path>.mcfunction -> <namespace>:<path>
+ *
+ * 函数标签路径映射遵循数据包规范：
+ *   data/<namespace>/tags/functions/<path>.json -> <namespace>:<path>
+ *
+ * 标签 JSON 格式：
+ *   {
+ *     "replace": false,
+ *     "values": [
+ *       "namespace:path",        // 直接引用函数
+ *       "#namespace:tag"         // 引用另一个标签
+ *     ]
+ *   }
  *
  * 函数文件格式：
  *   - 每行一条命令（不含 / 前缀）
@@ -38,6 +53,7 @@ public:
         Size successCount = 0;
         Size failedCount = 0;
         Size skippedCount = 0; ///< 跳过的宏函数行数
+        Size tagCount = 0;     ///< 加载的函数标签数量
         std::vector<std::string> errors;
     };
 
@@ -47,6 +63,19 @@ public:
     struct ParseResult {
         std::vector<std::string> commands; ///< 解析出的命令列表
         Size skippedMacroCount = 0;        ///< 跳过的宏函数行数（$ 开头的行）
+    };
+
+    /**
+     * @brief 标签解析结果
+     *
+     * 从 JSON 文件解析出的函数标签数据，包含标签 ID、
+     * 直接引用的函数 ID 列表和引用的其他标签 ID 列表。
+     */
+    struct TagData {
+        ResourceLocation id;                         ///< 标签 ID
+        bool replace = false;                        ///< 是否替换已有标签内容
+        std::vector<ResourceLocation> functionIds;   ///< 直接引用的函数 ID
+        std::vector<ResourceLocation> tagReferences; ///< 引用的其他标签 ID（# 前缀）
     };
 
     /**
@@ -64,10 +93,11 @@ public:
     explicit FunctionLoader(FunctionManager& manager);
 
     /**
-     * @brief 从数据包列表加载所有函数
+     * @brief 从数据包列表加载所有函数和函数标签
      *
-     * 使用 DataPackRepository 的 PackType::ServerData 限定接口从数据包加载函数。
+     * 使用 DataPackRepository 的 PackType::ServerData 限定接口从数据包加载函数和标签。
      * 按数据包优先级从低到高加载，同名函数由高优先级数据包覆盖。
+     * 标签按 MC Java 语义合并：默认追加，replace=true 时替换之前数据包的条目。
      *
      * @param dataPacks 数据包列表
      * @param callback 进度回调（可选）
@@ -95,6 +125,18 @@ public:
     [[nodiscard]] std::string pathToFunctionId(const std::string& filePath) const;
 
     /**
+     * @brief 将标签文件路径转换为标签 ID
+     *
+     * 遵循 MC 数据包规范：
+     *   data/minecraft/tags/functions/tick.json -> minecraft:tick
+     *   data/mod_id/tags/functions/foo/bar.json -> mod_id:foo/bar
+     *
+     * @param filePath 文件路径
+     * @return 标签 ID
+     */
+    [[nodiscard]] std::string pathToTagId(const std::string& filePath) const;
+
+    /**
      * @brief 解析 .mcfunction 文件内容
      *
      * 公开接口，便于单元测试直接调用。
@@ -105,9 +147,43 @@ public:
      */
     Result<ParseResult> parseFunctionContent(const std::string& id, const std::string& content);
 
+    /**
+     * @brief 解析函数标签 JSON 文件内容
+     *
+     * 公开接口，便于单元测试直接调用。
+     *
+     * @param tagId 标签 ID
+     * @param jsonContent JSON 文件内容
+     * @return 标签解析结果（成功）或错误
+     */
+    Result<TagData> parseTagJson(const ResourceLocation& tagId, const std::string& jsonContent);
+
 private:
     FunctionManager& m_manager;
     bool m_clearBeforeLoad = true;
+
+    /**
+     * @brief 从数据包加载函数标签
+     *
+     * 遍历所有命名空间下的 tags/functions/ 目录，加载标签 JSON 文件。
+     * 处理多数据包标签合并（replace/append 语义）和标签引用（# 前缀）。
+     *
+     * @param dataPacks 数据包列表
+     * @param result 加载结果（用于累加错误信息）
+     * @return 加载的标签数量
+     */
+    Size loadFunctionTags(const mc::resource::DataPackRepository& dataPacks, LoadResult& result);
+
+    /**
+     * @brief 解析标签值条目
+     *
+     * @param entry 值条目字符串（如 "minecraft:foo" 或 "#minecraft:bar"）
+     * @param[out] functionIds 直接引用的函数 ID 列表
+     * @param[out] tagReferences 引用的其他标签 ID 列表
+     */
+    void resolveTagEntry(const std::string& entry,
+        std::vector<ResourceLocation>& functionIds,
+        std::vector<ResourceLocation>& tagReferences);
 };
 
 } // namespace function

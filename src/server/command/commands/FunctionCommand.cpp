@@ -57,9 +57,6 @@ i32 FunctionCommand::_runFunction(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     const std::string name = context.getArgument<std::string>("name");
 
-    // 解析函数命名空间（格式：namespace:path 或 path）
-    ResourceLocation functionId = ResourceLocation::parse(name);
-
     auto* server = source.server();
     if (server == nullptr) {
         source.sendError("Function command requires a server instance");
@@ -67,6 +64,47 @@ i32 FunctionCommand::_runFunction(CommandContext<ServerCommandSource>& context)
     }
 
     auto& functionManager = server->functionManager();
+
+    // 检查是否为标签引用（# 前缀）
+    if (!name.empty() && name[0] == '#') {
+        // 标签引用: #namespace:path
+        std::string tagRef = name.substr(1);
+        ResourceLocation tagId = ResourceLocation::parse(tagRef);
+
+        if (!functionManager.hasTag(tagId)) {
+            std::ostringstream ss;
+            ss << "Unknown function tag '" << tagId.toString() << "'";
+            source.sendError(ss.str());
+            return 0;
+        }
+
+        // 执行标签中的所有函数
+        const auto& functionIds = functionManager.getTag(tagId);
+        i32 totalSuccess = 0;
+        i32 totalFailure = 0;
+        Size executedCount = 0;
+
+        for (const auto& funcId : functionIds) {
+            auto result = functionManager.execute(funcId, source);
+            totalSuccess += result.successCount;
+            totalFailure += result.failureCount;
+            ++executedCount;
+        }
+
+        std::ostringstream ss;
+        ss << "Executed " << executedCount << " functions from tag '" << tagId.toString() << "' (" << totalSuccess
+           << " commands succeeded";
+        if (totalFailure > 0) {
+            ss << ", " << totalFailure << " failed";
+        }
+        ss << ")";
+        source.sendMessage(ss.str());
+
+        return totalSuccess;
+    }
+
+    // 普通函数引用
+    ResourceLocation functionId = ResourceLocation::parse(name);
 
     // 检查函数是否存在
     if (!functionManager.hasFunction(functionId)) {

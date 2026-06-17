@@ -93,6 +93,11 @@ public:
     [[nodiscard]] bool hasFunction(const ResourceLocation& id) const;
 
     /**
+     * @brief 检查标签是否存在
+     */
+    [[nodiscard]] bool hasTag(const ResourceLocation& tagId) const;
+
+    /**
      * @brief 获取所有已注册函数的 ID
      */
     [[nodiscard]] std::vector<ResourceLocation> getAllFunctionIds() const;
