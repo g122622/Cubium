@@ -261,6 +261,10 @@ void EndGatewayEntity::_generateExitPortal(IWorld& world)
     // 沿方向搜索合适的区块
     // 先沿方向前进 1024 格，然后跳过非空区块（回退），再跳过空区块（前进）
     // 与 MC Java 的 TheEndGatewayBlockEntity.findExitPortalXZPosTentative 一致
+    // TODO: MC 原版在区块未加载时会触发区块加载/生成来判断是否为空，
+    // 当前实现将未加载区块（getChunk 返回 nullptr）视为空区块继续前进，
+    // 可能导致出口传送门定位到未生成区域。后续应在 ServerWorld 层面
+    // 支持按需加载区块以完整复刻原版行为。
     f64 vecX = dirX * 1024.0;
     f64 vecZ = dirZ * 1024.0;
 

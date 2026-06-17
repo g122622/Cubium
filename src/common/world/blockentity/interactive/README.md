@@ -80,11 +80,15 @@
 `onlyOpsCanSetNbt()` 返回 true，讲台的 NBT 数据只能由 OP
         级玩家修改（MC Java 中 Lectern 属于 `OP_ONLY_CUSTOM_DATA` 集合）。
 
-        ## #5. EndGatewayEntity 的两套冷却时间
+        ## #5. EndGatewayEntity 的两套冷却时间与结构生成
 
     - `TELEPORT_COOLDOWN = 100 tick`：传送后的冷却时间 - `TRIGGER_COOLDOWN = 40 tick`：触发后设置的冷却时间
 
         两者用途不同，不要混淆。
+
+        `_createGatewayStructure()` 生成 3x5x3 十字框架结构（基岩顶底盖 + 十字臂 + 空气通道 + 中心折跃门方块）。与 MC 原版 EndGatewayFeature.place() 一致。
+
+        `_generateExitPortal()` 在出口折跃门方块实体上设置返回位置（`setExitPortal(m_pos, false)`），形成双向传送链。
 
         ## #6. BannerEntity 序列化键名差异
 
