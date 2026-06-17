@@ -151,9 +151,10 @@ void Teleporter::placePortalBlocks(IWorld& world, const BlockPos& corner, i32 wi
 
 bool NetherTeleporter::teleport(Entity& entity, DimensionId targetDim)
 {
-    // 下界传送器的完整传送逻辑由 ServerPlayer::changeDimension() 协调，
-    // 因为维度切换需要 ServerDimensionManager 处理区块加载/卸载和数据包发送。
+    // TODO: 此方法返回 false，因为下界传送器的完整传送逻辑由 ServerPlayer::changeDimension() 协调，
+    // 维度切换需要 ServerDimensionManager 处理区块加载/卸载和数据包发送。
     // 此方法提供传送门搜索和创建逻辑，供 ServerPlayer 调用。
+    // 未来如有非玩家实体穿越下界传送门的需求，需在此方法中实现完整的传送流程。
     //
     // 传送流程：
     // 1. ServerPlayer::onPortalTriggered() 确定目标维度
@@ -346,8 +347,9 @@ void NetherTeleporter::placeObsidianFrame(IWorld& world, const BlockPos& corner,
 
 bool EndTeleporter::teleport(Entity& entity, DimensionId targetDim)
 {
-    // 末地传送器的完整传送逻辑由 ServerPlayer::changeDimension() 协调，
-    // 因为维度切换需要 ServerDimensionManager 处理区块加载/卸载和数据包发送。
+    // TODO: 此方法返回 false，因为末地传送器的完整传送逻辑由 ServerPlayer::changeDimension() 协调，
+    // 维度切换需要 ServerDimensionManager 处理区块加载/卸载和数据包发送。
+    // 未来如有非玩家实体进入末地传送门的需求，需在此方法中实现完整的传送流程。
     //
     // 传送流程：
     // 1. EndPortalBlock::onEntityCollision() 检测实体进入末地传送门方块

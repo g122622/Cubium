@@ -232,6 +232,9 @@ public:
      * active=true 时放置末地传送门方块（已击败龙），
      * active=false 时仅放置空气（未击败龙或龙正在重生）。
      *
+     * TODO: 此方法已实现但尚未被调用，等待 EndDragonFight 系统集成。
+     * 在 EnderDragonEntity::_onDeathUpdate() 中龙死亡后应调用此方法。
+     *
      * @param world 末地世界
      * @param pos 讲台中心底部位置
      * @param active 是否为激活状态（放置传送门方块）
@@ -269,6 +272,11 @@ private:
      * 在要塞末地传送门房间中放置 12 个末地传送门框架方块。
      * 每个框架方块朝向传送门中心，且均带有末影之眼。
      * 放置后自动在框架内部 3×3 区域生成末地传送门方块。
+     *
+     * TODO: 此方法已实现但尚未被调用。要塞生成中的传送门房间
+     * (StrongholdPortalRoom::generate) 目前手动逐个放置框架方块并支持
+     * 随机末影之眼（10%概率无眼），而此方法默认所有框架都带眼。
+     * 需要在集成时处理末影之眼的随机性差异。
      *
      * @param world 世界引用
      * @param center 传送门框架中心（传送门内部 3×3 区域的中心）底部位置

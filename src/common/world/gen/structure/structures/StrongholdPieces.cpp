@@ -1297,6 +1297,9 @@ void StrongholdPortalRoom::generate(
     }
 
     // 获取 EndPortalFrameBlock 的方块状态
+    // TODO: 当前手动逐个放置12个传送门框架方块，可考虑改用 EndTeleporter::placeEndPortalFrame()
+    //       统一放置逻辑。但注意要塞生成的框架有随机末影之眼（10%概率无眼），
+    //       而 placeEndPortalFrame 默认所有框架都带眼，因此需要在集成时处理这个差异。
     // 北侧框架（朝北）
     setBlockState(world,
         &VanillaBlocks::END_PORTAL_FRAME->defaultState()

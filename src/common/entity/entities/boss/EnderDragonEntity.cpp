@@ -715,9 +715,10 @@ void EnderDragonEntity::_onDeathUpdate()
         // TODO: 生成传送门和龙蛋
         // 这需要 EndDragonFight 系统来放置传送门结构
         // EndDragonFight.setDragonKilled() 应负责：
-        // 1. 生成出口传送门（EndPodiumFeature）
-        // 2. 首次击杀时在祭坛顶部放置龙蛋
-        // 3. 生成末地折跃门
+        // 1. 调用 EndTeleporter::createExitPortal(world, pos, true) 生成出口传送门（基岩讲台+末地传送门方块+火把）
+        // 2. 首次击杀时在祭坛顶部放置龙蛋（DragonEggBlock）
+        // 3. 生成末地折跃门（EndGatewayFeature）
+        // 当前 createExitPortal 已实现但未被调用，等待 EndDragonFight 系统集成
 
         // 移除实体
         remove();
