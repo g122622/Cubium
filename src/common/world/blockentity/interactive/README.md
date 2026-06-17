@@ -86,7 +86,7 @@
 
         两者用途不同，不要混淆。
 
-        `_createGatewayStructure()` 生成 3x5x3 十字框架结构（基岩顶底盖 + 十字臂 + 空气通道 + 中心折跃门方块）。与 MC 原版 EndGatewayFeature.place() 一致。
+        `createGatewayStructure()` 生成 3x5x3 十字框架结构。顶/底盖（dy=±2）仅中心列为基岩，十字臂层（dy=±1）为十字形基岩框架，中心层（dy=0）为折跃门方块+空气。与 MC 原版 EndGatewayFeature.place() 一致。
 
         `_generateExitPortal()` 在出口折跃门方块实体上设置返回位置（`setExitPortal(m_pos, false)`），形成双向传送链。
 

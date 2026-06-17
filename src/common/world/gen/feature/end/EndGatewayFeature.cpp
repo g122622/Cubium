@@ -105,14 +105,19 @@ void EndGatewayFeature::_generateGateway(WorldGenRegion& world, math::Random& ra
     // 与 MC Java 的 EndGatewayFeature.place() 一致
     // 结构以 pos 为中心，范围从 pos + (-1, -2, -1) 到 pos + (1, 2, 1)
     //
-    // 俯视截面（Y != pos.y 的层，即基岩层）：
-    //   . B .      B = 基岩（十字形：X=0 或 Z=0）
-    //   B B B      . = 空气（四角）
+    // 顶/底盖层（dy = ±2）：仅中心列为基岩
+    //   . . .
+    //   . B .
+    //   . . .
+    //
+    // 十字臂层（dy = ±1）：十字形基岩框架
+    //   . B .
+    //   B B B
     //   . B .
     //
-    // 中心层（Y == pos.y）：
-    //   . . .      G = 末地折跃门方块
-    //   . G .      其余为空气
+    // 中心层（dy = 0）：中心为折跃门方块，其余为空气
+    //   . . .
+    //   . G .
     //   . . .
 
     const BlockState* bedrock = VanillaBlocks::getState(VanillaBlocks::BEDROCK);

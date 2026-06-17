@@ -355,7 +355,7 @@ TEST_F(EndGatewayEntityTest, ReceiveClientEvent_UnknownEvent_ReturnsFalse)
     EXPECT_FALSE(result);
 }
 
-// ========== _createGatewayStructure 结构测试 ==========
+// ========== createGatewayStructure 结构生成测试 ==========
 
 // 测试用的 Mock World，支持 setBlockState/getBlockState 和 getBlockEntity
 class EndGatewayTestWorld : public mc::test::BaseTestWorld {
@@ -365,7 +365,6 @@ public:
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
     {
         m_statesByPos[BlockPos(x, y, z)] = state;
-        ++m_setBlockCalls;
         return true;
     }
 
@@ -385,9 +384,6 @@ public:
 
     bool isClientSide() override { return false; }
 
-    i32 getSetBlockCalls() const { return m_setBlockCalls; }
-    void resetSetBlockCalls() { m_setBlockCalls = 0; }
-
     // 获取指定位置的方块，如果未设置则返回空气
     const BlockState* getBlockStateOrAir(const BlockPos& pos) const
     {
@@ -398,26 +394,45 @@ public:
 private:
     std::unordered_map<BlockPos, const BlockState*> m_statesByPos;
     std::unordered_map<BlockPos, BlockEntity*> m_blockEntities;
-    i32 m_setBlockCalls = 0;
 };
-
-// 测试 _createGatewayStructure 通过私有方法访问器
-// 由于 _createGatewayStructure 是私有方法，我们通过 tick + teleportEntity 间接触发
-// 或者通过友元测试。这里测试生成的结构是否正确。
 
 class EndGatewayStructureTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        m_world = std::make_unique<EndGatewayTestWorld>();
+        m_centerPos = BlockPos(100, 75, 200);
+    }
+
+    // 辅助：获取指定偏移处的方块
+    const BlockState* blockAt(i32 dx, i32 dy, i32 dz) const
+    {
+        return m_world->getBlockStateOrAir(m_centerPos + BlockPos(dx, dy, dz));
+    }
+
+    // 辅助：检查指定偏移处方块是否为指定类型
+    bool isBlock(i32 dx, i32 dy, i32 dz, const Block& block) const
+    {
+        const BlockState* state = blockAt(dx, dy, dz);
+        return state != nullptr && &state->getBlock() == &block;
+    }
+
+    std::unique_ptr<EndGatewayTestWorld> m_world;
+    BlockPos m_centerPos{100, 75, 200};
 };
+
+// ---------- 常量验证 ----------
 
 TEST_F(EndGatewayStructureTest, Constants_MatchVanilla)
 {
-    // 验证常量与 MC Java 一致
     EXPECT_EQ(EndGatewayEntity::TELEPORT_COOLDOWN, 100);
     EXPECT_EQ(EndGatewayEntity::TRIGGER_COOLDOWN, 40);
     EXPECT_EQ(EndGatewayEntity::AUTO_COOLDOWN_INTERVAL, 2400L);
     EXPECT_EQ(EndGatewayEntity::SPAWN_DURATION, 200L);
 }
+
+// ---------- 冷却和生成状态 ----------
 
 TEST_F(EndGatewayStructureTest, TeleportCooldown_TriggersCorrectly)
 {
@@ -425,7 +440,6 @@ TEST_F(EndGatewayStructureTest, TeleportCooldown_TriggersCorrectly)
     EXPECT_FALSE(entity->isCoolingDown());
     EXPECT_EQ(entity->getTeleportCooldown(), 0);
 
-    // 模拟触发冷却
     entity->receiveClientEvent(1, 0);
     EXPECT_TRUE(entity->isCoolingDown());
     EXPECT_EQ(entity->getTeleportCooldown(), EndGatewayEntity::TRIGGER_COOLDOWN);
@@ -435,22 +449,27 @@ TEST_F(EndGatewayStructureTest, SpawnDuration_BoundaryValues)
 {
     auto entity = std::make_unique<EndGatewayEntity>(BlockPos(0, 0, 0));
 
-    // 年龄 0，正在生成
     EXPECT_TRUE(entity->isSpawning());
     EXPECT_FLOAT_EQ(entity->getSpawnPercent(0.0f), 0.0f);
 
-    // 加载年龄 199，仍在生成
     nlohmann::json data;
     data["Age"] = 199;
     entity->load(data);
     EXPECT_TRUE(entity->isSpawning());
 
-    // 加载年龄 200，生成完毕
     data["Age"] = 200;
     entity->load(data);
     EXPECT_FALSE(entity->isSpawning());
     EXPECT_FLOAT_EQ(entity->getSpawnPercent(0.0f), 1.0f);
 }
+
+TEST_F(EndGatewayStructureTest, CooldownProgress_NegativeCooldown_ClampsToOne)
+{
+    auto entity = std::make_unique<EndGatewayEntity>(BlockPos(0, 0, 0));
+    EXPECT_FLOAT_EQ(entity->getCooldownPercent(0.0f), 1.0f);
+}
+
+// ---------- 序列化往返 ----------
 
 TEST_F(EndGatewayStructureTest, ExitPortal_SerializationRoundtrip)
 {
@@ -476,16 +495,154 @@ TEST_F(EndGatewayStructureTest, ExitPortal_WithoutExactTeleport_DefaultsFalse)
     EXPECT_TRUE(entity->getExitPortal().has_value());
     EXPECT_FALSE(entity->isExactTeleport());
 
-    // 序列化不应包含 ExactTeleport 字段（默认为 false）
     nlohmann::json saved;
     entity->save(saved);
     EXPECT_FALSE(saved.contains("ExactTeleport"));
 }
 
-TEST_F(EndGatewayStructureTest, CooldownProgress_NegativeCooldown_ClampsToOne)
+// ---------- createGatewayStructure 结构验证 ----------
+
+TEST_F(EndGatewayStructureTest, CreateGatewayStructure_CenterBlockIsEndGateway)
 {
-    // 冷却进度计算：1 - clamp((cooldown - partialTicks) / TRIGGER_COOLDOWN, 0, 1)
-    auto entity = std::make_unique<EndGatewayEntity>(BlockPos(0, 0, 0));
-    // 默认冷却为 0，进度应为 1.0（冷却完成）
-    EXPECT_FLOAT_EQ(entity->getCooldownPercent(0.0f), 1.0f);
+    // 中心位置 (0,0,0) 应为末地折跃门方块
+    EndGatewayEntity::createGatewayStructure(*m_world, m_centerPos);
+    EXPECT_TRUE(isBlock(0, 0, 0, *VanillaBlocks::END_GATEWAY));
+}
+
+TEST_F(EndGatewayStructureTest, CreateGatewayStructure_CenterYLayerIsAirExceptCenter)
+{
+    // 中心 Y 层 (dy=0)：除中心外全部为空气
+    EndGatewayEntity::createGatewayStructure(*m_world, m_centerPos);
+
+    const Block& air = *VanillaBlocks::AIR;
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        for (i32 dz = -1; dz <= 1; ++dz) {
+            if (dx == 0 && dz == 0) {
+                continue; // 中心是 END_GATEWAY，已在其他测试中验证
+            }
+            EXPECT_TRUE(isBlock(dx, 0, dz, air)) << "Expected AIR at offset (" << dx << ", 0, " << dz << ")";
+        }
+    }
+}
+
+TEST_F(EndGatewayStructureTest, CreateGatewayStructure_TopBottomCapsCenterColumnIsBedrock)
+{
+    // 顶/底盖 (dy=±2) 的中心列 (dx=0, dz=0) 应为基岩
+    EndGatewayEntity::createGatewayStructure(*m_world, m_centerPos);
+
+    const Block& bedrock = *VanillaBlocks::BEDROCK;
+    EXPECT_TRUE(isBlock(0, 2, 0, bedrock)) << "Top cap center should be bedrock";
+    EXPECT_TRUE(isBlock(0, -2, 0, bedrock)) << "Bottom cap center should be bedrock";
+}
+
+TEST_F(EndGatewayStructureTest, CreateGatewayStructure_CrossArmsAreBedrock)
+{
+    // 侧面十字臂（非顶底盖层，dy != 0 且 dy != ±2）：dx=0 或 dz=0 的位置应为基岩
+    EndGatewayEntity::createGatewayStructure(*m_world, m_centerPos);
+
+    const Block& bedrock = *VanillaBlocks::BEDROCK;
+    // dy = -1 和 dy = 1 的十字臂
+    for (i32 dy : {-1, 1}) {
+        // 十字臂位置：(0,dy,-1), (0,dy,0), (0,dy,1), (-1,dy,0), (1,dy,0)
+        EXPECT_TRUE(isBlock(0, dy, 0, bedrock)) << "Cross arm center at dy=" << dy;
+        EXPECT_TRUE(isBlock(0, dy, -1, bedrock)) << "Cross arm N at dy=" << dy;
+        EXPECT_TRUE(isBlock(0, dy, 1, bedrock)) << "Cross arm S at dy=" << dy;
+        EXPECT_TRUE(isBlock(-1, dy, 0, bedrock)) << "Cross arm W at dy=" << dy;
+        EXPECT_TRUE(isBlock(1, dy, 0, bedrock)) << "Cross arm E at dy=" << dy;
+    }
+}
+
+TEST_F(EndGatewayStructureTest, CreateGatewayStructure_CornersAreAir)
+{
+    // 四角（dx!=0 且 dz!=0，非中心 Y 层）应为空气
+    EndGatewayEntity::createGatewayStructure(*m_world, m_centerPos);
+
+    const Block& air = *VanillaBlocks::AIR;
+    for (i32 dy = -2; dy <= 2; ++dy) {
+        if (dy == 0) {
+            continue; // 中心 Y 层已单独测试
+        }
+        for (i32 dx : {-1, 1}) {
+            for (i32 dz : {-1, 1}) {
+                EXPECT_TRUE(isBlock(dx, dy, dz, air))
+                    << "Expected AIR at corner offset (" << dx << ", " << dy << ", " << dz << ")";
+            }
+        }
+    }
+}
+
+TEST_F(EndGatewayStructureTest, CreateGatewayStructure_TopBottomCapCrossArmsAreAir)
+{
+    // 顶/底盖 (dy=±2) 的十字臂位置应为空气（与 MC Java 一致，盖层仅中心列为基岩）
+    EndGatewayEntity::createGatewayStructure(*m_world, m_centerPos);
+
+    const Block& air = *VanillaBlocks::AIR;
+    for (i32 dy : {-2, 2}) {
+        // 十字臂：N, S, E, W — 在顶/底盖层应为空气
+        EXPECT_TRUE(isBlock(0, dy, -1, air)) << "Top/bottom cap N at dy=" << dy << " should be AIR";
+        EXPECT_TRUE(isBlock(0, dy, 1, air)) << "Top/bottom cap S at dy=" << dy << " should be AIR";
+        EXPECT_TRUE(isBlock(-1, dy, 0, air)) << "Top/bottom cap W at dy=" << dy << " should be AIR";
+        EXPECT_TRUE(isBlock(1, dy, 0, air)) << "Top/bottom cap E at dy=" << dy << " should be AIR";
+    }
+}
+
+TEST_F(EndGatewayStructureTest, CreateGatewayStructure_TotalBlockCount)
+{
+    // 3x5x3 = 45 个方块总计
+    // 基岩：中心层两侧的十字臂各 5 个 × 2 层 = 10 + 顶/底盖中心各 1 个 × 2 = 12
+    // 末地折跃门：1（中心）
+    // 空气：45 - 12 - 1 = 32
+    EndGatewayEntity::createGatewayStructure(*m_world, m_centerPos);
+
+    const Block& bedrock = *VanillaBlocks::BEDROCK;
+    const Block& endGateway = *VanillaBlocks::END_GATEWAY;
+    const Block& air = *VanillaBlocks::AIR;
+
+    i32 bedrockCount = 0;
+    i32 gatewayCount = 0;
+    i32 airCount = 0;
+
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        for (i32 dy = -2; dy <= 2; ++dy) {
+            for (i32 dz = -1; dz <= 1; ++dz) {
+                if (isBlock(dx, dy, dz, bedrock)) {
+                    ++bedrockCount;
+                } else if (isBlock(dx, dy, dz, endGateway)) {
+                    ++gatewayCount;
+                } else if (isBlock(dx, dy, dz, air)) {
+                    ++airCount;
+                }
+            }
+        }
+    }
+
+    EXPECT_EQ(gatewayCount, 1);
+    EXPECT_EQ(bedrockCount, 12);
+    EXPECT_EQ(airCount, 32);
+    EXPECT_EQ(bedrockCount + gatewayCount + airCount, 45);
+}
+
+TEST_F(EndGatewayStructureTest, CreateGatewayStructure_StructureSymmetry)
+{
+    // 验证结构关于 X 和 Z 轴对称
+    EndGatewayEntity::createGatewayStructure(*m_world, m_centerPos);
+
+    for (i32 dy = -2; dy <= 2; ++dy) {
+        for (i32 dx = -1; dx <= 1; ++dx) {
+            for (i32 dz = -1; dz <= 1; ++dz) {
+                const BlockState* pos = blockAt(dx, dy, dz);
+                const BlockState* negX = blockAt(-dx, dy, dz);
+                const BlockState* negZ = blockAt(dx, dy, -dz);
+
+                // 对称性：同一方块类型（通过 Block 指针比较）
+                ASSERT_NE(pos, nullptr) << "Null state at (" << dx << ", " << dy << ", " << dz << ")";
+                ASSERT_NE(negX, nullptr) << "Null negX at (" << -dx << ", " << dy << ", " << dz << ")";
+                ASSERT_NE(negZ, nullptr) << "Null negZ at (" << dx << ", " << dy << ", " << -dz << ")";
+                EXPECT_EQ(&pos->getBlock(), &negX->getBlock())
+                    << "X symmetry broken at dy=" << dy << " dx=" << dx << " dz=" << dz;
+                EXPECT_EQ(&pos->getBlock(), &negZ->getBlock())
+                    << "Z symmetry broken at dy=" << dy << " dx=" << dx << " dz=" << dz;
+            }
+        }
+    }
 }
