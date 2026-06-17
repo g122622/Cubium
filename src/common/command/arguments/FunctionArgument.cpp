@@ -28,6 +28,35 @@
 namespace mc {
 namespace command {
 
+/**
+ * @brief 判断字符是否为资源位置标识符中的合法字符
+ *
+ * MC Java 的 Identifier.read() 使用贪婪读取，允许的字符为：
+ * a-z, 0-9, _, -, ., :, /
+ * 这比 readUnquotedString()（允许 +）更严格，但不允许空白和引号。
+ */
+static bool isAllowedInIdentifier(char c)
+{
+    return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-' || c == '.' || c == ':' || c == '/';
+}
+
+/**
+ * @brief 从 StringReader 中贪婪读取资源位置标识符
+ *
+ * 与 readString() 不同，此方法严格只读取合法的标识符字符，
+ * 在遇到非法字符时停止读取（不报错），与 MC Java 的 Identifier.read() 行为一致。
+ */
+static std::string readIdentifierGreedy(StringReader& reader)
+{
+    i32 start = reader.getCursor();
+    while (reader.canRead() && isAllowedInIdentifier(reader.peek())) {
+        reader.skip();
+    }
+    const auto startIdx = static_cast<size_t>(start);
+    const auto endIdx = static_cast<size_t>(reader.getCursor());
+    return std::string(reader.getString().substr(startIdx, endIdx - startIdx));
+}
+
 FunctionArgumentResult FunctionArgumentType::parse(StringReader& reader)
 {
     i32 start = reader.getCursor();
@@ -35,7 +64,7 @@ FunctionArgumentResult FunctionArgumentType::parse(StringReader& reader)
     // 检查是否为标签引用（# 前缀）
     if (reader.canRead() && reader.peek() == '#') {
         reader.skip(); // 跳过 '#'
-        std::string str = reader.readString();
+        std::string str = readIdentifierGreedy(reader);
         if (str.empty()) {
             reader.setCursor(start);
             throw CommandException(CommandErrorType::StringExpected, "Expected function tag name after '#'", start);
@@ -45,7 +74,7 @@ FunctionArgumentResult FunctionArgumentType::parse(StringReader& reader)
     }
 
     // 普通函数引用
-    std::string str = reader.readString();
+    std::string str = readIdentifierGreedy(reader);
     if (str.empty()) {
         reader.setCursor(start);
         throw CommandException(CommandErrorType::StringExpected, "Expected function name", start);
