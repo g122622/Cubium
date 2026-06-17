@@ -11,7 +11,7 @@ block/
 ├── BlockPos.hpp                    # 方块位置坐标类
 ├── BlockRegistry.hpp/cpp           # 方块注册表（单例）
 ├── BlockSoundType.hpp/cpp          # 方块声音类型定义
-├── BlockTags.hpp/cpp               # 方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT 等）
+├── BlockTags.hpp/cpp               # 方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK 等）
 ├── FireInfoRegistry.hpp/cpp        # 火焰信息注册表（燃烧/蔓延属性）
 ├── GameMasterBlock.hpp             # 游戏管理员方块标记接口（命令方块、结构方块等）
 ├── HarvestTool.hpp                 # 挖掘工具类型定义
@@ -350,7 +350,7 @@ CauldronBlock 使用 `LEVEL_0_3` 属性存储水位（0-3），交互操作直�
 - 所有原版可燃方块的 encouragement（蔓延速度）和 flammability（可燃性）参数已注册
 - 新增可燃方块时，在 `FireInfoRegistry::initializeVanillaFireInfos()` 中注册即可
 - 子类仍可通过重写 `getFlammability()`/`getFireSpreadSpeed()` 提供自定义值，会覆盖注册表值
-- 部分方块（如 BEEHIVE、BEE_NEST、各木材楼梯/台阶/栅栏变体）尚待对应方块指针注册后补充
+- 部分方块（如 BEEHIVE、BEE_NEST、部分栅栏变体、SHELF）尚待对应方块指针注册后补充
 
 ### 22. canBeReplaced / canBeReplacedByFluid 语义
 
@@ -406,3 +406,15 @@ CauldronBlock 使用 `LEVEL_0_3` 属性存储水位（0-3），交互操作直�
 #### 液体方块的 canBeReplacedByFluid
 
 液体方块（水、岩浆）的 `canBeReplacedByFluid()` 返回 `true`（因为 `canBeReplaced()=true`）。这与 MC Java 一致：`BucketItem.emptyContents()` 允许在已有液体上放置桶装流体。旧代码中 `canBeReplaced() && !isLiquid()` 的 `!isLiquid()` 检查是错误的——MC Java 不检查目标方块是否已是液体。放置在已有液体上的行为是 `setBlock` 替换同类型液体（无操作）或水/岩浆交互。
+
+### 25. MUSHROOM_GROW_BLOCK 标签与蘑菇放置
+
+`BlockTags::MUSHROOM_GROW_BLOCK()` 标签包含菌丝（mycelium）、灰化土（podzol）、绯红菌岩（crimson_nylium）、诡异菌岩（warped_nylium），用于蘑菇放置判定。
+
+蘑菇（`MushroomBlock`）的放置判定分两层：
+1. **`Block::canSustainPlant()`**（`PlantType::Cave` 分支）：检查下方方块是否属于 `MUSHROOM_GROW_BLOCK` 标签，只有标签内的方块才返回 true
+2. **`MushroomBlock::isValidPosition()`**：在标签方块上无条件允许放置，在其他固体方块上需光照 < 13
+
+**注意**：不要在 `canSustainPlant` 的 `PlantType::Cave` 分支中添加光照检查——光照检查由 `MushroomBlock::isValidPosition()` 独立完成。`canSustainPlant` 只负责判断土壤类型兼容性。
+
+蘑菇注册使用 `blocks::MushroomBlock` 而非 `SimpleBlock`，巨型蘑菇方块使用 `blocks::HugeMushroomBlock`（具有 6 方向布尔属性）。

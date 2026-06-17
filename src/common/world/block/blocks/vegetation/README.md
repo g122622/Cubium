@@ -11,7 +11,7 @@ vegetation/
 ├── TallGrassBlock.hpp/cpp       # 高草/蕨类
 ├── FlowerBlock.hpp/cpp          # 花朵（蒲公英、玫瑰等）及双格花朵（丁香、牡丹等）
 ├── SaplingBlock.hpp/cpp         # 树苗（可生长成树木）
-├── MushroomBlock.hpp/cpp        # 蘑菇及巨型蘑菇方块
+├── MushroomBlock.hpp/cpp        # 蘑菇（IPlantable/Cave，MUSHROOM_GROW_BLOCK 标签判定）及巨型蘑菇方块（6方向属性）
 ├── CactusBlock.hpp/cpp          # 仙人掌（接触伤害、高度限制3格）
 ├── SugarCaneBlock.hpp/cpp       # 甘蔗（需靠近水源）
 ├── VineBlock.hpp/cpp            # 藤蔓（可攀爬、多方向附着）
@@ -36,8 +36,8 @@ Block (基类)
 │   ├── FlowerBlock
 │   ├── SaplingBlock
 │   └── LilyPadBlock
-├── MushroomBlock        # 独立实现，IPlantable(Cave)
-├── HugeMushroomBlock    # 巨型蘑菇组成方块
+├── MushroomBlock        # 独立实现，IPlantable(Cave)，使用 MUSHROOM_GROW_BLOCK 标签判定放置
+├── HugeMushroomBlock    # 巨型蘑菇组成方块（6方向属性：UP/DOWN/NORTH/SOUTH/EAST/WEST）
 ├── CactusBlock          # 独立实现，IPlantable(Desert)
 ├── SugarCaneBlock       # 独立实现，IPlantable(Beach)
 ├── VineBlock            # 独立实现（非 IPlantable，墙面附着）
@@ -54,6 +54,7 @@ Block (基类)
 | 模块 | 用途 |
 |------|------|
 | `world/block/Block` | 方块基类 |
+| `world/block/BlockTags` | 方块标签系统（MUSHROOM_GROW_BLOCK 标签用于蘑菇放置判定） |
 | `world/block/IGrowable` | 可生长接口（BambooBlock、SweetBerryBushBlock） |
 | `world/block/PlantType` | 植物类型接口（IPlantable，用于土壤兼容性检测） |
 | `world/block/blocks/agricultural/BushBlock` | 植物基类（来自 agricultural 目录） |
@@ -105,3 +106,12 @@ Block (基类)
 - 采摘后 AGE 重置为 1
 
 狐狸和蜜蜂免疫减速和伤害，其他 LivingEntity 穿过时受减速效果（XZ: 0.8, Y: 0.75）和伤害（AGE > 0 且移动距离 >= 0.003 时造成 1.0 伤害）。
+
+### 8. 蘑菇放置判定逻辑
+
+蘑菇（MushroomBlock）的放置判定分两层：
+
+1. **`Block::canSustainPlant()`**（`PlantType::Cave` 分支）：检查下方方块是否属于 `MUSHROOM_GROW_BLOCK` 标签（菌丝、灰化土、绯红菌岩、诡异菌岩）。只有标签内的方块才返回 true，其他方块（包括泥土和石头）一律返回 false。
+2. **`MushroomBlock::isValidPosition()`**：在 `canSustainPlant` 通过后额外检查光照条件。若下方方块属于 `MUSHROOM_GROW_BLOCK` 标签，则无条件允许放置；否则要求下方为固体方块且光照 < 13。
+
+因此，**不要在 `canSustainPlant` 的 `PlantType::Cave` 分支中添加光照检查**——光照检查由 `MushroomBlock::isValidPosition()` 独立完成。
