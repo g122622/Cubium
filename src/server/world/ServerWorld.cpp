@@ -385,6 +385,7 @@ void ServerWorld::applyLevelRuntimeData(const world::storage::LevelRuntimeData& 
     m_worldSpawnPoint = Vector3d(static_cast<f64>(runtimeData.spawnX) + 0.5,
         static_cast<f64>(runtimeData.spawnY),
         static_cast<f64>(runtimeData.spawnZ) + 0.5);
+    m_spawnAngle = runtimeData.spawnAngle;
 
     if (m_weatherManager == nullptr) {
         return;

@@ -716,8 +716,27 @@ public:
      * @brief 设置世界出生点
      *
      * @param pos 新的出生点位置
+     * @param angle 新的出生点朝向（度），默认 0.0f
      */
-    void setWorldSpawnPoint(const Vector3d& pos) noexcept { m_worldSpawnPoint = pos; }
+    void setWorldSpawnPoint(const Vector3d& pos, f32 angle = 0.0f) noexcept
+    {
+        m_worldSpawnPoint = pos;
+        m_spawnAngle = angle;
+    }
+
+    /**
+     * @brief 获取世界出生点朝向
+     *
+     * @return 出生点朝向角度（度）
+     */
+    [[nodiscard]] f32 spawnAngle() const noexcept { return m_spawnAngle; }
+
+    /**
+     * @brief 设置世界出生点朝向
+     *
+     * @param angle 出生点朝向角度（度）
+     */
+    void setSpawnAngle(f32 angle) noexcept { m_spawnAngle = angle; }
 
     /**
      * @brief 应用 level.dat 读取到的运行时世界状态
@@ -1035,6 +1054,7 @@ private:
     bool m_initialized = false;
     bool m_allPlayersSleeping = false;                                              // 全员睡眠标志
     Vector3d m_worldSpawnPoint{0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0}; // 世界出生点
+    f32 m_spawnAngle = 0.0f;                                                        // 世界出生点朝向（度）
 
     OpenContainerCallback m_onOpenContainer;
     OpenEntityContainerCallback m_onOpenEntityContainer;

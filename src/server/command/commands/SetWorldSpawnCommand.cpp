@@ -24,8 +24,10 @@
 #include "SetWorldSpawnCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
+#include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/core/ConnectionManager.hpp"
@@ -41,10 +43,10 @@ void SetWorldSpawnCommand::registerTo(CommandDispatcher<ServerCommandSource>& di
 {
     auto setWorldSpawnNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("setworldspawn");
     setWorldSpawnNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
-    support::applyMetadata(
-        setWorldSpawnNode, support::makeMetadata("Sets the world spawn point.", "/setworldspawn [<pos>]", 2, {}, true));
+    support::applyMetadata(setWorldSpawnNode,
+        support::makeMetadata("Sets the world spawn point.", "/setworldspawn [<pos> [<angle>]]", 2, {}, true));
 
-    // /setworldspawn - 设置当前位置为世界出生点
+    // /setworldspawn - 设置当前位置为世界出生点（使用玩家的朝向）
     setWorldSpawnNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setCurrentPosition(ctx); });
 
     // /setworldspawn <pos>
@@ -52,6 +54,13 @@ void SetWorldSpawnCommand::registerTo(CommandDispatcher<ServerCommandSource>& di
         std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
     posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPosition(ctx); });
 
+    // /setworldspawn <pos> <angle> - 设置世界出生点到指定位置和朝向
+    // 参考 MC 1.21.11: SetWorldSpawnCommand 支持可选的 rotation 参数
+    auto angleNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
+        "angle", FloatArgumentType::floatArg(-180.0f, 180.0f));
+    angleNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPositionWithAngle(ctx); });
+
+    posNode->addChild(angleNode);
     setWorldSpawnNode->addChild(posNode);
     dispatcher.registerCommand(setWorldSpawnNode);
 }
@@ -75,19 +84,21 @@ i32 SetWorldSpawnCommand::_setCurrentPosition(CommandContext<ServerCommandSource
     }
 
     const Vector3d& pos = source.position();
+    // 参考 MC 1.21.11: 不指定位置时使用玩家的朝向（rotation.y 为 yaw）
+    f32 angle = source.rotation().y;
     dimension->setSpawnPoint(pos);
 
-    // 同步更新 ServerWorld 的世界出生点
+    // 同步更新 ServerWorld 的世界出生点和朝向
     if (dimension->world()) {
-        dimension->world()->setWorldSpawnPoint(pos);
+        dimension->world()->setWorldSpawnPoint(pos, angle);
     }
 
     // 广播新的出生点到所有玩家
-    _broadcastSpawnPosition(server, pos);
+    _broadcastSpawnPosition(server, pos, angle);
 
     std::ostringstream ss;
     ss << "Set world spawn point to " << static_cast<BlockCoord>(pos.x) << ", " << static_cast<BlockCoord>(pos.y)
-       << ", " << static_cast<BlockCoord>(pos.z);
+       << ", " << static_cast<BlockCoord>(pos.z) << " (angle: " << angle << ")";
     source.sendMessage(ss.str());
 
     return 1;
@@ -110,13 +121,16 @@ i32 SetWorldSpawnCommand::_setPosition(CommandContext<ServerCommandSource>& cont
 
     dimension->setSpawnPoint(pos);
 
+    // 参考 MC 1.21.11: 不指定朝向时默认为 0.0f
+    f32 angle = 0.0f;
+
     // 同步更新 ServerWorld 的世界出生点
     if (dimension->world()) {
-        dimension->world()->setWorldSpawnPoint(pos);
+        dimension->world()->setWorldSpawnPoint(pos, angle);
     }
 
     // 广播新的出生点到所有玩家
-    _broadcastSpawnPosition(server, pos);
+    _broadcastSpawnPosition(server, pos, angle);
 
     std::ostringstream ss;
     ss << "Set world spawn point to " << static_cast<BlockCoord>(pos.x) << ", " << static_cast<BlockCoord>(pos.y)
@@ -126,11 +140,48 @@ i32 SetWorldSpawnCommand::_setPosition(CommandContext<ServerCommandSource>& cont
     return 1;
 }
 
-void SetWorldSpawnCommand::_broadcastSpawnPosition(server::IServer* server, const Vector3d& pos)
+i32 SetWorldSpawnCommand::_setPositionWithAngle(CommandContext<ServerCommandSource>& context)
 {
-    // 创建出生点数据包
+    auto& source = context.getSource();
+    auto* server = source.server();
+
+    const auto& pos = context.getArgument<Vector3d>("pos");
+    f32 angle = context.getArgument<f32>("angle");
+    // 将角度归一化到 [-180, 180] 范围，与 MC 原版行为一致
+    angle = math::wrapDegrees(angle);
+
+    DimensionId dimensionId = DimensionId(0); // 默认主世界
+    auto* dimension = server->dimensionManager().getDimension(dimensionId);
+
+    if (!dimension) {
+        source.sendError("Dimension not found");
+        return 0;
+    }
+
+    dimension->setSpawnPoint(pos);
+
+    // 同步更新 ServerWorld 的世界出生点和朝向
+    if (dimension->world()) {
+        dimension->world()->setWorldSpawnPoint(pos, angle);
+    }
+
+    // 广播新的出生点到所有玩家
+    _broadcastSpawnPosition(server, pos, angle);
+
+    std::ostringstream ss;
+    ss << "Set world spawn point to " << static_cast<BlockCoord>(pos.x) << ", " << static_cast<BlockCoord>(pos.y)
+       << ", " << static_cast<BlockCoord>(pos.z) << " (angle: " << angle << ")";
+    source.sendMessage(ss.str());
+
+    return 1;
+}
+
+void SetWorldSpawnCommand::_broadcastSpawnPosition(server::IServer* server, const Vector3d& pos, f32 angle)
+{
+    // 创建出生点数据包（包含朝向）
     network::SpawnPositionPacket spawnPosPacket(
-        BlockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y), static_cast<BlockCoord>(pos.z)));
+        BlockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y), static_cast<BlockCoord>(pos.z)),
+        angle);
 
     auto spawnPosResult = spawnPosPacket.serialize();
     if (spawnPosResult.failed()) {

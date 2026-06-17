@@ -514,7 +514,7 @@ Result<size_t> MinecraftServer::saveAllWorldData()
         i32 spawnX = static_cast<i32>(std::floor(spawnPoint.x));
         i32 spawnY = static_cast<i32>(std::floor(spawnPoint.y));
         i32 spawnZ = static_cast<i32>(std::floor(spawnPoint.z));
-        f32 spawnAngle = 0.0f; // 出生点朝向暂时固定为 0
+        f32 spawnAngle = world->spawnAngle();
 
         // 获取天气数据
         i32 clearWeatherTime = 0;
@@ -1908,13 +1908,16 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
 
     // 发送世界出生点（指南针指向位置，从主世界维度获取）
     Vector3d worldSpawn(0.0, 64.0, 0.0);
+    f32 spawnAngle = 0.0f;
     auto* overworld = m_dimensionManager->getOverworld();
     if (overworld && overworld->world()) {
         worldSpawn = overworld->world()->worldSpawnPoint();
+        spawnAngle = overworld->world()->spawnAngle();
     }
     network::SpawnPositionPacket spawnPosPacket(BlockPos(static_cast<BlockCoord>(worldSpawn.x),
-        static_cast<BlockCoord>(worldSpawn.y),
-        static_cast<BlockCoord>(worldSpawn.z)));
+                                                    static_cast<BlockCoord>(worldSpawn.y),
+                                                    static_cast<BlockCoord>(worldSpawn.z)),
+        spawnAngle);
     auto spawnPosResult = spawnPosPacket.serialize();
     if (spawnPosResult.success()) {
         auto fullSpawnPacket =
