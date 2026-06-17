@@ -63,7 +63,9 @@ OverworldBiomeBuilder::OverworldBiomeBuilder()
     m_erosions[6] = Parameter::span(0.55f, 1.0f);
 
     // ========== 全局范围 ==========
-    m_fullRange = Parameter::fullRange();
+    // MC 1.21.11: FULL_RANGE = Climate.Parameter.span(-1.0F, 1.0F)
+    // 注意：Climate.Parameter.fullRange() 返回 [-2, 2]，而主世界生物群系构建器使用 [-1, 1]
+    m_fullRange = Parameter::span(-1.0f, 1.0f);
     m_frozenRange = m_temperatures[0];
     m_unfrozenRange = Parameter::span(-0.45f, 1.0f);
 

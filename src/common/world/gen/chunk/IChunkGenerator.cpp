@@ -625,8 +625,8 @@ i32 BaseChunkGenerator::spawnInitialMobs(
         return 0;
     }
 
-    // 获取区块中心位置的生物群系
-    const BiomeId biomeId = chunk.getBiomeAtBlock(8, 64, 8);
+    // MC 1.21.11: 在区块最大建筑高度处采样生物群系（非硬编码 Y=64）
+    const BiomeId biomeId = chunk.getBiomeAtBlock(8, region.getMaxBuildHeight(), 8);
     const Biome& biome = BiomeRegistry::instance().get(biomeId);
 
     // 使用种子创建随机数生成器

@@ -190,18 +190,33 @@ i32 SurfaceRuleContext::_minSurfaceLevel() const
 
 bool SurfaceRuleContext::steep() const
 {
-    // MC 1.21.11: SurfaceRules.SteepCondition
-    // 比较当前列与 (x+1,z) 和 (x,z+1) 列的 WORLD_SURFACE_WG 高度差
-    // 陡峭条件: height(x+1,z) - height(x,z) >= 4 || height(x,z+1) - height(x,z) >= 4
+    // MC 1.21.11: SurfaceRules.SteepMaterialCondition
+    // 使用 chunk-local 坐标 clamp 到 [0,15]，比较同一轴上两个相反方向邻居的高度差
+    // Z 轴: height(x, z+1) >= height(x, z-1) + 4
+    // X 轴: height(x-1, z) >= height(x+1, z) + 4
     if (!m_heightProvider) {
         return false;
     }
 
-    const i32 currentHeight = m_heightProvider(m_blockX, m_blockZ);
-    const i32 heightXPlus = m_heightProvider(m_blockX + 1, m_blockZ);
-    const i32 heightZPlus = m_heightProvider(m_blockX, m_blockZ + 1);
+    // 转换为 chunk-local 坐标并 clamp 到 [0, 15]
+    const i32 localX = m_blockX & 15;
+    const i32 localZ = m_blockZ & 15;
 
-    return (heightXPlus - currentHeight >= 4) || (heightZPlus - currentHeight >= 4);
+    // Z 轴方向：比较 z-1 和 z+1 列的高度
+    const i32 zMinus = std::max(localZ - 1, 0);
+    const i32 zPlus = std::min(localZ + 1, 15);
+    const i32 heightZMinus = m_heightProvider(m_blockX - localX + localX, m_blockZ - localZ + zMinus);
+    const i32 heightZPlus = m_heightProvider(m_blockX - localX + localX, m_blockZ - localZ + zPlus);
+    if (heightZPlus >= heightZMinus + 4) {
+        return true;
+    }
+
+    // X 轴方向：比较 x-1 和 x+1 列的高度
+    const i32 xMinus = std::max(localX - 1, 0);
+    const i32 xPlus = std::min(localX + 1, 15);
+    const i32 heightXMinus = m_heightProvider(m_blockX - localX + xMinus, m_blockZ - localZ + localZ);
+    const i32 heightXPlus = m_heightProvider(m_blockX - localX + xPlus, m_blockZ - localZ + localZ);
+    return heightXMinus >= heightXPlus + 4;
 }
 
 bool SurfaceRuleContext::temperature() const
@@ -639,20 +654,20 @@ std::unique_ptr<SurfaceRule> overworld()
                     sequence(
                         // Y >= 256: 橙色陶土
                         ifTrue(yBlockCheck(VerticalAnchor::absolute(256), 0), blockState(orangeTerracotta)),
-                        // Y <= 74+surfaceDepth: 噪声陶土带
+                        // Y <= 74+surfaceDepth: 噪声陶土带（MC 1.21.11 使用 TERRACOTTA）
                         ifTrue(yStartCheck(VerticalAnchor::absolute(74), 1),
                             sequence(ifTrue(noiseCondition(noise::Noises::SURFACE, -0.909 / 8.25, -0.5454 / 8.25),
-                                         blockState(orangeTerracotta)),
+                                         blockState(terracotta)),
                                 ifTrue(noiseCondition(noise::Noises::SURFACE, -0.1818 / 8.25, 0.1818 / 8.25),
-                                    blockState(orangeTerracotta)),
+                                    blockState(terracotta)),
                                 ifTrue(noiseCondition(noise::Noises::SURFACE, 0.5454 / 8.25, 0.909 / 8.25),
-                                    blockState(orangeTerracotta)),
+                                    blockState(terracotta)),
                                 bandlands())),
                         // !hole && waterCheck(-1): 红沙（含红砂岩天花板）
                         ifTrue(waterBlockCheck(-1, 0),
                             sequence(ifTrue(onCeiling(), blockState(redSandstone)), blockState(redSand))),
-                        // !hole: 陶土（MC 1.21.11 使用 TERRACOTTA）
-                        ifTrue(notCondition(hole()), blockState(terracotta)),
+                        // !hole: 橙色陶土（MC 1.21.11 使用 ORANGE_TERRACOTTA）
+                        ifTrue(notCondition(hole()), blockState(orangeTerracotta)),
                         // waterStartCheck(-6, -1): 白色陶土
                         ifTrue(waterStartCheck(-6, -1), blockState(whiteTerracotta)),
                         // 兜底: 砾石/石头
@@ -672,11 +687,12 @@ std::unique_ptr<SurfaceRule> overworld()
     }
 
     // 7. 冰冻海洋 hole 处理（水面上方放置空气/冰/水）
+    // MC 1.21.11: 序列中第一个条件是 waterBlockCheck(0,0)（在水面上方），而非 onFloor()
     if (water && ice && air) {
         rules.push_back(ifTrue(isBiome({Biomes::FrozenOcean, Biomes::DeepFrozenOcean}),
             ifTrue(waterBlockCheck(-1, 0),
                 ifTrue(hole(),
-                    sequence(ifTrue(onFloor(), blockState(air)),
+                    sequence(ifTrue(waterBlockCheck(0, 0), blockState(air)),
                         ifTrue(temperature(), blockState(ice)),
                         blockState(water))))));
     }
@@ -1287,21 +1303,24 @@ void SurfaceSystem::frozenOceanExtension(ChunkPrimer& chunk,
         m_icebergPillarRoofNoise->getValue(static_cast<f64>(worldX) * 1.17, 0.0, static_cast<f64>(worldZ) * 1.17) * 1.5;
     f64 d6 = std::min(d1 * d1 * 1.2, std::ceil(d5 * 40.0) + 14.0);
 
-    // MC 1.21: SurfaceSystem.shouldMeltFrozenOceanIcebergSlightly()
-    // 检查生物群系温度是否 > 0.15，如果是则减少冰山高度 2.0
-    // FrozenOcean 的基础温度为 0.0，但温度噪声可以在部分区域使温度 > 0.15
+    // MC 1.21.11: SurfaceSystem.shouldMeltFrozenOceanIcebergSlightly()
+    // 检查生物群系温度是否 > 0.1，如果是则减少冰山高度 2.0
+    // 注意：使用 seaLevel 作为 Y 坐标（而非 surfaceY），阈值 0.1（而非 doesSnowGenerate 的 0.15）
     const Biome& biome = BiomeRegistry::instance().get(biomeId);
-    if (biome.doesSnowGenerate(worldX, surfaceY, worldZ, m_seaLevel) == false) {
-        // 温度足够高使冰面融化，减少冰山高度
+    if (biome.shouldMeltFrozenOceanIcebergSlightly(worldX, m_seaLevel, worldZ, m_seaLevel)) {
+        // 温度足够高使冰山轻微融化，减少冰山高度
         d6 -= 2.0;
     }
 
     f64 icebergTop;
     f64 icebergBottom;
 
+    // MC 1.21.11: d6 > 2.0 时计算冰山范围
+    // d2 (icebergBottom) = seaLevel - d6 - 7.0
+    // d6 被修改为 d6 + seaLevel (即 icebergTop = seaLevel + old_d6)
     if (d6 > 2.0) {
-        icebergTop = static_cast<f64>(m_seaLevel);
         icebergBottom = static_cast<f64>(m_seaLevel) - d6 - 7.0;
+        icebergTop = static_cast<f64>(m_seaLevel) + d6;
     } else {
         icebergTop = 0.0;
         icebergBottom = 0.0;
@@ -1325,35 +1344,37 @@ void SurfaceSystem::frozenOceanExtension(ChunkPrimer& chunk,
     for (i32 y = startY; y >= minSurfaceLevel; --y) {
         const BlockState* state = chunk.getBlockState(localX, y, localZ);
 
-        const bool isAir = (state == nullptr || state->isAir());
-        const bool isWaterOrBelow = (state != nullptr && state->isLiquid()) &&
-            (static_cast<f64>(y) <= static_cast<f64>(m_seaLevel) && static_cast<f64>(y) >= icebergBottom);
+        const bool isAir = (state != nullptr && state->isAir());
 
-        if (isAir || isWaterOrBelow) {
-            // MC 1.21: 空气在冰山顶部以下 99% 放置，水在冰山范围内 85% 放置
-            // Java 的条件是放置条件（true = 放置），不是跳过条件
-            const f64 rand = rng->nextDouble();
-            bool shouldPlace = false;
-            if (isAir && static_cast<f64>(y) < icebergTop && rand > 0.01) {
-                shouldPlace = true;
-            } else if (!isAir && icebergBottom != 0.0 && rand > 0.15) {
-                shouldPlace = true;
-            }
-            if (!shouldPlace) {
-                continue;
-            }
+        // MC 1.21.11: 水方块条件：y > icebergBottom && y < seaLevel && icebergBottom != 0
+        const bool isWater = (state != nullptr && state->is(VanillaBlocks::WATER));
 
-            // 在雪层高度内且超过高度阈值：放雪块
-            if (snowCount < snowLayerCount && y > snowHeightThreshold) {
-                if (snowBlock) {
-                    chunk.setBlockState(localX, y, localZ, snowBlock);
-                }
-                snowCount++;
-            } else {
-                // 放冰块
-                if (packedIce) {
-                    chunk.setBlockState(localX, y, localZ, packedIce);
-                }
+        // MC 1.21.11: 放置条件（OR 逻辑）：
+        // - 空气且 y < icebergTop：99% 放置冰/雪
+        // - 水且 y > icebergBottom 且 y < seaLevel 且 icebergBottom != 0：85% 放置冰/雪
+        bool shouldPlace = false;
+        if (isAir && y < static_cast<i32>(icebergTop) && rng->nextDouble() > 0.01) {
+            shouldPlace = true;
+        } else if (isWater && y > static_cast<i32>(icebergBottom) && y < m_seaLevel && icebergBottom != 0.0 &&
+            rng->nextDouble() > 0.15) {
+            shouldPlace = true;
+        }
+
+        if (!shouldPlace) {
+            continue;
+        }
+
+        // MC 1.21.11: 雪帽逻辑
+        // k <= i (未超出雪层配额) && l > j (Y 高于雪层阈值) 时放雪块，否则放冰块
+        if (snowCount <= snowLayerCount && y > snowHeightThreshold) {
+            if (snowBlock) {
+                chunk.setBlockState(localX, y, localZ, snowBlock);
+            }
+            snowCount++;
+        } else {
+            // 放冰块
+            if (packedIce) {
+                chunk.setBlockState(localX, y, localZ, packedIce);
             }
         }
     }
@@ -1416,10 +1437,12 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
             // 从高度图获取表面高度（erodedBadlandsExtension 后重新获取）
             const i32 surfaceY = chunk.getTopBlockY(HeightmapType::WorldSurfaceWG, localX, localZ) + 1;
 
-            // MC 1.21: 跟踪 stoneDepthAbove, stoneDepthBelow, waterHeight
+            // MC 1.21.11: 跟踪 stoneDepthAbove, stoneDepthBelow, waterHeight
+            // k2 使用 WAY_BELOW_MIN_Y 哨兵值（MC: DimensionType.WAY_BELOW_MIN_Y = MIN_Y << 4）
+            // 表示石头柱向下延伸到极深处，使得 stoneDepthBelow 计算为很大的正值
             i32 stoneDepthAbove = 0;
             i32 waterHeight = INT_MIN;
-            i32 stoneDepthBelowStart = INT_MAX;
+            i32 stoneDepthBelowStart = world::MIN_BUILD_HEIGHT << 4; // -1024，哨兵值
 
             // 从上到下遍历列
             for (i32 y = surfaceY; y >= m_minY; --y) {
@@ -1439,8 +1462,10 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
                 }
 
                 // 计算 stoneDepthBelow（到下方非石头方块的距离）
+                // MC 1.21.11: 当 stoneDepthBelowStart >= y 时需要重新扫描
+                // 使用 WAY_BELOW_MIN_Y 哨兵值重置，表示下方石头柱延伸到极深处
                 if (stoneDepthBelowStart >= y) {
-                    stoneDepthBelowStart = INT_MAX;
+                    stoneDepthBelowStart = world::MIN_BUILD_HEIGHT << 4;
                     for (i32 dy = y - 1; dy >= m_minY - 1; --dy) {
                         const BlockState* belowState =
                             (dy >= m_minY) ? chunk.getBlockState(localX, dy, localZ) : nullptr;

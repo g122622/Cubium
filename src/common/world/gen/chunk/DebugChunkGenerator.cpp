@@ -74,16 +74,10 @@ void DebugChunkGenerator::initializeValidStates()
         MC_ASSERT_FAIL("Barrier block not found in registry");
     }
 
-    // 收集所有方块的所有状态
+    // 收集所有方块的所有状态（MC 1.21.11 包含空气状态）
     s_allValidStates.clear();
 
-    registry.forEachBlockState([](const BlockState& state) {
-        // 跳过空气方块的状态
-        if (state.isAir()) {
-            return;
-        }
-        s_allValidStates.push_back(&state);
-    });
+    registry.forEachBlockState([](const BlockState& state) { s_allValidStates.push_back(&state); });
 
     // 计算网格尺寸（近似正方形）
     if (!s_allValidStates.empty()) {
@@ -178,31 +172,9 @@ void DebugChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
 
 void DebugChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chunk)
 {
-    // 确保已初始化
-    if (!s_initialized) {
-        initializeValidStates();
-    }
-
-    // 生成 Y=60 屏障层和 Y=70 方块网格
-    ChunkCoord chunkX = chunk.x();
-    ChunkCoord chunkZ = chunk.z();
-
-    for (i32 localX = 0; localX < world::CHUNK_WIDTH; ++localX) {
-        for (i32 localZ = 0; localZ < world::CHUNK_WIDTH; ++localZ) {
-            i32 worldX = (chunkX << world::CHUNK_SHIFT) + localX;
-            i32 worldZ = (chunkZ << world::CHUNK_SHIFT) + localZ;
-
-            // Y=60: 屏障基座
-            region.setBlockState(worldX, 60, worldZ, s_barrierState);
-
-            // Y=70: 方块状态网格
-            const BlockState* state = getBlockStateFor(worldX, worldZ);
-            if (state && !state->isAir()) {
-                region.setBlockState(worldX, 70, worldZ, state);
-            }
-        }
-    }
-
+    // MC 1.21.11: 调试世界在 generateNoise 阶段不做任何操作
+    // 方块放置在 placeFeatures (applyBiomeDecoration) 阶段进行
+    MC_UNUSED(region);
     chunk.setChunkStatus(ChunkStatuses::NOISE);
 }
 
@@ -223,9 +195,30 @@ void DebugChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chun
 
 void DebugChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk)
 {
-    // 调试模式不放置特性
-    MC_UNUSED(region);
-    MC_UNUSED(chunk);
+    // MC 1.21.11: 调试世界在 applyBiomeDecoration 阶段放置方块
+    // Y=60 屏障基座 + Y=70 方块状态网格
+    if (!s_initialized) {
+        initializeValidStates();
+    }
+
+    ChunkCoord chunkX = chunk.x();
+    ChunkCoord chunkZ = chunk.z();
+
+    for (i32 localX = 0; localX < world::CHUNK_WIDTH; ++localX) {
+        for (i32 localZ = 0; localZ < world::CHUNK_WIDTH; ++localZ) {
+            i32 worldX = (chunkX << world::CHUNK_SHIFT) + localX;
+            i32 worldZ = (chunkZ << world::CHUNK_SHIFT) + localZ;
+
+            // Y=60: 屏障基座
+            region.setBlockState(worldX, 60, worldZ, s_barrierState);
+
+            // Y=70: 方块状态网格（MC 1.21.11 放置包括空气在内的所有状态）
+            const BlockState* state = getBlockStateFor(worldX, worldZ);
+            if (state != nullptr && !state->isAir()) {
+                region.setBlockState(worldX, 70, worldZ, state);
+            }
+        }
+    }
 }
 
 i32 DebugChunkGenerator::spawnInitialMobs(

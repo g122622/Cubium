@@ -535,6 +535,15 @@ public:
     [[nodiscard]] bool interpolating() const { return m_interpolating; }
 
     /**
+     * @brief 停止插值循环
+     *
+     * MC 1.21.11: NoiseChunk.stopInterpolation()
+     * 在噪声填充完成后调用，将 interpolating 标志设为 false。
+     * 后续对插值器或 cell 缓存的意外采样将不会执行。
+     */
+    void stopInterpolation() { m_interpolating = false; }
+
+    /**
      * @brief 设置当前方块坐标（插值过程中使用）
      */
     void setBlockPos(i32 x, i32 y, i32 z)

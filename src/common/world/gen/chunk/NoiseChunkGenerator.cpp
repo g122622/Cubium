@@ -47,6 +47,7 @@
 #include "../structure/StructureSet.hpp"
 #include "../structure/placement/StructurePlacement.hpp"
 #include "common/perfetto/TraceEvents.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include <algorithm>
 #include <map>
 #include <mutex>
@@ -644,6 +645,10 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
         }
     }
 
+    // MC 1.21.11: NoiseChunk.stopInterpolation()
+    // 在高度查询完成后标记插值循环结束
+    noiseChunk->stopInterpolation();
+
     return minY;
 }
 
@@ -784,12 +789,13 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
 
                             // MC 1.21: 通过 BlockStateFiller 链确定方块状态
                             // AquiferFiller 在 density <= 0 时返回流体/空气，density > 0 返回 nullptr
+                            // MC 原版: null 始终替换为 defaultBlock，然后检查是否非 AIR
                             const BlockState* blockState = noiseChunk.getInterpolatedState(density);
-                            if (blockState == nullptr && density > 0.0) {
+                            if (blockState == nullptr) {
                                 blockState = m_settings.defaultBlock;
                             }
 
-                            if (blockState != nullptr) {
+                            if (blockState != nullptr && !blockState->isAir()) {
                                 chunk.setBlockState(localX, blockY, localZ, blockState);
                                 chunk.updateHeightmap(
                                     HeightmapType::WorldSurfaceWG, localX, blockY, localZ, blockState);
@@ -798,9 +804,13 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
                                         HeightmapType::OceanFloorWG, localX, blockY, localZ, blockState);
                                 }
                                 // MC 1.21: 含水层边界处流体方块需标记后处理
+                                // MC 使用 !blockstate.getFluidState().isEmpty()，即包含含水方块
                                 if (noiseChunk.aquifer() != nullptr &&
-                                    noiseChunk.aquifer()->shouldScheduleFluidUpdate() && blockState->isLiquid()) {
-                                    chunk.markPosForPostprocessing(localX, blockY, localZ);
+                                    noiseChunk.aquifer()->shouldScheduleFluidUpdate()) {
+                                    const auto* fluidState = blockState->getFluidState();
+                                    if (fluidState != nullptr && !fluidState->isEmpty()) {
+                                        chunk.markPosForPostprocessing(localX, blockY, localZ);
+                                    }
                                 }
                             }
                         }
@@ -811,6 +821,10 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
 
         noiseChunk.swapSlices();
     }
+
+    // MC 1.21.11: NoiseChunk.stopInterpolation()
+    // 在噪声填充完成后标记插值循环结束，防止后续对插值器的意外采样
+    noiseChunk.stopInterpolation();
 
     // 标记阶段完成
     chunk.setChunkStatus(ChunkStatuses::NOISE);

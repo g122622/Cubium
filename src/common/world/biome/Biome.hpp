@@ -115,6 +115,24 @@ public:
     }
 
     /**
+     * @brief 判断冻洋冰山是否应该轻微融化
+     *
+     * MC 1.21.11: Biome.shouldMeltFrozenOceanIcebergSlightly()
+     * 当位置温度 > 0.1 时返回 true，冰山高度会降低 2.0
+     * 与 doesSnowGenerate（阈值 0.15）不同，此方法使用更低的温度阈值
+     *
+     * @param x 方块 X 坐标
+     * @param y 方块 Y 坐标（MC 使用 seaLevel）
+     * @param z 方块 Z 坐标
+     * @param seaLevel 海平面高度
+     * @return 温度是否 > 0.1（冰山应轻微融化）
+     */
+    [[nodiscard]] bool shouldMeltFrozenOceanIcebergSlightly(i32 x, i32 y, i32 z, i32 seaLevel) const
+    {
+        return getHeightAdjustedTemperature(x, y, z, seaLevel) > ICEBERG_MELT_TEMPERATURE_THRESHOLD;
+    }
+
+    /**
      * @brief 判断水是否应该结冰
      *
      * @param x 方块 X 坐标

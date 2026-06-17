@@ -66,7 +66,7 @@ private:
     /// 侵蚀范围（7 档）
     climate::Parameter m_erosions[7];
 
-    /// 全范围参数 [-2, 2]
+    /// 全范围参数 [-1, 1]（MC OverworldBiomeBuilder.FULL_RANGE）
     climate::Parameter m_fullRange;
     /// 冰冻温度范围 = temperatures[0]
     climate::Parameter m_frozenRange;

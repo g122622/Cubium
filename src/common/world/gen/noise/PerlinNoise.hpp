@@ -143,7 +143,7 @@ public:
     [[nodiscard]] const std::vector<f64>& amplitudes() const { return m_amplitudes; }
 
     /**
-     * @brief 简化版 Perlin 噪声核心（用于每个倍频层）
+     * @brief Perlin 噪声核心层（对应 MC ImprovedNoise，每个倍频层使用一个实例）
      *
      * 参考 MC 1.21.11: PerlinNoise.PerlinNoiseLayer
      * 公开以支持 getOctaveNoise() 返回值和密度函数导数计算。

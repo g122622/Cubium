@@ -59,15 +59,16 @@ bool CanyonCarver::carve(ChunkPrimer& chunk,
     const i32 range = getRange() * 2 - 1;
     const i32 tunnelLength = range * world::CHUNK_WIDTH;
 
-    const f32 startX =
-        static_cast<f32>(world::toWorldCoord(originChunkX)) + static_cast<f32>(rng.nextInt(world::CHUNK_WIDTH));
+    // MC 1.21.11: 位置追踪使用 double 精度，避免长峡谷路径精度漂移
+    const f64 startX =
+        static_cast<f64>(world::toWorldCoord(originChunkX)) + static_cast<f64>(rng.nextInt(world::CHUNK_WIDTH));
     const i32 startY = config.y->sample(rng, context);
-    const f32 startZ =
-        static_cast<f32>(world::toWorldCoord(originChunkZ)) + static_cast<f32>(rng.nextInt(world::CHUNK_WIDTH));
+    const f64 startZ =
+        static_cast<f64>(world::toWorldCoord(originChunkZ)) + static_cast<f64>(rng.nextInt(world::CHUNK_WIDTH));
 
     const f32 yaw = rng.nextFloat() * math::TWO_PI;
     const f32 pitch = config.verticalRotation->sample(rng);
-    const f32 yScale = config.yScale->sample(rng);
+    const f64 yScale = static_cast<f64>(config.yScale->sample(rng));
     const f32 thickness = config.shape.thickness->sample(rng);
     const i32 length = static_cast<i32>(static_cast<f32>(tunnelLength) * config.shape.distanceFactor->sample(rng));
 
@@ -78,7 +79,7 @@ bool CanyonCarver::carve(ChunkPrimer& chunk,
         targetChunkZ,
         rng.nextLong(),
         startX,
-        static_cast<f32>(startY),
+        static_cast<f64>(startY),
         startZ,
         thickness,
         yaw,
@@ -126,15 +127,15 @@ void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
     ChunkCoord targetChunkX,
     ChunkCoord targetChunkZ,
     i64 seed,
-    f32 startX,
-    f32 startY,
-    f32 startZ,
+    f64 startX,
+    f64 startY,
+    f64 startZ,
     f32 thickness,
     f32 yaw,
     f32 pitch,
     i32 startIndex,
     i32 endIndex,
-    f32 yScale,
+    f64 yScale,
     CarvingMask& carvingMask,
     const CanyonCarverConfiguration& config)
 {
@@ -148,21 +149,22 @@ void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
     f32 pitchModifier = 0.0f;
 
     for (i32 i = startIndex; i < endIndex; ++i) {
-        const f32 horizontalRadius =
-            1.5 + std::sin(static_cast<f32>(i) * math::PI / static_cast<f32>(endIndex)) * thickness;
-        f32 verticalRadius = horizontalRadius * yScale;
+        // MC 1.21.11: horizontalRadius 和 verticalRadius 使用 double 精度
+        const f64 horizontalRadius =
+            1.5 + std::sin(static_cast<f64>(i) * math::PI / static_cast<f64>(endIndex)) * static_cast<f64>(thickness);
+        f64 verticalRadius = horizontalRadius * yScale;
 
         const f32 horizontalRadiusFactor = config.shape.horizontalRadiusFactor->sample(rng);
-        const f32 scaledHorizontalRadius = horizontalRadius * horizontalRadiusFactor;
+        const f64 scaledHorizontalRadius = horizontalRadius * static_cast<f64>(horizontalRadiusFactor);
 
-        verticalRadius =
-            _updateVerticalRadius(config, rng, verticalRadius, static_cast<f32>(endIndex), static_cast<f32>(i));
+        verticalRadius = _updateVerticalRadius(
+            config, rng, static_cast<f32>(verticalRadius), static_cast<f32>(endIndex), static_cast<f32>(i));
 
-        const f32 cosPitch = std::cos(pitch);
-        const f32 sinPitch = std::sin(pitch);
-        startX += std::cos(yaw) * cosPitch;
+        const f64 cosPitch = static_cast<f64>(std::cos(pitch));
+        const f64 sinPitch = static_cast<f64>(std::sin(pitch));
+        startX += static_cast<f64>(std::cos(yaw)) * cosPitch;
         startY += sinPitch;
-        startZ += std::sin(yaw) * cosPitch;
+        startZ += static_cast<f64>(std::sin(yaw)) * cosPitch;
 
         pitch *= 0.7f;
         pitch += pitchModifier * 0.05f;
@@ -174,7 +176,13 @@ void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
         yawModifier += (rng.nextFloat() - rng.nextFloat()) * rng.nextFloat() * 4.0f;
 
         if (rng.nextInt(4) != 0) {
-            if (!isInCarvingRange(targetChunkX, targetChunkZ, startX, startZ, i, endIndex, thickness)) {
+            if (!isInCarvingRange(targetChunkX,
+                    targetChunkZ,
+                    static_cast<f32>(startX),
+                    static_cast<f32>(startZ),
+                    i,
+                    endIndex,
+                    thickness)) {
                 return;
             }
 
@@ -183,11 +191,11 @@ void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
                 biomeSource,
                 targetChunkX,
                 targetChunkZ,
-                startX,
-                startY,
-                startZ,
-                scaledHorizontalRadius,
-                verticalRadius,
+                static_cast<f32>(startX),
+                static_cast<f32>(startY),
+                static_cast<f32>(startZ),
+                static_cast<f32>(scaledHorizontalRadius),
+                static_cast<f32>(verticalRadius),
                 carvingMask,
                 skipChecker,
                 config);

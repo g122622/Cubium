@@ -47,6 +47,10 @@ namespace biome {
 /// 降雪温度阈值（温度低于此值时生成雪）
 inline constexpr f32 SNOW_TEMPERATURE_THRESHOLD = 0.15f;
 
+/// 冰山轻微融化温度阈值（MC: Biome.shouldMeltFrozenOceanIcebergSlightly 阈值 0.1）
+/// 当冻洋生物群系的位置温度高于此值时，冰山高度会略微降低
+inline constexpr f32 ICEBERG_MELT_TEMPERATURE_THRESHOLD = 0.1f;
+
 /// 结冰温度阈值（温度低于此值时水结冰）
 inline constexpr f32 FREEZE_TEMPERATURE_THRESHOLD = 0.15f;
 

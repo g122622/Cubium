@@ -71,7 +71,7 @@ public:
     [[nodiscard]] BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const override;
     [[nodiscard]] i32 getHeight(i32 x, i32 z, HeightmapType type) const override;
     [[nodiscard]] i32 getGroundHeight() const override { return 70; }
-    [[nodiscard]] i32 seaLevel() const override { return 0; }
+    [[nodiscard]] i32 seaLevel() const override { return 63; }
 
     /**
      * @brief 调试世界生成器标识

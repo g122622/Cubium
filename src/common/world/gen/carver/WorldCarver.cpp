@@ -36,7 +36,8 @@ namespace mc {
 
 namespace {
 constexpr f32 CARVE_DISTANCE_PADDING = 2.0f;
-constexpr i32 CARVE_TOP_Y_OFFSET = 8;
+// MC 1.21.11: 非升级区块顶部偏移为 7（升级区块为 0）
+constexpr i32 CARVE_TOP_Y_OFFSET = 7;
 } // namespace
 
 // ============================================================================
@@ -121,19 +122,8 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
     const i32 minGenY = context.getMinGenY();
     const i32 genDepth = context.getGenDepth();
 
-    // 检查是否有流体
-    if (shouldCheckForFluid() &&
-        checkAreaForFluid(chunk,
-            targetChunkX,
-            targetChunkZ,
-            localMinX,
-            localMaxX + 1,
-            std::max(minGenY + 1, startY_world),
-            std::min(minGenY + genDepth - CARVE_TOP_Y_OFFSET, endY_world),
-            localMinZ,
-            localMaxZ + 1)) {
-        return false;
-    }
+    // MC 1.21.11: 已移除流体预检查逻辑（旧版本的 checkAreaForFluid 在 1.21 中已删除）
+    // 洞穴和峡谷不会因为附近有流体而跳过雕刻
 
     bool carved = false;
 
@@ -191,11 +181,23 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
                     }
                 }
 
-                // 草地/菌丝表面替换：将草方块/菌丝替换为泥土
+                // MC 1.21.11: 草地/菌丝表面替换
+                // 当被雕刻的方块是草方块/菌丝时，检查下方方块是否为泥土，
+                // 如果是则用 topMaterial() 替换（目前简化为草地对应的表面方块）
+                // 注意：MC 使用 CarvingContext.topMaterial() 进行 biome-aware 替换，
+                // 当前实现先用 DIRT 替换草/菌丝，然后检查下方方块
                 if (handlesSurfaceReplacement() && hasGrassOrMycelium && y > minGenY) {
-                    const BlockState* dirt = VanillaBlocks::getState(VanillaBlocks::DIRT);
-                    if (dirt) {
-                        chunk.setBlockState(lx, y, lz, dirt);
+                    // 检查下方方块
+                    if (y - 1 >= minGenY) {
+                        const BlockState* belowState = chunk.getBlockState(lx, y - 1, lz);
+                        if (belowState && belowState->is(VanillaBlocks::DIRT)) {
+                            // TODO: 应使用 CarvingContext.topMaterial() 进行 biome-aware 替换
+                            // 目前先用 GRASS_BLOCK 替换（大多数生物群系的地表方块）
+                            const BlockState* topBlock = VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK);
+                            if (topBlock) {
+                                chunk.setBlockState(lx, y - 1, lz, topBlock);
+                            }
+                        }
                     }
                 }
 

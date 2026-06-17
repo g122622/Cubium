@@ -91,11 +91,17 @@ f64 PerlinNoise::PerlinLayer::noiseWithSmear(f64 x, f64 y, f64 z, f64 yOffset, f
 
     // MC 1.21.11: ImprovedNoise.noise(x, y, z, yOffset, yFraction)
     // 涂抹效果：将 Y 分数吸附到 yOffset 间隔的网格线上
-    // Java 使用 Math.min(floor(yFraction / yOffset + 1.0E-7F) * yOffset, fracY)
+    // 当 0 <= yFraction < fracY 时，使用 yFraction 作为吸附基准（原始缩放坐标），
+    // 否则使用 fracY（偏移后的分数坐标）
     f64 smearOffset = 0.0;
     if (yOffset != 0.0) {
-        const f64 raw = std::floor(fracY / yOffset + static_cast<f64>(1.0e-7f)) * yOffset;
-        smearOffset = std::min(raw, fracY);
+        f64 d7;
+        if (yFraction >= 0.0 && yFraction < fracY) {
+            d7 = yFraction;
+        } else {
+            d7 = fracY;
+        }
+        smearOffset = std::floor(d7 / yOffset + static_cast<f64>(1.0e-7f)) * yOffset;
     }
 
     // 注意：梯度计算使用修改后的 fracY (fracY - smearOffset)，
