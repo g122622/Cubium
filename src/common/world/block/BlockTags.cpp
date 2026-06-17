@@ -709,6 +709,24 @@ BlockTag& BlockTags::ANVIL()
     return *tag;
 }
 
+BlockTag& BlockTags::SNOW_LAYER_CANNOT_SURVIVE_ON()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "snow_layer_cannot_survive_on"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::SNOW_LAYER_CAN_SURVIVE_ON()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "snow_layer_can_survive_on"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize()
 {
     if (s_initialized) {
@@ -1905,6 +1923,25 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "chipped_anvil"),
         ResourceLocation("minecraft", "damaged_anvil")});
     tags[anvilTag->getId()] = std::move(anvilTag);
+
+    // 创建 SNOW_LAYER_CANNOT_SURVIVE_ON 标签（雪层不可放置方块）
+    // 雪层不能在这些方块上方存活（即使它们有完整的上表面碰撞箱）
+    // 参考: net.minecraft.tags.BlockTags.SNOW_LAYER_CANNOT_SURVIVE_ON
+    auto snowLayerCannotSurviveOn =
+        std::make_unique<BlockTag>(ResourceLocation("minecraft", "snow_layer_cannot_survive_on"));
+    snowLayerCannotSurviveOn->addAll({ResourceLocation("minecraft", "ice"),
+        ResourceLocation("minecraft", "packed_ice"),
+        ResourceLocation("minecraft", "barrier")});
+    tags[snowLayerCannotSurviveOn->getId()] = std::move(snowLayerCannotSurviveOn);
+
+    // 创建 SNOW_LAYER_CAN_SURVIVE_ON 标签（雪层可放置方块）
+    // 雪层可以在这些方块上方存活（即使它们没有完整的上表面碰撞箱）
+    // 参考: net.minecraft.tags.BlockTags.SNOW_LAYER_CAN_SURVIVE_ON
+    auto snowLayerCanSurviveOn = std::make_unique<BlockTag>(ResourceLocation("minecraft", "snow_layer_can_survive_on"));
+    snowLayerCanSurviveOn->addAll({ResourceLocation("minecraft", "honey_block"),
+        ResourceLocation("minecraft", "soul_sand"),
+        ResourceLocation("minecraft", "mud")});
+    tags[snowLayerCanSurviveOn->getId()] = std::move(snowLayerCanSurviveOn);
 
     s_initialized = true;
 }

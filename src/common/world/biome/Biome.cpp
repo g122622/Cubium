@@ -26,6 +26,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/blocks/ice/SnowBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
@@ -133,14 +134,15 @@ bool Biome::shouldSnow(const IWorld& world, i32 x, i32 y, i32 z, i32 seaLevel) c
         return false;
     }
 
-    // 雪层方块必须能在此处存活（下方必须是固体方块）
-    // TODO: 完整实现需要 SnowLayerBlock.canSurvive(world, pos)
-    // 当前简化处理：仅检查下方是否有固体方块
-    if (y > world::MIN_BUILD_HEIGHT) {
-        const BlockState* belowState = world.getBlockState(x, y - 1, z);
-        if (belowState == nullptr || !belowState->isSolid()) {
-            return false;
-        }
+    // 雪层方块必须能在此处存活
+    // 参考: net.minecraft.world.level.biome.Biome#shouldSnow
+    // 使用 SnowBlock::canSurviveAt 检查下方方块是否支持雪层放置：
+    //   - 下方不能是冰/浮冰/屏障（SNOW_LAYER_CANNOT_SURVIVE_ON）
+    //   - 下方是蜂蜜块/灵魂沙/泥巴时允许（SNOW_LAYER_CAN_SURVIVE_ON）
+    //   - 否则下方碰撞形状上表面必须完整，或下方为满层(8层)雪层
+    BlockPos pos(x, y, z);
+    if (!blocks::SnowBlock::canSurviveAt(world, pos)) {
+        return false;
     }
 
     return true;

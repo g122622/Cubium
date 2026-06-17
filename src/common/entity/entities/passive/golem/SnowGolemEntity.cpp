@@ -42,6 +42,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/blocks/ice/SnowBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -362,7 +363,10 @@ void SnowGolemEntity::_placeSnowLayer()
         }
 
         // 放置雪层
-        // TODO: 完整实现需要检查 blockstate.isValidPosition()
+        // 参考: net.minecraft.world.entity.animal.SnowGolem，放置前需检查雪层能否存活
+        if (!blocks::SnowBlock::canSurviveAt(*worldPtr, pos)) {
+            continue;
+        }
         worldPtr->setBlockState(pos.x, pos.y, pos.z, snowState, 3);
     }
 }

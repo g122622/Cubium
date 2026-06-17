@@ -359,6 +359,16 @@ public:
     /// 用于下落铁砧损坏判定
     static BlockTag& ANVIL();
 
+    // ========== 雪层放置标签 ==========
+
+    /// 雪层不可放置标签（冰、浮冰、屏障）
+    /// 雪层不能在这些方块上方存活
+    static BlockTag& SNOW_LAYER_CANNOT_SURVIVE_ON();
+
+    /// 雪层可放置标签（蜂蜜块、灵魂沙、泥巴）
+    /// 雪层可以在这些方块上方存活（即使它们没有完整的上表面碰撞箱）
+    static BlockTag& SNOW_LAYER_CAN_SURVIVE_ON();
+
     /**
      * @brief 初始化所有内置标签
      *
