@@ -9,6 +9,7 @@ src/common/command/arguments/
 ├── ArgumentType.hpp            # 参数类型基类 + 基础参数类型（字符串、整数、浮点、布尔、枚举）
 ├── BlockStateArgument.hpp      # 方块状态参数类型（支持属性解析）
 ├── EntityArgument.hpp/.cpp     # 实体选择器参数类型（@p, @a, @e, @r, @s）
+├── FunctionArgument.hpp/.cpp   # 函数参数类型（支持 # 标签前缀和函数名解析）
 ├── GameModeArgument.hpp        # 游戏模式、资源位置、坐标参数类型
 ├── ItemArgument.hpp            # 物品参数类型 + ItemInput 包装器
 ├── ItemSlotArgument.hpp        # 物品槽位参数类型 + ItemSlot 索引类
@@ -21,11 +22,17 @@ src/common/command/arguments/
 ```
 ArgumentType.hpp (基类模板)
     ├── EntityArgument.hpp      → 继承 ArgumentType<EntitySelector>
+    ├── FunctionArgument.hpp    → 继承 ArgumentType<FunctionArgumentResult>（# 标签前缀 + 函数名解析）
     ├── GameModeArgument.hpp    → 继承 ArgumentType<T> (GameMode/ResourceLocation/Vector3i/Vector3d/Vector2f)
     ├── BlockStateArgument.hpp  → 继承 ArgumentType<BlockStateInput>
     ├── ItemArgument.hpp        → 继承 ArgumentType<ItemInput>
     ├── ItemSlotArgument.hpp    → 继承 ArgumentType<ItemSlot>（槽位名称→索引映射）
     └── NbtPathArgumentType.hpp → 继承 ArgumentType<NbtPath>
+
+FunctionArgument.hpp
+    └── FunctionArgumentResult  → 解析结果数据类（ResourceLocation + isTag 标志，延迟解析）
+    └── FunctionArgumentType    → 解析器（# 前缀检测 → 标签引用，否则 → 函数引用）
+    └── FunctionSuggestionProvider (server/command/support/) → Tab 补全建议
 
 NbtPath.hpp
     └── NbtPathArgumentType.hpp → 使用 NbtPath 作为返回类型

@@ -961,6 +961,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/EntityResolver.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/EffectResolver.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/support/FunctionSuggestionProvider.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameModeCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/DifficultyCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/DefaultGameModeCommand.cpp
@@ -1778,6 +1779,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/EntityResolver.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/EffectResolver.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/support/FunctionSuggestionProvider.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameModeCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/DifficultyCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/DefaultGameModeCommand.cpp

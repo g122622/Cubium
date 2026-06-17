@@ -71,6 +71,7 @@ add_executable(minecraft-server
     command/support/PlayerResolver.cpp
     command/support/EntityResolver.cpp
     command/support/EffectResolver.cpp
+    command/support/FunctionSuggestionProvider.cpp
     command/support/SpreadAlgorithm.cpp
     command/data/DataAccessor.cpp
     command/commands/GameModeCommand.cpp

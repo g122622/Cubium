@@ -4,14 +4,16 @@
 
 ```
 support/
-├── PlayerResolver.hpp         # 玩家选择器解析接口（含 resolvePlayerName 辅助函数）
-├── PlayerResolver.cpp         # 玩家选择器解析实现（@p/@a/@r/@s 及各种过滤条件）
-├── EntityResolver.hpp         # 通用实体选择器解析接口（支持 @e 选择器和所有实体类型）
-├── EntityResolver.cpp         # 通用实体选择器解析实现（type/tag/team/name/distance/volume/level/gamemode 过滤）
-├── EffectResolver.hpp         # 效果类型解析接口
-├── EffectResolver.cpp         # 效果类型解析实现（命令名称与EffectType的映射）
-├── SpreadAlgorithm.hpp        # /spreadplayers 分散算法核心（SpreadPosition 结构、迭代分散函数，使用 IWorld 动态高度）
-└── SpreadAlgorithm.cpp        # 分散算法实现（位置计算、安全检查、迭代推开逻辑，高度边界通过 IWorld::getMinBuildHeight() 获取）
+├── PlayerResolver.hpp               # 玩家选择器解析接口（含 resolvePlayerName 辅助函数）
+├── PlayerResolver.cpp               # 玩家选择器解析实现（@p/@a/@r/@s 及各种过滤条件）
+├── EntityResolver.hpp               # 通用实体选择器解析接口（支持 @e 选择器和所有实体类型）
+├── EntityResolver.cpp               # 通用实体选择器解析实现（type/tag/team/name/distance/volume/level/gamemode 过滤）
+├── EffectResolver.hpp               # 效果类型解析接口
+├── EffectResolver.cpp               # 效果类型解析实现（命令名称与EffectType的映射）
+├── FunctionSuggestionProvider.hpp   # 函数参数 Tab 补全建议（查询 FunctionManager 提供函数名和标签名）
+├── FunctionSuggestionProvider.cpp   # 函数建议实现
+├── SpreadAlgorithm.hpp              # /spreadplayers 分散算法核心（SpreadPosition 结构、迭代分散函数，使用 IWorld 动态高度）
+└── SpreadAlgorithm.cpp              # 分散算法实现（位置计算、安全检查、迭代推开逻辑，高度边界通过 IWorld::getMinBuildHeight() 获取）
 ```
 
 ## 内部模块关系

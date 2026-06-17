@@ -9,9 +9,9 @@
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * copies of substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * THE SOFTWARE IS PROVIDED "AS IS", ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -24,11 +24,11 @@
 #include "ScheduleCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/FunctionArgument.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/FunctionSuggestionProvider.hpp"
 #include "server/function/FunctionManager.hpp"
 #include "server/function/TimerQueue.hpp"
 #include <limits>
@@ -58,8 +58,9 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // /schedule function <function> <time> [append|replace]
     auto functionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("function");
-    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "function", StringArgumentType::string());
+    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, FunctionArgumentResult>>(
+        "function", FunctionArgumentType::functions());
+    nameArg->setCustomSuggestions(std::make_shared<FunctionSuggestionProvider>());
     // TODO: 当前使用 IntegerArgumentType 解析时间（单位为 tick），原版使用 TimeArgument
     // （支持 "5s"、"1d" 等时间字符串后缀：s=秒、d=天、t=tick，默认为 tick）。
     // 完整实现需要自定义 TimeArgumentType 类，解析时间字符串并转换为 tick 数。
@@ -85,8 +86,9 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // /schedule clear <function>
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
-    auto clearNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "function", StringArgumentType::string());
+    auto clearNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, FunctionArgumentResult>>(
+        "function", FunctionArgumentType::functions());
+    clearNameArg->setCustomSuggestions(std::make_shared<FunctionSuggestionProvider>());
     clearNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearSchedule(ctx); });
     clearNode->addChild(clearNameArg);
     scheduleNode->addChild(clearNode);
@@ -97,7 +99,7 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 i32 ScheduleCommand::_scheduleFunction(CommandContext<ServerCommandSource>& context, bool append)
 {
     auto& source = context.getSource();
-    const std::string functionName = context.getArgument<std::string>("function");
+    auto funcResult = FunctionArgumentType::getFunctionResult(context, "function");
     const i32 time = context.getArgument<i32>("time");
 
     // 不允许在同 tick 调度
@@ -111,10 +113,13 @@ i32 ScheduleCommand::_scheduleFunction(CommandContext<ServerCommandSource>& cont
         return 0;
     }
 
-    // 解析函数 ID
-    ResourceLocation functionId = ResourceLocation::parse(functionName);
-    std::string eventId = functionId.toString();
+    // /schedule 仅支持直接函数引用，不支持标签引用
+    if (funcResult.isTag()) {
+        source.sendError("Cannot schedule a function tag, only individual functions can be scheduled");
+        return 0;
+    }
 
+    const auto& functionId = funcResult.id();
     auto& functionManager = server->functionManager();
     auto& timerQueue = server->functionTimerQueue();
 
@@ -129,6 +134,7 @@ i32 ScheduleCommand::_scheduleFunction(CommandContext<ServerCommandSource>& cont
     // 计算目标 tick
     u64 currentTick = server->currentTick();
     u64 targetTick = currentTick + static_cast<u64>(time);
+    std::string eventId = functionId.toString();
 
     // replace 模式：先移除同名的已有调度
     if (!append) {
@@ -154,7 +160,7 @@ i32 ScheduleCommand::_scheduleFunction(CommandContext<ServerCommandSource>& cont
 i32 ScheduleCommand::_clearSchedule(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string functionName = context.getArgument<std::string>("function");
+    auto funcResult = FunctionArgumentType::getFunctionResult(context, "function");
 
     auto* server = source.server();
     if (server == nullptr) {
@@ -164,9 +170,8 @@ i32 ScheduleCommand::_clearSchedule(CommandContext<ServerCommandSource>& context
 
     auto& timerQueue = server->functionTimerQueue();
 
-    // 解析函数 ID 作为事件名
-    ResourceLocation functionId = ResourceLocation::parse(functionName);
-    std::string eventId = functionId.toString();
+    // 使用函数 ID 作为事件名
+    std::string eventId = funcResult.id().toString();
 
     i32 removedCount = timerQueue.remove(eventId);
 
@@ -175,7 +180,7 @@ i32 ScheduleCommand::_clearSchedule(CommandContext<ServerCommandSource>& context
     }
 
     std::ostringstream ss;
-    ss << "Cleared " << removedCount << " scheduled function(s) for '" << functionId.toString() << "'";
+    ss << "Cleared " << removedCount << " scheduled function(s) for '" << funcResult.id().toString() << "'";
     source.sendMessage(ss.str());
 
     return removedCount;

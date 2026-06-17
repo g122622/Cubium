@@ -9,9 +9,9 @@
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * copies of substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * THE SOFTWARE IS PROVIDED "AS IS", ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -24,10 +24,10 @@
 #include "FunctionCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "common/command/arguments/ArgumentType.hpp"
-#include "common/resource/ResourceLocation.hpp"
+#include "common/command/arguments/FunctionArgument.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/FunctionSuggestionProvider.hpp"
 #include "server/function/FunctionManager.hpp"
 #include <sstream>
 
@@ -41,11 +41,9 @@ void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     support::applyMetadata(
         functionNode, support::makeMetadata("Runs a function from a data pack.", "/function <name>", 2, {}, true));
 
-    // TODO: 当前使用 StringArgumentType 解析函数名，原版使用 FunctionArgument
-    // （提供 Tab 补全、函数标签 # 前缀支持、不存在的函数在输入时即报错等功能）。
-    // 完整实现需要自定义 FunctionArgumentType 类，在建议阶段查询 FunctionManager 获取可用函数列表。
-    auto nameArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
+    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, FunctionArgumentResult>>(
+        "name", FunctionArgumentType::functions());
+    nameArg->setCustomSuggestions(std::make_shared<FunctionSuggestionProvider>());
     nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _runFunction(ctx); });
     functionNode->addChild(nameArg);
 
@@ -55,7 +53,7 @@ void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 i32 FunctionCommand::_runFunction(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string name = context.getArgument<std::string>("name");
+    auto result = FunctionArgumentType::getFunctionResult(context, "name");
 
     auto* server = source.server();
     if (server == nullptr) {
@@ -65,11 +63,9 @@ i32 FunctionCommand::_runFunction(CommandContext<ServerCommandSource>& context)
 
     auto& functionManager = server->functionManager();
 
-    // 检查是否为标签引用（# 前缀）
-    if (!name.empty() && name[0] == '#') {
+    if (result.isTag()) {
         // 标签引用: #namespace:path
-        std::string tagRef = name.substr(1);
-        ResourceLocation tagId = ResourceLocation::parse(tagRef);
+        const auto& tagId = result.id();
 
         if (!functionManager.hasTag(tagId)) {
             std::ostringstream ss;
@@ -85,9 +81,9 @@ i32 FunctionCommand::_runFunction(CommandContext<ServerCommandSource>& context)
         Size executedCount = 0;
 
         for (const auto& funcId : functionIds) {
-            auto result = functionManager.execute(funcId, source);
-            totalSuccess += result.successCount;
-            totalFailure += result.failureCount;
+            auto execResult = functionManager.execute(funcId, source);
+            totalSuccess += execResult.successCount;
+            totalFailure += execResult.failureCount;
             ++executedCount;
         }
 
@@ -104,7 +100,7 @@ i32 FunctionCommand::_runFunction(CommandContext<ServerCommandSource>& context)
     }
 
     // 普通函数引用
-    ResourceLocation functionId = ResourceLocation::parse(name);
+    const auto& functionId = result.id();
 
     // 检查函数是否存在
     if (!functionManager.hasFunction(functionId)) {
@@ -115,18 +111,18 @@ i32 FunctionCommand::_runFunction(CommandContext<ServerCommandSource>& context)
     }
 
     // 执行函数
-    auto result = functionManager.execute(functionId, source);
+    auto execResult = functionManager.execute(functionId, source);
 
     // 反馈执行结果
     std::ostringstream ss;
-    ss << "Executed function '" << functionId.toString() << "' (" << result.successCount << " commands succeeded";
-    if (result.failureCount > 0) {
-        ss << ", " << result.failureCount << " failed";
+    ss << "Executed function '" << functionId.toString() << "' (" << execResult.successCount << " commands succeeded";
+    if (execResult.failureCount > 0) {
+        ss << ", " << execResult.failureCount << " failed";
     }
     ss << ")";
     source.sendMessage(ss.str());
 
-    return result.successCount;
+    return execResult.successCount;
 }
 
 } // namespace command
