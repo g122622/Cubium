@@ -307,7 +307,9 @@ TEST_F(FunctionLoaderTest, ParseTagJson_NonStringValuesIgnored)
 {
     FunctionLoader loader(manager);
     ResourceLocation tagLoc = ResourceLocation::parse("minecraft:tag_with_bad_values");
-    auto result = loader.parseTagJson(tagLoc, R"({"values": ["minecraft:valid", 42, true, {"id": "test"}]})");
+    // 数值和布尔值被跳过，对象格式暂时也不支持
+    auto result =
+        loader.parseTagJson(tagLoc, R"({"values": ["minecraft:valid", 42, true, {"id": "minecraft:optional"}]})");
     ASSERT_TRUE(result.success());
     EXPECT_EQ(result.value().functionIds.size(), 1u);
     EXPECT_EQ(result.value().functionIds[0].toString(), "minecraft:valid");

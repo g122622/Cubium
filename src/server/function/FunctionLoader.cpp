@@ -124,30 +124,17 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
         return 0;
     }
 
-    // 收集所有标签文件及其来源数据包
-    // key: 标签 ResourceLocation, value: 按数据包优先级从高到低排列的 (JSON内容, 数据包来源) 列表
-    // 由于 DataPackRepository::readTextResource 返回最高优先级数据包的内容，
-    // 而 listResources 合并所有数据包的文件列表（去重），
-    // 我们需要另一种方式来处理多数据包标签合并。
-    //
-    // MC Java 的标签合并语义：
-    // - 多个数据包对同一标签的值默认追加
-    // - replace=true 时，先清空之前（高优先级）数据包添加的条目，再添加当前数据包的条目
-    // - 数据包按优先级从高到低遍历
-    //
-    // 由于 DataPackRepository 的 listResources 只返回去重后的路径列表，
-    // 而 readTextResource 只返回最高优先级数据包的内容，
-    // 我们无法获取低优先级数据包中同一标签文件的内容。
-    // 因此，当前实现只处理最高优先级数据包中的标签文件，
-    // 这是项目中其他标签加载器（如 BiomeTagLoader）的同样做法。
-    // 如果未来需要完整的多数据包标签合并，需要在 DataPackRepository 层面
-    // 提供读取所有数据包中同一资源的方法。
+    // TODO: 多数据包标签合并 — 当前 DataPackRepository 的 listResources 返回去重后的路径列表，
+    // readTextResource 只返回最高优先级数据包的内容，因此无法获取低优先级数据包中同一标签文件。
+    // MC Java 按数据包优先级从高到低遍历同名标签文件，默认追加，replace=true 时清空已有条目后追加。
+    // 完整实现需要在 DataPackRepository 层面提供 readAllResourceVersions() 类似方法，
+    // 读取所有数据包中同一资源路径的内容列表（按优先级排序），此逻辑与 BiomeTagLoader 面临同样的限制。
 
-    // 用于存储已解析的标签数据，合并同 ID 标签
-    // key: 标签 ResourceLocation, value: 合并后的函数 ID 列表
-    std::unordered_map<ResourceLocation, std::vector<ResourceLocation>> mergedTags;
+    // 由于同一 tagId 在当前实现中只会有一个数据包的内容，
+    // 下方的 replace/merge 分支实际不会触发（parsedTags 中同一 key 只会有一条记录）。
+    // 保留此逻辑是为了在 DataPackRepository 支持多版本读取后可直接生效。
 
-    // 用于存储标签引用关系，后续统一解析
+    // 用于存储已解析的标签数据
     // key: 标签 ResourceLocation, value: (replace标志, 直接引用的函数ID, 引用的标签ID)
     struct TagParseData {
         bool replace = false;
@@ -155,6 +142,10 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
         std::vector<ResourceLocation> tagReferences;
     };
     std::unordered_map<ResourceLocation, TagParseData> parsedTags;
+
+    // 用于存储合并后的标签函数 ID 列表
+    // key: 标签 ResourceLocation, value: 合并后的函数 ID 列表
+    std::unordered_map<ResourceLocation, std::vector<ResourceLocation>> mergedTags;
 
     for (const auto& namespace_ : namespacesResult.value()) {
         // 列出 <namespace>/tags/functions/ 目录下的所有 JSON 文件
@@ -192,6 +183,10 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
             auto& tagData = parseResult.value();
 
             // 存储解析结果
+            // TODO: 当 DataPackRepository 支持读取所有数据包中同一资源后，
+            // 此处需要处理同一 tagId 的多条记录合并（replace=true 清空已有条目后追加，默认追加）。
+            // 当前由于 readTextResource 只返回最高优先级数据包的内容，
+            // 同一 tagId 只会有一条记录，因此 replace 分支实际不会触发替换效果。
             auto& existing = parsedTags[tagLoc];
             if (tagData.replace) {
                 // replace=true：清空已有条目，使用当前数据包的内容
@@ -200,7 +195,6 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
                 existing.tagReferences = std::move(tagData.tagReferences);
             } else {
                 // 默认追加模式
-                existing.replace = false; // 只在第一个数据包设置 replace 时才为 true
                 for (auto& id : tagData.functionIds) {
                     existing.functionIds.push_back(std::move(id));
                 }
@@ -285,13 +279,19 @@ Result<FunctionLoader::TagData> FunctionLoader::parseTagJson(
         }
 
         for (const auto& value : jsonObj["values"]) {
-            if (!value.is_string()) {
-                spdlog::warn("FunctionLoader: 标签 '{}' 中的值不是字符串, 跳过", tagId.toString());
-                continue;
+            if (value.is_string()) {
+                // 字符串格式: "namespace:path" 或 "#namespace:tag"
+                std::string entry = value.get<std::string>();
+                resolveTagEntry(entry, tagData.functionIds, tagData.tagReferences);
+            } else if (value.is_object()) {
+                // TODO: MC Java 支持对象格式的标签条目 {"id":"namespace:path","required":false}，
+                // required=false 表示引用的函数/标签不存在时不报错而是静默跳过，
+                // required=true（默认）表示必须存在。当前实现将对象格式条目视为非字符串跳过，
+                // 待实现 required 语义后补充此分支。
+                spdlog::warn("FunctionLoader: 标签 '{}' 中的对象格式条目暂不支持, 跳过", tagId.toString());
+            } else {
+                spdlog::warn("FunctionLoader: 标签 '{}' 中的值不是字符串或对象, 跳过", tagId.toString());
             }
-
-            std::string entry = value.get<std::string>();
-            resolveTagEntry(entry, tagData.functionIds, tagData.tagReferences);
         }
 
         return tagData;
