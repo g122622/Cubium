@@ -244,6 +244,15 @@ BlockTag& BlockTags::BAMBOO_PLANTABLE_ON()
     return *tag;
 }
 
+BlockTag& BlockTags::MUSHROOM_GROW_BLOCK()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "mushroom_grow_block"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::VALID_SWEET_BERRY_BUSH_GROUND()
 {
     static BlockTag* tag = nullptr;
@@ -878,6 +887,15 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "podzol"),
         ResourceLocation("minecraft", "farmland")});
     tags[sweetBerryBushGround->getId()] = std::move(sweetBerryBushGround);
+
+    // 创建 MUSHROOM_GROW_BLOCK 标签（蘑菇可生长方块）
+    // 蘑菇在这些方块上放置时不受光照限制
+    auto mushroomGrowBlock = std::make_unique<BlockTag>(ResourceLocation("minecraft", "mushroom_grow_block"));
+    mushroomGrowBlock->addAll({ResourceLocation("minecraft", "mycelium"),
+        ResourceLocation("minecraft", "podzol"),
+        ResourceLocation("minecraft", "crimson_nylium"),
+        ResourceLocation("minecraft", "warped_nylium")});
+    tags[mushroomGrowBlock->getId()] = std::move(mushroomGrowBlock);
 
     // 创建 WALL_CORALS 标签（墙珊瑚扇）
     // 包含所有活的和死的墙珊瑚扇

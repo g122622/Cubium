@@ -175,6 +175,10 @@ public:
     /// 竹子可种植标签（草、泥土、沙子、沙砾、竹林土）
     static BlockTag& BAMBOO_PLANTABLE_ON();
 
+    /// 蘑菇可生长方块标签（菌丝、灰化土、绯红菌岩、诡异菌岩）
+    /// 蘑菇在这些方块上放置时不受光照限制
+    static BlockTag& MUSHROOM_GROW_BLOCK();
+
     /// 甜浆果丛可种植标签（草方块、泥土、粗糙泥土、灰化土、耕地）
     static BlockTag& VALID_SWEET_BERRY_BUSH_GROUND();
 

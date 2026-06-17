@@ -28,6 +28,7 @@
 #include "world/block/blocks/vegetation/BambooBlock.hpp"
 #include "world/block/blocks/vegetation/FlowerBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
+#include "world/block/blocks/vegetation/MushroomBlock.hpp"
 #include "world/block/blocks/vegetation/SugarCaneBlock.hpp"
 #include "world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
 #include "world/block/blocks/vegetation/TallGrassBlock.hpp"
@@ -182,26 +183,26 @@ void registerVegetationBlocks()
 
     // 棕色蘑菇
     VegetationBlocks::BROWN_MUSHROOM =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:brown_mushroom"), mushroomProps);
+        &registry.registerBlock<blocks::MushroomBlock>(ResourceLocation("minecraft:brown_mushroom"), mushroomProps);
 
     // 红色蘑菇
     VegetationBlocks::RED_MUSHROOM =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:red_mushroom"), mushroomProps);
+        &registry.registerBlock<blocks::MushroomBlock>(ResourceLocation("minecraft:red_mushroom"), mushroomProps);
 
     // 巨型蘑菇方块属性
     BlockProperties hugeMushroomProps = BlockProperties(Material::WOOD).hardness(0.2f);
 
     // 棕色蘑菇方块
-    VegetationBlocks::BROWN_MUSHROOM_BLOCK =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:brown_mushroom_block"), hugeMushroomProps);
+    VegetationBlocks::BROWN_MUSHROOM_BLOCK = &registry.registerBlock<blocks::HugeMushroomBlock>(
+        ResourceLocation("minecraft:brown_mushroom_block"), hugeMushroomProps);
 
     // 红色蘑菇方块
-    VegetationBlocks::RED_MUSHROOM_BLOCK =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:red_mushroom_block"), hugeMushroomProps);
+    VegetationBlocks::RED_MUSHROOM_BLOCK = &registry.registerBlock<blocks::HugeMushroomBlock>(
+        ResourceLocation("minecraft:red_mushroom_block"), hugeMushroomProps);
 
     // 蘑菇柄
-    VegetationBlocks::MUSHROOM_STEM =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:mushroom_stem"), hugeMushroomProps);
+    VegetationBlocks::MUSHROOM_STEM = &registry.registerBlock<blocks::HugeMushroomBlock>(
+        ResourceLocation("minecraft:mushroom_stem"), hugeMushroomProps);
 
     // 树苗属性
     BlockProperties saplingProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();

@@ -106,6 +106,11 @@ void FireInfoRegistry::initializeVanillaFireInfos()
     // 台阶类 — ignite=5, burn=20
     // ========================================================================
     registerFireInfo(BuildingVariantBlocks::OAK_SLAB->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    registerFireInfo(BuildingVariantBlocks::SPRUCE_SLAB->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    registerFireInfo(BuildingVariantBlocks::BIRCH_SLAB->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    registerFireInfo(BuildingVariantBlocks::JUNGLE_SLAB->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    registerFireInfo(BuildingVariantBlocks::ACACIA_SLAB->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    registerFireInfo(BuildingVariantBlocks::DARK_OAK_SLAB->blockId(), IGNITE_HARD, BURN_MEDIUM);
     registerFireInfo(CherryBlocks::CHERRY_SLAB->blockId(), IGNITE_HARD, BURN_MEDIUM);
     registerFireInfo(MangroveBlocks::MANGROVE_SLAB->blockId(), IGNITE_HARD, BURN_MEDIUM);
     registerFireInfo(PaleGardenBlocks::PALE_OAK_SLAB->blockId(), IGNITE_HARD, BURN_MEDIUM);
@@ -139,6 +144,11 @@ void FireInfoRegistry::initializeVanillaFireInfos()
     // 楼梯类 — ignite=5, burn=20
     // ========================================================================
     registerFireInfo(BuildingVariantBlocks::OAK_STAIRS->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    registerFireInfo(BuildingVariantBlocks::SPRUCE_STAIRS->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    registerFireInfo(BuildingVariantBlocks::BIRCH_STAIRS->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    registerFireInfo(BuildingVariantBlocks::JUNGLE_STAIRS->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    registerFireInfo(BuildingVariantBlocks::ACACIA_STAIRS->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    registerFireInfo(BuildingVariantBlocks::DARK_OAK_STAIRS->blockId(), IGNITE_HARD, BURN_MEDIUM);
     registerFireInfo(CherryBlocks::CHERRY_STAIRS->blockId(), IGNITE_HARD, BURN_MEDIUM);
     registerFireInfo(MangroveBlocks::MANGROVE_STAIRS->blockId(), IGNITE_HARD, BURN_MEDIUM);
     registerFireInfo(PaleGardenBlocks::PALE_OAK_STAIRS->blockId(), IGNITE_HARD, BURN_MEDIUM);
@@ -508,19 +518,13 @@ void FireInfoRegistry::initializeVanillaFireInfos()
     // ========================================================================
     // TODO: 以下方块尚未在 VanillaBlocks 中注册指针，待对应方块实现后补充：
     //
-    // - BEEHIVE (ignite=5, burn=20) — 蜂巢
-    // - BEE_NEST (ignite=30, burn=20) — 蜂箱
+    // - BEEHIVE (ignite=5, burn=20) — 蜂箱
+    // - BEE_NEST (ignite=30, burn=20) — 蜂巢
     //
     // TODO: 以下木质变体方块尚未在 VanillaBlocks 中注册指针，
     //       待对应方块实现后补充：
     //
-    // - 云杉/白桦/丛林/金合欢/深色橡木的楼梯 (ignite=5, burn=20)
-    // - 云杉/白桦/丛林/金合欢/深色橡木的台阶 (ignite=5, burn=20)
-    // - 云杉/白桦/丛林/金合欢/深色橡木的栅栏 (ignite=5, burn=20)
-    // - 云杉/白桦/丛林/金合欢/深色橡木的木门 (ignite=5, burn=20)
-    // - 云杉/白桦/丛林/金合欢/深色橡木的木活板门 (ignite=5, burn=20)
-    //   注意：MC原版中木门和木活板门实际上也注册了火焰参数，
-    //   但由于当前项目中这些方块的指针尚未声明，暂无法注册。
+    // - 云杉/白桦/丛林/金合欢/深色橡木/绯红/诡异的栅栏 (ignite=5, burn=20)
     //
     // TODO: MC 1.21.4+ 新增的木质书架（SHELF）方块：
     // - 各木材类型的 SHELF (ignite=30, burn=20)

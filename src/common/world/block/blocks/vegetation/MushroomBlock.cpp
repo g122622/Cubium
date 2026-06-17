@@ -26,6 +26,7 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <algorithm>
@@ -37,14 +38,13 @@ namespace {
 
 [[nodiscard]] bool canSustainMushroom(const BlockState& groundState, const IWorld& world, const BlockPos& mushroomPos)
 {
-    if (VanillaBlocks::MYCELIUM != nullptr && groundState.is(VanillaBlocks::MYCELIUM)) {
+    // 如果下方方块属于 MUSHROOM_GROW_BLOCK 标签（菌丝、灰化土、绯红菌岩、诡异菌岩），
+    // 则无条件允许放置（不受光照限制）
+    if (BlockTags::MUSHROOM_GROW_BLOCK().contains(groundState)) {
         return true;
     }
 
-    if (VanillaBlocks::PODZOL != nullptr && groundState.is(VanillaBlocks::PODZOL)) {
-        return true;
-    }
-
+    // 其他方块：必须是固体，且光照 < 13
     if (!groundState.isSolid()) {
         return false;
     }
