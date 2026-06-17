@@ -121,10 +121,10 @@ bool SnowBlock::isValidPosition(const BlockState& state, IBlockReader& world, co
         return true;
     }
 
-    // 5. 否则，下方方块的碰撞形状上表面必须完整（即下方方块有坚固的上表面）
-    //    TODO: 当 doesSideFillSquare 实现完整的面投影检查后，
-    //          应替换为碰撞形状上表面检查，以支持蜂蜜块/灵魂沙等非完整面方块的精确判断
-    return belowState->isSolidSide(world, belowPos, Direction::Up);
+    // 5. 检查下方方块的碰撞形状上面是否完全覆盖
+    //    参考: net.minecraft.block.SnowLayerBlock#canSurvive
+    //    MC 使用 Block.isFaceFull(collisionShape, Direction.UP)
+    return Block::isFaceFull(belowState->getCollisionShape(), Direction::Up);
 }
 
 BlockState SnowBlock::updatePostPlacement(const BlockState& state,
@@ -170,7 +170,8 @@ bool SnowBlock::_canSurvive(IWorld& world, const BlockPos& pos) const
         return true;
     }
 
-    return belowState->isSolidSide(world, belowPos, Direction::Up);
+    // 检查下方方块的碰撞形状上面是否完全覆盖
+    return Block::isFaceFull(belowState->getCollisionShape(), Direction::Up);
 }
 
 bool SnowBlock::canSurviveAt(const IWorld& world, const BlockPos& pos)
@@ -198,9 +199,8 @@ bool SnowBlock::canSurviveAt(const IWorld& world, const BlockPos& pos)
         return true;
     }
 
-    // 4. 否则，检查下方方块是否有坚固的上表面
-    //    isSolidSide 语义上是只读操作，const_cast 安全
-    return belowState->isSolidSide(const_cast<IWorld&>(world), belowPos, Direction::Up);
+    // 4. 检查下方方块的碰撞形状上面是否完全覆盖
+    return Block::isFaceFull(belowState->getCollisionShape(), Direction::Up);
 }
 
 } // namespace mc::blocks

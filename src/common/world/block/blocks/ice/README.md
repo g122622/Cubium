@@ -28,7 +28,7 @@ ice/
 1. 下方方块不能在 `SNOW_LAYER_CANNOT_SURVIVE_ON` 标签中（冰、浮冰、屏障）
 2. 下方方块在 `SNOW_LAYER_CAN_SURVIVE_ON` 标签中时允许放置（蜂蜜块、灵魂沙、泥巴）
 3. 下方为满层（8层）雪层时允许放置
-4. 否则，下方方块的碰撞形状上表面必须完整（当前使用 `isSolidSide` 判断）
+4. 否则，检查下方方块的碰撞形状上面是否完全覆盖（使用 `Block::isFaceFull` 判断）
 
 `canSurviveAt` 是静态方法，供 `Biome::shouldSnow` 和 `SnowGolemEntity` 等场景使用。
 
@@ -56,4 +56,4 @@ ice/
 - **挖掘冰时的逻辑和融化时的逻辑不同**：前者要看下方支撑，后者只看维度与光照
 - **雪层融化时掉落的雪球数量等于层数（1-8个）**
 - **`isValidPosition` 使用 `IBlockReader` 接口，而 `_canSurvive` 和 `canSurviveAt` 使用 `IWorld` 接口**：两个版本逻辑一致但接口不同，修改时需同步更新
-- **`canSurviveAt` 使用 `const_cast`**：因为 `isSolidSide` 接受非 const `IWorld&`，但语义上是只读操作，`const_cast` 安全
+- **`isFaceFull` 不需要 `IWorld` 和 `BlockPos` 参数**：只检查碰撞形状的几何属性，不依赖世界状态

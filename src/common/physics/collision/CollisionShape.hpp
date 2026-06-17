@@ -26,6 +26,8 @@
 #include "common/core/Types.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
+#include <algorithm>
+#include <utility>
 #include <vector>
 
 namespace mc {
@@ -323,7 +325,116 @@ public:
         return result;
     }
 
+    /**
+     * @brief 检查形状是否覆盖整个单位方块
+     *
+     * 用于判断面的投影形状是否完全覆盖 1x1 方形区域。
+     * 对于 FullBlock 类型直接返回 true；对于 SimpleBox 类型，
+     * 使用扫描线算法检查所有碰撞箱的并集是否覆盖 [0,1]x[0,1] 区域。
+     *
+     * 参考: net.minecraft.block.Block#isShapeFullBlock
+     *
+     * @return 如果形状覆盖整个单位方块返回 true
+     */
+    [[nodiscard]] bool coversFullBlock() const noexcept
+    {
+        if (isFullBlock()) {
+            return true;
+        }
+        if (isEmpty()) {
+            return false;
+        }
+
+        // 对于 SimpleBox 类型，使用扫描线算法检查所有碰撞箱是否覆盖 [0,1]x[0,1] 区域
+        // 由于 getFaceShape 会将投影轴扩展到 [0,1]，我们只需检查另外两个轴的覆盖
+        // 这里使用 Y-Z 平面上的面积覆盖检测（最常见的情况是检查上面/下面的覆盖）
+        // 对于不同方向的投影，由于投影轴已被扩展到 [0,1]，所有三个轴都需要检查
+
+        // 扫描线算法：在 X 轴上扫描，检查每个 X 区间内 Y-Z 平面的覆盖是否完整
+        // 收集所有 X 区间的边界点
+        constexpr f32 EPSILON = 1.0e-4f;
+
+        std::vector<f32> xSplits;
+        xSplits.reserve(m_boxes.size() * 2 + 2);
+        xSplits.push_back(0.0f);
+        xSplits.push_back(1.0f);
+        for (const auto& box : m_boxes) {
+            if (box.minX > EPSILON) {
+                xSplits.push_back(box.minX);
+            }
+            if (box.maxX < 1.0f - EPSILON) {
+                xSplits.push_back(box.maxX);
+            }
+        }
+        std::sort(xSplits.begin(), xSplits.end());
+        xSplits.erase(
+            std::unique(xSplits.begin(), xSplits.end(), [](f32 a, f32 b) { return std::abs(a - b) < EPSILON; }),
+            xSplits.end());
+
+        // 对每个 X 区间，检查 Y-Z 平面上的覆盖是否完整
+        for (size_t i = 0; i + 1 < xSplits.size(); ++i) {
+            const f32 xMin = xSplits[i];
+            const f32 xMax = xSplits[i + 1];
+
+            // 收集覆盖此 X 区间的碰撞箱的 Y-Z 范围
+            std::vector<std::pair<f32, f32>> yzRanges;
+            for (const auto& box : m_boxes) {
+                if (box.minX <= xMin + EPSILON && box.maxX >= xMax - EPSILON) {
+                    yzRanges.emplace_back(box.minY, box.maxY);
+                }
+            }
+
+            // 检查 Y-Z 覆盖是否完整（简化：检查 Y 轴上的覆盖）
+            // 由于投影后 Z 轴也应该覆盖 [0,1]，我们同时检查 Z 轴
+            if (!_isAxisFullyCovered(yzRanges, EPSILON)) {
+                return false;
+            }
+
+            // 同样检查 Z 轴覆盖
+            std::vector<std::pair<f32, f32>> xzRanges;
+            for (const auto& box : m_boxes) {
+                if (box.minX <= xMin + EPSILON && box.maxX >= xMax - EPSILON) {
+                    xzRanges.emplace_back(box.minZ, box.maxZ);
+                }
+            }
+            if (!_isAxisFullyCovered(xzRanges, EPSILON)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 private:
+    /**
+     * @brief 检查区间列表是否完全覆盖 [0,1]
+     * @param ranges 区间列表 (min, max)
+     * @param epsilon 浮点精度
+     * @return 如果完全覆盖返回 true
+     */
+    [[nodiscard]] static bool _isAxisFullyCovered(const std::vector<std::pair<f32, f32>>& ranges, f32 epsilon) noexcept
+    {
+        if (ranges.empty()) {
+            return false;
+        }
+
+        // 按起点排序
+        std::vector<std::pair<f32, f32>> sorted = ranges;
+        std::sort(sorted.begin(), sorted.end());
+
+        // 合并重叠区间并检查是否覆盖 [0, 1]
+        f32 currentEnd = -1.0f;
+        for (const auto& [start, end] : sorted) {
+            if (start > currentEnd + epsilon) {
+                // 存在间隙
+                return false;
+            }
+            currentEnd = std::max(currentEnd, end);
+        }
+
+        return currentEnd >= 1.0f - epsilon;
+    }
+
     Type m_type = Type::Empty;
     std::vector<AxisAlignedBB> m_boxes; // 方块本地坐标 (0-1范围)
 };

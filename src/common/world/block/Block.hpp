@@ -815,6 +815,20 @@ public:
     [[nodiscard]] virtual const CollisionShape& getOcclusionShape(const BlockState& state) const;
 
     /**
+     * @brief 获取方块支撑形状
+     *
+     * 支撑形状用于判断方块面是否足够坚固以支撑其他方块放置。
+     * 默认返回碰撞形状。某些方块（如泥巴、灵魂沙）的碰撞形状比完整方块矮，
+     * 但支撑形状是完整方块，因此需要在子类中重写此方法。
+     *
+     * 参考: net.minecraft.block.Block#getBlockSupportShape
+     *
+     * @param state 方块状态
+     * @return 支撑形状引用
+     */
+    [[nodiscard]] virtual const CollisionShape& getBlockSupportShape(const BlockState& state) const;
+
+    /**
      * @brief 获取指定面的遮挡形状
      *
      * 用于光照遮挡检测。返回方块在指定方向上的投影形状。
@@ -1823,13 +1837,28 @@ public:
      *
      * 用于判断遮挡形状是否完全覆盖面，影响邻居方块的渲染。
      *
-     * 参考: net.minecraft.block.Block#doesSideFillSquare
+     * 参考: net.minecraft.block.Block#doesSideFillSquare (旧名)
+     * 等价于 net.minecraft.block.Block#isFaceFull (1.21.11)
      *
      * @param shape 面的遮挡形状
      * @param direction 面方向
      * @return 如果形状填充整个面返回 true
      */
     [[nodiscard]] static bool doesSideFillSquare(const CollisionShape& shape, Direction direction);
+
+    /**
+     * @brief 判断形状的指定面是否完全填充
+     *
+     * 提取形状在指定方向的面投影，然后判断投影是否覆盖整个单位方块面。
+     * 这是 isFaceSturdy 的核心判定逻辑。
+     *
+     * 参考: net.minecraft.block.Block#isFaceFull
+     *
+     * @param shape 3D 形状（通常是碰撞形状或支撑形状）
+     * @param direction 要检查的面方向
+     * @return 如果面的投影覆盖整个 1x1 区域返回 true
+     */
+    [[nodiscard]] static bool isFaceFull(const CollisionShape& shape, Direction direction);
 
     // ========================================================================
     // 攻击和交互

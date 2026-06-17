@@ -196,6 +196,19 @@ public:
     [[nodiscard]] const CollisionShape& getOcclusionShape() const;
 
     /**
+     * @brief 获取方块支撑形状
+     *
+     * 支撑形状用于判断方块面是否足够坚固以支撑其他方块放置。
+     * 默认返回碰撞形状。某些方块（如泥巴、灵魂沙）的碰撞形状比完整方块矮，
+     * 但支撑形状是完整方块。
+     *
+     * 参考: net.minecraft.block.BlockStateBase#getBlockSupportShape
+     *
+     * @return 支撑形状引用
+     */
+    [[nodiscard]] const CollisionShape& getBlockSupportShape() const;
+
+    /**
      * @brief 获取指定面的遮挡形状
      *
      * 用于光照遮挡检测。返回方块在指定方向上的投影形状。
@@ -240,6 +253,19 @@ public:
      * @return 如果该面是实体面返回true
      */
     [[nodiscard]] bool isSolidSide(IWorld& world, const BlockPos& pos, Direction side) const;
+
+    /**
+     * @brief 检查方块的碰撞形状在指定方向的面是否完全填充
+     *
+     * 用于判断方块面是否足够坚固以支撑其他方块放置（如雪层放置判断）。
+     * 提取碰撞形状在指定方向的面投影，然后判断投影是否覆盖整个单位方块面。
+     *
+     * 参考: net.minecraft.block.BlockStateBase#isFaceSturdy(Direction, SupportType.FULL)
+     *
+     * @param direction 要检查的面方向
+     * @return 如果面的投影覆盖整个 1x1 区域返回 true
+     */
+    [[nodiscard]] bool isFaceFull(Direction direction) const;
 
     /**
      * @brief 检查是否为不透明完整方块

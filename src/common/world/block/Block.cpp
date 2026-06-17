@@ -280,6 +280,14 @@ const CollisionShape& Block::getOcclusionShape(const BlockState& state) const
     return getShape(state);
 }
 
+const CollisionShape& Block::getBlockSupportShape(const BlockState& state) const
+{
+    // 默认返回碰撞形状，与 MC 一致
+    // 某些方块（如泥巴、灵魂沙）的碰撞形状比完整方块矮，但支撑形状是完整方块
+    // 参考: net.minecraft.block.Block#getBlockSupportShape
+    return getCollisionShape(state);
+}
+
 CollisionShape Block::getFaceOcclusionShape(const BlockState& state, Direction direction) const
 {
     // 默认实现：如果遮挡形状是完整方块，返回完整方块
@@ -675,8 +683,13 @@ bool Block::hasEnoughSolidSide(IWorld& world, const BlockPos& pos, Direction dir
         return false;
     }
 
-    // 检查指定方向是否有足够大的固体面
-    return state->isSolidSide(world, pos, direction);
+    // 参考: net.minecraft.block.Block#hasEnoughSolidSide
+    // 需要同时满足：1) 方块面是固体面  2) 碰撞形状在该方向的面投影覆盖整个面
+    if (!state->isSolidSide(world, pos, direction)) {
+        return false;
+    }
+
+    return doesSideFillSquare(state->getCollisionShape(), direction);
 }
 
 bool Block::doesSideFillSquare(const CollisionShape& shape, Direction direction)
@@ -686,11 +699,18 @@ bool Block::doesSideFillSquare(const CollisionShape& shape, Direction direction)
         return true;
     }
 
-    // 检查形状在指定面上的投影是否填充整个面
-    // 对于非完整方块，需要检查投影面积
-    // 简化实现：非完整方块的面不填充方形
-    (void)direction;
-    return false;
+    // 获取形状在指定方向上的面投影，检查投影是否覆盖整个面
+    // 参考: net.minecraft.block.Block#isFaceFull
+    CollisionShape faceShape = shape.getFaceShape(direction);
+    return faceShape.coversFullBlock();
+}
+
+bool Block::isFaceFull(const CollisionShape& shape, Direction direction)
+{
+    // 提取面投影并检查是否覆盖整个面
+    // 参考: net.minecraft.block.Block#isFaceFull(VoxelShape, Direction)
+    CollisionShape faceShape = shape.getFaceShape(direction);
+    return faceShape.coversFullBlock();
 }
 
 // ============================================================================

@@ -92,6 +92,11 @@ const CollisionShape& BlockState::getOcclusionShape() const
     return m_owner->getOcclusionShape(*this);
 }
 
+const CollisionShape& BlockState::getBlockSupportShape() const
+{
+    return m_owner->getBlockSupportShape(*this);
+}
+
 CollisionShape BlockState::getFaceOcclusionShape(Direction direction) const
 {
     return m_owner->getFaceOcclusionShape(*this, direction);
@@ -113,6 +118,11 @@ f32 BlockState::getAmbientOcclusionLightValue() const
 bool BlockState::isSolidSide(IWorld& world, const BlockPos& pos, Direction side) const
 {
     return m_owner->isSolidSide(*this, world, pos, side);
+}
+
+bool BlockState::isFaceFull(Direction direction) const
+{
+    return Block::isFaceFull(getCollisionShape(), direction);
 }
 
 bool BlockState::isOpaqueCube(IWorld& world, const BlockPos& pos) const
