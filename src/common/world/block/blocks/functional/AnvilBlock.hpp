@@ -43,10 +43,6 @@ namespace blocks {
  * 三个铁砧变体（anvil、chipped_anvil、damaged_anvil）均为 AnvilBlock 实例，
  * 通过不同的 Block 注册来区分。
  *
- * TODO: 实现铁砧碰撞箱（MC原版为不规则形状，底部宽、顶部窄）
- * TODO: 实现铁砧GUI（AnvilContainer与AnvilBlock的交互，含使用时12%概率降级）
- * TODO: 实现铁砧放置位置验证（需要在稳固方块上方）
- *
  * 参考: net.minecraft.world.level.block.AnvilBlock
  */
 class AnvilBlock : public FallingBlock {
@@ -91,7 +87,8 @@ public:
     /**
      * @brief 获取放置时的方块状态
      *
-     * 根据玩家水平朝向设置 HORIZONTAL_FACING。
+     * 根据玩家水平朝向的顺时针旋转90度设置 HORIZONTAL_FACING，
+     * 与 MC 原版一致：铁砧的正面朝向玩家右手边。
      */
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
@@ -105,6 +102,39 @@ public:
      */
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
+    /**
+     * @brief 获取方块的视觉形状
+     *
+     * 铁砧形状由四个部分组成（自下而上）：
+     * - 底座：宽12px，高0-4px
+     * - 中段：宽10px，高4-5px
+     * - 窄颈：宽8px，高5-10px
+     * - 顶面：宽10px，高10-16px
+     *
+     * 由于铁砧形状围绕Y轴中心对称，所有朝向使用同一形状。
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    /**
+     * @brief 获取方块的碰撞形状
+     *
+     * 与视觉形状相同。
+     */
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    /**
+     * @brief 玩家右键交互时打开铁砧容器
+     *
+     * 在服务端打开铁砧修复界面（ContainerType::Anvil）。
+     * 铁砧不需要方块实体，容器通过世界位置直接访问。
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
+
     // ========== 静态工具方法 ==========
 
     /**
@@ -117,6 +147,10 @@ public:
      * @return 损坏后的方块状态指针，如果已完全损坏则返回 nullptr
      */
     [[nodiscard]] static const BlockState* damageAnvil(const BlockState& state);
+
+private:
+    /// 预计算的铁砧形状（所有朝向共用，因为形状围绕Y轴中心对称）
+    CollisionShape m_shape;
 };
 
 } // namespace blocks

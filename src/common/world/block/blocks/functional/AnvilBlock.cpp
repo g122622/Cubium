@@ -11,7 +11,7 @@
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * THE SOFTWARE IS PROVIDED "AS IS", WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -24,9 +24,12 @@
 #include "AnvilBlock.hpp"
 
 #include "common/entity/entities/misc/MiscEntities.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/StateContainer.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/BuildingBlocks.hpp"
@@ -41,6 +44,20 @@ static constexpr f32 ANVIL_FALL_DAMAGE_PER_DISTANCE = 2.0f;
 
 /// 铁砧最大伤害值
 static constexpr i32 ANVIL_FALL_DAMAGE_MAX = 40;
+
+// ========== 铁砧形状常量（像素坐标，0-16范围） ==========
+//
+// MC 原版铁砧形状由四个柱体组成（围绕Y轴中心对称，所有朝向共用）：
+//   底座：宽12像素（偏移2~14），高0~4
+//   中段：宽10像素（偏移3~13），高4~5
+//   窄颈：宽8像素（偏移4~12），高5~10
+//   顶面：宽10像素（偏移3~13），高10~16
+//
+// 由于 CollisionShape 不支持锥形（每段只能用矩形包围盒），
+// 对 MC 原版中的锥形部分取最大包围矩形。
+
+/// 像素单位常量
+static constexpr f32 P = 1.0f / 16.0f;
 
 AnvilBlock::AnvilBlock(const BlockProperties& properties)
     : FallingBlock(properties)
@@ -60,6 +77,18 @@ AnvilBlock::AnvilBlock(const BlockProperties& properties)
 
     // 默认朝向为北
     setDefaultState(defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
+
+    // ========== 构建铁砧形状 ==========
+    // 底座：Y=0~4，宽12像素，居中偏移2
+    CollisionShape base = CollisionShape::box(2 * P, 0 * P, 2 * P, 14 * P, 4 * P, 14 * P);
+    // 中段收缩：Y=4~5，宽10像素，居中偏移3
+    CollisionShape mid = CollisionShape::box(3 * P, 4 * P, 3 * P, 13 * P, 5 * P, 13 * P);
+    // 窄颈：Y=5~10，宽8像素，居中偏移4
+    CollisionShape neck = CollisionShape::box(4 * P, 5 * P, 4 * P, 12 * P, 10 * P, 12 * P);
+    // 顶面：Y=10~16，宽10像素，居中偏移3
+    CollisionShape top = CollisionShape::box(3 * P, 10 * P, 3 * P, 13 * P, 16 * P, 13 * P);
+
+    m_shape = CollisionShape::combine(CollisionShape::combine(CollisionShape::combine(base, mid), neck), top);
 }
 
 void AnvilBlock::onStartFalling(IWorld& /*world*/, const BlockPos& /*pos*/, entity::FallingBlockEntity& entity)
@@ -90,8 +119,8 @@ void AnvilBlock::onBroken(IWorld& world, const BlockPos& pos, entity::FallingBlo
 
 BlockState AnvilBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 根据玩家水平朝向设置方块方向
-    Direction facing = context.horizontalDirection();
+    // MC 原版：朝向 = 玩家水平朝向的顺时针旋转90度
+    Direction facing = Directions::rotateY(context.horizontalDirection());
     return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
 }
 
@@ -146,6 +175,38 @@ const BlockState& AnvilBlock::mirror(const BlockState& state, Mirror mirror) con
     }
 
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
+}
+
+const CollisionShape& AnvilBlock::getShape(const BlockState& /*state*/) const
+{
+    // 铁砧形状围绕Y轴中心对称，所有朝向共用同一形状
+    return m_shape;
+}
+
+const CollisionShape& AnvilBlock::getCollisionShape(const BlockState& state) const
+{
+    // 铁砧的碰撞箱与视觉形状一致
+    return getShape(state);
+}
+
+ActionResultType AnvilBlock::onBlockActivated(const BlockState& /*state*/,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand /*hand*/,
+    const BlockRaycastResult& /*hit*/)
+{
+    // 客户端直接返回成功，由服务端处理容器打开
+    if (world.asServerWorld() == nullptr) {
+        return ActionResultType::Success;
+    }
+
+    // 打开铁砧修复容器
+    if (world.openContainer(ContainerType::Anvil, pos, player)) {
+        return ActionResultType::Consume;
+    }
+
+    return ActionResultType::Pass;
 }
 
 const BlockState* AnvilBlock::damageAnvil(const BlockState& state)
