@@ -630,7 +630,8 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
             noiseChunk->updateForY(yLerp);
             noiseChunk->updateForX(deltaX);
 
-            const f64 density = noiseChunk->updateForZ(deltaZ);
+            noiseChunk->updateForZ(deltaZ);
+            const f64 density = noiseChunk->finalDensity().compute(x, blockY, z);
             noiseChunk->setBlockPos(x, blockY, z);
 
             // 使用 BlockStateFiller 链确定方块状态
@@ -784,14 +785,19 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
                             noiseChunk.setBlockPos(blockX, blockY, blockZ);
                             noiseChunk.setInCellPos(inCellX, inCellY, inCellZ);
 
-                            const f64 rawDensity = noiseChunk.updateForZ(zLerp);
+                            // MC 1.21: updateForZ 更新插值器状态，密度通过 finalDensity().compute() 获取
+                            // updateForZ 不返回密度值，而是通过 finalDensity 函数树计算
+                            noiseChunk.updateForZ(zLerp);
+                            const f64 rawDensity = noiseChunk.finalDensity().compute(blockX, blockY, blockZ);
                             const f64 density = rawDensity + beardifier.compute(blockX, blockY, blockZ);
 
-                            // MC 1.21: 通过 BlockStateFiller 链确定方块状态
-                            // AquiferFiller 在 density <= 0 时返回流体/空气，density > 0 返回 nullptr
-                            // MC 原版: null 始终替换为 defaultBlock，然后检查是否非 AIR
+                            // density > 0 → 固体（石头），density <= 0 → 空气/流体
+                            // Aquifer 在 density > 0 时返回 nullptr（表示固体）
+                            // Aquifer 在 density <= 0 时返回流体/空气 BlockState，或 nullptr（表示空气）
+                            // nullptr 且 density > 0 → 使用默认方块（石头）
+                            // nullptr 且 density <= 0 → 空气（不放置任何方块）
                             const BlockState* blockState = noiseChunk.getInterpolatedState(density);
-                            if (blockState == nullptr) {
+                            if (blockState == nullptr && density > 0.0) {
                                 blockState = m_settings.defaultBlock;
                             }
 
@@ -799,10 +805,7 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
                                 chunk.setBlockState(localX, blockY, localZ, blockState);
                                 chunk.updateHeightmap(
                                     HeightmapType::WorldSurfaceWG, localX, blockY, localZ, blockState);
-                                if (blockState->isSolid()) {
-                                    chunk.updateHeightmap(
-                                        HeightmapType::OceanFloorWG, localX, blockY, localZ, blockState);
-                                }
+                                chunk.updateHeightmap(HeightmapType::OceanFloorWG, localX, blockY, localZ, blockState);
                                 // MC 1.21: 含水层边界处流体方块需标记后处理
                                 // MC 使用 !blockstate.getFluidState().isEmpty()，即包含含水方块
                                 if (noiseChunk.aquifer() != nullptr &&
@@ -894,18 +897,8 @@ world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(ChunkPrime
         processStart(*start, structure);
     }
 
-    // 处理结构引用中指向的源区块的结构起点
-    for (const auto& [structureId, refs] : chunk.structureReferences()) {
-        const auto* structure = world::gen::structure::StructureRegistry::get(structureId);
-        for (const auto& [refX, refZ] : refs) {
-            // 跳过当前区块（已在上面处理）
-            if (refX == chunkX && refZ == chunkZ) continue;
-
-            // 从 WorldGenRegion 获取源区块（注意：_buildBeardifier 在 noise 阶段调用，
-            // 此时邻居区块可能不可用，因此仅处理当前区块的 starts）
-            // 跨区块引用的 Beardifier 数据会在邻居区块各自构建时处理
-        }
-    }
+    // 处理结构引用（noise 阶段仅处理当前区块的 starts，
+    // 跨区块引用的 Beardifier 数据会在邻居区块各自构建时处理）
 
     return world::gen::density::Beardifier(std::move(pieces), std::move(junctions));
 }

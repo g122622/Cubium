@@ -352,7 +352,7 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     auto continentsForFactorShared = std::shared_ptr<DensityFunction>(std::move(continentsForFactor));
 
     auto factorSpline = TerrainProvider::overworldFactor(
-        continentsForFactorShared, erosionForFactorShared, weirdnessShared, weirdnessShared);
+        continentsForFactorShared, erosionForFactorShared, weirdnessShared, ridgesPVShared);
     auto factor = TerrainProvider::splineWithBlending(std::move(factorSpline), factory::constant(10.0));
 
     // --- jaggedness: splineWithBlending(spline(overworldJaggedness), BLENDING_JAGGEDNESS=0.0) ---
@@ -379,7 +379,7 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     auto erosionForJaggedShared = std::shared_ptr<DensityFunction>(std::move(erosionForJagged));
 
     auto jaggednessSpline = TerrainProvider::overworldJaggedness(
-        continentsForJaggedShared, erosionForJaggedShared, weirdnessShared, weirdnessShared);
+        continentsForJaggedShared, erosionForJaggedShared, weirdnessShared, ridgesPVShared);
     auto jaggedness = TerrainProvider::splineWithBlending(std::move(jaggednessSpline), factory::constant(0.0));
 
     // --- slopedCheese: noiseGradientDensity(factor, depth + offset + jaggedness * noise(JAGGED).halfNegative()) +

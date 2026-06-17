@@ -45,7 +45,7 @@ namespace mc::world::gen::density {
  * - 末地:   BlendedNoise(0.25, 0.25, 80.0, 160.0, 4.0)
  *
  * 算法流程：
- * 1. 计算 mainNoise 的 8 倍频值，得到插值因子 d16 = clamp((result/10 + 1) / 2, 0, 1)
+ * 1. 计算 mainNoise 的 8 倍频值，得到插值因子 d16 = (result/10 + 1) / 2（不做预裁剪，由 clampedLerp 处理边界）
  * 2. 如果 d16 >= 1：只采样 minLimitNoise（16 倍频）
  * 3. 如果 d16 <= 0：只采样 maxLimitNoise（16 倍频）
  * 4. 否则：对两者进行插值 clampedLerp(d16, minResult/512, maxResult/512)

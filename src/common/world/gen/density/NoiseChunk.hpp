@@ -24,6 +24,7 @@
 
 #include "common/world/biome/climate/Climate.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/aquifer/Aquifer.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
 #include "common/world/gen/density/DensityFunctions.hpp"
@@ -107,7 +108,7 @@ private:
     aquifer::Aquifer& m_aquifer;
 };
 
-/** disabled aquifer filler — density > 0 → nullptr, density <= 0 → check default fluid */
+/** disabled aquifer filler — density > 0 → nullptr, density <= 0 → fluid or air */
 class DisabledAquiferFiller final : public BlockStateFiller {
 public:
     DisabledAquiferFiller(const BlockState* defaultFluid, i32 seaLevel)
@@ -120,13 +121,14 @@ public:
         (void)blockX;
         (void)blockZ;
         if (density > 0.0) {
-            return nullptr;
+            return nullptr; // 固体（由调用方替换为默认方块）
         }
-        // density <= 0: empty space — check if below sea level for fluid
+        // density <= 0: 空间 — 海平面以下返回流体，以上返回空气
         if (m_defaultFluid && blockY < m_seaLevel) {
             return m_defaultFluid;
         }
-        return nullptr;
+        // MC 1.21: 海平面以上返回空气 BlockState（非 nullptr）
+        return VanillaBlocks::getState(VanillaBlocks::AIR);
     }
 
 private:
@@ -197,11 +199,11 @@ public:
     void updateForX(f64 delta);
 
     /**
-     * @brief 更新 Z 方向插值（第三步，得到最终值）
+     * @brief 更新 Z 方向插值（第三步）
      * @param delta Z 方向插值因子 [0, 1]
      * @return 插值后的密度值
      */
-    [[nodiscard]] f64 updateForZ(f64 delta);
+    f64 updateForZ(f64 delta);
 
     /**
      * @brief 直接计算指定位置的插值值（不增量更新，用于 CacheAllInCell 填充）
@@ -449,11 +451,12 @@ public:
     void updateForX(f64 delta);
 
     /**
-     * @brief 更新 Z 方向插值并获取最终密度值
+     * @brief 更新 Z 方向插值
      * @param delta Z 方向插值因子 [0, 1]
-     * @return 插值后的 finalDensity 值
+     *
+     * MC 1.21: updateForZ 返回 void，密度值通过 finalDensity().compute() 获取。
      */
-    [[nodiscard]] f64 updateForZ(f64 delta);
+    void updateForZ(f64 delta);
 
     /**
      * @brief 交换 slice 缓冲区
@@ -609,11 +612,13 @@ public:
     }
 
     /**
-     * @brief 获取当前插值位置的密度值
+     * @brief 获取最终密度函数（经过 mapAll 包装后的 finalDensity）
      *
-     * 在插值循环中，updateForZ() 之后调用此方法获取最终密度值。
+     * MC 1.21: 在生成循环中，密度值通过此函数的 compute() 方法获取，
+     * 而非通过 updateForZ() 的返回值。updateForZ() 仅更新插值器状态，
+     * 最终密度由 densityFunction.compute(context) 计算得到。
      */
-    [[nodiscard]] f64 interpolatedDensity() const { return m_interpolatedDensity; }
+    [[nodiscard]] const DensityFunction& finalDensity() const { return m_router.finalDensity(); }
 
     /**
      * @brief 设置方块状态规则链
@@ -675,9 +680,6 @@ private:
 
     /// 缓存气候采样器（首次调用 cachedClimateSampler 时创建）
     std::unique_ptr<biome::climate::Sampler> m_cachedSampler;
-
-    /// 最近一次 updateForZ() 的插值密度值
-    f64 m_interpolatedDensity = 0.0;
 };
 
 } // namespace mc::world::gen::density

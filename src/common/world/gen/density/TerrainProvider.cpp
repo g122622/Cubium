@@ -285,16 +285,15 @@ std::shared_ptr<CubicSpline> TerrainProvider::buildErosionOffsetSpline(std::shar
         // 0.4: same as ridgeSpline5 (rs5)
         points.push_back({0.4, rs5, 0.0});
 
-        // 0.45, 0.55: inner sub-spline on ridges axis
-        auto innerRidge = simpleRidgeSpline(ridges, 0.0, offsetSplineEnd + 0.07, 0.1, 0.625);
+        // 0.45, 0.55: MC 1.21 两个点使用相同的 innerSpline（cubicspline7）
         std::vector<SplinePoint> innerPoints;
         innerPoints.push_back({-1.0, offsetSplineY, 0.0});
         innerPoints.push_back({-0.4, rs5, 0.0});
         innerPoints.push_back({0.0, offsetSplineEnd + 0.07, 0.0});
         auto innerSpline = std::make_shared<CubicSpline>(ridges, std::move(innerPoints));
 
-        points.push_back({0.45, std::move(innerSpline), 0.0});
-        points.push_back({0.55, std::move(innerRidge), 0.0});
+        points.push_back({0.45, innerSpline, 0.0});
+        points.push_back({0.55, innerSpline, 0.0});
         // 0.58: same as ridgeSpline5
         points.push_back({0.58, rs5, 0.0});
     }
@@ -359,18 +358,17 @@ std::shared_ptr<CubicSpline> TerrainProvider::buildErosionFactorSpline(std::shar
         points.push_back({0.62, peakFactor, 0.0});
     } else {
         // inland sub-splines
-        // inlandRidgeSub = ridges -> (-0.2 -> 6.3, 0.2 -> peakFactor)
-        auto inlandRidgeSub = simpleRidgeSpline(ridges, -0.2, 6.3, 0.2, peakFactor);
+        // inlandRidgeSub 与 sharedRidgeSpline 参数相同，复用之
 
-        // inlandWeirdness3: weirdness -> (-0.7 -> inlandRidgeSub, -0.15 -> 1.37)
+        // inlandWeirdness3: weirdness -> (-0.7 -> sharedRidgeSpline, -0.15 -> 1.37)
         std::vector<SplinePoint> inlandWeirdness3Points;
-        inlandWeirdness3Points.push_back({-0.7, inlandRidgeSub, 0.0});
+        inlandWeirdness3Points.push_back({-0.7, sharedRidgeSpline, 0.0});
         inlandWeirdness3Points.push_back({-0.15, 1.37, 0.0});
         auto inlandWeirdness3 = std::make_shared<CubicSpline>(weirdness, std::move(inlandWeirdness3Points));
 
-        // inlandWeirdness4: weirdness -> (0.45 -> inlandRidgeSub, 0.7 -> 1.56)
+        // inlandWeirdness4: weirdness -> (0.45 -> sharedRidgeSpline, 0.7 -> 1.56)
         std::vector<SplinePoint> inlandWeirdness4Points;
-        inlandWeirdness4Points.push_back({0.45, inlandRidgeSub, 0.0});
+        inlandWeirdness4Points.push_back({0.45, sharedRidgeSpline, 0.0});
         inlandWeirdness4Points.push_back({0.7, 1.56, 0.0});
         auto inlandWeirdness4 = std::make_shared<CubicSpline>(weirdness, std::move(inlandWeirdness4Points));
 

@@ -44,7 +44,7 @@ const BlockState* FluidStatus::at(i32 y) const
     }
     // MC 1.21: 返回空气 BlockState 而非 nullptr
     // Java 中 FluidStatus.at() 返回空气方块状态
-    return VanillaBlocks::AIR ? &VanillaBlocks::AIR->defaultState() : nullptr;
+    return VanillaBlocks::getState(VanillaBlocks::AIR);
 }
 
 // ============================================================================
@@ -265,7 +265,8 @@ const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i3
         if (blockY < aquifer1.fluidLevel) {
             return aquifer1.fluidType;
         }
-        return nullptr; // 空气
+        // MC 1.21: 海平面以上返回空气 BlockState
+        return VanillaBlocks::getState(VanillaBlocks::AIR);
     }
 
     // MC 1.21: 水在熔岩上方时触发流体更新
@@ -574,7 +575,7 @@ FluidPicker createNetherFluidPicker()
 FluidPicker createEndFluidPicker()
 {
     // MC 1.21: End 没有流体，FluidStatus 返回空气方块状态
-    const BlockState* airState = VanillaBlocks::AIR ? &VanillaBlocks::AIR->defaultState() : nullptr;
+    const BlockState* airState = VanillaBlocks::getState(VanillaBlocks::AIR);
     return [airState](i32, i32, i32) -> FluidStatus { return {std::numeric_limits<i32>::min(), airState}; };
 }
 

@@ -170,8 +170,9 @@ f64 BlendedNoise::compute(i32 blockX, i32 blockY, i32 blockZ) const
         d11 /= 2.0;
     }
 
-    // 插值因子 d16 = clamp((mainResult/10 + 1) / 2, 0, 1)
-    const f64 d16 = std::clamp((d10 / 10.0 + 1.0) / 2.0, 0.0, 1.0);
+    // MC 1.21: 插值因子 d16 = (mainResult/10 + 1) / 2，不做预裁剪
+    // MC 原版不预裁剪 d16，clampedLerp 内部处理越界情况
+    const f64 d16 = (d10 / 10.0 + 1.0) / 2.0;
     const bool flag1 = d16 >= 1.0; // 只采样 minLimitNoise
     const bool flag2 = d16 <= 0.0; // 只采样 maxLimitNoise
 
@@ -204,12 +205,14 @@ f64 BlendedNoise::compute(i32 blockX, i32 blockY, i32 blockZ) const
     }
 
     // ---- 最终结果 ----
-    // clampedLerp(d16, minResult/512, maxResult/512) / 128
+    // MC 1.21: clampedLerp(d16, minResult/512, maxResult/512) / 128
+    // clampedLerp(delta, from, to): delta < 0 → from, delta > 1 → to, else lerp
+    // from = d8/512 (minLimit), to = d9/512 (maxLimit)
     f64 result;
     if (d16 < 0.0) {
-        result = d9 / 512.0;
-    } else if (d16 > 1.0) {
         result = d8 / 512.0;
+    } else if (d16 > 1.0) {
+        result = d9 / 512.0;
     } else {
         result = d8 / 512.0 + d16 * (d9 / 512.0 - d8 / 512.0);
     }

@@ -382,7 +382,8 @@ void NoiseChunk::updateForY(f64 delta)
     for (auto& interp : m_interpolators) {
         interp->updateForY(delta);
     }
-    ++m_interpolationCounter;
+    // MC 1.21: interpolationCounter 仅在 updateForZ 中递增，不在 updateForY 中递增
+    // CacheOnce 依赖此计数器判断缓存是否有效
 }
 
 void NoiseChunk::updateForX(f64 delta)
@@ -392,15 +393,12 @@ void NoiseChunk::updateForX(f64 delta)
     }
 }
 
-f64 NoiseChunk::updateForZ(f64 delta)
+void NoiseChunk::updateForZ(f64 delta)
 {
-    f64 result = 0.0;
     for (auto& interp : m_interpolators) {
-        result = interp->updateForZ(delta);
+        interp->updateForZ(delta);
     }
     ++m_interpolationCounter;
-    m_interpolatedDensity = result;
-    return result;
 }
 
 void NoiseChunk::swapSlices()

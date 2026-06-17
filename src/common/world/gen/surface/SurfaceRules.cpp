@@ -574,7 +574,7 @@ std::unique_ptr<SurfaceRule> overworld()
     const BlockState* coarseDirt = VanillaBlocks::COARSE_DIRT ? &VanillaBlocks::COARSE_DIRT->defaultState() : nullptr;
     const BlockState* podzol = VanillaBlocks::PODZOL ? &VanillaBlocks::PODZOL->defaultState() : nullptr;
     const BlockState* mycelium = VanillaBlocks::MYCELIUM ? &VanillaBlocks::MYCELIUM->defaultState() : nullptr;
-    const BlockState* air = VanillaBlocks::AIR ? &VanillaBlocks::AIR->defaultState() : nullptr;
+    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
     const BlockState* calcite = VanillaBlocks::CALCITE ? &VanillaBlocks::CALCITE->defaultState() : nullptr;
     const BlockState* packedIce = VanillaBlocks::PACKED_ICE ? &VanillaBlocks::PACKED_ICE->defaultState() : nullptr;
     const BlockState* snowBlock = VanillaBlocks::SNOW_BLOCK ? &VanillaBlocks::SNOW_BLOCK->defaultState() : nullptr;
