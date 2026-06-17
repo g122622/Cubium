@@ -106,6 +106,16 @@ bool hasNormalDirection(
     return false;
 }
 
+/**
+ * @brief 注册一个测试用的 Item 并返回引用
+ *
+ * 使用 ResourceLocation("test:xxx") 避免与 vanilla 物品冲突
+ */
+mc::Item& registerTestItem(const mc::ResourceLocation& id)
+{
+    return mc::ItemRegistry::instance().registerItem(id, mc::ItemProperties().maxStackSize(64));
+}
+
 // ============================================================================
 // 回退网格测试：验证完整的6面立方体
 // ============================================================================
@@ -415,6 +425,179 @@ TEST(NormalTransformMathTest, IdentityMatrixPreservesNormals)
     EXPECT_NEAR(normalIn2[0], 1.0, 0.001);
     EXPECT_NEAR(normalIn2[1], 0.0, 0.001);
     EXPECT_NEAR(normalIn2[2], 0.0, 0.001);
+}
+
+// ============================================================================
+// 回退网格6面立方体验证
+// 通过注册真实 Item 但不初始化 ItemModelCache，触发 _buildFallbackMesh 路径
+// _buildFallbackMesh 在 ItemModelCache::getItemModel() 返回 nullptr 时被调用
+// ============================================================================
+
+class FallbackCubeTest : public ::testing::Test {
+protected:
+    static mc::Item* s_testItem;
+
+    static void SetUpTestSuite()
+    {
+        // 注册一个测试物品（不需要 Items::initialize()，只注册一个即可）
+        s_testItem = &registerTestItem(mc::ResourceLocation("test", "fallback_cube_item"));
+    }
+
+    void SetUp() override
+    {
+        // 确保 s_itemTextureAtlas 为 nullptr，使纹理解析路径走空分支
+        ItemMeshBuilder::setItemTextureAtlas(nullptr);
+    }
+
+    void TearDown() override { ItemMeshBuilder::setItemTextureAtlas(nullptr); }
+};
+
+mc::Item* FallbackCubeTest::s_testItem = nullptr;
+
+/**
+ * @brief buildHeldItemMesh 对有真实Item的ItemStack应生成6面回退立方体
+ *
+ * 当 ItemModelCache 未初始化时，getItemModel() 返回 nullptr，
+ * _build3DItemMesh 会调用 _buildFallbackMesh 生成6面立方体。
+ */
+TEST_F(FallbackCubeTest, HeldItemMeshGeneratesSixFaceCube)
+{
+    mc::ItemStack stack(*s_testItem, 1);
+    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui);
+
+    // 6面 × 4顶点 = 24 顶点
+    EXPECT_EQ(vertices.size(), 24u);
+    // 6面 × 6索引 = 36 索引
+    EXPECT_EQ(indices.size(), 36u);
+    // 6个四边形
+    EXPECT_EQ(countQuads(indices), 6u);
+}
+
+/**
+ * @brief 回退立方体包含所有6个法线方向
+ */
+TEST_F(FallbackCubeTest, FallbackCubeHasAllSixNormals)
+{
+    mc::ItemStack stack(*s_testItem, 1);
+    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui);
+
+    ASSERT_FALSE(vertices.empty());
+    ASSERT_FALSE(indices.empty());
+
+    // 验证6个法线方向都存在
+    EXPECT_TRUE(hasNormalDirection(vertices, indices, 0.0f, 0.0f, 1.0f)) << "Missing South (Z+) normal";
+    EXPECT_TRUE(hasNormalDirection(vertices, indices, 0.0f, 0.0f, -1.0f)) << "Missing North (Z-) normal";
+    EXPECT_TRUE(hasNormalDirection(vertices, indices, 1.0f, 0.0f, 0.0f)) << "Missing East (X+) normal";
+    EXPECT_TRUE(hasNormalDirection(vertices, indices, -1.0f, 0.0f, 0.0f)) << "Missing West (X-) normal";
+    EXPECT_TRUE(hasNormalDirection(vertices, indices, 0.0f, 1.0f, 0.0f)) << "Missing Up (Y+) normal";
+    EXPECT_TRUE(hasNormalDirection(vertices, indices, 0.0f, -1.0f, 0.0f)) << "Missing Down (Y-) normal";
+}
+
+/**
+ * @brief 回退立方体恰好有6个唯一法线方向
+ */
+TEST_F(FallbackCubeTest, FallbackCubeHasExactlySixUniqueNormals)
+{
+    mc::ItemStack stack(*s_testItem, 1);
+    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui);
+
+    auto normals = collectUniqueNormals(vertices, indices);
+    EXPECT_EQ(normals.size(), 6u);
+}
+
+/**
+ * @brief 回退立方体顶点位置范围在 [-0.5, 0.5] 内
+ *
+ * _buildFallbackMesh 使用 halfSize = ITEM_SCALE * 16.0 * 0.5 = 0.5
+ * 所以立方体范围是 [-0.5, 0.5]
+ */
+TEST_F(FallbackCubeTest, FallbackCubeVertexPositionsInExpectedRange)
+{
+    mc::ItemStack stack(*s_testItem, 1);
+    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui);
+
+    for (const auto& v : vertices) {
+        EXPECT_GE(v.position.x, -0.51f) << "Vertex X below -0.5";
+        EXPECT_LE(v.position.x, 0.51f) << "Vertex X above 0.5";
+        EXPECT_GE(v.position.y, -0.51f) << "Vertex Y below -0.5";
+        EXPECT_LE(v.position.y, 0.51f) << "Vertex Y above 0.5";
+        EXPECT_GE(v.position.z, -0.51f) << "Vertex Z below -0.5";
+        EXPECT_LE(v.position.z, 0.51f) << "Vertex Z above 0.5";
+    }
+}
+
+/**
+ * @brief 回退立方体每个面的UV坐标覆盖完整纹理范围 [0,1]
+ */
+TEST_F(FallbackCubeTest, FallbackCubeUVsCoverFullTextureRange)
+{
+    mc::ItemStack stack(*s_testItem, 1);
+    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui);
+
+    ASSERT_EQ(vertices.size(), 24u);
+
+    // 检查存在 u=0 和 u=1 的顶点
+    bool hasU0 = false, hasU1 = false, hasV0 = false, hasV1 = false;
+    for (const auto& v : vertices) {
+        if (std::abs(v.texCoord.x - 0.0f) < 0.001f) hasU0 = true;
+        if (std::abs(v.texCoord.x - 1.0f) < 0.001f) hasU1 = true;
+        if (std::abs(v.texCoord.y - 0.0f) < 0.001f) hasV0 = true;
+        if (std::abs(v.texCoord.y - 1.0f) < 0.001f) hasV1 = true;
+    }
+    EXPECT_TRUE(hasU0) << "No vertex with U=0 found";
+    EXPECT_TRUE(hasU1) << "No vertex with U=1 found";
+    EXPECT_TRUE(hasV0) << "No vertex with V=0 found";
+    EXPECT_TRUE(hasV1) << "No vertex with V=1 found";
+}
+
+/**
+ * @brief buildGroundItemMesh 同样能触发回退网格6面立方体
+ */
+TEST_F(FallbackCubeTest, GroundItemMeshGeneratesSixFaceCube)
+{
+    mc::ItemStack stack(*s_testItem, 1);
+    auto [vertices, indices] = ItemMeshBuilder::buildGroundItemMesh(stack, 0.0);
+
+    // 6面 × 4顶点 = 24 顶点
+    EXPECT_EQ(vertices.size(), 24u);
+    // 6面 × 6索引 = 36 索引
+    EXPECT_EQ(indices.size(), 36u);
+
+    // 验证法线方向
+    EXPECT_TRUE(hasNormalDirection(vertices, indices, 0.0f, 0.0f, 1.0f));
+    EXPECT_TRUE(hasNormalDirection(vertices, indices, 0.0f, 0.0f, -1.0f));
+    EXPECT_TRUE(hasNormalDirection(vertices, indices, 1.0f, 0.0f, 0.0f));
+    EXPECT_TRUE(hasNormalDirection(vertices, indices, -1.0f, 0.0f, 0.0f));
+    EXPECT_TRUE(hasNormalDirection(vertices, indices, 0.0f, 1.0f, 0.0f));
+    EXPECT_TRUE(hasNormalDirection(vertices, indices, 0.0f, -1.0f, 0.0f));
+}
+
+// ============================================================================
+// 纹理解析路径测试
+// 验证 ItemTextureAtlas 为 nullptr 时 _buildGeneratedMesh 的安全行为
+// ============================================================================
+
+/**
+ * @brief 当 ItemTextureAtlas 为 nullptr 时，纹理解析路径不会崩溃
+ *
+ * setItemTextureAtlas(nullptr) 后，_buildGeneratedMesh 应安全跳过纹理解析，
+ * 使用默认 UV 坐标或不生成纹理层。
+ */
+TEST(ItemTextureResolutionTest, NullAtlasDoesNotCrashGeneratedMesh)
+{
+    // 确保 atlas 为 nullptr
+    ItemMeshBuilder::setItemTextureAtlas(nullptr);
+
+    // 注册一个测试物品（即使有 atlas 为空，buildHeldItemMesh 仍应正常工作）
+    auto& testItem = registerTestItem(mc::ResourceLocation("test", "null_atlas_item"));
+    mc::ItemStack stack(testItem, 1);
+
+    // 不应崩溃 - 如果 ItemModelCache 未初始化，走回退路径
+    auto [vertices, indices] = ItemMeshBuilder::buildHeldItemMesh(stack, ItemTransformType::Gui);
+
+    // 回退路径应成功生成网格
+    EXPECT_FALSE(vertices.empty());
+    EXPECT_FALSE(indices.empty());
 }
 
 } // namespace
