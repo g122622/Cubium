@@ -84,10 +84,10 @@ Result<FunctionLoader::LoadResult> FunctionLoader::loadFromDataPackRepository(
 
         auto parseResult = parseFunctionContent(id, readResult.value());
         if (parseResult.success()) {
-            auto commands = std::move(parseResult.value());
-            if (!commands.empty()) {
+            auto& parsed = parseResult.value();
+            if (!parsed.commands.empty()) {
                 ResourceLocation loc = ResourceLocation::parse(id);
-                m_manager.registerFunction(loc, std::move(commands));
+                m_manager.registerFunction(loc, std::move(parsed.commands));
                 ++result.successCount;
             } else {
                 // 空函数仍然注册（MC Java 也会注册空函数）
@@ -95,6 +95,7 @@ Result<FunctionLoader::LoadResult> FunctionLoader::loadFromDataPackRepository(
                 m_manager.registerFunction(loc, std::vector<std::string>{});
                 ++result.successCount;
             }
+            result.skippedCount += parsed.skippedMacroCount;
         } else {
             ++result.failedCount;
             result.errors.push_back(id + ": " + parseResult.error().toString());
@@ -107,15 +108,20 @@ Result<FunctionLoader::LoadResult> FunctionLoader::loadFromDataPackRepository(
         callback(total, total, "");
     }
 
-    // 记录宏行跳过数
-    result.skippedCount = 0; // TODO: 如果需要跟踪宏行跳过，可以在 parseFunctionContent 中添加
+    // TODO: 加载函数标签（data/<namespace>/tags/functions/*.json）
+    // 函数标签用于将多个函数分组，例如 minecraft:tick 标签中的函数每 tick 自动执行，
+    // minecraft:load 标签中的函数在重载后首次 tick 执行。
+    // 标签文件的 JSON 格式：{ "values": ["namespace:path", "#namespace:tag"] }
+    // 需要实现标签加载、合并（数据包覆盖/追加）和注册到 FunctionManager.registerTag()。
+    // 参考 MC Java 的 ServerFunctionLibrary.tagLoader / TagLoader 实现逻辑。
 
     return result;
 }
 
-Result<std::vector<std::string>> FunctionLoader::parseFunctionContent(const std::string& id, const std::string& content)
+Result<FunctionLoader::ParseResult> FunctionLoader::parseFunctionContent(
+    const std::string& id, const std::string& content)
 {
-    std::vector<std::string> commands;
+    ParseResult result;
     std::istringstream stream(content);
     std::string line;
     std::vector<std::string> lines;
@@ -169,6 +175,7 @@ Result<std::vector<std::string>> FunctionLoader::parseFunctionContent(const std:
         // 宏行：以 $ 开头 - 当前版本跳过
         if (processedLine[0] == '$') {
             spdlog::warn("Macro function line skipped in function '{}' on line {}: {}", id, i + 1, processedLine);
+            ++result.skippedMacroCount;
             continue;
         }
 
@@ -185,11 +192,11 @@ Result<std::vector<std::string>> FunctionLoader::parseFunctionContent(const std:
         }
 
         if (!processedLine.empty()) {
-            commands.push_back(processedLine);
+            result.commands.push_back(processedLine);
         }
     }
 
-    return commands;
+    return result;
 }
 
 std::string FunctionLoader::pathToFunctionId(const std::string& filePath) const

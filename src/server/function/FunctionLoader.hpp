@@ -43,6 +43,14 @@ public:
     };
 
     /**
+     * @brief 解析结果
+     */
+    struct ParseResult {
+        std::vector<std::string> commands; ///< 解析出的命令列表
+        Size skippedMacroCount = 0;        ///< 跳过的宏函数行数（$ 开头的行）
+    };
+
+    /**
      * @brief 加载进度回调
      * @param current 当前已处理文件数
      * @param total 总文件数
@@ -87,15 +95,18 @@ public:
      */
     [[nodiscard]] std::string pathToFunctionId(const std::string& filePath) const;
 
-private:
     /**
      * @brief 解析 .mcfunction 文件内容
+     *
+     * 公开接口，便于单元测试直接调用。
+     *
      * @param id 函数 ID
      * @param content 文件内容
-     * @return 命令列表（成功）或错误
+     * @return 解析结果（成功）或错误
      */
-    Result<std::vector<std::string>> parseFunctionContent(const std::string& id, const std::string& content);
+    Result<ParseResult> parseFunctionContent(const std::string& id, const std::string& content);
 
+private:
     FunctionManager& m_manager;
     bool m_clearBeforeLoad = true;
 };

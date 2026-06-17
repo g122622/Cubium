@@ -873,6 +873,10 @@ add_executable(mc_tests
     server/bossbar/BossBarTest.cpp
     # 统计系统测试
     server/stats/StatisticsTest.cpp
+    # 函数系统测试
+    server/function/FunctionLoaderTest.cpp
+    server/function/FunctionManagerTest.cpp
+    server/function/TimerQueueTest.cpp
 )
 
 # 娣诲姞鏈嶅姟绔簮鏂囦欢

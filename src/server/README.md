@@ -66,6 +66,11 @@ server/
 │       ├── SeedCommand.hpp/cpp
 │       ├── ListCommand.hpp/cpp
 │       └── HelpCommand.hpp/cpp
+├── function/             # 数据包函数系统
+│   ├── CommandFunction.hpp/cpp  # 命令函数（.mcfunction 解析结果）
+│   ├── FunctionLoader.hpp/cpp   # 函数加载器（从数据包加载）
+│   ├── FunctionManager.hpp/cpp  # 函数管理器（注册、查找、执行）
+│   └── TimerQueue.hpp/cpp       # 函数调度定时器队列（/schedule 命令）
 ├── menu/                 # 容器菜单
 │   ├── CraftingMenu.hpp/cpp   # 工作台菜单
 │   └── InventoryCraftingMenu  # 玩家背包合成
@@ -85,7 +90,7 @@ server/
 
 | 类 | 职责 |
 |---|---|
-| `IServer` | 服务器接口，定义所有管理器的访问方法（含 `dimensionManager()`、`getPlayerWorld(PlayerId)`、`dataPackList()`、`lootTableManager()`）。`m_world` 及单世界访问器（`world()`、`chunkManager()` 等）已移除，世界访问通过维度管理器进行 |
+| `IServer` | 服务器接口，定义所有管理器的访问方法（含 `dimensionManager()`、`getPlayerWorld(PlayerId)`、`dataPackList()`、`lootTableManager()`、`functionManager()`、`functionTimerQueue()`）。`m_world` 及单世界访问器（`world()`、`chunkManager()` 等）已移除，世界访问通过维度管理器进行 |
 | `MinecraftServer` | 抽象基类，实现共享的服务器逻辑（tick 循环、数据包路由、数据包管理）。不再持有 `m_world`、同步管理器和刷怪管理器，这些已下沉到 `ServerDimension` |
 | `IntegratedServer` | 内置服务器，使用 LocalConnection 与客户端通信（单机模式） |
 | `StandaloneServer` | 独立服务器，使用 TCP 网络层（多人模式） |
@@ -203,9 +208,35 @@ TCP 网络通信实现。
 - `/help` - 帮助信息
 - `/execute` - 执行嵌套命令（支持 as、at、positioned、if/unless block 子命令）
 - `/datapack` - 数据包管理（enable/disable/list），通过 `DataPackList` 操作
-- `/reload` - 重新加载数据包内容（战利品表、配方等）
+- `/reload` - 重新加载数据包内容（战利品表、配方、函数等）
+- `/function` - 执行数据包函数
+- `/schedule` - 调度函数延迟执行（function/clear 模式）
 
 命令建议现在直接从命令树生成，参数节点可以挂接自定义建议提供器，因此别名、重定向和未来的动态候选项都能统一走同一条补全路径。
+
+### function/ - 数据包函数系统
+
+管理数据包函数（.mcfunction）的加载、注册、执行和调度。对应 MC Java 的 ServerFunctionManager。
+
+| 类 | 职责 |
+|---|---|
+| `CommandFunction` | 命令函数数据类，持有 ResourceLocation ID 和命令列表 |
+| `FunctionLoader` | 从数据包加载 .mcfunction 文件，解析为 CommandFunction 并注册到 FunctionManager |
+| `FunctionManager` | 函数注册、查找和执行；管理 tick/load 标签函数的自动执行 |
+| `TimerQueue` | 优先队列定时器，调度 /schedule 命令的延迟函数执行 |
+
+**数据流**：
+1. `FunctionLoader` 从 DataPackRepository 读取 .mcfunction 文件
+2. 解析命令行（去注释、去 / 前缀、行连接、跳过宏行）
+3. 通过 `FunctionManager::registerFunction()` 注册
+4. `MinecraftServer::tick()` 每帧调用 `FunctionManager::tick()` 执行 minecraft:tick 标签函数
+5. `/function` 命令直接调用 `FunctionManager::execute()`
+6. `/schedule` 命令通过 `TimerQueue` 调度延迟执行
+
+**已知限制**（与 MC Java 的差异）：
+- 宏函数（$variable 语法）当前跳过并记录警告，需要 CompoundTag 实例化支持
+- 函数标签加载（data/\<namespace\>/tags/functions/\*.json）尚未实现，minecraft:tick 和 minecraft:load 标签需手动注册
+- 调度事件不持久化（重启后丢失）
 
 ### menu/ - 容器菜单
 
@@ -271,6 +302,10 @@ TCP 网络通信实现。
 │  │                  command/ 命令系统                    │    │
 │  │  CommandRegistry │ ServerCommandSource               │    │
 │  └─────────────────────────────────────────────────────┘    │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │                  function/ 函数系统                   │    │
+│  │  FunctionLoader │ FunctionManager │ TimerQueue      │    │
+│  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
          │                                    │
          ▼                                    ▼
@@ -319,10 +354,20 @@ TCP 网络通信实现。
     → ServerDimension::tick() 末 flushPendingUpdates() → BlockUpdatePacket → 追踪该区块的客户端
     ```
 
-5. **区块生成**：
+6. **区块生成**：
    ```
    ServerChunkManager.getChunkAsync() → ServerWorkerPool
    → ChunkGenerateTask 执行 → 回调主线程 → 存入缓存
+   ```
+
+7. **函数系统 tick**：
+   ```
+   MinecraftServer::tick()
+   → FunctionManager::tick()
+       → 首次重载后执行 minecraft:load 标签函数
+       → 每 tick 执行 minecraft:tick 标签函数
+   → TimerQueue::tick()
+       → 收集到期事件 → FunctionManager::execute() 逐行执行
    ```
 
 ## 模块整体职责
@@ -335,6 +380,7 @@ TCP 网络通信实现。
 - **游戏逻辑**：方块交互、挖掘、物品栏、合成
 - **数据同步**：区块、方块更新、实体、光照、天气同步到客户端
 - **命令系统**：服务端命令注册和执行
+- **函数系统**：数据包函数加载、注册、执行和定时调度
 - **网络通信**：TCP 连接管理、数据包处理
 
 ### 输入
