@@ -172,6 +172,11 @@ public:
      * 5. 邻居检查（可选）：如果 checkNeighbors 为 true，
      *    则四个水平邻居不全是水时才冻结（防止深海中心大面积结冰）
      *
+     * LakeFeature 已集成（checkNeighbors=false）。
+     * TODO: 还需要在以下位置集成调用：
+     * - SnowAndFreezeFeature（TopLayerModification 生成阶段，checkNeighbors=false）
+     * - ServerWorld::tickPrecipitation()（下雨时逐 tick 冻结水面，checkNeighbors=true）
+     *
      * @param world 世界接口（用于查询方块状态、流体状态、光照等）
      * @param x 方块 X 坐标
      * @param y 方块 Y 坐标
@@ -191,6 +196,12 @@ public:
      * 2. 高度检查：位置必须在建造高度范围内
      * 3. 光照检查：方块光照必须 < 10
      * 4. 方块检查：该位置的方块必须是空气或已有雪层，且雪层方块能在此处存活
+     *
+     * TODO: 需要在以下位置集成调用：
+     * - SnowAndFreezeFeature（TopLayerModification
+     * 生成阶段，mc:net.minecraft.world.level.levelgen.feature.SnowAndFreezeFeature）
+     * - ServerWorld::tickPrecipitation()（下雨时逐 tick
+     * 放置雪层，mc:net.minecraft.server.level.ServerLevel.tickPrecipitation）
      *
      * @param world 世界接口（用于查询方块状态、光照等）
      * @param x 方块 X 坐标

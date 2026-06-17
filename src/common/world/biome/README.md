@@ -129,3 +129,11 @@ quart 坐标 = 方块坐标 / 4。`getNoiseBiome()` 接收 quart 坐标，`fillB
 - `BiomeTag.hpp/cpp` — 标签类型定义，每个标签对应一组生物群系 ID
 - `BiomeTags.hpp/cpp` — 原版标签常量（`IS_OCEAN`、`IS_RIVER`、`IS_MOUNTAIN` 等）
 - `BiomeTagLoader.hpp/cpp` — 从数据包加载标签定义的加载器
+
+### 10. shouldFreeze/shouldSnow 与 doesWaterFreeze/doesSnowGenerate 的区别
+- `shouldFreeze(world, x, y, z, seaLevel, checkNeighbors)` — 完整实现，需要 IWorld，检查温度、光照、流体类型、邻居水域
+- `shouldSnow(world, x, y, z, seaLevel)` — 完整实现，需要 IWorld，检查降水类型、温度、光照、方块状态
+- `doesWaterFreeze(x, y, z, seaLevel)` — 仅温度判断，不需要 IWorld，适用于生成阶段（无光照/方块状态可用时）
+- `doesSnowGenerate(x, y, z, seaLevel)` — 仅温度判断，不需要 IWorld，适用于 SurfaceRules 等生成阶段
+
+**shouldFreeze/shouldSnow 尚未被 SnowAndFreezeFeature 和 ServerWorld::tickPrecipitation() 集成调用，需要后续补充。**

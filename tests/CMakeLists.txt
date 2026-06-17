@@ -39,6 +39,7 @@ add_executable(mc_tests
     common/test_chunk_generation.cpp
     common/test_chunk_level.cpp
     common/test_biome.cpp
+    common/test_biome_freeze.cpp
     common/test_ore_feature.cpp
     common/test_carver.cpp
     common/test_tree_feature.cpp
