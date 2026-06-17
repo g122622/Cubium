@@ -228,10 +228,13 @@ TEST_F(FunctionLoaderTest, ParseTagJson_SimpleValues)
     ASSERT_TRUE(result.success());
     EXPECT_EQ(result.value().id.toString(), "minecraft:tick");
     EXPECT_FALSE(result.value().replace);
-    EXPECT_EQ(result.value().functionIds.size(), 2u);
-    EXPECT_EQ(result.value().functionIds[0].toString(), "minecraft:game_loop");
-    EXPECT_EQ(result.value().functionIds[1].toString(), "minecraft:another");
-    EXPECT_TRUE(result.value().tagReferences.empty());
+    EXPECT_EQ(result.value().entries.size(), 2u);
+    EXPECT_EQ(result.value().entries[0].id.toString(), "minecraft:game_loop");
+    EXPECT_EQ(result.value().entries[0].type, FunctionLoader::TagEntryType::Function);
+    EXPECT_TRUE(result.value().entries[0].required);
+    EXPECT_EQ(result.value().entries[1].id.toString(), "minecraft:another");
+    EXPECT_EQ(result.value().entries[1].type, FunctionLoader::TagEntryType::Function);
+    EXPECT_TRUE(result.value().entries[1].required);
 }
 
 TEST_F(FunctionLoaderTest, ParseTagJson_TagReference)
@@ -240,10 +243,13 @@ TEST_F(FunctionLoaderTest, ParseTagJson_TagReference)
     ResourceLocation tagLoc = ResourceLocation::parse("minecraft:tick");
     auto result = loader.parseTagJson(tagLoc, R"({"values": ["#minecraft:load", "minecraft:game_loop"]})");
     ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value().functionIds.size(), 1u);
-    EXPECT_EQ(result.value().functionIds[0].toString(), "minecraft:game_loop");
-    EXPECT_EQ(result.value().tagReferences.size(), 1u);
-    EXPECT_EQ(result.value().tagReferences[0].toString(), "minecraft:load");
+    EXPECT_EQ(result.value().entries.size(), 2u);
+    EXPECT_EQ(result.value().entries[0].id.toString(), "minecraft:load");
+    EXPECT_EQ(result.value().entries[0].type, FunctionLoader::TagEntryType::Tag);
+    EXPECT_TRUE(result.value().entries[0].required);
+    EXPECT_EQ(result.value().entries[1].id.toString(), "minecraft:game_loop");
+    EXPECT_EQ(result.value().entries[1].type, FunctionLoader::TagEntryType::Function);
+    EXPECT_TRUE(result.value().entries[1].required);
 }
 
 TEST_F(FunctionLoaderTest, ParseTagJson_ReplaceTrue)
@@ -253,7 +259,7 @@ TEST_F(FunctionLoaderTest, ParseTagJson_ReplaceTrue)
     auto result = loader.parseTagJson(tagLoc, R"({"replace": true, "values": ["minecraft:new_func"]})");
     ASSERT_TRUE(result.success());
     EXPECT_TRUE(result.value().replace);
-    EXPECT_EQ(result.value().functionIds.size(), 1u);
+    EXPECT_EQ(result.value().entries.size(), 1u);
 }
 
 TEST_F(FunctionLoaderTest, ParseTagJson_ReplaceFalse)
@@ -271,8 +277,7 @@ TEST_F(FunctionLoaderTest, ParseTagJson_EmptyValues)
     ResourceLocation tagLoc = ResourceLocation::parse("minecraft:empty_tag");
     auto result = loader.parseTagJson(tagLoc, R"({"values": []})");
     ASSERT_TRUE(result.success());
-    EXPECT_TRUE(result.value().functionIds.empty());
-    EXPECT_TRUE(result.value().tagReferences.empty());
+    EXPECT_TRUE(result.value().entries.empty());
 }
 
 TEST_F(FunctionLoaderTest, ParseTagJson_MissingValuesArray)
@@ -297,22 +302,95 @@ TEST_F(FunctionLoaderTest, ParseTagJson_OnlyTagReferences)
     ResourceLocation tagLoc = ResourceLocation::parse("minecraft:combined_tag");
     auto result = loader.parseTagJson(tagLoc, R"({"values": ["#minecraft:tick", "#minecraft:load"]})");
     ASSERT_TRUE(result.success());
-    EXPECT_TRUE(result.value().functionIds.empty());
-    EXPECT_EQ(result.value().tagReferences.size(), 2u);
-    EXPECT_EQ(result.value().tagReferences[0].toString(), "minecraft:tick");
-    EXPECT_EQ(result.value().tagReferences[1].toString(), "minecraft:load");
+    EXPECT_EQ(result.value().entries.size(), 2u);
+    EXPECT_EQ(result.value().entries[0].id.toString(), "minecraft:tick");
+    EXPECT_EQ(result.value().entries[0].type, FunctionLoader::TagEntryType::Tag);
+    EXPECT_EQ(result.value().entries[1].id.toString(), "minecraft:load");
+    EXPECT_EQ(result.value().entries[1].type, FunctionLoader::TagEntryType::Tag);
+}
+
+TEST_F(FunctionLoaderTest, ParseTagJson_ObjectEntryWithRequiredFalse)
+{
+    FunctionLoader loader(manager);
+    ResourceLocation tagLoc = ResourceLocation::parse("minecraft:optional_tag");
+    auto result = loader.parseTagJson(
+        tagLoc, R"({"values": ["minecraft:required_func", {"id": "minecraft:optional_func", "required": false}]})");
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value().entries.size(), 2u);
+    // 第一个条目：字符串格式，默认 required=true
+    EXPECT_EQ(result.value().entries[0].id.toString(), "minecraft:required_func");
+    EXPECT_EQ(result.value().entries[0].type, FunctionLoader::TagEntryType::Function);
+    EXPECT_TRUE(result.value().entries[0].required);
+    // 第二个条目：对象格式，required=false
+    EXPECT_EQ(result.value().entries[1].id.toString(), "minecraft:optional_func");
+    EXPECT_EQ(result.value().entries[1].type, FunctionLoader::TagEntryType::Function);
+    EXPECT_FALSE(result.value().entries[1].required);
+}
+
+TEST_F(FunctionLoaderTest, ParseTagJson_ObjectEntryWithTagReference)
+{
+    FunctionLoader loader(manager);
+    ResourceLocation tagLoc = ResourceLocation::parse("minecraft:mixed_tag");
+    auto result = loader.parseTagJson(tagLoc,
+        R"({"values": ["minecraft:func1", "#minecraft:tick", {"id": "#minecraft:load", "required": false}, {"id": "minecraft:func2", "required": true}]})");
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value().entries.size(), 4u);
+    // "minecraft:func1" - 字符串格式，函数引用，required=true
+    EXPECT_EQ(result.value().entries[0].id.toString(), "minecraft:func1");
+    EXPECT_EQ(result.value().entries[0].type, FunctionLoader::TagEntryType::Function);
+    EXPECT_TRUE(result.value().entries[0].required);
+    // "#minecraft:tick" - 字符串格式，标签引用，required=true
+    EXPECT_EQ(result.value().entries[1].id.toString(), "minecraft:tick");
+    EXPECT_EQ(result.value().entries[1].type, FunctionLoader::TagEntryType::Tag);
+    EXPECT_TRUE(result.value().entries[1].required);
+    // {"id": "#minecraft:load", "required": false} - 对象格式，标签引用，required=false
+    EXPECT_EQ(result.value().entries[2].id.toString(), "minecraft:load");
+    EXPECT_EQ(result.value().entries[2].type, FunctionLoader::TagEntryType::Tag);
+    EXPECT_FALSE(result.value().entries[2].required);
+    // {"id": "minecraft:func2", "required": true} - 对象格式，函数引用，required=true
+    EXPECT_EQ(result.value().entries[3].id.toString(), "minecraft:func2");
+    EXPECT_EQ(result.value().entries[3].type, FunctionLoader::TagEntryType::Function);
+    EXPECT_TRUE(result.value().entries[3].required);
+}
+
+TEST_F(FunctionLoaderTest, ParseTagJson_ObjectEntryMissingId)
+{
+    FunctionLoader loader(manager);
+    ResourceLocation tagLoc = ResourceLocation::parse("minecraft:bad_tag");
+    // 对象条目缺少 id 字段，应被跳过
+    auto result = loader.parseTagJson(tagLoc, R"({"values": ["minecraft:valid", {"required": false}]})");
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value().entries.size(), 1u);
+    EXPECT_EQ(result.value().entries[0].id.toString(), "minecraft:valid");
+}
+
+TEST_F(FunctionLoaderTest, ParseTagJson_ObjectEntryDefaultRequired)
+{
+    FunctionLoader loader(manager);
+    ResourceLocation tagLoc = ResourceLocation::parse("minecraft:default_required");
+    // 对象格式不指定 required 时默认为 true
+    auto result = loader.parseTagJson(tagLoc, R"({"values": [{"id": "minecraft:func"}]})");
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value().entries.size(), 1u);
+    EXPECT_EQ(result.value().entries[0].id.toString(), "minecraft:func");
+    EXPECT_TRUE(result.value().entries[0].required);
 }
 
 TEST_F(FunctionLoaderTest, ParseTagJson_NonStringValuesIgnored)
 {
     FunctionLoader loader(manager);
     ResourceLocation tagLoc = ResourceLocation::parse("minecraft:tag_with_bad_values");
-    // 数值和布尔值被跳过，对象格式暂时也不支持
-    auto result =
-        loader.parseTagJson(tagLoc, R"({"values": ["minecraft:valid", 42, true, {"id": "minecraft:optional"}]})");
+    // 数值和布尔值被跳过，对象格式现在被正确解析
+    auto result = loader.parseTagJson(
+        tagLoc, R"({"values": ["minecraft:valid", 42, true, {"id": "minecraft:optional", "required": false}]})");
     ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value().functionIds.size(), 1u);
-    EXPECT_EQ(result.value().functionIds[0].toString(), "minecraft:valid");
+    EXPECT_EQ(result.value().entries.size(), 2u);
+    EXPECT_EQ(result.value().entries[0].id.toString(), "minecraft:valid");
+    EXPECT_EQ(result.value().entries[0].type, FunctionLoader::TagEntryType::Function);
+    EXPECT_TRUE(result.value().entries[0].required);
+    EXPECT_EQ(result.value().entries[1].id.toString(), "minecraft:optional");
+    EXPECT_EQ(result.value().entries[1].type, FunctionLoader::TagEntryType::Function);
+    EXPECT_FALSE(result.value().entries[1].required);
 }
 
 // ========== FunctionManager 标签测试 ==========

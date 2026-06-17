@@ -70,16 +70,20 @@ static std::optional<BiomeId> resolveBiomeId(const std::string& biomeName)
 /**
  * @brief 解析标签值列表中的单个条目
  *
- * 支持两种格式：
+ * 支持三种格式：
  * - 直接生物群系名称: "minecraft:desert"
  * - 标签引用: "#minecraft:is_jungle"（解析引用标签中的所有生物群系）
+ * - 对象格式: {"id":"minecraft:desert","required":false}（由上层解析后调用此方法）
  *
- * @param entry 值条目字符串
+ * @param entry 值条目字符串（如 "minecraft:desert" 或 "#minecraft:is_jungle"）
+ * @param required 是否必须存在（required=true 时缺失条目会输出警告，required=false 时静默跳过）
  * @param biomeIds 输出参数：收集的 BiomeId 集合
  * @param visitedTags 已访问的标签集合（防止循环引用）
  */
-static void resolveTagEntry(
-    const std::string& entry, std::vector<BiomeId>& biomeIds, std::unordered_set<ResourceLocation>& visitedTags)
+static void resolveTagEntry(const std::string& entry,
+    bool required,
+    std::vector<BiomeId>& biomeIds,
+    std::unordered_set<ResourceLocation>& visitedTags)
 {
     if (entry.empty()) {
         return;
@@ -92,7 +96,9 @@ static void resolveTagEntry(
 
         // 防止循环引用
         if (visitedTags.count(tagLocation) > 0) {
-            spdlog::warn("BiomeTagLoader: 循环标签引用 '{}', 跳过", entry);
+            if (required) {
+                spdlog::warn("BiomeTagLoader: 循环标签引用 '{}' (required), 跳过", entry);
+            }
             return;
         }
         visitedTags.insert(tagLocation);
@@ -104,7 +110,10 @@ static void resolveTagEntry(
                 biomeIds.push_back(id);
             }
         } else {
-            spdlog::warn("BiomeTagLoader: 引用的标签 '{}' 未找到, 跳过", entry);
+            if (required) {
+                spdlog::warn("BiomeTagLoader: 引用的标签 '{}' 未找到 (required), 跳过", entry);
+            }
+            // required=false 时静默跳过
         }
     } else {
         // 直接生物群系名称
@@ -112,7 +121,10 @@ static void resolveTagEntry(
         if (biomeId.has_value()) {
             biomeIds.push_back(biomeId.value());
         } else {
-            spdlog::warn("BiomeTagLoader: 未知的生物群系 '{}', 跳过", entry);
+            if (required) {
+                spdlog::warn("BiomeTagLoader: 未知的生物群系 '{}' (required), 跳过", entry);
+            }
+            // required=false 时静默跳过
         }
     }
 }
@@ -273,13 +285,35 @@ Result<std::unique_ptr<BiomeTag>> BiomeTagLoader::loadFromJson(
         visitedTags.insert(location); // 防止自引用
 
         for (const auto& value : jsonObj["values"]) {
-            if (!value.is_string()) {
-                spdlog::warn("BiomeTagLoader: 标签 '{}' 中的值不是字符串, 跳过", location.toString());
-                continue;
-            }
+            if (value.is_string()) {
+                // 字符串格式: "minecraft:desert" 或 "#minecraft:is_jungle"
+                // 字符串格式默认 required=true
+                std::string entry = value.get<std::string>();
+                resolveTagEntry(entry, true, biomeIds, visitedTags);
+            } else if (value.is_object()) {
+                // 对象格式: {"id":"minecraft:desert","required":false}
+                // 对应 MC Java 的 TagEntry 对象格式，支持 required 语义
+                if (!value.contains("id") || !value["id"].is_string()) {
+                    spdlog::warn("BiomeTagLoader: 标签 '{}' 中的对象格式条目缺少 'id' 字段, 跳过", location.toString());
+                    continue;
+                }
 
-            std::string entry = value.get<std::string>();
-            resolveTagEntry(entry, biomeIds, visitedTags);
+                std::string id = value["id"].get<std::string>();
+                if (id.empty()) {
+                    spdlog::warn("BiomeTagLoader: 标签 '{}' 中的对象格式条目 'id' 为空, 跳过", location.toString());
+                    continue;
+                }
+
+                // 解析 required 字段（可选，默认 true）
+                bool required = true;
+                if (value.contains("required") && value["required"].is_boolean()) {
+                    required = value["required"].get<bool>();
+                }
+
+                resolveTagEntry(id, required, biomeIds, visitedTags);
+            } else {
+                spdlog::warn("BiomeTagLoader: 标签 '{}' 中的值不是字符串或对象, 跳过", location.toString());
+            }
         }
 
         if (replace) {

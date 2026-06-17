@@ -66,16 +66,53 @@ public:
     };
 
     /**
+     * @brief 标签条目类型
+     */
+    enum class TagEntryType : u8 {
+        Function, ///< 直接引用函数
+        Tag,      ///< 引用另一个标签（# 前缀）
+    };
+
+    /**
+     * @brief 标签条目
+     *
+     * 表示 values 数组中的一个条目，可以是直接函数引用或标签引用。
+     * 对应 MC Java 的 TagEntry，支持 required 语义：
+     * - required=true（默认）：引用的目标必须存在，不存在时标签构建失败
+     * - required=false：引用的目标不存在时静默跳过
+     */
+    struct TagEntry {
+        ResourceLocation id;  ///< 条目 ID
+        TagEntryType type;    ///< 条目类型（函数或标签引用）
+        bool required = true; ///< 是否必须存在（默认 true）
+
+        /**
+         * @brief 便捷构造：函数引用条目
+         */
+        static TagEntry functionEntry(ResourceLocation id, bool required = true)
+        {
+            return {std::move(id), TagEntryType::Function, required};
+        }
+
+        /**
+         * @brief 便捷构造：标签引用条目
+         */
+        static TagEntry tagEntry(ResourceLocation id, bool required = true)
+        {
+            return {std::move(id), TagEntryType::Tag, required};
+        }
+    };
+
+    /**
      * @brief 标签解析结果
      *
      * 从 JSON 文件解析出的函数标签数据，包含标签 ID、
-     * 直接引用的函数 ID 列表和引用的其他标签 ID 列表。
+     * 条目列表和替换标志。
      */
     struct TagData {
-        ResourceLocation id;                         ///< 标签 ID
-        bool replace = false;                        ///< 是否替换已有标签内容
-        std::vector<ResourceLocation> functionIds;   ///< 直接引用的函数 ID
-        std::vector<ResourceLocation> tagReferences; ///< 引用的其他标签 ID（# 前缀）
+        ResourceLocation id;           ///< 标签 ID
+        bool replace = false;          ///< 是否替换已有标签内容
+        std::vector<TagEntry> entries; ///< 条目列表（函数引用和标签引用统一存储）
     };
 
     /**
@@ -178,12 +215,10 @@ private:
      * @brief 解析标签值条目
      *
      * @param entry 值条目字符串（如 "minecraft:foo" 或 "#minecraft:bar"）
-     * @param[out] functionIds 直接引用的函数 ID 列表
-     * @param[out] tagReferences 引用的其他标签 ID 列表
+     * @param required 是否必须存在
+     * @param[out] entries 输出条目列表
      */
-    void resolveTagEntry(const std::string& entry,
-        std::vector<ResourceLocation>& functionIds,
-        std::vector<ResourceLocation>& tagReferences);
+    static void resolveTagEntry(const std::string& entry, bool required, std::vector<TagEntry>& entries);
 };
 
 } // namespace function

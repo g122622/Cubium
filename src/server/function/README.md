@@ -81,13 +81,20 @@ FunctionManager.execute(id, source)
   "replace": false,
   "values": [
     "minecraft:foo/bar",
-    "#minecraft:tick"
+    "#minecraft:tick",
+    {"id": "minecraft:optional_func", "required": false},
+    {"id": "#minecraft:optional_tag", "required": false}
   ]
 }
 ```
 
-- `values`（必需）：条目列表，每个条目为字符串
-- `#` 前缀的条目表示引用另一个标签（如 `#minecraft:tick`）
+- `values`（必需）：条目列表，每个条目可以是字符串或对象
+  - 字符串格式：`"namespace:path"`（直接引用函数）或 `"#namespace:tag"`（引用标签）
+  - 对象格式：`{"id": "namespace:path", "required": true/false}`（支持 required 语义）
+- `required` 语义（对应 MC Java 的 TagEntry）：
+  - `required: true`（默认）：引用的函数/标签必须存在，不存在时输出警告
+  - `required: false`：引用的函数/标签不存在时静默跳过
+  - 字符串格式条目默认 `required: true`
 - `replace`（可选，默认 `false`）：是否替换之前数据包的同名标签内容
 - 文件路径：`data/<namespace>/tags/functions/<path>.json`
 
