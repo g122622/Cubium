@@ -615,6 +615,12 @@ bool ServerPlayer::changeDimension(DimensionId targetDim)
     if (targetDim == DimensionManager::THE_END) {
         // 末地传送：固定出生位置
         targetPos = Teleporter::getEndSpawnPosition();
+
+        // 创建末地出生平台（黑曜石平台和清空空间）
+        ServerDimension* targetDimension = m_server->dimensionManager().getDimension(targetDim);
+        if (targetDimension != nullptr && targetDimension->world() != nullptr) {
+            EndTeleporter::createEndSpawnPlatform(*targetDimension->world());
+        }
     } else {
         // 下界/主世界传送：搜索传送门
         // 获取目标维度的世界

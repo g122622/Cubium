@@ -127,8 +127,8 @@ public:
     /// 创建新传送门时的搜索半径（格）
     static constexpr i32 CREATE_PORTAL_SEARCH_RADIUS = 16;
 
-    /// 末地传送门固定位置
-    /// 玩家出生在方块中心，所以加 0.5
+    /// 末地传送门固定位置（方块顶部中心）
+    /// 对应方块坐标 (100, 49, 0) 的顶部中心
     [[nodiscard]] static Vector3d getEndSpawnPosition() { return Vector3d(100.5, 50.0, 0.5); }
 
 protected:
@@ -200,6 +200,14 @@ private:
  *
  * 处理主世界和末地之间的传送。
  * 坐标无缩放，固定传送到 (100, 49, 0)。
+ *
+ * 末地出口传送门（讲台）结构：
+ * - 中心柱（4格基岩）
+ * - 传送门环（内径 2.5，外径 3.5 的圆环状基岩/末地石结构）
+ * - 4个墙上火把
+ * - 传送门方块填充圆环内部
+ *
+ * 参考: net.minecraft.world.level.levelgen.feature.EndPodiumFeature
  */
 class EndTeleporter : public Teleporter {
 public:
@@ -217,19 +225,24 @@ public:
     // ========== 末地特有方法 ==========
 
     /**
-     * @brief 创建末地返回传送门
+     * @brief 创建末地出口传送门（讲台）
      *
-     * 在末地击败末影龙后创建返回传送门。
+     * 在末地击败末影龙后创建返回主世界的传送门讲台。
+     * 讲台由基岩柱、传送门环和墙上火把组成。
+     * active=true 时放置末地传送门方块（已击败龙），
+     * active=false 时仅放置空气（未击败龙或龙正在重生）。
      *
      * @param world 末地世界
-     * @param pos 创建位置
+     * @param pos 讲台中心底部位置
+     * @param active 是否为激活状态（放置传送门方块）
      */
-    static void createExitPortal(IWorld& world, const BlockPos& pos);
+    static void createExitPortal(IWorld& world, const BlockPos& pos, bool active);
 
     /**
      * @brief 创建末地出生平台
      *
      * 玩家首次进入末地时创建的黑曜石平台。
+     * 在 (100, 48, 0) 放置 5×5 黑曜石，并在上方清除 5×5×4 的空气空间。
      *
      * @param world 末地世界
      */
@@ -237,12 +250,28 @@ public:
 
     /**
      * @brief 获取末地出生位置
+     *
+     * 返回末地出生平台中心上方一格的位置 (100.5, 50.0, 0.5)。
+     * 此位置对应方块 (100, 49, 0) 的顶部中心。
      */
-    [[nodiscard]] static Vector3d getEndSpawnPosition() { return Vector3d(100.0, 49.0, 0.0); }
+    [[nodiscard]] static Vector3d getEndSpawnPosition() { return Vector3d(100.5, 50.0, 0.5); }
+
+    /// 末地出口传送门讲台半径
+    static constexpr i32 PODIUM_RADIUS = 4;
+
+    /// 末地出口传送门中心柱高度
+    static constexpr i32 PODIUM_PILLAR_HEIGHT = 4;
 
 private:
     /**
-     * @brief 放置末地传送门框架
+     * @brief 放置末地传送门框架方块环
+     *
+     * 在要塞末地传送门房间中放置 12 个末地传送门框架方块。
+     * 每个框架方块朝向传送门中心，且均带有末影之眼。
+     * 放置后自动在框架内部 3×3 区域生成末地传送门方块。
+     *
+     * @param world 世界引用
+     * @param center 传送门框架中心（传送门内部 3×3 区域的中心）底部位置
      */
     static void placeEndPortalFrame(IWorld& world, const BlockPos& center);
 };

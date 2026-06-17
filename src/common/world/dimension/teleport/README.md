@@ -28,7 +28,12 @@ PortalSize ←─── NetherTeleporter
 - **PortalSize**: 纯静态工具类，检测黑曜石框架尺寸和点燃传送门
 - **Teleporter**: 抽象基类，定义传送接口和坐标转换
 - **NetherTeleporter**: 主世界 ↔ 下界传送，支持坐标缩放和传送门搜索/创建
-- **EndTeleporter**: 主世界 ↔ 末地传送，固定出生点 (100, 49, 0)
+- **EndTeleporter**: 主世界 ↔ 末地传送，固定出生点 (100.5, 50.0, 0.5)
+
+EndTeleporter 提供以下功能：
+- `createEndSpawnPlatform()`: 创建末地出生黑曜石平台（5×5，Y=48），清空上方 4 层空间
+- `createExitPortal(pos, active)`: 创建末地出口传送门讲台（基岩柱 + 传送门环 + 火把），active 控制是否放置传送门方块
+- `placeEndPortalFrame(center)`: 放置 12 个末影之眼框架 + 3×3 传送门方块（用于要塞传送门房间）
 
 ## 上下游外部依赖关系
 

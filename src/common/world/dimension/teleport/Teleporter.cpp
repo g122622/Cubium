@@ -151,23 +151,17 @@ void Teleporter::placePortalBlocks(IWorld& world, const BlockPos& corner, i32 wi
 
 bool NetherTeleporter::teleport(Entity& entity, DimensionId targetDim)
 {
-    // 传送逻辑：
-    // 1. 获取当前位置
-    // 2. 根据维度缩放计算目标位置
-    // 3. 搜索已存在的传送门
-    // 4. 如果没找到，创建新传送门
-    // 5. 传送实体
-
+    // 下界传送器的完整传送逻辑由 ServerPlayer::changeDimension() 协调，
+    // 因为维度切换需要 ServerDimensionManager 处理区块加载/卸载和数据包发送。
+    // 此方法提供传送门搜索和创建逻辑，供 ServerPlayer 调用。
+    //
+    // 传送流程：
+    // 1. ServerPlayer::onPortalTriggered() 确定目标维度
+    // 2. ServerPlayer::changeDimension() 使用 transformPosition() 计算目标坐标
+    // 3. 调用 findPortal() 搜索已有传送门，或 createPortal() 创建新传送门
+    // 4. 调用 ServerDimensionManager::transferPlayerToDimension() 执行维度切换
     MC_UNUSED(entity);
     MC_UNUSED(targetDim);
-
-    // TODO: 实现完整的传送逻辑
-    // 需要以下基础设施：
-    // 1. Entity::getWorld() 返回 ServerWorld
-    // 2. Entity::setPosition() 和维度切换
-    // 3. ServerWorld::setBlockState() 放置传送门
-    // 4. ServerDimensionManager::transferPlayerToDimension()
-
     return false;
 }
 
@@ -352,14 +346,17 @@ void NetherTeleporter::placeObsidianFrame(IWorld& world, const BlockPos& corner,
 
 bool EndTeleporter::teleport(Entity& entity, DimensionId targetDim)
 {
-    // 传送逻辑：
-    // 1. 主世界 -> 末地: 传送到固定出生点 (100, 49, 0)
-    // 2. 末地 -> 主世界: 返回重生点或床
-
+    // 末地传送器的完整传送逻辑由 ServerPlayer::changeDimension() 协调，
+    // 因为维度切换需要 ServerDimensionManager 处理区块加载/卸载和数据包发送。
+    //
+    // 传送流程：
+    // 1. EndPortalBlock::onEntityCollision() 检测实体进入末地传送门方块
+    // 2. 对于主世界 -> 末地：调用 createEndSpawnPlatform() 创建出生平台，
+    //    传送到固定位置 (100.5, 50.0, 0.5)
+    // 3. 对于末地 -> 主世界：使用玩家的重生点
+    // 4. 调用 ServerDimensionManager::transferPlayerToDimension() 执行维度切换
     MC_UNUSED(entity);
     MC_UNUSED(targetDim);
-
-    // TODO: 实现完整的传送逻辑
     return false;
 }
 
@@ -384,27 +381,123 @@ PortalInfo EndTeleporter::createPortal(IWorld& world, const Vector3d& pos)
     createEndSpawnPlatform(world);
 
     PortalInfo info;
-    info.position = getEndSpawnPosition();
+    info.position = getEndSpawnPosition(); // (100.5, 50.0, 0.5)
     info.yaw = 90.0f;
     info.pitch = 0.0f;
     info.valid = true;
     return info;
 }
 
-void EndTeleporter::createExitPortal(IWorld& world, const BlockPos& pos)
+void EndTeleporter::createExitPortal(IWorld& world, const BlockPos& pos, bool active)
 {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    // TODO: 实现创建末地出口传送门
-    // 在击败末影龙后生成
-    // 需要放置末地传送门框架和末地传送门方块
+    // 创建末地出口传送门讲台
+    // 参考 MC Java EndPodiumFeature.place()
+    //
+    // 讲台结构（以 pos 为中心，Y 方向展开）：
+    // - Y = pos.y - 1（底部层）：内圆基岩（半径 < 2.5），外环末地石（半径 < 3.5）
+    // - Y = pos.y（传送门层）：内圆传送门方块（active）或空气（inactive），外环基岩
+    // - Y > pos.y（上方空间）：全部空气（清除讲台区域内）
+    // - 中心柱：pos 向上 4 格基岩（覆盖传送门层中心）
+    // - 4 个墙上火把：中心柱 Y+2 的四个水平方向
+    //
+    // 常量：
+    // - PODIUM_RADIUS = 4（水平扫描范围）
+    // - PODIUM_PILLAR_HEIGHT = 4（中心柱高度）
+
+    const BlockState* bedrock = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
+    const BlockState* endStone = VanillaBlocks::getState(VanillaBlocks::END_STONE);
+    const BlockState* endPortal = VanillaBlocks::getState(VanillaBlocks::END_PORTAL);
+    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
+    const BlockState* wallTorch = VanillaBlocks::getState(VanillaBlocks::WALL_TORCH);
+
+    if (!bedrock || !endStone || !air) {
+        return;
+    }
+
+    // 传送门方块在激活时才需要
+    if (active && !endPortal) {
+        return;
+    }
+
+    constexpr f64 INNER_RADIUS_SQ = 2.5 * 2.5; // 内圆半径 2.5 的平方
+    constexpr f64 OUTER_RADIUS_SQ = 3.5 * 3.5; // 外圆半径 3.5 的平方
+
+    for (i32 dx = -PODIUM_RADIUS; dx <= PODIUM_RADIUS; ++dx) {
+        for (i32 dz = -PODIUM_RADIUS; dz <= PODIUM_RADIUS; ++dz) {
+            f64 distSq = static_cast<f64>(dx * dx + dz * dz);
+            bool inInner = distSq <= INNER_RADIUS_SQ;
+            bool inOuter = distSq <= OUTER_RADIUS_SQ;
+
+            // Y = pos.y - 1（底部层）
+            BlockPos basePos(pos.x + dx, pos.y - 1, pos.z + dz);
+            if (inInner) {
+                // 内圆：基岩
+                world.setBlockState(basePos, bedrock);
+            } else if (inOuter) {
+                // 外环：末地石
+                world.setBlockState(basePos, endStone);
+            }
+
+            // Y = pos.y（传送门层）
+            if (inInner) {
+                // 内圆：传送门方块（active）或空气（inactive）
+                BlockPos portalPos(pos.x + dx, pos.y, pos.z + dz);
+                if (active) {
+                    world.setBlockState(portalPos, endPortal);
+                } else {
+                    world.setBlockState(portalPos, air);
+                }
+            } else if (inOuter) {
+                // 外环：基岩
+                BlockPos rimPos(pos.x + dx, pos.y, pos.z + dz);
+                world.setBlockState(rimPos, bedrock);
+            }
+
+            // Y > pos.y（清除上方空间，只清除外环范围内的）
+            if (inOuter) {
+                for (i32 dy = 1; dy <= PODIUM_PILLAR_HEIGHT; ++dy) {
+                    BlockPos clearPos(pos.x + dx, pos.y + dy, pos.z + dz);
+                    world.setBlockState(clearPos, air);
+                }
+            }
+        }
+    }
+
+    // 中心柱：4 格基岩（从 pos.y 到 pos.y+3），覆盖传送门层中心方块
+    for (i32 dy = 0; dy < PODIUM_PILLAR_HEIGHT; ++dy) {
+        BlockPos pillarPos(pos.x, pos.y + dy, pos.z);
+        world.setBlockState(pillarPos, bedrock);
+    }
+
+    // 墙上火把：中心柱 Y+2 的四个水平方向
+    if (wallTorch) {
+        // 火把朝向：朝向外侧，即附着在中心柱上
+        // 北面位置(z-1)的火把朝北，南面位置(z+1)的火把朝南，等等
+        const BlockState* torchNorth = &wallTorch->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+        world.setBlockState(BlockPos(pos.x, pos.y + 2, pos.z - 1), torchNorth);
+
+        const BlockState* torchSouth = &wallTorch->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
+        world.setBlockState(BlockPos(pos.x, pos.y + 2, pos.z + 1), torchSouth);
+
+        const BlockState* torchWest = &wallTorch->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West);
+        world.setBlockState(BlockPos(pos.x - 1, pos.y + 2, pos.z), torchWest);
+
+        const BlockState* torchEast = &wallTorch->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
+        world.setBlockState(BlockPos(pos.x + 1, pos.y + 2, pos.z), torchEast);
+    }
 }
 
 void EndTeleporter::createEndSpawnPlatform(IWorld& world)
 {
     // 创建末地出生平台（黑曜石平台）
+    // 参考 MC Java EndPlatformFeature.createEndPlatform()
+    //
     // 出生点 (100, 50, 0)，平台在 y = 48（spawnY - 2）
-    // 清空空间 y = 49, 50, 51（spawnY - 1 到 spawnY + 1）
+    // 清空空间 y = 49, 50, 51, 52（spawnY - 1 到 spawnY + 2，共 4 层）
+    //
+    // MC Java 中传入的位置是 BlockPos(100, 49, 0)（即 spawnY - 1），
+    // 然后 k==-1 时放黑曜石，k==0,1,2,3 时放空气。
+    // 对应到我们的坐标：黑曜石在 Y=48，空气在 Y=49,50,51,52。
 
     // 检查黑曜石方块是否已注册
     if (VanillaBlocks::OBSIDIAN == nullptr) {
@@ -427,10 +520,10 @@ void EndTeleporter::createEndSpawnPlatform(IWorld& world)
         }
     }
 
-    // 清空上方空间 (y = 49, 50, 51)
+    // 清空上方空间 (y = 49, 50, 51, 52，共 4 层)
     for (i32 x = -2; x <= 2; ++x) {
         for (i32 z = -2; z <= 2; ++z) {
-            for (i32 y = SPAWN_Y - 1; y <= SPAWN_Y + 1; ++y) {
+            for (i32 y = SPAWN_Y - 1; y <= SPAWN_Y + 2; ++y) {
                 BlockPos pos(SPAWN_X + x, y, SPAWN_Z + z);
                 world.setBlockState(pos, nullptr);
             }
@@ -440,10 +533,68 @@ void EndTeleporter::createEndSpawnPlatform(IWorld& world)
 
 void EndTeleporter::placeEndPortalFrame(IWorld& world, const BlockPos& center)
 {
-    MC_UNUSED(world);
-    MC_UNUSED(center);
-    // TODO: 实现放置末地传送门框架
-    // 需要放置末地传送门框架方块（EndPortalFrameBlock）
+    // 放置末地传送门框架方块环
+    // 参考 MC Java EndPortalFrameBlock.getOrCreatePortalShape() 中的图案定义
+    //
+    // 传送门框架图案（5×5，从上往下看）：
+    //   ? v v v ?      v = 框架朝南（North 端的框架朝南指向中心）
+    //   > ? ? ? <      > = 框架朝西（左侧框架朝西指向中心）
+    //   > ? ? ? <      < = 框架朝东（右侧框架朝东指向中心）
+    //   > ? ? ? <      ? = 任意方块（角落，不放框架）
+    //   ? ^ ^ ^ ?      ^ = 框架朝北（South 端的框架朝北指向中心）
+    //
+    // 每个框架方块都带有末影之眼（EYE=true），框架朝向传送门中心。
+    // 框架放置后，在内部 3×3 区域填充末地传送门方块。
+    //
+    // center 参数表示传送门内部 3×3 区域的中心底部位置，
+    // 框架放置在 center 周围的一圈上。
+
+    if (VanillaBlocks::END_PORTAL_FRAME == nullptr || VanillaBlocks::END_PORTAL == nullptr) {
+        return;
+    }
+
+    const BlockState* frameState = &VanillaBlocks::END_PORTAL_FRAME->defaultState();
+    const BlockState* portalState = &VanillaBlocks::END_PORTAL->defaultState();
+
+    // 北边（z = center.z - 1）：3 个框架，朝南
+    const BlockState* frameSouth = &frameState->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
+                                        .with(BlockStateProperties::EYE(), true);
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        BlockPos pos(center.x + dx, center.y, center.z - 1);
+        world.setBlockState(pos, frameSouth);
+    }
+
+    // 南边（z = center.z + 1）：3 个框架，朝北
+    const BlockState* frameNorth = &frameState->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+                                        .with(BlockStateProperties::EYE(), true);
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        BlockPos pos(center.x + dx, center.y, center.z + 1);
+        world.setBlockState(pos, frameNorth);
+    }
+
+    // 西边（x = center.x - 1）：3 个框架，朝东
+    const BlockState* frameEast = &frameState->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
+                                       .with(BlockStateProperties::EYE(), true);
+    for (i32 dz = -1; dz <= 1; ++dz) {
+        BlockPos pos(center.x - 1, center.y, center.z + dz);
+        world.setBlockState(pos, frameEast);
+    }
+
+    // 东边（x = center.x + 1）：3 个框架，朝西
+    const BlockState* frameWest = &frameState->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West)
+                                       .with(BlockStateProperties::EYE(), true);
+    for (i32 dz = -1; dz <= 1; ++dz) {
+        BlockPos pos(center.x + 1, center.y, center.z + dz);
+        world.setBlockState(pos, frameWest);
+    }
+
+    // 内部 3×3 区域放置末地传送门方块
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        for (i32 dz = -1; dz <= 1; ++dz) {
+            BlockPos pos(center.x + dx, center.y, center.z + dz);
+            world.setBlockState(pos, portalState);
+        }
+    }
 }
 
 } // namespace mc
