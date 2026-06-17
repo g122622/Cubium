@@ -27,6 +27,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/nbt/Nbt.hpp"
 
 #include <limits>
@@ -209,6 +210,53 @@ public:
     void setDx(f32 dx) { m_dx = dx; }
     void setDy(f32 dy) { m_dy = dy; }
     void setDz(f32 dz) { m_dz = dz; }
+
+    /**
+     * @brief 判断是否存在体积过滤条件（dx/dy/dz）。
+     */
+    [[nodiscard]] bool hasVolume() const noexcept { return hasDx() || hasDy() || hasDz(); }
+
+    /**
+     * @brief 根据 dx/dy/dz 参数构造选择器的相对 AABB。
+     *
+     * 遵循 MC 原版 EntitySelectorParser.createAabb 逻辑：
+     * - 负值 delta 赋给 min 侧，正值 delta 赋给 max 侧
+     * - max 侧额外加 1.0（确保选择体积至少包含 1 格）
+     * - 如果没有任何 dx/dy/dz 但 distance 有最大值，则从最大距离构造立方体
+     *
+     * @return 相对坐标下的 AABB，如果没有体积约束则返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<AxisAlignedBB> createAabb() const
+    {
+        if (hasVolume()) {
+            f32 dx = hasDx() ? getDx() : 0.0f;
+            f32 dy = hasDy() ? getDy() : 0.0f;
+            f32 dz = hasDz() ? getDz() : 0.0f;
+
+            f32 minX = (dx < 0.0f) ? dx : 0.0f;
+            f32 minY = (dy < 0.0f) ? dy : 0.0f;
+            f32 minZ = (dz < 0.0f) ? dz : 0.0f;
+            f32 maxX = (dx < 0.0f) ? 0.0f : dx;
+            f32 maxY = (dy < 0.0f) ? 0.0f : dy;
+            f32 maxZ = (dz < 0.0f) ? 0.0f : dz;
+
+            // MC 原版行为：max 侧额外加 1.0
+            maxX += 1.0f;
+            maxY += 1.0f;
+            maxZ += 1.0f;
+
+            return AxisAlignedBB(minX, minY, minZ, maxX, maxY, maxZ);
+        }
+
+        if (!m_distance.isUnbounded() && m_distance.hasMax()) {
+            // MC 原版行为：当没有 dx/dy/dz 但有 distance 最大值时，
+            // 从最大距离构造立方体 AABB
+            f32 maxDist = m_distance.getMax();
+            return AxisAlignedBB(-maxDist, -maxDist, -maxDist, maxDist + 1.0f, maxDist + 1.0f, maxDist + 1.0f);
+        }
+
+        return std::nullopt;
+    }
 
     [[nodiscard]] EntitySelectorSort sort() const noexcept { return m_sort; }
     void setSort(EntitySelectorSort sort) { m_sort = sort; }
