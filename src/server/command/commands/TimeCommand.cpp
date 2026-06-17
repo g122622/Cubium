@@ -25,6 +25,7 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/TimeArgument.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -106,8 +107,7 @@ void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         return _setTime(ctx);
     });
 
-    auto setArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", IntegerArgumentType::integer(0));
+    auto setArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", TimeArgumentType::time());
     setArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setTime(ctx); });
 
     setValueNode->addChild(dayNode);
@@ -117,8 +117,7 @@ void TimeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     setValueNode->addChild(setArg);
 
     auto addValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
-    auto addArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", IntegerArgumentType::integer(0));
+    auto addArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("value", TimeArgumentType::time());
     addArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addTime(ctx); });
     addValueNode->addChild(addArg);
 

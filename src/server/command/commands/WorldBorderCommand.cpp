@@ -25,6 +25,7 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/TimeArgument.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -47,8 +48,7 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto setNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     auto setSizeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
         "size", FloatArgumentType::floatArg(1.0f, static_cast<f32>(world::border::WorldBorder::MAX_SIZE)));
-    auto setTimeArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", IntegerArgumentType::integer(0));
+    auto setTimeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", TimeArgumentType::time());
     setTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setBorder(ctx); });
     setSizeArg->addChild(setTimeArg);
     // 默认时间为 0（立即）
@@ -86,7 +86,7 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto warningNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("warning");
     auto timeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("time");
     auto warnTimeArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("seconds", IntegerArgumentType::integer(0));
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("seconds", TimeArgumentType::time());
     warnTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setWarningTime(ctx); });
     timeNode->addChild(warnTimeArg);
     warningNode->addChild(timeNode);
@@ -108,8 +108,7 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
     auto addDistArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("distance", FloatArgumentType::floatArg());
-    auto addTimeArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", IntegerArgumentType::integer(0));
+    auto addTimeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", TimeArgumentType::time());
     addTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _addBorder(ctx); });
     addDistArg->addChild(addTimeArg);
     // 默认时间为 0（立即）

@@ -25,6 +25,7 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/FunctionArgument.hpp"
+#include "common/command/arguments/TimeArgument.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -61,11 +62,7 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, FunctionArgumentResult>>(
         "function", FunctionArgumentType::functions());
     nameArg->setCustomSuggestions(std::make_shared<FunctionSuggestionProvider>());
-    // TODO: 当前使用 IntegerArgumentType 解析时间（单位为 tick），原版使用 TimeArgument
-    // （支持 "5s"、"1d" 等时间字符串后缀：s=秒、d=天、t=tick，默认为 tick）。
-    // 完整实现需要自定义 TimeArgumentType 类，解析时间字符串并转换为 tick 数。
-    auto timeArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", IntegerArgumentType::integer(1));
+    auto timeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", TimeArgumentType::time());
 
     // append 模式
     auto appendNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("append");

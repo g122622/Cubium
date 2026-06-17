@@ -1733,6 +1733,7 @@ add_executable(mc_command_tests
     common/command/arguments/FunctionArgumentTest.cpp
     common/command/arguments/ItemSlotArgumentTest.cpp
     common/command/arguments/NbtPathTest.cpp
+    common/command/arguments/TimeArgumentTest.cpp
 )
 
 target_sources(mc_command_tests

@@ -14,7 +14,8 @@ src/common/command/arguments/
 ├── ItemArgument.hpp            # 物品参数类型 + ItemInput 包装器
 ├── ItemSlotArgument.hpp        # 物品槽位参数类型 + ItemSlot 索引类
 ├── NbtPath.hpp/.cpp            # NBT 路径类和节点实现
-└── NbtPathArgumentType.hpp/.cpp # NBT 路径/复合标签/标签参数类型
+├── NbtPathArgumentType.hpp/.cpp # NBT 路径/复合标签/标签参数类型
+└── TimeArgument.hpp            # 时间参数类型（支持 s/d/t 后缀，解析为 tick 数）
 ```
 
 ## 内部模块关系
@@ -27,7 +28,8 @@ ArgumentType.hpp (基类模板)
     ├── BlockStateArgument.hpp  → 继承 ArgumentType<BlockStateInput>
     ├── ItemArgument.hpp        → 继承 ArgumentType<ItemInput>
     ├── ItemSlotArgument.hpp    → 继承 ArgumentType<ItemSlot>（槽位名称→索引映射）
-    └── NbtPathArgumentType.hpp → 继承 ArgumentType<NbtPath>
+    ├── NbtPathArgumentType.hpp → 继承 ArgumentType<NbtPath>
+    └── TimeArgument.hpp        → 继承 ArgumentType<i32>（时间字符串→tick 数，支持 s/d/t 后缀）
 
 FunctionArgument.hpp
     └── FunctionArgumentResult  → 解析结果数据类（ResourceLocation + isTag 标志，延迟解析）
@@ -127,3 +129,7 @@ auto enumArg = std::shared_ptr<EnumArgumentType<Color>>(
 ### 10. EntitySelector 体积过滤（createAabb）
 
 `EntitySelector::createAabb()` 按 MC 原版 `EntitySelectorParser.createAabb` 逻辑从 `dx/dy/dz` 构造选择 AABB：负值 delta 赋给 min 侧，正值赋给 max 侧，max 侧额外加 1.0。当无 `dx/dy/dz` 但有 `distance` 最大值时，从最大距离构造立方体 AABB。返回 `std::optional<AxisAlignedBB>`，无体积约束时为 `std::nullopt`。EntityResolver 中的体积过滤使用 `AABB.intersects(entity.boundingBox())` 进行碰撞箱相交检查，而非位置点包含检查——两者在实体体积较大或跨越选择边界时行为不同。
+
+### 11. TimeArgumentType 单位映射
+
+`TimeArgumentType` 解析数字加可选后缀并转换为 tick 数。单位映射表：`"d"` → 24000（天）、`"s"` → 20（秒）、`"t"` → 1（tick）、`""`（无后缀）→ 1（tick）。与 MC Java 版 `TimeArgument` 完全对齐。支持浮点数输入（如 `"1.5d"` → 36000 tick），最终通过 `std::round` 四舍五入为整数。无效后缀抛出 `CommandErrorType::Unknown` 异常；计算结果低于 minimum 抛出 `CommandErrorType::IntegerTooLow` 异常。
