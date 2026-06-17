@@ -77,12 +77,17 @@ BlockPos EndGatewayFeature::calculateTeleportTarget(const BlockPos& currentPos, 
 
 bool EndGatewayFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const
 {
-    // 检查周围是否足够空间
-    // 折跃门需要至少3x3的基岩平台
-
+    // 检查折跃门下方是否有支撑
+    // 结构范围从 pos.y - 2 到 pos.y + 2，底部的基岩需要支撑
+    // 检查中心列下方和十字臂下方的支撑
     for (i32 x = -1; x <= 1; ++x) {
         for (i32 z = -1; z <= 1; ++z) {
-            const BlockState* state = world.getBlockState(pos.x + x, pos.y - 1, pos.z + z);
+            // 只检查十字形位置（中心 + 四个臂），对角不需要支撑
+            if (x != 0 && z != 0) {
+                continue;
+            }
+
+            const BlockState* state = world.getBlockState(pos.x + x, pos.y - 3, pos.z + z);
             if (!state || state->isAir()) {
                 return false;
             }
@@ -96,7 +101,20 @@ void EndGatewayFeature::_generateGateway(WorldGenRegion& world, math::Random& ra
 {
     MC_UNUSED(random);
 
-    // 获取方块状态
+    // 折跃门结构：3x5x3 的基岩框架，中心为折跃门方块
+    // 与 MC Java 的 EndGatewayFeature.place() 一致
+    // 结构以 pos 为中心，范围从 pos + (-1, -2, -1) 到 pos + (1, 2, 1)
+    //
+    // 俯视截面（Y != pos.y 的层，即基岩层）：
+    //   . B .      B = 基岩（十字形：X=0 或 Z=0）
+    //   B B B      . = 空气（四角）
+    //   . B .
+    //
+    // 中心层（Y == pos.y）：
+    //   . . .      G = 末地折跃门方块
+    //   . G .      其余为空气
+    //   . . .
+
     const BlockState* bedrock = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
     const BlockState* endGateway = VanillaBlocks::getState(VanillaBlocks::END_GATEWAY);
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
@@ -105,43 +123,32 @@ void EndGatewayFeature::_generateGateway(WorldGenRegion& world, math::Random& ra
         return;
     }
 
-    // 折跃门结构：
-    // 底层：基岩平台 (5x5)
-    // 中层：基岩墙 + 折跃门方块
-    // 顶层：基岩覆盖
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        for (i32 dy = -2; dy <= 2; ++dy) {
+            for (i32 dz = -1; dz <= 1; ++dz) {
+                BlockPos blockPos(pos.x + dx, pos.y + dy, pos.z + dz);
+                bool sameX = (dx == 0);
+                bool sameY = (dy == 0);
+                bool sameZ = (dz == 0);
+                bool isTopBottomCap = (dy == 2 || dy == -2);
 
-    // 底层基岩平台 (5x5)
-    for (i32 x = -2; x <= 2; ++x) {
-        for (i32 z = -2; z <= 2; ++z) {
-            world.setBlockState(pos.x + x, pos.y, pos.z + z, bedrock);
-        }
-    }
-
-    // 中层：基岩墙 (3x3)
-    for (i32 y = 1; y <= 3; ++y) {
-        // 边缘是基岩
-        for (i32 x = -1; x <= 1; ++x) {
-            world.setBlockState(pos.x + x, pos.y + y, pos.z - 1, bedrock);
-            world.setBlockState(pos.x + x, pos.y + y, pos.z + 1, bedrock);
-        }
-        for (i32 z = -1; z <= 1; ++z) {
-            world.setBlockState(pos.x - 1, pos.y + y, pos.z + z, bedrock);
-            world.setBlockState(pos.x + 1, pos.y + y, pos.z + z, bedrock);
-        }
-    }
-
-    // 中间是空气（除了折跃门方块位置）
-    for (i32 y = 1; y <= 2; ++y) {
-        world.setBlockState(pos.x, pos.y + y, pos.z, air);
-    }
-
-    // 折跃门方块（在中心，Y=3）
-    world.setBlockState(pos.x, pos.y + 3, pos.z, endGateway);
-
-    // 顶层基岩覆盖 (3x3)
-    for (i32 x = -1; x <= 1; ++x) {
-        for (i32 z = -1; z <= 1; ++z) {
-            world.setBlockState(pos.x + x, pos.y + 4, pos.z + z, bedrock);
+                if (sameX && sameY && sameZ) {
+                    // 中心位置：末地折跃门方块
+                    world.setBlockState(blockPos, endGateway);
+                } else if (sameY) {
+                    // 与中心同层但不在中心列：空气（通道）
+                    world.setBlockState(blockPos, air);
+                } else if (isTopBottomCap && sameX && sameZ) {
+                    // 顶/底盖的中心列：基岩
+                    world.setBlockState(blockPos, bedrock);
+                } else if ((sameX || sameZ) && !isTopBottomCap) {
+                    // 侧面十字臂（非顶底盖）：基岩
+                    world.setBlockState(blockPos, bedrock);
+                } else {
+                    // 四角（非中心Y 且非十字臂）：空气
+                    world.setBlockState(blockPos, air);
+                }
+            }
         }
     }
 }
