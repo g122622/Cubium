@@ -596,6 +596,8 @@ add_executable(mc_tests
     client/renderer/trident/entity/layer/effect/EnergyGlintLayerTest.cpp
     # PlayerRenderer 层渲染器测试（HeadLayer、CapeLayer、ElytraLayer）
     client/renderer/entity/test_player_layers.cpp
+    # ItemMeshBuilder 回退网格、法线变换、纹理坐标解析测试
+    client/renderer/trident/item/ItemMeshBuilderTest.cpp
     client/renderer/test_gui_item_color.cpp
     client/resource/test_entity_texture_loader.cpp
     client/resource/ItemTextureAtlasTest.cpp
@@ -1360,6 +1362,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/core/ModelRenderer.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/core/EntityModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/core/AgeableModel.cpp
+        # ItemMeshBuilder 物品网格构建测试
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/item/ItemMeshBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/BipedModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/QuadrupedModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/AnimalModels.cpp

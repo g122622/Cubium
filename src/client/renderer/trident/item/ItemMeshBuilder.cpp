@@ -474,6 +474,11 @@ void ItemMeshBuilder::_buildBlockItemMesh(const resource::BakedItemModel& model,
         return;
     }
 
+    // TODO: 元素旋转（ModelRotation）尚未处理。当 element.rotation.angle != 0 时，
+    // 顶点位置需要绕旋转轴旋转。当前实现仅支持无旋转的元素，对于带旋转的元素
+    // （如活塞臂、楼梯转角等）会渲染不正确。需要参考 MC 的 FaceBakery.bakeQuad()
+    // 实现旋转矩阵应用到元素顶点。
+
     f64 scale = ITEM_SCALE;
 
     for (const auto& element : model.elements) {

@@ -369,6 +369,9 @@ void TridentEngine::destroy()
     m_entityRendererManager.reset();
     m_font.reset();
 
+    // 清除 ItemMeshBuilder 对 ItemTextureAtlas 的静态引用，防止悬垂指针
+    ::mc::client::renderer::entity::item::ItemMeshBuilder::setItemTextureAtlas(nullptr);
+
     m_itemTextureAtlas.destroy();
     m_entityTextureAtlas.destroy();
     m_textureRegions.clear();
