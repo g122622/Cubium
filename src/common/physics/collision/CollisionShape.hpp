@@ -334,6 +334,15 @@ public:
      *
      * 参考: net.minecraft.block.Block#isShapeFullBlock
      *
+     * TODO: 当前扫描线算法对每个 X 区间独立检查 Y 轴和 Z 轴的一维覆盖，
+     * 对于多碰撞箱复杂重叠情形可能产生误判。例如两个碰撞箱：
+     * Box A 覆盖 Y=[0,0.6]×Z=[0.4,1]，Box B 覆盖 Y=[0.4,1]×Z=[0,0.6]，
+     * 在 X 区间内 Y 轴覆盖 [0,1]、Z 轴覆盖 [0,1] 均完整，但 2D 区域
+     * Y=[0,0.4]×Z=[0,0.4] 实际未被覆盖。MC 原版使用 VoxelShape 布尔运算
+     * (Shapes.joinIsNotEmpty) 来精确判断，未来应迁移到 VoxelShape 系统实现。
+     * 目前实际场景中方块碰撞箱很少出现这种对角互补的 L 形重叠，
+     * 绝大多数方块（台阶、楼梯等）的碰撞箱都是规则排列的，此简化足够正确。
+     *
      * @return 如果形状覆盖整个单位方块返回 true
      */
     [[nodiscard]] bool coversFullBlock() const noexcept
@@ -423,8 +432,9 @@ private:
         std::sort(sorted.begin(), sorted.end());
 
         // 合并重叠区间并检查是否覆盖 [0, 1]
-        f32 currentEnd = -1.0f;
-        for (const auto& [start, end] : sorted) {
+        f32 currentEnd = sorted[0].second;
+        for (size_t i = 1; i < sorted.size(); ++i) {
+            const auto& [start, end] = sorted[i];
             if (start > currentEnd + epsilon) {
                 // 存在间隙
                 return false;
@@ -432,7 +442,8 @@ private:
             currentEnd = std::max(currentEnd, end);
         }
 
-        return currentEnd >= 1.0f - epsilon;
+        // 检查是否从 0 开始覆盖到 1
+        return sorted[0].first <= epsilon && currentEnd >= 1.0f - epsilon;
     }
 
     Type m_type = Type::Empty;
