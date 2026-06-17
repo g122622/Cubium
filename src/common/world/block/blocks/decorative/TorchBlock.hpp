@@ -100,6 +100,14 @@ protected:
 
     /// 火焰粒子类型
     client::renderer::trident::particle::ParticleTypeId m_flameParticle;
+
+private:
+    /**
+     * @brief 检查火把是否可以在指定位置存活（IWorld版本）
+     *
+     * 供updatePostPlacement使用，避免IWorld到IBlockReader的向下转型。
+     */
+    [[nodiscard]] bool _canSurvive(IWorld& world, const BlockPos& pos) const;
 };
 
 } // namespace blocks

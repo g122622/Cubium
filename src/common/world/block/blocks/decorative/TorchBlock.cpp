@@ -70,7 +70,7 @@ BlockState TorchBlock::updatePostPlacement(const BlockState& state,
     MC_UNUSED(facingPos);
 
     // 当下方方块变化时，如果不再满足放置条件则变为空气
-    if (facing == Direction::Down && !isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
+    if (facing == Direction::Down && !_canSurvive(world, currentPos)) {
         if (auto* airBlock = VanillaBlocks::AIR) {
             return airBlock->defaultState();
         }
@@ -78,6 +78,18 @@ BlockState TorchBlock::updatePostPlacement(const BlockState& state,
     }
 
     return Block::updatePostPlacement(state, facing, facingState, world, currentPos, facingPos);
+}
+
+bool TorchBlock::_canSurvive(IWorld& world, const BlockPos& pos) const
+{
+    // 下方方块必须有坚固的上表面
+    const BlockPos belowPos = pos.down();
+    const BlockState* belowState = world.getBlockState(belowPos);
+    if (!belowState) {
+        return false;
+    }
+
+    return belowState->isSolidSide(world, belowPos, Direction::Up);
 }
 
 void TorchBlock::animateTick(
