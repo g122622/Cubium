@@ -77,8 +77,10 @@ bool Biome::shouldFreeze(const IWorld& world, i32 x, i32 y, i32 z, i32 seaLevel,
     }
 
     // 方块状态和流体状态检查
+    // 注意：getBlockState 可能返回 nullptr（表示区块未加载或空段，等同于空气）
+    // 只有液体方块才可能冻结，空气/固体方块不会冻结
     const BlockState* blockState = world.getBlockState(x, y, z);
-    if (blockState == nullptr) {
+    if (blockState == nullptr || !blockState->isLiquid()) {
         return false;
     }
 
@@ -87,8 +89,8 @@ bool Biome::shouldFreeze(const IWorld& world, i32 x, i32 y, i32 z, i32 seaLevel,
         return false;
     }
 
-    // 流体必须是水，且方块必须是液体方块（排除含水方块等）
-    if (!fluidState->getFluid().isIn(fluid::FluidTags::WATER()) || !blockState->isLiquid()) {
+    // 流体必须是水（排除岩浆等其他液体）
+    if (!fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
         return false;
     }
 

@@ -117,16 +117,32 @@ TEST_F(TickPrecipitationTest, HighRandomTickSpeedTriggersPrecipitation)
     m_world->getGameRules().setInt(GameRuleKeys::MAX_SNOW_ACCUMULATION_HEIGHT, 8);
 
     // 使用高 randomTickSpeed 以确保触发降水 tick
+    // 遍历多个区块寻找冷水/冷生物群系
+    // 注意：由于生物群系由种子决定，我们无法保证区块(0,0)是冷的，
+    // 因此我们扫描附近多个区块
     bool foundIceOrSnow = false;
-    for (int tick = 0; tick < 10 && !foundIceOrSnow; ++tick) {
+    for (i32 cx = -1; cx <= 1 && !foundIceOrSnow; ++cx) {
+        for (i32 cz = -1; cz <= 1 && !foundIceOrSnow; ++cz) {
+            ensureChunk(cx, cz);
+        }
+    }
+
+    for (int tick = 0; tick < 30 && !foundIceOrSnow; ++tick) {
         m_world->tickPrecipitation(100);
-        for (i32 x = 0; x < 16 && !foundIceOrSnow; ++x) {
-            for (i32 z = 0; z < 16 && !foundIceOrSnow; ++z) {
-                for (i32 y = world::SEA_LEVEL - 5; y <= world::SEA_LEVEL + 5; ++y) {
-                    const BlockState* state = m_world->getBlockState(x + chunk->x() * 16, y, z + chunk->z() * 16);
-                    if (state != nullptr && (state->is(VanillaBlocks::ICE) || state->is(VanillaBlocks::SNOW))) {
-                        foundIceOrSnow = true;
-                        break;
+        // 检查所有已加载区块
+        for (i32 cx = -1; cx <= 1 && !foundIceOrSnow; ++cx) {
+            for (i32 cz = -1; cz <= 1 && !foundIceOrSnow; ++cz) {
+                ChunkData* c = m_world->getChunk(cx, cz);
+                if (c == nullptr) continue;
+                for (i32 x = 0; x < 16 && !foundIceOrSnow; ++x) {
+                    for (i32 z = 0; z < 16 && !foundIceOrSnow; ++z) {
+                        for (i32 y = world::SEA_LEVEL - 5; y <= world::SEA_LEVEL + 5; ++y) {
+                            const BlockState* state = m_world->getBlockState(x + c->x() * 16, y, z + c->z() * 16);
+                            if (state != nullptr && (state->is(VanillaBlocks::ICE) || state->is(VanillaBlocks::SNOW))) {
+                                foundIceOrSnow = true;
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -135,7 +151,7 @@ TEST_F(TickPrecipitationTest, HighRandomTickSpeedTriggersPrecipitation)
     if (foundIceOrSnow) {
         SUCCEED();
     } else {
-        GTEST_SKIP() << "Generated biome was not cold enough for precipitation effects";
+        GTEST_SKIP() << "Generated biomes were not cold enough for precipitation effects";
     }
 }
 

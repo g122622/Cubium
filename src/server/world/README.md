@@ -138,7 +138,19 @@ level.dat (SpawnAngle 字段)
 区块加载后光照未初始化会导致客户端显示错误。设置 `ChunkLoadedCallback` 在区块加载完成后初始化光照。
 
 ### 未初始化世界调用 setBlockState
-在未调用 `initialize()` 的 `ServerWorld` 上调用 `setBlockState()` 会在光照更新阶段触发断言。**所有测试必须先初始化世界**。
+在未调用 `initialize()` 的 `ServerWorld` 上调用 `setBlockState()` 会在光照更新阶段触发断言。**所有需要光照的测试必须先初始化世界**。不需要光照的测试（如 `tickPrecipitation`）可以直接调用，因为 `tickPrecipitation()` 仅依赖 `m_chunkManager` 和 `m_weatherManager`，无需 `initialize()`。
+
+### tickPrecipitation 降水 tick 系统
+
+`ServerWorld::tickPrecipitation()` 实现了 MC 的冰/雪运行时形成逻辑（对应 MC 的 `ServerLevel.tickIceAndSnow()`）：
+
+- **冰形成**：不受天气状态影响，低温生物群系中水面自动结冰。使用 `Biome::shouldFreeze(world, x, y, z, seaLevel, true)` 检查温度、光照、流体类型和邻居水域暴露。
+- **降雪**：仅在下雨时执行（`WeatherManager::isRaining()`），且 `MAX_SNOW_ACCUMULATION_HEIGHT` > 0 时才放置雪层。使用 `Biome::shouldSnow()` 检查温度、光照、空气/已有雪层和下方支撑。
+- **概率**：每个 `randomTickSpeed` 迭代以 1/48 概率触发降水 tick，与 MC 的随机 tick 概率一致。
+- **高度图**：使用 `MOTION_BLOCKING` 高度图确定表面 Y 坐标。冰检查位置是 `topY`（水面/地面），雪检查位置是 `topY + 1`（上方空气）。
+- **实体推出**：雪层增加时调用 `Block::pushEntitiesUp()` 将嵌入方块的实体向上推出，防止实体卡入方块。
+- **SNOWY 属性**：放置新雪层时，更新下方方块的 SNOWY 属性（草方块、菌丝等）。
+- **handlePrecipitation**：TODO - 尚未实现 `Block::handlePrecipitation` 系统（炼药锅填充等）。
 
 ### ServerWorld 不再默认自建 ChunkManager
 `ServerWorld` 必须由外部注入 `ServerChunkManager`，再调用 `initialize()`。主调者通过 `ServerDimensionManager` 或测试装配 helper 显式创建。

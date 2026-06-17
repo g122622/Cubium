@@ -57,6 +57,7 @@ GameRules.hpp (容器类)
   - `entity/entities/player/Player` - 玩家自然回血检查 naturalRegeneration
   - `entity/inventory/IRecipeHolder` - 限制合成检查 doLimitedCrafting
 - **方块行为** - `block/blocks/mob/TurtleEggBlock` 检查 mobGriefing
+- **降水系统** - `server/world/ServerWorld::tickPrecipitation()` 检查 snowAccumulationHeight
 
 ## 容易踩的坑
 
@@ -71,3 +72,9 @@ GameRules.hpp (容器类)
 5. **整数规则无范围校验**：`IntegerGameRuleValue` 的 `fromString()` 只做 `std::stoi` 解析，不做值域校验，负数或超大值都可能被接受。
 
 6. **模板特化在 cpp 中**：`GameRuleValue<bool>` 和 `GameRuleValue<i32>` 的 `toString()`/`fromString()` 特化在 `GameRule.cpp` 中实现，链接时需要确保该编译单元被正确链接。
+
+7. **snowAccumulationHeight 雪层积累规则**：`MAX_SNOW_ACCUMULATION_HEIGHT`（MC Java 对应 `snowAccumulationHeight`）是整数规则，控制雪层的最大堆积层数。值为 0 时不允许雪层放置，值为 1-8 时限制雪层的最大层数（SnowBlock 的 LAYERS 属性范围 1-8）。此规则影响：
+   - `ServerWorld::tickPrecipitation()`：降雪时检查此规则决定是否放置雪层以及最大层数
+   - `Biome::shouldSnow()`：仅检查温度/光照/支撑等条件，不检查此规则
+   - 默认值为 1（与 MC Java 一致）
+   - 注意：此规则只影响**降雪**时雪层的放置，不影响通过物品手动放置雪层

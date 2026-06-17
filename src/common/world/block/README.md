@@ -418,3 +418,26 @@ CauldronBlock 使用 `LEVEL_0_3` 属性存储水位（0-3），交互操作直�
 **注意**：不要在 `canSustainPlant` 的 `PlantType::Cave` 分支中添加光照检查——光照检查由 `MushroomBlock::isValidPosition()` 独立完成。`canSustainPlant` 只负责判断土壤类型兼容性。
 
 蘑菇注册使用 `blocks::MushroomBlock` 而非 `SimpleBlock`，巨型蘑菇方块使用 `blocks::HugeMushroomBlock`（具有 6 方向布尔属性）。
+
+### 26. Block::pushEntitiesUp 实体推出
+
+`Block::pushEntitiesUp(oldState, newState, world, pos)` 是一个静态工具方法，当方块碰撞形状增大时将嵌入方块内的实体向上推出。对应 MC Java 的 `Block.pushEntitiesUp()`。
+
+**工作原理**：
+1. 获取新方块状态的碰撞形状，如果为空则直接返回
+2. 计算新形状的世界包围盒，获取旧形状的最大Y
+3. 如果新形状最大Y没有增大（`maxY <= oldMaxY`），不需要推出实体
+4. 使用整体包围盒查找其中的实体
+5. 对每个与新形状相交的实体，计算需要向上推出的距离并移动
+
+**使用场景**：
+- **雪层增加**：`tickPrecipitation()` 中雪层层数增加时调用 `pushEntitiesUp` 推出站在雪上的实体
+- **耕地变泥土**：`FarmlandBlock::turnToDirt()` 中耕地（15/16格高）变为泥土（1格高）时推出实体
+- **其他碰撞形状增大的场景**：任何方块状态变化导致碰撞形状增大的情况
+
+**签名**：`static const BlockState& pushEntitiesUp(const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos)`
+
+**注意**：
+- 方法返回 `newState`，方便链式调用
+- 当前实现使用简化算法（整体包围盒），未来可迁移到 VoxelShape 布尔运算实现更精确的形状差异计算
+- 必须在 `setBlockState` **之前**调用，先推出实体再更新方块状态

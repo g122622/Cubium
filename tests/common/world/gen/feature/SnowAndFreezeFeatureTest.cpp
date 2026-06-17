@@ -35,12 +35,42 @@
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/SnowAndFreezeFeature.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
 
 #include <memory>
 #include <vector>
 
 using namespace mc;
 using namespace mc::world::biome;
+
+// ============================================================================
+// 最小 IChunkGenerator 存根，避免解引用空指针的未定义行为
+// ============================================================================
+
+class StubChunkGenerator : public IChunkGenerator {
+public:
+    void generateStructureStarts(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+    void generateStructureReferences(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+    void generateBiomes(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+    void generateNoise(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+    void buildSurface(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+    void applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+    void placeFeatures(WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/) override {}
+    i32 spawnInitialMobs(
+        WorldGenRegion& /*region*/, ChunkPrimer& /*chunk*/, std::vector<SpawnedEntityData>& /*outEntities*/) override
+    {
+        return 0;
+    }
+    [[nodiscard]] BiomeId getBiome(i32 /*x*/, i32 /*y*/, i32 /*z*/) const override { return Biomes::Plains; }
+    [[nodiscard]] BiomeId getNoiseBiome(i32 /*noiseX*/, i32 /*noiseY*/, i32 /*noiseZ*/) const override
+    {
+        return Biomes::Plains;
+    }
+    [[nodiscard]] i32 getHeight(i32 /*x*/, i32 /*z*/, HeightmapType /*type*/) const override { return 64; }
+    [[nodiscard]] u64 seed() const override { return 0; }
+    [[nodiscard]] const DimensionSettings& settings() const override { return DimensionSettings::overworld(); }
+    [[nodiscard]] i32 seaLevel() const override { return 63; }
+};
 
 // ============================================================================
 // 测试夹具 - 雪和冰冻结特征
@@ -144,6 +174,7 @@ protected:
     std::vector<IChunk*> m_chunks;
     std::vector<std::unique_ptr<ChunkPrimer>> m_ownedChunks;
     std::unique_ptr<WorldGenRegion> m_region;
+    StubChunkGenerator m_stubGenerator;
     math::Random m_random{42};
 };
 
@@ -171,8 +202,7 @@ TEST_F(SnowAndFreezeFeatureTest, FeaturePlaceReturnsTrue)
 
     auto& features = SnowAndFreezeFeatures::getAllFeatures();
     ASSERT_FALSE(features.empty());
-    bool result = features[0]->place(
-        *m_region, centerChunk(), *static_cast<IChunkGenerator*>(nullptr), m_random, BlockPos(0, 0, 0));
+    bool result = features[0]->place(*m_region, centerChunk(), m_stubGenerator, m_random, BlockPos(0, 0, 0));
     EXPECT_TRUE(result);
 }
 
@@ -194,7 +224,7 @@ TEST_F(SnowAndFreezeFeatureTest, FreezesWaterInColdBiome)
     }
 
     auto& features = SnowAndFreezeFeatures::getAllFeatures();
-    features[0]->place(*m_region, centerChunk(), *static_cast<IChunkGenerator*>(nullptr), m_random, BlockPos(0, 0, 0));
+    features[0]->place(*m_region, centerChunk(), m_stubGenerator, m_random, BlockPos(0, 0, 0));
 
     // 检查 y=63 的水是否被替换为冰
     // Water block at y=63 is the topmost motion-blocking block, so freezeY = topY = 63
@@ -221,7 +251,7 @@ TEST_F(SnowAndFreezeFeatureTest, DoesNotFreezeWaterInWarmBiome)
     }
 
     auto& features = SnowAndFreezeFeatures::getAllFeatures();
-    features[0]->place(*m_region, centerChunk(), *static_cast<IChunkGenerator*>(nullptr), m_random, BlockPos(0, 0, 0));
+    features[0]->place(*m_region, centerChunk(), m_stubGenerator, m_random, BlockPos(0, 0, 0));
 
     // y=63 应该仍然是水
     for (i32 x = 0; x < 16; ++x) {
@@ -246,7 +276,7 @@ TEST_F(SnowAndFreezeFeatureTest, DoesNotFreezeStoneInColdBiome)
     }
 
     auto& features = SnowAndFreezeFeatures::getAllFeatures();
-    features[0]->place(*m_region, centerChunk(), *static_cast<IChunkGenerator*>(nullptr), m_random, BlockPos(0, 0, 0));
+    features[0]->place(*m_region, centerChunk(), m_stubGenerator, m_random, BlockPos(0, 0, 0));
 
     // y=63 应该仍然是石头
     for (i32 x = 0; x < 16; ++x) {
@@ -275,7 +305,7 @@ TEST_F(SnowAndFreezeFeatureTest, PlacesSnowInColdBiome)
     }
 
     auto& features = SnowAndFreezeFeatures::getAllFeatures();
-    features[0]->place(*m_region, centerChunk(), *static_cast<IChunkGenerator*>(nullptr), m_random, BlockPos(0, 0, 0));
+    features[0]->place(*m_region, centerChunk(), m_stubGenerator, m_random, BlockPos(0, 0, 0));
 
     // y=64（石头上方）应有雪层
     for (i32 x = 0; x < 16; ++x) {
@@ -299,7 +329,7 @@ TEST_F(SnowAndFreezeFeatureTest, DoesNotPlaceSnowInWarmBiome)
     }
 
     auto& features = SnowAndFreezeFeatures::getAllFeatures();
-    features[0]->place(*m_region, centerChunk(), *static_cast<IChunkGenerator*>(nullptr), m_random, BlockPos(0, 0, 0));
+    features[0]->place(*m_region, centerChunk(), m_stubGenerator, m_random, BlockPos(0, 0, 0));
 
     // y=64 应该是空气（无雪）
     for (i32 x = 0; x < 16; ++x) {
@@ -322,7 +352,7 @@ TEST_F(SnowAndFreezeFeatureTest, DoesNotPlaceSnowInDesertBiome)
     }
 
     auto& features = SnowAndFreezeFeatures::getAllFeatures();
-    features[0]->place(*m_region, centerChunk(), *static_cast<IChunkGenerator*>(nullptr), m_random, BlockPos(0, 0, 0));
+    features[0]->place(*m_region, centerChunk(), m_stubGenerator, m_random, BlockPos(0, 0, 0));
 
     // y=64 应该是空气
     for (i32 x = 0; x < 16; ++x) {
@@ -344,8 +374,7 @@ TEST_F(SnowAndFreezeFeatureTest, DoesNotPlaceSnowOnNonSolidSurface)
     // 简单场景：不放置任何方块，高度图返回 MIN_BUILD_HEIGHT-1，特征应跳过
     auto& features = SnowAndFreezeFeatures::getAllFeatures();
     // 空区块：没有方块，getTopBlockY 返回 MIN_BUILD_HEIGHT-1，所有列应跳过
-    bool result = features[0]->place(
-        *m_region, centerChunk(), *static_cast<IChunkGenerator*>(nullptr), m_random, BlockPos(0, 0, 0));
+    bool result = features[0]->place(*m_region, centerChunk(), m_stubGenerator, m_random, BlockPos(0, 0, 0));
     EXPECT_TRUE(result); // 即使没有放置任何东西也返回 true
 }
 
@@ -372,7 +401,7 @@ TEST_F(SnowAndFreezeFeatureTest, FreezesWaterAndPlacesSnowOnAdjacentLand)
     }
 
     auto& features = SnowAndFreezeFeatures::getAllFeatures();
-    features[0]->place(*m_region, centerChunk(), *static_cast<IChunkGenerator*>(nullptr), m_random, BlockPos(0, 0, 0));
+    features[0]->place(*m_region, centerChunk(), m_stubGenerator, m_random, BlockPos(0, 0, 0));
 
     // 检查陆地区域（x=0..7）：y=62 是石头（不变），y=63 应有雪
     // MotionBlocking topY=62（石头），freezeY=62（石头不冻结），snowY=63（空气→雪层）
@@ -415,7 +444,7 @@ TEST_F(SnowAndFreezeFeatureTest, SetsSnowyPropertyOnGrassBlock)
     }
 
     auto& features = SnowAndFreezeFeatures::getAllFeatures();
-    features[0]->place(*m_region, centerChunk(), *static_cast<IChunkGenerator*>(nullptr), m_random, BlockPos(0, 0, 0));
+    features[0]->place(*m_region, centerChunk(), m_stubGenerator, m_random, BlockPos(0, 0, 0));
 
     // y=64 应有雪
     for (i32 x = 0; x < 16; ++x) {
@@ -449,7 +478,7 @@ TEST_F(SnowAndFreezeFeatureTest, DoesNotSetSnowyPropertyOnStoneBlock)
     }
 
     auto& features = SnowAndFreezeFeatures::getAllFeatures();
-    features[0]->place(*m_region, centerChunk(), *static_cast<IChunkGenerator*>(nullptr), m_random, BlockPos(0, 0, 0));
+    features[0]->place(*m_region, centerChunk(), m_stubGenerator, m_random, BlockPos(0, 0, 0));
 
     // 石头不应有 SNOWY 属性
     for (i32 x = 0; x < 16; ++x) {
@@ -485,7 +514,7 @@ TEST_F(SnowAndFreezeFeatureTest, MultipleChunksGetSnowAndIce)
 
     auto& features = SnowAndFreezeFeatures::getAllFeatures();
     // 对中心区块执行特征
-    features[0]->place(*m_region, centerChunk(), *static_cast<IChunkGenerator*>(nullptr), m_random, BlockPos(0, 0, 0));
+    features[0]->place(*m_region, centerChunk(), m_stubGenerator, m_random, BlockPos(0, 0, 0));
 
     // 检查中心区块的某些位置是否有冰
     bool foundIce = false;
@@ -517,7 +546,7 @@ TEST_F(SnowAndFreezeFeatureTest, IceSpikesBiomeFreezesAndSnows)
     }
 
     auto& features = SnowAndFreezeFeatures::getAllFeatures();
-    features[0]->place(*m_region, centerChunk(), *static_cast<IChunkGenerator*>(nullptr), m_random, BlockPos(0, 0, 0));
+    features[0]->place(*m_region, centerChunk(), m_stubGenerator, m_random, BlockPos(0, 0, 0));
 
     // 水面应冻结
     bool foundIce = false;
@@ -553,7 +582,7 @@ TEST_F(SnowAndFreezeFeatureTest, FrozenOceanFreezesWater)
     }
 
     auto& features = SnowAndFreezeFeatures::getAllFeatures();
-    features[0]->place(*m_region, centerChunk(), *static_cast<IChunkGenerator*>(nullptr), m_random, BlockPos(0, 0, 0));
+    features[0]->place(*m_region, centerChunk(), m_stubGenerator, m_random, BlockPos(0, 0, 0));
 
     // 顶部水面（y=63）应冻结为冰
     bool foundIce = false;
