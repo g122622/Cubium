@@ -30,7 +30,7 @@ support/
 ```
 
 - **PlayerResolver** - 将 EntitySelector 解析为实际的玩家 ID 列表，支持名称、游戏模式、距离、等级、角度、记分板、进度等过滤条件；提供 `resolvePlayerName()` 辅助函数，通过 PlayerId 获取真实玩家名称。仅处理玩家实体（@p/@a/@r/@s），不支持非玩家实体。
-- **EntityResolver** - 将 EntitySelector 解析为通用实体指针列表（`std::vector<Entity*>`），支持所有实体类型包括非玩家实体（@e）。支持 type/tag/team/name/distance/dx/dy/dz/x_rotation/y_rotation/level/gamemode/scores/advancements 过滤条件。优先用于需要非玩家实体支持的命令。
+- **EntityResolver** - 将 EntitySelector 解析为通用实体指针列表（`std::vector<Entity*>`），支持所有实体类型包括非玩家实体（@e）。支持 type/tag/team/name/distance/dx/dy/dz/x_rotation/y_rotation/level/gamemode/scores/advancements 过滤条件。体积过滤（dx/dy/dz）使用实体碰撞箱与选择 AABB 的相交检查（`AABB.intersects(entity.boundingBox())`），而非位置点包含检查，以确保大型实体跨越选择边界时的正确行为。优先用于需要非玩家实体支持的命令。
 - **EffectResolver** - 提供效果名称与 EffectType 枚举的双向转换
 
 ## 上下游外部依赖关系
@@ -89,3 +89,7 @@ EntityResolver 返回的 `Entity*` 指针是临时的，不应跨 tick 存储。
 ### 8. resolvePlayerName 回退行为
 
 `resolvePlayerName(source, playerId)` 在服务器不可用或玩家不在线时返回 `"player_<id>"` 格式的回退名称。命令层应优先使用此函数而非手动拼接。
+
+### 9. 体积过滤使用 AABB 相交检查
+
+EntityResolver 的体积过滤（dx/dy/dz 参数）使用 `AABB.intersects(entity.boundingBox())` 进行碰撞箱相交检查，而非位置点包含检查。`EntitySelector::createAabb()` 按 MC 原版逻辑构造相对 AABB（负值 delta 赋给 min 侧，正值赋给 max 侧，max 侧额外加 1.0），`EntityResolver` 中再平移到绝对坐标。当无 dx/dy/dz 但有 distance 最大值时，也从最大距离构造立方体 AABB 作为空间预过滤。

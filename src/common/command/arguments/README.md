@@ -35,6 +35,7 @@ ItemSlotArgument.hpp
 
 EntityArgument.hpp
     └── EntityArgument.cpp      → 实现复杂的选择器解析逻辑
+    └── EntitySelector           → 选择器数据模型（含 createAabb/hasVolume 等体积过滤方法）
 ```
 
 ## 上下游外部依赖关系
@@ -115,3 +116,7 @@ auto enumArg = std::shared_ptr<EnumArgumentType<Color>>(
 ### 9. ItemSlot 槽位编号重叠
 
 `ItemSlotArgument` 中 `player.cursor`(499) 与 `horse.chest`(499) 编号重叠，`player.crafting.0~3`(500-503) 与 `horse.0~3`(500-503) 编号重叠。原版中通过不同命令上下文区分，当前实现中 `player.crafting` 优先匹配，需在后续根据上下文细化。
+
+### 10. EntitySelector 体积过滤（createAabb）
+
+`EntitySelector::createAabb()` 按 MC 原版 `EntitySelectorParser.createAabb` 逻辑从 `dx/dy/dz` 构造选择 AABB：负值 delta 赋给 min 侧，正值赋给 max 侧，max 侧额外加 1.0。当无 `dx/dy/dz` 但有 `distance` 最大值时，从最大距离构造立方体 AABB。返回 `std::optional<AxisAlignedBB>`，无体积约束时为 `std::nullopt`。EntityResolver 中的体积过滤使用 `AABB.intersects(entity.boundingBox())` 进行碰撞箱相交检查，而非位置点包含检查——两者在实体体积较大或跨越选择边界时行为不同。
