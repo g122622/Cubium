@@ -1298,8 +1298,11 @@ void StrongholdPortalRoom::generate(
 
     // 获取 EndPortalFrameBlock 的方块状态
     // TODO: 当前手动逐个放置12个传送门框架方块，可考虑改用 EndTeleporter::placeEndPortalFrame()
-    //       统一放置逻辑。但注意要塞生成的框架有随机末影之眼（10%概率无眼），
-    //       而 placeEndPortalFrame 默认所有框架都带眼，因此需要在集成时处理这个差异。
+    //       统一放置逻辑。需要注意以下差异：
+    //       1. 要塞生成的框架有随机末影之眼（10%概率有眼），而 placeEndPortalFrame 默认所有框架都带眼
+    //       2. 要塞生成使用结构局部坐标和 bounding box 裁剪，而 placeEndPortalFrame 使用世界坐标
+    //       3. 要塞生成仅在所有眼都填满时才放置传送门方块，而 placeEndPortalFrame 总是放置
+    //       4. 方向已修正为与 MC Java 一致：北=North, 南=South, 西=West, 东=East（凸起朝外）
     // 北侧框架（朝北）
     setBlockState(world,
         &VanillaBlocks::END_PORTAL_FRAME->defaultState()
@@ -1352,11 +1355,12 @@ void StrongholdPortalRoom::generate(
         12,
         chunkBounds);
 
-    // 西侧框架（朝东）
+    // 西侧框架（朝西）
+    // 参考 MC Java EndPortalFrameBlock.getOrCreatePortalShape() 图案: > = FACING=WEST
     setBlockState(world,
         &VanillaBlocks::END_PORTAL_FRAME->defaultState()
             .with(BlockStateProperties::EYE(), eyeStates[6])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East),
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West),
         3,
         3,
         9,
@@ -1364,7 +1368,7 @@ void StrongholdPortalRoom::generate(
     setBlockState(world,
         &VanillaBlocks::END_PORTAL_FRAME->defaultState()
             .with(BlockStateProperties::EYE(), eyeStates[7])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East),
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West),
         3,
         3,
         10,
@@ -1372,17 +1376,18 @@ void StrongholdPortalRoom::generate(
     setBlockState(world,
         &VanillaBlocks::END_PORTAL_FRAME->defaultState()
             .with(BlockStateProperties::EYE(), eyeStates[8])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East),
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West),
         3,
         3,
         11,
         chunkBounds);
 
-    // 东侧框架（朝西）
+    // 东侧框架（朝东）
+    // 参考 MC Java EndPortalFrameBlock.getOrCreatePortalShape() 图案: < = FACING=EAST
     setBlockState(world,
         &VanillaBlocks::END_PORTAL_FRAME->defaultState()
             .with(BlockStateProperties::EYE(), eyeStates[9])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West),
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East),
         7,
         3,
         9,
@@ -1390,7 +1395,7 @@ void StrongholdPortalRoom::generate(
     setBlockState(world,
         &VanillaBlocks::END_PORTAL_FRAME->defaultState()
             .with(BlockStateProperties::EYE(), eyeStates[10])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West),
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East),
         7,
         3,
         10,
@@ -1398,7 +1403,7 @@ void StrongholdPortalRoom::generate(
     setBlockState(world,
         &VanillaBlocks::END_PORTAL_FRAME->defaultState()
             .with(BlockStateProperties::EYE(), eyeStates[11])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West),
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East),
         7,
         3,
         11,

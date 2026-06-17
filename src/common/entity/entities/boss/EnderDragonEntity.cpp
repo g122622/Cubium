@@ -35,6 +35,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/dimension/teleport/Teleporter.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <cmath>
@@ -712,13 +713,17 @@ void EnderDragonEntity::_onDeathUpdate()
         constexpr i32 XP_REMAINING = static_cast<i32>(XP_FIRST_KILL * 0.2f);
         _dropExperienceAmount(XP_REMAINING);
 
-        // TODO: 生成传送门和龙蛋
-        // 这需要 EndDragonFight 系统来放置传送门结构
-        // EndDragonFight.setDragonKilled() 应负责：
-        // 1. 调用 EndTeleporter::createExitPortal(world, pos, true) 生成出口传送门（基岩讲台+末地传送门方块+火把）
-        // 2. 首次击杀时在祭坛顶部放置龙蛋（DragonEggBlock）
-        // 3. 生成末地折跃门（EndGatewayFeature）
-        // 当前 createExitPortal 已实现但未被调用，等待 EndDragonFight 系统集成
+        // 生成出口传送门（末地讲台）
+        // MC 原版：DragonFight.setDragonKilled() 负责放置出口传送门
+        // 讲台中心位于 (0, 0, 0) 底部，出口传送门由基岩柱、传送门环和火把组成
+        IWorld* worldPtr = world();
+        if (worldPtr != nullptr) {
+            EndTeleporter::createExitPortal(*worldPtr, BlockPos(0, 0, 0), true);
+        }
+
+        // TODO: 首次击杀时在祭坛顶部放置龙蛋（DragonEggBlock）
+        // TODO: 生成末地折跃门（EndGatewayFeature）
+        // 这两项需要 EndDragonFight 系统来协调，当前等待集成
 
         // 移除实体
         remove();

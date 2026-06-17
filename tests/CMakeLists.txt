@@ -385,6 +385,7 @@ add_executable(mc_tests
     common/world/block/blocks/OxidizableBlockTest.cpp
     common/world/block/CompostableItemsTest.cpp
     common/world/CanSeeSkyTest.cpp
+    common/world/EndTeleporterTest.cpp
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
     entity/EntityTagsTests.cpp

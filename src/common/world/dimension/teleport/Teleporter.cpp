@@ -538,18 +538,20 @@ void EndTeleporter::placeEndPortalFrame(IWorld& world, const BlockPos& center)
     // 放置末地传送门框架方块环
     // 参考 MC Java EndPortalFrameBlock.getOrCreatePortalShape() 中的图案定义
     //
-    // 传送门框架图案（5×5，从上往下看）：
-    //   ? v v v ?      v = 框架朝南（North 端的框架朝南指向中心）
-    //   > ? ? ? <      > = 框架朝西（左侧框架朝西指向中心）
-    //   > ? ? ? <      < = 框架朝东（右侧框架朝东指向中心）
-    //   > ? ? ? <      ? = 任意方块（角落，不放框架）
-    //   ? ^ ^ ^ ?      ^ = 框架朝北（South 端的框架朝北指向中心）
+    // 传送门框架图案（5×5，从上往下看，北 = -Z，南 = +Z）：
+    //   ? v v v ?      v = FACING=NORTH（北边框架的凸起朝北，背离中心）
+    //   > P P P <      > = FACING=WEST（西边框架的凸起朝西，背离中心）
+    //   > P P P <      P = 末地传送门方块（3×3 内部区域）
+    //   > P P P <      < = FACING=EAST（东边框架的凸起朝东，背离中心）
+    //   ? ^ ^ ^ ?      ^ = FACING=SOUTH（南边框架的凸起朝南，背离中心）
+    //   ? = 角落，不放置任何方块
     //
-    // 每个框架方块都带有末影之眼（EYE=true），框架朝向传送门中心。
+    // 每个框架方块都带有末影之眼（EYE=true），框架凸起朝外（背离传送门中心）。
+    // 框架位于内部 3×3 传送门区域外侧一格，形成 5×5 的外环。
     // 框架放置后，在内部 3×3 区域填充末地传送门方块。
     //
     // center 参数表示传送门内部 3×3 区域的中心底部位置，
-    // 框架放置在 center 周围的一圈上。
+    // 框架放置在 center 周围 ±1 格的一圈上（不含角落）。
 
     if (VanillaBlocks::END_PORTAL_FRAME == nullptr || VanillaBlocks::END_PORTAL == nullptr) {
         return;
@@ -558,36 +560,36 @@ void EndTeleporter::placeEndPortalFrame(IWorld& world, const BlockPos& center)
     const BlockState* frameState = &VanillaBlocks::END_PORTAL_FRAME->defaultState();
     const BlockState* portalState = &VanillaBlocks::END_PORTAL->defaultState();
 
-    // 北边（z = center.z - 1）：3 个框架，朝南
-    const BlockState* frameSouth = &frameState->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
-                                        .with(BlockStateProperties::EYE(), true);
-    for (i32 dx = -1; dx <= 1; ++dx) {
-        BlockPos pos(center.x + dx, center.y, center.z - 1);
-        world.setBlockState(pos, frameSouth);
-    }
-
-    // 南边（z = center.z + 1）：3 个框架，朝北
+    // 北边（z = center.z - 2）：3 个框架，凸起朝北（FACING=NORTH）
     const BlockState* frameNorth = &frameState->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
                                         .with(BlockStateProperties::EYE(), true);
     for (i32 dx = -1; dx <= 1; ++dx) {
-        BlockPos pos(center.x + dx, center.y, center.z + 1);
+        BlockPos pos(center.x + dx, center.y, center.z - 2);
         world.setBlockState(pos, frameNorth);
     }
 
-    // 西边（x = center.x - 1）：3 个框架，朝东
-    const BlockState* frameEast = &frameState->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
-                                       .with(BlockStateProperties::EYE(), true);
-    for (i32 dz = -1; dz <= 1; ++dz) {
-        BlockPos pos(center.x - 1, center.y, center.z + dz);
-        world.setBlockState(pos, frameEast);
+    // 南边（z = center.z + 2）：3 个框架，凸起朝南（FACING=SOUTH）
+    const BlockState* frameSouth = &frameState->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
+                                        .with(BlockStateProperties::EYE(), true);
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        BlockPos pos(center.x + dx, center.y, center.z + 2);
+        world.setBlockState(pos, frameSouth);
     }
 
-    // 东边（x = center.x + 1）：3 个框架，朝西
+    // 西边（x = center.x - 2）：3 个框架，凸起朝西（FACING=WEST）
     const BlockState* frameWest = &frameState->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West)
                                        .with(BlockStateProperties::EYE(), true);
     for (i32 dz = -1; dz <= 1; ++dz) {
-        BlockPos pos(center.x + 1, center.y, center.z + dz);
+        BlockPos pos(center.x - 2, center.y, center.z + dz);
         world.setBlockState(pos, frameWest);
+    }
+
+    // 东边（x = center.x + 2）：3 个框架，凸起朝东（FACING=EAST）
+    const BlockState* frameEast = &frameState->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
+                                       .with(BlockStateProperties::EYE(), true);
+    for (i32 dz = -1; dz <= 1; ++dz) {
+        BlockPos pos(center.x + 2, center.y, center.z + dz);
+        world.setBlockState(pos, frameEast);
     }
 
     // 内部 3×3 区域放置末地传送门方块

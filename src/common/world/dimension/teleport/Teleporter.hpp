@@ -265,18 +265,31 @@ public:
     /// 末地出口传送门中心柱高度
     static constexpr i32 PODIUM_PILLAR_HEIGHT = 4;
 
-private:
     /**
      * @brief 放置末地传送门框架方块环
      *
      * 在要塞末地传送门房间中放置 12 个末地传送门框架方块。
-     * 每个框架方块朝向传送门中心，且均带有末影之眼。
+     * 每个框架方块的凸起朝外（背离传送门中心），与 MC Java 的
+     * EndPortalFrameBlock.getOrCreatePortalShape() 图案一致：
+     * - 北边框架: FACING=NORTH，南边框架: FACING=SOUTH
+     * - 西边框架: FACING=WEST，东边框架: FACING=EAST
+     * 所有框架均带有末影之眼（EYE=true）。
      * 放置后自动在框架内部 3×3 区域生成末地传送门方块。
+     *
+     * 框架布局（5×5，从上往下看，北 = -Z，南 = +Z）：
+     *   ? v v v ?      v = FACING=NORTH（北边框架，z = center.z - 2）
+     *   > P P P <      > = FACING=WEST（西边框架，x = center.x - 2）
+     *   > P P P <      P = 末地传送门方块（3×3 内部区域，center ± 1）
+     *   > P P P <      < = FACING=EAST（东边框架，x = center.x + 2）
+     *   ? ^ ^ ^ ?      ^ = FACING=SOUTH（南边框架，z = center.z + 2）
+     *   ? = 角落，不放置方块
      *
      * TODO: 此方法已实现但尚未被调用。要塞生成中的传送门房间
      * (StrongholdPortalRoom::generate) 目前手动逐个放置框架方块并支持
      * 随机末影之眼（10%概率无眼），而此方法默认所有框架都带眼。
-     * 需要在集成时处理末影之眼的随机性差异。
+     * 需要在集成时处理末影之眼的随机性差异。此外，要塞生成使用
+     * 结构局部坐标和 bounding box 裁剪，而此方法使用世界坐标，
+     * 直接替换需要适配坐标系统。
      *
      * @param world 世界引用
      * @param center 传送门框架中心（传送门内部 3×3 区域的中心）底部位置
