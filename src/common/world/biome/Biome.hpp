@@ -36,6 +36,7 @@
 // 前向声明（必须在 mc::world::biome 命名空间之外，避免命名空间污染）
 namespace mc {
 class BlockState;
+class IWorld;
 } // namespace mc
 
 namespace mc {
@@ -115,7 +116,7 @@ public:
     }
 
     /**
-     * @brief 判断水是否应该结冰
+     * @brief 判断水是否应该结冰（仅温度判断）
      *
      * @param x 方块 X 坐标
      * @param y 方块 Y 坐标
@@ -127,6 +128,78 @@ public:
     {
         return getHeightAdjustedTemperature(x, y, z, seaLevel) < FREEZE_TEMPERATURE_THRESHOLD;
     }
+
+    /**
+     * @brief 判断该生物群系在指定位置是否足够温暖可以下雨
+     *
+     * 当高度调整后的温度 >= 0.15 时返回 true。
+     *
+     * @param x 方块 X 坐标
+     * @param y 方块 Y 坐标
+     * @param z 方块 Z 坐标
+     * @param seaLevel 海平面高度
+     * @return 是否足够温暖可以下雨
+     */
+    [[nodiscard]] bool warmEnoughToRain(i32 x, i32 y, i32 z, i32 seaLevel) const
+    {
+        return getHeightAdjustedTemperature(x, y, z, seaLevel) >= SNOW_TEMPERATURE_THRESHOLD;
+    }
+
+    /**
+     * @brief 判断该生物群系在指定位置是否足够冷以降雪
+     *
+     * 当高度调整后的温度 < 0.15 时返回 true（即不够温暖到无法下雨）。
+     *
+     * @param x 方块 X 坐标
+     * @param y 方块 Y 坐标
+     * @param z 方块 Z 坐标
+     * @param seaLevel 海平面高度
+     * @return 是否足够冷以降雪
+     */
+    [[nodiscard]] bool coldEnoughToSnow(i32 x, i32 y, i32 z, i32 seaLevel) const
+    {
+        return !warmEnoughToRain(x, y, z, seaLevel);
+    }
+
+    /**
+     * @brief 判断指定位置的水是否应该结冰
+     *
+     * 完整实现 MC 的 Biome.shouldFreeze 逻辑：
+     * 1. 温度检查：如果足够温暖可以下雨，则不冻结
+     * 2. 高度检查：位置必须在建造高度范围内
+     * 3. 光照检查：方块光照必须 < 10
+     * 4. 流体检查：该位置的流体必须是水，且方块必须是 LiquidBlock
+     * 5. 邻居检查（可选）：如果 checkNeighbors 为 true，
+     *    则四个水平邻居不全是水时才冻结（防止深海中心大面积结冰）
+     *
+     * @param world 世界接口（用于查询方块状态、流体状态、光照等）
+     * @param x 方块 X 坐标
+     * @param y 方块 Y 坐标
+     * @param z 方块 Z 坐标
+     * @param seaLevel 海平面高度
+     * @param checkNeighbors 是否检查邻居水域暴露（默认 true）
+     * @return 水是否应该结冰
+     */
+    [[nodiscard]] bool shouldFreeze(
+        const IWorld& world, i32 x, i32 y, i32 z, i32 seaLevel, bool checkNeighbors = true) const;
+
+    /**
+     * @brief 判断指定位置是否应该降雪
+     *
+     * 完整实现 MC 的 Biome.shouldSnow 逻辑：
+     * 1. 降水类型检查：生物群系在此位置的降水类型必须是雪
+     * 2. 高度检查：位置必须在建造高度范围内
+     * 3. 光照检查：方块光照必须 < 10
+     * 4. 方块检查：该位置的方块必须是空气或已有雪层，且雪层方块能在此处存活
+     *
+     * @param world 世界接口（用于查询方块状态、光照等）
+     * @param x 方块 X 坐标
+     * @param y 方块 Y 坐标
+     * @param z 方块 Z 坐标
+     * @param seaLevel 海平面高度
+     * @return 是否应该降雪
+     */
+    [[nodiscard]] bool shouldSnow(const IWorld& world, i32 x, i32 y, i32 z, i32 seaLevel) const;
 
     // === 方块设置 ===
     [[nodiscard]] const BlockState* surfaceBlock() const { return m_surfaceBlock; }
