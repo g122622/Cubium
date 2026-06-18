@@ -22,7 +22,7 @@
  */
 
 #include "BiomeClimate.hpp"
-#include "common/util/math/random/LcgRandom.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/world/gen/noise/PerlinSimplexNoise.hpp"
 #include <memory>
 #include <vector>
@@ -33,8 +33,10 @@ namespace biome {
 
 const world::gen::noise::PerlinSimplexNoise& temperatureNoise()
 {
+    // MC 1.21.11: Biome.java — TEMPERATURE_NOISE
+    // WorldgenRandom(LegacyRandomSource(seed)) 等价于 JavaLegacyRandom(seed)
     static const auto instance = [] {
-        math::LcgRandom rng(1234ULL);
+        math::JavaLegacyRandom rng(1234ULL);
         return std::make_unique<world::gen::noise::PerlinSimplexNoise>(rng, std::vector<i32>{0});
     }();
     return *instance;
@@ -42,8 +44,9 @@ const world::gen::noise::PerlinSimplexNoise& temperatureNoise()
 
 const world::gen::noise::PerlinSimplexNoise& frozenTemperatureNoise()
 {
+    // MC 1.21.11: Biome.java — FROZEN_TEMPERATURE_NOISE
     static const auto instance = [] {
-        math::LcgRandom rng(3456ULL);
+        math::JavaLegacyRandom rng(3456ULL);
         return std::make_unique<world::gen::noise::PerlinSimplexNoise>(rng, std::vector<i32>{-2, -1, 0});
     }();
     return *instance;
@@ -51,8 +54,9 @@ const world::gen::noise::PerlinSimplexNoise& frozenTemperatureNoise()
 
 const world::gen::noise::PerlinSimplexNoise& biomeInfoNoise()
 {
+    // MC 1.21.11: Biome.java — BIOME_INFO_NOISE
     static const auto instance = [] {
-        math::LcgRandom rng(2345ULL);
+        math::JavaLegacyRandom rng(2345ULL);
         return std::make_unique<world::gen::noise::PerlinSimplexNoise>(rng, std::vector<i32>{0});
     }();
     return *instance;

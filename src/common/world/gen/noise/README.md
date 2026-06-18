@@ -26,6 +26,11 @@ src/common/world/gen/noise/
 PerlinNoise（MC 1.18+ 多倍频 Perlin）
     └── 内含 PerlinLayer（单个倍频层）
     └── 支持 noiseWithSmear()（Y 轴涂抹，用于 BlendedNoise）
+    └── 两种构造路径：
+        ├── 现代路径：PositionalRandomFactory.fromHashOf("octave_N")（NormalNoise 使用）
+        └── 旧版路径：共享 JavaLegacyRandom 顺序消费随机数（BlendedNoise 使用）
+            └── 对应 MC PerlinNoise(RandomSource, Pair<Integer, DoubleList>, false)
+            └── createLegacyForBlendedNoise / createLegacyForLegacyNetherBiome
     └── 被 NormalNoise 和 BlendedNoise 使用
 
 NormalNoise（MC 1.18+ 双 Perlin 噪声）
@@ -35,11 +40,13 @@ NormalNoise（MC 1.18+ 双 Perlin 噪声）
 
 SimplexNoise（2D/3D Simplex 噪声）
     └── 被 EndIslands 密度函数使用
-    └── 使用 LegacyRandomSource.consumeCount(17292) 种子初始化
+    └── 使用 JavaLegacyRandom(seed).consumeCount(17292) 种子初始化
+    └── JavaLegacyRandom 精确复刻 Java LegacyRandomSource（48位 LCG）
 
 PerlinSimplexNoise（多倍频 Simplex 噪声）
     └── 负倍频层使用主噪声派生种子
     └── 被 OverworldBiomeBuilder 用于气候噪声
+    └── 构造时使用 JavaLegacyRandom（与 MC Biome.java 中的 WorldgenRandom(LegacyRandomSource(seed)) 一致）
     └── 注意：种子派生使用 float 精度乘法（9.223372E18f）
 
 Noises（噪声参数注册表）

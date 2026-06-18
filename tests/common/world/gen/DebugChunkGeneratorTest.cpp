@@ -53,13 +53,13 @@ protected:
 };
 
 // 测试生成器创建
-// MC 1.21.11: DebugLevelSource 的 getGroundHeight 返回 0
+// MC 1.21.11: DebugLevelSource 的 getSeaLevel 返回 63（标准海平面）
 TEST_F(DebugChunkGeneratorTest, CreateGenerator)
 {
     DebugChunkGenerator generator;
 
     EXPECT_EQ(generator.seed(), 0);
-    EXPECT_EQ(generator.seaLevel(), 0);
+    EXPECT_EQ(generator.seaLevel(), 63);
     EXPECT_EQ(generator.getGroundHeight(), 0);
 }
 

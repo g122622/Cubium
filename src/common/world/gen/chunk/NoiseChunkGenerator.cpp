@@ -363,7 +363,8 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
     CarvingContext context(m_settings.noise.minY, m_settings.noise.height, aquifer, noiseChunkPtr, m_randomState.get());
 
     // MC 1.21: 使用 BiomeManager 的 Voronoi 缩放查询生物群系
-    // Java: biomeManager.withDifferentSource() + biomeManager.getBiome()
+    // TODO: MC 使用 biomeManager.withDifferentSource() 创建直接从 NoiseRouter 查询的 BiomeManager，
+    // 而非从区块缓存的 Voronoi 缩放结果查询。当前使用 m_biomeManager->getBiome() 近似。
     const auto getBiomeAt = [this](i32 x, i32 y, i32 z) -> BiomeId { return m_biomeManager->getBiome(x, y, z); };
 
     // MC 1.21.11: 按生物群系选择雕刻器
@@ -718,8 +719,9 @@ i32 NoiseChunkGenerator::spawnInitialMobs(
     }
 
     // 获取区块中心位置的生物群系
-    // MC 1.21.11: 在区块中心的最大建筑高度处采样 (getMaxY())
-    const i32 sampleY = region.getMaxBuildHeight();
+    // MC 1.21.11: 在区块中心的最大 Y 处采样 (getMaxY() = getMaxBuildHeight() - 1)
+    // Java: p_64379_.getBiome(chunkpos.getWorldPosition().atY(p_64379_.getMaxY()))
+    const i32 sampleY = region.getMaxBuildHeight() - 1;
     const BiomeId biomeId = chunk.getBiomeAtBlock(8, sampleY, 8);
     const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
 
@@ -925,8 +927,10 @@ world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(ChunkPrime
     const i32 startZ = chunkZ * world::CHUNK_WIDTH;
 
     // MC 1.21.11: 使用跨区块结构引用收集 Beardifier 数据
-    // 与 placeFeatures() 一样，遍历 structureReferences 而非仅 structureStarts
-    // 这确保邻居区块中的结构也能影响当前区块的地形平滑
+    // TODO: MC 使用 StructureManager.startsForStructure(chunkPos, predicate) 查询所有与当前区块相交的结构起点，
+    // 包括源自邻居区块但延伸到当前区块的结构。当前仅遍历当前区块的 structureStarts，
+    // 大型结构（如要塞、废弃矿井）的边缘地形可能不正确。
+    // 需要添加 StructureManager::startsForStructure() 方法来支持跨区块查询。
 
     auto processStart = [&](const world::gen::structure::StructureStart& start,
                             const world::gen::structure::Structure* structure) {

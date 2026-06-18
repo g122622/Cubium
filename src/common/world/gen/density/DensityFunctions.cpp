@@ -22,7 +22,7 @@
 
 #include "common/world/gen/density/DensityFunctions.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include <cmath>
 
 namespace mc::world::gen::density {
@@ -34,12 +34,15 @@ namespace mc::world::gen::density {
 EndIslands::EndIslands(u64 seed)
     : m_seed(seed)
 {
-    // MC 1.21.11: LegacyRandomSource(seed).consumeCount(17292) 后创建 SimplexNoise
-    // consumeCount 等价于调用 nextLong() 17292 次来推进随机状态
-    math::Random rng(seed);
-    for (i32 i = 0; i < 17292; ++i) {
-        static_cast<void>(rng.nextLong());
-    }
+    // MC 1.21.11: EndIslandDensityFunction(long p_208630_)
+    //   RandomSource randomsource = new LegacyRandomSource(p_208630_);
+    //   randomsource.consumeCount(17292);
+    //   this.islandNoise = new SimplexNoise(randomsource);
+    //
+    // consumeCount(17292) 调用 nextInt() 17292 次，每次推进一次 LCG 状态。
+    // JavaLegacyRandom::consumeCount(17292) 精确复刻此行为。
+    math::JavaLegacyRandom rng(seed);
+    rng.consumeCount(17292);
     m_islandNoise = std::make_unique<noise::SimplexNoise>(rng);
 }
 

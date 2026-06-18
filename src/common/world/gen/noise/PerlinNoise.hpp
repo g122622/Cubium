@@ -23,6 +23,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <memory>
@@ -74,6 +75,28 @@ public:
      *       调用者应先调用 random.forkPositional() 获取工厂。
      */
     PerlinNoise(const math::PositionalRandomFactory& factory, i32 firstOctave, std::vector<f64> amplitudes);
+
+    /**
+     * @brief 旧版构造函数（共享 RandomSource，顺序消费随机数）
+     * @param rng JavaLegacyRandom 共享随机数生成器（调用后状态会推进）
+     * @param firstOctave 首个倍频索引
+     * @param amplitudes 倍频振幅列表
+     *
+     * @note 对应 MC 1.21.11 的 PerlinNoise(RandomSource, Pair<Integer, DoubleList>, false) 构造路径，
+     *       即 createLegacyForBlendedNoise 和 createLegacyForLegacyNetherBiome 使用的路径。
+     *       旧版模式不使用 PositionalRandomFactory，而是从同一个 RandomSource 顺序消费随机数。
+     *
+     *       算法流程（MC PerlinNoise 构造函数 p_230517_==false 分支）：
+     *       1. j = -firstOctave（octave 0 在振幅列表中的索引）
+     *       2. 创建第一个 ImprovedNoise(rng)，如果 amplitudes[j]!=0 则放入 noiseLevels[j]
+     *       3. 从 i1=j-1 向下到 0：
+     *          - 如果 i1 < octaveCount 且 amplitudes[i1]!=0，创建 ImprovedNoise(rng)
+     *          - 否则调用 skipOctave(rng) 即 rng.consumeCount(262)
+     *       4. 验证：非空层数 == 非零振幅数，且 j >= octaveCount-1（禁止正倍频）
+     *
+     *       用于 BlendedNoise 和旧版下界生物群系噪声。
+     */
+    PerlinNoise(math::JavaLegacyRandom& rng, i32 firstOctave, std::vector<f64> amplitudes);
 
     ~PerlinNoise() = default;
 
@@ -147,7 +170,7 @@ public:
      */
     class PerlinLayer {
     public:
-        explicit PerlinLayer(math::Random& rng);
+        explicit PerlinLayer(math::IRandom& rng);
 
         [[nodiscard]] f64 noise(f64 x, f64 y, f64 z) const;
 
@@ -210,10 +233,22 @@ private:
     [[nodiscard]] f64 edgeValue(f64 maxInputValue) const;
 
     /**
-     * @brief 初始化倍频层（两个构造函数共用）
+     * @brief 初始化倍频层（PositionalRandomFactory 模式，新版本）
      * @param factory 位置随机工厂
      */
     void initLayers(const math::PositionalRandomFactory& factory);
+
+    /**
+     * @brief 初始化倍频层（旧版模式，共享 JavaLegacyRandom）
+     * @param rng JavaLegacyRandom 共享随机数生成器
+     *
+     * 对应 MC 1.21.11 的 PerlinNoise(RandomSource, Pair<Integer, DoubleList>, false) 构造路径：
+     * - j = -firstOctave（octave 0 在振幅列表中的索引）
+     * - 创建第一个 ImprovedNoise(rng)，如果 amplitudes[j]!=0 则放入 noiseLevels[j]
+     * - 从 i1=j-1 向下到 0：amplitudes[i1]!=0 则创建 ImprovedNoise(rng)，否则 consumeCount(262)
+     * - 禁止正倍频（j < octaveCount-1 时抛出异常）
+     */
+    void initLayersLegacy(math::JavaLegacyRandom& rng);
 
     i32 m_firstOctave;
     std::vector<f64> m_amplitudes;

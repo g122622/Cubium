@@ -134,21 +134,27 @@ struct BiomeClimate {
 /**
  * @brief 获取温度高度调整噪声实例
  *
- * 种子 1234L，单倍频 [0]，用于 Y > seaLevel+17 时的高度温度调整
+ * MC 1.21.11: Biome.TEMPERATURE_NOISE
+ * 种子 1234L，单倍频 [0]，使用 LegacyRandomSource 构造
+ * 用于 Y > seaLevel+17 时的高度温度调整
  */
 const world::gen::noise::PerlinSimplexNoise& temperatureNoise();
 
 /**
  * @brief 获取冻结温度噪声实例
  *
- * 种子 3456L，倍频 [-2, -1, 0]，用于 TemperatureModifier::Frozen
+ * MC 1.21.11: Biome.FROZEN_TEMPERATURE_NOISE
+ * 种子 3456L，倍频 [-2, -1, 0]，使用 LegacyRandomSource 构造
+ * 用于 TemperatureModifier::Frozen
  */
 const world::gen::noise::PerlinSimplexNoise& frozenTemperatureNoise();
 
 /**
  * @brief 获取生物群系信息噪声实例
  *
- * 种子 2345L，单倍频 [0]，用于 TemperatureModifier::Frozen 和其他生物群系逻辑
+ * MC 1.21.11: Biome.BIOME_INFO_NOISE (@Deprecated)
+ * 种子 2345L，单倍频 [0]，使用 LegacyRandomSource 构造
+ * 用于 TemperatureModifier::Frozen 和其他生物群系逻辑
  */
 const world::gen::noise::PerlinSimplexNoise& biomeInfoNoise();
 

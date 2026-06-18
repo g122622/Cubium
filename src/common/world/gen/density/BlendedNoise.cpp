@@ -22,9 +22,19 @@
 
 #include "common/world/gen/density/BlendedNoise.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 
 namespace mc::world::gen::density {
+
+namespace {
+
+/// 创建全 1.0 振幅列表，对应 MC IntStream.rangeClosed(firstOctave, lastOctave)
+std::vector<f64> makeLegacyAmplitudes(i32 firstOctave, i32 lastOctave)
+{
+    return std::vector<f64>(static_cast<size_t>(lastOctave - firstOctave + 1), 1.0);
+}
+
+} // namespace
 
 // ============================================================================
 // 构造函数
@@ -38,67 +48,14 @@ BlendedNoise::BlendedNoise(u64 seed, f64 xzScale, f64 yScale, f64 xzFactor, f64 
     , m_smearScaleMultiplier(smearScaleMultiplier)
     , m_seed(seed)
 {
-    // MC 1.21.11: BlendedNoise(RandomSource, ...)
-    // 使用 PerlinNoise.createLegacyForBlendedNoise 创建三个 PerlinNoise：
-    // - minLimitNoise: rangeClosed(-15, 0) = 16 倍频
-    // - maxLimitNoise: rangeClosed(-15, 0) = 16 倍频
-    // - mainNoise: rangeClosed(-7, 0) = 8 倍频
-    //
-    // createLegacyForBlendedNoise 使用旧的种子派生方式：
-    // 各倍频使用连续种子 (seed, seed+1, seed+2, ...) 而非 fromHashOf("octave_N")
-    math::Random rng(seed);
-    auto factory = rng.forkPositional();
+    // MC 1.21.11: BlendedNoise(RandomSource, ...) 使用旧版种子派生
+    // 三个 PerlinNoise 共享同一个 JavaLegacyRandom，顺序消费随机数。
+    // 对应 MC: PerlinNoise.createLegacyForBlendedNoise(p_230462_, IntStream.rangeClosed(-15, 0))
+    math::JavaLegacyRandom rng(seed);
 
-    // 为 createLegacyForBlendedNoise，需要使用 LegacyRandomSource 风格种子派生
-    // MC 中 PerlinNoise.createLegacyForBlendedNoise 使用 IntStream.rangeClosed
-    // 创建振幅全为 1.0 的倍频序列，然后通过 consume 前进随机数生成器
-    const auto makeLegacyAmplitudes = [](i32 firstOctave, i32 lastOctave) {
-        const size_t count = static_cast<size_t>(lastOctave - firstOctave + 1);
-        std::vector<f64> amps(count, 1.0);
-        return amps;
-    };
-
-    // minLimitNoise 和 maxLimitNoise: firstOctave=-15, 16 octaves (amplitudes all 1.0)
-    auto minAmps = makeLegacyAmplitudes(-15, 0);
-    m_minLimitNoise = std::make_unique<noise::PerlinNoise>(factory, -15, std::move(minAmps));
-
-    auto maxAmps = makeLegacyAmplitudes(-15, 0);
-    m_maxLimitNoise = std::make_unique<noise::PerlinNoise>(factory, -15, std::move(maxAmps));
-
-    // mainNoise: firstOctave=-7, 8 octaves (amplitudes all 1.0)
-    auto mainAmps = makeLegacyAmplitudes(-7, 0);
-    m_mainNoise = std::make_unique<noise::PerlinNoise>(factory, -7, std::move(mainAmps));
-
-    initFromNoises();
-}
-
-BlendedNoise::BlendedNoise(const math::PositionalRandomFactory& factory,
-    f64 xzScale,
-    f64 yScale,
-    f64 xzFactor,
-    f64 yFactor,
-    f64 smearScaleMultiplier)
-    : m_xzScale(xzScale)
-    , m_yScale(yScale)
-    , m_xzFactor(xzFactor)
-    , m_yFactor(yFactor)
-    , m_smearScaleMultiplier(smearScaleMultiplier)
-    , m_seed(0)
-{
-    const auto makeLegacyAmplitudes = [](i32 firstOctave, i32 lastOctave) {
-        const size_t count = static_cast<size_t>(lastOctave - firstOctave + 1);
-        std::vector<f64> amps(count, 1.0);
-        return amps;
-    };
-
-    auto minAmps = makeLegacyAmplitudes(-15, 0);
-    m_minLimitNoise = std::make_unique<noise::PerlinNoise>(factory, -15, std::move(minAmps));
-
-    auto maxAmps = makeLegacyAmplitudes(-15, 0);
-    m_maxLimitNoise = std::make_unique<noise::PerlinNoise>(factory, -15, std::move(maxAmps));
-
-    auto mainAmps = makeLegacyAmplitudes(-7, 0);
-    m_mainNoise = std::make_unique<noise::PerlinNoise>(factory, -7, std::move(mainAmps));
+    m_minLimitNoise = std::make_unique<noise::PerlinNoise>(rng, -15, makeLegacyAmplitudes(-15, 0));
+    m_maxLimitNoise = std::make_unique<noise::PerlinNoise>(rng, -15, makeLegacyAmplitudes(-15, 0));
+    m_mainNoise = std::make_unique<noise::PerlinNoise>(rng, -7, makeLegacyAmplitudes(-7, 0));
 
     initFromNoises();
 }
@@ -227,17 +184,13 @@ f64 BlendedNoise::compute(i32 blockX, i32 blockY, i32 blockZ) const
 std::unique_ptr<BlendedNoise> BlendedNoise::createUnseeded(
     f64 xzScale, f64 yScale, f64 xzFactor, f64 yFactor, f64 smearScaleMultiplier)
 {
-    // MC 1.21.11: createUnseeded 使用 seed=0 的 XoroshiroRandomSource
-    auto minAmps = std::vector<f64>(16, 1.0);
-    auto maxAmps = std::vector<f64>(16, 1.0);
-    auto mainAmps = std::vector<f64>(8, 1.0);
+    // MC 1.21.11: createUnseeded 使用 seed=0 的旧版构造路径。
+    // 仅用于序列化占位，运行时通过 withNewRandom 替换种子。
+    math::JavaLegacyRandom rng(0);
 
-    math::Random rng(0);
-    auto factory = rng.forkPositional();
-
-    auto minLimitNoise = std::make_unique<noise::PerlinNoise>(factory, -15, std::move(minAmps));
-    auto maxLimitNoise = std::make_unique<noise::PerlinNoise>(factory, -15, std::move(maxAmps));
-    auto mainNoise = std::make_unique<noise::PerlinNoise>(factory, -7, std::move(mainAmps));
+    auto minLimitNoise = std::make_unique<noise::PerlinNoise>(rng, -15, makeLegacyAmplitudes(-15, 0));
+    auto maxLimitNoise = std::make_unique<noise::PerlinNoise>(rng, -15, makeLegacyAmplitudes(-15, 0));
+    auto mainNoise = std::make_unique<noise::PerlinNoise>(rng, -7, makeLegacyAmplitudes(-7, 0));
 
     return std::make_unique<BlendedNoise>(std::move(minLimitNoise),
         std::move(maxLimitNoise),

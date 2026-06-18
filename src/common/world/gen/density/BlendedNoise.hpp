@@ -23,8 +23,6 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/util/math/random/PositionalRandomFactory.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
 #include "common/world/gen/noise/PerlinNoise.hpp"
 #include <memory>
@@ -63,16 +61,6 @@ public:
      * @param smearScaleMultiplier Y 方向涂抹缩放乘数
      */
     BlendedNoise(u64 seed, f64 xzScale, f64 yScale, f64 xzFactor, f64 yFactor, f64 smearScaleMultiplier);
-
-    /**
-     * @brief 使用 PositionalRandomFactory 构造（用于随机状态复制）
-     */
-    BlendedNoise(const math::PositionalRandomFactory& factory,
-        f64 xzScale,
-        f64 yScale,
-        f64 xzFactor,
-        f64 yFactor,
-        f64 smearScaleMultiplier);
 
     ~BlendedNoise() override = default;
 

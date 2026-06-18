@@ -21,7 +21,9 @@
  */
 
 #include "common/world/gen/noise/PerlinNoise.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -31,7 +33,7 @@ namespace mc::world::gen::noise {
 // PerlinNoise::PerlinLayer 实现
 // ============================================================================
 
-PerlinNoise::PerlinLayer::PerlinLayer(math::Random& rng)
+PerlinNoise::PerlinLayer::PerlinLayer(math::IRandom& rng)
 {
     // 随机偏移
     m_xOffset = rng.nextDouble() * 256.0;
@@ -198,6 +200,13 @@ PerlinNoise::PerlinNoise(const math::PositionalRandomFactory& factory, i32 first
     initLayers(factory);
 }
 
+PerlinNoise::PerlinNoise(math::JavaLegacyRandom& rng, i32 firstOctave, std::vector<f64> amplitudes)
+    : m_firstOctave(firstOctave)
+    , m_amplitudes(std::move(amplitudes))
+{
+    initLayersLegacy(rng);
+}
+
 void PerlinNoise::initLayers(const math::PositionalRandomFactory& factory)
 {
     const i32 octaveCount = static_cast<i32>(m_amplitudes.size());
@@ -237,6 +246,66 @@ void PerlinNoise::initLayers(const math::PositionalRandomFactory& factory)
         m_lowestFreqValueFactor = std::pow(2.0, static_cast<f64>(amplitudeCount - 1)) /
             (std::pow(2.0, static_cast<f64>(amplitudeCount)) - 1.0);
     }
+
+    m_maxValue = edgeValue(2.0);
+}
+
+void PerlinNoise::initLayersLegacy(math::JavaLegacyRandom& rng)
+{
+    // MC 1.21.11: PerlinNoise(RandomSource, Pair<Integer, DoubleList>, false) 旧版构造路径
+    // 不使用 PositionalRandomFactory，从同一个 RandomSource 顺序消费随机数
+    const i32 octaveCount = static_cast<i32>(m_amplitudes.size());
+    m_layers.resize(static_cast<size_t>(octaveCount));
+
+    // j = -firstOctave：octave 0 在振幅列表中的索引
+    const i32 j = -m_firstOctave;
+
+    // 创建第一个 PerlinLayer（从 rng 消费随机数）
+    auto firstLayer = std::make_unique<PerlinLayer>(rng);
+
+    // octave 0 索引在范围内且振幅非零时，放入第一个 PerlinLayer
+    if (j >= 0 && j < octaveCount) {
+        if (m_amplitudes[static_cast<size_t>(j)] != 0.0) {
+            m_layers[static_cast<size_t>(j)] = std::move(firstLayer);
+        }
+        // 振幅为 0 时 firstLayer 被丢弃，rng 状态已被正确消费
+    }
+
+    // 从 j-1 向下到 0 填充低频倍频层
+    for (i32 i1 = j - 1; i1 >= 0; --i1) {
+        if (i1 < octaveCount && m_amplitudes[static_cast<size_t>(i1)] != 0.0) {
+            m_layers[static_cast<size_t>(i1)] = std::make_unique<PerlinLayer>(rng);
+        } else {
+            // 跳过此倍频层：consumeCount(262) 消费与 PerlinLayer 等量的随机数
+            rng.consumeCount(262);
+        }
+    }
+
+    // 验证：非空层数必须等于非零振幅数
+    i32 nonNullCount = 0;
+    i32 nonZeroAmplitudeCount = 0;
+    for (i32 i = 0; i < octaveCount; ++i) {
+        if (m_layers[static_cast<size_t>(i)] != nullptr) {
+            ++nonNullCount;
+        }
+        if (m_amplitudes[static_cast<size_t>(i)] != 0.0) {
+            ++nonZeroAmplitudeCount;
+        }
+    }
+    MC_ASSERT_RELEASE(nonNullCount == nonZeroAmplitudeCount);
+
+    // 禁止正倍频：j < octaveCount - 1 表示有正倍频（索引 > j 的层未被填充）
+    // MC 抛出 IllegalArgumentException("Positive octaves are temporarily disabled")
+    MC_ASSERT_RELEASE(j >= octaveCount - 1);
+
+    // 计算缩放因子
+    // MC: this.lowestFreqInputFactor = Math.pow(2.0, -j)
+    // 由于 j = -firstOctave，-j = firstOctave
+    // 对于 firstOctave=-15: lowestFreqInputFactor = 2^(-15) ≈ 3.05e-5
+    m_lowestFreqInputFactor = std::pow(2.0, static_cast<f64>(-j));
+    const auto amplitudeCount = static_cast<i32>(m_amplitudes.size());
+    m_lowestFreqValueFactor =
+        std::pow(2.0, static_cast<f64>(amplitudeCount - 1)) / (std::pow(2.0, static_cast<f64>(amplitudeCount)) - 1.0);
 
     m_maxValue = edgeValue(2.0);
 }
