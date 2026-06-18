@@ -35,6 +35,7 @@
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/item/loot/conditions/LootConditions.hpp"
+#include "common/item/loot/context/LootParameterSets.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -225,47 +226,39 @@ std::unique_ptr<loot::LootContext> BlockDropHandler::buildLootContext(IWorld& wo
     const ItemStack* tool,
     math::Random& random)
 {
-    auto context = loot::LootContextBuilder(world)
-                       .withRandom(random)
-                       .withSeed(world.seed() ^ static_cast<u64>(pos.x ^ pos.z))
-                       .build();
+    auto contextBuilder =
+        loot::LootContextBuilder(world).withRandom(random).withSeed(world.seed() ^ static_cast<u64>(pos.x ^ pos.z));
 
-    if (!context) {
-        return nullptr;
-    }
-
-    // 设置方块状态和位置参数
-    context->set(loot::LootParams::BLOCK_STATE, const_cast<BlockState*>(&state));
-    context->set(loot::LootParams::BLOCK_POS, const_cast<BlockPos*>(&pos));
+    // 设置方块状态和位置参数（方块掉落的必需参数）
+    contextBuilder.withParameter(loot::LootParams::BLOCK_STATE, const_cast<BlockState*>(&state));
+    contextBuilder.withParameter(loot::LootParams::BLOCK_POS, const_cast<BlockPos*>(&pos));
 
     // 设置工具参数
     if (tool && !tool->isEmpty()) {
-        context->set(loot::LootParams::TOOL, const_cast<ItemStack*>(tool));
+        contextBuilder.withParameter(loot::LootParams::TOOL, const_cast<ItemStack*>(tool));
 
         // 设置时运等级
         i32 fortuneLevel = getFortuneLevel(tool);
         if (fortuneLevel > 0) {
-            context->setLootingModifier(fortuneLevel);
-            // 同时设置 FORTUNE_LEVEL 参数
-            // 使用 LootContext 的 owned storage 来避免内存泄漏
-            context->setOwnedValue(loot::LootParams::FORTUNE_LEVEL, fortuneLevel);
+            contextBuilder.withLootingModifier(fortuneLevel);
+            contextBuilder.withOwnedValue(loot::LootParams::FORTUNE_LEVEL, fortuneLevel);
         }
 
         // 设置精准采集等级
         i32 silkTouchLevel = hasSilkTouch(tool) ? 1 : 0;
         if (silkTouchLevel > 0) {
-            context->setOwnedValue(loot::LootParams::SILK_TOUCH_LEVEL, silkTouchLevel);
+            contextBuilder.withOwnedValue(loot::LootParams::SILK_TOUCH_LEVEL, silkTouchLevel);
         }
     }
 
     // 设置玩家参数
     if (player) {
         Entity* playerEntity = const_cast<Player*>(player);
-        context->set(loot::LootParams::THIS_ENTITY, playerEntity);
-        context->set(loot::LootParams::KILLER_PLAYER, const_cast<Player*>(player));
+        contextBuilder.withParameter(loot::LootParams::THIS_ENTITY, playerEntity);
     }
 
-    return context;
+    // 使用方块掉落参数集构建上下文
+    return contextBuilder.build(loot::LootParameterSets::block());
 }
 
 bool BlockDropHandler::hasSilkTouch(const ItemStack* tool)

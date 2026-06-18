@@ -196,4 +196,7 @@ ReferenceCondition::test(context)
 
 ### 5. LootContext 参数验证
 
-目前 `LootContextBuilder::build()` 接受 `LootParameterSet` 参数但尚未实现参数验证。条件测试时如果缺少必需参数（如 `BLOCK_STATE`），条件应安全返回 `false` 而不是崩溃。
+`LootContextBuilder::build(paramSet)` 在构建上下文时会执行参数验证（Empty 和 Generic 类型除外，因为它们没有必需参数也没有可选参数限制）：
+1. 检查提供的参数中是否包含参数集不允许的参数（`unexpectedParams`）
+2. 检查是否缺少参数集必需的参数（`missingParams`）
+验证失败时不会中断构建，而是通过 `spdlog::warn` 记录缺失/多余的参数信息，便于调试。

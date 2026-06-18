@@ -26,6 +26,7 @@
 #include "LootParams.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include <chrono>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace loot {
@@ -107,9 +108,40 @@ std::unique_ptr<LootContext> LootContextBuilder::build(const LootParameterSet& p
         context->setPredicateResolver(std::move(m_predicateResolver));
     }
 
-    // TODO: 使用 paramSet 验证必需参数是否已设置
-    // 目前 paramSet 参数未被使用，后续需要实现参数验证逻辑
-    MC_UNUSED(paramSet);
+    // 参数验证：检查必需参数和不允许的参数
+    // Empty 和 Generic 类型的参数集没有必需参数也没有可选参数限制，跳过验证
+    if (paramSet.getType() != LootParameterSet::Type::Empty && paramSet.getType() != LootParameterSet::Type::Generic) {
+        std::vector<std::string> providedParamIds;
+        providedParamIds.reserve(m_params.size());
+        for (const auto& [id, _] : m_params) {
+            providedParamIds.push_back(id);
+        }
+
+        std::vector<std::string> missingParams;
+        std::vector<std::string> unexpectedParams;
+        if (!paramSet.validate(providedParamIds, missingParams, unexpectedParams)) {
+            if (!missingParams.empty()) {
+                std::string missingStr;
+                for (size_t i = 0; i < missingParams.size(); ++i) {
+                    if (i > 0) missingStr += ", ";
+                    missingStr += missingParams[i];
+                }
+                spdlog::warn("LootContextBuilder: 缺少必需参数 [{}]（参数集类型: {}）",
+                    missingStr,
+                    static_cast<int>(paramSet.getType()));
+            }
+            if (!unexpectedParams.empty()) {
+                std::string unexpectedStr;
+                for (size_t i = 0; i < unexpectedParams.size(); ++i) {
+                    if (i > 0) unexpectedStr += ", ";
+                    unexpectedStr += unexpectedParams[i];
+                }
+                spdlog::warn("LootContextBuilder: 参数集不包含的参数 [{}]（参数集类型: {}）",
+                    unexpectedStr,
+                    static_cast<int>(paramSet.getType()));
+            }
+        }
+    }
 
     return context;
 }

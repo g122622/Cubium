@@ -35,6 +35,7 @@
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParameterSets.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -601,12 +602,7 @@ std::vector<ItemStack> Explosion::_generateBlockDrops(const BlockPos& pos, const
         contextBuilder.withNullableParameter(loot::LootParams::THIS_ENTITY, m_source);
     }
 
-    // 创建掉落参数集（方块类型）
-    loot::LootParameterSet paramSet(loot::LootParameterSet::Type::Block);
-    paramSet.addRequired(loot::LootParams::BLOCK_STATE);
-    paramSet.addRequired(loot::LootParams::BLOCK_POS);
-
-    std::unique_ptr<loot::LootContext> context = contextBuilder.build(paramSet);
+    std::unique_ptr<loot::LootContext> context = contextBuilder.build(loot::LootParameterSets::block());
     if (!context) {
         return {};
     }

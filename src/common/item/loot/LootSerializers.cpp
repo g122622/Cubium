@@ -1965,7 +1965,7 @@ Result<std::unique_ptr<LootTable>> LootSerializers::parseLootTable(const nlohman
         } else if (type == "minecraft:gift" || type == "gift") {
             table->setParameterSet(LootParameterSets::gift());
         } else if (type == "minecraft:barter" || type == "barter") {
-            table->setParameterSet(LootParameterSets::generic());
+            table->setParameterSet(LootParameterSets::barter());
         } else if (type == "minecraft:empty" || type == "empty") {
             table->setParameterSet(LootParameterSets::empty());
         } else {
