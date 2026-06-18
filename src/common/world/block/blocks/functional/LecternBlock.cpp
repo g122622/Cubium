@@ -30,12 +30,15 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/stats/Stats.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/LecternEntity.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
@@ -135,8 +138,8 @@ void LecternBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
         return;
     }
 
-    state = state.with(BlockStateProperties::POWERED(), false);
-    world.setBlockState(pos, &state, 3);
+    // 脉冲到期，将 POWERED 设为 false 并通知下方方块红石更新
+    changePowered(world, pos, state, false);
 }
 
 const CollisionShape& LecternBlock::getShape(const BlockState& state) const
@@ -251,8 +254,7 @@ void LecternBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const Bloc
 
     // 如果处于激活状态，通知下方方块更新红石
     if (state.get(BlockStateProperties::POWERED())) {
-        // TODO: 实现红石更新
-        // world.notifyNeighborsOfStateChange(pos.down(), this);
+        updateBelow(world, pos, state.getBlock());
     }
 
     Block::onBlockRemoved(world, pos, state);
@@ -322,18 +324,36 @@ void LecternBlock::setHasBook(IWorld& world, const BlockPos& pos, bool hasBook)
         currentState->with(BlockStateProperties::HAS_BOOK(), hasBook).with(BlockStateProperties::POWERED(), false);
     world.setBlockState(pos, &updated, 3);
 
+    // 通知下方方块红石更新（POWERED 状态可能改变）
+    updateBelow(world, pos, updated.getBlock());
+
     if (BlockEntity* blockEntity = world.getBlockEntity(pos);
         blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Lectern) {
         static_cast<blockentity::LecternEntity*>(blockEntity)->setChanged();
     }
 }
 
-void LecternBlock::pulse(IWorld& world, const BlockPos& pos, BlockState& state)
+void LecternBlock::pulse(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    state = state.with(BlockStateProperties::POWERED(), true);
-    world.setBlockState(pos, &state, 3);
+    changePowered(world, pos, state, true);
     world.tickManager().scheduleBlockTick(
         pos, const_cast<Block&>(state.getBlock()), 2, world::tick::TickPriority::High);
+}
+
+void LecternBlock::changePowered(IWorld& world, const BlockPos& pos, const BlockState& state, bool powered)
+{
+    BlockState updated = state.with(BlockStateProperties::POWERED(), powered);
+    world.setBlockState(pos, &updated, 3);
+    updateBelow(world, pos, state.getBlock());
+}
+
+void LecternBlock::updateBelow(IWorld& world, const BlockPos& pos, const Block& block)
+{
+    // 讲台向所有方向输出弱信号，仅在上方输出强信号，
+    // 红石更新只需通知正下方位置的方块即可，
+    // 因为 setBlockState 已经会通知6个方向的邻居执行 updatePostPlacement 和 neighborChanged，
+    // 但下方方块作为强信号接收者需要额外的红石更新通知。
+    world.updateNeighbors(pos.down(), const_cast<Block&>(block));
 }
 
 } // namespace blocks

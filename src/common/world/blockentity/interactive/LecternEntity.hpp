@@ -177,6 +177,14 @@ private:
      */
     void _updateBlockState(IWorld& world);
 
+    /**
+     * @brief 翻页时触发红石脉冲
+     *
+     * 当页码发生变化时调用，通知讲台方块发出红石脉冲信号。
+     * 脉冲持续 2 tick 后自动恢复为非供电状态。
+     */
+    void _signalPageChange();
+
     SimpleInventory m_inventory; ///< 1格物品存储
     i32 m_page = 0;              ///< 当前页码
     i32 m_openCount = 0;         ///< 打开计数
