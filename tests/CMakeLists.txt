@@ -879,6 +879,7 @@ add_executable(mc_tests
     server/bossbar/BossBarTest.cpp
     # 统计系统测试
     server/stats/StatisticsTest.cpp
+    server/stats/AwardCustomStatTest.cpp
     # 函数系统测试
     server/function/FunctionLoaderTest.cpp
     server/function/FunctionManagerTest.cpp

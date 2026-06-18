@@ -222,7 +222,7 @@ ActionResultType ChestBlock::onBlockActivated(const BlockState& state,
         chest->openContainer(&player);
         // 陷阱箱子与普通箱子使用不同的统计
         if (getBlockEntityType() == BlockEntityType::TrappedChest) {
-            player.awardCustomStat(ResourceLocation(stats::TRAPPED_CHEST_TRIGGERED), 1);
+            player.awardCustomStat(ResourceLocation(stats::TRIGGER_TRAPPED_CHEST), 1);
         } else {
             player.awardCustomStat(ResourceLocation(stats::OPEN_CHEST), 1);
         }

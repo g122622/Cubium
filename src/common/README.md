@@ -214,6 +214,9 @@ src/common/
 │   ├── IScreen.hpp
 │   └── ScreenType.hpp
 │
+├── stats/                    # 统计常量
+│   └── Stats.hpp             # 自定义统计资源位置常量（与 MC Java Stats.java 对应）
+│
 ├── input/                    # 输入系统
 │   └── KeyBinding.hpp
 │
