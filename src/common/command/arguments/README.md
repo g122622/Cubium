@@ -10,7 +10,7 @@ src/common/command/arguments/
 ├── BlockStateArgument.hpp      # 方块状态参数类型（支持属性解析）
 ├── EntityArgument.hpp/.cpp     # 实体选择器参数类型（@p, @a, @e, @r, @s）
 ├── FunctionArgument.hpp/.cpp   # 函数参数类型（支持 # 标签前缀和函数名解析）
-├── GameModeArgument.hpp        # 游戏模式、资源位置、坐标参数类型
+├── GameModeArgument.hpp        # 游戏模式、资源位置、坐标参数类型（含 Vec2ArgumentType、Vec3ArgumentType、RotationArgumentType 等）
 ├── ItemArgument.hpp            # 物品参数类型 + ItemInput 包装器
 ├── ItemSlotArgument.hpp        # 物品槽位参数类型 + ItemSlot 索引类
 ├── NbtPath.hpp/.cpp            # NBT 路径类和节点实现
@@ -24,7 +24,7 @@ src/common/command/arguments/
 ArgumentType.hpp (基类模板)
     ├── EntityArgument.hpp      → 继承 ArgumentType<EntitySelector>
     ├── FunctionArgument.hpp    → 继承 ArgumentType<FunctionArgumentResult>（# 标签前缀 + 函数名解析）
-    ├── GameModeArgument.hpp    → 继承 ArgumentType<T> (GameMode/ResourceLocation/Vector3i/Vector3d/Vector2f)
+    ├── GameModeArgument.hpp    → 继承 ArgumentType<T> (GameMode/ResourceLocation/Vector3i/Vector3d/Vector2d/Vector2f)
     ├── BlockStateArgument.hpp  → 继承 ArgumentType<BlockStateInput>
     ├── ItemArgument.hpp        → 继承 ArgumentType<ItemInput>
     ├── ItemSlotArgument.hpp    → 继承 ArgumentType<ItemSlot>（槽位名称→索引映射）

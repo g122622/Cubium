@@ -53,8 +53,6 @@ namespace command {
 namespace {
 
 /// 计算需要分散的位置数量（尊重队伍时，按队伍数计算；否则按实体数计算）
-/// TODO: 当支持 EntityArgumentType::entities() 后，非玩家实体应统一归入 null 队伍，
-///       当前仅支持玩家选择器，无法区分玩家和非玩家的队伍归属
 i32 _getNumberOfTeams(server::IServer& server, const std::vector<std::string>& playerNames)
 {
     // 收集不同的队伍（nullptr 算作一支独立的"无队伍"）
@@ -71,7 +69,6 @@ i32 _getNumberOfTeams(server::IServer& server, const std::vector<std::string>& p
 
 /// 将分散后的位置应用到玩家/实体
 /// 返回所有玩家到最近分散点的最小距离的平均值
-/// TODO: 传送时应保留实体的 Y 旋转和 X 旋转，当前仅传送位置
 f64 _setPlayerPositions(server::IServer& server,
     server::ServerWorld& world,
     const std::vector<PlayerId>& playerIds,
@@ -113,7 +110,17 @@ f64 _setPlayerPositions(server::IServer& server,
         f64 targetX = std::floor(targetPos->x) + 0.5;
         f64 targetZ = std::floor(targetPos->z) + 0.5;
 
-        server.teleportManager().requestTeleport(playerIds[i], targetX, static_cast<f64>(spawnY), targetZ);
+        // 保留玩家当前的旋转角度（与 MC 原版行为一致）
+        f32 playerYaw = 0.0f;
+        f32 playerPitch = 0.0f;
+        auto* playerData = server.playerManager().getPlayer(playerIds[i]);
+        if (playerData != nullptr) {
+            playerYaw = playerData->yaw;
+            playerPitch = playerData->pitch;
+        }
+
+        server.teleportManager().requestTeleport(
+            playerIds[i], targetX, static_cast<f64>(spawnY), targetZ, playerYaw, playerPitch);
 
         // 计算此玩家到其他分散位置的最小距离
         f64 closestDist = std::numeric_limits<f64>::max();
@@ -137,8 +144,8 @@ i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeigh
     auto* server = source.server();
     MC_ASSERT_RELEASE(server != nullptr);
 
-    // 解析命令参数
-    const Vector3d& center = context.getArgument<Vector3d>("center");
+    // 解析命令参数（center 为水平面 x, z 坐标）
+    const Vector2d& center = context.getArgument<Vector2d>("center");
     const f32 spreadDistance = context.getArgument<f32>("spreadDistance");
     const f32 maxRange = context.getArgument<f32>("maxRange");
     const bool respectTeams = context.getArgument<bool>("respectTeams");
@@ -183,11 +190,11 @@ i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeigh
         return 0;
     }
 
-    // 计算分散区域边界
+    // 计算分散区域边界（center.y 语义为 z 坐标，与 MC 原版 Vec2 一致）
     const f64 minX = center.x - static_cast<f64>(maxRange);
-    const f64 minZ = center.z - static_cast<f64>(maxRange);
+    const f64 minZ = center.y - static_cast<f64>(maxRange);
     const f64 maxX = center.x + static_cast<f64>(maxRange);
-    const f64 maxZ = center.z + static_cast<f64>(maxRange);
+    const f64 maxZ = center.y + static_cast<f64>(maxRange);
 
     // 创建随机数生成器
     math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
@@ -204,7 +211,7 @@ i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeigh
         // 分散失败：无法在给定参数下满足最小距离要求
         std::ostringstream ss;
         ss << "Could not spread " << positionCount << " " << (respectTeams ? "teams" : "entities") << " around "
-           << static_cast<i32>(center.x) << ", " << static_cast<i32>(center.z) << " - too many "
+           << static_cast<i32>(center.x) << ", " << static_cast<i32>(center.y) << " - too many "
            << (respectTeams ? "teams" : "entities") << " for spread distance " << std::fixed << std::setprecision(2)
            << spreadDistance << " (max distance is " << std::fixed << std::setprecision(2) << algorithmMinDist << ")";
         source.sendError(ss.str());
@@ -217,7 +224,7 @@ i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeigh
     // 构建成功反馈消息
     std::ostringstream ss;
     ss << "Spread " << positionCount << " " << (respectTeams ? "team" : "player") << (positionCount != 1 ? "s" : "")
-       << " around (" << static_cast<i32>(center.x) << ", " << static_cast<i32>(center.z) << ")"
+       << " around (" << static_cast<i32>(center.x) << ", " << static_cast<i32>(center.y) << ")"
        << " with average distance " << std::fixed << std::setprecision(2) << avgMinDist;
     source.sendMessage(ss.str());
 
@@ -241,10 +248,8 @@ void SpreadPlayersCommand::registerTo(CommandDispatcher<ServerCommandSource>& di
             {},
             true));
 
-    // TODO: 使用 Vec2ArgumentType 解析中心坐标（仅 x, z），当前使用 Vec3ArgumentType
-    //       多解析了一个无用的 y 分量，需要创建 Vec2ArgumentType 或适配解析
     auto centerArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("center", Vec3ArgumentType::vec3());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector2d>>("center", Vec2ArgumentType::vec2());
 
     auto spreadDistanceArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
         "spreadDistance", FloatArgumentType::floatArg(0.0f));

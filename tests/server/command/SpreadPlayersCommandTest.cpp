@@ -73,7 +73,7 @@ TEST_F(SpreadPlayersCommandTest, SpreadPlayersCommandRequiresPermissionLevel2)
     ServerCommandSource lowPermSource(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 0, "test");
     bool permissionDenied = false;
     try {
-        const auto result = m_server.commandRegistry().execute("spreadplayers 0 0 0 1 10 false @a", lowPermSource);
+        const auto result = m_server.commandRegistry().execute("spreadplayers 0 0 1 10 false @a", lowPermSource);
         permissionDenied = (result.value() == 0);
     }
     catch (...) {

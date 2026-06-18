@@ -285,6 +285,63 @@ private:
 };
 
 /**
+ * @brief 二维向量位置参数类型（水平面 x, z 坐标）
+ *
+ * 解析两个以空格分隔的双精度浮点坐标分量（x 和 z），
+ * 支持 ~ 相对坐标前缀。
+ *
+ * 与 Vec3ArgumentType 的区别：
+ * - Vec3ArgumentType 解析三个分量 (x, y, z)，适用于三维坐标
+ * - Vec2ArgumentType 只解析两个分量 (x, z)，适用于水平面坐标
+ *
+ * 用于 /spreadplayers 等只需要水平面坐标的命令。
+ * MC 原版对应: Vec2Argument（返回 Coordinates 接口，内部构造 WorldCoordinates(x, relative(0), z)）
+ */
+class Vec2ArgumentType : public ArgumentType<Vector2d> {
+public:
+    [[nodiscard]] Vector2d parse(StringReader& reader) override
+    {
+        f64 x = _parseCoordinate(reader);
+        reader.skipWhitespace();
+        f64 z = _parseCoordinate(reader);
+        return Vector2d(x, z);
+    }
+
+    [[nodiscard]] std::string getTypeName() const override { return "vec2"; }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override { return {"0 0", "~ ~", "0.1 -0.5", "~1 ~-2"}; }
+
+    // ========== 静态工厂方法 ==========
+
+    static std::shared_ptr<Vec2ArgumentType> vec2() { return std::make_shared<Vec2ArgumentType>(); }
+
+    // ========== 静态获取方法 ==========
+
+    template <typename S>
+    static Vector2d getVec2(CommandContext<S>& context, const std::string& name)
+    {
+        return context.template getArgument<Vector2d>(name);
+    }
+
+private:
+    f64 _parseCoordinate(StringReader& reader)
+    {
+        if (reader.canRead() && reader.peek() == '~') {
+            reader.skip();
+        }
+        // Vec2Argument 不支持 ^ 局部坐标（与 Vec3Argument 不同）
+
+        if (!reader.canRead() || _isWhitespace(reader.peek())) {
+            return 0.0;
+        }
+
+        return reader.readDouble();
+    }
+
+    static bool _isWhitespace(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
+};
+
+/**
  * @brief 方块旋转参数类型（yaw, pitch）
  */
 class RotationArgumentType : public ArgumentType<Vector2f> {
