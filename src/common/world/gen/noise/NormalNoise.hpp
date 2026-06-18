@@ -118,13 +118,16 @@ public:
      */
     [[nodiscard]] const std::optional<u64>& seed() const { return m_seed; }
 
-private:
     /**
      * @brief 计算期望标准差，用于归一化
      * @param octaveRange 非零倍频的范围
+     *
+     * MC 1.21.11: NormalNoise.expectedDeviation(int)
+     * 公式: 0.1 * (1.0 + 1.0 / (octaveRange + 1))
      */
     [[nodiscard]] static f64 expectedDeviation(i32 octaveRange);
 
+private:
     /**
      * @brief 计算 valueFactor 和 maxValue（两个构造函数共用）
      */

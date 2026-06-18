@@ -70,7 +70,7 @@ public:
     [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override;
     [[nodiscard]] BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const override;
     [[nodiscard]] i32 getHeight(i32 x, i32 z, HeightmapType type) const override;
-    [[nodiscard]] i32 getGroundHeight() const override { return 70; }
+    [[nodiscard]] i32 getGroundHeight() const override { return 0; }
     [[nodiscard]] i32 seaLevel() const override { return 63; }
 
     /**

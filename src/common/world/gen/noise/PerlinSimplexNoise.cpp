@@ -23,9 +23,7 @@
 
 #include "PerlinSimplexNoise.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/util/math/MathUtils.hpp"
-#include "common/util/math/random/LcgRandom.hpp"
-#include <algorithm>
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include <cmath>
 #include <set>
 
@@ -75,14 +73,18 @@ PerlinSimplexNoise::PerlinSimplexNoise(math::IRandom& rng, std::vector<i32> octa
         MC_ASSERT_RELEASE(firstNoisePtr != nullptr);
 
         // MC: WorldgenRandom(new LegacyRandomSource(seed))
-        // Java 使用 float 乘法: (long)(simplexnoise.getValue(...) * 9.223372E18F)
-        // 注意 9.223372E18F 是 float 字面量，精度比 double 低
+        // Java 使用 float 精度乘法: (long)(simplexnoise.getValue(...) * 9.223372E18F)
+        // 注意：Java 中 getValue() 返回 double，9.223372E18F 是 float 字面量
+        // Java 二元数值提升：float 自动拓宽为 double，乘法在 double 精度下进行
+        // 因此 C++ 必须先拓宽 float 常量为 double，再在 double 精度下做乘法
         const f64 derivedSeed =
             firstNoisePtr->getValue(firstNoisePtr->xOffset(), firstNoisePtr->yOffset(), firstNoisePtr->zOffset());
-        const i64 seed = static_cast<i64>(static_cast<f32>(derivedSeed) * 9.223372E18f);
+        const i64 seed = static_cast<i64>(derivedSeed * static_cast<f64>(9.223372E18f));
 
-        // 使用 LcgRandom 作为 WorldgenRandom(LegacyRandomSource(seed)) 的近似
-        math::LcgRandom secondaryRng(static_cast<u64>(seed));
+        // 使用 JavaLegacyRandom 复刻 MC 的 WorldgenRandom(LegacyRandomSource(seed))
+        // Java LegacyRandomSource 使用 48 位 LCG（A=25214903917, C=11, mask=(1<<48)-1）
+        // 种子初始化: state = (seed ^ 0x5DEECE66D) & mask
+        math::JavaLegacyRandom secondaryRng(static_cast<u64>(seed));
 
         for (i32 j1 = maxOctave - 1; j1 >= 0; --j1) {
             if (j1 < k && octaveSet.count(maxOctave - j1)) {

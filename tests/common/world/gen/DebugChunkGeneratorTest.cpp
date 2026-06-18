@@ -23,6 +23,7 @@
 
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/WorldConfig.hpp"
+#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
@@ -52,13 +53,14 @@ protected:
 };
 
 // 测试生成器创建
+// MC 1.21.11: DebugLevelSource 的 getGroundHeight 返回 0
 TEST_F(DebugChunkGeneratorTest, CreateGenerator)
 {
     DebugChunkGenerator generator;
 
     EXPECT_EQ(generator.seed(), 0);
     EXPECT_EQ(generator.seaLevel(), 0);
-    EXPECT_EQ(generator.getGroundHeight(), 70);
+    EXPECT_EQ(generator.getGroundHeight(), 0);
 }
 
 // 测试初始化所有方块状态
@@ -149,19 +151,19 @@ TEST_F(DebugChunkGeneratorTest, BiomeAlwaysPlains)
 }
 
 // 测试高度返回
+// MC 1.21.11: DebugLevelSource.getBaseHeight() 始终返回 0
 TEST_F(DebugChunkGeneratorTest, GetHeight)
 {
     DebugChunkGenerator generator;
     DebugChunkGenerator::initializeValidStates();
 
-    // 高度应该返回 60 或 70
-    i32 height = generator.getHeight(0, 0, HeightmapType::WorldSurface);
-    EXPECT_GE(height, 60);
-    EXPECT_LE(height, 70);
+    // MC 1.21.11: DebugLevelSource 的 getHeight 对所有坐标返回 0
+    EXPECT_EQ(generator.getHeight(0, 0, HeightmapType::WorldSurface), 0);
+    EXPECT_EQ(generator.getHeight(1, 1, HeightmapType::WorldSurface), 0);
+    EXPECT_EQ(generator.getHeight(100, -100, HeightmapType::WorldSurface), 0);
 
-    // 奇数坐标应该有方块，高度为 70
-    height = generator.getHeight(1, 1, HeightmapType::WorldSurface);
-    EXPECT_EQ(height, 70);
+    // getGroundHeight 也应返回 0
+    EXPECT_EQ(generator.getGroundHeight(), 0);
 }
 
 // 测试屏障方块基座层
@@ -177,27 +179,30 @@ TEST_F(DebugChunkGeneratorTest, BarrierBaseLayer)
     EXPECT_NO_THROW(generator.getHeight(0, 0, HeightmapType::WorldSurface));
 }
 
-// 测试空操作方法
-TEST_F(DebugChunkGeneratorTest, NoOpMethods)
+// 测试生成器方法签名存在且可调用
+// MC 1.21.11: DebugLevelSource 的各生成方法为空操作或仅设置 ChunkStatus
+// 注意：这些方法需要有效的 WorldGenRegion 和 ChunkPrimer 引用，
+// 传递空指针解引用是未定义行为，因此这里只测试不需要区块对象的查询方法
+TEST_F(DebugChunkGeneratorTest, QueryMethodsWork)
 {
     DebugChunkGenerator generator;
 
-    // 这些方法应该是空操作，不应该崩溃
-    EXPECT_NO_THROW(
-        generator.generateStructureStarts(*static_cast<WorldGenRegion*>(nullptr), *static_cast<ChunkPrimer*>(nullptr)));
-    EXPECT_NO_THROW(generator.generateStructureReferences(
-        *static_cast<WorldGenRegion*>(nullptr), *static_cast<ChunkPrimer*>(nullptr)));
-    EXPECT_NO_THROW(
-        generator.buildSurface(*static_cast<WorldGenRegion*>(nullptr), *static_cast<ChunkPrimer*>(nullptr)));
-    EXPECT_NO_THROW(
-        generator.applyCarvers(*static_cast<WorldGenRegion*>(nullptr), *static_cast<ChunkPrimer*>(nullptr)));
-    EXPECT_NO_THROW(
-        generator.placeFeatures(*static_cast<WorldGenRegion*>(nullptr), *static_cast<ChunkPrimer*>(nullptr)));
+    // 查询方法应正常工作
+    EXPECT_EQ(generator.getBiome(0, 0, 0), Biomes::Plains);
+    EXPECT_EQ(generator.getBiome(100, 50, 100), Biomes::Plains);
+    EXPECT_EQ(generator.getBiome(-100, 0, -100), Biomes::Plains);
 
+    EXPECT_EQ(generator.getNoiseBiome(0, 0, 0), Biomes::Plains);
+    EXPECT_EQ(generator.getNoiseBiome(100, 50, 100), Biomes::Plains);
+    EXPECT_EQ(generator.getNoiseBiome(-100, 0, -100), Biomes::Plains);
+
+    // getHeight 对所有坐标返回 0
+    EXPECT_EQ(generator.getHeight(0, 0, HeightmapType::WorldSurface), 0);
+    EXPECT_EQ(generator.getHeight(1, 1, HeightmapType::WorldSurface), 0);
+
+    // spawnInitialMobs 不需要 region/chunk 的有效数据
     std::vector<SpawnedEntityData> entities;
-    EXPECT_EQ(generator.spawnInitialMobs(
-                  *static_cast<WorldGenRegion*>(nullptr), *static_cast<ChunkPrimer*>(nullptr), entities),
-        0);
+    // 注意：spawnInitialMobs 仍需要有效引用，此处不测试
 }
 
 // 测试网格尺寸一致性
@@ -272,14 +277,16 @@ TEST_F(DebugChunkGeneratorTest, IsDebugGenerator_VirtualDispatch)
 
 TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_ReturnsFalse)
 {
-    NoiseChunkGenerator generator(12345ULL, DimensionSettings::overworld());
+    auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(12345ULL, false);
+    NoiseChunkGenerator generator(12345ULL, DimensionSettings::overworld(), std::move(biomeSource));
     EXPECT_FALSE(generator.isDebugGenerator());
 }
 
 TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_VirtualDispatch)
 {
     // 通过基类指针调用，验证虚函数分派
-    NoiseChunkGenerator noiseGen(12345ULL, DimensionSettings::overworld());
+    auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(12345ULL, false);
+    NoiseChunkGenerator noiseGen(12345ULL, DimensionSettings::overworld(), std::move(biomeSource));
     IChunkGenerator* basePtr = &noiseGen;
     EXPECT_FALSE(basePtr->isDebugGenerator());
 }
@@ -287,14 +294,16 @@ TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_VirtualDispatch)
 TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_FlatSettings)
 {
     // 使用 flat 设置也应该返回 false
-    NoiseChunkGenerator generator(12345ULL, DimensionSettings::flat());
+    auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(12345ULL, false);
+    NoiseChunkGenerator generator(12345ULL, DimensionSettings::flat(), std::move(biomeSource));
     EXPECT_FALSE(generator.isDebugGenerator());
 }
 
 TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_AmplifiedSettings)
 {
-    // 使用 amplified 设置也应该返回 false
-    NoiseChunkGenerator generator(12345ULL, DimensionSettings::amplified());
+    // 使用 nether 设置也应该返回 false（amplified 已移除，用 nether 替代测试）
+    auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(12345ULL, false);
+    NoiseChunkGenerator generator(12345ULL, DimensionSettings::nether(), std::move(biomeSource));
     EXPECT_FALSE(generator.isDebugGenerator());
 }
 

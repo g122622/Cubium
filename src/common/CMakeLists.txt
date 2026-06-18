@@ -27,6 +27,7 @@ add_library(mc_common STATIC
     util/math/random/Xoroshiro128ppRandom.cpp
     util/math/random/Xoshiro256ppRandom.cpp
     util/math/random/LcgRandom.cpp
+    util/math/random/JavaLegacyRandom.cpp
     util/math/random/UniformIntDistribution.cpp
     util/math/random/UniformRealDistribution.cpp
     util/math/random/RandomRanges.cpp

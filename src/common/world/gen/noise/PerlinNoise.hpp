@@ -25,10 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/util/math/random/Random.hpp"
-#include <cmath>
-#include <limits>
 #include <memory>
-#include <string>
 #include <vector>
 
 namespace mc::world::gen::noise {
@@ -179,7 +176,7 @@ public:
         [[nodiscard]] static f64 gradDot(i32 hash, f64 x, f64 y, f64 z);
 
         std::vector<u8> m_permutation;
-        mutable std::vector<u8> m_p;
+        std::vector<u8> m_p;
         f64 m_xOffset = 0.0;
         f64 m_yOffset = 0.0;
         f64 m_zOffset = 0.0;
@@ -196,7 +193,10 @@ public:
      */
     [[nodiscard]] const PerlinLayer* getOctaveNoise(i32 octave) const
     {
-        const i32 index = octave - m_firstOctave;
+        // MC 1.21.11: getOctaveNoise 使用反向索引
+        // Java: this.noiseLevels[this.noiseLevels.length - 1 - octave]
+        // octave=0 返回最高频率层，octave=1 返回次高频率层，依此类推
+        const i32 index = static_cast<i32>(m_layers.size()) - 1 - octave;
         if (index < 0 || index >= static_cast<i32>(m_layers.size())) {
             return nullptr;
         }

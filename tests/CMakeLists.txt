@@ -635,6 +635,13 @@ add_executable(mc_tests
     common/world/gen/NoiseSurfaceParityTest.cpp
     common/world/gen/NoiseChunkGeneratorCarverParityTest.cpp
     common/world/gen/NetherSurfaceParityTest.cpp
+    # 噪声生成器单元测试
+    common/world/gen/PerlinNoiseTest.cpp
+    common/world/gen/NormalNoiseTest.cpp
+    common/world/gen/SimplexNoiseTest.cpp
+    common/world/gen/PerlinSimplexNoiseTest.cpp
+    # JavaLegacyRandom 单元测试
+    common/world/gen/JavaLegacyRandomTest.cpp
     common/world/gen/feature/NetherFeatureTest.cpp
     common/world/gen/feature/template/test_template.cpp
     common/world/gen/structure/test_ocean_ruin_structure.cpp

@@ -75,10 +75,10 @@ gen/aquifer/Aquifer.cpp             # 含水层生成
 ### 1. PerlinNoise 缩放因子计算
 
 ```cpp
-// 最低频率输入因子 = 2^(firstOctave + minNonZero)
+// 最低频率输入因子 = 2^firstOctave
 // 最低频率值因子 = 2^(amplitudeCount - 1) / (2^amplitudeCount - 1)
 // 注意：使用 amplitudes.size() 而非非零振幅数
-m_lowestFreqInputFactor = std::pow(2.0, static_cast<f64>(m_firstOctave + minNonZero));
+m_lowestFreqInputFactor = std::pow(2.0, static_cast<f64>(m_firstOctave));
 m_lowestFreqValueFactor = std::pow(2.0, static_cast<f64>(amplitudeCount - 1)) /
     (std::pow(2.0, static_cast<f64>(amplitudeCount)) - 1.0);
 ```

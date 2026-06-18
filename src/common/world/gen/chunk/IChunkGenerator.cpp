@@ -629,9 +629,16 @@ i32 BaseChunkGenerator::spawnInitialMobs(
     const BiomeId biomeId = chunk.getBiomeAtBlock(8, region.getMaxBuildHeight(), 8);
     const Biome& biome = BiomeRegistry::instance().get(biomeId);
 
-    // 使用种子创建随机数生成器
+    // MC 1.21.11: WorldgenRandom.setDecorationSeed(worldSeed, blockX, blockZ)
+    // 算法：setSeed(worldSeed), nextLong()|1 -> l, nextLong()|1 -> j,
+    //       k = blockX * l + blockZ * j ^ worldSeed, setSeed(k)
     math::Random rng;
-    rng.setSeed(static_cast<u64>(chunk.x()) * 341873128712ULL + static_cast<u64>(chunk.z()) * 132897987541ULL + m_seed);
+    rng.setSeed(m_seed);
+    const i64 l = static_cast<i64>(rng.nextU64()) | 1LL;
+    const i64 j = static_cast<i64>(rng.nextU64()) | 1LL;
+    const i64 k =
+        (static_cast<i64>(chunk.x() << 4) * l + static_cast<i64>(chunk.z() << 4) * j) ^ static_cast<i64>(m_seed);
+    rng.setSeed(static_cast<u64>(k));
 
     return m_worldGenSpawner->spawnInitialMobs(region, biome, chunk.x(), chunk.z(), *this, rng, outEntities);
 }

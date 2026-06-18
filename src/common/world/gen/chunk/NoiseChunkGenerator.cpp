@@ -430,17 +430,22 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
 
     // === MC 1.21: 收集 3x3 区块邻域内的 section biomes ===
     // 对应 Java: ChunkPos.rangeClosed(sectionpos.chunk(), 1)
+    // MC 1.21.11: 遍历每个 section 的 BiomeContainer 所有 4x4x4 条目（64个）
+    // 使用 getBiomeAtBlock 的区块内坐标映射到 4x4x4 采样点
     std::unordered_set<BiomeId> sectionBiomes;
     for (ChunkCoord dz = -1; dz <= 1; ++dz) {
         for (ChunkCoord dx = -1; dx <= 1; ++dx) {
             const IChunk* neighborChunk = region.getIChunk(chunkX + dx, chunkZ + dz, ChunkStatuses::CARVERS);
             if (!neighborChunk) {
                 if (dx == 0 && dz == 0) {
-                    for (i32 y = 0; y < world::CHUNK_SECTIONS; ++y) {
-                        const i32 sectionY = y * world::CHUNK_SECTION_HEIGHT + world::MIN_BUILD_HEIGHT + 8;
-                        for (i32 sz = 0; sz < 4; ++sz) {
-                            for (i32 sx = 0; sx < 4; ++sx) {
-                                sectionBiomes.insert(chunk.getBiomeAtBlock(sx * 4 + 2, sectionY, sz * 4 + 2));
+                    // 当前区块：遍历所有 section 的所有 4x4x4 生物群系采样点
+                    for (i32 section = 0; section < world::CHUNK_SECTIONS; ++section) {
+                        const i32 sectionBaseY = section * world::CHUNK_SECTION_HEIGHT + world::MIN_BUILD_HEIGHT;
+                        for (i32 y = 0; y < 4; ++y) {
+                            for (i32 z = 0; z < 4; ++z) {
+                                for (i32 x = 0; x < 4; ++x) {
+                                    sectionBiomes.insert(chunk.getBiomeAtBlock(x * 4, sectionBaseY + y * 4, z * 4));
+                                }
                             }
                         }
                     }
@@ -448,11 +453,14 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
                 continue;
             }
 
-            for (i32 y = 0; y < world::CHUNK_SECTIONS; ++y) {
-                const i32 sectionY = y * world::CHUNK_SECTION_HEIGHT + world::MIN_BUILD_HEIGHT + 8;
-                for (i32 sz = 0; sz < 4; ++sz) {
-                    for (i32 sx = 0; sx < 4; ++sx) {
-                        sectionBiomes.insert(neighborChunk->getBiomeAtBlock(sx * 4 + 2, sectionY, sz * 4 + 2));
+            // 邻居区块：遍历所有 section 的所有 4x4x4 生物群系采样点
+            for (i32 section = 0; section < world::CHUNK_SECTIONS; ++section) {
+                const i32 sectionBaseY = section * world::CHUNK_SECTION_HEIGHT + world::MIN_BUILD_HEIGHT;
+                for (i32 y = 0; y < 4; ++y) {
+                    for (i32 z = 0; z < 4; ++z) {
+                        for (i32 x = 0; x < 4; ++x) {
+                            sectionBiomes.insert(neighborChunk->getBiomeAtBlock(x * 4, sectionBaseY + y * 4, z * 4));
+                        }
                     }
                 }
             }
@@ -680,6 +688,11 @@ i32 NoiseChunkGenerator::spawnInitialMobs(
 {
     MC_TRACE_EVENT("world.chunk_gen", "NoiseChunkGenerator::spawnInitialMobs", "x", chunk.x(), "z", chunk.z());
 
+    // MC 1.21.11: 如果 disableMobGeneration 为 true，跳过生物生成
+    if (m_settings.disableMobGeneration) {
+        return 0;
+    }
+
     // 使用 WorldGenSpawner 放置被动动物
     if (!m_worldGenSpawner || !m_worldGenSpawner->isEnabled()) {
         spdlog::warn("[NoiseChunkGenerator] WorldGenSpawner is not enabled. Skipping initial mob spawning.");
@@ -692,10 +705,16 @@ i32 NoiseChunkGenerator::spawnInitialMobs(
     const BiomeId biomeId = chunk.getBiomeAtBlock(8, sampleY, 8);
     const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
 
-    // 使用种子创建随机数生成器
-    // 参考 MC: setDecorationSeed
+    // MC 1.21.11: WorldgenRandom.setDecorationSeed(worldSeed, blockX, blockZ)
+    // 算法：setSeed(worldSeed), nextLong()|1 -> l, nextLong()|1 -> j,
+    //       k = blockX * l + blockZ * j ^ worldSeed, setSeed(k)
     math::Random rng;
-    rng.setSeed(static_cast<u64>(chunk.x()) * 341873128712ULL + static_cast<u64>(chunk.z()) * 132897987541ULL + m_seed);
+    rng.setSeed(m_seed);
+    const i64 l = static_cast<i64>(rng.nextU64()) | 1LL;
+    const i64 j = static_cast<i64>(rng.nextU64()) | 1LL;
+    const i64 k =
+        (static_cast<i64>(chunk.x() << 4) * l + static_cast<i64>(chunk.z() << 4) * j) ^ static_cast<i64>(m_seed);
+    rng.setSeed(static_cast<u64>(k));
 
     return m_worldGenSpawner->spawnInitialMobs(region, biome, chunk.x(), chunk.z(), *this, rng, outEntities);
 }

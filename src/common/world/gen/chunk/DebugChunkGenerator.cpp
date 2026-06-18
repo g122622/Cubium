@@ -29,6 +29,7 @@
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 namespace mc {
@@ -74,10 +75,25 @@ void DebugChunkGenerator::initializeValidStates()
         MC_ASSERT_FAIL("Barrier block not found in registry");
     }
 
-    // 收集所有方块的所有状态（MC 1.21.11 包含空气状态）
+    // 收集所有方块的所有状态
+    // MC 1.21.11: 按 Block 注册顺序迭代（与 MC 的 BuiltInRegistries.BLOCK 迭代顺序一致）
+    // BlockRegistry::forEachBlockState 使用 unordered_map，迭代顺序不确定，
+    // 因此必须按方块 ID 排序以确保确定性
     s_allValidStates.clear();
 
-    registry.forEachBlockState([](const BlockState& state) { s_allValidStates.push_back(&state); });
+    // 先收集到临时 vector 中，按方块 ID 排序
+    std::vector<std::pair<i32, const BlockState*>> tempStates;
+    registry.forEachBlockState(
+        [&tempStates](const BlockState& state) { tempStates.emplace_back(state.blockId(), &state); });
+
+    // 按方块 ID 排序，确保迭代顺序与注册顺序一致
+    std::sort(tempStates.begin(), tempStates.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+
+    s_allValidStates.reserve(tempStates.size());
+    for (const auto& [id, state] : tempStates) {
+        (void)id;
+        s_allValidStates.push_back(state);
+    }
 
     // 计算网格尺寸（近似正方形）
     if (!s_allValidStates.empty()) {
@@ -144,6 +160,7 @@ void DebugChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
     // 调试模式不生成结构
     MC_UNUSED(region);
     MC_UNUSED(chunk);
+    chunk.setChunkStatus(ChunkStatuses::STRUCTURE_STARTS);
 }
 
 void DebugChunkGenerator::generateStructureReferences(WorldGenRegion& region, ChunkPrimer& chunk)
@@ -151,6 +168,7 @@ void DebugChunkGenerator::generateStructureReferences(WorldGenRegion& region, Ch
     // 调试模式不生成结构引用
     MC_UNUSED(region);
     MC_UNUSED(chunk);
+    chunk.setChunkStatus(ChunkStatuses::STRUCTURE_REFERENCES);
 }
 
 void DebugChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& chunk)
@@ -168,6 +186,7 @@ void DebugChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
             }
         }
     }
+    chunk.setChunkStatus(ChunkStatuses::BIOMES);
 }
 
 void DebugChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chunk)
@@ -191,12 +210,13 @@ void DebugChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chun
     // 调试模式不应用雕刻器
     MC_UNUSED(region);
     MC_UNUSED(chunk);
+    chunk.setChunkStatus(ChunkStatuses::CARVERS);
 }
 
 void DebugChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk)
 {
     // MC 1.21.11: 调试世界在 applyBiomeDecoration 阶段放置方块
-    // Y=60 屏障基座 + Y=70 方块状态网格
+    // Y=60 屏障基座 + Y=70 方块状态网格（包括空气状态）
     if (!s_initialized) {
         initializeValidStates();
     }
@@ -212,13 +232,14 @@ void DebugChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
             // Y=60: 屏障基座
             region.setBlockState(worldX, 60, worldZ, s_barrierState);
 
-            // Y=70: 方块状态网格（MC 1.21.11 放置包括空气在内的所有状态）
+            // Y=70: 方块状态网格（MC 1.21.11: 无条件放置，包括空气状态）
             const BlockState* state = getBlockStateFor(worldX, worldZ);
-            if (state != nullptr && !state->isAir()) {
+            if (state != nullptr) {
                 region.setBlockState(worldX, 70, worldZ, state);
             }
         }
     }
+    chunk.setChunkStatus(ChunkStatuses::FEATURES);
 }
 
 i32 DebugChunkGenerator::spawnInitialMobs(
@@ -254,14 +275,11 @@ BiomeId DebugChunkGenerator::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) c
 
 i32 DebugChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
 {
+    // MC 1.21.11: DebugLevelSource.getBaseHeight() 始终返回 0
+    MC_UNUSED(x);
+    MC_UNUSED(z);
     MC_UNUSED(type);
-    // 调试模式高度固定为 70（方块网格层）
-    // 但如果该位置没有方块，返回 60（屏障层）
-    const BlockState* state = getBlockStateFor(x, z);
-    if (state && !state->isAir()) {
-        return 70;
-    }
-    return 60;
+    return 0;
 }
 
 } // namespace mc
