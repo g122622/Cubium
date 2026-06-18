@@ -34,6 +34,7 @@
  */
 
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
@@ -46,7 +47,6 @@
 #include "world/IWorld.hpp"
 #include "world/WorldEvents.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"
@@ -852,4 +852,272 @@ TEST_F(GolemBoundaryTest, MultipleAttempts_AfterPatternDestroyed)
     carvedPumpkin_->onBlockAdded(*world_, pumpkinPos2, carvedPumpkin_->defaultState());
 
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
+}
+
+// ============================================================================
+// 南瓜灯傀儡生成测试（验证 JackOLanternBlock 注册修复后的功能）
+// ============================================================================
+
+class JackOLanternGolemTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        world_ = std::make_unique<GolemTestWorld>();
+        jackOLantern_ =
+            std::make_unique<JackOLanternBlock>(BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15));
+    }
+
+    std::unique_ptr<GolemTestWorld> world_;
+    std::unique_ptr<JackOLanternBlock> jackOLantern_;
+};
+
+TEST_F(JackOLanternGolemTest, HasFacingProperty)
+{
+    // 验证南瓜灯有 HORIZONTAL_FACING 属性
+    const auto& state = jackOLantern_->defaultState();
+    std::optional<Direction> facing = state.getOptional(BlockStateProperties::HORIZONTAL_FACING());
+    EXPECT_TRUE(facing.has_value());
+    EXPECT_EQ(facing.value(), Direction::North);
+}
+
+TEST_F(JackOLanternGolemTest, HasLightLevel15)
+{
+    // 验证南瓜灯光照等级为 15
+    const auto& state = jackOLantern_->defaultState();
+    EXPECT_EQ(state.lightLevel(), 15);
+}
+
+TEST_F(JackOLanternGolemTest, SnowGolem_SpawnsWithJackOLantern)
+{
+    // 南瓜灯 + 雪块 + 雪块 应该生成雪傀儡
+    BlockPos jackPos(5, 15, 5);
+    world_->setBlockAt(jackPos, &jackOLantern_->defaultState());
+    world_->setSnowBlockAt(5, 14, 5);
+    world_->setSnowBlockAt(5, 13, 5);
+
+    jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState());
+
+    EXPECT_EQ(world_->spawnedEntityCount(), 1u);
+    Entity* entity = world_->getSpawnedEntity(0);
+    ASSERT_NE(entity, nullptr);
+    SnowGolemEntity* snowGolem = dynamic_cast<SnowGolemEntity*>(entity);
+    EXPECT_NE(snowGolem, nullptr);
+}
+
+TEST_F(JackOLanternGolemTest, IronGolem_SpawnsWithJackOLantern_EastWest)
+{
+    // 南瓜灯 + T形铁块（东西方向）应该生成铁傀儡
+    BlockPos jackPos(5, 20, 5);
+    world_->setBlockAt(jackPos, &jackOLantern_->defaultState());
+    world_->setIronBlockAt(4, 19, 5); // 西
+    world_->setIronBlockAt(5, 19, 5); // 中央
+    world_->setIronBlockAt(6, 19, 5); // 东
+    world_->setIronBlockAt(5, 18, 5); // 身体
+
+    jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState());
+
+    EXPECT_EQ(world_->spawnedEntityCount(), 1u);
+    Entity* entity = world_->getSpawnedEntity(0);
+    ASSERT_NE(entity, nullptr);
+    IronGolemEntity* ironGolem = dynamic_cast<IronGolemEntity*>(entity);
+    EXPECT_NE(ironGolem, nullptr);
+    EXPECT_TRUE(ironGolem->isPlayerCreated());
+}
+
+TEST_F(JackOLanternGolemTest, IronGolem_SpawnsWithJackOLantern_NorthSouth)
+{
+    // 南瓜灯 + T形铁块（南北方向）应该生成铁傀儡
+    BlockPos jackPos(5, 25, 5);
+    world_->setBlockAt(jackPos, &jackOLantern_->defaultState());
+    world_->setIronBlockAt(5, 24, 4); // 北
+    world_->setIronBlockAt(5, 24, 5); // 中央
+    world_->setIronBlockAt(5, 24, 6); // 南
+    world_->setIronBlockAt(5, 23, 5); // 身体
+
+    jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState());
+
+    EXPECT_EQ(world_->spawnedEntityCount(), 1u);
+    Entity* entity = world_->getSpawnedEntity(0);
+    ASSERT_NE(entity, nullptr);
+    IronGolemEntity* ironGolem = dynamic_cast<IronGolemEntity*>(entity);
+    EXPECT_NE(ironGolem, nullptr);
+}
+
+TEST_F(JackOLanternGolemTest, NoGolem_WithoutPattern)
+{
+    // 南瓜灯单独放置不应生成傀儡
+    BlockPos jackPos(5, 10, 5);
+    world_->setBlockAt(jackPos, &jackOLantern_->defaultState());
+
+    jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState());
+
+    EXPECT_EQ(world_->spawnedEntityCount(), 0u);
+}
+
+// ============================================================================
+// 铁傀儡南北方向方块移除测试
+// ============================================================================
+
+class IronGolemDirectionTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        world_ = std::make_unique<GolemTestWorld>();
+        carvedPumpkin_ = std::make_unique<CarvedPumpkinBlock>(BlockProperties(Material::EARTH).hardness(1.0f));
+    }
+
+    std::unique_ptr<GolemTestWorld> world_;
+    std::unique_ptr<CarvedPumpkinBlock> carvedPumpkin_;
+};
+
+TEST_F(IronGolemDirectionTest, NorthSouth_RemovesCorrectBlocks)
+{
+    // 南北方向铁傀儡：验证南北方向的铁块被正确移除
+    // 注意：当十字形存在时（东西+南北都有铁块），MC原版优先检测东西方向，
+    // 因此本测试只设置南北方向的T形，不添加东西方向的铁块
+    BlockPos pumpkinPos(0, 10, 0);
+
+    // 设置南北方向的 T 形（仅南北，无东西）
+    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setIronBlockAt(0, 9, -1); // 北
+    world_->setIronBlockAt(0, 9, 0);  // 中央
+    world_->setIronBlockAt(0, 9, 1);  // 南
+    world_->setIronBlockAt(0, 8, 0);  // 身体
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    // 验证南北方向手臂铁块被移除
+    EXPECT_TRUE(world_->getBlockState(0, 9, -1)->isAir()); // 北
+    EXPECT_TRUE(world_->getBlockState(0, 9, 0)->isAir());  // 中央
+    EXPECT_TRUE(world_->getBlockState(0, 9, 1)->isAir());  // 南
+    EXPECT_TRUE(world_->getBlockState(0, 8, 0)->isAir());  // 身体
+    EXPECT_TRUE(world_->getBlockState(0, 10, 0)->isAir()); // 南瓜
+
+    // 验证东西方向没有多余的铁块被移除（本来就没有）
+    EXPECT_TRUE(world_->getBlockState(-1, 9, 0)->isAir()); // 西侧本来就是空气
+    EXPECT_TRUE(world_->getBlockState(1, 9, 0)->isAir());  // 东侧本来就是空气
+}
+
+TEST_F(IronGolemDirectionTest, EastWest_RemovesCorrectBlocks)
+{
+    // 东西方向铁傀儡：验证东西方向的铁块被正确移除，而非南北方向
+    BlockPos pumpkinPos(0, 10, 0);
+
+    // 设置东西方向的 T 形
+    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setIronBlockAt(-1, 9, 0); // 西
+    world_->setIronBlockAt(0, 9, 0);  // 中央
+    world_->setIronBlockAt(1, 9, 0);  // 东
+    world_->setIronBlockAt(0, 8, 0);  // 身体
+
+    // 在南北方向放置额外的铁块（不应被移除）
+    if (VanillaBlocks::IRON_BLOCK) {
+        world_->setBlockAt(BlockPos(0, 9, -1), &VanillaBlocks::IRON_BLOCK->defaultState());
+        world_->setBlockAt(BlockPos(0, 9, 1), &VanillaBlocks::IRON_BLOCK->defaultState());
+    }
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    // 验证东西方向手臂铁块被移除
+    EXPECT_TRUE(world_->getBlockState(-1, 9, 0)->isAir()); // 西
+    EXPECT_TRUE(world_->getBlockState(0, 9, 0)->isAir());  // 中央
+    EXPECT_TRUE(world_->getBlockState(1, 9, 0)->isAir());  // 东
+    EXPECT_TRUE(world_->getBlockState(0, 8, 0)->isAir());  // 身体
+    EXPECT_TRUE(world_->getBlockState(0, 10, 0)->isAir()); // 南瓜
+
+    // 验证南北方向额外的铁块未被移除
+    if (VanillaBlocks::IRON_BLOCK) {
+        EXPECT_FALSE(world_->getBlockState(0, 9, -1)->isAir());
+        EXPECT_FALSE(world_->getBlockState(0, 9, 1)->isAir());
+    }
+}
+
+TEST_F(IronGolemDirectionTest, CrossShape_PrefersEastWestDirection)
+{
+    // 十字形铁傀儡：MC原版优先检测东西方向
+    // 当十字形存在时（东西+南北都有铁块），东西方向先被检测并移除
+    BlockPos pumpkinPos(0, 10, 0);
+
+    // 设置十字形（东西+南北都有铁块）
+    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    // 东西方向手臂
+    world_->setIronBlockAt(-1, 9, 0); // 西
+    world_->setIronBlockAt(0, 9, 0);  // 中央
+    world_->setIronBlockAt(1, 9, 0);  // 东
+    // 南北方向手臂
+    world_->setIronBlockAt(0, 9, -1); // 北
+    world_->setIronBlockAt(0, 9, 1);  // 南
+    // 身体
+    world_->setIronBlockAt(0, 8, 0);
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+
+    // 东西方向铁块被移除（MC优先检测东西方向）
+    EXPECT_TRUE(world_->getBlockState(-1, 9, 0)->isAir()); // 西
+    EXPECT_TRUE(world_->getBlockState(0, 9, 0)->isAir());  // 中央
+    EXPECT_TRUE(world_->getBlockState(1, 9, 0)->isAir());  // 东
+    EXPECT_TRUE(world_->getBlockState(0, 8, 0)->isAir());  // 身体
+    EXPECT_TRUE(world_->getBlockState(0, 10, 0)->isAir()); // 南瓜
+
+    // 南北方向铁块未被移除（因为选择了东西方向）
+    EXPECT_FALSE(world_->getBlockState(0, 9, -1)->isAir()); // 北
+    EXPECT_FALSE(world_->getBlockState(0, 9, 1)->isAir());  // 南
+}
+
+// ============================================================================
+// isPumpkinHead 静态方法测试
+// ============================================================================
+
+class IsPumpkinHeadTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        entity::VanillaEntities::registerAll();
+    }
+};
+
+TEST_F(IsPumpkinHeadTest, CarvedPumpkin_IsPumpkinHead)
+{
+    if (VanillaBlocks::CARVED_PUMPKIN) {
+        const BlockState* state = &VanillaBlocks::CARVED_PUMPKIN->defaultState();
+        EXPECT_TRUE(CarvedPumpkinBlock::isPumpkinHead(state));
+    }
+}
+
+TEST_F(IsPumpkinHeadTest, JackOLantern_IsPumpkinHead)
+{
+    if (VanillaBlocks::JACK_O_LANTERN) {
+        const BlockState* state = &VanillaBlocks::JACK_O_LANTERN->defaultState();
+        EXPECT_TRUE(CarvedPumpkinBlock::isPumpkinHead(state));
+    }
+}
+
+TEST_F(IsPumpkinHeadTest, NullState_IsNotPumpkinHead)
+{
+    EXPECT_FALSE(CarvedPumpkinBlock::isPumpkinHead(nullptr));
+}
+
+TEST_F(IsPumpkinHeadTest, AirBlock_IsNotPumpkinHead)
+{
+    if (VanillaBlocks::AIR) {
+        const BlockState* airState = &VanillaBlocks::AIR->defaultState();
+        EXPECT_FALSE(CarvedPumpkinBlock::isPumpkinHead(airState));
+    }
+}
+
+TEST_F(IsPumpkinHeadTest, IronBlock_IsNotPumpkinHead)
+{
+    if (VanillaBlocks::IRON_BLOCK) {
+        const BlockState* ironState = &VanillaBlocks::IRON_BLOCK->defaultState();
+        EXPECT_FALSE(CarvedPumpkinBlock::isPumpkinHead(ironState));
+    }
+}
+
+TEST_F(IsPumpkinHeadTest, SnowBlock_IsNotPumpkinHead)
+{
+    if (VanillaBlocks::SNOW_BLOCK) {
+        const BlockState* snowState = &VanillaBlocks::SNOW_BLOCK->defaultState();
+        EXPECT_FALSE(CarvedPumpkinBlock::isPumpkinHead(snowState));
+    }
 }

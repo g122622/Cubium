@@ -192,8 +192,9 @@ bool CarvedPumpkinBlock::trySpawnGolem(IWorld& world, const BlockPos& pos)
     }
 
     BlockPos bodyPos;
-    if (checkIronGolemPattern(world, pos, bodyPos)) {
-        spawnIronGolem(world, pos, pos.down());
+    bool isEastWestArm = false;
+    if (checkIronGolemPattern(world, pos, bodyPos, isEastWestArm)) {
+        spawnIronGolem(world, pos, pos.down(), isEastWestArm);
         return true;
     }
 
@@ -233,7 +234,8 @@ bool CarvedPumpkinBlock::checkSnowGolemPattern(IWorld& world, const BlockPos& po
     return true;
 }
 
-bool CarvedPumpkinBlock::checkIronGolemPattern(IWorld& world, const BlockPos& pos, BlockPos& outBodyPos)
+bool CarvedPumpkinBlock::checkIronGolemPattern(
+    IWorld& world, const BlockPos& pos, BlockPos& outBodyPos, bool& outIsEastWest)
 {
     // 铁傀儡模式 - T形结构
     // 顶层：空气、南瓜头部、空气  (~^~)
@@ -274,6 +276,7 @@ bool CarvedPumpkinBlock::checkIronGolemPattern(IWorld& world, const BlockPos& po
 
     if (eastWestValid) {
         outBodyPos = pos.down(2);
+        outIsEastWest = true;
         return true;
     }
 
@@ -296,6 +299,7 @@ bool CarvedPumpkinBlock::checkIronGolemPattern(IWorld& world, const BlockPos& po
 
     if (northSouthValid) {
         outBodyPos = pos.down(2);
+        outIsEastWest = false;
         return true;
     }
 
@@ -356,16 +360,10 @@ void CarvedPumpkinBlock::spawnSnowGolem(IWorld& world, const BlockPos& headPos)
     }
 }
 
-void CarvedPumpkinBlock::spawnIronGolem(IWorld& world, const BlockPos& headPos, const BlockPos& armCenterPos)
+void CarvedPumpkinBlock::spawnIronGolem(
+    IWorld& world, const BlockPos& headPos, const BlockPos& armCenterPos, bool isEastWest)
 {
     const BlockState* airState = BlockRegistry::instance().airState();
-
-    // 需要确定手臂方向以正确移除方块
-    // 通过检查东西方向是否存在铁块手臂来判断方向
-    const BlockState* armEast = world.getBlockState(armCenterPos.east());
-    const BlockState* armWest = world.getBlockState(armCenterPos.west());
-    bool isEastWest = (armEast != nullptr && armEast->is(VanillaBlocks::IRON_BLOCK)) &&
-        (armWest != nullptr && armWest->is(VanillaBlocks::IRON_BLOCK));
 
     // 收集所有需要移除的位置
     BlockPos bodyPos = armCenterPos.down();

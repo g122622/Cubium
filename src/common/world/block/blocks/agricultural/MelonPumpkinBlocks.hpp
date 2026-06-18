@@ -151,6 +151,9 @@ public:
      * @brief 检查方块状态是否为南瓜类型（可作为傀儡头部）
      *
      * 刻过的南瓜和南瓜灯都可以作为傀儡的头部方块。
+     * 对应 MC 原版的 PUMPKINS_PREDICATE。
+     * 当 onBlockAdded 被调用时，触发方块本身已知是南瓜头部，无需额外检查；
+     * 此方法预留供未来 canSpawnGolem API 使用（仅检测身体部分是否满足傀儡模式）。
      *
      * @param state 方块状态
      * @return 是否为南瓜类型
@@ -176,9 +179,11 @@ private:
      * @param world 世界引用
      * @param pos 南瓜头部位置
      * @param outBodyPos 输出铁傀儡身体位置（模式匹配时填充）
+     * @param outIsEastWest 输出手臂是否为东西方向（模式匹配时填充）
      * @return 是否匹配铁傀儡模式
      */
-    [[nodiscard]] static bool checkIronGolemPattern(IWorld& world, const BlockPos& pos, BlockPos& outBodyPos);
+    [[nodiscard]] static bool checkIronGolemPattern(
+        IWorld& world, const BlockPos& pos, BlockPos& outBodyPos, bool& outIsEastWest);
 
     /**
      * @brief 执行雪傀儡生成：移除方块并生成实体
@@ -187,8 +192,13 @@ private:
 
     /**
      * @brief 执行铁傀儡生成：移除方块并生成实体
+     *
+     * @param world 世界引用
+     * @param headPos 南瓜头部位置
+     * @param armCenterPos 手臂中央位置（中层铁块）
+     * @param isEastWest 手臂是否为东西方向
      */
-    static void spawnIronGolem(IWorld& world, const BlockPos& headPos, const BlockPos& armCenterPos);
+    static void spawnIronGolem(IWorld& world, const BlockPos& headPos, const BlockPos& armCenterPos, bool isEastWest);
 
     /**
      * @brief 检查方块是否为空气
