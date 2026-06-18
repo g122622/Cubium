@@ -333,6 +333,7 @@ add_executable(mc_tests
     common/world/block/blocks/BlockSoundTest.cpp
     common/world/block/blocks/CauldronBlockTest.cpp
     common/world/block/blocks/LightningRodBlockTest.cpp
+    common/world/block/blocks/LecternBlockTest.cpp
     common/world/block/blocks/MobBlocksTest.cpp
     common/world/block/DispenseItemBehaviorTest.cpp
     common/world/storage/StorageTaskTest.cpp

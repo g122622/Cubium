@@ -15,7 +15,7 @@
 ├── CakeBlock.hpp / cpp #蛋糕（可食用，7片）
 ├── BeaconBlock.hpp / cpp #信标（增益效果，金字塔基座）
 ├── BarrelBlock.hpp / cpp #木桶（存储容器，6方向放置）
-├── LecternBlock.hpp / cpp #讲台（书籍展示，红石输出）
+├── LecternBlock.hpp / cpp #讲台（书籍展示，红石脉冲+比较器信号，翻页2tick脉冲）
 ├── GrindstoneBlock.hpp / cpp #砂轮（修复 / 祛魔，3种附着面）
 ├── StonecutterBlock.hpp / cpp #切石机（石材切割配方）
 ├── LoomBlock.hpp / cpp #织布机（旗帜图案制作）
@@ -61,7 +61,9 @@
 ├── BarrelBlock
 │   └── 容器方块实体
 ├── LecternBlock
-│   └── 红石信号输出
+│   ├── 红石信号输出（updateBelow通知下方方块）
+│   ├── 翻页脉冲（changePowered+tick 2tick脉冲）
+│   └── 放书/移书红石更新（setHasBook→updateBelow）
 ├── GrindstoneBlock
 │   └── 附着检测
 ├── BellBlock
@@ -126,12 +128,24 @@
     - `BrushableBlock` - 可刷方块（继承 FallingBlock） - `SnifferEggBlock` -
     嗅探兽蛋（randomTick 孵化）
 
-    ## #6. 方块实体注册
+    ## #6. LecternBlock 红石脉冲机制
+
+    讲台的红石信号通过以下方法链实现：
+    - `changePowered(world, pos, state, powered)` — 设置 POWERED 状态 + 通知下方方块
+    - `pulse(world, pos, state)` — 调用 `changePowered(true)` + 调度2tick后tick重置
+    - `updateBelow(world, pos, block)` — 通知 `pos.down()` 位置的所有相邻方块更新红石
+    - `tick()` — 脉冲到期时调用 `changePowered(false)` 重置状态
+
+    关键调用链：翻页 → `LecternEntity::_signalPageChange()` → `LecternBlock::pulse()` → `changePowered(true)` → 2tick后 `tick()` → `changePowered(false)`
+    放书/移书 → `setHasBook()` → `updateBelow()`；方块移除（POWERED时） → `onBlockRemoved()` → `updateBelow()`
+    红石更新通知 `pos.down()` 而非 `pos` 本身，因为讲台向上输出强信号（`getStrongPower` 仅 `Direction::Up` 返回15），下方方块是信号的主要接收者。
+
+    ## #7. 方块实体注册
 
     部分方块需要方块实体支持：
     - `BrewingStandBlock` → `BrewingStandEntity` - `BarrelBlock` → `BarrelEntity` - `JukeboxBlock` → `JukeboxEntity` - `LecternBlock` → `LecternEntity` - `BeaconBlock` → `BeaconEntity`
 
-    ## #7. 红石比较器信号
+    ## #8. 红石比较器信号
 
     多个方块支持比较器信号输出，需要正确实现 `hasComparatorInputOverride()` 和 `getComparatorInputOverride()`： - `ComposterBlock`
     : 输出 = 填充等级 - `BrewingStandBlock`: 输出基于槽位状态 - `BeaconBlock`: 输出基于效果激活状态 - `LecternBlock`
@@ -139,14 +153,14 @@
       - `ChiseledBookshelfBlock`
     : 输出基于书籍数量
 
-      ## #8. CauldronBlock 水位限制
+      ## #9. CauldronBlock 水位限制
 
       水位范围是0
       -
       3（`LEVEL_0_3`），不是0 -
       15。雨天自动填充需通过 `randomTick` 实现。
 
-          ## #9. AnvilBlock 碰撞箱 X
+          ## #10. AnvilBlock 碰撞箱 X
           /
           Z 不对称
 
@@ -156,7 +170,7 @@
           朝向（X轴）返回不同形状，通过 `_getAxisIndex()` 按 `HORIZONTAL_FACING` 的轴索引 `m_shapesByAxis`。 底座12×12对称，但中段
           / 窄颈 / 顶面沿朝向方向更宽（顶面满16像素宽）。
 
-          ## #10. 方块交互统计（awardCustomStat）
+          ## #11. 方块交互统计（awardCustomStat）
 
           以下方块在 `onBlockActivated` 中调用 `player.awardCustomStat()` 记录交互统计，常量定义在 `common/stats/Stats.hpp`：
 

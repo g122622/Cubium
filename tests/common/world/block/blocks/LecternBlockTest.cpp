@@ -51,6 +51,7 @@ public:
 public:
     explicit LecternTestWorld(LecternBlock& block)
         : m_state(block.defaultState())
+        , m_tickManager(*this)
     {}
 
     [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return &m_state; }
@@ -83,38 +84,27 @@ public:
         m_entities[pos] = std::move(entity);
     }
 
-    void scheduleBlockTick(const BlockPos&,
-        Block&,
-        i32 delay,
-        world::tick::TickPriority priority = world::tick::TickPriority::Normal) override
+    void updateNeighbors(const BlockPos& pos, Block& sourceBlock) override
     {
-        m_lastScheduledDelay = delay;
-        m_lastScheduledPriority = priority;
-        ++m_scheduleCalls;
+        ++m_updateNeighborsCalls;
+        m_lastUpdateNeighborsPos = pos;
+        MC_UNUSED(sourceBlock);
     }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override { return m_tickManager; }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return m_tickManager; }
 
     [[nodiscard]] i32 setBlockCalls() const { return m_setBlockCalls; }
-    [[nodiscard]] i32 scheduleCalls() const { return m_scheduleCalls; }
-    [[nodiscard]] i32 lastScheduledDelay() const { return m_lastScheduledDelay; }
-    [[nodiscard]] world::tick::TickPriority lastScheduledPriority() const { return m_lastScheduledPriority; }
-
-    // TickManager interface (stubbed for tests)
-    [[nodiscard]] world::tick::TickManager& tickManager() override
-    {
-        throw std::runtime_error("LecternTestWorld::tickManager not implemented");
-    }
-    [[nodiscard]] const world::tick::TickManager& tickManager() const override
-    {
-        throw std::runtime_error("LecternTestWorld::tickManager not implemented");
-    }
+    [[nodiscard]] i32 updateNeighborsCalls() const { return m_updateNeighborsCalls; }
+    [[nodiscard]] const BlockPos& lastUpdateNeighborsPos() const { return m_lastUpdateNeighborsPos; }
 
 private:
     BlockState m_state;
     std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_entities;
+    world::tick::TickManager m_tickManager;
     i32 m_setBlockCalls = 0;
-    i32 m_scheduleCalls = 0;
-    i32 m_lastScheduledDelay = -1;
-    world::tick::TickPriority m_lastScheduledPriority = world::tick::TickPriority::Normal;
+    i32 m_updateNeighborsCalls = 0;
+    BlockPos m_lastUpdateNeighborsPos;
 };
 
 Item* ensureTestItem(const char* path)
@@ -151,7 +141,7 @@ TEST_F(LecternBlockTest, TryPlaceBook_RejectsNonBook)
     LecternTestWorld world(*m_block);
     const BlockPos pos(1, 2, 3);
 
-    ASSERT_FALSE(LecternBlock::tryPlaceBook(world, pos, state, m_stick->itemId()));
+    ASSERT_FALSE(LecternBlock::tryPlaceBook(world, pos, ItemStack(m_stick, 1)));
     EXPECT_EQ(world.setBlockCalls(), 0);
 }
 
@@ -161,7 +151,7 @@ TEST_F(LecternBlockTest, TryPlaceBook_AcceptsBookAndSetsState)
     LecternTestWorld world(*m_block);
     const BlockPos pos(1, 2, 3);
 
-    ASSERT_TRUE(LecternBlock::tryPlaceBook(world, pos, state, m_book->itemId()));
+    ASSERT_TRUE(LecternBlock::tryPlaceBook(world, pos, ItemStack(m_book, 1)));
     EXPECT_EQ(world.setBlockCalls(), 1);
 
     const BlockState* applied = world.getBlockState(pos);
@@ -193,7 +183,187 @@ TEST_F(LecternBlockTest, Pulse_SetsPoweredAndSchedulesTick)
     LecternBlock::pulse(world, pos, state);
 
     EXPECT_EQ(world.setBlockCalls(), 1);
-    EXPECT_EQ(world.scheduleCalls(), 1);
-    EXPECT_EQ(world.lastScheduledDelay(), 2);
-    EXPECT_EQ(world.lastScheduledPriority(), world::tick::TickPriority::High);
+
+    // 验证 tick 被调度（通过 TickManager API 检查）
+    EXPECT_TRUE(world.tickManager().isBlockTickScheduled(pos, *m_block));
+}
+
+// ========== 红石信号更新测试 ==========
+
+TEST_F(LecternBlockTest, Pulse_NotifiesBelowBlock)
+{
+    BlockState state = m_block->defaultState().with(BlockStateProperties::HAS_BOOK(), true);
+    LecternTestWorld world(*m_block);
+    const BlockPos pos(5, 10, 7);
+
+    EXPECT_EQ(world.updateNeighborsCalls(), 0);
+
+    LecternBlock::pulse(world, pos, state);
+
+    // pulse → changePowered → setBlockState + updateBelow
+    // changePowered 调用 updateBelow，应通知 pos.down() 位置
+    EXPECT_EQ(world.updateNeighborsCalls(), 1);
+    EXPECT_EQ(world.lastUpdateNeighborsPos(), pos.down());
+}
+
+TEST_F(LecternBlockTest, ChangePowered_True_SetsPoweredAndNotifiesBelow)
+{
+    BlockState state = m_block->defaultState().with(BlockStateProperties::HAS_BOOK(), true);
+    LecternTestWorld world(*m_block);
+    const BlockPos pos(3, 5, 8);
+
+    EXPECT_EQ(world.updateNeighborsCalls(), 0);
+
+    LecternBlock::changePowered(world, pos, state, true);
+
+    // setBlockState + updateBelow 各调用一次
+    EXPECT_EQ(world.setBlockCalls(), 1);
+    EXPECT_EQ(world.updateNeighborsCalls(), 1);
+    EXPECT_EQ(world.lastUpdateNeighborsPos(), pos.down());
+
+    // 验证 POWERED 被设为 true
+    const BlockState* applied = world.getBlockState(pos);
+    ASSERT_NE(applied, nullptr);
+    EXPECT_TRUE(applied->get(BlockStateProperties::POWERED()));
+}
+
+TEST_F(LecternBlockTest, ChangePowered_False_ClearsPoweredAndNotifiesBelow)
+{
+    BlockState state = m_block->defaultState()
+                           .with(BlockStateProperties::HAS_BOOK(), true)
+                           .with(BlockStateProperties::POWERED(), true);
+    LecternTestWorld world(*m_block);
+    const BlockPos pos(3, 5, 8);
+
+    LecternBlock::changePowered(world, pos, state, false);
+
+    EXPECT_EQ(world.setBlockCalls(), 1);
+    EXPECT_EQ(world.updateNeighborsCalls(), 1);
+    EXPECT_EQ(world.lastUpdateNeighborsPos(), pos.down());
+
+    const BlockState* applied = world.getBlockState(pos);
+    ASSERT_NE(applied, nullptr);
+    EXPECT_FALSE(applied->get(BlockStateProperties::POWERED()));
+}
+
+TEST_F(LecternBlockTest, UpdateBelow_NotifiesPositionBelow)
+{
+    LecternTestWorld world(*m_block);
+    const BlockPos pos(10, 20, 30);
+
+    LecternBlock::updateBelow(world, pos, *m_block);
+
+    EXPECT_EQ(world.updateNeighborsCalls(), 1);
+    EXPECT_EQ(world.lastUpdateNeighborsPos(), pos.down());
+}
+
+TEST_F(LecternBlockTest, Tick_ClearsPoweredAndNotifiesBelow)
+{
+    BlockState poweredState = m_block->defaultState()
+                                  .with(BlockStateProperties::HAS_BOOK(), true)
+                                  .with(BlockStateProperties::POWERED(), true);
+    LecternTestWorld world(*m_block);
+    const BlockPos pos(7, 12, 15);
+    math::Random rng;
+
+    // tick 应该通过 changePowered(false) 清除 POWERED 并通知下方
+    m_block->tick(world, pos, poweredState, rng);
+
+    EXPECT_EQ(world.setBlockCalls(), 1);
+    EXPECT_EQ(world.updateNeighborsCalls(), 1);
+    EXPECT_EQ(world.lastUpdateNeighborsPos(), pos.down());
+
+    const BlockState* applied = world.getBlockState(pos);
+    ASSERT_NE(applied, nullptr);
+    EXPECT_FALSE(applied->get(BlockStateProperties::POWERED()));
+}
+
+TEST_F(LecternBlockTest, Tick_DoesNothingWhenNotPowered)
+{
+    BlockState unpoweredState = m_block->defaultState()
+                                    .with(BlockStateProperties::HAS_BOOK(), true)
+                                    .with(BlockStateProperties::POWERED(), false);
+    LecternTestWorld world(*m_block);
+    const BlockPos pos(7, 12, 15);
+    math::Random rng;
+
+    m_block->tick(world, pos, unpoweredState, rng);
+
+    EXPECT_EQ(world.setBlockCalls(), 0);
+    EXPECT_EQ(world.updateNeighborsCalls(), 0);
+}
+
+TEST_F(LecternBlockTest, SetHasBook_NotifiesBelowBlock)
+{
+    BlockState state = m_block->defaultState();
+    LecternTestWorld world(*m_block);
+    const BlockPos pos(1, 2, 3);
+
+    EXPECT_EQ(world.updateNeighborsCalls(), 0);
+
+    LecternBlock::setHasBook(world, pos, true);
+
+    // setHasBook 应该设置状态并调用 updateBelow
+    EXPECT_EQ(world.setBlockCalls(), 1);
+    EXPECT_EQ(world.updateNeighborsCalls(), 1);
+    EXPECT_EQ(world.lastUpdateNeighborsPos(), pos.down());
+
+    const BlockState* applied = world.getBlockState(pos);
+    ASSERT_NE(applied, nullptr);
+    EXPECT_TRUE(applied->get(BlockStateProperties::HAS_BOOK()));
+    EXPECT_FALSE(applied->get(BlockStateProperties::POWERED()));
+}
+
+TEST_F(LecternBlockTest, OnBlockRemoved_PoweredState_NotifiesBelow)
+{
+    BlockState poweredState = m_block->defaultState()
+                                  .with(BlockStateProperties::HAS_BOOK(), true)
+                                  .with(BlockStateProperties::POWERED(), true);
+    LecternTestWorld world(*m_block);
+    const BlockPos pos(1, 2, 3);
+
+    EXPECT_EQ(world.updateNeighborsCalls(), 0);
+
+    m_block->onBlockRemoved(world, pos, poweredState);
+
+    // onBlockRemoved 在 POWERED 状态时应调用 updateBelow
+    EXPECT_EQ(world.updateNeighborsCalls(), 1);
+    EXPECT_EQ(world.lastUpdateNeighborsPos(), pos.down());
+}
+
+TEST_F(LecternBlockTest, OnBlockRemoved_UnpoweredState_DoesNotNotifyBelow)
+{
+    BlockState unpoweredState = m_block->defaultState()
+                                    .with(BlockStateProperties::HAS_BOOK(), true)
+                                    .with(BlockStateProperties::POWERED(), false);
+    LecternTestWorld world(*m_block);
+    const BlockPos pos(1, 2, 3);
+
+    m_block->onBlockRemoved(world, pos, unpoweredState);
+
+    // 未供电状态不应触发红石更新
+    EXPECT_EQ(world.updateNeighborsCalls(), 0);
+}
+
+TEST_F(LecternBlockTest, GetStrongPower_Returns15WhenPoweredAndSideIsUp)
+{
+    BlockState poweredState = m_block->defaultState().with(BlockStateProperties::POWERED(), true);
+    LecternTestWorld world(*m_block);
+    const BlockPos pos(1, 2, 3);
+
+    // 讲台强信号只在 Direction::Up 方向输出
+    EXPECT_EQ(m_block->getStrongPower(poweredState, world, pos, Direction::Up), 15);
+    EXPECT_EQ(m_block->getStrongPower(poweredState, world, pos, Direction::Down), 0);
+    EXPECT_EQ(m_block->getStrongPower(poweredState, world, pos, Direction::North), 0);
+}
+
+TEST_F(LecternBlockTest, GetWeakPower_Returns15WhenPowered)
+{
+    BlockState poweredState = m_block->defaultState().with(BlockStateProperties::POWERED(), true);
+    LecternTestWorld world(*m_block);
+    const BlockPos pos(1, 2, 3);
+
+    // 讲台弱信号向所有方向输出15
+    EXPECT_EQ(m_block->getWeakPower(poweredState, world, pos, Direction::Down), 15);
+    EXPECT_EQ(m_block->getWeakPower(poweredState, world, pos, Direction::North), 15);
 }

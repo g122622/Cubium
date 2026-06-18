@@ -12,7 +12,7 @@
 ├── EnchantingTableEntity.hpp / cpp #附魔台方块实体（附魔力量计算、书本动画）
 ├── EndGatewayEntity.hpp / cpp #末地折跃门方块实体（传送逻辑、两套冷却时间）
 ├── JukeboxEntity.hpp / cpp #唱片机方块实体（唱片播放、比较器信号、1槽位，通过MusicDiscItem获取信号强度）
-├── LecternEntity.hpp / cpp #讲台方块实体（书本展示、翻页、红石信号）
+├── LecternEntity.hpp / cpp #讲台方块实体（书本展示、翻页红石脉冲、比较器信号）
 ├── PistonBlockEntity.hpp / cpp #活塞方块实体（方块移动动画）
 ├── SignEntity.hpp /
         cpp #告示牌方块实体（富文本存储、点击事件）
@@ -130,7 +130,9 @@
 
             ## #8. LecternEntity 页码从 0 开始
 
-`getPage()` 返回的页码从 0 开始，而非 1。红石比较器信号计算为 `min(page + 1, 15)`。
+	`getPage()` 返回的页码从 0 开始，而非 1。红石比较器信号计算为 `min(page + 1, 15)`。
+
+	翻页时自动触发红石脉冲：`setPage()`/`nextPage()`/`prevPage()` 在页码变化时调用 `_signalPageChange()` → `LecternBlock::pulse()`，发出2tick的红石脉冲信号。从NBT加载时不会触发脉冲（`m_world` 为空时跳过）。
 
             ## #9. JukeboxEntity 继承 ContainerBlockEntity 而非 LootableContainerBlockEntity
 
