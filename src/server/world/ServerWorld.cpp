@@ -60,6 +60,7 @@
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/gameevent/GameEventDispatcher.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
@@ -156,6 +157,9 @@ Result<void> ServerWorld::initialize()
     m_weatherManager = std::make_unique<WeatherManager>();
     m_weatherManager->initialize(m_config.seed);
     m_weatherManager->setWorld(this);
+
+    // 初始化游戏事件分发器
+    m_gameEventDispatcher = std::make_unique<gameevent::GameEventDispatcher>(*this);
 
     // 初始化村庄和袭击管理器
     m_villageManager = std::make_unique<world::village::VillageManager>(*this);
@@ -312,13 +316,13 @@ void ServerWorld::playEvent(i32 eventId, const BlockPos& pos, i32 data)
 void ServerWorld::gameEvent(
     const gameevent::GameEvent& event, const BlockPos& pos, const gameevent::GameEvent::Context& context)
 {
-    // TODO: 当 GameEventDispatcher 实现后，将事件分发给附近的 GameEventListener
+    // 通过 GameEventDispatcher 将事件分发给附近的 GameEventListener
     // （如幽匿感测体 SculkSensor、幽匿尖啸体 SculkShrieker 等）。
-    // 当前仅作为接口占位，不执行任何分发逻辑。
     // 参考 MC: Level.gameEvent() -> GameEventDispatcher.post()
-    (void)event;
-    (void)pos;
-    (void)context;
+    if (m_gameEventDispatcher) {
+        Vector3d eventPos(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5);
+        m_gameEventDispatcher->post(event, eventPos, context);
+    }
 }
 
 void ServerWorld::notifyBlockUpdate(const BlockPos& pos)

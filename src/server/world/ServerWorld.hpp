@@ -34,6 +34,7 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "common/world/gameevent/GameEventDispatcher.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
@@ -342,6 +343,14 @@ public:
      * @return GameRules 引用
      */
     [[nodiscard]] world::gamerule::GameRules& getGameRules() noexcept override { return m_gameRules; }
+
+    // ========== 游戏事件分发 ==========
+
+    /**
+     * @brief 获取游戏事件分发器
+     */
+    [[nodiscard]] gameevent::GameEventDispatcher& gameEventDispatcher() { return *m_gameEventDispatcher; }
+    [[nodiscard]] const gameevent::GameEventDispatcher& gameEventDispatcher() const { return *m_gameEventDispatcher; }
 
     // ========== 类型转换 ==========
 
@@ -1122,6 +1131,9 @@ private:
 
     // 游戏规则
     world::gamerule::GameRules m_gameRules; ///< 游戏规则管理器
+
+    // 游戏事件分发器
+    std::unique_ptr<gameevent::GameEventDispatcher> m_gameEventDispatcher; ///< 游戏事件分发器
 
     // 世界边界
     world::border::WorldBorder m_worldBorder; ///< 世界边界
