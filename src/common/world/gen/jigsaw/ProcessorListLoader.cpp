@@ -229,13 +229,8 @@ std::unique_ptr<RuleTest> parseRuleTest(const nlohmann::json& predicateObj)
  *   { "predicate_type": "minecraft:linear_pos", "min_chance": 0.0, "max_chance": 1.0, "min_dist": 0, "max_dist": 10 }
  *   { "predicate_type": "minecraft:axis_aligned_linear_pos", "min_chance": 0.0, "max_chance": 0.05, "min_dist": 0,
  * "max_dist": 100, "axis": "y" }
- *
- * 参考 MC Java:
- *   net.minecraft.world.level.levelgen.structure.templatesystem.PosRuleTest
- *   net.minecraft.world.level.levelgen.structure.templatesystem.LinearPosTest
- *   net.minecraft.world.level.levelgen.structure.templatesystem.AxisAlignedLinearPosTest
  */
-std::unique_ptr<feature::template_::PosRuleTest> parsePosRuleTest(const nlohmann::json& predicateObj)
+std::unique_ptr<feature::template_::PosRuleTest> _parsePosRuleTest(const nlohmann::json& predicateObj)
 {
     if (!predicateObj.contains("predicate_type") || !predicateObj["predicate_type"].is_string()) {
         spdlog::warn("ProcessorListLoader: pos_predicate missing 'predicate_type', using always_true");
@@ -254,9 +249,7 @@ std::unique_ptr<feature::template_::PosRuleTest> parsePosRuleTest(const nlohmann
     }
 
     if (predicateType == "linear_pos") {
-        // MC Java: LinearPosTest.CODEC
-        //   min_chance (f32, default 0.0), max_chance (f32, default 0.0),
-        //   min_dist (i32, default 0), max_dist (i32, default 0)
+        // min_chance/max_chance (f32, 默认 0.0), min_dist/max_dist (i32, 默认 0)
         f32 minChance = 0.0f;
         f32 maxChance = 0.0f;
         i32 minDist = 0;
@@ -275,7 +268,7 @@ std::unique_ptr<feature::template_::PosRuleTest> parsePosRuleTest(const nlohmann
             maxDist = predicateObj["max_dist"].get<i32>();
         }
 
-        // MC Java 构造函数要求 minDist < maxDist，否则抛出 IllegalArgumentException
+        // min_dist >= maxDist 时回退到 always_true
         if (minDist >= maxDist) {
             spdlog::warn(
                 "ProcessorListLoader: linear_pos min_dist ({}) >= max_dist ({}), using always_true", minDist, maxDist);
@@ -286,15 +279,12 @@ std::unique_ptr<feature::template_::PosRuleTest> parsePosRuleTest(const nlohmann
     }
 
     if (predicateType == "axis_aligned_linear_pos") {
-        // MC Java: AxisAlignedLinearPosTest.CODEC
-        //   min_chance (f32, default 0.0), max_chance (f32, default 0.0),
-        //   min_dist (i32, default 0), max_dist (i32, default 0),
-        //   axis ("x"/"y"/"z", default "y")
+        // min_chance/max_chance (f32, 默认 0.0), min_dist/max_dist (i32, 默认 0), axis (默认 Y)
         f32 minChance = 0.0f;
         f32 maxChance = 0.0f;
         i32 minDist = 0;
         i32 maxDist = 0;
-        Axis axis = Axis::Y; // MC Java 默认轴为 Y
+        Axis axis = Axis::Y; // 默认轴为 Y
 
         if (predicateObj.contains("min_chance") && predicateObj["min_chance"].is_number()) {
             minChance = predicateObj["min_chance"].get<f32>();
@@ -322,7 +312,7 @@ std::unique_ptr<feature::template_::PosRuleTest> parsePosRuleTest(const nlohmann
             }
         }
 
-        // MC Java 构造函数要求 minDist < maxDist，否则抛出 IllegalArgumentException
+        // min_dist >= maxDist 时回退到 always_true
         if (minDist >= maxDist) {
             spdlog::warn(
                 "ProcessorListLoader: axis_aligned_linear_pos min_dist ({}) >= max_dist ({}), using always_true",
@@ -636,7 +626,7 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseRuleProcessor(con
         // 解析 pos_predicate（可选）
         std::unique_ptr<feature::template_::PosRuleTest> posPredicate;
         if (ruleObj.contains("pos_predicate") && ruleObj["pos_predicate"].is_object()) {
-            posPredicate = parsePosRuleTest(ruleObj["pos_predicate"]);
+            posPredicate = _parsePosRuleTest(ruleObj["pos_predicate"]);
         } else {
             posPredicate = std::make_unique<AlwaysTruePosRuleTest>();
         }

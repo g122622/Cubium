@@ -672,6 +672,7 @@ add_executable(mc_tests
     common/world/gen/structure/TemplatedStructuresTest.cpp
     common/world/gen/jigsaw/test_jigsaw.cpp
     common/world/gen/jigsaw/test_jigsaw_matcher.cpp
+    common/world/gen/jigsaw/test_pos_rule_test.cpp
     common/world/gen/jigsaw/test_template_pool_loader.cpp
     common/entity/EntitySpawnPlacementRegistryTest.cpp
     common/world/gen/ChunkSpawnIntegrationTest.cpp

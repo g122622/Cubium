@@ -1053,6 +1053,10 @@ add_library(mc_common STATIC
     world/gen/feature/template/TemplateManager.cpp
     world/gen/feature/template/TemplateLoader.cpp
     world/gen/feature/template/RuleTest.cpp
+    world/gen/feature/ruletest/PosRuleTest.cpp
+    world/gen/feature/ruletest/RuleEntry.cpp
+    world/gen/feature/ruletest/StoneRuleTest.cpp
+    world/gen/feature/ruletest/DeepslateRuleTest.cpp
     world/gen/feature/template/CopperBulbDegradationProcessor.cpp
 
     # World - Generation - Structure
