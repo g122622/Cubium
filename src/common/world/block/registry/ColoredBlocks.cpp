@@ -22,6 +22,7 @@
 
 #include "world/block/registry/ColoredBlocks.hpp"
 #include "world/block/BlockRegistry.hpp"
+#include "world/block/blocks/ConcretePowderBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/decorative/CarpetBlock.hpp"
 #include "world/block/blocks/decorative/StainedGlassBlock.hpp"
@@ -281,40 +282,45 @@ void registerColoredBlocks()
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:black_concrete"), concreteProps);
 
     // ========== 混凝土粉末注册 (16色) ==========
+    // 混凝土粉末是下落方块，接触水会固化为对应颜色的混凝土
     BlockProperties concretePowderProps = BlockProperties(Material::SAND).hardness(0.5f);
 
-    ColoredBlocks::WHITE_CONCRETE_POWDER =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:white_concrete_powder"), concretePowderProps);
-    ColoredBlocks::ORANGE_CONCRETE_POWDER =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:orange_concrete_powder"), concretePowderProps);
-    ColoredBlocks::MAGENTA_CONCRETE_POWDER = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:magenta_concrete_powder"), concretePowderProps);
-    ColoredBlocks::LIGHT_BLUE_CONCRETE_POWDER = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:light_blue_concrete_powder"), concretePowderProps);
-    ColoredBlocks::YELLOW_CONCRETE_POWDER =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:yellow_concrete_powder"), concretePowderProps);
-    ColoredBlocks::LIME_CONCRETE_POWDER =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:lime_concrete_powder"), concretePowderProps);
-    ColoredBlocks::PINK_CONCRETE_POWDER =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pink_concrete_powder"), concretePowderProps);
-    ColoredBlocks::GRAY_CONCRETE_POWDER =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:gray_concrete_powder"), concretePowderProps);
-    ColoredBlocks::LIGHT_GRAY_CONCRETE_POWDER = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:light_gray_concrete_powder"), concretePowderProps);
-    ColoredBlocks::CYAN_CONCRETE_POWDER =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cyan_concrete_powder"), concretePowderProps);
-    ColoredBlocks::PURPLE_CONCRETE_POWDER =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:purple_concrete_powder"), concretePowderProps);
-    ColoredBlocks::BLUE_CONCRETE_POWDER =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:blue_concrete_powder"), concretePowderProps);
-    ColoredBlocks::BROWN_CONCRETE_POWDER =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:brown_concrete_powder"), concretePowderProps);
-    ColoredBlocks::GREEN_CONCRETE_POWDER =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:green_concrete_powder"), concretePowderProps);
-    ColoredBlocks::RED_CONCRETE_POWDER =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:red_concrete_powder"), concretePowderProps);
-    ColoredBlocks::BLACK_CONCRETE_POWDER =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:black_concrete_powder"), concretePowderProps);
+    ColoredBlocks::WHITE_CONCRETE_POWDER = &registry.registerBlock<blocks::ConcretePowderBlock>(
+        ResourceLocation("minecraft:white_concrete_powder"), concretePowderProps, ColoredBlocks::WHITE_CONCRETE);
+    ColoredBlocks::ORANGE_CONCRETE_POWDER = &registry.registerBlock<blocks::ConcretePowderBlock>(
+        ResourceLocation("minecraft:orange_concrete_powder"), concretePowderProps, ColoredBlocks::ORANGE_CONCRETE);
+    ColoredBlocks::MAGENTA_CONCRETE_POWDER = &registry.registerBlock<blocks::ConcretePowderBlock>(
+        ResourceLocation("minecraft:magenta_concrete_powder"), concretePowderProps, ColoredBlocks::MAGENTA_CONCRETE);
+    ColoredBlocks::LIGHT_BLUE_CONCRETE_POWDER =
+        &registry.registerBlock<blocks::ConcretePowderBlock>(ResourceLocation("minecraft:light_blue_concrete_powder"),
+            concretePowderProps,
+            ColoredBlocks::LIGHT_BLUE_CONCRETE);
+    ColoredBlocks::YELLOW_CONCRETE_POWDER = &registry.registerBlock<blocks::ConcretePowderBlock>(
+        ResourceLocation("minecraft:yellow_concrete_powder"), concretePowderProps, ColoredBlocks::YELLOW_CONCRETE);
+    ColoredBlocks::LIME_CONCRETE_POWDER = &registry.registerBlock<blocks::ConcretePowderBlock>(
+        ResourceLocation("minecraft:lime_concrete_powder"), concretePowderProps, ColoredBlocks::LIME_CONCRETE);
+    ColoredBlocks::PINK_CONCRETE_POWDER = &registry.registerBlock<blocks::ConcretePowderBlock>(
+        ResourceLocation("minecraft:pink_concrete_powder"), concretePowderProps, ColoredBlocks::PINK_CONCRETE);
+    ColoredBlocks::GRAY_CONCRETE_POWDER = &registry.registerBlock<blocks::ConcretePowderBlock>(
+        ResourceLocation("minecraft:gray_concrete_powder"), concretePowderProps, ColoredBlocks::GRAY_CONCRETE);
+    ColoredBlocks::LIGHT_GRAY_CONCRETE_POWDER =
+        &registry.registerBlock<blocks::ConcretePowderBlock>(ResourceLocation("minecraft:light_gray_concrete_powder"),
+            concretePowderProps,
+            ColoredBlocks::LIGHT_GRAY_CONCRETE);
+    ColoredBlocks::CYAN_CONCRETE_POWDER = &registry.registerBlock<blocks::ConcretePowderBlock>(
+        ResourceLocation("minecraft:cyan_concrete_powder"), concretePowderProps, ColoredBlocks::CYAN_CONCRETE);
+    ColoredBlocks::PURPLE_CONCRETE_POWDER = &registry.registerBlock<blocks::ConcretePowderBlock>(
+        ResourceLocation("minecraft:purple_concrete_powder"), concretePowderProps, ColoredBlocks::PURPLE_CONCRETE);
+    ColoredBlocks::BLUE_CONCRETE_POWDER = &registry.registerBlock<blocks::ConcretePowderBlock>(
+        ResourceLocation("minecraft:blue_concrete_powder"), concretePowderProps, ColoredBlocks::BLUE_CONCRETE);
+    ColoredBlocks::BROWN_CONCRETE_POWDER = &registry.registerBlock<blocks::ConcretePowderBlock>(
+        ResourceLocation("minecraft:brown_concrete_powder"), concretePowderProps, ColoredBlocks::BROWN_CONCRETE);
+    ColoredBlocks::GREEN_CONCRETE_POWDER = &registry.registerBlock<blocks::ConcretePowderBlock>(
+        ResourceLocation("minecraft:green_concrete_powder"), concretePowderProps, ColoredBlocks::GREEN_CONCRETE);
+    ColoredBlocks::RED_CONCRETE_POWDER = &registry.registerBlock<blocks::ConcretePowderBlock>(
+        ResourceLocation("minecraft:red_concrete_powder"), concretePowderProps, ColoredBlocks::RED_CONCRETE);
+    ColoredBlocks::BLACK_CONCRETE_POWDER = &registry.registerBlock<blocks::ConcretePowderBlock>(
+        ResourceLocation("minecraft:black_concrete_powder"), concretePowderProps, ColoredBlocks::BLACK_CONCRETE);
 
     // ========== 陶瓦注册 (16色 + 普通) ==========
     BlockProperties terracottaProps = BlockProperties(Material::ROCK).hardness(1.4f).resistance(4.2f);

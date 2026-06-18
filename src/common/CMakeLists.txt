@@ -619,6 +619,7 @@ add_library(mc_common STATIC
     world/block/blocks/AirBlock.cpp
     world/block/blocks/SimpleBlock.cpp
     world/block/blocks/FallingBlock.cpp
+    world/block/blocks/ConcretePowderBlock.cpp
     world/block/blocks/RotatedPillarBlock.cpp
     world/block/blocks/DirectionalBlock.cpp
     world/block/blocks/HorizontalBlock.cpp

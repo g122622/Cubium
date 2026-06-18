@@ -9,6 +9,7 @@ blocks/
 ├── AirBlock.hpp/cpp             # 空气方块（无碰撞、非固体、非不透明）
 ├── SimpleBlock.hpp/cpp          # 简单方块基类（无状态的静态方块）
 ├── FallingBlock.hpp/cpp         # 可下落方块基类（沙子、砾石等）
+├── ConcretePowderBlock.hpp/cpp  # 混凝土粉末方块（下落+遇水固化，16色变体）
 ├── RotatedPillarBlock.hpp/cpp   # 旋转柱状方块（原木、玄武岩等，有 AXIS 属性）
 ├── LiquidBlock.hpp/cpp          # 液体方块（水、岩浆，关联 FlowingFluid）
 ├── ChestBlock.hpp/cpp           # 箱子方块（27格存储，支持双箱合并）

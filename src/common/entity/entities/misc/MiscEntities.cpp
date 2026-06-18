@@ -33,14 +33,18 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/blocks/FallingBlock.hpp"
 #include "common/world/block/blocks/functional/AnvilBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <cmath>
 
@@ -185,8 +189,10 @@ bool FallingBlockEntity::_tryPlaceBlock(
         return false;
     }
 
-    // TODO: 检查目标位置是否为移动中的活塞（活塞推动的方块不能放置）
-    // 当前项目可能还没有实现活塞，这里暂时跳过这个检查
+    // 检查目标位置是否为移动中的活塞（活塞推动的方块不能放置）
+    if (hitState != nullptr && hitState->is(VanillaBlocks::MOVING_PISTON)) {
+        return false;
+    }
 
     // 获取下方方块状态
     BlockPos belowPos(landingPos.x, landingPos.y - 1, landingPos.z);
@@ -209,15 +215,27 @@ bool FallingBlockEntity::_tryPlaceBlock(
         return false;
     }
 
-    // TODO: 检查方块是否可以在该位置放置
-    // 完整实现需要调用 fallingState->getBlock().isValidPosition()
+    // 检查方块是否可以在该位置放置（如脚手架需要支撑、火把需要墙壁等）
+    // 对齐 MC 1.21.11 FallingBlockEntity.tick() 中的 canSurvive 检查
+    IBlockReader& blockReader = static_cast<IBlockReader&>(*world);
+    if (!fallingState->getBlock().isValidPosition(*fallingState, blockReader, landingPos)) {
+        return false;
+    }
 
-    // TODO: 处理水浸透方块（如沙子落入水中）
-    // 如果方块有 waterlogged 属性且目标位置有水，设置 waterlogged = true
+    // 处理水浸透方块：如果方块支持 waterlogged 属性且目标位置有水源，设置 waterlogged = true
+    // 对齐 MC 1.21.11 FallingBlockEntity.tick() 中的水浸透处理
+    const BlockState* placementState = fallingState;
+    if (fallingState->hasProperty(BlockStateProperties::WATERLOGGED())) {
+        const fluid::FluidState* fluidState = world->getFluidState(landingPos);
+        if (fluidState != nullptr && !fluidState->isEmpty() && fluidState->isSource() &&
+            fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
+            placementState = &fallingState->with(BlockStateProperties::WATERLOGGED(), true);
+        }
+    }
 
     // 尝试放置方块
     // flags = 3 表示通知邻居 + 同步客户端
-    bool success = world->setBlockState(landingPos, fallingState, 3);
+    bool success = world->setBlockState(landingPos, placementState, 3);
 
     if (success) {
         // 调用 FallingBlock 的 onEndFalling 回调

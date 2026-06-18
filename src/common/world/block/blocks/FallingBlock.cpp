@@ -114,24 +114,30 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
 }
 
 // 检查方块状态是否可穿透
+// 对齐 MC 1.21.11 FallingBlock.isFree()
 bool FallingBlock::canFallThrough(const BlockState* state)
 {
     if (state == nullptr) {
         return true;
     }
 
-    // 可替换方块（空气、花草、水、岩浆等）可穿透
-    if (state->canBeReplaced()) {
+    // 空气
+    if (state->isAir()) {
         return true;
     }
 
-    // 火焰标签方块可穿透
+    // 火焰标签方块
     if (BlockTags::FIRE().contains(*state)) {
         return true;
     }
 
-    // 不阻挡移动的方块可穿透（如火把等）
-    return !state->blocksMovement();
+    // 液体方块
+    if (state->isLiquid()) {
+        return true;
+    }
+
+    // 可替换方块（花草、雪层等）
+    return state->canBeReplaced();
 }
 
 } // namespace blocks
