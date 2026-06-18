@@ -50,6 +50,10 @@ namespace movement {
 
 using namespace memory;
 
+// TODO: 当前所有任务直接调用 owner->brain()，未检查空指针。
+// 这是因为模板参数 E 必须是拥有 brain() 方法的实体类型（如 VillagerEntity），
+// 但后续如果需要在可能没有 Brain 的实体上使用这些任务，需要添加空指针保护。
+
 /**
  * @brief 移动到行走目标任务（对应 MC MoveToTargetSink）
  *
@@ -162,7 +166,9 @@ protected:
 
         // 看向目标
         const auto& target = walkTarget->getTarget();
-        owner->lookController().setLookPosition(target->getPosition());
+        if (auto* lookCtrl = owner->lookController()) {
+            lookCtrl->setLookPosition(target->getPosition());
+        }
 
         // 定期重新计算路径
         if (gameTime - m_lastPathRecalcTime >= 10) {
@@ -199,11 +205,13 @@ protected:
             m_stuckCheckZ = static_cast<f64>(owner->z());
         }
 
-        // 同步路径到 PATH 记忆
-        auto* navigator = owner->navigator();
-        if (navigator && navigator->hasPath()) {
-            brain.template setMemory<Path>(MemoryModuleTypes::PATH, *navigator->getPath());
-        }
+        // TODO: 同步路径到 PATH 记忆 — 当前 MemoryModuleType 中 Path 的前向声明
+        // 为 mc::Path，但实际路径类型为 mc::entity::ai::pathfinding::Path，类型不匹配。
+        // 待 MemoryModuleType 修正后恢复此逻辑。
+        // auto* navigator = owner->navigator();
+        // if (navigator && navigator->hasPath()) {
+        //     brain.template setMemory<Path>(MemoryModuleTypes::PATH, *navigator->getPath());
+        // }
     }
 
     void resetTask(IWorld* world, E* owner, i64 gameTime) override
@@ -221,7 +229,8 @@ protected:
             brain.template setMemoryWithTTL<i64>(MemoryModuleTypes::CANT_REACH_WALK_TARGET_SINCE, gameTime + 40, 100);
         }
 
-        brain.template removeMemory<Path>(MemoryModuleTypes::PATH);
+        // TODO: 清除 PATH 记忆 — 同上 Path 类型不匹配问题
+        // brain.template removeMemory<Path>(MemoryModuleTypes::PATH);
     }
 
 private:
@@ -315,6 +324,8 @@ protected:
 
         // WALK_TARGET 缺失时才能触发（已通过 requiredMemoryState 保证）
         // 随机概率触发
+        // TODO: 当前每tick创建新的Random对象，种子基于entity id ^ currentTick，
+        // 可能导致相同id的实体在同一tick产生相同的随机序列。后续应使用实体自带的随机数生成器。
         math::Random rng(static_cast<u64>(owner->id() ^ world->currentTick()));
         return rng.nextInt(goal::constants::DEFAULT_WALK_CHANCE) == 0;
     }
@@ -450,8 +461,10 @@ protected:
         }
 
         // 看向目标的眼睛位置
-        owner->lookController().setLookPositionWithEntity(
-            *m_lookTarget, owner->getHorizontalFaceSpeed(), owner->getVerticalFaceSpeed());
+        if (auto* lookCtrl = owner->lookController()) {
+            lookCtrl->setLookPositionWithEntity(
+                *m_lookTarget, owner->getHorizontalFaceSpeed(), owner->getVerticalFaceSpeed());
+        }
     }
 
     void updateTask(IWorld* world, E* owner, i64 gameTime) override
@@ -461,8 +474,10 @@ protected:
         }
 
         // 持续看向目标
-        owner->lookController().setLookPositionWithEntity(
-            *m_lookTarget, owner->getHorizontalFaceSpeed(), owner->getVerticalFaceSpeed());
+        if (auto* lookCtrl = owner->lookController()) {
+            lookCtrl->setLookPositionWithEntity(
+                *m_lookTarget, owner->getHorizontalFaceSpeed(), owner->getVerticalFaceSpeed());
+        }
     }
 
     void resetTask(IWorld* world, E* owner, i64 gameTime) override { m_lookTarget = nullptr; }
@@ -646,8 +661,10 @@ private:
         LivingEntity* target = *attackTarget;
 
         // 看向攻击目标
-        owner->lookController().setLookPositionWithEntity(
-            *target, owner->getHorizontalFaceSpeed(), owner->getVerticalFaceSpeed());
+        if (auto* lookCtrl = owner->lookController()) {
+            lookCtrl->setLookPositionWithEntity(
+                *target, owner->getHorizontalFaceSpeed(), owner->getVerticalFaceSpeed());
+        }
 
         // 设置或更新行走目标
         f32 distSq = owner->distanceSqTo(*target);

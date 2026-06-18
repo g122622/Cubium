@@ -440,6 +440,7 @@ add_executable(mc_tests
     entity/EvokerFangsTest.cpp
     entity/VexGoalsTest.cpp
     entity/BrainScheduleTests.cpp
+    entity/BrainMovementTaskTests.cpp
     entity/SensorTests.cpp
     entity/DamagingProjectileSupportTypesTest.cpp
     entity/FishSupportTypesTest.cpp
