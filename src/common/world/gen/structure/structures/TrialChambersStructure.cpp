@@ -130,6 +130,13 @@ public:
     [[nodiscard]] const std::vector<jigsaw::JigsawJunction>& getJunctions() const override { return m_junctions; }
     [[nodiscard]] bool isJigsawPiece() const override { return true; }
 
+    [[nodiscard]] mc::StructurePieceProjection getProjection() const noexcept override
+    {
+        return (m_placed.projection == mc::world::gen::jigsaw::JigsawPlacementBehaviour::TerrainMatching)
+            ? mc::StructurePieceProjection::TerrainMatching
+            : mc::StructurePieceProjection::Rigid;
+    }
+
 private:
     jigsaw::PlacedPiece m_placed;
     i32 m_groundLevelDelta;

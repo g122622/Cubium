@@ -18,6 +18,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 #include "common/world/gen/density/NoiseChunk.hpp"
@@ -87,31 +88,79 @@ NoiseInterpolator::NoiseInterpolator(std::unique_ptr<DensityFunction> filler, i3
 
 f64 NoiseInterpolator::compute(i32, i32, i32) const
 {
-    // 在 NoiseChunk 上下文中，插值结果通过 updateForZ 获取
-    // 直接 compute 返回最近一次的插值结果
+    // MC 1.21 NoiseInterpolator.compute():
+    // 1. 如果不在 NoiseChunk 上下文中 → 委托给 filler
+    // 2. 如果不在插值循环中 → 报错（不应发生）
+    // 3. 如果 fillingCell == true → 直接做三线性插值（lerp3），
+    //    使用 inCellX/cellWidth, inCellY/cellHeight, inCellZ/cellWidth 作为插值比例
+    // 4. 否则 → 返回 updateForZ() 递增更新的 m_value
+    if (m_noiseChunk != nullptr && m_noiseChunk->fillingCell()) {
+        // MC 1.21: fillingCell 模式 — 直接三线性插值
+        const f64 deltaX = static_cast<f64>(m_noiseChunk->inCellX()) / static_cast<f64>(m_cellWidth);
+        const f64 deltaY = static_cast<f64>(m_noiseChunk->inCellY()) / static_cast<f64>(m_cellHeight);
+        const f64 deltaZ = static_cast<f64>(m_noiseChunk->inCellZ()) / static_cast<f64>(m_cellWidth);
+        return math::lerp3(deltaX,
+            deltaY,
+            deltaZ,
+            m_noise000,
+            m_noise100,
+            m_noise010,
+            m_noise110,
+            m_noise001,
+            m_noise101,
+            m_noise011,
+            m_noise111);
+    }
     return m_value;
 }
 
-void NoiseInterpolator::fillSlice(
-    bool isSlice0, i32 cellX, i32 firstCellZ, i32 firstCellY, i32 cellWidthXZ, i32 cellHeightY)
+void NoiseInterpolator::fillSlice(NoiseChunk& noiseChunk, bool isSlice0, i32 cellX)
 {
-    const i32 zPoints = m_cellCountZ + 1;
-    const i32 yPoints = m_cellCountY + 1;
-    const i32 blockX = cellX * cellWidthXZ;
+    // MC 1.21 fillSlice 逻辑：
+    // 1. 设置 cellStartBlockX 和 inCellX = 0
+    // 2. 遍历 Z 列，设置 cellStartBlockZ 和 inCellZ = 0，递增 arrayInterpolationCounter
+    // 3. 对每个插值器，使用 sliceFillingContextProvider 填充 Y 值
+    //    sliceFillingContextProvider 在每个 Y 点设置 cellStartBlockY、递增 interpolationCounter、设置 inCellY=0
+    // 4. 填充完后再次递增 arrayInterpolationCounter
 
-    auto& targetSlice = isSlice0 ? m_slice0 : m_slice1;
+    const i32 cellWidth = noiseChunk.cellConfig().cellWidth;
+    const i32 cellHeight = noiseChunk.cellConfig().cellHeight;
+    const i32 firstCellZ = noiseChunk.firstCellZ();
+    const i32 firstCellY = noiseChunk.firstCellY();
+    const i32 cellCountXZ = noiseChunk.cellConfig().cellCountXZ;
+
+    noiseChunk.m_cellStartBlockX = cellX * cellWidth;
+    noiseChunk.m_inCellX = 0;
+
+    const i32 zPoints = cellCountXZ + 1;
+    const i32 yPoints = m_cellCountY + 1;
 
     for (i32 z = 0; z < zPoints; ++z) {
-        const i32 blockZ = (firstCellZ + z) * cellWidthXZ;
+        const i32 cellZ = firstCellZ + z;
+        noiseChunk.m_cellStartBlockZ = cellZ * cellWidth;
+        noiseChunk.m_inCellZ = 0;
+        ++noiseChunk.m_arrayInterpolationCounter;
+
+        auto& targetSlice = isSlice0 ? m_slice0 : m_slice1;
         for (i32 y = 0; y < yPoints; ++y) {
-            const i32 blockY = (firstCellY + y) * cellHeightY;
-            targetSlice[static_cast<size_t>(z)][static_cast<size_t>(y)] = m_filler->compute(blockX, blockY, blockZ);
+            // MC 1.21: sliceFillingContextProvider.fillAllDirectly / forIndex
+            // 设置 cellStartBlockY, 递增 interpolationCounter, 设置 inCellY = 0
+            noiseChunk.m_cellStartBlockY = (y + firstCellY) * cellHeight;
+            ++noiseChunk.m_interpolationCounter;
+            noiseChunk.m_inCellY = 0;
+            noiseChunk.m_arrayIndex = y;
+
+            targetSlice[static_cast<size_t>(z)][static_cast<size_t>(y)] =
+                m_filler->compute(noiseChunk.blockX(), noiseChunk.blockY(), noiseChunk.blockZ());
         }
     }
+
+    ++noiseChunk.m_arrayInterpolationCounter;
 }
 
 void NoiseInterpolator::selectCellYZ(i32 cellY, i32 cellZ)
 {
+    // MC 1.21 索引: slice[z][y]
     m_noise000 = m_slice0[static_cast<size_t>(cellZ)][static_cast<size_t>(cellY)];
     m_noise010 = m_slice0[static_cast<size_t>(cellZ)][static_cast<size_t>(cellY + 1)];
     m_noise001 = m_slice0[static_cast<size_t>(cellZ + 1)][static_cast<size_t>(cellY)];
@@ -143,19 +192,6 @@ f64 NoiseInterpolator::updateForZ(f64 delta)
     return m_value;
 }
 
-f64 NoiseInterpolator::interpolate(f64 deltaX, f64 deltaY, f64 deltaZ) const
-{
-    const f64 xz00 = math::lerp(m_noise000, m_noise010, deltaY);
-    const f64 xz10 = math::lerp(m_noise100, m_noise110, deltaY);
-    const f64 xz01 = math::lerp(m_noise001, m_noise011, deltaY);
-    const f64 xz11 = math::lerp(m_noise101, m_noise111, deltaY);
-
-    const f64 z0 = math::lerp(xz00, xz10, deltaX);
-    const f64 z1 = math::lerp(xz01, xz11, deltaX);
-
-    return math::lerp(z0, z1, deltaZ);
-}
-
 void NoiseInterpolator::swapSlices()
 {
     std::swap(m_slice0, m_slice1);
@@ -174,44 +210,54 @@ CellCache::CellCache(std::unique_ptr<DensityFunction> filler, i32 cellWidth, i32
 
 f64 CellCache::compute(i32 blockX, i32 blockY, i32 blockZ) const
 {
-    // 如果不在 NoiseChunk 的插值循环中，直接委托给原始函数
-    if (!m_filled || m_currentIndex < 0) {
+    // MC 1.21 CacheAllInCell.compute():
+    // 1. 如果不在 NoiseChunk 上下文：委托给原始函数
+    // 2. 如果不在插值循环中：报错
+    // 3. 使用 inCellX/Y/Z 查表，越界时委托给原始函数
+    if (!m_filled || m_noiseChunk == nullptr) {
         return m_filler->compute(blockX, blockY, blockZ);
     }
-    return m_values[static_cast<size_t>(m_currentIndex)];
+
+    // MC 1.21: interpolating 检查 — 在 C++ 中使用 m_filled 作为守卫
+    const i32 inCellX = m_noiseChunk->inCellX();
+    const i32 inCellY = m_noiseChunk->inCellY();
+    const i32 inCellZ = m_noiseChunk->inCellZ();
+
+    if (inCellX >= 0 && inCellY >= 0 && inCellZ >= 0 && inCellX < m_cellWidth && inCellY < m_cellHeight &&
+        inCellZ < m_cellWidth) {
+        const i32 idx = ((m_cellHeight - 1 - inCellY) * m_cellWidth + inCellX) * m_cellWidth + inCellZ;
+        return m_values[static_cast<size_t>(idx)];
+    }
+
+    return m_filler->compute(blockX, blockY, blockZ);
 }
 
-void CellCache::fillCell(i32 blockX0, i32 blockY0, i32 blockZ0)
+void CellCache::fillCell(NoiseChunk& noiseChunk)
 {
-    // 从底部到顶部遍历 cell 内所有方块位置
-    // MC 1.21 的顺序: Y 从高到低, 然后 X, 然后 Z
+    // MC 1.21 selectCellYZ 中的 fillAllDirectly 逻辑：
+    // noiseChunk.fillingCell = true
+    // 递增 arrayInterpolationCounter
+    // 对每个 CacheAllInCell: filler.fillArray(values, noiseChunk)
+    //   → noiseChunk.fillAllDirectly: 遍历 Y(高→低), X, Z, 设置 inCellX/Y/Z 和 arrayIndex
+    //     对每个位置: values[arrayIndex++] = filler.compute(noiseChunk)
+    // 递增 arrayInterpolationCounter
+    // noiseChunk.fillingCell = false
+
     i32 idx = 0;
     for (i32 y = m_cellHeight - 1; y >= 0; --y) {
-        const i32 blockY = blockY0 + y;
+        noiseChunk.m_inCellY = y;
         for (i32 x = 0; x < m_cellWidth; ++x) {
-            const i32 bx = blockX0 + x;
+            noiseChunk.m_inCellX = x;
             for (i32 z = 0; z < m_cellWidth; ++z) {
-                const i32 bz = blockZ0 + z;
-                m_values[static_cast<size_t>(idx)] = m_filler->compute(bx, blockY, bz);
+                noiseChunk.m_inCellZ = z;
+                noiseChunk.m_arrayIndex = idx;
+                m_values[static_cast<size_t>(idx)] =
+                    m_filler->compute(noiseChunk.blockX(), noiseChunk.blockY(), noiseChunk.blockZ());
                 ++idx;
             }
         }
     }
     m_filled = true;
-}
-
-void CellCache::setInCellPos(i32 inCellX, i32 inCellY, i32 inCellZ)
-{
-    // MC 1.21 索引: ((cellHeight - 1 - inCellY) * cellWidth + inCellX) * cellWidth + inCellZ
-    m_currentIndex = ((m_cellHeight - 1 - inCellY) * m_cellWidth + inCellX) * m_cellWidth + inCellZ;
-}
-
-f64 CellCache::getCachedValue() const
-{
-    if (m_currentIndex >= 0 && m_currentIndex < static_cast<i32>(m_values.size())) {
-        return m_values[static_cast<size_t>(m_currentIndex)];
-    }
-    return 0.0;
 }
 
 // ============================================================================
@@ -222,22 +268,40 @@ CacheOnce::CacheOnce(std::unique_ptr<DensityFunction> input)
     : m_input(std::move(input))
     , m_lastCounter(0)
     , m_lastValue(0.0)
+    , m_lastArrayCounter(0)
 {}
 
 f64 CacheOnce::compute(i32 blockX, i32 blockY, i32 blockZ) const
 {
-    // MC 1.21: 如果绑定了 NoiseChunk 的 interpolationCounter，
-    // 在同一插值步骤内直接返回缓存值
+    // MC 1.21 CacheOnce.compute():
+    // 1. 如果不在 NoiseChunk 上下文：委托
+    // 2. 如果 lastArray != null && lastArrayCounter == arrayInterpolationCounter：
+    //    返回 lastArray[arrayIndex] — 数组级缓存命中
+    // 3. 如果 lastCounter == interpolationCounter：返回 lastValue — 位置级缓存命中
+    // 4. 否则计算、缓存、返回
+
     if (m_interpolationCounter != nullptr) {
+        // 数组级缓存（在 fillSlice/selectCellYZ 期间有效）
+        if (!m_lastArray.empty() && m_arrayInterpolationCounter != nullptr &&
+            m_lastArrayCounter == *m_arrayInterpolationCounter && m_arrayIndex != nullptr) {
+            const i32 idx = *m_arrayIndex;
+            if (idx >= 0 && idx < static_cast<i32>(m_lastArray.size())) {
+                return m_lastArray[static_cast<size_t>(idx)];
+            }
+        }
+
+        // 位置级缓存（在 updateForZ 期间有效）
         const u64 currentCounter = *m_interpolationCounter;
         if (currentCounter == m_lastCounter) {
             return m_lastValue;
         }
+
         const f64 value = m_input->compute(blockX, blockY, blockZ);
         m_lastCounter = currentCounter;
         m_lastValue = value;
         return value;
     }
+
     // 未绑定计数器时直接委托（不应发生，但作为安全回退）
     return m_input->compute(blockX, blockY, blockZ);
 }
@@ -300,6 +364,8 @@ std::unique_ptr<DensityFunction> NoiseChunk::apply(std::unique_ptr<DensityFuncti
                 auto filler = marker->releaseWrapped();
                 auto interpolator = std::make_unique<NoiseInterpolator>(
                     std::move(filler), m_cellConfig.cellCountXZ, m_cellConfig.cellCountY);
+                // 绑定到 NoiseChunk 以支持 fillingCell 模式下的 lerp3
+                interpolator->bindNoiseChunk(this, m_cellConfig.cellWidth, m_cellConfig.cellHeight);
                 // 注册到插值器列表，以便 fillSlice/selectCellYZ/updateForXYZ 驱动
                 auto* rawPtr = interpolator.get();
                 m_interpolators.push_back(std::move(interpolator));
@@ -307,19 +373,21 @@ std::unique_ptr<DensityFunction> NoiseChunk::apply(std::unique_ptr<DensityFuncti
                 return std::make_unique<DensityFunctionReference>(*rawPtr);
             }
             case MarkerType::CacheAllInCell: {
-                // CacheAllInCell → CellCache（在 selectCellYZ 时预填充）
+                // CacheAllInCell → CellCache（在 selectCellXYZ 时预填充）
                 auto filler = marker->releaseWrapped();
                 auto cache =
                     std::make_unique<CellCache>(std::move(filler), m_cellConfig.cellWidth, m_cellConfig.cellHeight);
+                cache->bindNoiseChunk(this);
                 m_cellCaches.push_back(std::move(cache));
                 // 返回最后一个 CellCache 的引用
                 return std::make_unique<DensityFunctionReference>(*m_cellCaches.back());
             }
             case MarkerType::CacheOnce: {
-                // CacheOnce → 替换为绑定 interpolationCounter 的 CacheOnce
+                // CacheOnce → 替换为绑定 interpolationCounter 和 arrayInterpolationCounter 的 CacheOnce
                 auto filler = marker->releaseWrapped();
                 auto cacheOnce = std::make_unique<CacheOnce>(std::move(filler));
-                cacheOnce->bindInterpolationCounter(&m_interpolationCounter);
+                cacheOnce->bindInterpolationCounter(
+                    &m_interpolationCounter, &m_arrayInterpolationCounter, &m_arrayIndex);
                 return cacheOnce;
             }
             case MarkerType::FlatCache: {
@@ -350,23 +418,25 @@ std::unique_ptr<DensityFunction> NoiseChunk::apply(std::unique_ptr<DensityFuncti
 void NoiseChunk::initializeForFirstCellX()
 {
     m_interpolating = true;
+    m_interpolationCounter = 0;
 
+    // MC 1.21: fillSlice 设置 cellStartBlockX/Z 和 inCellX/Z，并递增 arrayInterpolationCounter
     for (auto& interp : m_interpolators) {
-        interp->fillSlice(
-            true, m_firstCellX, m_firstCellZ, m_firstCellY, m_cellConfig.cellWidth, m_cellConfig.cellHeight);
+        interp->fillSlice(*this, true, m_firstCellX);
     }
+    // MC 1.21: fillSlice 将 cellStartBlockX 设置为 firstCellX 的值，
+    // 这正是第一个 cell 的值，无需修正
+    // （advanceCellX 会在 fillSlice 后修正，但 initializeForFirstCellX 不需要）
 }
 
 void NoiseChunk::advanceCellX(i32 cellX)
 {
     for (auto& interp : m_interpolators) {
-        interp->fillSlice(false,
-            m_firstCellX + cellX + 1,
-            m_firstCellZ,
-            m_firstCellY,
-            m_cellConfig.cellWidth,
-            m_cellConfig.cellHeight);
+        interp->fillSlice(*this, false, m_firstCellX + cellX + 1);
     }
+    // MC 1.21: fillSlice 临时将 cellStartBlockX 设置为下一个 cell 的值，
+    // 这里修正回当前 cell 的值，供后续迭代使用
+    m_cellStartBlockX = (m_firstCellX + cellX) * m_cellConfig.cellWidth;
 }
 
 void NoiseChunk::selectCellXYZ(i32 cellX, i32 cellY, i32 cellZ)
@@ -375,47 +445,57 @@ void NoiseChunk::selectCellXYZ(i32 cellX, i32 cellY, i32 cellZ)
     m_selectedCellY = cellY;
     m_selectedCellZ = cellZ;
 
+    // MC 1.21: 更新 cellStartBlockX/Y/Z
+    m_cellStartBlockX = (m_firstCellX + cellX) * m_cellConfig.cellWidth;
+    m_cellStartBlockY = (m_firstCellY + cellY) * m_cellConfig.cellHeight;
+    m_cellStartBlockZ = (m_firstCellZ + cellZ) * m_cellConfig.cellWidth;
+
     // 为所有插值器加载 8 个角点值
     for (auto& interp : m_interpolators) {
         interp->selectCellYZ(cellY, cellZ);
     }
 
-    // 预填充所有 CellCache
+    // MC 1.21 selectCellYZ: 预填充 CellCache（设置 fillingCell 标志）
     m_fillingCell = true;
-
-    const i32 cellStartBlockX = (m_firstCellX + cellX) * m_cellConfig.cellWidth;
-    const i32 cellStartBlockY = (m_firstCellY + cellY) * m_cellConfig.cellHeight;
-    const i32 cellStartBlockZ = (m_firstCellZ + cellZ) * m_cellConfig.cellWidth;
+    ++m_arrayInterpolationCounter;
 
     for (auto& cache : m_cellCaches) {
-        cache->fillCell(cellStartBlockX, cellStartBlockY, cellStartBlockZ);
+        cache->fillCell(*this);
     }
 
+    ++m_arrayInterpolationCounter;
     m_fillingCell = false;
 }
 
-void NoiseChunk::updateForY(f64 delta)
+void NoiseChunk::updateForY(i32 blockY, f64 delta)
 {
+    // MC 1.21: inCellY = blockY - cellStartBlockY
+    m_inCellY = blockY - m_cellStartBlockY;
+
     for (auto& interp : m_interpolators) {
         interp->updateForY(delta);
     }
-    // MC 1.21: interpolationCounter 仅在 updateForZ 中递增，不在 updateForY 中递增
-    // CacheOnce 依赖此计数器判断缓存是否有效
 }
 
-void NoiseChunk::updateForX(f64 delta)
+void NoiseChunk::updateForX(i32 blockX, f64 delta)
 {
+    // MC 1.21: inCellX = blockX - cellStartBlockX
+    m_inCellX = blockX - m_cellStartBlockX;
+
     for (auto& interp : m_interpolators) {
         interp->updateForX(delta);
     }
 }
 
-void NoiseChunk::updateForZ(f64 delta)
+void NoiseChunk::updateForZ(i32 blockZ, f64 delta)
 {
+    // MC 1.21: inCellZ = blockZ - cellStartBlockZ
+    m_inCellZ = blockZ - m_cellStartBlockZ;
+    ++m_interpolationCounter;
+
     for (auto& interp : m_interpolators) {
         interp->updateForZ(delta);
     }
-    ++m_interpolationCounter;
 }
 
 void NoiseChunk::swapSlices()
@@ -423,6 +503,20 @@ void NoiseChunk::swapSlices()
     for (auto& interp : m_interpolators) {
         interp->swapSlices();
     }
+}
+
+void NoiseChunk::setInCellFromIndex(i32 index)
+{
+    // MC 1.21 forIndex 逻辑：
+    // i = index % cellWidth               → inCellZ
+    // j = index / cellWidth
+    // k = j % cellWidth                   → inCellX
+    // l = cellHeight - 1 - j / cellWidth  → inCellY
+    m_inCellZ = math::floorMod(index, m_cellConfig.cellWidth);
+    const i32 j = math::floorDiv(index, m_cellConfig.cellWidth);
+    m_inCellX = math::floorMod(j, m_cellConfig.cellWidth);
+    m_inCellY = m_cellConfig.cellHeight - 1 - math::floorDiv(j, m_cellConfig.cellWidth);
+    m_arrayIndex = index;
 }
 
 i32 NoiseChunk::samplePreliminarySurfaceLevel(i32 blockX, i32 blockZ) const
@@ -451,17 +545,6 @@ i32 NoiseChunk::maxPreliminarySurfaceLevel(i32 minBlockX, i32 minBlockZ, i32 max
         }
     }
     return result;
-}
-
-void NoiseChunk::setInCellPos(i32 inCellX, i32 inCellY, i32 inCellZ)
-{
-    m_inCellX = inCellX;
-    m_inCellY = inCellY;
-    m_inCellZ = inCellZ;
-
-    for (auto& cache : m_cellCaches) {
-        cache->setInCellPos(inCellX, inCellY, inCellZ);
-    }
 }
 
 biome::climate::Sampler NoiseChunk::cachedClimateSampler(const std::vector<biome::climate::ParameterPoint>& spawnTarget)

@@ -25,6 +25,7 @@
 #include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <vector>
 
@@ -70,8 +71,8 @@ public:
     Beardifier(std::vector<Rigid> pieces, std::vector<jigsaw::JigsawJunction> junctions);
 
     [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override;
-    [[nodiscard]] f64 minValue() const override { return -MAX_CONTRIBUTION; }
-    [[nodiscard]] f64 maxValue() const override { return MAX_CONTRIBUTION; }
+    [[nodiscard]] f64 minValue() const override { return -std::numeric_limits<f64>::infinity(); }
+    [[nodiscard]] f64 maxValue() const override { return std::numeric_limits<f64>::infinity(); }
 
     /** 是否有结构数据 */
     [[nodiscard]] bool isEmpty() const { return m_pieces.empty() && m_junctions.empty(); }
@@ -101,8 +102,6 @@ public:
     [[nodiscard]] static f64 computeBeardContribution(i32 dx, i32 dy, i32 dz);
 
 private:
-    static constexpr f64 MAX_CONTRIBUTION = static_cast<f64>(world::MAX_BUILD_HEIGHT);
-
     /// MC 1.21: Beardifier.BEARD_KERNEL_RADIUS = 12
     static constexpr i32 BEARD_KERNEL_RADIUS = 12;
 

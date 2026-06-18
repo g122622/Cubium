@@ -128,7 +128,7 @@ private:
 
     // === 核心生成方法 ===
 
-    [[nodiscard]] world::gen::density::Beardifier _buildBeardifier(ChunkPrimer& chunk) const;
+    [[nodiscard]] world::gen::density::Beardifier _buildBeardifier(WorldGenRegion& region, ChunkPrimer& chunk) const;
 
     /**
      * @brief 初始化结构与放置器注册表

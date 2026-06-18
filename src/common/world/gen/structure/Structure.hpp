@@ -64,6 +64,19 @@ enum class TerrainAdaptation : u8 {
     Encapsulate ///< 完全包裹（如试炼密室）
 };
 
+/**
+ * @brief 结构片段投影类型 — MC 1.21 StructureTemplatePool.Projection
+ *
+ * Jigsaw 片段有两种投影模式：
+ * - Rigid: 刚性放置，位置固定，Beardifier 将其作为 Rigid piece 处理
+ * - TerrainMatching: 地形匹配，使用 GravityProcessor 对齐地面，
+ *   Beardifier 不将其作为 Rigid piece，只收集其 JigsawJunction
+ */
+enum class StructurePieceProjection : u8 {
+    Rigid,          ///< 刚性放置（MC: "rigid"）
+    TerrainMatching ///< 地形匹配（MC: "terrain_matching"）
+};
+
 namespace world::gen::structure {
 class StructureBoundingBox;
 }
@@ -516,6 +529,17 @@ public:
      * @return 是否是 Jigsaw 结构片段
      */
     [[nodiscard]] virtual bool isJigsawPiece() const { return false; }
+
+    /**
+     * @brief 获取片段投影类型 — MC 1.21 PoolElementStructurePiece.getElement().getProjection()
+     *
+     * Jigsaw 片段可以重写此方法返回实际的投影类型。
+     * 非 Jigsaw 片段默认返回 Rigid。
+     * Beardifier 使用此信息决定是否将片段作为 Rigid piece 处理：
+     * - Rigid: 作为 Rigid piece 添加（影响地形密度）
+     * - TerrainMatching: 不作为 Rigid piece（地形自适应），只收集 JigsawJunction
+     */
+    [[nodiscard]] virtual StructurePieceProjection getProjection() const { return StructurePieceProjection::Rigid; }
 
     // ========== 静态工具方法 ==========
 

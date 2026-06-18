@@ -483,6 +483,7 @@ bool JigsawManager::tryPlacePiece(JigsawPatternRegistry& patternRegistry,
         placed.rotation = rotation;
         placed.mirror = Mirror::None;
         placed.groundLevelDelta = selectedPiece->getGroundLevelDelta();
+        placed.projection = joint.projection;
         placed.boundingBox = boundingBox;
         placed.joints = _getTransformedJoints(*selectedPiece, placementPos, rotation, Mirror::None);
 

@@ -71,6 +71,8 @@ struct PlacedPiece {
     Rotation rotation = Rotation::None;
     Mirror mirror = Mirror::None;
     i32 groundLevelDelta = 0;
+    JigsawPlacementBehaviour projection =
+        JigsawPlacementBehaviour::Rigid; ///< MC 1.21: StructureTemplatePool.Projection
     structure::StructureBoundingBox boundingBox;
     std::vector<JigsawJoint> joints;       ///< 已变换的连接点
     std::vector<JigsawJunction> junctions; ///< JigsawJunction 列表（用于 NoiseChunkGenerator 地形适配）

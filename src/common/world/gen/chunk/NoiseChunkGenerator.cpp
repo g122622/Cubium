@@ -244,7 +244,7 @@ void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
     // Beardifier 在 NoiseChunk 构造时集成到密度函数树中（叠加到 finalDensity 上），
     // 而非在外部逐方块计算
     // 使用 shared_ptr 因为 std::function 要求可复制的 callable
-    auto beardifierDf = std::make_shared<world::gen::density::Beardifier>(_buildBeardifier(chunk));
+    auto beardifierDf = std::make_shared<world::gen::density::Beardifier>(_buildBeardifier(region, chunk));
 
     auto& noiseChunk = chunk.getOrCreateNoiseChunk([this, cellCountY, startX, startBlockY, startZ, beardifierDf]() {
         // 将 shared_ptr 中的 Beardifier 移动到 unique_ptr 中传入 NoiseChunk
@@ -676,12 +676,11 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
         for (i32 inCellY = cellHeight - 1; inCellY >= 0; --inCellY) {
             const i32 blockY = (math::floorDiv(minY, cellHeight) + cellY) * cellHeight + inCellY;
             const f64 yLerp = static_cast<f64>(inCellY) / static_cast<f64>(cellHeight);
-            noiseChunk->updateForY(yLerp);
-            noiseChunk->updateForX(deltaX);
+            noiseChunk->updateForY(blockY, yLerp);
+            noiseChunk->updateForX(x, deltaX);
 
-            noiseChunk->updateForZ(deltaZ);
+            noiseChunk->updateForZ(z, deltaZ);
             const f64 density = noiseChunk->finalDensity().compute(x, blockY, z);
-            noiseChunk->setBlockPos(x, blockY, z);
 
             // 使用 BlockStateFiller 链确定方块状态
             const BlockState* blockState = noiseChunk->getInterpolatedState(density);
@@ -742,7 +741,6 @@ i32 NoiseChunkGenerator::spawnInitialMobs(
 void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& region, ChunkPrimer& chunk)
 {
     MC_TRACE_EVENT("world.chunk_gen", "GenerateNoise_DF", "x", chunk.x(), "z", chunk.z());
-    (void)region;
 
     if (!m_randomState) {
         return;
@@ -759,7 +757,7 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
     auto& noiseChunk = chunk.getOrCreateNoiseChunk([&]() {
         // MC 1.21: NoiseChunk 拥有自己的路由器副本，mapAll() 会将 Marker 替换为区块特定实现
         // Beardifier 在构造时集成到密度函数树中（叠加到 finalDensity 上）
-        auto beardifierDf = std::make_unique<world::gen::density::Beardifier>(_buildBeardifier(chunk));
+        auto beardifierDf = std::make_unique<world::gen::density::Beardifier>(_buildBeardifier(region, chunk));
         auto nc = std::make_unique<world::gen::density::NoiseChunk>(m_randomState->createRouterCopy(),
             m_cellWidth,
             m_cellHeight,
@@ -847,25 +845,23 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
                 for (i32 inCellY = cellConfig.cellHeight - 1; inCellY >= 0; --inCellY) {
                     const i32 blockY = (noiseChunk.firstCellY() + cellY) * cellConfig.cellHeight + inCellY;
                     const f64 yLerp = static_cast<f64>(inCellY) / static_cast<f64>(cellConfig.cellHeight);
-                    noiseChunk.updateForY(yLerp);
+                    noiseChunk.updateForY(blockY, yLerp);
 
                     for (i32 inCellX = 0; inCellX < cellConfig.cellWidth; ++inCellX) {
                         const i32 localX = cellX * cellConfig.cellWidth + inCellX;
                         const i32 blockX = startX + localX;
                         const f64 xLerp = static_cast<f64>(inCellX) / static_cast<f64>(cellConfig.cellWidth);
-                        noiseChunk.updateForX(xLerp);
+                        noiseChunk.updateForX(blockX, xLerp);
 
                         for (i32 inCellZ = 0; inCellZ < cellConfig.cellWidth; ++inCellZ) {
                             const i32 localZ = cellZ * cellConfig.cellWidth + inCellZ;
                             const i32 blockZ = startZ + localZ;
                             const f64 zLerp = static_cast<f64>(inCellZ) / static_cast<f64>(cellConfig.cellWidth);
 
-                            noiseChunk.setBlockPos(blockX, blockY, blockZ);
-                            noiseChunk.setInCellPos(inCellX, inCellY, inCellZ);
-
-                            // MC 1.21: updateForZ 更新插值器状态，密度通过 finalDensity().compute() 获取
+                            // MC 1.21: updateForZ 设置 inCellZ 并更新插值器状态
+                            // 密度通过 finalDensity().compute() 获取
                             // finalDensity 已包含 Beardifier 贡献（在 NoiseChunk 构造时叠加到密度函数树中）
-                            noiseChunk.updateForZ(zLerp);
+                            noiseChunk.updateForZ(blockZ, zLerp);
                             const f64 density = noiseChunk.finalDensity().compute(blockX, blockY, blockZ);
 
                             // density > 0 → 固体（石头），density <= 0 → 空气/流体
@@ -914,7 +910,7 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
 // Beardifier
 // ============================================================================
 
-world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(ChunkPrimer& chunk) const
+world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(WorldGenRegion& region, ChunkPrimer& chunk) const
 {
     MC_TRACE_EVENT("world.chunk_gen", "BuildBeardifier", "x", chunk.x(), "z", chunk.z());
 
@@ -926,16 +922,20 @@ world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(ChunkPrime
     const i32 startX = chunkX * world::CHUNK_WIDTH;
     const i32 startZ = chunkZ * world::CHUNK_WIDTH;
 
-    // MC 1.21.11: 使用跨区块结构引用收集 Beardifier 数据
-    // TODO: MC 使用 StructureManager.startsForStructure(chunkPos, predicate) 查询所有与当前区块相交的结构起点，
-    // 包括源自邻居区块但延伸到当前区块的结构。当前仅遍历当前区块的 structureStarts，
-    // 大型结构（如要塞、废弃矿井）的边缘地形可能不正确。
-    // 需要添加 StructureManager::startsForStructure() 方法来支持跨区块查询。
+    // MC 1.21.11: Beardifier.forStructuresInChunk
+    // 通过 StructureManager.startsForStructure() 查询所有与当前区块相交的结构起点。
+    // 结构引用已在 STRUCTURE_REFERENCES 阶段填充，包含源自邻居区块但延伸到当前区块的结构。
+    // 遍历所有结构引用，从源区块获取 StructureStart，过滤 terrainAdaptation != None 的结构。
 
     auto processStart = [&](const world::gen::structure::StructureStart& start,
                             const world::gen::structure::Structure* structure) {
         const auto terrainAdaptation =
             (structure != nullptr) ? structure->terrainAdaptation() : TerrainAdaptation::None;
+
+        // MC 1.21: terrainAdaptation == None 的结构不影响地形，跳过整个 StructureStart
+        if (terrainAdaptation == TerrainAdaptation::None) {
+            return;
+        }
 
         for (const auto& piece : start.pieces()) {
             if (!piece) {
@@ -949,14 +949,37 @@ world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(ChunkPrime
                 continue;
             }
 
-            // MC 1.21: 只有 TerrainAdaptation != None 的结构才影响地形
-            if (terrainAdaptation != TerrainAdaptation::None) {
-                pieces.push_back(
-                    world::gen::density::Beardifier::Rigid{box, terrainAdaptation, piece->getGroundLevelDelta()});
+            // MC 1.21: Jigsaw 片段需要区分 RIGID 和 TERRAIN_MATCHING 投影
+            // RIGID 投影的片段作为 Rigid piece 添加到 Beardifier
+            // TERRAIN_MATCHING 投影的片段不添加为 Rigid piece（它们的地形会自适应）
+            // 非 Jigsaw 片段始终添加，groundLevelDelta = 0
+            bool isRigidJigsaw = false;
+            if (piece->isJigsawPiece()) {
+                // MC: PoolElementStructurePiece.getElement().getProjection()
+                // 只有 RIGID 投影的 Jigsaw 片段才作为 Rigid piece
+                isRigidJigsaw = (piece->getProjection() == StructurePieceProjection::Rigid);
+
+                // 收集 JigsawJunction（仅 TERRAIN_MATCHING 类型的连接点）
+                // MC: TERRAIN_MATCHING 投影的 Jigsaw 片段的 junctions 参与 Beardifier 计算
+                if (piece->getProjection() == StructurePieceProjection::TerrainMatching) {
+                    for (const auto& junction : piece->getJunctions()) {
+                        const i32 jx = junction.getSourceX();
+                        const i32 jz = junction.getSourceZ();
+                        if (jx > startX - 12 && jx < startX + world::CHUNK_WIDTH - 1 + 12 && jz > startZ - 12 &&
+                            jz < startZ + world::CHUNK_WIDTH - 1 + 12) {
+                            junctions.push_back(junction);
+                        }
+                    }
+                }
             }
 
-            // 收集 JigsawJunction（仅 Jigsaw 片段，且仅 TERRAIN_MATCHING 类型的连接点）
-            if (piece->isJigsawPiece()) {
+            if (isRigidJigsaw || !piece->isJigsawPiece()) {
+                const i32 groundLevelDelta = isRigidJigsaw ? piece->getGroundLevelDelta() : 0;
+                pieces.push_back(world::gen::density::Beardifier::Rigid{box, terrainAdaptation, groundLevelDelta});
+            }
+
+            // RIGID Jigsaw 片段也收集 junctions
+            if (isRigidJigsaw) {
                 for (const auto& junction : piece->getJunctions()) {
                     const i32 jx = junction.getSourceX();
                     const i32 jz = junction.getSourceZ();
@@ -969,15 +992,52 @@ world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(ChunkPrime
         }
     };
 
-    // 处理当前区块的结构起点
-    for (const auto& [structureId, start] : chunk.structureStarts()) {
-        if (!start || !start->isValid()) continue;
-        const auto* structure = world::gen::structure::StructureRegistry::get(structureId);
-        processStart(*start, structure);
+    // MC 1.21.11: 使用跨区块结构引用收集 Beardifier 数据
+    // 对应 Java: StructureManager.startsForStructure(chunkPos, s -> s.terrainAdaptation() != NONE)
+    // 遍历当前区块的 structureReferences，从源区块获取 StructureStart
+    if (chunk.hasStructureReferences()) {
+        for (const auto& [structureId, refs] : chunk.structureReferences()) {
+            const auto* structure = world::gen::structure::StructureRegistry::get(structureId);
+
+            // MC: predicate 过滤 terrainAdaptation != NONE
+            if (!structure || structure->terrainAdaptation() == TerrainAdaptation::None) {
+                continue;
+            }
+
+            for (const auto& [refX, refZ] : refs) {
+                IChunk* sourceChunk = region.getIChunk(refX, refZ, ChunkStatuses::STRUCTURE_STARTS);
+                if (!sourceChunk) {
+                    continue;
+                }
+
+                auto* sourcePrimer = dynamic_cast<ChunkPrimer*>(sourceChunk);
+                if (!sourcePrimer) {
+                    continue;
+                }
+
+                auto* start = sourcePrimer->getStructureStart(structureId);
+                if (!start || !start->isValid()) {
+                    continue;
+                }
+
+                processStart(*start, structure);
+            }
+        }
     }
 
-    // 处理结构引用（noise 阶段仅处理当前区块的 starts，
-    // 跨区块引用的 Beardifier 数据会在邻居区块各自构建时处理）
+    // 也处理当前区块自身的 structureStarts（这些可能不在 references 中）
+    for (const auto& [structureId, start] : chunk.structureStarts()) {
+        if (!start || !start->isValid()) {
+            continue;
+        }
+        const auto* structure = world::gen::structure::StructureRegistry::get(structureId);
+        if (!structure || structure->terrainAdaptation() == TerrainAdaptation::None) {
+            continue;
+        }
+        // 当前区块的 StructureStart 已在 references 中（结构起点的引用包含自身），
+        // 但为安全起见也检查（避免去重逻辑遗漏）
+        processStart(*start, structure);
+    }
 
     return world::gen::density::Beardifier(std::move(pieces), std::move(junctions));
 }

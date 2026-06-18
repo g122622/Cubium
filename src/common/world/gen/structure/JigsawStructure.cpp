@@ -87,6 +87,13 @@ public:
 
     [[nodiscard]] bool isJigsawPiece() const noexcept override { return true; }
 
+    [[nodiscard]] mc::StructurePieceProjection getProjection() const noexcept override
+    {
+        return (m_placed.projection == mc::world::gen::jigsaw::JigsawPlacementBehaviour::TerrainMatching)
+            ? mc::StructurePieceProjection::TerrainMatching
+            : mc::StructurePieceProjection::Rigid;
+    }
+
 private:
     mc::world::gen::jigsaw::PlacedPiece m_placed;
     mc::i32 m_groundLevelDelta;

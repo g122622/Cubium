@@ -148,6 +148,30 @@ template <typename T>
 }
 
 /**
+ * @brief f64 版本的三线性插值，用于 NoiseInterpolator.fillingCell 模式
+ *
+ * MC 的 Mth.lerp3 使用 double 参数。
+ * 参数顺序: d0=(0,0,0), d1=(1,0,0), d2=(0,1,0), d3=(1,1,0),
+ *           d4=(0,0,1), d5=(1,0,1), d6=(0,1,1), d7=(1,1,1)
+ */
+[[nodiscard]] inline f64 lerp3(
+    f64 sx, f64 sy, f64 sz, f64 d0, f64 d1, f64 d2, f64 d3, f64 d4, f64 d5, f64 d6, f64 d7) noexcept
+{
+    // X 轴插值
+    const f64 x0 = lerp(d0, d1, sx);
+    const f64 x1 = lerp(d2, d3, sx);
+    const f64 x2 = lerp(d4, d5, sx);
+    const f64 x3 = lerp(d6, d7, sx);
+
+    // Y 轴插值
+    const f64 y0 = lerp(x0, x1, sy);
+    const f64 y1 = lerp(x2, x3, sy);
+
+    // Z 轴插值
+    return lerp(y0, y1, sz);
+}
+
+/**
  * @brief 线性插值，但将插值因子限制在 [0, 1] 范围内
  * @param a 起始值
  * @param b 目标值

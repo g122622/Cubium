@@ -35,6 +35,9 @@
 
 namespace mc::world::gen::density {
 
+// 前向声明（NoiseInterpolator/CellCache/CacheOnce 的方法引用 NoiseChunk）
+class NoiseChunk;
+
 // ============================================================================
 // BlockStateFiller — MC 1.21 NoiseChunk.BlockStateFiller
 // ============================================================================
@@ -144,6 +147,12 @@ private:
  * 使用双 slice 缓冲区避免重复计算：每列 X 只计算一次。
  *
  * 插值顺序: Y → X → Z（与 MC 一致）
+ *
+ * MC 1.21 compute() 行为：
+ * - 如果不在 NoiseChunk 上下文中：委托给原始函数
+ * - 如果不在插值循环中：报错（不应发生）
+ * - 如果 fillingCell == true：直接做三线性插值（lerp3），使用 NoiseChunk 的 inCellX/Y/Z
+ * - 否则：返回 updateForZ() 递增更新的 m_value
  */
 class NoiseInterpolator final : public DensityFunction {
 public:
@@ -169,15 +178,24 @@ public:
     }
 
     /**
-     * @brief 采样密度函数填充指定 X 列的 slice 数据
-     * @param cellX X 方向 cell 索引（角点坐标）
-     * @param firstCellZ Z 方向起始角点坐标
-     * @param firstCellY Y 方向起始角点坐标
-     * @param cellWidthXZ X/Z 方向 cell 宽度（方块数）
-     * @param cellHeightY Y 方向 cell 高度（方块数）
-     * @param contextProvider 用于批量填充的上下文提供者
+     * @brief 绑定到所属的 NoiseChunk
+     * 在 NoiseChunk::apply() 注册插值器后调用。
      */
-    void fillSlice(bool isSlice0, i32 cellX, i32 firstCellZ, i32 firstCellY, i32 cellWidthXZ, i32 cellHeightY);
+    void bindNoiseChunk(const class NoiseChunk* noiseChunk, i32 cellWidth, i32 cellHeight)
+    {
+        m_noiseChunk = noiseChunk;
+        m_cellWidth = cellWidth;
+        m_cellHeight = cellHeight;
+    }
+
+    /**
+     * @brief 采样密度函数填充指定 X 列的 slice 数据
+     * MC 1.21: 由 NoiseChunk.fillSlice() 调用，使用 fillArray 模式。
+     * @param noiseChunk 所属的 NoiseChunk（用于设置上下文和计数器）
+     * @param isSlice0 true 填充 slice0，false 填充 slice1
+     * @param cellX X 方向 cell 索引
+     */
+    void fillSlice(class NoiseChunk& noiseChunk, bool isSlice0, i32 cellX);
 
     /**
      * @brief 选中当前 cell 的 8 个角点值
@@ -206,17 +224,17 @@ public:
     f64 updateForZ(f64 delta);
 
     /**
-     * @brief 直接计算指定位置的插值值（不增量更新，用于 CacheAllInCell 填充）
-     */
-    [[nodiscard]] f64 interpolate(f64 deltaX, f64 deltaY, f64 deltaZ) const;
-
-    /**
      * @brief 交换两个 slice 缓冲区
      */
     void swapSlices();
 
 private:
     std::unique_ptr<DensityFunction> m_filler;
+
+    /// 所属的 NoiseChunk（用于 fillingCell 检查和 inCellX/Y/Z 访问）
+    const class NoiseChunk* m_noiseChunk = nullptr;
+    i32 m_cellWidth = 0;
+    i32 m_cellHeight = 0;
 
     /// slice0: 当前 X 列左侧角点数据 [z][y]
     std::vector<std::vector<f64>> m_slice0;
@@ -246,6 +264,11 @@ private:
  * 在 selectCellYZ 时预计算整个 cell 内所有位置的值，
  * 然后在 cell 内直接查表，避免重复计算。
  * finalDensity 就被 CacheAllInCell 包装。
+ *
+ * MC 1.21 compute() 行为：
+ * - 如果不在 NoiseChunk 上下文中：委托给原始函数
+ * - 如果不在插值循环中：报错
+ * - 否则：使用 inCellX/Y/Z 查表，越界时委托给原始函数
  */
 class CellCache final : public DensityFunction {
 public:
@@ -264,26 +287,17 @@ public:
     [[nodiscard]] const DensityFunction& filler() const { return *m_filler; }
 
     /**
+     * @brief 绑定到所属的 NoiseChunk
+     * 在 NoiseChunk::apply() 注册 CellCache 时调用。
+     */
+    void bindNoiseChunk(class NoiseChunk* noiseChunk) { m_noiseChunk = noiseChunk; }
+
+    /**
      * @brief 预填充当前 cell 的所有值
-     * @param blockX0 cell 起始 X 方块坐标
-     * @param blockY0 cell 起始 Y 方块坐标
-     * @param blockZ0 cell 起始 Z 方块坐标
+     * MC 1.21: 由 NoiseChunk.selectCellYZ() 调用，使用 fillArray/fillAllDirectly 模式。
+     * @param noiseChunk 所属的 NoiseChunk
      */
-    void fillCell(i32 blockX0, i32 blockY0, i32 blockZ0);
-
-    /**
-     * @brief 设置 cell 内的查询位置
-     * @param inCellX cell 内 X 偏移 [0, cellWidth)
-     * @param inCellY cell 内 Y 偏移 [0, cellHeight)
-     * @param inCellZ cell 内 Z 偏移 [0, cellWidth)
-     */
-    void setInCellPos(i32 inCellX, i32 inCellY, i32 inCellZ);
-
-    /**
-     * @brief 获取当前 cell 内位置的缓存值
-     * 必须在 fillCell 和 setInCellPos 之后调用。
-     */
-    [[nodiscard]] f64 getCachedValue() const;
+    void fillCell(class NoiseChunk& noiseChunk);
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -297,8 +311,9 @@ private:
     i32 m_cellHeight;
     std::vector<f64> m_values;
 
-    /// 当前查询位置在 m_values 中的索引
-    i32 m_currentIndex = -1;
+    /// 所属的 NoiseChunk（用于访问 inCellX/Y/Z 等上下文）
+    class NoiseChunk* m_noiseChunk = nullptr;
+
     bool m_filled = false;
 };
 
@@ -307,6 +322,12 @@ private:
  *
  * 在同一次插值步骤内缓存计算结果。
  * 使用 NoiseChunk 的 interpolationCounter 检测是否在同一插值位置。
+ *
+ * MC 1.21 两级缓存：
+ * 1. 数组级缓存（arrayInterpolationCounter）：在 fillSlice/selectCellYZ 期间，
+ *    同一个 arrayInterpolationCounter 值意味着相同的 slice 位置，可以复用整个数组。
+ * 2. 位置级缓存（interpolationCounter）：在 updateForZ 期间，
+ *    同一个 interpolationCounter 值意味着同一个方块位置，返回缓存值。
  */
 class CacheOnce final : public DensityFunction {
 public:
@@ -319,10 +340,15 @@ public:
     [[nodiscard]] const DensityFunction& input() const { return *m_input; }
 
     /**
-     * @brief 绑定到 NoiseChunk 的插值计数器
+     * @brief 绑定到 NoiseChunk 的插值计数器和数组计数器
      * 在 NoiseChunk::apply() 中替换 Marker::CacheOnce 时调用。
      */
-    void bindInterpolationCounter(const u64* counter) { m_interpolationCounter = counter; }
+    void bindInterpolationCounter(const u64* counter, const u64* arrayCounter, const i32* arrayIndex)
+    {
+        m_interpolationCounter = counter;
+        m_arrayInterpolationCounter = arrayCounter;
+        m_arrayIndex = arrayIndex;
+    }
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
@@ -333,8 +359,12 @@ public:
 private:
     std::unique_ptr<DensityFunction> m_input;
     const u64* m_interpolationCounter = nullptr;
+    const u64* m_arrayInterpolationCounter = nullptr;
+    const i32* m_arrayIndex = nullptr;
     mutable u64 m_lastCounter = 0;
     mutable f64 m_lastValue = 0.0;
+    mutable u64 m_lastArrayCounter = 0;
+    mutable std::vector<f64> m_lastArray;
 };
 
 /**
@@ -360,6 +390,10 @@ private:
  */
 class NoiseChunk : public DensityFunction::Visitor {
 public:
+    // NoiseInterpolator 和 CellCache 需要访问 NoiseChunk 的私有字段
+    // （cellStartBlockX/Y/Z, inCellX/Y/Z, arrayInterpolationCounter, interpolationCounter, arrayIndex）
+    friend class NoiseInterpolator;
+    friend class CellCache;
     /**
      * @brief cell 配置参数
      */
@@ -415,9 +449,23 @@ public:
 
     // ========== 坐标查询（充当 FunctionContext）==========
 
-    [[nodiscard]] i32 blockX() const { return m_blockX; }
-    [[nodiscard]] i32 blockY() const { return m_blockY; }
-    [[nodiscard]] i32 blockZ() const { return m_blockZ; }
+    /**
+     * @brief 当前方块 X 坐标
+     * MC 1.21: blockX = cellStartBlockX + inCellX
+     */
+    [[nodiscard]] i32 blockX() const { return m_cellStartBlockX + m_inCellX; }
+
+    /**
+     * @brief 当前方块 Y 坐标
+     * MC 1.21: blockY = cellStartBlockY + inCellY
+     */
+    [[nodiscard]] i32 blockY() const { return m_cellStartBlockY + m_inCellY; }
+
+    /**
+     * @brief 当前方块 Z 坐标
+     * MC 1.21: blockZ = cellStartBlockZ + inCellZ
+     */
+    [[nodiscard]] i32 blockZ() const { return m_cellStartBlockZ + m_inCellZ; }
 
     // ========== 区块生成主循环接口 ==========
 
@@ -446,23 +494,28 @@ public:
 
     /**
      * @brief 更新 Y 方向插值
+     * MC 1.21: 接受方块 Y 坐标，计算 inCellY = blockY - cellStartBlockY
+     * @param blockY 方块 Y 坐标
      * @param delta Y 方向插值因子 [0, 1]
      */
-    void updateForY(f64 delta);
+    void updateForY(i32 blockY, f64 delta);
 
     /**
      * @brief 更新 X 方向插值
+     * MC 1.21: 接受方块 X 坐标，计算 inCellX = blockX - cellStartBlockX
+     * @param blockX 方块 X 坐标
      * @param delta X 方向插值因子 [0, 1]
      */
-    void updateForX(f64 delta);
+    void updateForX(i32 blockX, f64 delta);
 
     /**
      * @brief 更新 Z 方向插值
-     * @param delta Z 方向插值因子 [0, 1]
+     * MC 1.21: 接受方块 Z 坐标，计算 inCellZ = blockZ - cellStartBlockZ
      *
-     * MC 1.21: updateForZ 返回 void，密度值通过 finalDensity().compute() 获取。
+     * @param blockZ 方块 Z 坐标
+     * @param delta Z 方向插值因子 [0, 1]
      */
-    void updateForZ(f64 delta);
+    void updateForZ(i32 blockZ, f64 delta);
 
     /**
      * @brief 交换 slice 缓冲区
@@ -553,14 +606,13 @@ public:
     void stopInterpolation() { m_interpolating = false; }
 
     /**
-     * @brief 设置当前方块坐标（插值过程中使用）
+     * @brief 获取 cell 起始方块坐标
+     * MC 1.21: cellStartBlockX/Y/Z 是当前 cell 左下角的方块坐标。
+     * blockX() = cellStartBlockX + inCellX
      */
-    void setBlockPos(i32 x, i32 y, i32 z)
-    {
-        m_blockX = x;
-        m_blockY = y;
-        m_blockZ = z;
-    }
+    [[nodiscard]] i32 cellStartBlockX() const { return m_cellStartBlockX; }
+    [[nodiscard]] i32 cellStartBlockY() const { return m_cellStartBlockY; }
+    [[nodiscard]] i32 cellStartBlockZ() const { return m_cellStartBlockZ; }
 
     /**
      * @brief 获取 cell 内的方块偏移
@@ -569,7 +621,12 @@ public:
     [[nodiscard]] i32 inCellY() const { return m_inCellY; }
     [[nodiscard]] i32 inCellZ() const { return m_inCellZ; }
 
-    void setInCellPos(i32 inCellX, i32 inCellY, i32 inCellZ);
+    /**
+     * @brief 根据扁平索引计算 inCellX/Y/Z（MC 1.21 forIndex 模式）
+     * 用于 CellCache::fillCell() 中遍历 cell 内所有位置时设置上下文。
+     * MC 索引顺序: ((cellHeight - 1 - inCellY) * cellWidth + inCellX) * cellWidth + inCellZ
+     */
+    void setInCellFromIndex(i32 index);
 
     /**
      * @brief 获取所有插值器
@@ -612,7 +669,7 @@ public:
     [[nodiscard]] const BlockState* getInterpolatedState(f64 density) const
     {
         if (m_blockStateRule) {
-            return m_blockStateRule->calculate(m_blockX, m_blockY, m_blockZ, density);
+            return m_blockStateRule->calculate(blockX(), blockY(), blockZ(), density);
         }
         return nullptr;
     }
@@ -643,15 +700,18 @@ private:
     i32 m_firstCellY;
     i32 m_firstCellZ;
 
-    /// 当前方块坐标（插值过程中设置）
-    i32 m_blockX = 0;
-    i32 m_blockY = 0;
-    i32 m_blockZ = 0;
+    /// MC 1.21: cell 起始方块坐标 — blockX/Y/Z() = cellStartBlock* + inCell*
+    i32 m_cellStartBlockX = 0;
+    i32 m_cellStartBlockY = 0;
+    i32 m_cellStartBlockZ = 0;
 
-    /// Cell 内偏移
+    /// Cell 内偏移（MC 1.21: inCellX/Y/Z）
     i32 m_inCellX = 0;
     i32 m_inCellY = 0;
     i32 m_inCellZ = 0;
+
+    /// MC 1.21: 数组填充时的扁平索引（CacheOnce 通过此字段访问）
+    i32 m_arrayIndex = 0;
 
     i32 m_selectedCellX = 0;
     i32 m_selectedCellY = 0;
@@ -661,8 +721,11 @@ private:
     bool m_interpolating = false;
     bool m_fillingCell = false;
 
-    /// 插值计数器（CacheOnce 使用）
+    /// 插值计数器（CacheOnce 使用，updateForZ 和 fillSlice 中递增）
     u64 m_interpolationCounter = 0;
+
+    /// MC 1.21: 数组插值计数器（CacheOnce 的数组级缓存使用）
+    u64 m_arrayInterpolationCounter = 0;
 
     /// 所有 NoiseInterpolator 实例（由 apply() 注册）
     std::vector<std::unique_ptr<NoiseInterpolator>> m_interpolators;

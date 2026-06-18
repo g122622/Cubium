@@ -42,20 +42,23 @@ const BeardifierMarker BeardifierMarker::INSTANCE;
 /**
  * MC 1.21.11 预计算 BEARD_KERNEL[24][24][24] 查找表。
  *
- * BEARD_KERNEL[k][i][j] = computeBeardContribution(j - 12, i - 12, k - 12)
- * 其中 k = Y 索引, i = X 索引, j = Z 索引。
+ * BEARD_KERNEL[i][j][k] = gaussian(j-12, i-12, k-12)
+ * 其中 i = Y 索引, j = X 索引, k = Z 索引。
  *
- * 用于 getBeardContribution(dx, dy, dz, baseDy) 在 BeardThin/BeardBox
- * 模式下（baseDy == dy 的情况）的快速查找。
- * 当 dx, dy, dz 都在 [-12, 11] 范围内时，直接查表避免 exp() 计算。
+ * MC Java 的 computeBeardContribution 只计算高斯部分：exp(-distSq/16)。
+ * 胡须因子在 getBeardContribution 中单独计算并乘以核值。
  */
 static const std::array<f32, 24 * 24 * 24> BEARD_KERNEL = []() {
     std::array<f32, 24 * 24 * 24> kernel{};
     for (i32 i = 0; i < 24; ++i) {
         for (i32 j = 0; j < 24; ++j) {
             for (i32 k = 0; k < 24; ++k) {
-                kernel[i * 24 * 24 + j * 24 + k] =
-                    static_cast<f32>(Beardifier::computeBeardContribution(j - 12, i - 12, k - 12));
+                const i32 dx = j - 12;
+                const i32 dy = i - 12;
+                const i32 dz = k - 12;
+                const f64 adjustedY = static_cast<f64>(dy) + 0.5;
+                const f64 distSq = static_cast<f64>(dx * dx) + adjustedY * adjustedY + static_cast<f64>(dz * dz);
+                kernel[i * 24 * 24 + j * 24 + k] = static_cast<f32>(std::exp(-distSq / 16.0));
             }
         }
     }
@@ -159,29 +162,37 @@ f64 Beardifier::compute(i32 blockX, i32 blockY, i32 blockZ) const
 
 f64 Beardifier::getBeardContribution(i32 dx, i32 dy, i32 dz, i32 baseDy)
 {
-    // MC 1.21: Beardifier.getBeardContribution
+    // MC 1.21: Beardifier.getBeardContribution(dx, dy, dz, baseDy)
     //
-    // BeardThin 模式下 baseDy == dy，可以直接使用 BEARD_KERNEL 查表。
-    // BeardBox 模式下 baseDy != dy（baseDy 替换为到 Y 边界的距离），
-    // 需要使用动态计算。
+    // 使用 BEARD_KERNEL 查找高斯分量（以 dy 为 Y 索引），
+    // 然后乘以 beard 因子（以 baseDy 计算）。
     //
-    // 当 dx/dy/dz 在 [-12, 11] 范围内且 baseDy == dy 时，使用预计算表加速。
+    // 核查找范围: dx, dy, dz 都在 [-12, 11] 时直接查表，
+    // 否则返回 0.0（BeardThin/BeardBox 模式下核值在范围外衰减为 0）。
+    //
+    // MC Java 逻辑:
+    //   i = dx + 12, j = dy + 12, k = dz + 12
+    //   if (isInKernelRange(i) && isInKernelRange(j) && isInKernelRange(k)):
+    //     d0 = baseDy + 0.5
+    //     d1 = lengthSquared(dx, d0, dz)
+    //     d2 = -d0 * fastInvSqrt(d1 / 2.0) / 2.0
+    //     return d2 * BEARD_KERNEL[k * 24 * 24 + i * 24 + j]
+    //   else:
+    //     return 0.0
 
-    // 尝试 BEARD_KERNEL 查表（仅 BeardThin/baseDy==dy 场景）
-    if (baseDy == dy && dx >= -12 && dx < 12 && dy >= -12 && dy < 12 && dz >= -12 && dz < 12) {
-        const i32 k = dy + 12; // Y 索引 (MC: i)
-        const i32 i = dx + 12; // X 索引 (MC: j)
-        const i32 j = dz + 12; // Z 索引 (MC: k)
-        return static_cast<f64>(BEARD_KERNEL[k * 24 * 24 + i * 24 + j]);
+    const i32 i = dx + 12;
+    const i32 j = dy + 12;
+    const i32 k = dz + 12;
+
+    if (i >= 0 && i < 24 && j >= 0 && j < 24 && k >= 0 && k < 24) {
+        const f64 adjustedY = static_cast<f64>(baseDy) + 0.5;
+        const f64 distSq = static_cast<f64>(dx * dx) + adjustedY * adjustedY + static_cast<f64>(dz * dz);
+        const f64 gaussian = static_cast<f64>(BEARD_KERNEL[static_cast<size_t>(k * 24 * 24 + i * 24 + j)]);
+        const f64 beard = -adjustedY * math::fastInverseSqrt(static_cast<f32>(distSq / 2.0)) / 2.0;
+        return beard * gaussian;
     }
 
-    // Fallback: 动态计算
-    const f64 adjustedY = static_cast<f64>(baseDy) + 0.5;
-    const f64 distSq = static_cast<f64>(dx * dx) + adjustedY * adjustedY + static_cast<f64>(dz * dz);
-    const f64 gaussian = std::exp(-distSq / 16.0);
-    const f64 invSqrt = math::fastInverseSqrt(static_cast<f32>(distSq / 2.0));
-    const f64 beard = -adjustedY * invSqrt / 2.0;
-    return beard * gaussian;
+    return 0.0;
 }
 
 f64 Beardifier::getBuryContribution(f64 dx, f64 dy, f64 dz)
@@ -201,14 +212,12 @@ f64 Beardifier::getBuryContribution(f64 dx, f64 dy, f64 dz)
 
 f64 Beardifier::computeBeardContribution(i32 dx, i32 dy, i32 dz)
 {
-    // 独立计算，不使用 BEARD_KERNEL 查表。
-    // BEARD_KERNEL 初始化时调用此函数，因此不能委托给 getBeardContribution。
+    // MC 1.21: Beardifier.computeBeardContribution(dx, dy, dz)
+    // 只计算高斯部分，用于 BEARD_KERNEL 预计算表。
+    // 注意：此方法现在仅作为备用，BEARD_KERNEL 已直接在初始化时计算。
     const f64 adjustedY = static_cast<f64>(dy) + 0.5;
     const f64 distSq = static_cast<f64>(dx * dx) + adjustedY * adjustedY + static_cast<f64>(dz * dz);
-    const f64 gaussian = std::exp(-distSq / 16.0);
-    const f64 invSqrt = math::fastInverseSqrt(static_cast<f32>(distSq / 2.0));
-    const f64 beard = -adjustedY * invSqrt / 2.0;
-    return beard * gaussian;
+    return std::exp(-distSq / 16.0);
 }
 
 // ============================================================================
@@ -247,13 +256,16 @@ std::optional<Beardifier::StructureBoundingBox> Beardifier::computeAffectedBox()
         maxZ = std::max(maxZ, junction.getSourceZ());
     }
 
-    // 膨胀 BEARD_KERNEL_RADIUS (12) 格
-    minX -= BEARD_KERNEL_RADIUS;
-    minY -= BEARD_KERNEL_RADIUS;
-    minZ -= BEARD_KERNEL_RADIUS;
-    maxX += BEARD_KERNEL_RADIUS;
-    maxY += BEARD_KERNEL_RADIUS;
-    maxZ += BEARD_KERNEL_RADIUS;
+    // MC 1.21: boundingBox.inflatedBy(24) — 膨胀 24 格（2 * BEARD_KERNEL_RADIUS）
+    // MC 使用 inflatedBy(24) 而非 BEARD_KERNEL_RADIUS(12)，
+    // 因为 getBeardContribution 在核范围外返回 0，但 BeardBox 模式下的
+    // getBuryContribution 在更大范围内仍有非零贡献
+    minX -= 24;
+    minY -= 24;
+    minZ -= 24;
+    maxX += 24;
+    maxY += 24;
+    maxZ += 24;
 
     return StructureBoundingBox(minX, minY, minZ, maxX, maxY, maxZ);
 }
