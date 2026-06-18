@@ -138,9 +138,9 @@ i32 calculateUUIDHashCode(const std::array<u8, 16>& uuid)
 
 SkinType getDefaultSkinTypeForUUID(const std::array<u8, 16>& uuid)
 {
-    // 基于 UUID 哈希值的最低位确定皮肤类型
-    i32 hashCode = calculateUUIDHashCode(uuid);
-    return (hashCode & 1) == 1 ? SkinType::Slim : SkinType::Default;
+    // 通过 18 种默认皮肤变体确定皮肤类型，与 getDefaultSkinVariantForUUID 保持一致
+    // 旧算法 (hashCode & 1) 仅支持 2 种皮肤（Steve/Alex），不再使用
+    return getDefaultSkinVariantForUUID(uuid).skinType;
 }
 
 } // namespace mc::skin

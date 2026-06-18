@@ -124,9 +124,8 @@ constexpr size_t DEFAULT_SKIN_COUNT = 18;
 /**
  * @brief 根据UUID确定默认皮肤类型
  *
- * 基于 UUID 哈希值确定玩家默认皮肤类型：
- * - 如果 (hashCode & 1) == 1，则为 Slim (Alex)
- * - 否则为 Default (Steve)
+ * 基于 UUID 哈希值从 18 种默认皮肤中选择，返回所选变体的皮肤类型。
+ * 内部委托给 getDefaultSkinVariantForUUID()，确保与 18 皮肤选择算法一致。
  *
  * @param uuid 玩家UUID（16字节，big-endian）
  * @return 默认皮肤类型

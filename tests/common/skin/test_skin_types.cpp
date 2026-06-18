@@ -53,14 +53,20 @@ TEST_F(SkinTypesTest, SkinTypeToString)
 
 TEST_F(SkinTypesTest, GetDefaultSkinTypeForUUID)
 {
+    // zeroUUID 的 hashCode = 0，floorMod(0, 18) = 0，索引 0 是 slim/alex
     std::array<mc::u8, 16> zeroUUID = {};
     SkinType zeroType = getDefaultSkinTypeForUUID(zeroUUID);
-    EXPECT_TRUE(zeroType == SkinType::Default || zeroType == SkinType::Slim);
+    EXPECT_EQ(zeroType, SkinType::Slim);
+
+    // 确保结果与 getDefaultSkinVariantForUUID 一致
+    const DefaultSkinVariant& zeroVariant = getDefaultSkinVariantForUUID(zeroUUID);
+    EXPECT_EQ(zeroType, zeroVariant.skinType);
 
     std::array<mc::u8, 16> testUUID1 = {
         0x55, 0x0e, 0x84, 0x00, 0xe2, 0x9b, 0x41, 0xd4, 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00};
     SkinType type1 = getDefaultSkinTypeForUUID(testUUID1);
-    EXPECT_TRUE(type1 == SkinType::Default || type1 == SkinType::Slim);
+    const DefaultSkinVariant& variant1 = getDefaultSkinVariantForUUID(testUUID1);
+    EXPECT_EQ(type1, variant1.skinType);
 }
 
 TEST_F(SkinTypesTest, CalculateUUIDHashCode)

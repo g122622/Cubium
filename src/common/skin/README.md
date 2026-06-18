@@ -7,7 +7,7 @@
 ```
 skin/
 ├── core/                       # 核心类型定义
-│   ├── SkinTypes.hpp           # 皮肤类型枚举（Default/Slim）和工具函数
+│   ├── SkinTypes.hpp           # 皮肤类型枚举、18种默认皮肤变体和工具函数
 │   ├── SkinTypes.cpp
 │   ├── SkinTextures.hpp        # 皮肤纹理数据结构（皮肤/披风/鞘翅URL和位置）
 │   ├── SkinTextures.cpp
@@ -18,7 +18,7 @@ skin/
 │   ├── SkinManager.cpp
 │   ├── SkinCache.hpp           # 皮肤缓存（磁盘+内存索引）
 │   ├── SkinCache.cpp
-│   ├── DefaultSkinProvider.hpp # 默认皮肤提供者（Steve/Alex）
+│   ├── DefaultSkinProvider.hpp # 默认皮肤提供者（18种默认皮肤）
 │   └── DefaultSkinProvider.cpp
 ├── loader/                     # 加载器
 │   ├── SkinLoader.hpp          # 皮肤加载器接口（ISkinLoader）
@@ -49,7 +49,7 @@ skin/
 ┌───────────────┐   ┌────────────────┐   ┌─────────────────────┐
 │  SkinCache    │   │ DefaultSkin    │   │ ISkinLoader         │
 │  (磁盘缓存)    │   │ Provider       │   │ ├─ FileSkinLoader   │
-└───────────────┘   │ (Steve/Alex)   │   │ └─ HttpSkinLoader   │
+└───────────────┘   │ (18种默认皮肤)  │   │ └─ HttpSkinLoader   │
                     └────────────────┘   └─────────────────────┘
                              │                    │
                              ▼                    ▼
@@ -70,6 +70,27 @@ skin/
 - **loader**: 加载器实现，依赖 core
 - **parser**: 解析器，依赖 core
 - **network**: 网络同步类型，依赖 core
+
+## 默认皮肤选择算法
+
+MC 1.21.1 有 **18 种默认皮肤**（9 slim + 9 wide），通过 UUID 哈希选择：
+
+```
+索引 0-8:  slim (alex, ari, efe, kai, makena, noor, steve, sunny, zuri)
+索引 9-17: wide (alex, ari, efe, kai, makena, noor, steve, sunny, zuri)
+```
+
+选择算法与 MC Java 版 `DefaultPlayerSkin.get(UUID)` 一致：
+
+```
+index = Math.floorMod(UUID.hashCode(), 18)
+```
+
+- `getDefaultSkinVariantForUUID(uuid)` — 返回完整的 `DefaultSkinVariant`（名称、类型、纹理路径）
+- `getDefaultSkinTypeForUUID(uuid)` — 委托给上述函数，返回 `SkinType`
+- `getCanonicalDefaultSkin()` — 返回 slim/steve（索引 6），即无 UUID 上下文时的规范回退
+
+纹理路径格式：`minecraft:textures/entity/player/{slim|wide}/{name}.png`
 
 ## 上下游外部依赖关系
 
@@ -99,7 +120,7 @@ GameProfile 中的 UUID 是 **big-endian**（大端序），与 Java 版一致�
 
 ### 皮肤类型判断
 
-皮肤类型由 textures.minecraft.net URL 中的哈希决定，或由 `getDefaultSkinTypeForUUID()` 根据 UUID 哈希最低位判断。Steve/Alex 的选择逻辑是 `(hashCode & 1) == 1 → Alex`。
+皮肤类型由 `getDefaultSkinTypeForUUID()` 通过 18 种默认皮肤变体选择算法确定，该算法委托给 `getDefaultSkinVariantForUUID()`，使用 `floorMod(UUID.hashCode(), 18)` 选择索引，再返回对应变体的 `skinType`。**注意**：旧的 `(hashCode & 1)` 二值算法已弃用，它与 18 皮肤算法对同一 UUID 可能返回矛盾的 SkinType。
 
 ### displayName JSON 格式
 
