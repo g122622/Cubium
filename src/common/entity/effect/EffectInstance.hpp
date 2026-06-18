@@ -112,12 +112,6 @@ public:
      */
     [[nodiscard]] bool isApplied() const noexcept { return m_applied; }
 
-    /**
-     * @brief 设置持续时间
-     * @param duration 新的持续时间（tick），-1表示永久，0表示过期
-     */
-    void setDuration(i32 duration) noexcept { m_duration = duration; }
-
     // ========== 更新 ==========
 
     /**
