@@ -35,23 +35,23 @@ namespace mc::skin {
 /**
  * @brief 默认皮肤提供者
  *
- * 提供内置的默认皮肤（Steve 和 Alex）。
- *
- * 默认皮肤：
- * - Steve: 宽手臂模型，textures/entity/player/wide/steve.png
- * - Alex: 窄手臂模型，textures/entity/player/slim/alex.png
+ * 提供 MC 1.21.1 的 18 种内置默认皮肤（9 slim + 9 wide）。
+ * 通过 UUID 哈希选择默认皮肤，与 MC Java 版 DefaultPlayerSkin 一致。
  *
  * 默认皮肤选择算法：
- * - 根据 UUID 哈希的最低位决定
- * - (UUID.hashCode() & 1) == 1 -> Alex
- * - (UUID.hashCode() & 1) == 0 -> Steve
+ * - index = Math.floorMod(UUID.hashCode(), 18)
+ * - 索引 0-8:  slim 变体 (alex, ari, efe, kai, makena, noor, steve, sunny, zuri)
+ * - 索引 9-17: wide 变体 (alex, ari, efe, kai, makena, noor, steve, sunny, zuri)
+ *
+ * 皮肤名称列表：alex, ari, efe, kai, makena, noor, steve, sunny, zuri
+ * 纹理路径格式：minecraft:textures/entity/player/{slim|wide}/{name}.png
  */
 class DefaultSkinProvider {
 public:
     /**
      * @brief 初始化默认皮肤
      *
-     * 加载内置的 Steve 和 Alex 皮肤数据。
+     * 加载内置的 18 种默认皮肤数据。
      *
      * @return 成功或错误
      */
@@ -59,8 +59,11 @@ public:
 
     /**
      * @brief 获取默认皮肤 ResourceLocation
+     *
+     * 根据 UUID 哈希从 18 种默认皮肤中选择。
+     *
      * @param uuid 玩家UUID
-     * @return 皮肤位置（Steve 或 Alex）
+     * @return 皮肤位置
      */
     [[nodiscard]] ResourceLocation getDefaultSkin(const std::array<u8, 16>& uuid) const noexcept;
 
@@ -72,26 +75,49 @@ public:
     [[nodiscard]] SkinType getDefaultSkinType(const std::array<u8, 16>& uuid) const noexcept;
 
     /**
-     * @brief 获取 Steve 皮肤位置
+     * @brief 获取指定变体的 ResourceLocation
+     * @param variantIndex 变体索引 (0-17)
+     * @return 皮肤位置
      */
-    [[nodiscard]] ResourceLocation getSteveSkin() const noexcept { return m_steveLocation; }
+    [[nodiscard]] ResourceLocation getSkinLocation(size_t variantIndex) const noexcept;
 
     /**
-     * @brief 获取 Alex 皮肤位置
+     * @brief 获取规范默认皮肤（无 UUID 上下文时的回退）
+     *
+     * 返回 slim/steve（索引 6），与 MC 源码一致。
+     *
+     * @return 皮肤位置
      */
-    [[nodiscard]] ResourceLocation getAlexSkin() const noexcept { return m_alexLocation; }
+    [[nodiscard]] ResourceLocation getCanonicalDefaultSkinLocation() const noexcept;
 
     /**
-     * @brief 获取 Steve 皮肤 PNG 数据
+     * @brief 获取 Steve (wide) 皮肤位置（向后兼容）
+     */
+    [[nodiscard]] ResourceLocation getSteveSkin() const noexcept { return getSkinLocation(15); }
+
+    /**
+     * @brief 获取 Alex (slim) 皮肤位置（向后兼容）
+     */
+    [[nodiscard]] ResourceLocation getAlexSkin() const noexcept { return getSkinLocation(0); }
+
+    /**
+     * @brief 获取 Steve 皮肤 PNG 数据（向后兼容）
      * @return PNG 数据（64x64）
      */
-    [[nodiscard]] const std::vector<u8>& getSteveSkinData() const noexcept { return m_steveData; }
+    [[nodiscard]] const std::vector<u8>& getSteveSkinData() const noexcept { return m_skinData[15]; }
 
     /**
-     * @brief 获取 Alex 皮肤 PNG 数据
+     * @brief 获取 Alex 皮肤 PNG 数据（向后兼容）
      * @return PNG 数据（64x64）
      */
-    [[nodiscard]] const std::vector<u8>& getAlexSkinData() const noexcept { return m_alexData; }
+    [[nodiscard]] const std::vector<u8>& getAlexSkinData() const noexcept { return m_skinData[0]; }
+
+    /**
+     * @brief 获取指定变体的皮肤 PNG 数据
+     * @param variantIndex 变体索引 (0-17)
+     * @return PNG 数据（64x64）
+     */
+    [[nodiscard]] const std::vector<u8>& getSkinData(size_t variantIndex) const noexcept;
 
     /**
      * @brief 检查 ResourceLocation 是否为默认皮肤
@@ -113,11 +139,8 @@ private:
      */
     Result<void> _loadBuiltinSkins();
 
-    ResourceLocation m_steveLocation{"minecraft:textures/entity/player/wide/steve.png"};
-    ResourceLocation m_alexLocation{"minecraft:textures/entity/player/slim/alex.png"};
-
-    std::vector<u8> m_steveData; // Steve 皮肤 PNG 数据
-    std::vector<u8> m_alexData;  // Alex 皮肤 PNG 数据
+    /// 18 种默认皮肤的 PNG 数据（索引与 DefaultSkinVariant::index 一致）
+    std::array<std::vector<u8>, DEFAULT_SKIN_COUNT> m_skinData;
 
     bool m_initialized = false;
 };

@@ -25,7 +25,9 @@
 
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/skin/core/SkinTypes.hpp"
 #include "common/skin/manager/SkinManager.hpp"
+#include <array>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -132,14 +134,21 @@ public:
     // ========== 默认皮肤 ==========
 
     /**
-     * @brief 获取 Steve 皮肤纹理区域
+     * @brief 获取指定 UUID 对应的默认皮肤纹理区域
+     * @param uuid 玩家UUID
+     * @return 纹理区域，不存在返回规范默认皮肤区域
      */
-    [[nodiscard]] const TextureRegion* getSteveSkinRegion() const { return m_steveRegion; }
+    [[nodiscard]] const TextureRegion* getDefaultSkinRegion(const std::array<u8, 16>& uuid) const;
 
     /**
-     * @brief 获取 Alex 皮肤纹理区域
+     * @brief 获取 Steve 皮肤纹理区域（向后兼容）
      */
-    [[nodiscard]] const TextureRegion* getAlexSkinRegion() const { return m_alexRegion; }
+    [[nodiscard]] const TextureRegion* getSteveSkinRegion() const { return m_defaultSkinRegions[15]; }
+
+    /**
+     * @brief 获取 Alex 皮肤纹理区域（向后兼容）
+     */
+    [[nodiscard]] const TextureRegion* getAlexSkinRegion() const { return m_defaultSkinRegions[0]; }
 
     // ========== 纹理图集 ==========
 
@@ -203,9 +212,8 @@ private:
     std::unique_ptr<::mc::skin::SkinManager> m_skinManager;
     std::unique_ptr<renderer::entity::pipeline::EntityTextureAtlas> m_textureAtlas;
 
-    // 默认皮肤区域
-    const TextureRegion* m_steveRegion = nullptr;
-    const TextureRegion* m_alexRegion = nullptr;
+    // 默认皮肤区域（18 种，索引与 DefaultSkinVariant::index 一致）
+    std::array<const TextureRegion*, ::mc::skin::DEFAULT_SKIN_COUNT> m_defaultSkinRegions{};
 
     // UUID -> 纹理区域映射
     mutable std::mutex m_regionMutex;

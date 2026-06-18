@@ -47,7 +47,7 @@ Result<void> DefaultSkinProvider::initialize()
     }
 
     m_initialized = true;
-    spdlog::info("DefaultSkinProvider initialized");
+    spdlog::info("DefaultSkinProvider initialized with {} default skins", DEFAULT_SKIN_COUNT);
     return {};
 }
 
@@ -55,30 +55,58 @@ Result<void> DefaultSkinProvider::_loadBuiltinSkins()
 {
     // TODO: 实现从资源文件加载真实皮肤数据
     // 当前使用简化的 fallback 实现，生成空的 64x64 RGBA 数据占位
-    // 生产环境应该从 resources/textures/entity/steve.png 和 alex.png 加载
+    // 生产环境应该从 resources/textures/entity/player/{slim|wide}/{name}.png 加载
 
-    m_steveData.resize(SKIN_DATA_SIZE, 0);
-    m_alexData.resize(SKIN_DATA_SIZE, 0);
+    for (size_t i = 0; i < DEFAULT_SKIN_COUNT; ++i) {
+        m_skinData[i].resize(SKIN_DATA_SIZE, 0);
+    }
 
     return {};
 }
 
 ResourceLocation DefaultSkinProvider::getDefaultSkin(const std::array<u8, 16>& uuid) const noexcept
 {
-    if (getDefaultSkinType(uuid) == SkinType::Slim) {
-        return m_alexLocation;
-    }
-    return m_steveLocation;
+    const DefaultSkinVariant& variant = getDefaultSkinVariantForUUID(uuid);
+    return variant.textureLocation();
 }
 
 SkinType DefaultSkinProvider::getDefaultSkinType(const std::array<u8, 16>& uuid) const noexcept
 {
-    return getDefaultSkinTypeForUUID(uuid);
+    const DefaultSkinVariant& variant = getDefaultSkinVariantForUUID(uuid);
+    return variant.skinType;
+}
+
+ResourceLocation DefaultSkinProvider::getSkinLocation(size_t variantIndex) const noexcept
+{
+    if (variantIndex >= DEFAULT_SKIN_COUNT) {
+        variantIndex = 6; // 回退到 slim/steve（规范默认皮肤）
+    }
+    const auto& variants = getDefaultSkinVariants();
+    return variants[variantIndex].textureLocation();
+}
+
+ResourceLocation DefaultSkinProvider::getCanonicalDefaultSkinLocation() const noexcept
+{
+    return getCanonicalDefaultSkin().textureLocation();
+}
+
+const std::vector<u8>& DefaultSkinProvider::getSkinData(size_t variantIndex) const noexcept
+{
+    if (variantIndex >= DEFAULT_SKIN_COUNT) {
+        variantIndex = 6; // 回退到 slim/steve
+    }
+    return m_skinData[variantIndex];
 }
 
 bool DefaultSkinProvider::isDefaultSkin(const ResourceLocation& location) const noexcept
 {
-    return location == m_steveLocation || location == m_alexLocation;
+    const auto& variants = getDefaultSkinVariants();
+    for (size_t i = 0; i < DEFAULT_SKIN_COUNT; ++i) {
+        if (location == variants[i].textureLocation()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 } // namespace mc::skin

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <array>
 #include <string>
 
@@ -40,6 +41,69 @@ enum class SkinType : u8 {
     Default = 0, // 宽手臂 (4px)，Steve 模型
     Slim = 1     // 窄手臂 (3px)，Alex 模型
 };
+
+/**
+ * @brief 默认皮肤变体
+ *
+ * MC 1.21.1 有 18 种默认皮肤（9 slim + 9 wide），通过 UUID 哈希选择。
+ * 变体名称：alex, ari, efe, kai, makena, noor, steve, sunny, zuri
+ * 每个名称有 slim 和 wide 两种手臂类型。
+ *
+ * 数组索引与 MC 源码 DefaultPlayerSkin.DEFAULT_SKINS 一致：
+ *   0-8:  slim (alex, ari, efe, kai, makena, noor, steve, sunny, zuri)
+ *   9-17: wide (alex, ari, efe, kai, makena, noor, steve, sunny, zuri)
+ */
+struct DefaultSkinVariant {
+    /// 皮肤名称（如 "alex", "steve"）
+    const char* name;
+    /// 皮肤模型类型
+    SkinType skinType;
+    /// 在 DEFAULT_SKINS 数组中的索引 (0-17)
+    u8 index;
+
+    /**
+     * @brief 获取此变体的 ResourceLocation
+     * @return 纹理路径，如 "minecraft:textures/entity/player/slim/steve.png"
+     */
+    [[nodiscard]] ResourceLocation textureLocation() const
+    {
+        const char* typeDir = (skinType == SkinType::Slim) ? "slim" : "wide";
+        return ResourceLocation(std::string("minecraft:textures/entity/player/") + typeDir + "/" + name + ".png");
+    }
+};
+
+/// 默认皮肤变体总数
+constexpr size_t DEFAULT_SKIN_COUNT = 18;
+
+/**
+ * @brief 获取所有默认皮肤变体（按 MC 源码顺序）
+ *
+ * 索引 0-8: slim 变体
+ * 索引 9-17: wide 变体
+ *
+ * @return 包含 18 个默认皮肤变体的数组
+ */
+[[nodiscard]] const std::array<DefaultSkinVariant, DEFAULT_SKIN_COUNT>& getDefaultSkinVariants();
+
+/**
+ * @brief 根据 UUID 获取默认皮肤变体
+ *
+ * 使用与 MC Java 版 DefaultPlayerSkin.get(UUID) 相同的算法：
+ * index = Math.floorMod(uuid.hashCode(), 18)
+ *
+ * @param uuid 玩家UUID（16字节，big-endian）
+ * @return 默认皮肤变体
+ */
+[[nodiscard]] const DefaultSkinVariant& getDefaultSkinVariantForUUID(const std::array<u8, 16>& uuid);
+
+/**
+ * @brief 获取规范默认皮肤（无 UUID 上下文时的回退）
+ *
+ * 返回 slim/steve（索引 6），与 MC 源码 DefaultPlayerSkin.getDefaultSkin() 一致。
+ *
+ * @return 默认皮肤变体
+ */
+[[nodiscard]] const DefaultSkinVariant& getCanonicalDefaultSkin();
 
 /**
  * @brief 将字符串转换为皮肤类型
@@ -60,7 +124,7 @@ enum class SkinType : u8 {
 /**
  * @brief 根据UUID确定默认皮肤类型
  *
- * 基于UUID的哈希值确定玩家默认皮肤类型：
+ * 基于 UUID 哈希值确定玩家默认皮肤类型：
  * - 如果 (hashCode & 1) == 1，则为 Slim (Alex)
  * - 否则为 Default (Steve)
  *
