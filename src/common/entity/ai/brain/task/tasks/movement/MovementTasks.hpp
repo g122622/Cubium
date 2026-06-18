@@ -27,7 +27,6 @@
 #include "common/entity/ai/brain/memory/BlockPosTarget.hpp"
 #include "common/entity/ai/brain/memory/IPositionTarget.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
-#include "common/entity/ai/brain/memory/MemoryModules.hpp"
 #include "common/entity/ai/brain/memory/WalkTarget.hpp"
 #include "common/entity/ai/brain/task/Task.hpp"
 #include "common/entity/ai/controller/LookController.hpp"
@@ -64,12 +63,11 @@ using namespace memory;
 template <typename E>
 class MoveToTargetTask : public Task<E> {
 public:
-    explicit MoveToTargetTask(i32 completionRange = 1)
+    MoveToTargetTask()
         : Task<E>({{MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::VALUE_PRESENT},
                       {MemoryModuleTypes::PATH, MemoryModuleStatus::REGISTERED}},
               60,
               200)
-        , m_completionRange(completionRange)
         , m_lastPathRecalcTime(0)
         , m_stuckCheckTime(0)
         , m_stuckCheckX(0.0)
@@ -205,13 +203,11 @@ protected:
             m_stuckCheckZ = static_cast<f64>(owner->z());
         }
 
-        // TODO: 同步路径到 PATH 记忆 — 当前 MemoryModuleType 中 Path 的前向声明
-        // 为 mc::Path，但实际路径类型为 mc::entity::ai::pathfinding::Path，类型不匹配。
-        // 待 MemoryModuleType 修正后恢复此逻辑。
-        // auto* navigator = owner->navigator();
-        // if (navigator && navigator->hasPath()) {
-        //     brain.template setMemory<Path>(MemoryModuleTypes::PATH, *navigator->getPath());
-        // }
+        // 同步路径到 PATH 记忆
+        auto* pathNav = owner->navigator();
+        if (pathNav && pathNav->hasPath()) {
+            brain.template setMemory<pathfinding::Path>(MemoryModuleTypes::PATH, *pathNav->getPath());
+        }
     }
 
     void resetTask(IWorld* world, E* owner, i64 gameTime) override
@@ -229,8 +225,8 @@ protected:
             brain.template setMemoryWithTTL<i64>(MemoryModuleTypes::CANT_REACH_WALK_TARGET_SINCE, gameTime + 40, 100);
         }
 
-        // TODO: 清除 PATH 记忆 — 同上 Path 类型不匹配问题
-        // brain.template removeMemory<Path>(MemoryModuleTypes::PATH);
+        // 清除 PATH 记忆
+        brain.template removeMemory<pathfinding::Path>(MemoryModuleTypes::PATH);
     }
 
 private:
@@ -290,7 +286,6 @@ private:
         }
     }
 
-    i32 m_completionRange;
     i64 m_lastPathRecalcTime;
     i64 m_stuckCheckTime;
     f64 m_stuckCheckX;
@@ -335,7 +330,12 @@ protected:
         // 生成随机目标位置
         Vector3 targetPos;
         auto* creature = dynamic_cast<CreatureEntity*>(owner);
-        if (creature && util::RandomPositionGenerator::findRandomTarget(creature, m_xzRange, m_yRange, targetPos)) {
+        if (!creature) {
+            // TODO: StrollTask 要求实体为 CreatureEntity 类型以使用 RandomPositionGenerator，
+            // 非 CreatureEntity（如飞行实体）需要其他漫步策略。当前静默跳过。
+            return;
+        }
+        if (util::RandomPositionGenerator::findRandomTarget(creature, m_xzRange, m_yRange, targetPos)) {
             // 设置 WALK_TARGET 记忆，由 MoveToTargetTask 执行实际移动
             owner->brain().template setMemory<WalkTarget>(
                 MemoryModuleTypes::WALK_TARGET, WalkTarget(BlockPos(targetPos), m_speed, 1));
@@ -497,13 +497,12 @@ private:
 template <typename E>
 class FindHiddenBlockTask : public Task<E> {
 public:
-    FindHiddenBlockTask(f32 speed = 1.0f, i32 searchRange = 20)
+    FindHiddenBlockTask(f32 speed = 1.0f)
         : Task<E>({{MemoryModuleTypes::HIDING_PLACE, MemoryModuleStatus::VALUE_ABSENT},
                       {MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::VALUE_ABSENT}},
               60,
               120)
         , m_speed(speed)
-        , m_searchRange(searchRange)
     {}
 
     std::string getName() const override { return "FindHiddenBlockTask"; }
@@ -575,7 +574,6 @@ protected:
 
 private:
     f32 m_speed;
-    i32 m_searchRange;
 };
 
 /**
@@ -749,6 +747,8 @@ private:
         LivingEntity* threat = *avoidTarget;
 
         // 使用 RandomPositionGenerator 生成远离威胁的位置
+        // TODO: FleeTask 要求 CreatureEntity 类型以使用 RandomPositionGenerator，
+        // 非 CreatureEntity 将使用下方的备用反方向计算
         auto* creature = dynamic_cast<CreatureEntity*>(owner);
         if (creature) {
             Vector3 fleePos;

@@ -42,8 +42,15 @@ class AgeableEntity;
 class ItemEntity;
 class BlockPos;
 class GlobalPos;
-class Path;
 class DamageSource;
+
+namespace entity {
+namespace ai {
+namespace pathfinding {
+class Path;
+}
+} // namespace ai
+} // namespace entity
 
 namespace entity {
 namespace ai {
@@ -128,7 +135,7 @@ public:
     static const MemoryModuleType<ItemEntity*>* NEAREST_VISIBLE_WANTED_ITEM;
 
     // ========== 移动相关 ==========
-    static const MemoryModuleType<Path>* PATH;
+    static const MemoryModuleType<pathfinding::Path>* PATH;
     static const MemoryModuleType<WalkTarget>* WALK_TARGET;
     static const MemoryModuleType<std::shared_ptr<IPositionTarget>>* LOOK_TARGET;
 

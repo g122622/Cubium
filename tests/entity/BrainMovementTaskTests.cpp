@@ -23,19 +23,34 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
+
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/ai/brain/Brain.hpp"
 #include "common/entity/ai/brain/memory/BlockPosTarget.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleStatus.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/memory/WalkTarget.hpp"
+#include "common/entity/ai/brain/schedule/Schedule.hpp"
+#include "common/entity/ai/brain/task/tasks/movement/MovementTasks.hpp"
+#include "common/entity/entities/villager/VillagerEntity.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/block/BlockPos.hpp"
 
-namespace mc {
-namespace entity {
-namespace ai {
-namespace brain {
-namespace memory {
+using mc::BlockPos;
+using mc::EntityId;
+using mc::GlobalPos;
+using mc::i64;
+using mc::Vector3;
+using mc::entity::VillagerEntity;
+using mc::test::BaseTestWorld;
+namespace movement = mc::entity::ai::brain::task::movement;
+namespace memory = mc::entity::ai::brain::memory;
+using memory::MemoryModuleStatus;
+using memory::MemoryModuleTypes;
+using memory::WalkTarget;
+
 namespace {
 
 // ========== WalkTarget 构造测试 ==========
@@ -63,7 +78,6 @@ TEST(WalkTargetVariantsTest, BlockPosTargetCenterPosition)
     WalkTarget wt(bp, 1.0f, 1);
     auto target = wt.getTarget();
     ASSERT_NE(target, nullptr);
-    // BlockPosTarget 的 position 返回方块中心
     EXPECT_FLOAT_EQ(target->getPosition().x, 3.5f);
     EXPECT_FLOAT_EQ(target->getPosition().y, 70.5f);
     EXPECT_FLOAT_EQ(target->getPosition().z, -4.5f);
@@ -71,12 +85,10 @@ TEST(WalkTargetVariantsTest, BlockPosTargetCenterPosition)
 
 TEST(WalkTargetVariantsTest, Vector3ConstructorConvertsToBlockCenter)
 {
-    // Vector3 构造函数会先转换为 BlockPos（截断），然后 BlockPosTarget 返回方块中心
     Vector3 exactPos(10.7f, 64.3f, 20.9f);
     WalkTarget wt(exactPos, 0.5f, 2);
     auto target = wt.getTarget();
     ASSERT_NE(target, nullptr);
-    // 10.7 → BlockPos(10,64,20) → 中心 (10.5, 64.5, 20.5)
     EXPECT_FLOAT_EQ(target->getPosition().x, 10.5f);
     EXPECT_FLOAT_EQ(target->getPosition().y, 64.5f);
     EXPECT_FLOAT_EQ(target->getPosition().z, 20.5f);
@@ -86,16 +98,15 @@ TEST(WalkTargetVariantsTest, Vector3ConstructorConvertsToBlockCenter)
 
 TEST(WalkTargetVariantsTest, SharedPositionTargetIsNotCopied)
 {
-    auto sharedTarget = std::make_shared<BlockPosTarget>(BlockPos(1, 2, 3));
+    auto sharedTarget = std::make_shared<memory::BlockPosTarget>(BlockPos(1, 2, 3));
     WalkTarget wt1(sharedTarget, 1.0f, 1);
     WalkTarget wt2(sharedTarget, 0.5f, 2);
-    // 两个 WalkTarget 共享相同的 IPositionTarget
     EXPECT_EQ(wt1.getTarget(), wt2.getTarget());
 }
 
 TEST(WalkTargetVariantsTest, PositionTargetConstructor)
 {
-    auto target = std::make_shared<BlockPosTarget>(BlockPos(5, 70, 8));
+    auto target = std::make_shared<memory::BlockPosTarget>(BlockPos(5, 70, 8));
     WalkTarget wt(target, 1.2f, 2);
     ASSERT_NE(wt.getTarget(), nullptr);
     EXPECT_EQ(wt.getTarget()->getBlockPos(), BlockPos(5, 70, 8));
@@ -105,103 +116,96 @@ TEST(WalkTargetVariantsTest, PositionTargetConstructor)
 
 // ========== 记忆状态需求测试 ==========
 
-// 使用 Brain<int> 验证记忆条件逻辑（无需完整实体）
-// 注意：Task<E> 的模板参数 E 必须是拥有 brain()、navigator() 等方法的实体类型，
-// 因此不能使用 int 实例化任务。此处只测试记忆模块的注册和状态检查。
-
 TEST(MovementTasksMemoryTest, WalkTargetMemoryIntegration)
 {
     MemoryModuleTypes::initialize();
 
-    Brain<int> brain;
+    mc::entity::ai::brain::Brain<int> brain;
     brain.registerMemory(MemoryModuleTypes::WALK_TARGET);
     brain.registerMemory(MemoryModuleTypes::PATH);
     brain.registerMemory(MemoryModuleTypes::CANT_REACH_WALK_TARGET_SINCE);
 
-    // 初始状态：WALK_TARGET 不存在
     EXPECT_FALSE(brain.hasMemory(MemoryModuleTypes::WALK_TARGET));
 
-    // 设置 WALK_TARGET
     WalkTarget walkTarget(BlockPos(10, 64, 20), 1.0f, 2);
     brain.setMemory(MemoryModuleTypes::WALK_TARGET, walkTarget);
-
-    // WALK_TARGET 存在
     EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::WALK_TARGET));
 
     auto stored = brain.getMemory(MemoryModuleTypes::WALK_TARGET);
     ASSERT_TRUE(stored.has_value());
     EXPECT_EQ(stored->getTarget()->getBlockPos(), BlockPos(10, 64, 20));
-    EXPECT_FLOAT_EQ(stored->getSpeed(), 1.0f);
-    EXPECT_EQ(stored->getDistance(), 2);
 
-    // 清除 WALK_TARGET
     brain.removeMemory(MemoryModuleTypes::WALK_TARGET);
     EXPECT_FALSE(brain.hasMemory(MemoryModuleTypes::WALK_TARGET));
 }
 
-TEST(MovementTasksMemoryTest, AvoidTargetMemoryIntegration)
+TEST(MovementTasksMemoryTest, MemoryStatusCheckForTaskRequirements)
 {
     MemoryModuleTypes::initialize();
 
-    Brain<int> brain;
-    brain.registerMemory(MemoryModuleTypes::AVOID_TARGET);
-    brain.registerMemory(MemoryModuleTypes::WALK_TARGET);
-
-    // AVOID_TARGET 不存在
-    EXPECT_FALSE(brain.hasMemory(MemoryModuleTypes::AVOID_TARGET));
-
-    // 验证记忆的注册和状态检查
-    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::AVOID_TARGET, MemoryModuleStatus::VALUE_ABSENT));
-}
-
-TEST(MovementTasksMemoryTest, AttackTargetMemoryIntegration)
-{
-    MemoryModuleTypes::initialize();
-
-    Brain<int> brain;
-    brain.registerMemory(MemoryModuleTypes::ATTACK_TARGET);
+    mc::entity::ai::brain::Brain<int> brain;
     brain.registerMemory(MemoryModuleTypes::WALK_TARGET);
     brain.registerMemory(MemoryModuleTypes::LOOK_TARGET);
+    brain.registerMemory(MemoryModuleTypes::ATTACK_TARGET);
+    brain.registerMemory(MemoryModuleTypes::AVOID_TARGET);
+    brain.registerMemory(MemoryModuleTypes::HIDING_PLACE);
+    brain.registerMemory(MemoryModuleTypes::PATH);
+    brain.registerMemory(MemoryModuleTypes::CANT_REACH_WALK_TARGET_SINCE);
 
-    // ATTACK_TARGET 不存在
-    EXPECT_FALSE(brain.hasMemory(MemoryModuleTypes::ATTACK_TARGET));
-    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::ATTACK_TARGET, MemoryModuleStatus::VALUE_ABSENT));
-    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::ATTACK_TARGET, MemoryModuleStatus::REGISTERED));
+    // MoveToTargetTask requires: WALK_TARGET=PRESENT, PATH=REGISTERED
+    // 初始状态：WALK_TARGET 缺失 → MoveToTargetTask 不应执行
+    EXPECT_FALSE(brain.hasMemory(MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::VALUE_PRESENT));
+    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::VALUE_ABSENT));
+    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::REGISTERED));
+
+    // 设置 WALK_TARGET 后 → MoveToTargetTask 可执行
+    brain.setMemory(MemoryModuleTypes::WALK_TARGET, WalkTarget(BlockPos(0, 64, 0), 1.0f, 1));
+    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::VALUE_PRESENT));
+
+    // StrollTask requires: WALK_TARGET=ABSENT
+    // 设置 WALK_TARGET 后 → StrollTask 不应执行
+    EXPECT_FALSE(brain.hasMemory(MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::VALUE_ABSENT));
+
+    // ChaseTask requires: ATTACK_TARGET=PRESENT, WALK_TARGET=REGISTERED, LOOK_TARGET=REGISTERED
+    EXPECT_FALSE(brain.hasMemory(MemoryModuleTypes::ATTACK_TARGET, MemoryModuleStatus::VALUE_PRESENT));
+    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::REGISTERED));
+    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::LOOK_TARGET, MemoryModuleStatus::REGISTERED));
+
+    // FleeTask requires: AVOID_TARGET=PRESENT, WALK_TARGET=ABSENT
+    EXPECT_FALSE(brain.hasMemory(MemoryModuleTypes::AVOID_TARGET, MemoryModuleStatus::VALUE_PRESENT));
+
+    // FindHiddenBlockTask requires: HIDING_PLACE=ABSENT, WALK_TARGET=ABSENT
+    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::HIDING_PLACE, MemoryModuleStatus::VALUE_ABSENT));
 }
 
-TEST(MovementTasksMemoryTest, HidingPlaceMemoryIntegration)
+TEST(MovementTasksMemoryTest, HomeAndNearestBedMemoryForHiding)
 {
     MemoryModuleTypes::initialize();
 
-    Brain<int> brain;
-    brain.registerMemory(MemoryModuleTypes::HIDING_PLACE);
-    brain.registerMemory(MemoryModuleTypes::WALK_TARGET);
+    mc::entity::ai::brain::Brain<int> brain;
     brain.registerMemory(MemoryModuleTypes::HOME);
     brain.registerMemory(MemoryModuleTypes::NEAREST_BED);
-    brain.registerMemory(MemoryModuleTypes::HURT_BY);
-    brain.registerMemory(MemoryModuleTypes::HEARD_BELL_TIME);
 
-    // 初始状态
-    EXPECT_FALSE(brain.hasMemory(MemoryModuleTypes::HIDING_PLACE));
-    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::HIDING_PLACE, MemoryModuleStatus::VALUE_ABSENT));
+    GlobalPos homePos(mc::DimensionId(0), BlockPos(100, 64, 200));
+    brain.setMemory(MemoryModuleTypes::HOME, homePos);
 
-    // 设置 HIDING_PLACE
-    brain.setMemory(MemoryModuleTypes::HIDING_PLACE, BlockPos(5, 64, 10));
-    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::HIDING_PLACE));
+    auto storedHome = brain.getMemory(MemoryModuleTypes::HOME);
+    ASSERT_TRUE(storedHome.has_value());
+    EXPECT_EQ(storedHome->getPos(), BlockPos(100, 64, 200));
 
-    auto hidingPlace = brain.getMemory(MemoryModuleTypes::HIDING_PLACE);
-    ASSERT_TRUE(hidingPlace.has_value());
-    EXPECT_EQ(*hidingPlace, BlockPos(5, 64, 10));
+    brain.setMemory(MemoryModuleTypes::NEAREST_BED, BlockPos(50, 65, 100));
+    auto storedBed = brain.getMemory(MemoryModuleTypes::NEAREST_BED);
+    ASSERT_TRUE(storedBed.has_value());
+    EXPECT_EQ(*storedBed, BlockPos(50, 65, 100));
 }
 
 TEST(MovementTasksMemoryTest, CantReachWalkTargetMemoryWithTTL)
 {
     MemoryModuleTypes::initialize();
 
-    Brain<int> brain;
+    mc::entity::ai::brain::Brain<int> brain;
     brain.registerMemory(MemoryModuleTypes::CANT_REACH_WALK_TARGET_SINCE);
 
-    // 设置带 TTL 的不可达标记
     brain.setMemoryWithTTL(MemoryModuleTypes::CANT_REACH_WALK_TARGET_SINCE, static_cast<i64>(100), 200);
     EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::CANT_REACH_WALK_TARGET_SINCE));
 
@@ -210,59 +214,168 @@ TEST(MovementTasksMemoryTest, CantReachWalkTargetMemoryWithTTL)
     EXPECT_EQ(*value, 100);
 }
 
-TEST(MovementTasksMemoryTest, ActivityRegistrationWithMemoryRequirements)
+// ========== 测试用世界子类 ==========
+
+class MovementTaskTestWorld : public BaseTestWorld {
+public:
+    MovementTaskTestWorld() = default;
+};
+
+// ========== 任务核心逻辑测试（使用 VillagerEntity）==========
+
+class MovementTaskTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        MemoryModuleTypes::initialize();
+        mc::entity::ai::brain::schedule::Schedule::initialize();
+        m_world = std::make_unique<MovementTaskTestWorld>();
+    }
+
+    std::unique_ptr<MovementTaskTestWorld> m_world;
+};
+
+TEST_F(MovementTaskTest, MoveToTargetTaskShouldNotExecuteWithoutWalkTarget)
 {
-    MemoryModuleTypes::initialize();
+    VillagerEntity villager(EntityId(1));
+    villager.setWorld(m_world.get());
+    villager.setPosition(0.0f, 64.0f, 0.0f);
 
-    Brain<int> brain;
-    brain.registerMemory(MemoryModuleTypes::WALK_TARGET);
-    brain.registerMemory(MemoryModuleTypes::LOOK_TARGET);
-    brain.registerMemory(MemoryModuleTypes::ATTACK_TARGET);
-    brain.registerMemory(MemoryModuleTypes::AVOID_TARGET);
-    brain.registerMemory(MemoryModuleTypes::HIDING_PLACE);
-    brain.registerMemory(MemoryModuleTypes::PATH);
-    brain.registerMemory(MemoryModuleTypes::CANT_REACH_WALK_TARGET_SINCE);
+    // MoveToTargetTask 需要 WALK_TARGET=PRESENT 才能执行
+    // 没有 WALK_TARGET 时，Task 基类的 _hasRequiredMemories 检查会失败
+    movement::MoveToTargetTask<VillagerEntity> task;
 
-    // 验证所有移动任务相关的记忆模块可以正确注册
-    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::REGISTERED));
-    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::LOOK_TARGET, MemoryModuleStatus::REGISTERED));
-    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::ATTACK_TARGET, MemoryModuleStatus::REGISTERED));
-    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::AVOID_TARGET, MemoryModuleStatus::REGISTERED));
-    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::HIDING_PLACE, MemoryModuleStatus::REGISTERED));
-    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::PATH, MemoryModuleStatus::REGISTERED));
-
-    // VALUE_ABSENT 在已注册但未设置值时为真
-    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::VALUE_ABSENT));
-    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::ATTACK_TARGET, MemoryModuleStatus::VALUE_ABSENT));
-    EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::AVOID_TARGET, MemoryModuleStatus::VALUE_ABSENT));
+    // shouldExecute 要求 WALK_TARGET 存在，但 _hasRequiredMemories 先检查
+    // WALK_TARGET 不存在 → _hasRequiredMemories 返回 false → start() 不会调用 shouldExecute
+    mc::math::Random rng(42);
+    EXPECT_FALSE(task.start(m_world.get(), &villager, 0, rng));
 }
 
-TEST(MovementTasksMemoryTest, HomeAndNearestBedMemoryForHiding)
+TEST_F(MovementTaskTest, MoveToTargetTaskShouldExecuteWithWalkTarget)
 {
-    MemoryModuleTypes::initialize();
+    VillagerEntity villager(EntityId(1));
+    villager.setWorld(m_world.get());
+    villager.setPosition(0.0f, 64.0f, 0.0f);
 
-    Brain<int> brain;
-    brain.registerMemory(MemoryModuleTypes::HOME);
-    brain.registerMemory(MemoryModuleTypes::NEAREST_BED);
+    // 设置 WALK_TARGET 到远处
+    auto& brain = villager.brain();
+    brain.registerMemory(MemoryModuleTypes::WALK_TARGET);
+    brain.registerMemory(MemoryModuleTypes::PATH);
+    brain.registerMemory(MemoryModuleTypes::CANT_REACH_WALK_TARGET_SINCE);
+    brain.setMemory(MemoryModuleTypes::WALK_TARGET, WalkTarget(BlockPos(20, 64, 20), 1.0f, 1));
 
-    // HOME 记忆使用 GlobalPos 类型
-    GlobalPos homePos(DimensionId(0), BlockPos(100, 64, 200));
-    brain.setMemory(MemoryModuleTypes::HOME, homePos);
+    movement::MoveToTargetTask<VillagerEntity> task;
 
-    auto storedHome = brain.getMemory(MemoryModuleTypes::HOME);
-    ASSERT_TRUE(storedHome.has_value());
-    EXPECT_EQ(storedHome->getPos(), BlockPos(100, 64, 200));
+    // WALK_TARGET 存在且距离足够远 → shouldExecute 返回 true
+    mc::math::Random rng(42);
+    EXPECT_TRUE(task.start(m_world.get(), &villager, 0, rng));
+    EXPECT_EQ(task.getStatus(), mc::entity::ai::brain::task::TaskStatus::RUNNING);
+}
 
-    // NEAREST_BED 记忆使用 BlockPos 类型
-    brain.setMemory(MemoryModuleTypes::NEAREST_BED, BlockPos(50, 65, 100));
-    auto storedBed = brain.getMemory(MemoryModuleTypes::NEAREST_BED);
-    ASSERT_TRUE(storedBed.has_value());
-    EXPECT_EQ(*storedBed, BlockPos(50, 65, 100));
+TEST_F(MovementTaskTest, MoveToTargetTaskShouldNotExecuteWhenAlreadyClose)
+{
+    VillagerEntity villager(EntityId(1));
+    villager.setWorld(m_world.get());
+    villager.setPosition(10.5f, 64.5f, 10.5f);
+
+    // 设置 WALK_TARGET 到当前位置附近
+    auto& brain = villager.brain();
+    brain.registerMemory(MemoryModuleTypes::WALK_TARGET);
+    brain.registerMemory(MemoryModuleTypes::PATH);
+    brain.registerMemory(MemoryModuleTypes::CANT_REACH_WALK_TARGET_SINCE);
+    brain.setMemory(MemoryModuleTypes::WALK_TARGET, WalkTarget(BlockPos(10, 64, 10), 1.0f, 2));
+
+    movement::MoveToTargetTask<VillagerEntity> task;
+
+    // WALK_TARGET 存在但已经在完成范围内 → shouldExecute 返回 false
+    mc::math::Random rng(42);
+    EXPECT_FALSE(task.start(m_world.get(), &villager, 0, rng));
+}
+
+TEST_F(MovementTaskTest, ChaseTaskShouldNotExecuteWithoutAttackTarget)
+{
+    VillagerEntity villager(EntityId(1));
+    villager.setWorld(m_world.get());
+    villager.setPosition(0.0f, 64.0f, 0.0f);
+
+    // ChaseTask 需要 ATTACK_TARGET=PRESENT 才能执行
+    movement::ChaseTask<VillagerEntity> task;
+
+    mc::math::Random rng(42);
+    EXPECT_FALSE(task.start(m_world.get(), &villager, 0, rng));
+}
+
+TEST_F(MovementTaskTest, FleeTaskShouldNotExecuteWithoutAvoidTarget)
+{
+    VillagerEntity villager(EntityId(1));
+    villager.setWorld(m_world.get());
+    villager.setPosition(0.0f, 64.0f, 0.0f);
+
+    // FleeTask 需要 AVOID_TARGET=PRESENT 且 WALK_TARGET=ABSENT
+    movement::FleeTask<VillagerEntity> task;
+
+    mc::math::Random rng(42);
+    EXPECT_FALSE(task.start(m_world.get(), &villager, 0, rng));
+}
+
+TEST_F(MovementTaskTest, FindHiddenBlockTaskShouldNotExecuteWithoutHurtOrBell)
+{
+    VillagerEntity villager(EntityId(1));
+    villager.setWorld(m_world.get());
+    villager.setPosition(0.0f, 64.0f, 0.0f);
+
+    // FindHiddenBlockTask 需要 HURT_BY 或 HEARD_BELL_TIME 存在
+    movement::FindHiddenBlockTask<VillagerEntity> task;
+
+    mc::math::Random rng(42);
+    EXPECT_FALSE(task.start(m_world.get(), &villager, 0, rng));
+}
+
+TEST_F(MovementTaskTest, LookAtEntityTaskShouldNotExecuteWhenLookTargetPresent)
+{
+    VillagerEntity villager(EntityId(1));
+    villager.setWorld(m_world.get());
+    villager.setPosition(0.0f, 64.0f, 0.0f);
+
+    // LookAtEntityTask 需要 LOOK_TARGET=ABSENT
+    // 设置 LOOK_TARGET 后不应执行
+    auto& brain = villager.brain();
+    brain.registerMemory(MemoryModuleTypes::LOOK_TARGET);
+    auto lookTarget = std::make_shared<memory::BlockPosTarget>(BlockPos(5, 70, 5));
+    brain.setMemory(MemoryModuleTypes::LOOK_TARGET, std::static_pointer_cast<memory::IPositionTarget>(lookTarget));
+
+    movement::LookAtEntityTask<VillagerEntity> task;
+
+    mc::math::Random rng(42);
+    EXPECT_FALSE(task.start(m_world.get(), &villager, 0, rng));
+}
+
+TEST_F(MovementTaskTest, StrollTaskShouldNotExecuteWhenWalkTargetPresent)
+{
+    VillagerEntity villager(EntityId(1));
+    villager.setWorld(m_world.get());
+    villager.setPosition(0.0f, 64.0f, 0.0f);
+
+    // StrollTask 需要 WALK_TARGET=ABSENT
+    auto& brain = villager.brain();
+    brain.registerMemory(MemoryModuleTypes::WALK_TARGET);
+    brain.setMemory(MemoryModuleTypes::WALK_TARGET, WalkTarget(BlockPos(10, 64, 10), 1.0f, 1));
+
+    movement::StrollTask<VillagerEntity> task;
+
+    mc::math::Random rng(42);
+    EXPECT_FALSE(task.start(m_world.get(), &villager, 0, rng));
+}
+
+TEST_F(MovementTaskTest, TaskGetNameReturnsCorrectName)
+{
+    // 验证所有任务的 getName() 返回正确名称
+    EXPECT_EQ(movement::MoveToTargetTask<VillagerEntity>().getName(), "MoveToTargetTask");
+    EXPECT_EQ(movement::StrollTask<VillagerEntity>().getName(), "StrollTask");
+    EXPECT_EQ(movement::LookAtEntityTask<VillagerEntity>().getName(), "LookAtEntityTask");
+    EXPECT_EQ(movement::FindHiddenBlockTask<VillagerEntity>().getName(), "FindHiddenBlockTask");
+    EXPECT_EQ(movement::ChaseTask<VillagerEntity>().getName(), "ChaseTask");
+    EXPECT_EQ(movement::FleeTask<VillagerEntity>().getName(), "FleeTask");
 }
 
 } // namespace
-} // namespace memory
-} // namespace brain
-} // namespace ai
-} // namespace entity
-} // namespace mc

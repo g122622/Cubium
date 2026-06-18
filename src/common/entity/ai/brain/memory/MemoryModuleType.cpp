@@ -24,6 +24,7 @@
 #include "MemoryModuleType.hpp"
 #include "IPositionTarget.hpp"
 #include "WalkTarget.hpp"
+#include "common/entity/ai/pathfinding/Path.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/block/BlockPos.hpp"
 
@@ -69,7 +70,7 @@ const MemoryModuleType<MobEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_NEMESIS =
 const MemoryModuleType<ItemEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM = nullptr;
 
 // ========== 移动相关 ==========
-const MemoryModuleType<Path>* MemoryModuleTypes::PATH = nullptr;
+const MemoryModuleType<pathfinding::Path>* MemoryModuleTypes::PATH = nullptr;
 const MemoryModuleType<WalkTarget>* MemoryModuleTypes::WALK_TARGET = nullptr;
 const MemoryModuleType<std::shared_ptr<IPositionTarget>>* MemoryModuleTypes::LOOK_TARGET = nullptr;
 
@@ -245,8 +246,8 @@ void MemoryModuleTypes::initialize()
         static_cast<const MemoryModuleType<ItemEntity*>*>(s_types["nearest_visible_wanted_item"].get());
 
     // ========== 移动相关 ==========
-    s_types["path"] = std::make_unique<MemoryModuleType<Path>>("path");
-    PATH = static_cast<const MemoryModuleType<Path>*>(s_types["path"].get());
+    s_types["path"] = std::make_unique<MemoryModuleType<pathfinding::Path>>("path");
+    PATH = static_cast<const MemoryModuleType<pathfinding::Path>*>(s_types["path"].get());
 
     s_types["walk_target"] = std::make_unique<MemoryModuleType<WalkTarget>>("walk_target");
     WALK_TARGET = static_cast<const MemoryModuleType<WalkTarget>*>(s_types["walk_target"].get());

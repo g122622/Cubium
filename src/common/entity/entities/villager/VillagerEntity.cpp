@@ -320,7 +320,7 @@ void VillagerEntity::initializeBrain()
     // HIDE 活动：寻找隐蔽点、移动到目标
     m_brain->registerActivity(ai::brain::schedule::Activity::HIDE,
         0,
-        makeTasks(std::make_unique<FindHiddenBlockTask<VillagerEntity>>(1.0f, 20),
+        makeTasks(std::make_unique<FindHiddenBlockTask<VillagerEntity>>(1.0f),
             std::make_unique<MoveToTargetTask<VillagerEntity>>()),
         {},
         {});
