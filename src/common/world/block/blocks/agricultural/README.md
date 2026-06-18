@@ -130,7 +130,7 @@ Block
 
 **问题**：铁傀儡 T 形结构检测时，手臂方向与南瓜朝向不一致会导致生成失败。
 
-**解决方案**：`CarvedPumpkinBlock::_checkIronGolemPattern()` 需检测两个垂直方向（东西/南北），南瓜的 FACING 属性决定傀儡朝向。
+**解决方案**：`CarvedPumpkinBlock::checkIronGolemPattern()` 需检测两个垂直方向（东西/南北），南瓜的 FACING 属性决定傀儡朝向。
 
 ### 8. 农作物支撑检测
 

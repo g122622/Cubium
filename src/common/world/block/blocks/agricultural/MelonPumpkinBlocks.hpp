@@ -37,8 +37,6 @@ namespace blocks {
  * @brief 西瓜方块
  *
  * 由西瓜茎生成的果实方块。无状态属性。
- *
- * 参考: net.minecraft.block.MelonBlock
  */
 class MelonBlock : public StemGrownBlock {
 public:
@@ -59,16 +57,7 @@ public:
 
     // ========== 茎指针设置（用于解决循环依赖） ==========
 
-    /**
-     * @brief 设置茎方块指针
-     * @param stem 茎方块指针
-     */
     void setStem(const Block* stem) { m_stem = stem; }
-
-    /**
-     * @brief 设置连接茎方块指针
-     * @param attachedStem 连接茎方块指针
-     */
     void setAttachedStem(const Block* attachedStem) { m_attachedStem = attachedStem; }
 
 private:
@@ -80,18 +69,9 @@ private:
  * @brief 南瓜方块
  *
  * 由南瓜茎生成的果实方块。可以用剪刀刻成刻过的南瓜。
- *
- * 参考: net.minecraft.block.PumpkinBlock
  */
 class PumpkinBlock : public StemGrownBlock {
 public:
-    /**
-     * @brief 构造函数
-     * @param stem 对应的茎方块
-     * @param attachedStem 对应的连接茎方块
-     * @param carvedPumpkin 刻过的南瓜方块
-     * @param properties 方块属性
-     */
     PumpkinBlock(
         const Block* stem, const Block* attachedStem, const Block* carvedPumpkin, const BlockProperties& properties);
 
@@ -104,16 +84,7 @@ public:
 
     // ========== 茎指针设置（用于解决循环依赖） ==========
 
-    /**
-     * @brief 设置茎方块指针
-     * @param stem 茎方块指针
-     */
     void setStem(const Block* stem) { m_stem = stem; }
-
-    /**
-     * @brief 设置连接茎方块指针
-     * @param attachedStem 连接茎方块指针
-     */
     void setAttachedStem(const Block* attachedStem) { m_attachedStem = attachedStem; }
 
     // ========== 交互接口 ==========
@@ -122,14 +93,6 @@ public:
      * @brief 玩家右键点击方块
      *
      * 当玩家使用剪刀右键点击南瓜时，将南瓜雕刻成刻过的南瓜。
-     *
-     * @param state 方块状态
-     * @param world 世界
-     * @param pos 方块位置
-     * @param player 玩家
-     * @param hand 手
-     * @param hit 射线检测结果
-     * @return 交互结果类型
      */
     [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
@@ -148,15 +111,10 @@ private:
  * @brief 刻过的南瓜方块
  *
  * 有 FACING 属性的南瓜，可以用于制作雪傀儡和铁傀儡。
- *
- * 参考: net.minecraft.block.CarvedPumpkinBlock
+ * 傀儡生成的核心逻辑在此类中实现，JackOLanternBlock 复用此类的静态方法。
  */
 class CarvedPumpkinBlock : public HorizontalBlock {
 public:
-    /**
-     * @brief 构造函数
-     * @param properties 方块属性
-     */
     explicit CarvedPumpkinBlock(const BlockProperties& properties);
 
     ~CarvedPumpkinBlock() override = default;
@@ -171,78 +129,81 @@ public:
      * @brief 方块添加到世界时调用
      *
      * 检测是否可以生成雪傀儡或铁傀儡。
+     * 仅在方块类型实际改变时触发（防止 FACING 属性变化时重复触发）。
      */
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
-private:
+    // ========== 傀儡生成静态方法 ==========
+
     /**
-     * @brief 尝试生成傀儡
+     * @brief 尝试在指定位置生成傀儡
      *
-     * 检测雪傀儡模式（两个雪块+南瓜）和铁傀儡模式（T形铁块+南瓜）。
-     * 如果匹配，移除方块并生成对应实体。
+     * 检测雪傀儡模式和铁傀儡模式。如果匹配，移除方块并生成对应实体。
+     * 此方法为静态方法，供 CarvedPumpkinBlock 和 JackOLanternBlock 共用。
      *
      * @param world 世界引用
-     * @param pos 南瓜位置
+     * @param pos 南瓜/南瓜灯位置
      * @return 是否成功生成傀儡
      */
-    bool _trySpawnGolem(IWorld& world, const BlockPos& pos);
+    static bool trySpawnGolem(IWorld& world, const BlockPos& pos);
 
+    /**
+     * @brief 检查方块状态是否为南瓜类型（可作为傀儡头部）
+     *
+     * 刻过的南瓜和南瓜灯都可以作为傀儡的头部方块。
+     *
+     * @param state 方块状态
+     * @return 是否为南瓜类型
+     */
+    [[nodiscard]] static bool isPumpkinHead(const BlockState* state);
+
+private:
     /**
      * @brief 检测雪傀儡模式
      *
-     * 模式：从上到下依次为南瓜、雪块、雪块（垂直线形）
-     *
-     * @param world 世界引用
-     * @param pos 南瓜位置
-     * @return 是否匹配雪傀儡模式
+     * 模式：从上到下依次为南瓜头部、雪块、雪块（垂直线形）
      */
-    [[nodiscard]] bool _checkSnowGolemPattern(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] static bool checkSnowGolemPattern(IWorld& world, const BlockPos& pos);
 
     /**
      * @brief 检测铁傀儡模式
      *
      * 模式：T形铁块结构
-     * 顶层：空气、南瓜、空气
+     * 顶层：空气、南瓜头部、空气
      * 中层：铁块、铁块、铁块（手臂）
      * 底层：空气、铁块、空气（身体）
      *
      * @param world 世界引用
-     * @param pos 南瓜位置
+     * @param pos 南瓜头部位置
      * @param outBodyPos 输出铁傀儡身体位置（模式匹配时填充）
      * @return 是否匹配铁傀儡模式
      */
-    [[nodiscard]] bool _checkIronGolemPattern(IWorld& world, const BlockPos& pos, BlockPos& outBodyPos) const;
+    [[nodiscard]] static bool checkIronGolemPattern(IWorld& world, const BlockPos& pos, BlockPos& outBodyPos);
 
     /**
-     * @brief 检查方块是否为南瓜类型（雕刻南瓜或南瓜灯）
-     *
-     * @param state 方块状态
-     * @return 是否为南瓜类型
+     * @brief 执行雪傀儡生成：移除方块并生成实体
      */
-    [[nodiscard]] static bool _isPumpkin(const BlockState* state);
+    static void spawnSnowGolem(IWorld& world, const BlockPos& headPos);
+
+    /**
+     * @brief 执行铁傀儡生成：移除方块并生成实体
+     */
+    static void spawnIronGolem(IWorld& world, const BlockPos& headPos, const BlockPos& armCenterPos);
 
     /**
      * @brief 检查方块是否为空气
-     *
-     * @param state 方块状态
-     * @return 是否为空气
      */
-    [[nodiscard]] static bool _isAir(const BlockState* state);
+    [[nodiscard]] static bool isAir(const BlockState* state);
 };
 
 /**
  * @brief 南瓜灯方块
  *
  * 有 FACING 属性的发光南瓜。也可以用于制作雪傀儡和铁傀儡。
- *
- * 参考: net.minecraft.block.JackOLanternBlock
+ * 傀儡生成逻辑复用 CarvedPumpkinBlock 的静态方法。
  */
 class JackOLanternBlock : public HorizontalBlock {
 public:
-    /**
-     * @brief 构造函数
-     * @param properties 方块属性
-     */
     explicit JackOLanternBlock(const BlockProperties& properties);
 
     ~JackOLanternBlock() override = default;
@@ -257,21 +218,9 @@ public:
      * @brief 方块添加到世界时调用
      *
      * 检测是否可以生成雪傀儡或铁傀儡。
-     * 与 CarvedPumpkinBlock 相同，南瓜灯也可以触发傀儡生成。
+     * 仅在方块类型实际改变时触发（防止 FACING 属性变化时重复触发）。
      */
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
-
-private:
-    /**
-     * @brief 尝试生成傀儡
-     *
-     * 使用 CarvedPumpkinBlock 的静态辅助方法检测模式。
-     *
-     * @param world 世界引用
-     * @param pos 南瓜灯位置
-     * @return 是否成功生成傀儡
-     */
-    bool _trySpawnGolem(IWorld& world, const BlockPos& pos);
 };
 
 // ============================================================================
@@ -282,24 +231,13 @@ private:
  * @brief 西瓜茎方块
  *
  * 西瓜的茎类作物，生长成熟后在相邻位置生成西瓜方块。
- *
- * 参考: net.minecraft.block.StemBlock (西瓜茎变体)
  */
 class MelonStemBlock : public StemBlock {
 public:
-    /**
-     * @brief 构造函数
-     * @param crop 对应的果实方块（西瓜）
-     * @param properties 方块属性
-     */
     MelonStemBlock(const StemGrownBlock* crop, const BlockProperties& properties);
 
     ~MelonStemBlock() override = default;
 
-    /**
-     * @brief 获取种子物品ID
-     * @return 西瓜种子物品ID
-     */
     [[nodiscard]] u32 getSeedItem() const override;
 };
 
@@ -307,24 +245,13 @@ public:
  * @brief 南瓜茎方块
  *
  * 南瓜的茎类作物，生长成熟后在相邻位置生成南瓜方块。
- *
- * 参考: net.minecraft.block.StemBlock (南瓜茎变体)
  */
 class PumpkinStemBlock : public StemBlock {
 public:
-    /**
-     * @brief 构造函数
-     * @param crop 对应的果实方块（南瓜）
-     * @param properties 方块属性
-     */
     PumpkinStemBlock(const StemGrownBlock* crop, const BlockProperties& properties);
 
     ~PumpkinStemBlock() override = default;
 
-    /**
-     * @brief 获取种子物品ID
-     * @return 南瓜种子物品ID
-     */
     [[nodiscard]] u32 getSeedItem() const override;
 };
 
@@ -332,24 +259,13 @@ public:
  * @brief 连接西瓜茎方块
  *
  * 西瓜生成后茎变成的方块，朝向西瓜方向。
- *
- * 参考: net.minecraft.block.AttachedStemBlock (西瓜变体)
  */
 class MelonAttachedStemBlock : public AttachedStemBlock {
 public:
-    /**
-     * @brief 构造函数
-     * @param crop 对应的果实方块（西瓜）
-     * @param properties 方块属性
-     */
     MelonAttachedStemBlock(const StemGrownBlock* crop, const BlockProperties& properties);
 
     ~MelonAttachedStemBlock() override = default;
 
-    /**
-     * @brief 获取种子物品ID
-     * @return 西瓜种子物品ID
-     */
     [[nodiscard]] u32 getSeedItem() const override;
 };
 
@@ -357,24 +273,13 @@ public:
  * @brief 连接南瓜茎方块
  *
  * 南瓜生成后茎变成的方块，朝向南瓜方向。
- *
- * 参考: net.minecraft.block.AttachedStemBlock (南瓜变体)
  */
 class PumpkinAttachedStemBlock : public AttachedStemBlock {
 public:
-    /**
-     * @brief 构造函数
-     * @param crop 对应的果实方块（南瓜）
-     * @param properties 方块属性
-     */
     PumpkinAttachedStemBlock(const StemGrownBlock* crop, const BlockProperties& properties);
 
     ~PumpkinAttachedStemBlock() override = default;
 
-    /**
-     * @brief 获取种子物品ID
-     * @return 南瓜种子物品ID
-     */
     [[nodiscard]] u32 getSeedItem() const override;
 };
 

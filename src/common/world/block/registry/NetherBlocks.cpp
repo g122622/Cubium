@@ -27,6 +27,7 @@
 #include "world/block/blocks/HopperBlock.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
 #include "world/block/blocks/building/SlabBlock.hpp"
 #include "world/block/blocks/building/StairsBlock.hpp"
 #include "world/block/blocks/building/WallBlock.hpp"
@@ -586,8 +587,8 @@ void registerNetherBlocks()
     NetherBlocks::SOUL_CAMPFIRE = &registry.registerBlock<blocks::SoulCampfireBlock>(
         ResourceLocation("minecraft:soul_campfire"), BlockProperties(Material::WOOD).hardness(2.0f));
 
-    // 南瓜灯 - 发光15级
-    NetherBlocks::JACK_O_LANTERN = &registry.registerBlock<SimpleBlock>(
+    // 南瓜灯 - 发光15级，支持 FACING 属性和傀儡生成
+    NetherBlocks::JACK_O_LANTERN = &registry.registerBlock<blocks::JackOLanternBlock>(
         ResourceLocation("minecraft:jack_o_lantern"), BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15));
 }
 
