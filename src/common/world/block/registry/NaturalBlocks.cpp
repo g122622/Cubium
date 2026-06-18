@@ -34,6 +34,7 @@
 #include "world/block/blocks/dirt/SpreadableSnowyDirtBlock.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"
 #include "world/block/blocks/ice/SnowBlock.hpp"
+#include "world/block/blocks/mob/BeehiveBlock.hpp"
 #include "world/block/blocks/mob/TurtleEggBlock.hpp"
 #include "world/block/blocks/ocean/BubbleColumnBlock.hpp"
 #include "world/block/blocks/ocean/ConduitBlock.hpp"
@@ -116,6 +117,10 @@ Block* NaturalBlocks::FIRE_CORAL_WALL_FAN = nullptr;
 Block* NaturalBlocks::HORN_CORAL_WALL_FAN = nullptr;
 
 Block* NaturalBlocks::CONDUIT = nullptr;
+
+// 蜂巢/蜂箱
+Block* NaturalBlocks::BEE_NEST = nullptr;
+Block* NaturalBlocks::BEEHIVE = nullptr;
 
 // 火把
 Block* NaturalBlocks::TORCH = nullptr;
@@ -367,6 +372,20 @@ void registerNaturalBlocks()
         &registry.registerBlock<blocks::WallTorchBlock>(ResourceLocation("minecraft:wall_torch"),
             BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14),
             client::renderer::trident::particle::ParticleTypeId::Flame);
+
+    // ========== 蜂巢/蜂箱 ==========
+    // 蜂巢 - 自然生成于树上，材质较软
+    NaturalBlocks::BEE_NEST = &registry.registerBlock<blocks::BeehiveBlock>(ResourceLocation("minecraft:bee_nest"),
+        BlockProperties(Material::WOOD).hardness(0.3f).resistance(0.3f).flammable().ignitedByLava());
+
+    // 蜂箱 - 玩家合成，用木板制作，需要斧头加速挖掘
+    NaturalBlocks::BEEHIVE = &registry.registerBlock<blocks::BeehiveBlock>(ResourceLocation("minecraft:beehive"),
+        BlockProperties(Material::WOOD)
+            .hardness(0.6f)
+            .resistance(0.6f)
+            .flammable()
+            .ignitedByLava()
+            .harvestTool(HarvestTool::Axe));
 }
 
 } // namespace block_registry

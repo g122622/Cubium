@@ -74,6 +74,11 @@ Block* BuildingVariantBlocks::STONE_BRICK_WALL = nullptr;
 
 // 栅栏
 Block* BuildingVariantBlocks::OAK_FENCE = nullptr;
+Block* BuildingVariantBlocks::SPRUCE_FENCE = nullptr;
+Block* BuildingVariantBlocks::BIRCH_FENCE = nullptr;
+Block* BuildingVariantBlocks::JUNGLE_FENCE = nullptr;
+Block* BuildingVariantBlocks::ACACIA_FENCE = nullptr;
+Block* BuildingVariantBlocks::DARK_OAK_FENCE = nullptr;
 
 // 门和栅栏门
 Block* BuildingVariantBlocks::OAK_DOOR = nullptr;
@@ -289,6 +294,21 @@ void registerBuildingVariantBlocks()
     BuildingVariantBlocks::OAK_FENCE =
         &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:oak_fence"),
             BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable().ignitedByLava());
+
+    // 其他主世界木材栅栏（云杉、白桦、丛林、金合欢、深色橡木）
+    BlockProperties woodFenceProps =
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable().ignitedByLava();
+
+    BuildingVariantBlocks::SPRUCE_FENCE =
+        &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:spruce_fence"), woodFenceProps);
+    BuildingVariantBlocks::BIRCH_FENCE =
+        &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:birch_fence"), woodFenceProps);
+    BuildingVariantBlocks::JUNGLE_FENCE =
+        &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:jungle_fence"), woodFenceProps);
+    BuildingVariantBlocks::ACACIA_FENCE =
+        &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:acacia_fence"), woodFenceProps);
+    BuildingVariantBlocks::DARK_OAK_FENCE =
+        &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:dark_oak_fence"), woodFenceProps);
 
     // ========== 活板门 ==========
     // 木活板门（所有木材类型）

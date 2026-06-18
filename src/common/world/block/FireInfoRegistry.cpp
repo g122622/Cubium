@@ -135,10 +135,17 @@ void FireInfoRegistry::initializeVanillaFireInfos()
     // 栅栏类 — ignite=5, burn=20
     // ========================================================================
     registerFireInfo(BuildingVariantBlocks::OAK_FENCE->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    registerFireInfo(BuildingVariantBlocks::SPRUCE_FENCE->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    registerFireInfo(BuildingVariantBlocks::BIRCH_FENCE->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    registerFireInfo(BuildingVariantBlocks::JUNGLE_FENCE->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    registerFireInfo(BuildingVariantBlocks::ACACIA_FENCE->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    registerFireInfo(BuildingVariantBlocks::DARK_OAK_FENCE->blockId(), IGNITE_HARD, BURN_MEDIUM);
     registerFireInfo(CherryBlocks::CHERRY_FENCE->blockId(), IGNITE_HARD, BURN_MEDIUM);
     registerFireInfo(MangroveBlocks::MANGROVE_FENCE->blockId(), IGNITE_HARD, BURN_MEDIUM);
     registerFireInfo(PaleGardenBlocks::PALE_OAK_FENCE->blockId(), IGNITE_HARD, BURN_MEDIUM);
     registerFireInfo(BambooBlocks::BAMBOO_FENCE->blockId(), IGNITE_HARD, BURN_MEDIUM);
+
+    // 注意: 绯红木栅栏(CRIMSON_FENCE)和诡异木栅栏(WARPED_FENCE)不可燃，不注册
 
     // ========================================================================
     // 楼梯类 — ignite=5, burn=20
@@ -516,19 +523,17 @@ void FireInfoRegistry::initializeVanillaFireInfos()
     registerFireInfo(NaturalBlocks::SUGAR_CANE->blockId(), IGNITE_INSTANT, 0);
 
     // ========================================================================
-    // TODO: 以下方块尚未在 VanillaBlocks 中注册指针，待对应方块实现后补充：
-    //
-    // - BEEHIVE (ignite=5, burn=20) — 蜂箱
-    // - BEE_NEST (ignite=30, burn=20) — 蜂巢
-    //
-    // TODO: 以下木质变体方块尚未在 VanillaBlocks 中注册指针，
-    //       待对应方块实现后补充：
-    //
-    // - 云杉/白桦/丛林/金合欢/深色橡木/绯红/诡异的栅栏 (ignite=5, burn=20)
-    //
+    // 蜂箱 — ignite=5, burn=20 (木质方块)
+    // 蜂巢 — ignite=30, burn=20 (自然方块，更易燃)
+    // 参考: MC原版 FireBlock.bootStrap()
+    // ========================================================================
+    registerFireInfo(NaturalBlocks::BEEHIVE->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    registerFireInfo(NaturalBlocks::BEE_NEST->blockId(), IGNITE_EASY, BURN_MEDIUM);
+
+    // ========================================================================
     // TODO: MC 1.21.4+ 新增的木质书架（SHELF）方块：
     // - 各木材类型的 SHELF (ignite=30, burn=20)
-    //   当前项目中尚无 SHELF 方块指针。
+    //   当前项目中尚无 SHELF 方块指针，待注册后补充。
     // ========================================================================
 }
 

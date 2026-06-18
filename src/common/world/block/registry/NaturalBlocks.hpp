@@ -99,6 +99,10 @@ struct NaturalBlocks {
     static Block* WALL_TORCH;
 
     static Block* CONDUIT;
+
+    // 蜂巢/蜂箱
+    static Block* BEE_NEST;
+    static Block* BEEHIVE;
 };
 
 void registerNaturalBlocks();

@@ -867,3 +867,51 @@ TEST_F(FireInfoRegistryTest, AgriculturalAndVegetationBlockFireInfo)
     EXPECT_EQ(sugarCaneState.getFlammability(), 0);
     EXPECT_EQ(sugarCaneState.getFireSpreadSpeed(), 60);
 }
+
+// 验证所有主世界木材栅栏的燃烧参数 (ignite=5, burn=20)
+TEST_F(FireInfoRegistryTest, Fence_FireInfo)
+{
+    auto& registry = FireInfoRegistry::instance();
+    // 橡木栅栏
+    EXPECT_EQ(registry.getEncouragement(BuildingVariantBlocks::OAK_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(BuildingVariantBlocks::OAK_FENCE->blockId()), 20);
+    // 云杉木栅栏
+    EXPECT_EQ(registry.getEncouragement(BuildingVariantBlocks::SPRUCE_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(BuildingVariantBlocks::SPRUCE_FENCE->blockId()), 20);
+    // 白桦木栅栏
+    EXPECT_EQ(registry.getEncouragement(BuildingVariantBlocks::BIRCH_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(BuildingVariantBlocks::BIRCH_FENCE->blockId()), 20);
+    // 丛林木栅栏
+    EXPECT_EQ(registry.getEncouragement(BuildingVariantBlocks::JUNGLE_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(BuildingVariantBlocks::JUNGLE_FENCE->blockId()), 20);
+    // 金合欢木栅栏
+    EXPECT_EQ(registry.getEncouragement(BuildingVariantBlocks::ACACIA_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(BuildingVariantBlocks::ACACIA_FENCE->blockId()), 20);
+    // 深色橡木栅栏
+    EXPECT_EQ(registry.getEncouragement(BuildingVariantBlocks::DARK_OAK_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(BuildingVariantBlocks::DARK_OAK_FENCE->blockId()), 20);
+    // 樱花木栅栏
+    EXPECT_EQ(registry.getEncouragement(CherryBlocks::CHERRY_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(CherryBlocks::CHERRY_FENCE->blockId()), 20);
+    // 红树木栅栏
+    EXPECT_EQ(registry.getEncouragement(MangroveBlocks::MANGROVE_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(MangroveBlocks::MANGROVE_FENCE->blockId()), 20);
+    // 苍白橡木栅栏
+    EXPECT_EQ(registry.getEncouragement(PaleGardenBlocks::PALE_OAK_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(PaleGardenBlocks::PALE_OAK_FENCE->blockId()), 20);
+    // 竹栅栏
+    EXPECT_EQ(registry.getEncouragement(BambooBlocks::BAMBOO_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(BambooBlocks::BAMBOO_FENCE->blockId()), 20);
+}
+
+// 验证蜂箱和蜂巢的燃烧参数
+TEST_F(FireInfoRegistryTest, Beehive_BeeNest_FireInfo)
+{
+    auto& registry = FireInfoRegistry::instance();
+    // 蜂箱 (ignite=5, burn=20) — 木质方块，较难点燃
+    EXPECT_EQ(registry.getEncouragement(NaturalBlocks::BEEHIVE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(NaturalBlocks::BEEHIVE->blockId()), 20);
+    // 蜂巢 (ignite=30, burn=20) — 自然方块，更易点燃
+    EXPECT_EQ(registry.getEncouragement(NaturalBlocks::BEE_NEST->blockId()), 30);
+    EXPECT_EQ(registry.getFlammability(NaturalBlocks::BEE_NEST->blockId()), 20);
+}
