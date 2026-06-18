@@ -917,6 +917,7 @@ add_library(mc_common STATIC
     world/gen/density/NoiseRouterData.cpp
     world/gen/density/TerrainProvider.cpp
     world/gen/density/Beardifier.cpp
+    world/gen/density/OreVeinifier.cpp
     world/gen/RandomState.cpp
 
     # World - Generation - Chunk Generators
@@ -954,6 +955,7 @@ add_library(mc_common STATIC
     # World - Biome
     world/biome/Biome.cpp
     world/biome/BiomeClimate.cpp
+    world/biome/BiomeManager.cpp
     world/biome/BiomeSource.cpp
     world/biome/BiomeRegistry.cpp
     world/biome/BiomeFactoryOverworld.cpp

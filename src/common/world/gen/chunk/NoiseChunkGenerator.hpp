@@ -26,6 +26,7 @@
 #include "../../../core/Types.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../biome/BiomeGenerationSettings.hpp"
+#include "../../biome/BiomeManager.hpp"
 #include "../../biome/BiomeSource.hpp"
 #include "../RandomState.hpp"
 #include "../carver/CarverConfiguration.hpp"
@@ -113,6 +114,9 @@ private:
 
     // === 生物群系 ===
     std::unique_ptr<world::biome::IBiomeSource> m_biomeSource;
+
+    // === MC 1.21 生物群系管理器（Voronoi 缩放查询）===
+    std::unique_ptr<world::biome::BiomeManager> m_biomeManager;
 
     // === 结构管理器 ===
     std::unique_ptr<world::gen::structure::StructureManager> m_structureManager;

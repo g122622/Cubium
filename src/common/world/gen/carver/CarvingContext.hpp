@@ -15,7 +15,7 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, WHETHER IN AN EVENT OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
@@ -33,6 +33,12 @@ class BlockState;
 namespace world::gen::aquifer {
 class Aquifer;
 }
+namespace world::gen::density {
+class NoiseChunk;
+}
+namespace world::gen {
+class RandomState;
+}
 
 // ============================================================================
 // CarvingContext — 雕刻上下文
@@ -42,15 +48,19 @@ class Aquifer;
  * @brief 雕刻上下文（MC 1.21 CarvingContext）
  *
  * 提供雕刻器执行时所需的世界生成信息，继承自 WorldGenerationContext
- * 并添加含水层引用。
+ * 并添加含水层引用、噪声区块和随机状态。
  *
- * 雕刻器通过此上下文访问含水层系统，以确定雕刻后应填充的方块
- * （空气、水或熔岩），替代旧的硬编码 Y < 11 填充熔岩逻辑。
+ * MC 1.21 CarvingContext 字段对照：
+ * - WorldGenerationContext (minY, genDepth) ✅
+ * - Aquifer ✅
+ * - NoiseChunk ✅ (新增)
+ * - RandomState ✅ (新增)
+ * - SurfaceRules.RuleSource — 暂不添加（topMaterial 已标记 @Deprecated）
  */
 class CarvingContext : public world::gen::valueprovider::WorldGenerationContext {
 public:
     /**
-     * @brief 构造雕刻上下文
+     * @brief 最小构造（向后兼容）
      * @param minGenY 最低生成高度
      * @param genDepth 生成深度
      * @param aquifer 含水层采样器引用（可为 nullptr 表示禁用含水层）
@@ -58,11 +68,31 @@ public:
     CarvingContext(i32 minGenY, i32 genDepth, world::gen::aquifer::Aquifer* aquifer)
         : WorldGenerationContext(minGenY, genDepth)
         , m_aquifer(aquifer)
+        , m_noiseChunk(nullptr)
+        , m_randomState(nullptr)
+    {}
+
+    /**
+     * @brief MC 1.21 完整构造函数
+     * @param minGenY 最低生成高度
+     * @param genDepth 生成深度
+     * @param aquifer 含水层采样器引用（可为 nullptr）
+     * @param noiseChunk 噪声区块（可为 nullptr）
+     * @param randomState 随机状态（可为 nullptr）
+     */
+    CarvingContext(i32 minGenY,
+        i32 genDepth,
+        world::gen::aquifer::Aquifer* aquifer,
+        const world::gen::density::NoiseChunk* noiseChunk,
+        const world::gen::RandomState* randomState)
+        : WorldGenerationContext(minGenY, genDepth)
+        , m_aquifer(aquifer)
+        , m_noiseChunk(noiseChunk)
+        , m_randomState(randomState)
     {}
 
     /**
      * @brief 获取含水层采样器
-     * @return 含水层指针，如果含水层被禁用则为 nullptr
      */
     [[nodiscard]] world::gen::aquifer::Aquifer* aquifer() { return m_aquifer; }
     [[nodiscard]] const world::gen::aquifer::Aquifer* aquifer() const { return m_aquifer; }
@@ -72,8 +102,26 @@ public:
      */
     [[nodiscard]] bool hasAquifer() const { return m_aquifer != nullptr; }
 
+    /**
+     * @brief 获取噪声区块
+     *
+     * MC 1.21: CarvingContext.noiseChunk()
+     * 用于雕刻器查询密度值或预备表面高度。
+     */
+    [[nodiscard]] const world::gen::density::NoiseChunk* noiseChunk() const { return m_noiseChunk; }
+
+    /**
+     * @brief 获取随机状态
+     *
+     * MC 1.21: CarvingContext.randomState()
+     * 用于雕刻器访问密度函数或表面规则。
+     */
+    [[nodiscard]] const world::gen::RandomState* randomState() const { return m_randomState; }
+
 private:
     world::gen::aquifer::Aquifer* m_aquifer;
+    const world::gen::density::NoiseChunk* m_noiseChunk;
+    const world::gen::RandomState* m_randomState;
 };
 
 } // namespace mc

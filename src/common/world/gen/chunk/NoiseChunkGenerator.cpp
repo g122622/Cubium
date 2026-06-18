@@ -36,6 +36,7 @@
 #include "../carver/WorldCarver.hpp"
 #include "../density/Beardifier.hpp"
 #include "../density/NoiseRouterData.hpp"
+#include "../density/OreVeinifier.hpp"
 #include "../feature/ConfiguredFeature.hpp"
 #include "../feature/FeatureSorter.hpp"
 #include "../feature/ore/OreFeature.hpp"
@@ -69,6 +70,11 @@ NoiseChunkGenerator::NoiseChunkGenerator(
     BiomeRegistry::instance().initialize();
 
     MC_ASSERT_RELEASE(m_biomeSource != nullptr);
+
+    // MC 1.21: 创建 BiomeManager（Voronoi 缩放生物群系查询）
+    // obfuscateSeed 使用 SHA-256 哈希世界种子，防止玩家通过生物群系模式逆向种子
+    m_biomeManager =
+        std::make_unique<world::biome::BiomeManager>(*m_biomeSource, world::biome::BiomeManager::obfuscateSeed(m_seed));
 
     _initGenerationRegistries();
 
@@ -312,7 +318,9 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chun
 
     MC_ASSERT_RELEASE(m_randomState != nullptr);
 
-    const auto getBiomeAt = [&region](i32 x, i32 y, i32 z) -> BiomeId { return region.getBiome(x, y, z); };
+    // MC 1.21: 使用 BiomeManager 的 Voronoi 缩放查询生物群系
+    // 替代直接 region.getBiome() 的 quart 分辨率查询
+    const auto getBiomeAt = [this](i32 x, i32 y, i32 z) -> BiomeId { return m_biomeManager->getBiome(x, y, z); };
     // SurfaceRules.Context 直接持有 NoiseChunk 引用，
     // 通过 NoiseChunk.samplePreliminarySurfaceLevel() 查询预备表面高度
     // NoiseChunk 在 generateNoise 阶段已创建，此处直接获取
@@ -345,10 +353,18 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
 
     // 从 ChunkPrimer 缓存的 NoiseChunk 获取 Aquifer
     world::gen::aquifer::Aquifer* aquifer = nullptr;
+    const world::gen::density::NoiseChunk* noiseChunkPtr = nullptr;
     if (chunk.hasNoiseChunk()) {
-        aquifer = chunk.noiseChunk()->aquifer();
+        noiseChunkPtr = chunk.noiseChunk();
+        aquifer = const_cast<world::gen::aquifer::Aquifer*>(noiseChunkPtr->aquifer());
     }
-    CarvingContext context(m_settings.noise.minY, m_settings.noise.height, aquifer);
+
+    // MC 1.21: 扩展 CarvingContext 包含 NoiseChunk 和 RandomState
+    CarvingContext context(m_settings.noise.minY, m_settings.noise.height, aquifer, noiseChunkPtr, m_randomState.get());
+
+    // MC 1.21: 使用 BiomeManager 的 Voronoi 缩放查询生物群系
+    // Java: biomeManager.withDifferentSource() + biomeManager.getBiome()
+    const auto getBiomeAt = [this](i32 x, i32 y, i32 z) -> BiomeId { return m_biomeManager->getBiome(x, y, z); };
 
     // MC 1.21.11: 按生物群系选择雕刻器
     // 遍历 [-8, +8] 范围内的起始区块坐标
@@ -576,7 +592,9 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
 
 BiomeId NoiseChunkGenerator::getBiome(i32 x, i32 y, i32 z) const
 {
-    return m_biomeSource->getNoiseBiome(math::floorDiv(x, 4), math::floorDiv(y, 4), math::floorDiv(z, 4));
+    // MC 1.21: 使用 BiomeManager 的 Voronoi 缩放查询
+    // 替代旧的直接 quart 分辨率查询
+    return m_biomeManager->getBiome(x, y, z);
 }
 
 BiomeId NoiseChunkGenerator::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const
@@ -788,6 +806,15 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
 
                 std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
                 fillers.push_back(std::make_unique<world::gen::density::AquiferFiller>(*aquiferPtr));
+
+                // MC 1.21: 仅主世界添加 OreVeinifier（铜/铁矿脉生成）
+                // 下界和末地不生成矿脉
+                if (m_settings.dimensionKind == DimensionKind::Overworld) {
+                    auto& router = nc->router();
+                    fillers.push_back(std::make_unique<world::gen::density::OreVeinifier>(
+                        router.veinToggle(), router.veinRidged(), router.veinGap(), *positionalRandom));
+                }
+
                 nc->setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
             } else {
                 nc->setAquifer(world::gen::aquifer::Aquifer::createDisabled(std::move(fluidPicker)));

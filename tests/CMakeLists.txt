@@ -642,6 +642,10 @@ add_executable(mc_tests
     common/world/gen/PerlinSimplexNoiseTest.cpp
     # JavaLegacyRandom 单元测试
     common/world/gen/JavaLegacyRandomTest.cpp
+    # BiomeManager 和 LinearCongruentialGenerator 单元测试
+    common/world/gen/BiomeManagerTest.cpp
+    # Beardifier (BEARD_KERNEL + affectedBox) 和 CarvingContext 扩展单元测试
+    common/world/gen/BeardifierCarvingContextTest.cpp
     common/world/gen/feature/NetherFeatureTest.cpp
     common/world/gen/feature/template/test_template.cpp
     common/world/gen/structure/test_ocean_ruin_structure.cpp

@@ -25,6 +25,7 @@
 #include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace mc::world::gen::density {
@@ -102,8 +103,24 @@ public:
 private:
     static constexpr f64 MAX_CONTRIBUTION = static_cast<f64>(world::MAX_BUILD_HEIGHT);
 
+    /// MC 1.21: Beardifier.BEARD_KERNEL_RADIUS = 12
+    static constexpr i32 BEARD_KERNEL_RADIUS = 12;
+
+    /// MC 1.21: Beardifier.BEARD_KERNEL 尺寸 = 24
+    static constexpr i32 BEARD_KERNEL_SIZE = 24;
+
     std::vector<Rigid> m_pieces;
     std::vector<jigsaw::JigsawJunction> m_junctions;
+
+    /// 影响范围包围盒（所有 pieces/junctions 的并集 + BEARD_KERNEL_RADIUS 膨胀）
+    /// 用于早期退出：查询点在包围盒外时直接返回 0
+    std::optional<StructureBoundingBox> m_affectedBox;
+
+    /**
+     * @brief 计算所有 pieces 和 junctions 的膨胀包围盒
+     * @return 膨胀后的包围盒，如果无数据则返回 nullopt
+     */
+    [[nodiscard]] std::optional<StructureBoundingBox> computeAffectedBox() const;
 };
 
 /**
