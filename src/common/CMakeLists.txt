@@ -839,6 +839,7 @@ add_library(mc_common STATIC
     world/block/blocks/redstone/TargetBlock.cpp
     world/block/blocks/redstone/RedstoneOreBlock.cpp
     # World - Block - Redstone - Rails
+    world/block/blocks/redstone/RailState.cpp
     world/block/blocks/redstone/AbstractRailBlock.cpp
     world/block/blocks/redstone/RailBlock.cpp
     world/block/blocks/redstone/PoweredRailBlock.cpp

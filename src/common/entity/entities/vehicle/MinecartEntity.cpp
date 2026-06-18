@@ -233,10 +233,8 @@ void AbstractMinecartEntity::_moveAlongTrack(const BlockPos& pos)
     // 检查是否为动力铁轨（非激活铁轨）
     bool isPoweredRailFlag = false;
     bool isUnpoweredRailFlag = false;
-    if (abstractRailBlock && abstractRailBlock->isPowered() && !abstractRailBlock->isPowered()) {
-        // 这里需要特殊处理动力铁轨 vs 激活铁轨
-        // 普通动力铁轨返回 false，激活铁轨返回 true
-    }
+    // 注意：动力铁轨和探测铁轨属于 isPoweredType()，激活铁轨属于 isStraight 但非 isPoweredType()
+    // 此处暂不在此处做特殊区分，由 _isPoweredRail 和 _isRailPowered 方法处理
 
     // 检查是否为动力铁轨且被充能
     if (_isPoweredRail(m_railPos)) {

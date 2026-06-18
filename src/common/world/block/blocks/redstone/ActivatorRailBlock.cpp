@@ -29,7 +29,7 @@ namespace mc {
 namespace blocks {
 
 ActivatorRailBlock::ActivatorRailBlock(const BlockProperties& properties)
-    : AbstractRailBlock(properties, true)
+    : AbstractRailBlock(properties, true, false) // isStraight=true: 激活铁轨不支持弯轨, isPowered=false: 不提供红石信号
 {
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this).add(SHAPE()).add(POWERED()).create(
