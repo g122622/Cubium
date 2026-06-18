@@ -155,3 +155,35 @@
           West
           朝向（X轴）返回不同形状，通过 `_getAxisIndex()` 按 `HORIZONTAL_FACING` 的轴索引 `m_shapesByAxis`。 底座12×12对称，但中段
           / 窄颈 / 顶面沿朝向方向更宽（顶面满16像素宽）。
+
+          ## #10. 方块交互统计（awardCustomStat）
+
+          以下方块在 `onBlockActivated` 中调用 `player.awardCustomStat()` 记录交互统计，常量定义在 `common/stats/Stats.hpp`：
+
+          | 方块 | 统计常量 | 状态 |
+          |------|----------|------|
+          | AnvilBlock | `INTERACT_WITH_ANVIL` | ✅ 已集成 |
+          | BarrelBlock | `OPEN_BARREL` | ✅ 已集成 |
+          | BlastFurnaceBlock | `INTERACT_WITH_BLAST_FURNACE` | ✅ 已集成 |
+          | BrewingStandBlock | `INTERACT_WITH_BREWINGSTAND` | ✅ 已集成 |
+          | CampfireBlock | `INTERACT_WITH_CAMPFIRE` | ✅ 已集成 |
+          | CartographyTableBlock | `INTERACT_WITH_CARTOGRAPHY_TABLE` | ✅ 已集成 |
+          | ChestBlock (普通) | `OPEN_CHEST` | ✅ 已集成 |
+          | ChestBlock (陷阱箱) | `TRIGGER_TRAPPED_CHEST` | ✅ 已集成 |
+          | FurnaceBlock | `INTERACT_WITH_FURNACE` | ✅ 已集成 |
+          | LecternBlock | `INTERACT_WITH_LECTERN` | ✅ 已集成 |
+          | LoomBlock | `INTERACT_WITH_LOOM` | ✅ 已集成 |
+          | ShulkerBoxBlock | `OPEN_SHULKER_BOX` | ✅ 已集成 |
+          | SmokerBlock | `INTERACT_WITH_SMOKER` | ✅ 已集成 |
+          | BeaconBlock | `INTERACT_WITH_BEACON` | ❌ 缺少 onBlockActivated（TODO） |
+          | GrindstoneBlock | `INTERACT_WITH_GRINDSTONE` | ❌ 缺少 onBlockActivated（TODO） |
+          | SmithingTableBlock | `INTERACT_WITH_SMITHING_TABLE` | ❌ 缺少 onBlockActivated（TODO） |
+          | StonecutterBlock | `INTERACT_WITH_STONECUTTER` | ❌ 缺少 onBlockActivated（TODO） |
+          | ComposterBlock | — | MC Java 中无交互统计 |
+          | CraftingTable (SimpleBlock) | `INTERACT_WITH_CRAFTING_TABLE` | ❌ 需创建 CraftingTableBlock（TODO） |
+          | EnderChest (SimpleBlock) | `OPEN_ENDERCHEST` | ❌ 需创建 EnderChestBlock（TODO） |
+
+          添加新的方块统计时，请确保：
+          1. 在 `onBlockActivated` 成功打开容器/交互后调用 `player.awardCustomStat(ResourceLocation(stats::XXX), 1)`
+          2. 包含头文件 `#include "common/stats/Stats.hpp"`
+          3. 对应的统计常量已在 `common/stats/Stats.hpp` 和 `StatRegistry` 中注册

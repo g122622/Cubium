@@ -52,6 +52,7 @@ src/common/entity/entities/player/
 
 ## 容易踩的坑
 
+- **awardCustomStat 虚方法**：`Player::awardCustomStat()` 是虚方法，基类空实现（不会崩溃也不会更新统计）；仅 `ServerPlayer` 重写版本实际委托给 `StatisticsManager::incrementCustom()`。客户端调用安全但无效果。常量定义在 `common/stats/Stats.hpp`，与 `StatRegistry` 注册名必须完全一致。
 - **步距统计位置误用**：不要把 `Entity::prevPosition()` 当成脚步声采样位置，它是插值/帧历史状态，不是步距累计基准。步距统计使用 `m_moveDistanceSamplePosition`。
 - **传送后的步距重置**：不要在外部直接修改玩家位置后继续沿用旧的步距计数，传送和出生都应该调用 `Player::setPosition()` 来重置采样。
 - **重复采样问题**：`updateMoveDistance()` 可以在同一帧里被多次调用，但每次都必须只统计"上次采样之后"的增量。

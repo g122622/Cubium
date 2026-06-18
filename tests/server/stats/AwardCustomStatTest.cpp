@@ -210,3 +210,48 @@ TEST_F(AwardCustomStatTest, StatRegistry_NonExistentStats)
     // llama_one_cm: 不存在于 MC Java
     EXPECT_FALSE(StatRegistry::instance().hasStat(StatType::Custom, ResourceLocation("minecraft:llama_one_cm")));
 }
+
+// ========== 边界场景测试 ==========
+
+TEST_F(AwardCustomStatTest, ServerPlayer_AwardCustomStat_ZeroIncrement)
+{
+    // count=0 不应创建新条目
+    auto player = std::make_unique<ServerPlayer>(PlayerId(1), "TestPlayer");
+
+    player->awardCustomStat(ResourceLocation(stats::OPEN_BARREL), 0);
+    EXPECT_EQ(player->getStats().getValue(StatType::Custom, ResourceLocation(stats::OPEN_BARREL)), 0);
+
+    // 先增加再增加0，值不变
+    player->awardCustomStat(ResourceLocation(stats::OPEN_BARREL), 5);
+    player->awardCustomStat(ResourceLocation(stats::OPEN_BARREL), 0);
+    EXPECT_EQ(player->getStats().getValue(StatType::Custom, ResourceLocation(stats::OPEN_BARREL)), 5);
+}
+
+TEST_F(AwardCustomStatTest, ServerPlayer_AwardCustomStat_NegativeIncrement)
+{
+    // 负数增量应正常累加（可能导致值为负数或回退）
+    auto player = std::make_unique<ServerPlayer>(PlayerId(1), "TestPlayer");
+
+    player->awardCustomStat(ResourceLocation(stats::OPEN_CHEST), 10);
+    EXPECT_EQ(player->getStats().getValue(StatType::Custom, ResourceLocation(stats::OPEN_CHEST)), 10);
+
+    player->awardCustomStat(ResourceLocation(stats::OPEN_CHEST), -3);
+    EXPECT_EQ(player->getStats().getValue(StatType::Custom, ResourceLocation(stats::OPEN_CHEST)), 7);
+}
+
+TEST_F(AwardCustomStatTest, ServerPlayer_AwardCustomStat_UnregisteredStatId)
+{
+    // 使用未注册的 statId 调用 awardCustomStat 不应崩溃
+    auto player = std::make_unique<ServerPlayer>(PlayerId(1), "TestPlayer");
+
+    EXPECT_NO_THROW(player->awardCustomStat(ResourceLocation("minecraft:nonexistent_stat"), 1));
+}
+
+TEST_F(AwardCustomStatTest, PlayerBaseClass_AwardCustomStat_WithZeroAndNegative)
+{
+    // Player 基类的空实现对任何参数都不应崩溃
+    Player player(EntityId(1), "TestPlayer");
+    EXPECT_NO_THROW(player.awardCustomStat(ResourceLocation(stats::OPEN_CHEST), 0));
+    EXPECT_NO_THROW(player.awardCustomStat(ResourceLocation(stats::OPEN_CHEST), -1));
+    EXPECT_NO_THROW(player.awardCustomStat(ResourceLocation("minecraft:fake_stat"), 100));
+}
