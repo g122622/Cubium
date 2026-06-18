@@ -204,9 +204,15 @@ i32 WhitelistCommand::_whitelistAdd(CommandContext<ServerCommandSource>& context
                 if (playerData != nullptr) {
                     playerName = playerData->username;
                     // 在线玩家使用其真实 UUID
-                    playerUuid = playerData->uuid;
+                    // ServerPlayerData::uuid 存储为 32 字符无连字符格式，
+                    // 白名单 JSON 使用带连字符的标准格式，需要转换
+                    const auto& rawUuid = playerData->uuid;
+                    if (!rawUuid.empty()) {
+                        Uuid parsed = util::uuidFromString(rawUuid);
+                        playerUuid = util::uuidToStringWithDashes(parsed);
+                    }
                     if (playerUuid.empty()) {
-                        // UUID 为空时回退到离线模式 UUID
+                        // UUID 为空或解析失败时回退到离线模式 UUID
                         playerUuid = util::uuidToStringWithDashes(util::generateOfflineUuid(playerName));
                     }
                 }

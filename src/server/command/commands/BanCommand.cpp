@@ -118,7 +118,14 @@ i32 BanCommand::_banPlayer(CommandContext<ServerCommandSource>& context)
             auto* playerData = server->playerManager().getPlayer(playerId);
             if (playerData != nullptr) {
                 playerName = playerData->username;
-                playerUuid = playerData->uuid;
+                // 在线玩家使用其真实 UUID
+                // ServerPlayerData::uuid 存储为 32 字符无连字符格式，
+                // 封禁列表 JSON 使用带连字符的标准格式，需要转换
+                const auto& rawUuid = playerData->uuid;
+                if (!rawUuid.empty()) {
+                    Uuid parsed = util::uuidFromString(rawUuid);
+                    playerUuid = util::uuidToStringWithDashes(parsed);
+                }
             }
         }
     }

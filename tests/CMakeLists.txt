@@ -555,6 +555,7 @@ add_executable(mc_tests
     server/command/CloneCommandTest.cpp
     server/command/GiveCommandTest.cpp
     server/command/LootCommandTest.cpp
+    server/command/WhitelistBanCommandTest.cpp
     server/command/PlayerResolverTest.cpp
     server/command/EntityResolverTest.cpp
     server/command/MessageCommandTest.cpp
