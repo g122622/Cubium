@@ -304,3 +304,334 @@ TEST_F(TimerQueueTest, DueEvent_FunctionTagType)
     EXPECT_EQ(due[0].id, "#minecraft:load");
     EXPECT_EQ(due[0].loc, ResourceLocation("minecraft", "load"));
 }
+
+// ========== 序列化/反序列化 ==========
+
+TEST_F(TimerQueueTest, Serialize_EmptyQueue)
+{
+    auto serialized = queue.serialize();
+    ASSERT_NE(serialized, nullptr);
+    EXPECT_TRUE(serialized->value.empty());
+}
+
+TEST_F(TimerQueueTest, Serialize_SingleFunctionEvent)
+{
+    queue.scheduleFunction("minecraft:test", ResourceLocation("minecraft", "test"), 100);
+
+    auto serialized = queue.serialize();
+    ASSERT_NE(serialized, nullptr);
+    ASSERT_EQ(serialized->value.size(), 1u);
+
+    const auto& eventTag = serialized->value[0];
+    auto nameIt = eventTag.value.find("Name");
+    ASSERT_NE(nameIt, eventTag.value.end());
+    ASSERT_EQ(nameIt->second->id(), nbt::TagId::String);
+    EXPECT_EQ(dynamic_cast<const nbt::tags::string_tag&>(*nameIt->second).value, "minecraft:test");
+
+    auto triggerTimeIt = eventTag.value.find("TriggerTime");
+    ASSERT_NE(triggerTimeIt, eventTag.value.end());
+    ASSERT_EQ(triggerTimeIt->second->id(), nbt::TagId::Long);
+    EXPECT_EQ(dynamic_cast<const nbt::tags::long_tag&>(*triggerTimeIt->second).value, 100);
+
+    auto callbackIt = eventTag.value.find("Callback");
+    ASSERT_NE(callbackIt, eventTag.value.end());
+    ASSERT_EQ(callbackIt->second->id(), nbt::TagId::Compound);
+    const auto& callback = dynamic_cast<const nbt::tags::compound_tag&>(*callbackIt->second);
+
+    auto typeIt = callback.value.find("Type");
+    ASSERT_NE(typeIt, callback.value.end());
+    ASSERT_EQ(typeIt->second->id(), nbt::TagId::String);
+    EXPECT_EQ(dynamic_cast<const nbt::tags::string_tag&>(*typeIt->second).value, "minecraft:function");
+
+    auto funcNameIt = callback.value.find("Name");
+    ASSERT_NE(funcNameIt, callback.value.end());
+    ASSERT_EQ(funcNameIt->second->id(), nbt::TagId::String);
+    EXPECT_EQ(dynamic_cast<const nbt::tags::string_tag&>(*funcNameIt->second).value, "minecraft:test");
+}
+
+TEST_F(TimerQueueTest, Serialize_FunctionTagEvent)
+{
+    queue.scheduleFunctionTag("#minecraft:tick", ResourceLocation("minecraft", "tick"), 200);
+
+    auto serialized = queue.serialize();
+    ASSERT_NE(serialized, nullptr);
+    ASSERT_EQ(serialized->value.size(), 1u);
+
+    const auto& eventTag = serialized->value[0];
+    auto callbackIt = eventTag.value.find("Callback");
+    ASSERT_NE(callbackIt, eventTag.value.end());
+    const auto& callback = dynamic_cast<const nbt::tags::compound_tag&>(*callbackIt->second);
+
+    auto typeIt = callback.value.find("Type");
+    ASSERT_NE(typeIt, callback.value.end());
+    EXPECT_EQ(dynamic_cast<const nbt::tags::string_tag&>(*typeIt->second).value, "minecraft:function_tag");
+}
+
+TEST_F(TimerQueueTest, Serialize_MultipleEventsSorted)
+{
+    // 按非顺序时间添加事件
+    queue.scheduleFunction("minecraft:c", ResourceLocation("minecraft", "c"), 300);
+    queue.scheduleFunction("minecraft:a", ResourceLocation("minecraft", "a"), 100);
+    queue.scheduleFunction("minecraft:b", ResourceLocation("minecraft", "b"), 200);
+
+    auto serialized = queue.serialize();
+    ASSERT_NE(serialized, nullptr);
+    ASSERT_EQ(serialized->value.size(), 3u);
+
+    // 序列化后按 triggerTime 升序排列
+    const auto& event0 = serialized->value[0];
+    auto name0 = event0.value.find("Name");
+    ASSERT_NE(name0, event0.value.end());
+    EXPECT_EQ(dynamic_cast<const nbt::tags::string_tag&>(*name0->second).value, "minecraft:a");
+
+    const auto& event1 = serialized->value[1];
+    auto name1 = event1.value.find("Name");
+    ASSERT_NE(name1, event1.value.end());
+    EXPECT_EQ(dynamic_cast<const nbt::tags::string_tag&>(*name1->second).value, "minecraft:b");
+
+    const auto& event2 = serialized->value[2];
+    auto name2 = event2.value.find("Name");
+    ASSERT_NE(name2, event2.value.end());
+    EXPECT_EQ(dynamic_cast<const nbt::tags::string_tag&>(*name2->second).value, "minecraft:c");
+}
+
+TEST_F(TimerQueueTest, Deserialize_EmptyList)
+{
+    nbt::tags::compound_list_tag emptyList;
+    queue.scheduleFunction("minecraft:test", ResourceLocation("minecraft", "test"), 100);
+    EXPECT_EQ(queue.size(), 1u);
+
+    queue.deserialize(emptyList);
+    EXPECT_TRUE(queue.isEmpty());
+    EXPECT_EQ(queue.size(), 0u);
+}
+
+TEST_F(TimerQueueTest, Deserialize_SingleFunctionEvent)
+{
+    nbt::tags::compound_list_tag list;
+    nbt::tags::compound_tag eventTag;
+    eventTag.put("Name", std::string("minecraft:test"));
+    eventTag.put("TriggerTime", static_cast<i64>(100));
+
+    auto callback = std::make_unique<nbt::tags::compound_tag>();
+    callback->put("Type", std::string("minecraft:function"));
+    callback->put("Name", std::string("minecraft:test"));
+    eventTag.value.emplace("Callback", std::move(callback));
+
+    list.value.push_back(std::move(eventTag));
+
+    queue.deserialize(list);
+    EXPECT_EQ(queue.size(), 1u);
+
+    auto due = queue.tick(100);
+    ASSERT_EQ(due.size(), 1u);
+    EXPECT_EQ(due[0].id, "minecraft:test");
+    EXPECT_EQ(due[0].type, TimerQueue::EventType::Function);
+    EXPECT_EQ(due[0].loc, ResourceLocation("minecraft", "test"));
+}
+
+TEST_F(TimerQueueTest, Deserialize_FunctionTagEvent)
+{
+    nbt::tags::compound_list_tag list;
+    nbt::tags::compound_tag eventTag;
+    eventTag.put("Name", std::string("#minecraft:tick"));
+    eventTag.put("TriggerTime", static_cast<i64>(50));
+
+    auto callback = std::make_unique<nbt::tags::compound_tag>();
+    callback->put("Type", std::string("minecraft:function_tag"));
+    callback->put("Name", std::string("minecraft:tick"));
+    eventTag.value.emplace("Callback", std::move(callback));
+
+    list.value.push_back(std::move(eventTag));
+
+    queue.deserialize(list);
+    EXPECT_EQ(queue.size(), 1u);
+
+    auto due = queue.tick(50);
+    ASSERT_EQ(due.size(), 1u);
+    EXPECT_EQ(due[0].type, TimerQueue::EventType::FunctionTag);
+    EXPECT_EQ(due[0].id, "#minecraft:tick");
+}
+
+TEST_F(TimerQueueTest, Deserialize_MultipleEvents)
+{
+    nbt::tags::compound_list_tag list;
+
+    // 事件 1：minecraft:a at tick 100
+    {
+        nbt::tags::compound_tag eventTag;
+        eventTag.put("Name", std::string("minecraft:a"));
+        eventTag.put("TriggerTime", static_cast<i64>(100));
+        auto callback = std::make_unique<nbt::tags::compound_tag>();
+        callback->put("Type", std::string("minecraft:function"));
+        callback->put("Name", std::string("minecraft:a"));
+        eventTag.value.emplace("Callback", std::move(callback));
+        list.value.push_back(std::move(eventTag));
+    }
+
+    // 事件 2：minecraft:b at tick 200
+    {
+        nbt::tags::compound_tag eventTag;
+        eventTag.put("Name", std::string("minecraft:b"));
+        eventTag.put("TriggerTime", static_cast<i64>(200));
+        auto callback = std::make_unique<nbt::tags::compound_tag>();
+        callback->put("Type", std::string("minecraft:function"));
+        callback->put("Name", std::string("minecraft:b"));
+        eventTag.value.emplace("Callback", std::move(callback));
+        list.value.push_back(std::move(eventTag));
+    }
+
+    queue.deserialize(list);
+    EXPECT_EQ(queue.size(), 2u);
+
+    auto due1 = queue.tick(100);
+    ASSERT_EQ(due1.size(), 1u);
+    EXPECT_EQ(due1[0].id, "minecraft:a");
+
+    auto due2 = queue.tick(200);
+    ASSERT_EQ(due2.size(), 1u);
+    EXPECT_EQ(due2[0].id, "minecraft:b");
+}
+
+TEST_F(TimerQueueTest, Deserialize_SkipsInvalidEvents)
+{
+    nbt::tags::compound_list_tag list;
+
+    // 缺少 Name 的事件
+    {
+        nbt::tags::compound_tag eventTag;
+        eventTag.put("TriggerTime", static_cast<i64>(100));
+        auto callback = std::make_unique<nbt::tags::compound_tag>();
+        callback->put("Type", std::string("minecraft:function"));
+        callback->put("Name", std::string("minecraft:test"));
+        eventTag.value.emplace("Callback", std::move(callback));
+        list.value.push_back(std::move(eventTag));
+    }
+
+    // 缺少 Callback 的事件
+    {
+        nbt::tags::compound_tag eventTag;
+        eventTag.put("Name", std::string("minecraft:test"));
+        eventTag.put("TriggerTime", static_cast<i64>(100));
+        list.value.push_back(std::move(eventTag));
+    }
+
+    // 未知回调类型的事件
+    {
+        nbt::tags::compound_tag eventTag;
+        eventTag.put("Name", std::string("minecraft:unknown"));
+        eventTag.put("TriggerTime", static_cast<i64>(100));
+        auto callback = std::make_unique<nbt::tags::compound_tag>();
+        callback->put("Type", std::string("minecraft:unknown_type"));
+        callback->put("Name", std::string("minecraft:unknown"));
+        eventTag.value.emplace("Callback", std::move(callback));
+        list.value.push_back(std::move(eventTag));
+    }
+
+    // 有效事件
+    {
+        nbt::tags::compound_tag eventTag;
+        eventTag.put("Name", std::string("minecraft:valid"));
+        eventTag.put("TriggerTime", static_cast<i64>(50));
+        auto callback = std::make_unique<nbt::tags::compound_tag>();
+        callback->put("Type", std::string("minecraft:function"));
+        callback->put("Name", std::string("minecraft:valid"));
+        eventTag.value.emplace("Callback", std::move(callback));
+        list.value.push_back(std::move(eventTag));
+    }
+
+    queue.deserialize(list);
+    // 只有最后一个有效事件应该被加载
+    EXPECT_EQ(queue.size(), 1u);
+
+    auto due = queue.tick(50);
+    ASSERT_EQ(due.size(), 1u);
+    EXPECT_EQ(due[0].id, "minecraft:valid");
+}
+
+TEST_F(TimerQueueTest, Deserialize_ClearsExistingEvents)
+{
+    // 先添加一些事件
+    queue.scheduleFunction("minecraft:existing", ResourceLocation("minecraft", "existing"), 100);
+    EXPECT_EQ(queue.size(), 1u);
+
+    // 反序列化新事件列表
+    nbt::tags::compound_list_tag list;
+    nbt::tags::compound_tag eventTag;
+    eventTag.put("Name", std::string("minecraft:new"));
+    eventTag.put("TriggerTime", static_cast<i64>(200));
+    auto callback = std::make_unique<nbt::tags::compound_tag>();
+    callback->put("Type", std::string("minecraft:function"));
+    callback->put("Name", std::string("minecraft:new"));
+    eventTag.value.emplace("Callback", std::move(callback));
+    list.value.push_back(std::move(eventTag));
+
+    queue.deserialize(list);
+    EXPECT_EQ(queue.size(), 1u);
+
+    // 原有事件应被清除
+    auto due = queue.tick(100);
+    EXPECT_TRUE(due.empty());
+
+    // 新事件应正常工作
+    due = queue.tick(200);
+    ASSERT_EQ(due.size(), 1u);
+    EXPECT_EQ(due[0].id, "minecraft:new");
+}
+
+TEST_F(TimerQueueTest, RoundTrip_SerializeDeserialize)
+{
+    // 添加多种类型的事件
+    queue.scheduleFunction("minecraft:func1", ResourceLocation("minecraft", "func1"), 100);
+    queue.scheduleFunctionTag("#minecraft:tag1", ResourceLocation("minecraft", "tag1"), 200);
+    queue.scheduleFunction("custom:func2", ResourceLocation("custom", "func2"), 300);
+
+    // 序列化
+    auto serialized = queue.serialize();
+    ASSERT_NE(serialized, nullptr);
+    ASSERT_EQ(serialized->value.size(), 3u);
+
+    // 反序列化到新队列
+    TimerQueue queue2;
+    queue2.deserialize(*serialized);
+    EXPECT_EQ(queue2.size(), 3u);
+
+    // 验证事件按正确顺序触发
+    auto due1 = queue2.tick(100);
+    ASSERT_EQ(due1.size(), 1u);
+    EXPECT_EQ(due1[0].id, "minecraft:func1");
+    EXPECT_EQ(due1[0].type, TimerQueue::EventType::Function);
+    EXPECT_EQ(due1[0].loc, ResourceLocation("minecraft", "func1"));
+
+    auto due2 = queue2.tick(200);
+    ASSERT_EQ(due2.size(), 1u);
+    EXPECT_EQ(due2[0].id, "#minecraft:tag1");
+    EXPECT_EQ(due2[0].type, TimerQueue::EventType::FunctionTag);
+    EXPECT_EQ(due2[0].loc, ResourceLocation("minecraft", "tag1"));
+
+    auto due3 = queue2.tick(300);
+    ASSERT_EQ(due3.size(), 1u);
+    EXPECT_EQ(due3[0].id, "custom:func2");
+    EXPECT_EQ(due3[0].type, TimerQueue::EventType::Function);
+    EXPECT_EQ(due3[0].loc, ResourceLocation("custom", "func2"));
+}
+
+TEST_F(TimerQueueTest, RoundTrip_DeduplicationPreserved)
+{
+    // 添加重复事件（相同 id + triggerTime）
+    ResourceLocation loc("minecraft", "test");
+    queue.scheduleFunction("minecraft:test", loc, 100);
+    queue.scheduleFunction("minecraft:test", loc, 100); // 重复，应该被去重
+
+    EXPECT_EQ(queue.size(), 1u);
+
+    // 序列化 -> 反序列化
+    auto serialized = queue.serialize();
+    TimerQueue queue2;
+    queue2.deserialize(*serialized);
+
+    EXPECT_EQ(queue2.size(), 1u);
+
+    auto due = queue2.tick(100);
+    ASSERT_EQ(due.size(), 1u);
+}

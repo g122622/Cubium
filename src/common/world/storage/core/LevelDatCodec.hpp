@@ -302,6 +302,31 @@ public:
         i32 thunderTime,
         bool thundering);
 
+    /**
+     * @brief 从 level.dat 读取调度事件列表
+     *
+     * 读取 Data 复合标签下的 ScheduledEvents 列表标签。
+     * 如果列表不存在或为空，返回空列表。
+     *
+     * @param worldDir 世界目录路径
+     * @return 成功返回 NBT 复合列表，失败返回错误
+     */
+    static Result<std::unique_ptr<nbt::tags::compound_list_tag>> readScheduledEvents(
+        const std::filesystem::path& worldDir);
+
+    /**
+     * @brief 更新 level.dat 中的调度事件列表
+     *
+     * 将 ScheduledEvents 列表标签写入 Data 复合标签。
+     * 如果列表为空，则删除 ScheduledEvents 键。
+     *
+     * @param worldDir 世界目录路径
+     * @param events 调度事件 NBT 列表（可为空）
+     * @return 成功返回空，失败返回错误
+     */
+    static Result<void> updateScheduledEvents(
+        const std::filesystem::path& worldDir, const nbt::tags::compound_list_tag& events);
+
 private:
     /**
      * @brief 从 gzip 文件读取 NBT

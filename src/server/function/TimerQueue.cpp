@@ -139,5 +139,116 @@ void TimerQueue::clear()
     m_scheduledKeys.clear();
 }
 
+std::unique_ptr<nbt::tags::compound_list_tag> TimerQueue::serialize() const
+{
+    auto list = std::make_unique<nbt::tags::compound_list_tag>();
+
+    // 从优先队列中提取所有事件并排序（优先队列的迭代器不保证顺序）
+    std::vector<Event> events;
+    events.reserve(m_queue.size());
+
+    // 复制队列中的事件（priority_queue 不提供迭代器，需要逐个取出再放回）
+    // 使用 const_cast 访问底层容器是 priority_queue 的常见做法，
+    // 但这里采用安全方式：创建临时队列来拷贝
+    auto tempQueue = m_queue;
+    while (!tempQueue.empty()) {
+        events.push_back(std::move(const_cast<Event&>(tempQueue.top())));
+        tempQueue.pop();
+    }
+
+    // 按 triggerTime 升序排列，同 tick 按 sequentialId 升序
+    std::sort(events.begin(), events.end(), [](const Event& a, const Event& b) {
+        if (a.triggerTime != b.triggerTime) {
+            return a.triggerTime < b.triggerTime;
+        }
+        return a.sequentialId < b.sequentialId;
+    });
+
+    for (const auto& event : events) {
+        nbt::tags::compound_tag eventTag;
+
+        // 事件标识符
+        eventTag.put("Name", event.id);
+
+        // 触发时间
+        eventTag.put("TriggerTime", static_cast<i64>(event.triggerTime));
+
+        // 回调信息（与 MC Java 格式兼容）
+        auto callback = std::make_unique<nbt::tags::compound_tag>();
+        switch (event.type) {
+            case EventType::Function:
+                callback->put("Type", std::string("minecraft:function"));
+                break;
+            case EventType::FunctionTag:
+                callback->put("Type", std::string("minecraft:function_tag"));
+                break;
+        }
+        callback->put("Name", event.loc.toString());
+        eventTag.value.emplace("Callback", std::move(callback));
+
+        list->value.push_back(std::move(eventTag));
+    }
+
+    return list;
+}
+
+void TimerQueue::deserialize(const nbt::tags::compound_list_tag& eventsList)
+{
+    // 清空当前队列
+    clear();
+
+    for (const auto& eventTag : eventsList.value) {
+        // 读取事件标识符
+        auto nameIt = eventTag.value.find("Name");
+        if (nameIt == eventTag.value.end() || nameIt->second->id() != nbt::TagId::String) {
+            spdlog::warn("TimerQueue::deserialize: 跳过缺少 Name 字段的事件");
+            continue;
+        }
+        std::string name = dynamic_cast<const nbt::tags::string_tag&>(*nameIt->second).value;
+
+        // 读取触发时间
+        auto triggerTimeIt = eventTag.value.find("TriggerTime");
+        if (triggerTimeIt == eventTag.value.end() || triggerTimeIt->second->id() != nbt::TagId::Long) {
+            spdlog::warn("TimerQueue::deserialize: 跳过缺少 TriggerTime 字段的事件: {}", name);
+            continue;
+        }
+        u64 triggerTime = static_cast<u64>(dynamic_cast<const nbt::tags::long_tag&>(*triggerTimeIt->second).value);
+
+        // 读取回调信息
+        auto callbackIt = eventTag.value.find("Callback");
+        if (callbackIt == eventTag.value.end() || callbackIt->second->id() != nbt::TagId::Compound) {
+            spdlog::warn("TimerQueue::deserialize: 跳过缺少 Callback 字段的事件: {}", name);
+            continue;
+        }
+        const auto& callback = dynamic_cast<const nbt::tags::compound_tag&>(*callbackIt->second);
+
+        // 读取回调类型
+        auto typeIt = callback.value.find("Type");
+        if (typeIt == callback.value.end() || typeIt->second->id() != nbt::TagId::String) {
+            spdlog::warn("TimerQueue::deserialize: 跳过缺少 Callback.Type 字段的事件: {}", name);
+            continue;
+        }
+        std::string typeStr = dynamic_cast<const nbt::tags::string_tag&>(*typeIt->second).value;
+
+        // 读取回调中的函数/标签 ResourceLocation
+        auto funcNameIt = callback.value.find("Name");
+        if (funcNameIt == callback.value.end() || funcNameIt->second->id() != nbt::TagId::String) {
+            spdlog::warn("TimerQueue::deserialize: 跳过缺少 Callback.Name 字段的事件: {}", name);
+            continue;
+        }
+        std::string funcName = dynamic_cast<const nbt::tags::string_tag&>(*funcNameIt->second).value;
+        ResourceLocation loc = ResourceLocation::parse(funcName);
+
+        // 根据回调类型调度事件
+        if (typeStr == "minecraft:function") {
+            scheduleFunction(name, std::move(loc), triggerTime);
+        } else if (typeStr == "minecraft:function_tag") {
+            scheduleFunctionTag(name, std::move(loc), triggerTime);
+        } else {
+            spdlog::warn("TimerQueue::deserialize: 跳过未知回调类型的事件: type={}, name={}", typeStr, name);
+        }
+    }
+}
+
 } // namespace function
 } // namespace mc

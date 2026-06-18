@@ -798,4 +798,79 @@ Result<void> LevelDatCodec::updateRuntimeData(const std::filesystem::path& world
     return _atomicWrite(worldDir, *root);
 }
 
+Result<std::unique_ptr<nbt::tags::compound_list_tag>> LevelDatCodec::readScheduledEvents(
+    const std::filesystem::path& worldDir)
+{
+    auto rootResult = _readGzipNbt(worldDir / "level.dat");
+    if (rootResult.failed()) {
+        rootResult = _readGzipNbt(worldDir / "level.dat_old");
+        if (rootResult.failed()) {
+            return rootResult.error();
+        }
+    }
+
+    auto rootPtr = rootResult.value();
+    const auto& root = *rootPtr;
+
+    auto dataIt = root.value.find("Data");
+    if (dataIt == root.value.end() || dataIt->second->id() != nbt::TagId::Compound) {
+        // 没有 Data 复合标签，返回空列表
+        return std::make_unique<nbt::tags::compound_list_tag>();
+    }
+
+    const auto& data = dynamic_cast<const nbt::tags::compound_tag&>(*dataIt->second);
+    auto eventsIt = data.value.find("ScheduledEvents");
+    if (eventsIt == data.value.end()) {
+        // 没有 ScheduledEvents 字段，返回空列表
+        return std::make_unique<nbt::tags::compound_list_tag>();
+    }
+
+    if (eventsIt->second->id() != nbt::TagId::List) {
+        spdlog::warn("ScheduledEvents in level.dat is not a list tag, ignoring");
+        return std::make_unique<nbt::tags::compound_list_tag>();
+    }
+
+    const auto& listTag = dynamic_cast<const nbt::tags::list_tag&>(*eventsIt->second);
+    if (listTag.element_id() != nbt::TagId::Compound) {
+        spdlog::warn("ScheduledEvents in level.dat is not a compound list, ignoring");
+        return std::make_unique<nbt::tags::compound_list_tag>();
+    }
+
+    const auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(listTag);
+    auto result = std::make_unique<nbt::tags::compound_list_tag>();
+    result->value.reserve(compoundList.value.size());
+    for (const auto& entry : compoundList.value) {
+        result->value.push_back(entry); // compound_tag 拷贝构造
+    }
+
+    return result;
+}
+
+Result<void> LevelDatCodec::updateScheduledEvents(
+    const std::filesystem::path& worldDir, const nbt::tags::compound_list_tag& events)
+{
+    std::unique_ptr<nbt::tags::compound_tag> root;
+    nbt::tags::compound_tag* data = nullptr;
+
+    auto result = _readDataCompound(worldDir, root, data);
+    if (result.failed()) {
+        return result.error();
+    }
+
+    if (events.value.empty()) {
+        // 空列表时删除 ScheduledEvents 键
+        data->value.erase("ScheduledEvents");
+    } else {
+        // 写入 ScheduledEvents 列表
+        auto listCopy = std::make_unique<nbt::tags::compound_list_tag>();
+        listCopy->value.reserve(events.value.size());
+        for (const auto& entry : events.value) {
+            listCopy->value.push_back(entry);
+        }
+        data->value.emplace("ScheduledEvents", std::move(listCopy));
+    }
+
+    return _atomicWrite(worldDir, *root);
+}
+
 } // namespace mc::world::storage

@@ -577,6 +577,13 @@ Result<size_t> MinecraftServer::saveAllWorldData()
         if (levelResult.failed()) {
             spdlog::error("Failed to save level.dat: {}", levelResult.error().message());
         }
+
+        // 保存调度事件到 level.dat
+        auto serializedEvents = m_functionTimerQueue.serialize();
+        auto eventsResult = m_storage->saveScheduledEvents(*serializedEvents);
+        if (eventsResult.failed()) {
+            spdlog::error("Failed to save scheduled events: {}", eventsResult.error().message());
+        }
     }
 
     spdlog::info("Saved {} cached sections and player data during shutdown", result.value());
@@ -630,6 +637,15 @@ Result<void> MinecraftServer::initializeWorld()
                     world->initializeWorldSpawn();
                 }
             });
+        }
+
+        // 加载调度事件
+        auto eventsResult = m_storage->loadScheduledEvents();
+        if (eventsResult.success() && !eventsResult.value()->value.empty()) {
+            m_functionTimerQueue.deserialize(*eventsResult.value());
+            spdlog::info("Loaded {} scheduled event(s) from level.dat", m_functionTimerQueue.size());
+        } else if (eventsResult.failed()) {
+            spdlog::warn("Failed to load scheduled events: {}", eventsResult.error().message());
         }
     }
 

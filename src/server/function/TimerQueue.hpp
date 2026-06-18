@@ -2,6 +2,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <algorithm>
 #include <queue>
 #include <string>
@@ -24,10 +25,8 @@ namespace function {
  * 事件在 tick() 中被处理：所有 triggerTime <= currentTick 的事件
  * 将被收集并返回给调用者执行。
  *
- * 调度的事件在服务器重启后不持久化。
- *
- * TODO: 调度事件持久化到 level.dat。需要实现：
- * 1) 事件序列化到 NBT 2) 从 level.dat 加载恢复 3) 服务器关闭时保存
+ * 调度事件会在服务器关闭时持久化到 level.dat 的 ScheduledEvents 字段，
+ * 并在服务器启动时从 level.dat 加载恢复。
  */
 class TimerQueue {
 public:
@@ -134,6 +133,32 @@ public:
      * @brief 清空所有事件
      */
     void clear();
+
+    /**
+     * @brief 将所有待调度事件序列化为 NBT 列表
+     *
+     * 序列化格式与 MC Java 兼容：
+     * - 列表标签 "ScheduledEvents"，每个元素为 CompoundTag
+     * - 每个事件包含：Name (String), TriggerTime (Long), Callback (Compound)
+     * - Callback 内含：Type (String, "minecraft:function" 或 "minecraft:function_tag"),
+     *                  Name (String, 函数/标签的 ResourceLocation)
+     * - 事件按 triggerTime 升序排列，同 tick 按 sequentialId 升序
+     * - sequentialId 不持久化（加载时重新分配）
+     *
+     * @return NBT 复合标签列表
+     */
+    [[nodiscard]] std::unique_ptr<nbt::tags::compound_list_tag> serialize() const;
+
+    /**
+     * @brief 从 NBT 列表反序列化并加载事件
+     *
+     * 清空当前队列，然后从 NBT ScheduledEvents 列表中恢复所有事件。
+     * 加载时重新分配 sequentialId，因此不保留原始插入顺序。
+     * 无法识别的事件类型会被静默跳过。
+     *
+     * @param eventsList NBT 复合标签列表
+     */
+    void deserialize(const nbt::tags::compound_list_tag& eventsList);
 
 private:
     void scheduleInternal(const std::string& id, ResourceLocation loc, u64 triggerTime, EventType type);
