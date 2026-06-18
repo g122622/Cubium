@@ -205,10 +205,43 @@ void EffectInstance::remove(LivingEntity& entity)
     m_applied = false;
 }
 
+void EffectInstance::applyInstantly(LivingEntity& entity)
+{
+    // 直接执行效果的 tick 逻辑，不递减持续时间
+    _applyEffect(entity);
+}
+
 void EffectInstance::_applyEffect(LivingEntity& entity)
 {
     // 根据效果类型执行每tick逻辑
     switch (m_type) {
+        case EffectType::InstantHealth: {
+            // 瞬间治疗：亡灵生物受到伤害，普通生物治疗
+            // MC 原版: 基础值 4.0，每级增加 2.0
+            // 注意：距离因子（multiplier）在此处默认为 1.0
+            // 药水云中使用的半强度由 applyInstantEffect 单独处理
+            f32 amount = 4.0f + static_cast<f32>(m_amplifier) * 2.0f;
+            if (entity.getCreatureAttribute() == CreatureAttribute::Undead) {
+                auto source = DamageSources::magic();
+                entity.hurt(source, amount);
+            } else {
+                entity.heal(amount);
+            }
+            break;
+        }
+
+        case EffectType::InstantDamage: {
+            // 瞬间伤害：亡灵生物治疗，普通生物受到伤害
+            f32 amount = 4.0f + static_cast<f32>(m_amplifier) * 2.0f;
+            if (entity.getCreatureAttribute() == CreatureAttribute::Undead) {
+                entity.heal(amount);
+            } else {
+                auto source = DamageSources::magic();
+                entity.hurt(source, amount);
+            }
+            break;
+        }
+
         case EffectType::Regeneration: {
             // 每 50/(level+1) tick 治疗 1 HP
             i32 interval = 50 >> m_amplifier;
@@ -255,9 +288,13 @@ void EffectInstance::_applyEffect(LivingEntity& entity)
         }
 
         case EffectType::Saturation: {
-            // 瞬间效果：恢复饥饿值（如果玩家）
-            // 由于是瞬间效果，这里不应被调用
-            // 应在添加效果时立即处理
+            // 瞬间效果：恢复饥饿值和饱和度（仅对玩家有效）
+            // MC 原版: player.getFoodData().eat(amplifier + 1, 1.0F)
+            // foodLevel += (amplifier + 1), saturationLevel += (amplifier + 1) * 1.0 * 2.0
+            if (auto* player = dynamic_cast<Player*>(&entity)) {
+                i32 nutrition = m_amplifier + 1;
+                player->foodStats().addStats(nutrition, 1.0f);
+            }
             break;
         }
 

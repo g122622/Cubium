@@ -57,7 +57,9 @@ EffectType ←── EffectInstance ←── EffectManager
 - `duration < 0`：永久效果（如信标效果）
 
 ### 3. 瞬间效果的 tick 处理
-瞬间治疗、瞬间伤害、饱和效果在 `tick()` 中处理，MC 原版在添加时立即执行。目前实现与 MC 有差异，需要后续对齐。
+瞬间治疗、瞬间伤害、饱和效果在 `EffectManager::addEffect()` 中立即执行效果逻辑后丢弃，不保存到效果列表。这与 MC 原版行为一致：`InstantenousMobEffect.shouldApplyEffectTickThisTick()` 在 duration >= 1 时返回 true，效果在第一个 tick 触发一次后过期。
+
+饱和效果（仅对玩家有效）通过 `Player::foodStats().addStats()` 恢复饥饿值和饱和度，公式为 `addStats(amplifier + 1, 1.0)`，即每级增加 1 点饥饿值和 2 点饱和度。
 
 ### 4. 属性修改器的 UUID
 效果使用固定 UUID 来标识属性修改器，在 `apply()` 时添加，`remove()` 时移除。同一个效果不能重复叠加属性修改器。

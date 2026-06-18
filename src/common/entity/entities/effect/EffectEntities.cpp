@@ -27,13 +27,13 @@
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../world/explosion/ExplosionMode.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../boss/EnderDragonEntity.hpp"
 #include "../player/Player.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <chrono>
 #include <cmath>
 
@@ -79,11 +79,12 @@ void applyInstantEffect(effect::EffectType type, LivingEntity& target, i32 ampli
             break;
 
         case effect::EffectType::Saturation:
-            // 饱和效果：恢复饥饿值（仅对玩家有效）
-            // TODO: 当玩家饥饿系统完善后，恢复饥饿值和饱和度
-            // 目前通过治疗模拟效果
-            if (target.getCreatureAttribute() != CreatureAttribute::Undead) {
-                target.heal(amount * 0.5f);
+            // 饱和效果：恢复饥饿值和饱和度（仅对玩家有效）
+            // MC 原版: player.getFoodData().eat(amplifier + 1, 1.0F)
+            // foodLevel += (amplifier + 1), saturationLevel += (amplifier + 1) * 1.0 * 2.0
+            if (auto* player = dynamic_cast<Player*>(&target)) {
+                i32 nutrition = amplifier + 1;
+                player->foodStats().addStats(nutrition, 1.0f);
             }
             break;
 

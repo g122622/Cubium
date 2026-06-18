@@ -112,6 +112,12 @@ public:
      */
     [[nodiscard]] bool isApplied() const noexcept { return m_applied; }
 
+    /**
+     * @brief 设置持续时间
+     * @param duration 新的持续时间（tick），-1表示永久，0表示过期
+     */
+    void setDuration(i32 duration) noexcept { m_duration = duration; }
+
     // ========== 更新 ==========
 
     /**
@@ -137,6 +143,17 @@ public:
      * @brief 移除效果（移除时调用）
      */
     void remove(LivingEntity& entity);
+
+    /**
+     * @brief 立即执行效果逻辑（用于瞬间效果）
+     *
+     * 直接调用效果的 tick 逻辑，不递减持续时间。
+     * 用于瞬间效果（InstantHealth、InstantDamage、Saturation）
+     * 在添加时立即触发效果。
+     *
+     * @param entity 受影响的实体
+     */
+    void applyInstantly(LivingEntity& entity);
 
     // ========== 静态工厂方法 ==========
 
