@@ -11,6 +11,10 @@ world/
 ├── WorldConstants.hpp          # 世界常量（高度限制、区块尺寸等）和坐标转换工具
 ├── WorldConfig.hpp             # 世界配置
 ├── WorldEvents.hpp             # 世界事件ID常量
+├── gameevent/                  # 游戏事件系统
+│   ├── GameEvent.hpp           # 游戏事件类（含 Context）
+│   ├── GameEvents.hpp          # 原版游戏事件常量定义
+│   └── README.md               # 游戏事件系统文档
 ├── GlobalPos.hpp               # 全局位置类型
 ├── biome/                      # 生物群系系统
 │   ├── Biome.hpp/cpp           # 生物群系定义
