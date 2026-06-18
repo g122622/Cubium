@@ -32,6 +32,7 @@
 #include "entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "entity/attribute/Attributes.hpp"
+#include "entity/combat/DifficultyHelper.hpp"
 #include "entity/core/EntityRegistry.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/core/MobEntity.hpp"
@@ -122,10 +123,9 @@ void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f3
         velocity = 3.15f; // 箭矢速度
     }
 
-    // 计算难度相关的不精确度
-    // Peaceful=0: 14, Easy=1: 10, Normal=2: 6, Hard=3: 2
-    // 目前简化为固定值 6（普通难度）
-    f32 inaccuracy = 6.0f;
+    // 计算难度相关的不精确度：14 - difficulty.getId() * 4
+    // Peaceful=14, Easy=10, Normal=6, Hard=2
+    f32 inaccuracy = entity::combat::DifficultyHelper::getRangedAttackInaccuracy(m_world->difficulty());
 
     // 创建箭矢实体
     // 掠夺者不消耗弹药，直接创建箭矢

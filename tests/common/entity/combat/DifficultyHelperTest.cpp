@@ -199,6 +199,32 @@ TEST(DifficultyHelperTest, GetRegionalDifficultyBase)
     EXPECT_FLOAT_EQ(DifficultyHelper::getRegionalDifficultyBase(Difficulty::Hard), 1.0f);
 }
 
+// ========== 远程攻击不精确度测试 ==========
+
+TEST(DifficultyHelperTest, GetRangedAttackInaccuracy_Peaceful)
+{
+    // 和平模式：14 - 0*4 = 14
+    EXPECT_FLOAT_EQ(DifficultyHelper::getRangedAttackInaccuracy(Difficulty::Peaceful), 14.0f);
+}
+
+TEST(DifficultyHelperTest, GetRangedAttackInaccuracy_Easy)
+{
+    // 简单模式：14 - 1*4 = 10
+    EXPECT_FLOAT_EQ(DifficultyHelper::getRangedAttackInaccuracy(Difficulty::Easy), 10.0f);
+}
+
+TEST(DifficultyHelperTest, GetRangedAttackInaccuracy_Normal)
+{
+    // 普通模式：14 - 2*4 = 6
+    EXPECT_FLOAT_EQ(DifficultyHelper::getRangedAttackInaccuracy(Difficulty::Normal), 6.0f);
+}
+
+TEST(DifficultyHelperTest, GetRangedAttackInaccuracy_Hard)
+{
+    // 困难模式：14 - 3*4 = 2
+    EXPECT_FLOAT_EQ(DifficultyHelper::getRangedAttackInaccuracy(Difficulty::Hard), 2.0f);
+}
+
 // ========== 边界测试 ==========
 
 TEST(DifficultyHelperTest, InvalidDifficultyId)

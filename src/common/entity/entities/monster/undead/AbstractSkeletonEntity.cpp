@@ -34,6 +34,7 @@
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
@@ -86,10 +87,9 @@ void AbstractSkeletonEntity::attackEntityWithRangedAttack(LivingEntity* target, 
     f64 dz = target->z() - z();
     f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
 
-    // 不精确度计算：难度越高，不精确度越低，箭矢越精准
-    // 和平/简单: 14, 普通: 10, 困难: 6
-    i32 difficultyId = static_cast<i32>(world()->difficulty());
-    f32 inaccuracy = static_cast<f32>(14 - difficultyId * 4);
+    // 不精确度：难度越高，不精确度越低，箭矢越精准
+    // Peaceful=14, Easy=10, Normal=6, Hard=2
+    f32 inaccuracy = entity::combat::DifficultyHelper::getRangedAttackInaccuracy(world()->difficulty());
 
     // 使用生物箭矢伤害公式设置基础伤害
     arrow->setBaseDamageFromMob(charge);
